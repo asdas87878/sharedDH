@@ -2,9 +2,11 @@
 rigid segments along the spine (each turning at its front joint, like a Motor6D chain in Roblox, so every fish swims the same
 way), with the long fins cut at the same joints, a jointed tail fin, square eyes and a lip block, in 3 or 4 flat colour areas.
 
-usage: blender --background --python tools/blender/fish_kit.py -- <spec.json> <out folder> [--swim] [--joints sleeve|flat]
+usage: blender --background --python tools/blender/fish_kit.py -- <spec.json> <out folder> [--swim] [--joints sleeve|flat] [--wire]
   default: renders the turnaround views (transparent, for tools/art/creature_sheet.py) and a riding view in shallow water with a
            5-stud rider for scale, as the riding camera sees it
+  --wire:  also a head close-up (head.png) and the same with every mesh edge drawn in red (head_wire.png, front_wire.png), to
+           check the topology
   --swim:  renders a looping swim cycle (3/4 and top views) into <out>/swim_<joints>/ for tools/art/swim_gif.py
   --joints sleeve (default when the spec has "sleeve"): each segment carries a short inset sleeve forward into the one in front,
            so a bending joint shows body, not a gap; flat: plain cut joints
@@ -23,6 +25,7 @@ argv = sys.argv[sys.argv.index("--") + 1 :]
 SPEC = json.load(open(argv[0]))
 OUT = os.path.abspath(argv[1])
 SWIM = "--swim" in argv
+WIRE = "--wire" in argv
 JOINTS = argv[argv.index("--joints") + 1] if "--joints" in argv else ("sleeve" if SPEC.get("sleeve") else "flat")
 os.makedirs(OUT, exist_ok=True)
 
@@ -85,8 +88,8 @@ def ring(t, inset=1.0):
     h = top - bot
     ch, cv = CH * a, CV * h
     chb, cvb = CHB * a, CVB * h
-    if TOPLINE_Z == "chamfer":  # the top colour ends with the top chamfers (a hair under, so the ring keeps all 10 points)
-        zs = top - cv - 0.03
+    if TOPLINE_Z == "chamfer":  # the top colour ends with the top chamfers: that point doubles the chamfer's, welded later
+        zs = top - cv
     elif TOPLINE_Z is not None:
         zs = min(max(TOPLINE_Z, bot + cvb + 0.05), top - cv - 0.05)
     else:
@@ -180,12 +183,44 @@ def build_head(bm):
         f = bm.faces.new(verts)
         f.material_index = MAT_NAMES.index(colour)
 
-    face([v["FTl"], v["FTr"], v["FBr"], v["FBl"]], HEAD.get("faceColour", "body"))  # the face
+    # the mouth is pushed out of the face, one mesh with it (the user, 2026-11-09). The face gets a line across at the mouth's
+    # top and one at its bottom, running edge to edge, and the mouth takes the face's whole width there: its back corners are
+    # the points where those lines meet the face's edges, shared with the eye faces. Its sides follow the eye faces' angle
+    # (sideFollow 1: flush on the eye faces' planes, 0: straight back), so the front comes out narrower than the back.
+    m = SPEC["lips"]
+    mzt, mzb = m["z"] + m["size"][2] / 2, m["z"] - m["size"][2] / 2
+    x_front = face_x(m["z"]) - m["protrude"]
+    follow = m.get("sideFollow", 1.0)
+    FT, FB, slope = g["FT"], g["FB"], g["slope"]
+
+    def edge_at(z):
+        """the face's right edge (where it meets the eye face) at height z"""
+        return FT + (FB - FT) * ((FT.z - z) / (FT.z - FB.z))
+
+    P, Q = edge_at(mzt), edge_at(mzb)  # the mouth's back corners: top, bottom
+    pts = {
+        "P": P, "Q": Q,
+        "MF": Vector((x_front, P.y - follow * slope * (P.x - x_front), mzt)),  # its front corners, the sides angled in
+        "MG": Vector((x_front, Q.y - follow * slope * (Q.x - x_front), mzb)),
+    }
+    if not (FB.z < mzb < mzt < FT.z and min(pts["MF"].y, pts["MG"].y) > 0.1):
+        raise ValueError("the mouth must sit inside the face (between its top and the jaw line) and stay wider than its angle")
+    for name, p in pts.items():
+        v[name + "r"] = bm.verts.new((p.x, p.y, p.z))
+        v[name + "l"] = bm.verts.new((p.x, -p.y, p.z))
+    fc = HEAD.get("faceColour", "body")
+    face([v["FTl"], v["FTr"], v["Pr"], v["Pl"]], fc)  # the face, down to the mouth
+    face([v["Ql"], v["Qr"], v["FBr"], v["FBl"]], fc)  # under the mouth, down to the jaw line
+    face([v["Pl"], v["Pr"], v["MFr"], v["MFl"]], "lips")  # the mouth: top, front, bottom, sides
+    face([v["MFl"], v["MFr"], v["MGr"], v["MGl"]], "lips")
+    face([v["Ql"], v["MGl"], v["MGr"], v["Qr"]], "lips")
+    face([v["Pr"], v["Qr"], v["MGr"], v["MFr"]], "lips")
+    face([v["Pl"], v["MFl"], v["MGl"], v["Ql"]], "lips")
     face([v["FTl"], B[0], B[1], v["FTr"]], "top")  # the forehead
     face([v["FTr"], B[1], B[2]], "top")  # the corner facets
     face([v["FTl"], B[9], B[0]], "top")
-    face([v["FTr"], B[2], B[3], B[4], v["FBr"]], "body")  # the eye faces: one flat face each, grey all over
-    face([v["FTl"], v["FBl"], B[7], B[8], B[9]], "body")
+    face([v["FTr"], B[2], B[3], B[4], v["FBr"], v["Qr"], v["Pr"]], "body")  # the eye faces: flat, grey, the mouth's corners
+    face([v["FTl"], v["Pl"], v["Ql"], v["FBl"], B[7], B[8], B[9]], "body")  # on their front edges
     face([v["FBl"], v["FBr"], v["JBr"], v["JBl"]], "body")  # the chin
     face([v["JBl"], v["JBr"], B[5], B[6]], "body")
     face([v["FBr"], B[4], v["JBr"]], "body")  # the jaw, split by the diagonal from the eye face's back corner
@@ -275,6 +310,7 @@ for i, (s0, s1) in enumerate(zip(cuts, cuts[1:])):
     bm = bmesh.new()
     if i == 0 and HEAD:
         build_head(bm)
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)  # weld ring points that coincide (a top line on the chamfer)
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
         segments.append(mesh_object("Seg0", bm, (xat(s1), 0.0, 0.0), MAT_NAMES))
         continue
@@ -314,6 +350,7 @@ for i, (s0, s1) in enumerate(zip(cuts, cuts[1:])):
                 f = bm.faces.new((front[k], front[k2], back[k2], back[k]))
                 f.material_index = MAT_NAMES.index(face_colour(REGION[k], in_bar(s0 - sleeve_t, s0)))
     cap(bm, rings[-1], s1, 0.0)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)  # weld ring points that coincide (a top line on the chamfer)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     pivot = (xat(cuts[1]) if i == 0 else xat(s0), 0.0, 0.0)  # the head turns at the first joint, the rest at their front
     segments.append(mesh_object(f"Seg{i}", bm, pivot, MAT_NAMES))
@@ -417,16 +454,15 @@ for s in (-1, 1):
     pupil.parent = eye
     attach(eye, segments[0])
 
-if HEAD:
-    lips_x = face_x(SPEC["lips"]["z"]) - SPEC["lips"]["protrude"] + SPEC["lips"]["size"][0] / 2
-elif "protrude" in SPEC["lips"]:
-    lips_x = xat(0.0) - SPEC["lips"]["protrude"] + SPEC["lips"]["size"][0] / 2
-else:
-    lips_x = xat(0.0) - (FACE["depth"] if FACE else 0.0) - SPEC["lips"]["size"][0] / 2 + SPEC["lips"].get("sink", 0.05)
-lips = mesh_object("Lips", box_bm(SPEC["lips"]["size"]), (0.0, 0.0, 0.0), ["lips"])  # a local box: placed after
-lips.location = (lips_x, 0.0, SPEC["lips"]["z"])
-WORLD[lips.name] = Vector(lips.location)
-attach(lips, segments[0])
+if not HEAD:  # a head built from planes has its mouth in the head mesh; the older faces get a separate lip block
+    if "protrude" in SPEC["lips"]:
+        lips_x = xat(0.0) - SPEC["lips"]["protrude"] + SPEC["lips"]["size"][0] / 2
+    else:
+        lips_x = xat(0.0) - (FACE["depth"] if FACE else 0.0) - SPEC["lips"]["size"][0] / 2 + SPEC["lips"].get("sink", 0.05)
+    lips = mesh_object("Lips", box_bm(SPEC["lips"]["size"]), (0.0, 0.0, 0.0), ["lips"])  # a local box: placed after
+    lips.location = (lips_x, 0.0, SPEC["lips"]["z"])
+    WORLD[lips.name] = Vector(lips.location)
+    attach(lips, segments[0])
 
 # the chain: each segment hangs off the one in front, the tail fin off the last
 for i in range(1, len(segments)):
@@ -528,6 +564,39 @@ look_from(sun, (-5.0, -7.0, 9.0), (0.0, 0.0, 0.0))
 top = camera("Top", ortho=SPEC.get("orthoSide", 14.5))
 top.location = (mid_x, 0.0, 30.0)
 render(top, os.path.join(OUT, "top.png"), 900, 420)
+
+if WIRE:  # every mesh edge drawn in red over the model: the head's planes, the mouth's merged edges
+    head_cam = camera("HeadCam", lens=50)
+    look_from(head_cam, (front_x - 6.5, -7.0, 2.6), (front_x + 1.7, 0.0, 0.1))
+    render(head_cam, os.path.join(OUT, "head.png"), 900, 800)
+    bpy.context.view_layer.update()
+    red = material("Wire", "#E0302A")
+    red_bsdf = red.node_tree.nodes.get("Principled BSDF")
+    red_bsdf.inputs["Emission Color"].default_value = hex_rgba("#E0302A")
+    red_bsdf.inputs["Emission Strength"].default_value = 1.0
+    wires = []
+    for ob in list(fish.objects):
+        if ob.type != "MESH":
+            continue
+        me = ob.data.copy()
+        me.materials.clear()
+        me.materials.append(red)
+        for poly in me.polygons:
+            poly.material_index = 0
+        wire = bpy.data.objects.new(ob.name + "Wire", me)
+        scene.collection.objects.link(wire)
+        wire.matrix_world = ob.matrix_world.copy()
+        mod = wire.modifiers.new("Wire", "WIREFRAME")
+        mod.thickness = 0.03
+        mod.use_even_offset = False  # even offset throws spikes at sharp corners
+        mod.use_replace = True
+        wires.append(wire)
+    render(head_cam, os.path.join(OUT, "head_wire.png"), 900, 800)
+    look_from(sun, (-10.0, -1.5, 8.0), (0.0, 0.0, 0.0))
+    render(front, os.path.join(OUT, "front_wire.png"), 560, 560)
+    look_from(sun, (-5.0, -7.0, 9.0), (0.0, 0.0, 0.0))
+    for wire in wires:
+        wire.hide_render = True
 
 
 # ---------------------------------------------------------------- the riding view: shallow water, a rider, a few more

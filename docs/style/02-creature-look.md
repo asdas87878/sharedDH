@@ -96,7 +96,18 @@ all the way up its outline: the yellow wedges above the eyes shouldn't be there.
   top chamfers' lower edge. The concept's side view shows yellow only on the top and its chamfers. Before, the body's yellow came
   lower, which left a step at the first bar.
 
+- **The mouth is part of the head mesh,** pushed out of the face (the user, later the same day). A line runs across the face
+  at the mouth's top and another at its bottom, edge to edge. The mouth takes the face's whole width there: its back corners
+  are where those lines meet the face's edges, shared with the eye faces. Its sides follow the eye faces' angle and lie flush
+  on their planes, so its front comes out narrower than its back, about the concept's mouth width (1.17 studs). From the
+  front, the face's diagonals now run straight into the mouth's corners. The first try kept the old box width inside the
+  face, with thin strips of face beside it; the user wanted it connected to those side vertices and flush instead.
+  `lips.sideFollow` sets how far the sides follow that angle (1 flush, 0 straight); `lips.size[1]`, the old width, isn't
+  used with a head. `fish_kit.py --wire` draws every edge in red.
+
 ![The second drawing's quad on the new head, and the concept beside ours: front, side, 3/4](../attachments/workout2-eye-face.jpg)
+
+![The mouth: inset inside the face first (above), then flush across it (below), with the edges in red](../attachments/workout2-mouth-wire.jpg)
 
 ![The face: concept above, kit below (front, side, 3/4)](../attachments/workout2-face-compare.jpg)
 
@@ -104,7 +115,7 @@ Spec fields (`art/creatures/SergeantMajor/spec.json`):
 - `head.faceTop` and `chin` are corners, each [back from the face line, half width, height]. `faceBottom` is [back, height]: its half
   width comes from the eye face, so the eye face stays flat.
 - `eye.onWall`, with `eye.dx` (back from the face line).
-- `topLineZ: "chamfer"`: the top colour ends with the top chamfers.
+- `topLineZ: "chamfer"`: the top colour ends with the top chamfers (the ring's two points there are welded into one).
 - The ring at the first joint (station 0.244) is nearly full width (2.18 of the body's 2.24), so the eye faces turn 29 degrees
   toward the front. A wider ring there, or a narrower face top, turns them further.
 - The head's joint is at the front edge of the first bar (`segments[0]`), so the bar starts on the body.
@@ -130,6 +141,7 @@ every fish driven by code (a wave on the joints, faster when swimming faster; fa
 colours or a tiny palette texture, so a Golden or Silver mutation is a palette swap and Tiny to Colossal is a scale.
 
 ## Next
-- The user's verdict on the head with one big eye face either side.
+- The head and the mouth are good enough for now (the user, 2026-11-09). Next creatures: the Sea Turtle, the Yellow Tang and
+  the Stingray, from the user's three new concepts (notes in `docs/style/creatures/`).
 - The plain starter (Yellow Tang) and zone 1's giant (Archelon) from the same kit, to test the style at both ends of the size range.
 - Into Studio once the user is happy to upload one test model (uploads are permanent).

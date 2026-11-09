@@ -30,5 +30,6 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   square eyes, renders turnaround views and a riding view; `tools/art/creature_sheet.py` lays them out like the user's ChatGPT
   concept sheets (`art/concepts/creatures/`) and makes the side-by-side. The head is its own flat planes (spec `head`: a face
   narrowing to the mouth, one big eye face either side, chin and jaw), built from the user's drawings over our renders
-  (`art/concepts/creatures/notes/`; `tools/art/lines_overlay.py` maps drawn lines back onto renders). Workout 2 in
+  (`art/concepts/creatures/notes/`; `tools/art/lines_overlay.py` maps drawn lines back onto renders); the mouth is pushed out
+  of the face in the same mesh; `--wire` renders every edge in red. Workout 2 in
   `docs/style/02-creature-look.md`.

@@ -37,7 +37,8 @@
   "lips": {
     "z": -0.29,
     "size": [0.5, 1.46, 0.57],
-    "protrude": 0.4
+    "protrude": 0.4,
+    "sideFollow": 1.0
   },
   "seat": 0.2,
   "fins": {
