@@ -33,3 +33,6 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   (`art/concepts/creatures/notes/`; `tools/art/lines_overlay.py` maps drawn lines back onto renders); the mouth is pushed out
   of the face in the same mesh; `--wire` renders every edge in red. Workout 2 in
   `docs/style/02-creature-look.md`.
+- More creatures: one note each in `docs/style/creatures/` (Yellow Tang, Sea Turtle, Stingray so far), from the user's
+  concepts in `art/concepts/creatures/`; [workout 3](docs/style/03-creature-set.md) holds the three body plans (fish, shell,
+  disc), the proposed rules for every creature and the user's open decisions. Nothing past the Sergeant Major is built yet.

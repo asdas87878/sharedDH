@@ -260,7 +260,7 @@ Roblox's 70-degree field of view) on a ray 12 studs across. A calculation, not a
 
 ## 6. Open questions
 
-1. **The eyes' look:**
+1. **The eyes' look:** **Decided 2026-11-09 (the user): go by the reference:** the concept's dark eyes (A). The options were:
    - A: the concept's: the raised mound all dark.
    - B: the Sergeant Major's eye (a cream square with a black pupil) on the mound's top, so every creature shares one eye.
    - C: the Sergeant Major's eye flat on the eye face, with no mound.

@@ -285,7 +285,7 @@ blade. Its snout and eye are for the side views: in the wild and in the tank.
    squeezed to 0.16H apart behind the rider.
 5. **The yellow.** A: the concept's `#F9DF12` (chartreuse on lit faces in the shallows). B: a warmer gold `#FFCC14` (a true yellow
    in the shallows, golden at the dock). C: decide in Studio, in the water, once a test model is uploaded.
-6. **The eye.** A: a black box standing 0.17 studs proud, like the Sergeant Major's socket, so it shows from the front
+6. **The eye.** **Decided 2026-11-09 (the user): go by the reference:** the concept's plain black square (how far it stands proud is still open). A: a black box standing 0.17 studs proud, like the Sergeant Major's socket, so it shows from the front
    (recommended). B: flush, as in the concept's side view; from the front it's then a thin sliver.
 7. **The accents for the riding camera.** A: the concept's sizes. B: the spines 1.5 times bigger and the slat gaps 0.15 studs, so
    the spines and the comb's rays read from behind.
