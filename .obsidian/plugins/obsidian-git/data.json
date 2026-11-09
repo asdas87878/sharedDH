@@ -1,0 +1,12 @@
+{
+  "commitMessage": "vault sync from {{hostname}}: {{date}}",
+  "autoCommitMessage": "vault sync from {{hostname}}: {{date}}",
+  "autoSaveInterval": 5,
+  "autoBackupAfterFileChange": true,
+  "autoPullInterval": 5,
+  "autoPullOnBoot": true,
+  "pullBeforePush": true,
+  "syncMethod": "merge",
+  "disablePopupsForNoChanges": true,
+  "showStatusBar": true
+}

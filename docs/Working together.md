@@ -25,14 +25,14 @@ Claude works from then on.
 The user and their partner share one Claude account and work from two PCs. The project is a private GitHub repo,
 `asdas87878/sharedDH`. Each clone is the vault and the game at once.
 - **Joining:**
-  1. Install Git and clone the repo.
-  2. Open the folder in Obsidian with "Open folder as vault".
-  3. Install the community plugin "Git" (by Vinzent). In its settings, turn on pull on startup and set auto commit-and-sync to
-     5 minutes.
-  4. Install the other plugins (Dataview, Excalidraw, Kanban) from Obsidian's community plugins. Their settings come with the
-     repo.
-- **Working:** pull before starting, and don't both edit the same note at the same moment. If the Git plugin reports a conflict,
-  ask Claude to sort it out.
+  1. Install Git and Obsidian, then clone the repo, signing in with your own GitHub account when asked.
+  2. In the clone, set your name for commits: `git config user.name "<name>"` and `git config user.email "<email>"`.
+  3. Open the folder in Obsidian with "Open folder as vault", and choose "Trust author and enable plugins".
+
+  The plugins come with the repo: Git (by Vinzent), Dataview, Excalidraw and Kanban. Git is set to pull when Obsidian opens
+  and every 5 minutes, and to commit and push 5 minutes after edits stop. Each commit names the PC it came from.
+- **Working:** keep Obsidian open while working so the Git plugin syncs, and don't both edit the same note at the same
+  moment. Claude's edits sync too, along with yours. If the Git plugin reports a conflict, ask Claude to sort it out.
 - **Claude's memory is per PC.** Anything both people need goes in this vault: this note, Decisions, the design notes.
   CLAUDE.md is read on both PCs.
 - **Studio:** there's no shared Studio connection (the user has no ID for it). Each person's Claude drives their own Studio.

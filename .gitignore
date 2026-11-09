@@ -10,9 +10,7 @@ research/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .trash/
-# plugin code is downloaded (reinstall from Obsidian's community plugins); each plugin's settings (data.json) are kept
-.obsidian/plugins/*/*
-!.obsidian/plugins/*/data.json
+# the plugins are kept whole (code and settings), so a fresh clone opens with every plugin ready
 /.tmp_run_args.json
 
 # regenerated on every render (the GIF in docs/attachments is the record)

@@ -11,7 +11,8 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   markdown links (relative paths), not [[wikilinks]].
 - **Two people, one repo:** the user and their partner share one Claude account from two PCs, through the private repo
   `asdas87878/sharedDH` (how: [Working together](docs/Working%20together.md), Sharing the project). Claude's memory is per
-  PC, so anything both need goes in the vault. Never commit secrets.
+  PC, so anything both need goes in the vault. With Obsidian open, its Git plugin commits and pushes 5 minutes after edits
+  stop (Claude's edits too) and pulls on open and every 5 minutes. Never commit secrets.
 - **The reference:** Ride a Dino, broken down in [docs/reference/ride-a-dino.md](docs/reference/ride-a-dino.md) from the user's
   recording (frames in the gitignored `research/ride-a-dino/`). Copy the loop and the feel, never its look, models or layout.
 - Toolchain as in the RPG (`C:\Users\blast\RpgGame`): `rokit.toml`, `rojo serve`, `stylua src`, `selene src`.
