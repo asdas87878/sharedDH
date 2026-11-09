@@ -11,6 +11,8 @@ research/
 .obsidian/workspace-mobile.json
 .trash/
 # the plugins are kept whole (code and settings), so a fresh clone opens with every plugin ready
+# except Excalidraw's settings: it counts every drawing opened, so the file changes on both PCs and would clash
+.obsidian/plugins/obsidian-excalidraw-plugin/data.json
 /.tmp_run_args.json
 
 # regenerated on every render (the GIF in docs/attachments is the record)

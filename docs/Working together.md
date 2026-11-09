@@ -31,6 +31,13 @@ The user and their partner share one Claude account and work from two PCs. The p
 
   The plugins come with the repo: Git (by Vinzent), Dataview, Excalidraw and Kanban. Git is set to pull when Obsidian opens
   and every 5 minutes, and to commit and push 5 minutes after edits stop. Each commit names the PC it came from.
+  Excalidraw's settings stay on each PC, because it counts every drawing opened.
+
+  Only if you'll need them:
+  - **The game's code:** install Rokit and run `rokit install` in the clone (Rojo, StyLua, selene), then install the Rojo
+    plugin in Studio.
+  - **The creature kit:** Blender 5.2.
+  - **Claude:** sign in to the shared Claude account and start the session in the clone's folder, so it reads CLAUDE.md.
 - **Working:** keep Obsidian open while working so the Git plugin syncs, and don't both edit the same note at the same
   moment. Claude's edits sync too, along with yours. If the Git plugin reports a conflict, ask Claude to sort it out.
 - **Claude's memory is per PC.** Anything both people need goes in this vault: this note, Decisions, the design notes.
