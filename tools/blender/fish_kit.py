@@ -3,12 +3,19 @@ rigid segments along the spine (each turning at its front joint, like a Motor6D 
 way), with the long fins cut at the same joints, a jointed tail fin, square eyes and a lip block, in 3 or 4 flat colour areas.
 
 usage: blender --background --python tools/blender/fish_kit.py -- <spec.json> <out folder> [--swim] [--joints sleeve|flat]
+                                                                     [--export <mesh.obj>]
   default: renders the turnaround views (transparent, for tools/art/creature_sheet.py) and a riding view in shallow water with a
            5-stud rider for scale, as the riding camera sees it
   --swim:  renders a looping swim cycle (3/4 and top views) into <out>/swim_<joints>/ for tools/art/swim_gif.py
   --joints sleeve (default when the spec has "sleeve"): each segment carries a short inset sleeve forward into the one in front,
            so a bending joint shows body, not a gap; flat: plain cut joints
+  --export: also writes the game mesh: the whole fish in its rest pose as one OBJ (+ .mtl, a tiny palette PNG the faces are
+           UV-mapped onto, and <name>.mesh.json with the size, seat and joints), in Roblox's axes: 1 unit = 1 stud, +Y up,
+           the head toward -Z (a part's LookVector), the fish's right toward +X, the origin at the middle of its bounding box
 Units are studs. The head points to -X; the snout sits at x = -length/2.
+Optional spec pieces: "belly" colour (the bottom and its chamfers), bars as [t0, t1, colour] and "barsBelly" (bands right
+round), fin "tip": [fraction, colour] (the outer part of a fin in another colour), "spikes", "viewScale" (camera distances,
+for a bigger fish; "rideViewScale" for the riding camera).
 """
 import json
 import math
@@ -23,6 +30,7 @@ argv = sys.argv[sys.argv.index("--") + 1 :]
 SPEC = json.load(open(argv[0]))
 OUT = os.path.abspath(argv[1])
 SWIM = "--swim" in argv
+EXPORT = argv[argv.index("--export") + 1] if "--export" in argv else None
 JOINTS = argv[argv.index("--joints") + 1] if "--joints" in argv else ("sleeve" if SPEC.get("sleeve") else "flat")
 os.makedirs(OUT, exist_ok=True)
 
@@ -34,6 +42,8 @@ TOPLINE = SPEC["topLine"]
 TOPLINE_Z = SPEC.get("topLineZ")  # where the top colour ends: one height along the whole fish, or "chamfer" (with the top chamfers)
 PANEL = SPEC.get("facePanel")  # the face: a flat panel at t = 0, the head's planes run back from its edges
 MAT_NAMES = ["top", "body", "bars", "fins", "eye", "pupil", "lips"]
+MAT_NAMES += [k for k in SPEC["colours"] if k not in MAT_NAMES]  # extra colours: a belly, a band's edge, fin tips
+VS = SPEC.get("viewScale", 1.0)  # the cameras' distances, for a fish bigger than the 12-stud starter
 
 
 # ---------------------------------------------------------------- helpers
@@ -100,15 +110,24 @@ def ring(t, inset=1.0):
 
 
 def in_bar(t0, t1):
+    """the colour of the bar covering t0..t1 (a bar is [t0, t1] or [t0, t1, colour]), or None"""
     tm = (t0 + t1) / 2
-    return any(b0 <= tm <= b1 for b0, b1 in SPEC.get("bars", []))
+    for b in SPEC.get("bars", []):
+        if b[0] <= tm <= b[1]:
+            return b[2] if len(b) > 2 else "bars"
+    return None
+
+
+BELLY = "belly" in SPEC["colours"]
 
 
 def face_colour(region, bar):
+    if bar and (SPEC.get("barsBelly") or region != "bottom"):
+        return bar
+    if BELLY and region in ("bottom", "low"):
+        return "belly"
     if region == "bottom":
         return "body"
-    if bar:
-        return "bars"
     return "top" if region == "top" else "body"
 
 
@@ -195,6 +214,20 @@ def build_head(bm):
     cap(bm, B, cuts[1], 0.0)
 
 
+def clip_half(pts, a, b, c):
+    """Sutherland-Hodgman: keep the part of the polygon pts (x, z) where a*x + b*z >= c"""
+    out = []
+    for i in range(len(pts)):
+        cur, prev = pts[i], pts[i - 1]
+        vc, vp = a * cur[0] + b * cur[1] - c, a * prev[0] + b * prev[1] - c
+        if (vc >= 0) != (vp >= 0):
+            f = vp / (vp - vc)
+            out.append((prev[0] + f * (cur[0] - prev[0]), prev[1] + f * (cur[1] - prev[1])))
+        if vc >= 0:
+            out.append(cur)
+    return out
+
+
 def clip_x(pts, x, keep_greater):
     """Sutherland-Hodgman against the line x = const"""
     out = []
@@ -264,8 +297,8 @@ def attach(child, parent):
 # ---------------------------------------------------------------- the body: a chain of rigid segments
 cuts = [0.0] + SPEC["segments"] + [1.0]
 ts = {s[0] for s in ST} | set(cuts)
-for b0, b1 in SPEC.get("bars", []):
-    ts |= {b0, b1}
+for b in SPEC.get("bars", []):
+    ts |= {b[0], b[1]}
 ts = sorted(ts)
 sleeve_t = SPEC.get("sleeve", 0.0) / L if JOINTS == "sleeve" else 0.0
 
@@ -327,19 +360,58 @@ def segment_index(t):
 
 
 # ---------------------------------------------------------------- fins, eyes, lips
-def plate_bm(pts, thickness):
-    """a flat plate: the polygon pts (x, z) extruded along Y"""
+def plate_bm(pts, thickness, tip=None, mats=("fins",)):
+    """a flat plate: the polygon pts (x, z) extruded along Y. tip = (direction, cut, colour): the part of the plate beyond
+    cut along direction ("x", "z", "-z", or "|z|" for both ends) is a second piece in that colour"""
     bm = bmesh.new()
     h = thickness / 2
-    a = [bm.verts.new((x, -h, z)) for x, z in pts]
-    b = [bm.verts.new((x, h, z)) for x, z in pts]
-    bm.faces.new(a)
-    bm.faces.new(b[::-1])
-    for i in range(len(pts)):
-        j = (i + 1) % len(pts)
-        bm.faces.new((a[i], b[i], b[j], a[j]))
+    pieces = [(pts, mats[0])]
+    if tip:
+        axis, cut, colour = tip
+        if axis == "|z|":
+            pieces = [(clip_half(clip_half(pts, 0, 1, -cut), 0, -1, -cut), mats[0]),
+                      (clip_half(pts, 0, 1, cut), colour), (clip_half(pts, 0, -1, cut), colour)]
+        else:
+            ax, az = AXES[axis]
+            pieces = [(clip_half(pts, -ax, -az, -cut), mats[0]), (clip_half(pts, ax, az, cut), colour)]
+    for piece, colour in pieces:
+        if len(piece) < 3:
+            continue
+        a = [bm.verts.new((x, -h, z)) for x, z in piece]
+        b = [bm.verts.new((x, h, z)) for x, z in piece]
+        faces = [bm.faces.new(a), bm.faces.new(b[::-1])]
+        for i in range(len(piece)):
+            j = (i + 1) % len(piece)
+            faces.append(bm.faces.new((a[i], b[i], b[j], a[j])))
+        for f in faces:
+            f.material_index = mats.index(colour)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return bm
+
+
+AXES = {"x": (1, 0), "z": (0, 1), "-z": (0, -1)}
+
+
+def fin_tip(spec, axis, pts):
+    """a fin's "tip": [fraction, colour(, axis)]: the outer part, past that fraction of its reach along axis (the fin's own
+    outward direction unless given), in that colour"""
+    if not spec.get("tip"):
+        return None
+    frac, colour = spec["tip"][:2]
+    axis = spec["tip"][2] if len(spec["tip"]) > 2 else axis
+    if axis == "|z|":
+        return (axis, max(abs(z) for _, z in pts) * frac, colour)
+    ax, az = AXES[axis]
+    vals = [ax * x + az * z for x, z in pts]
+    return (axis, min(vals) + (max(vals) - min(vals)) * frac, colour)
+
+
+def fin_mats(spec):
+    return ("fins", spec["tip"][1]) if spec.get("tip") else ("fins",)
+
+
+def fin_bm(spec, pts, axis):
+    return plate_bm(pts, spec["thickness"], fin_tip(spec, axis, pts), fin_mats(spec))
 
 
 def box_bm(size):
@@ -353,39 +425,42 @@ def box_bm(size):
 F = SPEC["fins"]
 
 
-def split_fin(name, pts, thickness):
-    """a long fin cut at the segment joints, each piece riding its own segment"""
+def split_fin(name, spec, pts, axis):
+    """a long fin cut at the segment joints, each piece riding its own segment (the tip line placed from the whole fin)"""
+    tip = fin_tip(spec, axis, pts)
     for i, (s0, s1) in enumerate(zip(cuts, cuts[1:])):
         piece = clip_x(clip_x(pts, xat(s0), True), xat(s1), False)
         if len(piece) >= 3 and max(p[0] for p in piece) - min(p[0] for p in piece) > 0.05:
-            ob = mesh_object(f"{name}{i}", plate_bm(piece, thickness), WORLD[segments[i].name], ["fins"])
+            bm = plate_bm(piece, spec["thickness"], tip, fin_mats(spec))
+            ob = mesh_object(f"{name}{i}", bm, WORLD[segments[i].name], list(fin_mats(spec)))
             attach(ob, segments[i])
 
 
-split_fin("Dorsal", [(xat(t), profile(t)[0] + dz) for t, dz in F["dorsal"]["points"]], F["dorsal"]["thickness"])
-split_fin("Anal", [(xat(t), profile(t)[1] + dz) for t, dz in F["anal"]["points"]], F["anal"]["thickness"])
+split_fin("Dorsal", F["dorsal"], [(xat(t), profile(t)[0] + dz) for t, dz in F["dorsal"]["points"]], "z")
+split_fin("Anal", F["anal"], [(xat(t), profile(t)[1] + dz) for t, dz in F["anal"]["points"]], "-z")
 tail = mesh_object(
     "Tail",
-    plate_bm([(xat(1.0) + dx, z) for dx, z in F["tail"]["points"]], F["tail"]["thickness"]),
+    fin_bm(F["tail"], [(xat(1.0) + dx, z) for dx, z in F["tail"]["points"]], "|z|"),
     (xat(1.0) - 0.1, 0.0, 0.0),
-    ["fins"],
+    list(fin_mats(F["tail"])),
 )
 
 for s in (-1, 1):
     p = F["pectoral"]
     origin = (xat(p["t"]), s * (profile(p["t"])[2] + 0.05), p["z"])
-    fin = mesh_object(f"Pectoral{s:+d}", plate_bm(p["points"], p["thickness"]), (0.0, 0.0, 0.0), ["fins"])
+    fin = mesh_object(f"Pectoral{s:+d}", fin_bm(p, p["points"], "x"), (0.0, 0.0, 0.0), list(fin_mats(p)))
     fin.location = origin
     WORLD[fin.name] = Vector(origin)
-    fin.rotation_euler = (0.0, math.radians(-p["tilt"]), s * math.radians(p["yaw"]))
+    fin.rotation_euler = (s * math.radians(p.get("roll", 0.0)), math.radians(-p["tilt"]), s * math.radians(p["yaw"]))
     attach(fin, segments[segment_index(p["t"])])
-    q = F["pelvic"]
-    origin = (xat(q["t"]), s * q["y"], profile(q["t"])[1] + q["zAboveBottom"])
-    fin = mesh_object(f"Pelvic{s:+d}", plate_bm(q["points"], q["thickness"]), (0.0, 0.0, 0.0), ["fins"])
-    fin.location = origin
-    WORLD[fin.name] = Vector(origin)
-    fin.rotation_euler = (s * math.radians(q["roll"]), 0.0, s * math.radians(q["yaw"]))
-    attach(fin, segments[segment_index(q["t"])])
+    q = F.get("pelvic")  # optional: a pufferfish has none
+    if q:
+        origin = (xat(q["t"]), s * q["y"], profile(q["t"])[1] + q["zAboveBottom"])
+        fin = mesh_object(f"Pelvic{s:+d}", fin_bm(q, q["points"], "x"), (0.0, 0.0, 0.0), list(fin_mats(q)))
+        fin.location = origin
+        WORLD[fin.name] = Vector(origin)
+        fin.rotation_euler = (s * math.radians(q["roll"]), 0.0, s * math.radians(q["yaw"]))
+        attach(fin, segments[segment_index(q["t"])])
 
     # the eye: a square plate flush with the side of the head, a square pupil looking a little forward
     e = SPEC["eye"]
@@ -428,11 +503,126 @@ lips.location = (lips_x, 0.0, SPEC["lips"]["z"])
 WORLD[lips.name] = Vector(lips.location)
 attach(lips, segments[0])
 
+# spikes (a pufferfish's): small four-sided pyramids standing out of the body's ring points, each row riding its segment
+SP = SPEC.get("spikes")
+if SP:
+    by_segment = {}
+    for t, ks in SP["rows"]:
+        top, bot, _ = profile(t)
+        mid = (top + bot) / 2
+        for k in ks:
+            p = Vector(ring(t)[k])
+            d = Vector((0.0, p.y, p.z - mid)).normalized()
+            u = Vector((1.0, 0.0, 0.0))
+            w = d.cross(u)
+            b = SP["base"] / 2
+            by_segment.setdefault(segment_index(t), []).append(
+                [p - d * 0.1 + u * b + w * b, p - d * 0.1 - u * b + w * b, p - d * 0.1 - u * b - w * b,
+                 p - d * 0.1 + u * b - w * b, p + d * SP["length"]])
+    for i, spikes in by_segment.items():
+        bm = bmesh.new()
+        for c in spikes:
+            v = [bm.verts.new(q) for q in c]
+            for f in ((v[0], v[1], v[2], v[3]), (v[0], v[1], v[4]), (v[1], v[2], v[4]), (v[2], v[3], v[4]), (v[3], v[0], v[4])):
+                bm.faces.new(f)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        for f in bm.faces:
+            f.material_index = 0
+        ob = mesh_object(f"Spikes{i}", bm, WORLD[segments[i].name], [SP.get("colour", "fins")])
+        attach(ob, segments[i])
+
 # the chain: each segment hangs off the one in front, the tail fin off the last
 for i in range(1, len(segments)):
     attach(segments[i], segments[i - 1])
 attach(tail, segments[-1])
 JOINT_CHAIN = segments[1:] + [tail]
+
+
+# ---------------------------------------------------------------- the game mesh (--export)
+def write_png(path, w, h, rgb_rows):
+    import struct
+    import zlib
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    raw = b"".join(b"\x00" + bytes(row) for row in rgb_rows)
+    with open(path, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+                + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
+def export_mesh(path):
+    """The whole fish in its rest pose as one mesh: an OBJ in Roblox's axes, faces UV-mapped onto a palette PNG (one 16 px cell
+    a colour, so a Golden or Silver mutation is a palette swap), and a JSON with the size, seat and joints."""
+    bpy.context.view_layer.update()
+    folder, stem = os.path.dirname(os.path.abspath(path)), os.path.splitext(os.path.basename(path))[0]
+    os.makedirs(folder, exist_ok=True)
+    key_of = {m.name: k for k, m in MATS.items()}
+
+    def game(p):  # kit (head -X, up Z, right +Y) to Roblox (head -Z, up +Y, right +X): a rotation, so windings hold
+        return (p[1], p[2], p[0])
+
+    verts, faces = [], []
+    for ob in fish.objects:
+        if ob.type != "MESH":
+            continue
+        base = len(verts)
+        verts += [game(ob.matrix_world @ v.co) for v in ob.data.vertices]
+        faces += [([base + i for i in poly.vertices], key_of[ob.data.materials[poly.material_index].name])
+                  for poly in ob.data.polygons]
+    lo = [min(v[i] for v in verts) for i in range(3)]
+    hi = [max(v[i] for v in verts) for i in range(3)]
+    centre = [(a + b) / 2 for a, b in zip(lo, hi)]
+    verts = [tuple(v[i] - centre[i] for i in range(3)) for v in verts]
+    used = [k for k in MAT_NAMES if any(key == k for _, key in faces)]
+    cell = 16
+    write_png(os.path.join(folder, f"{stem}_palette.png"), cell * len(used), cell,
+              [[int(SPEC["colours"][k].lstrip("#")[j : j + 2], 16) for k in used for _ in range(cell) for j in (0, 2, 4)]
+               for _ in range(cell)])
+
+    def normal(idx):  # Newell's method: a flat normal for each face
+        n = [0.0, 0.0, 0.0]
+        for a, b in zip(idx, idx[1:] + idx[:1]):
+            pa, pb = verts[a], verts[b]
+            n[0] += (pa[1] - pb[1]) * (pa[2] + pb[2])
+            n[1] += (pa[2] - pb[2]) * (pa[0] + pb[0])
+            n[2] += (pa[0] - pb[0]) * (pa[1] + pb[1])
+        m = math.sqrt(sum(c * c for c in n)) or 1.0
+        return [c / m for c in n]
+
+    lines = [f"# {SPEC['name']}: tools/blender/fish_kit.py --export. 1 unit = 1 stud, +Y up, head toward -Z, right +X",
+             f"mtllib {stem}.mtl", f"o {stem}"]
+    lines += [f"v {x:.4f} {y:.4f} {z:.4f}" for x, y, z in verts]
+    lines += [f"vt {(i + 0.5) / len(used):.6f} 0.5" for i in range(len(used))]
+    lines += ["vn {:.4f} {:.4f} {:.4f}".format(*normal(idx)) for idx, _ in faces]
+    lines += [f"usemtl {stem}", "s off"]
+    lines += ["f " + " ".join(f"{i + 1}/{used.index(k) + 1}/{n + 1}" for i in idx) for n, (idx, k) in enumerate(faces)]
+    open(os.path.join(folder, f"{stem}.obj"), "w").write("\n".join(lines) + "\n")
+    open(os.path.join(folder, f"{stem}.mtl"), "w").write(
+        f"newmtl {stem}\nKa 0 0 0\nKd 1 1 1\nKs 0 0 0\nd 1\nillum 1\nmap_Kd {stem}_palette.png\n")
+    seat_t = SPEC.get("seat", 0.23)
+    seat = game((xat(seat_t), 0.0, profile(seat_t)[0]))
+    info = {
+        "name": SPEC["name"],
+        "mesh": f"{stem}.obj",
+        "palette": f"{stem}_palette.png",
+        "units": "studs",
+        "axes": {"up": "+Y", "forward": "-Z (the head)", "right": "+X"},
+        "origin": "the middle of the bounding box",
+        "size": [round(b - a, 3) for a, b in zip(lo, hi)],
+        "triangles": sum(len(idx) - 2 for idx, _ in faces),
+        "vertices": len(verts),
+        "seat": [round(seat[i] - centre[i], 3) for i in range(3)],
+        "joints_z": [round(game((xat(t), 0, 0))[2] - centre[2], 3) for t in cuts[1:]],
+        "paletteCells": {k: SPEC["colours"][k] for k in used},
+    }
+    json.dump(info, open(os.path.join(folder, f"{stem}.mesh.json"), "w"), indent=1)
+    print("fish kit: export", os.path.join(folder, f"{stem}.obj"), info["size"], info["triangles"], "tris")
+
+
+if EXPORT:
+    export_mesh(EXPORT)
 
 
 # ---------------------------------------------------------------- views and lights
@@ -493,13 +683,13 @@ if SWIM:
     folder = os.path.join(OUT, f"swim_{JOINTS}")
     os.makedirs(folder, exist_ok=True)
     hero = camera("Hero", lens=46)  # wide enough for the whole fish, face to tail
-    look_from(hero, (mid_x - 10.5, -14.5, 4.4), (mid_x + 0.3, 0.0, 0.2))
-    top = camera("Top", ortho=12.4)
+    look_from(hero, (mid_x - 10.5 * VS, -14.5 * VS, 4.4 * VS), (mid_x + 0.3, 0.0, 0.2))
+    top = camera("Top", ortho=12.4 * VS)
     top.location = (mid_x, 0.0, 30.0)
     rider_cam = camera("Ride")
     rider_cam.data.sensor_fit = "VERTICAL"
     rider_cam.data.angle_y = math.radians(70)
-    look_from(rider_cam, (mid_x + 16.0, 3.0, 8.0), (mid_x - 6.0, 0.0, 0.5))
+    look_from(rider_cam, (mid_x + 16.0 * VS, 3.0 * VS, 8.0 * VS), (mid_x - 6.0 * VS, 0.0, 0.5))
     for f in range(frames):
         phase = 2 * math.pi * f / frames
         segments[0].rotation_euler.z = math.radians(sw["headCounter"]) * math.sin(phase + math.pi)
@@ -515,13 +705,13 @@ if SWIM:
 scene.render.film_transparent = True
 scene.render.image_settings.color_mode = "RGBA"
 hero = camera("Hero", lens=75)  # a long lens from further off, so the 3/4 view doesn't bulge
-look_from(hero, (mid_x - 19.5, -22.5, 7.0), (mid_x + 0.3, 0.0, 0.1))
+look_from(hero, (mid_x - 19.5 * VS, -22.5 * VS, 7.0 * VS), (mid_x + 0.3, 0.0, 0.1))
 render(hero, os.path.join(OUT, "hero.png"), 1100, 800)
 side = camera("Side", ortho=SPEC.get("orthoSide", 14.5))
-look_from(side, (mid_x, -30.0, 0.5), (mid_x, 0.0, 0.5))
+look_from(side, (mid_x, -30.0 * VS, 0.5), (mid_x, 0.0, 0.5))
 render(side, os.path.join(OUT, "side.png"), 900, 560)
 front = camera("Front", lens=85)  # a perspective front view like the concept's: the body behind the face shrinks away
-look_from(front, (front_x - 30.0, 0.0, 3.2), (front_x + 2.0, 0.0, 0.2))
+look_from(front, (front_x - 30.0 * VS, 0.0, 3.2 * VS), (front_x + 2.0 * VS, 0.0, 0.2))
 look_from(sun, (-10.0, -1.5, 8.0), (0.0, 0.0, 0.0))  # lit from in front and above, like the concept's front view, so the face's planes read
 render(front, os.path.join(OUT, "front.png"), 560, 560)
 look_from(sun, (-5.0, -7.0, 9.0), (0.0, 0.0, 0.0))
@@ -602,7 +792,7 @@ for s in (-1, 1):
     solid(f"RiderArm{s:+d}", (1.6, 0.8, 0.8), "#3C78D8", (seat_x - 0.9, s * 1.25, seat_top + 1.6), (0.0, math.radians(25), 0.0))
 
 # more of the same fish nearby, a Tiny and a Big one: the size variants
-for name, scale, loc, yaw in (("Tiny", 0.55, (-16.0, -7.0, 0.5), 8), ("Big", 1.35, (-34.0, 9.0, 3.0), -6)):
+for name, scale, loc, yaw in (("Tiny", 0.55, (-16.0 * VS, -7.0 * VS, 0.5), 8), ("Big", 1.35, (-34.0 * VS, 9.0 * VS, 3.0), -6)):
     inst = bpy.data.objects.new(name, None)
     inst.instance_type = "COLLECTION"
     inst.instance_collection = fish
@@ -617,6 +807,7 @@ for m in bpy.data.materials:
 ride = camera("Ride")
 ride.data.sensor_fit = "VERTICAL"
 ride.data.angle_y = math.radians(70)  # Roblox's default field of view
-look_from(ride, (14.0, 3.0, 6.5), (-6.0, 0.0, 1.0))
+RVS = SPEC.get("rideViewScale", VS)  # the riding camera follows the rider, so it pulls back less than the turnaround views
+look_from(ride, (14.0 * RVS, 3.0 * RVS, 6.5 * RVS), (-6.0 * RVS, 0.0, 1.0))
 render(ride, os.path.join(OUT, "ride.png"), 1280, 720)
 print("fish kit: done", OUT)

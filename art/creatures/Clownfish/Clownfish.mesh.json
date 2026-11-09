@@ -1,0 +1,41 @@
+{
+ "name": "Clownfish",
+ "mesh": "Clownfish.obj",
+ "palette": "Clownfish_palette.png",
+ "units": "studs",
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the head)",
+  "right": "+X"
+ },
+ "origin": "the middle of the bounding box",
+ "size": [
+  6.087,
+  6.053,
+  10.593
+ ],
+ "triangles": 990,
+ "vertices": 599,
+ "seat": [
+  0.0,
+  1.76,
+  -3.193
+ ],
+ "joints_z": [
+  -2.881,
+  -1.243,
+  0.395,
+  1.877,
+  3.047
+ ],
+ "paletteCells": {
+  "top": "#FF6F1A",
+  "body": "#FF8A2B",
+  "bars": "#FBF7EE",
+  "fins": "#FF8A2B",
+  "eye": "#FBF7EE",
+  "pupil": "#2B2B2B",
+  "lips": "#FFB36E",
+  "edge": "#2B2B2B"
+ }
+}

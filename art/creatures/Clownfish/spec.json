@@ -1,0 +1,359 @@
+{
+  "name": "Clownfish",
+  "zone": "ZONE 1 / SHALLOWS",
+  "rarity": "COMMON",
+  "notes": "Built by tools/blender/fish_kit.py (creature method, docs/style/creature-method.md) on the Sergeant Major's rules (docs/style/02-creature-look.md): studs, the head to -X, stations [t (0 face, 1 tail base), top, bottom, half width]. A first placeholder, no concept yet: signature: bright orange with three white bands edged in black (right round the body), black-rimmed rounded fins, a blunt face.",
+  "length": 7.8,
+  "stations": [
+    [
+      0.0,
+      1.0,
+      -0.7,
+      0.95
+    ],
+    [
+      0.24,
+      2.15,
+      -2.2,
+      1.9
+    ],
+    [
+      0.36,
+      2.3,
+      -2.35,
+      2.0
+    ],
+    [
+      0.52,
+      2.3,
+      -2.35,
+      2.02
+    ],
+    [
+      0.68,
+      2.15,
+      -2.2,
+      1.9
+    ],
+    [
+      0.8,
+      1.8,
+      -1.85,
+      1.6
+    ],
+    [
+      0.9,
+      1.3,
+      -1.3,
+      1.15
+    ],
+    [
+      0.96,
+      1.0,
+      -1.0,
+      0.9
+    ],
+    [
+      1.0,
+      0.85,
+      -0.85,
+      0.8
+    ]
+  ],
+  "chamfer": [
+    0.44,
+    0.216
+  ],
+  "chamferBottom": [
+    0.4,
+    0.36
+  ],
+  "topLine": 0.3,
+  "topLineZ": "chamfer",
+  "head": {
+    "faceTop": [
+      0.0,
+      0.88,
+      1.0
+    ],
+    "faceBottom": [
+      -0.25,
+      -0.68
+    ],
+    "chin": [
+      1.2,
+      0.95,
+      -1.9
+    ],
+    "faceColour": "body"
+  },
+  "segments": [
+    0.24,
+    0.45,
+    0.66,
+    0.85
+  ],
+  "bars": [
+    [
+      0.24,
+      0.275,
+      "edge"
+    ],
+    [
+      0.275,
+      0.345,
+      "bars"
+    ],
+    [
+      0.345,
+      0.38,
+      "edge"
+    ],
+    [
+      0.5,
+      0.535,
+      "edge"
+    ],
+    [
+      0.535,
+      0.605,
+      "bars"
+    ],
+    [
+      0.605,
+      0.64,
+      "edge"
+    ],
+    [
+      0.875,
+      0.91,
+      "edge"
+    ],
+    [
+      0.91,
+      0.95,
+      "bars"
+    ],
+    [
+      0.95,
+      0.985,
+      "edge"
+    ]
+  ],
+  "barsBelly": true,
+  "colours": {
+    "top": "#FF6F1A",
+    "body": "#FF8A2B",
+    "bars": "#FBF7EE",
+    "fins": "#FF8A2B",
+    "eye": "#FBF7EE",
+    "pupil": "#2B2B2B",
+    "lips": "#FFB36E",
+    "edge": "#2B2B2B"
+  },
+  "eye": {
+    "onWall": true,
+    "dx": 1.0,
+    "z": 0.4,
+    "size": 0.95,
+    "pupil": 0.58,
+    "thickness": 0.2
+  },
+  "lips": {
+    "z": -0.3,
+    "size": [
+      0.45,
+      1.25,
+      0.5
+    ],
+    "protrude": 0.35
+  },
+  "seat": 0.2,
+  "fins": {
+    "dorsal": {
+      "points": [
+        [
+          0.3,
+          -0.3
+        ],
+        [
+          0.33,
+          0.7
+        ],
+        [
+          0.42,
+          0.85
+        ],
+        [
+          0.52,
+          0.45
+        ],
+        [
+          0.6,
+          1.0
+        ],
+        [
+          0.75,
+          1.05
+        ],
+        [
+          0.86,
+          0.5
+        ],
+        [
+          0.9,
+          -0.3
+        ]
+      ],
+      "thickness": 0.45,
+      "tip": [
+        0.8,
+        "edge"
+      ]
+    },
+    "anal": {
+      "points": [
+        [
+          0.62,
+          0.3
+        ],
+        [
+          0.65,
+          -0.6
+        ],
+        [
+          0.78,
+          -0.8
+        ],
+        [
+          0.86,
+          -0.3
+        ],
+        [
+          0.87,
+          0.3
+        ]
+      ],
+      "thickness": 0.4,
+      "tip": [
+        0.75,
+        "edge"
+      ]
+    },
+    "tail": {
+      "points": [
+        [
+          -0.25,
+          0.7
+        ],
+        [
+          1.6,
+          1.75
+        ],
+        [
+          2.1,
+          1.25
+        ],
+        [
+          2.25,
+          0.0
+        ],
+        [
+          2.1,
+          -1.25
+        ],
+        [
+          1.6,
+          -1.75
+        ],
+        [
+          -0.25,
+          -0.7
+        ]
+      ],
+      "thickness": 0.35,
+      "tip": [
+        0.84,
+        "edge",
+        "x"
+      ]
+    },
+    "pectoral": {
+      "points": [
+        [
+          0.0,
+          0.2
+        ],
+        [
+          1.3,
+          0.75
+        ],
+        [
+          1.75,
+          0.2
+        ],
+        [
+          1.4,
+          -0.5
+        ],
+        [
+          0.3,
+          -0.6
+        ]
+      ],
+      "t": 0.28,
+      "z": -0.5,
+      "yaw": 32,
+      "tilt": -8,
+      "thickness": 0.3,
+      "tip": [
+        0.8,
+        "edge"
+      ]
+    },
+    "pelvic": {
+      "points": [
+        [
+          0.0,
+          0.1
+        ],
+        [
+          1.0,
+          -0.2
+        ],
+        [
+          1.1,
+          -0.7
+        ],
+        [
+          0.25,
+          -0.45
+        ]
+      ],
+      "t": 0.32,
+      "zAboveBottom": 0.35,
+      "y": 0.75,
+      "yaw": 12,
+      "roll": 25,
+      "thickness": 0.26,
+      "tip": [
+        0.7,
+        "edge"
+      ]
+    }
+  },
+  "swim": {
+    "amplitudes": [
+      3,
+      6,
+      9,
+      12,
+      18
+    ],
+    "phaseStep": 0.9,
+    "headCounter": 2
+  },
+  "sleeve": 0.4,
+  "rideFog": "#3CBED2",
+  "rideFogEnd": 900
+}

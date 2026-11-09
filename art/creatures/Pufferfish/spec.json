@@ -1,0 +1,310 @@
+{
+  "name": "Pufferfish",
+  "zone": "ZONE 1 / SHALLOWS",
+  "rarity": "COMMON",
+  "notes": "Built by tools/blender/fish_kit.py (creature method, docs/style/creature-method.md) on the Sergeant Major's rules (docs/style/02-creature-look.md): studs, the head to -X, stations [t (0 face, 1 tail base), top, bottom, half width]. A first placeholder, no concept yet: signature: a round body (as wide as it is tall), big eyes, rows of spikes, a white belly, small fins set far back, no pelvic fins. Puffed up is a later variant.",
+  "length": 7.0,
+  "stations": [
+    [
+      0.0,
+      1.3,
+      -1.0,
+      1.2
+    ],
+    [
+      0.28,
+      2.75,
+      -2.72,
+      2.62
+    ],
+    [
+      0.4,
+      2.95,
+      -2.9,
+      2.8
+    ],
+    [
+      0.55,
+      2.95,
+      -2.9,
+      2.8
+    ],
+    [
+      0.7,
+      2.6,
+      -2.6,
+      2.5
+    ],
+    [
+      0.82,
+      1.9,
+      -1.9,
+      1.85
+    ],
+    [
+      0.91,
+      1.15,
+      -1.15,
+      1.1
+    ],
+    [
+      0.97,
+      0.75,
+      -0.75,
+      0.7
+    ],
+    [
+      1.0,
+      0.6,
+      -0.6,
+      0.55
+    ]
+  ],
+  "chamfer": [
+    0.42,
+    0.22
+  ],
+  "chamferBottom": [
+    0.42,
+    0.34
+  ],
+  "topLine": 0.3,
+  "topLineZ": "chamfer",
+  "head": {
+    "faceTop": [
+      0.0,
+      1.1,
+      1.3
+    ],
+    "faceBottom": [
+      -0.25,
+      -0.95
+    ],
+    "chin": [
+      1.3,
+      1.25,
+      -2.4
+    ],
+    "faceColour": "body"
+  },
+  "segments": [
+    0.28,
+    0.5,
+    0.7,
+    0.86
+  ],
+  "bars": [],
+  "colours": {
+    "top": "#B98E52",
+    "body": "#E8DAB0",
+    "bars": "#7A5A38",
+    "fins": "#E3BE6E",
+    "eye": "#F7F1DD",
+    "pupil": "#2B2B2B",
+    "lips": "#F2E6C4",
+    "belly": "#FBF6E8"
+  },
+  "eye": {
+    "onWall": true,
+    "dx": 1.05,
+    "z": 0.55,
+    "size": 1.45,
+    "pupil": 0.85,
+    "thickness": 0.22
+  },
+  "lips": {
+    "z": -0.2,
+    "size": [
+      0.5,
+      1.1,
+      0.6
+    ],
+    "protrude": 0.35
+  },
+  "spikes": {
+    "rows": [
+      [
+        0.36,
+        [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6,
+          7,
+          9
+        ]
+      ],
+      [
+        0.49,
+        [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6,
+          7,
+          9
+        ]
+      ],
+      [
+        0.62,
+        [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6,
+          7,
+          9
+        ]
+      ],
+      [
+        0.75,
+        [
+          0,
+          1,
+          2,
+          4,
+          7,
+          9
+        ]
+      ]
+    ],
+    "length": 0.55,
+    "base": 0.38,
+    "colour": "bars"
+  },
+  "seat": 0.2,
+  "fins": {
+    "dorsal": {
+      "points": [
+        [
+          0.66,
+          -0.3
+        ],
+        [
+          0.7,
+          0.85
+        ],
+        [
+          0.78,
+          1.1
+        ],
+        [
+          0.86,
+          0.6
+        ],
+        [
+          0.88,
+          -0.3
+        ]
+      ],
+      "thickness": 0.4
+    },
+    "anal": {
+      "points": [
+        [
+          0.66,
+          0.3
+        ],
+        [
+          0.7,
+          -0.85
+        ],
+        [
+          0.78,
+          -1.1
+        ],
+        [
+          0.86,
+          -0.6
+        ],
+        [
+          0.88,
+          0.3
+        ]
+      ],
+      "thickness": 0.4
+    },
+    "tail": {
+      "points": [
+        [
+          -0.25,
+          0.55
+        ],
+        [
+          1.3,
+          1.45
+        ],
+        [
+          1.8,
+          0.95
+        ],
+        [
+          1.9,
+          0.0
+        ],
+        [
+          1.8,
+          -0.95
+        ],
+        [
+          1.3,
+          -1.45
+        ],
+        [
+          -0.25,
+          -0.55
+        ]
+      ],
+      "thickness": 0.35
+    },
+    "pectoral": {
+      "points": [
+        [
+          0.0,
+          0.2
+        ],
+        [
+          1.1,
+          0.75
+        ],
+        [
+          1.4,
+          0.15
+        ],
+        [
+          0.9,
+          -0.55
+        ],
+        [
+          0.0,
+          -0.4
+        ]
+      ],
+      "t": 0.34,
+      "z": -0.1,
+      "yaw": 38,
+      "tilt": -6,
+      "thickness": 0.28
+    }
+  },
+  "swim": {
+    "amplitudes": [
+      3,
+      6,
+      9,
+      12,
+      18
+    ],
+    "phaseStep": 0.9,
+    "headCounter": 2
+  },
+  "sleeve": 0.4,
+  "rideFog": "#3CBED2",
+  "rideFogEnd": 900
+}

@@ -1,0 +1,824 @@
+{
+  "about": "Ride a Fish world props, built by tools/blender/prop_kit.py. Do not edit by hand: rerun the kit.",
+  "units": "1 unit = 1 stud (a player is about 5 studs tall). sizeStuds is in Roblox axes (y is up). In Studio's 3D Importer check the size against sizeStuds (File Dimensions: Studs) before placing.",
+  "pivot": "the base: the bottom sits at y = 0, centred on the footprint",
+  "texture": "palette.png (each FBX embeds it): one flat colour cell per colour; one material per prop",
+  "zones": [
+    "Dock",
+    "Shallows",
+    "Coral Reef",
+    "Kelp Forest",
+    "Shipwrecks",
+    "Open Blue",
+    "Twilight",
+    "Midnight",
+    "Vents",
+    "Bone Graveyard",
+    "The Underworld"
+  ],
+  "props": [
+    {
+      "name": "rock_boulder_a_reef",
+      "file": "rock_boulder_a_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 8.35,
+        "y": 7.09,
+        "z": 10.55
+      },
+      "tris": 80,
+      "kb": 21.2,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks"
+      ],
+      "note": "a round boulder; scale 0.5-3x, any turn"
+    },
+    {
+      "name": "rock_boulder_b_reef",
+      "file": "rock_boulder_b_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 13.27,
+        "y": 5.43,
+        "z": 12.18
+      },
+      "tris": 80,
+      "kb": 21.1,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a wide, low boulder: terrace edges, the lane's sides"
+    },
+    {
+      "name": "rock_cluster_reef",
+      "file": "rock_cluster_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 6.8,
+        "y": 2.69,
+        "z": 5.43
+      },
+      "tris": 100,
+      "kb": 22.1,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue",
+        "Dock"
+      ],
+      "note": "small stones to scatter round the big rocks"
+    },
+    {
+      "name": "rock_arch_reef",
+      "file": "rock_arch_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 30.69,
+        "y": 19.18,
+        "z": 9.18
+      },
+      "tris": 140,
+      "kb": 23.4,
+      "zones": [
+        "Coral Reef",
+        "Kelp Forest",
+        "Open Blue"
+      ],
+      "note": "an arch to ride through: 16 studs clear under the top"
+    },
+    {
+      "name": "rock_slab_stack_reef",
+      "file": "rock_slab_stack_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 12.88,
+        "y": 7.69,
+        "z": 10.67
+      },
+      "tris": 176,
+      "kb": 24.9,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "stacked flat slabs: ledges and steps"
+    },
+    {
+      "name": "rock_spire_reef",
+      "file": "rock_spire_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 9.17,
+        "y": 23.81,
+        "z": 9.8
+      },
+      "tris": 70,
+      "kb": 21.0,
+      "zones": [
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a tall spire; scale up for far-off silhouettes"
+    },
+    {
+      "name": "rock_boulder_a_deep",
+      "file": "rock_boulder_a_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 8.35,
+        "y": 7.09,
+        "z": 10.55
+      },
+      "tris": 80,
+      "kb": 21.2,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "a round boulder; scale 0.5-3x, any turn"
+    },
+    {
+      "name": "rock_boulder_b_deep",
+      "file": "rock_boulder_b_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 13.27,
+        "y": 5.43,
+        "z": 12.18
+      },
+      "tris": 80,
+      "kb": 21.1,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "a wide, low boulder: terrace edges, the lane's sides"
+    },
+    {
+      "name": "rock_cluster_deep",
+      "file": "rock_cluster_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 6.8,
+        "y": 2.69,
+        "z": 5.43
+      },
+      "tris": 100,
+      "kb": 22.1,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "small stones to scatter round the big rocks"
+    },
+    {
+      "name": "rock_arch_deep",
+      "file": "rock_arch_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 30.69,
+        "y": 19.18,
+        "z": 9.18
+      },
+      "tris": 140,
+      "kb": 23.4,
+      "zones": [
+        "Midnight",
+        "Vents",
+        "Bone Graveyard"
+      ],
+      "note": "an arch to ride through: 16 studs clear under the top"
+    },
+    {
+      "name": "rock_slab_stack_deep",
+      "file": "rock_slab_stack_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 12.88,
+        "y": 7.69,
+        "z": 10.67
+      },
+      "tris": 176,
+      "kb": 24.9,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "The Underworld"
+      ],
+      "note": "stacked flat slabs: ledges and steps"
+    },
+    {
+      "name": "rock_spire_deep",
+      "file": "rock_spire_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 9.17,
+        "y": 23.81,
+        "z": 9.8
+      },
+      "tris": 70,
+      "kb": 21.0,
+      "zones": [
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "a tall spire; scale up for far-off silhouettes"
+    },
+    {
+      "name": "coral_branch_pink",
+      "file": "coral_branch_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 4.07,
+        "y": 6.09,
+        "z": 5.2
+      },
+      "tris": 344,
+      "kb": 30.2,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "staghorn, pale tips"
+    },
+    {
+      "name": "coral_brain_pink",
+      "file": "coral_brain_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 6.04,
+        "y": 3.46,
+        "z": 5.03
+      },
+      "tris": 98,
+      "kb": 22.0,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "a grooved dome"
+    },
+    {
+      "name": "coral_fan_pink",
+      "file": "coral_fan_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 8.9,
+        "y": 7.88,
+        "z": 3.5
+      },
+      "tris": 136,
+      "kb": 22.7,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "two sea fans; face them across the current"
+    },
+    {
+      "name": "coral_tube_pink",
+      "file": "coral_tube_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 4.3,
+        "y": 5.47,
+        "z": 3.74
+      },
+      "tris": 220,
+      "kb": 25.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "organ-pipe tubes, open tops"
+    },
+    {
+      "name": "coral_table_pink",
+      "file": "coral_table_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 11.16,
+        "y": 4.1,
+        "z": 12.09
+      },
+      "tris": 172,
+      "kb": 24.3,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Open Blue"
+      ],
+      "note": "table coral; big ones make shelves"
+    },
+    {
+      "name": "coral_branch_orange",
+      "file": "coral_branch_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 4.07,
+        "y": 6.09,
+        "z": 5.2
+      },
+      "tris": 344,
+      "kb": 30.2,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "staghorn, pale tips"
+    },
+    {
+      "name": "coral_brain_orange",
+      "file": "coral_brain_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 6.04,
+        "y": 3.46,
+        "z": 5.03
+      },
+      "tris": 98,
+      "kb": 22.0,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "a grooved dome"
+    },
+    {
+      "name": "coral_fan_orange",
+      "file": "coral_fan_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 8.9,
+        "y": 7.88,
+        "z": 3.5
+      },
+      "tris": 136,
+      "kb": 22.7,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "two sea fans; face them across the current"
+    },
+    {
+      "name": "coral_tube_orange",
+      "file": "coral_tube_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 4.3,
+        "y": 5.47,
+        "z": 3.74
+      },
+      "tris": 220,
+      "kb": 25.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "organ-pipe tubes, open tops"
+    },
+    {
+      "name": "coral_table_orange",
+      "file": "coral_table_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 11.16,
+        "y": 4.1,
+        "z": 12.09
+      },
+      "tris": 172,
+      "kb": 24.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "table coral; big ones make shelves"
+    },
+    {
+      "name": "coral_branch_purple",
+      "file": "coral_branch_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 4.07,
+        "y": 6.09,
+        "z": 5.2
+      },
+      "tris": 344,
+      "kb": 30.2,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "staghorn, pale tips"
+    },
+    {
+      "name": "coral_brain_purple",
+      "file": "coral_brain_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 6.04,
+        "y": 3.46,
+        "z": 5.03
+      },
+      "tris": 98,
+      "kb": 22.0,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "a grooved dome"
+    },
+    {
+      "name": "coral_fan_purple",
+      "file": "coral_fan_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 8.9,
+        "y": 7.88,
+        "z": 3.5
+      },
+      "tris": 136,
+      "kb": 22.7,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "two sea fans; face them across the current"
+    },
+    {
+      "name": "coral_tube_purple",
+      "file": "coral_tube_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 4.3,
+        "y": 5.47,
+        "z": 3.74
+      },
+      "tris": 220,
+      "kb": 25.4,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "organ-pipe tubes, open tops"
+    },
+    {
+      "name": "coral_table_purple",
+      "file": "coral_table_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 11.16,
+        "y": 4.1,
+        "z": 12.09
+      },
+      "tris": 172,
+      "kb": 24.4,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "table coral; big ones make shelves"
+    },
+    {
+      "name": "kelp_tall",
+      "file": "kelp_tall.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 9.09,
+        "y": 41.46,
+        "z": 8.96
+      },
+      "tris": 342,
+      "kb": 29.7,
+      "zones": [
+        "Kelp Forest"
+      ],
+      "note": "a 40-stud strand: the forest's trees"
+    },
+    {
+      "name": "kelp_short",
+      "file": "kelp_short.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 6.3,
+        "y": 20.4,
+        "z": 7.2
+      },
+      "tris": 228,
+      "kb": 26.2,
+      "zones": [
+        "Kelp Forest",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "undergrowth and edges"
+    },
+    {
+      "name": "sea_grass_clump",
+      "file": "sea_grass_clump.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.03,
+        "y": 3.39,
+        "z": 4.1
+      },
+      "tris": 90,
+      "kb": 22.7,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "a tuft of sea grass"
+    },
+    {
+      "name": "sea_grass_patch",
+      "file": "sea_grass_patch.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.8,
+        "y": 2.86,
+        "z": 6.89
+      },
+      "tris": 160,
+      "kb": 25.7,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Kelp Forest"
+      ],
+      "note": "a wider patch to carpet the sand"
+    },
+    {
+      "name": "shell_scallop",
+      "file": "shell_scallop.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.03,
+        "y": 0.54,
+        "z": 1.31
+      },
+      "tris": 46,
+      "kb": 19.7,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "lies flat"
+    },
+    {
+      "name": "shell_conch",
+      "file": "shell_conch.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.43,
+        "y": 2.07,
+        "z": 2.31
+      },
+      "tris": 70,
+      "kb": 20.9,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "a spiral shell on its side"
+    },
+    {
+      "name": "starfish",
+      "file": "starfish.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.48,
+        "y": 0.42,
+        "z": 2.46
+      },
+      "tris": 40,
+      "kb": 19.6,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "lies flat"
+    },
+    {
+      "name": "sea_urchin",
+      "file": "sea_urchin.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.43,
+        "y": 2.61,
+        "z": 3.12
+      },
+      "tris": 53,
+      "kb": 20.6,
+      "zones": [
+        "Coral Reef",
+        "Kelp Forest",
+        "Twilight"
+      ],
+      "note": "a spiky ball"
+    },
+    {
+      "name": "crate",
+      "file": "crate.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.0,
+        "y": 4.0,
+        "z": 4.0
+      },
+      "tris": 108,
+      "kb": 20.0,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "a 4-stud crate; sunk ones for the wrecks"
+    },
+    {
+      "name": "crate_stack",
+      "file": "crate_stack.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 8.39,
+        "y": 7.2,
+        "z": 4.49
+      },
+      "tris": 324,
+      "kb": 25.6,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "two crates and a small one on top"
+    },
+    {
+      "name": "dock_post",
+      "file": "dock_post.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.04,
+        "y": 10.0,
+        "z": 2.04
+      },
+      "tris": 150,
+      "kb": 21.5,
+      "zones": [
+        "Dock"
+      ],
+      "note": "a piling with a rope wrap; 10 studs, sink its foot"
+    },
+    {
+      "name": "buoy",
+      "file": "buoy.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.6,
+        "y": 4.95,
+        "z": 3.6
+      },
+      "tris": 156,
+      "kb": 22.0,
+      "zones": [
+        "Dock"
+      ],
+      "note": "a striped buoy with a lamp: the lagoon's gap, the dive board"
+    },
+    {
+      "name": "rope_coil",
+      "file": "rope_coil.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.82,
+        "y": 1.36,
+        "z": 2.63
+      },
+      "tris": 244,
+      "kb": 26.5,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "a coil with a loose end"
+    },
+    {
+      "name": "barrel",
+      "file": "barrel.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.86,
+        "y": 3.5,
+        "z": 2.86
+      },
+      "tris": 140,
+      "kb": 21.5,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "a banded barrel"
+    },
+    {
+      "name": "lifebuoy",
+      "file": "lifebuoy.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.64,
+        "y": 3.64,
+        "z": 0.73
+      },
+      "tris": 96,
+      "kb": 20.6,
+      "zones": [
+        "Dock"
+      ],
+      "note": "a ring buoy on its edge, for the rails"
+    }
+  ]
+}

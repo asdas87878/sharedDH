@@ -5,6 +5,11 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-09 | Riding uses an **Oxygen** meter, which drains while you ride (higher tiers faster); it replaces stamina and Breath for riding. Out of Oxygen you fall off, float up with a few seconds' grace, then pass out and wake at the dock | [Riding feel](design/riding-feel.md) |
+| 2026-11-09 | A ridden fish speeds up from its idle speed | [Riding feel](design/riding-feel.md) |
+| 2026-11-09 | You dash fish to fish, and each dash refills Oxygen | [Riding feel](design/riding-feel.md) |
+| 2026-11-09 | The dash is a very smooth, animated corkscrew (a swimming screw); switching fish must feel satisfying | [Riding feel](design/riding-feel.md) |
+| 2026-11-09 | Jumping off opens a grapple shot: an aim window with a brief slow-mo, a reticle on the best fish in a cone, a rope, reel in. Replaces the grab-hook idea | [Riding feel](design/riding-feel.md) |
 | 2026-11-09 | The project is shared with the user's partner through a private GitHub repo (`asdas87878/sharedDH`), with the Obsidian Git plugin on both PCs. Studio work goes through the repo too, as there's no shared Studio connection | [Working together](Working%20together.md) |
 | 2026-11-09 | The head follows the user's two drawings, the concept's construction. From the front: a face plane narrowing to the mouth, the forehead carrying the same lines up, and either side one big flat grey eye face from the face's edge out to the head's outline, with the eye in its middle so it reads from both the front and the side; a yellow corner facet above each. The yellow line runs straight across the face's top, rises along the eye faces, then runs level along the body at the top chamfers. Below: a chin and a jaw split by diagonals. Replaces the rectangular face panel and the turned eye of the row below (and, the same day, a front strip with a separate side wall) | [Workout 2](style/02-creature-look.md) |
 | 2026-11-09 | Match the concept's face carefully, measured off its views: a flat face panel with a forehead, corner facets, cheeks and a chin sloping back from it; a cream mouth strip across the middle; one big square eye (a cream square, a black square centred in it) on the side, turned so it shows from the front. The face may leave the body kit's structure; never a snout running to a point | [Workout 2](style/02-creature-look.md) |
