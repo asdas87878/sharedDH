@@ -1,0 +1,21 @@
+Packages/
+sourcemap.json
+*.blend1
+__pycache__/
+
+# reference study media (recordings, frames): private, never in the repo
+research/
+
+# Obsidian (the repo is the vault): the settings are kept, each person's window layout and the trash are not
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.trash/
+# plugin code is downloaded (reinstall from Obsidian's community plugins); each plugin's settings (data.json) are kept
+.obsidian/plugins/*/*
+!.obsidian/plugins/*/data.json
+/.tmp_run_args.json
+
+# regenerated on every render (the GIF in docs/attachments is the record)
+art/creatures/*/renders/swim_*/
+# Claude's scratch files
+/.tmp_*

@@ -1,0 +1,22 @@
+# one line ending on both PCs
+* text=auto eol=lf
+
+# never touch these
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.blend binary
+*.fbx binary
+*.glb binary
+*.obj binary
+*.spp binary
+*.rbxl binary
+*.rbxm binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.mp4 binary
+*.mkv binary
+*.zip binary
