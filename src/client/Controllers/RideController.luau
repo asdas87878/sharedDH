@@ -6,8 +6,8 @@
 -- fish over Switch.CameraSettle, with the landing kick, and easing to the drowning's shot.
 -- Steering: the fish turns to where the camera looks; A/D or the stick's sideways turn the camera, and so does a right
 -- mouse drag or a touch drag. W dives, S climbs; nothing held follows the lane down at the herd's height above the
--- floor. Right mouse drag or a touch
--- drag looks round; the camera swings back behind the fish on its own.
+-- floor. In a jump's flight A/D turn the flight and the camera with it, and a drag only looks round (JumpController).
+-- Fish don't collide with the map: Lib/Course keeps the one we ride out of the floor, the walls and the air.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -16,6 +16,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
+local Course = require(script.Parent.Parent.Lib.Course)
 local State = require(script.Parent.Parent.Lib.State)
 
 local RideController = {}
@@ -25,8 +26,6 @@ local camera = workspace.CurrentCamera
 
 -- riding
 local yaw, pitch, roll = 0, 0, 0
-local driveParams = RaycastParams.new()
-driveParams.FilterType = Enum.RaycastFilterType.Exclude
 local startSpeed = 0
 local rideType: Config.FishType? = nil
 
@@ -53,6 +52,10 @@ local kickAt, kickSpeed = 0, 0 -- the landing's jolt: the camera's height off tr
 local lookedAt = -math.huge -- os.clock() the player last looked round themselves
 local rightHeld = false
 local wasScripted = false
+local cameraParams = RaycastParams.new() -- for keeping the camera out of the floor and walls
+cameraParams.FilterType = Enum.RaycastFilterType.Exclude
+cameraParams.RespectCanCollide = true
+local cameraFor: Model? = nil -- the character those rays skip
 local deathBlend = 0 -- 0 to 1, how far the camera has turned to look at a death shot's focus
 
 -- The move stick or keys: X is right, Z is back (W is -Z)
@@ -129,6 +132,29 @@ local function anglesOf(look: Vector3): (number, number)
 end
 
 local function onMounted(fish: Model)
+	if typeof(fish) ~= "Instance" or not fish:IsA("Model") then
+		-- the fish hasn't reached us yet (the server's word came first): look for the one marked as ours
+		task.spawn(function()
+			for _ = 1, 30 do
+				task.wait(0.1)
+				if State.Fish or State.Player:GetAttribute("State") ~= "Riding" then
+					return
+				end
+				local folder = workspace:FindFirstChild("Fish")
+				for _, model in if folder then folder:GetChildren() else {} do
+					if
+						model:IsA("Model")
+						and model.PrimaryPart
+						and model:GetAttribute("Rider") == State.Player.UserId
+					then
+						RideController.mounted(model)
+						return
+					end
+				end
+			end
+		end)
+		return
+	end
 	State.Fish = fish
 	State.MountedAt = os.clock()
 	local root = fish.PrimaryPart
@@ -145,6 +171,7 @@ local function onMounted(fish: Model)
 	leftWeld = nil
 	roll = 0
 	clearFloat()
+	Course.begin()
 	State.setMode("Riding")
 end
 
@@ -168,42 +195,52 @@ local function drive(dt: number)
 	local before = yaw
 	yaw = Ease.lerpAngle(yaw, camYaw, Ease.alpha(r.TurnFollow, dt) * follow)
 	local turning = ((yaw - before + math.pi) % (2 * math.pi) - math.pi) / math.max(dt, 1 / 240)
-	driveParams.FilterDescendantsInstances =
-		{ fish, State.Player.Character :: Instance, workspace:FindFirstChild("Fish") :: Instance }
-	local floor = workspace:Raycast(root.Position, Vector3.new(0, -160, 0), driveParams)
-	local height = if floor then root.Position.Y - floor.Position.Y else nil
+	local at = root.Position
+	local floorY = Course.floor(at)
+	local height = if floorY then at.Y - floorY else nil
+	-- the herd's height here: lower in the shallows, where it leaves room above it for a jump
+	local level = if floorY then math.min(Config.Herd.RideHeight, Config.herdTop(floorY)) else Config.Herd.RideHeight
 	if math.abs(mv.Z) > 0.05 then
 		pitch += mv.Z * math.rad(r.PitchRate) * dt -- W is -Z: nose down
 	elseif height then
 		-- nothing held: it follows the lane down, settling at the herd's height above the floor
 		local h = Config.Herd
-		-- (lower in the shallows, to stay under the surface)
-		local room = Config.Oxygen.SurfaceY - 9 - (root.Position.Y - height)
-		local level = math.min(h.RideHeight, math.max(room, r.FloorClearance + 6))
 		local want = math.clamp((level - height) * h.RideHeightGain, -h.RideHeightPitch, h.RideHeightPitch)
 		pitch = Ease.lerp(pitch, math.rad(want), Ease.alpha(2.5, dt))
 	else
-		pitch = Ease.lerp(pitch, math.rad(-3), Ease.alpha(r.LevelRate * 3, dt))
+		-- no floor known (off the map): level, never down
+		pitch = Ease.lerp(pitch, 0, Ease.alpha(r.LevelRate * 3, dt))
 	end
 	-- keep off the floor and under the surface
-	if height and height < r.FloorClearance + 4 and pitch < math.rad(6) then
+	if height and height < math.min(r.FloorClearance + 4, level - 1) and pitch < math.rad(6) then
 		pitch = Ease.lerp(pitch, math.rad(10), Ease.alpha(6, dt))
 	end
-	if root.Position.Y > Config.Oxygen.SurfaceY - 4 and pitch > 0 then
+	if at.Y > Config.Oxygen.SurfaceY - r.Ceiling and pitch > 0 then
 		pitch = Ease.lerp(pitch, math.rad(-6), Ease.alpha(6, dt))
 	end
 	pitch = math.clamp(pitch, -math.rad(r.MaxPitch), math.rad(r.MaxPitch))
 	-- banking into the turn
-	local lean = math.clamp(turning / math.rad(r.YawRate), -1, 1)
+	local lean = math.clamp(turning / math.rad(math.max(r.YawRate, 1)), -1, 1)
 	roll = Ease.lerp(roll, lean * math.rad(r.Bank), Ease.alpha(5, dt))
 
 	local speed =
 		Ease.rideSpeed(startSpeed, rideType.RiddenSpeed, os.clock() - State.MountedAt, r.RampTime, r.Surge, r.SurgeTime)
 	local heading = CFrame.fromOrientation(pitch, yaw, 0)
-	swim.VectorVelocity = heading.LookVector * speed
+	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
+	-- the air or out of the lane, however the keys are held
+	local wanted = heading.LookVector * speed
+	local velocity = Course.clearVelocity(at, wanted, r.FloorClearance, rideType.Size.Z / 2 + 1)
+	swim.VectorVelocity = velocity
+	if math.abs(velocity.Y - wanted.Y) > 1 then
+		-- stopped from diving or climbing: the nose comes round to the way it is really going
+		local truePitch = math.asin(math.clamp(velocity.Y / math.max(speed, 1), -1, 1))
+		pitch = Ease.lerp(pitch, truePitch, Ease.alpha(8, dt))
+	end
 	turn.CFrame = heading * CFrame.Angles(0, 0, roll)
 	State.Speed = speed
 end
+
+RideController.mounted = onMounted
 
 -- Leaving a fish (a jump, the throw-off): it carries on along its heading, slowing to idle
 function RideController.coast(fish: Model?)
@@ -240,7 +277,9 @@ local function coast()
 		local level = Vector3.new(c.Look.X, c.Look.Y * (1 - Ease.smoothstep(0, 1.2, t)), c.Look.Z)
 		local look = if level.Magnitude > 0.01 then level.Unit else c.Look
 		local speed = Ease.lerp(c.Speed, c.Idle, Ease.smoothstep(0, Config.Ride.SlowDownTime, t))
-		swim.VectorVelocity = look * speed
+		-- (kept out of the floor like the fish we ride: left in a dive, it would sink into it)
+		Course.floor(root.Position)
+		swim.VectorVelocity = Course.clearVelocity(root.Position, look * speed, Config.Ride.FloorClearance, 2)
 		turn.CFrame = CFrame.lookAt(Vector3.zero, look)
 	end
 end
@@ -282,6 +321,13 @@ local function float(root: BasePart)
 	if root.Position.Y > o.SurfaceY then
 		rise = math.min(rise, (o.SurfaceY - root.Position.Y) * 4)
 	end
+	-- left under the floor (a landing lost on a fish that was), we would float up against its underside for good
+	-- (against the lane's own floor, not a ray from above: that would find the top of an arch we are under)
+	local laneY = Course.laneFloor(root.Position)
+	if laneY and root.Position.Y < laneY - 1 then
+		root.CFrame += Vector3.new(0, laneY + 4 - root.Position.Y, 0)
+		root.AssemblyLinearVelocity = Vector3.zero
+	end
 	local swim = Vector3.zero
 	if State.Mode == "Free" then
 		local mv = RideController.moveVector()
@@ -293,18 +339,6 @@ local function float(root: BasePart)
 	local t = floatTurn :: AlignOrientation
 	t.CFrame = CFrame.fromOrientation(0, camYaw, 0)
 	State.Speed = root.AssemblyLinearVelocity.Magnitude
-end
-
--- The camera shake (the landing kick), dying away
-local function shakeOffset(): CFrame
-	local left = State.ShakeUntil - os.clock()
-	if left <= 0 then
-		return CFrame.identity
-	end
-	local amount = State.ShakeStrength * (left / State.ShakeTime) ^ 2
-	local t = os.clock() * 40
-	return CFrame.new(math.noise(t, 0.3) * amount, math.noise(0.7, t) * amount, 0)
-		* CFrame.Angles(0, 0, math.noise(t, 2.1) * amount * 0.03)
 end
 
 local function cameraStep(dt: number)
@@ -341,7 +375,7 @@ local function cameraStep(dt: number)
 		local look = if towards.Magnitude > 0.1
 			then free:Lerp(towards.Unit, Ease.smoothstep(0, 1, deathBlend))
 			else free
-		camera.CFrame = CFrame.lookAt(at, at + look) * shakeOffset()
+		camera.CFrame = CFrame.lookAt(at, at + look)
 		camera.FieldOfView = Ease.lerp(camera.FieldOfView, c.Fov, Ease.alpha(3, dt))
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		return
@@ -351,9 +385,10 @@ local function cameraStep(dt: number)
 		camYaw, camPitch = anglesOf(camera.CFrame.LookVector)
 	end
 
-	-- The camera's turn is the player's: a drag turns it, and so do A and D. The fish, and the flight, turn to where it
-	-- looks. Just after a mount it comes round behind the new fish first (Switch.CameraSettle). Its tilt looks after
-	-- itself unless the player has just dragged it.
+	-- The camera's turn is the player's: a drag turns it, and so do A and D. A ridden fish turns to where it looks. In
+	-- a jump's flight A and D turn the flight, and the camera by as much, so a drag there only looks round. Just after a
+	-- mount it comes round behind the new fish first (Switch.CameraSettle). Its tilt looks after itself unless the
+	-- player has just dragged it.
 	local recentLook = os.clock() - lookedAt < 1.2
 	local turn = RideController.moveVector().X
 	if mode == "Riding" then
@@ -392,10 +427,11 @@ local function cameraStep(dt: number)
 	local goal = focus - rotation.LookVector * distance + Vector3.new(0, c.Height * 0.3, 0)
 
 	-- keep the camera out of the floor and walls
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character, workspace:FindFirstChild("Fish") :: Instance, camera }
-	local hit = workspace:Raycast(focus, goal - focus, params)
+	if cameraFor ~= character then
+		cameraFor = character
+		cameraParams.FilterDescendantsInstances = { character, camera }
+	end
+	local hit = workspace:Raycast(focus, goal - focus, cameraParams)
 	if hit then
 		goal = hit.Position + (focus - goal).Unit * 0.8
 	end
@@ -415,16 +451,15 @@ local function cameraStep(dt: number)
 		kickSpeed += (-w * w * kickAt - 2 * j.LandKickDamp * w * kickSpeed) * h
 		kickAt += kickSpeed * h
 	end
-	camera.CFrame = CFrame.lookAt(position, position + rotation.LookVector) * shakeOffset() * CFrame.new(0, kickAt, 0)
+	camera.CFrame = CFrame.lookAt(position, position + rotation.LookVector) * CFrame.new(0, kickAt, 0)
 
-	-- field of view: wider with speed, plus the jump's kick (decaying)
-	State.FovKick = Ease.lerp(State.FovKick, 0, Ease.alpha(4, dt))
+	-- field of view: wider with speed
 	local speedT = Ease.smoothstep(c.SpeedFovFrom, c.SpeedFovTo, State.Speed)
-	local fovGoal = c.Fov + c.SpeedFov * speedT + State.FovKick
+	local fovGoal = c.Fov + c.SpeedFov * speedT
 	fovEased = Ease.lerp(fovEased, fovGoal, Ease.alpha(6, dt))
 	-- the punch goes on top at once (the pull-in's zoom in, the landing's snap out), and runs down by itself
 	camera.FieldOfView = math.clamp(fovEased + State.FovPunch, 30, 120)
-	local run = j.LandFov / j.LandFovTime * dt
+	local run = math.abs(j.LandFov) / math.max(j.LandFovTime, 0.01) * dt
 	State.FovPunch = if State.FovPunch > 0 then math.max(0, State.FovPunch - run) else math.min(0, State.FovPunch + run)
 end
 
@@ -478,6 +513,11 @@ function RideController.Init()
 					RideController.coast(State.Fish)
 				end
 				State.Fish = nil
+				if a == "Jump" and State.Mode == "Riding" then
+					-- the server took a jump we aren't flying (a press that crossed with a mount): float, don't
+					-- sit in Riding with no fish
+					State.setMode("Free")
+				end
 				return
 			end
 			State.Fish = nil

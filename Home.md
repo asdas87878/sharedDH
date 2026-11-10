@@ -10,7 +10,9 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Working together](docs/Working%20together.md): how the user and Claude work on this.
 - [Sessions](docs/Sessions.md): which Claude chats are working on what, and their notes to each other.
 - [The movement sandbox](docs/sandbox.md): play-testing the ride, the jump and the camera in Studio, with every number open.
-- [Blockout](docs/blockout.md): the dock and the long dive, v2 against v1.
+- [Blockout](docs/blockout.md): the dock and the long dive, v4 back to v1.
+- [The map: how we build it](docs/design/map-method.md): the new direction (2026-11-10): walls in wavy steps, props that break, the descent.
+- [Map state](docs/map-state.md): blockout v4 as it stood, and the stud tiles. Set aside.
 
 ## The game
 - [Core loop](docs/design/core-loop.md): the cycle in one page.
@@ -30,6 +32,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 
 ## The reference
 - [Ride a Dino breakdown](docs/reference/ride-a-dino.md): how it works, from the user's recording.
+- [How its map is built](docs/reference/ride-a-dino-map.md): floor, walls, breakable props and the hub.
 
 ## For Claude
 - [CLAUDE.md](CLAUDE.md): the project's instructions.

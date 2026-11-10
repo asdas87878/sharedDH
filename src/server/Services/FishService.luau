@@ -20,6 +20,7 @@ local Lane = require(ReplicatedStorage.Shared.Lane)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local FishModel = require(script.Parent.Parent.Lib.FishModel)
+local LaneSurvey = require(script.Parent.Parent.Lib.LaneSurvey)
 
 export type Wild = {
 	Model: Model,
@@ -200,16 +201,16 @@ local function pointAt(s: number): Vector3
 	local _, _, width = Lane.at(lane, s)
 	local x = rng:NextNumber(-1, 1) * width / 2 * Config.Spawn.LaneFill
 	local floorY = Lane.point(lane, s, x, 0).Y
-	local room = Config.Oxygen.SurfaceY - 6 - floorY
+	-- (and low enough in the shallows that a jump has room to rise above the herd)
+	local room = math.min(Config.Oxygen.SurfaceY - 6 - floorY, Config.herdTop(floorY))
 	-- under an arch, a shelf or a sign, keep clear of the roof (the map's Path c)
 	local roof = Lane.clearanceAt(lane, s)
 	if roof then
 		room = math.min(room, roof - Config.Spawn.RoofGap)
 	end
 	local top = math.min(Config.Spawn.HeightMax, room)
-	local h = if top > Config.Spawn.HeightMin
-		then rng:NextNumber(Config.Spawn.HeightMin, top)
-		else math.max(room * 0.5, 2)
+	local low = math.min(Config.Spawn.HeightMin, top * 0.8)
+	local h = if top > 3 then rng:NextNumber(low, top) else math.max(room * 0.5, 2)
 	return Lane.point(lane, s, x, h)
 end
 
@@ -223,7 +224,8 @@ local function placeInLane(w: Wild)
 	local half = width / 2 * Config.Spawn.LaneFill
 	w.S = s
 	w.Across = math.clamp((position - centre):Dot(right), -half, half)
-	w.Height = math.clamp(position.Y - centre.Y, Config.Spawn.HeightMin, Config.Spawn.HeightMax)
+	local lowest = math.min(Config.Spawn.HeightMin, Config.Spawn.HeightMax)
+	w.Height = math.clamp(position.Y - centre.Y, lowest, math.max(Config.Spawn.HeightMax, lowest))
 end
 
 local function nearAPlayer(position: Vector3, radius: number): boolean
@@ -458,7 +460,8 @@ local function steer(w: Wild, dt: number)
 	-- last stocked zone it carries on level until the top-up takes it away.
 	w.S += speed * dt
 	local aheadS = math.min(w.S + Config.Herd.Ahead, lane.Length)
-	local to = Lane.point(lane, aheadS, w.Across, w.Height) - position
+	local floorAhead = Lane.point(lane, aheadS, w.Across, 0)
+	local to = floorAhead + Vector3.new(0, Config.herdHeight(w.Height, floorAhead.Y), 0) - position
 	if to.Magnitude < 5 then
 		local _, along = Lane.at(lane, aheadS)
 		to = along
@@ -513,8 +516,26 @@ function FishService.Init()
 	parkedFolder.Name = "ParkedFish"
 	parkedFolder.Parent = ServerStorage
 	zones = Zones.discover()
-	lane = Lane.build(zones, Zones.pathJson())
+	-- the lane's floor is read off the built map, not taken from the design's curve (Lib/LaneSurvey says why)
+	local pathJson = LaneSurvey.run(Zones.pathJson())
+	lane = Lane.build(zones, pathJson)
+	-- Roblox destroys whatever falls below this, fish and players alike, and only Studio can change it (not a script)
+	local lowest = 0
+	for _, point in lane.Points do
+		lowest = math.min(lowest, point.Y)
+	end
+	if lowest < workspace.FallenPartsDestroyHeight + 200 then
+		warn(
+			string.format(
+				"[FishService] the lane goes down to y = %d but Workspace.FallenPartsDestroyHeight is %d: fish and players are destroyed below it. Set it lower in Studio (the map script should).",
+				lowest,
+				workspace.FallenPartsDestroyHeight
+			)
+		)
+	end
 	Net.Folder:SetAttribute("Zones", Zones.encode(zones))
+	-- the clients build the same lane, to keep what they move themselves inside it (src/client/Lib/Course.luau)
+	Net.Folder:SetAttribute("LanePath", pathJson or "")
 	for i = 1, #zones do
 		pools[i] = pool(i)
 	end

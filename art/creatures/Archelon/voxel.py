@@ -4,14 +4,15 @@ Designed from the real animal: a leathery shell stretched over a frame of ribs w
 edge like a star, a narrow head with a hooked beak, and front flippers longer than the shell.
 Its idea: the first giant, and its frame shows through the leather. A spine, the ribs that leave it, and the tips of
 those ribs standing out past the shell's dark edge.
-- The carapace is a shell, not a dome of steps: one cross-section, scaled along the body. A short wall above the lip, a
-  steep lower shoulder, a gentle upper shoulder, and a wide flat plateau across half its width. Each stretch between two
-  ribs is one faceted block, so the slopes are whole turned faces (the style's rule: a slope is a block turned).
+- The carapace is eight big blocks of cubes, front to back, one for each rib (the crown carries two). Each is a plain
+  slab: a wide flat plateau, one broad shoulder step, a wall. A block is a cube or two wider or taller than its
+  neighbour, so the shell reads as a few stacked plates, not as many small steps. From the side the blocks make a dome:
+  a quick rise from the neck, the crown, a slower fall to the tail.
 - It is a thick animal, as a turtle this size is: the body is about a third as deep as the shell is long. Under the lip
   there is a real underbody, dark leather that turns in to the plastron. The lip and the underbody are cubes.
 - The shell is deep jade leather, one part. A near-black lip runs all the way round its edge and frames it. A low dark
-  keel runs down the spine. Six thin bone ribs cross the shell from lip to lip; each ends in a bone point past the lip,
-  and carries a gold knob where it crosses the spine. Between the ribs the leather is plain.
+  keel runs down the spine. Six thin bone ribs cross the shell from lip to lip, each in the middle of a slice; each ends
+  in a bone point past the lip, and carries a gold knob where it crosses the spine. Between the ribs the leather is plain.
 - The front flippers are wings in three jointed lengths (arm, blade, tip), the bend at the elbow. Each length has a dark
   leading spar and, behind it, fingers fanned like the bones of a hand, each shorter and thinner than the one in front,
   so the trailing edge is feathered, not a plank's. A horn claw on the tip. They beat like wings, each length a little
@@ -22,59 +23,35 @@ those ribs standing out past the shell's dark edge.
 - The short tail ends in a horn point: the beak's echo.
 - Jade, ink, bone and gold. Gold is the signature colour: the knobs and the halo of the eye, nothing else. Only the
   halo glows.
-The rider sits on a low hump of the spine's ridge between the two middle ribs, legs either side of it."""
+The rider sits on the keel between the two middle ribs. There is no hump: it read as a hill on the dome."""
 import math
 
 NAME, ZONE, RARITY = "Archelon", "ZONE 1 / SHALLOWS", "LEGENDARY"
 U = 0.45
-PALETTE = {"shell": "#1C8272", "rim": "#10222A", "skin": "#5B8E88", "belly": "#F1E7C9", "bone": "#F4EBD2", "gold": "#F6BC3F",
+PALETTE = {"shell": "#1C8272", "rim": "#1D3059", "skin": "#5B8E88", "belly": "#F1E7C9", "bone": "#F4EBD2", "gold": "#F6BC3F",
            "horn": "#D08B32", "black": "#15171A", "soft": "#F8CF6E"}
-SEAT = (1.5, 12.5, 1.85)
+SEAT = (1.5, 12, 1.85)
 GLOW = {"soft": 0.4}  # only the thin halo of the eye
 FRAME, ORTHO, ORTHO_SWIM = 3.1, 72.0, 76.0
 
-# the carapace's cross-section at full size, from the lip up: (cubes out, cubes above the lip). A short wall, a steep
-# lower shoulder, a gentle upper shoulder, then the plateau: flat, and half the shell's width
-PROFILE = ((13.5, 1.8), (11.5, 6.0), (7.0, 8.5))
-LIP = 1  # the height of the lip's top: the carapace stands on it
-# along the body: (x, the cross-section's scale, whether a rib of the frame crosses here). The first and last stretches
-# are the blunt ends over the front and back lips
-STATIONS = ((-17.7, 0.45, False), (-17, 0.68, False), (-12, 0.84, True), (-7, 0.96, True), (-2, 1.0, True), (5, 1.0, True),
-            (10, 0.92, True), (15, 0.80, True), (20.5, 0.64, False), (26, 0.44, False), (26.7, 0.24, False))
-BODY = (-17, 26)  # the lip and the underbody run between these
+# the shell, front to back, in eight big blocks: (from, to, cubes out either side, the height of its crown). From the side
+# the crowns make a dome: a quick rise from the neck, the crown, a slower fall to the tail
+SLICES = ((-17, -14, 9, 6), (-14, -9, 11, 8), (-9, -4, 12, 10), (-4, 7, 13, 11), (7, 12, 12, 10), (12, 17, 11, 8), (17, 22, 9, 6),
+          (22, 26, 7, 4))
+RIBS = (-11.5, -6.5, -1.5, 4.5, 9.5, 14.5)  # where a rib of the frame crosses the shell, each in the middle of a block
+LIP = 1  # the height of the lip's top
 
 
-def scale_at(x):
-    for (xa, sa, _), (xb, sb, _) in zip(STATIONS, STATIONS[1:]):
-        if xa <= x <= xb:
-            return sa + (sb - sa) * (x - xa) / (xb - xa)
-    return STATIONS[-1][1]
-
-
-def crown(x):
-    """the height of the plateau at x"""
-    return LIP + PROFILE[-1][1] * scale_at(x)
-
-
-def out_at(x):
-    """how many cubes out the body's cubes go in the column from x to x + 1: enough to carry the carapace's wall"""
-    return math.ceil(PROFILE[0][0] * max(scale_at(x), scale_at(x + 1)) - 0.5)
-
-
-def section(x, scale, wide=1.0, tall=1.0, base=0.5):
-    """the corners of the cross-section at x, right round: its foot is sunk into the lip"""
-    half = [(PROFILE[0][0] * scale * wide, LIP - base)] + [(y * scale * wide, LIP + h * scale * tall) for y, h in PROFILE]
-    return [(x, y, z) for y, z in half] + [(x, -y, z) for y, z in reversed(half)]
-
-
-def stretch(part, xa, sa, xb, sb, colour, **how):
-    """one faceted block of the carapace between two cross-sections"""
-    a, b = section(xa, sa, **how), section(xb, sb, **how)
-    n = len(a)
-    part.solid(a + b, [tuple(range(n)), tuple(range(n, 2 * n))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)], colour)
-
-
-RIBS = tuple(x for x, _, rib in STATIONS if rib)
+def shoulders(n, high):
+    """a block's corners from the top down, as (cubes in from the side, cubes tall): a wide flat plateau, then one broad
+    shoulder step and a small one under it. Big steps, so the block stays a block"""
+    if n >= 12:
+        return [(4, 2), (1, 3)]
+    if n >= 10:
+        return [(3, 2), (1, 2)]
+    if n >= 8:
+        return [(3, 1), (1, 2)]
+    return [(2, 1), (1, 1)]
 
 
 def pose(parts, phase):
@@ -116,45 +93,29 @@ def fan(part, s, root, droop, rows):
 
 def build(m):
     shell = m.part("Shell", (0, 0, 0))
-    # the lip and the underbody, in cubes: dark leather. The lip stands a cube proud all the way round and frames the
-    # shell; under it the body turns in, in two steps, to the plastron
-    outs = {x: out_at(x) for x in range(BODY[0], BODY[1])}
-    for x, n in outs.items():
-        shell.hull(x, x + 1, n, -3, LIP, "rim", (), [(2, 1), (1, 1)])
-        shell.sym(x, x + 1, n + 1, 0, LIP, "rim")
+    under = [(2, 1), (1, 1)]  # under the lip the body turns in, in two steps, to the plastron
+    for x0, x1, n, high in SLICES:
+        shell.hull(x0, x1, n, -3, high, "shell", shoulders(n, high), under)
+        shell.paint_sym(x0, x1, n, high - 1, high, "shell+")  # the plateau catches the light
+        shell.paint_sym(x0, x1, n, LIP, LIP + 1, "shell-")  # the foot of the shell, in the lip's shadow
+        shell.paint_sym(x0, x1, n, -3, LIP, "rim")  # the underbody: dark leather
+        shell.sym(x0, x1, n + 1, 0, LIP, "rim")  # the lip: the leather's thick dark edge, a cube proud all the way round
+        shell.sym(x0, x1, 0, high, high + 1, "rim")  # the keel of the spine: a thin dark line
     for x0, x1 in PLASTRON:
-        n = min(outs[x] for x in range(x0, x1))
+        n = min(sl[2] for sl in SLICES if sl[0] < x1 and x0 < sl[1])
         shell.sym(x0, x1, n - 3, -4, -3, "belly")
         shell.sym(x0, x1, n - 5, -5, -4, "belly-")
-    shell.sym(BODY[0] - 1, BODY[0], outs[BODY[0]], 0, LIP, "rim")  # the lip round the front and the back
-    shell.sym(BODY[1], BODY[1] + 1, outs[BODY[1] - 1], 0, LIP, "rim")
-    # the carapace: a faceted block between each pair of cross-sections, and a dark keel down the spine on each
-    for (xa, sa, rib_a), (xb, sb, rib_b) in zip(STATIONS, STATIONS[1:]):
-        stretch(shell, xa, sa, xb, sb, "shell")
-        if BODY[0] <= xa and xb <= BODY[1]:
-            ka, kb = xa + (0.25 if rib_a else 0.0), xb - (0.25 if rib_b else 0.0)  # it ends inside a rib, where there is one
-            za, zb = crown(ka), crown(kb)
-            shell.solid([(ka, -0.5, za - 0.3), (ka, 0.5, za - 0.3), (ka, 0.5, za + 0.25), (ka, -0.5, za + 0.25),
-                         (kb, -0.5, zb - 0.3), (kb, 0.5, zb - 0.3), (kb, 0.5, zb + 0.25), (kb, -0.5, zb + 0.25)],
-                        [(0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)], "rim")
-    # the frame under the leather: a thin bone rib across the shell at each station, a little proud of it; its tip stands
-    # out past the lip as a bone point, and a gold knob, leaning back, sits where it crosses the spine
+    shell.sym(-18, -17, SLICES[0][2], 0, LIP, "rim")  # the lip round the front and the back
+    shell.sym(26, 27, SLICES[-1][2] - 1, 0, LIP, "rim")
+    # the frame under the leather: a thin bone band across the shell at each rib, from lip to lip over the plateau; the
+    # rib's tip stands out past the lip as a bone point, and a gold knob, leaning back, sits where it crosses the spine
     for x in RIBS:
-        sc = scale_at(x)
-        stretch(shell, x - 0.3, sc, x + 0.3, sc, "bone", wide=1.035, tall=1.07, base=0.25)
-        n = min(outs[int(math.floor(x - 0.6))], outs[int(math.floor(x + 0.6))])
+        x0, x1, n, high = next(sl for sl in SLICES if sl[0] <= x - 0.35 and x + 0.35 <= sl[1])
+        shell.band(x - 0.3, x + 0.3, n, -3, high, "bone", shoulders(n, high), under, 0.3, stop=0.9)
         shell.spike([(x - 0.6, n + 1.1, 0.12), (x + 0.6, n + 1.1, 0.12), (x + 0.6, n + 1.1, 0.88), (x - 0.6, n + 1.1, 0.88)],
                     (x + 0.8, n + 3.7, 0.3), "bone", mirror=True)
-        z = crown(x) - 0.35
-        shell.spike([(x - 1.0, -1.0, z), (x + 1.0, -1.0, z), (x + 1.0, 1.0, z), (x - 1.0, 1.0, z)], (x + 0.8, 0.0, crown(x) + 2.9), "gold")
-    # the seat: a low saddle on the plateau between the two middle ribs, narrow enough to sit astride, the keel over it
-    top = crown(1.5)
-    saddle = (-1.5, 1.5, top - 0.2, top + 1.1)
-    shell.block(-0.5, saddle, 3.5, saddle, "shell+")
-    pommel = (-1.2, 1.2, top + 0.9, top + 2.2)
-    shell.block(0.2, pommel, 2.8, pommel, "shell+")
-    cap = (-0.5, 0.5, top + 2.0, top + 3.0)
-    shell.block(0.5, cap, 2.5, cap, "rim")
+        z = high - 0.1
+        shell.spike([(x - 1.0, -1.0, z), (x + 1.0, -1.0, z), (x + 1.0, 1.0, z), (x - 1.0, 1.0, z)], (x + 0.8, 0.0, high + 2.7), "gold")
     # the collar: the thick dark ring of leather the neck comes out through
     shell.hull(-19, -17, 5, -3, 3, "rim", [(2, 1), (1, 1)], [(1, 1)])
     # where the flippers leave the shell the skin shows under the lip
@@ -163,13 +124,14 @@ def build(m):
 
     # the head, on its own joint: a short neck, a narrow skull, a strongly hooked beak of amber horn
     head = m.part("Head", (-19, 0, -0.5), "Shell")
-    head.sym(-22, -19, 3, -2, 2, "skin")
-    head.paint_sym(-22, -19, 3, -2, -1, "belly")
-    head.paint_sym(-22, -19, 3, 1, 2, "rim")  # the dark cap runs back down the neck into the collar
-    head.sym(-19, -17, 2, -1, 1, "skin-")  # a sleeve into the collar, clear of its steps
-    head.hull(-28, -22, 4, -3, 3, "skin", [(2, 1), (1, 1)], [(1, 1)])
+    head.sym(-22, -19, 2, -3, 2, "skin")
+    head.paint_sym(-22, -19, 2, -3, -1, "belly")
+    head.paint_sym(-22, -19, 2, 1, 2, "rim")  # the dark cap runs back down the neck into the collar
+    head.sym(-19, -17, 1, -1, 1, "skin-")  # a sleeve into the collar, clear of its steps
+    head.hull(-28, -22, 3, -3, 3, "skin", [(1, 1)], [(1, 1)])
+    head.sym(-27, -22, 4, -2, 0, "skin")  # a little cheek, under the eye
     head.paint_sym(-28, -22, 4, -3, -1, "belly")  # a pale throat
-    head.paint_sym(-28, -22, 4, 2, 3, "rim")  # a dark cap on the skull
+    head.paint_sym(-28, -22, 3, 2, 3, "rim")  # a dark cap on the skull
     # the beak: one block that narrows and slopes nose-down from the skull, then the hook: a point turned down and back
     head.block(-27.6, (-2.6, 2.6, -0.9, 2.4), -32.4, (-1.2, 1.2, -1.6, 0.6), "horn")
     head.spike([(-32.3, -1.05, -1.2), (-30.7, -1.05, -1.2), (-30.7, 1.05, -1.2), (-32.3, 1.05, -1.2)], (-31.0, 0.0, -4.3), "horn")

@@ -81,7 +81,9 @@ second recording; "ahead" is how far the rider has gained on the herd's steady p
 - **The rider lies flat, face down,** from just after the pop to the pull-in, the lasso hoop held out ahead.
 - **The timing of one jump:** pressed at 9.85 s, the pull-in begins about 11.55 s (1.7 s later) and lands at 12.0 s. The
   next jump is pressed 0.2 s after landing.
-- **Through the pull-in a row of yellow dots is left behind the rider.** There is no line to the dino.
+- **Through the pull-in a row of yellow dots is left behind the rider** (11.57 to 11.97 s). A thin line, the lasso,
+  seems to run from the rider to the dino through it (looked at again 2026-11-10; not built).
+- **At the launch there is no ring, ribbon or burst** in this recording (9.87 to 10.03 s): the rider just leaves.
 - **At the landing:** the dino flashes white, then yellow, fading over about 0.3 s; a white ring at its feet; the yellow
   fan behind it for about a second.
 

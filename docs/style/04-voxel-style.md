@@ -412,3 +412,11 @@ Mythic: see [workout 5](05-rarity-look.md).)
 - Move the helpers each model repeats (the body slab, the snout chain, the flame tongue) into the kit.
 - Offered and not built: fins that flap on their own joints, tails that curl box by box, a blink, rarity as layers of
   blocks, pulsing glow.
+
+## The Reef Shark's brow and lower gum (the user, 2026-11-10)
+- **The brow must come past the eye,** so the shark looks scarier and meaner. It now overhangs the eye by half a cube,
+  cuts lower across its top, and runs on in front of it as a second, slimmer block on the same line.
+- **The lower gum must lie inside the jaw,** not stick out past it. It now ends short of each jaw block's front and
+  sides.
+
+![The Reef Shark's brow](../attachments/voxel-reefshark-brow.jpg)

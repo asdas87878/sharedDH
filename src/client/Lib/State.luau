@@ -16,9 +16,8 @@ local State = {
 	Speed = 0, -- our speed, for the HUD and camera
 	JumpTarget = nil :: Model?, -- in a jump: the fish in the ring, the one we'd land on
 	Reeling = false, -- in a jump: being pulled onto the fish (its own pose)
-	CamYaw = 0, -- where the camera looks (its yaw): the fish and the flight turn to it
+	CamYaw = 0, -- where the camera looks (its yaw): the fish we ride turns to it
 	SideCam = false, -- the sandbox's side view: the camera stands off to the side, and the steering keeps its own heading
-	FovKick = 0, -- extra field of view that decays (the jump): the camera eases to it
 	FovPunch = 0, -- extra field of view put on at once, with no easing (the pull-in's zoom, the landing's snap)
 	KickVelocity = 0, -- a knock to the camera, studs a second downward: RideController's spring takes it
 	JumpReadyAt = 0,
@@ -33,9 +32,6 @@ local State = {
 	FadeText = "",
 	Vignette = 0, -- the screen edges closing in, 0 to 1
 	Darken = 0, -- the water going dark, 0 to 1
-	ShakeUntil = 0,
-	ShakeStrength = 0,
-	ShakeTime = 0.3,
 	ModeChanged = Instance.new("BindableEvent"),
 }
 
@@ -68,13 +64,6 @@ end
 function State.inWater(): boolean
 	local m = State.Mode
 	return m == "Riding" or m == "Free" or m == "Jumping" or State.dying()
-end
-
--- A camera shake that dies away over `time` (the landing kick)
-function State.shake(strength: number, time: number)
-	State.ShakeStrength = strength
-	State.ShakeTime = time
-	State.ShakeUntil = os.clock() + time
 end
 
 -- A wild fish nobody is on or heading to (and not ours)

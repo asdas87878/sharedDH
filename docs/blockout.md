@@ -1,5 +1,9 @@
 # Blockout
 
+> **Set aside 2026-11-10.** The user abandoned v4's hub and most of its map: it is not built the way the reference
+> builds its world. The new direction is in [the map: how we build it](design/map-method.md). v4 stays in Studio
+> and in the script until the new map can replace it, because the riding sandbox runs on it.
+
 Claude's script-built blockout of the dock and the dive, `tools/studio/claude_blockout.luau`, built into
 `Workspace.ClaudeBlockout`, 3,000 studs along X from the baseplate so the baseplate doesn't hide the underwater part. Every number
 is at the top of the script. A player is about 5 studs tall.
@@ -9,6 +13,13 @@ the same, except that the elevation changed far too soon. The descent has to be 
 used up early and there's little left to progress through. That made v2.
 
 ## v4 (2026-11-09): a half-circle island, a formation per zone, clusters along the lane, the Subnautica look
+
+**Changed 2026-11-10:** the lagoon's floor is 39 studs down (it was 30), so the Shallows' lane is 38 studs deep and a jump
+off a fish has its whole rise under the surface ([Riding feel](design/riding-feel.md)). Every zone after it is 9 studs
+deeper too: the dive ends 1,622 studs down. `art/blockout/v4_zones.json` and the views below are redrawn for it
+(from the script's maths, not a new build: [map state](map-state.md) has the table, what is open, and the proposed stud
+look for the map's surfaces).
+
 **6,879 parts** (the dive 6,037, the lagoon 436, the island 362, the sea 44), **175 clusters** holding **3,642 prop
 placeholders**, 45 PointLights and 61 light shafts. Within a zone's view distance there are never more than about 1,000 parts:
 the most is around the island and the lagoon, about 200 in the deep zones, so it stays phone-friendly. The lane is v3's: 10
@@ -153,6 +164,8 @@ Studio doesn't need to be running. `rojo build default.project.json -o game.rbxl
 - Lune has no Roblox `Random`, so an offline build scatters the props differently from a build in Studio. The layout and
   the counts are the same.
 - The latest build is `~/Documents/RideAFish/ride-a-fish-map.rbxl`. Studio's Flatpak can only see `~/Documents`.
+- The user's PC (Windows) has no Lune yet. Without a build, `python tools/art/map_plot.py art/blockout/v4_zones.json
+  <views.png> --top-from <old views.png>` redraws the side view from the zone data and keeps the old view from above.
 
 ## v2 (2026-11-09): long and gradual, with the world round it
 895 parts. Sized after the reference's measured run (from the user's recording: riding about 55 a second, the first zone about

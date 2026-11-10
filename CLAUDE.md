@@ -22,6 +22,20 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
 - Blockouts: `tools/studio/claude_blockout.luau` (v2: the long gradual dive, 10 zones; returns the zones as JSON for
   `tools/art/depth_profile.py`), notes in [docs/blockout.md](docs/blockout.md). Long Luau files go through
   `node tools/studio/run_luau.js <studio_id> <file> [NAME=value ...]` (the direct client; replaces `local NAME = ...` lines).
+  **The map starts again (the user, 2026-11-10): v4 is set aside.** Build it the way Ride a Dino builds its own, then
+  improve: a chain of wide rounded rooms joined by narrow gates (narrow, wide, narrow, wide: the user's correction), a
+  line of flags at each gate, rolling ground that steps up at a room's sides into broad terraces or a tall plain wall
+  or rolls off at an open edge, one colour per land, a closed-in hub with one gate into the water, props made of loose bricks that collapse when a big creature hits them,
+  and a descent that steepens land by land with a step at each border and a big drop every few. Study:
+  [docs/reference/ride-a-dino-map.md](docs/reference/ride-a-dino-map.md); method (proposed) and the user's decisions:
+  [docs/design/map-method.md](docs/design/map-method.md).
+  Grey-box 2 (offline, Python, no Lune needed): `python tools/map/greybox.py` writes every box to
+  `art/map/greybox/parts.json` and the game's path to `path.json`; `tools/blender/map_greybox_view.py` renders views,
+  `python tools/map/greybox_sheet.py` lays them out. Not in Studio yet. The recordings are in `D:\program files for me\videos\`.
+  v4's state and the stud tiles (set aside with v4):
+  [docs/map-state.md](docs/map-state.md); tiles `tools/art/map_tiles.py` (borrows `creature_tiles.py`'s greys; `--test`
+  lays out the test picture), test scene `tools/blender/map_stud_test.py`. No Lune on the user's PC yet: `map_plot.py
+  <zones.json> <out> --top-from <old.png>` redraws the side view without a build.
 - The look: numbered style workouts in `docs/style/` ([index](docs/style/Style%20workouts.md)), each with options for the user
   to pick. Inspiration is Ride a Dino's broad style (chunky, bright, cheap), never its models or layout. Underwater lighting
   uses classic fog with the Atmosphere taken out (`tools/studio/depth_look_test.luau`, findings in workout 1).
@@ -69,9 +83,25 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   user): a model has one base size, and spawn sizes only scale it; a big base animal is built from more cubes, not bigger
   ones: more and gentler steps, more slices, higher counts at the same feature size, a collar or lip where parts join,
   one second layer of form in a rhythm; never so far that the simple look goes (workout 5, "Scale shows in form").
-  Cohesive anatomy: depth, width and length agree with the animal's mass, and the parts with each other. A curved surface
-  (a shell, a dome) is a few big turned faces with a wide plateau, never rings of one-cube steps in two directions (the
-  Archelon's shell: one cross-section scaled along the body, `stretch()` in its model). A brow sits on the eye (overlaps its
+  Cohesive anatomy: depth, width and length agree with the animal's mass, and the parts with each other; check side, front
+  and top outlines against the real animal. One language for every body: cubes for the mass, turned blocks for snouts,
+  fins and limbs; no creature solves its shape in a way the others don't (a faceted shell was rejected). A curved surface
+  in cubes (the Archelon's shell) is a few big blocks, each a wide plateau, a broad step and a wall: never runs of one-cube
+  terraces, and not many thin slices either. Blocky first, detail second: when a model stops reading as blocks, simplify.
+  Leave the rider a seat: a row of spikes, knobs or plates along the back parts at the seat (a flat line may run under it).
+- Textures (workout 6, `docs/style/06-textures.md`, first test, nothing picked yet): cartoon grey tiles drawn by code
+  (`tools/art/creature_tiles.py` -> `art/style/tiles/`; mid grey leaves the colour), one to a cube. A model's `TEXTURES`
+  rules say which tile on which faces ("top" is the usual, "top+sides", "all"), colours and parts; `VARIANT` "gold" or
+  "rainbow"; `--look file.json` tries a look without editing the model. The user: a mix of round and square studs, mostly
+  from the top only, sometimes top and sides, sometimes selective (whole chosen parts of the body, such as the dark back or
+  the pale belly, never a band across the middle), rarely all over. The tiles that aren't studs don't look good yet: to be
+  worked one at a time, later. Which parts are studded on a selective creature is Claude's call (stud the part to be
+  looked at). Variants: gold is yellow gold, never brown; the rainbow is one smooth, straight gradient (vivid, a little pastel) of flat hues
+  dithered into each other in very small pixels (a ninth of a cube; never cube-sized blocks, never wandering or blotchy edges); on a variant the creature's glowing colours take a contrasting `ACCENT` (violet on
+  gold, white on rainbow). A dark framing colour is a dark tint (the Archelon's navy), not pure black, unless black suits
+  the animal. For now models carry studs only; other tiles wait for a hand texture pass. Batch building: a lean brief for
+  fresh agents is in the session scratchpad (`BUILDER_BRIEF.md`, `preview.py`, `finish.py`); the fifty to model are listed in
+  `docs/design/roster.md`. Not yet tried in Roblox. A brow sits on the eye (overlaps its
   top, only a little proud of the pupil); light follows the model's own lines (a colour edge, a seam, a fin's edge), never
   a mark in the middle of a plain surface. An archetype is a loose guide and a shared vocabulary, never a template to copy:
   each creature is designed from its own real animal (the user). Taper one step at a time; more slices are for a smooth

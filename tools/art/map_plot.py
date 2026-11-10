@@ -2,7 +2,10 @@
 along its path from the island to the end of the trench.
 
 usage: python tools/art/map_plot.py <bake.json> <out.png> [island.png]
-<bake.json> is what sharedDH-local/tools/bake_map.luau writes: the script's zones JSON plus a PartDump of every part.
+       python tools/art/map_plot.py <zones.json> <out.png> --top-from <old views.png>
+<bake.json> is what tools/studio/bake_map.luau writes: the script's zones JSON plus a PartDump of every part.
+Without a PartDump (art/blockout/v4_zones.json) only the side view can be drawn: --top-from takes the view from above
+out of an older picture, for a change that moves nothing sideways (2026-11-10, the lagoon 9 studs deeper).
 """
 import json
 import sys
@@ -13,10 +16,16 @@ import numpy as np
 RIDE_SPEED = 55  # studs a second, the reference's measured riding speed
 EXAGGERATE = 4  # vertical exaggeration in the side view
 
-data = json.load(open(sys.argv[1]))
+args = sys.argv[1:]
+top_from = None
+if "--top-from" in args:
+    k = args.index("--top-from")
+    top_from = args[k + 1]
+    del args[k:k + 2]
+data = json.load(open(args[0]))
 version = data.get("Version", 3)
-out = sys.argv[2]
-parts = data["PartDump"]
+out = args[1]
+parts = data.get("PartDump")
 zones = data["Zones"]
 path = data["Path"]
 ox = data["Origin"][0]
@@ -73,7 +82,7 @@ xs = [s[1] for s in path] + [ox - 1000, ox + 1000]
 zs = [s[3] for s in path] + [-1000, 1000]
 total = path[-1][0]
 deepest = -min(s[2] for s in path)
-top = top_view(
+top = cv2.imread(top_from)[:1100] if parts is None else top_view(
     1100, 1100, min(xs) - 600, max(xs) + 600, min(zs) - 200, max(zs) + 400, lambda p: True,
     f"Blockout v{version} from above: {data['Parts']:,} parts, {data['PropModels']:,} prop placeholders",
 )
@@ -105,7 +114,7 @@ for zone in zones:  # v4: each zone's water in its own fog colour, darkening wit
     for row in range(TOP, H):
         t = min(1.0, (row - TOP) / (H - TOP)) * 0.35
         side[row, x0:x1] = (int(b * (1 - t)), int(g * (1 - t)), int(r * (1 - t)))
-pts = [spx(-start, -30)] + [spx(s[0], s[2]) for s in path]
+pts = [spx(-start, data.get("LagoonY", -30))] + [spx(s[0], s[2]) for s in path]  # the lagoon floor, then the lane
 poly = np.array(pts + [(pts[-1][0], H), (pts[0][0], H)], np.int32)
 cv2.fillPoly(side, [poly], (60, 75, 95))
 cv2.polylines(side, [np.array(pts, np.int32)], False, (190, 230, 250), 2, cv2.LINE_AA)
@@ -137,10 +146,10 @@ cv2.putText(side, f"about {total / RIDE_SPEED / 60:.0f} min at {RIDE_SPEED} stud
 cv2.imwrite(out, np.vstack([top, side]))
 print(out)
 
-if len(sys.argv) > 3:
+if len(args) > 2 and parts is not None:
     island = top_view(
         1000, 1000, ox - 1000, ox + 1000, -1000, 1000, lambda p: abs(p["y"]) < 200,
         f"v{version} island and lagoon from above (2,000 x 2,000 studs)", labels=False,
     )
-    cv2.imwrite(sys.argv[3], island)
-    print(sys.argv[3])
+    cv2.imwrite(args[2], island)
+    print(args[2])

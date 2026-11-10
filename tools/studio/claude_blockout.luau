@@ -45,7 +45,9 @@ local TANK_SIZE = Vector3.new(76, 30, 40) -- room for several big fish (the Reef
 local DOCK = { HalfWidth = 300, Back = -20, Front = 50 } -- the dock along the flat edge: wide, not long
 local GATE_Z = 40
 local BOARD_Z = 60 -- the dive board's middle; it reaches out to about z = 71
-local LAGOON_Y = -30 -- the lagoon's sandy floor round the island
+-- (2026-11-10: -30 to -39. The Shallows' floor is a stud above this; at -29 a jump off a fish had only 13 studs to rise
+-- before the surface, and it wants 21: src/shared/Config.luau, Jump.Apex and Config.herdTop)
+local LAGOON_Y = -39 -- the lagoon's sandy floor round the island
 local LAGOON_RADIUS = 950 -- the ring reef round the lagoon
 local RING_GAP = 25 -- degrees either side of +Z left open where the dive leaves the lagoon
 local DEEP_PLANE_Y = -300 -- under the open sea near the island, so it reads deep blue from above
@@ -2286,6 +2288,7 @@ return HttpService:JSONEncode({
 	BottomMetres = BOTTOM_METRES,
 	Origin = { 3000, 0, 0 },
 	LaneStart = LANE_START,
+	LagoonY = LAGOON_Y, -- the lagoon floor; the Shallows' lane is a stud above it (map_plot.py draws it)
 	Spawn = { spawnWorld.X, spawnWorld.Y, spawnWorld.Z },
 	DiveBoard = { 3000, DECK_Y, BOARD_Z + 11 },
 	Zones = info,

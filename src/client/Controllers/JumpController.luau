@@ -1,19 +1,19 @@
 --!strict
 -- The jump, fish to fish (Config.Jump): the reference's, read and measured from the user's recordings
 -- (docs/reference/ride-a-dino.md), laid over our water. Space throws us off the fish (or up from floating) at once on
--- our side, into a flight in three parts:
---   the launch: up and forward, faster than we rode;
---   the float: at the top, still rising a little, swimming, at about the herd's pace;
---   the drop: sinking, faster and faster.
--- We steer all of it: it turns to where the camera looks (A and D turn the camera), W and S speed it up and slow it. A dashed yellow ring lies flat in the water
--- under us, at the level of the fish below; the fish whose middle is inside it glows yellow, and the flight is drawn
--- over it. We come down on the glowing fish when the drop begins, or at once on a second press: the reel-in, pulled
--- onto its saddle on the reference's curve (a creep, then faster and faster, arriving at top speed), the view
--- narrowing and yellow dots left behind us; at the landing the view snaps wide and the camera is jolted. A second press with no fish glowing grabs the best fish near by (Jump.GrabRange; the fish we
--- left counts too), and with none near starts the drop early. In the drop a fish close by is grabbed without a press. A drop that ends with no fish in the
--- ring has sunk: we tell the server, and it drowns us.
--- With no fish in the ring and no turn held, the flight makes for the nearest fish (Jump.Assist).
--- The ring's dashes and the glow are made once here and reused: nothing is created per jump.
+-- our side; the server is told and follows. The flight, placed by CFrame every frame:
+--   the pop: up, above the fish in front of us, and forward faster than we rode;
+--   the glide: flat at the top, at about the herd's pace;
+--   the drop: sinking, faster and faster (only with no fish to land on).
+-- We are going one way, and A and D steer that (the camera turns by as much; a drag only looks round). W and S speed the
+-- flight up and slow it. The fish we are making for is the nearest one in front; it glows, and with no turn held the
+-- flight makes for it. A dashed yellow ring lies flat in the water under us.
+-- We come down on that fish when the glide ends, or at once on a second press: the pull-in, onto its saddle on the
+-- reference's curve (a creep, then faster and faster, arriving at top speed), the view narrowing and yellow dots left
+-- behind us; at the landing the view snaps wide and the camera is jolted. With no fish in front it takes the nearest
+-- any way round (Jump.AutoGrab), and with none of those the drop ends in a miss: we tell the server.
+-- The flight doesn't collide with anything: Lib/Course keeps it out of the floor, the walls and the lane's edge.
+-- The ring's dashes, the dots and the glow are made once here and reused: nothing is created per jump.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -21,6 +21,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Actions = require(script.Parent.Parent.Lib.Actions)
+local Course = require(script.Parent.Parent.Lib.Course)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local State = require(script.Parent.Parent.Lib.State)
 local RideController = require(script.Parent.RideController)
@@ -33,7 +34,7 @@ local WHITE = Color3.new(1, 1, 1)
 local flying = false
 local clock = 0 -- seconds into the flight (a second press with no fish skips it on to the drop)
 local position = Vector3.zero
-local yaw = 0 -- where the flight is headed: it turns to where the camera looks
+local yaw = 0 -- where the flight is headed: A and D turn it
 local bodyYaw = 0 -- where the body faces: the way it is actually going
 local launchSpeed = 0
 local baseY, topY = 0, 0 -- where we left, and the top of the float
@@ -69,14 +70,12 @@ local ringY = 0
 local ringLevel = 0 -- the level the ring wants to lie at
 local ringShown = false
 
-local floorParams = RaycastParams.new()
-floorParams.FilterType = Enum.RaycastFilterType.Exclude
-
 local glow: Highlight
 local glowLandedAt: number? = nil -- os.clock() of the landing, while the glow fades off the fish
 
+-- Where we sit on a fish: nil once it has gone (put away by the server, or destroyed)
 local function saddleOf(fish: Model?): CFrame?
-	local root = fish and fish.PrimaryPart
+	local root = fish and fish.Parent and fish.PrimaryPart
 	local saddle = root and root:FindFirstChild("Saddle")
 	if saddle and saddle:IsA("Attachment") then
 		return saddle.WorldCFrame
@@ -274,7 +273,8 @@ local function startReel(root: BasePart)
 	State.Reeling = true
 	reelOffset = gap
 	reelClock = 0
-	reelTime = math.min(Config.Jump.ReelTime + away / Config.Jump.GrabSpeed, Config.Jump.ReelMax)
+	local j = Config.Jump
+	reelTime = math.max(0.05, math.min(j.ReelTime + away / math.max(j.GrabSpeed, 1), j.ReelMax))
 	reelFrom = root.CFrame
 	showRing(false)
 end
@@ -318,18 +318,11 @@ local function request(): boolean
 		left = nil
 	end
 	launchSpeed = math.max(launchSpeed, j.AirSpeed)
-	-- the floor check sees the map, not us, the fish or the sheet of water at the surface
-	local blockout = workspace:FindFirstChild("ClaudeBlockout")
-	floorParams.FilterDescendantsInstances = {
-		State.Player.Character :: Instance,
-		workspace:FindFirstChild("Fish") :: Instance,
-		workspace.CurrentCamera,
-		(blockout and blockout:FindFirstChild("Surface")) :: Instance,
-	}
+	Course.begin()
 	position = root.Position
 	baseY = position.Y
 	-- the top of the float, kept under the surface
-	topY = math.max(baseY, math.min(baseY + j.Apex + j.FloatRise, Config.Oxygen.SurfaceY - 3))
+	topY = math.max(baseY, math.min(baseY + j.Apex + j.FloatRise, Config.Oxygen.SurfaceY - j.Ceiling))
 	ringY = baseY - 8
 	ringLevel = ringY
 	clock = 0
@@ -341,28 +334,25 @@ local function request(): boolean
 	highY = -math.huge
 	flying = true
 	bodyYaw = yaw
-	State.FovKick = 7
 	Net.Action:FireServer("Jump")
 	State.setMode("Jumping")
-	-- the white ring where we left
-	Fx.ring(root.CFrame, WHITE)
 	return true
 end
 
--- The flight's height at its clock: up through the launch, a little more through the float, then sinking
+-- The flight's height at its clock: up through the pop, the last of the rise through the glide, then sinking
 local function heightAt(t: number): number
 	local j = Config.Jump
 	local rise = topY - baseY
-	local launchShare = j.Apex / (j.Apex + j.FloatRise)
+	local whole = j.Apex + j.FloatRise
+	local popShare = if whole > 0 then j.Apex / whole else 1
 	if t < j.LaunchTime then
-		return baseY + rise * launchShare * Ease.outQuad(t / j.LaunchTime)
+		return baseY + rise * popShare * Ease.outQuad(t / j.LaunchTime)
 	end
-	local floatT = (t - j.LaunchTime) / j.FloatTime
-	if floatT < 1 then
-		-- easing up to the top, with a small swimmer's bob
-		return baseY + rise * (launchShare + (1 - launchShare) * Ease.outQuad(floatT)) + math.sin(t * 5) * 0.35
+	local glide = t - j.LaunchTime
+	if glide < j.FloatTime then
+		return baseY + rise * (popShare + (1 - popShare) * Ease.outQuad(glide / j.FloatTime))
 	end
-	local dropT = math.clamp((t - j.LaunchTime - j.FloatTime) / j.DropTime, 0, 1)
+	local dropT = math.clamp((glide - j.FloatTime) / math.max(j.DropTime, 0.01), 0, 1)
 	return topY - (rise + j.Drop) * dropT * dropT
 end
 
@@ -387,8 +377,13 @@ local function step(dt: number)
 	local _, root = State.character()
 	if not root then
 		stop()
+		if State.Mode == "Jumping" then
+			State.setMode("Free")
+		end
 		return
 	end
+	-- a hitch is flown as a short frame: one long step could carry us through what the checks would have stopped
+	dt = math.min(dt, 0.05)
 	local j = Config.Jump
 	local saddle: CFrame? = saddleOf(locked)
 
@@ -408,10 +403,12 @@ local function step(dt: number)
 	end
 
 	if reeling then
-		if not saddle then
-			-- the fish went from under us: back to the flight, at the drop
+		local taken = locked and locked:GetAttribute("Rider") ~= 0
+		if not saddle or taken then
+			-- the fish went from under us, or someone else got on it: back to the flight, at the drop
 			reeling = false
 			State.Reeling = false
+			State.FovPunch = 0
 			clock = math.max(clock, j.LaunchTime + j.FloatTime)
 		else
 			-- Pulled in, as the reference does it: the gap to the saddle closes as time ^ ReelCurve, so it creeps, then
@@ -458,14 +455,19 @@ local function step(dt: number)
 	clock += dt
 	local dropAt = j.LaunchTime + j.FloatTime
 
-	-- the flight turns to where the camera looks; the fish we are making for is the nearest in front of that
+	-- we are going one way and A and D steer that (the camera turns by as much: RideController); the fish we are making
+	-- for is the nearest in front of where we are headed
 	local mv = RideController.moveVector()
-	yaw = Ease.lerpAngle(yaw, State.CamYaw, Ease.alpha(j.TurnFollow, dt))
+	if j.CameraSteer > 0 then
+		yaw = Ease.lerpAngle(yaw, State.CamYaw, Ease.alpha(j.TurnFollow, dt))
+	else
+		yaw -= mv.X * math.rad(j.YawRate) * dt
+	end
 	pick()
 	saddle = saddleOf(locked)
 	-- the jump rises above the fish in front of us (and above where we left), kept under the surface
 	local over = math.max(baseY, highY, if saddle then saddle.Position.Y else -math.huge)
-	local top = math.max(baseY, math.min(over + j.Apex + j.FloatRise, Config.Oxygen.SurfaceY - 3))
+	local top = math.max(baseY, math.min(over + j.Apex + j.FloatRise, Config.Oxygen.SurfaceY - j.Ceiling))
 	if top > topY then
 		topY = Ease.lerp(topY, top, Ease.alpha(6, dt))
 	end
@@ -500,20 +502,15 @@ local function step(dt: number)
 		velocity = velocity:Lerp(want, pull)
 	end
 
-	local y = heightAt(clock)
-	local x, z = position.X + velocity.X * dt, position.Z + velocity.Z * dt
-	-- never into the sea floor or a rock: the flight skims over what is under it
-	local ground = workspace:Raycast(Vector3.new(x, y + 3, z), Vector3.new(0, -3 - j.FloorClearance, 0), floorParams)
-	if ground then
-		y = math.max(y, ground.Position.Y + j.FloorClearance)
-	end
-	position = Vector3.new(x, y, z)
+	-- never into the sea floor, a rock or a bank, nor out of the lane: stopped at walls, skimming over what is under it
+	local want = Vector3.new(position.X + velocity.X * dt, heightAt(clock), position.Z + velocity.Z * dt)
+	position = Course.clearMove(position, want, j.FloorClearance)
 
 	-- upright off the fish for a moment, then lying flat, face down, through the glide (as the reference's rider
 	-- does), and head first in the drop
 	local tip = math.rad(78) * Ease.smoothstep(j.LaunchTime * 0.2, j.LaunchTime * 1.2, clock)
 		+ math.rad(12) * Ease.smoothstep(dropAt, dropAt + 0.4, clock)
-	-- facing the way we are going (the pull toward a fish bends that away from where the camera looks)
+	-- facing the way we are going (the pull toward a fish bends that away from where we are headed)
 	if velocity.Magnitude > 1 then
 		bodyYaw = Ease.lerpAngle(bodyYaw, yawOf(velocity), Ease.alpha(8, dt))
 	end
@@ -620,17 +617,10 @@ function JumpController.Init()
 		if typeof(player) ~= "Instance" or not player:IsA("Player") then
 			return
 		end
-		local character = player.Character
-		if kind == "Jump" and character then
-			Fx.trail(character, Config.Jump.LaunchTime + Config.Jump.FloatTime, Config.Jump.Glow)
-		elseif kind == "Land" and typeof(fish) == "Instance" then
+		if kind == "Land" and typeof(fish) == "Instance" and fish:IsA("Model") then
+			-- (our own camera's snap and jolt were played already, as the pull-in ended)
 			local tier = Config.Tiers[fish:GetAttribute("Tier") :: string]
-			Fx.landing(character, fish, State.Squash, if tier then tier.Colour else WHITE)
-			if player == State.Player then
-				-- the small camera kick on our own landing
-				-- a little rattle on our own landing (the snap and the jolt were ours already, as the pull-in ended)
-				State.shake(Config.Burst.Kick, 0.2)
-			end
+			Fx.landing(player.Character, fish, State.Squash, if tier then tier.Colour else WHITE)
 		end
 	end)
 	State.ModeChanged.Event:Connect(function(mode: string)

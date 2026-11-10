@@ -35,6 +35,42 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
 - **Front targeting and height:** a jump makes for the nearest fish in front (`Jump.AheadCone`), never the one it left
   unless nothing else is in reach; it rises `Jump.Apex` above the fish in front; the herd swims lower (8 to 16 studs
   above the floor) to leave water to jump into.
+- **Higher, and always underwater:** `Jump.Apex` 20; the flight stops `Jump.Ceiling` under the surface; in shallow water
+  the herd is pressed down to leave the jump its room (`Config.herdTop`, `Spawn.HeightFloor`). The lagoon and the
+  Shallows are 9 studs deeper for it (`LAGOON_Y` -39 in `tools/studio/claude_blockout.luau`; every later zone moves
+  down with it), which gives the Shallows the whole 21-stud rise. The map in Studio was rebuilt from the script.
+- **A critical pass of the riding code (2026-11-10):**
+  - The "flown under the map" bug: fish are CanCollide false and the floor check was a ray from the fish itself, which
+    sees nothing once it is inside a part. New `src/client/Lib/Course.luau` keeps the ridden fish (`clearVelocity`) and
+    the flight (`clearMove`) in open water: rays from where we are (solid parts only), plus the lane's own floor and
+    edge from the map's centreline, which the server now publishes to clients (the `LanePath` attribute on Remotes).
+  - Air steering: A and D steer the flight; the camera no longer does (`Jump.CameraSteer`).
+  - Taken out: the flight's ribbon and bubbles (`Fx.trail`), the launch ring, the launch's view widening
+    (`State.FovKick`), the landing rattle (`State.shake`, `Burst.Kick`), the glide's bob, and the `Fx` "Jump" event.
+  - Also: a pull-in is given up if its fish is put away or taken; no dividing by a sandbox number set to 0; the camera's
+    and the fish's ray settings are made once, not every frame.
+  - Run in Studio: a fish dived at the floor and steered into the lane's wall stayed in the water; three jumps landed.
+- **A second, independent review of the same code (2026-11-10), and what was done with it:**
+  - **The lane's floor was not the built floor.** The map's `Path` is the design's curve every 100 studs; the seabed
+    is straight slabs. At the foot of every drop-off the two were 13 to 23 studs apart, so wild fish swam through the
+    sand there. New `src/server/Lib/LaneSurvey.luau`: at startup the server drops a ray onto the seabed every 10 studs
+    of the centreline and uses that as the lane (and publishes it to clients). After: within 3 studs at all but 13 of
+    4,756 places checked along the centreline. Still seen: a fish near the lane's edge on a ramp in a bend can be up to
+    7 studs into the sand (the lane is taken as flat from side to side; v4's slabs aren't quite).
+  - **`Workspace.FallenPartsDestroyHeight` was -500 and the lane goes down to -1,622:** Roblox destroys fish and
+    players below it. A game script can't change it; it is set to -20,000 in the open place by hand, the server now
+    warns at startup when the lane goes below it, and the map script needs to set it.
+  - Fixed: the descent is slowed before the floor instead of pushed back after it; a hitch can't carry a flight
+    through a wall (frames over 0.05 s are flown as 0.05 s); the fish you left coasts in open water too; with no floor
+    known a ridden fish levels out instead of nosing down; floating under the lane's floor is lifted back above it.
+  - Fixed: the Oxygen refill is not given for landing back on the fish you left, nor for a landing sooner than a flight
+    can be (hopping off and on the same fish refilled a quarter each time).
+  - Fixed: a fish that reaches the client after the server's "mounted"; a jump the server took that the client isn't
+    flying; a rider's fish left marked as taken after a respawn; three sandbox values that broke things at 0 or when
+    crossed (`Ride.YawRate`, `Jump.GrabSpeed`, `Spawn.HeightMin` over `HeightMax`).
+  - **Not done:** the landing's effect still makes new parts and a sound each landing (`Fx.landing`), and the poses
+    build a table per player per frame (`AnimController`): performance only. The server still trusts where the client
+    says it landed, within the flight's reach.
 - **Kept:** Oxygen, the throw-off and the drown, the speed-up on mount, the bubble burst, map v4.
 - **The Studio place on this PC is not in the repo.** It was rebuilt in an unsaved place from `claude_blockout.luau`
   and `src/`; the user saves it locally.

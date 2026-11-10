@@ -262,3 +262,25 @@ already has whale bones and red cracks there).
 | 8 Vents | Yeti Crab, Dumbo Octopus | Giant Isopod | Sea Scorpion | Anomalocaris | Megalodon | Kraken | Ember Serpent |
 | 9 Bone Graveyard | Bonefish, Ghost Jelly | Grave Ray | Skull Angler | Wraith Eel | Halfbone Megalodon | Bone Leviathan | Phantom Whale |
 | 10 The Underworld | Ember Fish, Imp Puffer | Brimstone Eel | Infernal Angler | Hellfin Shark | Hellmaw | Abyssal Watcher | The Devourer |
+
+### The first fifty to model (2026-11-10)
+The user asked for about fifty models next, in the voxel style, studs only. Thirteen roster creatures were built already
+(Sergeant Major, Clownfish, Reef Shark, Archelon, Dunkleosteus, Manta Ray, Blue Whale, Anglerfish, Mosasaurus,
+Basilosaurus, Kraken, Anomalocaris, Hellmaw). These fifty are the rest, less the ten Secrets and eight creatures that are
+variants of another (they come after their base). A pilot of four runs first, to measure what a model costs.
+
+| Zone | Creatures |
+|---|---|
+| 1 Shallows | Yellow Tang, Blue Chromis, Butterflyfish, Boxfish, Pufferfish, Sea Turtle, Stingray, Cuttlefish, Flying Fish, Seahorse |
+| 2 Coral Reef | Parrotfish, Lionfish, Angelfish, Moray Eel, Octopus, Humphead Wrasse |
+| 3 Kelp Forest | Garibaldi, Sea Lion, Leopard Shark, Giant Sea Bass, Great White, Steller's Sea Cow, Dakosaurus |
+| 4 Shipwrecks | Barracuda, Hammerhead Shark, Sawfish, Goliath Grouper, Electric Ray, Xiphactinus |
+| 5 Open Blue | Swordfish, Dolphin, Orca, Elasmosaurus, Helicoprion |
+| 6 Twilight | Viperfish, Giant Squid, Goblin Shark, Liopleurodon, Shonisaurus, Lantern Leviathan |
+| 7 Midnight | Frilled Shark, Livyatan |
+| 8 Vents | Sea Scorpion, Giant Isopod, Kronosaurus, Megalodon |
+| 9 Bone Graveyard | Wraith Eel, Bone Leviathan |
+| 10 The Underworld | Brimstone Eel, Abyssal Watcher |
+
+Left for later: the Secrets; and the variants (Grave Turtle, Grave Ray, Skull Angler, Infernal Angler, Hellfin Shark, Cinder
+Ray, Molten Megalodon, Halfbone Megalodon). The Bobbit Worm is built but still not in the roster.

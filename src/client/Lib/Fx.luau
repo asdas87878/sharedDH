@@ -1,7 +1,7 @@
 --!strict
--- Local-only effects (parented under the camera, so nothing replicates or collides): the dash's trail and bubbles, the
--- landing ring and bubble burst, the grapple rope, mouth bubbles, and placeholder sounds. Built-in textures and the
--- client's own built-in sounds only (rbxasset://), no uploaded assets.
+-- Local-only effects (parented under the camera, so nothing replicates or collides): the landing's ring and bubble
+-- burst, mouth bubbles, and placeholder sounds. Built-in textures and the client's own built-in sounds only
+-- (rbxasset://), no uploaded assets.
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
@@ -62,51 +62,6 @@ local function anchoredPart(size: Vector3, cf: CFrame, colour: Color3): Part
 	p.CFrame = cf
 	p.Parent = holder()
 	return p
-end
-
--- A bubble trail and a ribbon behind a character for a while
-function Fx.trail(character: Model, duration: number, colour: Color3?)
-	local root = character:FindFirstChild("HumanoidRootPart")
-	if not root or not root:IsA("BasePart") then
-		return
-	end
-	local a0 = Instance.new("Attachment")
-	a0.Position = Vector3.new(0, 1.2, 0)
-	a0.Parent = root
-	local a1 = Instance.new("Attachment")
-	a1.Position = Vector3.new(0, -1.2, 0)
-	a1.Parent = root
-	local trail = Instance.new("Trail")
-	trail.Attachment0 = a0
-	trail.Attachment1 = a1
-	trail.Lifetime = 0.35
-	trail.LightEmission = 0.6
-	trail.FaceCamera = true
-	trail.Color = ColorSequence.new(colour or Color3.fromRGB(190, 240, 255))
-	trail.Transparency = NumberSequence.new(0.2, 1)
-	trail.WidthScale = NumberSequence.new(1, 0.2)
-	trail.Parent = root
-	local bubbles = Instance.new("ParticleEmitter")
-	bubbles.Rate = 90
-	bubbles.Lifetime = NumberRange.new(0.5, 1.1)
-	bubbles.Speed = NumberRange.new(1, 4)
-	bubbles.SpreadAngle = Vector2.new(180, 180)
-	bubbles.Acceleration = Vector3.new(0, 8, 0)
-	bubbles.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.25),
-		NumberSequenceKeypoint.new(1, 0.5),
-	})
-	bubbles.Transparency = NumberSequence.new(0.2, 1)
-	bubbles.LightEmission = 0.4
-	bubbles.Color = ColorSequence.new(Color3.fromRGB(220, 245, 255))
-	bubbles.Parent = a1
-	task.delay(duration, function()
-		bubbles.Enabled = false
-		trail.Enabled = false
-	end)
-	Debris:AddItem(a0, duration + 1.2)
-	Debris:AddItem(a1, duration + 1.2)
-	Debris:AddItem(trail, duration + 1.2)
 end
 
 local function bubbleEmitter(parent: Instance): ParticleEmitter

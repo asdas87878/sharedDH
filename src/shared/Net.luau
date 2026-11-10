@@ -4,9 +4,11 @@
 --     down on) | "Miss" (it came down on nothing)
 --   Ride (server -> one client): "Mounted", fish, landing | "Dismounted", reason | "Denied", action, reason |
 --     "Respawned"
---   Fx (server -> every client): "Jump", player | "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the
---     fish bucks the player off)
+--   Fx (server -> every client): "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
+--     player off)
 --   Sandbox (client -> server, Studio only): "Tune", "Group.Key", number | "Flag", name, boolean | "Reset"
+-- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode) and LanePath (the lane's
+-- centreline as JSON, "" with none).
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that

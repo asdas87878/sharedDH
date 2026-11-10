@@ -30,16 +30,20 @@ max Oxygen. A creature's tag shows the Oxygen it needs ("Required").
 ## The jump, as built (2026-11-10, third pass after the user played the second)
 One button, as in the reference. The numbers are in `src/shared/Config.luau` under `Jump` and `Herd`.
 
-1. **Space** throws you off the fish at once. A white ring pops where you left. From floating (after diving in off the
+1. **Space** throws you off the fish at once. From floating (after diving in off the
    board) Space does the same, so that is how a dive starts for now.
-2. **The pop, 0.3 s:** up to 16 studs above the highest fish in front of you (or above where you left, if that is
+2. **The pop, 0.4 s:** up to 20 studs above the highest fish in front of you (or above where you left, if that is
    higher), so you are always over them; and forward at 1.4 times the speed you rode at for about 0.75 s. If the fish
-   you are making for turns out to be higher, you keep rising through the glide. The surface is the limit: in the
-   Shallows there are only 11 to 18 studs of water above the herd, so the jump is cut short there.
-3. **The glide, 1.5 s:** flat at the top, lying face down in a swimming pose, at the herd's pace (38 studs a second).
+   you are making for turns out to be higher, you keep rising through the glide. **The flight never leaves the water**
+   (the user, 2026-11-10): it stops 3 studs under the surface line. The rise is counted from the rider's seat, about 5
+   studs above the fish's middle (`Jump.SeatRoom`). Measured in Studio: 21 studs in deep water, and 21.8 in the
+   Shallows since the lagoon was deepened from 30 to 39 studs (it was 13 before, with the water only 26 studs deep).
+3. **The glide, 1.4 s:** flat at the top, lying face down in a swimming pose, at the herd's pace (38 studs a second).
 4. **The drop, 1.3 s:** only if no fish was in reach: you sink, faster and faster, head first.
-5. **You steer all of it:** the flight turns to where the camera looks, and A and D turn the camera (170 degrees a
-   second). W and S speed it up and slow it by half. The camera lifts and pulls back to look down.
+5. **You steer all of it:** you are going one way, and A and D steer that (170 degrees a second); the camera turns by
+   as much, and a drag only looks round without turning you (the user, 2026-11-10; `Jump.CameraSteer` 1 is the earlier
+   way, the flight turning to where the camera looks). W and S speed it up and slow it by half. The camera lifts and
+   pulls back to look down.
 6. **The fish you are making for glows yellow with an outline** from the moment it is picked: the nearest fish in front
    of you (within 70 degrees either side of where the flight is headed, or right under you) and within 85 studs, never
    the fish you just left. It keeps the glow unless it falls well behind or another fish in front is clearly nearer
@@ -66,8 +70,13 @@ over it, give or take lag.
 - **At 0.85 of the speed they are ridden at** (a Common: 38 wild, 45 ridden). Measured from the reference: riding about
   55 m a second, the herd about 46. Before, wild fish idled at 14, a third of riding speed, so a jump flew past them.
 - **In one layer, 8 to 16 studs above the floor** (it was 10 to 60, then 16 to 30: lowered so there is water above the
-  herd to jump up into). The reference's dinos are all on the ground; with
+  herd to jump up into). **Where the water is too shallow for a whole jump above that, the herd is pressed lower,**
+  down to 5 to 6 studs above the floor (`Config.herdTop`, `Spawn.HeightFloor`); a ridden fish follows. The reference's dinos are all on the ground; with
   fish spread over 50 studs of depth, a jump had nothing at its own depth.
+- **The fish you ride and the flight are kept in open water** (`src/client/Lib/Course.luau`). Fish don't collide with
+  the map, so before this a fish steered into a bank or the floor went through it and carried you under the map (the
+  user, 2026-11-10). Now it slides along walls, is held off the floor and under the surface, and can go 20 studs past
+  the lane's edge and no further (`Ride.LaneMargin`). Steered straight at a wall it stops until you turn.
 - **A ridden fish with W and S let go follows the lane down at the herd's height.** W and S still dive and climb.
 - **A ridden fish turns to where the camera looks.** A and D turn the camera, and so does a right-mouse drag or a touch
   drag. Just after you land, the camera comes round behind the new fish first.

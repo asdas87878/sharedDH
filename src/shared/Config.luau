@@ -81,6 +81,8 @@ Config.Ride = {
 	LevelRate = 0.6, -- pitch eases back towards level with no input (fraction a second)
 	SeatHeight = 1.4, -- the rider's root above the fish's back
 	FloorClearance = 3, -- the fish pulls up nearer the floor than this
+	Ceiling = 4, -- and stays this far under the surface line
+	LaneMargin = 20, -- a ridden fish and a flight can go this far past the lane's edge, no further
 	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its surge speed times this
 }
 
@@ -92,15 +94,19 @@ Config.Ride = {
 Config.Jump = {
 	-- The shape, from the user's side-on recording (2026-11-10): a quick pop up (about 0.3 s), then a long flat glide
 	-- lying face down, sinking hardly at all, until the pull-in about 1.65 s after the press.
-	LaunchTime = 0.3, -- the pop up
+	LaunchTime = 0.4, -- the pop up (0.3 in the reference, whose pop is half as high)
 	BoostTime = 0.75, -- the launch's extra speed lasts this long (the reference: about 0.75 s)
 	Launch = 1.4, -- times the speed you left the fish at (the reference: about 1.3 to 1.8)
 	FreeLaunch = 55, -- the launch's speed from floating, with no fish under you
 	-- The height (2026-11-10, the user: not high enough; the reference has flat ground, we don't): the jump rises this
 	-- far above the highest fish in front of you, or above where you left if that is higher, so there is always a swoop
 	-- down onto the fish.
-	Apex = 16,
-	FloatTime = 1.5, -- the glide at the top, swimming
+	-- (2026-11-10, the user again: stay underwater, just go higher. 16 to 20; where the water is too shallow for that,
+	-- the herd swims lower: Config.herdTop.)
+	Apex = 20,
+	Ceiling = 3, -- the flight stays this far under the surface line (Oxygen.SurfaceY)
+	SeatRoom = 5, -- a rider sits about this far above the middle of a fish: the jump's rise is counted from the seat
+	FloatTime = 1.4, -- the glide at the top, swimming
 	FloatRise = 1, -- still rising this much through the glide
 	AirSpeed = 38, -- the float's speed: about the herd's pace
 	DropTime = 1.3, -- then sinking, faster and faster
@@ -125,8 +131,11 @@ Config.Jump = {
 	MinFlight = 0.3, -- before a second press counts
 	FloorClearance = 4, -- the flight stays this far above the sea floor and rocks
 	SpeedTrim = 0.5, -- W and S speed up and slow the flight by this share
-	YawRate = 170, -- A and D turn the camera in the flight, degrees a second
-	TurnFollow = 8, -- how quickly the flight turns to where the camera looks (higher is quicker)
+	-- Steering the flight (2026-11-10, the user): you are going one way, A and D steer that, and the camera is free to
+	-- look round without turning you. CameraSteer = 1 is the earlier way: the flight turns to where the camera looks.
+	YawRate = 170, -- A and D turn the flight (and the camera with it), degrees a second
+	CameraSteer = 0,
+	TurnFollow = 8, -- with CameraSteer: how quickly the flight turns to where the camera looks (higher is quicker)
 	RingRadius = 20, -- the ring under you; a fish whose middle is inside it is the one you land on
 	Sticky = 1.3, -- the glowing fish keeps the glow until it is this many radii away
 	ReachDown = 45, -- fish this far below you still count
@@ -180,7 +189,6 @@ Config.Burst = {
 	Count = 30,
 	Time = 0.6,
 	Reach = 4, -- studs the bubbles fly out
-	Kick = 0.15, -- a little rattle on our own landing, studs (the jolt itself is Jump.LandKick)
 }
 
 -- Out of Oxygen (and a jump that comes down on nothing, until there is a revive): no input, ends at the dock.
@@ -245,6 +253,7 @@ Config.Spawn = {
 	-- (2026-11-10: lowered from 16 to 30, so that even in the shallows there is water above the herd to jump up into)
 	HeightMin = 8, -- above the lane's floor
 	HeightMax = 16,
+	HeightFloor = 6, -- in shallow water the herd is pressed down to leave room for a jump, but never lower than this
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
 	LaneFill = 0.7, -- fraction of the lane's half width fish use
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
@@ -342,10 +351,30 @@ for _, spec in FISH do
 	Config.FishById[fish.Id] = fish
 end
 
+-- The highest the herd swims above a floor at floorY: where the water is shallow it is pressed down, so that a jump has
+-- its whole rise (Jump.Apex + Jump.FloatRise) above the rider's seat and still stays under the surface.
+function Config.herdTop(floorY: number): number
+	local j = Config.Jump
+	local room = Config.Oxygen.SurfaceY - j.Ceiling - (j.Apex + j.FloatRise) - j.SeatRoom - floorY
+	return math.max(room, Config.Spawn.HeightFloor)
+end
+
+-- A herd fish's height above a floor at floorY, from its own height in open water. Pressed down in the shallows, the
+-- herd keeps a little of its spread (the top fifth of what room there is).
+function Config.herdHeight(own: number, floorY: number): number
+	local sp = Config.Spawn
+	local top = Config.herdTop(floorY)
+	if top >= sp.HeightMax then
+		return own
+	end
+	local share = math.clamp((own - sp.HeightMin) / math.max(sp.HeightMax - sp.HeightMin, 1), 0, 1)
+	return math.min(own, top * (0.8 + 0.2 * share))
+end
+
 -- The numbers worked out from other numbers. Called here, and again by the sandbox whenever it changes one.
 function Config.refresh()
 	local j = Config.Jump
-	j.FlightTime = j.LaunchTime + j.FloatTime + j.DropTime + j.ReelTime + j.GrabRange / j.GrabSpeed
+	j.FlightTime = j.LaunchTime + j.FloatTime + j.DropTime + j.ReelTime + j.GrabRange / math.max(j.GrabSpeed, 1)
 	for _, fish in Config.Fish do
 		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
 	end

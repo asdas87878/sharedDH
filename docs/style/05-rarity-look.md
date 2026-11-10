@@ -382,7 +382,7 @@ gold and rainbow ones of Ride a Dino); then all the creatures, once the template
 | Tentacled | Kraken | Mythic | 2,596 | 49 |
 | Crawler | Anomalocaris | Legendary | 1,328 | 33 |
 | Bulbous | Anglerfish | Epic | 964 | 18 |
-| Shelled | Archelon | Legendary | 1,762 | 33 across |
+| Shelled | Archelon | Legendary | 1,932 | 33 across |
 
 The last seven are in "Archetypes are loose", below. Every body type on the list is now built once.
 
@@ -488,7 +488,7 @@ All seven pass the gate without `--force`. None needed a change to the kit. Each
 | Kraken | the grip of the deep: a soft sack dragging eight long arms | 48.6 studs, 2,596 triangles, 26 parts (reworked, below) | [sheet](../attachments/voxel-kraken.jpg), [swim](../attachments/voxel-kraken-swim.gif) |
 | Anomalocaris | a thing from before fish: a raft of flaps, two hooked arms | 32.5 studs, 1,328 triangles, 25 parts | [sheet](../attachments/voxel-anomalocaris.jpg), [swim](../attachments/voxel-anomalocaris-swim.gif) |
 | Anglerfish | a dark ball of mouth that carries its own lamp | 18.0 studs, 964 triangles, 10 parts | [sheet](../attachments/voxel-anglerfish.jpg), [swim](../attachments/voxel-anglerfish-swim.gif) |
-| Archelon | the first giant: a turtle on wings wider than itself | 32.9 studs across, 1,762 triangles, 12 parts (reworked, below) | [sheet](../attachments/voxel-archelon.jpg), [swim](../attachments/voxel-archelon-swim.gif) |
+| Archelon | the first giant: a turtle on wings wider than itself | 32.9 studs across, 1,932 triangles, 12 parts (reworked, below) | [sheet](../attachments/voxel-archelon.jpg), [swim](../attachments/voxel-archelon-swim.gif) |
 
 **How each read as first built (Claude's own read, before the user's):**
 - **Anglerfish:** the strongest. One idea, one glow, a mouth you read from across the map. From the side it is a rounded
@@ -604,28 +604,62 @@ looks really cool", and it is "almost perfect in palette and look".
 given the body size", and the shell "takes a hit and looks flat from that". The body shouldn't only be thicker: the
 shell "should have a wider plateau and look generally more like a shell and less like a slightly poor Minecraft dome".
 
-**The shell rebuilt:**
-- **One cross-section, scaled along the body:** a short wall above the lip, a steep lower shoulder, a gentle upper
-  shoulder, and a flat plateau half the shell's width. Each stretch between two ribs is one faceted block, so every
-  slope is a whole turned face. The dome of one-cube steps is gone.
-- **A thick animal:** the body is about a third as deep as the shell is long. Under the lip there is a real underbody,
-  dark leather that turns in, in two steps, to the plastron. The lip and the underbody are still cubes.
-- **A thicker neck and skull,** to go with the body.
-- A dark keel down the spine; the bone ribs cross from lip to lip, a little proud; a small saddle for the rider.
-- 1,762 triangles (the stepped dome was 2,304), 12 parts, and it passes the gate.
+**Second try: faceted.** One cross-section scaled along the body, each stretch between ribs a faceted block with whole
+sloped faces. The contour was right and the body was thick.
+
+**The user on it:** "we're really close to getting the right direction", but:
+- It "looks completely different to the others because it's not using our blocky shape". Keep a similar contour, in
+  the blocky style, perhaps in segments. It must stay "balanced between blocky, voxel, and actual shapes" and not look
+  out of place.
+- The eye had changed: "I like the eye before. The chubby cheek is okay."
+- The side view was wrong: a real turtle is "more of a dome", and this was "a mound and then like a hill on top".
+
+**Third try: thin slices.** Eighteen slices of cubes, each with a wide plateau and three shoulder steps, the crowns
+making a dome; the saddle gone; the eye as it was, with a little cheek under it. 2,724 triangles.
+
+**The user on it:** "now it's losing the blockiness". It should be "a bit more blocky, a bit more simplified", in blocks,
+"with these voxely segments as a touch", keeping the scale but "going down on the detail and the complexity".
+
+**Fourth try, kept:** ![The shell, simplified into big blocks](../attachments/voxel-archelon.jpg)
+
+- **Eight big blocks,** front to back, one for each rib (the crown carries two). A block is a cube or two wider or
+  taller than its neighbour, so the shell reads as a few stacked plates.
+- **Each block is a plain slab:** a wide flat plateau, one broad shoulder step and a small one under it, a wall.
+- **From the side** the blocks still make a dome: a quick rise from the neck, the crown, a slower fall to the tail.
+- The thick underbody, the dark lip, the ribs, the knobs, the eye and the cheek are as in the third try.
+- 1,932 triangles (the thin slices were 2,724), 12 parts, and it passes the gate.
   [Its swim](../attachments/voxel-archelon-swim.gif).
-- To watch: the shell is now faceted where the other bodies are stepped. It follows the rule that a slope is a block
-  turned, but it is the first body built mostly that way.
+- Weak: with no saddle, the preview rider's legs go into the plateau; from the front the blocks' outlines nest like
+  rings.
 
 **Rules taken from this:**
+- **One language for every body.** A creature may not solve its shape in a way no other creature does. The mix is the
+  same everywhere: cubes for the mass, turned blocks for snouts, fins and limbs, points for teeth and claws. A shape
+  that needs a new language needs a blocky answer first.
 - **Cohesive anatomy.** A body's depth, width and length must agree with the animal's mass, and the parts with each
-  other: a thick shell wants a thick neck and a deep underbody. Check the side and front outlines against the real
-  animal before dressing anything.
-- **A curved surface is not a staircase.** Rings of one-cube steps in two directions read as a Minecraft dome. A dome,
-  a shell or a brow is a few big faces turned: a plateau, a shoulder, a wall. Steps are for a body's taper along its
-  length, one direction at a time.
-- **Gentler steps (the scale rule) does not mean more terraces.** More cubes buy a smoother taper and finer features,
-  not a contour map.
+  other. Check the side, front and top outlines against the real animal before dressing anything: a turtle is a dome
+  from the side, a plateau from the front.
+- **A curved surface in cubes** is a few big blocks: a wide plateau, one or two broad steps, a wall. Never a run of
+  one-cube terraces in two directions, and not many thin slices either: that loses the blockiness the other way.
+- **Blocky first, detail second.** Scale is shown by the size and number of big blocks and by counts (ribs, knobs),
+  not by cutting every surface finer. When a model stops reading as blocks, take detail out.
+- **Gentler steps (the scale rule) does not mean more terraces.** More cubes buy a smoother taper and finer features.
+- **Don't lose what was liked** when reworking something next to it (the eye, here).
+
+**The user on the fourth try (2026-11-10):** the shell "looks right". One rule for the future, and then on to textures.
+
+**The frame is dark navy, not near-black (the user, 2026-11-10).** The lip, keel, flipper spars and cap went from
+`#10222A` to `#1D3059`. The user: pure black is not always the best dark; it works on some sharks, not on the Archelon.
+When a creature needs a dark framing colour, try a dark tint (navy, deep teal, plum) before black.
+
+### Leave the rider a seat
+**The user:** a row of things along the back (stripes, spikes, plates) has to leave room where the player sits. A player
+must never sit on a spike: it would poke through them. A flat line under the rider is fine.
+- Find the seat first: usually where the back is biggest. Then lay the row out round it.
+- **Leave out the spike, knob or plate at the seat,** or part the row there. A painted line, a thin keel or a band may
+  run under the rider.
+- On the Archelon the rider sits between the two middle ribs, so no knob is under them. Its knobs stand on the dark
+  keel and overlap it a little: the user has seen that and it is not a worry.
 
 ## Open, for the user
 - Which axes matter most to them?

@@ -28,6 +28,7 @@ type Rider = {
 	Fish: Wild?,
 	Weld: Weld?,
 	JumpAt: number, -- os.clock() the jump began
+	JumpFrom: Wild?, -- the fish it left
 	Token: number, -- bumps on every move and death, so a stale landing or respawn does nothing
 	JumpReadyAt: number,
 	SentOxygen: number,
@@ -162,7 +163,13 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.CheckAt = os.clock() + 1
 	r.CheckFrom = w.Root.Position
 	if landing then
-		r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * Config.Oxygen.Refill)
+		-- the refill is for reaching another fish: not for hopping off and back onto the same one, nor for a landing
+		-- sooner than a flight can be
+		local flown = os.clock() - r.JumpAt >= Config.Jump.MinFlight
+		if w ~= r.JumpFrom and flown then
+			r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * Config.Oxygen.Refill)
+		end
+		r.JumpFrom = nil
 		r.JumpReadyAt = os.clock() + Config.Jump.Cooldown
 		sendOxygen(r, true)
 		Net.Fx:FireAllClients("Land", r.Player, w.Model)
@@ -237,13 +244,13 @@ local function jump(r: Rider)
 	if os.clock() < r.JumpReadyAt then
 		return deny(r, "Jump", "Cooldown")
 	end
+	r.JumpFrom = r.Fish
 	if r.Fish then
 		dismount(r, "Jump", true)
 	end
 	r.Token += 1
 	r.JumpAt = os.clock()
 	setState(r, "Jumping")
-	Net.Fx:FireAllClients("Jump", r.Player)
 end
 
 -- A flight that came down on nothing: sunk, and a short drown
@@ -366,8 +373,16 @@ end
 
 local function onCharacter(r: Rider, character: Model)
 	r.Token += 1
+	-- a fish still marked as ours (the old character went without dying first) is let go
+	if r.Weld then
+		r.Weld:Destroy()
+	end
+	if r.Fish then
+		FishService.release(r.Fish)
+	end
 	r.Fish = nil
 	r.Weld = nil
+	r.JumpFrom = nil
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
 	setState(r, "Dock")
@@ -397,6 +412,7 @@ local function onPlayer(player: Player)
 		Fish = nil,
 		Weld = nil,
 		JumpAt = 0,
+		JumpFrom = nil,
 		Token = 0,
 		JumpReadyAt = 0,
 		SentOxygen = -1,

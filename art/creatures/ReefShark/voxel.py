@@ -5,7 +5,7 @@ Third pass, built the way the reference builds: from big blocks, each one a body
   black tip. The tail is a root block and two lobes.
 - The head keeps its shark shape, but no face of it is squeezed to a slope: the snout is three big blocks in a chain, each
   tilted nose-down and a step lower and narrower, so its slope is made the way the fins are. The jaw is two boxes.
-- Teeth are pyramids. The gum line is a choice (`GUM`). The eye is a dark block under a slanting brow box.
+- Teeth are pyramids. The gum line is a choice (`GUM`). The eye is a dark block under a slanting brow box that comes past it.
 - Touches: a lighter side line where the grey meets the white, a darker collar round the root of each big fin, and an
   old scar on the left flank.
 The rider sits behind the gills, legs in a slot either side."""
@@ -77,7 +77,8 @@ def build(m):
         head.beam((x0, 0, z0), (x1, 0, z1), wide, thick, "white", flat="z")
         if LOWER:
             mid = DROP / 2 - 0.025
-            head.beam((gum_from, 0, jaw_top(k, gum_from) + mid), (x1 - 0.3, 0, jaw_top(k, x1 - 0.3) + mid), wide - 0.6, DROP + 0.05, "gum",
+            # the lower gum lies inside the jaw's own edge all round: it ends short of the block's front and sides
+            head.beam((gum_from, 0, jaw_top(k, gum_from) + mid), (x1 + 0.35, 0, jaw_top(k, x1 + 0.35) + mid), wide - 1.0, DROP + 0.05, "gum",
                       flat="z")
     head.beam((-13.0, 0, -4.05), (-16.4, 0, -4.1), 4.0, 0.5, "white-", flat="z")  # a chin plate under it
     if GUM == "behind":  # the gums as a band inside the mouth, behind the teeth: seen between them, not round the lips
@@ -86,7 +87,7 @@ def build(m):
             head.block(x0, (-half, half, za, zb), x1, (-half, half, za, zb), "gum")
     # pointed teeth, each with its base sunk a little into a gum or a lip: down along each side and across the front, up
     # from the lower jaw. With a gum plate they stand a little further in and are a little shorter
-    out, up = (0.2 if UPPER else 0.0), (0.2 if LOWER else 0.0)
+    out, up = (0.2 if UPPER else 0.0), (0.35 if LOWER else 0.0)
     for k, x in ((0, -13.4), (0, -14.3), (0, -15.2), (1, -16.85), (1, -17.6)):
         head.tooth(x, (3.2, 2.2)[k] - out, lip_bottom(k, x) - DROP * UPPER + 0.1, 0.75, 0.85 - 0.8 * DROP * UPPER, "tooth")
     front = lip_bottom(1, -18.1) - DROP * UPPER + 0.1
@@ -94,9 +95,12 @@ def build(m):
     head.tooth(-18.1, 1.15, front, 0.75, 0.85 - 0.8 * DROP * UPPER, "tooth")
     for k, x in ((0, -13.9), (0, -15.1), (1, -16.75), (1, -17.6)):
         head.tooth(x, (2.85, 1.75)[k] - up, jaw_top(k, x) + DROP * LOWER - 0.1, 0.65, -(0.65 - 0.67 * DROP * LOWER), "tooth")
-    # the eye: a dark block under a brow box that slants down to the front and stands a little proud of it
+    # the eye: a dark block under a brow box that slants down to the front. The brow comes past the eye, in front of it
+    # and behind, and cuts across its top, so the shark scowls; it stands a little proud of the eye
     head.pair(-13, -11, 5, 6, 0, 2, "black")
-    head.beam((-12.9, 4.95, 2.0), (-10.1, 4.95, 2.4), 1.0, 1.5, "grey", mirror=True)
+    head.beam((-12.9, 4.95, 1.75), (-9.9, 4.95, 2.3), 1.1, 2.1, "grey", mirror=True)
+    # the part in front of the eye: a slimmer block on the same line, starting inside the first
+    head.beam((-14.4, 5.1, 1.475), (-12.4, 5.1, 1.84), 0.8, 1.4, "grey", mirror=True)
     head.block(-20.3, (1.7, 2.15, 0.0, 0.5), -19.6, (1.7, 2.15, 0.0, 0.5), "black", mirror=True)  # nostrils
 
     cuts = [-9, -2, 5, 9, 14]

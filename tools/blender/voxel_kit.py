@@ -29,6 +29,25 @@ A model file is Python. It sets:
                        gate doesn't ask them to touch anything or to have a buried root
   SWIM                 a fish swim: {"chain": [part names, head first], "amplitudes": [degrees per joint], "phaseStep", "headCounter"}
   pose(parts, phase)   or its own swim: turns the parts (a dict of objects by name) for phase 0 to 2 pi
+  TEXTURES             optional: a list of rules that lay a cartoon tile (tools/art/creature_tiles.py) over the colours
+                       (docs/style/06-textures.md). The first rule that fits a face wins. A rule is a dict:
+                         "tile"     which tile: "stud", "stud_square", "plate", "scale", ...
+                         "on"       which faces: "top" (only those facing up: the usual), "sides", "top+sides", "all"
+                         "colours"  only these colour names (and their tones); left out: every colour but KEEP and GLOW
+                         "parts"    only these parts; "x": [from, to] only faces between these, in cubes
+                         "size"     cubes to a tile (1); "strength" how strong (0.5); "turned": True also on turned blocks
+  VARIANT              optional: "gold" (every colour but KEEP and GLOW becomes a tone of gold) or "rainbow" (a rainbow
+                       runs along the body in their place, its hues stepped and mixed at their edges in very small
+                       pixels, like a gradient in pixel art)
+  KEEP                 optional: the colours a variant and the textures leave alone (eyes, teeth, mouths by default)
+  ACCENT               optional: on a variant, the colour the GLOW colours take, so a creature's line of light contrasts
+                       with its new body (violet on gold, white on a rainbow, by default)
+  RAINBOW              optional: {"steps": how many hues (14), "pixels": small pixels to a cube (9), "pastel": how much white
+                       is mixed in (0.1: midway between vivid and pastel), "dither": how far
+                       two neighbouring hues are mixed pixel by pixel (1 = the whole way, a smooth gradient),
+                       "wobble": how far the edge between two hues wanders (0: straight across the body),
+                       "grain": "bayer" (an ordered pattern) or "noise"}
+--look <file.json> lays TEXTURES, VARIANT or KEEP from a file over the model's own, to try looks without editing it.
 
 The grid: the creature points to -X, up is +Z. A cube (i, j, k) spans x [i, i + 1) and z [k, k + 1), and is centred on
 y = j, so a model is symmetric about y = 0 and an odd number of cubes wide. Ranges are half open: box(0, 3, ...) fills
@@ -56,6 +75,9 @@ FORCE, WELD, ALL_FACES = "--force" in argv, "--weld" in argv, "--all-faces" in a
 module_spec = importlib.util.spec_from_file_location("voxel_model", MODEL_PATH)
 M = importlib.util.module_from_spec(module_spec)
 module_spec.loader.exec_module(M)
+if "--look" in argv:  # a look laid over the model, to try textures and variants without touching its file
+    for key, value in json.load(open(argv[argv.index("--look") + 1])).items():
+        setattr(M, key, value)
 U = M.U
 
 
@@ -479,7 +501,35 @@ def check_part(part):
 
 # ---------------------------------------------------------------- colours: each with its darker tone
 palette = dict(M.PALETTE)
-SHADE = getattr(M, "SHADE", 0.8)
+VARIANT = getattr(M, "VARIANT", None)
+KEEP = set(getattr(M, "KEEP", ("black", "tooth", "mouth", "gum", "white")))
+PLAIN = KEEP | set(getattr(M, "GLOW", {}))  # the colours a variant and the textures leave alone
+
+
+def light_of(colour):
+    r, g, b = (int(colour.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+if VARIANT == "gold":  # every colour becomes a tone of gold, the dark ones deep gold, the pale ones pale gold
+    changed = [n for n in palette if n.rstrip("+-") not in PLAIN]
+    lights = [light_of(palette[n]) for n in changed]
+    low, high = min(lights), max(lights)
+    ramp = ((0.0, (0xE8, 0xAE, 0x16)), (0.5, (0xFF, 0xCE, 0x2B)), (1.0, (0xFF, 0xF1, 0xA8)))  # yellow golds, never brown
+    for n in changed:
+        t = 0.5 if high - low < 1e-6 else (light_of(palette[n]) - low) / (high - low)
+        (ta, ca), (tb, cb) = (ramp[0], ramp[1]) if t <= 0.5 else (ramp[1], ramp[2])
+        f = (t - ta) / (tb - ta)
+        palette[n] = "#%02X%02X%02X" % tuple(round(a + (b - a) * f) for a, b in zip(ca, cb))
+if VARIANT:  # the creature's own light takes a colour that stands against its new body
+    accent = getattr(M, "ACCENT", {"gold": "#B25CFF", "rainbow": "#FFFFFF"}.get(VARIANT))
+    for n in list(palette):
+        if n.rstrip("+-") in getattr(M, "GLOW", {}):
+            if n.endswith(("+", "-")):
+                del palette[n]  # its tones are made again from the new colour
+            else:
+                palette[n] = accent
+SHADE = getattr(M, "SHADE", 0.86 if VARIANT == "gold" else 0.8)  # gold's darker tone stays gold
 LIFT = getattr(M, "LIFT", 1.12)
 for name, colour in list(palette.items()):
     if name.endswith(("-", "+")):
@@ -671,6 +721,190 @@ for i, (part_name, (lx, ly, lz), colour, watts, radius) in enumerate(getattr(M, 
         light.location = (lx * U, side * ly * U, lz * U)
         K.world_pos[light.name] = light.location.copy()
         K.attach(light, objects[part_name])
+# ---------------------------------------------------------------- variants and textures (docs/style/06-textures.md)
+if VARIANT == "gold":
+    for name, mat in K.mats.items():
+        if name.rstrip("+-") not in PLAIN:
+            bsdf = mat.node_tree.nodes.get("Principled BSDF")
+            bsdf.inputs["Roughness"].default_value = 0.35
+            if "Specular IOR Level" in bsdf.inputs:
+                bsdf.inputs["Specular IOR Level"].default_value = 0.6
+if VARIANT == "rainbow":
+    # one smooth rainbow from nose to tail, straight across the body. It is made of flat hues, and each hue is mixed into
+    # the next pixel by pixel in an ordered pattern (very small pixels, several to a cube), as a gradient is dithered in
+    # pixel art: smooth from a distance, crisp pixels close up. Every body colour takes the same vivid rainbow; only the
+    # pale colours (a belly) take it paler, and a colour's darker tone takes it a little darker
+    stops = ("#FF2F4A", "#FF7A14", "#FFD60A", "#2FD452", "#12C6F0", "#3266FF", "#9A3DFF", "#FF3DCB")
+    opts = {"steps": 14, "pixels": 9, "dither": 1.0, "wobble": 0.0, "grain": "bayer", "pastel": 0.1}
+    opts.update(getattr(M, "RAINBOW", {}))
+    size = U / opts["pixels"]  # one small pixel, in studs
+    span = max((hi[0] - lo[0]) * U / size, 1.0)  # the body's length, in pixels
+    order = bpy.data.images.new("Dither", 4, 4, float_buffer=True, is_data=True)  # the ordered pattern, four by four
+    order.pixels = [c for v in (0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5) for c in ((v + 0.5) / 16,) * 3 + (1.0,)]
+    for name, mat in K.mats.items():
+        if name.rstrip("+-") in PLAIN:
+            continue
+        nt = mat.node_tree
+        bsdf = nt.nodes.get("Principled BSDF")
+        light = light_of(palette.get(name.rstrip("+-"), palette[name]))
+
+        def node(kind, **settings):
+            made = nt.nodes.new(kind)
+            for key, value in settings.items():
+                setattr(made, key, value)
+            return made
+
+        def maths(operation, a, b=None, c=None):
+            made = node("ShaderNodeMath", operation=operation)
+            for socket, value in zip(made.inputs, (a, b, c)):
+                if value is None:
+                    continue
+                if isinstance(value, (int, float)):
+                    socket.default_value = value
+                else:
+                    nt.links.new(value, socket)
+            return made.outputs[0]
+
+        where = node("ShaderNodeNewGeometry")
+        inward = node("ShaderNodeVectorMath", operation="SCALE")  # step a little inside the surface
+        inward.inputs["Scale"].default_value = -0.004
+        nt.links.new(where.outputs["True Normal"], inward.inputs[0])
+        inside = node("ShaderNodeVectorMath", operation="ADD")
+        nt.links.new(where.outputs["Position"], inside.inputs[0])
+        nt.links.new(inward.outputs[0], inside.inputs[1])
+        scaled = node("ShaderNodeVectorMath", operation="SCALE")
+        scaled.inputs["Scale"].default_value = 1.0 / size
+        nt.links.new(inside.outputs[0], scaled.inputs[0])
+        pixel = node("ShaderNodeVectorMath", operation="FLOOR")  # which small pixel this point is in
+        nt.links.new(scaled.outputs[0], pixel.inputs[0])
+        split = node("ShaderNodeSeparateXYZ")
+        nt.links.new(pixel.outputs[0], split.inputs[0])
+        px, py, pz = split.outputs["X"], split.outputs["Y"], split.outputs["Z"]
+        if opts["grain"] == "noise":
+            grain_node = node("ShaderNodeTexWhiteNoise", noise_dimensions="3D")
+            nt.links.new(pixel.outputs[0], grain_node.inputs["Vector"])
+            grain = grain_node.outputs["Value"]
+        else:  # the ordered pattern, looked up by the pixel's place on the face: the two numbers that change across it
+            face = node("ShaderNodeVectorMath", operation="ABSOLUTE")
+            nt.links.new(where.outputs["True Normal"], face.inputs[0])
+            axes = node("ShaderNodeSeparateXYZ")
+            nt.links.new(face.outputs[0], axes.inputs[0])
+            ax, ay, az = axes.outputs["X"], axes.outputs["Y"], axes.outputs["Z"]
+            ends = maths("MULTIPLY", maths("GREATER_THAN", ax, ay), maths("GREATER_THAN", ax, az))  # a face that looks along the body
+            tops = maths("MULTIPLY", maths("GREATER_THAN", az, ay), maths("SUBTRACT", 1.0, ends))  # a face that looks up or down
+            u = maths("ADD", px, maths("MULTIPLY", ends, maths("SUBTRACT", py, px)))
+            v = maths("ADD", pz, maths("MULTIPLY", tops, maths("SUBTRACT", py, pz)))
+            look = node("ShaderNodeCombineXYZ")
+            nt.links.new(maths("DIVIDE", maths("ADD", u, 0.5), 4.0), look.inputs["X"])
+            nt.links.new(maths("DIVIDE", maths("ADD", v, 0.5), 4.0), look.inputs["Y"])
+            grain_node = node("ShaderNodeTexImage", interpolation="Closest", image=order)
+            nt.links.new(look.outputs[0], grain_node.inputs["Vector"])
+            grain = grain_node.outputs["Color"]
+        drift = node("ShaderNodeTexNoise", noise_dimensions="3D")  # a slow wander, so the edge between hues isn't ruled
+        drift.inputs["Scale"].default_value = 0.11 * opts["pixels"] / max(U, 0.01) * size
+        drift.inputs["Detail"].default_value = 0.0
+        nt.links.new(pixel.outputs[0], drift.inputs["Vector"])
+        along = maths("DIVIDE", maths("SUBTRACT", maths("ADD", px, 0.5), lo[0] * U / size), span)
+        mixed = maths("ADD", maths("MULTIPLY_ADD", grain, opts["dither"], -opts["dither"] / 2),
+                      maths("MULTIPLY_ADD", drift.outputs[0], 2 * opts["wobble"], -opts["wobble"]))
+        stepped = maths("DIVIDE", maths("FLOOR", maths("ADD", maths("MULTIPLY", along, opts["steps"]), mixed)), opts["steps"] - 1)
+        bow = node("ShaderNodeValToRGB")
+        bow.color_ramp.elements[0].position, bow.color_ramp.elements[0].color = 0.0, kc.hex_rgba(stops[0])
+        bow.color_ramp.elements[1].position, bow.color_ramp.elements[1].color = 1.0, kc.hex_rgba(stops[-1])
+        for k, stop in enumerate(stops[1:-1]):
+            bow.color_ramp.elements.new((k + 1) / (len(stops) - 1)).color = kc.hex_rgba(stop)
+        pale = node("ShaderNodeMix", data_type="RGBA", blend_type="MIX")
+        pale.inputs[0].default_value = (0.5 if light > 0.7 else opts["pastel"]) + (0.08 if name.endswith("+") else 0.0)
+        pale.inputs[7].default_value = (1.0, 1.0, 1.0, 1.0)
+        deep = node("ShaderNodeMix", data_type="RGBA", blend_type="MULTIPLY")
+        deep.inputs[0].default_value = 1.0
+        tone = 0.74 if name.endswith("-") else 1.0
+        deep.inputs[7].default_value = (tone, tone, tone, 1.0)
+        nt.links.new(stepped, bow.inputs["Fac"])
+        nt.links.new(bow.outputs["Color"], pale.inputs[6])
+        nt.links.new(pale.outputs[2], deep.inputs[6])
+        nt.links.new(deep.outputs[2], bsdf.inputs["Base Color"])
+
+TILES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "art", "style", "tiles")
+rules = list(getattr(M, "TEXTURES", []))
+if VARIANT == "gold" and not rules:
+    rules = [{"tile": "sparkle", "on": "top+sides", "size": 4, "strength": 0.45}]
+
+
+def textured(colour, tile, strength):
+    """the colour's material with a tile laid over it: mid grey leaves the colour, lighter lifts it, darker shades it"""
+    key = f"{colour}|{tile}|{strength}"
+    if key not in K.mats:
+        mat = K.mats[colour].copy()
+        mat.name = key
+        nt = mat.node_tree
+        bsdf = nt.nodes.get("Principled BSDF")
+        picture = nt.nodes.new("ShaderNodeTexImage")
+        picture.image = bpy.data.images.load(os.path.join(TILES, tile + ".png"), check_existing=True)
+        picture.image.colorspace_settings.name = "Non-Color"
+        shade = nt.nodes.new("ShaderNodeMath")
+        shade.operation = "MULTIPLY_ADD"  # 1 + 2 x strength x (grey - 0.5)
+        shade.inputs[1].default_value, shade.inputs[2].default_value = 2.0 * strength, 1.0 - strength
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type, mix.blend_type = "RGBA", "MULTIPLY"
+        mix.inputs[0].default_value = 1.0
+        base = bsdf.inputs["Base Color"]
+        if base.is_linked:
+            nt.links.new(base.links[0].from_socket, mix.inputs[6])
+        else:
+            mix.inputs[6].default_value = base.default_value
+        nt.links.new(picture.outputs["Color"], shade.inputs[0])
+        nt.links.new(shade.outputs[0], mix.inputs[7])
+        nt.links.new(mix.outputs[2], base)
+        if bsdf.inputs["Emission Strength"].default_value > 0:
+            nt.links.new(mix.outputs[2], bsdf.inputs["Emission Color"])
+        K.mats[key] = mat
+    return K.mats[key]
+
+
+if rules:
+    bpy.context.view_layer.update()
+    colour_of = {mat.name: name for name, mat in K.mats.items()}
+    covered = 0
+    for part_name, ob in objects.items():
+        me = ob.data
+        uv = me.uv_layers.new(name="tile")
+        turn = ob.matrix_world.to_3x3()
+        for poly in me.polygons:
+            colour = colour_of.get(me.materials[poly.material_index].name)
+            if colour is None:
+                continue
+            n = turn @ poly.normal
+            axis = max(range(3), key=lambda a: abs(n[a]))
+            square = abs(n[axis]) > 0.985
+            mid = ob.matrix_world @ poly.center
+            for rule in rules:
+                if "parts" in rule and part_name not in rule["parts"]:
+                    continue
+                if "colours" in rule:
+                    if colour.rstrip("+-") not in rule["colours"]:
+                        continue
+                elif colour.rstrip("+-") in PLAIN:
+                    continue
+                if "x" in rule and not rule["x"][0] <= mid.x / U <= rule["x"][1]:
+                    continue
+                if not square and not rule.get("turned"):
+                    continue
+                on = rule.get("on", "top")
+                if not (on == "all" or (axis == 2 and n.z > 0 and "top" in on) or (axis == 1 and "sides" in on)):
+                    continue
+                mat = textured(colour, rule["tile"], rule.get("strength", 0.5))
+                if mat.name not in me.materials:
+                    me.materials.append(mat)
+                poly.material_index = list(me.materials).index(mat)
+                size = rule.get("size", 1)
+                for loop in poly.loop_indices:
+                    c = (ob.matrix_world @ me.vertices[me.loops[loop].vertex_index].co) / U
+                    uv.data[loop].uv = ((c.x / size, (c.y + 0.5) / size) if axis == 2 else
+                                        (c.x / size, c.z / size) if axis == 1 else ((c.y + 0.5) / size, c.z / size))
+                covered += 1
+                break
+    print(f"voxel kit: textures on {covered} faces")
 print(f"voxel kit: {M.NAME}: {len(objects)} parts, {cubes} cubes of {U} studs, {triangles} triangles, "
       f"{(hi[0] - lo[0]) * U:.1f} x {(hi[1] - lo[1] - 1) * U:.1f} x {(hi[2] - lo[2]) * U:.1f} studs")
 print(f"voxel kit: {triangles} triangles drawn, of {all_triangles} with every face of every piece" + (" (welded)" if WELD else ""))

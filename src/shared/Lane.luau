@@ -55,11 +55,32 @@ local function fromZones(zones: { Zones.Zone }): ({ Vector3 }, { number })
 	return points, widths
 end
 
--- The nearest point on the path: its s and how far off the path it is
-function Lane.project(lane: Lane, position: Vector3): (number, number)
+-- The last point at or before s (binary search)
+local function indexAt(lane: Lane, s: number): number
+	local S = lane.S
+	local lo, hi = 1, #S - 1
+	while lo < hi do
+		local mid = (lo + hi + 1) // 2
+		if S[mid] <= s then
+			lo = mid
+		else
+			hi = mid - 1
+		end
+	end
+	return lo
+end
+
+-- The nearest point on the path: its s and how far off the path it is. With `near` (an s the position is known to be
+-- close to, such as last frame's), only the stretch of path round it is searched: for callers that ask every frame.
+function Lane.project(lane: Lane, position: Vector3, near: number?): (number, number)
 	local bestS, bestD = 0, math.huge
 	local points = lane.Points
-	for i = 1, #points - 1 do
+	local first, last = 1, #points - 1
+	if near then
+		local i = indexAt(lane, math.clamp(near, 0, lane.Length))
+		first, last = math.max(first, i - 6), math.min(last, i + 6)
+	end
+	for i = first, last do
 		local a, b = points[i], points[i + 1]
 		local ab = b - a
 		local len2 = ab:Dot(ab)
@@ -77,17 +98,7 @@ end
 function Lane.at(lane: Lane, s: number): (Vector3, Vector3, number)
 	local points, S = lane.Points, lane.S
 	s = math.clamp(s, 0, lane.Length)
-	-- the last point at or before s (binary search)
-	local lo, hi = 1, #points - 1
-	while lo < hi do
-		local mid = (lo + hi + 1) // 2
-		if S[mid] <= s then
-			lo = mid
-		else
-			hi = mid - 1
-		end
-	end
-	local i = lo
+	local i = indexAt(lane, s)
 	local a, b = points[i], points[i + 1]
 	local span = S[i + 1] - S[i]
 	local u = if span > 0 then (s - S[i]) / span else 0
