@@ -379,10 +379,10 @@ gold and rainbow ones of Ride a Dino); then all the creatures, once the template
 | Serpent | Basilosaurus | Legendary | 2,650 | 45 |
 | Worm | Bobbit Worm | Legendary | 2,396 | 39 |
 | Flat, winged | Manta Ray | Epic | 754 | 24 across |
-| Tentacled | Kraken | Mythic | 2,824 | 49 |
+| Tentacled | Kraken | Mythic | 2,596 | 49 |
 | Crawler | Anomalocaris | Legendary | 1,328 | 33 |
 | Bulbous | Anglerfish | Epic | 964 | 18 |
-| Shelled | Archelon | Legendary | 2,304 | 33 across |
+| Shelled | Archelon | Legendary | 1,762 | 33 across |
 
 The last seven are in "Archetypes are loose", below. Every body type on the list is now built once.
 
@@ -485,10 +485,10 @@ All seven pass the gate without `--force`. None needed a change to the kit. Each
 | Basilosaurus | a whale that is still half a serpent | 44.9 studs, 2,650 triangles, 26 parts (reworked, below) | [sheet](../attachments/voxel-basilosaurus.jpg), [swim](../attachments/voxel-basilosaurus-swim.gif) |
 | Bobbit Worm | the ambush: a ribbon of shimmering rings behind scissor jaws | 38.6 studs, 2,396 triangles, 16 parts | [sheet](../attachments/voxel-bobbitworm.jpg), [swim](../attachments/voxel-bobbitworm-swim.gif) |
 | Manta Ray | a living kite: nearly all of it is wing | 23.6 studs across, 754 triangles, 12 parts | [sheet](../attachments/voxel-mantaray.jpg), [swim](../attachments/voxel-mantaray-swim.gif) |
-| Kraken | the grip of the deep: a soft sack dragging eight long arms | 48.6 studs, 2,824 triangles, 28 parts (reworked, below) | [sheet](../attachments/voxel-kraken.jpg), [swim](../attachments/voxel-kraken-swim.gif) |
+| Kraken | the grip of the deep: a soft sack dragging eight long arms | 48.6 studs, 2,596 triangles, 26 parts (reworked, below) | [sheet](../attachments/voxel-kraken.jpg), [swim](../attachments/voxel-kraken-swim.gif) |
 | Anomalocaris | a thing from before fish: a raft of flaps, two hooked arms | 32.5 studs, 1,328 triangles, 25 parts | [sheet](../attachments/voxel-anomalocaris.jpg), [swim](../attachments/voxel-anomalocaris-swim.gif) |
 | Anglerfish | a dark ball of mouth that carries its own lamp | 18.0 studs, 964 triangles, 10 parts | [sheet](../attachments/voxel-anglerfish.jpg), [swim](../attachments/voxel-anglerfish-swim.gif) |
-| Archelon | the first giant: a turtle on wings wider than itself | 32.9 studs across, 2,304 triangles, 12 parts (reworked, below) | [sheet](../attachments/voxel-archelon.jpg), [swim](../attachments/voxel-archelon-swim.gif) |
+| Archelon | the first giant: a turtle on wings wider than itself | 32.9 studs across, 1,762 triangles, 12 parts (reworked, below) | [sheet](../attachments/voxel-archelon.jpg), [swim](../attachments/voxel-archelon-swim.gif) |
 
 **How each read as first built (Claude's own read, before the user's):**
 - **Anglerfish:** the strongest. One idea, one glow, a mouth you read from across the map. From the side it is a rounded
@@ -582,10 +582,9 @@ looks really cool", and it is "almost perfect in palette and look".
 
 - The mantle is a short barrel with a pale collar, then a point of three blocks that turns up into the swim, ending in
   a dark spike.
-- Two fins sweep back from the point like an arrowhead, each on its own joint, beating with the jet.
-- Four spots of the sucker green along each fin's rib, so some of its light shows from the side, the top and the front
-  (`FIN_LIGHTS = False` removes them).
-- 48.6 studs (was 37.8), 2,824 triangles, 28 parts. [Its swim](../attachments/voxel-kraken-swim.gif).
+- It first had two fins swept back from the point, with spots of the sucker green on them. **The user had them taken
+  off:** they read as two spikes on the head. The mantle is one clean point now, and the suckers are its only light again.
+- 48.6 studs (was 37.8), 2,596 triangles, 26 parts. [Its swim](../attachments/voxel-kraken-swim.gif).
 - Weak: the underside of the point is a sawtooth of three blocks; from the front the tip is a small dark square; the
   mantle is still short next to the arms; it is now longer than the Blue Whale.
 
@@ -598,13 +597,35 @@ looks really cool", and it is "almost perfect in palette and look".
   frame is the shell's lip, the spine ridge, the flippers' leading spars, a cap and a collar on the head.
 - Four palettes were tried on the same model: [the choice](../attachments/voxel-archelon-palettes.jpg). Ink blue sat too
   near the Mosasaurus, plum too near the Kraken, tortoiseshell lost the beak as the focal point.
-- **For scale:** cubes of 0.45 studs (were 0.5); the dome falls in six gentle steps; each rib ends in a bone tip past the
-  lip; the front flippers are three jointed lengths, each a dark spar with fingers fanned behind; a plastron of six
-  plates underneath.
-- A low hump for a seat: the rider's legs no longer sink.
-- 2,304 triangles (was 1,394), 12 parts. [Its swim](../attachments/voxel-archelon-swim.gif).
-- Weak: from the three-quarter view the wing shows mostly its dark leading edge; the seat is a visible bump; the shell
-  alone is about 1,800 triangles.
+- **For scale:** cubes of 0.45 studs (were 0.5); each rib ends in a bone tip past the lip; the front flippers are three
+  jointed lengths, each a dark spar with fingers fanned behind; a plastron of six plates underneath.
+
+**The user on that build:** the turtle is "too thin, it looks like it should be thicker and have a more consistent shape
+given the body size", and the shell "takes a hit and looks flat from that". The body shouldn't only be thicker: the
+shell "should have a wider plateau and look generally more like a shell and less like a slightly poor Minecraft dome".
+
+**The shell rebuilt:**
+- **One cross-section, scaled along the body:** a short wall above the lip, a steep lower shoulder, a gentle upper
+  shoulder, and a flat plateau half the shell's width. Each stretch between two ribs is one faceted block, so every
+  slope is a whole turned face. The dome of one-cube steps is gone.
+- **A thick animal:** the body is about a third as deep as the shell is long. Under the lip there is a real underbody,
+  dark leather that turns in, in two steps, to the plastron. The lip and the underbody are still cubes.
+- **A thicker neck and skull,** to go with the body.
+- A dark keel down the spine; the bone ribs cross from lip to lip, a little proud; a small saddle for the rider.
+- 1,762 triangles (the stepped dome was 2,304), 12 parts, and it passes the gate.
+  [Its swim](../attachments/voxel-archelon-swim.gif).
+- To watch: the shell is now faceted where the other bodies are stepped. It follows the rule that a slope is a block
+  turned, but it is the first body built mostly that way.
+
+**Rules taken from this:**
+- **Cohesive anatomy.** A body's depth, width and length must agree with the animal's mass, and the parts with each
+  other: a thick shell wants a thick neck and a deep underbody. Check the side and front outlines against the real
+  animal before dressing anything.
+- **A curved surface is not a staircase.** Rings of one-cube steps in two directions read as a Minecraft dome. A dome,
+  a shell or a brow is a few big faces turned: a plateau, a shoulder, a wall. Steps are for a body's taper along its
+  length, one direction at a time.
+- **Gentler steps (the scale rule) does not mean more terraces.** More cubes buy a smoother taper and finer features,
+  not a contour map.
 
 ## Open, for the user
 - Which axes matter most to them?

@@ -2,7 +2,7 @@
 (docs/style/04-voxel-style.md), dressed as a Mythic by docs/style/05-rarity-look.md. The first tentacled creature, designed
 from the animals: an octopus's arms and eyes behind a giant squid's mantle, jetting.
 Its idea: the grip of the deep. A long spearhead that drags eight long arms through the dark, and the only light it has
-runs down the inside of its grip and along its fins.
+runs down the inside of its grip.
 - It swims as they do: backwards. The mantle leads, the head follows, the arms trail behind and fan out, each curling a
   little further from the axis toward its tip, no two alike.
 - The mantle is a squid's (reworked 2026-11-10: it was a ball). A full barrel just behind its opening, stepping in a cube
@@ -10,9 +10,7 @@ runs down the inside of its grip and along its fins.
   dark spike: the whole shape leans up into its swim like a prow. A pale raised collar round the opening. A lighter
   plate on the back of each block of the point and a darker one beneath: the mantle's one rhythm. The rider sits on the
   barrel.
-- Two fins near the point, swept back from it like an arrowhead and lifted a little, each on its own joint: two flat boxes
-  on one line and a rib down the middle. Four spots of the suckers' light sit along each rib, smaller toward the end, so
-  the light can be seen from the side and from above, not only from beneath.
+- No fins: the user had the pair near the point taken off (2026-11-10), as they read as two spikes on the head.
 - The head is narrow. The eyes bulge high on its sides: a matte gold iris, a dark slit of a pupil lying flat, a heavy lid
   that covers the top of the eye and stands only a little proud of it. They do not glow.
 - Eight thick arms leave a flared crown, joined at the base by a web: a skirt of eight plates. Each arm is three boxes on
@@ -20,8 +18,8 @@ runs down the inside of its grip and along its fins.
   near-black at the tip. One arm is short: bitten off long ago (its flaw).
 - Under each arm, two rows of suckers, and they are the light: a cold green, following the arms' own lines.
 - A beak in the middle of the arms, a siphon under the head.
-Mythic by scale (the longest reach of any creature, eight arms on twenty-four joints), light (the suckers, echoed on the
-fins) and a shift of colour along the body. The rider sits on the mantle, legs in a shallow slot either side."""
+Mythic by scale (the longest reach of any creature, eight arms on twenty-four joints), light (the suckers) and a shift of
+colour along the body. The rider sits on the mantle, legs in a shallow slot either side."""
 import math
 
 NAME, ZONE, RARITY = "Kraken", "ZONE 7 / MIDNIGHT", "MYTHIC"
@@ -29,7 +27,7 @@ U = 0.64
 PALETTE = {"wine": "#63233A", "dusk": "#2B1420", "web": "#8E4F6C", "iris": "#D8B24C", "black": "#17141A", "beak": "#2A2226",
            "mouth": "#3A0F1C", "lume": "#B4F25A"}
 SEAT = (-15.5, 10, 7.3)
-GLOW = {"lume": 0.7}  # its signature colour: the suckers, and the spots along the fins
+GLOW = {"lume": 0.7}  # its signature colour, in the suckers only
 LIGHTS = [("Head", (9.0, 0, 1.0), "#B4F25A", 260, 1.2)]  # the suckers' light, gathered between the arms
 FRAME, ORTHO, ORTHO_SWIM = 3.75, 57.0, 72.0
 
@@ -37,7 +35,6 @@ ARMS = 8
 ANGLES = [math.radians(22.5 + 45 * k) for k in range(ARMS)]  # where each arm sits round the body's axis, from the right
 AXIS_Z = 1.0  # the height of the axis the arms sit round
 SHORT = 5  # the arm that was bitten off
-FIN_LIGHTS = True  # spots of the suckers' light along each fin's rib
 # an arm's boxes, root to tip: (length, how far it leans out from the axis in degrees, width, thickness, colour)
 BOXES = ((12.5, 16, 3.6, 3.0, "wine"), (12.5, 12, 2.7, 2.2, "wine-"), (10.5, 26, 1.8, 1.4, "dusk"))
 # no two arms alike: each arm's (length, extra lean in degrees), round from the right
@@ -49,8 +46,6 @@ def pose(parts, phase):
     """a jet: the arms spread, then sweep together, each joint a little later than the one before it, so a wave runs
     down every arm. Each joint turns about the arm's own sideways axis. The head nods a little"""
     parts["Head"].rotation_euler.y = math.radians(2) * math.sin(phase + 0.5)
-    for name, side in (("FinR", 1), ("FinL", -1)):  # the fins beat with the jet, a little after the arms
-        parts[name].rotation_euler.x = side * math.radians(9) * math.sin(phase - 0.6)
     for k, angle in enumerate(ANGLES):
         axis = (0.0, -math.sin(angle), math.cos(angle))
         for j, (swing, late) in enumerate(SWING):
@@ -157,29 +152,6 @@ def build(m):
                   (cx + ux * 2.25, -1.95, cz + uz * 2.25)], (cx + ax * 4.6, 0.0, cz + az * 4.6 + 0.6), "dusk")
     # the seat: on top of the sack, with a shallow slot either side for the rider's legs
     mantle.dent(-17, -14, 7, 5, 7, "wine-")
-
-    # the fins: a pair near the point, swept back from it like an arrowhead and lifted a little, each on its own joint.
-    # Two flat boxes on one line, the second narrower and thinner and starting inside the first, and one rib down the
-    # middle of both
-    for name, side in (("FinR", 1), ("FinL", -1)):
-        fin = m.part(name, (-30.0, 3.0 * side, 5.5), "Mantle")
-
-        def along(t):
-            return (-33.5 + 9.0 * t, side * (0.8 + 8.5 * t), 5.4 + 3.0 * t)
-
-        fin.beam(along(0.0), along(1.0), 5.5, 1.0, "wine", flat="z")
-        fin.beam(along(0.62), along(1.35), 3.2, 0.6, "wine-", flat="z")
-        fin.beam(along(-0.06), along(1.25), 0.6, 1.5, "wine+", flat="z")
-        if FIN_LIGHTS:  # the suckers' light, echoed: a few spots along the rib, smaller toward the end, above and below
-            length = math.sqrt(9.0 ** 2 + 8.5 ** 2 + 3.0 ** 2)
-            ahead = (9.0 / length, side * 8.5 / length, 3.0 / length)
-            flat = math.hypot(9.0, 8.5)
-            across = (8.5 / flat, -side * 9.0 / flat, 0.0)
-            normal = (ahead[1] * across[2] - ahead[2] * across[1], ahead[2] * across[0] - ahead[0] * across[2],
-                      ahead[0] * across[1] - ahead[1] * across[0])
-            for t, size in ((0.34, 1.1), (0.6, 1.0), (0.84, 0.9), (1.06, 0.8)):
-                for face in (1, -1):
-                    fin._oriented(at(along(t), normal, face * 0.54), ahead, across, normal, (size, size, 0.68), "lume", False)
 
     # the head, narrow, and the crown the arms leave from, flared
     head = m.part("Head", (-8, 0, 1.0), "Mantle")
