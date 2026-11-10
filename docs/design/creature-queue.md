@@ -13,6 +13,9 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
   `<part>_Node`, moves each part's origin to its box's middle (so pivots come from the json), and makes parts grey Plastic.
 - **Not in yet:** studs; gold and rainbow. Nobody has yet looked at them swimming in play.
 - The Blue Whale's files are named `BlueWhaletheoldone.*` (from its long name); its id everywhere is the folder name, `BlueWhale`.
+- **Colours:** the first upload came in too dark (the file's colours were stored as linear light, and Roblox shows them as
+  stored). The export now writes the palette's own numbers; the Reef Shark was tested in Studio and matches. All 33 were
+  re-exported that way on 2026-11-10 and need one more upload, in one batch.
 
 ## What each creature's folder holds
 `art/creatures/<Folder>/game/`:
