@@ -376,13 +376,13 @@ gold and rainbow ones of Ride a Dino); then all the creatures, once the template
 | Shark-lizard | Mosasaurus | Legendary | 2,394 | 43.5 |
 | Giant | Blue Whale, the old one | Mythic | 2,164 | 46 |
 | Invented (fire) | Hellmaw | Mythic | 2,386 | 31 |
-| Serpent | Basilosaurus | Legendary | 2,012 | 44 |
+| Serpent | Basilosaurus | Legendary | 2,650 | 45 |
 | Worm | Bobbit Worm | Legendary | 2,396 | 39 |
 | Flat, winged | Manta Ray | Epic | 754 | 24 across |
-| Tentacled | Kraken | Mythic | 2,422 | 38 |
+| Tentacled | Kraken | Mythic | 2,824 | 49 |
 | Crawler | Anomalocaris | Legendary | 1,328 | 33 |
 | Bulbous | Anglerfish | Epic | 964 | 18 |
-| Shelled | Archelon | Legendary | 1,394 | 33 across |
+| Shelled | Archelon | Legendary | 2,304 | 33 across |
 
 The last seven are in "Archetypes are loose", below. Every body type on the list is now built once.
 
@@ -482,15 +482,15 @@ All seven pass the gate without `--force`. None needed a change to the kit. Each
 
 | Creature | Its idea | Numbers | Sheet, swim |
 |---|---|---|---|
-| Basilosaurus | a whale that is still half a serpent | 44.2 studs, 2,012 triangles, 23 parts | [sheet](../attachments/voxel-basilosaurus.jpg), [swim](../attachments/voxel-basilosaurus-swim.gif) |
+| Basilosaurus | a whale that is still half a serpent | 44.9 studs, 2,650 triangles, 26 parts (reworked, below) | [sheet](../attachments/voxel-basilosaurus.jpg), [swim](../attachments/voxel-basilosaurus-swim.gif) |
 | Bobbit Worm | the ambush: a ribbon of shimmering rings behind scissor jaws | 38.6 studs, 2,396 triangles, 16 parts | [sheet](../attachments/voxel-bobbitworm.jpg), [swim](../attachments/voxel-bobbitworm-swim.gif) |
 | Manta Ray | a living kite: nearly all of it is wing | 23.6 studs across, 754 triangles, 12 parts | [sheet](../attachments/voxel-mantaray.jpg), [swim](../attachments/voxel-mantaray-swim.gif) |
-| Kraken | the grip of the deep: a soft sack dragging eight long arms | 37.8 studs, 2,422 triangles, 26 parts | [sheet](../attachments/voxel-kraken.jpg), [swim](../attachments/voxel-kraken-swim.gif) |
+| Kraken | the grip of the deep: a soft sack dragging eight long arms | 48.6 studs, 2,824 triangles, 28 parts (reworked, below) | [sheet](../attachments/voxel-kraken.jpg), [swim](../attachments/voxel-kraken-swim.gif) |
 | Anomalocaris | a thing from before fish: a raft of flaps, two hooked arms | 32.5 studs, 1,328 triangles, 25 parts | [sheet](../attachments/voxel-anomalocaris.jpg), [swim](../attachments/voxel-anomalocaris-swim.gif) |
 | Anglerfish | a dark ball of mouth that carries its own lamp | 18.0 studs, 964 triangles, 10 parts | [sheet](../attachments/voxel-anglerfish.jpg), [swim](../attachments/voxel-anglerfish-swim.gif) |
-| Archelon | the first giant: a turtle on wings wider than itself | 32.5 studs across, 1,394 triangles, 10 parts | [sheet](../attachments/voxel-archelon.jpg), [swim](../attachments/voxel-archelon-swim.gif) |
+| Archelon | the first giant: a turtle on wings wider than itself | 32.9 studs across, 2,304 triangles, 12 parts (reworked, below) | [sheet](../attachments/voxel-archelon.jpg), [swim](../attachments/voxel-archelon-swim.gif) |
 
-**How each reads (Claude's own read, before the user's):**
+**How each read as first built (Claude's own read, before the user's):**
 - **Anglerfish:** the strongest. One idea, one glow, a mouth you read from across the map. From the side it is a rounded
   block more than a ball.
 - **Anomalocaris:** reads as nothing else in the game. Thin in a pure side view. The teal ring on the eye is a full
@@ -514,6 +514,97 @@ All seven pass the gate without `--force`. None needed a change to the kit. Each
   shallow slot would fix it.
 - **One kit gap:** `dent` only works on a side column. A shallow recess on a top or an underside would give the Manta
   real gills and the Anglerfish a proper leg slot.
+
+## Scale shows in form (the user, 2026-11-10)
+**The user:** the seven "are looking pretty good", but scale has to interact with form. An animal that is large in its
+base form must show it in its model: more geometry, more connections, less steep steps. It must not read as a small
+model scaled up. Ride a Dino does this: a big animal is evident from its model, not only from its size. "However we
+shouldn't go too far with this as to lose the simple look of the models."
+
+**Base size is not spawn size.** Each model has one base size (a velociraptor is smaller than a T. rex). The sizes a
+creature can spawn at (small, regular, huge) are set in code and only scale that model up or down: no extra geometry.
+So this rule is about the base size alone.
+
+**The rule.** The cube does not grow with the animal. A bigger base animal takes more cubes, so:
+- **Curves take more, gentler steps.** Corners cut in three steps where a small fish has one or two; a dome that falls
+  in six steps where a small one falls in three.
+- **Bodies take more slices,** each one step different from the last.
+- **Counts go up, sizes don't.** More teeth, more knuckles, more ribs, at about the size a smaller animal's are.
+- **Joins get a connection.** A collar, a shoulder, a lip round a shell, where a small animal has a plain butt joint.
+- **One second layer of form, in a rhythm:** plates, ridges, rays, knuckles. Never two.
+- **The limit:** still big plain planes, still half the surface plain, still one cube a step. About 3,000 triangles at
+  most for the very biggest.
+
+**How the steps of a long body flow** (worked out on the Basilosaurus):
+- **One number changes per slice.** The back, the belly and the width each step on a different slice, so each outline is
+  its own even staircase and the eye joins it into a line.
+- **A slice is about as long as it is thick.** Long in the middle, short at the tail, like a backbone: the rhythm
+  quickens as the body thins.
+- **Lines run the whole length and cross the steps.** A level line of colour, a dark line under the back, a row of
+  knuckles. They tie the slices into one shape.
+- **Corner steps thin out with the body:** three, then two, then one.
+
+**A measure: cubes along the body.** Not a law, a check.
+
+| Creature | Studs | Cube | Cubes long |
+|---|---|---|---|
+| Clownfish, Sergeant Major | 10, 13 | 0.35 | 29, 37 |
+| Anglerfish | 18 | 0.58 | 31 (meant to be chunky) |
+| Reef Shark | 18 | 0.40 | 44 |
+| Dunkleosteus | 27 | 0.54 | 49 |
+| Hellmaw | 31 | 0.58 | 54 |
+| Manta Ray | 24 across | 0.40 | 59 |
+| Blue Whale | 46 | 0.70 | 66 |
+| Anomalocaris | 33 | 0.50 | 65 |
+| Archelon | 33 across | 0.45 (was 0.50) | 73 |
+| Kraken | 49 | 0.64 | 76 |
+| Bobbit Worm | 39 | 0.46 | 84 |
+| Mosasaurus | 44 | 0.50 | 87 |
+| Basilosaurus | 45 | 0.44 (was 0.52) | 102 |
+
+The Blue Whale, the Hellmaw and the Dunkleosteus are coarse for their size by this measure. They are liked as they are,
+and their growths, ribs and plates carry detail the count doesn't see. Left alone unless the user says otherwise.
+
+### Basilosaurus, reworked
+![Before and now](../attachments/voxel-basilosaurus.jpg)
+
+- Cubes of 0.44 studs where they were 0.52: the same 45 studs, 102 cubes long where it was 85.
+- Twenty slices where there were seventeen; three-step corners; a knuckle on every slice.
+- A paler flank between the dark back and the belly. Its top is one level line from neck to tail; its bottom follows
+  the belly. The animal is now three tones, as real whales are.
+- 2,650 triangles, 26 parts. [Its swim](../attachments/voxel-basilosaurus-swim.gif).
+
+### The Kraken's mantle
+**The user:** the head should be more dynamic and more squid-like; it was "just a sphere like shape, but everything else
+looks really cool", and it is "almost perfect in palette and look".
+
+![The Kraken](../attachments/voxel-kraken.jpg)
+
+- The mantle is a short barrel with a pale collar, then a point of three blocks that turns up into the swim, ending in
+  a dark spike.
+- Two fins sweep back from the point like an arrowhead, each on its own joint, beating with the jet.
+- Four spots of the sucker green along each fin's rib, so some of its light shows from the side, the top and the front
+  (`FIN_LIGHTS = False` removes them).
+- 48.6 studs (was 37.8), 2,824 triangles, 28 parts. [Its swim](../attachments/voxel-kraken-swim.gif).
+- Weak: the underside of the point is a sawtooth of three blocks; from the front the tip is a small dark square; the
+  mantle is still short next to the arms; it is now longer than the Blue Whale.
+
+### Archelon: a darker frame, a better palette
+**The user:** it should have "some darker colour to frame it", "a nicer palette whilst still being striking".
+
+![Archelon](../attachments/voxel-archelon.jpg)
+
+- **Jade and ink:** a jade shell `#1C8272` in a near-black frame `#10222A`, bone ribs, gold knobs, an amber beak. The
+  frame is the shell's lip, the spine ridge, the flippers' leading spars, a cap and a collar on the head.
+- Four palettes were tried on the same model: [the choice](../attachments/voxel-archelon-palettes.jpg). Ink blue sat too
+  near the Mosasaurus, plum too near the Kraken, tortoiseshell lost the beak as the focal point.
+- **For scale:** cubes of 0.45 studs (were 0.5); the dome falls in six gentle steps; each rib ends in a bone tip past the
+  lip; the front flippers are three jointed lengths, each a dark spar with fingers fanned behind; a plastron of six
+  plates underneath.
+- A low hump for a seat: the rider's legs no longer sink.
+- 2,304 triangles (was 1,394), 12 parts. [Its swim](../attachments/voxel-archelon-swim.gif).
+- Weak: from the three-quarter view the wing shows mostly its dark leading edge; the seat is a visible bump; the shell
+  alone is about 1,800 triangles.
 
 ## Open, for the user
 - Which axes matter most to them?

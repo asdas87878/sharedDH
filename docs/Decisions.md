@@ -5,6 +5,7 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-10 | Scale shows in form: a creature has one base size, and the sizes it spawns at only scale that model. A big base animal must show its size in its build (more geometry, more connections, gentler steps), without losing the simple look: the user | [workout 5](style/05-rarity-look.md) |
 | 2026-11-10 | The jump propels you to a height that makes sense for the fish around you: above them, so there is a swoop down onto the fish. Ride a Dino has flat ground and doesn't need this; we do: the user, after playing | [Riding feel](design/riding-feel.md) |
 | 2026-11-10 | A jump goes for the closest fish in front of you, not the nearest any way round, and not the fish you are leaving: the user, after playing | [Riding feel](design/riding-feel.md) |
 | 2026-11-10 | The camera's shakes and the brief zoom in and out at a landing are important and are to be measured from the reference; the air time and the distance of the grapple are worked round them. It all has to look great, immersive and cohesive: the user, with a side-on recording | [Riding feel](design/riding-feel.md), [the reference](reference/ride-a-dino.md) |

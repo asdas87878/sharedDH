@@ -65,7 +65,10 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   soft glow round it), a fully glowing eye only on a few Mythics. Body archetypes so far: plain fish, shark, armoured fish,
   shark-lizard (Mosasaurus), giant (Blue Whale, the old one), invented (Hellmaw), serpent (Basilosaurus), worm (Bobbit
   Worm), flat (Manta Ray), tentacled (Kraken), crawler (Anomalocaris), bulbous (Anglerfish), shelled (Archelon); sixteen
-  models in `art/creatures/*/voxel.py`, all passing the gate. Next, when the user says: textures. A brow sits on the eye (overlaps its
+  models in `art/creatures/*/voxel.py`, all passing the gate. Next, when the user says: textures. Scale shows in form (the
+  user): a model has one base size, and spawn sizes only scale it; a big base animal is built from more cubes, not bigger
+  ones: more and gentler steps, more slices, higher counts at the same feature size, a collar or lip where parts join,
+  one second layer of form in a rhythm; never so far that the simple look goes (workout 5, "Scale shows in form"). A brow sits on the eye (overlaps its
   top, only a little proud of the pupil); light follows the model's own lines (a colour edge, a seam, a fin's edge), never
   a mark in the middle of a plain surface. An archetype is a loose guide and a shared vocabulary, never a template to copy:
   each creature is designed from its own real animal (the user). Taper one step at a time; more slices are for a smooth
