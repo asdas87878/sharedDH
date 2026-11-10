@@ -61,11 +61,17 @@ Config.Oxygen = {
 	SurfaceY = -3, -- floating stops here
 	WaterY = -4, -- below this, a player on the dock counts as in the water
 	Refill = 0.25, -- of max Oxygen, on landing a jump
-	DockRadius = 300, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 3: the spawn is 240 behind the lane's start, so the first 60 studs of water; v4 had 520)
+	DockRadius = 120, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 4: the spawn is 78 behind the lane's start, so the hub and the first 40 studs of water; v4 had 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in off the board leaves time to jump
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
 	-- "TestMaxOxygen" attribute overrides it live (0 turns it off).
 	StudioMax = 0,
+}
+
+-- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
+-- to about a fifth; Roblox's own speed is 16), which is why its walk to the start is short. The user, 2026-11-10: match it.
+Config.Dock = {
+	WalkSpeed = 28,
 }
 
 Config.Ride = {

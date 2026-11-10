@@ -12,8 +12,13 @@ Pictures: blender --background --python tools/blender/map_greybox_view.py
 
 Axes are Roblox's: y up, the sea surface at y = 0, the hub behind z = 0, the lane leaving along +z. A part is
 {n: name, k: kind, p: centre, x/y/z: its three axes (unit vectors), s: size along them, c: colour, solid: bool}.
-Kinds: ground (floor and every terrace top: gets the checker), face (the side of a wall), far (the backdrop), prop,
-trim, station, figure, water. Everything is a plain box. Nothing here is tuned yet."""
+Kinds: ground (the lane's floor tiles: squares and studs), plain (ground-coloured but turned with the lane: terrace
+tops, shelves, shoulders, edge bands: studs only), hub (the hub's floor: studs only), face (the side of a wall: studs),
+far (the backdrop), glass, prop, trim, station, figure, water. Everything is a plain box. Nothing here is tuned yet.
+
+The floor is square tiles on one world grid, all facing the same way and only tilted to the slope, so a repeating
+picture lines up from tile to tile in Roblox. Where a tile would cross an open edge or a step it is left out, and a
+band turned with the lane, a hair lower, shows there instead."""
 import json
 import math
 import os
@@ -36,6 +41,8 @@ STEEP = 18.0  # degrees: the slope of a "big drop"
 PLINTH = 60.0  # how thick the lane's body is
 BUILD_TO = 4500.0  # how much to build for now: the Shallows, the Coral Reef, the start of the Kelp Forest
 SEG = 24.0  # the lane is cut into pieces this long
+TILE = 20.0  # the floor's tiles: two squares of the grid each way
+SINK = 0.15  # how far an edge band lies under the tiles
 # name, length, slope in degrees, what ends it: ("step", studs) or ("slope", studs of drop, at the next land's start)
 LANDS = [("Shallows", 1000, 2, ("step", 8)), ("Coral Reef", 2500, 2, ("step", 10)), ("Kelp Forest", 2500, 3, ("step", 12)),
          ("Shipwrecks", 2500, 4, ("slope", 150)), ("Open Blue", 2500, 4, ("step", 14)), ("Twilight", 2500, 5, ("step", 16)),
@@ -54,9 +61,11 @@ def face_of(ground, pale=0.0):
 parts = []
 
 
-def add(name, kind, p, size, colour, ax=(1, 0, 0), ay=(0, 1, 0), az=(0, 0, 1), solid=True):
+def add(name, kind, p, size, colour, ax=(1, 0, 0), ay=(0, 1, 0), az=(0, 0, 1), solid=True, t=0.0):
     parts.append({"n": name, "k": kind, "p": [round(v, 2) for v in p], "x": [round(v, 4) for v in ax], "y": [round(v, 4) for v in ay],
                   "z": [round(v, 4) for v in az], "s": [round(abs(v), 2) for v in size], "c": list(colour), "solid": solid})
+    if t:
+        parts[-1]["t"] = t  # how see-through it is
 
 
 def yawed(deg):
@@ -356,6 +365,7 @@ def strip(side, i, back, deep):
     return ((ma[0] + mb[0]) / 2, (ma[1] + mb[1]) / 2), o, al, long
 
 
+lips = [c for (c, _), (c2, _) in zip(profile, profile[1:]) if abs(c2 - c - 1.0) < 1e-6 and c < BUILD_TO + 60]  # the top of each step
 count = {"ground": 0, "face": 0, "prop": 0, "big": 0}
 for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
     if b - a < 1.5:
@@ -373,13 +383,14 @@ for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
     length = math.sqrt(sum(c * c for c in sub(pb, pa)))
     turn = abs(heading(b) - heading(a))
     mid = ((pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2, (pa[2] + pb[2]) / 2)
-    # one clean floor: a single box, as wide as the lane's wider end here (walls and shoulders sit over the spare)
-    reach = {side: max(half(side, a), half(side, b)) + 1.0 for side in (-1, 1)}
-    wide = reach[-1] + reach[1]
-    shift = (reach[1] - reach[-1]) / 2
-    body = (mid[0] + rt[0] * shift - up[0] * PLINTH / 2, mid[1] - up[1] * PLINTH / 2, mid[2] + rt[2] * shift - up[2] * PLINTH / 2)
-    add("Seabed", "ground", body, (wide, PLINTH, length + wide / 2 * turn + 0.4), ground, rt, up, cross(rt, up))
-    count["ground"] += 1
+    if any(abs(mid_s - lip) < 44 for lip in lips) or mid_s > BUILD_TO - 44:
+        # at a step (and at the end) the tiles stop, and the floor is whole pieces turned with the lane
+        reach = {side: max(half(side, a), half(side, b)) + 1.0 for side in (-1, 1)}
+        wide = reach[-1] + reach[1]
+        shift = (reach[1] - reach[-1]) / 2
+        drop = PLINTH / 2 + SINK
+        body = (mid[0] + rt[0] * shift - up[0] * drop, mid[1] - up[1] * drop, mid[2] + rt[2] * shift - up[2] * drop)
+        add("Seabed", "plain", body, (wide, PLINTH, length + wide / 2 * turn + 0.4), ground, rt, up, cross(rt, up))
     for side in (-1, 1):
         ea, eb = edges[side][i], edges[side][i + 1]
         run = math.hypot(eb[0] - ea[0], eb[2] - ea[2])
@@ -389,14 +400,23 @@ for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
             out = (-out[0], 0.0, -out[2])
         em = ((ea[0] + eb[0]) / 2, max(pa[1], pb[1]), (ea[2] + eb[2]) / 2)
         kind = side_kind(side, mid_s)
+        if span_at(side, mid_s)["kind"] == "open":  # a band under the tiles, out to the true edge
+            (bx, bz), o, al, long = strip(side, i, -46.0, 46.0)
+            m_al = (pb[1] - pa[1]) / max(length, 1e-6) * (al[0] * fwd[0] + al[2] * fwd[2])
+            al_t = unit((al[0], m_al, al[2]))
+            up_t = unit(cross(al_t, o))
+            if up_t[1] < 0:
+                up_t = (-up_t[0], -up_t[1], -up_t[2])
+            drop = PLINTH / 2 + SINK
+            add("Seabed", "plain", (bx - up_t[0] * drop, mid[1] - up_t[1] * drop, bz - up_t[2] * drop), (46.0, PLINTH, long), ground, o, up_t, al_t)
         if kind == "open":  # the ground rolls off: two slabs, each tilted further down
-            start = (em[0], em[1], em[2])
+            start = (em[0], em[1] - SINK, em[2])
             for tilt, slab in ((16.0, 24.0), (42.0, 30.0)):
                 ca, sa = math.cos(math.radians(tilt)), math.sin(math.radians(tilt))
                 ax = (out[0] * ca, -sa, out[2] * ca)
                 ay = (out[0] * sa, ca, out[2] * sa)
                 c = (start[0] + ax[0] * slab / 2 - ay[0] * 5, start[1] + ax[1] * slab / 2 - ay[1] * 5, start[2] + ax[2] * slab / 2 - ay[2] * 5)
-                add("Shoulder", "ground", c, (slab + 1.0, 10.0, run + 3.0), ground, ax, ay, along)
+                add("Shoulder", "plain", c, (slab + 1.0, 10.0, run + 3.0), ground, ax, ay, along)
                 start = (start[0] + ax[0] * slab, start[1] + ax[1] * slab, start[2] + ax[2] * slab)
             continue
         base = level(mid_s) if kind == "hill" else level(mid_s, 132.0)
@@ -407,17 +427,17 @@ for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
             (cx, cz), o, al, long = strip(side, i, back, deep)
             add("Wall", "face", (cx, (foot + top_y) / 2, cz), (deep, top_y - foot, long), face, o, (0, 1, 0), al)
             (tx, tz), o, al, long = strip(side, i, back - 1.6, deep + 1.6)
-            add("Top", "ground", (tx, top_y + CAP / 2, tz), (deep + 1.6, CAP, long + 0.6), ground, o, (0, 1, 0), al)
+            add("Top", "plain", (tx, top_y + CAP / 2, tz), (deep + 1.6, CAP, long + 0.6), ground, o, (0, 1, 0), al)
             count["face"] += 1
             set_back = back + deep
             if kind == "wall":  # shelves on the face, for a stretch
                 block = math.floor(mid_s / 132.0)
                 if frac(block, span_at(side, mid_s)["seed"] + side) > 0.42:
                     (sx_, sz_), o, al, long = strip(side, i, -10.0, 11.0)
-                    add("Shelf", "ground", (sx_, base + top * (0.3 + 0.12 * frac(block, 5)), sz_), (11.0, CAP, long), ground, o, (0, 1, 0), al)
+                    add("Shelf", "plain", (sx_, base + top * (0.3 + 0.12 * frac(block, 5)), sz_), (11.0, CAP, long), ground, o, (0, 1, 0), al)
                     if top > 60:
                         (hx_, hz_), o, al, long = strip(side, i, -8.0, 9.0)
-                        add("Shelf", "ground", (hx_, base + top * 0.66, hz_), (9.0, CAP, long), ground, o, (0, 1, 0), al)
+                        add("Shelf", "plain", (hx_, base + top * 0.66, hz_), (9.0, CAP, long), ground, o, (0, 1, 0), al)
         block = math.floor(mid_s / 260.0)  # far behind it, now and then, something taller and paler
         if frac(block, 40 + side) > 0.5:
             tall = base + 110.0 + 80.0 * frac(block, 41 + side)
@@ -425,6 +445,48 @@ for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
             (cx, cz), o, al, long = strip(side, i, back, 110.0)
             add("Far", "far", (cx, (foot + tall) / 2, cz), (110, tall - foot, long), face_of(ground, 1.0), o, (0, 1, 0), al)
             add("FarTop", "far", (cx, tall + CAP / 2, cz), (112, CAP, long + 0.6), tuple(int(g * 0.6 + 96) for g in ground), o, (0, 1, 0), al)
+
+# ---------------------------------------------------------------- the floor's tiles, on one world grid
+def locate(x, z, hint):
+    """where a point is against the lane: s along it, and how far to the right of its line"""
+    at = hint
+    for _ in range(6):
+        c, d = centre(at), ahead(at)
+        at = min(BUILD_TO + 60.0, max(0.0, at + (x - c[0]) * d[0] + (z - c[2]) * d[2]))
+    c, rt_ = centre(at), right(at)
+    return at, (x - c[0]) * rt_[0] + (z - c[2]) * rt_[2]
+
+
+cells = {}
+at = 0.0
+while at <= BUILD_TO:
+    x_ = -half(-1, at) - 24.0
+    while x_ <= half(1, at) + 24.0:
+        q = across(at, x_)
+        cells.setdefault((math.floor(q[0] / TILE), math.floor(q[2] / TILE)), at)
+        x_ += 6.0
+    at += 6.0
+for (ix, iz), hint in sorted(cells.items()):
+    cx, cz = (ix + 0.5) * TILE, (iz + 0.5) * TILE
+    spots = [locate(cx + dx * TILE / 2, cz + dz * TILE / 2, hint) for dx, dz in ((0, 0), (-1, -1), (1, -1), (1, 1), (-1, 1))]
+    inside = [(-half(-1, s_) <= a_ <= half(1, s_)) for s_, a_ in spots]
+    if not any(inside):
+        continue
+    s_all = [s_ for s_, _ in spots]
+    if max(s_all) > BUILD_TO - 30 or any(min(s_all) - 3 < lip < max(s_all) + 3 for lip in lips):
+        continue  # a step or the end: the turned pieces show here
+    if any((not ok) and span_at(-1 if a_ < 0 else 1, s_)["kind"] == "open" for ok, (s_, a_) in zip(inside, spots)):
+        continue  # it would stick out past an open edge: the band shows here
+    s_c = spots[0][0]
+    d = ahead(s_c)
+    m = (floor_y(s_c + 2.0) - floor_y(max(0.0, s_c - 2.0))) / (4.0 if s_c >= 2.0 else s_c + 2.0)
+    ax = unit((1.0, m * d[0], 0.0))
+    ay = unit(cross((0.0, m * d[2], 1.0), ax))
+    az = cross(ax, ay)
+    h = floor_y(s_c)
+    add("Seabed", "ground", (cx - ay[0] * PLINTH / 2, h - ay[1] * PLINTH / 2, cz - ay[2] * PLINTH / 2), (TILE + 0.1, PLINTH, TILE + 0.1),
+        GROUND[min(land_at(s_c), len(GROUND) - 1)], ax, ay, az)
+    count["ground"] += 1
 
 for side in (-1, 1):  # out past an open edge: big flat-topped shapes in the blue
     for sp in spans[side]:
@@ -510,15 +572,17 @@ for room in rooms:
             place(prng.choice(props.TERRACE[min(li, max(props.TERRACE))]), (q[0], base_y, q[2]), prng.uniform(0.7, 1.0), prng.uniform(0, 360), ground, count["prop"])
 
 # ---------------------------------------------------------------- the hub: a closed bowl, its floor level with the water
-HUB_HALF, HUB_BACK, CORNER = 230.0, -340.0, 120.0
+# Sized from the reference's own hub (docs/reference/ride-a-dino-map.md, "The hub, measured"): a walk of a few seconds
+# from the pens to the start, pens in a row along the far side and round the corners, stalls just inside the start.
+HUB_HALF, HUB_BACK, CORNER = 218.0, -202.0, 26.0  # 436 by 202 inside: 120 studs of open floor from the start to the plots
 hub_face = face_of(HUB_GROUND)
-add("HubFloor", "ground", (0, 0.5 - 60, HUB_BACK / 2), (HUB_HALF * 2, 120, -HUB_BACK), HUB_GROUND)
-add("StartStrip", "trim", (0, 0.75, -18), (PINCH * 2, 0.5, 36), (250, 246, 230), solid=False)
+add("HubFloor", "hub", (0, 0.5 - 60, HUB_BACK / 2), (HUB_HALF * 2, 120, -HUB_BACK), HUB_GROUND)
+add("StartStrip", "trim", (0, 0.75, -12), (PINCH * 2 + 24, 0.5, 24), (250, 246, 230), solid=False)
 ring = [(-PINCH, 0.0)]  # the wall's line round the hub, from the start's left post round the back to its right post
-for k in range(0, 91, 10):
+for k in range(0, 91, 15):
     a = math.radians(90 + k)
     ring.append((-(HUB_HALF - CORNER) + CORNER * math.cos(a), -CORNER + CORNER * math.sin(a)))
-for k in range(0, 91, 10):
+for k in range(0, 91, 15):
     a = math.radians(180 + k)
     ring.append((-(HUB_HALF - CORNER) + CORNER * math.cos(a), HUB_BACK + CORNER + CORNER * math.sin(a)))
 ring += [(-x, z) for x, z in reversed(ring)]
@@ -541,9 +605,9 @@ for (xa, za), (xb, zb) in dense:
     height = 62.0 + 12.0 * round(2.4 * frac(block, 90))  # tall faces, the top going up and down in long steps
     mx, mz = (xa + xb) / 2, (za + zb) / 2
     add("HubWall", "face", (mx + out[0] * 24, (height - 40) / 2, mz + out[2] * 24), (48, height + 40, span + 8), hub_face, out, (0, 1, 0), fw)
-    add("HubTop", "ground", (mx + out[0] * 23.2, height + CAP / 2, mz + out[2] * 23.2), (49.6, CAP, span + 8.8), HUB_GROUND, out, (0, 1, 0), fw)
+    add("HubTop", "plain", (mx + out[0] * 23.2, height + CAP / 2, mz + out[2] * 23.2), (49.6, CAP, span + 8.8), HUB_GROUND, out, (0, 1, 0), fw)
     if frac(block, 91) > 0.4:
-        add("HubShelf", "ground", (mx - out[0] * 5, height * (0.4 + 0.2 * frac(block, 92)), mz - out[2] * 5), (11, CAP, span + 1), HUB_GROUND, out, (0, 1, 0), fw)
+        add("HubShelf", "plain", (mx - out[0] * 5, height * (0.4 + 0.2 * frac(block, 92)), mz - out[2] * 5), (11, CAP, span + 1), HUB_GROUND, out, (0, 1, 0), fw)
     run_along += span
 
 
@@ -555,15 +619,50 @@ def stall(name, x, z, colour, turn=0):
         add(name + "Post", "station", (x + ax[0] * sx, 6.5, z + ax[2] * sx), (1.5, 12, 1.5), (160, 115, 75), ax, ay, az)
 
 
-stall("Sell", -80, -95, (235, 80, 80))
-stall("Auras", 80, -95, (170, 110, 240))
-stall("Fuse", -150, -210, (250, 190, 70), 40)
-stall("Index", 150, -210, (90, 170, 240), -40)
-add("EarnersBoard", "station", (-78, 14, -14), (22, 26, 4), (40, 44, 60))
-for k in range(4):
-    add(f"Tank{k + 1}", "station", (-135 + k * 90, 7.5, -300), (60, 14, 30), (120, 200, 225))
-add("DockSpawn", "trim", (0, 1.0, -240), (14, 1, 14), (255, 255, 255))
-add("Figure", "figure", (16, 3.5, -30), (2, 5, 1), (90, 170, 230))
+PLOT = (64.0, 56.0, 34.0)  # an aquarium. The reference's pen is about 50 by 62 for dinos up to 40 long; our biggest
+# creatures are nearly 50 long, so the tank is wider, and tall, because fish use the height
+PLOT_COLOURS = [(240, 110, 130), (255, 170, 70), (250, 215, 90), (120, 200, 120), (90, 190, 220), (120, 140, 240), (180, 120, 230), (240, 140, 200)]
+
+
+def plot(index, cx, cz, turn_deg):
+    """a player's plot: the tank at the back, and in front of it the owner's sign, the trainer and the collect pad"""
+    ax, ay, az = yawed(turn_deg)
+    w, d, h = PLOT
+    colour = PLOT_COLOURS[(index - 1) % len(PLOT_COLOURS)]
+    frame = (58, 66, 88)
+
+    def put(name, x, y0, z, size, col, kind="station", **more):
+        add(f"Plot{index}_{name}", kind, (cx + ax[0] * x + az[0] * z, y0 + size[1] / 2, cz + ax[2] * x + az[2] * z), size, col, ax, ay, az, **more)
+
+    put("Pad", 0, 0.5, 7, (w + 4, 0.4, d + 20), tuple(int(c * 0.35 + 160) for c in colour), solid=False)
+    put("TankBase", 0, 0.5, 0, (w, 3, d), frame)
+    put("TankSand", 0, 3.5, 0, (w - 2, 1, d - 2), (236, 222, 172))
+    put("TankWater", 0, 4.5, 0, (w - 2, h - 2, d - 2), (90, 190, 225), kind="glass", solid=False, t=0.55)
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            put("Post", sx * (w / 2 - 1), 3.5, sz * (d / 2 - 1), (2, h, 2), frame)
+        put("RimSide", sx * (w / 2 - 1), 3.5 + h - 1.5, 0, (2, 1.5, d), frame)
+    for sz in (-1, 1):
+        put("RimEnd", 0, 3.5 + h - 1.5, sz * (d / 2 - 1), (w, 1.5, 2), frame)
+    put("SignPost", -w / 2 + 4, 0.5, d / 2 + 4, (1.2, 9, 1.2), frame)
+    put("SignBoard", -w / 2 + 4, 9.5, d / 2 + 4, (14, 5, 1), colour)
+    put("TrainerSpot", 9, 0.5, d / 2 + 9, (10, 0.6, 10), (225, 70, 70))
+    put("TrainerRide", 9, 1.1, d / 2 + 9, (3, 4, 7), (250, 150, 80))
+    put("CollectPad", -8, 0.5, d / 2 + 9, (8, 0.6, 8), (110, 210, 120), solid=False)
+
+
+for k in range(6):  # six along the far side from the start, side by side, as the reference's pens stand
+    plot(k + 1, (k - 2.5) * 70.0, HUB_BACK + 4 + PLOT[1] / 2, 0)
+plot(7, -(HUB_HALF - 4 - PLOT[1] / 2), -78.0, 90)  # and one round each corner, facing in
+plot(8, HUB_HALF - 4 - PLOT[1] / 2, -78.0, -90)
+stall("Sell", -18, -30, (235, 80, 80))  # the two you use most, just inside the start (theirs: 17 to 25 from the strip)
+stall("Auras", 18, -30, (170, 110, 240))
+stall("Fuse", -70, -48, (250, 190, 70), 35)
+stall("Index", 70, -48, (90, 170, 240), -35)
+stall("Sub", PINCH + 34, -12, (70, 190, 190), -20)  # the ride to a later land, at the start's right end
+add("EarnersBoard", "station", (-(PINCH + 30), 14, -5), (22, 26, 4), (40, 44, 60))  # on the wall at its left end
+add("DockSpawn", "trim", (0, 1.0, -70), (14, 1, 14), (255, 255, 255))
+add("Figure", "figure", (10, 3.5, -40), (2, 5, 1), (90, 170, 230))
 
 for gx in range(-3, 4):  # the sea's surface, in tiles
     for gz in range(0, 4):
@@ -607,7 +706,7 @@ sc = W / (z1 - z0)
 H = int((x1 - x0) * sc)
 im = Image.new("RGB", (W, H), (58, 118, 168))
 d = ImageDraw.Draw(im)
-order = {"ground": 1, "face": 1, "prop": 3, "station": 3, "trim": 4, "figure": 5}
+order = {"ground": 1, "plain": 1, "hub": 1, "face": 1, "prop": 3, "station": 3, "glass": 3, "trim": 4, "figure": 5}
 for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2)):
     hx, hz = p["s"][0] / 2, p["s"][2] / 2
     pts = []
@@ -620,6 +719,6 @@ for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2))
         col = tuple(int(c * 0.86) for c in col)
     d.polygon(pts, fill=col)
 font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
-d.text((20, 14), f"Grey-box 3 from above: the hub (left) and the first {BUILD_TO:,.0f} studs. The two sides wave against each other. Terrace tops are a shade darker.", font=font, fill=(255, 255, 255))
+d.text((20, 14), f"Grey-box 5 from above: the hub (left) and the first {BUILD_TO:,.0f} studs. The two sides wave against each other. Terrace tops are a shade darker.", font=font, fill=(255, 255, 255))
 im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))
 print("plan drawn")

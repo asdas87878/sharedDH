@@ -58,6 +58,18 @@ def material(colour, kind):
     nt = mat.node_tree
     nt.nodes.clear()
     n, link = nt.nodes, nt.links.new
+    if kind == "glass":  # a tank's water: see-through, not part of the sea
+        surf = n.new("ShaderNodeBsdfDiffuse")
+        surf.inputs["Color"].default_value = lin(colour)
+        clear = n.new("ShaderNodeBsdfTransparent")
+        see = n.new("ShaderNodeMixShader")
+        see.inputs[0].default_value = 0.5
+        link(clear.outputs[0], see.inputs[1])
+        link(surf.outputs[0], see.inputs[2])
+        out = n.new("ShaderNodeOutputMaterial")
+        link(see.outputs[0], out.inputs["Surface"])
+        mat.surface_render_method = "BLENDED"
+        return mat
     if kind == "water":
         surf = n.new("ShaderNodeEmission")
         surf.inputs["Color"].default_value = lin(colour)
@@ -155,8 +167,9 @@ for (kind, colour), boxes in groups.items():
     mesh.materials.append(material(colour, kind))
     obj = bpy.data.objects.new(kind, mesh)
     scene.collection.objects.link(obj)
-    if kind == "water":
+    if kind in ("water", "glass"):
         obj.visible_shadow = False
+    if kind == "water":
         water_objects.append(obj)
 
 
@@ -197,8 +210,10 @@ else:
                 return eye, target
         return eye, target
     views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
-        "hub": (Vector((0, 9, -200)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),
-        "hub_above": (Vector((-250, 300, -470)), Vector((30, -20, 330)), HAZE, 12000, SKY, 55, 0.25),
+        "hub": (Vector((0, 7, -74)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
+        "hub_back": (Vector((0, 7, -22)), Vector((0, 10, -200)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
+        "hub_above": (Vector((-200, 240, -400)), Vector((10, -10, 60)), HAZE, 12000, SKY, 55, 0.25),
+        "hub_top": (Vector((0, 470, -104)), Vector((0, 0, -100)), HAZE, 12000, SKY, 45, 0.6),
         # the reference's own flight views, for laying side by side: no water, daylight
         "fly_ahead": (*lane_view(necks[1] - 60, 60, 62, 300, 0), HAZE, 5200, SKY, 80, 0.0),
         "fly_down": (*lane_view(necks[2] + 40, 110, 215, 250, -10), HAZE, 5200, SKY, 70, 0.0),

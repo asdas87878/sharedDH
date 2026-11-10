@@ -78,6 +78,36 @@ The first reading (a track of one width that winds) was wrong. Frame by frame th
   sell, auras, fuse, the airline by the gap, the earners board on the wall beside it. Pens along one side, fenced.
 - **Short walks.** Spawn to the start is a few seconds.
 
+## The hub, measured (2026-11-10, second reading)
+The first reading used walking time and guessed the walking speed at Roblox's own 16 studs a second. That guess was
+wrong, and the hub came out too small. This reading uses the floor's studs as a ruler: their spacing at many places in
+a frame fixes where the camera is, and the player (5 studs tall) fixes the scale. Tool: `research/ride-a-dino/map/
+ground.py` (private). Figures are good to about 15%; far-off points less.
+
+![The pens in a row](../../research/ride-a-dino/map/H1.jpg)
+
+| What | Measured | In studs, about |
+|---|---|---|
+| **How fast a player runs in the hub** | the same two toys seen a second apart | **28 a second** (Roblox's own is 16) |
+| The walk from the player's own pen to the start strip | 4 seconds, twice | **110** |
+| From the corner of the start strip to the nearest pen | one frame | 40 |
+| The stalls you use most (sell, auras) | from beside the strip | 17 to 25 from the strip, 30 apart |
+| The start strip | from its middle to the airline stall at its end | 90 to 100 wide |
+| A pen | from inside one, on its sand | **50 wide, 60 or more deep**; fence 4 high |
+| The hub along the strip | from its middle to the far wall | 100 to 130 each way: 200 to 260 in all |
+| The floor's studs | | one every 0.64 studs |
+
+- **So their hub is about 230 by 180, and a player crosses it in 4 seconds because they run at 28.** At Roblox's own
+  16 the same hub would take 7.
+- **Pens stand side by side, sharing fences,** in a row along the side facing the start, and carry on round the
+  corner. There is no walk between them.
+- **In front of each pen:** the owner's black sign, and the rocking toy (the upgrade machine) on a red pad, on the
+  open floor. A pen has a wooden ramp at one front corner.
+- **Everything else stands loose on the open floor** between the pens and the start: sell and auras nearest the
+  start, the fuse machine a little further back, the earners board on the wall at one end of the strip, the airline
+  stall at the other.
+- **The hub's floor has studs and no squares.** The squares begin on the track.
+
 ## What the recordings don't show
 - Lands 4 to 10.
 - Whether broken props come back by a timer or with "ALL HERDS RESET!", and what size of dino breaks what.

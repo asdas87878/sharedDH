@@ -80,6 +80,29 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
     in Config): a fish that would pass too near one ahead moves its place across the lane, and one already inside the
     margin is pushed out. Measured: 0 wild fish inside an obstacle in 1,432 close passes (before: fish swam through).
   - `Oxygen.DockRadius` 520 to 300 for the new hub.
+  - **Grey-box 4 since (the map chat's hub and texture pass, same lane):** the game runs on it; three jumps landed,
+    the first from the start. `Oxygen.DockRadius` is 120 for the smaller hub (the spawn is 78 studs behind the start).
+    Jumps took about 3.4 s against 2.2 on v4: the glide ended with no fish in front and the catch came in the drop.
+  - **Grey-box 5 (a bigger hub, 436 by 202; the spawn 70 behind the start):** loaded, 7,198 parts. The game starts on
+    it and a jump from the start landed. Seen once on that landing: the server's "fish moved too fast" warning
+    (`checkSpeed`), not looked into.
+  - **Hub walking speed 28** (`Config.Dock.WalkSpeed`, the user through the map chat; Roblox's own is 16): measured
+    27.7 in play on grey-box 5.
+  - **The ride's camera, floating and steering no longer start 10 seconds late.** `RideController.Start` waited up to
+    10 s for Roblox's `PlayerModule` before binding its frame step, and in this Studio `PlayerScripts` has no
+    `PlayerModule` at all. It is looked for on the side now. Fixed by reading the code; not timed in play.
+- **Rojo is connected (2026-11-10):** `rojo serve` runs from this PC and the user connected the plugin, so `src/` syncs
+  into Studio by itself. The push script is no longer used.
+- **Modelled creatures, game side (2026-11-10), waiting on the upload:**
+  - The user chose to upload the creature chat's 33 voxel creatures as meshes (one GLB each, vertex colours).
+    **Nothing is uploaded:** Studio refuses until the user grants `asset:read` and `asset:write` under Assistant
+    settings, MCP Permissions, and approves the folder `art/creatures`.
+  - `tools/creatures/collect.py` writes `src/shared/Creatures/<Id>.json` from each export's `mesh.json`;
+    `Shared.Creatures` reads them. `FishModel.fromRig` joins a model in `ReplicatedStorage.FishModels.<Id>` by them
+    (a Motor6D `Rig_<part>` at each pivot); `AnimController` plays the keyed swim on those joints.
+  - Tested on a block stand-in of the Reef Shark (`ReplicatedStorage.FishModels.ReefShark`, marked `StandIn`: one box
+    a part): the tail sweeps 1.67 studs each way. Reef Sharks in the game are those grey blocks until the mesh is in.
+  - Still to do after the upload: the fish table in Config has no entry for most of the 33 (speed, Oxygen use, land).
   - **Seen, not solved:** the first jump from the start missed in one run (the herd swims off at the flight's own
     pace, so a diver starting from rest can't catch a fish ahead); a ridden fish left alone runs into a wall or an
     obstacle and stops, because the lane winds and the fish only turns with the camera; a jump's flight against the

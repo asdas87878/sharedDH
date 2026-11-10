@@ -66,10 +66,86 @@ What changed from grey-box 2:
 Still rough: the backdrop is big plain slabs, the wall faces take the stand-in light's blue, and the lane's width and
 bends are first numbers.
 
+## Grey-box 4: the hub at the reference's size (2026-11-10)
+The user: study the reference's hub and pens, make the walk shorter, make the aquariums bigger and place them as the
+pens are placed; and get the studs and the grid into Roblox.
+
+![The hub](../attachments/map-hub.jpg)
+
+| | Reference (estimated) | Grey-box 3 | Grey-box 4 |
+|---|---|---|---|
+| Hub, inside | 250 to 300 by 170 | 460 by 340 | 328 by 166 |
+| Spawn to the start | 65 to 95 (from a pen) | 240 | 78 |
+| The nearest stalls to the start | 15 to 30 | 95 | 34 |
+| A plot | 45 to 55 by 55 to 65 | a tank 60 by 30, 300 from the start | a tank 46 by 44 by 22 tall, with 16 studs of plot in front |
+| Plots | a row along the far side, on round a corner | four along the back | six along the far side, one round each corner |
+
+- **A plot** is the tank (a dark frame, sand in the bottom, water you can see into) and, in front of it on the open
+  floor, the owner's sign, the trainer (the kiddie ride, on a red pad) and the collect pad. Each is a Model,
+  `Dock.Plots.PlotN`, with the parts named `TankWater`, `TankBase`, `SignBoard`, `TrainerSpot`, `TrainerRide`,
+  `CollectPad`.
+- **Stalls stand loose on the floor:** sell and auras just inside the start, fuse and the index further back, the
+  sub (our airline) at the start's right end, the earners board on the wall at its left.
+- **Eight plots** because blockout v4 had eight; how many players a server holds is still open.
+
+### Grey-box 5: the hub made bigger (2026-11-10)
+The user on grey-box 4: now it's too small and there isn't enough space; the proportions were misread a bit, but it
+is along the right lines. Measured again with a better ruler ([the study](../reference/ride-a-dino-map.md), "The hub,
+measured"). What was misread:
+- **The walk is 110 studs, not 65 to 95.** Their players run at about 28 studs a second; I had assumed 16.
+- **A tank has to be bigger than a pen.** Their pen is 50 by 60 for dinos up to 40 long. Our biggest creatures are
+  nearly 50 long (the Kraken 48.6, the Blue Whale 46), and that is before a spawn size scales them up.
+
+![The hub, grey-box 5](../attachments/map-hub.jpg)
+
+| | Reference | Grey-box 4 | Grey-box 5 |
+|---|---|---|---|
+| Hub, inside | about 230 by 180 | 328 by 166 | 436 by 202 |
+| Open floor from the start to the plots | 110 | 90 | 120 |
+| Spawn to the start | | 78 | 70 |
+| A plot's tank | a pen 50 by 60 | 46 by 44, 22 tall | 64 by 56, 34 tall |
+| Plots | a row along the far side and on round a corner | 6 + 2 | 6 + 2, side by side, 70 apart |
+
+- Our hub is wider than theirs because eight tanks of 64 take more wall than their pens do.
+- **For the riding chat and the user: the walking speed.** With our characters at Roblox's 16 studs a second, 120
+  studs is 7.5 seconds; at their 28 it is 4. If the hub still feels like a walk, the speed is the thing to change,
+  not the hub.
+- **In Studio 2026-11-10** (run by the riding chat: 7,198 parts, clean; the game runs on it, spawning on `DockSpawn`,
+  dropping into the water past the floor's edge, a jump from the start landing).
+
+![Grey-box 5 in Studio](../attachments/map-hub-studio.jpg)
+- **From the riding chat's run on grey-box 4** (same lane as this one): the game runs on it with no change but the
+  dock radius. Jumps took about 3.4 seconds against 2.2 on blockout v4: the glide ended with no fish in front, and
+  the catch came during the drop. Likely the herd being spread out by the obstacles. For the user to judge in play.
+
+### Studs and squares in Roblox
+- **Two pictures,** drawn by `tools/art/map_roblox_textures.py` into `art/style/map_tiles/roblox/`: `stud.png` (round
+  studs, a stud to a stud) and `floor.png` (squares of 10 studs with the studs on them). Each is see-through: white
+  lifts, black shades, clear leaves the part's colour alone. So one picture serves every land.
+- **The stud is the creatures' own tile,** at half strength.
+- **Why the floor was rebuilt.** A picture on a Roblox part starts at that part's own corner. The lane's floor was
+  pieces turned with the lane, so squares would have broken at every join. It is now square tiles of 20 studs on one
+  world grid, all facing the same way and only tilted to the slope: 2,296 of them. The squares line up across the
+  whole lane.
+- **Where tiles can't go** (they would stick out past an open edge, or cross a step) a band turned with the lane
+  shows instead, a hair lower, with studs and no squares: along open edges, and for 44 studs either side of a step.
+- **Studs only** on terrace tops, shelves, wall faces and the hub's floor. The reference has squares on its terrace
+  tops too; ours are turned pieces, so squares would break there. To revisit.
+- **Uploaded 2026-11-10,** on the user's word, through Studio: the two pictures are Roblox images now (ids in
+  `art/map/textures.json`). Uploads are permanent; a redrawn picture is a new upload.
+- **In Studio and checked** (the riding chat handed Studio over for it): 7,176 parts, 3,796 pictures. The squares
+  line up across the floor's tiles, the studs show on the floor, the terrace tops, the hub's floor and the wall
+  faces.
+
+
+- **Seen in Studio, still to fix:** the wall faces come out nearly white (they want more of the land's colour); the
+  tall walls by the hub throw a long shadow over the start of the lane; the tanks are plain glass boxes.
+
 ### Putting it into Studio
-The user asked for it in Studio (2026-11-10). The map chat doesn't hold Studio, so it is handed over as scripts:
-- `python tools/map/greybox_luau.py` writes `tools/studio/greybox/`: `00_start.luau`, nine parts files and
-  `99_check.luau` (471 KB in all, 4,902 parts; each file parses as Luau; never run yet).
+The map chat holds Studio only when the riding chat hands it over ([Sessions](../Sessions.md)). The map goes in as
+scripts:
+- `python tools/map/greybox_luau.py` writes `tools/studio/greybox/`: `00_start.luau`, the parts files and
+  `99_check.luau`.
 - Run in order, in Edit mode, by the chat that has Studio:
   `for f in tools/studio/greybox/*.luau; do node tools/studio/run_luau.js <studio_id> "$f"; done`
 - `00_start` deletes `Workspace.ClaudeBlockout` (blockout v4) and nothing else, sets
@@ -91,7 +167,7 @@ The user asked for it in Studio (2026-11-10). The map chat doesn't hold Studio, 
     says how the start should feel).
   - **Hands off, a ridden fish meets a wall or an obstacle within about 10 seconds and stops,** because the lane
     winds and the fish only turns with the camera. That may be exactly the steering the user wants.
-- **Not in it:** the floor's checker and studs. Roblox needs an uploaded picture for those, and uploads are
+- **Was not in grey-box 3:** the floor's checker and studs (grey-box 4 above adds them). Roblox needs an uploaded picture for those, and uploads are
   permanent, so that waits for a yes.
 
 ## The assets (first pass, 2026-11-10)

@@ -566,13 +566,19 @@ function RideController.Init()
 end
 
 function RideController.Start()
-	local playerModule = State.Player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 10)
-	if playerModule and playerModule:IsA("ModuleScript") then
-		local ok, module = pcall(require, playerModule)
-		if ok then
-			controls = (module :: any):GetControls()
+	-- Roblox's own controls, for the move stick on a phone or gamepad: looked for on the side, never waited on. In
+	-- Studio on 2026-11-10 PlayerScripts had no PlayerModule at all, and waiting 10 s for it here held back everything
+	-- below: no camera, floating or steering for the first 10 seconds of a session. The keys are read directly anyway
+	-- (moveVector).
+	task.spawn(function()
+		local playerModule = State.Player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 30)
+		if playerModule and playerModule:IsA("ModuleScript") then
+			local ok, module = pcall(require, playerModule)
+			if ok then
+				controls = (module :: any):GetControls()
+			end
 		end
-	end
+	end)
 	local zonesJson = Net.Folder:GetAttribute("Zones")
 	if type(zonesJson) == "string" then
 		State.Zones = Zones.decode(zonesJson)

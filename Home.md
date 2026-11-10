@@ -21,6 +21,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.
 - [Creatures](docs/design/creatures.md): what's decided about the creatures, tags, sizes and mutations.
 - [Roster](docs/design/roster.md): the scale against Ride a Dino and three drafted progressions (76 creatures).
+- [Creature queue](docs/design/creature-queue.md): the voxel models exported and waiting to go into the game
 - [Money and Robux](docs/design/money.md): income, upgrades, what's for sale.
 - [First version](docs/design/first-version.md): what ships first and what waits.
 

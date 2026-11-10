@@ -6,10 +6,14 @@
 --   Swim (LinearVelocity) and Turn (AlignOrientation) on the Root, which whoever owns it drives
 --   Motor6Ds the client animates: SwayJoint (Root -> body), and on the placeholder TailJoint, FinL, FinR
 -- Imported models should face -Z; they're scaled so their longest side is the type's length.
+-- A modelled creature (one with an entry in Shared.Creatures) is a rig: a MeshPart per part, named as its entry names
+-- them, joined parent to child by a Motor6D "Rig_<part>" at the part's pivot; the client turns those through the
+-- creature's keyed swim. The model's "Rig" attribute is the creature's Id.
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Creatures = require(ReplicatedStorage.Shared.Creatures)
 
 local FishModel = {}
 
@@ -337,6 +341,94 @@ local function fromTemplate(template: Model, fish: Config.FishType): Model
 	return model
 end
 
+-- The world box round a model's parts, axis by axis (a model's own bounding box turns with its pivot; this doesn't)
+local function worldBox(parts: { BasePart }): (Vector3, Vector3)
+	local lo = Vector3.new(math.huge, math.huge, math.huge)
+	local hi = -lo
+	for _, p in parts do
+		local half = p.Size / 2
+		for sx = -1, 1, 2 do
+			for sy = -1, 1, 2 do
+				for sz = -1, 1, 2 do
+					local corner = p.CFrame * Vector3.new(half.X * sx, half.Y * sy, half.Z * sz)
+					lo = lo:Min(corner)
+					hi = hi:Max(corner)
+				end
+			end
+		end
+	end
+	return lo, hi
+end
+
+-- A modelled creature: the template's parts joined as its entry in Shared.Creatures says. The template must stand as
+-- it was exported: unturned, the head toward -Z.
+local function fromRig(template: Model, fish: Config.FishType, rig: Creatures.Rig): Model
+	local model = template:Clone()
+	local parts: { BasePart } = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			table.insert(parts, d)
+		elseif d:IsA("JointInstance") or d:IsA("WeldConstraint") then
+			d:Destroy()
+		end
+	end
+	assert(#parts > 0, "the model has no parts")
+	-- to the type's length, whatever size the import came in at
+	local lo, hi = worldBox(parts)
+	local length = hi.Z - lo.Z
+	assert(length > 0, "the model has no length")
+	model:ScaleTo(model:GetScale() * fish.Size.Z / length)
+	lo, hi = worldBox(parts)
+	local centre = (lo + hi) / 2
+	local k = fish.Size.Z / rig.Size[3] -- creature studs to ours
+
+	local root = makeRoot(model, CFrame.new(centre))
+	local byName: { [string]: BasePart } = {}
+	for _, p in parts do
+		byName[p.Name] = p
+		p.Anchored = false
+		p.CanCollide = false
+		p.CanTouch = false
+		p.CanQuery = false
+		p.Massless = true
+		p.CastShadow = false
+		if p:IsA("MeshPart") then
+			-- the colours are in the mesh (vertex colours): a white part shows them as they are
+			p.Color = Color3.new(1, 1, 1)
+			p.Material = Enum.Material.SmoothPlastic
+		end
+	end
+	local joined: { [BasePart]: boolean } = {}
+	for _, row in rig.Parts do
+		local name, parentName = row[1] :: string, row[2] :: string
+		local part = byName[name]
+		assert(part, "the model has no part named " .. name)
+		local parent = if parentName == "" then root else byName[parentName]
+		assert(parent, name .. "'s parent " .. parentName .. " is missing")
+		local pivot = centre + Vector3.new(row[3], row[4], row[5]) * k
+		motor("Rig_" .. name, parent, part, CFrame.new(pivot))
+		joined[part] = true
+	end
+	for _, name in rig.Glow do
+		local part = byName[name]
+		if part then
+			part.Material = Enum.Material.Neon
+		end
+	end
+	-- what the entry doesn't hinge rides on its part (<Part>_Glow on <Part>), or on the first part
+	local first = byName[rig.Parts[1][1] :: string]
+	for _, p in parts do
+		if not joined[p] then
+			weld(byName[(string.gsub(p.Name, "_Glow$", ""))] or first, p)
+		end
+	end
+	finish(model, root, fish, rig.Seat[2] * k)
+	local saddle = root:FindFirstChild("Saddle") :: Attachment
+	saddle.Position = Vector3.new(rig.Seat[1], rig.Seat[2], rig.Seat[3]) * k + Vector3.new(0, Config.Ride.SeatHeight, 0)
+	model:SetAttribute("Rig", fish.Id)
+	return model
+end
+
 local function findTemplate(fish: Config.FishType): Model?
 	for _, folderName in { "FishModels", "Creatures" } do
 		local folder = ReplicatedStorage:FindFirstChild(folderName)
@@ -353,7 +445,13 @@ end
 function FishModel.build(fish: Config.FishType): Model
 	local template = findTemplate(fish)
 	if template then
-		local ok, result = pcall(fromTemplate, template, fish)
+		local rig = Creatures.get(fish.Id)
+		local ok, result
+		if rig then
+			ok, result = pcall(fromRig, template, fish, rig)
+		else
+			ok, result = pcall(fromTemplate, template, fish)
+		end
 		if ok then
 			return result
 		end

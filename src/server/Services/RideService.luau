@@ -388,6 +388,7 @@ local function onCharacter(r: Rider, character: Model)
 	setState(r, "Dock")
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	if humanoid and humanoid:IsA("Humanoid") then
+		humanoid.WalkSpeed = Config.Dock.WalkSpeed
 		humanoid.Died:Connect(function()
 			if riders[r.Player] == r and r.Fish then
 				dismount(r, "Died")

@@ -30,7 +30,7 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   and a descent that steepens land by land with a step at each border and a big drop every few. Study:
   [docs/reference/ride-a-dino-map.md](docs/reference/ride-a-dino-map.md); method (proposed) and the user's decisions:
   [docs/design/map-method.md](docs/design/map-method.md).
-  Grey-box 3 (offline, Python, no Lune needed): `python tools/map/greybox.py` writes every box to
+  Grey-box 4 (offline, Python, no Lune needed; the hub sized from the reference's, plots `Dock.Plots.PlotN`, the floor as 20-stud tiles on one world grid so Roblox pictures line up; pictures by `tools/art/map_roblox_textures.py`, their asset ids in `art/map/textures.json`): `python tools/map/greybox.py` writes every box to
   `art/map/greybox/parts.json` and the game's path to `path.json`; `tools/blender/map_greybox_view.py` renders views,
   `python tools/map/greybox_luau.py` writes the Studio loader (`tools/studio/greybox/*.luau`, run in order with `run_luau.js`; it replaces `Workspace.ClaudeBlockout`). The recordings are in `D:\program files for me\videos\`.
   v4's state and the stud tiles (set aside with v4):
@@ -103,7 +103,10 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   gold, white on rainbow). A dark framing colour is a dark tint (the Archelon's navy), not pure black, unless black suits
   the animal. For now models carry studs only; other tiles wait for a hand texture pass. Batch building: a lean brief for
   fresh agents is in the session scratchpad (`BUILDER_BRIEF.md`, `preview.py`, `finish.py`); the fifty to model are listed in
-  `docs/design/roster.md`. Not yet tried in Roblox. A brow sits on the eye (overlaps its
+  `docs/design/roster.md`. `voxel_kit.py --export <folder>` writes a creature's game mesh into `art/creatures/<Folder>/game/`:
+  `<Name>.glb` (one object to a part, origin at its pivot, vertex colours, glowing faces split as `<Part>_Glow`; GLB, not FBX:
+  FBX came back turned and scaled) and `<Name>.mesh.json` (parts, pivots, seat, glowParts, swimKeys as quaternions); the 33 built
+  so far are listed in `docs/design/creature-queue.md`. Nothing is in Roblox yet: an import is an upload and needs the user's word. A brow sits on the eye (overlaps its
   top, only a little proud of the pupil); light follows the model's own lines (a colour edge, a seam, a fin's edge), never
   a mark in the middle of a plain surface. An archetype is a loose guide and a shared vocabulary, never a template to copy:
   each creature is designed from its own real animal (the user). Taper one step at a time; more slices are for a smooth

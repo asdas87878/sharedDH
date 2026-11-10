@@ -10,12 +10,25 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Creatures = require(game:GetService("ReplicatedStorage").Shared.Creatures)
 local Ease = require(game:GetService("ReplicatedStorage").Shared.Ease)
 local State = require(script.Parent.Parent.Lib.State)
 
 local AnimController = {}
 
-type FishJoints = { sway: Motor6D?, tail: Motor6D?, finL: Motor6D?, finR: Motor6D?, phase: number }
+-- A modelled creature's joints (FishModel's "Rig_<part>"), each with its turns through one swim cycle; the first is
+-- the whole body's, and takes the buck
+type RigJoint = { motor: Motor6D, frames: { CFrame } }
+type FishJoints = {
+	sway: Motor6D?,
+	tail: Motor6D?,
+	finL: Motor6D?,
+	finR: Motor6D?,
+	phase: number,
+	rig: { RigJoint }?,
+	body: Motor6D?,
+	pace: number,
+}
 local fishJoints: { [Model]: FishJoints } = setmetatable({}, { __mode = "k" }) :: any
 
 local JOINTS = {
@@ -62,7 +75,27 @@ local function animateFish(dt: number)
 						finL = joint(model, "FinL"),
 						finR = joint(model, "FinR"),
 						phase = math.random() * 10,
+						rig = nil,
+						body = nil,
+						pace = 1,
 					}
+					local id = model:GetAttribute("Rig")
+					local rig = if type(id) == "string" then Creatures.get(id) else nil
+					local swim = if rig then Creatures.swim(id :: string) else nil
+					if rig and swim then
+						local list: { RigJoint } = {}
+						for part, frames in swim do
+							local motor = joint(model, "Rig_" .. part)
+							if motor then
+								table.insert(list, { motor = motor, frames = frames })
+							end
+						end
+						j.rig = list
+						j.body = joint(model, "Rig_" .. (rig.Parts[1][1] :: string))
+						-- a big creature beats slower than a small one
+						local kind = Config.FishById[id :: string]
+						j.pace = math.clamp(14 / (if kind then kind.Size.Z else 14), 0.4, 1.3)
+					end
 					fishJoints[model] = j
 				end
 				local speed = root.AssemblyLinearVelocity.Magnitude
@@ -76,6 +109,26 @@ local function animateFish(dt: number)
 					else
 						buck = math.clamp(1.4 - u, 0, 1)
 					end
+				end
+				local rig = j.rig
+				if rig then
+					-- a modelled creature: every joint through its keyed turns, between the two nearest moments
+					j.phase += dt * math.pi * 2 * (0.5 + speed * 0.03 + buck * 2) * j.pace
+					local u = (j.phase / (math.pi * 2)) % 1
+					for _, r in rig do
+						local count = #r.frames
+						local at = u * count
+						local i = math.floor(at)
+						r.motor.Transform = r.frames[i % count + 1]:Lerp(r.frames[(i + 1) % count + 1], at - i)
+					end
+					local body = j.body
+					if body and bucked and buck > 0 then
+						local t = (os.clock() - bucked) / Config.Death.Throw
+						local nose = 40 * math.sin(t * math.pi * 3) * buck
+						local roll = 18 * math.sin(t * math.pi * 4.5) * buck
+						body.Transform = rot(nose, 0, roll) * body.Transform
+					end
+					continue
 				end
 				j.phase += dt * math.pi * 2 * (0.7 + speed * 0.045 + buck * 2.5)
 				local beat = math.sin(j.phase)

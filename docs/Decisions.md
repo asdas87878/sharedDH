@@ -5,6 +5,9 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-10 | Players run at about 28 studs a second in the hub, matching Ride a Dino's measured speed (Roblox's own is 16): the user | [The study](reference/ride-a-dino-map.md), "The hub, measured"; the number lives in the riding code |
+| 2026-11-10 | Grey-box 4's hub was too small, with not enough space; the proportions were misread a bit, but it is along the right lines. Made bigger after measuring again: the user | [The map: how we build it](design/map-method.md), "Grey-box 5" |
+| 2026-11-10 | The hub is sized from Ride a Dino's: a short walk to the start, aquariums as big as its pens and placed as its pens are (a row along the far side, on round the corners). The stud texture and the grid texture go into Roblox (two picture uploads, asked for by the user). More structural changes follow: the user | [The map: how we build it](design/map-method.md), "Grey-box 4"; [the study](reference/ride-a-dino-map.md), "The hub, measured" |
 | 2026-11-10 | The map's assets are rethought from nothing: large and tall enough that the fish have to manoeuvre round them (large corals, a shipwreck, bones, sea plants), varied by land: the user | [The map: how we build it](design/map-method.md), "The assets" |
 | 2026-11-10 | The lane's two sides must not mirror each other: one goes in when the other goes out, bleeding into each other, for variety and a sense of space. The floor's squares are small. The loose structure of the grey-box is liked. How a player leaves the open map is for later: the user | [The map: how we build it](design/map-method.md) |
 | 2026-11-10 | The lane's wavy pattern is the reference's: it goes narrow, then big, then narrow, then big, in a pattern (rooms and necks), not a road of one width that winds. Grey-box 1 had it wrong: the user | [The map: how we build it](design/map-method.md), [the study](reference/ride-a-dino-map.md) |

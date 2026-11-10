@@ -48,6 +48,15 @@ A model file is Python. It sets:
                        "wobble": how far the edge between two hues wanders (0: straight across the body),
                        "grain": "bayer" (an ordered pattern) or "noise"}
 --look <file.json> lays TEXTURES, VARIANT or KEEP from a file over the model's own, to try looks without editing it.
+--export <folder> writes the game mesh there and stops (after the gate): <Name>.obj with one object to a part (its rest
+pose), <Name>.mtl, <Name>_palette.png (a strip of the colours; every face is UV-mapped onto its colour's cell) and
+<Name>.mesh.json (size, seat, each part's parent and pivot, the colours, which of them glow, the swim, the stud rules).
+Roblox's axes: 1 unit = 1 stud, +Y up, the head toward -Z, the creature's right toward +X, the origin at the middle of
+its bounding box. The same layout as tools/blender/fish_kit_export.py writes, with parts added.
+It also writes <Name>.glb, the file the game imports: one mesh object to a part, named as in the json, its origin at the
+part's pivot, parented as the parts are; the colours baked in as vertex colours (no texture); the faces of a glowing colour
+split off as <Part>_Glow (same origin and parent as <Part>), since Neon is set per part. And "swimKeys" in the json: every
+part's turn at twelve moments of one swim cycle, as quaternions in Roblox's axes, so the game needs none of this Python.
 
 The grid: the creature points to -X, up is +Z. A cube (i, j, k) spans x [i, i + 1) and z [k, k + 1), and is centred on
 y = j, so a model is symmetric about y = 0 and an odd number of cubes wide. Ranges are half open: box(0, 3, ...) fills
@@ -71,6 +80,7 @@ MODEL_PATH = os.path.abspath(argv[0])
 OUT = os.path.abspath(argv[1])
 SWIM, WIRE, INSPECT, CHECK = "--swim" in argv, "--wire" in argv, "--inspect" in argv, "--check" in argv
 FORCE, WELD, ALL_FACES = "--force" in argv, "--weld" in argv, "--all-faces" in argv
+EXPORT = argv[argv.index("--export") + 1] if "--export" in argv else None
 
 module_spec = importlib.util.spec_from_file_location("voxel_model", MODEL_PATH)
 M = importlib.util.module_from_spec(module_spec)
@@ -914,6 +924,170 @@ if faults and not FORCE:
     print(f"voxel kit: {len(faults)} faults: stopped before rendering. Fix them (or pass --force to render anyway)")
     sys.exit(2)
 if CHECK:
+    sys.exit(0)
+
+
+def export_game(folder):
+    """the game mesh: see --export at the top of this file"""
+    import struct
+    import zlib
+
+    os.makedirs(folder, exist_ok=True)
+    stem = "".join(ch for ch in M.NAME if ch.isalnum())
+    bpy.context.view_layer.update()
+    order = list(names)
+    # the palette strip, written by hand so its colours are exactly the model's
+    size = 8
+    row = b"".join(bytes(int(palette[n].lstrip("#")[i : i + 2], 16) for i in (0, 2, 4)) * size for n in order)
+    raw = b"".join(b"\x00" + row for _ in range(size))
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    with open(os.path.join(folder, stem + "_palette.png"), "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", len(order) * size, size, 8, 2, 0, 0, 0))
+                + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+    def to_game(v):  # the kit's (head -X, right +Y, up +Z) to Roblox's (right +X, up +Y, head -Z)
+        return (v[1], v[2], v[0])
+
+    parts_out, lows, highs, total = [], [1e9] * 3, [-1e9] * 3, 0
+    for part_name, ob in objects.items():
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        bmesh.ops.triangulate(bm, faces=bm.faces)
+        verts = [to_game(ob.matrix_world @ v.co) for v in bm.verts]
+        turn = ob.matrix_world.to_3x3()
+        faces = []
+        for face in bm.faces:
+            colour = ob.data.materials[face.material_index].name.split("|")[0]
+            faces.append(([v.index for v in face.verts], order.index(colour) if colour in order else 0, to_game(turn @ face.normal)))
+        bm.free()
+        for v in verts:
+            for a in range(3):
+                lows[a], highs[a] = min(lows[a], v[a]), max(highs[a], v[a])
+        total += len(faces)
+        parts_out.append((part_name, verts, faces))
+    centre = [(lows[a] + highs[a]) / 2 for a in range(3)]
+    lines = [f"# {M.NAME}: tools/blender/voxel_kit.py --export. Studs; +Y up; the head toward -Z; one object to a part", f"mtllib {stem}.mtl"]
+    lines += [f"vt {(k + 0.5) / len(order):.5f} 0.5" for k in range(len(order))]
+    v_at, n_at = 1, 1
+    for part_name, verts, faces in parts_out:
+        lines.append(f"o {part_name}")
+        lines += ["v " + " ".join(f"{v[a] - centre[a]:.4f}" for a in range(3)) for v in verts]
+        lines += ["vn " + " ".join(f"{n[a]:.4f}" for a in range(3)) for _, _, n in faces]
+        lines.append("usemtl palette")
+        lines.append("s off")
+        for k, (corners, colour, _) in enumerate(faces):
+            lines.append("f " + " ".join(f"{v_at + c}/{colour + 1}/{n_at + k}" for c in corners))
+        v_at += len(verts)
+        n_at += len(faces)
+    open(os.path.join(folder, stem + ".obj"), "w").write(NL_.join(lines) + NL_)
+    open(os.path.join(folder, stem + ".mtl"), "w").write(f"newmtl palette{NL_}Kd 1 1 1{NL_}map_Kd {stem}_palette.png{NL_}")
+
+    def place(x, y, z):  # a point given in cubes, as the model writes it
+        g = to_game((x * U, y * U, z * U))
+        return [round(g[a] - centre[a], 4) for a in range(3)]
+
+    # the swim, as numbers: each part's turn about its pivot at twelve moments of one cycle
+    from mathutils import Matrix
+    keys, moments = {name: [] for name in objects}, 12
+    for k in range(moments):
+        phase = 2 * math.pi * k / moments
+        if hasattr(M, "pose"):
+            M.pose(objects, phase)
+        else:
+            chain = [objects[n] for n in M.SWIM["chain"]]
+            chain[0].rotation_euler.z = math.radians(M.SWIM.get("headCounter", 2)) * math.sin(phase + math.pi)
+            for j, ob in enumerate(chain[1:]):
+                ob.rotation_euler.z = math.radians(M.SWIM["amplitudes"][j]) * math.sin(phase - M.SWIM.get("phaseStep", 0.9) * (j + 1))
+        for name, ob in objects.items():
+            q = (Matrix.Rotation(ob.rotation_axis_angle[0], 4, ob.rotation_axis_angle[1:]) if ob.rotation_mode == "AXIS_ANGLE"
+                 else ob.rotation_euler.to_matrix().to_4x4()).to_quaternion()
+            keys[name].append([round(q.y, 5), round(q.z, 5), round(q.x, 5), round(q.w, 5)])  # x, y, z, w in Roblox's axes
+    for ob in objects.values():
+        ob.rotation_mode = "XYZ"
+        ob.rotation_euler = (0.0, 0.0, 0.0)
+    moving = {name: turns for name, turns in keys.items() if any(abs(t[3]) < 0.99999 for t in turns)}
+    bpy.context.view_layer.update()
+
+    # the GLB: vertex colours for the palette, glowing faces as parts of their own, Roblox's axes baked in
+    glowing = set(getattr(M, "GLOW", {}))
+    pieces, glow_parts = {}, []
+    for part_name, ob in objects.items():
+        me = ob.data
+        tint = me.color_attributes.new("Col", "BYTE_COLOR", "CORNER")
+        lit = []
+        for poly in me.polygons:
+            colour = me.materials[poly.material_index].name.split("|")[0]
+            r, g, b = (int(palette.get(colour, "#FF00FF").lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
+            for loop in poly.loop_indices:
+                tint.data[loop].color_srgb = (r, g, b, 1.0)
+            lit.append(colour.rstrip("+-") in glowing)
+        pieces[part_name] = ob
+        if any(lit) and not all(lit):
+            twin = ob.copy()
+            twin.data = me.copy()
+            twin.name = twin.data.name = part_name + "_Glow"
+            K.scene.collection.objects.link(twin)
+            for target, keep_lit in ((ob, False), (twin, True)):
+                bm = bmesh.new()
+                bm.from_mesh(target.data)
+                bm.faces.ensure_lookup_table()
+                bmesh.ops.delete(bm, geom=[f for f, is_lit in zip(bm.faces, lit) if is_lit != keep_lit], context="FACES")
+                bm.to_mesh(target.data)
+                bm.free()
+            pieces[twin.name] = twin
+            glow_parts.append(twin.name)
+        elif all(lit) and lit:
+            glow_parts.append(part_name)
+    bpy.context.view_layer.update()
+    # Blender writes (x, y, z) to a glTF as (x, z, -y); the game wants (kit y, kit z, kit x): so turn the kit's
+    # (x, y, z) into (y, -x, z) first, in the mesh and in each object's place, and leave every object unturned
+    turn = Matrix(((0, 1, 0, 0), (-1, 0, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
+    shift = Matrix.Translation((-centre[0], centre[2], -centre[1]))  # the box's middle to the origin (centre is in Roblox's axes)
+    world = {name: ob.matrix_world.translation.copy() for name, ob in pieces.items()}
+    for name, ob in pieces.items():
+        ob.parent = None
+        ob.data.transform(turn)
+        ob.matrix_world = shift @ Matrix.Translation(turn @ world[name])
+    bpy.context.view_layer.update()
+    for part in model.parts.values():
+        for name in (part.name, part.name + "_Glow"):
+            if name in pieces and part.parent:
+                pieces[name].parent = pieces[part.parent]
+                pieces[name].matrix_parent_inverse = pieces[part.parent].matrix_world.inverted()
+    bpy.context.view_layer.update()
+    bpy.ops.object.select_all(action="DESELECT")
+    for ob in pieces.values():
+        ob.select_set(True)
+    # a GLB, not an FBX: glTF is always +Y up and the exporter bakes the change of axes into the meshes and the
+    # origins, so no object carries a turn or a scale (an FBX written with its axes baked came back turned and scaled)
+    bpy.ops.export_scene.gltf(filepath=os.path.join(folder, stem + ".glb"), export_format="GLB", use_selection=True, export_yup=True,
+                              export_apply=False, export_animations=False, export_vertex_color="ACTIVE", export_materials="NONE")
+
+    seat = getattr(M, "SEAT", None)
+    swim = dict(M.SWIM) if hasattr(M, "SWIM") else {"custom": "pose(parts, phase) in the model file", "chain": getattr(M, "CHAIN", None),
+                                                    "amplitudes": getattr(M, "AMPLITUDES", None)}
+    json.dump({"name": M.NAME, "zone": getattr(M, "ZONE", ""), "rarity": getattr(M, "RARITY", ""), "mesh": stem + ".obj",
+               "palette": stem + "_palette.png", "units": "studs", "cube": U,
+               "axes": {"up": "+Y", "forward": "-Z (the head)", "right": "+X"}, "origin": "the middle of the bounding box",
+               "size": [round(highs[a] - lows[a], 3) for a in range(3)], "triangles": total,
+               "seat": place(seat[0], 0, seat[1]) if seat else None, "seatHalfWidth": round(seat[2] * U, 3) if seat else None,
+               "parts": [{"name": part.name, "parent": part.parent, "pivot": place(*part.pivot)} for part in model.parts.values()],
+               "paletteCells": {n: palette[n] for n in order}, "glow": getattr(M, "GLOW", {}), "swim": swim,
+               "studs": getattr(M, "TEXTURES", []), "glb": stem + ".glb", "glbNote": "1 unit (a glTF metre) = 1 stud; vertex colours; "
+               "one object to a part, origin at its pivot", "glowParts": glow_parts,
+               "swimKeys": {"moments": moments, "what": "each moving part's turn about its pivot at evenly spaced moments of one "
+                            "swim cycle, as a quaternion [x, y, z, w] in Roblox's axes: CFrame.new(0, 0, 0, x, y, z, w)",
+                            "parts": moving}},
+              open(os.path.join(folder, stem + ".mesh.json"), "w"), indent=1)
+    print(f"voxel kit: export {stem}: {total} triangles, {len(parts_out)} parts, {' x '.join(f'{highs[a] - lows[a]:.1f}' for a in range(3))} studs -> {folder}")
+
+
+NL_ = chr(10)
+if EXPORT:
+    export_game(EXPORT)
     sys.exit(0)
 
 # ---------------------------------------------------------------- the views (kit_common)
