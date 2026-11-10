@@ -1,0 +1,41 @@
+{
+ "name": "Pufferfish",
+ "mesh": "Pufferfish.obj",
+ "palette": "Pufferfish_palette.png",
+ "units": "studs",
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the head)",
+  "right": "+X"
+ },
+ "origin": "the middle of the bounding box",
+ "size": [
+  7.474,
+  6.9,
+  9.417
+ ],
+ "triangles": 762,
+ "vertices": 519,
+ "seat": [
+  0.0,
+  2.336,
+  -2.792
+ ],
+ "joints_z": [
+  -2.232,
+  -0.692,
+  0.708,
+  1.828,
+  2.808
+ ],
+ "paletteCells": {
+  "top": "#B98E52",
+  "body": "#E8DAB0",
+  "bars": "#7A5A38",
+  "fins": "#E3BE6E",
+  "eye": "#F7F1DD",
+  "pupil": "#2B2B2B",
+  "lips": "#F2E6C4",
+  "belly": "#FBF6E8"
+ }
+}

@@ -1,0 +1,41 @@
+{
+ "name": "Reef Shark",
+ "mesh": "ReefShark.obj",
+ "palette": "ReefShark_palette.png",
+ "units": "studs",
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the head)",
+  "right": "+X"
+ },
+ "origin": "the middle of the bounding box",
+ "size": [
+  12.05,
+  9.003,
+  23.1
+ ],
+ "triangles": 690,
+ "vertices": 439,
+ "seat": [
+  0.0,
+  1.329,
+  -6.42
+ ],
+ "joints_z": [
+  -8.89,
+  -4.71,
+  -0.53,
+  3.27,
+  7.45
+ ],
+ "paletteCells": {
+  "top": "#667684",
+  "body": "#8796A3",
+  "bars": "#26292D",
+  "fins": "#73828F",
+  "eye": "#E9E7DF",
+  "pupil": "#1F2226",
+  "lips": "#F1F0EA",
+  "belly": "#F1F0EA"
+ }
+}

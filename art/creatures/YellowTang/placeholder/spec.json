@@ -1,0 +1,286 @@
+{
+  "name": "Yellow Tang",
+  "zone": "ZONE 1 / SHALLOWS",
+  "rarity": "COMMON",
+  "notes": "Built by tools/blender/fish_kit.py (creature method, docs/style/creature-method.md) on the Sergeant Major's rules (docs/style/02-creature-look.md): studs, the head to -X, stations [t (0 face, 1 tail base), top, bottom, half width]. A first placeholder, no concept yet: the plain starter. Signature: a tall oval disc, a small pointed snout, long dorsal and anal fins, all lemon yellow.",
+  "length": 8.6,
+  "stations": [
+    [
+      0.0,
+      0.8,
+      -0.45,
+      0.62
+    ],
+    [
+      0.22,
+      2.55,
+      -2.35,
+      1.72
+    ],
+    [
+      0.36,
+      3.15,
+      -3.0,
+      1.9
+    ],
+    [
+      0.52,
+      3.25,
+      -3.15,
+      1.92
+    ],
+    [
+      0.68,
+      3.0,
+      -2.95,
+      1.85
+    ],
+    [
+      0.8,
+      2.4,
+      -2.3,
+      1.55
+    ],
+    [
+      0.9,
+      1.6,
+      -1.5,
+      1.1
+    ],
+    [
+      0.96,
+      1.0,
+      -0.95,
+      0.8
+    ],
+    [
+      1.0,
+      0.75,
+      -0.75,
+      0.7
+    ]
+  ],
+  "chamfer": [
+    0.44,
+    0.216
+  ],
+  "chamferBottom": [
+    0.4,
+    0.36
+  ],
+  "topLine": 0.3,
+  "topLineZ": "chamfer",
+  "head": {
+    "faceTop": [
+      0.0,
+      0.58,
+      0.8
+    ],
+    "faceBottom": [
+      -0.22,
+      -0.45
+    ],
+    "chin": [
+      1.25,
+      0.72,
+      -1.95
+    ],
+    "faceColour": "body"
+  },
+  "segments": [
+    0.22,
+    0.45,
+    0.66,
+    0.84
+  ],
+  "bars": [],
+  "colours": {
+    "top": "#FFC93A",
+    "body": "#FFE25A",
+    "bars": "#FFC93A",
+    "fins": "#FFC93A",
+    "eye": "#F6F0DC",
+    "pupil": "#2F2F2E",
+    "lips": "#FFF1A8"
+  },
+  "eye": {
+    "onWall": true,
+    "dx": 1.05,
+    "z": 0.45,
+    "size": 0.92,
+    "pupil": 0.56,
+    "thickness": 0.2
+  },
+  "lips": {
+    "z": -0.05,
+    "size": [
+      0.4,
+      0.75,
+      0.42
+    ],
+    "protrude": 0.4
+  },
+  "seat": 0.2,
+  "fins": {
+    "dorsal": {
+      "points": [
+        [
+          0.25,
+          -0.3
+        ],
+        [
+          0.28,
+          0.85
+        ],
+        [
+          0.4,
+          1.3
+        ],
+        [
+          0.62,
+          1.3
+        ],
+        [
+          0.8,
+          0.95
+        ],
+        [
+          0.9,
+          0.35
+        ],
+        [
+          0.92,
+          -0.3
+        ]
+      ],
+      "thickness": 0.45
+    },
+    "anal": {
+      "points": [
+        [
+          0.42,
+          0.3
+        ],
+        [
+          0.45,
+          -0.85
+        ],
+        [
+          0.6,
+          -1.2
+        ],
+        [
+          0.78,
+          -1.05
+        ],
+        [
+          0.89,
+          -0.4
+        ],
+        [
+          0.91,
+          0.3
+        ]
+      ],
+      "thickness": 0.4
+    },
+    "tail": {
+      "points": [
+        [
+          -0.25,
+          0.75
+        ],
+        [
+          2.0,
+          2.15
+        ],
+        [
+          2.35,
+          1.95
+        ],
+        [
+          2.05,
+          0.0
+        ],
+        [
+          2.35,
+          -1.95
+        ],
+        [
+          2.0,
+          -2.15
+        ],
+        [
+          -0.25,
+          -0.75
+        ]
+      ],
+      "thickness": 0.35
+    },
+    "pectoral": {
+      "points": [
+        [
+          0.0,
+          0.1
+        ],
+        [
+          1.7,
+          0.5
+        ],
+        [
+          1.8,
+          0.0
+        ],
+        [
+          0.45,
+          -0.75
+        ]
+      ],
+      "t": 0.27,
+      "z": -0.6,
+      "yaw": 30,
+      "tilt": -8,
+      "thickness": 0.3
+    },
+    "pelvic": {
+      "points": [
+        [
+          0.0,
+          0.1
+        ],
+        [
+          1.0,
+          -0.2
+        ],
+        [
+          1.1,
+          -0.7
+        ],
+        [
+          0.25,
+          -0.45
+        ]
+      ],
+      "t": 0.3,
+      "zAboveBottom": 0.45,
+      "y": 0.6,
+      "yaw": 12,
+      "roll": 25,
+      "thickness": 0.26
+    }
+  },
+  "swim": {
+    "amplitudes": [
+      3,
+      6,
+      9,
+      12,
+      18
+    ],
+    "phaseStep": 0.9,
+    "headCounter": 2
+  },
+  "sleeve": 0.4,
+  "rideFog": "#3CBED2",
+  "rideFogEnd": 900
+}

@@ -1,0 +1,7765 @@
+{
+  "about": "Ride a Fish world props, built by tools/blender/prop_kit.py. Do not edit by hand: rerun the kit.",
+  "units": "1 unit = 1 stud (a player is about 5 studs tall). sizeStuds is in Roblox axes (y is up). In Studio's 3D Importer check the size against sizeStuds (File Dimensions: Studs) before placing.",
+  "pivot": "the base: the bottom sits at y = 0, centred on the footprint. centreStuds is the bounding box's centre from that pivot (Roblox centres a MeshPart on its box): part.CFrame = basePivot * CFrame.new(centreStuds)",
+  "texture": "palette.png (each FBX embeds it): one flat colour cell per colour; one material per prop",
+  "glow": "a prop with 'glow' has its glowing faces in a second FBX sharing the pivot: import it as its own MeshPart, Material Neon, Color = glow.colour, placed at basePivot * CFrame.new(glow.centreStuds); a PointLight in the biggest ones (Range 12-20, Brightness 1) if the budget allows",
+  "sway": "props with 'sway' rock about their base on the client: deg each way, periodS a full swing (never on the server)",
+  "front": "walls and clusters face -Z (the CFrame's LookVector): turn them so it points at the lane",
+  "zones": [
+    "Dock",
+    "Shallows",
+    "Coral Reef",
+    "Kelp Forest",
+    "Shipwrecks",
+    "Open Blue",
+    "Twilight",
+    "Midnight",
+    "Vents",
+    "Bone Graveyard",
+    "The Underworld"
+  ],
+  "zonePalette": {
+    "Dock": {
+      "family": "lagoon",
+      "floor": "#F2DFA7",
+      "rock": "#8A97AB",
+      "rockTop": "#E7D6A2",
+      "rockBand": "#A4B0C2",
+      "accents": [
+        "#FF7DA6",
+        "#FF9A4A",
+        "#F0645A",
+        "#5FCF7E"
+      ],
+      "glow": null,
+      "rockSet": "reef",
+      "coralSets": [
+        "pink",
+        "orange"
+      ],
+      "plantSets": [
+        "red",
+        "green"
+      ],
+      "props": [
+        "rock_boulder_a_reef",
+        "rock_cluster_reef",
+        "sea_grass_clump",
+        "sea_grass_patch",
+        "shell_scallop",
+        "starfish",
+        "crate",
+        "crate_stack",
+        "dock_post",
+        "buoy",
+        "rope_coil",
+        "barrel",
+        "lifebuoy",
+        "floor_sand_grass"
+      ],
+      "clusters": [
+        "cluster_lagoon_small",
+        "cluster_lagoon_medium",
+        "cluster_lagoon_huge"
+      ]
+    },
+    "Shallows": {
+      "family": "lagoon",
+      "floor": "#F2DFA7",
+      "rock": "#8A97AB",
+      "rockTop": "#E7D6A2",
+      "rockBand": "#A4B0C2",
+      "accents": [
+        "#FF7DA6",
+        "#FF9A4A",
+        "#F0645A",
+        "#5FCF7E"
+      ],
+      "glow": null,
+      "rockSet": "reef",
+      "coralSets": [
+        "pink",
+        "orange"
+      ],
+      "plantSets": [
+        "red",
+        "green"
+      ],
+      "props": [
+        "rock_boulder_a_reef",
+        "rock_boulder_b_reef",
+        "rock_cluster_reef",
+        "rock_slab_stack_reef",
+        "coral_branch_pink",
+        "coral_brain_pink",
+        "coral_fan_pink",
+        "coral_tube_pink",
+        "coral_table_pink",
+        "coral_branch_orange",
+        "coral_brain_orange",
+        "coral_fan_orange",
+        "coral_tube_orange",
+        "coral_table_orange",
+        "sea_grass_clump",
+        "sea_grass_patch",
+        "shell_scallop",
+        "shell_conch",
+        "starfish",
+        "rock_mesa_reef",
+        "rock_pillar_reef",
+        "rock_wall_reef",
+        "coral_pillar_pink",
+        "coral_mushroom_pink",
+        "plant_fan_green",
+        "plant_fan_red",
+        "floor_sand_grass"
+      ],
+      "clusters": [
+        "cluster_lagoon_small",
+        "cluster_lagoon_medium",
+        "cluster_lagoon_huge"
+      ]
+    },
+    "Coral Reef": {
+      "family": "reef",
+      "floor": "#F2DFA7",
+      "rock": "#8A97AB",
+      "rockTop": "#E7D6A2",
+      "rockBand": "#A4B0C2",
+      "accents": [
+        "#FF7DA6",
+        "#FF9A4A",
+        "#A77BFF",
+        "#F0645A"
+      ],
+      "glow": null,
+      "rockSet": "reef",
+      "coralSets": [
+        "pink",
+        "orange",
+        "purple"
+      ],
+      "plantSets": [
+        "red"
+      ],
+      "props": [
+        "rock_boulder_a_reef",
+        "rock_boulder_b_reef",
+        "rock_cluster_reef",
+        "rock_arch_reef",
+        "rock_slab_stack_reef",
+        "coral_branch_pink",
+        "coral_brain_pink",
+        "coral_fan_pink",
+        "coral_tube_pink",
+        "coral_table_pink",
+        "coral_branch_orange",
+        "coral_brain_orange",
+        "coral_fan_orange",
+        "coral_tube_orange",
+        "coral_table_orange",
+        "coral_branch_purple",
+        "coral_brain_purple",
+        "coral_fan_purple",
+        "coral_tube_purple",
+        "coral_table_purple",
+        "kelp_short",
+        "sea_grass_clump",
+        "shell_scallop",
+        "shell_conch",
+        "starfish",
+        "sea_urchin",
+        "rock_mesa_reef",
+        "rock_pillar_reef",
+        "rock_wall_reef",
+        "coral_pillar_pink",
+        "coral_mushroom_pink",
+        "coral_pillar_orange",
+        "coral_mushroom_orange",
+        "coral_pillar_purple",
+        "coral_mushroom_purple",
+        "plant_fan_red",
+        "floor_sand_grass"
+      ],
+      "clusters": [
+        "cluster_reef_small",
+        "cluster_reef_medium",
+        "cluster_reef_huge"
+      ]
+    },
+    "Kelp Forest": {
+      "family": "kelp",
+      "floor": "#F2DFA7",
+      "rock": "#8A97AB",
+      "rockTop": "#E7D6A2",
+      "rockBand": "#A4B0C2",
+      "accents": [
+        "#4E9A52",
+        "#8CCB45",
+        "#FFE66B"
+      ],
+      "glow": "#FFE66B",
+      "rockSet": "reef",
+      "coralSets": [],
+      "plantSets": [
+        "green"
+      ],
+      "props": [
+        "rock_boulder_a_reef",
+        "rock_boulder_b_reef",
+        "rock_cluster_reef",
+        "rock_arch_reef",
+        "rock_spire_reef",
+        "kelp_tall",
+        "kelp_short",
+        "sea_grass_patch",
+        "sea_urchin",
+        "rock_mesa_reef",
+        "rock_pillar_reef",
+        "rock_wall_reef",
+        "plant_fan_green",
+        "kelp_vine_tall",
+        "kelp_vine_short",
+        "floor_sand_grass"
+      ],
+      "clusters": [
+        "cluster_kelp_small",
+        "cluster_kelp_medium",
+        "cluster_kelp_huge"
+      ]
+    },
+    "Shipwrecks": {
+      "family": "wreck",
+      "floor": "#F2DFA7",
+      "rock": "#8A97AB",
+      "rockTop": "#E7D6A2",
+      "rockBand": "#A4B0C2",
+      "accents": [
+        "#A77BFF",
+        "#FF9A4A",
+        "#C98A4B"
+      ],
+      "glow": null,
+      "rockSet": "reef",
+      "coralSets": [
+        "purple",
+        "orange"
+      ],
+      "plantSets": [
+        "red",
+        "green"
+      ],
+      "props": [
+        "rock_boulder_a_reef",
+        "rock_boulder_b_reef",
+        "rock_cluster_reef",
+        "rock_slab_stack_reef",
+        "rock_spire_reef",
+        "coral_branch_orange",
+        "coral_brain_orange",
+        "coral_fan_orange",
+        "coral_tube_orange",
+        "coral_table_orange",
+        "coral_branch_purple",
+        "coral_brain_purple",
+        "coral_fan_purple",
+        "coral_tube_purple",
+        "coral_table_purple",
+        "kelp_short",
+        "shell_conch",
+        "starfish",
+        "crate",
+        "crate_stack",
+        "rope_coil",
+        "barrel",
+        "rock_mesa_reef",
+        "rock_pillar_reef",
+        "rock_wall_reef",
+        "coral_pillar_orange",
+        "coral_mushroom_orange",
+        "coral_pillar_purple",
+        "coral_mushroom_purple",
+        "plant_fan_green",
+        "kelp_vine_short",
+        "floor_sand_grass"
+      ],
+      "clusters": [
+        "cluster_wreck_small",
+        "cluster_wreck_medium",
+        "cluster_wreck_huge"
+      ]
+    },
+    "Open Blue": {
+      "family": "wreck",
+      "floor": "#F2DFA7",
+      "rock": "#8A97AB",
+      "rockTop": "#E7D6A2",
+      "rockBand": "#A4B0C2",
+      "accents": [
+        "#A77BFF",
+        "#FF9A4A",
+        "#C98A4B"
+      ],
+      "glow": null,
+      "rockSet": "reef",
+      "coralSets": [
+        "purple",
+        "orange"
+      ],
+      "plantSets": [
+        "red",
+        "green"
+      ],
+      "props": [
+        "rock_boulder_b_reef",
+        "rock_cluster_reef",
+        "rock_arch_reef",
+        "rock_slab_stack_reef",
+        "rock_spire_reef",
+        "coral_table_pink",
+        "coral_table_orange",
+        "coral_branch_purple",
+        "coral_brain_purple",
+        "coral_fan_purple",
+        "coral_tube_purple",
+        "coral_table_purple",
+        "rock_mesa_reef",
+        "rock_pillar_reef",
+        "rock_wall_reef",
+        "coral_pillar_purple",
+        "coral_mushroom_purple",
+        "plant_fan_red",
+        "kelp_vine_short",
+        "floor_sand_grass"
+      ],
+      "clusters": [
+        "cluster_wreck_small",
+        "cluster_wreck_medium",
+        "cluster_wreck_huge"
+      ]
+    },
+    "Twilight": {
+      "family": "twilight",
+      "floor": "#7A74AC",
+      "rock": "#55517E",
+      "rockTop": "#7A74AC",
+      "rockBand": "#6A6597",
+      "accents": [
+        "#3FB8B0",
+        "#A77BFF",
+        "#5FF0E0"
+      ],
+      "glow": "#5FF0E0",
+      "rockSet": "deep",
+      "coralSets": [
+        "teal",
+        "purple"
+      ],
+      "plantSets": [
+        "teal"
+      ],
+      "props": [
+        "rock_boulder_a_deep",
+        "rock_boulder_b_deep",
+        "rock_cluster_deep",
+        "rock_slab_stack_deep",
+        "coral_branch_purple",
+        "coral_brain_purple",
+        "coral_fan_purple",
+        "coral_tube_purple",
+        "coral_table_purple",
+        "sea_urchin",
+        "rock_mesa_deep",
+        "rock_pillar_deep",
+        "rock_wall_deep",
+        "coral_pillar_teal",
+        "coral_mushroom_teal",
+        "plant_fan_teal",
+        "plant_bulb_glow_cyan",
+        "plant_glow_shroom_cyan",
+        "floor_glow_grass"
+      ],
+      "clusters": [
+        "cluster_twilight_small",
+        "cluster_twilight_medium",
+        "cluster_twilight_huge"
+      ]
+    },
+    "Midnight": {
+      "family": "twilight",
+      "floor": "#7A74AC",
+      "rock": "#55517E",
+      "rockTop": "#7A74AC",
+      "rockBand": "#6A6597",
+      "accents": [
+        "#3FB8B0",
+        "#A77BFF",
+        "#5FF0E0"
+      ],
+      "glow": "#5FF0E0",
+      "rockSet": "deep",
+      "coralSets": [
+        "teal",
+        "purple"
+      ],
+      "plantSets": [
+        "teal"
+      ],
+      "props": [
+        "rock_boulder_a_deep",
+        "rock_boulder_b_deep",
+        "rock_cluster_deep",
+        "rock_arch_deep",
+        "rock_slab_stack_deep",
+        "rock_mesa_deep",
+        "rock_pillar_deep",
+        "rock_wall_deep",
+        "coral_pillar_teal",
+        "coral_mushroom_teal",
+        "plant_fan_teal",
+        "plant_bulb_glow_cyan",
+        "plant_bulb_glow_pink",
+        "plant_glow_shroom_cyan",
+        "floor_glow_grass"
+      ],
+      "clusters": [
+        "cluster_twilight_small",
+        "cluster_twilight_medium",
+        "cluster_twilight_huge"
+      ]
+    },
+    "Vents": {
+      "family": "vents",
+      "floor": "#6E5468",
+      "rock": "#4A3A4C",
+      "rockTop": "#6E5468",
+      "rockBand": "#3E3B63",
+      "accents": [
+        "#6E5468",
+        "#FF8A3D",
+        "#FFE66B"
+      ],
+      "glow": "#FF8A3D",
+      "rockSet": "vent",
+      "coralSets": [],
+      "plantSets": [],
+      "props": [
+        "rock_boulder_a_deep",
+        "rock_boulder_b_deep",
+        "rock_cluster_deep",
+        "rock_arch_deep",
+        "rock_spire_deep",
+        "rock_mesa_vent",
+        "rock_pillar_vent",
+        "rock_wall_vent",
+        "plant_glow_shroom_yellow",
+        "vent_chimney",
+        "floor_vent_ash"
+      ],
+      "clusters": [
+        "cluster_vents_small",
+        "cluster_vents_medium",
+        "cluster_vents_huge"
+      ]
+    },
+    "Bone Graveyard": {
+      "family": "bones",
+      "floor": "#7A74AC",
+      "rock": "#55517E",
+      "rockTop": "#7A74AC",
+      "rockBand": "#6A6597",
+      "accents": [
+        "#EDE3CC",
+        "#3FB8B0",
+        "#FF6FD8"
+      ],
+      "glow": "#FF6FD8",
+      "rockSet": "deep",
+      "coralSets": [
+        "teal"
+      ],
+      "plantSets": [
+        "teal"
+      ],
+      "props": [
+        "rock_boulder_a_deep",
+        "rock_boulder_b_deep",
+        "rock_cluster_deep",
+        "rock_arch_deep",
+        "rock_spire_deep",
+        "rock_mesa_deep",
+        "rock_pillar_deep",
+        "rock_wall_deep",
+        "coral_pillar_teal",
+        "coral_mushroom_teal",
+        "plant_fan_teal",
+        "plant_bulb_glow_pink",
+        "plant_glow_shroom_cyan",
+        "bone_ribs",
+        "floor_glow_grass"
+      ],
+      "clusters": [
+        "cluster_bones_small",
+        "cluster_bones_medium",
+        "cluster_bones_huge"
+      ]
+    },
+    "The Underworld": {
+      "family": "vents",
+      "floor": "#6E5468",
+      "rock": "#4A3A4C",
+      "rockTop": "#6E5468",
+      "rockBand": "#3E3B63",
+      "accents": [
+        "#6E5468",
+        "#FF8A3D",
+        "#FFE66B"
+      ],
+      "glow": "#FF8A3D",
+      "rockSet": "vent",
+      "coralSets": [],
+      "plantSets": [],
+      "props": [
+        "rock_boulder_a_deep",
+        "rock_boulder_b_deep",
+        "rock_cluster_deep",
+        "rock_slab_stack_deep",
+        "rock_spire_deep",
+        "rock_mesa_vent",
+        "rock_pillar_vent",
+        "rock_wall_vent",
+        "plant_bulb_glow_pink",
+        "plant_glow_shroom_yellow",
+        "vent_chimney",
+        "floor_vent_ash"
+      ],
+      "clusters": [
+        "cluster_vents_small",
+        "cluster_vents_medium",
+        "cluster_vents_huge"
+      ]
+    }
+  },
+  "clusterHowTo": "a cluster is placements of the props, in studs from the cluster's origin (on the floor, the footprint's middle), Roblox axes. For each piece: origin * CFrame.new(pos) * CFrame.Angles(0, rad(yawDeg), 0), scale the MeshPart's Size by scale, and its offsets (centreStuds, glow.centreStuds) by scale too. Set the whole cluster on the floor; sink a little more on slopes. Roles: anchor (tall, at the back), mid, filler (front), floor (flat patches under it all).",
+  "clusterSizes": {
+    "small": {
+      "w": 26.0,
+      "d": 14.0
+    },
+    "medium": {
+      "w": 56.0,
+      "d": 30.0
+    },
+    "huge": {
+      "w": 120.0,
+      "d": 60.0
+    }
+  },
+  "props": [
+    {
+      "name": "rock_boulder_a_reef",
+      "file": "rock_boulder_a_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 8.35,
+        "y": 7.09,
+        "z": 10.55
+      },
+      "centreStuds": {
+        "x": -0.54,
+        "y": 3.55,
+        "z": 0.23
+      },
+      "tris": 80,
+      "kb": 21.3,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks"
+      ],
+      "note": "a round boulder; scale 0.5-3x, any turn"
+    },
+    {
+      "name": "rock_boulder_b_reef",
+      "file": "rock_boulder_b_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 13.27,
+        "y": 5.43,
+        "z": 12.18
+      },
+      "centreStuds": {
+        "x": -0.24,
+        "y": 2.72,
+        "z": 0.05
+      },
+      "tris": 80,
+      "kb": 21.2,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a wide, low boulder: terrace edges, the lane's sides"
+    },
+    {
+      "name": "rock_cluster_reef",
+      "file": "rock_cluster_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 6.8,
+        "y": 2.69,
+        "z": 5.43
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 1.35,
+        "z": -0.0
+      },
+      "tris": 100,
+      "kb": 22.1,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue",
+        "Dock"
+      ],
+      "note": "small stones to scatter round the big rocks"
+    },
+    {
+      "name": "rock_arch_reef",
+      "file": "rock_arch_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 30.69,
+        "y": 19.18,
+        "z": 9.18
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 9.59,
+        "z": 0.27
+      },
+      "tris": 140,
+      "kb": 23.5,
+      "zones": [
+        "Coral Reef",
+        "Kelp Forest",
+        "Open Blue"
+      ],
+      "note": "an arch to ride through: 16 studs clear under the top"
+    },
+    {
+      "name": "rock_slab_stack_reef",
+      "file": "rock_slab_stack_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 12.88,
+        "y": 7.69,
+        "z": 10.67
+      },
+      "centreStuds": {
+        "x": -0.02,
+        "y": 3.85,
+        "z": 0.28
+      },
+      "tris": 176,
+      "kb": 24.9,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "stacked flat slabs: ledges and steps"
+    },
+    {
+      "name": "rock_spire_reef",
+      "file": "rock_spire_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 9.17,
+        "y": 23.81,
+        "z": 9.8
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 11.9,
+        "z": -0.91
+      },
+      "tris": 70,
+      "kb": 21.1,
+      "zones": [
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a tall spire; scale up for far-off silhouettes"
+    },
+    {
+      "name": "rock_boulder_a_deep",
+      "file": "rock_boulder_a_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 8.35,
+        "y": 7.09,
+        "z": 10.55
+      },
+      "centreStuds": {
+        "x": -0.54,
+        "y": 3.55,
+        "z": 0.23
+      },
+      "tris": 80,
+      "kb": 21.3,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "a round boulder; scale 0.5-3x, any turn"
+    },
+    {
+      "name": "rock_boulder_b_deep",
+      "file": "rock_boulder_b_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 13.27,
+        "y": 5.43,
+        "z": 12.18
+      },
+      "centreStuds": {
+        "x": -0.24,
+        "y": 2.72,
+        "z": 0.05
+      },
+      "tris": 80,
+      "kb": 21.2,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "a wide, low boulder: terrace edges, the lane's sides"
+    },
+    {
+      "name": "rock_cluster_deep",
+      "file": "rock_cluster_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 6.8,
+        "y": 2.69,
+        "z": 5.43
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 1.35,
+        "z": -0.0
+      },
+      "tris": 100,
+      "kb": 22.1,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "small stones to scatter round the big rocks"
+    },
+    {
+      "name": "rock_arch_deep",
+      "file": "rock_arch_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 30.69,
+        "y": 19.18,
+        "z": 9.18
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 9.59,
+        "z": 0.27
+      },
+      "tris": 140,
+      "kb": 23.5,
+      "zones": [
+        "Midnight",
+        "Vents",
+        "Bone Graveyard"
+      ],
+      "note": "an arch to ride through: 16 studs clear under the top"
+    },
+    {
+      "name": "rock_slab_stack_deep",
+      "file": "rock_slab_stack_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 12.88,
+        "y": 7.69,
+        "z": 10.67
+      },
+      "centreStuds": {
+        "x": -0.02,
+        "y": 3.85,
+        "z": 0.28
+      },
+      "tris": 176,
+      "kb": 24.9,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "The Underworld"
+      ],
+      "note": "stacked flat slabs: ledges and steps"
+    },
+    {
+      "name": "rock_spire_deep",
+      "file": "rock_spire_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 9.17,
+        "y": 23.81,
+        "z": 9.8
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 11.9,
+        "z": -0.91
+      },
+      "tris": 70,
+      "kb": 21.1,
+      "zones": [
+        "Vents",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "a tall spire; scale up for far-off silhouettes"
+    },
+    {
+      "name": "coral_branch_pink",
+      "file": "coral_branch_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 4.07,
+        "y": 6.09,
+        "z": 5.2
+      },
+      "centreStuds": {
+        "x": 0.08,
+        "y": 3.05,
+        "z": 0.14
+      },
+      "tris": 344,
+      "kb": 30.2,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "staghorn, pale tips"
+    },
+    {
+      "name": "coral_brain_pink",
+      "file": "coral_brain_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 6.04,
+        "y": 3.46,
+        "z": 5.03
+      },
+      "centreStuds": {
+        "x": -0.0,
+        "y": 1.73,
+        "z": 0.05
+      },
+      "tris": 98,
+      "kb": 22.0,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "a grooved dome"
+    },
+    {
+      "name": "coral_fan_pink",
+      "file": "coral_fan_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 8.9,
+        "y": 7.88,
+        "z": 3.5
+      },
+      "centreStuds": {
+        "x": -0.73,
+        "y": 3.94,
+        "z": -0.13
+      },
+      "tris": 136,
+      "kb": 22.8,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "two sea fans; face them across the current"
+    },
+    {
+      "name": "coral_tube_pink",
+      "file": "coral_tube_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 4.3,
+        "y": 5.47,
+        "z": 3.74
+      },
+      "centreStuds": {
+        "x": -0.12,
+        "y": 2.73,
+        "z": 0.16
+      },
+      "tris": 220,
+      "kb": 25.5,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "organ-pipe tubes, open tops"
+    },
+    {
+      "name": "coral_table_pink",
+      "file": "coral_table_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 11.16,
+        "y": 4.1,
+        "z": 12.09
+      },
+      "centreStuds": {
+        "x": -1.1,
+        "y": 2.05,
+        "z": 1.08
+      },
+      "tris": 172,
+      "kb": 24.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Open Blue"
+      ],
+      "note": "table coral; big ones make shelves"
+    },
+    {
+      "name": "coral_branch_orange",
+      "file": "coral_branch_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 4.07,
+        "y": 6.09,
+        "z": 5.2
+      },
+      "centreStuds": {
+        "x": 0.08,
+        "y": 3.05,
+        "z": 0.14
+      },
+      "tris": 344,
+      "kb": 30.2,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "staghorn, pale tips"
+    },
+    {
+      "name": "coral_brain_orange",
+      "file": "coral_brain_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 6.04,
+        "y": 3.46,
+        "z": 5.03
+      },
+      "centreStuds": {
+        "x": -0.0,
+        "y": 1.73,
+        "z": 0.05
+      },
+      "tris": 98,
+      "kb": 22.0,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "a grooved dome"
+    },
+    {
+      "name": "coral_fan_orange",
+      "file": "coral_fan_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 8.9,
+        "y": 7.88,
+        "z": 3.5
+      },
+      "centreStuds": {
+        "x": -0.73,
+        "y": 3.94,
+        "z": -0.13
+      },
+      "tris": 136,
+      "kb": 22.8,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "two sea fans; face them across the current"
+    },
+    {
+      "name": "coral_tube_orange",
+      "file": "coral_tube_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 4.3,
+        "y": 5.47,
+        "z": 3.74
+      },
+      "centreStuds": {
+        "x": -0.12,
+        "y": 2.73,
+        "z": 0.16
+      },
+      "tris": 220,
+      "kb": 25.5,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "organ-pipe tubes, open tops"
+    },
+    {
+      "name": "coral_table_orange",
+      "file": "coral_table_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 11.16,
+        "y": 4.1,
+        "z": 12.09
+      },
+      "centreStuds": {
+        "x": -1.1,
+        "y": 2.05,
+        "z": 1.08
+      },
+      "tris": 172,
+      "kb": 24.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "table coral; big ones make shelves"
+    },
+    {
+      "name": "coral_branch_purple",
+      "file": "coral_branch_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 4.07,
+        "y": 6.09,
+        "z": 5.2
+      },
+      "centreStuds": {
+        "x": 0.08,
+        "y": 3.05,
+        "z": 0.14
+      },
+      "tris": 344,
+      "kb": 30.2,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "staghorn, pale tips"
+    },
+    {
+      "name": "coral_brain_purple",
+      "file": "coral_brain_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 6.04,
+        "y": 3.46,
+        "z": 5.03
+      },
+      "centreStuds": {
+        "x": -0.0,
+        "y": 1.73,
+        "z": 0.05
+      },
+      "tris": 98,
+      "kb": 22.1,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "a grooved dome"
+    },
+    {
+      "name": "coral_fan_purple",
+      "file": "coral_fan_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 8.9,
+        "y": 7.88,
+        "z": 3.5
+      },
+      "centreStuds": {
+        "x": -0.73,
+        "y": 3.94,
+        "z": -0.13
+      },
+      "tris": 136,
+      "kb": 22.8,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "two sea fans; face them across the current"
+    },
+    {
+      "name": "coral_tube_purple",
+      "file": "coral_tube_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 4.3,
+        "y": 5.47,
+        "z": 3.74
+      },
+      "centreStuds": {
+        "x": -0.12,
+        "y": 2.73,
+        "z": 0.16
+      },
+      "tris": 220,
+      "kb": 25.5,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "organ-pipe tubes, open tops"
+    },
+    {
+      "name": "coral_table_purple",
+      "file": "coral_table_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 11.16,
+        "y": 4.1,
+        "z": 12.09
+      },
+      "centreStuds": {
+        "x": -1.1,
+        "y": 2.05,
+        "z": 1.08
+      },
+      "tris": 172,
+      "kb": 24.4,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue",
+        "Twilight"
+      ],
+      "note": "table coral; big ones make shelves"
+    },
+    {
+      "name": "kelp_tall",
+      "file": "kelp_tall.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 9.09,
+        "y": 41.46,
+        "z": 8.96
+      },
+      "centreStuds": {
+        "x": -0.12,
+        "y": 20.73,
+        "z": 0.17
+      },
+      "tris": 342,
+      "kb": 29.8,
+      "zones": [
+        "Kelp Forest"
+      ],
+      "note": "a 40-stud strand: the forest's trees"
+    },
+    {
+      "name": "kelp_short",
+      "file": "kelp_short.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 6.3,
+        "y": 20.4,
+        "z": 7.2
+      },
+      "centreStuds": {
+        "x": -0.05,
+        "y": 10.2,
+        "z": -0.31
+      },
+      "tris": 228,
+      "kb": 26.2,
+      "zones": [
+        "Kelp Forest",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "undergrowth and edges"
+    },
+    {
+      "name": "sea_grass_clump",
+      "file": "sea_grass_clump.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.03,
+        "y": 3.39,
+        "z": 4.1
+      },
+      "centreStuds": {
+        "x": 0.05,
+        "y": 1.7,
+        "z": -0.01
+      },
+      "tris": 90,
+      "kb": 22.7,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "a tuft of sea grass"
+    },
+    {
+      "name": "sea_grass_patch",
+      "file": "sea_grass_patch.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.8,
+        "y": 2.86,
+        "z": 6.89
+      },
+      "centreStuds": {
+        "x": -0.12,
+        "y": 1.43,
+        "z": -0.01
+      },
+      "tris": 160,
+      "kb": 25.8,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Kelp Forest"
+      ],
+      "note": "a wider patch to carpet the sand"
+    },
+    {
+      "name": "shell_scallop",
+      "file": "shell_scallop.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.03,
+        "y": 0.54,
+        "z": 1.31
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 0.27,
+        "z": -0.0
+      },
+      "tris": 46,
+      "kb": 19.8,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "lies flat"
+    },
+    {
+      "name": "shell_conch",
+      "file": "shell_conch.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.43,
+        "y": 2.07,
+        "z": 2.31
+      },
+      "centreStuds": {
+        "x": 0.14,
+        "y": 1.04,
+        "z": -0.3
+      },
+      "tris": 70,
+      "kb": 21.0,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "a spiral shell on its side"
+    },
+    {
+      "name": "starfish",
+      "file": "starfish.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.48,
+        "y": 0.42,
+        "z": 2.46
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 0.21,
+        "z": -0.0
+      },
+      "tris": 40,
+      "kb": 19.7,
+      "zones": [
+        "Dock",
+        "Shallows",
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "lies flat"
+    },
+    {
+      "name": "sea_urchin",
+      "file": "sea_urchin.fbx",
+      "category": "shell",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.43,
+        "y": 2.61,
+        "z": 3.12
+      },
+      "centreStuds": {
+        "x": 0.13,
+        "y": 1.31,
+        "z": -0.01
+      },
+      "tris": 53,
+      "kb": 20.6,
+      "zones": [
+        "Coral Reef",
+        "Kelp Forest",
+        "Twilight"
+      ],
+      "note": "a spiky ball"
+    },
+    {
+      "name": "crate",
+      "file": "crate.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.0,
+        "y": 4.0,
+        "z": 4.0
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 2.0,
+        "z": -0.0
+      },
+      "tris": 108,
+      "kb": 20.1,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "a 4-stud crate; sunk ones for the wrecks"
+    },
+    {
+      "name": "crate_stack",
+      "file": "crate_stack.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 8.39,
+        "y": 7.2,
+        "z": 4.49
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 3.6,
+        "z": -0.0
+      },
+      "tris": 324,
+      "kb": 25.7,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "two crates and a small one on top"
+    },
+    {
+      "name": "dock_post",
+      "file": "dock_post.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.04,
+        "y": 10.0,
+        "z": 2.04
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 5.0,
+        "z": -0.0
+      },
+      "tris": 150,
+      "kb": 21.6,
+      "zones": [
+        "Dock"
+      ],
+      "note": "a piling with a rope wrap; 10 studs, sink its foot"
+    },
+    {
+      "name": "buoy",
+      "file": "buoy.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.6,
+        "y": 4.95,
+        "z": 3.6
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 2.47,
+        "z": -0.0
+      },
+      "tris": 156,
+      "kb": 22.0,
+      "zones": [
+        "Dock"
+      ],
+      "note": "a striped buoy with a lamp: the lagoon's gap, the dive board"
+    },
+    {
+      "name": "rope_coil",
+      "file": "rope_coil.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.82,
+        "y": 1.36,
+        "z": 2.63
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 0.68,
+        "z": -0.0
+      },
+      "tris": 244,
+      "kb": 26.6,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "a coil with a loose end"
+    },
+    {
+      "name": "barrel",
+      "file": "barrel.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 2.86,
+        "y": 3.5,
+        "z": 2.86
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 1.75,
+        "z": -0.0
+      },
+      "tris": 140,
+      "kb": 21.6,
+      "zones": [
+        "Dock",
+        "Shipwrecks"
+      ],
+      "note": "a banded barrel"
+    },
+    {
+      "name": "lifebuoy",
+      "file": "lifebuoy.fbx",
+      "category": "dock",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 3.64,
+        "y": 3.64,
+        "z": 0.73
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 1.82,
+        "z": -0.0
+      },
+      "tris": 96,
+      "kb": 20.7,
+      "zones": [
+        "Dock"
+      ],
+      "note": "a ring buoy on its edge, for the rails"
+    },
+    {
+      "name": "rock_mesa_reef",
+      "file": "rock_mesa_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 25.43,
+        "y": 10.92,
+        "z": 17.98
+      },
+      "centreStuds": {
+        "x": 0.06,
+        "y": 5.46,
+        "z": -0.54
+      },
+      "tris": 176,
+      "kb": 24.8,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a layered table rock with an overhanging ledge"
+    },
+    {
+      "name": "rock_pillar_reef",
+      "file": "rock_pillar_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 14.38,
+        "y": 22.19,
+        "z": 13.55
+      },
+      "centreStuds": {
+        "x": -1.12,
+        "y": 11.09,
+        "z": 0.33
+      },
+      "tris": 224,
+      "kb": 26.6,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a leaning strata column with a flat cap; scale 1-3x for skylines"
+    },
+    {
+      "name": "rock_wall_reef",
+      "file": "rock_wall_reef.fbx",
+      "category": "rock",
+      "colourSet": "reef",
+      "sizeStuds": {
+        "x": 35.88,
+        "y": 18.44,
+        "z": 12.18
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 9.22,
+        "z": 0.02
+      },
+      "tris": 336,
+      "kb": 30.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a stepped cliff, flat at the back: line the lane's sides with it, face (-Z) to the lane"
+    },
+    {
+      "name": "rock_mesa_deep",
+      "file": "rock_mesa_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 25.43,
+        "y": 10.92,
+        "z": 17.98
+      },
+      "centreStuds": {
+        "x": 0.06,
+        "y": 5.46,
+        "z": -0.54
+      },
+      "tris": 176,
+      "kb": 24.8,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "a layered table rock with an overhanging ledge"
+    },
+    {
+      "name": "rock_pillar_deep",
+      "file": "rock_pillar_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 14.38,
+        "y": 22.19,
+        "z": 13.55
+      },
+      "centreStuds": {
+        "x": -1.12,
+        "y": 11.09,
+        "z": 0.33
+      },
+      "tris": 224,
+      "kb": 26.5,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "a leaning strata column with a flat cap; scale 1-3x for skylines"
+    },
+    {
+      "name": "rock_wall_deep",
+      "file": "rock_wall_deep.fbx",
+      "category": "rock",
+      "colourSet": "deep",
+      "sizeStuds": {
+        "x": 35.88,
+        "y": 18.44,
+        "z": 12.18
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 9.22,
+        "z": 0.02
+      },
+      "tris": 336,
+      "kb": 30.4,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "a stepped cliff, flat at the back: line the lane's sides with it, face (-Z) to the lane"
+    },
+    {
+      "name": "rock_mesa_vent",
+      "file": "rock_mesa_vent.fbx",
+      "category": "rock",
+      "colourSet": "vent",
+      "sizeStuds": {
+        "x": 25.43,
+        "y": 10.92,
+        "z": 17.98
+      },
+      "centreStuds": {
+        "x": 0.06,
+        "y": 5.46,
+        "z": -0.54
+      },
+      "tris": 176,
+      "kb": 24.8,
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "note": "a layered table rock with an overhanging ledge"
+    },
+    {
+      "name": "rock_pillar_vent",
+      "file": "rock_pillar_vent.fbx",
+      "category": "rock",
+      "colourSet": "vent",
+      "sizeStuds": {
+        "x": 14.38,
+        "y": 22.19,
+        "z": 13.55
+      },
+      "centreStuds": {
+        "x": -1.12,
+        "y": 11.09,
+        "z": 0.33
+      },
+      "tris": 224,
+      "kb": 26.6,
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "note": "a leaning strata column with a flat cap; scale 1-3x for skylines"
+    },
+    {
+      "name": "rock_wall_vent",
+      "file": "rock_wall_vent.fbx",
+      "category": "rock",
+      "colourSet": "vent",
+      "sizeStuds": {
+        "x": 35.88,
+        "y": 18.44,
+        "z": 12.18
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 9.22,
+        "z": 0.02
+      },
+      "tris": 336,
+      "kb": 30.5,
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "note": "a stepped cliff, flat at the back: line the lane's sides with it, face (-Z) to the lane"
+    },
+    {
+      "name": "coral_pillar_pink",
+      "file": "coral_pillar_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 7.02,
+        "y": 18.92,
+        "z": 5.3
+      },
+      "centreStuds": {
+        "x": -0.19,
+        "y": 9.46,
+        "z": -0.05
+      },
+      "tris": 408,
+      "kb": 32.6,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "giant ringed tube coral, 20 studs"
+    },
+    {
+      "name": "coral_mushroom_pink",
+      "file": "coral_mushroom_pink.fbx",
+      "category": "coral",
+      "colourSet": "pink",
+      "sizeStuds": {
+        "x": 19.57,
+        "y": 13.66,
+        "z": 17.88
+      },
+      "centreStuds": {
+        "x": -2.66,
+        "y": 6.83,
+        "z": 2.14
+      },
+      "tris": 412,
+      "kb": 32.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef"
+      ],
+      "note": "a giant tiered mushroom coral; ride under the cap"
+    },
+    {
+      "name": "coral_pillar_orange",
+      "file": "coral_pillar_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 7.02,
+        "y": 18.92,
+        "z": 5.3
+      },
+      "centreStuds": {
+        "x": -0.19,
+        "y": 9.46,
+        "z": -0.05
+      },
+      "tris": 408,
+      "kb": 32.6,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "giant ringed tube coral, 20 studs"
+    },
+    {
+      "name": "coral_mushroom_orange",
+      "file": "coral_mushroom_orange.fbx",
+      "category": "coral",
+      "colourSet": "orange",
+      "sizeStuds": {
+        "x": 19.57,
+        "y": 13.66,
+        "z": 17.88
+      },
+      "centreStuds": {
+        "x": -2.66,
+        "y": 6.83,
+        "z": 2.14
+      },
+      "tris": 412,
+      "kb": 32.4,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks"
+      ],
+      "note": "a giant tiered mushroom coral; ride under the cap"
+    },
+    {
+      "name": "coral_pillar_purple",
+      "file": "coral_pillar_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 7.02,
+        "y": 18.92,
+        "z": 5.3
+      },
+      "centreStuds": {
+        "x": -0.19,
+        "y": 9.46,
+        "z": -0.05
+      },
+      "tris": 408,
+      "kb": 32.6,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "giant ringed tube coral, 20 studs"
+    },
+    {
+      "name": "coral_mushroom_purple",
+      "file": "coral_mushroom_purple.fbx",
+      "category": "coral",
+      "colourSet": "purple",
+      "sizeStuds": {
+        "x": 19.57,
+        "y": 13.66,
+        "z": 17.88
+      },
+      "centreStuds": {
+        "x": -2.66,
+        "y": 6.83,
+        "z": 2.14
+      },
+      "tris": 412,
+      "kb": 32.4,
+      "zones": [
+        "Coral Reef",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a giant tiered mushroom coral; ride under the cap"
+    },
+    {
+      "name": "coral_pillar_teal",
+      "file": "coral_pillar_teal.fbx",
+      "category": "coral",
+      "colourSet": "teal",
+      "sizeStuds": {
+        "x": 7.02,
+        "y": 18.92,
+        "z": 5.3
+      },
+      "centreStuds": {
+        "x": -0.19,
+        "y": 9.46,
+        "z": -0.05
+      },
+      "tris": 350,
+      "kb": 30.8,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "giant ringed tube coral, 20 studs, glowing inside",
+      "glow": {
+        "file": "coral_pillar_teal_glow.fbx",
+        "colour": "#5FF0E0",
+        "sizeStuds": {
+          "x": 6.41,
+          "y": 14.09,
+          "z": 4.46
+        },
+        "centreStuds": {
+          "x": -0.22,
+          "y": 11.88,
+          "z": -0.08
+        },
+        "tris": 58,
+        "kb": 21.5
+      }
+    },
+    {
+      "name": "coral_mushroom_teal",
+      "file": "coral_mushroom_teal.fbx",
+      "category": "coral",
+      "colourSet": "teal",
+      "sizeStuds": {
+        "x": 19.57,
+        "y": 13.66,
+        "z": 17.88
+      },
+      "centreStuds": {
+        "x": -2.66,
+        "y": 6.83,
+        "z": 2.14
+      },
+      "tris": 348,
+      "kb": 30.7,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "a giant tiered mushroom coral; ride under the cap, glowing rims",
+      "glow": {
+        "file": "coral_mushroom_teal_glow.fbx",
+        "colour": "#5FF0E0",
+        "sizeStuds": {
+          "x": 19.57,
+          "y": 10.75,
+          "z": 17.88
+        },
+        "centreStuds": {
+          "x": -2.66,
+          "y": 7.84,
+          "z": 2.14
+        },
+        "tris": 64,
+        "kb": 22.0
+      }
+    },
+    {
+      "name": "plant_fan_green",
+      "file": "plant_fan_green.fbx",
+      "category": "plant",
+      "colourSet": "green",
+      "sizeStuds": {
+        "x": 9.42,
+        "y": 7.17,
+        "z": 9.87
+      },
+      "centreStuds": {
+        "x": 0.16,
+        "y": 3.59,
+        "z": 0.51
+      },
+      "tris": 120,
+      "kb": 23.5,
+      "zones": [
+        "Shallows",
+        "Kelp Forest",
+        "Shipwrecks"
+      ],
+      "note": "a fan plant of broad leaves",
+      "sway": {
+        "deg": 4,
+        "periodS": 4.5
+      }
+    },
+    {
+      "name": "plant_fan_red",
+      "file": "plant_fan_red.fbx",
+      "category": "plant",
+      "colourSet": "red",
+      "sizeStuds": {
+        "x": 9.42,
+        "y": 7.17,
+        "z": 9.87
+      },
+      "centreStuds": {
+        "x": 0.16,
+        "y": 3.59,
+        "z": 0.51
+      },
+      "tris": 120,
+      "kb": 23.4,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Open Blue"
+      ],
+      "note": "a fan plant of broad leaves",
+      "sway": {
+        "deg": 4,
+        "periodS": 4.5
+      }
+    },
+    {
+      "name": "plant_fan_teal",
+      "file": "plant_fan_teal.fbx",
+      "category": "plant",
+      "colourSet": "teal",
+      "sizeStuds": {
+        "x": 8.13,
+        "y": 7.17,
+        "z": 8.5
+      },
+      "centreStuds": {
+        "x": -0.21,
+        "y": 3.59,
+        "z": 0.3
+      },
+      "tris": 106,
+      "kb": 22.9,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "a fan plant of broad leaves, glowing tips",
+      "glow": {
+        "file": "plant_fan_teal_glow.fbx",
+        "colour": "#5FF0E0",
+        "sizeStuds": {
+          "x": 9.42,
+          "y": 3.21,
+          "z": 9.87
+        },
+        "centreStuds": {
+          "x": 0.16,
+          "y": 5.56,
+          "z": 0.51
+        },
+        "tris": 14,
+        "kb": 20.2
+      },
+      "sway": {
+        "deg": 4,
+        "periodS": 4.5
+      }
+    },
+    {
+      "name": "kelp_vine_tall",
+      "file": "kelp_vine_tall.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 10.36,
+        "y": 48.16,
+        "z": 10.48
+      },
+      "centreStuds": {
+        "x": -0.19,
+        "y": 24.08,
+        "z": 0.23
+      },
+      "tris": 276,
+      "kb": 29.7,
+      "zones": [
+        "Kelp Forest"
+      ],
+      "note": "a creeper vine, 45 studs, glowing seed bulbs near the top: the forest's columns",
+      "glow": {
+        "file": "kelp_vine_tall_glow.fbx",
+        "colour": "#FFE66B",
+        "sizeStuds": {
+          "x": 4.18,
+          "y": 9.77,
+          "z": 3.42
+        },
+        "centreStuds": {
+          "x": 0.65,
+          "y": 35.27,
+          "z": 0.41
+        },
+        "tris": 80,
+        "kb": 21.9
+      },
+      "sway": {
+        "deg": 3,
+        "periodS": 7
+      }
+    },
+    {
+      "name": "kelp_vine_short",
+      "file": "kelp_vine_short.fbx",
+      "category": "kelp",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 10.53,
+        "y": 25.19,
+        "z": 9.68
+      },
+      "centreStuds": {
+        "x": -0.28,
+        "y": 12.6,
+        "z": 0.51
+      },
+      "tris": 166,
+      "kb": 25.2,
+      "zones": [
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "note": "a short creeper vine for the undergrowth",
+      "glow": {
+        "file": "kelp_vine_short_glow.fbx",
+        "colour": "#FFE66B",
+        "sizeStuds": {
+          "x": 3.09,
+          "y": 5.22,
+          "z": 2.14
+        },
+        "centreStuds": {
+          "x": 0.22,
+          "y": 14.99,
+          "z": 1.57
+        },
+        "tris": 40,
+        "kb": 20.6
+      },
+      "sway": {
+        "deg": 4,
+        "periodS": 6
+      }
+    },
+    {
+      "name": "plant_bulb_glow_cyan",
+      "file": "plant_bulb_glow_cyan.fbx",
+      "category": "glow",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.16,
+        "y": 8.7,
+        "z": 4.35
+      },
+      "centreStuds": {
+        "x": -0.56,
+        "y": 4.35,
+        "z": 0.24
+      },
+      "tris": 222,
+      "kb": 25.1,
+      "zones": [
+        "Twilight",
+        "Midnight"
+      ],
+      "note": "five glowing bulbs on stalks: light the deep's paths",
+      "glow": {
+        "file": "plant_bulb_glow_cyan_glow.fbx",
+        "colour": "#5FF0E0",
+        "sizeStuds": {
+          "x": 3.98,
+          "y": 5.07,
+          "z": 4.03
+        },
+        "centreStuds": {
+          "x": -0.62,
+          "y": 7.43,
+          "z": 0.24
+        },
+        "tris": 100,
+        "kb": 22.6
+      },
+      "sway": {
+        "deg": 3,
+        "periodS": 5
+      }
+    },
+    {
+      "name": "plant_bulb_glow_pink",
+      "file": "plant_bulb_glow_pink.fbx",
+      "category": "glow",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.17,
+        "y": 8.7,
+        "z": 4.94
+      },
+      "centreStuds": {
+        "x": -0.19,
+        "y": 4.35,
+        "z": 0.19
+      },
+      "tris": 222,
+      "kb": 25.2,
+      "zones": [
+        "Midnight",
+        "Bone Graveyard",
+        "The Underworld"
+      ],
+      "note": "five glowing bulbs on stalks, pink",
+      "glow": {
+        "file": "plant_bulb_glow_pink_glow.fbx",
+        "colour": "#FF6FD8",
+        "sizeStuds": {
+          "x": 3.83,
+          "y": 6.43,
+          "z": 4.77
+        },
+        "centreStuds": {
+          "x": -0.19,
+          "y": 6.83,
+          "z": 0.17
+        },
+        "tris": 100,
+        "kb": 22.6
+      },
+      "sway": {
+        "deg": 3,
+        "periodS": 5
+      }
+    },
+    {
+      "name": "plant_glow_shroom_cyan",
+      "file": "plant_glow_shroom_cyan.fbx",
+      "category": "glow",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 4.64,
+        "y": 3.96,
+        "z": 4.16
+      },
+      "centreStuds": {
+        "x": 0.09,
+        "y": 1.98,
+        "z": -0.07
+      },
+      "tris": 95,
+      "kb": 22.2,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "a ring of glowing mushrooms",
+      "glow": {
+        "file": "plant_glow_shroom_cyan_glow.fbx",
+        "colour": "#5FF0E0",
+        "sizeStuds": {
+          "x": 5.33,
+          "y": 2.56,
+          "z": 4.67
+        },
+        "centreStuds": {
+          "x": 0.1,
+          "y": 2.68,
+          "z": -0.09
+        },
+        "tris": 155,
+        "kb": 24.8
+      }
+    },
+    {
+      "name": "plant_glow_shroom_yellow",
+      "file": "plant_glow_shroom_yellow.fbx",
+      "category": "glow",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 5.26,
+        "y": 4.46,
+        "z": 3.75
+      },
+      "centreStuds": {
+        "x": 0.11,
+        "y": 2.23,
+        "z": 0.11
+      },
+      "tris": 95,
+      "kb": 22.3,
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "note": "a ring of glowing mushrooms, yellow",
+      "glow": {
+        "file": "plant_glow_shroom_yellow_glow.fbx",
+        "colour": "#FFE66B",
+        "sizeStuds": {
+          "x": 5.96,
+          "y": 3.24,
+          "z": 4.42
+        },
+        "centreStuds": {
+          "x": 0.09,
+          "y": 2.84,
+          "z": 0.05
+        },
+        "tris": 155,
+        "kb": 24.9
+      }
+    },
+    {
+      "name": "vent_chimney",
+      "file": "vent_chimney.fbx",
+      "category": "landmark",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 9.87,
+        "y": 13.2,
+        "z": 6.9
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 6.6,
+        "z": -0.0
+      },
+      "tris": 280,
+      "kb": 28.4,
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "note": "a vent chimney and two small ones, glowing mouths: add bubbles and an orange PointLight",
+      "glow": {
+        "file": "vent_chimney_glow.fbx",
+        "colour": "#FF8A3D",
+        "sizeStuds": {
+          "x": 8.26,
+          "y": 12.0,
+          "z": 5.63
+        },
+        "centreStuds": {
+          "x": -0.01,
+          "y": 7.2,
+          "z": 0.15
+        },
+        "tris": 52,
+        "kb": 21.2
+      }
+    },
+    {
+      "name": "bone_ribs",
+      "file": "bone_ribs.fbx",
+      "category": "landmark",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 29.1,
+        "y": 20.48,
+        "z": 17.14
+      },
+      "centreStuds": {
+        "x": 4.47,
+        "y": 10.24,
+        "z": 0.11
+      },
+      "tris": 326,
+      "kb": 28.8,
+      "zones": [
+        "Bone Graveyard"
+      ],
+      "note": "a giant ribcage half sunk; the tunnel runs along X, 15+ studs clear"
+    },
+    {
+      "name": "floor_sand_grass",
+      "file": "floor_sand_grass.fbx",
+      "category": "floor",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 19.14,
+        "y": 3.79,
+        "z": 15.71
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 1.9,
+        "z": -0.0
+      },
+      "tris": 292,
+      "kb": 31.3,
+      "zones": [
+        "Shallows",
+        "Coral Reef",
+        "Kelp Forest",
+        "Shipwrecks",
+        "Open Blue",
+        "Dock"
+      ],
+      "note": "a low sand mound with grass tufts: carpets the floor, under clusters"
+    },
+    {
+      "name": "floor_glow_grass",
+      "file": "floor_glow_grass.fbx",
+      "category": "floor",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 18.9,
+        "y": 2.87,
+        "z": 13.74
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 1.44,
+        "z": -0.0
+      },
+      "tris": 244,
+      "kb": 29.3,
+      "zones": [
+        "Twilight",
+        "Midnight",
+        "Bone Graveyard"
+      ],
+      "note": "a deep mound with glowing-tipped grass",
+      "glow": {
+        "file": "floor_glow_grass_glow.fbx",
+        "colour": "#5FF0E0",
+        "sizeStuds": {
+          "x": 11.95,
+          "y": 2.25,
+          "z": 7.52
+        },
+        "centreStuds": {
+          "x": 1.3,
+          "y": 2.56,
+          "z": 1.06
+        },
+        "tris": 48,
+        "kb": 22.6
+      }
+    },
+    {
+      "name": "floor_vent_ash",
+      "file": "floor_vent_ash.fbx",
+      "category": "floor",
+      "colourSet": null,
+      "sizeStuds": {
+        "x": 22.44,
+        "y": 2.92,
+        "z": 15.36
+      },
+      "centreStuds": {
+        "x": 0.0,
+        "y": 1.46,
+        "z": -0.0
+      },
+      "tris": 244,
+      "kb": 29.2,
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "note": "an ash mound with ember-tipped grass",
+      "glow": {
+        "file": "floor_vent_ash_glow.fbx",
+        "colour": "#FF8A3D",
+        "sizeStuds": {
+          "x": 15.54,
+          "y": 2.04,
+          "z": 7.06
+        },
+        "centreStuds": {
+          "x": 0.58,
+          "y": 2.73,
+          "z": -0.11
+        },
+        "tris": 48,
+        "kb": 22.5
+      }
+    }
+  ],
+  "clusters": [
+    {
+      "name": "cluster_lagoon_small",
+      "family": "lagoon",
+      "size": "small",
+      "zones": [
+        "Dock",
+        "Shallows"
+      ],
+      "footprintStuds": {
+        "x": 25.2,
+        "z": 19.88
+      },
+      "heightStuds": 8.65,
+      "pieceCount": 9,
+      "tris": 1476,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -0.83,
+            "y": -0.11,
+            "z": -0.49
+          },
+          "yawDeg": 352,
+          "scale": 1.07
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "anchor",
+          "pos": {
+            "x": 4.45,
+            "y": -0.41,
+            "z": 1.9
+          },
+          "yawDeg": 176,
+          "scale": 0.83
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": -7.77,
+            "y": -0.15,
+            "z": -3.71
+          },
+          "yawDeg": 193,
+          "scale": 1.01
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "mid",
+          "pos": {
+            "x": -10.59,
+            "y": -0.13,
+            "z": 2.6
+          },
+          "yawDeg": 6,
+          "scale": 0.85
+        },
+        {
+          "prop": "shell_scallop",
+          "role": "filler",
+          "pos": {
+            "x": -5.41,
+            "y": -0.13,
+            "z": 2.53
+          },
+          "yawDeg": 237,
+          "scale": 0.88
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -0.37,
+            "y": -0.14,
+            "z": -6.98
+          },
+          "yawDeg": 43,
+          "scale": 0.94
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": -5.4,
+            "y": -0.14,
+            "z": -3.72
+          },
+          "yawDeg": 172,
+          "scale": 0.94
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -2.63,
+            "y": -0.17,
+            "z": 5.97
+          },
+          "yawDeg": 81,
+          "scale": 1.16
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -5.2,
+            "y": -0.14,
+            "z": -6.01
+          },
+          "yawDeg": 288,
+          "scale": 0.92
+        }
+      ]
+    },
+    {
+      "name": "cluster_lagoon_medium",
+      "family": "lagoon",
+      "size": "medium",
+      "zones": [
+        "Dock",
+        "Shallows"
+      ],
+      "footprintStuds": {
+        "x": 55.47,
+        "z": 40.71
+      },
+      "heightStuds": 14.06,
+      "pieceCount": 19,
+      "tris": 2146,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -5.55,
+            "y": -0.15,
+            "z": -2.16
+          },
+          "yawDeg": 219,
+          "scale": 1.49
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 13.28,
+            "y": -0.13,
+            "z": -6.25
+          },
+          "yawDeg": 332,
+          "scale": 1.32
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "anchor",
+          "pos": {
+            "x": -5.23,
+            "y": -0.68,
+            "z": 11.11
+          },
+          "yawDeg": 311,
+          "scale": 1.35
+        },
+        {
+          "prop": "rock_boulder_a_reef",
+          "role": "anchor",
+          "pos": {
+            "x": -23.0,
+            "y": -0.71,
+            "z": 4.54
+          },
+          "yawDeg": 144,
+          "scale": 1.42
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": 14.92,
+            "y": -0.18,
+            "z": 8.98
+          },
+          "yawDeg": 335,
+          "scale": 1.23
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": 22.41,
+            "y": -0.16,
+            "z": 8.27
+          },
+          "yawDeg": 42,
+          "scale": 1.04
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": -10.71,
+            "y": -0.16,
+            "z": -0.1
+          },
+          "yawDeg": 26,
+          "scale": 1.04
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": 1.65,
+            "y": -0.18,
+            "z": -2.28
+          },
+          "yawDeg": 44,
+          "scale": 1.19
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "mid",
+          "pos": {
+            "x": -16.64,
+            "y": -0.18,
+            "z": -7.48
+          },
+          "yawDeg": 236,
+          "scale": 1.18
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -2.91,
+            "y": -0.19,
+            "z": -3.99
+          },
+          "yawDeg": 333,
+          "scale": 1.25
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": -11.88,
+            "y": -0.16,
+            "z": 2.67
+          },
+          "yawDeg": 260,
+          "scale": 1.05
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 23.62,
+            "y": -0.18,
+            "z": -5.68
+          },
+          "yawDeg": 77,
+          "scale": 1.21
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 24.27,
+            "y": -0.2,
+            "z": -0.46
+          },
+          "yawDeg": 132,
+          "scale": 1.35
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": 2.37,
+            "y": -0.16,
+            "z": 6.61
+          },
+          "yawDeg": 324,
+          "scale": 1.06
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": 10.03,
+            "y": -0.19,
+            "z": 1.42
+          },
+          "yawDeg": 331,
+          "scale": 1.25
+        },
+        {
+          "prop": "shell_scallop",
+          "role": "filler",
+          "pos": {
+            "x": 3.44,
+            "y": -0.17,
+            "z": -11.65
+          },
+          "yawDeg": 182,
+          "scale": 1.15
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -17.73,
+            "y": -0.68,
+            "z": 6.39
+          },
+          "yawDeg": 61,
+          "scale": 1.37
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 21.88,
+            "y": -0.18,
+            "z": -7.11
+          },
+          "yawDeg": 127,
+          "scale": 1.21
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 6.76,
+            "y": -0.19,
+            "z": -13.77
+          },
+          "yawDeg": 298,
+          "scale": 1.25
+        }
+      ]
+    },
+    {
+      "name": "cluster_lagoon_huge",
+      "family": "lagoon",
+      "size": "huge",
+      "zones": [
+        "Dock",
+        "Shallows"
+      ],
+      "footprintStuds": {
+        "x": 132.82,
+        "z": 70.16
+      },
+      "heightStuds": 29.72,
+      "pieceCount": 36,
+      "tris": 5262,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -9.23,
+            "y": -0.2,
+            "z": -5.86
+          },
+          "yawDeg": 36,
+          "scale": 2.01
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 39.15,
+            "y": -0.22,
+            "z": -5.3
+          },
+          "yawDeg": 109,
+          "scale": 2.23
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 9.1,
+            "y": -0.18,
+            "z": -27.27
+          },
+          "yawDeg": 347,
+          "scale": 1.82
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 30.75,
+            "y": -0.2,
+            "z": -14.21
+          },
+          "yawDeg": 241,
+          "scale": 1.95
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "anchor",
+          "pos": {
+            "x": 16.6,
+            "y": -1.26,
+            "z": 11.21
+          },
+          "yawDeg": 193,
+          "scale": 2.52
+        },
+        {
+          "prop": "rock_boulder_a_reef",
+          "role": "anchor",
+          "pos": {
+            "x": 48.98,
+            "y": -1.22,
+            "z": 4.93
+          },
+          "yawDeg": 207,
+          "scale": 2.44
+        },
+        {
+          "prop": "rock_boulder_a_reef",
+          "role": "anchor",
+          "pos": {
+            "x": -11.26,
+            "y": -1.27,
+            "z": 28.86
+          },
+          "yawDeg": 304,
+          "scale": 2.53
+        },
+        {
+          "prop": "coral_mushroom_pink",
+          "role": "anchor",
+          "pos": {
+            "x": -56.33,
+            "y": -0.33,
+            "z": 3.05
+          },
+          "yawDeg": 19,
+          "scale": 2.2
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "mid",
+          "pos": {
+            "x": -29.29,
+            "y": -0.21,
+            "z": 17.9
+          },
+          "yawDeg": 212,
+          "scale": 1.42
+        },
+        {
+          "prop": "rock_boulder_b_reef",
+          "role": "mid",
+          "pos": {
+            "x": 37.7,
+            "y": -0.75,
+            "z": -10.15
+          },
+          "yawDeg": 283,
+          "scale": 1.5
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": 20.62,
+            "y": -0.26,
+            "z": -13.85
+          },
+          "yawDeg": 288,
+          "scale": 1.71
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": -30.21,
+            "y": -0.25,
+            "z": -9.5
+          },
+          "yawDeg": 98,
+          "scale": 1.69
+        },
+        {
+          "prop": "rock_boulder_b_reef",
+          "role": "mid",
+          "pos": {
+            "x": -35.33,
+            "y": -0.66,
+            "z": 3.23
+          },
+          "yawDeg": 109,
+          "scale": 1.32
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": -3.51,
+            "y": -0.24,
+            "z": -7.27
+          },
+          "yawDeg": 323,
+          "scale": 1.6
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "mid",
+          "pos": {
+            "x": -8.59,
+            "y": -0.2,
+            "z": 13.14
+          },
+          "yawDeg": 176,
+          "scale": 1.34
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": -38.04,
+            "y": -0.23,
+            "z": -16.3
+          },
+          "yawDeg": 112,
+          "scale": 1.54
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "mid",
+          "pos": {
+            "x": -45.65,
+            "y": -0.29,
+            "z": -8.88
+          },
+          "yawDeg": 277,
+          "scale": 1.93
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": -19.39,
+            "y": -0.23,
+            "z": 7.42
+          },
+          "yawDeg": 256,
+          "scale": 1.54
+        },
+        {
+          "prop": "shell_scallop",
+          "role": "filler",
+          "pos": {
+            "x": 33.54,
+            "y": -0.22,
+            "z": 13.89
+          },
+          "yawDeg": 111,
+          "scale": 1.5
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": -5.92,
+            "y": -0.22,
+            "z": 21.25
+          },
+          "yawDeg": 70,
+          "scale": 1.5
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -25.31,
+            "y": -0.21,
+            "z": 18.88
+          },
+          "yawDeg": 341,
+          "scale": 1.4
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": 9.21,
+            "y": -0.2,
+            "z": -20.34
+          },
+          "yawDeg": 90,
+          "scale": 1.31
+        },
+        {
+          "prop": "shell_scallop",
+          "role": "filler",
+          "pos": {
+            "x": -26.64,
+            "y": -0.22,
+            "z": -15.29
+          },
+          "yawDeg": 195,
+          "scale": 1.5
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": 26.34,
+            "y": -0.22,
+            "z": -10.59
+          },
+          "yawDeg": 101,
+          "scale": 1.5
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -16.2,
+            "y": -0.21,
+            "z": -14.02
+          },
+          "yawDeg": 279,
+          "scale": 1.4
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -38.95,
+            "y": -0.68,
+            "z": -10.34
+          },
+          "yawDeg": 310,
+          "scale": 1.37
+        },
+        {
+          "prop": "shell_scallop",
+          "role": "filler",
+          "pos": {
+            "x": 31.72,
+            "y": -0.22,
+            "z": 24.62
+          },
+          "yawDeg": 226,
+          "scale": 1.5
+        },
+        {
+          "prop": "shell_scallop",
+          "role": "filler",
+          "pos": {
+            "x": -4.2,
+            "y": -0.19,
+            "z": -29.56
+          },
+          "yawDeg": 125,
+          "scale": 1.28
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 38.94,
+            "y": -0.64,
+            "z": 13.3
+          },
+          "yawDeg": 221,
+          "scale": 1.29
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": -12.98,
+            "y": -0.2,
+            "z": -14.09
+          },
+          "yawDeg": 140,
+          "scale": 1.36
+        },
+        {
+          "prop": "shell_scallop",
+          "role": "filler",
+          "pos": {
+            "x": -4.57,
+            "y": -0.22,
+            "z": 2.05
+          },
+          "yawDeg": 272,
+          "scale": 1.44
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": -8.42,
+            "y": -0.22,
+            "z": -0.78
+          },
+          "yawDeg": 239,
+          "scale": 1.5
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 51.94,
+            "y": -0.78,
+            "z": -10.21
+          },
+          "yawDeg": 295,
+          "scale": 1.56
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -51.81,
+            "y": -0.21,
+            "z": -14.15
+          },
+          "yawDeg": 285,
+          "scale": 1.4
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 27.03,
+            "y": -0.73,
+            "z": -23.77
+          },
+          "yawDeg": 168,
+          "scale": 1.47
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": 3.62,
+            "y": -0.21,
+            "z": -5.54
+          },
+          "yawDeg": 244,
+          "scale": 1.4
+        }
+      ]
+    },
+    {
+      "name": "cluster_reef_small",
+      "family": "reef",
+      "size": "small",
+      "zones": [
+        "Coral Reef"
+      ],
+      "footprintStuds": {
+        "x": 23.59,
+        "z": 16.69
+      },
+      "heightStuds": 13.1,
+      "pieceCount": 9,
+      "tris": 1568,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 3.18,
+            "y": -0.12,
+            "z": 0.21
+          },
+          "yawDeg": 323,
+          "scale": 1.15
+        },
+        {
+          "prop": "coral_mushroom_pink",
+          "role": "anchor",
+          "pos": {
+            "x": -2.42,
+            "y": -0.15,
+            "z": 2.56
+          },
+          "yawDeg": 96,
+          "scale": 0.97
+        },
+        {
+          "prop": "coral_fan_purple",
+          "role": "mid",
+          "pos": {
+            "x": -11.03,
+            "y": -0.15,
+            "z": -2.17
+          },
+          "yawDeg": 338,
+          "scale": 1.02
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": 6.4,
+            "y": -0.16,
+            "z": 4.04
+          },
+          "yawDeg": 47,
+          "scale": 1.04
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 2.42,
+            "y": -0.13,
+            "z": -4.15
+          },
+          "yawDeg": 154,
+          "scale": 0.85
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -7.97,
+            "y": -0.14,
+            "z": -0.11
+          },
+          "yawDeg": 255,
+          "scale": 0.95
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "filler",
+          "pos": {
+            "x": -1.48,
+            "y": -0.15,
+            "z": -4.11
+          },
+          "yawDeg": 100,
+          "scale": 0.97
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 3.85,
+            "y": -0.17,
+            "z": -0.2
+          },
+          "yawDeg": 195,
+          "scale": 1.12
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -5.05,
+            "y": -0.13,
+            "z": -5.3
+          },
+          "yawDeg": 203,
+          "scale": 0.89
+        }
+      ]
+    },
+    {
+      "name": "cluster_reef_medium",
+      "family": "reef",
+      "size": "medium",
+      "zones": [
+        "Coral Reef"
+      ],
+      "footprintStuds": {
+        "x": 53.82,
+        "z": 31.42
+      },
+      "heightStuds": 25.71,
+      "pieceCount": 19,
+      "tris": 3150,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -2.35,
+            "y": -0.14,
+            "z": 0.94
+          },
+          "yawDeg": 53,
+          "scale": 1.45
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 24.1,
+            "y": -0.13,
+            "z": 7.02
+          },
+          "yawDeg": 33,
+          "scale": 1.31
+        },
+        {
+          "prop": "coral_mushroom_pink",
+          "role": "anchor",
+          "pos": {
+            "x": 7.22,
+            "y": -0.2,
+            "z": 5.22
+          },
+          "yawDeg": 266,
+          "scale": 1.31
+        },
+        {
+          "prop": "coral_pillar_orange",
+          "role": "anchor",
+          "pos": {
+            "x": -10.7,
+            "y": -0.21,
+            "z": 11.84
+          },
+          "yawDeg": 214,
+          "scale": 1.37
+        },
+        {
+          "prop": "coral_fan_purple",
+          "role": "mid",
+          "pos": {
+            "x": 21.55,
+            "y": -0.21,
+            "z": -7.7
+          },
+          "yawDeg": 87,
+          "scale": 1.37
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": -5.47,
+            "y": -0.21,
+            "z": 5.39
+          },
+          "yawDeg": 134,
+          "scale": 1.37
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": -16.34,
+            "y": -0.19,
+            "z": -0.0
+          },
+          "yawDeg": 181,
+          "scale": 1.26
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": 16.34,
+            "y": -0.15,
+            "z": -3.11
+          },
+          "yawDeg": 275,
+          "scale": 1.0
+        },
+        {
+          "prop": "coral_fan_pink",
+          "role": "mid",
+          "pos": {
+            "x": 26.18,
+            "y": -0.16,
+            "z": 2.58
+          },
+          "yawDeg": 242,
+          "scale": 1.05
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": -4.69,
+            "y": -0.19,
+            "z": -6.26
+          },
+          "yawDeg": 197,
+          "scale": 1.28
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 14.82,
+            "y": -0.18,
+            "z": 4.39
+          },
+          "yawDeg": 338,
+          "scale": 1.17
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -8.0,
+            "y": -0.16,
+            "z": 0.7
+          },
+          "yawDeg": 229,
+          "scale": 1.08
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 1.39,
+            "y": -0.15,
+            "z": -0.48
+          },
+          "yawDeg": 214,
+          "scale": 1.01
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -1.43,
+            "y": -0.65,
+            "z": 9.93
+          },
+          "yawDeg": 275,
+          "scale": 1.3
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -10.57,
+            "y": -0.57,
+            "z": 6.34
+          },
+          "yawDeg": 160,
+          "scale": 1.14
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": 12.51,
+            "y": -0.19,
+            "z": -11.41
+          },
+          "yawDeg": 172,
+          "scale": 1.24
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -8.12,
+            "y": -0.52,
+            "z": -3.74
+          },
+          "yawDeg": 311,
+          "scale": 1.04
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "filler",
+          "pos": {
+            "x": -21.36,
+            "y": -0.18,
+            "z": -3.14
+          },
+          "yawDeg": 347,
+          "scale": 1.23
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -13.87,
+            "y": -0.55,
+            "z": -12.76
+          },
+          "yawDeg": 212,
+          "scale": 1.09
+        }
+      ]
+    },
+    {
+      "name": "cluster_reef_huge",
+      "family": "reef",
+      "size": "huge",
+      "zones": [
+        "Coral Reef"
+      ],
+      "footprintStuds": {
+        "x": 131.59,
+        "z": 76.05
+      },
+      "heightStuds": 29.72,
+      "pieceCount": 35,
+      "tris": 5865,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -4.38,
+            "y": -0.22,
+            "z": 6.13
+          },
+          "yawDeg": 53,
+          "scale": 2.2
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 15.34,
+            "y": -0.19,
+            "z": 12.69
+          },
+          "yawDeg": 229,
+          "scale": 1.86
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -53.91,
+            "y": -0.19,
+            "z": -12.76
+          },
+          "yawDeg": 29,
+          "scale": 1.88
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 12.15,
+            "y": -0.22,
+            "z": -24.78
+          },
+          "yawDeg": 357,
+          "scale": 2.17
+        },
+        {
+          "prop": "coral_mushroom_pink",
+          "role": "anchor",
+          "pos": {
+            "x": -1.0,
+            "y": -0.33,
+            "z": 13.08
+          },
+          "yawDeg": 269,
+          "scale": 2.2
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "anchor",
+          "pos": {
+            "x": 46.37,
+            "y": -1.34,
+            "z": 15.99
+          },
+          "yawDeg": 4,
+          "scale": 2.67
+        },
+        {
+          "prop": "coral_mushroom_purple",
+          "role": "anchor",
+          "pos": {
+            "x": -40.81,
+            "y": -0.33,
+            "z": 17.26
+          },
+          "yawDeg": 114,
+          "scale": 2.2
+        },
+        {
+          "prop": "coral_fan_pink",
+          "role": "mid",
+          "pos": {
+            "x": -1.68,
+            "y": -0.29,
+            "z": -5.57
+          },
+          "yawDeg": 338,
+          "scale": 1.91
+        },
+        {
+          "prop": "coral_tube_pink",
+          "role": "mid",
+          "pos": {
+            "x": -9.48,
+            "y": -0.23,
+            "z": -4.15
+          },
+          "yawDeg": 123,
+          "scale": 1.56
+        },
+        {
+          "prop": "coral_branch_orange",
+          "role": "mid",
+          "pos": {
+            "x": 48.89,
+            "y": -0.25,
+            "z": -15.35
+          },
+          "yawDeg": 232,
+          "scale": 1.65
+        },
+        {
+          "prop": "coral_fan_purple",
+          "role": "mid",
+          "pos": {
+            "x": 1.47,
+            "y": -0.29,
+            "z": -15.57
+          },
+          "yawDeg": 190,
+          "scale": 1.94
+        },
+        {
+          "prop": "coral_tube_pink",
+          "role": "mid",
+          "pos": {
+            "x": -42.58,
+            "y": -0.22,
+            "z": -9.14
+          },
+          "yawDeg": 55,
+          "scale": 1.46
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": -28.55,
+            "y": -0.25,
+            "z": -7.5
+          },
+          "yawDeg": 270,
+          "scale": 1.68
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": -48.7,
+            "y": -0.24,
+            "z": -15.39
+          },
+          "yawDeg": 203,
+          "scale": 1.6
+        },
+        {
+          "prop": "coral_brain_orange",
+          "role": "mid",
+          "pos": {
+            "x": -19.03,
+            "y": -0.2,
+            "z": 21.36
+          },
+          "yawDeg": 336,
+          "scale": 1.33
+        },
+        {
+          "prop": "coral_fan_purple",
+          "role": "mid",
+          "pos": {
+            "x": 19.06,
+            "y": -0.24,
+            "z": -3.27
+          },
+          "yawDeg": 106,
+          "scale": 1.61
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": 10.41,
+            "y": -0.24,
+            "z": 28.61
+          },
+          "yawDeg": 39,
+          "scale": 1.6
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": 3.19,
+            "y": -0.22,
+            "z": 1.77
+          },
+          "yawDeg": 55,
+          "scale": 1.5
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "filler",
+          "pos": {
+            "x": -23.0,
+            "y": -0.25,
+            "z": -26.82
+          },
+          "yawDeg": 1,
+          "scale": 1.67
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -12.19,
+            "y": -0.68,
+            "z": 20.15
+          },
+          "yawDeg": 161,
+          "scale": 1.35
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 10.8,
+            "y": -0.2,
+            "z": 5.62
+          },
+          "yawDeg": 36,
+          "scale": 1.34
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 12.73,
+            "y": -0.87,
+            "z": -28.13
+          },
+          "yawDeg": 35,
+          "scale": 1.73
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": -44.94,
+            "y": -0.21,
+            "z": 5.77
+          },
+          "yawDeg": 211,
+          "scale": 1.4
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": -34.46,
+            "y": -0.26,
+            "z": -13.47
+          },
+          "yawDeg": 238,
+          "scale": 1.75
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -20.87,
+            "y": -0.87,
+            "z": -14.2
+          },
+          "yawDeg": 292,
+          "scale": 1.74
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": -28.28,
+            "y": -0.21,
+            "z": 5.6
+          },
+          "yawDeg": 136,
+          "scale": 1.4
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 38.36,
+            "y": -0.21,
+            "z": -22.9
+          },
+          "yawDeg": 55,
+          "scale": 1.4
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": -30.95,
+            "y": -0.21,
+            "z": -19.73
+          },
+          "yawDeg": 142,
+          "scale": 1.39
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -46.47,
+            "y": -0.22,
+            "z": -8.9
+          },
+          "yawDeg": 237,
+          "scale": 1.5
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": -15.87,
+            "y": -0.26,
+            "z": 27.74
+          },
+          "yawDeg": 147,
+          "scale": 1.71
+        },
+        {
+          "prop": "coral_branch_pink",
+          "role": "filler",
+          "pos": {
+            "x": -6.56,
+            "y": -0.23,
+            "z": -29.68
+          },
+          "yawDeg": 215,
+          "scale": 1.53
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": 4.04,
+            "y": -0.18,
+            "z": -2.5
+          },
+          "yawDeg": 317,
+          "scale": 1.21
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": -1.87,
+            "y": -0.2,
+            "z": 25.63
+          },
+          "yawDeg": 237,
+          "scale": 1.31
+        },
+        {
+          "prop": "starfish",
+          "role": "filler",
+          "pos": {
+            "x": -22.64,
+            "y": -0.22,
+            "z": 24.18
+          },
+          "yawDeg": 18,
+          "scale": 1.5
+        },
+        {
+          "prop": "coral_brain_pink",
+          "role": "filler",
+          "pos": {
+            "x": -20.2,
+            "y": -0.25,
+            "z": 5.45
+          },
+          "yawDeg": 346,
+          "scale": 1.65
+        }
+      ]
+    },
+    {
+      "name": "cluster_kelp_small",
+      "family": "kelp",
+      "size": "small",
+      "zones": [
+        "Kelp Forest"
+      ],
+      "footprintStuds": {
+        "x": 32.15,
+        "z": 21.17
+      },
+      "heightStuds": 41.29,
+      "pieceCount": 9,
+      "tris": 1514,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -2.85,
+            "y": -0.1,
+            "z": 0.82
+          },
+          "yawDeg": 265,
+          "scale": 1.0
+        },
+        {
+          "prop": "kelp_vine_tall",
+          "role": "anchor",
+          "pos": {
+            "x": -0.57,
+            "y": -0.13,
+            "z": 5.65
+          },
+          "yawDeg": 2,
+          "scale": 0.86
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "mid",
+          "pos": {
+            "x": 9.49,
+            "y": -0.52,
+            "z": -1.44
+          },
+          "yawDeg": 151,
+          "scale": 1.03
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "mid",
+          "pos": {
+            "x": -8.62,
+            "y": -0.13,
+            "z": 3.78
+          },
+          "yawDeg": 30,
+          "scale": 0.88
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": 0.37,
+            "y": -0.14,
+            "z": -5.69
+          },
+          "yawDeg": 22,
+          "scale": 0.94
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 1.48,
+            "y": -0.43,
+            "z": 1.98
+          },
+          "yawDeg": 13,
+          "scale": 0.85
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 3.15,
+            "y": -0.13,
+            "z": 6.25
+          },
+          "yawDeg": 126,
+          "scale": 0.85
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -9.25,
+            "y": -0.54,
+            "z": -0.53
+          },
+          "yawDeg": 215,
+          "scale": 1.07
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -4.97,
+            "y": -0.16,
+            "z": 1.74
+          },
+          "yawDeg": 336,
+          "scale": 1.05
+        }
+      ]
+    },
+    {
+      "name": "cluster_kelp_medium",
+      "family": "kelp",
+      "size": "medium",
+      "zones": [
+        "Kelp Forest"
+      ],
+      "footprintStuds": {
+        "x": 59.7,
+        "z": 34.78
+      },
+      "heightStuds": 65.3,
+      "pieceCount": 19,
+      "tris": 3428,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -3.2,
+            "y": -0.13,
+            "z": -0.23
+          },
+          "yawDeg": 222,
+          "scale": 1.33
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 3.53,
+            "y": -0.13,
+            "z": 12.1
+          },
+          "yawDeg": 0,
+          "scale": 1.34
+        },
+        {
+          "prop": "kelp_vine_tall",
+          "role": "anchor",
+          "pos": {
+            "x": 0.92,
+            "y": -0.19,
+            "z": 5.28
+          },
+          "yawDeg": 111,
+          "scale": 1.29
+        },
+        {
+          "prop": "kelp_vine_tall",
+          "role": "anchor",
+          "pos": {
+            "x": 6.57,
+            "y": -0.2,
+            "z": 13.99
+          },
+          "yawDeg": 171,
+          "scale": 1.36
+        },
+        {
+          "prop": "kelp_short",
+          "role": "mid",
+          "pos": {
+            "x": -6.85,
+            "y": -0.18,
+            "z": 8.94
+          },
+          "yawDeg": 32,
+          "scale": 1.19
+        },
+        {
+          "prop": "kelp_short",
+          "role": "mid",
+          "pos": {
+            "x": 26.22,
+            "y": -0.17,
+            "z": 1.95
+          },
+          "yawDeg": 86,
+          "scale": 1.16
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "mid",
+          "pos": {
+            "x": -18.15,
+            "y": -0.59,
+            "z": -2.05
+          },
+          "yawDeg": 206,
+          "scale": 1.18
+        },
+        {
+          "prop": "kelp_short",
+          "role": "mid",
+          "pos": {
+            "x": 18.12,
+            "y": -0.18,
+            "z": -3.77
+          },
+          "yawDeg": 98,
+          "scale": 1.2
+        },
+        {
+          "prop": "kelp_vine_short",
+          "role": "mid",
+          "pos": {
+            "x": -5.66,
+            "y": -0.16,
+            "z": -1.0
+          },
+          "yawDeg": 336,
+          "scale": 1.08
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -13.65,
+            "y": -0.16,
+            "z": -8.44
+          },
+          "yawDeg": 325,
+          "scale": 1.05
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 11.42,
+            "y": -0.16,
+            "z": 11.61
+          },
+          "yawDeg": 328,
+          "scale": 1.1
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": 1.98,
+            "y": -0.16,
+            "z": -10.78
+          },
+          "yawDeg": 334,
+          "scale": 1.04
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 12.68,
+            "y": -0.19,
+            "z": -0.76
+          },
+          "yawDeg": 53,
+          "scale": 1.28
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -3.92,
+            "y": -0.18,
+            "z": -7.54
+          },
+          "yawDeg": 338,
+          "scale": 1.17
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": 12.8,
+            "y": -0.18,
+            "z": -8.44
+          },
+          "yawDeg": 118,
+          "scale": 1.2
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -15.54,
+            "y": -0.53,
+            "z": 5.8
+          },
+          "yawDeg": 242,
+          "scale": 1.07
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 9.15,
+            "y": -0.19,
+            "z": -2.12
+          },
+          "yawDeg": 68,
+          "scale": 1.28
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": 10.44,
+            "y": -0.16,
+            "z": 8.39
+          },
+          "yawDeg": 344,
+          "scale": 1.04
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": 17.47,
+            "y": -0.18,
+            "z": -10.41
+          },
+          "yawDeg": 133,
+          "scale": 1.18
+        }
+      ]
+    },
+    {
+      "name": "cluster_kelp_huge",
+      "family": "kelp",
+      "size": "huge",
+      "zones": [
+        "Kelp Forest"
+      ],
+      "footprintStuds": {
+        "x": 117.72,
+        "z": 62.44
+      },
+      "heightStuds": 67.21,
+      "pieceCount": 36,
+      "tris": 6105,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -13.58,
+            "y": -0.2,
+            "z": 7.27
+          },
+          "yawDeg": 34,
+          "scale": 1.98
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -45.41,
+            "y": -0.19,
+            "z": 17.77
+          },
+          "yawDeg": 308,
+          "scale": 1.95
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 33.94,
+            "y": -0.19,
+            "z": 21.97
+          },
+          "yawDeg": 343,
+          "scale": 1.93
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 7.81,
+            "y": -0.22,
+            "z": -24.88
+          },
+          "yawDeg": 78,
+          "scale": 2.24
+        },
+        {
+          "prop": "kelp_vine_tall",
+          "role": "anchor",
+          "pos": {
+            "x": 11.43,
+            "y": -0.21,
+            "z": 18.56
+          },
+          "yawDeg": 82,
+          "scale": 1.4
+        },
+        {
+          "prop": "rock_pillar_reef",
+          "role": "anchor",
+          "pos": {
+            "x": -47.58,
+            "y": -0.92,
+            "z": 17.76
+          },
+          "yawDeg": 197,
+          "scale": 1.84
+        },
+        {
+          "prop": "kelp_vine_tall",
+          "role": "anchor",
+          "pos": {
+            "x": -13.27,
+            "y": -0.21,
+            "z": 20.04
+          },
+          "yawDeg": 116,
+          "scale": 1.4
+        },
+        {
+          "prop": "kelp_vine_tall",
+          "role": "anchor",
+          "pos": {
+            "x": -16.94,
+            "y": -0.21,
+            "z": 6.9
+          },
+          "yawDeg": 318,
+          "scale": 1.4
+        },
+        {
+          "prop": "rock_boulder_a_reef",
+          "role": "mid",
+          "pos": {
+            "x": 6.46,
+            "y": -0.82,
+            "z": -1.62
+          },
+          "yawDeg": 274,
+          "scale": 1.63
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "mid",
+          "pos": {
+            "x": 37.5,
+            "y": -0.24,
+            "z": 20.61
+          },
+          "yawDeg": 8,
+          "scale": 1.6
+        },
+        {
+          "prop": "kelp_vine_short",
+          "role": "mid",
+          "pos": {
+            "x": 8.44,
+            "y": -0.2,
+            "z": -15.78
+          },
+          "yawDeg": 215,
+          "scale": 1.31
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "mid",
+          "pos": {
+            "x": -35.66,
+            "y": -0.91,
+            "z": -4.58
+          },
+          "yawDeg": 99,
+          "scale": 1.83
+        },
+        {
+          "prop": "kelp_short",
+          "role": "mid",
+          "pos": {
+            "x": -11.82,
+            "y": -0.21,
+            "z": 28.01
+          },
+          "yawDeg": 107,
+          "scale": 1.4
+        },
+        {
+          "prop": "kelp_vine_short",
+          "role": "mid",
+          "pos": {
+            "x": 17.94,
+            "y": -0.21,
+            "z": 1.46
+          },
+          "yawDeg": 121,
+          "scale": 1.4
+        },
+        {
+          "prop": "rock_mesa_reef",
+          "role": "mid",
+          "pos": {
+            "x": 39.2,
+            "y": -0.76,
+            "z": -2.11
+          },
+          "yawDeg": 226,
+          "scale": 1.51
+        },
+        {
+          "prop": "kelp_vine_short",
+          "role": "mid",
+          "pos": {
+            "x": 25.82,
+            "y": -0.21,
+            "z": -10.99
+          },
+          "yawDeg": 302,
+          "scale": 1.4
+        },
+        {
+          "prop": "kelp_short",
+          "role": "mid",
+          "pos": {
+            "x": 29.13,
+            "y": -0.21,
+            "z": 20.9
+          },
+          "yawDeg": 141,
+          "scale": 1.4
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "mid",
+          "pos": {
+            "x": -22.37,
+            "y": -0.24,
+            "z": 24.88
+          },
+          "yawDeg": 229,
+          "scale": 1.6
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": -51.65,
+            "y": -0.22,
+            "z": -9.81
+          },
+          "yawDeg": 52,
+          "scale": 1.46
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 25.51,
+            "y": -0.67,
+            "z": -26.73
+          },
+          "yawDeg": 205,
+          "scale": 1.35
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -3.68,
+            "y": -0.19,
+            "z": -23.93
+          },
+          "yawDeg": 360,
+          "scale": 1.25
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -57.83,
+            "y": -0.21,
+            "z": 4.36
+          },
+          "yawDeg": 334,
+          "scale": 1.4
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": -17.34,
+            "y": -0.21,
+            "z": -8.86
+          },
+          "yawDeg": 349,
+          "scale": 1.4
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": 21.0,
+            "y": -0.22,
+            "z": 7.44
+          },
+          "yawDeg": 260,
+          "scale": 1.46
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": -28.13,
+            "y": -0.24,
+            "z": 8.61
+          },
+          "yawDeg": 356,
+          "scale": 1.6
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": -37.05,
+            "y": -0.22,
+            "z": -21.69
+          },
+          "yawDeg": 144,
+          "scale": 1.45
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -49.21,
+            "y": -0.22,
+            "z": 8.66
+          },
+          "yawDeg": 133,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": -47.82,
+            "y": -0.21,
+            "z": -17.1
+          },
+          "yawDeg": 11,
+          "scale": 1.39
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 5.47,
+            "y": -0.82,
+            "z": 13.62
+          },
+          "yawDeg": 167,
+          "scale": 1.65
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": -24.99,
+            "y": -0.24,
+            "z": -21.49
+          },
+          "yawDeg": 59,
+          "scale": 1.59
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -5.83,
+            "y": -0.22,
+            "z": 2.2
+          },
+          "yawDeg": 287,
+          "scale": 1.5
+        },
+        {
+          "prop": "sea_grass_patch",
+          "role": "filler",
+          "pos": {
+            "x": -11.75,
+            "y": -0.2,
+            "z": -26.34
+          },
+          "yawDeg": 118,
+          "scale": 1.35
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -52.88,
+            "y": -0.62,
+            "z": 9.21
+          },
+          "yawDeg": 229,
+          "scale": 1.23
+        },
+        {
+          "prop": "plant_fan_green",
+          "role": "filler",
+          "pos": {
+            "x": 24.72,
+            "y": -0.24,
+            "z": 0.84
+          },
+          "yawDeg": 318,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 51.92,
+            "y": -0.76,
+            "z": 4.23
+          },
+          "yawDeg": 68,
+          "scale": 1.51
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": -22.15,
+            "y": -0.2,
+            "z": -27.71
+          },
+          "yawDeg": 351,
+          "scale": 1.35
+        }
+      ]
+    },
+    {
+      "name": "cluster_wreck_small",
+      "family": "wreck",
+      "size": "small",
+      "zones": [
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "footprintStuds": {
+        "x": 32.34,
+        "z": 28.57
+      },
+      "heightStuds": 17.94,
+      "pieceCount": 9,
+      "tris": 1624,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -0.39,
+            "y": -0.11,
+            "z": 0.58
+          },
+          "yawDeg": 149,
+          "scale": 1.06
+        },
+        {
+          "prop": "rock_wall_reef",
+          "role": "anchor",
+          "pos": {
+            "x": 3.51,
+            "y": -0.5,
+            "z": 5.85
+          },
+          "yawDeg": 1,
+          "scale": 1.0
+        },
+        {
+          "prop": "barrel",
+          "role": "mid",
+          "pos": {
+            "x": -8.25,
+            "y": -0.13,
+            "z": 3.99
+          },
+          "yawDeg": 205,
+          "scale": 0.88
+        },
+        {
+          "prop": "crate_stack",
+          "role": "mid",
+          "pos": {
+            "x": -11.19,
+            "y": -0.15,
+            "z": -2.3
+          },
+          "yawDeg": 30,
+          "scale": 1.0
+        },
+        {
+          "prop": "crate",
+          "role": "filler",
+          "pos": {
+            "x": 8.48,
+            "y": -0.15,
+            "z": -4.41
+          },
+          "yawDeg": 344,
+          "scale": 1.0
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 12.35,
+            "y": -0.48,
+            "z": -0.48
+          },
+          "yawDeg": 100,
+          "scale": 0.97
+        },
+        {
+          "prop": "crate",
+          "role": "filler",
+          "pos": {
+            "x": 8.36,
+            "y": -0.15,
+            "z": -2.31
+          },
+          "yawDeg": 78,
+          "scale": 1.0
+        },
+        {
+          "prop": "crate",
+          "role": "filler",
+          "pos": {
+            "x": 3.1,
+            "y": -0.12,
+            "z": -6.5
+          },
+          "yawDeg": 304,
+          "scale": 0.82
+        },
+        {
+          "prop": "crate",
+          "role": "filler",
+          "pos": {
+            "x": -9.89,
+            "y": -0.15,
+            "z": 0.9
+          },
+          "yawDeg": 243,
+          "scale": 1.0
+        }
+      ]
+    },
+    {
+      "name": "cluster_wreck_medium",
+      "family": "wreck",
+      "size": "medium",
+      "zones": [
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "footprintStuds": {
+        "x": 59.34,
+        "z": 38.78
+      },
+      "heightStuds": 32.05,
+      "pieceCount": 19,
+      "tris": 3616,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 4.42,
+            "y": -0.14,
+            "z": 2.9
+          },
+          "yawDeg": 321,
+          "scale": 1.42
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 19.54,
+            "y": -0.15,
+            "z": 8.68
+          },
+          "yawDeg": 327,
+          "scale": 1.55
+        },
+        {
+          "prop": "rock_wall_reef",
+          "role": "anchor",
+          "pos": {
+            "x": 6.47,
+            "y": -0.68,
+            "z": 5.3
+          },
+          "yawDeg": -4,
+          "scale": 1.35
+        },
+        {
+          "prop": "rock_spire_reef",
+          "role": "anchor",
+          "pos": {
+            "x": -22.95,
+            "y": -0.66,
+            "z": 4.41
+          },
+          "yawDeg": 247,
+          "scale": 1.31
+        },
+        {
+          "prop": "coral_pillar_purple",
+          "role": "mid",
+          "pos": {
+            "x": -15.32,
+            "y": -0.21,
+            "z": 0.4
+          },
+          "yawDeg": 2,
+          "scale": 1.39
+        },
+        {
+          "prop": "coral_pillar_purple",
+          "role": "mid",
+          "pos": {
+            "x": -19.2,
+            "y": -0.2,
+            "z": -8.01
+          },
+          "yawDeg": 243,
+          "scale": 1.32
+        },
+        {
+          "prop": "rock_slab_stack_reef",
+          "role": "mid",
+          "pos": {
+            "x": -14.95,
+            "y": -0.52,
+            "z": 7.67
+          },
+          "yawDeg": 71,
+          "scale": 1.05
+        },
+        {
+          "prop": "kelp_vine_short",
+          "role": "mid",
+          "pos": {
+            "x": 25.86,
+            "y": -0.19,
+            "z": -2.11
+          },
+          "yawDeg": 42,
+          "scale": 1.28
+        },
+        {
+          "prop": "barrel",
+          "role": "mid",
+          "pos": {
+            "x": -26.1,
+            "y": -0.15,
+            "z": 0.36
+          },
+          "yawDeg": 46,
+          "scale": 1.0
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": -5.02,
+            "y": -0.18,
+            "z": -4.28
+          },
+          "yawDeg": 322,
+          "scale": 1.23
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": 21.47,
+            "y": -0.18,
+            "z": -2.67
+          },
+          "yawDeg": 72,
+          "scale": 1.23
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": -5.65,
+            "y": -0.2,
+            "z": 10.58
+          },
+          "yawDeg": 357,
+          "scale": 1.33
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": -17.0,
+            "y": -0.18,
+            "z": -10.69
+          },
+          "yawDeg": 249,
+          "scale": 1.2
+        },
+        {
+          "prop": "crate",
+          "role": "filler",
+          "pos": {
+            "x": -2.83,
+            "y": -0.15,
+            "z": -11.02
+          },
+          "yawDeg": 332,
+          "scale": 1.0
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": 20.46,
+            "y": -0.19,
+            "z": 2.5
+          },
+          "yawDeg": 340,
+          "scale": 1.24
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": -8.58,
+            "y": -0.15,
+            "z": -11.62
+          },
+          "yawDeg": 288,
+          "scale": 1.02
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 24.68,
+            "y": -0.52,
+            "z": 4.04
+          },
+          "yawDeg": 19,
+          "scale": 1.05
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": -3.1,
+            "y": -0.2,
+            "z": -8.57
+          },
+          "yawDeg": 150,
+          "scale": 1.32
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 11.91,
+            "y": -0.51,
+            "z": -9.3
+          },
+          "yawDeg": 181,
+          "scale": 1.02
+        }
+      ]
+    },
+    {
+      "name": "cluster_wreck_huge",
+      "family": "wreck",
+      "size": "huge",
+      "zones": [
+        "Shipwrecks",
+        "Open Blue"
+      ],
+      "footprintStuds": {
+        "x": 156.26,
+        "z": 73.71
+      },
+      "heightStuds": 45.75,
+      "pieceCount": 35,
+      "tris": 5854,
+      "pieces": [
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -13.79,
+            "y": -0.2,
+            "z": -3.4
+          },
+          "yawDeg": 97,
+          "scale": 2.02
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -17.61,
+            "y": -0.22,
+            "z": 18.81
+          },
+          "yawDeg": 14,
+          "scale": 2.24
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": 40.72,
+            "y": -0.2,
+            "z": 4.41
+          },
+          "yawDeg": 341,
+          "scale": 1.99
+        },
+        {
+          "prop": "floor_sand_grass",
+          "role": "floor",
+          "pos": {
+            "x": -15.11,
+            "y": -0.22,
+            "z": 1.99
+          },
+          "yawDeg": 338,
+          "scale": 2.18
+        },
+        {
+          "prop": "rock_wall_reef",
+          "role": "anchor",
+          "pos": {
+            "x": 14.49,
+            "y": -1.11,
+            "z": 10.63
+          },
+          "yawDeg": -15,
+          "scale": 2.22
+        },
+        {
+          "prop": "rock_wall_reef",
+          "role": "anchor",
+          "pos": {
+            "x": -57.42,
+            "y": -1.27,
+            "z": 7.34
+          },
+          "yawDeg": -12,
+          "scale": 2.55
+        },
+        {
+          "prop": "rock_spire_reef",
+          "role": "anchor",
+          "pos": {
+            "x": -20.46,
+            "y": -0.85,
+            "z": 25.83
+          },
+          "yawDeg": 101,
+          "scale": 1.7
+        },
+        {
+          "prop": "kelp_vine_short",
+          "role": "mid",
+          "pos": {
+            "x": -13.89,
+            "y": -0.2,
+            "z": 14.41
+          },
+          "yawDeg": 200,
+          "scale": 1.34
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": -23.56,
+            "y": -0.24,
+            "z": -7.75
+          },
+          "yawDeg": 124,
+          "scale": 1.6
+        },
+        {
+          "prop": "barrel",
+          "role": "mid",
+          "pos": {
+            "x": -13.63,
+            "y": -0.15,
+            "z": -12.66
+          },
+          "yawDeg": 142,
+          "scale": 1.0
+        },
+        {
+          "prop": "coral_fan_orange",
+          "role": "mid",
+          "pos": {
+            "x": -21.69,
+            "y": -0.21,
+            "z": 5.52
+          },
+          "yawDeg": 182,
+          "scale": 1.38
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": 44.87,
+            "y": -0.24,
+            "z": -2.04
+          },
+          "yawDeg": 285,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_slab_stack_reef",
+          "role": "mid",
+          "pos": {
+            "x": 45.58,
+            "y": -0.82,
+            "z": 16.34
+          },
+          "yawDeg": 54,
+          "scale": 1.65
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": 56.0,
+            "y": -0.24,
+            "z": -0.88
+          },
+          "yawDeg": 286,
+          "scale": 1.6
+        },
+        {
+          "prop": "coral_pillar_purple",
+          "role": "mid",
+          "pos": {
+            "x": 28.14,
+            "y": -0.27,
+            "z": -14.55
+          },
+          "yawDeg": 104,
+          "scale": 1.77
+        },
+        {
+          "prop": "plant_fan_red",
+          "role": "mid",
+          "pos": {
+            "x": -8.33,
+            "y": -0.24,
+            "z": 29.17
+          },
+          "yawDeg": 126,
+          "scale": 1.6
+        },
+        {
+          "prop": "barrel",
+          "role": "mid",
+          "pos": {
+            "x": 17.42,
+            "y": -0.15,
+            "z": -14.12
+          },
+          "yawDeg": 50,
+          "scale": 1.0
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": 38.77,
+            "y": -0.2,
+            "z": 14.7
+          },
+          "yawDeg": 266,
+          "scale": 1.34
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 45.16,
+            "y": -0.21,
+            "z": -18.74
+          },
+          "yawDeg": 342,
+          "scale": 1.4
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": 0.98,
+            "y": -0.22,
+            "z": -21.85
+          },
+          "yawDeg": 56,
+          "scale": 1.5
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -18.59,
+            "y": -0.6,
+            "z": -5.62
+          },
+          "yawDeg": 255,
+          "scale": 1.21
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -3.76,
+            "y": -0.61,
+            "z": 0.9
+          },
+          "yawDeg": 141,
+          "scale": 1.22
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": -20.14,
+            "y": -0.22,
+            "z": -16.47
+          },
+          "yawDeg": 211,
+          "scale": 1.5
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": 51.55,
+            "y": -0.22,
+            "z": 13.56
+          },
+          "yawDeg": 260,
+          "scale": 1.5
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": -12.71,
+            "y": -0.25,
+            "z": -26.95
+          },
+          "yawDeg": 66,
+          "scale": 1.68
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": -1.63,
+            "y": -0.8,
+            "z": -19.17
+          },
+          "yawDeg": 197,
+          "scale": 1.6
+        },
+        {
+          "prop": "crate",
+          "role": "filler",
+          "pos": {
+            "x": -31.01,
+            "y": -0.15,
+            "z": -9.02
+          },
+          "yawDeg": 97,
+          "scale": 1.0
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": -1.42,
+            "y": -0.21,
+            "z": -7.2
+          },
+          "yawDeg": 281,
+          "scale": 1.43
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": -10.04,
+            "y": -0.21,
+            "z": 4.7
+          },
+          "yawDeg": 191,
+          "scale": 1.4
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": -14.05,
+            "y": -0.24,
+            "z": -0.65
+          },
+          "yawDeg": 146,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 57.61,
+            "y": -0.83,
+            "z": 6.96
+          },
+          "yawDeg": 325,
+          "scale": 1.67
+        },
+        {
+          "prop": "rock_cluster_reef",
+          "role": "filler",
+          "pos": {
+            "x": 41.2,
+            "y": -0.87,
+            "z": -14.89
+          },
+          "yawDeg": 298,
+          "scale": 1.73
+        },
+        {
+          "prop": "shell_conch",
+          "role": "filler",
+          "pos": {
+            "x": -27.01,
+            "y": -0.22,
+            "z": -26.1
+          },
+          "yawDeg": 336,
+          "scale": 1.5
+        },
+        {
+          "prop": "sea_grass_clump",
+          "role": "filler",
+          "pos": {
+            "x": 37.36,
+            "y": -0.21,
+            "z": -8.31
+          },
+          "yawDeg": 104,
+          "scale": 1.4
+        },
+        {
+          "prop": "coral_tube_purple",
+          "role": "filler",
+          "pos": {
+            "x": -15.12,
+            "y": -0.21,
+            "z": 8.31
+          },
+          "yawDeg": 232,
+          "scale": 1.39
+        }
+      ]
+    },
+    {
+      "name": "cluster_twilight_small",
+      "family": "twilight",
+      "size": "small",
+      "zones": [
+        "Twilight",
+        "Midnight"
+      ],
+      "footprintStuds": {
+        "x": 22.13,
+        "z": 18.2
+      },
+      "heightStuds": 15.58,
+      "pieceCount": 9,
+      "tris": 2099,
+      "pieces": [
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": 2.28,
+            "y": -0.1,
+            "z": -1.62
+          },
+          "yawDeg": 304,
+          "scale": 1.03
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "anchor",
+          "pos": {
+            "x": -1.0,
+            "y": -0.12,
+            "z": 5.42
+          },
+          "yawDeg": 22,
+          "scale": 0.83
+        },
+        {
+          "prop": "rock_slab_stack_deep",
+          "role": "mid",
+          "pos": {
+            "x": -3.29,
+            "y": -0.5,
+            "z": -2.12
+          },
+          "yawDeg": 134,
+          "scale": 1.0
+        },
+        {
+          "prop": "rock_slab_stack_deep",
+          "role": "mid",
+          "pos": {
+            "x": 5.5,
+            "y": -0.46,
+            "z": 6.25
+          },
+          "yawDeg": 22,
+          "scale": 0.91
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -0.35,
+            "y": -0.14,
+            "z": 2.58
+          },
+          "yawDeg": 77,
+          "scale": 0.91
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -7.75,
+            "y": -0.12,
+            "z": 0.68
+          },
+          "yawDeg": 112,
+          "scale": 0.82
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 9.11,
+            "y": -0.49,
+            "z": 1.67
+          },
+          "yawDeg": 90,
+          "scale": 0.98
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -9.2,
+            "y": -0.13,
+            "z": 3.37
+          },
+          "yawDeg": 347,
+          "scale": 0.85
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -3.18,
+            "y": -0.13,
+            "z": 4.69
+          },
+          "yawDeg": 206,
+          "scale": 0.86
+        }
+      ]
+    },
+    {
+      "name": "cluster_twilight_medium",
+      "family": "twilight",
+      "size": "medium",
+      "zones": [
+        "Twilight",
+        "Midnight"
+      ],
+      "footprintStuds": {
+        "x": 50.24,
+        "z": 26.78
+      },
+      "heightStuds": 26.66,
+      "pieceCount": 19,
+      "tris": 4300,
+      "pieces": [
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -4.79,
+            "y": -0.13,
+            "z": 0.59
+          },
+          "yawDeg": 8,
+          "scale": 1.34
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -0.86,
+            "y": -0.15,
+            "z": -8.77
+          },
+          "yawDeg": 161,
+          "scale": 1.48
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "anchor",
+          "pos": {
+            "x": 1.36,
+            "y": -0.21,
+            "z": 5.06
+          },
+          "yawDeg": 358,
+          "scale": 1.42
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "anchor",
+          "pos": {
+            "x": 23.01,
+            "y": -0.18,
+            "z": 2.67
+          },
+          "yawDeg": 29,
+          "scale": 1.22
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "mid",
+          "pos": {
+            "x": -6.81,
+            "y": -0.2,
+            "z": -0.88
+          },
+          "yawDeg": 260,
+          "scale": 1.34
+        },
+        {
+          "prop": "plant_fan_teal",
+          "role": "mid",
+          "pos": {
+            "x": 20.96,
+            "y": -0.18,
+            "z": -3.55
+          },
+          "yawDeg": 16,
+          "scale": 1.22
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "mid",
+          "pos": {
+            "x": 9.61,
+            "y": -0.17,
+            "z": -5.37
+          },
+          "yawDeg": 298,
+          "scale": 1.16
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "mid",
+          "pos": {
+            "x": -15.16,
+            "y": -0.6,
+            "z": -3.79
+          },
+          "yawDeg": 357,
+          "scale": 1.2
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "mid",
+          "pos": {
+            "x": -21.25,
+            "y": -0.21,
+            "z": 8.67
+          },
+          "yawDeg": 31,
+          "scale": 1.38
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": 12.24,
+            "y": -0.19,
+            "z": 10.41
+          },
+          "yawDeg": 159,
+          "scale": 1.28
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -17.38,
+            "y": -0.18,
+            "z": 8.59
+          },
+          "yawDeg": 196,
+          "scale": 1.22
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 16.36,
+            "y": -0.16,
+            "z": -3.06
+          },
+          "yawDeg": 125,
+          "scale": 1.05
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -0.88,
+            "y": -0.2,
+            "z": 10.31
+          },
+          "yawDeg": 180,
+          "scale": 1.33
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -15.61,
+            "y": -0.2,
+            "z": 4.62
+          },
+          "yawDeg": 274,
+          "scale": 1.35
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -6.75,
+            "y": -0.15,
+            "z": -10.19
+          },
+          "yawDeg": 191,
+          "scale": 1.01
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -12.89,
+            "y": -0.54,
+            "z": 2.29
+          },
+          "yawDeg": 111,
+          "scale": 1.08
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -15.85,
+            "y": -0.16,
+            "z": -11.95
+          },
+          "yawDeg": 313,
+          "scale": 1.1
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 7.02,
+            "y": -0.16,
+            "z": 9.39
+          },
+          "yawDeg": 69,
+          "scale": 1.05
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 14.23,
+            "y": -0.61,
+            "z": -9.62
+          },
+          "yawDeg": 102,
+          "scale": 1.22
+        }
+      ]
+    },
+    {
+      "name": "cluster_twilight_huge",
+      "family": "twilight",
+      "size": "huge",
+      "zones": [
+        "Twilight",
+        "Midnight"
+      ],
+      "footprintStuds": {
+        "x": 139.27,
+        "z": 69.88
+      },
+      "heightStuds": 41.29,
+      "pieceCount": 36,
+      "tris": 7636,
+      "pieces": [
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": 10.38,
+            "y": -0.21,
+            "z": 3.51
+          },
+          "yawDeg": 307,
+          "scale": 2.07
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -17.43,
+            "y": -0.22,
+            "z": 12.05
+          },
+          "yawDeg": 92,
+          "scale": 2.16
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": 4.08,
+            "y": -0.22,
+            "z": -13.97
+          },
+          "yawDeg": 262,
+          "scale": 2.24
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": 34.01,
+            "y": -0.2,
+            "z": -9.33
+          },
+          "yawDeg": 86,
+          "scale": 2.02
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "anchor",
+          "pos": {
+            "x": -18.34,
+            "y": -0.33,
+            "z": 12.83
+          },
+          "yawDeg": 279,
+          "scale": 2.2
+        },
+        {
+          "prop": "coral_mushroom_teal",
+          "role": "anchor",
+          "pos": {
+            "x": 27.57,
+            "y": -0.31,
+            "z": 25.03
+          },
+          "yawDeg": 178,
+          "scale": 2.1
+        },
+        {
+          "prop": "rock_mesa_deep",
+          "role": "anchor",
+          "pos": {
+            "x": -57.36,
+            "y": -1.1,
+            "z": 4.53
+          },
+          "yawDeg": 61,
+          "scale": 2.2
+        },
+        {
+          "prop": "coral_mushroom_teal",
+          "role": "anchor",
+          "pos": {
+            "x": 3.45,
+            "y": -0.33,
+            "z": 4.67
+          },
+          "yawDeg": 120,
+          "scale": 2.2
+        },
+        {
+          "prop": "plant_fan_teal",
+          "role": "mid",
+          "pos": {
+            "x": 34.37,
+            "y": -0.24,
+            "z": 4.28
+          },
+          "yawDeg": 168,
+          "scale": 1.58
+        },
+        {
+          "prop": "plant_bulb_glow_cyan",
+          "role": "mid",
+          "pos": {
+            "x": 12.49,
+            "y": -0.24,
+            "z": -7.52
+          },
+          "yawDeg": 58,
+          "scale": 1.6
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "mid",
+          "pos": {
+            "x": 32.48,
+            "y": -0.24,
+            "z": -5.92
+          },
+          "yawDeg": 227,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "mid",
+          "pos": {
+            "x": 53.21,
+            "y": -0.75,
+            "z": -8.61
+          },
+          "yawDeg": 240,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_bulb_glow_cyan",
+          "role": "mid",
+          "pos": {
+            "x": 29.86,
+            "y": -0.24,
+            "z": -14.37
+          },
+          "yawDeg": 299,
+          "scale": 1.58
+        },
+        {
+          "prop": "rock_slab_stack_deep",
+          "role": "mid",
+          "pos": {
+            "x": 18.19,
+            "y": -0.69,
+            "z": -16.23
+          },
+          "yawDeg": 232,
+          "scale": 1.38
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "mid",
+          "pos": {
+            "x": -36.95,
+            "y": -0.24,
+            "z": -7.13
+          },
+          "yawDeg": 307,
+          "scale": 1.6
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "mid",
+          "pos": {
+            "x": 18.78,
+            "y": -0.2,
+            "z": 12.28
+          },
+          "yawDeg": 147,
+          "scale": 1.35
+        },
+        {
+          "prop": "plant_bulb_glow_cyan",
+          "role": "mid",
+          "pos": {
+            "x": -44.07,
+            "y": -0.24,
+            "z": -11.38
+          },
+          "yawDeg": 180,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_slab_stack_deep",
+          "role": "mid",
+          "pos": {
+            "x": -22.96,
+            "y": -0.96,
+            "z": -8.85
+          },
+          "yawDeg": 341,
+          "scale": 1.91
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 8.21,
+            "y": -0.22,
+            "z": -17.2
+          },
+          "yawDeg": 11,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": 6.96,
+            "y": -0.19,
+            "z": -14.95
+          },
+          "yawDeg": 119,
+          "scale": 1.3
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 41.72,
+            "y": -0.22,
+            "z": -1.17
+          },
+          "yawDeg": 353,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -31.56,
+            "y": -0.24,
+            "z": -8.48
+          },
+          "yawDeg": 98,
+          "scale": 1.57
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 40.65,
+            "y": -0.2,
+            "z": -15.93
+          },
+          "yawDeg": 27,
+          "scale": 1.31
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -31.39,
+            "y": -0.81,
+            "z": 7.48
+          },
+          "yawDeg": 228,
+          "scale": 1.62
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 41.93,
+            "y": -0.22,
+            "z": -12.01
+          },
+          "yawDeg": 350,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -31.2,
+            "y": -0.24,
+            "z": 17.02
+          },
+          "yawDeg": 352,
+          "scale": 1.6
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 13.02,
+            "y": -0.2,
+            "z": 0.1
+          },
+          "yawDeg": 308,
+          "scale": 1.34
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 46.58,
+            "y": -0.73,
+            "z": 9.82
+          },
+          "yawDeg": 83,
+          "scale": 1.45
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -42.42,
+            "y": -0.64,
+            "z": 19.31
+          },
+          "yawDeg": 192,
+          "scale": 1.29
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 49.54,
+            "y": -0.23,
+            "z": -16.88
+          },
+          "yawDeg": 25,
+          "scale": 1.54
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -40.59,
+            "y": -0.67,
+            "z": -19.7
+          },
+          "yawDeg": 149,
+          "scale": 1.35
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 44.25,
+            "y": -0.22,
+            "z": -12.26
+          },
+          "yawDeg": 14,
+          "scale": 1.5
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 9.11,
+            "y": -0.75,
+            "z": 22.64
+          },
+          "yawDeg": 139,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": 10.27,
+            "y": -0.21,
+            "z": 27.12
+          },
+          "yawDeg": 304,
+          "scale": 1.43
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 44.12,
+            "y": -0.84,
+            "z": 1.7
+          },
+          "yawDeg": 315,
+          "scale": 1.69
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 16.26,
+            "y": -0.2,
+            "z": -25.75
+          },
+          "yawDeg": 213,
+          "scale": 1.36
+        }
+      ]
+    },
+    {
+      "name": "cluster_vents_small",
+      "family": "vents",
+      "size": "small",
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "footprintStuds": {
+        "x": 25.23,
+        "z": 12.51
+      },
+      "heightStuds": 11.87,
+      "pieceCount": 9,
+      "tris": 1706,
+      "pieces": [
+        {
+          "prop": "floor_vent_ash",
+          "role": "floor",
+          "pos": {
+            "x": -0.91,
+            "y": -0.12,
+            "z": 0.6
+          },
+          "yawDeg": 291,
+          "scale": 1.2
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "anchor",
+          "pos": {
+            "x": -3.22,
+            "y": -0.13,
+            "z": 2.88
+          },
+          "yawDeg": 288,
+          "scale": 0.87
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "mid",
+          "pos": {
+            "x": 7.68,
+            "y": -0.13,
+            "z": 3.3
+          },
+          "yawDeg": 186,
+          "scale": 0.87
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "mid",
+          "pos": {
+            "x": 11.77,
+            "y": -0.14,
+            "z": 0.0
+          },
+          "yawDeg": 278,
+          "scale": 0.91
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -5.81,
+            "y": -0.52,
+            "z": -1.22
+          },
+          "yawDeg": 30,
+          "scale": 1.03
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -7.48,
+            "y": -0.44,
+            "z": 4.31
+          },
+          "yawDeg": 149,
+          "scale": 0.88
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -1.78,
+            "y": -0.57,
+            "z": -2.31
+          },
+          "yawDeg": 34,
+          "scale": 1.13
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 4.67,
+            "y": -0.49,
+            "z": -0.94
+          },
+          "yawDeg": 256,
+          "scale": 0.98
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 7.53,
+            "y": -0.47,
+            "z": -3.26
+          },
+          "yawDeg": 273,
+          "scale": 0.94
+        }
+      ]
+    },
+    {
+      "name": "cluster_vents_medium",
+      "family": "vents",
+      "size": "medium",
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "footprintStuds": {
+        "x": 78.11,
+        "z": 43.59
+      },
+      "heightStuds": 25.83,
+      "pieceCount": 18,
+      "tris": 3621,
+      "pieces": [
+        {
+          "prop": "floor_vent_ash",
+          "role": "floor",
+          "pos": {
+            "x": -3.69,
+            "y": -0.13,
+            "z": -2.26
+          },
+          "yawDeg": 346,
+          "scale": 1.33
+        },
+        {
+          "prop": "floor_vent_ash",
+          "role": "floor",
+          "pos": {
+            "x": 18.05,
+            "y": -0.15,
+            "z": 1.06
+          },
+          "yawDeg": 72,
+          "scale": 1.45
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "anchor",
+          "pos": {
+            "x": -7.74,
+            "y": -0.2,
+            "z": 3.11
+          },
+          "yawDeg": 9,
+          "scale": 1.32
+        },
+        {
+          "prop": "rock_wall_vent",
+          "role": "anchor",
+          "pos": {
+            "x": 19.47,
+            "y": -0.72,
+            "z": 6.51
+          },
+          "yawDeg": 19,
+          "scale": 1.44
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "mid",
+          "pos": {
+            "x": -1.94,
+            "y": -0.17,
+            "z": 14.33
+          },
+          "yawDeg": 233,
+          "scale": 1.11
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "mid",
+          "pos": {
+            "x": -15.26,
+            "y": -0.18,
+            "z": 9.56
+          },
+          "yawDeg": 181,
+          "scale": 1.23
+        },
+        {
+          "prop": "rock_mesa_vent",
+          "role": "mid",
+          "pos": {
+            "x": -26.63,
+            "y": -0.56,
+            "z": -3.29
+          },
+          "yawDeg": 343,
+          "scale": 1.11
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "mid",
+          "pos": {
+            "x": 0.37,
+            "y": -0.56,
+            "z": -5.22
+          },
+          "yawDeg": 309,
+          "scale": 1.13
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "filler",
+          "pos": {
+            "x": -17.65,
+            "y": -0.19,
+            "z": 3.9
+          },
+          "yawDeg": 296,
+          "scale": 1.27
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "filler",
+          "pos": {
+            "x": -10.49,
+            "y": -0.19,
+            "z": 8.34
+          },
+          "yawDeg": 172,
+          "scale": 1.25
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "filler",
+          "pos": {
+            "x": -4.3,
+            "y": -0.17,
+            "z": -3.21
+          },
+          "yawDeg": 220,
+          "scale": 1.15
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 0.5,
+            "y": -0.21,
+            "z": 10.12
+          },
+          "yawDeg": 156,
+          "scale": 1.38
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -1.15,
+            "y": -0.21,
+            "z": -13.63
+          },
+          "yawDeg": 277,
+          "scale": 1.4
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -17.49,
+            "y": -0.56,
+            "z": -2.9
+          },
+          "yawDeg": 287,
+          "scale": 1.11
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -19.74,
+            "y": -0.7,
+            "z": -8.35
+          },
+          "yawDeg": 143,
+          "scale": 1.39
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -2.61,
+            "y": -0.18,
+            "z": 6.59
+          },
+          "yawDeg": 67,
+          "scale": 1.2
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 23.21,
+            "y": -0.19,
+            "z": -7.55
+          },
+          "yawDeg": 67,
+          "scale": 1.29
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 13.6,
+            "y": -0.5,
+            "z": -8.82
+          },
+          "yawDeg": 223,
+          "scale": 1.01
+        }
+      ]
+    },
+    {
+      "name": "cluster_vents_huge",
+      "family": "vents",
+      "size": "huge",
+      "zones": [
+        "Vents",
+        "The Underworld"
+      ],
+      "footprintStuds": {
+        "x": 141.29,
+        "z": 81.55
+      },
+      "heightStuds": 36.02,
+      "pieceCount": 36,
+      "tris": 8266,
+      "pieces": [
+        {
+          "prop": "floor_vent_ash",
+          "role": "floor",
+          "pos": {
+            "x": 8.72,
+            "y": -0.19,
+            "z": -0.97
+          },
+          "yawDeg": 261,
+          "scale": 1.85
+        },
+        {
+          "prop": "floor_vent_ash",
+          "role": "floor",
+          "pos": {
+            "x": 3.38,
+            "y": -0.22,
+            "z": 20.24
+          },
+          "yawDeg": 202,
+          "scale": 2.23
+        },
+        {
+          "prop": "floor_vent_ash",
+          "role": "floor",
+          "pos": {
+            "x": -14.04,
+            "y": -0.21,
+            "z": -12.29
+          },
+          "yawDeg": 52,
+          "scale": 2.09
+        },
+        {
+          "prop": "floor_vent_ash",
+          "role": "floor",
+          "pos": {
+            "x": -9.41,
+            "y": -0.21,
+            "z": 10.17
+          },
+          "yawDeg": 96,
+          "scale": 2.12
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "anchor",
+          "pos": {
+            "x": 18.2,
+            "y": -0.33,
+            "z": 11.11
+          },
+          "yawDeg": 63,
+          "scale": 2.22
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "anchor",
+          "pos": {
+            "x": -5.82,
+            "y": -0.39,
+            "z": 20.47
+          },
+          "yawDeg": 290,
+          "scale": 2.63
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "anchor",
+          "pos": {
+            "x": 59.11,
+            "y": -0.41,
+            "z": 5.07
+          },
+          "yawDeg": 23,
+          "scale": 2.76
+        },
+        {
+          "prop": "rock_wall_vent",
+          "role": "anchor",
+          "pos": {
+            "x": -43.51,
+            "y": -0.97,
+            "z": 19.17
+          },
+          "yawDeg": -14,
+          "scale": 1.94
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "mid",
+          "pos": {
+            "x": -28.87,
+            "y": -0.23,
+            "z": -4.76
+          },
+          "yawDeg": 260,
+          "scale": 1.52
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "mid",
+          "pos": {
+            "x": 35.52,
+            "y": -0.9,
+            "z": -6.22
+          },
+          "yawDeg": 315,
+          "scale": 1.8
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "mid",
+          "pos": {
+            "x": 2.19,
+            "y": -0.93,
+            "z": -5.02
+          },
+          "yawDeg": 207,
+          "scale": 1.85
+        },
+        {
+          "prop": "rock_mesa_vent",
+          "role": "mid",
+          "pos": {
+            "x": 34.94,
+            "y": -0.81,
+            "z": 21.9
+          },
+          "yawDeg": 307,
+          "scale": 1.63
+        },
+        {
+          "prop": "rock_mesa_vent",
+          "role": "mid",
+          "pos": {
+            "x": -50.07,
+            "y": -0.88,
+            "z": -14.43
+          },
+          "yawDeg": 211,
+          "scale": 1.75
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "mid",
+          "pos": {
+            "x": 15.51,
+            "y": -0.22,
+            "z": -4.92
+          },
+          "yawDeg": 87,
+          "scale": 1.49
+        },
+        {
+          "prop": "vent_chimney",
+          "role": "mid",
+          "pos": {
+            "x": 7.06,
+            "y": -0.25,
+            "z": 23.79
+          },
+          "yawDeg": 122,
+          "scale": 1.64
+        },
+        {
+          "prop": "rock_mesa_vent",
+          "role": "mid",
+          "pos": {
+            "x": -15.03,
+            "y": -0.9,
+            "z": -16.28
+          },
+          "yawDeg": 153,
+          "scale": 1.8
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "mid",
+          "pos": {
+            "x": 48.93,
+            "y": -0.96,
+            "z": -11.86
+          },
+          "yawDeg": 86,
+          "scale": 1.92
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "mid",
+          "pos": {
+            "x": 45.01,
+            "y": -0.81,
+            "z": 7.43
+          },
+          "yawDeg": 30,
+          "scale": 1.63
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 54.27,
+            "y": -0.22,
+            "z": -5.21
+          },
+          "yawDeg": 38,
+          "scale": 1.48
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 4.61,
+            "y": -0.63,
+            "z": 1.91
+          },
+          "yawDeg": 213,
+          "scale": 1.27
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 19.94,
+            "y": -0.74,
+            "z": -18.25
+          },
+          "yawDeg": 134,
+          "scale": 1.48
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 9.3,
+            "y": -0.65,
+            "z": -26.52
+          },
+          "yawDeg": 138,
+          "scale": 1.3
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -41.78,
+            "y": -0.62,
+            "z": -4.33
+          },
+          "yawDeg": 92,
+          "scale": 1.25
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -58.93,
+            "y": -0.24,
+            "z": -2.17
+          },
+          "yawDeg": 181,
+          "scale": 1.6
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "filler",
+          "pos": {
+            "x": -48.34,
+            "y": -0.24,
+            "z": 0.51
+          },
+          "yawDeg": 40,
+          "scale": 1.6
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 11.64,
+            "y": -0.19,
+            "z": 20.74
+          },
+          "yawDeg": 308,
+          "scale": 1.25
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -33.22,
+            "y": -0.85,
+            "z": -10.46
+          },
+          "yawDeg": 31,
+          "scale": 1.69
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -30.74,
+            "y": -0.19,
+            "z": 3.12
+          },
+          "yawDeg": 39,
+          "scale": 1.29
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -3.93,
+            "y": -0.19,
+            "z": 5.15
+          },
+          "yawDeg": 308,
+          "scale": 1.3
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 22.56,
+            "y": -0.24,
+            "z": 22.09
+          },
+          "yawDeg": 214,
+          "scale": 1.6
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -22.01,
+            "y": -0.18,
+            "z": 0.95
+          },
+          "yawDeg": 167,
+          "scale": 1.21
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": -19.75,
+            "y": -0.19,
+            "z": -1.61
+          },
+          "yawDeg": 174,
+          "scale": 1.26
+        },
+        {
+          "prop": "sea_urchin",
+          "role": "filler",
+          "pos": {
+            "x": 25.85,
+            "y": -0.22,
+            "z": -8.97
+          },
+          "yawDeg": 13,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 24.43,
+            "y": -0.23,
+            "z": 13.44
+          },
+          "yawDeg": 317,
+          "scale": 1.53
+        },
+        {
+          "prop": "plant_glow_shroom_yellow",
+          "role": "filler",
+          "pos": {
+            "x": -39.05,
+            "y": -0.19,
+            "z": 1.94
+          },
+          "yawDeg": 309,
+          "scale": 1.24
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 10.49,
+            "y": -0.21,
+            "z": 6.06
+          },
+          "yawDeg": 10,
+          "scale": 1.37
+        }
+      ]
+    },
+    {
+      "name": "cluster_bones_small",
+      "family": "bones",
+      "size": "small",
+      "zones": [
+        "Bone Graveyard"
+      ],
+      "footprintStuds": {
+        "x": 28.01,
+        "z": 22.2
+      },
+      "heightStuds": 19.32,
+      "pieceCount": 9,
+      "tris": 2148,
+      "pieces": [
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -2.34,
+            "y": -0.11,
+            "z": -1.17
+          },
+          "yawDeg": 4,
+          "scale": 1.11
+        },
+        {
+          "prop": "bone_ribs",
+          "role": "anchor",
+          "pos": {
+            "x": -0.25,
+            "y": -0.14,
+            "z": 3.02
+          },
+          "yawDeg": 86,
+          "scale": 0.95
+        },
+        {
+          "prop": "plant_fan_teal",
+          "role": "mid",
+          "pos": {
+            "x": 10.71,
+            "y": -0.13,
+            "z": 3.38
+          },
+          "yawDeg": 86,
+          "scale": 0.85
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "mid",
+          "pos": {
+            "x": -11.18,
+            "y": -0.12,
+            "z": 2.35
+          },
+          "yawDeg": 245,
+          "scale": 0.82
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": 9.01,
+            "y": -0.48,
+            "z": -2.09
+          },
+          "yawDeg": 179,
+          "scale": 0.96
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -8.22,
+            "y": -0.13,
+            "z": -1.84
+          },
+          "yawDeg": 202,
+          "scale": 0.85
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -1.0,
+            "y": -0.15,
+            "z": -5.22
+          },
+          "yawDeg": 44,
+          "scale": 1.03
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 4.89,
+            "y": -0.59,
+            "z": -3.91
+          },
+          "yawDeg": 301,
+          "scale": 1.19
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 12.85,
+            "y": -0.13,
+            "z": -0.91
+          },
+          "yawDeg": 255,
+          "scale": 0.85
+        }
+      ]
+    },
+    {
+      "name": "cluster_bones_medium",
+      "family": "bones",
+      "size": "medium",
+      "zones": [
+        "Bone Graveyard"
+      ],
+      "footprintStuds": {
+        "x": 76.93,
+        "z": 39.99
+      },
+      "heightStuds": 30.5,
+      "pieceCount": 18,
+      "tris": 3748,
+      "pieces": [
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": 4.99,
+            "y": -0.15,
+            "z": -1.58
+          },
+          "yawDeg": 337,
+          "scale": 1.5
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -18.55,
+            "y": -0.15,
+            "z": 4.54
+          },
+          "yawDeg": 18,
+          "scale": 1.5
+        },
+        {
+          "prop": "bone_ribs",
+          "role": "anchor",
+          "pos": {
+            "x": -5.4,
+            "y": -0.22,
+            "z": 6.49
+          },
+          "yawDeg": 125,
+          "scale": 1.5
+        },
+        {
+          "prop": "bone_ribs",
+          "role": "anchor",
+          "pos": {
+            "x": 25.8,
+            "y": -0.19,
+            "z": 5.71
+          },
+          "yawDeg": 42,
+          "scale": 1.25
+        },
+        {
+          "prop": "rock_boulder_b_deep",
+          "role": "mid",
+          "pos": {
+            "x": 10.42,
+            "y": -0.56,
+            "z": -1.01
+          },
+          "yawDeg": 82,
+          "scale": 1.11
+        },
+        {
+          "prop": "rock_mesa_deep",
+          "role": "mid",
+          "pos": {
+            "x": -25.92,
+            "y": -0.52,
+            "z": -1.8
+          },
+          "yawDeg": 25,
+          "scale": 1.05
+        },
+        {
+          "prop": "rock_boulder_b_deep",
+          "role": "mid",
+          "pos": {
+            "x": 10.4,
+            "y": -0.46,
+            "z": 12.35
+          },
+          "yawDeg": 295,
+          "scale": 0.92
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "mid",
+          "pos": {
+            "x": 19.94,
+            "y": -0.18,
+            "z": -6.38
+          },
+          "yawDeg": 147,
+          "scale": 1.19
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -3.89,
+            "y": -0.18,
+            "z": -6.83
+          },
+          "yawDeg": 267,
+          "scale": 1.2
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": 0.31,
+            "y": -0.64,
+            "z": -10.65
+          },
+          "yawDeg": 240,
+          "scale": 1.29
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 16.75,
+            "y": -0.64,
+            "z": -1.14
+          },
+          "yawDeg": 61,
+          "scale": 1.27
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -7.14,
+            "y": -0.18,
+            "z": -4.57
+          },
+          "yawDeg": 246,
+          "scale": 1.2
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -21.32,
+            "y": -0.19,
+            "z": -7.32
+          },
+          "yawDeg": 83,
+          "scale": 1.26
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": -12.42,
+            "y": -0.6,
+            "z": -9.82
+          },
+          "yawDeg": 6,
+          "scale": 1.21
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": -17.37,
+            "y": -0.15,
+            "z": -1.53
+          },
+          "yawDeg": 184,
+          "scale": 1.02
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 10.21,
+            "y": -0.16,
+            "z": -8.58
+          },
+          "yawDeg": 14,
+          "scale": 1.08
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 15.29,
+            "y": -0.56,
+            "z": -12.44
+          },
+          "yawDeg": 98,
+          "scale": 1.13
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 6.22,
+            "y": -0.67,
+            "z": 3.1
+          },
+          "yawDeg": 56,
+          "scale": 1.35
+        }
+      ]
+    },
+    {
+      "name": "cluster_bones_huge",
+      "family": "bones",
+      "size": "huge",
+      "zones": [
+        "Bone Graveyard"
+      ],
+      "footprintStuds": {
+        "x": 160.42,
+        "z": 81.55
+      },
+      "heightStuds": 55.75,
+      "pieceCount": 34,
+      "tris": 7090,
+      "pieces": [
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -1.1,
+            "y": -0.2,
+            "z": 3.23
+          },
+          "yawDeg": 18,
+          "scale": 2.05
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -12.55,
+            "y": -0.19,
+            "z": -22.73
+          },
+          "yawDeg": 356,
+          "scale": 1.92
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": -27.83,
+            "y": -0.23,
+            "z": -17.82
+          },
+          "yawDeg": 149,
+          "scale": 2.26
+        },
+        {
+          "prop": "floor_glow_grass",
+          "role": "floor",
+          "pos": {
+            "x": 19.4,
+            "y": -0.22,
+            "z": 8.25
+          },
+          "yawDeg": 73,
+          "scale": 2.2
+        },
+        {
+          "prop": "bone_ribs",
+          "role": "anchor",
+          "pos": {
+            "x": 0.59,
+            "y": -0.36,
+            "z": 18.98
+          },
+          "yawDeg": 318,
+          "scale": 2.4
+        },
+        {
+          "prop": "rock_wall_deep",
+          "role": "anchor",
+          "pos": {
+            "x": 58.49,
+            "y": -1.05,
+            "z": 4.76
+          },
+          "yawDeg": 11,
+          "scale": 2.11
+        },
+        {
+          "prop": "rock_pillar_deep",
+          "role": "anchor",
+          "pos": {
+            "x": -50.61,
+            "y": -1.28,
+            "z": 11.29
+          },
+          "yawDeg": 47,
+          "scale": 2.57
+        },
+        {
+          "prop": "rock_mesa_deep",
+          "role": "mid",
+          "pos": {
+            "x": -16.44,
+            "y": -0.7,
+            "z": -11.18
+          },
+          "yawDeg": 281,
+          "scale": 1.4
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "mid",
+          "pos": {
+            "x": -29.48,
+            "y": -0.24,
+            "z": 19.96
+          },
+          "yawDeg": 28,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_mesa_deep",
+          "role": "mid",
+          "pos": {
+            "x": -51.98,
+            "y": -0.97,
+            "z": -14.91
+          },
+          "yawDeg": 30,
+          "scale": 1.94
+        },
+        {
+          "prop": "rock_mesa_deep",
+          "role": "mid",
+          "pos": {
+            "x": 22.96,
+            "y": -0.67,
+            "z": -11.39
+          },
+          "yawDeg": 158,
+          "scale": 1.34
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "mid",
+          "pos": {
+            "x": 35.08,
+            "y": -0.29,
+            "z": 19.33
+          },
+          "yawDeg": 277,
+          "scale": 1.94
+        },
+        {
+          "prop": "plant_fan_teal",
+          "role": "mid",
+          "pos": {
+            "x": -33.66,
+            "y": -0.21,
+            "z": -3.4
+          },
+          "yawDeg": 230,
+          "scale": 1.39
+        },
+        {
+          "prop": "rock_boulder_b_deep",
+          "role": "mid",
+          "pos": {
+            "x": 0.13,
+            "y": -0.69,
+            "z": -8.62
+          },
+          "yawDeg": 233,
+          "scale": 1.38
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "mid",
+          "pos": {
+            "x": 4.97,
+            "y": -0.24,
+            "z": -15.32
+          },
+          "yawDeg": 164,
+          "scale": 1.6
+        },
+        {
+          "prop": "coral_pillar_teal",
+          "role": "mid",
+          "pos": {
+            "x": 29.94,
+            "y": -0.21,
+            "z": 9.41
+          },
+          "yawDeg": 125,
+          "scale": 1.4
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": -2.84,
+            "y": -0.67,
+            "z": 0.19
+          },
+          "yawDeg": 282,
+          "scale": 1.33
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": -36.75,
+            "y": -0.87,
+            "z": 14.76
+          },
+          "yawDeg": 324,
+          "scale": 1.75
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": -24.22,
+            "y": -0.8,
+            "z": -22.78
+          },
+          "yawDeg": 355,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -18.0,
+            "y": -0.77,
+            "z": 2.52
+          },
+          "yawDeg": 12,
+          "scale": 1.55
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -21.86,
+            "y": -0.62,
+            "z": 11.31
+          },
+          "yawDeg": 89,
+          "scale": 1.25
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": 14.2,
+            "y": -0.21,
+            "z": -8.14
+          },
+          "yawDeg": 113,
+          "scale": 1.39
+        },
+        {
+          "prop": "plant_glow_shroom_cyan",
+          "role": "filler",
+          "pos": {
+            "x": 30.04,
+            "y": -0.18,
+            "z": 3.67
+          },
+          "yawDeg": 112,
+          "scale": 1.2
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": 33.99,
+            "y": -0.24,
+            "z": -9.3
+          },
+          "yawDeg": 230,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -34.4,
+            "y": -0.87,
+            "z": -18.87
+          },
+          "yawDeg": 285,
+          "scale": 1.74
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -29.08,
+            "y": -0.19,
+            "z": 1.06
+          },
+          "yawDeg": 63,
+          "scale": 1.28
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": -10.28,
+            "y": -0.78,
+            "z": -22.6
+          },
+          "yawDeg": 8,
+          "scale": 1.56
+        },
+        {
+          "prop": "rock_cluster_deep",
+          "role": "filler",
+          "pos": {
+            "x": 40.16,
+            "y": -0.81,
+            "z": -18.1
+          },
+          "yawDeg": 221,
+          "scale": 1.63
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": 8.87,
+            "y": -0.77,
+            "z": -21.29
+          },
+          "yawDeg": 330,
+          "scale": 1.54
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": 9.19,
+            "y": -0.75,
+            "z": -0.61
+          },
+          "yawDeg": 238,
+          "scale": 1.5
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -14.49,
+            "y": -0.22,
+            "z": -22.17
+          },
+          "yawDeg": 2,
+          "scale": 1.46
+        },
+        {
+          "prop": "plant_bulb_glow_pink",
+          "role": "filler",
+          "pos": {
+            "x": -9.88,
+            "y": -0.24,
+            "z": 4.12
+          },
+          "yawDeg": 78,
+          "scale": 1.6
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": -31.29,
+            "y": -0.61,
+            "z": -24.16
+          },
+          "yawDeg": 220,
+          "scale": 1.22
+        },
+        {
+          "prop": "rock_boulder_a_deep",
+          "role": "filler",
+          "pos": {
+            "x": 22.93,
+            "y": -0.9,
+            "z": 4.75
+          },
+          "yawDeg": 285,
+          "scale": 1.79
+        }
+      ]
+    }
+  ]
+}

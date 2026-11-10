@@ -1,0 +1,40 @@
+{
+ "name": "Sergeant Major",
+ "mesh": "SergeantMajor.obj",
+ "palette": "SergeantMajor_palette.png",
+ "units": "studs",
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the head)",
+  "right": "+X"
+ },
+ "origin": "the middle of the bounding box",
+ "size": [
+  6.73,
+  6.746,
+  12.514
+ ],
+ "triangles": 746,
+ "vertices": 457,
+ "seat": [
+  0.0,
+  1.89,
+  -3.813
+ ],
+ "joints_z": [
+  -3.41,
+  -1.525,
+  0.305,
+  2.043,
+  3.507
+ ],
+ "paletteCells": {
+  "top": "#FBEC7F",
+  "body": "#DFD8C6",
+  "bars": "#353534",
+  "fins": "#FBEC7F",
+  "eye": "#EFE5CD",
+  "pupil": "#353534",
+  "lips": "#EFE5CD"
+ }
+}

@@ -1,0 +1,313 @@
+{
+  "name": "Reef Shark",
+  "zone": "ZONE 1 / SHALLOWS",
+  "rarity": "EPIC",
+  "notes": "Built by tools/blender/fish_kit.py (creature method, docs/style/creature-method.md) on the Sergeant Major's rules (docs/style/02-creature-look.md): studs, the head to -X, stations [t (0 face, 1 tail base), top, bottom, half width]. A first placeholder, no concept yet: the bigger, faster ride (~23 studs). Signature: a blacktip reef shark: blue-grey back, white belly, black-tipped fins, a tall swept dorsal, wide wing-like pectorals, a long upper tail lobe, the mouth under an overhanging snout. viewScale 1.9 pulls the turnaround cameras back, rideViewScale 1.35 the riding camera.",
+  "length": 19.0,
+  "viewScale": 1.9,
+  "rideViewScale": 1.35,
+  "orthoSide": 30.0,
+  "stations": [
+    [
+      0.0,
+      0.62,
+      -0.7,
+      0.8
+    ],
+    [
+      0.14,
+      1.95,
+      -1.95,
+      2.05
+    ],
+    [
+      0.26,
+      2.7,
+      -2.7,
+      2.55
+    ],
+    [
+      0.4,
+      2.85,
+      -2.75,
+      2.6
+    ],
+    [
+      0.55,
+      2.6,
+      -2.5,
+      2.35
+    ],
+    [
+      0.7,
+      2.0,
+      -1.9,
+      1.8
+    ],
+    [
+      0.82,
+      1.4,
+      -1.3,
+      1.25
+    ],
+    [
+      0.92,
+      0.95,
+      -0.85,
+      0.8
+    ],
+    [
+      1.0,
+      0.7,
+      -0.6,
+      0.55
+    ]
+  ],
+  "chamfer": [
+    0.44,
+    0.216
+  ],
+  "chamferBottom": [
+    0.4,
+    0.34
+  ],
+  "topLine": 0.3,
+  "topLineZ": "chamfer",
+  "head": {
+    "faceTop": [
+      0.0,
+      0.58,
+      0.62
+    ],
+    "faceBottom": [
+      0.55,
+      -0.6
+    ],
+    "chin": [
+      2.1,
+      1.25,
+      -1.78
+    ],
+    "faceColour": "body"
+  },
+  "segments": [
+    0.14,
+    0.36,
+    0.58,
+    0.78
+  ],
+  "bars": [],
+  "colours": {
+    "top": "#667684",
+    "body": "#8796A3",
+    "bars": "#26292D",
+    "fins": "#73828F",
+    "eye": "#E9E7DF",
+    "pupil": "#1F2226",
+    "lips": "#F1F0EA",
+    "belly": "#F1F0EA"
+  },
+  "eye": {
+    "onWall": true,
+    "dx": 1.55,
+    "z": 0.22,
+    "size": 0.72,
+    "pupil": 0.48,
+    "thickness": 0.2
+  },
+  "lips": {
+    "z": -0.62,
+    "size": [
+      0.5,
+      1.5,
+      0.3
+    ],
+    "protrude": 0.15
+  },
+  "seat": 0.27,
+  "fins": {
+    "dorsal": {
+      "points": [
+        [
+          0.34,
+          -0.3
+        ],
+        [
+          0.43,
+          2.9
+        ],
+        [
+          0.47,
+          3.15
+        ],
+        [
+          0.5,
+          2.85
+        ],
+        [
+          0.53,
+          0.9
+        ],
+        [
+          0.58,
+          0.2
+        ],
+        [
+          0.6,
+          -0.3
+        ]
+      ],
+      "thickness": 0.55,
+      "tip": [
+        0.72,
+        "bars"
+      ]
+    },
+    "anal": {
+      "points": [
+        [
+          0.78,
+          0.3
+        ],
+        [
+          0.82,
+          -0.75
+        ],
+        [
+          0.855,
+          -0.85
+        ],
+        [
+          0.87,
+          -0.25
+        ],
+        [
+          0.89,
+          0.3
+        ]
+      ],
+      "thickness": 0.4,
+      "tip": [
+        0.6,
+        "bars"
+      ]
+    },
+    "tail": {
+      "points": [
+        [
+          -0.4,
+          0.65
+        ],
+        [
+          3.5,
+          4.5
+        ],
+        [
+          4.1,
+          4.4
+        ],
+        [
+          2.3,
+          0.6
+        ],
+        [
+          2.2,
+          -0.1
+        ],
+        [
+          3.1,
+          -2.7
+        ],
+        [
+          2.6,
+          -2.85
+        ],
+        [
+          -0.4,
+          -0.65
+        ]
+      ],
+      "thickness": 0.45,
+      "tip": [
+        0.58,
+        "bars"
+      ]
+    },
+    "pectoral": {
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1.9,
+          0.0
+        ],
+        [
+          3.2,
+          -3.3
+        ],
+        [
+          2.55,
+          -3.5
+        ]
+      ],
+      "t": 0.24,
+      "z": -1.3,
+      "yaw": 8,
+      "tilt": 0,
+      "roll": 62,
+      "thickness": 0.4,
+      "tip": [
+        0.72,
+        "bars",
+        "-z"
+      ]
+    },
+    "pelvic": {
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.0
+        ],
+        [
+          1.4,
+          -0.9
+        ],
+        [
+          1.0,
+          -1.0
+        ]
+      ],
+      "t": 0.66,
+      "zAboveBottom": 0.3,
+      "y": 0.9,
+      "yaw": 0,
+      "roll": 50,
+      "thickness": 0.3,
+      "tip": [
+        0.6,
+        "bars",
+        "-z"
+      ]
+    }
+  },
+  "swim": {
+    "amplitudes": [
+      3,
+      6,
+      9,
+      12,
+      18
+    ],
+    "phaseStep": 0.9,
+    "headCounter": 2
+  },
+  "sleeve": 0.6,
+  "rideFog": "#3CBED2",
+  "rideFogEnd": 900
+}

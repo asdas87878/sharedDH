@@ -19,7 +19,8 @@ Claude works from then on.
 - **Never use computer use on the user's PC.** If access is missing, ask for a connector or an API.
 - **Image generation costs credits:** ask before spending any.
 - **Roblox uploads are permanent:** upload only what's chosen.
-- **Git:** commit or push only when asked (the Obsidian Git plugin's own syncing is fine).
+- **Git:** commit or push only when asked (the Obsidian Git plugin's own syncing is fine). Every hand-made push gets an
+  entry in [Handoff](Handoff.md) and a commit message that says what changed.
 - **The reference:** copy Ride a Dino's loop and feel, never its look, models or layout.
 
 ## Sharing the project (two people)

@@ -1,0 +1,39 @@
+{
+ "name": "Yellow Tang",
+ "mesh": "YellowTang.obj",
+ "palette": "YellowTang_palette.png",
+ "units": "studs",
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the head)",
+  "right": "+X"
+ },
+ "origin": "the middle of the bounding box",
+ "size": [
+  5.711,
+  8.725,
+  11.5
+ ],
+ "triangles": 642,
+ "vertices": 407,
+ "seat": [
+  0.0,
+  2.278,
+  -3.48
+ ],
+ "joints_z": [
+  -3.308,
+  -1.33,
+  0.476,
+  2.024,
+  3.4
+ ],
+ "paletteCells": {
+  "top": "#FFC93A",
+  "body": "#FFE25A",
+  "fins": "#FFC93A",
+  "eye": "#F6F0DC",
+  "pupil": "#2F2F2E",
+  "lips": "#FFF1A8"
+ }
+}
