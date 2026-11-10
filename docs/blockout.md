@@ -8,6 +8,81 @@ The plan was two blockouts made separately and compared. The user's verdict on v
 the same, except that the elevation changed far too soon. The descent has to be gradual and the dive much longer, or the depth is
 used up early and there's little left to progress through. That made v2.
 
+## v4 (2026-11-09): a half-circle island, a formation per zone, clusters along the lane, the Subnautica look
+**6,879 parts** (the dive 6,037, the lagoon 436, the island 362, the sea 44), **175 clusters** holding **3,642 prop
+placeholders**, 45 PointLights and 61 light shafts. Within a zone's view distance there are never more than about 1,000 parts:
+the most is around the island and the lagoon, about 200 in the deep zones, so it stays phone-friendly. The lane is v3's: 10
+zones, 23,500 studs, 1,613 deep, about 7 minutes.
+
+- **The island** ([the user's feedback on v3](#v3-2026-11-09-a-big-island-a-diagonal-dive-props-placed): the walk to the
+  board was too long) is a half circle with a radius of 410. Its flat edge faces the dive.
+  - **The spawn** is 40 studs from that edge, facing the board: about 110 studs from spawn to the board's end (v3: over 430).
+  - **The dock** runs along the flat edge, 600 wide and only 70 deep: wider than v3's pier, not longer.
+    - The DIVE gate and the board are in the middle.
+    - The shops are on the wings, facing the walk: SELL and AURAS to the west, INDEX and FUSE to the east.
+    - The sub is moored off the east end, and Top Earners stands behind the spawn.
+  - **The plots** are v3's (100 × 84, the 76 × 30 × 40 tank, the sign, the trainer spot, the collect pad). They stand in an
+    arc round the curved side, facing the spawn, each with a boardwalk to the plaza. The code's names are unchanged:
+    `Dock.Plots.PlotN`, `Dock.Spawn`.
+- **A signature formation per zone.** All of them are Models with a `Formation` attribute and the lane position (`LaneS`).
+  Most roofs are 80 or more above the floor. The lowest are the gate signs (50) and the reef's coral shelves (56), both
+  under the fish's 60, which is what the Path's `c` is for (below):
+  - **Shallows, Reef Gate:** two sea stacks with a span on top, where the lane leaves the lagoon. It breaks the surface, so
+    it's seen from the dock.
+  - **Coral Reef, Coral Arches:** three arches you ride through, 82 to 95 studs high, with reef clusters on top, and two
+    coral shelves overhanging the lane.
+  - **Kelp Forest, Kelp Cathedral:** ten rock pillars, 140 to 220 tall, alternating sides like a nave, and a natural
+    bridge 150 up.
+  - **Shipwrecks, Broken Hull:** a 240-stud hull lying along the lane, which you ride through. Its deck is broken open
+    overhead. Two smaller wrecks sit on the banks.
+  - **Open Blue, Sea Stacks:** three pairs of stacks, 260 to 380 tall, out in the blue, one pair bridged by a sky arch. Two
+    more stacks frame the shelf break.
+  - **Twilight, Glow Canyon:** steeper canyon walls, seven ledges overhanging from alternate sides, two arches, and teal
+    glow on the walls.
+  - **Midnight, Long Cave:** 750 studs of cave with skylights, glowing growth on its walls and jellies outside.
+  - **Vents, Chimney Field:** five groups of chimneys (a big one with two small ones), glowing and lit, and a black ember
+    arch.
+  - **Bone Graveyard, Leviathan:** you ride for 420 studs under its spine and between its ribs, then out through its skull,
+    which has glowing pink eyes.
+  - **The Underworld, the Throat:** red cracks, a 640-stud fanged cave near the end, then the Megalodon and the end wall.
+- **Matching clusters, composed.** props2's presets ([props.json](../art/props/props.json) `clusters`, the zone's family)
+  are placed whole, in place of v3's random scatter:
+  - huge clusters flank every formation, one on each side;
+  - between the formations, medium and small ones alternate sides about every 190 studs, with a small one higher up the
+    bank behind every third;
+  - lagoon clusters ring the island's curved side, facing the plots.
+
+  Each cluster is a Model (`ClusterName`, `ClusterScale`, `ClusterBase`) of prop placeholders, with the usual `PropName`,
+  `PropScale`, `PropSize` and `PropBase`, so the meshes still swap in 1:1.
+  - Clusters are scaled 1.5 to 2 times along the lane (1.4 to 1.7 in the lagoon), because at 1 they look tiny beside a
+    220-stud lane.
+  - Each piece sits on the slope under it.
+  - Glowing props carry a Neon `Glow` part where their `_glow` mesh goes (attribute `PropGlow`). The first glowing piece of
+    each huge cluster in a glowing zone gets a PointLight.
+- **The look, after Subnautica**, as data for a client controller. It uses classic fog with the Atmosphere taken out, as in
+  [workout 1](style/01-going-down.md).
+  - Each zone folder carries `LookFog`, `LookFogEnd`, `LookAmbient`, `LookOutdoor`, `LookBrightness`, `LookTint` and,
+    where things glow, `LookGlow`.
+  - The `Dive` folder's `Looks` attribute has the same values as JSON, with the `S` where each zone starts, for blending by
+    position along the lane.
+  - **The progression:** turquoise in the shallows (seeing 1,000 studs), cyan on the reef, green in the kelp, murky
+    blue-green at the wrecks and deep blue in the open blue. Then indigo, near black, ember brown, dark violet and blood red
+    at the bottom (seeing 250 studs).
+  - Light shafts (beams) shine over the lagoon, the shallows and the reef, filtered green in the kelp and faint at the
+    wrecks. Below that, the light comes from glow: teal in the canyon and the cave, orange at the vents, pink in the
+    graveyard, red at the bottom.
+  - These numbers are a proposal, as long as workout 1's pick is open.
+  - Nothing reads them yet: the code doesn't set Lighting from them, so Studio shows the place's own lighting.
+- **For the fish spawner:** the `Dive` folder's `Path` is now sampled every 100 studs and has a sixth field: `{ s, x, y, z,
+  w, c }`, where `c` is the clearance above the floor under a roof (arches, the hull, the caves, the ribcage, the skull, the
+  gate bars), and 0 where the water is open. Lane.luau ignores the extra field, so nothing breaks. A spawner should keep fish
+  below `c - 10` wherever `c > 0`. `art/blockout/v4_zones.json` holds the zones, the looks, the formations, the roofs and
+  the path.
+
+![v4 from above, and the side view along the lane in each zone's fog colour](attachments/blockout-v4-views.png)
+![The v4 island: the half circle, the dock and its wings, the plots round the curve](attachments/blockout-v4-island.png)
+![Two zones close up: the reef's arches and the clusters lining it; the leviathan](attachments/blockout-v4-details.png)
+
 ## v3 (2026-11-09): a big island, a diagonal dive, props placed
 **2,227 parts** (the dive 1,806, the island 273, the lagoon 104, the sea 44) and **818 prop placeholders**. On a phone, the fog and
 distance mean only a few hundred parts are ever on screen. v2's depth profile and zone lengths are kept: 10 zones, 23,500
@@ -72,7 +147,9 @@ Studio doesn't need to be running. `rojo build default.project.json -o game.rbxl
   the parts.
 - The repo's rokit.toml has no Lune yet; on Hugo's PC it runs from a folder that has Lune.
 - `python tools/art/map_plot.py <bake.json> <views.png> [island.png]` draws the views from the bake's part dump.
-- `art/blockout/v3_zones.json` holds the zones and the path.
+- `art/blockout/v3_zones.json` holds the zones and the path (v4: `v4_zones.json`).
+- v4: Lune 0.11 runs from `~/Projects/roll-and-surf` (its rokit.toml has it), and map_plot.py needs a Python with OpenCV
+  and numpy.
 - Lune has no Roblox `Random`, so an offline build scatters the props differently from a build in Studio. The layout and
   the counts are the same.
 - The latest build is `~/Documents/RideAFish/ride-a-fish-map.rbxl`. Studio's Flatpak can only see `~/Documents`.

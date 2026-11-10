@@ -1,15 +1,16 @@
 --!strict
--- The riding HUD, all built in code: the Oxygen meter (flashing, with the screen closing in, during grace), speed, the
--- depth gauge with the zone's name, the marker on the fish a dash would take you to, the grapple reticle and its timer,
--- speed lines that come in as you go faster, and the fade when you pass out.
+-- The riding HUD, all built in code: the Oxygen meter (flashing while you drown, the screen closing in), speed, the
+-- depth gauge with the zone's name, the marker on the fish a dash would take you to, the hook reticle with the window's
+-- ring round it (emptying as it runs, pulsing red and ticking for the last Grapple.Warn seconds), speed lines that come
+-- in as you go faster, and the deaths' black and their words (State.Fade and State.FadeText, from DeathController).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
-local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
+local Fx = require(script.Parent.Parent.Lib.Fx)
 local State = require(script.Parent.Parent.Lib.State)
 
 local HudController = {}
@@ -30,9 +31,11 @@ local zoneText: TextLabel
 local depthPip: Frame
 local depthFrame: Frame
 local reticle: Frame
-local reticleTimer: Frame
+local ring: { Frame } = {}
+local ringScale: UIScale
 local fade: Frame
 local fadeText: TextLabel
+local fadeScale: UIScale
 local edges: { Frame } = {}
 local lines: { { frame: Frame, angle: number, offset: number, length: number } } = {}
 local marker: BillboardGui
@@ -183,13 +186,28 @@ local function build()
 		BackgroundColor3 = Color3.new(1, 1, 1),
 	}, reticle)
 	corner(dot, 4)
-	reticleTimer = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, 10),
-		Size = UDim2.fromOffset(64, 6),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BorderSizePixel = 0,
+	-- the window's ring: dots round the reticle that go out one by one as the time runs down
+	local ringFrame = new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(0, 0),
+		BackgroundTransparency = 1,
 	}, reticle)
+	ringScale = new("UIScale", {}, ringFrame)
+	local dots = 40
+	for i = 1, dots do
+		local angle = (i - 1) / dots * math.pi * 2
+		local dotFrame = new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			-- clockwise from the top
+			Position = UDim2.fromOffset(math.sin(angle) * 50, -math.cos(angle) * 50),
+			Size = UDim2.fromOffset(7, 7),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BorderSizePixel = 0,
+		}, ringFrame)
+		corner(dotFrame, 4)
+		table.insert(ring, dotFrame)
+	end
 
 	-- the dash marker on the target fish
 	marker = new("BillboardGui", {
@@ -211,7 +229,7 @@ local function build()
 		Text = "DASH",
 	}, markerRing)
 
-	-- the pass-out fade
+	-- the deaths' black
 	fade = new("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -225,25 +243,24 @@ local function build()
 		TextScaled = true,
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
-		Text = "You passed out...",
+		Text = "",
 		ZIndex = 11,
 	}, fade)
+	fadeScale = new("UIScale", {}, fadeText)
 end
 
 local function updateMeter(now: number)
 	local oxygen = (State.Player:GetAttribute("Oxygen") :: number?) or 0
 	local max = (State.Player:GetAttribute("MaxOxygen") :: number?) or Config.Oxygen.StartMax
 	local fraction = math.clamp(oxygen / math.max(max, 1), 0, 1)
-	local graceEnds = State.Player:GetAttribute("GraceEnds") :: number?
-	local inGrace = graceEnds ~= nil and State.Mode ~= "Dock"
+	local drowning = State.Mode == "Drowning"
 	meterFill.Size = UDim2.fromScale(math.max(fraction, 0.02), 1)
 	local colour = if fraction > 0.5 then AIR elseif fraction > 0.2 then AIR:Lerp(LOW, (0.5 - fraction) / 0.3) else OUT
-	if inGrace then
+	if drowning then
 		local flash = (math.sin(now * 18) + 1) / 2
 		colour = OUT
 		meter.BackgroundColor3 = Color3.fromRGB(60, 10, 10):Lerp(OUT, flash * 0.6)
-		local left = math.max(0, (graceEnds :: number) - workspace:GetServerTimeNow())
-		graceText.Text = string.format("OUT OF AIR!  %.1f", left)
+		graceText.Text = "OUT OF AIR!"
 	else
 		meter.BackgroundColor3 = Color3.fromRGB(15, 30, 50)
 		graceText.Text = ""
@@ -251,11 +268,8 @@ local function updateMeter(now: number)
 	meterFill.BackgroundColor3 = colour
 	meterText.Text = string.format("OXYGEN  %d / %d", math.ceil(oxygen), max)
 
-	-- the screen closes in through grace
-	local closing = 0
-	if inGrace then
-		closing = 1 - math.clamp(((graceEnds :: number) - workspace:GetServerTimeNow()) / Config.Oxygen.Grace, 0, 1)
-	end
+	-- the screen closes in as you drown
+	local closing = State.Vignette
 	for i, edge in edges do
 		edge.Visible = closing > 0
 		local amount = 0.12 + 0.3 * closing
@@ -297,6 +311,7 @@ local function updateMarker()
 end
 
 local reticleAt: Vector2? = nil
+local lastTick = 0
 
 local function updateReticle(dt: number)
 	local aiming = State.Mode == "Aiming"
@@ -324,8 +339,44 @@ local function updateReticle(dt: number)
 	local stroke = reticle:FindFirstChildOfClass("UIStroke") :: UIStroke
 	stroke.Color = if locked then Color3.fromRGB(255, 230, 90) else Color3.fromRGB(200, 200, 200)
 	reticle.Size = if locked then UDim2.fromOffset(52, 52) else UDim2.fromOffset(72, 72)
-	local left = math.clamp((State.AimEnds - os.clock()) / Config.Grapple.AimTime, 0, 1)
-	reticleTimer.Size = UDim2.fromOffset(64 * left, 6)
+
+	-- the ring empties as the window runs; the last Warn seconds pulse red and tick
+	local g = Config.Grapple
+	local secondsLeft = math.max(0, State.AimEnds - os.clock())
+	local left = math.clamp(secondsLeft / g.AimTime, 0, 1)
+	local lit = math.ceil(left * #ring)
+	local warn = secondsLeft <= g.Warn
+	local pulse = if warn then (math.sin(os.clock() * math.pi * 2 / 0.2) + 1) / 2 else 0
+	local colour = if warn
+		then Color3.fromRGB(255, 70, 70):Lerp(Color3.new(1, 1, 1), pulse * 0.4)
+		else Color3.new(1, 1, 1)
+	for i, dotFrame in ring do
+		dotFrame.Visible = i <= lit
+		dotFrame.BackgroundColor3 = colour
+	end
+	ringScale.Scale = 1 + pulse * 0.1
+	if warn and secondsLeft > 0 and os.clock() - lastTick >= 0.2 then
+		lastTick = os.clock()
+		Fx.sound("Tick")
+	end
+end
+
+local shownText = ""
+
+local function updateFade()
+	fade.BackgroundTransparency = 1 - State.Fade
+	if State.FadeText ~= shownText then
+		shownText = State.FadeText
+		fadeText.Text = shownText
+		if shownText ~= "" then
+			fadeScale.Scale = 1.6
+			TweenService:Create(fadeScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		end
+	end
+	local textAlpha = if shownText ~= "" then State.Fade else 0
+	fadeText.TextTransparency = 1 - textAlpha
+	fadeText.TextStrokeTransparency = 1 - textAlpha * 0.7
+	fadeText.TextColor3 = if shownText == "EATEN!" then OUT else Color3.new(1, 1, 1)
 end
 
 local function updateLines(now: number)
@@ -356,21 +407,10 @@ end
 
 function HudController.Start()
 	build() -- in Start: it waits for PlayerGui
-	Net.Ride.OnClientEvent:Connect(function(kind: string)
-		if kind == "PassOut" then
-			local info = TweenInfo.new(Config.Oxygen.PassOutFade * 0.6)
-			TweenService:Create(fade, info, { BackgroundTransparency = 0 }):Play()
-			TweenService:Create(fadeText, info, { TextTransparency = 0, TextStrokeTransparency = 0.3 }):Play()
-		elseif kind == "Respawned" then
-			local info = TweenInfo.new(0.8)
-			TweenService:Create(fade, info, { BackgroundTransparency = 1 }):Play()
-			TweenService:Create(fadeText, info, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-		end
-	end)
 	RunService.RenderStepped:Connect(function(dt)
 		local now = os.clock()
 		local inWater = State.inWater()
-		meter.Visible = inWater or State.Mode == "PassedOut"
+		meter.Visible = inWater
 		depthFrame.Visible = true
 		speedText.Text = if inWater then string.format("%d st/s", math.floor(State.Speed + 0.5)) else ""
 		updateMeter(now)
@@ -378,6 +418,7 @@ function HudController.Start()
 		updateMarker()
 		updateReticle(dt)
 		updateLines(now)
+		updateFade()
 	end)
 end
 

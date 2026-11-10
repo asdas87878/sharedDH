@@ -1,4 +1,4 @@
-"""Top and side views of the blockout (v3 on): every part's footprint from above, the island close up, and the lane's floor
+"""Top and side views of the blockout (v3 on; v4 adds each zone's fog colour and the formations' roofs to the side view): every part's footprint from above, the island close up, and the lane's floor
 along its path from the island to the end of the trench.
 
 usage: python tools/art/map_plot.py <bake.json> <out.png> [island.png]
@@ -14,6 +14,7 @@ RIDE_SPEED = 55  # studs a second, the reference's measured riding speed
 EXAGGERATE = 4  # vertical exaggeration in the side view
 
 data = json.load(open(sys.argv[1]))
+version = data.get("Version", 3)
 out = sys.argv[2]
 parts = data["PartDump"]
 zones = data["Zones"]
@@ -74,7 +75,7 @@ total = path[-1][0]
 deepest = -min(s[2] for s in path)
 top = top_view(
     1100, 1100, min(xs) - 600, max(xs) + 600, min(zs) - 200, max(zs) + 400, lambda p: True,
-    f"Blockout v3 from above: {data['Parts']:,} parts, {data['PropModels']} prop placeholders",
+    f"Blockout v{version} from above: {data['Parts']:,} parts, {data['PropModels']:,} prop placeholders",
 )
 
 # the side view: the floor along the lane's path (distance along it), with the zones
@@ -95,17 +96,33 @@ def spx(s, y):
     return int(LEFT + (s + start) * sx), int(TOP - y * sy)
 
 
+for zone in zones:  # v4: each zone's water in its own fog colour, darkening with depth
+    look = zone.get("Look")
+    if not look:
+        continue
+    r, g, b = look["Fog"]
+    x0, x1 = spx(zone["Z0"] - start, 0)[0], spx(zone["Z1"] - start, 0)[0]
+    for row in range(TOP, H):
+        t = min(1.0, (row - TOP) / (H - TOP)) * 0.35
+        side[row, x0:x1] = (int(b * (1 - t)), int(g * (1 - t)), int(r * (1 - t)))
 pts = [spx(-start, -30)] + [spx(s[0], s[2]) for s in path]
 poly = np.array(pts + [(pts[-1][0], H), (pts[0][0], H)], np.int32)
 cv2.fillPoly(side, [poly], (60, 75, 95))
 cv2.polylines(side, [np.array(pts, np.int32)], False, (190, 230, 250), 2, cv2.LINE_AA)
+for s in path:  # v4: the roofs over the lane (arches, caves, the ribcage), drawn at their clearance above the floor
+    if len(s) > 5 and s[5] > 0:
+        x, y = spx(s[0], s[2] + s[5])
+        cv2.line(side, (x - 3, y), (x + 3, y), (40, 40, 40), 3)
 for i, zone in enumerate(zones):
     s0, s1 = zone["Z0"] - start, zone["Z1"] - start
     x0, y0 = spx(s0, zone["Y0"])
     cv2.line(side, (x0, TOP), (x0, y0), (235, 235, 235), 1, cv2.LINE_AA)
     mid = (x0 + spx(s1, 0)[0]) // 2
-    row = TOP + 24 + (i % 3) * 34
-    for text, size, dy in ((zone["Name"].title(), 0.45, 0), (f"{zone['Metres']:,} m, {(s1 - s0) / RIDE_SPEED:.0f} s", 0.38, 14)):
+    row = TOP + 24 + (i % 3) * 44
+    rows = [(zone["Name"].title(), 0.45, 0), (f"{zone['Metres']:,} m, {(s1 - s0) / RIDE_SPEED:.0f} s", 0.38, 14)]
+    if zone.get("Signature"):
+        rows.append((zone["Signature"], 0.36, 27))
+    for text, size, dy in rows:
         w = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, size, 1)[0][0]
         cv2.putText(side, text, (mid - w // 2, row + dy), cv2.FONT_HERSHEY_SIMPLEX, size, (255, 255, 255), 1, cv2.LINE_AA)
 for d in range(0, int(total), 4000):
@@ -114,7 +131,7 @@ for d in range(0, int(total), 4000):
 cv2.putText(side, "distance from the island along the lane", (W - 330, H - 26), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 255), 1, cv2.LINE_AA)
 cv2.putText(side, f"Side view along the lane: {total:,.0f} studs of lane, {deepest:,.0f} deep,", (LEFT, 34),
             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (40, 40, 40), 2, cv2.LINE_AA)
-cv2.putText(side, f"about {total / RIDE_SPEED / 60:.0f} min at {RIDE_SPEED} studs/s. Height drawn x{EXAGGERATE}; drops are ramps now.",
+cv2.putText(side, f"about {total / RIDE_SPEED / 60:.0f} min at {RIDE_SPEED} studs/s. Height x{EXAGGERATE}; water in each zone's fog colour; dark dashes = roofs over the lane.",
             (LEFT, 62), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (40, 40, 40), 2, cv2.LINE_AA)
 
 cv2.imwrite(out, np.vstack([top, side]))
@@ -123,7 +140,7 @@ print(out)
 if len(sys.argv) > 3:
     island = top_view(
         1000, 1000, ox - 1000, ox + 1000, -1000, 1000, lambda p: abs(p["y"]) < 200,
-        "v3 island and lagoon from above (2,000 x 2,000 studs)", labels=False,
+        f"v{version} island and lagoon from above (2,000 x 2,000 studs)", labels=False,
     )
     cv2.imwrite(sys.argv[3], island)
     print(sys.argv[3])

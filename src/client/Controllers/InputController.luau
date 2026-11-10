@@ -1,9 +1,10 @@
 --!strict
 -- Inputs for PC, gamepad and mobile while underwater:
---   Jump (Space, gamepad A, the mobile jump button): dash to the marked fish; with none marked, jump off and aim the
---     grapple; while aiming, fire.
---   Dash (E, gamepad X, a touch button): dash only. Hook (F or Q, gamepad Y, a touch button): jump off and aim, always.
---   Left click while aiming fires. On the dock, jumping is the normal jump.
+--   Jump (Space, gamepad A, the mobile jump button): dash to the marked fish; with none marked, jump off into the hook
+--     window; in the window, fire (the one shot).
+--   Dash (E, gamepad X, a touch button): dash only. Hook (F or Q, gamepad Y, a touch button): jump off into the window,
+--     always. In the window either one fires too, and so does a left click. On the dock, jumping is the normal jump.
+--   Nothing works while dying (eaten or drowning): the buttons go away.
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -48,7 +49,7 @@ local function onHook(_name: string, inputState: Enum.UserInputState): Enum.Cont
 end
 
 local function rebind()
-	local want = State.inWater()
+	local want = State.inWater() and not State.dying()
 	if want == bound then
 		return
 	end
@@ -72,7 +73,7 @@ function InputController.Init()
 		local t = os.clock()
 		local fresh = t - lastJump > 0.2
 		lastJump = t
-		if fresh and State.inWater() then
+		if fresh and State.inWater() and not State.dying() then
 			onJump()
 		end
 	end)

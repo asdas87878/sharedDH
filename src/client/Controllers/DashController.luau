@@ -2,8 +2,9 @@
 -- The corkscrew dash, fish to fish: picks the fish ahead (within Dash.Range, in a Dash.Cone cone round the fish's heading,
 -- or the camera's while floating) for the HUD to mark, asks the server, and on its go swims the character there along a
 -- bowed path, rolling Dash.Spins turns round the line of travel on a spiral that opens and closes, head first like a
--- swimmer, easing in and out, then snapping onto the saddle. The server mounts us when the time is up (and refills
--- Oxygen); the landing ring and squash come from its Fx "Land" for everyone.
+-- swimmer, easing in and out. The path ends where the saddle will be when we arrive (re-aimed every frame), and the
+-- last Dash.Blend seconds blend position and turn onto the saddle, so nothing snaps. The server mounts us when the time
+-- is up (and refills Oxygen); the landing ring, bubble burst and squash come from its Fx "Land" for everyone.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -13,6 +14,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Actions = require(script.Parent.Parent.Lib.Actions)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local State = require(script.Parent.Parent.Lib.State)
+local RideController = require(script.Parent.RideController)
 
 local DashController = {}
 
@@ -83,7 +85,9 @@ local function step()
 	end
 	local u = math.clamp(t / duration, 0, 1)
 	local e = Ease.inOutSine(u)
-	local goal = goalFrame.Position
+	local fishRoot = (target :: Model).PrimaryPart
+	local fishVelocity = if fishRoot then fishRoot.AssemblyLinearVelocity else Vector3.zero
+	local goal = goalFrame.Position + fishVelocity * math.max(0, duration - t)
 	local span = goal - from
 	local mid = (from + goal) / 2 + Vector3.new(0, math.min(d.ArcHeight, span.Magnitude * 0.15), 0)
 	-- a quadratic bezier and its tangent
@@ -99,14 +103,11 @@ local function step()
 	-- head first along the path, rolling; standing back up for the saddle near the end
 	local headFirst = (1 - Ease.smoothstep(0.7, 1, u)) * math.pi / 2
 	local body = CFrame.lookAt(spun, spun + tangent) * CFrame.Angles(0, 0, -angle) * CFrame.Angles(-headFirst, 0, 0)
-	local snapFrom = duration - d.Snap
-	if t >= snapFrom then
-		body = body:Lerp(goalFrame, math.clamp((t - snapFrom) / d.Snap, 0, 1))
-	end
+	body = body:Lerp(goalFrame, Ease.smoothstep(duration - d.Blend, duration, t))
 	root.CFrame = body
-	root.AssemblyLinearVelocity = if u < 1 then tangent.Unit * span.Magnitude / duration else Vector3.zero
+	root.AssemblyLinearVelocity = if u < 1 then tangent.Unit * span.Magnitude / duration else fishVelocity
 	root.AssemblyAngularVelocity = Vector3.zero
-	State.Speed = if u < 1 then span.Magnitude / duration else 0
+	State.Speed = if u < 1 then span.Magnitude / duration else fishVelocity.Magnitude
 end
 
 function DashController.Init()
@@ -122,6 +123,7 @@ function DashController.Init()
 			started = os.clock()
 			from = root.Position
 			dashing = true
+			RideController.coast(State.Fish)
 			State.Fish = nil
 			State.FovKick = Config.Dash.FovKick
 			State.setMode("Dashing")
@@ -146,6 +148,11 @@ function DashController.Init()
 		elseif kind == "Land" and typeof(fish) == "Instance" then
 			local tier = Config.Tiers[fish:GetAttribute("Tier") :: string]
 			Fx.landing(character, fish, State.Squash, if tier then tier.Colour else Color3.new(1, 1, 1))
+			if player == State.Player then
+				-- the small camera kick on our own landing
+				State.shake(Config.Burst.Kick, 0.3)
+				State.FovKick += 3
+			end
 		end
 	end)
 	State.ModeChanged.Event:Connect(function(mode: string)

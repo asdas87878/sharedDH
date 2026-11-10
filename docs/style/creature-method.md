@@ -18,7 +18,8 @@ and the water colour tints everything ([workout 1](01-going-down.md)).
 2. **One kit for every creature:**
    - **The body** is 4 to 6 chunky segments along a spine. That's also how it swims: each segment follows the one in front, so
      every creature moves the same way.
-   - **Shared pieces:** one set of fins, eyes and teeth.
+   - **Shared pieces:** one set of fins, eyes and teeth. The eye comes in two looks, picked by the concept: a cream square
+     with a black square in it, or a plain black square (the user, 2026-11-09).
    - **Colours:** 3 or 4 flat colour areas (body, belly, accent, eyes), so the Silver and Golden versions and the Tiny to Giant
      sizes come almost free.
    - **Proportions** come from the kit's rules, not from a picture.
@@ -39,3 +40,6 @@ and the water colour tints everything ([workout 1](01-going-down.md)).
    - **Rebuild it for the game's 3D view:** a shape that only shows side-on gets pushed where the riding camera sees it, like the
      back or the width of the head.
    - **Keep or drop each shape** by a before and after from the game camera.
+
+**Proposed additions** (2026-11-09, from the first three concepts after the Sergeant Major, not agreed yet): rules for every
+creature and three body plans (fish, shell, disc) in [workout 3](03-creature-set.md).

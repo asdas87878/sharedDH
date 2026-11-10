@@ -1,6 +1,6 @@
 --!strict
--- Every tuning number for the dive's first playable draft, from docs/design/riding-feel.md (starting numbers, to tune in
--- play). Speeds in studs a second, times in seconds, angles in degrees.
+-- Every tuning number for the dive, from docs/design/riding-feel.md (the starting numbers and round 2's, to tune in play).
+-- Speeds in studs a second, times in seconds, angles in degrees.
 
 export type Tier = {
 	Idle: number, -- idle swim speed of a wild fish
@@ -54,15 +54,17 @@ local TIER_REQUIRED = { Common = 1, Uncommon = 2, Rare = 4, Epic = 8, Legendary 
 
 Config.Oxygen = {
 	StartMax = 100, -- max Oxygen before any training
-	FreeDrain = 4, -- a second while off a fish (floating, aiming); our guess, so floating can't last forever
-	Grace = 3, -- seconds at zero Oxygen before you pass out
+	FreeDrain = 4, -- a second while floating off a fish (not in the hook window); our guess, so it can't last forever
 	FloatSpeed = 6, -- rising while off a fish
 	SwimSpeed = 8, -- the little steering you get while floating
 	SurfaceY = -3, -- floating stops here
 	WaterY = -4, -- below this, a player on the dock counts as in the water
 	Refill = 0.25, -- of max Oxygen, on landing a dash or grapple
-	PassOutFade = 1.2, -- the fade before waking at the dock
-	DockRadius = 160, -- surfacing this close to the dock puts you back on it
+	DockRadius = 520, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (map v4: the board ends 111 out, the lagoon is about 950 across)
+	DockWait = 2.5, -- seconds at the surface first, so diving in off the board leaves time to dash or grapple
+	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
+	-- "TestMaxOxygen" attribute overrides it live (0 turns it off).
+	StudioMax = 0,
 }
 
 Config.Ride = {
@@ -89,18 +91,58 @@ Config.Dash = {
 	ArcHeight = 4, -- the path bows up by this much at most
 	FovKick = 8,
 	Cooldown = 0.3, -- after landing
-	Snap = 0.08, -- the last part of the move snaps onto the saddle
+	Blend = 0.15, -- the last part of the move blends position and turn onto the saddle
 }
 
+-- The hook window (round 2): jumping off opens it; one shot, and a miss or running out of time gets you eaten
 Config.Grapple = {
-	AimTime = 1.2, -- the aim window, real seconds
-	TimeScale = 0.3, -- local slow-mo while aiming
+	AimTime = 2.5, -- the window, real seconds; the server owns it
+	TimeScale = 0.25, -- local slow-mo while aiming
+	SlowIn = 0.15, -- the slow-mo comes in over this
+	SlowOut = 0.25, -- and eases back to 1x over this from the shot
+	Warn = 0.8, -- the ring pulses red and ticks for the last part
 	Range = 90,
-	Cone = 20, -- full angle round the camera's aim
-	FlyTime = 0.12, -- the rope flying out
-	ReelTime = 0.6, -- reeling yourself in, speeding up
-	Cooldown = 1, -- after firing, before the next aim window
+	Cone = 30, -- full angle round the camera's aim
+	Sticky = 0.25, -- the reticle holds its fish unless another scores this much better (cone fractions)
+	FlyTime = 0.15, -- the rope flying out
+	ReelTime = 0.7, -- reeling yourself in, easing in
+	Blend = 0.15, -- the last part of the reel blends onto the saddle
+	Slack = 0.15, -- the server waits this long past the window for a late shot (lag)
 	Pop = 10, -- the little hop up when you jump off
+}
+
+Config.Switch = {
+	CameraSettle = 0.4, -- the camera settles behind the new fish over this
+	HandBack = 1.5, -- the old fish stays with its last rider's client this long, coasting, before the server takes it
+}
+
+-- The bubble burst on every landing (dash or hook), for everyone
+Config.Burst = {
+	Count = 30,
+	Time = 0.6,
+	Reach = 4, -- studs the bubbles fly out
+	Kick = 0.5, -- the local camera's kick, studs
+}
+
+-- The deaths (round 2). No input in either; both end at the dock.
+local EATEN = { Darken = 0.6, Rise = 1.0, Chomp = 0.4, Black = 1.5 }
+local DROWN = { Throw = 0.8, Struggle = 2.5, Weak = 1.2, Still = 0.8, Tail = 0.2 }
+Config.Death = {
+	-- a miss: the eater comes up from the dark
+	Darken = EATEN.Darken, -- the slow-mo lets go, the water darkens
+	Rise = EATEN.Rise, -- the big fish rises, jaws opening, the camera pulled back
+	Chomp = EATEN.Chomp, -- the chomp, a shake, the cut to black
+	Black = EATEN.Black, -- on black, "EATEN!"
+	EatenTime = EATEN.Darken + EATEN.Rise + EATEN.Chomp + EATEN.Black,
+	EaterLength = 42,
+	-- out of Oxygen: thrown off (when on a fish), then drowning
+	Throw = DROWN.Throw,
+	ThrowBack = 8, -- studs up and back
+	Struggle = DROWN.Struggle, -- flailing, a steady stream of bubbles
+	Weak = DROWN.Weak, -- the bubbles thin out
+	Still = DROWN.Still, -- still and sinking, the last bubble
+	DrownFade = 0.7, -- the fade to black, ending with the drown
+	DrownTime = DROWN.Throw + DROWN.Struggle + DROWN.Weak + DROWN.Still + DROWN.Tail, -- less Throw when not thrown
 }
 
 Config.Net = {
@@ -119,18 +161,26 @@ Config.Camera = {
 }
 
 Config.Spawn = {
-	ActiveZones = 4, -- the first version ships the first four zones
-	PerThousand = 10, -- wild fish per 1,000 studs of lane
-	Min = 12,
-	Max = 40, -- per zone
-	MaxTotal = 140,
+	-- Round 2 spreads fish evenly along the lane's path: cut into Slice-stud slices, every slice keeps at least one fish
+	-- (the dive board's keeps BoardSlice), and new fish go into the emptiest slice. The spec's 8 per 1,000 would make
+	-- fewer fish than v3 had; the user asked for more in all, so 12 (to tune).
+	PerThousand = 12, -- wild fish per 1,000 studs of lane
+	Min = 20,
+	Max = 80, -- per zone
+	-- Fish go in every zone along the whole lane that has a roster (a fish type that can turn up there: today zones 1
+	-- to 6, the four homes plus two zones of reach); zones with none stay empty until their fish exist. 12 a 1,000 over
+	-- zones 1 to 6 makes about 171; all ten zones would make about 290, so the cap sits above that.
+	MaxTotal = 320,
+	Slice = 120,
+	BoardSlice = 2,
+	Wander = 80, -- a fish wanders this far either way along the lane from its home
 	TopUpEvery = 2,
-	PerTopUp = 4,
+	PerTopUp = 6,
 	HeightMin = 10, -- above the lane's floor
 	HeightMax = 60,
-	LaneFill = 0.4, -- fraction of the lane's half width fish use
-	StartCluster = 6, -- extra fish kept in the lane's first StartLength studs, in reach of the dive board
-	StartLength = 160,
+	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
+	LaneFill = 0.7, -- fraction of the lane's half width fish use
+	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
 }
 

@@ -1,9 +1,12 @@
 --!strict
--- The grapple: jumping off a fish (or the Hook button while floating) opens an aim window of Grapple.AimTime real
--- seconds. Our own view slows to Grapple.TimeScale (the camera, our float and the fish's tail beats; the world's physics
--- doesn't change), the colours cool and blur a little, and the reticle snaps to the fish nearest the aim in a
--- Grapple.Cone cone out to Grapple.Range. Fire, the hook flies out on its rope, and once the server agrees we reel in,
--- speeding up, onto the fish's saddle. The server mounts us at the end and refills Oxygen, as for a dash.
+-- The hook window (round 2, docs/design/riding-feel.md). Jumping off a fish (or the Hook button while floating) opens it
+-- at once on our side for Grapple.AimTime real seconds; the server opens its own and owns the outcome. Our view slows
+-- to Grapple.TimeScale (the camera, our float and the fish's tail beats; the world's physics doesn't change), easing in
+-- over Grapple.SlowIn, and the colours cool and blur a little. The reticle snaps to the best fish in a Grapple.Cone cone
+-- out to Grapple.Range and holds it (sticky). One shot: on a fish, the hook flies out over Grapple.FlyTime and we reel in
+-- over Grapple.ReelTime on an ease-in curve, aimed at where the saddle will be when we arrive (re-aimed every frame),
+-- the last Grapple.Blend seconds blending position and turn onto it; the slow-mo eases back over Grapple.SlowOut. A shot
+-- at nothing, or the window running out, is a miss: the eater (DeathController) takes over.
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -24,10 +27,10 @@ local blur: BlurEffect
 local rope: Fx.Rope? = nil
 local target: Model? = nil
 local firedAt = 0
-local holdAt: CFrame? = nil -- where we wait while the hook flies
-local reelFrom: Vector3? = nil
-local reelStart = math.huge
-local reelTime = Config.Grapple.ReelTime
+local holdAt: CFrame? = nil -- where we hang while the hook flies
+local wasAiming = false
+local leftAimAt = -math.huge -- os.clock() the window ended (the shot, or the miss)
+local leftScale = 1 -- the time scale then
 local others: { [Player]: Fx.Rope } = {}
 
 local function stopRope()
@@ -37,31 +40,41 @@ local function stopRope()
 	end
 	target = nil
 	holdAt = nil
-	reelFrom = nil
-	reelStart = math.huge
 end
 
 local function beginAim(): boolean
 	local mode = State.Mode
-	if (mode ~= "Riding" and mode ~= "Free") or os.clock() < State.GrappleReadyAt then
+	if mode ~= "Riding" and mode ~= "Free" then
 		return false
 	end
 	if mode == "Riding" then
-		Net.Action:FireServer("JumpOff")
+		RideController.coast(State.Fish)
 		State.Fish = nil
 		RideController.pop()
 	end
+	Net.Action:FireServer("JumpOff")
 	State.AimEnds = os.clock() + Config.Grapple.AimTime
 	State.AimTarget = nil
 	State.setMode("Aiming")
 	return true
 end
 
+-- A shot at nothing or the window running out: tell the server at once, and the eater comes
+local function miss()
+	Net.Action:FireServer("Grapple", nil)
+	State.AimTarget = nil
+	State.setMode("Eaten")
+end
+
 local function fire(): boolean
+	if State.Mode ~= "Aiming" then
+		return false
+	end
 	local fish = State.AimTarget
 	local character, root = State.character()
-	if State.Mode ~= "Aiming" or not fish or not character or not root then
-		return false
+	if not fish or not character or not root then
+		miss()
+		return true
 	end
 	local g = Config.Grapple
 	Net.Action:FireServer("Grapple", fish)
@@ -70,16 +83,9 @@ local function fire(): boolean
 	rope = Fx.rope(character, fish, g.FlyTime)
 	firedAt = os.clock()
 	holdAt = root.CFrame
-	State.GrappleReadyAt = firedAt + g.FlyTime + g.ReelTime + g.Cooldown
 	State.AimTarget = nil
 	State.setMode("Grappling")
 	return true
-end
-
-local function endAimMiss()
-	State.AimTarget = nil
-	local server = State.Player:GetAttribute("State")
-	State.setMode(if server == "Dock" or server == "PassedOut" then server else "Free")
 end
 
 local function saddleOf(fish: Model?): CFrame?
@@ -91,25 +97,49 @@ local function saddleOf(fish: Model?): CFrame?
 	return nil
 end
 
-local function step(dt: number)
-	local mode = State.Mode
-	local _, root = State.character()
-
-	-- the slow-mo eases in fast and out a touch slower (real time)
-	local aiming = mode == "Aiming"
-	local goalScale = if aiming then Config.Grapple.TimeScale else 1
-	State.TimeScale = Ease.lerp(State.TimeScale, goalScale, Ease.alpha(if aiming then 18 else 10, dt))
-	local slow = (1 - State.TimeScale) / (1 - Config.Grapple.TimeScale)
+-- The slow-mo: eases in while aiming, and back to 1x over SlowOut from the shot (or Death.Darken from a miss)
+local function timeScaleStep(dt: number)
+	local g = Config.Grapple
+	local aiming = State.Mode == "Aiming"
+	if aiming then
+		wasAiming = true
+		State.TimeScale = math.max(g.TimeScale, State.TimeScale - (1 - g.TimeScale) * dt / g.SlowIn)
+	else
+		if wasAiming then
+			wasAiming = false
+			leftAimAt = os.clock()
+			leftScale = State.TimeScale
+		end
+		local length = if State.Mode == "Eaten" then Config.Death.Darken else g.SlowOut
+		local u = (os.clock() - leftAimAt) / length
+		State.TimeScale = Ease.lerp(leftScale, 1, Ease.smoothstep(0, 1, u))
+	end
+	local slow = (1 - State.TimeScale) / (1 - g.TimeScale)
 	tint.Saturation = -0.35 * slow
 	tint.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(200, 230, 255), slow)
 	blur.Size = 6 * slow
+end
 
-	if aiming and root then
-		local g = Config.Grapple
-		State.AimTarget =
-			State.bestInCone(root.Position, workspace.CurrentCamera.CFrame.LookVector, g.Range, g.Cone, 0.15)
+local function step(dt: number)
+	timeScaleStep(dt)
+	local mode = State.Mode
+	local _, root = State.character()
+	local g = Config.Grapple
+
+	if mode == "Aiming" then
+		if root then
+			State.AimTarget = State.bestInCone(
+				root.Position,
+				workspace.CurrentCamera.CFrame.LookVector,
+				g.Range,
+				g.Cone,
+				0.15,
+				State.AimTarget,
+				g.Sticky
+			)
+		end
 		if os.clock() >= State.AimEnds then
-			endAimMiss()
+			miss()
 		end
 		return
 	end
@@ -119,36 +149,42 @@ local function step(dt: number)
 	end
 	local goal = saddleOf(target)
 	local t = os.clock()
-	if not goal or t > firedAt + Config.Grapple.FlyTime + reelTime + 1.5 then
+	if not goal or t > firedAt + g.FlyTime + g.ReelTime + 1.5 then
+		-- the fish went, or the server never answered: its state takes over
 		stopRope()
-		endAimMiss()
 		return
 	end
-	if t < reelStart then -- the hook is still flying (or the server hasn't said yes yet): hang where we fired
-		local hold = holdAt or root.CFrame
+	local hold = holdAt or root.CFrame
+	local reelStart = firedAt + g.FlyTime
+	if t < reelStart then -- the hook is still flying: hang where we fired, turning to the fish
 		root.CFrame = CFrame.lookAt(hold.Position, goal.Position)
 		root.AssemblyLinearVelocity = Vector3.zero
 		root.AssemblyAngularVelocity = Vector3.zero
 		return
 	end
-	local start = reelFrom or root.Position
-	reelFrom = start
-	local u = math.clamp((t - reelStart) / reelTime, 0, 1)
-	local e = Ease.inQuad(u)
-	local position = start:Lerp(goal.Position, e)
-	local towards = goal.Position - position
-	local lean = (1 - Ease.smoothstep(0.75, 1, u)) * math.rad(70)
+	local u = math.clamp((t - reelStart) / g.ReelTime, 0, 1)
+	-- aim at where the saddle will be on arrival
+	local fishRoot = (target :: Model).PrimaryPart
+	local fishVelocity = if fishRoot then fishRoot.AssemblyLinearVelocity else Vector3.zero
+	local arriveIn = math.max(0, reelStart + g.ReelTime - t)
+	local predicted = goal.Position + fishVelocity * arriveIn
+	local start = hold.Position
+	local position = start:Lerp(predicted, Ease.inQuad(u))
+	local towards = predicted - position
+	local lean = (1 - Ease.smoothstep(0.6, 1, u)) * math.rad(70)
 	local body = if towards.Magnitude > 0.1
-		then CFrame.lookAt(position, goal.Position) * CFrame.Angles(-lean, 0, 0)
+		then CFrame.lookAt(position, predicted) * CFrame.Angles(-lean, 0, 0)
 		else goal
-	if u > 0.85 then
-		body = body:Lerp(goal, (u - 0.85) / 0.15)
-	end
+	-- the last part blends position and turn onto the saddle itself
+	local blendFrom = 1 - g.Blend / g.ReelTime
+	body = body:Lerp(goal, Ease.smoothstep(blendFrom, 1, u))
 	root.CFrame = body
-	local speed = 2 * u * (goal.Position - start).Magnitude / reelTime
-	root.AssemblyLinearVelocity = if towards.Magnitude > 0.1 then towards.Unit * speed else Vector3.zero
+	local speed = 2 * u * (predicted - start).Magnitude / g.ReelTime
+	root.AssemblyLinearVelocity = if u < 1 and towards.Magnitude > 0.1
+		then towards.Unit * speed + fishVelocity * u
+		else fishVelocity
 	root.AssemblyAngularVelocity = Vector3.zero
-	State.Speed = speed
+	State.Speed = if u < 1 then speed else fishVelocity.Magnitude
 end
 
 function GrappleController.Init()
@@ -163,29 +199,14 @@ function GrappleController.Init()
 	blur.Size = 0
 	blur.Parent = Lighting
 
-	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, b: any, c: any)
-		if kind == "GrappleStart" then
-			if State.Mode ~= "Grappling" or a ~= target then
-				-- the server agreed to a grapple we'd given up on: follow it anyway
-				local character, root = State.character()
-				if not character or not root then
-					return
-				end
-				stopRope()
-				target = a
-				rope = Fx.rope(character, a, b)
-				firedAt = os.clock()
-				holdAt = root.CFrame
-				State.setMode("Grappling")
-			end
-			reelTime = if type(c) == "number" then c else Config.Grapple.ReelTime
-			reelStart = math.max(os.clock(), firedAt + (if type(b) == "number" then b else Config.Grapple.FlyTime))
-		elseif kind == "Mounted" or (kind == "Dismounted" and a == "Lost") then
+	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any)
+		if kind == "Mounted" or (kind == "Dismounted" and a == "Lost") then
 			stopRope()
 		elseif kind == "Denied" and a == "Grapple" then
+			-- the server wouldn't allow the shot: that's a miss, and it has already sent the eater
 			stopRope()
-			if State.Mode == "Grappling" then
-				endAimMiss()
+			if State.Mode == "Grappling" or State.Mode == "Aiming" then
+				State.setMode("Eaten")
 			end
 		end
 	end)

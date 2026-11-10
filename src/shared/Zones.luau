@@ -136,6 +136,21 @@ function Zones.discover(): { Zone }
 	return link(list)
 end
 
+-- Server only: the lane's exact centreline as JSON, if the map's dive folder carries one (v3's "Path", or "LanePath")
+function Zones.pathJson(): string?
+	local dive = findDive()
+	if not dive then
+		return nil
+	end
+	for _, name in { "Path", "LanePath" } do
+		local json = dive:GetAttribute(name)
+		if type(json) == "string" then
+			return json
+		end
+	end
+	return nil
+end
+
 function Zones.encode(list: { Zone }): string
 	local out = {}
 	for _, zone in list do

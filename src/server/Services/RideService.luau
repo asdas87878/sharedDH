@@ -1,11 +1,16 @@
 --!strict
--- Riding, Oxygen and moving fish to fish, all decided here (docs/design/riding-feel.md); clients only steer and animate.
--- Per player: a state (Dock, Riding, Free, Dashing, Grappling, PassedOut, mirrored in the player's State attribute), the
--- Oxygen meter, and the fish they're on.
---   Riding drains the fish's Drain a second. At zero you're knocked off: Free with Oxygen.Grace seconds to reach a fish.
---   Free (off a fish, floating up) drains Oxygen.FreeDrain. Grace running out passes you out: a fade, then the dock.
---   Dash and Grapple are checked here (state, cooldown, range with lag slack, the fish not taken), the fish reserved for
---   the move, and the landing (a mount plus the refill) happens on the server's clock when the move's time is up.
+-- Riding, Oxygen, moving fish to fish and dying, all decided here (docs/design/riding-feel.md, round 2); clients only
+-- steer and animate. Per player: a state (Dock, Free, Riding, Hooking, Dashing, Grappling, Eaten, Drowning, mirrored in
+-- the player's State attribute), the Oxygen meter, and the fish they're on.
+--   Riding drains the fish's Drain a second. At zero the fish throws you off and you drown (Drowning, DeathAt).
+--   Jumping off (or the hook from Free) opens the hook window (Hooking, HookEnds): Grapple.AimTime real seconds, no drain,
+--   one shot. A shot on a fish reels you onto it; a shot at nothing, a shot the server can't allow, or the window running
+--   out (plus Grapple.Slack for lag) is a miss, and the eater gets you (Eaten, DeathAt).
+--   Free (in the water off a fish: diving in off the dock, or a lost landing) drains Oxygen.FreeDrain; at zero you drown,
+--   without the throw.
+--   Dash and Grapple are checked here (state, range with lag slack, the fish not taken), the fish reserved for the move,
+--   and the landing (a mount plus the refill) happens on the server's clock when the move's time is up.
+--   Both deaths take no input and end at the dock.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -22,15 +27,15 @@ type Rider = {
 	Max: number,
 	Fish: Wild?,
 	Weld: Weld?,
-	GraceEnds: number?,
-	Token: number, -- bumps on every move, so a stale landing does nothing
+	HookEnds: number?, -- server time the hook window shuts
+	Token: number, -- bumps on every move and death, so a stale landing or respawn does nothing
 	DashReadyAt: number,
-	GrappleReadyAt: number,
 	SentOxygen: number,
 	SentAt: number,
 	CheckAt: number,
 	CheckFrom: Vector3?,
 	Flagged: boolean,
+	SurfacedAt: number?, -- os.clock() a Free rider came up near the dock
 }
 
 local RideService = {}
@@ -70,7 +75,30 @@ local function findDockSpawn(): BasePart?
 	return nil
 end
 
+-- Max Oxygen: the start value, or in Studio the test override (workspace attribute, else Config)
+local function maxOxygen(): number
+	if RunService:IsStudio() then
+		local live = workspace:GetAttribute("TestMaxOxygen")
+		local test = if type(live) == "number" then live else Config.Oxygen.StudioMax
+		if test > 0 then
+			return test
+		end
+	end
+	return Config.Oxygen.StartMax
+end
+
 local function setState(r: Rider, state: string)
+	if state ~= "Free" then
+		r.SurfacedAt = nil
+	end
+	if state ~= "Hooking" and r.HookEnds then
+		r.HookEnds = nil
+		r.Player:SetAttribute("HookEnds", nil)
+	end
+	if state ~= "Eaten" and state ~= "Drowning" then
+		r.Player:SetAttribute("DeathAt", nil)
+		r.Player:SetAttribute("DeathThrown", nil)
+	end
 	r.State = state
 	r.Player:SetAttribute("State", state)
 end
@@ -85,16 +113,12 @@ local function sendOxygen(r: Rider, force: boolean?)
 	end
 end
 
-local function setGrace(r: Rider, ends: number?)
-	r.GraceEnds = ends
-	r.Player:SetAttribute("GraceEnds", ends)
-end
-
 local function deny(r: Rider, action: string, reason: string)
 	Net.Ride:FireClient(r.Player, "Denied", action, reason)
 end
 
-local function dismount(r: Rider, reason: string)
+-- Off the fish. A switch or a jump-off lets our client coast the old fish a while (no hitch in front of us).
+local function dismount(r: Rider, reason: string, handBack: boolean?)
 	local w = r.Fish
 	if r.Weld then
 		r.Weld:Destroy()
@@ -102,7 +126,7 @@ local function dismount(r: Rider, reason: string)
 	end
 	r.Fish = nil
 	if w then
-		FishService.release(w)
+		FishService.release(w, if handBack then Config.Switch.HandBack else nil)
 	end
 	local root = parts(r.Player)
 	if root then
@@ -119,6 +143,8 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 		return false
 	end
 	humanoid.PlatformStand = true
+	-- the client has already blended the rider onto the saddle, so this only lines the server's copy up (left out, the
+	-- weld could move the fish to the rider instead)
 	root.CFrame = w.Saddle.WorldCFrame
 	local weld = Instance.new("Weld")
 	weld.Name = "RideWeld"
@@ -133,7 +159,6 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.CheckFrom = w.Root.Position
 	if landing then
 		r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * Config.Oxygen.Refill)
-		setGrace(r, nil)
 		r.DashReadyAt = os.clock() + Config.Dash.Cooldown
 		sendOxygen(r, true)
 		Net.Fx:FireAllClients("Land", r.Player, w.Model)
@@ -147,6 +172,7 @@ local function toDock(r: Rider)
 	if r.Fish then
 		dismount(r, "Dock")
 	end
+	r.Token += 1
 	local root, humanoid = parts(r.Player)
 	if root and humanoid then
 		humanoid.PlatformStand = false
@@ -164,24 +190,55 @@ local function toDock(r: Rider)
 		root.AssemblyLinearVelocity = Vector3.zero
 	end
 	r.Oxygen = r.Max
-	setGrace(r, nil)
 	sendOxygen(r, true)
 	setState(r, "Dock")
 	Net.Ride:FireClient(r.Player, "Respawned")
 end
 
-local function passOut(r: Rider)
-	if r.Fish then
-		dismount(r, "PassOut")
-	end
+-- Both deaths: no input for their length, then the dock. Clients play them from DeathAt (everyone sees them).
+local function die(r: Rider, state: string, length: number, thrown: boolean)
 	r.Token += 1
-	setState(r, "PassedOut")
-	Net.Ride:FireClient(r.Player, "PassOut")
-	task.delay(Config.Oxygen.PassOutFade, function()
-		if r.State == "PassedOut" and riders[r.Player] == r then
+	local token = r.Token
+	-- the timing first, so clients have it when the State changes
+	r.Player:SetAttribute("DeathAt", now())
+	r.Player:SetAttribute("DeathThrown", thrown)
+	setState(r, state)
+	task.delay(length, function()
+		if r.Token == token and r.State == state and riders[r.Player] == r then
 			toDock(r)
 		end
 	end)
+end
+
+local function eaten(r: Rider)
+	if r.Fish then
+		dismount(r, "Eaten")
+	end
+	die(r, "Eaten", Config.Death.EatenTime, false)
+end
+
+-- Out of Oxygen: on a fish it bucks and throws you off first (everyone's clients animate both), then you drown
+local function drown(r: Rider)
+	local d = Config.Death
+	local w = r.Fish
+	if w then
+		local model = w.Model
+		dismount(r, "OutOfOxygen", true)
+		Net.Fx:FireAllClients("ThrowOff", r.Player, model)
+		die(r, "Drowning", d.DrownTime, true)
+	else
+		die(r, "Drowning", d.DrownTime - d.Throw, false)
+	end
+end
+
+local function openHook(r: Rider)
+	if r.Fish then
+		dismount(r, "Jump", true)
+	end
+	r.Token += 1
+	setState(r, "Hooking")
+	r.HookEnds = now() + Config.Grapple.AimTime
+	r.Player:SetAttribute("HookEnds", r.HookEnds)
 end
 
 local function land(r: Rider, token: number, w: Wild)
@@ -190,6 +247,7 @@ local function land(r: Rider, token: number, w: Wild)
 		return
 	end
 	if not mount(r, w, true) then
+		-- the fish went away under us (not the player's fault): back to Free, not a miss
 		FishService.unreserve(w, r.Player)
 		setState(r, "Free")
 		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
@@ -215,7 +273,7 @@ end
 local function startMove(r: Rider, w: Wild, state: string, time: number)
 	FishService.reserve(w, r.Player)
 	if r.Fish then
-		dismount(r, state)
+		dismount(r, state, true)
 	end
 	r.Token += 1
 	local token = r.Token
@@ -240,19 +298,16 @@ local function dash(r: Rider, target: any)
 	Net.Fx:FireAllClients("Dash", r.Player, w.Model, d.Duration)
 end
 
+-- The one shot of the hook window. Anything but a good shot on a free fish in range is a miss.
 local function grapple(r: Rider, target: any)
-	if r.State ~= "Free" and r.State ~= "Riding" then
+	if r.State ~= "Hooking" then
 		return deny(r, "Grapple", "State")
-	end
-	if os.clock() < r.GrappleReadyAt then
-		return deny(r, "Grapple", "Cooldown")
 	end
 	local w = checkTarget(r, "Grapple", target, Config.Grapple.Range)
 	if not w then
-		return
+		return eaten(r)
 	end
 	local g = Config.Grapple
-	r.GrappleReadyAt = os.clock() + g.FlyTime + g.ReelTime + g.Cooldown
 	startMove(r, w, "Grappling", g.FlyTime + g.ReelTime)
 	Net.Ride:FireClient(r.Player, "GrappleStart", w.Model, g.FlyTime, g.ReelTime)
 	Net.Fx:FireAllClients("Grapple", r.Player, w.Model, g.FlyTime, g.ReelTime)
@@ -300,23 +355,28 @@ local function tick(r: Rider, dt: number)
 			drain(r, w.Type.Drain * dt)
 			checkSpeed(r, w)
 			if r.Oxygen <= 0 then
-				dismount(r, "OutOfOxygen")
-				setGrace(r, now() + o.Grace)
-				setState(r, "Free")
+				drown(r)
 			end
+		end
+	elseif r.State == "Hooking" then
+		-- no drain in the window; past its end (and the lag slack) it's a miss
+		local ends = r.HookEnds
+		if not ends or now() > ends + Config.Grapple.Slack then
+			eaten(r)
 		end
 	elseif r.State == "Free" then
 		drain(r, o.FreeDrain * dt)
-		if r.Oxygen <= 0 and not r.GraceEnds then
-			setGrace(r, now() + o.Grace)
-		end
-		local graceEnds = r.GraceEnds
-		if graceEnds and now() >= graceEnds then
-			passOut(r)
-		elseif dockSpawn and root.Position.Y > o.SurfaceY - 2 then
-			local flat = (root.Position - dockSpawn.Position) * Vector3.new(1, 0, 1)
-			if flat.Magnitude < o.DockRadius then
-				toDock(r)
+		if r.Oxygen <= 0 then
+			drown(r)
+		else
+			local flat = if dockSpawn then (root.Position - dockSpawn.Position) * Vector3.new(1, 0, 1) else nil
+			if flat and flat.Magnitude < o.DockRadius and root.Position.Y > o.SurfaceY - 2 then
+				r.SurfacedAt = r.SurfacedAt or os.clock()
+				if os.clock() - (r.SurfacedAt :: number) >= o.DockWait then
+					toDock(r)
+				end
+			else
+				r.SurfacedAt = nil
 			end
 		end
 	end
@@ -328,7 +388,6 @@ local function onCharacter(r: Rider, character: Model)
 	r.Fish = nil
 	r.Weld = nil
 	r.Oxygen = r.Max
-	setGrace(r, nil)
 	sendOxygen(r, true)
 	setState(r, "Dock")
 	local humanoid = character:WaitForChild("Humanoid", 10)
@@ -352,19 +411,19 @@ local function onPlayer(player: Player)
 	local r: Rider = {
 		Player = player,
 		State = "Dock",
-		Oxygen = Config.Oxygen.StartMax,
-		Max = Config.Oxygen.StartMax,
+		Oxygen = maxOxygen(),
+		Max = maxOxygen(),
 		Fish = nil,
 		Weld = nil,
-		GraceEnds = nil,
+		HookEnds = nil,
 		Token = 0,
 		DashReadyAt = 0,
-		GrappleReadyAt = 0,
 		SentOxygen = -1,
 		SentAt = 0,
 		CheckAt = 0,
 		CheckFrom = nil,
 		Flagged = false,
+		SurfacedAt = nil,
 	}
 	riders[player] = r
 	sendOxygen(r, true)
@@ -384,9 +443,8 @@ function RideService.Init()
 			return
 		end
 		if action == "JumpOff" then
-			if r.State == "Riding" then
-				dismount(r, "Jump")
-				setState(r, "Free")
+			if r.State == "Riding" or r.State == "Free" then
+				openHook(r)
 			end
 		elseif action == "Dash" then
 			dash(r, target)
@@ -406,8 +464,18 @@ end
 function RideService.Start()
 	dockSpawn = findDockSpawn()
 	if not dockSpawn then
-		warn("[RideService] no dock Spawn found: passing out reloads the character instead")
+		warn("[RideService] no dock Spawn found: respawning reloads the character instead")
 	end
+	workspace:GetAttributeChangedSignal("TestMaxOxygen"):Connect(function()
+		for _, r in riders do
+			r.Max = maxOxygen()
+			r.Oxygen = math.min(r.Oxygen, r.Max)
+			if r.State == "Dock" then
+				r.Oxygen = r.Max
+			end
+			sendOxygen(r, true)
+		end
+	end)
 	Players.PlayerAdded:Connect(onPlayer)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayer, player)
