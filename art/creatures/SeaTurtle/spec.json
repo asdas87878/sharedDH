@@ -1,0 +1,88 @@
+{
+  "name": "Sea Turtle",
+  "zone": "ZONE 1 / SHALLOWS",
+  "rarity": "UNCOMMON",
+  "plan": "shell",
+  "notes": "Built by tools/blender/shell_kit.py from the user's ChatGPT concept (art/concepts/creatures/sea-turtle-gpt.webp), by the plan in docs/style/creatures/SeaTurtle.md with its planned options: the eye a plain black square on a cheek turned 35 degrees, the head the mid olive, the plates raised with grooves and bevels, the seat on the top plate's front quarter, a 1.6-second stroke. Studs; H (the shell's height) = 3.5. Positions: x back from the rim's front edge, y out (the right side +), z up from the belly's bottom; outlines are the right half, front to back, mirrored. The front flippers hinge at the shell's shoulder corner, just under the rim's edge, so the 40-degree stroke never cuts the rim (the note planned them further in, under the shoulder). Field meanings: the Build section of the note.",
+  "colours": {
+    "plates": "#626F36",
+    "groove": "#2A4430",
+    "rim": "#B9C771",
+    "belly": "#F2E8C2",
+    "skin": "#7E8D40",
+    "tips": "#B9C771",
+    "jaw": "#F2E8C2",
+    "pupil": "#353534"
+  },
+  "shell": {
+    "pivot": [4.095, 0.0, 1.75],
+    "outline": [[0.0, 1.26], [0.175, 1.75], [2.275, 3.22], [5.95, 3.15], [7.525, 1.96], [8.19, 0.665]],
+    "rim": {"band": 0.35, "face": [0.945, 1.61], "top": 1.715, "tops": [2.8, 1.96, 1.61, 1.61, 1.61, 1.61], "throat": 2.17},
+    "dome": {"top": 3.29},
+    "belly": {"top": [4.095, 3.0625, 2.1875, 0.875], "bottom": [4.025, 1.4, 1.4, 0.42]}
+  },
+  "plates": {
+    "centre": {"front": 1.995, "rear": 6.02, "halfWidth": 1.75, "ends": 0.7},
+    "reach": {"front": 1.75, "frontSide": 2.1, "side": 1.61, "rearSide": 1.61, "rear": 1.61},
+    "groove": 0.315,
+    "rise": 0.21,
+    "bevel": 0.14,
+    "lip": 0.07
+  },
+  "head": {
+    "front": -2.765,
+    "back": -0.35,
+    "bottom": 0.98,
+    "top": 2.87,
+    "halfWidth": 1.085,
+    "face": {"halfWidth": 0.595, "top": 2.52, "lean": 0.14},
+    "mouth": {"z": 1.68, "protrude": 0.14},
+    "forehead": 0.35,
+    "cheekAngle": 35,
+    "lowerChamfer": {"z": 1.33, "halfWidth": 0.595},
+    "chinX": -2.52,
+    "diagonalTo": -0.84,
+    "backChamfer": {"depth": 0.35, "halfWidth": 0.6},
+    "neck": {"pivot": [0.35, 1.61], "halfWidth": 0.5, "z": [1.12, 1.62], "to": 0.3}
+  },
+  "eye": {"style": "plain", "size": 0.5425, "z": 2.17, "raise": 0.105, "thickness": 0.21},
+  "limbs": {
+    "front": {
+      "pivot": [2.275, 3.05, 0.5],
+      "hinge": 0,
+      "outline": [[0.0, -0.65], [1.25, -0.55], [2.8, 0.8], [2.15, 1.95], [0.0, 0.65]],
+      "thickness": 0.42,
+      "tipAt": 0.78,
+      "tipCut": 0.21,
+      "sleeve": [0.35, 0.0],
+      "rest": {"elevation": 0, "twist": 0}
+    },
+    "rear": {
+      "pivot": [6.65, 1.75, 0.6],
+      "hinge": 0,
+      "outline": [[0.0, -0.56], [2.05, 1.45], [1.1, 2.35], [0.0, 0.56]],
+      "thickness": 0.35,
+      "tipAt": 0.65,
+      "tipCut": 0.175,
+      "sleeve": 0.525,
+      "rest": {"elevation": -10, "twist": 0}
+    }
+  },
+  "tail": {"pivot": [7.95, 0.0, 1.26], "length": 1.25, "base": [0.91, 0.63], "tip": [0.35, 0.35]},
+  "seat": [2.975, 3.5, 1.4],
+  "swim": {
+    "cycle": 1.6,
+    "front": {"elevation": 40, "sweep": 15, "sweepLag": 0.1, "twist": 25, "down": 0.55},
+    "rear": {"elevation": 8, "twist": 10, "lag": 0.5},
+    "shell": {"heave": 0.14, "pitch": 2},
+    "head": {"pitch": 3, "lag": 0.1},
+    "tail": {"yaw": 4}
+  },
+  "frame": 1.2,
+  "orthoSide": 15.0,
+  "orthoTop": 15.0,
+  "topHeight": 760,
+  "orthoSwimTop": 26.0,
+  "rideFog": "#3CBED2",
+  "rideFogEnd": 900
+}

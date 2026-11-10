@@ -7,6 +7,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Inbox](docs/Inbox.md): drop ideas and voice-mode brain dumps here, unsorted. Claude files them into the right notes.
 - [Decisions](docs/Decisions.md): what's settled, when, and why.
 - [Working together](docs/Working%20together.md): how the user and Claude work on this.
+- [Sessions](docs/Sessions.md): which Claude chats are working on what, and their notes to each other.
 - [Blockout](docs/blockout.md): the dock and the long dive, v2 against v1.
 
 ## The game

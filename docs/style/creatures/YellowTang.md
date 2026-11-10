@@ -2,8 +2,8 @@
 
 **Zone 1, Shallows, Common:** the plain starter, partner to the striped Sergeant Major. Read off the user's ChatGPT concept
 (`art/concepts/creatures/yellow-tang-gpt.webp`, 2026-11-09) by the [creature method](../creature-method.md), the way
-[workout 2](../02-creature-look.md) read the Sergeant Major. **Proposed:** nothing is built yet. Every number here is a first
-draft for the kit to test.
+[workout 2](../02-creature-look.md) read the Sergeant Major. **Built** from this plan on 2026-11-09: see
+[Build](#build) at the end. Sections 1 to 6 are the plan as written before the build.
 
 ## 1. Reading the concept
 **What it shares with the Sergeant Major's rules:**
@@ -301,3 +301,50 @@ blade. Its snout and eye are for the side views: in the wild and in the tank.
   drew the tail flat both times, and here also the width and the spine.
 - **Pick colours in the water:** a strong colour with little blue holds its hue under the cyan light; a pale one drifts.
 - **Creatures of one tier share H** (5.2 studs for the starters), so the riding camera frames them alike.
+
+## Build
+Built 2026-11-09 from this note's draft spec: `art/creatures/YellowTang/spec.json` through `tools/blender/fish_kit.py`.
+
+![The concept and ours](../../attachments/creature-yellowtang-compare.jpg)
+
+**The options used** (this note's recommendations; the user can still change any of them):
+- The body 0.5H wide (2.6 studs).
+- The snout pushed out of the face, its sides flush on the eye faces, ending in a flat face 0.66 studs wide with the slit.
+- Five dorsal slats behind the rider (the concept's low front slat dropped for the seat) and six anal slats.
+- The concept's yellow `#F9DF12`.
+- The plain black eye (the user's decision: as the concept), standing 0.17 studs proud like the Sergeant Major's socket.
+- The concept's accent sizes, with the slat gaps widened to 0.12 studs so the comb reads.
+
+**What the kit learned** (new spec fields, so the Sergeant Major's spec is unaffected; it still renders pixel for pixel):
+- `head.faceFold`: the face folds at the mouth. The mouth's back corners sit on the face line, and the face above and the chin
+  below lean back from them as two planes.
+- `lips.frontHeight` and `lips.frontZ`: the snout's end is smaller than its back.
+- `lips.slit`: a dark band pushed into the snout's end. The end becomes a frame of four faces round it, sharing vertices with the
+  snout's sides.
+- `fins.dorsal.slats` and `fins.anal.slats` (`spacing`, `gap`, `lean`, `stepped`): fins made of slats. Each segment's share of a
+  fin is split into whole slats, so a joint always falls in a gap. With `stepped`, each slat is a leaning parallelogram with a
+  flat top at the fin's height through its middle: the concept's stepped comb. Without it, the slats follow the fin's outline,
+  which read as one fin with lines on it.
+- `spine` and the colour area `spine`: the tail spine is pushed out of each flank of the last segment and shares the flank's
+  vertices.
+- `eye.socket: false`: a plain square in the eye's colour, with no cream socket.
+- `fins.pelvic: null`: no pelvic fins.
+- The kit's shared pieces moved into `tools/blender/kit_common.py` on 2026-11-10, ready for the shell and disc plans. Both fish
+  render exactly as before.
+
+![The head, its edges, and the side view](../../attachments/creature-yellowtang-head.jpg)
+
+**The swim** is the fish swim with this note's numbers. The slats fan apart on the outside of a bend and close up on the inside,
+like fin rays, and the spines ride the last segment clear of the tail:
+
+![The swim: 3/4, from above, from the riding camera](../../attachments/creature-yellowtang-swim.gif)
+
+**Where it still differs from the concept:**
+- **Thinner from above:** 0.5H, the front view's width, against the top view's 0.70H. That's this note's choice; the top view is
+  the sheet's least reliable view.
+- **The dorsal starts behind the rider,** where the concept's starts at the head.
+- **The pectorals are longer blades** than the concept's stubby plates.
+- **The slats are all one shape,** where the concept's vary a little in width.
+
+**Still open:** the questions in section 6, apart from the eye's look. Body width, the snout, the slit, the seat and slat count,
+the yellow (best judged in Studio, in the water), how far the eye stands proud, and bigger accents for the riding camera.

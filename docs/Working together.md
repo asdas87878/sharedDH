@@ -15,6 +15,7 @@ Claude works from then on.
 - **Feel first:** the movement, riding, jumping and animations are what make the game. Build and judge those before content.
 - **Do the thing and report briefly.** Take a screenshot only when the result is visual and being judged, or the user asks.
 - **Parallel sessions:** independent work in its own session, but only one session drives each PC's Studio at a time.
+  Read [Sessions](Sessions.md) at the start: it says which chat has which files in hand. Keep your own row up to date.
 - **Never use computer use on the user's PC.** If access is missing, ask for a connector or an API.
 - **Image generation costs credits:** ask before spending any.
 - **Roblox uploads are permanent:** upload only what's chosen.

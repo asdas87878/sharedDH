@@ -1,8 +1,9 @@
 # Stingray
 
 Zone 1, Shallows, Uncommon. Read off the user's ChatGPT concept (`art/concepts/creatures/stingray-gpt.webp`, 2026-11-09) by
-the [creature method](../creature-method.md), the way [workout 2](../02-creature-look.md) read the Sergeant Major. Proposed
-2026-11-09: nothing is built yet. This is the reading, the plan and the questions.
+the [creature method](../creature-method.md), the way [workout 2](../02-creature-look.md) read the Sergeant Major. Built
+2026-11-10: see [Build](#build) at the end. Sections 1 to 6 are the reading, the plan and the questions as written
+before the build.
 
 ![The concept](../../../art/concepts/creatures/stingray-gpt.webp)
 
@@ -283,3 +284,113 @@ Roblox's 70-degree field of view) on a ray 12 studs across. A calculation, not a
 6. **The underside:**
    - A: plain cream, as in the concept.
    - B: a small dark mouth and the gill slits underneath, seen when it banks hard and in the collection book.
+
+## Build
+Built 2026-11-10 from this note: `art/creatures/Stingray/spec.json` through `tools/blender/disc_kit.py`, the disc body plan,
+on the kit's shared module (`kit_common.py`). About 8 seconds for the views and 40 for the swim:
+`blender --background --python tools/blender/disc_kit.py -- art/creatures/Stingray/spec.json art/creatures/Stingray/renders`,
+with `--wire` (the edges), `--swim` (the swim) or `--checks <folder>` (close-ups of the wing joints through the beat).
+
+![The concept and ours](../../attachments/creature-stingray-compare.jpg)
+
+**The parts,** each one MeshPart and one Motor6D in Roblox, 362 triangles in all:
+
+| Part | Rides | Pivot | Triangles |
+|---|---|---|---|
+| Root | | invisible: an empty here, a plain invisible part in Roblox; the camera follows it | |
+| Body | Root | the seat: the plateau's middle (0.395 S back), at the ridge's foot | 100 |
+| WingR1, WingL1 | Body | the first hinge's middle, on the top surface | 28 each |
+| WingR2, WingL2 | the first piece | the second hinge's middle, on top | 28 each |
+| WingR3, WingL3 | the second piece | the third hinge's middle, on top | 28 each |
+| Tail1 | Body | the tail root, on the tail's centre line | 20 |
+| Tail2, with the barb | Tail1 | a quarter of the way along | 40 |
+| Tail3, Tail4 | the piece in front | halfway, three quarters | 20, 14 |
+
+**How it's made** (every face is flat; the script checks and names any that isn't):
+- **The Body:** the forehead from the snout's top edge up to the plateau; either side an eye face (the triangle of the snout's
+  corner, the plateau's corner and the first hinge's front end) with the eye standing on it; the plateau; the flanks down to the
+  first hinge; the back slope narrowing to the tail's ridge; one flat hip face either side. Underneath: the chin, the belly's
+  flat bottom, and chamfers up to the wings.
+- **The band:** a brown rim 0.026 S (0.3 studs) deep over the cream, all the way round. The joint faces are split the same way,
+  so a joint that opens shows the colours beside it.
+- **Each wing piece:** one flat top face, falling 6.3, 9.3 and 12.3 degrees from the root out (the 3 degree rest fold at each
+  outer hinge), one level underside and the band round it. A hidden cream web under each joint fills the wedge the joint opens
+  underneath (8 of each piece's 28 triangles).
+- **The tail:** a pyramid of diamonds to the needle, so each facet is one long flat face, cut at the joints. Each piece carries
+  the fish's sleeve forward into the one in front. The barb grows out of the second piece's ridge: its sides stand on lines on
+  the two top facets, which are cut round its foot.
+- **The Root** is there for the camera rule in section 5: the Body bobs on it, the camera follows it.
+
+**Options used** (the user can change any of them): 3 pieces a wing; the concept's swept barb; the concept's tail, 0.72 S
+(8.6 studs); a plain cream underside; the concept's dark eyes (decided); the seat on the plateau's middle.
+
+**The eye is a block, not the planned mound.** With its sides on the forehead's and the flank's planes, the planned mound closes
+up where those planes meet, 0.12 to 0.23 studs above this eye face, because the eye face is only 32 and 35 degrees off them. The
+concept's boxes stand about 0.55 studs. So the eye is pushed straight up out of the same band of the eye face (between lines
+0.4 and 0.6 of the way to the plateau's corner): its foot shares the forehead's and the flank's edges, its walls stand on the
+band's edges and its top is level, all dark. `eye.style: "corner"` still builds the planned mound, capped short of closing up
+(about 0.1 stud tall here).
+
+![The eye: the planned mound (left) and the built block (right), with every edge](../../attachments/creature-stingray-eye.jpg)
+
+**The topology,** every edge in red (`--wire` renders these besides the kit's head and front views):
+
+![The topology: 3/4, top and underside](../../attachments/creature-stingray-wire.jpg)
+
+**Spec fields:** `plan` and `span` (studs). The rest in S: `outline` (the snout's half width, the tip's front and back
+corners, the hip, the tail root), `heights` (the snout's top and bottom, the ridge's foot, the tip's top, the wing's underside,
+the plateau), `rim`, `plateau` and `belly` ([front, back, half width]), `hinges` and `restFold`, `web` (its angle), `eye`
+(`style`, `lines`, `stand`, and `lift` for the planned mound), `tail` (`length`, `root` [tall, wide], `top`, `tip`, `cuts`,
+`sleeve`), `barb` (`from`, `to`, `height`, `top`, `sweep`, `thickness`), `flap` (the swim) and `colours` (`top` the brown,
+`body` the cream, named so the sheet's palette shows it, `eye`). For the views: `frame` 1.3, `orthoSide`, `orthoSwimTop` and
+`hero`.
+
+**The 3/4 view is at the concept's angle.** The kit's 3/4 camera sits low (13 degrees up), which suits a fish but shows a flat
+ray mostly edge-on. The spec's `hero` matches the concept's 3/4 (about 32 degrees round from the front, 25 up) and its light
+(from the front right, so the near flank darkens as in the concept). The swim's 3/4 panel uses it too.
+
+**The swim** follows section 5 at cruise:
+- A beat is 1.2 seconds, 24 frames. The loop holds two beats (48 frames), so the tail's half-rate sway loops too. The GIF plays
+  24 frames a second, so it runs a little fast.
+- The hinges roll 8, 10 and 14 degrees, each 0.9 behind the one inside it. The tip travels 0.97 studs up and down and peaks 40
+  degrees after the root, as section 5 worked out.
+- Each piece feathers 3, 6 and 10 degrees in step with how fast it rises, nose up on the way up.
+- The Body rises 0.18 studs on each downstroke, noses up 1.5 degrees while it rises and banks 1.5 degrees with the tail. The
+  tail sways 3, 5, 8 and 12 degrees at half the rate and pitches 2, 3, 4 and 6 degrees half a beat behind the bob.
+- The panels: the 3/4 at the concept's angle, from above, and the riding view's camera with the rider on the plateau, riding
+  the bob.
+
+![The swim: 3/4, from above, from the riding camera](../../attachments/creature-stingray-swim.gif)
+
+What it shows:
+- The flap never opens the tops: they fold at the hinges. The web keeps the undersides closed.
+- **The feather steps the tops a little.** A rigid piece pitched against the one inside it moves its own hinge line, so the top
+  steps at the hinge's ends: 0.19, 0.17 and 0.16 studs at these numbers, showing a sliver of brown joint face (1 to 2 pixels in
+  the GIF). No piece cuts through another's top. A smaller feather shrinks the steps in proportion.
+- From the saddle the beat reads either side of the rider, and the cream band shows along the trailing edges, as section 5
+  expected.
+
+**The riding view:** the rider on the plateau's middle, the legs down the flanks. The eyes hide behind the rider, as section 5
+predicted, and the brown reads olive in the water.
+
+![Riding view](../../attachments/creature-stingray-ride.jpg)
+
+**Where it still differs from the concept:**
+- **The eyes** stand on a foot that follows the eye face's edges, so they're a little wider at the front than the concept's
+  cubes, and 0.13 S out where the top view has 0.12.
+- **The back:** the concept's ridge ends in a small stepped block at the tail root. Ours runs the back slope straight into the
+  tail's ridge, as section 3 planned, so the band tapers out into the tail's side instead of ending on a flat back face.
+- **No soft bevels** on the plateau or the tail root: our edges stay hard.
+- **The barb stands upright** (the top view's flat barb is a cheat), a blade 0.24 studs thick at its foot.
+- **The wings' undersides are level,** 0.048 S up: no view of the concept shows them.
+- **In the sheet,** the front and top views come out small, as `creature_sheet.py`'s boxes are sized for a fish.
+
+**For the kit** (proposed, for `kit_common.py`): a per-spec 3/4 camera and light, as `hero` here; swim cameras a flat creature
+can be framed by, with the rider in the riding panel; the rider as one shared helper; the check that every face is flat.
+
+**Still open:**
+- The eye: the block (built) or the planned low mound.
+- The feather: 3, 6 and 10 degrees with small steps on top, or smaller.
+- The web: it costs 48 triangles; drop it if the underside is never seen close.
+- The other questions in section 6: each was built with its recommended option or the concept's.
+- The brown and the cream, judged in the water. Not in Studio yet: that needs an upload.

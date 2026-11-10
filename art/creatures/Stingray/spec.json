@@ -1,0 +1,56 @@
+{
+  "name": "Stingray",
+  "zone": "ZONE 1 / SHALLOWS",
+  "rarity": "UNCOMMON",
+  "notes": "Built by tools/blender/disc_kit.py (the disc body plan) from the user's ChatGPT concept (art/concepts/creatures/stingray-gpt.webp), by docs/style/creatures/Stingray.md. Lengths are in S, the span (wing tip to wing tip, `span` studs), as the note measured them: u back from the snout, v out from the spine, w up from the belly's bottom. outline: the right half's corners as [u, v] (snout: its half width; tailRoot: u). heights: w. belly and plateau: [front, back, half width]. hinges: the cuts between the Body and the wing pieces, root first (v); restFold: degrees each outer hinge folds down at rest. web: the cream web under each wing joint (fills the wedge a joint opens underneath, up to `angle` degrees). eye: the mound stands on the band of the eye face between `lines` (fractions of the way from its front edge to the plateau's corner, each line running from the forehead's side to the flank's edge), all in the eye colour (the user's decision: the concept's dark mounds). style block: pushed straight up, walls on the band's edges, a level top `stand` above its highest corner; style corner: the note's first plan (sides on the forehead's and flank's planes, top parallel to the eye face, raised `lift` along its normal, capped at 0.8 of the uncut corner, about 0.1 stud here). tail: length, root [tall, wide], cuts (fractions of the tail), the needle's height `tip`, the sleeve (studs). barb: from/to (fractions of the tail), height, top edge length, sweep (degrees), thickness [foot, top]. colours: top (brown: the top, the tail, the barb), body (cream: the underside and the band round the edge; named so the sheet tool's palette shows it), eye. flap: the swim (degrees and radians; bob is the rise per downstroke in S; beats per loop, frames per loop). hero: the 3/4 camera at the concept's angle and light (from: studs from mid_x, times frame), also used by the swim's 3/4 panel.",
+  "plan": "disc",
+  "span": 12.0,
+  "outline": {
+    "snout": 0.11,
+    "tipFront": [0.37, 0.5],
+    "tipBack": [0.456, 0.5],
+    "hip": [0.71, 0.14],
+    "tailRoot": 0.83
+  },
+  "heights": {
+    "snoutTop": 0.16,
+    "snoutBottom": 0.08,
+    "ridgeFoot": 0.143,
+    "tipTop": 0.091,
+    "under": 0.048,
+    "plateau": 0.27
+  },
+  "rim": 0.026,
+  "plateau": [0.24, 0.55, 0.115],
+  "belly": [0.29, 0.52, 0.115],
+  "hinges": [0.18, 0.29, 0.4],
+  "restFold": 3,
+  "web": {"angle": 20},
+  "eye": {"style": "block", "lines": [0.4, 0.6], "stand": 0.015, "lift": 0.045},
+  "tail": {"length": 0.72, "root": [0.083, 0.09], "top": 0.2, "tip": 0.165, "cuts": [0.25, 0.5, 0.75], "sleeve": 0.4},
+  "barb": {"from": 0.32, "to": 0.43, "height": 0.037, "top": 0.09, "sweep": 50, "thickness": [0.02, 0.01]},
+  "colours": {
+    "top": "#A08873",
+    "body": "#F6E7C5",
+    "eye": "#464646"
+  },
+  "flap": {
+    "beats": 2,
+    "frames": 48,
+    "hinges": [8, 10, 14],
+    "phaseStep": 0.9,
+    "feather": [3, 6, 10],
+    "bob": 0.015,
+    "pitch": 1.5,
+    "bank": 1.5,
+    "tailYaw": [3, 5, 8, 12],
+    "tailPitch": [2, 3, 4, 6],
+    "tailStep": 0.9
+  },
+  "frame": 1.3,
+  "hero": {"from": [-23.5, -14.7, 12.9], "lens": 75, "light": [-5.0, 8.0, 11.0]},
+  "orthoSide": 28.0,
+  "orthoSwimTop": 28.0,
+  "rideFog": "#3CBED2",
+  "rideFogEnd": 900
+}

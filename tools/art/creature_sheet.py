@@ -64,17 +64,16 @@ d.text((44, 210), "built from the creature kit (Claude)", font=font("arialbd.ttf
 hero = placed("hero", 880, 620)
 put(sheet, hero, 470, 260)
 label = font("arialbd.ttf", 26)
-for name, top, box in (("side", 70, (560, 250)), ("front", 400, (330, 250)), ("top", 720, (560, 200))):
+for name, top, box in (("side", 70, (560, 250)), ("front", 400, (560, 250)), ("top", 720, (560, 240))):  # room for wide creatures
     d.text((960, top + 20), name.upper(), font=label, fill=INK)
     im = placed(name, *box)
     put(sheet, im, 1250, top + 50 + (box[1] - im.height) / 2, with_shadow=(name != "top"))
 
-# the palette, the colours the kit actually used
+# the palette, the colours the kit actually used: every colour in the spec once, in its order (any body plan's colour names)
 x = 40
 seen = []
-for key in ("top", "body", "bars", "eye"):
-    c = spec["colours"][key]
-    if c in seen:
+for c in spec["colours"].values():
+    if c in seen or len(seen) == 6:
         continue
     seen.append(c)
     rgb = tuple(int(c.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))

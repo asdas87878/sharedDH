@@ -8,9 +8,11 @@ usage: blender --background --python tools/blender/fish_kit.py -- <spec.json> <o
   --wire:  also a head close-up (head.png) and the same with every mesh edge drawn in red (head_wire.png, front_wire.png), to
            check the topology
   --swim:  renders a looping swim cycle (3/4 and top views) into <out>/swim_<joints>/ for tools/art/swim_gif.py
+  --voxel S: every part turned into cubes S studs across, for the voxel style test (use with --joints flat)
   --joints sleeve (default when the spec has "sleeve"): each segment carries a short inset sleeve forward into the one in front,
            so a bending joint shows body, not a gap; flat: plain cut joints
-Units are studs. The head points to -X; the snout sits at x = -length/2.
+Units are studs. The head points to -X; the snout sits at x = -length/2. The shared pieces (materials, mesh helpers, the
+views every creature is judged in) are in kit_common.py, which the shell and disc plans use too.
 """
 import json
 import math
@@ -21,13 +23,17 @@ import bmesh
 import bpy
 from mathutils import Vector
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import kit_common as kc  # noqa: E402
+from kit_common import box_bm, clip_half, clip_x, plate_bm, ray_exit  # noqa: E402
+
 argv = sys.argv[sys.argv.index("--") + 1 :]
 SPEC = json.load(open(argv[0]))
 OUT = os.path.abspath(argv[1])
 SWIM = "--swim" in argv
 WIRE = "--wire" in argv
+VOXEL = float(argv[argv.index("--voxel") + 1]) if "--voxel" in argv else None  # cubes of this size (workout 4)
 JOINTS = argv[argv.index("--joints") + 1] if "--joints" in argv else ("sleeve" if SPEC.get("sleeve") else "flat")
-os.makedirs(OUT, exist_ok=True)
 
 L = SPEC["length"]
 ST = SPEC["stations"]
@@ -36,30 +42,10 @@ CHB, CVB = SPEC.get("chamferBottom", SPEC["chamfer"])  # the bottom corners
 TOPLINE = SPEC["topLine"]
 TOPLINE_Z = SPEC.get("topLineZ")  # where the top colour ends: one height along the whole fish, or "chamfer" (with the top chamfers)
 PANEL = SPEC.get("facePanel")  # the face: a flat panel at t = 0, the head's planes run back from its edges
-MAT_NAMES = ["top", "body", "bars", "fins", "eye", "pupil", "lips"]
+MAT_NAMES = ["top", "body", "bars", "fins", "eye", "pupil", "lips", "spine"]
 
 
-# ---------------------------------------------------------------- helpers
-def srgb_to_linear(c):
-    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-
-
-def hex_rgba(h):
-    h = h.lstrip("#")
-    return tuple(srgb_to_linear(int(h[i : i + 2], 16) / 255) for i in (0, 2, 4)) + (1.0,)
-
-
-def material(name, hex_colour, roughness=0.7):
-    m = bpy.data.materials.new(name)
-    m.use_nodes = True
-    bsdf = m.node_tree.nodes.get("Principled BSDF")
-    bsdf.inputs["Base Color"].default_value = hex_rgba(hex_colour)
-    bsdf.inputs["Roughness"].default_value = roughness
-    if "Specular IOR Level" in bsdf.inputs:
-        bsdf.inputs["Specular IOR Level"].default_value = 0.2
-    return m
-
-
+# ---------------------------------------------------------------- the body's shape
 def profile(t):
     """top, bottom, half width of the body at t (0 snout, 1 tail base), straight between stations: the facets."""
     if t <= ST[0][0]:
@@ -189,7 +175,6 @@ def build_head(bm):
     # (sideFollow 1: flush on the eye faces' planes, 0: straight back), so the front comes out narrower than the back.
     m = SPEC["lips"]
     mzt, mzb = m["z"] + m["size"][2] / 2, m["z"] - m["size"][2] / 2
-    x_front = face_x(m["z"]) - m["protrude"]
     follow = m.get("sideFollow", 1.0)
     FT, FB, slope = g["FT"], g["FB"], g["slope"]
 
@@ -197,25 +182,61 @@ def build_head(bm):
         """the face's right edge (where it meets the eye face) at height z"""
         return FT + (FB - FT) * ((FT.z - z) / (FT.z - FB.z))
 
-    P, Q = edge_at(mzt), edge_at(mzb)  # the mouth's back corners: top, bottom
+    if HEAD.get("faceFold"):  # the face folds at the mouth: the face above and the chin below lean back from the mouth's back
+        xf = xat(0.0)
+        P, Q = Vector((xf, g["wall_y"](xf), mzt)), Vector((xf, g["wall_y"](xf), mzb))
+        x_front = xf - m["protrude"]
+    else:  # one face plane, the mouth's back corners on its edges
+        P, Q = edge_at(mzt), edge_at(mzb)
+        x_front = face_x(m["z"]) - m["protrude"]
+    # the front can be smaller than the back (a snout tapering to its end)
+    fz, fh = m.get("frontZ", m["z"]), m.get("frontHeight", m["size"][2])
     pts = {
-        "P": P, "Q": Q,
-        "MF": Vector((x_front, P.y - follow * slope * (P.x - x_front), mzt)),  # its front corners, the sides angled in
-        "MG": Vector((x_front, Q.y - follow * slope * (Q.x - x_front), mzb)),
+        "P": P, "Q": Q,  # the mouth's back corners: top, bottom
+        "MF": Vector((x_front, P.y - follow * slope * (P.x - x_front), fz + fh / 2)),  # its front corners, the sides angled in
+        "MG": Vector((x_front, Q.y - follow * slope * (Q.x - x_front), fz - fh / 2)),
     }
     if not (FB.z < mzb < mzt < FT.z and min(pts["MF"].y, pts["MG"].y) > 0.1):
         raise ValueError("the mouth must sit inside the face (between its top and the jaw line) and stay wider than its angle")
+    slit = m.get("slit")
+    if slit:  # a dark band across the front, pushed in: the front gets a frame of four faces round it
+        sw = slit.get("width", 0.8) * min(pts["MF"].y, pts["MG"].y)
+        s1, s0 = fz + slit["height"] / 2, fz - slit["height"] / 2
+
+        def front_edge(z):
+            """the front's right edge at height z"""
+            return pts["MG"] + (pts["MF"] - pts["MG"]) * ((z - pts["MG"].z) / (pts["MF"].z - pts["MG"].z))
+
+        pts.update({
+            "R1": front_edge(s1), "R0": front_edge(s0),  # the frame's corners on the front's edges
+            "S1": Vector((x_front, sw, s1)), "S0": Vector((x_front, sw, s0)),  # the slit's corners
+            "D1": Vector((x_front + slit["inset"], sw, s1)), "D0": Vector((x_front + slit["inset"], sw, s0)),  # pushed in
+        })
     for name, p in pts.items():
         v[name + "r"] = bm.verts.new((p.x, p.y, p.z))
         v[name + "l"] = bm.verts.new((p.x, -p.y, p.z))
     fc = HEAD.get("faceColour", "body")
     face([v["FTl"], v["FTr"], v["Pr"], v["Pl"]], fc)  # the face, down to the mouth
     face([v["Ql"], v["Qr"], v["FBr"], v["FBl"]], fc)  # under the mouth, down to the jaw line
-    face([v["Pl"], v["Pr"], v["MFr"], v["MFl"]], "lips")  # the mouth: top, front, bottom, sides
-    face([v["MFl"], v["MFr"], v["MGr"], v["MGl"]], "lips")
+    face([v["Pl"], v["Pr"], v["MFr"], v["MFl"]], "lips")  # the mouth: top, bottom
     face([v["Ql"], v["MGl"], v["MGr"], v["Qr"]], "lips")
-    face([v["Pr"], v["Qr"], v["MGr"], v["MFr"]], "lips")
-    face([v["Pl"], v["MFl"], v["MGl"], v["Ql"]], "lips")
+    if slit:
+        sc = slit.get("colour", "pupil")
+        face([v["MFl"], v["MFr"], v["R1r"], v["S1r"], v["S1l"], v["R1l"]], "lips")  # the frame round the slit
+        face([v["R0l"], v["S0l"], v["S0r"], v["R0r"], v["MGr"], v["MGl"]], "lips")
+        face([v["R1l"], v["S1l"], v["S0l"], v["R0l"]], "lips")
+        face([v["S1r"], v["R1r"], v["R0r"], v["S0r"]], "lips")
+        face([v["D1l"], v["D1r"], v["D0r"], v["D0l"]], sc)  # the slit: its back, then its four walls
+        face([v["S1l"], v["S1r"], v["D1r"], v["D1l"]], sc)
+        face([v["S0l"], v["D0l"], v["D0r"], v["S0r"]], sc)
+        face([v["S1l"], v["D1l"], v["D0l"], v["S0l"]], sc)
+        face([v["S1r"], v["S0r"], v["D0r"], v["D1r"]], sc)
+        face([v["Pr"], v["Qr"], v["MGr"], v["R0r"], v["R1r"], v["MFr"]], "lips")  # the sides, the frame's corners on them
+        face([v["Pl"], v["MFl"], v["R1l"], v["R0l"], v["MGl"], v["Ql"]], "lips")
+    else:
+        face([v["MFl"], v["MFr"], v["MGr"], v["MGl"]], "lips")  # the front, then the sides
+        face([v["Pr"], v["Qr"], v["MGr"], v["MFr"]], "lips")
+        face([v["Pl"], v["MFl"], v["MGl"], v["Ql"]], "lips")
     face([v["FTl"], B[0], B[1], v["FTr"]], "top")  # the forehead
     face([v["FTr"], B[1], B[2]], "top")  # the corner facets
     face([v["FTl"], B[9], B[0]], "top")
@@ -230,70 +251,10 @@ def build_head(bm):
     cap(bm, B, cuts[1], 0.0)
 
 
-def clip_x(pts, x, keep_greater):
-    """Sutherland-Hodgman against the line x = const"""
-    out = []
-    for i in range(len(pts)):
-        cur, prev = pts[i], pts[i - 1]
-        cin = cur[0] >= x if keep_greater else cur[0] <= x
-        pin = prev[0] >= x if keep_greater else prev[0] <= x
-        if cin != pin:
-            f = (x - prev[0]) / (cur[0] - prev[0])
-            out.append((x, prev[1] + f * (cur[1] - prev[1])))
-        if cin:
-            out.append(cur)
-    return out
-
-
-# ---------------------------------------------------------------- scene
-bpy.ops.wm.read_factory_settings(use_empty=True)
-scene = bpy.context.scene
-for engine in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"):
-    try:
-        scene.render.engine = engine
-        break
-    except TypeError:
-        pass
-scene.view_settings.view_transform = "Standard"
-try:
-    scene.eevee.taa_render_samples = 32 if SWIM else 64
-except AttributeError:
-    pass
-
-MATS = {name: material(name, SPEC["colours"][name]) for name in MAT_NAMES}
-fish = bpy.data.collections.new("Fish")
-scene.collection.children.link(fish)
-WORLD = {}  # each object's pivot in world space, before parenting
-
-
-def new_object(name, me=None):
-    ob = bpy.data.objects.new(name, me)
-    fish.objects.link(ob)
-    return ob
-
-
-def mesh_object(name, bm, origin, mats):
-    """a mesh object whose pivot is at origin; bm is in world space"""
-    for v in bm.verts:
-        v.co -= Vector(origin)
-    me = bpy.data.meshes.new(name)
-    bm.to_mesh(me)
-    bm.free()
-    for m in mats:
-        me.materials.append(MATS[m])
-    for poly in me.polygons:
-        poly.use_smooth = False
-    ob = new_object(name, me)
-    ob.location = origin
-    WORLD[name] = Vector(origin)
-    return ob
-
-
-def attach(child, parent):
-    """parent without moving: the child's location becomes relative to the parent's pivot (nothing is rotated yet)"""
-    world = WORLD.get(child.name, Vector(child.location))
-    child.parent = parent
-    child.location = world - WORLD[parent.name]
+# ---------------------------------------------------------------- the scene (kit_common)
+K = kc.Kit(SPEC, OUT, MAT_NAMES, 32 if SWIM else 64)
+scene, MATS, fish, WORLD = K.scene, K.mats, K.collection, K.world_pos
+new_object, mesh_object, attach = K.new_object, K.mesh_object, K.attach
 
 
 # ---------------------------------------------------------------- the body: a chain of rigid segments
@@ -301,8 +262,56 @@ cuts = [0.0] + SPEC["segments"] + [1.0]
 ts = {s[0] for s in ST} | set(cuts)
 for b0, b1 in SPEC.get("bars", []):
     ts |= {b0, b1}
+SPINE = SPEC.get("spine")  # a spine pushed out of each flank (the tang's "scalpel"): rings at its ends
+if SPINE:
+    ts |= set(SPINE["t"])
 ts = sorted(ts)
 sleeve_t = SPEC.get("sleeve", 0.0) / L if JOINTS == "sleeve" else 0.0
+
+
+def spine_verts(bm, seg_ts, rings):
+    """the spine's corners on the flank (F) and pushed out (E), top (1) and bottom (0), per side and ring"""
+    js = [j for j, t in enumerate(seg_ts) if SPINE["t"][0] - 1e-9 <= t <= SPINE["t"][1] + 1e-9]
+    z1, z0 = SPINE["z"] + SPINE["height"] / 2, SPINE["z"] - SPINE["height"] / 2
+    sp = {"first": js[0], "last": js[-1]}
+    for j in js:
+        flank_top, flank_bottom = rings[j][3].co, rings[j][4].co
+        if not (flank_bottom.z < z0 and z1 < flank_top.z):
+            raise ValueError("the spine must sit on the flank, between the top and bottom chamfers")
+        for sgn in (1, -1):
+            for key, y, z in (("F1", 0.0, z1), ("F0", 0.0, z0), ("E1", SPINE["proud"], z1), ("E0", SPINE["proud"], z0)):
+                sp[(key, sgn, j)] = bm.verts.new((flank_top.x, sgn * (flank_top.y + y), z))
+    return sp
+
+
+def flank_faces(bm, sp, sgn, r, T_r, B_r, T_r1, B_r1, colour):
+    """one flank quad between rings r and r+1 (top and bottom corners), split round the spine where it stands"""
+    first, last = sp["first"], sp["last"]
+
+    def F(key, j):
+        return sp[(key, sgn, j)]
+
+    if first <= r and r + 1 <= last:  # where it stands: the flank above and below, the spine's face, top and bottom
+        faces = [
+            ((T_r, F("F1", r), F("F1", r + 1), T_r1), colour),
+            ((F("F0", r), B_r, B_r1, F("F0", r + 1)), colour),
+            ((F("E1", r), F("E0", r), F("E0", r + 1), F("E1", r + 1)), "spine"),
+            ((F("F1", r), F("E1", r), F("E1", r + 1), F("F1", r + 1)), "spine"),
+            ((F("E0", r), F("F0", r), F("F0", r + 1), F("E0", r + 1)), "spine"),
+        ]
+        if r == first:
+            faces.append(((F("F1", r), F("F0", r), F("E0", r), F("E1", r)), "spine"))  # its front end
+        if r + 1 == last:
+            faces.append(((F("F1", r + 1), F("E1", r + 1), F("E0", r + 1), F("F0", r + 1)), "spine"))  # its back end
+    elif r + 1 == first:  # just in front: the spine's corners sit on this face's back edge
+        faces = [((T_r, B_r, B_r1, F("F0", r + 1), F("F1", r + 1), T_r1), colour)]
+    elif r == last:  # just behind: on its front edge
+        faces = [((T_r, F("F1", r), F("F0", r), B_r, B_r1, T_r1), colour)]
+    else:
+        faces = [((T_r, B_r, B_r1, T_r1), colour)]
+    for verts, c in faces:
+        f = bm.faces.new(verts)
+        f.material_index = MAT_NAMES.index(c)
 
 segments = []
 for i, (s0, s1) in enumerate(zip(cuts, cuts[1:])):
@@ -315,11 +324,21 @@ for i, (s0, s1) in enumerate(zip(cuts, cuts[1:])):
         segments.append(mesh_object("Seg0", bm, (xat(s1), 0.0, 0.0), MAT_NAMES))
         continue
     rings = [[bm.verts.new(p) for p in ring(t)] for t in seg_ts]
+    sp = None
+    if SPINE and s0 + 1e-9 < SPINE["t"][0] and SPINE["t"][1] < s1 - 1e-9:  # the spine stands inside this segment
+        sp = spine_verts(bm, seg_ts, rings)
     for r in range(len(rings) - 1):
         bar = in_bar(seg_ts[r], seg_ts[r + 1])
         for k in range(10):
             k2 = (k + 1) % 10
-            f = bm.faces.new((rings[r][k], rings[r][k2], rings[r + 1][k2], rings[r + 1][k]))
+            quad = (rings[r][k], rings[r][k2], rings[r + 1][k2], rings[r + 1][k])
+            if sp and k == 3:  # the right flank: top, bottom at ring r, bottom, top at r+1
+                flank_faces(bm, sp, 1, r, quad[0], quad[1], quad[3], quad[2], face_colour(REGION[k], bar))
+                continue
+            if sp and k == 7:  # the left flank: bottom, top at ring r, top, bottom at r+1
+                flank_faces(bm, sp, -1, r, quad[1], quad[0], quad[2], quad[3], face_colour(REGION[k], bar))
+                continue
+            f = bm.faces.new(quad)
             f.material_index = MAT_NAMES.index(face_colour(REGION[k], bar))
     if s0 == 0.0 and PANEL:  # the face panel closes the front: flat, pale, the head's planes already run back from it
         f = bm.faces.new(rings[0])
@@ -364,29 +383,6 @@ def segment_index(t):
 
 
 # ---------------------------------------------------------------- fins, eyes, lips
-def plate_bm(pts, thickness):
-    """a flat plate: the polygon pts (x, z) extruded along Y"""
-    bm = bmesh.new()
-    h = thickness / 2
-    a = [bm.verts.new((x, -h, z)) for x, z in pts]
-    b = [bm.verts.new((x, h, z)) for x, z in pts]
-    bm.faces.new(a)
-    bm.faces.new(b[::-1])
-    for i in range(len(pts)):
-        j = (i + 1) % len(pts)
-        bm.faces.new((a[i], b[i], b[j], a[j]))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    return bm
-
-
-def box_bm(size):
-    bm = bmesh.new()
-    bmesh.ops.create_cube(bm, size=1.0)
-    for v in bm.verts:
-        v.co = Vector((v.co.x * size[0], v.co.y * size[1], v.co.z * size[2]))
-    return bm
-
-
 F = SPEC["fins"]
 
 
@@ -399,8 +395,53 @@ def split_fin(name, pts, thickness):
             attach(ob, segments[i])
 
 
-split_fin("Dorsal", [(xat(t), profile(t)[0] + dz) for t, dz in F["dorsal"]["points"]], F["dorsal"]["thickness"])
-split_fin("Anal", [(xat(t), profile(t)[1] + dz) for t, dz in F["anal"]["points"]], F["anal"]["thickness"])
+def slat_fin(name, pts, thickness, slats, base_z, down):
+    """a fin of separate ray slats (the Yellow Tang's comb): each segment's share of the fin's base is split into whole slats
+    about `spacing` apart, cut by lines leaning back `lean` degrees with `gap` between neighbours, so a joint always falls in a
+    gap and each slat rides its segment whole"""
+    lean = math.radians(slats["lean"])
+    sn, cs = math.sin(lean), math.cos(lean)
+    back = (cs, sn) if down else (cs, -sn)  # across a cut line, toward the tail (the line leans back away from the body)
+    fx0, fx1 = min(p[0] for p in pts), max(p[0] for p in pts)
+    gap = slats["gap"]
+    for i, (s0, s1) in enumerate(zip(cuts, cuts[1:])):
+        a, b = max(xat(s0), fx0), min(xat(s1), fx1)
+        if b - a < 0.3 * slats["spacing"]:
+            continue
+        count = max(1, round((b - a) / slats["spacing"]))
+        width = (b - a) / count
+        for k in range(count):
+            x0, x1 = a + k * width, a + (k + 1) * width
+            if slats.get("stepped"):  # a leaning parallelogram, its flat top at the fin's height through its middle
+                b0 = x0 + gap / 2 if x0 > fx0 + 1e-6 else x0
+                b1 = x1 - gap / 2 if x1 < fx1 - 1e-6 else x1
+                d = (sn, -cs) if down else (sn, cs)  # along the slat, away from the body
+                reach = ray_exit(pts, ((b0 + b1) / 2, base_z((b0 + b1) / 2)), d)
+                sink = 0.3 if down else -0.3  # the base sits inside the body
+                piece = [(b0, base_z(b0) + sink), (b1, base_z(b1) + sink),
+                         (b1 + d[0] * reach, base_z(b1) + d[1] * reach), (b0 + d[0] * reach, base_z(b0) + d[1] * reach)]
+            else:  # cut from the fin's outline
+                piece = pts
+                if x0 > fx0 + 1e-6:  # cut the front (the fin's own leading edge stays)
+                    piece = clip_half(piece, (x0 + gap / 2, base_z(x0 + gap / 2)), back)
+                if x1 < fx1 - 1e-6:  # cut the back (the fin's own trailing edge stays)
+                    piece = clip_half(piece, (x1 - gap / 2, base_z(x1 - gap / 2)), (-back[0], -back[1]))
+            if len(piece) >= 3:
+                ob = mesh_object(f"{name}{i}_{k}", plate_bm(piece, thickness), WORLD[segments[i].name], ["fins"])
+                attach(ob, segments[i])
+
+
+def t_at(x):
+    return (x + L / 2) / L
+
+
+for name, side, down in (("Dorsal", 0, False), ("Anal", 1, True)):
+    fin_spec = F[name.lower()]
+    outline = [(xat(t), profile(t)[side] + dz) for t, dz in fin_spec["points"]]
+    if fin_spec.get("slats"):
+        slat_fin(name, outline, fin_spec["thickness"], fin_spec["slats"], lambda x, side=side: profile(t_at(x))[side], down)
+    else:
+        split_fin(name, outline, fin_spec["thickness"])
 tail = mesh_object(
     "Tail",
     plate_bm([(xat(1.0) + dx, z) for dx, z in F["tail"]["points"]], F["tail"]["thickness"]),
@@ -416,13 +457,14 @@ for s in (-1, 1):
     WORLD[fin.name] = Vector(origin)
     fin.rotation_euler = (0.0, math.radians(-p["tilt"]), s * math.radians(p["yaw"]))
     attach(fin, segments[segment_index(p["t"])])
-    q = F["pelvic"]
-    origin = (xat(q["t"]), s * q["y"], profile(q["t"])[1] + q["zAboveBottom"])
-    fin = mesh_object(f"Pelvic{s:+d}", plate_bm(q["points"], q["thickness"]), (0.0, 0.0, 0.0), ["fins"])
-    fin.location = origin
-    WORLD[fin.name] = Vector(origin)
-    fin.rotation_euler = (s * math.radians(q["roll"]), 0.0, s * math.radians(q["yaw"]))
-    attach(fin, segments[segment_index(q["t"])])
+    q = F.get("pelvic")
+    if q:  # a pair of pelvic fins, when the fish has them
+        origin = (xat(q["t"]), s * q["y"], profile(q["t"])[1] + q["zAboveBottom"])
+        fin = mesh_object(f"Pelvic{s:+d}", plate_bm(q["points"], q["thickness"]), (0.0, 0.0, 0.0), ["fins"])
+        fin.location = origin
+        WORLD[fin.name] = Vector(origin)
+        fin.rotation_euler = (s * math.radians(q["roll"]), 0.0, s * math.radians(q["yaw"]))
+        attach(fin, segments[segment_index(q["t"])])
 
     # the eye: a square plate flush with the side of the head, a square pupil looking a little forward
     e = SPEC["eye"]
@@ -449,9 +491,10 @@ for s in (-1, 1):
     WORLD[eye.name] = Vector(eye.location)
     socket = mesh_object(f"EyeSocket{s:+d}", box_bm((e["size"], e.get("thickness", 0.14), e["size"])), (0.0, 0.0, 0.0), ["eye"])
     socket.parent = eye
-    pupil = mesh_object(f"Pupil{s:+d}", box_bm((e["pupil"], e.get("pupilThickness", 0.08), e["pupil"])), (0.0, 0.0, 0.0), ["pupil"])
-    pupil.location = (0.0 if (e.get("onFace") or e.get("onWall")) else -0.08, s * e.get("pupilOut", 0.1), 0.0)
-    pupil.parent = eye
+    if e.get("socket", True):  # the cream square with a black square in it; socket false: one plain square, the eye colour
+        pupil = mesh_object(f"Pupil{s:+d}", box_bm((e["pupil"], e.get("pupilThickness", 0.08), e["pupil"])), (0.0, 0.0, 0.0), ["pupil"])
+        pupil.location = (0.0 if (e.get("onFace") or e.get("onWall")) else -0.08, s * e.get("pupilOut", 0.1), 0.0)
+        pupil.parent = eye
     attach(eye, segments[0])
 
 if not HEAD:  # a head built from planes has its mouth in the head mesh; the older faces get a separate lip block
@@ -471,221 +514,29 @@ attach(tail, segments[-1])
 JOINT_CHAIN = segments[1:] + [tail]
 
 
-# ---------------------------------------------------------------- views and lights
-def look_from(ob, source, target):
-    d = Vector(target) - Vector(source)
-    ob.location = source
-    ob.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
-
-
-def camera(name, ortho=None, lens=50):
-    cam = bpy.data.cameras.new(name)
-    if ortho:
-        cam.type = "ORTHO"
-        cam.ortho_scale = ortho
-    else:
-        cam.lens = lens
-    ob = bpy.data.objects.new(name, cam)
-    scene.collection.objects.link(ob)
-    return ob
-
-
-def world(hex_colour, strength):
-    w = bpy.data.worlds.new("World")
-    w.use_nodes = True
-    bg = w.node_tree.nodes.get("Background")
-    bg.inputs["Color"].default_value = hex_rgba(hex_colour)
-    bg.inputs["Strength"].default_value = strength
-    scene.world = w
-    return w
-
-
-def render(cam, path, w, h):
-    scene.camera = cam
-    scene.render.resolution_x = w
-    scene.render.resolution_y = h
-    scene.render.filepath = path
-    bpy.ops.render.render(write_still=True)
-
-
-world("#FEF8F1", 0.55)
-sun_data = bpy.data.lights.new("Key", "SUN")
-sun_data.energy = 2.2
-sun_data.angle = math.radians(14)
-sun = bpy.data.objects.new("Key", sun_data)
-scene.collection.objects.link(sun)
-look_from(sun, (-5.0, -7.0, 9.0), (0.0, 0.0, 0.0))
-scene.render.image_settings.file_format = "PNG"
+# ---------------------------------------------------------------- the views (kit_common)
+if VOXEL:
+    print("fish kit: voxel triangles", K.voxelize(VOXEL))
+K.studio()
 front_x = xat(0.0) - (SPEC["lips"].get("protrude", 0.0) if (PANEL or HEAD) else (FACE["depth"] if FACE else 0.25)) - 0.3
 mid_x = (front_x + xat(1.0) + max(dx for dx, _ in F["tail"]["points"])) / 2
 
-
-# ---------------------------------------------------------------- the swim cycle
-if SWIM:
+if SWIM:  # a looping swim: one wave down the chain, the head countering
     sw = SPEC.get("swim", {"amplitudes": [3, 6, 9, 12, 18], "phaseStep": 0.9, "headCounter": 2})
-    frames = 24
-    scene.render.film_transparent = True
-    scene.render.image_settings.color_mode = "RGBA"
-    folder = os.path.join(OUT, f"swim_{JOINTS}")
-    os.makedirs(folder, exist_ok=True)
-    hero = camera("Hero", lens=46)  # wide enough for the whole fish, face to tail
-    look_from(hero, (mid_x - 10.5, -14.5, 4.4), (mid_x + 0.3, 0.0, 0.2))
-    top = camera("Top", ortho=12.4)
-    top.location = (mid_x, 0.0, 30.0)
-    rider_cam = camera("Ride")
-    rider_cam.data.sensor_fit = "VERTICAL"
-    rider_cam.data.angle_y = math.radians(70)
-    look_from(rider_cam, (mid_x + 16.0, 3.0, 8.0), (mid_x - 6.0, 0.0, 0.5))
-    for f in range(frames):
-        phase = 2 * math.pi * f / frames
+
+    def pose(phase):
         segments[0].rotation_euler.z = math.radians(sw["headCounter"]) * math.sin(phase + math.pi)
         for k, ob in enumerate(JOINT_CHAIN):
             ob.rotation_euler.z = math.radians(sw["amplitudes"][k]) * math.sin(phase - sw["phaseStep"] * (k + 1))
-        for name, cam, size in (("hero", hero, (560, 410)), ("top", top, (560, 260)), ("ride", rider_cam, (560, 410))):
-            render(cam, os.path.join(folder, f"{name}_{f:03d}.png"), *size)
+
+    folder = os.path.join(OUT, f"swim_{JOINTS}")
+    K.swim(folder, 24, pose, mid_x)
     print("fish kit: swim", folder)
     sys.exit(0)
 
-
-# ---------------------------------------------------------------- the turnaround views
-scene.render.film_transparent = True
-scene.render.image_settings.color_mode = "RGBA"
-hero = camera("Hero", lens=75)  # a long lens from further off, so the 3/4 view doesn't bulge
-look_from(hero, (mid_x - 19.5, -22.5, 7.0), (mid_x + 0.3, 0.0, 0.1))
-render(hero, os.path.join(OUT, "hero.png"), 1100, 800)
-side = camera("Side", ortho=SPEC.get("orthoSide", 14.5))
-look_from(side, (mid_x, -30.0, 0.5), (mid_x, 0.0, 0.5))
-render(side, os.path.join(OUT, "side.png"), 900, 560)
-front = camera("Front", lens=85)  # a perspective front view like the concept's: the body behind the face shrinks away
-look_from(front, (front_x - 30.0, 0.0, 3.2), (front_x + 2.0, 0.0, 0.2))
-look_from(sun, (-10.0, -1.5, 8.0), (0.0, 0.0, 0.0))  # lit from in front and above, like the concept's front view, so the face's planes read
-render(front, os.path.join(OUT, "front.png"), 560, 560)
-look_from(sun, (-5.0, -7.0, 9.0), (0.0, 0.0, 0.0))
-top = camera("Top", ortho=SPEC.get("orthoSide", 14.5))
-top.location = (mid_x, 0.0, 30.0)
-render(top, os.path.join(OUT, "top.png"), 900, 420)
-
-if WIRE:  # every mesh edge drawn in red over the model: the head's planes, the mouth's merged edges
-    head_cam = camera("HeadCam", lens=50)
-    look_from(head_cam, (front_x - 6.5, -7.0, 2.6), (front_x + 1.7, 0.0, 0.1))
-    render(head_cam, os.path.join(OUT, "head.png"), 900, 800)
-    bpy.context.view_layer.update()
-    red = material("Wire", "#E0302A")
-    red_bsdf = red.node_tree.nodes.get("Principled BSDF")
-    red_bsdf.inputs["Emission Color"].default_value = hex_rgba("#E0302A")
-    red_bsdf.inputs["Emission Strength"].default_value = 1.0
-    wires = []
-    for ob in list(fish.objects):
-        if ob.type != "MESH":
-            continue
-        me = ob.data.copy()
-        me.materials.clear()
-        me.materials.append(red)
-        for poly in me.polygons:
-            poly.material_index = 0
-        wire = bpy.data.objects.new(ob.name + "Wire", me)
-        scene.collection.objects.link(wire)
-        wire.matrix_world = ob.matrix_world.copy()
-        mod = wire.modifiers.new("Wire", "WIREFRAME")
-        mod.thickness = 0.03
-        mod.use_even_offset = False  # even offset throws spikes at sharp corners
-        mod.use_replace = True
-        wires.append(wire)
-    render(head_cam, os.path.join(OUT, "head_wire.png"), 900, 800)
-    look_from(sun, (-10.0, -1.5, 8.0), (0.0, 0.0, 0.0))
-    render(front, os.path.join(OUT, "front_wire.png"), 560, 560)
-    look_from(sun, (-5.0, -7.0, 9.0), (0.0, 0.0, 0.0))
-    for wire in wires:
-        wire.hide_render = True
-
-
-# ---------------------------------------------------------------- the riding view: shallow water, a rider, a few more
-def solid(name, size, hex_colour, location, rotation=(0.0, 0.0, 0.0)):
-    me = bpy.data.meshes.new(name)
-    bm = box_bm(size)
-    bm.to_mesh(me)
-    bm.free()
-    me.materials.append(material(name, hex_colour))
-    ob = bpy.data.objects.new(name, me)
-    scene.collection.objects.link(ob)
-    ob.location = location
-    ob.rotation_euler = rotation
-    return ob
-
-
-def blob(name, radius, hex_colour, location, squash=0.8):
-    me = bpy.data.meshes.new(name)
-    bm = bmesh.new()
-    bmesh.ops.create_icosphere(bm, subdivisions=1, radius=radius)
-    bm.to_mesh(me)
-    bm.free()
-    me.materials.append(material(name, hex_colour))
-    ob = bpy.data.objects.new(name, me)
-    scene.collection.objects.link(ob)
-    ob.location = location
-    ob.scale = (1.0, 1.0, squash)
-    return ob
-
-
-def add_fog(m, fog_hex, fog_end):
-    """Roblox-style linear fog: the surface fades to the fog colour by its distance from the camera, gone at fog_end"""
-    nt = m.node_tree
-    out = nt.nodes.get("Material Output")
-    surface = out.inputs["Surface"].links[0].from_socket
-    cam = nt.nodes.new("ShaderNodeCameraData")
-    ramp = nt.nodes.new("ShaderNodeMath")
-    ramp.operation = "DIVIDE"
-    ramp.use_clamp = True
-    ramp.inputs[1].default_value = fog_end
-    nt.links.new(cam.outputs["View Distance"], ramp.inputs[0])
-    glow = nt.nodes.new("ShaderNodeEmission")
-    glow.inputs["Color"].default_value = hex_rgba(fog_hex)
-    mix = nt.nodes.new("ShaderNodeMixShader")
-    nt.links.new(ramp.outputs[0], mix.inputs["Fac"])
-    nt.links.new(surface, mix.inputs[1])
-    nt.links.new(glow.outputs["Emission"], mix.inputs[2])
-    nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
-
-
-scene.render.film_transparent = False
-fog = SPEC.get("rideFog", "#3CBED2")
-world(fog, 1.0)
-look_from(sun, (-3.0, 2.0, 10.0), (0.0, 0.0, 0.0))
-sun_data.energy = 3.0
-
-floor_z = -7.0
-solid("Sand", (600.0, 600.0, 1.0), "#E9DCB0", (0.0, 0.0, floor_z - 0.5))
-for i, (x, y, r, c) in enumerate(
-    [(-30, -14, 3.0, "#FF7A8C"), (-46, 10, 4.0, "#FFAA50"), (-62, -6, 3.5, "#B46EE6"), (-20, 16, 2.5, "#5ADCC8"),
-     (-80, 18, 5.0, "#FF7A8C"), (-12, -22, 3.0, "#B46EE6"), (-95, -16, 4.5, "#FFAA50")]
-):
-    blob(f"Coral{i}", r, c, (x, y, floor_z + r * 0.4))
-
-# the rider: a 5-stud block figure sitting on the shoulders, in front of the dorsal fin
+K.turnaround(front_x, mid_x)
+if WIRE:
+    K.wire(front_x)
 seat_t = SPEC.get("seat", 0.23)
-seat_x, seat_top, seat_hw = xat(seat_t), profile(seat_t)[0], profile(seat_t)[2]
-solid("RiderTorso", (1.0, 2.0, 2.0), "#3C78D8", (seat_x, 0.0, seat_top + 1.3))
-solid("RiderHead", (1.2, 1.2, 1.2), "#F2C9A0", (seat_x, 0.0, seat_top + 2.9))
-for s in (-1, 1):
-    solid(f"RiderLeg{s:+d}", (1.0, 1.0, 2.0), "#2B2B33", (seat_x, s * (seat_hw + 0.35), seat_top - 0.4), (s * math.radians(12), 0.0, 0.0))
-    solid(f"RiderArm{s:+d}", (1.6, 0.8, 0.8), "#3C78D8", (seat_x - 0.9, s * 1.25, seat_top + 1.6), (0.0, math.radians(25), 0.0))
-
-# more of the same fish nearby, a Tiny and a Big one: the size variants
-for name, scale, loc, yaw in (("Tiny", 0.55, (-16.0, -7.0, 0.5), 8), ("Big", 1.35, (-34.0, 9.0, 3.0), -6)):
-    inst = bpy.data.objects.new(name, None)
-    inst.instance_type = "COLLECTION"
-    inst.instance_collection = fish
-    inst.location = loc
-    inst.scale = (scale, scale, scale)
-    inst.rotation_euler = (0.0, 0.0, math.radians(yaw))
-    scene.collection.objects.link(inst)
-
-for m in bpy.data.materials:
-    add_fog(m, fog, SPEC.get("rideFogEnd", 900.0))
-
-ride = camera("Ride")
-ride.data.sensor_fit = "VERTICAL"
-ride.data.angle_y = math.radians(70)  # Roblox's default field of view
-look_from(ride, (14.0, 3.0, 6.5), (-6.0, 0.0, 1.0))
-render(ride, os.path.join(OUT, "ride.png"), 1280, 720)
+K.ride(xat(seat_t), profile(seat_t)[0], profile(seat_t)[2])
 print("fish kit: done", OUT)

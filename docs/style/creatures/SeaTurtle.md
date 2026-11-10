@@ -1,8 +1,9 @@
 # Sea Turtle
 
 Zone 1, Shallows, Uncommon. Read off the user's ChatGPT concept (`art/concepts/creatures/sea-turtle-gpt.webp`, 2026-11-09) by
-the [creature method](../creature-method.md), the way [workout 2](../02-creature-look.md) read the Sergeant Major. Proposed
-2026-11-09: nothing is built yet. This is the reading, the plan and the questions.
+the [creature method](../creature-method.md), the way [workout 2](../02-creature-look.md) read the Sergeant Major. Built
+2026-11-10: see [Build](#build) at the end. Sections 1 to 6 are the reading, the plan and the questions as written
+before the build.
 
 The turtle is the first creature that doesn't swim with its body, so this note also lays out a second body plan for the kit:
 one rigid shell with a head, four flippers and a tail. Archelon (zone 1's Legendary) and the Grave Turtle (zone 9) in the
@@ -371,3 +372,126 @@ head leads the turn by up to 10 degrees and the tail turns up to 12. Diving and 
 - **Tips and bands on limbs** are colour lines across the plate, never caps stuck on.
 - **One eye for the set,** or a plain variant beside it: question 1 settles it.
 - **Colours:** the turtle needs five plus the eyes' black, so the method's 3 or 4 may need to become "up to 5".
+
+## Build
+
+Built 2026-11-10 from this plan by the new shell body plan, [`tools/blender/shell_kit.py`](../../../tools/blender/shell_kit.py),
+from [`art/creatures/SeaTurtle/spec.json`](../../../art/creatures/SeaTurtle/spec.json). Renders are in
+`art/creatures/SeaTurtle/renders`. Not in Studio yet: that needs an upload, and uploads are permanent.
+
+![The concept and ours](../../attachments/creature-seaturtle-compare.jpg)
+
+The sheet tool's boxes are sized for fish, so our front and top views come out small, and its palette row stays empty (it
+reads only the fish's colour names). Here are the same views at matched widths (nose to tail, tip to tip):
+
+![Side, front and top: the concept above, ours below](../../attachments/creature-seaturtle-views.jpg)
+
+### What was built
+Seven rigid parts, each a mesh whose pivot is its joint: one MeshPart and one Motor6D each in Roblox. Studs, with H = 3.5
+(the shell's height); positions are x back from the rim's front edge, y out, z up from the belly's bottom.
+
+| Part | Joint | Pivot | Triangles |
+|---|---|---|---|
+| Shell: plates, rim, belly | Body (the root) | 4.10, 0, 1.75 (1.17H, 0, 0.50H) | 493 |
+| Head, with the eyes and the neck stub | Neck | 0.35, 0, 1.61 (0.10H, 0, 0.46H): under the arch | 94 |
+| Front flipper, left and right | Shoulder | 2.28, ±3.05, 0.50 (0.65H, ±0.87H, 0.14H) | 32 each |
+| Rear flipper, left and right | Hip | 6.65, ±1.75, 0.60 (1.90H, ±0.50H, 0.17H) | 28 each |
+| Tail | Tail | 7.95, 0, 1.26 (2.27H, 0, 0.36H) | 12 |
+
+719 triangles in all, against the plan's 650: the bevels, the groove floor round every plate, the rim's inner wall where the
+plates pass under it, and the folded rear plates. The plan's option (b), plates without bevels, would save about 100.
+
+- **The shell:** the dome is a hip roof of flat faces, one sloping down from each edge of the top plate's octagon, so
+  neighbours meet along straight hips and the grooves run along them. Each plate is pushed out of its face in the same mesh:
+  moved in half a groove, raised 0.21 (0.06H), bevelled 0.14 (0.04H) to a flat top. The groove floor is what's left of the
+  face, in the dark green. Each face's slope comes from `plates.reach`, made steeper where it would rise above the rim. The
+  rear pair can't be one plane each (each spans two of the octagon's edges), so each is two flat faces folded along the hip
+  from the octagon's rear corner: the line chosen on purpose, as section 3 allows.
+- **The rim:** 12 straight edges from above, an outer face from 0.27H to 0.46H, a top band rising to 0.49H at its inner
+  line. The arch is a collar over the neck: 0.80H at the front corners, 0.56H at the next, level from the shoulders back.
+  Under it the throat is the neck's skin colour. Beside the head, the band slopes down from the arch with the belly's cream
+  under it, as in the concept's front view.
+- **The belly:** a cream dish, flat bottom 0.8 by 0.8H. Its sides are flat because the top and bottom octagons have parallel
+  edges.
+- **The head:** the planes of section 3. The face leans back above the mouth line; the forehead is a strip over it; the cheeks
+  are turned 35 degrees, each with its plain black eye parallel in the middle of its upper part (0.155H, raised 0.03H). The
+  cream jaw is pushed out 0.04H below the mouth line, its sides flush on the cheeks, its front leaning back to the chin, so
+  its top edge is the most forward point. The mouth line runs on down each side wall as a diagonal, cream below. There are
+  lower chamfers to a 0.34H chin, and a back chamfer into the neck.
+- **The flipper,** one piece for every limb (`flipper_bm`): a thick plate drawn from above as it lies at rest, swept back,
+  with the front pair's leading edge kinked. The pale tip is a colour line square to its long axis (78% along on the front
+  pair, 65% on the rear), with its corners cut at 45 degrees. Its root is pushed in under the body (`sleeve`). It hinges
+  along `hinge` and twists about its own long axis.
+- **The tail:** a blunt wedge, 0.29H past the rim.
+- **Checks:** `--check` prints the triangle counts, the dome's slopes and a mesh-against-mesh test: the flippers, head and
+  tail against the shell's visible faces in all 24 frames of the stroke, and the head turned 20 degrees either way. All
+  clear. Only the joints meet on purpose: the neck stub goes in through the throat, the tail's root through the rim's rear
+  face, the roots under the rim and the belly. `--phase N` renders the views at frame N of the stroke.
+
+![The head: edges in red](../../attachments/creature-seaturtle-head.jpg)
+
+### Options used (the user can still change them in the spec)
+- **The eye:** the plain black square (decided), on a cheek turned 35 degrees (`head.cheekAngle`).
+- **The head's colour:** the mid olive `#7E8D40` (`colours.skin`).
+- **The plates:** raised, with grooves and bevels (`plates.rise`, `groove`, `bevel`; bevel 0 would give option b).
+- **The seat:** the top plate's front quarter, 0.85H back, on top at 1.0H (`seat`).
+- **The stroke:** 1.6 seconds at cruise (`swim.cycle`, for the game). The GIF plays a beat in 1 second.
+
+### Spec fields
+- `shell`: `pivot` (the Body joint), `outline` (the rim's right half, mirrored), `rim` (`band`, `face`, `top`, `tops` per
+  corner for the arch, `throat`), `dome.top`, `belly` (`top` and `bottom` octagons: centre, half length, half width, corner).
+- `plates`: `centre` (the octagon), `reach` per face (the most it reaches at the rim; the rim wins), `groove`, `rise`, `bevel`,
+  `lip` (how far the plates pass under the rim).
+- `head`: `front`, `back`, `bottom`, `top`, `halfWidth`, `face`, `mouth` (`z`, `protrude`), `forehead`, `cheekAngle`,
+  `lowerChamfer`, `chinX`, `diagonalTo`, `backChamfer`, `neck` (`pivot`, `halfWidth`, `z`, `to`). `eye`: `style` (plain only
+  so far), `size`, `z`, `raise`, `thickness`.
+- `limbs.front` and `limbs.rear`: `pivot`, `hinge` (degrees from fore-and-aft), `outline` (as seen from above, root first and
+  last), `thickness`, `tipAt`, `tipCut`, `sleeve` (one number, or [leading, trailing]), `rest` (`elevation`, `twist`).
+- `tail`, `seat`, `swim` (section 5's numbers), and the camera fields `frame`, `orthoSide`, `orthoTop`, `topHeight`,
+  `orthoSwimTop`.
+
+### The swim
+Section 5's stroke on an added-up phase. Both front flippers beat together, ±40 degrees, the downstroke taking 55% of the
+cycle. They sweep 30 degrees back ±15, a tenth of a cycle behind the beat, so the tip draws a loop. They twist ±25 degrees,
+flat at the top and the bottom, so they slice up edge first. The rear flippers paddle ±8 degrees half a beat later, about
+10 degrees down, with ±10 degrees of twist. The shell heaves ±0.14 studs and pitches ±2 degrees, highest and nose up as the
+downstroke ends. The head counter-nods ±3 degrees a tenth behind, and the tail turns ±4.
+
+![The stroke: 3/4, from above, from the riding camera](../../attachments/creature-seaturtle-swim.gif)
+
+![The top and the bottom of the stroke](../../attachments/creature-seaturtle-stroke.jpg)
+
+From the riding camera the rider sits ahead of the middle and the back half of the shell shows: the rear plates either side
+of the centre groove and the pale rim, which reads best in the water's cyan. The stroke shows as the flippers lifting
+beside the rim.
+
+![Riding view](../../attachments/creature-seaturtle-ride.jpg)
+
+### What still differs from the concept, and why
+- **The flippers swim instead of standing:** level and swept back at rest, as section 1 planned, so the side and front views
+  don't match the concept's legs.
+- **The front flippers come out at the shell's shoulder corner** (0.65H back, just under the rim's edge, hinged fore and
+  aft), not 0.40H back under the shoulder as planned. The first try, hinged further in and square to the swept flipper, drove
+  the root up through the rim by up to 0.65 studs on the upstroke. For the same reason their root is narrower than the
+  concept's (0.37H; they widen to 0.56H at the kink). From above they sit a little further back than the concept's.
+- **The stroke sits lower than planned:** the tips rise to about 0.6H at the top (planned 0.9H) and drop to about 0.3H under
+  the belly at the bottom, because the hinge is lower to clear the rim.
+- **The side plates are steeper** (65 degrees, the concept 40 to 50): the octagon's long sides (0.50H out) and the rim's inner
+  line (0.82H) leave 0.32H for a 0.45H drop. The others are 43 to 51 degrees.
+- **The plate over the neck** is as steep as its neighbours, so its grooves open out forward as in the concept's top view.
+  Its front sits low, behind the collar's tall inner wall. Made shallow, it showed over the head from the front as in the
+  concept's front view, but its grooves met in a point at the front.
+- **The head** sits 0.14 studs further forward (a 0.1H neck, inside the measured 0.08 to 0.15H) with a narrower back, so it
+  can turn 20 degrees either way without touching the arch.
+
+### Left open
+1. **The front flippers' place:** at the shoulder corner (built), or further forward like the concept. That needs the rim
+   raised over each shoulder, or a smaller upstroke.
+2. **The stroke's height:** the tips to 0.6H (built), or the planned 0.9H with about 55 degrees of beat, or a few degrees of
+   rest elevation.
+3. **The plate over the neck:** low behind the collar (built: the top view matches), or high (the front view matches).
+4. **The side plates' 65 degrees:** keep, or narrow the top plate or raise the rim's sides.
+5. **Triangles:** 719; drop the bevels if the budget needs it.
+6. **Size:** H = 3.5 studs, as the plan said, so the 5-stud rider looks big on it. The starters stand 5.2 studs tall (rule 7
+   of workout 3, not agreed yet).
+7. **Still to build:** the idle scull, gliding, turning and diving poses; the creature in Studio, in the water's light.

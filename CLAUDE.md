@@ -34,5 +34,31 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   of the face in the same mesh; `--wire` renders every edge in red. Workout 2 in
   `docs/style/02-creature-look.md`.
 - More creatures: one note each in `docs/style/creatures/` (Yellow Tang, Sea Turtle, Stingray so far), from the user's
-  concepts in `art/concepts/creatures/`; [workout 3](docs/style/03-creature-set.md) holds the three body plans (fish, shell,
-  disc), the proposed rules for every creature and the user's open decisions. Nothing past the Sergeant Major is built yet.
+  concepts in `art/concepts/creatures/`, each ending in a Build section; [workout 3](docs/style/03-creature-set.md) holds the
+  three body plans, the proposed rules for every creature and the user's open decisions. The kit: `tools/blender/kit_common.py`
+  (materials, mesh helpers, the turnaround, `--wire`, riding and swim views; spec `frame` = camera distance) under three plan
+  scripts with the same command line (`<spec.json> <out> [--swim] [--wire]`): `fish_kit.py` (fish), `shell_kit.py` (the Sea
+  Turtle; `--check` = clearance), `disc_kit.py` (the Stingray). Specs and renders in `art/creatures/<Name>/`;
+  `tools/art/creature_sheet.py` makes the side-by-side with the concept, `tools/art/swim_gif.py <renders> <gif> <variant>`.
+- **Voxel style test (2026-11-10, not decided):** [workout 4](docs/style/04-voxel-style.md). Creatures designed block by
+  block live in `art/creatures/<Name>/voxel.py` (Sergeant Major, Clownfish, Reef Shark, Dunkleosteus, Hellmaw) and build with
+  `tools/blender/voxel_kit.py <voxel.py> <out> [--swim] [--wire]`; `--voxel <size>` on the three plan scripts converts a
+  built creature to cubes (the weaker way). The mesher (`cells_to_bm`) is in `kit_common.py`. Voxels aren't law (the user):
+  a model can add free pieces (`taper`, `block`, `spike`, `tooth`, `prism`) where a slope or a point looks better, teeth are
+  pointed, glow is `GLOW` + `LIGHTS`, and every creature has a `SEAT` with a place for the rider's legs (`seat.png`).
+  Third pass (the user: big block elements, not everything voxelly; slopes must blend): build from few big boxes, each a
+  body part; a slope is a whole block turned (`beam`), never a block squeezed; fins and tails are two or three angled
+  boxes. All five voxel creatures are built this way.
+  Joining rules (the user: no gaps, no overlapping faces, colour bands only a little proud): bury a piece's root (one whole
+  face inside another piece), each box of a chain starts inside the one before, fillings stay behind what they fill, no two
+  faces in one plane, raised colour is `band` (a third of a cube proud). Every build prints `  !` lines for faults;
+  `--check` stops there, `--inspect` renders close views from below and behind. The check is a gate: the build stops
+  before rendering while any line is printed (`--force` overrides). It also refuses same-facing overlapping faces under
+  0.05 studs apart, so each box of a fin is clearly thinner than the one before. Faces nothing can see are left out of the
+  mesh. `--weld` (one closed shell per part) works but measured a third more triangles: not the default. A bar never sits
+  where the body changes size (the user: bands are touches of colour, not shapes). All five pass the gate. Touches in use:
+  a gum line on predators, a darker collar at a big fin's root, a lighter side line, bars that stop short of the belly
+  (`band(stop=)`), one flaw on each rarer creature. Recesses that don't glow are shallow (`dent`, a third of a cube): a
+  whole cube deep reads as a Minecraft build (the user). The shark's pink gum line read as lipstick: the user picked the thin
+  darker line (`GUM = "thin"`), for select animals. Rarity look: docs/style/05-rarity-look.md (a budget per rarity, proposed; the Hellmaw is redone by it as a Mythic; parts
+  that float on purpose are named in a model's `FLOATING`).

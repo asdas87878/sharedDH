@@ -5,6 +5,8 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-10 | The gum line on predators is the thin, darker one (variant D), on select animals only. It may change later: the user. The pink line read as lipstick | [Workout 4](style/04-voxel-style.md) |
+| 2026-11-10 | Test a voxel art style closer to the reference game's (its kind of style, never its models): the user. Only the test is settled; whether the creatures go voxel is decided after it. The faceted creatures stay for the side-by-side | [Workout 4](style/04-voxel-style.md) |
 | 2026-11-09 | Each creature's eye follows its concept: some have a cream square with a black square in it (the Sergeant Major), some a plain black square (the Yellow Tang, the Sea Turtle, the Stingray). No single eye for the set | [Workout 3](style/03-creature-set.md) |
 | 2026-11-09 | The mouth is part of the head mesh, pushed out of the face across its whole width: its back corners are where lines across the face at its top and bottom meet the face's edges, shared with the eye faces, and its sides lie flush on the eye faces' planes, so its front is narrower than its back | [Workout 2](style/02-creature-look.md) |
 | 2026-11-09 | The project is shared with the user's partner through a private GitHub repo (`asdas87878/sharedDH`), with the Obsidian Git plugin on both PCs. Studio work goes through the repo too, as there's no shared Studio connection | [Working together](Working%20together.md) |
