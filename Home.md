@@ -22,6 +22,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Creatures](docs/design/creatures.md): what's decided about the creatures, tags, sizes and mutations.
 - [Roster](docs/design/roster.md): the scale against Ride a Dino and three drafted progressions (76 creatures).
 - [Creature queue](docs/design/creature-queue.md): the voxel models exported and waiting to go into the game
+- [Creature brief](docs/style/creature-brief.md): how to build a voxel creature, and how to run a batch of them
 - [Money and Robux](docs/design/money.md): income, upgrades, what's for sale.
 - [First version](docs/design/first-version.md): what ships first and what waits.
 

@@ -101,9 +101,11 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   looked at). Variants: gold is yellow gold, never brown; the rainbow is one smooth, straight gradient (vivid, a little pastel) of flat hues
   dithered into each other in very small pixels (a ninth of a cube; never cube-sized blocks, never wandering or blotchy edges); on a variant the creature's glowing colours take a contrasting `ACCENT` (violet on
   gold, white on rainbow). A dark framing colour is a dark tint (the Archelon's navy), not pure black, unless black suits
-  the animal. For now models carry studs only; other tiles wait for a hand texture pass. Batch building: a lean brief for
-  fresh agents is in the session scratchpad (`BUILDER_BRIEF.md`, `preview.py`, `finish.py`); the fifty to model are listed in
-  `docs/design/roster.md`. `voxel_kit.py --export <folder>` writes a creature's game mesh into `art/creatures/<Folder>/game/`:
+  the animal. For now models carry studs only; other tiles wait for a hand texture pass. Batch building: the brief for a
+  builder and how to run a batch are in `docs/style/creature-brief.md`; the scripts are `tools/art/voxel_preview.py`,
+  `voxel_finish.py`, `voxel_batch_sheet.py`, `voxel_export_all.py`, `voxel_looks.py`, `voxel_look_sheets.py` (paths from
+  `voxel_paths.py`; renders go to `work/voxel/`, not kept in the repo) and `tools/blender/check_glb.py`; the fifty to model
+  are listed in `docs/design/roster.md`. `voxel_kit.py --export <folder>` writes a creature's game mesh into `art/creatures/<Folder>/game/`:
   `<Name>.glb` (one object to a part, origin at its pivot, vertex colours, glowing faces split as `<Part>_Glow`; GLB, not FBX:
   FBX came back turned and scaled) and `<Name>.mesh.json` (parts, pivots, seat, glowParts, swimKeys as quaternions); the 33 built
   so far are listed in `docs/design/creature-queue.md`. All 33 were uploaded and installed by the game-code chat on 2026-11-10 (`tools/creatures/assets.json`); a changed creature
