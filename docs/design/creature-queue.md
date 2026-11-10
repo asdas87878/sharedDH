@@ -1,9 +1,18 @@
 # Creature queue: models ready to go into the game
 Up: [Home](../../Home.md). The creatures built in the voxel style ([workout 4](../style/04-voxel-style.md), [5](../style/05-rarity-look.md),
-[6](../style/06-textures.md)), exported as game meshes and waiting to be imported. Written by a script from the exports
+[6](../style/06-textures.md)), exported as game meshes and imported into the game. Written by a script from the exports
 (2026-11-10); run it again after a model changes.
 
-**Nothing here is in Roblox yet.** Importing a mesh is an upload, and uploads are permanent: they need the user's word.
+**Imported 2026-11-10.** All 33 were uploaded by the chat that has `src/` and Studio, on the user's go-ahead, and are in the
+place; the 21 of zones 1 and 2 spawn, swim and can be ridden. The other 12 wait for their lands. The GLB export needed no
+change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in Studio](../attachments/creature-reefshark-in-studio.jpg).
+
+- **To change a creature that is already in:** re-export it, then it needs a new upload (permanent, so batch changes) and that
+  chat's `tools/creatures/collect.py` and `install.py`. Tell that chat which ones changed.
+- **What Roblox does to a file** (handled in the loader): turns the model 180 degrees about up, wraps each part in a
+  `<part>_Node`, moves each part's origin to its box's middle (so pivots come from the json), and makes parts grey Plastic.
+- **Not in yet:** studs; gold and rainbow. Nobody has yet looked at them swimming in play.
+- The Blue Whale's files are named `BlueWhaletheoldone.*` (from its long name); its id everywhere is the folder name, `BlueWhale`.
 
 ## What each creature's folder holds
 `art/creatures/<Folder>/game/`:

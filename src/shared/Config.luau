@@ -30,6 +30,8 @@ export type FishType = {
 	PatternCount: number?,
 }
 
+local Creatures = require(script.Parent.Creatures)
+
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
@@ -330,9 +332,40 @@ local FISH: { FishSpec } = {
 	{ Id = "GreatWhite", Name = "Great White", Tier = "Epic", Home = 3, Size = Vector3.new(6, 6.5, 24), Shape = "Shark", Body = rgb(110, 120, 135), Belly = rgb(245, 245, 245), Fin = rgb(100, 110, 125) },
 	-- zone 4: Shipwrecks
 	{ Id = "Barracuda", Name = "Barracuda", Tier = "Uncommon", Home = 4, Size = Vector3.new(2.6, 3, 15), Shape = "Shark", Body = rgb(190, 200, 210), Belly = rgb(240, 245, 250), Fin = rgb(150, 160, 170) },
-	{ Id = "Hammerhead", Name = "Hammerhead Shark", Tier = "Rare", Home = 4, Size = Vector3.new(5, 5, 22), Shape = "Shark", Body = rgb(120, 130, 120), Belly = rgb(235, 235, 230), Fin = rgb(110, 120, 110) },
 	{ Id = "GoliathGrouper", Name = "Goliath Grouper", Tier = "Epic", Home = 4, Size = Vector3.new(7, 9, 18), Shape = "Fish", Body = rgb(110, 100, 70), Fin = rgb(90, 85, 60), Pattern = "Spots", PatternColour = rgb(60, 55, 40) },
 }
+
+-- The modelled creatures (Shared.Creatures, from the creature chat's exports) bring their own name, rarity, land and
+-- size. One that is also in the table above keeps only its placeholder colours from there; the rest are added. A
+-- creature whose land isn't in the map yet simply never spawns.
+do
+	local at: { [string]: number } = {}
+	for i, spec in FISH do
+		at[spec.Id] = i
+	end
+	for _, id in Creatures.ids() do
+		local rig = Creatures.get(id) :: Creatures.Rig
+		local size = Vector3.new(rig.Size[1], rig.Size[2], rig.Size[3])
+		local i = at[id]
+		if i then
+			local spec = FISH[i]
+			spec.Name = rig.Name
+			spec.Tier = rig.Tier
+			spec.Home = rig.Zone
+			spec.Size = size
+		else
+			table.insert(FISH, {
+				Id = id,
+				Name = rig.Name,
+				Tier = rig.Tier,
+				Home = rig.Zone,
+				Size = size,
+				Shape = "Fish",
+				Body = rgb(150, 160, 170),
+			})
+		end
+	end
+end
 
 Config.Fish = {} :: { FishType }
 Config.FishById = {} :: { [string]: FishType }

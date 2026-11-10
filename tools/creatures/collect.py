@@ -4,7 +4,7 @@ usage: python tools/creatures/collect.py            (every art/creatures/<Folder
 
 The meshes themselves are not here: they are uploaded to Roblox and sit in ReplicatedStorage.FishModels.<Id> in the place.
 What is kept, in the creature's own space (studs, +Y up, the head toward -Z, the bounding box's middle at the origin):
-  Name, Size [x, y, z], Seat [x, y, z], Parts [[name, parent or "", pivot x, y, z]...] (parents before children),
+  Name, Tier ("Common" ... "Mythic"), Zone (the land it lives in, 1 = Shallows), Size [x, y, z], Seat [x, y, z], Parts [[name, parent or "", pivot x, y, z]...] (parents before children),
   Glow [part names that are Neon], Moments (keys in one swim cycle) and Keys {part: [x, y, z, w, ...]} (each moving
   part's turn about its pivot at each moment, quaternions end to end; rest pose is 0, 0, 0, 1).
 The Id is the folder's name, which is also the Id in src/shared/Config.luau's fish table.
@@ -12,6 +12,7 @@ The Id is the folder's name, which is also the Id in src/shared/Config.luau's fi
 import glob
 import json
 import os
+import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "src", "shared", "Creatures")
@@ -48,8 +49,12 @@ def collect(path):
         if all(abs(q[0]) < 1e-5 and abs(q[1]) < 1e-5 and abs(q[2]) < 1e-5 for q in rows):
             continue  # never moves
         keys[part] = [r(v, 5) for q in rows for v in q]
+    zone = re.search(r"(\d+)", j["zone"])
+    assert zone, f"{folder}: no zone number in {j['zone']!r}"
     out = {
-        "Name": j["name"],
+        "Name": re.sub(r"\s*\(.*\)\s*$", "", j["name"]),
+        "Tier": j["rarity"].strip().capitalize(),
+        "Zone": int(zone.group(1)),
         "Size": [r(v, 3) for v in j["size"]],
         "Seat": [r(v, 3) for v in j["seat"]],
         "Parts": parts,

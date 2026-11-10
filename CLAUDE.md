@@ -106,7 +106,8 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   `docs/design/roster.md`. `voxel_kit.py --export <folder>` writes a creature's game mesh into `art/creatures/<Folder>/game/`:
   `<Name>.glb` (one object to a part, origin at its pivot, vertex colours, glowing faces split as `<Part>_Glow`; GLB, not FBX:
   FBX came back turned and scaled) and `<Name>.mesh.json` (parts, pivots, seat, glowParts, swimKeys as quaternions); the 33 built
-  so far are listed in `docs/design/creature-queue.md`. Nothing is in Roblox yet: an import is an upload and needs the user's word. A brow sits on the eye (overlaps its
+  so far are listed in `docs/design/creature-queue.md`. All 33 were uploaded and installed by the game-code chat on 2026-11-10 (`tools/creatures/assets.json`); a changed creature
+  needs a new upload (permanent: batch changes and tell that chat). Studs and the variants are not in the game yet. A brow sits on the eye (overlaps its
   top, only a little proud of the pupil); light follows the model's own lines (a colour edge, a seam, a fin's edge), never
   a mark in the middle of a plain surface. An archetype is a loose guide and a shared vocabulary, never a template to copy:
   each creature is designed from its own real animal (the user). Taper one step at a time; more slices are for a smooth

@@ -1016,13 +1016,15 @@ def export_game(folder):
     pieces, glow_parts = {}, []
     for part_name, ob in objects.items():
         me = ob.data
-        tint = me.color_attributes.new("Col", "BYTE_COLOR", "CORNER")
+        # the colours are written as plain numbers, not turned to linear light: Roblox shows a mesh's vertex colours as they
+        # are stored, so a file with the usual linear values came in far too dark (a pale grey shark arrived navy)
+        tint = me.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
         lit = []
         for poly in me.polygons:
             colour = me.materials[poly.material_index].name.split("|")[0]
             r, g, b = (int(palette.get(colour, "#FF00FF").lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
             for loop in poly.loop_indices:
-                tint.data[loop].color_srgb = (r, g, b, 1.0)
+                tint.data[loop].color = (r, g, b, 1.0)
             lit.append(colour.rstrip("+-") in glowing)
         pieces[part_name] = ob
         if any(lit) and not all(lit):

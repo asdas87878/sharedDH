@@ -8,6 +8,8 @@ local Creatures = {}
 
 export type Rig = {
 	Name: string,
+	Tier: string, -- its rarity, as Config.Tiers names them
+	Zone: number, -- the land it lives in (1 = the Shallows)
 	Size: { number }, -- x, y, z
 	Seat: { number }, -- the point on its back the rider sits at
 	Parts: { { any } }, -- { name, parent ("" for the first), pivot x, y, z }, parents before children
@@ -34,6 +36,18 @@ function Creatures.get(id: string): Rig?
 		cache[id] = found
 	end
 	return if found then found else nil
+end
+
+-- Every modelled creature's Id, in a fixed order
+function Creatures.ids(): { string }
+	local ids = {}
+	for _, child in script:GetChildren() do
+		if child:IsA("ModuleScript") and Creatures.get(child.Name) then
+			table.insert(ids, child.Name)
+		end
+	end
+	table.sort(ids)
+	return ids
 end
 
 -- A creature's swim, ready to play: for each moving part, its turn at each moment of the cycle

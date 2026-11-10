@@ -102,7 +102,21 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
     (a Motor6D `Rig_<part>` at each pivot); `AnimController` plays the keyed swim on those joints.
   - Tested on a block stand-in of the Reef Shark (`ReplicatedStorage.FishModels.ReefShark`, marked `StandIn`: one box
     a part): the tail sweeps 1.67 studs each way. Reef Sharks in the game are those grey blocks until the mesh is in.
-  - Still to do after the upload: the fish table in Config has no entry for most of the 33 (speed, Oxygen use, land).
+  - **Uploaded 2026-11-10, on the user's word: all 33 creatures,** one GLB each as a Roblox Model asset through
+    Studio's connector (Open Cloud; the user granted `asset:read`, `asset:write` and the folder). The ids are in
+    `tools/creatures/assets.json`. All were approved by moderation.
+  - `python tools/creatures/install.py <studio_id> [Id ...]` puts them in the place as
+    `ReplicatedStorage.FishModels.<Id>`: it loads each asset, turns it half round (Roblox's GLB import turns a model
+    180 degrees about up), flattens the importer's nested models, and makes the parts white SmoothPlastic so the vertex
+    colours show. Part names, sizes and vertex colours came through the upload unchanged.
+  - Each creature's rarity, land and size now come from its export (`Tier`, `Zone`, `Size` in
+    `src/shared/Creatures/<Id>.json`; Config adds them to its fish table). Speed and Oxygen use follow the rarity, as
+    for the placeholders. The six unmodelled placeholders are kept (Garibaldi, Leopard Shark, Great White for the Kelp
+    Forest; Barracuda, Goliath Grouper).
+  - **In play on grey-box 5:** 21 kinds spawn with their models (every creature of the Shallows and the Coral Reef,
+    105 fish), swim with their keyed motion, and can be ridden (rode a Cuttlefish). The other 12 live in lands the
+    map doesn't have yet, so they don't spawn. No script errors. Nobody has looked at them in play yet: Studio
+    wasn't drawing for captures after the first ([the Reef Shark](attachments/creature-reefshark-in-studio.jpg)).
   - **Seen, not solved:** the first jump from the start missed in one run (the herd swims off at the flight's own
     pace, so a diver starting from rest can't catch a fish ahead); a ridden fish left alone runs into a wall or an
     obstacle and stops, because the lane winds and the fish only turns with the camera; a jump's flight against the
