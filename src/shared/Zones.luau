@@ -151,6 +151,33 @@ function Zones.pathJson(): string?
 	return nil
 end
 
+-- Server only: the big solid things standing in the lane (the map's "BigAssets" attribute on the dive folder: JSON rows
+-- of world x, z and radius), for the herd to steer round. Empty with none.
+function Zones.bigAssets(): { { number } }
+	local dive = findDive()
+	local json = dive and dive:GetAttribute("BigAssets")
+	if type(json) ~= "string" then
+		return {}
+	end
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(json)
+	end)
+	local out = {}
+	if ok and type(data) == "table" then
+		for _, row in data do
+			if
+				type(row) == "table"
+				and type(row[1]) == "number"
+				and type(row[2]) == "number"
+				and type(row[3]) == "number"
+			then
+				table.insert(out, row)
+			end
+		end
+	end
+	return out
+end
+
 function Zones.encode(list: { Zone }): string
 	local out = {}
 	for _, zone in list do

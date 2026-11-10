@@ -46,6 +46,8 @@ export type Wild = {
 }
 
 type Slice = { Start: number, End: number, Zone: number, Want: number }
+-- a big solid thing in the lane: where it stands, its place across the lane, and the lane's half width there
+type Obstacle = { X: number, Z: number, Radius: number, Across: number, Half: number }
 
 local FishService = {}
 
@@ -55,6 +57,7 @@ local parkedFolder: Folder
 local zones: { Zones.Zone } = {}
 local lane: Lane.Lane
 local slices: { Slice } = {}
+local obstacles: { Obstacle } = {}
 local wild: { [Model]: Wild } = {}
 
 FishService.Tag = FishModel.Tag
@@ -200,6 +203,22 @@ end
 local function pointAt(s: number): Vector3
 	local _, _, width = Lane.at(lane, s)
 	local x = rng:NextNumber(-1, 1) * width / 2 * Config.Spawn.LaneFill
+	-- not inside one of the big things standing in the lane (a few tries; the steering sorts out the rest)
+	for _ = 1, 6 do
+		local at = Lane.point(lane, s, x, 0)
+		local clear = true
+		for _, o in obstacles do
+			local dx, dz = at.X - o.X, at.Z - o.Z
+			if dx * dx + dz * dz < (o.Radius + 8) ^ 2 then
+				clear = false
+				break
+			end
+		end
+		if clear then
+			break
+		end
+		x = rng:NextNumber(-1, 1) * width / 2 * Config.Spawn.LaneFill
+	end
 	local floorY = Lane.point(lane, s, x, 0).Y
 	-- (and low enough in the shallows that a jump has room to rise above the herd)
 	local room = math.min(Config.Oxygen.SurfaceY - 6 - floorY, Config.herdTop(floorY))
@@ -445,6 +464,50 @@ function FishService.release(w: Wild, handBack: number?)
 	end
 end
 
+-- Round the big things in the lane, two ways:
+--   ahead of time: if the fish would pass too near one ahead of it, its place across the lane moves to the side it is
+--   already on, or to the other if the lane's edge is too near on that side. Its place stays moved, so the herd settles
+--   into the gaps;
+--   and at once: a fish already within the margin of one (it appeared there, or turned too late) is pushed straight
+--   away from it. Returns that push, to bend the way it swims this frame.
+local function mindObstacles(w: Wild, position: Vector3, dt: number): Vector3
+	local h = Config.Herd
+	local push = Vector3.zero
+	local dir = Vector3.new(w.Dir.X, 0, w.Dir.Z)
+	if dir.Magnitude < 0.1 then
+		return push
+	end
+	dir = dir.Unit
+	local body = w.Type.Size.X / 2 + h.ObstacleGap
+	local moved = false
+	for _, o in obstacles do
+		local rx, rz = o.X - position.X, o.Z - position.Z
+		local clear = o.Radius + body
+		local ahead = rx * dir.X + rz * dir.Z
+		if ahead > -clear and ahead < h.ObstacleLook + o.Radius then
+			local away = math.sqrt(rx * rx + rz * rz)
+			if away < clear and away > 0.01 then
+				-- inside its margin: out, harder the deeper in
+				push -= Vector3.new(rx, 0, rz) / away * math.min(2, (clear - away) / body)
+			end
+			-- how far to our right it stands (the lane's "across" runs the same way going down the lane)
+			local right = rx * -dir.Z + rz * dir.X
+			if not moved and math.abs(right) < clear then
+				local room = o.Half - h.WallGap
+				local side = if right > 0 then -1 elseif right < 0 then 1 elseif w.Across >= o.Across then 1 else -1
+				if o.Across + side * clear > room or o.Across + side * clear < -room then
+					side = -side
+				end
+				local goal = math.clamp(o.Across + side * clear, -room, room)
+				local step = h.ObstacleShift * dt
+				w.Across += math.clamp(goal - w.Across, -step, step)
+				moved = true
+			end
+		end
+	end
+	return push
+end
+
 local function steer(w: Wild, dt: number)
 	local position = w.Root.Position
 	local speed = w.Type.IdleSpeed
@@ -459,6 +522,7 @@ local function steer(w: Wild, dt: number)
 	-- straight down the lane: toward a point ahead, at its own place across the lane and above the floor. Past the
 	-- last stocked zone it carries on level until the top-up takes it away.
 	w.S += speed * dt
+	local push = if #obstacles > 0 then mindObstacles(w, position, dt) else Vector3.zero
 	local aheadS = math.min(w.S + Config.Herd.Ahead, lane.Length)
 	local floorAhead = Lane.point(lane, aheadS, w.Across, 0)
 	local to = floorAhead + Vector3.new(0, Config.herdHeight(w.Height, floorAhead.Y), 0) - position
@@ -470,6 +534,12 @@ local function steer(w: Wild, dt: number)
 	want = Vector3.new(want.X, math.clamp(want.Y, -0.45, 0.45), want.Z).Unit
 	local turn = 1 - math.exp(-1.4 * dt)
 	w.Dir = w.Dir:Lerp(want, turn).Unit
+	if push ~= Vector3.zero then
+		local bent = w.Dir + push
+		if bent.Magnitude > 0.05 then
+			w.Dir = bent.Unit
+		end
+	end
 	w.Speed = speed
 	w.Swim.VectorVelocity = w.Dir * speed
 	w.Turn.CFrame = CFrame.lookAt(Vector3.zero, w.Dir)
@@ -536,6 +606,26 @@ function FishService.Init()
 	Net.Folder:SetAttribute("Zones", Zones.encode(zones))
 	-- the clients build the same lane, to keep what they move themselves inside it (src/client/Lib/Course.luau)
 	Net.Folder:SetAttribute("LanePath", pathJson or "")
+	for _, row in Zones.bigAssets() do
+		local at = Vector3.new(row[1], 0, row[2])
+		-- its place in the lane, from the nearest point of the centreline on the flat (the floor's depth doesn't come
+		-- into it)
+		local s = 0
+		local best = math.huge
+		for i, point in lane.Points do
+			local d = (Vector3.new(point.X, 0, point.Z) - at).Magnitude
+			if d < best then
+				best = d
+				s = lane.S[i]
+			end
+		end
+		local centre, along, width = Lane.at(lane, s)
+		local across = (at - Vector3.new(centre.X, 0, centre.Z)):Dot(along:Cross(Vector3.yAxis))
+		table.insert(obstacles, { X = row[1], Z = row[2], Radius = row[3], Across = across, Half = width / 2 })
+	end
+	if #obstacles > 0 then
+		print(string.format("[FishService] %d big obstacles in the lane: the herd steers round them", #obstacles))
+	end
 	for i = 1, #zones do
 		pools[i] = pool(i)
 	end

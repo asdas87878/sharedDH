@@ -652,6 +652,10 @@ making a dome; the saddle gone; the eye as it was, with a little cheek under it.
 `#10222A` to `#1D3059`. The user: pure black is not always the best dark; it works on some sharks, not on the Archelon.
 When a creature needs a dark framing colour, try a dark tint (navy, deep teal, plum) before black.
 
+### Thin stripes (the user, 2026-11-10)
+Don't be afraid to add thin, continuous stripes along the whole creature (dinosaur, shark or fish), really thin. They add
+variety and texture, which matters a lot. Even one stripe in an accent colour can work.
+
 ### Leave the rider a seat
 **The user:** a row of things along the back (stripes, spikes, plates) has to leave room where the player sits. A player
 must never sit on a spike: it would poke through them. A flat line under the rider is fine.

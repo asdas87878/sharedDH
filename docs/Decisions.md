@@ -5,6 +5,8 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-10 | The map's assets are rethought from nothing: large and tall enough that the fish have to manoeuvre round them (large corals, a shipwreck, bones, sea plants), varied by land: the user | [The map: how we build it](design/map-method.md), "The assets" |
+| 2026-11-10 | The lane's two sides must not mirror each other: one goes in when the other goes out, bleeding into each other, for variety and a sense of space. The floor's squares are small. The loose structure of the grey-box is liked. How a player leaves the open map is for later: the user | [The map: how we build it](design/map-method.md) |
 | 2026-11-10 | The lane's wavy pattern is the reference's: it goes narrow, then big, then narrow, then big, in a pattern (rooms and necks), not a road of one width that winds. Grey-box 1 had it wrong: the user | [The map: how we build it](design/map-method.md), [the study](reference/ride-a-dino-map.md) |
 | 2026-11-10 | The start: you dive in from the start zone, with no diving board. Where the reference has ground past its start zone, we have the top of the water, level with the hub's floor: the user | [The map: how we build it](design/map-method.md) |
 | 2026-11-10 | Breaking a prop gives nothing, and it isn't coded yet: for now props are only modelled so that they can break: the user | [The map: how we build it](design/map-method.md) |

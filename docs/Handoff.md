@@ -71,6 +71,19 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
   - **Not done:** the landing's effect still makes new parts and a sound each landing (`Fx.landing`), and the poses
     build a table per player per frame (`AnimController`): performance only. The server still trusts where the client
     says it landed, within the flight's reach.
+- **Grey-box 3 of the new map is in Studio (2026-11-10)** in place of blockout v4, loaded from
+  `tools/studio/greybox/*.luau` (the map chat's; 4,905 parts, three lands, 4,500 studs). v4 comes back by running
+  `tools/studio/claude_blockout.luau`. On it:
+  - The game starts as it is: the lane's floor surveyed (over 3 studs off at 1 place of 566), fish spawn, running off
+    the hub floor puts you in the water, a jump lands, a ridden fish stays in the water.
+  - **The herd steers round the big obstacles** (`Zones.bigAssets`, `mindObstacles` in `FishService`, `Herd.Obstacle*`
+    in Config): a fish that would pass too near one ahead moves its place across the lane, and one already inside the
+    margin is pushed out. Measured: 0 wild fish inside an obstacle in 1,432 close passes (before: fish swam through).
+  - `Oxygen.DockRadius` 520 to 300 for the new hub.
+  - **Seen, not solved:** the first jump from the start missed in one run (the herd swims off at the flight's own
+    pace, so a diver starting from rest can't catch a fish ahead); a ridden fish left alone runs into a wall or an
+    obstacle and stops, because the lane winds and the fish only turns with the camera; a jump's flight against the
+    obstacles is the user's open decision.
 - **Kept:** Oxygen, the throw-off and the drown, the speed-up on mount, the bubble burst, map v4.
 - **The Studio place on this PC is not in the repo.** It was rebuilt in an unsaved place from `claude_blockout.luau`
   and `src/`; the user saves it locally.

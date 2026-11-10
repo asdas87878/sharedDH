@@ -23,15 +23,16 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   `tools/art/depth_profile.py`), notes in [docs/blockout.md](docs/blockout.md). Long Luau files go through
   `node tools/studio/run_luau.js <studio_id> <file> [NAME=value ...]` (the direct client; replaces `local NAME = ...` lines).
   **The map starts again (the user, 2026-11-10): v4 is set aside.** Build it the way Ride a Dino builds its own, then
-  improve: a chain of wide rounded rooms joined by narrow gates (narrow, wide, narrow, wide: the user's correction), a
-  line of flags at each gate, rolling ground that steps up at a room's sides into broad terraces or a tall plain wall
-  or rolls off at an open edge, one colour per land, a closed-in hub with one gate into the water, props made of loose bricks that collapse when a big creature hits them,
+  improve: a lane that goes narrow, wide, narrow, wide, its two sides waving AGAINST each other (one goes in as the
+  other goes out: the user's corrections), a line of flags at each neck, small floor squares (10 studs), rolling ground that steps up at a room's sides into broad terraces or a tall plain wall
+  or rolls off at an open edge, one colour per land, a closed-in hub with one gate into the water, big assets per land that fish must steer round (corals, kelp, a wreck, bones: `tools/map/props.py`, sheet
+  `docs/attachments/map-props-kit.jpg`), each of loose boxes so it can collapse when a big creature hits it,
   and a descent that steepens land by land with a step at each border and a big drop every few. Study:
   [docs/reference/ride-a-dino-map.md](docs/reference/ride-a-dino-map.md); method (proposed) and the user's decisions:
   [docs/design/map-method.md](docs/design/map-method.md).
-  Grey-box 2 (offline, Python, no Lune needed): `python tools/map/greybox.py` writes every box to
+  Grey-box 3 (offline, Python, no Lune needed): `python tools/map/greybox.py` writes every box to
   `art/map/greybox/parts.json` and the game's path to `path.json`; `tools/blender/map_greybox_view.py` renders views,
-  `python tools/map/greybox_sheet.py` lays them out. Not in Studio yet. The recordings are in `D:\program files for me\videos\`.
+  `python tools/map/greybox_luau.py` writes the Studio loader (`tools/studio/greybox/*.luau`, run in order with `run_luau.js`; it replaces `Workspace.ClaudeBlockout`). The recordings are in `D:\program files for me\videos\`.
   v4's state and the stud tiles (set aside with v4):
   [docs/map-state.md](docs/map-state.md); tiles `tools/art/map_tiles.py` (borrows `creature_tiles.py`'s greys; `--test`
   lays out the test picture), test scene `tools/blender/map_stud_test.py`. No Lune on the user's PC yet: `map_plot.py
@@ -88,6 +89,7 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   fins and limbs; no creature solves its shape in a way the others don't (a faceted shell was rejected). A curved surface
   in cubes (the Archelon's shell) is a few big blocks, each a wide plateau, a broad step and a wall: never runs of one-cube
   terraces, and not many thin slices either. Blocky first, detail second: when a model stops reading as blocks, simplify.
+  Thin continuous stripes along the whole body (really thin, an accent colour is fine) are welcome: variety and texture.
   Leave the rider a seat: a row of spikes, knobs or plates along the back parts at the seat (a flat line may run under it).
 - Textures (workout 6, `docs/style/06-textures.md`, first test, nothing picked yet): cartoon grey tiles drawn by code
   (`tools/art/creature_tiles.py` -> `art/style/tiles/`; mid grey leaves the colour), one to a cube. A model's `TEXTURES`

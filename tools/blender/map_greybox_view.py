@@ -13,13 +13,19 @@ import bpy
 from mathutils import Vector
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BOX = os.path.join(ROOT, "art", "map", "greybox")
-OUT = os.path.join(BOX, "renders")
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+KIT = "--kit" in argv  # the asset sheet (tools/map/props.py) instead of the lane
+argv = [a for a in argv if a != "--kit"]
 only = argv[0].split(",") if argv else None
-parts = json.load(open(os.path.join(BOX, "parts.json")))["parts"]
-info = json.load(open(os.path.join(BOX, "path.json")))
-path = info["Path"]
+BOX = os.path.join(ROOT, "art", "map", "props" if KIT else "greybox")
+OUT = os.path.join(BOX, "renders")
+if KIT:
+    kit = json.load(open(os.path.join(BOX, "kit.json")))
+    parts, info, path = kit["parts"], {}, []
+else:
+    parts = json.load(open(os.path.join(BOX, "parts.json")))["parts"]
+    info = json.load(open(os.path.join(BOX, "path.json")))
+    path = info["Path"]
 fades, fogs, waters = [], [], []
 
 
@@ -70,7 +76,7 @@ def material(colour, kind):
     if kind == "ground":  # the faint checker of two close shades, in big squares, on everything that is ground
         geo = n.new("ShaderNodeNewGeometry")
         check = n.new("ShaderNodeTexChecker")
-        check.inputs["Scale"].default_value = 1.0 / 36.0
+        check.inputs["Scale"].default_value = 1.0 / 10.0  # squares of 10 studs: two players wide
         check.inputs["Color1"].default_value = lin(colour)
         check.inputs["Color2"].default_value = lin(tuple(int(c * 0.93) for c in colour))
         flat = n.new("ShaderNodeVectorMath")  # by x and z only, so walls' tops and the floor share one grid
@@ -173,24 +179,37 @@ def lane_view(s, back, up, look_ahead, look_up, sideways=0.0, look_side=0.0):
     return p - d * back + Vector((0, up, 0)) + rt * sideways, q + Vector((0, look_up, 0)) + rt * look_side
 
 
-rooms = info["Rooms"]
-gates = info["Gates"]
-open_room = next(r for r in rooms if "open" in (r["Left"], r["Right"]) and r["S0"] > 300)
-open_side = -1 if open_room["Left"] == "open" else 1
 SKY, HAZE = (150, 205, 240), (214, 232, 236)
 SEA, SEA_LIGHT = (64, 200, 205), (120, 185, 185)
-views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
-    "hub": (Vector((0, 9, -200)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),
-    "hub_above": (Vector((-250, 300, -470)), Vector((30, -20, 330)), HAZE, 12000, SKY, 55, 0.25),
-    # the reference's own flight views, for laying side by side: no water, daylight
-    "fly_ahead": (*lane_view(gates[0] - 40, 60, 62, 300, 0), HAZE, 5200, SKY, 80, 0.0),
-    "fly_down": (*lane_view(gates[1] + 40, 110, 215, 250, -10), HAZE, 5200, SKY, 70, 0.0),
-    "fly_open": (*lane_view(open_room["S0"] + 60, 90, 190, 260, -10, -open_side * 40, open_side * 40), HAZE, 5200, SKY, 70, 0.0),
-    # and as the game shows it: under water
-    "ride": (*lane_view(gates[0] + 70, 30, 24, 170, 10), SEA, 1000, SEA_LIGHT, 70, 0.62),
-    "gate": (*lane_view(gates[1] - 150, 30, 24, 170, 12), SEA, 1000, SEA_LIGHT, 70, 0.62),
-    "open_edge": (*lane_view((open_room["S0"] + open_room["S1"]) / 2 - 60, 30, 26, 160, 0, 0, open_side * 90), SEA, 1000, SEA_LIGHT, 70, 0.62),
-}
+if KIT:
+    views = {name: (Vector(v["eye"]), Vector(v["target"]), HAZE, 1e7, (205, 225, 240), v["fov"], 0.0) for name, v in kit["views"].items()}
+else:
+    necks = info["Necks"]
+    opens = [(side, sp) for side, name in ((-1, "Left"), (1, "Right")) for sp in info["Sides"][name] if sp["Kind"] == "open" and sp["S0"] > 300]
+    open_side, open_span = opens[0]
+    def clear_view(s0, up, look_ahead, look_up):
+        """a rider's view from the first place at or after s0 where no big asset stands on the camera or just ahead"""
+        for k in range(60):
+            eye, target = lane_view(s0 + k * 12.0, 0, up, look_ahead, look_up)
+            d = Vector((target.x - eye.x, 0, target.z - eye.z)).normalized()
+            spots = [eye + d * step for step in (0, 25, 50, 75)]
+            if all(math.hypot(q.x - bx, q.z - bz) > br + 12 for q in spots for bx, bz, br in info["BigWorld"]):
+                return eye, target
+        return eye, target
+    views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
+        "hub": (Vector((0, 9, -200)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),
+        "hub_above": (Vector((-250, 300, -470)), Vector((30, -20, 330)), HAZE, 12000, SKY, 55, 0.25),
+        # the reference's own flight views, for laying side by side: no water, daylight
+        "fly_ahead": (*lane_view(necks[1] - 60, 60, 62, 300, 0), HAZE, 5200, SKY, 80, 0.0),
+        "fly_down": (*lane_view(necks[2] + 40, 110, 215, 250, -10), HAZE, 5200, SKY, 70, 0.0),
+        "fly_far": (*lane_view(necks[3], 260, 420, 700, -30), HAZE, 9000, SKY, 60, 0.0),
+        "fly_open": (*lane_view(open_span["S0"] + 60, 90, 190, 260, -10, -open_side * 40, open_side * 40), HAZE, 5200, SKY, 70, 0.0),
+        # and as the game shows it: under water, from a rider's height
+        "ride": (*clear_view(necks[1] + 40, 24, 170, 12), SEA, 1000, SEA_LIGHT, 70, 0.62),
+        "ride_assets": (*clear_view(560, 22, 160, 14), SEA, 1000, SEA_LIGHT, 70, 0.62),
+        "ride_reef": (*clear_view(necks[4] + 30, 24, 170, 14), SEA, 1000, SEA_LIGHT, 70, 0.62),
+        "ride_kelp": (*clear_view(3700, 26, 190, 26), (50, 150, 120), 800, (80, 140, 105), 70, 0.62),
+    }
 os.makedirs(OUT, exist_ok=True)
 for name, (eye, target, fog, far, sky, fov, solid) in views.items():
     if only and name not in only:

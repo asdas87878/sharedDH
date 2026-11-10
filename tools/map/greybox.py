@@ -1,9 +1,10 @@
-"""Grey-box 2 of the new map (docs/design/map-method.md), after a harder look at the reference's flight recording
-(docs/reference/ride-a-dino-map.md). The lane is a CHAIN OF ROOMS: each wide and rounded, joined to the next by a narrow
-gate with a line of flags. The ground rolls in a low dome per room and rises at its sides into the walls, which are the
-ground itself stepping up: broad terraces whose tops are the floor's own colour, or a tall plain wall with a shelf, or
-nothing at all (an open edge that rolls off, with big shapes far out). One colour per land. Props are big, clustered and
-made of loose bricks. The hub is a closed bowl whose floor is level with the water.
+"""Grey-box 3 of the new map (docs/design/map-method.md): the reference's build (docs/reference/ride-a-dino-map.md).
+The lane goes narrow, wide, narrow, wide, and its two sides wave AGAINST each other: each side pinches in at its own
+places, a part of a room apart from the other side's, so one side is going out while the other comes in and the lane
+bleeds from side to side. The ground rolls and rises at a side into the walls, which are the ground itself stepping
+up: broad terraces whose tops are the floor's own colour, or a tall plain wall with shelves, or nothing (an open edge
+that rolls off, with big shapes far out). One colour per land. Big assets stand in the lane (tools/map/props.py), each
+of loose boxes, tall enough that a ridden fish steers round them. The hub is a closed bowl level with the water.
 
 usage: python tools/map/greybox.py            writes art/map/greybox/parts.json (every box), path.json (for the game
                                                code) and docs/attachments/map-greybox-plan.png (from above)
@@ -17,18 +18,23 @@ import json
 import math
 import os
 import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import props  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "art", "map", "greybox")
 
 # ---------------------------------------------------------------- the numbers
-GATE = 92.0  # a gate's width
-BULGE = (55.0, 125.0)  # how far a room swells past the gate's width, each side on its own
-ROOM = (380.0, 640.0)  # a room's length
+PINCH = 44.0  # how close a side comes to the lane's line where it pinches in
+BULGE_BIG, BULGE_SMALL = (100.0, 150.0), (40.0, 80.0)  # how far a side swells between two of its pinches
+ROOM = (380.0, 640.0)  # the distance between one side's pinches
+OFFSET = (0.24, 0.42)  # the other side pinches this share of a room further on (or back)
 START_DEPTH = 46.0  # under the start; a room's dome may rise 8, and a jump needs 38 (riding chat)
 STEEP = 18.0  # degrees: the slope of a "big drop"
 PLINTH = 60.0  # how thick the lane's body is
-BUILD_TO = 3600.0  # how much to build for now: the Shallows, the Coral Reef, a start on the Kelp Forest
+BUILD_TO = 4500.0  # how much to build for now: the Shallows, the Coral Reef, the start of the Kelp Forest
 SEG = 24.0  # the lane is cut into pieces this long
 # name, length, slope in degrees, what ends it: ("step", studs) or ("slope", studs of drop, at the next land's start)
 LANDS = [("Shallows", 1000, 2, ("step", 8)), ("Coral Reef", 2500, 2, ("step", 10)), ("Kelp Forest", 2500, 3, ("step", 12)),
@@ -41,8 +47,8 @@ CAP = 4.0  # a terrace top's slab
 
 
 def face_of(ground, pale=0.0):
-    """a wall's side: the land's colour greyed and a little lighter (paler still for the backdrop)"""
-    return tuple(int((0.38 * g + 0.62 * 206) * (0.9 + 0.1 * pale) + 20 * pale) for g in ground)
+    """a wall's side: the land's colour, greyed and light (paler still for the backdrop)"""
+    return tuple(min(255, int(0.3 * g + 0.7 * 226 + 16 * pale)) for g in ground)
 
 
 parts = []
@@ -106,8 +112,8 @@ def land_at(at):
     return k
 
 
-# ---------------------------------------------------------------- the rooms
-rooms = []  # s0, s1, bulge {-1, 1}, edge {-1, 1}: "hill" | "wall" | "open", turn (degrees, at its far gate), seed
+# ---------------------------------------------------------------- the rooms (by the left side's pinches)
+rooms = []  # s0, s1, turn (degrees, taken at its far end), seed
 rng = random.Random(20261110)
 at = 0.0
 for li, (name, length, *_rest) in enumerate(LANDS):
@@ -124,25 +130,39 @@ for li, (name, length, *_rest) in enumerate(LANDS):
         here += step
     rooms.append({"s0": here, "s1": end})
     at = end
-    if at > BUILD_TO + 700:
+    if at > BUILD_TO + 900:
         break
-swing, lean = 0.0, 1
+swing = 0.0
 for i, room in enumerate(rooms):
     r = random.Random(1000 + i)
-    big, small = r.uniform(BULGE[0] + 30, BULGE[1]), r.uniform(BULGE[0], BULGE[0] + 35)
-    room["bulge"] = {lean: big, -lean: small}  # each room swells mostly to one side, and the sides take turns
-    kinds = r.choice((("hill", "wall"), ("wall", "hill"), ("hill", "open"), ("open", "wall"), ("wall", "open"), ("open", "hill"), ("hill", "hill")))
-    room["edge"] = {lean: kinds[0], -lean: kinds[1]}
     turn = r.uniform(9, 22) * (-1 if swing > 0 else 1)
     if abs(swing) < 8:
         turn = r.uniform(9, 22) * r.choice((-1, 1))
     swing += turn
-    room["turn"] = turn
-    room["seed"] = i
-    lean = -lean
-rooms[0]["edge"] = {-1: "wall", 1: "hill"}  # by the hub both sides stand tall, well out of the water
-rooms[0]["bulge"] = {-1: 70.0, 1: 105.0}
-gates = [r["s1"] for r in rooms]
+    room["turn"], room["seed"] = turn, i
+
+# each side's own spans, pinch to pinch. The left pinches where the rooms end; the right a part of a room away.
+spans = {-1: [], 1: []}
+left_p = [0.0] + [room["s1"] for room in rooms]
+right_p = [0.0]
+for i, room in enumerate(rooms[:-1]):
+    nxt = rooms[i + 1]
+    r = random.Random(3000 + i)
+    way = 1 if (i == 0 or r.random() < 0.6) else -1
+    reach = (nxt["s1"] - nxt["s0"]) if way > 0 else (room["s1"] - room["s0"])
+    right_p.append(room["s1"] + way * r.uniform(*OFFSET) * reach)
+right_p.append(rooms[-1]["s1"] + 200.0)
+for side, pinches in ((-1, left_p), (1, right_p)):
+    for i, (a, b) in enumerate(zip(pinches, pinches[1:])):
+        r = random.Random(5000 + i * 2 + (side > 0))
+        big = (i % 2 == 0) if side < 0 else (i % 2 == 1)  # the fat spans take turns, and the two sides are out of step
+        spans[side].append({"s0": a, "s1": b, "bulge": r.uniform(*(BULGE_BIG if big else BULGE_SMALL)),
+                            "kind": r.choice(("hill", "hill", "wall", "wall", "open")), "seed": i * 2 + (side > 0)})
+spans[-1][0].update(kind="wall", bulge=70.0)  # by the hub both sides stand tall, well out of the water
+spans[1][0].update(kind="hill", bulge=110.0)
+for sp in spans[1]:  # never open on both sides at once
+    if sp["kind"] == "open" and any(o["kind"] == "open" and o["s0"] < sp["s1"] and o["s1"] > sp["s0"] for o in spans[-1]):
+        sp["kind"] = "hill"
 
 
 def room_at(at):
@@ -152,11 +172,22 @@ def room_at(at):
     return rooms[-1]
 
 
+def span_at(side, at):
+    for sp in spans[side]:
+        if at <= sp["s1"]:
+            return sp
+    return spans[side][-1]
+
+
 def half(side, at):
-    """how far the lane's edge is from its centre line, on one side: the gate's half width, swelling inside a room"""
-    room = room_at(at)
-    t = min(1.0, max(0.0, (at - room["s0"] - 18.0) / (room["s1"] - room["s0"] - 36.0)))
-    return GATE / 2 + room["bulge"][side] * math.sin(math.pi * t) ** 1.25  # level at the gates: a smooth neck
+    """how far this side's edge is from the lane's line: PINCH at its pinches, swelling between them"""
+    sp = span_at(side, at)
+    t = min(1.0, max(0.0, (at - sp["s0"] - 10.0) / (sp["s1"] - sp["s0"] - 20.0)))
+    return PINCH + sp["bulge"] * math.sin(math.pi * t) ** 1.25  # level at the pinch: a smooth neck
+
+
+def width(at):
+    return half(-1, at) + half(1, at)
 
 
 def floor_y(at):
@@ -179,7 +210,7 @@ def smooth(t):
 def heading(at):
     h = 0.0
     for room in rooms:
-        h += math.radians(room["turn"]) * smooth((at - room["s1"] + 90.0) / 180.0)  # the lane turns at the gates
+        h += math.radians(room["turn"]) * smooth((at - room["s1"] + 110.0) / 220.0)
     return h
 
 
@@ -191,6 +222,7 @@ for k in range(int((BUILD_TO + 200) / STEP) + 10):
 
 
 def centre(at):
+    """a point on the lane's line (the line the sides are measured from; the lane's true middle wanders off it)"""
     at = max(0.0, at)
     k = min(int(at / STEP), len(line) - 2)
     f = at / STEP - k
@@ -207,15 +239,28 @@ def ahead(at):
     return (math.sin(h), 0.0, math.cos(h))
 
 
-def edge_point(side, at):
-    c, rt, hw = centre(at), right(at), half(side, at)
-    return (c[0] + rt[0] * side * hw, c[1], c[2] + rt[2] * side * hw)
+def across(at, x):
+    """the point x studs to the right of the lane's line at `at`, on the floor"""
+    c, rt = centre(at), right(at)
+    return (c[0] + rt[0] * x, c[1], c[2] + rt[2] * x)
 
+
+def edge_point(side, at):
+    return across(at, side * half(side, at))
+
+
+# a neck: the narrowest place near each pair of pinches. That is where the flags hang.
+necks = [0.0]
+for lp, rp in zip(left_p[1:], right_p[1:]):
+    lo, hi = min(lp, rp) - 30.0, max(lp, rp) + 30.0
+    if lo > BUILD_TO:
+        break
+    necks.append(min((lo + k * 4.0 for k in range(int((hi - lo) / 4.0) + 1)), key=width))
 
 nodes = [0.0]
 while nodes[-1] < BUILD_TO:
     nodes.append(nodes[-1] + SEG)
-corners = [c for c, _ in profile if 0 < c < BUILD_TO] + [g for g in gates if g < BUILD_TO]
+corners = [c for c, _ in profile if 0 < c < BUILD_TO]
 nodes = sorted(set([round(v, 2) for v in nodes] + [round(c, 2) for c in corners]))
 keep = [nodes[0]]
 for v in nodes[1:]:
@@ -227,48 +272,44 @@ for v in nodes[1:]:
 nodes = keep
 
 
-# ---------------------------------------------------------------- a side of a room: what stands on the lane's edge
-def near_gate(at):
-    return min(abs(at - g) for g in [0.0] + gates) < 30.0
-
-
+# ---------------------------------------------------------------- a side: what stands on the lane's edge
 def side_kind(side, at):
-    kind = room_at(at)["edge"][side]
-    return "wall" if (kind == "open" and near_gate(at)) else kind  # a gate always has something solid either side
+    sp = span_at(side, at)
+    near_pinch = min(at - sp["s0"], sp["s1"] - at) < 30.0
+    return "wall" if (sp["kind"] == "open" and near_pinch) else sp["kind"]  # a pinch always has something solid
 
 
 def tiers_at(side, at):
-    """the terraces on this side here, innermost first: [(set back from the edge, depth, top above the room's floor)].
-    A hill is three or four broad terraces, each its own length; a wall is one tall block. Heights and set-backs hold
+    """the terraces on this side here, innermost first: [(set back from the edge, depth, top above the floor)].
+    A hill is two or three broad terraces, each its own length; a wall is one tall block. Heights and set-backs hold
     for a stretch (a block), then step: the wavy steps."""
-    room = room_at(at)
+    sp = span_at(side, at)
     kind = side_kind(side, at)
-    salt = room["seed"] * 7 + (3 if side > 0 else 11)
-    length = room["s1"] - room["s0"]
-    t = (at - room["s0"]) / length
-    tall = at < rooms[0]["s1"]  # the first room's sides rise out of the water, to close the hub's view
+    salt = sp["seed"] * 7 + (3 if side > 0 else 11)
+    t = (at - sp["s0"]) / (sp["s1"] - sp["s0"])
+    tall = at < 330.0  # by the hub the sides rise out of the water, to close the hub's view
     if kind == "open":
         return []
     if kind == "wall":
         block = math.floor(at / 132.0)
-        height = 40.0 + 6.0 * round(3 * frac(block, salt))
-        if room["edge"][side] == "open":
-            height = 32.0
+        height = 44.0 + 6.0 * round(3 * frac(block, salt))
+        if sp["kind"] == "open":
+            height = 34.0
         if tall:
-            height = 78.0 + 8.0 * round(2 * frac(block, salt))
-        return [(0.0, 46.0, height)]
+            height = 80.0 + 8.0 * round(2 * frac(block, salt))
+        return [(0.0, 48.0, height)]
     out, back, top = [], 0.0, 0.0
-    count_tiers = 3 if frac(room["seed"], salt) > 0.45 else 2
+    count_tiers = 3 if frac(sp["seed"], salt) > 0.45 else 2
     if tall:
         count_tiers = 4
     for k in range(count_tiers):
         block = math.floor(at / (96.0 + 24.0 * k))
-        deep = 30.0 + 24.0 * frac(room["seed"] * 5 + k, salt)
-        rise = (8.0 if k == 0 else 12.0 + 6.0 * frac(room["seed"] * 3 + k, salt + 1)) + 2.0 * round(2 * frac(block, salt + k) - 1)
+        deep = 30.0 + 24.0 * frac(sp["seed"] * 5 + k, salt)
+        rise = (13.0 if k == 0 else 17.0 + 8.0 * frac(sp["seed"] * 3 + k, salt + 1)) + 2.0 * round(2 * frac(block, salt + k) - 1)
         if tall:
-            rise = (16.0, 20.0, 24.0, 26.0)[k]
-        reach = 0.5 - 0.11 * k  # the higher a terrace, the shorter it is along the room
-        mid = 0.5 + 0.12 * (frac(room["seed"] + k, salt + 2) - 0.5) * k
+            rise = (18.0, 22.0, 24.0, 26.0)[k]
+        reach = 0.5 - 0.11 * k  # the higher a terrace, the shorter it is along the span
+        mid = 0.5 + 0.12 * (frac(sp["seed"] + k, salt + 2) - 0.5) * k
         if k > 0 and not tall and abs(t - mid) > reach:
             break
         jog = 5.0 * (frac(block, salt + 20 + k) - 0.5) if k > 0 else 0.0
@@ -279,10 +320,8 @@ def tiers_at(side, at):
 
 
 def level(at, span=96.0):
-    """the room's floor height a terrace is measured from: held over a stretch, so tops are level and step down"""
-    q = (math.floor(at / span) + 0.5) * span
-    room = room_at(at)
-    return floor_y(min(max(q, room["s0"]), room["s1"]))
+    """the floor height a terrace is measured from: held over a stretch, so tops are level and step down the lane"""
+    return floor_y(max(0.0, (math.floor(at / span) + 0.5) * span))
 
 
 edges, normals = {}, {}
@@ -317,7 +356,7 @@ def strip(side, i, back, deep):
     return ((ma[0] + mb[0]) / 2, (ma[1] + mb[1]) / 2), o, al, long
 
 
-count = {"ground": 0, "face": 0, "prop": 0}
+count = {"ground": 0, "face": 0, "prop": 0, "big": 0}
 for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
     if b - a < 1.5:
         continue
@@ -334,31 +373,31 @@ for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
     length = math.sqrt(sum(c * c for c in sub(pb, pa)))
     turn = abs(heading(b) - heading(a))
     mid = ((pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2, (pa[2] + pb[2]) / 2)
-    # the floor: a box as wide as the lane is at its narrower end here; edge strips below fill out to the true edge
-    inner = {side: max(half(side, a), half(side, b)) + 1.0 for side in (-1, 1)}
-    width = inner[-1] + inner[1]
-    shift = (inner[1] - inner[-1]) / 2
+    # one clean floor: a single box, as wide as the lane's wider end here (walls and shoulders sit over the spare)
+    reach = {side: max(half(side, a), half(side, b)) + 1.0 for side in (-1, 1)}
+    wide = reach[-1] + reach[1]
+    shift = (reach[1] - reach[-1]) / 2
     body = (mid[0] + rt[0] * shift - up[0] * PLINTH / 2, mid[1] - up[1] * PLINTH / 2, mid[2] + rt[2] * shift - up[2] * PLINTH / 2)
-    add("Seabed", "ground", body, (width, PLINTH, length + width / 2 * turn + 0.4), ground, rt, up, cross(rt, up))
+    add("Seabed", "ground", body, (wide, PLINTH, length + wide / 2 * turn + 0.4), ground, rt, up, cross(rt, up))
     count["ground"] += 1
     for side in (-1, 1):
-        ea, eb = edge_point(side, a), edge_point(side, b)
+        ea, eb = edges[side][i], edges[side][i + 1]
         run = math.hypot(eb[0] - ea[0], eb[2] - ea[2])
         along = ((eb[0] - ea[0]) / run, 0.0, (eb[2] - ea[2]) / run)
-        out = (along[2], 0.0, -along[0])  # level, away from the lane
+        out = (along[2], 0.0, -along[0])
         if out[0] * rt[0] * side + out[2] * rt[2] * side < 0:
             out = (-out[0], 0.0, -out[2])
         em = ((ea[0] + eb[0]) / 2, max(pa[1], pb[1]), (ea[2] + eb[2]) / 2)
         kind = side_kind(side, mid_s)
         if kind == "open":  # the ground rolls off: two slabs, each tilted further down
             start = (em[0], em[1], em[2])
-            for tilt, wide in ((16.0, 24.0), (42.0, 30.0)):
+            for tilt, slab in ((16.0, 24.0), (42.0, 30.0)):
                 ca, sa = math.cos(math.radians(tilt)), math.sin(math.radians(tilt))
                 ax = (out[0] * ca, -sa, out[2] * ca)
                 ay = (out[0] * sa, ca, out[2] * sa)
-                c = (start[0] + ax[0] * wide / 2 - ay[0] * 5, start[1] + ax[1] * wide / 2 - ay[1] * 5, start[2] + ax[2] * wide / 2 - ay[2] * 5)
-                add("Shoulder", "ground", c, (wide + 1.0, 10.0, run + 1.5), ground, ax, ay, along)
-                start = (start[0] + ax[0] * wide, start[1] + ax[1] * wide, start[2] + ax[2] * wide)
+                c = (start[0] + ax[0] * slab / 2 - ay[0] * 5, start[1] + ax[1] * slab / 2 - ay[1] * 5, start[2] + ax[2] * slab / 2 - ay[2] * 5)
+                add("Shoulder", "ground", c, (slab + 1.0, 10.0, run + 3.0), ground, ax, ay, along)
+                start = (start[0] + ax[0] * slab, start[1] + ax[1] * slab, start[2] + ax[2] * slab)
             continue
         base = level(mid_s) if kind == "hill" else level(mid_s, 132.0)
         foot = min(pa[1], pb[1]) - 30.0
@@ -371,105 +410,111 @@ for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
             add("Top", "ground", (tx, top_y + CAP / 2, tz), (deep + 1.6, CAP, long + 0.6), ground, o, (0, 1, 0), al)
             count["face"] += 1
             set_back = back + deep
-            if kind == "wall":  # a shelf on the face, for a stretch
+            if kind == "wall":  # shelves on the face, for a stretch
                 block = math.floor(mid_s / 132.0)
-                if frac(block, room_at(mid_s)["seed"] + side) > 0.42:
-                    shelf_y = base + top * (0.3 + 0.12 * frac(block, 5))
-                    if top > 60:
-                        (hx_, hz_), o2, al2, long2 = strip(side, i, -8.0, 9.0)
-                        add("Shelf", "ground", (hx_, base + top * 0.66, hz_), (9.0, CAP, long2), ground, o2, (0, 1, 0), al2)
+                if frac(block, span_at(side, mid_s)["seed"] + side) > 0.42:
                     (sx_, sz_), o, al, long = strip(side, i, -10.0, 11.0)
-                    add("Shelf", "ground", (sx_, shelf_y, sz_), (11.0, CAP, long), ground, o, (0, 1, 0), al)
-        block = math.floor(mid_s / 190.0)  # behind it, now and then, something taller and paler
-        if frac(block, 40 + side) > 0.35:
-            tall = base + 95.0 + 60.0 * frac(block, 41 + side)
-            back = set_back + 24.0 + 40.0 * frac(block, 42 + side)
-            (cx, cz), o, al, long = strip(side, i, back, 90.0)
-            add("Far", "far", (cx, (foot + tall) / 2, cz), (90, tall - foot, long), face_of(ground, 0.5), o, (0, 1, 0), al)
-            add("FarTop", "far", (cx, tall + CAP / 2, cz), (92, CAP, long + 0.6), tuple(int(g * 0.9 + 22) for g in ground), o, (0, 1, 0), al)
+                    add("Shelf", "ground", (sx_, base + top * (0.3 + 0.12 * frac(block, 5)), sz_), (11.0, CAP, long), ground, o, (0, 1, 0), al)
+                    if top > 60:
+                        (hx_, hz_), o, al, long = strip(side, i, -8.0, 9.0)
+                        add("Shelf", "ground", (hx_, base + top * 0.66, hz_), (9.0, CAP, long), ground, o, (0, 1, 0), al)
+        block = math.floor(mid_s / 260.0)  # far behind it, now and then, something taller and paler
+        if frac(block, 40 + side) > 0.5:
+            tall = base + 110.0 + 80.0 * frac(block, 41 + side)
+            back = set_back + 110.0 + 80.0 * frac(block, 42 + side)
+            (cx, cz), o, al, long = strip(side, i, back, 110.0)
+            add("Far", "far", (cx, (foot + tall) / 2, cz), (110, tall - foot, long), face_of(ground, 1.0), o, (0, 1, 0), al)
+            add("FarTop", "far", (cx, tall + CAP / 2, cz), (112, CAP, long + 0.6), tuple(int(g * 0.6 + 96) for g in ground), o, (0, 1, 0), al)
 
-for room in rooms:  # out past an open edge: big flat-topped shapes in the blue
-    for side in (-1, 1):
-        if room["edge"][side] != "open" or room["s0"] > BUILD_TO:
+for side in (-1, 1):  # out past an open edge: big flat-topped shapes in the blue
+    for sp in spans[side]:
+        if sp["kind"] != "open" or sp["s0"] > BUILD_TO:
             continue
-        ground = GROUND[min(land_at(room["s0"] + 5), len(GROUND) - 1)]
+        ground = GROUND[min(land_at(sp["s0"] + 5), len(GROUND) - 1)]
         for j in range(3):
-            at = min(BUILD_TO, room["s0"] + (room["s1"] - room["s0"]) * (0.2 + 0.3 * j))
-            c, rt = centre(at), right(at)
-            far = 360.0 + 240.0 * frac(room["seed"] * 3 + j, 61)
-            w, d, top = 150 + 130 * frac(room["seed"] + j, 62), 130 + 110 * frac(room["seed"] + j, 63), c[1] + 30 + 110 * frac(room["seed"] + j, 64)
-            p = (c[0] + rt[0] * side * far, 0, c[2] + rt[2] * side * far)
-            ax, ay, az = yawed(360 * frac(room["seed"] + j, 65))
-            add("Mesa", "far", (p[0], top - 160, p[2]), (w, 320, d), face_of(ground, 0.7), ax, ay, az)
-            add("MesaTop", "far", (p[0], top + CAP / 2, p[2]), (w + 2, CAP, d + 2), tuple(int(g * 0.85 + 34) for g in ground), ax, ay, az)
+            at = min(BUILD_TO, sp["s0"] + (sp["s1"] - sp["s0"]) * (0.2 + 0.3 * j))
+            far = 420.0 + 260.0 * frac(sp["seed"] * 3 + j, 61)
+            w, d = 150 + 130 * frac(sp["seed"] + j, 62), 130 + 110 * frac(sp["seed"] + j, 63)
+            p = across(at, side * far)
+            top = p[1] + 30 + 110 * frac(sp["seed"] + j, 64)
+            ax, ay, az = yawed(360 * frac(sp["seed"] + j, 65))
+            add("Mesa", "far", (p[0], top - 160, p[2]), (w, 320, d), face_of(ground, 1.0), ax, ay, az)
+            add("MesaTop", "far", (p[0], top + CAP / 2, p[2]), (w + 2, CAP, d + 2), tuple(int(g * 0.6 + 96) for g in ground), ax, ay, az)
 
-for g in [0.0] + gates:  # a line of flags across every gate
-    if g > BUILD_TO:
-        continue
+for g in necks:  # a line of flags across every neck
     c, rt = centre(g), right(g)
-    wide = half(-1, g) + half(1, g) + 12
-    add("FlagLine", "trim", (c[0], c[1] + 30, c[2]), (wide, 0.6, 0.6), (250, 250, 250), rt, (0, 1, 0), ahead(g), solid=False)
-    for j in range(13):
-        off = -wide / 2 + 6 + j * (wide - 12) / 12
-        add("Flag", "trim", (c[0] + rt[0] * off, c[1] + 27.3, c[2] + rt[2] * off), (4.6, 5, 0.4), ((250, 200, 80), (240, 110, 130), (110, 190, 240), (140, 220, 150), (250, 250, 250))[j % 5], rt, (0, 1, 0), ahead(g), solid=False)
+    lo, hi = -half(-1, g) - 6, half(1, g) + 6
+    m = across(g, (lo + hi) / 2)
+    add("FlagLine", "trim", (m[0], m[1] + 34, m[2]), (hi - lo, 0.6, 0.6), (250, 250, 250), rt, (0, 1, 0), ahead(g), solid=False)
+    n = max(9, int((hi - lo) / 9))
+    for j in range(n):
+        q = across(g, lo + 5 + j * (hi - lo - 10) / (n - 1))
+        add("Flag", "trim", (q[0], q[1] + 31.3, q[2]), (4.6, 5, 0.4), ((250, 200, 80), (240, 110, 130), (110, 190, 240), (140, 220, 150), (250, 250, 250))[j % 5], rt, (0, 1, 0), ahead(g), solid=False)
 
 
-# ---------------------------------------------------------------- props: big, in clusters, each a few loose bricks
-def prop(kind, base, scale, turn_deg, land):
-    ax, ay, az = yawed(turn_deg)
-    leaf = ((240, 120, 150), (255, 150, 90), (120, 200, 210), (130, 200, 120), (170, 140, 230))[(land * 2 + count["prop"]) % 5]
-    light = tuple(min(255, int(v * 1.08 + 12)) for v in leaf)
-    stone = (150, 150, 162)
-    bricks = {  # (dx, y of the brick's foot, dz, width, height, depth, colour)
-        "tree": [(0, 0, 0, 3.2, 5, 3.2, (120, 92, 76)), (0.3, 5, 0, 3, 5, 3, (132, 102, 84)), (0, 10, 0.2, 2.8, 4, 2.8, (120, 92, 76)),
-                 (0, 14, 0, 13, 2.6, 11, leaf), (2.5, 16.6, 1, 8, 2.4, 7, light), (-3, 16.6, -2, 6, 2.2, 5, leaf)],
-        "stack": [(0, 0, 0, 3, 3, 3, (120, 92, 76)), (0, 3, 0, 12, 3.4, 12, leaf), (0, 6.4, 0, 9.5, 3.4, 9.5, light), (0, 9.8, 0, 7, 3.2, 7, leaf), (0, 13, 0, 4.2, 3, 4.2, light)],
-        "rocks": [(0, 0, 0, 10, 5, 8, stone), (1.4, 5, -0.6, 7.5, 4, 6.5, (166, 166, 178)), (-0.8, 9, 0.5, 5, 3.4, 5, (180, 180, 192))],
-        "grass": [(-1.4, 0, 0, 1.1, 5, 1.1, (96, 186, 116)), (0, 0, 0.7, 1.1, 7, 1.1, (116, 204, 130)), (1.5, 0, -0.5, 1.1, 4, 1.1, (96, 186, 116))],
-        "tiles": [(0, 0, 0, 2.2, 0.5, 2.2, light), (2.2, 0, 0, 2.2, 0.5, 2.2, leaf), (-2.2, 0, 0, 2.2, 0.5, 2.2, leaf), (0, 0, 2.2, 2.2, 0.5, 2.2, leaf), (0, 0, -2.2, 2.2, 0.5, 2.2, leaf)],
-        "stone": [(0, 0, 0, 2.6, 2, 2.2, stone)],
-    }[kind]
-    for j, (dx, y, dz, w, hgt, d, col) in enumerate(bricks):
-        p = (base[0] + (ax[0] * dx + az[0] * dz) * scale, base[1] + (y + hgt / 2) * scale, base[2] + (ax[2] * dx + az[2] * dz) * scale)
-        add(f"{kind}_{count['prop']}_{j}", "prop", p, (w * scale, hgt * scale, d * scale), col, ax, ay, az)
+# ---------------------------------------------------------------- the assets (tools/map/props.py)
+def place(name, base, scale, turn_deg, ground, seed):
+    for n, p, size, col, ax in props.bricks(name, seed, ground):
+        q = props.turn(p, yaw=turn_deg)
+        axes = tuple(props.turn(a, yaw=turn_deg) for a in ax)
+        add(f"{name}_{count['prop']}_{n}", "prop", (base[0] + q[0] * scale, base[1] + q[1] * scale, base[2] + q[2] * scale),
+            tuple(v * scale for v in size), col, *axes)
     count["prop"] += 1
 
 
 prng = random.Random(77)
+placed = []  # (s, x across, radius) of every big thing, so two never crowd the same water
+big_world = []  # the same, as world x, z and radius
 for room in rooms:
     if room["s0"] > BUILD_TO - 80:
         break
     stop = min(room["s1"], BUILD_TO)
     length = stop - room["s0"]
-    land = min(land_at(room["s0"] + 5), len(GROUND) - 1)
-    for _ in range(int(length / 38)):  # clusters on the floor, the middle included
-        at = prng.uniform(room["s0"] + 34, stop - 34)
-        across = prng.uniform(-half(-1, at) + 16, half(1, at) - 16)
+    li = land_at(room["s0"] + 5)
+    ground = GROUND[min(li, len(GROUND) - 1)]
+    kit = props.LANDS[min(li, max(props.LANDS))]
+    for _ in range(int(length / 70)):  # big things in the lane, the middle included, with water left to pass
+        for _try in range(8):
+            at = prng.uniform(max(room["s0"] + 30, 130.0), stop - 30)
+            name = prng.choice(kit)
+            scale = prng.uniform(0.85, 1.2) if props.ASSETS[name][1] != "huge" else prng.uniform(0.9, 1.05)
+            hx, _hy, hz = props.extent(props.bricks(name, count["prop"], ground))
+            radius = max(hx, hz) * scale
+            lo, hi = -half(-1, at) + radius * 0.6 + 6, half(1, at) - radius * 0.6 - 6
+            if hi - lo < 20 or width(at) < radius * 2 + 70:  # never where it would plug a neck
+                continue
+            x = prng.uniform(lo, hi)
+            if all(math.hypot(at - ps, x - px) > radius + pr + 42 for ps, px, pr in placed):
+                turn_deg = math.degrees(heading(at)) + (prng.uniform(-30, 30) if props.ASSETS[name][1] == "huge" else prng.uniform(0, 360))
+                place(name, across(at, x), scale, turn_deg, ground, count["prop"])
+                placed.append((at, x, radius))
+                big_world.append([round(across(at, x)[0], 1), round(across(at, x)[2], 1), round(radius, 1)])
+                count["big"] += 1
+                break
+    for _ in range(int(length / 60)):  # small dressing, in loose groups
+        at = prng.uniform(room["s0"] + 20, stop - 20)
+        x = prng.uniform(-half(-1, at) + 10, half(1, at) - 10)
         for _ in range(prng.randint(2, 5)):
-            kind = prng.choice(("tree", "stack", "rocks", "grass", "grass", "tiles", "tiles", "stone"))
-            s2, a2 = at + prng.uniform(-20, 20), across + prng.uniform(-20, 20)
-            a2 = max(-half(-1, s2) + 9, min(half(1, s2) - 9, a2))
-            c, rt = centre(s2), right(s2)
-            big = prng.uniform(0.95, 1.35) if kind in ("tree", "stack") else prng.uniform(0.9, 1.5)
-            prop(kind, (c[0] + rt[0] * a2, c[1], c[2] + rt[2] * a2), big, prng.uniform(0, 360), land)
+            s2, x2 = at + prng.uniform(-14, 14), x + prng.uniform(-14, 14)
+            x2 = max(-half(-1, s2) + 6, min(half(1, s2) - 6, x2))
+            place(prng.choice(("sea_grass", "sea_grass", "stones", "floor_tiles")), across(s2, x2), prng.uniform(1.0, 1.8), prng.uniform(0, 360), ground, count["prop"])
     for side in (-1, 1):  # and standing on the terraces and the wall tops
-        for _ in range(int(length / 80)):
+        for _ in range(int(length / 110)):
             at = prng.uniform(room["s0"] + 40, stop - 40)
             steps = tiers_at(side, at)
             if not steps:
                 continue
             back, deep, top = prng.choice(steps)
-            e, rt = edge_point(side, at), right(at)
             base_y = (level(at) if side_kind(side, at) == "hill" else level(at, 132.0)) + top + CAP
-            off = back + deep * prng.uniform(0.35, 0.6)
-            prop(prng.choice(("tree", "stack", "rocks")), (e[0] + rt[0] * side * off, base_y, e[2] + rt[2] * side * off), prng.uniform(0.9, 1.3), prng.uniform(0, 360), land)
+            q = across(at, side * (half(side, at) + back + deep * prng.uniform(0.4, 0.6)))
+            place(prng.choice(props.TERRACE[min(li, max(props.TERRACE))]), (q[0], base_y, q[2]), prng.uniform(0.7, 1.0), prng.uniform(0, 360), ground, count["prop"])
 
 # ---------------------------------------------------------------- the hub: a closed bowl, its floor level with the water
 HUB_HALF, HUB_BACK, CORNER = 230.0, -340.0, 120.0
 hub_face = face_of(HUB_GROUND)
 add("HubFloor", "ground", (0, 0.5 - 60, HUB_BACK / 2), (HUB_HALF * 2, 120, -HUB_BACK), HUB_GROUND)
-add("StartStrip", "trim", (0, 0.75, -18), (GATE, 0.5, 36), (250, 246, 230), solid=False)
-ring = [(-GATE / 2, 0.0)]  # the wall's line round the hub, from the gate's left post round the back to its right post
+add("StartStrip", "trim", (0, 0.75, -18), (PINCH * 2, 0.5, 36), (250, 246, 230), solid=False)
+ring = [(-PINCH, 0.0)]  # the wall's line round the hub, from the start's left post round the back to its right post
 for k in range(0, 91, 10):
     a = math.radians(90 + k)
     ring.append((-(HUB_HALF - CORNER) + CORNER * math.cos(a), -CORNER + CORNER * math.sin(a)))
@@ -499,10 +544,6 @@ for (xa, za), (xb, zb) in dense:
     add("HubTop", "ground", (mx + out[0] * 23.2, height + CAP / 2, mz + out[2] * 23.2), (49.6, CAP, span + 8.8), HUB_GROUND, out, (0, 1, 0), fw)
     if frac(block, 91) > 0.4:
         add("HubShelf", "ground", (mx - out[0] * 5, height * (0.4 + 0.2 * frac(block, 92)), mz - out[2] * 5), (11, CAP, span + 1), HUB_GROUND, out, (0, 1, 0), fw)
-    far_block = math.floor(run_along / 170.0)
-    tall = height + 46.0 + 30.0 * frac(far_block, 93)
-    add("HubFar", "far", (mx + out[0] * 100, (tall - 40) / 2, mz + out[2] * 100), (90, tall + 40, span + 30), face_of(HUB_GROUND, 0.5), out, (0, 1, 0), fw)
-    add("HubFarTop", "far", (mx + out[0] * 100, tall + CAP / 2, mz + out[2] * 100), (92, CAP, span + 31), tuple(int(g * 0.9 + 22) for g in HUB_GROUND), out, (0, 1, 0), fw)
     run_along += span
 
 
@@ -523,48 +564,50 @@ for k in range(4):
     add(f"Tank{k + 1}", "station", (-135 + k * 90, 7.5, -300), (60, 14, 30), (120, 200, 225))
 add("DockSpawn", "trim", (0, 1.0, -240), (14, 1, 14), (255, 255, 255))
 add("Figure", "figure", (16, 3.5, -30), (2, 5, 1), (90, 170, 230))
-fish = centre(200)
-add("Figure", "figure", (fish[0] + 10, fish[1] + 14, fish[2]), (4, 3, 9), (245, 130, 42))
 
 for gx in range(-3, 4):  # the sea's surface, in tiles
     for gz in range(0, 4):
         add("SeaTile", "water", (gx * 1600.0, -0.25, gz * 1600.0 + 800), (1600, 0.5, 1600), (70, 190, 215), solid=False)
 
 # ---------------------------------------------------------------- what the game code reads: the path
-path = []
+path = []  # the lane's TRUE middle (half way between its two edges) and its whole width there
 for v in nodes:
-    c = centre(v)
-    path.append([round(v, 1), round(c[0], 1), round(floor_y(v), 1), round(c[2], 1), round(half(-1, v) + half(1, v), 1), 0])
+    m = across(v, (half(1, v) - half(-1, v)) / 2)
+    path.append([round(v, 1), round(m[0], 1), round(floor_y(v), 1), round(m[2], 1), round(width(v), 1), 0])
 
 os.makedirs(OUT, exist_ok=True)
 json.dump({"parts": parts}, open(os.path.join(OUT, "parts.json"), "w"))
-json.dump({"PathFields": "s, x, y, z, w (wall to wall: it narrows to a gate and swells in a room), c (always 0)", "Path": path, "Gate": GATE, "BuiltTo": BUILD_TO,
-           "Gates": [round(g, 1) for g in gates if g <= BUILD_TO],
-           "Rooms": [{"S0": round(r["s0"], 1), "S1": round(r["s1"], 1), "Left": r["edge"][-1], "Right": r["edge"][1], "Widest": round(GATE + r["bulge"][-1] + r["bulge"][1])} for r in rooms if r["s0"] < BUILD_TO],
-           "Lands": [{"Name": l[0], "S0": st} for l, st in zip(LANDS, starts)], "Profile": [[round(a, 1), round(-b, 1)] for a, b in profile]},
+json.dump({"PathFields": "s, x, y, z, w, c. x and z are the lane's true middle; w is wall to wall there (it narrows at a neck); c is always 0",
+           "Path": path, "BuiltTo": BUILD_TO, "Necks": [round(g, 1) for g in necks],
+           "Sides": {name: [{"S0": round(sp["s0"], 1), "S1": round(sp["s1"], 1), "Kind": sp["kind"], "Out": round(PINCH + sp["bulge"])} for sp in spans[side] if sp["s0"] < BUILD_TO]
+                     for name, side in (("Left", -1), ("Right", 1))},
+           "Big": [[round(a_, 1), round(x_, 1), round(r_, 1)] for a_, x_, r_ in placed],
+           "BigWorld": big_world,
+           "Lands": [{"Name": l[0], "S0": st} for l, st in zip(LANDS, starts)], "Profile": [[round(a_, 1), round(-b_, 1)] for a_, b_ in profile]},
           open(os.path.join(OUT, "path.json"), "w"), indent=1)
 kinds = {}
 for p in parts:
     kinds[p["k"]] = kinds.get(p["k"], 0) + 1
-print(len(parts), "parts:", kinds, "| props:", count["prop"], "| rooms built:", sum(1 for r in rooms if r["s0"] < BUILD_TO))
+widths = [width(v) for v in nodes]
+print(len(parts), "parts:", kinds, "| assets:", count["prop"], "of them big:", count["big"], "| necks:", len(necks),
+      "| width", round(min(widths)), "to", round(max(widths)))
 
 # ---------------------------------------------------------------- the plan, from above
 try:
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:
     raise SystemExit
-shown = [p for p in parts if p["k"] != "water" and p["n"] not in ("Mesa", "MesaTop")]
+shown = [p for p in parts if p["k"] not in ("water", "far")]
 xs = [p["p"][0] for p in shown]
 zs = [p["p"][2] for p in shown]
-pad = 200
+pad = 160
 x0, x1, z0, z1 = min(xs) - pad, max(xs) + pad, min(zs) - pad, max(zs) + pad
-W = 2600
+W = 3000
 sc = W / (z1 - z0)
 H = int((x1 - x0) * sc)
 im = Image.new("RGB", (W, H), (58, 118, 168))
 d = ImageDraw.Draw(im)
-order = {"far": 0, "ground": 1, "face": 1, "prop": 3, "station": 3, "trim": 4, "figure": 5}
-base_y = -START_DEPTH
+order = {"ground": 1, "face": 1, "prop": 3, "station": 3, "trim": 4, "figure": 5}
 for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2)):
     hx, hz = p["s"][0] / 2, p["s"][2] / 2
     pts = []
@@ -577,6 +620,6 @@ for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2))
         col = tuple(int(c * 0.86) for c in col)
     d.polygon(pts, fill=col)
 font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
-d.text((20, 14), f"Grey-box 2 from above: the hub (left), then rooms and gates for the first {BUILD_TO:,.0f} studs. Terrace tops are drawn a shade darker.", font=font, fill=(255, 255, 255))
+d.text((20, 14), f"Grey-box 3 from above: the hub (left) and the first {BUILD_TO:,.0f} studs. The two sides wave against each other. Terrace tops are a shade darker.", font=font, fill=(255, 255, 255))
 im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))
 print("plan drawn")

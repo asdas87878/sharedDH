@@ -61,7 +61,7 @@ Config.Oxygen = {
 	SurfaceY = -3, -- floating stops here
 	WaterY = -4, -- below this, a player on the dock counts as in the water
 	Refill = 0.25, -- of max Oxygen, on landing a jump
-	DockRadius = 520, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (map v4: the board ends 111 out, the lagoon is about 950 across)
+	DockRadius = 300, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 3: the spawn is 240 behind the lane's start, so the first 60 studs of water; v4 had 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in off the board leaves time to jump
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
 	-- "TestMaxOxygen" attribute overrides it live (0 turns it off).
@@ -177,6 +177,13 @@ Config.Herd = {
 	RideHeight = 12, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
 	RideHeightGain = 1.6, -- degrees of pitch for each stud it is off that height
 	RideHeightPitch = 35, -- at most
+	-- The big solid things standing in the lane (the map's BigAssets): a ridden fish is stopped by them; wild fish don't
+	-- collide with anything, so they are steered round. A fish that would pass too near one ahead moves its place
+	-- across the lane to the side it is already on (the other, if the wall is too near).
+	ObstacleLook = 150, -- how far ahead a fish minds one
+	ObstacleGap = 12, -- the water it leaves between its side and the obstacle
+	ObstacleShift = 45, -- how fast its place across the lane moves, studs a second
+	WallGap = 8, -- and how near the lane's edge its middle may come doing so
 }
 
 Config.Switch = {
