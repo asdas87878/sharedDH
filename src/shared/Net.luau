@@ -6,6 +6,8 @@
 --     "Respawned"
 --   Fx (server -> every client): "Jump", player | "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the
 --     fish bucks the player off)
+--   Sandbox (client -> server, Studio only): "Tune", "Group.Key", number | "Flag", name, boolean | "Reset"
+-- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
@@ -24,7 +26,7 @@ if RunService:IsServer() then
 		folder.Name = "Remotes"
 		folder.Parent = ReplicatedStorage
 	end
-	for _, name in { "Action", "Ride", "Fx" } do
+	for _, name in { "Action", "Ride", "Fx", "Sandbox" } do
 		if not folder:FindFirstChild(name) then
 			local remote = Instance.new("RemoteEvent")
 			remote.Name = name
@@ -39,5 +41,6 @@ Net.Folder = folder
 Net.Action = folder:WaitForChild("Action") :: RemoteEvent
 Net.Ride = folder:WaitForChild("Ride") :: RemoteEvent
 Net.Fx = folder:WaitForChild("Fx") :: RemoteEvent
+Net.Sandbox = folder:WaitForChild("Sandbox") :: RemoteEvent
 
 return Net

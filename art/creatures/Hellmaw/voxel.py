@@ -133,9 +133,9 @@ def build(m):
     for name, s in (("JawR", 1), ("JawL", -1)):
         jaw = m.part(name, (-9, 3 * s, -4), "Head")
         a, b = (1, 6) if s > 0 else (-5, 0)  # the columns of this half: one cube is left out down the middle
-        jaw.box(-19, -9, a, b, -7, -4, "char")
-        jaw.box(-18, -10, a if s > 0 else a + 1, b - 1 if s > 0 else b, -8, -7, "char-")
-        jaw.paint(-19, -9, a if s > 0 else a + 1, b - 1 if s > 0 else b, -5, -4, "mouth")
+        jaw.box(-19, -11, a, b, -7, -4, "char")
+        jaw.box(-18, -11, a if s > 0 else a + 1, b - 1 if s > 0 else b, -8, -7, "char-")
+        jaw.paint(-19, -11, a if s > 0 else a + 1, b - 1 if s > 0 else b, -5, -4, "mouth")
         side = (4.25, 5.3, -4.1, -3.7) if s > 0 else (-5.3, -4.25, -4.1, -3.7)
         jaw.block(-18.8, side, -11.4, side, "lava")
         front = (0.7, 4.25, -4.1, -3.7) if s > 0 else (-4.25, -0.7, -4.1, -3.7)

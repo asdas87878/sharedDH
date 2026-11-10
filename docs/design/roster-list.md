@@ -1,7 +1,7 @@
 # Roster list (for image prompts)
 
 The [roster](roster.md) as a plain list, one creature a line with a short look, so a sample can be pasted into an image
-generator. 80 creatures, reworked 2026-11-09 so rarity slides with the zones, each zone's rare spawns fit it (the coolest
+generator. 81 creatures, reworked 2026-11-09 so rarity slides with the zones, each zone's rare spawns fit it (the coolest
 Legendaries only later), and the first zones have bigger pools. Each creature is listed at its home zone; it also turns up one
 or two zones on. Tips for the
 pictures (they make them easier to read for the [creature method](../style/creature-method.md)): the same angle for every
@@ -41,7 +41,8 @@ Uncommon - Sea Lion: sleek brown sea lion, whiskers, flippers
 Rare - Leopard Shark: slim shark covered in dark spots and saddle marks
 Rare - Giant Sea Bass: huge chunky dark grey bass with spots, big mouth
 Epic - Great White: the classic great white shark, grey back, white belly, rows of teeth
-Legendary - Steller's Sea Cow: extinct gentle giant as long as a bus, bumpy bark-like skin, small head, whale-like tail, grazes on kelp
+Epic - Steller's Sea Cow: extinct gentle giant as long as a bus, bumpy bark-like skin, small head, whale-like tail, grazes on kelp
+Legendary - Dakosaurus: prehistoric sea crocodile, a deep short skull with big teeth like a meat-eating dinosaur's, paddle limbs, a tail fluke
 Secret - Kelp Wyrm: long serpent wrapped in kelp fronds, gold-green scales
 
 ZONE 4: SHIPWRECKS
@@ -60,7 +61,7 @@ Epic - Manta Ray: huge black and white ray with wide wings and two fins curling 
 Epic - Orca: black and white killer whale, tall back fin
 Legendary - Elasmosaurus: prehistoric sea reptile with a neck longer than its body, four flippers
 Legendary - Helicoprion: prehistoric shark-like fish with a spiral buzz-saw of teeth in its lower jaw
-Mythic - Blue Whale: the biggest animal that ever lived, long blue-grey mottled body
+Mythic - Blue Whale: the biggest animal that ever lived, so old that a coral reef has grown on its back, barnacles on its head, an old anchor hanging from it
 Secret - Storm Serpent: sea serpent crackling with lightning, electric blue
 
 ZONE 6: TWILIGHT
@@ -69,7 +70,7 @@ Epic - Giant Squid: long red squid with huge eyes and long tentacles
 Epic - Goblin Shark: pink shark with a long flat snout and a jaw that shoots forward
 Legendary - Liopleurodon: prehistoric sea reptile, huge crocodile-like head, four big flippers
 Legendary - Shonisaurus: giant prehistoric ichthyosaur, dolphin-shaped but the size of a whale
-Mythic - Lantern Leviathan: giant deep-sea fish with a lure that glows like a lighthouse
+Mythic - Lantern Leviathan: giant deep-sea gulper eel, a huge hinged mouth on a long whip-like black body, one line of violet light along it, a lure that glows like a lighthouse
 Secret - Aurora Jelly: giant jellyfish glowing in shifting colours like the northern lights
 
 ZONE 7: MIDNIGHT
@@ -105,6 +106,6 @@ Legendary - Infernal Angler: demon anglerfish with a fire lure
 Legendary - Hellfin Shark: shark with fins made of fire
 Legendary - Cinder Ray: ray made of cooling lava, glowing edges, trailing sparks
 Mythic - Hellmaw: demon fish with horns, lava cracks between its scales, ember eyes, burning fins
-Mythic - Abyssal Watcher: a creature covered in eyes
+Mythic - Abyssal Watcher: a vast, swollen, slow creature covered in eyes
 Secret - The Devourer: the last creature in the game, mostly mouth
 ```

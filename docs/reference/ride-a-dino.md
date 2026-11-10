@@ -60,6 +60,20 @@ hand.
   first recording's jump shows the same (up to 130 m a second for 0.3 s).
 - One jump only for the table; the first recording's jump agrees in shape.
 
+**The pull-in, frame by frame** (2026-11-10: the counter read on every frame, 30 a second, through two pull-ins of the
+second recording; "ahead" is how far the rider has gained on the herd's steady pace):
+
+| Pull-in | Time | Gained | How it goes |
+|---|---|---|---|
+| Landing at 24.3 s | 0.47 s | 22 m | 3 m in the first 0.2 s (a creep), then 19 m in 0.27 s; the last frames are the fastest (about 70 m a second faster than the herd); then it stops dead on the dino |
+| Landing at 5.0 s | 0.33 s | 15 m | the same shape, a little straighter |
+
+- **The shape:** the distance gained goes as time to a power: about 2.5 for the first, about 1.5 for the second. A plain
+  "ease in": slow, then faster and faster, **no slowing at the end**. The stop is the landing itself.
+- **The time grows with the distance:** both come to about 46 m a second on average over the gap.
+- **Through the creep the rider is still moving at the herd's pace,** not hanging still.
+- The counter is in whole metres, so each reading is good to about a metre; two pull-ins only.
+
 **What sits on the ground, and so needs another answer under a floating fish:** the dashed yellow ring, the yellow fan on
 landing, and the dust the dinos kick up as they run.
 

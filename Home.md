@@ -9,10 +9,12 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Decisions](docs/Decisions.md): what's settled, when, and why.
 - [Working together](docs/Working%20together.md): how the user and Claude work on this.
 - [Sessions](docs/Sessions.md): which Claude chats are working on what, and their notes to each other.
+- [The movement sandbox](docs/sandbox.md): play-testing the ride, the jump and the camera in Studio, with every number open.
 - [Blockout](docs/blockout.md): the dock and the long dive, v2 against v1.
 
 ## The game
 - [Core loop](docs/design/core-loop.md): the cycle in one page.
+- [Riding feel](docs/design/riding-feel.md): the ride, the jump fish to fish and the herd, as built.
 - [The dive](docs/design/the-dive.md): riding, jumping, taming, the zones going down.
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.
 - [Creatures](docs/design/creatures.md): what's decided about the creatures, tags, sizes and mutations.

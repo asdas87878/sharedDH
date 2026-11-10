@@ -129,7 +129,7 @@ def build(m):
     segs = [m.part(f"S{i + 1}", (sl[0], 0, 0), "Head" if i == 0 else f"S{i}") for i, sl in enumerate(slices)]
     for i, (seg, (x0, x1, n, bot, top)) in enumerate(zip(segs, slices)):
         slab(seg, x0, x1, n, bot, top)
-        seg.sym(x0 - 1, x0, n - 1, bot + 1, top - 1, "body-")  # a sleeve, one cube into the piece in front
+        seg.sym(x0 - 1, x0, max(n - 2, 0), bot + 2, top - 2, "body-")  # a sleeve into the piece in front, clear of its steps
         st = steps_for(n)
         last = i == len(slices) - 1
         # the armour: a bone plate over the back of each slice, half a cube proud (the last slice wears a whole ring),

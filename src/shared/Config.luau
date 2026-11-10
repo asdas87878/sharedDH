@@ -73,7 +73,8 @@ Config.Ride = {
 	Surge = 1.25, -- the burst on mount
 	SurgeTime = 0.5,
 	SlowDownTime = 2, -- back to idle once nobody rides it
-	YawRate = 95, -- turn rate at full stick
+	YawRate = 95, -- A and D turn the camera at this rate, and the fish turns with it
+	TurnFollow = 5, -- how quickly the fish turns to where the camera looks (higher is quicker)
 	PitchRate = 70,
 	MaxPitch = 55,
 	Bank = 28, -- roll into turns
@@ -98,12 +99,18 @@ Config.Jump = {
 	AirSpeed = 38, -- the float's speed: about the herd's pace
 	DropTime = 1.3, -- then sinking, faster and faster
 	Drop = 12, -- to this far below where you left
-	ReelTime = 0.35, -- pulled onto the glowing fish (the reference: about 0.3 to 0.5 s, at twice riding speed)
+	-- The pull-in onto the fish, measured off the reference's distance counter frame by frame (two pull-ins): it takes
+	-- 0.33 s over 15 m and 0.47 s over 22 m; it creeps for the first 40% of that time (about 13% of the way), then
+	-- accelerates all the way in and arrives at top speed, with no slowing down. The gap closes as time ^ ReelCurve.
+	ReelTime = 0.14, -- the pull-in's time for no distance at all; GrabSpeed adds to it by the distance
+	ReelCurve = 2.3, -- the reference's two pull-ins fit about 1.5 and 2.5; higher creeps longer and arrives faster
+	ReelFov = 22, -- the field of view opens toward this much as the pull-in speeds up (the camera follows with a lag)
 	MinFlight = 0.3, -- before a second press counts
 	FloorClearance = 4, -- the flight stays this far above the sea floor and rocks
-	SpeedTrim = 0.35, -- W and S speed up and slow the flight by this share
-	YawRate = 110, -- A and D turn the flight, degrees a second
-	RingRadius = 13, -- the ring under you; a fish whose middle is inside it is the one you land on
+	SpeedTrim = 0.5, -- W and S speed up and slow the flight by this share
+	YawRate = 170, -- A and D turn the camera in the flight, degrees a second
+	TurnFollow = 8, -- how quickly the flight turns to where the camera looks (higher is quicker)
+	RingRadius = 20, -- the ring under you; a fish whose middle is inside it is the one you land on
 	Sticky = 1.3, -- the glowing fish keeps the glow until it is this many radii away
 	ReachDown = 45, -- fish this far below you still count
 	ReachUp = 25, -- and this far above
@@ -114,10 +121,17 @@ Config.Jump = {
 	-- and closes the gap. Ours: the reference pulls you onto a dino at the end, but how it picks one isn't known.
 	-- Assist = false turns it off.
 	Assist = true,
-	AssistRange = 90, -- fish this near (flat) count
+	AssistRange = 120, -- fish this near (flat) count
 	AssistAhead = 25, -- a fish dead ahead counts as this many studs nearer than one beside us
-	AssistClose = 35, -- the speed the gap closes at
+	AssistClose = 45, -- the speed the gap closes at
 	AssistPull = 0.7, -- how much of the flight's speed this takes after the launch (0 to 1)
+	-- The grab: a second press with no fish in the ring pulls you onto the best fish near by: the nearest, a fish
+	-- where the camera looks counting as nearer, the fish you just left as further. Further fish are out of reach.
+	GrabRange = 85, -- (2026-11-10, the user: further, and without having to look at the fish; it was 45)
+	GrabAim = 5, -- a fish dead ahead of the camera counts as this many studs nearer: only a tie-break (it was 18)
+	GrabLeft = 20, -- the fish you just left counts as this many studs further
+	GrabSpeed = 55, -- the pull-in takes this much longer for the distance (studs a second; the reference: about 46 m)
+	AutoGrab = 50, -- in the drop, a fish this near is grabbed without a press (it was 26)
 	Cooldown = 0.3, -- after landing
 	Slack = 0.6, -- the server waits this long past the flight for the landing (lag)
 	LandSlack = 20, -- and allows the landing this many studs wider (it sees the player a moment late)
@@ -125,9 +139,8 @@ Config.Jump = {
 	CameraZoom = 1.3, -- and pulls back by this much
 	Glow = rgb(255, 221, 51), -- the fish you will land on
 	GlowFade = 0.3, -- the glow leaves the fish over this after the landing
+	FlightTime = 0, -- the longest a flight can last, for the server (worked out in Config.refresh)
 }
--- the longest a flight can last, for the server
-Config.Jump.FlightTime = Config.Jump.LaunchTime + Config.Jump.FloatTime + Config.Jump.DropTime + Config.Jump.ReelTime
 
 -- Wild fish swim as a herd: all the same way, down the lane, at this share of the speed they are ridden at (the
 -- reference: riding about 55 m a second, the herd about 46, measured off its distance counter)
@@ -166,6 +179,16 @@ Config.Death = {
 	Still = DROWN.Still, -- still and sinking, the last bubble
 	DrownFade = 0.7, -- the fade to black, ending with the drown
 	DrownTime = DROWN.Throw + DROWN.Struggle + DROWN.Weak + DROWN.Still + DROWN.Tail, -- less Throw when not thrown
+}
+
+-- The movement sandbox (Studio only; docs/sandbox.md): for play-testing the ride, the jump and the camera. The flags can
+-- be switched in its panel (N) while playing.
+Config.Sandbox = {
+	On = true, -- in Studio, start with the sandbox on
+	NoFail = true, -- a jump that sinks leaves you floating instead of drowning, and floating never sends you to the dock
+	EndlessAir = true, -- Oxygen doesn't drain
+	StartS = 130, -- R puts you back here: studs down the lane from its start, or further down, at the first place
+	StartRoom = 34, -- with this much water above the herd, so a jump has room to rise
 }
 
 Config.Net = {
@@ -299,5 +322,16 @@ for _, spec in FISH do
 	table.insert(Config.Fish, fish)
 	Config.FishById[fish.Id] = fish
 end
+
+-- The numbers worked out from other numbers. Called here, and again by the sandbox whenever it changes one.
+function Config.refresh()
+	local j = Config.Jump
+	j.FlightTime = j.LaunchTime + j.FloatTime + j.DropTime + j.ReelTime + j.GrabRange / j.GrabSpeed
+	for _, fish in Config.Fish do
+		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
+	end
+end
+
+Config.refresh()
 
 return Config

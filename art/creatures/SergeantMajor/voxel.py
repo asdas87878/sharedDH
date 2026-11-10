@@ -82,7 +82,7 @@ def build(m):
     bar(segs[3], 10.15, n=5, top=7, bot=-6)
     for i, s in enumerate(segs):  # a sleeve one cube into the piece in front, so a bending joint shows body
         if i < 3:
-            s.sym(cuts[i] - 1, cuts[i], 4, -4, 5, "pale-")
+            s.sym(cuts[i] - 1, cuts[i], 4, -3 if i == 0 else -4, 5, "pale-")  # the head is a step smaller
         else:
             s.sym(cuts[i] - 1, cuts[i], 3, -3, 4, "pale-")
     # the seat: between the first two bars, with a shallow slot either side for the rider's legs

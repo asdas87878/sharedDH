@@ -308,7 +308,7 @@ Six eyes on Dunkleosteus (`EYE` in its model):
 
 **Fable's read:** A is the one that washes out. C and D keep a dark pupil, so the eye still reads as an eye and the
 contrast is strongest; C is the calmer, D the fiercer. E is the subtlest and suits a creature whose light comes from
-within. The model is set to C for now. The ladder's Epic had a fully glowing eye too; it is now colour without glow.
+within. **The user's pick: C, the thin halo round a dark pupil.** The model is set to it. The ladder's Epic had a fully glowing eye too; it is now colour without glow.
 
 **Rule, proposed:** an eye keeps a dark pupil. Below Mythic it may glow in part (B to E) or not at all (F). A wholly
 glowing eye (A) is for a few Mythics whose idea is light or fire, like the Hellmaw.
@@ -346,7 +346,8 @@ progression round that. Hungry Shark's sharks are worth a look.
 armoured ones, if huge). A Mythic is an invented creature on one of those bodies, never a round fish. Lower down, most are
 plain or odd fish, but every zone keeps one cool one as its rare spawn.
 
-**The roster against that rule** ([roster list](../design/roster-list.md); nothing changed there, these are suggestions):
+**The roster against that rule** (the user said to go ahead, so these are now in the [roster](../design/roster.md), each
+one easy to undo; Dakosaurus is the kelp forest's new Legendary):
 - **Already right:** Great White, Goblin Shark, Helicoprion, Elasmosaurus, Liopleurodon, Shonisaurus, Mosasaurus, Livyatan,
   Basilosaurus, Kronosaurus, Megalodon. The later zones are mostly these families.
 - **Steller's Sea Cow as a Legendary (zone 3)** is the clearest miss: a gentle, shapeless giant. Make it an Epic, or give
@@ -362,6 +363,89 @@ plain or odd fish, but every zone keeps one cool one as its rare spawn.
 **The Mythic routes as archetypes:** the old one (liked by the user: keep it much as it is, with a little more glow, now
 added: the ends of its coral and a few specks in its algae), the lantern, the reef king, the shard, and the Hellmaw's
 fire. Each can be put on a different body.
+
+## Body archetypes (2026-11-10, in progress)
+**The user's plan:** build out body archetypes until they are happy with them; then textures and the rare variants (the
+gold and rainbow ones of Ride a Dino); then all the creatures, once the template is right.
+
+| Archetype | Built as | Rarity | Triangles | Length |
+|---|---|---|---|---|
+| Plain fish | Sergeant Major, Clownfish | Common | 792, 976 | 13, 10 studs |
+| Shark | Reef Shark | Epic | 1,064 | 18 |
+| Armoured fish | Dunkleosteus | Legendary | 1,406 | 26 |
+| Shark-lizard | Mosasaurus | Legendary | 2,394 | 43.5 |
+| Giant | Blue Whale, the old one | Mythic | 2,164 | 46 |
+| Invented (fire) | Hellmaw | Mythic | 2,386 | 31 |
+
+Still to build in this style: a serpent or worm, a flat one (a ray or a turtle), a tentacled one, a crawler.
+
+**Mosasaurus, the shark-lizard** (`art/creatures/Mosasaurus/voxel.py`). Its idea: the lizard that became a shark.
+
+![Mosasaurus](../attachments/voxel-mosasaurus.jpg)
+
+- A long snout of three tilted blocks, the thin dark gum line, 18 teeth above and 16 below, a jaw on its own joint.
+- Nine short slices, a pale scute on the spine of each, one dash of cold teal light on each flank.
+- Four flippers on their own joints, each with a pale spar along the leading edge. A fluke on its own joint.
+- The halo eye, in the same teal. [Its swim](../attachments/voxel-mosasaurus-swim.gif).
+- Weak: the body is a tall plain box with a narrow head on it; the spars read as planks from the front; the second row of
+  teeth isn't built.
+
+**The Blue Whale, the old one** (`art/creatures/BlueWhale/voxel.py`): the giant, and the user's favourite Mythic archetype
+on a body that suits it.
+
+![The old one](../attachments/voxel-bluewhale-old-one.jpg)
+
+- A broad flat head; a huge pale jaw on its own joint that drops to show baleen; throat grooves as shallow lines.
+- Nine slices that bend up and down, as a whale swims; flippers of three stacked boxes; flat flukes.
+- The growth sits in four clusters down the back: a barnacle crust on the head; a piece of hull (the rider's seat),
+  sponges, the tall coral and anemones; a table coral and a smaller coral; a small coral and barnacles at the tail. An
+  anchor on an iron chain, weed under the belly. The flanks and the throat are plain.
+- Only living things glow: coral ends, anemones, four specks in the algae.
+- [Its swim](../attachments/voxel-bluewhale-swim.gif). Weak: the eye is very small, and the seat reads as a crate.
+
+**A fault found on the way.** The hidden sleeve at a body joint could lie in the plane of the stepped corner of the piece
+in front of it: two faces in one plane, on two different parts, which the gate didn't look for. It now does (cube faces of
+one part against another's), and the sleeves are fixed on the six creatures that had it.
+
+## The Mosasaurus reworked (the user's notes, 2026-11-10)
+**The user's notes:**
+- **The brow** should sit on the eye: flush with it, standing out from it only a little. The eye is a square, so the brow
+  cuts off a bit of the square to make room and sit properly.
+- **Longer, with more segments,** and cooler geometry round the fins, the tail fin above all.
+- **The dashes of light in the middle of the flank are tacky.** Light should follow the lines of the model itself.
+- If it wasn't meant to be small, make it bigger.
+- **The Blue Whale is liked.** An archetype isn't for one creature: others of the same kind can follow the same lines, the
+  same growths and a similar colour scheme, each balanced in its own way.
+
+![Before, now, the eye, the top](../attachments/voxel-mosasaurus.jpg)
+
+**What changed:**
+- **Size:** 43.5 studs, from 29.6. It is a headline Legendary, so it is now the longest after the whale.
+- **Body:** sixteen slices where there were nine. From the shoulders back each is one step smaller than the last, in
+  width or in height but never both, so it tapers smoothly into a long tail. It took three tries. The first rework
+  was long and lean. The user asked for chunk, and the second was made thick with short slices; that overshot, and
+  its tail tapered oddly. The user's settled note: the lean one was right; the extra slices are there to carry the
+  changes in size down a longer tail, and to give a bigger model a little more detail. Not to add bulk.
+- **The light** lies on the edge where the dark back meets the pale belly, slice by slice, and runs on along the back of
+  the skull. One rib of it follows the leading edge of the tail fin. The dashes are gone.
+- **The brow** covers the top of the eye's square, more at the front so it scowls, hides the ring above it, and stands
+  about a tenth of a cube proud of the pupil.
+- **Flippers:** a third bigger, three stacked paddles, with raised ridges fanning along them like the bones of a hand. The
+  pale spars that read as planks are gone.
+- **The tail fin:** a third bigger, each lobe in two boxes. The ridge of scutes is bigger over the shoulders and becomes a
+  low crest of plates along the tail, leading into the fin.
+
+It is 2,394 triangles in 24 parts and passes the gate. [Its swim](../attachments/voxel-mosasaurus-swim.gif).
+
+**Rules taken from this:**
+- **A brow sits on the eye.** It overlaps the top of the eye and stands only a little proud of the pupil. It never floats
+  above the eye or far out from it.
+- **Light follows the model's own lines:** an edge where two colours meet, a seam between slices, the edge of a fin or a
+  plate. Never a mark placed in the middle of a plain surface.
+- **An archetype is a family.** Several creatures share a body and its patterns, and each is balanced in its own way.
+- **Taper one step at a time.** Along a long body, each slice changes by one cube in width or in height, not both, and
+  never jumps. More slices are for a smoother taper and a longer tail, not for bulk.
+- **A bigger creature carries a little more detail,** not a lot more.
 
 ## Open, for the user
 - Which axes matter most to them?

@@ -47,6 +47,13 @@ local function now(): number
 	return workspace:GetServerTimeNow()
 end
 
+-- The movement sandbox's switches (Studio only; SandboxService sets the attributes)
+local function sandbox(flag: string): boolean
+	return RunService:IsStudio()
+		and workspace:GetAttribute("Sandbox") == true
+		and workspace:GetAttribute("Sandbox" .. flag) == true
+end
+
 local function parts(player: Player): (BasePart?, Humanoid?)
 	local character = player.Character
 	if not character then
@@ -241,6 +248,12 @@ end
 
 -- A flight that came down on nothing: sunk, and a short drown
 local function miss(r: Rider)
+	if sandbox("NoFail") then
+		-- the sandbox: left floating, to jump again
+		setState(r, "Free")
+		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
+		return
+	end
 	die(r, "Drowning", Config.Death.MissTime, false, true)
 end
 
@@ -274,6 +287,10 @@ local function landOn(r: Rider, target: any)
 end
 
 local function drain(r: Rider, amount: number)
+	if sandbox("EndlessAir") then
+		r.Oxygen = r.Max
+		return
+	end
 	r.Oxygen = math.max(0, r.Oxygen - amount)
 end
 
@@ -329,7 +346,12 @@ local function tick(r: Rider, dt: number)
 			drown(r)
 		else
 			local flat = if dockSpawn then (root.Position - dockSpawn.Position) * Vector3.new(1, 0, 1) else nil
-			if flat and flat.Magnitude < o.DockRadius and root.Position.Y > o.SurfaceY - 2 then
+			if
+				flat
+				and flat.Magnitude < o.DockRadius
+				and root.Position.Y > o.SurfaceY - 2
+				and not sandbox("NoFail")
+			then
 				r.SurfacedAt = r.SurfacedAt or os.clock()
 				if os.clock() - (r.SurfacedAt :: number) >= o.DockWait then
 					toDock(r)
@@ -393,6 +415,50 @@ local function onPlayer(player: Player)
 	if player.Character then
 		task.spawn(onCharacter, r, player.Character)
 	end
+end
+
+-- The sandbox's reset: into the water at the lane's start, onto the nearest fish there if there is one
+function RideService.sandboxReset(player: Player)
+	local r = riders[player]
+	local root, humanoid = parts(player)
+	if not r or not root or not humanoid or not RunService:IsStudio() then
+		return
+	end
+	if r.Fish then
+		dismount(r, "Lost")
+	end
+	r.Token += 1
+	r.Oxygen = r.Max
+	sendOxygen(r, true)
+	-- the first place down the lane with room above the herd for a whole jump
+	local startS = Config.Sandbox.StartS
+	local at, along = FishService.lanePoint(startS)
+	while at.Y > -Config.Sandbox.StartRoom and startS < Config.Sandbox.StartS + 6000 do
+		startS += 40
+		at, along = FishService.lanePoint(startS)
+	end
+	-- and a little past it: the first such place is the foot of a drop-off, where the herd is still coming down
+	if startS > Config.Sandbox.StartS then
+		at, along = FishService.lanePoint(startS + 160)
+	end
+	humanoid.PlatformStand = true
+	(player.Character :: Model):PivotTo(CFrame.lookAt(at, at + along))
+	root.AssemblyLinearVelocity = Vector3.zero
+	setState(r, "Free")
+	Net.Ride:FireClient(player, "Dismounted", "Lost")
+	local w = FishService.nearest(at, 250, player)
+	if w then
+		mount(r, w, false)
+		return
+	end
+	-- the fish there were put away while nobody was near: they are back by the next top-up
+	local token = r.Token
+	task.delay(Config.Spawn.TopUpEvery + 0.5, function()
+		local late = if r.Token == token and r.State == "Free" then FishService.nearest(at, 250, player) else nil
+		if late then
+			mount(r, late, false)
+		end
+	end)
 end
 
 function RideService.Init()

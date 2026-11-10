@@ -4,8 +4,9 @@
 -- while off a fish, and the camera for everything underwater: a smooth chase camera on our own character (so a jump
 -- never cuts), whose field of view widens with speed, lifting to look down on a jump's flight, settling behind a new
 -- fish over Switch.CameraSettle, with the landing kick, and easing to the drowning's shot.
--- Steering: A/D or the stick's sideways turn, W dives, S climbs; nothing held follows the lane down at the herd's
--- height above the floor. Right mouse drag or a touch
+-- Steering: the fish turns to where the camera looks; A/D or the stick's sideways turn the camera, and so does a right
+-- mouse drag or a touch drag. W dives, S climbs; nothing held follows the lane down at the herd's height above the
+-- floor. Right mouse drag or a touch
 -- drag looks round; the camera swings back behind the fish on its own.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -55,14 +56,29 @@ local deathBlend = 0 -- 0 to 1, how far the camera has turned to look at a death
 -- The move stick or keys: X is right, Z is back (W is -Z)
 function RideController.moveVector(): Vector3
 	if controls then
-		local ok, v = pcall(function()
-			return controls:GetMoveVector()
-		end)
-		if ok and typeof(v) == "Vector3" then
+		local ok, v = pcall(controls.GetMoveVector, controls)
+		if ok and typeof(v) == "Vector3" and v.Magnitude > 0.05 then
 			return v
 		end
 	end
-	return Vector3.zero
+	-- the keys themselves: the player module gives nothing while we hold the character still (found in play, 2026-11-10)
+	if UserInputService:GetFocusedTextBox() then
+		return Vector3.zero
+	end
+	local x, z = 0, 0
+	if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then
+		x += 1
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then
+		x -= 1
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then
+		z += 1
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
+		z -= 1
+	end
+	return Vector3.new(x, 0, z)
 end
 
 local function clearFloat()
@@ -143,7 +159,13 @@ local function drive(dt: number)
 	end
 	local r = Config.Ride
 	local mv = RideController.moveVector()
-	yaw -= mv.X * math.rad(r.YawRate) * dt
+	-- the fish turns with the camera, as the reference's dinos do (A and D turn the camera): once the camera has come
+	-- round behind a fish we just got on
+	local settled = Config.Switch.CameraSettle
+	local follow = Ease.smoothstep(settled, settled * 1.5, os.clock() - State.MountedAt)
+	local before = yaw
+	yaw = Ease.lerpAngle(yaw, camYaw, Ease.alpha(r.TurnFollow, dt) * follow)
+	local turning = ((yaw - before + math.pi) % (2 * math.pi) - math.pi) / math.max(dt, 1 / 240)
 	driveParams.FilterDescendantsInstances =
 		{ fish, State.Player.Character :: Instance, workspace:FindFirstChild("Fish") :: Instance }
 	local floor = workspace:Raycast(root.Position, Vector3.new(0, -160, 0), driveParams)
@@ -169,7 +191,9 @@ local function drive(dt: number)
 		pitch = Ease.lerp(pitch, math.rad(-6), Ease.alpha(6, dt))
 	end
 	pitch = math.clamp(pitch, -math.rad(r.MaxPitch), math.rad(r.MaxPitch))
-	roll = Ease.lerp(roll, -mv.X * math.rad(r.Bank), Ease.alpha(5, dt))
+	-- banking into the turn
+	local lean = math.clamp(turning / math.rad(r.YawRate), -1, 1)
+	roll = Ease.lerp(roll, lean * math.rad(r.Bank), Ease.alpha(5, dt))
 
 	local speed =
 		Ease.rideSpeed(startSpeed, rideType.RiddenSpeed, os.clock() - State.MountedAt, r.RampTime, r.Surge, r.SurgeTime)
@@ -325,23 +349,28 @@ local function cameraStep(dt: number)
 		camYaw, camPitch = anglesOf(camera.CFrame.LookVector)
 	end
 
-	-- swing back behind the travel direction unless the player is looking round; quicker just after a mount, so the
-	-- camera settles behind the new fish over Switch.CameraSettle
+	-- The camera's turn is the player's: a drag turns it, and so do A and D. The fish, and the flight, turn to where it
+	-- looks. Just after a mount it comes round behind the new fish first (Switch.CameraSettle). Its tilt looks after
+	-- itself unless the player has just dragged it.
 	local recentLook = os.clock() - lookedAt < 1.2
+	local turn = RideController.moveVector().X
 	if mode == "Riding" then
-		local settling = os.clock() - State.MountedAt < Config.Switch.CameraSettle * 1.5
-		local rate = if settling then 3 / Config.Switch.CameraSettle else 3
+		if os.clock() - State.MountedAt < Config.Switch.CameraSettle and not recentLook then
+			camYaw = Ease.lerpAngle(camYaw, yaw, Ease.alpha(3 / Config.Switch.CameraSettle, dt))
+		else
+			camYaw -= turn * math.rad(Config.Ride.YawRate) * dt
+		end
 		if not recentLook then
-			camYaw = Ease.lerpAngle(camYaw, yaw, Ease.alpha(rate, dt))
-			camPitch = Ease.lerp(camPitch, pitch * 0.5 + math.rad(-12), Ease.alpha(rate, dt))
+			camPitch = Ease.lerp(camPitch, pitch * 0.5 + math.rad(-12), Ease.alpha(3, dt))
 		end
 	elseif mode == "Jumping" then
-		-- behind the flight's heading, lifted to look down on the ring and the fish under it (as the reference does)
+		camYaw -= turn * math.rad(Config.Jump.YawRate) * dt
+		-- lifted to look down on the ring and the fish under it (as the reference does)
 		if not recentLook then
-			camYaw = Ease.lerpAngle(camYaw, State.AirYaw, Ease.alpha(5, dt))
 			camPitch = Ease.lerp(camPitch, math.rad(Config.Jump.CameraPitch), Ease.alpha(4, dt))
 		end
 	end
+	State.CamYaw = camYaw
 	camPitch = math.clamp(camPitch, math.rad(-75), math.rad(65))
 
 	UserInputService.MouseBehavior = if rightHeld
@@ -350,6 +379,11 @@ local function cameraStep(dt: number)
 	zoomScale = Ease.lerp(zoomScale, if mode == "Jumping" then Config.Jump.CameraZoom else 1, Ease.alpha(4, dt))
 	local distance = zoom * zoomScale
 	local rotation = CFrame.fromOrientation(camPitch, camYaw, 0)
+	if State.SideCam then
+		-- the sandbox's side view: square on to the way we are headed, far enough to see a whole jump
+		distance = math.max(distance, 70)
+		rotation = CFrame.fromOrientation(math.rad(-4), camYaw + math.pi / 2, 0)
+	end
 	local focusGoal = root.Position + Vector3.new(0, c.Height * 0.5, 0)
 	camFocus = if camFocus then camFocus:Lerp(focusGoal, Ease.alpha(c.Follow * 2, dt)) else focusGoal
 	local focus = camFocus :: Vector3

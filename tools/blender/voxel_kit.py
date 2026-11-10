@@ -436,6 +436,24 @@ def check_part(part):
                         notes.append(f"  ! {part.name}: piece {i} ({a['colour']}, middle {where(i)}) has a face {how} a face of the cubes "
                                      f"({'xyz'[axis]} = {level - (0.5 if axis == 1 else 0)}, {hits} of {len(pts)} points)")
 
+    # 2b: cube faces of this part lying on cube faces of another part, facing the same way (a joint's sleeve in the
+    # plane of the stepped corner in front of it): they flicker too
+    for other in model.parts.values():
+        if other is part or other.name < part.name:
+            continue
+        hits, where_at = 0, None
+        for (i, j, k) in part.cells:
+            if (i, j, k) not in other.cells:
+                continue
+            for d in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
+                beyond = (i + d[0], j + d[1], k + d[2])
+                if beyond not in part.cells and beyond not in other.cells:
+                    hits += 1
+                    where_at = where_at or (i, j, k)
+        if hits:
+            notes.append(f"  ! {part.name}: {hits} cube faces lie on cube faces of {other.name} (first at cube {where_at}): "
+                         f"a sleeve in the plane of the body in front")
+
     # 3: its root. A piece should have one face wholly inside something else, or flat against it (any part: a tail's root
     # sits in the body), or cap another piece's end. If not, it only crosses a surface at an angle: air shows under it
     def held(pt, me):

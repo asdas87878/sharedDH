@@ -61,4 +61,17 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   (`band(stop=)`), one flaw on each rarer creature. Recesses that don't glow are shallow (`dent`, a third of a cube): a
   whole cube deep reads as a Minecraft build (the user). The shark's pink gum line read as lipstick: the user picked the thin
   darker line (`GUM = "thin"`), for select animals. Rarity look: docs/style/05-rarity-look.md (a budget per rarity, proposed; the Hellmaw is redone by it as a Mythic; parts
-  that float on purpose are named in a model's `FLOATING`).
+  that float on purpose are named in a model's `FLOATING`). Chosen: the halo eye for Legendaries (a dark pupil, a thin
+  soft glow round it), a fully glowing eye only on a few Mythics. Body archetypes so far: plain fish, shark, armoured fish,
+  shark-lizard (Mosasaurus), giant (Blue Whale, the old one), invented (Hellmaw). A brow sits on the eye (overlaps its
+  top, only a little proud of the pupil); light follows the model's own lines (a colour edge, a seam, a fin's edge), never
+  a mark in the middle of a plain surface; an archetype is a family of creatures, not one. A joint's sleeve is sized from the smaller
+  of the two pieces and kept clear of its steps (the gate checks cube faces across parts).
+- **The game code (2026-11-10):** riding is `RideService` (server: states Dock, Free, Riding, Jumping, Drowning; Oxygen)
+  with `RideController` (the fish turns to where the camera looks; the camera), fish are `FishService` (a herd swimming
+  straight down the lane in one layer), and going fish to fish is `JumpController`: Ride a Dino's jump, read from the
+  user's recordings ([reference](docs/reference/ride-a-dino.md)). What is built, measured and still open:
+  [riding feel](docs/design/riding-feel.md). Every number is in `src/shared/Config.luau`, read live. In Studio the game
+  starts as the **movement sandbox** ([docs/sandbox.md](docs/sandbox.md): no fail, R reset, V side view, N a panel of every
+  number): the user tunes there and pastes "Copy changes" for Claude to write into Config. What each push changed is in
+  [Handoff](docs/Handoff.md); who has which files, [Sessions](docs/Sessions.md).

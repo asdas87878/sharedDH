@@ -174,6 +174,17 @@ local function pose(state: string, t: number, player: Player): { [string]: CFram
 			RightKnee = rot(-18 - math.abs(kick) * 0.6, 0, 0),
 			Neck = rot(28, 0, 0),
 		}
+	elseif state == "Reeling" then
+		-- pulled onto the fish: one arm out ahead on the line, the other back, legs straight out behind
+		return {
+			RightShoulder = rot(175, 0, -6),
+			LeftShoulder = rot(-25, 0, 14),
+			LeftHip = rot(-10, 0, -5),
+			RightHip = rot(-4, 0, 5),
+			LeftKnee = rot(-8, 0, 0),
+			RightKnee = rot(-14, 0, 0),
+			Neck = rot(35, 0, 0),
+		}
 	elseif state == "Drowning" then
 		local started = State.DeathStart[player]
 		return drowning(
@@ -251,7 +262,7 @@ function AnimController.Start()
 			local state = player:GetAttribute("State")
 			if player == State.Player then
 				-- our own pose follows what we already see (the jump) before the server's word
-				state = State.Mode
+				state = if State.Mode == "Jumping" and State.Reeling then "Reeling" else State.Mode
 			end
 			if character and type(state) == "string" then
 				if state ~= "Dock" then

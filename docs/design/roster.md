@@ -3,7 +3,8 @@
 **Picked 2026-11-09: variant C, "a giant in every zone", reworked the same day so rarity slides with the zones** (the user's
 correction: in Ride a Dino a zone doesn't hold one of each rarity; Commons only exist early, and the mix moves up the further you
 go), again so a zone's rare spawns always fit it and the coolest Legendaries only open up later, and again so creatures range
-one or two zones ahead of home, with bigger Common and Uncommon pools at the start. 80 creatures. The same list one creature a
+one or two zones ahead of home, with bigger Common and Uncommon pools at the start. 81 creatures (80 until 2026-11-10,
+when the shapes were checked against rarity: see Shapes by rarity, below). The same list one creature a
 line, with a short look, for image prompts: [roster list](roster-list.md).
 
 The user's brief: at or above Ride a Dino's scale. Start with small, basic, nice-looking fish (one striped, one plain), move on to
@@ -67,9 +68,9 @@ That's how the pool of Legendaries grows, zone by zone:
 |---|---|---|
 | 1 Shallows | Archelon | 1 |
 | 2 Coral Reef | Dunkleosteus (it lived on ancient reefs), Archelon | 2 |
-| 3 Kelp Forest | Steller's Sea Cow, Dunkleosteus, Archelon | 3 |
-| 4 Shipwrecks | Xiphactinus, Dunkleosteus | 2 |
-| 5 Open Blue | Elasmosaurus, Helicoprion, Xiphactinus | 3 |
+| 3 Kelp Forest | Dakosaurus, Dunkleosteus, Archelon | 3 |
+| 4 Shipwrecks | Xiphactinus, Dakosaurus, Dunkleosteus | 3 |
+| 5 Open Blue | Elasmosaurus, Helicoprion, Xiphactinus, Dakosaurus | 4 |
 | 6 Twilight | Liopleurodon, Shonisaurus, Elasmosaurus, Helicoprion, Xiphactinus | 5 |
 | 7 Midnight | Mosasaurus, Livyatan, Basilosaurus, Liopleurodon, Shonisaurus, Elasmosaurus, Helicoprion | 7 |
 | 8 Vents | Megalodon, Kronosaurus, Anomalocaris, Mosasaurus, Livyatan, Basilosaurus, Liopleurodon, Shonisaurus | 8 |
@@ -85,7 +86,7 @@ The user wanted a touch of an extremely rare chance that something from outside 
 exception to the rules above (draft numbers, to tune):
 - **How rare:** a stray Legendary about 1 in 10,000 spawns, in any zone: twenty times rarer than the Shallows' own Legendary (1 in
   500). A stray Mythic (the user's addition) ten times rarer again, about 1 in 100,000.
-- **Only from close by:** from the next one or two zones, as if it wandered off course. A Dunkleosteus or a Steller's Sea Cow in
+- **Only from close by:** from the next one or two zones, as if it wandered off course. A Dunkleosteus or a Dakosaurus in
   the Shallows, never a Megalodon; the earliest a Megalodon can stray is the Twilight zone. The first Mythic that can stray is the
   Blue Whale, into the Kelp Forest or the Shipwrecks; the Hellmaw can stray as far up as the Vents. Never a Secret.
 - **It's clearly lost:** a "STRAY" tag and a faint glowing trail, and the whole server hears about it ("A stray Dunkleosteus has
@@ -104,7 +105,7 @@ the biggest pools, so the start feels vast. The coolest creatures sit in the rar
 |---|---|---|---|---|---|---|---|
 | 1 Shallows | Sergeant Major, Yellow Tang, Clownfish, Blue Chromis, Butterflyfish, Boxfish, Pufferfish | Sea Turtle, Stingray, Cuttlefish, Flying Fish | Seahorse | Reef Shark | Archelon | | Pearl Serpent |
 | 2 Coral Reef | | Parrotfish, Lionfish, Angelfish | Moray Eel, Octopus | Humphead Wrasse | Dunkleosteus | | Coral Dragon |
-| 3 Kelp Forest | | Garibaldi, Sea Lion | Leopard Shark, Giant Sea Bass | Great White | Steller's Sea Cow | | Kelp Wyrm |
+| 3 Kelp Forest | | Garibaldi, Sea Lion | Leopard Shark, Giant Sea Bass | Great White, Steller's Sea Cow | Dakosaurus | | Kelp Wyrm |
 | 4 Shipwrecks | | Barracuda | Hammerhead, Sawfish | Goliath Grouper, Electric Ray | Xiphactinus | | Galleon Whale |
 | 5 Open Blue | | | Swordfish, Dolphin | Manta Ray, Orca | Elasmosaurus, Helicoprion | Blue Whale | Storm Serpent |
 | 6 Twilight | | | Viperfish | Giant Squid, Goblin Shark | Liopleurodon, Shonisaurus | Lantern Leviathan | Aurora Jelly |
@@ -113,11 +114,31 @@ the biggest pools, so the start feels vast. The coolest creatures sit in the rar
 | 9 Bone Graveyard | | | | | Grave Ray, Skull Angler, Wraith Eel, Grave Turtle | Halfbone Megalodon, Bone Leviathan | Phantom Whale |
 | 10 The Underworld | | | | | Brimstone Eel, Infernal Angler, Hellfin Shark, Cinder Ray | Hellmaw, Abyssal Watcher | The Devourer |
 
-**Counts:** 6 to 15 creatures at home in each zone, plus a Secret: 80 in all. By rarity: 7 Common, 10 Uncommon, 10 Rare,
-13 Epic, 22 Legendary, 8 Mythic, 10 Secret. Ride a Dino has "50+". With creatures ranging ahead, each zone shows more than its own.
+**Counts:** 6 to 15 creatures at home in each zone, plus a Secret: 81 in all. By rarity: 7 Common, 10 Uncommon, 10 Rare,
+14 Epic, 22 Legendary, 8 Mythic, 10 Secret. Ride a Dino has "50+". With creatures ranging ahead, each zone shows more than its own.
+
+### Shapes by rarity (2026-11-10)
+The user's rule: as rarity goes up, the animals themselves are cooler shapes. Past a certain point most are shark-like, or
+the long-snouted sea lizards, or huge bulbous creatures, or worms with a striking shape. The lesser prehistoric animals and
+the merely okay ones sit lower, with a few cool ones among them. The reasoning, Hungry Shark's pattern and the families of
+shape are in [workout 5](../style/05-rarity-look.md) ("Shapes by rarity").
+
+- **From Legendary up,** the body is a shark, a sea lizard, a serpent or a giant (or an armoured one, if huge).
+- **A Mythic is an invented creature on one of those bodies,** never a round fish.
+- **Lower down,** most are plain or odd fish, and each zone keeps one cool one as its rare spawn.
+
+What changed in the list for it (each can be undone):
+- **Steller's Sea Cow** is an Epic now. It was the one Legendary with a gentle, shapeless body.
+- **Dakosaurus** is the kelp forest's Legendary in its place.
+- **The Blue Whale** is the old one: a whale with a reef grown on it.
+- **The Lantern Leviathan** is a gulper, a serpent's body, not a round fish.
+- **The Abyssal Watcher** has a body: vast and swollen.
+
+Still to look at: the **Galleon Whale** (zone 4's Secret, a ship's hull grown onto a whale) now sits close to the Blue
+Whale's idea. And the **Hellmaw** is liked as it is, but its body is a fish's.
 
 ### Our target, still
-- **Sizes and mutations** (our own names, to pick later) turn 80 into about 2,000 entries in the collection book, almost free:
+- **Sizes and mutations** (our own names, to pick later) turn 81 into about 2,000 entries in the collection book, almost free:
   sizes are scale, mutations are a colour swap ([creature method](../style/creature-method.md), step 2).
 - **Launch with zones 1 to 4** (37 creatures), then a zone per update, the way this genre grows.
 - **"Fish" means anything that swims**, the way Ride a Dino has mammoths and gorillas: sharks, whales, turtles, squid, sea
@@ -127,8 +148,10 @@ the biggest pools, so the start feels vast. The coolest creatures sit in the rar
 - **Archelon:** a turtle the size of a car, beaked head, ridged shell. **Grave Turtle** is it again, undead, in the Bone Graveyard.
 - **Helicoprion:** a shark-like fish with a spiral buzz-saw of teeth in its lower jaw.
 - **Dunkleosteus:** an armoured head of bone plates, a jaw of bony blades instead of teeth.
-- **Steller's Sea Cow:** a gentle giant as long as a bus, bark-like bumpy skin, a small head, a whale's tail; it grazed on kelp
-  and was hunted out in 1768.
+- **Steller's Sea Cow** (an Epic since 2026-11-10): a gentle giant as long as a bus, bark-like bumpy skin, a small head, a
+  whale's tail; it grazed on kelp and was hunted out in 1768.
+- **Dakosaurus** (the kelp forest's Legendary since 2026-11-10): a sea crocodile with a deep, short, big-toothed skull
+  like a meat-eating dinosaur's, paddle limbs and a tail fluke. The first of the long-jawed sea reptiles.
 - **Xiphactinus:** a huge bulldog face, underbite full of fangs.
 - **Elasmosaurus:** a neck longer than the rest of its body.
 - **Liopleurodon** and **Kronosaurus:** crocodile heads on whale bodies, four giant flippers (Kronosaurus bigger and scarred).
@@ -138,27 +161,29 @@ the biggest pools, so the start feels vast. The coolest creatures sit in the rar
 - **Anomalocaris:** an alien-looking hunter with two spiny grabbing arms and eyes on stalks.
 - **Megalodon:** the biggest jaw in the game, scarred. **Molten Megalodon:** the same, cracked with glowing lava from the vents.
   **Halfbone Megalodon** (the user's half-skeleton fish): front half flesh, back half bare skeleton.
-- **Blue Whale:** the biggest animal ever. **Kraken:** a giant octopus with glowing suckers. **Lantern Leviathan:** a giant
-  deep-sea fish with a lure like a lighthouse.
+- **Blue Whale:** the biggest animal ever, and so old that a reef has grown on its back (the old one: coral, barnacles, an
+  anchor still hanging from it, a little living light). **Kraken:** a giant octopus with glowing suckers. **Lantern
+  Leviathan:** a giant gulper of the deep, a huge hinged mouth on a long whip of a body, one line of violet light along it
+  and a lure like a lighthouse.
 - **Bone Leviathan:** a whole serpent skeleton, swimming. **Hellmaw** (the user's demon fish): horns, lava cracks between its
-  scales, ember eyes, burning fins. **Abyssal Watcher:** a body covered in eyes.
+  scales, ember eyes, burning fins. **Abyssal Watcher:** a vast, swollen, slow body covered in eyes.
 - **Secrets:** Pearl Serpent (pearl-white, a pearl in its brow), Coral Dragon (grown out of coral), Kelp Wyrm (wrapped in kelp),
   Galleon Whale (a sunken ship's hull grown onto its back), Storm Serpent (crackling with lightning), Aurora Jelly (a giant
   jellyfish glowing like the northern lights), Void Whale (a whale-shaped hole full of stars), Ember Serpent (fire from the
   vents), Phantom Whale (see-through), The Devourer (the last one: mostly mouth).
 
-### Making 80 creatures without 80 models
+### Making 81 creatures without 81 models
 The [creature method](../style/creature-method.md)'s kit, grouped into body families:
 
 | Family | Creatures |
 |---|---|
 | Reef fish (tall, flat) | Sergeant Major, Yellow Tang, Clownfish, Blue Chromis, Butterflyfish, Parrotfish, Lionfish, Angelfish, Garibaldi, Humphead Wrasse |
 | Fast fish (torpedo) | Flying Fish, Barracuda, Swordfish, Xiphactinus |
-| Big-mouth fish | Giant Sea Bass, Goliath Grouper, Viperfish, Anglerfish, Skull Angler, Infernal Angler, Lantern Leviathan |
+| Big-mouth fish | Giant Sea Bass, Goliath Grouper, Viperfish, Anglerfish, Skull Angler, Infernal Angler |
 | Sharks | Reef Shark, Leopard Shark, Great White, Hammerhead, Goblin Shark, Frilled Shark, Megalodon, Molten Megalodon, Halfbone Megalodon, Hellfin Shark, Helicoprion |
 | Rays | Stingray, Sawfish, Electric Ray, Manta Ray, Grave Ray, Cinder Ray |
-| Eels and serpents | Moray Eel, Wraith Eel, Brimstone Eel, Pearl Serpent, Coral Dragon, Kelp Wyrm, Storm Serpent, Ember Serpent, Bone Leviathan |
-| Sea reptiles | Elasmosaurus, Liopleurodon, Kronosaurus, Shonisaurus, Mosasaurus |
+| Eels and serpents | Moray Eel, Wraith Eel, Brimstone Eel, Lantern Leviathan, Pearl Serpent, Coral Dragon, Kelp Wyrm, Storm Serpent, Ember Serpent, Bone Leviathan |
+| Sea reptiles | Dakosaurus, Elasmosaurus, Liopleurodon, Kronosaurus, Shonisaurus, Mosasaurus |
 | Turtles | Sea Turtle, Archelon, Grave Turtle |
 | Whales, dolphins, seals and sea cows | Sea Lion, Steller's Sea Cow, Dolphin, Orca, Blue Whale, Livyatan, Basilosaurus, Galleon Whale, Phantom Whale, Void Whale |
 | Armoured fish | Pufferfish, Boxfish, Dunkleosteus |

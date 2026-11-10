@@ -110,10 +110,10 @@ def build(m):
         segs[0].dent(x, x + 1, 4, -1, 2, "grey-")
     # the seat: behind the gills, in front of the fin, with a slot either side for the rider's legs
     segs[0].dent(-4, -2, 4, 0, 3, "grey-")
-    segs[0].sym(-10, -9, 3, -3, 3, "grey-")  # sleeves, one cube into the piece in front
-    segs[1].sym(-3, -2, 3, -3, 4, "grey-")
-    segs[2].sym(4, 5, 3, -3, 4, "grey-")
-    segs[3].sym(8, 9, 2, -2, 3, "grey-")
+    segs[0].sym(-10, -9, 3, -2, 2, "grey-")  # sleeves, one cube into the piece in front and a cube inside its steps
+    segs[1].sym(-3, -2, 2, -2, 3, "grey-")  # narrower: the leg slot is cut into the side here
+    segs[2].sym(4, 5, 3, -2, 3, "grey-")
+    segs[3].sym(8, 9, 2, -1, 2, "grey-")
 
     # an old scar on the left flank: two short slanting lines, a tone darker (an Epic has one flaw)
     for x, z in ((0, 3), (1, 2), (2, 1), (3, 3), (4, 2)):

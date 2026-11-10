@@ -20,6 +20,15 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
   pull onto the glowing fish and a short drown when a drop finds nothing; a miss from floating drowns too. Wild fish
   now swim as a herd: all straight down the lane, at 0.85 of ridden speed (measured from the reference), in one layer
   16 to 30 studs above the floor, and a ridden fish follows that layer when W and S are let go.
+- **Third pass, after the user played the second:** a ridden fish turns to where the camera looks (A and D turn the
+  camera), and so does the flight; a second press with nothing in the ring grabs the best fish within 45 studs, the one
+  you left included; a fish near by is grabbed in the drop without a press. Fixed: A and D did nothing on a fish (the
+  player module gave no move vector), so `RideController.moveVector` now reads the keys as well.
+- **The movement sandbox** ([how to use it](sandbox.md)): in Studio the game now starts with no fail and endless air,
+  with R, V and N for a reset, a side view and a panel of every movement number. `Config.Sandbox.On = false` starts
+  Studio with the real rules instead. A published game never has it.
+- **The pull-in and the reach:** the pull onto the fish follows the reference's measured curve (`Jump.ReelCurve`, on a
+  line from the hand); the grab reaches 85 studs whichever way you look, and 50 without a press in the drop.
 - **Kept:** Oxygen, the throw-off and the drown, the speed-up on mount, the bubble burst, map v4.
 - **The Studio place on this PC is not in the repo.** It was rebuilt in an unsaved place from `claude_blockout.luau`
   and `src/`; the user saves it locally.

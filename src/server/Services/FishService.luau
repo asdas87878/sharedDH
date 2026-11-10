@@ -472,6 +472,39 @@ local function steer(w: Wild, dt: number)
 	w.Turn.CFrame = CFrame.lookAt(Vector3.zero, w.Dir)
 end
 
+-- A point in the middle of the lane at the herd's height (kept under the surface), and the way down the lane there
+function FishService.lanePoint(s: number): (Vector3, Vector3)
+	local _, along = Lane.at(lane, s)
+	local at = Lane.point(lane, s, 0, Config.Herd.RideHeight)
+	return Vector3.new(at.X, math.min(at.Y, Config.Oxygen.SurfaceY - 8), at.Z), along
+end
+
+-- The nearest fish in the water a player could get on
+function FishService.nearest(position: Vector3, radius: number, player: Player): Wild?
+	local best: Wild? = nil
+	local bestDistance = radius
+	for _, w in wild do
+		if not w.Parked and FishService.isFree(w, player) then
+			local distance = (w.Root.Position - position).Magnitude
+			if distance < bestDistance then
+				best = w
+				bestDistance = distance
+			end
+		end
+	end
+	return best
+end
+
+-- After the sandbox changes how many fish there should be: the slices' shares again; the top-up does the rest
+function FishService.restock()
+	local fresh = newSlices()
+	for i, slice in fresh do
+		if slices[i] then
+			slices[i].Want = slice.Want
+		end
+	end
+end
+
 function FishService.Init()
 	folder = Instance.new("Folder")
 	folder.Name = "Fish"
