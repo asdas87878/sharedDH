@@ -63,9 +63,13 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   darker line (`GUM = "thin"`), for select animals. Rarity look: docs/style/05-rarity-look.md (a budget per rarity, proposed; the Hellmaw is redone by it as a Mythic; parts
   that float on purpose are named in a model's `FLOATING`). Chosen: the halo eye for Legendaries (a dark pupil, a thin
   soft glow round it), a fully glowing eye only on a few Mythics. Body archetypes so far: plain fish, shark, armoured fish,
-  shark-lizard (Mosasaurus), giant (Blue Whale, the old one), invented (Hellmaw). A brow sits on the eye (overlaps its
+  shark-lizard (Mosasaurus), giant (Blue Whale, the old one), invented (Hellmaw), serpent (Basilosaurus), worm (Bobbit
+  Worm), flat (Manta Ray), tentacled (Kraken), crawler (Anomalocaris), bulbous (Anglerfish), shelled (Archelon); sixteen
+  models in `art/creatures/*/voxel.py`, all passing the gate. Next, when the user says: textures. A brow sits on the eye (overlaps its
   top, only a little proud of the pupil); light follows the model's own lines (a colour edge, a seam, a fin's edge), never
-  a mark in the middle of a plain surface; an archetype is a family of creatures, not one. A joint's sleeve is sized from the smaller
+  a mark in the middle of a plain surface. An archetype is a loose guide and a shared vocabulary, never a template to copy:
+  each creature is designed from its own real animal (the user). Taper one step at a time; more slices are for a smooth
+  taper, not bulk; don't over-apply a single note. A joint's sleeve is sized from the smaller
   of the two pieces and kept clear of its steps (the gate checks cube faces across parts).
 - **The game code (2026-11-10):** riding is `RideService` (server: states Dock, Free, Riding, Jumping, Drowning; Oxygen)
   with `RideController` (the fish turns to where the camera looks; the camera), fish are `FishService` (a herd swimming

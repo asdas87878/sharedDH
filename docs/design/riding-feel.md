@@ -19,6 +19,8 @@ max Oxygen. A creature's tag shows the Oxygen it needs ("Required").
 - **Jumping to a fish near by is easy,** and you can grab the fish you just left; far fish stay out of reach (the user,
   2026-11-10). Later the same day: the reach is further still, and you don't need to be looking at the fish.
 - **The pull onto the fish follows the reference's:** slow at first, then accelerating hard (the user, 2026-11-10).
+- **The camera's shakes and the zoom at a landing matter, and are measured from the reference;** the air time and the
+  reach are tuned round them. It has to look great, immersive and of a piece (the user, 2026-11-10).
 - **The movement has to feel really good, as close to the reference's as a port can be** (the user, 2026-11-10): its own
   piece of work, in a sandbox.
 - **An Oxygen meter that drains while you ride.** Higher tiers drain it faster.
@@ -30,23 +32,29 @@ One button, as in the reference. The numbers are in `src/shared/Config.luau` und
 
 1. **Space** throws you off the fish at once. A white ring pops where you left. From floating (after diving in off the
    board) Space does the same, so that is how a dive starts for now.
-2. **The launch, 0.75 s:** up 12 studs and forward at 1.4 times the speed you rode at.
-3. **The float, 1.6 s:** at the top, still rising a little, in a swimming pose, at the herd's pace (38 studs a second).
-4. **The drop, 1.3 s:** you sink, faster and faster, head first.
+2. **The pop, 0.3 s:** up to 16 studs above the highest fish in front of you (or above where you left, if that is
+   higher), so you are always over them; and forward at 1.4 times the speed you rode at for about 0.75 s. If the fish
+   you are making for turns out to be higher, you keep rising through the glide. The surface is the limit: in the
+   Shallows there are only 11 to 18 studs of water above the herd, so the jump is cut short there.
+3. **The glide, 1.5 s:** flat at the top, lying face down in a swimming pose, at the herd's pace (38 studs a second).
+4. **The drop, 1.3 s:** only if no fish was in reach: you sink, faster and faster, head first.
 5. **You steer all of it:** the flight turns to where the camera looks, and A and D turn the camera (170 degrees a
    second). W and S speed it up and slow it by half. The camera lifts and pulls back to look down.
-6. **A dashed yellow ring lies flat in the water under you** (a radius of 20 studs), at the level of the fish below.
-   **The fish inside the ring glows yellow with an outline:** that is the fish you will land on. The flight is drawn
-   over it, so the ring stays on it.
+6. **The fish you are making for glows yellow with an outline** from the moment it is picked: the nearest fish in front
+   of you (within 70 degrees either side of where the flight is headed, or right under you) and within 85 studs, never
+   the fish you just left. It keeps the glow unless it falls well behind or another fish in front is clearly nearer
+   (0.7 of the distance). With no turn held, the flight makes for it; once you are over it, you are held there. A
+   dashed yellow ring (a radius of 20 studs) lies flat in the water under you.
 7. **The pull-in:** you are pulled onto the fish on a line from your hand, on the reference's measured curve: the gap
    closes as time to the power 2.3, so it creeps, then accelerates all the way in and arrives at its fastest. It takes
    0.14 s plus a second for every 55 studs (18 studs: 0.47 s, as measured). The gap is kept from the fish as it swims,
-   so you never hang still. The view opens as it speeds up. It happens when the drop begins, or at once on a second
-   Space. Then the bubble burst, the ring, the squash, and the glow fades off the fish. Oxygen refills by a quarter.
-8. **Space again with no fish glowing is the grab:** it pulls you onto the nearest fish within 85 studs, whichever way
-   you are looking (where the camera looks only breaks a tie; the fish you just left counts as 20 studs further). With
-   no fish that near, it starts the drop early. In the drop, a fish within 50 studs is grabbed without a press. The
-   fish you left can glow again once the launch has carried you off it.
+   so you never hang still, and it never takes longer than 0.8 s however far the fish. The view narrows as it speeds
+   up and yellow dots are left behind you. It happens when the glide ends, or at once on a second Space. **At the
+   landing the view snaps 12 degrees wider in one frame and settles over 0.35 s, and the camera is knocked down
+   and springs back** (both measured from the reference); the fish flashes white, then yellow. Then the bubble burst, the ring, the squash, and the glow fades off the fish. Oxygen refills by a quarter.
+8. **The pull-in comes down later than it comes across** (a swoop): you hold your height, then dive onto the fish.
+   **With no fish in front** when the glide ends or on a second Space, it takes the nearest fish any way round within 50
+   studs, and only with none of those the fish you just left. With nothing at all, the drop.
 9. **A drop that ends with no fish in the ring has sunk:** a short drown (about 2.8 s), then the dock. This is the same
    from a fish or from floating, so there is no hopping for ever. The reference offers a revive here; we have none yet.
 
@@ -57,7 +65,8 @@ over it, give or take lag.
 - **All wild fish swim straight down the lane,** each at its own place across it.
 - **At 0.85 of the speed they are ridden at** (a Common: 38 wild, 45 ridden). Measured from the reference: riding about
   55 m a second, the herd about 46. Before, wild fish idled at 14, a third of riding speed, so a jump flew past them.
-- **In one layer, 16 to 30 studs above the floor** (it was 10 to 60). The reference's dinos are all on the ground; with
+- **In one layer, 8 to 16 studs above the floor** (it was 10 to 60, then 16 to 30: lowered so there is water above the
+  herd to jump up into). The reference's dinos are all on the ground; with
   fish spread over 50 studs of depth, a jump had nothing at its own depth.
 - **A ridden fish with W and S let go follows the lane down at the herd's height.** W and S still dive and climb.
 - **A ridden fish turns to where the camera looks.** A and D turn the camera, and so does a right-mouse drag or a touch
@@ -70,8 +79,8 @@ over it, give or take lag.
 - **The flight makes for the nearest fish** when no turn is held and nothing is in the ring: it takes on the fish's speed
   and closes the gap. The reference pulls you onto a dino at the end (measured), but how it picks one isn't known.
   `Jump.Assist = false` turns ours off.
-- **The float is longer** (1.6 s against about 1.1): the user's call.
-- **The arc is not the reference's yet** (the user, 2026-11-10). To be worked out in the movement sandbox, not here.
+- **The flight's shape now follows the side-on recording** (a pop, a flat glide, the pull-in). Its height and the
+  length of the glide are by eye and to tune in the sandbox.
 - **Not built yet:** the yellow fan behind the fish on landing, the row of yellow dots behind you, the lasso in the
   rider's hand, the revive, and the green and pink rings (time left on this fish, taming).
 

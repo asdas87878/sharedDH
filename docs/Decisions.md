@@ -5,6 +5,9 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-10 | The jump propels you to a height that makes sense for the fish around you: above them, so there is a swoop down onto the fish. Ride a Dino has flat ground and doesn't need this; we do: the user, after playing | [Riding feel](design/riding-feel.md) |
+| 2026-11-10 | A jump goes for the closest fish in front of you, not the nearest any way round, and not the fish you are leaving: the user, after playing | [Riding feel](design/riding-feel.md) |
+| 2026-11-10 | The camera's shakes and the brief zoom in and out at a landing are important and are to be measured from the reference; the air time and the distance of the grapple are worked round them. It all has to look great, immersive and cohesive: the user, with a side-on recording | [Riding feel](design/riding-feel.md), [the reference](reference/ride-a-dino.md) |
 | 2026-11-10 | The pull onto the fish is the reference's: it starts slow, then accelerates hard, smooth and fast. Measured from its frames and rebuilt on that curve. Next after it: how the time in the air feels: the user | [Riding feel](design/riding-feel.md), [the reference](reference/ride-a-dino.md) |
 | 2026-11-10 | Hooking onto the next fish is simpler: a longer reach, and you don't need to be looking toward the fish: the user | [Riding feel](design/riding-feel.md) |
 | 2026-11-10 | The movement has to feel really good, and as close to Ride a Dino's as a port can be: smooth and natural, with good animations, camera shakes and changes of speed. It is a huge part of the game, and gets its own piece of work, tested in a sandbox built for quick play tests of movement and camera: the user | [Riding feel](design/riding-feel.md) |

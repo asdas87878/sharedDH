@@ -29,6 +29,12 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
   Studio with the real rules instead. A published game never has it.
 - **The pull-in and the reach:** the pull onto the fish follows the reference's measured curve (`Jump.ReelCurve`, on a
   line from the hand); the grab reaches 85 studs whichever way you look, and 50 without a press in the drop.
+- **The flight's shape and the landing's camera,** from a side-on recording: a 0.3 s pop then a flat glide; at the
+  landing the view snaps 12 degrees wider and settles (`Jump.LandFov`), the camera is jolted (`Jump.LandKick`), and
+  yellow dots trail the pull-in instead of the line.
+- **Front targeting and height:** a jump makes for the nearest fish in front (`Jump.AheadCone`), never the one it left
+  unless nothing else is in reach; it rises `Jump.Apex` above the fish in front; the herd swims lower (8 to 16 studs
+  above the floor) to leave water to jump into.
 - **Kept:** Oxygen, the throw-off and the drown, the speed-up on mount, the bubble burst, map v4.
 - **The Studio place on this PC is not in the repo.** It was rebuilt in an unsaved place from `claude_blockout.luau`
   and `src/`; the user saves it locally.

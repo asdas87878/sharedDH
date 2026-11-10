@@ -80,7 +80,7 @@ Config.Ride = {
 	Bank = 28, -- roll into turns
 	LevelRate = 0.6, -- pitch eases back towards level with no input (fraction a second)
 	SeatHeight = 1.4, -- the rider's root above the fish's back
-	FloorClearance = 8, -- the fish pulls up nearer the floor than this
+	FloorClearance = 3, -- the fish pulls up nearer the floor than this
 	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its surge speed times this
 }
 
@@ -90,12 +90,18 @@ Config.Ride = {
 -- you; a fish inside it glows yellow, and you come down on it: at the drop, or at once on a second press, pulled in
 -- fast (the reel-in). Drop with no fish in the ring and you sink and drown.
 Config.Jump = {
-	LaunchTime = 0.75, -- thrown up and forward (the reference: about 0.75 s)
+	-- The shape, from the user's side-on recording (2026-11-10): a quick pop up (about 0.3 s), then a long flat glide
+	-- lying face down, sinking hardly at all, until the pull-in about 1.65 s after the press.
+	LaunchTime = 0.3, -- the pop up
+	BoostTime = 0.75, -- the launch's extra speed lasts this long (the reference: about 0.75 s)
 	Launch = 1.4, -- times the speed you left the fish at (the reference: about 1.3 to 1.8)
 	FreeLaunch = 55, -- the launch's speed from floating, with no fish under you
-	Apex = 12, -- studs up by the end of the launch
-	FloatTime = 1.6, -- floating at the top, swimming (the reference: about 1.1 s; longer here, the user's call)
-	FloatRise = 5, -- still rising this much through the float
+	-- The height (2026-11-10, the user: not high enough; the reference has flat ground, we don't): the jump rises this
+	-- far above the highest fish in front of you, or above where you left if that is higher, so there is always a swoop
+	-- down onto the fish.
+	Apex = 16,
+	FloatTime = 1.5, -- the glide at the top, swimming
+	FloatRise = 1, -- still rising this much through the glide
 	AirSpeed = 38, -- the float's speed: about the herd's pace
 	DropTime = 1.3, -- then sinking, faster and faster
 	Drop = 12, -- to this far below where you left
@@ -104,7 +110,18 @@ Config.Jump = {
 	-- accelerates all the way in and arrives at top speed, with no slowing down. The gap closes as time ^ ReelCurve.
 	ReelTime = 0.14, -- the pull-in's time for no distance at all; GrabSpeed adds to it by the distance
 	ReelCurve = 2.3, -- the reference's two pull-ins fit about 1.5 and 2.5; higher creeps longer and arrives faster
-	ReelFov = 22, -- the field of view opens toward this much as the pull-in speeds up (the camera follows with a lag)
+	ReelMax = 0.8, -- the pull-in never takes longer than this, however far the fish
+	ReelSwoop = 0.9, -- the pull-in comes down later than it comes across (added to ReelCurve for the height): a swoop
+	-- The camera through a landing, measured between every pair of frames of the side-on recording (four landings):
+	-- the picture grows through the pull-in, then in ONE frame shrinks to 0.79 to 0.81 of its size (the view snaps
+	-- wider), and comes back over 0.3 to 0.4 s; with it a short up-and-down jolt of 10 to 17 pixels in 720, gone in
+	-- about 0.13 s.
+	ReelFov = -10, -- the view narrows by this much as the pull-in speeds up (the zoom in)
+	LandFov = 12, -- then snaps this much wider than usual at the landing (0.8 of the picture's size at a 70 degree view)
+	LandFovTime = 0.35, -- and settles back over this
+	LandKick = 0.45, -- the jolt: the camera is knocked down this many studs
+	LandKickRate = 12, -- and springs back, bouncing this many times a second
+	LandKickDamp = 0.35, -- dying away (0 never, 1 with no bounce)
 	MinFlight = 0.3, -- before a second press counts
 	FloorClearance = 4, -- the flight stays this far above the sea floor and rocks
 	SpeedTrim = 0.5, -- W and S speed up and slow the flight by this share
@@ -117,21 +134,22 @@ Config.Jump = {
 	Magnet = 3, -- how strongly the flight is drawn over the glowing fish (a second); 0 turns it off
 	MagnetHold = 0.5, -- how much of the flight's speed the magnet takes the moment a fish glows (0 to 1)
 	MagnetFull = 0.9, -- and after a second with it; the rest stays with the steering
-	-- With no fish in the ring and no turn held, the flight makes for the nearest fish: it takes on the fish's speed
-	-- and closes the gap. Ours: the reference pulls you onto a dino at the end, but how it picks one isn't known.
-	-- Assist = false turns it off.
+	-- The fish you are making for (2026-11-10, the user: the closest fish in front, not the nearest any way, and not
+	-- the fish you just left): the nearest fish within AheadCone of where the flight is headed and within GrabRange. It
+	-- glows from the moment it is picked. With no turn held the flight makes for it: it takes on the fish's speed and
+	-- closes the gap (ours: the reference pulls you onto a dino, but how it picks one isn't known). Assist = false
+	-- turns that off.
+	AheadCone = 140, -- full angle in front of the flight that counts as in front
+	TargetKeep = 0.7, -- another fish takes over only when it is this share of the distance, or nearer
 	Assist = true,
-	AssistRange = 120, -- fish this near (flat) count
-	AssistAhead = 25, -- a fish dead ahead counts as this many studs nearer than one beside us
 	AssistClose = 45, -- the speed the gap closes at
 	AssistPull = 0.7, -- how much of the flight's speed this takes after the launch (0 to 1)
-	-- The grab: a second press with no fish in the ring pulls you onto the best fish near by: the nearest, a fish
-	-- where the camera looks counting as nearer, the fish you just left as further. Further fish are out of reach.
-	GrabRange = 85, -- (2026-11-10, the user: further, and without having to look at the fish; it was 45)
-	GrabAim = 5, -- a fish dead ahead of the camera counts as this many studs nearer: only a tie-break (it was 18)
-	GrabLeft = 20, -- the fish you just left counts as this many studs further
+	-- The pull-in happens when the glide ends, or at once on a second press, onto the fish you are making for, however
+	-- far within GrabRange. With no fish in front, it falls back to the nearest fish any way round within AutoGrab,
+	-- and only with none of those to the fish you just left.
+	GrabRange = 85,
 	GrabSpeed = 55, -- the pull-in takes this much longer for the distance (studs a second; the reference: about 46 m)
-	AutoGrab = 50, -- in the drop, a fish this near is grabbed without a press (it was 26)
+	AutoGrab = 50,
 	Cooldown = 0.3, -- after landing
 	Slack = 0.6, -- the server waits this long past the flight for the landing (lag)
 	LandSlack = 20, -- and allows the landing this many studs wider (it sees the player a moment late)
@@ -147,7 +165,7 @@ Config.Jump = {
 Config.Herd = {
 	SpeedShare = 0.85,
 	Ahead = 60, -- each fish heads for a point this far down the lane, at its own place across it and above the floor
-	RideHeight = 23, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
+	RideHeight = 12, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
 	RideHeightGain = 1.6, -- degrees of pitch for each stud it is off that height
 	RideHeightPitch = 35, -- at most
 }
@@ -162,7 +180,7 @@ Config.Burst = {
 	Count = 30,
 	Time = 0.6,
 	Reach = 4, -- studs the bubbles fly out
-	Kick = 0.5, -- the local camera's kick, studs
+	Kick = 0.15, -- a little rattle on our own landing, studs (the jolt itself is Jump.LandKick)
 }
 
 -- Out of Oxygen (and a jump that comes down on nothing, until there is a revive): no input, ends at the dock.
@@ -224,8 +242,9 @@ Config.Spawn = {
 	PerTopUp = 6,
 	-- The herd keeps to one layer above the lane's floor (2026-11-10, from 10 to 60): the reference's dinos are all on
 	-- the ground, and a jump has to find a fish at about its own depth.
-	HeightMin = 16, -- above the lane's floor
-	HeightMax = 30,
+	-- (2026-11-10: lowered from 16 to 30, so that even in the shallows there is water above the herd to jump up into)
+	HeightMin = 8, -- above the lane's floor
+	HeightMax = 16,
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
 	LaneFill = 0.7, -- fraction of the lane's half width fish use
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)

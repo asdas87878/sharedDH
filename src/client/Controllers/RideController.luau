@@ -48,6 +48,8 @@ local camPosition: Vector3? = nil
 local camFocus: Vector3? = nil
 local zoom = Config.Camera.Distance
 local zoomScale = 1 -- the jump pulls the camera back
+local fovEased = Config.Camera.Fov -- the field of view before the punch
+local kickAt, kickSpeed = 0, 0 -- the landing's jolt: the camera's height off true, on a spring
 local lookedAt = -math.huge -- os.clock() the player last looked round themselves
 local rightHeld = false
 local wasScripted = false
@@ -399,13 +401,31 @@ local function cameraStep(dt: number)
 	end
 	camPosition = if camPosition then camPosition:Lerp(goal, Ease.alpha(c.Follow, dt)) else goal
 	local position = camPosition :: Vector3
-	camera.CFrame = CFrame.lookAt(position, position + rotation.LookVector) * shakeOffset()
+	-- the landing's jolt: knocked down, springing back
+	local j = Config.Jump
+	if State.KickVelocity ~= 0 then
+		kickSpeed -= State.KickVelocity
+		State.KickVelocity = 0
+	end
+	local w = 2 * math.pi * j.LandKickRate
+	-- in small steps, so a slow frame can't throw the spring
+	local steps = math.clamp(math.ceil(dt * 240), 1, 12)
+	local h = math.min(dt, 0.05) / steps
+	for _ = 1, steps do
+		kickSpeed += (-w * w * kickAt - 2 * j.LandKickDamp * w * kickSpeed) * h
+		kickAt += kickSpeed * h
+	end
+	camera.CFrame = CFrame.lookAt(position, position + rotation.LookVector) * shakeOffset() * CFrame.new(0, kickAt, 0)
 
 	-- field of view: wider with speed, plus the jump's kick (decaying)
 	State.FovKick = Ease.lerp(State.FovKick, 0, Ease.alpha(4, dt))
 	local speedT = Ease.smoothstep(c.SpeedFovFrom, c.SpeedFovTo, State.Speed)
 	local fovGoal = c.Fov + c.SpeedFov * speedT + State.FovKick
-	camera.FieldOfView = Ease.lerp(camera.FieldOfView, fovGoal, Ease.alpha(6, dt))
+	fovEased = Ease.lerp(fovEased, fovGoal, Ease.alpha(6, dt))
+	-- the punch goes on top at once (the pull-in's zoom in, the landing's snap out), and runs down by itself
+	camera.FieldOfView = math.clamp(fovEased + State.FovPunch, 30, 120)
+	local run = j.LandFov / j.LandFovTime * dt
+	State.FovPunch = if State.FovPunch > 0 then math.max(0, State.FovPunch - run) else math.min(0, State.FovPunch + run)
 end
 
 local function step(dt: number)

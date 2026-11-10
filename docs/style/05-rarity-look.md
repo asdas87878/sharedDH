@@ -376,8 +376,15 @@ gold and rainbow ones of Ride a Dino); then all the creatures, once the template
 | Shark-lizard | Mosasaurus | Legendary | 2,394 | 43.5 |
 | Giant | Blue Whale, the old one | Mythic | 2,164 | 46 |
 | Invented (fire) | Hellmaw | Mythic | 2,386 | 31 |
+| Serpent | Basilosaurus | Legendary | 2,012 | 44 |
+| Worm | Bobbit Worm | Legendary | 2,396 | 39 |
+| Flat, winged | Manta Ray | Epic | 754 | 24 across |
+| Tentacled | Kraken | Mythic | 2,422 | 38 |
+| Crawler | Anomalocaris | Legendary | 1,328 | 33 |
+| Bulbous | Anglerfish | Epic | 964 | 18 |
+| Shelled | Archelon | Legendary | 1,394 | 33 across |
 
-Still to build in this style: a serpent or worm, a flat one (a ray or a turtle), a tentacled one, a crawler.
+The last seven are in "Archetypes are loose", below. Every body type on the list is now built once.
 
 **Mosasaurus, the shark-lizard** (`art/creatures/Mosasaurus/voxel.py`). Its idea: the lizard that became a shark.
 
@@ -446,6 +453,67 @@ It is 2,394 triangles in 24 parts and passes the gate. [Its swim](../attachments
 - **Taper one step at a time.** Along a long body, each slice changes by one cube in width or in height, not both, and
   never jumps. More slices are for a smoother taper and a longer tail, not for bulk.
 - **A bigger creature carries a little more detail,** not a lot more.
+
+## Archetypes are loose (the user, 2026-11-10)
+**The user:** "I don't want to build out archetypes for you to copy animal by animal based on what type they are. Each
+one should follow it loosely but be based on their actual animal."
+
+So an archetype is a shared vocabulary and a set of rules, not a template. Each creature is designed from the real animal:
+what it looked like, how it moved, the one or two things that made it itself. Two creatures of one family should be told
+apart at a glance.
+
+**Seven more, built to try that** across the body types not yet made and a spread of rarities. When these are
+right, the next stage is textures.
+
+| Type | Creature | Rarity | What makes the real animal itself |
+|---|---|---|---|
+| Serpent | Basilosaurus | Legendary | a whale as long and thin as a sea serpent, a narrow toothed snout, tiny hind limbs |
+| Worm | Bobbit Worm (new to the roster) | Legendary | many short rings, an iridescent sheen, five antennae, scissor jaws that open sideways |
+| Flat, winged | Manta Ray | Epic | wings that flap, two horns curling by a wide mouth, a whip tail |
+| Tentacled | Kraken | Mythic | a soft mantle, eight tapering arms with suckers, slit pupils, a jet of a swim |
+| Crawler | Anomalocaris | Legendary | two spiny grabbing arms, eyes on stalks, rippling side flaps, a tail fan |
+| Bulbous | Anglerfish | Epic | a round body, needle teeth, a lure on a stalk |
+| Shelled | Archelon | Legendary | a ridged leathery shell, a hooked beak, huge front flippers |
+
+### The seven, built (2026-11-10)
+![Seven creatures, each from its own animal](../attachments/voxel-seven-from-their-animals.jpg)
+
+All seven pass the gate without `--force`. None needed a change to the kit. Each has its own sheet and swim.
+
+| Creature | Its idea | Numbers | Sheet, swim |
+|---|---|---|---|
+| Basilosaurus | a whale that is still half a serpent | 44.2 studs, 2,012 triangles, 23 parts | [sheet](../attachments/voxel-basilosaurus.jpg), [swim](../attachments/voxel-basilosaurus-swim.gif) |
+| Bobbit Worm | the ambush: a ribbon of shimmering rings behind scissor jaws | 38.6 studs, 2,396 triangles, 16 parts | [sheet](../attachments/voxel-bobbitworm.jpg), [swim](../attachments/voxel-bobbitworm-swim.gif) |
+| Manta Ray | a living kite: nearly all of it is wing | 23.6 studs across, 754 triangles, 12 parts | [sheet](../attachments/voxel-mantaray.jpg), [swim](../attachments/voxel-mantaray-swim.gif) |
+| Kraken | the grip of the deep: a soft sack dragging eight long arms | 37.8 studs, 2,422 triangles, 26 parts | [sheet](../attachments/voxel-kraken.jpg), [swim](../attachments/voxel-kraken-swim.gif) |
+| Anomalocaris | a thing from before fish: a raft of flaps, two hooked arms | 32.5 studs, 1,328 triangles, 25 parts | [sheet](../attachments/voxel-anomalocaris.jpg), [swim](../attachments/voxel-anomalocaris-swim.gif) |
+| Anglerfish | a dark ball of mouth that carries its own lamp | 18.0 studs, 964 triangles, 10 parts | [sheet](../attachments/voxel-anglerfish.jpg), [swim](../attachments/voxel-anglerfish-swim.gif) |
+| Archelon | the first giant: a turtle on wings wider than itself | 32.5 studs across, 1,394 triangles, 10 parts | [sheet](../attachments/voxel-archelon.jpg), [swim](../attachments/voxel-archelon-swim.gif) |
+
+**How each reads (Claude's own read, before the user's):**
+- **Anglerfish:** the strongest. One idea, one glow, a mouth you read from across the map. From the side it is a rounded
+  block more than a ball.
+- **Anomalocaris:** reads as nothing else in the game. Thin in a pure side view. The teal ring on the eye is a full
+  bright square, louder than the halo the user chose.
+- **Bobbit Worm:** the colour running along the body does the work of a Legendary without any glow to speak of. Low and
+  flat from the side; from above its feet are close to a comb.
+- **Manta Ray:** right for an Epic. The gills and blotches are paint only. The rider's legs sink into the flat body.
+- **Archelon:** a clear turtle, but modest for a Legendary: the ribs and gold knobs are its only show. The flippers are
+  still close to planks. The rider's shins sink into the dome.
+- **Kraken:** a good octopus, not yet a Mythic. Its light is on the suckers, underneath, so the side and front show a
+  plain maroon animal.
+- **Basilosaurus:** the plainest. Clean and correct, a straight grey log at rest. The snout is a little crocodile-like.
+
+**What the batch showed:**
+- **The rule holds.** Seven bodies, no two built alike, one vocabulary: slices that taper a step at a time, fins of two
+  or three angled boxes, a jaw on its own joint, the halo eye.
+- **A real animal can be right and still read a tier low** (Basilosaurus, Archelon). The animal gives the shape; the
+  rarity still has to be added on purpose, from the budget table.
+- **Glow has to face the player.** Light on the underside (the Kraken) is spent where no one looks.
+- **Flat bodies need a seat.** On the Manta and Archelon the rider's legs go into the body. A low saddle rise or a
+  shallow slot would fix it.
+- **One kit gap:** `dent` only works on a side column. A shallow recess on a top or an underside would give the Manta
+  real gills and the Anglerfish a proper leg slot.
 
 ## Open, for the user
 - Which axes matter most to them?

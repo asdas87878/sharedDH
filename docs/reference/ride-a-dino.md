@@ -74,6 +74,30 @@ second recording; "ahead" is how far the rider has gained on the herd's steady p
 - **Through the creep the rider is still moving at the herd's pace,** not hanging still.
 - The counter is in whole metres, so each reading is good to about a metre; two pull-ins only.
 
+**From the side** (the user's third recording, 2026-11-10, 30 s, the camera turned side-on):
+- **The shape of the flight:** a quick pop up, at full height about 0.3 s after the press; then a long, flat glide,
+  hardly sinking; then the pull-in in a straight line down onto the dino. It is not an arc that rises and falls.
+- **The height:** about two rider-lengths above the dino's back (roughly 8 to 12 studs), judged by eye.
+- **The rider lies flat, face down,** from just after the pop to the pull-in, the lasso hoop held out ahead.
+- **The timing of one jump:** pressed at 9.85 s, the pull-in begins about 11.55 s (1.7 s later) and lands at 12.0 s. The
+  next jump is pressed 0.2 s after landing.
+- **Through the pull-in a row of yellow dots is left behind the rider.** There is no line to the dino.
+- **At the landing:** the dino flashes white, then yellow, fading over about 0.3 s; a white ring at its feet; the yellow
+  fan behind it for about a second.
+
+**The camera through a landing,** measured between every pair of frames (how much the whole picture grew or shrank, and
+how far it shifted), at four landings of the side-on recording:
+
+| What | Measured |
+|---|---|
+| Through the pull-in | the picture grows 6 to 8% a frame for 4 to 8 frames: the camera rushes in with the rider, and perhaps zooms |
+| The landing frame | in ONE frame the picture shrinks to 0.79, 0.79, 0.80 and 0.81 of its size: the view snaps wider (from a 70 degree view, to about 82) |
+| After | it comes back to full size over 0.3 to 0.4 s, steadily |
+| The jolt | with the snap, the picture jumps 10 to 17 pixels (of 720) up or down, back the other way the next frame, and is still within about 0.13 s |
+
+- This is the "zooms in and out" at a landing: in through the pull, out in a snap, then settling.
+- Shakes while riding or at the launch: none that stand clear of the recording's own unevenness at 30 frames a second.
+
 **What sits on the ground, and so needs another answer under a floating fish:** the dashed yellow ring, the yellow fan on
 landing, and the dust the dinos kick up as they run.
 
