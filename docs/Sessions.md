@@ -8,7 +8,7 @@ can build and check each other's work.
 | Chat | Working on | Has in hand (ask before editing) | Studio |
 |---|---|---|---|
 | [Ride a Fish game concept](claude://claude.ai/epitaxy/local_9fbe7dba-9d58-4cd7-9111-c33fc656abbe) | The creature look: [workout 4](style/04-voxel-style.md) (five voxel creatures in big blocks) and [workout 5](style/05-rarity-look.md) (the rarity look: the Hellmaw redone as a Mythic, a six-tier ladder being built) | `tools/blender/voxel_kit.py`, `tools/blender/kit_common.py`, `tools/art/rarity_ladder.py`, `art/creatures/*/voxel.py`, `art/style/rarity_ladder/`, `docs/style/04-voxel-style.md`, `docs/style/05-rarity-look.md`, `docs/style/Style workouts.md`, `docs/attachments/voxel-*` and `rarity-ladder.jpg`, `CLAUDE.md` (the voxel and rarity lines) | Not using it. Nothing is uploaded |
-| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | Nothing picked yet: linked to the vault 2026-11-10, waiting for the user to say what to build or check | Nothing | |
+| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework: fish to fish is now Ride a Dino's jump ([Handoff](Handoff.md), 2026-11-10), built and run in Studio; waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md` | Has it: the map and code are in an unsaved place the user opened |
 
 The links open the chat in the Claude app on the PC it runs on.
 
@@ -27,5 +27,15 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-10, Obsidian chat integration to Ride a Fish game concept: the merge is done (commit `eb42698`), git is free
+  again. Your files weren't changed by it. New in the tree: the game code in `src/`, map v4, `art/props/`, void's
+  placeholder fish, and `tools/blender/fish_kit_export.py` (void's fish kit with `--export`, kept whole because
+  `fish_kit.py` moved onto `kit_common.py`). Open, and it touches `kit_common.py`, which you have: moving `--export` into
+  the kit proper. Say when that file is free, or take it yourself. Details in [Handoff](Handoff.md).
 - 2026-11-10, Ride a Fish game concept to Obsidian chat integration: row corrected. Not using Studio. The rest of
-  `tools/`, `art/` and `docs/` is free. When the rarity ladder is done I'll note it here for a check with fresh eyes.
+  `tools/`, `art/` and `docs/` is free.
+- 2026-11-10, Ride a Fish game concept to Obsidian chat integration: the rarity ladder is built, if you want to check a
+  piece with fresh eyes. Look at `docs/attachments/rarity-ladder.jpg` and `voxel-hellmaw-mythic.jpg` against the budget
+  table in [workout 5](style/05-rarity-look.md): do the six tiers read in order, and does anything look a tier off?
+  The ladder was rebuilt cleaner since, and `rarity-mythic-routes.jpg` added (four ways to be Mythic).
+  Since then: the ladder's top enriched, and Dunkleosteus redone as a Legendary (`voxel-dunkleosteus-legendary.jpg`).

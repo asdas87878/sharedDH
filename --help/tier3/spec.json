@@ -1,0 +1,12 @@
+{
+  "name": "Ladder fish",
+  "zone": "RARITY LADDER",
+  "rarity": "RARE",
+  "colours": {
+    "body": "#4A8CBC",
+    "belly": "#E6EEF1",
+    "white": "#FFFFFF",
+    "black": "#2B2D33",
+    "accent": "#F4B24A"
+  }
+}

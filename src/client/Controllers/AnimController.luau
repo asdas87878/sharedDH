@@ -50,7 +50,6 @@ local function animateFish(dt: number)
 		return
 	end
 	local cameraAt = workspace.CurrentCamera.CFrame.Position
-	local scaled = dt * State.TimeScale
 	for _, model in folder:GetChildren() do
 		if model:IsA("Model") then
 			local root = model.PrimaryPart
@@ -78,7 +77,7 @@ local function animateFish(dt: number)
 						buck = math.clamp(1.4 - u, 0, 1)
 					end
 				end
-				j.phase += scaled * math.pi * 2 * (0.7 + speed * 0.045 + buck * 2.5)
+				j.phase += dt * math.pi * 2 * (0.7 + speed * 0.045 + buck * 2.5)
 				local beat = math.sin(j.phase)
 				local amount = 18 + math.min(speed, 80) * 0.12 + buck * 14
 				if j.tail then
@@ -107,7 +106,7 @@ local function animateFish(dt: number)
 end
 
 -- Drowning by its phases (DeathController's timings): the throw, struggling, weaker, still
-local function drowning(since: number, thrown: boolean, t: number): { [string]: CFrame }
+local function drowning(since: number, thrown: boolean, struggle: number, t: number): { [string]: CFrame }
 	local c = Config.Death
 	local tt = since - (if thrown then c.Throw else 0)
 	if tt < 0 then
@@ -122,8 +121,8 @@ local function drowning(since: number, thrown: boolean, t: number): { [string]: 
 			Neck = rot(-25, 0, 0),
 		}
 	end
-	local weak = Ease.smoothstep(c.Struggle, c.Struggle + c.Weak, tt)
-	local limp = Ease.smoothstep(c.Struggle + c.Weak * 0.5, c.Struggle + c.Weak + c.Still, tt)
+	local weak = Ease.smoothstep(struggle, struggle + c.Weak, tt)
+	local limp = Ease.smoothstep(struggle + c.Weak * 0.5, struggle + c.Weak + c.Still, tt)
 	local energy = (1 - weak * 0.7) * (1 - limp)
 	local f = Ease.lerp(9, 3, weak) -- flailing slows as they weaken
 	local a = math.sin(t * f)
@@ -160,55 +159,29 @@ local function pose(state: string, t: number, player: Player): { [string]: CFram
 			Waist = rot(18, 0, 0),
 			Neck = rot(-15, 0, 0),
 		}
-	elseif state == "Dashing" then
-		local kick = math.sin(t * 30) * 12
+	elseif state == "Jumping" then
+		-- the flight: swimming, arms sweeping out and back together, legs kicking in turn
+		local stroke = math.sin(t * 4.5)
+		local kick = math.sin(t * 9) * 18
 		return {
-			LeftShoulder = rot(170, 0, 8),
-			RightShoulder = rot(170, 0, -8),
-			LeftHip = rot(-8 + kick, 0, 0),
-			RightHip = rot(-8 - kick, 0, 0),
-			Neck = rot(25, 0, 0),
-		}
-	elseif state == "Grappling" then
-		return {
-			RightShoulder = rot(160, 0, 0),
-			LeftShoulder = rot(-30, 0, 20),
-			LeftHip = rot(-15, 0, -8),
-			RightHip = rot(10, 0, 8),
-			LeftKnee = rot(-30, 0, 0),
-			RightKnee = rot(-20, 0, 0),
-		}
-	elseif state == "Hooking" then
-		-- reaching out to aim, the other arm back, legs trailing, slow (the window is slow-mo for its player)
-		local s = math.sin(t * 2)
-		return {
-			RightShoulder = rot(150, 0, -10),
-			RightElbow = rot(10, 0, 0),
-			LeftShoulder = rot(-25 + s * 10, 0, 35),
-			LeftHip = rot(-10 + s * 8, 0, -6),
-			RightHip = rot(15 - s * 8, 0, 6),
-			LeftKnee = rot(-35, 0, 0),
-			RightKnee = rot(-20, 0, 0),
-			Neck = rot(10, 0, 0),
-		}
-	elseif state == "Eaten" then
-		-- panicking as it comes: arms up and thrashing, legs kicking
-		local s = math.sin(t * 16)
-		local k = math.sin(t * 13 + 1)
-		return {
-			LeftShoulder = rot(150 + s * 25, 0, -30),
-			RightShoulder = rot(150 - s * 25, 0, 30),
-			LeftElbow = rot(40, 0, 0),
-			RightElbow = rot(40, 0, 0),
-			LeftHip = rot(30 + k * 35, 0, -10),
-			RightHip = rot(30 - k * 35, 0, 10),
-			LeftKnee = rot(-50, 0, 0),
-			RightKnee = rot(-50, 0, 0),
-			Neck = rot(-35, 0, 0),
+			LeftShoulder = rot(120 + stroke * 45, 0, -25 - stroke * 30),
+			RightShoulder = rot(120 + stroke * 45, 0, 25 + stroke * 30),
+			LeftElbow = rot(15 - stroke * 15, 0, 0),
+			RightElbow = rot(15 - stroke * 15, 0, 0),
+			LeftHip = rot(-6 + kick, 0, -6),
+			RightHip = rot(-6 - kick, 0, 6),
+			LeftKnee = rot(-18 - math.abs(kick) * 0.6, 0, 0),
+			RightKnee = rot(-18 - math.abs(kick) * 0.6, 0, 0),
+			Neck = rot(28, 0, 0),
 		}
 	elseif state == "Drowning" then
 		local started = State.DeathStart[player]
-		return drowning(if started then os.clock() - started else 0, State.DeathThrown[player] == true, t)
+		return drowning(
+			if started then os.clock() - started else 0,
+			State.DeathThrown[player] == true,
+			State.DeathStruggle[player] or Config.Death.Struggle,
+			t
+		)
 	elseif state == "Free" then
 		local s = math.sin(t * 3)
 		return {
@@ -277,8 +250,8 @@ function AnimController.Start()
 			local character = player.Character
 			local state = player:GetAttribute("State")
 			if player == State.Player then
-				-- our own pose follows what we already see (the hook window, a miss) before the server's word
-				state = if State.Mode == "Aiming" then "Hooking" else State.Mode
+				-- our own pose follows what we already see (the jump) before the server's word
+				state = State.Mode
 			end
 			if character and type(state) == "string" then
 				if state ~= "Dock" then

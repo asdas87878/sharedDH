@@ -1,9 +1,10 @@
 --!strict
--- Every tuning number for the dive, from docs/design/riding-feel.md (the starting numbers and round 2's, to tune in play).
+-- Every tuning number for the dive, from docs/design/riding-feel.md (to tune in play). The jump follows the reference's,
+-- read from the user's recordings (docs/reference/ride-a-dino.md).
 -- Speeds in studs a second, times in seconds, angles in degrees.
 
 export type Tier = {
-	Idle: number, -- idle swim speed of a wild fish
+	Idle: number, -- (not used since the herd: a wild fish swims at Herd.SpeedShare of its ridden speed)
 	Ridden: number, -- speed once ridden
 	Seconds: number, -- seconds on it with exactly its Required Oxygen: drain = Required / Seconds
 	Colour: Color3, -- the tier's colour on markers
@@ -54,14 +55,14 @@ local TIER_REQUIRED = { Common = 1, Uncommon = 2, Rare = 4, Epic = 8, Legendary 
 
 Config.Oxygen = {
 	StartMax = 100, -- max Oxygen before any training
-	FreeDrain = 4, -- a second while floating off a fish (not in the hook window); our guess, so it can't last forever
+	FreeDrain = 4, -- a second while floating off a fish (not in a jump); our guess, so it can't last forever
 	FloatSpeed = 6, -- rising while off a fish
 	SwimSpeed = 8, -- the little steering you get while floating
 	SurfaceY = -3, -- floating stops here
 	WaterY = -4, -- below this, a player on the dock counts as in the water
-	Refill = 0.25, -- of max Oxygen, on landing a dash or grapple
+	Refill = 0.25, -- of max Oxygen, on landing a jump
 	DockRadius = 520, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (map v4: the board ends 111 out, the lagoon is about 950 across)
-	DockWait = 2.5, -- seconds at the surface first, so diving in off the board leaves time to dash or grapple
+	DockWait = 2.5, -- seconds at the surface first, so diving in off the board leaves time to jump
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
 	-- "TestMaxOxygen" attribute overrides it live (0 turns it off).
 	StudioMax = 0,
@@ -82,33 +83,60 @@ Config.Ride = {
 	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its surge speed times this
 }
 
-Config.Dash = {
-	Range = 30,
-	Cone = 60, -- full angle, ahead of the fish (or the camera while floating)
-	Duration = 0.45,
-	Spins = 2,
-	SpiralRadius = 2,
-	ArcHeight = 4, -- the path bows up by this much at most
-	FovKick = 8,
+-- The jump, fish to fish (the reference's, laid over our water; docs/reference/ride-a-dino.md has the measurements).
+-- Space throws you off the fish, up and forward, faster than you rode (the launch). Then you float: still rising a
+-- little, swimming, steering, at about the herd's pace. Then you drop. A dashed yellow ring lies flat in the water under
+-- you; a fish inside it glows yellow, and you come down on it: at the drop, or at once on a second press, pulled in
+-- fast (the reel-in). Drop with no fish in the ring and you sink and drown.
+Config.Jump = {
+	LaunchTime = 0.75, -- thrown up and forward (the reference: about 0.75 s)
+	Launch = 1.4, -- times the speed you left the fish at (the reference: about 1.3 to 1.8)
+	FreeLaunch = 55, -- the launch's speed from floating, with no fish under you
+	Apex = 12, -- studs up by the end of the launch
+	FloatTime = 1.6, -- floating at the top, swimming (the reference: about 1.1 s; longer here, the user's call)
+	FloatRise = 5, -- still rising this much through the float
+	AirSpeed = 38, -- the float's speed: about the herd's pace
+	DropTime = 1.3, -- then sinking, faster and faster
+	Drop = 12, -- to this far below where you left
+	ReelTime = 0.35, -- pulled onto the glowing fish (the reference: about 0.3 to 0.5 s, at twice riding speed)
+	MinFlight = 0.3, -- before a second press counts
+	FloorClearance = 4, -- the flight stays this far above the sea floor and rocks
+	SpeedTrim = 0.35, -- W and S speed up and slow the flight by this share
+	YawRate = 110, -- A and D turn the flight, degrees a second
+	RingRadius = 13, -- the ring under you; a fish whose middle is inside it is the one you land on
+	Sticky = 1.3, -- the glowing fish keeps the glow until it is this many radii away
+	ReachDown = 45, -- fish this far below you still count
+	ReachUp = 25, -- and this far above
+	Magnet = 3, -- how strongly the flight is drawn over the glowing fish (a second); 0 turns it off
+	MagnetHold = 0.5, -- how much of the flight's speed the magnet takes the moment a fish glows (0 to 1)
+	MagnetFull = 0.9, -- and after a second with it; the rest stays with the steering
+	-- With no fish in the ring and no turn held, the flight makes for the nearest fish: it takes on the fish's speed
+	-- and closes the gap. Ours: the reference pulls you onto a dino at the end, but how it picks one isn't known.
+	-- Assist = false turns it off.
+	Assist = true,
+	AssistRange = 90, -- fish this near (flat) count
+	AssistAhead = 25, -- a fish dead ahead counts as this many studs nearer than one beside us
+	AssistClose = 35, -- the speed the gap closes at
+	AssistPull = 0.7, -- how much of the flight's speed this takes after the launch (0 to 1)
 	Cooldown = 0.3, -- after landing
-	Blend = 0.15, -- the last part of the move blends position and turn onto the saddle
+	Slack = 0.6, -- the server waits this long past the flight for the landing (lag)
+	LandSlack = 20, -- and allows the landing this many studs wider (it sees the player a moment late)
+	CameraPitch = -32, -- the camera looks down on the flight, degrees
+	CameraZoom = 1.3, -- and pulls back by this much
+	Glow = rgb(255, 221, 51), -- the fish you will land on
+	GlowFade = 0.3, -- the glow leaves the fish over this after the landing
 }
+-- the longest a flight can last, for the server
+Config.Jump.FlightTime = Config.Jump.LaunchTime + Config.Jump.FloatTime + Config.Jump.DropTime + Config.Jump.ReelTime
 
--- The hook window (round 2): jumping off opens it; one shot, and a miss or running out of time gets you eaten
-Config.Grapple = {
-	AimTime = 2.5, -- the window, real seconds; the server owns it
-	TimeScale = 0.25, -- local slow-mo while aiming
-	SlowIn = 0.15, -- the slow-mo comes in over this
-	SlowOut = 0.25, -- and eases back to 1x over this from the shot
-	Warn = 0.8, -- the ring pulses red and ticks for the last part
-	Range = 90,
-	Cone = 30, -- full angle round the camera's aim
-	Sticky = 0.25, -- the reticle holds its fish unless another scores this much better (cone fractions)
-	FlyTime = 0.15, -- the rope flying out
-	ReelTime = 0.7, -- reeling yourself in, easing in
-	Blend = 0.15, -- the last part of the reel blends onto the saddle
-	Slack = 0.15, -- the server waits this long past the window for a late shot (lag)
-	Pop = 10, -- the little hop up when you jump off
+-- Wild fish swim as a herd: all the same way, down the lane, at this share of the speed they are ridden at (the
+-- reference: riding about 55 m a second, the herd about 46, measured off its distance counter)
+Config.Herd = {
+	SpeedShare = 0.85,
+	Ahead = 60, -- each fish heads for a point this far down the lane, at its own place across it and above the floor
+	RideHeight = 23, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
+	RideHeightGain = 1.6, -- degrees of pitch for each stud it is off that height
+	RideHeightPitch = 35, -- at most
 }
 
 Config.Switch = {
@@ -116,7 +144,7 @@ Config.Switch = {
 	HandBack = 1.5, -- the old fish stays with its last rider's client this long, coasting, before the server takes it
 }
 
--- The bubble burst on every landing (dash or hook), for everyone
+-- The bubble burst on every landing, for everyone
 Config.Burst = {
 	Count = 30,
 	Time = 0.6,
@@ -124,17 +152,12 @@ Config.Burst = {
 	Kick = 0.5, -- the local camera's kick, studs
 }
 
--- The deaths (round 2). No input in either; both end at the dock.
-local EATEN = { Darken = 0.6, Rise = 1.0, Chomp = 0.4, Black = 1.5 }
-local DROWN = { Throw = 0.8, Struggle = 2.5, Weak = 1.2, Still = 0.8, Tail = 0.2 }
+-- Out of Oxygen (and a jump that comes down on nothing, until there is a revive): no input, ends at the dock.
+local DROWN = { Throw = 0.8, Struggle = 2.5, MissStruggle = 0.6, Weak = 1.2, Still = 0.8, Tail = 0.2 }
 Config.Death = {
-	-- a miss: the eater comes up from the dark
-	Darken = EATEN.Darken, -- the slow-mo lets go, the water darkens
-	Rise = EATEN.Rise, -- the big fish rises, jaws opening, the camera pulled back
-	Chomp = EATEN.Chomp, -- the chomp, a shake, the cut to black
-	Black = EATEN.Black, -- on black, "EATEN!"
-	EatenTime = EATEN.Darken + EATEN.Rise + EATEN.Chomp + EATEN.Black,
-	EaterLength = 42,
+	-- a jump that sank: the sinking was the struggle, so the drown that follows is short
+	MissStruggle = DROWN.MissStruggle,
+	MissTime = DROWN.MissStruggle + DROWN.Weak + DROWN.Still + DROWN.Tail,
 	-- out of Oxygen: thrown off (when on a fish), then drowning
 	Throw = DROWN.Throw,
 	ThrowBack = 8, -- studs up and back
@@ -164,20 +187,22 @@ Config.Spawn = {
 	-- Round 2 spreads fish evenly along the lane's path: cut into Slice-stud slices, every slice keeps at least one fish
 	-- (the dive board's keeps BoardSlice), and new fish go into the emptiest slice. The spec's 8 per 1,000 would make
 	-- fewer fish than v3 had; the user asked for more in all, so 12 (to tune).
-	PerThousand = 12, -- wild fish per 1,000 studs of lane
+	PerThousand = 24, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
 	Min = 20,
-	Max = 80, -- per zone
+	Max = 110, -- per zone
 	-- Fish go in every zone along the whole lane that has a roster (a fish type that can turn up there: today zones 1
 	-- to 6, the four homes plus two zones of reach); zones with none stay empty until their fish exist. 12 a 1,000 over
 	-- zones 1 to 6 makes about 171; all ten zones would make about 290, so the cap sits above that.
-	MaxTotal = 320,
+	MaxTotal = 480,
 	Slice = 120,
 	BoardSlice = 2,
 	Wander = 80, -- a fish wanders this far either way along the lane from its home
 	TopUpEvery = 2,
 	PerTopUp = 6,
-	HeightMin = 10, -- above the lane's floor
-	HeightMax = 60,
+	-- The herd keeps to one layer above the lane's floor (2026-11-10, from 10 to 60): the reference's dinos are all on
+	-- the ground, and a jump has to find a fish at about its own depth.
+	HeightMin = 16, -- above the lane's floor
+	HeightMax = 30,
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
 	LaneFill = 0.7, -- fraction of the lane's half width fish use
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
@@ -259,7 +284,7 @@ for _, spec in FISH do
 		Home = spec.Home,
 		Reach = spec.Reach or 2,
 		Required = required,
-		IdleSpeed = spec.IdleSpeed or tier.Idle,
+		IdleSpeed = spec.IdleSpeed or (spec.RiddenSpeed or tier.Ridden) * Config.Herd.SpeedShare,
 		RiddenSpeed = spec.RiddenSpeed or tier.Ridden,
 		Drain = required / tier.Seconds,
 		Size = spec.Size,

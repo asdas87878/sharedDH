@@ -117,6 +117,252 @@ the jaw, the crown and the tail tips moving.
 size. What is still fish-like is the body itself: a straight chain of slabs. A longer, more serpentine body would push it
 further.
 
+## Test 2: the ladder (built 2026-11-10)
+One invented reef fish, the same body and the same blue at every tier, dressed with each tier's allowance. The model is
+`art/style/rarity_ladder/ladder.py` (`TIER = 1` to `6`); `tools/art/rarity_ladder.py <scratch folder>` builds all six and
+the sheet. Every tier passes the gate.
+
+![One fish at six tiers](../attachments/rarity-ladder.jpg)
+
+| Tier | What it adds | Triangles | Length |
+|---|---|---|---|
+| Common | two colours, body and fins | 670 | 11 studs |
+| Uncommon | an accent colour, a tall crest with a coloured tip, two pale bands | 744 | 13 |
+| Rare | a third band, coloured tips on every fin, long tail tips, a jaw on its own joint | 830 | 15 |
+| Epic | darker; a bill; scattered thin stripes; a glowing eye under a brow; teeth; side fins on their own joints | 1,174 | 19 |
+| Legendary | a glowing amber ribbon, a lure, a bone helmet, back plates, cheek spikes, streamers on their own joints | 1,408 | 26 |
+| Mythic | near-black; amber and cold blue glow; glowing stripes; a floating crown; wing fins; a split jaw; whiskers | 1,640 | 32 |
+
+**Does it read in order?** Yes, at a glance, and the size strip helps most. What carries each step: colour count for the
+first three, the darker body and the bill at Epic, the glowing ribbon at Legendary, the second glow colour and the
+floating crown at Mythic.
+
+**Where it is weak:**
+- **Rare sits close to Uncommon.** Coloured tips and one more band are not enough. It needs a real mark of its own.
+- **The Epic's stripes are too many and too even.** They read as a ribcage. Fewer, of more uneven length, would read as
+  markings.
+- **The Mythic's split jaw only shows from the front,** and from the side it is still the same fish, darker. The first
+  version read as a darker Legendary; a bigger crown and upswept wings fixed most of that.
+- **Common to Rare gain almost nothing in silhouette.** That may be right: it leaves room above.
+
+**One thing found in the kit:** `GLOW` doesn't reach a colour's lighter top tone, so the top row of a glowing band doesn't
+glow.
+
+## The user's notes on the two tests (2026-11-10)
+- **The Hellmaw is liked.** It looks quite good, and the added glowing touches are liked. It borders on messy, but is just
+  good enough.
+- **The ladder's Epic and Legendary look messy.** From Epic up the designs stop looking good.
+- **Glow and effects must not be overprescribed.** A design has to feel intentional: it must look good and flow, not glow
+  for the sake of glowing.
+- **Mythic can't mean one thing.** If every Mythic is a dark body glowing the same way, it gets stale. We need several
+  ways to get the Mythic feel, combined differently from creature to creature.
+- **Not always blue.** A purple one, at least.
+- **Later, not now:** moving textures on parts (VFX), and surface textures. The reference uses two simple ones, a round
+  stud like a toy brick's and a rounded rectangle (`research/ride-a-dino/ref_textures_stud_and_rounded.png`, private). It
+  puts them on some creatures only. The user wants ours varied and applied with care. Don't start on them yet.
+
+### What makes a design messy (Fable's read)
+The ladder's Epic covers its whole flank in thin stripes of one length, then adds a bill, coloured tips, a glowing eye and
+teeth. The Legendary lays a ribbon across those stripes and adds a helmet, plates, a lure, spikes and streamers. Nothing
+is left quiet and nothing leads. The Hellmaw holds together because it has one idea, its detail is grouped (ribs on the
+body, a plain head) and it uses one family of colour with one cold accent.
+
+### Rules for a clean design
+- **One idea, in a sentence.** Every feature serves it. If one doesn't, it goes.
+- **Few kinds of feature.** At most two new kinds at Epic, three at Legendary, four at Mythic. A motif repeated counts once.
+- **Patterns never cross.** Stripes or a ribbon on the flank, not both.
+- **Leave it quiet.** At least half the flank stays plain. Detail sits in one or two clusters.
+- **Fewer, bigger shapes.** Three to five uneven stripes over the shoulder, not a ribcage.
+- **One focal point** at the head, one echo at the tail, the middle calm.
+- **Accent colour is about a tenth** of the surface.
+- **Glow needs a reason:** an eye, a lure, heat, a crystal. Below Mythic, one glowing thing at most.
+
+### Ways to feel Mythic
+Glow is one of them, not the definition. A Mythic combines two or three, and no two Mythics combine the same ones:
+- **Light:** glow with a source.
+- **Impossible parts:** things that float, split or have no business being there.
+- **Regalia:** a crown, rings, plates of gold. No glow.
+- **Material:** crystal, glass, bone, metal. It is made of something else.
+- **Age:** coral, barnacles and wreckage grown into it.
+- **Void:** matte black, holes through the body, a rim of one colour.
+- **Scale:** sheer size, or one part stretched beyond reason.
+- **Motion:** for later, with the VFX.
+
+The glow's colour changes with the creature too: violet, green, gold, pink, white, as well as blue and fire.
+
+## Test 3: the ladder cleaned, and four ways to be Mythic (built 2026-11-10)
+Built on the notes and rules above. The picture in Test 2 now shows this version; the table there is the first one.
+
+**The ladder, cleaned:**
+
+| Tier | Its idea | Triangles | Length |
+|---|---|---|---|
+| Common | a plain blue reef fish | 670 | 11 studs |
+| Uncommon | the same, with a tall crest and two pale bands | 744 | 13 |
+| Rare | a sail of three plates: its own mark | 808 | 15 |
+| Epic | a sailfish: a bill, a stare, three stripes over the shoulder and two at the tail | 952 | 19 |
+| Legendary | bone at both ends (a helmet, a ring at the tail), one matte amber ribbon, a lure: its one glow | 954 | 24 |
+| Mythic | the lantern, below | 944 | 32 |
+
+Cut from the Epic: eight of its eleven stripes, the teeth and open mouth, the coloured tips on the lower fins. Cut from
+the Legendary: the stripes, the cheek spikes, the back plates, the streamers, and the glow on the ribbon and the eye.
+
+**Four ways to be Mythic** (`MYTHIC` in the ladder model), on the same fish:
+
+![Four Mythics](../attachments/rarity-mythic-routes.jpg)
+
+| | Its idea | Routes | Glow | Triangles |
+|---|---|---|---|---|
+| The lantern | one line of violet light from the eye to the ends of a very long tail | light, proportion | violet | 944 |
+| The reef king | gold on royal blue: a crown, two rings, fins like a mantle | regalia | a ruby eye only | 918 |
+| The shard | crystal has grown through it: its back fin and tail are rose shards, three float free | material, floating parts | none | 808 |
+| The old one | the reef has grown on it: coral where its fin was, a crust on its head, weed | age, size | none | 880 |
+
+**Fable's read:**
+- **The mess is gone.** Every tier now has one idea and a quiet flank.
+- **But the top lost some force.** Cleaned this far, the Legendary and the lantern are calmer than the Hellmaw, and the
+  steps from Epic up are smaller than before. The Hellmaw sits at about the right place between clean and rich.
+- **The shard is the strongest Mythic:** its silhouette changes most, and it needs no glow. **The old one is the weakest:**
+  it has character, but reads as an odd Rare more than a Mythic.
+- **The body is the limit.** A round reef fish can only look so mythical. On real creatures the kind and the silhouette
+  will do most of this work, and these routes dress it.
+- Small faults left: the lantern's streamers bloom to pale pink; the king's fins read as planks from the front quarter.
+
+## The user's notes on Test 3, and a new reference (2026-11-10)
+- The cleaned ladder and the four Mythics look a lot better.
+- **Don't be afraid of glow on the ones that aren't the lantern type.** They can have glow and effects. Keep a balance.
+- **A new reference:** a "Cosmic Pliosaurus" from Ride a Dino (`research/ride-a-dino/ref_cosmic_pliosaurus_*.webp`,
+  private). The user thinks ours follows similar patterns and looks better in some respects, but that there is something
+  to learn: extra geometry on flippers for rarity, and more body parts for long creatures of the whale-lizard kind.
+
+**What that reference teaches** (rules, not its look):
+- **A long body is many short slices.** Twenty or more, each a little smaller than the last, so the taper and the bend are
+  smooth.
+- **Glow can live in the seams.** Thin lines of light between the slices and round the edges of the flippers. It covers
+  very little, but it is everywhere and consistent, so it reads as what the creature is made of, not as decoration.
+- **One hot accent against it:** a single red eye on a body of black and cold blue.
+- **Flippers are built up** from stacked, tapering slabs, with the same seam lines.
+- **Its look is a layer.** "Cosmic" is put on a species (dark stone, glowing veins). A route to Mythic could work the same
+  way for us: a dressing that goes onto different creatures.
+
+## Test 4: Dunkleosteus as a Legendary (built 2026-11-10)
+Its idea: **an armoured relic.** The bone of its skull runs on down its spine in plates, and an old amber light shows in
+the seams of the armour.
+
+![Before, now, front and top](../attachments/voxel-dunkleosteus-legendary.jpg)
+
+- **More body parts:** six short slices where there were four pieces, so it bends smoothly.
+- **Armour down the spine:** a bone plate over the back of each slice, half a cube proud, with a low spike on it. The
+  outline is now broken all the way along.
+- **Glow in the seams:** a thin line of amber behind each plate and under the edge of the shield, and a glowing amber eye.
+  Amber is its signature colour; it is used nowhere else.
+- **Flippers with extra geometry:** a bone spar along the leading edge of each side fin, ending in a claw.
+- **Head and echo:** a bone spike at each lower corner of the shield; a bone ring on the last slice answers the head.
+- **Left plain:** the flank. The scars stay as its flaw.
+
+It is 1,370 triangles in 9 parts (798 before) and 26.5 studs long (24.5 before), and passes the gate.
+[Its swim](../attachments/voxel-dunkleosteus-swim.gif).
+
+In the kit, a glowing colour's lighter top tone now glows too.
+
+## Test 5: the ladder's top enriched (built 2026-11-10)
+The user asked for the top of the ladder to be enriched, with glow allowed on any type as long as it is balanced. The aim
+was the Hellmaw's point between clean and rich. The pictures in Tests 2 and 3 now show this version.
+
+| | What it gained | Triangles | Length |
+|---|---|---|---|
+| Epic | spars on the sail, sickle side fins with a spar, finlets on the tail stock | 1,062 | 19 studs |
+| Legendary | horns on the helmet, cheek guards, bone spars on every fin, claws on the side fins, tusks; the amber ribbon glows faintly beside the lure | 1,239 | 24 |
+| The lantern | streamers in two jointed lengths, now truly violet; a row of small lights under the line; rays off the sail tips; a chin barbel with a bulb | 1,300 | 32 |
+| The reef king | a mantle down each flank with gold hems; a third ring; softly glowing rubies; a taller crown; a train | 1,284 | 32 |
+| The shard | crystal that shifts from deep to pale; clusters on the shoulder, cheek, belly and tail stock; crystal side fins; light in its cracks; five free shards | 1,308 | 31 |
+| The old one | bigger coral, a table coral, anemones that glow a little, sponges, weed, a piece of hull, an anchor on an iron strap | 1,330 | 32 |
+
+**Fable's read:**
+- **Each step up is bigger again,** and the top three tiers no longer look thin beside the Hellmaw.
+- **The shard is still the strongest.** Its glow is the best example of balance: light only in the cracks.
+- **The Legendary is near the edge.** It works because everything added is bone, so it reads as one motif. One more kind
+  of thing would tip it into mess.
+- **The reef king's mantle still reads as planks,** and **the old one's back is the busiest of the four.** Both ideas need
+  a shape made for them, not boxes laid on a round fish.
+- **On the ladder sheet the lantern looks calmer than the Legendary beside it.** As the calm Mythic that is its nature,
+  but it shouldn't be the default one shown.
+
+## Eyes (the user's notes, and a test, 2026-11-10)
+**The user:** be careful with glow on the eye. A fully glowing eye may suit a few chosen Mythics. On a Legendary
+especially it gives the wrong impression, and it loses contrast. Try a slight glow in several styles: a gradient with a
+glow layer, glow only in the ring, glow that leaves a little room for the eye.
+
+Six eyes on Dunkleosteus (`EYE` in its model):
+
+![Six eyes](../attachments/voxel-eye-variants.jpg)
+
+| | The eye | Glow |
+|---|---|---|
+| A | the whole pupil glows (as it was) | full; it casts light and the eye's shape is lost |
+| B | the ring round the eye glows softly, the pupil stays dark | soft |
+| C | a thin halo of light round a dark pupil, in a pale ring | soft, and it leaves room for the eye |
+| D | a dark eye with one narrow slit of light | small and bright |
+| E | dark at the top, a matte amber iris, only the lowest band glowing | a gradient with a glow layer |
+| F | an amber iris that doesn't glow, a dark pupil | none |
+
+**Fable's read:** A is the one that washes out. C and D keep a dark pupil, so the eye still reads as an eye and the
+contrast is strongest; C is the calmer, D the fiercer. E is the subtlest and suits a creature whose light comes from
+within. The model is set to C for now. The ladder's Epic had a fully glowing eye too; it is now colour without glow.
+
+**Rule, proposed:** an eye keeps a dark pupil. Below Mythic it may glow in part (B to E) or not at all (F). A wholly
+glowing eye (A) is for a few Mythics whose idea is light or fire, like the Hellmaw.
+
+## Shapes by rarity (the user's notes, 2026-11-10; proposed)
+**The user:** as rarity goes up, the animals themselves must be cooler shapes. Past a certain point most should be
+shark-like, or the shark-lizard kind with a long snout; or else huge bulbous creatures, or worms with a striking shape.
+The lesser prehistoric animals and the merely okay ones belong lower down, with a few cool ones among them. Plan the
+progression round that. Hungry Shark's sharks are worth a look.
+
+**What Hungry Shark does** (its wiki's rosters for Evolution and World; body details partly from memory):
+- The bottom tiers are real, ordinary sharks, told apart by one feature: a hammer head, a long tail, a snout.
+- The middle tiers are the famous big species. Megalodon is the hinge: the last real shark and the first monster.
+- Then prehistoric animals that aren't sharks (an armoured fish, a mosasaur, a pliosaur, a plesiosaur) and a whale. "Shark"
+  loosens to any big sea predator.
+- Every tier has one odd special, usually prehistoric.
+- The top is invented: giant monsters, sea serpents, robots, the undead, demons. They gain limbs, horns, armour, glow.
+- Late tiers reuse earlier bodies as mutations of them.
+
+**Families of shape, for us:**
+
+| Family | Examples | Where it belongs |
+|---|---|---|
+| Plain fish | Sergeant Major, Clownfish, tang | Common, Uncommon |
+| Odd fish (one strange feature) | sunfish, lionfish, swordfish, puffer | Uncommon, Rare |
+| Flat and winged | rays, turtles | Rare, Epic |
+| Armoured and many-legged | Dunkleosteus, sea scorpion, isopod, Anomalocaris | Epic, Legendary |
+| Sharks | reef shark to Megalodon, goblin, frilled, Helicoprion | Epic and up; one early, as a zone's cool one |
+| Shark-lizards (long snout, flippers) | Mosasaurus, Liopleurodon, Kronosaurus, ichthyosaurs | Legendary |
+| Serpents and worms | Basilosaurus, eels, oarfish, a giant worm | Legendary, Mythic |
+| Giants (huge, bulbous) | whales, a gulper, a giant angler | Legendary, Mythic |
+| Invented | one of the last four bodies, dressed by a Mythic route | Mythic |
+
+**The rule:** from Legendary up, the body comes from the sharks, the shark-lizards, the serpents or the giants (or the
+armoured ones, if huge). A Mythic is an invented creature on one of those bodies, never a round fish. Lower down, most are
+plain or odd fish, but every zone keeps one cool one as its rare spawn.
+
+**The roster against that rule** ([roster list](../design/roster-list.md); nothing changed there, these are suggestions):
+- **Already right:** Great White, Goblin Shark, Helicoprion, Elasmosaurus, Liopleurodon, Shonisaurus, Mosasaurus, Livyatan,
+  Basilosaurus, Kronosaurus, Megalodon. The later zones are mostly these families.
+- **Steller's Sea Cow as a Legendary (zone 3)** is the clearest miss: a gentle, shapeless giant. Make it an Epic, or give
+  the kelp forest a Legendary with teeth.
+- **Blue Whale as a Mythic (zone 5):** a giant, but plain. It is the natural home of the user's favourite archetype: the
+  old one, a whale so old that a reef has grown on it.
+- **Lantern Leviathan (zone 6):** the lantern route, on a serpent's or a gulper's body, not a fish's.
+- **Abyssal Watcher (zone 10), "covered in eyes":** it has no body yet. A huge bulbous one, or a worm.
+- **The Hellmaw:** liked as it is. Its body is still a fish; if it is ever redone, a shark-lizard's or a serpent's body
+  would lift it again.
+- **Archelon and Dunkleosteus as early Legendaries (zones 1 and 2)** fit the "some cool ones lower down" part.
+
+**The Mythic routes as archetypes:** the old one (liked by the user: keep it much as it is, with a little more glow, now
+added: the ends of its coral and a few specks in its algae), the lantern, the reef king, the shard, and the Hellmaw's
+fire. Each can be put on a different body.
+
 ## Open, for the user
 - Which axes matter most to them?
 - Should Mythics leave real animals behind entirely?

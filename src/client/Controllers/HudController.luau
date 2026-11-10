@@ -1,8 +1,7 @@
 --!strict
 -- The riding HUD, all built in code: the Oxygen meter (flashing while you drown, the screen closing in), speed, the
--- depth gauge with the zone's name, the marker on the fish a dash would take you to, the hook reticle with the window's
--- ring round it (emptying as it runs, pulsing red and ticking for the last Grapple.Warn seconds), speed lines that come
--- in as you go faster, and the deaths' black and their words (State.Fade and State.FadeText, from DeathController).
+-- depth gauge with the zone's name, speed lines that come in as you go faster, and the drowning's black and its words
+-- (State.Fade and State.FadeText, from DeathController). The jump's ring and glow are in the world (JumpController).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -10,7 +9,6 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Zones = require(ReplicatedStorage.Shared.Zones)
-local Fx = require(script.Parent.Parent.Lib.Fx)
 local State = require(script.Parent.Parent.Lib.State)
 
 local HudController = {}
@@ -30,17 +28,11 @@ local depthText: TextLabel
 local zoneText: TextLabel
 local depthPip: Frame
 local depthFrame: Frame
-local reticle: Frame
-local ring: { Frame } = {}
-local ringScale: UIScale
 local fade: Frame
 local fadeText: TextLabel
 local fadeScale: UIScale
 local edges: { Frame } = {}
 local lines: { { frame: Frame, angle: number, offset: number, length: number } } = {}
-local marker: BillboardGui
-local markerRing: Frame
-local markerStroke: UIStroke
 
 local function new(class: string, props: { [string]: any }, parent: Instance?): any
 	local object = Instance.new(class :: any)
@@ -170,66 +162,7 @@ local function build()
 		Text = "",
 	}, depthFrame)
 
-	-- the grapple reticle (screen space) and its timer bar
-	reticle = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(64, 64),
-		BackgroundTransparency = 1,
-		Visible = false,
-	}, gui)
-	corner(reticle, 32)
-	new("UIStroke", { Thickness = 4, Color = Color3.new(1, 1, 1) }, reticle)
-	local dot = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(8, 8),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-	}, reticle)
-	corner(dot, 4)
-	-- the window's ring: dots round the reticle that go out one by one as the time runs down
-	local ringFrame = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(0, 0),
-		BackgroundTransparency = 1,
-	}, reticle)
-	ringScale = new("UIScale", {}, ringFrame)
-	local dots = 40
-	for i = 1, dots do
-		local angle = (i - 1) / dots * math.pi * 2
-		local dotFrame = new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			-- clockwise from the top
-			Position = UDim2.fromOffset(math.sin(angle) * 50, -math.cos(angle) * 50),
-			Size = UDim2.fromOffset(7, 7),
-			BackgroundColor3 = Color3.new(1, 1, 1),
-			BorderSizePixel = 0,
-		}, ringFrame)
-		corner(dotFrame, 4)
-		table.insert(ring, dotFrame)
-	end
-
-	-- the dash marker on the target fish
-	marker = new("BillboardGui", {
-		Name = "DashMarker",
-		Size = UDim2.fromOffset(70, 70),
-		AlwaysOnTop = true,
-		Enabled = false,
-		LightInfluence = 0,
-		ResetOnSpawn = false,
-	}, State.Player:WaitForChild("PlayerGui"))
-	markerRing = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, marker)
-	corner(markerRing, 35)
-	markerStroke = new("UIStroke", { Thickness = 5, Color = Color3.new(1, 1, 1) }, markerRing)
-	label({
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, 2),
-		Size = UDim2.fromOffset(90, 22),
-		TextScaled = true,
-		Text = "DASH",
-	}, markerRing)
-
-	-- the deaths' black
+	-- the drowning's black	-- the deaths' black
 	fade = new("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -296,71 +229,6 @@ local function updateDepth()
 	depthPip.Position = UDim2.fromScale(0.5, progress)
 end
 
-local function updateMarker()
-	local fish = State.DashTarget
-	local root = fish and fish.PrimaryPart
-	local show = root ~= nil and (State.Mode == "Riding" or State.Mode == "Free")
-	marker.Enabled = show
-	if show and fish and root then
-		marker.Adornee = root
-		local tier = Config.Tiers[fish:GetAttribute("Tier") :: string]
-		markerStroke.Color = if tier then tier.Colour else Color3.new(1, 1, 1)
-		local ready = os.clock() >= State.DashReadyAt
-		markerRing.BackgroundTransparency = if ready then 0.85 else 1
-	end
-end
-
-local reticleAt: Vector2? = nil
-local lastTick = 0
-
-local function updateReticle(dt: number)
-	local aiming = State.Mode == "Aiming"
-	reticle.Visible = aiming
-	if not aiming then
-		reticleAt = nil
-		return
-	end
-	local camera = workspace.CurrentCamera
-	local size = camera.ViewportSize
-	local goal = size / 2
-	local fish = State.AimTarget
-	local root = fish and fish.PrimaryPart
-	if root then
-		local point, onScreen = camera:WorldToViewportPoint(root.Position)
-		if onScreen then
-			goal = Vector2.new(point.X, point.Y)
-		end
-	end
-	-- snaps quickly but not instantly (real time, so it stays crisp in the slow-mo)
-	reticleAt = if reticleAt then reticleAt:Lerp(goal, Ease.alpha(28, dt)) else goal
-	local at = reticleAt :: Vector2
-	reticle.Position = UDim2.fromOffset(at.X, at.Y)
-	local locked = root ~= nil
-	local stroke = reticle:FindFirstChildOfClass("UIStroke") :: UIStroke
-	stroke.Color = if locked then Color3.fromRGB(255, 230, 90) else Color3.fromRGB(200, 200, 200)
-	reticle.Size = if locked then UDim2.fromOffset(52, 52) else UDim2.fromOffset(72, 72)
-
-	-- the ring empties as the window runs; the last Warn seconds pulse red and tick
-	local g = Config.Grapple
-	local secondsLeft = math.max(0, State.AimEnds - os.clock())
-	local left = math.clamp(secondsLeft / g.AimTime, 0, 1)
-	local lit = math.ceil(left * #ring)
-	local warn = secondsLeft <= g.Warn
-	local pulse = if warn then (math.sin(os.clock() * math.pi * 2 / 0.2) + 1) / 2 else 0
-	local colour = if warn
-		then Color3.fromRGB(255, 70, 70):Lerp(Color3.new(1, 1, 1), pulse * 0.4)
-		else Color3.new(1, 1, 1)
-	for i, dotFrame in ring do
-		dotFrame.Visible = i <= lit
-		dotFrame.BackgroundColor3 = colour
-	end
-	ringScale.Scale = 1 + pulse * 0.1
-	if warn and secondsLeft > 0 and os.clock() - lastTick >= 0.2 then
-		lastTick = os.clock()
-		Fx.sound("Tick")
-	end
-end
-
 local shownText = ""
 
 local function updateFade()
@@ -376,14 +244,13 @@ local function updateFade()
 	local textAlpha = if shownText ~= "" then State.Fade else 0
 	fadeText.TextTransparency = 1 - textAlpha
 	fadeText.TextStrokeTransparency = 1 - textAlpha * 0.7
-	fadeText.TextColor3 = if shownText == "EATEN!" then OUT else Color3.new(1, 1, 1)
 end
 
 local function updateLines(now: number)
 	local camera = workspace.CurrentCamera
 	local size = camera.ViewportSize
 	local strength = 0
-	if State.inWater() and State.Mode ~= "Aiming" then
+	if State.inWater() then
 		strength = Ease.smoothstep(38, 95, State.Speed)
 	end
 	local centre = size / 2
@@ -407,7 +274,7 @@ end
 
 function HudController.Start()
 	build() -- in Start: it waits for PlayerGui
-	RunService.RenderStepped:Connect(function(dt)
+	RunService.RenderStepped:Connect(function()
 		local now = os.clock()
 		local inWater = State.inWater()
 		meter.Visible = inWater
@@ -415,8 +282,6 @@ function HudController.Start()
 		speedText.Text = if inWater then string.format("%d st/s", math.floor(State.Speed + 0.5)) else ""
 		updateMeter(now)
 		updateDepth()
-		updateMarker()
-		updateReticle(dt)
 		updateLines(now)
 		updateFade()
 	end)

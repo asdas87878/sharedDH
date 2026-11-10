@@ -637,7 +637,7 @@ for part in model.parts.values():
 
 # glow: colours that shine by themselves (Roblox: the Neon material), and small lights that spill onto the creature
 for name, strength in getattr(M, "GLOW", {}).items():
-    for key in (name, name + "-"):
+    for key in (name, name + "-", name + "+"):
         if key in K.mats:
             bsdf = K.mats[key].node_tree.nodes.get("Principled BSDF")
             bsdf.inputs["Emission Color"].default_value = bsdf.inputs["Base Color"].default_value

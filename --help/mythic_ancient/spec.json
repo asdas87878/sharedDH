@@ -1,0 +1,19 @@
+{
+  "name": "Ladder fish",
+  "zone": "RARITY LADDER",
+  "rarity": "MYTHIC",
+  "colours": {
+    "body": "#4A6670",
+    "belly": "#B9C4BF",
+    "white": "#FFFFFF",
+    "black": "#2B2D33",
+    "accent": "#B26BFF",
+    "coral": "#E86F5C",
+    "crust": "#D8CDB4",
+    "weed": "#5F8F58",
+    "lume": "#7FF0D8",
+    "iron": "#3B3F46",
+    "sponge": "#E2B84A",
+    "wood": "#7A5A3C"
+  }
+}

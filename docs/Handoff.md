@@ -3,6 +3,29 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-10 · 8570-F43F (the user's PC): fish to fish is now the reference's jump
+**State:** built and run in Studio by Claude (pressing Space through the connector): floating onto a fish, riding, a
+jump onto the next fish, the early drop, and a miss into the drown. StyLua and selene pass. **No person has judged the
+feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 2026-11-10.
+
+- **Gone:** the corkscrew dash, the hook window (slow motion, reticle, rope) and the eaten death.
+  `DashController`, `GrappleController` and `Lib/Eater` are deleted; E, F and Q no longer do anything.
+- **New:** `src/client/Controllers/JumpController.luau` and `Config.Jump`. Space throws you into a flight you steer, a
+  dashed yellow ring lies in the water under you, the fish inside it glows, and you land on it. How it works and what
+  differs from the reference: [riding feel](design/riding-feel.md).
+- **Server** (`RideService`): states are now Dock, Free, Riding, Jumping, Drowning. Remote actions are "Jump", "Land"
+  and "Miss".
+- **Fish are twice as dense** (`Config.Spawn.PerThousand` 24), so a jump has a fish within its flight. To tune.
+- **Second pass the same day, after the user played it:** the flight is launch, float and drop (3.65 s), with a fast
+  pull onto the glowing fish and a short drown when a drop finds nothing; a miss from floating drowns too. Wild fish
+  now swim as a herd: all straight down the lane, at 0.85 of ridden speed (measured from the reference), in one layer
+  16 to 30 studs above the floor, and a ridden fish follows that layer when W and S are let go.
+- **Kept:** Oxygen, the throw-off and the drown, the speed-up on mount, the bubble burst, map v4.
+- **The Studio place on this PC is not in the repo.** It was rebuilt in an unsaved place from `claude_blockout.luau`
+  and `src/`; the user saves it locally.
+- **Open:** the ring and landing effects for a floating fish, tuning the glow and outline, a revive after a miss, and a
+  ridden fish left alone swimming out of the lane and up to the surface.
+
 ## 2026-11-10 · 8570-F43F (the user's PC): void's draft merged with the creature work of the 10th
 **State:** merged and pushed by the Obsidian Git plugin. StyLua and selene pass and `rojo build` builds the place. **Still
 no one has played it**: the playtest is the next thing.

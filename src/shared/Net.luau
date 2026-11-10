@@ -1,14 +1,14 @@
 --!strict
 -- The remotes, in ReplicatedStorage.Remotes. The server makes them; clients wait for them.
---   Action (client -> server): "Dash", fish | "Grapple", fish or nil (the hook window's one shot) | "JumpOff" (opens
---     the hook window, from Riding or Free)
---   Ride (server -> one client): "Mounted", fish, landing | "Dismounted", reason | "DashStart", fish, duration |
---     "GrappleStart", fish, flyTime, reelTime | "Denied", action, reason | "Respawned"
---   Fx (server -> every client): "Dash", player, fish, duration | "Grapple", player, fish, flyTime, reelTime |
---     "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the fish bucks the player off)
--- Player attributes the server owns: State ("Dock", "Free", "Riding", "Hooking", "Dashing", "Grappling", "Eaten",
--- "Drowning"), Oxygen, MaxOxygen, HookEnds (workspace:GetServerTimeNow() the hook window shuts, while Hooking),
--- DeathAt (server time the death began, while Eaten or Drowning) and DeathThrown (thrown off a fish first).
+--   Action (client -> server): "Jump" (from Riding or Free: into the flight) | "Land", fish (the fish the flight came
+--     down on) | "Miss" (it came down on nothing)
+--   Ride (server -> one client): "Mounted", fish, landing | "Dismounted", reason | "Denied", action, reason |
+--     "Respawned"
+--   Fx (server -> every client): "Jump", player | "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the
+--     fish bucks the player off)
+-- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
+-- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
+-- sank: a short drown).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 

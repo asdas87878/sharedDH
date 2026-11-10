@@ -8,7 +8,7 @@ grapple feel, with numbers: [riding feel](riding-feel.md). Oxygen is the riding 
   With enough Oxygen you ride it a long way before you have to jump.
 - **Oxygen drains while you ride** (2026-11-09, was stamina). Higher tiers drain it faster. A ridden fish speeds up from its
   idle speed.
-- **Wild, untamed creature:** you can't steer it. Stay on long enough and it's tamed (yours). If your Oxygen runs out first, it
+- **Wild, untamed creature:** you steer it like any other (the user, 2026-11-10; it was "you can't steer it"). Stay on long enough and it's tamed (yours). If your Oxygen runs out first, it
   eats you.
 - **Tamed creature:** when your Oxygen runs out you fall off. You float up, with a few seconds' grace to reach another fish; then
   you pass out and wake up at the dock (2026-11-09).

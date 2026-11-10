@@ -1,13 +1,11 @@
 --!strict
--- The two deaths of round 2 (docs/design/riding-feel.md), procedural, played on every client from the server's State,
--- DeathAt and DeathThrown attributes, so friends see them too; the local victim also gets the camera, the dark and the
--- fade. Neither takes input; the server sends the victim to the dock when the time is up.
---   Eaten (a miss on the hook): the slow-mo lets go and the water darkens (Death.Darken), a big fish rises from the dark
---     below, jaws opening, the camera pulled back to the side to show it (Death.Rise), the chomp with a shake (the victim
---     vanishes into the mouth) and a cut to black (Death.Chomp), "EATEN!" on black (Death.Black).
---   Drowning (out of Oxygen): on a fish, it bucks and throws you up and back, tumbling (Death.Throw; the buck itself is
---     AnimController's, on the fish), then you struggle with a steady stream of bubbles from the mouth (Death.Struggle),
---     weaken as they thin out (Death.Weak), go still and sink with the last bubble (Death.Still), and it fades out.
+-- Drowning (docs/design/riding-feel.md), procedural, played on every client from the server's State, DeathAt and
+-- DeathThrown attributes, so friends see it too; the local victim also gets the camera, the dark and the fade. It takes
+-- no input; the server sends the victim to the dock when the time is up.
+--   Out of Oxygen on a fish, it bucks and throws you up and back, tumbling (Death.Throw; the buck itself is
+--   AnimController's, on the fish), then you struggle with a steady stream of bubbles from the mouth (Death.Struggle),
+--   weaken as they thin out (Death.Weak), go still and sink with the last bubble (Death.Still), and it fades out. A jump
+--   that comes down on nothing drowns the same way, without the throw.
 -- The local victim's client moves its own root (it owns the character), so the throw and the sink replicate.
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -17,7 +15,6 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
-local Eater = require(script.Parent.Parent.Lib.Eater)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local State = require(script.Parent.Parent.Lib.State)
 
@@ -27,21 +24,15 @@ type Death = {
 	Kind: string,
 	Start: number, -- os.clock() it began here
 	Thrown: boolean,
+	Struggle: number, -- how long the struggle lasts (short after a jump that sank)
 	Character: Model,
 	At: CFrame, -- the victim's root when it began
 	Look: Vector3, -- the victim's flat heading then
 	Back: Vector3, -- the throw's flat direction
-	Side: Vector3, -- the camera's flat right then (where the eaten shot is framed from)
 	CamFrom: Vector3, -- where the drowning shot watches from
-	Eater: Eater.Eater?,
-	From: Vector3, -- the eater's start, deep below
-	Dir: Vector3, -- its rise
 	Bubbles: ParticleEmitter?,
 	LastBubble: boolean,
-	Chomped: boolean,
-	Hidden: boolean,
 	Sink: number,
-	Done: boolean, -- nothing more to show (the eater gone), waiting for the server's dock
 }
 
 local deaths: { [Player]: Death } = {}
@@ -58,22 +49,13 @@ local function rootOf(character: Model?): BasePart?
 	return if root and root:IsA("BasePart") then root else nil
 end
 
-local function hide(character: Model, hidden: boolean)
-	local value = if hidden then 1 else 0
-	for _, d in character:GetDescendants() do
-		if d:IsA("BasePart") or d:IsA("Decal") then
-			(d :: any).LocalTransparencyModifier = value
-		end
-	end
-end
-
--- The death a player is in: ours from our own Mode (it can start before the server's word, on a local miss)
+-- The death a player is in: ours from our own Mode
 local function kindOf(player: Player): string?
 	if player == State.Player then
 		return if State.dying() then State.Mode else nil
 	end
 	local state = player:GetAttribute("State")
-	return if state == "Eaten" or state == "Drowning" then state else nil
+	return if state == "Drowning" then state else nil
 end
 
 local function begin(player: Player, kind: string): Death?
@@ -90,46 +72,31 @@ local function begin(player: Player, kind: string): Death?
 	end
 	local camera = workspace.CurrentCamera.CFrame
 	local look = flat(root.CFrame.LookVector)
-	local from = root.Position + Vector3.new(0, -80, 0) + look * 10
 	local d: Death = {
 		Kind = kind,
 		Start = start,
 		Thrown = player:GetAttribute("DeathThrown") == true,
+		Struggle = if player:GetAttribute("DeathQuick") == true
+			then Config.Death.MissStruggle
+			else Config.Death.Struggle,
 		Character = character,
 		At = root.CFrame,
 		Look = look,
 		Back = throwDirs[player] or -look,
-		Side = flat(camera.RightVector),
 		CamFrom = root.Position + flat(camera.Position - root.Position) * 15 + Vector3.new(0, 6, 0),
-		Eater = nil,
-		From = from,
-		Dir = (root.Position - from).Unit,
 		Bubbles = nil,
 		LastBubble = false,
-		Chomped = false,
-		Hidden = false,
 		Sink = 0,
-		Done = false,
 	}
 	throwDirs[player] = nil
-	if kind == "Eaten" then
-		d.Eater = Eater.new(Config.Death.EaterLength)
-		if player == State.Player then
-			Fx.sound("Rumble")
-		end
-	else
-		d.Bubbles = Fx.mouthBubbles(character)
-	end
+	d.Bubbles = Fx.mouthBubbles(character)
 	State.DeathStart[player] = start
 	State.DeathThrown[player] = d.Thrown
+	State.DeathStruggle[player] = d.Struggle
 	return d
 end
 
 local function finish(player: Player, d: Death)
-	if d.Eater then
-		d.Eater:Destroy()
-		d.Eater = nil
-	end
 	if d.Bubbles then
 		local mouth = d.Bubbles.Parent
 		d.Bubbles.Enabled = false
@@ -140,82 +107,13 @@ local function finish(player: Player, d: Death)
 		end)
 		d.Bubbles = nil
 	end
-	if d.Hidden and d.Character.Parent then
-		hide(d.Character, false)
-	end
 	State.DeathStart[player] = nil
 	State.DeathThrown[player] = nil
+	State.DeathStruggle[player] = nil
 	if player == State.Player then
 		State.DeathCam = nil
 		State.Darken = 0
 		State.Vignette = 0
-	end
-end
-
-local function eatenStep(player: Player, d: Death, t: number)
-	local c = Config.Death
-	local mine = player == State.Player
-	local P = d.At.Position
-	local dir = d.Dir
-	local t1, t2, t3 = c.Darken, c.Darken + c.Rise, c.Darken + c.Rise + c.Chomp
-	local e = d.Eater
-	if e then
-		local mouth = e.Mouth
-		local waiting = d.From + dir * 8
-		local below = P - dir * (mouth + 7) -- the open mouth just under the victim
-		local through = P - dir * (mouth - 4) -- the mouth past them
-		local centre, jaw, fade = waiting, 0, 0
-		if t < t1 then
-			centre = d.From:Lerp(waiting, Ease.outQuad(t / t1))
-		elseif t < t2 then
-			local u = (t - t1) / c.Rise
-			centre = waiting:Lerp(below, Ease.outQuad(u))
-			jaw = Ease.smoothstep(0.35, 1, u)
-		elseif t < t3 then
-			local u = (t - t2) / c.Chomp
-			centre = below:Lerp(through, Ease.outQuad(math.min(1, u * 1.6)))
-			jaw = 1 - Ease.smoothstep(0.25, 0.5, u)
-			if u >= 0.45 and not d.Chomped then
-				d.Chomped = true
-				d.Hidden = true
-				hide(d.Character, true)
-				Fx.burst(P, 24)
-				local first = e.Model:FindFirstChildWhichIsA("BasePart")
-				Fx.sound("Chomp", first)
-				if mine then
-					State.shake(1.4, 0.45)
-				end
-			end
-		else
-			-- swims on up and away into the dark
-			local u = t - t3
-			centre = through + dir * (u * 30) + d.Look * (u * u * 12)
-			fade = Ease.smoothstep(0.2, 1.2, u)
-			if u > 1.3 then
-				e:Destroy()
-				d.Eater = nil
-				d.Done = true
-			end
-		end
-		if d.Eater then
-			-- nose along the rise, its back towards the way the victim faced
-			e:Set(CFrame.lookAt(centre, centre + dir, d.Look), jaw, t * (if t < t2 then 7 else 12))
-			e:Fade(fade)
-		end
-		if mine then
-			local mouthAt = centre + dir * mouth
-			State.DeathCam = {
-				Position = P + d.Side * 26 - d.Look * 6 + Vector3.new(0, -8, 0),
-				Focus = if t < t3 then P:Lerp(mouthAt, if t < t1 then 0.2 else 0.45) else P,
-			}
-		end
-	end
-	if mine then
-		State.Darken = Ease.smoothstep(0, t1, t)
-		if t >= t3 then
-			State.Fade = 1
-			State.FadeText = "EATEN!"
-		end
 	end
 end
 
@@ -224,7 +122,7 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 	local mine = player == State.Player
 	local throwT = if d.Thrown then c.Throw else 0
 	local tt = t - throwT -- into the drown proper
-	local s, w, still = c.Struggle, c.Weak, c.Still
+	local s, w, still = d.Struggle, c.Weak, c.Still
 
 	-- the bubbles from the mouth: steady, thinning, then the last one
 	local bubbles = d.Bubbles
@@ -313,24 +211,8 @@ local function step(dt: number)
 			d = begin(player, kind)
 			deaths[player] = d
 		end
-		if d and not d.Done then
-			local t = clock - d.Start
-			if d.Kind == "Eaten" then
-				eatenStep(player, d, t)
-				-- our own root held where we were caught (a little panic bob), but only until well into the black, so
-				-- we never fight the server moving us to the dock
-				local _, root = State.character()
-				if player == State.Player and root then
-					local c = Config.Death
-					if t < c.Darken + c.Rise + c.Chomp + c.Black * 0.5 then
-						root.CFrame = d.At + Vector3.new(0, math.sin(t * 11) * 0.15, 0)
-					end
-					root.AssemblyLinearVelocity = Vector3.zero
-					root.AssemblyAngularVelocity = Vector3.zero
-				end
-			else
-				drownStep(player, d, t, dt)
-			end
+		if d then
+			drownStep(player, d, clock - d.Start, dt)
 		end
 	end
 	for player, d in deaths do

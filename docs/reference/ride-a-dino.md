@@ -22,6 +22,50 @@ players at once in October 2026, lower by November.
 ![Tamed](../../research/ride-a-dino/f_0120.jpg)
 ![Revive](../../research/ride-a-dino/f_0168.jpg)
 
+## The jump, frame by frame
+Read 2026-11-10 from the user's two recordings (30 frames a second, 1280 x 720): the first run of 2026-11-09, and a
+35-second ride of 2026-11-10 with nine jumps and one miss. This is the move our fish-to-fish jump copies
+([Decisions](../Decisions.md), [riding feel](../design/riding-feel.md)). The second recording corrected the first
+reading: the ring marks where you come down, not a locked target, and the thin hoop by the rider is the lasso in their
+hand.
+
+1. **Riding:** the rider holds a lasso hoop up in one hand. Beside them, the green ring (time left on this dino) and the
+   pink ring (tame progress). The Space button shows an up arrow.
+2. **Space:** the rider is thrown up off the dino at once. A white ring pops where they left. The button's arrow turns to
+   point down. The old dino runs on.
+3. **The flight:** the rider goes up high and travels on at about the herd's pace, and the camera lifts to look down from
+   behind. A dashed yellow ring lies on the ground under the rider and travels with them.
+4. **The dino inside the ring turns solid glowing yellow.** That is the one you come down on. The ring and the glow stay
+   on it while the rider floats down over it.
+5. **Landing:** a white ring pops at the saddle, a wide soft yellow fan spreads on the ground behind the dino and lasts
+   about a second as it runs, and the dino fades from yellow back to its colours over about 0.3 s.
+6. **How long:** from the press to the landing, 1.8 to 2.4 s in the second recording, 0.9 to 1.0 s in the first. The
+   down arrow suggests a second press drops you early, which would be the short ones; not confirmed.
+7. **A miss** (28.6 to 31 s in the second recording): the ring passes over empty ground, the rider comes down on it
+   about 2 s after the press, a white dust cloud, then "Keep taming!" with the revive offer, then the hub.
+
+**Speed through one jump,** read off the distance counter every 0.1 s (second recording, the jump pressed at 21.95 s):
+
+| Part | When | Metres a second | Against riding |
+|---|---|---|---|
+| Riding before | 21.4 to 21.9 s | 54 | 1.0 |
+| The launch | 22.0 to 22.7 s | 72 on average, up to 100 | 1.3 to 1.8 |
+| Floating over the glowing dino | 22.8 to 23.8 s | 46 | 0.85 |
+| The pull-in | 23.9 to 24.3 s | 90 on average, up to 130 | 1.7 to 2.4 |
+| Riding after | 24.4 to 25.0 s | 57 | 1.05 |
+
+- While floating, the rider keeps pace with the glowing dino, so **the herd runs at about 0.85 of riding speed**, all one
+  way. A wild dino is almost as fast as a ridden one.
+- **The landing is a pull-in:** for the last 0.3 to 0.5 s the rider moves at about twice riding speed onto the dino. The
+  first recording's jump shows the same (up to 130 m a second for 0.3 s).
+- One jump only for the table; the first recording's jump agrees in shape.
+
+**What sits on the ground, and so needs another answer under a floating fish:** the dashed yellow ring, the yellow fan on
+landing, and the dust the dinos kick up as they run.
+
+**Not readable from the recordings:** the outline round the glowing dino (too small on screen), whether the flight is
+pulled toward a dino or only steered, what the second press does exactly, and whether an untamed dino can be steered.
+
 ## Rarity and spawns
 Measured 2026-11-09 from every creature tag in the recording's two runs, one frame a second (read with Windows' text reader,
 checked by eye). The runs reached 3,546 m and 2,215 m, so only the first two zones were seen.

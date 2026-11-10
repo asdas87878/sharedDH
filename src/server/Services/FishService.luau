@@ -1,12 +1,15 @@
 --!strict
 -- Wild fish: spawned per zone by the roster's rarity mix (each fish one or two zones past its home at most), spread
--- evenly over the whole dive lane, and swimming idly about their home spot on it. Round 2 (docs/design/riding-feel.md):
--- the lane's path (Shared.Lane) is cut into Spawn.Slice-stud slices, each zone's share of fish spread over its slices,
--- every slice keeping at least one (the dive board's keeps Spawn.BoardSlice), and new fish go into the emptiest slice.
+-- evenly over the whole dive lane, and swimming as a herd: all the same way, down the lane, each at its own place across
+-- it and above the floor, at Herd.SpeedShare of the speed it is ridden at (as the reference's herds run along its track).
+-- The lane's path (Shared.Lane) is cut into Spawn.Slice-stud slices, each zone's share of fish spread over its slices,
+-- every slice keeping at least one (the dive board's keeps Spawn.BoardSlice). The herd drains downstream, so the top-up
+-- keeps putting new fish into the emptiest slices, and takes away fish that have swum past the zones their kind lives
+-- in, or into a crowded slice, once nobody is near.
 -- Fish further than Spawn.StreamRadius from every player are parked in ServerStorage (not simulated, not sent to
 -- clients) and come back when someone nears. A ridden fish belongs to its rider's client (network owner), which drives
 -- it; once let go it stays with that client for Switch.HandBack seconds, coasting, so it doesn't hitch in front of them,
--- then the server takes it back, slows it to idle over Ride.SlowDownTime and it swims on about where it ended up.
+-- then the server takes it back and it joins the herd from where it is.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -23,10 +26,12 @@ export type Wild = {
 	Root: BasePart,
 	Type: Config.FishType,
 	Zone: number,
-	Home: number, -- s along the lane it wanders about
+	Home: number, -- s along the lane: where it is, as far as the stocking knows (kept up by the top-up)
+	S: number, -- s along the lane now, carried forward as it swims
+	Across: number, -- its place across the lane, from the centre
+	Height: number, -- and above the lane's floor
 	Slice: number?, -- the slice it counts for (nil past the stocked zones)
 	Parked: boolean,
-	Waypoint: Vector3,
 	Dir: Vector3,
 	Speed: number,
 	Rider: Player?,
@@ -208,16 +213,17 @@ local function pointAt(s: number): Vector3
 	return Lane.point(lane, s, x, h)
 end
 
--- The end of the last slice: fish don't wander past it
-local function liveEnd(): number
-	local last = slices[#slices]
-	return if last then last.End else lane.Length
-end
-
-local function newWaypoint(w: Wild)
-	local wander = Config.Spawn.Wander
-	local s = math.clamp(w.Home + rng:NextNumber(-wander, wander), 0, liveEnd())
-	w.Waypoint = pointAt(s)
+-- Where a fish is in the lane, from its position: s along it, its place across and its height above the floor (kept
+-- inside the part of the lane fish use)
+local function placeInLane(w: Wild)
+	local position = w.Root.Position
+	local s = Lane.project(lane, position)
+	local centre, along, width = Lane.at(lane, s)
+	local right = along:Cross(Vector3.yAxis)
+	local half = width / 2 * Config.Spawn.LaneFill
+	w.S = s
+	w.Across = math.clamp((position - centre):Dot(right), -half, half)
+	w.Height = math.clamp(position.Y - centre.Y, Config.Spawn.HeightMin, Config.Spawn.HeightMax)
 end
 
 local function nearAPlayer(position: Vector3, radius: number): boolean
@@ -252,8 +258,7 @@ local function spawnFish(index: number): Wild?
 	end
 	local home = rng:NextNumber(slice.Start, slice.End)
 	local at = pointAt(home)
-	local _, along = Lane.at(lane, home)
-	local dir = if rng:NextNumber() < 0.7 then along else -along
+	local _, dir = Lane.at(lane, home)
 	local model = FishModel.build(fishType)
 	model:PivotTo(CFrame.lookAt(at, at + dir))
 	local root = model.PrimaryPart :: BasePart
@@ -263,9 +268,11 @@ local function spawnFish(index: number): Wild?
 		Type = fishType,
 		Zone = slice.Zone,
 		Home = home,
+		S = home,
+		Across = 0,
+		Height = Config.Spawn.HeightMin,
 		Slice = index,
 		Parked = true,
-		Waypoint = at,
 		Dir = dir,
 		Speed = fishType.IdleSpeed,
 		Rider = nil,
@@ -279,7 +286,7 @@ local function spawnFish(index: number): Wild?
 	}
 	model.Parent = parkedFolder
 	wild[model] = w
-	newWaypoint(w)
+	placeInLane(w)
 	model.Destroying:Connect(function()
 		wild[model] = nil
 	end)
@@ -333,9 +340,24 @@ local function topUp(limit: number)
 	for _, w in wild do
 		if not w.Rider and not w.Reserved and not w.CoastToken then
 			local near = nearAPlayer(w.Root.Position, Config.Spawn.StreamRadius)
-			-- thin out slices that ridden fish crowded, and fish carried past the stocked zones, out of sight
-			local slice = w.Slice
-			local over = not slice or (per[slice] or 0) > slices[slice].Want + 1
+			-- the herd swims on: the fish counts for the slice it has reached
+			local old = w.Slice
+			local slice = sliceAt(w.S)
+			if slice ~= old then
+				if old then
+					per[old] = (per[old] or 0) - 1
+				end
+				if slice then
+					per[slice] = (per[slice] or 0) + 1
+				end
+				w.Home = w.S
+				w.Slice = slice
+				w.Zone = Lane.zoneAt(lane, w.S)
+			end
+			-- out of sight, take away fish in a crowded slice, past the stocked zones, or past the zones their kind
+			-- lives in
+			local strayed = w.Zone > w.Type.Home + w.Type.Reach
+			local over = not slice or strayed or (per[slice] or 0) > slices[slice].Want + 1
 			if over and not nearAPlayer(w.Root.Position, 250) then
 				if slice then
 					per[slice] -= 1
@@ -382,7 +404,7 @@ function FishService.setRider(w: Wild, player: Player)
 	end)
 end
 
--- The server drives it again: it slows from the speed it has to idle and wanders about where it is now
+-- The server drives it again: it eases from the speed it has to the herd's and swims on down the lane from where it is
 local function takeBack(w: Wild)
 	w.CoastToken = nil
 	if not w.Model.Parent or w.Rider then
@@ -395,7 +417,7 @@ local function takeBack(w: Wild)
 	w.ReleaseSpeed = velocity.Magnitude
 	w.ReleasedAt = os.clock()
 	w.Dir = if velocity.Magnitude > 1 then velocity.Unit else w.Root.CFrame.LookVector
-	newWaypoint(w)
+	placeInLane(w)
 end
 
 -- After the rider's weld is gone. With a hand-back time, the last rider's client keeps it that long, coasting.
@@ -432,10 +454,14 @@ local function steer(w: Wild, dt: number)
 			speed = w.ReleaseSpeed + (speed - w.ReleaseSpeed) * t
 		end
 	end
-	local to = w.Waypoint - position
-	if to.Magnitude < 10 then
-		newWaypoint(w)
-		to = w.Waypoint - position
+	-- straight down the lane: toward a point ahead, at its own place across the lane and above the floor. Past the
+	-- last stocked zone it carries on level until the top-up takes it away.
+	w.S += speed * dt
+	local aheadS = math.min(w.S + Config.Herd.Ahead, lane.Length)
+	local to = Lane.point(lane, aheadS, w.Across, w.Height) - position
+	if to.Magnitude < 5 then
+		local _, along = Lane.at(lane, aheadS)
+		to = along
 	end
 	local want = to.Unit
 	want = Vector3.new(want.X, math.clamp(want.Y, -0.45, 0.45), want.Z).Unit

@@ -4,12 +4,10 @@
 -- client's own built-in sounds only (rbxasset://), no uploaded assets.
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Ease = require(ReplicatedStorage.Shared.Ease)
 
 local Fx = {}
 
@@ -188,55 +186,6 @@ function Fx.ring(cf: CFrame, colour: Color3)
 	local info = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	TweenService:Create(ring, info, { Size = Vector3.new(0.1, 14, 14), Transparency = 1 }):Play()
 	Debris:AddItem(ring, 0.4)
-end
-
-export type Rope = {
-	Stop: (Rope) -> (),
-}
-
--- A rope from a character's hand to a fish: the hook flies out over flyTime (bowing a little), then holds on until
--- stopped. Real time, so it reads crisp even in slow-mo.
-function Fx.rope(character: Model, fish: Model, flyTime: number): Rope
-	local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
-	local from = if hand and hand:IsA("BasePart") then hand else character:FindFirstChild("HumanoidRootPart")
-	local fishRoot = fish.PrimaryPart
-	local a0 = Instance.new("Attachment")
-	a0.Parent = from
-	local hook = anchoredPart(Vector3.new(0.8, 0.8, 0.8), CFrame.new(a0.WorldPosition), Color3.fromRGB(255, 230, 120))
-	local a1 = Instance.new("Attachment")
-	a1.Parent = hook
-	local beam = Instance.new("Beam")
-	beam.Attachment0 = a0
-	beam.Attachment1 = a1
-	beam.Width0 = 0.25
-	beam.Width1 = 0.25
-	beam.Segments = 12
-	beam.FaceCamera = true
-	beam.LightEmission = 0.3
-	beam.Color = ColorSequence.new(Color3.fromRGB(240, 225, 190))
-	beam.Transparency = NumberSequence.new(0)
-	beam.Parent = hook
-	local started = os.clock()
-	local connection = RunService.RenderStepped:Connect(function()
-		if not fishRoot or not fishRoot.Parent or not a0.Parent then
-			return
-		end
-		local t = Ease.outQuad((os.clock() - started) / flyTime)
-		local start = a0.WorldPosition
-		local goal = fishRoot.Position
-		hook.CFrame = CFrame.new(start:Lerp(goal, t))
-		-- a little sag while it flies that pulls taut as it bites
-		local sag = (1 - t) * 1.5 + 0.3 * math.sin(t * math.pi)
-		beam.CurveSize0 = sag
-		beam.CurveSize1 = -sag
-	end)
-	local rope = {} :: Rope
-	function rope.Stop(_self: Rope)
-		connection:Disconnect()
-		hook:Destroy()
-		a0:Destroy()
-	end
-	return rope
 end
 
 -- The landing for anyone: a ring at the saddle, the bubble burst (Config.Burst), a soft pop, and a squash the rider
