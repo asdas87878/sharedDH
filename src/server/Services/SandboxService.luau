@@ -15,12 +15,13 @@ local SandboxService = {}
 
 local FLAGS = { On = "Sandbox", NoFail = "SandboxNoFail", EndlessAir = "SandboxEndlessAir" }
 
--- "Jump.LaunchTime" = 0.9: only numbers that are already in Config, in a group the panel may change
+-- "Jump.LaunchTime" = 0.9, or "ZoneDrain.3" = 14 for a list: only numbers that are already in Config
 local function tune(path: any, value: any)
 	if type(path) ~= "string" or type(value) ~= "number" or value ~= value then
 		return
 	end
-	local group, key = string.match(path, "^(%a+)%.(%a+)$")
+	local group, name = string.match(path, "^(%a+)%.(%w+)$")
+	local key: any = tonumber(name) or name
 	local tableOf = group and (Config :: any)[group]
 	if type(tableOf) ~= "table" or type(tableOf[key]) ~= "number" then
 		return

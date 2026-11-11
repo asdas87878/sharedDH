@@ -3,6 +3,158 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-11 · void (Hugo's PC): Feel pass after Hugo played v3.1: faster air, a free camera, a longer hook, the ring back, a landing shake
+**State:** written, not committed by hand (the Obsidian Git plugin syncs it with Movement v3 and v3.1 below). StyLua,
+selene and `rojo build` pass. Played in Studio by script through the runner (the same driver as the entry below, no
+keys and no mouse): the numbers below are the game's own. **How it feels is still Hugo's to judge**, most of all the
+camera, which a script can't move. Hugo's five points are in [Decisions](Decisions.md). Files: `src/shared/Config.luau`,
+`JumpController`, `RideController`, `SandboxController`. Pictures (Hugo's PC, not in the repo):
+`~/Pictures/ride-a-fish/feel-pass-2026-11-11/`.
+
+- **Faster air** (`Config.Jump`): `AirSpeed` 38 to 54, `DropSpeed` 30 to 42, `Launch` 1.4 to 1.6, `FreeLaunch` 55 to
+  78. The pull-in: `GrabSpeed` 55 to 95, `ReelMax` 0.8 to 0.7. The window, the heights and the drop are unchanged
+  (3.0 s, 20 up, 12 down). Seen: off a Common at 45 the pop is 72 st/s, the glide 54, and a 3 s hop covers about 150
+  to 200 studs (it was about 110); you now leave the fish beside you behind, so the fish you grab is one ahead.
+- **The camera is yours** (`RideController`, `Config.Camera`): the settle behind a new fish is gone
+  (`Switch.CameraSettle` deleted), and so is the hop's tilt to 30 degrees down and its swing behind you (`AirRest` 1
+  gives the tilt back). The view still turns with A and D. Left alone for `LookBack` (4 s, was 1.2) it drifts back
+  behind you at `Recentre` 1.2 (was 3); `AutoRecentre` 0: never. A hop and a landing count as touching it. New: a
+  gamepad's right stick looks round (`StickSensitivity`); there was no stick look at all. Seen: the view's tilt stayed
+  at -12 through every hop; after a landing the view held for 4 s, then came round over about 2 s.
+- **The hook: 130 studs** (`Jump.GrabRange`, was 85). `Lock.DistanceWeight` 0.35 to 0.2 so a far fish you aim at still
+  beats a nearer one off to the side. `Net.RangeSlack` 1.1 to 1.2: at the new air speed the server refused a grab at
+  exactly 130 studs ("Denied Grab Range") with 1.1; with 1.2 grabs at 130 land. Seen: locks at 95 to 130 studs
+  without touching the view, pull-ins of 0.70 to 0.77 s from 80 to 130 studs.
+- **The partner's ring is back, on the locked fish** (`JumpController`, `Jump.Ring...`): the 16 yellow neon dashes of
+  2026-11-10 (`git show e72fbe4:src/client/Controllers/JumpController.luau`, `placeRing`), which lay flat under the
+  rider at radius 20, now lie round the locked fish at radius 15 (wider for a fish longer than that). Added so it reads
+  on a fish 130 studs off: it is tipped a third of the way toward the camera (`RingFace`; 0 is flat as it was), the
+  dashes thicken with distance (`RingGrow`), they turn slowly (`RingSpin`; 0 is still as it was), and the ring glides
+  from one locked fish to the next. Fainter while you still ride. The fish's own glow stays but fainter (`FlyGlow` 0.6,
+  `PreviewGlow` 0.85). The HUD's square bracket on the fish is still there (`HudController`, not touched): with the
+  ring it may be one mark too many.
+- **The landing shakes the camera** (`RideController.shake`, `Jump.LandShake...`): thrown about 0.9 studs with 2.2
+  degrees of roll, 16 times a second, gone in 0.38 s, on top of the dip (`LandKick`) and the view's snap. Scaled by
+  the pull-in's speed (distance over time): 0.8 times at 40 st/s, 1.3 times at 140. Seen: the camera rolled 0.9 to
+  2.8 degrees at the landings measured.
+- **All of it is on the N panel.** New rows: Jump `LandShake`, `LandShakeTime`, `LandShakeRate`, `LandShakeRoll`,
+  `LandShakeAt`, `LandShakeBySpeed`, `RingRadius`, `RingGrow`, `RingFollow`, `RingSpin`, `RingFace`, `RingPreview`,
+  `FlyGlow`; Camera `AutoRecentre`, `AirRest`, `StickSensitivity`. Gone: Switch `CameraSettle`.
+- **To judge in play:** with nothing bringing the view round, you can land on a fish while looking across it and ride
+  that way for 4 s unless you drag the view (on a fish the mouse looks only with the right button held). If that is
+  worse than the pull was, lower `Camera.LookBack`. At 54 st/s the hop outruns the herd (38), so there are stretches
+  of "FIND A FISH" with nothing locked until a fish ahead comes into the aim.
+- **Not updated:** [riding feel](design/riding-feel.md) and [sandbox](sandbox.md) still give the old numbers and the
+  old camera (not this task's files).
+
+## 2026-11-11 · void (Hugo's PC): Movement v3.1 played by script on grey-box 5; one fix (the land between two lands)
+**State:** one file changed (`src/shared/Zones.luau`), not committed by hand. StyLua, selene and `rojo build` pass.
+Played in Studio through the new runner (`~/Projects/studio-runner/`, Hugo's PC only), with a temporary script calling
+the game's own `Actions.jump`, the sandbox remote and `RideController.moveVector` (steering): no keys, no mouse, so
+the feel is still unjudged. Pictures: `~/Projects/sharedDH-local/shots/` (Hugo's PC, not in the repo).
+
+- **Seen working, with the server's own numbers:** R onto a fish; the hop (pop, glide, drop; 3.0 s); the lock and a
+  grab (the pull-in took 0.87 s, landed, refill); a miss with No fail off (the 2.8 s drown, then the dock); a wall
+  crash square on (speed to 0.45, 10 Oxygen of 100) and none while sliding along it for 7 s; props knocked loose (3%
+  each time, 1 to 15 boxes) and home again about 9 s later; the drain by land (1, 4.6 on an Uncommon in the Reef,
+  16 in the Kelp Forest); a hop at 5 Oxygen taken, no drain in the window, +25 on landing; riding dry: thrown off,
+  the 5.5 s drown, the dock.
+- **Fixed: `Zones.locate` found no land between two lands** (grey-box 5's zone boxes don't meet end to end: s 1100 to
+  1330 and 3540 to 3770), so the server drained at the Shallows' rate there and the HUD lost the land's name. It now
+  gives the nearer land; before the first land it is still none (the dock).
+- **Not exercised:** aiming the lock with the mouse, a press with nothing locked, a refused grab, two players, lands 4
+  to 10 (the map is built to s 4500: `R` past that puts you at the lane's end; the deep drain was tried by setting
+  `ZoneDrain.3` to 160 with `TestMaxOxygen` 3840).
+- **For the map chat:** `path.json`'s Lands start the Coral Reef at s 1000 and the Kelp Forest at 3500; the game's
+  zones change at 1340 and 3770. `floor_tiles_*` and `stones_*` are in `Lane.Props`, so a fish knocks floor tiles
+  loose.
+- **Seen, not changed:** following the lane's middle a fish hits small props (sea grass, stones) every 2 or 3 s, 3%
+  each: in the Shallows that costs more than the drain. The HUD's speed is the wanted speed (32 st/s shown with the
+  nose held against a wall). A missed hop's drown says OUT OF AIR with the meter full. Swimming through a big coral
+  puts the camera inside its boxes for a moment. Roblox's chat window covers the sandbox's top-left lines.
+
+## 2026-11-11 · void (Hugo's PC): Movement v3.1: the hop is back, Oxygen by land, crashes, props that break
+**State:** written, not committed by hand (the Obsidian Git plugin will sync it, together with Movement v3 below, which
+was never committed on its own). StyLua, selene and `rojo build` pass; luau-lsp's type check finds nothing new.
+**Nobody has played it, Claude included:** Studio's connector was being replaced. Expect numbers to tune and possibly
+bugs, most of all in what needs the map (crashes, props). Hugo's answers of 2026-11-11 are in
+[Decisions](Decisions.md); the model, the numbers and what to play: [riding feel](design/riding-feel.md), "Movement
+v3.1"; two pictures: `docs/attachments/hop-arc.png`, `stamina-drain.png`.
+
+- **The partner's hop is back** (`JumpController`): the pop (0.4 s, 20 studs up, 1.4 times your speed), the glide
+  (1.4 s at the herd's pace) and the drop (the rest of the window: slower, sinking), with the pull-in and landing
+  camera as they were. Movement v3's "no hop, slow down and sink" is gone, with its numbers (`SinkSpeed`, `SinkRamp`,
+  `Drag`). `Config.herdTop` presses the herd down in the shallows again.
+- **Kept from Movement v3:** the lock-on, A and D only, the spring camera, the window on the HUD (now the whole hop:
+  `Jump.Window` 3.0, the same in every land), the server's "Grab". **Not back from 2026-11-10:** the ring under you,
+  the flight making for a fish by itself, the fish and the hop turning with the camera, W and S, the landing without
+  a press (`Jump.AutoGrab` 1 gives that last one back). **For the two of you:** these are Hugo's answers; the
+  2026-11-10 rows they replace are named in the new Decisions rows, not edited.
+- **The swim:** a pose for the pop (arms ahead), the swim strokes in the glide, longer strokes and a harder kick in
+  the drop (`AnimController`, from `State.JumpPhase`).
+- **Oxygen is the stamina, and it is the progression** (`RideService`, `Config.ZoneDrain`): what a ridden fish takes a
+  second goes by the land you are in (1, 4, 14, 48, 160...), times 15% for each rarity above Common. It was by the
+  fish's home land and rarity (`Required / Seconds`; `Tier.Seconds` and `FishType.Drain` are gone, `Required` is now
+  worked out from the drain). A hop is never refused for Oxygen and costs none. The HUD shows the drain a second and
+  what a land needs.
+- **Crashes** (`Config.Crash`): a ridden fish run square into something solid loses speed (the client, told by the
+  server: `Net.Ride` "Crashed") and a tenth of max Oxygen (the server), never the last of it. Never a death.
+- **Props break** (new `src/server/Services/PropService.luau`, `Config.Props`): the boxes of
+  `Workspace.ClaudeBlockout.Lane.Props` are knocked loose by a fish and tweened home after 8 s, all on the server. A
+  ridden fish swims through them (`Course.begin(true)`); wild fish only when inside a big thing's circle. Players'
+  characters are in a "Riders" collision group that doesn't collide with "Props".
+- **The sandbox panel** has every new number, and one row a land for `ZoneDrain`; [the sandbox note](sandbox.md) is
+  brought up to date (it still described the first jump's numbers).
+- **To check by feel:** the six points at the end of "Movement v3.1" in [riding feel](design/riding-feel.md). Turn
+  "No fail" and "Endless air" off for the real rules.
+- **Open:** training max Oxygen isn't built, so the third land can't be kept up in without `TestMaxOxygen`; whether
+  only big creatures break props (`Props.MinLength`, 0 now); map-method.md still says props break "on the player's
+  own screen only" (the map chat's note: it is the server now); the server's crash check is a ray along the nose, so a
+  fish swung side-on into a wall isn't counted.
+
+## 2026-11-11 · void (Hugo's PC): Movement v3 on top of JumpController, not played yet
+**State:** written, not committed by hand (the Obsidian Git plugin will sync it). StyLua, selene and `rojo build` pass.
+**Nobody has played it, Claude included:** Studio was open but its MCP server did not answer, so there was no playtest.
+Expect numbers that need tuning and possibly bugs. Hugo's brief of 2026-11-11; a Codex draft finished and reviewed by
+Claude. The model, every number and what to check: [riding feel](design/riding-feel.md), "Movement v3".
+
+- **This changes how fish to fish plays,** and overrides several of 2026-11-10's rows in [Decisions](Decisions.md)
+  (the pop, glide and drop; the fish turning with the camera; the hands-off landing; grabbing without looking). Those
+  rows are **not** edited: for Hugo and his partner to settle. The partner's `JumpController` is still the base: its
+  pull-in curve, landing camera, glow, trail dots, `Course`, `LaneSurvey` and the sandbox are kept. Nothing deleted
+  came back (no Grapple or Dash controller).
+- **Leaving a fish** (Space): no hop. You keep going forward, slow in the water from the speed you rode at to 24 studs
+  a second, and sink (5 studs a second, easing in). That opens the window: `Jump.Window`, 3.0 s, shown as a bar and
+  seconds under a reticle in the middle of the screen, red and pulsing for the last 0.8 s. Out of time with no fish:
+  the short drown (in the sandbox with No fail on: you float).
+- **Steering:** always forward; only A and D steer, at one rate (`Ride.YawRate` 95) on a fish, in the swim and
+  floating. W, S and the mouse no longer steer or change speed; a ridden fish keeps the herd's height by itself.
+- **The lock-on** (new `src/client/Lib/Lock.luau`, `Config.Lock`): a cone along where the camera looks, wider for near
+  fish; scored by angle and distance; nothing past `Jump.GrabRange` (85); sticky so it doesn't flicker; the locked
+  fish keeps the yellow glow and gets a bracket on the screen. It shows faintly while you still ride. Space again, a
+  left click, E or gamepad X grabs the locked fish; with none locked the reticle flashes red. In the swim the mouse
+  aims with no button held.
+- **The camera** (new `src/client/Lib/Spring.luau`): where it looks from, its turn, its zoom and its field of view each
+  go through a critically damped spring, so riding, the swim, the pull-in and the landing run into each other. The
+  pull-in now eases into its arrival; the landing's snap, jolt, burst and glow fade are as before.
+- **Server** (`RideService`): new actions "Grab" (checks the fish is free, in range, not behind something solid, and
+  keeps it for the player) and "CancelGrab"; "Land" is only taken for the fish that was granted; its own clock ends a
+  window or a pull-in that the client never finishes.
+- **What Claude changed in the Codex draft:** `Lock.LeftPenalty` 0 to 0.5 (the fish you just left sits in the middle of
+  the view and took nearly every lock); the server's range check allows `Net.RangeSlack` (1.1) over the 85 for lag, and
+  no longer refuses a grab for coming early; every number of Jump, Lock, Ride, Camera and AimHud is on the sandbox
+  panel (N); the trail's timing reads Config live.
+- **For Hugo to check by feel** (Play in Studio; N, then turn "No fail" off to judge the real window):
+  1. Is 3.0 s enough to find and grab a fish, and short enough to press? (`Jump.Window`, 2.5 to 3.5.)
+  2. The slow-down and the sinking: too floaty, too fast? (`Jump.Drag`, `AirSpeed`, `SinkSpeed`, `SinkRamp`.)
+  3. Do you get the fish you look at? Aim between two fish, then at each; aim at a far one past a near one.
+     (`Lock.Cone`, `AimRadius`, `DistanceWeight`, `Sticky`, `LeftPenalty`.)
+  4. A and D on a fish and in the swim: the same feel? Is 95 degrees a second right?
+  5. The camera through a whole chain (ride, leave, pull, land, ride): any snap, lag or wobble? (`Camera.FocusTime`,
+     `TurnTime`, `ZoomTime`.) Does the landing still hit?
+- **Not done:** [the sandbox note](sandbox.md) still describes the old jump's numbers and switches (not this
+  session's file); two players going for one fish and bad lag are untested; phones aim by dragging, untried.
+
 ## 2026-11-10 · 8570-F43F (the user's PC): fish to fish is now the reference's jump
 **State:** built and run in Studio by Claude (pressing Space through the connector): floating onto a fish, riding, a
 jump onto the next fish, the early drop, and a miss into the drown. StyLua and selene pass. **No person has judged the

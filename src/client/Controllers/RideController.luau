@@ -1,13 +1,20 @@
 --!strict
 -- Riding on the client: steering the fish we own (the server hands us its network ownership on mount), the speed-up,
 -- coasting the fish we just left (it stays ours for Switch.HandBack seconds, so it swims off without a hitch), floating
--- while off a fish, and the camera for everything underwater: a smooth chase camera on our own character (so a jump
--- never cuts), whose field of view widens with speed, lifting to look down on a jump's flight, settling behind a new
--- fish over Switch.CameraSettle, with the landing kick, and easing to the drowning's shot.
--- Steering: the fish turns to where the camera looks; A/D or the stick's sideways turn the camera, and so does a right
--- mouse drag or a touch drag. W dives, S climbs; nothing held follows the lane down at the herd's height above the
--- floor. In a jump's flight A/D turn the flight and the camera with it, and a drag only looks round (JumpController).
--- Fish don't collide with the map: Lib/Course keeps the one we ride out of the floor, the walls and the air.
+-- while off a fish, and the camera for everything underwater.
+-- Steering: we always go forward, and only A and D (or the stick's sideways) steer, at the same rate on a fish, in the
+-- hop off it (JumpController) and floating: RideController.turn. W and S do nothing; a ridden
+-- fish follows the lane down at the herd's height above the floor by itself. The mouse never steers.
+-- The camera follows our own character (so leaving a fish and landing on one never cut), behind the way we are going.
+-- Everything it does goes through a critically damped spring (Lib/Spring): where it looks from, its turn and tilt, its
+-- distance, its field of view; so riding, the hop, the pull-in and the landing run into each other with no snap. The
+-- player's look wins (Hugo, 2026-11-11): a right mouse drag, a touch drag or a gamepad's right stick looks round, in
+-- the hop the mouse aims freely (that look is the lock-on's aim, Lib/Lock), and the view stays where it is put: nothing
+-- pulls it behind the fish after a landing or tilts it in the hop. Left alone for Camera.LookBack seconds it drifts
+-- back behind us, gently (Camera.AutoRecentre). The field of view widens with speed; the pull-in's zoom, the landing's
+-- snap, its jolt and its shake (RideController.shake) sit on top, and the drowning's shot is eased to.
+-- Fish don't collide with the map: Lib/Course keeps the one we ride out of the floor, the walls and the air. Running
+-- into something solid is the server's call ("Crashed": Config.Crash, Config.Props): we lose speed for a moment.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -17,6 +24,7 @@ local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Course = require(script.Parent.Parent.Lib.Course)
+local Spring = require(script.Parent.Parent.Lib.Spring)
 local State = require(script.Parent.Parent.Lib.State)
 
 local RideController = {}
@@ -26,8 +34,13 @@ local camera = workspace.CurrentCamera
 
 -- riding
 local yaw, pitch, roll = 0, 0, 0
+local turnNow = 0 -- how fast A and D are turning us now, radians a second (eased in and out)
+local turned = 0 -- and by how much this frame: the camera turns by as much
+local lastMode = "Dock"
 local startSpeed = 0
 local rideType: Config.FishType? = nil
+local crashAt = -math.huge -- os.clock() of the last crash or smashed prop,
+local crashSlow = 1 -- and the share of our speed it left us (it comes back over Crash.Recover)
 
 -- the fish we just left, coasting on its heading to idle until the server takes it back
 type Coast = { Fish: Model, At: number, Speed: number, Look: Vector3, Idle: number }
@@ -41,16 +54,25 @@ local floatTurn: AlignOrientation? = nil
 local leftFish: Model? = nil
 local leftWeld: Weld? = nil
 
--- camera
-local camYaw, camPitch = 0, math.rad(-12)
+-- camera: what it is asked for (camYaw, camPitch, the zoom), and what it shows, each on a spring
+local camYaw, camPitch = 0, math.rad(Config.Camera.RestPitch)
+local shownYaw, shownPitch = 0, math.rad(Config.Camera.RestPitch)
+local yawSpeed, pitchSpeed = 0, 0
 local camPosition: Vector3? = nil
 local camFocus: Vector3? = nil
+local focusSpeed = Vector3.zero
 local zoom = Config.Camera.Distance
-local zoomScale = 1 -- the jump pulls the camera back
-local fovEased = Config.Camera.Fov -- the field of view before the punch
+local zoomScale, zoomSpeed = 1, 0 -- the hop sits a little further back
+local reach, reachSpeed = 1, 0 -- how much of its distance the camera has, with a wall behind it
+local fovEased, fovSpeed = Config.Camera.Fov, 0 -- the field of view before the punch
 local kickAt, kickSpeed = 0, 0 -- the landing's jolt: the camera's height off true, on a spring
+local shakeAt = -math.huge -- os.clock() of the landing's shake,
+local shakeSize = 0 -- how far it throws the camera, studs,
+local shakeSeed = 0 -- and which way: a new pattern each time
+local airAt = -math.huge -- os.clock() the hop began
 local lookedAt = -math.huge -- os.clock() the player last looked round themselves
 local rightHeld = false
+local stick = Vector2.zero -- a gamepad's right stick
 local wasScripted = false
 local cameraParams = RaycastParams.new() -- for keeping the camera out of the floor and walls
 cameraParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -60,30 +82,47 @@ local deathBlend = 0 -- 0 to 1, how far the camera has turned to look at a death
 
 -- The move stick or keys: X is right, Z is back (W is -Z)
 function RideController.moveVector(): Vector3
-	if controls then
-		local ok, v = pcall(controls.GetMoveVector, controls)
-		if ok and typeof(v) == "Vector3" and v.Magnitude > 0.05 then
-			return v
-		end
-	end
-	-- the keys themselves: the player module gives nothing while we hold the character still (found in play, 2026-11-10)
 	if UserInputService:GetFocusedTextBox() then
 		return Vector3.zero
 	end
-	local x, z = 0, 0
-	if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then
-		x += 1
+	-- Read the lateral keys before PlayerModule can normalize W+A into a weaker turn.
+	if UserInputService.KeyboardEnabled then
+		local x = (if UserInputService:IsKeyDown(Enum.KeyCode.D) then 1 else 0)
+			- (if UserInputService:IsKeyDown(Enum.KeyCode.A) then 1 else 0)
+		if x ~= 0 or UserInputService:GetLastInputType() == Enum.UserInputType.Keyboard then
+			return Vector3.new(x, 0, 0)
+		end
 	end
-	if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then
-		x -= 1
+	local lastInput = UserInputService:GetLastInputType()
+	if controls and (lastInput == Enum.UserInputType.Touch or string.match(lastInput.Name, "^Gamepad")) then
+		local ok, v = pcall(controls.GetMoveVector, controls)
+		if ok and typeof(v) == "Vector3" then
+			return Vector3.new(v.X, 0, 0)
+		end
 	end
-	if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then
-		z += 1
-	end
-	if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
-		z -= 1
-	end
-	return Vector3.new(x, 0, z)
+	return Vector3.zero
+end
+
+-- A and D, this frame: the turn to add to the way we are going (radians), the same on a fish, in the swim and
+-- floating. It comes in and stops over a moment (Ride.TurnEase), and the camera turns by as much.
+function RideController.turn(dt: number): number
+	local r = Config.Ride
+	local want = -RideController.moveVector().X * math.rad(r.YawRate)
+	turnNow = Ease.lerp(turnNow, want, Ease.alpha(r.TurnEase, dt))
+	turned += turnNow * dt
+	return turnNow * dt
+end
+
+-- The landing's shake (Config.Jump.LandShake...): `size` is how far the camera is thrown, studs
+function RideController.shake(size: number)
+	shakeAt = os.clock()
+	shakeSize = size
+	shakeSeed = math.random() * 100
+end
+
+-- How hard we are turning, -1 to 1, for banking into it
+function RideController.lean(): number
+	return math.clamp(turnNow / math.rad(math.max(Config.Ride.YawRate, 1)), -1, 1)
 end
 
 local function clearFloat()
@@ -171,7 +210,8 @@ local function onMounted(fish: Model)
 	leftWeld = nil
 	roll = 0
 	clearFloat()
-	Course.begin()
+	-- (a fish that breaks props swims through them: the server knocks their boxes loose as it does)
+	Course.begin(rideType ~= nil and Config.smashes(rideType))
 	State.setMode("Riding")
 end
 
@@ -187,29 +227,22 @@ local function drive(dt: number)
 		return
 	end
 	local r = Config.Ride
-	local mv = RideController.moveVector()
-	-- the fish turns with the camera, as the reference's dinos do (A and D turn the camera): once the camera has come
-	-- round behind a fish we just got on
-	local settled = Config.Switch.CameraSettle
-	local follow = Ease.smoothstep(settled, settled * 1.5, os.clock() - State.MountedAt)
-	local before = yaw
-	yaw = Ease.lerpAngle(yaw, camYaw, Ease.alpha(r.TurnFollow, dt) * follow)
-	local turning = ((yaw - before + math.pi) % (2 * math.pi) - math.pi) / math.max(dt, 1 / 240)
+	-- always forward; A and D turn it, and nothing else does
+	yaw += RideController.turn(dt)
+	State.Heading = yaw
 	local at = root.Position
 	local floorY = Course.floor(at)
 	local height = if floorY then at.Y - floorY else nil
 	-- the herd's height here: lower in the shallows, where it leaves room above it for a jump
 	local level = if floorY then math.min(Config.Herd.RideHeight, Config.herdTop(floorY)) else Config.Herd.RideHeight
-	if math.abs(mv.Z) > 0.05 then
-		pitch += mv.Z * math.rad(r.PitchRate) * dt -- W is -Z: nose down
-	elseif height then
-		-- nothing held: it follows the lane down, settling at the herd's height above the floor
+	if height then
+		-- it follows the lane down by itself, settling at the herd's height above the floor
 		local h = Config.Herd
 		local want = math.clamp((level - height) * h.RideHeightGain, -h.RideHeightPitch, h.RideHeightPitch)
 		pitch = Ease.lerp(pitch, math.rad(want), Ease.alpha(2.5, dt))
 	else
 		-- no floor known (off the map): level, never down
-		pitch = Ease.lerp(pitch, 0, Ease.alpha(r.LevelRate * 3, dt))
+		pitch = Ease.lerp(pitch, 0, Ease.alpha(2, dt))
 	end
 	-- keep off the floor and under the surface
 	if height and height < math.min(r.FloorClearance + 4, level - 1) and pitch < math.rad(6) then
@@ -220,11 +253,13 @@ local function drive(dt: number)
 	end
 	pitch = math.clamp(pitch, -math.rad(r.MaxPitch), math.rad(r.MaxPitch))
 	-- banking into the turn
-	local lean = math.clamp(turning / math.rad(math.max(r.YawRate, 1)), -1, 1)
-	roll = Ease.lerp(roll, lean * math.rad(r.Bank), Ease.alpha(5, dt))
+	roll = Ease.lerp(roll, RideController.lean() * math.rad(r.Bank), Ease.alpha(r.BankEase, dt))
 
 	local speed =
 		Ease.rideSpeed(startSpeed, rideType.RiddenSpeed, os.clock() - State.MountedAt, r.RampTime, r.Surge, r.SurgeTime)
+	-- just run into something: slowed at once, picking up again
+	local since = os.clock() - crashAt
+	speed *= Ease.lerp(crashSlow, 1, Ease.smoothstep(0, math.max(Config.Crash.Recover, 0.01), since))
 	local heading = CFrame.fromOrientation(pitch, yaw, 0)
 	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
 	-- the air or out of the lane, however the keys are held
@@ -314,7 +349,7 @@ function RideController.rejoin(): boolean
 	return false
 end
 
-local function float(root: BasePart)
+local function float(root: BasePart, dt: number)
 	ensureFloat(root)
 	local o = Config.Oxygen
 	local rise = o.FloatSpeed
@@ -328,17 +363,32 @@ local function float(root: BasePart)
 		root.CFrame += Vector3.new(0, laneY + 4 - root.Position.Y, 0)
 		root.AssemblyLinearVelocity = Vector3.zero
 	end
-	local swim = Vector3.zero
-	if State.Mode == "Free" then
-		local mv = RideController.moveVector()
-		local flat = CFrame.fromOrientation(0, camYaw, 0)
-		swim = (flat.RightVector * mv.X - flat.LookVector * mv.Z) * o.SwimSpeed
-	end
+	-- drifting forward, A and D turning us, as on a fish (never W and S)
+	yaw += RideController.turn(dt)
+	State.Heading = yaw
+	local heading = CFrame.fromOrientation(0, yaw, 0)
 	local v = floatVelocity :: LinearVelocity
-	v.VectorVelocity = Vector3.new(0, rise, 0) + swim
+	v.VectorVelocity = Vector3.new(0, rise, 0) + heading.LookVector * o.SwimSpeed
 	local t = floatTurn :: AlignOrientation
-	t.CFrame = CFrame.fromOrientation(0, camYaw, 0)
+	t.CFrame = heading
 	State.Speed = root.AssemblyLinearVelocity.Magnitude
+end
+
+-- The camera takes up from wherever the view is now (entering the water, after the drowning's shot): the springs start
+-- there, at rest, so it never jumps
+local function adopt()
+	local view = camera.CFrame
+	camYaw, camPitch = anglesOf(view.LookVector)
+	shownYaw, shownPitch = camYaw, camPitch
+	yawSpeed, pitchSpeed = 0, 0
+	camPosition = view.Position
+	-- (the focus that puts the camera where it is)
+	camFocus = view.Position
+		+ view.LookVector * (zoom * zoomScale)
+		- Vector3.new(0, Config.Camera.Height * Config.Camera.ArmHeight, 0)
+	focusSpeed = Vector3.zero
+	reach, reachSpeed = 1, 0
+	fovEased, fovSpeed = camera.FieldOfView, 0
 end
 
 local function cameraStep(dt: number)
@@ -351,11 +401,11 @@ local function cameraStep(dt: number)
 			wasScripted = false
 		end
 		camPosition = nil
+		turned = 0
 		return
 	end
-	if not wasScripted then
-		camYaw, camPitch = anglesOf(camera.CFrame.LookVector)
-		camPosition = camera.CFrame.Position
+	if not wasScripted or not camFocus then
+		adopt()
 		wasScripted = true
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
@@ -371,72 +421,88 @@ local function cameraStep(dt: number)
 		camPosition = (camPosition or shot.Position):Lerp(shot.Position, Ease.alpha(3, dt))
 		local at = camPosition :: Vector3
 		local towards = (camFocus :: Vector3) - at
-		local free = CFrame.fromOrientation(camPitch, camYaw, 0).LookVector
+		local free = CFrame.fromOrientation(shownPitch, shownYaw, 0).LookVector
 		local look = if towards.Magnitude > 0.1
 			then free:Lerp(towards.Unit, Ease.smoothstep(0, 1, deathBlend))
 			else free
 		camera.CFrame = CFrame.lookAt(at, at + look)
 		camera.FieldOfView = Ease.lerp(camera.FieldOfView, c.Fov, Ease.alpha(3, dt))
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		turned = 0
 		return
 	end
 	if deathBlend > 0 then
 		deathBlend = 0
-		camYaw, camPitch = anglesOf(camera.CFrame.LookVector)
+		adopt()
 	end
 
-	-- The camera's turn is the player's: a drag turns it, and so do A and D. A ridden fish turns to where it looks. In
-	-- a jump's flight A and D turn the flight, and the camera by as much, so a drag there only looks round. Just after a
-	-- mount it comes round behind the new fish first (Switch.CameraSettle). Its tilt looks after itself unless the
-	-- player has just dragged it.
-	local recentLook = os.clock() - lookedAt < 1.2
-	local turn = RideController.moveVector().X
-	if mode == "Riding" then
-		if os.clock() - State.MountedAt < Config.Switch.CameraSettle and not recentLook then
-			camYaw = Ease.lerpAngle(camYaw, yaw, Ease.alpha(3 / Config.Switch.CameraSettle, dt))
-		else
-			camYaw -= turn * math.rad(Config.Ride.YawRate) * dt
-		end
-		if not recentLook then
-			camPitch = Ease.lerp(camPitch, pitch * 0.5 + math.rad(-12), Ease.alpha(3, dt))
-		end
-	elseif mode == "Jumping" then
-		camYaw -= turn * math.rad(Config.Jump.YawRate) * dt
-		-- lifted to look down on the ring and the fish under it (as the reference does)
-		if not recentLook then
-			camPitch = Ease.lerp(camPitch, math.rad(Config.Jump.CameraPitch), Ease.alpha(4, dt))
-		end
+	-- Where the camera is asked to look. It turns with us (A and D turn the way we are going, and the camera by as
+	-- much); beyond that the player's look wins. A gamepad's right stick looks round at any time. Nothing brings the
+	-- view round after a landing or tilts it in the hop (Camera.AirRest gives that tilt back, until the view is
+	-- touched). Only left alone for LookBack seconds, on a fish or floating, does it drift back behind us, gently.
+	camYaw += turned
+	turned = 0
+	if stick.Magnitude > 0 then
+		camYaw -= stick.X * c.StickSensitivity * dt
+		camPitch += stick.Y * c.StickSensitivity * dt
+		lookedAt = os.clock()
+	elseif rightHeld then
+		lookedAt = os.clock()
 	end
+	local heading = State.Heading
+	if mode == "Jumping" then
+		if c.AirRest > 0 and lookedAt < airAt then
+			camPitch = Ease.lerp(camPitch, math.rad(Config.Jump.CameraPitch), Ease.alpha(c.AirPitchFollow, dt))
+		end
+	elseif c.AutoRecentre > 0 and os.clock() - math.max(lookedAt, airAt, State.MountedAt) >= c.LookBack then
+		-- (a hop and a landing count as looking: the view is never brought round sooner than LookBack after one)
+		local rest = if mode == "Riding" then pitch * 0.5 + math.rad(c.RestPitch) else math.rad(c.RestPitch)
+		camYaw = Ease.lerpAngle(camYaw, heading, Ease.alpha(c.Recentre, dt))
+		camPitch = Ease.lerp(camPitch, rest, Ease.alpha(c.PitchFollow, dt))
+	end
+	camPitch = math.clamp(camPitch, math.rad(c.PitchMin), math.rad(c.PitchMax))
 	State.CamYaw = camYaw
-	camPitch = math.clamp(camPitch, math.rad(-75), math.rad(65))
 
-	UserInputService.MouseBehavior = if rightHeld
-		then Enum.MouseBehavior.LockCurrentPosition
+	-- in the hop the mouse aims with no button held
+	UserInputService.MouseBehavior = if mode == "Jumping" and c.AirMouseLook > 0
+		then Enum.MouseBehavior.LockCenter
+		elseif rightHeld then Enum.MouseBehavior.LockCurrentPosition
 		else Enum.MouseBehavior.Default
-	zoomScale = Ease.lerp(zoomScale, if mode == "Jumping" then Config.Jump.CameraZoom else 1, Ease.alpha(4, dt))
+
+	-- what it shows: each on its spring
+	shownYaw, yawSpeed = Spring.angle(shownYaw, camYaw, yawSpeed, c.TurnTime, dt)
+	shownPitch, pitchSpeed = Spring.number(shownPitch, camPitch, pitchSpeed, c.TurnTime, dt)
+	local zoomGoal = if mode == "Jumping" then Config.Jump.CameraZoom else 1
+	zoomScale, zoomSpeed = Spring.number(zoomScale, zoomGoal, zoomSpeed, c.ZoomTime, dt)
 	local distance = zoom * zoomScale
-	local rotation = CFrame.fromOrientation(camPitch, camYaw, 0)
+	local rotation = CFrame.fromOrientation(shownPitch, shownYaw, 0)
 	if State.SideCam then
 		-- the sandbox's side view: square on to the way we are headed, far enough to see a whole jump
 		distance = math.max(distance, 70)
-		rotation = CFrame.fromOrientation(math.rad(-4), camYaw + math.pi / 2, 0)
+		rotation = CFrame.fromOrientation(math.rad(-4), shownYaw + math.pi / 2, 0)
 	end
-	local focusGoal = root.Position + Vector3.new(0, c.Height * 0.5, 0)
-	camFocus = if camFocus then camFocus:Lerp(focusGoal, Ease.alpha(c.Follow * 2, dt)) else focusGoal
-	local focus = camFocus :: Vector3
-	local goal = focus - rotation.LookVector * distance + Vector3.new(0, c.Height * 0.3, 0)
+	local focusGoal = root.Position + Vector3.new(0, c.Height * c.FocusHeight, 0)
+	local focus: Vector3
+	focus, focusSpeed = Spring.vector(camFocus :: Vector3, focusGoal, focusSpeed, c.FocusTime, dt)
+	camFocus = focus
+	local arm = -rotation.LookVector * distance + Vector3.new(0, c.Height * c.ArmHeight, 0)
 
-	-- keep the camera out of the floor and walls
+	-- keep the camera out of the floor and walls: it comes in at once (never inside one), and eases back out
 	if cameraFor ~= character then
 		cameraFor = character
 		cameraParams.FilterDescendantsInstances = { character, camera }
 	end
-	local hit = workspace:Raycast(focus, goal - focus, cameraParams)
-	if hit then
-		goal = hit.Position + (focus - goal).Unit * 0.8
+	local hit = workspace:Raycast(focus, arm, cameraParams)
+	local free = if hit
+		then math.max(0, (hit.Position - focus).Magnitude - c.WallGap) / math.max(arm.Magnitude, 0.1)
+		else 1
+	if free < reach then
+		reach, reachSpeed = free, 0
+	else
+		reach, reachSpeed = Spring.number(reach, free, reachSpeed, c.ZoomTime, dt)
 	end
-	camPosition = if camPosition then camPosition:Lerp(goal, Ease.alpha(c.Follow, dt)) else goal
-	local position = camPosition :: Vector3
+	local position = focus + arm * reach
+	camPosition = position
 	-- the landing's jolt: knocked down, springing back
 	local j = Config.Jump
 	if State.KickVelocity ~= 0 then
@@ -445,18 +511,31 @@ local function cameraStep(dt: number)
 	end
 	local w = 2 * math.pi * j.LandKickRate
 	-- in small steps, so a slow frame can't throw the spring
-	local steps = math.clamp(math.ceil(dt * 240), 1, 12)
-	local h = math.min(dt, 0.05) / steps
+	local steps = math.max(math.ceil(dt * 240), 1)
+	local h = dt / steps
 	for _ = 1, steps do
 		kickSpeed += (-w * w * kickAt - 2 * j.LandKickDamp * w * kickSpeed) * h
 		kickAt += kickSpeed * h
 	end
-	camera.CFrame = CFrame.lookAt(position, position + rotation.LookVector) * CFrame.new(0, kickAt, 0)
+	-- and its shake: thrown about for a moment, dying away
+	local shake = CFrame.identity
+	local shaken = (os.clock() - shakeAt) / math.max(j.LandShakeTime, 0.01)
+	if shaken < 1 and shakeSize > 0 then
+		local size = shakeSize * (1 - shaken) ^ 2
+		local t = shakeSeed + (os.clock() - shakeAt) * j.LandShakeRate
+		shake = CFrame.new(math.noise(t, 1.5) * 2 * size, math.noise(t, 7.5) * 2 * size, 0)
+			* CFrame.Angles(
+				0,
+				0,
+				math.noise(t, 13.5) * 2 * math.rad(j.LandShakeRoll) * size / math.max(j.LandShake, 0.01)
+			)
+	end
+	camera.CFrame = CFrame.lookAt(position, position + rotation.LookVector) * CFrame.new(0, kickAt, 0) * shake
 
 	-- field of view: wider with speed
 	local speedT = Ease.smoothstep(c.SpeedFovFrom, c.SpeedFovTo, State.Speed)
 	local fovGoal = c.Fov + c.SpeedFov * speedT
-	fovEased = Ease.lerp(fovEased, fovGoal, Ease.alpha(6, dt))
+	fovEased, fovSpeed = Spring.number(fovEased, fovGoal, fovSpeed, c.FovTime, dt)
 	-- the punch goes on top at once (the pull-in's zoom in, the landing's snap out), and runs down by itself
 	camera.FieldOfView = math.clamp(fovEased + State.FovPunch, 30, 120)
 	local run = math.abs(j.LandFov) / math.max(j.LandFovTime, 0.01) * dt
@@ -464,22 +543,33 @@ local function cameraStep(dt: number)
 end
 
 local function step(dt: number)
+	local mode = State.Mode
+	if mode ~= lastMode then
+		if mode == "Free" then
+			-- floating carries on the way we were going; off the dock, the way the camera looks
+			yaw = if lastMode == "Dock" then (anglesOf(camera.CFrame.LookVector)) else State.Heading
+			State.Heading = yaw
+		elseif mode == "Jumping" then
+			airAt = os.clock()
+		end
+		lastMode = mode
+	end
 	local _, root, humanoid = State.character()
 	if root and humanoid then
 		if State.inWater() then
 			if not humanoid.PlatformStand then
 				humanoid.PlatformStand = true
 			end
-			if State.Mode == "Riding" then
+			if mode == "Riding" then
 				drive(dt)
-			elseif State.Mode == "Free" then
-				float(root)
+			elseif mode == "Free" then
+				float(root, dt)
 			else
 				clearFloat()
 			end
 		else
 			clearFloat()
-			if State.Mode == "Dock" and humanoid.PlatformStand then
+			if mode == "Dock" and humanoid.PlatformStand then
 				humanoid.PlatformStand = false
 			end
 			State.Speed = root.AssemblyLinearVelocity.Magnitude
@@ -506,6 +596,14 @@ function RideController.Init()
 	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any)
 		if kind == "Mounted" then
 			onMounted(a)
+		elseif kind == "Crashed" then
+			-- the server saw our fish run into something (a wall, or a prop it broke): `a` is the share of speed left
+			if type(a) == "number" then
+				crashAt = os.clock()
+				crashSlow = math.clamp(a, 0, 1)
+				State.CrashAt = crashAt
+				State.KickVelocity = Config.Crash.Kick * 2 * math.pi * Config.Jump.LandKickRate
+			end
 		elseif kind == "Dismounted" then
 			if a == "Jump" or a == "OutOfOxygen" then
 				-- the jump or the throw-off takes over; the fish swims on without us
@@ -540,17 +638,25 @@ function RideController.Init()
 			return
 		end
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			if rightHeld then
-				camYaw -= input.Delta.X * 0.004
-				camPitch -= input.Delta.Y * 0.004
+			if rightHeld or (State.Mode == "Jumping" and Config.Camera.AirMouseLook > 0) then
+				camYaw -= input.Delta.X * Config.Camera.MouseSensitivity
+				camPitch -= input.Delta.Y * Config.Camera.MouseSensitivity
 				lookedAt = os.clock()
 			end
 		elseif input.UserInputType == Enum.UserInputType.Touch and not processed then
-			camYaw -= input.Delta.X * 0.006
-			camPitch -= input.Delta.Y * 0.006
+			camYaw -= input.Delta.X * Config.Camera.TouchSensitivity
+			camPitch -= input.Delta.Y * Config.Camera.TouchSensitivity
 			lookedAt = os.clock()
+		elseif input.KeyCode == Enum.KeyCode.Thumbstick2 then
+			-- (read every frame in cameraStep; a dead zone, so a stick at rest never counts as looking)
+			local v = Vector2.new(input.Position.X, input.Position.Y)
+			stick = if v.Magnitude > 0.2 then v else Vector2.zero
 		elseif input.UserInputType == Enum.UserInputType.MouseWheel then
-			zoom = math.clamp(zoom - input.Position.Z * 2, 8, 40)
+			zoom = math.clamp(
+				zoom - input.Position.Z * Config.Camera.WheelStep,
+				Config.Camera.ZoomMin,
+				Config.Camera.ZoomMax
+			)
 		end
 	end)
 	UserInputService.InputBegan:Connect(function(input)

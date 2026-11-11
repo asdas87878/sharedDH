@@ -213,9 +213,24 @@ local function pose(state: string, t: number, player: Player): { [string]: CFram
 			Neck = rot(-15, 0, 0),
 		}
 	elseif state == "Jumping" then
-		-- the flight: swimming, arms sweeping out and back together, legs kicking in turn
-		local stroke = math.sin(t * 4.5)
-		local kick = math.sin(t * 9) * 18
+		local phase = if player == State.Player then State.JumpPhase else nil
+		if phase == "Pop" then
+			-- thrown off the fish: arms together out ahead, legs trailing, a push off
+			return {
+				LeftShoulder = rot(165, 0, -8),
+				RightShoulder = rot(165, 0, 8),
+				LeftHip = rot(-14, 0, -4),
+				RightHip = rot(-14, 0, 4),
+				LeftKnee = rot(-10, 0, 0),
+				RightKnee = rot(-10, 0, 0),
+				Neck = rot(30, 0, 0),
+			}
+		end
+		-- the glide and the drop: swimming through the water, arms sweeping out and back together, legs kicking in
+		-- turn; in the drop the strokes are longer and the kick harder, swimming down
+		local drop = phase == "Drop"
+		local stroke = math.sin(t * (if drop then 3.4 else 4.5))
+		local kick = math.sin(t * 9) * (if drop then 26 else 18)
 		return {
 			LeftShoulder = rot(120 + stroke * 45, 0, -25 - stroke * 30),
 			RightShoulder = rot(120 + stroke * 45, 0, 25 + stroke * 30),

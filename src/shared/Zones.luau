@@ -238,12 +238,26 @@ function Zones.locate(list: { Zone }, position: Vector3): (Zone?, number, number
 		if p.Z > last.Length / 2 then
 			return last, 1, last.NextMetres
 		end
+		-- between two lands (on a waving lane their boxes don't meet end to end): the nearer one. Before the first
+		-- land (the dock, the lagoon) there is still none.
+		local first = list[1]
+		if first.Frame:PointToObjectSpace(position).Z >= -first.Length / 2 then
+			local gap = math.huge
+			for _, zone in list do
+				local along = zone.Frame:PointToObjectSpace(position).Z
+				local over = math.abs(along) - zone.Length / 2
+				if over < gap then
+					gap = over
+					best = zone
+					bestU = if along < 0 then 0 else 1
+				end
+			end
+		end
+	end
+	if not best then
 		return nil, 0, 0
 	end
-	if best then
-		return best, bestU, best.Metres + (best.NextMetres - best.Metres) * bestU
-	end
-	return nil, 0, 0
+	return best, bestU, best.Metres + (best.NextMetres - best.Metres) * bestU
 end
 
 return Zones

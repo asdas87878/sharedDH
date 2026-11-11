@@ -58,8 +58,8 @@ local function getLane(): Lane.Lane?
 end
 
 -- Call when we start moving something ourselves (a mount, a jump): the rays skip every character and the camera's own
--- effects
-function Course.begin()
+-- effects. `throughProps`: they skip the map's props too (a ridden fish that breaks them swims through: Config.Props).
+function Course.begin(throughProps: boolean?)
 	local list: { Instance } = { workspace.CurrentCamera }
 	for _, player in Players:GetPlayers() do
 		if player.Character then
@@ -70,6 +70,11 @@ function Course.begin()
 	local surface = blockout and blockout:FindFirstChild("Surface")
 	if surface then
 		table.insert(list, surface)
+	end
+	local laneFolder = blockout and blockout:FindFirstChild("Lane")
+	local props = laneFolder and laneFolder:FindFirstChild("Props")
+	if throughProps and props then
+		table.insert(list, props)
 	end
 	params.FilterDescendantsInstances = list
 	lastS = nil

@@ -1,12 +1,12 @@
 --!strict
--- Every tuning number for the dive, from docs/design/riding-feel.md (to tune in play). The jump follows the reference's,
--- read from the user's recordings (docs/reference/ride-a-dino.md).
+-- Every tuning number for the dive, from docs/design/riding-feel.md (to tune in play). Going fish to fish is Movement
+-- v3.1: the hop and glide (the reference's, measured from the user's recordings: docs/reference/ride-a-dino.md) with
+-- the lock-on, the window and the spring camera (Jump, Lock, Camera). Going deeper is paid for in Oxygen (ZoneDrain).
 -- Speeds in studs a second, times in seconds, angles in degrees.
 
 export type Tier = {
 	Idle: number, -- (not used since the herd: a wild fish swims at Herd.SpeedShare of its ridden speed)
 	Ridden: number, -- speed once ridden
-	Seconds: number, -- seconds on it with exactly its Required Oxygen: drain = Required / Seconds
 	Colour: Color3, -- the tier's colour on markers
 }
 
@@ -16,10 +16,9 @@ export type FishType = {
 	Tier: string,
 	Home: number, -- home zone index
 	Reach: number, -- how many zones past home it can still turn up in
-	Required: number, -- the Oxygen it takes to ride it for its tier's Seconds
+	Required: number, -- the max Oxygen that keeps up with it in its home land (Config.required): shown on its tag
 	IdleSpeed: number,
 	RiddenSpeed: number,
-	Drain: number, -- Oxygen a second while ridden
 	Size: Vector3, -- width, height, length (it faces -Z)
 	Shape: string, -- placeholder body: "Fish" (tall, flat), "Round", "Shark", "Flat" (a ray), "Eel"
 	Body: Color3,
@@ -41,34 +40,41 @@ local Config = {}
 Config.TierOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 
 Config.Tiers = {
-	Common = { Idle = 14, Ridden = 45, Seconds = 12, Colour = rgb(200, 200, 200) },
-	Uncommon = { Idle = 16, Ridden = 52, Seconds = 10, Colour = rgb(90, 220, 90) },
-	Rare = { Idle = 18, Ridden = 60, Seconds = 8, Colour = rgb(70, 150, 255) },
-	Epic = { Idle = 20, Ridden = 68, Seconds = 7, Colour = rgb(180, 90, 255) },
-	Legendary = { Idle = 22, Ridden = 78, Seconds = 6, Colour = rgb(255, 190, 40) },
-	Mythic = { Idle = 24, Ridden = 90, Seconds = 5, Colour = rgb(255, 70, 90) },
-	Secret = { Idle = 26, Ridden = 100, Seconds = 5, Colour = rgb(20, 20, 20) },
+	Common = { Idle = 14, Ridden = 45, Colour = rgb(200, 200, 200) },
+	Uncommon = { Idle = 16, Ridden = 52, Colour = rgb(90, 220, 90) },
+	Rare = { Idle = 18, Ridden = 60, Colour = rgb(70, 150, 255) },
+	Epic = { Idle = 20, Ridden = 68, Colour = rgb(180, 90, 255) },
+	Legendary = { Idle = 22, Ridden = 78, Colour = rgb(255, 190, 40) },
+	Mythic = { Idle = 24, Ridden = 90, Colour = rgb(255, 70, 90) },
+	Secret = { Idle = 26, Ridden = 100, Colour = rgb(20, 20, 20) },
 } :: { [string]: Tier }
 
--- Required rises about 5 times a zone (the roster) and with rarity (our guess, to tune)
-local ZONE_BASE = 10
-local ZONE_GROWTH = 5
-local TIER_REQUIRED = { Common = 1, Uncommon = 2, Rare = 4, Epic = 8, Legendary = 16, Mythic = 30, Secret = 50 }
-
+-- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
 	StartMax = 100, -- max Oxygen before any training
-	FreeDrain = 4, -- a second while floating off a fish (not in a jump); our guess, so it can't last forever
+	FreeDrain = 4, -- a second while floating off a fish (not in a hop); our guess, so it can't last forever
 	FloatSpeed = 6, -- rising while off a fish
-	SwimSpeed = 8, -- the little steering you get while floating
+	SwimSpeed = 8, -- floating off a fish you drift forward at this, and A and D turn you (never W and S)
 	SurfaceY = -3, -- floating stops here
 	WaterY = -4, -- below this, a player on the dock counts as in the water
-	Refill = 0.25, -- of max Oxygen, on landing a jump
+	Refill = 0.25, -- of max Oxygen, on landing a hop on another fish
+	-- How the drain is read as "the Oxygen a land needs": a rider who lands a hop every KeepUp seconds holds level when
+	-- their max Oxygen is drain x KeepUp / Refill (Config.required). Below that they run dry however well they hop.
+	KeepUp = 6, -- seconds between landings that a rider doing well manages
+	TierDrain = 0.15, -- each rarity above Common takes this share more a second (a Mythic: 1.75 times a Common)
 	DockRadius = 120, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 4: the spawn is 78 behind the lane's start, so the hub and the first 40 studs of water; v4 had 520)
-	DockWait = 2.5, -- seconds at the surface first, so diving in off the board leaves time to jump
+	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
 	-- "TestMaxOxygen" attribute overrides it live (0 turns it off).
 	StudioMax = 0,
 }
+
+-- The progression (Hugo, 2026-11-11): the deeper you are, the more Oxygen the fish under you takes a second. One number
+-- a land, for a Common, by the land you are IN (not the fish's home); steep, so each land needs a clearly bigger max
+-- Oxygen than the last. With KeepUp 6 and Refill 0.25 a land needs 24 times its number: 24, 96, 336, 1,150, 3,840...
+-- so the first two lands can be ridden on the starting 100 and the third can't. A hop is never refused for Oxygen and
+-- costs none: at almost nothing you can still go fish to fish, and each landing gives Refill back.
+Config.ZoneDrain = { 1, 4, 14, 48, 160, 500, 1500, 4500, 13000, 36000 }
 
 -- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
 -- to about a fifth; Roblox's own speed is 16), which is why its walk to the start is short. The user, 2026-11-10: match it.
@@ -81,12 +87,12 @@ Config.Ride = {
 	Surge = 1.25, -- the burst on mount
 	SurgeTime = 0.5,
 	SlowDownTime = 2, -- back to idle once nobody rides it
-	YawRate = 95, -- A and D turn the camera at this rate, and the fish turns with it
-	TurnFollow = 5, -- how quickly the fish turns to where the camera looks (higher is quicker)
-	PitchRate = 70,
-	MaxPitch = 55,
+	-- You always go forward and only A and D steer, on a fish, in the hop and floating
+	YawRate = 95, -- A and D turn you at this rate at full press (degrees a second), the same everywhere
+	TurnEase = 10, -- how quickly a turn comes in and stops (higher is snappier)
+	MaxPitch = 55, -- the steepest the fish noses up or down by itself to follow the lane
+	BankEase = 5, -- response rate for the bank on a fish and in the hop
 	Bank = 28, -- roll into turns
-	LevelRate = 0.6, -- pitch eases back towards level with no input (fraction a second)
 	SeatHeight = 1.4, -- the rider's root above the fish's back
 	FloorClearance = 3, -- the fish pulls up nearer the floor than this
 	Ceiling = 4, -- and stays this far under the surface line
@@ -94,87 +100,128 @@ Config.Ride = {
 	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its surge speed times this
 }
 
--- The jump, fish to fish (the reference's, laid over our water; docs/reference/ride-a-dino.md has the measurements).
--- Space throws you off the fish, up and forward, faster than you rode (the launch). Then you float: still rising a
--- little, swimming, steering, at about the herd's pace. Then you drop. A dashed yellow ring lies flat in the water under
--- you; a fish inside it glows yellow, and you come down on it: at the drop, or at once on a second press, pulled in
--- fast (the reel-in). Drop with no fish in the ring and you sink and drown.
+-- Going fish to fish, Movement v3.1 (2026-11-11; docs/design/riding-feel.md). The hop is the reference's, as built on
+-- 2026-11-10: Space throws you off the fish, up and forward, faster than you rode (the pop); then you glide, flat at
+-- the top, swimming at about the herd's pace; then you drop, slowing a little and sinking faster and faster. You always
+-- go forward and A and D steer. The whole hop is the window: Window seconds to grab the next fish. The lock-on
+-- (Config.Lock) holds the fish you are looking at, which glows; Space, a click or E pulls you onto it (the pull-in).
+-- With the window gone and no fish grabbed you have sunk: the short drown.
 Config.Jump = {
+	-- The window is the hop: the pop, the glide and the drop together. The same at every depth (Hugo, 2026-11-11):
+	-- going deeper is paid for in Oxygen (Config.ZoneDrain), never in a shorter window.
+	Window = 3.0, -- seconds from leaving the fish in which to grab the next one
+	Warn = 0.8, -- the HUD's timer turns red and pulses for this last part
+	AutoGrab = 0, -- 1: at the window's end a locked fish is grabbed without a press (the old hands-off landing); 0: you sink
+	MinFlight = 0.15, -- before a second press counts as a grab (so one press can't do both)
+	Cooldown = 0.3, -- after landing, before the next hop
+	InputGap = 0.2, -- seconds between JumpRequest repeats that count as a new press
 	-- The shape, from the user's side-on recording (2026-11-10): a quick pop up (about 0.3 s), then a long flat glide
-	-- lying face down, sinking hardly at all, until the pull-in about 1.65 s after the press.
+	-- lying face down, sinking hardly at all.
 	LaunchTime = 0.4, -- the pop up (0.3 in the reference, whose pop is half as high)
-	BoostTime = 0.75, -- the launch's extra speed lasts this long (the reference: about 0.75 s)
-	Launch = 1.4, -- times the speed you left the fish at (the reference: about 1.3 to 1.8)
-	FreeLaunch = 55, -- the launch's speed from floating, with no fish under you
-	-- The height (2026-11-10, the user: not high enough; the reference has flat ground, we don't): the jump rises this
-	-- far above the highest fish in front of you, or above where you left if that is higher, so there is always a swoop
-	-- down onto the fish.
-	-- (2026-11-10, the user again: stay underwater, just go higher. 16 to 20; where the water is too shallow for that,
-	-- the herd swims lower: Config.herdTop.)
+	BoostTime = 0.75, -- the pop's extra speed lasts this long (the reference: about 0.75 s)
+	Launch = 1.6, -- times the speed you left the fish at (the reference: about 1.3 to 1.8; 1.4 until 2026-11-11)
+	FreeLaunch = 78, -- the pop's speed from floating, with no fish under you (55 until 2026-11-11)
+	-- The height (2026-11-10, the user: the reference has flat ground, we don't): the hop rises this far above where
+	-- you left, or above the locked fish if that is higher, so there is always a swoop down onto the fish. It never
+	-- leaves the water; where the water is too shallow for it the herd swims lower (Config.herdTop).
 	Apex = 20,
-	Ceiling = 3, -- the flight stays this far under the surface line (Oxygen.SurfaceY)
-	SeatRoom = 5, -- a rider sits about this far above the middle of a fish: the jump's rise is counted from the seat
+	Ceiling = 3, -- the hop stays this far under the surface line (Oxygen.SurfaceY)
+	SeatRoom = 5, -- a rider sits about this far above the middle of a fish: the hop's rise is counted from the seat
 	FloatTime = 1.4, -- the glide at the top, swimming
 	FloatRise = 1, -- still rising this much through the glide
-	AirSpeed = 38, -- the float's speed: about the herd's pace
-	DropTime = 1.3, -- then sinking, faster and faster
-	Drop = 12, -- to this far below where you left
+	-- (Hugo, 2026-11-11, after playing: the air was too slow. The glide was 38, the herd's pace, and the drop 30.)
+	AirSpeed = 54, -- the glide's speed: well past the herd's pace (38), so a hop gains on the fish ahead
+	-- The drop is the rest of the window (Window - LaunchTime - FloatTime: 1.2 s). It is still swimming, not a fall:
+	-- you slow a little and sink, slowly at first.
+	DropTime = 0, -- (worked out in Config.refresh)
+	Drop = 12, -- by the window's end you are this far below where you left
+	DropCurve = 2, -- how the sinking comes in: 1 is steady, 2 starts slow and ends fast, 3 hangs longer still
+	DropSpeed = 42, -- the forward speed you have slowed to by the window's end (from AirSpeed)
+	Tilt = 78, -- the body lies forward this much through the glide, face down, swimming
+	TiltFrom = 0.2, -- it starts to tip at this share of LaunchTime (upright off the fish for a moment)
+	TiltTo = 1.2, -- and is flat by this share of it
+	DropTilt = 12, -- and noses down this much more in the drop
+	DropTiltTime = 0.4, -- over this long
+	Bank = 18, -- the body rolls into turns
+	FloorClearance = 4, -- the hop stays this far above the sea floor and rocks
 	-- The pull-in onto the fish, measured off the reference's distance counter frame by frame (two pull-ins): it takes
-	-- 0.33 s over 15 m and 0.47 s over 22 m; it creeps for the first 40% of that time (about 13% of the way), then
-	-- accelerates all the way in and arrives at top speed, with no slowing down. The gap closes as time ^ ReelCurve.
+	-- 0.33 s over 15 m and 0.47 s over 22 m; it creeps for the first 40% of that time, then accelerates all the way in.
+	-- Normalized time is eased (Ease.inOutSine) and raised to ReelCurve, so the moving saddle is met with no snap.
 	ReelTime = 0.14, -- the pull-in's time for no distance at all; GrabSpeed adds to it by the distance
+	GrabSpeed = 95, -- the pull-in takes this much longer for the distance (studs a second; the reference: about 46 m; 55 until 2026-11-11: snappier)
+	ReelMin = 0.05, -- the shortest pull-in, even with the fish beside you
+	ReelMax = 0.7, -- the pull-in never takes longer than this, however far the fish
 	ReelCurve = 2.3, -- the reference's two pull-ins fit about 1.5 and 2.5; higher creeps longer and arrives faster
-	ReelMax = 0.8, -- the pull-in never takes longer than this, however far the fish
 	ReelSwoop = 0.9, -- the pull-in comes down later than it comes across (added to ReelCurve for the height): a swoop
+	ReelTip = 80, -- the body pitches head first toward the fish, degrees
+	ReelTurnEnd = 0.25, -- the share of the pull-in by which the body faces the fish
+	ReelSitStart = 0.8, -- the share of the pull-in from which the body settles onto the saddle
 	-- The camera through a landing, measured between every pair of frames of the side-on recording (four landings):
 	-- the picture grows through the pull-in, then in ONE frame shrinks to 0.79 to 0.81 of its size (the view snaps
 	-- wider), and comes back over 0.3 to 0.4 s; with it a short up-and-down jolt of 10 to 17 pixels in 720, gone in
 	-- about 0.13 s.
 	ReelFov = -10, -- the view narrows by this much as the pull-in speeds up (the zoom in)
+	ReelFovCurve = 1.5, -- how that narrowing comes in over the pull-in
 	LandFov = 12, -- then snaps this much wider than usual at the landing (0.8 of the picture's size at a 70 degree view)
 	LandFovTime = 0.35, -- and settles back over this
 	LandKick = 0.45, -- the jolt: the camera is knocked down this many studs
 	LandKickRate = 12, -- and springs back, bouncing this many times a second
 	LandKickDamp = 0.35, -- dying away (0 never, 1 with no bounce)
-	MinFlight = 0.3, -- before a second press counts
-	FloorClearance = 4, -- the flight stays this far above the sea floor and rocks
-	SpeedTrim = 0.5, -- W and S speed up and slow the flight by this share
-	-- Steering the flight (2026-11-10, the user): you are going one way, A and D steer that, and the camera is free to
-	-- look round without turning you. CameraSteer = 1 is the earlier way: the flight turns to where the camera looks.
-	YawRate = 170, -- A and D turn the flight (and the camera with it), degrees a second
-	CameraSteer = 0,
-	TurnFollow = 8, -- with CameraSteer: how quickly the flight turns to where the camera looks (higher is quicker)
-	RingRadius = 20, -- the ring under you; a fish whose middle is inside it is the one you land on
-	Sticky = 1.3, -- the glowing fish keeps the glow until it is this many radii away
-	ReachDown = 45, -- fish this far below you still count
-	ReachUp = 25, -- and this far above
-	Magnet = 3, -- how strongly the flight is drawn over the glowing fish (a second); 0 turns it off
-	MagnetHold = 0.5, -- how much of the flight's speed the magnet takes the moment a fish glows (0 to 1)
-	MagnetFull = 0.9, -- and after a second with it; the rest stays with the steering
-	-- The fish you are making for (2026-11-10, the user: the closest fish in front, not the nearest any way, and not
-	-- the fish you just left): the nearest fish within AheadCone of where the flight is headed and within GrabRange. It
-	-- glows from the moment it is picked. With no turn held the flight makes for it: it takes on the fish's speed and
-	-- closes the gap (ours: the reference pulls you onto a dino, but how it picks one isn't known). Assist = false
-	-- turns that off.
-	AheadCone = 140, -- full angle in front of the flight that counts as in front
-	TargetKeep = 0.7, -- another fish takes over only when it is this share of the distance, or nearer
-	Assist = true,
-	AssistClose = 45, -- the speed the gap closes at
-	AssistPull = 0.7, -- how much of the flight's speed this takes after the launch (0 to 1)
-	-- The pull-in happens when the glide ends, or at once on a second press, onto the fish you are making for, however
-	-- far within GrabRange. With no fish in front, it falls back to the nearest fish any way round within AutoGrab,
-	-- and only with none of those to the fish you just left.
-	GrabRange = 85,
-	GrabSpeed = 55, -- the pull-in takes this much longer for the distance (studs a second; the reference: about 46 m)
-	AutoGrab = 50,
-	Cooldown = 0.3, -- after landing
-	Slack = 0.6, -- the server waits this long past the flight for the landing (lag)
-	LandSlack = 20, -- and allows the landing this many studs wider (it sees the player a moment late)
-	CameraPitch = -32, -- the camera looks down on the flight, degrees
-	CameraZoom = 1.3, -- and pulls back by this much
-	Glow = rgb(255, 221, 51), -- the fish you will land on
+	-- The shake as you land on the fish (Hugo, 2026-11-11: a short noticeable shake, not just the dip above). The view
+	-- is thrown about, sideways, up and down and a little round its own line, and it dies away over LandShakeTime. A
+	-- faster pull-in (a further fish) shakes a little harder.
+	LandShake = 0.9, -- how far the camera is thrown, studs, landing at LandShakeAt (0 turns the shake off)
+	LandShakeTime = 0.38, -- seconds until it has died away
+	LandShakeRate = 16, -- how many times a second it is thrown back and forth
+	LandShakeRoll = 2.2, -- and the view rolls this many degrees with it
+	LandShakeAt = 80, -- the pull-in's speed (its distance over its time) that gives exactly LandShake
+	LandShakeBySpeed = 0.4, -- how much the speed counts: 0 not at all; 0.4 is 1.3 times the shake at 140 st/s, 0.8 at 40
+	GrabRange = 130, -- the hard max reach, rider to fish: no lock and no grab beyond it (the server checks it, with Net.RangeSlack for lag)
+	AckTime = 1, -- seconds to wait for the server's word on a landing before going back to the hop
+	RefusedTime = 0.6, -- a fish the server refused, or that was lost, can't be locked again for this long
+	Slack = 0.6, -- the server waits this long past the window and the pull-in for the landing (lag)
+	LandSlack = 20, -- allows the landing this many studs wider; never widens GrabRange (it sees the player a moment late)
+	-- (Hugo, 2026-11-11: the camera felt forced. The view is no longer tilted for you in the hop: it stays where you
+	-- have it. Camera.AirRest 1 gives the tilt to CameraPitch back, for as long as you don't move the view.)
+	CameraPitch = -30, -- with Camera.AirRest on: where the view rests in the hop, looking down on the herd
+	CameraZoom = 1.2, -- how far back the camera sits in the hop, times the riding distance
+	TrailDots = 18, -- yellow dots left along the pull-in (made once at the start: not on the sandbox panel)
+	TrailEvery = 0.025, -- seconds between them
+	TrailLife = 0.4, -- seconds before one has faded
+	Glow = rgb(255, 221, 51), -- the locked fish, and the ring round it
+	-- The partner's dashed yellow ring (2026-11-10: it lay flat in the water under you, 20 studs in radius) is back as
+	-- the mark on the locked fish (Hugo, 2026-11-11): the same dashes, flat in the water round the fish, a quarter
+	-- smaller. It is the main mark; the fish's own glow stays, fainter.
+	RingRadius = 15, -- studs (the partner's was 20)
+	RingGrow = 60, -- further than this from the camera the dashes are drawn thicker, by the distance, so a far ring still shows
+	RingFollow = 14, -- how quickly the ring goes from one locked fish to the next (higher is quicker)
+	RingSpin = 25, -- the dashes go round, degrees a second (0: still, as the partner's)
+	RingFace = 0.35, -- 0: flat in the water, as the partner's; 1: turned to face the camera; between: tipped that much toward it, so a far fish's ring isn't seen edge on
+	RingPreview = 0.55, -- how see-through the ring is while you are still on a fish or floating (solid once you have left)
+	FlyGlow = 0.6, -- how see-through the fish's own glow is in the hop (0.25 until 2026-11-11: the ring is the mark now)
+	PreviewGlow = 0.85, -- and while you are still on a fish
 	GlowFade = 0.3, -- the glow leaves the fish over this after the landing
-	FlightTime = 0, -- the longest a flight can last, for the server (worked out in Config.refresh)
+	FlightTime = 0, -- the longest a hop and its pull-in can last, for the server (worked out in Config.refresh)
+}
+
+-- The lock-on. The aim is a thick ray along where the camera looks. Each free fish within Jump.GrabRange
+-- gets an allowance: half of Cone, plus the angle AimRadius (and half its own length) covers at its distance, so a near
+-- fish is much easier to hit than a far one. Inside its allowance it scores AngleWeight x (how far off the aim, as a
+-- share of the allowance) + DistanceWeight x (its distance as a share of the range); the lowest score wins.
+Config.Lock = {
+	Cone = 40, -- full angle round the aim that a far fish must be inside
+	AimRadius = 8, -- the aim ray's thickness, studs
+	MaxAngle = 80, -- no fish further off the aim than this, however near
+	AngleWeight = 1, -- being off the aim
+	DistanceWeight = 0.2, -- being far: nearer fish win close calls, but a fish you aim straight at beats a nearer one off to the side (0.35 until the range went from 85 to 130: a far fish aimed at must still win)
+	-- The fish you just left swims on right under the middle of the view, so with no penalty it takes nearly every lock.
+	LeftPenalty = 0.5, -- added to its score: any other fish near the aim wins; with none, a grab takes it back
+	-- so the lock doesn't flicker between two fish
+	Sticky = 0.2, -- another fish must score this much better to take the lock,
+	MinHold = 0.3, -- and never sooner than this after the lock was taken,
+	KeepCone = 1.4, -- and the locked fish keeps the lock this much further off the aim than it took to win it
+	FallbackRadius = 4, -- assumed fish radius if its type has not replicated
+	Preview = 1, -- 1: the lock shows (a fainter glow) while you ride or float, so you see what you could reach; 0: only after leaving
 }
 
 -- Wild fish swim as a herd: all the same way, down the lane, at this share of the speed they are ridden at (the
@@ -194,8 +241,45 @@ Config.Herd = {
 	WallGap = 8, -- and how near the lane's edge its middle may come doing so
 }
 
+-- Running a ridden fish into something solid (a wall, a step's face, a rock): it never kills (Hugo, 2026-11-11). You
+-- lose speed and some Oxygen. The server decides it: a ray along the fish's nose, counted once as the nose comes up
+-- against the thing (staying pressed against it costs nothing more).
+Config.Crash = {
+	Slow = 0.45, -- your speed drops to this share at once,
+	Recover = 1.4, -- and comes back over this many seconds
+	Cost = 0.1, -- of max Oxygen
+	Floor = 1, -- a crash never takes Oxygen below this: it can't be what drowns you
+	Cooldown = 1.5, -- seconds before another crash or smash can cost anything
+	HeadOn = 0.35, -- how square on it must be (0 any touch, 1 dead straight in): sliding along a wall is not a crash
+	MinSpeed = 12, -- slower than this it is a nudge, not a crash
+	Reach = 2, -- the nose's ray reaches this far past where the fish's own steering stops it
+	Every = 0.1, -- seconds between the server's checks of a ridden fish
+	Kick = 0.35, -- the camera's jolt, studs
+}
+
+-- Props break (Hugo, 2026-11-11; the map's Lane/Props: each a Model of loose boxes). A fish that swims into one knocks
+-- the boxes it touches loose, and those resting on them; they are thrown along its way, hang in the water, and the prop
+-- builds itself back after Rebuild seconds. All on the server, so everyone sees the same prop. Breaking gives nothing.
+-- For the rider it is a small crash: a little speed, a little Oxygen.
+Config.Props = {
+	MinLength = 0, -- only a fish at least this long (studs) breaks props; a shorter one crashes into them. 0: every fish
+	Reach = 2, -- boxes this near the fish's nose (past its own half width) are knocked
+	Topple = 22, -- boxes of the same prop above the lowest one knocked, and this near across, come down with it
+	MaxLoose = 60, -- the most boxes one hit knocks loose
+	Push = 16, -- how far a box is thrown along the fish's way, studs (each between half of this and all of it)
+	Scatter = 7, -- and outward from where it was hit
+	Sink = 5, -- and down
+	Spin = 70, -- and turned, degrees
+	KnockTime = 0.7, -- seconds a box takes to get there
+	Rebuild = 8, -- seconds after the last hit before the prop builds itself back
+	RebuildTime = 0.9, -- seconds a box takes to fly home
+	RebuildStagger = 0.4, -- the boxes set off over this long, not all at once
+	Slow = 0.8, -- the rider's speed drops to this share (it comes back over Crash.Recover)
+	Cost = 0.03, -- of max Oxygen
+	WildEvery = 0.3, -- seconds between a wild fish's checks while it is inside a big thing's circle
+}
+
 Config.Switch = {
-	CameraSettle = 0.4, -- the camera settles behind the new fish over this
 	HandBack = 1.5, -- the old fish stays with its last rider's client this long, coasting, before the server takes it
 }
 
@@ -227,13 +311,13 @@ Config.Death = {
 Config.Sandbox = {
 	On = true, -- in Studio, start with the sandbox on
 	NoFail = true, -- a jump that sinks leaves you floating instead of drowning, and floating never sends you to the dock
-	EndlessAir = true, -- Oxygen doesn't drain
+	EndlessAir = true, -- Oxygen doesn't drain (turn it off to judge the drain by land)
 	StartS = 130, -- R puts you back here: studs down the lane from its start, or further down, at the first place
 	StartRoom = 34, -- with this much water above the herd, so a jump has room to rise
 }
 
 Config.Net = {
-	RangeSlack = 1.2, -- the server allows 20% more range for lag
+	RangeSlack = 1.2, -- the server allows this much more than Jump.GrabRange (it sees the player and the fish a moment apart; 1.1 until 2026-11-11: at the faster air speed a grab at the full 130 studs was refused in Studio)
 }
 
 Config.Camera = {
@@ -243,8 +327,45 @@ Config.Camera = {
 	SpeedFovTo = 100, -- speed where it's full
 	Distance = 17,
 	Height = 5,
-	AimDistance = 9,
-	Follow = 8, -- how quickly the camera catches up (higher is stiffer)
+	-- The springs: everything the camera does goes through one, so it never snaps between riding, the
+	-- swim, the pull-in and the landing. Each number is about how long that spring takes to close a gap (critically
+	-- damped: no overshoot); higher is softer.
+	FocusTime = 0.12, -- following the rider
+	TurnTime = 0.07, -- turning and tilting (your own mouse look goes through it too, so keep it short)
+	ZoomTime = 0.3, -- moving in and out (riding to the hop and back, and coming back out from a wall)
+	FovTime = 0.2, -- the field of view following speed (the pull-in's zoom and the landing's snap sit on top, unsprung)
+	-- Your look wins (Hugo, 2026-11-11: the camera felt forced). The view turns with you when A and D turn you, and
+	-- is otherwise left where you put it: nothing pulls it behind the fish after a landing, and nothing tilts it in
+	-- the hop. Only after LookBack seconds without you touching it does it drift back behind you, gently.
+	AutoRecentre = 1, -- 1: the view drifts back behind you after LookBack seconds left alone; 0: never
+	Recentre = 1.2, -- how quickly it drifts back (higher is quicker; 3 until 2026-11-11)
+	LookBack = 4, -- seconds after you last moved the view before it does (1.2 until 2026-11-11)
+	AirRest = 0, -- 1: in the hop the view tilts to Jump.CameraPitch until you move it (as before 2026-11-11); 0: it stays
+	StickSensitivity = 2.6, -- radians of camera look a second with a gamepad's right stick pushed all the way
+	MouseSensitivity = 0.004, -- radians of camera look per mouse pixel
+	TouchSensitivity = 0.006, -- radians of camera look per touch pixel
+	PitchMin = -75, -- lower camera pitch limit, degrees
+	PitchMax = 65, -- upper camera pitch limit, degrees
+	RestPitch = -12, -- the tilt the view drifts back to with the rest, riding and floating, degrees
+	PitchFollow = 1.2, -- how quickly (3 until 2026-11-11)
+	AirPitchFollow = 4, -- with AirRest on: how quickly the view tilts in the hop
+	FocusHeight = 0.5, -- focus offset as a share of Height
+	ArmHeight = 0.3, -- camera arm lift as a share of Height
+	WallGap = 0.8, -- camera clearance from solid walls, studs
+	WheelStep = 2, -- zoom change per mouse wheel step, studs
+	ZoomMin = 8, -- nearest manually selected camera distance, studs
+	ZoomMax = 40, -- farthest manually selected camera distance, studs
+	AirMouseLook = 1, -- 1: in the hop the mouse aims without a button held (it is locked to the centre); 0: right drag only
+}
+
+-- How the lock and the window's timer are drawn.
+Config.AimHud = {
+	RefusedTime = 0.25, -- seconds the reticle flashes red on an empty grab
+	FollowRate = 30, -- response rate of the locked fish's screen bracket
+	PreviewTransparency = 0.6, -- bracket transparency while riding or floating
+	PulsePeriod = 0.2, -- seconds per warning pulse
+	PulseWhiten = 0.4, -- amount of white mixed into the red warning pulse
+	PulseScale = 0.12, -- warning pulse grows the timer by this fraction
 }
 
 Config.Spawn = {
@@ -312,7 +433,6 @@ type FishSpec = {
 	Pattern: string?,
 	PatternColour: Color3?,
 	PatternCount: number?,
-	Required: number?,
 	IdleSpeed: number?,
 	RiddenSpeed: number?,
 }
@@ -376,20 +496,36 @@ end
 Config.Fish = {} :: { FishType }
 Config.FishById = {} :: { [string]: FishType }
 
+-- Oxygen a second on a fish of this rarity, in land number `zone` (past the last land: the last land's)
+function Config.drain(zone: number, tier: string): number
+	local per = Config.ZoneDrain
+	local base = per[math.clamp(zone, 1, #per)]
+	local step = (table.find(Config.TierOrder, tier) or 1) - 1
+	return base * (1 + Config.Oxygen.TierDrain * step)
+end
+
+-- The max Oxygen that keeps up there: landing a hop every Oxygen.KeepUp seconds, the refills just pay for the drain
+function Config.required(zone: number, tier: string?): number
+	local o = Config.Oxygen
+	return math.ceil(Config.drain(zone, tier or "Common") * o.KeepUp / math.max(o.Refill, 0.01))
+end
+
+-- Whether a fish breaks the props it swims into (Props.MinLength), or crashes into them
+function Config.smashes(fish: FishType): boolean
+	return fish.Size.Z >= Config.Props.MinLength
+end
+
 for _, spec in FISH do
 	local tier = Config.Tiers[spec.Tier]
-	local required = spec.Required
-		or ZONE_BASE * ZONE_GROWTH ^ (spec.Home - 1) * (TIER_REQUIRED :: any)[spec.Tier] :: number
 	local fish: FishType = {
 		Id = spec.Id,
 		Name = spec.Name,
 		Tier = spec.Tier,
 		Home = spec.Home,
 		Reach = spec.Reach or 2,
-		Required = required,
+		Required = Config.required(spec.Home, spec.Tier),
 		IdleSpeed = spec.IdleSpeed or (spec.RiddenSpeed or tier.Ridden) * Config.Herd.SpeedShare,
 		RiddenSpeed = spec.RiddenSpeed or tier.Ridden,
-		Drain = required / tier.Seconds,
 		Size = spec.Size,
 		Shape = spec.Shape,
 		Body = spec.Body,
@@ -426,9 +562,11 @@ end
 -- The numbers worked out from other numbers. Called here, and again by the sandbox whenever it changes one.
 function Config.refresh()
 	local j = Config.Jump
-	j.FlightTime = j.LaunchTime + j.FloatTime + j.DropTime + j.ReelTime + j.GrabRange / math.max(j.GrabSpeed, 1)
+	j.DropTime = math.max(0.1, j.Window - j.LaunchTime - j.FloatTime)
+	j.FlightTime = j.Window + j.ReelMax
 	for _, fish in Config.Fish do
 		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
+		fish.Required = Config.required(fish.Home, fish.Tier)
 	end
 end
 

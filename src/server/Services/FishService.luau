@@ -21,6 +21,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local FishModel = require(script.Parent.Parent.Lib.FishModel)
 local LaneSurvey = require(script.Parent.Parent.Lib.LaneSurvey)
+local PropService = require(script.Parent.PropService)
 
 export type Wild = {
 	Model: Model,
@@ -40,6 +41,7 @@ export type Wild = {
 	ReleasedAt: number?,
 	ReleaseSpeed: number,
 	CoastToken: {}?, -- set while the last rider's client still drives it after a dismount
+	PropAt: number, -- os.clock() it last looked for a prop to break (only while inside a big thing's circle)
 	Swim: LinearVelocity,
 	Turn: AlignOrientation,
 	Saddle: Attachment,
@@ -306,6 +308,7 @@ local function spawnFish(index: number): Wild?
 		ReleasedAt = nil,
 		ReleaseSpeed = 0,
 		CoastToken = nil,
+		PropAt = 0,
 		Swim = root:FindFirstChild("Swim") :: LinearVelocity,
 		Turn = root:FindFirstChild("Turn") :: AlignOrientation,
 		Saddle = root:FindFirstChild("Saddle") :: Attachment,
@@ -475,6 +478,8 @@ end
 --   into the gaps;
 --   and at once: a fish already within the margin of one (it appeared there, or turned too late) is pushed straight
 --   away from it. Returns that push, to bend the way it swims this frame.
+-- The herd steers round the big things, so a wild fish is rarely in one; when it is (inside the thing's own circle), it
+-- breaks the boxes it touches as a ridden fish does (PropService), looked for a few times a second and only then.
 local function mindObstacles(w: Wild, position: Vector3, dt: number): Vector3
 	local h = Config.Herd
 	local push = Vector3.zero
@@ -494,6 +499,15 @@ local function mindObstacles(w: Wild, position: Vector3, dt: number): Vector3
 			if away < clear and away > 0.01 then
 				-- inside its margin: out, harder the deeper in
 				push -= Vector3.new(rx, 0, rz) / away * math.min(2, (clear - away) / body)
+			end
+			if away < o.Radius and os.clock() - w.PropAt >= Config.Props.WildEvery and Config.smashes(w.Type) then
+				w.PropAt = os.clock()
+				local size = w.Type.Size
+				PropService.hit(
+					position + w.Dir * (size.Z / 2),
+					w.Dir * w.Speed,
+					math.max(size.X, size.Y) / 2 + Config.Props.Reach
+				)
 			end
 			-- how far to our right it stands (the lane's "across" runs the same way going down the lane)
 			local right = rx * -dir.Z + rz * dir.X

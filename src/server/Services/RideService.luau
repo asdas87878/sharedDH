@@ -1,13 +1,20 @@
 --!strict
 -- Riding, Oxygen, the jump fish to fish and drowning, all decided here (docs/design/riding-feel.md); clients only steer
 -- and animate. Per player: a state (Dock, Free, Riding, Jumping, Drowning, mirrored in the player's State attribute),
--- the Oxygen meter, and the fish they're on.
---   Riding drains the fish's Drain a second. At zero the fish throws you off and you drown (Drowning, DeathAt).
---   The jump (Config.Jump, the reference's): from a fish or from floating, the player leaves into a flight their own
---   client steers. No drain in the flight. The client says which fish it came down on ("Land"), and the server checks it
---   (the fish free, the player over it, give or take lag) and mounts them, with the refill. Coming down on nothing
---   ("Miss", or the flight's time running out) ends the run, from a fish or from floating: you sink and drown (a
---   short drown), until there is a revive.
+-- the Oxygen meter (the design notes' stamina), and the fish they're on.
+--   Riding drains Oxygen by the land the rider is in and the fish's rarity (Config.drain: steep, land by land; this is
+--   the progression). At zero the fish throws you off and you drown (Drowning, DeathAt). A hop is never refused for
+--   Oxygen and costs none, so at almost nothing you can still go fish to fish, and every landing refills.
+--   Running the fish into something solid never kills (Config.Crash): it costs Oxygen and the client is told to slow.
+--   A prop breaks instead (PropService), for less.
+--   Going fish to fish (Config.Jump): from a fish or from floating, the player leaves into a hop their own client
+--   moves (the pop, the glide, the drop; A and D). That is the window, Jump.Window seconds, with no drain. To take a fish
+--   the client says which it is going for ("Grab"): the server checks it is free and within Jump.GrabRange of the
+--   player (the same hard cap the client uses) and keeps it for them, so two players
+--   can't be pulled onto one fish. When the pull-in ends the client says so ("Land"): it must be the fish that was
+--   granted, with the player now at it, and the server mounts them, with the refill. A refused grab costs nothing but
+--   time: the window runs on. The window running out with no landing ("Miss", or the server's own clock) ends the run,
+--   from a fish or from floating: you have sunk and drown (a short drown), until there is a revive.
 --   Free (in the water off a fish: diving in off the dock, or a lost landing) drains Oxygen.FreeDrain; at zero you drown,
 --   without the throw.
 --   Drowning takes no input and ends at the dock.
@@ -17,7 +24,9 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Zones = require(ReplicatedStorage.Shared.Zones)
 local FishService = require(script.Parent.FishService)
+local PropService = require(script.Parent.PropService)
 
 type Wild = FishService.Wild
 type Rider = {
@@ -29,6 +38,8 @@ type Rider = {
 	Weld: Weld?,
 	JumpAt: number, -- os.clock() the jump began
 	JumpFrom: Wild?, -- the fish it left
+	GrabAt: number, -- server time of the accepted grab; bounds the pull separately from the hop
+	Grab: Wild?, -- the fish granted to this jump's pull-in (kept for us until the landing)
 	Token: number, -- bumps on every move and death, so a stale landing or respawn does nothing
 	JumpReadyAt: number,
 	SentOxygen: number,
@@ -37,6 +48,10 @@ type Rider = {
 	CheckFrom: Vector3?,
 	Flagged: boolean,
 	SurfacedAt: number?, -- os.clock() a Free rider came up near the dock
+	CrashCheckAt: number, -- os.clock() of the next look for something in the fish's way
+	CrashReadyAt: number, -- and before this a crash or a smashed prop costs nothing
+	Nosed: boolean, -- the fish's nose is up against something solid (so it is counted once)
+	FastAt: number, -- os.clock() the fish was last seen going fast enough to crash
 }
 
 local RideService = {}
@@ -98,6 +113,11 @@ end
 local function setState(r: Rider, state: string)
 	if state ~= "Free" then
 		r.SurfacedAt = nil
+	end
+	if state ~= "Jumping" and r.Grab then
+		-- the pull-in is over, one way or another: the fish it was granted is let go (nothing to do once we ride it)
+		FishService.unreserve(r.Grab, r.Player)
+		r.Grab = nil
 	end
 	if state ~= "Drowning" then
 		r.Player:SetAttribute("DeathAt", nil)
@@ -162,6 +182,7 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.Weld = weld
 	r.CheckAt = os.clock() + 1
 	r.CheckFrom = w.Root.Position
+	r.Nosed = false
 	if landing then
 		-- the refill is for reaching another fish: not for hopping off and back onto the same one, nor for a landing
 		-- sooner than a flight can be
@@ -236,7 +257,8 @@ local function drown(r: Rider)
 	end
 end
 
--- The jump: off the fish (or from floating) into the flight
+-- The jump: off the fish (or from floating) into the hop. Never refused for Oxygen, and it costs none: however little
+-- is left you can still go fish to fish (Hugo, 2026-11-11).
 local function jump(r: Rider)
 	if r.State ~= "Riding" and r.State ~= "Free" then
 		return deny(r, "Jump", "State")
@@ -264,32 +286,85 @@ local function miss(r: Rider)
 	die(r, "Drowning", Config.Death.MissTime, false, true)
 end
 
--- The landing the client asks for: the fish must be free and the player over it (the ring, plus slack for lag)
-local function landOn(r: Rider, target: any)
+-- The grab the client asks for: the fish must be free and within the hard max range of the player (plus slack for lag).
+-- Granted, it is kept for them until the landing. Refused, the hop goes on: the window is still running.
+local function grab(r: Rider, target: any)
 	if r.State ~= "Jumping" then
-		return deny(r, "Land", "State")
+		return deny(r, "Grab", "State")
 	end
 	local j = Config.Jump
 	local root = parts(r.Player)
 	local w = FishService.get(if typeof(target) == "Instance" then target else nil)
 	if not root or not w or not FishService.isFree(w, r.Player) then
-		-- the fish went away or was taken under us (not the player's fault): back to floating, not a miss
-		setState(r, "Free")
-		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
-		return
+		return deny(r, "Grab", "Target")
 	end
-	-- the server sees the player a moment late, and a dropped flight comes down fast: wide across, and anywhere in the
-	-- band of heights a flight can reach
-	local offset = w.Root.Position - root.Position
-	local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
-	local reach = j.RingRadius * Config.Net.RangeSlack + w.Type.Size.Z / 2 + j.LandSlack
-	if flat > reach or math.abs(offset.Y) > j.ReachDown + j.Apex + j.LandSlack then
+	local elapsed = os.clock() - r.JumpAt
+	if r.Grab or elapsed > j.Window + j.Slack then
+		return deny(r, "Grab", "Window")
+	end
+	-- The client's hard cap, and a little for lag (we see the player and the fish a moment apart, both moving): without
+	-- it a grab near the edge of the range is refused though the client was inside it. Landing slack never widens this.
+	local reach = j.GrabRange * Config.Net.RangeSlack
+	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
+		return deny(r, "Grab", "Range")
+	end
+	-- Match the client's obstruction rule. Aim is local camera intent; range and solids are authoritative.
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.RespectCanCollide = true
+	params.IgnoreWater = true
+	local excluded: { Instance } = { w.Model }
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(excluded, player.Character)
+		end
+	end
+	local blockout = workspace:FindFirstChild("ClaudeBlockout")
+	local surface = blockout and blockout:FindFirstChild("Surface")
+	if surface then
+		table.insert(excluded, surface)
+	end
+	params.FilterDescendantsInstances = excluded
+	if workspace:Raycast(root.Position, w.Root.Position - root.Position, params) then
+		return deny(r, "Grab", "Blocked")
+	end
+	if not FishService.reserve(w, r.Player) then
+		return deny(r, "Grab", "Target")
+	end
+	r.Grab = w
+	r.GrabAt = os.clock()
+end
+
+-- The landing the client asks for, at the end of its pull-in: on the fish it was granted, free still, and the player
+-- at it (plus slack for lag)
+local function landOn(r: Rider, target: any)
+	if r.State ~= "Jumping" then
+		return deny(r, "Land", "State")
+	end
+	local j = Config.Jump
+	if r.Grab and os.clock() > r.GrabAt + j.ReelMax + j.AckTime + j.Slack then
+		return miss(r)
+	end
+	local root = parts(r.Player)
+	local w = FishService.get(if typeof(target) == "Instance" then target else nil)
+	if not root or not w or w ~= r.Grab or not FishService.isFree(w, r.Player) then
+		-- Losing a target at arrival is the same as a refused grab: release it and resume the original window.
+		if r.Grab then
+			FishService.unreserve(r.Grab, r.Player)
+			r.Grab = nil
+		end
+		return deny(r, "Grab", "Target")
+	end
+	-- the server sees the player a moment late, and a pull-in arrives fast
+	local reach = w.Type.Size.Z / 2 + j.LandSlack * 2
+	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
 		deny(r, "Land", "Range")
 		return miss(r)
 	end
 	if not mount(r, w, true) then
-		setState(r, "Free")
-		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
+		FishService.unreserve(w, r.Player)
+		r.Grab = nil
+		deny(r, "Grab", "Target")
 	end
 end
 
@@ -299,6 +374,82 @@ local function drain(r: Rider, amount: number)
 		return
 	end
 	r.Oxygen = math.max(0, r.Oxygen - amount)
+end
+
+-- The fish ran into something: Oxygen is taken here, and the rider's client is told to slow (`slow`: the share of its
+-- speed it keeps). Never the last of the Oxygen: a crash can't be what drowns you.
+local function bump(r: Rider, cost: number, slow: number)
+	local c = Config.Crash
+	r.CrashReadyAt = os.clock() + c.Cooldown
+	if not sandbox("EndlessAir") then
+		r.Oxygen = math.max(math.min(r.Oxygen, c.Floor), r.Oxygen - r.Max * cost)
+	end
+	sendOxygen(r, true)
+	Net.Ride:FireClient(r.Player, "Crashed", slow)
+end
+
+local crashParams = RaycastParams.new()
+crashParams.FilterType = Enum.RaycastFilterType.Exclude
+crashParams.RespectCanCollide = true
+crashParams.IgnoreWater = true
+
+-- What is in the ridden fish's way (Config.Crash, Config.Props). The client steers the fish and keeps it out of solid
+-- things itself; what running into one costs is decided here, from where the server sees the fish.
+local function checkCrash(r: Rider, w: Wild)
+	local t = os.clock()
+	if t < r.CrashCheckAt then
+		return
+	end
+	local c = Config.Crash
+	r.CrashCheckAt = t + c.Every
+	local root = w.Root
+	local look = root.CFrame.LookVector
+	local velocity = root.AssemblyLinearVelocity
+	local speed = velocity.Magnitude
+	local half = w.Type.Size.Z / 2
+	if speed >= c.MinSpeed then
+		r.FastAt = t
+	end
+	-- a prop: its boxes are knocked loose and the fish swims on through (reaching as far as it swims between two looks)
+	if speed >= c.MinSpeed and Config.smashes(w.Type) then
+		local reach = math.max(w.Type.Size.X, w.Type.Size.Y) / 2 + Config.Props.Reach + speed * c.Every / 2
+		if PropService.hit(root.Position + look * half, velocity, reach) > 0 and t >= r.CrashReadyAt then
+			bump(r, Config.Props.Cost, Config.Props.Slow)
+		end
+	end
+	-- anything else solid, square enough on: as far ahead as the client's own steering stops the fish (Lib/Course
+	-- looks 0.12 s ahead of the nose), and a little more. The client has slowed the fish by the time we see it there,
+	-- so what counts is that it was going fast a moment ago.
+	local skip: { Instance } = {}
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(skip, player.Character)
+		end
+	end
+	local blockout = workspace:FindFirstChild("ClaudeBlockout")
+	local surface = blockout and blockout:FindFirstChild("Surface")
+	if surface then
+		table.insert(skip, surface)
+	end
+	local props = PropService.folder()
+	if props and Config.smashes(w.Type) then
+		-- (this fish breaks props: they were looked at above)
+		table.insert(skip, props)
+	end
+	crashParams.FilterDescendantsInstances = skip
+	local ahead = half + 1 + w.Type.RiddenSpeed * Config.Ride.Surge * 0.12 + c.Reach
+	local hit = workspace:Raycast(root.Position, look * ahead, crashParams)
+	local nosed = hit ~= nil and hit.Normal.Y < 0.5 and -look:Dot(hit.Normal) >= c.HeadOn
+	if nosed and not r.Nosed and t - r.FastAt <= 0.5 and t >= r.CrashReadyAt then
+		bump(r, c.Cost, c.Slow)
+	end
+	r.Nosed = nosed
+end
+
+-- The land a rider is in, for the drain (before the first land, the lagoon: the first)
+local function zoneOf(position: Vector3): number
+	local zone = Zones.locate(FishService.zones(), position)
+	return if zone then zone.Index else 1
 end
 
 -- A light check on the client driving its fish: flag one moving far faster than its surge speed
@@ -336,15 +487,19 @@ local function tick(r: Rider, dt: number)
 			dismount(r, "Lost")
 			setState(r, "Free")
 		else
-			drain(r, w.Type.Drain * dt)
+			-- the deeper the land, the more the fish takes a second: this is the progression
+			drain(r, Config.drain(zoneOf(root.Position), w.Type.Tier) * dt)
 			checkSpeed(r, w)
+			checkCrash(r, w)
 			if r.Oxygen <= 0 then
 				drown(r)
 			end
 		end
 	elseif r.State == "Jumping" then
-		-- no drain in the flight; past its time (and the lag slack) with no landing, it's a miss
-		if os.clock() - r.JumpAt > Config.Jump.FlightTime + Config.Jump.Slack then
+		-- No drain in the window. Only a granted grab earns time to finish the pull and acknowledge landing.
+		local j = Config.Jump
+		local deadline = if r.Grab then r.GrabAt + j.ReelMax + j.AckTime + j.Slack else r.JumpAt + j.Window + j.Slack
+		if os.clock() > deadline then
 			miss(r)
 		end
 	elseif r.State == "Free" then
@@ -386,6 +541,7 @@ local function onCharacter(r: Rider, character: Model)
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
 	setState(r, "Dock")
+	PropService.passThrough(character)
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	if humanoid and humanoid:IsA("Humanoid") then
 		humanoid.WalkSpeed = Config.Dock.WalkSpeed
@@ -414,6 +570,8 @@ local function onPlayer(player: Player)
 		Weld = nil,
 		JumpAt = 0,
 		JumpFrom = nil,
+		GrabAt = 0,
+		Grab = nil,
 		Token = 0,
 		JumpReadyAt = 0,
 		SentOxygen = -1,
@@ -422,6 +580,10 @@ local function onPlayer(player: Player)
 		CheckFrom = nil,
 		Flagged = false,
 		SurfacedAt = nil,
+		CrashCheckAt = 0,
+		CrashReadyAt = 0,
+		Nosed = false,
+		FastAt = 0,
 	}
 	riders[player] = r
 	sendOxygen(r, true)
@@ -486,6 +648,13 @@ function RideService.Init()
 		end
 		if action == "Jump" then
 			jump(r)
+		elseif action == "Grab" then
+			grab(r, target)
+		elseif action == "CancelGrab" then
+			if r.State == "Jumping" and r.Grab then
+				FishService.unreserve(r.Grab, r.Player)
+				r.Grab = nil
+			end
 		elseif action == "Land" then
 			landOn(r, target)
 		elseif action == "Miss" then
@@ -498,6 +667,9 @@ function RideService.Init()
 		local r = riders[player]
 		if r and r.Fish then
 			dismount(r, "Left")
+		end
+		if r and r.Grab then
+			FishService.unreserve(r.Grab, player)
 		end
 		riders[player] = nil
 	end)

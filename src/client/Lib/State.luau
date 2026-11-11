@@ -1,6 +1,7 @@
 --!strict
 -- What the local player is doing, shared between the controllers. Mode mirrors the server's State attribute (Dock,
--- Free, Riding, Jumping, Drowning); our client goes to Jumping at once on the key press, ahead of the server.
+-- Free, Riding, Jumping, Drowning); our client goes to Jumping at once on the key press, ahead of the server. Jumping
+-- is the hop off a fish (the pop, the glide, the drop), with the window to grab the next one.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,9 +15,14 @@ local State = {
 	Fish = nil :: Model?, -- the fish we ride
 	MountedAt = -math.huge, -- os.clock() of the mount
 	Speed = 0, -- our speed, for the HUD and camera
-	JumpTarget = nil :: Model?, -- in a jump: the fish in the ring, the one we'd land on
+	JumpTarget = nil :: Model?, -- the locked fish (Lib/Lock): the one a grab would take; it glows
 	Reeling = false, -- in a jump: being pulled onto the fish (its own pose)
-	CamYaw = 0, -- where the camera looks (its yaw): the fish we ride turns to it
+	WindowLeft = nil :: number?, -- in a jump: seconds left to grab a fish (nil outside the window), for the HUD
+	JumpPhase = nil :: string?, -- in a jump: "Pop", "Glide" or "Drop" (nil outside one), for the pose
+	CrashAt = -math.huge, -- os.clock() the server last said we ran into something (the HUD's meter flashes)
+	NoTargetAt = -math.huge, -- os.clock() of a grab pressed with no fish locked (the HUD's reticle flashes)
+	Heading = 0, -- the way we are going (its yaw): A and D turn it, on a fish, in a jump and floating
+	CamYaw = 0, -- where the camera looks (its yaw)
 	SideCam = false, -- the sandbox's side view: the camera stands off to the side, and the steering keeps its own heading
 	FovPunch = 0, -- extra field of view put on at once, with no easing (the pull-in's zoom, the landing's snap)
 	KickVelocity = 0, -- a knock to the camera, studs a second downward: RideController's spring takes it

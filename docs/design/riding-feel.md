@@ -1,11 +1,143 @@
 # Riding feel
 
-How riding, the Oxygen meter and the jump from fish to fish feel, with starting numbers to tune in play. The run around it
-is in [the dive](the-dive.md). The jump follows the reference's, read from the user's recordings
+How riding, the Oxygen meter and the hop from fish to fish feel, with starting numbers to tune in play. The run around it
+is in [the dive](the-dive.md). The hop follows the reference's, read from the user's recordings
 ([the reference's jump](../reference/ride-a-dino.md)).
 
-**Oxygen** is the riding resource (fine for now: the user, 2026-11-10). The meter is Oxygen, and the stat you train is your
-max Oxygen. A creature's tag shows the Oxygen it needs ("Required").
+**Oxygen** is the riding resource, and it is what the design notes call stamina ([Decisions](../Decisions.md),
+2026-11-09 and 2026-11-11). The meter is Oxygen, and the stat you train is your max Oxygen. A creature's tag shows the
+max Oxygen that keeps up with it in its home land ("Required").
+
+## Movement v3.1
+
+**The current model, 2026-11-11.** Hugo's answers of 2026-11-11 ([Decisions](../Decisions.md)): the hop and glide of
+2026-11-10 stay, with Movement v3's lock-on, steering, camera and window on top. Movement v3's own "no hop, slow down
+and sink" is gone. Where the sections further down ("The jump, as built") say otherwise, this section is right.
+**Nobody has played it yet:** see "Checked, and what to play" below.
+
+![The hop from the side](../attachments/hop-arc.png)
+
+### The hop
+One button. Space throws you off the fish at once (from floating too).
+
+| Part | Time | What happens |
+|---|---|---|
+| The pop | 0.4 s | Up 20 studs above where you left (above the locked fish, if that is higher), and forward at 1.4 times the speed you rode at. Arms out ahead, legs trailing. Never out of the water: it stops 3 studs under the surface. |
+| The glide | 1.4 s | Flat at the top, lying face down, swimming (arms sweeping, legs kicking). The pop's extra speed runs out by about 1 s, down to 38 studs a second: the herd's pace. |
+| The drop | 1.2 s | Still swimming, with longer strokes and a harder kick, nosing down. You slow to 30 and sink, slowly at first, to 12 studs below where you left. |
+
+- **The whole hop is the window: 3.0 s** (`Jump.Window`), the same in every land. The drop is whatever the pop and the
+  glide leave of it. A bar and the seconds under the reticle show it; red and pulsing for the last 0.8 s.
+- **You always go forward. Only A and D steer,** at one rate (95 degrees a second) on a fish, in the hop and floating.
+  W, S and the mouse never steer or change speed; a ridden fish keeps the herd's height by itself.
+- **The lock-on** (`Lib/Lock`, `Config.Lock`): the fish you look at glows yellow and gets a bracket on the screen. It is
+  a cone along where the camera looks, wider for near fish, nothing past 85 studs, sticky so it doesn't flicker; the
+  fish you just left comes last. It shows faintly while you still ride. In the hop the mouse aims with no button held,
+  and the view rests looking down on the herd (30 degrees) until you move it.
+- **Space again, a left click, E or gamepad X grabs the locked fish:** the pull-in, on the reference's curve (a creep,
+  then faster and faster, easing onto the saddle; 0.14 s plus a second for every 55 studs, never over 0.8 s), coming
+  down later than it comes across (a swoop), the view narrowing, yellow dots behind you. At the landing the view snaps
+  12 degrees wider and settles, the camera is knocked and springs back, the fish flashes, the bubbles burst. Oxygen
+  refills by a quarter (not for landing back on the fish you left).
+- **A press with nothing locked** flashes the reticle red and the window runs on. Nothing grabs a fish for you
+  (`Jump.AutoGrab` 1 puts the hands-off landing back, for a locked fish at the window's end).
+- **The window gone with no fish: the short drown** (2.8 s), then the dock. In the sandbox with No fail on, you float.
+- **A grab the server refuses** (the fish taken, gone, out of range, behind something solid) puts you back in the hop
+  where you are, with what is left of the same window.
+- **The camera** (`Lib/Spring`): where it looks from, its turn, its zoom and its field of view each go through a
+  critically damped spring, so riding, the hop, the pull-in and the landing run into each other with no snap.
+
+### Oxygen by land (the progression)
+![Oxygen by land](../attachments/stamina-drain.png)
+
+- **The deeper you are, the more Oxygen the fish under you takes a second.** One number a land, for a Common
+  (`Config.ZoneDrain`): 1, 4, 14, 48, 160, 500, 1,500, 4,500, 13,000, 36,000. It goes by the land you are **in**, not
+  the fish's home. Each rarity above Common takes 15% more (`Oxygen.TierDrain`; a Mythic 1.75 times).
+- **What a land needs:** a rider who lands a hop every 6 seconds (`Oxygen.KeepUp`) gets a quarter of their max back
+  each time (`Oxygen.Refill`), so they hold level with a max of drain x 6 / 0.25, 24 times the land's number: 24, 96,
+  336, 1,152, 3,840... Below that you run dry however well you hop. The starting 100 rides the Shallows for ever and
+  just keeps up in the Coral Reef; the Kelp Forest needs training (which isn't built: `TestMaxOxygen` on Workspace sets
+  everyone's max in Studio).
+- **A hop is never refused for Oxygen and costs none.** The window doesn't drain. At almost nothing you can still go
+  fish to fish, and every landing on another fish gives a quarter back.
+- **At nothing while riding,** the fish throws you off and you drown, as before. Floating off a fish drains 4 a second.
+- **On the HUD:** beside the meter, what the fish takes a second, red when your max is under what the land needs; and
+  the land's name says "needs N OXYGEN" while it is.
+- All of it is the server's (`RideService`): the client only shows it.
+
+### Crashes and props
+- **Running a ridden fish into something solid never kills.** Square on enough (not sliding along it), your speed
+  drops to 0.45 of what it was and comes back over 1.4 s, the camera is jolted, and it costs a tenth of your max Oxygen;
+  never the last of it. Once for each time the nose comes up against the thing, and at most every 1.5 s. The server sees
+  it (a ray along the fish's nose), takes the Oxygen and tells your client to slow. `Config.Crash`.
+- **Props break** (`PropService`, `Config.Props`): a fish that swims into one of the map's props knocks loose the boxes
+  it touches, and the boxes of that prop resting above them. They are thrown along its way, turn, sink a little and
+  hang in the water; 8 seconds after the prop was last hit they fly home and it is solid again. The server moves the
+  real boxes, so everyone sees the same prop. The rider goes through, for a small crash: speed to 0.8, 3% of max Oxygen.
+  Breaking gives nothing.
+- **Every fish breaks props for now** (`Props.MinLength` 0). Set it to a length in studs and only fish that long do;
+  shorter ones crash into props like into a wall. This is where "a big enough creature" (2026-11-10) can come back.
+- **Wild fish** steer round the big things, so they are rarely in one; one that is, breaks what it touches.
+- **In the hop** you are stopped by props, as by walls: it costs nothing.
+- Players' bodies no longer collide with props (so a rider isn't knocked about in the moment before the boxes go).
+
+### Who decides what
+The client moves its own fish and its own hop and picks the lock (the camera's aim is its own). The server decides: the
+hop's start and its clock (the window plus 0.6 s for lag), each grab (the fish free, within 85 studs times 1.1, nothing
+solid between; it then keeps that fish for you), each landing (the fish it granted, you at it), Oxygen, crashes, props
+and every death.
+
+### Every number
+All in [Config](../../src/shared/Config.luau), each with a comment, and all on the sandbox panel (N): `Jump`, `Lock`,
+`ZoneDrain` (one row a land), `Oxygen`, `Crash`, `Props`, `Herd`, `Ride`, `Camera`, `AimHud`, `Net`, `Switch`, `Burst`,
+`Spawn`. Not on the panel: `Jump.TrailDots` (made once at the start), `Oxygen.StartMax` (use `TestMaxOxygen`) and the
+lists that aren't single numbers (the rarities, the fish, the mix by land, the drowning's timings). They are starting
+values, **not tuned in play**.
+
+| What | Keys | Starting values |
+|---|---|---|
+| The window | `Jump.Window`, `Warn` | 3.0 s, 0.8 s |
+| The pop | `Jump.LaunchTime`, `Apex`, `Launch`, `BoostTime`, `FreeLaunch` | 0.4 s, 20 studs, 1.4 times, 0.75 s, 55 |
+| The glide | `Jump.FloatTime`, `FloatRise`, `AirSpeed` | 1.4 s, 1 stud, 38 |
+| The drop | `Jump.Drop`, `DropCurve`, `DropSpeed`, `DropTilt` | 12 studs, 2, 30, 12 degrees |
+| The body | `Jump.Tilt`, `Bank` | 78, 18 degrees |
+| The reach and the pull-in | `Jump.GrabRange`, `ReelTime`, `GrabSpeed`, `ReelMax`, `ReelCurve`, `ReelSwoop` | 85 studs, 0.14 s, 55, 0.8 s, 2.3, 0.9 |
+| The landing's camera | `Jump.ReelFov`, `LandFov`, `LandFovTime`, `LandKick` | -10, +12 degrees, 0.35 s, 0.45 studs |
+| The hop's camera | `Jump.CameraPitch`, `CameraZoom` | -30 degrees, 1.2 times |
+| The lock | `Lock.Cone`, `AimRadius`, `DistanceWeight`, `LeftPenalty`, `Sticky`, `MinHold` | 40 degrees, 8 studs, 0.35, 0.5, 0.2, 0.3 s |
+| Steering | `Ride.YawRate`, `TurnEase`, `Bank` | 95 degrees a second, 10, 28 degrees |
+| Oxygen | `ZoneDrain`, `Oxygen.Refill`, `KeepUp`, `TierDrain`, `FreeDrain` | above; 0.25, 6 s, 0.15, 4 |
+| A crash | `Crash.Slow`, `Recover`, `Cost`, `Cooldown`, `HeadOn` | 0.45, 1.4 s, 0.1, 1.5 s, 0.35 |
+| Props | `Props.MinLength`, `Rebuild`, `Push`, `Topple`, `Slow`, `Cost` | 0, 8 s, 16 studs, 22 studs, 0.8, 0.03 |
+| The camera's springs | `Camera.FocusTime`, `TurnTime`, `ZoomTime`, `FovTime` | 0.12, 0.07, 0.3, 0.2 s |
+
+### How the lock scores
+A fish must be free, in sight (nothing solid between) and within `Jump.GrabRange` of you. Its allowance is half the
+cone plus the angle that `AimRadius` and half its own length cover at its distance from the camera, capped at
+`MaxAngle`: a near fish is a much bigger target. Inside its allowance the lowest score wins:
+`AngleWeight x (angle / allowance) + DistanceWeight x (distance / GrabRange)`, plus `LeftPenalty` for the fish you just
+left. The locked fish keeps the lock for `MinHold`, then until another scores `Sticky` better, and may drift `KeepCone`
+times further off the aim.
+
+### Checked, and what to play
+**Not played (2026-11-11):** Studio's connector was being replaced during this work. Checked offline: StyLua, selene
+and `rojo build` pass, and luau-lsp's type check finds nothing new in the changed files. The hop's arc and the drain
+were drawn from Config's own numbers (the two pictures above). So the feel, and anything that needs the map (crashes,
+props), is unseen.
+
+Play in Studio; N opens the panel. For the real rules turn **No fail** and **Endless air** off.
+1. **The hop:** V for the side view. Does the pop, glide and drop read as before, and is the drop swimming rather
+   than falling? (`Jump.Drop`, `DropCurve`, `DropSpeed`.) Is 3.0 s right?
+2. **The lock in the hop:** from 20 studs up, do you get the fish you look at? Is the resting view right?
+   (`Jump.CameraPitch`, `Lock.Cone`, `AimRadius`.)
+3. **Oxygen by land** (Endless air off): the number beside the meter should be about 1 in the Shallows and 4 in the
+   Coral Reef. On 100 the Shallows are easy, the Reef only just, the Kelp Forest runs you dry. At nearly nothing, a hop
+   must still work and refill.
+4. **A crash:** steer into a wall square on, then slide along one. The first slows you and costs a tenth; the second
+   costs nothing. Does it ever charge you without a touch, or miss a clear crash? (`Crash.HeadOn`, `Reach`.)
+5. **Props:** swim through a coral and a wreck. Boxes fly, you go through a little slower, it rebuilds after 8 s. Is
+   too much or too little of a big prop coming down? (`Props.Topple`, `MaxLoose`.) Try `Props.MinLength` 12.
+6. **Co-op and lag:** two players for one fish; a prop one breaks, seen by the other.
 
 ## Decided
 - **Going fish to fish works exactly like the reference's jump** (the user, 2026-11-10), changing only what our game
@@ -14,8 +146,10 @@ max Oxygen. A creature's tag shows the Oxygen it needs ("Required").
 - **Wild fish all swim the same way, straight down the lane** (the user, 2026-11-10).
 - **The jump has a long air time: you float up, swimming, then you drop** (the user, 2026-11-10). A drop that finds no
   fish is the drowning. No hopping for ever.
-- **Hands off, a jump brings you to a fish by itself** (the user, 2026-11-10, from playing the reference).
-- **A ridden fish turns with the camera** (the user, 2026-11-10): like shift lock, but not locked.
+- **Hands off, a jump brings you to a fish by itself** (the user, 2026-11-10, from playing the reference). *Replaced
+  2026-11-11: you grab the fish you look at, by a press.*
+- **A ridden fish turns with the camera** (the user, 2026-11-10): like shift lock, but not locked. *Replaced
+  2026-11-11: only A and D steer.*
 - **Jumping to a fish near by is easy,** and you can grab the fish you just left; far fish stay out of reach (the user,
   2026-11-10). Later the same day: the reach is further still, and you don't need to be looking at the fish.
 - **The pull onto the fish follows the reference's:** slow at first, then accelerating hard (the user, 2026-11-10).
@@ -23,11 +157,17 @@ max Oxygen. A creature's tag shows the Oxygen it needs ("Required").
   reach are tuned round them. It has to look great, immersive and of a piece (the user, 2026-11-10).
 - **The movement has to feel really good, as close to the reference's as a port can be** (the user, 2026-11-10): its own
   piece of work, in a sandbox.
-- **An Oxygen meter that drains while you ride.** Higher tiers drain it faster.
+- **An Oxygen meter that drains while you ride.** Higher tiers drain it faster, and deeper lands much faster
+  (2026-11-11).
+- **The window is the same at every depth; missing every fish is the drown; crashing never kills; fish break props;
+  you can always hop, even at almost no Oxygen** (Hugo, 2026-11-11).
 - **Out of Oxygen while riding, the fish throws you off and you drown,** then wake at the dock.
 - **A bubble burst on every landing** on a fish.
 
 ## The jump, as built (2026-11-10, third pass after the user played the second)
+*History: the hop's shape, the pull-in, the landing and the herd are still this. The steering, the ring, how a fish is
+picked and the landing without a press were replaced on 2026-11-11 (Movement v3.1, above).*
+
 One button, as in the reference. The numbers are in `src/shared/Config.luau` under `Jump` and `Herd`.
 
 1. **Space** throws you off the fish at once. From floating (after diving in off the
@@ -119,18 +259,18 @@ feel as a whole go to the movement sandbox. Still open: 2, 3 and 7.
 ## Starting numbers (ideas not agreed, to tune in play)
 Speeds in studs a second. The reference rides at about 55 ([blockout](../blockout.md)).
 
-| Tier | Idle speed | Ridden speed | Seconds on it with exactly its Required Oxygen |
-|---|---|---|---|
-| Common | 14 | 45 | 12 |
-| Uncommon | 16 | 52 | 10 |
-| Rare | 18 | 60 | 8 |
-| Epic | 20 | 68 | 7 |
-| Legendary | 22 | 78 | 6 |
-| Mythic | 24 | 90 | 5 |
-| Secret | 26 | 100 | 5 |
+| Tier | Ridden speed | Oxygen a second, times a Common's |
+|---|---|---|
+| Common | 45 | 1 |
+| Uncommon | 52 | 1.15 |
+| Rare | 60 | 1.3 |
+| Epic | 68 | 1.45 |
+| Legendary | 78 | 1.6 |
+| Mythic | 90 | 1.75 |
+| Secret | 100 | 1.9 |
 
-- **Drain = the creature's Required ÷ the seconds above,** every second. Example: a Shallows Common, Required 10, drains
-  about 0.8 a second; with a starting max of 100 you'd ride it about two minutes.
+- **Drain = the land's number times the rarity's** ("Oxygen by land", above). It was the creature's Required divided
+  by a number of seconds for its rarity, until 2026-11-11.
 - **Speed-up on mount:** idle to ridden speed over 1.2 s, easing out, plus a 1.25x surge for the first 0.5 s. Back to idle
   over 2 s after you leave.
 - **Out of Oxygen while riding, 5.5 s, no input:** a 0.8 s throw-off (the fish bucks and flings you up and back about 8
@@ -170,4 +310,6 @@ animations, the shakes, the changes of speed) is still to do, in there.
 - The glow and the outline: the look and the timing, to tune against the reference.
 - A revive after a miss, as in the reference.
 - Zones 7 to 10 have no fish types yet, so no fish.
-- Whether drain scales only by Required, or tiers also get a flat multiplier.
+- Training max Oxygen (the other half of the progression) isn't built: every land past the second needs it.
+- Whether only big creatures break props (`Props.MinLength`), and whether breaking should ever give anything.
+- The hands-off landing (2026-11-10) against the grab by a press (2026-11-11): `Jump.AutoGrab` holds both.
