@@ -32,7 +32,7 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 - To export one again: `blender --background --python tools/blender/voxel_kit.py -- art/creatures/<Folder>/voxel.py <scratch> --export art/creatures/<Folder>/game`.
 
 ## The queue
-53 creatures. "Worked over" means built and corrected with the user; "first draft" means built in the batches of
+64 creatures. "Worked over" means built and corrected with the user; "first draft" means built in the batches of
 2026-11-10 and 11 and passed by the gate, seen by the user only on a batch sheet.
 
 | Zone | Creature | Rarity | Length (studs) | Triangles | Parts | Glow | State | Folder |
@@ -82,16 +82,27 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 | 6 Twilight | Giant Squid | Epic | 34.2 | 1,166 | 38 |  | first draft | `art/creatures/GiantSquid/game/` |
 | 6 Twilight | Goblin Shark | Epic | 24.2 | 1,266 | 8 |  | first draft | `art/creatures/GoblinShark/game/` |
 | 6 Twilight | Liopleurodon | Legendary | 36.3 | 2,232 | 12 | yes | first draft | `art/creatures/Liopleurodon/game/` |
+| 6 Twilight | Shonisaurus | Legendary | 40.5 | 2,350 | 16 | yes | first draft | `art/creatures/Shonisaurus/game/` |
+| 6 Twilight | Lantern Leviathan | Mythic | 46.4 | 2,446 | 24 | yes | first draft | `art/creatures/LanternLeviathan/game/` |
 | 7 Midnight | Anglerfish | Epic | 17.6 | 964 | 10 | yes | worked over | `art/creatures/Anglerfish/game/` |
+| 7 Midnight | Frilled Shark | Epic | 24.7 | 1,486 | 13 |  | first draft | `art/creatures/FrilledShark/game/` |
 | 7 Midnight | Basilosaurus | Legendary | 44.1 | 2,650 | 26 | yes | worked over | `art/creatures/Basilosaurus/game/` |
+| 7 Midnight | Livyatan | Legendary | 40.3 | 2,342 | 22 | yes | first draft | `art/creatures/Livyatan/game/` |
 | 7 Midnight | Mosasaurus | Legendary | 43.0 | 2,394 | 24 | yes | worked over | `art/creatures/Mosasaurus/game/` |
 | 7 Midnight | Kraken | Mythic | 47.8 | 2,596 | 26 | yes | worked over | `art/creatures/Kraken/game/` |
+| 8 Vents | Giant Isopod | Epic | 16.4 | 1,070 | 10 | yes | first draft | `art/creatures/GiantIsopod/game/` |
+| 8 Vents | Sea Scorpion | Epic | 21.2 | 1,462 | 14 |  | first draft | `art/creatures/SeaScorpion/game/` |
 | 8 Vents | Anomalocaris | Legendary | 31.9 | 1,328 | 25 | yes | worked over | `art/creatures/Anomalocaris/game/` |
 | 8 Vents | Bobbit Worm | Legendary | 38.0 | 2,396 | 16 | yes | worked over | `art/creatures/BobbitWorm/game/` |
+| 8 Vents | Kronosaurus | Legendary | 42.0 | 2,700 | 12 | yes | first draft | `art/creatures/Kronosaurus/game/` |
 | 8 Vents | Megalodon | Legendary | 42.0 | 2,546 | 9 | yes | first draft | `art/creatures/Megalodon/game/` |
+| 9 Bone Graveyard | Wraith Eel | Legendary | 34.5 | 1,970 | 19 | yes | first draft | `art/creatures/WraithEel/game/` |
+| 9 Bone Graveyard | Bone Leviathan | Mythic | 49.7 | 2,062 | 16 | yes | first draft | `art/creatures/BoneLeviathan/game/` |
+| 10 Underworld | Brimstone Eel | Legendary | 34.3 | 2,272 | 20 | yes | first draft | `art/creatures/BrimstoneEel/game/` |
+| 10 Underworld | Abyssal Watcher | Mythic | 38.6 | 2,732 | 10 | yes | first draft | `art/creatures/AbyssalWatcher/game/` |
 | 10 Underworld | Hellmaw | Mythic | 31.1 | 2,386 | 13 | yes | worked over | `art/creatures/Hellmaw/game/` |
 
-Totals: 69,597 triangles, 626 parts.
+Totals: 92,489 triangles, 802 parts.
 
 ## To put one in the game
 1. The user says yes to the upload (permanent).
