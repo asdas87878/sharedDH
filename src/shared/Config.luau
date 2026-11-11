@@ -410,6 +410,37 @@ Config.Camera = {
 -- Every layer is seen only: it turns or shifts the fish's first joint, never the Root, so the Saddle, the lock and the
 -- server's checks are untouched. The numbers by body type are in Shared/RideStyles. A row at 0 turns its layer off.
 -- First guesses, not judged in play.
+-- The look of the light (Shared/Look puts these on Lighting; Controllers/LookController does it live while playing, so
+-- each is a row on the N panel; tools/studio/look_install.luau does it in Studio's Edit mode). From the user's lighting
+-- tutorial, 2026-11-11 (docs/design/lighting.md): bright, with a cool ambient, a wide bloom, and strong contrast and
+-- saturation. Colours are three numbers, 0 to 255.
+Config.Look = {
+	On = 1, -- 0: the place's own lighting, untouched (to compare)
+	Brightness = 4, -- the sun's strength (Roblox's own start is 3)
+	ShadowSoftness = 1, -- 0 hard to 1 soft
+	ClockTime = 14.5, -- the hour: where the sun stands
+	Latitude = 0, -- tilts the sun's path
+	Exposure = 0, -- the whole picture lighter or darker, in stops
+	AmbientR = 124, -- the light in shade (indoors, under things)
+	AmbientG = 155,
+	AmbientB = 184,
+	OutdoorR = 157, -- the light in shade under the open sky
+	OutdoorG = 178,
+	OutdoorB = 255,
+	EnvDiffuse = 1, -- how much the sky tints everything
+	EnvSpecular = 1, -- how much the sky shows in shiny things
+	BloomIntensity = 1, -- the glow round bright things: how strong,
+	BloomSize = 56, -- how wide (Roblox's own start is 24),
+	BloomThreshold = 2, -- and how bright a thing must be to glow
+	Contrast = 0.5, -- -1 to 1
+	Saturation = 0.5, -- -1 to 1: how vivid the colours are
+	ColourBrightness = 0, -- -1 to 1, after everything else
+	TintR = 245, -- the whole picture is multiplied by this colour (a faint lilac)
+	TintG = 234,
+	TintB = 255,
+	Sky = 2, -- which sky of ReplicatedStorage.Skies, in name order: 1 the place's first sky, 2 the Anime Sky (0: whatever Sky is in Lighting)
+}
+
 Config.Animation = {
 	-- Effort: the fish works harder when it speeds up or is landed on, and eases when it coasts
 	Effort = 1, -- 1: the swing and the beat follow the effort; 0: every beat the same, as before

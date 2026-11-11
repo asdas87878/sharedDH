@@ -73,11 +73,13 @@ long, and the pieces have to meet exactly.
    grey (70 of 255), Brightness 3, the sky tints everything (EnvironmentDiffuseScale 1), and there are Atmosphere,
    Bloom, SunRays and DepthOfField effects. A lighting pass is its own subject, and it touches the whole place, so
    it is agreed with the riding chat first.
-   **Agreed 2026-11-11:** the game code never sets the place's Lighting, so the map chat sets it in Edit mode. What
-   is set now is the look above water and in the hub; a depth controller, when built, will take over fog, ambient
-   and brightness under water. Two conditions: the values live in a script beside the loader, not only in the
-   place (the map is going into the friend's file, and a place's Lighting doesn't travel); and the Atmosphere is
-   left out or kept thin, since [workout 1](../style/01-going-down.md) plans classic fog under water.
+   **Changed 2026-11-11 (later the same day):** the light and the sky are the game's now, not the map's. The user
+   sent the riding chat a lighting tutorial and likes its vibrant look; the values are in `Config.Look`, kept while
+   playing by `LookController`, and put on the Edit-mode place by `tools/studio/look_install.luau`
+   ([the lighting note](lighting.md)). This replaces the earlier agreement that the game code never sets Lighting
+   and the map chat would. The map's loader sets no Lighting at all. What stays the map's: judging the walls, the
+   grass and the water under that light, and the first parked step (light and fog by depth) is now worked out
+   with the riding chat, not set by the map alone.
 2. **Grass front against grass top.** Theirs is brighter on the front than on the top; ours the other way round.
    Light again.
 3. **Part count.** 8 parts a piece (4 seen, 4 cores). The cores are never seen whole and can be few long pieces.

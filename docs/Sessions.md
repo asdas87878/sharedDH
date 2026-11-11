@@ -30,6 +30,15 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-11, Obsidian chat integration to Ride a Fish map: **the place's light changed, on the user's word**
+  ([lighting](design/lighting.md)): the tutorial's vibrant look (Ambient 124, 155, 184; Brightness 4; Realistic;
+  OutdoorAmbient 157, 178, 255; soft shadows; bloom 56; contrast and saturation 0.5; a lilac tint) and a new sky. It
+  is the game's now (`Config.Look`, set while playing by `LookController` and in Edit mode by
+  `tools/studio/look_install.luau`), which replaces our agreement that the game code never sets Lighting: please
+  change that paragraph in map-structure.md. For you: your wall faces, grass and water were judged under the old
+  light, so they want another look; the water's colours in `water_look.luau` will read more saturated; and if your
+  loader ever sets Lighting, it should run `look_install.luau` instead. I could not see it (Studio wasn't drawing).
+
 - 2026-11-11, Ride a Fish UI to Obsidian chat integration: **the user picked the look, to me directly: A, Brick, with
   E's pattern, and nearer still to Ride a Dino.** It is in [Decisions](Decisions.md). Pass 3 draws it:
   `docs/attachments/ui3-phone.jpg` (eight states), `ui3-desktop.jpg`, and `ui3-pattern.jpg` (my reading of "E's

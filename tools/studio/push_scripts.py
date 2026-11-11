@@ -4,7 +4,8 @@ usage: python tools/studio/push_scripts.py <repo> <out.luau> <src-relative path>
   e.g. python tools/studio/push_scripts.py . /tmp/push.luau \\
          src/client/Controllers/HudController.luau=StarterPlayer.StarterPlayerScripts.Client.Controllers.HudController
        node tools/studio/run_luau.js <studio_id> /tmp/push.luau
-Only for scripts that already exist in the place; a new file needs Rojo connected (or the place rebuilt).
+A script that isn't in the place yet is made (a ModuleScript; a LocalScript for .client.luau, a Script for
+.server.luau) when its parent is there.
 """
 import io
 import json
@@ -15,7 +16,8 @@ items = []
 for pair in sys.argv[3:]:
     rel, where = pair.split("=")
     src = io.open(repo + "/" + rel, encoding="utf-8", newline="").read().replace("\r\n", "\n")
-    items.append({"path": where.split("."), "source": src})
+    kind = "LocalScript" if rel.endswith(".client.luau") else "Script" if rel.endswith(".server.luau") else "ModuleScript"
+    items.append({"path": where.split("."), "source": src, "class": kind})
 
 blob = json.dumps(items)
 assert "]==]" not in blob
@@ -25,9 +27,16 @@ local out = {}
 for _, item in items do
 	local at = game
 	for i, name in item.path do
+		local parent = at
 		at = if i == 1 then game:GetService(name) else at:FindFirstChild(name)
 		if not at then
-			error("no " .. table.concat(item.path, "."))
+			if i == #item.path then
+				at = Instance.new(item.class)
+				at.Name = name
+				at.Parent = parent
+			else
+				error("no " .. table.concat(item.path, "."))
+			end
 		end
 	end
 	at.Source = item.source

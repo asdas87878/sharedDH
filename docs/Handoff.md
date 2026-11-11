@@ -3,6 +3,23 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-11 · 8570-F43F (the user's PC): the tutorial's lighting, tweakable, and its sky
+**State:** written and run in Studio by the game-code chat; StyLua, selene and `rojo build` pass. **Not seen by eye:**
+Studio's window wasn't being drawn, so it was checked by its numbers in play (every value on, no errors, the sky
+shown). The note: [lighting](design/lighting.md).
+
+- **New:** `Config.Look` (the numbers), `src/shared/Look.luau` (puts them on Lighting and two effects of our own),
+  `src/client/Controllers/LookController.luau` (keeps them while playing; all on the player's own machine),
+  `tools/studio/look_install.luau` (the same in Edit mode, plus LightingStyle Realistic, which a game script can't
+  set), and 24 `Look` rows on the N panel. `Look.On` 0 shows Roblox's plain lighting to compare.
+- **In the place (Studio-owned, not in the repo):** `ReplicatedStorage.Skies` with `1 Place` and `2 Anime Sky`
+  (Creator Store asset 72835926026092, the Sky only), and Lighting set by the installer. **Hugo's place needs** the
+  installer run once and a `Skies` folder, or it keeps its own sky and a Soft style with the rest of the look.
+- **Left out on the user's word:** the tutorial's last step, a `Highlight` on the character (a black outline and a 20%
+  black wash).
+- `tools/studio/push_scripts.py` now also makes a script that isn't in the place yet.
+- **This replaces** the agreement that the game code never sets Lighting (map-structure.md, "Still different", 1).
+
 
 ## 2026-11-11 · 8570-F43F (the user's PC): animation is tried in a preview page now, not in the game
 **State:** no change to `src/` or to Studio. The user's word: two chats changing the game at once got confusing, so
