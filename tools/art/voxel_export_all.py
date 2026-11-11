@@ -54,8 +54,8 @@ lines = ["# Creature queue: models ready to go into the game",
          "- The same layout `tools/blender/fish_kit_export.py` writes for the older kit, with parts added.",
          "- To export one again: `blender --background --python tools/blender/voxel_kit.py -- art/creatures/<Folder>/voxel.py <scratch> --export art/creatures/<Folder>/game`.", "",
          "## The queue",
-         f"{len(rows)} creatures. \"Worked over\" means built and corrected with the user; \"first draft\" means built in the batch of",
-         "2026-11-10 and passed by the gate, seen by the user only on a batch sheet.", "",
+         f"{len(rows)} creatures. \"Worked over\" means built and corrected with the user; \"first draft\" means built in the batches of",
+         "2026-11-10 and 11 and passed by the gate, seen by the user only on a batch sheet.", "",
          "| Zone | Creature | Rarity | Length (studs) | Triangles | Parts | Glow | State | Folder |", "|---|---|---|---|---|---|---|---|---|"]
 for number, _, name, rarity, size, tris, parts, glow, folder, stem in rows:
     zone = f"{number} {ZONES[number - 1].title()}" if 1 <= number <= 10 else "-"

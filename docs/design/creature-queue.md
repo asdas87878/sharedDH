@@ -32,8 +32,8 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 - To export one again: `blender --background --python tools/blender/voxel_kit.py -- art/creatures/<Folder>/voxel.py <scratch> --export art/creatures/<Folder>/game`.
 
 ## The queue
-39 creatures. "Worked over" means built and corrected with the user; "first draft" means built in the batch of
-2026-11-10 and passed by the gate, seen by the user only on a batch sheet.
+53 creatures. "Worked over" means built and corrected with the user; "first draft" means built in the batches of
+2026-11-10 and 11 and passed by the gate, seen by the user only on a batch sheet.
 
 | Zone | Creature | Rarity | Length (studs) | Triangles | Parts | Glow | State | Folder |
 |---|---|---|---|---|---|---|---|---|
@@ -60,24 +60,38 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 | 2 Coral Reef | Dunkleosteus | Legendary | 26.2 | 1,406 | 9 | yes | worked over | `art/creatures/Dunkleosteus/game/` |
 | 3 Kelp Forest | Garibaldi | Uncommon | 12.5 | 886 | 5 |  | first draft | `art/creatures/Garibaldi/game/` |
 | 3 Kelp Forest | Sea Lion | Uncommon | 16.1 | 956 | 12 |  | first draft | `art/creatures/SeaLion/game/` |
+| 3 Kelp Forest | Giant Sea Bass | Rare | 20.1 | 1,266 | 8 |  | first draft | `art/creatures/GiantSeaBass/game/` |
 | 3 Kelp Forest | Leopard Shark | Rare | 18.3 | 1,102 | 8 |  | first draft | `art/creatures/LeopardShark/game/` |
 | 3 Kelp Forest | Great White | Epic | 26.1 | 1,788 | 7 |  | first draft | `art/creatures/GreatWhite/game/` |
 | 3 Kelp Forest | Steller's Sea Cow | Epic | 29.2 | 1,578 | 16 |  | first draft | `art/creatures/StellersSeaCow/game/` |
 | 3 Kelp Forest | Dakosaurus | Legendary | 34.3 | 2,148 | 22 | yes | first draft | `art/creatures/Dakosaurus/game/` |
+| 4 Shipwrecks | Barracuda | Uncommon | 20.4 | 1,193 | 8 |  | first draft | `art/creatures/Barracuda/game/` |
 | 4 Shipwrecks | Hammerhead Shark | Rare | 20.1 | 980 | 9 |  | first draft | `art/creatures/HammerheadShark/game/` |
+| 4 Shipwrecks | Sawfish | Rare | 24.7 | 920 | 7 |  | first draft | `art/creatures/Sawfish/game/` |
+| 4 Shipwrecks | Electric Ray | Epic | 18.0 | 1,180 | 4 | yes | first draft | `art/creatures/ElectricRay/game/` |
+| 4 Shipwrecks | Goliath Grouper | Epic | 24.1 | 1,326 | 10 |  | first draft | `art/creatures/GoliathGrouper/game/` |
+| 4 Shipwrecks | Xiphactinus | Legendary | 33.9 | 1,986 | 17 | yes | first draft | `art/creatures/Xiphactinus/game/` |
+| 5 Open Blue | Dolphin | Rare | 15.8 | 1,122 | 12 |  | first draft | `art/creatures/Dolphin/game/` |
+| 5 Open Blue | Swordfish | Rare | 23.9 | 1,074 | 8 |  | first draft | `art/creatures/Swordfish/game/` |
 | 5 Open Blue | Manta Ray | Epic | 24.0 | 754 | 12 |  | worked over | `art/creatures/MantaRay/game/` |
 | 5 Open Blue | Orca | Epic | 29.2 | 1,356 | 15 |  | first draft | `art/creatures/Orca/game/` |
 | 5 Open Blue | Elasmosaurus | Legendary | 43.0 | 1,982 | 22 | yes | first draft | `art/creatures/Elasmosaurus/game/` |
+| 5 Open Blue | Helicoprion | Legendary | 32.7 | 2,064 | 13 | yes | first draft | `art/creatures/Helicoprion/game/` |
 | 5 Open Blue | Blue Whale (the old one) | Mythic | 46.0 | 2,164 | 14 | yes | worked over | `art/creatures/BlueWhale/game/` |
+| 6 Twilight | Viperfish | Rare | 16.0 | 1,152 | 13 | yes | first draft | `art/creatures/Viperfish/game/` |
+| 6 Twilight | Giant Squid | Epic | 34.2 | 1,166 | 38 |  | first draft | `art/creatures/GiantSquid/game/` |
+| 6 Twilight | Goblin Shark | Epic | 24.2 | 1,266 | 8 |  | first draft | `art/creatures/GoblinShark/game/` |
+| 6 Twilight | Liopleurodon | Legendary | 36.3 | 2,232 | 12 | yes | first draft | `art/creatures/Liopleurodon/game/` |
 | 7 Midnight | Anglerfish | Epic | 17.6 | 964 | 10 | yes | worked over | `art/creatures/Anglerfish/game/` |
 | 7 Midnight | Basilosaurus | Legendary | 44.1 | 2,650 | 26 | yes | worked over | `art/creatures/Basilosaurus/game/` |
 | 7 Midnight | Mosasaurus | Legendary | 43.0 | 2,394 | 24 | yes | worked over | `art/creatures/Mosasaurus/game/` |
 | 7 Midnight | Kraken | Mythic | 47.8 | 2,596 | 26 | yes | worked over | `art/creatures/Kraken/game/` |
 | 8 Vents | Anomalocaris | Legendary | 31.9 | 1,328 | 25 | yes | worked over | `art/creatures/Anomalocaris/game/` |
 | 8 Vents | Bobbit Worm | Legendary | 38.0 | 2,396 | 16 | yes | worked over | `art/creatures/BobbitWorm/game/` |
+| 8 Vents | Megalodon | Legendary | 42.0 | 2,546 | 9 | yes | first draft | `art/creatures/Megalodon/game/` |
 | 10 Underworld | Hellmaw | Mythic | 31.1 | 2,386 | 13 | yes | worked over | `art/creatures/Hellmaw/game/` |
 
-Totals: 49,104 triangles, 459 parts.
+Totals: 69,597 triangles, 626 parts.
 
 ## To put one in the game
 1. The user says yes to the upload (permanent).
