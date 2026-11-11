@@ -1,5 +1,6 @@
 {
  "stud": "rbxassetid://125516729429617",
  "floor": "rbxassetid://128656252103676",
- "note": "uploaded 2026-11-10 from art/style/map_tiles/roblox (tools/art/map_roblox_textures.py), through Studio, on the user's word. Image ids. Uploads are permanent: redraw only when a picture is chosen."
+ "note": "Image ids, uploaded through Studio on the user's word. stud and floor: 2026-11-10 (the first try: studs too faint, squares of 10). tile: 2026-11-11, art/style/map_tiles/roblox/tile.png: two squares by two (10 studs to a tile), 8 round studs across a square, soft squares; the one picture for every surface (docs/design/map-structure.md). Uploads are permanent: redraw only when a picture is chosen.",
+ "tile": "rbxassetid://123856365405795"
 }

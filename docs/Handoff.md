@@ -117,6 +117,26 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
     105 fish), swim with their keyed motion, and can be ridden (rode a Cuttlefish). The other 12 live in lands the
     map doesn't have yet, so they don't spawn. No script errors. Nobody has looked at them in play yet: Studio
     wasn't drawing for captures after the first ([the Reef Shark](attachments/creature-reefshark-in-studio.jpg)).
+  - **The first uploads were too dark** (the export wrote vertex colours as linear light; Roblox shows them as
+    stored). The creature chat fixed its exporter; the corrected Reef Shark was uploaded and checked against plain
+    parts in the design's colours ([capture](attachments/creature-reefshark-colour-fix.jpg)) and is installed. The
+    other 32 are re-exported and wait for the user's word to upload; the 33 dark assets are still in the inventory.
+- **The friend's mechanics work is built on this repo's code (the user, 2026-11-11),** in his own Roblox file. Until it
+  is pushed and merged the ride, jump and camera code here is left alone.
+- **Grey-box 6 (2026-11-11, the map chat: every wall rebuilt as a 1-stud face with a hollow behind and grass on top):**
+  the game runs on it at 59 frames a second in Studio on this PC (12,933 parts). One change was needed:
+  `Ride.LaneMargin` 20 to -3. A ridden fish was allowed 20 studs past the lane's edge, which is now inside the hollow
+  behind a wall face, and one got boxed in there under the grass. Now the fish and the flight stay 3 studs inside the
+  edge; in the re-test it never passed the edge and stopped at the wall as it should.
+- **Grey-box 7 (2026-11-11, the map chat: the lane itself changed: a straight first land, 120 to 515 wide, one smooth
+  floor, a wall or rim on every edge with an unseen barrier behind):** the game runs on it with no code change.
+  - The floor survey is within 0.1 stud of the built floor everywhere (985 places). 52 obstacles, read from the map.
+  - The herd: 118 fish; a fish's nearest neighbour is 40 to 49 studs away on average, about the same in the narrow
+    and the wide rooms.
+  - Four jumps in a row landed, each with the whole 21-stud rise; they took 3.2 to 3.7 s (the catch came in the drop,
+    as on grey-box 6). A ridden fish steered at a wall stopped 8 studs short of it and never passed the lane's edge.
+  - The frame rate read 15 a second in this run; the run before (grey-box 6) read 59 and an earlier one 15 too, so it
+    is probably Studio not being drawn, not the map. Not settled.
   - **Seen, not solved:** the first jump from the start missed in one run (the herd swims off at the flight's own
     pace, so a diver starting from rest can't catch a fish ahead); a ridden fish left alone runs into a wall or an
     obstacle and stops, because the lane winds and the fish only turns with the camera; a jump's flight against the

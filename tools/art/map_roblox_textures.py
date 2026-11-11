@@ -63,6 +63,21 @@ grid[:512, :512, 3] = grid[512:, 512:, 3] = int(SQUARE_SHADE * 255)  # two of th
 floor = over(grid, studs)
 Image.fromarray(floor, "RGBA").save(os.path.join(OUT, "floor.png"))
 
+# ---- tile.png (2026-11-11, docs/design/map-structure.md): the one picture for every surface. Two squares by two
+# (a square is 5 studs, so the picture is 10 studs), 8 round studs across a square as the reference has, darker than
+# the first try, and the squares soft. It replaces stud.png and floor.png.
+TILE_STUD, TILE_SQUARE = 0.85, 0.06
+one64 = np.asarray(one.resize((64, 64), Image.LANCZOS))
+tile_studs = overlay(np.tile(one64, (16, 16)), TILE_STUD)
+tile_grid = np.zeros((1024, 1024, 4), np.uint8)
+tile_grid[:512, :512, 3] = tile_grid[512:, 512:, 3] = int(TILE_SQUARE * 255)
+tile = over(tile_grid, tile_studs)
+Image.fromarray(tile, "RGBA").save(os.path.join(OUT, "tile.png"))
+look = Image.new("RGB", (4 * 520 + 20, 540), (254, 248, 241))
+for k, colour in enumerate([(150, 176, 160), (70, 150, 60), (40, 120, 70), (242, 214, 128)]):
+    look.paste(shown(tile, colour, 1).resize((512, 512), Image.LANCZOS), (10 + k * 520, 14))  # 10 studs across
+look.save(os.path.join(OUT, "_tile_preview.jpg"), quality=90)
+
 lands = [(242, 214, 128), (244, 148, 152), (120, 172, 92), (160, 148, 124)]
 sheet = Image.new("RGB", (4 * 520 + 20, 2 * 520 + 20), (254, 248, 241))
 for k, colour in enumerate(lands):

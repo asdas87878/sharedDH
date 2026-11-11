@@ -12,6 +12,8 @@ What it builds (the names the game code looks for are kept from blockout v4):
       01_SHALLOWS ... /Floor               one invisible marker per land that is built, with ZoneName and Metres
     Lane/Seabed, Ground, Walls, Far, Trim  the lane (the floor's boxes are named Seabed, in the Seabed folder)
     Lane/Props/<asset>                     one Model per asset, its bricks loose inside it (attribute PropName)
+    Lane/Barrier                           unseen solid panels just behind every wall's face, from under the floor to
+                                           over the surface: they keep swimmers and fish in the lane
     Dock                                   the hub: floor, walls, stalls, and DockSpawn (facing the start)
     Dock/Plots/Plot1 ... Plot8             a Model per player's plot: TankWater, TankBase, SignBoard, TrainerSpot,
                                            TrainerRide, CollectPad, Pad
@@ -30,15 +32,31 @@ BOX = os.path.join(ROOT, "art", "map", "greybox")
 OUT = os.path.join(ROOT, "tools", "studio", "greybox")
 ORIGIN = (3000.0, 0.0, 0.0)
 PER_FILE = 600
-FOLDERS = ["Surface", "Lane/Seabed", "Lane/Ground", "Lane/Walls", "Lane/Far", "Lane/Props", "Lane/Trim", "Dock", "Dock/Plots"]
-TEXTURES = {"stud": "", "floor": ""}  # asset ids, once uploaded: "rbxassetid://..."
+FOLDERS = ["Surface", "Lane/Seabed", "Lane/Ground", "Lane/Walls", "Lane/Far", "Lane/Props", "Lane/Trim", "Dock", "Dock/Plots", "Lane/Barrier"]
+TEXTURES = {"stud": "", "floor": "", "tile": ""}  # asset ids, once uploaded: "rbxassetid://..."
 if os.path.exists(os.path.join(ROOT, "art", "map", "textures.json")):
     TEXTURES.update(json.load(open(os.path.join(ROOT, "art", "map", "textures.json"))))
-PICTURE = {"ground": 1, "plain": 2, "hub": 2, "face": 3}  # 1: floor picture on top; 2: studs on top; 3: studs on the lane's side
+# where the one picture ("tile": squares of 5 with 8 round studs across each, 10 studs to a tile) goes on a part:
+# 1 on top; 3 on the side that faces the lane; 4 on both (a grass slab: its top and its front edge)
+PICTURE = {"ground": 1, "plain": 1, "hub": 1, "face": 3, "grass": 4}
 # each built land: the name the game shows, the depth its gauge starts at, and v4's look for it (not read by code yet)
-LANDS = [("SHALLOWS", 0, {"Fog": [64, 200, 205], "FogEnd": 1000, "Ambient": [110, 170, 170], "Outdoor": [130, 195, 195], "Brightness": 2, "Tint": [235, 255, 250]}),
-         ("CORAL REEF", 10, {"Fog": [40, 170, 200], "FogEnd": 900, "Ambient": [90, 150, 165], "Outdoor": [110, 175, 190], "Brightness": 1.8, "Tint": [230, 250, 255]}),
-         ("KELP FOREST", 40, {"Fog": [50, 140, 110], "FogEnd": 550, "Ambient": [70, 120, 90], "Outdoor": [90, 140, 105], "Brightness": 1.4, "Tint": [225, 255, 215]})]
+def look(fog, far, ambient, outdoor, bright, tint, glow=None):
+    out = {"Fog": fog, "FogEnd": far, "Ambient": ambient, "Outdoor": outdoor, "Brightness": bright, "Tint": tint}
+    if glow:
+        out["Glow"] = glow
+    return out
+
+
+LANDS = [("SHALLOWS", 0, look([64, 200, 205], 1000, [110, 170, 170], [130, 195, 195], 2, [235, 255, 250])),
+         ("CORAL REEF", 10, look([40, 170, 200], 900, [90, 150, 165], [110, 175, 190], 1.8, [230, 250, 255])),
+         ("KELP FOREST", 40, look([50, 140, 110], 550, [70, 120, 90], [90, 140, 105], 1.4, [225, 255, 215], [255, 230, 107])),
+         ("SHIPWRECKS", 80, look([35, 105, 120], 500, [55, 95, 105], [70, 110, 120], 1.1, [215, 240, 240])),
+         ("OPEN BLUE", 150, look([20, 85, 170], 750, [45, 80, 140], [55, 95, 160], 1, [210, 230, 255])),
+         ("TWILIGHT", 200, look([20, 30, 95], 420, [35, 40, 100], [40, 45, 110], 0.5, [200, 210, 255], [95, 240, 224])),
+         ("MIDNIGHT", 1000, look([6, 10, 35], 300, [20, 25, 60], [20, 25, 60], 0.15, [180, 200, 255], [95, 240, 224])),
+         ("VENTS", 2000, look([30, 14, 18], 300, [60, 30, 30], [50, 25, 25], 0.1, [255, 215, 195], [255, 138, 61])),
+         ("BONE GRAVEYARD", 4000, look([14, 22, 36], 320, [40, 45, 70], [35, 40, 60], 0.1, [225, 215, 255], [255, 111, 216])),
+         ("THE UNDERWORLD", 6000, look([28, 4, 8], 250, [60, 15, 20], [50, 10, 15], 0.05, [255, 200, 200], [255, 58, 42]))]
 
 parts = json.load(open(os.path.join(BOX, "parts.json")))["parts"]
 info = json.load(open(os.path.join(BOX, "path.json")))
@@ -49,6 +67,8 @@ def where(p):
     n, k = p["n"], p["k"]
     if k == "water":
         return 0, None
+    if k == "barrier":
+        return 9, None  # unseen and solid: what keeps swimmers and fish in the lane
     if k == "figure":
         return None, None  # the scale figures stay out of Studio
     if n.startswith("Plot"):
@@ -65,9 +85,9 @@ def where(p):
         return 5, asset + "_" + number
     if n == "Seabed":
         return 1, None
-    if k in ("ground", "plain"):
+    if k in ("ground", "plain", "grass"):
         return 2, None
-    if k == "face":
+    if k in ("face", "core"):
         return 3, None
     if k == "far":
         return 4, None
@@ -84,11 +104,11 @@ for p in parts:
     ax, ay = p["x"], p["y"]
     if p["n"] == "DockSpawn":
         ax, ay = [-1, 0, 0], [0, 1, 0]  # so the spawn looks down the lane, at the start
-    flags = (1 if p["solid"] else 0) + (0 if p["k"] in ("trim", "water") else 2) + (4 if p["k"] == "water" else 0)
+    flags = (1 if p["solid"] else 0) + (0 if p["k"] in ("trim", "water", "barrier") else 2) + (4 if p["k"] == "water" else 0)
     colour = p["c"][0] * 65536 + p["c"][1] * 256 + p["c"][2]
     rows.append([folder, names.setdefault(name, len(names)), models.setdefault(model, len(models)) if model else -1, colour, flags]
                 + [round(p["p"][i] + ORIGIN[i], 2) for i in range(3)] + [max(0.05, v) for v in p["s"]] + [round(v, 4) for v in ax + ay]
-                + [PICTURE.get(p["k"], 0), p.get("t", 0)])
+                + [PICTURE.get(p["k"], 0), p.get("t", 0), p.get("v", 0)])
 rows.sort(key=lambda r: (r[0], r[2]))  # an asset's bricks together
 
 path = [[r[0], round(r[1] + ORIGIN[0], 1), r[2], round(r[3] + ORIGIN[2], 1), r[4], r[5]] for r in info["Path"]]
@@ -105,7 +125,7 @@ for i, (land, (name, metres, look)) in enumerate(zip(info["Lands"], LANDS)):
     looks.append(dict(look, S=s0))
 
 HEAD = '''--!nocheck
--- Generated by tools/map/greybox_luau.py from art/map/greybox: do not edit by hand. Grey-box 5 of the map
+-- Generated by tools/map/greybox_luau.py from art/map/greybox: do not edit by hand. Grey-box 8 of the map
 -- (docs/design/map-method.md). {what}
 '''
 START = HEAD + '''local HttpService = game:GetService("HttpService")
@@ -116,7 +136,7 @@ end
 workspace.FallenPartsDestroyHeight = -20000 -- the dive goes far below Roblox's default; only Studio can set this
 local root = Instance.new("Folder")
 root.Name = "ClaudeBlockout"
-root:SetAttribute("Build", "greybox 5")
+root:SetAttribute("Build", "greybox 8")
 for _, path in {FOLDERS} do
 	local at = root
 	for name in string.gmatch(path, "[^/]+") do
@@ -160,7 +180,7 @@ return "ClaudeBlockout started: now run the parts files in order"
 '''
 PARTS = HEAD + '''local HttpService = game:GetService("HttpService")
 local root = workspace:FindFirstChild("ClaudeBlockout")
-assert(root and root:GetAttribute("Build") == "greybox 5", "run 00_start.luau first")
+assert(root and root:GetAttribute("Build") == "greybox 8", "run 00_start.luau first")
 local FOLDERS = {FOLDERS}
 local NAMES = {NAMES}
 local MODELS = {MODELS}
@@ -171,15 +191,15 @@ local function folderAt(path)
 	end
 	return at
 end
-local STUD = "{STUD}" -- the studs picture (4 studs to a tile); "" builds without it
-local FLOOR = "{FLOOR}" -- the floor's picture: squares of 10 with studs on them (20 studs to a tile)
-local function picture(part, id, face, studsPerTile)
-	if id ~= "" then
+local TILE = "{TILE}" -- the one picture: squares of 5 with round studs, 10 studs to a tile; "" builds without it
+local function picture(part, face, slide)
+	if TILE ~= "" then
 		local t = Instance.new("Texture")
-		t.Texture = id
+		t.Texture = TILE
 		t.Face = face
-		t.StudsPerTileU = studsPerTile
-		t.StudsPerTileV = studsPerTile
+		t.StudsPerTileU = 10
+		t.StudsPerTileV = 10
+		t.OffsetStudsV = slide or 0 -- slid so rows of squares sit on the same heights all along a wall
 		t.Parent = part
 	end
 end
@@ -216,12 +236,11 @@ for _, r in HttpService:JSONDecode([==[{ROWS}]==]) do
 	end
 	p.Size = Vector3.new(r[9], r[10], r[11])
 	p.CFrame = CFrame.fromMatrix(Vector3.new(r[6], r[7], r[8]), Vector3.new(r[12], r[13], r[14]), Vector3.new(r[15], r[16], r[17]))
-	if r[18] == 1 then
-		picture(p, FLOOR, Enum.NormalId.Top, 20)
-	elseif r[18] == 2 then
-		picture(p, STUD, Enum.NormalId.Top, 4)
-	elseif r[18] == 3 then
-		picture(p, STUD, Enum.NormalId.Left, 4) -- a wall's X axis points away from the lane, so Left faces it
+	if r[18] == 1 or r[18] == 4 then
+		picture(p, Enum.NormalId.Top)
+	end
+	if r[18] == 3 or r[18] == 4 then
+		picture(p, Enum.NormalId.Left, r[20]) -- a wall's X axis points away from the lane, so Left faces it
 	end
 	p.Parent = parent
 	made += 1
@@ -258,7 +277,7 @@ for _, d in root:GetDescendants() do
 end
 local spawn = root.Dock:FindFirstChild("DockSpawn")
 return string.format(
-	"greybox 5 in Studio: %d parts (expected {EXPECT}), %d solid; %s; %d Seabed boxes; %d asset models; %d plots; %d pictures; DockSpawn %s; Path %s; fallen-parts height %d",
+	"greybox 8 in Studio: %d parts (expected {EXPECT}), %d solid; %s; %d Seabed boxes; %d asset models; %d plots; %d pictures; DockSpawn %s; Path %s; fallen-parts height %d",
 	count, solid, table.concat(lines, ", "), #seabed, #root.Lane.Props:GetChildren(), #root.Dock.Plots:GetChildren(), pictures, if spawn then "present" else "MISSING",
 	if root.Dive:GetAttribute("Path") then "present" else "MISSING", workspace.FallenPartsDestroyHeight
 )
@@ -290,7 +309,7 @@ for k in range(files):
     open(os.path.join(OUT, f"{k + 1:02d}_parts.luau"), "w", encoding="utf-8", newline="\n").write(
         PARTS.replace("{what}", f"Parts, file {k + 1} of {files}.").replace("{FOLDERS}", lua_list(FOLDERS)).replace("{NAMES}", lua_list(name_list))
         .replace("{MODELS}", lua_list([model_list[m] for m in used_models])).replace("{ROWS}", json.dumps(chunk, **compact))
-        .replace("{STUD}", TEXTURES["stud"]).replace("{FLOOR}", TEXTURES["floor"])
+        .replace("{TILE}", TEXTURES["tile"])
         .replace("{LABEL}", f"parts file {k + 1} of {files}"))
 open(os.path.join(OUT, "99_check.luau"), "w", encoding="utf-8", newline="\n").write(
     CHECK.replace("{what}", "Last: counts what was built.").replace("{EXPECT}", str(len(rows) + len(zones))).replace("{{}}", "{}"))

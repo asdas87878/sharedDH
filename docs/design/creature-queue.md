@@ -32,7 +32,7 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 - To export one again: `blender --background --python tools/blender/voxel_kit.py -- art/creatures/<Folder>/voxel.py <scratch> --export art/creatures/<Folder>/game`.
 
 ## The queue
-33 creatures. "Worked over" means built and corrected with the user; "first draft" means built in the batch of
+39 creatures. "Worked over" means built and corrected with the user; "first draft" means built in the batch of
 2026-11-10 and passed by the gate, seen by the user only on a batch sheet.
 
 | Zone | Creature | Rarity | Length (studs) | Triangles | Parts | Glow | State | Folder |
@@ -58,6 +58,12 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 | 2 Coral Reef | Octopus | Rare | 18.2 | 1,030 | 26 |  | first draft | `art/creatures/Octopus/game/` |
 | 2 Coral Reef | Humphead Wrasse | Epic | 22.2 | 1,214 | 7 |  | first draft | `art/creatures/HumpheadWrasse/game/` |
 | 2 Coral Reef | Dunkleosteus | Legendary | 26.2 | 1,406 | 9 | yes | worked over | `art/creatures/Dunkleosteus/game/` |
+| 3 Kelp Forest | Garibaldi | Uncommon | 12.5 | 886 | 5 |  | first draft | `art/creatures/Garibaldi/game/` |
+| 3 Kelp Forest | Sea Lion | Uncommon | 16.1 | 956 | 12 |  | first draft | `art/creatures/SeaLion/game/` |
+| 3 Kelp Forest | Leopard Shark | Rare | 18.3 | 1,102 | 8 |  | first draft | `art/creatures/LeopardShark/game/` |
+| 3 Kelp Forest | Great White | Epic | 26.1 | 1,788 | 7 |  | first draft | `art/creatures/GreatWhite/game/` |
+| 3 Kelp Forest | Steller's Sea Cow | Epic | 29.2 | 1,578 | 16 |  | first draft | `art/creatures/StellersSeaCow/game/` |
+| 3 Kelp Forest | Dakosaurus | Legendary | 34.3 | 2,148 | 22 | yes | first draft | `art/creatures/Dakosaurus/game/` |
 | 4 Shipwrecks | Hammerhead Shark | Rare | 20.1 | 980 | 9 |  | first draft | `art/creatures/HammerheadShark/game/` |
 | 5 Open Blue | Manta Ray | Epic | 24.0 | 754 | 12 |  | worked over | `art/creatures/MantaRay/game/` |
 | 5 Open Blue | Orca | Epic | 29.2 | 1,356 | 15 |  | first draft | `art/creatures/Orca/game/` |
@@ -71,7 +77,7 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 | 8 Vents | Bobbit Worm | Legendary | 38.0 | 2,396 | 16 | yes | worked over | `art/creatures/BobbitWorm/game/` |
 | 10 Underworld | Hellmaw | Mythic | 31.1 | 2,386 | 13 | yes | worked over | `art/creatures/Hellmaw/game/` |
 
-Totals: 40,646 triangles, 389 parts.
+Totals: 49,104 triangles, 459 parts.
 
 ## To put one in the game
 1. The user says yes to the upload (permanent).

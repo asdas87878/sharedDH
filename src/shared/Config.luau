@@ -90,7 +90,7 @@ Config.Ride = {
 	SeatHeight = 1.4, -- the rider's root above the fish's back
 	FloorClearance = 3, -- the fish pulls up nearer the floor than this
 	Ceiling = 4, -- and stays this far under the surface line
-	LaneMargin = 20, -- a ridden fish and a flight can go this far past the lane's edge, no further
+	LaneMargin = -3, -- a ridden fish and a flight stay this far inside the lane's edge (negative: inside). It was 20 past it, but since grey-box 6 the walls are a 1-stud face with a hollow behind, and 20 past the edge is inside that hollow
 	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its surge speed times this
 }
 

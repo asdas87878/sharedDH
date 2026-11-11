@@ -118,7 +118,38 @@ measured"). What was misread:
   dock radius. Jumps took about 3.4 seconds against 2.2 on blockout v4: the glide ended with no fish in front, and
   the catch came during the drop. Likely the herd being spread out by the obstacles. For the user to judge in play.
 
-### Studs and squares in Roblox
+### Squares everywhere, and Roblox's own studs (the user, 2026-11-10; not built yet)
+The user on grey-box 5 in Studio: the scale looks the same and may not have updated; the light and dark squares
+aren't everywhere; the studs aren't dark enough, so use Roblox's own stud for the floor; the aquarium sizes and the
+distances still aren't right. Then they closed Studio (creatures were being imported) and said to model the changes.
+
+The place had been saved and published the evening before as "rideafishfr" with grey-box 5 in it (the riding chat
+read back the spawn at z = -70 and 7,198 parts). **So the bigger hub was what the user saw, and it still read as the
+same scale and not right:** the hub's sizes are wrong for them, not stale.
+
+![The target: squares on everything that is ground](../attachments/map-squares-everywhere.jpg)
+
+- **Where the map is modelled:** in neither Blender nor Studio by hand. `tools/map/greybox.py` writes a list of
+  boxes; Blender only draws pictures of that list; the loader builds the same boxes in Studio.
+- **The target is drawn** (above, Blender): squares on the hub's floor, the wall tops, the terrace tops, the shelves
+  and the edge bands, all on one grid with the lane's floor.
+- **Why Roblox doesn't show that yet.** A picture on a Roblox part starts at that part's own corner and turns with
+  the part. The lane's floor is square tiles that all face one way, so its squares line up. Terrace tops, shelves,
+  bands and the hub's wall tops are pieces turned with the lane, so squares on them would break at every join.
+- **Two things only Roblox can answer,** in one small test (`tools/studio/texture_test.luau`, builds
+  `Workspace.MapTextureTest` behind the hub and touches nothing else):
+  1. Do Roblox's own studs (a part's Studs surface) still draw, on which material, and how dark are they?
+  2. If turned pieces are joined into one (a union), does one picture run across them unbroken and line up with the
+     world's grid?
+- **If joining works:** each terrace top, shelf and band becomes one joined piece with the squares on it. No uploads.
+- **If it doesn't:** the ground is made as meshes whose picture positions come from the world's grid. That works for
+  certain, but every mesh is an upload, and uploads are permanent.
+- **The hub's floor is one box that isn't turned,** so it can take the squares at once.
+- **The model's sizes, for checking against Studio when it is open again:** hub floor 436 by 202; tanks 64 by 56,
+  70 apart; the spawn 70 behind the start; the start strip 112 wide. If Studio shows these and it still looks wrong,
+  the measuring of the reference's hub is at fault, not the build.
+
+### Studs and squares in Roblox (as built in grey-box 4 and 5)
 - **Two pictures,** drawn by `tools/art/map_roblox_textures.py` into `art/style/map_tiles/roblox/`: `stud.png` (round
   studs, a stud to a stud) and `floor.png` (squares of 10 studs with the studs on them). Each is see-through: white
   lifts, black shades, clear leaves the part's colour alone. So one picture serves every land.
@@ -140,6 +171,24 @@ measured"). What was misread:
 
 - **Seen in Studio, still to fix:** the wall faces come out nearly white (they want more of the land's colour); the
   tall walls by the hub throw a long shadow over the start of the lane; the tanks are plain glass boxes.
+
+### Moving the map to another place (the user, 2026-11-11)
+The user's friend is building the mechanics in his own Roblox file. The user's place is for judging the map as a
+model only; later the map goes into his file, under his updated mechanics. So:
+- **The map must not lean on this PC's game code.** It is judged here by eye: shapes, sizes, squares, studs, assets.
+  Ride tests on it here are a bonus, not the measure.
+- **It moves as scripts, not as a saved place.** The loader (below) rebuilds `Workspace.ClaudeBlockout` in whatever
+  place it is run in and touches nothing else. Everything it needs is in the repo; the two pictures are already
+  Roblox assets (ids in `art/map/textures.json`), though they may need to be owned by, or shared with, the account
+  that owns his game.
+- **What his mechanics can read from it** is listed under "What the riding code needs" above: the path, the floor
+  named `Seabed`, the land markers, the list of big assets, the spawn. To be checked against his version when the
+  time comes, since his code may want different names.
+
+### Grey-box 6: the reference's wall structure everywhere (2026-11-11)
+Walls rebuilt piece by piece so the squares and studs follow every curve, with thick grass, heights in whole
+squares and one picture on everything: [the map's structure](map-structure.md), "Into the map". In Studio:
+12,933 parts.
 
 ### Putting it into Studio
 The map chat holds Studio only when the riding chat hands it over ([Sessions](../Sessions.md)). The map goes in as

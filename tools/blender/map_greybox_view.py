@@ -85,10 +85,10 @@ def material(colour, kind):
         return mat
     surf = n.new("ShaderNodeBsdfDiffuse")
     surf.inputs["Color"].default_value = lin(colour)
-    if kind == "ground":  # the faint checker of two close shades, in big squares, on everything that is ground
+    if kind in ("ground", "plain", "hub", "grass"):  # squares of two close shades on everything that is ground (the user: everywhere)
         geo = n.new("ShaderNodeNewGeometry")
         check = n.new("ShaderNodeTexChecker")
-        check.inputs["Scale"].default_value = 1.0 / 10.0  # squares of 10 studs: two players wide
+        check.inputs["Scale"].default_value = 1.0 / 5.0  # squares of 5 studs: a player tall
         check.inputs["Color1"].default_value = lin(colour)
         check.inputs["Color2"].default_value = lin(tuple(int(c * 0.93) for c in colour))
         flat = n.new("ShaderNodeVectorMath")  # by x and z only, so walls' tops and the floor share one grid
@@ -139,6 +139,8 @@ scene.collection.objects.link(sun)
 
 groups = {}
 for p in parts:
+    if p["k"] == "barrier":
+        continue  # unseen in the game
     groups.setdefault((p["k"], tuple(p["c"])), []).append(p)
 water_objects = []
 for (kind, colour), boxes in groups.items():
@@ -177,7 +179,7 @@ def camera(name, eye, target, fov=70.0):
     cam = bpy.data.objects.new(name, bpy.data.cameras.new(name))
     cam.data.sensor_fit = "VERTICAL"
     cam.data.angle_y = math.radians(fov)
-    cam.data.clip_start, cam.data.clip_end = 0.5, 20000
+    cam.data.clip_start, cam.data.clip_end = 0.5, 80000
     e, t = r2b(eye), r2b(target)
     cam.location = e
     cam.rotation_euler = (t - e).to_track_quat("-Z", "Y").to_euler()
@@ -198,7 +200,7 @@ if KIT:
     views = {name: (Vector(v["eye"]), Vector(v["target"]), HAZE, 1e7, (205, 225, 240), v["fov"], 0.0) for name, v in kit["views"].items()}
 else:
     necks = info["Necks"]
-    opens = [(side, sp) for side, name in ((-1, "Left"), (1, "Right")) for sp in info["Sides"][name] if sp["Kind"] == "open" and sp["S0"] > 300]
+    opens = [(side, sp) for side, name in ((-1, "Left"), (1, "Right")) for sp in info["Sides"][name] if sp["Kind"] in ("open", "rim") and sp["S0"] > 300]
     open_side, open_span = opens[0]
     def clear_view(s0, up, look_ahead, look_up):
         """a rider's view from the first place at or after s0 where no big asset stands on the camera or just ahead"""
@@ -225,6 +227,15 @@ else:
         "ride_reef": (*clear_view(necks[4] + 30, 24, 170, 14), SEA, 1000, SEA_LIGHT, 70, 0.62),
         "ride_kelp": (*clear_view(3700, 26, 190, 26), (50, 150, 120), 800, (80, 140, 105), 70, 0.62),
     }
+    # one rider's view in each land, in a water colour for that land (lightened so the deep lands can be seen), and
+    # the whole dive from high up
+    WATERS = [(64, 200, 205), (40, 170, 200), (50, 140, 110), (35, 105, 120), (20, 85, 170), (40, 50, 130), (30, 36, 90), (70, 36, 40), (50, 60, 90), (80, 20, 30)]
+    for k, land in enumerate(info["Lands"]):
+        if land["S0"] < info["BuiltTo"]:
+            water = WATERS[min(k, len(WATERS) - 1)]
+            views[f"land{k + 1:02d}"] = (*clear_view(land["S0"] + 500, 30, 260, 14), water, 1500, tuple(min(255, c + 70) for c in water), 70, 0.0)
+    mid, _d = along(info["BuiltTo"] * 0.5)
+    views["whole"] = (Vector((mid.x - 9000, 9000, mid.z - 2000)), Vector((mid.x, -1000, mid.z)), HAZE, 90000, SKY, 50, 0.0)
 os.makedirs(OUT, exist_ok=True)
 for name, (eye, target, fog, far, sky, fov, solid) in views.items():
     if only and name not in only:
