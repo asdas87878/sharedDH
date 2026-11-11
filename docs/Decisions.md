@@ -5,6 +5,7 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-11 | The HUD's look is A, Brick ("A looks the best"), because it is the simplest, with E's texture; some of the rounding simplified, the sizes more accurate, and from there more like Ride a Dino: the user. (Read by Claude, to confirm: "E's texture" is the bubble pattern) | [UI](design/ui.md), "Pass 3" |
 | 2026-11-11 | The UI gets much closer to Ride a Dino's: its overlays and the gradients and textures on them, and everything else on its screen, with the riding loop's screen kept as accurate as possible. Slight improvements and slight artistic differences only, where they work for our game. Looks to draw: Brick, Bubble, a mix of the two, and bubble over brick: the user. (Read from this by Claude, to confirm: for the UI this narrows "never its look". Its HUD's places and build are the model; its pictures, signs and words are still not copied) | [UI](design/ui.md), "Pass 2" |
 | 2026-11-11 | The water: a smaller picture; the steps more visible (the white band, then the next, then the next layer); and the water somewhat see-through: the user | [The moving water](design/water.md), "The tutorial gone over again" |
 | 2026-11-11 | The water: no line between blocks should show at all, only the picture, and the picture bigger: one huge block across. One layer of the picture, as the tutorial has it (the second, offset copy is out): the user | [The moving water](design/water.md), "One block, not tiles" |

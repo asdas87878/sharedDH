@@ -14,7 +14,9 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 	const darken = (c, t) => mix(c, [0, 0, 0], t);
 	const rgba = (c, a) => `rgba(${c.map((v) => Math.round(v)).join(",")},${a})`;
 
-	const LOOK = SKIN === "pick" ? "mix" : SKIN;
+	const LOOK = SKIN === "pick" ? "mix" : SKIN === "dino" ? "brick" : SKIN;
+	const REF = SKIN === "dino"; // pass 3: built as the reference builds its own, piece by piece
+	const TEXQ = q.get("tex") || (REF ? "bubble" : "stud"); // the pattern on a brick: stud, bubble, or dome (bubbles and the round shine)
 	const TRAYS = SKIN === "over" || SKIN === "pick"; // glass round the land strip, the caught row and the panels
 	const SK = {
 		brick: { ink: [16, 36, 63], rad: 6, name: "A. Brick" },
@@ -22,6 +24,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		mix: { ink: [11, 47, 102], rad: 15, name: "C. Brick and Bubble" },
 		over: { ink: [16, 36, 63], rad: 8, name: "D. Bubble over Brick" },
 		pick: { ink: [11, 47, 102], rad: 15, name: "E. C, with glass on what holds things" },
+		dino: { ink: [16, 36, 63], rad: 4, name: "Pass 3: A's build, E's pattern" },
 	}[SKIN];
 	const INKC = rgb(SK.ink);
 	const NAVY = [24, 52, 92], AQUA = [51, 214, 240], SUN = [255, 210, 63], CORAL = [255, 90, 95], LIME = [124, 224, 75],
@@ -61,6 +64,10 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		const pad = o.pad ?? "3px 10px 4px";
 		const body = `<div class="in" style="padding:${pad};${o.inner || ""}">${inner}</div>`;
 		const brick = (extra, rr, lip) => {
+			if (o.see) {
+				// a see-through plate with a bright edge, as the reference builds its banner and its revive bar
+				return `<div class="pl" style="background:${o.see[0]};border:3px solid ${o.see[1]};border-radius:${rr}px;${extra}">${body}</div>`;
+			}
 			const candy = LOOK === "mix";
 			const out = candy ? rgb(darken(c, 0.58)) : INKC;
 			const a = o.alpha ?? 1;
@@ -73,7 +80,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 			const border = fade ? `border-left:3px solid ${out};border-bottom:3px solid ${out};` : `border:3px solid ${out};`;
 			const shadow = (lip && !fade ? `0 4px 0 ${out}` : "") + (candy ? `${lip ? "," : ""}inset 0 0 0 1.5px rgba(255,255,255,.34)` : "");
 			const mask = fade ? "-webkit-mask-image:linear-gradient(90deg,#000 20%,transparent 85%);" : "";
-			const ov = (o.tex === false ? "" : candy ? texBubbles(0.9) : texStud(1)) + (o.gloss === false || fade ? "" : candy ? glossDome(rr) : glossStreak);
+			const ov = (o.tex === false ? "" : candy || TEXQ !== "stud" ? texBubbles(0.9) : texStud(1)) + (o.gloss === false || fade ? "" : candy || TEXQ === "dome" ? glossDome(rr) : glossStreak);
 			return `<div class="pl" style="background:${bg};${border}border-radius:${fade ? `${rr}px 0 0 ${rr}px` : rr + "px"};${shadow ? `box-shadow:${shadow};` : ""}${extra}"><div class="ov" style="${mask}">${ov}</div>${body}</div>`;
 		};
 		const glass = (extra, rr, tint, innerHtml, solid) => {
@@ -125,7 +132,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 	const SHORT = ["Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Midnight", "Vents", "Bones", "Under"];
 	// The strip of the ten lands across the top (the reference's place and job), stepping down land by land (ours)
 	function landStrip(landIndex, u, metres, best) {
-		const tw = DESK ? 30 : 28, gap = 3, step = 1.6;
+		const tw = DESK ? 30 : 28, gap = 3, step = REF ? 0 : 1.6;
 		let s = "";
 		const x0 = -(10 * tw + 9 * gap) / 2;
 		for (let i = 0; i < 10; i++) {
@@ -134,7 +141,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 			const label = DESK ? `<div class="t thin" style="position:absolute;left:50%;top:1px;transform:translateX(-50%);font-size:${SHORT[i].length > 6 ? 5.6 : 6.6}px">${SHORT[i]}</div>` : `<div class="t thin" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);font-size:11px;opacity:${i <= landIndex ? 1 : 0.75}">${i + 1}</div>`;
 			// a small picture of the land in the game; here its colour, a horizon and a block or two
 			const art = `<div style="position:absolute;left:0;right:0;bottom:0;height:42%;background:${rgb(darken(c, 0.18))}"></div><div style="position:absolute;left:14%;bottom:30%;width:22%;height:${DESK ? 30 : 24}%;background:${rgb(darken(c, 0.34))};border-radius:1px"></div><div style="position:absolute;right:16%;bottom:34%;width:16%;height:${DESK ? 20 : 16}%;background:${rgb(lighten(c, 0.3))};border-radius:1px"></div>`;
-			s += `<div style="left:${x0 + i * (tw + gap)}px;top:${i * step}px">${plate(i > landIndex ? mix(c, [40, 60, 96], 0.45) : c, art + label, { w: tw, h: tw, pad: "0", r: LOOK === "bubble" ? 8 : LOOK === "mix" ? 7 : 5, lip: false, gloss: SKIN !== "brick" && SKIN !== "over", tex: false, inner: "position:absolute;inset:0;overflow:hidden;border-radius:inherit", style: on ? `outline:2.5px solid #fff;outline-offset:1px;` : i > landIndex ? "opacity:.86;" : "" })}</div>`;
+			s += `<div style="left:${x0 + i * (tw + gap)}px;top:${i * step}px">${plate(i > landIndex ? mix(c, [40, 60, 96], 0.45) : c, art + label, { w: tw, h: tw, pad: "0", r: REF ? 3 : LOOK === "bubble" ? 8 : LOOK === "mix" ? 7 : 5, lip: false, gloss: LOOK !== "brick" && LOOK !== "over", tex: false, inner: "position:absolute;inset:0;overflow:hidden;border-radius:inherit", style: on ? `outline:2.5px solid #fff;outline-offset:1px;` : i > landIndex ? "opacity:.86;" : "" })}</div>`;
 		}
 		if (TRAYS) {
 			const w = 10 * tw + 9 * gap;
@@ -147,7 +154,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		if (best !== undefined) {
 			const bx = x0 + best * (tw + gap), by = Math.floor(best) * step;
 			s += `<div style="left:${bx - 1}px;top:${by - 3}px;width:2.5px;height:${tw + 6}px;background:#ffd23f;box-shadow:0 0 0 1.5px ${INKC}"></div>`;
-			s += `<div style="left:${bx + 3}px;top:${by + tw + 1}px">${T("BEST", 8, "#ffd23f", "thin")}</div>`;
+			s += `<div style="left:${bx + 3}px;top:${by + tw + 1}px">${T(REF ? "BEST 310 m" : "BEST", 8, "#ffd23f", "thin")}</div>`;
 		}
 		return s;
 	}
@@ -155,6 +162,13 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 	// The two rings beside the rider: the time left on this fish (with the seconds, ours) and the tame
 	function ringV2(d, thick, frac, c, inner, o = {}) {
 		const deg = Math.max(0, Math.min(1, frac)) * 360;
+		if (REF) {
+			const end = Math.min(360, deg + (o.red && frac < 1 ? 16 : 0));
+			const flat = `conic-gradient(${rgba(c, 0.95)} 0 ${deg}deg, rgba(255,70,80,.95) ${deg}deg ${end}deg, rgba(10,28,52,.5) ${end}deg 360deg)`;
+			const h = d - thick * 2;
+			return `<div style="position:relative;width:${d}px;height:${d}px;border-radius:50%;background:${flat};-webkit-mask:radial-gradient(circle, transparent ${h / 2 - 0.5}px, #000 ${h / 2}px)"></div>`
+				+ `<div class="colx" style="position:absolute;left:${thick}px;top:${thick}px;width:${h}px;height:${h}px;border-radius:50%;justify-content:center;background:${o.fillHole ? "rgba(10,28,52,.5)" : "transparent"}">${inner}</div>`;
+		}
 		const spent = LOOK === "bubble" ? "rgba(255,255,255,.2)" : rgba(SK.ink, 0.72);
 		const arc = `conic-gradient(${rgb(lighten(c, 0.12))} 0 ${deg}deg, ${o.red && frac < 1 ? "rgba(255,70,80,.9)" : spent} ${deg}deg ${Math.min(360, deg + (o.red ? 14 : 0))}deg, ${spent} ${Math.min(360, deg + (o.red ? 14 : 0))}deg 360deg)`;
 		const hole = d - thick * 2;
@@ -175,9 +189,9 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		const c = o.frac < 0.34 ? CORAL : o.frac < 0.6 ? SUN : AQUA;
 		const d = (o.low ? 72 : 64) * k;
 		const num = `<div class="colx">${T(o.secs, (o.secs.length > 3 ? 17 : 21) * k * (o.low ? 1.1 : 1))}<div class="t thin" style="font-size:${7.5 * k}px;margin-top:-1px;opacity:.9">SEC</div></div>`;
-		let s = `<div style="left:${40 * k}px;top:${-d / 2 - 6}px">${ringV2(d, 11 * k, o.frac, c, num, { red: true, major: true })}</div>`;
+		let s = `<div style="left:${40 * k}px;top:${-d / 2 - 6}px">${ringV2(d, (REF ? 14 : 11) * k, o.frac, c, num, { red: true, major: true, fillHole: true })}</div>`;
 		const tc = TIER[o.tier];
-		s += `<div style="left:0;top:${-2}px">${ringV2(34 * k, 7.5 * k, o.tame, o.tame >= 1 ? LIME : tc, icFish(13 * k, o.tame >= 1 ? "#c8ffb0" : "#fff"))}</div>`;
+		s += `<div style="left:0;top:${-2}px">${ringV2(34 * k, (REF ? 10.5 : 7.5) * k, o.tame, o.tame >= 1 ? LIME : REF ? [240, 96, 200] : tc, REF ? "" : icFish(13 * k, o.tame >= 1 ? "#c8ffb0" : "#fff"))}</div>`;
 		if (o.name) {
 			s += `<div class="colx" style="left:${40 * k + d / 2}px;top:${d / 2 - 1}px;transform:translateX(-50%)">${T(o.name, 12.5 * k)}<div style="margin-top:-2px">${tierText(o.tier, 10.5 * k)}</div></div>`;
 		}
@@ -186,6 +200,16 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 
 	// The jump button, where the reference has it: the arrow turns over in the air; the key's name under it on a keyboard
 	function hopButton(mode, o = {}) {
+		if (REF) {
+			const dd = DESK ? 78 : 92;
+			const ringC = o.hot ? "#ff5a5f" : mode === "grab" ? "rgba(130,232,255,.85)" : "rgba(255,255,255,.42)";
+			const arrowC = mode === "off" ? "rgba(255,255,255,.35)" : o.hot ? "#ffd23f" : "rgba(238,246,255,.86)";
+			let b = `<div class="colx" style="width:${dd}px;height:${dd}px;border-radius:50%;box-sizing:border-box;background:rgba(10,24,44,.5);border:${o.hot ? 4 : 3}px solid ${ringC};box-shadow:0 0 0 3px rgba(10,24,44,.3);justify-content:center">${icArrow(DESK ? 34 : 30, arrowC, mode === "grab")}${DESK ? "" : `<div style="font-size:15px;line-height:1;margin-top:3px;color:${arrowC}">${mode === "grab" ? "GRAB" : "HOP"}</div>`}</div>`;
+			if (DESK) {
+				b += `<div style="display:flex;justify-content:center;margin-top:-9px;position:relative"><div style="background:#fff;border:3px solid ${INKC};border-radius:8px;padding:2px 14px 3px;font-size:13px;line-height:1.1;color:${INKC}">Space</div></div>`;
+			}
+			return `<div style="right:0;bottom:0"><div style="position:relative">${b}</div></div>`;
+		}
 		const d = DESK ? 78 : 92;
 		const c = mode === "grab" ? AQUA : mode === "off" ? GREY : SUN;
 		const inkText = LOOK === "bubble" ? (mode === "grab" ? "#fff" : mode === "off" ? "#c9d6e6" : "#ffe066") : rgb(LOOK === "mix" ? darken(c, 0.7) : SK.ink);
@@ -212,14 +236,14 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 	const TILE = { Common: [176, 184, 196], Uncommon: [98, 208, 98], Rare: [86, 150, 250], Epic: [176, 104, 250], Legendary: [255, 184, 52], Mythic: [250, 84, 104], Secret: [44, 44, 58] };
 	function slot(item, size, sel) {
 		if (!item) {
-			return plate(LOOK === "bubble" ? [30, 80, 140] : [18, 40, 70], "", { w: size, h: size, pad: "0", r: 5, lip: false, gloss: false, alpha: 0.55, tex: SKIN !== "bubble" });
+			return plate(LOOK === "bubble" ? [30, 80, 140] : [18, 40, 70], "", { w: size, h: size, pad: "0", r: REF ? 2 : 5, lip: false, gloss: false, alpha: REF ? 0.3 : 0.55, tex: LOOK !== "bubble" && !REF });
 		}
 		const [name, tier, tag] = item;
 		const label = name.length > 7 ? name.slice(0, 6).trim() + "." : name;
 		const inner = `<div style="position:absolute;inset:0">${thumb(name.replace(/ /g, ""), size - 8, size - 12)}</div>`
 			+ (tag ? `<div class="t thin" style="position:absolute;left:2px;top:0;font-size:${size * 0.19}px;color:${tag === "GOLD" ? "#ffd23f" : tag === "BIG" ? "#ffb057" : "#dfe7f2"}">${tag}</div>` : "")
 			+ `<div class="t thin" style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);font-size:${size * 0.25}px">${label}</div>`;
-		return plate(TILE[tier], inner, { w: size, h: size, pad: "0", r: 5, lip: false, tex: false, gloss: SKIN !== "brick" && SKIN !== "over", solid: true, inner: "position:absolute;inset:0;display:flex;justify-content:center", style: sel ? "outline:2.5px solid #fff;outline-offset:1px;" : "" });
+		return plate(TILE[tier], inner, { w: size, h: size, pad: "0", r: REF ? 2 : 5, lip: false, tex: false, gloss: LOOK !== "brick" && LOOK !== "over", solid: true, inner: "position:absolute;inset:0;display:flex;justify-content:center", style: sel ? "outline:2.5px solid #fff;outline-offset:1px;" : "" });
 	}
 	function slots(list, o = {}) {
 		const size = DESK ? 46 : 34, gap = 4, n = 7;
@@ -236,7 +260,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 
 	// A wild fish's tag, as the reference stacks it: what kind, its rarity, its name, what it needs
 	function tagV2(m, o) {
-		const k = (o.big ? 1 : Math.max(0.72, Math.min(0.88, m.k / (7 * S)))) * S * (DESK ? 1.3 : 1);
+		const k = (o.big ? (REF ? 1.25 : 1) : Math.max(0.72, Math.min(0.88, m.k / (7 * S)))) * S * (DESK ? 1.3 : 1);
 		const needC = o.state === "no" ? "#ff6468" : o.state === "short" ? "#ffd23f" : "#8df06a";
 		const top = o.kind ? `<div class="rowx" style="gap:5px">${o.kind.map((w) => T(w, 8.5, w === "GOLD" ? "#ffd23f" : w === "BIG" ? "#ffb057" : w === "new!" ? "#ff5a6e" : "#dfe7f2", "thin")).join("")}</div>` : "";
 		const hold = o.hold ? `<div class="rowx" style="gap:4px;margin-top:1px">${T(o.hold, 11.5, needC)}</div>` : "";
@@ -248,7 +272,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 	// The catch banner (the reference: tilted, at the left, with the animal's picture)
 	function caughtBanner(name, tier, shout) {
 		const title = GT("TAMED!", 23, [226, 255, 170], [124, 224, 75]);
-		const b = plate(LOOK === "bubble" ? [20, 110, 70] : [28, 110, 62], `<div class="rowx" style="gap:8px">${thumb(name.replace(/ /g, ""), 40, 34)}${title}</div>`, { pad: "3px 16px 4px 8px", r: LOOK === "brick" || LOOK === "over" ? 9 : 16, major: true, style: LOOK === "bubble" ? "border-color:#9cf06a;" : "" });
+		const b = plate(LOOK === "bubble" ? [20, 110, 70] : [28, 110, 62], `<div class="rowx" style="gap:8px">${thumb(name.replace(/ /g, ""), 40, 34)}${title}</div>`, { pad: "3px 16px 4px 8px", r: LOOK === "brick" || LOOK === "over" ? 9 : 16, major: true, style: LOOK === "bubble" ? "border-color:#9cf06a;" : "", see: REF ? ["rgba(14,64,36,.76)", "#5be06a"] : undefined });
 		return `<div style="left:0;top:0;transform:rotate(-6deg);transform-origin:0 100%"><div class="t thin" style="font-size:10.5px;color:#ffb057;margin:0 0 3px 10px">${shout}</div>${b}`
 			+ `<div class="rowx" style="gap:6px;margin:6px 0 0 14px">${tierText(tier, 12)}${T(name, 13)}</div></div>`;
 	}
@@ -258,7 +282,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		const heart = `<div style="position:relative;width:44px;height:44px;border-radius:50%;background:${rgb(darken(NAVY, 0.45))};border:3px dotted #ff4f7b;box-sizing:border-box;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2.5px ${INKC}">${icHeart(24)}</div>`;
 		const btn = plate(LIME, `<div class="colx">${T("Revive", 14)}<div style="margin-top:1px;padding:0 9px;border-radius:999px;background:${rgb(darken(LIME, 0.62))};font-size:11px;color:#d8ff8a">FREE</div></div>`, { pad: "3px 14px 4px", r: LOOK === "bubble" ? 12 : 8, solid: true });
 		const inner = `<div class="rowx" style="gap:10px"><div style="margin-left:-20px">${heart}</div><div><div>${T("Keep diving!", 16)}</div><div>${T("1 of 3 free revives", 10, "#dfe7f2", "thin")}</div></div>${btn}</div>`;
-		return `<div style="transform:translateX(-50%)">${plate(LOOK === "bubble" ? [40, 70, 110] : [44, 58, 84], inner, { pad: "5px 8px 6px 10px", r: LOOK === "brick" || LOOK === "over" ? 10 : 22, major: true, alpha: 0.94 })}</div>`;
+		return `<div style="transform:translateX(-50%)">${plate(LOOK === "bubble" ? [40, 70, 110] : [44, 58, 84], inner, { pad: "5px 8px 6px 10px", r: LOOK === "brick" || LOOK === "over" ? 10 : 22, major: true, alpha: 0.94, see: REF ? ["rgba(40,52,76,.88)", rgb(SK.ink)] : undefined })}</div>`;
 	}
 
 	// The end of a dive, as the reference has it once you are back at the hub: the title in gold on a dark streak that
@@ -355,7 +379,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		out += stripAt(1, 0.35, 128, 2.6);
 		out += statsAt("100", "$2.8K");
 		out += slotsAt(carried);
-		out += g("mc", DESK ? 44 : 50, DESK ? 8 : 4, rings(low ? { frac: 0.25, secs: "0.62", tier: "Common", name: "Clownfish", tame: 0.8, low: true } : { frac: 0.8, secs: "2.4", tier: "Common", name: "Clownfish", tame: 0.25 }));
+		out += g("mc", DESK ? (REF ? 78 : 44) : 50, DESK ? (REF ? -6 : 8) : 4, rings(low ? { frac: 0.25, secs: "0.62", tier: "Common", name: "Clownfish", tame: 0.8, low: true } : { frac: 0.8, secs: "2.4", tier: "Common", name: "Clownfish", tame: 0.25 }));
 		out += hopAt("hop", { hot: low });
 	} else if (FRAME === "hop") {
 		const m = diveBack({ fish: [at("clown", -16, 5, 30), ...herd("parrot")], flyer: { x: 0, y: 9, z: 17 } });
@@ -375,7 +399,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		out += statsAt("100", "$2.8K");
 		out += g("tl", INS + (DESK ? 30 : 8), DESK ? 190 : 176, caughtBanner("Parrotfish", "Uncommon", "NICE CATCH!"));
 		out += slotsAt([...carried, ["Parrotfish", "Uncommon"]], { sel: 2 });
-		out += g("mc", DESK ? 44 : 50, DESK ? 8 : 4, rings({ frac: 0.82, secs: "1.6", tier: "Uncommon", name: "Parrotfish", tame: 1 }));
+		out += g("mc", DESK ? (REF ? 78 : 44) : 50, DESK ? (REF ? -6 : 8) : 4, rings({ frac: 0.82, secs: "1.6", tier: "Uncommon", name: "Parrotfish", tame: 1 }));
 		out += hopAt("hop");
 	} else if (FRAME === "miss") {
 		diveBack({ fish: [at("tang", 58, 9, 160), at("lion", -50, 8, 200)], flyer: { x: 0, y: 6, z: 19 }, dark: true, edge: ["#000", 0.85] });

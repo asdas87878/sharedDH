@@ -1,7 +1,8 @@
 # UI: what the player sees on screen
 
 The plan for the dive's HUD and the dock's screens. Written 2026-11-11 by the UI chat ([Sessions](../Sessions.md)).
-**Pass 2, the same day, is the current proposal:** the user asked for a HUD much closer to Ride a Dino's.
+**Pass 3, the same day, is the current proposal:** the user picked look A for its simple build, with E's pattern, and
+asked for it to go nearer still to Ride a Dino's HUD. Pass 2 (five looks) and pass 1 are kept below.
 
 **Everything here is proposed. Nothing is built and no game code was changed.** The pictures are mock-ups drawn by code
 (`python tools/ui/render_mockups.py` draws them again); the scene behind the HUD in them is a stand-in, not the game.
@@ -12,19 +13,62 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 ## The short version
 - **Today's HUD says the wrong thing.** It shows a tank, "OXYGEN 68 / 100", at the bottom edge. With 2 to 3 seconds on a
   fish, what a player needs is "how long do I have on this fish", next to the fish, and "which fish next".
-- **Pass 2 follows the reference's riding screen piece for piece:** the strip of lands across the top, two rings beside
-  the rider, the jump button at the lower right, a stacked tag on every wild fish, your stats, a row of slots for what
-  you carry, the tilted catch banner, the revive bar, the end-of-dive banner. It also takes on what makes the
-  reference's overlays look finished: gradients, dark outlines, a faint pattern on every surface, a shine.
-- **What is ours:** the seconds inside the ring, the name of the fish you are on, a button that says HOP and GRAB, a
-  "needs" number in three colours, a strip that steps down land by land, studs and bubbles as the pattern.
-- **Five looks are drawn,** the four the user asked for and one pick: A Brick, B Bubble, C Brick and Bubble, D Bubble
-  over Brick, and E (C, with D's glass only on the things that hold other things). **E is recommended.**
+- **The HUD follows the reference's riding screen piece for piece:** the strip of lands across the top, two rings
+  beside the rider, the jump button at the lower right, a stacked tag on every wild fish, your stats, a row of slots
+  for what you carry, the tilted catch banner, the revive bar, the end-of-dive banner.
+- **The look is chosen (the user, 2026-11-11): A, Brick,** because it is the simplest, with E's pattern, and from
+  there more like Ride a Dino. Pass 3 draws that.
+- **What is still ours:** the seconds inside the ring, the name of the fish you are on, the word HOP or GRAB on a
+  phone's button, a "needs" number in three colours, bubbles as the pattern.
 - **Four questions** are at the end.
 
-![](../attachments/ui2-phone-pick.jpg)
+![](../attachments/ui3-phone.jpg)
 
-## Pass 2: much closer to the reference
+## Pass 3: A's build, E's pattern, nearer the reference
+The user, 2026-11-11: "A looks the best", some of the rounding simplified, the sizes more accurate, more like the dino
+game; then: E's texture, but with A's style because it is more simplistic, and from there more like Ride a Dino.
+
+**Read by Claude, to confirm:** "E's texture" is taken as the pattern E carries (small bubbles) on A's plain shapes.
+The picture below shows that reading in the middle, with the two neighbours either side, so it is one look to say
+which was meant.
+
+![](../attachments/ui3-pattern.jpg)
+
+What changed from look A in pass 2, each one toward how the reference builds its own:
+
+| Piece | Pass 2, look A | Pass 3 |
+|---|---|---|
+| Corners | Rounded a little everywhere | Nearly square: tiles and slots 2 to 3, plates 4. Only what is round in the reference stays round (the jump button, the rings, the pills, the revive bar) |
+| The rings | Outlined, with a lip and studs | Flat, thick, a little see-through, no outline, as the reference's. The tame ring is pink, as its is, and turns green when full. Ours: the seconds stay in the big ring |
+| The jump button | A yellow brick disc | The reference's: a dark see-through circle, a thin pale ring, a pale arrow that turns over in the air, the key's name on a white cap on a keyboard. Ours: the word HOP or GRAB under the arrow on a phone; the ring goes red in the last second |
+| The strip of lands | Stepped down land by land | Straight, as the reference's. "BEST" carries its metres |
+| The catch banner and the revive bar | Solid plates | See-through dark plates with a bright edge, as the reference's |
+| The slots | Rounded, studded | Square with a thin dark edge, nearly clear when empty |
+| The nearest fish's tag | One size | A quarter bigger, at the reference's share of the screen |
+| The pattern | Round studs | E's bubbles (see above) |
+| Sizes on a desktop | By eye | Measured off the reference's frame and matched as a share of the screen: strip tiles 5%, rings 9% and 4.5%, stat rows 6%, slots 8.5%, the jump button 15% |
+
+Beside the reference at the same size (private pictures, on this PC only):
+[riding](../../research/ride-a-dino/ui/compare3-riding.jpg), [a tame](../../research/ride-a-dino/ui/compare3-tamed.jpg),
+[a miss](../../research/ride-a-dino/ui/compare3-miss.jpg), [the end](../../research/ride-a-dino/ui/compare3-end.jpg),
+[a shop panel](../../research/ride-a-dino/ui/compare3-panel.jpg).
+
+On a desktop:
+
+![](../attachments/ui3-desktop.jpg)
+
+Where it still differs from the reference, and why:
+- **The seconds in the ring, and the fish's name under it.** A new player has 2.5 seconds; a ring alone is too slow
+  to read.
+- **The big ring is thinner than the reference's,** to leave room for that number.
+- **No first slot set apart.** The reference has an eighth slot at the left with a "Q" on it. Its job isn't clear from
+  the recording, so it is left out until we know what ours would hold.
+- **The land tiles are plain colour with a block or two,** where the reference has a painted picture of each zone.
+  Ten small pictures could be drawn by code later.
+- **The signs are simple shapes,** where the reference has small 3D pictures.
+- **On a phone** the stats sit at the top left, clear of Roblox's stick, and the land tiles carry numbers.
+
+## Pass 2: much closer to the reference (five looks; A was picked)
 The user, 2026-11-11: get much closer to Ride a Dino, to the overlays, gradients and textures on its overlays and
 everything else; keep the riding loop's screen as accurate as possible; slight improvements and slight artistic
 differences where they work for our game; draw Brick, Bubble, a mix, and bubble over brick.
@@ -89,7 +133,7 @@ All five use the same pieces in the same places. They differ in the surface.
 | **D. Bubble over Brick** | Every big piece is a brick held inside a glass capsule: the stat rows, the rings, the buttons, the strip, the slots, the panels | The most our own. It says "aquarium": things kept behind glass | The busiest. Two edges on everything eat room on a phone, and it is about twice the pieces to draw |
 | **E. The pick** | C for everything, with D's glass only round the things that hold other things: the strip of lands, the row of slots, a shop panel | C's clear reading, and D's idea where it means something: a tray of lands, a tray of catch, a tank of cards | One more rule to keep |
 
-**Recommended: E.** The glass then has a job (it marks a container), and nothing a thumb presses is harder to read.
+**The user picked A, with E's pattern** (pass 3, above). What was recommended before that: E. The glass then has a job (it marks a container), and nothing a thumb presses is harder to read.
 If one of the four is wanted as it is, C.
 
 The riding screen in each, on a phone and on a desktop:
@@ -360,9 +404,10 @@ near empty most of the time. What follows for the ring:
 - **For a trained player** on an easy fish (minutes), the ring just stays full and quiet: no number past a minute.
 
 ## Questions for the user
-1. **The look:** E (recommended), or A, B, C or D as it is?
-2. **Eight small pictures:** may I draw them by code and upload them (two patterns, six signs)? Uploads are permanent.
-   Without them the HUD has no pattern and plainer signs.
+1. **The pattern:** is the middle picture of the three right (A's build with bubbles), or did you mean the first or
+   the third?
+2. **Seven small pictures:** may I draw them by code and upload them (the bubble pattern and six signs: arrow, heart,
+   bag, book, small fish, flag)? Uploads are permanent. Without them the HUD has no pattern and plainer signs.
 3. **Revives:** does our game have them (the reference: three free, then sold)? The screen after a miss depends on it.
 4. **On a phone, your Oxygen and coins:** at the top left (drawn, clear of the stick), or at the lower left as the
    reference has them?

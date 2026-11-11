@@ -57,7 +57,7 @@ def frame(state, skin, size):
     """one state drawn to a PNG; returns the image"""
     w, h, dpr, touch = size
     WORK.mkdir(exist_ok=True)
-    png = WORK / f"{state}-{skin}-{w}.png"
+    png = WORK / f"{state}-{skin.replace('&', '_').replace('=', '_')}-{w}.png"
     fonts = Path(FONT_DIRS[-1]).as_uri() if FONT_DIRS else ""
     url = f"{PAGE.as_uri()}?state={state}&skin={skin}&w={w}&h={h}&touch={touch}&fonts={fonts}&sprites={sprites().as_uri()}"
     subprocess.run([CHROME[0], "--headless=new", "--disable-gpu", "--hide-scrollbars", "--allow-file-access-from-files",
@@ -193,6 +193,20 @@ SHEETS["ui2-desktop-variants.jpg"] = lambda: sheet(
 SHEETS["ui2-pieces.jpg"] = lambda: sheet(
     "ui2-pieces.jpg", "Pass 2: the same pieces in each variant.",
     [(label, "v2-pieces", skin, (640, 560, 2, 1)) for skin, label in SKINS2], 2, 1100)
+
+# pass 3 (the user, 2026-11-11): A's build, E's pattern, nearer the reference
+SHEETS["ui3-phone.jpg"] = lambda: sheet(
+    "ui3-phone.jpg", "Pass 3: A's simple build with E's pattern, nearer the reference. On a phone (844 x 390). Mock-ups, not the game.",
+    [(f"{i + 1}. {cap}", st, "dino", PHONE) for i, (cap, st) in enumerate(FRAMES2)], 2, 1100)
+SHEETS["ui3-desktop.jpg"] = lambda: sheet(
+    "ui3-desktop.jpg", "Pass 3 on a desktop (1920 x 1080).",
+    [("Riding", "v2-riding", "dino", DESK), ("A tame finished", "v2-tamed", "dino", DESK),
+     ("The end of a dive", "v2-great", "dino", DESK), ("A shop panel", "v2-auras", "dino", DESK)], 2, 1100)
+SHEETS["ui3-pattern.jpg"] = lambda: sheet(
+    "ui3-pattern.jpg", "Pass 3: which pattern goes on the bricks. The same pieces three ways.",
+    [("1. Studs and a diagonal shine (A as it was)", "v2-pieces", "dino&tex=stud", (640, 560, 2, 1)),
+     ("2. Bubbles and a diagonal shine (drawn in pass 3)", "v2-pieces", "dino", (640, 560, 2, 1)),
+     ("3. Bubbles and E's round shine", "v2-pieces", "dino&tex=dome", (640, 560, 2, 1))], 3, 740)
 
 if __name__ == "__main__":
     if not CHROME:
