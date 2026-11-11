@@ -4,6 +4,19 @@ What each push changed, so whoever pulls next knows where things stand. Newest f
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 
+## 2026-11-11 · 8570-F43F (the user's PC): animation is tried in a preview page now, not in the game
+**State:** no change to `src/` or to Studio. The user's word: two chats changing the game at once got confusing, so
+until the other chat stops making changes, this chat (creatures and animation) stays out of `src/` and out of Studio.
+
+- **The Swim Lab:** a private page, <https://claude.ai/artifact/PxpF8Mdhxbh5mrcE21GXQE>, that plays any of the 82
+  creatures in 3D from their exports with the same steps as `AnimController`'s layers. Five feel sets (keys only, the
+  first slice as built, lively, heavy, arcade), four ride patterns (rail, undulate, surge and glide, weave, or by body
+  type), a rider, a small herd, and buttons to turn, land, crash and buck. Every number is a slider.
+- **What is only in the page, not in the game:** the ride patterns other than rail, the beat multiplier, the bank by
+  body type and the herd's weave. The first slice of this morning is still in `src/` as it was.
+- **Next:** the user picks a feel from the page; its numbers then go into `Config.Animation` and `Shared/RideStyles`
+  in one go, when the other chat is no longer editing.
+
 ## 2026-11-11 · 8570-F43F (the user's PC): the Oxygen numbers are seconds on a fish now
 **State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played, not
 type-checked.** By the tuning chat, on the user's answer of 2026-11-11 ([Decisions](Decisions.md), top row). Studio's
