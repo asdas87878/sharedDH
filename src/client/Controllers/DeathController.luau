@@ -193,7 +193,7 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 	local fadeFrom = total - 0.15 - c.DrownFade
 	if t >= fadeFrom then
 		State.Fade = math.clamp((t - fadeFrom) / c.DrownFade, 0, 1)
-		State.FadeText = "OUT OF AIR!"
+		State.FadeText = if State.Player:GetAttribute("DeathQuick") == true then "MISSED THE FISH!" else "OUT OF AIR!"
 	end
 end
 

@@ -258,7 +258,7 @@ local function updateMeter(now: number)
 		local flash = (math.sin(now * 18) + 1) / 2
 		colour = OUT
 		meter.BackgroundColor3 = Color3.fromRGB(60, 10, 10):Lerp(OUT, flash * 0.6)
-		graceText.Text = "OUT OF AIR!"
+		graceText.Text = if State.Player:GetAttribute("DeathQuick") == true then "MISSED THE FISH!" else "OUT OF AIR!"
 	else
 		meter.BackgroundColor3 = Color3.fromRGB(15, 30, 50)
 		graceText.Text = ""

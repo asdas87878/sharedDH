@@ -3,6 +3,30 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-11 · Ivy (Codex, Hugo's PC): unattended feel-pass check; missed-hop message fixed
+**State:** two Studio playtests through studio-runner, then stopped to leave Studio idle. All 27 runtime scripts
+matched the checkout before testing and again after the fix. StyLua, selene and `rojo build` pass. No ride/jump/camera
+or server mechanics changes: the partner's rework stays untouched. Full check: [playtest record](playtests/2026-11-11-away.md).
+
+- **Tested:** reset onto a fish; visible locked-fish dashed ring (lock sampled at 128.9 studs); pop/glide/drop;
+  two grabs/landings (about 0.65 s pull-in, landing camera roll); no Oxygen drain in the hop and refill from 88.2 to
+  100 at landing; prop collision and rebuild; missed-hop drown; actual Oxygen depletion, throw-off and dock recovery.
+  Crash-free intervals gave about 4/s in Coral Reef and 14/s in Kelp Forest on a Common. This open place has three
+  zone markers, not the ten-land map mentioned in Sessions. No map rebuild was done.
+- **Fixed:** missed hops said OUT OF AIR with 99/100 Oxygen. `HudController` and `DeathController` now use the existing
+  `DeathQuick` flag to show MISSED THE FISH for a miss; actual depletion still says OUT OF AIR. Both warning and fade
+  checked in a fresh playtest, and the dock recovery still works.
+- **Evidence:** `/home/hugo/Pictures/ride-a-fish/away-2026-11-11/`, screenshots plus two telemetry/output logs. Prop
+  before/after pictures use temporary three-box fixtures hit through the real ridden-fish collision path; all three
+  returned exactly home and solid. Fixtures and driver disappeared when Play stopped.
+- **Delivery blocked:** every `discord_deliver` attempt returned "no Discord thread" for this mission; no screenshots
+  were posted to Discord. Shared in NULLROOM with `share_file`; the boss/reviewer can forward them to the intended thread.
+- **Still observed:** asset-type warning for `rbxassetid://203785492` (not in src); LaneSurvey's one missing and one
+  inaccurate floor sample. A speed-check warning during the deliberate inter-zone teleport is a test artifact.
+- **Human hand-play still needed:** free-camera comfort, aiming/steering and exact range boundary, gamepad/mobile,
+  lag and two-player grabs. Scripts establish behavior, not feel. The known breakable-floor and wanted-speed HUD
+  observations remain unchanged.
+
 ## 2026-11-11 · void (Hugo's PC): Feel pass after Hugo played v3.1: faster air, a free camera, a longer hook, the ring back, a landing shake
 **State:** written, not committed by hand (the Obsidian Git plugin syncs it with Movement v3 and v3.1 below). StyLua,
 selene and `rojo build` pass. Played in Studio by script through the runner (the same driver as the entry below, no
