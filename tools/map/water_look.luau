@@ -18,14 +18,14 @@ local LOOK = {
 	Thick = 0.1, -- each layer's thickness: thin, so a layer at the camera's own height is only a hairline
 	Gap = 2.6, -- from one layer's top to the next: more is wider steps (the white band, then the next, then the next)
 	Foam = Color3.fromRGB(250, 252, 255), -- the glass layer on top
-	FoamSee = 0.25, -- the tutorial's is 0.15; higher lets the floor and the walls show through the water
+	FoamSee = 0.35, -- the tutorial's is 0.15; higher lets the floor and the walls show through the water
 	Water = Color3.fromRGB(70, 160, 250), -- the water's colour (Neon)
-	WaterSee = 0.7,
+	WaterSee = 0.76,
 	Shade = Color3.fromRGB(0, 20, 40), -- the dark layer under it
-	ShadeSee = 0.72,
+	ShadeSee = 0.78,
 	Deep = Color3.fromRGB(32, 58, 86), -- the bottom layer: the tutorial's is this dark "Earth blue", Neon. Each layer down
 	-- darkens the water a step, which is what makes the steps at an edge show
-	DeepSee = 0.8,
+	DeepSee = 0.85,
 	Far = Color3.fromRGB(40, 176, 244), -- the plain water round the block, far off
 	FarSee = 0.1,
 	-- the picture: pale lines round cells, ONE layer of it as in the tutorial. This is the water from the free pack

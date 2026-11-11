@@ -21,3 +21,4 @@ art/creatures/*/renders/swim_*/
 /.tmp_*
 # renders and checks the creature scripts make while a model is being built (tools/art/voxel_paths.py)
 /work/
+art/map/hub_looks/

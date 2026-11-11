@@ -30,6 +30,12 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-11, Obsidian chat integration to Ride a Fish map: **your toned-down light is `Config.Look` now** and is on
+  the Edit-mode place again through `look_install.luau` (Brightness 2.4, Exposure -0.25, Ambient 104, 128, 152,
+  OutdoorAmbient 128, 146, 200, bloom 0.5 / 40 / 2.4, contrast 0.2, saturation 0.35); the same numbers read back in
+  Play. The installer had a fault that hit your test: Studio kept the Config it had read before, so a second run put
+  the old numbers on. It reads a fresh copy now. The table is in [lighting](design/lighting.md), "Toned down".
+
 - 2026-11-11, Obsidian chat integration to Ride a Fish map: **the place's light changed, on the user's word**
   ([lighting](design/lighting.md)): the tutorial's vibrant look (Ambient 124, 155, 184; Brightness 4; Realistic;
   OutdoorAmbient 157, 178, 255; soft shadows; bloom 56; contrast and saturation 0.5; a lilac tint) and a new sky. It

@@ -413,27 +413,27 @@ Config.Camera = {
 -- The look of the light (Shared/Look puts these on Lighting; Controllers/LookController does it live while playing, so
 -- each is a row on the N panel; tools/studio/look_install.luau does it in Studio's Edit mode). From the user's lighting
 -- tutorial, 2026-11-11 (docs/design/lighting.md): bright, with a cool ambient, a wide bloom, and strong contrast and
--- saturation. Colours are three numbers, 0 to 255.
+-- saturation; then toned down the same day (the user: too blinded by light, textures hard to see). Colours are three numbers, 0 to 255.
 Config.Look = {
 	On = 1, -- 0: the place's own lighting, untouched (to compare)
-	Brightness = 4, -- the sun's strength (Roblox's own start is 3)
+	Brightness = 2.8, -- the sun's strength (Roblox's own start is 3; the tutorial's 4 washed the sand and studs out, 2.4 looked washed out to the user, 3 a touch too bright)
 	ShadowSoftness = 1, -- 0 hard to 1 soft
 	ClockTime = 14.5, -- the hour: where the sun stands
 	Latitude = 0, -- tilts the sun's path
-	Exposure = 0, -- the whole picture lighter or darker, in stops
-	AmbientR = 124, -- the light in shade (indoors, under things)
-	AmbientG = 155,
-	AmbientB = 184,
-	OutdoorR = 157, -- the light in shade under the open sky
-	OutdoorG = 178,
-	OutdoorB = 255,
+	Exposure = -0.25, -- the whole picture lighter or darker, in stops
+	AmbientR = 112, -- the light in shade (indoors, under things); the tutorial's is 124, 155, 184
+	AmbientG = 140,
+	AmbientB = 170,
+	OutdoorR = 140, -- the light in shade under the open sky; the tutorial's is 157, 178, 255
+	OutdoorG = 162,
+	OutdoorB = 240,
 	EnvDiffuse = 1, -- how much the sky tints everything
 	EnvSpecular = 1, -- how much the sky shows in shiny things
-	BloomIntensity = 1, -- the glow round bright things: how strong,
-	BloomSize = 56, -- how wide (Roblox's own start is 24),
-	BloomThreshold = 2, -- and how bright a thing must be to glow
-	Contrast = 0.5, -- -1 to 1
-	Saturation = 0.5, -- -1 to 1: how vivid the colours are
+	BloomIntensity = 0.6, -- the glow round bright things: how strong (the tutorial's is 1),
+	BloomSize = 48, -- how wide (Roblox's own start is 24, the tutorial's 56),
+	BloomThreshold = 2.2, -- and how bright a thing must be to glow (the tutorial's is 2)
+	Contrast = 0.35, -- -1 to 1 (the tutorial's is 0.5)
+	Saturation = 0.5, -- -1 to 1: how vivid the colours are (the tutorial's is 0.5)
 	ColourBrightness = 0, -- -1 to 1, after everything else
 	TintR = 245, -- the whole picture is multiplied by this colour (a faint lilac)
 	TintG = 234,

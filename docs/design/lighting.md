@@ -22,6 +22,52 @@ Read from its frames and its voice.
 
 Our place's lighting was Roblox's plain start, the same as the tutorial's "before", so the steps apply as they are.
 
+## Toned down
+The user, the same day, through the map chat: "a bit too blinded by light so textures are harder to see, maybe tune
+that area of the system down artistically". At the tutorial's values the sand floor clipped to white and the studs and
+squares vanished on floor and walls (the map chat, from one capture of the hub in Edit mode). The values it tried there,
+which keep the vivid sky and bring the textures back, are `Config.Look` now:
+
+| Number | The tutorial | Now |
+|---|---|---|
+| Brightness | 4 | 2.4 |
+| Exposure | 0 | -0.25 |
+| Ambient | 124, 155, 184 | 104, 128, 152 |
+| OutdoorAmbient | 157, 178, 255 | 128, 146, 200 |
+| Bloom: intensity, size, threshold | 1, 56, 2 | 0.5, 40, 2.4 |
+| Contrast | 0.5 | 0.2 |
+| Saturation | 0.5 | 0.35 |
+
+The tint, the soft shadows, the Realistic style and the sky are unchanged. Judged from one capture of the hub only;
+under water it has not been seen.
+
+## Part of the way back
+The user, later the same day, through the map chat: the toned-down light is a bit washed out; bring it part of the way
+back toward the bright one (its blues and pushed light, without the blinding). `Config.Look` now, a reasoned halfway
+point that **nobody has judged by eye** (Studio's window wasn't being drawn for either chat):
+
+| Number | The tutorial | Toned down | Now |
+|---|---|---|---|
+| Brightness | 4 | 2.4 | 3 |
+| Exposure | 0 | -0.25 | -0.2 |
+| Ambient | 124, 155, 184 | 104, 128, 152 | 112, 140, 170 |
+| OutdoorAmbient | 157, 178, 255 | 128, 146, 200 | 140, 162, 240 |
+| Bloom: intensity, size, threshold | 1, 56, 2 | 0.5, 40, 2.4 | 0.7, 48, 2.2 |
+| Contrast | 0.5 | 0.2 | 0.35 |
+| Saturation | 0.5 | 0.35 | 0.5 |
+
+## A touch down
+The user, the same day, to the map chat (which holds these numbers now): "ever so slightly less bright and drowning,
+ever so slightly, just a touch". Three numbers moved; the rest are as in the table above.
+
+| Number | Part of the way back | Now |
+|---|---|---|
+| Brightness | 3 | 2.8 |
+| Exposure | -0.2 | -0.25 |
+| Bloom intensity | 0.7 | 0.6 |
+
+Pushed to the place and installed in Edit mode. Still not judged by eye by either chat: the user's eye is the test.
+
 ## The script we left out
 It runs when your character appears and puts a Roblox `Highlight` on it: a black outline round the whole character, and
 a black wash over the body at 20% (FillTransparency 0.8), hidden where something stands in front (DepthMode Occluded).

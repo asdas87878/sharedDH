@@ -17,7 +17,7 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 KIT = "--kit" in argv  # the asset sheet (tools/map/props.py) instead of the lane
 argv = [a for a in argv if a != "--kit"]
 only = argv[0].split(",") if argv else None
-BOX = os.path.join(ROOT, "art", "map", "props" if KIT else "greybox")
+BOX = os.environ.get("GREYBOX_OUT") or os.path.join(ROOT, "art", "map", "props" if KIT else "greybox")
 OUT = os.path.join(BOX, "renders")
 if KIT:
     kit = json.load(open(os.path.join(BOX, "kit.json")))
@@ -215,6 +215,7 @@ else:
         "hub": (Vector((0, 7, -104)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
         "hub_back": (Vector((0, 7, -22)), Vector((0, 10, -256)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
         "hub_above": (Vector((-200, 240, -400)), Vector((10, -10, 60)), HAZE, 12000, SKY, 55, 0.25),
+        "hub_look": (Vector((150, 64, -160)), Vector((-90, 0, 20)), HAZE, 12000, SKY, 70, 0.6),  # for judging the hub's colours
         "hub_top": (Vector((0, 560, -132)), Vector((0, 0, -128)), HAZE, 12000, SKY, 45, 0.6),
         # the reference's own flight views, for laying side by side: no water, daylight
         "fly_ahead": (*lane_view(necks[1] - 60, 60, 62, 300, 0), HAZE, 5200, SKY, 80, 0.0),

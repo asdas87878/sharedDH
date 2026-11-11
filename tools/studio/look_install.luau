@@ -8,8 +8,21 @@
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
-local Look = require(ReplicatedStorage.Shared.Look)
+-- Studio keeps a module it has read once, so a second run would get the old numbers: read a fresh copy each time.
+local function fresh(module: ModuleScript): any
+	local copy = module:Clone()
+	copy.Name = module.Name .. "_LookInstall"
+	copy.Parent = module.Parent
+	local ok, result = pcall(require, copy)
+	copy:Destroy()
+	if not ok then
+		error(result)
+	end
+	return result
+end
+
+local Config = fresh(ReplicatedStorage.Shared.Config)
+local Look = fresh(ReplicatedStorage.Shared.Look)
 
 local v = Config.Look
 Look.apply(Lighting, v)

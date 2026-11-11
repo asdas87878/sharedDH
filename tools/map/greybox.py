@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import props  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUT = os.path.join(ROOT, "art", "map", "greybox")
+OUT = os.environ.get("GREYBOX_OUT") or os.path.join(ROOT, "art", "map", "greybox")  # a trial build can go elsewhere
 
 # ---------------------------------------------------------------- the numbers
 PINCH = 60.0  # how close a side comes to the lane's line where it pinches in, at the start of the dive
@@ -64,7 +64,24 @@ STEEPER = {4: (12.0, 700.0), 7: (14.0, 900.0)}  # at the start of these lands (c
 GROUND = [(242, 214, 128), (244, 148, 152), (120, 172, 92), (160, 148, 124), (90, 124, 176),  # one colour per land
           (104, 96, 170), (62, 66, 120), (120, 72, 64), (150, 150, 168), (110, 44, 60)]  # (the last five are first guesses)
 ASSET_SET = [0, 1, 2, 3, 0, 1, 2, 3, 4, 4]  # which of props.LANDS each land borrows: five lands have no set of their own yet
-HUB_GROUND = (242, 214, 128)
+# the hub's colours: its floor, its walls' faces and tops, the start strip, the aquariums' frames. HUB_LOOK picks one
+# (an environment variable, for trying them side by side: tools/map/hub_looks.py); "Beach" is what is built
+HUB_LOOKS = {
+    "Beach": {"floor": (242, 214, 128), "face": None, "top": (242, 214, 128), "strip": (250, 246, 230), "frame": (58, 66, 88)},
+    "Lagoon": {"floor": (240, 218, 152), "face": (236, 232, 220), "top": (112, 190, 96), "strip": (255, 255, 255), "frame": (40, 70, 120)},
+    "Coral": {"floor": (248, 222, 192), "face": (236, 150, 140), "top": (130, 214, 190), "strip": (255, 244, 226), "frame": (30, 90, 100)},
+    "Pool": {"floor": (190, 232, 236), "face": (240, 244, 248), "top": (60, 190, 200), "strip": (252, 214, 90), "frame": (36, 60, 110)},
+    "Boardwalk": {"floor": (198, 152, 104), "face": (70, 96, 140), "top": (244, 236, 214), "strip": (240, 90, 80), "frame": (90, 62, 44)},
+    # variations on Coral (the user, 2026-11-11: coral walls and seafoam tops work; the ground should blend in more,
+    # the accent should show, and maybe a bit more brown)
+    "CoralSand": {"floor": (238, 204, 176), "face": (232, 140, 128), "top": (130, 214, 190), "strip": (40, 150, 150), "frame": (30, 110, 120)},
+    "CoralBlush": {"floor": (240, 190, 170), "face": (228, 128, 120), "top": (130, 214, 190), "strip": (255, 244, 226), "frame": (30, 110, 120)},
+    "CoralClay": {"floor": (206, 160, 128), "face": (226, 132, 116), "top": (130, 214, 190), "strip": (255, 240, 220), "frame": (92, 60, 50)},
+    "Terracotta": {"floor": (226, 186, 150), "face": (198, 116, 92), "top": (120, 206, 184), "strip": (40, 150, 150), "frame": (92, 60, 50)},
+    "Driftwood": {"floor": (184, 146, 116), "face": (212, 128, 108), "top": (96, 192, 172), "strip": (250, 236, 214), "frame": (78, 54, 46)},
+}
+HUB_LOOK = HUB_LOOKS[os.environ.get("HUB_LOOK", "Beach")]
+HUB_GROUND = HUB_LOOK["floor"]
 # a wall is up to three tiers going away from the lane, the same distances everywhere so a wall never breaks its line
 TIER_BACK, TIER_DEEP = (0.0, 24.0, 56.0), (24.0, 32.0, 24.0)  # whole squares: 3, 4 and 3 deep
 KIND = {  # each tier's height in squares under its grass; 0 = that tier isn't there
@@ -480,8 +497,15 @@ def eased(side, tier, at):
 
 
 def lane_colours(at):
+    hub = (HUB_LOOK["top"], HUB_LOOK["face"] or face_of(HUB_LOOK["top"]))
+    if at < 0.0:  # round the hub: the hub's own colours
+        return hub
     g = GROUND[min(land_at(at), len(GROUND) - 1)]
-    return g, face_of(g)
+    land = (g, face_of(g))
+    if at < JOIN:  # out of the mouth the hub's colours fade into the first land's, as its wall steps down
+        f = smooth(at / JOIN)
+        return tuple(tuple(int(h + (l - h) * f) for h, l in zip(hc, lc)) for hc, lc in zip(hub, land))
+    return land
 
 
 HUB_HALF, HUB_BACK, CORNER = 240.0, -256.0, 32.0  # 480 by 256 inside (whole tiles of the picture, so the squares
@@ -793,7 +817,7 @@ for room in rooms:
 # Sized from the reference's own hub (docs/reference/ride-a-dino-map.md, "The hub, measured"): a walk of a few seconds
 # from the pens to the start, pens in a row along the far side and round the corners, stalls just inside the start.
 add("HubFloor", "hub", (0, 0.5 - 60, HUB_BACK / 2), (HUB_HALF * 2, 120, -HUB_BACK), HUB_GROUND)
-add("StartStrip", "trim", (0, 0.75, -12), ((PINCH + MOUTH) * 2, 0.5, 24), (250, 246, 230), solid=False)
+add("StartStrip", "trim", (0, 0.75, -12), ((PINCH + MOUTH) * 2, 0.5, 24), HUB_LOOK["strip"], solid=False)
 
 
 def stall(name, x, z, colour, turn=0):
@@ -814,7 +838,7 @@ def plot(index, cx, cz, turn_deg):
     ax, ay, az = yawed(turn_deg)
     w, d, h = PLOT
     colour = PLOT_COLOURS[(index - 1) % len(PLOT_COLOURS)]
-    frame = (58, 66, 88)
+    frame = HUB_LOOK["frame"]
 
     def put(name, x, y0, z, size, col, kind="station", **more):
         add(f"Plot{index}_{name}", kind, (cx + ax[0] * x + az[0] * z, y0 + size[1] / 2, cz + ax[2] * x + az[2] * z), size, col, ax, ay, az, **more)
@@ -914,5 +938,6 @@ for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2))
     d.polygon(pts, fill=col)
 font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
 d.text((20, 14), f"Grey-box 9 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
-im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))
+if not os.environ.get("GREYBOX_OUT"):
+    im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))
 print("plan drawn")

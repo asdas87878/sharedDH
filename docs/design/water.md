@@ -44,8 +44,8 @@ the two pull against each other.
 | | The tutorial | Ours now |
 |---|---|---|
 | Layers apart | about 1 stud | 2.6 |
-| Glass | 0.15 see-through | 0.25 |
-| Water1, Water2, Water3 | 0.5, 0.7, 0.5 | 0.7, 0.72, 0.8 |
+| Glass | 0.15 see-through | 0.35 (0.25 first; the user asked for a bit more see-through) |
+| Water1, Water2, Water3 | 0.5, 0.7, 0.5 | 0.76, 0.78, 0.85 (0.7, 0.72, 0.8 first) |
 | Picture | one layer, 9 studs to a tile, faint | one layer, 48 studs to a tile (the sea is far bigger than a pond), 0.6 see-through |
 
 ## What we added: the movement
@@ -88,6 +88,39 @@ rests at y = -3, a hop tops out at -6, a ridden fish may rise to -7.
 - **From underneath** (camera at y = -30): a clean blue ceiling; things above the water show through it, tinted.
 - **From inside the band** (camera at y = -5): the same ceiling, and a thin pale line across the view at eye level,
   where a layer is seen edge on. The layers were 0.4 thick; they are now 0.1, so the line is a hairline.
+
+## Queued: making the water feel like water (the user, 2026-11-11)
+**The aim, in the user's words:** make it obvious what's going on instantly when you're in the hub. "You walk up to
+the water, you see the fish in the water slightly, you see the depth of the water." And inside: "feel like you're in
+water when you're in the water", with the darkness and depth visible from outside. Not built yet; this is the plan to
+talk through. It builds on [workout 1, going down](../style/01-going-down.md), which already tested fog by depth.
+
+**From the hub, looking in** (the map chat's, in `water_look.luau`):
+1. **Depth you can see from above.** Fog only works for a camera that is under water, so from the hub the sea has no
+   depth of its own. The same trick as the foam, carried deeper: a few more faint dark-blue sheets well under the
+   surface (say at 12, 25 and 40 studs down). Each one darkens what lies under it a step, so the floor fades to deep
+   blue with depth and a fish near the top reads brighter than one near the floor.
+2. **Fish as shapes under the surface.** With (1) and the clearer water, a fish below shows as a darker, bluer shape.
+   Whether enough fish swim near the mouth, and near the top, is the herd's doing: a question for the riding chat.
+3. **The mouth as the darkest water in view,** so the eye goes to where you dive: the floor's colour there, and
+   nothing pale under the surface near the edge.
+4. Later, with the parked dive-edge step: a sloping edge, where the foam's steps spread wide.
+
+**Inside the water** (mostly the game's code, with the numbers set from here):
+5. **Colour and distance by the camera's depth:** workout 1's main signal. The moment the camera goes under, the
+   picture tints and fog closes in; deeper, darker and shorter. Needs Lighting's classic fog, which only works with
+   no Atmosphere in Lighting, so the game's look controller has to swap them at the surface.
+6. **Crossing the surface:** a splash, a short flash of bubbles across the view, and the sound going muffled.
+7. **Things drifting in the water:** specks that hang and slide past the camera (they show speed too), bubble trails
+   off fish.
+8. **Light from above in the shallows:** the surface as a bright ceiling (already there), moving light on the floor
+   (one drifting sheet of the cell picture just over the floor, following the camera, as the sea's block does), and
+   a few shafts of light near the top. Deeper, these fade and glowing things take over.
+
+**Suggested order:** 1 and 3 (small, mine, and they serve the hub's first look), then 5 (the biggest change inside),
+then 7 and 8, then 6. **To settle first:** workout 1's open choice between look A (bright and saturated all the way
+down) and look B (the light really goes); and how this sits with the game's new light, which is tuned for above
+water.
 
 ## What it depends on
 | Thing | Where it comes from | Note |
