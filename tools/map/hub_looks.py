@@ -11,7 +11,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BLENDER = r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
 LOOKS = ["Beach", "Lagoon", "Coral", "Pool", "Boardwalk"]
-WORDS = {"Beach": "Beach (what is built): sand floor and tops, grey walls", "Lagoon": "Lagoon: sand floor, cream walls, green tops, navy frames",
+WORDS = {"Dino": "Ride a Dino's hub colours, one to one (what is built): green floor, paler green tops, pale grey-green walls, a sand strip, wood frames",
+         "Beach": "Beach: sand floor and tops, grey walls", "Lagoon": "Lagoon: sand floor, cream walls, green tops, navy frames",
          "Coral": "Coral: peach floor, coral walls, seafoam tops, teal frames", "Pool": "Pool: aqua floor, white walls, turquoise tops, a yellow strip",
          "Boardwalk": "Boardwalk: wood floor, slate-blue walls, pale tops, a red strip",
          "CoralSand": "Coral sand: a warm pink-sand floor, coral walls, seafoam tops, a teal strip and frames",

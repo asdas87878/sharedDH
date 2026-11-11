@@ -275,6 +275,30 @@ at (0, 1, -104) before the loader's shift. The build attribute is "greybox 9".
 - Lands 5 to 10 borrow the first lands' assets and guessed colours; the backdrop is still pale slabs.
 - The part count is up by about 6,000 (a finer floor). Thinning is one of the parked steps.
 
+## The hub's colours (2026-11-11)
+The user asked for a few colour looks for the hub, then for variations on one of them (Coral), then settled, for now,
+on **Ride a Dino's own hub colours, one to one.**
+
+![The hub in Ride a Dino's colours](../attachments/map-hub-look-dino.jpg)
+
+| Part | Colour (sampled from sunlit places in the recordings) |
+|---|---|
+| Floor | green, 80, 210, 96 |
+| Wall tops (grass) | a paler yellow-green, 136, 220, 67 |
+| Wall faces | pale grey-green, 199, 207, 179 |
+| Start strip | sand, 222, 217, 174 |
+| Aquarium pads (their pens' floors) | sand, 206, 190, 124 |
+| Aquarium frames (their fences) | wood, 166, 128, 68 |
+
+- **A look is one line** in `HUB_LOOKS` at the top of `tools/map/greybox.py`; `Dino` is the one built. The others stay
+  there to go back to: Beach (the first build), Lagoon, Coral, Pool, Boardwalk, and five variations on Coral.
+  `python tools/map/hub_looks.py Look,Look sheet.jpg` renders any of them side by side
+  (`docs/attachments/map-hub-looks.jpg`, `map-hub-looks-coral.jpg`).
+- **Out of the mouth the hub's wall colours fade into the first land's** over the first 420 studs, as the wall steps
+  down. Before, the hub's colour stopped dead at the mouth.
+- **Sampled colours are their colours under their light.** Under the game's light ours will read more vivid. To be
+  judged in Studio and pulled back if so.
+
 ## What makes their map read, and where ours should go
 **What their structure does** (from the recordings and the screenshots):
 1. **One rule, used everywhere.** Floor, wall face, grass: three surfaces, one pattern, one colour per land. Nothing

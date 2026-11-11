@@ -65,8 +65,12 @@ GROUND = [(242, 214, 128), (244, 148, 152), (120, 172, 92), (160, 148, 124), (90
           (104, 96, 170), (62, 66, 120), (120, 72, 64), (150, 150, 168), (110, 44, 60)]  # (the last five are first guesses)
 ASSET_SET = [0, 1, 2, 3, 0, 1, 2, 3, 4, 4]  # which of props.LANDS each land borrows: five lands have no set of their own yet
 # the hub's colours: its floor, its walls' faces and tops, the start strip, the aquariums' frames. HUB_LOOK picks one
-# (an environment variable, for trying them side by side: tools/map/hub_looks.py); "Beach" is what is built
+# (an environment variable, for trying them side by side: tools/map/hub_looks.py); "Dino" is what is built
 HUB_LOOKS = {
+    # Ride a Dino's own hub colours, one to one (the user, 2026-11-11: "for now for the hub"). Sampled from sunlit
+    # places in the recordings: the green floor, the paler yellow-green grass, the pale grey-green wall face, the sand
+    # start strip, the pens' sand and their wooden fences (our aquariums' frames)
+    "Dino": {"floor": (80, 210, 96), "face": (199, 207, 179), "top": (136, 220, 67), "strip": (222, 217, 174), "frame": (166, 128, 68), "pad": (206, 190, 124)},
     "Beach": {"floor": (242, 214, 128), "face": None, "top": (242, 214, 128), "strip": (250, 246, 230), "frame": (58, 66, 88)},
     "Lagoon": {"floor": (240, 218, 152), "face": (236, 232, 220), "top": (112, 190, 96), "strip": (255, 255, 255), "frame": (40, 70, 120)},
     "Coral": {"floor": (248, 222, 192), "face": (236, 150, 140), "top": (130, 214, 190), "strip": (255, 244, 226), "frame": (30, 90, 100)},
@@ -80,7 +84,7 @@ HUB_LOOKS = {
     "Terracotta": {"floor": (226, 186, 150), "face": (198, 116, 92), "top": (120, 206, 184), "strip": (40, 150, 150), "frame": (92, 60, 50)},
     "Driftwood": {"floor": (184, 146, 116), "face": (212, 128, 108), "top": (96, 192, 172), "strip": (250, 236, 214), "frame": (78, 54, 46)},
 }
-HUB_LOOK = HUB_LOOKS[os.environ.get("HUB_LOOK", "Beach")]
+HUB_LOOK = HUB_LOOKS[os.environ.get("HUB_LOOK", "Dino")]
 HUB_GROUND = HUB_LOOK["floor"]
 # a wall is up to three tiers going away from the lane, the same distances everywhere so a wall never breaks its line
 TIER_BACK, TIER_DEEP = (0.0, 24.0, 56.0), (24.0, 32.0, 24.0)  # whole squares: 3, 4 and 3 deep
@@ -843,7 +847,7 @@ def plot(index, cx, cz, turn_deg):
     def put(name, x, y0, z, size, col, kind="station", **more):
         add(f"Plot{index}_{name}", kind, (cx + ax[0] * x + az[0] * z, y0 + size[1] / 2, cz + ax[2] * x + az[2] * z), size, col, ax, ay, az, **more)
 
-    put("Pad", 0, 0.5, 12, (w, 0.4, d + 24), tuple(int(c * 0.35 + 160) for c in colour), solid=False)
+    put("Pad", 0, 0.5, 12, (w, 0.4, d + 24), HUB_LOOK.get("pad") or tuple(int(c * 0.35 + 160) for c in colour), solid=False)
     put("TankBase", 0, 0.5, 0, (w, 3, d), frame)
     put("TankSand", 0, 3.5, 0, (w - 2, 1, d - 2), (236, 222, 172))
     put("TankWater", 0, 4.5, 0, (w - 2, h - 2, d - 2), (90, 190, 225), kind="glass", solid=False, t=0.55)

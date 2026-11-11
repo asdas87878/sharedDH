@@ -75,7 +75,8 @@ are (foam width), the pictures' sizes, speeds and strength, the breath's size an
   flat sea tiles (`ClaudeBlockout.Surface.SeaTile`, as they arrive: the map streams in by distance), builds the one
   block and its ring in `Surface.WaterLayers`, and keeps them under the camera and moving.
 - **`python tools/map/water_luau.py`** writes the installer, `tools/studio/greybox/98_water.luau`. It sorts after the
-  map's own loader files, so loading the map installs the water too. It puts in `Surface.WaterLook` (the script) and
+  map's own loader files, so loading the map installs the water too. (`greybox_luau.py` clears that folder, so it
+  now writes the water's installer again itself.) It puts in `Surface.WaterLook` (the script) and
   `Surface.WaterKit.Slab` (the mesh the layers are copies of, in a model marked Persistent so it reaches every
   player however far away).
 - **It shows in Play, not in Edit.** In Edit mode the sea is still the plain flat tiles.

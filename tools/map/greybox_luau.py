@@ -315,3 +315,8 @@ open(os.path.join(OUT, "99_check.luau"), "w", encoding="utf-8", newline="\n").wr
     CHECK.replace("{what}", "Last: counts what was built.").replace("{EXPECT}", str(len(rows) + len(zones))).replace("{{}}", "{}"))
 sizes = [os.path.getsize(os.path.join(OUT, f)) for f in sorted(os.listdir(OUT))]
 print(len(rows), "parts in", files, "files;", len(model_list), "asset models;", len(zones), "lands;", "largest file", max(sizes) // 1024, "KB; all", sum(sizes) // 1024, "KB")
+# the moving water's installer lives in the same folder (98_water.luau) and is cleared with it: write it again
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+
+subprocess.run([sys.executable, os.path.join(ROOT, "tools", "map", "water_luau.py")], check=True)
