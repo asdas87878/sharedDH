@@ -54,7 +54,11 @@ What to reach for:
 - **How easy a fish is to get:** `Jump.GrabRange`, and `Lock.Cone`, `AimRadius`, `DistanceWeight`, `Sticky`, `SwitchTime`, `EdgeAim`,
   `LeftPenalty`. Where the view rests in the hop: `Jump.CameraPitch`, `CameraZoom`.
 - **How the turn feels:** `Ride.YawRate` and `TurnEase` (one rate, everywhere).
-- **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `TierDrain`.
+- **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `RarityDrain` Common to Secret (how many times a Common's Oxygen each rarity takes), and `Oxygen.StartMax` (live:
+  everyone's max Oxygen changes at once; the `TestMaxOxygen` attribute, when above 0, still wins).
+- **The tuning rows** (2026-11-11, [progression](design/progression.md)): `TierSpeed` Common to Secret is the ridden
+  speed of each rarity (wild fish, the glide and the server's speed check follow at once), and `MixShallows` to
+  `MixUnderworld` are the share of spawns by rarity in each land (for fish spawned from then on).
 - **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.Rebuild`, `Push`, `Topple`, `MinLength`.
 
 ## What it doesn't do yet

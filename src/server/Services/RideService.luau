@@ -675,21 +675,27 @@ function RideService.Init()
 	end)
 end
 
+-- Everyone's max Oxygen, read again (Studio: the TestMaxOxygen attribute or the sandbox panel's Oxygen.StartMax changed)
+function RideService.readMax()
+	for _, r in riders do
+		r.Max = maxOxygen()
+		r.Oxygen = math.min(r.Oxygen, r.Max)
+		if r.State == "Dock" then
+			r.Oxygen = r.Max
+		end
+		sendOxygen(r, true)
+	end
+end
+
 function RideService.Start()
 	dockSpawn = findDockSpawn()
 	if not dockSpawn then
 		warn("[RideService] no dock Spawn found: respawning reloads the character instead")
+	else
+		-- for the client: where a player is stood on the dock and which way they face (it turns the view to match)
+		Net.Folder:SetAttribute("Dock", dockSpawn.CFrame)
 	end
-	workspace:GetAttributeChangedSignal("TestMaxOxygen"):Connect(function()
-		for _, r in riders do
-			r.Max = maxOxygen()
-			r.Oxygen = math.min(r.Oxygen, r.Max)
-			if r.State == "Dock" then
-				r.Oxygen = r.Max
-			end
-			sendOxygen(r, true)
-		end
-	end)
+	workspace:GetAttributeChangedSignal("TestMaxOxygen"):Connect(RideService.readMax)
 	Players.PlayerAdded:Connect(onPlayer)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayer, player)

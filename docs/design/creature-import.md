@@ -28,7 +28,7 @@ ticked to start with; clicking one takes it out of the import.
   - `leftOut`: taken out by the user. `takeOutOfGame` lists those that are in the game now: their template in
     `ReplicatedStorage.FishModels` and their row in the fish table go.
   - `files`: the `.glb` to upload for each kept creature.
-- With no picks made yet: 49 new uploads, 32 uploads again, 1 as it is.
+- **Decided 2026-11-11: the user keeps all 82.** So: 49 new uploads, 32 uploads again, 1 as it is, none left out.
 
 ## The import, when the user says go
 For the chat that has the game code ([Sessions](../Sessions.md)); the steps are its own tools, unchanged.

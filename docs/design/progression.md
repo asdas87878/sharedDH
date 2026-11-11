@@ -1,17 +1,20 @@
 # Progression: speed, rarity and Oxygen
 
-How fast each fish is, how often each rarity turns up, what each land costs in Oxygen, and so how a player gets from the
-Shallows to the tenth land. Written 2026-11-11 by the tuning chat ([Sessions](../Sessions.md)).
+How long you can stay on a fish, how fast each fish is, how often each rarity turns up, and so how a player gets from
+the Shallows to the tenth land. By the tuning chat ([Sessions](../Sessions.md)); second pass 2026-11-11, after the
+user's answer on how the Oxygen cost works ([Decisions](../Decisions.md), top row).
 
-**Everything under "What is off" is proposed, not decided.** No number in the game was changed for this note. What the
-user decides goes in [Decisions](../Decisions.md).
+**What is applied and what is proposed.** The Oxygen numbers below are in the game (they follow the user's
+direction). The speeds, the traits and everything under "Not built yet" are proposals. What the user decides goes in
+[Decisions](../Decisions.md).
 
 The tables come from a model that reads the game's own numbers, so they can be made again after any change:
 
 ```
 python tools/balance/model.py              the tables
 python tools/balance/model.py --sim 8      and 8 dives per rider played through the herd
-python tools/balance/model.py --set Tiers.Common=54 --set Oxygen.TierDrain=1     try numbers without changing the game
+python tools/balance/model.py --max 3000   the "seconds on a fish" table for a player with 3,000 max Oxygen
+python tools/balance/model.py --set Tiers.Common=54 --set RarityDrain.Legendary=10     try numbers without changing the game
 ```
 
 It reads [Config](../../src/shared/Config.luau), the creature files in `src/shared/Creatures` and the map's path
@@ -19,88 +22,293 @@ It reads [Config](../../src/shared/Config.luau), the creature files in `src/shar
 walls and other players. Where a number matters, it should be checked in play.
 
 ## The short version
-1. **A new player's dive is 75 seconds and ends at the door of the third land, and nothing can change that yet.** The
-   starting 100 Oxygen rides the Shallows (20 seconds) and the Coral Reef (50 seconds), then runs dry in the Kelp
-   Forest. There is no way to grow max Oxygen, so today that is the whole game.
-2. **Rarity costs almost nothing, so there is nothing to chase.** A Legendary takes 1.6 times a Common's Oxygen and is
-   1.7 times as fast, so for each stud it is cheaper than a Common. A new player has a Rare within reach in the first
-   25 seconds, an Epic in most dives and a Legendary about one dive in six, and can ride each of them at once. In Ride
-   a Dino a Legendary needs 15 times the stamina of the Uncommon beside it: you see it long before you can keep it.
-3. **Mashing Space beats the Oxygen curve.** A hop drains nothing and every landing gives a quarter back. A rider who
-   hops again the moment they land needs a twentieth of the Oxygen the game says a land needs, and reaches the fourth
-   or fifth land on the starting 100.
+1. **The unit is seconds on a fish, and every fish starts with the whole meter.** A new player has 2.5 seconds on a
+   Shallows Common, 2 on an Uncommon, 1 on a Rare, half a second on an Epic, nothing to speak of on a Legendary. You
+   hop or you are thrown off. That is in the game now.
+2. **A new player's dive is about 15 seconds:** the Shallows, five fish long, and it ends on the first fish of the
+   Coral Reef, where a full meter lasts half a second (played: 15.6 seconds, 1,141 studs). Each land takes 4 to 8 times the Oxygen of the land before. Nothing grows max Oxygen
+   yet, so the training spot is the next thing the game needs.
+3. **Hopping is faster than riding, so a fish's speed is worth less than it looks.** A rider who hops every 2
+   seconds covers about one and a half times the ground the fish alone would. Holding Space covers 2 to 3 times. Rarer fish
+   ahead can now be caught by hopping to far fish. Speed alone won't make fish feel different; the list under
+   "What else makes a fish different" is for that.
 
-Two smaller ones: our Common is slower than the reference's ride (45 against 54), which is why the glide felt slow; and
-a wild fish one rarity above yours swims exactly as fast as you ride, so you can't catch it up.
+## The Oxygen model
+### How the meter behaves between fish
+The user's picture: almost no time on a fish, 2 to 3 seconds on the first, so you jump from fish to fish. The
+reference draws a green ring that is the time left on this dino. Three ways the meter could go when you land:
 
-## Today's numbers
-From the model on 2026-11-11, with grey-box 8's path. The map is being reworked, so the lengths may move a little.
+| A landing | What a new player gets | What it does to "2 to 3 seconds, then hop" |
+|---|---|---|
+| **refills it all** (picked) | 2.5 s on every Shallows Common, every time | Exactly that, on every fish. One number means one thing: your Oxygen is your seconds on this kind of fish. The fish's tag can show it. |
+| refills a quarter (until today) | 2.5 s on the first fish, then about 0.6 s on each one after | Only the first fish is as the user describes. From the second on you are scrabbling, and how long you have depends on your last few hops, so no tag or HUD number can say it. |
+| a hop also costs something | less than 2.5 s, and less each hop | It charges for the one thing the game is about. It also turns back Hugo's decision that a hop costs nothing. |
 
-**The lane.** 30,164 studs to ride over 10 lands (art/map/greybox/path.json); 720 wild fish in all (Spawn.PerThousand 24, MaxTotal 800).
+- **Picked: a landing on another fish refills the whole meter** (`Oxygen.Refill` 1). It needed no code.
+- **What ends a dive then:** missing every fish in a hop, or landing on a fish that gives you less time than it takes
+  to hop again (0.3 seconds, `Jump.Cooldown`). Oxygen no longer runs down over a dive. In a land you are at home in,
+  you ride until you miss; the next land or the one after throws you off.
+- **Seconds on a fish** = your max Oxygen / (the land's number x the rarity's number): `ZoneDrain` x `RarityDrain`.
+- **What the game shows as "needs":** the Oxygen for 2 seconds on the fish (`Oxygen.KeepUp` 2).
 
-| Land | Studs | Width | Fish | Studs between | s at Common (45) | s at Uncommon (52) | s at Rare (60) | s at Epic (68) | s at Legendary (78) | s at Mythic (90) | s at Secret (100) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 Shallows | 1,009 | 143 to 248 | 24 | 42 | 22 | 19 | 17 | 15 | 13 | 11 | 10 |
-| 2 Coral Reef | 2,846 | 156 to 432 | 68 | 42 | 63 | 55 | 47 | 42 | 36 | 32 | 28 |
-| 3 Kelp Forest | 2,807 | 203 to 520 | 67 | 42 | 62 | 54 | 47 | 41 | 36 | 31 | 28 |
-| 4 Shipwrecks | 3,160 | 243 to 585 | 75 | 42 | 70 | 61 | 53 | 46 | 41 | 35 | 32 |
-| 5 Open Blue | 3,168 | 279 to 621 | 76 | 42 | 70 | 61 | 53 | 47 | 41 | 35 | 32 |
-| 6 Twilight | 3,295 | 279 to 691 | 79 | 42 | 73 | 63 | 55 | 48 | 42 | 37 | 33 |
-| 7 Midnight | 3,581 | 354 to 859 | 85 | 42 | 80 | 69 | 60 | 53 | 46 | 40 | 36 |
-| 8 Vents | 3,120 | 354 to 866 | 74 | 42 | 69 | 60 | 52 | 46 | 40 | 35 | 31 |
-| 9 Bone Graveyard | 3,837 | 394 to 940 | 92 | 42 | 85 | 74 | 64 | 56 | 49 | 43 | 38 |
-| 10 The Underworld | 3,342 | 478 to 966 | 80 | 42 | 74 | 64 | 56 | 49 | 43 | 37 | 33 |
-| All ten | 30,164 |  | 720 |  | 670 | 580 | 503 | 444 | 387 | 335 | 302 |
+### The numbers, applied 2026-11-11
+| Number | Was | Now | Why |
+|---|---|---|---|
+| `Oxygen.Refill` | 0.25 | 1 | Every fish starts with the whole meter (above) |
+| `Oxygen.KeepUp` | 6 | 2 | It was the seconds between landings. Now it is the seconds on a fish that count as enough, so "needs" means 2 seconds on it |
+| `Oxygen.StartMax` | 100 | 100 | Kept |
+| `ZoneDrain`, lands 1 to 10 | 1, 4, 14, 48, 160, 500, 1,500, 4,500, 13,000, 36,000 | 40, 160, 480, 2,000, 6,000, 24,000, 60,000, 240,000, 1,000,000, 4,000,000 | 100 Oxygen lasts 2.5 s on a Shallows Common. Each land takes 2.5 to 4 times the land before: the land is the main cost. The three smaller steps (lands 3, 5 and 7) are where the land's commonest fish also goes up a rarity |
+| `RarityDrain`, Common to Secret | 1, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9 | 1, 1.25, 2.5, 4.5, 15, 50, 150 | Gentle to Epic, steep from Legendary. Rare to Legendary follow the reference's required stamina in one zone (Uncommon 50, Rare 130, Epic 230, Legendary 752). Mythic and Secret are guesses |
+| `Oxygen.FreeDrain` | 4 | 4 | Kept: 25 seconds afloat for a new player |
 
-- The Shallows are short: 22 seconds on a Common. Every other land is about a minute on a Common and 40 seconds on a
-  Legendary.
-- The whole lane is 11 minutes on Commons, 6.5 on Legendaries. Riding what each land mostly holds, about 7 minutes.
+- **Checked against [Decisions](../Decisions.md):** one number a land, a steep curve, a hop never refused and free,
+  out of Oxygen on a fish you are thrown off and drown. All still true.
+- **The land's step was 4 falling to 2.8** (Hugo's numbers) and is 2.5 to 4 now. The reference: 5 times a zone for
+  the same rarity, from one pair of readings. With the rarer fish of each deeper land, ours comes to 4 to 8 times.
+  A guess to play.
+- Studio starts with Endless air on, so none of this is felt until it is switched off on the N panel.
 
-**Oxygen by land.** Drain a second on a Common, and the max Oxygen that keeps up (drain x KeepUp 6 / Refill 0.25). "Usual fish" is the land's own mix, weighted. Hop-hop is a rider who hops again the moment the cooldown ends (0.3 s on each fish): the hop itself drains nothing. Start max is 100.
+**Seconds on a fish with 100 max Oxygen (a new player).** Max Oxygen / (ZoneDrain x RarityDrain): how long a full meter lasts on a fish of that rarity in that land. A landing on another fish gives back the whole meter. Blank: that rarity doesn't spawn there. The game's "enough" is Oxygen.KeepUp 2 s; under the hop's cooldown (0.3 s) you are thrown off before you can hop.
 
-| Land | Drain /s | x the land before | Needs (Common) | Needs (usual fish) | Needs (rarest there) | Needs hopping every 3 s | Needs hop-hop | Seconds a full 100 lasts, no hops |
+| Land | Oxygen a second (Common) | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret |
 |---|---|---|---|---|---|---|---|---|
-| 1 Shallows | 1.0 |  | 24 | 26 | 39 (Legendary) | 12 | 2 | 100.0 |
-| 2 Coral Reef | 4.0 | x4.0 | 96 | 115 | 154 (Legendary) | 48 | 5 | 25.0 |
-| 3 Kelp Forest | 14 | x3.5 | 336 | 426 | 538 (Legendary) | 168 | 17 | 7.1 |
-| 4 Shipwrecks | 48 | x3.4 | 1,152 | 1,541 | 1,844 (Legendary) | 576 | 58 | 2.1 |
-| 5 Open Blue | 160 | x3.3 | 3,840 | 5,378 | 6,720 (Mythic) | 1,920 | 192 | 0.6 |
-| 6 Twilight | 500 | x3.1 | 12,000 | 17,616 | 21,000 (Mythic) | 6,000 | 600 | 0.2 |
-| 7 Midnight | 1,500 | x3.0 | 36,000 | 55,384 | 63,000 (Mythic) | 18,000 | 1,800 | 0.1 |
-| 8 Vents | 4,500 | x3.0 | 108,000 | 169,560 | 189,000 (Mythic) | 54,000 | 5,400 | 0.0 |
-| 9 Bone Graveyard | 13,000 | x2.9 | 312,000 | 500,605 | 546,000 (Mythic) | 156,000 | 15,600 | 0.0 |
-| 10 The Underworld | 36,000 | x2.8 | 864,000 | 1,397,952 | 1,512,000 (Mythic) | 432,000 | 43,200 | 0.0 |
+| 1 Shallows | 40 | 2.5 | 2.0 | 1.0 | 0.56 | 0.17 |  |  |
+| 2 Coral Reef | 160 | 0.62 | 0.50 | 0.25 | 0.14 | 0.04 |  |  |
+| 3 Kelp Forest | 480 |  | 0.17 | 0.08 | 0.05 | 0.01 |  |  |
+| 4 Shipwrecks | 2,000 |  | 0.04 | 0.02 | 0.01 | 0.00 |  |  |
+| 5 Open Blue | 6,000 |  | 0.01 | 0.01 | 0.00 | 0.00 | 0.00 |  |
+| 6 Twilight | 24K |  |  | 0.00 | 0.00 | 0.00 | 0.00 |  |
+| 7 Midnight | 60K |  |  |  | 0.00 | 0.00 | 0.00 |  |
+| 8 Vents | 240K |  |  |  | 0.00 | 0.00 | 0.00 |  |
+| 9 Bone Graveyard | 1M |  |  |  | 0.00 | 0.00 | 0.00 |  |
+| 10 The Underworld | 4M |  |  |  |  | 0.00 | 0.00 |  |
 
-- "Needs" is the max Oxygen that just holds level if you land a hop every 6 seconds. It is what the HUD shows.
-- The last two columns are the same land for a rider who hops more often. This is finding 3.
+- Under 0.3 seconds you are thrown off before you can hop again.
 
+**What max Oxygen means, land by land.** The land's commonest fish, what it takes a second, and the max Oxygen for 1 s on it (you get through, hopping all the time), 2 s (the game's "enough": Oxygen.KeepUp), 2.5 s (at home: a new player's time on a Shallows Common; a guess) and for 2 s on the land's rarer fish (the chase). "HUD" is what the game shows today as the land's need: 2 s on a Common.
+
+| Land | Commonest fish | It takes /s | 1 s on it | 2 s on it | 2.5 s on it (at home) | x the land before | HUD | 2 s on its Legendary | 2 s on its Mythic |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 Shallows | Common | 40 | 40 | 80 | 100 |  | 80 | 1,200 |  |
+| 2 Coral Reef | Uncommon | 200 | 200 | 400 | 500 | x5.0 | 320 | 4,800 |  |
+| 3 Kelp Forest | Rare | 1,200 | 1,200 | 2,400 | 3,000 | x6.0 | 960 | 14.4K |  |
+| 4 Shipwrecks | Rare | 5,000 | 5,000 | 10K | 12.5K | x4.2 | 4,000 | 60K |  |
+| 5 Open Blue | Epic | 27K | 27K | 54K | 67.5K | x5.4 | 12K | 180K | 600K |
+| 6 Twilight | Epic | 108K | 108K | 216K | 270K | x4.0 | 48K | 720K | 2.4M |
+| 7 Midnight | Legendary | 900K | 900K | 1.8M | 2.25M | x8.3 | 120K | 1.8M | 6M |
+| 8 Vents | Legendary | 3.6M | 3.6M | 7.2M | 9M | x4.0 | 480K | 7.2M | 24M |
+| 9 Bone Graveyard | Legendary | 15M | 15M | 30M | 37.5M | x4.2 | 2M | 30M | 100M |
+| 10 The Underworld | Legendary | 60M | 60M | 120M | 150M | x4.0 | 8M | 120M | 400M |
+
+- **Proposed meaning (a guess):** you are at home in a land when you have 2.5 seconds on its commonest fish, the same
+  feel a new player has in the Shallows. With 1 second you get through if you never stop hopping.
+- Being at home takes 4 to 6 times the land before, and 8 times at the Midnight zone, where Legendaries become the
+  common fish.
+- To try a land in Studio: set Workspace's `TestMaxOxygen` to the "at home" number (500, 3,000, 12,500 ...).
+
+**Seconds on a fish for a player at home in each land.** A player whose max Oxygen gives 2.5 s on that land's commonest fish: their time on each rarity there, and on the commonest fish of the land before and the land after.
+
+| At home in | Max Oxygen | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret | The land before | The land after |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 Shallows | 100 | 2.5 | 2.0 | 1.0 | 0.56 | 0.17 |  |  |  | 0.50 |
+| 2 Coral Reef | 500 | 3.1 | 2.5 | 1.2 | 0.69 | 0.21 |  |  | 12 | 0.42 |
+| 3 Kelp Forest | 3,000 |  | 5.0 | 2.5 | 1.4 | 0.42 |  |  | 15 | 0.60 |
+| 4 Shipwrecks | 12.5K |  | 5.0 | 2.5 | 1.4 | 0.42 |  |  | 10 | 0.46 |
+| 5 Open Blue | 67.5K |  | 9.0 | 4.5 | 2.5 | 0.75 | 0.23 |  | 14 | 0.62 |
+| 6 Twilight | 270K |  |  | 4.5 | 2.5 | 0.75 | 0.23 |  | 10 | 0.30 |
+| 7 Midnight | 2.25M |  |  |  | 8.3 | 2.5 | 0.75 |  | 21 | 0.62 |
+| 8 Vents | 9M |  |  |  | 8.3 | 2.5 | 0.75 |  | 10 | 0.60 |
+| 9 Bone Graveyard | 37.5M |  |  |  | 8.3 | 2.5 | 0.75 |  | 10 | 0.62 |
+| 10 The Underworld | 150M |  |  |  |  | 2.5 | 0.75 |  | 10 |  |
+
+- At home in a land, the land before is a rest (10 seconds or more on a fish) and the land after is a scramble (half
+  a second).
+- The chase is in every land: at home there, its rarer fish still give under a second (a Legendary in the first six
+  lands, a Mythic from the fifth on).
+
+**How far a max Oxygen gets** (the model's dives). Endless air off. Each line is a player and a way of riding. "At ease": on each fish until 0.7 s are left (1.8 s at most), never hopping sooner than 0.7 s after a landing, onto the fish the lock gives (about 60 studs ahead). "Reads the tags": only fish that give 1 s or more, when one is in reach. "Space held": a hop the moment the cooldown ends and a grab at once, only fish that give 0.4 s or more. 30 dives each. The last columns: fish of that rarity that came within reach in one dive, on average.
+
+| Player | Max Oxygen | Rider | Lasts (s) | Studs | Ends in land | Hops landed | How it ended | Rare in reach | Epic in reach | Legendary in reach | Mythic in reach |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| a new player | 100 | at ease | 16 | 1,021 | 1 to 2 | 4 | out of Oxygen 30 | 0.6 | 0.0 | 0.0 | 0.0 |
+| a new player | 100 | at ease, reads the tags | 16 | 1,021 | 1 to 2 | 4 | out of Oxygen 30 | 0.6 | 0.0 | 0.0 | 0.0 |
+| a new player | 100 | Space held, reads the tags | 15 | 1,533 | 1 to 3 | 12 | out of Oxygen 30 | 2.9 | 0.4 | 0.1 | 0.0 |
+| at home in land 2 | 500 | at ease | 48 | 3,185 | 2 to 3 | 12 | out of Oxygen 30 | 6.0 | 1.0 | 0.3 | 0.0 |
+| at home in land 2 | 500 | at ease, reads the tags | 52 | 3,443 | 2 to 3 | 13 | out of Oxygen 30 | 6.4 | 1.2 | 0.4 | 0.0 |
+| at home in land 2 | 500 | Space held, reads the tags | 27 | 2,656 | 2 to 4 | 20 | out of Oxygen 30 | 6.5 | 1.0 | 0.2 | 0.0 |
+| at home in land 3 | 3,000 | at ease | 84 | 5,759 | 3 to 4 | 20 | out of Oxygen 30 | 16.6 | 3.1 | 0.6 | 0.0 |
+| at home in land 3 | 3,000 | at ease, reads the tags | 89 | 6,058 | 2 to 4 | 21 | out of Oxygen 30 | 18.1 | 4.1 | 0.7 | 0.0 |
+| at home in land 3 | 3,000 | Space held, reads the tags | 60 | 6,066 | 2 to 5 | 44 | out of Oxygen 28, missed every fish 2 | 27.5 | 7.3 | 1.4 | 0.0 |
+| at home in land 5 | 67.5K | at ease | 168 | 12,168 | 4 to 6 | 38 | out of Oxygen 30 | 50.4 | 20.6 | 3.8 | 0.1 |
+| at home in land 5 | 67.5K | at ease, reads the tags | 169 | 12,192 | 4 to 6 | 38 | out of Oxygen 30 | 48.0 | 20.3 | 3.1 | 0.2 |
+| at home in land 5 | 67.5K | Space held, reads the tags | 117 | 11,793 | 3 to 6 | 80 | out of Oxygen 29, missed every fish 1 | 67.5 | 33.8 | 7.4 | 0.4 |
+
+- **A new player: about 15 seconds.** The Shallows in four or five hops, then thrown off the first Coral Reef fish.
+  Holding Space and choosing fish by their tags gets about 500 studs into the Reef in the same time.
+- A player at home in a land gets into the next land, sometimes the one after.
+
+### The first dive, played, and what it means
+The game-code chat rode it with the real rules on 100 Oxygen (2026-11-11): 2.5 seconds on a Common and 2.0 on an
+Uncommon, as the table says; each landing refilled the meter; a hop took 2.4 seconds and carried about 180 studs; the
+dive ended 15.6 seconds in, 1,141 studs down, on a Common 100 studs into the Coral Reef.
+
+- **The first version of this note said 35 to 45 seconds. That was the model's fault, in two places.** Its rider
+  hopped again 0.3 seconds after every landing in the Coral Reef, where a fish gives half a second: no player at ease
+  does that. And its hop was 20 studs short (the pop holds its speed longer than I had it). Both are corrected: a
+  rider at ease now needs 0.7 seconds on a fish before hopping, and the model's hop is 176 studs in 2.4 seconds.
+- **What 15 seconds means.** The Shallows are 1,009 studs and a hop covers 180, so the whole first land is five
+  fish, about 7 seconds of it on a fish. A new player sees the Shallows' fish and nothing else: a Rare within reach
+  every other dive, an Epic or a Legendary almost never.
+- **That is short, and it can work, if each of those dives gives something.** Five fish ridden for 2 seconds each
+  is five Commons caught, once taming exists. And the first training step has to come in the first two or three
+  minutes, so the 15-second dive is the first few dives and not the first half hour.
+- **If the user wants a longer first dive, there are three places to get it,** none of them touching the 2.5
+  seconds on the first fish: a longer first land (the map's: the other lands are 2,800 to 3,800 studs); a softer
+  step into the Coral Reef (`ZoneDrain` land 2 at 100 in place of 160 gives a new player a second on a Reef Common,
+  and the model's first dive goes to 27 seconds and 900 studs of Reef); or the pace of the first training. No number
+  is changed for this: it waits for the user's answer on the pace (question 2).
+
+## What the HUD should show
+For the UI chat. The unit a player should read is **seconds on a fish**; max Oxygen is the one big number they train.
+
+| On screen | The number | Unit | In the game, or proposed |
+|---|---|---|---|
+| The meter while riding | The time left on this fish: Oxygen left / what this fish takes a second here (`Config.drain` of the land you are in and the fish's rarity) | A ring or bar that empties; seconds beside it if there is room (2.5, then 0.8) | In the game: it is full at every landing on another fish, and empties at the fish's rate. A crash takes a tenth of it, a prop 3% |
+| In the hop | Nothing drains | The meter holds still | In the game |
+| Your max Oxygen | The stat you train | One number, short past 10,000 (12.5K, 2.25M, 150M) | In the game (the short form is proposed) |
+| A wild fish's tag | The Oxygen for 2 seconds on it (`Config.required` of its land and rarity) | Oxygen, in the same short form, so it compares with your max | In the game, but the tag counts the fish's home land; one or two lands on it costs more (proposed: count the land it is in) |
+| A fish you can't hold yet | Whether your max gives 2 seconds on it, less, or under half a second | A colour on its tag and on the lock's mark: fine, short, too much | Proposed. Whether the game also stops you landing on a "too much" fish is question 6 |
+| The land's line | The Oxygen for 2 seconds on the land's commonest fish, shown while yours is under it | Oxygen, short form | Proposed. Today it counts a Common, and no Common swims past the Coral Reef |
+| Oxygen a second | Not needed | | Today's HUD shows it. Seconds left says the same thing in the unit the player feels |
+
+- "Enough" is 2 seconds (`Oxygen.KeepUp`). "At home" in a land, 2.5 seconds on its commonest fish, is my guess and
+  not a rule of the game.
+- The numbers get large: the tenth land's common fish takes 60 million a second. Seconds stay small at every depth,
+  which is one more reason to show them.
+
+## Speed, for a rider who hops all the time
 **By rarity.** A wild fish swims at Herd.SpeedShare 0.85 of its ridden speed. The hop off a fish: the pop at Jump.Launch 1.6 times the ridden speed, the glide at AirShare 0.85 of it, and the pull-in begins 1.7 s after the press.
 
-| Rarity | Ridden | Step up | Wild (herd) | Pop | Glide | Hop carries (studs) | Drain x | Oxygen per 1,000 studs (Common = 1) | View widens (deg) | Turn circle (studs across) | Lands |
+| Rarity | Ridden | Step up | Wild (herd) | Pop | Glide | Hop carries (studs) | and gains on its own herd | Drain x | View widens (deg) | Turn circle (studs across) | Lands |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Common | 45 |  | 38.2 | 72 | 38.2 | 78 | 1.00 | 1.00 | 4.4 | 54 | 1, 2 |
-| Uncommon | 52 | +16% | 44.2 | 83 | 44.2 | 90 | 1.15 | 1.00 | 5.6 | 63 | 1, 2, 3, 4, 5 |
-| Rare | 60 | +15% | 51.0 | 96 | 51.0 | 104 | 1.30 | 0.97 | 7.0 | 72 | 1, 2, 3, 4, 5, 6 (the mix asks for 1, 2, 3, 4, 5, 6, 7) |
-| Epic | 68 | +13% | 57.8 | 109 | 57.8 | 117 | 1.45 | 0.96 | 8.4 | 82 | 1, 2, 3, 4, 5, 6, 7, 8, 9 |
-| Legendary | 78 | +15% | 66.3 | 125 | 66.3 | 135 | 1.60 | 0.92 | 10.2 | 94 | 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 |
-| Mythic | 90 | +15% | 76.5 | 144 | 76.5 | 155 | 1.75 | 0.88 | 12.2 | 109 | 5, 6, 7, 8, 9, 10 |
-| Secret | 100 | +11% | 85.0 | 160 | 85.0 | 173 | 1.90 | 0.85 | 14.0 | 121 | nowhere |
+| Common | 45 |  | 38.2 | 72 | 38.2 | 89 | 24 | 1 | 4.4 | 54 | 1, 2 |
+| Uncommon | 52 | +16% | 44.2 | 83 | 44.2 | 103 | 28 | 1.25 | 5.6 | 63 | 1, 2, 3, 4, 5 |
+| Rare | 60 | +15% | 51.0 | 96 | 51.0 | 119 | 32 | 2.5 | 7.0 | 72 | 1, 2, 3, 4, 5, 6 (the mix asks for 1, 2, 3, 4, 5, 6, 7) |
+| Epic | 68 | +13% | 57.8 | 109 | 57.8 | 135 | 36 | 4.5 | 8.4 | 82 | 1, 2, 3, 4, 5, 6, 7, 8, 9 |
+| Legendary | 78 | +15% | 66.3 | 125 | 66.3 | 154 | 42 | 15 | 10.2 | 94 | 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 |
+| Mythic | 90 | +15% | 76.5 | 144 | 76.5 | 178 | 48 | 50 | 12.2 | 109 | 5, 6, 7, 8, 9, 10 |
+| Secret | 100 | +11% | 85.0 | 160 | 85.0 | 198 | 53 | 150 | 14.0 | 121 | nowhere |
 
-**The ladder: closing speed.** Studs a second a rider gains on a wild fish ahead (ridden speed minus the wild fish's pace). Negative: the wild fish pulls away, and can only be caught if it starts within reach or comes up from behind. Reach is Jump.GrabRange 130 studs.
+**The pace.** Studs a second all told, sitting 1.8 s on each fish. "Near": pulled onto a fish 60 studs ahead when the glide ends (what the lock gives); "far": 110 studs ahead (reach is Jump.GrabRange 130). "Space held": 0.3 s on each fish and a grab 0.15 s into the hop, onto a fish 110 ahead. The target is a fish of the same rarity.
+
+| Riding | Ridden speed | Hopping, near | Hopping, far | x riding | Space held, far | x riding | Share of the time on a fish |
+|---|---|---|---|---|---|---|---|
+| Common | 45 | 62 | 74 | x1.64 | 141 | x3.14 | 43% |
+| Uncommon | 52 | 69 | 81 | x1.56 | 148 | x2.85 | 43% |
+| Rare | 60 | 78 | 89 | x1.49 | 156 | x2.61 | 43% |
+| Epic | 68 | 86 | 98 | x1.44 | 165 | x2.42 | 43% |
+| Legendary | 78 | 97 | 108 | x1.39 | 175 | x2.24 | 43% |
+| Mythic | 90 | 109 | 121 | x1.35 | 187 | x2.08 | 43% |
+| Secret | 100 | 120 | 132 | x1.32 | 197 | x1.97 | 43% |
+
+- **Hopping is faster than riding.** The pop is 1.6 times the ridden speed, and the pull-in covers up to 130 studs in
+  0.7 seconds. Under half a hopping rider's time is on a fish; the rest moves faster.
+- **Holding Space is 2 to 3 times any fish's speed.** With the whole meter back at each landing it also needs only
+  0.3 seconds on each fish where an easy rider wants 2.5: about one land's worth of Oxygen. Whether that is the
+  skill of the game or too much is the user's call (question 5). The number is `Jump.Cooldown`, not mine.
+
+**The ladder.** Studs a second gained on a wild fish ahead. First number: hopping to near fish; second: to far ones. Negative: the wild fish pulls away, and can only be caught if it starts within reach or comes up from behind. (Only riding, never hopping: the ridden speed minus the wild pace, which is +1 or +2 on the next rarity up and negative beyond.)
 
 | Riding a \ wild | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret |
 |---|---|---|---|---|---|---|---|
-| Common | +7 | +1 | -6 | -13 | -21 | -32 | -40 |
-| Uncommon | +14 | +8 | +1 | -6 | -14 | -24 | -33 |
-| Rare | +22 | +16 | +9 | +2 | -6 | -16 | -25 |
-| Epic | +30 | +24 | +17 | +10 | +2 | -8 | -17 |
-| Legendary | +40 | +34 | +27 | +20 | +12 | +2 | -7 |
-| Mythic | +52 | +46 | +39 | +32 | +24 | +14 | +5 |
-| Secret | +62 | +56 | +49 | +42 | +34 | +24 | +15 |
+| Common | +23 / +35 | +18 / +29 | +11 / +23 | +4 / +16 | -5 / +7 | -15 / -3 | -23 / -11 |
+| Uncommon | +31 / +43 | +25 / +37 | +18 / +30 | +11 / +23 | +3 / +15 | -7 / +5 | -16 / -4 |
+| Rare | +39 / +51 | +33 / +45 | +27 / +38 | +20 / +32 | +11 / +23 | +1 / +13 | -7 / +4 |
+| Epic | +48 / +60 | +42 / +54 | +35 / +47 | +28 / +40 | +20 / +32 | +9 / +21 | +1 / +13 |
+| Legendary | +58 / +70 | +52 / +64 | +46 / +57 | +39 / +51 | +30 / +42 | +20 / +32 | +12 / +23 |
+| Mythic | +71 / +83 | +65 / +77 | +58 / +70 | +51 / +63 | +43 / +55 | +33 / +45 | +24 / +36 |
+| Secret | +81 / +93 | +76 / +87 | +69 / +81 | +62 / +74 | +53 / +65 | +43 / +55 | +35 / +47 |
 
-- Read a row: riding a Common, you gain 7 studs a second on a wild Common, 1 on an Uncommon, and a Rare pulls away.
-- So a fish one rarity up never comes closer, and anything rarer leaves you behind. You only get onto a rarer fish
-  when it starts within reach or comes up from behind.
+- Riding only, the next rarity up could never be caught. Hopping as the lock gives, a rider on Commons gains 11
+  studs a second on a Rare and 4 on an Epic; aiming the hop far, 23 and 16. **Rarer fish ahead can be caught now.**
+
+**The lane.** 30,164 studs to ride over 10 lands (art/map/greybox/path.json); 720 wild fish in all (Spawn.PerThousand 24, MaxTotal 800). "Hopping" is a rider on the land's commonest fish who sits 1.8 s on each and hops to one about 60 studs ahead.
+
+| Land | Studs | Width | Fish | Commonest fish | s riding it | s hopping | s at Common (45) | s at Uncommon (52) | s at Rare (60) | s at Epic (68) | s at Legendary (78) | s at Mythic (90) | s at Secret (100) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 Shallows | 1,009 | 143 to 248 | 24 | Common | 22 | 16 | 22 | 19 | 17 | 15 | 13 | 11 | 10 |
+| 2 Coral Reef | 2,846 | 156 to 432 | 68 | Uncommon | 55 | 41 | 63 | 55 | 47 | 42 | 36 | 32 | 28 |
+| 3 Kelp Forest | 2,807 | 203 to 520 | 67 | Rare | 47 | 36 | 62 | 54 | 47 | 41 | 36 | 31 | 28 |
+| 4 Shipwrecks | 3,160 | 243 to 585 | 75 | Rare | 53 | 41 | 70 | 61 | 53 | 46 | 41 | 35 | 32 |
+| 5 Open Blue | 3,168 | 279 to 621 | 76 | Epic | 47 | 37 | 70 | 61 | 53 | 47 | 41 | 35 | 32 |
+| 6 Twilight | 3,295 | 279 to 691 | 79 | Epic | 48 | 38 | 73 | 63 | 55 | 48 | 42 | 37 | 33 |
+| 7 Midnight | 3,581 | 354 to 859 | 85 | Legendary | 46 | 37 | 80 | 69 | 60 | 53 | 46 | 40 | 36 |
+| 8 Vents | 3,120 | 354 to 866 | 74 | Legendary | 40 | 32 | 69 | 60 | 52 | 46 | 40 | 35 | 31 |
+| 9 Bone Graveyard | 3,837 | 394 to 940 | 92 | Legendary | 49 | 40 | 85 | 74 | 64 | 56 | 49 | 43 | 38 |
+| 10 The Underworld | 3,342 | 478 to 966 | 80 | Legendary | 43 | 35 | 74 | 64 | 56 | 49 | 43 | 37 | 33 |
+| All ten | 30,164 |  | 720 |  | 450 | 353 | 670 | 580 | 503 | 444 | 387 | 335 | 302 |
+
+- All ten lands take about 6 minutes hopping, 7.5 only riding. A land is 35 to 40 seconds; the Shallows 16.
+
+### What a rarity's speed is worth, and the proposal
+- **Worth:** a rider's pace follows the fish under them, so a Legendary still gets you down about 1.5 times as fast
+  as a Common. But the hop adds 17 to 30 studs a second to everyone, so the gap is smaller than the ridden
+  speeds say (45 against 78 becomes 62 against 97).
+- **Felt:** with 2.5 seconds on a fish, 1.2 of them are the fish coming up to speed. The ridden speed is felt mostly
+  in the hop it gives: a Common throws you 89 studs before the pull-in, a Legendary 154.
+
+| Rarity | Today | Proposed | Why |
+|---|---|---|---|
+| Common | 45 | 54 | The reference's ride, measured through one jump: 54 riding, 46 floating. Our glide is 0.85 of the ridden speed, so it goes from 38 to 46. Hugo found the air too slow at 38 |
+| Uncommon | 52 | 58 | Small steps at the bottom: a new player's herd stays together, so there is always a fish to hop to |
+| Rare | 60 | 62 | |
+| Epic | 68 | 67 | |
+| Legendary | 78 | 74 | Bigger steps at the top, where the thrill belongs |
+| Mythic | 90 | 82 | |
+| Secret | 100 | 90 | No Secret spawns yet |
+
+- **What changes:** the Shallows go from 16 to 14 seconds, the deep lands slow a little, the whole lane stays about
+  6 minutes. The first Epic comes within reach after about 37 seconds in place of 49 (the model, 30 dives each way).
+- **A guess to play.** The reference's 54 is one jump, and it takes one of its metres for one of our studs.
+- **Status:** not applied. The seven speeds are rows on the N panel (`TierSpeed`).
+- **Withdrawn from the first pass:** "rarer fish can't be caught" (true only for a rider who never hops), and "the
+  hop off a Secret overshoots" (it gains 28 studs on its own herd, which is fine).
+
+## What else makes a fish different
+The user: "different things we could also add that would make them different. That's not just speed." Eight traits a
+fish could have, each using something the game already has.
+
+| Trait | What the player feels | To build | In the reference? |
+|---|---|---|---|
+| **Staying power** | Some fish are calm and you sit long; some buck and you get a second | One number a creature beside its rarity; three lines of code | Its sizes do it: a Tiny dino needs 0.8 of the stamina, a Giant 1.5 |
+| **Speed by kind** | A shark is quick, a turtle is slow, whatever their rarity | A number: each fish can already carry its own speed (`RiddenSpeed`) | Not seen |
+| **The hop it gives** | A flying fish throws you high and far; a ray gives a long flat glide | One or two numbers a creature; small code in the hop | Not seen |
+| **Smash or crash** | A big creature ploughs through coral and wrecks; a small one bounces off and loses speed | One number today (`Props.MinLength`): nothing to build | Its props are built to collapse when a big dino hits them |
+| **How it turns** | An eel snaps round; a whale needs room | One number a creature; small code in the steering | Not seen |
+| **Where it swims** | Rays low over the sand, flying fish near the top, sharks through the middle | Two numbers a creature; small code in the spawner | Not seen (its ground is flat) |
+| **How it behaves wild** | A school of the same fish to hop along; a loner that darts | Schools: small code (spawn a few together). Darting: a new piece | It has herds of one kind |
+| **What a landing gives** | Landing on some fish gives a burst of speed | One number a creature (`Ride.Surge` is one number for all today); small code | Not seen |
+
+Later, with their own systems: how long a fish takes to tame, and what it earns.
+
+**Recommended, for the most difference and the least building:**
+1. **Smash or crash, by size.** Set `Props.MinLength` to about 15 studs. Small reef fish bounce off props; sharks,
+   rays, eels and every giant go through them. Nothing to build, and it makes a big fish feel big at once.
+2. **Fast and short against slow and long, by kind.** Speed by kind and staying power together. Sharks and the
+   torpedo fish (Barracuda, Swordfish, Flying Fish): faster, and they take more Oxygen. Turtles, rays, whales and
+   the puffers: slower, and you sit longer. So a Sea Turtle is the fish a new player rests on, and a Reef Shark is a
+   sprint. This is the note in [the dive](the-dive.md): "a small creature lasts but crawls; a Megalodon tears down
+   but burns through your Oxygen".
+3. **The hop it gives, for a few leapers.** Flying Fish, Dolphin, Swordfish, Manta Ray: a higher, longer hop. The
+   hop is most of a dive now, so this is the trait a player feels most.
+4. **Schools, for Commons and Uncommons.** Three to five of one kind together. It reads as a living sea and gives a
+   new player a row of safe fish.
+
+**Who gets what:** a Common has no trait (it is the plain fish). An Uncommon has one mild one. A Rare has one strong
+one. An Epic and up has two, and always smashes. Each Legendary keeps one thing only it does.
+
+## How often each rarity spawns
+No share was changed.
 
 **Wild fish by land and rarity.** The share each rarity really gets (a rarity with no creature in the land is skipped and the others share it out), and the fish of it standing in the land at once. "1 in" is how many crossings of the land it takes to have one of that rarity in it.
 
@@ -117,6 +325,46 @@ From the model on 2026-11-11, with grey-box 8's path. The map is being reworked,
 | 9 Bone Graveyard | 92 |  |  |  | 5.0%, 4.6 | 87%, 80.0 | 8.0%, 7.4 |  |
 | 10 The Underworld | 80 |  |  |  |  | 88%, 70.4 | 12%, 9.6 |  |
 
+**What a rider meets.** 30 dives. Fish of each rarity that came within reach (Jump.GrabRange) a minute, by land; then the seconds into the dive at which the first of each rarity did.
+
+| Land | Seconds in it | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret | All |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 Shallows | 16 | 54.3 | 12.6 | 2.3 | 0.4 |  |  |  | 69.6 |
+| 2 Coral Reef | 42 | 10.2 | 33.1 | 9.8 | 1.2 | 0.2 |  |  | 54.6 |
+| 3 Kelp Forest | 39 | 0.3 | 23.8 | 19.3 | 4.7 | 0.8 |  |  | 48.9 |
+| 4 Shipwrecks | 42 |  | 10.5 | 26.5 | 11.2 | 1.5 |  |  | 49.7 |
+| 5 Open Blue | 40 |  | 2.8 | 23.3 | 17.5 | 3.5 | 0.1 |  | 47.3 |
+| 6 Twilight | 40 |  | 0.0 | 12.1 | 23.3 | 8.7 | 0.2 |  | 44.4 |
+| 7 Midnight | 41 |  |  | 0.4 | 25.2 | 20.3 | 1.0 |  | 46.9 |
+| 8 Vents | 35 |  |  |  | 15.9 | 28.3 | 1.4 |  | 45.6 |
+| 9 Bone Graveyard | 42 |  |  |  | 3.8 | 38.2 | 2.3 |  | 44.3 |
+| 10 The Underworld | 36 |  |  |  | 0.2 | 40.9 | 3.6 |  | 44.7 |
+
+First within reach (the middle dive): Common 0 s (30 of 30 dives); Uncommon 4 s (30 of 30 dives); Rare 20 s (30 of 30 dives); Epic 49 s (30 of 30 dives); Legendary 85 s (30 of 30 dives); Mythic 256 s (30 of 30 dives).
+Time ridden by rarity: Common 6%, Uncommon 14%, Rare 21%, Epic 25%, Legendary 33%, Mythic 2%. The dive took 6.2 minutes on average, at 81 studs a second; ended: the lane's end 30.
+
+- **Lands 1 and 2 match the reference** and stay. In its first zone the recording shows Commons and Uncommons and
+  nothing rarer; in its second, mostly Uncommons, Rares often, an Epic now and then, one Legendary in two runs.
+- **A new player's dive** is the Shallows only: a Rare within reach about every other dive, an Epic or a Legendary
+  almost never. Rares and up are a sight for the first trained dives into the Coral Reef.
+- **Something to chase in every land:** each land has a rarity that is 1 to 5% of its fish, and it costs 3 to 10
+  times the land's common fish.
+- **Lands 3 to 10 are still the roster's guess.** Nothing measured to move them with. The shares are on the N panel.
+- **Small thing:** the roster says Commons only reach the start of the Coral Reef. The game spreads them over all of it.
+
+### Lands whose rarities have no creature yet
+33 of the roster's 82 creatures are in the place. A rarity with no creature in a land is skipped and the others share
+its place, so nothing breaks, but some lands are thin:
+
+| Land | What is missing |
+|---|---|
+| 3 Kelp Forest | Half its fish are grey placeholder bodies: Garibaldi, Leopard Shark, Great White (no model in the place) |
+| 4 Shipwrecks | Half again: Barracuda, Goliath Grouper, and the three above swimming on from land 3 |
+| 6 Twilight | Six creatures in all, none of its own. Every Legendary there is an Elasmosaurus (28% of the land) |
+| 7 Midnight | The mix asks for 5% Rares and there is no Rare within two lands (the Viperfish isn't in the place) |
+| 9 Bone Graveyard | None of its own: five creatures from lands 7 and 8 |
+| 10 The Underworld | Three creatures: Anomalocaris and the Bobbit Worm from land 8 at 44% each, and the Hellmaw |
+
 **Which creatures turn up.** By land: each creature that can spawn there and its share of all spawns in that land. A star marks a creature with no model in the place yet (it spawns as a placeholder body).
 
 | Land | Creatures (share of the land's spawns) |
@@ -132,198 +380,47 @@ From the model on 2026-11-11, with grey-box 8's path. The map is being reworked,
 | 9 Bone Graveyard | Epic: Anglerfish 5.0%; Legendary: Anomalocaris 33%, Bobbit Worm 33%, Basilosaurus 10%, Mosasaurus 10%; Mythic: Kraken 8.0% |
 | 10 The Underworld | Legendary: Anomalocaris 44%, Bobbit Worm 44%; Mythic: Hellmaw 12% |
 
-### What a rider meets
-Played through the herd by the model, with endless air, all ten lands.
-
-**Played through the herd, endless air: nearest fish, a hop every 6 s.** 40 dives. Fish of each rarity that came within reach (Jump.GrabRange) a minute, by land; then the seconds into the dive at which the first of each rarity did.
-
-| Land | Seconds in it | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret | All |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 Shallows | 19 | 36.0 | 10.4 | 1.2 | 0.1 | 0.1 |  |  | 47.8 |
-| 2 Coral Reef | 53 | 5.9 | 16.7 | 4.5 | 0.4 | 0.2 |  |  | 27.7 |
-| 3 Kelp Forest | 46 | 0.2 | 16.7 | 14.5 | 1.9 | 0.3 |  |  | 33.7 |
-| 4 Shipwrecks | 49 |  | 7.8 | 19.0 | 7.4 | 0.6 |  |  | 34.9 |
-| 5 Open Blue | 46 |  | 2.4 | 18.5 | 13.4 | 1.9 | 0.1 |  | 36.4 |
-| 6 Twilight | 46 |  | 0.2 | 9.9 | 17.3 | 6.2 | 0.3 |  | 33.9 |
-| 7 Midnight | 47 |  |  | 0.6 | 19.0 | 15.3 | 0.6 |  | 35.5 |
-| 8 Vents | 39 |  |  |  | 12.9 | 23.2 | 0.9 |  | 37.0 |
-| 9 Bone Graveyard | 45 |  |  |  | 3.3 | 33.8 | 2.4 |  | 39.4 |
-| 10 The Underworld | 38 |  |  |  | 0.1 | 38.8 | 3.3 |  | 42.3 |
-
-First within reach (the middle dive): Common 0 s (40 of 40 dives); Uncommon 2 s (40 of 40 dives); Rare 26 s (40 of 40 dives); Epic 93 s (40 of 40 dives); Legendary 144 s (40 of 40 dives); Mythic 303 s (39 of 40 dives).
-Time ridden by rarity: Common 8%, Uncommon 14%, Rare 21%, Epic 23%, Legendary 30%, Mythic 3%. The dive took 7.1 minutes on average; ended: the lane's end 38, missed every fish 2.
-
-**Played through the herd, endless air: rarest fish in reach, a hop every 6 s.** 40 dives. Fish of each rarity that came within reach (Jump.GrabRange) a minute, by land; then the seconds into the dive at which the first of each rarity did.
-
-| Land | Seconds in it | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret | All |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 Shallows | 18 | 42.2 | 10.6 | 1.8 | 0.1 | 0.1 |  |  | 54.7 |
-| 2 Coral Reef | 47 | 8.1 | 24.8 | 8.6 | 1.0 | 0.1 |  |  | 42.5 |
-| 3 Kelp Forest | 42 | 0.3 | 22.5 | 17.4 | 4.1 | 0.6 |  |  | 45.0 |
-| 4 Shipwrecks | 43 |  | 10.3 | 23.3 | 11.7 | 1.3 |  |  | 46.7 |
-| 5 Open Blue | 42 |  | 2.7 | 23.3 | 18.2 | 3.4 | 0.2 |  | 47.7 |
-| 6 Twilight | 42 |  | 0.1 | 12.2 | 20.7 | 9.4 | 0.5 |  | 43.0 |
-| 7 Midnight | 44 |  |  | 0.5 | 21.2 | 18.8 | 0.6 |  | 41.2 |
-| 8 Vents | 37 |  |  |  | 14.9 | 25.4 | 1.5 |  | 41.9 |
-| 9 Bone Graveyard | 43 |  |  |  | 3.9 | 36.7 | 2.2 |  | 42.8 |
-| 10 The Underworld | 37 |  |  |  | 0.2 | 38.0 | 2.8 |  | 41.1 |
-
-First within reach (the middle dive): Common 0 s (40 of 40 dives); Uncommon 2 s (40 of 40 dives); Rare 19 s (40 of 40 dives); Epic 71 s (40 of 40 dives); Legendary 123 s (40 of 40 dives); Mythic 265 s (40 of 40 dives).
-Time ridden by rarity: Common 3%, Uncommon 10%, Rare 17%, Epic 22%, Legendary 40%, Mythic 7%. The dive took 6.6 minutes on average; ended: the lane's end 38, missed every fish 2.
-
-- About 30 to 50 fish a minute come within reach in every land. There is always something to hop to.
-- A rider who takes whatever is nearest still spends half the dive on Epics and Legendaries, because the deep lands
-  hold little else.
-
-**A new player's dive: how far the starting Oxygen goes.** Start max 100, Endless air off. Each line is a rider and how often small props are hit (each takes Props.Cost 0.03 of max). 40 dives each. The last columns: fish of that rarity that came within reach in one dive, on average.
-
-| Rider | Props | Lasts (s) | Studs | Ends in land | Hops landed | How it ended | Rare in reach | Epic in reach | Legendary in reach | Mythic in reach |
-|---|---|---|---|---|---|---|---|---|---|---|
-| nearest fish, a hop every 6 s | none | 79 | 4,235 | 3 | 9 | out of Oxygen 40 | 5.5 | 0.6 | 0.2 | 0.0 |
-| nearest fish, a hop every 6 s | one every 2.5 s | 74 | 3,989 | 2 to 3 | 8 | out of Oxygen 40 | 4.8 | 0.5 | 0.1 | 0.0 |
-| rarest fish in reach, a hop every 6 s | none | 69 | 4,212 | 3 | 8 | out of Oxygen 40 | 7.9 | 0.9 | 0.2 | 0.0 |
-| rarest fish in reach, a hop every 6 s | one every 2.5 s | 66 | 3,976 | 2 to 3 | 7 | out of Oxygen 40 | 6.7 | 0.8 | 0.1 | 0.0 |
-| rarest fish in reach, a hop every 2 s | none | 82 | 5,479 | 2 to 3 | 18 | out of Oxygen 38, missed every fish 2 | 15.7 | 2.6 | 0.4 | 0.0 |
-| rarest fish in reach, a hop every 2 s | one every 2.5 s | 78 | 5,132 | 2 to 3 | 17 | out of Oxygen 39, missed every fish 1 | 13.3 | 2.4 | 0.5 | 0.0 |
-| nearest fish, hop-hop (0.3 s on each fish) | none | 109 | 7,286 | 3 to 5 | 40 | out of Oxygen 39, missed every fish 1 | 21.6 | 5.2 | 1.0 | 0.0 |
-| nearest fish, hop-hop (0.3 s on each fish) | one every 2.5 s | 105 | 6,935 | 2 to 5 | 38 | out of Oxygen 38, missed every fish 2 | 20.7 | 4.1 | 0.9 | 0.0 |
-
-- The Kelp Forest begins 3,855 studs down. Every rider who hops at an easy pace dies just inside it.
-- The rider who never stops hopping gets to about 7,300 studs: into the Shipwrecks, sometimes the Open Blue.
-- In one such dive at an easy pace: 5 to 8 Rares within reach, an Epic in most dives, a Legendary in one dive of six.
-- Props hit every 2.5 seconds shorten the dive by about 5 seconds: the third land's door ends it either way.
-
-## What is off, and what I would change
-Each line is old to new, then why. "Guess" marks a number with nothing measured behind it.
-
-### Speed
-Ride a Dino's ride, measured off its distance counter through one jump: 54 riding, 46 floating over the herd
-([the reference](../reference/ride-a-dino.md), "Speed through one jump"). That is one jump, and it takes one of its
-metres for one of our studs, which is a guess.
-
-| Rarity | Today | Proposed | Why |
-|---|---|---|---|
-| Common | 45 | 54 | The reference's ride. Our glide is 0.85 of the ridden speed, so it goes from 38 to 46: the reference's float. Hugo found the air too slow at 38. |
-| Uncommon | 52 | 58 | Steps of about 8% in place of 15% |
-| Rare | 60 | 63 | |
-| Epic | 68 | 68 | |
-| Legendary | 78 | 74 | |
-| Mythic | 90 | 81 | |
-| Secret | 100 | 88 | No Secret spawns yet. At 100 the hop carries you 173 studs before the pull-in begins, past the 130 you can grab from; at 88 it is 152. |
-
-- **Why smaller steps.** Wild fish swim at 0.85 of their ridden speed, and 0.85 times a 15% step is 0.98. So the next
-  rarity up swims as fast as you ride. With 8% steps you gain 4 or 5 studs a second on it, a fish two rarities up
-  keeps pace, and three up pulls away. In the model (8 dives each way, so rough) the first Epic comes within reach
-  after about 60 seconds in place of 90, and the first Legendary a little sooner too.
-- **What it costs.** A step of 8% is hard to feel by itself (guess). The view widens by 14 degrees between speed 20
-  and 100, so one step of rarity is about 1 degree either way. The feeling of speed would come from two or three
-  steps, and from the deeper lands being faster as a whole: the usual ride goes from 55 in the Shallows to 75 in the
-  Underworld.
-- **The other way,** if the user wants big steps that are felt: keep 45 to 100 and let every wild fish in a land swim
-  at one pace, whatever its rarity. Then any fish ahead can be caught. That is code (the herd and the glide), not a
-  number, so it is the overseeing chat's.
-- **A whole dive hardly changes:** about 6.5 minutes down all ten lands, against 7.
-- **To check in play:** the model's rider missed every fish a little more often with the new speeds (1 to 3 dives of
-  8, against 0 or 1). Fish closer in speed may bunch up. Worth a look.
-- **Status:** not applied. The seven speeds are rows on the N panel (`TierSpeed`), to play both ways.
-
-### Rarer means faster and dearer: is that the right trade?
-The idea is right. The numbers don't make it a trade.
-
-| What | Today | Proposed | Why |
-|---|---|---|---|
-| A rarity's Oxygen a second, against a Common | 1, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9 | 1, 1.8, 3.3, 6, 11, 20, 36 | In the reference one step of rarity is worth about half a zone: in its second zone an Uncommon needs 50 stamina, a Rare 130, an Epic 230, a Legendary 752, and the same rarity needs 5 times more a zone on. Ours is worth a seventh of a land. |
-| `ZoneDrain`, lands 1 to 10 | 1, 4, 14, 48, 160, 500, 1,500, 4,500, 13,000, 36,000 | 0.8, 2, 5.5, 15, 40, 100, 250, 700, 1,800, 4,800 | Only if the line above is taken. It keeps what each land needs on its usual fish where Hugo put it (26, 114, 430, 1,540, 5,300 ... 1.4 million), because the deep lands' usual fish are Legendaries. |
-
-- **What it does for a new player.** In the Coral Reef on 100: a Common needs 48 and an Uncommon 87, so those hold. A
-  Rare needs 159, an Epic 288, a Legendary 528. The Reef is full of fish you can see and can't keep yet, and each is a
-  reason to train. Today the only wall is the third land's door.
-- **The first line needs three lines of code:** today the drain is a straight line (`Oxygen.TierDrain` for each
-  step), which can't make that shape. It wants a table with one number a rarity. The overseeing chat's.
-- **To feel it today with no code:** on the N panel set `Oxygen.TierDrain` from 0.15 to 1. A Legendary then takes 5
-  times a Common. The model with that: the first dive ends in the Coral Reef, not the Kelp Forest, since the Reef's
-  usual fish then need 217.
-- **Status:** not applied. It changes the shape of the game, so it waits for the user (question 2).
-
-### The Oxygen curve
-- **The need assumes a hop every 6 seconds** (`Oxygen.KeepUp`). The hop itself drains nothing, and every landing on
-  another fish gives a quarter of max back. So hopping every 3 seconds halves what a land needs, and hopping the
-  moment the cooldown ends (0.3 seconds on each fish) cuts it to a twentieth: 2, 5, 17, 58, 192 for the first five
-  lands. With the pull-in starting by itself, that is just holding a rhythm on Space. The HUD's "needs N OXYGEN" is
-  then wrong by up to 20 times, and training is worth less than fast fingers.
-- **Proposed (code, the overseeing chat's):** the refill is for the time you rode. A landing gives back
-  `Refill` x max x (seconds ridden on the fish you left / `KeepUp`), at most `Refill` x max. Then a land needs the
-  same max Oxygen however often you hop, the HUD's number is true, and a hop still always gives something. Otherwise:
-  leave it as the game's skill, and fit the curve to players who hop without stopping. The user's call (question 3).
-- **Start 100 against the lands' 24, 96, 336:** right as it is. Two lands on the first dive, a wall at the third.
-- **The steps between lands** (4 times, then 3.5, down to 2.8): keep. On each land's usual fish the last land needs
-  1.4 million. The reference: 5 times a zone, and "millions" at the end.
-- **Floating off a fish, `Oxygen.FreeDrain` 4 a second:** a fixed amount, so 25 seconds on the starting 100 and three
-  days on a million. It should be a share of max (4% a second is the same 25 seconds for everyone). Code, small, later.
-
-### Props
-- **A small prop costs 3% of max Oxygen** (`Props.Cost`), and the play tests hit one every 2 or 3 seconds in the
-  Shallows. That is 1.2% of max a second. The Shallows themselves take 1% a second from a new player and far less from
-  a trained one. So props cost more than the land, at every level, for ever: a share of max never gets cheaper.
-- At a hop every 6 seconds, props eat 7 of the 25 points a landing gives. Every land then needs 1.4 times what the
-  HUD says. On 100, the Coral Reef goes from just holding to running dry.
-- **Proposed:** `Props.Cost` 0.03 to 0.01. Breaking things is the fun part and gives nothing, so it should cost
-  little. The number is the overseeing chat's and Hugo's ("running into something costs stamina" is his decision), so
-  this is a proposal to them.
-
-### How often each rarity spawns
-- **Lands 1 and 2 match the reference** and stay. In its first zone the recording shows Commons and Uncommons and
-  nothing rarer; in its second, mostly Uncommons, Rares often, an Epic now and then, one Legendary in two runs. Ours:
-  0.7 of a Legendary standing in the Coral Reef. It swims faster than a new player rides, so it is seen ahead more
-  often than it is reached.
-- **The first ten minutes** (about six dives of 75 seconds): the first Rare within reach after about 25 seconds; an
-  Epic in most dives; a Legendary within reach in about one dive of six, so about once. That is close to the
-  reference's pace for seeing them. What is missing is the reason to come back for them (the trade above, and taming).
-- **Something to chase in every land:** yes for seeing. Each land has a rarity that is 1 to 5% of its fish. From the
-  Vents on, the Legendary is the common fish and the Mythic (5 to 12%) is the chase. Secrets never spawn: they are
-  meant as server events, and no rule for them exists.
-- **Lands 3 to 10 are still the roster's guess.** I have nothing measured to move them with, so I leave them. The
-  shares are on the N panel now (one group a land).
-- **Small thing:** the roster says Commons only reach the start of the Coral Reef. The game spreads them over all of
-  it (7 of its 68 fish).
-
-### Lands whose rarities have no creature yet
-33 of the roster's 82 creatures are in the place. A rarity with no creature in a land is skipped and the others share
-its place, so nothing breaks, but some lands are thin:
-
-| Land | What is missing |
-|---|---|
-| 3 Kelp Forest | Half its fish are grey placeholder bodies: Garibaldi, Leopard Shark, Great White (no model in the place) |
-| 4 Shipwrecks | Half again: Barracuda, Goliath Grouper, and the three above swimming on from land 3 |
-| 6 Twilight | Six creatures in all, none of its own. Every Legendary there is an Elasmosaurus (28% of the land) |
-| 7 Midnight | The mix asks for 5% Rares and there is no Rare within two lands (the Viperfish isn't in the place) |
-| 9 Bone Graveyard | None of its own: five creatures from lands 7 and 8 |
-| 10 The Underworld | Three creatures: Anomalocaris and the Bobbit Worm from land 8 at 44% each, and the Hellmaw |
-
 The creature import is already planned ([creature import](creature-import.md)) and waits for the user's picks.
 Nothing here asks to change a creature's rarity or land.
 
-## What changed with this note
-- **No tuning number changed.** Speeds are a matter of feel, and the Oxygen changes above alter the shape of the game.
-  Both wait for the user.
-- **New rows on the N panel** (`SandboxController`): the ridden speed of each rarity (`TierSpeed`), `Oxygen.StartMax`,
-  and the share of each rarity in each land (`MixShallows` to `MixUnderworld`).
-- **Config, to carry those rows:** `Config.TierSpeed` (the speeds again as plain numbers, filled from `Config.Tiers`)
-  and ten names for the ten rows of `Config.ZoneMix`. `Config.refresh` now puts a changed speed into every fish of
-  that rarity, so wild fish, the glide and the server's speed check follow at once.
-- StyLua, selene and `rojo build` pass. Not played, and not type-checked (no luau-lsp on this PC).
+## What changed
+- **2026-11-11, second pass:** the Oxygen numbers in the table under "The numbers, applied". The `ZoneDrain` rows'
+  steps on the N panel were made to fit the new sizes, and `KeepUp`'s step is 0.25.
+- **2026-11-11, first pass:** rows on the N panel for the ridden speed of each rarity (`TierSpeed`),
+  `Oxygen.StartMax` and each land's shares by rarity (`MixShallows` to `MixUnderworld`), with `Config.TierSpeed` and
+  ten names for `Config.ZoneMix`'s rows to carry them.
+- **By the game-code chat:** `Config.RarityDrain` (a number a rarity, in place of `Oxygen.TierDrain`) with its rows,
+  and `Oxygen.StartMax` live from the panel.
+- StyLua, selene and `rojo build` pass. Not type-checked (no luau-lsp on this PC).
 
 ### The panel
 | Number | Row | Live? |
 |---|---|---|
 | Ridden speed by rarity | `TierSpeed` Common to Secret | Yes, on fish already swimming too |
-| Oxygen a second by land | `ZoneDrain` land 1 to 10 (was there) | Yes |
-| `Oxygen.Refill`, `KeepUp`, `TierDrain`, `FreeDrain` | were there | Yes |
-| `Oxygen.StartMax` | new | Not yet for a player already in the game: the server reads a player's max only when they join. Until `SandboxService` asks `RideService` to read it again, use Workspace's `TestMaxOxygen` |
-| Share of spawns by rarity | `MixShallows` ... `MixUnderworld` | For fish spawned from then on. Fish already swimming stay until the herd replaces them |
+| Oxygen a second by land | `ZoneDrain` land 1 to 10 | Yes |
+| Times a Common's Oxygen, by rarity | `RarityDrain` Common to Secret | Yes |
+| `Oxygen.Refill`, `KeepUp`, `FreeDrain`, `StartMax` | | Yes. Workspace's `TestMaxOxygen`, when above 0, wins over `StartMax` |
+| Share of spawns by rarity | `MixShallows` ... `MixUnderworld` | For fish spawned from then on |
 | `ReachWeight` | not on the panel | The game works out who can spawn where once, at the start |
 
 "Copy changes" lists a changed speed as `Config.TierSpeed.Common = 54`. It is written into `Config.Tiers`.
+
+### Checked in play
+By the game-code chat in Studio, 2026-11-11, hands off, **with the first pass's numbers**:
+- **The speed rows work:** the Common set to 70 put wild Commons at 59 to 60 at once.
+- **The Shallows:** crossed in 20 seconds at 42 to 45 studs a second, with one crash. The model said 22.
+- **The drain added up:** 31 Oxygen left where the numbers of the time gave 31.
+- **Not checked:** a dive with hops, and anything with the new Oxygen numbers.
+
+### For the game-code chat (its files)
+Things the new model wants that are not numbers of mine:
+1. **A fish you can't sit on shouldn't take the lock,** or should show red. A new player who lands on the Shallows'
+   Legendary has 0.17 seconds and is thrown off before the hop's cooldown ends. With the lock choosing for you, that
+   is a death you didn't pick.
+2. **The HUD's "needs N OXYGEN" counts a Common,** and no Common swims past the Coral Reef. It should count the
+   land's commonest fish. The numbers also want short forms (120K, 2.25M).
+3. **A fish's tag shows what it needs in its home land.** One or two lands on, it costs that land's price.
+4. `Props.Cost` can stay 0.03: a prop now costs 0.08 of a second on a fish. The first pass's proposal is withdrawn.
 
 ## Not built yet
 Proposals. None of it is built until the user says so.
@@ -332,54 +429,55 @@ Proposals. None of it is built until the user says so.
 **Max Oxygen has to grow.** The smallest version: a training spot on the dock (the machine's place). Standing on it
 adds to your max Oxygen every second. The server keeps it for the session; no saves yet. One number, `Train.Rate`.
 
-**What training would have to give.** The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes of play at which a player should first be able to ride each land on its usual fish. From it, the max Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there.
+**What training would have to give.** The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes of play at which a player should first be at home in each land (2.5 s on its commonest fish). From it, the max Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there.
 
-| Land | Wanted by (min) | Max Oxygen needed | Gain needed over the stretch | A second of play | x the stretch before |
+| Land | At home by (min) | Max Oxygen then | Gain over the stretch | A second of play | x the stretch before |
 |---|---|---|---|---|---|
-| 1 Shallows | 0 | 26 | none |  |  |
-| 2 Coral Reef | 0 | 115 | 15 |  |  |
-| 3 Kelp Forest | 10 | 426 | 311 | 0.52 |  |
-| 4 Shipwrecks | 25 | 1,541 | 1,115 | 1.24 | x2.4 |
-| 5 Open Blue | 50 | 5,378 | 3,837 | 2.56 | x2.1 |
-| 6 Twilight | 90 | 17,616 | 12,238 | 5.10 | x2.0 |
-| 7 Midnight | 150 | 55,384 | 37,768 | 10.49 | x2.1 |
-| 8 Vents | 240 | 169,560 | 114,176 | 21.14 | x2.0 |
-| 9 Bone Graveyard | 360 | 500,605 | 331,045 | 45.98 | x2.2 |
-| 10 The Underworld | 540 | 1,397,952 | 897,347 | 83.09 | x1.8 |
+| 1 Shallows | 0 | 100 | none |  |  |
+| 2 Coral Reef | 5 | 500 | 400 | 1.3 |  |
+| 3 Kelp Forest | 15 | 3,000 | 2,500 | 4.2 | x3.1 |
+| 4 Shipwrecks | 30 | 12.5K | 9,500 | 10.6 | x2.5 |
+| 5 Open Blue | 55 | 67.5K | 55K | 36.7 | x3.5 |
+| 6 Twilight | 90 | 270K | 202K | 96.4 | x2.6 |
+| 7 Midnight | 150 | 2.25M | 1.98M | 550 | x5.7 |
+| 8 Vents | 240 | 9M | 6.75M | 1,250 | x2.3 |
+| 9 Bone Graveyard | 360 | 37.5M | 28.5M | 3,958 | x3.2 |
+| 10 The Underworld | 540 | 150M | 112M | 10.4K | x2.6 |
 
-- The plan in the second column is my guess at a pace (question 5). The last columns are what follows from it: the
-  gain has to about double from each land to the next, from half a point a second to 80.
-- If a third of play is spent training, the machine has to give three times that: 1.5 a second at first.
-- **Proposed start:** `Train.Rate` 1.5 a second. Then machine levels that each give 2.2 times the last (the
-  reference's goes from +15 to +36 a second, 2.4 times, for 20 times the price), about one level a land. Auras (the
-  reference's 1.5, 2, 2.5 and 3 times) on top. All guesses until it is played.
+- The plan in the second column is my guess at a pace (question 2). The gain has to grow about 3 times from each land
+  to the next.
+- If a third of play is spent training, the machine has to give three times these: about 4 a second at first.
+- **Proposed start:** `Train.Rate` 4 a second (the Coral Reef in two minutes of standing). Then one machine level a
+  land, each 3 times the last. The reference's goes from +15 to +36 a second for 20 times the price, with auras of
+  1.5 to 3 times on top. All guesses until it is played.
 
 ### What taming would need from these numbers
 - Decided already: stay on a wild fish long enough and it is yours ([the dive](the-dive.md)).
-- **Proposed:** a time to tame for each rarity, and the fish's tag shows the Oxygen that takes: its drain a second
-  times its tame time. That gives "Required" the meaning the reference's tag has: a number you train toward for
-  that one fish. With the dearer rarities above and tame times of 3, 4, 6, 8, 12 and 16 seconds (guess), a Reef
-  Uncommon would need 14 Oxygen and a Reef Legendary 264.
-- From here it needs: the drain by rarity (question 2) and the tame times.
+- **Proposed:** the time to tame is the 2 seconds the game already calls enough (`Oxygen.KeepUp`). Then the number on
+  a fish's tag is exactly the Oxygen that tames it, as in the reference. A new player can tame a Shallows Common (80)
+  and just an Uncommon (100), which is the user's "enough for a Common, and a little more".
+- From here it needs nothing new. Longer tame times for rarer fish are possible but the cost already rises steeply.
 
 ### What income and prices would need
-- **Income by how cool a creature is** (decided). Proposed: a creature earns in line with what it costs to hold, so
-  the same steps as the drain: by rarity (1, 1.8, 3.3, 6, 11, 20, 36) and by land (about 2.6 times a land).
+- **Income by how cool a creature is** (decided). Proposed: a creature earns in line with what it costs to hold: the
+  land's number times the rarity's.
 - **Prices** follow from the pace: a machine level costs so many minutes of a full base's income from the land it
   opens (guess: 10 minutes). The reference keeps 7 creatures earning at once.
-- From here it needs: the pace (question 5), then one table of prices.
+- From here it needs: the pace (question 2), then one table of prices.
 - Sizes and mutations multiply both the cost and the income (the reference: 0.8, 1.2 and 1.5 times by size).
 
 ## Questions for the user
 1. **"The level":** do you mean a level on each fish (it grows as you ride or keep it), a level on the player, or
    simply the land you have reached? No note defines one.
-2. **Should a rarer fish cost clearly more Oxygen to hold,** so you see a Legendary early but can't keep it until you
-   have trained? (Ride a Dino: 15 times an Uncommon's in the same zone. Ours: 1.4 times.)
-3. **Hopping without stopping makes every land 20 times cheaper in Oxygen.** Keep that as the skill of the game, or
-   should a landing give back Oxygen for the time you rode, so the rhythm stops mattering?
-4. **Speed:** try the Common at 54 (the reference's ride; ours is 45) with smaller steps up to 88, or keep 45 to 100?
-   Both can be played from the N panel.
-5. **The pace:** how long should a new player take to first ride land 3, land 5 and land 10? (My guess: 10 minutes,
-   50 minutes, 9 hours.) And does the first version still ship lands 1 to 4 only?
-6. **May the game-code chat build the training spot** (max Oxygen grows while you stand on it), so the progression
-   can be played at all?
+2. **The pace:** how long should a new player take to be at home in land 2, land 5 and land 10? (My guess: 5
+   minutes, an hour, 9 hours.) And does the first version still ship lands 1 to 4 only?
+3. **May the game-code chat build the training spot** (max Oxygen grows while you stand on it)? Without it a dive is
+   15 seconds and nothing changes that.
+4. **Speed:** try the Common at 54 (the reference's ride; ours is 45) with smaller steps up to 90, or keep 45 to
+   100? Both can be played from the N panel.
+5. **Holding Space** moves you 2 to 3 times as fast as any fish and needs an eighth of the Oxygen. Is that the skill
+   of the game, or should there be a longer wait on a fish before the next hop (0.3 seconds today)?
+6. **A fish that is too much for you** (under about half a second): should the game stop you landing on it, or let
+   you land and be thrown off to drown, as today?
+7. **Which traits?** Of the four recommended (smash or crash by size; fast and short against slow and long; a
+   higher hop for a few leapers; schools), which should be built first, and is any of the eight wrong for the game?

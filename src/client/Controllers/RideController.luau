@@ -567,10 +567,46 @@ local function cameraStep(dt: number)
 	State.FovPunch = if State.FovPunch > 0 then math.max(0, State.FovPunch - run) else math.min(0, State.FovPunch + run)
 end
 
+-- On the dock Roblox's own camera is used, and it keeps looking the way it did before the server stood us on the dock's
+-- spawn: a new player looked at the hub with the water behind them, face to face with their own character (seen
+-- 2026-11-11 on grey-box 9). So each time we are put on the dock, the view is brought round behind the character,
+-- looking the way the dock's spawn faces (the server's "Dock" attribute), which is toward the water.
+local facing = 0
+local function faceWater()
+	facing += 1
+	local mine = facing
+	task.spawn(function()
+		-- the server moves the character a moment after it appears: wait until it is standing at the spawn
+		local began = os.clock()
+		while os.clock() - began < 5 do
+			if mine ~= facing or State.Mode ~= "Dock" then
+				return
+			end
+			local dock = Net.Folder:GetAttribute("Dock")
+			local _, root = State.character()
+			if typeof(dock) == "CFrame" and root then
+				local away = (root.Position - dock.Position) * Vector3.new(1, 0, 1)
+				if away.Magnitude < 12 then
+					local look = dock.LookVector * Vector3.new(1, 0, 1)
+					if look.Magnitude > 0.1 then
+						look = look.Unit
+						local head = root.Position + Vector3.new(0, 2, 0)
+						camera.CFrame = CFrame.lookAt(head - look * 14 + Vector3.new(0, 5, 0), head + look * 8)
+					end
+					return
+				end
+			end
+			task.wait(0.1)
+		end
+	end)
+end
+
 local function step(dt: number)
 	local mode = State.Mode
 	if mode ~= lastMode then
-		if mode == "Free" then
+		if mode == "Dock" then
+			faceWater()
+		elseif mode == "Free" then
 			-- floating carries on the way we were going; off the dock, the way the camera looks
 			yaw = if lastMode == "Dock" then (anglesOf(camera.CFrame.LookVector)) else State.Heading
 			State.Heading = yaw
@@ -656,6 +692,7 @@ function RideController.Init()
 		clearFloat()
 		camFocus = nil
 		fromServerState()
+		faceWater()
 	end)
 
 	UserInputService.InputChanged:Connect(function(input: InputObject, processed: boolean)
@@ -714,6 +751,7 @@ function RideController.Start()
 	if type(zonesJson) == "string" then
 		State.Zones = Zones.decode(zonesJson)
 	end
+	faceWater() -- our first character may have appeared before we were listening
 	Net.Folder:GetAttributeChangedSignal("Zones"):Connect(function()
 		local json = Net.Folder:GetAttribute("Zones")
 		if type(json) == "string" then

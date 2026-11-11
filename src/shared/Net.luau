@@ -8,8 +8,8 @@
 --   Fx (server -> every client): "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
 --     player off)
 --   Sandbox (client -> server, Studio only): "Tune", "Group.Key", number | "Flag", name, boolean | "Reset"
--- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode) and LanePath (the lane's
--- centreline as JSON, "" with none).
+-- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
+-- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that

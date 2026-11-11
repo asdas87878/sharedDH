@@ -66,12 +66,13 @@ Config.Oxygen = {
 	SwimSpeed = 8, -- floating off a fish you drift forward at this, and A and D turn you (never W and S)
 	SurfaceY = -3, -- floating stops here
 	WaterY = -4, -- below this, a player on the dock counts as in the water
-	Refill = 0.25, -- of max Oxygen, on landing a hop on another fish
-	-- How the drain is read as "the Oxygen a land needs": a rider who lands a hop every KeepUp seconds holds level when
-	-- their max Oxygen is drain x KeepUp / Refill (Config.required). Below that they run dry however well they hop.
-	KeepUp = 6, -- seconds between landings that a rider doing well manages
-	TierDrain = 0.15, -- each rarity above Common takes this share more a second (a Mythic: 1.75 times a Common)
-	DockRadius = 120, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 4: the spawn is 78 behind the lane's start, so the hub and the first 40 studs of water; v4 had 520)
+	-- The unit is seconds on a fish (the user, 2026-11-11): your max Oxygen / the fish's drain (Config.drain). A new
+	-- player has 2.5 s on a Shallows Common, so you have to go fish to fish.
+	Refill = 1, -- of max Oxygen, on landing a hop on another fish. 1: every fish starts with the whole meter, as the reference's ring is the time left on this dino (0.25 until 2026-11-11)
+	-- What the HUD and a fish's tag show as needed (Config.required): drain x KeepUp / Refill. With Refill 1 that is
+	-- the max Oxygen that gives KeepUp seconds on the fish.
+	KeepUp = 2, -- seconds on a fish that count as enough (6 until 2026-11-11, when it was the seconds between landings)
+	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 9: the spawn is 104 behind the lane's start and the mouth is 248 wide, so this is the hub, the mouth's corners and the first 60 studs of water in the middle; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
 	-- "TestMaxOxygen" attribute overrides it live (0 turns it off).
@@ -80,10 +81,32 @@ Config.Oxygen = {
 
 -- The progression (Hugo, 2026-11-11): the deeper you are, the more Oxygen the fish under you takes a second. One number
 -- a land, for a Common, by the land you are IN (not the fish's home); steep, so each land needs a clearly bigger max
--- Oxygen than the last. With KeepUp 6 and Refill 0.25 a land needs 24 times its number: 24, 96, 336, 1,150, 3,840...
--- so the first two lands can be ridden on the starting 100 and the third can't. A hop is never refused for Oxygen and
--- costs none: at almost nothing you can still go fish to fish, and each landing gives Refill back.
-Config.ZoneDrain = { 1, 4, 14, 48, 160, 500, 1500, 4500, 13000, 36000 }
+-- Oxygen than the last. A hop is never refused for Oxygen and costs none: at almost nothing you can still go fish to
+-- fish, and each landing gives Refill back.
+-- The numbers (the tuning chat, 2026-11-11, from the user's "2 to 3 seconds on the first fish, the land is the main
+-- cost"; docs/design/progression.md): the starting 100 lasts 2.5 s on a Shallows Common, and each land takes 2.5 to
+-- 4 times the land before. The smaller steps (lands 3, 5 and 7) are where the land's commonest fish also goes up a
+-- rarity, so what it takes to be at home in a land grows 4 to 8 times a land. Until then: 1, 4, 14, 48, 160, 500,
+-- 1500, 4500, 13000, 36000.
+Config.ZoneDrain = { 40, 160, 480, 2000, 6000, 24000, 60000, 240000, 1000000, 4000000 }
+
+-- And by the rarity of the fish under you: how many times a Common's Oxygen it takes a second, in any land. One number
+-- a rarity, so the curve can be gentle at the bottom and steep toward Legendary and Mythic (the user, 2026-11-11: the
+-- land is the main cost, the rarity less so, but hard at the top). Until 2026-11-11 this was a straight line, 0.15 a
+-- step (Oxygen.TierDrain: 1, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9).
+-- The numbers (the tuning chat, 2026-11-11; docs/design/progression.md): a new player's 2.5 s on a Shallows Common is
+-- 2 s on an Uncommon, 1 s on a Rare, half a second on an Epic and next to nothing on a Legendary. Rare to Legendary
+-- follow the reference's required stamina in one zone (an Uncommon 50, a Rare 130, an Epic 230, a Legendary 752);
+-- Mythic and Secret are guesses.
+Config.RarityDrain = {
+	Common = 1,
+	Uncommon = 1.25,
+	Rare = 2.5,
+	Epic = 4.5,
+	Legendary = 15,
+	Mythic = 50,
+	Secret = 150,
+} :: { [string]: number }
 
 -- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
 -- to about a fifth; Roblox's own speed is 16), which is why its walk to the start is short. The user, 2026-11-10: match it.
@@ -383,6 +406,39 @@ Config.Camera = {
 	AirMouseLook = 1, -- 1: in the hop the mouse aims without a button held (it is locked to the centre); 0: right drag only
 }
 
+-- How creatures and riders move beyond the keyed swim (2026-11-11: the first slice of docs/design/animation-study.md).
+-- Every layer is seen only: it turns or shifts the fish's first joint, never the Root, so the Saddle, the lock and the
+-- server's checks are untouched. The numbers by body type are in Shared/RideStyles. A row at 0 turns its layer off.
+-- First guesses, not judged in play.
+Config.Animation = {
+	-- Effort: the fish works harder when it speeds up or is landed on, and eases when it coasts
+	Effort = 1, -- 1: the swing and the beat follow the effort; 0: every beat the same, as before
+	EffortAccel = 0.03, -- effort gained for each stud a second it speeds up in a second (lost when slowing)
+	EffortBeat = 0.5, -- how much of the effort goes into a faster beat (the rest is a wider swing)
+	LandEffort = 0.6, -- the kick after a landing: this much more effort,
+	LandEffortTime = 0.6, -- dying away over this long
+	CrashFlinch = 0.35, -- a crash rears and shakes your fish: this share of the buck (0 off)
+	-- The turn layer: the head leads into a turn and the tail comes round late; wild fish bank
+	Turn = 1, -- the whole layer's strength (0 off)
+	TurnLead = 0.05, -- the head's bend, radians for each radian a second of turning (it follows quickly)
+	TurnBend = 0.04, -- each tail joint's bend the other way (it follows slowly, so it trails)
+	TurnMax = 4, -- no joint bends further than this, degrees
+	TurnTotal = 25, -- and the joints of one chain no further than this together
+	WildBank = 0.2, -- a wild fish's roll into a turn, radians for each radian a second (a ridden fish banks for real)
+	WildBankMax = 18, -- at most, degrees
+	-- The body layer: the heave, nod, sway and rock of the creature's style, each beat
+	Body = 1, -- its strength (0 off)
+	Cadence = 1, -- 1: the beat's rate by style; 0: by length alone, as before
+	Jaw = 1, -- 1: a jaw hangs nearly shut and opens now and then; 0: it chomps every beat, as keyed
+	-- The landing: the fish sinks under the rider and springs back, nose down for a moment
+	LandDip = 0.9, -- studs, for a mid-sized fish of a style whose Dip is 1 (0 off)
+	LandNod = 7, -- degrees
+	LandDipTime = 0.7, -- seconds until it is still
+	-- The rider
+	RiderFollow = 1, -- 1: the rider moves with the fish's body (its heave, nod, dip and buck); 0: sits still over it
+	Brace = 0.4, -- seconds of the landing's brace: arms up, knees folded, then the grab (0 off)
+}
+
 -- How the lock and the window's timer are drawn.
 Config.AimHud = {
 	RefusedTime = 0.25, -- seconds the reticle flashes red on an empty grab
@@ -544,8 +600,7 @@ Config.FishById = {} :: { [string]: FishType }
 function Config.drain(zone: number, tier: string): number
 	local per = Config.ZoneDrain
 	local base = per[math.clamp(zone, 1, #per)]
-	local step = (table.find(Config.TierOrder, tier) or 1) - 1
-	return base * (1 + Config.Oxygen.TierDrain * step)
+	return base * (Config.RarityDrain[tier] or 1)
 end
 
 -- The max Oxygen that keeps up there: landing a hop every Oxygen.KeepUp seconds, the refills just pay for the drain

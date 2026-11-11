@@ -30,6 +30,8 @@ local function tune(path: any, value: any)
 	Config.refresh()
 	if group == "Spawn" then
 		FishService.restock()
+	elseif path == "Oxygen.StartMax" then
+		RideService.readMax()
 	end
 end
 

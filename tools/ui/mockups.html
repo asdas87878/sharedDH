@@ -1,0 +1,561 @@
+<!doctype html>
+<meta charset="utf-8">
+<!--
+  Mock-ups of the Ride a Fish HUD, drawn in the browser and saved as pictures by tools/ui/render_mockups.py.
+  Not game code. The HUD pieces use only what Roblox's own UI can do: rounded frames, strokes, gradients, circles,
+  rotation and Roblox's built-in fonts (read from the Roblox install). A "lip" under a plate is a second frame set
+  4 lower; a ring that empties is a stroked circle with a gradient cut-off that turns.
+
+  ?state=riding|low|hop|strong|nofish|tamed|miss|summary|teach|today-ride|today-hop|zones|styles
+  &skin=brick|bubble|sticker  &w=844&h=390  &touch=1|0  &fonts=file:///.../content/fonts
+-->
+<style>
+	html, body { margin: 0; overflow: hidden; background: #000; }
+	#root { position: relative; overflow: hidden; }
+	.abs { position: absolute; }
+	.grp { position: absolute; width: 0; height: 0; }
+	.grp > * { position: absolute; width: max-content; }
+	.ts { paint-order: stroke fill; -webkit-text-stroke: 3.5px var(--ink); }
+	.ts2 { paint-order: stroke fill; -webkit-text-stroke: 5px var(--ink); }
+	.nowrap { white-space: nowrap; }
+	.row { display: flex; align-items: center; gap: 6px; }
+	.col { display: flex; flex-direction: column; align-items: center; }
+	.circle { border-radius: 50%; }
+	:root { --ink: #10243f; --aqua: #33d6f0; --sun: #ffd23f; --coral: #ff5a5f; --lime: #7ce04b; --white: #fff; }
+
+	/* ---------- skin A: Brick ---------- */
+	.brick { font-family: Fredoka; color: #fff; }
+	.brick .plate { background: var(--c, #1d4470); border: 3px solid var(--ink); border-radius: 10px;
+		box-shadow: 0 4px 0 0 var(--ink); padding: 3px 10px 4px; white-space: nowrap; position: relative; }
+	.brick .plate.studs::before, .brick .plate.studs::after { content: ""; position: absolute; top: -9px; width: 16px;
+		height: 8px; background: var(--c, #1d4470); border: 3px solid var(--ink); border-bottom: none;
+		border-radius: 6px 6px 0 0; }
+	.brick .plate.studs::before { left: 12px; }
+	.brick .plate.studs::after { right: 12px; }
+	.brick .disc { background: #16345a; border: 3px solid var(--ink); box-shadow: 0 4px 0 0 var(--ink); }
+	.brick .track { color: #0c1d33; }
+	.brick .btn { border: 4px solid var(--ink); box-shadow: 0 6px 0 0 var(--ink); }
+	.brick .small { font-size: 11px; letter-spacing: .5px; }
+
+	/* ---------- skin B: Bubble ---------- */
+	.bubble { font-family: BuilderX; color: #fff; }
+	.bubble .plate { background: rgba(8, 30, 62, .58); border: 1.5px solid rgba(255, 255, 255, .75);
+		border-radius: 999px; padding: 4px 12px 4px; white-space: nowrap; position: relative; }
+	.bubble .plate.tint { border-color: var(--c); box-shadow: inset 0 -3px 0 0 var(--c); }
+	.bubble .disc { background: rgba(8, 30, 62, .58); border: 1.5px solid rgba(255, 255, 255, .75); }
+	.bubble .track { color: rgba(255, 255, 255, .22); }
+	.bubble .btn { border: 2px solid rgba(255, 255, 255, .85); }
+	.bubble .ts, .bubble .ts2 { -webkit-text-stroke: 0; text-shadow: 0 1px 0 rgba(0, 20, 50, .8); }
+	.bubble .small { font-size: 10.5px; letter-spacing: .8px; }
+
+	/* ---------- skin C: Sticker ---------- */
+	.sticker { font-family: Lucky; color: #111; }
+	.sticker .plate { background: var(--c, #fff); border: 4px solid #111; border-radius: 6px;
+		box-shadow: 4px 4px 0 0 #111; padding: 4px 10px 1px; white-space: nowrap; position: relative;
+		transform: rotate(-3deg); }
+	.sticker .disc { background: #fff; border: 4px solid #111; box-shadow: 4px 4px 0 0 #111; }
+	.sticker .track { color: #ddd; }
+	.sticker .btn { border: 4px solid #111; box-shadow: 4px 4px 0 0 #111; }
+	.sticker .ts, .sticker .ts2 { -webkit-text-stroke: 5px #111; color: #fff; }
+	.sticker .small { font-size: 11px; letter-spacing: .5px; }
+
+	.note { font-family: Arial, sans-serif; font-weight: bold; font-size: 11px; color: #fff; background: #d2222d;
+		border-radius: 50%; width: 18px; height: 18px; line-height: 18px; text-align: center;
+		box-shadow: 0 0 0 2px #fff; }
+	.zone { border: 2px dashed; border-radius: 12px; font-family: Arial, sans-serif; font-weight: bold;
+		font-size: 11px; padding: 4px 6px; box-sizing: border-box; }
+</style>
+<div id="root"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const W = +q.get("w") || 844, H = +q.get("h") || 390;
+const STATE = q.get("state") || "riding";
+const SKIN = q.get("skin") || "brick";
+const TOUCH = q.get("touch") !== "0";
+const FONTS = q.get("fonts") || "";
+const S = Math.min(2.2, Math.max(1, H / 560)); // the HUD's scale rule: phone size is 1, big screens less than in proportion
+const INS = TOUCH ? 46 : 16; // a phone's safe area at the sides (the notch), in landscape
+const INK = "#10243f";
+
+if (FONTS) {
+	const face = (name, file) => `@font-face{font-family:${name};src:url("${FONTS}/${file}")}`;
+	const st = document.createElement("style");
+	st.textContent = [
+		face("Fredoka", "FredokaOne-Regular.ttf"), face("BuilderX", "BuilderSans-ExtraBold.otf"),
+		face("Lucky", "LuckiestGuy-Regular.ttf"), face("Bangers", "Bangers-Regular.ttf"),
+	].join("\n");
+	document.head.appendChild(st);
+}
+
+// the game's rarity colours (Config.Tiers) and the map's colour for each land (tools/map/greybox.py GROUND)
+const TIER = {
+	Common: [200, 200, 200], Uncommon: [90, 220, 90], Rare: [70, 150, 255], Epic: [180, 90, 255],
+	Legendary: [255, 190, 40], Mythic: [255, 70, 90], Secret: [20, 20, 20],
+};
+const DARK_TEXT = { Common: 1, Uncommon: 1, Legendary: 1 };
+const LANDS = [
+	["Shallows", [242, 214, 128]], ["Coral Reef", [244, 148, 152]], ["Kelp Forest", [120, 172, 92]],
+	["Shipwrecks", [160, 148, 124]], ["Open Blue", [90, 124, 176]], ["Twilight", [104, 96, 170]],
+	["Midnight", [62, 66, 120]], ["Vents", [120, 72, 64]], ["Bone Graveyard", [150, 150, 168]],
+	["The Underworld", [110, 44, 60]],
+];
+const rgb = (c) => `rgb(${c.map((v) => Math.round(v)).join(",")})`;
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const shade = (c, k) => c.map((v) => v * k);
+
+// ------------------------------------------------------------------ the scene behind the HUD (not UI: a stand-in)
+function scene(landIndex, opts = {}) {
+	const land = LANDS[landIndex][1];
+	const haze = opts.dark ? [20, 40, 70] : [150, 205, 222];
+	const top = opts.dark ? [6, 14, 34] : [38, 128, 196];
+	const camY = 22, pitch = 14 * Math.PI / 180, f = (H / 2) / Math.tan(35 * Math.PI / 180);
+	const sp = Math.sin(pitch), cp = Math.cos(pitch);
+	const proj = (X, Y, Z) => {
+		const y = Y - camY, zc = -y * sp + Z * cp, yc = y * cp + Z * sp;
+		return [W / 2 + f * X / zc, H / 2 - f * yc / zc, f / zc, zc];
+	};
+	const fog = (c, z) => rgb(mix(c, haze, Math.min(0.9, Math.max(0, (z - 70) / 380))));
+	const quad = (pts, fill) => pts.some((p) => p[3] < 3) ? "" : `<polygon points="${pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ")}" fill="${fill}" stroke="${fill}" stroke-width="0.6"/>`;
+	let s = `<svg class="abs" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="left:0;top:0">`;
+	s += `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${rgb(top)}"/>`
+		+ `<stop offset="0.34" stop-color="${rgb(haze)}"/><stop offset="1" stop-color="${rgb(haze)}"/></linearGradient></defs>`;
+	s += `<rect width="${W}" height="${H}" fill="url(#sky)"/>`;
+	const wallL = (z) => -(64 + 16 * Math.sin(z / 46)), wallR = (z) => 64 + 16 * Math.sin(z / 46 + 2.4);
+	const wall = mix(land, [150, 150, 150], 0.5), grass = mix(land, [255, 255, 255], 0.25);
+	const SQ = 8;
+	for (let z = 400; z >= 8; z -= SQ) {
+		const iz = Math.round(z / SQ);
+		// the floor row
+		for (let x = -128; x < 128; x += SQ) {
+			const ix = Math.round(x / SQ);
+			const c = (ix + iz) % 2 === 0 ? land : shade(land, 0.93);
+			s += quad([proj(x, 0, z), proj(x + SQ, 0, z), proj(x + SQ, 0, z + SQ), proj(x, 0, z + SQ)], fog(c, z));
+		}
+		// both sides: a low terrace and a tall wall behind it
+		for (const side of [-1, 1]) {
+			const x = side < 0 ? wallL(z) : wallR(z), x2 = side < 0 ? wallL(z + SQ) : wallR(z + SQ);
+			const out = x + side * 24, out2 = x2 + side * 24;
+			const k = iz % 2 === 0 ? 1 : 0.94;
+			s += quad([proj(out, 16, z), proj(out2, 16, z + SQ), proj(out2, 64, z + SQ), proj(out, 64, z)], fog(shade(wall, 0.86 * k), z));
+			s += quad([proj(out, 64, z), proj(out2, 64, z + SQ), proj(out2, 72, z + SQ), proj(out, 72, z)], fog(shade(grass, 0.95), z));
+			s += quad([proj(x, 16, z), proj(x2, 16, z + SQ), proj(out2, 16, z + SQ), proj(out, 16, z)], fog(grass, z));
+			s += quad([proj(x, 0, z), proj(x2, 0, z + SQ), proj(x2, 16, z + SQ), proj(x, 16, z)], fog(shade(wall, k), z));
+		}
+		// props standing in this row
+		for (const p of opts.props || []) {
+			if (Math.round(p.z / SQ) === iz) {
+				for (const b of p.boxes) {
+					const [ax, ay, k] = proj(p.x + b[0], b[1], p.z);
+					s += `<rect x="${(ax - b[2] * k / 2).toFixed(1)}" y="${(ay - b[3] * k).toFixed(1)}" width="${(b[2] * k).toFixed(1)}" height="${(b[3] * k).toFixed(1)}" fill="${fog(b[4], p.z)}"/>`;
+				}
+			}
+		}
+	}
+	// fish, far to near, seen from behind: a body, a belly, a tail fin, a dorsal fin, two side fins
+	const marks = {};
+	const fishes = (opts.fish || []).slice().sort((a, b) => b.z - a.z);
+	for (const fi of fishes) {
+		const [cx, cy, k] = proj(fi.x, fi.y, fi.z);
+		const w = fi.w * k, h = fi.h * k;
+		const body = fog(fi.body, fi.z * (fi.glow ? 0.2 : 1)), belly = fog(mix(fi.body, [255, 255, 255], 0.55), fi.z);
+		const fin = fog(fi.fin || shade(fi.body, 0.8), fi.z);
+		const r = Math.max(1, k * 0.5);
+		if (fi.glow) {
+			// JumpController's marks on the locked fish (the world's, not the HUD's): the yellow glow and the dashed ring
+			s += `<ellipse cx="${cx}" cy="${cy}" rx="${w * 1.25}" ry="${h * 1.15}" fill="none" stroke="#ffe24a" stroke-width="${Math.max(2, k * 0.35)}" stroke-dasharray="${k * 1.2} ${k * 0.8}" opacity="0.95"/>`;
+		}
+		s += `<rect x="${cx - w * 0.72}" y="${cy + h * 0.05}" width="${w * 1.44}" height="${h * 0.2}" rx="${r}" fill="${fin}"/>`;
+		s += `<rect x="${cx - w * 0.1}" y="${cy - h * 0.85}" width="${w * 0.2}" height="${h * 0.5}" rx="${r}" fill="${fin}"/>`;
+		s += `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${r * 2}" fill="${fi.glow ? "#ffe680" : body}"/>`;
+		s += `<rect x="${cx - w / 2}" y="${cy + h * 0.2}" width="${w}" height="${h * 0.3}" rx="${r * 2}" fill="${fi.glow ? "#fff3b0" : belly}"/>`;
+		if (fi.stripe) {
+			for (const sx of [-0.28, 0.18]) {
+				s += `<rect x="${cx + w * sx}" y="${cy - h / 2}" width="${w * 0.12}" height="${h * 0.7}" fill="${fog(fi.stripe, fi.z)}"/>`;
+			}
+		}
+		s += `<rect x="${cx - w * 0.07}" y="${cy - h * 0.62}" width="${w * 0.14}" height="${h * 1.24}" rx="${r}" fill="${fi.glow ? "#ffd23f" : fin}"/>`;
+		if (fi.rider) {
+			// the player, from behind
+			const u = k;
+			s += `<rect x="${cx - 2.6 * u}" y="${cy - h / 2 - 1.2 * u}" width="${1.3 * u}" height="${2.4 * u}" fill="#2f6fd0"/>`;
+			s += `<rect x="${cx + 1.3 * u}" y="${cy - h / 2 - 1.2 * u}" width="${1.3 * u}" height="${2.4 * u}" fill="#2f6fd0"/>`;
+			s += `<rect x="${cx - 2.1 * u}" y="${cy - h / 2 - 3.6 * u}" width="${4.2 * u}" height="${3.2 * u}" rx="${u * 0.3}" fill="#3d8bf0"/>`;
+			s += `<rect x="${cx - 3.2 * u}" y="${cy - h / 2 - 3.5 * u}" width="${1.1 * u}" height="${2.8 * u}" rx="${u * 0.3}" fill="#f2c9a0"/>`;
+			s += `<rect x="${cx + 2.1 * u}" y="${cy - h / 2 - 3.5 * u}" width="${1.1 * u}" height="${2.8 * u}" rx="${u * 0.3}" fill="#f2c9a0"/>`;
+			s += `<rect x="${cx - 1.3 * u}" y="${cy - h / 2 - 6 * u}" width="${2.6 * u}" height="${2.5 * u}" rx="${u * 0.5}" fill="#3a2a22"/>`;
+		}
+		if (fi.id) {
+			marks[fi.id] = { x: cx, y: cy, top: cy - h * 0.9, k, w, h };
+		}
+	}
+	if (opts.flyer) {
+		// the player in the hop: lying flat, seen from behind and above
+		const [cx, cy, k] = proj(opts.flyer.x, opts.flyer.y, opts.flyer.z);
+		s += `<rect x="${cx - 2.1 * k}" y="${cy - 1 * k}" width="${4.2 * k}" height="${2.6 * k}" rx="${k * 0.3}" fill="#3d8bf0"/>`;
+		s += `<rect x="${cx - 1.3 * k}" y="${cy - 3 * k}" width="${2.6 * k}" height="${2.3 * k}" rx="${k * 0.5}" fill="#3a2a22"/>`;
+		s += `<rect x="${cx - 3.4 * k}" y="${cy - 2.6 * k}" width="${1.1 * k}" height="${3 * k}" rx="${k * 0.3}" fill="#f2c9a0"/>`;
+		s += `<rect x="${cx + 2.3 * k}" y="${cy - 2.6 * k}" width="${1.1 * k}" height="${3 * k}" rx="${k * 0.3}" fill="#f2c9a0"/>`;
+		s += `<rect x="${cx - 2 * k}" y="${cy + 1.6 * k}" width="${1.7 * k}" height="${2.2 * k}" fill="#2f6fd0"/>`;
+		s += `<rect x="${cx + 0.3 * k}" y="${cy + 1.6 * k}" width="${1.7 * k}" height="${2.2 * k}" fill="#2f6fd0"/>`;
+	}
+	s += "</svg>";
+	return { svg: s, marks };
+}
+
+const CORAL = (x, z) => ({ x, z, boxes: [
+	[0, 0, 5, 26, [226, 92, 120]], [-7, 14, 10, 5, [226, 92, 120]], [-10, 14, 4, 16, [236, 110, 136]],
+	[7, 18, 10, 5, [226, 92, 120]], [10, 18, 4, 14, [236, 110, 136]], [0, 26, 12, 5, [240, 124, 148]],
+] });
+const KELP = (x, z) => ({ x, z, boxes: [[0, 0, 3, 22, [70, 160, 84]], [3, 0, 3, 14, [90, 180, 100]], [-3, 0, 3, 9, [60, 140, 76]]] });
+const FISH = {
+	clown: { w: 5.2, h: 4.4, body: [255, 120, 20], fin: [255, 150, 50], stripe: [255, 255, 255] },
+	tang: { w: 4.6, h: 5.4, body: [255, 225, 40], fin: [255, 235, 110] },
+	sergeant: { w: 4.8, h: 5, body: [236, 232, 190], fin: [250, 215, 70], stripe: [25, 25, 30] },
+	parrot: { w: 5.6, h: 5, body: [40, 200, 170], fin: [255, 120, 170] },
+	lion: { w: 5.2, h: 5, body: [240, 240, 235], fin: [200, 40, 40], stripe: [200, 40, 40] },
+	moray: { w: 4.6, h: 3.6, body: [70, 130, 60], fin: [90, 150, 70] },
+	shark: { w: 8.5, h: 5.6, body: [130, 140, 150], fin: [100, 110, 122] },
+	dunk: { w: 13, h: 9, body: [94, 104, 96], fin: [70, 78, 74] },
+};
+const at = (kind, x, y, z, extra) => Object.assign({}, FISH[kind], { x, y, z }, extra || {});
+
+// ------------------------------------------------------------------ HUD pieces (each is frames, strokes, text)
+const el = (style, inner = "", cls = "") => `<div class="${cls}" style="${style}">${inner}</div>`;
+// a group pinned to a corner or the middle of the screen and scaled by the HUD's scale
+function grp(anchor, x, y, inner) {
+	const ax = { l: 0, c: W / 2, r: W }[anchor[1]], ay = { t: 0, m: H / 2, b: H }[anchor[0]];
+	return `<div class="grp" style="left:${ax + x * S}px;top:${ay + y * S}px;transform:scale(${S});transform-origin:0 0">${inner}</div>`;
+}
+// a ring that empties: in Roblox a stroked circle whose stroke has a gradient with a cut-off, turned (two halves)
+function ring(size, thick, frac, colour, inner = "", extra = "") {
+	const deg = Math.max(0, Math.min(1, frac)) * 360;
+	return `<div class="disc circle" style="width:${size}px;height:${size}px;box-sizing:border-box;${extra}">`
+		+ `<div class="abs circle track" style="inset:3px;background:conic-gradient(${colour} 0 ${deg}deg, currentColor ${deg}deg 360deg);`
+		+ `-webkit-mask:radial-gradient(circle, transparent ${size / 2 - 3 - thick - 0.5}px, #000 ${size / 2 - 3 - thick}px)"></div>`
+		+ `<div class="abs col" style="inset:0;justify-content:center">${inner}</div></div>`;
+}
+const bubbleIcon = (d, colour = "#fff") => `<span style="display:inline-block;position:relative;width:${d}px;height:${d}px;`
+	+ `box-sizing:border-box;border:${Math.max(2, d * 0.17)}px solid ${colour};border-radius:50%;vertical-align:-${d * 0.12}px">`
+	+ `<span style="position:absolute;left:${d * 0.12}px;top:${d * 0.1}px;width:${d * 0.22}px;height:${d * 0.22}px;border-radius:50%;background:${colour}"></span></span>`;
+// a small fish made of two frames: a rounded body and a square turned 45 degrees for the tail
+const fishIcon = (w, colour, ink = INK) => `<span style="display:inline-block;position:relative;width:${w}px;height:${w * 0.62}px;vertical-align:middle">`
+	+ `<span style="position:absolute;right:${w * 0.02}px;top:${w * 0.09}px;width:${w * 0.44}px;height:${w * 0.44}px;background:${colour};transform:rotate(45deg);border:2px solid ${ink};box-sizing:border-box"></span>`
+	+ `<span style="position:absolute;left:0;top:0;width:${w * 0.68}px;height:${w * 0.62}px;border-radius:45%;background:${colour};border:2px solid ${ink};box-sizing:border-box"></span>`
+	+ `<span style="position:absolute;left:${w * 0.14}px;top:${w * 0.16}px;width:${w * 0.1}px;height:${w * 0.1}px;border-radius:50%;background:${ink}"></span></span>`;
+const arrow = (d, colour, down) => `<span style="display:inline-block;width:0;height:0;border-left:${d * 0.6}px solid transparent;`
+	+ `border-right:${d * 0.6}px solid transparent;${down ? "border-top" : "border-bottom"}:${d}px solid ${colour}"></span>`;
+
+function tierPlate(name, tier, size = 13, sub = true) {
+	const c = TIER[tier];
+	if (SKIN === "bubble") {
+		return `<div class="plate tint row" style="--c:${rgb(tier === "Secret" ? [230, 230, 240] : c)};font-size:${size}px">`
+			+ `<span class="circle" style="width:9px;height:9px;background:${rgb(tier === "Secret" ? [230, 230, 240] : c)}"></span>`
+			+ `<span>${name}</span>${sub ? `<span class="small" style="opacity:.8">${tier.toUpperCase()}</span>` : ""}</div>`;
+	}
+	const dark = DARK_TEXT[tier];
+	const txt = SKIN === "sticker" ? "#111" : dark ? INK : "#fff";
+	const tc = SKIN === "sticker" && !dark ? "#fff" : txt;
+	return `<div class="plate row" style="--c:${rgb(c)};color:${tc};font-size:${size}px;gap:7px">`
+		+ `<span>${name}</span>${sub ? `<span class="small" style="opacity:.75">${tier.toUpperCase()}</span>` : ""}</div>`;
+}
+
+// the ride ring: the seconds left on this fish, and beside it the tame ring in the fish's rarity colour
+function rideRing(o) {
+	const colour = o.frac < 0.34 ? "var(--coral)" : o.frac < 0.6 ? "var(--sun)" : "var(--aqua)";
+	const numC = SKIN === "sticker" ? "#111" : "#fff";
+	const num = `<div class="${SKIN === "sticker" ? "" : "ts"}" style="font-size:${(o.big ? 27 : 24) - (o.secs.length > 3 ? 4 : 0)}px;line-height:1;color:${numC}">${o.secs}</div>`
+		+ `<div class="small" style="margin-top:1px;color:${numC};opacity:.8">SEC</div>`;
+	const size = o.big ? 78 : 70;
+	let s = ring(size, 9, o.frac, colour, num, o.dim ? "opacity:.55;" : "");
+	if (o.tame !== undefined) {
+		const tc = rgb(TIER[o.tier]);
+		s += `<div style="left:${-22}px;top:${size - 30}px">${ring(40, 6, o.tame, tc, fishIcon(17, o.tame >= 1 ? tc : "#fff"))}</div>`;
+	}
+	if (o.name) {
+		s += `<div style="left:${size / 2}px;top:${size + 9}px;transform:translateX(-50%)">${tierPlate(o.name, o.tier, 12)}</div>`;
+	}
+	if (o.gain) {
+		s += `<div class="ts nowrap" style="left:${size + 6}px;top:8px;font-size:17px;color:var(--lime)">${o.gain}</div>`;
+	}
+	return s;
+}
+
+// the depth ladder: ten bricks in the lands' colours, a marker for you, a tick for your best
+function depthLadder(landIndex, u, metres, best, needs) {
+	const cw = 20, ch = 15;
+	let s = "";
+	for (let i = 0; i < 10; i++) {
+		const c = LANDS[i][1];
+		const on = i <= landIndex;
+		s += el(`left:0;top:${i * ch}px;width:${cw}px;height:${ch}px;box-sizing:border-box;background:${rgb(on ? c : shade(mix(c, [40, 60, 90], 0.55), 1))};`
+			+ `border:${SKIN === "bubble" ? "1px solid rgba(255,255,255,.6)" : "2.5px solid " + (SKIN === "sticker" ? "#111" : INK)};`
+			+ `border-radius:${i === 0 ? "6px 6px 0 0" : i === 9 ? "0 0 6px 6px" : "0"};margin-top:${SKIN === "bubble" ? 0 : -0}px`);
+	}
+	const y = (landIndex + u) * ch;
+	s += el(`left:${cw + 2}px;top:${y - 7}px;width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:11px solid #fff;filter:drop-shadow(0 0 0 ${INK})`);
+	if (best !== undefined) {
+		s += el(`left:${-7}px;top:${best * ch - 1.5}px;width:${cw + 9}px;height:3px;background:var(--sun);border-radius:2px`);
+		s += el(`left:${-10}px;top:${best * ch + 3}px;font-size:8px;color:var(--sun)`, "BEST", "small ts nowrap");
+	}
+	const land = LANDS[landIndex];
+	const dark = landIndex < 4;
+	let plate;
+	if (SKIN === "bubble") {
+		plate = `<div class="plate tint" style="--c:${rgb(land[1])};font-size:12px">${land[0].toUpperCase()}</div>`;
+	} else {
+		plate = `<div class="plate" style="--c:${rgb(land[1])};color:${SKIN === "sticker" ? "#111" : dark ? INK : "#fff"};font-size:12px">${land[0].toUpperCase()}</div>`;
+	}
+	s += el(`left:${cw + 18}px;top:${Math.max(0, Math.min(150 - 46, y - 22))}px`, plate
+		+ `<div class="ts nowrap" style="font-size:20px;margin-top:5px;margin-left:2px;${SKIN === "sticker" ? "" : "color:#fff"}">${metres} m</div>`
+		+ (needs ? `<div class="ts nowrap row" style="font-size:12px;margin-top:1px;margin-left:2px;color:var(--sun);gap:4px">needs ${bubbleIcon(11, "#ffd23f")} ${needs}</div>` : ""));
+	return s;
+}
+
+// the caught chip: how many you carry, one small tile each in its rarity colour
+function caught(list, bump) {
+	const tiles = list.map((t) => `<span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:${rgb(TIER[t])};`
+		+ `border:2px solid ${SKIN === "bubble" ? "rgba(255,255,255,.7)" : SKIN === "sticker" ? "#111" : INK}"></span>`).join("");
+	const inner = `<div class="plate row" style="${bump ? "transform:scale(1.18);transform-origin:100% 0;--c:#2a8f4a;" : ""}font-size:16px;gap:7px">`
+		+ `${fishIcon(20, "#fff", SKIN === "sticker" ? "#111" : INK)}<span style="${SKIN === "sticker" ? "" : "color:#fff"}">${list.length}</span>`
+		+ `<span class="row" style="gap:3px">${tiles}</span></div>`;
+	return `<div style="right:0;top:0">${inner}</div>`;
+}
+
+// the hop button (touch) or the key hint (keyboard): the same place says what the press does now
+function hopControl(mode, opts = {}) {
+	const label = mode === "grab" ? "GRAB" : "HOP";
+	const colour = mode === "grab" ? "var(--aqua)" : mode === "off" ? "#8fa3b8" : "var(--sun)";
+	if (TOUCH) {
+		const d = 92;
+		const face = SKIN === "bubble"
+			? `background:${mode === "grab" ? "rgba(51,214,240,.5)" : mode === "off" ? "rgba(8,30,62,.4)" : "rgba(255,210,63,.55)"};`
+			: `background:${colour};`;
+		let s = `<div class="btn circle col" style="right:0;bottom:0;width:${d}px;height:${d}px;box-sizing:border-box;${face}justify-content:center;${opts.hot ? "transform:scale(1.1);transform-origin:50% 50%;" : ""}">`
+			+ arrow(17, SKIN === "bubble" ? "#fff" : INK, mode === "grab")
+			+ `<div style="font-size:19px;line-height:1;margin-top:5px;color:${SKIN === "bubble" ? "#fff" : INK}">${label}</div></div>`;
+		if (SKIN === "bubble") {
+			s += `<div class="circle" style="right:${d - 30}px;bottom:${d - 26}px;width:14px;height:9px;background:rgba(255,255,255,.7);transform:rotate(-35deg)"></div>`;
+		}
+		if (opts.hot) {
+			s += `<div class="circle" style="right:-9px;bottom:-9px;width:${d + 18}px;height:${d + 18}px;box-sizing:border-box;border:4px solid var(--coral);opacity:.9"></div>`;
+		}
+		return s;
+	}
+	const key = `<div class="plate" style="--c:#f4f7fb;color:${INK};font-size:15px;${SKIN === "bubble" ? "background:rgba(255,255,255,.9);border-radius:8px;" : ""}">SPACE</div>`;
+	return `<div class="row nowrap" style="left:0;bottom:0;transform:translateX(-50%);gap:9px">${key}`
+		+ `<div class="ts2" style="font-size:19px;color:${mode === "grab" ? "var(--aqua)" : opts.hot ? "var(--coral)" : "var(--sun)"}">${label}${opts.hot ? "!" : ""}</div></div>`;
+}
+
+// in the hop: the aim at the middle of the screen, with the window as a thin ring round it
+function reticle(frac) {
+	const colour = frac < 0.28 ? "var(--coral)" : "#fff";
+	const d = frac < 0.28 ? 46 : 40;
+	return `<div class="circle" style="left:${-d / 2}px;top:${-d / 2}px;width:${d}px;height:${d}px;`
+		+ `background:conic-gradient(${colour} 0 ${frac * 360}deg, rgba(255,255,255,.22) ${frac * 360}deg 360deg);`
+		+ `-webkit-mask:radial-gradient(circle, transparent ${d / 2 - 5.5}px, #000 ${d / 2 - 5}px)"></div>`
+		+ `<div class="circle" style="left:-3px;top:-3px;width:6px;height:6px;background:${colour}"></div>`;
+}
+
+// the plate on the locked fish: what it is, its rarity, and how long you would last on it
+function lockPlate(m, name, tier, line, bad) {
+	const s = `<div class="col" style="transform:translate(-50%,-100%);gap:4px">${tierPlate(name, tier, 13)}`
+		+ `<div class="ts nowrap row" style="font-size:14px;gap:5px;color:${bad ? "var(--coral)" : "#fff"}">${line}</div></div>`;
+	return `<div class="grp" style="left:${m.x}px;top:${m.top - 8 * S}px;transform:scale(${S});transform-origin:0 0">${s}</div>`;
+}
+
+// a name tag over a wild fish (world space in the game: a few pooled tags on the nearest fish)
+function fishTag(m, name, tier, need, bad) {
+	const k = Math.max(0.82, Math.min(1, m.k / (6 * S))) * S;
+	const s = `<div class="col" style="transform:translate(-50%,-100%);gap:2px">${tierPlate(name, tier, 11, false)}`
+		+ `<div class="ts nowrap row" style="font-size:11px;gap:3px;color:${bad ? "var(--coral)" : "#fff"}">${bubbleIcon(10, bad ? "#ff5a5f" : "#fff")} ${need}</div></div>`;
+	return `<div class="grp" style="left:${m.x}px;top:${m.top - 3 * k}px;transform:scale(${k});transform-origin:0 0">${s}</div>`;
+}
+
+function banner(title, sub, colour, titleColour) {
+	return `<div class="col" style="transform:translateX(-50%);gap:0">`
+		+ `<div class="plate studs col" style="--c:${colour};padding:5px 20px 7px">`
+		+ `<div class="ts2 nowrap" style="font-size:26px;line-height:1.05;color:${titleColour || "#fff"}">${title}</div>${sub || ""}</div></div>`;
+}
+
+function robloxChrome() {
+	// Roblox's own buttons (top left) and, on touch, where its thumbstick appears: not ours, shown so the room is honest
+	let s = "";
+	for (let i = 0; i < 2; i++) {
+		s += `<div class="abs circle" style="left:${INS + 4 + i * 50}px;top:8px;width:${TOUCH ? 40 : 44}px;height:${TOUCH ? 40 : 44}px;background:rgba(18,18,24,.7)"></div>`;
+	}
+	if (TOUCH) {
+		s += `<div class="abs circle" style="left:${INS + 26}px;top:${H - 128}px;width:96px;height:96px;box-sizing:border-box;border:2px solid rgba(255,255,255,.28)"></div>`;
+		s += `<div class="abs circle" style="left:${INS + 54}px;top:${H - 100}px;width:40px;height:40px;background:rgba(255,255,255,.22)"></div>`;
+	}
+	return s;
+}
+
+const vignette = (colour, a) => `<div class="abs" style="inset:0;background:radial-gradient(ellipse at center, transparent 45%, ${colour} 130%);opacity:${a}"></div>`;
+
+// ------------------------------------------------------------------ the frames
+const root = document.getElementById("root");
+root.style.width = W + "px";
+root.style.height = H + "px";
+root.className = SKIN;
+let html = "";
+
+const herd = (lock, extra = []) => [
+	at("tang", -26, 10, 70, { id: "tang", glow: lock === "tang" }), at("sergeant", 50, 12, 62, { id: "serg" }),
+	at("parrot", 11, 12, 50, { id: "parrot", glow: lock === "parrot" }), at("lion", -58, 8, 130),
+	at("clown", 30, 9, 150), at("moray", -14, 7, 175), at("tang", 20, 10, 215), at("sergeant", -30, 12, 250),
+	...extra,
+];
+const props = [CORAL(-40, 104), KELP(46, 76), KELP(-52, 190), CORAL(40, 230), KELP(18, 300)];
+const rider = (kind) => at(kind, 0, 10, 21, { rider: true });
+
+function dive(o) {
+	const sc = scene(o.land ?? 1, { fish: o.fish, props, flyer: o.flyer, dark: o.dark });
+	html += sc.svg;
+	if (o.edge) {
+		html += vignette(o.edge[0], o.edge[1]);
+	}
+	html += robloxChrome();
+	return sc.marks;
+}
+
+if (STATE === "riding" || STATE === "low" || STATE === "teach") {
+	const low = STATE !== "riding";
+	const m = dive({ fish: [rider("clown"), ...herd("parrot", [at("shark", -56, 12, 64, { id: "shark" })])], land: STATE === "teach" ? 0 : 1, edge: low ? ["#ff5a5f", 0.5] : null });
+	html += fishTag(m.tang, "Yellow Tang", "Common", 96);
+	html += fishTag(m.serg, "Sergeant Major", "Common", 96);
+	html += fishTag(m.shark, "Reef Shark", "Epic", 290, true);
+	html += lockPlate(m.parrot, "Parrotfish", "Uncommon", "NEXT &nbsp;2.1 s");
+	html += grp("tl", INS, 58, depthLadder(STATE === "teach" ? 0 : 1, 0.35, STATE === "teach" ? 6 : 128, STATE === "teach" ? undefined : 2.2));
+	html += grp("tr", -INS, 10, caught(STATE === "teach" ? [] : ["Common", "Common"]));
+	html += grp("mc", 106, 4, rideRing(low
+		? { frac: 0.25, secs: "0.62", tier: "Common", name: "Clownfish", tame: 0.78, big: true }
+		: { frac: 0.8, secs: "2.4", tier: "Common", name: "Clownfish", tame: 0.2 }));
+	html += TOUCH ? grp("br", -INS - 4, -18, hopControl("hop", { hot: low })) : grp("bc", 0, -22, hopControl("hop", { hot: low }));
+	if (STATE === "teach") {
+		const tip = `<div class="plate studs" style="--c:#fff;color:${INK};font-size:17px;padding:6px 14px 7px;white-space:nowrap">${TOUCH ? "TAP" : "PRESS SPACE"} TO HOP TO THE NEXT FISH</div>`;
+		html += TOUCH ? grp("br", -INS - 116, -26, `<div style="right:0;bottom:0">${tip}</div>`
+			+ `<div style="right:-15px;bottom:11px;transform:rotate(90deg)">${arrow(13, "#fff")}</div>`)
+			: grp("bc", 0, -78, `<div style="left:0;bottom:0;transform:translateX(-50%)">${tip}</div>`);
+	}
+} else if (STATE === "hop" || STATE === "strong" || STATE === "nofish") {
+	const lock = STATE === "hop" ? "parrot" : null;
+	const extra = [at("shark", 6, 12, 54, { id: "shark", glow: STATE === "strong" })];
+	const fish = STATE === "nofish" ? [at("clown", -40, 6, 46), at("tang", 58, 9, 160), at("lion", -50, 8, 200)]
+		: [at("clown", -16, 5, 30), ...herd(lock, STATE === "strong" ? extra : [])].filter((x) => !(STATE === "strong" && x.id === "parrot"));
+	const m = dive({ fish, flyer: { x: 0, y: 9, z: 17 }, edge: STATE === "nofish" ? ["#ff5a5f", 0.55] : null });
+	if (STATE === "hop") {
+		html += lockPlate(m.parrot, "Parrotfish", "Uncommon", "HOLD &nbsp;2.1 s");
+		html += fishTag(m.tang, "Yellow Tang", "Common", 96);
+		html += fishTag(m.serg, "Sergeant Major", "Common", 96);
+	} else if (STATE === "strong") {
+		html += lockPlate(m.shark, "Reef Shark", "Epic", "TOO STRONG &nbsp;0.2 s", true);
+		html += fishTag(m.tang, "Yellow Tang", "Common", 96);
+		html += fishTag(m.serg, "Sergeant Major", "Common", 96);
+	}
+	html += grp("mc", 0, 0, reticle(STATE === "nofish" ? 0.2 : STATE === "strong" ? 0.5 : 0.72));
+	if (STATE === "nofish") {
+		html += grp("mc", 0, 34, `<div class="ts2 nowrap" style="transform:translateX(-50%);font-size:20px;color:var(--coral)">FIND A FISH!</div>`);
+	}
+	html += grp("tl", INS, 58, depthLadder(1, 0.4, 131, 2.2));
+	html += grp("tr", -INS, 10, caught(["Common", "Common"]));
+	html += TOUCH ? grp("br", -INS - 4, -18, hopControl(STATE === "nofish" ? "off" : "grab")) : grp("bc", 0, -22, hopControl("grab"));
+} else if (STATE === "tamed") {
+	const m = dive({ fish: [rider("parrot"), ...herd("tang").filter((x) => x.id !== "parrot")] });
+	html += fishTag(m.serg, "Sergeant Major", "Common", 96);
+	html += lockPlate(m.tang, "Yellow Tang", "Common", "NEXT &nbsp;2.6 s");
+	html += grp("tc", 0, 14, banner("TAMED!", `<div style="margin-top:3px">${tierPlate("Parrotfish", "Uncommon", 14)}</div>`, "#2a8f4a", "#fff"));
+	html += grp("tl", INS, 58, depthLadder(1, 0.45, 136, 2.2));
+	html += grp("tr", -INS, 10, caught(["Uncommon", "Common", "Common"], true));
+	html += grp("mc", 106, 4, rideRing({ frac: 0.8, secs: "1.6", tier: "Uncommon", name: "Parrotfish", tame: 1 }));
+	html += TOUCH ? grp("br", -INS - 4, -18, hopControl("hop")) : grp("bc", 0, -22, hopControl("hop"));
+} else if (STATE === "miss") {
+	dive({ fish: [at("tang", 58, 9, 160), at("lion", -50, 8, 200)], flyer: { x: 0, y: 6, z: 19 }, dark: true, edge: ["#000", 0.95] });
+	html += grp("mc", 0, -54, banner("MISSED THE FISH!", `<div class="small" style="margin-top:2px;opacity:.9;font-size:12px">BACK TO THE DOCK WITH WHAT YOU CAUGHT</div>`, "#c8323c"));
+	html += grp("tl", INS, 58, depthLadder(1, 0.5, 141, 2.2));
+	html += grp("tr", -INS, 10, caught(["Uncommon", "Common", "Common"]));
+} else if (STATE === "summary") {
+	dive({ fish: [], dark: true, edge: ["#000", 0.9] });
+	const tile = (name, tier) => `<div class="col" style="gap:4px"><div class="plate col" style="--c:${rgb(TIER[tier])};width:50px;height:44px;padding:0;justify-content:center;box-sizing:border-box">${fishIcon(30, "#fff", SKIN === "bubble" ? "rgba(255,255,255,.8)" : INK)}</div>`
+		+ `<div class="small nowrap" style="font-size:10px;${SKIN === "sticker" ? "" : "color:#fff"}">${name}</div></div>`;
+	const card = `<div class="plate studs col" style="--c:#1d4470;transform:translate(-50%,-50%);padding:10px 26px 14px;border-radius:${SKIN === "bubble" ? 26 : 14}px;gap:0">`
+		+ `<div class="ts2 nowrap" style="font-size:30px;color:var(--sun)">GREAT DIVE!</div>`
+		+ `<div class="row nowrap" style="gap:10px;margin-top:2px"><div class="ts" style="font-size:22px;color:#fff">141 m</div>`
+		+ `<div class="plate" style="--c:${rgb(LANDS[1][1])};color:${SKIN === "bubble" ? "#fff" : INK};font-size:12px">CORAL REEF</div>`
+		+ `<div class="plate" style="--c:var(--sun);color:${INK};font-size:12px;${SKIN === "bubble" ? "background:var(--sun);" : ""}">NEW BEST</div></div>`
+		+ `<div class="small" style="margin-top:9px;font-size:12px;color:#fff;opacity:.85">YOU CAUGHT 3</div>`
+		+ `<div class="row" style="gap:10px;margin-top:5px">${tile("Parrotfish", "Uncommon")}${tile("Yellow Tang", "Common")}${tile("Clownfish", "Common")}</div>`
+		+ `<div class="btn" style="margin-top:12px;background:var(--lime);border-radius:${SKIN === "bubble" ? 999 : 12}px;padding:7px 30px 8px;font-size:20px;color:${INK};white-space:nowrap">TO THE DOCK</div>`
+		+ `</div>`;
+	html += grp("mc", 0, 0, card);
+} else if (STATE === "today-ride" || STATE === "today-hop") {
+	// today's HUD, drawn from the sizes and places in HudController.luau (not a capture)
+	const hop = STATE === "today-hop";
+	const m = dive({ fish: hop ? [at("clown", -16, 5, 30), ...herd("parrot")] : [rider("clown"), ...herd("parrot")], flyer: hop ? { x: 0, y: 9, z: 17 } : null });
+	const F = "font-family:Fredoka;color:#fff;";
+	const stroke = "paint-order:stroke fill;-webkit-text-stroke:2.5px rgba(0,0,0,.8);";
+	// the Oxygen meter: 380 x 30, 28 above the bottom edge
+	html += el(`left:${W / 2 - 190}px;top:${H - 58}px;width:380px;height:30px;background:rgba(15,30,50,.8);border-radius:10px;box-shadow:0 0 0 3px #fff`, el(`width:${hop ? 62 : 68}%;height:100%;background:rgb(90,220,255);border-radius:10px`) + el(`left:0;top:0;width:100%;line-height:30px;text-align:center;font-size:21px;${F}${stroke}`, hop ? "OXYGEN  62 / 100" : "OXYGEN  68 / 100", "abs"), "abs");
+	if (!hop) {
+		html += el(`left:${W / 2 - 190 - 144}px;top:${H - 58}px;width:130px;line-height:30px;text-align:right;font-size:24px;${F}${stroke}`, "-4.0 /s", "abs");
+	}
+	html += el(`left:${W / 2 + 190 + 14}px;top:${H - 70}px;width:130px;line-height:42px;font-size:30px;${F}${stroke}`, hop ? "38 st/s" : "45 st/s", "abs");
+	// the depth gauge: 14 x 260 on the right edge
+	const gy = H * 0.42 - 130;
+	html += el(`left:${W - 32}px;top:${gy}px;width:14px;height:260px;border-radius:7px;background:linear-gradient(rgb(120,230,255),rgb(10,10,40));opacity:.85`, "", "abs");
+	html += el(`left:${W - 38}px;top:${gy + 36 - 4}px;width:26px;height:8px;border-radius:4px;background:#fff`, "", "abs");
+	html += el(`left:${W - 38 - 162}px;top:${gy + 36 - 17}px;width:150px;line-height:34px;text-align:right;font-size:26px;${F}${stroke}`, "128 m", "abs");
+	html += el(`left:${W - 18 - 320}px;top:${gy + 268}px;width:320px;line-height:24px;text-align:right;font-size:18px;${F}${stroke}`, "Coral Reef", "abs");
+	if (hop) {
+		html += el(`left:${W / 2 - 17}px;top:${H / 2 - 17}px;width:34px;height:34px;border-radius:50%;box-sizing:border-box;border:3px solid rgba(255,255,255,.75)`, "", "abs");
+		html += el(`left:${m.parrot.x - 32}px;top:${m.parrot.y - 32}px;width:64px;height:64px;border-radius:14px;box-sizing:border-box;border:4px solid #ffe24a`, "", "abs");
+		html += el(`left:${W / 2 - 95}px;top:${H / 2 + 46}px;width:190px;height:12px;border-radius:6px;background:rgba(15,30,50,.75);box-shadow:0 0 0 2px #fff`, el(`width:70%;height:100%;border-radius:6px;background:#fff`), "abs");
+		html += el(`left:${W / 2 - 95}px;top:${H / 2 + 62}px;width:190px;line-height:26px;text-align:center;font-size:20px;${F}${stroke}`, "GRAB IT!  2.1", "abs");
+	}
+	// Roblox's own jump button on a small phone: 70 across, 95 in from the right, 90 up from the bottom
+	html += el(`left:${W - 95}px;top:${H - 90}px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.3);box-sizing:border-box;border:2px solid rgba(255,255,255,.6)`, "", "abs");
+	const n = (i, x, y) => el(`left:${x}px;top:${y}px`, i, "abs note");
+	if (!hop) {
+		html += n(1, W / 2 - 200, H - 82) + n(2, W / 2 - 250, H - 84) + n(3, W / 2 + 222, H - 96) + n(4, W - 60, gy + 110)
+			+ n(5, W - 138, gy + 272) + n(6, W - 100, H - 112) + n(7, W / 2 + 40, H / 2 + 6);
+	} else {
+		html += n(8, W / 2 + 104, H / 2 + 48) + n(9, m.parrot.x + 38, m.parrot.y - 44) + n(10, W / 2 - 40, H / 2 - 40);
+	}
+} else if (STATE === "zones") {
+	const sc = scene(1, { fish: [rider("clown"), ...herd(null)], props });
+	html += sc.svg + `<div class="abs" style="inset:0;background:rgba(8,20,40,.45)"></div>`;
+	const z = (x, y, w, h, colour, text) => el(`left:${x}px;top:${y}px;width:${w}px;height:${h}px;border-color:${colour};color:${colour};background:${colour}22`, text, "abs zone");
+	html += z(0, 0, INS, H, "#ff8a8a", "") + z(W - INS, 0, INS, H, "#ff8a8a", "");
+	html += el(`left:2px;top:${H / 2 - 40}px;width:${INS - 4}px;font:bold 10px Arial;color:#ff8a8a;text-align:center`, "notch: keep clear", "abs");
+	html += z(INS, 0, 150, 52, "#ffb347", "Roblox's buttons");
+	html += z(INS, 190, 250, 200, "#ffb347", "left thumb: Roblox's stick (steer). Nothing of ours to press here");
+	html += z(W - INS - 250, 62, 250, 196, "#8fd3ff", "right thumb: drag to look. Only things that let touches through");
+	html += z(W - INS - 118, 264, 118, 126, "#ffe24a", "HOP button, 92 across");
+	html += z(INS, 56, 150, 130, "#9dff9d", "depth ladder, land, metres");
+	html += z(W / 2 - 150, 4, 300, 70, "#9dff9d", "banners: TAMED!, a new land, warnings");
+	html += z(W - INS - 190, 4, 190, 50, "#9dff9d", "caught (dive) / coins and Oxygen (dock)");
+	html += z(W / 2 + 60, H / 2 - 30, 130, 120, "#9dff9d", "ride ring: seconds on this fish, tame, its name");
+	html += z(W / 2 - 60, H / 2 - 60, 110, 110, "#ffffff", "the aim and the fish: kept clear");
+	html += z(W / 2 - 150, H - 62, 300, 58, "#9dff9d", "prompts and teaching (empty most of the time)");
+} else if (STATE === "styles") {
+	// one column a direction: the same pieces in each look
+	html += `<div class="abs" style="inset:0;background:linear-gradient(#2a86c8,#8fd0e0 45%,#f49498 46%,#e88a90)"></div>`;
+	const names = { brick: "A. Brick", bubble: "B. Bubble", sticker: "C. Sticker" };
+	html += el(`left:0;top:10px;width:100%;text-align:center;font:bold 22px Arial;color:#fff;text-shadow:0 2px 0 #10243f`, names[SKIN], "abs");
+	html += grp("tl", 34, 56, rideRing({ frac: 0.8, secs: "2.4", tier: "Common", name: "Clownfish", tame: 0.4 }));
+	html += grp("tl", 168, 56, rideRing({ frac: 0.25, secs: "0.62", tier: "Rare", name: "Moray Eel", tame: 1, big: true }));
+	let y = 196;
+	for (const [name, tier] of [["Clownfish", "Common"], ["Parrotfish", "Uncommon"], ["Moray Eel", "Rare"], ["Reef Shark", "Epic"], ["Dunkleosteus", "Legendary"], ["Kraken", "Mythic"], ["Leviathan", "Secret"]]) {
+		html += grp("tl", 24, y, `<div>${tierPlate(name, tier, 14)}</div>`);
+		y += 38;
+	}
+	html += grp("tl", 300, 60, `<div style="left:0;top:0">${caught(["Uncommon", "Common", "Common"]).replace("right:0;top:0", "position:static")}</div>`);
+	html += grp("tl", 400, 118, banner("TAMED!", `<div style="margin-top:3px">${tierPlate("Parrotfish", "Uncommon", 14)}</div>`, SKIN === "sticker" ? "#ffd23f" : "#2a8f4a"));
+	html += grp("tl", 300, 232, depthLadder(1, 0.4, 128, 2.2));
+	html += grp("tl", 524, 548, hopControl("hop"));
+	html += grp("tl", 414, 548, hopControl("grab"));
+	html += grp("tl", 256, 462, `<div class="col" style="gap:2px;transform:translate(-50%,-100%)">${tierPlate("Reef Shark", "Epic", 11, false)}<div class="ts nowrap row" style="font-size:11px;gap:3px;color:var(--coral)">${bubbleIcon(10, "#ff5a5f")} 290</div></div>`);
+	html += grp("tl", 256, 512, `<div class="col" style="gap:2px;transform:translate(-50%,-100%)">${tierPlate("Yellow Tang", "Common", 11, false)}<div class="ts nowrap row" style="font-size:11px;gap:3px;color:#fff">${bubbleIcon(10, "#fff")} 96</div></div>`);
+}
+root.innerHTML = html;
+</script>
+<script src="hud2.js"></script>

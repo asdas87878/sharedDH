@@ -3,6 +3,64 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+
+## 2026-11-11 · 8570-F43F (the user's PC): the Oxygen numbers are seconds on a fish now
+**State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played, not
+type-checked.** By the tuning chat, on the user's answer of 2026-11-11 ([Decisions](Decisions.md), top row). Studio's
+sandbox starts with Endless air on, so nothing is felt until that is switched off. The note:
+[progression](design/progression.md).
+
+- **A landing refills the whole meter:** `Oxygen.Refill` 0.25 to 1. Every fish starts full, as the reference's ring
+  is the time left on this dino. Seconds on a fish = max Oxygen / (`ZoneDrain` x `RarityDrain`).
+- **`Oxygen.KeepUp` 6 to 2:** it now means the seconds on a fish that count as enough, so the HUD's "needs" and a
+  fish's tag show the Oxygen for 2 seconds on it.
+- **`ZoneDrain`:** 1, 4, 14, 48, 160, 500, 1,500, 4,500, 13,000, 36,000 to 40, 160, 480, 2,000, 6,000, 24,000,
+  60,000, 240,000, 1,000,000, 4,000,000. The starting 100 lasts 2.5 seconds on a Shallows Common; each land takes 2.5
+  to 4 times the land before.
+- **`RarityDrain`:** 1, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9 to 1, 1.25, 2.5, 4.5, 15, 50, 150. Gentle to Epic, steep from
+  Legendary; Rare to Legendary follow the reference's required stamina in one zone.
+- **What that makes:** a new player has 2.5 s on a Shallows Common, 2 on an Uncommon, 1 on a Rare, and is thrown off
+  an Epic or a Legendary at once. A dive is about 15 seconds (played: 15.6 s, 1,141 studs): the Shallows, five
+  fish long, ending on the first fish of the Coral Reef. (This entry first said 40 seconds, from a model whose
+  rider hopped faster than a player can; corrected the same day.) To try a deeper land set Workspace's `TestMaxOxygen`: 500 for the Coral Reef, 3,000 for the Kelp Forest,
+  12,500 for the Shipwrecks.
+- **On the N panel:** the `ZoneDrain` rows' steps fit the new sizes; `KeepUp` steps by 0.25.
+- **Not changed:** the speeds (proposed in the note: 54, 58, 62, 67, 74, 82, 90, on the `TierSpeed` rows), the
+  shares by rarity, and everything in the hop.
+- **The model:** `python tools/balance/model.py` reads `Config.RarityDrain` and prints seconds on a fish by land and
+  rarity; `--max 3000` does it for a trained player.
+
+## 2026-11-11 · 8570-F43F (the user's PC): the first slice of the animation study is built, not played
+**State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played and not
+type-checked** (no luau-lsp here, and Studio was not connected): expect numbers to tune and possibly bugs. The study:
+[animation study](design/animation-study.md). Files: `src/client/Controllers/AnimController.luau`, new
+`src/shared/RideStyles.luau`, a new `Config.Animation` group, 21 rows on the N panel. No server change, no upload.
+`RideController` is not touched.
+
+- **Everything is seen only.** Each layer turns or shifts joints of the fish, never its Root, so the Saddle, the lock,
+  the pull-in and the server's checks are as they were. Every layer has a row that turns it off at 0.
+- **Effort** (`Effort`, `EffortAccel`, `EffortBeat`, `LandEffort`): the swing and the beat rise when a fish speeds up or
+  is landed on, and ease when it coasts.
+- **The turn layer** (`Turn`, `TurnLead`, `TurnBend`, `TurnMax`, `TurnTotal`, `WildBank`): the tail joints trail a turn
+  and come round late; the head leads (most creatures' first part is the head, so the whole body is turned a little
+  ahead instead); wild fish roll into bends. The chains are found from each creature's `Parts`: checked by script on
+  the 33 creatures in the game (the Anglerfish's rod and the octopus's arm chain are picked up too, harmlessly).
+- **The body layer by style** (`Body`; nine styles in `Shared/RideStyles`, all 82 creatures assigned): a heave, a nod,
+  a sway and a rock each beat, as one shift of the whole body about the Root. `Cadence` 1 sets the beat's rate by
+  style (a turtle strokes at 0.6 of what its length gives, a jetter at 0.45).
+- **The landing** (`LandDip`, `LandNod`, `LandDipTime`): the fish sinks under the rider and springs back, a small fish
+  further. It is seen only, not the real dip in `drive` the study proposed, to stay out of `RideController`.
+- **The rider goes with the body** (`RiderFollow`): the same shift is put on the rider's Root joint, so they ride the
+  heave, the dip and the buck. The seat part's own keyed swing (the Basilosaurus's back under you) is NOT followed yet.
+- **The brace** (`Brace`): arms up and knees folded for a moment at a landing.
+- **A jaw** hangs nearly shut and opens now and then (`Jaw`), instead of chomping every beat.
+- **A crash** makes your own fish rear and shake (`CrashFlinch`).
+- **Fixed on the way:** the buck was multiplied onto the first joint's last value, which piled up on creatures whose
+  first part has no keys (Cuttlefish, Octopus, Kraken, Anomalocaris, Elasmosaurus). The joint is now written afresh.
+- **To judge:** the list at the end of section 5 of the study. Set a row to 0 and back to see what its layer adds. Count
+  hops landed out of ten with the layers on and off: it should not change.
+- **Not done from the slice:** the buck's numbers and the swim's base rate are still literals in `AnimController`.
+
 ## 2026-11-11 · 8570-F43F (the user's PC): the tuning chat's first turn: a balance model, the progression note, panel rows
 **State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played, not
 type-checked. No tuning number changed:** every speed, share and Oxygen number is as it was.
@@ -31,6 +89,34 @@ type-checked. No tuning number changed:** every speed, share and Oxygen number i
   `tools/creatures/import_plan.json`. Both files are new; `collect.py`, `install.py` and `assets.json` are untouched.
 - **For the chat doing speed, rarity, sizes and spawns:** a creature in `leftOut` of the plan is not coming; the variants
   and the Secrets have no spawn rule yet.
+
+## 2026-11-11 · 8570-F43F (the user's PC): the game on grey-box 9, the view faces the water, and the tuning chat's first turn
+**State:** written and run in Studio by Claude (StyLua, selene and `rojo build` pass). Not committed by hand. **Studio
+was restarted, so the Rojo plugin is not connected:** the changed scripts were put into the place directly, and the
+user needs to press Connect in the Rojo plugin again (the server still runs on port 34872).
+
+- **Grey-box 9 (the map chat: 8-stud squares, a 480 by 256 hub, a rounded mouth 248 wide at the lane's start):** the
+  game runs on it. The floor survey is within 3 studs at all 2,941 places checked; 302 obstacles read. Riding at full
+  speed in open water (52 to 54 on an Uncommon); of four hops in the Coral Reef three landed. Hands off with the real
+  rules on 100 Oxygen, a fish went straight down the first land: across the Shallows in 20 seconds with one crash, and
+  down to 31 Oxygen 28 seconds in, 480 studs into the Coral Reef (four crashes by then, 3% each).
+- **Fixed: a new player started with their back to the water.** On the dock Roblox's own camera kept the direction it
+  had before the server stood the character on the dock's spawn, so the view looked at the hub and the character faced
+  the camera; a fish mounted like that swam back at the hub, because the movement follows the view. The server now
+  publishes the dock spawn (`Dock` attribute on Remotes) and `RideController.faceWater` brings the view round behind
+  the character every time it is put on the dock (a spawn, and the return from a dive). Seen in play: the view looks
+  down the lane at the start.
+- **`Oxygen.DockRadius` 120 to 165** for the new hub: the spawn is 104 studs behind the start and the mouth is 248
+  wide, so 165 covers the mouth's corners and the first 60 studs of water in the middle.
+- **The tuning chat's first turn, checked** ([progression](design/progression.md), `tools/balance/model.py`): its code
+  is rows on the N panel and what carries them (`Config.TierSpeed`, ten names for `Config.ZoneMix`'s rows, five lines
+  in `Config.refresh`). In play: `TierSpeed.Common` set to 70 moved the wild Commons to 59 or 60 at once (0.85 of 70).
+  No tuning number changed. Its six questions wait for the user.
+- **`Oxygen.StartMax` is live on the panel** (the tuning chat's ask): `RideService.readMax`, called by
+  `SandboxService` when that row changes. Seen: 500 and back to 100 showed on the player at once.
+- **Not measured:** a whole first dive with hops (the model says 75 seconds, ending just inside the Kelp Forest). It
+  needs steering through the bends, which the connector can't do: for the user's own play, with "No fail" and
+  "Endless air" off.
 
 ## 2026-11-11 · 8570-F43F (the user's PC): the hop matched to the reference, and the movement follows the camera
 **State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played, and not

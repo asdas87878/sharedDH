@@ -13,6 +13,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Blockout](docs/blockout.md): the dock and the long dive, v4 back to v1.
 - [The map: how we build it](docs/design/map-method.md): the new direction (2026-11-10): walls in wavy steps, props that break, the descent.
 - [The map's structure](docs/design/map-structure.md): matching how the reference builds its walls, squares and studs, pass by pass on a bench in Studio.
+- [The moving water](docs/design/water.md): the tutorial's four-layer water with foam, drifting and breathing; shows in Play.
 - [Map state](docs/map-state.md): blockout v4 as it stood, and the stud tiles. Set aside.
 
 ## The game
@@ -20,6 +21,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Riding feel](docs/design/riding-feel.md): the ride, the jump fish to fish and the herd, as built.
 - [The dive](docs/design/the-dive.md): riding, jumping, taming, the zones going down.
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.
+- [UI](docs/design/ui.md): what the player sees on screen: the dive's HUD and the dock's screens (proposed, with mock-ups).
 - [Creatures](docs/design/creatures.md): what's decided about the creatures, tags, sizes and mutations.
 - [Roster](docs/design/roster.md): the scale against Ride a Dino and three drafted progressions (76 creatures).
 - [Creature queue](docs/design/creature-queue.md): the voxel models exported and waiting to go into the game

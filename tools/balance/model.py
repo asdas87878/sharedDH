@@ -2,25 +2,29 @@
 
 usage:  python tools/balance/model.py                  the tables (plain text)
         python tools/balance/model.py --md             the same tables as markdown, for docs/design/progression.md
-        python tools/balance/model.py --sim 6          also play 6 dives per rider through the herd (takes a minute or so)
-        python tools/balance/model.py --set Oxygen.TierDrain=1 --set Tiers.Rare=56 --set ZoneDrain.3=10 --set ZoneMix.1.Rare=5
+        python tools/balance/model.py --sim 8          also play 8 dives per rider through the herd (takes a minute or so)
+        python tools/balance/model.py --set RarityDrain.Legendary=15 --set Tiers.Rare=56 --set ZoneDrain.3=640 --set ZoneMix.1.Rare=5
                                                        try numbers without editing Config (any of the above with it)
-        python tools/balance/model.py --tier-mult 1,1.8,3.3,6,11,20,36
-                                                       try a drain for each rarity that isn't the straight line Config has
+        python tools/balance/model.py --max 1280       the "your Oxygen" tables for a player with this max, not the start's
 
 Nothing is copied here: every number is read from src/shared/Config.luau (the rarities' speeds, Oxygen, ZoneDrain,
-ZoneMix, ReachWeight, Spawn, Herd, Jump, Props, Crash, Camera, Ride and the hand-written fish table), the creatures from
-src/shared/Creatures/*.json (rarity, home land), and the lands' lengths from the map's path, art/map/greybox/path.json
-(measured along the winding centreline, as the game does: the map's own "s" runs about a quarter short of it).
+RarityDrain, ZoneMix, ReachWeight, Spawn, Herd, Jump, Props, Crash, Camera, Ride and the hand-written fish table), the
+creatures from src/shared/Creatures/*.json (rarity, home land), and the lands' lengths from the map's path,
+art/map/greybox/path.json (measured along the winding centreline, as the game does: the map's own "s" runs about a
+quarter short of it).
+
+The unit is SECONDS ON A FISH (the user, 2026-11-11): what your max Oxygen buys on a fish of this land and rarity,
+max / (ZoneDrain[land] x RarityDrain[rarity]). A landing on another fish gives back Oxygen.Refill of max; at 1 every
+fish starts with the whole meter, as the reference's ring does.
 
 What it works out
-  per land     its length, the seconds to cross it at each rarity's speed, the Oxygen a second and the max Oxygen it
-               needs, how many wild fish it holds and how they split by rarity, which creatures turn up and how often
-  per rarity   speed, the herd's pace, the hop's speeds, the drain, Oxygen per 1,000 studs, where it appears
-  the ladder   how fast a rider on one rarity closes on wild fish of another (a wild fish swims at Herd.SpeedShare of
-               its own ridden speed, so rarer wild fish are faster than a rider on a common one)
+  per land     its length and the seconds to cross it, the seconds a new player has on each rarity there, the max
+               Oxygen the land stands for, how many wild fish it holds by rarity, which creatures turn up
+  per rarity   speed, the herd's pace, the hop's speeds, the drain, where it appears
+  hopping      the pace of a rider who hops every few seconds (most of a dive is hop), and what it closes on
   --sim        a rider played through the game's own stocking rules (FishService: slices, top-ups, parking beyond
-               Spawn.StreamRadius, the cull), to count the fish of each rarity that really come within reach
+               Spawn.StreamRadius, the cull), to count the fish of each rarity that really come within reach, and
+               how far a given max Oxygen gets
 
 What the sim leaves out: steering, walls, props and big assets, the height of fish, other players, lag. It is a model,
 not a measurement: where it matters, have it checked in play.
@@ -39,9 +43,20 @@ CONFIG = os.path.join(ROOT, "src", "shared", "Config.luau")
 CREATURES = os.path.join(ROOT, "src", "shared", "Creatures")
 PATH = os.path.join(ROOT, "art", "map", "greybox", "path.json")
 
-# A guess, not a decision: minutes of play at which a player should first be able to ride each land. Only used for the
-# "what training would have to give" table; change it with --plan.
-PLAN_MINUTES = [0, 0, 10, 25, 50, 90, 150, 240, 360, 540]
+# Guesses, not decisions (change with --home, --scrape, --ride, --plan). The rider's own numbers (RIDE to LOCK_AHEAD)
+# were set after the first played dive of 2026-11-11: 1.2 s on each fish, hops of 2.4 s and 180 studs, the dive over on
+# the first Coral Reef fish, 15.6 s in. The first model's rider hopped 0.3 s after every landing in the Reef, which no
+# player at ease does, and its hop was 20 studs short.
+HOME = 2.5  # seconds on a land's commonest fish that count as being at home there (a new player's on a Shallows Common)
+SCRAPE = 1.0  # seconds on it that just get you through, hopping all the time
+RIDE = 1.8  # seconds a rider at ease spends on each fish before hopping (0.7 s left on a fish that gives 2.5)
+REACT = 0.7  # a rider at ease can't hop sooner than this after landing: on a fish that gives less they are thrown off
+LEAVE = 0.7  # and hops when this many seconds are left on the fish, if that comes first
+TAGS = 1.0  # a rider who reads the tags doesn't choose a fish that gives less than this
+MIN_SIT = 0.4  # with Space held: doesn't choose a fish that gives less than this (the hop's cooldown is 0.3)
+LOCK_AHEAD = 60  # the lock gives the fish nearest the view's aim, about this far ahead (played 2026-11-11: hops of 180 studs)
+# minutes of play at which a player should first be at home in each land; only used for the training table
+PLAN_MINUTES = [0, 5, 15, 30, 55, 90, 150, 240, 360, 540]
 
 
 # ---------------------------------------------------------------- reading Config.luau
@@ -50,11 +65,13 @@ def strip_comments(src):
     return "\n".join(re.sub(r"--.*$", "", line) for line in src.split("\n"))
 
 
-def block(src, opener):
+def block(src, opener, must=True):
     """The text inside the braces that follow `opener` (a regex ending just before the opening brace)."""
     m = re.search(opener + r"\s*\{", src)
     if not m:
-        raise SystemExit(f"model.py: can't find {opener!r} in Config.luau")
+        if must:
+            raise SystemExit(f"model.py: can't find {opener!r} in Config.luau")
+        return None
     depth, i = 1, m.end()
     while depth:
         c = src[i]
@@ -95,6 +112,13 @@ def read_config():
     for group in ("Oxygen", "Spawn", "Herd", "Jump", "Props", "Crash", "Camera", "Ride"):
         cfg[group] = numbers_in(block(src, rf"Config\.{group}\s*="))
     cfg["ZoneDrain"] = [number(v) for v in block(src, r"Config\.ZoneDrain\s*=").split(",") if v.strip()]
+    # how many times a Common's Oxygen each rarity takes (until 2026-11-11 a straight line, Oxygen.TierDrain a step)
+    rarity = block(src, r"Config\.RarityDrain\s*=", must=False)
+    if rarity is not None:
+        cfg["RarityDrain"] = numbers_in(rarity)
+    else:
+        step = cfg["Oxygen"].get("TierDrain", 0)
+        cfg["RarityDrain"] = {t: 1 + step * i for i, t in enumerate(cfg["TierOrder"])}
     cfg["ZoneMix"] = []
     for row in re.findall(r"\{([^{}]*)\}", block(src, r"Config\.ZoneMix\s*=")):
         cfg["ZoneMix"].append({k: float(v) for k, v in re.findall(r"(\w+)\s*=\s*([\d.]+)", row)})
@@ -205,24 +229,22 @@ def tier_step(cfg, tier):
     return cfg["TierOrder"].index(tier) if tier in cfg["TierOrder"] else 0
 
 
+def tier_mult(cfg, tier):
+    """Config.RarityDrain: how many times a Common's Oxygen this rarity takes a second."""
+    return cfg["RarityDrain"].get(tier, 1)
+
+
 def drain(cfg, land, tier):
     """Config.drain: Oxygen a second on a fish of this rarity in land number `land` (0-based here)."""
     per = cfg["ZoneDrain"]
     return per[min(max(land, 0), len(per) - 1)] * tier_mult(cfg, tier)
 
 
-def tier_mult(cfg, tier):
-    """How many times a Common's drain this rarity takes: Config's 1 + TierDrain for each step up, or --tier-mult's
-    own list (a what-if: Config has no such table today)."""
-    if cfg.get("TierMult"):
-        return cfg["TierMult"][min(tier_step(cfg, tier), len(cfg["TierMult"]) - 1)]
-    return 1 + cfg["Oxygen"]["TierDrain"] * tier_step(cfg, tier)
-
-
-def required(cfg, land, tier="Common", every=None):
-    """Config.required: the max Oxygen that just keeps up, landing a hop every `every` seconds (Oxygen.KeepUp)."""
+def required(cfg, land, tier="Common"):
+    """Config.required: what the HUD and a fish's tag show. drain x KeepUp / Refill: with Refill 1, the max Oxygen
+    that gives KeepUp seconds on that fish."""
     o = cfg["Oxygen"]
-    return math.ceil(drain(cfg, land, tier) * (o["KeepUp"] if every is None else every) / max(o["Refill"], 0.01))
+    return math.ceil(drain(cfg, land, tier) * o["KeepUp"] / max(o["Refill"], 0.01))
 
 
 def ridden(cfg, fish):
@@ -250,6 +272,13 @@ def effective_mix(cfg, pool, z):
     return {t: share / total for t, share in live.items()} if total > 0 else {}
 
 
+def commonest(cfg, mix):
+    """The rarity most of a land's fish are (the commoner of two that tie)."""
+    if not mix:
+        return "Common"
+    return max(mix, key=lambda t: (mix[t], -tier_step(cfg, t)))
+
+
 def slices(cfg, lane, pool_list):
     """FishService.newSlices: the lane cut into slices, each with the fish it should hold."""
     sp, out, total = cfg["Spawn"], [], 0
@@ -274,17 +303,56 @@ def slices(cfg, lane, pool_list):
     return out
 
 
-def hop(cfg, speed):
-    """The hop off a fish ridden at `speed`: its top speed, the glide's, and how far the pop and glide carry you
-    before the pull-in begins (Jump.LaunchTime + FloatTime after the press)."""
+def hop(cfg, speed, air=None):
+    """The hop off a fish ridden at `speed`: its top speed, the glide's, how far it carries you in `air` seconds (by
+    default until the pull-in begins by itself, Jump.LaunchTime + FloatTime after the press), and that time."""
     j = cfg["Jump"]
     pop = j["Launch"] * speed
     glide = j["AirShare"] * speed if j.get("AirShare", 0) > 0 else j["AirSpeed"]
-    air = j["LaunchTime"] + j["FloatTime"]
-    boost = min(j["BoostTime"], air)
-    # the pop's extra speed runs out over BoostTime: taken as a straight ease from pop to glide
-    far = boost * (pop + glide) / 2 + (air - boost) * glide
+    if air is None:
+        air = j["LaunchTime"] + j["FloatTime"]
+    far, t, dt = 0.0, 0.0, 0.01
+    while t < air - 1e-9:
+        far += hop_speed(cfg, pop, glide, t + dt / 2) * min(dt, air - t)
+        t += dt
     return pop, glide, far, air
+
+
+def hop_speed(cfg, pop, glide, t):
+    """The speed `t` seconds into a hop, as JumpController runs it: the pop holds for half of Jump.BoostTime, then
+    eases to the glide by BoostTime + 0.3."""
+    b = cfg["Jump"]["BoostTime"]
+    lo, hi = b * 0.5, b + 0.3
+    x = min(max((t - lo) / (hi - lo), 0), 1) if hi > lo else 1
+    return pop + (glide - pop) * x * x * (3 - 2 * x)
+
+
+def ride_distance(cfg, speed, seconds):
+    """How far a fish carries you in `seconds` from the landing: it comes up from the herd's pace to its ridden speed
+    over Ride.RampTime, with the burst on mount (Ease.rideSpeed)."""
+    r, start = cfg["Ride"], speed * cfg["Herd"]["SpeedShare"]
+    far, t, dt = 0.0, 0.0, 0.02
+    while t < seconds:
+        u = min(t / r["RampTime"], 1) if r["RampTime"] > 0 else 1
+        base = start + (speed - start) * (1 - (1 - u) ** 2)
+        lo, hi = r["SurgeTime"] * 0.6, r["SurgeTime"] * 1.4
+        x = min(max((t - lo) / (hi - lo), 0), 1) if hi > lo else 1
+        far += base * (1 + (r["Surge"] - 1) * (1 - x * x * (3 - 2 * x))) * min(dt, seconds - t)
+        t += dt
+    return far
+
+
+def reel_time(cfg, gap):
+    j = cfg["Jump"]
+    return min(max(j["ReelTime"] + gap / j["GrabSpeed"], j["ReelMin"]), j["ReelMax"])
+
+
+def hop_pace(cfg, speed, target_pace, sit, gap, air=None):
+    """Studs a second, all told, of a rider who sits `sit` seconds on each fish, hops, and is pulled onto a fish `gap`
+    studs ahead of where the glide ends (that fish swimming on at `target_pace`)."""
+    _, _, far, air = hop(cfg, speed, air)
+    reel = reel_time(cfg, gap)
+    return (ride_distance(cfg, speed, sit) + far + gap + target_pace * reel) / (sit + air + reel)
 
 
 # ---------------------------------------------------------------- the tables
@@ -311,7 +379,7 @@ class Out:
         widths = [max(len(head[i]), *(len(r[i]) for r in rows)) if rows else len(head[i]) for i in range(len(head))]
         print("  ".join(h.ljust(w) for h, w in zip(head, widths)))
         for row in rows:
-            print("  ".join(c.rjust(w) if re.fullmatch(r"[-+x]?[\d,.]+%?", c) else c.ljust(w) for c, w in zip(row, widths)).rstrip())
+            print("  ".join(c.rjust(w) if re.fullmatch(r"[-+x]?[\d,.]+[%sKMB]?", c) else c.ljust(w) for c, w in zip(row, widths)).rstrip())
 
 
 def n(v, places=0):
@@ -322,77 +390,140 @@ def n(v, places=0):
     return f"{v:.{places}f}"
 
 
+def big(v):
+    """A big number the way a player would read it: 1,280 then 20K, 2.5M, 1.2B."""
+    for cut, unit, mark in ((1e9, 1e9, "B"), (1e6, 1e6, "M"), (1e4, 1e3, "K")):
+        if abs(v) >= cut:
+            return f"{v / unit:.3g}{mark}"
+    return f"{v:,.0f}"
+
+
+def secs(v):
+    """Seconds on a fish, as a rider would feel them."""
+    if v >= 600:
+        return f"{v / 60:.0f} min"
+    if v >= 10:
+        return f"{v:.0f}"
+    if v >= 1:
+        return f"{v:.1f}"
+    return f"{v:.2f}"
+
+
 def pct(share):
     if share <= 0:
         return ""
     return f"{share * 100:.1f}%" if share < 0.1 else f"{share * 100:.0f}%"
 
 
-def tables(cfg, lane, out):
+def tables(cfg, lane, out, your_max):
     order = cfg["TierOrder"]
     lands = len(lane["Start"])
     pool_list = pools(cfg, lands)
+    mixes = [effective_mix(cfg, pool_list[z], z) for z in range(lands)]
     sl = slices(cfg, lane, pool_list)
     fish_in = [sum(s["Want"] for s in sl if s["Zone"] == z) for z in range(lands)]
     lengths = [lane["End"][z] - lane["Start"][z] for z in range(lands)]
     o, j = cfg["Oxygen"], cfg["Jump"]
     share = cfg["Herd"]["SpeedShare"]
+    usual = [commonest(cfg, mixes[z]) for z in range(lands)]
+    name = [f"{z + 1} {lane['Names'][z]}" for z in range(lands)]
 
     out.title("The lane", f"{lane['Length']:,.0f} studs to ride over {lands} lands ({lane['Source']}); "
-              f"{sum(fish_in)} wild fish in all (Spawn.PerThousand {cfg['Spawn']['PerThousand']:g}, MaxTotal {cfg['Spawn']['MaxTotal']:g}).")
-    head = ["Land", "Studs", "Width", "Fish", "Studs between"] + [f"s at {t} ({cfg['Tiers'][t]:g})" for t in order]
+              f"{sum(fish_in)} wild fish in all (Spawn.PerThousand {cfg['Spawn']['PerThousand']:g}, MaxTotal {cfg['Spawn']['MaxTotal']:g}). "
+              f"\"Hopping\" is a rider on the land's commonest fish who sits {RIDE:g} s on each and hops to one about {LOCK_AHEAD} studs ahead.")
+    head = ["Land", "Studs", "Width", "Fish", "Commonest fish", "s riding it", "s hopping"] + [f"s at {t} ({cfg['Tiers'][t]:g})" for t in order]
     rows = []
+    total_hop = 0.0
     for z in range(lands):
         ws = [width_at(lane, lane["Start"][z] + lengths[z] * k / 20) for k in range(21)]
-        rows.append([f"{z + 1} {lane['Names'][z]}", n(lengths[z]), f"{min(ws):.0f} to {max(ws):.0f}", fish_in[z],
-                     n(lengths[z] / fish_in[z]) if fish_in[z] else "none"] + [n(lengths[z] / cfg["Tiers"][t]) for t in order])
-    rows.append(["All ten", n(lane["Length"]), "", sum(fish_in), ""] + [n(lane["Length"] / cfg["Tiers"][t]) for t in order])
+        v = cfg["Tiers"][usual[z]]
+        pace = hop_pace(cfg, v, v * share, RIDE, LOCK_AHEAD)
+        total_hop += lengths[z] / pace
+        rows.append([name[z], n(lengths[z]), f"{min(ws):.0f} to {max(ws):.0f}", fish_in[z], usual[z], n(lengths[z] / v), n(lengths[z] / pace)]
+                    + [n(lengths[z] / cfg["Tiers"][t]) for t in order])
+    rows.append(["All ten", n(lane["Length"]), "", sum(fish_in), "", n(sum(lengths[z] / cfg["Tiers"][usual[z]] for z in range(lands))),
+                 n(total_hop)] + [n(lane["Length"] / cfg["Tiers"][t]) for t in order])
     out.table(head, rows)
 
-    out.title("Oxygen by land", f"Drain a second on a Common, and the max Oxygen that keeps up (drain x KeepUp {o['KeepUp']:g} / Refill "
-              f"{o['Refill']:g}). \"Usual fish\" is the land's own mix, weighted. Hop-hop is a rider who hops again the moment the "
-              f"cooldown ends ({j['Cooldown']:g} s on each fish): the hop itself drains nothing. Start max is {o['StartMax']:g}.")
-    head = ["Land", "Drain /s", "x the land before", "Needs (Common)", "Needs (usual fish)", "Needs (rarest there)",
-            "Needs hopping every 3 s", "Needs hop-hop", f"Seconds a full {o['StartMax']:g} lasts, no hops"]
+    refill = "the whole meter" if o["Refill"] >= 1 else f"{o['Refill']:g} of the meter"
+    out.title(f"Seconds on a fish with {your_max:,.0f} max Oxygen" + (" (a new player)" if your_max == o["StartMax"] else ""),
+              f"Max Oxygen / (ZoneDrain x RarityDrain): how long a full meter lasts on a fish of that rarity in that land. A landing "
+              f"on another fish gives back {refill}. Blank: that rarity doesn't spawn there. The game's \"enough\" is "
+              f"Oxygen.KeepUp {o['KeepUp']:g} s; under the hop's cooldown ({j['Cooldown']:g} s) you are thrown off before you can hop.")
+    head = ["Land", "Oxygen a second (Common)"] + order
     rows = []
     for z in range(lands):
-        mix = effective_mix(cfg, pool_list[z], z)
-        usual = sum(s * tier_mult(cfg, t) for t, s in mix.items()) if mix else 1
-        rarest = max(mix, key=lambda t: tier_step(cfg, t)) if mix else "Common"
-        d = drain(cfg, z, "Common")
-        rows.append([f"{z + 1} {lane['Names'][z]}", n(d, 1 if d < 10 else 0), f"x{d / drain(cfg, z - 1, 'Common'):.1f}" if z else "",
-                     n(required(cfg, z)), n(math.ceil(required(cfg, z) * usual)), f"{n(required(cfg, z, rarest))} ({rarest})",
-                     n(required(cfg, z, every=3)), n(required(cfg, z, every=j["Cooldown"])), n(o["StartMax"] / d, 1)])
+        rows.append([name[z], big(drain(cfg, z, "Common"))] + [secs(your_max / drain(cfg, z, t)) if t in mixes[z] else "" for t in order])
+    out.table(head, rows)
+
+    out.title("What max Oxygen means, land by land", f"The land's commonest fish, what it takes a second, and the max Oxygen for "
+              f"{SCRAPE:g} s on it (you get through, hopping all the time), {o['KeepUp']:g} s (the game's \"enough\": Oxygen.KeepUp), "
+              f"{HOME:g} s (at home: a new player's time on a Shallows Common; a guess) and for {o['KeepUp']:g} s on the land's rarer "
+              f"fish (the chase). \"HUD\" is what the game shows today as the land's need: {o['KeepUp']:g} s on a Common.")
+    head = ["Land", "Commonest fish", "It takes /s", f"{SCRAPE:g} s on it", f"{o['KeepUp']:g} s on it", f"{HOME:g} s on it (at home)",
+            "x the land before", "HUD", f"{o['KeepUp']:g} s on its Legendary", f"{o['KeepUp']:g} s on its Mythic"]
+    rows, home_max, last = [], [], None
+    for z in range(lands):
+        d = drain(cfg, z, usual[z])
+        home_max.append(d * HOME)
+        rows.append([name[z], usual[z], big(d), big(d * SCRAPE), big(d * o["KeepUp"]), big(d * HOME), f"x{d / last:.1f}" if last else "",
+                     big(required(cfg, z)), big(required(cfg, z, "Legendary")) if "Legendary" in mixes[z] else "",
+                     big(required(cfg, z, "Mythic")) if "Mythic" in mixes[z] else ""])
+        last = d
+    out.table(head, rows)
+
+    out.title("Seconds on a fish for a player at home in each land", f"A player whose max Oxygen gives {HOME:g} s on that land's commonest "
+              "fish: their time on each rarity there, and on the commonest fish of the land before and the land after.")
+    head = ["At home in", "Max Oxygen"] + order + ["The land before", "The land after"]
+    rows = []
+    for z in range(lands):
+        m = home_max[z]
+        rows.append([name[z], big(m)] + [secs(m / drain(cfg, z, t)) if t in mixes[z] else "" for t in order]
+                    + [secs(m / drain(cfg, z - 1, usual[z - 1])) if z else "", secs(m / drain(cfg, z + 1, usual[z + 1])) if z + 1 < lands else ""])
     out.table(head, rows)
 
     out.title("By rarity", f"A wild fish swims at Herd.SpeedShare {share:g} of its ridden speed. The hop off a fish: the pop at Jump.Launch "
               f"{j['Launch']:g} times the ridden speed, the glide at AirShare {j.get('AirShare', 0):g} of it, and the pull-in begins "
               f"{j['LaunchTime'] + j['FloatTime']:g} s after the press.")
     cam = cfg["Camera"]
-    head = ["Rarity", "Ridden", "Step up", "Wild (herd)", "Pop", "Glide", "Hop carries (studs)", "Drain x", "Oxygen per 1,000 studs (Common = 1)",
+    head = ["Rarity", "Ridden", "Step up", "Wild (herd)", "Pop", "Glide", "Hop carries (studs)", "and gains on its own herd", "Drain x",
             "View widens (deg)", "Turn circle (studs across)", "Lands"]
-    rows, base = [], None
+    rows = []
     for i, t in enumerate(order):
         v = cfg["Tiers"][t]
-        pop, glide, far, _ = hop(cfg, v)
-        mult = tier_mult(cfg, t)
-        per_stud = mult / v
-        base = base or per_stud
+        pop, glide, far, air = hop(cfg, v)
         fov = cam["SpeedFov"] * min(max((v - cam["SpeedFovFrom"]) / (cam["SpeedFovTo"] - cam["SpeedFovFrom"]), 0), 1)
-        where = [str(z + 1) for z in range(lands) if t in effective_mix(cfg, pool_list[z], z)]
+        where = [str(z + 1) for z in range(lands) if t in mixes[z]]
         planned = [str(z + 1) for z in range(min(lands, len(cfg["ZoneMix"]))) if t in cfg["ZoneMix"][z]]
         rows.append([t, n(v), f"+{(v / cfg['Tiers'][order[i - 1]] - 1) * 100:.0f}%" if i else "", n(v * share, 1), n(pop), n(glide, 1), n(far),
-                     f"{mult:.2f}", f"{per_stud / base:.2f}", n(fov, 1), n(2 * v / math.radians(cfg["Ride"]["YawRate"])),
+                     n(far - v * share * air), f"{tier_mult(cfg, t):g}", n(fov, 1), n(2 * v / math.radians(cfg["Ride"]["YawRate"])),
                      (", ".join(where) or "nowhere") + ("" if where == planned else f" (the mix asks for {', '.join(planned) or 'none'})")])
     out.table(head, rows)
 
-    out.title("The ladder: closing speed", "Studs a second a rider gains on a wild fish ahead (ridden speed minus the wild fish's pace). "
-              "Negative: the wild fish pulls away, and can only be caught if it starts within reach or comes up from behind. "
-              f"Reach is Jump.GrabRange {j['GrabRange']:g} studs.")
+    out.title("A rider who hops all the time: the pace", f"Studs a second all told, sitting {RIDE:g} s on each fish. \"Near\": pulled onto "
+              f"a fish {LOCK_AHEAD} studs ahead when the glide ends (what the lock gives); \"far\": 110 studs ahead (reach is Jump.GrabRange {j['GrabRange']:g}). "
+              f"\"Space held\": {j['Cooldown']:g} s on each fish and a grab {j['MinFlight']:g} s into the hop, onto a fish 110 ahead. "
+              "The target is a fish of the same rarity.")
+    head = ["Riding", "Ridden speed", "Hopping, near", "Hopping, far", "x riding", "Space held, far", "x riding", "Share of the time on a fish"]
+    rows = []
+    paces = {}
+    for t in order:
+        v = cfg["Tiers"][t]
+        near, far = hop_pace(cfg, v, v * share, RIDE, LOCK_AHEAD), hop_pace(cfg, v, v * share, RIDE, 110)
+        mash = hop_pace(cfg, v, v * share, j["Cooldown"], 110, air=j["MinFlight"])
+        paces[t] = (near, far)
+        on = RIDE / (RIDE + j["LaunchTime"] + j["FloatTime"] + reel_time(cfg, LOCK_AHEAD))
+        rows.append([t, n(v), n(near), n(far), f"x{far / v:.2f}", n(mash), f"x{mash / v:.2f}", f"{on * 100:.0f}%"])
+    out.table(head, rows)
+
+    out.title("The ladder for a hopping rider: closing speed", "Studs a second gained on a wild fish ahead. First number: hopping to "
+              "near fish; second: to far ones. Negative: the wild fish pulls away, and can only be caught if it starts within reach "
+              "or comes up from behind. (Only riding, never hopping: the ridden speed minus the wild pace, which is +1 or +2 on "
+              "the next rarity up and negative beyond.)")
     head = ["Riding a \\ wild"] + order
     rows = []
     for t in order:
-        rows.append([t] + [f"{cfg['Tiers'][t] - cfg['Tiers'][u] * share:+.0f}" for u in order])
+        rows.append([t] + [f"{paces[t][0] - cfg['Tiers'][u] * share:+.0f} / {paces[t][1] - cfg['Tiers'][u] * share:+.0f}" for u in order])
     out.table(head, rows)
 
     out.title("Wild fish by land and rarity", "The share each rarity really gets (a rarity with no creature in the land is skipped and "
@@ -401,38 +532,16 @@ def tables(cfg, lane, out):
     head = ["Land", "Fish"] + order
     rows = []
     for z in range(lands):
-        mix = effective_mix(cfg, pool_list[z], z)
         asked = cfg["ZoneMix"][z] if z < len(cfg["ZoneMix"]) else {}
-        row = [f"{z + 1} {lane['Names'][z]}", fish_in[z]]
+        row = [name[z], fish_in[z]]
         for t in order:
-            if t in mix:
-                count = mix[t] * fish_in[z]
-                row.append(f"{pct(mix[t])}, {count:.1f}" + (f" (1 in {1 / count:.0f})" if count < 0.5 else ""))
+            if t in mixes[z]:
+                count = mixes[z][t] * fish_in[z]
+                row.append(f"{pct(mixes[z][t])}, {count:.1f}" + (f" (1 in {1 / count:.0f})" if count < 0.5 else ""))
             elif t in asked:
                 row.append(f"asks {asked[t]:g}%: no creature")
             else:
                 row.append("")
-        rows.append(row)
-    out.table(head, rows)
-
-    out.title("Fish passed a minute, the simple sum", "Riding the land's usual fish through a herd standing at its spawn density: "
-              "density x (your speed minus that rarity's pace). Only rarities slower than you are passed; the rest keep ahead. "
-              "The --sim tables say what the game's stocking rules make of this.")
-    head = ["Land", "Usual ride (studs/s)"] + order
-    rows = []
-    for z in range(lands):
-        mix = effective_mix(cfg, pool_list[z], z)
-        if not mix or not fish_in[z]:
-            rows.append([f"{z + 1} {lane['Names'][z]}", ""] + ["" for _ in order])
-            continue
-        mine = sum(s * cfg["Tiers"][t] for t, s in mix.items())
-        row = [f"{z + 1} {lane['Names'][z]}", n(mine)]
-        for t in order:
-            if t not in mix:
-                row.append("")
-                continue
-            close = mine - cfg["Tiers"][t] * share
-            row.append(n(mix[t] * fish_in[z] / lengths[z] * close * 60, 1) if close > 0 else "keeps ahead")
         rows.append(row)
     out.table(head, rows)
 
@@ -441,30 +550,27 @@ def tables(cfg, lane, out):
     head = ["Land", "Creatures (share of the land's spawns)"]
     rows = []
     for z in range(lands):
-        mix = effective_mix(cfg, pool_list[z], z)
         parts = []
         for t in order:
-            if t not in mix:
+            if t not in mixes[z]:
                 continue
             total = sum(w for _, w in pool_list[z][t])
             names = sorted(pool_list[z][t], key=lambda fw: -fw[1])
-            parts.append(f"{t}: " + ", ".join(f"{f['Name']}{'' if f['Modelled'] else '*'} {pct(mix[t] * w / total)}" for f, w in names))
-        rows.append([f"{z + 1} {lane['Names'][z]}", "; ".join(parts) or "nothing can spawn here: the land stays empty"])
+            parts.append(f"{t}: " + ", ".join(f"{f['Name']}{'' if f['Modelled'] else '*'} {pct(mixes[z][t] * w / total)}" for f, w in names))
+        rows.append([name[z], "; ".join(parts) or "nothing can spawn here: the land stays empty"])
     out.table(head, rows)
 
-    out.title("What training would have to give", "The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes "
-              "of play at which a player should first be able to ride each land on its usual fish. From it, the max Oxygen "
-              "wanted by then and the gain a second of ALL play time between two lands that gets there.")
-    head = ["Land", "Wanted by (min)", "Max Oxygen needed", "Gain needed over the stretch", "A second of play", "x the stretch before"]
+    out.title("What training would have to give", f"The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes "
+              f"of play at which a player should first be at home in each land ({HOME:g} s on its commonest fish). From it, the max "
+              "Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there.")
+    head = ["Land", "At home by (min)", "Max Oxygen then", "Gain over the stretch", "A second of play", "x the stretch before"]
     rows, have, last_rate, last_t = [], o["StartMax"], None, 0
     for z in range(lands):
-        mix = effective_mix(cfg, pool_list[z], z)
-        usual = sum(s * tier_mult(cfg, t) for t, s in mix.items()) if mix else 1
-        need = math.ceil(required(cfg, z) * usual)
+        need = home_max[z]
         t = PLAN_MINUTES[z] if z < len(PLAN_MINUTES) else PLAN_MINUTES[-1]
         gain = max(0, need - have)
-        rate = gain / ((t - last_t) * 60) if t > last_t else None
-        rows.append([f"{z + 1} {lane['Names'][z]}", t, n(need), n(gain) if gain else "none", n(rate, 2) if rate else "",
+        rate = gain / ((t - last_t) * 60) if t > last_t and gain > 0 else None
+        rows.append([name[z], n(t), big(need), big(gain) if gain else "none", (big(rate) if rate >= 100 else n(rate, 1)) if rate else "",
                      f"x{rate / last_rate:.1f}" if rate and last_rate else ""])
         if rate:
             last_rate = rate
@@ -585,77 +691,90 @@ class Herd:
                 f["s"] += f["speed"] * dt
 
 
-def dive(cfg, lane, rng, policy, ride_time, start_max, props_every=0.0, dt=0.1, endless=False):
-    """One dive. policy "nearest": hop to the nearest free fish ahead; "rarest": to the rarest in reach, the nearest of
-    those. The rider rides `ride_time` seconds on each fish, then hops. Returns what happened."""
+def dive(cfg, lane, rng, policy, sit, max_oxygen, props_every=0.0, dt=0.1, endless=False, air=None, react=None, screen=0.0):
+    """One dive. The rider sits `sit` seconds on each fish, or until LEAVE seconds are left on it, but never hops
+    sooner than `react` seconds after landing (on a fish that gives less, they are thrown off). They hop when a fish
+    will be ahead and in reach, and are pulled onto one `air` seconds into the hop (by default when the glide ends).
+    policy "lock": the fish the lock gives, nearest a point LOCK_AHEAD studs ahead; "rarest": the rarest in reach;
+    "far": the furthest. `screen`: the rider only chooses fish that give at least this many seconds, when there is one."""
     o, j, sp = cfg["Oxygen"], cfg["Jump"], cfg["Spawn"]
     order = cfg["TierOrder"]
     herd = Herd(cfg, lane, rng)
     rider = {"s": 30.0, "x": 0.0}
     herd.top_up(10 ** 9, rider)
-    free = [f for f in herd.fish if not f["ridden"]]
+    free = [f for f in herd.fish if not f["ridden"] and f["tier"] == "Common"] or [f for f in herd.fish if not f["ridden"]]
     mount = min(free, key=lambda f: math.hypot(f["s"] - rider["s"], f["x"])) if free else None
     if not mount:
         return None
     mount["ridden"] = True
+    start_s = mount["s"]
     rider["s"], rider["x"] = mount["s"], mount["x"]
     lands = len(lane["Start"])
     res = {"met": [dict.fromkeys(order, 0) for _ in range(lands)], "time": [0.0] * lands, "first": {}, "end": "the lane's end",
            "rode": dict.fromkeys(order, 0.0), "hops": 0, "props": 0}
-    oxygen = start_max
+    oxygen = max_oxygen
     t, since_top, since_hop, since_prop = 0.0, 0.0, 0.0, 0.0
-    state, air_left, target = "ride", 0.0, None
-    air_speed = 0.0
+    state, air_left, air_at = "ride", 0.0, 0.0
+    left, pop, glide = None, 0.0, 0.0
     reach = j["GrabRange"]
+    grab_at = j["LaunchTime"] + j["FloatTime"] if air is None else air
+
+    def gap(f):
+        return math.hypot(f["s"] - rider["s"], f["x"] - rider["x"])
+
     while rider["s"] < lane["Length"] - 5 and t < 3600:
         z = land_at(lane, rider["s"])
         res["time"][z] += dt
         herd.step(dt)
         if state == "ride":
             v = ridden(cfg, mount["kind"])
-            rider["s"] += v * dt
+            # the fish comes up from the herd's pace to its ridden speed over Ride.RampTime
+            ramp = min(since_hop / cfg["Ride"]["RampTime"], 1) if cfg["Ride"]["RampTime"] > 0 else 1
+            now = v * herd.share + (v - v * herd.share) * (1 - (1 - ramp) ** 2)
+            rider["s"] += now * dt
             mount["s"], rider["x"] = rider["s"], mount["x"]
             res["rode"][mount["tier"]] += dt
+            cost = drain(cfg, z, mount["tier"])
             if not endless:
-                oxygen -= drain(cfg, z, mount["tier"]) * dt
+                oxygen -= cost * dt
                 if props_every > 0:
                     since_prop += dt
                     if since_prop >= props_every:
                         since_prop = 0.0
                         res["props"] += 1
-                        oxygen = max(min(oxygen, cfg["Crash"]["Floor"]), oxygen - start_max * cfg["Props"]["Cost"])
+                        oxygen = max(min(oxygen, cfg["Crash"]["Floor"]), oxygen - max_oxygen * cfg["Props"]["Cost"])
                 if oxygen <= 0:
                     res["end"] = "out of Oxygen"
                     break
             since_hop += dt
-            pop, glide, far, air = hop(cfg, v)
-            # a rider looks before hopping (the lock shows while riding): they go only when a fish will be ahead and in
-            # reach as the glide ends; until then they ride on, and pay for it
-            if since_hop >= ride_time and any(
-                    not f["parked"] and f is not mount and -5 <= f["s"] + f["speed"] * air - rider["s"] - far <= reach
-                    and math.hypot(f["s"] + f["speed"] * air - rider["s"] - far, f["x"] - rider["x"]) <= reach * 0.9
+            pop, glide, far, _ = hop(cfg, v, grab_at)
+            # a rider looks before hopping (the lock shows while riding): they go when their time is up, or their Oxygen
+            # nearly is, and a fish will be ahead and in reach when the pull-in can begin; until then they ride on
+            due = since_hop >= sit or (not endless and oxygen <= cost * LEAVE)
+            if due and since_hop >= max(j["Cooldown"], react or 0) and any(
+                    not f["parked"] and f is not mount and -5 <= f["s"] + f["speed"] * grab_at - rider["s"] - far <= reach
+                    and math.hypot(f["s"] + f["speed"] * grab_at - rider["s"] - far, f["x"] - rider["x"]) <= reach * 0.9
                     for f in herd.fish):
-                state, air_left, since_hop = "air", j["Window"], 0.0
+                state, air_left, air_at, since_hop = "air", j["Window"], 0.0, 0.0
                 mount["ridden"] = False
                 left, mount = mount, None
-                air_at = 0.0
         else:
-            # the hop: the pop easing to the glide; the pull-in may begin once the glide has ended
-            boost = j["BoostTime"]
-            air_speed = pop + (glide - pop) * min(air_at / boost, 1) if boost > 0 else glide
-            rider["s"] += air_speed * dt
+            # the hop: the pop easing to the glide; the pull-in begins `grab_at` seconds in if a fish is in reach
+            rider["s"] += hop_speed(cfg, pop, glide, air_at + dt / 2) * dt
             air_at += dt
             air_left -= dt
-            if air_at >= j["LaunchTime"] + j["FloatTime"]:
-                options = [f for f in herd.fish if not f["parked"] and f is not left and f["s"] >= rider["s"] - 5
-                           and math.hypot(f["s"] - rider["s"], f["x"] - rider["x"]) <= reach]
+            if air_at >= grab_at:
+                options = [f for f in herd.fish if not f["parked"] and f is not left and f["s"] >= rider["s"] - 5 and gap(f) <= reach]
                 if options:
+                    fits = [f for f in options if endless or screen <= 0
+                            or max_oxygen * min(o["Refill"], 1) / drain(cfg, z, f["tier"]) >= screen] or options
                     if policy == "rarest":
-                        target = min(options, key=lambda f: (-order.index(f["tier"]), math.hypot(f["s"] - rider["s"], f["x"] - rider["x"])))
+                        target = min(fits, key=lambda f: (-order.index(f["tier"]), gap(f)))
+                    elif policy == "far":
+                        target = max(fits, key=lambda f: f["s"])
                     else:
-                        target = min(options, key=lambda f: math.hypot(f["s"] - rider["s"], f["x"] - rider["x"]))
-                    far = math.hypot(target["s"] - rider["s"], target["x"] - rider["x"])
-                    reel = min(max(j["ReelTime"] + far / j["GrabSpeed"], j["ReelMin"]), j["ReelMax"])
+                        target = min(fits, key=lambda f: abs(f["s"] - rider["s"] - LOCK_AHEAD) + abs(f["x"] - rider["x"]))
+                    reel = reel_time(cfg, gap(target))
                     herd.step(reel)
                     t += reel
                     res["time"][z] += reel
@@ -663,14 +782,13 @@ def dive(cfg, lane, rng, policy, ride_time, start_max, props_every=0.0, dt=0.1, 
                     mount["ridden"] = True
                     rider["s"], rider["x"] = mount["s"], mount["x"]
                     res["hops"] += 1
-                    oxygen = min(start_max, oxygen + start_max * o["Refill"])
+                    oxygen = min(max_oxygen, oxygen + max_oxygen * o["Refill"])
                 elif air_left <= 0:
                     res["end"] = "missed every fish"
                     break
         # who is within reach now
         for f in herd.fish:
-            if not f["seen"] and not f["parked"] and not f["ridden"] and abs(f["s"] - rider["s"]) <= reach \
-                    and math.hypot(f["s"] - rider["s"], f["x"] - rider["x"]) <= reach:
+            if not f["seen"] and not f["parked"] and not f["ridden"] and abs(f["s"] - rider["s"]) <= reach and gap(f) <= reach:
                 f["seen"] = True
                 res["met"][z][f["tier"]] += 1
                 res["first"].setdefault(f["tier"], t)
@@ -680,31 +798,30 @@ def dive(cfg, lane, rng, policy, ride_time, start_max, props_every=0.0, dt=0.1, 
             since_top = 0.0
             herd.top_up(int(sp["PerTopUp"]), rider)
     res["seconds"], res["reached"], res["s"] = t, land_at(lane, rider["s"]), rider["s"]
-    res["left"] = oxygen
+    res["pace"] = (rider["s"] - start_s) / t if t > 0 else 0
     return res
 
 
-def sim(cfg, lane, out, runs, seed):
+def sim(cfg, lane, out, runs, seed, your_max):
     order = cfg["TierOrder"]
     lands = len(lane["Start"])
-    o = cfg["Oxygen"]
-    riders = [("nearest fish, a hop every %g s" % o["KeepUp"], "nearest", o["KeepUp"]),
-              ("rarest fish in reach, a hop every %g s" % o["KeepUp"], "rarest", o["KeepUp"]),
-              ("rarest fish in reach, a hop every 2 s", "rarest", 2.0)]
-    for label, policy, ride_time in riders:
+    o, j = cfg["Oxygen"], cfg["Jump"]
+    riders = [(f"the fish the lock gives, {RIDE:g} s on each", "lock", RIDE, None),
+              (f"rarest fish in reach, {RIDE:g} s on each", "rarest", RIDE, None),
+              (f"furthest fish in reach, {RIDE:g} s on each", "far", RIDE, None)]
+    for label, policy, sit, air in riders:
         rng = random.Random(seed)
-        all_runs = [dive(cfg, lane, rng, policy, ride_time, o["StartMax"], endless=True) for _ in range(runs)]
-        all_runs = [r for r in all_runs if r]
+        all_runs = [r for r in (dive(cfg, lane, rng, policy, sit, your_max, endless=True, air=air) for _ in range(runs)) if r]
         out.title(f"Played through the herd, endless air: {label}", f"{len(all_runs)} dives. Fish of each rarity that came within reach "
                   f"(Jump.GrabRange) a minute, by land; then the seconds into the dive at which the first of each rarity did.")
         head = ["Land", "Seconds in it"] + order + ["All"]
         rows = []
         for z in range(lands):
-            secs = sum(r["time"][z] for r in all_runs)
-            if secs <= 0:
+            total = sum(r["time"][z] for r in all_runs)
+            if total <= 0:
                 continue
-            per = [sum(r["met"][z][t] for r in all_runs) / secs * 60 for t in order]
-            rows.append([f"{z + 1} {lane['Names'][z]}", n(secs / len(all_runs))] + [n(v, 1) if v > 0 else "" for v in per] + [n(sum(per), 1)])
+            per = [sum(r["met"][z][t] for r in all_runs) / total * 60 for t in order]
+            rows.append([f"{z + 1} {lane['Names'][z]}", n(total / len(all_runs))] + [n(v, 1) if v > 0 else "" for v in per] + [n(sum(per), 1)])
         out.table(head, rows)
         firsts = []
         for tier in order:
@@ -720,56 +837,66 @@ def sim(cfg, lane, out, runs, seed):
             print()
         print("First within reach (the middle dive): " + "; ".join(firsts) + ".")
         print("Time ridden by rarity: " + ", ".join(f"{tier} {rode[tier] / total * 100:.0f}%" for tier in order if rode[tier] > 0)
-              + f". The dive took {sum(r['seconds'] for r in all_runs) / len(all_runs) / 60:.1f} minutes on average; ended: "
-              + ", ".join(f"{k} {v}" for k, v in ends.items()) + ".")
+              + f". The dive took {sum(r['seconds'] for r in all_runs) / len(all_runs) / 60:.1f} minutes on average, at "
+              + f"{sum(r['pace'] for r in all_runs) / len(all_runs):.0f} studs a second; ended: " + ", ".join(f"{k} {v}" for k, v in ends.items()) + ".")
 
-    out.title("A new player's dive: how far the starting Oxygen goes", f"Start max {o['StartMax']:g}, Endless air off. Each line is a rider "
-              f"and how often small props are hit (each takes Props.Cost {cfg['Props']['Cost']:g} of max). {runs} dives each. "
-              "The last columns: fish of that rarity that came within reach in one dive, on average.")
-    head = ["Rider", "Props", "Lasts (s)", "Studs", "Ends in land", "Hops landed", "How it ended"] + [f"{t} in reach" for t in order[2:6]]
+    pool_list = pools(cfg, lands)
+    usual = [commonest(cfg, effective_mix(cfg, pool_list[z], z)) for z in range(lands)]
+    players = [("a new player", o["StartMax"])] + [(f"at home in land {z + 1}", drain(cfg, z, usual[z]) * HOME) for z in (1, 2, 4)]
+    if your_max != o["StartMax"]:
+        players = [(f"{your_max:,.0f} max Oxygen", your_max)]
+    out.title("How far a max Oxygen gets", f"Endless air off. Each line is a player and a way of riding. \"At ease\": on each fish "
+              f"until {LEAVE:g} s are left ({RIDE:g} s at most), never hopping sooner than {REACT:g} s after a landing, onto the fish "
+              f"the lock gives (about {LOCK_AHEAD} studs ahead). \"Reads the tags\": only fish that give {TAGS:g} s or more, when one "
+              f"is in reach. \"Space held\": a hop the moment the cooldown ends and a grab at once, only fish that give {MIN_SIT:g} s "
+              f"or more. {runs} dives each. The last columns: fish of that rarity that came within reach in one dive, on average.")
+    head = ["Player", "Max Oxygen", "Rider", "Lasts (s)", "Studs", "Ends in land", "Hops landed", "How it ended"] + [f"{t} in reach" for t in order[2:6]]
     rows = []
-    for label, policy, ride_time in riders + [("nearest fish, hop-hop (0.3 s on each fish)", "nearest", cfg["Jump"]["Cooldown"])]:
-        for props_every in (0.0, 2.5):
+    ways = [("at ease", "lock", RIDE, None, REACT, 0.0), ("at ease, reads the tags", "lock", RIDE, None, REACT, TAGS),
+            ("Space held, reads the tags", "lock", j["Cooldown"], j["MinFlight"], None, MIN_SIT)]
+    for who, max_oxygen in players:
+        for label, policy, sit, air, react, screen in ways:
             rng = random.Random(seed)
-            rs = [dive(cfg, lane, rng, policy, ride_time, o["StartMax"], props_every=props_every) for _ in range(runs)]
-            rs = [r for r in rs if r]
+            rs = [r for r in (dive(cfg, lane, rng, policy, sit, max_oxygen, air=air, react=react, screen=screen) for _ in range(runs)) if r]
             lands_hit = sorted(r["reached"] + 1 for r in rs)
             ends = {}
             for r in rs:
                 ends[r["end"]] = ends.get(r["end"], 0) + 1
-            rows.append([label, "none" if not props_every else f"one every {props_every:g} s", n(sum(r["seconds"] for r in rs) / len(rs)),
-                         n(sum(r["s"] for r in rs) / len(rs)), f"{lands_hit[0]} to {lands_hit[-1]}" if lands_hit[0] != lands_hit[-1] else lands_hit[0],
+            rows.append([who, big(max_oxygen), label, n(sum(r["seconds"] for r in rs) / len(rs)), n(sum(r["s"] for r in rs) / len(rs)),
+                         f"{lands_hit[0]} to {lands_hit[-1]}" if lands_hit[0] != lands_hit[-1] else lands_hit[0],
                          n(sum(r["hops"] for r in rs) / len(rs)), ", ".join(f"{k} {v}" for k, v in ends.items())]
                         + [n(sum(sum(land[t] for land in r["met"]) for r in rs) / len(rs), 1) for t in order[2:6]])
     out.table(head, rows)
 
 
 def main():
-    global PLAN_MINUTES
+    global PLAN_MINUTES, HOME, SCRAPE, RIDE
     p = argparse.ArgumentParser(description="Ride a Fish balance model")
     p.add_argument("--md", action="store_true", help="markdown tables")
     p.add_argument("--sim", type=int, default=0, metavar="N", help="play N dives per rider through the herd")
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--set", action="append", default=[], metavar="Group.Key=value", help="try a number without editing Config")
-    p.add_argument("--plan", default="", help="minutes of play by which each land should be ridable, ten numbers with commas")
-    p.add_argument("--tier-mult", default="", help="a what-if: each rarity's drain as times a Common's, seven numbers with commas")
+    p.add_argument("--max", type=float, default=0, help="the max Oxygen the \"seconds on a fish\" table is for (default: Oxygen.StartMax)")
+    p.add_argument("--home", type=float, default=HOME, help="seconds on a land's commonest fish that count as at home there")
+    p.add_argument("--scrape", type=float, default=SCRAPE, help="seconds on it that just get you through")
+    p.add_argument("--ride", type=float, default=RIDE, help="seconds a rider at ease sits on each fish")
+    p.add_argument("--plan", default="", help="minutes of play by which a player should be at home in each land, ten numbers with commas")
     a = p.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     cfg = read_config()
     apply_sets(cfg, a.set)
-    if a.tier_mult:
-        cfg["TierMult"] = [float(v) for v in a.tier_mult.split(",")]
-        a.set.append("the rarities' drain x" + a.tier_mult)
+    HOME, SCRAPE, RIDE = a.home, a.scrape, a.ride
     if a.plan:
         PLAN_MINUTES = [float(v) for v in a.plan.split(",")]
     lane = read_lane()
     out = Out(a.md)
     if a.set:
         print("With: " + ", ".join(a.set))
-    tables(cfg, lane, out)
+    your_max = a.max or cfg["Oxygen"]["StartMax"]
+    tables(cfg, lane, out, your_max)
     if a.sim > 0:
-        sim(cfg, lane, out, a.sim, a.seed)
+        sim(cfg, lane, out, a.sim, a.seed, your_max)
 
 
 if __name__ == "__main__":
