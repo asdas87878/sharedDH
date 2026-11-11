@@ -1,0 +1,752 @@
+{
+ "note": "Written by tools/creatures/plan_import.py. Nothing here is uploaded: an upload is permanent and needs the user's word.",
+ "picksSavedAt": null,
+ "uploadNew": [
+  {
+   "id": "AbyssalWatcher",
+   "name": "Abyssal Watcher",
+   "zone": 10,
+   "rarity": "Mythic",
+   "triangles": 2732,
+   "parts": 10
+  },
+  {
+   "id": "AuroraJelly",
+   "name": "Aurora Jelly",
+   "zone": 6,
+   "rarity": "Secret",
+   "triangles": 2482,
+   "parts": 41
+  },
+  {
+   "id": "Barracuda",
+   "name": "Barracuda",
+   "zone": 4,
+   "rarity": "Uncommon",
+   "triangles": 1193,
+   "parts": 8
+  },
+  {
+   "id": "BoneLeviathan",
+   "name": "Bone Leviathan",
+   "zone": 9,
+   "rarity": "Mythic",
+   "triangles": 2062,
+   "parts": 16
+  },
+  {
+   "id": "BrimstoneEel",
+   "name": "Brimstone Eel",
+   "zone": 10,
+   "rarity": "Legendary",
+   "triangles": 2272,
+   "parts": 20
+  },
+  {
+   "id": "CinderRay",
+   "name": "Cinder Ray",
+   "zone": 10,
+   "rarity": "Legendary",
+   "triangles": 1022,
+   "parts": 12
+  },
+  {
+   "id": "CoralDragon",
+   "name": "Coral Dragon",
+   "zone": 2,
+   "rarity": "Secret",
+   "triangles": 2238,
+   "parts": 21
+  },
+  {
+   "id": "Dakosaurus",
+   "name": "Dakosaurus",
+   "zone": 3,
+   "rarity": "Legendary",
+   "triangles": 2148,
+   "parts": 22
+  },
+  {
+   "id": "Dolphin",
+   "name": "Dolphin",
+   "zone": 5,
+   "rarity": "Rare",
+   "triangles": 1122,
+   "parts": 12
+  },
+  {
+   "id": "ElectricRay",
+   "name": "Electric Ray",
+   "zone": 4,
+   "rarity": "Epic",
+   "triangles": 1180,
+   "parts": 4
+  },
+  {
+   "id": "EmberSerpent",
+   "name": "Ember Serpent",
+   "zone": 8,
+   "rarity": "Secret",
+   "triangles": 2776,
+   "parts": 28
+  },
+  {
+   "id": "FrilledShark",
+   "name": "Frilled Shark",
+   "zone": 7,
+   "rarity": "Epic",
+   "triangles": 1486,
+   "parts": 13
+  },
+  {
+   "id": "GalleonWhale",
+   "name": "Galleon Whale",
+   "zone": 4,
+   "rarity": "Secret",
+   "triangles": 2400,
+   "parts": 13
+  },
+  {
+   "id": "Garibaldi",
+   "name": "Garibaldi",
+   "zone": 3,
+   "rarity": "Uncommon",
+   "triangles": 886,
+   "parts": 5
+  },
+  {
+   "id": "GiantIsopod",
+   "name": "Giant Isopod",
+   "zone": 8,
+   "rarity": "Epic",
+   "triangles": 1070,
+   "parts": 10
+  },
+  {
+   "id": "GiantSeaBass",
+   "name": "Giant Sea Bass",
+   "zone": 3,
+   "rarity": "Rare",
+   "triangles": 1266,
+   "parts": 8
+  },
+  {
+   "id": "GiantSquid",
+   "name": "Giant Squid",
+   "zone": 6,
+   "rarity": "Epic",
+   "triangles": 1166,
+   "parts": 38
+  },
+  {
+   "id": "GoblinShark",
+   "name": "Goblin Shark",
+   "zone": 6,
+   "rarity": "Epic",
+   "triangles": 1266,
+   "parts": 8
+  },
+  {
+   "id": "GoliathGrouper",
+   "name": "Goliath Grouper",
+   "zone": 4,
+   "rarity": "Epic",
+   "triangles": 1326,
+   "parts": 10
+  },
+  {
+   "id": "GraveRay",
+   "name": "Grave Ray",
+   "zone": 9,
+   "rarity": "Legendary",
+   "triangles": 1406,
+   "parts": 12
+  },
+  {
+   "id": "GraveTurtle",
+   "name": "Grave Turtle",
+   "zone": 9,
+   "rarity": "Legendary",
+   "triangles": 2218,
+   "parts": 12
+  },
+  {
+   "id": "GreatWhite",
+   "name": "Great White",
+   "zone": 3,
+   "rarity": "Epic",
+   "triangles": 1788,
+   "parts": 7
+  },
+  {
+   "id": "HalfboneMegalodon",
+   "name": "Halfbone Megalodon",
+   "zone": 9,
+   "rarity": "Mythic",
+   "triangles": 2324,
+   "parts": 9
+  },
+  {
+   "id": "Helicoprion",
+   "name": "Helicoprion",
+   "zone": 5,
+   "rarity": "Legendary",
+   "triangles": 2064,
+   "parts": 13
+  },
+  {
+   "id": "HellfinShark",
+   "name": "Hellfin Shark",
+   "zone": 10,
+   "rarity": "Legendary",
+   "triangles": 1966,
+   "parts": 7
+  },
+  {
+   "id": "InfernalAngler",
+   "name": "Infernal Angler",
+   "zone": 10,
+   "rarity": "Legendary",
+   "triangles": 1650,
+   "parts": 11
+  },
+  {
+   "id": "KelpWyrm",
+   "name": "Kelp Wyrm",
+   "zone": 3,
+   "rarity": "Secret",
+   "triangles": 2254,
+   "parts": 25
+  },
+  {
+   "id": "Kronosaurus",
+   "name": "Kronosaurus",
+   "zone": 8,
+   "rarity": "Legendary",
+   "triangles": 2700,
+   "parts": 12
+  },
+  {
+   "id": "LanternLeviathan",
+   "name": "Lantern Leviathan",
+   "zone": 6,
+   "rarity": "Mythic",
+   "triangles": 2446,
+   "parts": 24
+  },
+  {
+   "id": "LeopardShark",
+   "name": "Leopard Shark",
+   "zone": 3,
+   "rarity": "Rare",
+   "triangles": 1102,
+   "parts": 8
+  },
+  {
+   "id": "Liopleurodon",
+   "name": "Liopleurodon",
+   "zone": 6,
+   "rarity": "Legendary",
+   "triangles": 2232,
+   "parts": 12
+  },
+  {
+   "id": "Livyatan",
+   "name": "Livyatan",
+   "zone": 7,
+   "rarity": "Legendary",
+   "triangles": 2342,
+   "parts": 22
+  },
+  {
+   "id": "Megalodon",
+   "name": "Megalodon",
+   "zone": 8,
+   "rarity": "Legendary",
+   "triangles": 2546,
+   "parts": 9
+  },
+  {
+   "id": "MoltenMegalodon",
+   "name": "Molten Megalodon",
+   "zone": 8,
+   "rarity": "Mythic",
+   "triangles": 2796,
+   "parts": 9
+  },
+  {
+   "id": "PearlSerpent",
+   "name": "Pearl Serpent",
+   "zone": 1,
+   "rarity": "Secret",
+   "triangles": 2220,
+   "parts": 21
+  },
+  {
+   "id": "PhantomWhale",
+   "name": "Phantom Whale",
+   "zone": 9,
+   "rarity": "Secret",
+   "triangles": 1696,
+   "parts": 12
+  },
+  {
+   "id": "Sawfish",
+   "name": "Sawfish",
+   "zone": 4,
+   "rarity": "Rare",
+   "triangles": 920,
+   "parts": 7
+  },
+  {
+   "id": "SeaLion",
+   "name": "Sea Lion",
+   "zone": 3,
+   "rarity": "Uncommon",
+   "triangles": 956,
+   "parts": 12
+  },
+  {
+   "id": "SeaScorpion",
+   "name": "Sea Scorpion",
+   "zone": 8,
+   "rarity": "Epic",
+   "triangles": 1462,
+   "parts": 14
+  },
+  {
+   "id": "Shonisaurus",
+   "name": "Shonisaurus",
+   "zone": 6,
+   "rarity": "Legendary",
+   "triangles": 2350,
+   "parts": 16
+  },
+  {
+   "id": "SkullAngler",
+   "name": "Skull Angler",
+   "zone": 9,
+   "rarity": "Legendary",
+   "triangles": 1745,
+   "parts": 12
+  },
+  {
+   "id": "StellersSeaCow",
+   "name": "Steller's Sea Cow",
+   "zone": 3,
+   "rarity": "Epic",
+   "triangles": 1578,
+   "parts": 16
+  },
+  {
+   "id": "StormSerpent",
+   "name": "Storm Serpent",
+   "zone": 5,
+   "rarity": "Secret",
+   "triangles": 2210,
+   "parts": 21
+  },
+  {
+   "id": "Swordfish",
+   "name": "Swordfish",
+   "zone": 5,
+   "rarity": "Rare",
+   "triangles": 1074,
+   "parts": 8
+  },
+  {
+   "id": "TheDevourer",
+   "name": "The Devourer",
+   "zone": 10,
+   "rarity": "Secret",
+   "triangles": 2148,
+   "parts": 8
+  },
+  {
+   "id": "Viperfish",
+   "name": "Viperfish",
+   "zone": 6,
+   "rarity": "Rare",
+   "triangles": 1152,
+   "parts": 13
+  },
+  {
+   "id": "VoidWhale",
+   "name": "Void Whale",
+   "zone": 7,
+   "rarity": "Secret",
+   "triangles": 2592,
+   "parts": 12
+  },
+  {
+   "id": "WraithEel",
+   "name": "Wraith Eel",
+   "zone": 9,
+   "rarity": "Legendary",
+   "triangles": 1970,
+   "parts": 19
+  },
+  {
+   "id": "Xiphactinus",
+   "name": "Xiphactinus",
+   "zone": 4,
+   "rarity": "Legendary",
+   "triangles": 1986,
+   "parts": 17
+  }
+ ],
+ "uploadAgain": [
+  {
+   "id": "Angelfish",
+   "name": "Angelfish",
+   "zone": 2,
+   "rarity": "Uncommon",
+   "triangles": 636,
+   "parts": 7
+  },
+  {
+   "id": "Anglerfish",
+   "name": "Anglerfish",
+   "zone": 7,
+   "rarity": "Epic",
+   "triangles": 964,
+   "parts": 10
+  },
+  {
+   "id": "Anomalocaris",
+   "name": "Anomalocaris",
+   "zone": 8,
+   "rarity": "Legendary",
+   "triangles": 1328,
+   "parts": 25
+  },
+  {
+   "id": "Archelon",
+   "name": "Archelon",
+   "zone": 1,
+   "rarity": "Legendary",
+   "triangles": 1932,
+   "parts": 12
+  },
+  {
+   "id": "Basilosaurus",
+   "name": "Basilosaurus",
+   "zone": 7,
+   "rarity": "Legendary",
+   "triangles": 2650,
+   "parts": 26
+  },
+  {
+   "id": "BlueChromis",
+   "name": "Blue Chromis",
+   "zone": 1,
+   "rarity": "Common",
+   "triangles": 442,
+   "parts": 5
+  },
+  {
+   "id": "BlueWhale",
+   "name": "Blue Whale (the old one)",
+   "zone": 5,
+   "rarity": "Mythic",
+   "triangles": 2164,
+   "parts": 14
+  },
+  {
+   "id": "BobbitWorm",
+   "name": "Bobbit Worm",
+   "zone": 8,
+   "rarity": "Legendary",
+   "triangles": 2396,
+   "parts": 16
+  },
+  {
+   "id": "Boxfish",
+   "name": "Boxfish",
+   "zone": 1,
+   "rarity": "Common",
+   "triangles": 480,
+   "parts": 7
+  },
+  {
+   "id": "Butterflyfish",
+   "name": "Butterflyfish",
+   "zone": 1,
+   "rarity": "Common",
+   "triangles": 454,
+   "parts": 4
+  },
+  {
+   "id": "Clownfish",
+   "name": "Clownfish",
+   "zone": 1,
+   "rarity": "Common",
+   "triangles": 976,
+   "parts": 6
+  },
+  {
+   "id": "Cuttlefish",
+   "name": "Cuttlefish",
+   "zone": 1,
+   "rarity": "Uncommon",
+   "triangles": 1110,
+   "parts": 11
+  },
+  {
+   "id": "Dunkleosteus",
+   "name": "Dunkleosteus",
+   "zone": 2,
+   "rarity": "Legendary",
+   "triangles": 1406,
+   "parts": 9
+  },
+  {
+   "id": "Elasmosaurus",
+   "name": "Elasmosaurus",
+   "zone": 5,
+   "rarity": "Legendary",
+   "triangles": 1982,
+   "parts": 22
+  },
+  {
+   "id": "FlyingFish",
+   "name": "Flying Fish",
+   "zone": 1,
+   "rarity": "Uncommon",
+   "triangles": 812,
+   "parts": 9
+  },
+  {
+   "id": "HammerheadShark",
+   "name": "Hammerhead Shark",
+   "zone": 4,
+   "rarity": "Rare",
+   "triangles": 980,
+   "parts": 9
+  },
+  {
+   "id": "Hellmaw",
+   "name": "Hellmaw",
+   "zone": 10,
+   "rarity": "Mythic",
+   "triangles": 2386,
+   "parts": 13
+  },
+  {
+   "id": "HumpheadWrasse",
+   "name": "Humphead Wrasse",
+   "zone": 2,
+   "rarity": "Epic",
+   "triangles": 1214,
+   "parts": 7
+  },
+  {
+   "id": "Kraken",
+   "name": "Kraken",
+   "zone": 7,
+   "rarity": "Mythic",
+   "triangles": 2596,
+   "parts": 26
+  },
+  {
+   "id": "Lionfish",
+   "name": "Lionfish",
+   "zone": 2,
+   "rarity": "Uncommon",
+   "triangles": 966,
+   "parts": 7
+  },
+  {
+   "id": "MantaRay",
+   "name": "Manta Ray",
+   "zone": 5,
+   "rarity": "Epic",
+   "triangles": 754,
+   "parts": 12
+  },
+  {
+   "id": "MorayEel",
+   "name": "Moray Eel",
+   "zone": 2,
+   "rarity": "Rare",
+   "triangles": 1368,
+   "parts": 14
+  },
+  {
+   "id": "Mosasaurus",
+   "name": "Mosasaurus",
+   "zone": 7,
+   "rarity": "Legendary",
+   "triangles": 2394,
+   "parts": 24
+  },
+  {
+   "id": "Octopus",
+   "name": "Octopus",
+   "zone": 2,
+   "rarity": "Rare",
+   "triangles": 1030,
+   "parts": 26
+  },
+  {
+   "id": "Orca",
+   "name": "Orca",
+   "zone": 5,
+   "rarity": "Epic",
+   "triangles": 1356,
+   "parts": 15
+  },
+  {
+   "id": "Parrotfish",
+   "name": "Parrotfish",
+   "zone": 2,
+   "rarity": "Uncommon",
+   "triangles": 922,
+   "parts": 9
+  },
+  {
+   "id": "Pufferfish",
+   "name": "Pufferfish",
+   "zone": 1,
+   "rarity": "Common",
+   "triangles": 674,
+   "parts": 6
+  },
+  {
+   "id": "SeaTurtle",
+   "name": "Sea Turtle",
+   "zone": 1,
+   "rarity": "Uncommon",
+   "triangles": 832,
+   "parts": 6
+  },
+  {
+   "id": "Seahorse",
+   "name": "Seahorse",
+   "zone": 1,
+   "rarity": "Rare",
+   "triangles": 770,
+   "parts": 9
+  },
+  {
+   "id": "SergeantMajor",
+   "name": "Sergeant Major",
+   "zone": 1,
+   "rarity": "Common",
+   "triangles": 792,
+   "parts": 6
+  },
+  {
+   "id": "Stingray",
+   "name": "Stingray",
+   "zone": 1,
+   "rarity": "Uncommon",
+   "triangles": 410,
+   "parts": 8
+  },
+  {
+   "id": "YellowTang",
+   "name": "Yellow Tang",
+   "zone": 1,
+   "rarity": "Common",
+   "triangles": 382,
+   "parts": 3
+  }
+ ],
+ "asItIs": [
+  {
+   "id": "ReefShark",
+   "name": "Reef Shark",
+   "zone": 1,
+   "rarity": "Epic",
+   "triangles": 1088,
+   "parts": 6
+  }
+ ],
+ "leftOut": [],
+ "takeOutOfGame": [],
+ "files": {
+  "AbyssalWatcher": "art/creatures/AbyssalWatcher/game/AbyssalWatcher.glb",
+  "Angelfish": "art/creatures/Angelfish/game/Angelfish.glb",
+  "Anglerfish": "art/creatures/Anglerfish/game/Anglerfish.glb",
+  "Anomalocaris": "art/creatures/Anomalocaris/game/Anomalocaris.glb",
+  "Archelon": "art/creatures/Archelon/game/Archelon.glb",
+  "AuroraJelly": "art/creatures/AuroraJelly/game/AuroraJelly.glb",
+  "Barracuda": "art/creatures/Barracuda/game/Barracuda.glb",
+  "Basilosaurus": "art/creatures/Basilosaurus/game/Basilosaurus.glb",
+  "BlueChromis": "art/creatures/BlueChromis/game/BlueChromis.glb",
+  "BlueWhale": "art/creatures/BlueWhale/game/BlueWhaletheoldone.glb",
+  "BobbitWorm": "art/creatures/BobbitWorm/game/BobbitWorm.glb",
+  "BoneLeviathan": "art/creatures/BoneLeviathan/game/BoneLeviathan.glb",
+  "Boxfish": "art/creatures/Boxfish/game/Boxfish.glb",
+  "BrimstoneEel": "art/creatures/BrimstoneEel/game/BrimstoneEel.glb",
+  "Butterflyfish": "art/creatures/Butterflyfish/game/Butterflyfish.glb",
+  "CinderRay": "art/creatures/CinderRay/game/CinderRay.glb",
+  "Clownfish": "art/creatures/Clownfish/game/Clownfish.glb",
+  "CoralDragon": "art/creatures/CoralDragon/game/CoralDragon.glb",
+  "Cuttlefish": "art/creatures/Cuttlefish/game/Cuttlefish.glb",
+  "Dakosaurus": "art/creatures/Dakosaurus/game/Dakosaurus.glb",
+  "Dolphin": "art/creatures/Dolphin/game/Dolphin.glb",
+  "Dunkleosteus": "art/creatures/Dunkleosteus/game/Dunkleosteus.glb",
+  "Elasmosaurus": "art/creatures/Elasmosaurus/game/Elasmosaurus.glb",
+  "ElectricRay": "art/creatures/ElectricRay/game/ElectricRay.glb",
+  "EmberSerpent": "art/creatures/EmberSerpent/game/EmberSerpent.glb",
+  "FlyingFish": "art/creatures/FlyingFish/game/FlyingFish.glb",
+  "FrilledShark": "art/creatures/FrilledShark/game/FrilledShark.glb",
+  "GalleonWhale": "art/creatures/GalleonWhale/game/GalleonWhale.glb",
+  "Garibaldi": "art/creatures/Garibaldi/game/Garibaldi.glb",
+  "GiantIsopod": "art/creatures/GiantIsopod/game/GiantIsopod.glb",
+  "GiantSeaBass": "art/creatures/GiantSeaBass/game/GiantSeaBass.glb",
+  "GiantSquid": "art/creatures/GiantSquid/game/GiantSquid.glb",
+  "GoblinShark": "art/creatures/GoblinShark/game/GoblinShark.glb",
+  "GoliathGrouper": "art/creatures/GoliathGrouper/game/GoliathGrouper.glb",
+  "GraveRay": "art/creatures/GraveRay/game/GraveRay.glb",
+  "GraveTurtle": "art/creatures/GraveTurtle/game/GraveTurtle.glb",
+  "GreatWhite": "art/creatures/GreatWhite/game/GreatWhite.glb",
+  "HalfboneMegalodon": "art/creatures/HalfboneMegalodon/game/HalfboneMegalodon.glb",
+  "HammerheadShark": "art/creatures/HammerheadShark/game/HammerheadShark.glb",
+  "Helicoprion": "art/creatures/Helicoprion/game/Helicoprion.glb",
+  "HellfinShark": "art/creatures/HellfinShark/game/HellfinShark.glb",
+  "Hellmaw": "art/creatures/Hellmaw/game/Hellmaw.glb",
+  "HumpheadWrasse": "art/creatures/HumpheadWrasse/game/HumpheadWrasse.glb",
+  "InfernalAngler": "art/creatures/InfernalAngler/game/InfernalAngler.glb",
+  "KelpWyrm": "art/creatures/KelpWyrm/game/KelpWyrm.glb",
+  "Kraken": "art/creatures/Kraken/game/Kraken.glb",
+  "Kronosaurus": "art/creatures/Kronosaurus/game/Kronosaurus.glb",
+  "LanternLeviathan": "art/creatures/LanternLeviathan/game/LanternLeviathan.glb",
+  "LeopardShark": "art/creatures/LeopardShark/game/LeopardShark.glb",
+  "Lionfish": "art/creatures/Lionfish/game/Lionfish.glb",
+  "Liopleurodon": "art/creatures/Liopleurodon/game/Liopleurodon.glb",
+  "Livyatan": "art/creatures/Livyatan/game/Livyatan.glb",
+  "MantaRay": "art/creatures/MantaRay/game/MantaRay.glb",
+  "Megalodon": "art/creatures/Megalodon/game/Megalodon.glb",
+  "MoltenMegalodon": "art/creatures/MoltenMegalodon/game/MoltenMegalodon.glb",
+  "MorayEel": "art/creatures/MorayEel/game/MorayEel.glb",
+  "Mosasaurus": "art/creatures/Mosasaurus/game/Mosasaurus.glb",
+  "Octopus": "art/creatures/Octopus/game/Octopus.glb",
+  "Orca": "art/creatures/Orca/game/Orca.glb",
+  "Parrotfish": "art/creatures/Parrotfish/game/Parrotfish.glb",
+  "PearlSerpent": "art/creatures/PearlSerpent/game/PearlSerpent.glb",
+  "PhantomWhale": "art/creatures/PhantomWhale/game/PhantomWhale.glb",
+  "Pufferfish": "art/creatures/Pufferfish/game/Pufferfish.glb",
+  "ReefShark": "art/creatures/ReefShark/game/ReefShark.glb",
+  "Sawfish": "art/creatures/Sawfish/game/Sawfish.glb",
+  "SeaLion": "art/creatures/SeaLion/game/SeaLion.glb",
+  "SeaScorpion": "art/creatures/SeaScorpion/game/SeaScorpion.glb",
+  "SeaTurtle": "art/creatures/SeaTurtle/game/SeaTurtle.glb",
+  "Seahorse": "art/creatures/Seahorse/game/Seahorse.glb",
+  "SergeantMajor": "art/creatures/SergeantMajor/game/SergeantMajor.glb",
+  "Shonisaurus": "art/creatures/Shonisaurus/game/Shonisaurus.glb",
+  "SkullAngler": "art/creatures/SkullAngler/game/SkullAngler.glb",
+  "StellersSeaCow": "art/creatures/StellersSeaCow/game/StellersSeaCow.glb",
+  "Stingray": "art/creatures/Stingray/game/Stingray.glb",
+  "StormSerpent": "art/creatures/StormSerpent/game/StormSerpent.glb",
+  "Swordfish": "art/creatures/Swordfish/game/Swordfish.glb",
+  "TheDevourer": "art/creatures/TheDevourer/game/TheDevourer.glb",
+  "Viperfish": "art/creatures/Viperfish/game/Viperfish.glb",
+  "VoidWhale": "art/creatures/VoidWhale/game/VoidWhale.glb",
+  "WraithEel": "art/creatures/WraithEel/game/WraithEel.glb",
+  "Xiphactinus": "art/creatures/Xiphactinus/game/Xiphactinus.glb",
+  "YellowTang": "art/creatures/YellowTang/game/YellowTang.glb"
+ }
+}

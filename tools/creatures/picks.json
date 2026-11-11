@@ -1,0 +1,6 @@
+{
+ "note": "The creatures the user took out of the next import, by Id (the folder's name). Written from the picker page by the chat that built it; read by plan_import.py. Empty: everything goes in.",
+ "picker": "https://claude.ai/artifact/8j9dLe8q9bB3yeAyhdjFZA",
+ "savedAt": null,
+ "remove": []
+}

@@ -3,6 +3,35 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-11 · 8570-F43F (the user's PC): the tuning chat's first turn: a balance model, the progression note, panel rows
+**State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played, not
+type-checked. No tuning number changed:** every speed, share and Oxygen number is as it was.
+
+- **The model:** `python tools/balance/model.py` reads Config, the creature files and the map's path, and prints, land
+  by land, the length, the seconds to cross, the Oxygen needed, the fish by rarity and the creatures. `--sim 8` plays
+  dives through the herd's stocking rules. `--set Oxygen.TierDrain=1` tries a number without touching the game.
+- **The note:** [progression](design/progression.md): the tables, what is off with a proposed value for each, what
+  isn't built, and six questions for the user. All of it is proposed.
+- **The three findings:** a new player's dive is 75 seconds and ends at the third land's door, with no way yet to grow
+  max Oxygen; a rarer fish costs almost nothing more, so nothing is out of reach to chase; and hopping without
+  stopping makes every land 20 times cheaper in Oxygen.
+- **In `src/`:** `Config.TierSpeed` and ten names for `Config.ZoneMix`'s rows (both only so the panel can reach those
+  numbers), five lines in `Config.refresh` so a changed speed reaches fish already swimming, and rows on the N panel:
+  the speed of each rarity, `Oxygen.StartMax`, and each land's shares by rarity.
+- **Not live yet:** `Oxygen.StartMax` from the panel doesn't reach a player already in the game (use Workspace's
+  `TestMaxOxygen`). The fix is in the game-code chat's files; it is in [Sessions](Sessions.md), Notes.
+
+## 2026-11-11 · 8570-F43F (the user's PC): the creature import is prepared, nothing uploaded
+**State:** written, synced by the Obsidian Git plugin. No upload, no change to `src/` or to the place.
+
+- **The plan and the steps:** [creature import](design/creature-import.md). With no picks made: 49 new uploads, 32
+  uploads again (the too-dark ones), the Reef Shark as it is.
+- **The user picks by hand** which creatures go in, on a picker page (every creature's picture, a tick each). The picks
+  land in `tools/creatures/picks.json`; `python tools/creatures/plan_import.py` turns them into
+  `tools/creatures/import_plan.json`. Both files are new; `collect.py`, `install.py` and `assets.json` are untouched.
+- **For the chat doing speed, rarity, sizes and spawns:** a creature in `leftOut` of the plan is not coming; the variants
+  and the Secrets have no spawn rule yet.
+
 ## 2026-11-11 · 8570-F43F (the user's PC): the hop matched to the reference, and the movement follows the camera
 **State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played, and not
 type-checked** (no luau-lsp on this PC): expect numbers to tune and possibly bugs. The user's brief after playing

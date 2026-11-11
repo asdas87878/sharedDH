@@ -220,6 +220,59 @@ start of the third land.)
 - **What to judge from it:** the length of each land, how the widening feels, the rhythm of rooms and necks, where
   the steep stretches fall. Not the colours, the assets or the light.
 
+## Grey-box 9: bigger squares, a bigger hub, cleaner joins (2026-11-11)
+The user on grey-box 8 in Studio: the squares aren't the right size (asked which way: **too small**), the hub could be
+bigger (asked what should grow: **the open floor**), and go over the map's structure, terrain, aquariums and hub for
+quality, using every recording. Assets and props are left alone for now. The user will make changes by hand
+afterwards, by prompting.
+
+**The recordings, gone through again.** Seven files. Two hold nothing (the one from 20:32 is black throughout; 02:29
+is black until its last second). The other five were re-read at full size. Measured again, the same way and a second
+way (studs across a player's body): a square is 8 small studs across, and a small stud is 0.64 to 0.75 of a Roblox
+stud, so a square is 5 to 6 studs: what grey-box 8 had. **So the measurement did not explain what the user saw.**
+Most likely our lanes and creatures are several times the reference's size while the square stayed the size of a
+walker, so the squares read as a fine mesh. The size is now set by the user's eye in Studio, not by the footage.
+
+| | Grey-box 8 | Grey-box 9 |
+|---|---|---|
+| A square | 5 studs | **8 studs** (one small stud of the picture = 1 stud) |
+| A piece of wall | 10 long near the hub, 20 further on | 16 everywhere: every curve follows as finely as the first land's |
+| The grass | 5 thick, 1 proud | 8 thick, 1.5 proud |
+| A wall's tiers, set back | 0, 20, 45; 20, 25 and 20 deep | 0, 24, 56; 24, 32 and 24 deep: whole squares |
+| A wall, low terrace then tall | 3 and 10 squares (15 and 50 studs) | 2 and 7 squares (16 and 56 studs) |
+| Broad steps | 2, 6, 10 squares | 2, 4, 7 squares |
+| A rim | 2 squares | 1 square |
+| The floor's tiles | 40 and 20 | 64, 32 and 16: each cut in four wherever it would lie more than 0.06 off the floor |
+| The hub inside | 436 by 202 | **480 by 256**: whole tiles of the picture, so the squares end at the walls |
+| Open floor, start to the aquariums | 120 | about 165 |
+| The hub's wall | 3 and 13 squares | 2 and 9 squares (16 and 72 studs under the grass): the reference's two tiers |
+| Aquariums | apart, 6 studs between | **one joined row of six sharing their side frames**, as the reference's pens share fences; on the floor's squares; one more each side |
+| Where the lane leaves the hub | a square gap 120 wide; the hub's wall and the lane's walls overlapped at odd angles | **a mouth that rounds outward** (a quarter circle of 64 each side): 248 wide at the hub, back to the lane's width 64 studs on |
+| The hub's wall and the lane's walls | built apart | **one unbroken run per side**: round the hub, through the mouth, to the end of the dive |
+| Out of the hub | the lane's walls stood tall for 330 studs, then dropped | the hub's wall steps down in whole squares over 420 studs to the lane's own heights |
+| The backs of walls near the hub | open shells | closed with a slab (they are seen from the lane and from above) |
+| Backdrop slabs | one cut through a corner of the hub | none within 500 studs of the hub |
+| Things on terraces | also on terraces out of the water | only under water |
+| A wall's set-back tiers at a sharp pinch | the line behind the face could loop over itself there, and pieces laid along the loop crossed | the loop is cut out: the two sides meet in a clean corner behind the tooth |
+| Shadows | every floor tile cast one, so a tile a hair higher drew a dark line on its neighbour | floor tiles, the hub's floor and hidden filling cast none |
+
+![Grey-box 9 in Studio](../attachments/map-greybox9-studio.jpg)
+
+**In Studio:** "greybox 9 in Studio: 62834 parts (expected 62834), 60816 solid; Dive 10, Dock 160, Lane 62613, Surface 51; 16133 Seabed boxes; 1974 asset models; 8 plots; 44588 pictures; DockSpawn present; Path present; fallen-parts height -20000". The first check read 600 short; a second, a minute later, was whole, and a probe found every file's parts.
+
+**Checked by the generator:** 62,824 parts (16,133 floor tiles, 9,314 wall pieces); neighbouring floor tiles at most
+0.117 studs apart; steepest floor 14 degrees; 2,225 deep at the end.
+
+**What the game code sees:** the same names and the same contract. `Path` `w` is 248 at s = 0 (the mouth) and the old
+width from s = 64; path, floor heights, `BigAssets` and the land markers are otherwise grey-box 8's. `DockSpawn` is
+at (0, 1, -104) before the loader's shift. The build attribute is "greybox 9".
+
+**Still known, not fixed in this pass:**
+- Faint lines between floor tiles in the deep lands (neighbours tilt a little differently).
+- Where a rim meets a sharp pinch, the slabs behind it fan and overlap.
+- Lands 5 to 10 borrow the first lands' assets and guessed colours; the backdrop is still pale slabs.
+- The part count is up by about 6,000 (a finer floor). Thinning is one of the parked steps.
+
 ## What makes their map read, and where ours should go
 **What their structure does** (from the recordings and the screenshots):
 1. **One rule, used everywhere.** Floor, wall face, grass: three surfaces, one pattern, one colour per land. Nothing

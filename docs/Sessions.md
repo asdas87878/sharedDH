@@ -8,8 +8,9 @@ can build and check each other's work.
 | Chat | Working on | Has in hand (ask before editing) | Studio |
 |---|---|---|---|
 | [Ride a Fish game concept](claude://claude.ai/epitaxy/local_9fbe7dba-9d58-4cd7-9111-c33fc656abbe) | The creature look: [workout 5](style/05-rarity-look.md) (rarity, eyes, shapes by rarity) and new body archetypes in the voxel style (Mosasaurus, the Blue Whale as the old one, and seven more, built and waiting for the user's read: Basilosaurus, Bobbit Worm, Manta Ray, Kraken, Anomalocaris, Anglerfish, Archelon) | `tools/blender/voxel_kit.py`, `tools/blender/kit_common.py`, `tools/art/rarity_ladder.py`, `art/creatures/*/voxel.py`, `art/style/rarity_ladder/`, `docs/style/04-voxel-style.md`, `docs/style/05-rarity-look.md`, `docs/design/creature-queue.md`, `docs/style/creature-brief.md`, `tools/art/voxel_*.py`, `tools/blender/check_glb.py`, `art/creatures/*/game/`, `docs/style/06-textures.md`, `tools/art/creature_tiles.py`, `art/style/tiles/`, `docs/style/Style workouts.md`, `docs/design/roster.md`, `docs/design/roster-list.md`, `docs/attachments/voxel-*` and `rarity-*`, `CLAUDE.md` (the voxel and rarity lines) | Not using it. Nothing is uploaded |
-| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Has it: the place is "rideafishfr" (place id 109539426613506), with grey-box 8 (all ten lands), the game code (Rojo) and the 33 creature templates; studio id `f909a013-5f29-4731-9090-a19d26ea30db`. Workspace.MapBench (the map chat's, at x = 9000) is left in place |
-| [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) made offline and waiting for the user's read ([how we build it](design/map-method.md)). Blockout v4 is set aside but still what Studio runs | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (handed back 2026-11-11 with the whole map, grey-box 8, loaded; `Workspace.MapBench` is still at x = 9000) |
+| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Has it (2026-11-11, back from the map chat): the place is "rideafishfr" (place id 109539426613506) with grey-box 9, the game code and the 33 creature templates in `ReplicatedStorage.FishModels`; studio id `b6054f88-c638-4f63-9f6d-fd3970bdda24` (Studio was restarted). Rojo serves from this PC on port 34872 |
+| [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) now at grey-box 9, all ten lands, in Studio ([the structure](design/map-structure.md), [how we build it](design/map-method.md)). Next, on the user's word: moving water from a tutorial they will send, then the seven parked art steps | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (handed back 2026-11-11 with grey-box 9 loaded; `Workspace.MapBench` is still at x = 9000) |
+| [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). First turn done 2026-11-11: the model, the note with proposals and six questions, the panel rows. No tuning number changed; waiting for the review and the user's answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `TierDrain`, `FreeDrain`), `Config.ZoneDrain`, `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
 
 The links open the chat in the Claude app on the PC it runs on.
 
@@ -27,6 +28,55 @@ The links open the chat in the Claude app on the PC it runs on.
 
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
+
+- 2026-11-11, Ride a Fish map to Obsidian chat integration: **Studio is yours again; grey-box 9 is in it** (studio id
+  now `b6054f88-c638-4f63-9f6d-fd3970bdda24`: Studio was restarted). Check, read twice: "greybox 9 in Studio: 62834
+  parts (expected 62834), 60816 solid; Dive 10, Dock 160, Lane 62613, Surface 51; 16133 Seabed boxes; 1974 asset
+  models; 8 plots; 44588 pictures; DockSpawn present; Path present; fallen-parts height -20000". The first check read
+  600 short and the second was whole; a probe found every file's parts.
+  - **`DockSpawn`** is at world (3000, 1, -104).
+  - **The mouth:** `Path` `w` is 248 at s = 0, 148 at s = 24, and grey-box 8's width from s = 64 on. The start strip is
+    248 wide. Past the mouth, the path, the floor's heights, `BigAssets` and the land markers are grey-box 8's.
+  - **Squares are 8 studs** (the user: 5 read too small). Floor tiles are 64, 32 and 16, still `Seabed`, at most 0.117
+    apart. Walls are lower in studs: a low terrace of 16 and a tall wall of 56 under 8 of grass.
+  - **The hub is 480 by 256**; plots are one joined row of six plus one each side, still `Dock.Plots.PlotN`.
+  - **For the tuning chat:** each land's start along the lane is in `art/map/greybox/path.json` under `Lands`
+    (`Name`, `S0`); a land ends where the next starts, and the last ends at `BuiltTo` (23,500). The lane is about 28%
+    longer to ride than s says, by your own ride test.
+  [The structure note](design/map-structure.md), "Grey-box 9", has the rest.
+
+- 2026-11-11, Fish speed, rarity and progression tuning to Obsidian chat integration: **first turn done, to check.**
+  The note is [progression](design/progression.md); the model is `python tools/balance/model.py` (`--sim 8` plays
+  dives through the herd's rules; `--set Group.Key=value` tries a number). **No tuning number changed.**
+  - **Check in `src/`** (StyLua, selene and `rojo build` pass; not played, not type-checked):
+    - `Config.luau`: new `Config.TierSpeed` (filled from `Config.Tiers`), ten names for `Config.ZoneMix`'s rows
+      (`Config.MixShallows` and so on, the same tables), `OWN_SPEED`, and five lines in `Config.refresh` that put the
+      rarities' speeds back into `Config.Tiers` and every fish. Nothing else in the file is touched.
+    - `SandboxController.luau`: rows only. `TierSpeed` x 7, `Oxygen.StartMax`, and 46 `Mix...` rows at the end.
+  - **Yours, if you agree** (your files, so I left them):
+    - `Oxygen.StartMax` on the panel changes Config, but `RideService` reads a player's max only when they join (and
+      when `TestMaxOxygen` changes). It wants `SandboxService.tune` to make `RideService` read it again.
+    - The rarity's drain as a table (one number a rarity) in `Config.drain`, in place of the straight line. The note
+      says why ("Rarer means faster and dearer").
+    - The refill for the time ridden, in `RideService.mount`. The note says why ("The Oxygen curve").
+    - `Props.Cost` 0.03 to 0.01, and `Oxygen.FreeDrain` as a share of max.
+    - `docs/sandbox.md` doesn't list the new rows.
+  - **To measure in play, when you have Studio:** with Endless air off on the starting 100, how long a dive lasts and
+    where it ends (the model: 75 s, just inside the Kelp Forest); the same holding Space the whole way (the model:
+    7,300 studs, the Shipwrecks); and whether fish appear in view near a rider (in the model most fish that come
+    within reach were spawned by the top-up close to the rider, because the herd ahead swims off as you near it).
+  - **For the creature chat, through you:** nothing to change. The thin lands are listed in the note ("Lands whose
+    rarities have no creature yet"); the import plan already covers them.
+  - **The six questions for the user** are at the end of the note.
+
+- 2026-11-11, Obsidian chat integration to every chat: **a tuning chat is started, on the user's word:**
+  [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373).
+  It works on the ridden speed of each rarity, how often each rarity spawns in each land, and the Oxygen progression.
+  This chat oversees it: its work is checked here before it goes to the user, and its questions for the user come
+  through here. Its files: `tools/balance/`, `docs/design/progression.md`, and in `src/shared/Config.luau` only
+  `Tiers`, `Oxygen`, `ZoneDrain`, `ZoneMix`, `ReachWeight` and the per-fish speeds; it adds rows to the N panel for
+  those. It does not drive Studio, change a creature's rarity or land (the roster's), or touch the movement groups.
+  Its first piece is a model and proposals, not changed numbers. It adds its own row above.
 
 - 2026-11-11, Ride a Fish map to Obsidian chat integration: **Studio is yours again; the whole map, grey-box 8, is
   in it.** Check: "greybox 8 in Studio: 56894 parts (expected 56894), 54890 solid; Dive 10, Dock 160, Lane 56673,

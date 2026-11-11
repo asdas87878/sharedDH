@@ -88,7 +88,7 @@ def material(colour, kind):
     if kind in ("ground", "plain", "hub", "grass"):  # squares of two close shades on everything that is ground (the user: everywhere)
         geo = n.new("ShaderNodeNewGeometry")
         check = n.new("ShaderNodeTexChecker")
-        check.inputs["Scale"].default_value = 1.0 / 5.0  # squares of 5 studs: a player tall
+        check.inputs["Scale"].default_value = 1.0 / 8.0  # squares of 8 studs
         check.inputs["Color1"].default_value = lin(colour)
         check.inputs["Color2"].default_value = lin(tuple(int(c * 0.93) for c in colour))
         flat = n.new("ShaderNodeVectorMath")  # by x and z only, so walls' tops and the floor share one grid
@@ -212,10 +212,10 @@ else:
                 return eye, target
         return eye, target
     views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
-        "hub": (Vector((0, 7, -74)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
-        "hub_back": (Vector((0, 7, -22)), Vector((0, 10, -200)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
+        "hub": (Vector((0, 7, -104)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
+        "hub_back": (Vector((0, 7, -22)), Vector((0, 10, -256)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
         "hub_above": (Vector((-200, 240, -400)), Vector((10, -10, 60)), HAZE, 12000, SKY, 55, 0.25),
-        "hub_top": (Vector((0, 470, -104)), Vector((0, 0, -100)), HAZE, 12000, SKY, 45, 0.6),
+        "hub_top": (Vector((0, 560, -132)), Vector((0, 0, -128)), HAZE, 12000, SKY, 45, 0.6),
         # the reference's own flight views, for laying side by side: no water, daylight
         "fly_ahead": (*lane_view(necks[1] - 60, 60, 62, 300, 0), HAZE, 5200, SKY, 80, 0.0),
         "fly_down": (*lane_view(necks[2] + 40, 110, 215, 250, -10), HAZE, 5200, SKY, 70, 0.0),

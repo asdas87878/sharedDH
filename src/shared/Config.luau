@@ -49,6 +49,15 @@ Config.Tiers = {
 	Secret = { Idle = 26, Ridden = 100, Colour = rgb(20, 20, 20) },
 } :: { [string]: Tier }
 
+-- The same ridden speeds as plain numbers, so the sandbox panel can change one while playing (its rows are
+-- Config.<Group>.<Key>): TierSpeed.Common is Tiers.Common.Ridden. Filled from the table above, never written by hand;
+-- Config.refresh puts a changed one back into Tiers and into every fish of that rarity. To change a speed for good,
+-- change Ridden above.
+Config.TierSpeed = {} :: { [string]: number }
+for name, tier in Config.Tiers do
+	Config.TierSpeed[name] = tier.Ridden
+end
+
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
 	StartMax = 100, -- max Oxygen before any training
@@ -432,6 +441,25 @@ Config.ZoneMix = {
 	{ Legendary = 88, Mythic = 12 },
 } :: { { [string]: number } }
 
+-- The same ten tables under plain names, for the sandbox panel: MixShallows.Common is ZoneMix[1].Common, and so on.
+-- Not a second copy: the same tables, so a share changed on the panel is the share the next spawn uses.
+for i, name in
+	{
+		"MixShallows",
+		"MixCoralReef",
+		"MixKelpForest",
+		"MixShipwrecks",
+		"MixOpenBlue",
+		"MixTwilight",
+		"MixMidnight",
+		"MixVents",
+		"MixBoneGraveyard",
+		"MixUnderworld",
+	}
+do
+	(Config :: any)[name] = Config.ZoneMix[i]
+end
+
 -- Weight of a fish by how far from home it is: home, one zone on, two zones on
 Config.ReachWeight = { 1, 1 / 3, 1 / 10 }
 
@@ -531,8 +559,14 @@ function Config.smashes(fish: FishType): boolean
 	return fish.Size.Z >= Config.Props.MinLength
 end
 
+-- a fish with a ridden speed of its own (RiddenSpeed in the table above) keeps it when the rarities' speeds change
+local OWN_SPEED: { [string]: number } = {}
+
 for _, spec in FISH do
 	local tier = Config.Tiers[spec.Tier]
+	if spec.RiddenSpeed then
+		OWN_SPEED[spec.Id] = spec.RiddenSpeed
+	end
 	local fish: FishType = {
 		Id = spec.Id,
 		Name = spec.Name,
@@ -580,7 +614,16 @@ function Config.refresh()
 	local j = Config.Jump
 	j.DropTime = math.max(0.1, j.Window - j.LaunchTime - j.FloatTime)
 	j.FlightTime = j.Window + j.ReelMax
+	-- the rarities' speeds, as the sandbox panel may have changed them (Config.TierSpeed)
+	for name, speed in Config.TierSpeed do
+		local tier = Config.Tiers[name]
+		if tier then
+			tier.Ridden = speed
+		end
+	end
 	for _, fish in Config.Fish do
+		local tier = Config.Tiers[fish.Tier]
+		fish.RiddenSpeed = OWN_SPEED[fish.Id] or (if tier then tier.Ridden else fish.RiddenSpeed)
 		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
 		fish.Required = Config.required(fish.Home, fish.Tier)
 	end
