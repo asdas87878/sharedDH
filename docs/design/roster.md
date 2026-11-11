@@ -284,3 +284,5 @@ variants of another (they come after their base). A pilot of four runs first, to
 
 Left for later: the Secrets; and the variants (Grave Turtle, Grave Ray, Skull Angler, Infernal Angler, Hellfin Shark, Cinder
 Ray, Molten Megalodon, Halfbone Megalodon). The Bobbit Worm is built but still not in the roster.
+Update 2026-11-11: the Secrets and the variants have since been built as first drafts, so every creature in this roster
+has a model in [the creature queue](creature-queue.md).
