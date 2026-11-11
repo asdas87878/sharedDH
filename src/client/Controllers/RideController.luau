@@ -36,6 +36,7 @@ local camera = workspace.CurrentCamera
 local yaw, pitch, roll = 0, 0, 0
 local turnNow = 0 -- how fast A and D are turning us now, radians a second (eased in and out)
 local turned = 0 -- and by how much this frame: the camera turns by as much
+local steerRate = 0 -- how fast the way we are going is really turning, radians a second (eased): the bank follows it
 local lastMode = "Dock"
 local startSpeed = 0
 local rideType: Config.FishType? = nil
@@ -113,6 +114,25 @@ function RideController.turn(dt: number): number
 	return turnNow * dt
 end
 
+-- The way we are going, a frame on: `now` is it this frame (radians), and the new one comes back. With
+-- Ride.CameraSteer on (the reference, and the user after playing, 2026-11-11) it comes round to where the camera looks,
+-- no faster than Ride.SteerRate: A and D turn the camera (as before), and so does a drag, a stick or the mouse in the
+-- hop, and the fish, the hop and the float all follow the view. With it off, only A and D turn us (Movement v3.1).
+function RideController.steer(now: number, dt: number): number
+	local r = Config.Ride
+	local by = RideController.turn(dt)
+	if r.CameraSteer <= 0 then
+		steerRate = turnNow
+		return now + by
+	end
+	local view = camYaw + turned -- (this frame's A and D reach camYaw in cameraStep, a moment later)
+	local gap = math.atan2(math.sin(view - now), math.cos(view - now))
+	local most = math.rad(r.SteerRate) * dt
+	local delta = math.clamp(gap * Ease.alpha(r.SteerEase, dt), -most, most)
+	steerRate = Ease.lerp(steerRate, delta / math.max(dt, 1e-4), Ease.alpha(r.TurnEase, dt))
+	return now + delta
+end
+
 -- The landing's shake (Config.Jump.LandShake...): `size` is how far the camera is thrown, studs
 function RideController.shake(size: number)
 	shakeAt = os.clock()
@@ -122,7 +142,7 @@ end
 
 -- How hard we are turning, -1 to 1, for banking into it
 function RideController.lean(): number
-	return math.clamp(turnNow / math.rad(math.max(Config.Ride.YawRate, 1)), -1, 1)
+	return math.clamp(steerRate / math.rad(math.max(Config.Ride.YawRate, 1)), -1, 1)
 end
 
 local function clearFloat()
@@ -227,8 +247,8 @@ local function drive(dt: number)
 		return
 	end
 	local r = Config.Ride
-	-- always forward; A and D turn it, and nothing else does
-	yaw += RideController.turn(dt)
+	-- always forward, turning to where the camera looks (A and D turn the camera); with Ride.CameraSteer off, A and D only
+	yaw = RideController.steer(yaw, dt)
 	State.Heading = yaw
 	local at = root.Position
 	local floorY = Course.floor(at)
@@ -363,8 +383,8 @@ local function float(root: BasePart, dt: number)
 		root.CFrame += Vector3.new(0, laneY + 4 - root.Position.Y, 0)
 		root.AssemblyLinearVelocity = Vector3.zero
 	end
-	-- drifting forward, A and D turning us, as on a fish (never W and S)
-	yaw += RideController.turn(dt)
+	-- drifting forward, steered as on a fish (never W and S)
+	yaw = RideController.steer(yaw, dt)
 	State.Heading = yaw
 	local heading = CFrame.fromOrientation(0, yaw, 0)
 	local v = floatVelocity :: LinearVelocity
@@ -459,6 +479,11 @@ local function cameraStep(dt: number)
 		local rest = if mode == "Riding" then pitch * 0.5 + math.rad(c.RestPitch) else math.rad(c.RestPitch)
 		camYaw = Ease.lerpAngle(camYaw, heading, Ease.alpha(c.Recentre, dt))
 		camPitch = Ease.lerp(camPitch, rest, Ease.alpha(c.PitchFollow, dt))
+	end
+	if mode ~= "Jumping" and c.AirRest > 0 and lookedAt < airAt then
+		-- the hop tilted the view down and we never touched it: back up to the riding view as soon as we are down
+		local rest = if mode == "Riding" then pitch * 0.5 + math.rad(c.RestPitch) else math.rad(c.RestPitch)
+		camPitch = Ease.lerp(camPitch, rest, Ease.alpha(c.AirPitchFollow, dt))
 	end
 	camPitch = math.clamp(camPitch, math.rad(c.PitchMin), math.rad(c.PitchMax))
 	State.CamYaw = camYaw

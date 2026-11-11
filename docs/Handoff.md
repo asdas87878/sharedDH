@@ -3,6 +3,35 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-11 · 8570-F43F (the user's PC): the hop matched to the reference, and the movement follows the camera
+**State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played, and not
+type-checked** (no luau-lsp on this PC): expect numbers to tune and possibly bugs. The user's brief after playing
+Movement v3.1: match the reference's hop one to one for now, and make the movement follow the camera. Files:
+`RideController`, `JumpController`, `Config` (Ride, Jump, Camera), `SandboxController`.
+
+- **This turns four of Hugo's answers of 2026-11-11 back**, on the user's word; each is one number, so either way can
+  be played from the N panel. The rows are in [Decisions](Decisions.md). For the two of you to settle.
+- **The movement follows the camera** (`Ride.CameraSteer` 1, new `RideController.steer`): the fish, the hop and the
+  float come round to where the view looks, at `SteerEase` 6 and never faster than `SteerRate` 140 degrees a second.
+  A and D still turn the view, so they steer as before; now a drag, a stick, and the mouse in the hop steer too. The
+  bank follows the real turn. `CameraSteer` 0: only A and D steer (Movement v3.1).
+- **The pull-in starts by itself** (`Jump.AutoGrab` 2): when the glide ends the locked fish pulls you in, and with none
+  locked then, the first one locked in the drop does. A press still grabs sooner. The reference: the pull-in begins
+  about 1.7 s after the press. `FloatTime` 1.4 to 1.3 so ours does too (0.4 + 1.3). `AutoGrab` 0: press only.
+- **You hang with the herd in the glide** (`Jump.AirShare` 0.85, new): the glide's speed is 0.85 of the ridden speed
+  of the fish you left (the reference: 46 against 54), 38 from floating (`FreeAirSpeed`). It was 54 for every fish, so
+  you flew past the fish beside you. The drop slows by the same share as before. `AirShare` 0: `AirSpeed` 54 again.
+- **The view tilts down in the hop again** (`Camera.AirRest` 1; the reference's camera lifts to look down from
+  behind), until you move it, and now comes back up to the riding view at the landing if you never touched it. With
+  the lock aimed by the view this matters: at the riding tilt of -12 the aim meets the herd about 100 studs ahead, so
+  far fish took the lock; at -30 it meets it about 45 studs ahead.
+- **Not changed:** the pop (0.4 s, 20 studs: the user's own height of 2026-11-10; the reference's is about half as
+  high in 0.3 s), the launch (1.6 times for 0.75 s), the window (3.0 s), the pull-in's curve and speed, the landing's
+  camera, the lock's 130-stud reach, the server.
+- **To judge in play:** after a landing the fish turns to where you look, so landing while looking across the lane
+  swings it that way; whether 38 to 45 in the glide feels slow again (Hugo found it so: raise `AirShare`); whether a
+  pull-in from 100 studs or more by itself looks wrong (the reference's are 15 to 22 m: lower `GrabRange`).
+
 ## 2026-11-11 · 8570-F43F (the user's PC): a steadier lock-on, after the user played Movement v3.1
 **State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played:** the
 numbers are a first guess for the user to judge. Files: `src/client/Lib/Lock.luau`, `Config.Lock`, two rows on the N panel.

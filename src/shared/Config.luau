@@ -87,8 +87,14 @@ Config.Ride = {
 	Surge = 1.25, -- the burst on mount
 	SurgeTime = 0.5,
 	SlowDownTime = 2, -- back to idle once nobody rides it
-	-- You always go forward and only A and D steer, on a fish, in the hop and floating
-	YawRate = 95, -- A and D turn you at this rate at full press (degrees a second), the same everywhere
+	-- You always go forward. The way you go follows the camera (the user, 2026-11-11, after playing Movement v3.1: "when
+	-- you move the camera the movement should follow, alongside A and D; that's what makes the reference feel better"):
+	-- A and D turn the camera, a drag, a stick or the mouse in the hop turn it too, and the fish, the hop and the float
+	-- come round to it. CameraSteer 0 is Movement v3.1's way: only A and D steer, and the view is free of the heading.
+	CameraSteer = 1,
+	SteerEase = 6, -- how quickly the way you go comes round to the view (higher is snappier)
+	SteerRate = 140, -- and never faster than this, degrees a second
+	YawRate = 95, -- A and D turn the view (and with CameraSteer off, you) at this rate at full press, degrees a second
 	TurnEase = 10, -- how quickly a turn comes in and stops (higher is snappier)
 	MaxPitch = 55, -- the steepest the fish noses up or down by itself to follow the lane
 	BankEase = 5, -- response rate for the bank on a fish and in the hop
@@ -111,7 +117,9 @@ Config.Jump = {
 	-- going deeper is paid for in Oxygen (Config.ZoneDrain), never in a shorter window.
 	Window = 3.0, -- seconds from leaving the fish in which to grab the next one
 	Warn = 0.8, -- the HUD's timer turns red and pulses for this last part
-	AutoGrab = 0, -- 1: at the window's end a locked fish is grabbed without a press (the old hands-off landing); 0: you sink
+	-- (the user, 2026-11-11: the reference feels more automatic; match its hop one to one. There the pull-in starts by
+	-- itself about 1.7 s after the press, and a second press only brings it sooner.)
+	AutoGrab = 2, -- 2: the locked fish pulls you in by itself when the glide ends, or as soon as one is locked in the drop (the reference); 1: only at the window's end; 0: never, you must press (Movement v3.1)
 	MinFlight = 0.15, -- before a second press counts as a grab (so one press can't do both)
 	Cooldown = 0.3, -- after landing, before the next hop
 	InputGap = 0.2, -- seconds between JumpRequest repeats that count as a new press
@@ -127,10 +135,14 @@ Config.Jump = {
 	Apex = 20,
 	Ceiling = 3, -- the hop stays this far under the surface line (Oxygen.SurfaceY)
 	SeatRoom = 5, -- a rider sits about this far above the middle of a fish: the hop's rise is counted from the seat
-	FloatTime = 1.4, -- the glide at the top, swimming
+	FloatTime = 1.3, -- the glide at the top, swimming (1.4 until 2026-11-11: with LaunchTime it ends 1.7 s after the press, when the reference's pull-in begins)
 	FloatRise = 1, -- still rising this much through the glide
 	-- (Hugo, 2026-11-11, after playing: the air was too slow. The glide was 38, the herd's pace, and the drop 30.)
-	AirSpeed = 54, -- the glide's speed: well past the herd's pace (38), so a hop gains on the fish ahead
+	AirSpeed = 54, -- the glide's speed with AirShare 0: well past the herd's pace (38), so a hop gains on the fish ahead
+	-- (the user, later the same day: match the reference. Measured there, the rider floats at 0.85 of the speed they
+	-- rode at, keeping pace with the herd, so they hang over the fish ahead instead of flying past it.)
+	AirShare = 0.85, -- the glide's speed as a share of the ridden speed of the fish you left; 0: AirSpeed, whatever the fish
+	FreeAirSpeed = 38, -- and from floating, with no fish left behind (a Common's herd pace)
 	-- The drop is the rest of the window (Window - LaunchTime - FloatTime: 1.2 s). It is still swimming, not a fall:
 	-- you slow a little and sink, slowly at first.
 	DropTime = 0, -- (worked out in Config.refresh)
@@ -344,7 +356,7 @@ Config.Camera = {
 	AutoRecentre = 1, -- 1: the view drifts back behind you after LookBack seconds left alone; 0: never
 	Recentre = 1.2, -- how quickly it drifts back (higher is quicker; 3 until 2026-11-11)
 	LookBack = 4, -- seconds after you last moved the view before it does (1.2 until 2026-11-11)
-	AirRest = 0, -- 1: in the hop the view tilts to Jump.CameraPitch until you move it (as before 2026-11-11); 0: it stays
+	AirRest = 1, -- 1: in the hop the view tilts to Jump.CameraPitch until you move it, and comes back up at the landing (the reference: the camera lifts to look down from behind; with the lock aimed by the view this is also what puts the near fish under the aim, not ones 100 studs off); 0: it stays (Hugo's feel pass)
 	StickSensitivity = 2.6, -- radians of camera look a second with a gamepad's right stick pushed all the way
 	MouseSensitivity = 0.004, -- radians of camera look per mouse pixel
 	TouchSensitivity = 0.006, -- radians of camera look per touch pixel

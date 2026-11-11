@@ -45,6 +45,7 @@ local position = Vector3.zero
 local yaw = 0 -- the way we are going: A and D turn it
 local roll = 0 -- banking into a turn
 local launchSpeed = 0
+local airSpeed = 0 -- the glide's pace for this hop (Jump.AirShare of the speed we rode at, or Jump.AirSpeed)
 local baseY, topY = 0, 0 -- where we left, and the top of the glide
 local left: Model? = nil -- the fish this hop left
 local locked: Model? = nil -- the locked fish: the one a grab takes; it glows
@@ -266,17 +267,26 @@ local function request(): boolean
 	end
 	local fish = State.Fish
 	local fishRoot = fish and fish.PrimaryPart
-	if mode == "Riding" and fishRoot then
+	airSpeed = j.AirSpeed
+	if mode == "Riding" and fish and fishRoot then
 		yaw = yawOf(fishRoot.CFrame.LookVector)
 		launchSpeed = fishRoot.AssemblyLinearVelocity.Magnitude * j.Launch
+		-- the reference floats at 0.85 of the speed it rode at: the herd's pace, so we hang over the fish ahead
+		local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
+		if j.AirShare > 0 and kind then
+			airSpeed = j.AirShare * kind.RiddenSpeed
+		end
 		left = fish
 		RideController.leave()
 	else
 		yaw = State.Heading
 		launchSpeed = j.FreeLaunch
+		if j.AirShare > 0 then
+			airSpeed = j.FreeAirSpeed
+		end
 		left = nil
 	end
-	launchSpeed = math.max(launchSpeed, j.AirSpeed)
+	launchSpeed = math.max(launchSpeed, airSpeed)
 	Course.begin()
 	position = root.Position
 	baseY = position.Y
@@ -321,8 +331,12 @@ end
 local function speedAt(t: number): number
 	local j = Config.Jump
 	local dropAt = j.LaunchTime + j.FloatTime
-	local cruise = Ease.lerp(launchSpeed, j.AirSpeed, Ease.smoothstep(j.BoostTime * 0.5, j.BoostTime + 0.3, t))
-	return Ease.lerp(cruise, math.min(cruise, j.DropSpeed), Ease.smoothstep(dropAt, dropAt + j.DropTime, t))
+	local cruise = Ease.lerp(launchSpeed, airSpeed, Ease.smoothstep(j.BoostTime * 0.5, j.BoostTime + 0.3, t))
+	-- (with AirShare the drop slows by the same share as DropSpeed is of AirSpeed, whatever fish we left)
+	local slow = if j.AirShare > 0
+		then cruise * math.min(1, j.DropSpeed / math.max(j.AirSpeed, 1))
+		else math.min(cruise, j.DropSpeed)
+	return Ease.lerp(cruise, slow, Ease.smoothstep(dropAt, dropAt + j.DropTime, t))
 end
 
 local function resumeSwim(root: BasePart)
@@ -460,8 +474,8 @@ local function hop(dt: number)
 		topY = Ease.lerp(topY, top, Ease.alpha(6, dt))
 	end
 
-	-- we always go forward, and A and D steer that exactly as they steer a fish (the camera turns by as much:
-	-- RideController); the lock is the fish we are looking at
+	-- we always go forward, steered exactly as a fish is (RideController.steer: to where the camera looks, which A and D
+	-- turn; with Ride.CameraSteer off, A and D only); the lock is the fish we are looking at
 	-- never into the sea floor, a rock or a bank, nor out of the lane: stopped at walls, skimming over what is under
 	-- us. Substep the whole elapsed frame: dropping time makes low-FPS players fly and steer slower while their
 	-- window keeps running at wall-clock speed.
@@ -470,9 +484,9 @@ local function hop(dt: number)
 	local h = dt / steps
 	for i = 1, steps do
 		local t = math.max(0, clock - dt + i * h)
-		local turn = RideController.turn(h)
-		local velocity = CFrame.fromOrientation(0, yaw + turn / 2, 0).LookVector * speedAt(math.max(0, t - h / 2))
-		yaw += turn
+		local before = yaw
+		yaw = RideController.steer(yaw, h)
+		local velocity = CFrame.fromOrientation(0, (before + yaw) / 2, 0).LookVector * speedAt(math.max(0, t - h / 2))
 		local want = Vector3.new(position.X + velocity.X * h, heightAt(t) + resumeHeight, position.Z + velocity.Z * h)
 		position = Course.clearMove(position, want, j.FloorClearance)
 	end
@@ -491,6 +505,17 @@ local function hop(dt: number)
 	root.AssemblyLinearVelocity = (position - was) / math.max(dt, 1e-6)
 	root.AssemblyAngularVelocity = Vector3.zero
 	State.Speed = speedAt(clock)
+
+	-- The reference's hands-off landing (Jump.AutoGrab 2): when the glide is over the locked fish pulls us in by
+	-- itself, about 1.7 s after the press; with none locked then, the first fish locked in the drop does. A press still
+	-- grabs sooner.
+	if j.AutoGrab >= 2 and clock >= dropAt and clock < j.Window then
+		local targetRoot = locked and locked.PrimaryPart
+		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= j.GrabRange then
+			startReel(root)
+			return
+		end
+	end
 
 	if clock >= j.Window then
 		if j.AutoGrab > 0 and locked and saddleOf(locked) then

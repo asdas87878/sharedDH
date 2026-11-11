@@ -37,6 +37,8 @@ local TUNABLES: { { any } } = {
 	{ "Jump", "FloatTime", 0.1 },
 	{ "Jump", "FloatRise", 1 },
 	{ "Jump", "AirSpeed", 2 },
+	{ "Jump", "AirShare", 0.05 },
+	{ "Jump", "FreeAirSpeed", 2 },
 	{ "Jump", "Drop", 1 },
 	{ "Jump", "DropCurve", 0.1 },
 	{ "Jump", "DropSpeed", 2 },
@@ -156,6 +158,9 @@ local TUNABLES: { { any } } = {
 	{ "Ride", "RampTime", 0.1 },
 	{ "Ride", "Surge", 0.05 },
 	{ "Ride", "SurgeTime", 0.1 },
+	{ "Ride", "CameraSteer", 1 },
+	{ "Ride", "SteerEase", 1 },
+	{ "Ride", "SteerRate", 10 },
 	{ "Ride", "YawRate", 5 },
 	{ "Ride", "TurnEase", 1 },
 	{ "Ride", "Bank", 2 },
@@ -341,12 +346,12 @@ local FLAGS: { { any } } = {
 		end,
 	},
 	{
-		"Grab the locked fish for you when the window ends",
+		"Pull you onto the locked fish by itself when the glide ends",
 		function()
-			return Config.Jump.AutoGrab > 0
+			return Config.Jump.AutoGrab >= 2
 		end,
 		function(on: boolean)
-			Config.Jump.AutoGrab = if on then 1 else 0
+			Config.Jump.AutoGrab = if on then 2 else 0
 		end,
 	},
 }

@@ -15,6 +15,12 @@ max Oxygen that keeps up with it in its home land ("Required").
 and sink" is gone. Where the sections further down ("The jump, as built") say otherwise, this section is right.
 **Nobody has played it yet:** see "Checked, and what to play" below.
 
+**Changed later on 2026-11-11** (the user, after playing it; [Handoff](../Handoff.md)), so read the rest of this
+section with these in mind: the way you go follows the camera (`Ride.CameraSteer`); the pull-in starts by itself when
+the glide ends, 1.7 s after the press (`Jump.AutoGrab` 2, `FloatTime` 1.3); the glide is at 0.85 of the ridden speed
+(`Jump.AirShare`), not 54; the view tilts down in the hop (`Camera.AirRest` 1); and the lock is steadier
+(`Lock.EdgeAim`, `SwitchTime`).
+
 ![The hop from the side](../attachments/hop-arc.png)
 
 ### The hop
