@@ -3,6 +3,23 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-11 · 8570-F43F (the user's PC): every roster creature has a model; Studio here now runs Hugo's movement
+**State:** pushed by hand (`13de842`). Nothing uploaded to Roblox.
+
+- **Creatures:** the last 18 (the eight variants and the ten Secrets) are built, pass the gate and are exported, so all
+  81 creatures of [the roster](design/roster.md) have a model: 82 in [the creature queue](design/creature-queue.md) with
+  the Bobbit Worm. All but the first 14 are first drafts seen only on batch sheets. The user's word: these are what the
+  game uses for now; polish, more creatures and the texture pass come later.
+- **Not in the game:** 49 of the 82 were never uploaded, and 32 of the 33 uploaded ones are still the dark versions.
+  Uploads are permanent and wait for the user's word.
+- **Movement v3.1, the feel pass and the missed-hop fix are in the place on this PC.** Checked in Studio: all 27 scripts
+  under `src/` are the same length in the place as in the checkout, `PropService`, `Lock` and `Spring` included. The
+  merge kept this PC's map numbers (`Spawn.MaxTotal` 800, `BandMax` 200, `Ride.LaneMargin` -3, `Oxygen.DockRadius`
+  120, `Dock.WalkSpeed` 28). StyLua, selene and `rojo build` pass on the merged code.
+- **The place has what the new code looks for:** `Workspace.ClaudeBlockout.Lane.Props` (1,974 children) and
+  `FallenPartsDestroyHeight` -20,000.
+- **Not done:** nobody has played Hugo's movement on this PC's ten-land map. His tests were on a three-land place.
+
 ## 2026-11-11 · Ivy (Codex, Hugo's PC): unattended feel-pass check; missed-hop message fixed
 **State:** two Studio playtests through studio-runner, then stopped to leave Studio idle. All 27 runtime scripts
 matched the checkout before testing and again after the fix. StyLua, selene and `rojo build` pass. No ride/jump/camera
