@@ -257,7 +257,9 @@ Config.Spawn = {
 	-- Fish go in every zone along the whole lane that has a roster (a fish type that can turn up there: today zones 1
 	-- to 6, the four homes plus two zones of reach); zones with none stay empty until their fish exist. 12 a 1,000 over
 	-- zones 1 to 6 makes about 171; all ten zones would make about 290, so the cap sits above that.
-	MaxTotal = 480,
+	-- (2026-11-11: the whole ten-land lane is 30,000 studs, which wants about 720. At 480 the deep lands took the lot,
+	-- the Shallows were left with 11 fish 90 studs apart, and a jump in a deep land found nothing to land on.)
+	MaxTotal = 800,
 	Slice = 120,
 	BoardSlice = 2,
 	Wander = 80, -- a fish wanders this far either way along the lane from its home
@@ -271,6 +273,10 @@ Config.Spawn = {
 	HeightFloor = 6, -- in shallow water the herd is pressed down to leave room for a jump, but never lower than this
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
 	LaneFill = 0.7, -- fraction of the lane's half width fish use
+	-- The herd is never wider than this, however wide the lane (2026-11-11: the lane now widens to 980). Spread over a
+	-- lane that wide the fish were too far apart to jump between; kept to a band down the middle, a jump finds one in
+	-- every land the way it does in the Shallows.
+	BandMax = 200,
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
 }

@@ -137,6 +137,20 @@ feel yet.** The user decided this with void's owner: [Decisions](Decisions.md), 
     as on grey-box 6). A ridden fish steered at a wall stopped 8 studs short of it and never passed the lane's edge.
   - The frame rate read 15 a second in this run; the run before (grey-box 6) read 59 and an earlier one 15 too, so it
     is probably Studio not being drawn, not the map. Not settled.
+- **Grey-box 8 (2026-11-11, the map chat: all ten lands, 56,894 parts, the lane 30,000 studs long and up to 980
+  wide, 2,225 deep):** the game runs on it after one change to the herd.
+  - As loaded: the floor survey within 3.1 studs everywhere; fish in every land; 302 obstacles read from the map.
+  - **Found:** the 480-fish limit (`Spawn.MaxTotal`) was used up by the deep lands, so the Shallows held 11 fish 90
+    studs apart; and the herd spread over the whole width of the wide lands. Riding a fish in the Vents (the sandbox
+    reset moved there), three jumps in a row found nothing to land on.
+  - **Changed:** `Spawn.MaxTotal` 800, and the herd keeps to a band at most 200 studs wide down the lane's middle
+    (`Spawn.BandMax`, `band()` in `FishService`). After: 741 fish, a fish's nearest neighbour 38 to 49 studs away in
+    every land, and four jumps in a row landed in the Vents (2.6 to 3.0 s each).
+  - **Not settled:** the frame rate. Every reading through the connector in this session was 15 a second, which looks
+    like Studio's limit for a window that isn't in front; the one reading of 59 was on grey-box 6. Needs the user's
+    own eyes on the ten-land map.
+  - **Seen, for the friend's mechanics (the held code):** a player floating off a fish rises 6 studs a second with no
+    limit below the surface, so in deep water they are out of a jump's reach of the herd within about 7 seconds.
   - **Seen, not solved:** the first jump from the start missed in one run (the herd swims off at the flight's own
     pace, so a diver starting from rest can't catch a fish ahead); a ridden fish left alone runs into a wall or an
     obstacle and stops, because the lane winds and the fish only turns with the camera; a jump's flight against the

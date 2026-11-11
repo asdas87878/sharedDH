@@ -193,6 +193,30 @@ start of the third land.)
 - **Stand-ins, plainly:** lands 5 to 10 have no assets of their own and borrow the first four lands' sets (corals
   in the Twilight, kelp in the Midnight); their ground colours are first guesses; there is no fog, so the deep lands
   look as bright as the shallows. The pictures above are drawn in Blender with a flat water colour per land.
+- **In Studio 2026-11-11:** 56,894 parts, 39,074 pictures, check clean. The load took about 20 minutes. Four files
+  in a row (2,400 wall parts) reported success but left nothing in the place; the check's count caught it, they
+  were found by probing for their parts and run again. So the check line matters: never trust a load without it.
+  Faint lines show between floor tiles in the deep lands; to look at.
+
+![The deeper lands in Studio](../attachments/map-whole-studio.jpg)
+
+**Ride-tested by the riding chat (2026-11-11):**
+- **The lane is 30,163 studs to ride,** not the 23,500 it is planned in: the middle swings from side to side, so it
+  is about 28% longer. About 9 minutes at riding speed, where 7 was the aim.
+- **Each land as the game sees it** (depth and width at its middle): Shallows 67 and 177; Coral Reef 145 and 329;
+  Kelp Forest 263 and 417; Shipwrecks 419 and 455; Open Blue 668 and 577; Twilight 876 and 576; Midnight 1,121 and
+  561; Vents 1,448 and 868; Bone Graveyard 1,767 and 468; The Underworld 2,074 and 655.
+- **The herd no longer uses the lane's whole width.** Spread over a lane this wide the fish were too far apart for a
+  jump to land (three misses running in the Vents), and the deep lands used up the fish, leaving the Shallows 11.
+  The riding chat now keeps the herd in a band at most 200 wide down the middle and allows 800 fish: a nearest
+  neighbour 38 to 49 studs away in every land, four jumps in a row landing in the Vents.
+- **So the extra width is scenery and room to steer.** Big assets near the middle matter to the herd; those out by
+  the walls of a wide room only matter to a rider who goes there. For the asset pass: the middle 200 studs are the
+  herd's road.
+- The floor its code reads is within 3.1 studs of the built floor at all 3,017 places checked.
+- Frame rate still unsettled: every reading through the connector is 15 a second, which looks like Studio's limit
+  for a window that isn't in front. It needs the user's eyes.
+
 - **What to judge from it:** the length of each land, how the widening feels, the rhythm of rooms and necks, where
   the steep stretches fall. Not the colours, the assets or the light.
 

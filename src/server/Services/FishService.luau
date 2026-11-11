@@ -199,10 +199,15 @@ local function sliceAt(s: number): number?
 	return nil
 end
 
+-- How far either side of the lane's middle the herd swims where the lane is `width` wide
+local function band(width: number): number
+	return math.min(width / 2 * Config.Spawn.LaneFill, Config.Spawn.BandMax / 2)
+end
+
 -- A spot in the lane at s: across 0.7 of its width, a random height above the floor, under the surface and any roof
 local function pointAt(s: number): Vector3
 	local _, _, width = Lane.at(lane, s)
-	local x = rng:NextNumber(-1, 1) * width / 2 * Config.Spawn.LaneFill
+	local x = rng:NextNumber(-1, 1) * band(width)
 	-- not inside one of the big things standing in the lane (a few tries; the steering sorts out the rest)
 	for _ = 1, 6 do
 		local at = Lane.point(lane, s, x, 0)
@@ -217,7 +222,7 @@ local function pointAt(s: number): Vector3
 		if clear then
 			break
 		end
-		x = rng:NextNumber(-1, 1) * width / 2 * Config.Spawn.LaneFill
+		x = rng:NextNumber(-1, 1) * band(width)
 	end
 	local floorY = Lane.point(lane, s, x, 0).Y
 	-- (and low enough in the shallows that a jump has room to rise above the herd)
@@ -240,7 +245,7 @@ local function placeInLane(w: Wild)
 	local s = Lane.project(lane, position)
 	local centre, along, width = Lane.at(lane, s)
 	local right = along:Cross(Vector3.yAxis)
-	local half = width / 2 * Config.Spawn.LaneFill
+	local half = band(width)
 	w.S = s
 	w.Across = math.clamp((position - centre):Dot(right), -half, half)
 	local lowest = math.min(Config.Spawn.HeightMin, Config.Spawn.HeightMax)
