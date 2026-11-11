@@ -9,6 +9,13 @@
 -- solid doesn't count (the pull-in would go through it).
 -- The lock is sticky, so it doesn't flicker between two fish: the locked fish keeps it for MinHold, then until another
 -- scores Sticky better, and it may drift KeepCone times further off the aim than it took to win the lock.
+-- Since 2026-11-11 (the user: it switched between too many fish, too close together, and was hard to pick with):
+--   EdgeAim 1 measures "off the aim" from the fish's nearest edge, in plain degrees as a share of half the Cone, not as a
+--   share of the fish's own allowance. The old way gave a near fish a small score wherever it was in its wide allowance,
+--   so near fish off to the side kept taking the lock; now the fish under the middle of the view wins, and one the aim
+--   passes through scores 0, which nothing can beat by Sticky. EdgeAim 0 is the old score.
+--   SwitchTime: a better fish must stay the better one this long before it takes the lock, so a fish swimming across
+--   the view for a moment doesn't.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,6 +25,8 @@ local State = require(script.Parent.State)
 local Lock = {}
 
 local lockedAt = -math.huge
+local challenger: Model? = nil -- the fish that scores better than the locked one, waiting out SwitchTime
+local challengerAt = 0
 
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
@@ -60,12 +69,19 @@ local function score(model: Model, from: Vector3, eye: Vector3, aim: Vector3, ra
 	end
 	local angle = math.acos(math.clamp(to:Dot(aim) / away, -1, 1))
 	local kind = Config.FishById[model:GetAttribute("FishType") :: string]
-	local radius = l.AimRadius + (if kind then kind.Size.Z / 2 else l.FallbackRadius)
+	local body = if kind then kind.Size.Z / 2 else l.FallbackRadius
+	local radius = l.AimRadius + body
 	local allowance = math.min(math.rad(l.Cone / 2) + math.atan(radius / math.max(away, 1)), math.rad(l.MaxAngle))
 	if angle > math.min(allowance * (if keep then l.KeepCone else 1), math.rad(l.MaxAngle)) then
 		return nil
 	end
-	return l.AngleWeight * angle / allowance + l.DistanceWeight * distance / math.max(range, 1)
+	local far = l.DistanceWeight * distance / math.max(range, 1)
+	if l.EdgeAim > 0 then
+		-- how far the aim passes from the fish itself, not from its middle: 0 when the aim goes through it
+		local off = math.max(angle - math.atan(body / math.max(away, 1)), 0)
+		return l.AngleWeight * off / math.max(math.rad(l.Cone / 2), 0.01) + far
+	end
+	return l.AngleWeight * angle / allowance + far
 end
 
 -- The fish to lock: `from` is the rider, `eye` and `aim` the camera's place and look, `current` the fish locked now,
@@ -102,11 +118,21 @@ function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, l
 		end
 	end
 	local now = os.clock()
-	if current and currentScore then
-		if best == current or now - lockedAt < l.MinHold or bestScore > currentScore - l.Sticky then
+	if current and currentScore and best ~= current then
+		if now - lockedAt < l.MinHold or bestScore > currentScore - l.Sticky then
+			challenger = nil
+			return current
+		end
+		-- a better fish: it takes the lock only once it has been the better one for SwitchTime
+		if challenger ~= best then
+			challenger = best
+			challengerAt = now
+		end
+		if now - challengerAt < l.SwitchTime then
 			return current
 		end
 	end
+	challenger = nil
 	if best ~= current then
 		lockedAt = now
 	end

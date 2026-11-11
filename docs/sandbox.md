@@ -51,7 +51,7 @@ What to reach for:
 - **The arc:** `Jump.LaunchTime`, `Launch` and `Apex` (the pop), `FloatTime` and `AirSpeed` (the glide), `Drop`,
   `DropCurve` and `DropSpeed` (the drop). `Window` is the whole hop: the drop is what the pop and the glide leave of
   it (3.0 - 0.4 - 1.4 = 1.2 s), so a longer glide means a shorter drop unless `Window` grows too.
-- **How easy a fish is to get:** `Jump.GrabRange`, and `Lock.Cone`, `AimRadius`, `DistanceWeight`, `Sticky`,
+- **How easy a fish is to get:** `Jump.GrabRange`, and `Lock.Cone`, `AimRadius`, `DistanceWeight`, `Sticky`, `SwitchTime`, `EdgeAim`,
   `LeftPenalty`. Where the view rests in the hop: `Jump.CameraPitch`, `CameraZoom`.
 - **How the turn feels:** `Ride.YawRate` and `TurnEase` (one rate, everywhere).
 - **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `TierDrain`.

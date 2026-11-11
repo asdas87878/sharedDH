@@ -96,6 +96,8 @@ local TUNABLES: { { any } } = {
 	{ "Lock", "Sticky", 0.05 },
 	{ "Lock", "MinHold", 0.05 },
 	{ "Lock", "KeepCone", 0.1 },
+	{ "Lock", "SwitchTime", 0.05 },
+	{ "Lock", "EdgeAim", 1 },
 	{ "Lock", "FallbackRadius", 1 },
 	{ "Lock", "Preview", 1 },
 	-- Oxygen a second on a Common, land by land (the list Config.ZoneDrain)

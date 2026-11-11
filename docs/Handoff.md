@@ -3,6 +3,23 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-11 · 8570-F43F (the user's PC): a steadier lock-on, after the user played Movement v3.1
+**State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not played:** the
+numbers are a first guess for the user to judge. Files: `src/client/Lib/Lock.luau`, `Config.Lock`, two rows on the N panel.
+
+- **What the user said:** the lock is better than before, but it switches onto too many fish, they are too close
+  together and it is hard to pick one; the reference feels more automatic and closer to what you mean.
+- **`Lock.EdgeAim` 1 (new):** "off the aim" is now measured from the fish's nearest edge, in degrees as a share of half
+  the `Cone`. It was measured from the fish's middle as a share of that fish's own allowance, which is wide for a near
+  fish, so near fish off to the side scored well and kept taking the lock. Now the fish nearest the middle of the view
+  wins, and a fish the aim passes through scores 0. `EdgeAim` 0 gives the old score back.
+- **`Lock.SwitchTime` 0.15 (new):** a better fish must stay the better one this long before it takes the lock, so a
+  fish crossing the view for a moment doesn't. 0 is as before.
+- **Stickier:** `Sticky` 0.2 to 0.35 (with `EdgeAim`, 7 degrees of aim), `MinHold` 0.3 to 0.45, `KeepCone` 1.4 to 1.6.
+- **To get Hugo's lock back exactly:** `EdgeAim` 0, `SwitchTime` 0, `Sticky` 0.2, `MinHold` 0.3, `KeepCone` 1.4.
+- **Still to come, the user's order:** speed and camera shake, then optimising, then bugs and the parts that aren't
+  movement, then optimising again.
+
 ## 2026-11-11 · 8570-F43F (the user's PC): every roster creature has a model; Studio here now runs Hugo's movement
 **State:** pushed by hand (`13de842`). Nothing uploaded to Roblox.
 

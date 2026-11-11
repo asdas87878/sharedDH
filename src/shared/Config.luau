@@ -217,9 +217,13 @@ Config.Lock = {
 	-- The fish you just left swims on right under the middle of the view, so with no penalty it takes nearly every lock.
 	LeftPenalty = 0.5, -- added to its score: any other fish near the aim wins; with none, a grab takes it back
 	-- so the lock doesn't flicker between two fish
-	Sticky = 0.2, -- another fish must score this much better to take the lock,
-	MinHold = 0.3, -- and never sooner than this after the lock was taken,
-	KeepCone = 1.4, -- and the locked fish keeps the lock this much further off the aim than it took to win it
+	-- 2026-11-11, the user after playing: the lock switched between too many fish too close together. Steadier now:
+	-- Sticky 0.2 to 0.35, MinHold 0.3 to 0.45, KeepCone 1.4 to 1.6, and the two new rows below.
+	Sticky = 0.35, -- another fish must score this much better to take the lock (with EdgeAim: 0.35 is 7 degrees of aim),
+	MinHold = 0.45, -- and never sooner than this after the lock was taken,
+	KeepCone = 1.6, -- and the locked fish keeps the lock this much further off the aim than it took to win it,
+	SwitchTime = 0.15, -- and the better fish must stay the better one this long first (0: at once, as before)
+	EdgeAim = 1, -- 1: "off the aim" is measured from the fish's nearest edge in degrees (a fish the aim passes through scores 0); 0: from its middle as a share of its own allowance (until 2026-11-11: near fish off to the side took the lock)
 	FallbackRadius = 4, -- assumed fish radius if its type has not replicated
 	Preview = 1, -- 1: the lock shows (a fainter glow) while you ride or float, so you see what you could reach; 0: only after leaving
 }
