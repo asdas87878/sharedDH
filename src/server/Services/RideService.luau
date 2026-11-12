@@ -60,6 +60,9 @@ type Rider = {
 
 local RideService = {}
 
+-- the sandbox's reset seats the rider only on a fish that has been in the Workspace this long (an experiment: 1 before)
+local SEAT_SETTLED = 4
+
 local riders: { [Player]: Rider } = {}
 local dockSpawn: BasePart? = nil
 
@@ -184,9 +187,16 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 		return false
 	end
 	humanoid.PlatformStand = true
-	-- the client has already blended the rider onto the saddle, so this only lines the server's copy up (left out, the
-	-- weld could move the fish to the rider instead)
-	root.CFrame = w.Saddle.WorldCFrame
+	-- The rider's own machine has already put them on the saddle (the pull-in, or the sandbox's seat), and it owns the
+	-- character, so the server leaves the character where it is. Moving it here ("to line the server's copy up") put
+	-- it on the saddle as the SERVER sees the fish, which on the rider's machine is some 5 to 12 studs ahead of the
+	-- fish it sees; the weld arrived with that gap, and the first physics step closed it against the fish's own Swim
+	-- and Turn, which have no force limit: now and then the pair was thrown hundreds to hundreds of thousands of studs
+	-- in that one step (2026-11-12, found on the sandbox's reset; a landing has the same gap). Only a rider who is
+	-- somehow far from the saddle is still moved, so the weld can't drag the fish to them.
+	if (root.Position - w.Saddle.WorldPosition).Magnitude > 30 then
+		root.CFrame = w.Saddle.WorldCFrame
+	end
 	local weld = Instance.new("Weld")
 	weld.Name = "RideWeld"
 	weld.Part0 = w.Root
@@ -670,7 +680,9 @@ function RideService.sandboxReset(player: Player)
 			return true
 		end
 		local here = parts(player)
-		local w = if here and (here.Position - at).Magnitude < 60 then FishService.nearest(at, 250, player, 1) else nil
+		local w = if here and (here.Position - at).Magnitude < 60
+			then FishService.nearest(at, 250, player, SEAT_SETTLED)
+			else nil
 		if not w or not FishService.reserve(w, player) then
 			return false
 		end
@@ -690,7 +702,7 @@ function RideService.sandboxReset(player: Player)
 	-- take is given up and tried again
 	task.spawn(function()
 		task.wait(0.35)
-		for _ = 1, 20 do
+		for _ = 1, 30 do
 			if r.Token ~= token or r.State ~= "Free" then
 				return
 			end
