@@ -5,9 +5,8 @@
 --   the bubble trail left behind our own character through the pop's extra speed and the pull-in;
 --   the sounds: the pop's swish, the pull-in's whoosh, the landing's splash (the client's own built-in sounds, pitched;
 --     no uploaded assets);
---   the "!" over a startled fish (Config.Ride.Startle): two blocks that pop up over its head, turned to the camera.
--- Feel.step runs once a frame (JumpController's render step). Everything is made once and reused, but the "!" and the
--- sounds, which are a few parts or one Sound a landing.
+-- Feel.step runs once a frame (JumpController's render step). Everything is made once and reused, but the sounds,
+-- which are one Sound each.
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -33,9 +32,6 @@ local SOUNDS: { [string]: string } = {
 	Swish = "rbxasset://sounds/action_swim.mp3",
 	Splash = "rbxasset://sounds/impact_water.mp3",
 }
-
-type Mark = { fish: Model, bar: Part, dot: Part, at: number, size: number, lift: number, ahead: number }
-local marks: { Mark } = {}
 
 local trail: ParticleEmitter? = nil
 
@@ -99,67 +95,6 @@ function Feel.trail(root: BasePart?, on: boolean)
 	end
 	emitter.Rate = Config.Feel.Trail
 	emitter.Enabled = true
-end
-
--- The "!" over a fish that has just been landed on
-function Feel.mark(fish: Model)
-	local root = fish.PrimaryPart
-	if Config.Feel.Mark <= 0 or not root then
-		return
-	end
-	local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-	local body = if kind then Config.bodyOf(fish, kind) else Vector3.new(5, 5, 10)
-	local length = body.Z
-	local height = body.Y
-	local function block(): Part
-		local p = Instance.new("Part")
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanQuery = false
-		p.CanTouch = false
-		p.CastShadow = false
-		p.Material = Enum.Material.Neon
-		p.Color = Config.Jump.Glow
-		p.Parent = workspace.CurrentCamera
-		return p
-	end
-	table.insert(marks, {
-		fish = fish,
-		bar = block(),
-		dot = block(),
-		at = os.clock(),
-		size = math.clamp(length / 12, 0.9, 2.6),
-		lift = height / 2 + 4.5,
-		ahead = length * 0.3,
-	})
-end
-
-local function stepMarks()
-	local now = os.clock()
-	local life = math.max(Config.Feel.MarkTime, 0.05)
-	local eye = workspace.CurrentCamera.CFrame.Position
-	for i = #marks, 1, -1 do
-		local m = marks[i]
-		local root = m.fish.PrimaryPart
-		local u = (now - m.at) / life
-		if u >= 1 or not root or not m.fish.Parent then
-			m.bar:Destroy()
-			m.dot:Destroy()
-			table.remove(marks, i)
-			continue
-		end
-		-- it pops up past its size and settles, then shrinks away
-		local grow = math.min(u / 0.18, 1)
-		local scale = m.size
-			* (grow * (1 + 0.45 * math.sin(grow * math.pi)))
-			* (1 - math.clamp((u - 0.75) / 0.25, 0, 1))
-		local at = (root.CFrame * CFrame.new(0, m.lift + 1.6 * m.size * grow, -m.ahead)).Position
-		local face = CFrame.lookAt(at, eye) * CFrame.Angles(0, 0, math.rad(-10))
-		m.bar.Size = Vector3.new(0.7, 2, 0.4) * math.max(scale, 0.01)
-		m.dot.Size = Vector3.new(0.7, 0.7, 0.4) * math.max(scale, 0.01)
-		m.bar.CFrame = face * CFrame.new(0, 0.9 * scale, 0)
-		m.dot.CFrame = face * CFrame.new(0, -0.9 * scale, 0)
-	end
 end
 
 local function makeLines()
@@ -238,7 +173,6 @@ end
 
 function Feel.step(dt: number)
 	stepLines(dt)
-	stepMarks()
 end
 
 return Feel

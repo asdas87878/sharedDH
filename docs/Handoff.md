@@ -3,6 +3,18 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · 8570-F43F (the user's PC): the startle's rearing and "!" removed; our landing reactions play again
+**State:** by the game-code chat, on the user's word. In the place on this PC, run once: two hops and landings, no
+errors, no "!" made. StyLua, selene and `rojo build` pass. Not committed by hand. Nothing uploaded.
+- **Why:** with `Ride.Startle` on, every landing got one reaction (the rear) and returned before the pick from
+  `Animation.LandingMix`, so the seven reactions and their spread by body type never played.
+- **Removed:** `AnimController`'s `startle` and its two "rear" branches (creature and stand-in), `Feel.mark` and its
+  step, `Ride.StartleTime/Rear/Shake/ShakeRate/Coil/Lunge`, `Feel.Mark/MarkTime`, and their sandbox rows.
+- **Kept:** the landing's slow-down in `RideController` (`Ride.Startle` 1, `StartleBrake/Slow/Hold/Recover`), the
+  rider's animations, the speed lines and sounds. A fish's `brace` and `thrown` are now always 0 (the rider's
+  astride pose still takes them).
+- **Not seen:** the landing reactions themselves: Studio's window is not drawing 3D on this PC.
+
 ## 2026-11-12 · 8570-F43F (the user's PC): Hugo's four passes merged with the too-strong rule, taming and the UI chat's HUD
 **State:** by the game-code chat, on the user's word ("update the game to what my partner has added"). Merged, in the
 place on this PC, run once: riding, a tame, the slots and the HUD all work, no errors in the output. StyLua, selene and

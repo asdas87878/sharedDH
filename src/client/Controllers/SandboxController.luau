@@ -193,18 +193,12 @@ local TUNABLES: { { any } } = {
 	{ "Ride", "FloorClearance", 1 },
 	{ "Ride", "Ceiling", 1 },
 	{ "Ride", "SpeedSlack", 0.1 },
-	-- The startle (Hugo, 2026-11-12): a fish you land on rears and stalls, then bolts
+	-- The landing's slow-down (Hugo, 2026-11-12)
 	{ "Ride", "Startle", 1 },
-	{ "Ride", "StartleTime", 0.05 },
 	{ "Ride", "StartleBrake", 0.05 },
 	{ "Ride", "StartleSlow", 0.05 },
 	{ "Ride", "StartleHold", 0.05 },
 	{ "Ride", "StartleRecover", 0.1 },
-	{ "Ride", "StartleRear", 2 },
-	{ "Ride", "StartleShake", 1 },
-	{ "Ride", "StartleShakeRate", 1 },
-	{ "Ride", "StartleCoil", 1 },
-	{ "Ride", "StartleLunge", 0.1 },
 	-- The rider's poses (Config.Pose) and the juice (Config.Feel)
 	{ "Pose", "Blend", 1 },
 	{ "Pose", "CrawlRate", 0.1 },
@@ -234,8 +228,6 @@ local TUNABLES: { { any } } = {
 	{ "Feel", "Splash", 0.05 },
 	{ "Feel", "SplashCount", 2 },
 	{ "Feel", "SplashReach", 1 },
-	{ "Feel", "Mark", 1 },
-	{ "Feel", "MarkTime", 0.05 },
 	{ "Camera", "Fov", 2 },
 	{ "Camera", "SpeedFov", 2 },
 	{ "Camera", "SpeedFovFrom", 5 },

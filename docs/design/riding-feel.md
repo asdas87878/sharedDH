@@ -337,9 +337,10 @@ and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](..
 - **The startle** (changed the same day, Hugo: the fish must not stop). A fish you LAND on (not the sandbox's reset)
   comes down to `Ride.StartleSlow` (0.6) of its ridden speed in `StartleBrake` (0.12 s), stays there for
   `StartleHold` (0.4 s), then eases back to full over `StartleRecover` (0.8 s). No stall, no bolt. Measured on a Blue
-  Chromis (ridden 47.3): 28.3 through the hold, 47.3 again 1.2 s after the touch. The rearing is seen only and is
-  unchanged (`StartleTime` 0.8 s, `StartleRear`, `StartleShake`): `AnimController` turns the fish's joints, never
-  its Root.
+  Chromis (ridden 47.3): 28.3 through the hold, 47.3 again 1.2 s after the touch. **The rearing and the "!" were taken
+  out 2026-11-12 on the user's word:** they played on every landing in place of the landing reactions worked out in
+  the Swim Lab (`Animation.LandingMix`: the body type's own, its second, now and then any of the seven), which play
+  again. Only this slow-down is left of the startle.
 - **The rider's animation** (`Config.Pose`): a front crawl in the glide and the drop, a breaststroke lying
   `FloatTilt` degrees forward while floating, a crouch (`PopTuck`) and a streamlined push off the fish, streamlined
   through the pull-in, a tuck and a forward flip from `FlipStart` of the way into the seat, and astride the fish:

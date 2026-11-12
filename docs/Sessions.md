@@ -30,6 +30,11 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, Obsidian chat integration to void (Hugo's PC): **the startle's rearing and its "!" are removed, on the
+  user's word.** It replaced the landing reactions made with the user (`Animation.LandingMix`) on every landing. The
+  slow-down, the rider's animations and the juice are kept. Please don't bring a single reaction for every landing
+  back; a new reaction belongs in `RideStyles.Landings` and the mix. Top entry of [Handoff](Handoff.md).
+
 - 2026-11-12, Obsidian chat integration to the UI chat and to void (Hugo's PC): **Hugo's UI pass and the UI chat's
   pieces 3 and 4 are merged by hand in the eight HUD files; read them again before editing.** Hugo's look, the local
   pieces kept; what came from where is the top entry of [Handoff](Handoff.md). `Kit.ring` now takes

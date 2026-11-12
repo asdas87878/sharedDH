@@ -301,23 +301,16 @@ Config.Ride = {
 	Ceiling = 4, -- and stays this far under the surface line
 	LaneMargin = -3, -- a ridden fish and a flight stay this far inside the lane's edge (negative: inside). It was 20 past it, but since grey-box 6 the walls are a 1-stud face with a hollow behind, and 20 past the edge is inside that hollow
 	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its own surge speed (Config.speedOf x Surge) times this
-	-- The startle (Hugo, 2026-11-12): a fish you land on is shocked for about a second, like a horse rearing. Its nose
-	-- jerks up and it rears back, shaking, its tail thrashing, a "!" over its head, the rider braced. It never stops
-	-- (Hugo, later the same day: the stall and the bolt went): it drops to StartleSlow of its speed for StartleHold
-	-- seconds, then eases back to full over StartleRecover. The rearing is seen only (AnimController turns the fish's
-	-- joints, never its Root); the dip is the ridden speed's own curve (RideController), never a push: the limits on a
-	-- fish's force and torque (Lib/FishModel, 2026-11-12) stay. Only a landing startles, not the sandbox's reset.
-	Startle = 1, -- 1: a landing startles the fish; 0: the old mount (Surge at once, and Animation.LandingMix's reactions)
-	StartleTime = 0.8, -- seconds it rears and shakes (the look only: AnimController)
+	-- The landing's slow-down (Hugo, 2026-11-12; it came with a rearing "startle", whose look was taken out the same
+	-- day on the user's word: every landing plays Animation.LandingMix's reactions again). A fish you land on never
+	-- stops: it drops to StartleSlow of its speed for StartleHold seconds, then eases back to full over
+	-- StartleRecover. It is the ridden speed's own curve (RideController), never a push: the limits on a fish's force
+	-- and torque (Lib/FishModel, 2026-11-12) stay. Only a landing does it, not the sandbox's reset.
+	Startle = 1, -- 1: a landing slows the fish for a moment; 0: the old mount (Surge at once)
 	StartleBrake = 0.12, -- it comes down to StartleSlow over this long at the touch
-	StartleSlow = 0.6, -- its speed while it is startled, as a share of its ridden speed
+	StartleSlow = 0.6, -- its speed for that moment, as a share of its ridden speed
 	StartleHold = 0.4, -- seconds it stays that slow
 	StartleRecover = 0.8, -- then it eases back to its ridden speed over this long
-	StartleRear = 34, -- how far the nose goes up, degrees (a big creature rears a little less)
-	StartleShake = 7, -- the shake while it is reared: degrees of roll each way,
-	StartleShakeRate = 9, -- and how many times a second
-	StartleCoil = 9, -- the nose dips this far under level just before the bolt, degrees
-	StartleLunge = 1.2, -- the body lunges this far ahead of itself as it bolts, studs, for a mid-sized fish
 }
 
 -- Going fish to fish, Movement v3.1 (2026-11-11; docs/design/riding-feel.md). The hop is the reference's, as built on
@@ -711,7 +704,7 @@ Config.Feel = {
 	PopBurst = 16, -- bubbles kicked off where we left
 	PopLines = 0.6, -- speed lines through the pop's extra speed, 0 to 1 (0 off)
 	ReelLines = 1, -- and through the pull-in, growing as it speeds up
-	BoltLines = 0.85, -- and as a startled fish picks its speed up again
+	BoltLines = 0.85, -- and as a fish picks its speed up again after a landing's slow-down
 	BoltFov = 3, -- the view kicks this much wider as it does
 	LinesFade = 0.3, -- seconds the lines take to die away
 	LinesInner = 0.42, -- how near the middle of the screen they reach, as a share of half its diagonal (1: the corners only)
@@ -722,8 +715,6 @@ Config.Feel = {
 	Splash = 0.55, -- the landing's splash
 	SplashCount = 26, -- bubbles thrown out flat round the fish at our own landing,
 	SplashReach = 9, -- this far, studs
-	Mark = 1, -- the "!" over a startled fish (0 off)
-	MarkTime = 0.6, -- seconds it shows
 }
 
 -- How the lock and the window's timer are drawn.

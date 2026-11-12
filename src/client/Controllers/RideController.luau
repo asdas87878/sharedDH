@@ -15,7 +15,7 @@
 -- snap, its jolt and its shake (RideController.shake) sit on top, and the drowning's shot is eased to.
 -- Fish don't collide with the map: Lib/Course keeps the one we ride out of the floor, the walls and the air. Running
 -- into something solid is the server's call ("Crashed": Config.Crash, Config.Props): we lose speed for a moment.
--- The startle (Config.Ride.Startle...; Hugo, 2026-11-12): a fish we LAND on rears (AnimController) and slows for a
+-- The landing's slow-down (Config.Ride.Startle...; Hugo, 2026-11-12): a fish we LAND on slows for a
 -- moment, never stopping, then eases back to its speed. It is this fish's speed curve, nothing else: no force is
 -- added, and the limits on its force and torque (Lib/FishModel) are what they were.
 -- Every fish has its own speed and size (Config.speedOf, Config.bodyOf: its species, rarity, size roll and variant).

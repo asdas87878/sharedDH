@@ -51,9 +51,9 @@ What to reach for:
 - **The arc:** `Jump.LaunchTime`, `Launch` and `Apex` (the pop), `FloatTime` and `AirSpeed` (the glide), `Drop`,
   `DropCurve` and `DropSpeed` (the drop). `Window` is the whole hop: the drop is what the pop and the glide leave of
   it (3.0 - 0.4 - 1.4 = 1.2 s), so a longer glide means a shorter drop unless `Window` grows too.
-- **The startle** (a fish you land on rears and slows for a moment, never stopping): `Ride.Startle` (0 off),
-  `StartleSlow` (the share of its speed it drops to), `StartleHold`, `StartleRecover`, and the look: `StartleTime`,
-  `StartleRear`, `StartleShake`.
+- **The landing's slow-down** (a fish you land on slows for a moment, never stopping): `Ride.Startle` (0 off),
+  `StartleBrake`, `StartleSlow` (the share of its speed it drops to), `StartleHold`, `StartleRecover`. The rearing
+  that came with it is gone (2026-11-12), and its rows with it.
 - **The camera under the surface:** `Camera.Submerge` (0 off), `WaterTop`, `SurfaceMargin`, `SurfaceTilt`.
 - **The rider's animation:** the `Pose` group (`CrawlRate`, `BreastRate`, `FloatTilt`, `PopTuck`, `Flip`, `FlipStart`,
   `RideCrouch`, `RideLean`, `BraceLean`). **The juice:** the `Feel` group (`PopFov`, `PopLines`, `ReelLines`,

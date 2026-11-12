@@ -23,10 +23,6 @@
 -- Not here, because they need the Root to move (RideController, the server): the wave's small change of speed, the
 -- bolt's burst of speed, the surge waiting for the build-up. Not here, because FishModel welds them: eyes that look
 -- about.
--- The startle (Config.Ride.Startle...; Hugo, 2026-11-12): with it on, every landing gets ONE reaction, on every
--- creature and on a stand-in: the fish rears like a horse (nose up in a jerk, shaking, its tail thrashing, a "!" over
--- its head: Lib/Feel), the rider braced against its back; then its nose dips and it bolts, the rider thrown back. The
--- stall and the burst of speed are RideController's, on the same clock. With it off, the mix above.
 -- The rider (Config.Pose; Hugo, 2026-11-12): a front crawl through a hop's glide and drop and a slow breaststroke while
 -- floating, the body flat; the dash: a crouch and a push off the fish, streamlined with the arms ahead through the
 -- pull-in, then a tuck and a forward flip into the seat; riding: astride, leaning forward with speed and into turns.
@@ -43,7 +39,6 @@ local Creatures = require(game:GetService("ReplicatedStorage").Shared.Creatures)
 local Ease = require(game:GetService("ReplicatedStorage").Shared.Ease)
 local Net = require(game:GetService("ReplicatedStorage").Shared.Net)
 local RideStyles = require(game:GetService("ReplicatedStorage").Shared.RideStyles)
-local Feel = require(script.Parent.Parent.Lib.Feel)
 local State = require(script.Parent.Parent.Lib.State)
 local JumpController = require(script.Parent.JumpController)
 local RideController = require(script.Parent.RideController)
@@ -92,8 +87,9 @@ type FishJoints = {
 	air: number,
 	flail: number,
 	leanBack: number,
-	brace: number, -- the startle: how hard the rider holds on, 0 to 1,
-	thrown: number, -- and how far the bolt throws them back, degrees
+	-- (the rider's hold and throw-back on a rearing fish: always 0 since the rearing was taken out, 2026-11-12)
+	brace: number,
+	thrown: number,
 	riderUp: number,
 	riderNose: number,
 	riderSwing: number,
@@ -122,49 +118,6 @@ local function shape(t: number, start: number, peak: number, hold: number, finis
 	local rise = math.clamp((t - start) / (peak - start), 0, 1)
 	local fall = math.clamp((t - peak - hold) / (finish - peak - hold), 0, 1)
 	return rise ^ 1.25 * (1 - fall) ^ 2
-end
-
--- The startle (Config.Ride.Startle...): what a fish does about a landing, `t` seconds after the touch. It rears (the
--- nose up in a jerk, past its mark and back, the body lifted and pulled back so it turns about its tail, not its
--- middle), shakes while it is up, comes down and dips its nose just before StartleTime, and lunges as it bolts.
--- Fills `startled`; false once it is all over. Seen only: the stall and the burst of speed are RideController's.
-local startled = {
-	up = 0,
-	fore = 0,
-	nose = 0,
-	roll = 0,
-	swing = 0,
-	whip = 0,
-	effort = 0,
-	brace = 0,
-	thrown = 0,
-}
-local function startle(t: number, length: number, girth: number): boolean
-	local r = Config.Ride
-	local hold = math.max(r.StartleTime, 0.1)
-	local b = t - hold
-	if b > 1.3 then
-		return false
-	end
-	local q = t / hold
-	-- (a big creature rears a little less far)
-	local most = r.StartleRear * Ease.lerp(1, 0.6, math.clamp((length - 12) / 40, 0, 1))
-	local jerk = math.clamp((q - 0.06) / 0.16, 0, 1)
-	local reared = (1 - (1 - jerk) ^ 3) * (1 + 0.22 * math.sin(jerk * math.pi)) * (1 - Ease.smoothstep(0.74, 1, q))
-	local coil = Ease.smoothstep(0.8, 1, q) * (1 - Ease.smoothstep(0, 0.12, b))
-	local lunge = if b > 0 then shape(b, 0, 0.1, 0.08, 0.9) else 0
-	local shaking = reared * (1 - 0.45 * math.min(q, 1))
-	local beat = t * TAU * r.StartleShakeRate
-	startled.nose = most * reared - r.StartleCoil * coil + 5 * lunge
-	startled.roll = r.StartleShake * shaking * math.sin(beat)
-	startled.swing = r.StartleShake * 0.6 * shaking * math.sin(beat * 0.5 + 1)
-	startled.up = math.sin(rad(most * reared)) * length * 0.16 - 0.03 * length * coil
-	startled.fore = -0.05 * length * reared + r.StartleLunge * girth * lunge
-	startled.whip = rad(8) * shaking * math.sin(beat * 0.5)
-	startled.effort = 1.1 * shaking + (if b > 0 then 1.4 * shape(b, 0, 0.08, 0.3, 1.2) else 0)
-	startled.brace = math.max(math.min(reared, 1), coil)
-	startled.thrown = 30 * lunge
-	return true
 end
 
 local JOINTS = {
@@ -573,16 +526,7 @@ local function animateFish()
 					local rxUp, rxNose, rxSwing, rxRoll, rxSpin, rxEffort, rxWhip, rxFore = 0, 0, 0, 0, 0, 0, 0, 0
 					local air, flail, leanBack = 0, 0, 0
 					local react = reactOn[model]
-					j.brace, j.thrown = 0, 0
-					if react and landedAt and react.kind == "rear" then
-						if startle(sinceLand, length, j.girth) then
-							rxUp, rxNose, rxSwing, rxRoll = startled.up, startled.nose, startled.swing, startled.roll
-							rxFore, rxWhip, rxEffort = startled.fore, startled.whip, startled.effort
-							j.brace, j.thrown = startled.brace, startled.thrown
-						else
-							reactOn[model] = nil
-						end
-					elseif react and landedAt and a.Wild > 0 then
+					if react and landedAt and a.Wild > 0 then
 						local slow = Ease.lerp(1.25, 1.1, math.clamp((j.pace - 0.4) / 0.9, 0, 1))
 						local t = sinceLand / slow
 						if t > 3.3 then
@@ -850,7 +794,7 @@ local function animateFish()
 					continue
 				end
 				-- A stand-in (no modelled creature here): the tail beat, the sway and the fin flaps; and the landing: the
-				-- touch's dip, then the startle, as one shift of its whole body about the Root
+				-- touch's dip, as one shift of its whole body about the Root
 				local riderId = model:GetAttribute("Rider")
 				local isRidden = type(riderId) == "number" and riderId ~= 0
 				if isRidden then
@@ -859,18 +803,6 @@ local function animateFish()
 				local landedAt = landedOn[model]
 				local sinceLand = if landedAt then now - landedAt else math.huge
 				local up, fore, nose, roll, swing, whip, effort = 0, 0, 0, 0, 0, 0, 0
-				j.brace, j.thrown = 0, 0
-				local react = reactOn[model]
-				if react and landedAt and react.kind == "rear" then
-					if startle(sinceLand, j.length, j.girth) then
-						up, fore, nose, roll, swing =
-							startled.up, startled.fore, startled.nose, startled.roll, startled.swing
-						whip, effort = math.deg(startled.whip), startled.effort
-						j.brace, j.thrown = startled.brace, startled.thrown
-					else
-						reactOn[model] = nil
-					end
-				end
 				if a.LandDip > 0 and sinceLand < a.LandDipTime then
 					local spring = 1.86 * math.exp(-sinceLand * 6) * math.sin(sinceLand * 13)
 					up -= math.min(a.LandDip, 0.09 * j.length) * spring
@@ -1327,12 +1259,6 @@ function AnimController.Start()
 	Net.Fx.OnClientEvent:Connect(function(kind: string, player: any, fish: any, serial: any)
 		if kind == "Land" and typeof(fish) == "Instance" and fish:IsA("Model") then
 			landedOn[fish] = os.clock()
-			if Config.Ride.Startle > 0 then
-				-- the startle: one reaction for every landing, and a "!" over its head
-				reactOn[fish] = { kind = "rear", sign = 1, phase = 0 }
-				Feel.mark(fish)
-				return
-			end
 			-- which reaction: LandingMix 0 none (the dip only), 1 the body type's own, 2 a mix (the user's choice: its
 			-- own most often, its second often, now and then any of the seven). Seeded so every client picks the same.
 			local mix = Config.Animation.LandingMix
