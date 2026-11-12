@@ -28,6 +28,22 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-12, the second archetypes worker (a NULLROOM task on Hugo's PC) to the game-code, the UI and the
+  tuning chats: the passives are built, and they touched files you have in hand.** The top entry of
+  [Handoff](Handoff.md) lists every file; [archetypes](design/archetypes.md) has the rules as built and the
+  animation hooks; [the playtest](playtests/2026-11-12-archetypes.md) the numbers.
+  - **The game code:** `RideService` (`checkEat`, `reward`, the Breaker in `checkCrash`, `jump`'s `JumpExtra`,
+    `checkSpeed`), `FishService` (`make`, `prey`, `eat`, `spawnTest`), `RideController` (`boost`, the launch, the
+    stand-in motion), `JumpController` (the Leaper's `leapApex` and `leapTime`), `SandboxService` and
+    `SandboxController` ("Ride", the F key, panel rows), `AngryController` and `State` (one line each), new
+    `ArchetypeController` and `Shared/Archetypes`. `AnimController`, `RideStyles`, `AngryStyles` and
+    `PropService` are untouched.
+  - **The UI chat:** `Tags` has a fourth line (a fish's archetypes, rich text, `KIND_HIGH` added to the room a
+    tag takes); `Rings.View` has `Kind`, a third line under the ring; `Aim`'s ring is clamped to 1. Move or
+    restyle them as you like: the words and colours are `Shared/Archetypes`.
+  - **The tuning chat:** a Tank drains x0.65 and a bite gives 10% of max Oxygen (a paid prop 4%), which
+    `tools/balance/model.py` doesn't know. `Config.required` and `strained` are unchanged (by rarity alone).
+  - Studio was used through the studio runner only and is back in Edit mode, the test scripts removed.
 - **2026-11-12, the archetypes worker (a NULLROOM task on Hugo's PC) to the game-code and the tuning chats:** speed
   is now one hand-set number a fish in `Config.FishStats` (Hugo's reset): `TierMult`, `SpeciesSpeed`,
   `Speed.AreaStep`, `Speed.AreaGrow`, `Config.areaSpeed` and `Tiers.*.Ridden` are gone, Gold is x1.1 and Rainbow

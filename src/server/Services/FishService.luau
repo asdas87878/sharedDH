@@ -356,31 +356,17 @@ local function park(w: Wild, parked: boolean)
 	end
 end
 
-local function spawnFish(index: number): Wild?
-	local slice = slices[index]
-	local fishType = slice and pick(slice.Zone)
-	if not slice or not fishType then
-		return nil
-	end
-	-- its place in the slice: of a few tries, the one furthest from every player, and the first that is far enough
-	-- (a new fish appeared out of nothing 0 to 120 studs from a player standing at the lane's start, about one a second)
-	local home = rng:NextNumber(slice.Start, slice.End)
-	local at = pointAt(home)
-	local clear = nearestPlayer(at)
-	for _ = 1, 4 do
-		if clear >= Config.Spawn.AppearClear then
-			break
-		end
-		local tryHome = rng:NextNumber(slice.Start, slice.End)
-		local tryAt = pointAt(tryHome)
-		local tryClear = nearestPlayer(tryAt)
-		if tryClear > clear then
-			home, at, clear = tryHome, tryAt, tryClear
-		end
-	end
-	local _, dir = Lane.at(lane, home)
+-- A new fish of this kind and variant at a place in the lane, parked (the caller decides whether it is in the water)
+local function make(
+	fishType: Config.FishType,
+	variant: string,
+	home: number,
+	at: Vector3,
+	dir: Vector3,
+	zone: number,
+	slice: number?
+): Wild
 	local model = FishModel.build(fishType)
-	local variant = rollVariant()
 	model:SetAttribute("Variant", variant)
 	-- its passive archetypes (Config.FishStats; docs/design/archetypes.md): "" for none, more than one comma-separated.
 	-- The hook for the passives and for the partner's animations
@@ -394,12 +380,12 @@ local function spawnFish(index: number): Wild?
 		Type = fishType,
 		Variant = variant,
 		Body = fishType.Size,
-		Zone = slice.Zone,
+		Zone = zone,
 		Home = home,
 		S = home,
 		Across = 0,
 		Height = Config.Spawn.HeightMin,
-		Slice = index,
+		Slice = slice,
 		Parked = true,
 		UnparkedAt = 0,
 		Dir = dir,
@@ -423,6 +409,33 @@ local function spawnFish(index: number): Wild?
 	model.Destroying:Connect(function()
 		wild[model] = nil
 	end)
+	return w
+end
+
+local function spawnFish(index: number): Wild?
+	local slice = slices[index]
+	local fishType = slice and pick(slice.Zone)
+	if not slice or not fishType then
+		return nil
+	end
+	-- its place in the slice: of a few tries, the one furthest from every player, and the first that is far enough
+	-- (a new fish appeared out of nothing 0 to 120 studs from a player standing at the lane's start, about one a second)
+	local home = rng:NextNumber(slice.Start, slice.End)
+	local at = pointAt(home)
+	local clear = nearestPlayer(at)
+	for _ = 1, 4 do
+		if clear >= Config.Spawn.AppearClear then
+			break
+		end
+		local tryHome = rng:NextNumber(slice.Start, slice.End)
+		local tryAt = pointAt(tryHome)
+		local tryClear = nearestPlayer(tryAt)
+		if tryClear > clear then
+			home, at, clear = tryHome, tryAt, tryClear
+		end
+	end
+	local _, dir = Lane.at(lane, home)
+	local w = make(fishType, rollVariant(), home, at, dir, slice.Zone, index)
 	park(w, not nearAPlayer(at, Config.Spawn.StreamRadius))
 	return w
 end
@@ -736,6 +749,68 @@ function FishService.nearest(position: Vector3, radius: number, player: Player, 
 		end
 	end
 	return best
+end
+
+-- A Predator's bite (RideService; Config.Archetype.Predator): the wild fish, no longer than `longest`, whose body
+-- comes within `reach` of the point `nose`; the nearest, or nil. Never a fish with a rider, one kept for a player's
+-- hop, one a player's machine is still driving after a hop off it, or a parked one.
+function FishService.prey(hunter: Wild, nose: Vector3, reach: number, longest: number): Wild?
+	local best: Wild? = nil
+	local bestGap = math.huge
+	for _, w in wild do
+		if
+			w ~= hunter
+			and not w.Parked
+			and not w.Rider
+			and not w.Reserved
+			and not w.CoastToken
+			and w.Body.Z <= longest
+		then
+			local at = w.Root.Position
+			local to = nose - at
+			-- (a quick no for nearly every fish in the sea, before anything is measured)
+			local far = reach + w.Body.Z
+			if math.abs(to.X) < far and math.abs(to.Y) < far and math.abs(to.Z) < far then
+				-- from the nose to the nearest point of its spine, less its own half width
+				local look = w.Root.CFrame.LookVector
+				local half = w.Body.Z / 2
+				local along = math.clamp(to:Dot(look), -half, half)
+				local gap = (to - look * along).Magnitude - math.max(w.Body.X, w.Body.Y) / 2
+				if gap <= reach and gap < bestGap then
+					best = w
+					bestGap = gap
+				end
+			end
+		end
+	end
+	return best
+end
+
+-- Eaten: gone from the sea at once. Its slice of the lane is now a fish short, so the herd's top-up puts a new one in
+-- (Spawn.TopUpEvery, away from every player: Spawn.AppearClear).
+function FishService.eat(w: Wild)
+	w.Model:Destroy()
+end
+
+-- Studio only (the sandbox's "Ride": a chosen fish to try): a fish of this kind and variant put in the water at a
+-- place, swimming `dir`. nil for a kind there is none of.
+function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Vector3): Wild?
+	local fishType = Config.FishById[id]
+	if not fishType or not RunService:IsStudio() then
+		return nil
+	end
+	local home = (Lane.project(lane, at))
+	local w = make(
+		fishType,
+		if variant == "Gold" or variant == "Rainbow" then variant else "",
+		home,
+		at,
+		dir,
+		Lane.zoneAt(lane, home),
+		sliceAt(home)
+	)
+	park(w, false)
+	return w
 end
 
 -- After the sandbox changes how many fish there should be: the slices' shares again; the top-up does the rest

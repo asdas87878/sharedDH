@@ -22,6 +22,7 @@
 --   a near fish whose whole tag has no room shows just the bubble and the number, before it is left out.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Archetypes = require(ReplicatedStorage.Shared.Archetypes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Kit = require(script.Parent.Kit)
@@ -37,6 +38,7 @@ local QUICK = 0.08 -- and the soonest another look comes when the locked fish ch
 local WORDS_WIDE = 118
 local WORDS_HIGH = 51
 local HOLD_HIGH = 14 -- the extra line on the locked fish in the hop
+local KIND_HIGH = 12 -- the line naming a fish's passive archetypes, when it has any (docs/design/archetypes.md)
 local SMALL_WIDE = 62 -- the same for a tag that is only the bubble and the number
 local SMALL_HIGH = 21
 local FAR = 110 -- studs: from here on a tag is only the bubble and the number
@@ -52,6 +54,9 @@ type Tag = {
 	Tier: TextLabel,
 	TierGradient: UIGradient,
 	Name: TextLabel,
+	Kind: TextLabel, -- its passive archetypes, each in its colour ("PREDATOR · BREAKER"); hidden with none
+	KindOf: Config.FishType?, -- the fish's kind, for its own seconds (a Tank holds longer)
+	KindHigh: number, -- the height that line takes (0 with none)
 	NeedWord: TextLabel,
 	Need: TextLabel,
 	Plate: Frame,
@@ -110,10 +115,18 @@ local function make(parent: Instance): Tag
 	local tier = Kit.text({ Size = UDim2.fromOffset(260, 15), TextSize = 14, LayoutOrder = 1 }, root)
 	local tierGradient = Kit.gradient(tier, Kit.White, Kit.White)
 	local name = Kit.text({ Size = UDim2.fromOffset(260, 16), TextSize = 13, LayoutOrder = 2 }, root)
+	-- its passive archetypes, small, under the name: you know what a fish does before you hop on it
+	local kindLine = Kit.text({
+		Size = UDim2.fromOffset(260, KIND_HIGH),
+		TextSize = 10,
+		RichText = true,
+		LayoutOrder = 3,
+		Visible = false,
+	}, root)
 	local needRow = Kit.new("Frame", {
 		Size = UDim2.fromOffset(260, 20),
 		BackgroundTransparency = 1,
-		LayoutOrder = 3,
+		LayoutOrder = 4,
 	}, root)
 	-- the plate round what the fish needs: clear, and red when the fish is too strong to hold
 	local plate: Frame = Kit.new("Frame", {
@@ -153,7 +166,7 @@ local function make(parent: Instance): Tag
 	local hold = Kit.text({
 		Size = UDim2.fromOffset(260, 15),
 		TextSize = 11.5,
-		LayoutOrder = 4,
+		LayoutOrder = 5,
 		Visible = false,
 	}, root)
 	return {
@@ -163,6 +176,9 @@ local function make(parent: Instance): Tag
 		Tier = tier,
 		TierGradient = tierGradient,
 		Name = name,
+		Kind = kindLine,
+		KindOf = nil,
+		KindHigh = 0,
 		NeedWord = needWord,
 		Need = need,
 		Plate = plate,
@@ -228,6 +244,11 @@ local function put(tag: Tag, fish: Model)
 	local variant = Config.variantOf(fish)
 	tag.Offset = Vector3.new(0, Config.bodyOf(fish, kind).Y * 0.5 + 2.5, 0)
 	tag.Name.Text = if variant ~= "" then variant .. " " .. kind.Name else kind.Name
+	local does = if Config.ArchetypeFeel.Tags > 0 then Archetypes.rich(kind) else ""
+	tag.KindOf = kind
+	tag.KindHigh = if does ~= "" then KIND_HIGH else 0
+	tag.Kind.Text = does
+	tag.Kind.Visible = does ~= "" and not tag.Small
 	tag.TierName = kind.Tier
 	tag.Tier.Text = kind.Tier
 	Kit.tierColours(tag.Tier, tag.TierGradient, kind.Tier, Config.Tiers)
@@ -243,6 +264,10 @@ local function shape(tag: Tag, small: boolean)
 		tag.Name.Visible = not small
 		tag.NeedWord.Visible = not small
 	end
+	local kindShown = not small and tag.KindHigh > 0
+	if tag.Kind.Visible ~= kindShown then
+		tag.Kind.Visible = kindShown
+	end
 	local size = if small then tag.SmallSize else tag.FullSize
 	if size ~= tag.Size then
 		tag.Size = size
@@ -254,7 +279,7 @@ end
 local function room(tag: Tag, small: boolean)
 	local size = (if small then tag.SmallSize else tag.FullSize) * hudScale
 	tag.Wide = (if small then SMALL_WIDE else WORDS_WIDE) * size
-	tag.High = (if small then SMALL_HIGH else WORDS_HIGH + tag.Extra) * size
+	tag.High = (if small then SMALL_HIGH else WORDS_HIGH + tag.Extra + tag.KindHigh) * size
 end
 
 -- Whether its words would land on one of the tags placed before it
@@ -437,7 +462,7 @@ function Tags.update(
 				tag.Needs = needs
 				tag.Need.Text = Kit.short(needs)
 			end
-			local seconds = Config.secondsOn(land, tag.TierName, maxOxygen)
+			local seconds = Config.secondsOn(land, tag.TierName, maxOxygen, tag.KindOf) -- (longer on a Tank)
 			local state = if Config.strained(land, tag.TierName, maxOxygen) or seconds < Kit.HoldShort
 				then 3
 				elseif seconds >= Kit.HoldFine then 1

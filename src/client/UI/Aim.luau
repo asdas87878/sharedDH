@@ -61,7 +61,7 @@ function Aim.update(now: number, left: number?, locked: boolean, refused: boolea
 	local warn = left ~= nil and left <= Config.Jump.Warn
 	if now >= nextTurn then
 		nextTurn = now + 1 / 30
-		ring.set(if left then left / window else 1)
+		ring.set(if left then math.min(1, left / window) else 1) -- (a Leaper's hop has a little more than the window)
 	end
 	local red = warn or refused
 	if red ~= shownRed then

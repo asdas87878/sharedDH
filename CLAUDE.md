@@ -123,7 +123,7 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   [riding feel](docs/design/riding-feel.md). Every number is in `src/shared/Config.luau`, read live. Every fish has its own
   speed and passive archetypes, set by hand in one table (`Config.FishStats`; `Config.speedOf` = that number x the variant's, Gold 1.1, Rainbow 1.2;
   no rarity or land formula, no size roll; the `Archetype` attribute, "" or ids comma-separated; rules, numbers and all 82 rows in
-  [archetypes](docs/design/archetypes.md); the passive behaviours are not built yet) and now and then a
+  [archetypes](docs/design/archetypes.md); the passives are built: `RideService` decides, `ArchetypeController` and `Config.ArchetypeFeel` are the feedback, a fish's tag names them, sandbox key F rides a try-out fish; measured in [docs/playtests/2026-11-12-archetypes.md](docs/playtests/2026-11-12-archetypes.md), not played by hand; animation hooks at the end of the note) and now and then a
   variant (`Variant`; look in `Shared/Variants`); the camera stays under the surface once dived (`Camera.Submerge`). In Studio the game
   starts as the **movement sandbox** ([docs/sandbox.md](docs/sandbox.md): no fail, R reset, V side view, N a panel of every
   number): the user tunes there and pastes "Copy changes" for Claude to write into Config. Angry mode (Hugo, 2026-11-12): with the meter in its red part (`Oxygen.AngryAt`) the

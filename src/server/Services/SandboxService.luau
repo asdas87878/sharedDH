@@ -53,6 +53,9 @@ function SandboxService.Init()
 			end
 		elseif kind == "Reset" then
 			RideService.sandboxReset(player)
+		elseif kind == "Ride" and type(a) == "string" then
+			-- onto a fish of a chosen kind (and variant), put at the start for it: to try one archetype or speed
+			RideService.sandboxReset(player, nil, a, if type(b) == "string" then b else nil)
 		end
 	end)
 end

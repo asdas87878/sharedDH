@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Archetypes = require(ReplicatedStorage.Shared.Archetypes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Zones = require(ReplicatedStorage.Shared.Zones)
@@ -113,6 +114,7 @@ local ringView: Rings.View = {
 	Ready = 1,
 	Strained = false,
 	Low = false,
+	Kind = "",
 	Endless = false,
 }
 
@@ -402,6 +404,7 @@ local function update(dt: number)
 	view.Ready = 1
 	view.Strained = false
 	view.Low = false
+	view.Kind = ""
 	view.Endless = endlessAir
 	if mode == "Riding" and kind then
 		seconds = meter / math.max(drain, 0.001)
@@ -414,7 +417,8 @@ local function update(dt: number)
 		view.Strained = strained
 		-- the meter's low part: the ring is red, the button calls for the hop, and the fish under us is angry
 		-- (one threshold for all three, Oxygen.AngryAt: Config.low is what the server asks too)
-		view.Low = Config.low(meter, max)
+		view.Low = Config.low(meter, max, kind) -- (a Tank's low part starts lower)
+		view.Kind = if Config.ArchetypeFeel.Tags > 0 then Archetypes.rich(kind) else ""
 		if strainRide then
 			view.Note = "Too strong!"
 			view.NoteSub = strainNeeds
@@ -442,7 +446,7 @@ local function update(dt: number)
 		Rings.hide(now)
 	end
 
-	local hot = mode == "Riding" and kind ~= nil and Config.low(meter, max) and not endlessAir
+	local hot = mode == "Riding" and kind ~= nil and Config.low(meter, max, kind) and not endlessAir
 	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir, hot)
 
 	-- the hop: the button, the aim, the window

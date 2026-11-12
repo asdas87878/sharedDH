@@ -45,6 +45,9 @@ local State = {
 	Tame = nil :: number?, -- 0 to 1: how far the fish under us is from being ours (nil: nothing to show)
 	Caught = nil :: { Caught }?, -- what we carry on this dive, oldest first
 	Tamed = Instance.new("BindableEvent"), -- fired with the fish's id when the fish under us becomes ours
+	-- The passive archetypes' moments on our own machine (ArchetypeController plays their words and bubbles)
+	Launched = Instance.new("BindableEvent"), -- the Fast fish we landed on takes off
+	Leapt = Instance.new("BindableEvent"), -- we hopped off a Leaper: the big hop
 	Strained = false, -- the fish under us is too strong for us: the meter is emptying at once
 }
 
@@ -80,7 +83,8 @@ function State.secondsOn(fish: Model): number?
 		return nil
 	end
 	local zone = Zones.locate(State.Zones, root.Position)
-	return Config.secondsOn(if zone then zone.Index else 1, tier, max)
+	local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
+	return Config.secondsOn(if zone then zone.Index else 1, tier, max, kind) -- (this fish's own: longer on a Tank)
 end
 
 -- Whether landing on that fish where it swims now would be landing on one too strong for us (Oxygen.StrainTime: the

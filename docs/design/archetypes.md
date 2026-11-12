@@ -1,9 +1,12 @@
 # Archetypes and speed per fish
 
 What makes one fish different from another to ride: its own speed, and its passive archetypes. Hugo's request,
-2026-11-12. **Built so far:** the per-fish table (speed and archetypes) and the `Archetype` attribute on every fish.
-**Not built yet:** the passive behaviours themselves (the next task). The rules and numbers below are Claude's
-proposals for them, for Hugo to confirm or change; the numbers are in `Config.Archetype`, ready to tune.
+2026-11-12. **Built (2026-11-12):** the per-fish table (speed and archetypes), the `Archetype` attribute on every
+fish, and all six passives with their feedback, measured by a scripted playtest in Studio
+([the numbers](../playtests/2026-11-12-archetypes.md)). **Not done:** nobody has played them by hand yet, the
+motion on a bite and a smash is a stand-in until the partner's animations ([Animation hooks](#animation-hooks)),
+and the rules and numbers are still Claude's proposals for Hugo to confirm or change (`Config.Archetype`, and on
+the sandbox's N panel).
 
 Related: [riding feel](riding-feel.md), [progression](progression.md) ("What else makes a fish different": the eight
 traits proposed earlier; this note takes four of them up), [the reference](../reference/ride-a-dino.md).
@@ -46,7 +49,10 @@ The sprinter. Sailfish, tuna, the torpedo shapes.
 - Its speed is its own high number in the table: the fastest of its land and rarity.
 - **On top:** the burst when you land on it is bigger and lasts longer. `Ride.Surge` x1.15 (1.25 becomes about
   1.44) for `Ride.SurgeTime` x2 (0.5 s becomes 1 s). Hopping onto one feels like a launch.
-- **Reads as:** you land and it takes off.
+- **As built:** every landing first dips the fish to 0.8 of its speed (the landing's slow-down, kept). A plain
+  fish eases back to its speed and no further; a Fast one goes on past it to the burst as it recovers (the peak
+  is about 1.3 s after the landing) and settles. Measured on a Swordfish: 67 (x0.80), then 121 (x1.44), then 84.
+- **Reads as:** you land and it takes off. Speed lines, the view kicks wider, a louder whoosh, "LAUNCH!".
 
 ### Predator
 It eats other fish. Sharks, the orca, the sea reptiles, anglers.
@@ -58,13 +64,19 @@ It eats other fish. Sharks, the orca, the sea reptiles, anglers.
 - **What eating gives:** a burst of speed, x1.25 for 1.5 s (fading out over the last third), and **10% of your max
   Oxygen back**. So a predator is the fish you stay on longer: steer through the small fish and the meter holds.
 - **Cooldown:** 2.5 s between two eats. This is what stops a predator clearing the lane of fish to hop to.
-- **Reads as:** a chomp, bubbles, a lurch forward, the ring jumps up.
+- **As built:** the server looks ten times a second for a wild fish within reach of the ridden fish's nose
+  (`RideService.checkEat`, `FishService.prey`); a fish too strong for you doesn't eat. You can't steer up or
+  down, so what you can eat is what swims at your height: the herd's band is 8 studs deep and the reach covers
+  most of it.
+- **Reads as:** a chomp, bubbles and a ring where the fish was, the nose lunges, the view kicks wider, a lurch
+  forward with speed lines, "CHOMP! +10% air" by the rider, the ring jumps up.
 
 ### Frenzy (always with Predator)
 The twist for the great sharks and the last monsters: eats chain.
 - Each eat within 6 s of the last adds a stack, up to 3. A stack adds 0.08 to the burst (three: x1.49) and 0.5 s to
   its length. The cooldown is 1.2 s in place of 2.5.
-- **Reads as:** every bite makes the next one bigger. Miss for 6 seconds and it is back to one.
+- **Reads as:** every bite makes the next one bigger ("FRENZY x2", "x3", "x4", the chomp pitched higher each
+  time, the view kicking wider). Miss for 6 seconds and it is back to one.
 
 ### Breaker
 It goes through props. The swordfish's cousin with the saw, the whales, the armoured ones.
@@ -74,7 +86,10 @@ It goes through props. The swordfish's cousin with the saw, the whales, the armo
 - **What breaking gives:** a short push, x1.12 for 1 s, and **4% of max Oxygen back** per prop, at most once every
   1.5 s. So for a breaker the props are the best line through a land, not the thing to steer round.
 - **Walls:** a crash into a wall costs it half the usual speed and Oxygen (`Crash`). It still stops at the wall.
-- **Reads as:** you aim at the coral on purpose and come out the far side faster.
+- **As built:** only the map's loose props break (`Lane.Props`). The lane's walls and terraces still stop a
+  Breaker, as they stop every fish.
+- **Reads as:** you aim at the coral on purpose and come out the far side faster: a rumble, bubbles, the body
+  shudders, the camera shakes, "SMASH! +4% air".
 
 ### Tank
 The calm giant. Turtles, whales, the sea cow, the fish that wait.
@@ -82,13 +97,22 @@ The calm giant. Turtles, whales, the sea cow, the fish that wait.
 - **Angry later:** the red part of the meter, where a fish slows and pulses, starts at 0.18 of the meter in place
   of 0.3 (`AngryAt` x0.6).
 - Its speed number is usually low for its rarity. That is the trade: slow, and the fish you rest on.
-- **Reads as:** the ring barely moves.
+- **As built:** what it takes to hold a fish at all (the number on its tag, and "too strong") is by rarity
+  alone, Tank or not; the Tank only drains slower once you hold it. The tag's "holds N s" and the ring's seconds
+  are the Tank's own.
+- **Reads as:** the ring barely moves. It has no moment of its own: the tag and the line under the ring say TANK.
 
 ### Leaper
 The hop off it goes higher and further. Dolphins, rays, the serpents.
 - `Jump.Apex` x1.3, the glide 20% faster, and 0.3 s more glide (the window grows by the same, so the drop is as
   long as it was).
-- **Reads as:** you press hop and get thrown. It reaches fish a plain hop does not.
+- **Reads as:** you press hop and get thrown: more bubbles, the view kicks wider, "BIG HOP!". It reaches fish a
+  plain hop does not.
+
+### How you know before you hop on
+A fish's tag has a small line under its name naming its archetypes, each in its own colour ("PREDATOR · BREAKER");
+the same line sits under the air ring while you ride it. Wording and colours: `src/shared/Archetypes.luau`.
+`ArchetypeFeel.Tags` 0 hides both.
 
 ## Who gets what
 | Rarity | Archetypes | In the table |
@@ -244,7 +268,7 @@ rarity and land carry the progression, variants are a small flat bonus on speed,
 
 ## Open, for Hugo
 1. **Gold and Rainbow:** Gold x1.1 and Rainbow x1.2 as read, or the other way round?
-2. **The six archetypes and their numbers:** right set? Tank and Leaper are Claude's additions to the three asked
+2. **The six archetypes and their numbers (all six are built now):** right set? Tank and Leaper are Claude's additions to the three asked
    for (fast, predator, breaker); Frenzy is the twist for the top sharks. Any of them can be dropped by clearing it
    from the rows.
 3. **What eating gives:** speed and Oxygen (proposed), or only one of them?
@@ -253,12 +277,38 @@ rarity and land carry the progression, variants are a small flat bonus on speed,
 5. **Props for plain fish:** today every fish breaks props, for a small cost (`Props.MinLength` 0). With Breakers
    in, should a small plain fish bounce off them? Left as it is.
 
-## For the next task (building the passives)
-- Read the archetypes from the fish's type (`Config.hasArchetype(w.Type, "Predator")`), on the server. The eat, the
-  prop reward and the Oxygen are the server's (`RideService`, `FishService`, `PropService`); never trust the client.
-- The speed bursts change what the rider's client drives and what the server's speed check allows
-  (`Ride.SpeedSlack`): both must use the same factor, as angry mode does.
-- An eaten fish goes through the herd's own removal, so the top-up replaces it.
-- Tank touches `Config.drain` and `Oxygen.AngryAt`; Leaper touches the hop's numbers in `JumpController`.
-- The partner's animations hang on the `Archetype` attribute; an eat or a smash will want its own signal (a tag or
-  a remote) when built.
+## How it is built
+- **The server decides everything** (`RideService`): the eat (`checkEat`), the prop reward and the cheaper wall
+  (`checkCrash`), the Tank's drain and red part (`Config.drainOf`, `Config.low`), the Leaper's longer window
+  (`jump`), and what speed it allows (`checkSpeed`: a Fast fish's burst, and an eat's or a smash's while it
+  lasts). `FishService.prey` picks the fish, `FishService.eat` removes it, and the herd's top-up puts a new one
+  in.
+- **The rider's client plays it:** the burst of speed (`RideController.boost`, on the server's "Boost"), the
+  Fast launch (`launchShare`), the Leaper's hop (`JumpController`, `Config.hopOf`), and the feedback
+  (`Controllers/ArchetypeController`, numbers in `Config.ArchetypeFeel`).
+- **Every number is in Config:** `Config.Archetype.<Id>` (also reachable as `Config.<Id>`) and
+  `Config.ArchetypeFeel`, all on the sandbox's N panel. In the sandbox **F** rides the next fish of a try-out
+  list (one of each archetype, a combo, a plain Common, a Gold and a Rainbow).
+- **Unchanged:** steering, the hop, the landing's x0.8 slow-down, angry mode (a Tank only starts it later).
+
+## Animation hooks
+For the partner's animations, the same pattern as `AngryStyle` and `Angry.Motion`. The stand-in motion is one
+marked block in `RideController.drive`; set `ArchetypeFeel.Motion` to 0 when an animation plays instead.
+
+| Moment | What to read | Stand-in today |
+|---|---|---|
+| Which archetypes a fish has | the fish's `Archetype` attribute (`"Predator,Breaker"`, `""` for none) | none |
+| A bite | the fish's `Bite` attribute counts up by one (listen for the change); for everyone also `Net.Fx` `"Eat", player, fish, where, stacks` | the nose lunges down and back (`Lunge`, `LungeTime`) |
+| A Frenzy's chain | the fish's `Frenzy` attribute: 1 to 3 while the chain lasts, gone when it breaks or the rider leaves | none (the word and the sound's pitch) |
+| A smash (a Breaker paid for a prop) | the fish's `Smash` attribute counts up by one; for everyone also `Net.Fx` `"Smash", player, fish, where, boxes` | the body shudders side to side (`Shudder`, `ShudderTime`) |
+| A Fast fish's launch | `Net.Fx` `"Land", player, fish, count` on a fish whose `Archetype` has `Fast`; on the rider's own machine `State.Launched` fires as it takes off | none (speed only) |
+| A Leaper's big hop | the rider's `State` attribute goes to `Jumping` off a fish whose `Archetype` has `Leaper`; on the rider's own machine `State.Leapt` fires | none (the hop itself) |
+| A Tank | nothing happens; `Archetype` has `Tank` | none |
+
+## Open, after building
+- Nobody has played it by hand. The numbers are as designed; whether a bite every 2.5 s (1.2 s in a Frenzy)
+  with 10% air each is too generous is the first thing to feel: a Megalodon let loose among small fish ate six in
+  nine seconds in the test and its meter never dropped.
+- Two players at once is untested (the rule that a ridden or a reserved fish is never eaten was checked by
+  asking the server's own function, not with a second player).
+- A wild fish that is a Breaker gets no reward and no wider hole: only ridden fish do.

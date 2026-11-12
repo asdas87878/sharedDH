@@ -10,6 +10,7 @@ Press Play in Studio. The top left of the screen says SANDBOX.
 | Key | What it does |
 |---|---|
 | **R** | Puts you on a fish in deep water down the lane, where a hop has room to rise. If no fish is there yet, you float for two or three seconds and are put on the first one that comes. |
+| **F** | Back to the start, onto the next fish of a try-out list, put there for you: Reef Shark (Predator), Humphead Wrasse (Breaker), Swordfish (Fast), Dolphin (Leaper), Giant Sea Bass (Tank), Megalodon (Predator, Frenzy), Dunkleosteus (Predator, Breaker), Clownfish, a Gold and a Rainbow Clownfish. For trying the [archetypes](design/archetypes.md); their numbers are on the N panel (`Fast`, `Predator`, `Frenzy`, `Breaker`, `Tank`, `Leaper`, `ArchetypeFeel`). Turn endless air off to see the air a bite gives. |
 | **N** | Opens and closes the panel of numbers. |
 | **V** | The side view: the camera stands off to the side, square on to the way you are headed, so you see the whole arc. Steering still works. |
 | Space | On a fish or floating: the hop. In the hop: grab the fish that glows (a left click, E and gamepad X too). |

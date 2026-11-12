@@ -22,6 +22,13 @@
 --   the touch, the fish under them is angry. Decided here and written on the fish (its "Angry" and "AngryStyle"
 --   attributes, and the "AngryFish" tag): every client pulses it red, and the rider's own slows it in its style's way
 --   (Shared/AngryStyles), which the speed check here then holds it to.
+--   The passive archetypes (Config.Archetype; docs/design/archetypes.md), all decided here: a Predator eats the
+--   smaller wild fish its nose reaches (checkEat: the fish is gone, the rider gets a burst of speed and Oxygen; a
+--   Frenzy chains them), a Breaker goes through props for nothing and is paid for it (checkCrash), a Tank drains
+--   slower and turns angry later (Config.drainOf, Config.low), a Leaper's hop has a longer window (jump), a Fast
+--   fish's bigger burst is allowed by the speed check (Config.surgeOf). The rider's client is told of a burst
+--   ("Boost"), every client of the bite or the smash (Fx "Eat", "Smash"), and the fish carries "Bite", "Smash" and
+--   "Frenzy" attributes for the animations to come.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -71,6 +78,15 @@ type Rider = {
 	CrashReadyAt: number, -- and before this a crash or a smashed prop costs nothing
 	Nosed: boolean, -- the fish's nose is up against something solid (so it is counted once)
 	FastAt: number, -- os.clock() the fish was last seen going fast enough to crash
+	-- the passive archetypes (Config.Archetype)
+	JumpExtra: number, -- seconds this hop's window is longer by (off a Leaper)
+	BoostUntil: number, -- os.clock() the last burst of speed we were given ends (an eat's, a smash's),
+	BoostMost: number, -- and how many times its speed the fish may go until then (the speed check)
+	EatCheckAt: number, -- os.clock() of the next look for something to eat
+	EatReadyAt: number, -- and before this the fish under us doesn't bite again (Predator.Cooldown)
+	AteAt: number, -- os.clock() of its last bite,
+	Frenzy: number, -- and the Frenzy's stacks so far (0: none)
+	BreakReadyAt: number, -- before this a broken prop pays a Breaker nothing more (Breaker.Cooldown)
 }
 
 local RideService = {}
@@ -166,7 +182,8 @@ local function isAngry(r: Rider, w: Wild): boolean
 	if RunService:IsStudio() and a.Test > 0 then
 		return true
 	end
-	return r.Strained or Config.low(r.Oxygen, r.Max)
+	-- (a Tank's red part starts lower: Config.angryAt)
+	return r.Strained or Config.low(r.Oxygen, r.Max, w.Type)
 end
 
 local function setState(r: Rider, state: string)
@@ -239,6 +256,10 @@ end
 local function dismount(r: Rider, reason: string, handBack: boolean?)
 	local w = r.Fish
 	setAngry(r, nil) -- (off the fish: it is calm again at once, whoever lands on it next)
+	if w and r.Frenzy > 0 then
+		r.Frenzy = 0
+		w.Model:SetAttribute("Frenzy", nil)
+	end
 	if r.Weld then
 		r.Weld:Destroy()
 		r.Weld = nil
@@ -281,6 +302,11 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.CheckAt = os.clock() + 1
 	r.CheckFrom = w.Root.Position
 	r.Nosed = false
+	-- (a new fish: no burst carried over, and its first bite is a first bite)
+	r.BoostUntil = 0
+	r.BoostMost = 1
+	r.Frenzy = 0
+	r.AteAt = -math.huge
 	-- Too strong for us? Decided here, at the mount, by the land the fish is in: a landing is never refused, the meter
 	-- just empties at once (Oxygen.StrainTime). Riding a fish we can hold on into a deeper land only costs that land's
 	-- drain.
@@ -385,6 +411,9 @@ local function jump(r: Rider)
 		return deny(r, "Jump", "Cooldown")
 	end
 	r.JumpFrom = r.Fish
+	-- (off a Leaper the glide and the window are longer: Config.hopOf, the same number the client flies by)
+	local _, _, extra = Config.hopOf(if r.Fish then r.Fish.Type else nil)
+	r.JumpExtra = extra
 	if r.Fish then
 		dismount(r, "Jump", true)
 	end
@@ -417,7 +446,7 @@ local function grab(r: Rider, target: any)
 		return deny(r, "Grab", "Target", target)
 	end
 	local elapsed = os.clock() - r.JumpAt
-	if r.Grab or elapsed > j.Window + j.Slack then
+	if r.Grab or elapsed > j.Window + r.JumpExtra + j.Slack then
 		return deny(r, "Grab", "Window", target)
 	end
 	-- The client's hard cap, and a little for lag (we see the player and the fish a moment apart, both moving): without
@@ -509,6 +538,78 @@ local function bump(r: Rider, cost: number, slow: number)
 	Net.Ride:FireClient(r.Player, "Crashed", slow)
 end
 
+-- An archetype's reward (a Predator's bite, a Breaker's prop): a burst of speed for `time` seconds, which the rider's
+-- client plays and the speed check here allows, and `oxygen` of the max meter back. `kind` is "Eat" or "Smash";
+-- `at` is where it happened, `count` the Frenzy's stacks or the boxes knocked loose. Everyone is told, for the
+-- bubbles and the sound (Fx), and the fish's own attribute counts up, for the animations to come.
+local function reward(
+	r: Rider,
+	w: Wild,
+	kind: string,
+	burst: number,
+	time: number,
+	oxygen: number,
+	at: Vector3,
+	count: number
+)
+	r.BoostUntil = os.clock() + time
+	r.BoostMost = math.max(burst, 1)
+	if not sandbox("EndlessAir") then
+		r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * oxygen)
+	end
+	sendOxygen(r, true)
+	local attribute = if kind == "Eat" then "Bite" else "Smash"
+	local before = w.Model:GetAttribute(attribute)
+	w.Model:SetAttribute(attribute, (if type(before) == "number" then before else 0) + 1)
+	Net.Ride:FireClient(r.Player, "Boost", kind, burst, time, oxygen, count)
+	Net.Fx:FireAllClients(kind, r.Player, w.Model, at, count)
+end
+
+-- A Predator eats (Config.Archetype.Predator, Frenzy): while we ride it, a wild fish no longer than Prey of its own
+-- length that its nose reaches is gone, and we get a burst of speed and some Oxygen. Never a fish with a rider or
+-- one kept for a player's hop (FishService.prey). A Frenzy's bites chain: each inside Window of the last is a stack.
+local function checkEat(r: Rider, w: Wild)
+	local t = os.clock()
+	if t < r.EatCheckAt then
+		return
+	end
+	r.EatCheckAt = t + Config.Crash.Every
+	if r.Strained or not Config.hasArchetype(w.Type, "Predator") then
+		return
+	end
+	local p = Config.Archetype.Predator
+	local f = Config.Archetype.Frenzy
+	local frenzy = Config.hasArchetype(w.Type, "Frenzy")
+	if frenzy and r.Frenzy > 0 and t - r.AteAt > f.Window then
+		-- the chain is broken: back to one
+		r.Frenzy = 0
+		w.Model:SetAttribute("Frenzy", nil)
+	end
+	if t < r.EatReadyAt then
+		return
+	end
+	local root = w.Root
+	local speed = root.AssemblyLinearVelocity.Magnitude
+	local nose = root.Position + root.CFrame.LookVector * (w.Body.Z / 2)
+	-- (as far as its nose and half its width, and as far as it swims between two looks)
+	local reach = math.max(w.Body.X, w.Body.Y) / 2 + p.Reach + speed * Config.Crash.Every / 2
+	local prey = FishService.prey(w, nose, reach, w.Body.Z * p.Prey)
+	if not prey then
+		return
+	end
+	local at = prey.Root.Position
+	FishService.eat(prey)
+	local stacks = 0
+	if frenzy then
+		stacks = if t - r.AteAt <= f.Window then math.min(r.Frenzy + 1, math.floor(f.Stacks)) else 0
+		r.Frenzy = stacks
+		w.Model:SetAttribute("Frenzy", if stacks > 0 then stacks else nil)
+	end
+	r.AteAt = t
+	r.EatReadyAt = t + (if frenzy then f.Cooldown else p.Cooldown)
+	reward(r, w, "Eat", p.Burst + stacks * f.BurstPer, p.BurstTime + stacks * f.TimePer, p.Oxygen, at, stacks)
+end
+
 local crashParams = RaycastParams.new()
 crashParams.FilterType = Enum.RaycastFilterType.Exclude
 crashParams.RespectCanCollide = true
@@ -532,10 +633,26 @@ local function checkCrash(r: Rider, w: Wild)
 		r.FastAt = t
 	end
 	-- a prop: its boxes are knocked loose and the fish swims on through (reaching as far as it swims between two looks)
+	-- A Breaker (Config.Archetype.Breaker) knocks a wider hole, loses nothing by it, and is paid: a push and a little
+	-- Oxygen, at most once every Breaker.Cooldown.
+	local breaker = Config.hasArchetype(w.Type, "Breaker")
+	local b = Config.Archetype.Breaker
 	if speed >= c.MinSpeed and Config.smashes(w.Type) then
-		local reach = math.max(w.Body.X, w.Body.Y) / 2 + Config.Props.Reach + speed * c.Every / 2
-		if PropService.hit(root.Position + look * half, velocity, reach) > 0 and t >= r.CrashReadyAt then
-			bump(r, Config.Props.Cost, Config.Props.Slow)
+		local reach = math.max(w.Body.X, w.Body.Y) / 2
+			+ Config.Props.Reach
+			+ (if breaker then b.Reach else 0)
+			+ speed * c.Every / 2
+		local nose = root.Position + look * half
+		local loose = PropService.hit(nose, velocity, reach)
+		if loose > 0 then
+			if breaker then
+				if t >= r.BreakReadyAt then
+					r.BreakReadyAt = t + b.Cooldown
+					reward(r, w, "Smash", b.Burst, b.BurstTime, b.Oxygen, nose, loose)
+				end
+			elseif t >= r.CrashReadyAt then
+				bump(r, Config.Props.Cost, Config.Props.Slow)
+			end
 		end
 	end
 	-- anything else solid, square enough on: as far ahead as the client's own steering stops the fish (Lib/Course
@@ -562,7 +679,9 @@ local function checkCrash(r: Rider, w: Wild)
 	local hit = workspace:Raycast(root.Position, look * ahead, crashParams)
 	local nosed = hit ~= nil and hit.Normal.Y < 0.5 and -look:Dot(hit.Normal) >= c.HeadOn
 	if nosed and not r.Nosed and t - r.FastAt <= 0.5 and t >= r.CrashReadyAt then
-		bump(r, c.Cost, c.Slow)
+		-- (a Breaker loses only Breaker.Crash of what a wall costs: of the Oxygen, and of the speed it drops by)
+		local share = if breaker then math.clamp(b.Crash, 0, 1) else 1
+		bump(r, c.Cost * share, 1 - (1 - c.Slow) * share)
 	end
 	r.Nosed = nosed
 end
@@ -578,9 +697,13 @@ local function checkSpeed(r: Rider, w: Wild)
 	if from then
 		-- (this fish's own speed: its species, rarity and variant; and an angry fish, once its slow-down is in, is
 		-- held to the most its style gives: a Surge's top, or no more than its speed)
-		local most = Config.Ride.Surge
+		local most = (Config.surgeOf(w.Type)) -- (Ride.Surge; a Fast fish's bigger one)
 		if r.AngryFish == w and t - r.AngryAt >= 1.1 + Config.Angry.EaseIn then
 			most = AngryStyles.most(AngryStyles.of(w.Type))
+		end
+		-- (a burst we gave it, an eat's or a smash's, and the second after, which this look still covers)
+		if t < r.BoostUntil + 1 then
+			most *= r.BoostMost
 		end
 		local allowed = FishService.ridden(w) * most * Config.Ride.SpeedSlack + 10
 		if (position - from).Magnitude > allowed and not r.Flagged then
@@ -636,7 +759,8 @@ local function tick(r: Rider, dt: number)
 		else
 			-- the deeper the land, the more the fish takes a second: this is the progression
 			-- (told to the client when it changes, for the HUD's seconds left on this fish: the Drain attribute)
-			local rate = Config.drain(zoneOf(root.Position), w.Type.Tier)
+			-- (and less on a Tank: Config.drainOf)
+			local rate = Config.drainOf(zoneOf(root.Position), w.Type)
 			if r.Strained and o.StrainTime > 0 then
 				-- a fish too strong for us: the whole meter in StrainTime, whatever the fish
 				rate = r.Max / o.StrainTime
@@ -650,6 +774,7 @@ local function tick(r: Rider, dt: number)
 			setAngry(r, if isAngry(r, w) then w else nil)
 			checkSpeed(r, w)
 			checkCrash(r, w)
+			checkEat(r, w)
 			if r.Oxygen <= 0 then
 				drown(r)
 			end
@@ -657,7 +782,9 @@ local function tick(r: Rider, dt: number)
 	elseif r.State == "Jumping" then
 		-- No drain in the window. Only a granted grab earns time to finish the pull and acknowledge landing.
 		local j = Config.Jump
-		local deadline = if r.Grab then r.GrabAt + j.ReelMax + j.AckTime + j.Slack else r.JumpAt + j.Window + j.Slack
+		local deadline = if r.Grab
+			then r.GrabAt + j.ReelMax + j.AckTime + j.Slack
+			else r.JumpAt + j.Window + r.JumpExtra + j.Slack
 		if os.clock() > deadline then
 			miss(r)
 		end
@@ -757,6 +884,14 @@ local function onPlayer(player: Player)
 		CrashReadyAt = 0,
 		Nosed = false,
 		FastAt = 0,
+		JumpExtra = 0,
+		BoostUntil = 0,
+		BoostMost = 1,
+		EatCheckAt = 0,
+		EatReadyAt = 0,
+		AteAt = -math.huge,
+		Frenzy = 0,
+		BreakReadyAt = 0,
 	}
 	riders[player] = r
 	sendOxygen(r, true)
@@ -787,7 +922,8 @@ function RideService.sandboxStart(): (Vector3, Vector3)
 end
 
 -- The sandbox's reset: into the water at the lane's start, onto the nearest fish there if there is one
-function RideService.sandboxReset(player: Player, again: number?)
+-- (`fishId`, `variant`: the sandbox's "Ride": a fish of that kind is put at the start and it is the one we are seated on)
+function RideService.sandboxReset(player: Player, again: number?, fishId: string?, variant: string?)
 	local r = riders[player]
 	local root, humanoid = parts(player)
 	if not r or not root or not humanoid or not RunService:IsStudio() then
@@ -804,6 +940,7 @@ function RideService.sandboxReset(player: Player, again: number?)
 	-- waits for them, the next ones don't
 	FishService.keepNear(at)
 	r.SandboxRetries = again or 0
+	local chosen = if fishId then FishService.spawnTest(fishId, variant or "", at + along * 30, along) else nil
 	humanoid.PlatformStand = true
 	(player.Character :: Model):PivotTo(CFrame.lookAt(at, at + along))
 	root.AssemblyLinearVelocity = Vector3.zero
@@ -819,9 +956,14 @@ function RideService.sandboxReset(player: Player, again: number?)
 			return true
 		end
 		local here = parts(player)
-		local w = if here and (here.Position - at).Magnitude < 60
-			then FishService.nearest(at, 250, player, SEAT_SETTLED)
-			else nil
+		local w: Wild? = nil
+		if chosen then
+			-- the fish we asked for, once every machine has it (SEAT_SETTLED)
+			local ready = chosen.Model.Parent ~= nil and os.clock() - chosen.UnparkedAt >= SEAT_SETTLED
+			w = if ready and here and FishService.isFree(chosen, player) then chosen else nil
+		elseif here and (here.Position - at).Magnitude < 60 then
+			w = FishService.nearest(at, 250, player, SEAT_SETTLED)
+		end
 		if not w or not FishService.reserve(w, player) then
 			return false
 		end

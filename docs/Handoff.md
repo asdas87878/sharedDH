@@ -3,6 +3,33 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · a NULLROOM worker (Hugo's PC): the passive archetypes are built and measured
+**State:** on Hugo's word (all passive, feel matters, no real animations). Run in Studio by script through the
+studio runner, seven playtests, no errors in the output; **not played by hand**. StyLua, selene and `rojo build`
+pass. Nothing uploaded; the temporary test scripts are out of the place. The numbers and three pictures:
+[the playtest](playtests/2026-11-12-archetypes.md). The rules as built and the animation hooks:
+[archetypes](design/archetypes.md). A row in [Decisions](Decisions.md).
+- **Server** (`RideService`): `checkEat` (a Predator's bite, a Frenzy's stacks), the Breaker in `checkCrash`
+  (props free and paid, a wall at half), `reward` (the burst the speed check allows, the Oxygen, the fish's
+  `Bite` / `Smash` attributes, Ride "Boost" to the rider, Fx "Eat" / "Smash" to everyone), the Tank through
+  `Config.drainOf` and `Config.low(oxygen, max, fish)`, the Leaper's longer window in `jump`. `FishService`:
+  `prey`, `eat`, and `spawnTest` (Studio only); the making of a fish is now one function, `make`.
+- **Client:** `RideController.boost` and the Fast launch in `drive`, with the stand-in lunge and shudder (one
+  marked block; `ArchetypeFeel.Motion` 0 switches it off); `JumpController` flies a Leaper's hop
+  (`Config.hopOf`); new `Controllers/ArchetypeController` (the words, bubbles, sounds, kicks); new
+  `Shared/Archetypes` (names and colours). `State.Launched` and `State.Leapt` are new events.
+- **UI files touched, as little as it took** (the UI chat's): `UI/Tags` has a line naming a fish's archetypes
+  and uses the fish's own seconds; `UI/Rings` has a third line, `View.Kind`; `HudController` fills it and passes
+  the fish to `Config.low`; `UI/Aim` clamps its ring (a Leaper's window is longer than `Jump.Window`).
+- **Config:** `Config.ArchetypeFeel` (new), `Config.angryAt`, `drainOf`, `surgeOf`, `burstShare`, `hopOf`;
+  `Config.low`, `heat` and `secondsOn` take the fish as an optional last argument; each archetype's numbers are
+  also `Config.<Id>` so the panel can name them.
+- **Sandbox:** F rides the next fish of a try-out list; `Net.Sandbox` "Ride", fishId, variant. The archetype
+  numbers are rows on the N panel.
+- **The test:** `tools/playtest/archetypes/` (the two temporary scripts and how to install them).
+- **To play, first:** whether the bursts and the 10% air a bite are too generous (a Megalodon among small fish
+  never ran low), how the words and kicks feel, two players at once.
+
 ## 2026-11-12 · void (Hugo's PC): speed reset to one hand-set number a fish; passive archetypes designed, the hook in
 **State:** on Hugo's word (reset speed, set per fish, no rarity or land formula; Gold x1.1, Rainbow x1.2; passive
 archetypes). Committed, not pushed. **Not run in Studio.** StyLua, selene and `rojo build` pass; Config was loaded

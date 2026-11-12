@@ -166,12 +166,16 @@ Config.FishStats = {
 } :: { [string]: FishStat }
 
 -- The passive archetypes (Hugo, 2026-11-12; docs/design/archetypes.md). All passive: no button, they just happen
--- while you ride. None takes away steering or the hop. These are the numbers for the behaviours; the behaviours
--- themselves are the next task (until then only the speed and the "Archetype" attribute are live).
+-- while you ride. None takes away steering or the hop. Built 2026-11-12: the server decides the eat, the prop reward,
+-- the drain and the hop's longer window (RideService); the rider's client plays the speed (RideController), the hop
+-- (JumpController) and the feedback (ArchetypeController, Config.ArchetypeFeel). Each id's table is also reachable as
+-- Config.<Id> (Config.Predator, ...), which is how the sandbox's panel names its rows.
 Config.Archetype = {
 	-- Fast: its speed is its own high number in FishStats. On top, the burst on landing (Ride.Surge, SurgeTime) is
 	-- bigger and lasts longer, so hopping onto one feels like a launch.
 	Fast = {
+		-- (On a landing every fish first dips to Ride.StartleSlow. A plain fish then eases back to its speed and no
+		-- further; a Fast one goes on past it to this burst as it recovers, and settles over SurgeTime: the launch.)
 		Surge = 1.15, -- Ride.Surge, times (1.25 becomes about 1.44)
 		SurgeTime = 2, -- Ride.SurgeTime, times (0.5 s becomes 1 s)
 	},
@@ -216,6 +220,52 @@ Config.Archetype = {
 		Air = 1.2, -- the glide's speed (Jump.AirShare of this fish's speed), times
 		FloatTime = 0.3, -- seconds added to Jump.FloatTime (and to the window, so the drop is as long as it was)
 	},
+}
+
+for id, numbers in Config.Archetype :: { [string]: any } do
+	(Config :: any)[id] = numbers
+end
+
+-- What an archetype's moment looks, sounds and feels like (Hugo, 2026-11-12: "make sure it feels good"). All made of
+-- what the game already has: the view's kick wider (State.FovPunch), the camera's jolt and shake, speed lines, bubble
+-- bursts, the built-in sounds, a word that pops up by the rider, and a line on a fish's tag naming its archetypes.
+-- Client only (ArchetypeController, RideController, JumpController); nothing here changes what the server decides.
+Config.ArchetypeFeel = {
+	-- THE STAND-IN MOTION for a bite and a smash (1 on, 0 off, between: that share): a quick lunge of the nose on a
+	-- bite, a shudder on a smash, on the fish's turn spring like Angry.Motion. Set to 0 when the partner's animations
+	-- play instead (they hang on the fish's "Bite", "Smash" and "Frenzy" attributes: archetypes.md, Animation hooks).
+	Motion = 1,
+	Lunge = 9, -- degrees the nose dips and comes back on a bite,
+	LungeTime = 0.32, -- over this long
+	Shudder = 6, -- degrees it rolls side to side on a smash (three times, dying away),
+	ShudderTime = 0.35, -- over this long
+	BoostIn = 0.1, -- seconds a burst of speed (an eat's, a smash's) takes to come in: a shove, not a snap
+	BoostLines = 0.75, -- speed lines through a burst, 0 to 1 (0 off)
+	-- the bite
+	EatFov = 6, -- the view kicks this much wider,
+	EatKick = 0.3, -- the camera is knocked down this many studs,
+	EatBubbles = 28, -- bubbles where the fish was,
+	EatReach = 6, -- flying out this far, studs
+	EatSound = 0.9, -- how loud the chomp is (0 off)
+	FrenzyFov = 2, -- and this much more view for each stack of a Frenzy
+	-- the smash (a Breaker's rewarded prop)
+	SmashFov = 4,
+	SmashShake = 0.7, -- the camera is thrown about this far, studs (the landing's shake, smaller)
+	SmashBubbles = 20,
+	SmashReach = 8,
+	SmashSound = 0.7,
+	-- the launch (landing on a Fast fish)
+	LaunchFov = 6, -- on top of Feel.BoltFov
+	LaunchLines = 1, -- speed lines through the launch
+	-- the big hop (off a Leaper)
+	LeapFov = 5, -- on top of Feel.PopFov
+	LeapBubbles = 16, -- on top of Feel.PopBurst
+	-- the word by the rider ("CHOMP!", "SMASH!", "FRENZY x2", "LAUNCH!", "BIG HOP!")
+	Words = 1, -- 0: no words
+	WordTime = 0.9, -- seconds a word stays
+	WordRise = 34, -- and how far it floats up, pixels
+	-- the archetypes on a fish's tag and under the ring of the fish you ride
+	Tags = 1, -- 0: tags don't name the archetypes
 }
 
 -- Variants (Hugo, 2026-11-12): the chance that a spawned fish is one, 0 to 1 (Rainbow is rolled first). The fish's
@@ -1006,25 +1056,76 @@ end
 
 -- Whether a meter at `oxygen` of `max` is in its low, red part (Oxygen.AngryAt): where the ring turns red and the fish
 -- under you turns angry
-function Config.low(oxygen: number, max: number): boolean
-	return oxygen <= math.max(max, 0.001) * Config.Oxygen.AngryAt
+-- Where the red part of the meter starts on this fish, as a share of max Oxygen: Oxygen.AngryAt, and lower on a Tank
+function Config.angryAt(fish: FishType?): number
+	local at = Config.Oxygen.AngryAt
+	if fish and Config.hasArchetype(fish, "Tank") then
+		at *= Config.Archetype.Tank.AngryAt
+	end
+	return at
 end
 
--- How far through its red part the meter is: 0 where it turns red (and above), 1 when it is empty
-function Config.heat(oxygen: number, max: number): number
-	local from = math.max(max, 0.001) * Config.Oxygen.AngryAt
+-- (`fish`: the fish under the rider, when there is one: a Tank's red part starts lower)
+function Config.low(oxygen: number, max: number, fish: FishType?): boolean
+	return oxygen <= math.max(max, 0.001) * Config.angryAt(fish)
+end
+
+function Config.heat(oxygen: number, max: number, fish: FishType?): number
+	local from = math.max(max, 0.001) * Config.angryAt(fish)
 	if from <= 0 then
 		return if oxygen <= 0 then 1 else 0
 	end
 	return math.clamp(1 - oxygen / from, 0, 1)
 end
 
--- How long a full meter of `max` lasts on that fish, in seconds
-function Config.secondsOn(zone: number, tier: string, max: number): number
+-- The Oxygen a second THIS fish takes in a land: Config.drain for its rarity, and less on a Tank. What it takes to
+-- hold a fish at all (Config.required, Config.strained: the number on its tag) is by rarity alone, Tank or not.
+function Config.drainOf(zone: number, fish: FishType): number
+	local rate = Config.drain(zone, fish.Tier)
+	if Config.hasArchetype(fish, "Tank") then
+		rate *= Config.Archetype.Tank.Drain
+	end
+	return rate
+end
+
+-- The burst on getting on this fish, and how long it lasts: Ride.Surge and Ride.SurgeTime, bigger and longer on a
+-- Fast one. (After a landing only a Fast fish plays it: see Config.Archetype.Fast.)
+function Config.surgeOf(fish: FishType?): (number, number)
+	local r = Config.Ride
+	if fish and Config.hasArchetype(fish, "Fast") then
+		local f = Config.Archetype.Fast
+		return r.Surge * f.Surge, r.SurgeTime * f.SurgeTime
+	end
+	return r.Surge, r.SurgeTime
+end
+
+-- How much of a burst of speed (an eat's, a smash's) is left `t` seconds in, 0 to 1: whole for the first two
+-- thirds of its `time`, fading out over the last
+function Config.burstShare(t: number, time: number): number
+	if t < 0 or t >= time then
+		return 0
+	end
+	local fadeFrom = time * 2 / 3
+	return if t <= fadeFrom then 1 else 1 - (t - fadeFrom) / math.max(time - fadeFrom, 0.001)
+end
+
+-- The hop off this fish (nil: from floating): what Jump.Apex and the glide's speed are times, and the seconds added
+-- to Jump.FloatTime and Jump.Window. 1, 1, 0 for all but a Leaper.
+function Config.hopOf(fish: FishType?): (number, number, number)
+	if fish and Config.hasArchetype(fish, "Leaper") then
+		local l = Config.Archetype.Leaper
+		return l.Apex, l.Air, l.FloatTime
+	end
+	return 1, 1, 0
+end
+
+-- (`fish`: with it, the seconds are this fish's own: longer on a Tank)
+function Config.secondsOn(zone: number, tier: string, max: number, fish: FishType?): number
 	if Config.strained(zone, tier, max) then
 		return Config.Oxygen.StrainTime
 	end
-	return max / math.max(Config.drain(zone, tier), 0.001)
+	local rate = if fish then Config.drainOf(zone, fish) else Config.drain(zone, tier)
+	return max / math.max(rate, 0.001)
 end
 
 -- Whether a fish breaks the props it swims into (Props.MinLength), or crashes into them
@@ -1082,8 +1183,18 @@ function Config.archetypesOf(fish: FishType): { string }
 	return if fish.Archetype == "" then {} else string.split(fish.Archetype, ",")
 end
 
+-- (asked every frame by the riding code: the sets are kept, one for each different row of archetypes)
+local archetypeSets: { [string]: { [string]: boolean } } = {}
 function Config.hasArchetype(fish: FishType, id: string): boolean
-	return table.find(Config.archetypesOf(fish), id) ~= nil
+	local set = archetypeSets[fish.Archetype]
+	if not set then
+		set = {}
+		for _, name in Config.archetypesOf(fish) do
+			set[name] = true
+		end
+		archetypeSets[fish.Archetype] = set
+	end
+	return set[id] == true
 end
 
 -- A fish model's archetypes as the server wrote them (its "Archetype" attribute): "" for none

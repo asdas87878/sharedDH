@@ -41,7 +41,8 @@ local function heatOf(fish: Model): number
 	local oxygen = rider:GetAttribute("Oxygen")
 	local max = rider:GetAttribute("MaxOxygen")
 	if type(oxygen) == "number" and type(max) == "number" then
-		return Config.heat(oxygen, max)
+		-- (a Tank's red part starts lower: Config.angryAt)
+		return Config.heat(oxygen, max, Config.FishById[fish:GetAttribute("FishType") :: string])
 	end
 	return 1
 end

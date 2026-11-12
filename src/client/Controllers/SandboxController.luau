@@ -6,6 +6,8 @@
 --      to Claude, who writes them into Config: nothing here outlives the play session.
 --   V: the side view, square on to the way you are headed, to judge the arc.
 --   R: back to the start of the lane, onto a fish.
+--   F: back to the start, onto the next fish of the try-out list (TRY_OUT: one of each passive archetype, a combo, a
+--      plain Common, a Gold and a Rainbow), put there for you.
 --   The arc trace: a dot every 0.04 s of the flight, left in the water until the next jump.
 --   After each jump, its numbers: time in the air, height, distance, the speed it came down at.
 -- The switches (no fail, endless air) are the server's (SandboxService); the rest is local.
@@ -19,6 +21,21 @@ local State = require(script.Parent.Parent.Lib.State)
 local Kit = require(script.Parent.Parent.UI.Kit)
 
 local SandboxController = {}
+
+-- F: the fish to try, in turn (fish id, variant): one of each passive archetype, a combo, a plain Common, the variants
+local TRY_OUT: { { string } } = {
+	{ "ReefShark", "" }, -- Predator
+	{ "HumpheadWrasse", "" }, -- Breaker
+	{ "Swordfish", "" }, -- Fast
+	{ "Dolphin", "" }, -- Leaper
+	{ "GiantSeaBass", "" }, -- Tank
+	{ "Megalodon", "" }, -- Predator, Frenzy
+	{ "Dunkleosteus", "" }, -- Predator, Breaker
+	{ "Clownfish", "" }, -- none
+	{ "Clownfish", "Gold" },
+	{ "Clownfish", "Rainbow" },
+}
+local tryOut = 0
 
 -- group, key, step
 local TUNABLES: { { any } } = {
@@ -219,6 +236,58 @@ local TUNABLES: { { any } } = {
 	{ "Angry", "PulseHigh", 0.05 },
 	{ "Angry", "PulseEdge", 0.1 },
 	{ "Angry", "PulseFade", 0.05 },
+	-- The passive archetypes (Config.Archetype, by id; docs/design/archetypes.md) and how their moments feel
+	-- (Config.ArchetypeFeel). F rides the next fish of the try-out list below.
+	{ "Fast", "Surge", 0.05 },
+	{ "Fast", "SurgeTime", 0.25 },
+	{ "Predator", "Prey", 0.05 },
+	{ "Predator", "Reach", 1 },
+	{ "Predator", "Burst", 0.05 },
+	{ "Predator", "BurstTime", 0.25 },
+	{ "Predator", "Oxygen", 0.01 },
+	{ "Predator", "Cooldown", 0.25 },
+	{ "Frenzy", "Window", 0.5 },
+	{ "Frenzy", "Stacks", 1 },
+	{ "Frenzy", "BurstPer", 0.02 },
+	{ "Frenzy", "TimePer", 0.1 },
+	{ "Frenzy", "Cooldown", 0.1 },
+	{ "Breaker", "Reach", 1 },
+	{ "Breaker", "Burst", 0.02 },
+	{ "Breaker", "BurstTime", 0.25 },
+	{ "Breaker", "Oxygen", 0.01 },
+	{ "Breaker", "Cooldown", 0.25 },
+	{ "Breaker", "Crash", 0.1 },
+	{ "Tank", "Drain", 0.05 },
+	{ "Tank", "AngryAt", 0.05 },
+	{ "Leaper", "Apex", 0.05 },
+	{ "Leaper", "Air", 0.05 },
+	{ "Leaper", "FloatTime", 0.1 },
+	{ "ArchetypeFeel", "Motion", 0.25 },
+	{ "ArchetypeFeel", "Lunge", 1 },
+	{ "ArchetypeFeel", "LungeTime", 0.02 },
+	{ "ArchetypeFeel", "Shudder", 1 },
+	{ "ArchetypeFeel", "ShudderTime", 0.05 },
+	{ "ArchetypeFeel", "BoostIn", 0.02 },
+	{ "ArchetypeFeel", "BoostLines", 0.05 },
+	{ "ArchetypeFeel", "EatFov", 1 },
+	{ "ArchetypeFeel", "EatKick", 0.05 },
+	{ "ArchetypeFeel", "EatBubbles", 2 },
+	{ "ArchetypeFeel", "EatReach", 1 },
+	{ "ArchetypeFeel", "EatSound", 0.1 },
+	{ "ArchetypeFeel", "FrenzyFov", 1 },
+	{ "ArchetypeFeel", "SmashFov", 1 },
+	{ "ArchetypeFeel", "SmashShake", 0.1 },
+	{ "ArchetypeFeel", "SmashBubbles", 2 },
+	{ "ArchetypeFeel", "SmashReach", 1 },
+	{ "ArchetypeFeel", "SmashSound", 0.1 },
+	{ "ArchetypeFeel", "LaunchFov", 1 },
+	{ "ArchetypeFeel", "LaunchLines", 0.1 },
+	{ "ArchetypeFeel", "LeapFov", 1 },
+	{ "ArchetypeFeel", "LeapBubbles", 2 },
+	{ "ArchetypeFeel", "Words", 1 },
+	{ "ArchetypeFeel", "WordTime", 0.1 },
+	{ "ArchetypeFeel", "WordRise", 2 },
+	{ "ArchetypeFeel", "Tags", 1 },
 	{ "AngryTier", "Common", 0.02 },
 	{ "AngryTier", "Uncommon", 0.02 },
 	{ "AngryTier", "Rare", 0.02 },
@@ -866,6 +935,12 @@ function SandboxController.Start()
 			showFlags()
 		elseif input.KeyCode == Enum.KeyCode.R then
 			Net.Sandbox:FireServer("Reset")
+		elseif input.KeyCode == Enum.KeyCode.F then
+			-- onto the next fish of the try-out list: one of each passive archetype, a combo and a plain Common
+			tryOut = tryOut % #TRY_OUT + 1
+			local pick = TRY_OUT[tryOut]
+			print(string.format("[Sandbox] riding %s%s", pick[1], if pick[2] ~= "" then " (" .. pick[2] .. ")" else ""))
+			Net.Sandbox:FireServer("Ride", pick[1], pick[2])
 		end
 	end)
 	RunService.RenderStepped:Connect(step)

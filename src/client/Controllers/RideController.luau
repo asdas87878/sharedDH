@@ -23,6 +23,10 @@
 -- attribute: the meter in its red part, or a fish too strong), its speed is also times its angry style's curve
 -- (Shared/AngryStyles: a steady drag, a stutter, a surge and stall, ...), eased in and out. Only the speed: A and D,
 -- the look and the hop are what they were. The style's stand-in motion is one marked block in `drive`.
+-- The passive archetypes (Config.Archetype; docs/design/archetypes.md), the rider's side of them: a burst of speed the
+-- server gave us for a bite or a smashed prop (RideController.boost: on top of the speed's curve, like a crash's
+-- slow-down), a Fast fish's launch as it recovers from the landing's slow-down, and the stand-in motion for a bite
+-- and a smash (one marked block in `drive`). Steering and the hop are untouched by all of it.
 -- Every fish has its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant).
 -- The camera stays underwater once we have dived (Config.Camera.Submerge...), until the dock or a respawn.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -59,6 +63,11 @@ local angryAt = 0 -- since this os.clock(),
 local angryIn = 0 -- and how far its slow-down is in, 0 to 1 (eased in and out)
 local crashAt = -math.huge -- os.clock() of the last crash or smashed prop,
 local crashSlow = 1 -- and the share of our speed it left us (it comes back over Crash.Recover)
+local boostAt = -math.huge -- os.clock() of the last burst of speed (a bite's, a smashed prop's: Config.Archetype),
+local boostBy = 1 -- how many times our speed it is,
+local boostTime = 0 -- and for how long (it fades over the last third: Config.burstShare)
+local actAt = -math.huge -- os.clock() of the last bite or smash, for the stand-in motion,
+local actKind = "" -- and which: "Eat" or "Smash"
 
 -- the fish we just left, coasting on its heading to idle until the server takes it back
 type Coast = { Fish: Model, At: number, Speed: number, Look: Vector3, Idle: number }
@@ -293,6 +302,8 @@ local function onMounted(fish: Model, landing: boolean?)
 	bolted = false
 	angry = false
 	angryIn = 0
+	boostAt = -math.huge -- (a burst belongs to the fish that earned it)
+	actAt = -math.huge
 	clearFloat()
 	-- (a fish that breaks props swims through them: the server knocks their boxes loose as it does)
 	Course.begin(rideType ~= nil and Config.smashes(rideType))
@@ -335,7 +346,7 @@ local function angrySpeed(fish: Model, kind: Config.FishType, dt: number): (numb
 		local oxygen = player:GetAttribute("Oxygen")
 		local max = player:GetAttribute("MaxOxygen")
 		if type(oxygen) == "number" and type(max) == "number" then
-			heat = Config.heat(oxygen, max)
+			heat = Config.heat(oxygen, max, kind) -- (a Tank's red part starts lower)
 		end
 	end
 	local style = AngryStyles.of(kind)
@@ -351,6 +362,45 @@ local function angrySpeed(fish: Model, kind: Config.FishType, dt: number): (numb
 		nod, wag, rock = nod * size, wag * size, rock * size
 	end
 	return share, nod, wag, rock
+end
+
+-- A burst of speed for the fish under us, the server's reward for a bite ("Eat") or a smashed prop ("Smash"): `by`
+-- times its speed for `time` seconds. A stronger burst still running is kept.
+function RideController.boost(kind: string, by: number, time: number)
+	local now = os.clock()
+	local running = 1 + (boostBy - 1) * Config.burstShare(now - boostAt, boostTime)
+	if by >= running then
+		boostAt = now
+		boostBy = math.max(by, 1)
+		boostTime = math.max(time, 0.05)
+	end
+	actAt = now
+	actKind = kind
+end
+
+-- The burst's share of our speed this frame (1: none), and how much of it is left, 0 to 1
+local function boostNow(): (number, number)
+	local t = os.clock() - boostAt
+	local left = Config.burstShare(t, boostTime)
+	if left <= 0 then
+		return 1, 0
+	end
+	-- (it comes in over a moment: a shove, not a snap)
+	left *= Ease.smoothstep(0, math.max(Config.ArchetypeFeel.BoostIn, 0.001), t)
+	return 1 + (boostBy - 1) * left, left
+end
+
+-- A Fast fish's launch (Config.Archetype.Fast), `t` seconds after the landing's slow-down has been held: the share
+-- on top of its speed. It comes in as the fish recovers, peaks at its burst (Config.surgeOf), and settles.
+local function launchShare(kind: Config.FishType, t: number): number
+	if t <= 0 or not Config.hasArchetype(kind, "Fast") then
+		return 1
+	end
+	local r = Config.Ride
+	local surge, surgeTime = Config.surgeOf(kind)
+	local up = Ease.smoothstep(0, math.max(r.StartleRecover, 0.01), t)
+	local down = Ease.smoothstep(surgeTime * 0.6, surgeTime * 1.4, t - r.StartleRecover)
+	return 1 + (surge - 1) * up * (1 - down)
 end
 
 local function drive(dt: number)
@@ -395,20 +445,38 @@ local function drive(dt: number)
 
 	local since = os.clock() - State.MountedAt
 	local ridden = riddenSpeed()
+	-- (the burst on getting on: Ride.Surge, a Fast fish's bigger and longer one)
+	local surge, surgeTime = Config.surgeOf(rideType)
 	local speed = if startled
 		then startleSpeed(startSpeed, ridden, since)
-		else Ease.rideSpeed(startSpeed, ridden, since, r.RampTime, r.Surge, r.SurgeTime)
+		else Ease.rideSpeed(startSpeed, ridden, since, r.RampTime, surge, surgeTime)
 	if startled and since >= r.StartleHold then
+		-- a Fast fish doesn't just recover: it launches (Config.Archetype.Fast)
+		local launch = launchShare(rideType, since - r.StartleHold)
+		local fast = Config.hasArchetype(rideType, "Fast")
+		speed *= launch
 		-- it picks its speed up again: the view kicks a little wider once, and speed lines while it gathers speed
 		if not bolted then
 			bolted = true
-			State.FovPunch = Config.Feel.BoltFov
-			Feel.sound("Whoosh", Config.Feel.Whoosh * 0.7, Config.Feel.WhooshPitch * 0.8, 0.45)
+			local af = Config.ArchetypeFeel
+			State.FovPunch = Config.Feel.BoltFov + (if fast then af.LaunchFov else 0)
+			Feel.sound(
+				"Whoosh",
+				Config.Feel.Whoosh * (if fast then 1.1 else 0.7),
+				Config.Feel.WhooshPitch * (if fast then 1.1 else 0.8),
+				if fast then 0.8 else 0.45
+			)
+			if fast then
+				State.Launched:Fire()
+			end
 		end
 		local gathering =
 			math.sin(math.clamp((since - r.StartleHold) / math.max(r.StartleRecover, 0.01), 0, 1) * math.pi)
 		if gathering > 0.05 then
 			Feel.rush(Config.Feel.BoltLines * gathering)
+		end
+		if launch > 1.02 then
+			Feel.rush(Config.ArchetypeFeel.LaunchLines * math.clamp((launch - 1) / math.max(surge - 1, 0.01), 0, 1))
 		end
 	end
 	-- just run into something: slowed at once, picking up again
@@ -417,6 +485,26 @@ local function drive(dt: number)
 	-- angry (the meter in its red part, or a fish too strong): slowed in its own style's way
 	local angryShare, nod, wag, rock = angrySpeed(fish, rideType, dt)
 	speed *= angryShare
+	-- a burst the server gave us (a Predator's bite, a Breaker's prop): on top of all of the above
+	local boostShare, boostLeft = boostNow()
+	speed *= boostShare
+	if boostLeft > 0 then
+		Feel.rush(Config.ArchetypeFeel.BoostLines * boostLeft)
+	end
+	-- THE STAND-IN MOTION for a bite and a smash (ArchetypeFeel.Motion): the nose lunges down and back on a bite, the
+	-- body shudders side to side on a smash. Take this out, or set ArchetypeFeel.Motion to 0, when authored animations
+	-- play by the fish's "Bite" and "Smash" attributes instead.
+	local af = Config.ArchetypeFeel
+	if af.Motion > 0 then
+		local acted = os.clock() - actAt
+		if actKind == "Eat" and acted < af.LungeTime then
+			local u = acted / math.max(af.LungeTime, 0.01)
+			nod -= math.rad(af.Lunge * math.min(af.Motion, 2)) * math.sin(math.pi * u) * (1 - u * 0.5)
+		elseif actKind == "Smash" and acted < af.ShudderTime then
+			local u = acted / math.max(af.ShudderTime, 0.01)
+			rock += math.rad(af.Shudder * math.min(af.Motion, 2)) * math.sin(6 * math.pi * u) * (1 - u)
+		end
+	end
 	local heading = CFrame.fromOrientation(pitch, yaw, 0)
 	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
 	-- the air or out of the lane, however the keys are held
