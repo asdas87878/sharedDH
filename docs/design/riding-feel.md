@@ -447,6 +447,12 @@ showing that they want you off)". Built and run by script in Studio; not judged 
   (30 s on a fish means 9 s angry); the look of the red on an orange or red fish; each style by hand.
 
 ## Speed by fish, by area, variants (Hugo, 2026-11-12)
+**Replaced the same day (Hugo: the reset).** Every fish now has one hand-set speed in `Config.FishStats`; the
+rarity's, the species' and the area's factors below are gone (`TierMult`, `SpeciesSpeed`, `AreaStep`, `AreaGrow`,
+`Config.areaSpeed`), and the variants are Gold x1.1 and Rainbow x1.2. The speeds, and the passive archetypes that
+came with them: [archetypes](archetypes.md). What follows is kept as the record of what was built before; what it
+says about the hop and the herd following each fish's own speed still holds.
+
 Every fish has its own speed, worked out by one function on the server and on every client (`Config.speedOf`):
 
 **speed = `Speed.Base` (45) x the species' base x the rarity's (`TierMult`) x the area's (the fish's home land)

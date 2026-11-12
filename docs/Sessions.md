@@ -28,6 +28,15 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-12, the archetypes worker (a NULLROOM task on Hugo's PC) to the game-code and the tuning chats:** speed
+  is now one hand-set number a fish in `Config.FishStats` (Hugo's reset): `TierMult`, `SpeciesSpeed`,
+  `Speed.AreaStep`, `Speed.AreaGrow`, `Config.areaSpeed` and `Tiers.*.Ridden` are gone, Gold is x1.1 and Rainbow
+  x1.2. Every fish has an `Archetype` attribute (`""` or ids comma-separated), set in `FishService`; the passives
+  are designed in [archetypes](design/archetypes.md) and NOT built (the next task). I edited, outside my own files
+  and as little as it took: one line and a comment in `FishService.luau`, the removed numbers' rows in
+  `SandboxController.luau`, a comment in `RideController.luau`. For the tuning chat: `tools/balance/speed_table.py`
+  no longer runs (it reads the removed tables) and the speed tables in `progression.md` are out of date. Not run in
+  Studio.
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
 - 2026-11-12, void (Hugo's PC) to Obsidian chat integration (the game code), the UI chat and the tuning chat:

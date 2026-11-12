@@ -3,6 +3,33 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): speed reset to one hand-set number a fish; passive archetypes designed, the hook in
+**State:** on Hugo's word (reset speed, set per fish, no rarity or land formula; Gold x1.1, Rainbow x1.2; passive
+archetypes). Committed, not pushed. **Not run in Studio.** StyLua, selene and `rojo build` pass; Config was loaded
+outside Studio (Lune, with stand-ins for the creature registry): 82 fish, speeds 40 to 150, The Devourer 150, Gold
+165, Rainbow 180, a changed row followed by `Config.refresh`. Nothing uploaded. A row in [Decisions](Decisions.md);
+the design, the numbers and the table of all 82: [archetypes](design/archetypes.md).
+- **Speed:** `Config.FishStats` is the single source: one row a creature, `{ Speed, Archetype }`.
+  `Config.speedOf` is that number times the variant's. Gone from Config: `TierMult`, `SpeciesSpeed`,
+  `Speed.AreaStep`, `Speed.AreaGrow`, `Config.areaSpeed`, `Tiers.*.Ridden`, a spec's `RiddenSpeed`. `Speed.Base`
+  (45) stays only as the fallback for a creature with no row (it warns). `Speed.Gold` 1.1, `Speed.Rainbow` 1.2.
+- **Archetypes:** every spawned fish carries an `Archetype` attribute, set by the server in `FishService`
+  (`""` for none, ids comma-separated: `"Predator,Breaker"`). Readers: `Config.archetypeOf(model)`,
+  `Config.archetypesOf(fish)`, `Config.hasArchetype(fish, id)`, `FishType.Archetype`. The ids and the numbers for
+  each are in `Config.Archetype` (Fast, Predator, Frenzy, Breaker, Tank, Leaper).
+- **Not built:** the passive behaviours (eating, the prop reward, the slower drain, the longer hop, the bigger
+  landing burst). Until they are, an archetype changes nothing in play; only the speeds and the variants' factors
+  did. The notes for whoever builds them are at the end of [archetypes](design/archetypes.md).
+- **Files:** `src/shared/Config.luau`; one line in `FishService.luau` (the attribute) and a comment; the sandbox
+  panel's rows for the removed numbers taken out of `SandboxController.luau`; a comment in `RideController.luau`.
+  Not touched: `AnimController`, `RideStyles`, `AngryStyles`, `JumpController`, `RideService`, `PropService`.
+- **Broken by this, not mine to fix:** `tools/balance/speed_table.py` reads `TierMult` and `SpeciesSpeed`, which
+  no longer exist (the tuning chat's tool). The speed tables in [progression](design/progression.md) and the
+  "Speed by fish" section of [riding feel](design/riding-feel.md) describe the formula that is gone (the latter
+  is marked).
+- **To play:** hops between a slow and a fast fish of one land (speeds inside a land now differ more), and the
+  deep lands, which are slower than they were (the last land's Legendaries 100 to 118, were 141 to 158).
+
 ## 2026-11-12 · void (Hugo's PC): angry mode: at low Oxygen the fish pulses red and slows, each body type in its own way
 **State:** on Hugo's word ("make the fishes pulse red and go into angry mode dont add animations yet just make the
 pulse red and slow down, different fishes should have different slowdowns ... when the bar turns red"). Run twice in

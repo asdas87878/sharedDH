@@ -23,7 +23,7 @@
 -- attribute: the meter in its red part, or a fish too strong), its speed is also times its angry style's curve
 -- (Shared/AngryStyles: a steady drag, a stutter, a surge and stall, ...), eased in and out. Only the speed: A and D,
 -- the look and the hop are what they were. The style's stand-in motion is one marked block in `drive`.
--- Every fish has its own speed (Config.speedOf: its species, rarity, home land and variant).
+-- Every fish has its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant).
 -- The camera stays underwater once we have dived (Config.Camera.Submerge...), until the dock or a respawn.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")

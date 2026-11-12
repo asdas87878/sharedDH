@@ -356,21 +356,10 @@ local TUNABLES: { { any } } = {
 	{ "Spawn", "HeightFloor", 1 },
 	-- The tuning rows (docs/design/progression.md). Every fish's speed: wild fish, the glide and the server's speed
 	-- check all follow at once.
-	-- (Hugo, 2026-11-12: speed = Speed.Base x the species' base x TierMult x the area's x the variant's. The area's:
-	-- a fish's home land n is x(1 + AreaStep x (n - 1) + AreaGrow x (n - 1)(n - 2) / 2), so AreaStep is the first
-	-- land's step and AreaGrow how much bigger each step after is)
-	{ "Speed", "Base", 1 },
-	{ "Speed", "AreaStep", 0.01 },
-	{ "Speed", "AreaGrow", 0.002 },
+	-- (Hugo, 2026-11-12, the reset: every fish has its own hand-set speed in Config.FishStats, no rarity or land
+	-- factor; only the variant's comes on top, the same for every fish)
 	{ "Speed", "Gold", 0.02 },
 	{ "Speed", "Rainbow", 0.02 },
-	{ "TierMult", "Common", 0.02 },
-	{ "TierMult", "Uncommon", 0.02 },
-	{ "TierMult", "Rare", 0.02 },
-	{ "TierMult", "Epic", 0.02 },
-	{ "TierMult", "Legendary", 0.02 },
-	{ "TierMult", "Mythic", 0.02 },
-	{ "TierMult", "Secret", 0.02 },
 	-- the variants' chances (new fish only: the ones swimming keep theirs)
 	{ "Variant", "Gold", 0.01 },
 	{ "Variant", "Rainbow", 0.005 },

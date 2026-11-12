@@ -121,7 +121,9 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   straight down the lane in one layer), and going fish to fish is `JumpController`: Ride a Dino's jump, read from the
   user's recordings ([reference](docs/reference/ride-a-dino.md)). What is built, measured and still open:
   [riding feel](docs/design/riding-feel.md). Every number is in `src/shared/Config.luau`, read live. Every fish has its own
-  speed (`Config.speedOf`: species x rarity x size roll x variant), a size roll (`Size` attribute) and now and then a
+  speed and passive archetypes, set by hand in one table (`Config.FishStats`; `Config.speedOf` = that number x the variant's, Gold 1.1, Rainbow 1.2;
+  no rarity or land formula, no size roll; the `Archetype` attribute, "" or ids comma-separated; rules, numbers and all 82 rows in
+  [archetypes](docs/design/archetypes.md); the passive behaviours are not built yet) and now and then a
   variant (`Variant`; look in `Shared/Variants`); the camera stays under the surface once dived (`Camera.Submerge`). In Studio the game
   starts as the **movement sandbox** ([docs/sandbox.md](docs/sandbox.md): no fail, R reset, V side view, N a panel of every
   number): the user tunes there and pastes "Copy changes" for Claude to write into Config. Angry mode (Hugo, 2026-11-12): with the meter in its red part (`Oxygen.AngryAt`) the

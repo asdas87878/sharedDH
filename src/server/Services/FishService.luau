@@ -11,7 +11,7 @@
 -- it; once let go it stays with that client for Switch.HandBack seconds, coasting, so it doesn't hitch in front of them,
 -- then the server takes it back and it joins the herd from where it is.
 -- Every fish is its own (Hugo, 2026-11-12): now and then a variant (Config.Variant, Shared/Variants; the "Variant"
--- attribute), and its own speed (Config.speedOf: its species, rarity, home land and variant), which the herd, the
+-- attribute), and its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant), which the herd, the
 -- rider's client and the server's checks all use. There is no size roll for now (Hugo, the same day): every fish is
 -- its species' size.
 local Players = game:GetService("Players")
@@ -382,6 +382,9 @@ local function spawnFish(index: number): Wild?
 	local model = FishModel.build(fishType)
 	local variant = rollVariant()
 	model:SetAttribute("Variant", variant)
+	-- its passive archetypes (Config.FishStats; docs/design/archetypes.md): "" for none, more than one comma-separated.
+	-- The hook for the passives and for the partner's animations
+	model:SetAttribute("Archetype", fishType.Archetype)
 	Variants.apply(model, variant)
 	model:PivotTo(CFrame.lookAt(at, at + dir))
 	local root = model.PrimaryPart :: BasePart
