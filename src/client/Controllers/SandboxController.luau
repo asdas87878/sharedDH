@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
+local Kit = require(script.Parent.Parent.UI.Kit)
 
 local SandboxController = {}
 
@@ -76,6 +77,8 @@ local TUNABLES: { { any } } = {
 	{ "Jump", "TrailLife", 0.05 },
 	{ "Jump", "RingRadius", 1 },
 	{ "Jump", "RingGrow", 5 },
+	{ "Jump", "RingFar", 0.1 },
+	{ "Jump", "RingFarFace", 0.05 },
 	{ "Jump", "RingFollow", 1 },
 	{ "Jump", "RingSpin", 5 },
 	{ "Jump", "RingFace", 0.05 },
@@ -93,7 +96,8 @@ local TUNABLES: { { any } } = {
 	{ "Lock", "AimRadius", 1 },
 	{ "Lock", "MaxAngle", 5 },
 	{ "Lock", "AngleWeight", 0.05 },
-	{ "Lock", "DistanceWeight", 0.05 },
+	{ "Lock", "DistanceWeight", 0.01 },
+	{ "Lock", "FarAim", 1 },
 	{ "Lock", "LeftPenalty", 0.1 },
 	{ "Lock", "Sticky", 0.05 },
 	{ "Lock", "MinHold", 0.05 },
@@ -189,6 +193,49 @@ local TUNABLES: { { any } } = {
 	{ "Ride", "FloorClearance", 1 },
 	{ "Ride", "Ceiling", 1 },
 	{ "Ride", "SpeedSlack", 0.1 },
+	-- The startle (Hugo, 2026-11-12): a fish you land on rears and stalls, then bolts
+	{ "Ride", "Startle", 1 },
+	{ "Ride", "StartleTime", 0.05 },
+	{ "Ride", "StartleBrake", 0.05 },
+	{ "Ride", "StartleSlow", 0.05 },
+	{ "Ride", "StartleHold", 0.05 },
+	{ "Ride", "StartleRecover", 0.1 },
+	{ "Ride", "StartleRear", 2 },
+	{ "Ride", "StartleShake", 1 },
+	{ "Ride", "StartleShakeRate", 1 },
+	{ "Ride", "StartleCoil", 1 },
+	{ "Ride", "StartleLunge", 0.1 },
+	-- The rider's poses (Config.Pose) and the juice (Config.Feel)
+	{ "Pose", "Blend", 1 },
+	{ "Pose", "CrawlRate", 0.1 },
+	{ "Pose", "CrawlKick", 0.5 },
+	{ "Pose", "CrawlRoll", 2 },
+	{ "Pose", "BreastRate", 0.05 },
+	{ "Pose", "FloatTilt", 5 },
+	{ "Pose", "PopTuck", 0.01 },
+	{ "Pose", "Flip", 1 },
+	{ "Pose", "FlipStart", 0.05 },
+	{ "Pose", "FlipMin", 0.05 },
+	{ "Pose", "RideCrouch", 2 },
+	{ "Pose", "RideLean", 2 },
+	{ "Pose", "BraceLean", 2 },
+	{ "Feel", "PopFov", 1 },
+	{ "Feel", "PopBurst", 2 },
+	{ "Feel", "PopLines", 0.1 },
+	{ "Feel", "ReelLines", 0.1 },
+	{ "Feel", "BoltLines", 0.1 },
+	{ "Feel", "BoltFov", 1 },
+	{ "Feel", "LinesFade", 0.05 },
+	{ "Feel", "LinesInner", 0.05 },
+	{ "Feel", "Trail", 10 },
+	{ "Feel", "Whoosh", 0.05 },
+	{ "Feel", "WhooshPitch", 0.1 },
+	{ "Feel", "Swish", 0.05 },
+	{ "Feel", "Splash", 0.05 },
+	{ "Feel", "SplashCount", 2 },
+	{ "Feel", "SplashReach", 1 },
+	{ "Feel", "Mark", 1 },
+	{ "Feel", "MarkTime", 0.05 },
 	{ "Camera", "Fov", 2 },
 	{ "Camera", "SpeedFov", 2 },
 	{ "Camera", "SpeedFovFrom", 5 },
@@ -269,6 +316,10 @@ local TUNABLES: { { any } } = {
 	{ "Camera", "WheelStep", 0.5 },
 	{ "Camera", "ZoomMin", 1 },
 	{ "Camera", "ZoomMax", 2 },
+	{ "Camera", "Submerge", 1 },
+	{ "Camera", "WaterTop", 0.5 },
+	{ "Camera", "SurfaceMargin", 0.5 },
+	{ "Camera", "SurfaceTilt", 0.1 },
 	{ "AimHud", "RefusedTime", 0.05 },
 	{ "AimHud", "FollowRate", 2 },
 	{ "AimHud", "PreviewTransparency", 0.05 },
@@ -284,15 +335,27 @@ local TUNABLES: { { any } } = {
 	{ "Spawn", "HeightMin", 2 },
 	{ "Spawn", "HeightMax", 2 },
 	{ "Spawn", "HeightFloor", 1 },
-	-- The tuning rows (docs/design/progression.md). The ridden speed of each rarity, studs a second (Config.TierSpeed,
-	-- which is Config.Tiers' Ridden): wild fish, the glide and the server's speed check all follow at once.
-	{ "TierSpeed", "Common", 1 },
-	{ "TierSpeed", "Uncommon", 1 },
-	{ "TierSpeed", "Rare", 1 },
-	{ "TierSpeed", "Epic", 1 },
-	{ "TierSpeed", "Legendary", 1 },
-	{ "TierSpeed", "Mythic", 1 },
-	{ "TierSpeed", "Secret", 1 },
+	-- The tuning rows (docs/design/progression.md). Every fish's speed: wild fish, the glide and the server's speed
+	-- check all follow at once.
+	-- (Hugo, 2026-11-12: speed = Speed.Base x the species' base x TierMult x the size's factor x the variant's)
+	{ "Speed", "Base", 1 },
+	{ "Speed", "SizeBonus", 0.05 },
+	{ "Speed", "Gold", 0.02 },
+	{ "Speed", "Rainbow", 0.02 },
+	{ "TierMult", "Common", 0.02 },
+	{ "TierMult", "Uncommon", 0.02 },
+	{ "TierMult", "Rare", 0.02 },
+	{ "TierMult", "Epic", 0.02 },
+	{ "TierMult", "Legendary", 0.02 },
+	{ "TierMult", "Mythic", 0.02 },
+	{ "TierMult", "Secret", 0.02 },
+	-- the size roll and the variants' chances (new fish only: the ones swimming keep theirs)
+	{ "Size", "On", 1 },
+	{ "Size", "Min", 0.05 },
+	{ "Size", "Max", 0.05 },
+	{ "Size", "Curve", 0.25 },
+	{ "Variant", "Gold", 0.01 },
+	{ "Variant", "Rainbow", 0.005 },
 	-- The share of spawns by rarity, land by land (Config.ZoneMix, one group a land). A changed share shows in the fish
 	-- spawned from then on, not in the ones already swimming. A row whose rarity the land's mix doesn't have is left out.
 	{ "MixShallows", "Common", 1 },
@@ -339,8 +402,9 @@ local TUNABLES: { { any } } = {
 type Row = { Path: string, Group: string, Key: string, Step: number, Start: number, Box: TextBox }
 
 local FONT = Enum.Font.GothamMedium
-local DARK = Color3.fromRGB(18, 28, 44)
-local MID = Color3.fromRGB(40, 58, 84)
+local DARK = Color3.fromRGB(26, 31, 41)
+local MID = Color3.fromRGB(62, 72, 90)
+local AMBER = Color3.fromRGB(255, 190, 70)
 local WHITE = Color3.new(1, 1, 1)
 local CHANGED = Color3.fromRGB(255, 221, 51)
 local TRACE_DOTS = 110
@@ -382,6 +446,13 @@ local function text(props: { [string]: any }, parent: Instance, class: string?):
 	props.TextColor3 = props.TextColor3 or WHITE
 	props.BorderSizePixel = 0
 	return new(class or "TextLabel", props, parent)
+end
+
+-- a tool's part: a small corner and a thin black line round it
+local function edge(object: GuiObject)
+	new("UICorner", { CornerRadius = UDim.new(0, 4) }, object)
+	local line = new("UIStroke", { Thickness = 1.5, Color = Color3.fromRGB(8, 10, 14) }, object)
+	line.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 end
 
 local function valueOf(row: Row): number
@@ -505,6 +576,7 @@ local function build()
 		Text = "",
 	}, gui)
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, tag)
+	edge(tag)
 	stats = text({
 		Position = UDim2.fromOffset(12, 34),
 		Size = UDim2.fromOffset(440, 40),
@@ -515,6 +587,7 @@ local function build()
 		Text = "jump to see its numbers here",
 	}, gui)
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, stats)
+	edge(stats)
 
 	panel = new("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
@@ -525,17 +598,29 @@ local function build()
 		BorderSizePixel = 0,
 		Visible = false,
 	}, gui)
-	new("UICorner", { CornerRadius = UDim.new(0, 8) }, panel)
+	-- a tool's look (UI.Kit): dark slate, squared paper, a thick black outline, an amber line under the title
+	local slate = table.clone(Kit.Themes.Tool)
+	slate.Fade = 0.04
+	slate.Radius = 8
+	Kit.dress(panel, slate)
+	Kit.grid(panel, 24, 320, 1400)
 	text({
 		Position = UDim2.fromOffset(10, 6),
 		Size = UDim2.new(1, -20, 0, 22),
 		BackgroundTransparency = 1,
 		TextSize = 15,
+		TextColor3 = AMBER,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = "Movement sandbox",
+		Text = "MOVEMENT SANDBOX",
+	}, panel)
+	new("Frame", {
+		Position = UDim2.fromOffset(10, 28),
+		Size = UDim2.new(1, -20, 0, 2),
+		BackgroundColor3 = AMBER,
+		BorderSizePixel = 0,
 	}, panel)
 
-	local y = 32
+	local y = 36
 	for _, flag in FLAGS do
 		local button = text({
 			Position = UDim2.fromOffset(10, y),
@@ -546,6 +631,7 @@ local function build()
 			AutoButtonColor = true,
 		}, panel, "TextButton")
 		new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, button)
+		edge(button)
 		button.Activated:Connect(function()
 			flag[3](not flag[2]())
 			task.delay(0.15, showFlags) -- the server's switches come back as attributes
@@ -567,7 +653,9 @@ local function build()
 		BackgroundColor3 = Color3.fromRGB(120, 70, 60),
 		Text = "Numbers back to start",
 	}, panel, "TextButton")
-	y += 34
+	y += 36
+	edge(copy)
+	edge(reset)
 
 	output = text({
 		AnchorPoint = Vector2.new(0, 1),
@@ -584,6 +672,7 @@ local function build()
 		Text = "Copy changes lists the changed numbers here: click in, Ctrl+A, Ctrl+C, and paste them to Claude.",
 	}, panel, "TextBox")
 	new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingTop = UDim.new(0, 4) }, output)
+	edge(output)
 
 	local list = new("ScrollingFrame", {
 		Position = UDim2.fromOffset(10, y),
@@ -608,7 +697,7 @@ local function build()
 				text({
 					Size = UDim2.new(1, -8, 0, 20),
 					BackgroundTransparency = 1,
-					TextColor3 = Color3.fromRGB(140, 200, 255),
+					TextColor3 = AMBER,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = group,
 					LayoutOrder = order,
@@ -645,6 +734,9 @@ local function build()
 				BackgroundColor3 = MID,
 				Text = "+",
 			}, line, "TextButton")
+			edge(minus)
+			edge(box)
+			edge(plus)
 			local row: Row =
 				{ Path = group .. "." .. key, Group = group, Key = key, Step = step, Start = start, Box = box }
 			table.insert(rows, row)

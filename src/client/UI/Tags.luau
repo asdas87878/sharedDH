@@ -124,9 +124,9 @@ local function make(parent: Instance): Tag
 		BackgroundColor3 = Kit.Danger,
 		BackgroundTransparency = 1,
 	}, needRow)
-	Kit.corner(plate, 4) -- (a plate's corner, as the HUD's other plates: it was a full pill)
-	Kit.shade(plate)
-	local plateEdge = Kit.stroke(plate, 1.5, Kit.Ink)
+	Kit.corner(plate, 999)
+	Kit.new("UIGradient", { Color = ColorSequence.new(Kit.White, Color3.fromRGB(150, 120, 130)), Rotation = 90 }, plate)
+	local plateEdge = Kit.stroke(plate, 2, Kit.Ink)
 	plateEdge.Enabled = false
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }, plate)
 	Kit.new("UIListLayout", {
@@ -224,8 +224,11 @@ local function put(tag: Tag, fish: Model)
 		return
 	end
 	tag.Fish = fish
-	tag.Offset = Vector3.new(0, kind.Size.Y * 0.5 + 2.5, 0)
-	tag.Name.Text = kind.Name
+	-- this fish's own size (its roll: "x1.23") and variant, after its name
+	local size = Config.sizeOf(fish)
+	local variant = Config.variantOf(fish)
+	tag.Offset = Vector3.new(0, kind.Size.Y * size * 0.5 + 2.5, 0)
+	tag.Name.Text = string.format("%s%s x%.2f", if variant ~= "" then variant .. " " else "", kind.Name, size)
 	tag.TierName = kind.Tier
 	tag.Tier.Text = kind.Tier
 	Kit.tierColours(tag.Tier, tag.TierGradient, kind.Tier, Config.Tiers)

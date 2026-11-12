@@ -1,8 +1,9 @@
 --!strict
--- The row of slots at the bottom middle (the reference's): what you carry home this dive. A hairline dark frame; an
--- empty slot is almost clear and darkens a little toward the bottom. A filled one, as the reference's: the creature's
--- picture on its rarity's colour, lighter at the top, a pale edge, and the creature's name cut short along the bottom.
--- One word above the row: "3 CAUGHT".
+-- The row of slots at the bottom middle (where the reference has its own): what you carry home this dive. Each slot is
+-- a small aquarium: a tile of see-through blue glass with a thick dark outline, a pale line inside it, a shine over
+-- its upper half and the water's pattern. A filled one is its rarity's colours behind the glass (gold for a
+-- Legendary, the rainbow for a Secret), with the creature's picture and its name cut short; the newest has a white
+-- outline. One word above the row: "3 CAUGHT".
 -- The row is hidden while the game has no taming (State.Caught is nil). The picture is the creature's own model drawn
 -- in a small window (UI.Portrait), which needs no upload; a creature with no model to draw yet shows its name alone.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,22 +22,21 @@ local COUNT = 7
 
 local holder: Frame
 local count: TextLabel
-local frames: { Frame } = {}
-local fills: { UIGradient } = {}
+local slots: { Kit.Panel } = {}
 local names: { TextLabel } = {}
-local outlines: { UIStroke } = {}
 local pictures: { Portrait.Portrait } = {}
 
-local EMPTY = NumberSequence.new(0.98, 0.83)
-local FULL = NumberSequence.new(0.08)
-local DARK = Kit.Deep
+local GLASS: Kit.Style = table.clone(Kit.Themes.Glass)
+GLASS.Radius = Kit.Radius.Tile
+GLASS.Outline = 2.5
+GLASS.Drop = 2
 
 function Slots.build(parent: Instance)
 	holder = Kit.new("Frame", {
 		Name = "Slots",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.fromOffset(COUNT * SIZE + (COUNT - 1) * GAP, SIZE + 16),
+		Position = UDim2.new(0.5, 0, 1, -12),
+		Size = UDim2.fromOffset(COUNT * SIZE + (COUNT - 1) * GAP, SIZE + 18),
 		BackgroundTransparency = 1,
 		Visible = false,
 	}, parent)
@@ -47,17 +47,12 @@ function Slots.build(parent: Instance)
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}, holder)
 	for i = 1, COUNT do
-		local slot: Frame = Kit.new("Frame", {
+		local slot = Kit.panel(holder, {
 			AnchorPoint = Vector2.new(0, 1),
 			Position = UDim2.new(0, (i - 1) * (SIZE + GAP), 1, 0),
 			Size = UDim2.fromOffset(SIZE, SIZE),
-			BackgroundColor3 = DARK,
-			BorderSizePixel = 0,
-		}, holder)
-		Kit.corner(slot, 1)
-		outlines[i] = Kit.stroke(slot, 1.5, DARK, 0.12)
-		fills[i] = Kit.new("UIGradient", { Rotation = 90, Transparency = EMPTY }, slot)
-		pictures[i] = Portrait.new(slot, {
+		}, GLASS)
+		pictures[i] = Portrait.new(slot.Face, {
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.fromScale(0.5, 0),
 			Size = UDim2.fromScale(1, 0.9),
@@ -65,12 +60,12 @@ function Slots.build(parent: Instance)
 		})
 		names[i] = Kit.text({
 			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.fromScale(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -2),
 			Size = UDim2.fromOffset(SIZE + 8, 10),
 			TextSize = 8.5,
 			ZIndex = 2,
-		}, slot)
-		frames[i] = slot
+		}, slot.Face, 1.6)
+		slots[i] = slot
 	end
 end
 
@@ -79,10 +74,10 @@ function Slots.place(touch: boolean)
 	local gap = if touch then GAP else 6
 	holder.Size = UDim2.fromOffset(COUNT * size + (COUNT - 1) * gap, size + 18)
 	-- its bottom edge level with the stat rows' on a keyboard (StatRows.place)
-	holder.Position = UDim2.new(0.5, 0, 1, if touch then -10 else -16)
+	holder.Position = UDim2.new(0.5, 0, 1, if touch then -10 else -14)
 	for i = 1, COUNT do
-		frames[i].Size = UDim2.fromOffset(size, size)
-		frames[i].Position = UDim2.new(0, (i - 1) * (size + gap), 1, 0)
+		slots[i].Frame.Size = UDim2.fromOffset(size, size)
+		slots[i].Frame.Position = UDim2.new(0, (i - 1) * (size + gap), 1, 0)
 		names[i].TextSize = if touch then 8.5 else 11
 	end
 end
@@ -98,30 +93,23 @@ function Slots.update(list: { Caught }?)
 	local first = math.max(#list - COUNT, 0)
 	for i = 1, COUNT do
 		local item = list[first + i]
-		local slot = frames[i]
+		local slot = slots[i]
+		local fill = slot.Look.Fill
 		local picture = pictures[i]
 		if item then
 			local kind = Config.FishById[item.Id]
-			local tier = Config.Tiers[item.Tier]
-			local colour: Color3 = if tier then tier.Colour else Kit.White
-			if item.Tier == "Secret" then
-				colour = Color3.fromRGB(110, 110, 132)
-			end
-			slot.BackgroundColor3 = Kit.White
-			fills[i].Transparency = FULL
-			fills[i].Color = ColorSequence.new(Kit.lighter(colour, 0.5), Kit.lighter(colour, 0.12))
+			slot.Face.BackgroundTransparency = 0
+			fill.Color, fill.Rotation = Kit.tierFill(item.Tier, Config.Tiers)
 			local name = if kind then kind.Name else item.Id
 			names[i].Text = if #name > 7 then string.sub(name, 1, 6) .. "." else name
-			outlines[i].Color = Kit.lighter(colour, 0.7)
-			outlines[i].Transparency = 0
+			slot.Look.Outline.Color = if first + i == #list then Kit.White else Kit.Ink
 			picture.Frame.Visible = picture.show(item.Id)
 		else
-			slot.BackgroundColor3 = DARK
-			fills[i].Transparency = EMPTY
-			fills[i].Color = ColorSequence.new(Kit.White)
+			slot.Face.BackgroundTransparency = GLASS.Fade or 0
+			fill.Color = ColorSequence.new(GLASS.Top, GLASS.Bottom)
+			fill.Rotation = 90
 			names[i].Text = ""
-			outlines[i].Color = DARK
-			outlines[i].Transparency = 0.12
+			slot.Look.Outline.Color = Kit.Ink
 			picture.show(nil)
 			picture.Frame.Visible = false
 		end

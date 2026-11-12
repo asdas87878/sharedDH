@@ -1,7 +1,8 @@
 --!strict
--- The strip of the ten lands across the top (the reference's zone strip): tiles that nearly touch, each with a hairline
--- dark edge and a thin border in its land's colour, lighter on the land you are in. Your badge sits on the tiles' lower
--- edge with the metres under it; your best is a thin yellow line with a diamond and its metres.
+-- The strip of the ten lands across the top (where the reference has its zone strip): a dark tray of bricks with a
+-- thick outline and a shadow, holding ten tiles, each in its own land's colour (the map's), lighter at the top, with a
+-- pale line along its top edge. The land you are in is framed in white. Your badge sits on the tiles' lower edge with
+-- the metres under it, on a pill in that land's colour; your best is a thin yellow line with a diamond and its metres.
 -- On a keyboard the tiles carry the lands' names and the pill only the metres; on a phone the tiles carry numbers and
 -- the pill the land's name too.
 local Kit = require(script.Parent.Kit)
@@ -19,8 +20,10 @@ local edges: { Frame } = {}
 local grounds: { Frame } = {}
 local numbers: { TextLabel } = {}
 local names: { TextLabel } = {}
+local cursor: Frame
 local badge: Frame
 local pill: Frame
+local pillLook: Kit.Dressed
 local pillLand: TextLabel
 local pillMetres: TextLabel
 local bestLine: Frame
@@ -42,16 +45,33 @@ local function paint(land: number)
 		edges[i].BackgroundColor3 = if i == land then Kit.lighter(colour, 0.6) else Kit.darker(colour, 0.4)
 		numbers[i].TextTransparency = if i > land then 0.25 else 0
 	end
+	cursor.Visible = land >= 1
+	if land >= 1 then
+		cursor.Position = UDim2.fromOffset((math.min(land, COUNT) - 1) * (TILE + GAP), 0)
+	end
+	local colour = Kit.Lands[math.clamp(land, 1, COUNT)]
+	pillLook.paint(Kit.darker(colour, 0.38), Kit.darker(colour, 0.72))
 end
+
+-- top to bottom over a tile's own colour: full at the top, a little darker at its foot
+local SHADE = ColorSequence.new(Kit.White, Color3.fromRGB(176, 176, 190))
 
 function LandStrip.build(parent: Instance)
 	holder = Kit.new("Frame", {
 		Name = "LandStrip",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.fromOffset(COUNT * TILE + (COUNT - 1) * GAP, TILE + 30),
+		Position = UDim2.new(0.5, 0, 0, 10),
+		Size = UDim2.fromOffset(COUNT * TILE + (COUNT - 1) * GAP, TILE + 32),
 		BackgroundTransparency = 1,
 	}, parent)
+	local tray: Kit.Style = table.clone(Kit.Themes.Navy)
+	tray.Radius = Kit.Radius.Tile
+	Kit.panel(holder, {
+		Name = "Tray",
+		Position = UDim2.fromOffset(-3, -3),
+		Size = UDim2.new(1, 6, 0, TILE + 6),
+		ZIndex = 0,
+	}, tray)
 	for i = 1, COUNT do
 		-- three frames a tile: the hairline, the land's border, the face
 		local tile = Kit.new("Frame", {
@@ -77,6 +97,14 @@ function LandStrip.build(parent: Instance)
 			Size = UDim2.fromScale(1, 0.42),
 			BorderSizePixel = 0,
 		}, face)
+		Kit.new("UIGradient", { Color = SHADE, Rotation = 90 }, face)
+		Kit.new("UIGradient", { Color = SHADE, Rotation = 90 }, ground)
+		Kit.new("Frame", {
+			Size = UDim2.new(1, 0, 0, 1.5),
+			BackgroundColor3 = Kit.White,
+			BackgroundTransparency = 0.45,
+			BorderSizePixel = 0,
+		}, face)
 		edges[i] = edge
 		faces[i] = face
 		grounds[i] = ground
@@ -94,6 +122,15 @@ function LandStrip.build(parent: Instance)
 			ZIndex = 2,
 		}, face)
 	end
+
+	-- the white frame on the land you are in
+	cursor = Kit.new("Frame", {
+		Size = UDim2.fromOffset(TILE, TILE),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 3,
+	}, holder)
+	Kit.stroke(cursor, 2, Kit.White).LineJoinMode = Enum.LineJoinMode.Miter
 
 	bestLine = Kit.new("Frame", {
 		Size = UDim2.fromOffset(1.5, TILE * 0.3),
@@ -129,18 +166,23 @@ function LandStrip.build(parent: Instance)
 		ZIndex = 4,
 	}, holder)
 	Kit.corner(badge, 999)
-	Kit.stroke(badge, 2, Kit.Good)
+	Kit.stroke(badge, 2.5, Kit.Good)
 
 	pill = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromOffset(0, TILE + 11),
+		Position = UDim2.fromOffset(0, TILE + 12),
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 12),
-		BackgroundColor3 = Kit.Deep,
-		BackgroundTransparency = 0.18,
+		Size = UDim2.fromOffset(0, 13),
 		ZIndex = 4,
 	}, holder)
-	Kit.corner(pill, 999)
+	-- no pattern or inner line on it: its words are laid out in a row, and those would join the row
+	pillLook = Kit.dress(pill, {
+		Top = Kit.Navy,
+		Bottom = Kit.Ink,
+		Outline = Kit.Outline.Thin,
+		Radius = Kit.Radius.Round,
+		Bevel = false,
+	})
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }, pill)
 	Kit.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
@@ -208,7 +250,7 @@ function LandStrip.update(
 	if x ~= shownX then
 		shownX = x
 		badge.Position = UDim2.fromOffset(x, TILE - 6)
-		pill.Position = UDim2.fromOffset(x, TILE + 11)
+		pill.Position = UDim2.fromOffset(x, TILE + 12)
 	end
 	local bestWhole = math.floor(bestMetres)
 	if bestWhole ~= shownBest then

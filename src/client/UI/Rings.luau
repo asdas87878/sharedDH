@@ -71,6 +71,7 @@ local number: TextLabel? = nil
 local nameText: TextLabel
 local tierText: TextLabel
 local tierGradient: UIGradient
+local beat: (on: boolean) -> ()
 
 local touchLayout = false
 local shown = false
@@ -105,10 +106,12 @@ function Rings.build(parent: Instance)
 	outer = Kit.sweep(holder, OUTER, 2.6, READY)
 	outer.Frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	outer.set(0)
-	big = Kit.ring(holder, BIG, BIG_THICK, true)
+	big = Kit.ring(holder, BIG, BIG_THICK, true, 2)
+	-- the ring's glow beats red while the air is nearly gone (Hugo's pass)
+	beat = Kit.pulse(big.Glow, { Transparency = 1 }, { Transparency = 0.1 })
 	big.Frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	bigScale = Kit.new("UIScale", {}, big.Frame) -- (no text is in the ring's frame: text never changes size)
-	small = Kit.ring(holder, SMALL, SMALL_THICK, true)
+	small = Kit.ring(holder, SMALL, SMALL_THICK, true, 1.6)
 	small.Frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	small.colour(Kit.Pink)
 	small.Frame.Visible = false
@@ -152,6 +155,7 @@ function Rings.hide(now: number)
 		leftAt = now
 		big.colour(PALE)
 		big.lag(0)
+		beat(false)
 		shownTone = 0
 		small.Frame.Visible = false
 		shownTame = -2
@@ -257,6 +261,7 @@ function Rings.update(now: number, v: View)
 	if not flashing and tone ~= shownTone then
 		shownTone = tone
 		big.colour(colour)
+		beat(tone == 3)
 	end
 	if size ~= shownSize then
 		shownSize = size

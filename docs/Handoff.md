@@ -3,6 +3,169 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): speed by fish, a size roll, variants' chances, the camera stays underwater, a startle that never stops
+**State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script, judged from numbers
+and pictures; how it feels by hand is Hugo's to judge). StyLua, selene and `rojo build` pass. Nothing uploaded.
+Hugo's four asks are four rows in [Decisions](Decisions.md); the design is "Speed by fish" and "The camera stays
+underwater" in [riding feel](design/riding-feel.md); the note to the other chats is the top one in
+[Sessions](Sessions.md).
+
+- **Files:** `src/shared/Config.luau`, `src/server/Services/FishService.luau`, `RideService.luau` (it reads each
+  fish's own speed and body), `src/client/Controllers/RideController.luau`, `AnimController.luau`,
+  `JumpController.luau`, `src/client/Lib/Lock.luau`, `Feel.luau`, `src/client/UI/Tags.luau` (the name line), rows only
+  in `SandboxController.luau`; new `tools/balance/speed_table.py`. `FishModel` is untouched: its `MaxForce` and
+  `MaxTorque` stay.
+- **Speed:** `Config.speedOf(fish, size, variant)` = `Speed.Base` 45 x `SpeciesSpeed[id]` (0.92 to 1.08, all 82 with
+  a reason each) x `TierMult` (1, 1.16, 1.33, 1.51, 1.73, 2, 2.22) x `Config.sizeSpeed(size)` (x1 at `Size.Min`
+  up to x1.2 at `Size.Max`, `Speed.SizeBonus` 0.2) x `Speed.Gold` 1.2 or `Speed.Rainbow` 1.5 (Hugo, 2026-11-12). At the
+  smallest size: Commons 41 to 47, Uncommons 49 to 56, Rares 55 to 65, Epics
+  63 to 73, Legendaries 72 to 84, Mythics 85 to 97, Secrets 92 to 108: round the partner's measured 60, 68, 78, 90.
+  The herd (0.85 of each fish's own), the ridden speed, the glide and the server's speed check all read it.
+  **`Config.TierSpeed` is gone;** `Tiers[..].Ridden` is worked out in `Config.refresh`.
+- **Size and variants:** `FishService` rolls both at the spawn (`Config.rollSize`, `rollVariant`), scales the built
+  model (`ScaleTo`, the seat keeping `Ride.SeatHeight` above the back), sets the `Size` and `Variant` attributes and
+  calls `Variants.apply`. What counts as a fish's body is its own (`Wild.Body`, `Config.bodyOf`): the lock, the
+  landing's reach, crashes, props, the ring, the swim's pace. **Seen:** 741 fish at the start, sizes 0.8 to 1.4,
+  mean 1.02, 20 Gold and 7 Rainbow; tags read "Blue Chromis x1.25".
+- **The startle:** `Ride.StartleSlow` 0.6, `StartleHold` 0.4, `StartleRecover` 0.8 replace `StartleStall`,
+  `StartleKick`, `StartleSnap`, `StartleKickTime`. **Measured** on a Yellow Tang (ridden 45.9): 27.5 through the
+  hold, 45.9 again 1.2 s after the touch; the same shape on a Liopleurodon (81: 48.5). The rear, shake and thrash
+  are unchanged. `Feel.BoltFov` 6 to 3 (there is no bolt now, only the pick-up).
+- **The camera:** `Camera.Submerge`, `WaterTop`, `SurfaceMargin` 3, `SurfaceTilt` 0.5. **Measured** in the first
+  land, a hop looking 40 degrees down: with it off, 94 frames above the surface (up to 2.4 studs above); with it on,
+  none, in that hop and in every hop of the check below (the highest the camera came was 3.0 under).
+- **The many-mounts check, run again:** 10 resets and 34 landings by hop across all ten lands, sizes 0.81 to 1.38, a
+  Gold among them. **None thrown:** the biggest move of the rider in one frame was 20 studs (a pull-in); the server
+  never flagged a fish as too fast; its log held only the known asset-type warning. 16 hops found no fish under the
+  script's fixed aim and sank (the sandbox's no-fail), as before.
+- **Not done / to know:** `tools/balance/model.py` still reads the rarities' old speeds and knows nothing of species,
+  size or variants (the tuning chat's). The species' bases, the multipliers and the chances are Claude's first
+  numbers, for Hugo and the tuning chat to tune. The tag's "x1.23" is plain text in the name line, for the UI chat
+  to style. Pictures (Hugo's PC): `~/Pictures/ride-a-fish/speed-size-2026-11-12/`.
+
+## 2026-11-12 · void (Hugo's PC): the 82 creatures show in Hugo's place (mesh files on his PC, nothing uploaded), and Gold and Rainbow fish
+**State:** installed in Hugo's Studio and played through `~/Projects/studio-runner` (by script, judged from pictures).
+StyLua, selene and `rojo build` pass. **Nothing uploaded.** This ends "BLOCKED: the creature templates" below for
+Hugo's PC only. **Hugo saves the place with Ctrl+S.**
+
+- **What was tried, in order.** (a) `LoadAsset` and `GetObjects` again: still "Requester does not have permission
+  for Asset". (b) Uploading copies from Hugo's account: no way from this PC. There is no Open Cloud key here,
+  `upload.py` goes through Studio's connector (which hangs Studio under Wine), and a plugin's
+  `AssetService:CreateAssetAsync` answers "not available yet". (c) Building the meshes in the running game with
+  `EditableMesh`: it works in Edit mode, but a client could make only about 8 of the 1,365 before
+  `CreateEditableMesh` returned nil (its memory budget), and destroying each one after its MeshPart is made empties
+  the part. Dropped.
+- **What works: Roblox mesh files in Studio's own content folder.** `tools/creatures/local_meshes.py` reads each
+  GLB (`glb_meshes.py`, no Blender) and writes every part as a "version 2.00" mesh file with its vertex colours
+  (`rbxmesh.py`) to `<Studio>/content/ridefish/<Id>/<Part>.mesh`. `python tools/creatures/install.py runner --local`
+  then makes `ReplicatedStorage.FishModels.<Id>` out of real MeshParts that show those files
+  (`rbxasset://ridefish/...`, by `CreateMeshPartAsync` in Edit mode). `FishModel` is unchanged: it rigs them as it
+  rigs the uploaded ones.
+- **Checked in play:** all 82 fish types build from a template with every `Rig_` joint and a real mesh on every part.
+  Wild fish in the Shallows (37), the Open Blue (40) and the Underworld (45): all rigged, all real meshes, the
+  server's log clean.
+- **The limits, and they matter.** These templates show only on Hugo's PC, and only while the files are there:
+  **after Studio updates itself, run `python tools/creatures/local_meshes.py` again** (the content folder belongs to
+  one Studio version; the place needs no new install). A place saved this way shows no fish on the other PC, and
+  **a published game needs real assets that belong to the publishing account or to a group. Recommended: one Roblox
+  group both accounts are in, the 82 models uploaded to it once, the game published under it;** then the plain
+  `install.py` on each PC. Until then the other PC keeps its own place with the uploaded templates.
+- **Gold and Rainbow** (`src/shared/Variants.luau`; `FishService` already calls `Variants.apply(model, variant)` at
+  the spawn). No exported variant meshes exist, so these are placeholders by the creature chat's own rules (workout
+  6, `voxel_kit.py`): the same gold ramp, rainbow stops and accents (violet on gold, white on rainbow).
+  - With `--local` the installer also bakes each part in gold and in rainbow (`<Part>.gold.mesh`,
+    `<Part>.rainbow.mesh`) and makes `ReplicatedStorage.FishVariants.Gold.<Id>` and `.Rainbow.<Id>`;
+    `Variants.apply` swaps each part's mesh (`ApplyMesh`, on the server, so everyone sees it). The rainbow is one
+    straight gradient nose to tail: faces are cut across the body 24 times so a long box stays smooth. Glowing parts
+    take the accent. Dark details that cover under a fifth of the animal (pupils, a band's edge) stay dark.
+  - Where a place has no variant meshes (the other PC's uploaded templates, block stand-ins) it tints the parts:
+    gold by how light each part was, rainbow by where the part is along the body (turning slowly if a client calls
+    `apply`). Rougher: a tint multiplies the mesh's own colours.
+  - Both add sparkles. Gold is plain SmoothPlastic: Metal went ochre and Reflectance greyed it.
+  - Not the creature chat's dithered rainbow (that needs a texture), and no studs.
+- **Pictures** (Hugo's PC): `~/Pictures/ride-a-fish/models-2026-11-12/`.
+- **Not done:** an uploader for Hugo's account (needs an Open Cloud key with asset write, or the group); the gold
+  clownfish's dark details were re-baked after the last picture and Studio keeps a file it has loaded until it
+  restarts, so that one change is unseen.
+
+## 2026-11-12 · void (Hugo's PC): UI pass: bold outlines, gradients, patterns, a theme for each purpose
+**State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script, judged from
+pictures): no errors in the output. StyLua, selene and `rojo build` pass. **Nothing uploaded.** Hugo's ask is a row
+in [Decisions](Decisions.md); the design is "Pass 4" in [UI](design/ui.md); the note to the UI chat is the top one
+in [Sessions](Sessions.md).
+
+- **Files:** all of `src/client/UI/` (`Kit`, `Aim`, `Banners`, `HopButton`, `LandStrip`, `Rings`, `Slots`,
+  `StatRows`, `Tags`), `src/client/Controllers/HudController.luau`, and the panel's look only in
+  `SandboxController.luau`. `DeathController` is unchanged: it draws nothing itself (its black, its closing edges
+  and its words are drawn by the HUD).
+- **`Kit` is a small style system:** `Kit.Themes` (Oxygen, Danger, Action, Grab, Off, Gold, Good, Navy, Glass,
+  Tool, Key), `Kit.dress(frame, style)` and `Kit.panel(parent, props, style)` (gradient, thick dark outline, a pale
+  line inside it, a pattern, a shine, a shadow), `Kit.stripes`, `Kit.bubbles`, `Kit.grid`, `Kit.pulse`,
+  `Kit.tierFill`, and the scales `Kit.Space`, `Kit.Outline`, `Kit.Radius`.
+- **This turns back the hairline frames** of the user's second round (Decisions, 2026-11-12, the row under Hugo's).
+  Places, sizes and spacing are as they were, but for a point or two of room for the outlines.
+- **Patterns:** the map's stud tile (`tile2`) and the water's picture, both uploaded before. Both loaded in Hugo's
+  Studio.
+- **What beats:** in the last second on a fish the Oxygen row's outline, a red glow round the ring and a red ring
+  round the jump button; nothing else is tweened, and nothing is made per frame.
+- **The ring's seam is gone:** a full ring showed a faint line where its two halves meet (it was there before; the
+  darker hole made it plain). A half that is whole now drops its gradient.
+- **`StatRows.update` takes a fourth argument** (the last second on a fish). **`Kit.touch` reads the workspace's
+  `HudTouch`** in Studio, to force the phone or the keyboard layout.
+- **Not done / not judged:** no real phone; no second player; a Mythic's and a Secret's colours seen only in the
+  slots (a made-up catch); the dock's screens don't exist yet. The catch banner, the slots, the coins and the tame
+  ring were shown by feeding them made-up values, as the game has no taming or coins yet.
+- Pictures (Hugo's PC, not in the repo): `~/Pictures/ride-a-fish/ui-2026-11-12/` (before and after of each screen,
+  and `contact-sheet-before-after.png`); the sheet is in the vault as `docs/attachments/ui4-before-after.jpg`.
+
+## 2026-11-12 · void (Hugo's PC): Movement pass: a longer hook, real rider animations, the startle, more juice
+**State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script and judged from
+pictures: no keys, no mouse, no sound, so the feel by hand is still Hugo's to judge). StyLua, selene and
+`rojo build` pass. Nothing uploaded. **Hugo owns the mechanics: the hold on the ride, jump and camera code is lifted
+for these changes** ([Decisions](Decisions.md), four rows of 2026-11-12). The fish here are still block stand-ins
+(the 82 models are private to the partner's account), so the startle on a real creature's rig is written but unseen.
+
+- **Files:** `src/shared/Config.luau`, `src/client/Lib/Lock.luau`, `src/client/Lib/Feel.luau` (new),
+  `src/client/Controllers/JumpController.luau`, `RideController.luau`, `AnimController.luau`, and rows only in
+  `SandboxController.luau`. No server file changed: `FishModel`'s `MaxForce` 40,000 and `MaxTorque` 400,000 stay.
+- **The hook and the lock:** `Jump.GrabRange` 130 to 180 (the server reads the same number, times
+  `Net.RangeSlack`). `Lock.DistanceWeight` 0.2 to 0.07, and the new `Lock.FarAim` (5 degrees at the full range): a
+  margin round a far fish that counts as aimed at it. The ring at long range is wider (`Jump.RingFar` 1.5), thicker
+  (`RingGrow` 60 to 40) and turned to the camera (`RingFarFace` 0.8). **Seen:** locks taken at 158 to 176 studs,
+  grabs granted by the server at 153, 135 and 116 studs.
+- **The startle** (`Ride.Startle...`, 0 turns it off): a landing (not the sandbox's R) makes the fish rear for 0.8 s
+  with a "!" over its head, the rider curled against its back, then it bolts. `AnimController` plays it on a
+  creature's rig and on a stand-in, as one reaction named "rear"; **with the startle on it replaces
+  `Animation.LandingMix`'s reactions**, which are all still there with `Ride.Startle` 0. The stall and the bolt are
+  `RideController`'s speed curve for that fish: measured on a Common (ridden 45), 13 studs a second while it rears,
+  71 at the bolt's peak, back to 45 about a second later. No force is added anywhere.
+- **The partner's thrown-rider check, run again:** 67 landings by hop and 23 resets across all ten lands (two
+  rounds, before and after the joint fix below). **None thrown:** the biggest move of the rider in one frame was
+  17.7 studs (a pull-in), and the server never flagged a fish as too fast. Two hops in the deep lands found no fish
+  and sank, as before.
+- **The rider's animation** (`Config.Pose`): a front crawl in the hop, a breaststroke lying flat while floating, a
+  crouch and push off, streamlined through the pull-in, a tuck and forward flip into the seat, and a riding pose
+  that leans with speed and into turns. Written once in the body's own directions and carried into each joint's,
+  so R6 works too (run once on an R6 rig: riding, crawl and float all posed, no errors).
+- **Found, and it matters on both PCs: no rider pose had ever shown on Hugo's avatar.** It has Roblox's newer
+  joints (`AnimationConstraint`, 15 of them, no `Motor6D`), and `AnimController` looked for Motor6Ds only, so the
+  body stayed in its rest pose in every state. It takes both now. Every joint of the avatar is written each frame
+  and our own tracks are stopped as they start, so Roblox's Animate script can't show through.
+- **The juice** (`Config.Feel`, drawn by the new `Lib/Feel`): the view kicks wider at the pop and at the bolt;
+  speed lines on the screen through the pop's extra speed, the pull-in and the bolt; a bubble trail; bubbles off
+  the fish at the pop and round it at our own landing; a swish, a whoosh and a splash from Roblox's own character
+  sounds (`Lib/Fx`'s "Rumble" names `action_falling.mp3`, which this Studio has only as `.ogg`: not mine to change).
+- **`RideController.look(yaw, pitch)`** is new: it turns the view as a mouse drag would, for tests by script.
+- **The panel (N):** new rows under `Ride` (twelve `Startle...`), `Lock` (`FarAim`), `Jump` (`RingFar`,
+  `RingFarFace`), and two new groups, `Pose` and `Feel`.
+- **For the tuning chat:** a landing now costs a stall. With these numbers the bolt gives most of it back (about a
+  sixth of a second of travel lost a landing), but a new player has only 2.5 s on a fish: `Ride.StartleTime` and
+  `StartleStall` are the rows if it is too much.
+- **Not done / not judged:** the sounds were never heard; the startle and the poses were seen slowed down in
+  pictures (the numbers stretched for the capture), at full speed only by their measurements; other players' dash
+  shows without the flip; nothing was tried with two players.
+- Pictures (Hugo's PC, not in the repo): `~/Pictures/ride-a-fish/movement-2026-11-12/`.
+
 ## 2026-11-12 · 8570-F43F (the user's PC): the progression takes in hold-or-not and taming
 **State:** by the tuning chat. No number changed and no game file changed. Nothing played: it is the model.
 
@@ -46,7 +209,8 @@ uploaded.
 - **Lighting:** `ReplicatedStorage.Skies` made (`1 Place`, `2 Anime Sky`) and `tools/studio/look_install.luau` run:
   Realistic style set, the Anime Sky shown. `InsertService:LoadAsset` refused the sky in this unpublished place;
   `game:GetObjects` took it.
-- **BLOCKED: the creature templates.** All 82 assets in `tools/creatures/assets.json` are private to the account
+- **BLOCKED: the creature templates (worked round on Hugo's PC the same day: the entry "the 82 creatures show in
+  Hugo's place" above; the assets are still private).** All 82 assets in `tools/creatures/assets.json` are private to the account
   that uploaded them (TheSyurpyPancake, 165352993). Hugo's Studio (user 8607502680) gets "Requester does not have
   permission for Asset" for every one, by `LoadAsset` and by `GetObjects`. So `ReplicatedStorage.FishModels` is empty
   here and every fish is `FishModel`'s block stand-in. **Needed from the owner's side, no new upload:** share the 82

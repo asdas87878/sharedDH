@@ -1,5 +1,5 @@
 """The dive's HUD before and after pieces 3 and 4, side by side, from captures of the game (docs/attachments).
-    python tools/ui/before_after.py docs/attachments/ui4-before-after.jpg
+    python tools/ui/before_after.py docs/attachments/ui4-before-after-hud.jpg
 Every capture is 1548 by 841 at the same HUD size, so the crops are to the same scale.
 """
 import sys

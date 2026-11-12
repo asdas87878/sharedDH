@@ -15,6 +15,11 @@
 -- snap, its jolt and its shake (RideController.shake) sit on top, and the drowning's shot is eased to.
 -- Fish don't collide with the map: Lib/Course keeps the one we ride out of the floor, the walls and the air. Running
 -- into something solid is the server's call ("Crashed": Config.Crash, Config.Props): we lose speed for a moment.
+-- The startle (Config.Ride.Startle...; Hugo, 2026-11-12): a fish we LAND on rears (AnimController) and slows for a
+-- moment, never stopping, then eases back to its speed. It is this fish's speed curve, nothing else: no force is
+-- added, and the limits on its force and torque (Lib/FishModel) are what they were.
+-- Every fish has its own speed and size (Config.speedOf, Config.bodyOf: its species, rarity, size roll and variant).
+-- The camera stays underwater once we have dived (Config.Camera.Submerge...), until the dock or a respawn.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -24,6 +29,7 @@ local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Course = require(script.Parent.Parent.Lib.Course)
+local Feel = require(script.Parent.Parent.Lib.Feel)
 local Spring = require(script.Parent.Parent.Lib.Spring)
 local State = require(script.Parent.Parent.Lib.State)
 
@@ -40,6 +46,8 @@ local steerRate = 0 -- how fast the way we are going is really turning, radians 
 local lastMode = "Dock"
 local startSpeed = 0
 local rideType: Config.FishType? = nil
+local startled = false -- this ride began with a landing: the fish slows for a moment (Ride.Startle)
+local bolted = false -- and it is picking its speed up again (its kick to the view is given once)
 local crashAt = -math.huge -- os.clock() of the last crash or smashed prop,
 local crashSlow = 1 -- and the share of our speed it left us (it comes back over Crash.Recover)
 
@@ -88,6 +96,8 @@ cameraParams.FilterType = Enum.RaycastFilterType.Exclude
 cameraParams.RespectCanCollide = true
 local cameraFor: Model? = nil -- the character those rays skip
 local deathBlend = 0 -- 0 to 1, how far the camera has turned to look at a death shot's focus
+local submerged = false -- we have dived: the camera stays under the surface until the dock or a respawn
+local ceiling = 0 -- the highest the camera may be now (it comes down to the surface's line from where the camera was)
 
 -- The move stick or keys: X is right, Z is back (W is -Z)
 function RideController.moveVector(): Vector3
@@ -139,6 +149,23 @@ function RideController.steer(now: number, dt: number): number
 	local delta = math.clamp(gap * Ease.alpha(r.SteerEase, dt), -most, most)
 	steerRate = Ease.lerp(steerRate, delta / math.max(dt, 1e-4), Ease.alpha(r.TurnEase, dt))
 	return now + delta
+end
+
+-- Turns the view to a yaw and a pitch (radians), as a drag of the mouse would: for the sandbox and for tests driven by
+-- script, which have no mouse. It counts as the player looking round.
+function RideController.look(toYaw: number, toPitch: number)
+	camYaw = toYaw
+	camPitch = math.clamp(toPitch, math.rad(Config.Camera.PitchMin), math.rad(Config.Camera.PitchMax))
+	lookedAt = os.clock()
+end
+
+-- This fish's own ridden speed now (its species, rarity, size and variant; read live, so the sandbox's panel shows)
+local function riddenSpeed(): number
+	local fish = State.Fish
+	if fish and rideType then
+		return Config.riddenOf(fish, rideType)
+	end
+	return if rideType then rideType.RiddenSpeed else Config.Speed.Base
 end
 
 -- The landing's shake (Config.Jump.LandShake...): `size` is how far the camera is thrown, studs
@@ -200,7 +227,7 @@ local function anglesOf(look: Vector3): (number, number)
 	return math.atan2(-look.X, -look.Z), math.asin(math.clamp(look.Y, -1, 1))
 end
 
-local function onMounted(fish: Model)
+local function onMounted(fish: Model, landing: boolean?)
 	if typeof(fish) ~= "Instance" or not fish:IsA("Model") then
 		-- the fish hasn't reached us yet (the server's word came first): look for the one marked as ours
 		task.spawn(function()
@@ -216,7 +243,7 @@ local function onMounted(fish: Model)
 						and model.PrimaryPart
 						and model:GetAttribute("Rider") == State.Player.UserId
 					then
-						RideController.mounted(model)
+						RideController.mounted(model, landing)
 						return
 					end
 				end
@@ -234,7 +261,7 @@ local function onMounted(fish: Model)
 		pitch = math.clamp(pitch, -math.rad(35), math.rad(35)) -- (a wild fish never noses further than this)
 		-- (never more than the fish can swim: in the frame its body joins ours the engine can report a speed in the
 		-- thousands, and the ride then carried on at that speed: riders were thrown 10,000 studs, 2026-11-12)
-		local most = if rideType then rideType.RiddenSpeed else 100
+		local most = if rideType then Config.riddenOf(fish, rideType) else 100
 		startSpeed = math.min(root.AssemblyLinearVelocity.Magnitude, most)
 		if startSpeed ~= startSpeed then
 			startSpeed = 0
@@ -246,10 +273,24 @@ local function onMounted(fish: Model)
 	leftFish = nil
 	leftWeld = nil
 	roll = 0
+	startled = landing == true and Config.Ride.Startle > 0
+	bolted = false
 	clearFloat()
 	-- (a fish that breaks props swims through them: the server knocks their boxes loose as it does)
 	Course.begin(rideType ~= nil and Config.smashes(rideType))
 	State.setMode("Riding")
+end
+
+-- A startled fish's speed, `t` seconds after the landing: it never stops. It comes down to StartleSlow of its ridden
+-- speed at the touch (a fish that was slower than that, a wild one at the herd's pace, comes up to it), stays there for
+-- StartleHold, then eases back to full over StartleRecover.
+local function startleSpeed(from: number, ridden: number, t: number): number
+	local r = Config.Ride
+	local slow = ridden * math.clamp(r.StartleSlow, 0, 1)
+	if t < r.StartleHold then
+		return Ease.lerp(from, slow, Ease.outQuad(t / math.max(r.StartleBrake, 0.01)))
+	end
+	return Ease.lerp(slow, ridden, Ease.smoothstep(0, math.max(r.StartleRecover, 0.01), t - r.StartleHold))
 end
 
 local function drive(dt: number)
@@ -292,16 +333,32 @@ local function drive(dt: number)
 	-- banking into the turn
 	roll = Ease.lerp(roll, RideController.lean() * math.rad(r.Bank), Ease.alpha(r.BankEase, dt))
 
-	local speed =
-		Ease.rideSpeed(startSpeed, rideType.RiddenSpeed, os.clock() - State.MountedAt, r.RampTime, r.Surge, r.SurgeTime)
+	local since = os.clock() - State.MountedAt
+	local ridden = riddenSpeed()
+	local speed = if startled
+		then startleSpeed(startSpeed, ridden, since)
+		else Ease.rideSpeed(startSpeed, ridden, since, r.RampTime, r.Surge, r.SurgeTime)
+	if startled and since >= r.StartleHold then
+		-- it picks its speed up again: the view kicks a little wider once, and speed lines while it gathers speed
+		if not bolted then
+			bolted = true
+			State.FovPunch = Config.Feel.BoltFov
+			Feel.sound("Whoosh", Config.Feel.Whoosh * 0.7, Config.Feel.WhooshPitch * 0.8, 0.45)
+		end
+		local gathering =
+			math.sin(math.clamp((since - r.StartleHold) / math.max(r.StartleRecover, 0.01), 0, 1) * math.pi)
+		if gathering > 0.05 then
+			Feel.rush(Config.Feel.BoltLines * gathering)
+		end
+	end
 	-- just run into something: slowed at once, picking up again
-	local since = os.clock() - crashAt
-	speed *= Ease.lerp(crashSlow, 1, Ease.smoothstep(0, math.max(Config.Crash.Recover, 0.01), since))
+	local crashed = os.clock() - crashAt
+	speed *= Ease.lerp(crashSlow, 1, Ease.smoothstep(0, math.max(Config.Crash.Recover, 0.01), crashed))
 	local heading = CFrame.fromOrientation(pitch, yaw, 0)
 	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
 	-- the air or out of the lane, however the keys are held
 	local wanted = heading.LookVector * speed
-	local velocity = Course.clearVelocity(at, wanted, r.FloorClearance, rideType.Size.Z / 2 + 1)
+	local velocity = Course.clearVelocity(at, wanted, r.FloorClearance, Config.bodyOf(fish, rideType).Z / 2 + 1)
 	swim.VectorVelocity = velocity
 	if math.abs(velocity.Y - wanted.Y) > 1 then
 		-- stopped from diving or climbing: the nose comes round to the way it is really going
@@ -326,7 +383,7 @@ function RideController.coast(fish: Model?)
 		At = os.clock(),
 		Speed = root.AssemblyLinearVelocity.Magnitude,
 		Look = root.CFrame.LookVector,
-		Idle = if kind then kind.IdleSpeed else 14,
+		Idle = if kind then Config.riddenOf(fish, kind) * Config.Herd.SpeedShare else 14,
 	}
 end
 
@@ -439,6 +496,7 @@ end
 local function cameraStep(dt: number)
 	local character, root = State.character()
 	if not State.inWater() or not character or not root then
+		submerged = false
 		if wasScripted then
 			camera.CameraType = Enum.CameraType.Custom
 			camera.FieldOfView = Config.Camera.Fov
@@ -465,6 +523,11 @@ local function cameraStep(dt: number)
 		camFocus = (camFocus or shot.Focus):Lerp(shot.Focus, Ease.alpha(5, dt))
 		camPosition = (camPosition or shot.Position):Lerp(shot.Position, Ease.alpha(3, dt))
 		local at = camPosition :: Vector3
+		if submerged and at.Y > ceiling then
+			-- (the drowning's shot stays under the surface too)
+			at = Vector3.new(at.X, ceiling, at.Z)
+			camPosition = at
+		end
 		local towards = (camFocus :: Vector3) - at
 		local free = CFrame.fromOrientation(shownPitch, shownYaw, 0).LookVector
 		local look = if towards.Magnitude > 0.1
@@ -535,7 +598,37 @@ local function cameraStep(dt: number)
 	local focus: Vector3
 	focus, focusSpeed = Spring.vector(camFocus :: Vector3, focusGoal, focusSpeed, c.FocusTime, dt)
 	camFocus = focus
-	local arm = -rotation.LookVector * distance + Vector3.new(0, c.Height * c.ArmHeight, 0)
+	local lift = c.Height * c.ArmHeight
+	-- Under the surface, once we have dived (Camera.Submerge): where the arm would lift the camera past the line, it
+	-- swings down behind us instead, as far as it must, and the view gives up a share of that tilt (SurfaceTilt).
+	local line = c.WaterTop - c.SurfaceMargin
+	local armRotation = rotation
+	if c.Submerge <= 0 then
+		submerged = false
+	elseif not submerged then
+		-- dived: the camera is under by itself, or we are well under (it is then brought down, not snapped)
+		local wantedY = focus.Y + lift - rotation.LookVector.Y * distance
+		if wantedY <= line or root.Position.Y < line - 6 then
+			submerged = true
+			ceiling = math.max(line, wantedY, (camPosition or focus).Y)
+		end
+	end
+	if submerged then
+		ceiling = Ease.lerp(ceiling, line, Ease.alpha(5, dt))
+		if ceiling - line < 0.01 then
+			ceiling = line
+		end
+		if not State.SideCam then
+			local rise = -rotation.LookVector.Y -- the sine of how far the camera sits above our level
+			local most = math.clamp((ceiling - focus.Y - lift) / math.max(distance, 0.1), -0.5, 1)
+			if rise > most then
+				local lost = math.asin(math.clamp(rise, -1, 1)) - math.asin(most)
+				armRotation = CFrame.fromOrientation(-math.asin(most), shownYaw, 0)
+				rotation = CFrame.fromOrientation(shownPitch + lost * math.clamp(c.SurfaceTilt, 0, 1), shownYaw, 0)
+			end
+		end
+	end
+	local arm = -armRotation.LookVector * distance + Vector3.new(0, lift, 0)
 
 	-- keep the camera out of the floor and walls: it comes in at once (never inside one), and eases back out
 	if cameraFor ~= character then
@@ -580,7 +673,12 @@ local function cameraStep(dt: number)
 				math.noise(t, 13.5) * 2 * math.rad(j.LandShakeRoll) * size / math.max(j.LandShake, 0.01)
 			)
 	end
-	camera.CFrame = CFrame.lookAt(position, position + rotation.LookVector) * CFrame.new(0, kickAt, 0) * shake
+	local view = CFrame.lookAt(position, position + rotation.LookVector) * CFrame.new(0, kickAt, 0) * shake
+	if submerged and view.Position.Y > ceiling then
+		-- whatever is left (the jolt, the shake, the side view, a camera that had nowhere lower to go): held under
+		view -= Vector3.new(0, view.Position.Y - ceiling, 0)
+	end
+	camera.CFrame = view
 
 	-- field of view: wider with speed
 	local speedT = Ease.smoothstep(c.SpeedFovFrom, c.SpeedFovTo, State.Speed)
@@ -697,9 +795,10 @@ local function fromServerState()
 end
 
 function RideController.Init()
-	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any)
+	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, b: any)
 		if kind == "Mounted" then
-			onMounted(a)
+			-- (`b`: whether it is a landing, which startles the fish, or the sandbox's reset, which doesn't)
+			onMounted(a, b == true)
 		elseif kind == "SandboxMount" then
 			-- the sandbox's reset has kept this fish for us: sit on it (step), then say so
 			-- (only a fish that is near us as we see it. Otherwise it is left alone: the server gives the seat up
@@ -707,6 +806,7 @@ function RideController.Init()
 			local _, root = State.character()
 			local fishRoot = if typeof(a) == "Instance" and a:IsA("Model") then a.PrimaryPart else nil
 			if root and fishRoot and (fishRoot.Position - root.Position).Magnitude < 400 then
+				submerged = false -- (the sandbox's reset counts as a respawn: the camera dives again from where it is)
 				seating = a
 				seatingAt = os.clock()
 				seatingTold = false
@@ -741,6 +841,7 @@ function RideController.Init()
 	end)
 	State.Player:GetAttributeChangedSignal("State"):Connect(fromServerState)
 	State.Player.CharacterAdded:Connect(function()
+		submerged = false
 		State.Fish = nil
 		coasting = nil
 		clearFloat()

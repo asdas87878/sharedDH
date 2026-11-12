@@ -16,6 +16,9 @@
 --   passes through scores 0, which nothing can beat by Sticky. EdgeAim 0 is the old score.
 --   SwitchTime: a better fish must stay the better one this long before it takes the lock, so a fish swimming across
 --   the view for a moment doesn't.
+-- Since 2026-11-12 (Hugo: a longer hook, the fish you AIM at, far fish as easy to pick as near ones): the range is 180,
+--   being far counts a third of what it did (DistanceWeight), and FarAim gives a fish a margin round it, growing with
+--   its distance, that counts as aimed at it: a fish at the full range is a few pixels long, and no harder to pick now.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -72,16 +75,20 @@ local function score(model: Model, from: Vector3, eye: Vector3, aim: Vector3, ra
 	end
 	local angle = math.acos(math.clamp(to:Dot(aim) / away, -1, 1))
 	local kind = Config.FishById[model:GetAttribute("FishType") :: string]
-	local body = if kind then kind.Size.Z / 2 else l.FallbackRadius
+	local body = if kind then Config.bodyOf(model, kind).Z / 2 else l.FallbackRadius
 	local radius = l.AimRadius + body
-	local allowance = math.min(math.rad(l.Cone / 2) + math.atan(radius / math.max(away, 1)), math.rad(l.MaxAngle))
+	-- a far fish is small on the screen: it gets a margin round it, by its distance, that counts as on it
+	local share = distance / math.max(range, 1)
+	local grace = math.rad(l.FarAim) * share
+	local allowance =
+		math.min(math.rad(l.Cone / 2) + math.atan(radius / math.max(away, 1)) + grace, math.rad(l.MaxAngle))
 	if angle > math.min(allowance * (if keep then l.KeepCone else 1), math.rad(l.MaxAngle)) then
 		return nil
 	end
-	local far = l.DistanceWeight * distance / math.max(range, 1)
+	local far = l.DistanceWeight * share
 	if l.EdgeAim > 0 then
 		-- how far the aim passes from the fish itself, not from its middle: 0 when the aim goes through it
-		local off = math.max(angle - math.atan(body / math.max(away, 1)), 0)
+		local off = math.max(angle - math.atan(body / math.max(away, 1)) - grace, 0)
 		return l.AngleWeight * off / math.max(math.rad(l.Cone / 2), 0.01) + far
 	end
 	return l.AngleWeight * angle / allowance + far

@@ -426,7 +426,7 @@ local function landOn(r: Rider, target: any)
 		return deny(r, "Grab", "Target", target)
 	end
 	-- the server sees the player a moment late, and a pull-in arrives fast
-	local reach = w.Type.Size.Z / 2 + j.LandSlack * 2
+	local reach = w.Body.Z / 2 + j.LandSlack * 2
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
 		-- (a refused grab, not a miss: the hop goes on with what is left of its window. It was a drown, "MISSED THE
 		-- FISH" while sitting on the fish, which a slow connection on a fast fish could reach)
@@ -479,13 +479,13 @@ local function checkCrash(r: Rider, w: Wild)
 	local look = root.CFrame.LookVector
 	local velocity = root.AssemblyLinearVelocity
 	local speed = velocity.Magnitude
-	local half = w.Type.Size.Z / 2
+	local half = w.Body.Z / 2
 	if speed >= c.MinSpeed then
 		r.FastAt = t
 	end
 	-- a prop: its boxes are knocked loose and the fish swims on through (reaching as far as it swims between two looks)
 	if speed >= c.MinSpeed and Config.smashes(w.Type) then
-		local reach = math.max(w.Type.Size.X, w.Type.Size.Y) / 2 + Config.Props.Reach + speed * c.Every / 2
+		local reach = math.max(w.Body.X, w.Body.Y) / 2 + Config.Props.Reach + speed * c.Every / 2
 		if PropService.hit(root.Position + look * half, velocity, reach) > 0 and t >= r.CrashReadyAt then
 			bump(r, Config.Props.Cost, Config.Props.Slow)
 		end
@@ -510,7 +510,7 @@ local function checkCrash(r: Rider, w: Wild)
 		table.insert(skip, props)
 	end
 	crashParams.FilterDescendantsInstances = skip
-	local ahead = half + 1 + w.Type.RiddenSpeed * Config.Ride.Surge * 0.12 + c.Reach
+	local ahead = half + 1 + FishService.ridden(w) * Config.Ride.Surge * 0.12 + c.Reach
 	local hit = workspace:Raycast(root.Position, look * ahead, crashParams)
 	local nosed = hit ~= nil and hit.Normal.Y < 0.5 and -look:Dot(hit.Normal) >= c.HeadOn
 	if nosed and not r.Nosed and t - r.FastAt <= 0.5 and t >= r.CrashReadyAt then
@@ -528,7 +528,8 @@ local function checkSpeed(r: Rider, w: Wild)
 	local from = r.CheckFrom
 	local position = w.Root.Position
 	if from then
-		local allowed = w.Type.RiddenSpeed * Config.Ride.Surge * Config.Ride.SpeedSlack + 10
+		-- (this fish's own speed: its species, rarity, size and variant)
+		local allowed = FishService.ridden(w) * Config.Ride.Surge * Config.Ride.SpeedSlack + 10
 		if (position - from).Magnitude > allowed and not r.Flagged then
 			r.Flagged = true
 			warn(string.format("[RideService] %s's fish moved too fast", r.Player.Name))
@@ -814,7 +815,7 @@ function RideService.Init()
 			r.SandboxSeat = nil
 			if w and RunService:IsStudio() then
 				local root = parts(player)
-				local near = root and (w.Root.Position - root.Position).Magnitude <= w.Type.Size.Z / 2 + 40
+				local near = root and (w.Root.Position - root.Position).Magnitude <= w.Body.Z / 2 + 40
 				local seated = r.State == "Free" and FishService.get(target) == w and near and mount(r, w, false)
 				if seated and root then
 					-- Looked at again a moment later: if the pair is somewhere else entirely, the reset is done again by

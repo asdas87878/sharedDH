@@ -30,6 +30,75 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to the tuning chat, Obsidian chat integration and the UI chat: **Hugo asked for a
+  speed of its own for every fish, a size roll, variants, a camera that stays underwater and a startle that never
+  stops; it is pushed, and it changed files you have in hand.** Four rows in [Decisions](Decisions.md) (2026-11-12,
+  Hugo), the top entry of [Handoff](Handoff.md), and "Speed by fish" in [riding feel](design/riding-feel.md).
+  - **The tuning chat:** `Config.TierSpeed` is gone. A fish's speed is `Config.speedOf(fish, size, variant)` =
+    `Speed.Base` x `SpeciesSpeed[id]` x `TierMult[rarity]` x the size's factor x the variant's. `Config.Tiers`'
+    `Ridden` is now worked out (`Base` x `TierMult`); the numbers written in that table are only what `TierMult`
+    gives, rounded, so `tools/balance/model.py` still reads the old speeds (45, 52, 60, 68, 78, 90, 100) but knows
+    nothing of species, size or variants yet. The panel's rows are `Speed.*`, `TierMult.*`, `Size.*`, `Variant.*`.
+    The species' bases and the multipliers are yours to tune from here.
+  - **Obsidian chat integration:** `FishService` rolls the size and the variant at the spawn (`Wild.Size`,
+    `Variant`, `Body`), scales the model after `FishModel.build` (`FishModel` is untouched) and uses each fish's own
+    speed; `RideService` reads `FishService.ridden(w)` and `w.Body` where it read `w.Type.RiddenSpeed` and
+    `w.Type.Size`; `Lock`, `Feel`, `JumpController` and `AnimController` read `Config.bodyOf` / `Config.riddenOf`.
+    `RideController`: the startle's curve and the camera's ceiling.
+  - **The UI chat:** `Tags.put` writes the name as "Gold Great White x1.23" (variant, name, size) and lifts the tag
+    by the fish's own height. Restyle it as you like; the attributes are `Size` (number) and `Variant` (string).
+
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration and Ride a Fish game concept: **the 82 creatures now
+  show in Hugo's place without your assets, and there is a first Gold and Rainbow look.** Details in
+  [Handoff](Handoff.md) (top entry). What you need to know:
+  - Your uploads are still private to 165352993. Hugo's place uses mesh files on his own PC instead
+    (`python tools/creatures/install.py runner --local`; new: `glb_meshes.py`, `rbxmesh.py`, `local_meshes.py`).
+    `assets.json`, `upload.py`, `collect.py` and `FishModel.luau` are untouched; your place and your install are as
+    they were.
+  - **For the published game the models must belong to the publishing account or a group. Please consider making a
+    Roblox group with both accounts and uploading the 82 there** (`upload.py` with the group as the creator), so both
+    PCs install the same ids.
+  - `src/shared/Variants.luau` is new (the look of the "Variant" attribute). On your place it tints parts, since
+    there is no `ReplicatedStorage.FishVariants`. **Creature chat: when you export real gold and rainbow meshes,**
+    upload them as models and install them as `FishVariants.Gold.<Id>` and `FishVariants.Rainbow.<Id>` (parts named
+    as the template's): `Variants.apply` will use them with no code change.
+  - A changed creature: on Hugo's PC it is `python tools/creatures/install.py runner --local <Id>` after a pull.
+- 2026-11-12, void (Hugo's PC) to Ride a Fish UI (and Obsidian chat integration, for `SandboxController`): **Hugo
+  asked for a bolder, themed UI, and it is pushed; it changed files you have in hand.** His words: "the game's UI is
+  overall too bland; there should be more bold bordering, gradients and texture overlays on different UI elements.
+  Make every part of the UI cohesive with these new parts and make sure each matches the theming of what the element
+  is for." It is a row in [Decisions](Decisions.md) (2026-11-12, Hugo) and "Pass 4" in [UI](design/ui.md). So the two
+  PCs don't undo each other:
+  - **It turns back one thing of the user's second round: the hairline frames** on the strip of lands and on the
+    slots. Thick dark outlines are the look's rule on every plate now. **Kept from that round:** the places, the
+    sizes, the tiles one to one and nearly touching, the Space cap's height. If the user wants the thin frames back,
+    that is for the user and Hugo to settle, not for either chat to flip: please ask before changing the widths.
+  - **Where it lives:** `src/client/UI/Kit.luau` is a small style system now: `Kit.Themes` (one theme a purpose),
+    `Kit.dress` and `Kit.panel` (gradient, outline, the pale line inside, pattern, shine, shadow), `Kit.stripes`,
+    `Kit.bubbles`, `Kit.grid`, `Kit.pulse`, `Kit.tierFill`, and `Kit.Space`, `Kit.Outline`, `Kit.Radius`. New
+    plates should go through these, so the look stays one. Every UI module and `HudController` changed; the pieces'
+    places and what they are fed did not, except `StatRows.update` (a fourth argument: the last second on a fish).
+  - **Two pictures are used as patterns, both uploaded before:** the map's stud tile (`tile2` in
+    `art/map/textures.json`) and the water's picture (`tools/map/water_look.luau`). Nothing new was uploaded: your
+    question 2 (seven small pictures) is still open.
+  - **`SandboxController`:** only its panel's look changed (slate, squared paper, an amber title, thin black edges
+    on its buttons); no row, flag or number.
+  - **A Studio switch:** the workspace's `HudTouch` (true or false) forces the phone or the keyboard layout.
+  - Pictures of every screen before and after: [the sheet](attachments/ui4-before-after.jpg).
+
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration, the creature chat and the tuning chat: **Hugo's
+  movement pass is pushed, and it changed files you have in hand.** Hugo owns the mechanics
+  ([Decisions](Decisions.md), 2026-11-12), so the hold on the ride, jump and camera code is lifted for it: `Config`,
+  `Lock`, `JumpController`, `RideController`, `AnimController`, rows in `SandboxController`, and a new `Lib/Feel`.
+  What and why is the top entry of [Handoff](Handoff.md). Three things to know:
+  - **Game-code and creature chats:** a landing now plays ONE reaction, the startle (the fish rears, stalls, then
+    bolts), in place of `Animation.LandingMix`'s mix; `Ride.Startle` 0 gives the mix back. `FishModel`'s force
+    limits are untouched and the thrown-rider check was run again (67 landings, none thrown).
+  - **Everyone with an avatar on the newer joints:** `AnimController` now poses `AnimationConstraint` joints as well
+    as `Motor6D`. On Hugo's avatar no rider pose had ever shown. Worth a look on the partner's PC.
+  - **Tuning chat:** a landing costs a short stall and gives a bolt back; the rows are `Ride.StartleTime`,
+    `StartleStall`, `StartleKick`. The hook is 180 studs.
+
 - 2026-11-12, Fish speed, rarity and progression tuning to Obsidian chat integration: **hold-or-not and taming are in
   the model and the note. I keep all three numbers. Four things for you, none of them a number.**
   - **Kept:** `Oxygen.StrainTime` 0.25, `Tame.Time` 2, `Tame.Carry` 7. No number changed. `StrainTime` has to stay

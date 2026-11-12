@@ -1,9 +1,13 @@
 --!strict
--- The HUD's kit: its colours, its letters and the few shapes every piece is made of. Everything is Roblox's own UI
--- (frames, corners, outlines, gradients); no picture is uploaded. The look is pass 3 of docs/design/ui.md: plain
--- shapes with nearly square corners, a dark outline, letters with a thick outline straight on the world.
--- Rules for phones: nothing here is made per frame, text never changes size, and a label's text is only set when it
--- changes.
+-- The HUD's kit: its colours, its letters and the few shapes every piece is made of. The look is pass 4 of
+-- docs/design/ui.md (Hugo, 2026-11-12: bolder): every plate is a chunky rounded shape with a thick dark outline, a
+-- light line inside it, a top-to-bottom gradient, a faint pattern over it and a shadow under it, in a theme that says
+-- what the piece is for (Kit.Themes). Letters have a thick outline. It is Roblox's own UI plus two pictures that were
+-- already uploaded for the map (Kit.Textures); nothing new is uploaded.
+-- Rules for phones: nothing here is made per frame, text never changes size, a label's text is only set when it
+-- changes, and only what Kit.pulse is given is tweened.
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Kit = {}
@@ -20,6 +24,101 @@ Kit.Lime = Color3.fromRGB(124, 224, 75)
 Kit.Good = Color3.fromRGB(141, 240, 106)
 Kit.Pink = Color3.fromRGB(240, 96, 200)
 Kit.White = Color3.new(1, 1, 1)
+
+-- The spacing every piece keeps to (gaps, paddings), the outline's widths and the corners
+Kit.Space = { Hair = 2, Small = 4, Medium = 8, Large = 12, Huge = 16 }
+Kit.Outline = { Thin = 2, Bold = 3, Heavy = 4 }
+Kit.Radius = { Tile = 5, Plate = 9, Round = 999 }
+
+-- Pictures laid over a plate as its pattern, both uploaded before this pass: the map's stud tile
+-- (art/map/textures.json, "tile2") and the picture the moving water drifts (tools/map/water_look.luau)
+Kit.Textures = {
+	Studs = "rbxassetid://124244361010023",
+	Water = "rbxassetid://6126332496",
+}
+
+export type Style = {
+	Top: Color3, -- the fill, top to bottom
+	Bottom: Color3,
+	Edge: Color3?, -- the outline (the ink, if not given)
+	Outline: number?, -- its width (3)
+	Radius: number?, -- 999 and up: a circle or a pill
+	Fade: number?, -- how see-through the fill is
+	Texture: string?, -- a name in Kit.Textures
+	TextureFade: number?,
+	TextureSize: number?, -- one repeat of the picture, in the HUD's points
+	Bevel: boolean?, -- the light line inside the outline (on, unless false)
+	Shine: boolean?, -- a pale band over the upper half, as on glass
+	Drop: number?, -- how far under the plate its shadow sits (Kit.panel only; 0 for none)
+}
+
+-- One theme a purpose: what a plate is for is read from its colour and its pattern before its words
+Kit.Themes = {
+	-- air: water-blue, bubbles
+	Oxygen = {
+		Top = Color3.fromRGB(72, 204, 255),
+		Bottom = Color3.fromRGB(18, 96, 208),
+		Texture = "Water",
+		TextureFade = 0.72,
+		TextureSize = 72,
+		Shine = true,
+	},
+	-- out of air, a miss: deep red going to black
+	Danger = {
+		Top = Color3.fromRGB(226, 52, 60),
+		Bottom = Color3.fromRGB(70, 6, 28),
+		Texture = "Water",
+		TextureFade = 0.86,
+		TextureSize = 72,
+	},
+	-- the press that is the game: yellow to orange (the stripes are Kit.stripes)
+	Action = { Top = Color3.fromRGB(255, 226, 72), Bottom = Color3.fromRGB(255, 132, 24) },
+	Grab = { Top = Color3.fromRGB(120, 240, 255), Bottom = Color3.fromRGB(20, 150, 226) },
+	Off = { Top = Color3.fromRGB(128, 140, 160), Bottom = Color3.fromRGB(72, 82, 104) },
+	-- money and a best: gold bricks
+	Gold = {
+		Top = Color3.fromRGB(255, 232, 110),
+		Bottom = Color3.fromRGB(240, 150, 20),
+		Texture = "Studs",
+		TextureFade = 0.7,
+		TextureSize = 28,
+	},
+	-- good news
+	Good = {
+		Top = Color3.fromRGB(96, 214, 96),
+		Bottom = Color3.fromRGB(18, 110, 58),
+		Texture = "Studs",
+		TextureFade = 0.8,
+		TextureSize = 28,
+	},
+	-- a plain dark plate: bricks
+	Navy = {
+		Top = Color3.fromRGB(38, 76, 130),
+		Bottom = Color3.fromRGB(14, 32, 60),
+		Texture = "Studs",
+		TextureFade = 0.88,
+		TextureSize = 28,
+	},
+	-- what holds a creature: an aquarium's glass
+	Glass = {
+		Top = Color3.fromRGB(170, 232, 255),
+		Bottom = Color3.fromRGB(30, 110, 190),
+		Fade = 0.45,
+		Texture = "Water",
+		TextureFade = 0.8,
+		TextureSize = 64,
+		Shine = true,
+	},
+	-- ours, not the player's: a tool's dark slate (the squares are Kit.grid)
+	Tool = {
+		Top = Color3.fromRGB(54, 62, 76),
+		Bottom = Color3.fromRGB(26, 31, 41),
+		Edge = Color3.fromRGB(8, 10, 14),
+		Bevel = false,
+	},
+	-- a key of the keyboard
+	Key = { Top = Color3.new(1, 1, 1), Bottom = Color3.fromRGB(206, 216, 232), Radius = 7 },
+} :: { [string]: Style }
 
 -- One colour a land, the map's own (tools/map/greybox.py, GROUND), and a short name for the strip's small tiles
 Kit.Lands = {
@@ -78,9 +177,7 @@ function Kit.gradient(parent: Instance, top: Color3, bottom: Color3): UIGradient
 	return Kit.new("UIGradient", { Color = ColorSequence.new(top, bottom), Rotation = 90 }, parent)
 end
 
--- Letters with a dark outline. The size is fixed: text never scales to fit. The outline follows the letters' size
--- by one rule for the whole HUD (as the reference's: about a tenth of big letters, a fifth of small ones), so small
--- words are not clogged and big ones are not thin; pass a thickness only for a real exception.
+-- Letters with a thick dark outline (a little thicker on big letters). The size is fixed: text never scales to fit.
 function Kit.text(props: { [string]: any }, parent: Instance, outline: number?): TextLabel
 	props.BackgroundTransparency = 1
 	props.Font = props.Font or Kit.Font
@@ -88,11 +185,11 @@ function Kit.text(props: { [string]: any }, parent: Instance, outline: number?):
 	props.TextSize = props.TextSize or 14
 	props.Text = props.Text or ""
 	local label: TextLabel = Kit.new("TextLabel", props, parent)
-	Kit.stroke(label, outline or math.clamp(0.5 + props.TextSize * 0.085, 1.1, 3.4), Kit.Ink)
+	Kit.stroke(label, outline or math.clamp(props.TextSize * 0.19, 1.6, 4), Kit.Ink)
 	return label
 end
 
--- The one highlight every solid plate has: lit from above, a little darker toward its bottom edge
+-- The one highlight a plain solid plate has: lit from above, a little darker toward its bottom edge
 function Kit.shade(plate: Instance)
 	Kit.new("UIGradient", {
 		Color = ColorSequence.new(Kit.White, Color3.fromRGB(214, 222, 236)),
@@ -100,15 +197,240 @@ function Kit.shade(plate: Instance)
 	}, plate)
 end
 
--- A rarity's word: its colour, lighter at the top (the label's own colour must stay white for the gradient to show)
-function Kit.tierColours(label: TextLabel, gradient: UIGradient, tier: string, colours: { [string]: any })
+local GOLD = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 250, 190)),
+	ColorSequenceKeypoint.new(0.45, Color3.fromRGB(255, 208, 48)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(236, 132, 16)),
+})
+local EMBER = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 196, 150)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 70, 90)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(196, 30, 120)),
+})
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 110, 120)),
+	ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 190, 90)),
+	ColorSequenceKeypoint.new(0.4, Color3.fromRGB(250, 240, 120)),
+	ColorSequenceKeypoint.new(0.6, Color3.fromRGB(120, 235, 150)),
+	ColorSequenceKeypoint.new(0.8, Color3.fromRGB(110, 190, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 140, 255)),
+})
+
+-- A rarity's own colours, as a gradient and which way it runs (90: top to bottom). The lower rarities are their colour,
+-- lighter at the top; a Legendary is gold, a Mythic an ember, and a Secret the rainbow, side to side
+-- (docs/style/05-rarity-look.md: gold and the rainbow are the top of the ladder)
+function Kit.tierFill(tier: string, colours: { [string]: any }): (ColorSequence, number)
+	if tier == "Legendary" then
+		return GOLD, 90
+	elseif tier == "Mythic" then
+		return EMBER, 90
+	elseif tier == "Secret" then
+		return RAINBOW, 0
+	end
 	local entry = colours[tier]
 	local colour: Color3 = if entry then entry.Colour else Kit.White
-	if tier == "Secret" then
-		colour = Color3.fromRGB(110, 110, 132)
-	end
+	return ColorSequence.new(Kit.lighter(colour, 0.45), colour), 90
+end
+
+-- A rarity's word in those colours (the label's own colour must stay white for the gradient to show)
+function Kit.tierColours(label: TextLabel, gradient: UIGradient, tier: string, colours: { [string]: any })
 	label.TextColor3 = Kit.White
-	gradient.Color = ColorSequence.new(Kit.lighter(colour, 0.45), colour)
+	gradient.Color, gradient.Rotation = Kit.tierFill(tier, colours)
+end
+
+export type Dressed = {
+	Fill: UIGradient,
+	Outline: UIStroke,
+	Bevel: UIStroke?,
+	Texture: ImageLabel?,
+	paint: (top: Color3, bottom: Color3) -> (),
+}
+
+local BEVEL = NumberSequence.new(0.3, 0.88)
+local SHINE = NumberSequence.new(0.66, 1)
+
+-- Dresses a frame as a plate of the look: the gradient, the thick outline, the light line inside it, the pattern and
+-- the shine. What it adds sits under the frame's own children (ZIndex 0). The frame's own colour becomes white: the
+-- gradient carries the colour from then on (paint changes it).
+function Kit.dress(face: GuiObject, style: Style): Dressed
+	local radius = style.Radius or Kit.Radius.Plate
+	local round = radius >= 999
+	face.BackgroundColor3 = Kit.White
+	face.BackgroundTransparency = style.Fade or 0
+	face.BorderSizePixel = 0
+	Kit.corner(face, radius)
+	local fill = Kit.gradient(face, style.Top, style.Bottom)
+	local outline = Kit.stroke(face, style.Outline or Kit.Outline.Bold, style.Edge or Kit.Ink)
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local texture: ImageLabel? = nil
+	if style.Texture then
+		local size = style.TextureSize or 32
+		texture = Kit.new("ImageLabel", {
+			Name = "Pattern",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Image = Kit.Textures[style.Texture],
+			ImageTransparency = style.TextureFade or 0.8,
+			ScaleType = Enum.ScaleType.Tile,
+			TileSize = UDim2.fromOffset(size, size),
+			ZIndex = 0,
+		}, face)
+		Kit.corner(texture :: ImageLabel, radius)
+	end
+	if style.Shine then
+		local shine = Kit.new("Frame", {
+			Name = "Shine",
+			Position = UDim2.fromOffset(2, 2),
+			Size = UDim2.new(1, -4, 0.5, -2),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = 0,
+		}, face)
+		Kit.corner(shine, if round then 999 else math.max(radius - 2, 0))
+		Kit.new("UIGradient", { Transparency = SHINE, Rotation = 90 }, shine)
+	end
+	local bevel: UIStroke? = nil
+	if style.Bevel ~= false then
+		local line = Kit.new("Frame", {
+			Name = "Bevel",
+			Position = UDim2.fromOffset(2.5, 2.5),
+			Size = UDim2.new(1, -5, 1, -5),
+			BackgroundTransparency = 1,
+			ZIndex = 0,
+		}, face)
+		Kit.corner(line, if round then 999 else math.max(radius - 2.5, 0))
+		bevel = Kit.stroke(line, 1.5, Kit.White)
+		Kit.new("UIGradient", { Transparency = BEVEL, Rotation = 90 }, bevel)
+	end
+	local function paint(top: Color3, bottom: Color3)
+		fill.Color = ColorSequence.new(top, bottom)
+	end
+	return { Fill = fill, Outline = outline, Bevel = bevel, Texture = texture, paint = paint }
+end
+
+export type Panel = { Frame: Frame, Face: Frame, Shadow: Frame, Look: Dressed }
+
+-- A plate with its shadow: a clear holder (it takes the props: where and how big), the shadow a little under it and
+-- the dressed face over that. What the plate holds goes in Face.
+function Kit.panel(parent: Instance, props: { [string]: any }, style: Style): Panel
+	props.BackgroundTransparency = 1
+	local holder: Frame = Kit.new("Frame", props, parent)
+	local drop = style.Drop or 3
+	local shadow: Frame = Kit.new("Frame", {
+		Name = "Shadow",
+		Position = UDim2.fromOffset(0, drop),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(4, 10, 22),
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		Visible = drop > 0,
+		ZIndex = 0,
+	}, holder)
+	Kit.corner(shadow, style.Radius or Kit.Radius.Plate)
+	Kit.stroke(shadow, style.Outline or Kit.Outline.Bold, Color3.fromRGB(4, 10, 22), 0.45)
+	local face: Frame = Kit.new("Frame", { Name = "Face", Size = UDim2.fromScale(1, 1) }, holder)
+	return { Frame = holder, Face = face, Shadow = shadow, Look = Kit.dress(face, style) }
+end
+
+-- Motion stripes: slanted pale bands over a plate, as one gradient (no picture, and it keeps to the plate's corners)
+function Kit.stripes(face: Instance, radius: number, fade: number?): Frame
+	local clear = 1
+	local pale = fade or 0.78
+	local points = {}
+	local bands = 4
+	for i = 0, bands - 1 do
+		local from = (i + 0.2) / bands
+		local to = (i + 0.62) / bands
+		table.insert(points, NumberSequenceKeypoint.new(if i == 0 then 0 else from - 0.001, clear))
+		table.insert(points, NumberSequenceKeypoint.new(from, pale))
+		table.insert(points, NumberSequenceKeypoint.new(to, pale))
+		table.insert(points, NumberSequenceKeypoint.new(to + 0.001, clear))
+	end
+	table.insert(points, NumberSequenceKeypoint.new(1, clear))
+	local frame: Frame = Kit.new("Frame", {
+		Name = "Stripes",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = 0,
+	}, face)
+	Kit.corner(frame, radius)
+	Kit.new("UIGradient", { Transparency = NumberSequence.new(points), Rotation = -58 }, frame)
+	return frame
+end
+
+-- A few bubbles as a plate's pattern: thin pale rings. spots: { x, y (0 to 1 across the plate), size } each
+function Kit.bubbles(face: Instance, spots: { { number } })
+	for _, spot in spots do
+		local ring = Kit.new("Frame", {
+			Name = "Bubble",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(spot[1], spot[2]),
+			Size = UDim2.fromOffset(spot[3], spot[3]),
+			BackgroundColor3 = Kit.White,
+			BackgroundTransparency = 0.86,
+			ZIndex = 0,
+		}, face)
+		Kit.corner(ring, 999)
+		Kit.stroke(ring, 1, Kit.White, 0.45)
+	end
+end
+
+-- A tool's squared paper: thin pale lines every cell points, over a plate up to wide by high
+function Kit.grid(face: Instance, cell: number, wide: number, high: number)
+	local sheet = Kit.new("Frame", {
+		Name = "Grid",
+		Position = UDim2.fromOffset(4, 4),
+		Size = UDim2.new(1, -8, 1, -8),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		ZIndex = 0,
+	}, face)
+	for x = cell, wide, cell do
+		Kit.new("Frame", {
+			Position = UDim2.fromOffset(x, 0),
+			Size = UDim2.new(0, 1, 1, 0),
+			BackgroundColor3 = Kit.White,
+			BackgroundTransparency = 0.93,
+			BorderSizePixel = 0,
+		}, sheet)
+	end
+	for y = cell, high, cell do
+		Kit.new("Frame", {
+			Position = UDim2.fromOffset(0, y),
+			Size = UDim2.new(1, 0, 0, 1),
+			BackgroundColor3 = Kit.White,
+			BackgroundTransparency = 0.93,
+			BorderSizePixel = 0,
+		}, sheet)
+	end
+end
+
+-- Something that beats while a warning is on (an outline going bright and back): one tween, played and cancelled, the
+-- only thing in the HUD that is tweened all the time it shows. rest is what the target goes back to.
+function Kit.pulse(
+	target: Instance,
+	rest: { [string]: any },
+	peak: { [string]: any },
+	period: number?
+): (on: boolean) -> ()
+	local info = TweenInfo.new(period or 0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+	local tween = TweenService:Create(target, info, peak)
+	local running = false
+	return function(on: boolean)
+		if on == running then
+			return
+		end
+		running = on
+		if on then
+			tween:Play()
+		else
+			tween:Cancel()
+			for key, value in rest do
+				(target :: any)[key] = value
+			end
+		end
+	end
 end
 
 -- The sign for Oxygen: a bubble (three circles)
@@ -160,6 +482,7 @@ export type Ring = {
 	Hole: Frame,
 	set: (fraction: number) -> (),
 	colour: (colour: Color3) -> (),
+	Glow: UIStroke, -- a line round the whole ring, clear until a warning lights it (Kit.pulse)
 	spent: (spent: boolean) -> (), -- the emptied part in red (an empty ring has no arc left to carry the colour)
 	lag: (fraction: number) -> (), -- a meter only: the part just lost, in red behind what is left
 }
@@ -248,13 +571,24 @@ end
 
 -- A ring that empties, as the reference's: the part left runs clockwise from the top, and the used part is dark and
 -- see-through. meter: the reference's meter beside the rider, which also has a thin dark edge, a clear hole, and the
--- part just lost in red behind what is left (lag).
-function Kit.ring(parent: Instance, diameter: number, thick: number, meter: boolean?): Ring
+-- part just lost in red behind what is left (lag). outline: the look's bold dark line round its outer edge and its
+-- hole, with a pale line on the band (0 or nil for none; a meter then keeps its thin edge).
+function Kit.ring(parent: Instance, diameter: number, thick: number, meter: boolean?, outline: number?): Ring
 	local inner = diameter - thick * 2
+	local bold = outline or 0
 	local holder: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(diameter, diameter),
 		BackgroundTransparency = 1,
 	}, parent)
+	-- the warning's glow, then the dark line round the outside (both drawn outward from the ring's own edge)
+	local rim = Kit.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 0 }, holder)
+	Kit.corner(rim, 999)
+	local glow = Kit.stroke(rim, bold + 3, Kit.Coral, 1)
+	if bold > 0 then
+		local dark = Kit.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 0 }, holder)
+		Kit.corner(dark, 999)
+		Kit.stroke(dark, bold, Kit.Ink)
+	end
 	local trackCircle = Kit.new("Frame", {
 		Position = UDim2.fromOffset(thick, thick),
 		Size = UDim2.fromOffset(inner, inner),
@@ -276,7 +610,26 @@ function Kit.ring(parent: Instance, diameter: number, thick: number, meter: bool
 		BackgroundTransparency = if meter then 1 else 0.5,
 	}, holder)
 	Kit.corner(hole, 999)
-	if meter then
+	if bold > 0 then
+		-- the dark line round the hole, drawn over the band's inner edge, and a pale line on the band's outside
+		local lip = Kit.new("Frame", {
+			Position = UDim2.fromOffset(thick, thick),
+			Size = UDim2.fromOffset(inner, inner),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, holder)
+		Kit.corner(lip, 999)
+		Kit.stroke(lip, bold, Kit.Ink)
+		local pale = Kit.new("Frame", {
+			Position = UDim2.fromOffset(2, 2),
+			Size = UDim2.new(1, -4, 1, -4),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, holder)
+		Kit.corner(pale, 999)
+		local paleLine = Kit.stroke(pale, 1.5, Kit.White)
+		Kit.new("UIGradient", { Transparency = BEVEL, Rotation = 90 }, paleLine)
+	elseif meter then
 		-- the thin dark edge, outside and round the hole
 		Kit.stroke(hole, 1.2, Kit.Ink, 0.45)
 		local edge = Kit.new("Frame", {
@@ -296,7 +649,15 @@ function Kit.ring(parent: Instance, diameter: number, thick: number, meter: bool
 			behind.set(fraction)
 		end
 	end
-	return { Frame = holder, Hole = hole, set = front.set, colour = front.colour, spent = spent, lag = lag }
+	return {
+		Frame = holder,
+		Hole = hole,
+		Glow = glow,
+		set = front.set,
+		colour = front.colour,
+		spent = spent,
+		lag = lag,
+	}
 end
 
 -- Seconds as the HUD writes them: two decimals under a second, one up to ten, whole seconds to a minute, then nothing
@@ -329,7 +690,14 @@ function Kit.short(value: number): string
 end
 
 -- Whether the player is on a touch screen with no keyboard: the phone layout
+-- In Studio the workspace's "HudTouch" (true or false) forces the answer, to see the phone layout without a phone.
 function Kit.touch(): boolean
+	if RunService:IsStudio() then
+		local forced = workspace:GetAttribute("HudTouch")
+		if type(forced) == "boolean" then
+			return forced
+		end
+	end
 	local last = UserInputService:GetLastInputType()
 	if last == Enum.UserInputType.Touch then
 		return true

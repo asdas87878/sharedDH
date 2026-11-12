@@ -120,7 +120,9 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   with `RideController` (the fish turns to where the camera looks; the camera), fish are `FishService` (a herd swimming
   straight down the lane in one layer), and going fish to fish is `JumpController`: Ride a Dino's jump, read from the
   user's recordings ([reference](docs/reference/ride-a-dino.md)). What is built, measured and still open:
-  [riding feel](docs/design/riding-feel.md). Every number is in `src/shared/Config.luau`, read live. In Studio the game
+  [riding feel](docs/design/riding-feel.md). Every number is in `src/shared/Config.luau`, read live. Every fish has its own
+  speed (`Config.speedOf`: species x rarity x size roll x variant), a size roll (`Size` attribute) and now and then a
+  variant (`Variant`; look in `Shared/Variants`); the camera stays under the surface once dived (`Camera.Submerge`). In Studio the game
   starts as the **movement sandbox** ([docs/sandbox.md](docs/sandbox.md): no fail, R reset, V side view, N a panel of every
   number): the user tunes there and pastes "Copy changes" for Claude to write into Config. What each push changed is in
   [Handoff](docs/Handoff.md); who has which files, [Sessions](docs/Sessions.md).
