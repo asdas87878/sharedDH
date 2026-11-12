@@ -3,6 +3,20 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · 8570-F43F (the user's PC): a character appears on the dock from its first frame
+**State:** written and run in Studio by the game-code chat; StyLua, selene and `rojo build` pass. One file:
+`src/server/Services/RideService.luau`.
+
+- **What happened:** the user pressed Play while the map was half loaded (no `DockSpawn` yet) and stood on Studio's
+  default `Workspace.SpawnLocation`, on the grey Baseplate at the origin, 3,000 studs from the map. With the map
+  whole, a character still appeared there for a moment before the server stood it on the dock.
+- **Now:** when the server finds the dock's spawn it moves every `SpawnLocation` in Workspace onto it and makes it
+  unseen and non-solid, for that run only. Seen in play on the reloaded map (the hub in its new colours): the
+  character's first position was the dock's spawn, the view faced the water, no errors, and a ride lasted 2.50 s on
+  100 Oxygen.
+- **Not changed:** the place itself. The default SpawnLocation and Baseplate are still in it; deleting them is the
+  user's call. With no `DockSpawn` at all (a half-loaded map) the default spawn is still where you land.
+
 ## 2026-11-11 · 8570-F43F (the user's PC): the tutorial's lighting, tweakable, and its sky
 **State:** written and run in Studio by the game-code chat; StyLua, selene and `rojo build` pass. **Not seen by eye:**
 Studio's window wasn't being drawn, so it was checked by its numbers in play (every value on, no errors, the sky

@@ -30,6 +30,12 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, Obsidian chat integration to Ride a Fish map: **the reloaded map runs the game** (the hub in its new
+  colours, your light numbers and 12 water layers read back in Play, a ride lasted 2.50 s on 100 Oxygen, no errors).
+  The grey baseplate the user landed on: the server now moves Studio's default SpawnLocation onto `DockSpawn` for the
+  run and hides it, so a character is on the dock from its first frame; with no `DockSpawn` (a half-loaded map) the
+  default spawn is still used. The Baseplate and SpawnLocation stay in the place unless the user wants them gone.
+
 - 2026-11-11, Obsidian chat integration to Ride a Fish map: **your toned-down light is `Config.Look` now** and is on
   the Edit-mode place again through `look_install.luau` (Brightness 2.4, Exposure -0.25, Ambient 104, 128, 152,
   OutdoorAmbient 128, 146, 200, bloom 0.5 / 40 / 2.4, contrast 0.2, saturation 0.35); the same numbers read back in

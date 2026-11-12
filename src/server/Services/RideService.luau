@@ -694,6 +694,23 @@ function RideService.Start()
 	else
 		-- for the client: where a player is stood on the dock and which way they face (it turns the view to match)
 		Net.Folder:SetAttribute("Dock", dockSpawn.CFrame)
+		-- Roblox puts a new character on a SpawnLocation first, and the place's own one (Studio's default) sits on a
+		-- grey baseplate thousands of studs from the map. For this run only it is moved onto the dock's spawn and
+		-- made unseen, so a character appears on the dock from its first frame. The place itself is not changed.
+		for _, child in workspace:GetChildren() do
+			if child:IsA("SpawnLocation") then
+				child.Anchored = true
+				child.CanCollide = false
+				child.CanQuery = false
+				child.Transparency = 1
+				for _, face in child:GetChildren() do
+					if face:IsA("Decal") or face:IsA("Texture") then
+						face.Transparency = 1
+					end
+				end
+				child.CFrame = dockSpawn.CFrame
+			end
+		end
 	end
 	workspace:GetAttributeChangedSignal("TestMaxOxygen"):Connect(RideService.readMax)
 	Players.PlayerAdded:Connect(onPlayer)

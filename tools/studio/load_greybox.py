@@ -32,17 +32,24 @@ def run(path):
     return "gave up: " + last
 
 
-files = sorted((f for f in os.listdir(FOLDER) if f.endswith(".luau")), key=lambda f: int(re.match(r"(\d+)", f).group(1)))
+def order(name):
+    """the start first, the parts files in number order, then the water, then the check (a parts file can carry the
+    same number as the water's or the check's file)"""
+    kind = 0 if name.endswith("_start.luau") else 1 if name.endswith("_parts.luau") else 2 if name.endswith("_water.luau") else 3
+    return kind, int(re.match(r"(\d+)", name).group(1))
+
+
+files = sorted((f for f in os.listdir(FOLDER) if f.endswith(".luau")), key=order)
 problems = 0
 for k, name in enumerate(files):
     last = run(os.path.join(FOLDER, name))
-    if name.startswith("00_"):
+    if name.endswith("_start.luau"):
         print("START:", last, flush=True)
         if "started" not in last:
             raise SystemExit("the start file did not run: nothing loaded")
-    elif name.startswith("98_"):
+    elif name.endswith("_water.luau"):
         print("WATER:", last, flush=True)
-    elif name.startswith("99_"):
+    elif name.endswith("_check.luau"):
         print("CHECK:", last, flush=True)
     elif "parts made" not in last:
         problems += 1

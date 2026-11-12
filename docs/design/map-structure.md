@@ -310,6 +310,8 @@ left half a map in the place (the user met this: "the whole map is in there, it'
 The user asked for a few colour looks for the hub, then for variations on one of them (Coral), then settled, for now,
 on **Ride a Dino's own hub colours, one to one.**
 
+![In Studio, 2026-11-12: the new picture, the corrected colours, the light with the blue taken out](../attachments/map-hub-dino-studio.jpg)
+
 ![The hub in Ride a Dino's colours](../attachments/map-hub-look-dino.jpg)
 
 | Part | Colour (sampled from sunlit places in the recordings) |
