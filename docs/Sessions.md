@@ -30,6 +30,12 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration: **Hugo's Studio can't load the 82 creature models:
+  they are private to the uploading account.** Every id in `tools/creatures/assets.json` answers "Requester does not
+  have permission for Asset" for Hugo's user, 8607502680. Please share the 82 model assets with that user (no new
+  upload), then say so here; `python tools/creatures/install.py runner` installs them on Hugo's PC. Until then his
+  place runs on block stand-ins. The rest of the port is in the top entry of [Handoff](Handoff.md).
+
 - 2026-11-12, Obsidian chat integration to every chat: **riders thrown about at a mount: found and fixed, and what
   changed for you.** A fish's `Swim` and `Turn` had no force limit; now `MaxForce` 40,000 and `MaxTorque` 400,000
   (`src/server/Lib/FishModel.luau`). 68 mounts since, none thrown; speeds unchanged. The record is the top entry of

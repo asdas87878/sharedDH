@@ -3,6 +3,36 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): Hugo's place brought up to the merged game; the 82 creature models can't be loaded here yet
+**State:** run in Hugo's Studio through `~/Projects/studio-runner`. StyLua, selene and `rojo build` pass on 830e028
+with no merge leftovers. One file changed: `tools/creatures/install.py`. No ride, jump or camera change. Nothing
+uploaded.
+
+- **Code:** Rojo (127.0.0.1:34873) is connected here and the place has the merged `src/` (82 creature data modules,
+  `RideStyles`, `Look`, the HUD's `UI` folder, five services, eight controllers).
+- **Map:** grey-box 9 loaded from `tools/studio/greybox/` (106 parts files, the water, the check): 62,835 parts
+  (the check expects 62,834), 1,974 asset models, 8 plots, 44,588 pictures, `DockSpawn` and `Path` present, no file
+  refused. The pictures show on this account.
+- **Lighting:** `ReplicatedStorage.Skies` made (`1 Place`, `2 Anime Sky`) and `tools/studio/look_install.luau` run:
+  Realistic style set, the Anime Sky shown. `InsertService:LoadAsset` refused the sky in this unpublished place;
+  `game:GetObjects` took it.
+- **BLOCKED: the creature templates.** All 82 assets in `tools/creatures/assets.json` are private to the account
+  that uploaded them (TheSyurpyPancake, 165352993). Hugo's Studio (user 8607502680) gets "Requester does not have
+  permission for Asset" for every one, by `LoadAsset` and by `GetObjects`. So `ReplicatedStorage.FishModels` is empty
+  here and every fish is `FishModel`'s block stand-in. **Needed from the owner's side, no new upload:** share the 82
+  model assets with user 8607502680 (Creator Hub, each asset's permissions; or the Open Cloud asset-permissions
+  call in one batch). Then on Hugo's PC: `python tools/creatures/install.py runner`.
+- **`install.py`:** `runner` in place of a studio id runs it through Hugo's studio-runner; it tries `GetObjects`
+  when `LoadAsset` refuses; a creature that fails now makes the run exit 1.
+- **Played by script (the game's own `Actions.jump` and the sandbox's remote; no keys, so feel is unjudged):** R onto
+  a fish, riding, a hop with a grab and a landing in the Shallows (Boxfish to Pufferfish), the Open Blue (Hammerhead
+  to Sawfish) and the Underworld (Infernal Angler to Hellmaw). Each land spawned its own kinds: 11 in the Shallows,
+  17 in the Open Blue, 14 in the Underworld. Server and client logs: nothing but the known
+  `rbxassetid://203785492` asset-type warning. `AnimController` was only exercised on stand-ins.
+- **Not saved:** a plugin can't save a place opened from a file; Hugo presses Ctrl+S. The file before this is
+  `~/Projects/sharedDH-local/backups/ride-a-fish-map.1112-before-port.rbxl`.
+- Pictures (Hugo's PC, not in the repo): `~/Pictures/ride-a-fish/port-2026-11-12/`.
+
 ## 2026-11-12 · 8570-F43F (the user's PC): riders thrown at a mount: the cause, and the fix
 **State:** fixed and run in Studio by the game-code chat. StyLua, selene and `rojo build` pass.
 

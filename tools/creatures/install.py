@@ -1,5 +1,10 @@
 """Puts uploaded creatures into the open Studio place as templates the game uses: ReplicatedStorage.FishModels.<Id>.
 usage: python tools/creatures/install.py <studio_id> [Id ...]     (no Ids: every creature in assets.json)
+       python tools/creatures/install.py runner [Id ...]          (Hugo's PC: through ~/Projects/studio-runner)
+
+The assets are private to the account that uploaded them (the user's, 165352993). Another account's Studio gets
+"Requester does not have permission for Asset" for every one until the owner shares them with it (Creator Hub, the
+asset's permissions); the creature then says FAILED here and the game shows its block stand-in.
 
 tools/creatures/assets.json holds each creature's Roblox asset id (the Model made by uploading its GLB; uploads are done
 by Claude through Studio's connector, with the user's word, and written there by hand). This writes a Luau script and
@@ -36,8 +41,15 @@ for _, row in __ROWS__ do
 	local ok, err = pcall(function()
 		local source = workspace:FindFirstChild(id .. "Import")
 		if not source then
-			local loaded = InsertService:LoadAsset(assetId)
-			source = loaded:FindFirstChildWhichIsA("Model") or loaded
+			-- LoadAsset refuses some assets in a place that isn't published; GetObjects takes them
+			local loaded, objects = pcall(function()
+				return InsertService:LoadAsset(assetId)
+			end)
+			if loaded then
+				source = objects:FindFirstChildWhichIsA("Model") or objects
+			else
+				source = game:GetObjects("rbxassetid://" .. assetId)[1]
+			end
 		end
 		local parts = {}
 		for _, d in source:GetDescendants() do
@@ -94,9 +106,13 @@ if __name__ == "__main__":
         rows = ", ".join('{ "%s", %d }' % (i, int(assets[i])) for i in batch)
         path = os.path.join(tempfile.gettempdir(), "install_creatures.luau")
         open(path, "w", encoding="utf-8").write(LUAU.replace("__ROWS__", "{ " + rows + " }"))
-        out = subprocess.run(["node", os.path.join(ROOT, "tools", "studio", "run_luau.js"), studio, path], capture_output=True, text=True)
+        if studio == "runner":
+            command = ["node", os.path.expanduser("~/Projects/studio-runner/studio-run.mjs"), path]
+        else:
+            command = ["node", os.path.join(ROOT, "tools", "studio", "run_luau.js"), studio, path]
+        out = subprocess.run(command, capture_output=True, text=True)
         text = (out.stdout[-3000:] or out.stderr[-2000:]).strip()
         print("%d to %d of %d:" % (n + 1, n + len(batch), len(ids)), text[-900:], flush=True)
-        if out.returncode != 0:
+        if out.returncode != 0 or "FAILED" in text:
             failed += 1
     sys.exit(1 if failed else 0)
