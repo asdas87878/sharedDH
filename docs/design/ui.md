@@ -37,9 +37,42 @@ endless air, the button's arrow). A third run showed the tags drawing ([a lone f
 clump of fish piled its tags on each other. **A crowding rule was added and a fourth run, with all 82 creatures, showed it working**
 ([the Twilight](../attachments/game-twilight-all-creatures.jpg)): tags are placed nearest first, and one whose words
 would land on a tag already placed is left out; far tags are smaller. While you float off a fish the ring shows the
-air you have left and says "Floating". **Not
-seen yet:** a phone-size screen, the last second on a fish, a miss, the end of a dive. Not type-checked (no luau-lsp
-on this PC).
+air you have left and says "Floating".
+
+**A fifth run, with endless air off, showed the rest:** [the last second on a fish](../attachments/ui-game-last-second.jpg)
+(the ring red at "0.90", the button's ring red with a yellow arrow), [a part-empty ring](../attachments/ui-game-riding-real.jpg),
+[GREAT DIVE! on the dock](../attachments/ui-game-great-dive.jpg) and [drowning](../attachments/ui-game-drowning.jpg).
+No errors. Three things were changed from those pictures, **written and not run yet**:
+
+| What the picture showed | Change |
+|---|---|
+| "GREAT DIVE!" sat on the player's head | It sits higher: about a third of the way down the screen, clear of the player and of the strip of lands, on a phone as on a wide screen |
+| Drowning with an empty meter, the only number on screen was the Oxygen row's "100" (the most you can carry, not what is left) | The ring stays up while you drown: empty, red, "0.00", and "Out of air" under it. It goes when the words come up over the middle. Not shown after a missed hop, which has its own words |
+| Far tags were too small to read, and a fish in a clump could lose its tag whole | See the next paragraph |
+
+**What a fish needs is the one warning before a hop.** The game marks nothing while you ride, and a fish too strong
+throws you off at once (the tuning chat: a quarter of dives end that way). So that line of the tag is never the part
+that is lost:
+- A fish too strong to hold has its "Needs" on a **red plate, the number in white**. Green and yellow stay as they were.
+- A far fish (110 studs or more) shows **only the bubble and the number**, at a size that reads. The whole tag
+  shrunk with distance was too small to read.
+- A near fish whose whole tag has no room shows just the bubble and the number. It is left out only when even that
+  has no room.
+
+**A sixth run tried those three: no errors.** [The ring stays up while you drown](../attachments/ui-game-out-of-air.jpg),
+and GREAT DIVE! sits higher (measured, not pictured: it is up for 3.2 seconds, which is the length meant). Two
+things from that picture, **written and not run yet**:
+- The empty ring was grey, not red: with nothing left there is no arc to carry the red. Now the whole ring goes red
+  when the meter is empty.
+- The Oxygen row still said "100" while the player drowned. It is the most you can carry, but a drowning player
+  reads it as what is left. While you drown out of air it now shows a **red 0**, and goes back after.
+
+**A seventh run confirmed all of it, with no errors:** the ring red all round and the red 0 while drowning (the
+same picture, retaken), and [the tags' warning in the Coral Reef](../attachments/ui-game-reef-needs.jpg): far fish
+show a bubble and a number, yellow for a short hold, and the fish too strong has its number on a red plate.
+
+**Not seen yet:** a phone-size screen and a miss's words. Not type-checked (no luau-lsp on this PC). One thing
+noticed in the Reef picture and left as it is: a fish behind a wall still gets its tag.
 
 | File | What it is |
 |---|---|
@@ -49,7 +82,7 @@ on this PC).
 | `src/client/UI/Rings.luau` | The seconds left on this fish, the fish's name and rarity, the tame ring |
 | `src/client/UI/HopButton.luau` | The jump button: the arrow turns over in the air; HOP and GRAB on a phone, "Space" on a keyboard |
 | `src/client/UI/StatRows.luau` | Your Oxygen; coins when the game has them |
-| `src/client/UI/Tags.luau` | Tags on the nearest wild fish: rarity, name, what each needs, in three colours |
+| `src/client/UI/Tags.luau` | Tags on the nearest wild fish: rarity, name, what each needs, in three colours; a red plate on a fish too strong; far or crowded fish show only the number |
 | `src/client/UI/Aim.luau` | In the hop: the aim, and the window as a ring |
 | `src/client/UI/Slots.luau` | The seven slots for what you carry |
 | `src/client/UI/Banners.luau` | A miss, the end of a dive, a catch |

@@ -289,7 +289,9 @@ local function update(dt: number)
 		bestLands,
 		bestMetres
 	)
-	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?)
+	-- drowning with the meter empty (not a missed hop, where there may be air left)
+	local outOfAir = mode == "Drowning" and State.Player:GetAttribute("DeathQuick") ~= true
+	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir)
 
 	-- the rings: the meter as seconds on the fish under us, at the rate the server counts (its "Drain"). The server
 	-- sends the meter about ten times a second; between those we count down ourselves
@@ -316,6 +318,11 @@ local function update(dt: number)
 	elseif mode == "Free" then
 		-- off a fish and not in a hop: the meter is the air you have left to float on, and the ring says so
 		Rings.update(now, meter / max, meter / math.max(drain, 0.001), "Floating", "", nil, endlessAir)
+	elseif outOfAir and State.FadeText == "" then
+		-- out of air (run out on a fish, or thrown off one too strong): the ring stays up, empty and red, so the
+		-- reason is on the screen at once; it goes when the words come up over the middle. The Oxygen row at the
+		-- corner is the most you can carry, not what is left, so it can't say this
+		Rings.update(now, 0, 0, "Out of air", "", nil, false)
 	else
 		Rings.hide()
 	end

@@ -35,6 +35,7 @@ local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
 params.RespectCanCollide = true
 local begun = false
+local throughLast: boolean? = nil -- what Course.begin was last asked for (it is done again when a character appears)
 
 -- the last survey: the lane's floor there (nil off the lane), how far outside the lane's edge (negative inside), and the
 -- way out across it
@@ -60,6 +61,7 @@ end
 -- Call when we start moving something ourselves (a mount, a jump): the rays skip every character and the camera's own
 -- effects. `throughProps`: they skip the map's props too (a ridden fish that breaks them swims through: Config.Props).
 function Course.begin(throughProps: boolean?)
+	throughLast = throughProps
 	local list: { Instance } = { workspace.CurrentCamera }
 	for _, player in Players:GetPlayers() do
 		if player.Character then
@@ -130,7 +132,7 @@ end
 -- The floor under a point in open water: the solid thing below it, and never lower than the lane's own floor
 function Course.floor(at: Vector3): number?
 	if not begun then
-		Course.begin()
+		Course.begin(throughLast)
 	end
 	locate(at)
 	floorHere = rayFloor(at.X, at.Y, at.Z)
@@ -202,7 +204,7 @@ end
 -- ourselves each frame (the flight).
 function Course.clearMove(from: Vector3, to: Vector3, clearance: number): Vector3
 	if not begun then
-		Course.begin()
+		Course.begin(throughLast)
 	end
 	local step = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
 	for _ = 1, 2 do
@@ -253,5 +255,18 @@ function Course.clearMove(from: Vector3, to: Vector3, clearance: number): Vector
 	end
 	return Vector3.new(x, y, z)
 end
+
+-- A character that appears after the rays' list was made (a player who joined, or anyone's respawn) is solid to them
+-- until the list is made again: so it is, the next time a floor or a move is asked for.
+local function stale()
+	begun = false
+end
+local function watch(player: Player)
+	player.CharacterAdded:Connect(stale)
+end
+for _, player in Players:GetPlayers() do
+	watch(player)
+end
+Players.PlayerAdded:Connect(watch)
 
 return Course

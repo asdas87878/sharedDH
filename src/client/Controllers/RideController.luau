@@ -51,7 +51,9 @@ local coasting: Coast? = nil
 local seating: Model? = nil
 local seatingAt = 0
 local seatingTold = false
-local SEAT_HOLD = 0.15 -- seconds we sit on the saddle ourselves before telling the server (longer made no difference)
+-- seconds we sit on the saddle ourselves before telling the server: long enough for the server to have seen us arrive
+-- there (at 0.15 it had not, and refused 14 seats of 16; at 0.6 none)
+local SEAT_HOLD = 0.4
 
 -- floating
 local floatVelocity: LinearVelocity? = nil
@@ -178,9 +180,8 @@ local function ensureFloat(root: BasePart)
 	v.Name = "Float"
 	v.Attachment0 = attachment :: Attachment
 	v.RelativeTo = Enum.ActuatorRelativeTo.World
-	-- (a few times the character's weight, no more. With a force in the millions, the one physics step in which the
-	-- server's weld had joined us to a fish before we knew, the fish's own Swim and Turn, which have no limit, and this
-	-- push fought over one body and threw it hundreds to thousands of studs: 2026-11-12)
+	-- (a few times the character's weight, no more: a force in the millions is never needed, and forces without a
+	-- sensible limit are what threw riders about at a mount: Lib/FishModel, 2026-11-12)
 	v.MaxForce = root.AssemblyMass * workspace.Gravity * 4
 	v.Parent = root
 	local t = Instance.new("AlignOrientation")
@@ -386,10 +387,8 @@ function RideController.rejoin(): boolean
 end
 
 local function float(root: BasePart, dt: number)
-	-- Already joined to a fish: the server's weld can reach us a frame or more before its word that we are mounted
-	-- (a mount straight from floating: the sandbox's reset). Our own push must be gone before the physics runs, or the
-	-- fish's Swim and Turn and our float's push and turn pull one body two ways with all their force, and the pair is
-	-- thrown: 300 to 140,000 studs in a frame, about one reset in three (2026-11-12).
+	-- Already joined to a fish (the server's weld can reach us a frame before its word that we are mounted): our own
+	-- push comes off, so it never pulls against the fish's.
 	for _, joint in root:GetJoints() do
 		if joint.Name == "RideWeld" then
 			clearFloat()
@@ -703,9 +702,8 @@ function RideController.Init()
 			onMounted(a)
 		elseif kind == "SandboxMount" then
 			-- the sandbox's reset has kept this fish for us: sit on it (step), then say so
-			-- (only a fish that is near us as we see it: now and then our copy of a fish that has just come back into
-			-- the Workspace is still thousands of studs off, and sitting on that one took us there. Left alone, the
-			-- server gives the seat up after a second and offers another.)
+			-- (only a fish that is near us as we see it. Otherwise it is left alone: the server gives the seat up
+			-- after a moment and offers another.)
 			local _, root = State.character()
 			local fishRoot = if typeof(a) == "Instance" and a:IsA("Model") then a.PrimaryPart else nil
 			if root and fishRoot and (fishRoot.Position - root.Position).Magnitude < 400 then

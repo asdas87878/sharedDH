@@ -3,6 +3,39 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · 8570-F43F (the user's PC): riders thrown at a mount: the cause, and the fix
+**State:** fixed and run in Studio by the game-code chat. StyLua, selene and `rojo build` pass.
+
+- **The cause: a fish's `Swim` and `Turn` had no force limit** (`MaxForce` and `MaxTorque` were `math.huge`, in
+  `src/server/Lib/FishModel.luau`). In the one physics step in which a rider's body was joined to a fish, on the
+  rider's own machine as it took the fish over, that now and then threw the pair hundreds to hundreds of thousands of
+  studs. It was caught frame by frame: the throw happened between the step before the physics and the step after,
+  with nothing else pushing, the rider already on the saddle and every number ordinary. About one mount in five on the
+  big creatures of the deep lands; rare in the Shallows. **Fixed:** `MaxForce` 40,000 and `MaxTorque` 400,000.
+  **Seen after: 42 mounts across all ten lands and 26 more at the normal start, none thrown**, and every fish still
+  reaches its ridden speed (60, 68, 78, 90 measured on a Rare, Epic, Legendary and Mythic).
+- **This was not only the sandbox's reset.** The same join happens at every landing; the reset just made it easy to
+  repeat.
+- **Wrong turns on the way, for the record** (each was tried alone and did not stop it): a ride starting at a speed
+  the engine misreported (a real fault, fixed, but not this one); the weld made across a distance; the floating push;
+  the server moving a rider who was already seated; how long the rider had been on the saddle; how long the fish had
+  been in the Workspace (four seconds looked like a cure at 1 throw in 30, which was chance); the rider's body
+  touching the map. The last two were taken out again.
+- **What is kept from the hunt:**
+  - A ride's start speed is never more than the fish's own.
+  - **The sandbox's reset seats the rider as a landing does:** the server keeps a fish and sends "SandboxMount", the
+    player's machine sits the character on the saddle for 0.4 s and answers "SandboxSit", then the weld is made. If the
+    pair is somewhere else a moment later, the reset is done again by itself (twice at most; not needed since the fix).
+  - **R is quick:** the fish round the sandbox's start are kept in the Workspace whoever is near
+    (`FishService.keepNear`). Riding begins 0.9 seconds after R at the normal start; the first reset to a NEW start
+    (a changed `Sandbox.StartS`) waits 2 to 4 seconds for its fish, the next ones 0.9.
+  - The server no longer moves a rider who is already on the saddle; the floating push has a force of a few times
+    the character's weight and comes off before the physics step once a weld has arrived.
+- **Two leftovers of the review, done:** a wild fish's place along the lane is taken from where it really is at each
+  top-up (it drifted behind after detours); the ride's rays are set up again when any character appears.
+- **Still not done from the review:** prop break-ups replicate up to 60 part updates a frame in a burst
+  (`PropService`); a surplus fish out of sight is destroyed and a new one built, where it could be moved.
+
 ## 2026-11-12 · 8570-F43F (the user's PC): all 82 creatures are in the game; the sandbox's reset still glitches
 **State:** run in Studio by the game-code chat. StyLua, selene and `rojo build` pass. Nothing committed by hand.
 

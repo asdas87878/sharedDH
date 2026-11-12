@@ -38,6 +38,10 @@ local LINE = NumberSequence.new({
 	NumberSequenceKeypoint.new(0.75, 0),
 	NumberSequenceKeypoint.new(1, 1),
 })
+-- The end of a dive sits in the upper part of the screen, clear of the player standing at the middle and of the land
+-- strip at the top, on a phone as on a wide screen (it was on the player's head at the middle)
+local GREAT_AT = UDim2.new(0.5, 0, 0.36, -20)
+local GREAT_FROM = UDim2.new(0.5, 0, 0.36, 20)
 local SLIDE = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local LEAVE = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
@@ -58,7 +62,7 @@ function Banners.build(parent: Instance)
 	great = Kit.new("Frame", {
 		Name = "GreatDive",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, -36),
+		Position = GREAT_AT,
 		Size = UDim2.fromOffset(440, 110),
 		BackgroundTransparency = 1,
 		Visible = false,
@@ -200,14 +204,14 @@ function Banners.greatDive(metres: number, isBest: boolean)
 	local run = greatRun
 	greatMetres.Text = math.floor(metres) .. " m"
 	greatBest.Visible = isBest
-	great.Position = UDim2.new(0.5, 0, 0.5, 4)
+	great.Position = GREAT_FROM
 	great.Visible = true
-	TweenService:Create(great, SLIDE, { Position = UDim2.new(0.5, 0, 0.5, -36) }):Play()
+	TweenService:Create(great, SLIDE, { Position = GREAT_AT }):Play()
 	task.delay(3.2, function()
 		if run ~= greatRun then
 			return
 		end
-		local out = TweenService:Create(great, LEAVE, { Position = UDim2.new(0.5, 0, 0.5, 4) })
+		local out = TweenService:Create(great, LEAVE, { Position = GREAT_FROM })
 		out.Completed:Once(function()
 			if run == greatRun then
 				great.Visible = false

@@ -141,8 +141,10 @@ export type Ring = {
 	Hole: Frame,
 	set: (fraction: number) -> (),
 	colour: (colour: Color3) -> (),
+	spent: (spent: boolean) -> (), -- the emptied part in red (an empty ring has no arc left to carry the colour)
 }
 
+local TRACK = Color3.fromRGB(10, 28, 52)
 local HALF = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 0),
 	NumberSequenceKeypoint.new(0.5, 0),
@@ -169,7 +171,7 @@ function Kit.ring(parent: Instance, diameter: number, thick: number): Ring
 		return Kit.stroke(circle, thick, Kit.Aqua)
 	end
 	local track = band(holder, thick)
-	track.Color = Color3.fromRGB(10, 28, 52)
+	track.Color = TRACK
 	track.Transparency = 0.5
 	local right = Kit.new("Frame", {
 		Position = UDim2.fromOffset(diameter / 2, 0),
@@ -211,8 +213,12 @@ function Kit.ring(parent: Instance, diameter: number, thick: number): Ring
 		rightStroke.Color = value
 		leftStroke.Color = value
 	end
+	local function spent(value: boolean)
+		track.Color = if value then Kit.Coral else TRACK
+		track.Transparency = if value then 0.15 else 0.5
+	end
 	set(1)
-	return { Frame = holder, Hole = hole, set = set, colour = colour }
+	return { Frame = holder, Hole = hole, set = set, colour = colour, spent = spent }
 end
 
 -- Seconds as the HUD writes them: two decimals under a second, one up to ten, whole seconds to a minute, then nothing

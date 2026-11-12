@@ -79,7 +79,13 @@ local function finish(model: Model, root: BasePart, fish: Config.FishType, top: 
 	swim.Attachment0 = center
 	swim.RelativeTo = Enum.ActuatorRelativeTo.World
 	swim.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	swim.MaxForce = math.huge
+	-- Large, never without a limit (it was math.huge until 2026-11-12, and so was Turn's torque below). With no limit,
+	-- the one physics step in which a rider's body was joined to the fish (the weld, on the rider's own machine, as it
+	-- takes the fish over) now and then threw the pair hundreds to hundreds of thousands of studs: about one mount in
+	-- five on the big creatures of the deep lands, found on the sandbox's reset. With these limits: none in 42 mounts
+	-- across all ten lands, and every fish still reaches its ridden speed (a rider and fish weigh about 20; the rider's
+	-- weight is under 4,000).
+	swim.MaxForce = 4e4
 	swim.VectorVelocity = Vector3.zero
 	swim.Parent = root
 
@@ -87,7 +93,7 @@ local function finish(model: Model, root: BasePart, fish: Config.FishType, top: 
 	turn.Name = "Turn"
 	turn.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	turn.Attachment0 = center
-	turn.MaxTorque = math.huge
+	turn.MaxTorque = 4e5
 	turn.MaxAngularVelocity = 6
 	turn.Responsiveness = 14
 	turn.CFrame = root.CFrame.Rotation

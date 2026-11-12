@@ -31,6 +31,7 @@ local shownEndless = false
 local nextText = 0
 local nextTurn = 0
 local shownFraction = -1
+local shownSpent = false
 
 function Rings.build(parent: Instance)
 	holder = Kit.new("Frame", {
@@ -100,6 +101,12 @@ function Rings.update(
 		nextTurn = now + 1 / 30
 		shownFraction = fraction
 		big.set(fraction)
+	end
+	-- an empty meter: the whole ring red (with nothing left there is no arc to be red)
+	local spent = fraction <= 0 and not endless
+	if spent ~= shownSpent then
+		shownSpent = spent
+		big.spent(spent)
 	end
 	if endless ~= shownEndless then
 		shownEndless = endless

@@ -61,11 +61,9 @@ type Rider = {
 
 local RideService = {}
 
--- A fish must have been in the Workspace this long before a rider is joined to it (the sandbox's seat, and a grab in
--- the hop). Measured 2026-11-12 on the sandbox's reset: joined to a fish that had been in the Workspace one second,
--- the rider and the fish were thrown hundreds to hundreds of thousands of studs in the first physics step, on 4 resets
--- of 30; at four seconds, on 1 of 30. A fish that has only just reached a player's machine is not safe to take over.
-local SEAT_SETTLED = 4
+-- The sandbox's reset seats a rider only on a fish that has been in the Workspace this long, so the player's machine
+-- has the fish too (it is told to sit on it).
+local SEAT_SETTLED = 1
 
 local riders: { [Player]: Rider } = {}
 local dockSpawn: BasePart? = nil
@@ -192,12 +190,9 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	end
 	humanoid.PlatformStand = true
 	-- The rider's own machine has already put them on the saddle (the pull-in, or the sandbox's seat), and it owns the
-	-- character, so the server leaves the character where it is. Moving it here ("to line the server's copy up") put
-	-- it on the saddle as the SERVER sees the fish, which on the rider's machine is some 5 to 12 studs ahead of the
-	-- fish it sees; the weld arrived with that gap, and the first physics step closed it against the fish's own Swim
-	-- and Turn, which have no force limit: now and then the pair was thrown hundreds to hundreds of thousands of studs
-	-- in that one step (2026-11-12, found on the sandbox's reset; a landing has the same gap). Only a rider who is
-	-- somehow far from the saddle is still moved, so the weld can't drag the fish to them.
+	-- character, so the server leaves the character where it is: moving it here put it on the saddle as the SERVER
+	-- sees the fish, some 5 to 12 studs ahead of where the rider's machine sees it. Only a rider who is somehow far
+	-- from the saddle is moved, so the weld can't drag the fish to them.
 	if (root.Position - w.Saddle.WorldPosition).Magnitude > 30 then
 		root.CFrame = w.Saddle.WorldCFrame
 	end
@@ -330,10 +325,6 @@ local function grab(r: Rider, target: any)
 	local root = parts(r.Player)
 	local w = FishService.get(if typeof(target) == "Instance" then target else nil)
 	if not root or not w or not FishService.isFree(w, r.Player) then
-		return deny(r, "Grab", "Target", target)
-	end
-	-- (a fish that has only just come into the Workspace: not yet. The hop goes on and the lock takes another.)
-	if FishService.settledFor(w) < SEAT_SETTLED then
 		return deny(r, "Grab", "Target", target)
 	end
 	local elapsed = os.clock() - r.JumpAt
@@ -689,11 +680,9 @@ function RideService.sandboxReset(player: Player, again: number?)
 	setState(r, "Free")
 	Net.Ride:FireClient(player, "Dismounted", "Lost")
 	-- Seating the rider, the way a landing does it: the player's own machine puts the character on the saddle first
-	-- ("SandboxMount"), says so ("SandboxSit"), and only then is the weld made. A weld made across a distance, between
-	-- a floating character and a swimming fish each held by its own forces, threw the pair hundreds to tens of
-	-- thousands of studs in the frame it arrived, on one reset in two or three (2026-11-12; a real landing never had
-	-- it: the pull-in has the rider on the saddle before the server mounts). Only a fish that has been in the
-	-- Workspace for a second is taken, and not one a rider's machine is still driving.
+	-- ("SandboxMount"), says so ("SandboxSit"), and only then is the weld made. (The reset used to weld a floating
+	-- character to a fish up to 250 studs away. That was not what threw riders about, as it turned out: the fish's
+	-- forces had no limit, see Lib/FishModel. But a mount now has one shape, the landing's.)
 	local token = r.Token
 	local function trySeat(): boolean
 		if r.Token ~= token or r.State ~= "Free" or r.SandboxSeat then
@@ -757,8 +746,7 @@ function RideService.Init()
 				local seated = r.State == "Free" and FishService.get(target) == w and near and mount(r, w, false)
 				if seated and root then
 					-- Looked at again a moment later: if the pair is somewhere else entirely, the reset is done again by
-					-- itself, twice at most. (Seating only fish that have been in the Workspace a while leaves about
-					-- one reset in thirty that still throws them; why is not known.)
+					-- itself, twice at most. (A guard: with the fish's forces limited it has not been needed.)
 					local from = root.Position
 					local token = r.Token
 					task.delay(0.6, function()

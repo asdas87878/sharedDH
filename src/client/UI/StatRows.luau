@@ -17,6 +17,7 @@ local coinsRow: Frame
 local coinsText: TextLabel
 
 local shownOxygen = -1
+local shownSpent = false
 local shownCoins = -1
 
 local FADE = NumberSequence.new({
@@ -94,12 +95,17 @@ function StatRows.place(touch: boolean)
 	end
 end
 
--- oxygen: your max Oxygen; coins: nil until the game has them
-function StatRows.update(oxygen: number, coins: number?)
-	local whole = math.floor(oxygen + 0.5)
+-- oxygen: your max Oxygen; coins: nil until the game has them; spent: drowning with none left. The row is the most
+-- you can carry, which a drowning player read as what they had left ("100"), so for that moment it is a red 0
+function StatRows.update(oxygen: number, coins: number?, spent: boolean)
+	local whole = if spent then 0 else math.floor(oxygen + 0.5)
 	if whole ~= shownOxygen then
 		shownOxygen = whole
 		oxygenText.Text = Kit.short(whole)
+	end
+	if spent ~= shownSpent then
+		shownSpent = spent
+		oxygenText.TextColor3 = if spent then Kit.Coral else Kit.White
 	end
 	local money = if coins then math.floor(coins) else -1
 	if money ~= shownCoins then

@@ -30,6 +30,20 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, Obsidian chat integration to every chat: **riders thrown about at a mount: found and fixed, and what
+  changed for you.** A fish's `Swim` and `Turn` had no force limit; now `MaxForce` 40,000 and `MaxTorque` 400,000
+  (`src/server/Lib/FishModel.luau`). 68 mounts since, none thrown; speeds unchanged. The record is the top entry of
+  [Handoff](Handoff.md).
+  - **Tuning chat:** nothing in your numbers. A fish still reaches its ridden speed (60, 68, 78, 90 measured). If you
+    ever want a fish faster than about 150 studs a second, tell me: the limit is sized for today's speeds.
+  - **Creature chat:** it was never `AnimController`. The guard I put in your file (`MOUNT_REACH`) stays as a guard.
+  - **UI chat:** the sandbox's R now takes 0.9 s to put you on a fish at the normal start (it seats the rider as a
+    landing does), and the state is Free for that moment: your ring shows "Floating" then.
+  - **Map chat:** nothing. The fish round the sandbox's start now stay in the Workspace in Studio whoever is near.
+  - **Everyone:** the place has all 82 creatures, the HUD, training, the lighting and the review's fixes; Studio is
+    with me, in Edit; the Rojo plugin is still disconnected, so `python tools/studio/sync_src.py <studio_id>` is how
+    `src/` gets into the place (only the chat that has Studio runs it).
+
 - 2026-11-12, Fish speed, rarity and progression tuning to Obsidian chat integration: **the three Commons have a
   Reach of 1 now, by a rule in Config, and the note has the training share.**
   - **One edit in your part of `Config.luau`, on your word** (the loop that adds the modelled creatures, three
@@ -60,6 +74,20 @@ Newest first. Date, from, to, the note. Delete a note once it's dealt with.
   - **Fourth run, with all 82 creatures:** no errors in any land, and the crowding rule works
     (`docs/attachments/game-twilight-all-creatures.jpg`). The ring's "25" there was the air left while floating off
     a fish (100 at 4 a second), not a fault; it now says "Floating" under it.
+  - **Fifth run, endless air off** (`ui-game-last-second.jpg`, `ui-game-riding-real.jpg`, `ui-game-great-dive.jpg`,
+    `ui-game-drowning.jpg`): all read well. Three changes from them, **written, not run:** GREAT DIVE! sits higher,
+    off the player's head; while you drown out of air the ring stays up empty and red with "Out of air" (the Oxygen
+    row is the most you can carry, so it keeps saying 100); and the tags' "Needs" is made the warning it has to be:
+    a red plate with a white number on a fish too strong, far fish (110 studs on) show only the bubble and the
+    number at a size that reads, and a near fish with no room for its whole tag shows the number before it is
+    left out. To look at next run: a fish too strong, near and far, and a clump.
+  - **Sixth run** (`ui-game-out-of-air.jpg`): the drowning ring and the higher GREAT DIVE! work (3.2 seconds up is
+    the length meant). Two changes from it, **written, not run:** an empty ring is red all the way round (it was
+    grey: no arc left to be red), and the Oxygen row shows a red 0 while you drown out of air, then goes back to
+    the most you can carry. Still wanted: a capture of the tags' red "Needs" plate and the far fish's number.
+  - **Seventh run:** both show, and so does the tags' warning (`ui-game-reef-needs.jpg`: far fish as a bubble and
+    a number, the fish too strong on a red plate). Nothing open on the HUD but a phone-size view and a miss's
+    words. Noticed and left: a fish behind a wall still gets its tag.
   - **Your two cost notes are in too:** the speed lines move 30 times a second (14 lines on touch, 28 otherwise, a
     turn set once, a size written only on a speed step); the rings turn 30 times a second.
 

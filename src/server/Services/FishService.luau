@@ -440,6 +440,13 @@ local function topUp(limit: number)
 	for _, w in wild do
 		if not w.Rider and not w.Reserved and not w.CoastToken then
 			local near = nearAPlayer(w.Root.Position, Config.Spawn.StreamRadius)
+			-- its place along the lane, from where it really is (a fish in the Workspace only: a parked one doesn't
+			-- move). Between top-ups S is carried forward by its speed, and each detour round an obstacle left it a
+			-- few studs behind that: the point it steered for crept ahead of it, far enough over two lands to cut a
+			-- bend. (The window round the old S keeps this cheap, and takes a gap back a little at a time.)
+			if not w.Parked then
+				w.S = (Lane.project(lane, w.Root.Position, w.S))
+			end
 			-- the herd swims on: the fish counts for the slice it has reached
 			local old = w.Slice
 			local slice = sliceAt(w.S)
@@ -675,11 +682,6 @@ end
 function FishService.keepNear(place: Vector3?)
 	keptPlace = place
 	playersReadAt = -1
-end
-
--- How long a fish has been in the Workspace this time, in seconds (a long time for one that was never put away)
-function FishService.settledFor(w: Wild): number
-	return if w.Parked then 0 elseif w.UnparkedAt == 0 then math.huge else os.clock() - w.UnparkedAt
 end
 
 -- (`settled`: only a fish that has been in the Workspace this many seconds. One that has just come back is, for a
