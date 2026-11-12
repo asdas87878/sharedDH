@@ -3,6 +3,51 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): the 82 creatures show in Hugo's place (mesh files on his PC, nothing uploaded), and Gold and Rainbow fish
+**State:** installed in Hugo's Studio and played through `~/Projects/studio-runner` (by script, judged from pictures).
+StyLua, selene and `rojo build` pass. **Nothing uploaded.** This ends "BLOCKED: the creature templates" below for
+Hugo's PC only. **Hugo saves the place with Ctrl+S.**
+
+- **What was tried, in order.** (a) `LoadAsset` and `GetObjects` again: still "Requester does not have permission
+  for Asset". (b) Uploading copies from Hugo's account: no way from this PC. There is no Open Cloud key here,
+  `upload.py` goes through Studio's connector (which hangs Studio under Wine), and a plugin's
+  `AssetService:CreateAssetAsync` answers "not available yet". (c) Building the meshes in the running game with
+  `EditableMesh`: it works in Edit mode, but a client could make only about 8 of the 1,365 before
+  `CreateEditableMesh` returned nil (its memory budget), and destroying each one after its MeshPart is made empties
+  the part. Dropped.
+- **What works: Roblox mesh files in Studio's own content folder.** `tools/creatures/local_meshes.py` reads each
+  GLB (`glb_meshes.py`, no Blender) and writes every part as a "version 2.00" mesh file with its vertex colours
+  (`rbxmesh.py`) to `<Studio>/content/ridefish/<Id>/<Part>.mesh`. `python tools/creatures/install.py runner --local`
+  then makes `ReplicatedStorage.FishModels.<Id>` out of real MeshParts that show those files
+  (`rbxasset://ridefish/...`, by `CreateMeshPartAsync` in Edit mode). `FishModel` is unchanged: it rigs them as it
+  rigs the uploaded ones.
+- **Checked in play:** all 82 fish types build from a template with every `Rig_` joint and a real mesh on every part.
+  Wild fish in the Shallows (37), the Open Blue (40) and the Underworld (45): all rigged, all real meshes, the
+  server's log clean.
+- **The limits, and they matter.** These templates show only on Hugo's PC, and only while the files are there:
+  **after Studio updates itself, run `python tools/creatures/local_meshes.py` again** (the content folder belongs to
+  one Studio version; the place needs no new install). A place saved this way shows no fish on the other PC, and
+  **a published game needs real assets that belong to the publishing account or to a group. Recommended: one Roblox
+  group both accounts are in, the 82 models uploaded to it once, the game published under it;** then the plain
+  `install.py` on each PC. Until then the other PC keeps its own place with the uploaded templates.
+- **Gold and Rainbow** (`src/shared/Variants.luau`; `FishService` already calls `Variants.apply(model, variant)` at
+  the spawn). No exported variant meshes exist, so these are placeholders by the creature chat's own rules (workout
+  6, `voxel_kit.py`): the same gold ramp, rainbow stops and accents (violet on gold, white on rainbow).
+  - With `--local` the installer also bakes each part in gold and in rainbow (`<Part>.gold.mesh`,
+    `<Part>.rainbow.mesh`) and makes `ReplicatedStorage.FishVariants.Gold.<Id>` and `.Rainbow.<Id>`;
+    `Variants.apply` swaps each part's mesh (`ApplyMesh`, on the server, so everyone sees it). The rainbow is one
+    straight gradient nose to tail: faces are cut across the body 24 times so a long box stays smooth. Glowing parts
+    take the accent. Dark details that cover under a fifth of the animal (pupils, a band's edge) stay dark.
+  - Where a place has no variant meshes (the other PC's uploaded templates, block stand-ins) it tints the parts:
+    gold by how light each part was, rainbow by where the part is along the body (turning slowly if a client calls
+    `apply`). Rougher: a tint multiplies the mesh's own colours.
+  - Both add sparkles. Gold is plain SmoothPlastic: Metal went ochre and Reflectance greyed it.
+  - Not the creature chat's dithered rainbow (that needs a texture), and no studs.
+- **Pictures** (Hugo's PC): `~/Pictures/ride-a-fish/models-2026-11-12/`.
+- **Not done:** an uploader for Hugo's account (needs an Open Cloud key with asset write, or the group); the gold
+  clownfish's dark details were re-baked after the last picture and Studio keeps a file it has loaded until it
+  restarts, so that one change is unseen.
+
 ## 2026-11-12 · void (Hugo's PC): UI pass: bold outlines, gradients, patterns, a theme for each purpose
 **State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script, judged from
 pictures): no errors in the output. StyLua, selene and `rojo build` pass. **Nothing uploaded.** Hugo's ask is a row
@@ -94,7 +139,8 @@ uploaded.
 - **Lighting:** `ReplicatedStorage.Skies` made (`1 Place`, `2 Anime Sky`) and `tools/studio/look_install.luau` run:
   Realistic style set, the Anime Sky shown. `InsertService:LoadAsset` refused the sky in this unpublished place;
   `game:GetObjects` took it.
-- **BLOCKED: the creature templates.** All 82 assets in `tools/creatures/assets.json` are private to the account
+- **BLOCKED: the creature templates (worked round on Hugo's PC the same day: the entry "the 82 creatures show in
+  Hugo's place" above; the assets are still private).** All 82 assets in `tools/creatures/assets.json` are private to the account
   that uploaded them (TheSyurpyPancake, 165352993). Hugo's Studio (user 8607502680) gets "Requester does not have
   permission for Asset" for every one, by `LoadAsset` and by `GetObjects`. So `ReplicatedStorage.FishModels` is empty
   here and every fish is `FishModel`'s block stand-in. **Needed from the owner's side, no new upload:** share the 82

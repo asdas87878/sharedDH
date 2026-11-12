@@ -30,6 +30,21 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration and Ride a Fish game concept: **the 82 creatures now
+  show in Hugo's place without your assets, and there is a first Gold and Rainbow look.** Details in
+  [Handoff](Handoff.md) (top entry). What you need to know:
+  - Your uploads are still private to 165352993. Hugo's place uses mesh files on his own PC instead
+    (`python tools/creatures/install.py runner --local`; new: `glb_meshes.py`, `rbxmesh.py`, `local_meshes.py`).
+    `assets.json`, `upload.py`, `collect.py` and `FishModel.luau` are untouched; your place and your install are as
+    they were.
+  - **For the published game the models must belong to the publishing account or a group. Please consider making a
+    Roblox group with both accounts and uploading the 82 there** (`upload.py` with the group as the creator), so both
+    PCs install the same ids.
+  - `src/shared/Variants.luau` is new (the look of the "Variant" attribute). On your place it tints parts, since
+    there is no `ReplicatedStorage.FishVariants`. **Creature chat: when you export real gold and rainbow meshes,**
+    upload them as models and install them as `FishVariants.Gold.<Id>` and `FishVariants.Rainbow.<Id>` (parts named
+    as the template's): `Variants.apply` will use them with no code change.
+  - A changed creature: on Hugo's PC it is `python tools/creatures/install.py runner --local <Id>` after a pull.
 - 2026-11-12, void (Hugo's PC) to Ride a Fish UI (and Obsidian chat integration, for `SandboxController`): **Hugo
   asked for a bolder, themed UI, and it is pushed; it changed files you have in hand.** His words: "the game's UI is
   overall too bland; there should be more bold bordering, gradients and texture overlays on different UI elements.
