@@ -184,6 +184,8 @@ local TUNABLES: { { any } } = {
 	{ "Ride", "SteerRate", 10 },
 	{ "Ride", "YawRate", 5 },
 	{ "Ride", "TurnEase", 1 },
+	{ "Ride", "Response", 2 },
+	{ "Ride", "LandSteerTime", 0.05 },
 	{ "Ride", "Bank", 2 },
 	{ "Ride", "BankEase", 1 },
 	{ "Ride", "MaxPitch", 5 },
@@ -329,9 +331,12 @@ local TUNABLES: { { any } } = {
 	{ "Spawn", "HeightFloor", 1 },
 	-- The tuning rows (docs/design/progression.md). Every fish's speed: wild fish, the glide and the server's speed
 	-- check all follow at once.
-	-- (Hugo, 2026-11-12: speed = Speed.Base x the species' base x TierMult x the size's factor x the variant's)
+	-- (Hugo, 2026-11-12: speed = Speed.Base x the species' base x TierMult x the area's x the variant's. The area's:
+	-- a fish's home land n is x(1 + AreaStep x (n - 1) + AreaGrow x (n - 1)(n - 2) / 2), so AreaStep is the first
+	-- land's step and AreaGrow how much bigger each step after is)
 	{ "Speed", "Base", 1 },
-	{ "Speed", "SizeBonus", 0.05 },
+	{ "Speed", "AreaStep", 0.01 },
+	{ "Speed", "AreaGrow", 0.002 },
 	{ "Speed", "Gold", 0.02 },
 	{ "Speed", "Rainbow", 0.02 },
 	{ "TierMult", "Common", 0.02 },
@@ -341,11 +346,7 @@ local TUNABLES: { { any } } = {
 	{ "TierMult", "Legendary", 0.02 },
 	{ "TierMult", "Mythic", 0.02 },
 	{ "TierMult", "Secret", 0.02 },
-	-- the size roll and the variants' chances (new fish only: the ones swimming keep theirs)
-	{ "Size", "On", 1 },
-	{ "Size", "Min", 0.05 },
-	{ "Size", "Max", 0.05 },
-	{ "Size", "Curve", 0.25 },
+	-- the variants' chances (new fish only: the ones swimming keep theirs)
 	{ "Variant", "Gold", 0.01 },
 	{ "Variant", "Rainbow", 0.005 },
 	-- The share of spawns by rarity, land by land (Config.ZoneMix, one group a land). A changed share shows in the fish

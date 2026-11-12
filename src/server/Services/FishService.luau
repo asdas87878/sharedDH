@@ -10,9 +10,10 @@
 -- clients) and come back when someone nears. A ridden fish belongs to its rider's client (network owner), which drives
 -- it; once let go it stays with that client for Switch.HandBack seconds, coasting, so it doesn't hitch in front of them,
 -- then the server takes it back and it joins the herd from where it is.
--- Every fish is its own (Hugo, 2026-11-12): a size roll (Config.Size: the model, its seat and what counts as its body
--- are scaled; the "Size" attribute), now and then a variant (Config.Variant, Shared/Variants; the "Variant" attribute),
--- and its own speed from those (Config.speedOf), which the herd, the rider's client and the server's checks all use.
+-- Every fish is its own (Hugo, 2026-11-12): now and then a variant (Config.Variant, Shared/Variants; the "Variant"
+-- attribute), and its own speed (Config.speedOf: its species, rarity, home land and variant), which the herd, the
+-- rider's client and the server's checks all use. There is no size roll for now (Hugo, the same day): every fish is
+-- its species' size.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -31,9 +32,8 @@ export type Wild = {
 	Model: Model,
 	Root: BasePart,
 	Type: Config.FishType,
-	Size: number, -- its size roll: times its species' size (Config.Size)
 	Variant: string, -- "", "Gold" or "Rainbow"
-	Body: Vector3, -- its own width, height and length: Type.Size x Size
+	Body: Vector3, -- its width, height and length: Type.Size (no size roll for now)
 	Zone: number,
 	Home: number, -- s along the lane: where it is, as far as the stocking knows (kept up by the top-up)
 	S: number, -- s along the lane now, carried forward as it swims
@@ -84,42 +84,22 @@ function FishService.zones(): { Zones.Zone }
 	return zones
 end
 
--- A fish's own ridden speed (its species, rarity, size and variant), as Config has it now
+-- A fish's own ridden speed (its species, rarity, home land and variant), as Config has it now
 function FishService.ridden(w: Wild): number
-	return Config.speedOf(w.Type, w.Size, w.Variant)
+	return Config.speedOf(w.Type, w.Variant)
 end
 
 -- The roll for a new fish's variant. Studio only: the workspace's "TestVariant" attribute ("Gold" or "Rainbow") makes
--- every new fish that one, and "TestSize" (a number) fixes the size roll, for looking at them.
-local function rollLook(): (number, string)
-	local size = Config.rollSize(rng:NextNumber(), rng:NextNumber())
+-- every new fish that one, for looking at them.
+local function rollVariant(): string
 	local variant = Config.rollVariant(rng:NextNumber())
 	if RunService:IsStudio() then
-		local testSize = workspace:GetAttribute("TestSize")
 		local testVariant = workspace:GetAttribute("TestVariant")
-		if type(testSize) == "number" and testSize > 0 then
-			size = testSize
-		end
 		if testVariant == "Gold" or testVariant == "Rainbow" then
 			variant = testVariant
 		end
 	end
-	return size, variant
-end
-
--- The size roll on a built fish: the whole model about its Root (parts, joints, the seat), and the "Size" attribute.
--- The rider is not scaled, so the seat keeps its own height above the back (Ride.SeatHeight).
-local function resize(model: Model, size: number)
-	model:SetAttribute("Size", size)
-	if size == 1 then
-		return
-	end
-	model:ScaleTo(model:GetScale() * size)
-	local root = model.PrimaryPart
-	local saddle = root and root:FindFirstChild("Saddle")
-	if saddle and saddle:IsA("Attachment") then
-		saddle.Position -= Vector3.new(0, Config.Ride.SeatHeight * (size - 1), 0)
-	end
+	return variant
 end
 
 function FishService.get(instance: Instance?): Wild?
@@ -400,8 +380,7 @@ local function spawnFish(index: number): Wild?
 	end
 	local _, dir = Lane.at(lane, home)
 	local model = FishModel.build(fishType)
-	local size, variant = rollLook()
-	resize(model, size)
+	local variant = rollVariant()
 	model:SetAttribute("Variant", variant)
 	Variants.apply(model, variant)
 	model:PivotTo(CFrame.lookAt(at, at + dir))
@@ -410,9 +389,8 @@ local function spawnFish(index: number): Wild?
 		Model = model,
 		Root = root,
 		Type = fishType,
-		Size = size,
 		Variant = variant,
-		Body = fishType.Size * size,
+		Body = fishType.Size,
 		Zone = slice.Zone,
 		Home = home,
 		S = home,
@@ -422,7 +400,7 @@ local function spawnFish(index: number): Wild?
 		Parked = true,
 		UnparkedAt = 0,
 		Dir = dir,
-		Speed = Config.speedOf(fishType, size, variant) * Config.Herd.SpeedShare,
+		Speed = Config.speedOf(fishType, variant) * Config.Herd.SpeedShare,
 		Rider = nil,
 		Reserved = nil,
 		ReleasedAt = nil,
