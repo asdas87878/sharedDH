@@ -23,8 +23,18 @@
 -- Not here, because they need the Root to move (RideController, the server): the wave's small change of speed, the
 -- bolt's burst of speed, the surge waiting for the build-up. Not here, because FishModel welds them: eyes that look
 -- about.
--- Set in PreSimulation, after the Animator, so the poses win; our own character's animation tracks are stopped while
--- underwater. Poses are for R15 rigs. No tables are made per frame for the fish.
+-- The startle (Config.Ride.Startle...; Hugo, 2026-11-12): with it on, every landing gets ONE reaction, on every
+-- creature and on a stand-in: the fish rears like a horse (nose up in a jerk, shaking, its tail thrashing, a "!" over
+-- its head: Lib/Feel), the rider braced against its back; then its nose dips and it bolts, the rider thrown back. The
+-- stall and the burst of speed are RideController's, on the same clock. With it off, the mix above.
+-- The rider (Config.Pose; Hugo, 2026-11-12): a front crawl through a hop's glide and drop and a slow breaststroke while
+-- floating, the body flat; the dash: a crouch and a push off the fish, streamlined with the arms ahead through the
+-- pull-in, then a tuck and a forward flip into the seat; riding: astride, leaning forward with speed and into turns.
+-- Poses are written once, in the body's own directions, and carried into each joint's own (R15's joints have no turn
+-- of their own, R6's do), so they work on any avatar; R6 has no knees, elbows or waist and simply lacks those bends.
+-- Set in PreSimulation, after the Animator, so the poses win: every joint of the avatar is written each frame (those a
+-- pose doesn't name are held at rest), and our own character's animation tracks are stopped as they start while we are
+-- in the water, so Roblox's Animate script never shows through. No tables are made per frame for the fish.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -33,7 +43,10 @@ local Creatures = require(game:GetService("ReplicatedStorage").Shared.Creatures)
 local Ease = require(game:GetService("ReplicatedStorage").Shared.Ease)
 local Net = require(game:GetService("ReplicatedStorage").Shared.Net)
 local RideStyles = require(game:GetService("ReplicatedStorage").Shared.RideStyles)
+local Feel = require(script.Parent.Parent.Lib.Feel)
 local State = require(script.Parent.Parent.Lib.State)
+local JumpController = require(script.Parent.JumpController)
+local RideController = require(script.Parent.RideController)
 
 local AnimController = {}
 
@@ -79,6 +92,8 @@ type FishJoints = {
 	air: number,
 	flail: number,
 	leanBack: number,
+	brace: number, -- the startle: how hard the rider holds on, 0 to 1,
+	thrown: number, -- and how far the bolt throws them back, degrees
 	riderUp: number,
 	riderNose: number,
 	riderSwing: number,
@@ -94,6 +109,8 @@ type Landing = { kind: string, sign: number, phase: number }
 local reactOn: { [Model]: Landing } = setmetatable({}, { __mode = "k" }) :: any
 local landings: { [number]: number } = {} -- UserId -> landings counted here (it seeds the pick)
 local TAU = math.pi * 2
+local REST = CFrame.new()
+local rad = math.rad
 -- a rider's root part is never further than this from the Root of the fish under them (the biggest creature's seat is
 -- well inside it): further, and the fish is not the one we sit on
 local MOUNT_REACH = 40
@@ -105,6 +122,49 @@ local function shape(t: number, start: number, peak: number, hold: number, finis
 	local rise = math.clamp((t - start) / (peak - start), 0, 1)
 	local fall = math.clamp((t - peak - hold) / (finish - peak - hold), 0, 1)
 	return rise ^ 1.25 * (1 - fall) ^ 2
+end
+
+-- The startle (Config.Ride.Startle...): what a fish does about a landing, `t` seconds after the touch. It rears (the
+-- nose up in a jerk, past its mark and back, the body lifted and pulled back so it turns about its tail, not its
+-- middle), shakes while it is up, comes down and dips its nose just before StartleTime, and lunges as it bolts.
+-- Fills `startled`; false once it is all over. Seen only: the stall and the burst of speed are RideController's.
+local startled = {
+	up = 0,
+	fore = 0,
+	nose = 0,
+	roll = 0,
+	swing = 0,
+	whip = 0,
+	effort = 0,
+	brace = 0,
+	thrown = 0,
+}
+local function startle(t: number, length: number, girth: number): boolean
+	local r = Config.Ride
+	local hold = math.max(r.StartleTime, 0.1)
+	local b = t - hold
+	if b > 1.3 then
+		return false
+	end
+	local q = t / hold
+	-- (a big creature rears a little less far)
+	local most = r.StartleRear * Ease.lerp(1, 0.6, math.clamp((length - 12) / 40, 0, 1))
+	local jerk = math.clamp((q - 0.06) / 0.16, 0, 1)
+	local reared = (1 - (1 - jerk) ^ 3) * (1 + 0.22 * math.sin(jerk * math.pi)) * (1 - Ease.smoothstep(0.74, 1, q))
+	local coil = Ease.smoothstep(0.8, 1, q) * (1 - Ease.smoothstep(0, 0.12, b))
+	local lunge = if b > 0 then shape(b, 0, 0.1, 0.08, 0.9) else 0
+	local shaking = reared * (1 - 0.45 * math.min(q, 1))
+	local beat = t * TAU * r.StartleShakeRate
+	startled.nose = most * reared - r.StartleCoil * coil + 5 * lunge
+	startled.roll = r.StartleShake * shaking * math.sin(beat)
+	startled.swing = r.StartleShake * 0.6 * shaking * math.sin(beat * 0.5 + 1)
+	startled.up = math.sin(rad(most * reared)) * length * 0.16 - 0.03 * length * coil
+	startled.fore = -0.05 * length * reared + r.StartleLunge * girth * lunge
+	startled.whip = rad(8) * shaking * math.sin(beat * 0.5)
+	startled.effort = 1.1 * shaking + (if b > 0 then 1.4 * shape(b, 0, 0.08, 0.3, 1.2) else 0)
+	startled.brace = math.max(math.min(reared, 1), coil)
+	startled.thrown = 30 * lunge
+	return true
 end
 
 local JOINTS = {
@@ -120,17 +180,39 @@ local JOINTS = {
 	"Waist",
 	"Neck",
 }
-type RiderJoints = { motors: { [string]: Motor6D }, current: { [string]: CFrame } }
+-- the same joints on an R6 avatar (it has no knees, elbows or waist)
+local R6: { [string]: string } = {
+	Root = "RootJoint",
+	LeftHip = "Left Hip",
+	RightHip = "Right Hip",
+	LeftShoulder = "Left Shoulder",
+	RightShoulder = "Right Shoulder",
+}
+type RiderJoints = {
+	motors: { [string]: Motor6D },
+	turns: { [string]: CFrame }, -- a joint's own turn at rest, where it has one: poses are carried into it
+	rest: { Motor6D }, -- the avatar's other joints
+	current: { [string]: CFrame },
+	state: string, -- the state it is posed for, and since when
+	since: number,
+	phase: number, -- the swimming stroke's clock, radians
+	lean: number,
+}
 local riderJoints: { [Model]: RiderJoints } = setmetatable({}, { __mode = "k" }) :: any
 
-local rad = math.rad
 local function rot(x: number, y: number, z: number): CFrame
 	return CFrame.Angles(rad(x), rad(y), rad(z))
 end
 
+-- A joint by its name: a Motor6D, or on an avatar with Roblox's newer joints an AnimationConstraint, which stands in
+-- for one (the same Transform, C0 and Part0), so it is handed back as one. (Found 2026-11-12: Hugo's avatar has only
+-- AnimationConstraints, and with Motor6Ds alone looked for, no rider pose had ever shown on it.)
 local function joint(model: Model, name: string): Motor6D?
 	local found = model:FindFirstChild(name, true)
-	return if found and found:IsA("Motor6D") then found else nil
+	if found and (found:IsA("Motor6D") or found:IsA("AnimationConstraint")) then
+		return (found :: any) :: Motor6D
+	end
+	return nil
 end
 
 -- Which of a creature's parts bend in a turn (worked out once a kind): the chain from its first part back to the
@@ -230,6 +312,36 @@ local function due(model: Model, j: FishJoints?, offset: Vector3, away: number, 
 	return true
 end
 
+-- The rider's mount on a fish: the body's shift eased and in part, so they ride the slow motions (the wave, the dip, a
+-- buck) and are spared the quick ones. RiderCalm 0 follows the body exactly; a braced rider (the startle) goes with
+-- the rearing whole. A barrel roll carries them round whole.
+local function seat(
+	j: FishJoints,
+	isRidden: boolean,
+	up: number,
+	nose: number,
+	yaw: number,
+	roll: number,
+	fore: number,
+	spin: number,
+	dt: number
+)
+	local a = Config.Animation
+	if isRidden and a.RiderFollow > 0 then
+		local calm = math.clamp(a.RiderCalm, 0, 1)
+		local share = Ease.lerp(Ease.lerp(1, 0.5, calm), 1, j.brace)
+		local ease = Ease.alpha(if j.brace > 0.05 then 30 else Ease.lerp(60, 7, calm), dt)
+		j.riderUp = Ease.lerp(j.riderUp, up, Ease.alpha(Ease.lerp(60, 12, calm), dt))
+		j.riderNose = Ease.lerp(j.riderNose, nose * share, ease)
+		j.riderSwing = Ease.lerp(j.riderSwing, yaw * share, ease)
+		j.riderRoll = Ease.lerp(j.riderRoll, roll * share, ease)
+		j.mount = CFrame.new(0, j.riderUp + j.air, -fore) * rot(j.riderNose, j.riderSwing, j.riderRoll + spin)
+	else
+		j.riderUp, j.riderNose, j.riderSwing, j.riderRoll = 0, 0, 0, 0
+		j.mount = nil
+	end
+end
+
 local function animateFish()
 	local folder = workspace:FindFirstChild("Fish")
 	if not folder then
@@ -290,6 +402,8 @@ local function animateFish()
 						air = 0,
 						flail = 0,
 						leanBack = 0,
+						brace = 0,
+						thrown = 0,
 						riderUp = 0,
 						riderNose = 0,
 						riderSwing = 0,
@@ -401,6 +515,15 @@ local function animateFish()
 						j.length = length
 						j.small = Ease.lerp(0.55, 1, math.clamp((length - 10) / 25, 0, 1))
 						j.girth = math.clamp(length / 14, 0.6, 2.2)
+					else
+						-- a stand-in: its whole body hangs from the sway joint, which takes the startle's shift
+						local kind = Config.FishById[model:GetAttribute("FishType") :: string]
+						j.length = if kind then kind.Size.Z else 14
+						j.girth = math.clamp(j.length / 14, 0.6, 2.2)
+						if j.sway then
+							j.bodyC0 = j.sway.C0
+							j.bodyC0Inverse = j.sway.C0:Inverse()
+						end
 					end
 					fishJoints[model] = j
 				end
@@ -450,7 +573,16 @@ local function animateFish()
 					local rxUp, rxNose, rxSwing, rxRoll, rxSpin, rxEffort, rxWhip, rxFore = 0, 0, 0, 0, 0, 0, 0, 0
 					local air, flail, leanBack = 0, 0, 0
 					local react = reactOn[model]
-					if react and landedAt and a.Wild > 0 then
+					j.brace, j.thrown = 0, 0
+					if react and landedAt and react.kind == "rear" then
+						if startle(sinceLand, length, j.girth) then
+							rxUp, rxNose, rxSwing, rxRoll = startled.up, startled.nose, startled.swing, startled.roll
+							rxFore, rxWhip, rxEffort = startled.fore, startled.whip, startled.effort
+							j.brace, j.thrown = startled.brace, startled.thrown
+						else
+							reactOn[model] = nil
+						end
+					elseif react and landedAt and a.Wild > 0 then
 						local slow = Ease.lerp(1.25, 1.1, math.clamp((j.pace - 0.4) / 0.9, 0, 1))
 						local t = sinceLand / slow
 						if t > 3.3 then
@@ -714,40 +846,58 @@ local function animateFish()
 						local keyed = if j.bodyKeyed then body.Transform else CFrame.identity
 						body.Transform = if shift then j.bodyC0Inverse * shift * j.bodyC0 * keyed else keyed
 					end
-					-- The rider's mount: the body's shift eased and in part, so they ride the slow motions (the wave, the dip, a buck)
-					-- and are spared the quick ones. RiderCalm 0 follows the body exactly. A barrel roll carries them round whole.
-					if isRidden and a.RiderFollow > 0 then
-						local calm = math.clamp(a.RiderCalm, 0, 1)
-						local share = Ease.lerp(1, 0.5, calm)
-						local ease = Ease.alpha(Ease.lerp(60, 7, calm), dt)
-						j.riderUp = Ease.lerp(j.riderUp, up, Ease.alpha(Ease.lerp(60, 12, calm), dt))
-						j.riderNose = Ease.lerp(j.riderNose, nose * share, ease)
-						j.riderSwing = Ease.lerp(j.riderSwing, yaw * share, ease)
-						j.riderRoll = Ease.lerp(j.riderRoll, roll * share, ease)
-						j.mount = CFrame.new(0, j.riderUp + air, -rxFore)
-							* rot(j.riderNose, j.riderSwing, j.riderRoll + rxSpin)
-					else
-						j.riderUp, j.riderNose, j.riderSwing, j.riderRoll = 0, 0, 0, 0
-						j.mount = nil
-					end
+					seat(j, isRidden, up, nose, yaw, roll, rxFore, rxSpin, dt)
 					continue
 				end
-				j.phase += dt * math.pi * 2 * (0.7 + speed * 0.045 + buck * 2.5)
+				-- A stand-in (no modelled creature here): the tail beat, the sway and the fin flaps; and the landing: the
+				-- touch's dip, then the startle, as one shift of its whole body about the Root
+				local riderId = model:GetAttribute("Rider")
+				local isRidden = type(riderId) == "number" and riderId ~= 0
+				if isRidden then
+					ridden[riderId :: number] = model
+				end
+				local landedAt = landedOn[model]
+				local sinceLand = if landedAt then now - landedAt else math.huge
+				local up, fore, nose, roll, swing, whip, effort = 0, 0, 0, 0, 0, 0, 0
+				j.brace, j.thrown = 0, 0
+				local react = reactOn[model]
+				if react and landedAt and react.kind == "rear" then
+					if startle(sinceLand, j.length, j.girth) then
+						up, fore, nose, roll, swing =
+							startled.up, startled.fore, startled.nose, startled.roll, startled.swing
+						whip, effort = math.deg(startled.whip), startled.effort
+						j.brace, j.thrown = startled.brace, startled.thrown
+					else
+						reactOn[model] = nil
+					end
+				end
+				if a.LandDip > 0 and sinceLand < a.LandDipTime then
+					local spring = 1.86 * math.exp(-sinceLand * 6) * math.sin(sinceLand * 13)
+					up -= math.min(a.LandDip, 0.09 * j.length) * spring
+					nose -= a.LandNod * spring
+				end
+				j.phase += dt * math.pi * 2 * (0.7 + speed * 0.045 + buck * 2.5 + effort * 1.6)
 				local beat = math.sin(j.phase)
-				local amount = 18 + math.min(speed, 80) * 0.12 + buck * 14
+				local amount = 18 + math.min(speed, 80) * 0.12 + buck * 14 + effort * 12
 				if j.tail then
-					j.tail.Transform = rot(0, beat * amount, 0)
+					j.tail.Transform = rot(0, beat * amount + whip * 2, 0)
 				end
 				if j.sway then
 					local sway = rot(0, math.sin(j.phase - 1.2) * amount * 0.22, 0)
 					if bucked and buck > 0 then
 						local u = (os.clock() - bucked) / Config.Death.Throw
-						local nose = 40 * math.sin(u * math.pi * 3) * buck
-						local roll = 18 * math.sin(u * math.pi * 4.5) * buck
-						sway = rot(nose, 0, roll) * sway
+						nose += 40 * math.sin(u * math.pi * 3) * buck
+						roll += 18 * math.sin(u * math.pi * 4.5) * buck
+					end
+					if
+						math.abs(up) + math.abs(fore) > 0.005
+						or math.abs(nose) + math.abs(roll) + math.abs(swing) > 0.05
+					then
+						sway = j.bodyC0Inverse * CFrame.new(0, up, -fore) * rot(nose, swing, roll) * j.bodyC0 * sway
 					end
 					j.sway.Transform = sway
 				end
+				seat(j, isRidden, up, nose, swing, roll, fore, 0, dt)
 				local flap = math.sin(j.phase * 0.5) * 18
 				if j.finL then
 					j.finL.Transform = rot(0, 0, -flap)
@@ -798,63 +948,214 @@ local function drowning(since: number, thrown: boolean, struggle: number, t: num
 	}
 end
 
--- The pose for a state at a time; joints not named stay at rest
-local function pose(state: string, t: number, player: Player): { [string]: CFrame }
-	if state == "Riding" then
-		local bob = math.sin(t * 6) * 3
-		return {
-			LeftHip = rot(75, 0, -28),
-			RightHip = rot(75, 0, 28),
-			LeftKnee = rot(-85, 0, 0),
-			RightKnee = rot(-85, 0, 0),
-			LeftShoulder = rot(55 + bob, 0, 10),
-			RightShoulder = rot(55 + bob, 0, -10),
-			LeftElbow = rot(30, 0, 0),
-			RightElbow = rot(30, 0, 0),
-			Waist = rot(18, 0, 0),
-			Neck = rot(-15, 0, 0),
-		}
-	elseif state == "Jumping" then
-		local phase = if player == State.Player then State.JumpPhase else nil
-		if phase == "Pop" then
-			-- thrown off the fish: arms together out ahead, legs trailing, a push off
-			return {
-				LeftShoulder = rot(165, 0, -8),
-				RightShoulder = rot(165, 0, 8),
-				LeftHip = rot(-14, 0, -4),
-				RightHip = rot(-14, 0, 4),
-				LeftKnee = rot(-10, 0, 0),
-				RightKnee = rot(-10, 0, 0),
-				Neck = rot(30, 0, 0),
-			}
+-- A pose: a turn for each joint it names, in the body's own directions (x: forward and back, + is back or up; y: the
+-- twist; z: sideways). Joints it doesn't name stay at rest.
+type Pose = { [string]: CFrame }
+
+-- Two poses run together: `w` of `b` over `a`
+local function blend(a: Pose, b: Pose, w: number): Pose
+	if w <= 0 then
+		return a
+	elseif w >= 1 then
+		return b
+	end
+	local out: Pose = {}
+	for name, turn in a do
+		out[name] = turn:Lerp(b[name] or CFrame.identity, w)
+	end
+	for name, turn in b do
+		if not a[name] then
+			out[name] = REST:Lerp(turn, w)
 		end
-		-- the glide and the drop: swimming through the water, arms sweeping out and back together, legs kicking in
-		-- turn; in the drop the strokes are longer and the kick harder, swimming down
-		local drop = phase == "Drop"
-		local stroke = math.sin(t * (if drop then 3.4 else 4.5))
-		local kick = math.sin(t * 9) * (if drop then 26 else 18)
-		return {
-			LeftShoulder = rot(120 + stroke * 45, 0, -25 - stroke * 30),
-			RightShoulder = rot(120 + stroke * 45, 0, 25 + stroke * 30),
-			LeftElbow = rot(15 - stroke * 15, 0, 0),
-			RightElbow = rot(15 - stroke * 15, 0, 0),
-			LeftHip = rot(-6 + kick, 0, -6),
-			RightHip = rot(-6 - kick, 0, 6),
-			LeftKnee = rot(-18 - math.abs(kick) * 0.6, 0, 0),
-			RightKnee = rot(-18 - math.abs(kick) * 0.6, 0, 0),
-			Neck = rot(28, 0, 0),
-		}
+	end
+	return out
+end
+
+-- Streamlined: arms together out ahead, legs straight behind with a quick small kick, head up to look where we go
+local function streamlined(t: number, flutter: number): Pose
+	local kick = math.sin(t * 30) * flutter
+	return {
+		LeftShoulder = rot(172, 0, -6),
+		RightShoulder = rot(172, 0, 6),
+		LeftElbow = rot(4, 0, 0),
+		RightElbow = rot(4, 0, 0),
+		LeftHip = rot(-8 + kick, 0, -3),
+		RightHip = rot(-8 - kick, 0, 3),
+		LeftKnee = rot(-6 - math.max(0, kick), 0, 0),
+		RightKnee = rot(-6 - math.max(0, -kick), 0, 0),
+		Waist = rot(4, 0, 0),
+		Neck = rot(30, 0, 0),
+	}
+end
+
+-- The crouch before the push off a fish: knees up, curled forward, arms swung back
+local function crouched(): Pose
+	return {
+		LeftHip = rot(85, 0, -12),
+		RightHip = rot(85, 0, 12),
+		LeftKnee = rot(-115, 0, 0),
+		RightKnee = rot(-115, 0, 0),
+		LeftShoulder = rot(-35, 0, -12),
+		RightShoulder = rot(-35, 0, 12),
+		LeftElbow = rot(20, 0, 0),
+		RightElbow = rot(20, 0, 0),
+		Waist = rot(-22, 0, 0),
+		Neck = rot(10, 0, 0),
+	}
+end
+
+-- The tuck of the flip: knees to the chest, arms round them, chin in
+local function tucked(): Pose
+	return {
+		LeftHip = rot(110, 0, -8),
+		RightHip = rot(110, 0, 8),
+		LeftKnee = rot(-125, 0, 0),
+		RightKnee = rot(-125, 0, 0),
+		LeftShoulder = rot(70, 0, 10),
+		RightShoulder = rot(70, 0, -10),
+		LeftElbow = rot(80, 0, 0),
+		RightElbow = rot(80, 0, 0),
+		Waist = rot(-28, 0, 0),
+		Neck = rot(-18, 0, 0),
+	}
+end
+
+-- A front crawl, the body flat (the hop's own tilt lays it down): each arm reaches ahead, pulls down under the body
+-- and back, and comes forward again over the top with the elbow bent, one half a stroke behind the other; the body
+-- rolls to each stroke; the legs kick in turn. `phase` is the stroke's, `kicks` the kick's, both in radians.
+local function crawl(phase: number, kicks: number, hard: boolean): Pose
+	local function arm(at: number): (number, number)
+		local a = at % TAU
+		return 180 - math.deg(a), if a > math.pi then 12 + 65 * math.sin(a - math.pi) else 12 + 18 * math.sin(a)
+	end
+	local leftArm, leftElbow = arm(phase)
+	local rightArm, rightElbow = arm(phase + math.pi)
+	local roll = Config.Pose.CrawlRoll * math.sin(phase)
+	local kick = math.sin(kicks) * (if hard then 26 else 20)
+	return {
+		Root = rot(0, roll, 0),
+		LeftShoulder = rot(leftArm, 0, -6),
+		RightShoulder = rot(rightArm, 0, 6),
+		LeftElbow = rot(leftElbow, 0, 0),
+		RightElbow = rot(rightElbow, 0, 0),
+		LeftHip = rot(-4 + kick, 0, -4),
+		RightHip = rot(-4 - kick, 0, 4),
+		LeftKnee = rot(-8 - math.max(0, kick) * 0.9, 0, 0),
+		RightKnee = rot(-8 - math.max(0, -kick) * 0.9, 0, 0),
+		Waist = rot(3, 0, 0),
+		Neck = rot(26, -roll * 0.7, 0),
+	}
+end
+
+-- A slow breaststroke for floating, the body laid forward by Pose.FloatTilt: a glide with the arms out ahead, the pull
+-- (arms sweeping out to the sides and back), the tuck (hands in under the chest, knees drawn up and out), and the
+-- thrust (arms shot forward, legs snapped straight). `cycle` is 0 to 1 through one stroke.
+local function breaststroke(cycle: number): Pose
+	local pull = Ease.smoothstep(0.3, 0.55, cycle) * (1 - Ease.smoothstep(0.55, 0.76, cycle))
+	local tuck = Ease.smoothstep(0.5, 0.74, cycle) * (1 - Ease.smoothstep(0.78, 0.98, cycle))
+	local arm = 170 - 90 * pull - 110 * tuck
+	local out = 6 + 70 * pull + 4 * tuck
+	local elbow = 5 + 35 * pull + 115 * tuck
+	local knee = -(8 + 95 * tuck)
+	return {
+		Root = CFrame.new(0, 0.2 * math.sin(cycle * TAU), 0) * rot(-Config.Pose.FloatTilt + 6 * tuck, 0, 0),
+		LeftShoulder = rot(arm, 0, -out),
+		RightShoulder = rot(arm, 0, out),
+		LeftElbow = rot(elbow, 0, 0),
+		RightElbow = rot(elbow, 0, 0),
+		LeftHip = rot(-5 + 50 * tuck, 0, -4 - 28 * tuck),
+		RightHip = rot(-5 + 50 * tuck, 0, 4 + 28 * tuck),
+		LeftKnee = rot(knee, 0, 0),
+		RightKnee = rot(knee, 0, 0),
+		Waist = rot(4 - 8 * tuck, 0, 0),
+		Neck = rot(Config.Pose.FloatTilt * 0.45 - 10 * tuck, 0, 0),
+	}
+end
+
+-- Astride the fish. `pace` is its speed as a share of its ridden speed (the rider leans forward over it as it goes
+-- faster), `lean` how hard it turns, -1 to 1 (they lean into the turn), `brace` the startle's hold (curled forward
+-- against the rearing, arms round its back, trembling), `thrown` how far the bolt throws them back, degrees.
+local function astride(t: number, pace: number, lean: number, brace: number, thrown: number): Pose
+	local p = Config.Pose
+	local bob = math.sin(t * 6) * 3
+	local crouch = Ease.smoothstep(0.55, 1.3, pace) * (1 - brace)
+	local forward = p.RideCrouch * crouch + p.BraceLean * brace
+	local torso = 12 * (1 - crouch) * (1 - brace) + thrown - forward -- (+ is leaning back)
+	local side = p.RideLean * lean
+	local tremble = brace * math.sin(t * 38) * 2.5
+	local arm = 52 + bob + 0.8 * forward - 0.5 * thrown
+	local elbow = math.max(4, 30 + 25 * brace - thrown)
+	local knee = -85 - 10 * crouch - 15 * brace
+	return {
+		LeftHip = rot(72, 0, -30),
+		RightHip = rot(72, 0, 30),
+		LeftKnee = rot(knee, 0, 0),
+		RightKnee = rot(knee, 0, 0),
+		LeftShoulder = rot(arm + tremble, 0, 10),
+		RightShoulder = rot(arm - tremble, 0, -10),
+		LeftElbow = rot(elbow, 0, 0),
+		RightElbow = rot(elbow, 0, 0),
+		Waist = rot(torso, 0, side),
+		Neck = rot(-torso * 0.8, 0, -side * 0.5),
+	}
+end
+
+-- The dash onto a fish, `u` of the way through a pull-in that takes `time` seconds: streamlined, then (from
+-- Pose.FlipStart) a tuck and a forward flip that ends, the right way up, in the seat
+local function dash(t: number, u: number, time: number): Pose
+	local p = Config.Pose
+	local from = math.clamp(p.FlipStart, 0, 0.9)
+	local out = blend(streamlined(t, 7), astride(t, 0, 0, 0, 0), Ease.smoothstep(0.82, 1, u))
+	local turns = math.floor(p.Flip + 0.5)
+	if turns <= 0 or time < p.FlipMin then
+		return out
+	end
+	out = blend(out, tucked(), Ease.smoothstep(from, from + 0.2, u) * (1 - Ease.smoothstep(0.86, 1, u)))
+	out.Root = rot(-360 * turns * Ease.smoothstep(from, 0.97, u), 0, 0)
+	return out
+end
+
+-- The pose for a state at a time
+local function pose(j: RiderJoints, state: string, t: number, dt: number, player: Player): Pose
+	local p = Config.Pose
+	local mine = player == State.Player
+	local since = os.clock() - j.since
+	if state == "Riding" then
+		local fish = ridden[player.UserId]
+		local fj = if fish then fishJoints[fish] else nil
+		local fishRoot = fish and fish.PrimaryPart
+		local pace, lean = 1, 0
+		if fish and fishRoot then
+			local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
+			pace = fishRoot.AssemblyLinearVelocity.Magnitude / math.max(if kind then kind.RiddenSpeed else 45, 1)
+			lean = if mine
+				then RideController.lean()
+				else math.clamp(fishRoot.AssemblyAngularVelocity.Y / rad(math.max(Config.Ride.YawRate, 1)), -1, 1)
+		end
+		j.lean = Ease.lerp(j.lean, lean, Ease.alpha(6, dt))
+		return astride(t, pace, j.lean, if fj then fj.brace else 0, if fj then fj.thrown else 0)
+	elseif state == "Jumping" then
+		-- our own hop says which part of it this is; another player's is told from how long ago it began and how fast
+		-- they are going (a pull-in is far faster than a glide)
+		local phase: string? = nil
+		if mine then
+			phase = State.JumpPhase
+		else
+			local _, root = nil, player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			local speed = if root and root:IsA("BasePart") then root.AssemblyLinearVelocity.Magnitude else 0
+			phase = if since < Config.Jump.LaunchTime then "Pop" elseif speed > 115 then "Dash" else "Glide"
+		end
+		if phase == "Pop" then
+			-- off the fish: a crouch for a moment, then the push, arms thrown out ahead
+			return if since < p.PopTuck then crouched() else streamlined(t, 0)
+		elseif phase == "Dash" then
+			return streamlined(t, 7)
+		end
+		j.phase += dt * TAU * p.CrawlRate
+		return crawl(j.phase, t * TAU * p.CrawlKick, phase == "Drop")
 	elseif state == "Reeling" then
-		-- pulled onto the fish: one arm out ahead on the line, the other back, legs straight out behind
-		return {
-			RightShoulder = rot(175, 0, -6),
-			LeftShoulder = rot(-25, 0, 14),
-			LeftHip = rot(-10, 0, -5),
-			RightHip = rot(-4, 0, 5),
-			LeftKnee = rot(-8, 0, 0),
-			RightKnee = rot(-14, 0, 0),
-			Neck = rot(35, 0, 0),
-		}
+		local u, time = JumpController.reel()
+		return dash(t, u or 1, time)
 	elseif state == "Drowning" then
 		local started = State.DeathStart[player]
 		return drowning(
@@ -864,33 +1165,58 @@ local function pose(state: string, t: number, player: Player): { [string]: CFram
 			t
 		)
 	elseif state == "Free" then
-		local s = math.sin(t * 3)
-		return {
-			LeftShoulder = rot(20, 0, -55 - s * 20),
-			RightShoulder = rot(20, 0, 55 + s * 20),
-			LeftHip = rot(15 + s * 15, 0, -6),
-			RightHip = rot(15 - s * 15, 0, 6),
-			LeftKnee = rot(-25, 0, 0),
-			RightKnee = rot(-25, 0, 0),
-		}
+		j.phase += dt * TAU * p.BreastRate
+		return breaststroke((j.phase / TAU) % 1)
 	end
 	return {}
+end
+
+-- A character's joints, found once: the ones the poses name (by their R15 names; an R6 avatar's by its own), each with
+-- the turn of its own it must be carried into, and every other joint of the avatar, to be held at rest
+local function jointsOf(character: Model): RiderJoints
+	local motors: { [string]: Motor6D } = {}
+	local turns: { [string]: CFrame } = {}
+	local posed: { [Motor6D]: boolean } = {}
+	for _, name in JOINTS do
+		local m = joint(character, name) or (if R6[name] then joint(character, R6[name]) else nil)
+		if m then
+			motors[name] = m
+			posed[m] = true
+			local turn = m.C0.Rotation
+			if not turn:FuzzyEq(CFrame.identity, 1e-3) then
+				turns[name] = turn
+			end
+		end
+	end
+	local rest: { Motor6D } = {}
+	for _, d in character:GetDescendants() do
+		if (d:IsA("Motor6D") or d:IsA("AnimationConstraint")) and not posed[d :: any] then
+			table.insert(rest, (d :: any) :: Motor6D)
+		end
+	end
+	return {
+		motors = motors,
+		turns = turns,
+		rest = rest,
+		current = {},
+		state = "",
+		since = os.clock(),
+		phase = 0,
+		lean = 0,
+	}
 end
 
 local function animateRider(player: Player, character: Model, state: string, dt: number, t: number)
 	local j = riderJoints[character]
 	if not j then
-		local motors = {}
-		for _, name in JOINTS do
-			local m = joint(character, name)
-			if m then
-				motors[name] = m
-			end
-		end
-		j = { motors = motors, current = {} }
+		j = jointsOf(character)
 		riderJoints[character] = j
 	end
-	local goal = pose(state, t, player)
+	if j.state ~= state then
+		j.state = state
+		j.since = os.clock()
+	end
+	local goal = pose(j, state, t, dt, player)
 	-- the landing squash: down and forward, springing back with a little overshoot
 	local landed = State.Squash[character]
 	if landed then
@@ -904,27 +1230,26 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 				local hold = brace * 0.3
 				local k = if since < hold then 1 else 1 - (since - hold) / (brace - hold)
 				k *= k
-				goal.LeftShoulder = rot(55 + 95 * k, 0, 10 - 30 * k)
-				goal.RightShoulder = rot(55 + 95 * k, 0, -10 + 30 * k)
-				goal.LeftElbow = rot(30 - 20 * k, 0, 0)
-				goal.RightElbow = rot(30 - 20 * k, 0, 0)
-				goal.LeftKnee = rot(-85 - 20 * k, 0, 0)
-				goal.RightKnee = rot(-85 - 20 * k, 0, 0)
-				goal.Waist = rot(18 + 16 * k, 0, 0)
-				goal.Neck = rot(-15 - 12 * k, 0, 0)
+				goal.LeftShoulder = (goal.LeftShoulder or CFrame.identity):Lerp(rot(150, 0, -20), k)
+				goal.RightShoulder = (goal.RightShoulder or CFrame.identity):Lerp(rot(150, 0, 20), k)
+				goal.LeftElbow = (goal.LeftElbow or CFrame.identity):Lerp(rot(10, 0, 0), k)
+				goal.RightElbow = (goal.RightElbow or CFrame.identity):Lerp(rot(10, 0, 0), k)
+				goal.LeftKnee = (goal.LeftKnee or CFrame.identity):Lerp(rot(-105, 0, 0), k)
+				goal.RightKnee = (goal.RightKnee or CFrame.identity):Lerp(rot(-105, 0, 0), k)
 			end
 		else
 			State.Squash[character] = nil
 		end
 	end
 	-- on a fish, the rider goes with its body: the eased shift the fish worked out this frame (the wave, the landing's
-	-- dip, a buck), about the fish's Root, so they stay on the back without being shaken
+	-- dip, the rearing, a buck), about the fish's Root, so they stay on the back without being shaken
+	local mount: CFrame? = nil
 	if state == "Riding" then
 		local fish = ridden[player.UserId]
 		local fj = if fish then fishJoints[fish] else nil
 		local fishRoot = fish and fish.PrimaryPart
 		local rootMotor = j.motors.Root
-		local seat = rootMotor and rootMotor.Part0
+		local seated = rootMotor and rootMotor.Part0
 		-- Only when that fish is really under us. For a few frames round a mount or a sandbox reset the fish this
 		-- names can be one we are no longer on, or not on yet, a long way off: the shift is taken about ITS Root, so
 		-- the body was thrown that far from our own root part, and the weight of it swung the whole of us and the fish
@@ -934,13 +1259,13 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 			and fj.mount
 			and fishRoot
 			and rootMotor
-			and seat
-			and (fishRoot.Position - seat.Position).Magnitude < MOUNT_REACH
+			and seated
+			and (fishRoot.Position - seated.Position).Magnitude < MOUNT_REACH
 		then
-			local from = seat.CFrame * rootMotor.C0
+			-- (in the joint's own directions already: it is taken about the joint as it stands)
+			local from = seated.CFrame * rootMotor.C0
 			local base = fishRoot.CFrame
-			local moved = from:Inverse() * base * fj.mount * base:Inverse() * from
-			goal.Root = if goal.Root then moved * goal.Root else moved
+			mount = from:Inverse() * base * fj.mount * base:Inverse() * from
 		end
 		if fj and (fj.flail > 0.02 or math.abs(fj.leanBack) > 0.5) then
 			-- while the animal fights: arms and legs flung about, and thrown back by a bolt
@@ -954,19 +1279,40 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 			goal.Waist = (goal.Waist or CFrame.identity) * rot(-fj.leanBack * 0.7, 0, 0)
 		end
 	end
-	local a = Ease.alpha(18, dt)
+	local a = Ease.alpha(Config.Pose.Blend, dt)
 	for name, motor in j.motors do
 		local want = goal[name] or CFrame.identity
-		local now = (j.current[name] or CFrame.identity):Lerp(want, if name == "Root" then 1 else a)
+		-- (the Root is never eased: the squash, the flip and the mount are each smooth in themselves)
+		local now = if name == "Root" then want else (j.current[name] or CFrame.identity):Lerp(want, a)
 		j.current[name] = now
-		motor.Transform = now
+		-- carried into the joint's own directions (an R6 joint is turned on its side; an R15 joint is not)
+		local turn = j.turns[name]
+		if turn then
+			now = turn:Inverse() * now * turn
+		end
+		motor.Transform = if mount and name == "Root" then mount * now else now
+	end
+	-- every other joint of the avatar is held at rest, so nothing of Roblox's own animations shows through
+	for _, motor in j.rest do
+		motor.Transform = CFrame.identity
 	end
 end
 
+-- Our own character's animation tracks are stopped while we are in the water: all of them now and then (a track
+-- started before we got wet), and each new one as it starts
+local hooked: { [Animator]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local function stopTracks(character: Model)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 	if animator then
+		if not hooked[animator] then
+			hooked[animator] = true
+			animator.AnimationPlayed:Connect(function(track)
+				if State.inWater() then
+					track:Stop(0)
+				end
+			end)
+		end
 		for _, track in animator:GetPlayingAnimationTracks() do
 			track:Stop(0.1)
 		end
@@ -980,6 +1326,12 @@ function AnimController.Start()
 	Net.Fx.OnClientEvent:Connect(function(kind: string, player: any, fish: any, serial: any)
 		if kind == "Land" and typeof(fish) == "Instance" and fish:IsA("Model") then
 			landedOn[fish] = os.clock()
+			if Config.Ride.Startle > 0 then
+				-- the startle: one reaction for every landing, and a "!" over its head
+				reactOn[fish] = { kind = "rear", sign = 1, phase = 0 }
+				Feel.mark(fish)
+				return
+			end
 			-- which reaction: LandingMix 0 none (the dip only), 1 the body type's own, 2 a mix (the user's choice: its
 			-- own most often, its second often, now and then any of the seven). Seeded so every client picks the same.
 			local mix = Config.Animation.LandingMix
@@ -1024,7 +1376,8 @@ function AnimController.Start()
 			local state = player:GetAttribute("State")
 			if player == State.Player then
 				-- our own pose follows what we already see (the jump) before the server's word
-				state = if State.Mode == "Jumping" and State.Reeling then "Reeling" else State.Mode
+				-- (through the pull-in, and while we sit waiting for the server's word on the landing: the dash)
+				state = if State.Mode == "Jumping" and JumpController.reel() then "Reeling" else State.Mode
 			end
 			if character and type(state) == "string" then
 				if state ~= "Dock" then

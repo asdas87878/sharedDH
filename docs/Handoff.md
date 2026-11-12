@@ -3,6 +3,54 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): Movement pass: a longer hook, real rider animations, the startle, more juice
+**State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script and judged from
+pictures: no keys, no mouse, no sound, so the feel by hand is still Hugo's to judge). StyLua, selene and
+`rojo build` pass. Nothing uploaded. **Hugo owns the mechanics: the hold on the ride, jump and camera code is lifted
+for these changes** ([Decisions](Decisions.md), four rows of 2026-11-12). The fish here are still block stand-ins
+(the 82 models are private to the partner's account), so the startle on a real creature's rig is written but unseen.
+
+- **Files:** `src/shared/Config.luau`, `src/client/Lib/Lock.luau`, `src/client/Lib/Feel.luau` (new),
+  `src/client/Controllers/JumpController.luau`, `RideController.luau`, `AnimController.luau`, and rows only in
+  `SandboxController.luau`. No server file changed: `FishModel`'s `MaxForce` 40,000 and `MaxTorque` 400,000 stay.
+- **The hook and the lock:** `Jump.GrabRange` 130 to 180 (the server reads the same number, times
+  `Net.RangeSlack`). `Lock.DistanceWeight` 0.2 to 0.07, and the new `Lock.FarAim` (5 degrees at the full range): a
+  margin round a far fish that counts as aimed at it. The ring at long range is wider (`Jump.RingFar` 1.5), thicker
+  (`RingGrow` 60 to 40) and turned to the camera (`RingFarFace` 0.8). **Seen:** locks taken at 158 to 176 studs,
+  grabs granted by the server at 153, 135 and 116 studs.
+- **The startle** (`Ride.Startle...`, 0 turns it off): a landing (not the sandbox's R) makes the fish rear for 0.8 s
+  with a "!" over its head, the rider curled against its back, then it bolts. `AnimController` plays it on a
+  creature's rig and on a stand-in, as one reaction named "rear"; **with the startle on it replaces
+  `Animation.LandingMix`'s reactions**, which are all still there with `Ride.Startle` 0. The stall and the bolt are
+  `RideController`'s speed curve for that fish: measured on a Common (ridden 45), 13 studs a second while it rears,
+  71 at the bolt's peak, back to 45 about a second later. No force is added anywhere.
+- **The partner's thrown-rider check, run again:** 67 landings by hop and 23 resets across all ten lands (two
+  rounds, before and after the joint fix below). **None thrown:** the biggest move of the rider in one frame was
+  17.7 studs (a pull-in), and the server never flagged a fish as too fast. Two hops in the deep lands found no fish
+  and sank, as before.
+- **The rider's animation** (`Config.Pose`): a front crawl in the hop, a breaststroke lying flat while floating, a
+  crouch and push off, streamlined through the pull-in, a tuck and forward flip into the seat, and a riding pose
+  that leans with speed and into turns. Written once in the body's own directions and carried into each joint's,
+  so R6 works too (run once on an R6 rig: riding, crawl and float all posed, no errors).
+- **Found, and it matters on both PCs: no rider pose had ever shown on Hugo's avatar.** It has Roblox's newer
+  joints (`AnimationConstraint`, 15 of them, no `Motor6D`), and `AnimController` looked for Motor6Ds only, so the
+  body stayed in its rest pose in every state. It takes both now. Every joint of the avatar is written each frame
+  and our own tracks are stopped as they start, so Roblox's Animate script can't show through.
+- **The juice** (`Config.Feel`, drawn by the new `Lib/Feel`): the view kicks wider at the pop and at the bolt;
+  speed lines on the screen through the pop's extra speed, the pull-in and the bolt; a bubble trail; bubbles off
+  the fish at the pop and round it at our own landing; a swish, a whoosh and a splash from Roblox's own character
+  sounds (`Lib/Fx`'s "Rumble" names `action_falling.mp3`, which this Studio has only as `.ogg`: not mine to change).
+- **`RideController.look(yaw, pitch)`** is new: it turns the view as a mouse drag would, for tests by script.
+- **The panel (N):** new rows under `Ride` (twelve `Startle...`), `Lock` (`FarAim`), `Jump` (`RingFar`,
+  `RingFarFace`), and two new groups, `Pose` and `Feel`.
+- **For the tuning chat:** a landing now costs a stall. With these numbers the bolt gives most of it back (about a
+  sixth of a second of travel lost a landing), but a new player has only 2.5 s on a fish: `Ride.StartleTime` and
+  `StartleStall` are the rows if it is too much.
+- **Not done / not judged:** the sounds were never heard; the startle and the poses were seen slowed down in
+  pictures (the numbers stretched for the capture), at full speed only by their measurements; other players' dash
+  shows without the flip; nothing was tried with two players.
+- Pictures (Hugo's PC, not in the repo): `~/Pictures/ride-a-fish/movement-2026-11-12/`.
+
 ## 2026-11-12 · void (Hugo's PC): Hugo's place brought up to the merged game; the 82 creature models can't be loaded here yet
 **State:** run in Hugo's Studio through `~/Projects/studio-runner`. StyLua, selene and `rojo build` pass on 830e028
 with no merge leftovers. One file changed: `tools/creatures/install.py`. No ride, jump or camera change. Nothing

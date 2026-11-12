@@ -107,7 +107,7 @@ values, **not tuned in play**.
 | The glide | `Jump.FloatTime`, `FloatRise`, `AirSpeed` | 1.4 s, 1 stud, 38 |
 | The drop | `Jump.Drop`, `DropCurve`, `DropSpeed`, `DropTilt` | 12 studs, 2, 30, 12 degrees |
 | The body | `Jump.Tilt`, `Bank` | 78, 18 degrees |
-| The reach and the pull-in | `Jump.GrabRange`, `ReelTime`, `GrabSpeed`, `ReelMax`, `ReelCurve`, `ReelSwoop` | 85 studs, 0.14 s, 55, 0.8 s, 2.3, 0.9 |
+| The reach and the pull-in | `Jump.GrabRange`, `ReelTime`, `GrabSpeed`, `ReelMax`, `ReelCurve`, `ReelSwoop` | 85 studs, 0.14 s, 55, 0.8 s, 2.3, 0.9 (since 2026-11-12 the reach is 180 studs: see "The movement pass" below) |
 | The landing's camera | `Jump.ReelFov`, `LandFov`, `LandFovTime`, `LandKick` | -10, +12 degrees, 0.35 s, 0.45 studs |
 | The hop's camera | `Jump.CameraPitch`, `CameraZoom` | -30 degrees, 1.2 times |
 | The lock | `Lock.Cone`, `AimRadius`, `DistanceWeight`, `LeftPenalty`, `Sticky`, `MinHold` | 40 degrees, 8 studs, 0.35, 0.5, 0.2, 0.3 s |
@@ -319,3 +319,32 @@ animations, the shakes, the changes of speed) is still to do, in there.
 - Training max Oxygen (the other half of the progression) isn't built: every land past the second needs it.
 - Whether only big creatures break props (`Props.MinLength`), and whether breaking should ever give anything.
 - The hands-off landing (2026-11-10) against the grab by a press (2026-11-11): `Jump.AutoGrab` holds both.
+
+## The movement pass (Hugo, 2026-11-12)
+Built and run in Hugo's Studio; the numbers are `Config.Ride.Startle...`, `Config.Pose`, `Config.Feel`, `Config.Lock`
+and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](../Handoff.md).
+
+- **The hook and the lock.** `Jump.GrabRange` is 180 studs (the server allows 180 x `Net.RangeSlack`). The lock's
+  score is still "how far off the aim" plus "how far away", but being far counts a third of what it did
+  (`Lock.DistanceWeight` 0.07: a degree and a half of aim over the whole range), and `Lock.FarAim` (5 degrees at the
+  full range, in proportion nearer) is a margin round a far fish that counts as aimed at it. The ring round a far
+  fish is up to 1.5 times wider (`Jump.RingFar`), its dashes thicker (`RingGrow` 40) and it is turned to the camera
+  (`RingFarFace` 0.8).
+- **The startle.** A fish you LAND on (not the sandbox's reset) brakes to 0.3 of its ridden speed in 0.15 s and
+  holds it for `Ride.StartleTime` (0.8 s) while it rears; then it bolts: up to 1.6 times its ridden speed in 0.18 s,
+  easing back over a second. Measured on a Common (ridden 45): 13 studs a second through the stall, 71 at the peak.
+  The rearing is seen only: `AnimController` turns the fish's joints (the nose up 34 degrees, a shake, the tail, a
+  dip of the nose before the bolt, a lunge), never its Root. `StartleKick` must stay under `Surge` x `SpeedSlack`
+  (2.0), which is what the server's speed check allows.
+- **The rider's animation** (`Config.Pose`): a front crawl in the glide and the drop, a breaststroke lying
+  `FloatTilt` degrees forward while floating, a crouch (`PopTuck`) and a streamlined push off the fish, streamlined
+  through the pull-in, a tuck and a forward flip from `FlipStart` of the way into the seat, and astride the fish:
+  leaning forward with speed (`RideCrouch`), into turns (`RideLean`), curled against a rearing fish (`BraceLean`).
+- **The juice** (`Config.Feel`): the view's kick at the pop (`PopFov`) and at the bolt (`BoltFov`); speed lines on
+  the screen (`PopLines`, `ReelLines`, `BoltLines`); a bubble trail (`Trail`); the swish, whoosh and splash; a
+  burst of bubbles off the fish at the pop and round it at the landing; the "!" (`Mark`).
+- **Found on the way:** Hugo's avatar has Roblox's newer joints (`AnimationConstraint`, not `Motor6D`), and no rider
+  pose at all had ever shown on it: `AnimController` looked for Motor6Ds only. It takes both now.
+- **Open, to judge by hand:** how long the stall may be before it annoys (it costs about a sixth of a second of
+  travel a landing, when a new player has 2.5 s on a fish); whether the flip reads at a short pull-in; the sounds
+  (placeholders from Roblox's own character sounds; nobody has heard them, the checks were by script and picture).

@@ -8,7 +8,7 @@
 --   the drop: still swimming, slowing a little and sinking, slowly at first.
 -- We always go forward, and A and D steer that exactly as they steer a fish (RideController.turn); nothing else moves us.
 -- The whole hop is the window (Jump.Window seconds, shown by the HUD) to grab the next fish. The lock-on (Lib/Lock) holds
--- the fish we are looking at, along the camera's aim, lenient and biased to near fish, sticky so it doesn't flicker. A
+-- the fish we are looking at, along the camera's aim, lenient, far fish as easy as near, sticky so it doesn't flicker. A
 -- dashed yellow ring lies in the water round that fish (the partner's ring of 2026-11-10, a quarter smaller: it lay
 -- under us then) and the fish glows a little. While we still ride or float the lock shows too, fainter, so we see what
 -- we could reach before leaving.
@@ -19,6 +19,9 @@
 -- miss, and we tell the server.
 -- The hop doesn't collide with anything: Lib/Course keeps it out of the floor, the walls and the lane's edge.
 -- The ring's dashes, the dots and the glow are made once here and reused: nothing is created per hop.
+-- The juice (Config.Feel, Lib/Feel; Hugo, 2026-11-12): the pop kicks the view wider, with a burst of bubbles where we
+-- left, a swish, and speed lines and a bubble trail through its extra speed; the pull-in has a whoosh, lines that grow
+-- as it speeds up and the trail; our own landing throws bubbles out round the fish, with a splash.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -27,6 +30,7 @@ local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Actions = require(script.Parent.Parent.Lib.Actions)
 local Course = require(script.Parent.Parent.Lib.Course)
+local Feel = require(script.Parent.Parent.Lib.Feel)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Lock = require(script.Parent.Parent.Lib.Lock)
 local State = require(script.Parent.Parent.Lib.State)
@@ -161,17 +165,19 @@ local function placeRing(dt: number)
 	end
 	ringCentre = at + ringOffset
 	local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-	local radius = math.max(j.RingRadius, if kind then kind.Size.Z / 2 + 2 else 0)
 	local eye = workspace.CurrentCamera.CFrame.Position
 	local away = (eye - ringCentre).Magnitude
-	local face = math.clamp(j.RingFace, 0, 1)
+	-- a far fish's ring is wider and turned to the camera (and its dashes thicker, below), so it shows at the full range
+	local far = math.clamp((away - j.RingGrow) / math.max(j.GrabRange - j.RingGrow, 1), 0, 1)
+	local radius = math.max(j.RingRadius, if kind then kind.Size.Z / 2 + 2 else 0) * Ease.lerp(1, j.RingFar, far)
+	local face = math.clamp(Ease.lerp(j.RingFace, j.RingFarFace, far), 0, 1)
 	local normal = Vector3.new(0, 1 - face, 0) + (eye - ringCentre) / math.max(away, 0.01) * face
 	normal = if normal.Magnitude > 0.01 then normal.Unit else Vector3.yAxis
 	local right = (if math.abs(normal.Y) > 0.99 then Vector3.xAxis else Vector3.yAxis):Cross(normal).Unit
 	local up = normal:Cross(right)
 	local arc = 2 * math.pi * radius / DASHES
 	local thick = math.max(1, away / math.max(j.RingGrow, 1))
-	if arc ~= ringArc or math.abs(thick - ringThick) > 0.02 then
+	if math.abs(arc - ringArc) > 0.02 or math.abs(thick - ringThick) > 0.02 then
 		ringArc, ringThick = arc, thick
 		for _, dash in dashes do
 			dash.Size = Vector3.new(arc * 0.6, 0.3 * thick, 0.8 * thick)
@@ -223,9 +229,20 @@ local function stop()
 	left = nil
 	locked = nil
 	State.JumpTarget = nil
+	Feel.trail(nil, false)
 	if not glowLandedAt then
 		setGlow(nil)
 	end
+end
+
+-- How far through the pull-in we are, 0 to 1 (nil when not in one), and how long it takes in all: the dash's pose
+-- follows it (AnimController)
+function JumpController.reel(): (number?, number)
+	if not flying or not (reeling or asked) then
+		return nil, reelTime
+	end
+	local u = if asked then 1 else math.clamp((os.clock() - reelStartedAt) / math.max(reelTime, 0.01), 0, 1)
+	return u, reelTime
 end
 
 local function startReel(root: BasePart)
@@ -239,6 +256,7 @@ local function startReel(root: BasePart)
 	local j = Config.Jump
 	reelTime = math.max(j.ReelMin, math.min(j.ReelTime + away / math.max(j.GrabSpeed, 1), j.ReelMax))
 	reelFrom = root.CFrame
+	Feel.sound("Whoosh", Config.Feel.Whoosh, Config.Feel.WhooshPitch, reelTime)
 	-- the server checks the range from here and keeps the fish for us
 	Net.Action:FireServer("Grab", locked)
 end
@@ -305,6 +323,13 @@ local function request(): boolean
 	State.JumpPhase = "Pop"
 	-- (the fish locked while we rode stays locked: now with the full glow)
 	setGlow(locked)
+	-- the push off: the view kicks wider, bubbles are kicked off where we left, a swish
+	local f = Config.Feel
+	State.FovPunch = f.PopFov
+	if f.PopBurst > 0 then
+		Fx.burst(position - Vector3.new(0, 1.5, 0), f.PopBurst, 0, 4)
+	end
+	Feel.sound("Swish", f.Swish, 1.5, 0.35)
 	Net.Action:FireServer("Jump")
 	State.setMode("Jumping")
 	return true
@@ -346,6 +371,7 @@ local function resumeSwim(root: BasePart)
 	asked = false
 	State.Reeling = false
 	State.FovPunch = 0
+	Feel.trail(root, false)
 	clock = os.clock() - startedAt
 	position = root.Position
 	resumeHeight = position.Y - heightAt(clock)
@@ -447,6 +473,9 @@ local function hop(dt: number)
 			-- the view narrows as it speeds up (the reference's zoom in), and dots are left behind us
 			State.FovPunch = j.ReelFov * u ^ j.ReelFovCurve
 			dropDot(at)
+			-- speed lines, more of them as it speeds up, and bubbles left behind us
+			Feel.rush(Config.Feel.ReelLines * u ^ 1.5)
+			Feel.trail(root, true)
 			root.AssemblyLinearVelocity = (body.Position - was) / math.max(dt, 1e-6)
 			root.AssemblyAngularVelocity = Vector3.zero
 			position = body.Position
@@ -462,6 +491,13 @@ local function hop(dt: number)
 				local pull = reelOffset.Magnitude / math.max(reelTime, 0.01)
 				local by = 1 + j.LandShakeBySpeed * (pull - j.LandShakeAt) / math.max(j.LandShakeAt, 1)
 				RideController.shake(j.LandShake * math.clamp(by, 0.5, 1.6))
+				-- and bubbles thrown out round the fish, with a splash
+				local f = Config.Feel
+				Feel.trail(root, false)
+				Feel.sound("Splash", f.Splash, 1.1, 0.6)
+				if f.SplashCount > 0 then
+					Fx.burst(saddle.Position, f.SplashCount, 0, f.SplashReach)
+				end
 				Net.Action:FireServer("Land", locked)
 			end
 			return
@@ -506,6 +542,12 @@ local function hop(dt: number)
 	root.AssemblyLinearVelocity = (position - was) / math.max(dt, 1e-6)
 	root.AssemblyAngularVelocity = Vector3.zero
 	State.Speed = speedAt(clock)
+	-- through the pop's extra speed: speed lines that thin out, and bubbles left behind us
+	local boost = 1 - clock / math.max(j.BoostTime, 0.01)
+	if boost > 0 then
+		Feel.rush(Config.Feel.PopLines * boost)
+	end
+	Feel.trail(root, boost > 0)
 
 	-- The reference's hands-off landing (Jump.AutoGrab 2): when the glide is over the locked fish pulls us in by
 	-- itself, about 1.7 s after the press; with none locked then, the first fish locked in the drop does. A press still
@@ -534,6 +576,7 @@ end
 local function step(dt: number)
 	hop(dt)
 	placeRing(dt)
+	Feel.step(dt)
 end
 
 function JumpController.Init()

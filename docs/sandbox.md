@@ -51,7 +51,12 @@ What to reach for:
 - **The arc:** `Jump.LaunchTime`, `Launch` and `Apex` (the pop), `FloatTime` and `AirSpeed` (the glide), `Drop`,
   `DropCurve` and `DropSpeed` (the drop). `Window` is the whole hop: the drop is what the pop and the glide leave of
   it (3.0 - 0.4 - 1.4 = 1.2 s), so a longer glide means a shorter drop unless `Window` grows too.
-- **How easy a fish is to get:** `Jump.GrabRange`, and `Lock.Cone`, `AimRadius`, `DistanceWeight`, `Sticky`, `SwitchTime`, `EdgeAim`,
+- **The startle** (a fish you land on rears and stalls, then bolts): `Ride.Startle` (0 off), `StartleTime`,
+  `StartleStall`, `StartleKick`, `StartleKickTime`, `StartleRear`, `StartleShake`.
+- **The rider's animation:** the `Pose` group (`CrawlRate`, `BreastRate`, `FloatTilt`, `PopTuck`, `Flip`, `FlipStart`,
+  `RideCrouch`, `RideLean`, `BraceLean`). **The juice:** the `Feel` group (`PopFov`, `PopLines`, `ReelLines`,
+  `BoltLines`, `Trail`, `Whoosh`, `Splash`, `Mark`).
+- **How easy a fish is to get:** `Jump.GrabRange`, and `Lock.Cone`, `AimRadius`, `DistanceWeight`, `FarAim`, `Sticky`, `SwitchTime`, `EdgeAim`,
   `LeftPenalty`. Where the view rests in the hop: `Jump.CameraPitch`, `CameraZoom`.
 - **How the turn feels:** `Ride.YawRate` and `TurnEase` (one rate, everywhere).
 - **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `RarityDrain` Common to Secret (how many times a Common's Oxygen each rarity takes), and `Oxygen.StartMax` (live:
@@ -65,7 +70,8 @@ What to reach for:
 - No slow motion and no replay of a jump.
 - No side-by-side with the reference: compare by eye against your recordings.
 - The fish are the real herd in the real lane, so they are never in the same places twice.
-- The poses (the pop, the swim, the drop's strokes) are in code with no controls here; sounds aren't built.
+- The poses' shapes are in code (`AnimController`); their rates and angles are the `Pose` group. The sounds are
+  placeholders from Roblox's own character sounds.
 - The last jump's line says "sank" for a window that ran out.
 
 ## For Claude

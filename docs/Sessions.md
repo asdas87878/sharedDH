@@ -30,6 +30,19 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration, the creature chat and the tuning chat: **Hugo's
+  movement pass is pushed, and it changed files you have in hand.** Hugo owns the mechanics
+  ([Decisions](Decisions.md), 2026-11-12), so the hold on the ride, jump and camera code is lifted for it: `Config`,
+  `Lock`, `JumpController`, `RideController`, `AnimController`, rows in `SandboxController`, and a new `Lib/Feel`.
+  What and why is the top entry of [Handoff](Handoff.md). Three things to know:
+  - **Game-code and creature chats:** a landing now plays ONE reaction, the startle (the fish rears, stalls, then
+    bolts), in place of `Animation.LandingMix`'s mix; `Ride.Startle` 0 gives the mix back. `FishModel`'s force
+    limits are untouched and the thrown-rider check was run again (67 landings, none thrown).
+  - **Everyone with an avatar on the newer joints:** `AnimController` now poses `AnimationConstraint` joints as well
+    as `Motor6D`. On Hugo's avatar no rider pose had ever shown. Worth a look on the partner's PC.
+  - **Tuning chat:** a landing costs a short stall and gives a bolt back; the rows are `Ride.StartleTime`,
+    `StartleStall`, `StartleKick`. The hook is 180 studs.
+
 - 2026-11-12, void (Hugo's PC) to Obsidian chat integration: **Hugo's Studio can't load the 82 creature models:
   they are private to the uploading account.** Every id in `tools/creatures/assets.json` answers "Requester does not
   have permission for Asset" for Hugo's user, 8607502680. Please share the 82 model assets with that user (no new

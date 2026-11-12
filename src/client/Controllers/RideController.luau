@@ -15,6 +15,9 @@
 -- snap, its jolt and its shake (RideController.shake) sit on top, and the drowning's shot is eased to.
 -- Fish don't collide with the map: Lib/Course keeps the one we ride out of the floor, the walls and the air. Running
 -- into something solid is the server's call ("Crashed": Config.Crash, Config.Props): we lose speed for a moment.
+-- The startle (Config.Ride.Startle...; Hugo, 2026-11-12): a fish we LAND on all but stops for a moment (it rears:
+-- AnimController), then bolts, faster than it is ridden, and eases back. It is this fish's speed curve, nothing else:
+-- no force is added, and the limits on its force and torque (Lib/FishModel) are what they were.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -24,6 +27,7 @@ local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Course = require(script.Parent.Parent.Lib.Course)
+local Feel = require(script.Parent.Parent.Lib.Feel)
 local Spring = require(script.Parent.Parent.Lib.Spring)
 local State = require(script.Parent.Parent.Lib.State)
 
@@ -40,6 +44,8 @@ local steerRate = 0 -- how fast the way we are going is really turning, radians 
 local lastMode = "Dock"
 local startSpeed = 0
 local rideType: Config.FishType? = nil
+local startled = false -- this ride began with a landing: the fish stalls, then bolts (Ride.Startle)
+local bolted = false -- and the bolt has begun (its kick to the view is given once)
 local crashAt = -math.huge -- os.clock() of the last crash or smashed prop,
 local crashSlow = 1 -- and the share of our speed it left us (it comes back over Crash.Recover)
 
@@ -141,6 +147,14 @@ function RideController.steer(now: number, dt: number): number
 	return now + delta
 end
 
+-- Turns the view to a yaw and a pitch (radians), as a drag of the mouse would: for the sandbox and for tests driven by
+-- script, which have no mouse. It counts as the player looking round.
+function RideController.look(toYaw: number, toPitch: number)
+	camYaw = toYaw
+	camPitch = math.clamp(toPitch, math.rad(Config.Camera.PitchMin), math.rad(Config.Camera.PitchMax))
+	lookedAt = os.clock()
+end
+
 -- The landing's shake (Config.Jump.LandShake...): `size` is how far the camera is thrown, studs
 function RideController.shake(size: number)
 	shakeAt = os.clock()
@@ -200,7 +214,7 @@ local function anglesOf(look: Vector3): (number, number)
 	return math.atan2(-look.X, -look.Z), math.asin(math.clamp(look.Y, -1, 1))
 end
 
-local function onMounted(fish: Model)
+local function onMounted(fish: Model, landing: boolean?)
 	if typeof(fish) ~= "Instance" or not fish:IsA("Model") then
 		-- the fish hasn't reached us yet (the server's word came first): look for the one marked as ours
 		task.spawn(function()
@@ -216,7 +230,7 @@ local function onMounted(fish: Model)
 						and model.PrimaryPart
 						and model:GetAttribute("Rider") == State.Player.UserId
 					then
-						RideController.mounted(model)
+						RideController.mounted(model, landing)
 						return
 					end
 				end
@@ -246,10 +260,26 @@ local function onMounted(fish: Model)
 	leftFish = nil
 	leftWeld = nil
 	roll = 0
+	startled = landing == true and Config.Ride.Startle > 0
+	bolted = false
 	clearFloat()
 	-- (a fish that breaks props swims through them: the server knocks their boxes loose as it does)
 	Course.begin(rideType ~= nil and Config.smashes(rideType))
 	State.setMode("Riding")
+end
+
+-- A startled fish's speed, `t` seconds after the landing: it brakes at the touch and all but stops while it rears, then
+-- bolts, up to StartleKick times its ridden speed in a moment, and eases back to it
+local function startleSpeed(from: number, ridden: number, t: number): number
+	local r = Config.Ride
+	local stall = math.min(from, ridden * r.StartleStall)
+	if t < r.StartleTime then
+		return Ease.lerp(from, stall, Ease.outQuad(t / math.max(r.StartleBrake, 0.01)))
+	end
+	local since = t - r.StartleTime
+	local snap = math.max(r.StartleSnap, 0.01)
+	local kick = Ease.lerp(ridden * r.StartleKick, ridden, Ease.smoothstep(snap, snap + r.StartleKickTime, since))
+	return Ease.lerp(stall, kick, Ease.outQuad(since / snap))
 end
 
 local function drive(dt: number)
@@ -292,11 +322,25 @@ local function drive(dt: number)
 	-- banking into the turn
 	roll = Ease.lerp(roll, RideController.lean() * math.rad(r.Bank), Ease.alpha(r.BankEase, dt))
 
-	local speed =
-		Ease.rideSpeed(startSpeed, rideType.RiddenSpeed, os.clock() - State.MountedAt, r.RampTime, r.Surge, r.SurgeTime)
+	local since = os.clock() - State.MountedAt
+	local speed = if startled
+		then startleSpeed(startSpeed, rideType.RiddenSpeed, since)
+		else Ease.rideSpeed(startSpeed, rideType.RiddenSpeed, since, r.RampTime, r.Surge, r.SurgeTime)
+	if startled and since >= r.StartleTime then
+		-- the bolt: the view kicks wider once, and speed lines for as long as it is faster than it is ridden
+		if not bolted then
+			bolted = true
+			State.FovPunch = Config.Feel.BoltFov
+			Feel.sound("Whoosh", Config.Feel.Whoosh * 0.7, Config.Feel.WhooshPitch * 0.8, 0.45)
+		end
+		local over = (speed / math.max(rideType.RiddenSpeed, 1) - 1) / math.max(r.StartleKick - 1, 0.01)
+		if over > 0.05 then
+			Feel.rush(Config.Feel.BoltLines * math.min(over, 1))
+		end
+	end
 	-- just run into something: slowed at once, picking up again
-	local since = os.clock() - crashAt
-	speed *= Ease.lerp(crashSlow, 1, Ease.smoothstep(0, math.max(Config.Crash.Recover, 0.01), since))
+	local crashed = os.clock() - crashAt
+	speed *= Ease.lerp(crashSlow, 1, Ease.smoothstep(0, math.max(Config.Crash.Recover, 0.01), crashed))
 	local heading = CFrame.fromOrientation(pitch, yaw, 0)
 	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
 	-- the air or out of the lane, however the keys are held
@@ -697,9 +741,10 @@ local function fromServerState()
 end
 
 function RideController.Init()
-	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any)
+	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, b: any)
 		if kind == "Mounted" then
-			onMounted(a)
+			-- (`b`: whether it is a landing, which startles the fish, or the sandbox's reset, which doesn't)
+			onMounted(a, b == true)
 		elseif kind == "SandboxMount" then
 			-- the sandbox's reset has kept this fish for us: sit on it (step), then say so
 			-- (only a fish that is near us as we see it. Otherwise it is left alone: the server gives the seat up

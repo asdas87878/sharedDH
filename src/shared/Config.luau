@@ -152,6 +152,23 @@ Config.Ride = {
 	Ceiling = 4, -- and stays this far under the surface line
 	LaneMargin = -3, -- a ridden fish and a flight stay this far inside the lane's edge (negative: inside). It was 20 past it, but since grey-box 6 the walls are a 1-stud face with a hollow behind, and 20 past the edge is inside that hollow
 	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its surge speed times this
+	-- The startle (Hugo, 2026-11-12): a fish you land on is shocked for about a second, like a horse rearing before it
+	-- bolts. Its nose jerks up and it rears back, shaking, its tail thrashing, a "!" over its head, the rider braced;
+	-- it all but stops; then it surges off. The rearing is seen only (AnimController turns the fish's joints, never its
+	-- Root); the stall and the surge are the ridden speed's own curve (RideController), never a push: the limits on a
+	-- fish's force and torque (Lib/FishModel, 2026-11-12) stay. Only a landing startles, not the sandbox's reset.
+	Startle = 1, -- 1: a landing startles the fish; 0: the old mount (Surge at once, and Animation.LandingMix's reactions)
+	StartleTime = 0.8, -- seconds it rears and stalls before it bolts
+	StartleBrake = 0.15, -- it loses its speed over this long at the touch
+	StartleStall = 0.3, -- its speed while it rears, as a share of its ridden speed
+	StartleKick = 1.6, -- the bolt: this many times its ridden speed (keep it under Surge x SpeedSlack, which is what the server allows)
+	StartleSnap = 0.18, -- seconds from the stall up to the bolt's speed
+	StartleKickTime = 1.0, -- then it eases back to its ridden speed over this long
+	StartleRear = 34, -- how far the nose goes up, degrees (a big creature rears a little less)
+	StartleShake = 7, -- the shake while it is reared: degrees of roll each way,
+	StartleShakeRate = 9, -- and how many times a second
+	StartleCoil = 9, -- the nose dips this far under level just before the bolt, degrees
+	StartleLunge = 1.2, -- the body lunges this far ahead of itself as it bolts, studs, for a mid-sized fish
 }
 
 -- Going fish to fish, Movement v3.1 (2026-11-11; docs/design/riding-feel.md). The hop is the reference's, as built on
@@ -236,7 +253,7 @@ Config.Jump = {
 	LandShakeRoll = 2.2, -- and the view rolls this many degrees with it
 	LandShakeAt = 80, -- the pull-in's speed (its distance over its time) that gives exactly LandShake
 	LandShakeBySpeed = 0.4, -- how much the speed counts: 0 not at all; 0.4 is 1.3 times the shake at 140 st/s, 0.8 at 40
-	GrabRange = 130, -- the hard max reach, rider to fish: no lock and no grab beyond it (the server checks it, with Net.RangeSlack for lag)
+	GrabRange = 180, -- the hard max reach, rider to fish: no lock and no grab beyond it (the server checks it, with Net.RangeSlack for lag). 130 until 2026-11-12 (Hugo: a longer hook)
 	AckTime = 1, -- seconds to wait for the server's word on a landing before going back to the hop
 	RefusedTime = 0.6, -- a fish the server refused, or that was lost, can't be locked again for this long
 	Slack = 0.6, -- the server waits this long past the window and the pull-in for the landing (lag)
@@ -261,7 +278,9 @@ Config.Jump = {
 	-- the mark on the locked fish (Hugo, 2026-11-11): the same dashes, flat in the water round the fish, a quarter
 	-- smaller. It is the main mark; the fish's own glow stays, fainter.
 	RingRadius = 15, -- studs (the partner's was 20)
-	RingGrow = 60, -- further than this from the camera the dashes are drawn thicker, by the distance, so a far ring still shows
+	RingGrow = 40, -- further than this from the camera the dashes are drawn thicker, by the distance, so a far ring still shows (60 until the range went to 180)
+	RingFar = 1.5, -- and the ring itself is this many times wider round a fish at the full range (growing with the distance from RingGrow on)
+	RingFarFace = 0.8, -- RingFace for a fish at the full range: a far ring is turned nearly square on to the camera, or it is seen edge on
 	RingFollow = 14, -- how quickly the ring goes from one locked fish to the next (higher is quicker)
 	RingSpin = 25, -- the dashes go round, degrees a second (0: still, as the partner's)
 	RingFace = 0.35, -- 0: flat in the water, as the partner's; 1: turned to face the camera; between: tipped that much toward it, so a far fish's ring isn't seen edge on
@@ -273,15 +292,18 @@ Config.Jump = {
 }
 
 -- The lock-on. The aim is a thick ray along where the camera looks. Each free fish within Jump.GrabRange
--- gets an allowance: half of Cone, plus the angle AimRadius (and half its own length) covers at its distance, so a near
--- fish is much easier to hit than a far one. Inside its allowance it scores AngleWeight x (how far off the aim, as a
--- share of the allowance) + DistanceWeight x (its distance as a share of the range); the lowest score wins.
+-- gets an allowance: half of Cone, plus the angle AimRadius (and half its own length) covers at its distance, plus
+-- FarAim by its distance. Inside its allowance it scores AngleWeight x (how far off the aim) + DistanceWeight x (its
+-- distance as a share of the range); the lowest score wins.
+-- Hugo, 2026-11-12: the fish you AIM at, far ones as easy to pick as near ones. So being far counts a third of what it
+-- did, and a far fish, small on the screen, has a margin round it that counts as on it (FarAim).
 Config.Lock = {
 	Cone = 40, -- full angle round the aim that a far fish must be inside
 	AimRadius = 8, -- the aim ray's thickness, studs
 	MaxAngle = 80, -- no fish further off the aim than this, however near
 	AngleWeight = 1, -- being off the aim
-	DistanceWeight = 0.2, -- being far: nearer fish win close calls, but a fish you aim straight at beats a nearer one off to the side (0.35 until the range went from 85 to 130: a far fish aimed at must still win)
+	DistanceWeight = 0.07, -- being far: only close calls go to the nearer fish; 0.07 is a degree and a half of aim over the whole range (0.2 until 2026-11-12, 0.35 before the range went from 85 to 130)
+	FarAim = 5, -- degrees round a fish at the full range that count as aimed at it, and that much more allowance (in proportion nearer; 0: a far fish must be aimed at exactly, as before)
 	-- The fish you just left swims on right under the middle of the view, so with no penalty it takes nearly every lock.
 	LeftPenalty = 0.5, -- added to its score: any other fish near the aim wins; with none, a grab takes it back
 	-- so the lock doesn't flicker between two fish
@@ -501,6 +523,50 @@ Config.Animation = {
 	RiderFollow = 1, -- 1: the rider moves with the fish's body; 0: sits still over it
 	RiderCalm = 1, -- 1: they take the body's shift eased and at half its turning, so they aren't shaken; 0: exactly
 	Brace = 0.45, -- seconds of the landing's brace: arms up, knees folded, then the grab (0 off)
+}
+
+-- The rider's own animation (AnimController): poses made in code on the avatar's joints, R15 or R6, blended from one
+-- to the next; Roblox's own animations are stopped while we are in the water. Hugo, 2026-11-12: real swimming, a
+-- dash and a riding pose.
+Config.Pose = {
+	Blend = 16, -- how quickly one pose runs into the next (higher is quicker)
+	-- swimming: the glide and the drop of a hop are a front crawl, floating is a slow breaststroke; the body lies flat
+	CrawlRate = 1.7, -- arm strokes a second in the hop (each arm)
+	CrawlKick = 5.5, -- leg kicks a second
+	CrawlRoll = 14, -- the body rolls this far to each stroke, degrees
+	BreastRate = 0.75, -- strokes a second while floating
+	FloatTilt = 62, -- floating, the body lies this far forward, degrees (0: upright, treading water)
+	-- the dash: off the fish (the pop) and onto the next (the pull-in)
+	PopTuck = 0.09, -- seconds crouched on the fish before the push off (seen only: the hop itself starts at the press)
+	Flip = 1, -- forward flips into the seat at the end of the pull-in (0: none)
+	FlipStart = 0.45, -- the share of the pull-in at which the tuck and the flip begin (streamlined until then)
+	FlipMin = 0.25, -- no flip in a pull-in shorter than this, seconds (onto a fish right beside us: it would be a blur)
+	-- riding
+	RideCrouch = 26, -- at full speed the rider leans this far forward over the fish, degrees
+	RideLean = 14, -- and this far into a turn
+	BraceLean = 24, -- on a startled fish: this far forward against the rearing, arms round its back
+}
+
+-- The juice (Hugo, 2026-11-12: more satisfying movement): what is added round the hop, the pull-in, the landing and
+-- the bolt. Speed lines are drawn on the screen (Lib/Feel); the sounds are the client's own built-in ones, pitched.
+Config.Feel = {
+	PopFov = 7, -- the pop: the view kicks this much wider at once and settles (as the landing's snap does)
+	PopBurst = 16, -- bubbles kicked off where we left
+	PopLines = 0.6, -- speed lines through the pop's extra speed, 0 to 1 (0 off)
+	ReelLines = 1, -- and through the pull-in, growing as it speeds up
+	BoltLines = 0.85, -- and as a startled fish bolts
+	BoltFov = 6, -- the view kicks this much wider as it bolts
+	LinesFade = 0.3, -- seconds the lines take to die away
+	LinesInner = 0.42, -- how near the middle of the screen they reach, as a share of half its diagonal (1: the corners only)
+	Trail = 70, -- bubbles a second left behind us through the pop's extra speed and the pull-in (0 off)
+	Whoosh = 0.5, -- how loud the pull-in's whoosh is (0 off),
+	WhooshPitch = 2.2, -- and how high
+	Swish = 0.35, -- the pop's swish
+	Splash = 0.55, -- the landing's splash
+	SplashCount = 26, -- bubbles thrown out flat round the fish at our own landing,
+	SplashReach = 9, -- this far, studs
+	Mark = 1, -- the "!" over a startled fish (0 off)
+	MarkTime = 0.6, -- seconds it shows
 }
 
 -- How the lock and the window's timer are drawn.
