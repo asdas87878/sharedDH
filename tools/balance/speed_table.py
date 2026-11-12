@@ -31,8 +31,8 @@ def main(out):
         fid = os.path.basename(path)[:-5]
         base = species.get(fid, 1.0)
         at1 = speed["Base"] * mult[d["Tier"]] * base
-        low = at1 * (1 + speed["SizeGain"] * (size["Min"] - 1))
-        high = at1 * (1 + speed["SizeGain"] * (size["Max"] - 1)) * speed["Rainbow"]
+        low = at1
+        high = at1 * (1 + speed["SizeBonus"]) * speed["Rainbow"]
         rows.append((TIERS.index(d["Tier"]), -base, d["Name"], d["Tier"], d["Zone"], base, at1, low, high))
     rows.sort()
     missing = [r[2] for r in rows if r[5] == 1.0 and r[2].replace(" ", "") not in species]
@@ -45,8 +45,8 @@ def main(out):
     img = Image.new("RGB", (col_w * 2 + 40, top + half * row_h + 30), (18, 24, 34))
     draw = ImageDraw.Draw(img)
     draw.text((20, 14), "Ride a Fish: speed of every creature (studs a second, ridden)", font=big, fill="white")
-    draw.text((20, 46), "speed = %g x species x rarity x (1 + %g x (size - 1)) x variant (Gold %g, Rainbow %g); size %g to %g;"
-              " the herd swims at 0.85 of it" % (speed["Base"], speed["SizeGain"], speed["Gold"], speed["Rainbow"],
+    draw.text((20, 46), "speed = %g x species x rarity x size (x1 to x%g) x variant (Gold %g, Rainbow %g); size %g to %g;"
+              " the herd swims at 0.85 of it" % (speed["Base"], 1 + speed["SizeBonus"], speed["Gold"], speed["Rainbow"],
                                                 size["Min"], size["Max"]), font=font, fill=(170, 190, 210))
     top_speed = max(r[8] for r in rows)
     for i, (_, _, name, tier, zone, base, at1, low, high) in enumerate(rows):

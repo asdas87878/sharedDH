@@ -64,7 +64,7 @@ What to reach for:
 - **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `RarityDrain` Common to Secret (how many times a Common's Oxygen each rarity takes), and `Oxygen.StartMax` (live:
   everyone's max Oxygen changes at once; the `TestMaxOxygen` attribute, when above 0, still wins).
 - **The tuning rows** ([progression](design/progression.md); [riding feel](design/riding-feel.md), "Speed by fish"):
-  `Speed.Base` (a Common's ridden speed), `TierMult` Common to Secret (each rarity's speed, times), `Speed.SizeGain`,
+  `Speed.Base` (a Common's ridden speed), `TierMult` Common to Secret (each rarity's speed, times), `Speed.SizeBonus` (the biggest roll's extra speed),
   `Speed.Gold`, `Speed.Rainbow` (wild fish, the glide and the server's speed check follow at once); `Size.Min`, `Max`,
   `Curve` and `Variant.Gold`, `Rainbow` (the size roll and the variants' chances, for fish spawned from then on); and
   `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12.)

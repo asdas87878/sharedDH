@@ -335,7 +335,7 @@ local TUNABLES: { { any } } = {
 	-- check all follow at once.
 	-- (Hugo, 2026-11-12: speed = Speed.Base x the species' base x TierMult x the size's factor x the variant's)
 	{ "Speed", "Base", 1 },
-	{ "Speed", "SizeGain", 0.05 },
+	{ "Speed", "SizeBonus", 0.05 },
 	{ "Speed", "Gold", 0.02 },
 	{ "Speed", "Rainbow", 0.02 },
 	{ "TierMult", "Common", 0.02 },

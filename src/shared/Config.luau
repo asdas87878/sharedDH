@@ -55,9 +55,11 @@ Config.Tiers = {
 -- attributes (Config.speedOf); the server's is the one that counts (the herd, the speed check).
 Config.Speed = {
 	Base = 45, -- studs a second ridden: a Common of species base 1, size 1, no variant
-	SizeGain = 0.15, -- a bigger roll is a little faster: 1 + SizeGain x (size - 1); x1.4 is 6% faster, x0.8 3% slower
-	Gold = 1.1, -- a Gold fish's speed, times
-	Rainbow = 1.18, -- a Rainbow's
+	-- size barely matters (Hugo, 2026-11-12): the smallest roll (Size.Min) is x1, the biggest (Size.Max) x(1 + SizeBonus),
+	-- in a straight line between; a fish is never slowed by being small
+	SizeBonus = 0.2,
+	Gold = 1.2, -- a Gold fish's speed, times (Hugo, 2026-11-12)
+	Rainbow = 1.5, -- a Rainbow's (Hugo, 2026-11-12)
 }
 
 -- By rarity: a higher rarity is clearly faster on average. Each step is about 1.15 times the last, which lands on the
@@ -172,7 +174,7 @@ Config.SpeciesSpeed = {
 -- The size roll (Hugo, 2026-11-12): every spawned fish is Min to Max times its species' size, most of them near 1 and
 -- the extremes rare. The roll is a number 0 to 1 raised to Curve and laid on either side of 1: at Curve 2.5 half the
 -- fish are within 7% of 1 above (3% below), and about one in twenty is over x1.3. It scales the model, the seat, what
--- counts as the fish's body (the lock, the landing, crashes) and its speed (Speed.SizeGain); the fish's "Size"
+-- counts as the fish's body (the lock, the landing, crashes) and its speed (Speed.SizeBonus, only up to x1.2); the fish's "Size"
 -- attribute, shown on its tag as "x1.23".
 Config.Size = {
 	On = 1, -- 0: every fish x1
@@ -913,10 +915,17 @@ function Config.rollVariant(roll: number): string
 	return ""
 end
 
+-- The size's factor on speed: x1 at Size.Min up to x(1 + Speed.SizeBonus) at Size.Max
+function Config.sizeSpeed(size: number): number
+	local lo, hi = Config.Size.Min, Config.Size.Max
+	local t = if hi > lo then math.clamp((size - lo) / (hi - lo), 0, 1) else 0
+	return 1 + Config.Speed.SizeBonus * t
+end
+
 -- One fish's ridden speed: its species' (base x rarity), by its size and its variant
 function Config.speedOf(fish: FishType, size: number?, variant: string?): number
 	local s = Config.Speed
-	local speed = fish.RiddenSpeed * math.max(1 + s.SizeGain * ((size or 1) - 1), 0.1)
+	local speed = fish.RiddenSpeed * Config.sizeSpeed(size or 1)
 	if variant == "Gold" then
 		speed *= s.Gold
 	elseif variant == "Rainbow" then

@@ -352,8 +352,8 @@ and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](..
 ## Speed by fish, the size roll, variants (Hugo, 2026-11-12)
 Every fish has its own speed, worked out by one function on the server and on every client (`Config.speedOf`):
 
-**speed = `Speed.Base` (45) x the species' base x the rarity's (`TierMult`) x (1 + `Speed.SizeGain` (0.15) x (size - 1))
-x the variant's (`Speed.Gold` 1.10, `Speed.Rainbow` 1.18)**
+**speed = `Speed.Base` (45) x the species' base x the rarity's (`TierMult`) x the size's (x1 at `Size.Min` up to x1.2 at `Size.Max`, `Speed.SizeBonus` 0.2)
+x the variant's (`Speed.Gold` 1.2, `Speed.Rainbow` 1.5)**
 
 - **Rarity** (`Config.TierMult`): Common 1, Uncommon 1.16, Rare 1.33, Epic 1.51, Legendary 1.73, Mythic 2, Secret
   2.22. A step is about 15%, wider than the spread of species inside a rarity, and it lands on the speeds measured

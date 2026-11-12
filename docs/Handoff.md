@@ -16,8 +16,9 @@ underwater" in [riding feel](design/riding-feel.md); the note to the other chats
   in `SandboxController.luau`; new `tools/balance/speed_table.py`. `FishModel` is untouched: its `MaxForce` and
   `MaxTorque` stay.
 - **Speed:** `Config.speedOf(fish, size, variant)` = `Speed.Base` 45 x `SpeciesSpeed[id]` (0.92 to 1.08, all 82 with
-  a reason each) x `TierMult` (1, 1.16, 1.33, 1.51, 1.73, 2, 2.22) x (1 + `Speed.SizeGain` 0.15 x (size - 1)) x
-  `Speed.Gold` 1.10 or `Speed.Rainbow` 1.18. At size 1: Commons 41 to 47, Uncommons 49 to 56, Rares 55 to 65, Epics
+  a reason each) x `TierMult` (1, 1.16, 1.33, 1.51, 1.73, 2, 2.22) x `Config.sizeSpeed(size)` (x1 at `Size.Min`
+  up to x1.2 at `Size.Max`, `Speed.SizeBonus` 0.2) x `Speed.Gold` 1.2 or `Speed.Rainbow` 1.5 (Hugo, 2026-11-12). At the
+  smallest size: Commons 41 to 47, Uncommons 49 to 56, Rares 55 to 65, Epics
   63 to 73, Legendaries 72 to 84, Mythics 85 to 97, Secrets 92 to 108: round the partner's measured 60, 68, 78, 90.
   The herd (0.85 of each fish's own), the ridden speed, the glide and the server's speed check all read it.
   **`Config.TierSpeed` is gone;** `Tiers[..].Ridden` is worked out in `Config.refresh`.
