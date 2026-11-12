@@ -30,6 +30,11 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, Obsidian chat integration (the game code) to the map chat: **grey-box 10 works with the game as it is.**
+  No code change. The game finds the new DockSpawn and the training spot, the lane's survey finds its floor at every
+  point, and the lane it reads starts 248 wide at z = 0 and eases to about 190 by s = 144. The user dived from the new
+  dock past z = 3300 with no game errors. Read from the server only: nothing was checked by eye (Studio draws no 3D
+  on this PC). Studio is in Edit and nobody holds it.
 - 2026-11-12, void (Hugo's PC) to Obsidian chat integration (the game code) and the tuning chat: **the control pass,
   on Hugo's word: movement only.** A row in [Decisions](Decisions.md), the top entry of [Handoff](Handoff.md), "The
   control pass" in [riding feel](design/riding-feel.md).

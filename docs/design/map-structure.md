@@ -342,6 +342,10 @@ the start: make the hub longer, not narrower.
 
 ![The hub, grey-box 10](../attachments/map-hub10.jpg)
 
+![In Studio, from the spawn](../attachments/map-hub10-studio.jpg)
+
+**In Studio:** "greybox 10 in Studio: 62843 parts (expected 62842), 60788 solid; Dive 10, Dock 160, Lane 62621, Surface 52; 16134 Seabed boxes; 1974 asset models; 8 plots; 44631 pictures; DockSpawn present; Path present", read twice. The one part over is the water's mesh template.
+
 **How the reference's hub is laid out** (the recording of the user walking round it, read again): the start zone is
 a sand strip lying in the gap of the wall itself, a white line along each edge, big words on it; the stalls stand
 right beside it; an open green field; and the pens stand in a U round the far side and down both sides, sharing
@@ -372,6 +376,136 @@ the changes of height where the floor tilts down, which stop it looking smooth. 
   wedges, and neighbouring pieces catch the light differently.
 - **The floor where it tilts:** it is flat tiles, each fitted to the slope, standing up to 0.117 studs apart at
   their edges; where the slope changes the tiles tilt differently and the joins show.
+
+## Grey-box 11: the gate (2026-11-12)
+The user: get rid of the arrows; the spawn more toward the centre or close to the dive; narrow the entrance like the
+reference's, so the dive platform is narrower, and "it should start narrow then the path widens immediately a little
+bit in, so the hub makes it look more narrow and it makes it look more easy to digest visually". Analyse that part of
+the reference.
+
+![The gate, grey-box 11](../attachments/map-hub11.jpg)
+
+![In Studio, from the spawn](../attachments/map-hub11-studio.jpg)
+
+**In Studio:** "greybox 11 in Studio: 63036 parts (expected 63035), 61009 solid; Dive 10, Dock 160, Lane 62814, Surface 52; 16137 Seabed boxes; 1974 asset models; 8 plots; 51336 pictures; DockSpawn present; Path present", read twice; 110 files, no problems. The one part over is the water's mesh template. Pictures are up by about 6,700: the fillings behind hollow curves carry one now.
+
+**How the reference's entrance works** (the flyover and the walk through it, frame by frame):
+- The start zone lies in a **gap between two wall ends**, and the gap is narrow against the hub: about 90 to 100
+  studs in a hub about 230 wide, two fifths of its width.
+- **The wall ends are gate posts:** tall, level, alike on both sides, with the stalls and the earners board standing
+  against them.
+- **Right behind the posts the lane's walls curve away,** so the track is wider than the gate within a few strides.
+  From the hub you only see the narrow gap and a slice of what is behind it. That is why the hub reads as closed and
+  simple, and the lane as a place you go into.
+- So the order is: closed hub, narrow gate, sudden room. Grey-box 10 had it the other way round (a funnel, widest at
+  the hub), which opened the hub's whole front and gave the eye nothing to aim at.
+
+| | Grey-box 10 | Grey-box 11 |
+|---|---|---|
+| The gate | 248 wide, a funnel narrowing into the lane | **144 wide** (three tenths of the hub), between two posts |
+| Just inside | narrowing to 189 by 144 studs in | **widening: 157 at 24 studs in, 186 at 48, 219 at 72, 246 at 96, about 266 at 144,** then easing to the lane's own width at the first neck (336). (Read back from `Path` in Studio by the game-code chat; a first, sharper setting opened faster and was softened before the load) |
+| The posts | heights a square up or down at random | level and alike, the hub's two tiers |
+| The start strip | 248 wide | 144 wide, the gate's width, still in line with the wall and saying DIVE IN |
+| Arrows on the floor | three | none |
+| The spawn | 216 from the water | 128 from the water: past the hub's middle, toward the dive |
+| Sell and auras | 76 either side | 104 either side, against the posts' line, clear of the gate |
+
+**Two faults in the walls fixed on the way, map-wide** (the first is the user's "cracks where the walls curve"):
+- **The wedge behind a hollow curve.** Pieces on a curve that hollows into the wall fan apart behind their faces.
+  The filling between them stopped 0.1 below the grass, plain. Every wedge showed as a darker, untextured sliver: a
+  crack. The filling's top is now 0.02 under the grass slab's and carries the same picture, so a wedge is more
+  grass. 6,378 of them along the dive.
+- **A piece lying across a sharp corner.** Where a set-back tier's line has a sharp corner (behind a tooth of the
+  wall, or a gate post), a piece could straddle it and cut the corner off at a slant. A piece now ends exactly on
+  such a corner and the next begins there.
+- Still to do from the user's list: the floor's joins where it tilts.
+
+## Grey-box 12: tall walls in symmetry, the entrance rounded (2026-11-12)
+The user: make sure the tall walls are evenly spaced, "because that's what builds the feeling of symmetry more than
+the smaller walls being equal to each other mirrored on the hub"; and make the walls feel more curved where the
+entrance is, rounded off in appropriate places, like the reference, so they blend in more.
+
+![The hub, grey-box 12](../attachments/map-hub12.jpg)
+
+| | Grey-box 11 | Grey-box 12 |
+|---|---|---|
+| The hub's tall wall | a square up or down at random, differently on each side | **the same on both sides, a square up on every other 80-stud stretch;** level beside the gate |
+| The hub's low wall | a square up or down at random | one height all round |
+| The lane seen through the gate | its two sides swelled differently from the first stud | **the first room is the same on both sides;** the sides go out of step from the second room on |
+| The hub's front corners | as tight as the back ones (32) | round (80): the front wall bends toward the gate |
+| The low wall into the gate | a corner of 16 | a corner of 32 |
+| The tall wall at the gate | a sharp corner behind the low wall's | rounded over 34 studs each way |
+
+- With the first room the same on both sides, both sides pinch at the same place at its end, so **the first neck
+  is 123 wide** (it was 166). It is the narrowest place in the dive now.
+- The rounding of a set-back tier's corner is done only near the gate (`rounded()` in `greybox.py`); behind a tooth
+  of the wall elsewhere a corner stays sharp. That belongs to the building-style pass below.
+
+**Next, asked for by the user:** alter the building style so the squares are evenly sized and spaced, the walls
+flush, and everything curving smoothly alongside the floors.
+
+## Grey-box 13: the wall built on ribs (2026-11-12)
+The user: make the curves, grids and walls feel much smoother and flush, and "devise a way to layout the grids so
+that they are even and work around turns and corners whilst keeping it stepped so it looks somewhat smooth in twists
+and curves. This is important for the visual look of the game."
+
+![The wall on ribs, in Studio](../attachments/map-greybox13-studio.jpg)
+
+**What was uneven before, and why.** Each tier of a wall was marched along its own line, so the joints of the tall
+wall never stood behind the joints of the low one. Each top was a rectangle on a fan-shaped cell, so on a bend the
+tops gaped or overlapped, and a filling with its own grid showed in every gap. A square always ended at a joint, so
+every joint was an edge of the grid, and any misfit there showed.
+
+**The layout now:**
+1. **One line of corners, a piece (16 studs) apart, along the wall's face.** Every tier behind uses the same corners,
+   stepped back along the bisector of the turn there: a **rib**. All the tiers' joints lie on the same ribs, from
+   the lane's edge to the back of the wall. The ground between two walls is a fan of cells that fit each other.
+2. **Every piece carries exactly one tile of the picture (two squares) along the wall,** stretched to the piece's
+   own length. On a hollow bend the tiers further back are longer, so their squares are a little wider; on a nose,
+   a little narrower. The count never changes, so the grid is the same all the way up a wall and across a bend.
+3. **The picture is slid a quarter of a tile, so a square straddles every joint** and one sits whole in the middle
+   of the piece. A joint is never an edge of the grid. Where two tops overlap on a bend, both show the same shade
+   there, so the overlap can't be seen: this is what makes the bends flush with plain boxes.
+4. **Rows run in whole squares from each wall's face,** so on a terrace they end exactly at the next wall's face,
+   and they carry on round a bend as one arc.
+5. **Stepped, on purpose:** a bend is still straight pieces, one tile each. A piece that would be over 22.6 long
+   (a tight hollow bend, further back) is two; pieces under 11.3 (a nose, further back) are joined, two or three to
+   one. So a square is never under 5.7 or over 11.3 wide, and mostly within a stud of 8.
+6. **No nose of the wall is sharper than a radius of 100** (`R_OPEN`). A tier behind a sharper nose would fold over
+   itself; that is what made the sharp corners "behind a tooth". The face line's noses are rounded first (`opened`),
+   in the lane only: the hub and its gate keep their own corners.
+7. **The gate's corner is 48** (it was 32), so the tall wall behind it, 24 further back, turns on a corner of 24 and
+   rounds with it. The strip in the gate is 48 deep.
+
+**How Roblox lays a Texture on a part** (found on a test in Studio, and what the offsets above rest on):
+
+| Face | U runs | V runs |
+|---|---|---|
+| Top | along the part's X, from its +X edge | along its Z, from its +Z edge |
+| Left (-X) | along Z, from the -Z edge | down, from the top |
+
+A grid line falls where (distance from that edge + the offset) is a whole number of squares, and the square at the
+edge is the picture's dark one. On a wall's top, X is the way back from the lane: so **U is the depth and V runs
+along the wall**, the other way round from what one would guess.
+
+| | Grey-box 12 | Grey-box 13 |
+|---|---|---|
+| Parts | 63,019 | **55,196** (the fillings are gone: a top is one box) |
+| Joints of the tall wall against the low wall's | anywhere | on the same ribs |
+| A top on a bend | a rectangle and a filling with its own grid | one box as wide as the cell's wide end; overlaps hidden by the slid picture |
+| Sharp corners in the walls | behind every tooth | none |
+| The barrier | on the lane's own line | along the wall itself, a panel to two pieces |
+
+- `BENCH=1 python tools/map/greybox_luau.py` then `python tools/studio/load_greybox.py <id> greybox_bench` loads only
+  the hub and the first of the lane as `Workspace.MapBench` at x = 9000, in a minute, for looking at a change.
+- **In Studio:** "greybox 13 in Studio: 55207 parts (expected 55206), 53185 solid; Dive 10, Dock 160, Lane 54985, Surface 52; 16137 Seabed boxes; 1974 asset models; 8 plots; 42849 pictures; DockSpawn present; Path present", read twice; 96 files, no problems. `Workspace.MapBench` is removed again.
+- **Seen so far only on the test copy** (two captures, the hub and the first room). Studio stopped drawing before the whole map could be looked at: the deep lands, with their tighter bends and third tiers, are not yet seen in this layout.
+- Known: on the tall wall's top at the gate post, where many tops overlap on a tight turn, the grid is a muddle. It
+  is 80 studs up and seen only from above.
+- Not done: the floor's joins where it tilts; the floor's grid is still the world's and is cut by the walls.
+- From the game-code chat (2026-11-12): the hub has no part named `TrainSpot`, so the game makes its own training pad
+  beside the spawn each run. A BasePart named `TrainSpot` anywhere under `Dock` would say where training stands.
+  Not placed yet: to decide with the user when the hub's stalls are laid out for good.
 
 ## What makes their map read, and where ours should go
 **What their structure does** (from the recordings and the screenshots):

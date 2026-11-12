@@ -85,7 +85,7 @@ def material(colour, kind):
         return mat
     surf = n.new("ShaderNodeBsdfDiffuse")
     surf.inputs["Color"].default_value = lin(colour)
-    if kind in ("ground", "plain", "hub", "grass"):  # squares of two close shades on everything that is ground (the user: everywhere)
+    if kind in ("ground", "plain", "hub", "grass", "fill"):  # squares of two close shades on everything that is ground (the user: everywhere)
         geo = n.new("ShaderNodeNewGeometry")
         check = n.new("ShaderNodeTexChecker")
         check.inputs["Scale"].default_value = 1.0 / 8.0  # squares of 8 studs
@@ -212,7 +212,7 @@ else:
                 return eye, target
         return eye, target
     views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
-        "hub": (Vector((0, 9, -230)), Vector((0, 4, 60)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
+        "hub": (Vector((0, 9, -166)), Vector((0, 4, 60)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
         "hub_back": (Vector((0, 9, -40)), Vector((0, 8, -352)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
         "hub_above": (Vector((-220, 270, -520)), Vector((10, -10, 20)), HAZE, 12000, SKY, 55, 0.25),
         "hub_look": (Vector((120, 70, -250)), Vector((-60, 0, 10)), HAZE, 12000, SKY, 70, 0.6),  # for judging the hub's colours
