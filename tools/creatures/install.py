@@ -87,8 +87,16 @@ if __name__ == "__main__":
     studio = sys.argv[1]
     assets = json.load(open(ASSETS, encoding="utf-8"))
     ids = sys.argv[2:] or sorted(assets)
-    rows = ", ".join('{ "%s", %d }' % (i, int(assets[i])) for i in ids)
-    path = os.path.join(tempfile.gettempdir(), "install_creatures.luau")
-    open(path, "w", encoding="utf-8").write(LUAU.replace("__ROWS__", "{ " + rows + " }"))
-    out = subprocess.run(["node", os.path.join(ROOT, "tools", "studio", "run_luau.js"), studio, path], capture_output=True, text=True)
-    print(out.stdout[-3000:] or out.stderr[-2000:])
+    # in batches of 12: loading 82 assets in one run is longer than Studio's connector waits
+    failed = 0
+    for n in range(0, len(ids), 12):
+        batch = ids[n : n + 12]
+        rows = ", ".join('{ "%s", %d }' % (i, int(assets[i])) for i in batch)
+        path = os.path.join(tempfile.gettempdir(), "install_creatures.luau")
+        open(path, "w", encoding="utf-8").write(LUAU.replace("__ROWS__", "{ " + rows + " }"))
+        out = subprocess.run(["node", os.path.join(ROOT, "tools", "studio", "run_luau.js"), studio, path], capture_output=True, text=True)
+        text = (out.stdout[-3000:] or out.stderr[-2000:]).strip()
+        print("%d to %d of %d:" % (n + 1, n + len(batch), len(ids)), text[-900:], flush=True)
+        if out.returncode != 0:
+            failed += 1
+    sys.exit(1 if failed else 0)

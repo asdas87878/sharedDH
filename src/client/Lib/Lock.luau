@@ -27,6 +27,9 @@ local Lock = {}
 local lockedAt = -math.huge
 local challenger: Model? = nil -- the fish that scores better than the locked one, waiting out SwitchTime
 local challengerAt = 0
+local PICK_EVERY = 0.05
+local picked: Model? = nil -- what the last look chose,
+local pickedAt = -1 -- and when
 
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
@@ -87,6 +90,15 @@ end
 -- The fish to lock: `from` is the rider, `eye` and `aim` the camera's place and look, `current` the fish locked now,
 -- `left` the fish we just left, `skip` one not to take at all (the server just refused it)
 function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, left: Model?, skip: Model?): Model?
+	-- (the herd is gone over 20 times a second, not every frame: the lock holds for MinHold and SwitchTime anyway, and
+	-- each look reads three attributes a fish and casts a few rays)
+	local nowAt = os.clock()
+	if nowAt - pickedAt < PICK_EVERY and picked == current and picked ~= skip then
+		if picked == nil or (picked.Parent ~= nil and State.isFreeFish(picked)) then
+			return picked
+		end
+	end
+	pickedAt = nowAt
 	refreshSight()
 	local l = Config.Lock
 	local range = Config.Jump.GrabRange
@@ -121,6 +133,7 @@ function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, l
 	if current and currentScore and best ~= current then
 		if now - lockedAt < l.MinHold or bestScore > currentScore - l.Sticky then
 			challenger = nil
+			picked = current
 			return current
 		end
 		-- a better fish: it takes the lock only once it has been the better one for SwitchTime
@@ -129,6 +142,7 @@ function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, l
 			challengerAt = now
 		end
 		if now - challengerAt < l.SwitchTime then
+			picked = current
 			return current
 		end
 	end
@@ -136,6 +150,7 @@ function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, l
 	if best ~= current then
 		lockedAt = now
 	end
+	picked = best
 	return best
 end
 

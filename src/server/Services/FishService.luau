@@ -42,6 +42,9 @@ export type Wild = {
 	ReleaseSpeed: number,
 	CoastToken: {}?, -- set while the last rider's client still drives it after a dismount
 	PropAt: number, -- os.clock() it last looked for a prop to break (only while inside a big thing's circle)
+	SentAt: number, -- os.clock() its Swim and Turn were last written,
+	SentDir: Vector3, -- and the way and the speed written then: they replicate to every client, so they are
+	SentSpeed: number, -- written only when they have changed enough to see
 	Swim: LinearVelocity,
 	Turn: AlignOrientation,
 	Saddle: Attachment,
@@ -60,6 +63,11 @@ local zones: { Zones.Zone } = {}
 local lane: Lane.Lane
 local slices: { Slice } = {}
 local obstacles: { Obstacle } = {}
+-- the same obstacles by where they stand along the lane, in stretches of OBSTACLE_BUCKET studs: a fish looks only at
+-- its own stretch and the ones either side (it looked at all 302 every frame: 725,000 steps a second for 40 fish)
+local OBSTACLE_BUCKET = 250
+local obstacleBuckets: { [number]: { Obstacle } } = {}
+local NO_OBSTACLES: { Obstacle } = {}
 local wild: { [Model]: Wild } = {}
 
 FishService.Tag = FishModel.Tag
@@ -192,10 +200,19 @@ local function newSlices(): { Slice }
 	return list
 end
 
+-- (the slices run end to end down the lane, so the one that holds s is found by halving: this is asked for every
+-- fish at every top-up, and walking all 250 slices each time was 100,000 steps)
 local function sliceAt(s: number): number?
-	for i, slice in slices do
-		if s >= slice.Start and s < slice.End then
-			return i
+	local low, high = 1, #slices
+	while low <= high do
+		local mid = (low + high) // 2
+		local slice = slices[mid]
+		if s < slice.Start then
+			high = mid - 1
+		elseif s >= slice.End then
+			low = mid + 1
+		else
+			return mid
 		end
 	end
 	return nil
@@ -254,15 +271,43 @@ local function placeInLane(w: Wild)
 	w.Height = math.clamp(position.Y - centre.Y, lowest, math.max(Config.Spawn.HeightMax, lowest))
 end
 
-local function nearAPlayer(position: Vector3, radius: number): boolean
+-- Where the players are, read at most five times a second and kept: the top-up asks "is a player near?" once or twice
+-- for each of 800 fish, and looking every player's root part up each time was most of its cost
+local playerAt: { Vector3 } = {}
+local playersReadAt = -1
+local function readPlayers()
+	if os.clock() - playersReadAt < 0.2 then
+		return
+	end
+	playersReadAt = os.clock()
+	table.clear(playerAt)
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if root and root:IsA("BasePart") and (root.Position - position).Magnitude < radius then
+		if root and root:IsA("BasePart") then
+			table.insert(playerAt, root.Position)
+		end
+	end
+end
+
+local function nearAPlayer(position: Vector3, radius: number): boolean
+	readPlayers()
+	for _, at in playerAt do
+		if (at - position).Magnitude < radius then
 			return true
 		end
 	end
 	return false
+end
+
+-- How far the nearest player is from a point (math.huge with nobody in the game)
+local function nearestPlayer(position: Vector3): number
+	readPlayers()
+	local best = math.huge
+	for _, at in playerAt do
+		best = math.min(best, (at - position).Magnitude)
+	end
+	return best
 end
 
 local function park(w: Wild, parked: boolean)
@@ -284,8 +329,22 @@ local function spawnFish(index: number): Wild?
 	if not slice or not fishType then
 		return nil
 	end
+	-- its place in the slice: of a few tries, the one furthest from every player, and the first that is far enough
+	-- (a new fish appeared out of nothing 0 to 120 studs from a player standing at the lane's start, about one a second)
 	local home = rng:NextNumber(slice.Start, slice.End)
 	local at = pointAt(home)
+	local clear = nearestPlayer(at)
+	for _ = 1, 4 do
+		if clear >= Config.Spawn.AppearClear then
+			break
+		end
+		local tryHome = rng:NextNumber(slice.Start, slice.End)
+		local tryAt = pointAt(tryHome)
+		local tryClear = nearestPlayer(tryAt)
+		if tryClear > clear then
+			home, at, clear = tryHome, tryAt, tryClear
+		end
+	end
 	local _, dir = Lane.at(lane, home)
 	local model = FishModel.build(fishType)
 	model:PivotTo(CFrame.lookAt(at, at + dir))
@@ -309,6 +368,9 @@ local function spawnFish(index: number): Wild?
 		ReleaseSpeed = 0,
 		CoastToken = nil,
 		PropAt = 0,
+		SentAt = 0,
+		SentDir = Vector3.zAxis,
+		SentSpeed = -1,
 		Swim = root:FindFirstChild("Swim") :: LinearVelocity,
 		Turn = root:FindFirstChild("Turn") :: AlignOrientation,
 		Saddle = root:FindFirstChild("Saddle") :: Attachment,
@@ -472,6 +534,54 @@ function FishService.release(w: Wild, handBack: number?)
 	end
 end
 
+-- One obstacle against one fish (mindObstacles, below): returns the push so far and whether the fish's place across
+-- the lane has been moved
+local function mindOne(
+	w: Wild,
+	o: Obstacle,
+	position: Vector3,
+	dir: Vector3,
+	body: number,
+	dt: number,
+	push: Vector3,
+	moved: boolean
+): (Vector3, boolean)
+	local h = Config.Herd
+	local rx, rz = o.X - position.X, o.Z - position.Z
+	local clear = o.Radius + body
+	local ahead = rx * dir.X + rz * dir.Z
+	if ahead > -clear and ahead < h.ObstacleLook + o.Radius then
+		local away = math.sqrt(rx * rx + rz * rz)
+		if away < clear and away > 0.01 then
+			-- inside its margin: out, harder the deeper in
+			push -= Vector3.new(rx, 0, rz) / away * math.min(2, (clear - away) / body)
+		end
+		if away < o.Radius and os.clock() - w.PropAt >= Config.Props.WildEvery and Config.smashes(w.Type) then
+			w.PropAt = os.clock()
+			local size = w.Type.Size
+			PropService.hit(
+				position + w.Dir * (size.Z / 2),
+				w.Dir * w.Speed,
+				math.max(size.X, size.Y) / 2 + Config.Props.Reach
+			)
+		end
+		-- how far to our right it stands (the lane's "across" runs the same way going down the lane)
+		local right = rx * -dir.Z + rz * dir.X
+		if not moved and math.abs(right) < clear then
+			local room = o.Half - h.WallGap
+			local side = if right > 0 then -1 elseif right < 0 then 1 elseif w.Across >= o.Across then 1 else -1
+			if o.Across + side * clear > room or o.Across + side * clear < -room then
+				side = -side
+			end
+			local goal = math.clamp(o.Across + side * clear, -room, room)
+			local step = h.ObstacleShift * dt
+			w.Across += math.clamp(goal - w.Across, -step, step)
+			moved = true
+		end
+	end
+	return push, moved
+end
+
 -- Round the big things in the lane, two ways:
 --   ahead of time: if the fish would pass too near one ahead of it, its place across the lane moves to the side it is
 --   already on, or to the other if the lane's edge is too near on that side. Its place stays moved, so the herd settles
@@ -490,38 +600,10 @@ local function mindObstacles(w: Wild, position: Vector3, dt: number): Vector3
 	dir = dir.Unit
 	local body = w.Type.Size.X / 2 + h.ObstacleGap
 	local moved = false
-	for _, o in obstacles do
-		local rx, rz = o.X - position.X, o.Z - position.Z
-		local clear = o.Radius + body
-		local ahead = rx * dir.X + rz * dir.Z
-		if ahead > -clear and ahead < h.ObstacleLook + o.Radius then
-			local away = math.sqrt(rx * rx + rz * rz)
-			if away < clear and away > 0.01 then
-				-- inside its margin: out, harder the deeper in
-				push -= Vector3.new(rx, 0, rz) / away * math.min(2, (clear - away) / body)
-			end
-			if away < o.Radius and os.clock() - w.PropAt >= Config.Props.WildEvery and Config.smashes(w.Type) then
-				w.PropAt = os.clock()
-				local size = w.Type.Size
-				PropService.hit(
-					position + w.Dir * (size.Z / 2),
-					w.Dir * w.Speed,
-					math.max(size.X, size.Y) / 2 + Config.Props.Reach
-				)
-			end
-			-- how far to our right it stands (the lane's "across" runs the same way going down the lane)
-			local right = rx * -dir.Z + rz * dir.X
-			if not moved and math.abs(right) < clear then
-				local room = o.Half - h.WallGap
-				local side = if right > 0 then -1 elseif right < 0 then 1 elseif w.Across >= o.Across then 1 else -1
-				if o.Across + side * clear > room or o.Across + side * clear < -room then
-					side = -side
-				end
-				local goal = math.clamp(o.Across + side * clear, -room, room)
-				local step = h.ObstacleShift * dt
-				w.Across += math.clamp(goal - w.Across, -step, step)
-				moved = true
-			end
+	local bucket = math.floor(w.S / OBSTACLE_BUCKET)
+	for b = bucket - 1, bucket + 1 do
+		for _, o in obstacleBuckets[b] or NO_OBSTACLES do
+			push, moved = mindOne(w, o, position, dir, body, dt, push, moved)
 		end
 	end
 	return push
@@ -560,8 +642,16 @@ local function steer(w: Wild, dt: number)
 		end
 	end
 	w.Speed = speed
-	w.Swim.VectorVelocity = w.Dir * speed
-	w.Turn.CFrame = CFrame.lookAt(Vector3.zero, w.Dir)
+	-- (both replicate to every client: written when the way has turned about a degree or the speed has changed half a
+	-- stud a second, and twice a second whatever, in case a rider's machine left them at something else)
+	local now = os.clock()
+	if now - w.SentAt > 0.5 or math.abs(speed - w.SentSpeed) > 0.5 or (w.Dir - w.SentDir).Magnitude > 0.017 then
+		w.SentAt = now
+		w.SentDir = w.Dir
+		w.SentSpeed = speed
+		w.Swim.VectorVelocity = w.Dir * speed
+		w.Turn.CFrame = CFrame.lookAt(Vector3.zero, w.Dir)
+	end
 end
 
 -- A point in the middle of the lane at the herd's height (kept under the surface), and the way down the lane there
@@ -640,7 +730,11 @@ function FishService.Init()
 		end
 		local centre, along, width = Lane.at(lane, s)
 		local across = (at - Vector3.new(centre.X, 0, centre.Z)):Dot(along:Cross(Vector3.yAxis))
-		table.insert(obstacles, { X = row[1], Z = row[2], Radius = row[3], Across = across, Half = width / 2 })
+		local obstacle = { X = row[1], Z = row[2], Radius = row[3], Across = across, Half = width / 2 }
+		table.insert(obstacles, obstacle)
+		local bucket = math.floor(s / OBSTACLE_BUCKET)
+		obstacleBuckets[bucket] = obstacleBuckets[bucket] or {}
+		table.insert(obstacleBuckets[bucket], obstacle)
 	end
 	if #obstacles > 0 then
 		print(string.format("[FishService] %d big obstacles in the lane: the herd steers round them", #obstacles))

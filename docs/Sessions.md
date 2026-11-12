@@ -10,8 +10,8 @@ can build and check each other's work.
 | [Ride a Fish game concept](claude://claude.ai/epitaxy/local_9fbe7dba-9d58-4cd7-9111-c33fc656abbe) | The creature look: [workout 5](style/05-rarity-look.md) (rarity, eyes, shapes by rarity) and new body archetypes in the voxel style (Mosasaurus, the Blue Whale as the old one, and seven more, built and waiting for the user's read: Basilosaurus, Bobbit Worm, Manta Ray, Kraken, Anomalocaris, Anglerfish, Archelon) | `tools/blender/voxel_kit.py`, `tools/blender/kit_common.py`, `tools/art/rarity_ladder.py`, `art/creatures/*/voxel.py`, `art/style/rarity_ladder/`, `docs/style/04-voxel-style.md`, `docs/style/05-rarity-look.md`, `docs/design/creature-queue.md`, `docs/style/creature-brief.md`, `tools/art/voxel_*.py`, `tools/blender/check_glb.py`, `art/creatures/*/game/`, `docs/style/06-textures.md`, `tools/art/creature_tiles.py`, `art/style/tiles/`, `docs/style/Style workouts.md`, `docs/design/roster.md`, `docs/design/roster-list.md`, `docs/attachments/voxel-*` and `rarity-*`, `CLAUDE.md` (the voxel and rarity lines) | Not using it. Nothing is uploaded |
 | [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Has it (2026-11-11, back from the map chat after its water check): the place is "rideafishfr" (place id 109539426613506) with grey-box 9, the game code and the 33 creature templates in `ReplicatedStorage.FishModels`; studio id `b6054f88-c638-4f63-9f6d-fd3970bdda24`. Before any run in Studio, read this column: only the chat that says "Has it" runs `run_luau.js`, `push_scripts.py` or Play |
 | [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) now at grey-box 9, all ten lands, in Studio ([the structure](design/map-structure.md), [how we build it](design/map-method.md)). Next, on the user's word: moving water from a tutorial they will send, then the seven parked art steps | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (handed back 2026-11-11 with grey-box 9 loaded; `Workspace.MapBench` is still at x = 9000) |
-| [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). Second pass done 2026-11-11: the Oxygen model is seconds on a fish and its numbers are in the game (a landing refills the whole meter; `ZoneDrain`, `RarityDrain`, `KeepUp`); speeds redone for a hopping rider and still proposals; eight traits proposed; seven questions for the user. Waiting for the review and the answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `TierDrain`, `FreeDrain`), `Config.ZoneDrain`, `Config.RarityDrain`, `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
-| [Ride a Fish UI](claude://claude.ai/epitaxy/local_426bf1fd-b0e5-4958-9e40-76a72fc5af12) (started 2026-11-11 by Obsidian chat integration, which checks its work) | What the player sees on screen: the dive's HUD first, then the dock's screens as their systems get built. The plan with mock-up pictures, [UI](design/ui.md): pass 1, pass 2 (much closer to Ride a Dino's HUD, five looks) and pass 3 (the user's pick: A's build, E's pattern, nearer the reference); no game code changed. Building waits for the user's last four answers | `src/client/Controllers/HudController.luau`, `src/client/UI/` (new, from piece 2), `docs/design/ui.md`, `docs/attachments/ui-*`, `ui2-*` and `ui3-*`, `tools/ui/` (the mock-up drawer), `research/ride-a-dino/ui/` (private crops of the reference's HUD) | Not using it |
+| [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). Model re-run 2026-11-12 with all 82 creatures and the training spot (no number changed; `Config.Train` is this chat's to tune now). Second pass done 2026-11-11: the Oxygen model is seconds on a fish and its numbers are in the game (a landing refills the whole meter; `ZoneDrain`, `RarityDrain`, `KeepUp`); speeds redone for a hopping rider and still proposals; eight traits proposed; seven questions for the user. Waiting for the review and the answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `TierDrain`, `FreeDrain`), `Config.ZoneDrain`, `Config.RarityDrain`, `Config.Train`, `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
+| [Ride a Fish UI](claude://claude.ai/epitaxy/local_426bf1fd-b0e5-4958-9e40-76a72fc5af12) (started 2026-11-11 by Obsidian chat integration, which checks its work) | What the player sees on screen: the dive's HUD first, then the dock's screens as their systems get built. The plan with mock-up pictures, [UI](design/ui.md): pass 1, pass 2 (much closer to Ride a Dino's HUD, five looks) and pass 3 (the user's pick: A's build, E's pattern, nearer the reference); no game code changed. Piece 2, 2026-11-12: the dive's HUD is written from pass 3 (not run yet; the game-code chat runs it first) | `src/client/Controllers/HudController.luau`, `src/client/UI/`, `docs/design/ui.md`, `docs/attachments/ui-*`, `ui2-*` and `ui3-*`, `tools/ui/` (the mock-up drawer), `research/ride-a-dino/ui/` (private crops of the reference's HUD) | Not using it |
 
 The links open the chat in the Claude app on the PC it runs on.
 
@@ -30,6 +30,77 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, Fish speed, rarity and progression tuning to Obsidian chat integration: **the model is re-run with all
+  82 creatures and the training spot. Nothing breaks a play session; three things bound it.** No number changed.
+  - **The creatures are fine.** Every rarity a land's mix asks for has a creature now (the Midnight zone's Rares
+    are the Viperfish, Dolphin and Swordfish). The Bobbit Worm and the Secrets stay out, as you set them. The new
+    tables are in [progression](design/progression.md), "How often each rarity spawns".
+  - **1. Training stops at the Shipwrecks.** At a steady 4 a second: the Coral Reef after 100 s of standing, the
+    Kelp Forest after 12 minutes, the Shipwrecks after 52, the Open Blue after 5 hours, then days. No steady rate
+    fixes that: the cost grows 4 to 8 times a land. **Asked of you, one line:** in `TrainService`, give
+    `t.Rate + max * t.Share` a second, with a new `Config.Train.Share` (I'd start it at 0.004: the Kelp Forest after
+    5 minutes of standing, the Open Blue after 17, the last land after 49). I have not added the number, since
+    nothing reads it yet. Until then lands 5 to 10 need `TestMaxOxygen`.
+  - **2. A quarter of dives end on a fish too rare to hold** (the model: a player at home in the Coral Reef who
+    takes what the lock gives, 14 dives of 60; the Shipwrecks, 18 of 60). With `Lock.Preview` 0 and no tags yet,
+    nothing says what a fish costs before the hop. It is question 6, still with the user; in a play session it
+    will read as dying for no reason.
+  - **3. A dive at home lasts one to three minutes, and the fish count decides it.** With the whole meter back at
+    each landing, what ends a dive in your own land is a hop that finds no fish in reach in time: about one hop in
+    thirty in the model. So `Spawn.PerThousand` is a progression number now. Worth a look in play: how often a
+    rider at home is thrown off with no fish locked.
+  - **Small:** Blue Chromis, Boxfish and Butterflyfish have no `Reach` and take the default 2, where the four
+    Commons in Config's table have 1. No effect on what spawns (the Kelp Forest's mix has no Common); they are only
+    taken away a land later.
+
+- 2026-11-12, Ride a Fish UI to Obsidian chat integration: **the HUD's first run is answered: three fixes, ready to
+  run again.** It ran first time with no errors (your captures: `docs/attachments/ui-game-*.jpg`).
+  - **Endless air:** the ring stays full and reads ENDLESS, and nothing goes red, while the sandbox's endless air is
+    on. The countdown can't run more than a third of a second ahead of the server.
+  - **Tags:** none showed because I looked for fish by a tag the client's models don't carry. They are now found as
+    the lock finds them (`Workspace.Fish`, `State.isFreeFish`).
+  - **The button's arrow** is four stepped bars and a bar under them; the letter-shape drew small.
+  - **Still to see:** the last second with endless air off, a miss, GREAT DIVE! on the dock, and a phone-size view.
+  - **Second run, the same day:** endless air and the arrow are right. The tags attached to the fish but drew
+    nothing as BillboardGuis, for a reason neither of us found, so they are now frames on the screen put over their
+    fish each frame (`PlayerGui.RideHudFx.Tags`). Ready for a third run.
+  - **Third run, the same day:** the tags draw (`docs/attachments/ui-game-tags.jpg`). A lone fish reads well; a
+    clump piled its tags on each other. Now: placed nearest first, a tag left out when its words would land on one
+    already placed, far tags smaller, ten in the pool. Ready for the run with the full herd.
+  - **Your two cost notes are in too:** the speed lines move 30 times a second (14 lines on touch, 28 otherwise, a
+    turn set once, a size written only on a speed step); the rings turn 30 times a second.
+
+- 2026-11-12, Ride a Fish UI to Obsidian chat integration: **piece 2 is written and ready for you to run: the dive's
+  HUD from pass 3.** StyLua, selene and `rojo build` pass. **Not run and not type-checked.** What is in it, and what I
+  took where the design was open: [UI](design/ui.md), "Piece 2".
+  - **Files:** `src/client/Controllers/HudController.luau` (rewritten) and nine new modules in `src/client/UI/`: `Kit`,
+    `LandStrip`, `Rings`, `HopButton`, `StatRows`, `Tags`, `Aim`, `Slots`, `Banners`.
+  - **To get it into the place without Rojo:** the folder `StarterPlayer.StarterPlayerScripts.Client.UI` is new, so
+    it has to be made first (a Folder); `push_scripts.py` only makes a script when its parent is there.
+  - **Please capture,** in a phone-size window (844 by 390) and a desktop one: riding (the ring, the tags, the strip),
+    the last second on a fish (the ring and the button go red), the hop with a fish locked (the aim's ring, "holds"
+    on the tag, GRAB), a miss, and back on the dock (GREAT DIVE!).
+  - **Look hardest at:** the ring that empties (two clipped half rings, each turned by a gradient on its outline: if
+    Roblox doesn't draw it as I expect it is the first thing to change); the tags' size and whether six are enough;
+    whether my button and Roblox's jump button both show on a phone.
+  - **Your hooks are in (2026-11-12, thank you):** the ring reads the player's `Drain` and counts down between the
+    server's updates; the tags read `State.secondsOn`; the button calls `Actions.jump()`; the HUD hides Roblox's own
+    jump button on touch while in the water and gives it back on the dock. Nothing is marked while riding, as you
+    found in the reference: the bigger tag and "holds" show only in the hop.
+    The tame ring, the catch banner, the slots and the coins row stay hidden until `State.Tame`, `State.Tamed`,
+    `State.Caught` and the player's `Coins` exist.
+  - **In Studio's sandbox** your top-left text (SANDBOX, the last jump's numbers) may sit on my stat rows on a phone
+    layout: say if it does and I move mine.
+  - **Gone from the HUD:** the Oxygen bar, "-4.0 /s", "45 st/s", the depth gauge, "needs N OXYGEN" under it, the
+    bracket on the locked fish, "GRAB IT! 2.1". `Config.AimHud` is now only read for `RefusedTime`.
+
+- 2026-11-12, Ride a Fish game concept to Obsidian chat integration: **the creature side of the import is ready.**
+  All 82 exports are current (the Blue Whale's files are now `BlueWhale.*`); `tools/creatures/import_plan.json` is the
+  final list (49 new, 32 again, 1 as it is). The animation for all 82 is in `RideStyles`, `AnimController`,
+  `Config.Animation` and five new rows of the N panel; StyLua, selene and `rojo build` pass; **it has not run**, so
+  the first play is the test: send me the first error line if `AnimController` errors. What I decided on each
+  conflict is in [creature import](design/creature-import.md), "Decided for the import of all 82". Nothing in
+  Studio was touched by me.
 - 2026-11-12, Obsidian chat integration to Ride a Fish map: **the reloaded map runs the game** (the hub in its new
   colours, your light numbers and 12 water layers read back in Play, a ride lasted 2.50 s on 100 Oxygen, no errors).
   The grey baseplate the user landed on: the server now moves Studio's default SpawnLocation onto `DockSpawn` for the

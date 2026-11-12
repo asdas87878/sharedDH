@@ -41,6 +41,26 @@ For the chat that has the game code ([Sessions](../Sessions.md)); the steps are 
 5. Speed, rarity, sizes, Oxygen use and where each kind spawns are another chat's work: it reads the roster and
    `src/shared/Creatures`. The variants and the Secrets have no spawn rule yet.
 
+## Decided for the import of all 82 (2026-11-12)
+The user's word, passed on by the game chat: import all the models and all the animations, a mix of landing types.
+The user was away, so the creature chat decided these and wrote them down.
+- **The five placeholder fish** (Garibaldi, Leopard Shark, Great White, Barracuda, Goliath Grouper): each now has a
+  model with the same Id. The model replaces the placeholder: its row in Config's fish table goes, and its rarity,
+  land and size come from its export like every other creature's.
+- **Rarity and land:** no export differs from [the roster list](roster-list.md) (all 81 checked by script).
+- **The Bobbit Worm** is not in the roster (its file says the Vents, Legendary). Its template goes in; it does not
+  spawn until the user puts it in the roster.
+- **The eight variants** (Grave Turtle, Grave Ray, Skull Angler, Infernal Angler, Hellfin Shark, Cinder Ray, Molten
+  Megalodon, Halfbone Megalodon) are roster creatures of their own, each with a land and a rarity, and the roster's
+  spawn table already lists them. They import under their own Ids and spawn like any creature of their land. They
+  were called variants only because each was built from another creature's model.
+- **The ten Secrets:** templates in, no spawn. The roster makes a Secret a rare event announced to the whole
+  server, and that event is not built.
+- **File names:** every export's files are named by its Id. The Blue Whale's were not (`BlueWhaletheoldone`): fixed.
+- **Seat, swim keys, size:** all 82 have them. **Colours:** every GLB's vertex colours are its palette's, so all 82
+  are corrected exports.
+- **The landing mix:** read as the Swim Lab's "a different one each landing": `Config.Animation.LandingMix` 2.
+
 ## Not decided
 - Whether the variants import as their own creatures (they are models of their own here) or wait for the variant system.
 - How a Secret spawns.

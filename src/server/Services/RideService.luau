@@ -44,6 +44,8 @@ type Rider = {
 	JumpReadyAt: number,
 	SentOxygen: number,
 	SentAt: number,
+	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
+	Trained: number, -- max Oxygen gained on the training spot this session (TrainService), on top of the start
 	CheckAt: number,
 	CheckFrom: Vector3?,
 	Flagged: boolean,
@@ -124,22 +126,34 @@ local function setState(r: Rider, state: string)
 		r.Player:SetAttribute("DeathThrown", nil)
 		r.Player:SetAttribute("DeathQuick", nil)
 	end
+	if state ~= "Riding" and r.SentDrain ~= 0 then
+		r.SentDrain = 0
+		r.Player:SetAttribute("Drain", 0)
+	end
 	r.State = state
 	r.Player:SetAttribute("State", state)
 end
 
 local function sendOxygen(r: Rider, force: boolean?)
 	local t = os.clock()
-	if force or math.abs(r.Oxygen - r.SentOxygen) >= 0.5 or (t - r.SentAt > 0.1 and r.Oxygen ~= r.SentOxygen) then
+	-- (ten times a second while it changes, or at once when it has moved a twentieth of the meter. It was "by half a
+	-- point", which at 40 a second and more is every frame, to every client: the HUD counts down between updates)
+	if
+		force
+		or math.abs(r.Oxygen - r.SentOxygen) >= r.Max * 0.05
+		or (t - r.SentAt > 0.1 and r.Oxygen ~= r.SentOxygen)
+	then
 		r.SentOxygen = r.Oxygen
 		r.SentAt = t
 		r.Player:SetAttribute("Oxygen", math.floor(r.Oxygen * 10 + 0.5) / 10)
-		r.Player:SetAttribute("MaxOxygen", r.Max)
+		r.Player:SetAttribute("MaxOxygen", math.floor(r.Max * 10 + 0.5) / 10)
 	end
 end
 
-local function deny(r: Rider, action: string, reason: string)
-	Net.Ride:FireClient(r.Player, "Denied", action, reason)
+-- (`target`: the fish a refused grab or landing was for, so the client can tell an old refusal from one for the fish
+-- it is being pulled to now)
+local function deny(r: Rider, action: string, reason: string, target: any?)
+	Net.Ride:FireClient(r.Player, "Denied", action, reason, if typeof(target) == "Instance" then target else nil)
 end
 
 -- Off the fish. A jump lets our client coast the old fish a while (no hitch in front of us).
@@ -212,6 +226,9 @@ local function toDock(r: Rider)
 		if dockSpawn then
 			character:PivotTo(dockSpawn.CFrame + Vector3.new(0, 4, 0))
 		else
+			-- (the state first: loading a character yields, and a rider still Free or Drowning was sent to the dock
+			-- again every frame until it had loaded)
+			setState(r, "Dock")
 			local player: any = r.Player
 			if not pcall(function()
 				player:LoadCharacterAsync()
@@ -290,23 +307,23 @@ end
 -- Granted, it is kept for them until the landing. Refused, the hop goes on: the window is still running.
 local function grab(r: Rider, target: any)
 	if r.State ~= "Jumping" then
-		return deny(r, "Grab", "State")
+		return deny(r, "Grab", "State", target)
 	end
 	local j = Config.Jump
 	local root = parts(r.Player)
 	local w = FishService.get(if typeof(target) == "Instance" then target else nil)
 	if not root or not w or not FishService.isFree(w, r.Player) then
-		return deny(r, "Grab", "Target")
+		return deny(r, "Grab", "Target", target)
 	end
 	local elapsed = os.clock() - r.JumpAt
 	if r.Grab or elapsed > j.Window + j.Slack then
-		return deny(r, "Grab", "Window")
+		return deny(r, "Grab", "Window", target)
 	end
 	-- The client's hard cap, and a little for lag (we see the player and the fish a moment apart, both moving): without
 	-- it a grab near the edge of the range is refused though the client was inside it. Landing slack never widens this.
 	local reach = j.GrabRange * Config.Net.RangeSlack
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
-		return deny(r, "Grab", "Range")
+		return deny(r, "Grab", "Range", target)
 	end
 	-- Match the client's obstruction rule. Aim is local camera intent; range and solids are authoritative.
 	local params = RaycastParams.new()
@@ -326,10 +343,10 @@ local function grab(r: Rider, target: any)
 	end
 	params.FilterDescendantsInstances = excluded
 	if workspace:Raycast(root.Position, w.Root.Position - root.Position, params) then
-		return deny(r, "Grab", "Blocked")
+		return deny(r, "Grab", "Blocked", target)
 	end
 	if not FishService.reserve(w, r.Player) then
-		return deny(r, "Grab", "Target")
+		return deny(r, "Grab", "Target", target)
 	end
 	r.Grab = w
 	r.GrabAt = os.clock()
@@ -353,18 +370,21 @@ local function landOn(r: Rider, target: any)
 			FishService.unreserve(r.Grab, r.Player)
 			r.Grab = nil
 		end
-		return deny(r, "Grab", "Target")
+		return deny(r, "Grab", "Target", target)
 	end
 	-- the server sees the player a moment late, and a pull-in arrives fast
 	local reach = w.Type.Size.Z / 2 + j.LandSlack * 2
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
-		deny(r, "Land", "Range")
-		return miss(r)
+		-- (a refused grab, not a miss: the hop goes on with what is left of its window. It was a drown, "MISSED THE
+		-- FISH" while sitting on the fish, which a slow connection on a fast fish could reach)
+		FishService.unreserve(w, r.Player)
+		r.Grab = nil
+		return deny(r, "Grab", "Range", target)
 	end
 	if not mount(r, w, true) then
 		FishService.unreserve(w, r.Player)
 		r.Grab = nil
-		deny(r, "Grab", "Target")
+		deny(r, "Grab", "Target", target)
 	end
 end
 
@@ -488,7 +508,13 @@ local function tick(r: Rider, dt: number)
 			setState(r, "Free")
 		else
 			-- the deeper the land, the more the fish takes a second: this is the progression
-			drain(r, Config.drain(zoneOf(root.Position), w.Type.Tier) * dt)
+			-- (told to the client when it changes, for the HUD's seconds left on this fish: the Drain attribute)
+			local rate = Config.drain(zoneOf(root.Position), w.Type.Tier)
+			if rate ~= r.SentDrain then
+				r.SentDrain = rate
+				r.Player:SetAttribute("Drain", rate)
+			end
+			drain(r, rate * dt)
 			checkSpeed(r, w)
 			checkCrash(r, w)
 			if r.Oxygen <= 0 then
@@ -566,6 +592,7 @@ local function onPlayer(player: Player)
 		State = "Dock",
 		Oxygen = maxOxygen(),
 		Max = maxOxygen(),
+		Trained = 0,
 		Fish = nil,
 		Weld = nil,
 		JumpAt = 0,
@@ -576,6 +603,7 @@ local function onPlayer(player: Player)
 		JumpReadyAt = 0,
 		SentOxygen = -1,
 		SentAt = 0,
+		SentDrain = 0,
 		CheckAt = 0,
 		CheckFrom = nil,
 		Flagged = false,
@@ -625,13 +653,23 @@ function RideService.sandboxReset(player: Player)
 	root.AssemblyLinearVelocity = Vector3.zero
 	setState(r, "Free")
 	Net.Ride:FireClient(player, "Dismounted", "Lost")
-	local w = FishService.nearest(at, 250, player)
-	if w then
-		mount(r, w, false)
-		return
-	end
-	-- the fish there were put away while nobody was near: they are back by the next top-up
+	-- The mount waits a moment for the player's own machine to move the character here: it owns the character's
+	-- physics, and a weld made while its copy still stood on the dock joined a fish to a rider 250 studs away. The two
+	-- were then thrown together, now and then far into the sky or under the map (seen 2026-11-12: 1,150 studs up, 750
+	-- down). A real landing never has this: the pull-in has put the rider on the saddle before the server mounts.
 	local token = r.Token
+	task.delay(0.35, function()
+		if r.Token ~= token or r.State ~= "Free" then
+			return
+		end
+		local here = parts(player)
+		local w = if here and (here.Position - at).Magnitude < 60 then FishService.nearest(at, 250, player) else nil
+		if w then
+			mount(r, w, false)
+		end
+	end)
+	-- and again later: the fish there may have been put away while nobody was near (they are back by the next top-up),
+	-- or the character was slow to arrive
 	task.delay(Config.Spawn.TopUpEvery + 0.5, function()
 		local late = if r.Token == token and r.State == "Free" then FishService.nearest(at, 250, player) else nil
 		if late then
@@ -675,10 +713,24 @@ function RideService.Init()
 	end)
 end
 
+-- Training (TrainService): a player standing on the dock gains max Oxygen. Returns whether it was given (only on the
+-- dock: not in the water, on a fish or drowning). Kept for the session; there are no saves yet.
+function RideService.train(player: Player, amount: number): boolean
+	local r = riders[player]
+	if not r or r.State ~= "Dock" or amount <= 0 then
+		return false
+	end
+	r.Trained += amount
+	r.Max = maxOxygen() + r.Trained
+	r.Oxygen = r.Max
+	sendOxygen(r, true)
+	return true
+end
+
 -- Everyone's max Oxygen, read again (Studio: the TestMaxOxygen attribute or the sandbox panel's Oxygen.StartMax changed)
 function RideService.readMax()
 	for _, r in riders do
-		r.Max = maxOxygen()
+		r.Max = maxOxygen() + r.Trained
 		r.Oxygen = math.min(r.Oxygen, r.Max)
 		if r.State == "Dock" then
 			r.Oxygen = r.Max

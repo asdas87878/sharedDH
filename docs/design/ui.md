@@ -4,7 +4,8 @@ The plan for the dive's HUD and the dock's screens. Written 2026-11-11 by the UI
 **Pass 3, the same day, is the current proposal:** the user picked look A for its simple build, with E's pattern, and
 asked for it to go nearer still to Ride a Dino's HUD. Pass 2 (five looks) and pass 1 are kept below.
 
-**Everything here is proposed. Nothing is built and no game code was changed.** The pictures are mock-ups drawn by code
+**The dive's HUD is built in code since 2026-11-12 ("Piece 2", below), on the user's word, from pass 3, and has run
+once in Studio. Everything else here is proposed.** The pictures are mock-ups drawn by code
 (`python tools/ui/render_mockups.py` draws them again); the scene behind the HUD in them is a stand-in, not the game.
 What the user decides goes in [Decisions](../Decisions.md).
 
@@ -23,6 +24,78 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 - **Four questions** are at the end.
 
 ![](../attachments/ui3-phone.jpg)
+
+## Piece 2: the dive's HUD in the game (2026-11-12)
+The user, through the game-code chat: "I'd like to add the Ride a Fish UI as we've done it currently". Built from
+pass 3. The user was away and asked not to be asked, so each open point took its recommended answer; they are listed
+under "What was taken where the design was open".
+
+**State: run once in Studio by the game-code chat, 2026-11-12, at desktop size: no errors.** The ring, the strip of
+lands, the best marker, the Oxygen row, the jump button and the aim all drew ([riding](../attachments/ui-game-riding-ring.jpg),
+[the hop](../attachments/ui-game-hop.jpg)). A second run the same day confirmed two fixes (the ring under the sandbox's
+endless air, the button's arrow). A third run showed the tags drawing ([a lone fish reads well](../attachments/ui-game-tags.jpg)), but a
+clump of fish piled its tags on each other. **A crowding rule is added and waits for a run with the full herd:**
+tags are placed nearest first, and one whose words would land on a tag already placed is left out; far tags are
+smaller. **Not
+seen yet:** a phone-size screen, the last second on a fish, a miss, the end of a dive. Not type-checked (no luau-lsp
+on this PC).
+
+| File | What it is |
+|---|---|
+| `src/client/Controllers/HudController.luau` | Makes the two screens, lays the pieces out for a phone or a keyboard, and feeds them each frame. Rewritten: the Oxygen bar, the rate, the speed, the depth gauge and the bracket are gone |
+| `src/client/UI/Kit.luau` | The colours, the outlined letters, the ring that empties, the bubble and the coin, the number forms |
+| `src/client/UI/LandStrip.luau` | The ten lands across the top, your marker and metres, your best |
+| `src/client/UI/Rings.luau` | The seconds left on this fish, the fish's name and rarity, the tame ring |
+| `src/client/UI/HopButton.luau` | The jump button: the arrow turns over in the air; HOP and GRAB on a phone, "Space" on a keyboard |
+| `src/client/UI/StatRows.luau` | Your Oxygen; coins when the game has them |
+| `src/client/UI/Tags.luau` | Tags on the nearest wild fish: rarity, name, what each needs, in three colours |
+| `src/client/UI/Aim.luau` | In the hop: the aim, and the window as a ring |
+| `src/client/UI/Slots.luau` | The seven slots for what you carry |
+| `src/client/UI/Banners.luau` | A miss, the end of a dive, a catch |
+
+**Works with today's game:** the strip of lands, the metres and the best of this session; the big ring with the
+seconds; the fish's name and rarity; the jump button; the aim and the window; the tags; your Oxygen; the words of a
+miss; "GREAT DIVE!" with the depth when you are back on the dock.
+
+**Built and hidden until its system exists:** the tame ring (`State.Tame`), the catch banner (`State.Tamed`), the
+slots (`State.Caught`), the coins row (the player's `Coins`). The names are proposals to the game-code chat.
+
+**From the game code, in since 2026-11-12:** the player's `Drain`, `State.secondsOn(fish)`, and `Actions.jump()`
+for the button.
+
+**Not built yet:** creature pictures in the slots, the revive bar, the new-land banner, the first-minute hints, the
+dock's buttons and shop panels.
+
+### What was taken where the design was open
+| Open point | Taken | Why |
+|---|---|---|
+| The pattern on the plates (studs, bubbles) | **None** | A pattern needs an uploaded picture, and no upload is allowed without the user's yes |
+| The signs | **Made of frames:** the bubble and the coin are circles; the button's arrow is a letter-shape with a bar under it | The same: no uploads |
+| Revives after a miss | **Not built** | The game has none, and whether it should is not decided |
+| On a phone, Oxygen and coins | **Top left** | Clear of Roblox's stick |
+| The locked fish's bigger tag | **Only in the hop** | The game-code chat checked the user's recording: the reference marks no animal while you still ride, only once you are in the air. The game follows it (`Lock.Preview` 0), so nothing is locked until the hop. One switch at the top of `Tags.luau` (`LOCKED_WHILE_RIDING`) would bring it back |
+| The reference's eighth slot (the "Q") | **Left out** | Its job isn't known |
+| The best depth | **The best of this session, kept by the HUD** | Nothing is saved yet |
+| The seconds on a fish | **Your Oxygen divided by the server's own rate** (the player's `Drain`, added by the game-code chat 2026-11-12). The server sends the meter about ten times a second; between those the HUD counts down itself, so the ring turns smoothly | The game's number, not a second sum |
+| A tag's colour and "holds 2.0 s" | **`State.secondsOn(fish)`,** the game's own sum for any fish (added the same day) | The same |
+| Roblox's own jump button on a phone | **Hidden by the HUD while ours shows,** given back on the dock | The game-code chat's ask; it stays for the normal jump on the dock |
+| The size on a big screen | **One design at phone size, scaled by the screen's height:** 1 up to 560 high, 1.9 at 1080, never more than 2.2 | Pass 3's rule |
+
+### How it is made, for a phone
+- **No pictures.** Frames, corners, outlines and gradients only.
+- **The ring that empties** is two half rings. Each is an outlined circle inside a frame that clips it to its half;
+  the outline's gradient is see-through past its middle, and turning that gradient sweeps the half open. Only two
+  numbers change, in half-degree steps. This is the piece most worth looking at first in Studio.
+- **Nothing is made per frame.** Ten tags are made once and moved from fish to fish. The herd is looked over four
+  times a second. The tags are frames on the screen, put over their fish each frame (six points turned from the
+  world to the screen). They were BillboardGuis first; those attached to the fish but drew nothing in Studio, for a
+  reason not found, so they are drawn the way the rest of the HUD is.
+- **A label's text is set only when it changes,** and the seconds at most fifteen times a second.
+- **What moves all the time is throttled** (2026-11-12, from a review of the whole game's cost): the speed lines move
+  thirty times a second, half as many on a phone, and the rings turn thirty times a second.
+- **Text never changes size.** The HUD's one scale is set when the screen changes, not animated.
+- **Two screens:** the speed lines, the closing edges and the black cover the whole display; the HUD keeps clear of a
+  phone's notch.
 
 ## Pass 3: A's build, E's pattern, nearer the reference
 The user, 2026-11-11: "A looks the best", some of the rounding simplified, the sizes more accurate, more like the dino

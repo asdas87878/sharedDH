@@ -3,6 +3,148 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · 8570-F43F (the user's PC): AnimController after the review (cost, joints cached too soon)
+**State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not run** by this chat
+(Studio is the game chat's). One file: `src/client/Controllers/AnimController.luau`. The game chat's own edit
+(`MOUNT_REACH`) is kept.
+
+- **Cost:** a fish behind the camera is not moved at all (with its own length of grace). A fish past 150 studs is
+  moved every second frame, past 300 every third. Each fish keeps its own clock, so its step is the time since it
+  was last moved, and one that was out of view for over 0.3 s starts afresh. The ridden fish is always moved.
+- **Joints:** a fish's joints are no longer kept until the first part's joint and every keyed part's joint are
+  found. Until then it is tried again every 0.2 s for 5 s; after that it makes do and warns, naming the creature.
+- **Not read every frame any more:** the fish folder (kept from `ChildAdded` and `ChildRemoved`) and the players
+  (kept from `PlayerAdded` and `PlayerRemoving`).
+- **A landing's number from the server:** the "Land" effect may carry a fourth value, a count; if it does, the
+  reaction is seeded from it, so a player who joined late sees the same one. Without it each client counts.
+- **Left:** the rider's pose table is still made each frame for each rider (a few players; the CFrames in it are
+  made each frame anyway).
+
+## 2026-11-12 · 8570-F43F (the user's PC): the large check, first half: an independent review and its fixes
+**State:** fixed and run in Studio by the game-code chat (the herd moves, none inside an obstacle, five hops in a row
+land, no errors; the server's frame is 0.7 ms with one player). StyLua, selene and `rojo build` pass. An independent
+reviewer read every file of `src/` for bugs and cost; what it found, and what was done:
+
+- **Fixed, cost on the server** (`FishService`): each fish looked at all 302 obstacles every frame (725,000 steps a
+  second for 40 fish): obstacles are now kept by where they stand along the lane and a fish looks at its own 250-stud
+  stretch and its neighbours. A fish's `Swim` and `Turn` were written every frame and replicate to everyone: now only
+  when its way turns a degree or its speed changes half a stud a second (and twice a second regardless). The top-up
+  read every player's position for each of 800 fish and walked all 250 slices: positions are read five times a
+  second at most, and the slice is found by halving.
+- **Fixed, traffic** (`RideService`): `Oxygen` went to every client every frame at today's drain rates; now ten times
+  a second, or at once when it moves a twentieth of the meter.
+- **Fixed, new fish appearing beside a player** (`FishService.spawnFish`, `Spawn.AppearClear` 160): of a few tries in
+  the slice, the place furthest from every player. A player at the lane's start still sees some appear, because the
+  first slice is all within reach of them.
+- **Fixed, bugs:** `Ease.smoothstep` gave NaN with no width (a sandbox number could lose the character); a late
+  refusal for one fish no longer stops a pull-in begun on the next (the refusal now names its fish); a landing the
+  server sees out of reach is a refused grab, not a drown; with no dock spawn the rider was sent to the dock every
+  frame while the character loaded; a creature file missing a field, or an unknown rarity, is left out with a warning
+  instead of stopping every script; the lock looks over the herd 20 times a second, not every frame.
+- **Passed to their owners:** the animation's cost per fish per frame, fish behind the camera, and joints cached too
+  early (the creature chat); the HUD's speed lines and ring gradient every frame (the UI chat).
+- **Not done:** a fish's place along the lane drifts from where it really is after detours (a check first: print the
+  gap for old fish); the prop tweens replicate 60 parts a frame in a burst; an out-of-sight surplus fish is destroyed
+  and a new one built, where it could be moved; the ray filter isn't rebuilt when another player joins mid-ride.
+
+## 2026-11-12 · 8570-F43F (the user's PC): riders thrown thousands of studs at a mount: found and fixed
+**State:** fixed and run in Studio by the game-code chat: 16 sandbox resets in a row, none thrown (before: 6 of 12).
+
+- **What was seen:** now and then, a third of a second after mounting a fish, the rider and the fish were somewhere
+  else entirely: 1,150 studs up, 750 under the map, once 10,000 studs away. The server's log: the pair sat right at
+  the mount, then jumped together, with "fish moved too fast".
+- **The cause** (`RideController.onMounted`): a ride carries on at the speed the fish was swimming, read from the
+  fish's Root at the mount. In the frame the fish's body joins the rider's, the engine can report a speed in the
+  thousands, and the ride then started at that speed along the fish's nose. **Fixed:** the start speed is never more
+  than the fish's own ridden speed, and the start pitch never more than 35 degrees. This was not only the sandbox's
+  reset: any mount could have hit it, a landing too.
+- **Also changed on the way:** the sandbox's reset now waits a third of a second before mounting, so the player's
+  own machine has moved the character to the lane first (`RideService.sandboxReset`); and the rider's body follows
+  the fish's motion only when that fish is within 40 studs (`AnimController`, `MOUNT_REACH`): for a few frames round a
+  mount it could name a fish far away. Neither was the cause, both are kept as guards.
+- **The pull-in's dots** have their own deeper yellow (`Jump.DotGlow`): in the ring's colour they bloomed to white
+  blobs under the new lighting.
+
+## 2026-11-12 · 8570-F43F (the user's PC): a training spot, all 82 creatures on their way in, and a Config clash
+**State:** written and run in Studio by the game-code chat; StyLua, selene and `rojo build` pass. The uploads were
+running when this was written.
+
+- **Training** (new `src/server/Services/TrainService.luau`, `RideService.train`, `Config.Train`): a pad in the hub;
+  standing on it adds `Train.Rate` (4) to your max Oxygen every second, kept for the session (no saves). The pad is
+  the map's part named `TrainSpot` under the hub when it has one; until then a stand-in disc is made at run time
+  70 studs to the right of the dock's spawn and 24 toward the water. The player's `Training` attribute is true while
+  gaining. Seen in play: 100 to 120 in 5 seconds, and it stops when you step off. `Train.On` 0 takes it out.
+- **Creatures:** `tools/creatures/collect.py` wrote all 82 data files. The five placeholder fish are out of Config's
+  table; the Bobbit Worm is kept out of the herd (`NO_SPAWN`, Reach -1) until it is in the roster; Secrets have no
+  land's mix, so they don't spawn. The uploads (81 models) go through `tools/creatures/upload.py`.
+- **A clash, fixed:** the creature chat's rewrite of `Config.Animation` removed the whole `Config.Look` block, so the
+  lighting controller and the N panel errored at start. Restored from the last sync, above the Animation comment.
+  Four chats edit `Config.luau`: small exact edits only.
+- **`MaxOxygen`** on the player is rounded to a tenth now (training makes it a fraction).
+- **Tools:** `tools/studio/sync_src.py` sends the creature data too, in batches.
+
+## 2026-11-12 · 8570-F43F (the user's PC): the dive's HUD rebuilt from the UI plan (pass 3), not run yet
+**State:** written by the UI chat, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not run
+and not type-checked.** The game-code chat runs it first.
+
+- **What:** `HudController.luau` rewritten, and nine new modules in `src/client/UI/`. The HUD now follows the
+  reference's riding screen: the strip of lands on top, a ring with the seconds left on this fish beside the rider,
+  the jump button at the lower right, a tag on each of the nearest wild fish, your Oxygen as a stat row. Detail and
+  the choices taken: [UI](design/ui.md), "Piece 2".
+- **Gone:** the Oxygen bar, the rate and the speed beside it, the depth gauge, the bracket on the locked fish.
+- **Waiting on the game code:** the server's own rate for the ring (`State.Drain`), the locked fish's seconds
+  (`State.LockSeconds`), Roblox's jump button hidden on touch. It runs without them.
+- **Nothing uploaded.** No pattern and no picture signs until the user says yes to uploads.
+
+## 2026-11-12 · 8570-F43F (the user's PC): the creature chat's side of the import of all 82 is ready
+**State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not run:** no type
+check on this PC and Studio is the game chat's, so the animation has not played in the game. No upload by this chat.
+The user's word, passed on by the game chat: import all the models and all the animations, with a mix of landing
+types. Files: `art/creatures/BlueWhale`, `tools/creatures/import_plan.json`, `src/shared/RideStyles.luau`,
+`src/client/Controllers/AnimController.luau`, `Config.Animation`, five rows on the N panel.
+
+- **The exports:** all 82 present, each with one `<Id>.glb` and `<Id>.mesh.json`, a seat, swim keys and a size.
+  Every vertex colour in every GLB is one of its palette's colours, so none is a too-dark export. The Blue Whale's
+  files were named `BlueWhaletheoldone` (its `NAME` said "the old one"): renamed in `voxel.py`, exported again, the
+  old files deleted. The plan: 49 new uploads, 32 again, 1 as it is ([creature import](design/creature-import.md)).
+- **Rarity and land:** all 81 roster creatures' exports agree with [the roster list](design/roster-list.md).
+- **The animation is the Swim Lab's**, the preview the user tuned over 2026-11-11 and 12 (its "Lively, balanced"
+  set), carried into `AnimController`, all of it seen only:
+  - **A slow wave** for each body type (`RideStyles.Waves`, `Animation.Wave`): the stroke, the height, a drift to
+    one side and a lean, on one rhythm of 3 to 7 seconds that swells and fades. A small fish shows about half.
+  - **Landings** (`RideStyles.Landings`, `Animation.Wild`, `LandingMix`): the dip at the touch, then one of seven
+    reactions (startle, buck, thrash, bolt, wobble, shudder, barrel roll) that builds from the touch and falls off
+    over about two seconds. `LandingMix` 2 is the user's mix: the body type's own most often, its second often, now
+    and then any of the seven. Each client seeds the pick from the rider's id and its count of their landings.
+  - **Side fins in a turn** (`RideStyles.Fins`, `Animation.FinTurn`): tilt, sweep and a wider stroke on the outside.
+    Only the 48 creatures with separate side parts show it.
+  - **A calmer rider** (`Animation.RiderCalm`): they take the body's shift eased and at half its turning; thrown
+    off the seat by a buck; arms and legs flung about while the animal fights.
+  - **A steadier beat:** it changes over a moment and by little; small fish beat slower; the per-beat body sway is
+    smaller on a small fish and a quick beat. The landing's dip and the rider's squash now swing in from nothing.
+- **Not carried over, because they need the Root to move** (`RideController`, the server; not handed to this chat):
+  the wave's 1 to 3 per cent change of speed, the bolt's burst of speed (the body lunges ahead instead), the surge
+  waiting for a landing's build-up. **And eyes that look about:** `FishModel` welds each `<Part>_Glow` to its part.
+- **To check in play:** that nothing errors in `AnimController` (it runs every frame for every fish near the
+  camera); a landing on a small fish, a shark, a turtle and a whale; the rider through a barrel roll.
+
+## 2026-11-12 · 8570-F43F (the user's PC): the locked fish's mark as the reference's, and hooks for the HUD
+**State:** written and run in Studio by the game-code chat; StyLua, selene and `rojo build` pass.
+
+- **The locked fish** (`JumpController`, `Config.Jump`): its glow is one flat yellow-orange, nearly solid
+  (`GlowFill` 247, 190, 62; `FlyGlow` 0.6 to 0.12), with a black outline (`GlowOutline`; it was pale yellow). The
+  ring and the pull-in's dots keep the brighter yellow (`Glow`). Seen in play: off while riding, on at the hop with
+  those values.
+- **Nothing is marked while you ride** (`Lock.Preview` 1 to 0), as in the reference (read from the user's recording
+  of 2026-11-10; the row is in [Decisions](Decisions.md)). The N panel's `Lock.Preview` row puts it back.
+- **For the HUD (the UI chat):** the server publishes `Drain` on the player, the Oxygen a second the fish under you
+  takes as the server counts it (0 off a fish), so seconds left = Oxygen / Drain; `State.secondsOn(fish)` gives how
+  long a full meter would last on any fish where it swims; `Actions.jump()` is the hop and the grab.
+- **New tools:** `tools/studio/sync_src.py <studio_id>` puts every script of `src/` into the open place while the
+  Rojo plugin is disconnected; `tools/creatures/upload.py <studio_id>` uploads the creature models of
+  `import_plan.json` through Studio (permanent: on the user's word, given 2026-11-12 for all 82), writing
+  `assets.json` as it goes and carrying on where it stopped.
+
 ## 2026-11-12 · 8570-F43F (the user's PC): a character appears on the dock from its first frame
 **State:** written and run in Studio by the game-code chat; StyLua, selene and `rojo build` pass. One file:
 `src/server/Services/RideService.luau`.

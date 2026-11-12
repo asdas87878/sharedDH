@@ -29,7 +29,31 @@ function Creatures.get(id: string): Rig?
 		if module and module:IsA("ModuleScript") then
 			local ok, result = pcall(require, module)
 			if ok and type(result) == "table" and type(result.Parts) == "table" then
-				data = result
+				-- what Config and the swim read without asking: a file that lacks any of it is left out with a
+				-- warning (it then spawns as nothing, where a bad file used to stop every script at start)
+				local size, seat, keys = result.Size, result.Seat, result.Keys
+				if
+					type(result.Name) == "string"
+					and type(result.Tier) == "string"
+					and type(result.Zone) == "number"
+					and type(size) == "table"
+					and #size == 3
+					and type(seat) == "table"
+					and #seat == 3
+					and type(result.Moments) == "number"
+					and type(keys) == "table"
+				then
+					data = result
+					for part, numbers in keys do
+						if type(numbers) ~= "table" or #numbers < result.Moments * 4 then
+							warn("[Creatures] " .. id .. ": the swim keys of " .. tostring(part) .. " are short")
+							data = nil
+							break
+						end
+					end
+				else
+					warn("[Creatures] " .. id .. ": its data file lacks a field the game needs")
+				end
 			end
 		end
 		found = data or false

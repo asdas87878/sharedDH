@@ -221,7 +221,14 @@ local function onMounted(fish: Model)
 	if root then
 		-- carry on exactly as it swam: no turn, no drop in speed, then the speed-up
 		yaw, pitch = anglesOf(root.CFrame.LookVector)
-		startSpeed = root.AssemblyLinearVelocity.Magnitude
+		pitch = math.clamp(pitch, -math.rad(35), math.rad(35)) -- (a wild fish never noses further than this)
+		-- (never more than the fish can swim: in the frame its body joins ours the engine can report a speed in the
+		-- thousands, and the ride then carried on at that speed: riders were thrown 10,000 studs, 2026-11-12)
+		local most = if rideType then rideType.RiddenSpeed else 100
+		startSpeed = math.min(root.AssemblyLinearVelocity.Magnitude, most)
+		if startSpeed ~= startSpeed then
+			startSpeed = 0
+		end
 	end
 	if coasting and coasting.Fish == fish then
 		coasting = nil

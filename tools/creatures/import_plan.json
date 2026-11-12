@@ -446,7 +446,7 @@
   },
   {
    "id": "BlueWhale",
-   "name": "Blue Whale (the old one)",
+   "name": "Blue Whale",
    "zone": 5,
    "rarity": "Mythic",
    "triangles": 2164,
@@ -675,7 +675,7 @@
   "Barracuda": "art/creatures/Barracuda/game/Barracuda.glb",
   "Basilosaurus": "art/creatures/Basilosaurus/game/Basilosaurus.glb",
   "BlueChromis": "art/creatures/BlueChromis/game/BlueChromis.glb",
-  "BlueWhale": "art/creatures/BlueWhale/game/BlueWhaletheoldone.glb",
+  "BlueWhale": "art/creatures/BlueWhale/game/BlueWhale.glb",
   "BobbitWorm": "art/creatures/BobbitWorm/game/BobbitWorm.glb",
   "BoneLeviathan": "art/creatures/BoneLeviathan/game/BoneLeviathan.glb",
   "Boxfish": "art/creatures/Boxfish/game/Boxfish.glb",

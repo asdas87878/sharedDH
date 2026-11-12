@@ -141,7 +141,14 @@ def read_config():
         fid = os.path.splitext(os.path.basename(path))[0]
         f = fish.setdefault(fid, {"Id": fid, "Reach": 2, "RiddenSpeed": None})
         f.update(Name=j["Name"], Tier=j["Tier"], Home=int(j["Zone"]), Modelled=True)
+    # a creature Config keeps out of the herd (NO_SPAWN: Reach -1, so no land takes it)
+    kept_out = block(src, r"local NO_SPAWN[^=]*=", must=False)
+    for fid in re.findall(r"(\w+)\s*=\s*true", kept_out or ""):
+        if fid in fish:
+            fish[fid]["Reach"] = -1
     cfg["Fish"] = list(fish.values())
+    train = block(src, r"Config\.Train\s*=", must=False)
+    cfg["Train"] = numbers_in(train) if train is not None else {}
     return cfg
 
 
@@ -301,6 +308,29 @@ def slices(cfg, lane, pool_list):
         fullest["Want"] -= 1
         total -= 1
     return out
+
+
+def stand_time(cfg, have, want):
+    """Seconds standing on the training spot to take max Oxygen from `have` to `want`: Train.Rate a second, plus
+    Train.Share of your max a second if Config has one (it doesn't today: try it with --set Train.Share=0.004)."""
+    rate, share = cfg["Train"].get("Rate", 0), cfg["Train"].get("Share", 0)
+    if want <= have:
+        return 0.0
+    if share > 0:
+        return math.log((want + rate / share) / (have + rate / share)) / share
+    return (want - have) / rate if rate > 0 else float("inf")
+
+
+def clock(seconds):
+    if seconds == float("inf"):
+        return "never"
+    if seconds < 120:
+        return f"{seconds:.0f} s"
+    if seconds < 7200:
+        return f"{seconds / 60:.0f} min"
+    if seconds < 172800:
+        return f"{seconds / 3600:.0f} h"
+    return f"{seconds / 86400:.0f} days"
 
 
 def hop(cfg, speed, air=None):
@@ -560,10 +590,14 @@ def tables(cfg, lane, out, your_max):
         rows.append([name[z], "; ".join(parts) or "nothing can spawn here: the land stays empty"])
     out.table(head, rows)
 
+    tr = cfg["Train"]
+    spot = (f"Train.Rate {tr.get('Rate', 0):g} a second" + (f" plus Train.Share {tr['Share']:g} of your max a second" if tr.get("Share") else "")) if tr else "no training spot in Config"
     out.title("What training would have to give", f"The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes "
               f"of play at which a player should first be at home in each land ({HOME:g} s on its commonest fish). From it, the max "
-              "Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there.")
-    head = ["Land", "At home by (min)", "Max Oxygen then", "Gain over the stretch", "A second of play", "x the stretch before"]
+              "Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there. The last two columns are "
+              f"the training spot as it is ({spot}): seconds standing on it from the land before, and from the start.")
+    head = ["Land", "At home by (min)", "Max Oxygen then", "Gain over the stretch", "A second of play", "x the stretch before",
+            "Standing, from the land before", "Standing, from the start"]
     rows, have, last_rate, last_t = [], o["StartMax"], None, 0
     for z in range(lands):
         need = home_max[z]
@@ -571,7 +605,8 @@ def tables(cfg, lane, out, your_max):
         gain = max(0, need - have)
         rate = gain / ((t - last_t) * 60) if t > last_t and gain > 0 else None
         rows.append([name[z], n(t), big(need), big(gain) if gain else "none", (big(rate) if rate >= 100 else n(rate, 1)) if rate else "",
-                     f"x{rate / last_rate:.1f}" if rate and last_rate else ""])
+                     f"x{rate / last_rate:.1f}" if rate and last_rate else "",
+                     clock(stand_time(cfg, have, need)) if tr else "", clock(stand_time(cfg, o["StartMax"], need)) if tr else ""])
         if rate:
             last_rate = rate
         have, last_t = max(have, need), t
@@ -744,7 +779,9 @@ def dive(cfg, lane, rng, policy, sit, max_oxygen, props_every=0.0, dt=0.1, endle
                         res["props"] += 1
                         oxygen = max(min(oxygen, cfg["Crash"]["Floor"]), oxygen - max_oxygen * cfg["Props"]["Cost"])
                 if oxygen <= 0:
-                    res["end"] = "out of Oxygen"
+                    # thrown off: a fish that never gave time to hop, or a fish that did and no other came in reach
+                    short = max_oxygen / cost < max(j["Cooldown"], react or 0) + 0.05
+                    res["end"] = "thrown off a fish that gave no time to hop" if short else "no fish in reach before the time ran out"
                     break
             since_hop += dt
             pop, glide, far, _ = hop(cfg, v, grab_at)
@@ -842,19 +879,21 @@ def sim(cfg, lane, out, runs, seed, your_max):
 
     pool_list = pools(cfg, lands)
     usual = [commonest(cfg, effective_mix(cfg, pool_list[z], z)) for z in range(lands)]
-    players = [("a new player", o["StartMax"])] + [(f"at home in land {z + 1}", drain(cfg, z, usual[z]) * HOME) for z in (1, 2, 4)]
+    players = [("a new player", o["StartMax"], 0)] + [(f"at home in land {z + 1}", drain(cfg, z, usual[z]) * HOME, z) for z in (1, 2, 4)]
     if your_max != o["StartMax"]:
-        players = [(f"{your_max:,.0f} max Oxygen", your_max)]
+        players = [(f"{your_max:,.0f} max Oxygen", your_max, max(z for z in range(lands) if drain(cfg, z, usual[z]) * HOME <= your_max or z == 0))]
     out.title("How far a max Oxygen gets", f"Endless air off. Each line is a player and a way of riding. \"At ease\": on each fish "
               f"until {LEAVE:g} s are left ({RIDE:g} s at most), never hopping sooner than {REACT:g} s after a landing, onto the fish "
               f"the lock gives (about {LOCK_AHEAD} studs ahead). \"Reads the tags\": only fish that give {TAGS:g} s or more, when one "
               f"is in reach. \"Space held\": a hop the moment the cooldown ends and a grab at once, only fish that give {MIN_SIT:g} s "
-              f"or more. {runs} dives each. The last columns: fish of that rarity that came within reach in one dive, on average.")
-    head = ["Player", "Max Oxygen", "Rider", "Lasts (s)", "Studs", "Ends in land", "Hops landed", "How it ended"] + [f"{t} in reach" for t in order[2:6]]
+              f"or more. {runs} dives each. \"Ended on a fish too rare\": dives that ended on a fish that gave no time to hop, "
+              "before the next land's door. The last columns: fish of that rarity that came within reach in one dive, on average.")
+    head = ["Player", "Max Oxygen", "Rider", "Lasts (s)", "Studs", "Ends in land", "Ended on a fish too rare, in their own land or before", "Hops landed",
+            "How it ended"] + [f"{t} in reach" for t in order[2:6]]
     rows = []
     ways = [("at ease", "lock", RIDE, None, REACT, 0.0), ("at ease, reads the tags", "lock", RIDE, None, REACT, TAGS),
             ("Space held, reads the tags", "lock", j["Cooldown"], j["MinFlight"], None, MIN_SIT)]
-    for who, max_oxygen in players:
+    for who, max_oxygen, home in players:
         for label, policy, sit, air, react, screen in ways:
             rng = random.Random(seed)
             rs = [r for r in (dive(cfg, lane, rng, policy, sit, max_oxygen, air=air, react=react, screen=screen) for _ in range(runs)) if r]
@@ -864,6 +903,7 @@ def sim(cfg, lane, out, runs, seed, your_max):
                 ends[r["end"]] = ends.get(r["end"], 0) + 1
             rows.append([who, big(max_oxygen), label, n(sum(r["seconds"] for r in rs) / len(rs)), n(sum(r["s"] for r in rs) / len(rs)),
                          f"{lands_hit[0]} to {lands_hit[-1]}" if lands_hit[0] != lands_hit[-1] else lands_hit[0],
+                         f"{sum(1 for r in rs if r['reached'] <= home and r['end'].startswith('thrown off'))} of {len(rs)}",
                          n(sum(r["hops"] for r in rs) / len(rs)), ", ".join(f"{k} {v}" for k, v in ends.items())]
                         + [n(sum(sum(land[t] for land in r["met"]) for r in rs) / len(rs), 1) for t in order[2:6]])
     out.table(head, rows)

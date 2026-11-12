@@ -1,95 +1,113 @@
 --!strict
--- The riding HUD, all built in code: the Oxygen meter (flashing while you drown, the screen closing in; beside it what
--- the fish under you takes a second, which grows land by land), speed, the depth gauge with the zone's name (and the
--- max Oxygen the land needs, while yours is under it), speed lines that come in as you go faster, and the drowning's
--- black and its words (State.Fade and State.FadeText, from DeathController). In a hop: a reticle at the middle of the screen
--- (the aim), a bracket on the locked fish (which also glows, in the world: JumpController), and the window's timer under
--- the reticle, a bar that empties and turns red and pulses for its last Jump.Warn seconds.
+-- The dive's HUD (docs/design/ui.md, pass 3): the reference's riding screen piece for piece, in our build. The pieces
+-- are in Client.UI; this file makes the two screens, lays the pieces out for a phone or a keyboard, and feeds them
+-- what the game knows each frame.
+--   LandStrip   the ten lands across the top, your marker, the metres, your best
+--   Rings       beside the rider: the seconds left on this fish, and the tame
+--   HopButton   lower right: the arrow turns over in the air; HOP and GRAB on a phone, the key's name on a keyboard
+--   StatRows    your Oxygen (and coins, when the game has them)
+--   Tags        the nearest wild fish: rarity, name, what each needs
+--   Aim         in the hop: the aim, and the window as a ring
+--   Slots       what you carry (when the game has taming)
+--   Banners     a miss, the end of a dive, a catch
+-- Under them, on a screen of their own that covers the whole display: the speed lines, the edges closing in as you
+-- drown, and the drowning's black (State.Vignette, State.Fade: DeathController's).
+-- For phones: nothing is made per frame, a label's text is set only when it changes, and text never changes size.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Zones = require(ReplicatedStorage.Shared.Zones)
+local Actions = require(script.Parent.Parent.Lib.Actions)
 local State = require(script.Parent.Parent.Lib.State)
+
+local UI = script.Parent.Parent.UI
+local Aim = require(UI.Aim)
+local Banners = require(UI.Banners)
+local HopButton = require(UI.HopButton)
+local Kit = require(UI.Kit)
+local LandStrip = require(UI.LandStrip)
+local Rings = require(UI.Rings)
+local Slots = require(UI.Slots)
+local StatRows = require(UI.StatRows)
+local Tags = require(UI.Tags)
 
 local HudController = {}
 
-local FONT = Enum.Font.FredokaOne
-local AIR = Color3.fromRGB(90, 220, 255)
-local LOW = Color3.fromRGB(255, 200, 60)
-local OUT = Color3.fromRGB(255, 70, 70)
+-- The HUD is drawn once at phone size (a screen 390 high is scale 1); bigger screens scale it up by their height, less
+-- than in proportion, so a desktop gets a smaller HUD against its screen than a phone does
+local SCALE_HEIGHT = 560
+local SCALE_MAX = 2.2
+local HOT_SECONDS = 1 -- under this on a fish, the ring and the button call for the hop
+-- The speed lines are on screen all the time you ride, so they are kept cheap: moved thirty times a second, half as
+-- many on a phone, each line's turn set once, and its size written only when the speed's step changes
+local LINES = 28
+local LINES_ON_TOUCH = 14
+local LINES_PERIOD = 1 / 30
 
-local gui: ScreenGui
-local meter: Frame
-local meterFill: Frame
-local meterText: TextLabel
-local graceText: TextLabel
-local speedText: TextLabel
-local drainText: TextLabel
-local depthText: TextLabel
-local zoneText: TextLabel
-local depthPip: Frame
-local depthFrame: Frame
+local root: Frame
+local scale: UIScale
 local fade: Frame
-local fadeText: TextLabel
-local fadeScale: UIScale
-local reticle: Frame
-local reticleStroke: UIStroke
-local bracket: Frame
-local bracketStroke: UIStroke
-local timer: Frame
-local timerFill: Frame
-local timerText: TextLabel
-local timerScale: UIScale
 local edges: { Frame } = {}
 local lines: { { frame: Frame, angle: number, offset: number, length: number } } = {}
 
-local function new(class: string, props: { [string]: any }, parent: Instance?): any
-	local object = Instance.new(class :: any)
-	for key, value in props do
-		(object :: any)[key] = value
-	end
-	if parent then
-		object.Parent = parent
-	end
-	return object
-end
+local touch = false
+local hudScale = 0
+local linesAt = 0
+local linesShown = 0
+local linesStep = -1
 
-local function label(props: { [string]: any }, parent: Instance): TextLabel
-	props.BackgroundTransparency = 1
-	props.Font = FONT
-	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
-	props.TextStrokeTransparency = 0.2
-	return new("TextLabel", props, parent)
-end
+-- this dive, and the best of this session (until the game saves a best)
+-- The meter, counted down between the server's updates (about ten a second) so the ring turns smoothly
+local heardOxygen = -1
+local meter = 0
 
-local function corner(parent: Instance, radius: number)
-	new("UICorner", { CornerRadius = UDim.new(0, radius) }, parent)
-end
+-- Roblox's own jump button on a touch screen: hidden while ours shows, given back on the dock
+local playerGui: Instance
+local robloxJump: GuiObject? = nil
+local hidJump = false
+local sinceJumpCheck = math.huge
+
+-- The Studio sandbox's endless air: the server then doesn't drain the meter, so the ring must not count down either
+local endlessAir = false
+
+local diveMetres = 0
+local diveLands = 0
+local bestMetres = 0
+local bestLands = 0
+local caughtCount = -1
+
+-- A value another controller may publish on State before this file knows its name is typed (docs/design/ui.md, "Open
+-- points"): nil until it exists, and the HUD then falls back or hides the piece
+local published: { [string]: any } = State :: any
 
 local function build()
-	gui = new("ScreenGui", {
-		Name = "RideHud",
+	playerGui = State.Player:WaitForChild("PlayerGui")
+	local fx = Kit.new("ScreenGui", {
+		Name = "RideHudFx",
 		ResetOnSpawn = false,
-		IgnoreGuiInset = true,
+		ScreenInsets = Enum.ScreenInsets.None,
+		DisplayOrder = 4,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-	}, State.Player:WaitForChild("PlayerGui"))
+	}, playerGui)
 
 	-- speed lines, behind everything
-	local linesFrame = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, gui)
+	local linesFrame = Kit.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, fx)
 	local rng = Random.new(7)
-	for i = 1, 28 do
-		local frame = new("Frame", {
+	for i = 1, LINES do
+		local angle = (i / LINES) * math.pi * 2 + rng:NextNumber(-0.1, 0.1)
+		local frame = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundColor3 = Color3.new(1, 1, 1),
 			BorderSizePixel = 0,
 			BackgroundTransparency = 1,
+			Rotation = math.deg(angle),
 		}, linesFrame)
 		table.insert(lines, {
 			frame = frame,
-			angle = (i / 28) * math.pi * 2 + rng:NextNumber(-0.1, 0.1),
+			angle = angle,
 			offset = rng:NextNumber(),
 			length = rng:NextNumber(90, 220),
 		})
@@ -97,8 +115,8 @@ local function build()
 
 	-- the grace vignette: four edges closing in
 	for i = 1, 4 do
-		local edge = new("Frame", { BackgroundColor3 = Color3.fromRGB(10, 0, 20), BorderSizePixel = 0 }, gui)
-		local gradient = new("UIGradient", { Transparency = NumberSequence.new(0, 1) }, edge)
+		local edge = Kit.new("Frame", { BackgroundColor3 = Color3.fromRGB(10, 0, 20), BorderSizePixel = 0 }, fx)
+		local gradient = Kit.new("UIGradient", { Transparency = NumberSequence.new(0, 1) }, edge)
 		gradient.Rotation = ({ 90, 270, 0, 180 })[i]
 		edge.AnchorPoint = ({ Vector2.new(0, 0), Vector2.new(0, 1), Vector2.new(0, 0), Vector2.new(1, 0) })[i]
 		edge.Position = ({ UDim2.fromScale(0, 0), UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), UDim2.fromScale(1, 0) })[i]
@@ -106,332 +124,282 @@ local function build()
 		table.insert(edges, edge)
 	end
 
-	-- the Oxygen meter, bottom centre
-	meter = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -28),
-		Size = UDim2.fromOffset(380, 30),
-		BackgroundColor3 = Color3.fromRGB(15, 30, 50),
-		BackgroundTransparency = 0.2,
-	}, gui)
-	corner(meter, 10)
-	new("UIStroke", { Thickness = 3, Color = Color3.fromRGB(255, 255, 255) }, meter)
-	meterFill = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = AIR, BorderSizePixel = 0 }, meter)
-	corner(meterFill, 10)
-	meterText = label({ Size = UDim2.fromScale(1, 1), TextScaled = true, Text = "OXYGEN", ZIndex = 2 }, meter)
-	new("UIPadding", { PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3) }, meterText)
-	graceText = label({
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -6),
-		Size = UDim2.fromOffset(380, 34),
-		TextScaled = true,
-		TextColor3 = OUT,
-		Text = "",
-	}, meter)
-	speedText = label({
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(1, 14, 1, 0),
-		Size = UDim2.fromOffset(130, 42),
-		TextScaled = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = "",
-	}, meter)
-
-	drainText = label({
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(0, -14, 1, 0),
-		Size = UDim2.fromOffset(130, 30),
-		TextScaled = true,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Text = "",
-	}, meter)
-
-	-- the depth gauge, right edge
-	depthFrame = new("Frame", {
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -18, 0.42, 0),
-		Size = UDim2.fromOffset(14, 260),
-		BackgroundColor3 = Color3.fromRGB(15, 30, 50),
-		BackgroundTransparency = 0.25,
-	}, gui)
-	corner(depthFrame, 7)
-	new("UIGradient", {
-		Color = ColorSequence.new(Color3.fromRGB(120, 230, 255), Color3.fromRGB(10, 10, 40)),
-		Rotation = 90,
-	}, depthFrame)
-	depthPip = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(26, 8),
-		Position = UDim2.fromScale(0.5, 0),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-	}, depthFrame)
-	corner(depthPip, 4)
-	depthText = label({
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromOffset(-12, 0),
-		Size = UDim2.fromOffset(150, 34),
-		TextScaled = true,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Text = "0 m",
-	}, depthPip)
-	zoneText = label({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 1, 8),
-		Size = UDim2.fromOffset(320, 24),
-		TextScaled = true,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Text = "",
-	}, depthFrame)
-
-	-- the aim: a small ring at the middle of the screen, and a bracket that sits on the locked fish
-	reticle = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(34, 34),
-		BackgroundTransparency = 1,
-		Visible = false,
-	}, gui)
-	corner(reticle, 17)
-	reticleStroke = new("UIStroke", { Thickness = 3, Color = Color3.new(1, 1, 1), Transparency = 0.25 }, reticle)
-	bracket = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(64, 64),
-		BackgroundTransparency = 1,
-		Visible = false,
-	}, gui)
-	corner(bracket, 14)
-	bracketStroke = new("UIStroke", { Thickness = 4, Color = Config.Jump.Glow }, bracket)
-	-- the window: a bar under the reticle that empties, with the seconds left
-	timer = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0.5, 46),
-		Size = UDim2.fromOffset(190, 12),
-		BackgroundColor3 = Color3.fromRGB(15, 30, 50),
-		BackgroundTransparency = 0.25,
-		Visible = false,
-	}, gui)
-	corner(timer, 6)
-	new("UIStroke", { Thickness = 2, Color = Color3.new(1, 1, 1) }, timer)
-	timerScale = new("UIScale", {}, timer)
-	timerFill = new(
-		"Frame",
-		{ Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0 },
-		timer
-	)
-	corner(timerFill, 6)
-	timerText = label({
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, 4),
-		Size = UDim2.fromOffset(190, 26),
-		TextScaled = true,
-		Text = "",
-	}, timer)
+	-- the tags over wild fish: on this screen, whose points are the camera's own, and under the black
+	local tagLayer =
+		Kit.new("Frame", { Name = "Tags", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 5 }, fx)
+	Tags.build(tagLayer)
 
 	-- the drowning's black
-	fade = new("Frame", {
+	fade = Kit.new("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 1,
 		ZIndex = 10,
-	}, gui)
-	fadeText = label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(500, 60),
-		TextScaled = true,
-		TextTransparency = 1,
-		TextStrokeTransparency = 1,
-		Text = "",
-		ZIndex = 11,
-	}, fade)
-	fadeScale = new("UIScale", {}, fadeText)
+	}, fx)
+
+	-- the HUD itself, kept clear of a phone's notch
+	local gui = Kit.new("ScreenGui", {
+		Name = "RideHud",
+		ResetOnSpawn = false,
+		ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,
+		DisplayOrder = 5,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	}, playerGui)
+	root = Kit.new("Frame", { Name = "Root", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, gui)
+	scale = Kit.new("UIScale", {}, root)
+
+	LandStrip.build(root)
+	StatRows.build(root)
+	Slots.build(root)
+	Rings.build(root)
+	Aim.build(root)
+	HopButton.build(root, function()
+		if State.inWater() and not State.dying() then
+			Actions.jump()
+		end
+	end)
+	Banners.build(root)
 end
 
-local function updateMeter(now: number)
-	local oxygen = (State.Player:GetAttribute("Oxygen") :: number?) or 0
-	local max = (State.Player:GetAttribute("MaxOxygen") :: number?) or Config.Oxygen.StartMax
-	local fraction = math.clamp(oxygen / math.max(max, 1), 0, 1)
-	local drowning = State.Mode == "Drowning"
-	meterFill.Size = UDim2.fromScale(math.max(fraction, 0.02), 1)
-	local colour = if fraction > 0.5 then AIR elseif fraction > 0.2 then AIR:Lerp(LOW, (0.5 - fraction) / 0.3) else OUT
-	if drowning then
-		local flash = (math.sin(now * 18) + 1) / 2
-		colour = OUT
-		meter.BackgroundColor3 = Color3.fromRGB(60, 10, 10):Lerp(OUT, flash * 0.6)
-		graceText.Text = if State.Player:GetAttribute("DeathQuick") == true then "MISSED THE FISH!" else "OUT OF AIR!"
-	else
-		meter.BackgroundColor3 = Color3.fromRGB(15, 30, 50)
-		graceText.Text = ""
+-- The scale for this screen, and the phone or the keyboard layout
+local function layout()
+	local camera = workspace.CurrentCamera
+	local height = if camera then camera.ViewportSize.Y else SCALE_HEIGHT
+	local wanted = math.clamp(height / SCALE_HEIGHT, 1, SCALE_MAX)
+	local onTouch = Kit.touch()
+	if wanted == hudScale and onTouch == touch then
+		return
 	end
-	if now - State.CrashAt < 0.3 then
-		-- just ran into something: it cost Oxygen
-		colour = OUT
-	end
-	meterFill.BackgroundColor3 = colour
-	meterText.Text = string.format("OXYGEN  %d / %d", math.ceil(oxygen), max)
+	hudScale = wanted
+	touch = onTouch
+	scale.Scale = wanted
+	root.Size = UDim2.fromScale(1 / wanted, 1 / wanted)
+	LandStrip.place(onTouch)
+	StatRows.place(onTouch)
+	Slots.place(onTouch)
+	Rings.place(onTouch)
+	HopButton.place(onTouch)
+	Tags.scale(wanted)
+end
 
-	-- what the fish under us takes a second, here: red once our max is under what this land needs
-	local fish = State.Fish
-	local kind = fish and Config.FishById[fish:GetAttribute("FishType") :: string]
-	local _, root = State.character()
-	if State.Mode == "Riding" and kind and root then
-		local zone = Zones.locate(State.Zones, root.Position)
-		local index = if zone then zone.Index else 1
-		local rate = Config.drain(index, kind.Tier)
-		drainText.Text = string.format(if rate < 10 then "-%.1f /s" else "-%.0f /s", rate)
-		drainText.TextColor3 = if max < Config.required(index) then OUT else Color3.new(1, 1, 1)
-	else
-		drainText.Text = ""
+-- Our button does the hop on a phone, so Roblox's own jump button would be a second one beside it
+local function hideRobloxJump(hide: boolean)
+	local button = robloxJump
+	if not button or button.Parent == nil then
+		local touchGui = playerGui:FindFirstChild("TouchGui")
+		local frame = touchGui and touchGui:FindFirstChild("TouchControlFrame")
+		local found = frame and frame:FindFirstChild("JumpButton")
+		button = if found and found:IsA("GuiObject") then found else nil
+		robloxJump = button
 	end
+	if not button then
+		return
+	end
+	if hide then
+		if button.Visible then
+			button.Visible = false
+			hidJump = true
+		end
+	elseif hidJump then
+		button.Visible = true
+		hidJump = false
+	end
+end
+
+local function updateFx(now: number)
+	fade.BackgroundTransparency = 1 - State.Fade
 
 	-- the screen closes in as you drown
 	local closing = State.Vignette
 	for i, edge in edges do
 		edge.Visible = closing > 0
-		local amount = 0.12 + 0.3 * closing
-		edge.Size = if i <= 2 then UDim2.fromScale(1, amount) else UDim2.fromScale(amount, 1)
+		if closing > 0 then
+			local amount = 0.12 + 0.3 * closing
+			edge.Size = if i <= 2 then UDim2.fromScale(1, amount) else UDim2.fromScale(amount, 1)
+		end
 	end
-end
 
-local function updateDepth()
-	local _, root = State.character()
-	if not root then
+	if now - linesAt < LINES_PERIOD then
 		return
 	end
-	local zone, _, metres = Zones.locate(State.Zones, root.Position)
-	local shown = if zone then metres else math.max(0, -root.Position.Y / 3)
-	depthText.Text = string.format("%d m", math.floor(shown))
-	zoneText.Text = if zone then zone.Name elseif State.Mode == "Dock" then "THE DOCK" else ""
-	zoneText.TextColor3 = Color3.new(1, 1, 1)
-	if zone then
-		-- a land our max Oxygen can't keep up in says what it needs
-		local max = (State.Player:GetAttribute("MaxOxygen") :: number?) or Config.Oxygen.StartMax
-		local needs = Config.required(zone.Index)
-		if max < needs then
-			zoneText.Text = string.format("%s  needs %d OXYGEN", zone.Name, needs)
-			zoneText.TextColor3 = LOW
-		end
-	end
-	-- the pip runs down the gauge by zone, evenly, since the metres grow so fast
-	local count = math.max(#State.Zones, 1)
-	local progress = 0
-	if zone then
-		local _, u = Zones.locate(State.Zones, root.Position)
-		progress = (zone.Index - 1 + u) / count
-	end
-	depthPip.Position = UDim2.fromScale(0.5, progress)
-end
-
-local bracketAt: Vector2? = nil
-
--- The aim, the lock and the window, off a fish
-local function updateAim(now: number, dt: number)
-	local j = Config.Jump
-	local h = Config.AimHud
-	local swimming = State.Mode == "Jumping" and not State.Reeling
-	reticle.Visible = swimming
-	if swimming then
-		-- a grab pressed with nothing locked: the reticle flashes red
-		local refused = now - State.NoTargetAt < h.RefusedTime
-		reticleStroke.Color = if refused then OUT else Color3.new(1, 1, 1)
-		reticle.Size = if refused then UDim2.fromOffset(42, 42) else UDim2.fromOffset(34, 34)
-	end
-
-	-- the bracket follows the locked fish on the screen (fainter while we still ride)
-	local fish = State.JumpTarget
-	local root = fish and fish.PrimaryPart
-	local shown = false
-	if root and (State.Mode == "Jumping" or State.Mode == "Riding" or State.Mode == "Free") then
-		local point, onScreen = workspace.CurrentCamera:WorldToViewportPoint(root.Position)
-		if onScreen then
-			shown = true
-			local goal = Vector2.new(point.X, point.Y)
-			local at = if bracketAt then bracketAt:Lerp(goal, Ease.alpha(h.FollowRate, dt)) else goal
-			bracketAt = at
-			bracket.Position = UDim2.fromOffset(at.X, at.Y)
-			bracketStroke.Transparency = if State.Mode == "Jumping" then 0 else h.PreviewTransparency
-		end
-	end
-	bracket.Visible = shown
-	if not shown then
-		bracketAt = nil
-	end
-
-	-- the window's timer
-	local left = State.WindowLeft
-	timer.Visible = swimming and left ~= nil
-	if swimming and left then
-		local warn = left <= j.Warn
-		local pulse = if warn then (math.sin(now * math.pi * 2 / h.PulsePeriod) + 1) / 2 else 0
-		timerFill.Size = UDim2.fromScale(math.clamp(left / math.max(j.Window, 0.01), 0, 1), 1)
-		timerFill.BackgroundColor3 = if warn
-			then OUT:Lerp(Color3.new(1, 1, 1), pulse * h.PulseWhiten)
-			else Color3.new(1, 1, 1)
-		timerScale.Scale = 1 + pulse * h.PulseScale
-		timerText.Text = if fish
-			then string.format("GRAB IT!  %.1f", left)
-			else string.format("FIND A FISH  %.1f", left)
-		timerText.TextColor3 = if warn then OUT else Color3.new(1, 1, 1)
-	end
-end
-
-local shownText = ""
-
-local function updateFade()
-	fade.BackgroundTransparency = 1 - State.Fade
-	if State.FadeText ~= shownText then
-		shownText = State.FadeText
-		fadeText.Text = shownText
-		if shownText ~= "" then
-			fadeScale.Scale = 1.6
-			TweenService:Create(fadeScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-		end
-	end
-	local textAlpha = if shownText ~= "" then State.Fade else 0
-	fadeText.TextTransparency = 1 - textAlpha
-	fadeText.TextStrokeTransparency = 1 - textAlpha * 0.7
-end
-
-local function updateLines(now: number)
+	linesAt = now
 	local camera = workspace.CurrentCamera
-	local size = camera.ViewportSize
+	if not camera then
+		return
+	end
 	local strength = 0
 	if State.inWater() then
 		strength = Ease.smoothstep(38, 95, State.Speed)
 	end
+	local wanted = if strength <= 0.01 then 0 elseif touch then LINES_ON_TOUCH else LINES
+	-- lines no longer wanted go clear once, not every frame
+	for i = wanted + 1, linesShown do
+		lines[i].frame.BackgroundTransparency = 1
+	end
+	local more = wanted > linesShown -- lines coming back have no size yet
+	linesShown = wanted
+	if wanted == 0 then
+		return
+	end
+	local size = camera.ViewportSize
 	local centre = size / 2
 	local reach = math.max(size.X, size.Y) * 0.5
-	for _, line in lines do
+	local step = math.floor(strength * 10 + 0.5)
+	local resize = more or step ~= linesStep
+	linesStep = step
+	for i = 1, wanted do
+		local line = lines[i]
 		local frame = line.frame
-		if strength <= 0.01 then
-			frame.BackgroundTransparency = 1
-		else
-			local travel = (line.offset + now * (0.8 + strength * 1.6)) % 1
-			local distance = reach * (0.55 + 0.5 * travel)
-			local dir = Vector2.new(math.cos(line.angle), math.sin(line.angle))
-			local at = centre + dir * distance
-			frame.Position = UDim2.fromOffset(at.X, at.Y)
-			frame.Size = UDim2.fromOffset(line.length * (0.5 + strength), 2 + strength * 2)
-			frame.Rotation = math.deg(line.angle)
-			frame.BackgroundTransparency = 1 - strength * 0.55 * math.sin(travel * math.pi)
+		local travel = (line.offset + now * (0.8 + strength * 1.6)) % 1
+		local distance = reach * (0.55 + 0.5 * travel)
+		local at = centre + Vector2.new(math.cos(line.angle), math.sin(line.angle)) * distance
+		frame.Position = UDim2.fromOffset(at.X, at.Y)
+		if resize then
+			frame.Size = UDim2.fromOffset(line.length * (0.5 + step / 10), 2 + step / 5)
 		end
+		frame.BackgroundTransparency = 1 - strength * 0.55 * math.sin(travel * math.pi)
 	end
+end
+
+local function update(dt: number)
+	local now = os.clock()
+	local mode = State.Mode
+	local inWater = State.inWater()
+	local playing = inWater and not State.dying()
+	local oxygen = (State.Player:GetAttribute("Oxygen") :: number?) or 0
+	local max = math.max((State.Player:GetAttribute("MaxOxygen") :: number?) or Config.Oxygen.StartMax, 1)
+
+	-- where we are
+	local _, rootPart = State.character()
+	local zone: Zones.Zone? = nil
+	local along, metres = 0, 0
+	if rootPart then
+		zone, along, metres = Zones.locate(State.Zones, rootPart.Position)
+	end
+	local land = if zone then zone.Index else 0
+	if inWater and zone and metres > diveMetres then
+		diveMetres = metres
+		diveLands = zone.Index - 1 + along
+	end
+	LandStrip.update(
+		land,
+		if zone then zone.Name else "The dock",
+		along,
+		if zone then metres else 0,
+		bestLands,
+		bestMetres
+	)
+	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?)
+
+	-- the rings: the meter as seconds on the fish under us, at the rate the server counts (its "Drain"). The server
+	-- sends the meter about ten times a second; between those we count down ourselves
+	local fish = State.Fish
+	local kind = fish and Config.FishById[fish:GetAttribute("FishType") :: string]
+	local drain = 0
+	if mode == "Riding" and kind then
+		local sent = State.Player:GetAttribute("Drain")
+		drain = if type(sent) == "number" and sent > 0 then sent else Config.drain(math.max(land, 1), kind.Tier)
+	elseif mode == "Free" then
+		drain = Config.Oxygen.FreeDrain
+	end
+	if oxygen ~= heardOxygen or endlessAir then
+		heardOxygen = oxygen
+		meter = oxygen
+	else
+		-- never more than a third of a second ahead of what the server last said
+		meter = math.max(meter - drain * dt, oxygen - drain * 0.33, 0)
+	end
+	local seconds = math.huge
+	if mode == "Riding" and kind then
+		seconds = meter / math.max(drain, 0.001)
+		Rings.update(now, meter / max, seconds, kind.Name, kind.Tier, published.Tame, endlessAir)
+	elseif mode == "Free" then
+		Rings.update(now, meter / max, meter / math.max(drain, 0.001), "", "", nil, endlessAir)
+	else
+		Rings.hide()
+	end
+
+	-- the hop: the button, the aim, the window
+	local target = State.JumpTarget
+	local hopping = mode == "Jumping"
+	if playing then
+		local press = if not hopping then "hop" elseif target and not State.Reeling then "grab" else "off"
+		HopButton.update(press, mode == "Riding" and seconds < HOT_SECONDS and not endlessAir)
+	else
+		HopButton.hide()
+	end
+	if hopping and not State.Reeling then
+		Aim.update(now, State.WindowLeft, target ~= nil, now - State.NoTargetAt < Config.AimHud.RefusedTime)
+	else
+		Aim.hide()
+	end
+
+	if playing then
+		Tags.update(dt, State.Zones, max, fish, target, hopping)
+	else
+		Tags.hide()
+	end
+
+	-- what we carry: only looked at when its length changes
+	local caught = published.Caught
+	local count = if type(caught) == "table" then #caught else -2
+	if count ~= caughtCount then
+		caughtCount = count
+		Slots.update(if count >= 0 then caught else nil)
+	end
+
+	sinceJumpCheck += dt
+	if sinceJumpCheck >= 0.25 then
+		sinceJumpCheck = 0
+		hideRobloxJump(touch and playing)
+		endlessAir = RunService:IsStudio()
+			and workspace:GetAttribute("Sandbox") == true
+			and workspace:GetAttribute("SandboxEndlessAir") == true
+	end
+
+	Banners.miss(State.FadeText, State.Fade)
+	updateFx(now)
 end
 
 function HudController.Start()
 	build() -- in Start: it waits for PlayerGui
-	RunService.RenderStepped:Connect(function(dt)
-		local now = os.clock()
-		local inWater = State.inWater()
-		meter.Visible = inWater
-		depthFrame.Visible = true
-		speedText.Text = if inWater then string.format("%d st/s", math.floor(State.Speed + 0.5)) else ""
-		updateMeter(now)
-		updateDepth()
-		updateAim(now, dt)
-		updateLines(now)
-		updateFade()
+	layout()
+	UserInputService.LastInputTypeChanged:Connect(layout)
+	local watched: RBXScriptConnection? = nil
+	local function watch()
+		if watched then
+			watched:Disconnect()
+		end
+		local camera = workspace.CurrentCamera
+		if camera then
+			watched = camera:GetPropertyChangedSignal("ViewportSize"):Connect(layout)
+		end
+		layout()
+	end
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watch)
+	watch()
+
+	-- back on the dock after a dive: how deep it went
+	State.ModeChanged.Event:Connect(function(mode: string, old: string)
+		if mode == "Dock" and old ~= "Dock" then
+			if diveMetres >= 1 then
+				local isBest = diveMetres > bestMetres
+				if isBest then
+					bestMetres = diveMetres
+					bestLands = diveLands
+				end
+				Banners.greatDive(diveMetres, isBest)
+			end
+			diveMetres = 0
+			diveLands = 0
+		end
 	end)
+	local tamed = published.Tamed
+	if typeof(tamed) == "Instance" and tamed:IsA("BindableEvent") then
+		tamed.Event:Connect(Banners.caught)
+	end
+
+	RunService.RenderStepped:Connect(update)
 end
 
 return HudController

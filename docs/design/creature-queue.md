@@ -81,7 +81,7 @@ change. Asset ids: `tools/creatures/assets.json`. Capture: [the Reef Shark in St
 | 5 Open Blue | Orca | Epic | 29.2 | 1,356 | 15 |  | first draft | `art/creatures/Orca/game/` |
 | 5 Open Blue | Elasmosaurus | Legendary | 43.0 | 1,982 | 22 | yes | first draft | `art/creatures/Elasmosaurus/game/` |
 | 5 Open Blue | Helicoprion | Legendary | 32.7 | 2,064 | 13 | yes | first draft | `art/creatures/Helicoprion/game/` |
-| 5 Open Blue | Blue Whale (the old one) | Mythic | 46.0 | 2,164 | 14 | yes | worked over | `art/creatures/BlueWhale/game/` |
+| 5 Open Blue | Blue Whale | Mythic | 46.0 | 2,164 | 14 | yes | worked over | `art/creatures/BlueWhale/game/` |
 | 5 Open Blue | Storm Serpent | Secret | 41.9 | 2,210 | 21 | yes | first draft | `art/creatures/StormSerpent/game/` |
 | 6 Twilight | Viperfish | Rare | 16.0 | 1,152 | 13 | yes | first draft | `art/creatures/Viperfish/game/` |
 | 6 Twilight | Giant Squid | Epic | 34.2 | 1,166 | 38 |  | first draft | `art/creatures/GiantSquid/game/` |

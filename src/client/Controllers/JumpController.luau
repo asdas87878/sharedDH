@@ -194,7 +194,8 @@ local function setGlow(fish: Model?)
 		glow.Adornee = fish
 	end
 	glow.Enabled = fish ~= nil
-	glow.FillColor = Config.Jump.Glow
+	glow.FillColor = Config.Jump.GlowFill
+	glow.OutlineColor = Config.Jump.GlowOutline
 	glow.FillTransparency = if flying then Config.Jump.FlyGlow else Config.Jump.PreviewGlow
 	glow.OutlineTransparency = if flying then 0 else 0.4
 	glowLandedAt = nil
@@ -364,7 +365,7 @@ local function hop(dt: number)
 			setGlow(nil)
 		else
 			-- a white flash at the landing, through yellow, and off
-			glow.FillColor = WHITE:Lerp(Config.Jump.Glow, math.min(1, u * 3))
+			glow.FillColor = WHITE:Lerp(Config.Jump.GlowFill, math.min(1, u * 3))
 			glow.FillTransparency = Ease.lerp(0.1, 1, u)
 			glow.OutlineTransparency = u
 		end
@@ -564,7 +565,7 @@ function JumpController.Init()
 		dot.CanTouch = false
 		dot.CastShadow = false
 		dot.Material = Enum.Material.Neon
-		dot.Color = Config.Jump.Glow
+		dot.Color = Config.Jump.DotGlow
 		dot.Transparency = 1
 		dot.Size = Vector3.new(1.1, 1.1, 1.1)
 		dot.Parent = trailFolder
@@ -574,13 +575,13 @@ function JumpController.Init()
 
 	glow = Instance.new("Highlight")
 	glow.Name = "JumpGlow"
-	glow.FillColor = Config.Jump.Glow
-	glow.OutlineColor = Color3.fromRGB(255, 246, 170)
+	glow.FillColor = Config.Jump.GlowFill
+	glow.OutlineColor = Config.Jump.GlowOutline
 	glow.DepthMode = Enum.HighlightDepthMode.Occluded
 	glow.Enabled = false
 	glow.Parent = workspace.CurrentCamera
 
-	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any)
+	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, _reason: any, about: any)
 		if kind == "Mounted" then
 			if flying then
 				local fish = locked
@@ -603,8 +604,11 @@ function JumpController.Init()
 		elseif kind == "Denied" and a == "Grab" then
 			-- the server wouldn't give us that fish (too far, or taken): back to the hop, with what is left of the
 			-- window, and that fish isn't locked again for a moment
+			-- (unless it is about another fish: a late refusal for the last fish we asked for must not stop a pull-in
+			-- already begun on the next)
 			local _, root = State.character()
-			if flying and (reeling or asked) and root then
+			local other = typeof(about) == "Instance" and locked ~= nil and about ~= locked
+			if flying and (reeling or asked) and root and not other then
 				resumeSwim(root)
 			end
 		elseif kind == "Dismounted" and flying and a == "Lost" then

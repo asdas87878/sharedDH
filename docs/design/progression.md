@@ -126,26 +126,33 @@ reference draws a green ring that is the time left on this dino. Three ways the 
 - The chase is in every land: at home there, its rarer fish still give under a second (a Legendary in the first six
   lands, a Mythic from the fifth on).
 
-**How far a max Oxygen gets** (the model's dives). Endless air off. Each line is a player and a way of riding. "At ease": on each fish until 0.7 s are left (1.8 s at most), never hopping sooner than 0.7 s after a landing, onto the fish the lock gives (about 60 studs ahead). "Reads the tags": only fish that give 1 s or more, when one is in reach. "Space held": a hop the moment the cooldown ends and a grab at once, only fish that give 0.4 s or more. 30 dives each. The last columns: fish of that rarity that came within reach in one dive, on average.
+**How far a max Oxygen gets** (the model's dives). Endless air off. Each line is a player and a way of riding. "At ease": on each fish until 0.7 s are left (1.8 s at most), never hopping sooner than 0.7 s after a landing, onto the fish the lock gives (about 60 studs ahead). "Reads the tags": only fish that give 1 s or more, when one is in reach. "Space held": a hop the moment the cooldown ends and a grab at once, only fish that give 0.4 s or more. 40 dives each. "Ended on a fish too rare": dives that ended on a fish that gave no time to hop, before the next land's door. The last columns: fish of that rarity that came within reach in one dive, on average.
 
-| Player | Max Oxygen | Rider | Lasts (s) | Studs | Ends in land | Hops landed | How it ended | Rare in reach | Epic in reach | Legendary in reach | Mythic in reach |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| a new player | 100 | at ease | 16 | 1,021 | 1 to 2 | 4 | out of Oxygen 30 | 0.6 | 0.0 | 0.0 | 0.0 |
-| a new player | 100 | at ease, reads the tags | 16 | 1,021 | 1 to 2 | 4 | out of Oxygen 30 | 0.6 | 0.0 | 0.0 | 0.0 |
-| a new player | 100 | Space held, reads the tags | 15 | 1,533 | 1 to 3 | 12 | out of Oxygen 30 | 2.9 | 0.4 | 0.1 | 0.0 |
-| at home in land 2 | 500 | at ease | 48 | 3,185 | 2 to 3 | 12 | out of Oxygen 30 | 6.0 | 1.0 | 0.3 | 0.0 |
-| at home in land 2 | 500 | at ease, reads the tags | 52 | 3,443 | 2 to 3 | 13 | out of Oxygen 30 | 6.4 | 1.2 | 0.4 | 0.0 |
-| at home in land 2 | 500 | Space held, reads the tags | 27 | 2,656 | 2 to 4 | 20 | out of Oxygen 30 | 6.5 | 1.0 | 0.2 | 0.0 |
-| at home in land 3 | 3,000 | at ease | 84 | 5,759 | 3 to 4 | 20 | out of Oxygen 30 | 16.6 | 3.1 | 0.6 | 0.0 |
-| at home in land 3 | 3,000 | at ease, reads the tags | 89 | 6,058 | 2 to 4 | 21 | out of Oxygen 30 | 18.1 | 4.1 | 0.7 | 0.0 |
-| at home in land 3 | 3,000 | Space held, reads the tags | 60 | 6,066 | 2 to 5 | 44 | out of Oxygen 28, missed every fish 2 | 27.5 | 7.3 | 1.4 | 0.0 |
-| at home in land 5 | 67.5K | at ease | 168 | 12,168 | 4 to 6 | 38 | out of Oxygen 30 | 50.4 | 20.6 | 3.8 | 0.1 |
-| at home in land 5 | 67.5K | at ease, reads the tags | 169 | 12,192 | 4 to 6 | 38 | out of Oxygen 30 | 48.0 | 20.3 | 3.1 | 0.2 |
-| at home in land 5 | 67.5K | Space held, reads the tags | 117 | 11,793 | 3 to 6 | 80 | out of Oxygen 29, missed every fish 1 | 67.5 | 33.8 | 7.4 | 0.4 |
+| Player | Max Oxygen | Rider | Lasts (s) | Studs | Ends in land | Ended on a fish too rare, in their own land or before | Hops landed | How it ended | Rare in reach | Epic in reach | Legendary in reach | Mythic in reach |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| a new player | 100 | at ease | 16 | 1,032 | 1 to 2 | 0 of 40 | 4 | thrown off a fish that gave no time to hop 36, no fish in reach before the time ran out 4 | 0.7 | 0.1 | 0.1 | 0.0 |
+| a new player | 100 | at ease, reads the tags | 16 | 1,032 | 1 to 2 | 0 of 40 | 4 | thrown off a fish that gave no time to hop 36, no fish in reach before the time ran out 4 | 0.7 | 0.1 | 0.1 | 0.0 |
+| a new player | 100 | Space held, reads the tags | 15 | 1,541 | 1 to 3 | 1 of 40 | 12 | thrown off a fish that gave no time to hop 20, no fish in reach before the time ran out 20 | 3.0 | 0.6 | 0.1 | 0.0 |
+| at home in land 2 | 500 | at ease | 50 | 3,347 | 2 to 3 | 11 of 40 | 12 | thrown off a fish that gave no time to hop 22, no fish in reach before the time ran out 18 | 6.1 | 0.9 | 0.3 | 0.0 |
+| at home in land 2 | 500 | at ease, reads the tags | 52 | 3,459 | 2 to 3 | 7 of 40 | 13 | thrown off a fish that gave no time to hop 24, no fish in reach before the time ran out 16 | 6.7 | 1.2 | 0.3 | 0.0 |
+| at home in land 2 | 500 | Space held, reads the tags | 26 | 2,571 | 2 to 4 | 0 of 40 | 20 | no fish in reach before the time ran out 36, thrown off a fish that gave no time to hop 4 | 6.0 | 0.8 | 0.2 | 0.0 |
+| at home in land 3 | 3,000 | at ease | 86 | 5,854 | 2 to 4 | 6 of 40 | 20 | no fish in reach before the time ran out 23, thrown off a fish that gave no time to hop 17 | 17.5 | 3.3 | 0.5 | 0.0 |
+| at home in land 3 | 3,000 | at ease, reads the tags | 89 | 6,082 | 2 to 4 | 0 of 40 | 21 | no fish in reach before the time ran out 24, thrown off a fish that gave no time to hop 16 | 18.1 | 4.0 | 0.5 | 0.0 |
+| at home in land 3 | 3,000 | Space held, reads the tags | 62 | 6,127 | 2 to 5 | 0 of 40 | 44 | no fish in reach before the time ran out 31, thrown off a fish that gave no time to hop 7, missed every fish 2 | 27.3 | 7.0 | 1.5 | 0.0 |
+| at home in land 5 | 67.5K | at ease | 166 | 11,975 | 4 to 6 | 0 of 40 | 38 | no fish in reach before the time ran out 29, thrown off a fish that gave no time to hop 11 | 48.5 | 19.9 | 3.5 | 0.1 |
+| at home in land 5 | 67.5K | at ease, reads the tags | 167 | 12,040 | 4 to 6 | 0 of 40 | 37 | no fish in reach before the time ran out 29, thrown off a fish that gave no time to hop 11 | 49.9 | 20.0 | 3.0 | 0.1 |
+| at home in land 5 | 67.5K | Space held, reads the tags | 119 | 11,649 | 4 to 6 | 0 of 40 | 77 | no fish in reach before the time ran out 28, missed every fish 4, thrown off a fish that gave no time to hop 8 | 63.6 | 31.2 | 6.4 | 0.4 |
 
 - **A new player: about 15 seconds.** The Shallows in four or five hops, then thrown off the first Coral Reef fish.
   Holding Space and choosing fish by their tags gets about 500 studs into the Reef in the same time.
 - A player at home in a land gets into the next land, sometimes the one after.
+- **What ends a trained player's dive, in the model:** about half the time it is their own land, not the next one.
+  Mostly a hop that finds no fish in reach before the time on the fish runs out, about one hop in thirty. So the
+  number of fish in the lane (`Spawn.PerThousand`, the game-code chat's) now sets how long a dive at home lasts:
+  one to three minutes as it is.
+- **And landing on a fish too rare to hold:** about a quarter of the dives of a player who takes whatever the lock
+  gives, in the Coral Reef and the Shipwrecks alike. Nothing on screen says what a fish costs before the hop
+  (question 6).
 
 ### The first dive, played, and what it means
 The game-code chat rode it with the real rules on 100 Oxygen (2026-11-11): 2.5 seconds on a Common and 2.0 on an
@@ -177,7 +184,7 @@ For the UI chat. The unit a player should read is **seconds on a fish**; max Oxy
 | In the hop | Nothing drains | The meter holds still | In the game |
 | Your max Oxygen | The stat you train | One number, short past 10,000 (12.5K, 2.25M, 150M) | In the game (the short form is proposed) |
 | A wild fish's tag | The Oxygen for 2 seconds on it (`Config.required` of its land and rarity) | Oxygen, in the same short form, so it compares with your max | In the game, but the tag counts the fish's home land; one or two lands on it costs more (proposed: count the land it is in) |
-| A fish you can't hold yet | Whether your max gives 2 seconds on it, less, or under half a second | A colour on its tag and on the lock's mark: fine, short, too much | Proposed. Whether the game also stops you landing on a "too much" fish is question 6 |
+| A fish you can't hold yet | Whether your max gives 2 seconds on it, less, or under half a second (`State.secondsOn(fish)` gives the seconds) | A colour on its tag and on the lock's mark: fine, short, too much | Proposed. Since 2026-11-12 nothing is marked while you ride (`Lock.Preview` 0, as the reference), so only a tag can say it before the hop. Whether the game also stops you landing on a "too much" fish is question 6 |
 | The land's line | The Oxygen for 2 seconds on the land's commonest fish, shown while yours is under it | Oxygen, short form | Proposed. Today it counts a Common, and no Common swims past the Coral Reef |
 | Oxygen a second | Not needed | | Today's HUD shows it. Seconds left says the same thing in the unit the player feels |
 
@@ -320,28 +327,28 @@ No share was changed.
 | 4 Shipwrecks | 75 |  | 15%, 11.2 | 50%, 37.5 | 30%, 22.5 | 5.0%, 3.8 |  |  |
 | 5 Open Blue | 76 |  | 3.0%, 2.3 | 40%, 30.4 | 45%, 34.2 | 11%, 8.4 | 1.0%, 0.8 |  |
 | 6 Twilight | 79 |  |  | 20%, 15.8 | 50%, 39.5 | 28%, 22.1 | 2.0%, 1.6 |  |
-| 7 Midnight | 85 |  |  | asks 5%: no creature | 44%, 37.6 | 53%, 44.7 | 3.2%, 2.7 |  |
+| 7 Midnight | 85 |  |  | 5.0%, 4.2 | 42%, 35.7 | 50%, 42.5 | 3.0%, 2.5 |  |
 | 8 Vents | 74 |  |  |  | 25%, 18.5 | 70%, 51.8 | 5.0%, 3.7 |  |
 | 9 Bone Graveyard | 92 |  |  |  | 5.0%, 4.6 | 87%, 80.0 | 8.0%, 7.4 |  |
 | 10 The Underworld | 80 |  |  |  |  | 88%, 70.4 | 12%, 9.6 |  |
 
-**What a rider meets.** 30 dives. Fish of each rarity that came within reach (Jump.GrabRange) a minute, by land; then the seconds into the dive at which the first of each rarity did.
+**What a rider meets.** 40 dives. Fish of each rarity that came within reach (Jump.GrabRange) a minute, by land; then the seconds into the dive at which the first of each rarity did.
 
 | Land | Seconds in it | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret | All |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 Shallows | 16 | 54.3 | 12.6 | 2.3 | 0.4 |  |  |  | 69.6 |
-| 2 Coral Reef | 42 | 10.2 | 33.1 | 9.8 | 1.2 | 0.2 |  |  | 54.6 |
-| 3 Kelp Forest | 39 | 0.3 | 23.8 | 19.3 | 4.7 | 0.8 |  |  | 48.9 |
-| 4 Shipwrecks | 42 |  | 10.5 | 26.5 | 11.2 | 1.5 |  |  | 49.7 |
-| 5 Open Blue | 40 |  | 2.8 | 23.3 | 17.5 | 3.5 | 0.1 |  | 47.3 |
-| 6 Twilight | 40 |  | 0.0 | 12.1 | 23.3 | 8.7 | 0.2 |  | 44.4 |
-| 7 Midnight | 41 |  |  | 0.4 | 25.2 | 20.3 | 1.0 |  | 46.9 |
-| 8 Vents | 35 |  |  |  | 15.9 | 28.3 | 1.4 |  | 45.6 |
-| 9 Bone Graveyard | 42 |  |  |  | 3.8 | 38.2 | 2.3 |  | 44.3 |
-| 10 The Underworld | 36 |  |  |  | 0.2 | 40.9 | 3.6 |  | 44.7 |
+| 1 Shallows | 16 | 52.9 | 14.5 | 2.5 | 0.1 | 0.1 |  |  | 70.0 |
+| 2 Coral Reef | 42 | 9.7 | 32.0 | 11.2 | 1.7 | 0.3 |  |  | 54.8 |
+| 3 Kelp Forest | 39 | 0.3 | 23.4 | 20.2 | 4.5 | 1.2 |  |  | 49.6 |
+| 4 Shipwrecks | 42 |  | 9.8 | 26.1 | 10.9 | 1.8 |  |  | 48.6 |
+| 5 Open Blue | 40 |  | 2.3 | 22.3 | 19.0 | 3.3 | 0.3 |  | 47.2 |
+| 6 Twilight | 40 |  | 0.1 | 12.3 | 24.3 | 9.4 | 0.6 |  | 46.7 |
+| 7 Midnight | 42 |  |  | 4.2 | 22.7 | 19.9 | 0.9 |  | 47.6 |
+| 8 Vents | 35 |  |  | 0.4 | 15.0 | 28.1 | 1.8 |  | 45.3 |
+| 9 Bone Graveyard | 42 |  |  |  | 4.1 | 36.0 | 2.4 |  | 42.6 |
+| 10 The Underworld | 35 |  |  |  | 0.3 | 39.5 | 3.6 |  | 43.4 |
 
-First within reach (the middle dive): Common 0 s (30 of 30 dives); Uncommon 4 s (30 of 30 dives); Rare 20 s (30 of 30 dives); Epic 49 s (30 of 30 dives); Legendary 85 s (30 of 30 dives); Mythic 256 s (30 of 30 dives).
-Time ridden by rarity: Common 6%, Uncommon 14%, Rare 21%, Epic 25%, Legendary 33%, Mythic 2%. The dive took 6.2 minutes on average, at 81 studs a second; ended: the lane's end 30.
+First within reach (the middle dive): Common 0 s (40 of 40 dives); Uncommon 0 s (40 of 40 dives); Rare 17 s (40 of 40 dives); Epic 42 s (40 of 40 dives); Legendary 78 s (40 of 40 dives); Mythic 226 s (40 of 40 dives).
+Time ridden by rarity: Common 6%, Uncommon 14%, Rare 22%, Epic 24%, Legendary 32%, Mythic 2%. The dive took 6.2 minutes on average, at 81 studs a second; ended: the lane's end 40.
 
 - **Lands 1 and 2 match the reference** and stay. In its first zone the recording shows Commons and Uncommons and
   nothing rarer; in its second, mostly Uncommons, Rares often, an Epic now and then, one Legendary in two runs.
@@ -352,18 +359,16 @@ Time ridden by rarity: Common 6%, Uncommon 14%, Rare 21%, Epic 25%, Legendary 33
 - **Lands 3 to 10 are still the roster's guess.** Nothing measured to move them with. The shares are on the N panel.
 - **Small thing:** the roster says Commons only reach the start of the Coral Reef. The game spreads them over all of it.
 
-### Lands whose rarities have no creature yet
-33 of the roster's 82 creatures are in the place. A rarity with no creature in a land is skipped and the others share
-its place, so nothing breaks, but some lands are thin:
+### Every land has its creatures now
+All 82 creatures are in the game since 2026-11-12 (the user's word; [Decisions](../Decisions.md)). Every rarity a
+land's mix asks for has a creature there, so no share is skipped any more. Kept out: the Bobbit Worm (not in the
+roster) and the ten Secrets (no land's mix has a Secret; they are meant as server events, and no rule for them
+exists).
 
-| Land | What is missing |
-|---|---|
-| 3 Kelp Forest | Half its fish are grey placeholder bodies: Garibaldi, Leopard Shark, Great White (no model in the place) |
-| 4 Shipwrecks | Half again: Barracuda, Goliath Grouper, and the three above swimming on from land 3 |
-| 6 Twilight | Six creatures in all, none of its own. Every Legendary there is an Elasmosaurus (28% of the land) |
-| 7 Midnight | The mix asks for 5% Rares and there is no Rare within two lands (the Viperfish isn't in the place) |
-| 9 Bone Graveyard | None of its own: five creatures from lands 7 and 8 |
-| 10 The Underworld | Three creatures: Anomalocaris and the Bobbit Worm from land 8 at 44% each, and the Hellmaw |
+- The smallest pools are the Shallows' rare ones, on purpose: one Rare (the Seahorse), one Epic (the Reef Shark),
+  one Legendary (Archelon).
+- From the Kelp Forest on, a land's own creatures are about two thirds of its fish and the rest swim in from the
+  two lands before.
 
 **Which creatures turn up.** By land: each creature that can spawn there and its share of all spawns in that land. A star marks a creature with no model in the place yet (it spawns as a placeholder body).
 
@@ -371,26 +376,28 @@ its place, so nothing breaks, but some lands are thin:
 |---|---|
 | 1 Shallows | Common: Sergeant Major 11%, Yellow Tang 11%, Clownfish 11%, Pufferfish 11%, Blue Chromis 11%, Boxfish 11%, Butterflyfish 11%; Uncommon: Stingray 5.5%, Cuttlefish 5.5%, Flying Fish 5.5%, Sea Turtle 5.5%; Rare: Seahorse 3.2%; Epic: Reef Shark 0.6%; Legendary: Archelon 0.2% |
 | 2 Coral Reef | Common: Sergeant Major 1.4%, Yellow Tang 1.4%, Clownfish 1.4%, Pufferfish 1.4%, Blue Chromis 1.4%, Boxfish 1.4%, Butterflyfish 1.4%; Uncommon: Parrotfish 14%, Lionfish 14%, Angelfish 14%, Stingray 4.6%, Cuttlefish 4.6%, Flying Fish 4.6%, Sea Turtle 4.6%; Rare: Moray Eel 11%, Octopus 11%, Seahorse 3.6%; Epic: Humphead Wrasse 3.0%, Reef Shark 1.0%; Legendary: Dunkleosteus 0.8%, Archelon 0.2% |
-| 3 Kelp Forest | Uncommon: Garibaldi* 17%, Parrotfish 5.6%, Lionfish 5.6%, Angelfish 5.6%, Stingray 1.7%, Cuttlefish 1.7%, Flying Fish 1.7%, Sea Turtle 1.7%; Rare: Leopard Shark* 25%, Moray Eel 8.5%, Octopus 8.5%, Seahorse 2.5%; Epic: Great White* 8.4%, Humphead Wrasse 2.8%, Reef Shark 0.8%; Legendary: Dunkleosteus 2.3%, Archelon 0.7% |
-| 4 Shipwrecks | Uncommon: Barracuda* 9.2%, Garibaldi* 3.1%, Parrotfish 0.9%, Lionfish 0.9%, Angelfish 0.9%; Rare: Hammerhead Shark 33%, Leopard Shark* 11%, Moray Eel 3.3%, Octopus 3.3%; Epic: Goliath Grouper* 21%, Great White* 7.0%, Humphead Wrasse 2.1%; Legendary: Dunkleosteus 5.0% |
-| 5 Open Blue | Uncommon: Barracuda* 2.3%, Garibaldi* 0.7%; Rare: Hammerhead Shark 31%, Leopard Shark* 9.2%; Epic: Manta Ray 18%, Orca 18%, Goliath Grouper* 6.2%, Great White* 1.8%; Legendary: Elasmosaurus 11%; Mythic: Blue Whale 1.0% |
-| 6 Twilight | Rare: Hammerhead Shark 20%; Epic: Manta Ray 22%, Orca 22%, Goliath Grouper* 6.5%; Legendary: Elasmosaurus 28%; Mythic: Blue Whale 2.0% |
-| 7 Midnight | Epic: Anglerfish 37%, Manta Ray 3.7%, Orca 3.7%; Legendary: Basilosaurus 25%, Mosasaurus 25%, Elasmosaurus 2.5%; Mythic: Kraken 2.9%, Blue Whale 0.3% |
-| 8 Vents | Epic: Anglerfish 25%; Legendary: Anomalocaris 26%, Bobbit Worm 26%, Basilosaurus 8.8%, Mosasaurus 8.8%; Mythic: Kraken 5.0% |
-| 9 Bone Graveyard | Epic: Anglerfish 5.0%; Legendary: Anomalocaris 33%, Bobbit Worm 33%, Basilosaurus 10%, Mosasaurus 10%; Mythic: Kraken 8.0% |
-| 10 The Underworld | Legendary: Anomalocaris 44%, Bobbit Worm 44%; Mythic: Hellmaw 12% |
+| 3 Kelp Forest | Uncommon: Garibaldi 12%, Sea Lion 12%, Parrotfish 3.9%, Lionfish 3.9%, Angelfish 3.9%, Stingray 1.2%, Cuttlefish 1.2%, Flying Fish 1.2%, Sea Turtle 1.2%; Rare: Giant Sea Bass 16%, Leopard Shark 16%, Moray Eel 5.4%, Octopus 5.4%, Seahorse 1.6%; Epic: Great White 4.9%, Steller's Sea Cow 4.9%, Humphead Wrasse 1.6%, Reef Shark 0.5%; Legendary: Dakosaurus 2.1%, Dunkleosteus 0.7%, Archelon 0.2% |
+| 4 Shipwrecks | Uncommon: Barracuda 7.6%, Garibaldi 2.5%, Sea Lion 2.5%, Parrotfish 0.8%, Lionfish 0.8%, Angelfish 0.8%; Rare: Hammerhead Shark 17%, Sawfish 17%, Giant Sea Bass 5.8%, Leopard Shark 5.8%, Moray Eel 1.7%, Octopus 1.7%; Epic: Electric Ray 11%, Goliath Grouper 11%, Great White 3.6%, Steller's Sea Cow 3.6%, Humphead Wrasse 1.1%; Legendary: Xiphactinus 3.5%, Dakosaurus 1.2%, Dunkleosteus 0.3% |
+| 5 Open Blue | Uncommon: Barracuda 1.9%, Garibaldi 0.6%, Sea Lion 0.6%; Rare: Dolphin 14%, Swordfish 14%, Hammerhead Shark 4.7%, Sawfish 4.7%, Giant Sea Bass 1.4%, Leopard Shark 1.4%; Epic: Manta Ray 16%, Orca 16%, Electric Ray 5.2%, Goliath Grouper 5.2%, Great White 1.6%, Steller's Sea Cow 1.6%; Legendary: Elasmosaurus 4.5%, Helicoprion 4.5%, Xiphactinus 1.5%, Dakosaurus 0.5%; Mythic: Blue Whale 1.0% |
+| 6 Twilight | Rare: Viperfish 11%, Dolphin 3.6%, Swordfish 3.6%, Hammerhead Shark 1.1%, Sawfish 1.1%; Epic: Giant Squid 17%, Goblin Shark 17%, Manta Ray 5.8%, Orca 5.8%, Electric Ray 1.7%, Goliath Grouper 1.7%; Legendary: Liopleurodon 10%, Shonisaurus 10%, Elasmosaurus 3.4%, Helicoprion 3.4%, Xiphactinus 1.0%; Mythic: Lantern Leviathan 1.5%, Blue Whale 0.5% |
+| 7 Midnight | Rare: Viperfish 3.1%, Dolphin 0.9%, Swordfish 0.9%; Epic: Anglerfish 15%, Frilled Shark 15%, Giant Squid 4.9%, Goblin Shark 4.9%, Manta Ray 1.5%, Orca 1.5%; Legendary: Basilosaurus 13%, Livyatan 13%, Mosasaurus 13%, Liopleurodon 4.3%, Shonisaurus 4.3%, Elasmosaurus 1.3%, Helicoprion 1.3%; Mythic: Kraken 2.1%, Lantern Leviathan 0.7%, Blue Whale 0.2% |
+| 8 Vents | Epic: Giant Isopod 8.7%, Sea Scorpion 8.7%, Anglerfish 2.9%, Frilled Shark 2.9%, Giant Squid 0.9%, Goblin Shark 0.9%; Legendary: Anomalocaris 17%, Kronosaurus 17%, Megalodon 17%, Basilosaurus 5.6%, Livyatan 5.6%, Mosasaurus 5.6%, Liopleurodon 1.7%, Shonisaurus 1.7%; Mythic: Molten Megalodon 3.5%, Kraken 1.2%, Lantern Leviathan 0.3% |
+| 9 Bone Graveyard | Epic: Giant Isopod 1.9%, Sea Scorpion 1.9%, Anglerfish 0.6%, Frilled Shark 0.6%; Legendary: Grave Ray 16%, Grave Turtle 16%, Skull Angler 16%, Wraith Eel 16%, Anomalocaris 5.5%, Kronosaurus 5.5%, Megalodon 5.5%, Basilosaurus 1.6%, Livyatan 1.6%, Mosasaurus 1.6%; Mythic: Bone Leviathan 3.3%, Halfbone Megalodon 3.3%, Molten Megalodon 1.1%, Kraken 0.3% |
+| 10 The Underworld | Legendary: Brimstone Eel 16%, Cinder Ray 16%, Hellfin Shark 16%, Infernal Angler 16%, Grave Ray 5.2%, Grave Turtle 5.2%, Skull Angler 5.2%, Wraith Eel 5.2%, Anomalocaris 1.6%, Kronosaurus 1.6%, Megalodon 1.6%; Mythic: Abyssal Watcher 4.3%, Hellmaw 4.3%, Bone Leviathan 1.4%, Halfbone Megalodon 1.4%, Molten Megalodon 0.4% |
 
-The creature import is already planned ([creature import](creature-import.md)) and waits for the user's picks.
 Nothing here asks to change a creature's rarity or land.
 
 ## What changed
+- **2026-11-12:** no number changed. The model reads all 82 creatures, the creatures kept out of the herd and
+  `Config.Train`; the tables below "How often each rarity spawns" and the training table are made again.
 - **2026-11-11, second pass:** the Oxygen numbers in the table under "The numbers, applied". The `ZoneDrain` rows'
   steps on the N panel were made to fit the new sizes, and `KeepUp`'s step is 0.25.
 - **2026-11-11, first pass:** rows on the N panel for the ridden speed of each rarity (`TierSpeed`),
   `Oxygen.StartMax` and each land's shares by rarity (`MixShallows` to `MixUnderworld`), with `Config.TierSpeed` and
   ten names for `Config.ZoneMix`'s rows to carry them.
 - **By the game-code chat:** `Config.RarityDrain` (a number a rarity, in place of `Oxygen.TierDrain`) with its rows,
-  and `Oxygen.StartMax` live from the panel.
+  `Oxygen.StartMax` live from the panel, the training spot (`Config.Train`, with `Rate` and `Radius` on the panel),
+  and for the HUD the player's `Drain` attribute and `State.secondsOn(fish)`.
 - StyLua, selene and `rojo build` pass. Not type-checked (no luau-lsp on this PC).
 
 ### The panel
@@ -423,33 +430,39 @@ Things the new model wants that are not numbers of mine:
 4. `Props.Cost` can stay 0.03: a prop now costs 0.08 of a second on a fish. The first pass's proposal is withdrawn.
 
 ## Not built yet
-Proposals. None of it is built until the user says so.
+Proposals, apart from the training spot, which is built as a stand-in. Nothing more is built until the user says so.
 
-### The smallest thing that lets the progression be played
-**Max Oxygen has to grow.** The smallest version: a training spot on the dock (the machine's place). Standing on it
-adds to your max Oxygen every second. The server keeps it for the session; no saves yet. One number, `Train.Rate`.
+### Training: built as a stand-in, and where it stops
+**Built 2026-11-12 by the game-code chat:** stand on the pad in the hub and max Oxygen grows by `Train.Rate` a
+second (4), for the session only. `Config.Train` is this chat's to tune.
 
-**What training would have to give.** The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes of play at which a player should first be at home in each land (2.5 s on its commonest fish). From it, the max Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there.
+**What training would have to give.** The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes of play at which a player should first be at home in each land (2.5 s on its commonest fish). From it, the max Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there. The last two columns are the training spot as it is (Train.Rate 4 a second): seconds standing on it from the land before, and from the start.
 
-| Land | At home by (min) | Max Oxygen then | Gain over the stretch | A second of play | x the stretch before |
-|---|---|---|---|---|---|
-| 1 Shallows | 0 | 100 | none |  |  |
-| 2 Coral Reef | 5 | 500 | 400 | 1.3 |  |
-| 3 Kelp Forest | 15 | 3,000 | 2,500 | 4.2 | x3.1 |
-| 4 Shipwrecks | 30 | 12.5K | 9,500 | 10.6 | x2.5 |
-| 5 Open Blue | 55 | 67.5K | 55K | 36.7 | x3.5 |
-| 6 Twilight | 90 | 270K | 202K | 96.4 | x2.6 |
-| 7 Midnight | 150 | 2.25M | 1.98M | 550 | x5.7 |
-| 8 Vents | 240 | 9M | 6.75M | 1,250 | x2.3 |
-| 9 Bone Graveyard | 360 | 37.5M | 28.5M | 3,958 | x3.2 |
-| 10 The Underworld | 540 | 150M | 112M | 10.4K | x2.6 |
+| Land | At home by (min) | Max Oxygen then | Gain over the stretch | A second of play | x the stretch before | Standing, from the land before | Standing, from the start |
+|---|---|---|---|---|---|---|---|
+| 1 Shallows | 0 | 100 | none |  |  | 0 s | 0 s |
+| 2 Coral Reef | 5 | 500 | 400 | 1.3 |  | 100 s | 100 s |
+| 3 Kelp Forest | 15 | 3,000 | 2,500 | 4.2 | x3.1 | 10 min | 12 min |
+| 4 Shipwrecks | 30 | 12.5K | 9,500 | 10.6 | x2.5 | 40 min | 52 min |
+| 5 Open Blue | 55 | 67.5K | 55K | 36.7 | x3.5 | 4 h | 5 h |
+| 6 Twilight | 90 | 270K | 202K | 96.4 | x2.6 | 14 h | 19 h |
+| 7 Midnight | 150 | 2.25M | 1.98M | 550 | x5.7 | 6 days | 7 days |
+| 8 Vents | 240 | 9M | 6.75M | 1,250 | x2.3 | 20 days | 26 days |
+| 9 Bone Graveyard | 360 | 37.5M | 28.5M | 3,958 | x3.2 | 82 days | 109 days |
+| 10 The Underworld | 540 | 150M | 112M | 10.4K | x2.6 | 326 days | 434 days |
 
 - The plan in the second column is my guess at a pace (question 2). The gain has to grow about 3 times from each land
   to the next.
-- If a third of play is spent training, the machine has to give three times these: about 4 a second at first.
-- **Proposed start:** `Train.Rate` 4 a second (the Coral Reef in two minutes of standing). Then one machine level a
-  land, each 3 times the last. The reference's goes from +15 to +36 a second for 20 times the price, with auras of
-  1.5 to 3 times on top. All guesses until it is played.
+- **At a steady 4 a second** (the last two columns): the Coral Reef after 100 seconds of standing, the Kelp Forest
+  after 12 minutes, the Shipwrecks after 52. The Open Blue takes 5 hours and the lands after it days. A steady rate
+  can't follow a cost that grows 4 to 8 times a land, whatever the rate.
+- **Proposed, one line of code (the game-code chat's) and one number:** the spot also gives a share of your max
+  each second, `Train.Share` 0.004. The Coral Reef after 78 seconds of standing, the Kelp Forest after 5 minutes,
+  the Shipwrecks after 10, the Open Blue after 17, the last land after 49. That stands in for machine levels until
+  they exist. A guess to play.
+- **Later, the real thing:** one machine level a land, each about 3 times the last. The reference's goes from +15 to
+  +36 a second for 20 times the price, with auras of 1.5 to 3 times on top.
+- **Until then,** a land past the Shipwrecks is reached in Studio with Workspace's `TestMaxOxygen`.
 
 ### What taming would need from these numbers
 - Decided already: stay on a wild fish long enough and it is yours ([the dive](the-dive.md)).
@@ -471,8 +484,8 @@ adds to your max Oxygen every second. The server keeps it for the session; no sa
    simply the land you have reached? No note defines one.
 2. **The pace:** how long should a new player take to be at home in land 2, land 5 and land 10? (My guess: 5
    minutes, an hour, 9 hours.) And does the first version still ship lands 1 to 4 only?
-3. **May the game-code chat build the training spot** (max Oxygen grows while you stand on it)? Without it a dive is
-   15 seconds and nothing changes that.
+3. **The training spot is built as a stand-in** (4 Oxygen a second while you stand on it). May it also give a share
+   of your max each second, so the lands past the Shipwrecks can be reached in a session?
 4. **Speed:** try the Common at 54 (the reference's ride; ours is 45) with smaller steps up to 90, or keep 45 to
    100? Both can be played from the N panel.
 5. **Holding Space** moves you 2 to 3 times as fast as any fish and needs an eighth of the Oxygen. Is that the skill

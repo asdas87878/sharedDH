@@ -100,6 +100,73 @@ local MEMBERS: { [string]: { string } } = {
 	Crawler = { "Anomalocaris", "GiantIsopod", "SeaScorpion" },
 }
 
+-- The slow wave every creature rides on (the user, 2026-11-11: wavy and rhythmic, not separate moves; tried in the
+-- Swim Lab preview). One wave is T seconds for a mid-sized animal. On its rise the stroke widens (Effort) and the beat
+-- quickens a little (Beat); the body rises after it (Lift, studs for a 14-stud animal); it drifts to one side over one
+-- wave and back over the next (Side, degrees) and leans with it (Lean, degrees). Skew makes the push quicker than
+-- the glide (a turtle's stroke, a squid's pulse).
+export type Wave = { T: number, Effort: number, Beat: number, Lift: number, Side: number, Lean: number, Skew: number }
+
+local function wave(
+	t: number,
+	effort: number,
+	beat: number,
+	lift: number,
+	side: number,
+	lean: number,
+	skew: number
+): Wave
+	return { T = t, Effort = effort, Beat = beat, Lift = lift, Side = side, Lean = lean, Skew = skew }
+end
+
+RideStyles.Waves = {
+	Darter = wave(3.2, 0.091, 0.03, 0.375, 2.56, 2.4, 0.2),
+	Cruiser = wave(5.0, 0.104, 0.03, 0.5, 2.24, 4, 0.1),
+	Snake = wave(4.2, 0.091, 0.03, 0.375, 4.16, 4, 0),
+	Galloper = wave(6.0, 0.13, 0.04, 1.38, 0.96, 4, 0.1),
+	Glider = wave(7.0, 0.13, 0.05, 1, 1.28, 8, 0.2),
+	Paddler = wave(4.5, 0.182, 0.05, 0.625, 0.96, 4, 0.45),
+	Jetter = wave(3.6, 0.208, 0.06, 0.5, 0.64, 2.4, 0.6),
+	Bobber = wave(4.0, 0.078, 0.02, 0.5, 1.92, 6.4, 0),
+	Crawler = wave(5.5, 0.078, 0.02, 0.375, 1.6, 1.6, 0),
+} :: { [string]: Wave }
+
+-- What the side fins (flippers, wings, legs) do in a turn, each body type in its own mix. Tilt: they bank further than
+-- the body, the inner one down (degrees). Sweep: the inner one swings back and the outer one reaches forward, a moment
+-- late (degrees). Row: the outer one strokes wider and the inner one less (a share).
+export type Fins = { Tilt: number, Sweep: number, Row: number }
+
+local function fins(tilt: number, sweep: number, row: number): Fins
+	return { Tilt = tilt, Sweep = sweep, Row = row }
+end
+
+RideStyles.Fins = {
+	Darter = fins(3.6, 4.8, 0.15),
+	Cruiser = fins(4.8, 2.4, 0.06),
+	Snake = fins(1.8, 1.8, 0.06),
+	Galloper = fins(4.2, 3.6, 0.09),
+	Glider = fins(6, 1.2, 0.18),
+	Paddler = fins(2.4, 6, 0.21),
+	Jetter = fins(1.8, 3.6, 0.06),
+	Bobber = fins(3, 4.8, 0.18),
+	Crawler = fins(1.8, 2.4, 0.15),
+} :: { [string]: Fins }
+
+-- What a wild animal does when a rider lands on it: its usual reaction, then its second. Config.Animation.LandingMix
+-- picks between them (and now and then any of the seven: the user wants a mix of landing types).
+RideStyles.Landings = {
+	Darter = { "startle", "bolt" },
+	Cruiser = { "thrash", "buck" },
+	Snake = { "thrash", "barrel" },
+	Galloper = { "buck", "shudder" },
+	Glider = { "wobble", "bolt" },
+	Paddler = { "buck", "wobble" },
+	Jetter = { "bolt", "startle" },
+	Bobber = { "wobble", "startle" },
+	Crawler = { "shudder", "thrash" },
+} :: { [string]: { string } }
+RideStyles.AllLandings = { "startle", "buck", "thrash", "bolt", "wobble", "shudder", "barrel" }
+
 local byId: { [string]: string } = {}
 for name, ids in MEMBERS do
 	for _, id in ids do
@@ -110,6 +177,18 @@ end
 -- The style's name for a creature's Id ("Cruiser" for one not listed)
 function RideStyles.nameOf(id: string): string
 	return byId[id] or "Cruiser"
+end
+
+function RideStyles.waveOf(id: string): Wave
+	return RideStyles.Waves[RideStyles.nameOf(id)]
+end
+
+function RideStyles.finsOf(id: string): Fins
+	return RideStyles.Fins[RideStyles.nameOf(id)]
+end
+
+function RideStyles.landingsOf(id: string): { string }
+	return RideStyles.Landings[RideStyles.nameOf(id)]
 end
 
 function RideStyles.of(id: string): Style

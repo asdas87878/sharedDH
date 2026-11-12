@@ -116,6 +116,8 @@ local TUNABLES: { { any } } = {
 	-- (StartMax is live: the server reads every player's max again when it changes. Workspace's TestMaxOxygen
 	-- attribute, when above 0, still wins over it.)
 	{ "Oxygen", "StartMax", 10 },
+	{ "Train", "Rate", 1 },
+	{ "Train", "Radius", 1 },
 	{ "Oxygen", "Refill", 0.05 },
 	{ "Oxygen", "KeepUp", 0.25 },
 	-- how many times a Common's Oxygen a rarity takes a second (Config.RarityDrain)
@@ -246,13 +248,18 @@ local TUNABLES: { { any } } = {
 	{ "Animation", "TurnTotal", 5 },
 	{ "Animation", "WildBank", 0.05 },
 	{ "Animation", "WildBankMax", 2 },
+	{ "Animation", "FinTurn", 0.1 },
 	{ "Animation", "Body", 0.25 },
 	{ "Animation", "Cadence", 1 },
 	{ "Animation", "Jaw", 1 },
+	{ "Animation", "Wave", 0.1 },
 	{ "Animation", "LandDip", 0.1 },
 	{ "Animation", "LandNod", 1 },
 	{ "Animation", "LandDipTime", 0.1 },
+	{ "Animation", "Wild", 0.1 },
+	{ "Animation", "LandingMix", 1 },
 	{ "Animation", "RiderFollow", 1 },
+	{ "Animation", "RiderCalm", 0.1 },
 	{ "Animation", "Brace", 0.05 },
 	{ "Camera", "WheelStep", 0.5 },
 	{ "Camera", "ZoomMin", 1 },

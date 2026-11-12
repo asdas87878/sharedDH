@@ -108,6 +108,18 @@ Config.RarityDrain = {
 	Secret = 150,
 } :: { [string]: number }
 
+-- Training: the smallest thing that lets the progression be played (the tuning chat's proposal, docs/design/
+-- progression.md, "Not built yet"). Standing on the training spot in the hub adds to your max Oxygen every second. Kept
+-- for the session only: there are no saves yet. The spot is the map's part named TrainSpot when it has one; until then
+-- the server makes a stand-in pad beside the dock's spawn (Right and Ahead of it, in studs, the way the spawn faces).
+Config.Train = {
+	On = 1, -- 0: no training spot
+	Rate = 4, -- max Oxygen a second while you stand on it (the tuning chat's number: the Coral Reef in two minutes)
+	Radius = 10, -- studs from the spot's middle that count as on it
+	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
+	Ahead = 24, -- and this far toward the water
+}
+
 -- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
 -- to about a fifth; Roblox's own speed is 16), which is why its walk to the start is short. The user, 2026-11-10: match it.
 Config.Dock = {
@@ -232,7 +244,15 @@ Config.Jump = {
 	TrailDots = 18, -- yellow dots left along the pull-in (made once at the start: not on the sandbox panel)
 	TrailEvery = 0.025, -- seconds between them
 	TrailLife = 0.4, -- seconds before one has faded
-	Glow = rgb(255, 221, 51), -- the locked fish, and the ring round it
+	Glow = rgb(255, 221, 51), -- the ring round the locked fish
+	-- the dots of the pull-in: a deeper yellow with no blue in it, so the bloom of the new lighting (Config.Look) leaves
+	-- them yellow (in the ring's colour they bloomed to white blobs)
+	DotGlow = rgb(255, 185, 0),
+	-- The locked fish itself, as the reference marks its dino (the user's recording of 2026-11-10, 22.9 to 23.7 s): the
+	-- whole animal one flat, nearly solid yellow-orange, with a thin black outline (ours was a faint yellow wash with a
+	-- pale yellow outline until 2026-11-12).
+	GlowFill = rgb(247, 190, 62),
+	GlowOutline = rgb(0, 0, 0),
 	-- The partner's dashed yellow ring (2026-11-10: it lay flat in the water under you, 20 studs in radius) is back as
 	-- the mark on the locked fish (Hugo, 2026-11-11): the same dashes, flat in the water round the fish, a quarter
 	-- smaller. It is the main mark; the fish's own glow stays, fainter.
@@ -242,7 +262,7 @@ Config.Jump = {
 	RingSpin = 25, -- the dashes go round, degrees a second (0: still, as the partner's)
 	RingFace = 0.35, -- 0: flat in the water, as the partner's; 1: turned to face the camera; between: tipped that much toward it, so a far fish's ring isn't seen edge on
 	RingPreview = 0.55, -- how see-through the ring is while you are still on a fish or floating (solid once you have left)
-	FlyGlow = 0.6, -- how see-through the fish's own glow is in the hop (0.25 until 2026-11-11: the ring is the mark now)
+	FlyGlow = 0.12, -- how see-through the fish's own glow is in the hop (0.6 until 2026-11-12; the reference's is nearly solid)
 	PreviewGlow = 0.85, -- and while you are still on a fish
 	GlowFade = 0.3, -- the glow leaves the fish over this after the landing
 	FlightTime = 0, -- the longest a hop and its pull-in can last, for the server (worked out in Config.refresh)
@@ -269,7 +289,9 @@ Config.Lock = {
 	SwitchTime = 0.15, -- and the better fish must stay the better one this long first (0: at once, as before)
 	EdgeAim = 1, -- 1: "off the aim" is measured from the fish's nearest edge in degrees (a fish the aim passes through scores 0); 0: from its middle as a share of its own allowance (until 2026-11-11: near fish off to the side took the lock)
 	FallbackRadius = 4, -- assumed fish radius if its type has not replicated
-	Preview = 1, -- 1: the lock shows (a fainter glow) while you ride or float, so you see what you could reach; 0: only after leaving
+	-- (0 since 2026-11-12: in the reference nothing is marked while you ride, with dinos all round; the mark comes on
+	-- once you are in the air)
+	Preview = 0, -- 1: the lock shows (a fainter glow) while you ride or float, so you see what you could reach; 0: only after leaving
 }
 
 -- Wild fish swim as a herd: all the same way, down the lane, at this share of the speed they are ridden at (the
@@ -406,10 +428,6 @@ Config.Camera = {
 	AirMouseLook = 1, -- 1: in the hop the mouse aims without a button held (it is locked to the centre); 0: right drag only
 }
 
--- How creatures and riders move beyond the keyed swim (2026-11-11: the first slice of docs/design/animation-study.md).
--- Every layer is seen only: it turns or shifts the fish's first joint, never the Root, so the Saddle, the lock and the
--- server's checks are untouched. The numbers by body type are in Shared/RideStyles. A row at 0 turns its layer off.
--- First guesses, not judged in play.
 -- The look of the light (Shared/Look puts these on Lighting; Controllers/LookController does it live while playing, so
 -- each is a row on the N panel; tools/studio/look_install.luau does it in Studio's Edit mode). From the user's lighting
 -- tutorial, 2026-11-11 (docs/design/lighting.md): bright, with a cool ambient, a wide bloom, and strong contrast and
@@ -441,33 +459,44 @@ Config.Look = {
 	Sky = 2, -- which sky of ReplicatedStorage.Skies, in name order: 1 the place's first sky, 2 the Anime Sky (0: whatever Sky is in Lighting)
 }
 
+-- How creatures and riders move beyond the keyed swim. First built 2026-11-11 (docs/design/animation-study.md), then
+-- worked over with the user in the Swim Lab preview and carried here 2026-11-12: these are that preview's "Lively,
+-- balanced" numbers. Every layer is seen only: it turns or shifts joints, never the Root, so the Saddle, the lock and
+-- the server's checks are untouched. The numbers by body type are in Shared/RideStyles. A row at 0 turns its layer off.
+-- Judged by the user in the preview, not yet in play.
 Config.Animation = {
-	-- Effort: the fish works harder when it speeds up or is landed on, and eases when it coasts
-	Effort = 1, -- 1: the swing and the beat follow the effort; 0: every beat the same, as before
+	-- Effort: the fish works harder when it speeds up, is landed on or fights, and eases when it coasts
+	Effort = 1, -- 1: the swing follows the effort; 0: every beat the same
 	EffortAccel = 0.03, -- effort gained for each stud a second it speeds up in a second (lost when slowing)
-	EffortBeat = 0.5, -- how much of the effort goes into a faster beat (the rest is a wider swing)
-	LandEffort = 0.6, -- the kick after a landing: this much more effort,
+	EffortBeat = 0.1, -- how much of the effort goes into a faster beat (little: the user found changes of fin speed too much)
+	LandEffort = 0.35, -- the kick at a landing's touch: this much more effort (half of it when a wild reaction follows),
 	LandEffortTime = 0.6, -- dying away over this long
 	CrashFlinch = 0.35, -- a crash rears and shakes your fish: this share of the buck (0 off)
-	-- The turn layer: the head leads into a turn and the tail comes round late; wild fish bank
+	-- The turn layer: the head leads into a turn and the tail comes round late; wild fish bank; the side fins answer
 	Turn = 1, -- the whole layer's strength (0 off)
 	TurnLead = 0.05, -- the head's bend, radians for each radian a second of turning (it follows quickly)
 	TurnBend = 0.04, -- each tail joint's bend the other way (it follows slowly, so it trails)
-	TurnMax = 4, -- no joint bends further than this, degrees
-	TurnTotal = 25, -- and the joints of one chain no further than this together
+	TurnMax = 5, -- no joint bends further than this, degrees
+	TurnTotal = 28, -- and the joints of one chain no further than this together
 	WildBank = 0.2, -- a wild fish's roll into a turn, radians for each radian a second (a ridden fish banks for real)
 	WildBankMax = 18, -- at most, degrees
+	FinTurn = 1, -- the side fins in a turn (tilt, sweep, a wider stroke outside: RideStyles.Fins); 0 off
 	-- The body layer: the heave, nod, sway and rock of the creature's style, each beat
-	Body = 1, -- its strength (0 off)
-	Cadence = 1, -- 1: the beat's rate by style; 0: by length alone, as before
+	Body = 1.2, -- its strength (0 off); a small fish and a quick beat show less of it
+	Cadence = 1, -- 1: the beat's rate by style; 0: by length alone
 	Jaw = 1, -- 1: a jaw hangs nearly shut and opens now and then; 0: it chomps every beat, as keyed
-	-- The landing: the fish sinks under the rider and springs back, nose down for a moment
-	LandDip = 0.9, -- studs, for a mid-sized fish of a style whose Dip is 1 (0 off)
-	LandNod = 7, -- degrees
-	LandDipTime = 0.7, -- seconds until it is still
+	-- The slow wave (RideStyles.Waves): the stroke, the height, the drift to a side and the lean, on one rhythm
+	Wave = 0.8, -- its size (0 off); a small fish shows about half
+	-- The landing: the touch, then what a wild animal does about it
+	LandDip = 1.2, -- the touch: it sinks this far under the rider, studs, for a mid-sized fish of a style whose Dip is 1 (0 off)
+	LandNod = 7, -- and noses down this much, degrees
+	LandDipTime = 0.7, -- seconds until that is still
+	Wild = 1, -- how hard the reaction is (0: only the dip). A small fish fights less, a mid-sized one hardest
+	LandingMix = 2, -- 2: a mix of landing types (the user, 2026-11-12): the body type's own most often, its second often, now and then any of the seven; 1: always its own; 0: none
 	-- The rider
-	RiderFollow = 1, -- 1: the rider moves with the fish's body (its heave, nod, dip and buck); 0: sits still over it
-	Brace = 0.4, -- seconds of the landing's brace: arms up, knees folded, then the grab (0 off)
+	RiderFollow = 1, -- 1: the rider moves with the fish's body; 0: sits still over it
+	RiderCalm = 1, -- 1: they take the body's shift eased and at half its turning, so they aren't shaken; 0: exactly
+	Brace = 0.45, -- seconds of the landing's brace: arms up, knees folded, then the grab (0 off)
 }
 
 -- How the lock and the window's timer are drawn.
@@ -511,6 +540,7 @@ Config.Spawn = {
 	-- every land the way it does in the Shallows.
 	BandMax = 200,
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
+	AppearClear = 160, -- a new fish is put this far from every player when its slice of the lane has such a place
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
 }
 
@@ -583,18 +613,15 @@ local FISH: { FishSpec } = {
 	{ Id = "Lionfish", Name = "Lionfish", Tier = "Uncommon", Home = 2, Size = Vector3.new(3.2, 5, 9), Shape = "Fish", Body = rgb(240, 240, 235), Fin = rgb(200, 40, 40), Pattern = "Stripes", PatternColour = rgb(200, 40, 40), PatternCount = 6 },
 	{ Id = "MorayEel", Name = "Moray Eel", Tier = "Rare", Home = 2, Size = Vector3.new(2.6, 3, 18), Shape = "Eel", Body = rgb(70, 130, 60), Fin = rgb(90, 150, 70) },
 	{ Id = "HumpheadWrasse", Name = "Humphead Wrasse", Tier = "Epic", Home = 2, Size = Vector3.new(5, 8, 15), Shape = "Fish", Body = rgb(50, 140, 150), Fin = rgb(70, 170, 160) },
-	-- zone 3: Kelp Forest
-	{ Id = "Garibaldi", Name = "Garibaldi", Tier = "Uncommon", Home = 3, Size = Vector3.new(3.6, 5.2, 10), Shape = "Fish", Body = rgb(255, 110, 20), Fin = rgb(255, 130, 40) },
-	{ Id = "LeopardShark", Name = "Leopard Shark", Tier = "Rare", Home = 3, Size = Vector3.new(3.6, 3.8, 17), Shape = "Shark", Body = rgb(170, 150, 120), Belly = rgb(240, 235, 225), Fin = rgb(150, 130, 100), Pattern = "Spots", PatternColour = rgb(60, 50, 40) },
-	{ Id = "GreatWhite", Name = "Great White", Tier = "Epic", Home = 3, Size = Vector3.new(6, 6.5, 24), Shape = "Shark", Body = rgb(110, 120, 135), Belly = rgb(245, 245, 245), Fin = rgb(100, 110, 125) },
-	-- zone 4: Shipwrecks
-	{ Id = "Barracuda", Name = "Barracuda", Tier = "Uncommon", Home = 4, Size = Vector3.new(2.6, 3, 15), Shape = "Shark", Body = rgb(190, 200, 210), Belly = rgb(240, 245, 250), Fin = rgb(150, 160, 170) },
-	{ Id = "GoliathGrouper", Name = "Goliath Grouper", Tier = "Epic", Home = 4, Size = Vector3.new(7, 9, 18), Shape = "Fish", Body = rgb(110, 100, 70), Fin = rgb(90, 85, 60), Pattern = "Spots", PatternColour = rgb(60, 55, 40) },
 }
 
 -- The modelled creatures (Shared.Creatures, from the creature chat's exports) bring their own name, rarity, land and
 -- size. One that is also in the table above keeps only its placeholder colours from there; the rest are added. A
--- creature whose land isn't in the map yet simply never spawns.
+-- creature whose land isn't in the map yet simply never spawns. (The five placeholder fish of lands 3 and 4 went
+-- 2026-11-12: each has a model now.)
+-- A creature here has its template in the game but is kept out of the herd (Reach -1: no land takes it): the Bobbit
+-- Worm is not in the roster yet (the creature chat, 2026-11-12). Secrets need no entry: no land's mix has a Secret.
+local NO_SPAWN: { [string]: boolean } = { BobbitWorm = true }
 do
 	local at: { [string]: number } = {}
 	for i, spec in FISH do
@@ -602,6 +629,10 @@ do
 	end
 	for _, id in Creatures.ids() do
 		local rig = Creatures.get(id) :: Creatures.Rig
+		if not Config.Tiers[rig.Tier] then
+			warn("[Config] " .. id .. ": no such rarity as " .. tostring(rig.Tier) .. "; left out")
+			continue
+		end
 		local size = Vector3.new(rig.Size[1], rig.Size[2], rig.Size[3])
 		local i = at[id]
 		if i then
@@ -620,6 +651,10 @@ do
 				Shape = "Fish",
 				Body = rgb(150, 160, 170),
 			})
+			i = #FISH
+		end
+		if NO_SPAWN[id] then
+			FISH[i].Reach = -1
 		end
 	end
 end

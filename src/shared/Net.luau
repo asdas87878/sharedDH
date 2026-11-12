@@ -12,6 +12,8 @@
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
+-- Drain (the Oxygen a second the fish under you takes, as the server counts it; 0 off a fish), Training (true while
+-- you stand on the training spot and your max Oxygen is growing),
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

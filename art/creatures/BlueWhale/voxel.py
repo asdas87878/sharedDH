@@ -13,7 +13,7 @@ Its idea: a whale so old that a reef has grown on it. Age and scale, with a litt
 The rider sits on the piece of hull, behind the head."""
 import math
 
-NAME, ZONE, RARITY = "Blue Whale (the old one)", "ZONE 5 / OPEN BLUE", "MYTHIC"
+NAME, ZONE, RARITY = "Blue Whale", "ZONE 5 / OPEN BLUE", "MYTHIC"
 U = 0.7
 PALETTE = {"body": "#47708F", "throat": "#C4D3D9", "mouth": "#7A3B46", "baleen": "#E6DDC2", "black": "#24262B",
            "coral": "#E86F5C", "crust": "#D8CDB4", "weed": "#5F8F58", "lume": "#7FF0D8", "iron": "#3B3F46", "sponge": "#E2B84A",

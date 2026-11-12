@@ -1,9 +1,9 @@
 {
- "name": "Blue Whale (the old one)",
+ "name": "Blue Whale",
  "zone": "ZONE 5 / OPEN BLUE",
  "rarity": "MYTHIC",
- "mesh": "BlueWhaletheoldone.obj",
- "palette": "BlueWhaletheoldone_palette.png",
+ "mesh": "BlueWhale.obj",
+ "palette": "BlueWhale_palette.png",
  "units": "studs",
  "cube": 0.7,
  "axes": {
@@ -222,7 +222,7 @@
   ]
  },
  "studs": [],
- "glb": "BlueWhaletheoldone.glb",
+ "glb": "BlueWhale.glb",
  "glbNote": "1 unit (a glTF metre) = 1 stud; vertex colours; one object to a part, origin at its pivot",
  "glowParts": [
   "S2_Glow",

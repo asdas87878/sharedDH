@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 
 export type DeathCam = { Focus: Vector3, Position: Vector3 }
@@ -60,6 +61,21 @@ function State.character(): (Model?, BasePart?, Humanoid?)
 		return character, root, humanoid
 	end
 	return character, nil, nil
+end
+
+-- How long a full meter would last on a fish where it swims now (for the HUD's lock plate and name tags): our max
+-- Oxygen over what a fish of its rarity takes a second in the land it is in, the way the server counts it. nil when it
+-- can't be told yet.
+function State.secondsOn(fish: Model): number?
+	local root = fish.PrimaryPart
+	local tier = fish:GetAttribute("Tier")
+	local max = State.Player:GetAttribute("MaxOxygen")
+	if not root or type(tier) ~= "string" or type(max) ~= "number" then
+		return nil
+	end
+	local zone = Zones.locate(State.Zones, root.Position)
+	local rate = Config.drain(if zone then zone.Index else 1, tier)
+	return if rate > 0 then max / rate else nil
 end
 
 function State.dying(): boolean

@@ -22,6 +22,10 @@ function Ease.inOutSine(t: number): number
 end
 
 function Ease.smoothstep(a: number, b: number, x: number): number
+	if b == a then
+		-- (no width: a step. Dividing gave NaN when x was the same number too, and a NaN CFrame loses the character)
+		return if x >= b then 1 else 0
+	end
 	local t = math.clamp((x - a) / (b - a), 0, 1)
 	return t * t * (3 - 2 * t)
 end

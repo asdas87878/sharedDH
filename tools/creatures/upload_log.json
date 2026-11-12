@@ -1,0 +1,488 @@
+{
+ "AbyssalWatcher": {
+  "asset": 113815414839790,
+  "at": "2026-11-12 00:35:24",
+  "bytes": 247260,
+  "operation": "f864cfba-43ee-4d3e-ac0e-9072ebacee7c"
+ },
+ "Angelfish": {
+  "asset": 129557719902699,
+  "at": "2026-11-12 00:52:04",
+  "bytes": 61740,
+  "operation": "4f1753ef-3497-4580-98a0-c839cd056f5d"
+ },
+ "Anglerfish": {
+  "asset": 135290339620245,
+  "at": "2026-11-12 00:52:17",
+  "bytes": 80148,
+  "operation": "a78c6f71-ce2c-4f01-8192-85ae2cf88e3d"
+ },
+ "Anomalocaris": {
+  "asset": 78442548773107,
+  "at": "2026-11-12 00:52:37",
+  "bytes": 113276,
+  "operation": "7e79862e-89c6-4539-9ca9-ef74723c8847"
+ },
+ "Archelon": {
+  "asset": 86048939845149,
+  "at": "2026-11-12 00:52:58",
+  "bytes": 149568,
+  "operation": "678cc995-a67e-4543-88d2-386089a12e26"
+ },
+ "AuroraJelly": {
+  "asset": 101113534672395,
+  "at": "2026-11-12 00:35:59",
+  "bytes": 261104,
+  "operation": "95b48796-836d-4b70-8c9b-e6c53f3971d6"
+ },
+ "Barracuda": {
+  "asset": 79514745533270,
+  "at": "2026-11-12 00:36:12",
+  "bytes": 112536,
+  "operation": "f977fa56-e467-4b2d-8e34-00a92b206505"
+ },
+ "Basilosaurus": {
+  "asset": 87946424823674,
+  "at": "2026-11-12 00:53:33",
+  "bytes": 204848,
+  "operation": "5575fde9-75ac-4b75-a39b-2e182006e003"
+ },
+ "BlueChromis": {
+  "asset": 117266527698559,
+  "at": "2026-11-12 00:53:53",
+  "bytes": 43072,
+  "operation": "58d461f8-3553-450f-8ea0-0176ffddaaab"
+ },
+ "BlueWhale": {
+  "asset": 118060998600043,
+  "at": "2026-11-12 00:54:09",
+  "bytes": 168128,
+  "operation": "ea8c29df-2ddb-49d2-b025-d84eaad08069"
+ },
+ "BobbitWorm": {
+  "asset": 140021902634822,
+  "at": "2026-11-12 00:54:22",
+  "bytes": 177968,
+  "operation": "7d9df521-edaf-4d89-9028-d43602be89d3"
+ },
+ "BoneLeviathan": {
+  "asset": 140022589419752,
+  "at": "2026-11-12 00:36:32",
+  "bytes": 201160,
+  "operation": "a3863e51-26bc-4155-bd6b-8308a1092c46"
+ },
+ "Boxfish": {
+  "asset": 127998088651682,
+  "at": "2026-11-12 00:54:45",
+  "bytes": 48412,
+  "operation": "f82608a0-5f17-4466-80e1-846be2fef446"
+ },
+ "BrimstoneEel": {
+  "asset": 82261781775645,
+  "at": "2026-11-12 00:36:53",
+  "bytes": 231780,
+  "operation": "7f141b31-0708-4101-b671-e0770b3a7431"
+ },
+ "Butterflyfish": {
+  "asset": 127487877630460,
+  "at": "2026-11-12 00:54:58",
+  "bytes": 43156,
+  "operation": "cf003979-f104-4bd8-b48c-8b4d44c810d3"
+ },
+ "CinderRay": {
+  "asset": 119439544557429,
+  "at": "2026-11-12 00:37:14",
+  "bytes": 107612,
+  "operation": "a0b23657-d4d7-4222-885d-850f95cead08"
+ },
+ "Clownfish": {
+  "asset": 119229281336799,
+  "at": "2026-11-12 00:55:25",
+  "bytes": 73512,
+  "operation": "79141c79-dccd-42a6-9a99-67135e8ebc30"
+ },
+ "CoralDragon": {
+  "asset": 128488992327028,
+  "at": "2026-11-12 00:37:34",
+  "bytes": 215744,
+  "operation": "5846e067-5cb9-4a36-ad46-9d5a763af4b9"
+ },
+ "Cuttlefish": {
+  "asset": 136715426944097,
+  "at": "2026-11-12 00:55:46",
+  "bytes": 105176,
+  "operation": "f27ff34e-6662-4735-906b-b1f14cd0dffe"
+ },
+ "Dakosaurus": {
+  "asset": 131792037957293,
+  "at": "2026-11-12 00:37:54",
+  "bytes": 208388,
+  "operation": "b7d48afc-94a3-4a6a-b588-fb0efd44ca7d"
+ },
+ "Dolphin": {
+  "asset": 83573089594590,
+  "at": "2026-11-12 00:38:15",
+  "bytes": 107940,
+  "operation": "ba257dec-5b58-45a0-a51b-68fcd74710d2"
+ },
+ "Dunkleosteus": {
+  "asset": 139313582950284,
+  "at": "2026-11-12 00:56:06",
+  "bytes": 112868,
+  "operation": "52668266-92eb-4b62-bd26-b91e9e05e412"
+ },
+ "Elasmosaurus": {
+  "asset": 84753876959167,
+  "at": "2026-11-12 00:56:29",
+  "bytes": 192928,
+  "operation": "73a1e7e8-ea66-421b-93fe-f7f0e375aafb"
+ },
+ "ElectricRay": {
+  "asset": 93645627479256,
+  "at": "2026-11-12 00:38:35",
+  "bytes": 106680,
+  "operation": "bbda2590-ea4b-4c10-bc4f-a75988de66ec"
+ },
+ "EmberSerpent": {
+  "asset": 136150030481119,
+  "at": "2026-11-12 00:38:56",
+  "bytes": 284480,
+  "operation": "7e43cef1-b5bc-48c2-9445-562608814dff"
+ },
+ "FlyingFish": {
+  "asset": 95811181224220,
+  "at": "2026-11-12 00:56:50",
+  "bytes": 78888,
+  "operation": "2eb3c4c6-af77-41db-8787-3021a6eb3fe2"
+ },
+ "FrilledShark": {
+  "asset": 131847386055919,
+  "at": "2026-11-12 00:39:16",
+  "bytes": 142672,
+  "operation": "128cc6c6-5809-4f01-b6b2-3f70e7c1cc46"
+ },
+ "GalleonWhale": {
+  "asset": 109673556561992,
+  "at": "2026-11-12 00:39:32",
+  "bytes": 220372,
+  "operation": "8d2f9c1a-36f4-4981-883f-90f871eb7604"
+ },
+ "Garibaldi": {
+  "asset": 79724107569527,
+  "at": "2026-11-12 00:39:52",
+  "bytes": 81284,
+  "operation": "a5e6aae1-506f-4563-b189-7ca1a91a02c0"
+ },
+ "GiantIsopod": {
+  "asset": 77701577304040,
+  "at": "2026-11-12 00:40:13",
+  "bytes": 103668,
+  "operation": "b1740ad7-3fcf-4458-bf6c-f3e61f03d6d7"
+ },
+ "GiantSeaBass": {
+  "asset": 113653831475499,
+  "at": "2026-11-12 00:40:41",
+  "bytes": 118008,
+  "operation": "d0828ab4-378a-40ed-9bb9-eaeed3605b73"
+ },
+ "GiantSquid": {
+  "asset": 121812733925636,
+  "at": "2026-11-12 00:41:01",
+  "bytes": 137028,
+  "operation": "787afee6-febe-4f10-b781-16994748b0bf"
+ },
+ "GoblinShark": {
+  "asset": 75231907128003,
+  "at": "2026-11-12 00:41:22",
+  "bytes": 119504,
+  "operation": "a01a5667-28ff-42ce-b0b6-eb3fc5e5b5bc"
+ },
+ "GoliathGrouper": {
+  "asset": 132846431878744,
+  "at": "2026-11-12 00:41:42",
+  "bytes": 124000,
+  "operation": "8ce39742-f981-40d3-9b3f-bb917e0a1356"
+ },
+ "GraveRay": {
+  "asset": 104326031402436,
+  "at": "2026-11-12 00:42:02",
+  "bytes": 134052,
+  "operation": "0a6f6e7c-2e76-4f27-bc83-2a7441be4634"
+ },
+ "GraveTurtle": {
+  "asset": 104721877924481,
+  "at": "2026-11-12 00:42:23",
+  "bytes": 207676,
+  "operation": "d612ae64-3d98-4e4e-9630-e64b88fb5938"
+ },
+ "GreatWhite": {
+  "asset": 91151569844027,
+  "at": "2026-11-12 00:42:43",
+  "bytes": 164984,
+  "operation": "038bd7cb-b1c2-4104-a4d5-045551a5c170"
+ },
+ "HalfboneMegalodon": {
+  "asset": 78990514625908,
+  "at": "2026-11-12 00:43:11",
+  "bytes": 217888,
+  "operation": "2f7e7716-0892-44c6-b5fa-4cdad2fdc017"
+ },
+ "HammerheadShark": {
+  "asset": 119622174840008,
+  "at": "2026-11-12 00:57:03",
+  "bytes": 93872,
+  "operation": "5179b314-a372-4b7c-a68f-54d9f2c1b9ba"
+ },
+ "Helicoprion": {
+  "asset": 97094973444731,
+  "at": "2026-11-12 00:43:32",
+  "bytes": 191596,
+  "operation": "36ac9750-4041-44a4-b413-9f59207885ae"
+ },
+ "HellfinShark": {
+  "asset": 76028181419407,
+  "at": "2026-11-12 00:43:55",
+  "bytes": 187700,
+  "operation": "771ac420-12be-4ef0-b0ed-2a06ca6665ba"
+ },
+ "Hellmaw": {
+  "asset": 140173887507121,
+  "at": "2026-11-12 00:57:23",
+  "bytes": 189344,
+  "operation": "eddf8ce9-f0c1-49cd-b580-7de8303334d6"
+ },
+ "HumpheadWrasse": {
+  "asset": 125673195679187,
+  "at": "2026-11-12 00:57:44",
+  "bytes": 111520,
+  "operation": "a4d6da66-d7a0-42af-9b71-7cd946881cd6"
+ },
+ "InfernalAngler": {
+  "asset": 74222382921453,
+  "at": "2026-11-12 00:44:08",
+  "bytes": 165900,
+  "operation": "5e753f63-3ed6-4727-a7b9-279f7331d912"
+ },
+ "KelpWyrm": {
+  "asset": 127347557622895,
+  "at": "2026-11-12 00:44:36",
+  "bytes": 220512,
+  "operation": "e0b62de0-6e79-4871-bc63-18561763432b"
+ },
+ "Kraken": {
+  "asset": 90315009245271,
+  "at": "2026-11-12 01:08:27",
+  "bytes": 220884,
+  "operation": "ed536490-8cc4-4d9b-9737-eb0758d4073a"
+ },
+ "Kronosaurus": {
+  "asset": 86646180406191,
+  "at": "2026-11-12 00:44:57",
+  "bytes": 249852,
+  "operation": "2177010d-750f-4734-ace5-f3e87e6f05c7"
+ },
+ "LanternLeviathan": {
+  "asset": 133268307733622,
+  "at": "2026-11-12 00:45:17",
+  "bytes": 252840,
+  "operation": "32f41a0b-b507-4380-a8ca-53e8c542b1fd"
+ },
+ "LeopardShark": {
+  "asset": 121031268448099,
+  "at": "2026-11-12 00:45:30",
+  "bytes": 102892,
+  "operation": "a049db9c-bf50-4add-b1bb-959c287cb8cd"
+ },
+ "Lionfish": {
+  "asset": 96297011658224,
+  "at": "2026-11-12 01:02:58",
+  "bytes": 90120,
+  "operation": "87844dc9-f655-4757-958e-262b574c31e4"
+ },
+ "Liopleurodon": {
+  "asset": 96497570651083,
+  "at": "2026-11-12 00:45:51",
+  "bytes": 209736,
+  "operation": "44ed4dd5-b257-4a08-af2f-ba1b9c3d74be"
+ },
+ "Livyatan": {
+  "asset": 94048175708024,
+  "at": "2026-11-12 00:46:11",
+  "bytes": 222992,
+  "operation": "b396ac35-62a1-4d28-b752-7a1278c75ea8"
+ },
+ "MantaRay": {
+  "asset": 73659178879301,
+  "at": "2026-11-12 01:03:18",
+  "bytes": 62700,
+  "operation": "9da7a769-f9eb-4ca2-a531-c0e5b28562d8"
+ },
+ "Megalodon": {
+  "asset": 78666017329426,
+  "at": "2026-11-12 00:46:32",
+  "bytes": 233608,
+  "operation": "a1047e34-6dc0-449c-8370-f9d539396723"
+ },
+ "MoltenMegalodon": {
+  "asset": 135578019443333,
+  "at": "2026-11-12 00:46:57",
+  "bytes": 261148,
+  "operation": "ba83a436-2774-456b-b59e-13ed1312294a"
+ },
+ "MorayEel": {
+  "asset": 107088720926820,
+  "at": "2026-11-12 01:03:31",
+  "bytes": 133376,
+  "operation": "ecfa207f-2a0b-4244-9ed3-4701f6a7420a"
+ },
+ "Mosasaurus": {
+  "asset": 116406070430010,
+  "at": "2026-11-12 01:03:44",
+  "bytes": 198884,
+  "operation": "98e9cf48-25a6-453b-9c51-dc2744050e9b"
+ },
+ "Octopus": {
+  "asset": 86430157581695,
+  "at": "2026-11-12 01:04:04",
+  "bytes": 112312,
+  "operation": "394760c9-2214-4da8-8ea3-e2348a7bc59f"
+ },
+ "Orca": {
+  "asset": 81479077802017,
+  "at": "2026-11-12 01:04:27",
+  "bytes": 130944,
+  "operation": "eca93477-a55c-4fc6-900a-93ac7de05651"
+ },
+ "Parrotfish": {
+  "asset": 138876353705038,
+  "at": "2026-11-12 01:04:47",
+  "bytes": 88300,
+  "operation": "3b3f5f2d-048f-4d8c-b9d4-add06e1a7bd6"
+ },
+ "PearlSerpent": {
+  "asset": 129098516651853,
+  "at": "2026-11-12 00:47:18",
+  "bytes": 208564,
+  "operation": "b68552ff-659c-46a4-8e7a-7ae4c86ec579"
+ },
+ "PhantomWhale": {
+  "asset": 83257305601063,
+  "at": "2026-11-12 00:47:38",
+  "bytes": 130244,
+  "operation": "9d20c82e-7eec-4317-9683-0a923a3ca46a"
+ },
+ "Pufferfish": {
+  "asset": 70372702925992,
+  "at": "2026-11-12 01:05:00",
+  "bytes": 70668,
+  "operation": "ed48496d-601b-40fd-ba33-523d18fad5f0"
+ },
+ "Sawfish": {
+  "asset": 116756337380026,
+  "at": "2026-11-12 00:47:58",
+  "bytes": 89352,
+  "operation": "e8a5ad07-71ea-423e-b948-7c3ffd2b60b7"
+ },
+ "SeaLion": {
+  "asset": 110410286446513,
+  "at": "2026-11-12 00:48:11",
+  "bytes": 94300,
+  "operation": "4c3bf138-fcb7-43f9-9eec-20a3a74629c9"
+ },
+ "SeaScorpion": {
+  "asset": 131424880982250,
+  "at": "2026-11-12 00:48:35",
+  "bytes": 138328,
+  "operation": "148b7363-3bac-423f-8548-fe07a1dbc090"
+ },
+ "SeaTurtle": {
+  "asset": 92041089080955,
+  "at": "2026-11-12 01:05:13",
+  "bytes": 77784,
+  "operation": "03c690d1-738d-4fb9-8fb7-52c0759af328"
+ },
+ "Seahorse": {
+  "asset": 137941791965465,
+  "at": "2026-11-12 01:05:26",
+  "bytes": 75424,
+  "operation": "56157185-edfd-4964-bf8e-68e0066cdf3a"
+ },
+ "SergeantMajor": {
+  "asset": 83245274682689,
+  "at": "2026-11-12 01:05:54",
+  "bytes": 60648,
+  "operation": "5fc64d67-0865-4653-a6bd-3db6661574db"
+ },
+ "Shonisaurus": {
+  "asset": 122902485621649,
+  "at": "2026-11-12 00:48:58",
+  "bytes": 216268,
+  "operation": "492fb84d-cc86-41fe-b178-5e3441046a54"
+ },
+ "SkullAngler": {
+  "asset": 113396405893383,
+  "at": "2026-11-12 00:49:26",
+  "bytes": 168476,
+  "operation": "4abb0464-85a8-4456-94fb-43f1dced4a6c"
+ },
+ "StellersSeaCow": {
+  "asset": 116034839875924,
+  "at": "2026-11-12 00:49:46",
+  "bytes": 149688,
+  "operation": "532c6754-9908-4f6b-a76f-4e9b47dffb96"
+ },
+ "Stingray": {
+  "asset": 92686344891091,
+  "at": "2026-11-12 01:06:17",
+  "bytes": 43328,
+  "operation": "2687980e-8e6c-49ac-bb8b-c35daacf9d9c"
+ },
+ "StormSerpent": {
+  "asset": 123559649403234,
+  "at": "2026-11-12 00:50:06",
+  "bytes": 223312,
+  "operation": "d9541d04-255d-4d26-aa03-1c8d99fd71fb"
+ },
+ "Swordfish": {
+  "asset": 119570436263563,
+  "at": "2026-11-12 00:50:27",
+  "bytes": 100584,
+  "operation": "0ebf61d6-b708-44cc-bf0d-a2c9018dc728"
+ },
+ "TheDevourer": {
+  "asset": 105412469587667,
+  "at": "2026-11-12 00:50:47",
+  "bytes": 207496,
+  "operation": "fcc7c09d-11c3-48c5-9096-9811a4c69771"
+ },
+ "Viperfish": {
+  "asset": 102689856369892,
+  "at": "2026-11-12 00:51:00",
+  "bytes": 121708,
+  "operation": "a9c8b7d7-e4ec-4636-967e-4253358d0b3d"
+ },
+ "VoidWhale": {
+  "asset": 132010910173324,
+  "at": "2026-11-12 00:51:13",
+  "bytes": 197888,
+  "operation": "85d9dd9e-e119-4d56-960e-3e3b816f88d9"
+ },
+ "WraithEel": {
+  "asset": 85590513419887,
+  "at": "2026-11-12 00:51:38",
+  "bytes": 204064,
+  "operation": "9e94e1a6-a636-45f0-8902-c9b08d2b85fa"
+ },
+ "Xiphactinus": {
+  "asset": 100036291777143,
+  "at": "2026-11-12 00:51:51",
+  "bytes": 191252,
+  "operation": "369c026e-8f74-4c41-8ce4-b43f76654c47"
+ },
+ "YellowTang": {
+  "asset": 101672555841423,
+  "at": "2026-11-12 01:06:30",
+  "bytes": 35984,
+  "operation": "d88033f2-299d-4d36-b55f-75145e1fff72"
+ }
+}

@@ -4,6 +4,7 @@ usage: python tools/studio/push_scripts.py <repo> <out.luau> <src-relative path>
   e.g. python tools/studio/push_scripts.py . /tmp/push.luau \\
          src/client/Controllers/HudController.luau=StarterPlayer.StarterPlayerScripts.Client.Controllers.HudController
        node tools/studio/run_luau.js <studio_id> /tmp/push.luau
+A .json file becomes a module that returns its table, as Rojo makes it.
 A script that isn't in the place yet is made (a ModuleScript; a LocalScript for .client.luau, a Script for
 .server.luau) when its parent is there.
 """
@@ -11,11 +12,32 @@ import io
 import json
 import sys
 
+
+
+def to_luau(value):
+    """A JSON value as a Luau literal (what Rojo makes of a .json file: a module that returns the table)."""
+    if value is None:
+        return "nil"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    if isinstance(value, (int, float)):
+        return repr(value)
+    if isinstance(value, str):
+        return json.dumps(value)
+    if isinstance(value, list):
+        return "{" + ",".join(to_luau(v) for v in value) + "}"
+    return "{" + ",".join("[%s]=%s" % (json.dumps(str(k)), to_luau(v)) for k, v in value.items()) + "}"
+
+
 repo, out = sys.argv[1], sys.argv[2]
 items = []
 for pair in sys.argv[3:]:
     rel, where = pair.split("=")
     src = io.open(repo + "/" + rel, encoding="utf-8", newline="").read().replace("\r\n", "\n")
+    if rel.endswith(".json"):
+        src = "return " + to_luau(json.loads(src)) + "\n"
     kind = "LocalScript" if rel.endswith(".client.luau") else "Script" if rel.endswith(".server.luau") else "ModuleScript"
     items.append({"path": where.split("."), "source": src, "class": kind})
 
