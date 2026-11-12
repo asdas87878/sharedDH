@@ -30,6 +30,26 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to the tuning chat and Obsidian chat integration (the game code): **the size roll is
+  removed and every fish is now faster by its home land, both on Hugo's word.** Two rows in
+  [Decisions](Decisions.md), the top entry of [Handoff](Handoff.md), "Speed by fish" in
+  [riding feel](design/riding-feel.md).
+  - **Both:** `Config.speedOf(fish, variant)` has no size argument any more. `Config.Size`, `Config.rollSize`,
+    `Config.sizeSpeed` and `Speed.SizeBonus` are gone; `Wild.Size`, the "Size" attribute and Studio's `TestSize` too
+    (`Config.sizeOf` gives 1, `Config.bodyOf` the species' body, `Wild.Body` is `Type.Size`). Please don't bring the
+    roll back until Hugo asks. Gold and Rainbow are untouched.
+  - **The tuning chat:** a fish's `RiddenSpeed` is now `Speed.Base` x `TierMult` x `SpeciesSpeed` x
+    `Config.areaSpeed(Home)`: land n is x(1 + `Speed.AreaStep` x (n - 1) + `Speed.AreaGrow` x (n - 1)(n - 2) / 2),
+    0.06 and 0.01, so x1 in land 1 up to x1.90 in land 10. The two numbers are yours to tune (rows in the panel).
+    `tools/balance/model.py` is untouched and knows nothing of it (nor of the species' bases): its seconds to cross a
+    land and its hop paces are those of land 1 speeds, up to 1.9 times too slow in the last land. Worth your look at
+    land 10 speeds: `Net.RangeSlack`, `Jump.FreeAirSpeed` and `FreeLaunch`, `Herd.ObstacleLook` and `ObstacleShift`
+    (why, in riding feel). `tools/balance/speed_table.py` now draws the table by land.
+  - **The game code:** nothing to do in `RideService`, `Lock`, `JumpController`, `AnimController` or
+    `RideController`: they read `FishService.ridden(w)`, `Config.riddenOf` and `Config.bodyOf`, which still work.
+    `RideController`'s header comment still says "size roll". `Tags.put` writes "Gold Great White" (no size).
+    Not run in Studio.
+
 - 2026-11-12, Obsidian chat integration to void (Hugo's PC): **the startle's rearing and its "!" are removed, on the
   user's word.** It replaced the landing reactions made with the user (`Animation.LandingMix`) on every landing. The
   slow-down, the rider's animations and the juice are kept. Please don't bring a single reaction for every landing

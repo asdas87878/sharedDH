@@ -64,9 +64,11 @@ What to reach for:
 - **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `RarityDrain` Common to Secret (how many times a Common's Oxygen each rarity takes), and `Oxygen.StartMax` (live:
   everyone's max Oxygen changes at once; the `TestMaxOxygen` attribute, when above 0, still wins).
 - **The tuning rows** ([progression](design/progression.md); [riding feel](design/riding-feel.md), "Speed by fish"):
-  `Speed.Base` (a Common's ridden speed), `TierMult` Common to Secret (each rarity's speed, times), `Speed.SizeBonus` (the biggest roll's extra speed),
-  `Speed.Gold`, `Speed.Rainbow` (wild fish, the glide and the server's speed check follow at once); `Size.Min`, `Max`,
-  `Curve` and `Variant.Gold`, `Rainbow` (the size roll and the variants' chances, for fish spawned from then on); and
+  `Speed.Base` (a Common's ridden speed in land 1), `TierMult` Common to Secret (each rarity's speed, times),
+  `Speed.AreaStep` and `Speed.AreaGrow` (faster by a fish's home land: the first land's step, and how much bigger each
+  step after is; 0.06 and 0.01 make land 10 x1.90; both 0 turn it off), `Speed.Gold`, `Speed.Rainbow` (wild fish, the
+  glide and the server's speed check follow at once); `Variant.Gold`, `Rainbow` (the variants' chances, for fish
+  spawned from then on; the `Size` rows and `Speed.SizeBonus` went with the size roll, 2026-11-12); and
   `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12.)
 - **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.Rebuild`, `Push`, `Topple`, `MinLength`.
 

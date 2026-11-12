@@ -3,6 +3,46 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): the size roll removed; every fish faster by its home land
+**State:** on Hugo's word ("check that the further you go the faster the fish get, even if theyre legendary it should
+still get faster by more per area, dont do the sizing yet remove it but keep rainbow and gold for now"). StyLua, selene
+and `rojo build` pass. **Not run in Studio:** the numbers are worked out by `tools/balance/speed_table.py`, which
+follows `Config.speedOf`; how land 10 speeds feel and hop is not played. Nothing uploaded. Two rows in
+[Decisions](Decisions.md); the design is "Speed by fish" in [riding feel](design/riding-feel.md); the note to the
+tuning chat and the game-code chat is the top one in [Sessions](Sessions.md).
+- **Files:** `src/shared/Config.luau`, `src/server/Services/FishService.luau`, `src/client/UI/Tags.luau` (the name
+  line), rows only in `SandboxController.luau`, `tools/balance/speed_table.py`.
+- **What was found:** a fish's land did not count. speed was `Speed.Base` x species x rarity x size x variant, so a
+  Legendary did 78 in land 2 and in land 10; a land was faster only through its mix of rarities.
+- **Area speed (new):** `Config.areaSpeed(land)` = 1 + `Speed.AreaStep` x (n - 1) + `Speed.AreaGrow` x (n - 1)(n - 2)
+  / 2, with 0.06 and 0.01: x1, 1.06, 1.13, 1.21, 1.30, 1.40, 1.51, 1.63, 1.76, 1.90. It is in each species'
+  `RiddenSpeed` (`Config.refresh`, from the fish's `Home`), which `Config.speedOf` reads, so the herd, the ridden
+  speed, the glide and the server's speed check all follow. Land 1 is unchanged.
+
+  | Species base 1 | land 1 | land 5 | land 10 |
+  |---|---|---|---|
+  | Common, before and now | 45, 45 | 45, 58 | 45, 86 |
+  | Epic | 68, 68 | 68, 88 | 68, 129 |
+  | Legendary | 78, 78 | 78, 101 | 78, 148 |
+
+  Real creatures: Reef Shark (Epic, land 1) 69 as before; Orca (Epic, land 5) 73 to 95; Sea Scorpion (Epic, land 8)
+  68 to 111; Archelon (Legendary, land 1) 72 as before; Helicoprion (land 5) 79 to 103; Hellfin Shark (land 10) 83 to
+  158. Every Common lives in land 1, so no Common changed. Fastest: The Devourer 205, as a Rainbow 307.
+- **Removed (sizing):** `Config.Size` (`On`, `Min`, `Max`, `Curve`), `Config.rollSize`, `Config.sizeSpeed`,
+  `Speed.SizeBonus`, the size argument of `Config.speedOf` (now `(fish, variant)`), `FishService`'s roll and its
+  scaling of the model and seat, `Wild.Size`, the "Size" attribute, Studio's `TestSize`, the tag's "x1.23", and the
+  five sandbox rows. Kept: `Config.sizeOf` (gives 1) and `Config.bodyOf` (the species' body), for `Lock`,
+  `JumpController`, `RideController` and `AnimController`, which are untouched. Gold x1.2 and Rainbow x1.5, their
+  chances and their looks are exactly as they were.
+- **The panel (N):** new rows `Speed.AreaStep`, `Speed.AreaGrow`; gone `Speed.SizeBonus`, `Size.*`.
+- **The table:** `python tools/balance/speed_table.py <out.png>` now draws all 82 under their home land, with the
+  speed before and now, Gold and Rainbow, and a grid of rarity by land on top.
+- **For the tuning chat:** the hop is made of shares of the fish's speed, so it scales; what does not is listed in
+  riding feel (`Net.RangeSlack` against lag at 150 studs a second, `Jump.FreeAirSpeed` and `FreeLaunch` for a rider
+  floating in a deep land, the herd's `ObstacleLook` and `ObstacleShift`). Oxygen and the too-strong rule go by land
+  and rarity and are untouched. `tools/balance/model.py` does not know the area's factor.
+- **Left as found:** `CLAUDE.md` and `RideController`'s header still say "size roll" (not this task's files).
+
 ## 2026-11-12 · 8570-F43F (the user's PC): the startle's rearing and "!" removed; our landing reactions play again
 **State:** by the game-code chat, on the user's word. In the place on this PC, run once: two hops and landings, no
 errors, no "!" made. StyLua, selene and `rojo build` pass. Not committed by hand. Nothing uploaded.

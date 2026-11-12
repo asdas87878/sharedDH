@@ -6,7 +6,7 @@
 
 export type Tier = {
 	Idle: number, -- (not used since the herd: a wild fish swims at Herd.SpeedShare of its ridden speed)
-	Ridden: number, -- speed once ridden, for a species of base 1 at size 1 (worked out: Speed.Base x TierMult)
+	Ridden: number, -- speed once ridden, for a species of base 1 in land 1 (worked out: Speed.Base x TierMult)
 	Colour: Color3, -- the tier's colour on markers
 }
 
@@ -18,8 +18,8 @@ export type FishType = {
 	Reach: number, -- how many zones past home it can still turn up in
 	Required: number, -- the max Oxygen that keeps up with it in its home land (Config.required): shown on its tag
 	IdleSpeed: number,
-	RiddenSpeed: number, -- this species at size 1, no variant (worked out: Config.refresh); one fish's own: Config.speedOf
-	Size: Vector3, -- width, height, length (it faces -Z), at size 1; one fish's own: Config.bodyOf
+	RiddenSpeed: number, -- this species, no variant: base x species x rarity x its home land's (worked out: Config.refresh); one fish's own: Config.speedOf
+	Size: Vector3, -- width, height, length (it faces -Z); one fish's own: Config.bodyOf
 	Shape: string, -- placeholder body: "Fish" (tall, flat), "Round", "Shark", "Flat" (a ray), "Eel"
 	Body: Color3,
 	Belly: Color3,
@@ -50,21 +50,26 @@ Config.Tiers = {
 	Secret = { Idle = 26, Ridden = 100, Colour = rgb(20, 20, 20) },
 } :: { [string]: Tier }
 
--- Speed per fish (Hugo, 2026-11-12): speed = Speed.Base x SpeciesSpeed[species] x TierMult[rarity] x the size's factor
--- x the variant's. Every fish has its own, worked out the same way on the server and on every client from the fish's
--- attributes (Config.speedOf); the server's is the one that counts (the herd, the speed check).
+-- Speed per fish (Hugo, 2026-11-12): speed = Speed.Base x SpeciesSpeed[species] x TierMult[rarity] x the area's
+-- (its home land's, Config.areaSpeed) x the variant's. Every fish has its own, worked out the same way on the server
+-- and on every client from the fish's type and attributes (Config.speedOf); the server's is the one that counts (the
+-- herd, the speed check). There is no size roll for now (Hugo, 2026-11-12, later: "dont do the sizing yet").
 Config.Speed = {
-	Base = 45, -- studs a second ridden: a Common of species base 1, size 1, no variant
-	-- size barely matters (Hugo, 2026-11-12): the smallest roll (Size.Min) is x1, the biggest (Size.Max) x(1 + SizeBonus),
-	-- in a straight line between; a fish is never slowed by being small
-	SizeBonus = 0.2,
+	Base = 45, -- studs a second ridden: a Common of species base 1, land 1, no variant
+	-- By area (Hugo, 2026-11-12: "the further you go the faster the fish get, even if theyre legendary it should
+	-- still get faster by more per area"): every fish is faster by its HOME land, whatever its rarity, and the step
+	-- grows a land. Land n is x(1 + AreaStep x (n - 1) + AreaGrow x (n - 1)(n - 2) / 2): the first step is AreaStep
+	-- and each step after is AreaGrow bigger. At 0.06 and 0.01: x1, 1.06, 1.13, 1.21, 1.30, 1.40, 1.51, 1.63, 1.76,
+	-- 1.90 (steps of 6% up to 14%). Land 1 is always x1. Both 0: no area speed.
+	AreaStep = 0.06,
+	AreaGrow = 0.01,
 	Gold = 1.2, -- a Gold fish's speed, times (Hugo, 2026-11-12)
 	Rainbow = 1.5, -- a Rainbow's (Hugo, 2026-11-12)
 }
 
 -- By rarity: a higher rarity is clearly faster on average. Each step is about 1.15 times the last, which lands on the
 -- ridden speeds measured in the game before this (Handoff, 2026-11-12: 60, 68, 78, 90 on a Rare, Epic, Legendary and
--- Mythic; with Base 45 these make 45, 52, 60, 68, 78, 90, 100). The steps (15%) are wider than the whole spread of
+-- Mythic; with Base 45 these make 45, 52, 60, 68, 78, 90, 100, in land 1: the area's factor comes on top). The steps (15%) are wider than the whole spread of
 -- species inside a rarity (8% either way), so the fastest of one rarity is about level with the slowest of the next.
 Config.TierMult = {
 	Common = 1,
@@ -170,18 +175,6 @@ Config.SpeciesSpeed = {
 	PhantomWhale = 1.0, -- a ghost whale: average
 	TheDevourer = 1.08, -- the end of the list
 } :: { [string]: number }
-
--- The size roll (Hugo, 2026-11-12): every spawned fish is Min to Max times its species' size, most of them near 1 and
--- the extremes rare. The roll is a number 0 to 1 raised to Curve and laid on either side of 1: at Curve 2.5 half the
--- fish are within 7% of 1 above (3% below), and about one in twenty is over x1.3. It scales the model, the seat, what
--- counts as the fish's body (the lock, the landing, crashes) and its speed (Speed.SizeBonus, only up to x1.2); the fish's "Size"
--- attribute, shown on its tag as "x1.23".
-Config.Size = {
-	On = 1, -- 0: every fish x1
-	Min = 0.8,
-	Max = 1.4,
-	Curve = 2.5, -- 1: evenly spread between Min and Max; higher: more of them near 1
-}
 
 -- Variants (Hugo, 2026-11-12): the chance that a spawned fish is one, 0 to 1 (Rainbow is rolled first). The fish's
 -- "Variant" attribute ("", "Gold" or "Rainbow"); the look is Shared/Variants; the speed is Speed.Gold and Speed.Rainbow.
@@ -915,17 +908,6 @@ function Config.smashes(fish: FishType): boolean
 	return fish.Size.Z >= Config.Props.MinLength
 end
 
--- A spawned fish's size, from two rolls of 0 to 1 (Config.Size): `side` says bigger or smaller, `roll` by how much
-function Config.rollSize(side: number, roll: number): number
-	local z = Config.Size
-	if z.On <= 0 then
-		return 1
-	end
-	local t = math.clamp(roll, 0, 1) ^ math.max(z.Curve, 0.01)
-	local size = if side < 0.5 then 1 + t * (z.Max - 1) else 1 - t * (1 - z.Min)
-	return math.floor(size * 100 + 0.5) / 100
-end
-
 -- A spawned fish's variant, from a roll of 0 to 1 (Config.Variant): "", "Gold" or "Rainbow"
 function Config.rollVariant(roll: number): string
 	local v = Config.Variant
@@ -937,17 +919,18 @@ function Config.rollVariant(roll: number): string
 	return ""
 end
 
--- The size's factor on speed: x1 at Size.Min up to x(1 + Speed.SizeBonus) at Size.Max
-function Config.sizeSpeed(size: number): number
-	local lo, hi = Config.Size.Min, Config.Size.Max
-	local t = if hi > lo then math.clamp((size - lo) / (hi - lo), 0, 1) else 0
-	return 1 + Config.Speed.SizeBonus * t
+-- The area's factor on speed, by a fish's home land: x1 in land 1, and each land's step bigger than the last
+-- (Speed.AreaStep, Speed.AreaGrow)
+function Config.areaSpeed(land: number): number
+	local s = Config.Speed
+	local n = math.max(land, 1) - 1
+	return 1 + s.AreaStep * n + s.AreaGrow * n * (n - 1) / 2
 end
 
--- One fish's ridden speed: its species' (base x rarity), by its size and its variant
-function Config.speedOf(fish: FishType, size: number?, variant: string?): number
+-- One fish's ridden speed: its species' (base x species x rarity x its home land's: RiddenSpeed), by its variant
+function Config.speedOf(fish: FishType, variant: string?): number
 	local s = Config.Speed
-	local speed = fish.RiddenSpeed * Config.sizeSpeed(size or 1)
+	local speed = fish.RiddenSpeed
 	if variant == "Gold" then
 		speed *= s.Gold
 	elseif variant == "Rainbow" then
@@ -956,7 +939,8 @@ function Config.speedOf(fish: FishType, size: number?, variant: string?): number
 	return speed
 end
 
--- A fish model's size roll and variant (its attributes, written by the server at the spawn)
+-- A fish model's size and variant (its attributes). No fish has a "Size" for now (the size roll is out: Hugo,
+-- 2026-11-12), so every fish is 1; the readers of sizeOf and bodyOf stay for when sizing comes back.
 function Config.sizeOf(model: Instance): number
 	local size = model:GetAttribute("Size")
 	return if type(size) == "number" and size > 0 then size else 1
@@ -969,7 +953,7 @@ end
 
 -- A fish model's own ridden speed and its body's size (width, height, length), from its type and its attributes
 function Config.riddenOf(model: Instance, fish: FishType): number
-	return Config.speedOf(fish, Config.sizeOf(model), Config.variantOf(model))
+	return Config.speedOf(fish, Config.variantOf(model))
 end
 
 function Config.bodyOf(model: Instance, fish: FishType): Vector3
@@ -1031,14 +1015,17 @@ function Config.refresh()
 	local j = Config.Jump
 	j.DropTime = math.max(0.1, j.Window - j.LaunchTime - j.FloatTime)
 	j.FlightTime = j.Window + j.ReelMax
-	-- the rarities' speeds, and each species' (the sandbox panel may have changed Speed.Base or a TierMult)
+	-- the rarities' speeds, and each species' (the sandbox panel may have changed Speed.Base, a TierMult or the
+	-- area's numbers). A fish with a speed of its own in the table above keeps it, whatever its land.
 	for name, tier in Config.Tiers do
 		tier.Ridden = Config.Speed.Base * (Config.TierMult[name] or 1)
 	end
 	for _, fish in Config.Fish do
 		local tier = Config.Tiers[fish.Tier]
 		fish.RiddenSpeed = OWN_SPEED[fish.Id]
-			or (if tier then tier.Ridden else Config.Speed.Base) * (Config.SpeciesSpeed[fish.Id] or 1)
+			or (if tier then tier.Ridden else Config.Speed.Base)
+				* (Config.SpeciesSpeed[fish.Id] or 1)
+				* Config.areaSpeed(fish.Home)
 		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
 		fish.Required = Config.required(fish.Home, fish.Tier)
 	end

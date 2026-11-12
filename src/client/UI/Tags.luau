@@ -224,11 +224,10 @@ local function put(tag: Tag, fish: Model)
 		return
 	end
 	tag.Fish = fish
-	-- this fish's own size (its roll: "x1.23") and variant, after its name
-	local size = Config.sizeOf(fish)
+	-- this fish's variant before its name ("Gold Great White"); no size is shown: there is no size roll for now
 	local variant = Config.variantOf(fish)
-	tag.Offset = Vector3.new(0, kind.Size.Y * size * 0.5 + 2.5, 0)
-	tag.Name.Text = string.format("%s%s x%.2f", if variant ~= "" then variant .. " " else "", kind.Name, size)
+	tag.Offset = Vector3.new(0, Config.bodyOf(fish, kind).Y * 0.5 + 2.5, 0)
+	tag.Name.Text = if variant ~= "" then variant .. " " .. kind.Name else kind.Name
 	tag.TierName = kind.Tier
 	tag.Tier.Text = kind.Tier
 	Kit.tierColours(tag.Tier, tag.TierGradient, kind.Tier, Config.Tiers)

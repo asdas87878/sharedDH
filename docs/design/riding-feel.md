@@ -354,23 +354,53 @@ and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](..
   travel a landing, when a new player has 2.5 s on a fish); whether the flip reads at a short pull-in; the sounds
   (placeholders from Roblox's own character sounds; nobody has heard them, the checks were by script and picture).
 
-## Speed by fish, the size roll, variants (Hugo, 2026-11-12)
+## Speed by fish, by area, variants (Hugo, 2026-11-12)
 Every fish has its own speed, worked out by one function on the server and on every client (`Config.speedOf`):
 
-**speed = `Speed.Base` (45) x the species' base x the rarity's (`TierMult`) x the size's (x1 at `Size.Min` up to x1.2 at `Size.Max`, `Speed.SizeBonus` 0.2)
+**speed = `Speed.Base` (45) x the species' base x the rarity's (`TierMult`) x the area's (the fish's home land)
 x the variant's (`Speed.Gold` 1.2, `Speed.Rainbow` 1.5)**
 
 - **Rarity** (`Config.TierMult`): Common 1, Uncommon 1.16, Rare 1.33, Epic 1.51, Legendary 1.73, Mythic 2, Secret
   2.22. A step is about 15%, wider than the spread of species inside a rarity, and it lands on the speeds measured
-  before (45, 52, 60, 68, 78, 90, 100 for a species of base 1).
-- **Size** (`Config.Size`): each spawned fish is x0.8 to x1.4, most near x1 (`Curve` 2.5: about one in twenty over
-  x1.3). It scales the model, the seat, what counts as its body (the lock, the landing, crashes, props) and, mildly,
-  its speed (x1.4 is 6% faster). On the fish as the `Size` attribute; on its tag as "x1.23".
+  before (45, 52, 60, 68, 78, 90, 100 for a species of base 1 in land 1).
+- **Area** (`Config.areaSpeed`, Hugo, 2026-11-12: "the further you go the faster the fish get, even if theyre
+  legendary it should still get faster by more per area"). Before this a fish's land did not count: a Legendary did
+  78 wherever it lived, and a land was only faster through its mix of rarities. Now every fish is faster by its
+  **home** land n: x(1 + `Speed.AreaStep` x (n - 1) + `Speed.AreaGrow` x (n - 1)(n - 2) / 2). The first step is
+  `AreaStep` (0.06) and each step after is `AreaGrow` (0.01) bigger, so the step grows a land. Land 1 is always x1.
+  The two numbers are Claude's, to tune (the N panel).
+
+  | Land | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | Area | x1 | x1.06 | x1.13 | x1.21 | x1.30 | x1.40 | x1.51 | x1.63 | x1.76 | x1.90 |
+  | Step | | +0.06 | +0.07 | +0.08 | +0.09 | +0.10 | +0.11 | +0.12 | +0.13 | +0.14 |
+  | Common (base 1) | 45 | 48 | 51 | 54 | 58 | 63 | 68 | 73 | 79 | 86 |
+  | Epic | 68 | 72 | 77 | 82 | 88 | 95 | 103 | 111 | 120 | 129 |
+  | Legendary | 78 | 83 | 88 | 94 | 101 | 109 | 118 | 127 | 137 | 148 |
+  | Secret | 100 | 106 | 113 | 121 | 130 | 140 | 151 | 163 | 176 | 190 |
+
+  The factor follows the fish, not the water: a land 8 Megalodon met in land 10 still swims at its land 8 speed. The
+  fastest plain fish is The Devourer (land 10), 205; as a Rainbow 307. A fish given a speed of its own in Config's
+  hand-written table would keep it (none has one today).
+- **What the area's speed does to the hop** (worked out, not played): the pop, the glide and the drop are shares of
+  the speed of the fish you left, and the herd swims at a share of each fish's own, so a hop between fish of one land
+  is the same hop, only faster over the ground. What does not scale, for the tuning chat and a played check in the
+  deep lands: `Jump.GrabRange` 180 and the server's allowance on it (`Net.RangeSlack` 1.2, 36 studs: a glide at 150
+  studs a second uses that up at about a quarter of a second of lag, where land 1 had a second); `Jump.FreeAirSpeed`
+  38 and `FreeLaunch` 78 for a rider floating with no fish (a land 10 herd passes at 120 to 175); the herd's
+  `ObstacleLook` 150 and `ObstacleShift` 45 (a second's warning at land 10 speeds, four in land 1); the camera's
+  `SpeedFovTo` 100 (full from about land 5 on). Oxygen and the too-strong rule go by land and rarity, never by speed,
+  so they are untouched; a land is only crossed sooner on the same Oxygen.
+- **Size: none for now** (Hugo, 2026-11-12: "dont do the sizing yet remove it but keep rainbow and gold for now").
+  The size roll of the same morning is out: `Config.Size`, `rollSize`, `sizeSpeed`, `Speed.SizeBonus`, the scaling in
+  `FishService`, the "x1.23" on the tag and the Studio `TestSize` attribute. Every fish is its species' size.
+  `Config.sizeOf` and `Config.bodyOf` stay (they give 1 and the species' own body), so sizing can come back without
+  touching their readers.
 - **Variants** (`Config.Variant`): Gold 3%, Rainbow 0.8% of spawns; the `Variant` attribute; the look is
-  `Shared/Variants`. In Studio the workspace's `TestSize` and `TestVariant` attributes force them on new fish.
+  `Shared/Variants`. In Studio the workspace's `TestVariant` attribute forces one on new fish.
 - **The herd** swims at `Herd.SpeedShare` (0.85) of each fish's own speed; the glide at `Jump.AirShare` of the fish
   you left; the server's speed check allows each fish's own speed x `Surge` x `SpeedSlack`.
-- The picture of all 82: `python tools/balance/speed_table.py <out.png>`.
+- The picture of all 82, land by land, with the speed before the area's factor: `python tools/balance/speed_table.py <out.png>`.
 
 **The species' bases** (`Config.SpeciesSpeed`, Claude's, to tune; 0.92 to 1.08):
 
