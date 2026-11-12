@@ -3,6 +3,31 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · 8570-F43F (the user's PC): Hugo's four passes merged with the too-strong rule, taming and the UI chat's HUD
+**State:** by the game-code chat, on the user's word ("update the game to what my partner has added"). Merged, in the
+place on this PC, run once: riding, a tame, the slots and the HUD all work, no errors in the output. StyLua, selene and
+`rojo build` pass. Committed here (286419a), not pushed by hand. Nothing uploaded.
+- **Taken whole from Hugo:** the movement pass, speed by fish, the size roll, Gold and Rainbow, the camera under the
+  surface, the startle, `Lib/Feel`, `Shared/Variants`, the creature tools. No clash with `RideService`'s too-strong
+  rule or taming: git merged `Config`, `RideService` and the sandbox panel by itself.
+- **Merged by hand:** the eight HUD files both sides changed. The rule used: Hugo's look, the local pieces kept.
+  - From Hugo: `Kit` as the style system and the bold letter outlines, the abyss miss, the dressed pills and plates,
+    the glass slots, the yellow jump button with its key cap, the small stat plates (104 by 29), the tag's red pill.
+  - Kept from here: the ring as the reference's (small clear hole, the red lag, the tame ring, the hop's arc, red and
+    shaking on a fish too strong), the creature pictures in the slots and the catch banner (206 by 50), the new-land
+    banner, the hop arrow's pointed shape (now dark, on Hugo's disc), the phone scale of the stat rows.
+  - New in the merge: `Kit.ring(parent, diameter, thick, meter, outline)` has both sides' options; the meter has
+    Hugo's bold outline (2 and 1.6) and its glow beats red in the last second and on a fish too strong.
+  - Not carried over: Hugo's deep-water fill in the ring's hole and the seconds written in it (the ring here has no
+    number and a clear hole); the UI chat's bigger Oxygen row (150 by 34) and its thin letter outlines.
+- **Two sheets had one name.** Hugo's is `attachments/ui4-before-after.jpg`; the UI chat's HUD sheet is now
+  `attachments/ui4-before-after-hud.jpg` (`tools/ui/before_after.py` and `ui.md` point at it).
+- **How it looks:** [capture](attachments/ui-merged-2026-11-12.jpg) (the world is black: Studio's window is still not
+  drawing 3D on this PC; the HUD is as it is).
+- **Not seen:** the 3D side of Hugo's work (rider animations, the startle, sizes, Gold and Rainbow, speed lines over
+  the world), a phone layout, a too-strong ride and the miss banner after the merge.
+- A copy of everything as it was before the merge: branch `backup/pre-partner-merge`.
+
 ## 2026-11-12 · void (Hugo's PC): speed by fish, a size roll, variants' chances, the camera stays underwater, a startle that never stops
 **State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script, judged from numbers
 and pictures; how it feels by hand is Hugo's to judge). StyLua, selene and `rojo build` pass. Nothing uploaded.

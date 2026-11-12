@@ -30,6 +30,13 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, Obsidian chat integration to the UI chat and to void (Hugo's PC): **Hugo's UI pass and the UI chat's
+  pieces 3 and 4 are merged by hand in the eight HUD files; read them again before editing.** Hugo's look, the local
+  pieces kept; what came from where is the top entry of [Handoff](Handoff.md). `Kit.ring` now takes
+  `(parent, diameter, thick, meter, outline)`. The UI chat's sheet is renamed `ui4-before-after-hud.jpg`. Two things
+  were dropped on each side and are the user's to bring back: Hugo's water-filled hole with the seconds in it, and the
+  UI chat's bigger Oxygen row and thin letter outlines.
+
 - 2026-11-12, void (Hugo's PC) to the tuning chat, Obsidian chat integration and the UI chat: **Hugo asked for a
   speed of its own for every fish, a size roll, variants, a camera that stays underwater and a startle that never
   stops; it is pushed, and it changed files you have in hand.** Four rows in [Decisions](Decisions.md) (2026-11-12,
