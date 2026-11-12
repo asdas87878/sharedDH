@@ -8,6 +8,124 @@ is in [the dive](the-dive.md). The hop follows the reference's, read from the us
 2026-11-09 and 2026-11-11). The meter is Oxygen, and the stat you train is your max Oxygen. A creature's tag shows the
 max Oxygen that keeps up with it in its home land ("Required").
 
+## Hop-off speed and the map edge (Hugo, 2026-11-12)
+
+This pass changes the hop's speed, its glide time and movement at walls. The older timing tables below are historical;
+this section takes precedence. Movement only: Libby's animation modules are untouched.
+
+### The hop-off boost
+
+The launch uses the fish's measured velocity when you leave, including startle, angry mode and wall slow-down:
+`max(actualSpeed * Jump.Launch + Jump.HopBoost, glideSpeed + Jump.BoostFloor)`. The starting values are x1.6 plus
+18 studs/s, with a minimum kick of 10 above the glide. It holds for 0.12 s (`BoostHold`), then smoothly decays to
+the glide by 0.75 s (`BoostTime`). The glide still follows the species' normal speed at x0.85, including a Leaper's
+own glide multiplier; it does not remain slowed for the entire hop because the fish was startled.
+
+`Config.airOf(actualSpeed)` adds time to both the glide and the server's grab window: -0.5 s at 20 studs/s or below,
+0 at 75, +0.5 s at 130 or above, interpolated between. The base glide is 1.5 s and the window 3.2 s. Thus even a
+stationary fish gives 1 s of glide and a 2.7 s window. `AirLeast` is a hard minimum glide time when tuning these
+numbers. The pop's 0.4 s and the drop's duration stay the same. A Leaper adds its own extra time as well. A hop
+from floating uses the existing free launch and base time. Neither Oxygen nor wall contact disables jumping.
+The lock keeps its full 180-stud reach at low speeds, and manual grabs remain available before the automatic grab.
+
+### The second hook
+
+The reproduced after-landing cause was repeated jump requests crossing the landing: once the normal 0.3 s cooldown
+expired, a request started a new hop; the following request grabbed a different nearby fish. The input layer already
+filters a continuously held JumpRequest with `InputGap`, but repeated presses reaching `Actions.jump` could still
+cross a mount. The server was not independently choosing a second fish.
+
+The guard records a sequence only when a press occurs during the pull-in or while its landing awaits acknowledgement.
+That sequence cannot immediately hop off the new fish until there is a 0.25 s gap (`HopGuard`), with a 1.5 s upper
+limit after landing (`MashMost`). A press during the ordinary landing cooldown does not start this guard. A deliberate
+chain with no extra press in the pull-in retains the original cooldown. `stop()` clears the old lock and jump target
+when the server confirms the mount.
+
+A separate protection handles a landing whose position has not yet replicated to the server: `LandWait` allows up to
+0.5 s for the already reserved rider to arrive before denying range. It keeps the same reservation, state and distance
+checks. After a refused or lost pull-in, `RehookGuard` prevents an automatic retry for 0.45 s; a manual grab remains
+immediate. A server rejection for an obstacle is still a rejection, and repeated manual presses can ask for another
+fish before any confirmed mount. Those retries must be distinguished from the reproduced after-landing bug.
+
+### The wall ride
+
+The boundary was already two layers: the map has invisible solid barrier panels, and `Lib/Course` enforces the lane
+centreline's width plus `Ride.LaneMargin` (-3 studs), floor and surface. `Oxygen.DockRadius` is for recognising the
+dock, not the lane boundary. Both riding velocity and hop positions pass through Course's final checks.
+
+`Lib/WallRide` detects a solid wall ahead or proximity to that existing lane limit. It redirects motion onto the
+wall's tangent while keeping the player's steering heading separate, so A/D and looking away still release it.
+At an approach angle measured from the wall, retained speed is `1 - Wall.Loss * sin(angle)^Wall.Curve`: with
+Loss 0.5 and Curve 2, 97% at 15 degrees, 88% at 30, 75% at 45 and 63% at 60. The speed share eases with `Wall.Ease`.
+The lane edge has no crash Oxygen charge by default (`EdgeCost` 0); obstacles inside the lane retain normal crash
+and archetype rules. Fish and hop use the same module, with the existing Course checks having the last word.
+
+Within 12 degrees of directly head-on, horizontal slide is zero immediately. An additional 12-degree transition band
+blends into sliding. The impact kicks a damped vertical spring (`SwingKick`, `SwingMost`, `SwingRate`, `SwingDamp`)
+which rocks up and back down. The floor and surface still clamp it; steering away and hopping remain available.
+`State.Wall` is `"Slide"`, `"Swing"` or nil, and `State.WallSide` gives the side: named hooks for future authored
+motion. The current stand-in turns and leans the body along the wall and tips the nose during a swing; no animation
+asset or partner animation code changes. No wall-specific camera kick or steering correction is added.
+
+### Verification for this pass
+
+The HTTP Studio runner was used for the following scripted checks. StyLua, selene and Rojo build pass. Direct checks
+of the actual WallRide module at 100 studs/s give zero sideways travel at 78–90 degrees from the wall from the first frame, with a damped height range of -7.67 to +14.59 studs. A minimum-glide test also passes
+with the base glide temporarily set below `AirLeast`. These are numerical checks, not a judgement of feel by hand.
+
+- **Reproduction and guard:** with the three guards disabled, repeated presses through landing produced an unwanted
+  hop after a confirmed mount in 32/32 trials. With the guards enabled: 36 trials, zero such hop-offs, 35 clean first
+  pull-ins and one retry after `Grab:Blocked` before mounting. An earlier inherited single-press run had 31 clean
+  mounts and one blocked miss in 32 trials. A deliberate chain-hop with a rejected press at 0.20 s left at 0.307 s
+  after mounting; the base cooldown is 0.30 s.
+- **Hop samples:** automatic grabbing disabled to measure the whole window. Slow Pufferfish: 40 studs/s before the
+  hop, peak 82, glide 34, glide ended at 1.60 s / 75 studs, whole window 2.89 s / 114 studs. Anglerfish: approximately
+  61 before leaving, peak 116, glide 63, glide ended 1.78 s / 135 studs, window 3.08 s / 207 studs. The Devourer with
+  its passives active: approximately 161 before leaving, peak 297, glide 128, glide ended 2.40 s / 363 studs, window
+  3.70 s / 486 studs displacement (528 along the curved path). The pre-hop speed is the median of the preceding
+  half-second, so a passive burst or angry pulse can change the exact departure speed within that interval.
+  All five sampled hops were within 3% of glide speed by the 0.7 s sample; exact configured decay ends at 0.75 s.
+- **Slow-down and fairness:** angry Anglerfish shortened its glide end from 1.78 to 1.65 s and its whole window from
+  3.08 to 2.95 s. Angry Pufferfish ended its glide at 1.52 s / 66 studs, window 2.81 s / 105 studs. All six hands-off
+  slow/angry fairness hops reached another fish (2.60–2.94 s including the driver's 0.3 s settling observation).
+- **Walls on the real map:** steady speed retained at 30/45/60 degrees was 87%/77%/66% versus target 88%/75%/63%.
+  Direct head-on contact moved 0 studs sideways over 7 s; vertical turning points were +8.7, -4.9, +2.3, -1.5,
+  +0.5 and -0.5 studs. Steering away regained 90% speed in 0.35 s. Hop-off was accepted during both slide and swing.
+  Every riding and glide test stayed inside the lane; the closest approach was still 3.3 studs inside its nominal
+  edge. A 40-degree glide rode the wall at median 36 studs/s; a head-on glide had zero horizontal speed.
+- **Remaining wall issue and tested draft:** the repository client code still has shallow-contact stalls. The trace
+  identifies end caps of the wall-top grass slabs (`Lane/Ground/Grass`): their normals redirect a shallow approach
+  into the broad wall face, where the final collision check removes most motion. A temporary `W1Course` test module
+  used the authored broad-face axis for boundary walls, barriers and wall-top grass. With that draft, the minimum
+  speed at 15/30/45/60 degrees was 59/56/50/42 studs/s from a baseline of 64; steady retention was 93%/86%/77%/66%.
+  A direct hit still moved 0 studs sideways, with damped vertical turning points +8.5, -5.0, +2.2 and -1.6 studs,
+  and 90% speed recovered in 0.36 s after steering away. The closest recorded glide position was 2.8 studs inside
+  the nominal lane edge. The draft has **not** been applied to repository client source: this task's ownership
+  list names only Config and this note, and permission to edit client files has not arrived.
+  The draft run also recorded a 168-degrees/s camera turn and a large camera translation-speed change on a
+  hop/landing transition. Camera calmness has not passed verification. The wall pass remains unfinished.
+- **Departure-speed sweep with the draft:** repeated with the exact velocity sampled immediately before departure;
+  the draft changes collision handling only. These are complete hop windows with auto-grab disabled:
+
+  | Case | Departure speed | Peak speed | Glide ends: time / distance | Window: time / displacement |
+  |---|---:|---:|---:|---:|
+  | Slow Pufferfish | 40.0 | 82 | 1.59 s / 75 studs | 2.89 s / 114 studs |
+  | Anglerfish | 63.6 | 120 | 1.80 s / 138 studs | 3.11 s / 210 studs |
+  | Fast Devourer, passives active | 199.1 | 337 | 2.40 s / 376 studs | 3.70 s / 502 studs |
+
+  All were back near normal glide pace by 0.7–0.8 s. These tests establish the boost and speed/time relationship;
+  they do not establish that every map collision or camera transition is finished.
+- **Regressions:** D for 1 s turned 127 degrees (the prior control pass: 129); the observed landing dip was x0.78
+  against the configured x0.8, followed by full speed recovery. Angry Cuttlefish was x0.68 with its angry attribute
+  set. Leaper duration and the other archetypes' formulas were retained, but not every archetype was independently
+  exercised in this movement suite. The output also contained existing asset-type warnings for asset 203785492;
+  no assets were uploaded.
+
+Reproducible scripts and raw results on Hugo's PC: `/tmp/w1/README.md`, `/tmp/w1/client.luau`,
+`/tmp/w1/install.luau`, `/tmp/w1/suite.log`, `/tmp/w1/before-suite.log`, `/tmp/w1/module-check.luau` and
+`/tmp/w1/module-check.log`, `/tmp/w1/proposed-v2.log` and `/tmp/w1/Course-proposed.patch`. The README gives the install, run, collection and cleanup commands. These temporary
+files are local verification artifacts, not part of the partner's git sync.
+
 ## Movement v3.1
 
 **The current model, 2026-11-11.** Hugo's answers of 2026-11-11 ([Decisions](../Decisions.md)): the hop and glide of

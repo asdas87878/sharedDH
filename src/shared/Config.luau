@@ -488,6 +488,21 @@ Config.Jump = {
 	LaunchTime = 0.4, -- the pop up (0.3 in the reference, whose pop is half as high)
 	BoostTime = 0.75, -- the pop's extra speed lasts this long (the reference: about 0.75 s)
 	Launch = 1.6, -- times the speed you left the fish at (the reference: about 1.3 to 1.8; 1.4 until 2026-11-11)
+	-- The hop-off boost (Hugo, 2026-11-12): leaving a fish gives you extra speed on top of the speed the fish had
+	-- THEN (a slowed fish, startled, angry or just off a wall, gives less), and it falls off semi-quickly to the
+	-- glide's pace: the pop's speed is Launch x the fish's speed + HopBoost, held for BoostHold, gone by BoostTime.
+	HopBoost = 18, -- studs a second on top of Launch x the fish's speed
+	BoostHold = 0.12, -- the whole boost lasts this long, then it falls off, back at the glide's pace by BoostTime
+	BoostFloor = 10, -- the pop is never less than this much faster than the glide (off a slowed fish there is still a kick)
+	-- Airtime by speed (Hugo, 2026-11-12: "the less speed, the less airtime"): the glide, and the window with it, are
+	-- longer off a fast fish and shorter off a slow or slowed one, by the speed the fish had as you left
+	-- (Config.airOf; the server counts the same). Fair at the slow end: the glide is never under AirLeast, the lock's
+	-- reach (GrabRange) is the same, and the pull-in still starts by itself when the glide ends. From floating: 0.
+	AirSlowSpeed = 20, -- a fish this slow or slower as you leave it: AirSlow seconds on the glide
+	AirFastSpeed = 130, -- one this fast or faster: AirFast. In between, in proportion (no change at 75 studs a second)
+	AirSlow = -0.5, -- seconds on Jump.FloatTime (and the window) off the slowest fish
+	AirFast = 0.5, -- and off the fastest
+	AirLeast = 0.6, -- the glide is never shorter than this, whatever the numbers above
 	FreeLaunch = 78, -- the pop's speed from floating, with no fish under you (55 until 2026-11-11)
 	-- The height (2026-11-10, the user: the reference has flat ground, we don't): the hop rises this far above where
 	-- you left, or above the locked fish if that is higher, so there is always a swoop down onto the fish. It never
@@ -551,6 +566,12 @@ Config.Jump = {
 	GrabRange = 180, -- the hard max reach, rider to fish: no lock and no grab beyond it (the server checks it, with Net.RangeSlack for lag). 130 until 2026-11-12 (Hugo: a longer hook)
 	AckTime = 1, -- seconds to wait for the server's word on a landing before going back to the hop
 	RefusedTime = 0.6, -- a fish the server refused, or that was lost, can't be locked again for this long
+	-- The second hook (Hugo, 2026-11-12: "sometimes when you jump onto a fish you are instantly hooked onto ANOTHER
+	-- fish"; the cause and the measurements are in docs/design/riding-feel.md, "The second hook").
+	RehookGuard = 0.45, -- after a pull-in that was refused or lost, the hands-off pull-in (AutoGrab) waits this long before it may take another fish; a press still grabs at once
+	LandWait = 0.5, -- the server gives a landing this long to be seen arriving at the fish before it refuses it (it sees the rider a moment late, most of all after a fast pull-in)
+	HopGuard = 0.25, -- Space pressed again DURING a pull-in starts a run of presses that can't hop you off the fish you land on; the run ends at the first gap this long between presses. A hop made on purpose (no press in the pull-in) is untouched. 0: off
+	MashMost = 1.5, -- and such a run never holds the hop back longer than this after the landing
 	Slack = 0.6, -- the server waits this long past the window and the pull-in for the landing (lag)
 	LandSlack = 20, -- allows the landing this many studs wider; never widens GrabRange (it sees the player a moment late)
 	-- (Hugo, 2026-11-11: the camera felt forced. The view is no longer tilted for you in the hop: it stays where you
@@ -646,6 +667,31 @@ Config.Crash = {
 	Reach = 2, -- the nose's ray reaches this far past where the fish's own steering stops it
 	Every = 0.1, -- seconds between the server's checks of a ridden fish
 	Kick = 0.35, -- the camera's jolt, studs
+}
+
+-- The wall ride (Hugo, 2026-11-12; docs/design/riding-feel.md, "The wall ride"): the edge of the map, and any wall,
+-- no longer stops you. Steered into one you are turned along it and ride it like a hoverboard pushing off, keeping
+-- your speed but for a share that grows with how square on you came: shallow keeps nearly all, steep loses more
+-- (Loss, Curve). Dead straight in (inside HeadOn degrees of square on) you don't slide either way: you rock up the
+-- wall and back down like a swing, dying away, until you steer off it. On a fish and in the hop alike (Lib/WallRide,
+-- on the rider's own machine, as all the steering is); A and D, the look and the hop are untouched. The lane's edge
+-- and the floor stay hard limits behind it (Lib/Course), so nothing here can take you out of the map.
+Config.Wall = {
+	On = 1, -- 0: the old way (slide along a wall at whatever speed is left, stopped dead when square on)
+	Loss = 0.5, -- the share of your speed lost riding a wall you are steered square into (just short of the swing)
+	Curve = 2, -- how the loss grows with the angle: 2 keeps 97% at 15 degrees, 88% at 30, 75% at 45, 62% at 60
+	Ease = 9, -- how quickly your speed takes that share, and gets it back as you steer off (higher is quicker)
+	Band = 1.5, -- this near the lane's edge counts as touching it, studs
+	HeadOn = 12, -- inside this many degrees of square on: the swing, no slide
+	Blend = 12, -- and over this many degrees past it the slide comes in (so there is no edge between the two)
+	SwingKick = 0.55, -- the swing: you go up the wall with this share of your speed,
+	SwingMost = 22, -- but never further up than this, studs
+	SwingRate = 0.45, -- swings a second
+	SwingDamp = 0.2, -- dying away (0 never, 1 with no swing back)
+	SwingPitch = 50, -- the fish's nose goes up and down with the swing by up to this, degrees (the stand-in motion)
+	Lean = 14, -- and the body rolls this much away from the wall it rides, degrees (the stand-in motion)
+	EdgeCost = 0, -- of max Oxygen, for running square into the lane's own edge (0: the edge is a wall ride, never a crash; anything standing in the lane is still Config.Crash)
+	EdgeBand = 20, -- the server calls a wall the lane's edge when it is this near it or beyond, studs
 }
 
 -- Props break (Hugo, 2026-11-11; the map's Lane/Props: each a Model of loose boxes). A fish that swims into one knocks
@@ -1126,6 +1172,25 @@ function Config.secondsOn(zone: number, tier: string, max: number, fish: FishTyp
 	end
 	local rate = if fish then Config.drainOf(zone, fish) else Config.drain(zone, tier)
 	return max / math.max(rate, 0.001)
+end
+
+-- Airtime by speed (Config.Jump.AirSlow...): the seconds added to Jump.FloatTime and Jump.Window for a hop off a
+-- fish going `speed` studs a second as we leave it (nil: from floating, nothing). The client flies by it and the
+-- server's window is counted with it.
+function Config.airOf(speed: number?): number
+	if not speed or speed ~= speed then
+		return 0
+	end
+	local j = Config.Jump
+	local u = math.clamp((speed - j.AirSlowSpeed) / math.max(j.AirFastSpeed - j.AirSlowSpeed, 1), 0, 1)
+	return math.max(j.AirSlow + (j.AirFast - j.AirSlow) * u, j.AirLeast - j.FloatTime)
+end
+
+-- The wall ride (Config.Wall): the share of our speed kept riding a wall we are steered into, by how square on:
+-- `into` is 0 along the wall, 1 dead straight in
+function Config.wallKeep(into: number): number
+	local w = Config.Wall
+	return 1 - math.clamp(w.Loss, 0, 1) * math.clamp(into, 0, 1) ^ math.max(w.Curve, 0.1)
 end
 
 -- Whether a fish breaks the props it swims into (Props.MinLength), or crashes into them
