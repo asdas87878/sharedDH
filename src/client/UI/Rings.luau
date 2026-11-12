@@ -59,6 +59,7 @@ export type View = {
 	Tame: number?, -- 0 to 1, or nil when there is no tame to show
 	Ready: number, -- 0 to 1: how far the hop is from being ready again after a landing
 	Strained: boolean, -- the fish under us is too strong: the meter is emptying at once
+	Low: boolean, -- the meter is in its low part (Config.low, Oxygen.AngryAt): red, and the fish under us is angry
 	Endless: boolean, -- the Studio sandbox's endless air: the meter doesn't drain
 }
 
@@ -243,8 +244,9 @@ function Rings.update(now: number, v: View)
 		big.spent(spent)
 	end
 
-	-- its colour: aqua, red in the last second and on a fish too strong; white for a moment on a landing
-	local tone = if v.Endless then 1 elseif v.Strained or v.Seconds < 1 then 3 else 1
+	-- its colour: aqua, red in its low part (where the fish turns angry: Oxygen.AngryAt) and on a fish too strong;
+	-- white for a moment on a landing
+	local tone = if v.Endless then 1 elseif v.Strained or v.Low then 3 else 1
 	local colour = if tone == 3 then Kit.Coral else Kit.Aqua
 	local size = if v.Strained then STRAIN_SIZE else 1
 	if flashing then

@@ -18,10 +18,16 @@
 --   Free (in the water off a fish: diving in off the dock, or a lost landing) drains Oxygen.FreeDrain; at zero you drown,
 --   without the throw.
 --   Drowning takes no input and ends at the dock.
+--   Angry mode (Config.Angry): while a rider's meter is in its red part (Oxygen.AngryAt), or on a fish too strong from
+--   the touch, the fish under them is angry. Decided here and written on the fish (its "Angry" and "AngryStyle"
+--   attributes, and the "AngryFish" tag): every client pulses it red, and the rider's own slows it in its style's way
+--   (Shared/AngryStyles), which the speed check here then holds it to.
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local AngryStyles = require(ReplicatedStorage.Shared.AngryStyles)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
@@ -46,6 +52,8 @@ type Rider = {
 	SentAt: number,
 	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
 	Strained: boolean, -- the fish under us is too strong for us (decided at the mount): the meter empties at once
+	AngryFish: Wild?, -- the fish we have marked angry (its attributes and tag are ours to take off again)
+	AngryAt: number, -- os.clock() it turned angry
 	Tame: number, -- seconds ridden toward taming the fish under us
 	SentTame: number, -- the Tame attribute as last told (-1: none)
 	Tamed: { [Wild]: boolean }, -- the fish made ours on this dive (so one fish is not tamed twice)
@@ -125,6 +133,42 @@ local function maxOxygen(): number
 	return Config.Oxygen.StartMax
 end
 
+-- Angry mode: the fish under a rider is marked angry, or calm again. Its attributes are how every client knows
+-- ("Angry": true; "AngryStyle": its style's name, for the animations to come), its tag is how they find it.
+local function setAngry(r: Rider, w: Wild?)
+	local was = r.AngryFish
+	if was == w then
+		return
+	end
+	if was then
+		was.Model:SetAttribute("Angry", nil)
+		was.Model:SetAttribute("AngryStyle", nil)
+		CollectionService:RemoveTag(was.Model, Config.Angry.Tag)
+	end
+	r.AngryFish = w
+	if w then
+		r.AngryAt = os.clock()
+		w.Model:SetAttribute("AngryStyle", AngryStyles.of(w.Type).Name)
+		w.Model:SetAttribute("Angry", true)
+		CollectionService:AddTag(w.Model, Config.Angry.Tag)
+	end
+end
+
+-- Whether the fish under this rider is angry now: the meter in its red part, or a fish too strong (from the touch)
+local function isAngry(r: Rider, w: Wild): boolean
+	local a = Config.Angry
+	if a.On == 0 then
+		return false
+	end
+	if a.Tamed == 0 and r.Tamed[w] then
+		return false
+	end
+	if RunService:IsStudio() and a.Test > 0 then
+		return true
+	end
+	return r.Strained or Config.low(r.Oxygen, r.Max)
+end
+
 local function setState(r: Rider, state: string)
 	if state ~= "Free" then
 		r.SurfacedAt = nil
@@ -152,6 +196,7 @@ local function setState(r: Rider, state: string)
 			r.SentTame = -1
 			r.Player:SetAttribute("Tame", nil)
 		end
+		setAngry(r, nil)
 	end
 	r.State = state
 	r.Player:SetAttribute("State", state)
@@ -193,6 +238,7 @@ end
 -- Off the fish. A jump lets our client coast the old fish a while (no hitch in front of us).
 local function dismount(r: Rider, reason: string, handBack: boolean?)
 	local w = r.Fish
+	setAngry(r, nil) -- (off the fish: it is calm again at once, whoever lands on it next)
 	if r.Weld then
 		r.Weld:Destroy()
 		r.Weld = nil
@@ -255,6 +301,8 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 		Net.Fx:FireAllClients("Land", r.Player, w.Model, r.Landings)
 	end
 	setState(r, "Riding")
+	-- (a fish too strong is angry from the touch: marked before the client is told it is mounted)
+	setAngry(r, if isAngry(r, w) then w else nil)
 	Net.Ride:FireClient(r.Player, "Mounted", w.Model, landing)
 	return true
 end
@@ -528,8 +576,13 @@ local function checkSpeed(r: Rider, w: Wild)
 	local from = r.CheckFrom
 	local position = w.Root.Position
 	if from then
-		-- (this fish's own speed: its species, rarity, size and variant)
-		local allowed = FishService.ridden(w) * Config.Ride.Surge * Config.Ride.SpeedSlack + 10
+		-- (this fish's own speed: its species, rarity and variant; and an angry fish, once its slow-down is in, is
+		-- held to the most its style gives: a Surge's top, or no more than its speed)
+		local most = Config.Ride.Surge
+		if r.AngryFish == w and t - r.AngryAt >= 1.1 + Config.Angry.EaseIn then
+			most = AngryStyles.most(AngryStyles.of(w.Type))
+		end
+		local allowed = FishService.ridden(w) * most * Config.Ride.SpeedSlack + 10
 		if (position - from).Magnitude > allowed and not r.Flagged then
 			r.Flagged = true
 			warn(string.format("[RideService] %s's fish moved too fast", r.Player.Name))
@@ -594,6 +647,7 @@ local function tick(r: Rider, dt: number)
 			end
 			drain(r, rate * dt)
 			tame(r, w, dt)
+			setAngry(r, if isAngry(r, w) then w else nil)
 			checkSpeed(r, w)
 			checkCrash(r, w)
 			if r.Oxygen <= 0 then
@@ -637,6 +691,7 @@ local function onCharacter(r: Rider, character: Model)
 	if r.Weld then
 		r.Weld:Destroy()
 	end
+	setAngry(r, nil)
 	if r.Fish then
 		FishService.release(r.Fish)
 	end
@@ -687,6 +742,8 @@ local function onPlayer(player: Player)
 		SentAt = 0,
 		SentDrain = 0,
 		Strained = false,
+		AngryFish = nil,
+		AngryAt = 0,
 		Tame = 0,
 		SentTame = -1,
 		Tamed = setmetatable({}, { __mode = "k" }) :: any,
@@ -853,6 +910,9 @@ function RideService.Init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		local r = riders[player]
+		if r then
+			setAngry(r, nil)
+		end
 		if r and r.Fish then
 			dismount(r, "Left")
 		end

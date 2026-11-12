@@ -3,6 +3,46 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): angry mode: at low Oxygen the fish pulses red and slows, each body type in its own way
+**State:** on Hugo's word ("make the fishes pulse red and go into angry mode dont add animations yet just make the
+pulse red and slow down, different fishes should have different slowdowns ... when the bar turns red"). Run twice in
+Hugo's Studio through `~/Projects/studio-runner` by script (no keys and no mouse: how it feels and looks is Hugo's to
+judge). StyLua, selene and `rojo build` pass; no errors or warnings in the output. Not committed by hand. Nothing
+uploaded. A row in [Decisions](Decisions.md); the design is "Angry mode" in [riding feel](design/riding-feel.md); the
+note to the other chats is the top one in [Sessions](Sessions.md).
+- **Files:** new `src/shared/AngryStyles.luau` (the styles) and `src/client/Controllers/AngryController.luau` (the
+  red pulse); `src/shared/Config.luau` (`Oxygen.AngryAt`, `Config.Angry`, `Config.AngryTier`, `Config.low`,
+  `Config.heat`), `RideService.luau` (decides it, marks the fish, the speed check), `RideController.luau` (the
+  slow-down and the stand-in motion, in `drive`), `Net.luau` (the notes), rows in `SandboxController.luau`; in the UI
+  chat's files, `HudController.luau` and `UI/Rings.luau` (the ring's red comes from the same threshold). Not touched:
+  `AnimController`, `RideStyles` (its `Landings` and everything else), `JumpController`, `FishService`, `Variants`.
+- **When:** while you ride and the meter is at or under `Oxygen.AngryAt` of your max (0.3), or from the touch on a
+  fish too strong. The ring turns red at the same point (it was "under 1 second left"); so does the hop button's call.
+  A fish you have tamed gets angry like any other (`Angry.Tamed` 1: taming doesn't change the riding, and it still
+  throws you off at zero; 0 keeps a tamed fish calm).
+- **Who decides:** the server. `RideService` sets the fish's `Angry` (true) and `AngryStyle` (the style's name)
+  attributes and the `AngryFish` tag, and takes them off at a hop, a throw-off, a death or a leave. The rider's own
+  client slows the fish (it drives it); the server's speed check then allows an angry fish only what its style gives.
+- **The red pulse:** one Highlight a fish, on every client, nothing written to the fish's parts (so nothing to put
+  back; a Gold or a Rainbow keeps its look). 1.2 pulses a second where the meter turns red, 4 when it is empty.
+- **The slow-downs** (`Shared/AngryStyles`, by `RideStyles.nameOf`): Darter "Zigzag" (wags, loses speed at each
+  turn-over), Cruiser "Drag" (steady, x0.7), Snake "Coil" (long swells), Galloper "Buck" (surge and stall, rocking),
+  Glider "Flutter" (a quick shiver), Paddler "Balk" (brakes and lets go), Jetter "Pulse" (a jet and a run-down),
+  Bobber "Wobble" (always slow, wobbling), Crawler "Dig" (a judder), and any fish 40 studs or longer "Fade" (slow and
+  heavy, down to x0.6). A rarer fish loses more (`Config.AngryTier`, up to x1.3 of the loss); never under x0.3.
+  Steering and the hop are untouched.
+- **Animations:** none added. Each style's rock, nod or wag is one sine on the fish's turn spring, in one marked
+  block (`AngryStyles.motion`, used in `RideController.drive`), switched by `Angry.Motion` (0 off). To replace it,
+  play an animation by the fish's `AngryStyle` attribute while `Angry` is true.
+- **Measured in Studio:** calm: the fish at x1.00, no pulse. Angry on a Clownfish (Zigzag): x0.72 to x0.79 on
+  average, the pulse on every frame at 2.6 a second half way and 4.0 at empty, 0 of its 7 parts changed colour,
+  A held 1 s turns 127 degrees (126 calm). Real Oxygen, 8 s on a Common: angry at 0.30 of the meter, on three rides
+  of three; a hop at 0.07 of the meter was taken; after a hop or a throw-off the old fish was calm within 0.3 s; no
+  pulse or tag left at the end. Each of the ten styles forced in turn: averages x0.73 to x0.79 (Fade x0.64), as the
+  table says. Not seen: a second player's screen, a Gold or Rainbow fish, a phone.
+- **To try it:** in the sandbox (endless air is on there), press N and set `Angry.Test` to 0.5: every fish you ride
+  is angry. Or turn endless air off and ride a fish down.
+
 ## 2026-11-12 · void (Hugo's PC): the control pass: the landing slows to 0.8, faster and direct steering, a little more air
 **State:** on Hugo's word ("make the ride feel more controlled, the startle is too strong make it just slow down by
 like 0.8x ... the left right is kinda too slow and clunky ... more airtime (just a little), more control in general";

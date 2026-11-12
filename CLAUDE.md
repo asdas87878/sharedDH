@@ -124,5 +124,7 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   speed (`Config.speedOf`: species x rarity x size roll x variant), a size roll (`Size` attribute) and now and then a
   variant (`Variant`; look in `Shared/Variants`); the camera stays under the surface once dived (`Camera.Submerge`). In Studio the game
   starts as the **movement sandbox** ([docs/sandbox.md](docs/sandbox.md): no fail, R reset, V side view, N a panel of every
-  number): the user tunes there and pastes "Copy changes" for Claude to write into Config. What each push changed is in
+  number): the user tunes there and pastes "Copy changes" for Claude to write into Config. Angry mode (Hugo, 2026-11-12): with the meter in its red part (`Oxygen.AngryAt`) the
+  ridden fish pulses red (`AngryController`) and slows in its body type's own way (`Shared/AngryStyles`, `Config.Angry`;
+  the server sets the fish's `Angry` and `AngryStyle`); its motion is a stand-in sine until the partner's animations. What each push changed is in
   [Handoff](docs/Handoff.md); who has which files, [Sessions](docs/Sessions.md).

@@ -202,6 +202,11 @@ Config.Oxygen = {
 	-- fish, and then throws you off. Shorter than Jump.Cooldown, so it can't be hopped off in time: the number on a
 	-- fish's tag is a real bar. 0: off (the fish's own drain, as before).
 	StrainTime = 0.25,
+	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
+	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
+	-- angry here (Config.Angry, RideService). 0.3 of a new player's 2.5 s on a Shallows Common is the last 0.75 s;
+	-- of a trained 10 s, the last 3.
+	AngryAt = 0.3,
 	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 9: the spawn is 104 behind the lane's start and the mouth is 248 wide, so this is the hub, the mouth's corners and the first 60 studs of water in the middle; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
@@ -264,6 +269,54 @@ Config.Tame = {
 	-- game already calls enough (Oxygen.KeepUp), so the number on a fish's tag is exactly the Oxygen that tames it.
 	Time = 2,
 	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
+}
+
+-- Angry mode (Hugo, 2026-11-12: "make the fishes pulse red and go into angry mode ... different fishes should have
+-- different slowdowns ... when the bar turns red"; the reference's T-rex starts jumping and its bison rocks back and
+-- forth: each animal shows in its own way that it wants you off). While you ride with the meter in its red part
+-- (Oxygen.AngryAt), or on a fish too strong for you from the touch, the fish under you is angry: it pulses red, for
+-- everyone, faster as the Oxygen runs out, and it slows in its body type's own way (Shared/AngryStyles: the shapes
+-- and their numbers). The server decides it (RideService: the fish's "Angry" and "AngryStyle" attributes); the
+-- slow-down is the ridden speed's own curve (RideController), like the landing's. Steering is untouched and a hop
+-- off always works. No authored animation: where a style wants motion it is a sine on the fish's nose, turn and
+-- roll (Motion), a stand-in until the partner's animations take its place (they can read "AngryStyle").
+Config.Angry = {
+	On = 1, -- 0: no angry mode (the ring still turns red at Oxygen.AngryAt)
+	-- A fish you have tamed on this dive: 1, it gets angry like any other (taming doesn't change the riding: the
+	-- user, 2026-11-10; and it still throws you off at zero); 0, a fish that is yours stays calm.
+	Tamed = 1,
+	EaseIn = 0.5, -- seconds the slow-down takes to come in,
+	EaseOut = 0.4, -- and to go if the Oxygen comes back while you ride
+	Floor = 0.3, -- no style, rarity or heat ever slows a fish under this share of its speed: it never stops
+	-- How much of a style's slow-down there is where the meter turns red; it is whole when the meter is empty.
+	HeatFrom = 0.75,
+	GiantLength = 40, -- a fish at least this long (studs) is a giant: the slow heavy fade, whatever its body type
+	-- The stand-in motion: 1, each style's small rock, nod or wag (a sine, on the fish's turn spring); 0, none (for
+	-- when authored animations play instead); between, that share of it.
+	Motion = 1,
+	-- The red pulse (a Highlight over the whole fish, so its own colours, a Gold's and a Rainbow's are never touched)
+	PulseSlow = 1.2, -- pulses a second where the meter turns red,
+	PulseFast = 4, -- and when it is empty (and on a fish too strong)
+	PulseLow = 0.12, -- how red it is between pulses, 0 to 1,
+	PulseHigh = 0.62, -- and at a pulse's top
+	PulseEdge = 0.5, -- the red line round it at a pulse's top, 0 to 1 (0: no line)
+	PulseFade = 0.3, -- seconds the red takes to come and go
+	Colour = rgb(255, 38, 38),
+	Tag = "AngryFish", -- the CollectionService tag an angry fish carries (how the clients find it)
+	-- Studio only, for judging the styles with the sandbox's endless air on: above 0, every fish you ride is angry,
+	-- as if the meter were this far through its red part (0.01: just turned red; 1: empty).
+	Test = 0,
+}
+
+-- A rarer fish slows harder: its style's loss of speed is times this (never under Angry.Floor)
+Config.AngryTier = {
+	Common = 1,
+	Uncommon = 1.04,
+	Rare = 1.08,
+	Epic = 1.12,
+	Legendary = 1.18,
+	Mythic = 1.24,
+	Secret = 1.3,
 }
 
 -- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
@@ -907,6 +960,21 @@ end
 -- than they have (Oxygen.StrainTime)
 function Config.strained(zone: number, tier: string, max: number): boolean
 	return Config.Oxygen.StrainTime > 0 and max < Config.required(zone, tier)
+end
+
+-- Whether a meter at `oxygen` of `max` is in its low, red part (Oxygen.AngryAt): where the ring turns red and the fish
+-- under you turns angry
+function Config.low(oxygen: number, max: number): boolean
+	return oxygen <= math.max(max, 0.001) * Config.Oxygen.AngryAt
+end
+
+-- How far through its red part the meter is: 0 where it turns red (and above), 1 when it is empty
+function Config.heat(oxygen: number, max: number): number
+	local from = math.max(max, 0.001) * Config.Oxygen.AngryAt
+	if from <= 0 then
+		return if oxygen <= 0 then 1 else 0
+	end
+	return math.clamp(1 - oxygen / from, 0, 1)
 end
 
 -- How long a full meter of `max` lasts on that fish, in seconds

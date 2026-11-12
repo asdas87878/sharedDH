@@ -14,6 +14,11 @@
 --   Sandbox (client -> server, Studio only): "Tune", "Group.Key", number | "Flag", name, boolean | "Reset"
 -- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
+-- Attributes on a fish the server owns (besides FishService's own: FishType, Tier, Variant, Rider, Reserved): Angry
+-- (true while its rider's meter is in its red part, Oxygen.AngryAt, or it is too strong for them; nil otherwise:
+-- Config.Angry) and AngryStyle (its angry style's name while Angry: "Zigzag", "Drag", "Coil", "Buck", "Flutter",
+-- "Balk", "Pulse", "Wobble", "Dig" or "Fade", Shared/AngryStyles; for the animations to come). An angry fish also
+-- carries the CollectionService tag "AngryFish" (Config.Angry.Tag).
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
 -- Drain (the Oxygen a second the fish under you takes, as the server counts it; 0 off a fish), Training (true while

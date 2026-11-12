@@ -55,6 +55,11 @@ What to reach for:
 - **The landing's slow-down** (a fish you land on slows for a moment, never stopping): `Ride.Startle` (0 off),
   `StartleBrake`, `StartleSlow` (the share of its speed it drops to: 0.8), `StartleHold`, `StartleRecover`. The
   rearing that came with it is gone (2026-11-12), and its rows with it.
+- **Angry mode** (the fish pulses red and slows when the meter turns red): endless air is on in the sandbox, so set
+  `Angry.Test` above 0 to make every fish you ride angry (0.01: the meter has just turned red; 1: empty). The point
+  it starts is `Oxygen.AngryAt`; `Angry.Motion` 0 takes the stand-in rocking off; `Angry.PulseSlow`, `PulseFast`,
+  `PulseLow`, `PulseHigh` are the red; `AngryTier` is how much harder a rarer fish slows. Each style's own numbers
+  are in `src/shared/AngryStyles.luau`, not in the panel.
 - **The camera under the surface:** `Camera.Submerge` (0 off), `WaterTop`, `SurfaceMargin`, `SurfaceTilt`.
 - **The rider's animation:** the `Pose` group (`CrawlRate`, `BreastRate`, `FloatTilt`, `PopTuck`, `Flip`, `FlipStart`,
   `RideCrouch`, `RideLean`, `BraceLean`). **The juice:** the `Feel` group (`PopFov`, `PopLines`, `ReelLines`,

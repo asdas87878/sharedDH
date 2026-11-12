@@ -30,6 +30,20 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration (the game code), the UI chat and the tuning chat:
+  **angry mode is in, on Hugo's word, and it touched files you have in hand.** A row in [Decisions](Decisions.md),
+  the top entry of [Handoff](Handoff.md), "Angry mode" in [riding feel](design/riding-feel.md).
+  - **The game code:** new `Shared/AngryStyles` and `Controllers/AngryController`. `RideService` marks the ridden
+    fish (`Angry`, `AngryStyle`, the `AngryFish` tag) from `Config.low` or `Strained`, and clears it in `dismount`
+    and `setState`; `RideController.drive` multiplies the speed by `angrySpeed` and adds the stand-in motion to
+    `turn.CFrame`. `AnimController`, `RideStyles` and the landing reactions are untouched. An animation for a style
+    reads the fish's `AngryStyle`; set `Angry.Motion` to 0 then.
+  - **The UI chat:** `Rings.View` has a new `Low` field and the ring is red on `v.Strained or v.Low` (it was
+    `v.Seconds < 1`); `HudController` sets it from `Config.low(meter, max)` and `HOT_SECONDS` is gone (the hop
+    button's call uses the same rule). Nothing else in the HUD changed.
+  - **The tuning chat:** new `Oxygen.AngryAt` (0.3). Below it a ridden fish averages about x0.75 of its speed
+    (`Shared/AngryStyles`; rarer fish a little less), which `tools/balance/model.py` doesn't know.
+
 - 2026-11-12, void (Hugo's PC) to Obsidian chat integration (the game code) and the tuning chat: **the control pass,
   on Hugo's word: movement only.** A row in [Decisions](Decisions.md), the top entry of [Handoff](Handoff.md), "The
   control pass" in [riding feel](design/riding-feel.md).
