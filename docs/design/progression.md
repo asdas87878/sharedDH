@@ -151,8 +151,9 @@ reference draws a green ring that is the time left on this dino. Three ways the 
   number of fish in the lane (`Spawn.PerThousand`, the game-code chat's) now sets how long a dive at home lasts:
   one to three minutes as it is.
 - **And landing on a fish too rare to hold:** about a quarter of the dives of a player who takes whatever the lock
-  gives, in the Coral Reef and the Shipwrecks alike. Nothing on screen says what a fish costs before the hop
-  (question 6).
+  gives, in the Coral Reef and the Shipwrecks alike. Since 2026-11-12 the HUD tags the nearest wild fish in green,
+  yellow or red and marks the locked fish "holds N s" in the hop, so a player can see it coming. That is the thing to
+  try before any rule that refuses a landing (question 6).
 
 ### The first dive, played, and what it means
 The game-code chat rode it with the real rules on 100 Oxygen (2026-11-11): 2.5 seconds on a Common and 2.0 on an
@@ -184,7 +185,7 @@ For the UI chat. The unit a player should read is **seconds on a fish**; max Oxy
 | In the hop | Nothing drains | The meter holds still | In the game |
 | Your max Oxygen | The stat you train | One number, short past 10,000 (12.5K, 2.25M, 150M) | In the game (the short form is proposed) |
 | A wild fish's tag | The Oxygen for 2 seconds on it (`Config.required` of its land and rarity) | Oxygen, in the same short form, so it compares with your max | In the game, but the tag counts the fish's home land; one or two lands on it costs more (proposed: count the land it is in) |
-| A fish you can't hold yet | Whether your max gives 2 seconds on it, less, or under half a second (`State.secondsOn(fish)` gives the seconds) | A colour on its tag and on the lock's mark: fine, short, too much | Proposed. Since 2026-11-12 nothing is marked while you ride (`Lock.Preview` 0, as the reference), so only a tag can say it before the hop. Whether the game also stops you landing on a "too much" fish is question 6 |
+| A fish you can't hold yet | Whether your max gives 2 seconds on it, less, or under half a second (`State.secondsOn(fish)` gives the seconds) | A colour on its tag and on the lock's mark: fine, short, too much | Built by the UI chat, 2026-11-12: tags on the nearest wild fish in green, yellow or red, and "holds N s" on the locked fish in the hop. Nothing is marked while you ride (`Lock.Preview` 0, as the reference). Whether the game also stops you landing on a "too much" fish is question 6 |
 | The land's line | The Oxygen for 2 seconds on the land's commonest fish, shown while yours is under it | Oxygen, short form | Proposed. Today it counts a Common, and no Common swims past the Coral Reef |
 | Oxygen a second | Not needed | | Today's HUD shows it. Seconds left says the same thing in the unit the player feels |
 
@@ -388,6 +389,8 @@ exists).
 Nothing here asks to change a creature's rarity or land.
 
 ## What changed
+- **2026-11-12, later:** a Common that isn't in Config's own table (Blue Chromis, Boxfish, Butterflyfish) now swims
+  one land on, like the other four, not two. It changes nothing that spawns.
 - **2026-11-12:** no number changed. The model reads all 82 creatures, the creatures kept out of the herd and
   `Config.Train`; the tables below "How often each rarity spawns" and the training table are made again.
 - **2026-11-11, second pass:** the Oxygen numbers in the table under "The numbers, applied". The `ZoneDrain` rows'
@@ -434,35 +437,34 @@ Proposals, apart from the training spot, which is built as a stand-in. Nothing m
 
 ### Training: built as a stand-in, and where it stops
 **Built 2026-11-12 by the game-code chat:** stand on the pad in the hub and max Oxygen grows by `Train.Rate` a
-second (4), for the session only. `Config.Train` is this chat's to tune.
+second (4) plus `Train.Share` of your max a second (0.004), for the session only. Both are this chat's to tune, and
+both are rows on the N panel. Not played yet.
 
-**What training would have to give.** The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes of play at which a player should first be at home in each land (2.5 s on its commonest fish). From it, the max Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there. The last two columns are the training spot as it is (Train.Rate 4 a second): seconds standing on it from the land before, and from the start.
+**What training would have to give.** The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes of play at which a player should first be at home in each land (2.5 s on its commonest fish). From it, the max Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there. The last two columns are the training spot as it is (Train.Rate 4 a second plus Train.Share 0.004 of your max a second): seconds standing on it from the land before, and from the start.
 
 | Land | At home by (min) | Max Oxygen then | Gain over the stretch | A second of play | x the stretch before | Standing, from the land before | Standing, from the start |
 |---|---|---|---|---|---|---|---|
 | 1 Shallows | 0 | 100 | none |  |  | 0 s | 0 s |
-| 2 Coral Reef | 5 | 500 | 400 | 1.3 |  | 100 s | 100 s |
-| 3 Kelp Forest | 15 | 3,000 | 2,500 | 4.2 | x3.1 | 10 min | 12 min |
-| 4 Shipwrecks | 30 | 12.5K | 9,500 | 10.6 | x2.5 | 40 min | 52 min |
-| 5 Open Blue | 55 | 67.5K | 55K | 36.7 | x3.5 | 4 h | 5 h |
-| 6 Twilight | 90 | 270K | 202K | 96.4 | x2.6 | 14 h | 19 h |
-| 7 Midnight | 150 | 2.25M | 1.98M | 550 | x5.7 | 6 days | 7 days |
-| 8 Vents | 240 | 9M | 6.75M | 1,250 | x2.3 | 20 days | 26 days |
-| 9 Bone Graveyard | 360 | 37.5M | 28.5M | 3,958 | x3.2 | 82 days | 109 days |
-| 10 The Underworld | 540 | 150M | 112M | 10.4K | x2.6 | 326 days | 434 days |
+| 2 Coral Reef | 5 | 500 | 400 | 1.3 |  | 78 s | 78 s |
+| 3 Kelp Forest | 15 | 3,000 | 2,500 | 4.2 | x3.1 | 4 min | 5 min |
+| 4 Shipwrecks | 30 | 12.5K | 9,500 | 10.6 | x2.5 | 5 min | 10 min |
+| 5 Open Blue | 55 | 67.5K | 55K | 36.7 | x3.5 | 7 min | 17 min |
+| 6 Twilight | 90 | 270K | 202K | 96.4 | x2.6 | 6 min | 23 min |
+| 7 Midnight | 150 | 2.25M | 1.98M | 550 | x5.7 | 9 min | 32 min |
+| 8 Vents | 240 | 9M | 6.75M | 1,250 | x2.3 | 6 min | 38 min |
+| 9 Bone Graveyard | 360 | 37.5M | 28.5M | 3,958 | x3.2 | 6 min | 43 min |
+| 10 The Underworld | 540 | 150M | 112M | 10.4K | x2.6 | 6 min | 49 min |
 
 - The plan in the second column is my guess at a pace (question 2). The gain has to grow about 3 times from each land
   to the next.
-- **At a steady 4 a second** (the last two columns): the Coral Reef after 100 seconds of standing, the Kelp Forest
-  after 12 minutes, the Shipwrecks after 52. The Open Blue takes 5 hours and the lands after it days. A steady rate
-  can't follow a cost that grows 4 to 8 times a land, whatever the rate.
-- **Proposed, one line of code (the game-code chat's) and one number:** the spot also gives a share of your max
-  each second, `Train.Share` 0.004. The Coral Reef after 78 seconds of standing, the Kelp Forest after 5 minutes,
-  the Shipwrecks after 10, the Open Blue after 17, the last land after 49. That stands in for machine levels until
-  they exist. A guess to play.
+- **With the share** (the last two columns): the Coral Reef after 78 seconds of standing, the Kelp Forest after 5
+  minutes, the Shipwrecks after 10, the Open Blue after 17, the last land after 49. It stands in for machine levels
+  until they exist. A guess to play.
+- **Why a share:** at a steady 4 a second alone the Shipwrecks took 52 minutes of standing, the Open Blue 5 hours
+  and the lands after it days. A steady rate can't follow a cost that grows 4 to 8 times a land.
 - **Later, the real thing:** one machine level a land, each about 3 times the last. The reference's goes from +15 to
   +36 a second for 20 times the price, with auras of 1.5 to 3 times on top.
-- **Until then,** a land past the Shipwrecks is reached in Studio with Workspace's `TestMaxOxygen`.
+- To jump straight to a land in Studio, Workspace's `TestMaxOxygen` still works.
 
 ### What taming would need from these numbers
 - Decided already: stay on a wild fish long enough and it is yours ([the dive](the-dive.md)).
@@ -484,8 +486,8 @@ second (4), for the session only. `Config.Train` is this chat's to tune.
    simply the land you have reached? No note defines one.
 2. **The pace:** how long should a new player take to be at home in land 2, land 5 and land 10? (My guess: 5
    minutes, an hour, 9 hours.) And does the first version still ship lands 1 to 4 only?
-3. **The training spot is built as a stand-in** (4 Oxygen a second while you stand on it). May it also give a share
-   of your max each second, so the lands past the Shipwrecks can be reached in a session?
+3. No longer a question: the training spot is built as a stand-in (4 Oxygen a second plus 0.4% of your max a
+   second while you stand on the pad). The numbering is kept so the other questions keep theirs.
 4. **Speed:** try the Common at 54 (the reference's ride; ours is 45) with smaller steps up to 90, or keep 45 to
    100? Both can be played from the N panel.
 5. **Holding Space** moves you 2 to 3 times as fast as any fish and needs an eighth of the Oxygen. Is that the skill

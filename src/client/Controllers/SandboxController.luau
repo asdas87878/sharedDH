@@ -117,6 +117,7 @@ local TUNABLES: { { any } } = {
 	-- attribute, when above 0, still wins over it.)
 	{ "Oxygen", "StartMax", 10 },
 	{ "Train", "Rate", 1 },
+	{ "Train", "Share", 0.001 },
 	{ "Train", "Radius", 1 },
 	{ "Oxygen", "Refill", 0.05 },
 	{ "Oxygen", "KeepUp", 0.25 },

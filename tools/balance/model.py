@@ -139,7 +139,8 @@ def read_config():
     for path in sorted(glob.glob(os.path.join(CREATURES, "*.json"))):
         j = json.load(open(path, encoding="utf-8"))
         fid = os.path.splitext(os.path.basename(path))[0]
-        f = fish.setdefault(fid, {"Id": fid, "Reach": 2, "RiddenSpeed": None})
+        # (a creature that isn't in Config's own table takes Reach 2, or 1 if it is a Common: Config's rule)
+        f = fish.setdefault(fid, {"Id": fid, "Reach": 1 if j["Tier"] == "Common" else 2, "RiddenSpeed": None})
         f.update(Name=j["Name"], Tier=j["Tier"], Home=int(j["Zone"]), Modelled=True)
     # a creature Config keeps out of the herd (NO_SPAWN: Reach -1, so no land takes it)
     kept_out = block(src, r"local NO_SPAWN[^=]*=", must=False)
@@ -312,7 +313,7 @@ def slices(cfg, lane, pool_list):
 
 def stand_time(cfg, have, want):
     """Seconds standing on the training spot to take max Oxygen from `have` to `want`: Train.Rate a second, plus
-    Train.Share of your max a second if Config has one (it doesn't today: try it with --set Train.Share=0.004)."""
+    Train.Share of your max a second (--set Train.Share=0 for the steady rate alone)."""
     rate, share = cfg["Train"].get("Rate", 0), cfg["Train"].get("Share", 0)
     if want <= have:
         return 0.0

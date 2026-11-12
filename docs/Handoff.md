@@ -3,6 +3,41 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · 8570-F43F (the user's PC): all 82 creatures are in the game; the sandbox's reset still glitches
+**State:** run in Studio by the game-code chat. StyLua, selene and `rojo build` pass. Nothing committed by hand.
+
+- **All 82 creatures are uploaded and installed** (the user's word of 2026-11-12). 81 uploads through
+  `tools/creatures/upload.py` (the Reef Shark kept its asset); `tools/creatures/assets.json` has 82 ids,
+  `assets_dark.json` the 32 old too-dark ones (still in the inventory), `upload_log.json` each upload. The place has
+  82 templates in `ReplicatedStorage.FishModels`, each matching its data module. **Seen in play, all ten lands:** every
+  land spawns its own creatures (64 kinds seen in ten samples of 28 to 44 fish), every fish has its rig and joints
+  (up to 38 on one), no errors from `AnimController` or anything else.
+  - **A slip to know about:** two upload runs overlapped for about five minutes (the first looked dead and wasn't).
+    The asset list is consistent (every Id's asset is the one the log names), but the second run may have made one or
+    two stray duplicate assets in the inventory before it was stopped, and the Kraken's first two tries failed on
+    Roblox's side ("Unknown Error") before the third went through.
+- **Real play, soaked:** 18 hops in a row with a watch on the rider's position: the biggest move in one frame was 18
+  studs. Hands off (nobody aiming the view), 5 of 8 hops from a fish landed in the Coral Reef; the lock follows the
+  view, so a player who aims should do better. To judge in play.
+- **The sandbox's reset (R) is not right yet.** It was throwing the rider hundreds to hundreds of thousands of studs
+  on about one reset in three. What was found and done, in order:
+  1. A ride started at the fish's speed as read at the mount, which the engine can report in the thousands for a
+     frame: clamped (this one could have hit real landings too).
+  2. The weld was made while the rider floated 30 to 250 studs from the fish: the reset now seats the rider first,
+     as a landing does (the server keeps a fish, sends "SandboxMount", the player's machine sits the character on the
+     saddle and answers "SandboxSit", then the weld is made), takes only a fish that has been in the Workspace for a
+     second, and keeps trying for eight seconds.
+  3. The floating push now has a force of a few times the character's weight, not a million, and is taken off just
+     before the physics step when a fish's weld has arrived.
+  **After all that, 20 resets across the ten lands: 17 clean, 3 with a jump** (one of 650,000 studs for a frame; the
+  rider ended near the start in two of the three). Riding begins 1.4 to 3.8 seconds after R, because fish near the
+  new place have to come back into the Workspace first. **Not understood yet:** what still throws the pair in those
+  three. Two leads: `RideController.float` lifts a floating player found under the lane's floor, and after a
+  teleport its idea of where the lane is may be stale; and the fish's own `Swim` and `Turn` have no force limit.
+- **Lighting at depth:** at 671 metres (the Twilight) the view is as bright and blue-skied as the Shallows
+  ([capture](attachments/game-twilight-all-creatures.jpg)). The tint and fog by depth is in the map chat's queued
+  plan ([water](design/water.md)), waiting for the user's go.
+
 ## 2026-11-12 · 8570-F43F (the user's PC): AnimController after the review (cost, joints cached too soon)
 **State:** written, synced by the Obsidian Git plugin. StyLua, selene and `rojo build` pass. **Not run** by this chat
 (Studio is the game chat's). One file: `src/client/Controllers/AnimController.luau`. The game chat's own edit

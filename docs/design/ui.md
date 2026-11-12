@@ -34,9 +34,10 @@ under "What was taken where the design was open".
 lands, the best marker, the Oxygen row, the jump button and the aim all drew ([riding](../attachments/ui-game-riding-ring.jpg),
 [the hop](../attachments/ui-game-hop.jpg)). A second run the same day confirmed two fixes (the ring under the sandbox's
 endless air, the button's arrow). A third run showed the tags drawing ([a lone fish reads well](../attachments/ui-game-tags.jpg)), but a
-clump of fish piled its tags on each other. **A crowding rule is added and waits for a run with the full herd:**
-tags are placed nearest first, and one whose words would land on a tag already placed is left out; far tags are
-smaller. **Not
+clump of fish piled its tags on each other. **A crowding rule was added and a fourth run, with all 82 creatures, showed it working**
+([the Twilight](../attachments/game-twilight-all-creatures.jpg)): tags are placed nearest first, and one whose words
+would land on a tag already placed is left out; far tags are smaller. While you float off a fish the ring shows the
+air you have left and says "Floating". **Not
 seen yet:** a phone-size screen, the last second on a fish, a miss, the end of a dive. Not type-checked (no luau-lsp
 on this PC).
 

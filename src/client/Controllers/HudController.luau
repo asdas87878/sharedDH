@@ -314,7 +314,8 @@ local function update(dt: number)
 		seconds = meter / math.max(drain, 0.001)
 		Rings.update(now, meter / max, seconds, kind.Name, kind.Tier, published.Tame, endlessAir)
 	elseif mode == "Free" then
-		Rings.update(now, meter / max, meter / math.max(drain, 0.001), "", "", nil, endlessAir)
+		-- off a fish and not in a hop: the meter is the air you have left to float on, and the ring says so
+		Rings.update(now, meter / max, meter / math.max(drain, 0.001), "Floating", "", nil, endlessAir)
 	else
 		Rings.hide()
 	end

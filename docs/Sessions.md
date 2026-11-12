@@ -30,28 +30,18 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
-- 2026-11-12, Fish speed, rarity and progression tuning to Obsidian chat integration: **the model is re-run with all
-  82 creatures and the training spot. Nothing breaks a play session; three things bound it.** No number changed.
-  - **The creatures are fine.** Every rarity a land's mix asks for has a creature now (the Midnight zone's Rares
-    are the Viperfish, Dolphin and Swordfish). The Bobbit Worm and the Secrets stay out, as you set them. The new
-    tables are in [progression](design/progression.md), "How often each rarity spawns".
-  - **1. Training stops at the Shipwrecks.** At a steady 4 a second: the Coral Reef after 100 s of standing, the
-    Kelp Forest after 12 minutes, the Shipwrecks after 52, the Open Blue after 5 hours, then days. No steady rate
-    fixes that: the cost grows 4 to 8 times a land. **Asked of you, one line:** in `TrainService`, give
-    `t.Rate + max * t.Share` a second, with a new `Config.Train.Share` (I'd start it at 0.004: the Kelp Forest after
-    5 minutes of standing, the Open Blue after 17, the last land after 49). I have not added the number, since
-    nothing reads it yet. Until then lands 5 to 10 need `TestMaxOxygen`.
-  - **2. A quarter of dives end on a fish too rare to hold** (the model: a player at home in the Coral Reef who
-    takes what the lock gives, 14 dives of 60; the Shipwrecks, 18 of 60). With `Lock.Preview` 0 and no tags yet,
-    nothing says what a fish costs before the hop. It is question 6, still with the user; in a play session it
-    will read as dying for no reason.
-  - **3. A dive at home lasts one to three minutes, and the fish count decides it.** With the whole meter back at
-    each landing, what ends a dive in your own land is a hop that finds no fish in reach in time: about one hop in
-    thirty in the model. So `Spawn.PerThousand` is a progression number now. Worth a look in play: how often a
-    rider at home is thrown off with no fish locked.
-  - **Small:** Blue Chromis, Boxfish and Butterflyfish have no `Reach` and take the default 2, where the four
-    Commons in Config's table have 1. No effect on what spawns (the Kelp Forest's mix has no Common); they are only
-    taken away a land later.
+- 2026-11-12, Fish speed, rarity and progression tuning to Obsidian chat integration: **the three Commons have a
+  Reach of 1 now, by a rule in Config, and the note has the training share.**
+  - **One edit in your part of `Config.luau`, on your word** (the loop that adds the modelled creatures, three
+    lines): a creature that isn't in the hand table takes `Reach` 1 if it is a Common, else the usual 2. StyLua,
+    selene and `rojo build` pass; not played. Nothing that spawns changes: the three are only taken away at the
+    Kelp Forest's door now, as the other four are.
+  - **The export doesn't need it.** The rule is by rarity (the roster: Commons reach the start of the Coral Reef),
+    so no creature file has to carry a number. Nothing to ask of the creature chat.
+  - **The model reads `Train.Share`:** the Coral Reef after 78 s of standing, the Kelp Forest after 5 minutes, the
+    Shipwrecks 10, the Open Blue 17, the last land 49. In [progression](design/progression.md), "Training".
+  - The note also says the HUD's tags and "holds N s" are the thing to try before a rule that refuses a landing,
+    and question 3 is marked as answered by the build.
 
 - 2026-11-12, Ride a Fish UI to Obsidian chat integration: **the HUD's first run is answered: three fixes, ready to
   run again.** It ran first time with no errors (your captures: `docs/attachments/ui-game-*.jpg`).
@@ -67,6 +57,9 @@ Newest first. Date, from, to, the note. Delete a note once it's dealt with.
   - **Third run, the same day:** the tags draw (`docs/attachments/ui-game-tags.jpg`). A lone fish reads well; a
     clump piled its tags on each other. Now: placed nearest first, a tag left out when its words would land on one
     already placed, far tags smaller, ten in the pool. Ready for the run with the full herd.
+  - **Fourth run, with all 82 creatures:** no errors in any land, and the crowding rule works
+    (`docs/attachments/game-twilight-all-creatures.jpg`). The ring's "25" there was the air left while floating off
+    a fish (100 at 4 a second), not a fault; it now says "Floating" under it.
   - **Your two cost notes are in too:** the speed lines move 30 times a second (14 lines on touch, 28 otherwise, a
     turn set once, a size written only on a speed step); the rings turn 30 times a second.
 

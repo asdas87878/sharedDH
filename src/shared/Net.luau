@@ -5,7 +5,7 @@
 --     "Miss" (the window ran out with no fish)
 --   Ride (server -> one client): "Mounted", fish, landing | "Dismounted", reason | "Denied", action, reason |
 --     "Respawned" | "Crashed", slow (our fish ran into something: the share of its speed it keeps)
---   Fx (server -> every client): "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
+--   Fx (server -> every client): "Land", player, fish, count (that rider's landings so far) | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
 --     player off)
 --   and for the sandbox's reset only: Ride "SandboxMount", fish (sit on this fish yourself) answered by Action
 --     "SandboxSit", fish (we are on its saddle: join us)

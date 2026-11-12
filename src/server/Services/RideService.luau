@@ -46,6 +46,7 @@ type Rider = {
 	SentAt: number,
 	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
 	Trained: number, -- max Oxygen gained on the training spot this session (TrainService), on top of the start
+	Landings: number, -- landings so far this session: sent with each "Land", so every client picks the same reaction
 	SandboxSeat: FishService.Wild?, -- the fish the sandbox's reset is seating us on (kept for us until we say we sit)
 	CheckAt: number,
 	CheckFrom: Vector3?,
@@ -208,7 +209,8 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 		r.JumpFrom = nil
 		r.JumpReadyAt = os.clock() + Config.Jump.Cooldown
 		sendOxygen(r, true)
-		Net.Fx:FireAllClients("Land", r.Player, w.Model)
+		r.Landings += 1
+		Net.Fx:FireAllClients("Land", r.Player, w.Model, r.Landings)
 	end
 	setState(r, "Riding")
 	Net.Ride:FireClient(r.Player, "Mounted", w.Model, landing)
@@ -594,6 +596,7 @@ local function onPlayer(player: Player)
 		Oxygen = maxOxygen(),
 		Max = maxOxygen(),
 		Trained = 0,
+		Landings = 0,
 		SandboxSeat = nil,
 		Fish = nil,
 		Weld = nil,

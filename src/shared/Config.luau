@@ -115,6 +115,10 @@ Config.RarityDrain = {
 Config.Train = {
 	On = 1, -- 0: no training spot
 	Rate = 4, -- max Oxygen a second while you stand on it (the tuning chat's number: the Coral Reef in two minutes)
+	-- and this share of your max Oxygen a second on top (the tuning chat, 2026-11-12): each land costs 4 to 8 times the
+	-- last, so a steady rate alone stops being useful at the Shipwrecks (the Open Blue after 5 hours of standing). At
+	-- 0.004: the Kelp Forest after about 5 minutes, the Open Blue after 17, the last land after 49.
+	Share = 0.004,
 	Radius = 10, -- studs from the spot's middle that count as on it
 	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
 	Ahead = 24, -- and this far toward the water
@@ -647,6 +651,9 @@ do
 				Name = rig.Name,
 				Tier = rig.Tier,
 				Home = rig.Zone,
+				-- a Common swims only one land on, like the four in the table above (the roster: Commons reach the
+				-- start of the Coral Reef); the rest take the usual two
+				Reach = if rig.Tier == "Common" then 1 else nil,
 				Size = size,
 				Shape = "Fish",
 				Body = rgb(150, 160, 170),

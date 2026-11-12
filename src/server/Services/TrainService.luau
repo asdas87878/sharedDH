@@ -97,7 +97,9 @@ function TrainService.Start()
 			if root and root:IsA("BasePart") then
 				local away = (root.Position - middle) * Vector3.new(1, 0, 1)
 				if away.Magnitude <= t.Radius and math.abs(root.Position.Y - middle.Y) < 12 then
-					on = RideService.train(player, t.Rate * dt)
+					local max = player:GetAttribute("MaxOxygen")
+					local share = if type(max) == "number" then max * t.Share else 0
+					on = RideService.train(player, (t.Rate + share) * dt)
 				end
 			end
 			if training[player] ~= on then
