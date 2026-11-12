@@ -51,6 +51,7 @@ local coasting: Coast? = nil
 local seating: Model? = nil
 local seatingAt = 0
 local seatingTold = false
+local SEAT_HOLD = 0.6 -- seconds we sit on the saddle ourselves before telling the server (an experiment: 0.1 before)
 
 -- floating
 local floatVelocity: LinearVelocity? = nil
@@ -654,14 +655,14 @@ local function step(dt: number)
 				-- it. Held on the saddle and moving with it for a few frames, then the server is told.
 				local fishRoot = seating.PrimaryPart
 				local saddle = fishRoot and fishRoot:FindFirstChild("Saddle")
-				if not fishRoot or not saddle or not saddle:IsA("Attachment") or os.clock() - seatingAt > 1.5 then
+				if not fishRoot or not saddle or not saddle:IsA("Attachment") or os.clock() - seatingAt > 2.5 then
 					seating = nil
 				else
 					clearFloat()
 					root.CFrame = saddle.WorldCFrame
 					root.AssemblyLinearVelocity = fishRoot.AssemblyLinearVelocity
 					root.AssemblyAngularVelocity = Vector3.zero
-					if not seatingTold and os.clock() - seatingAt > 0.1 then
+					if not seatingTold and os.clock() - seatingAt > SEAT_HOLD then
 						seatingTold = true
 						Net.Action:FireServer("SandboxSit", seating)
 					end

@@ -677,7 +677,7 @@ function RideService.sandboxReset(player: Player)
 		r.SandboxSeat = w
 		Net.Ride:FireClient(player, "SandboxMount", w.Model)
 		-- if its machine never answers, the fish is let go again
-		task.delay(1, function()
+		task.delay(2, function()
 			if r.SandboxSeat == w then
 				r.SandboxSeat = nil
 				FishService.unreserve(w, player)
