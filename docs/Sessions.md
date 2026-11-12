@@ -28,13 +28,47 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-12, the second archetypes worker (a NULLROOM task on Hugo's PC) to the game-code, the UI and the
+  tuning chats: the passives are built, and they touched files you have in hand.** The top entry of
+  [Handoff](Handoff.md) lists every file; [archetypes](design/archetypes.md) has the rules as built and the
+  animation hooks; [the playtest](playtests/2026-11-12-archetypes.md) the numbers.
+  - **The game code:** `RideService` (`checkEat`, `reward`, the Breaker in `checkCrash`, `jump`'s `JumpExtra`,
+    `checkSpeed`), `FishService` (`make`, `prey`, `eat`, `spawnTest`), `RideController` (`boost`, the launch, the
+    stand-in motion), `JumpController` (the Leaper's `leapApex` and `leapTime`), `SandboxService` and
+    `SandboxController` ("Ride", the F key, panel rows), `AngryController` and `State` (one line each), new
+    `ArchetypeController` and `Shared/Archetypes`. `AnimController`, `RideStyles`, `AngryStyles` and
+    `PropService` are untouched.
+  - **The UI chat:** `Tags` has a fourth line (a fish's archetypes, rich text, `KIND_HIGH` added to the room a
+    tag takes); `Rings.View` has `Kind`, a third line under the ring; `Aim`'s ring is clamped to 1. Move or
+    restyle them as you like: the words and colours are `Shared/Archetypes`.
+  - **The tuning chat:** a Tank drains x0.65 and a bite gives 10% of max Oxygen (a paid prop 4%), which
+    `tools/balance/model.py` doesn't know. `Config.required` and `strained` are unchanged (by rarity alone).
+  - Studio was used through the studio runner only and is back in Edit mode, the test scripts removed.
+- **2026-11-12, the archetypes worker (a NULLROOM task on Hugo's PC) to the game-code and the tuning chats:** speed
+  is now one hand-set number a fish in `Config.FishStats` (Hugo's reset): `TierMult`, `SpeciesSpeed`,
+  `Speed.AreaStep`, `Speed.AreaGrow`, `Config.areaSpeed` and `Tiers.*.Ridden` are gone, Gold is x1.1 and Rainbow
+  x1.2. Every fish has an `Archetype` attribute (`""` or ids comma-separated), set in `FishService`; the passives
+  are designed in [archetypes](design/archetypes.md) and NOT built (the next task). I edited, outside my own files
+  and as little as it took: one line and a comment in `FishService.luau`, the removed numbers' rows in
+  `SandboxController.luau`, a comment in `RideController.luau`. For the tuning chat: `tools/balance/speed_table.py`
+  no longer runs (it reads the removed tables) and the speed tables in `progression.md` are out of date. Not run in
+  Studio.
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
-- 2026-11-12, Obsidian chat integration (the game code) to the map chat: **grey-box 10 works with the game as it is.**
-  No code change. The game finds the new DockSpawn and the training spot, the lane's survey finds its floor at every
-  point, and the lane it reads starts 248 wide at z = 0 and eases to about 190 by s = 144. The user dived from the new
-  dock past z = 3300 with no game errors. Read from the server only: nothing was checked by eye (Studio draws no 3D
-  on this PC). Studio is in Edit and nobody holds it.
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration (the game code), the UI chat and the tuning chat:
+  **angry mode is in, on Hugo's word, and it touched files you have in hand.** A row in [Decisions](Decisions.md),
+  the top entry of [Handoff](Handoff.md), "Angry mode" in [riding feel](design/riding-feel.md).
+  - **The game code:** new `Shared/AngryStyles` and `Controllers/AngryController`. `RideService` marks the ridden
+    fish (`Angry`, `AngryStyle`, the `AngryFish` tag) from `Config.low` or `Strained`, and clears it in `dismount`
+    and `setState`; `RideController.drive` multiplies the speed by `angrySpeed` and adds the stand-in motion to
+    `turn.CFrame`. `AnimController`, `RideStyles` and the landing reactions are untouched. An animation for a style
+    reads the fish's `AngryStyle`; set `Angry.Motion` to 0 then.
+  - **The UI chat:** `Rings.View` has a new `Low` field and the ring is red on `v.Strained or v.Low` (it was
+    `v.Seconds < 1`); `HudController` sets it from `Config.low(meter, max)` and `HOT_SECONDS` is gone (the hop
+    button's call uses the same rule). Nothing else in the HUD changed.
+  - **The tuning chat:** new `Oxygen.AngryAt` (0.3). Below it a ridden fish averages about x0.75 of its speed
+    (`Shared/AngryStyles`; rarer fish a little less), which `tools/balance/model.py` doesn't know.
+
 - 2026-11-12, void (Hugo's PC) to Obsidian chat integration (the game code) and the tuning chat: **the control pass,
   on Hugo's word: movement only.** A row in [Decisions](Decisions.md), the top entry of [Handoff](Handoff.md), "The
   control pass" in [riding feel](design/riding-feel.md).

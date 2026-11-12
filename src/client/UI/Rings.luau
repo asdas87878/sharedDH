@@ -59,6 +59,8 @@ export type View = {
 	Tame: number?, -- 0 to 1, or nil when there is no tame to show
 	Ready: number, -- 0 to 1: how far the hop is from being ready again after a landing
 	Strained: boolean, -- the fish under us is too strong: the meter is emptying at once
+	Low: boolean, -- the meter is in its low part (Config.low, Oxygen.AngryAt): red, and the fish under us is angry
+	Kind: string, -- the passive archetypes of the fish under us, as rich text ("" for none): a third line under the ring
 	Endless: boolean, -- the Studio sandbox's endless air: the meter doesn't drain
 }
 
@@ -93,6 +95,8 @@ local shownReady = -1
 local shownSeconds = ""
 local shownTitle = ""
 local shownSub = ""
+local shownKind = ""
+local kindText: TextLabel
 local shownWarn = false
 
 function Rings.build(parent: Instance)
@@ -135,6 +139,14 @@ function Rings.build(parent: Instance)
 		TextSize = 10.5,
 	}, holder)
 	tierGradient = Kit.gradient(tierText, Kit.White, Kit.White)
+	-- the passive archetypes of the fish under us, each in its colour (docs/design/archetypes.md)
+	kindText = Kit.text({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromOffset(0, BIG / 2 + 5),
+		Size = UDim2.fromOffset(220, 12),
+		TextSize = 10,
+		RichText = true,
+	}, holder)
 end
 
 -- The tame ring sits to the left of the big one, level with it: closer on a phone, where the rider is small
@@ -243,8 +255,9 @@ function Rings.update(now: number, v: View)
 		big.spent(spent)
 	end
 
-	-- its colour: aqua, red in the last second and on a fish too strong; white for a moment on a landing
-	local tone = if v.Endless then 1 elseif v.Strained or v.Seconds < 1 then 3 else 1
+	-- its colour: aqua, red in its low part (where the fish turns angry: Oxygen.AngryAt) and on a fish too strong;
+	-- white for a moment on a landing
+	local tone = if v.Endless then 1 elseif v.Strained or v.Low then 3 else 1
 	local colour = if tone == 3 then Kit.Coral else Kit.Aqua
 	local size = if v.Strained then STRAIN_SIZE else 1
 	if flashing then
@@ -310,7 +323,14 @@ function Rings.update(now: number, v: View)
 		title = "Endless air"
 	end
 	local warn = v.Warn and v.Note ~= ""
+	local kindLine = if v.Note == "" then v.Kind else "" -- (a note has the room: "Too strong!", "Floating")
+	if kindLine ~= shownKind then
+		shownKind = kindLine
+		kindText.Text = kindLine
+	end
 	if title ~= shownTitle then
+		-- (the line sits right under the ring when no words are above it, and under them when there are)
+		kindText.Position = UDim2.fromOffset(0, BIG / 2 + (if title == "" then 5 else 31))
 		shownTitle = title
 		nameText.Text = title
 	end

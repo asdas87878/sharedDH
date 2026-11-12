@@ -18,6 +18,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 
 ## The game
 - [Core loop](docs/design/core-loop.md): the cycle in one page.
+- [Archetypes and speed per fish](docs/design/archetypes.md): every creature's own speed and its passive archetypes (fast, predator, breaker and more), in one table.
 - [Riding feel](docs/design/riding-feel.md): the ride, the jump fish to fish and the herd, as built.
 - [The dive](docs/design/the-dive.md): riding, jumping, taming, the zones going down.
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.

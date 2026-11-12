@@ -6,14 +6,25 @@
 --   Ride (server -> one client): "Mounted", fish, landing | "Dismounted", reason | "Denied", action, reason |
 --     "Respawned" | "Crashed", slow (our fish ran into something: the share of its speed it keeps) |
 --     "Tamed", fish, fishId (the fish under us is ours now) | "Caught", ids (what we carry on this dive: fish ids,
---     oldest first; an empty list at the dock)
+--     oldest first; an empty list at the dock) | "Boost", kind, by, time, oxygen, count (a passive archetype paid us:
+--     kind "Eat" or "Smash", our fish goes `by` times its speed for `time` seconds, `oxygen` of the max meter came
+--     back, `count` is the Frenzy's stacks or the boxes knocked loose: Config.Archetype)
 --   Fx (server -> every client): "Land", player, fish, count (that rider's landings so far) | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
---     player off)
+--     player off) | "Eat", player, fish, where, stacks (that rider's Predator ate a wild fish there) | "Smash", player,
+--     fish, where, boxes (that rider's Breaker was paid for a prop)
 --   and for the sandbox's reset only: Ride "SandboxMount", fish (sit on this fish yourself) answered by Action
 --     "SandboxSit", fish (we are on its saddle: join us)
 --   Sandbox (client -> server, Studio only): "Tune", "Group.Key", number | "Flag", name, boolean | "Reset"
 -- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
+-- Attributes on a fish the server owns (besides FishService's own: FishType, Tier, Variant, Rider, Reserved): Angry
+-- (true while its rider's meter is in its red part, Oxygen.AngryAt, or it is too strong for them; nil otherwise:
+-- Config.Angry) and AngryStyle (its angry style's name while Angry: "Zigzag", "Drag", "Coil", "Buck", "Flutter",
+-- "Balk", "Pulse", "Wobble", "Dig" or "Fade", Shared/AngryStyles; for the animations to come). An angry fish also
+-- carries the CollectionService tag "AngryFish" (Config.Angry.Tag). And for the passive archetypes
+-- (docs/design/archetypes.md, Animation hooks): Archetype ("" or ids comma-separated), Bite and Smash (each counts
+-- up by one with every bite and every paid smash) and Frenzy (1 to 3 while a Frenzy's chain lasts).
+-- Sandbox also takes "Ride", fishId, variant (Studio only: onto a fish of that kind, put at the start).
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
 -- Drain (the Oxygen a second the fish under you takes, as the server counts it; 0 off a fish), Training (true while

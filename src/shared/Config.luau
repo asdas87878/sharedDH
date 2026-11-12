@@ -6,7 +6,6 @@
 
 export type Tier = {
 	Idle: number, -- (not used since the herd: a wild fish swims at Herd.SpeedShare of its ridden speed)
-	Ridden: number, -- speed once ridden, for a species of base 1 in land 1 (worked out: Speed.Base x TierMult)
 	Colour: Color3, -- the tier's colour on markers
 }
 
@@ -18,7 +17,8 @@ export type FishType = {
 	Reach: number, -- how many zones past home it can still turn up in
 	Required: number, -- the max Oxygen that keeps up with it in its home land (Config.required): shown on its tag
 	IdleSpeed: number,
-	RiddenSpeed: number, -- this species, no variant: base x species x rarity x its home land's (worked out: Config.refresh); one fish's own: Config.speedOf
+	RiddenSpeed: number, -- this species, no variant: its own number in Config.FishStats (Config.refresh); one fish's own: Config.speedOf
+	Archetype: string, -- its passive archetypes (Config.FishStats): "" for none, more than one comma-separated ("Predator,Breaker")
 	Size: Vector3, -- width, height, length (it faces -Z); one fish's own: Config.bodyOf
 	Shape: string, -- placeholder body: "Fish" (tall, flat), "Round", "Shark", "Flat" (a ray), "Eel"
 	Body: Color3,
@@ -39,145 +39,238 @@ local Config = {}
 
 Config.TierOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 
--- (Ridden is worked out in Config.refresh from Config.Speed.Base and Config.TierMult, below: change it there)
 Config.Tiers = {
-	Common = { Idle = 14, Ridden = 45, Colour = rgb(200, 200, 200) },
-	Uncommon = { Idle = 16, Ridden = 52, Colour = rgb(90, 220, 90) },
-	Rare = { Idle = 18, Ridden = 60, Colour = rgb(70, 150, 255) },
-	Epic = { Idle = 20, Ridden = 68, Colour = rgb(180, 90, 255) },
-	Legendary = { Idle = 22, Ridden = 78, Colour = rgb(255, 190, 40) },
-	Mythic = { Idle = 24, Ridden = 90, Colour = rgb(255, 70, 90) },
-	Secret = { Idle = 26, Ridden = 100, Colour = rgb(20, 20, 20) },
+	Common = { Idle = 14, Colour = rgb(200, 200, 200) },
+	Uncommon = { Idle = 16, Colour = rgb(90, 220, 90) },
+	Rare = { Idle = 18, Colour = rgb(70, 150, 255) },
+	Epic = { Idle = 20, Colour = rgb(180, 90, 255) },
+	Legendary = { Idle = 22, Colour = rgb(255, 190, 40) },
+	Mythic = { Idle = 24, Colour = rgb(255, 70, 90) },
+	Secret = { Idle = 26, Colour = rgb(20, 20, 20) },
 } :: { [string]: Tier }
 
--- Speed per fish (Hugo, 2026-11-12): speed = Speed.Base x SpeciesSpeed[species] x TierMult[rarity] x the area's
--- (its home land's, Config.areaSpeed) x the variant's. Every fish has its own, worked out the same way on the server
--- and on every client from the fish's type and attributes (Config.speedOf); the server's is the one that counts (the
--- herd, the speed check). There is no size roll for now (Hugo, 2026-11-12, later: "dont do the sizing yet").
+-- Speed per fish (Hugo, 2026-11-12, the reset): every fish has ONE speed, set by hand in Config.FishStats below. No
+-- rarity formula and no home-land factor (TierMult, SpeciesSpeed, AreaStep and AreaGrow are gone): a deeper or a rarer
+-- fish is faster only because its own number says so. The one thing on top is the variant's, the same for every fish.
+-- Worked out the same way on the server and on every client (Config.speedOf); the server's is the one that counts
+-- (the herd, the speed check). There is no size roll (Hugo, 2026-11-12: "dont do the sizing yet").
 Config.Speed = {
-	Base = 45, -- studs a second ridden: a Common of species base 1, land 1, no variant
-	-- By area (Hugo, 2026-11-12: "the further you go the faster the fish get, even if theyre legendary it should
-	-- still get faster by more per area"): every fish is faster by its HOME land, whatever its rarity, and the step
-	-- grows a land. Land n is x(1 + AreaStep x (n - 1) + AreaGrow x (n - 1)(n - 2) / 2): the first step is AreaStep
-	-- and each step after is AreaGrow bigger. At 0.06 and 0.01: x1, 1.06, 1.13, 1.21, 1.30, 1.40, 1.51, 1.63, 1.76,
-	-- 1.90 (steps of 6% up to 14%). Land 1 is always x1. Both 0: no area speed.
-	AreaStep = 0.06,
-	AreaGrow = 0.01,
-	Gold = 1.2, -- a Gold fish's speed, times (Hugo, 2026-11-12)
-	Rainbow = 1.5, -- a Rainbow's (Hugo, 2026-11-12)
+	Base = 45, -- studs a second: only for a fish that FishStats doesn't list (it warns), and the fallback with no fish
+	Gold = 1.1, -- a Gold fish's speed, times (Hugo, 2026-11-12: "rainbow and gold 1.1x and 1.2x"; read as the rarer
+	Rainbow = 1.2, -- Rainbow getting the bigger one. To flip them, swap these two numbers)
 }
 
--- By rarity: a higher rarity is clearly faster on average. Each step is about 1.15 times the last, which lands on the
--- ridden speeds measured in the game before this (Handoff, 2026-11-12: 60, 68, 78, 90 on a Rare, Epic, Legendary and
--- Mythic; with Base 45 these make 45, 52, 60, 68, 78, 90, 100, in land 1: the area's factor comes on top). The steps (15%) are wider than the whole spread of
--- species inside a rarity (8% either way), so the fastest of one rarity is about level with the slowest of the next.
-Config.TierMult = {
-	Common = 1,
-	Uncommon = 1.16,
-	Rare = 1.33,
-	Epic = 1.51,
-	Legendary = 1.73,
-	Mythic = 2,
-	Secret = 2.22,
-} :: { [string]: number }
+export type FishStat = {
+	Speed: number, -- studs a second, ridden, no variant
+	Archetype: string, -- "" for none; more than one comma-separated; the ids are Config.Archetype's keys
+}
 
--- By species: the cooler, more impressive animal is a little faster inside its rarity, 0.92 to 1.08, with why. A
--- species not listed is 1.
+-- THE per-fish table (Hugo, 2026-11-12): each creature's ridden speed and its passive archetypes, the single source
+-- for both. The why of every row, the rules and the numbers: docs/design/archetypes.md (keep its table in step).
+-- Commons and Uncommons have no archetype; a Rare may have one; an Epic has one; a Legendary two; a Mythic or a Secret
+-- two to four. The server writes a fish's archetypes on its model as the "Archetype" attribute (FishService).
 -- stylua: ignore
-Config.SpeciesSpeed = {
-	-- Common
-	BlueChromis = 1.05, -- a small darting schooling fish: the quick Common
-	Boxfish = 0.92, -- a rigid box that paddles with tiny fins
-	Butterflyfish = 1.0, -- an ordinary reef fish
-	Clownfish = 0.97, -- stays by its anemone, a wobbly swimmer
-	Pufferfish = 0.92, -- round and slow, the slowest thing in the sea
-	SergeantMajor = 1.03, -- a bold, busy damselfish
-	YellowTang = 1.02, -- a steady cruiser
-	-- Uncommon
-	Cuttlefish = 0.96, -- hovers on its skirt
-	FlyingFish = 1.08, -- built to burst out of the water
-	SeaTurtle = 0.95, -- an unhurried glider
-	Stingray = 0.98, -- glides low over the sand
-	Angelfish = 0.97, -- tall and showy, not quick
-	Lionfish = 0.93, -- drifts with its fins spread
-	Parrotfish = 1.0, -- an ordinary grazer
-	Garibaldi = 1.0, -- an ordinary kelp fish
-	SeaLion = 1.05, -- agile and playful
-	Barracuda = 1.08, -- a torpedo: the fastest Uncommon
-	-- Rare
-	Seahorse = 0.92, -- the slowest swimmer there is
-	MorayEel = 0.96, -- a lurker in holes
-	Octopus = 0.95, -- jets in pulses
-	GiantSeaBass = 0.95, -- a heavy, slow giant
-	LeopardShark = 1.0, -- a small, ordinary shark
-	HammerheadShark = 1.04, -- a strong schooling shark
-	Sawfish = 0.99, -- big, but a bottom cruiser
-	Dolphin = 1.06, -- fast and loved
-	Swordfish = 1.08, -- one of the fastest fish alive
-	Viperfish = 1.0, -- a deep ambusher: average
-	-- Epic
-	ReefShark = 1.02, -- a sleek hunter
-	HumpheadWrasse = 0.94, -- a bulky grazer
-	GreatWhite = 1.07, -- the shark
-	StellersSeaCow = 0.92, -- a gentle floating giant
-	ElectricRay = 0.95, -- a sluggish disc
-	GoliathGrouper = 0.93, -- a heavy lump of a fish
-	MantaRay = 1.03, -- a graceful flier
-	Orca = 1.08, -- the top hunter, and fast
-	GiantSquid = 1.02, -- jet powered
-	GoblinShark = 0.97, -- slow and odd
-	Anglerfish = 0.93, -- a floating lure
-	FrilledShark = 0.98, -- an eel of a shark
-	GiantIsopod = 0.92, -- an armoured crawler
-	SeaScorpion = 1.0, -- a paddling hunter: average
-	-- Legendary
-	Archelon = 0.93, -- a giant turtle
-	Dunkleosteus = 0.98, -- armour is heavy
-	Dakosaurus = 1.04, -- a sea crocodile built for the chase
-	Xiphactinus = 1.06, -- the fast "bulldog fish"
-	Elasmosaurus = 0.97, -- a long-necked paddler
-	Helicoprion = 1.02, -- the buzz-saw shark
-	Liopleurodon = 1.04, -- a big four-flippered hunter
-	Shonisaurus = 1.0, -- a whale-sized ichthyosaur: average
-	Basilosaurus = 1.02, -- a serpent whale
-	Livyatan = 1.05, -- the killer sperm whale
-	Mosasaurus = 1.08, -- the star of the deep
-	Anomalocaris = 0.95, -- an ancient paddler
-	BobbitWorm = 0.92, -- a worm
-	Kronosaurus = 1.05, -- huge jaws, strong flippers
-	Megalodon = 1.07, -- the biggest shark that ever was
-	GraveRay = 0.98, -- a ghostly glider
-	GraveTurtle = 0.93, -- a turtle, still
-	SkullAngler = 0.94, -- an angler, still
-	WraithEel = 1.02, -- a quick ghost
-	BrimstoneEel = 1.03, -- an eel of fire
-	CinderRay = 1.0, -- a burning glider: average
-	HellfinShark = 1.07, -- a shark from the Underworld
-	InfernalAngler = 0.95, -- an angler, still
-	-- Mythic
-	BlueWhale = 0.94, -- the biggest and the calmest
-	LanternLeviathan = 1.0, -- a long lit serpent: average
-	Kraken = 0.97, -- a mass of arms
-	MoltenMegalodon = 1.06, -- a Megalodon on fire
-	BoneLeviathan = 1.02, -- a racing skeleton
-	HalfboneMegalodon = 1.04, -- half a Megalodon is still a Megalodon
-	AbyssalWatcher = 0.96, -- it watches; it doesn't hurry
-	Hellmaw = 1.08, -- the last land's monster
-	-- Secret
-	PearlSerpent = 1.0, -- the first Secret: average
-	CoralDragon = 1.03, -- a dragon
-	KelpWyrm = 0.98, -- winds through the kelp
-	GalleonWhale = 0.93, -- a whale carrying a ship
-	StormSerpent = 1.08, -- lightning
-	AuroraJelly = 0.92, -- a drifting jelly
-	VoidWhale = 0.97, -- a whale, dark and slow
-	EmberSerpent = 1.05, -- a serpent of fire
-	PhantomWhale = 1.0, -- a ghost whale: average
-	TheDevourer = 1.08, -- the end of the list
-} :: { [string]: number }
+Config.FishStats = {
+	-- land 1: Shallows
+	BlueChromis = { Speed = 48, Archetype = "" }, -- Common: a small darting schooling fish: the quick Common, by its number only
+	SergeantMajor = { Speed = 46, Archetype = "" }, -- Common: a bold, busy damselfish: the plain first fish
+	YellowTang = { Speed = 45, Archetype = "" }, -- Common: a steady reef cruiser
+	Butterflyfish = { Speed = 44, Archetype = "" }, -- Common: an ordinary reef fish
+	Clownfish = { Speed = 43, Archetype = "" }, -- Common: stays by its anemone, a wobbly swimmer
+	Boxfish = { Speed = 40, Archetype = "" }, -- Common: a rigid box paddling with tiny fins
+	Pufferfish = { Speed = 40, Archetype = "" }, -- Common: round and slow: the slowest thing in the sea
+	FlyingFish = { Speed = 58, Archetype = "" }, -- Uncommon: built to burst out of the water: fast for an Uncommon, by its number only
+	Stingray = { Speed = 48, Archetype = "" }, -- Uncommon: glides low over the sand
+	Cuttlefish = { Speed = 47, Archetype = "" }, -- Uncommon: hovers on its skirt
+	SeaTurtle = { Speed = 44, Archetype = "" }, -- Uncommon: an unhurried glider: slow by its number, no trait
+	Seahorse = { Speed = 42, Archetype = "" }, -- Rare: the slowest swimmer there is: the Rare you catch for the tank, not the ride
+	ReefShark = { Speed = 70, Archetype = "Predator" }, -- Epic: the Shallows' hunter: the first fish that eats, so the trait is met early
+	Archelon = { Speed = 62, Archetype = "Tank,Breaker" }, -- Legendary: a giant turtle: calm to sit on, and its shell goes through anything
+	PearlSerpent = { Speed = 100, Archetype = "Fast,Leaper" }, -- Secret: the first Secret: a long quick serpent that throws you far
+	-- land 2: Coral Reef
+	Parrotfish = { Speed = 50, Archetype = "" }, -- Uncommon: an ordinary grazer
+	Angelfish = { Speed = 48, Archetype = "" }, -- Uncommon: tall and showy, not quick
+	Lionfish = { Speed = 46, Archetype = "" }, -- Uncommon: drifts with its fins spread
+	MorayEel = { Speed = 58, Archetype = "Predator" }, -- Rare: a lunging ambusher with two sets of jaws
+	Octopus = { Speed = 54, Archetype = "" }, -- Rare: jets in pulses: a plain Rare
+	HumpheadWrasse = { Speed = 60, Archetype = "Breaker" }, -- Epic: it really does crush coral with the bump on its head
+	Dunkleosteus = { Speed = 76, Archetype = "Predator,Breaker" }, -- Legendary: armour plate and a bite that sheared through bone
+	CoralDragon = { Speed = 108, Archetype = "Breaker,Leaper,Tank" }, -- Secret: a reef come alive: heavy, calm, and it launches you
+	-- land 3: Kelp Forest
+	SeaLion = { Speed = 58, Archetype = "" }, -- Uncommon: agile and playful: quick for an Uncommon, by its number only
+	Garibaldi = { Speed = 52, Archetype = "" }, -- Uncommon: an ordinary kelp fish
+	LeopardShark = { Speed = 62, Archetype = "" }, -- Rare: a small harmless shark: a plain Rare
+	GiantSeaBass = { Speed = 54, Archetype = "Tank" }, -- Rare: a heavy, slow, gentle giant: the Rare you rest on
+	GreatWhite = { Speed = 82, Archetype = "Predator" }, -- Epic: the shark
+	StellersSeaCow = { Speed = 56, Archetype = "Tank" }, -- Epic: a gentle floating giant: slow, and the meter barely moves
+	Dakosaurus = { Speed = 88, Archetype = "Predator,Fast" }, -- Legendary: a sea crocodile built for the chase
+	KelpWyrm = { Speed = 112, Archetype = "Fast,Predator,Leaper" }, -- Secret: winds through the kelp and strikes
+	-- land 4: Shipwrecks
+	Barracuda = { Speed = 64, Archetype = "" }, -- Uncommon: a torpedo: the fastest Uncommon, by its number only
+	HammerheadShark = { Speed = 68, Archetype = "Predator" }, -- Rare: a strong schooling shark
+	Sawfish = { Speed = 64, Archetype = "Breaker" }, -- Rare: a saw for a nose
+	ElectricRay = { Speed = 62, Archetype = "Tank" }, -- Epic: a sluggish disc that waits: slow and easy on the meter
+	GoliathGrouper = { Speed = 60, Archetype = "Predator" }, -- Epic: a heavy lump that gulps fish whole
+	Xiphactinus = { Speed = 96, Archetype = "Fast,Predator" }, -- Legendary: the fast "bulldog fish", found with whole fish inside it
+	GalleonWhale = { Speed = 104, Archetype = "Breaker,Tank,Leaper" }, -- Secret: a whale carrying a ship: it rams, it lasts, and its back is a launch deck
+	-- land 5: Open Blue
+	Swordfish = { Speed = 84, Archetype = "Fast" }, -- Rare: one of the fastest fish alive (the small, fast Rare)
+	Dolphin = { Speed = 76, Archetype = "Leaper" }, -- Rare: the leaper: small, quick and loved (a trait on a Rare)
+	Orca = { Speed = 90, Archetype = "Predator" }, -- Epic: the top hunter: big enough to eat most of what swims by
+	MantaRay = { Speed = 78, Archetype = "Leaper" }, -- Epic: a flier: it breaches, and its hop is a long glide
+	Helicoprion = { Speed = 92, Archetype = "Predator,Breaker" }, -- Legendary: the buzz-saw shark
+	Elasmosaurus = { Speed = 86, Archetype = "Predator,Tank" }, -- Legendary: a long-necked fish catcher, and an unhurried paddler
+	BlueWhale = { Speed = 84, Archetype = "Tank,Breaker,Leaper" }, -- Mythic: the biggest and the calmest: nothing stops it, the meter crawls, and it breaches
+	StormSerpent = { Speed = 135, Archetype = "Fast,Leaper,Predator" }, -- Secret: lightning
+	-- land 6: Twilight
+	Viperfish = { Speed = 70, Archetype = "Predator" }, -- Rare: a deep ambusher, all teeth
+	GiantSquid = { Speed = 86, Archetype = "Fast" }, -- Epic: jet powered
+	GoblinShark = { Speed = 78, Archetype = "Predator" }, -- Epic: its jaws shoot out
+	Liopleurodon = { Speed = 98, Archetype = "Predator,Breaker" }, -- Legendary: a big four-flippered hunter
+	Shonisaurus = { Speed = 92, Archetype = "Tank,Breaker" }, -- Legendary: a whale-sized ichthyosaur with no teeth: mass, not bite
+	LanternLeviathan = { Speed = 108, Archetype = "Fast,Tank,Leaper" }, -- Mythic: a long lit serpent: quick, easy on the meter, a long hop
+	AuroraJelly = { Speed = 96, Archetype = "Tank,Leaper" }, -- Secret: a drifting jelly: slow for a Secret, but it floats you far and long
+	-- land 7: Midnight
+	FrilledShark = { Speed = 82, Archetype = "Predator" }, -- Epic: an eel of a shark that swallows prey whole
+	Anglerfish = { Speed = 74, Archetype = "Predator" }, -- Epic: a lure and a mouth
+	Mosasaurus = { Speed = 110, Archetype = "Predator,Fast" }, -- Legendary: the star of the deep
+	Livyatan = { Speed = 104, Archetype = "Predator,Breaker" }, -- Legendary: the killer sperm whale: a ram for a head
+	Basilosaurus = { Speed = 102, Archetype = "Predator,Breaker" }, -- Legendary: a serpent whale that crushed its prey
+	Kraken = { Speed = 104, Archetype = "Predator,Breaker,Tank" }, -- Mythic: a mass of arms: it drags fish in and ships down, and it is in no hurry
+	VoidWhale = { Speed = 110, Archetype = "Tank,Breaker,Predator" }, -- Secret: a whale, dark and slow, that swallows what it passes
+	-- land 8: Vents
+	SeaScorpion = { Speed = 84, Archetype = "Predator" }, -- Epic: a paddling hunter with claws
+	GiantIsopod = { Speed = 72, Archetype = "Breaker" }, -- Epic: an armoured crawler
+	Megalodon = { Speed = 112, Archetype = "Predator,Frenzy" }, -- Legendary: the biggest shark that ever was: every bite makes the next one bigger
+	Kronosaurus = { Speed = 108, Archetype = "Predator,Breaker" }, -- Legendary: huge jaws, strong flippers
+	Anomalocaris = { Speed = 96, Archetype = "Predator,Leaper" }, -- Legendary: the first big hunter, flying on its side flaps
+	BobbitWorm = { Speed = 90, Archetype = "Predator,Breaker" }, -- Legendary: bursts out of the sand (not in the herd yet)
+	MoltenMegalodon = { Speed = 122, Archetype = "Predator,Frenzy,Breaker" }, -- Mythic: a Megalodon on fire
+	EmberSerpent = { Speed = 138, Archetype = "Fast,Predator,Leaper" }, -- Secret: a serpent of fire
+	-- land 9: Bone Graveyard
+	WraithEel = { Speed = 114, Archetype = "Fast,Predator" }, -- Legendary: a quick ghost
+	GraveRay = { Speed = 104, Archetype = "Leaper,Tank" }, -- Legendary: a ghostly glider
+	SkullAngler = { Speed = 98, Archetype = "Predator,Tank" }, -- Legendary: an angler, still: it waits
+	GraveTurtle = { Speed = 92, Archetype = "Tank,Breaker" }, -- Legendary: a turtle, still
+	BoneLeviathan = { Speed = 126, Archetype = "Fast,Breaker,Leaper" }, -- Mythic: a racing skeleton: nothing to slow it
+	HalfboneMegalodon = { Speed = 124, Archetype = "Predator,Frenzy,Tank" }, -- Mythic: half a Megalodon is still a Megalodon, and the dead half needs no air
+	PhantomWhale = { Speed = 120, Archetype = "Tank,Breaker,Leaper" }, -- Secret: a ghost whale
+	-- land 10: The Underworld
+	HellfinShark = { Speed = 118, Archetype = "Predator,Frenzy" }, -- Legendary: a shark from the Underworld
+	BrimstoneEel = { Speed = 116, Archetype = "Fast,Predator" }, -- Legendary: an eel of fire
+	CinderRay = { Speed = 108, Archetype = "Leaper,Fast" }, -- Legendary: a burning glider
+	InfernalAngler = { Speed = 100, Archetype = "Predator,Tank" }, -- Legendary: an angler, still
+	Hellmaw = { Speed = 130, Archetype = "Predator,Frenzy,Breaker" }, -- Mythic: the last land's monster
+	AbyssalWatcher = { Speed = 112, Archetype = "Tank,Predator,Leaper" }, -- Mythic: it watches; it doesn't hurry
+	TheDevourer = { Speed = 150, Archetype = "Predator,Frenzy,Breaker,Fast" }, -- Secret: the end of the list
+} :: { [string]: FishStat }
+
+-- The passive archetypes (Hugo, 2026-11-12; docs/design/archetypes.md). All passive: no button, they just happen
+-- while you ride. None takes away steering or the hop. Built 2026-11-12: the server decides the eat, the prop reward,
+-- the drain and the hop's longer window (RideService); the rider's client plays the speed (RideController), the hop
+-- (JumpController) and the feedback (ArchetypeController, Config.ArchetypeFeel). Each id's table is also reachable as
+-- Config.<Id> (Config.Predator, ...), which is how the sandbox's panel names its rows.
+Config.Archetype = {
+	-- Fast: its speed is its own high number in FishStats. On top, the burst on landing (Ride.Surge, SurgeTime) is
+	-- bigger and lasts longer, so hopping onto one feels like a launch.
+	Fast = {
+		-- (On a landing every fish first dips to Ride.StartleSlow. A plain fish then eases back to its speed and no
+		-- further; a Fast one goes on past it to this burst as it recovers, and settles over SurgeTime: the launch.)
+		Surge = 1.15, -- Ride.Surge, times (1.25 becomes about 1.44)
+		SurgeTime = 2, -- Ride.SurgeTime, times (0.5 s becomes 1 s)
+	},
+	-- Predator: swimming into a smaller wild fish eats it. The fish is gone in a burst of bubbles (the herd's top-up
+	-- puts a new one in within seconds, away from players); the rider gets a short burst of speed and some Oxygen.
+	-- Never a fish with a rider, never one a player's hop is reserved on, never while the rider is in the air.
+	Predator = {
+		Prey = 0.7, -- eats a wild fish no longer than this share of its own length
+		Reach = 3, -- studs past the predator's nose and half width that count as a bite
+		Burst = 1.25, -- its speed, times, after an eat,
+		BurstTime = 1.5, -- for this many seconds (it fades out over the last third)
+		Oxygen = 0.1, -- of max Oxygen back per eat
+		Cooldown = 2.5, -- seconds between two eats, so a predator can't clear the lane of fish to hop to
+	},
+	-- Frenzy (always with Predator): eats chain. Each eat inside the window adds a stack; the stacks make the burst
+	-- bigger and longer, and the cooldown is shorter.
+	Frenzy = {
+		Window = 6, -- seconds after an eat in which the next one adds a stack
+		Stacks = 3, -- at most
+		BurstPer = 0.08, -- added to Predator.Burst per stack (three stacks: x1.49)
+		TimePer = 0.5, -- seconds added to Predator.BurstTime per stack
+		Cooldown = 1.2, -- in place of Predator.Cooldown
+	},
+	-- Breaker: goes through props for free (no speed lost, no Oxygen: Props.Slow and Props.Cost don't apply), knocks
+	-- a wider hole, and each prop broken gives a short push and a little Oxygen.
+	Breaker = {
+		Reach = 5, -- added to Props.Reach
+		Burst = 1.12, -- its speed, times, after breaking a prop,
+		BurstTime = 1, -- for this many seconds
+		Oxygen = 0.04, -- of max Oxygen back per prop
+		Cooldown = 1.5, -- seconds between two rewards (the breaking itself has none)
+		Crash = 0.5, -- a crash into a wall costs it this share of the usual speed and Oxygen loss (Crash.Slow, Crash.Cost)
+	},
+	-- Tank: the calm one. Oxygen drains slower on it, and it never gets angry as early.
+	Tank = {
+		Drain = 0.65, -- its Oxygen drain, times
+		AngryAt = 0.6, -- Oxygen.AngryAt, times (the red part starts at 0.18 of the meter, not 0.3)
+	},
+	-- Leaper: the hop off it goes higher and further.
+	Leaper = {
+		Apex = 1.3, -- Jump.Apex, times
+		Air = 1.2, -- the glide's speed (Jump.AirShare of this fish's speed), times
+		FloatTime = 0.3, -- seconds added to Jump.FloatTime (and to the window, so the drop is as long as it was)
+	},
+}
+
+for id, numbers in Config.Archetype :: { [string]: any } do
+	(Config :: any)[id] = numbers
+end
+
+-- What an archetype's moment looks, sounds and feels like (Hugo, 2026-11-12: "make sure it feels good"). All made of
+-- what the game already has: the view's kick wider (State.FovPunch), the camera's jolt and shake, speed lines, bubble
+-- bursts, the built-in sounds, a word that pops up by the rider, and a line on a fish's tag naming its archetypes.
+-- Client only (ArchetypeController, RideController, JumpController); nothing here changes what the server decides.
+Config.ArchetypeFeel = {
+	-- THE STAND-IN MOTION for a bite and a smash (1 on, 0 off, between: that share): a quick lunge of the nose on a
+	-- bite, a shudder on a smash, on the fish's turn spring like Angry.Motion. Set to 0 when the partner's animations
+	-- play instead (they hang on the fish's "Bite", "Smash" and "Frenzy" attributes: archetypes.md, Animation hooks).
+	Motion = 1,
+	Lunge = 9, -- degrees the nose dips and comes back on a bite,
+	LungeTime = 0.32, -- over this long
+	Shudder = 6, -- degrees it rolls side to side on a smash (three times, dying away),
+	ShudderTime = 0.35, -- over this long
+	BoostIn = 0.1, -- seconds a burst of speed (an eat's, a smash's) takes to come in: a shove, not a snap
+	BoostLines = 0.75, -- speed lines through a burst, 0 to 1 (0 off)
+	-- the bite
+	EatFov = 6, -- the view kicks this much wider,
+	EatKick = 0.3, -- the camera is knocked down this many studs,
+	EatBubbles = 28, -- bubbles where the fish was,
+	EatReach = 6, -- flying out this far, studs
+	EatSound = 0.9, -- how loud the chomp is (0 off)
+	FrenzyFov = 2, -- and this much more view for each stack of a Frenzy
+	-- the smash (a Breaker's rewarded prop)
+	SmashFov = 4,
+	SmashShake = 0.7, -- the camera is thrown about this far, studs (the landing's shake, smaller)
+	SmashBubbles = 20,
+	SmashReach = 8,
+	SmashSound = 0.7,
+	-- the launch (landing on a Fast fish)
+	LaunchFov = 6, -- on top of Feel.BoltFov
+	LaunchLines = 1, -- speed lines through the launch
+	-- the big hop (off a Leaper)
+	LeapFov = 5, -- on top of Feel.PopFov
+	LeapBubbles = 16, -- on top of Feel.PopBurst
+	-- the word by the rider ("CHOMP!", "SMASH!", "FRENZY x2", "LAUNCH!", "BIG HOP!")
+	Words = 1, -- 0: no words
+	WordTime = 0.9, -- seconds a word stays
+	WordRise = 34, -- and how far it floats up, pixels
+	-- the archetypes on a fish's tag and under the ring of the fish you ride
+	Tags = 1, -- 0: tags don't name the archetypes
+}
 
 -- Variants (Hugo, 2026-11-12): the chance that a spawned fish is one, 0 to 1 (Rainbow is rolled first). The fish's
--- "Variant" attribute ("", "Gold" or "Rainbow"); the look is Shared/Variants; the speed is Speed.Gold and Speed.Rainbow.
+-- "Variant" attribute ("", "Gold" or "Rainbow"); the look is Shared/Variants; the speed is Speed.Gold and Speed.Rainbow
+-- (x1.1 and x1.2, flat for every fish).
 Config.Variant = {
 	Gold = 0.03,
 	Rainbow = 0.008,
@@ -202,6 +295,11 @@ Config.Oxygen = {
 	-- fish, and then throws you off. Shorter than Jump.Cooldown, so it can't be hopped off in time: the number on a
 	-- fish's tag is a real bar. 0: off (the fish's own drain, as before).
 	StrainTime = 0.25,
+	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
+	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
+	-- angry here (Config.Angry, RideService). 0.3 of a new player's 2.5 s on a Shallows Common is the last 0.75 s;
+	-- of a trained 10 s, the last 3.
+	AngryAt = 0.3,
 	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 9: the spawn is 104 behind the lane's start and the mouth is 248 wide, so this is the hub, the mouth's corners and the first 60 studs of water in the middle; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
@@ -264,6 +362,54 @@ Config.Tame = {
 	-- game already calls enough (Oxygen.KeepUp), so the number on a fish's tag is exactly the Oxygen that tames it.
 	Time = 2,
 	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
+}
+
+-- Angry mode (Hugo, 2026-11-12: "make the fishes pulse red and go into angry mode ... different fishes should have
+-- different slowdowns ... when the bar turns red"; the reference's T-rex starts jumping and its bison rocks back and
+-- forth: each animal shows in its own way that it wants you off). While you ride with the meter in its red part
+-- (Oxygen.AngryAt), or on a fish too strong for you from the touch, the fish under you is angry: it pulses red, for
+-- everyone, faster as the Oxygen runs out, and it slows in its body type's own way (Shared/AngryStyles: the shapes
+-- and their numbers). The server decides it (RideService: the fish's "Angry" and "AngryStyle" attributes); the
+-- slow-down is the ridden speed's own curve (RideController), like the landing's. Steering is untouched and a hop
+-- off always works. No authored animation: where a style wants motion it is a sine on the fish's nose, turn and
+-- roll (Motion), a stand-in until the partner's animations take its place (they can read "AngryStyle").
+Config.Angry = {
+	On = 1, -- 0: no angry mode (the ring still turns red at Oxygen.AngryAt)
+	-- A fish you have tamed on this dive: 1, it gets angry like any other (taming doesn't change the riding: the
+	-- user, 2026-11-10; and it still throws you off at zero); 0, a fish that is yours stays calm.
+	Tamed = 1,
+	EaseIn = 0.5, -- seconds the slow-down takes to come in,
+	EaseOut = 0.4, -- and to go if the Oxygen comes back while you ride
+	Floor = 0.3, -- no style, rarity or heat ever slows a fish under this share of its speed: it never stops
+	-- How much of a style's slow-down there is where the meter turns red; it is whole when the meter is empty.
+	HeatFrom = 0.75,
+	GiantLength = 40, -- a fish at least this long (studs) is a giant: the slow heavy fade, whatever its body type
+	-- The stand-in motion: 1, each style's small rock, nod or wag (a sine, on the fish's turn spring); 0, none (for
+	-- when authored animations play instead); between, that share of it.
+	Motion = 1,
+	-- The red pulse (a Highlight over the whole fish, so its own colours, a Gold's and a Rainbow's are never touched)
+	PulseSlow = 1.2, -- pulses a second where the meter turns red,
+	PulseFast = 4, -- and when it is empty (and on a fish too strong)
+	PulseLow = 0.12, -- how red it is between pulses, 0 to 1,
+	PulseHigh = 0.62, -- and at a pulse's top
+	PulseEdge = 0.5, -- the red line round it at a pulse's top, 0 to 1 (0: no line)
+	PulseFade = 0.3, -- seconds the red takes to come and go
+	Colour = rgb(255, 38, 38),
+	Tag = "AngryFish", -- the CollectionService tag an angry fish carries (how the clients find it)
+	-- Studio only, for judging the styles with the sandbox's endless air on: above 0, every fish you ride is angry,
+	-- as if the meter were this far through its red part (0.01: just turned red; 1: empty).
+	Test = 0,
+}
+
+-- A rarer fish slows harder: its style's loss of speed is times this (never under Angry.Floor)
+Config.AngryTier = {
+	Common = 1,
+	Uncommon = 1.04,
+	Rare = 1.08,
+	Epic = 1.12,
+	Legendary = 1.18,
+	Mythic = 1.24,
+	Secret = 1.3,
 }
 
 -- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
@@ -820,7 +966,6 @@ type FishSpec = {
 	PatternColour: Color3?,
 	PatternCount: number?,
 	IdleSpeed: number?,
-	RiddenSpeed: number?,
 }
 
 -- stylua: ignore
@@ -909,12 +1054,78 @@ function Config.strained(zone: number, tier: string, max: number): boolean
 	return Config.Oxygen.StrainTime > 0 and max < Config.required(zone, tier)
 end
 
--- How long a full meter of `max` lasts on that fish, in seconds
-function Config.secondsOn(zone: number, tier: string, max: number): number
+-- Whether a meter at `oxygen` of `max` is in its low, red part (Oxygen.AngryAt): where the ring turns red and the fish
+-- under you turns angry
+-- Where the red part of the meter starts on this fish, as a share of max Oxygen: Oxygen.AngryAt, and lower on a Tank
+function Config.angryAt(fish: FishType?): number
+	local at = Config.Oxygen.AngryAt
+	if fish and Config.hasArchetype(fish, "Tank") then
+		at *= Config.Archetype.Tank.AngryAt
+	end
+	return at
+end
+
+-- (`fish`: the fish under the rider, when there is one: a Tank's red part starts lower)
+function Config.low(oxygen: number, max: number, fish: FishType?): boolean
+	return oxygen <= math.max(max, 0.001) * Config.angryAt(fish)
+end
+
+function Config.heat(oxygen: number, max: number, fish: FishType?): number
+	local from = math.max(max, 0.001) * Config.angryAt(fish)
+	if from <= 0 then
+		return if oxygen <= 0 then 1 else 0
+	end
+	return math.clamp(1 - oxygen / from, 0, 1)
+end
+
+-- The Oxygen a second THIS fish takes in a land: Config.drain for its rarity, and less on a Tank. What it takes to
+-- hold a fish at all (Config.required, Config.strained: the number on its tag) is by rarity alone, Tank or not.
+function Config.drainOf(zone: number, fish: FishType): number
+	local rate = Config.drain(zone, fish.Tier)
+	if Config.hasArchetype(fish, "Tank") then
+		rate *= Config.Archetype.Tank.Drain
+	end
+	return rate
+end
+
+-- The burst on getting on this fish, and how long it lasts: Ride.Surge and Ride.SurgeTime, bigger and longer on a
+-- Fast one. (After a landing only a Fast fish plays it: see Config.Archetype.Fast.)
+function Config.surgeOf(fish: FishType?): (number, number)
+	local r = Config.Ride
+	if fish and Config.hasArchetype(fish, "Fast") then
+		local f = Config.Archetype.Fast
+		return r.Surge * f.Surge, r.SurgeTime * f.SurgeTime
+	end
+	return r.Surge, r.SurgeTime
+end
+
+-- How much of a burst of speed (an eat's, a smash's) is left `t` seconds in, 0 to 1: whole for the first two
+-- thirds of its `time`, fading out over the last
+function Config.burstShare(t: number, time: number): number
+	if t < 0 or t >= time then
+		return 0
+	end
+	local fadeFrom = time * 2 / 3
+	return if t <= fadeFrom then 1 else 1 - (t - fadeFrom) / math.max(time - fadeFrom, 0.001)
+end
+
+-- The hop off this fish (nil: from floating): what Jump.Apex and the glide's speed are times, and the seconds added
+-- to Jump.FloatTime and Jump.Window. 1, 1, 0 for all but a Leaper.
+function Config.hopOf(fish: FishType?): (number, number, number)
+	if fish and Config.hasArchetype(fish, "Leaper") then
+		local l = Config.Archetype.Leaper
+		return l.Apex, l.Air, l.FloatTime
+	end
+	return 1, 1, 0
+end
+
+-- (`fish`: with it, the seconds are this fish's own: longer on a Tank)
+function Config.secondsOn(zone: number, tier: string, max: number, fish: FishType?): number
 	if Config.strained(zone, tier, max) then
 		return Config.Oxygen.StrainTime
 	end
-	return max / math.max(Config.drain(zone, tier), 0.001)
+	local rate = if fish then Config.drainOf(zone, fish) else Config.drain(zone, tier)
+	return max / math.max(rate, 0.001)
 end
 
 -- Whether a fish breaks the props it swims into (Props.MinLength), or crashes into them
@@ -933,15 +1144,8 @@ function Config.rollVariant(roll: number): string
 	return ""
 end
 
--- The area's factor on speed, by a fish's home land: x1 in land 1, and each land's step bigger than the last
--- (Speed.AreaStep, Speed.AreaGrow)
-function Config.areaSpeed(land: number): number
-	local s = Config.Speed
-	local n = math.max(land, 1) - 1
-	return 1 + s.AreaStep * n + s.AreaGrow * n * (n - 1) / 2
-end
-
--- One fish's ridden speed: its species' (base x species x rarity x its home land's: RiddenSpeed), by its variant
+-- One fish's ridden speed: its species' own (Config.FishStats: RiddenSpeed), by its variant (x Speed.Gold or
+-- x Speed.Rainbow, the same for every fish)
 function Config.speedOf(fish: FishType, variant: string?): number
 	local s = Config.Speed
 	local speed = fish.RiddenSpeed
@@ -974,14 +1178,43 @@ function Config.bodyOf(model: Instance, fish: FishType): Vector3
 	return fish.Size * Config.sizeOf(model)
 end
 
--- a fish with a ridden speed of its own (RiddenSpeed in the table above) keeps it when the rarities' speeds change
-local OWN_SPEED: { [string]: number } = {}
+-- A fish's passive archetypes as a list ({} for none), and whether it has one (Config.Archetype's keys)
+function Config.archetypesOf(fish: FishType): { string }
+	return if fish.Archetype == "" then {} else string.split(fish.Archetype, ",")
+end
+
+-- (asked every frame by the riding code: the sets are kept, one for each different row of archetypes)
+local archetypeSets: { [string]: { [string]: boolean } } = {}
+function Config.hasArchetype(fish: FishType, id: string): boolean
+	local set = archetypeSets[fish.Archetype]
+	if not set then
+		set = {}
+		for _, name in Config.archetypesOf(fish) do
+			set[name] = true
+		end
+		archetypeSets[fish.Archetype] = set
+	end
+	return set[id] == true
+end
+
+-- A fish model's archetypes as the server wrote them (its "Archetype" attribute): "" for none
+function Config.archetypeOf(model: Instance): string
+	local archetype = model:GetAttribute("Archetype")
+	return if type(archetype) == "string" then archetype else ""
+end
 
 for _, spec in FISH do
-	local tier = Config.Tiers[spec.Tier]
-	if spec.RiddenSpeed then
-		OWN_SPEED[spec.Id] = spec.RiddenSpeed
+	local stat = Config.FishStats[spec.Id]
+	if not stat then
+		warn("[Config] " .. spec.Id .. " has no row in Config.FishStats: Speed.Base and no archetype")
+	else
+		for _, id in string.split(stat.Archetype, ",") do
+			if id ~= "" and not (Config.Archetype :: { [string]: any })[id] then
+				warn("[Config] " .. spec.Id .. ": no such archetype as " .. id)
+			end
+		end
 	end
+	local speed = if stat then stat.Speed else Config.Speed.Base
 	local fish: FishType = {
 		Id = spec.Id,
 		Name = spec.Name,
@@ -989,8 +1222,9 @@ for _, spec in FISH do
 		Home = spec.Home,
 		Reach = spec.Reach or 2,
 		Required = Config.required(spec.Home, spec.Tier),
-		IdleSpeed = spec.IdleSpeed or (spec.RiddenSpeed or tier.Ridden) * Config.Herd.SpeedShare,
-		RiddenSpeed = spec.RiddenSpeed or tier.Ridden,
+		IdleSpeed = spec.IdleSpeed or speed * Config.Herd.SpeedShare,
+		RiddenSpeed = speed,
+		Archetype = if stat then stat.Archetype else "",
 		Size = spec.Size,
 		Shape = spec.Shape,
 		Body = spec.Body,
@@ -1029,17 +1263,11 @@ function Config.refresh()
 	local j = Config.Jump
 	j.DropTime = math.max(0.1, j.Window - j.LaunchTime - j.FloatTime)
 	j.FlightTime = j.Window + j.ReelMax
-	-- the rarities' speeds, and each species' (the sandbox panel may have changed Speed.Base, a TierMult or the
-	-- area's numbers). A fish with a speed of its own in the table above keeps it, whatever its land.
-	for name, tier in Config.Tiers do
-		tier.Ridden = Config.Speed.Base * (Config.TierMult[name] or 1)
-	end
+	-- each fish's own speed and archetypes, from Config.FishStats (the sandbox panel may have changed a number)
 	for _, fish in Config.Fish do
-		local tier = Config.Tiers[fish.Tier]
-		fish.RiddenSpeed = OWN_SPEED[fish.Id]
-			or (if tier then tier.Ridden else Config.Speed.Base)
-				* (Config.SpeciesSpeed[fish.Id] or 1)
-				* Config.areaSpeed(fish.Home)
+		local stat = Config.FishStats[fish.Id]
+		fish.RiddenSpeed = if stat then stat.Speed else Config.Speed.Base
+		fish.Archetype = if stat then stat.Archetype else ""
 		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
 		fish.Required = Config.required(fish.Home, fish.Tier)
 	end

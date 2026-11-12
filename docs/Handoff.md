@@ -3,6 +3,100 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · a NULLROOM worker (Hugo's PC): the passive archetypes are built and measured
+**State:** on Hugo's word (all passive, feel matters, no real animations). Run in Studio by script through the
+studio runner, seven playtests, no errors in the output; **not played by hand**. StyLua, selene and `rojo build`
+pass. Nothing uploaded; the temporary test scripts are out of the place. The numbers and three pictures:
+[the playtest](playtests/2026-11-12-archetypes.md). The rules as built and the animation hooks:
+[archetypes](design/archetypes.md). A row in [Decisions](Decisions.md).
+- **Server** (`RideService`): `checkEat` (a Predator's bite, a Frenzy's stacks), the Breaker in `checkCrash`
+  (props free and paid, a wall at half), `reward` (the burst the speed check allows, the Oxygen, the fish's
+  `Bite` / `Smash` attributes, Ride "Boost" to the rider, Fx "Eat" / "Smash" to everyone), the Tank through
+  `Config.drainOf` and `Config.low(oxygen, max, fish)`, the Leaper's longer window in `jump`. `FishService`:
+  `prey`, `eat`, and `spawnTest` (Studio only); the making of a fish is now one function, `make`.
+- **Client:** `RideController.boost` and the Fast launch in `drive`, with the stand-in lunge and shudder (one
+  marked block; `ArchetypeFeel.Motion` 0 switches it off); `JumpController` flies a Leaper's hop
+  (`Config.hopOf`); new `Controllers/ArchetypeController` (the words, bubbles, sounds, kicks); new
+  `Shared/Archetypes` (names and colours). `State.Launched` and `State.Leapt` are new events.
+- **UI files touched, as little as it took** (the UI chat's): `UI/Tags` has a line naming a fish's archetypes
+  and uses the fish's own seconds; `UI/Rings` has a third line, `View.Kind`; `HudController` fills it and passes
+  the fish to `Config.low`; `UI/Aim` clamps its ring (a Leaper's window is longer than `Jump.Window`).
+- **Config:** `Config.ArchetypeFeel` (new), `Config.angryAt`, `drainOf`, `surgeOf`, `burstShare`, `hopOf`;
+  `Config.low`, `heat` and `secondsOn` take the fish as an optional last argument; each archetype's numbers are
+  also `Config.<Id>` so the panel can name them.
+- **Sandbox:** F rides the next fish of a try-out list; `Net.Sandbox` "Ride", fishId, variant. The archetype
+  numbers are rows on the N panel.
+- **The test:** `tools/playtest/archetypes/` (the two temporary scripts and how to install them).
+- **To play, first:** whether the bursts and the 10% air a bite are too generous (a Megalodon among small fish
+  never ran low), how the words and kicks feel, two players at once.
+
+## 2026-11-12 · void (Hugo's PC): speed reset to one hand-set number a fish; passive archetypes designed, the hook in
+**State:** on Hugo's word (reset speed, set per fish, no rarity or land formula; Gold x1.1, Rainbow x1.2; passive
+archetypes). Committed, not pushed. **Not run in Studio.** StyLua, selene and `rojo build` pass; Config was loaded
+outside Studio (Lune, with stand-ins for the creature registry): 82 fish, speeds 40 to 150, The Devourer 150, Gold
+165, Rainbow 180, a changed row followed by `Config.refresh`. Nothing uploaded. A row in [Decisions](Decisions.md);
+the design, the numbers and the table of all 82: [archetypes](design/archetypes.md).
+- **Speed:** `Config.FishStats` is the single source: one row a creature, `{ Speed, Archetype }`.
+  `Config.speedOf` is that number times the variant's. Gone from Config: `TierMult`, `SpeciesSpeed`,
+  `Speed.AreaStep`, `Speed.AreaGrow`, `Config.areaSpeed`, `Tiers.*.Ridden`, a spec's `RiddenSpeed`. `Speed.Base`
+  (45) stays only as the fallback for a creature with no row (it warns). `Speed.Gold` 1.1, `Speed.Rainbow` 1.2.
+- **Archetypes:** every spawned fish carries an `Archetype` attribute, set by the server in `FishService`
+  (`""` for none, ids comma-separated: `"Predator,Breaker"`). Readers: `Config.archetypeOf(model)`,
+  `Config.archetypesOf(fish)`, `Config.hasArchetype(fish, id)`, `FishType.Archetype`. The ids and the numbers for
+  each are in `Config.Archetype` (Fast, Predator, Frenzy, Breaker, Tank, Leaper).
+- **Not built:** the passive behaviours (eating, the prop reward, the slower drain, the longer hop, the bigger
+  landing burst). Until they are, an archetype changes nothing in play; only the speeds and the variants' factors
+  did. The notes for whoever builds them are at the end of [archetypes](design/archetypes.md).
+- **Files:** `src/shared/Config.luau`; one line in `FishService.luau` (the attribute) and a comment; the sandbox
+  panel's rows for the removed numbers taken out of `SandboxController.luau`; a comment in `RideController.luau`.
+  Not touched: `AnimController`, `RideStyles`, `AngryStyles`, `JumpController`, `RideService`, `PropService`.
+- **Broken by this, not mine to fix:** `tools/balance/speed_table.py` reads `TierMult` and `SpeciesSpeed`, which
+  no longer exist (the tuning chat's tool). The speed tables in [progression](design/progression.md) and the
+  "Speed by fish" section of [riding feel](design/riding-feel.md) describe the formula that is gone (the latter
+  is marked).
+- **To play:** hops between a slow and a fast fish of one land (speeds inside a land now differ more), and the
+  deep lands, which are slower than they were (the last land's Legendaries 100 to 118, were 141 to 158).
+
+## 2026-11-12 · void (Hugo's PC): angry mode: at low Oxygen the fish pulses red and slows, each body type in its own way
+**State:** on Hugo's word ("make the fishes pulse red and go into angry mode dont add animations yet just make the
+pulse red and slow down, different fishes should have different slowdowns ... when the bar turns red"). Run twice in
+Hugo's Studio through `~/Projects/studio-runner` by script (no keys and no mouse: how it feels and looks is Hugo's to
+judge). StyLua, selene and `rojo build` pass; no errors or warnings in the output. Not committed by hand. Nothing
+uploaded. A row in [Decisions](Decisions.md); the design is "Angry mode" in [riding feel](design/riding-feel.md); the
+note to the other chats is the top one in [Sessions](Sessions.md).
+- **Files:** new `src/shared/AngryStyles.luau` (the styles) and `src/client/Controllers/AngryController.luau` (the
+  red pulse); `src/shared/Config.luau` (`Oxygen.AngryAt`, `Config.Angry`, `Config.AngryTier`, `Config.low`,
+  `Config.heat`), `RideService.luau` (decides it, marks the fish, the speed check), `RideController.luau` (the
+  slow-down and the stand-in motion, in `drive`), `Net.luau` (the notes), rows in `SandboxController.luau`; in the UI
+  chat's files, `HudController.luau` and `UI/Rings.luau` (the ring's red comes from the same threshold). Not touched:
+  `AnimController`, `RideStyles` (its `Landings` and everything else), `JumpController`, `FishService`, `Variants`.
+- **When:** while you ride and the meter is at or under `Oxygen.AngryAt` of your max (0.3), or from the touch on a
+  fish too strong. The ring turns red at the same point (it was "under 1 second left"); so does the hop button's call.
+  A fish you have tamed gets angry like any other (`Angry.Tamed` 1: taming doesn't change the riding, and it still
+  throws you off at zero; 0 keeps a tamed fish calm).
+- **Who decides:** the server. `RideService` sets the fish's `Angry` (true) and `AngryStyle` (the style's name)
+  attributes and the `AngryFish` tag, and takes them off at a hop, a throw-off, a death or a leave. The rider's own
+  client slows the fish (it drives it); the server's speed check then allows an angry fish only what its style gives.
+- **The red pulse:** one Highlight a fish, on every client, nothing written to the fish's parts (so nothing to put
+  back; a Gold or a Rainbow keeps its look). 1.2 pulses a second where the meter turns red, 4 when it is empty.
+- **The slow-downs** (`Shared/AngryStyles`, by `RideStyles.nameOf`): Darter "Zigzag" (wags, loses speed at each
+  turn-over), Cruiser "Drag" (steady, x0.7), Snake "Coil" (long swells), Galloper "Buck" (surge and stall, rocking),
+  Glider "Flutter" (a quick shiver), Paddler "Balk" (brakes and lets go), Jetter "Pulse" (a jet and a run-down),
+  Bobber "Wobble" (always slow, wobbling), Crawler "Dig" (a judder), and any fish 40 studs or longer "Fade" (slow and
+  heavy, down to x0.6). A rarer fish loses more (`Config.AngryTier`, up to x1.3 of the loss); never under x0.3.
+  Steering and the hop are untouched.
+- **Animations:** none added. Each style's rock, nod or wag is one sine on the fish's turn spring, in one marked
+  block (`AngryStyles.motion`, used in `RideController.drive`), switched by `Angry.Motion` (0 off). To replace it,
+  play an animation by the fish's `AngryStyle` attribute while `Angry` is true.
+- **Measured in Studio:** calm: the fish at x1.00, no pulse. Angry on a Clownfish (Zigzag): x0.72 to x0.79 on
+  average, the pulse on every frame at 2.6 a second half way and 4.0 at empty, 0 of its 7 parts changed colour,
+  A held 1 s turns 127 degrees (126 calm). Real Oxygen, 8 s on a Common: angry at 0.30 of the meter, on three rides
+  of three; a hop at 0.07 of the meter was taken; after a hop or a throw-off the old fish was calm within 0.3 s; no
+  pulse or tag left at the end. Each of the ten styles forced in turn: averages x0.73 to x0.79 (Fade x0.64), as the
+  table says. Not seen: a second player's screen, a Gold or Rainbow fish, a phone.
+- **To try it:** in the sandbox (endless air is on there), press N and set `Angry.Test` to 0.5: every fish you ride
+  is angry. Or turn endless air off and ride a fish down.
+
 ## 2026-11-12 · void (Hugo's PC): the control pass: the landing slows to 0.8, faster and direct steering, a little more air
 **State:** on Hugo's word ("make the ride feel more controlled, the startle is too strong make it just slow down by
 like 0.8x ... the left right is kinda too slow and clunky ... more airtime (just a little), more control in general";

@@ -402,7 +402,57 @@ Hugo's Studio by script, the old code and the new; not yet judged by hand. Every
   snap; the deep lands (only land 1 fish were ridden in the check); and the bolt's speed lines, whoosh and view kick
   (`Feel.BoltLines`, `BoltFov`), made for a fish picking up from 0.6 and still played from 0.8.
 
+## Angry mode (Hugo, 2026-11-12)
+Hugo: "make the fishes pulse red and go into angry mode dont add animations yet just make the pulse red and slow down,
+different fishes should have different slowdowns when in that low stamina mode when the bar turns red (in ride a dino
+the t-rex starts jumping, the bison starts rocking forward and backward, different animals different unique styles of
+showing that they want you off)". Built and run by script in Studio; not judged by hand yet.
+
+- **When.** While you ride with the meter at or under `Oxygen.AngryAt` of your max Oxygen (0.3): the last 0.75 s of
+  a new player's 2.5 s on a Shallows Common, the last 3 s of a trained 10. On a fish too strong for you, from the
+  touch. The ring turns red at the same point, by the same rule (`Config.low`). Off the fish (a hop, a throw-off)
+  the fish is calm again at once.
+- **A tamed fish** gets angry like any other (`Angry.Tamed` 1). Taming doesn't change the riding (decided
+  2026-11-10) and a tamed fish still throws you off at zero. With it at 0, hardly any fish would ever be angry: a
+  fish you can hold is tamed after 2 s. Claude's call, to confirm.
+- **The red pulse.** A Highlight over the whole fish, on every player's screen. It pulses 1.2 times a second where
+  the meter turns red, rising to 4 as it empties (`Angry.PulseSlow`, `PulseFast`; how red: `PulseLow`, `PulseHigh`).
+  Nothing is written to the fish's parts, so its colours, a block stand-in's and a Gold's or a Rainbow's stay.
+- **The slow-down.** The ridden speed's own curve, like the landing's: the fish's speed is times its style's share,
+  eased in over 0.5 s (`Angry.EaseIn`). It is `Angry.HeatFrom` (0.75) of itself where the meter turns red and whole
+  when it is empty; a rarer fish loses more (`Config.AngryTier`: x1 for a Common to x1.3 for a Secret); never under
+  `Angry.Floor` (x0.3), so no fish stops. A and D, the look and the hop are untouched: a hop off always works.
+
+  | Body type | Style | What the speed does | Average | Stand-in motion |
+  |---|---|---|---|---|
+  | Darter | Zigzag | lost at each turn-over of a wag, x0.45 to x0.95, twice in 0.9 s | x0.77 | wags and rolls |
+  | Cruiser | Drag | steady, x0.7 | x0.70 | a small shake of the head |
+  | Snake | Coil | long swells, x0.45 to x1, every 2.2 s | x0.73 | rolls as it coils |
+  | Galloper | Buck | a surge to x1.1, then a stall to x0.42, every 1.4 s | x0.78 | rocks nose up, nose down |
+  | Glider | Flutter | a quick shiver, x0.6 to x0.88, every 0.7 s | x0.74 | tips its wings |
+  | Paddler | Balk | brakes to x0.35 for a third of each 1.1 s, then lets go | x0.77 | nods |
+  | Jetter | Pulse | a jet to x1.05, running down to x0.56, every 1.2 s | x0.74 | a small nod |
+  | Bobber | Wobble | always slow, x0.66 to x0.8 | x0.73 | wobbles like a top |
+  | Crawler | Dig | a quick judder, x0.5 to x0.9, twice a second | x0.74 | a small nod |
+  | Any fish 40 studs or longer | Fade | sinks to x0.6 over 3.5 s and stays | x0.6 | a slow roll |
+
+  The averages are kept close on purpose, so no body type is the one to avoid; what differs is the feel. The numbers
+  are in `src/shared/AngryStyles.luau`, first guesses.
+- **Who decides.** The server (`RideService`): the fish's `Angry` and `AngryStyle` attributes and the `AngryFish`
+  tag. The rider's client applies the slow-down, since it drives the fish; the server's speed check allows an angry
+  fish no more than its style's top.
+- **Animations.** None. Each style's motion is one sine on the fish's nose, turn or roll (`AngryStyles.motion`, one
+  marked block; `Angry.Motion` 0 turns it off). The partner's animations replace it by reading `AngryStyle`.
+- **Open.** Whether 0.3 is the right point, or a number of seconds; whether the slow-down is too much on a long ride
+  (30 s on a fish means 9 s angry); the look of the red on an orange or red fish; each style by hand.
+
 ## Speed by fish, by area, variants (Hugo, 2026-11-12)
+**Replaced the same day (Hugo: the reset).** Every fish now has one hand-set speed in `Config.FishStats`; the
+rarity's, the species' and the area's factors below are gone (`TierMult`, `SpeciesSpeed`, `AreaStep`, `AreaGrow`,
+`Config.areaSpeed`), and the variants are Gold x1.1 and Rainbow x1.2. The speeds, and the passive archetypes that
+came with them: [archetypes](archetypes.md). What follows is kept as the record of what was built before; what it
+says about the hop and the herd following each fish's own speed still holds.
+
 Every fish has its own speed, worked out by one function on the server and on every client (`Config.speedOf`):
 
 **speed = `Speed.Base` (45) x the species' base x the rarity's (`TierMult`) x the area's (the fish's home land)

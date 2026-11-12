@@ -10,6 +10,7 @@ Press Play in Studio. The top left of the screen says SANDBOX.
 | Key | What it does |
 |---|---|
 | **R** | Puts you on a fish in deep water down the lane, where a hop has room to rise. If no fish is there yet, you float for two or three seconds and are put on the first one that comes. |
+| **F** | Back to the start, onto the next fish of a try-out list, put there for you: Reef Shark (Predator), Humphead Wrasse (Breaker), Swordfish (Fast), Dolphin (Leaper), Giant Sea Bass (Tank), Megalodon (Predator, Frenzy), Dunkleosteus (Predator, Breaker), Clownfish, a Gold and a Rainbow Clownfish. For trying the [archetypes](design/archetypes.md); their numbers are on the N panel (`Fast`, `Predator`, `Frenzy`, `Breaker`, `Tank`, `Leaper`, `ArchetypeFeel`). Turn endless air off to see the air a bite gives. |
 | **N** | Opens and closes the panel of numbers. |
 | **V** | The side view: the camera stands off to the side, square on to the way you are headed, so you see the whole arc. Steering still works. |
 | Space | On a fish or floating: the hop. In the hop: grab the fish that glows (a left click, E and gamepad X too). |
@@ -55,6 +56,11 @@ What to reach for:
 - **The landing's slow-down** (a fish you land on slows for a moment, never stopping): `Ride.Startle` (0 off),
   `StartleBrake`, `StartleSlow` (the share of its speed it drops to: 0.8), `StartleHold`, `StartleRecover`. The
   rearing that came with it is gone (2026-11-12), and its rows with it.
+- **Angry mode** (the fish pulses red and slows when the meter turns red): endless air is on in the sandbox, so set
+  `Angry.Test` above 0 to make every fish you ride angry (0.01: the meter has just turned red; 1: empty). The point
+  it starts is `Oxygen.AngryAt`; `Angry.Motion` 0 takes the stand-in rocking off; `Angry.PulseSlow`, `PulseFast`,
+  `PulseLow`, `PulseHigh` are the red; `AngryTier` is how much harder a rarer fish slows. Each style's own numbers
+  are in `src/shared/AngryStyles.luau`, not in the panel.
 - **The camera under the surface:** `Camera.Submerge` (0 off), `WaterTop`, `SurfaceMargin`, `SurfaceTilt`.
 - **The rider's animation:** the `Pose` group (`CrawlRate`, `BreastRate`, `FloatTilt`, `PopTuck`, `Flip`, `FlipStart`,
   `RideCrouch`, `RideLean`, `BraceLean`). **The juice:** the `Feel` group (`PopFov`, `PopLines`, `ReelLines`,
@@ -69,12 +75,10 @@ What to reach for:
 - **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `RarityDrain` Common to Secret (how many times a Common's Oxygen each rarity takes), and `Oxygen.StartMax` (live:
   everyone's max Oxygen changes at once; the `TestMaxOxygen` attribute, when above 0, still wins).
 - **The tuning rows** ([progression](design/progression.md); [riding feel](design/riding-feel.md), "Speed by fish"):
-  `Speed.Base` (a Common's ridden speed in land 1), `TierMult` Common to Secret (each rarity's speed, times),
-  `Speed.AreaStep` and `Speed.AreaGrow` (faster by a fish's home land: the first land's step, and how much bigger each
-  step after is; 0.06 and 0.01 make land 10 x1.90; both 0 turn it off), `Speed.Gold`, `Speed.Rainbow` (wild fish, the
+  `Speed.Gold`, `Speed.Rainbow` (wild fish, the
   glide and the server's speed check follow at once); `Variant.Gold`, `Rainbow` (the variants' chances, for fish
   spawned from then on; the `Size` rows and `Speed.SizeBonus` went with the size roll, 2026-11-12); and
-  `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12.)
+  `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12; so did `Speed.Base`, `TierMult`, `Speed.AreaStep` and `AreaGrow`, with the reset: a fish's speed is its own number in `Config.FishStats`, changed in Config, not on the panel: [archetypes](design/archetypes.md).)
 - **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.Rebuild`, `Push`, `Topple`, `MinLength`.
 
 ## What it doesn't do yet
