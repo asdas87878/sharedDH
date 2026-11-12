@@ -66,6 +66,12 @@ Newest first. Date, from, to, the note. Delete a note once it's dealt with.
   in 0.23 s and threw the rider. No errors. How the HUD looks with it: [capture](attachments/ui-game-tamed.jpg) (the
   world is black in it because Studio's window was not being drawn; the HUD is as it is).
 
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration: **Hugo's Studio can't load the 82 creature models:
+  they are private to the uploading account.** Every id in `tools/creatures/assets.json` answers "Requester does not
+  have permission for Asset" for Hugo's user, 8607502680. Please share the 82 model assets with that user (no new
+  upload), then say so here; `python tools/creatures/install.py runner` installs them on Hugo's PC. Until then his
+  place runs on block stand-ins. The rest of the port is in the top entry of [Handoff](Handoff.md).
+
 - 2026-11-12, Obsidian chat integration to every chat: **riders thrown about at a mount: found and fixed, and what
   changed for you.** A fish's `Swim` and `Turn` had no force limit; now `MaxForce` 40,000 and `MaxTorque` 400,000
   (`src/server/Lib/FishModel.luau`). 68 mounts since, none thrown; speeds unchanged. The record is the top entry of
@@ -149,6 +155,31 @@ Newest first. Date, from, to, the note. Delete a note once it's dealt with.
   - **Piece 3, second run:** all as meant (the too-strong ride and its drowning, the tame ring with no dark
     line). Nothing to change. Left to see: the pictures in the banner and a slot and the ring's place beside the
     rider (when Studio draws 3D), the banner's new place, "TOO STRONG!" as the last words.
+  - **Piece 4, a pass for cohesion, on the user's word to me (2026-11-12): written, formatted, checked and
+    built; not run.** The list is in [ui.md, piece 4](design/ui.md). In short: one rule for every letter's
+    outline (thinner on small words), one dark fill colour, the Oxygen row a sixth bigger and level with the
+    slots, the hop button's arrow redrawn (a pointed head, a stem, a bar: a square turned on its corner and cut
+    by a gradient), the red "Needs" plate with a small corner, the rarity the biggest line on a tag, "BEST" kept
+    inside the strip, and **one new piece: a new land's name comes up for two seconds under the strip** when you
+    cross into a land deeper than any yet this dive. Only my files changed. **To look at, one capture each:**
+    riding on a desktop, the hop (the arrow turned over), crossing into the Reef, a best in a far land.
+  - **Piece 4, first run** (`ui-game-p4-*.jpg`): thank you. Three changes, **written, not run:** (1) the name
+    cut by the red plate: the tag's rows lapped by 3 through the list's padding, which is not sized with the tag,
+    so small tags lost half the name; the rows no longer lap and the plate sits lower. (2) The new land's name is
+    10 lower, clear of the metres pill. (3) The grey arrow pointing up in the hop: that is the button's look for
+    "nothing is locked" (`State.JumpTarget` nil, or reeling). It is not a look for a fish too strong; with a fish
+    locked it turns over and the ring goes aqua. The big tag is refreshed only four times a second, so my reading
+    is that the lock had just gone and the tag was stale. A change of lock is now looked at within 0.08 s. If the
+    Seahorse was still locked when you shot it, tell me. Slot names stay cut with a dot, as the reference's are.
+  - **Piece 4, second run** (`ui-game-p4-hop-locked.jpg`): the button said GRAB and no tag was big. I can't see
+    the world in the shot, so this is a reading, not a proof: the locked fish was under the rider or behind the
+    camera, and its tag was drawn off the screen (a tag was only shown where its fish is). **Written, not run:**
+    the locked fish's tag is kept on the screen, over the fish when in view, else at the nearest edge (at the
+    bottom, on the fish's side, when it is behind the camera). To check the reading next run: in the hop with the
+    arrow turned over, a big tag should always be somewhere on the screen. If none is, the fault is elsewhere and
+    I will look again; the lock's fish and the camera's `WorldToViewportPoint` of it at that moment would settle it.
+  - **Piece 4, third run:** the hop reads right in your one shot. Nothing to change. Not yet seen: a locked
+    fish out of view (its tag held at the screen's edge), the creature pictures, the ring's place beside the rider.
   - **Your two cost notes are in too:** the speed lines move 30 times a second (14 lines on touch, 28 otherwise, a
     turn set once, a size written only on a speed step); the rings turn 30 times a second.
 
