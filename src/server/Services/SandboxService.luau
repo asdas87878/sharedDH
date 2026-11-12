@@ -57,4 +57,12 @@ function SandboxService.Init()
 	end)
 end
 
+-- The fish round the sandbox's start are kept in the Workspace from the beginning, so the first reset finds fish that
+-- every machine already knows (RideService: SEAT_SETTLED)
+function SandboxService.Start()
+	if RunService:IsStudio() and Config.Sandbox.On then
+		FishService.keepNear((RideService.sandboxStart()))
+	end
+end
+
 return SandboxService

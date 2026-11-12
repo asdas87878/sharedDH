@@ -47,6 +47,7 @@ type Rider = {
 	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
 	Trained: number, -- max Oxygen gained on the training spot this session (TrainService), on top of the start
 	Landings: number, -- landings so far this session: sent with each "Land", so every client picks the same reaction
+	SandboxRetries: number, -- times the sandbox's reset has been done again by itself after a seat that went wrong
 	SandboxSeat: FishService.Wild?, -- the fish the sandbox's reset is seating us on (kept for us until we say we sit)
 	CheckAt: number,
 	CheckFrom: Vector3?,
@@ -60,7 +61,10 @@ type Rider = {
 
 local RideService = {}
 
--- the sandbox's reset seats the rider only on a fish that has been in the Workspace this long (an experiment: 1 before)
+-- A fish must have been in the Workspace this long before a rider is joined to it (the sandbox's seat, and a grab in
+-- the hop). Measured 2026-11-12 on the sandbox's reset: joined to a fish that had been in the Workspace one second,
+-- the rider and the fish were thrown hundreds to hundreds of thousands of studs in the first physics step, on 4 resets
+-- of 30; at four seconds, on 1 of 30. A fish that has only just reached a player's machine is not safe to take over.
 local SEAT_SETTLED = 4
 
 local riders: { [Player]: Rider } = {}
@@ -326,6 +330,10 @@ local function grab(r: Rider, target: any)
 	local root = parts(r.Player)
 	local w = FishService.get(if typeof(target) == "Instance" then target else nil)
 	if not root or not w or not FishService.isFree(w, r.Player) then
+		return deny(r, "Grab", "Target", target)
+	end
+	-- (a fish that has only just come into the Workspace: not yet. The hop goes on and the lock takes another.)
+	if FishService.settledFor(w) < SEAT_SETTLED then
 		return deny(r, "Grab", "Target", target)
 	end
 	local elapsed = os.clock() - r.JumpAt
@@ -607,6 +615,7 @@ local function onPlayer(player: Player)
 		Max = maxOxygen(),
 		Trained = 0,
 		Landings = 0,
+		SandboxRetries = 0,
 		SandboxSeat = nil,
 		Fish = nil,
 		Weld = nil,
@@ -639,19 +648,9 @@ local function onPlayer(player: Player)
 	end
 end
 
--- The sandbox's reset: into the water at the lane's start, onto the nearest fish there if there is one
-function RideService.sandboxReset(player: Player)
-	local r = riders[player]
-	local root, humanoid = parts(player)
-	if not r or not root or not humanoid or not RunService:IsStudio() then
-		return
-	end
-	if r.Fish then
-		dismount(r, "Lost")
-	end
-	r.Token += 1
-	r.Oxygen = r.Max
-	sendOxygen(r, true)
+-- Where the sandbox's reset puts a player: the lane's start (Sandbox.StartS), or the first place past it with room
+-- above the herd for a whole jump; and the way down the lane there
+function RideService.sandboxStart(): (Vector3, Vector3)
 	-- the first place down the lane with room above the herd for a whole jump
 	local startS = Config.Sandbox.StartS
 	local at, along = FishService.lanePoint(startS)
@@ -663,6 +662,27 @@ function RideService.sandboxReset(player: Player)
 	if startS > Config.Sandbox.StartS then
 		at, along = FishService.lanePoint(startS + 160)
 	end
+	return at, along
+end
+
+-- The sandbox's reset: into the water at the lane's start, onto the nearest fish there if there is one
+function RideService.sandboxReset(player: Player, again: number?)
+	local r = riders[player]
+	local root, humanoid = parts(player)
+	if not r or not root or not humanoid or not RunService:IsStudio() then
+		return
+	end
+	if r.Fish then
+		dismount(r, "Lost")
+	end
+	r.Token += 1
+	r.Oxygen = r.Max
+	sendOxygen(r, true)
+	local at, along = RideService.sandboxStart()
+	-- the fish round the start stay in the Workspace from now on (see SEAT_SETTLED): the first reset to a new start
+	-- waits for them, the next ones don't
+	FishService.keepNear(at)
+	r.SandboxRetries = again or 0
 	humanoid.PlatformStand = true
 	(player.Character :: Model):PivotTo(CFrame.lookAt(at, at + along))
 	root.AssemblyLinearVelocity = Vector3.zero
@@ -734,7 +754,22 @@ function RideService.Init()
 			if w and RunService:IsStudio() then
 				local root = parts(player)
 				local near = root and (w.Root.Position - root.Position).Magnitude <= w.Type.Size.Z / 2 + 40
-				if r.State ~= "Free" or FishService.get(target) ~= w or not near or not mount(r, w, false) then
+				local seated = r.State == "Free" and FishService.get(target) == w and near and mount(r, w, false)
+				if seated and root then
+					-- Looked at again a moment later: if the pair is somewhere else entirely, the reset is done again by
+					-- itself, twice at most. (Seating only fish that have been in the Workspace a while leaves about
+					-- one reset in thirty that still throws them; why is not known.)
+					local from = root.Position
+					local token = r.Token
+					task.delay(0.6, function()
+						local here = parts(player)
+						local thrown = here and (here.Position - from).Magnitude > 400
+						if thrown and r.Token == token and r.State == "Riding" and r.SandboxRetries < 2 then
+							RideService.sandboxReset(player, r.SandboxRetries + 1)
+						end
+					end)
+				end
+				if not seated then
 					FishService.unreserve(w, player)
 					if root then
 						warn(

@@ -276,6 +276,9 @@ end
 -- for each of 800 fish, and looking every player's root part up each time was most of its cost
 local playerAt: { Vector3 } = {}
 local playersReadAt = -1
+-- a place that counts as having a player near, whoever is there (FishService.keepNear): the fish round it stay in the
+-- Workspace, so they are never new to anyone's machine. The sandbox's start is one (Studio only).
+local keptPlace: Vector3? = nil
 local function readPlayers()
 	if os.clock() - playersReadAt < 0.2 then
 		return
@@ -288,6 +291,9 @@ local function readPlayers()
 		if root and root:IsA("BasePart") then
 			table.insert(playerAt, root.Position)
 		end
+	end
+	if keptPlace then
+		table.insert(playerAt, keptPlace)
 	end
 end
 
@@ -665,6 +671,17 @@ function FishService.lanePoint(s: number): (Vector3, Vector3)
 end
 
 -- The nearest fish in the water a player could get on
+-- Fish round this place are kept in the Workspace (nil: none). One place at a time.
+function FishService.keepNear(place: Vector3?)
+	keptPlace = place
+	playersReadAt = -1
+end
+
+-- How long a fish has been in the Workspace this time, in seconds (a long time for one that was never put away)
+function FishService.settledFor(w: Wild): number
+	return if w.Parked then 0 elseif w.UnparkedAt == 0 then math.huge else os.clock() - w.UnparkedAt
+end
+
 -- (`settled`: only a fish that has been in the Workspace this many seconds. One that has just come back is, for a
 -- moment, still somewhere else on the players' machines.)
 function FishService.nearest(position: Vector3, radius: number, player: Player, settled: number?): Wild?

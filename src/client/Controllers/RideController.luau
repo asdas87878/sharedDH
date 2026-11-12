@@ -51,7 +51,7 @@ local coasting: Coast? = nil
 local seating: Model? = nil
 local seatingAt = 0
 local seatingTold = false
-local SEAT_HOLD = 0.6 -- seconds we sit on the saddle ourselves before telling the server (an experiment: 0.1 before)
+local SEAT_HOLD = 0.15 -- seconds we sit on the saddle ourselves before telling the server (longer made no difference)
 
 -- floating
 local floatVelocity: LinearVelocity? = nil
