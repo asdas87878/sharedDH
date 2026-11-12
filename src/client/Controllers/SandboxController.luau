@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
+local Kit = require(script.Parent.Parent.UI.Kit)
 
 local SandboxController = {}
 
@@ -382,8 +383,9 @@ local TUNABLES: { { any } } = {
 type Row = { Path: string, Group: string, Key: string, Step: number, Start: number, Box: TextBox }
 
 local FONT = Enum.Font.GothamMedium
-local DARK = Color3.fromRGB(18, 28, 44)
-local MID = Color3.fromRGB(40, 58, 84)
+local DARK = Color3.fromRGB(26, 31, 41)
+local MID = Color3.fromRGB(62, 72, 90)
+local AMBER = Color3.fromRGB(255, 190, 70)
 local WHITE = Color3.new(1, 1, 1)
 local CHANGED = Color3.fromRGB(255, 221, 51)
 local TRACE_DOTS = 110
@@ -425,6 +427,13 @@ local function text(props: { [string]: any }, parent: Instance, class: string?):
 	props.TextColor3 = props.TextColor3 or WHITE
 	props.BorderSizePixel = 0
 	return new(class or "TextLabel", props, parent)
+end
+
+-- a tool's part: a small corner and a thin black line round it
+local function edge(object: GuiObject)
+	new("UICorner", { CornerRadius = UDim.new(0, 4) }, object)
+	local line = new("UIStroke", { Thickness = 1.5, Color = Color3.fromRGB(8, 10, 14) }, object)
+	line.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 end
 
 local function valueOf(row: Row): number
@@ -548,6 +557,7 @@ local function build()
 		Text = "",
 	}, gui)
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, tag)
+	edge(tag)
 	stats = text({
 		Position = UDim2.fromOffset(12, 34),
 		Size = UDim2.fromOffset(440, 40),
@@ -558,6 +568,7 @@ local function build()
 		Text = "jump to see its numbers here",
 	}, gui)
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, stats)
+	edge(stats)
 
 	panel = new("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
@@ -568,17 +579,29 @@ local function build()
 		BorderSizePixel = 0,
 		Visible = false,
 	}, gui)
-	new("UICorner", { CornerRadius = UDim.new(0, 8) }, panel)
+	-- a tool's look (UI.Kit): dark slate, squared paper, a thick black outline, an amber line under the title
+	local slate = table.clone(Kit.Themes.Tool)
+	slate.Fade = 0.04
+	slate.Radius = 8
+	Kit.dress(panel, slate)
+	Kit.grid(panel, 24, 320, 1400)
 	text({
 		Position = UDim2.fromOffset(10, 6),
 		Size = UDim2.new(1, -20, 0, 22),
 		BackgroundTransparency = 1,
 		TextSize = 15,
+		TextColor3 = AMBER,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = "Movement sandbox",
+		Text = "MOVEMENT SANDBOX",
+	}, panel)
+	new("Frame", {
+		Position = UDim2.fromOffset(10, 28),
+		Size = UDim2.new(1, -20, 0, 2),
+		BackgroundColor3 = AMBER,
+		BorderSizePixel = 0,
 	}, panel)
 
-	local y = 32
+	local y = 36
 	for _, flag in FLAGS do
 		local button = text({
 			Position = UDim2.fromOffset(10, y),
@@ -589,6 +612,7 @@ local function build()
 			AutoButtonColor = true,
 		}, panel, "TextButton")
 		new("UIPadding", { PaddingLeft = UDim.new(0, 8) }, button)
+		edge(button)
 		button.Activated:Connect(function()
 			flag[3](not flag[2]())
 			task.delay(0.15, showFlags) -- the server's switches come back as attributes
@@ -610,7 +634,9 @@ local function build()
 		BackgroundColor3 = Color3.fromRGB(120, 70, 60),
 		Text = "Numbers back to start",
 	}, panel, "TextButton")
-	y += 34
+	y += 36
+	edge(copy)
+	edge(reset)
 
 	output = text({
 		AnchorPoint = Vector2.new(0, 1),
@@ -627,6 +653,7 @@ local function build()
 		Text = "Copy changes lists the changed numbers here: click in, Ctrl+A, Ctrl+C, and paste them to Claude.",
 	}, panel, "TextBox")
 	new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingTop = UDim.new(0, 4) }, output)
+	edge(output)
 
 	local list = new("ScrollingFrame", {
 		Position = UDim2.fromOffset(10, y),
@@ -651,7 +678,7 @@ local function build()
 				text({
 					Size = UDim2.new(1, -8, 0, 20),
 					BackgroundTransparency = 1,
-					TextColor3 = Color3.fromRGB(140, 200, 255),
+					TextColor3 = AMBER,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					Text = group,
 					LayoutOrder = order,
@@ -688,6 +715,9 @@ local function build()
 				BackgroundColor3 = MID,
 				Text = "+",
 			}, line, "TextButton")
+			edge(minus)
+			edge(box)
+			edge(plus)
 			local row: Row =
 				{ Path = group .. "." .. key, Group = group, Key = key, Step = step, Start = start, Box = box }
 			table.insert(rows, row)

@@ -27,7 +27,7 @@ function Aim.build(parent: Instance)
 		BackgroundTransparency = 1,
 		Visible = false,
 	}, parent)
-	ring = Kit.ring(holder, 40, 5)
+	ring = Kit.ring(holder, 40, 5, 1.5)
 	ring.Hole.BackgroundTransparency = 1
 	ring.colour(Kit.White)
 	dot = Kit.new("Frame", {
@@ -37,6 +37,7 @@ function Aim.build(parent: Instance)
 		BackgroundColor3 = Kit.White,
 	}, holder)
 	Kit.corner(dot, 999)
+	Kit.stroke(dot, 1.5, Kit.Ink)
 	find = Kit.text({
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 1, 12),

@@ -4,6 +4,9 @@ The plan for the dive's HUD and the dock's screens. Written 2026-11-11 by the UI
 **Pass 3, the same day, is the current proposal:** the user picked look A for its simple build, with E's pattern, and
 asked for it to go nearer still to Ride a Dino's HUD. Pass 2 (five looks) and pass 1 are kept below.
 
+**Pass 4 (2026-11-12, Hugo) is the look in the game now:** bold outlines, gradients and patterns on every plate,
+each themed by what it is for. It is the section after the short version. Pass 3 still holds for where things are.
+
 **The dive's HUD is built in code since 2026-11-12 ("Piece 2", below), on the user's word, from pass 3, and has run
 once in Studio. Everything else here is proposed.** The pictures are mock-ups drawn by code
 (`python tools/ui/render_mockups.py` draws them again); the scene behind the HUD in them is a stand-in, not the game.
@@ -24,6 +27,80 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 - **Four questions** are at the end.
 
 ![](../attachments/ui3-phone.jpg)
+
+## Pass 4: bolder, and themed by purpose (2026-11-12, Hugo)
+Hugo: "the game's UI is overall too bland; there should be more bold bordering, gradients and texture overlays on
+different UI elements. Make every part of the UI cohesive with these new parts and make sure each matches the theming
+of what the element is for." In [Decisions](../Decisions.md) as Hugo's row. It turns back one thing of pass 3's second
+round, the hairline frames on the strip and the slots; the places, sizes and spacing of that round stay.
+
+**State: built, and run in Hugo's Studio (through `~/Projects/studio-runner`, driven by script): no errors.** Every
+screen before and after:
+
+![](../attachments/ui4-before-after.jpg)
+
+With what you carry, coins, the tame ring and the catch banner filled in for the picture
+([bigger](../attachments/ui4-game-inventory.jpg)), and [the phone layout](../attachments/ui4-game-phone-layout.jpg)
+(forced on a desktop screen; a real phone is not seen yet).
+
+### The rule: one plate, everywhere
+Every plate in the HUD is the same build, from `Kit.dress` and `Kit.panel` in `src/client/UI/Kit.luau`:
+- **A thick dark outline** (3 points; 4 on the jump button, 2 to 2.5 on small things).
+- **A pale line just inside it,** brighter at the top: the bevel.
+- **A top-to-bottom gradient** for the fill.
+- **A faint pattern over the fill.**
+- **A shadow under it,** 3 points down.
+- **Chunky round corners:** 5 on tiles, 9 on plates, full circles and pills where the piece is round.
+- **Letters with a thick dark outline,** thicker on bigger letters.
+- **Spacing from one scale:** 2, 4, 8, 12, 16.
+
+Words on the world (the tags, a fish's name under the ring) stay without a plate, as in pass 3.
+
+### One theme a purpose
+| Piece | Theme | What it looks like |
+|---|---|---|
+| Your Oxygen (the row) | Water | Blue, lighter at the top, the water's picture and three bubbles, a shine. **In the last second on a fish and while you drown it is deep red and its outline beats** |
+| The ring (the seconds on this fish) | Water | A dark outline round the ring and round its hole; the hole is deep blue. **Under a second: the arc and the hole red, and a red glow beats round the ring** |
+| Your coins | Gold | Yellow to orange, the stud pattern |
+| The strip of lands | Each land's own colour | A dark tray of bricks with the thick outline and a shadow; each tile in the map's colour for that land, lighter at the top; the land you are in framed in white; the pill under your badge takes that land's colour |
+| The jump button | Action | A disc, yellow to orange, slanted motion stripes, a shine, the heaviest outline, a dark arrow. In the hop with a fish locked: aqua. Nothing to grab: grey. **The last second: a red ring beats round it.** The Space cap is a key: white, a little grey at its foot |
+| A rarity (tags, the name under the ring, slots, the catch banner) | The rarity's colour | Its colour, lighter at the top. **A Legendary is gold, a Mythic an ember (pale orange through red to magenta), a Secret the rainbow, side to side** |
+| A fish too strong (the tag's "Needs") | Danger | A red plate, darker at its foot |
+| A miss ("OUT OF AIR!", "MISSED THE FISH!") | The abyss | Pale red words on a streak that goes from deep red to black and fades out at both ends, a red line along each edge. The edges that close in as you drown are red-black |
+| The end of a dive | Gold | As pass 3; the pill is a dark brick with a gold outline |
+| The catch banner | Good news | A green brick plate, the stud pattern |
+| The slots | Aquarium glass | See-through blue glass, the water's picture, a shine over the upper half. Filled: the rarity's colours behind the glass. The newest: a white outline |
+| The sandbox panel (Studio only) | A tool | Dark slate, squared paper, a thick black outline, an amber title with a line under it, thin black edges on every button and box. It is ours, not the player's, and looks it |
+
+### The patterns
+**Two pictures, both uploaded before this pass; nothing new is uploaded:**
+- **The stud tile** (the map's, `tile2` in `art/map/textures.json`): the brick pattern on the tray, the coins, the
+  catch banner.
+- **The water's picture** (the one the moving water drifts, `tools/map/water_look.luau`): on the Oxygen row and the
+  slots.
+
+The rest is made of frames, once: the motion stripes are one gradient, the bubbles three small rings, the squared
+paper thin lines. The small signs (question 2) are still not drawn.
+
+### What it costs a phone
+- **Nothing is made per frame,** as before. A plate is about ten small objects, made once.
+- **Only a warning is tweened:** the beat of the Oxygen row's outline, the ring's glow and the button's red ring, and
+  only while the warning is on (`Kit.pulse`). Text still never changes size.
+- **One group** (the miss's words) is drawn to its own picture so that it fades in as one number.
+
+### Changed from pass 3, on purpose
+| Pass 3 | Now | Why |
+|---|---|---|
+| Hairline frames on the strip and the slots | The thick outline | Hugo's ask |
+| The jump button a dark see-through circle | A solid yellow to orange disc | "Themed by what it is for": it is the press that is the game. Pass 2's "yellow, then aqua, then grey" is back |
+| Stat rows that fade out to the right | Solid plates | The same build as everything else |
+| The plates had no pattern | Two patterns | The two pictures were already uploaded for the map |
+
+### Not done
+- **Not seen on a real phone,** and not with a second player.
+- **A Mythic's and a Secret's colours are seen only in the slots** (the picture's made-up catch); no such fish swam
+  past in the run.
+- **The dock's screens** (shop, Index) are not built; when they are, they take these themes.
 
 ## Piece 2: the dive's HUD in the game (2026-11-12)
 The user, through the game-code chat: "I'd like to add the Ride a Fish UI as we've done it currently". Built from
@@ -77,7 +154,7 @@ noticed in the Reef picture and left as it is: a fish behind a wall still gets i
 | File | What it is |
 |---|---|
 | `src/client/Controllers/HudController.luau` | Makes the two screens, lays the pieces out for a phone or a keyboard, and feeds them each frame. Rewritten: the Oxygen bar, the rate, the speed, the depth gauge and the bracket are gone |
-| `src/client/UI/Kit.luau` | The colours, the outlined letters, the ring that empties, the bubble and the coin, the number forms |
+| `src/client/UI/Kit.luau` | The colours, the outlined letters, the ring that empties, the bubble and the coin, the number forms. Since pass 4 also the look itself: the themes, the plate (`dress`, `panel`), the stripes, the bubbles, the squared paper, the beat |
 | `src/client/UI/LandStrip.luau` | The ten lands across the top, your marker and metres, your best |
 | `src/client/UI/Rings.luau` | The seconds left on this fish, the fish's name and rarity, the tame ring |
 | `src/client/UI/HopButton.luau` | The jump button: the arrow turns over in the air; HOP and GRAB on a phone, "Space" on a keyboard |
@@ -116,7 +193,8 @@ dock's buttons and shop panels.
 | The size on a big screen | **One design at phone size, scaled by the screen's height:** 1 up to 560 high, 1.9 at 1080, never more than 2.2 | Pass 3's rule |
 
 ### How it is made, for a phone
-- **No pictures.** Frames, corners, outlines and gradients only.
+- **No pictures** (pass 3; since pass 4 two pictures that were already uploaded are laid over plates as patterns).
+  Frames, corners, outlines and gradients otherwise.
 - **The ring that empties** is two half rings. Each is an outlined circle inside a frame that clips it to its half;
   the outline's gradient is see-through past its middle, and turning that gradient sweeps the half open. Only two
   numbers change, in half-degree steps. This is the piece most worth looking at first in Studio.

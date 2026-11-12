@@ -10,6 +10,8 @@ local Kit = require(script.Parent.Kit)
 
 local Rings = {}
 
+local HOLE = { Color3.fromRGB(30, 96, 168), Color3.fromRGB(8, 26, 60) }
+local HOLE_LOW = { Color3.fromRGB(150, 22, 36), Color3.fromRGB(44, 4, 18) }
 local BIG = 64
 local SMALL = 34
 
@@ -21,6 +23,8 @@ local unit: TextLabel
 local nameText: TextLabel
 local tierText: TextLabel
 local tierGradient: UIGradient
+local holeFill: UIGradient
+local beat: (on: boolean) -> ()
 
 local shownSeconds = ""
 local shownName = ""
@@ -41,8 +45,13 @@ function Rings.build(parent: Instance)
 		BackgroundTransparency = 1,
 		Visible = false,
 	}, parent)
-	big = Kit.ring(holder, BIG, 14)
+	big = Kit.ring(holder, BIG, 14, 2.5)
 	big.Frame.Position = UDim2.fromOffset(40, 0)
+	-- the hole is deep water (red when the air is nearly gone), and the ring's glow beats with it
+	big.Hole.BackgroundColor3 = Kit.White
+	big.Hole.BackgroundTransparency = 0.12
+	holeFill = Kit.gradient(big.Hole, HOLE[1], HOLE[2])
+	beat = Kit.pulse(big.Glow, { Transparency = 1 }, { Transparency = 0.1 })
 	number = Kit.text({
 		Size = UDim2.new(1, 0, 1, -8),
 		TextSize = 20,
@@ -54,7 +63,7 @@ function Rings.build(parent: Instance)
 		TextSize = 7,
 		Text = "SEC",
 	}, big.Hole, 1.4)
-	small = Kit.ring(holder, SMALL, 10.5)
+	small = Kit.ring(holder, SMALL, 10.5, 2)
 	small.Frame.Position = UDim2.fromOffset(0, BIG / 2 + 2)
 	small.colour(Kit.Pink)
 	small.Hole.BackgroundTransparency = 1
@@ -117,6 +126,9 @@ function Rings.update(
 		shownBand = band
 		big.colour(if band == 3 then Kit.Coral elseif band == 2 then Kit.Sun else Kit.Aqua)
 		number.TextColor3 = if band == 3 then Color3.fromRGB(255, 214, 214) else Kit.White
+		local hole = if band == 3 then HOLE_LOW else HOLE
+		holeFill.Color = ColorSequence.new(hole[1], hole[2])
+		beat(band == 3)
 	end
 	if now >= nextText then
 		nextText = now + 1 / 15

@@ -1,5 +1,6 @@
 --!strict
--- The dive's HUD (docs/design/ui.md, pass 3): the reference's riding screen piece for piece, in our build. The pieces
+-- The dive's HUD (docs/design/ui.md, pass 3 for the places, pass 4 for the look): the reference's riding screen piece
+-- for piece, in our build; every plate bold and themed by what it is for (UI.Kit's Themes). The pieces
 -- are in Client.UI; this file makes the two screens, lays the pieces out for a phone or a keyboard, and feeds them
 -- what the game knows each frame.
 --   LandStrip   the ten lands across the top, your marker, the metres, your best
@@ -115,7 +116,8 @@ local function build()
 
 	-- the grace vignette: four edges closing in
 	for i = 1, 4 do
-		local edge = Kit.new("Frame", { BackgroundColor3 = Color3.fromRGB(10, 0, 20), BorderSizePixel = 0 }, fx)
+		-- the abyss: red-black, as the miss's words are
+		local edge = Kit.new("Frame", { BackgroundColor3 = Color3.fromRGB(34, 0, 12), BorderSizePixel = 0 }, fx)
 		local gradient = Kit.new("UIGradient", { Transparency = NumberSequence.new(0, 1) }, edge)
 		gradient.Rotation = ({ 90, 270, 0, 180 })[i]
 		edge.AnchorPoint = ({ Vector2.new(0, 0), Vector2.new(0, 1), Vector2.new(0, 0), Vector2.new(1, 0) })[i]
@@ -291,7 +293,6 @@ local function update(dt: number)
 	)
 	-- drowning with the meter empty (not a missed hop, where there may be air left)
 	local outOfAir = mode == "Drowning" and State.Player:GetAttribute("DeathQuick") ~= true
-	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir)
 
 	-- the rings: the meter as seconds on the fish under us, at the rate the server counts (its "Drain"). The server
 	-- sends the meter about ten times a second; between those we count down ourselves
@@ -327,12 +328,15 @@ local function update(dt: number)
 		Rings.hide()
 	end
 
+	local hot = mode == "Riding" and seconds < HOT_SECONDS and not endlessAir
+	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir, hot)
+
 	-- the hop: the button, the aim, the window
 	local target = State.JumpTarget
 	local hopping = mode == "Jumping"
 	if playing then
 		local press = if not hopping then "hop" elseif target and not State.Reeling then "grab" else "off"
-		HopButton.update(press, mode == "Riding" and seconds < HOT_SECONDS and not endlessAir)
+		HopButton.update(press, hot)
 	else
 		HopButton.hide()
 	end
@@ -373,6 +377,7 @@ function HudController.Start()
 	build() -- in Start: it waits for PlayerGui
 	layout()
 	UserInputService.LastInputTypeChanged:Connect(layout)
+	workspace:GetAttributeChangedSignal("HudTouch"):Connect(layout) -- Studio: see Kit.touch
 	local watched: RBXScriptConnection? = nil
 	local function watch()
 		if watched then

@@ -36,7 +36,7 @@ local HOLD_HIGH = 14 -- the extra line on the locked fish in the hop
 local SMALL_WIDE = 62 -- the same for a tag that is only the bubble and the number
 local SMALL_HIGH = 19
 local FAR = 110 -- studs: from here on a tag is only the bubble and the number
-local TOO_STRONG = Color3.fromRGB(214, 44, 56) -- the red plate
+local TOO_STRONG = Color3.fromRGB(236, 50, 62) -- the red plate (darker toward its foot)
 -- The reference marks no animal while you still ride, only once you are in the air, and the game follows it
 -- (Config.Lock.Preview 0: nothing is locked until the hop). Were the lock shown while riding again, true here would
 -- give the locked fish its bigger tag then too.
@@ -116,7 +116,8 @@ local function make(parent: Instance): Tag
 		BackgroundTransparency = 1,
 	}, needRow)
 	Kit.corner(plate, 999)
-	local plateEdge = Kit.stroke(plate, 1.5, Kit.Ink)
+	Kit.new("UIGradient", { Color = ColorSequence.new(Kit.White, Color3.fromRGB(150, 120, 130)), Rotation = 90 }, plate)
+	local plateEdge = Kit.stroke(plate, 2, Kit.Ink)
 	plateEdge.Enabled = false
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }, plate)
 	Kit.new("UIListLayout", {

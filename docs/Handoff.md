@@ -3,6 +3,36 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): UI pass: bold outlines, gradients, patterns, a theme for each purpose
+**State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script, judged from
+pictures): no errors in the output. StyLua, selene and `rojo build` pass. **Nothing uploaded.** Hugo's ask is a row
+in [Decisions](Decisions.md); the design is "Pass 4" in [UI](design/ui.md); the note to the UI chat is the top one
+in [Sessions](Sessions.md).
+
+- **Files:** all of `src/client/UI/` (`Kit`, `Aim`, `Banners`, `HopButton`, `LandStrip`, `Rings`, `Slots`,
+  `StatRows`, `Tags`), `src/client/Controllers/HudController.luau`, and the panel's look only in
+  `SandboxController.luau`. `DeathController` is unchanged: it draws nothing itself (its black, its closing edges
+  and its words are drawn by the HUD).
+- **`Kit` is a small style system:** `Kit.Themes` (Oxygen, Danger, Action, Grab, Off, Gold, Good, Navy, Glass,
+  Tool, Key), `Kit.dress(frame, style)` and `Kit.panel(parent, props, style)` (gradient, thick dark outline, a pale
+  line inside it, a pattern, a shine, a shadow), `Kit.stripes`, `Kit.bubbles`, `Kit.grid`, `Kit.pulse`,
+  `Kit.tierFill`, and the scales `Kit.Space`, `Kit.Outline`, `Kit.Radius`.
+- **This turns back the hairline frames** of the user's second round (Decisions, 2026-11-12, the row under Hugo's).
+  Places, sizes and spacing are as they were, but for a point or two of room for the outlines.
+- **Patterns:** the map's stud tile (`tile2`) and the water's picture, both uploaded before. Both loaded in Hugo's
+  Studio.
+- **What beats:** in the last second on a fish the Oxygen row's outline, a red glow round the ring and a red ring
+  round the jump button; nothing else is tweened, and nothing is made per frame.
+- **The ring's seam is gone:** a full ring showed a faint line where its two halves meet (it was there before; the
+  darker hole made it plain). A half that is whole now drops its gradient.
+- **`StatRows.update` takes a fourth argument** (the last second on a fish). **`Kit.touch` reads the workspace's
+  `HudTouch`** in Studio, to force the phone or the keyboard layout.
+- **Not done / not judged:** no real phone; no second player; a Mythic's and a Secret's colours seen only in the
+  slots (a made-up catch); the dock's screens don't exist yet. The catch banner, the slots, the coins and the tame
+  ring were shown by feeding them made-up values, as the game has no taming or coins yet.
+- Pictures (Hugo's PC, not in the repo): `~/Pictures/ride-a-fish/ui-2026-11-12/` (before and after of each screen,
+  and `contact-sheet-before-after.png`); the sheet is in the vault as `docs/attachments/ui4-before-after.jpg`.
+
 ## 2026-11-12 · void (Hugo's PC): Movement pass: a longer hook, real rider animations, the startle, more juice
 **State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script and judged from
 pictures: no keys, no mouse, no sound, so the feel by hand is still Hugo's to judge). StyLua, selene and

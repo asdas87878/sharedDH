@@ -1,7 +1,8 @@
 --!strict
--- The words that come and go: the miss ("MISSED THE FISH!", "OUT OF AIR!"), the end of a dive (the reference's: a gold
--- title on a dark streak that fades out at both ends, a little tilted, and a pill under it), and the catch banner
--- (tilted, at the left, see-through with a bright edge; it waits for taming).
+-- The words that come and go: the miss ("MISSED THE FISH!", "OUT OF AIR!": red words on a streak of the abyss, deep
+-- red going to black, with a red line along each edge), the end of a dive (a gold title on a dark streak that fades
+-- out at both ends, a little tilted, and a pill under it), and the catch banner (tilted, at the left, a green brick
+-- plate; it waits for taming).
 -- They slide and switch on and off; no text ever changes size.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -12,8 +13,7 @@ local Kit = require(script.Parent.Kit)
 local Banners = {}
 
 local miss: TextLabel
-local missGradient: UIGradient
-local missOutline: UIStroke
+local missGroup: CanvasGroup
 local great: Frame
 local greatMetres: TextLabel
 local greatBest: TextLabel
@@ -46,17 +46,44 @@ local SLIDE = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Ou
 local LEAVE = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
 function Banners.build(parent: Instance)
-	miss = Kit.text({
+	-- the miss: one group, so the whole of it fades in with the black as one number
+	missGroup = Kit.new("CanvasGroup", {
 		Name = "Miss",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.5, -8),
-		Size = UDim2.fromOffset(420, 40),
-		TextSize = 30,
+		Size = UDim2.fromOffset(460, 84),
+		BackgroundTransparency = 1,
 		Visible = false,
 		ZIndex = 20,
-	}, parent, 3)
-	missGradient = Kit.gradient(miss, Color3.fromRGB(255, 190, 190), Kit.Coral)
-	missOutline = miss:FindFirstChildOfClass("UIStroke") :: UIStroke
+	}, parent)
+	local abyss = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(440, 58),
+		Rotation = -2,
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+	}, missGroup)
+	Kit.new("UIGradient", {
+		Color = ColorSequence.new(Color3.fromRGB(150, 14, 34), Color3.fromRGB(14, 0, 10)),
+		Transparency = ENDS,
+	}, abyss)
+	for _, y in { 0, 1 } do
+		local line = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0, y),
+			Position = UDim2.fromScale(0, y),
+			Size = UDim2.new(1, 0, 0, 3),
+			BackgroundColor3 = Kit.Coral,
+			BorderSizePixel = 0,
+		}, abyss)
+		Kit.new("UIGradient", { Transparency = LINE }, line)
+	end
+	miss = Kit.text({
+		Size = UDim2.fromScale(1, 1),
+		TextSize = 32,
+		ZIndex = 2,
+	}, abyss, 3.5)
+	Kit.gradient(miss, Color3.fromRGB(255, 214, 200), Color3.fromRGB(255, 70, 80))
 
 	-- the end of a dive
 	great = Kit.new("Frame", {
@@ -101,12 +128,15 @@ function Banners.build(parent: Instance)
 		Position = UDim2.new(0.5, 0, 0, 72),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 30),
-		BackgroundColor3 = Color3.fromRGB(20, 44, 80),
-		BackgroundTransparency = 0.06,
 		ZIndex = 16,
 	}, great)
-	Kit.corner(pill, 999)
-	Kit.stroke(pill, 2.5, Kit.Sun)
+	Kit.dress(pill, {
+		Top = Kit.Themes.Navy.Top,
+		Bottom = Kit.Themes.Navy.Bottom,
+		Edge = Kit.Sun,
+		Radius = Kit.Radius.Round,
+		Bevel = false,
+	})
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 16) }, pill)
 	Kit.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
@@ -153,12 +183,9 @@ function Banners.build(parent: Instance)
 	local plate = Kit.new("Frame", {
 		Position = UDim2.fromOffset(0, 15),
 		Size = UDim2.fromOffset(170, 36),
-		BackgroundColor3 = Color3.fromRGB(14, 64, 36),
-		BackgroundTransparency = 0.24,
 		ZIndex = 15,
 	}, catch)
-	Kit.corner(plate, 9)
-	Kit.stroke(plate, 3, Color3.fromRGB(91, 224, 106))
+	Kit.dress(plate, Kit.Themes.Good)
 	local tamed = Kit.text({
 		Size = UDim2.fromScale(1, 1),
 		TextSize = 23,
@@ -189,12 +216,10 @@ function Banners.miss(text: string, alpha: number)
 	if text ~= shownMiss then
 		shownMiss = text
 		miss.Text = text
-		miss.Visible = text ~= ""
-		missGradient.Enabled = text ~= ""
+		missGroup.Visible = text ~= ""
 	end
 	if text ~= "" then
-		miss.TextTransparency = 1 - alpha
-		missOutline.Transparency = 1 - alpha
+		missGroup.GroupTransparency = 1 - alpha
 	end
 end
 
