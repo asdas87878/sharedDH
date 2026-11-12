@@ -509,7 +509,7 @@ local function animateFish()
 						j.fins = RideStyles.finsOf(id :: string)
 						-- a big creature beats slower than a small one
 						local kind = Config.FishById[id :: string]
-						local length = if kind then kind.Size.Z else 14
+						local length = if kind then Config.bodyOf(model, kind).Z else 14
 						j.pace = math.clamp(14 / length, 0.4, 1.3)
 						j.beatPace = math.clamp(14 / length, 0.4, 1.1)
 						j.length = length
@@ -518,7 +518,7 @@ local function animateFish()
 					else
 						-- a stand-in: its whole body hangs from the sway joint, which takes the startle's shift
 						local kind = Config.FishById[model:GetAttribute("FishType") :: string]
-						j.length = if kind then kind.Size.Z else 14
+						j.length = if kind then Config.bodyOf(model, kind).Z else 14
 						j.girth = math.clamp(j.length / 14, 0.6, 2.2)
 						if j.sway then
 							j.bodyC0 = j.sway.C0
@@ -1127,7 +1127,8 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 		local pace, lean = 1, 0
 		if fish and fishRoot then
 			local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-			pace = fishRoot.AssemblyLinearVelocity.Magnitude / math.max(if kind then kind.RiddenSpeed else 45, 1)
+			pace = fishRoot.AssemblyLinearVelocity.Magnitude
+				/ math.max(if kind then Config.riddenOf(fish, kind) else 45, 1)
 			lean = if mine
 				then RideController.lean()
 				else math.clamp(fishRoot.AssemblyAngularVelocity.Y / rad(math.max(Config.Ride.YawRate, 1)), -1, 1)

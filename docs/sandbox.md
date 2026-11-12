@@ -51,8 +51,10 @@ What to reach for:
 - **The arc:** `Jump.LaunchTime`, `Launch` and `Apex` (the pop), `FloatTime` and `AirSpeed` (the glide), `Drop`,
   `DropCurve` and `DropSpeed` (the drop). `Window` is the whole hop: the drop is what the pop and the glide leave of
   it (3.0 - 0.4 - 1.4 = 1.2 s), so a longer glide means a shorter drop unless `Window` grows too.
-- **The startle** (a fish you land on rears and stalls, then bolts): `Ride.Startle` (0 off), `StartleTime`,
-  `StartleStall`, `StartleKick`, `StartleKickTime`, `StartleRear`, `StartleShake`.
+- **The startle** (a fish you land on rears and slows for a moment, never stopping): `Ride.Startle` (0 off),
+  `StartleSlow` (the share of its speed it drops to), `StartleHold`, `StartleRecover`, and the look: `StartleTime`,
+  `StartleRear`, `StartleShake`.
+- **The camera under the surface:** `Camera.Submerge` (0 off), `WaterTop`, `SurfaceMargin`, `SurfaceTilt`.
 - **The rider's animation:** the `Pose` group (`CrawlRate`, `BreastRate`, `FloatTilt`, `PopTuck`, `Flip`, `FlipStart`,
   `RideCrouch`, `RideLean`, `BraceLean`). **The juice:** the `Feel` group (`PopFov`, `PopLines`, `ReelLines`,
   `BoltLines`, `Trail`, `Whoosh`, `Splash`, `Mark`).
@@ -61,9 +63,11 @@ What to reach for:
 - **How the turn feels:** `Ride.YawRate` and `TurnEase` (one rate, everywhere).
 - **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `RarityDrain` Common to Secret (how many times a Common's Oxygen each rarity takes), and `Oxygen.StartMax` (live:
   everyone's max Oxygen changes at once; the `TestMaxOxygen` attribute, when above 0, still wins).
-- **The tuning rows** (2026-11-11, [progression](design/progression.md)): `TierSpeed` Common to Secret is the ridden
-  speed of each rarity (wild fish, the glide and the server's speed check follow at once), and `MixShallows` to
-  `MixUnderworld` are the share of spawns by rarity in each land (for fish spawned from then on).
+- **The tuning rows** ([progression](design/progression.md); [riding feel](design/riding-feel.md), "Speed by fish"):
+  `Speed.Base` (a Common's ridden speed), `TierMult` Common to Secret (each rarity's speed, times), `Speed.SizeGain`,
+  `Speed.Gold`, `Speed.Rainbow` (wild fish, the glide and the server's speed check follow at once); `Size.Min`, `Max`,
+  `Curve` and `Variant.Gold`, `Rainbow` (the size roll and the variants' chances, for fish spawned from then on); and
+  `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12.)
 - **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.Rebuild`, `Push`, `Topple`, `MinLength`.
 
 ## What it doesn't do yet

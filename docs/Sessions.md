@@ -30,6 +30,24 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to the tuning chat, Obsidian chat integration and the UI chat: **Hugo asked for a
+  speed of its own for every fish, a size roll, variants, a camera that stays underwater and a startle that never
+  stops; it is pushed, and it changed files you have in hand.** Four rows in [Decisions](Decisions.md) (2026-11-12,
+  Hugo), the top entry of [Handoff](Handoff.md), and "Speed by fish" in [riding feel](design/riding-feel.md).
+  - **The tuning chat:** `Config.TierSpeed` is gone. A fish's speed is `Config.speedOf(fish, size, variant)` =
+    `Speed.Base` x `SpeciesSpeed[id]` x `TierMult[rarity]` x the size's factor x the variant's. `Config.Tiers`'
+    `Ridden` is now worked out (`Base` x `TierMult`); the numbers written in that table are only what `TierMult`
+    gives, rounded, so `tools/balance/model.py` still reads the old speeds (45, 52, 60, 68, 78, 90, 100) but knows
+    nothing of species, size or variants yet. The panel's rows are `Speed.*`, `TierMult.*`, `Size.*`, `Variant.*`.
+    The species' bases and the multipliers are yours to tune from here.
+  - **Obsidian chat integration:** `FishService` rolls the size and the variant at the spawn (`Wild.Size`,
+    `Variant`, `Body`), scales the model after `FishModel.build` (`FishModel` is untouched) and uses each fish's own
+    speed; `RideService` reads `FishService.ridden(w)` and `w.Body` where it read `w.Type.RiddenSpeed` and
+    `w.Type.Size`; `Lock`, `Feel`, `JumpController` and `AnimController` read `Config.bodyOf` / `Config.riddenOf`.
+    `RideController`: the startle's curve and the camera's ceiling.
+  - **The UI chat:** `Tags.put` writes the name as "Gold Great White x1.23" (variant, name, size) and lifts the tag
+    by the fish's own height. Restyle it as you like; the attributes are `Size` (number) and `Variant` (string).
+
 - 2026-11-12, void (Hugo's PC) to Obsidian chat integration and Ride a Fish game concept: **the 82 creatures now
   show in Hugo's place without your assets, and there is a first Gold and Rainbow look.** Details in
   [Handoff](Handoff.md) (top entry). What you need to know:

@@ -330,12 +330,12 @@ and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](..
   full range, in proportion nearer) is a margin round a far fish that counts as aimed at it. The ring round a far
   fish is up to 1.5 times wider (`Jump.RingFar`), its dashes thicker (`RingGrow` 40) and it is turned to the camera
   (`RingFarFace` 0.8).
-- **The startle.** A fish you LAND on (not the sandbox's reset) brakes to 0.3 of its ridden speed in 0.15 s and
-  holds it for `Ride.StartleTime` (0.8 s) while it rears; then it bolts: up to 1.6 times its ridden speed in 0.18 s,
-  easing back over a second. Measured on a Common (ridden 45): 13 studs a second through the stall, 71 at the peak.
-  The rearing is seen only: `AnimController` turns the fish's joints (the nose up 34 degrees, a shake, the tail, a
-  dip of the nose before the bolt, a lunge), never its Root. `StartleKick` must stay under `Surge` x `SpeedSlack`
-  (2.0), which is what the server's speed check allows.
+- **The startle** (changed the same day, Hugo: the fish must not stop). A fish you LAND on (not the sandbox's reset)
+  comes down to `Ride.StartleSlow` (0.6) of its ridden speed in `StartleBrake` (0.12 s), stays there for
+  `StartleHold` (0.4 s), then eases back to full over `StartleRecover` (0.8 s). No stall, no bolt. Measured on a Blue
+  Chromis (ridden 47.3): 28.3 through the hold, 47.3 again 1.2 s after the touch. The rearing is seen only and is
+  unchanged (`StartleTime` 0.8 s, `StartleRear`, `StartleShake`): `AnimController` turns the fish's joints, never
+  its Root.
 - **The rider's animation** (`Config.Pose`): a front crawl in the glide and the drop, a breaststroke lying
   `FloatTilt` degrees forward while floating, a crouch (`PopTuck`) and a streamlined push off the fish, streamlined
   through the pull-in, a tuck and a forward flip from `FlipStart` of the way into the seat, and astride the fish:
@@ -348,3 +348,116 @@ and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](..
 - **Open, to judge by hand:** how long the stall may be before it annoys (it costs about a sixth of a second of
   travel a landing, when a new player has 2.5 s on a fish); whether the flip reads at a short pull-in; the sounds
   (placeholders from Roblox's own character sounds; nobody has heard them, the checks were by script and picture).
+
+## Speed by fish, the size roll, variants (Hugo, 2026-11-12)
+Every fish has its own speed, worked out by one function on the server and on every client (`Config.speedOf`):
+
+**speed = `Speed.Base` (45) x the species' base x the rarity's (`TierMult`) x (1 + `Speed.SizeGain` (0.15) x (size - 1))
+x the variant's (`Speed.Gold` 1.10, `Speed.Rainbow` 1.18)**
+
+- **Rarity** (`Config.TierMult`): Common 1, Uncommon 1.16, Rare 1.33, Epic 1.51, Legendary 1.73, Mythic 2, Secret
+  2.22. A step is about 15%, wider than the spread of species inside a rarity, and it lands on the speeds measured
+  before (45, 52, 60, 68, 78, 90, 100 for a species of base 1).
+- **Size** (`Config.Size`): each spawned fish is x0.8 to x1.4, most near x1 (`Curve` 2.5: about one in twenty over
+  x1.3). It scales the model, the seat, what counts as its body (the lock, the landing, crashes, props) and, mildly,
+  its speed (x1.4 is 6% faster). On the fish as the `Size` attribute; on its tag as "x1.23".
+- **Variants** (`Config.Variant`): Gold 3%, Rainbow 0.8% of spawns; the `Variant` attribute; the look is
+  `Shared/Variants`. In Studio the workspace's `TestSize` and `TestVariant` attributes force them on new fish.
+- **The herd** swims at `Herd.SpeedShare` (0.85) of each fish's own speed; the glide at `Jump.AirShare` of the fish
+  you left; the server's speed check allows each fish's own speed x `Surge` x `SpeedSlack`.
+- The picture of all 82: `python tools/balance/speed_table.py <out.png>`.
+
+**The species' bases** (`Config.SpeciesSpeed`, Claude's, to tune; 0.92 to 1.08):
+
+| Creature | Rarity | Base | Why |
+|---|---|---|---|
+| Blue Chromis | Common | 1.05 | A small darting schooling fish: the quick Common |
+| Boxfish | Common | 0.92 | A rigid box that paddles with tiny fins |
+| Butterflyfish | Common | 1.00 | An ordinary reef fish |
+| Clownfish | Common | 0.97 | Stays by its anemone, a wobbly swimmer |
+| Pufferfish | Common | 0.92 | Round and slow, the slowest thing in the sea |
+| Sergeant Major | Common | 1.03 | A bold, busy damselfish |
+| Yellow Tang | Common | 1.02 | A steady cruiser |
+| Cuttlefish | Uncommon | 0.96 | Hovers on its skirt |
+| Flying Fish | Uncommon | 1.08 | Built to burst out of the water |
+| Sea Turtle | Uncommon | 0.95 | An unhurried glider |
+| Stingray | Uncommon | 0.98 | Glides low over the sand |
+| Angelfish | Uncommon | 0.97 | Tall and showy, not quick |
+| Lionfish | Uncommon | 0.93 | Drifts with its fins spread |
+| Parrotfish | Uncommon | 1.00 | An ordinary grazer |
+| Garibaldi | Uncommon | 1.00 | An ordinary kelp fish |
+| Sea Lion | Uncommon | 1.05 | Agile and playful |
+| Barracuda | Uncommon | 1.08 | A torpedo: the fastest Uncommon |
+| Seahorse | Rare | 0.92 | The slowest swimmer there is |
+| Moray Eel | Rare | 0.96 | A lurker in holes |
+| Octopus | Rare | 0.95 | Jets in pulses |
+| Giant Sea Bass | Rare | 0.95 | A heavy, slow giant |
+| Leopard Shark | Rare | 1.00 | A small, ordinary shark |
+| Hammerhead Shark | Rare | 1.04 | A strong schooling shark |
+| Sawfish | Rare | 0.99 | Big, but a bottom cruiser |
+| Dolphin | Rare | 1.06 | Fast and loved |
+| Swordfish | Rare | 1.08 | One of the fastest fish alive |
+| Viperfish | Rare | 1.00 | A deep ambusher: average |
+| Reef Shark | Epic | 1.02 | A sleek hunter |
+| Humphead Wrasse | Epic | 0.94 | A bulky grazer |
+| Great White | Epic | 1.07 | The shark |
+| Steller's Sea Cow | Epic | 0.92 | A gentle floating giant |
+| Electric Ray | Epic | 0.95 | A sluggish disc |
+| Goliath Grouper | Epic | 0.93 | A heavy lump of a fish |
+| Manta Ray | Epic | 1.03 | A graceful flier |
+| Orca | Epic | 1.08 | The top hunter, and fast |
+| Giant Squid | Epic | 1.02 | Jet powered |
+| Goblin Shark | Epic | 0.97 | Slow and odd |
+| Anglerfish | Epic | 0.93 | A floating lure |
+| Frilled Shark | Epic | 0.98 | An eel of a shark |
+| Giant Isopod | Epic | 0.92 | An armoured crawler |
+| Sea Scorpion | Epic | 1.00 | A paddling hunter: average |
+| Archelon | Legendary | 0.93 | A giant turtle |
+| Dunkleosteus | Legendary | 0.98 | Armour is heavy |
+| Dakosaurus | Legendary | 1.04 | A sea crocodile built for the chase |
+| Xiphactinus | Legendary | 1.06 | The fast "bulldog fish" |
+| Elasmosaurus | Legendary | 0.97 | A long-necked paddler |
+| Helicoprion | Legendary | 1.02 | The buzz-saw shark |
+| Liopleurodon | Legendary | 1.04 | A big four-flippered hunter |
+| Shonisaurus | Legendary | 1.00 | A whale-sized ichthyosaur: average |
+| Basilosaurus | Legendary | 1.02 | A serpent whale |
+| Livyatan | Legendary | 1.05 | The killer sperm whale |
+| Mosasaurus | Legendary | 1.08 | The star of the deep |
+| Anomalocaris | Legendary | 0.95 | An ancient paddler |
+| Bobbit Worm | Legendary | 0.92 | A worm |
+| Kronosaurus | Legendary | 1.05 | Huge jaws, strong flippers |
+| Megalodon | Legendary | 1.07 | The biggest shark that ever was |
+| Grave Ray | Legendary | 0.98 | A ghostly glider |
+| Grave Turtle | Legendary | 0.93 | A turtle, still |
+| Skull Angler | Legendary | 0.94 | An angler, still |
+| Wraith Eel | Legendary | 1.02 | A quick ghost |
+| Brimstone Eel | Legendary | 1.03 | An eel of fire |
+| Cinder Ray | Legendary | 1.00 | A burning glider: average |
+| Hellfin Shark | Legendary | 1.07 | A shark from the Underworld |
+| Infernal Angler | Legendary | 0.95 | An angler, still |
+| Blue Whale | Mythic | 0.94 | The biggest and the calmest |
+| Lantern Leviathan | Mythic | 1.00 | A long lit serpent: average |
+| Kraken | Mythic | 0.97 | A mass of arms |
+| Molten Megalodon | Mythic | 1.06 | A Megalodon on fire |
+| Bone Leviathan | Mythic | 1.02 | A racing skeleton |
+| Halfbone Megalodon | Mythic | 1.04 | Half a Megalodon is still a Megalodon |
+| Abyssal Watcher | Mythic | 0.96 | It watches; it doesn't hurry |
+| Hellmaw | Mythic | 1.08 | The last land's monster |
+| Pearl Serpent | Secret | 1.00 | The first Secret: average |
+| Coral Dragon | Secret | 1.03 | A dragon |
+| Kelp Wyrm | Secret | 0.98 | Winds through the kelp |
+| Galleon Whale | Secret | 0.93 | A whale carrying a ship |
+| Storm Serpent | Secret | 1.08 | Lightning |
+| Aurora Jelly | Secret | 0.92 | A drifting jelly |
+| Void Whale | Secret | 0.97 | A whale, dark and slow |
+| Ember Serpent | Secret | 1.05 | A serpent of fire |
+| Phantom Whale | Secret | 1.00 | A ghost whale: average |
+| The Devourer | Secret | 1.08 | The end of the list |
+
+## The camera stays underwater (Hugo, 2026-11-12)
+Once you have dived, the camera is kept `Camera.SurfaceMargin` (3 studs) under the water's surface (`WaterTop`, 0)
+until you are back on the dock or respawn (the sandbox's R counts). Near the surface the camera's arm swings down
+behind you instead of rising, and the view gives up `SurfaceTilt` (half) of the tilt that costs, so you stay in the
+picture; the landing's jolt and shake and the drowning's shot are held under too. `Camera.Submerge` 0 turns it off.
+Measured in the first land, one hop looking 40 degrees down: 94 frames above the surface with it off (up to 2.4
+studs above), none with it on.

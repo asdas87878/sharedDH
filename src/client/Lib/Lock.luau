@@ -75,7 +75,7 @@ local function score(model: Model, from: Vector3, eye: Vector3, aim: Vector3, ra
 	end
 	local angle = math.acos(math.clamp(to:Dot(aim) / away, -1, 1))
 	local kind = Config.FishById[model:GetAttribute("FishType") :: string]
-	local body = if kind then kind.Size.Z / 2 else l.FallbackRadius
+	local body = if kind then Config.bodyOf(model, kind).Z / 2 else l.FallbackRadius
 	local radius = l.AimRadius + body
 	-- a far fish is small on the screen: it gets a margin round it, by its distance, that counts as on it
 	local share = distance / math.max(range, 1)

@@ -169,7 +169,8 @@ local function placeRing(dt: number)
 	local away = (eye - ringCentre).Magnitude
 	-- a far fish's ring is wider and turned to the camera (and its dashes thicker, below), so it shows at the full range
 	local far = math.clamp((away - j.RingGrow) / math.max(j.GrabRange - j.RingGrow, 1), 0, 1)
-	local radius = math.max(j.RingRadius, if kind then kind.Size.Z / 2 + 2 else 0) * Ease.lerp(1, j.RingFar, far)
+	local radius = math.max(j.RingRadius, if kind then Config.bodyOf(fish, kind).Z / 2 + 2 else 0)
+		* Ease.lerp(1, j.RingFar, far)
 	local face = math.clamp(Ease.lerp(j.RingFace, j.RingFarFace, far), 0, 1)
 	local normal = Vector3.new(0, 1 - face, 0) + (eye - ringCentre) / math.max(away, 0.01) * face
 	normal = if normal.Magnitude > 0.01 then normal.Unit else Vector3.yAxis
@@ -293,7 +294,7 @@ local function request(): boolean
 		-- the reference floats at 0.85 of the speed it rode at: the herd's pace, so we hang over the fish ahead
 		local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
 		if j.AirShare > 0 and kind then
-			airSpeed = j.AirShare * kind.RiddenSpeed
+			airSpeed = j.AirShare * Config.riddenOf(fish, kind)
 		end
 		left = fish
 		RideController.leave()

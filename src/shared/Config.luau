@@ -6,7 +6,7 @@
 
 export type Tier = {
 	Idle: number, -- (not used since the herd: a wild fish swims at Herd.SpeedShare of its ridden speed)
-	Ridden: number, -- speed once ridden
+	Ridden: number, -- speed once ridden, for a species of base 1 at size 1 (worked out: Speed.Base x TierMult)
 	Colour: Color3, -- the tier's colour on markers
 }
 
@@ -18,8 +18,8 @@ export type FishType = {
 	Reach: number, -- how many zones past home it can still turn up in
 	Required: number, -- the max Oxygen that keeps up with it in its home land (Config.required): shown on its tag
 	IdleSpeed: number,
-	RiddenSpeed: number,
-	Size: Vector3, -- width, height, length (it faces -Z)
+	RiddenSpeed: number, -- this species at size 1, no variant (worked out: Config.refresh); one fish's own: Config.speedOf
+	Size: Vector3, -- width, height, length (it faces -Z), at size 1; one fish's own: Config.bodyOf
 	Shape: string, -- placeholder body: "Fish" (tall, flat), "Round", "Shark", "Flat" (a ray), "Eel"
 	Body: Color3,
 	Belly: Color3,
@@ -39,6 +39,7 @@ local Config = {}
 
 Config.TierOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 
+-- (Ridden is worked out in Config.refresh from Config.Speed.Base and Config.TierMult, below: change it there)
 Config.Tiers = {
 	Common = { Idle = 14, Ridden = 45, Colour = rgb(200, 200, 200) },
 	Uncommon = { Idle = 16, Ridden = 52, Colour = rgb(90, 220, 90) },
@@ -49,14 +50,143 @@ Config.Tiers = {
 	Secret = { Idle = 26, Ridden = 100, Colour = rgb(20, 20, 20) },
 } :: { [string]: Tier }
 
--- The same ridden speeds as plain numbers, so the sandbox panel can change one while playing (its rows are
--- Config.<Group>.<Key>): TierSpeed.Common is Tiers.Common.Ridden. Filled from the table above, never written by hand;
--- Config.refresh puts a changed one back into Tiers and into every fish of that rarity. To change a speed for good,
--- change Ridden above.
-Config.TierSpeed = {} :: { [string]: number }
-for name, tier in Config.Tiers do
-	Config.TierSpeed[name] = tier.Ridden
-end
+-- Speed per fish (Hugo, 2026-11-12): speed = Speed.Base x SpeciesSpeed[species] x TierMult[rarity] x the size's factor
+-- x the variant's. Every fish has its own, worked out the same way on the server and on every client from the fish's
+-- attributes (Config.speedOf); the server's is the one that counts (the herd, the speed check).
+Config.Speed = {
+	Base = 45, -- studs a second ridden: a Common of species base 1, size 1, no variant
+	SizeGain = 0.15, -- a bigger roll is a little faster: 1 + SizeGain x (size - 1); x1.4 is 6% faster, x0.8 3% slower
+	Gold = 1.1, -- a Gold fish's speed, times
+	Rainbow = 1.18, -- a Rainbow's
+}
+
+-- By rarity: a higher rarity is clearly faster on average. Each step is about 1.15 times the last, which lands on the
+-- ridden speeds measured in the game before this (Handoff, 2026-11-12: 60, 68, 78, 90 on a Rare, Epic, Legendary and
+-- Mythic; with Base 45 these make 45, 52, 60, 68, 78, 90, 100). The steps (15%) are wider than the whole spread of
+-- species inside a rarity (8% either way), so the fastest of one rarity is about level with the slowest of the next.
+Config.TierMult = {
+	Common = 1,
+	Uncommon = 1.16,
+	Rare = 1.33,
+	Epic = 1.51,
+	Legendary = 1.73,
+	Mythic = 2,
+	Secret = 2.22,
+} :: { [string]: number }
+
+-- By species: the cooler, more impressive animal is a little faster inside its rarity, 0.92 to 1.08, with why. A
+-- species not listed is 1.
+-- stylua: ignore
+Config.SpeciesSpeed = {
+	-- Common
+	BlueChromis = 1.05, -- a small darting schooling fish: the quick Common
+	Boxfish = 0.92, -- a rigid box that paddles with tiny fins
+	Butterflyfish = 1.0, -- an ordinary reef fish
+	Clownfish = 0.97, -- stays by its anemone, a wobbly swimmer
+	Pufferfish = 0.92, -- round and slow, the slowest thing in the sea
+	SergeantMajor = 1.03, -- a bold, busy damselfish
+	YellowTang = 1.02, -- a steady cruiser
+	-- Uncommon
+	Cuttlefish = 0.96, -- hovers on its skirt
+	FlyingFish = 1.08, -- built to burst out of the water
+	SeaTurtle = 0.95, -- an unhurried glider
+	Stingray = 0.98, -- glides low over the sand
+	Angelfish = 0.97, -- tall and showy, not quick
+	Lionfish = 0.93, -- drifts with its fins spread
+	Parrotfish = 1.0, -- an ordinary grazer
+	Garibaldi = 1.0, -- an ordinary kelp fish
+	SeaLion = 1.05, -- agile and playful
+	Barracuda = 1.08, -- a torpedo: the fastest Uncommon
+	-- Rare
+	Seahorse = 0.92, -- the slowest swimmer there is
+	MorayEel = 0.96, -- a lurker in holes
+	Octopus = 0.95, -- jets in pulses
+	GiantSeaBass = 0.95, -- a heavy, slow giant
+	LeopardShark = 1.0, -- a small, ordinary shark
+	HammerheadShark = 1.04, -- a strong schooling shark
+	Sawfish = 0.99, -- big, but a bottom cruiser
+	Dolphin = 1.06, -- fast and loved
+	Swordfish = 1.08, -- one of the fastest fish alive
+	Viperfish = 1.0, -- a deep ambusher: average
+	-- Epic
+	ReefShark = 1.02, -- a sleek hunter
+	HumpheadWrasse = 0.94, -- a bulky grazer
+	GreatWhite = 1.07, -- the shark
+	StellersSeaCow = 0.92, -- a gentle floating giant
+	ElectricRay = 0.95, -- a sluggish disc
+	GoliathGrouper = 0.93, -- a heavy lump of a fish
+	MantaRay = 1.03, -- a graceful flier
+	Orca = 1.08, -- the top hunter, and fast
+	GiantSquid = 1.02, -- jet powered
+	GoblinShark = 0.97, -- slow and odd
+	Anglerfish = 0.93, -- a floating lure
+	FrilledShark = 0.98, -- an eel of a shark
+	GiantIsopod = 0.92, -- an armoured crawler
+	SeaScorpion = 1.0, -- a paddling hunter: average
+	-- Legendary
+	Archelon = 0.93, -- a giant turtle
+	Dunkleosteus = 0.98, -- armour is heavy
+	Dakosaurus = 1.04, -- a sea crocodile built for the chase
+	Xiphactinus = 1.06, -- the fast "bulldog fish"
+	Elasmosaurus = 0.97, -- a long-necked paddler
+	Helicoprion = 1.02, -- the buzz-saw shark
+	Liopleurodon = 1.04, -- a big four-flippered hunter
+	Shonisaurus = 1.0, -- a whale-sized ichthyosaur: average
+	Basilosaurus = 1.02, -- a serpent whale
+	Livyatan = 1.05, -- the killer sperm whale
+	Mosasaurus = 1.08, -- the star of the deep
+	Anomalocaris = 0.95, -- an ancient paddler
+	BobbitWorm = 0.92, -- a worm
+	Kronosaurus = 1.05, -- huge jaws, strong flippers
+	Megalodon = 1.07, -- the biggest shark that ever was
+	GraveRay = 0.98, -- a ghostly glider
+	GraveTurtle = 0.93, -- a turtle, still
+	SkullAngler = 0.94, -- an angler, still
+	WraithEel = 1.02, -- a quick ghost
+	BrimstoneEel = 1.03, -- an eel of fire
+	CinderRay = 1.0, -- a burning glider: average
+	HellfinShark = 1.07, -- a shark from the Underworld
+	InfernalAngler = 0.95, -- an angler, still
+	-- Mythic
+	BlueWhale = 0.94, -- the biggest and the calmest
+	LanternLeviathan = 1.0, -- a long lit serpent: average
+	Kraken = 0.97, -- a mass of arms
+	MoltenMegalodon = 1.06, -- a Megalodon on fire
+	BoneLeviathan = 1.02, -- a racing skeleton
+	HalfboneMegalodon = 1.04, -- half a Megalodon is still a Megalodon
+	AbyssalWatcher = 0.96, -- it watches; it doesn't hurry
+	Hellmaw = 1.08, -- the last land's monster
+	-- Secret
+	PearlSerpent = 1.0, -- the first Secret: average
+	CoralDragon = 1.03, -- a dragon
+	KelpWyrm = 0.98, -- winds through the kelp
+	GalleonWhale = 0.93, -- a whale carrying a ship
+	StormSerpent = 1.08, -- lightning
+	AuroraJelly = 0.92, -- a drifting jelly
+	VoidWhale = 0.97, -- a whale, dark and slow
+	EmberSerpent = 1.05, -- a serpent of fire
+	PhantomWhale = 1.0, -- a ghost whale: average
+	TheDevourer = 1.08, -- the end of the list
+} :: { [string]: number }
+
+-- The size roll (Hugo, 2026-11-12): every spawned fish is Min to Max times its species' size, most of them near 1 and
+-- the extremes rare. The roll is a number 0 to 1 raised to Curve and laid on either side of 1: at Curve 2.5 half the
+-- fish are within 7% of 1 above (3% below), and about one in twenty is over x1.3. It scales the model, the seat, what
+-- counts as the fish's body (the lock, the landing, crashes) and its speed (Speed.SizeGain); the fish's "Size"
+-- attribute, shown on its tag as "x1.23".
+Config.Size = {
+	On = 1, -- 0: every fish x1
+	Min = 0.8,
+	Max = 1.4,
+	Curve = 2.5, -- 1: evenly spread between Min and Max; higher: more of them near 1
+}
+
+-- Variants (Hugo, 2026-11-12): the chance that a spawned fish is one, 0 to 1 (Rainbow is rolled first). The fish's
+-- "Variant" attribute ("", "Gold" or "Rainbow"); the look is Shared/Variants; the speed is Speed.Gold and Speed.Rainbow.
+Config.Variant = {
+	Gold = 0.03,
+	Rainbow = 0.008,
+}
 
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
@@ -151,19 +281,19 @@ Config.Ride = {
 	FloorClearance = 3, -- the fish pulls up nearer the floor than this
 	Ceiling = 4, -- and stays this far under the surface line
 	LaneMargin = -3, -- a ridden fish and a flight stay this far inside the lane's edge (negative: inside). It was 20 past it, but since grey-box 6 the walls are a 1-stud face with a hollow behind, and 20 past the edge is inside that hollow
-	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its surge speed times this
-	-- The startle (Hugo, 2026-11-12): a fish you land on is shocked for about a second, like a horse rearing before it
-	-- bolts. Its nose jerks up and it rears back, shaking, its tail thrashing, a "!" over its head, the rider braced;
-	-- it all but stops; then it surges off. The rearing is seen only (AnimController turns the fish's joints, never its
-	-- Root); the stall and the surge are the ridden speed's own curve (RideController), never a push: the limits on a
+	SpeedSlack = 1.6, -- the server flags a ridden fish moving faster than its own surge speed (Config.speedOf x Surge) times this
+	-- The startle (Hugo, 2026-11-12): a fish you land on is shocked for about a second, like a horse rearing. Its nose
+	-- jerks up and it rears back, shaking, its tail thrashing, a "!" over its head, the rider braced. It never stops
+	-- (Hugo, later the same day: the stall and the bolt went): it drops to StartleSlow of its speed for StartleHold
+	-- seconds, then eases back to full over StartleRecover. The rearing is seen only (AnimController turns the fish's
+	-- joints, never its Root); the dip is the ridden speed's own curve (RideController), never a push: the limits on a
 	-- fish's force and torque (Lib/FishModel, 2026-11-12) stay. Only a landing startles, not the sandbox's reset.
 	Startle = 1, -- 1: a landing startles the fish; 0: the old mount (Surge at once, and Animation.LandingMix's reactions)
-	StartleTime = 0.8, -- seconds it rears and stalls before it bolts
-	StartleBrake = 0.15, -- it loses its speed over this long at the touch
-	StartleStall = 0.3, -- its speed while it rears, as a share of its ridden speed
-	StartleKick = 1.6, -- the bolt: this many times its ridden speed (keep it under Surge x SpeedSlack, which is what the server allows)
-	StartleSnap = 0.18, -- seconds from the stall up to the bolt's speed
-	StartleKickTime = 1.0, -- then it eases back to its ridden speed over this long
+	StartleTime = 0.8, -- seconds it rears and shakes (the look only: AnimController)
+	StartleBrake = 0.12, -- it comes down to StartleSlow over this long at the touch
+	StartleSlow = 0.6, -- its speed while it is startled, as a share of its ridden speed
+	StartleHold = 0.4, -- seconds it stays that slow
+	StartleRecover = 0.8, -- then it eases back to its ridden speed over this long
 	StartleRear = 34, -- how far the nose goes up, degrees (a big creature rears a little less)
 	StartleShake = 7, -- the shake while it is reared: degrees of roll each way,
 	StartleShakeRate = 9, -- and how many times a second
@@ -452,6 +582,14 @@ Config.Camera = {
 	ZoomMin = 8, -- nearest manually selected camera distance, studs
 	ZoomMax = 40, -- farthest manually selected camera distance, studs
 	AirMouseLook = 1, -- 1: in the hop the mouse aims without a button held (it is locked to the centre); 0: right drag only
+	-- The camera stays underwater (Hugo, 2026-11-12: it came out of the water in a hop, most of all in the first land).
+	-- Once we have dived, it is kept SurfaceMargin under the water's surface (WaterTop) until we are back on the dock or
+	-- respawn: near the surface it swings down behind us instead of rising, and the view gives up SurfaceTilt of the
+	-- tilt that costs, so we stay in the picture and the aim hardly moves. The jolt and the shake are held under too.
+	Submerge = 1, -- 0: the camera may leave the water, as before
+	WaterTop = 0, -- the height of the water's surface (the map's water: tools/map/water_look.luau, Top)
+	SurfaceMargin = 3, -- the camera stays this far under it, studs (clear of the water's own breathing layers)
+	SurfaceTilt = 0.5, -- 0: the view keeps its tilt (we sit high in the picture); 1: it levels out to keep us in the middle
 }
 
 -- The look of the light (Shared/Look puts these on Lighting; Controllers/LookController does it live while playing, so
@@ -554,8 +692,8 @@ Config.Feel = {
 	PopBurst = 16, -- bubbles kicked off where we left
 	PopLines = 0.6, -- speed lines through the pop's extra speed, 0 to 1 (0 off)
 	ReelLines = 1, -- and through the pull-in, growing as it speeds up
-	BoltLines = 0.85, -- and as a startled fish bolts
-	BoltFov = 6, -- the view kicks this much wider as it bolts
+	BoltLines = 0.85, -- and as a startled fish picks its speed up again
+	BoltFov = 3, -- the view kicks this much wider as it does
 	LinesFade = 0.3, -- seconds the lines take to die away
 	LinesInner = 0.42, -- how near the middle of the screen they reach, as a share of half its diagonal (1: the corners only)
 	Trail = 70, -- bubbles a second left behind us through the pop's extra speed and the pull-in (0 off)
@@ -753,6 +891,60 @@ function Config.smashes(fish: FishType): boolean
 	return fish.Size.Z >= Config.Props.MinLength
 end
 
+-- A spawned fish's size, from two rolls of 0 to 1 (Config.Size): `side` says bigger or smaller, `roll` by how much
+function Config.rollSize(side: number, roll: number): number
+	local z = Config.Size
+	if z.On <= 0 then
+		return 1
+	end
+	local t = math.clamp(roll, 0, 1) ^ math.max(z.Curve, 0.01)
+	local size = if side < 0.5 then 1 + t * (z.Max - 1) else 1 - t * (1 - z.Min)
+	return math.floor(size * 100 + 0.5) / 100
+end
+
+-- A spawned fish's variant, from a roll of 0 to 1 (Config.Variant): "", "Gold" or "Rainbow"
+function Config.rollVariant(roll: number): string
+	local v = Config.Variant
+	if roll < v.Rainbow then
+		return "Rainbow"
+	elseif roll < v.Rainbow + v.Gold then
+		return "Gold"
+	end
+	return ""
+end
+
+-- One fish's ridden speed: its species' (base x rarity), by its size and its variant
+function Config.speedOf(fish: FishType, size: number?, variant: string?): number
+	local s = Config.Speed
+	local speed = fish.RiddenSpeed * math.max(1 + s.SizeGain * ((size or 1) - 1), 0.1)
+	if variant == "Gold" then
+		speed *= s.Gold
+	elseif variant == "Rainbow" then
+		speed *= s.Rainbow
+	end
+	return speed
+end
+
+-- A fish model's size roll and variant (its attributes, written by the server at the spawn)
+function Config.sizeOf(model: Instance): number
+	local size = model:GetAttribute("Size")
+	return if type(size) == "number" and size > 0 then size else 1
+end
+
+function Config.variantOf(model: Instance): string
+	local variant = model:GetAttribute("Variant")
+	return if type(variant) == "string" then variant else ""
+end
+
+-- A fish model's own ridden speed and its body's size (width, height, length), from its type and its attributes
+function Config.riddenOf(model: Instance, fish: FishType): number
+	return Config.speedOf(fish, Config.sizeOf(model), Config.variantOf(model))
+end
+
+function Config.bodyOf(model: Instance, fish: FishType): Vector3
+	return fish.Size * Config.sizeOf(model)
+end
+
 -- a fish with a ridden speed of its own (RiddenSpeed in the table above) keeps it when the rarities' speeds change
 local OWN_SPEED: { [string]: number } = {}
 
@@ -808,16 +1000,14 @@ function Config.refresh()
 	local j = Config.Jump
 	j.DropTime = math.max(0.1, j.Window - j.LaunchTime - j.FloatTime)
 	j.FlightTime = j.Window + j.ReelMax
-	-- the rarities' speeds, as the sandbox panel may have changed them (Config.TierSpeed)
-	for name, speed in Config.TierSpeed do
-		local tier = Config.Tiers[name]
-		if tier then
-			tier.Ridden = speed
-		end
+	-- the rarities' speeds, and each species' (the sandbox panel may have changed Speed.Base or a TierMult)
+	for name, tier in Config.Tiers do
+		tier.Ridden = Config.Speed.Base * (Config.TierMult[name] or 1)
 	end
 	for _, fish in Config.Fish do
 		local tier = Config.Tiers[fish.Tier]
-		fish.RiddenSpeed = OWN_SPEED[fish.Id] or (if tier then tier.Ridden else fish.RiddenSpeed)
+		fish.RiddenSpeed = OWN_SPEED[fish.Id]
+			or (if tier then tier.Ridden else Config.Speed.Base) * (Config.SpeciesSpeed[fish.Id] or 1)
 		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
 		fish.Required = Config.required(fish.Home, fish.Tier)
 	end

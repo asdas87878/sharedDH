@@ -108,8 +108,9 @@ function Feel.mark(fish: Model)
 		return
 	end
 	local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-	local length = if kind then kind.Size.Z else 10
-	local height = if kind then kind.Size.Y else 5
+	local body = if kind then Config.bodyOf(fish, kind) else Vector3.new(5, 5, 10)
+	local length = body.Z
+	local height = body.Y
 	local function block(): Part
 		local p = Instance.new("Part")
 		p.Anchored = true

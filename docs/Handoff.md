@@ -3,6 +3,45 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · void (Hugo's PC): speed by fish, a size roll, variants' chances, the camera stays underwater, a startle that never stops
+**State:** built and run in Hugo's Studio through `~/Projects/studio-runner` (driven by script, judged from numbers
+and pictures; how it feels by hand is Hugo's to judge). StyLua, selene and `rojo build` pass. Nothing uploaded.
+Hugo's four asks are four rows in [Decisions](Decisions.md); the design is "Speed by fish" and "The camera stays
+underwater" in [riding feel](design/riding-feel.md); the note to the other chats is the top one in
+[Sessions](Sessions.md).
+
+- **Files:** `src/shared/Config.luau`, `src/server/Services/FishService.luau`, `RideService.luau` (it reads each
+  fish's own speed and body), `src/client/Controllers/RideController.luau`, `AnimController.luau`,
+  `JumpController.luau`, `src/client/Lib/Lock.luau`, `Feel.luau`, `src/client/UI/Tags.luau` (the name line), rows only
+  in `SandboxController.luau`; new `tools/balance/speed_table.py`. `FishModel` is untouched: its `MaxForce` and
+  `MaxTorque` stay.
+- **Speed:** `Config.speedOf(fish, size, variant)` = `Speed.Base` 45 x `SpeciesSpeed[id]` (0.92 to 1.08, all 82 with
+  a reason each) x `TierMult` (1, 1.16, 1.33, 1.51, 1.73, 2, 2.22) x (1 + `Speed.SizeGain` 0.15 x (size - 1)) x
+  `Speed.Gold` 1.10 or `Speed.Rainbow` 1.18. At size 1: Commons 41 to 47, Uncommons 49 to 56, Rares 55 to 65, Epics
+  63 to 73, Legendaries 72 to 84, Mythics 85 to 97, Secrets 92 to 108: round the partner's measured 60, 68, 78, 90.
+  The herd (0.85 of each fish's own), the ridden speed, the glide and the server's speed check all read it.
+  **`Config.TierSpeed` is gone;** `Tiers[..].Ridden` is worked out in `Config.refresh`.
+- **Size and variants:** `FishService` rolls both at the spawn (`Config.rollSize`, `rollVariant`), scales the built
+  model (`ScaleTo`, the seat keeping `Ride.SeatHeight` above the back), sets the `Size` and `Variant` attributes and
+  calls `Variants.apply`. What counts as a fish's body is its own (`Wild.Body`, `Config.bodyOf`): the lock, the
+  landing's reach, crashes, props, the ring, the swim's pace. **Seen:** 741 fish at the start, sizes 0.8 to 1.4,
+  mean 1.02, 20 Gold and 7 Rainbow; tags read "Blue Chromis x1.25".
+- **The startle:** `Ride.StartleSlow` 0.6, `StartleHold` 0.4, `StartleRecover` 0.8 replace `StartleStall`,
+  `StartleKick`, `StartleSnap`, `StartleKickTime`. **Measured** on a Yellow Tang (ridden 45.9): 27.5 through the
+  hold, 45.9 again 1.2 s after the touch; the same shape on a Liopleurodon (81: 48.5). The rear, shake and thrash
+  are unchanged. `Feel.BoltFov` 6 to 3 (there is no bolt now, only the pick-up).
+- **The camera:** `Camera.Submerge`, `WaterTop`, `SurfaceMargin` 3, `SurfaceTilt` 0.5. **Measured** in the first
+  land, a hop looking 40 degrees down: with it off, 94 frames above the surface (up to 2.4 studs above); with it on,
+  none, in that hop and in every hop of the check below (the highest the camera came was 3.0 under).
+- **The many-mounts check, run again:** 10 resets and 34 landings by hop across all ten lands, sizes 0.81 to 1.38, a
+  Gold among them. **None thrown:** the biggest move of the rider in one frame was 20 studs (a pull-in); the server
+  never flagged a fish as too fast; its log held only the known asset-type warning. 16 hops found no fish under the
+  script's fixed aim and sank (the sandbox's no-fail), as before.
+- **Not done / to know:** `tools/balance/model.py` still reads the rarities' old speeds and knows nothing of species,
+  size or variants (the tuning chat's). The species' bases, the multipliers and the chances are Claude's first
+  numbers, for Hugo and the tuning chat to tune. The tag's "x1.23" is plain text in the name line, for the UI chat
+  to style. Pictures (Hugo's PC): `~/Pictures/ride-a-fish/speed-size-2026-11-12/`.
+
 ## 2026-11-12 · void (Hugo's PC): the 82 creatures show in Hugo's place (mesh files on his PC, nothing uploaded), and Gold and Rainbow fish
 **State:** installed in Hugo's Studio and played through `~/Projects/studio-runner` (by script, judged from pictures).
 StyLua, selene and `rojo build` pass. **Nothing uploaded.** This ends "BLOCKED: the creature templates" below for
