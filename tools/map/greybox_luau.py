@@ -33,7 +33,7 @@ OUT = os.path.join(ROOT, "tools", "studio", "greybox")
 ORIGIN = (3000.0, 0.0, 0.0)
 PER_FILE = 600
 FOLDERS = ["Surface", "Lane/Seabed", "Lane/Ground", "Lane/Walls", "Lane/Far", "Lane/Props", "Lane/Trim", "Dock", "Dock/Plots", "Lane/Barrier"]
-TEXTURES = {"stud": "", "floor": "", "tile": ""}  # asset ids, once uploaded: "rbxassetid://..."
+TEXTURES = {"stud": "", "floor": "", "tile": "", "tile2": ""}  # asset ids, once uploaded: "rbxassetid://..."
 if os.path.exists(os.path.join(ROOT, "art", "map", "textures.json")):
     TEXTURES.update(json.load(open(os.path.join(ROOT, "art", "map", "textures.json"))))
 # where the one picture ("tile": squares of 8 with 8 round studs across each, 16 studs to a tile) goes on a part:
@@ -309,7 +309,7 @@ for k in range(files):
     open(os.path.join(OUT, f"{k + 1:02d}_parts.luau"), "w", encoding="utf-8", newline="\n").write(
         PARTS.replace("{what}", f"Parts, file {k + 1} of {files}.").replace("{FOLDERS}", lua_list(FOLDERS)).replace("{NAMES}", lua_list(name_list))
         .replace("{MODELS}", lua_list([model_list[m] for m in used_models])).replace("{ROWS}", json.dumps(chunk, **compact))
-        .replace("{TILE}", TEXTURES["tile"])
+        .replace("{TILE}", TEXTURES["tile2"])
         .replace("{LABEL}", f"parts file {k + 1} of {files}"))
 open(os.path.join(OUT, "99_check.luau"), "w", encoding="utf-8", newline="\n").write(
     CHECK.replace("{what}", "Last: counts what was built.").replace("{EXPECT}", str(len(rows) + len(zones))).replace("{{}}", "{}"))

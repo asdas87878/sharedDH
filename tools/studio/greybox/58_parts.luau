@@ -14,7 +14,7 @@ local function folderAt(path)
 	end
 	return at
 end
-local TILE = "rbxassetid://123856365405795" -- the one picture: squares of 8 with round studs, 16 studs to a tile; "" builds without it
+local TILE = "rbxassetid://124244361010023" -- the one picture: squares of 8 with round studs, 16 studs to a tile; "" builds without it
 local function picture(part, face, slide)
 	if TILE ~= "" then
 		local t = Instance.new("Texture")

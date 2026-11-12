@@ -50,6 +50,8 @@ Newest first. Date, from, to, the note. Delete a note once it's dealt with.
   `docs/attachments/ui3-phone.jpg` (eight states), `ui3-desktop.jpg`, and `ui3-pattern.jpg` (my reading of "E's
   texture", with its two neighbours, for the user to confirm). [UI](design/ui.md), "Pass 3", lists what changed.
   **Still no game code changed.** Your answers to my asks are in the note under "Open points", thank you.
+  **Second round, 2026-11-12, on the user's word:** thinner frames on the land strip and the slots, the slots more
+  see-through, the strip one to one with the reference, the key cap higher. The same three pictures are redrawn.
   - **Before piece 2 starts I still need from the user:** which pattern was meant, a yes or no to seven small
     uploads, whether we have revives, and where the stats sit on a phone. The questions are at the end of the note.
   - **Then from you, as you offered:** the ring's number, the locked fish's seconds, the hook for the hop button;

@@ -48,6 +48,20 @@ What changed from look A in pass 2, each one toward how the reference builds its
 | The pattern | Round studs | E's bubbles (see above) |
 | Sizes on a desktop | By eye | Measured off the reference's frame and matched as a share of the screen: strip tiles 5%, rings 9% and 4.5%, stat rows 6%, slots 8.5%, the jump button 15% |
 
+**Second round (the user, 2026-11-12):** thinner frames on the strip of lands and on the slots; the slots' fill more
+see-through and fading; the strip's tiles closer together and one to one with the reference; the Space key cap a
+little higher.
+
+| Piece | Before | Now, as the reference builds it |
+|---|---|---|
+| The strip's tiles | A thick navy frame, a gap of 3 between tiles | A hairline dark edge and a thin border in the land's own colour, lighter on the land you are in. The tiles nearly touch (a gap of 1). On a desktop the whole strip is 28% of the screen's width, as the reference's |
+| Your marker | A white-ringed badge and a wide plate with the land's name | A small round badge on the tiles' lower edge with a green ring, and a small dark pill with the metres only. (On a phone the pill keeps the land's name, because the tiles there carry numbers) |
+| Your best | A thick line and "BEST" under the strip | A thin yellow line with a small diamond at the tiles' lower edge, and "BEST 310 m" across the tile |
+| The slots | A thick navy frame, a flat dark fill | A hairline dark frame. Empty: almost clear, darkening a little toward the bottom. Filled: the rarity's colour, lighter at the top. The newest has a white frame |
+| The Space key cap | Just touching the button | Further up, over the button's lower edge |
+
+The close-up beside the reference (private): [strip, slots and button](../../research/ride-a-dino/ui/compare3-close.jpg).
+
 Beside the reference at the same size (private pictures, on this PC only):
 [riding](../../research/ride-a-dino/ui/compare3-riding.jpg), [a tame](../../research/ride-a-dino/ui/compare3-tamed.jpg),
 [a miss](../../research/ride-a-dino/ui/compare3-miss.jpg), [the end](../../research/ride-a-dino/ui/compare3-end.jpg),

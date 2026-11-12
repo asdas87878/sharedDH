@@ -68,6 +68,25 @@ ever so slightly, just a touch". Three numbers moved; the rest are as in the tab
 
 Pushed to the place and installed in Edit mode. Still not judged by eye by either chat: the user's eye is the test.
 
+## The blue taken out (2026-11-12)
+The user, playing: washed out too much; "feel the green more", "see the tone changes more". Measured with swatches in
+Studio: a pure green part (83, 214, 100) showed on screen as mint (7, 255, 161). The shade light (OutdoorAmbient)
+was nearly as blue as the sky, and the sky tinted every surface at full strength (EnvDiffuse 1), with saturation
+on top. Changed, by the map chat (which holds these numbers):
+
+| Number | Before | Now |
+|---|---|---|
+| Ambient | 112, 140, 170 | 118, 128, 138 |
+| OutdoorAmbient | 140, 162, 240 | 150, 158, 170 |
+| EnvDiffuse | 1 | 0.35 |
+| Contrast | 0.35 | 0.25 |
+| Saturation | 0.5 | 0.3 |
+
+Brightness 2.8, exposure -0.25, the bloom, the tint and the sky are as they were. After it the same green shows as
+(38, 236, 125), and the hub's part colours were then set so they land on the reference's on-screen colours
+([the map's structure](map-structure.md), "The hub's colours"). **What this gives up:** the walls no longer read
+blue, and the picture as a whole is a little less vivid. The sky itself is unchanged.
+
 ## The script we left out
 It runs when your character appears and puts a Roblox `Highlight` on it: a black outline round the whole character, and
 a black wash over the body at 20% (FillTransparency 0.8), hidden where something stands in front (DepthMode Occluded).

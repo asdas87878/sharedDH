@@ -275,6 +275,37 @@ at (0, 1, -104) before the loader's shift. The build attribute is "greybox 9".
 - Lands 5 to 10 borrow the first lands' assets and guessed colours; the backdrop is still pale slabs.
 - The part count is up by about 6,000 (a finer floor). Thinning is one of the parked steps.
 
+## The picture, second drawing (2026-11-12)
+The user, playing: is the stud our own texture or Roblox's (the reference may use Roblox's, try that); the checker's
+dark doesn't come out dark enough and it is all washed out; make it match the game more, feel the green more, see the
+tone changes more.
+
+**What was wrong, measured:**
+- **The first picture (`tile`) laid a white veil over everything.** Both of its squares were a light overlay, about
+  40% strong, differing only a little from each other. So every surface was lifted toward white and the two squares
+  came out 6% apart.
+- **In the reference the two squares are 13 to 15% apart** (the user's own screenshot: floor, wall face and grass all
+  measure 0.85 to 0.87, dark over light). My first reading of "5 to 7%" was wrong.
+- **The light added a heavy blue cast.** A pure green part (83, 214, 100) showed on screen as mint (7, 255, 161): the
+  shade light was as blue as the sky and the sky tinted every surface at full strength. See
+  [Lighting](lighting.md), "The blue taken out".
+
+**Roblox's own studs, tried:** switching a part's surface to Studs draws small raised squares, one to a stud. That is
+the look of the reference's sand pens and its creatures, not of its green floor, whose studs are round rings: a
+picture. So the ground keeps a picture.
+
+**The new picture (`tile2`, uploaded on the user's word; id in `art/map/textures.json`):** drawn by
+`tools/art/map_tile2.py`. A square is either left alone or shaded 14%; a stud is a thin dark ring with a small light
+on its upper left and a shade on its lower right; nothing lightens the surface as a whole. At 16 studs to a tile a
+stud of the picture is one Roblox stud. On a bench in Studio it reads as the reference does: a clear checker, round
+studs, and the green stays green.
+
+![The old picture above, the new below](../../art/style/map_tiles/roblox/_tile2_preview.jpg)
+
+**Loading the map:** `python tools/studio/load_greybox.py <studio_id>` now runs the loader's files in number order
+and waits, trying again every ten seconds, whenever Studio isn't in Edit mode. Before, pressing Play during a load
+left half a map in the place (the user met this: "the whole map is in there, it's just not all there").
+
 ## The hub's colours (2026-11-11)
 The user asked for a few colour looks for the hub, then for variations on one of them (Coral), then settled, for now,
 on **Ride a Dino's own hub colours, one to one.**
@@ -296,8 +327,10 @@ on **Ride a Dino's own hub colours, one to one.**
   (`docs/attachments/map-hub-looks.jpg`, `map-hub-looks-coral.jpg`).
 - **Out of the mouth the hub's wall colours fade into the first land's** over the first 420 studs, as the wall steps
   down. Before, the hub's colour stopped dead at the mouth.
-- **Sampled colours are their colours under their light.** Under the game's light ours will read more vivid. To be
-  judged in Studio and pulled back if so.
+- **Sampled colours are their colours as seen on screen.** The game's light lifts and deepens a part's colour, so the
+  parts are made a little darker and less blue to land on those: the floor is 105, 185, 85 and the grass 135, 200,
+  62 (found with swatches in Studio, 2026-11-12), the wall 178, 185, 160, the strip 198, 194, 155, the pads 184,
+  170, 110, the frames 150, 116, 62 (reckoned, not yet checked by swatch).
 
 ## What makes their map read, and where ours should go
 **What their structure does** (from the recordings and the screenshots):

@@ -70,7 +70,11 @@ HUB_LOOKS = {
     # Ride a Dino's own hub colours, one to one (the user, 2026-11-11: "for now for the hub"). Sampled from sunlit
     # places in the recordings: the green floor, the paler yellow-green grass, the pale grey-green wall face, the sand
     # start strip, the pens' sand and their wooden fences (our aquariums' frames)
-    "Dino": {"floor": (80, 210, 96), "face": (199, 207, 179), "top": (136, 220, 67), "strip": (222, 217, 174), "frame": (166, 128, 68), "pad": (206, 190, 124)},
+    # Those are the colours as they look on screen there (floor 83, 214, 100; grass 136, 220, 67; wall 199, 207, 179;
+    # strip 222, 217, 174; pen sand 206, 190, 124; fence 166, 128, 68). The game's light lifts and deepens a part's colour,
+    # so the parts are a little darker and less blue: found with swatches in Studio (2026-11-12) for the floor and grass,
+    # reckoned for the rest
+    "Dino": {"floor": (105, 185, 85), "face": (178, 185, 160), "top": (135, 200, 62), "strip": (198, 194, 155), "frame": (150, 116, 62), "pad": (184, 170, 110)},
     "Beach": {"floor": (242, 214, 128), "face": None, "top": (242, 214, 128), "strip": (250, 246, 230), "frame": (58, 66, 88)},
     "Lagoon": {"floor": (240, 218, 152), "face": (236, 232, 220), "top": (112, 190, 96), "strip": (255, 255, 255), "frame": (40, 70, 120)},
     "Coral": {"floor": (248, 222, 192), "face": (236, 150, 140), "top": (130, 214, 190), "strip": (255, 244, 226), "frame": (30, 90, 100)},

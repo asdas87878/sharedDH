@@ -1,6 +1,7 @@
 {
  "stud": "rbxassetid://125516729429617",
  "floor": "rbxassetid://128656252103676",
- "note": "Image ids, uploaded through Studio on the user's word. stud and floor: 2026-11-10 (the first try: studs too faint, squares of 10). tile: 2026-11-11, art/style/map_tiles/roblox/tile.png: two squares by two (10 studs to a tile), 8 round studs across a square, soft squares; the one picture for every surface (docs/design/map-structure.md). Uploads are permanent: redraw only when a picture is chosen.",
- "tile": "rbxassetid://123856365405795"
+ "note": "Image ids, uploaded through Studio on the user's word. stud and floor: 2026-11-10 (the first try: studs too faint, squares of 10). tile: 2026-11-11, art/style/map_tiles/roblox/tile.png: two squares by two (10 studs to a tile), 8 round studs across a square, soft squares; the one picture for every surface (docs/design/map-structure.md). Uploads are permanent: redraw only when a picture is chosen. tile2: 2026-11-12, art/style/map_tiles/roblox/tile2.png (tools/art/map_tile2.py): the second drawing, on the user's word: squares 14% apart, ring studs, no white veil; one stud of the picture = one Roblox stud at 16 studs to a tile. It is the one in use; tile is kept only as a record.",
+ "tile": "rbxassetid://123856365405795",
+ "tile2": "rbxassetid://124244361010023"
 }

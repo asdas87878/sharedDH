@@ -131,7 +131,44 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 	// ---------------------------------------------------------------- the pieces of the riding screen
 	const SHORT = ["Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Midnight", "Vents", "Bones", "Under"];
 	// The strip of the ten lands across the top (the reference's place and job), stepping down land by land (ours)
+	// Pass 3, second round (the user, 2026-11-12: thinner frames, the tiles closer together, one to one with the
+	// reference). Tiles nearly touch; each has a hairline dark edge and a thin border in its land's own colour, lighter
+	// on the land you are in; the name across the top. Your badge sits on the lower edge with the metres under it. Your
+	// best is a thin yellow line with its metres and a small diamond.
+	function landStripRef(landIndex, u, metres, best) {
+		const tw = DESK ? 27 : 28, gap = 1;
+		const x0 = -(10 * tw + 9 * gap) / 2;
+		let s = "";
+		for (let i = 0; i < 10; i++) {
+			const c = LANDS[i][1];
+			const on = i === landIndex;
+			const body = i > landIndex ? mix(c, [40, 60, 96], 0.4) : c;
+			const edge = on ? lighten(c, 0.6) : darken(c, 0.4);
+			const label = DESK
+				? `<div class="t thin" style="position:absolute;left:50%;top:0.5px;transform:translateX(-50%);font-size:${SHORT[i].length > 6 ? 5 : 5.8}px;-webkit-text-stroke-width:2px">${SHORT[i]}</div>`
+				: `<div class="t thin" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);font-size:11px;opacity:${i <= landIndex ? 1 : 0.75}">${i + 1}</div>`;
+			const art = `<div style="position:absolute;left:0;right:0;bottom:0;height:42%;background:${rgb(darken(body, 0.18))}"></div><div style="position:absolute;left:14%;bottom:30%;width:22%;height:${DESK ? 30 : 24}%;background:${rgb(darken(body, 0.34))}"></div><div style="position:absolute;right:16%;bottom:34%;width:16%;height:${DESK ? 20 : 16}%;background:${rgb(lighten(body, 0.3))}"></div>`;
+			s += `<div style="left:${x0 + i * (tw + gap)}px;top:0;width:${tw}px;height:${tw}px;box-sizing:border-box;background:linear-gradient(180deg, ${rgb(lighten(body, 0.2))}, ${rgb(body)});border:${on ? 2.2 : 1.6}px solid ${rgb(edge)};box-shadow:0 0 0 1px ${rgba(SK.ink, 0.9)};border-radius:2px;overflow:hidden;${on ? "z-index:1;" : ""}">${art}${label}</div>`;
+		}
+		const mx = x0 + landIndex * (tw + gap) + u * tw;
+		s += `<div style="left:${mx - 8}px;top:${tw - 6}px;width:16px;height:16px;border-radius:50%;box-sizing:border-box;background:#3d8bf0;border:2px solid #8df06a;box-shadow:0 0 0 1px ${INKC};z-index:2"><div style="position:absolute;left:3px;top:1.5px;width:6px;height:6px;border-radius:2px;background:#f2c9a0"></div></div>`;
+		const words = DESK ? T(metres + " m", 7.2, "#fff", "thin") : `<span class="rowx" style="gap:4px">${T(LANDS[landIndex][0].toUpperCase(), 8, rgb(lighten(LANDS[landIndex][1], 0.35)), "thin")}${T(metres + " m", 10, "#fff", "thin")}</span>`;
+		s += `<div style="left:${mx}px;top:${tw + 10.5}px;transform:translateX(-50%);background:rgba(10,20,36,.82);border-radius:999px;padding:1px 5px 1.5px;display:flex;align-items:center;box-shadow:0 0 0 1px rgba(255,255,255,.14)">${words}</div>`;
+		if (best !== undefined) {
+			const bx = x0 + best * (tw + gap);
+			s += `<div style="left:${bx - 0.75}px;top:${tw * 0.64}px;width:1.5px;height:${tw * 0.3}px;background:#ffd23f;z-index:1"></div>`;
+			s += `<div style="left:${bx - 2.5}px;top:${tw * 0.92}px;width:5px;height:5px;background:#ffd23f;transform:rotate(45deg);box-shadow:0 0 0 1px ${INKC};z-index:1"></div>`;
+			// on a phone the tiles carry numbers, so the words sit just under the strip, beside the diamond
+			s += DESK
+				? `<div style="left:${bx}px;top:${tw * 0.4}px;transform:translateX(-50%);z-index:1;display:flex">${T("BEST 310 m", 6.2, "#ffd23f", "thin")}</div>`
+				: `<div style="left:${bx + 6}px;top:${tw + 1}px;z-index:1;display:flex">${T("BEST 310 m", 7, "#ffd23f", "thin")}</div>`;
+		}
+		return s;
+	}
 	function landStrip(landIndex, u, metres, best) {
+		if (REF) {
+			return landStripRef(landIndex, u, metres, best);
+		}
 		const tw = DESK ? 30 : 28, gap = 3, step = REF ? 0 : 1.6;
 		let s = "";
 		const x0 = -(10 * tw + 9 * gap) / 2;
@@ -206,7 +243,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 			const arrowC = mode === "off" ? "rgba(255,255,255,.35)" : o.hot ? "#ffd23f" : "rgba(238,246,255,.86)";
 			let b = `<div class="colx" style="width:${dd}px;height:${dd}px;border-radius:50%;box-sizing:border-box;background:rgba(10,24,44,.5);border:${o.hot ? 4 : 3}px solid ${ringC};box-shadow:0 0 0 3px rgba(10,24,44,.3);justify-content:center">${icArrow(DESK ? 34 : 30, arrowC, mode === "grab")}${DESK ? "" : `<div style="font-size:15px;line-height:1;margin-top:3px;color:${arrowC}">${mode === "grab" ? "GRAB" : "HOP"}</div>`}</div>`;
 			if (DESK) {
-				b += `<div style="display:flex;justify-content:center;margin-top:-9px;position:relative"><div style="background:#fff;border:3px solid ${INKC};border-radius:8px;padding:2px 14px 3px;font-size:13px;line-height:1.1;color:${INKC}">Space</div></div>`;
+				b += `<div style="display:flex;justify-content:center;margin-top:-16px;position:relative"><div style="background:#fff;border:3px solid ${INKC};border-radius:8px;padding:2px 14px 3px;font-size:13px;line-height:1.1;color:${INKC}">Space</div></div>`;
 			}
 			return `<div style="right:0;bottom:0"><div style="position:relative">${b}</div></div>`;
 		}
@@ -235,6 +272,18 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 	// The slots at the bottom middle: what you carry home (the reference's row of seven)
 	const TILE = { Common: [176, 184, 196], Uncommon: [98, 208, 98], Rare: [86, 150, 250], Epic: [176, 104, 250], Legendary: [255, 184, 52], Mythic: [250, 84, 104], Secret: [44, 44, 58] };
 	function slot(item, size, sel) {
+		if (REF) {
+			if (!item) {
+				return `<div style="width:${size}px;height:${size}px;box-sizing:border-box;border:1.5px solid rgba(8,18,34,.88);border-radius:1px;background:linear-gradient(180deg, rgba(8,18,34,.02), rgba(8,18,34,.17))"></div>`;
+			}
+			const [name, tier, tag] = item;
+			const label = name.length > 7 ? name.slice(0, 6).trim() + "." : name;
+			const c = TILE[tier];
+			return `<div style="position:relative;width:${size}px;height:${size}px;box-sizing:border-box;border:1.5px solid ${rgba(SK.ink, 0.95)};border-radius:1px;background:linear-gradient(180deg, ${rgb(lighten(c, 0.28))}, ${rgb(c)});overflow:hidden;${sel ? "outline:2.5px solid #fff;outline-offset:0;" : ""}">`
+				+ `<div style="position:absolute;inset:0;display:flex;justify-content:center">${thumb(name.replace(/ /g, ""), size - 6, size - 10)}</div>`
+				+ (tag ? `<div class="t thin" style="position:absolute;left:2px;top:0;font-size:${size * 0.19}px;color:${tag === "GOLD" ? "#ffd23f" : tag === "BIG" ? "#ffb057" : "#dfe7f2"}">${tag}</div>` : "")
+				+ `<div class="t thin" style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);font-size:${size * 0.25}px">${label}</div></div>`;
+		}
 		if (!item) {
 			return plate(LOOK === "bubble" ? [30, 80, 140] : [18, 40, 70], "", { w: size, h: size, pad: "0", r: REF ? 2 : 5, lip: false, gloss: false, alpha: REF ? 0.3 : 0.55, tex: LOOK !== "bubble" && !REF });
 		}
@@ -246,7 +295,7 @@ window.onerror = (m, f, l, c, e) => { document.getElementById("root").innerHTML 
 		return plate(TILE[tier], inner, { w: size, h: size, pad: "0", r: REF ? 2 : 5, lip: false, tex: false, gloss: LOOK !== "brick" && LOOK !== "over", solid: true, inner: "position:absolute;inset:0;display:flex;justify-content:center", style: sel ? "outline:2.5px solid #fff;outline-offset:1px;" : "" });
 	}
 	function slots(list, o = {}) {
-		const size = DESK ? 46 : 34, gap = 4, n = 7;
+		const size = DESK ? (REF ? 50 : 46) : 34, gap = REF ? (DESK ? 6 : 5) : 4, n = 7;
 		const w = n * size + (n - 1) * gap;
 		let s = TRAYS ? `<div style="left:${-w / 2 - 7}px;bottom:-6px;width:${w + 14}px;height:${size + 12}px;box-sizing:border-box;border-radius:12px;background:linear-gradient(180deg, rgba(120,200,255,.4), rgba(10,50,110,.5));border:2px solid rgba(255,255,255,.88);box-shadow:0 0 0 1.5px rgba(4,30,70,.5)"><div style="position:absolute;left:6px;right:6px;top:2px;height:40%;border-radius:9px 9px 60% 60%;background:linear-gradient(180deg, rgba(255,255,255,.45), rgba(255,255,255,0))"></div></div>` : "";
 		for (let i = 0; i < n; i++) {
