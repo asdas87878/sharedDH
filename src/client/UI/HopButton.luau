@@ -19,13 +19,20 @@ local shownHot = false
 local touch = false
 
 local PALE = Color3.fromRGB(238, 246, 255)
+-- the half of the head's square that shows: the corner that points up, down to the line between its two side corners
+local HEAD = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0),
+	NumberSequenceKeypoint.new(0.5, 0),
+	NumberSequenceKeypoint.new(0.501, 1),
+	NumberSequenceKeypoint.new(1, 1),
+})
 
 function HopButton.build(parent: Instance, press: () -> ())
 	button = Kit.new("TextButton", {
 		Name = "HopButton",
 		AnchorPoint = Vector2.new(1, 1),
 		Size = UDim2.fromOffset(92, 92),
-		BackgroundColor3 = Color3.fromRGB(10, 24, 44),
+		BackgroundColor3 = Kit.Deep,
 		BackgroundTransparency = 0.5,
 		Text = "",
 		AutoButtonColor = false,
@@ -41,25 +48,38 @@ function HopButton.build(parent: Instance, press: () -> ())
 		Size = UDim2.fromOffset(34, 34),
 		BackgroundTransparency = 1,
 	}, button)
-	-- the arrow: four bars stepping in to a point, and a short bar under them (blocks, like the world)
-	for i, width in { 6, 14, 22, 30 } do
-		arrowParts[i] = Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, (i - 1) * 5.5),
-			Size = UDim2.fromOffset(width, 6),
-			BackgroundColor3 = PALE,
-			BackgroundTransparency = 0.14,
-			BorderSizePixel = 0,
-		}, arrow)
-	end
-	arrowParts[5] = Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.fromOffset(13, 6),
+	-- the arrow, as the reference's: a pointed head, a short stem, and a small bar under them. The head is a square
+	-- turned on its corner with its lower half cut away by a gradient, so its edges are clean (it was four bars
+	-- stepping in to a point, which read as a little tree)
+	local head: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(17, 16),
+		Size = UDim2.fromOffset(21, 21),
+		Rotation = 45,
 		BackgroundColor3 = PALE,
 		BackgroundTransparency = 0.14,
 		BorderSizePixel = 0,
 	}, arrow)
+	Kit.corner(head, 3)
+	Kit.new("UIGradient", { Transparency = HEAD, Rotation = 45 }, head)
+	arrowParts[1] = head
+	arrowParts[2] = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromOffset(17, 15.6), -- (a hair into the head, so no line shows between them)
+		Size = UDim2.fromOffset(12, 8.4),
+		BackgroundColor3 = PALE,
+		BackgroundTransparency = 0.14,
+		BorderSizePixel = 0,
+	}, arrow)
+	arrowParts[3] = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromOffset(17, 27),
+		Size = UDim2.fromOffset(12, 4.5),
+		BackgroundColor3 = PALE,
+		BackgroundTransparency = 0.14,
+		BorderSizePixel = 0,
+	}, arrow)
+	Kit.corner(arrowParts[3], 1)
 	word = Kit.new("TextLabel", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0.4, 19),
@@ -80,7 +100,8 @@ function HopButton.build(parent: Instance, press: () -> ())
 		Visible = false,
 	}, button)
 	Kit.corner(cap, 8)
-	Kit.stroke(cap, 3, Kit.Ink)
+	Kit.stroke(cap, 2.2, Kit.Ink)
+	Kit.shade(cap)
 	Kit.new("TextLabel", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,

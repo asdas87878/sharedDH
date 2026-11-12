@@ -29,7 +29,7 @@ local pictures: { Portrait.Portrait } = {}
 
 local EMPTY = NumberSequence.new(0.98, 0.83)
 local FULL = NumberSequence.new(0.08)
-local DARK = Color3.fromRGB(8, 18, 34)
+local DARK = Kit.Deep
 
 function Slots.build(parent: Instance)
 	holder = Kit.new("Frame", {
@@ -41,11 +41,11 @@ function Slots.build(parent: Instance)
 		Visible = false,
 	}, parent)
 	count = Kit.text({
-		Size = UDim2.fromOffset(120, 12),
-		TextSize = 11,
-		TextColor3 = Color3.fromRGB(156, 240, 106),
+		Size = UDim2.fromOffset(120, 13),
+		TextSize = 12,
+		TextColor3 = Kit.Good,
 		TextXAlignment = Enum.TextXAlignment.Left,
-	}, holder, 1.8)
+	}, holder)
 	for i = 1, COUNT do
 		local slot: Frame = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0, 1),
@@ -69,7 +69,7 @@ function Slots.build(parent: Instance)
 			Size = UDim2.fromOffset(SIZE + 8, 10),
 			TextSize = 8.5,
 			ZIndex = 2,
-		}, slot, 1.6)
+		}, slot)
 		frames[i] = slot
 	end
 end
@@ -77,7 +77,9 @@ end
 function Slots.place(touch: boolean)
 	local size = if touch then SIZE else 46
 	local gap = if touch then GAP else 6
-	holder.Size = UDim2.fromOffset(COUNT * size + (COUNT - 1) * gap, size + 16)
+	holder.Size = UDim2.fromOffset(COUNT * size + (COUNT - 1) * gap, size + 18)
+	-- its bottom edge level with the stat rows' on a keyboard (StatRows.place)
+	holder.Position = UDim2.new(0.5, 0, 1, if touch then -10 else -16)
 	for i = 1, COUNT do
 		frames[i].Size = UDim2.fromOffset(size, size)
 		frames[i].Position = UDim2.new(0, (i - 1) * (size + gap), 1, 0)

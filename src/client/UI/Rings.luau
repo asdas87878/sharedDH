@@ -117,7 +117,7 @@ function Rings.build(parent: Instance)
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = UDim2.fromOffset(BIG + 20, 22),
 			TextSize = 17,
-		}, holder, 2.4)
+		}, holder)
 	end
 	nameText = Kit.text({
 		AnchorPoint = Vector2.new(0.5, 0),

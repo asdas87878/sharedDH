@@ -176,6 +176,71 @@ HUD judges it itself, by the same rule, so the red is there at once.
 follows a point at the rider's shoulder, and sits a little over a quarter of the screen's height to the right), a
 landing on a fish too strong, the picture in the banner and in a slot, and a full tame ring (the seam).
 
+## Piece 4: a pass for cohesion (2026-11-12)
+**Before and after, side by side, from captures of the game:** [the sheet](../attachments/ui4-before-after.jpg)
+(`python tools/ui/before_after.py` draws it again). It covers pieces 3 and 4. The "after" captures have a black
+world, because Studio drew no 3D when they were taken; the HUD in them is the real one.
+
+The user: "Do another pass to make the ui more cohesive, any highlights, overlays, box sizes, missing elements,
+things too small, things too tacky, things too rounded, too thick, improperly placed etc".
+
+**State: run once in Studio by the game-code chat, 2026-11-12: no errors.** Studio still drew no 3D, so the
+pictures are the HUD on black: [riding, with a best](../attachments/ui-game-p4-riding-best.jpg) (the new arrow, the
+thinner key cap, the Oxygen row bigger and level with the slots, "BEST 1331 m" inside the strip),
+[the catch banner fully on the screen](../attachments/ui-game-p4-riding-tamed.jpg),
+[a new land's name](../attachments/ui-game-p4-new-land.jpg) and [the hop](../attachments/ui-game-p4-hop.jpg).
+Three things from those pictures, **written and not run yet**:
+- **On a small tag the red plate covered the lower half of the name.** The tag's rows lapped over each other by 3,
+  and that lap is not sized with the tag, so the smaller the tag the more it covered. The rows no longer lap, and
+  the plate sits a little lower, clear of the name's tails.
+- **The new land's name nearly touched the metres pill.** It sits 10 lower.
+- **In the hop picture the big tag said a fish was locked while the button said nothing was** (a grey arrow, up).
+  The tags looked at the lock four times a second, so a tag could stay big for a quarter of a second after its
+  lock was gone. A change of lock is now looked at within a twelfth of a second. Grey-and-up is not a look for a
+  fish too strong: with any fish locked the arrow turns over.
+
+**A second run confirmed the first two** ([the new land's name clear of the pill, and a small tag's name
+whole](../attachments/ui-game-p4-new-land.jpg)). The third showed the other side of the same fault:
+[in the hop, the button said GRAB and no tag was big](../attachments/ui-game-p4-hop-locked.jpg). My reading, not
+proved (the world was black in the picture): the locked fish was under the rider or behind the camera, so its tag
+was off the screen. **The locked fish's tag is now kept on the screen:** over the fish when the fish is in view,
+else held at the nearest edge, clear of the strip of lands and the slots. So whenever the button says GRAB, a big
+tag says which fish and what it needs. **A third run showed the two agreeing** (the same picture, retaken:
+the arrow turned over, and a big "Common / Boxfish / Needs 80 / holds 2.5 s" beside the aim). One picture, so it
+shows them agreeing once; the case the fix was for, a locked fish out of view, has not been seen.
+
+**Left as it is:** a slot's name is cut short with a dot ("Sergea."). The reference cuts its own the same way
+("Pachyce."), and the whole name is on the catch banner.
+
+The whole HUD was gone through piece by piece, against the captures from the game and the reference's frame. What
+was off, and what was done:
+
+| What was off | Where | Now |
+|---|---|---|
+| **Too thick:** every piece chose its own outline for its letters. Small words had the thickest for their size (the land names' outline was a quarter of the letters' height) and were clogged | Everywhere | **One rule for the whole HUD:** the outline follows the letters' size, about a tenth of big letters and a fifth of small ones, as the reference's. No piece sets its own |
+| **Eight dark blues** for the see-through fills, and four greens | Bars, slots, pills, the button, the rings | **One dark fill** (`Kit.Deep`), one outline colour, one green for "good", one for "tamed" |
+| **Too small:** the stat rows were 5.2% of the screen's height beside slots of 8.2%; the reference's are 6.4% beside 8.6% | The Oxygen row | A sixth bigger: the bar, the bubble and the number. A little smaller again on a phone |
+| **Too small:** the land names on the tiles, the "BEST" words, "Needs" on a tag, "CAUGHT" | The strip, the tags, the slots | Each a step bigger, as far as it fits its box |
+| **Tacky:** the hop button's arrow was four bars stepping in to a point. It read as a little tree | The hop button | A clean pointed head, a short stem and a small bar under them, as the reference's arrow |
+| **Too thick:** the "Space" key cap's outline was half again the reference's | The hop button | Thinner |
+| **Too rounded:** the red plate on a fish too strong was a full pill. The HUD's rule is that plates have small corners and only the reference's round things are round | The tags | A plate with a small corner |
+| **No highlight:** solid plates were one flat colour | The key cap, the red plate | One shared highlight: lit from above, a little darker toward the bottom edge |
+| **Sizes the wrong way round:** on a tag the name was bigger than the rarity. The reference's biggest line is the rarity | The tags | The rarity is the biggest line, the name a little smaller |
+| **Improperly placed:** the stat rows and the slots sat at different heights off the bottom edge, and tight to it | The bottom of the screen | Level with each other, a little further up, as the reference's |
+| **Improperly placed:** a best dive in the last land had its "BEST 9554 m" run off the strip's right end | The strip of lands | Kept inside the strip |
+| **Overlay:** the edges that close in as you drown were purple-black, the only purple on the HUD | The drowning | The HUD's own dark blue |
+| **Missing:** nothing marked crossing into a new land | The dive | **A new land's name** comes up for two seconds under the strip, in that land's colour, with "LAND 3 OF 10". It is drawn on the same dark streak as GREAT DIVE!, smaller. Not for the land a dive starts in |
+
+**Looked at and left as it is:** the strip's tiles and badge, the rings (piece 3), the aim, the slots' frames, the
+catch banner, GREAT DIVE!, the words of a miss, the speed lines.
+
+**Still missing, and not built here** (each needs a decision or a system): a creature's picture on the strip's
+tiles and patterns on the plates (uploads), the first-minute hints, the revive bar, the coins row (it shows when the
+game has coins), the dock's buttons and panels.
+
+**To look at in the game, one capture each:** riding on a desktop (the stat row's new size, the tags, the arrow),
+the hop (the arrow turned over), crossing into the second land (the new banner), and a best in a far land.
+
 ## The files
 | File | What it is |
 |---|---|
@@ -188,7 +253,7 @@ landing on a fish too strong, the picture in the banner and in a slot, and a ful
 | `src/client/UI/Tags.luau` | Tags on the nearest wild fish: rarity, name, what each needs where it swims; a red plate on a fish too strong; far or crowded fish show only the number |
 | `src/client/UI/Aim.luau` | In the hop: the aim, and the window as a ring |
 | `src/client/UI/Slots.luau` | The seven slots for what you carry, each with its creature's picture |
-| `src/client/UI/Banners.luau` | A miss, the end of a dive, a catch |
+| `src/client/UI/Banners.luau` | A miss, the end of a dive, a catch, a new land |
 | `src/client/UI/Portrait.luau` | A creature's picture: its own model drawn in a small window, no upload |
 | `tools/ui/ring_sheet.py` | Draws the sheet above: the reference's rings over ours |
 

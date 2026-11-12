@@ -11,6 +11,7 @@ local LandStrip = {}
 local TILE = 28
 local GAP = 1
 local COUNT = 10
+local WIDE = COUNT * TILE + (COUNT - 1) * GAP
 
 local holder: Frame
 local faces: { Frame } = {}
@@ -84,14 +85,14 @@ function LandStrip.build(parent: Instance)
 			TextSize = 11,
 			Text = tostring(i),
 			ZIndex = 2,
-		}, face, 1.8)
+		}, face)
 		names[i] = Kit.text({
-			Size = UDim2.new(1, 0, 0, 8),
-			TextSize = if #Kit.LandShort[i] > 6 then 5 else 6,
+			Size = UDim2.new(1, 0, 0, 9),
+			TextSize = if #Kit.LandShort[i] > 6 then 5.5 else 7,
 			Text = Kit.LandShort[i],
 			Visible = false,
 			ZIndex = 2,
-		}, face, 1.4)
+		}, face)
 	end
 
 	bestLine = Kit.new("Frame", {
@@ -114,11 +115,11 @@ function LandStrip.build(parent: Instance)
 	bestText = Kit.text({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Size = UDim2.fromOffset(70, 10),
-		TextSize = 7,
+		TextSize = 7.5,
 		TextColor3 = Kit.Sun,
 		Visible = false,
 		ZIndex = 3,
-	}, holder, 1.6)
+	}, holder)
 
 	badge = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -135,7 +136,7 @@ function LandStrip.build(parent: Instance)
 		Position = UDim2.fromOffset(0, TILE + 11),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 12),
-		BackgroundColor3 = Color3.fromRGB(10, 20, 36),
+		BackgroundColor3 = Kit.Deep,
 		BackgroundTransparency = 0.18,
 		ZIndex = 4,
 	}, holder)
@@ -153,7 +154,7 @@ function LandStrip.build(parent: Instance)
 		TextSize = 8,
 		LayoutOrder = 1,
 		ZIndex = 5,
-	}, pill, 1.4)
+	}, pill)
 	pillMetres = Kit.text({
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 12),
@@ -161,7 +162,7 @@ function LandStrip.build(parent: Instance)
 		Text = "0 m",
 		LayoutOrder = 2,
 		ZIndex = 5,
-	}, pill, 1.4)
+	}, pill)
 	paint(1)
 end
 
@@ -222,15 +223,20 @@ function LandStrip.update(
 			bestLine.Position = UDim2.fromOffset(bx - 0.75, TILE * 0.64)
 			bestMark.Position = UDim2.fromOffset(bx, TILE)
 			bestText.Text = "BEST " .. bestWhole .. " m"
-			-- across the tile on a keyboard; just under the strip on a phone, clear of the tiles' numbers
-			if touch then
+			-- across the tile on a keyboard; just under the strip on a phone, clear of the tiles' numbers. Kept
+			-- inside the strip either way (a best in the last land ran off its right end)
+			if not touch then
+				bestText.AnchorPoint = Vector2.new(0.5, 0.5)
+				bestText.TextXAlignment = Enum.TextXAlignment.Center
+				bestText.Position = UDim2.fromOffset(math.clamp(bx, 26, WIDE - 26), TILE * 0.52)
+			elseif bx > WIDE - 60 then
+				bestText.AnchorPoint = Vector2.new(1, 0.5)
+				bestText.TextXAlignment = Enum.TextXAlignment.Right
+				bestText.Position = UDim2.fromOffset(bx - 6, TILE + 5)
+			else
 				bestText.AnchorPoint = Vector2.new(0, 0.5)
 				bestText.TextXAlignment = Enum.TextXAlignment.Left
 				bestText.Position = UDim2.fromOffset(bx + 6, TILE + 5)
-			else
-				bestText.AnchorPoint = Vector2.new(0.5, 0.5)
-				bestText.TextXAlignment = Enum.TextXAlignment.Center
-				bestText.Position = UDim2.fromOffset(bx, TILE * 0.52)
 			end
 		end
 	end

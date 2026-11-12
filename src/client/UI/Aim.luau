@@ -45,7 +45,7 @@ function Aim.build(parent: Instance)
 		TextColor3 = Kit.Coral,
 		Text = "FIND A FISH!",
 		Visible = false,
-	}, holder, 2.6)
+	}, holder)
 end
 
 function Aim.hide()

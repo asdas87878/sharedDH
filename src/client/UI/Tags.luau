@@ -32,14 +32,14 @@ local Tags = {}
 local POOL = 10
 local REACH = 260 -- studs: fish further off get no tag
 local PERIOD = 0.25 -- seconds between looks at the herd
+local QUICK = 0.08 -- and the soonest another look comes when the locked fish changes
 -- the room a tag's words take at size 1, to tell when two would land on each other (the frame itself is wider)
 local WORDS_WIDE = 118
-local WORDS_HIGH = 45
+local WORDS_HIGH = 51
 local HOLD_HIGH = 14 -- the extra line on the locked fish in the hop
 local SMALL_WIDE = 62 -- the same for a tag that is only the bubble and the number
-local SMALL_HIGH = 19
+local SMALL_HIGH = 21
 local FAR = 110 -- studs: from here on a tag is only the bubble and the number
-local TOO_STRONG = Color3.fromRGB(214, 44, 56) -- the red plate
 -- The reference marks no animal while you still ride, only once you are in the air, and the game follows it
 -- (Config.Lock.Preview 0: nothing is locked until the hop). Were the lock shown while riding again, true here would
 -- give the locked fish its bigger tag then too.
@@ -83,6 +83,7 @@ local picks: { Model } = table.create(POOL)
 local reach: { number } = table.create(POOL)
 local picked = 0
 local sinceLook = math.huge
+local lastLocked: Model? = nil
 local hudScale = 1
 
 local NEED = { Kit.Good, Kit.Sun, Color3.fromRGB(255, 100, 104) }
@@ -100,26 +101,31 @@ local function make(parent: Instance): Tag
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, -3),
 	}, root)
-	local tier = Kit.text({ Size = UDim2.fromOffset(260, 15), TextSize = 12, LayoutOrder = 1 }, root)
+	-- The rows don't lap over each other (they did, by 3: a list's padding is not sized with the tag, so on a small
+	-- tag the red plate covered the lower half of the name, 2026-11-12). The rarity's row is a little short for its
+	-- letters, which only brings it closer to the name; the plate sits at the bottom of a taller row, clear of the
+	-- name's tails.
+	-- (the rarity is the biggest line, as the reference's; the name a little smaller under it)
+	local tier = Kit.text({ Size = UDim2.fromOffset(260, 15), TextSize = 14, LayoutOrder = 1 }, root)
 	local tierGradient = Kit.gradient(tier, Kit.White, Kit.White)
-	local name = Kit.text({ Size = UDim2.fromOffset(260, 17), TextSize = 13.5, LayoutOrder = 2 }, root)
+	local name = Kit.text({ Size = UDim2.fromOffset(260, 16), TextSize = 13, LayoutOrder = 2 }, root)
 	local needRow = Kit.new("Frame", {
-		Size = UDim2.fromOffset(260, 17),
+		Size = UDim2.fromOffset(260, 20),
 		BackgroundTransparency = 1,
 		LayoutOrder = 3,
 	}, root)
 	-- the plate round what the fish needs: clear, and red when the fish is too strong to hold
 	local plate: Frame = Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 1),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 17),
-		BackgroundColor3 = TOO_STRONG,
+		BackgroundColor3 = Kit.Danger,
 		BackgroundTransparency = 1,
 	}, needRow)
-	Kit.corner(plate, 999)
+	Kit.corner(plate, 4) -- (a plate's corner, as the HUD's other plates: it was a full pill)
+	Kit.shade(plate)
 	local plateEdge = Kit.stroke(plate, 1.5, Kit.Ink)
 	plateEdge.Enabled = false
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }, plate)
@@ -133,10 +139,10 @@ local function make(parent: Instance): Tag
 	local needWord = Kit.text({
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 15),
-		TextSize = 9.5,
+		TextSize = 10.5,
 		Text = "Needs",
 		LayoutOrder = 1,
-	}, plate, 1.8)
+	}, plate)
 	Kit.bubble(plate, 11).LayoutOrder = 2
 	local need = Kit.text({
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -265,12 +271,32 @@ local function clash(tag: Tag, before: number): boolean
 	return false
 end
 
+-- Where the locked fish's tag goes: over the fish, but kept on the screen. A locked fish can be under the rider or
+-- behind the camera (the fish just left can be grabbed again), and its tag was then off the screen: the hop button
+-- said GRAB and no tag said what (2026-11-12). Held inside the edges, clear of the strip of lands and the slots; a
+-- fish behind the camera has its tag at the bottom, on the side it is on.
+local function pin(tag: Tag, point: Vector3, camera: Camera): (number, number)
+	local size = camera.ViewportSize
+	local side = tag.Wide / 2 + 8 * hudScale
+	local x, y = point.X, point.Y
+	if point.Z <= 0 then
+		x = size.X - x
+		y = size.Y
+	end
+	return math.clamp(x, side, math.max(size.X - side, side)),
+		math.clamp(y, tag.High + 64 * hudScale, math.max(size.Y - 92 * hudScale, tag.High + 64 * hudScale))
+end
+
 -- Each tag over its fish, every frame: the one thing here that runs per frame
 local function follow(camera: Camera)
 	for _, tag in tags do
 		local fish = tag.Fish
 		local root = fish and fish.PrimaryPart
-		if root and not tag.Crowded then
+		if root and tag.Locked then
+			local x, y = pin(tag, camera:WorldToViewportPoint(root.Position + tag.Offset), camera)
+			tag.Frame.Visible = true
+			tag.Frame.Position = UDim2.fromOffset(x, y)
+		elseif root and not tag.Crowded then
 			local point = camera:WorldToViewportPoint(root.Position + tag.Offset)
 			local onScreen = point.Z > 0
 			tag.Frame.Visible = onScreen
@@ -365,11 +391,17 @@ function Tags.update(
 		return
 	end
 	sinceLook += dt
+	-- the lock changing is looked at soon, not at the next quarter second, so the big tag and the hop button don't
+	-- disagree for long (a tag could stay big for a quarter of a second after its lock was gone)
+	if locked ~= lastLocked and sinceLook >= QUICK then
+		sinceLook = math.huge
+	end
 	if sinceLook < PERIOD then
 		follow(camera)
 		return
 	end
 	sinceLook = 0
+	lastLocked = locked
 	if locked and not hopping and not LOCKED_WHILE_RIDING then
 		locked = nil
 	end
@@ -434,8 +466,13 @@ function Tags.update(
 			-- its place in the queue, and where its words would sit
 			local point = camera:WorldToViewportPoint(root.Position + tag.Offset)
 			tag.Rank = if isLocked then -1 elseif point.Z > 0 then distance else math.huge
-			tag.X = point.X
-			tag.Y = point.Y
+			if isLocked then
+				room(tag, false)
+				tag.X, tag.Y = pin(tag, point, camera)
+			else
+				tag.X = point.X
+				tag.Y = point.Y
+			end
 		end
 	end
 

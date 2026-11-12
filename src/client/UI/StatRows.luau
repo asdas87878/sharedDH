@@ -7,10 +7,13 @@ local Kit = require(script.Parent.Kit)
 
 local StatRows = {}
 
-local WIDTH = 128
-local HEIGHT = 29
+-- (the reference's rows are 6.4% of the screen's height and its slots 8.6%: ours were small beside our slots)
+local WIDTH = 150
+local HEIGHT = 34
+local ON_TOUCH = 0.85 -- the rows' size on a phone, where they share the top left with Roblox's own buttons
 
 local holder: Frame
+local size: UIScale
 local list: UIListLayout
 local oxygenText: TextLabel
 local coinsRow: Frame
@@ -34,7 +37,7 @@ local function row(order: number, sign: (Instance, number) -> Frame, colour: Col
 	}, holder)
 	local bar = Kit.new("Frame", {
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Kit.Navy,
+		BackgroundColor3 = Kit.Deep,
 		BorderSizePixel = 0,
 	}, frame)
 	Kit.new("UIGradient", { Transparency = FADE }, bar)
@@ -52,17 +55,17 @@ local function row(order: number, sign: (Instance, number) -> Frame, colour: Col
 		BorderSizePixel = 0,
 	}, frame)
 	Kit.new("UIGradient", { Transparency = FADE }, under)
-	local icon = sign(frame, 19)
+	local icon = sign(frame, 23)
 	icon.AnchorPoint = Vector2.new(0, 0.5)
-	icon.Position = UDim2.new(0, 10, 0.5, -1)
+	icon.Position = UDim2.new(0, 11, 0.5, -1)
 	local label = Kit.text({
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 36, 0.5, -1),
-		Size = UDim2.fromOffset(WIDTH - 40, HEIGHT),
-		TextSize = 16,
+		Position = UDim2.new(0, 42, 0.5, -1),
+		Size = UDim2.fromOffset(WIDTH - 46, HEIGHT),
+		TextSize = 19,
 		TextColor3 = colour,
 		TextXAlignment = Enum.TextXAlignment.Left,
-	}, frame, 2.4)
+	}, frame)
 	return frame, label
 end
 
@@ -72,6 +75,7 @@ function StatRows.build(parent: Instance)
 		Size = UDim2.fromOffset(WIDTH, HEIGHT * 2 + 5),
 		BackgroundTransparency = 1,
 	}, parent)
+	size = Kit.new("UIScale", {}, holder) -- set once for a phone or a keyboard, never moved
 	list = Kit.new("UIListLayout", {
 		Padding = UDim.new(0, 5),
 		SortOrder = Enum.SortOrder.LayoutOrder,
@@ -88,10 +92,13 @@ function StatRows.place(touch: boolean)
 		holder.AnchorPoint = Vector2.new(0, 0)
 		holder.Position = UDim2.fromOffset(10, 58)
 		list.VerticalAlignment = Enum.VerticalAlignment.Top
+		size.Scale = ON_TOUCH
 	else
+		-- its bottom edge level with the slots' (Slots.place)
 		holder.AnchorPoint = Vector2.new(0, 1)
-		holder.Position = UDim2.new(0, 10, 1, -10)
+		holder.Position = UDim2.new(0, 10, 1, -16)
 		list.VerticalAlignment = Enum.VerticalAlignment.Bottom
+		size.Scale = 1
 	end
 end
 

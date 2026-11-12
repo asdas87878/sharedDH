@@ -9,7 +9,9 @@ local UserInputService = game:GetService("UserInputService")
 local Kit = {}
 
 Kit.Font = Enum.Font.FredokaOne
-Kit.Ink = Color3.fromRGB(16, 36, 63)
+Kit.Ink = Color3.fromRGB(16, 36, 63) -- every outline
+Kit.Deep = Color3.fromRGB(10, 24, 44) -- every dark see-through fill: bars, slots, pills, the button, a ring's used part
+Kit.Danger = Color3.fromRGB(214, 44, 56) -- a plate that warns: dark enough for white letters
 Kit.Navy = Color3.fromRGB(24, 52, 92)
 Kit.Aqua = Color3.fromRGB(51, 214, 240)
 Kit.Sun = Color3.fromRGB(255, 210, 63)
@@ -76,7 +78,9 @@ function Kit.gradient(parent: Instance, top: Color3, bottom: Color3): UIGradient
 	return Kit.new("UIGradient", { Color = ColorSequence.new(top, bottom), Rotation = 90 }, parent)
 end
 
--- Letters with a thick dark outline. The size is fixed: text never scales to fit.
+-- Letters with a dark outline. The size is fixed: text never scales to fit. The outline follows the letters' size
+-- by one rule for the whole HUD (as the reference's: about a tenth of big letters, a fifth of small ones), so small
+-- words are not clogged and big ones are not thin; pass a thickness only for a real exception.
 function Kit.text(props: { [string]: any }, parent: Instance, outline: number?): TextLabel
 	props.BackgroundTransparency = 1
 	props.Font = props.Font or Kit.Font
@@ -84,8 +88,16 @@ function Kit.text(props: { [string]: any }, parent: Instance, outline: number?):
 	props.TextSize = props.TextSize or 14
 	props.Text = props.Text or ""
 	local label: TextLabel = Kit.new("TextLabel", props, parent)
-	Kit.stroke(label, outline or 2.2, Kit.Ink)
+	Kit.stroke(label, outline or math.clamp(0.5 + props.TextSize * 0.085, 1.1, 3.4), Kit.Ink)
 	return label
+end
+
+-- The one highlight every solid plate has: lit from above, a little darker toward its bottom edge
+function Kit.shade(plate: Instance)
+	Kit.new("UIGradient", {
+		Color = ColorSequence.new(Kit.White, Color3.fromRGB(214, 222, 236)),
+		Rotation = 90,
+	}, plate)
 end
 
 -- A rarity's word: its colour, lighter at the top (the label's own colour must stay white for the gradient to show)
@@ -152,7 +164,7 @@ export type Ring = {
 	lag: (fraction: number) -> (), -- a meter only: the part just lost, in red behind what is left
 }
 
-local TRACK = Color3.fromRGB(10, 28, 52)
+local TRACK = Kit.Deep
 local HALF = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 0),
 	NumberSequenceKeypoint.new(0.5, 0),
@@ -260,7 +272,7 @@ function Kit.ring(parent: Instance, diameter: number, thick: number, meter: bool
 	local hole: Frame = Kit.new("Frame", {
 		Position = UDim2.fromOffset(thick, thick),
 		Size = UDim2.fromOffset(inner, inner),
-		BackgroundColor3 = Color3.fromRGB(10, 28, 52),
+		BackgroundColor3 = Kit.Deep,
 		BackgroundTransparency = if meter then 1 else 0.5,
 	}, holder)
 	Kit.corner(hole, 999)

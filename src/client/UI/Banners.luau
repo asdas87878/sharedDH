@@ -30,6 +30,12 @@ local catchTierGradient: UIGradient
 local shownMiss = ""
 local greatRun = 0
 local catchRun = 0
+local land: Frame
+local landName: TextLabel
+local landGradient: UIGradient
+local landWord: TextLabel
+local landLines: { Frame } = {}
+local landRun = 0
 
 local ENDS = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 1),
@@ -50,6 +56,10 @@ local GREAT_FROM = UDim2.new(0.5, 0, 0.36, 20)
 local CATCH_AT = UDim2.new(0, 22, 0.2, 0) -- (the tilt swings the plate's top corner a few units to the left)
 local CATCH_FROM = UDim2.new(0, -250, 0.2, 0)
 local CATCH_TIME = 2.6
+-- A new land's name: under the strip of lands, clear of the rider
+local LAND_AT = UDim2.new(0.5, 0, 0, 88) -- (clear of the metres pill under the strip)
+local LAND_FROM = UDim2.new(0.5, 0, 0, 72)
+local LAND_TIME = 2.2
 -- the small words over the catch banner, by rarity (the reference's get louder with the catch; the words are ours)
 local CATCH_WORDS: { [string]: string } = {
 	Rare = "GREAT CATCH!",
@@ -70,7 +80,7 @@ function Banners.build(parent: Instance)
 		TextSize = 30,
 		Visible = false,
 		ZIndex = 20,
-	}, parent, 3)
+	}, parent)
 	missGradient = Kit.gradient(miss, Color3.fromRGB(255, 190, 190), Kit.Coral)
 	missOutline = miss:FindFirstChildOfClass("UIStroke") :: UIStroke
 
@@ -89,7 +99,7 @@ function Banners.build(parent: Instance)
 		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromOffset(440, 60),
 		Rotation = -2.5,
-		BackgroundColor3 = Color3.fromRGB(10, 32, 64),
+		BackgroundColor3 = Kit.Deep,
 		BorderSizePixel = 0,
 		ZIndex = 15,
 	}, great)
@@ -110,19 +120,19 @@ function Banners.build(parent: Instance)
 		TextSize = 42,
 		Text = "GREAT DIVE!",
 		ZIndex = 17,
-	}, streak, 3.5)
+	}, streak)
 	Kit.gradient(title, Color3.fromRGB(255, 244, 170), Color3.fromRGB(255, 170, 40))
 	local pill = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 72),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 30),
-		BackgroundColor3 = Color3.fromRGB(20, 44, 80),
-		BackgroundTransparency = 0.06,
+		BackgroundColor3 = Kit.Deep,
+		BackgroundTransparency = 0.1,
 		ZIndex = 16,
 	}, great)
 	Kit.corner(pill, 999)
-	Kit.stroke(pill, 2.5, Kit.Sun)
+	Kit.stroke(pill, 2, Kit.Sun)
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 16) }, pill)
 	Kit.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
@@ -145,15 +155,57 @@ function Banners.build(parent: Instance)
 		Text = "NEW BEST",
 		LayoutOrder = 2,
 		ZIndex = 17,
-	}, pill, 1.8)
+	}, pill)
 	greatCaught = Kit.text({
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 30),
 		TextSize = 13,
-		TextColor3 = Color3.fromRGB(156, 240, 106),
+		TextColor3 = Kit.Good,
 		LayoutOrder = 3,
 		ZIndex = 17,
-	}, pill, 2)
+	}, pill)
+
+	-- a new land: its name on the same dark streak as the end of a dive, smaller, with lines in the land's colour
+	land = Kit.new("Frame", {
+		Name = "NewLand",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = LAND_AT,
+		Size = UDim2.fromOffset(300, 44),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 15,
+	}, parent)
+	local band = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Kit.Deep,
+		BorderSizePixel = 0,
+		ZIndex = 15,
+	}, land)
+	Kit.new("UIGradient", { Transparency = ENDS }, band)
+	for _, y in { 0, 1 } do
+		local line = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0, y),
+			Position = UDim2.fromScale(0, y),
+			Size = UDim2.new(1, 0, 0, 2),
+			BorderSizePixel = 0,
+			ZIndex = 16,
+		}, band)
+		Kit.new("UIGradient", { Transparency = LINE }, line)
+		table.insert(landLines, line)
+	end
+	landName = Kit.text({
+		Position = UDim2.fromOffset(0, 3),
+		Size = UDim2.new(1, 0, 0, 26),
+		TextSize = 23,
+		ZIndex = 17,
+	}, land)
+	landGradient = Kit.gradient(landName, Kit.White, Kit.White)
+	landWord = Kit.text({
+		Position = UDim2.fromOffset(0, 28),
+		Size = UDim2.new(1, 0, 0, 12),
+		TextSize = 9.5,
+		ZIndex = 17,
+	}, land)
 
 	-- the catch banner (the reference's, off its frames: tilted, a third of the way down the left side, a dark
 	-- see-through plate with a bright green edge, the creature's picture at its left, big pale green words, small
@@ -175,7 +227,7 @@ function Banners.build(parent: Instance)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "NICE CATCH!",
 		ZIndex = 16,
-	}, catch, 1.8)
+	}, catch)
 	local plate = Kit.new("Frame", {
 		Position = UDim2.fromOffset(0, 15),
 		Size = UDim2.fromOffset(206, 50),
@@ -184,7 +236,7 @@ function Banners.build(parent: Instance)
 		ZIndex = 15,
 	}, catch)
 	Kit.corner(plate, 9)
-	Kit.stroke(plate, 3, Color3.fromRGB(91, 224, 106))
+	Kit.stroke(plate, 3, Kit.Lime)
 	catchPicture = Portrait.new(plate, {
 		Position = UDim2.fromOffset(4, 2),
 		Size = UDim2.fromOffset(48, 46),
@@ -197,7 +249,7 @@ function Banners.build(parent: Instance)
 		TextSize = 29,
 		Text = "TAMED!",
 		ZIndex = 16,
-	}, plate, 2.8)
+	}, plate)
 	Kit.gradient(catchTamed, Color3.fromRGB(226, 255, 170), Kit.Lime)
 	local under = Kit.new("Frame", {
 		Position = UDim2.fromOffset(12, 70),
@@ -264,6 +316,33 @@ function Banners.greatDive(metres: number, isBest: boolean, caught: number)
 		out.Completed:Once(function()
 			if run == greatRun then
 				great.Visible = false
+			end
+		end)
+		out:Play()
+	end)
+end
+
+-- A land deeper than any yet this dive: its name for a moment (index: 1 to 10)
+function Banners.land(index: number, name: string, colour: Color3)
+	landRun += 1
+	local run = landRun
+	landName.Text = string.upper(name)
+	landGradient.Color = ColorSequence.new(Kit.lighter(colour, 0.75), Kit.lighter(colour, 0.3))
+	landWord.Text = "LAND " .. index .. " OF 10"
+	for _, line in landLines do
+		line.BackgroundColor3 = Kit.lighter(colour, 0.3)
+	end
+	land.Position = LAND_FROM
+	land.Visible = true
+	TweenService:Create(land, SLIDE, { Position = LAND_AT }):Play()
+	task.delay(LAND_TIME, function()
+		if run ~= landRun then
+			return
+		end
+		local out = TweenService:Create(land, LEAVE, { Position = LAND_FROM })
+		out.Completed:Once(function()
+			if run == landRun then
+				land.Visible = false
 			end
 		end)
 		out:Play()

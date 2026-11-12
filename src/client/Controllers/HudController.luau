@@ -9,7 +9,7 @@
 --   Tags        the nearest wild fish: rarity, name, what each needs
 --   Aim         in the hop: the aim, and the window as a ring
 --   Slots       what you carry, with each creature's picture
---   Banners     a miss, the end of a dive, a catch
+--   Banners     a miss, the end of a dive, a catch, a new land
 -- A fish too strong for you (Oxygen.StrainTime: a landing is never refused, the whole meter empties in a quarter of a
 -- second and the fish throws you off) is told four ways: the red plate on its tag before the hop; the ring red, bigger
 -- and shaking from the landing, with "Too strong!" and what the fish needs under it; the same words under the empty
@@ -85,6 +85,7 @@ local endlessAir = false
 local diveMetres = 0
 local diveLands = 0
 local diveCaught = 0
+local landSeen = 0 -- the deepest land of this dive so far (0: not in the water yet)
 local bestMetres = 0
 local bestLands = 0
 local caughtCount = -1
@@ -146,7 +147,7 @@ local function build()
 
 	-- the grace vignette: four edges closing in
 	for i = 1, 4 do
-		local edge = Kit.new("Frame", { BackgroundColor3 = Color3.fromRGB(10, 0, 20), BorderSizePixel = 0 }, fx)
+		local edge = Kit.new("Frame", { BackgroundColor3 = Color3.fromRGB(4, 10, 24), BorderSizePixel = 0 }, fx)
 		local gradient = Kit.new("UIGradient", { Transparency = NumberSequence.new(0, 1) }, edge)
 		gradient.Rotation = ({ 90, 270, 0, 180 })[i]
 		edge.AnchorPoint = ({ Vector2.new(0, 0), Vector2.new(0, 1), Vector2.new(0, 0), Vector2.new(1, 0) })[i]
@@ -320,6 +321,17 @@ local function update(dt: number)
 		bestLands,
 		bestMetres
 	)
+	-- a land deeper than any yet this dive: its name comes up (not the land the dive starts in)
+	if inWater and zone then
+		if landSeen == 0 then
+			landSeen = land
+		elseif land > landSeen then
+			landSeen = land
+			Banners.land(land, zone.Name, Kit.Lands[math.clamp(land, 1, #Kit.Lands)])
+		end
+	elseif mode == "Dock" then
+		landSeen = 0
+	end
 	-- drowning with the meter empty (not a missed hop, where there may be air left)
 	local outOfAir = mode == "Drowning" and State.Player:GetAttribute("DeathQuick") ~= true
 	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir)
