@@ -1,4 +1,4 @@
-"""Grey-box 9 of the map (docs/design/map-method.md, docs/design/map-structure.md): the reference's build, shaped for a
+"""Grey-box 10 of the map (docs/design/map-method.md, docs/design/map-structure.md): the reference's build, shaped for a
 game where you fly through water.
 
 The lane goes narrow, wide, narrow, wide, its two sides waving against each other, and it gets wider the further you
@@ -40,8 +40,8 @@ BULGE_FIRST = (30.0, 55.0)  # and in the first land: a plain, easy run
 WIDER = 2.0  # the lane is 1 + WIDER times as wide at the very end of the dive as at its start
 ROOM = (420.0, 700.0)  # the distance between one side's pinches
 OFFSET = (0.24, 0.42)  # the other side pinches this share of a room further on (or back)
-MOUTH = 64.0  # the lane leaves the hub through a mouth that rounds outward: a quarter circle this big on each side.
-# It has to be bigger than a wall is deep (56), so the hub's wall can turn the corner into the lane in one run
+MOUTH = 64.0  # the lane is this much wider on each side where it leaves the hub,
+FUNNEL = 160.0  # and narrows to its own width over this much lane: a funnel that leads you in
 START_DEPTH = 46.0  # under the start: a jump needs 38 studs of water over the floor (riding chat)
 EASE = 300.0  # a change of slope is spread over this much lane
 PLINTH = 60.0  # how thick the lane's body is
@@ -272,7 +272,7 @@ def half(side, at):
     """how far this side's edge is from the lane's line: PINCH at its pinches, swelling between them"""
     sp = span_at(side, at)
     t = min(1.0, max(0.0, (at - sp["s0"] - 10.0) / (sp["s1"] - sp["s0"] - 20.0)))
-    flare = MOUTH - math.sqrt(MOUTH * MOUTH - (MOUTH - at) ** 2) if at < MOUTH else 0.0  # the mouth, at the hub
+    flare = MOUTH * (1.0 - smooth(at / FUNNEL)) if at < FUNNEL else 0.0  # the mouth, at the hub
     return (PINCH + sp["bulge"] * math.sin(math.pi * t) ** 1.25) * grow(at) + flare  # level at the pinch: a smooth neck
 
 
@@ -447,14 +447,17 @@ def lay(verts, tops, deep, colours, spots, closed=None):
         add("Grass", "grass", (mx + out[0] * (gd / 2 - PROUD), top + (GRASS + lift) / 2, mz + out[2] * (gd / 2 - PROUD)), (gd, GRASS + lift, long + 0.02),
             ground, out, (0, 1, 0), al, v=(top + GRASS + lift) % PIECE)
         count["face"] += 1
-        long_back = math.hypot(b[0] + b[2] * deep - a[0] - a[2] * deep, b[1] + b[3] * deep - a[1] - a[3] * deep)
+        bx_, bz_ = b[0] + b[2] * deep - a[0] - a[2] * deep, b[1] + b[3] * deep - a[1] - a[3] * deep
+        # the back's length, with its sign: on a sharp outside corner the two ends' backs cross over, and the length
+        # then comes out long though there is no room behind at all (a filler put there stuck out through the wall)
+        long_back = bx_ * al[0] + bz_ * al[2]
         if long_back > long + 0.08:  # a hollow curve: the back is longer than the front, so wedges open there
             left = long / 2 - 0.05 if before < top else long_back / 2 + 0.1  # toward the piece before
             right_ = long / 2 - 0.05 if after < top else long_back / 2 + 0.1
             shift = (right_ - left) / 2
             add("Core", "core", (mx + out[0] * (deep + 0.3) / 2 + al[0] * shift, (foot + top + GRASS - 0.1) / 2, mz + out[2] * (deep + 0.3) / 2 + al[2] * shift),
                 (deep - 0.3, top + GRASS - 0.1 - foot, left + right_), ground, out, (0, 1, 0), al)
-        if closed and closed[k]:  # the outermost tier where its back can be seen: a slab across the back
+        if closed and closed[k] and long_back > 1.0:  # the outermost tier where its back can be seen: a slab across the back
             add("Back", "core", (mx + out[0] * (deep - 0.5), (foot + top) / 2, mz + out[2] * (deep - 0.5)), (1.0, top - foot, max(long, long_back) + 0.1), face, out, (0, 1, 0), al)
         if spots and deep >= 15 and top + GRASS < -10.0:  # nothing stands on a terrace that is out of the water
             terrace_spots.append((a[4], mx + out[0] * deep * 0.5, top + GRASS + lift, mz + out[2] * deep * 0.5))
@@ -489,7 +492,7 @@ def lane_line(side, s0, s1):
         if (nx * rt_[0] + nz * rt_[2]) * side < 0:
             nx, nz = -nx, -nz
         out.append((e[0], e[2], nx, nz, at))
-        at += 0.05 if at < 2.0 else 0.25 if at < MOUTH else 1.0  # the mouth turns fast at first
+        at += 0.5 if at < FUNNEL else 1.0
     return out
 
 
@@ -516,8 +519,10 @@ def lane_colours(at):
     return land
 
 
-HUB_HALF, HUB_BACK, CORNER = 240.0, -256.0, 32.0  # 480 by 256 inside (whole tiles of the picture, so the squares
-# end at the walls): about 165 studs of open floor from the start to the plots (the user, 2026-11-11: more open floor)
+HUB_HALF, HUB_BACK, CORNER, FRONT = 240.0, -352.0, 32.0, -32.0  # 480 wide and 320 from the back wall to the front
+# wall's face (whole tiles of the picture). The user, 2026-11-12: longer, not narrower; more room between the aquariums
+# at the back and the start. The front wall's face is FRONT back from the water, so the start strip lies in the gap
+# of the wall itself, in line with it, as the reference's does
 
 
 def hub_half_ring(side):
@@ -529,7 +534,11 @@ def hub_half_ring(side):
         pts.append((-(HUB_HALF - CORNER) + CORNER * math.cos(a_), HUB_BACK + CORNER + CORNER * math.sin(a_)))
     for k in range(0, 91, 5):  # the front corner
         a_ = math.radians(180 - k)
-        pts.append((-(HUB_HALF - CORNER) + CORNER * math.cos(a_), -CORNER + CORNER * math.sin(a_)))
+        pts.append((-(HUB_HALF - CORNER) + CORNER * math.cos(a_), FRONT - CORNER + CORNER * math.sin(a_)))
+    turn = -FRONT  # the wall turns out of the hub into the lane round a corner this big, ending where the lane begins
+    for k in range(0, 90, 5):
+        a_ = math.radians(270 + k)
+        pts.append((-(PINCH + MOUTH + turn) + turn * math.cos(a_), FRONT + turn + turn * math.sin(a_)))
     pts.append((-(PINCH + MOUTH), 0.0))
     fine = []
     for (xa, za), (xb, zb) in zip(pts, pts[1:]):
@@ -825,7 +834,19 @@ for room in rooms:
 # Sized from the reference's own hub (docs/reference/ride-a-dino-map.md, "The hub, measured"): a walk of a few seconds
 # from the pens to the start, pens in a row along the far side and round the corners, stalls just inside the start.
 add("HubFloor", "hub", (0, 0.5 - 60, HUB_BACK / 2), (HUB_HALF * 2, 120, -HUB_BACK), HUB_GROUND)
-add("StartStrip", "trim", (0, 0.75, -12), ((PINCH + MOUTH) * 2, 0.5, 24), HUB_LOOK["strip"], solid=False)
+add("StartStrip", "trim", (0, 0.75, FRONT / 2), ((PINCH + MOUTH) * 2, 0.5, -FRONT), HUB_LOOK["strip"], solid=False)
+for z_ in (FRONT + 1.0, -1.0):  # a white line along each edge of it, as the reference's start zone has
+    add("StartLine", "trim", (0, 0.8, z_), ((PINCH + MOUTH) * 2, 0.5, 2.0), (250, 250, 250), solid=False)
+for z_ in (-176.0, -132.0, -88.0):  # arrows on the floor from the spawn to the start: where to go is obvious at once
+    for sx in (-1, 1):
+        ax_, ay_, az_ = yawed(-sx * 51.5)
+        add("Arrow", "trim", (sx * 12.0, 0.6, z_), (5.0, 0.2, 30.7), (240, 252, 240), ax_, ay_, az_, solid=False, t=0.15)
+# and a line of flags over the start, wall to wall, seen from anywhere in the hub
+span_ = (PINCH + MOUTH) * 2
+add("StartFlagLine", "trim", (0, 30.0, FRONT / 2), (span_, 0.6, 0.6), (250, 250, 250), solid=False)
+for j in range(int(span_ / 9)):
+    add("StartFlag", "trim", (-span_ / 2 + 5 + j * (span_ - 10) / (int(span_ / 9) - 1), 27.3, FRONT / 2), (4.6, 5, 0.4),
+        ((250, 200, 80), (240, 110, 130), (110, 190, 240), (140, 220, 150), (250, 250, 250))[j % 5], solid=False)
 
 
 def stall(name, x, z, colour, turn=0):
@@ -836,7 +857,7 @@ def stall(name, x, z, colour, turn=0):
         add(name + "Post", "station", (x + ax[0] * sx, 6.5, z + ax[2] * sx), (1.5, 12, 1.5), (160, 115, 75), ax, ay, az)
 
 
-PLOT = (64.0, 56.0, 34.0)  # an aquarium. The reference's pen is about 50 by 62 for dinos up to 40 long; our biggest
+PLOT = (88.0, 56.0, 34.0)  # an aquarium (88 wide since 2026-11-12, so four fill the back between the side rows). The reference's pen is about 50 by 62 for dinos up to 40 long; our biggest
 # creatures are nearly 50 long, so the tank is wider, and tall, because fish use the height
 PLOT_COLOURS = [(240, 110, 130), (255, 170, 70), (250, 215, 90), (120, 200, 120), (90, 190, 220), (120, 140, 240), (180, 120, 230), (240, 140, 200)]
 
@@ -868,18 +889,23 @@ def plot(index, cx, cz, turn_deg):
     put("CollectPad", -8, 0.5, d / 2 + 9, (8, 0.6, 8), (110, 210, 120), solid=False)
 
 
-for k in range(6):  # six along the far side from the start, side by side, as the reference's pens stand
-    plot(k + 1, (k - 2.5) * PLOT[0], HUB_BACK + 8 + PLOT[1] / 2, 0)  # sharing their side frames, on the floor's squares
-plot(7, -(HUB_HALF - 8 - PLOT[1] / 2), -112.0, 90)  # and one on each side, facing in
-plot(8, HUB_HALF - 8 - PLOT[1] / 2, -112.0, -90)
-stall("Sell", -24, -40, (235, 80, 80))  # the two you use most, just inside the start
-stall("Auras", 24, -40, (170, 110, 240))
-stall("Fuse", -104, -64, (250, 190, 70), 35)
-stall("Index", 104, -64, (90, 170, 240), -35)
-stall("Sub", PINCH + MOUTH + 34, -16, (70, 190, 190), -20)  # the ride to a later land, at the start's right end
-add("EarnersBoard", "station", (-(PINCH + MOUTH + 34), 14, -3), (22, 26, 4), (40, 44, 60))  # on the wall at its left end
-add("DockSpawn", "trim", (0, 1.0, -104), (14, 1, 14), (255, 255, 255))
-add("Figure", "figure", (10, 3.5, -56), (2, 5, 1), (90, 170, 230))
+# The reference's pens stand in a U: a row along the far side from the start and a row down each side, sharing fences,
+# open toward the start. Ours the same: four along the back, two down each side beginning where the back row's pads end.
+for k in range(4):
+    plot(k + 1, (k - 1.5) * PLOT[0], HUB_BACK + 8 + PLOT[1] / 2, 0)
+side_z = HUB_BACK + 8 + PLOT[1] + 24  # the back row's depth and its pads
+for k in range(2):
+    plot(5 + k, -(HUB_HALF - 8 - PLOT[1] / 2), side_z + (k + 0.5) * PLOT[0], 90)
+    plot(7 + k, HUB_HALF - 8 - PLOT[1] / 2, side_z + (k + 0.5) * PLOT[0], -90)
+# the stalls stand to either side of the way from the spawn to the start, never in it
+stall("Sell", -76, -70, (235, 80, 80), 20)
+stall("Auras", 76, -70, (170, 110, 240), -20)
+stall("Fuse", -186, -66, (250, 190, 70), 45)
+stall("Index", 186, -66, (90, 170, 240), -45)
+stall("Sub", PINCH + MOUTH + 44, FRONT - 20, (70, 190, 190), -20)  # the ride to a later land, at the start's right end
+add("EarnersBoard", "station", (-(PINCH + MOUTH + 50), 14, FRONT - 3), (22, 26, 4), (40, 44, 60))  # on the wall at its left end
+add("DockSpawn", "trim", (0, 1.0, -216), (14, 1, 14), (255, 255, 255))
+add("Figure", "figure", (10, 3.5, -200), (2, 5, 1), (90, 170, 230))
 
 SEA = 2000.0  # the sea's surface, in tiles this big, over the hub and the whole lane
 sea = set()
@@ -945,7 +971,7 @@ for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2))
         col = tuple(int(c * 0.86) for c in col)
     d.polygon(pts, fill=col)
 font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
-d.text((20, 14), f"Grey-box 9 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
+d.text((20, 14), f"Grey-box 10 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
 if not os.environ.get("GREYBOX_OUT"):
     im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))
 print("plan drawn")

@@ -212,11 +212,11 @@ else:
                 return eye, target
         return eye, target
     views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
-        "hub": (Vector((0, 7, -104)), Vector((0, 6, 160)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
-        "hub_back": (Vector((0, 7, -22)), Vector((0, 10, -256)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
-        "hub_above": (Vector((-200, 240, -400)), Vector((10, -10, 60)), HAZE, 12000, SKY, 55, 0.25),
-        "hub_look": (Vector((150, 64, -160)), Vector((-90, 0, 20)), HAZE, 12000, SKY, 70, 0.6),  # for judging the hub's colours
-        "hub_top": (Vector((0, 560, -132)), Vector((0, 0, -128)), HAZE, 12000, SKY, 45, 0.6),
+        "hub": (Vector((0, 9, -230)), Vector((0, 4, 60)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
+        "hub_back": (Vector((0, 9, -40)), Vector((0, 8, -352)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
+        "hub_above": (Vector((-220, 270, -520)), Vector((10, -10, 20)), HAZE, 12000, SKY, 55, 0.25),
+        "hub_look": (Vector((120, 70, -250)), Vector((-60, 0, 10)), HAZE, 12000, SKY, 70, 0.6),  # for judging the hub's colours
+        "hub_top": (Vector((0, 640, -164)), Vector((0, 0, -160)), HAZE, 12000, SKY, 45, 0.6),
         # the reference's own flight views, for laying side by side: no water, daylight
         "fly_ahead": (*lane_view(necks[1] - 60, 60, 62, 300, 0), HAZE, 5200, SKY, 80, 0.0),
         "fly_down": (*lane_view(necks[2] + 40, 110, 215, 250, -10), HAZE, 5200, SKY, 70, 0.0),

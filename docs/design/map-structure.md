@@ -334,6 +334,45 @@ on **Ride a Dino's own hub colours, one to one.**
   62 (found with swatches in Studio, 2026-11-12), the wall 178, 185, 160, the strip 198, 194, 155, the pads 184,
   170, 110, the frames 150, 116, 62 (reckoned, not yet checked by swatch).
 
+## Grey-box 10: the hub after the reference (2026-11-12)
+The user: match the reference's hub more closely. Spread the aquariums the way its pens are spread. Push the start
+strip forward so it is in line with the wall, and write "start here" or "dive in" on it. When you spawn it must be
+obvious where you're going: "it should lead into it very obviously". More room between the aquariums at the back and
+the start: make the hub longer, not narrower.
+
+![The hub, grey-box 10](../attachments/map-hub10.jpg)
+
+**How the reference's hub is laid out** (the recording of the user walking round it, read again): the start zone is
+a sand strip lying in the gap of the wall itself, a white line along each edge, big words on it; the stalls stand
+right beside it; an open green field; and the pens stand in a U round the far side and down both sides, sharing
+fences, open toward the start.
+
+| | Grey-box 9 | Grey-box 10 |
+|---|---|---|
+| Inside | 480 by 256 | 480 by 320 (back wall to the front wall's face) |
+| Aquariums | six in a row along the back, one on each side | **a U: four along the back, two down each side,** open toward the start |
+| An aquarium | 64 wide | 88 wide, so four fill the back between the side rows |
+| Open floor, aquariums' pads to the start | about 165 | about 230 |
+| The start strip | on the hub's floor, behind the wall's line | **in the gap of the wall, in line with it** (the front wall's face is 32 back from the water); a white line each edge; "DIVE IN" on it |
+| The way in | nothing | three arrows on the floor from the spawn to the start; a line of flags over the start, wall to wall |
+| The spawn | 104 from the water | 216 from the water, in the middle of the U, facing the start |
+| Stalls | two in the middle of the way | all to either side of the way, never in it |
+| The mouth | a quarter circle each side, back to the lane's width in 64 studs | **a funnel:** 248 wide at the hub, easing to the lane's width over 160 studs |
+
+- **A flaw found and fixed on the way:** where a wall turns a sharp outside corner (the hub's wall turning into the
+  lane), a hidden filler block was put behind the wall although there is no room behind a sharp corner; it stuck out
+  through the wall as a tall bar in the grass's colour. The builder now measures the room behind with its sign and
+  puts nothing where there is none.
+- The words on the strip are a SurfaceGui, added by `tools/studio/greybox/96_hub.luau` (written by
+  `greybox_luau.py`).
+
+**Asked for, for the whole map, after the hub** (the user, the same message): the cracks where the walls curve, and
+the changes of height where the floor tilts down, which stop it looking smooth. Known and not yet fixed:
+- **Walls on a curve:** the faces meet exactly, but the grass slabs and the tops behind them open or overlap in thin
+  wedges, and neighbouring pieces catch the light differently.
+- **The floor where it tilts:** it is flat tiles, each fitted to the slope, standing up to 0.117 studs apart at
+  their edges; where the slope changes the tiles tilt differently and the joins show.
+
 ## What makes their map read, and where ours should go
 **What their structure does** (from the recordings and the screenshots):
 1. **One rule, used everywhere.** Floor, wall face, grass: three surfaces, one pattern, one colour per land. Nothing
