@@ -7,6 +7,8 @@
 --     "Respawned" | "Crashed", slow (our fish ran into something: the share of its speed it keeps)
 --   Fx (server -> every client): "Land", player, fish | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
 --     player off)
+--   and for the sandbox's reset only: Ride "SandboxMount", fish (sit on this fish yourself) answered by Action
+--     "SandboxSit", fish (we are on its saddle: join us)
 --   Sandbox (client -> server, Studio only): "Tune", "Group.Key", number | "Flag", name, boolean | "Reset"
 -- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).

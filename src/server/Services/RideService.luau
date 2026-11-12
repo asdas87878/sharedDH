@@ -46,6 +46,7 @@ type Rider = {
 	SentAt: number,
 	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
 	Trained: number, -- max Oxygen gained on the training spot this session (TrainService), on top of the start
+	SandboxSeat: FishService.Wild?, -- the fish the sandbox's reset is seating us on (kept for us until we say we sit)
 	CheckAt: number,
 	CheckFrom: Vector3?,
 	Flagged: boolean,
@@ -593,6 +594,7 @@ local function onPlayer(player: Player)
 		Oxygen = maxOxygen(),
 		Max = maxOxygen(),
 		Trained = 0,
+		SandboxSeat = nil,
 		Fish = nil,
 		Weld = nil,
 		JumpAt = 0,
@@ -653,27 +655,44 @@ function RideService.sandboxReset(player: Player)
 	root.AssemblyLinearVelocity = Vector3.zero
 	setState(r, "Free")
 	Net.Ride:FireClient(player, "Dismounted", "Lost")
-	-- The mount waits a moment for the player's own machine to move the character here: it owns the character's
-	-- physics, and a weld made while its copy still stood on the dock joined a fish to a rider 250 studs away. The two
-	-- were then thrown together, now and then far into the sky or under the map (seen 2026-11-12: 1,150 studs up, 750
-	-- down). A real landing never has this: the pull-in has put the rider on the saddle before the server mounts.
+	-- Seating the rider, the way a landing does it: the player's own machine puts the character on the saddle first
+	-- ("SandboxMount"), says so ("SandboxSit"), and only then is the weld made. A weld made across a distance, between
+	-- a floating character and a swimming fish each held by its own forces, threw the pair hundreds to tens of
+	-- thousands of studs in the frame it arrived, on one reset in two or three (2026-11-12; a real landing never had
+	-- it: the pull-in has the rider on the saddle before the server mounts). Only a fish that has been in the
+	-- Workspace for a second is taken, and not one a rider's machine is still driving.
 	local token = r.Token
-	task.delay(0.35, function()
-		if r.Token ~= token or r.State ~= "Free" then
-			return
+	local function trySeat(): boolean
+		if r.Token ~= token or r.State ~= "Free" or r.SandboxSeat then
+			return true
 		end
 		local here = parts(player)
-		local w = if here and (here.Position - at).Magnitude < 60 then FishService.nearest(at, 250, player) else nil
-		if w then
-			mount(r, w, false)
+		local w = if here and (here.Position - at).Magnitude < 60 then FishService.nearest(at, 250, player, 1) else nil
+		if not w or not FishService.reserve(w, player) then
+			return false
 		end
-	end)
-	-- and again later: the fish there may have been put away while nobody was near (they are back by the next top-up),
-	-- or the character was slow to arrive
-	task.delay(Config.Spawn.TopUpEvery + 0.5, function()
-		local late = if r.Token == token and r.State == "Free" then FishService.nearest(at, 250, player) else nil
-		if late then
-			mount(r, late, false)
+		r.SandboxSeat = w
+		Net.Ride:FireClient(player, "SandboxMount", w.Model)
+		-- if its machine never answers, the fish is let go again
+		task.delay(1, function()
+			if r.SandboxSeat == w then
+				r.SandboxSeat = nil
+				FishService.unreserve(w, player)
+			end
+		end)
+		return true
+	end
+	-- tried a few times a second for eight seconds, until we ride: the fish here may only just have come back into the
+	-- Workspace (they are put back by the top-up, every couple of seconds), and a seat the player's machine could not
+	-- take is given up and tried again
+	task.spawn(function()
+		task.wait(0.35)
+		for _ = 1, 20 do
+			if r.Token ~= token or r.State ~= "Free" then
+				return
+			end
+			trySeat()
+			task.wait(0.4)
 		end
 	end)
 end
@@ -692,6 +711,26 @@ function RideService.Init()
 			if r.State == "Jumping" and r.Grab then
 				FishService.unreserve(r.Grab, r.Player)
 				r.Grab = nil
+			end
+		elseif action == "SandboxSit" then
+			-- the sandbox's reset: the player's machine has put the character on the saddle of the fish we kept
+			local w = r.SandboxSeat
+			r.SandboxSeat = nil
+			if w and RunService:IsStudio() then
+				local root = parts(player)
+				local near = root and (w.Root.Position - root.Position).Magnitude <= w.Type.Size.Z / 2 + 40
+				if r.State ~= "Free" or FishService.get(target) ~= w or not near or not mount(r, w, false) then
+					FishService.unreserve(w, player)
+					if root then
+						warn(
+							string.format(
+								"[RideService] sandbox seat not taken: state %s, %.0f studs from the fish",
+								r.State,
+								(w.Root.Position - root.Position).Magnitude
+							)
+						)
+					end
+				end
 			end
 		elseif action == "Land" then
 			landOn(r, target)

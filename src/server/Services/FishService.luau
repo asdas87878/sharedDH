@@ -34,6 +34,7 @@ export type Wild = {
 	Height: number, -- and above the lane's floor
 	Slice: number?, -- the slice it counts for (nil past the stocked zones)
 	Parked: boolean,
+	UnparkedAt: number, -- os.clock() it last came back into the Workspace (0: never parked)
 	Dir: Vector3,
 	Speed: number,
 	Rider: Player?,
@@ -317,6 +318,7 @@ local function park(w: Wild, parked: boolean)
 	w.Parked = parked
 	w.Model.Parent = if parked then parkedFolder else folder
 	if not parked then
+		w.UnparkedAt = os.clock()
 		pcall(function()
 			w.Root:SetNetworkOwner(nil)
 		end)
@@ -360,6 +362,7 @@ local function spawnFish(index: number): Wild?
 		Height = Config.Spawn.HeightMin,
 		Slice = index,
 		Parked = true,
+		UnparkedAt = 0,
 		Dir = dir,
 		Speed = fishType.IdleSpeed,
 		Rider = nil,
@@ -662,11 +665,17 @@ function FishService.lanePoint(s: number): (Vector3, Vector3)
 end
 
 -- The nearest fish in the water a player could get on
-function FishService.nearest(position: Vector3, radius: number, player: Player): Wild?
+-- (`settled`: only a fish that has been in the Workspace this many seconds. One that has just come back is, for a
+-- moment, still somewhere else on the players' machines.)
+function FishService.nearest(position: Vector3, radius: number, player: Player, settled: number?): Wild?
 	local best: Wild? = nil
 	local bestDistance = radius
+	local since = os.clock() - (settled or 0)
 	for _, w in wild do
-		if not w.Parked and FishService.isFree(w, player) then
+		-- (and with `settled`, not one a rider's machine is still driving or has only just given back)
+		local calm = settled == nil
+			or (w.UnparkedAt <= since and not w.CoastToken and (not w.ReleasedAt or w.ReleasedAt <= since - 2))
+		if not w.Parked and calm and FishService.isFree(w, player) then
 			local distance = (w.Root.Position - position).Magnitude
 			if distance < bestDistance then
 				best = w

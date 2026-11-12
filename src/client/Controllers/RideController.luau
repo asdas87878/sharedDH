@@ -47,6 +47,11 @@ local crashSlow = 1 -- and the share of our speed it left us (it comes back over
 type Coast = { Fish: Model, At: number, Speed: number, Look: Vector3, Idle: number }
 local coasting: Coast? = nil
 
+-- the sandbox's reset is seating us: the fish we hold ourselves on until the server joins us to it, and since when
+local seating: Model? = nil
+local seatingAt = 0
+local seatingTold = false
+
 -- floating
 local floatVelocity: LinearVelocity? = nil
 local floatTurn: AlignOrientation? = nil
@@ -172,13 +177,16 @@ local function ensureFloat(root: BasePart)
 	v.Name = "Float"
 	v.Attachment0 = attachment :: Attachment
 	v.RelativeTo = Enum.ActuatorRelativeTo.World
-	v.MaxForce = 1e6
+	-- (a few times the character's weight, no more. With a force in the millions, the one physics step in which the
+	-- server's weld had joined us to a fish before we knew, the fish's own Swim and Turn, which have no limit, and this
+	-- push fought over one body and threw it hundreds to thousands of studs: 2026-11-12)
+	v.MaxForce = root.AssemblyMass * workspace.Gravity * 4
 	v.Parent = root
 	local t = Instance.new("AlignOrientation")
 	t.Name = "FloatTurn"
 	t.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	t.Attachment0 = attachment :: Attachment
-	t.MaxTorque = 1e6
+	t.MaxTorque = 2e4
 	t.Responsiveness = 12
 	t.Parent = root
 	floatVelocity = v
@@ -377,6 +385,16 @@ function RideController.rejoin(): boolean
 end
 
 local function float(root: BasePart, dt: number)
+	-- Already joined to a fish: the server's weld can reach us a frame or more before its word that we are mounted
+	-- (a mount straight from floating: the sandbox's reset). Our own push must be gone before the physics runs, or the
+	-- fish's Swim and Turn and our float's push and turn pull one body two ways with all their force, and the pair is
+	-- thrown: 300 to 140,000 studs in a frame, about one reset in three (2026-11-12).
+	for _, joint in root:GetJoints() do
+		if joint.Name == "RideWeld" then
+			clearFloat()
+			return
+		end
+	end
 	ensureFloat(root)
 	local o = Config.Oxygen
 	local rise = o.FloatSpeed
@@ -629,7 +647,25 @@ local function step(dt: number)
 				humanoid.PlatformStand = true
 			end
 			if mode == "Riding" then
+				seating = nil
 				drive(dt)
+			elseif mode == "Free" and seating then
+				-- The sandbox's reset: we sit ourselves on the fish, as a pull-in does, before the server welds us to
+				-- it. Held on the saddle and moving with it for a few frames, then the server is told.
+				local fishRoot = seating.PrimaryPart
+				local saddle = fishRoot and fishRoot:FindFirstChild("Saddle")
+				if not fishRoot or not saddle or not saddle:IsA("Attachment") or os.clock() - seatingAt > 1.5 then
+					seating = nil
+				else
+					clearFloat()
+					root.CFrame = saddle.WorldCFrame
+					root.AssemblyLinearVelocity = fishRoot.AssemblyLinearVelocity
+					root.AssemblyAngularVelocity = Vector3.zero
+					if not seatingTold and os.clock() - seatingAt > 0.1 then
+						seatingTold = true
+						Net.Action:FireServer("SandboxSit", seating)
+					end
+				end
 			elseif mode == "Free" then
 				float(root, dt)
 			else
@@ -664,6 +700,18 @@ function RideController.Init()
 	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any)
 		if kind == "Mounted" then
 			onMounted(a)
+		elseif kind == "SandboxMount" then
+			-- the sandbox's reset has kept this fish for us: sit on it (step), then say so
+			-- (only a fish that is near us as we see it: now and then our copy of a fish that has just come back into
+			-- the Workspace is still thousands of studs off, and sitting on that one took us there. Left alone, the
+			-- server gives the seat up after a second and offers another.)
+			local _, root = State.character()
+			local fishRoot = if typeof(a) == "Instance" and a:IsA("Model") then a.PrimaryPart else nil
+			if root and fishRoot and (fishRoot.Position - root.Position).Magnitude < 400 then
+				seating = a
+				seatingAt = os.clock()
+				seatingTold = false
+			end
 		elseif kind == "Crashed" then
 			-- the server saw our fish run into something (a wall, or a prop it broke): `a` is the share of speed left
 			if type(a) == "number" then
@@ -767,6 +815,24 @@ function RideController.Start()
 	end)
 	fromServerState()
 	RunService:BindToRenderStep("RideFish", Enum.RenderPriority.Camera.Value + 1, step)
+	-- Just before each physics step, after the frame's news from the server is in: if a fish's weld has joined us while
+	-- our floating push is still on, the push goes now (see ensureFloat). The step above runs too early in the frame
+	-- to see a weld that arrived in it.
+	RunService.PreSimulation:Connect(function()
+		if not floatVelocity then
+			return
+		end
+		local _, root = State.character()
+		if not root then
+			return
+		end
+		for _, joint in root:GetJoints() do
+			if joint.Name == "RideWeld" then
+				clearFloat()
+				return
+			end
+		end
+	end)
 end
 
 return RideController
