@@ -72,6 +72,11 @@ Config.Oxygen = {
 	-- What the HUD and a fish's tag show as needed (Config.required): drain x KeepUp / Refill. With Refill 1 that is
 	-- the max Oxygen that gives KeepUp seconds on the fish.
 	KeepUp = 2, -- seconds on a fish that count as enough (6 until 2026-11-11, when it was the seconds between landings)
+	-- A fish too strong for you (the user, 2026-11-12): a landing is never refused. A fish that needs more than your
+	-- max Oxygen (Config.required, where you land on it) empties the whole meter in this many seconds, whatever the
+	-- fish, and then throws you off. Shorter than Jump.Cooldown, so it can't be hopped off in time: the number on a
+	-- fish's tag is a real bar. 0: off (the fish's own drain, as before).
+	StrainTime = 0.25,
 	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 9: the spawn is 104 behind the lane's start and the mouth is 248 wide, so this is the hub, the mouth's corners and the first 60 studs of water in the middle; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
@@ -122,6 +127,18 @@ Config.Train = {
 	Radius = 10, -- studs from the spot's middle that count as on it
 	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
 	Ahead = 24, -- and this far toward the water
+}
+
+-- Taming (the dive, decided 2026-11-09: stay on a wild fish long enough and it is yours). Riding a fish you can hold
+-- fills its tame; full, it joins what you carry on this dive, and at the dock the dive's catch is added to what you
+-- own. Kept for the session only: there are no saves, no tank and no income yet. A fish too strong for you
+-- (Oxygen.StrainTime) is never tamed.
+Config.Tame = {
+	On = 1, -- 0: no taming (the HUD's tame ring, banner and slots stay hidden)
+	-- seconds on a fish to make it yours. The tuning chat's proposal (docs/design/progression.md): the 2 seconds the
+	-- game already calls enough (Oxygen.KeepUp), so the number on a fish's tag is exactly the Oxygen that tames it.
+	Time = 2,
+	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
 }
 
 -- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
@@ -680,6 +697,20 @@ end
 function Config.required(zone: number, tier: string?): number
 	local o = Config.Oxygen
 	return math.ceil(Config.drain(zone, tier or "Common") * o.KeepUp / math.max(o.Refill, 0.01))
+end
+
+-- Whether a fish of this rarity, in land number `zone`, is too strong for a rider with this max Oxygen: it needs more
+-- than they have (Oxygen.StrainTime)
+function Config.strained(zone: number, tier: string, max: number): boolean
+	return Config.Oxygen.StrainTime > 0 and max < Config.required(zone, tier)
+end
+
+-- How long a full meter of `max` lasts on that fish, in seconds
+function Config.secondsOn(zone: number, tier: string, max: number): number
+	if Config.strained(zone, tier, max) then
+		return Config.Oxygen.StrainTime
+	end
+	return max / math.max(Config.drain(zone, tier), 0.001)
 end
 
 -- Whether a fish breaks the props it swims into (Props.MinLength), or crashes into them

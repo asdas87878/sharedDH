@@ -3,6 +3,36 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · 8570-F43F (the user's PC): the progression takes in hold-or-not and taming
+**State:** by the tuning chat. No number changed and no game file changed. Nothing played: it is the model.
+
+- **The model** (`tools/balance/model.py`) knows `Oxygen.StrainTime` and `Config.Tame`. New tables: the bar (what
+  each fish needs, and the share of a land's fish it opens) and the rarest fish a player can tame in each land. The
+  dives count landings on a fish too strong and what a dive brings home. `--sim 40 --dives` plays the dives alone.
+- **The note** ([progression](design/progression.md)): "Hold or not", the tables made again, "Taming: built,
+  and what the numbers say". A land is a wall now: a player at home in one holds nothing in the next.
+- **Kept as built:** `Oxygen.StrainTime` 0.25 (it has to stay under `Jump.Cooldown`), `Tame.Time` 2, `Tame.Carry` 7.
+- **Asked of the game-code chat** ([Sessions](Sessions.md), top note): the lock gives red fish; a tag shows
+  its home land's number; a fish right at your bar is tamed only as it throws you off; the seven slots fill in the
+  first half minute (the user's call: question 8).
+
+## 2026-11-12 · 8570-F43F (the user's PC): a fish too strong drains the meter at once; taming
+**State:** built and run in Studio by the game-code chat. StyLua, selene and `rojo build` pass. The HUD side is with
+the UI chat (the red ring, the reference's ring, the taming UI).
+
+- **A fish too strong** (the user: never refuse the landing, drain it "insanely quickly"): judged at the mount, by the
+  land the fish is in. If it needs more than your max Oxygen (`Config.required`), the whole meter empties in
+  `Oxygen.StrainTime` (0.25 s, under the hop's 0.3 s wait) and the usual throw-off follows. Riding a fish you hold
+  into a deeper land is not this: it pays that land's drain, as before. Player attribute `Strained`.
+- **Taming** (`Config.Tame`: On 1, Time 2, Carry 7): riding a fish you can hold fills its tame (attribute `Tame`, 0 to
+  1); full, it joins what you carry (Ride "Tamed" and "Caught"). At the dock the catch is counted (`Owned`) and the
+  hands are empty. For the session only. New: `src/client/Controllers/TameController.luau` (keeps `State.Tame`,
+  `Caught`, `Tamed`, `Strained` for the HUD).
+- **Seen:** a Shallows Common tamed in 2.0 s, shown in the slots, counted at the dock. With max Oxygen 30 the same
+  fish emptied the meter in 0.23 s and threw the rider. No errors.
+- **Not seen:** a too-strong landing from a real hop (only the sandbox's seat, which takes the same path); the 3D
+  world in the capture (Studio's window was not being drawn).
+
 ## 2026-11-12 · 8570-F43F (the user's PC): riders thrown at a mount: the cause, and the fix
 **State:** fixed and run in Studio by the game-code chat. StyLua, selene and `rojo build` pass.
 

@@ -19,8 +19,9 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
   for what you carry, the tilted catch banner, the revive bar, the end-of-dive banner.
 - **The look is chosen (the user, 2026-11-11): A, Brick,** because it is the simplest, with E's pattern, and from
   there more like Ride a Dino. Pass 3 draws that.
-- **What is still ours:** the seconds inside the ring, the name of the fish you are on, the word HOP or GRAB on a
-  phone's button, a "needs" number in three colours, bubbles as the pattern.
+- **What is still ours:** the word HOP or GRAB on a phone's button, a "needs" number that warns in red, the ring in
+  our Oxygen's aqua, bubbles as the pattern. (The seconds inside the ring and the fish's name under it were ours
+  too; they are switched off since piece 3, below, to match the reference's ring.)
 - **Four questions** are at the end.
 
 ![](../attachments/ui3-phone.jpg)
@@ -74,31 +75,135 @@ show a bubble and a number, yellow for a short hold, and the fish too strong has
 **Not seen yet:** a phone-size screen and a miss's words. Not type-checked (no luau-lsp on this PC). One thing
 noticed in the Reef picture and left as it is: a fish behind a wall still gets its tag.
 
+## Piece 3: a fish too strong, the rings and the taming (2026-11-12)
+The user, to the game-code chat: "A fish shouldn't refuse landing, the landing should just drain all stamina /
+oxygen insanely quickly. Stamina bar goes red etc. Also ping the ui chat to make the ui more accurate to ride a fish
+in the o2/stamina circle, alongside the taming ui and add that. Let's add those."
+
+**Read by both chats, to confirm:** "ride a fish" there is the reference, Ride a Dino: our ring and our taming
+screen are to look more like its own.
+
+**State: run once in Studio by the game-code chat, 2026-11-12: no errors.** Studio was drawing no 3D at the time
+(the world and the rider were black), so three things could not be seen: the creature's picture in the banner and
+the slots, the ring's place beside the rider, and the shake. What did show:
+- [The catch banner, a full tame ring and a filled slot](../attachments/ui-game-p3-tamed-banner.jpg): the banner
+  tilted at the left with "NICE CATCH!", "TAMED!" and "Common Butterflyfish"; the tame ring pink and whole, level
+  with the big ring; "1 CAUGHT" and the slot labelled "Butter.".
+- [The tame ring filling](../attachments/ui-game-p3-tame-filling.jpg). It had **a thin dark line down from its hole
+  at 6 o'clock.** The first fix had only cured a full ring. The cause: the right half's cut there is soft, one pixel
+  of it half see-through, and the left half stopped short of that pixel. The left half now draws 2 units over it.
+  **Written, not run yet.**
+- [A fish too strong](../attachments/ui-game-p3-too-strong-drowning-first.jpg): the ring red, "Too strong!" and "needs 100" under
+  it. The picture is of the drowning after the throw, not of the ride: the hop button is gone, the edges are closing
+  in, and the ring is red all round at its normal size. So the red 0 in the Oxygen row there is the one meant
+  (while you drown out of air). During the ride itself the row keeps the most you can carry, the ring is a fifth
+  bigger with red sweeping round it, and the hop button is still up with a red ring.
+- The banner sat a little close to the screen's left edge, so it is moved 8 units in.
+
+**A second run, the same day, with no errors, confirmed the rest that a black world can show:**
+- [A ride on a fish too strong](../attachments/ui-game-p3-too-strong-ride.jpg) (slowed down for the picture): the
+  ring bigger and red, half drained, "Too strong!" and "needs 80" under it, the hop button up with a red ring and a
+  yellow arrow, the corner row still at 30, every tag on a red plate.
+- [The drowning after it](../attachments/ui-game-p3-too-strong-drowning.jpg): the ring red all round at its normal
+  size, the same two lines, a red 0 at the corner.
+- [The tame ring past half](../attachments/ui-game-p3-tame-filling.jpg): the dark line is gone.
+
+**Still not seen:** the creature's picture in the banner and in a slot, and the ring's place beside the rider (all
+three need Studio to draw the world); the banner's new place; "TOO STRONG!" as the last words; the shake; a phone.
+
+![](../attachments/ui4-ring.jpg)
+
+The top row is the reference. The other rows are ours, drawn from the code's numbers: a drawing, not a capture.
+
+### What the reference's rings do (off the user's recording, frame by frame)
+- The big ring is **thick with a small clear hole**: the band is a third of the ring across. It is 8.6% of the
+  screen's height, the tame ring 4.6%.
+- The part left runs clockwise from the top. **The used part is dark and see-through. The edge of what is left has a
+  thin red line,** and a sudden loss shows as a red wedge for a moment.
+- **A landing brings the ring in white and a little small;** it is green again a fifth of a second later.
+- **A hop takes it away:** it goes pale, shrinks and is gone.
+- **A thin arc outside the ring,** from the top to the upper right, grows for half a second after a landing and then
+  sits dark. My reading: the hop coming ready again.
+- **The tame ring** sits to the left, level with the big one. It is dark, fills pink, and stays pink when full.
+- **The rings follow the rider** on the screen. They are not fixed to a spot.
+- **The catch banner** comes up as the tame ring fills and stays nearly three seconds: tilted, a dark see-through
+  plate with a bright green edge, the animal's picture at its left, big pale green words, small orange words above,
+  the animal's name under. **A filled slot** has the animal's picture on its rarity's colour, a pale edge, and the
+  name along the bottom.
+
+### What changed
+| Piece | Before | Now |
+|---|---|---|
+| The big ring | Thin, with the seconds in a dark hole, on a fixed spot | The reference's: thick, a clear hole, a thin dark edge, the used part dark, a red line at the edge of what is left, a red wedge after a crash. It follows the rider |
+| A landing | The ring just filled | It comes in white and a little small |
+| A hop | The ring vanished | It goes pale and shrinks away |
+| The arc outside the ring | None | Pale while the hop comes ready after a landing (0.3 seconds), then dark |
+| The ring's colours | Aqua, yellow under 60%, red in the last second | Aqua, red in the last second. The yellow step is gone: the reference has one colour, and with the new rule a fish is either fine or too strong |
+| A full ring | A dark seam down the middle on some screens (seen on the tame ring) | No seam: a full ring is one piece, and the two halves lap over each other |
+| The tame ring | At the big ring's lower left; green when full | Level with it, to the left; pink, and pink when full. Hidden on a fish too strong (it can't be tamed) |
+| The catch banner | Small, no picture, up 1.8 seconds, at a fixed height | The reference's size and place (a fifth of the way down the left side), **the creature's picture in it**, up 2.6 seconds. The small words get louder with the rarity: NICE CATCH!, GREAT CATCH!, INCREDIBLE CATCH! |
+| A filled slot | A flat colour with the name; the newest in a white frame | **The creature's picture** on its rarity's colour, a pale edge, the name along the bottom; every filled slot alike, as the reference's |
+| GREAT DIVE! | The depth, and NEW BEST | Also "3 CAUGHT" when creatures came home |
+| A tag's number | The fish's number at home | **What it needs in the land it swims in now,** the rule the server throws you off by. A fish that strayed into a deeper land needs more there, and the old number could sit on a red plate looking small enough |
+| The locked fish's extra line in the hop | "holds 0.25 s" on a fish too strong | "TOO STRONG!" |
+
+**The pictures need no upload:** a creature's picture is its own model drawn in a small window. The model comes
+from the place's creature models when it is there, else from a fish of that kind swimming near by (the one just
+tamed always is). A creature with no model to draw yet shows its name alone.
+
+### A fish too strong for you
+The rule (the user's, built by the game-code chat): a landing is never refused. The whole meter empties in a
+quarter of a second, then the fish throws you off and you drown. The HUD tells it four ways:
+1. **Before the hop:** the red plate on the fish's tag, and "TOO STRONG!" on the locked fish in the air.
+2. **On the landing:** the ring is red from the first frame, a fifth bigger, and shakes, while red sweeps round it.
+   Under it: **"Too strong!"** and **"needs 800"** (what that fish needs there). The hop button's ring goes red too.
+3. **While you drown:** the ring stays up, red all round, with the same two lines (in place of "Out of air").
+4. **The last words** are "TOO STRONG!" in place of "OUT OF AIR!".
+
+The server's word that a fish is too strong takes a moment to arrive. For the first 0.3 seconds after a landing the
+HUD judges it itself, by the same rule, so the red is there at once.
+
+### What was taken while the user was away (to confirm)
+| Point | Taken | Why | To undo |
+|---|---|---|---|
+| The seconds written in the big ring | **Off** | The reference's ring has no number, and its hole is too small to hold one. The ring's own red says "now" | `SECONDS_ON_RING` at the top of `Rings.luau`: the number is then drawn over the ring |
+| The ridden fish's name and rarity under the ring | **Off** | The reference has neither. Words stay only for what the ring can't show: "Floating", "Out of air", "Too strong!" | `NAME_UNDER_RING`, the same file |
+| The ring's colour | **Stays our aqua** | It is our Oxygen's colour everywhere else on the HUD. The reference's is green | `Kit.Aqua` in `Rings.luau`'s colour line |
+| The banner's words | **Stay ours:** "TAMED!", "NICE CATCH!" | The reference's words are not copied | |
+| The reference's "N SECURED" list at the left | **Not built** | Our catch comes home whatever happens, so there is no second, safer list to show. "3 CAUGHT" over the slots says it | |
+
+**Not seen in the game yet:** all of piece 3. The first things to look at: the ring's place beside the rider (it
+follows a point at the rider's shoulder, and sits a little over a quarter of the screen's height to the right), a
+landing on a fish too strong, the picture in the banner and in a slot, and a full tame ring (the seam).
+
+## The files
 | File | What it is |
 |---|---|
 | `src/client/Controllers/HudController.luau` | Makes the two screens, lays the pieces out for a phone or a keyboard, and feeds them each frame. Rewritten: the Oxygen bar, the rate, the speed, the depth gauge and the bracket are gone |
-| `src/client/UI/Kit.luau` | The colours, the outlined letters, the ring that empties, the bubble and the coin, the number forms |
+| `src/client/UI/Kit.luau` | The colours, the outlined letters, the ring that empties (and the arc it is made of), the bubble and the coin, the number forms |
 | `src/client/UI/LandStrip.luau` | The ten lands across the top, your marker and metres, your best |
-| `src/client/UI/Rings.luau` | The seconds left on this fish, the fish's name and rarity, the tame ring |
+| `src/client/UI/Rings.luau` | Beside the rider: the time left on this fish, the tame ring, the hop's arc, the landing's flash, the words for floating, out of air and too strong |
 | `src/client/UI/HopButton.luau` | The jump button: the arrow turns over in the air; HOP and GRAB on a phone, "Space" on a keyboard |
 | `src/client/UI/StatRows.luau` | Your Oxygen; coins when the game has them |
-| `src/client/UI/Tags.luau` | Tags on the nearest wild fish: rarity, name, what each needs, in three colours; a red plate on a fish too strong; far or crowded fish show only the number |
+| `src/client/UI/Tags.luau` | Tags on the nearest wild fish: rarity, name, what each needs where it swims; a red plate on a fish too strong; far or crowded fish show only the number |
 | `src/client/UI/Aim.luau` | In the hop: the aim, and the window as a ring |
-| `src/client/UI/Slots.luau` | The seven slots for what you carry |
+| `src/client/UI/Slots.luau` | The seven slots for what you carry, each with its creature's picture |
 | `src/client/UI/Banners.luau` | A miss, the end of a dive, a catch |
+| `src/client/UI/Portrait.luau` | A creature's picture: its own model drawn in a small window, no upload |
+| `tools/ui/ring_sheet.py` | Draws the sheet above: the reference's rings over ours |
 
-**Works with today's game:** the strip of lands, the metres and the best of this session; the big ring with the
-seconds; the fish's name and rarity; the jump button; the aim and the window; the tags; your Oxygen; the words of a
-miss; "GREAT DIVE!" with the depth when you are back on the dock.
+**Works with today's game:** the strip of lands, the metres and the best of this session; the big ring; the jump
+button; the aim and the window; the tags; your Oxygen; the words of a miss; "GREAT DIVE!" with the depth and the
+catch when you are back on the dock; and, since taming is in the game (2026-11-12), the tame ring, the catch banner
+and the slots.
 
-**Built and hidden until its system exists:** the tame ring (`State.Tame`), the catch banner (`State.Tamed`), the
-slots (`State.Caught`), the coins row (the player's `Coins`). The names are proposals to the game-code chat.
+**Built and hidden until its system exists:** the coins row (the player's `Coins`).
 
-**From the game code, in since 2026-11-12:** the player's `Drain`, `State.secondsOn(fish)`, and `Actions.jump()`
-for the button.
+**From the game code, in since 2026-11-12:** the player's `Drain`, `Actions.jump()` for the button, and for piece 3
+`State.Tame`, `State.Caught`, `State.Tamed`, `State.Strained`, `State.tooStrong(fish)`, `Config.required`,
+`Config.strained` and `Config.secondsOn`.
 
-**Not built yet:** creature pictures in the slots, the revive bar, the new-land banner, the first-minute hints, the
-dock's buttons and shop panels.
+**Not built yet:** the revive bar, the new-land banner, the first-minute hints, the dock's buttons and shop panels.
 
 ### What was taken where the design was open
 | Open point | Taken | Why |
@@ -119,7 +224,11 @@ dock's buttons and shop panels.
 - **No pictures.** Frames, corners, outlines and gradients only.
 - **The ring that empties** is two half rings. Each is an outlined circle inside a frame that clips it to its half;
   the outline's gradient is see-through past its middle, and turning that gradient sweeps the half open. Only two
-  numbers change, in half-degree steps. This is the piece most worth looking at first in Studio.
+  numbers change, in half-degree steps. A full ring is one whole outline, so it has no seam. The red part behind
+  what is left is a second such arc under the first.
+- **The rings follow the rider:** one point turned from the world to the screen each frame, and one place written.
+- **A creature's picture** is made when a creature is caught, never per frame: a kind's model is copied and cleaned
+  once and kept, and a window that is not changing costs nothing to draw.
 - **Nothing is made per frame.** Ten tags are made once and moved from fish to fish. The herd is looked over four
   times a second. The tags are frames on the screen, put over their fish each frame (six points turned from the
   world to the screen). They were BillboardGuis first; those attached to the fish but drew nothing in Studio, for a
@@ -532,3 +641,5 @@ near empty most of the time. What follows for the ring:
 3. **Revives:** does our game have them (the reference: three free, then sold)? The screen after a miss depends on it.
 4. **On a phone, your Oxygen and coins:** at the top left (drawn, clear of the stick), or at the lower left as the
    reference has them?
+5. **The ring (piece 3):** the seconds and the fish's name are off it now, to match the reference's ring. Keep them
+   off, or bring one back? And the ring stays our aqua where the reference's is green: right?

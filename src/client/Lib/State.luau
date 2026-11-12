@@ -9,6 +9,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 
 export type DeathCam = { Focus: Vector3, Position: Vector3 }
+export type Caught = { Id: string, Tier: string }
 
 local State = {
 	Player = Players.LocalPlayer,
@@ -40,6 +41,11 @@ local State = {
 	Vignette = 0, -- the screen edges closing in, 0 to 1
 	Darken = 0, -- the water going dark, 0 to 1
 	ModeChanged = Instance.new("BindableEvent"),
+	-- Taming (TameController fills these from the server; the HUD reads them). With taming off they stay nil.
+	Tame = nil :: number?, -- 0 to 1: how far the fish under us is from being ours (nil: nothing to show)
+	Caught = nil :: { Caught }?, -- what we carry on this dive, oldest first
+	Tamed = Instance.new("BindableEvent"), -- fired with the fish's id when the fish under us becomes ours
+	Strained = false, -- the fish under us is too strong for us: the meter is emptying at once
 }
 
 function State.setMode(mode: string)
@@ -74,8 +80,20 @@ function State.secondsOn(fish: Model): number?
 		return nil
 	end
 	local zone = Zones.locate(State.Zones, root.Position)
-	local rate = Config.drain(if zone then zone.Index else 1, tier)
-	return if rate > 0 then max / rate else nil
+	return Config.secondsOn(if zone then zone.Index else 1, tier, max)
+end
+
+-- Whether landing on that fish where it swims now would be landing on one too strong for us (Oxygen.StrainTime: the
+-- meter empties at once and it throws us off). false when it can't be told yet.
+function State.tooStrong(fish: Model): boolean
+	local root = fish.PrimaryPart
+	local tier = fish:GetAttribute("Tier")
+	local max = State.Player:GetAttribute("MaxOxygen")
+	if not root or type(tier) ~= "string" or type(max) ~= "number" then
+		return false
+	end
+	local zone = Zones.locate(State.Zones, root.Position)
+	return Config.strained(if zone then zone.Index else 1, tier, max)
 end
 
 function State.dying(): boolean

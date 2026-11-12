@@ -3,13 +3,17 @@
 -- are in Client.UI; this file makes the two screens, lays the pieces out for a phone or a keyboard, and feeds them
 -- what the game knows each frame.
 --   LandStrip   the ten lands across the top, your marker, the metres, your best
---   Rings       beside the rider: the seconds left on this fish, and the tame
+--   Rings       beside the rider, following them: the time left on this fish, and the tame
 --   HopButton   lower right: the arrow turns over in the air; HOP and GRAB on a phone, the key's name on a keyboard
 --   StatRows    your Oxygen (and coins, when the game has them)
 --   Tags        the nearest wild fish: rarity, name, what each needs
 --   Aim         in the hop: the aim, and the window as a ring
---   Slots       what you carry (when the game has taming)
+--   Slots       what you carry, with each creature's picture
 --   Banners     a miss, the end of a dive, a catch
+-- A fish too strong for you (Oxygen.StrainTime: a landing is never refused, the whole meter empties in a quarter of a
+-- second and the fish throws you off) is told four ways: the red plate on its tag before the hop; the ring red, bigger
+-- and shaking from the landing, with "Too strong!" and what the fish needs under it; the same words under the empty
+-- ring while you drown; and "TOO STRONG!" as the last words in place of "OUT OF AIR!".
 -- Under them, on a screen of their own that covers the whole display: the speed lines, the edges closing in as you
 -- drown, and the drowning's black (State.Vignette, State.Fade: DeathController's).
 -- For phones: nothing is made per frame, a label's text is set only when it changes, and text never changes size.
@@ -41,6 +45,11 @@ local HudController = {}
 local SCALE_HEIGHT = 560
 local SCALE_MAX = 2.2
 local HOT_SECONDS = 1 -- under this on a fish, the ring and the button call for the hop
+local SHOULDER = Vector3.new(0, 1, 0) -- from the rider's middle to where the rings are level with
+-- The server's word that a fish is too strong takes a moment to come; for this long after a landing the HUD judges it
+-- itself, by the same rule (State.tooStrong), so the ring is red from the first frame
+local STRAIN_GUESS = 0.3
+local STRAIN_UNSAID = 0.6 -- still riding this long after the landing with no word from the server: the guess was wrong
 -- The speed lines are on screen all the time you ride, so they are kept cheap: moved thirty times a second, half as
 -- many on a phone, each line's turn set once, and its size written only when the speed's step changes
 local LINES = 28
@@ -75,13 +84,35 @@ local endlessAir = false
 
 local diveMetres = 0
 local diveLands = 0
+local diveCaught = 0
 local bestMetres = 0
 local bestLands = 0
 local caughtCount = -1
 
--- A value another controller may publish on State before this file knows its name is typed (docs/design/ui.md, "Open
--- points"): nil until it exists, and the HUD then falls back or hides the piece
-local published: { [string]: any } = State :: any
+-- the landing the rings last flashed for, and whether the fish of this ride is too strong (kept through the drowning
+-- it ends in, for the words)
+local mountedSeen = -math.huge
+local strainRide = false
+local strainNeeds = ""
+
+local ringView: Rings.View = {
+	Follow = false,
+	X = 0,
+	Y = 0,
+	Wide = 0,
+	High = 0,
+	Fraction = 1,
+	Seconds = math.huge,
+	Name = "",
+	Tier = "",
+	Note = "",
+	NoteSub = "",
+	Warn = false,
+	Tame = nil,
+	Ready = 1,
+	Strained = false,
+	Endless = false,
+}
 
 local function build()
 	playerGui = State.Player:WaitForChild("PlayerGui")
@@ -297,8 +328,29 @@ local function update(dt: number)
 	-- sends the meter about ten times a second; between those we count down ourselves
 	local fish = State.Fish
 	local kind = fish and Config.FishById[fish:GetAttribute("FishType") :: string]
+	-- a landing: the rings flash, and whether this fish is too strong is asked again
+	if State.MountedAt ~= mountedSeen then
+		mountedSeen = State.MountedAt
+		strainRide = false
+		Rings.landed(now)
+	end
+	local strained = false
+	if mode == "Riding" and fish and kind and not endlessAir then
+		strained = State.Strained or (now - State.MountedAt < STRAIN_GUESS and State.tooStrong(fish))
+		if strained and not strainRide then
+			strainRide = true
+			strainNeeds = "needs " .. Kit.short(Config.required(math.max(land, 1), kind.Tier))
+		elseif strainRide and not State.Strained and now - State.MountedAt > STRAIN_UNSAID then
+			-- our own guess, and the server never said so: it is not too strong
+			strainRide = false
+		end
+	elseif mode ~= "Riding" and mode ~= "Drowning" then
+		strainRide = false
+	end
 	local drain = 0
-	if mode == "Riding" and kind then
+	if strained then
+		drain = max / math.max(Config.Oxygen.StrainTime, 0.01)
+	elseif mode == "Riding" and kind then
 		local sent = State.Player:GetAttribute("Drain")
 		drain = if type(sent) == "number" and sent > 0 then sent else Config.drain(math.max(land, 1), kind.Tier)
 	elseif mode == "Free" then
@@ -312,19 +364,65 @@ local function update(dt: number)
 		meter = math.max(meter - drain * dt, oxygen - drain * 0.33, 0)
 	end
 	local seconds = math.huge
+	local view = ringView
+	-- the rings follow the rider on the screen, as the reference's follow the animal
+	local camera = workspace.CurrentCamera
+	local size = root.AbsoluteSize
+	view.Wide = size.X / hudScale
+	view.High = size.Y / hudScale
+	view.Follow = false
+	if rootPart and camera then
+		local point = camera:WorldToScreenPoint(rootPart.Position + SHOULDER)
+		if point.Z > 0 then
+			local origin = root.AbsolutePosition
+			view.Follow = true
+			view.X = (point.X - origin.X) / hudScale
+			view.Y = (point.Y - origin.Y) / hudScale
+		end
+	end
+	view.Name = ""
+	view.Tier = ""
+	view.Note = ""
+	view.NoteSub = ""
+	view.Warn = false
+	view.Tame = nil
+	view.Ready = 1
+	view.Strained = false
+	view.Endless = endlessAir
 	if mode == "Riding" and kind then
 		seconds = meter / math.max(drain, 0.001)
-		Rings.update(now, meter / max, seconds, kind.Name, kind.Tier, published.Tame, endlessAir)
+		view.Fraction = meter / max
+		view.Seconds = seconds
+		view.Name = kind.Name
+		view.Tier = kind.Tier
+		view.Tame = State.Tame
+		view.Ready = 1 - math.clamp((State.JumpReadyAt - now) / math.max(Config.Jump.Cooldown, 0.01), 0, 1)
+		view.Strained = strained
+		if strainRide then
+			view.Note = "Too strong!"
+			view.NoteSub = strainNeeds
+			view.Warn = true
+		end
+		Rings.update(now, view)
 	elseif mode == "Free" then
 		-- off a fish and not in a hop: the meter is the air you have left to float on, and the ring says so
-		Rings.update(now, meter / max, meter / math.max(drain, 0.001), "Floating", "", nil, endlessAir)
+		view.Fraction = meter / max
+		view.Seconds = meter / math.max(drain, 0.001)
+		view.Note = "Floating"
+		Rings.update(now, view)
 	elseif outOfAir and State.FadeText == "" then
 		-- out of air (run out on a fish, or thrown off one too strong): the ring stays up, empty and red, so the
 		-- reason is on the screen at once; it goes when the words come up over the middle. The Oxygen row at the
 		-- corner is the most you can carry, not what is left, so it can't say this
-		Rings.update(now, 0, 0, "Out of air", "", nil, false)
+		view.Fraction = 0
+		view.Seconds = 0
+		view.Note = if strainRide then "Too strong!" else "Out of air"
+		view.NoteSub = if strainRide then strainNeeds else ""
+		view.Warn = true
+		view.Endless = false
+		Rings.update(now, view)
 	else
-		Rings.hide()
+		Rings.hide(now)
 	end
 
 	-- the hop: the button, the aim, the window
@@ -349,11 +447,13 @@ local function update(dt: number)
 	end
 
 	-- what we carry: only looked at when its length changes
-	local caught = published.Caught
-	local count = if type(caught) == "table" then #caught else -2
+	local caught = State.Caught
+	local count = if caught then #caught else -2
 	if count ~= caughtCount then
 		caughtCount = count
-		Slots.update(if count >= 0 then caught else nil)
+		Slots.update(caught)
+		-- (the most carried this dive, for the words at its end: the server empties the list as it puts us on the dock)
+		diveCaught = math.max(diveCaught, count)
 	end
 
 	sinceJumpCheck += dt
@@ -365,7 +465,8 @@ local function update(dt: number)
 			and workspace:GetAttribute("SandboxEndlessAir") == true
 	end
 
-	Banners.miss(State.FadeText, State.Fade)
+	-- the last words: thrown off a fish too strong says so, in place of "OUT OF AIR!"
+	Banners.miss(if State.FadeText ~= "" and strainRide and outOfAir then "TOO STRONG!" else State.FadeText, State.Fade)
 	updateFx(now)
 end
 
@@ -396,16 +497,14 @@ function HudController.Start()
 					bestMetres = diveMetres
 					bestLands = diveLands
 				end
-				Banners.greatDive(diveMetres, isBest)
+				Banners.greatDive(diveMetres, isBest, diveCaught)
 			end
 			diveMetres = 0
 			diveLands = 0
+			diveCaught = 0
 		end
 	end)
-	local tamed = published.Tamed
-	if typeof(tamed) == "Instance" and tamed:IsA("BindableEvent") then
-		tamed.Event:Connect(Banners.caught)
-	end
+	State.Tamed.Event:Connect(Banners.caught)
 
 	RunService.RenderStepped:Connect(update)
 end

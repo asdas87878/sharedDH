@@ -1,8 +1,11 @@
 --!strict
 -- A tag over each of the nearest wild fish, stacked as the reference stacks its own: the rarity in its colour, the
--- name, and what the fish needs (the bubble and a number). Ours: the number is green when you would hold the fish two
--- seconds or more, yellow when it will be short, red when it is too strong; and the locked fish's tag is a quarter
--- bigger and, in the hop, says how long it holds.
+-- name, and what the fish needs (the bubble and a number). Ours: the number is green on a fish you can hold and on a
+-- red plate on one too strong for you (a landing on that one is never refused: your whole meter empties in a quarter
+-- of a second and it throws you off, Oxygen.StrainTime); and the locked fish's tag is a quarter bigger and, in the
+-- hop, says how long it holds, or that it is too strong.
+-- The number is what the fish needs in the land it swims in now (Config.required), the rule the server judges a
+-- landing by. A fish that has strayed into a deeper land needs more there than at home.
 -- A handful of tags, made once and moved from fish to fish. The fish are looked over a few times a second, never per
 -- frame, and a label's text is set only when its fish changes.
 -- The tags are frames on the screen, put over their fish each frame (six points turned from the world to the screen).
@@ -56,6 +59,7 @@ type Tag = {
 	Hold: TextLabel,
 	Fish: Model?,
 	TierName: string,
+	Needs: number, -- the number written on it
 	Size: number,
 	State: number,
 	HoldText: string,
@@ -160,6 +164,7 @@ local function make(parent: Instance): Tag
 		Hold = hold,
 		Fish = nil,
 		TierName = "",
+		Needs = -1,
 		Size = 0,
 		State = 0,
 		HoldText = "",
@@ -218,8 +223,7 @@ local function put(tag: Tag, fish: Model)
 	tag.TierName = kind.Tier
 	tag.Tier.Text = kind.Tier
 	Kit.tierColours(tag.Tier, tag.TierGradient, kind.Tier, Config.Tiers)
-	local required = fish:GetAttribute("Required")
-	tag.Need.Text = Kit.short(if type(required) == "number" then required else kind.Required)
+	tag.Needs = -1
 	tag.State = 0
 end
 
@@ -391,13 +395,19 @@ function Tags.update(
 		local root = fish and fish.PrimaryPart
 		if fish and root then
 			local isLocked = fish == locked
-			-- how long a full meter would last on it where it swims, as the game counts it
-			local seconds = State.secondsOn(fish)
-			if not seconds then
-				local zone = Zones.locate(zones, root.Position)
-				seconds = maxOxygen / math.max(Config.drain(if zone then zone.Index else 1, tag.TierName), 0.001)
+			-- what it needs, and how long a full meter would last on it, where it swims now: as the server counts
+			local zone = Zones.locate(zones, root.Position)
+			local land = if zone then zone.Index else 1
+			local needs = Config.required(land, tag.TierName)
+			if needs ~= tag.Needs then
+				tag.Needs = needs
+				tag.Need.Text = Kit.short(needs)
 			end
-			local state = if seconds >= Kit.HoldFine then 1 elseif seconds >= Kit.HoldShort then 2 else 3
+			local seconds = Config.secondsOn(land, tag.TierName, maxOxygen)
+			local state = if Config.strained(land, tag.TierName, maxOxygen) or seconds < Kit.HoldShort
+				then 3
+				elseif seconds >= Kit.HoldFine then 1
+				else 2
 			if state ~= tag.State then
 				tag.State = state
 				local tooStrong = state == 3
@@ -406,7 +416,10 @@ function Tags.update(
 				tag.Plate.BackgroundTransparency = if tooStrong then 0.04 else 1
 				tag.PlateEdge.Enabled = tooStrong
 			end
-			local holdText = if isLocked and hopping then "holds " .. Kit.seconds(seconds) .. " s" else ""
+			local holdText = if not (isLocked and hopping)
+				then ""
+				elseif state == 3 then "TOO STRONG!"
+				else "holds " .. Kit.seconds(seconds) .. " s"
 			if holdText ~= tag.HoldText then
 				tag.HoldText = holdText
 				tag.Hold.Text = holdText

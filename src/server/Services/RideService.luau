@@ -45,6 +45,12 @@ type Rider = {
 	SentOxygen: number,
 	SentAt: number,
 	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
+	Strained: boolean, -- the fish under us is too strong for us (decided at the mount): the meter empties at once
+	Tame: number, -- seconds ridden toward taming the fish under us
+	SentTame: number, -- the Tame attribute as last told (-1: none)
+	Tamed: { [Wild]: boolean }, -- the fish made ours on this dive (so one fish is not tamed twice)
+	Caught: { string }, -- what we carry on this dive: fish ids, oldest first
+	Owned: number, -- creatures brought home this session
 	Trained: number, -- max Oxygen gained on the training spot this session (TrainService), on top of the start
 	Landings: number, -- landings so far this session: sent with each "Land", so every client picks the same reaction
 	SandboxRetries: number, -- times the sandbox's reset has been done again by itself after a seat that went wrong
@@ -133,9 +139,19 @@ local function setState(r: Rider, state: string)
 		r.Player:SetAttribute("DeathThrown", nil)
 		r.Player:SetAttribute("DeathQuick", nil)
 	end
-	if state ~= "Riding" and r.SentDrain ~= 0 then
-		r.SentDrain = 0
-		r.Player:SetAttribute("Drain", 0)
+	if state ~= "Riding" then
+		if r.SentDrain ~= 0 then
+			r.SentDrain = 0
+			r.Player:SetAttribute("Drain", 0)
+		end
+		if r.Strained then
+			r.Strained = false
+			r.Player:SetAttribute("Strained", nil)
+		end
+		if r.SentTame ~= -1 then
+			r.SentTame = -1
+			r.Player:SetAttribute("Tame", nil)
+		end
 	end
 	r.State = state
 	r.Player:SetAttribute("State", state)
@@ -155,6 +171,17 @@ local function sendOxygen(r: Rider, force: boolean?)
 		r.Player:SetAttribute("Oxygen", math.floor(r.Oxygen * 10 + 0.5) / 10)
 		r.Player:SetAttribute("MaxOxygen", math.floor(r.Max * 10 + 0.5) / 10)
 	end
+end
+
+-- The land a rider is in, for the drain (before the first land, the lagoon: the first)
+local function zoneOf(position: Vector3): number
+	local zone = Zones.locate(FishService.zones(), position)
+	return if zone then zone.Index else 1
+end
+
+-- What the rider carries on this dive, told to their client
+local function sendCaught(r: Rider)
+	Net.Ride:FireClient(r.Player, "Caught", r.Caught)
 end
 
 -- (`target`: the fish a refused grab or landing was for, so the client can tell an old refusal from one for the fish
@@ -208,6 +235,12 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.CheckAt = os.clock() + 1
 	r.CheckFrom = w.Root.Position
 	r.Nosed = false
+	-- Too strong for us? Decided here, at the mount, by the land the fish is in: a landing is never refused, the meter
+	-- just empties at once (Oxygen.StrainTime). Riding a fish we can hold on into a deeper land only costs that land's
+	-- drain.
+	r.Strained = Config.strained(zoneOf(w.Root.Position), w.Type.Tier, r.Max) and not sandbox("EndlessAir")
+	r.Player:SetAttribute("Strained", if r.Strained then true else nil)
+	r.Tame = if r.Tamed[w] then Config.Tame.Time else 0
 	if landing then
 		-- the refill is for reaching another fish: not for hopping off and back onto the same one, nor for a landing
 		-- sooner than a flight can be
@@ -253,6 +286,14 @@ local function toDock(r: Rider)
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
 	setState(r, "Dock")
+	-- the dive's catch comes home (death or not, as the reference's): counted, and the hands are empty again
+	if #r.Caught > 0 then
+		r.Owned += #r.Caught
+		r.Player:SetAttribute("Owned", r.Owned)
+	end
+	table.clear(r.Caught)
+	table.clear(r.Tamed)
+	sendCaught(r)
 	Net.Ride:FireClient(r.Player, "Respawned")
 end
 
@@ -478,12 +519,6 @@ local function checkCrash(r: Rider, w: Wild)
 	r.Nosed = nosed
 end
 
--- The land a rider is in, for the drain (before the first land, the lagoon: the first)
-local function zoneOf(position: Vector3): number
-	local zone = Zones.locate(FishService.zones(), position)
-	return if zone then zone.Index else 1
-end
-
 -- A light check on the client driving its fish: flag one moving far faster than its surge speed
 local function checkSpeed(r: Rider, w: Wild)
 	local t = os.clock()
@@ -501,6 +536,32 @@ local function checkSpeed(r: Rider, w: Wild)
 	end
 	r.CheckAt = t + 1
 	r.CheckFrom = position
+end
+
+-- Riding a fish we can hold makes it ours after Tame.Time seconds on it (one fish once a dive)
+local function tame(r: Rider, w: Wild, dt: number)
+	local c = Config.Tame
+	if c.On == 0 or r.Strained then
+		return
+	end
+	local length = math.max(c.Time, 0.05)
+	if not r.Tamed[w] then
+		r.Tame += dt
+		if r.Tame >= length then
+			r.Tamed[w] = true
+			if #r.Caught < c.Carry then
+				table.insert(r.Caught, w.Type.Id)
+				sendCaught(r)
+				Net.Ride:FireClient(r.Player, "Tamed", w.Model, w.Type.Id)
+			end
+		end
+	end
+	-- (told in fortieths: twenty updates over a tame of two seconds, and none once it is full)
+	local share = math.floor(math.clamp(r.Tame / length, 0, 1) * 40 + 0.5) / 40
+	if share ~= r.SentTame then
+		r.SentTame = share
+		r.Player:SetAttribute("Tame", share)
+	end
 end
 
 local function tick(r: Rider, dt: number)
@@ -522,11 +583,16 @@ local function tick(r: Rider, dt: number)
 			-- the deeper the land, the more the fish takes a second: this is the progression
 			-- (told to the client when it changes, for the HUD's seconds left on this fish: the Drain attribute)
 			local rate = Config.drain(zoneOf(root.Position), w.Type.Tier)
+			if r.Strained and o.StrainTime > 0 then
+				-- a fish too strong for us: the whole meter in StrainTime, whatever the fish
+				rate = r.Max / o.StrainTime
+			end
 			if rate ~= r.SentDrain then
 				r.SentDrain = rate
 				r.Player:SetAttribute("Drain", rate)
 			end
 			drain(r, rate * dt)
+			tame(r, w, dt)
 			checkSpeed(r, w)
 			checkCrash(r, w)
 			if r.Oxygen <= 0 then
@@ -619,6 +685,12 @@ local function onPlayer(player: Player)
 		SentOxygen = -1,
 		SentAt = 0,
 		SentDrain = 0,
+		Strained = false,
+		Tame = 0,
+		SentTame = -1,
+		Tamed = setmetatable({}, { __mode = "k" }) :: any,
+		Caught = {},
+		Owned = 0,
 		CheckAt = 0,
 		CheckFrom = nil,
 		Flagged = false,

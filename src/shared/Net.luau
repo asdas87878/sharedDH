@@ -4,7 +4,9 @@
 --     checks it and keeps it for us) | "CancelGrab" | "Land", fish (the pull-in onto the granted fish has ended) |
 --     "Miss" (the window ran out with no fish)
 --   Ride (server -> one client): "Mounted", fish, landing | "Dismounted", reason | "Denied", action, reason |
---     "Respawned" | "Crashed", slow (our fish ran into something: the share of its speed it keeps)
+--     "Respawned" | "Crashed", slow (our fish ran into something: the share of its speed it keeps) |
+--     "Tamed", fish, fishId (the fish under us is ours now) | "Caught", ids (what we carry on this dive: fish ids,
+--     oldest first; an empty list at the dock)
 --   Fx (server -> every client): "Land", player, fish, count (that rider's landings so far) | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
 --     player off)
 --   and for the sandbox's reset only: Ride "SandboxMount", fish (sit on this fish yourself) answered by Action
@@ -15,7 +17,10 @@
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
 -- Drain (the Oxygen a second the fish under you takes, as the server counts it; 0 off a fish), Training (true while
--- you stand on the training spot and your max Oxygen is growing),
+-- you stand on the training spot and your max Oxygen is growing), Strained (true while you ride a fish too strong for
+-- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being
+-- yours; nil off a fish, on one too strong, or with taming off), Owned (how many creatures you have brought home this
+-- session),
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

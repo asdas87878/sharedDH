@@ -1,13 +1,14 @@
 --!strict
 -- The words that come and go: the miss ("MISSED THE FISH!", "OUT OF AIR!"), the end of a dive (the reference's: a gold
 -- title on a dark streak that fades out at both ends, a little tilted, and a pill under it), and the catch banner
--- (tilted, at the left, see-through with a bright edge; it waits for taming).
+-- (tilted, at the left, see-through with a bright edge, the creature's picture in it).
 -- They slide and switch on and off; no text ever changes size.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
+local Portrait = require(script.Parent.Portrait)
 
 local Banners = {}
 
@@ -17,7 +18,11 @@ local missOutline: UIStroke
 local great: Frame
 local greatMetres: TextLabel
 local greatBest: TextLabel
+local greatCaught: TextLabel
 local catch: Frame
+local catchWords: TextLabel
+local catchTamed: TextLabel
+local catchPicture: Portrait.Portrait
 local catchName: TextLabel
 local catchTier: TextLabel
 local catchTierGradient: UIGradient
@@ -42,6 +47,17 @@ local LINE = NumberSequence.new({
 -- strip at the top, on a phone as on a wide screen (it was on the player's head at the middle)
 local GREAT_AT = UDim2.new(0.5, 0, 0.36, -20)
 local GREAT_FROM = UDim2.new(0.5, 0, 0.36, 20)
+local CATCH_AT = UDim2.new(0, 22, 0.2, 0) -- (the tilt swings the plate's top corner a few units to the left)
+local CATCH_FROM = UDim2.new(0, -250, 0.2, 0)
+local CATCH_TIME = 2.6
+-- the small words over the catch banner, by rarity (the reference's get louder with the catch; the words are ours)
+local CATCH_WORDS: { [string]: string } = {
+	Rare = "GREAT CATCH!",
+	Epic = "GREAT CATCH!",
+	Legendary = "INCREDIBLE CATCH!",
+	Mythic = "INCREDIBLE CATCH!",
+	Secret = "INCREDIBLE CATCH!",
+}
 local SLIDE = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local LEAVE = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
@@ -130,21 +146,31 @@ function Banners.build(parent: Instance)
 		LayoutOrder = 2,
 		ZIndex = 17,
 	}, pill, 1.8)
+	greatCaught = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 30),
+		TextSize = 13,
+		TextColor3 = Color3.fromRGB(156, 240, 106),
+		LayoutOrder = 3,
+		ZIndex = 17,
+	}, pill, 2)
 
-	-- the catch banner
+	-- the catch banner (the reference's, off its frames: tilted, a third of the way down the left side, a dark
+	-- see-through plate with a bright green edge, the creature's picture at its left, big pale green words, small
+	-- orange words above it and the creature under it; it is up for nearly three seconds)
 	catch = Kit.new("Frame", {
 		Name = "Catch",
-		Position = UDim2.fromOffset(18, 176),
-		Size = UDim2.fromOffset(190, 74),
+		Position = CATCH_AT,
+		Size = UDim2.fromOffset(230, 96),
 		Rotation = -6,
 		BackgroundTransparency = 1,
 		Visible = false,
 		ZIndex = 15,
 	}, parent)
-	Kit.text({
-		Position = UDim2.fromOffset(10, 0),
-		Size = UDim2.fromOffset(170, 13),
-		TextSize = 10.5,
+	catchWords = Kit.text({
+		Position = UDim2.fromOffset(8, 0),
+		Size = UDim2.fromOffset(200, 13),
+		TextSize = 11,
 		TextColor3 = Color3.fromRGB(255, 176, 87),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "NICE CATCH!",
@@ -152,36 +178,55 @@ function Banners.build(parent: Instance)
 	}, catch, 1.8)
 	local plate = Kit.new("Frame", {
 		Position = UDim2.fromOffset(0, 15),
-		Size = UDim2.fromOffset(170, 36),
-		BackgroundColor3 = Color3.fromRGB(14, 64, 36),
-		BackgroundTransparency = 0.24,
+		Size = UDim2.fromOffset(206, 50),
+		BackgroundColor3 = Color3.fromRGB(10, 40, 26),
+		BackgroundTransparency = 0.3,
 		ZIndex = 15,
 	}, catch)
 	Kit.corner(plate, 9)
 	Kit.stroke(plate, 3, Color3.fromRGB(91, 224, 106))
-	local tamed = Kit.text({
-		Size = UDim2.fromScale(1, 1),
-		TextSize = 23,
+	catchPicture = Portrait.new(plate, {
+		Position = UDim2.fromOffset(4, 2),
+		Size = UDim2.fromOffset(48, 46),
+		ZIndex = 16,
+		Visible = false,
+	})
+	catchTamed = Kit.text({
+		Position = UDim2.fromOffset(50, 0),
+		Size = UDim2.new(1, -54, 1, 0),
+		TextSize = 29,
 		Text = "TAMED!",
 		ZIndex = 16,
-	}, plate, 2.6)
-	Kit.gradient(tamed, Color3.fromRGB(226, 255, 170), Kit.Lime)
-	catchTier = Kit.text({
-		Position = UDim2.fromOffset(14, 56),
+	}, plate, 2.8)
+	Kit.gradient(catchTamed, Color3.fromRGB(226, 255, 170), Kit.Lime)
+	local under = Kit.new("Frame", {
+		Position = UDim2.fromOffset(12, 70),
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 15),
-		TextSize = 12,
+		Size = UDim2.fromOffset(0, 17),
+		BackgroundTransparency = 1,
 		ZIndex = 16,
 	}, catch)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 6),
+	}, under)
+	catchTier = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 17),
+		TextSize = 13,
+		LayoutOrder = 1,
+		ZIndex = 16,
+	}, under)
 	catchTierGradient = Kit.gradient(catchTier, Kit.White, Kit.White)
 	catchName = Kit.text({
-		Position = UDim2.fromOffset(84, 56),
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 15),
-		TextSize = 13,
-		TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.fromOffset(0, 17),
+		TextSize = 14.5,
+		LayoutOrder = 2,
 		ZIndex = 16,
-	}, catch)
+	}, under)
 end
 
 -- The words of a miss, as the deaths set them (State.FadeText), fading in with the black
@@ -198,12 +243,16 @@ function Banners.miss(text: string, alpha: number)
 	end
 end
 
--- Back on the dock after a dive: how deep it went, and whether that is a new best
-function Banners.greatDive(metres: number, isBest: boolean)
+-- Back on the dock after a dive: how deep it went, whether that is a new best, and how many creatures came home
+function Banners.greatDive(metres: number, isBest: boolean, caught: number)
 	greatRun += 1
 	local run = greatRun
 	greatMetres.Text = math.floor(metres) .. " m"
 	greatBest.Visible = isBest
+	greatCaught.Visible = caught > 0
+	if caught > 0 then
+		greatCaught.Text = caught .. " CAUGHT"
+	end
 	great.Position = GREAT_FROM
 	great.Visible = true
 	TweenService:Create(great, SLIDE, { Position = GREAT_AT }):Play()
@@ -221,7 +270,7 @@ function Banners.greatDive(metres: number, isBest: boolean)
 	end)
 end
 
--- A tame finished: the tilted banner at the left for a moment (called when the game has taming)
+-- A tame finished: the tilted banner at the left, with the creature's picture when it has a model to draw
 function Banners.caught(fishId: string)
 	local kind = Config.FishById[fishId]
 	if not kind then
@@ -232,14 +281,20 @@ function Banners.caught(fishId: string)
 	catchName.Text = kind.Name
 	catchTier.Text = kind.Tier
 	Kit.tierColours(catchTier, catchTierGradient, kind.Tier, Config.Tiers)
-	catch.Position = UDim2.fromOffset(-200, 176)
+	catchWords.Text = CATCH_WORDS[kind.Tier] or "NICE CATCH!"
+	-- with a picture the words sit to its right; with none they take the whole plate
+	local pictured = catchPicture.show(fishId)
+	catchPicture.Frame.Visible = pictured
+	catchTamed.Position = UDim2.fromOffset(if pictured then 50 else 0, 0)
+	catchTamed.Size = UDim2.new(1, if pictured then -54 else 0, 1, 0)
+	catch.Position = CATCH_FROM
 	catch.Visible = true
-	TweenService:Create(catch, SLIDE, { Position = UDim2.fromOffset(18, 176) }):Play()
-	task.delay(1.8, function()
+	TweenService:Create(catch, SLIDE, { Position = CATCH_AT }):Play()
+	task.delay(CATCH_TIME, function()
 		if run ~= catchRun then
 			return
 		end
-		local out = TweenService:Create(catch, LEAVE, { Position = UDim2.fromOffset(-200, 176) })
+		local out = TweenService:Create(catch, LEAVE, { Position = CATCH_FROM })
 		out.Completed:Once(function()
 			if run == catchRun then
 				catch.Visible = false

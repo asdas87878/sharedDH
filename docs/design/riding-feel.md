@@ -298,8 +298,12 @@ Speeds in studs a second. The reference rides at about 55 ([blockout](../blockou
 - **HUD** (`HudController`): the Oxygen meter, speed, the depth gauge with the zone's name.
 - **Animation** (`AnimController`): all procedural. Fish beat their tails; rider poses for riding, the flight, floating
   and drowning. R15 characters only.
-- **Not in yet:** taming ("IT'S YOURS!"), money, your own creature to start the dive on, sounds beyond placeholders, and
-  training max Oxygen (it's fixed at 100).
+- **Taming** (2026-11-12, `Config.Tame`): 2 seconds on a fish you can hold makes it yours, one fish once a dive, up to 7
+  carried; the dive's catch is counted at the dock, death or not. Session only: no saves, tank or income yet.
+- **A fish too strong** (2026-11-12, `Oxygen.StrainTime`): the landing is never refused. A fish that needs more than
+  your max Oxygen empties the whole meter in a quarter of a second and throws you off. It is never tamed.
+- **Not in yet:** money, your own creature to start the dive on, sounds beyond placeholders. (Training max Oxygen is a
+  stand-in pad in the hub, `Config.Train`.)
 
 ## The movement sandbox (built 2026-11-10)
 In Studio the game starts as a sandbox for play-testing movement and camera: no fail, endless air, R onto a fish in deep

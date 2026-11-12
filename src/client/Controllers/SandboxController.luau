@@ -121,6 +121,10 @@ local TUNABLES: { { any } } = {
 	{ "Train", "Radius", 1 },
 	{ "Oxygen", "Refill", 0.05 },
 	{ "Oxygen", "KeepUp", 0.25 },
+	{ "Oxygen", "StrainTime", 0.05 },
+	{ "Tame", "On", 1 },
+	{ "Tame", "Time", 0.25 },
+	{ "Tame", "Carry", 1 },
 	-- how many times a Common's Oxygen a rarity takes a second (Config.RarityDrain)
 	{ "RarityDrain", "Common", 0.05 },
 	{ "RarityDrain", "Uncommon", 0.05 },

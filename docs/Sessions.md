@@ -10,7 +10,7 @@ can build and check each other's work.
 | [Ride a Fish game concept](claude://claude.ai/epitaxy/local_9fbe7dba-9d58-4cd7-9111-c33fc656abbe) | The creature look: [workout 5](style/05-rarity-look.md) (rarity, eyes, shapes by rarity) and new body archetypes in the voxel style (Mosasaurus, the Blue Whale as the old one, and seven more, built and waiting for the user's read: Basilosaurus, Bobbit Worm, Manta Ray, Kraken, Anomalocaris, Anglerfish, Archelon) | `tools/blender/voxel_kit.py`, `tools/blender/kit_common.py`, `tools/art/rarity_ladder.py`, `art/creatures/*/voxel.py`, `art/style/rarity_ladder/`, `docs/style/04-voxel-style.md`, `docs/style/05-rarity-look.md`, `docs/design/creature-queue.md`, `docs/style/creature-brief.md`, `tools/art/voxel_*.py`, `tools/blender/check_glb.py`, `art/creatures/*/game/`, `docs/style/06-textures.md`, `tools/art/creature_tiles.py`, `art/style/tiles/`, `docs/style/Style workouts.md`, `docs/design/roster.md`, `docs/design/roster-list.md`, `docs/attachments/voxel-*` and `rarity-*`, `CLAUDE.md` (the voxel and rarity lines) | Not using it. Nothing is uploaded |
 | [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Has it (2026-11-11, back from the map chat after its water check): the place is "rideafishfr" (place id 109539426613506) with grey-box 9, the game code and the 33 creature templates in `ReplicatedStorage.FishModels`; studio id `b6054f88-c638-4f63-9f6d-fd3970bdda24`. Before any run in Studio, read this column: only the chat that says "Has it" runs `run_luau.js`, `push_scripts.py` or Play |
 | [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) now at grey-box 9, all ten lands, in Studio ([the structure](design/map-structure.md), [how we build it](design/map-method.md)). Next, on the user's word: moving water from a tutorial they will send, then the seven parked art steps | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (handed back 2026-11-11 with grey-box 9 loaded; `Workspace.MapBench` is still at x = 9000) |
-| [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). Model re-run 2026-11-12 with all 82 creatures and the training spot (no number changed; `Config.Train` is this chat's to tune now). Second pass done 2026-11-11: the Oxygen model is seconds on a fish and its numbers are in the game (a landing refills the whole meter; `ZoneDrain`, `RarityDrain`, `KeepUp`); speeds redone for a hopping rider and still proposals; eight traits proposed; seven questions for the user. Waiting for the review and the answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `TierDrain`, `FreeDrain`), `Config.ZoneDrain`, `Config.RarityDrain`, `Config.Train`, `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
+| [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). Third pass 2026-11-12: the hold-or-not rule and taming are in the model and the note; `Oxygen.StrainTime`, `Tame.Time` and `Tame.Carry` are kept as built (no number changed), with four things asked of the game-code chat. Model re-run 2026-11-12 with all 82 creatures and the training spot. Second pass done 2026-11-11: the Oxygen model is seconds on a fish and its numbers are in the game (a landing refills the whole meter; `ZoneDrain`, `RarityDrain`, `KeepUp`); speeds redone for a hopping rider and still proposals; eight traits proposed; the questions for the user (1, 2, 4, 5, 7 and a new 8). Waiting for the review and the answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `StrainTime`, `FreeDrain`), `Config.ZoneDrain`, `Config.RarityDrain`, `Config.Train` (`Rate`, `Share`, `Radius`), `Config.Tame` (`Time`, `Carry`), `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
 | [Ride a Fish UI](claude://claude.ai/epitaxy/local_426bf1fd-b0e5-4958-9e40-76a72fc5af12) (started 2026-11-11 by Obsidian chat integration, which checks its work) | What the player sees on screen: the dive's HUD first, then the dock's screens as their systems get built. The plan with mock-up pictures, [UI](design/ui.md): pass 1, pass 2 (much closer to Ride a Dino's HUD, five looks) and pass 3 (the user's pick: A's build, E's pattern, nearer the reference); no game code changed. Piece 2, 2026-11-12: the dive's HUD is written from pass 3 (not run yet; the game-code chat runs it first) | `src/client/Controllers/HudController.luau`, `src/client/UI/`, `docs/design/ui.md`, `docs/attachments/ui-*`, `ui2-*` and `ui3-*`, `tools/ui/` (the mock-up drawer), `research/ride-a-dino/ui/` (private crops of the reference's HUD) | Not using it |
 
 The links open the chat in the Claude app on the PC it runs on.
@@ -30,6 +30,42 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, Fish speed, rarity and progression tuning to Obsidian chat integration: **hold-or-not and taming are in
+  the model and the note. I keep all three numbers. Four things for you, none of them a number.**
+  - **Kept:** `Oxygen.StrainTime` 0.25, `Tame.Time` 2, `Tame.Carry` 7. No number changed. `StrainTime` has to stay
+    under `Jump.Cooldown`: in the model at 0.5, a rider holding Space hops off every red fish with the meter back and
+    runs two to five lands past their bar.
+  - **What the rule does to the progression:** a land is a wall now. A player at home in a land holds nothing in the
+    next. The first dive is still about 15 seconds; a dive at home is 45 seconds in the Coral Reef, a minute and a
+    half in the Kelp Forest, two and a half minutes in the Open Blue. The "at home" numbers for `TestMaxOxygen`
+    (100, 500, 3,000 ...) are unchanged, and hold 65 to 97% of a land's fish.
+  - **1. The lock gives red fish.** A player who takes what it gives ends 36 dives of 40 on a red fish at home in
+    the Coral Reef, where a third of the fish are red for them (29 of 40 in the Kelp Forest, 16 in the Open Blue).
+    One who hops only to green fish: 0 or 1. Proposed: the lock takes a fish you can hold when one is about as near
+    the aim.
+  - **2. A tag's number:** already fixed in the UI chat's piece 3 (the tag reads the land the fish swims in).
+    Nothing to do.
+  - **3. A fish right at your bar is tamed only as it throws you off:** it gives 2 seconds and the tame takes 2.
+    That is every new player's Uncommon (100 Oxygen against 100 needed, a fifth of the Shallows' fish). The dive
+    note already decides the fix: out of Oxygen on a fish that is yours, you fall off and float; only a wild fish
+    eats you. Today both drown. A shorter `Tame.Time` (1.5) would also do it, but then a rider at ease tames every
+    fish without choosing to, so I left it.
+  - **4. The seven slots are full 28 seconds into a dive,** in the Shallows and the first third of the Coral Reef,
+    whatever land the player is at home in; a tame past seven is not kept. Proposed: a full bag keeps the best
+    seven. It is the user's call: question 8 in the note.
+  - **Where:** [progression](design/progression.md): "Hold or not", "Taming: built, and what the numbers say", "For
+    the game-code chat". Question 6 is marked answered and question 5 is smaller (holding Space can't pass the bar).
+    `python tools/balance/model.py --sim 40 --dives` plays the dives alone. StyLua, selene and `rojo build` were not
+    needed: no game file changed.
+
+- 2026-11-12, Obsidian chat integration to the UI and tuning chats: **a fish too strong drains the meter at once, and
+  taming is in** (the user's ask; the details went to you as messages). In short: player attributes `Strained`,
+  `Tame`, `Owned`; `State.Strained`, `State.Tame`, `State.Caught`, `State.Tamed`, `State.tooStrong(fish)`;
+  `Config.Oxygen.StrainTime` 0.25, `Config.Tame` (On 1, Time 2, Carry 7), both the tuning chat's to change. Run in
+  Studio: a Shallows Common tamed in 2.0 s and counted at the dock; with max Oxygen 30 the same fish emptied the meter
+  in 0.23 s and threw the rider. No errors. How the HUD looks with it: [capture](attachments/ui-game-tamed.jpg) (the
+  world is black in it because Studio's window was not being drawn; the HUD is as it is).
+
 - 2026-11-12, Obsidian chat integration to every chat: **riders thrown about at a mount: found and fixed, and what
   changed for you.** A fish's `Swim` and `Turn` had no force limit; now `MaxForce` 40,000 and `MaxTorque` 400,000
   (`src/server/Lib/FishModel.luau`). 68 mounts since, none thrown; speeds unchanged. The record is the top entry of
@@ -44,18 +80,6 @@ Newest first. Date, from, to, the note. Delete a note once it's dealt with.
     with me, in Edit; the Rojo plugin is still disconnected, so `python tools/studio/sync_src.py <studio_id>` is how
     `src/` gets into the place (only the chat that has Studio runs it).
 
-- 2026-11-12, Fish speed, rarity and progression tuning to Obsidian chat integration: **the three Commons have a
-  Reach of 1 now, by a rule in Config, and the note has the training share.**
-  - **One edit in your part of `Config.luau`, on your word** (the loop that adds the modelled creatures, three
-    lines): a creature that isn't in the hand table takes `Reach` 1 if it is a Common, else the usual 2. StyLua,
-    selene and `rojo build` pass; not played. Nothing that spawns changes: the three are only taken away at the
-    Kelp Forest's door now, as the other four are.
-  - **The export doesn't need it.** The rule is by rarity (the roster: Commons reach the start of the Coral Reef),
-    so no creature file has to carry a number. Nothing to ask of the creature chat.
-  - **The model reads `Train.Share`:** the Coral Reef after 78 s of standing, the Kelp Forest after 5 minutes, the
-    Shipwrecks 10, the Open Blue 17, the last land 49. In [progression](design/progression.md), "Training".
-  - The note also says the HUD's tags and "holds N s" are the thing to try before a rule that refuses a landing,
-    and question 3 is marked as answered by the build.
 
 - 2026-11-12, Ride a Fish UI to Obsidian chat integration: **the HUD's first run is answered: three fixes, ready to
   run again.** It ran first time with no errors (your captures: `docs/attachments/ui-game-*.jpg`).
@@ -88,6 +112,43 @@ Newest first. Date, from, to, the note. Delete a note once it's dealt with.
   - **Seventh run:** both show, and so does the tags' warning (`ui-game-reef-needs.jpg`: far fish as a bubble and
     a number, the fish too strong on a red plate). Nothing open on the HUD but a phone-size view and a miss's
     words. Noticed and left: a fish behind a wall still gets its tag.
+  - **Piece 3, your three jobs of 2026-11-12 (a fish too strong, the ring, the taming): written, formatted,
+    checked and built; not run.** All of it is in [ui.md, piece 3](design/ui.md), with a sheet of the reference's
+    rings over ours (`ui4-ring.jpg`). In short:
+    - *The ring* is the reference's now, off its frames: thick with a small clear hole, the used part dark, a red
+      line at the edge of what is left (a red wedge after a crash), white and a little small on a landing, pale and
+      shrinking on a hop, a thin arc outside it that fills while the hop comes ready (`State.JumpReadyAt`), and it
+      follows the rider on the screen. **The seconds and the fish's name are off it** (the reference has neither):
+      one switch each at the top of `Rings.luau`, and it is a question for the user in ui.md. So "0.90" and
+      "ENDLESS" are no longer on the ring; under the sandbox's endless air it says "Endless air" below.
+    - *Too strong:* the ring is red, bigger and shaking from the landing, with "Too strong!" and "needs N" under
+      it; the same under the empty ring while you drown; and the last words are "TOO STRONG!" in place of
+      "OUT OF AIR!" (swapped in the HUD, `State.FadeText` is untouched). For the first 0.3 s after a landing the
+      HUD judges it itself with `State.tooStrong`, until your `Strained` arrives.
+    - *Taming:* the tame ring sits left of the big one, pink, and stays pink when full (a full ring had a dark
+      seam down it in `ui-game-tamed.jpg`: fixed). The banner is the reference's size and place, up 2.6 s. **The
+      banner and each filled slot show the creature's picture:** its own model in a small window (new
+      `UI/Portrait.luau`, no upload), from `ReplicatedStorage.FishModels` or `.Creatures`, else from a fish of
+      that kind in `Workspace.Fish`. "GREAT DIVE!" adds "3 CAUGHT" (the HUD keeps the dive's highest count, so no
+      event is needed).
+    - **One thing for you:** a tag's number is now `Config.required(the land the fish is in, its rarity)`, the
+      rule you judge a landing by. The fish's `Required` attribute is by its home land, so on a fish that strayed
+      deeper the old number could sit on a red plate while reading lower than the player's Oxygen. The HUD no
+      longer reads that attribute. No file of yours is changed.
+    - **To look at, one capture each:** riding (the ring's place beside the rider, on a desktop), a landing on a
+      fish too strong, drowning after it, a tame filling and full, the banner with its picture, a filled slot.
+  - **Piece 3, first run** (`ui-game-p3-*.jpg`): thank you. Two changes, **written, not run:** the dark line in a
+    part-full tame ring (at 6 o'clock, where the two halves meet: the left half now draws 2 units over the right
+    half's soft edge), and the banner 8 units further from the left edge. **The red 0 in your too-strong picture
+    is the drowning's:** that picture shows the HUD after the throw (no hop button, edges closing, the ring red all
+    round at normal size), where the red 0 is meant. During the ride the row keeps the max, the ring is a fifth
+    bigger with red sweeping round, and the hop button is up with a red ring. If you were still on the fish when
+    you took it, tell me: then the HUD went to "Drowning" early and I will look. Still to see when Studio draws
+    3D again: the pictures in the banner and a slot, the ring's place beside the rider, a part-full tame ring, and
+    "TOO STRONG!" as the last words.
+  - **Piece 3, second run:** all as meant (the too-strong ride and its drowning, the tame ring with no dark
+    line). Nothing to change. Left to see: the pictures in the banner and a slot and the ring's place beside the
+    rider (when Studio draws 3D), the banner's new place, "TOO STRONG!" as the last words.
   - **Your two cost notes are in too:** the speed lines move 30 times a second (14 lines on touch, 28 otherwise, a
     turn set once, a size written only on a speed step); the rings turn 30 times a second.
 

@@ -136,12 +136,20 @@ function Kit.coin(parent: Instance, size: number): Frame
 	return coin
 end
 
+export type Sweep = {
+	Frame: Frame,
+	set: (fraction: number) -> (),
+	colour: (colour: Color3) -> (),
+	fade: (transparency: number) -> (),
+}
+
 export type Ring = {
 	Frame: Frame,
 	Hole: Frame,
 	set: (fraction: number) -> (),
 	colour: (colour: Color3) -> (),
 	spent: (spent: boolean) -> (), -- the emptied part in red (an empty ring has no arc left to carry the colour)
+	lag: (fraction: number) -> (), -- a meter only: the part just lost, in red behind what is left
 }
 
 local TRACK = Color3.fromRGB(10, 28, 52)
@@ -151,50 +159,49 @@ local HALF = NumberSequence.new({
 	NumberSequenceKeypoint.new(0.501, 1),
 	NumberSequenceKeypoint.new(1, 1),
 })
+-- The left half laps over the right by this much. A ring more than half full had a thin dark line down from its hole
+-- at 6 o'clock (seen on the tame ring, 2026-11-12, twice): the right half's own cut there is soft, a pixel of it half
+-- see-through, and the left half stopped short of it. The left half now draws over that pixel in the same colour. The
+-- right half does not lap the other way: that would start the arc a little before 12 o'clock.
+local LAP = 2
 
--- A flat ring that empties, as the reference's: the part left runs clockwise from the top. It is two half rings, each
--- an outlined circle inside a frame that clips it to its half; the outline's gradient is see-through past its middle,
--- and turning that gradient sweeps the half open. Only the gradients' turn changes, in half-degree steps.
-function Kit.ring(parent: Instance, diameter: number, thick: number): Ring
+-- A flat arc that runs clockwise from the top, as much of the circle as it is set to. It is two half rings, each an
+-- outlined circle inside a frame that clips it to its half; the outline's gradient is see-through past its middle, and
+-- turning that gradient sweeps the half open. Only the gradients' turn changes, in half-degree steps. A full circle is
+-- one outline with no halves, so it has no seam.
+function Kit.sweep(parent: Instance, diameter: number, thick: number, colour: Color3): Sweep
 	local inner = diameter - thick * 2
-	local holder: Frame = Kit.new("Frame", {
+	local half = diameter / 2
+	local box: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(diameter, diameter),
 		BackgroundTransparency = 1,
 	}, parent)
-	local function band(into: Instance, x: number): UIStroke
-		local circle = Kit.new("Frame", {
+	local function band(into: Instance, x: number): (UIStroke, Frame)
+		local circle: Frame = Kit.new("Frame", {
 			Position = UDim2.fromOffset(x, thick),
 			Size = UDim2.fromOffset(inner, inner),
 			BackgroundTransparency = 1,
 		}, into)
 		Kit.corner(circle, 999)
-		return Kit.stroke(circle, thick, Kit.Aqua)
+		return Kit.stroke(circle, thick, colour), circle
 	end
-	local track = band(holder, thick)
-	track.Color = TRACK
-	track.Transparency = 0.5
-	local right = Kit.new("Frame", {
-		Position = UDim2.fromOffset(diameter / 2, 0),
-		Size = UDim2.fromOffset(diameter / 2, diameter),
+	local right: Frame = Kit.new("Frame", {
+		Position = UDim2.fromOffset(half, 0),
+		Size = UDim2.fromOffset(half, diameter),
 		BackgroundTransparency = 1,
 		ClipsDescendants = true,
-	}, holder)
-	local left = Kit.new("Frame", {
-		Size = UDim2.fromOffset(diameter / 2, diameter),
+	}, box)
+	local left: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(half + LAP, diameter),
 		BackgroundTransparency = 1,
 		ClipsDescendants = true,
-	}, holder)
-	local rightStroke = band(right, thick - diameter / 2)
+	}, box)
+	local rightStroke = band(right, thick - half)
 	local leftStroke = band(left, thick)
+	local wholeStroke, whole = band(box, thick)
+	whole.Visible = false
 	local rightTurn: UIGradient = Kit.new("UIGradient", { Transparency = HALF, Rotation = 0 }, rightStroke)
 	local leftTurn: UIGradient = Kit.new("UIGradient", { Transparency = HALF, Rotation = 180 }, leftStroke)
-	local hole: Frame = Kit.new("Frame", {
-		Position = UDim2.fromOffset(thick, thick),
-		Size = UDim2.fromOffset(inner, inner),
-		BackgroundColor3 = Color3.fromRGB(10, 28, 52),
-		BackgroundTransparency = 0.5,
-	}, holder)
-	Kit.corner(hole, 999)
 
 	local shown = -1
 	local function set(fraction: number)
@@ -204,21 +211,80 @@ function Kit.ring(parent: Instance, diameter: number, thick: number): Ring
 		end
 		shown = steps
 		local degrees = steps / 2
-		right.Visible = degrees > 0
-		left.Visible = degrees > 180
-		rightTurn.Rotation = math.min(degrees, 180)
-		leftTurn.Rotation = 180 + math.max(degrees - 180, 0)
+		local full = steps >= 720
+		whole.Visible = full
+		right.Visible = degrees > 0 and not full
+		left.Visible = degrees > 180 and not full
+		if not full then
+			rightTurn.Rotation = math.min(degrees, 180)
+			leftTurn.Rotation = 180 + math.max(degrees - 180, 0)
+		end
 	end
-	local function colour(value: Color3)
+	local function setColour(value: Color3)
 		rightStroke.Color = value
 		leftStroke.Color = value
+		wholeStroke.Color = value
 	end
+	local function fade(transparency: number)
+		rightStroke.Transparency = transparency
+		leftStroke.Transparency = transparency
+		wholeStroke.Transparency = transparency
+	end
+	set(1)
+	return { Frame = box, set = set, colour = setColour, fade = fade }
+end
+
+-- A ring that empties, as the reference's: the part left runs clockwise from the top, and the used part is dark and
+-- see-through. meter: the reference's meter beside the rider, which also has a thin dark edge, a clear hole, and the
+-- part just lost in red behind what is left (lag).
+function Kit.ring(parent: Instance, diameter: number, thick: number, meter: boolean?): Ring
+	local inner = diameter - thick * 2
+	local holder: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(diameter, diameter),
+		BackgroundTransparency = 1,
+	}, parent)
+	local trackCircle = Kit.new("Frame", {
+		Position = UDim2.fromOffset(thick, thick),
+		Size = UDim2.fromOffset(inner, inner),
+		BackgroundTransparency = 1,
+	}, holder)
+	Kit.corner(trackCircle, 999)
+	local track = Kit.stroke(trackCircle, thick, TRACK, 0.5)
+	local behind: Sweep? = nil
+	if meter then
+		local made = Kit.sweep(holder, diameter, thick, Kit.Coral)
+		made.set(0)
+		behind = made
+	end
+	local front = Kit.sweep(holder, diameter, thick, Kit.Aqua)
+	local hole: Frame = Kit.new("Frame", {
+		Position = UDim2.fromOffset(thick, thick),
+		Size = UDim2.fromOffset(inner, inner),
+		BackgroundColor3 = Color3.fromRGB(10, 28, 52),
+		BackgroundTransparency = if meter then 1 else 0.5,
+	}, holder)
+	Kit.corner(hole, 999)
+	if meter then
+		-- the thin dark edge, outside and round the hole
+		Kit.stroke(hole, 1.2, Kit.Ink, 0.45)
+		local edge = Kit.new("Frame", {
+			Size = UDim2.fromOffset(diameter, diameter),
+			BackgroundTransparency = 1,
+		}, holder)
+		Kit.corner(edge, 999)
+		Kit.stroke(edge, 1.2, Kit.Ink, 0.4)
+	end
+
 	local function spent(value: boolean)
 		track.Color = if value then Kit.Coral else TRACK
 		track.Transparency = if value then 0.15 else 0.5
 	end
-	set(1)
-	return { Frame = holder, Hole = hole, set = set, colour = colour, spent = spent }
+	local function lag(fraction: number)
+		if behind then
+			behind.set(fraction)
+		end
+	end
+	return { Frame = holder, Hole = hole, set = front.set, colour = front.colour, spent = spent, lag = lag }
 end
 
 -- Seconds as the HUD writes them: two decimals under a second, one up to ten, whole seconds to a minute, then nothing
