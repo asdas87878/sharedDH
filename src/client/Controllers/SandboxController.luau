@@ -184,6 +184,8 @@ local TUNABLES: { { any } } = {
 	{ "Ride", "SteerRate", 10 },
 	{ "Ride", "YawRate", 5 },
 	{ "Ride", "TurnEase", 1 },
+	{ "Ride", "Response", 2 },
+	{ "Ride", "LandSteerTime", 0.05 },
 	{ "Ride", "Bank", 2 },
 	{ "Ride", "BankEase", 1 },
 	{ "Ride", "MaxPitch", 5 },

@@ -282,10 +282,20 @@ Config.Ride = {
 	-- A and D turn the camera, a drag, a stick or the mouse in the hop turn it too, and the fish, the hop and the float
 	-- come round to it. CameraSteer 0 is Movement v3.1's way: only A and D steer, and the view is free of the heading.
 	CameraSteer = 1,
-	SteerEase = 6, -- how quickly the way you go comes round to the view (higher is snappier)
-	SteerRate = 140, -- and never faster than this, degrees a second
-	YawRate = 95, -- A and D turn the view (and with CameraSteer off, you) at this rate at full press, degrees a second
-	TurnEase = 10, -- how quickly a turn comes in and stops (higher is snappier)
+	-- The control pass (Hugo, 2026-11-12: "the left right is kinda too slow and clunky, it should be smooth but you
+	-- should be able to turn faster and you should be able to steer better"). What made it clunky was three lags one
+	-- after the other: the key's own ease, then the way you go chasing the view the key had turned (it trailed a held
+	-- turn by 16 degrees and went on turning that far after the key was let go), then the fish's own turn spring. Now
+	-- A and D turn the way you go directly, and the view by as much; only a look (a drag, a stick, the mouse in the
+	-- hop) is chased. The same in the hop and floating (RideController.steer). Measured by script in Studio, before
+	-- and after: A held for a second turns you 129 degrees (was 73); the first 10 degrees take 0.12 s (was 0.30); let
+	-- go, you turn 9 degrees more (was 23).
+	SteerEase = 12, -- how quickly the way you go comes round to a look (higher is snappier; 6 until 2026-11-12)
+	SteerRate = 220, -- and never faster than this, degrees a second (140 until 2026-11-12)
+	YawRate = 135, -- A and D turn you (and the view) at this rate at full press, degrees a second (95 until 2026-11-12)
+	TurnEase = 14, -- how quickly a turn comes in and stops (higher is snappier; 10 until 2026-11-12)
+	Response = 45, -- how tightly the fish's body follows the way you steer it (its turn spring; 14, the herd's, until 2026-11-12). The limits on its torque and turning speed (Lib/FishModel) are untouched
+	LandSteerTime = 0.3, -- after a landing the fish comes round to your look gently: the pull of the view eases in over this long (A and D are at full at once); 0: at once
 	MaxPitch = 55, -- the steepest the fish noses up or down by itself to follow the lane
 	BankEase = 5, -- response rate for the bank on a fish and in the hop
 	Bank = 28, -- roll into turns
@@ -301,9 +311,11 @@ Config.Ride = {
 	-- and torque (Lib/FishModel, 2026-11-12) stay. Only a landing does it, not the sandbox's reset.
 	Startle = 1, -- 1: a landing slows the fish for a moment; 0: the old mount (Surge at once)
 	StartleBrake = 0.12, -- it comes down to StartleSlow over this long at the touch
-	StartleSlow = 0.6, -- its speed for that moment, as a share of its ridden speed
-	StartleHold = 0.4, -- seconds it stays that slow
-	StartleRecover = 0.8, -- then it eases back to its ridden speed over this long
+	-- (Hugo, 2026-11-12, later: "the startle is too strong make it just slow down by like 0.8x". A wild fish swims at
+	-- 0.85 of its speed, so at 0.8 the landing is a short soft dip: 0.9 s in all, was 1.2.)
+	StartleSlow = 0.8, -- its speed for that moment, as a share of its ridden speed (0.6 until 2026-11-12)
+	StartleHold = 0.3, -- seconds it stays that slow (0.4 until 2026-11-12)
+	StartleRecover = 0.6, -- then it eases back to its ridden speed over this long (0.8 until 2026-11-12)
 }
 
 -- Going fish to fish, Movement v3.1 (2026-11-11; docs/design/riding-feel.md). The hop is the reference's, as built on
@@ -315,7 +327,9 @@ Config.Ride = {
 Config.Jump = {
 	-- The window is the hop: the pop, the glide and the drop together. The same at every depth (Hugo, 2026-11-11):
 	-- going deeper is paid for in Oxygen (Config.ZoneDrain), never in a shorter window.
-	Window = 3.0, -- seconds from leaving the fish in which to grab the next one
+	-- (Hugo, 2026-11-12: "more airtime (just a little)". The glide is 0.2 s longer, FloatTime below, and the window
+	-- grew by the same, so the drop is as long as it was. Still one window for every land.)
+	Window = 3.2, -- seconds from leaving the fish in which to grab the next one (3.0 until 2026-11-12)
 	Warn = 0.8, -- the HUD's timer turns red and pulses for this last part
 	-- (the user, 2026-11-11: the reference feels more automatic; match its hop one to one. There the pull-in starts by
 	-- itself about 1.7 s after the press, and a second press only brings it sooner.)
@@ -335,7 +349,7 @@ Config.Jump = {
 	Apex = 20,
 	Ceiling = 3, -- the hop stays this far under the surface line (Oxygen.SurfaceY)
 	SeatRoom = 5, -- a rider sits about this far above the middle of a fish: the hop's rise is counted from the seat
-	FloatTime = 1.3, -- the glide at the top, swimming (1.4 until 2026-11-11: with LaunchTime it ends 1.7 s after the press, when the reference's pull-in begins)
+	FloatTime = 1.5, -- the glide at the top, swimming. With LaunchTime it ends 1.9 s after the press, when the pull-in begins by itself: 12% more air than the reference's 1.7 s (1.3 until 2026-11-12, Hugo: a little more airtime)
 	FloatRise = 1, -- still rising this much through the glide
 	-- (Hugo, 2026-11-11, after playing: the air was too slow. The glide was 38, the herd's pace, and the drop 30.)
 	AirSpeed = 54, -- the glide's speed with AirShare 0: well past the herd's pace (38), so a hop gains on the fish ahead
@@ -343,7 +357,7 @@ Config.Jump = {
 	-- rode at, keeping pace with the herd, so they hang over the fish ahead instead of flying past it.)
 	AirShare = 0.85, -- the glide's speed as a share of the ridden speed of the fish you left; 0: AirSpeed, whatever the fish
 	FreeAirSpeed = 38, -- and from floating, with no fish left behind (a Common's herd pace)
-	-- The drop is the rest of the window (Window - LaunchTime - FloatTime: 1.2 s). It is still swimming, not a fall:
+	-- The drop is the rest of the window (Window - LaunchTime - FloatTime: 1.3 s). It is still swimming, not a fall:
 	-- you slow a little and sink, slowly at first.
 	DropTime = 0, -- (worked out in Config.refresh)
 	Drop = 12, -- by the window's end you are this far below where you left

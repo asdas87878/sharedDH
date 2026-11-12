@@ -19,7 +19,8 @@ and sink" is gone. Where the sections further down ("The jump, as built") say ot
 section with these in mind: the way you go follows the camera (`Ride.CameraSteer`); the pull-in starts by itself when
 the glide ends, 1.7 s after the press (`Jump.AutoGrab` 2, `FloatTime` 1.3); the glide is at 0.85 of the ridden speed
 (`Jump.AirShare`), not 54; the view tilts down in the hop (`Camera.AirRest` 1); and the lock is steadier
-(`Lock.EdgeAim`, `SwitchTime`).
+(`Lock.EdgeAim`, `SwitchTime`). **And on 2026-11-12** (Hugo, "The control pass" below): the steering, the landing's
+slow-down, and a glide 0.2 s longer (the window is 3.2 s, the pull-in begins at 1.9 s).
 
 ![The hop from the side](../attachments/hop-arc.png)
 
@@ -102,16 +103,16 @@ values, **not tuned in play**.
 
 | What | Keys | Starting values |
 |---|---|---|
-| The window | `Jump.Window`, `Warn` | 3.0 s, 0.8 s |
+| The window | `Jump.Window`, `Warn` | 3.0 s, 0.8 s (3.2 s since the control pass) |
 | The pop | `Jump.LaunchTime`, `Apex`, `Launch`, `BoostTime`, `FreeLaunch` | 0.4 s, 20 studs, 1.4 times, 0.75 s, 55 |
-| The glide | `Jump.FloatTime`, `FloatRise`, `AirSpeed` | 1.4 s, 1 stud, 38 |
+| The glide | `Jump.FloatTime`, `FloatRise`, `AirSpeed` | 1.4 s, 1 stud, 38 (1.5 s since the control pass) |
 | The drop | `Jump.Drop`, `DropCurve`, `DropSpeed`, `DropTilt` | 12 studs, 2, 30, 12 degrees |
 | The body | `Jump.Tilt`, `Bank` | 78, 18 degrees |
 | The reach and the pull-in | `Jump.GrabRange`, `ReelTime`, `GrabSpeed`, `ReelMax`, `ReelCurve`, `ReelSwoop` | 85 studs, 0.14 s, 55, 0.8 s, 2.3, 0.9 (since 2026-11-12 the reach is 180 studs: see "The movement pass" below) |
 | The landing's camera | `Jump.ReelFov`, `LandFov`, `LandFovTime`, `LandKick` | -10, +12 degrees, 0.35 s, 0.45 studs |
 | The hop's camera | `Jump.CameraPitch`, `CameraZoom` | -30 degrees, 1.2 times |
 | The lock | `Lock.Cone`, `AimRadius`, `DistanceWeight`, `LeftPenalty`, `Sticky`, `MinHold` | 40 degrees, 8 studs, 0.35, 0.5, 0.2, 0.3 s |
-| Steering | `Ride.YawRate`, `TurnEase`, `Bank` | 95 degrees a second, 10, 28 degrees |
+| Steering | `Ride.YawRate`, `TurnEase`, `Bank` | 95 degrees a second, 10, 28 degrees (135 and 14 since the control pass, with `SteerEase`, `SteerRate`, `Response`, `LandSteerTime`) |
 | Oxygen | `ZoneDrain`, `Oxygen.Refill`, `KeepUp`, `TierDrain`, `FreeDrain` | above; 0.25, 6 s, 0.15, 4 |
 | A crash | `Crash.Slow`, `Recover`, `Cost`, `Cooldown`, `HeadOn` | 0.45, 1.4 s, 0.1, 1.5 s, 0.35 |
 | Props | `Props.MinLength`, `Rebuild`, `Push`, `Topple`, `Slow`, `Cost` | 0, 8 s, 16 studs, 22 studs, 0.8, 0.03 |
@@ -340,7 +341,7 @@ and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](..
   Chromis (ridden 47.3): 28.3 through the hold, 47.3 again 1.2 s after the touch. **The rearing and the "!" were taken
   out 2026-11-12 on the user's word:** they played on every landing in place of the landing reactions worked out in
   the Swim Lab (`Animation.LandingMix`: the body type's own, its second, now and then any of the seven), which play
-  again. Only this slow-down is left of the startle.
+  again. Only this slow-down is left of the startle. **Softer since the control pass, below:** 0.8, 0.3 s, 0.6 s.
 - **The rider's animation** (`Config.Pose`): a front crawl in the glide and the drop, a breaststroke lying
   `FloatTilt` degrees forward while floating, a crouch (`PopTuck`) and a streamlined push off the fish, streamlined
   through the pull-in, a tuck and a forward flip from `FlipStart` of the way into the seat, and astride the fish:
@@ -353,6 +354,53 @@ and `Config.Jump`, all on the N panel. What each push changed is in [Handoff](..
 - **Open, to judge by hand:** how long the stall may be before it annoys (it costs about a sixth of a second of
   travel a landing, when a new player has 2.5 s on a fish); whether the flip reads at a short pull-in; the sounds
   (placeholders from Roblox's own character sounds; nobody has heard them, the checks were by script and picture).
+
+## The control pass (Hugo, 2026-11-12)
+Hugo, after playing: "make the ride feel more controlled, the startle is too strong make it just slow down by like
+0.8x while doing the startle, the left right is kinda too slow and clunky, it should be smooth but you should be able
+to turn faster and you should be able to steer better ... more airtime (just a little), more control in general."
+Movement only: the partner's landing reactions (`Animation.LandingMix`) and the animation code are untouched. Run in
+Hugo's Studio by script, the old code and the new; not yet judged by hand. Every number is Claude's, to tune (N).
+
+- **The landing's slow-down.** A fish you land on drops to 0.8 of its speed (`Ride.StartleSlow`, was 0.6), holds it
+  0.3 s (`StartleHold`, was 0.4) and is back at full 0.6 s later (`StartleRecover`, was 0.8): 0.9 s in all, was 1.2.
+  A wild fish swims at 0.85 of its speed, so this is hardly a brake any more: the fish carries on at about the
+  herd's pace for a moment, then picks up. Measured: slowest 0.80, full again 0.78 s after the touch (was 0.60 and
+  1.10 s). Nothing locks the keys or the look while it lasts.
+- **Why left and right felt clunky.** Three lags, one after the other: the key's turn eased in (`TurnEase` 10); it
+  turned only the view, and the way you go chased the view (`SteerEase` 6), trailing a held turn by 16 degrees and
+  running on that far once the key was up; then the fish's body trailed that on its own turn spring (14).
+- **Steering now** (`RideController.steer`, one function for the fish, the hop and floating).
+  - A and D turn the way you go directly, at `YawRate` 135 degrees a second (was 95), coming in and stopping on
+    `TurnEase` 14 (63% of the rate after 0.07 s; no dead time). The view turns by exactly as much.
+  - A look (a right drag, a stick, the mouse in the hop) is followed by the way you go at `SteerEase` 12 (was 6),
+    never faster than `SteerRate` 220 degrees a second (was 140). With `CameraSteer` 0 only A and D steer, as before.
+  - The fish's body follows its steering on `Ride.Response` 45 (the rider's own client sets it on the fish it
+    drives; wild fish keep 14, and the limits on torque and turning speed in `Lib/FishModel` are as they were).
+  - For 0.3 s after a landing the look's pull eases in (`Ride.LandSteerTime`): the fish swims on the way it swam and
+    comes round to where you were aiming, instead of swerving at the touch. A and D are at full at once.
+
+  | Measured, a land 1 fish | before | now |
+  |---|---|---|
+  | A held 1 s: the way you go turned (the fish's body) | 73 degrees (47) | 129 degrees (117) |
+  | The first 10 degrees (the body's) | 0.30 s (0.53 s) | 0.12 s (0.20 s) |
+  | Let go: you turn on by (the body) | 23 degrees (48) | 9 degrees (21) |
+  | A tap of 0.25 s: turned at the key's release, and after | 8 degrees, then 14 more | 28 degrees, then 8 more |
+
+  The tightest turn has a radius of 19 studs on a Common (45 studs a second; was 27) and 67 on a land 10 Legendary
+  (158; was 95): a fast fish still sweeps wide, which is the speed's price.
+- **A little more airtime.** The glide is 0.2 s longer (`Jump.FloatTime` 1.5, was 1.3), so the pull-in begins by
+  itself 1.9 s after the press (was 1.7: 12% more), and the window grew by the same (`Jump.Window` 3.2, was 3.0), so
+  the drop is the 1.3 s it was. **The window is still one number for every land.** Measured: the pull-in at 1.90 s,
+  on the next fish 2.68 s after the press (was 1.70 and 2.49). The glide is `AirShare` (0.85) of the speed you rode
+  at and the herd swims at 0.85 of its own, so inside one land the longer hop hangs over the same fish 0.2 s longer;
+  at a land 10 Legendary's 158 it covers about 27 studs more, well inside `GrabRange` 180.
+- **Looked at for "more control", and left alone:** the pull-in takes the keys for 0.05 to 0.7 s (it is the
+  reference's); `Jump.Cooldown` (0.3 s on a fish before the next hop) stays, because `Oxygen.StrainTime` (0.25 s)
+  must be shorter for a fish too strong to be a real bar; the view's drift back behind you moves the view only.
+- **Open, to judge by hand:** whether 135 is too twitchy on a phone's stick; whether `Response` 45 makes the bank
+  snap; the deep lands (only land 1 fish were ridden in the check); and the bolt's speed lines, whoosh and view kick
+  (`Feel.BoltLines`, `BoltFov`), made for a fish picking up from 0.6 and still played from 0.8.
 
 ## Speed by fish, by area, variants (Hugo, 2026-11-12)
 Every fish has its own speed, worked out by one function on the server and on every client (`Config.speedOf`):

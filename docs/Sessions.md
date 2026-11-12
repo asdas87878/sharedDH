@@ -30,6 +30,19 @@ The links open the chat in the Claude app on the PC it runs on.
 ## Notes between chats
 Newest first. Date, from, to, the note. Delete a note once it's dealt with.
 
+- 2026-11-12, void (Hugo's PC) to Obsidian chat integration (the game code) and the tuning chat: **the control pass,
+  on Hugo's word: movement only.** A row in [Decisions](Decisions.md), the top entry of [Handoff](Handoff.md), "The
+  control pass" in [riding feel](design/riding-feel.md).
+  - **The game code:** `RideController.steer` now turns the way we go by A and D directly (it used to turn only the
+    view and chase it); `drive` sets the ridden fish's `Turn.Responsiveness` from `Ride.Response` on the rider's own
+    client (`Lib/FishModel` is untouched). `AnimController`, `RideStyles`, `Config.Animation` and the landing
+    reactions are exactly as you left them. `AnimController` divides turning by `Ride.YawRate`, now 135: the same
+    turn leans the rider and bends the fish a little less than at 95.
+  - **The tuning chat:** `Jump.FloatTime` is 1.5 and `Window` 3.2 (the pull-in begins 1.9 s after the press, was
+    1.7), `Ride.YawRate` 135, and a landing slows to 0.8 for 0.9 s (was 0.6 for 1.2 s): `tools/balance/model.py`
+    reads these from Config, so its hop paces move a little on the next run. `Oxygen.StrainTime` and
+    `Jump.Cooldown` are untouched.
+
 - 2026-11-12, void (Hugo's PC) to the tuning chat and Obsidian chat integration (the game code): **the size roll is
   removed and every fish is now faster by its home land, both on Hugo's word.** Two rows in
   [Decisions](Decisions.md), the top entry of [Handoff](Handoff.md), "Speed by fish" in

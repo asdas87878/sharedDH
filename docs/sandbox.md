@@ -18,7 +18,7 @@ Press Play in Studio. The top left of the screen says SANDBOX.
 
 While the sandbox is on:
 - **No fail:** a hop whose window runs out leaves you floating, and you can hop again. Floating never sends you back
-  to the dock. **Turn it off to judge the real 3 seconds.**
+  to the dock. **Turn it off to judge the real 3.2 seconds.**
 - **Endless air:** Oxygen doesn't drain, and a crash costs none. **Turn it off to judge the drain by land.** To try a
   deeper land with more Oxygen, set the `TestMaxOxygen` attribute on Workspace (0 turns it off).
 - **The arc trace:** a white dot every 0.04 s of your flight stays in the water until your next jump. With the side view,
@@ -50,17 +50,22 @@ Config, and then they are the game's.
 What to reach for:
 - **The arc:** `Jump.LaunchTime`, `Launch` and `Apex` (the pop), `FloatTime` and `AirSpeed` (the glide), `Drop`,
   `DropCurve` and `DropSpeed` (the drop). `Window` is the whole hop: the drop is what the pop and the glide leave of
-  it (3.0 - 0.4 - 1.4 = 1.2 s), so a longer glide means a shorter drop unless `Window` grows too.
+  it (3.2 - 0.4 - 1.5 = 1.3 s), so a longer glide means a shorter drop unless `Window` grows too. The pull-in begins
+  by itself when the glide ends (`LaunchTime` + `FloatTime`: 1.9 s after the press), so `FloatTime` is the airtime.
 - **The landing's slow-down** (a fish you land on slows for a moment, never stopping): `Ride.Startle` (0 off),
-  `StartleBrake`, `StartleSlow` (the share of its speed it drops to), `StartleHold`, `StartleRecover`. The rearing
-  that came with it is gone (2026-11-12), and its rows with it.
+  `StartleBrake`, `StartleSlow` (the share of its speed it drops to: 0.8), `StartleHold`, `StartleRecover`. The
+  rearing that came with it is gone (2026-11-12), and its rows with it.
 - **The camera under the surface:** `Camera.Submerge` (0 off), `WaterTop`, `SurfaceMargin`, `SurfaceTilt`.
 - **The rider's animation:** the `Pose` group (`CrawlRate`, `BreastRate`, `FloatTilt`, `PopTuck`, `Flip`, `FlipStart`,
   `RideCrouch`, `RideLean`, `BraceLean`). **The juice:** the `Feel` group (`PopFov`, `PopLines`, `ReelLines`,
   `BoltLines`, `Trail`, `Whoosh`, `Splash`, `Mark`).
 - **How easy a fish is to get:** `Jump.GrabRange`, and `Lock.Cone`, `AimRadius`, `DistanceWeight`, `FarAim`, `Sticky`, `SwitchTime`, `EdgeAim`,
   `LeftPenalty`. Where the view rests in the hop: `Jump.CameraPitch`, `CameraZoom`.
-- **How the turn feels:** `Ride.YawRate` and `TurnEase` (one rate, everywhere).
+- **How the turn feels** (the control pass, 2026-11-12; one way of steering everywhere: on a fish, in the hop,
+  floating): `Ride.YawRate` (how fast A and D turn you, 135 degrees a second) and `TurnEase` (how quickly a turn
+  comes in and stops; higher is snappier, lower is softer); `Ride.SteerEase` and `SteerRate` (how quickly, and how
+  fast at most, you come round to where you look); `Ride.Response` (how tightly the fish's body follows; 14 is the
+  old, loose feel); `Ride.LandSteerTime` (after a landing, how long before the look pulls the fish fully).
 - **The progression:** `ZoneDrain` land 1 to 10, `Oxygen.Refill`, `KeepUp`, `RarityDrain` Common to Secret (how many times a Common's Oxygen each rarity takes), and `Oxygen.StartMax` (live:
   everyone's max Oxygen changes at once; the `TestMaxOxygen` attribute, when above 0, still wins).
 - **The tuning rows** ([progression](design/progression.md); [riding feel](design/riding-feel.md), "Speed by fish"):

@@ -2,9 +2,10 @@
 -- Riding on the client: steering the fish we own (the server hands us its network ownership on mount), the speed-up,
 -- coasting the fish we just left (it stays ours for Switch.HandBack seconds, so it swims off without a hitch), floating
 -- while off a fish, and the camera for everything underwater.
--- Steering: we always go forward, and only A and D (or the stick's sideways) steer, at the same rate on a fish, in the
--- hop off it (JumpController) and floating: RideController.turn. W and S do nothing; a ridden
--- fish follows the lane down at the herd's height above the floor by itself. The mouse never steers.
+-- Steering: we always go forward. A and D (or the stick's sideways) turn the way we go directly, and the view by as
+-- much; a look (a drag, a stick, the mouse in the hop) is followed by the way we go (Ride.CameraSteer). The same on a
+-- fish, in the hop off it (JumpController) and floating: RideController.steer. W and S do nothing; a ridden fish
+-- follows the lane down at the herd's height above the floor by itself.
 -- The camera follows our own character (so leaving a fish and landing on one never cut), behind the way we are going.
 -- Everything it does goes through a critically damped spring (Lib/Spring): where it looks from, its turn and tilt, its
 -- distance, its field of view; so riding, the hop, the pull-in and the landing run into each other with no snap. The
@@ -18,7 +19,7 @@
 -- The landing's slow-down (Config.Ride.Startle...; Hugo, 2026-11-12): a fish we LAND on slows for a
 -- moment, never stopping, then eases back to its speed. It is this fish's speed curve, nothing else: no force is
 -- added, and the limits on its force and torque (Lib/FishModel) are what they were.
--- Every fish has its own speed and size (Config.speedOf, Config.bodyOf: its species, rarity, size roll and variant).
+-- Every fish has its own speed (Config.speedOf: its species, rarity, home land and variant).
 -- The camera stays underwater once we have dived (Config.Camera.Submerge...), until the dock or a respawn.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -132,23 +133,30 @@ function RideController.turn(dt: number): number
 	return turnNow * dt
 end
 
--- The way we are going, a frame on: `now` is it this frame (radians), and the new one comes back. With
--- Ride.CameraSteer on (the reference, and the user after playing, 2026-11-11) it comes round to where the camera looks,
--- no faster than Ride.SteerRate: A and D turn the camera (as before), and so does a drag, a stick or the mouse in the
--- hop, and the fish, the hop and the float all follow the view. With it off, only A and D turn us (Movement v3.1).
+-- The way we are going, a frame on: `now` is it this frame (radians), and the new one comes back. A and D turn it
+-- directly, and the view by as much (Hugo, 2026-11-12: until then they turned only the view and the way we go chased
+-- it, a second lag on top of the key's own ease, so a turn began late and ran on after the key was let go). With
+-- Ride.CameraSteer on (the reference, and the user after playing, 2026-11-11) it also comes round to where the camera
+-- looks, no faster than Ride.SteerRate: a drag, a stick or the mouse in the hop turn the view, and the fish, the hop
+-- and the float all follow it. With it off, only A and D turn us (Movement v3.1).
 function RideController.steer(now: number, dt: number): number
 	local r = Config.Ride
 	local by = RideController.turn(dt)
+	local after = now + by
 	if r.CameraSteer <= 0 then
 		steerRate = turnNow
-		return now + by
+		return after
 	end
 	local view = camYaw + turned -- (this frame's A and D reach camYaw in cameraStep, a moment later)
-	local gap = math.atan2(math.sin(view - now), math.cos(view - now))
+	local gap = math.atan2(math.sin(view - after), math.cos(view - after))
 	local most = math.rad(r.SteerRate) * dt
 	local delta = math.clamp(gap * Ease.alpha(r.SteerEase, dt), -most, most)
-	steerRate = Ease.lerp(steerRate, delta / math.max(dt, 1e-4), Ease.alpha(r.TurnEase, dt))
-	return now + delta
+	-- just landed: the fish swims on the way it swam, and comes round to our look gently (Ride.LandSteerTime)
+	if State.Mode == "Riding" and r.LandSteerTime > 0 then
+		delta *= Ease.smoothstep(0, r.LandSteerTime, os.clock() - State.MountedAt)
+	end
+	steerRate = Ease.lerp(steerRate, (by + delta) / math.max(dt, 1e-4), Ease.alpha(r.TurnEase, dt))
+	return after + delta
 end
 
 -- Turns the view to a yaw and a pitch (radians), as a drag of the mouse would: for the sandbox and for tests driven by
@@ -159,7 +167,7 @@ function RideController.look(toYaw: number, toPitch: number)
 	lookedAt = os.clock()
 end
 
--- This fish's own ridden speed now (its species, rarity, size and variant; read live, so the sandbox's panel shows)
+-- This fish's own ridden speed now (its species, rarity, home land and variant; read live, so the sandbox's panel shows)
 local function riddenSpeed(): number
 	local fish = State.Fish
 	if fish and rideType then
@@ -364,6 +372,10 @@ local function drive(dt: number)
 		-- stopped from diving or climbing: the nose comes round to the way it is really going
 		local truePitch = math.asin(math.clamp(velocity.Y / math.max(speed, 1), -1, 1))
 		pitch = Ease.lerp(pitch, truePitch, Ease.alpha(8, dt))
+	end
+	-- (how tightly its body follows: ours while we drive it; the server's own copy, the herd's, is untouched)
+	if turn.Responsiveness ~= r.Response then
+		turn.Responsiveness = math.clamp(r.Response, 5, 200)
 	end
 	turn.CFrame = heading * CFrame.Angles(0, 0, roll)
 	State.Speed = speed
