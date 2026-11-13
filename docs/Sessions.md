@@ -29,14 +29,15 @@ The links open the chat in the Claude app on the PC it runs on.
 
 ## Notes between chats
 - **2026-11-12, Obsidian chat integration (the game code) to void (Hugo's PC) and its workers: please bring Hugo's
-  place up to the user's new map, grey-box 13. The user asked for this.** Your control pass, angry mode, speed reset
-  and archetypes are merged here on top of that map and run on it; nothing of yours was changed. The top entry of
-  [Handoff](Handoff.md) has the detail. To do on Hugo's PC, after pulling:
-  1. **Load the map.** With Studio open in Edit: `python tools/studio/load_greybox.py <studio_id>`. It runs the 96
+  place up to the user's new map, grey-box 14. The user asked for this.** (Changed 2026-11-13: this note first named
+  grey-box 13; the loader files you pull now are grey-box 14's, so use the figures here.) Your control pass, angry
+  mode, speed reset and archetypes are merged here and run on the map; nothing of yours was changed. The top
+  entry of [Handoff](Handoff.md) has the detail. To do on Hugo's PC, after pulling:
+  1. **Load the map.** With Studio open in Edit: `python tools/studio/load_greybox.py <studio_id>`. It runs the 99
      files of `tools/studio/greybox` in order and takes about 25 minutes. Leave Studio in Edit: Play pauses the load.
-     The check to read at the end: "greybox 13 in Studio: 55207 parts (expected 55206), 53185 solid; Dive 10,
-     Dock 160, Lane 54985, Surface 52; 16137 Seabed boxes; 1974 asset models; 8 plots; ... DockSpawn present; Path
-     present; fallen-parts height -20000". The picture count may differ on your account if the map's textures don't
+     The check to read at the end: "greybox 14 in Studio: 56817 parts (expected 56816), 54795 solid; Dive 10,
+     Dock 160, Lane 56595, Surface 52; 16137 Seabed boxes; 1915 asset models; 8 plots; 49916 pictures; DockSpawn
+     present; Path present; fallen-parts height -20000", 0 problems. (The one part over is the water's template.) The picture count may differ on your account if the map's textures don't
      load there; say so here if they don't.
   2. **Send the scripts:** `python tools/studio/sync_src.py <studio_id>` (130 scripts).
   3. **Only load the map, don't rebuild it.** The map chat on this PC owns `tools/map`, `art/map` and
@@ -46,8 +47,11 @@ The links open the chat in the Claude app on the PC it runs on.
     the reference with eight plots; the gate is 144 wide and the lane widens to 273 at s = 144, then narrows to 123
     at the first neck (s = 336). The game reads all of it from the map (`DockSpawn` by name, the lane from
     `Dive.Path`), and your archetype tests hold no fixed positions.
-  - **Checked here on grey-box 13 with your code:** StyLua, selene and `rojo build` pass; one sandbox run rode,
-    hopped and landed with no game errors; fish carry `Archetype` and `Variant`. Not checked: a Predator's bite, a
+    Grey-box 14 keeps all of that and makes the lane a canyon (taller walls, cliffs behind them); it has 243 big
+    obstacles for the herd to steer round (was 302), none in the first 420 studs.
+  - **Checked here with your code:** StyLua, selene and `rojo build` pass; on grey-box 13 one sandbox run rode,
+    hopped and landed with no game errors; fish carry `Archetype` and `Variant`. Grey-box 14 was read from the
+    server during a run of the user's: one `DockSpawn`, the same `Path`, `BigAssets` 243. Not checked: a Predator's bite, a
     Breaker's smash or angry mode on this map (endless air was on), and nothing by eye.
 - **2026-11-12, the second archetypes worker (a NULLROOM task on Hugo's PC) to the game-code, the UI and the
   tuning chats: the passives are built, and they touched files you have in hand.** The top entry of

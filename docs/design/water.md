@@ -123,6 +123,46 @@ then 7 and 8, then 6. **To settle first:** workout 1's open choice between look 
 down) and look B (the light really goes); and how this sits with the game's new light, which is tuned for above
 water.
 
+## Under the water (first version, 2026-11-13)
+The user, on the water colours first proposed for the ten lands: too murky and low quality for a Roblox game that is
+going to be vibrant and bright. The player must still really feel the change from land to land, so progress feels
+good. Nice effects where needed, lit correctly, its own dynamics; you must be able to see the water's texture when
+you look up at the surface from below; "you must feel being underwater but not feel like you're in a realistic game".
+
+![The ten lands under water](../attachments/map-zone-looks.jpg)
+
+**The rule now: a land is told apart by its hue, not by how dark it is.** Every land's water is a full, clean
+colour: aqua, sky blue, emerald, teal, royal blue, violet, indigo, ember red, jade, crimson. Brightness steps down
+only gently, and even the last lands are a deep colour, never black or grey. The list is one file,
+`tools/map/water_zones.py`; the sheet above (`tools/map/zone_looks.py`) and the game's script are both made from it.
+
+**What happens when the camera goes under** (all in `tools/map/water_look.luau`, so it travels with the map):
+1. **The distance fades into the land's water colour,** at that land's own distance (900 studs in the Shallows down
+   to 340 in the Underworld). This is what makes the water a place and not air.
+2. **The near view is washed with a light tint of it,** and colours are made a little stronger, more so the deeper
+   the land. Things keep their own colour.
+3. **The surface from below:** a bright sheet over your head with the water's picture moving on it, shown only from
+   below (from the hub you still see down into the water).
+4. **Shafts of light** stand in the water in the first five lands, strongest in the Shallows, gone by 320 studs
+   down. They stand still in the world, so you swim past them.
+5. **Small specks drift past,** in each land's own colour: they show you are moving and that there is water.
+6. **A slight softness in the distance,** so it reads as under water and still as a cartoon.
+7. **Lands blend into each other** over 260 studs either side of a border, and the look comes on over the first 6
+   studs of going under.
+
+**How it sits with the game's light:** it changes only Lighting's fog (colour, start, end), takes the Atmosphere
+out of Lighting while under water (Roblox's fog doesn't work with one) and puts it back at the surface, and adds two
+effects of its own, `WaterColour` and `WaterSoft`. It never writes the numbers `Config.Look` owns.
+
+**Not judged by eye yet.** Written and installed without a view of Studio; the first real look is the user's.
+
+**Not built, and worth working through together:**
+- Light rippling on the floor (the water's picture, slid slowly over the floor near the camera).
+- Bubbles: off the fish, and a burst with a splash when you cross the surface. Needs a bubble picture uploaded.
+- The dark lands' own lamps ([the map's feel](map-feel.md), "Lighting the dark lands").
+- Speed in the water: streaks when a fish goes fast.
+- The pull of a current at the edge you can't pass.
+
 ## What it depends on
 | Thing | Where it comes from | Note |
 |---|---|---|

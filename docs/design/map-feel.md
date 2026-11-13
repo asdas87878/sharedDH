@@ -52,8 +52,10 @@ above; the grid on the cliffs and shelves follows the same rules as the walls bu
 ## A look for each zone
 ![The ten lands](../attachments/map-zone-looks.jpg)
 
-The first four columns are what the map is built in now. The water's colour, how far you see and what lights each
-land are **proposed**, from [workout 1](../style/01-going-down.md)'s numbers; none of it is built.
+The floor and wall colours are what the map is built in now, shown as they would look near, further off and far
+away through each land's water. The water was first proposed in dark, greyed colours; the user found those murky,
+and it is now bright and a different hue in each land ([the moving water](water.md), "Under the water", where a first
+version is built). The lamps are not built.
 
 - **One thing wrong in what is built:** every land's cliffs fade toward the same pale teal. Right for the first
   lands; in the deep ones they should fade toward that land's own dark water. To change with the fog.

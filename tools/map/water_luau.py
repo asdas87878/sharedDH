@@ -7,7 +7,27 @@ The water shows when the game is played: the script builds it on the player's ow
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import json
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from water_zones import ZONES  # noqa: E402
+
 source = open(os.path.join(ROOT, "tools", "map", "water_look.luau"), encoding="utf-8").read()
+# the lands' water and the lane's line, baked in from the map as it was built (the map sits 3,000 studs along X)
+info = json.load(open(os.path.join(ROOT, "art", "map", "greybox", "path.json")))
+starts = [land["S0"] for land in info["Lands"]]
+
+
+def c3(c):
+    return f"Color3.fromRGB({c[0]}, {c[1]}, {c[2]})"
+
+
+zones = ",\n\t".join("{ %g, %s, %d, %s, %g, %g, %s }" % (s0, c3(z["water"]), z["see"], c3(z["tint"]), z["vivid"], z["shafts"], c3(z["specks"]))
+                       for s0, z in zip(starts, ZONES))
+line = ",\n\t".join(", ".join("{ %g, %g, %g }" % (r[1] + 3000, r[3], r[0]) for r in info["Path"][k:k + 6]) for k in range(0, len(info["Path"]), 6))
+assert "--ZONES--" in source and "--LINE--" in source
+source = source.replace("--ZONES--", zones).replace("--LINE--", line)
 assert "]==]" not in source
 MESH = "rbxassetid://446556804"  # a plain cube from the Creator Store ("Smooth Cube", asset 446556868, free). The
 # creatures' own box meshes were tried first: they are painted dark, and a mesh's paint darkens everything, foam included

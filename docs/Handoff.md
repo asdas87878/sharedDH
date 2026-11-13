@@ -5,7 +5,8 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-12 · Obsidian chat integration (the user's PC): Hugo's latest passes merged onto the user's new map (grey-box 13)
 **State:** on the user's word ("crossover his new changes with my new map", the map kept). Merged, built, in the
-user's Studio place and run once. **Hugo's place still has the old map: see the note to void in
+user's Studio place and run once. (Since then the map chat has loaded grey-box 14, which is what the loader files now
+hold.) **Hugo's place still has the old map: see the note to void in
 [Sessions](Sessions.md) for how to load the new one.**
 - **Merged from Hugo:** the control pass, the speed by home land and then the speed reset (`Config.FishStats`),
   angry mode, the six passive archetypes. Only [Decisions](Decisions.md) and [Sessions](Sessions.md) conflicted;
