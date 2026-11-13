@@ -3,6 +3,32 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): Hugo's Studio place rebuilt after a crash, and now on disk
+**State:** Hugo's Studio is open again on the Ride a Fish place, in Edit, and **the place is on disk**. No game
+file changed; nothing uploaded. Only this note is in the commit.
+- **What was lost:** the PC ran out of memory at about 14:27 and took Studio with it. The place had never been
+  saved: the file on disk was from 2026-11-11 03:10 (before grey-box 9). Nothing in the repo was lost.
+- **How it was rebuilt:** from Studio's own auto-recovery file of 14:27 (it held grey-box 15, the code and the 82
+  creatures with their Gold and Rainbow templates). Then, in the open place: Rojo on 34873 synced `src/` (every
+  script the same size as its file); `python tools/studio/load_greybox.py runner` loaded grey-box 15 again from
+  the files on main (103 files, 0 problems, 59,002 parts, the water's script newer than the recovered one). The
+  creatures were not installed again: no mesh changed since `install.py runner --local` of 2026-11-12, Studio is
+  the same version, and all 3 x 1,365 MeshParts point at mesh files that are there.
+- **Checked:** the herd's stream on this map (`herd_stream_test.py`'s code through the runner; the script itself
+  calls the partner's Windows client and does not run here): 3 to 7 degrees per 100 studs, worst 31, 0 places
+  over the edge or under the floor. One playtest by script: no errors (the old asset type warning on `203785492`
+  only), 56 fish, a mount on a Clownfish, a hop onto a Sergeant Major in 1.2 s, 1,915 props. **Not played by
+  hand.** The test scripts are out of the place.
+- **Saved, and where:** a plugin can't save a place opened from a file, so the save is Studio's next
+  auto-recovery file (14:46, after the rebuild, in Edit), copied to `~/Documents/RideAFish/ride-a-fish-map.rbxl`
+  and to `~/Projects/sharedDH-local/ride-a-fish-map.2026-11-13-1446-rebuilt-greybox15.rbxl`. The old disk file is
+  in `sharedDH-local/backups/` (`...2026-11-13-1437-old-disk-file-from-1111.rbxl`). **Hugo: press Ctrl+S in
+  Studio once**, and after any session whose place state matters.
+- **To know:** a playtest of this place left about 600 MB of the PC's 15 GB free with the swap full. One Studio,
+  and no other heavy job (a compile, a second game) while it plays. After a crash: copy
+  `~/.var/app/org.vinegarhq.Vinegar/data/vinegar/appdata/Roblox/RobloxStudio/AutoSaves/ride-a-fish-map_AutoRecovery_0.rbxl`
+  over the place file and move it out of that folder before starting Studio.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): the merge of the partner's herd, sizes and water with Hugo's props and hop
 **State:** merged by hand and **pushed to `origin/main`** (Obsidian is not running on Hugo's PC, so nothing syncs
 there by itself). Both sides are whole: the partner's four vault syncs up to `85b5be8` (the herd's stream, the six sizes and Silver,
