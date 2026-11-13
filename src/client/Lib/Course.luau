@@ -41,7 +41,6 @@ local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
 params.RespectCanCollide = true
 local begun = false
-local throughLast: boolean? = nil -- what Course.begin was last asked for (it is done again when a character appears)
 
 -- the last survey: the lane's floor there (nil off the lane), how far outside the lane's edge (negative inside), and the
 -- way out across it
@@ -67,9 +66,9 @@ local function getLane(): Lane.Lane?
 end
 
 -- Call when we start moving something ourselves (a mount, a jump): the rays skip every character and the camera's own
--- effects. `throughProps`: they skip the map's props too (a ridden fish that breaks them swims through: Config.Props).
-function Course.begin(throughProps: boolean?)
-	throughLast = throughProps
+-- effects, and the map's props: nothing we move is stopped by a prop (Config.Props: a fish that breaks them swims
+-- on through, every other fish and every rider in the hop goes straight through). So the wall ride never sees one.
+function Course.begin()
 	local list: { Instance } = { workspace.CurrentCamera }
 	for _, player in Players:GetPlayers() do
 		if player.Character then
@@ -83,7 +82,7 @@ function Course.begin(throughProps: boolean?)
 	end
 	local laneFolder = blockout and blockout:FindFirstChild("Lane")
 	local props = laneFolder and laneFolder:FindFirstChild("Props")
-	if throughProps and props then
+	if props then
 		table.insert(list, props)
 	end
 	params.FilterDescendantsInstances = list
@@ -175,7 +174,7 @@ end
 -- The floor under a point in open water: the solid thing below it, and never lower than the lane's own floor
 function Course.floor(at: Vector3): number?
 	if not begun then
-		Course.begin(throughLast)
+		Course.begin()
 	end
 	locate(at)
 	floorHere = rayFloor(at.X, at.Y, at.Z)
@@ -238,7 +237,7 @@ function Course.feel(
 	steps: boolean?
 ): (Vector3?, number, number, Vector3?, number, number)
 	if not begun then
-		Course.begin(throughLast)
+		Course.begin()
 	end
 	local origin = from
 	local low: Vector3?, lowFar: number, lowShare: number = nil, 0, 0
@@ -282,7 +281,7 @@ end
 function Course.edge(from: Vector3): (Vector3?, number)
 	locate(from)
 	if not begun then
-		Course.begin(throughLast)
+		Course.begin()
 	end
 	if laneFloor and outside > -OPEN and not walled(from) then
 		local normal = (-outward + alongHere * slope).Unit
@@ -368,7 +367,7 @@ end
 -- ourselves each frame (the flight).
 function Course.clearMove(from: Vector3, to: Vector3, clearance: number): Vector3
 	if not begun then
-		Course.begin(throughLast)
+		Course.begin()
 	end
 	local step = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
 	for _ = 1, 2 do

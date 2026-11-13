@@ -39,6 +39,13 @@ Read `game.ServerStorage.W1Log.Value` through the server context. Wait for `FINA
   walls down the lane, stalls logged where they happen), `mouth [fish]` (back up into the hub's mouth),
   `hopglide [fish]`, `camtop [label]` (the camera against the water's lit sheet), `camwall [fish]`,
   `pose <float|hop|ride> <pitch> <seconds>` (holds a view for a picture).
+- Since 2026-11-13 (the wait between fish, the air's shape, the hook's reach): `spacing [fish] [seconds]` (how far
+  the free fish are from a rider), `air [times]` (whole hops with no grab off a slow, a normal and a fast fish:
+  speed, height, reach and the fish inside it every 0.1 s, and the biggest change between two frames),
+  `relock [count]` (touch, landing animation, mount, next hop), `rate [seconds] [label]` (fish to fish as fast as
+  presses allow), `serverreach [count]` (grabs asked straight of the server, past and inside the reach), and
+  `mounts <count> <fix> <mash> <every>` takes the seconds between the mash's presses. The driver calls
+  `Actions.jump` itself: it does not test `InputController`'s reading of a held key.
 
 A failed check is logged as `CHECK FAIL` and the run goes on. The wall check compares the speed kept with the
 design's share at the angle the wall is REALLY met at (the walls wave: the angle to the lane is not it), and checks

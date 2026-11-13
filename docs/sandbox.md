@@ -10,7 +10,7 @@ Press Play in Studio. The top left of the screen says SANDBOX.
 | Key | What it does |
 |---|---|
 | **R** | Puts you on a fish in deep water down the lane, where a hop has room to rise. If no fish is there yet, you float for two or three seconds and are put on the first one that comes. |
-| **F** | Back to the start, onto the next fish of a try-out list, put there for you: Reef Shark (Predator), Humphead Wrasse (Breaker), Swordfish (Fast), Dolphin (Leaper), Giant Sea Bass (Tank), Megalodon (Predator, Frenzy), Dunkleosteus (Predator, Breaker), Clownfish, a Gold and a Rainbow Clownfish. For trying the [archetypes](design/archetypes.md); their numbers are on the N panel (`Fast`, `Predator`, `Frenzy`, `Breaker`, `Tank`, `Leaper`, `ArchetypeFeel`). Turn endless air off to see the air a bite gives. |
+| **F** | Back to the start, onto the next fish of a try-out list, put there for you: Reef Shark (Predator), Humphead Wrasse (Breaker), Swordfish (Fast), Dolphin (Leaper), Steller's Sea Cow (Tank), Megalodon (Predator, Frenzy, and a giant), Molten Megalodon (no archetype, a giant), Blue Whale (Tank, Breaker), Clownfish, a Gold and a Rainbow Clownfish. **For the props:** the Wrasse, the Sea Cow, the megalodons and the Blue Whale break them; the others go through and see them fade (`Props` on the N panel). For trying the [archetypes](design/archetypes.md); their numbers are on the N panel (`Fast`, `Predator`, `Frenzy`, `Breaker`, `Tank`, `Leaper`, `ArchetypeFeel`). Turn endless air off to see the air a bite gives. |
 | **N** | Opens and closes the panel of numbers. |
 | **V** | The side view: the camera stands off to the side, square on to the way you are headed, so you see the whole arc. Steering still works. |
 | Space | On a fish or floating: the hop. In the hop: grab the fish that glows (a left click, E and gamepad X too). |
@@ -49,10 +49,16 @@ Config, and then they are the game's.
 4. When it is better, Copy changes and paste them to Claude with a line on what you were after.
 
 What to reach for:
-- **The arc:** `Jump.LaunchTime`, `Launch` and `Apex` (the pop), `FloatTime` and `AirSpeed` (the glide), `Drop`,
-  `DropCurve` and `DropSpeed` (the drop). `Window` is the whole hop: the drop is what the pop and the glide leave of
-  it (3.2 - 0.4 - 1.5 = 1.3 s), so a longer glide means a shorter drop unless `Window` grows too. The pull-in begins
-  by itself when the glide ends (`LaunchTime` + `FloatTime`: 1.9 s after the press), so `FloatTime` is the airtime.
+- **The arc:** `Jump.LaunchTime`, `Launch`, `HopBoost` and `Apex` (the pop), `FloatTime` (the fast part: how long
+  you keep your speed), `FastKeep` and `FastCurve` (how much of the boost is left at its end, and how late it goes),
+  `StallTime` and `StallShare` (how quickly the speed is lost then, and what is left), `FallGravity` and `FallSpeed`
+  (the fall). `Window` is the whole hop: the stall and the fall are what the pop and the glide leave of it
+  (3.2 - 0.4 - 1.5 = 1.3 s). The pull-in begins by itself when the fast part ends (`LaunchTime` + `FloatTime`:
+  1.9 s after the press, sooner off a slow fish).
+- **The wait between fish:** `Jump.Cooldown` (from the touch; 0.08), `HopGuard` and `MashMost` (mashed presses),
+  `StrainLock` (a fish too strong for you).
+- **The hook's reach:** `Jump.GrabNear` (no speed), `GrabRange` (full speed), `GrabFullSpeed`, `RingEdge`. In a hop
+  the line under the panel shows your speed and the reach it gives right now.
 - **The landing's slow-down** (a fish you land on slows for a moment, never stopping): `Ride.Startle` (0 off),
   `StartleBrake`, `StartleSlow` (the share of its speed it drops to: 0.8), `StartleHold`, `StartleRecover`. The
   rearing that came with it is gone (2026-11-12), and its rows with it.
@@ -83,7 +89,7 @@ What to reach for:
   glide and the server's speed check follow at once); `Variant.Gold`, `Rainbow` (the variants' chances, for fish
   spawned from then on; the `Size` rows and `Speed.SizeBonus` went with the size roll, 2026-11-12); and
   `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12; so did `Speed.Base`, `TierMult`, `Speed.AreaStep` and `AreaGrow`, with the reset: a fish's speed is its own number in `Config.FishStats`, changed in Config, not on the panel: [archetypes](design/archetypes.md).)
-- **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.Rebuild`, `Push`, `Topple`, `MinLength`.
+- **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.GiantVolume` (who is a giant), `FadeTo`, `FadeFar`, `FadeNear`, `FadeLead`, `FadeEase`, `FadeForBreakers` (the approach fade), `Topple`, `MaxLoose`, `Throw`, `Scatter`, `Pop`, `Drag`, `Sink`, `Spin`, `Hang`, `FadeOut` (the boxes flying), `RegenRadius`, `RegenDelay`, `RebuildTime` (the prop coming back), `Slow`, `Cost`.
 
 ## What it doesn't do yet
 - No slow motion and no replay of a jump.

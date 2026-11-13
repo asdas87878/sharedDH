@@ -1,6 +1,7 @@
 --!strict
 -- The lock-on (Config.Lock): which fish a grab would take. The aim is a thick ray from the camera along
--- where it looks, not a thin one: every free fish within Jump.GrabRange of the rider has an allowance, half of Lock.Cone
+-- where it looks, not a thin one: every free fish within the hook's reach of the rider (by the rider's speed right now:
+-- Config.reachOf, at most Jump.GrabRange; the caller gives it) has an allowance, half of Lock.Cone
 -- plus the angle that Lock.AimRadius (and half the fish's length) covers at its distance, so a near fish is far easier
 -- to hit than a far one. A fish inside its allowance scores
 --   AngleWeight x (how far off the aim it is, as a share of its allowance) + DistanceWeight x (distance / range),
@@ -61,7 +62,15 @@ local function inSight(from: Vector3, to: Vector3): boolean
 end
 
 -- A fish's score (lower is better), or nil when it is out of range or outside its allowance
-local function score(model: Model, from: Vector3, eye: Vector3, aim: Vector3, range: number, keep: boolean): number?
+local function score(
+	model: Model,
+	from: Vector3,
+	eye: Vector3,
+	aim: Vector3,
+	range: number,
+	keep: boolean,
+	wide: boolean
+): number?
 	local l = Config.Lock
 	local at = (model.PrimaryPart :: BasePart).Position
 	local distance = (at - from).Magnitude
@@ -82,7 +91,8 @@ local function score(model: Model, from: Vector3, eye: Vector3, aim: Vector3, ra
 	local grace = math.rad(l.FarAim) * share
 	local allowance =
 		math.min(math.rad(l.Cone / 2) + math.atan(radius / math.max(away, 1)) + grace, math.rad(l.MaxAngle))
-	if angle > math.min(allowance * (if keep then l.KeepCone else 1), math.rad(l.MaxAngle)) then
+	-- (`wide`, the last chance: anything in reach counts, however far off the aim, behind us too)
+	if not wide and angle > math.min(allowance * (if keep then l.KeepCone else 1), math.rad(l.MaxAngle)) then
 		return nil
 	end
 	local far = l.DistanceWeight * share
@@ -95,8 +105,19 @@ local function score(model: Model, from: Vector3, eye: Vector3, aim: Vector3, ra
 end
 
 -- The fish to lock: `from` is the rider, `eye` and `aim` the camera's place and look, `current` the fish locked now,
--- `left` the fish we just left, `skip` one not to take at all (the server just refused it)
-function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, left: Model?, skip: Model?): Model?
+-- `left` the fish we just left, `skip` one not to take at all (the server just refused it), `reach` how far the hook
+-- goes right now (nil: Jump.GrabRange, the most it ever does), `wide` the last chance (Lock.LastChance): take any
+-- fish in reach, all round, the one nearest the aim first
+function Lock.pick(
+	from: Vector3,
+	eye: Vector3,
+	aim: Vector3,
+	current: Model?,
+	left: Model?,
+	skip: Model?,
+	reach: number?,
+	wide: boolean?
+): Model?
 	-- (the herd is gone over 20 times a second, not every frame: the lock holds for MinHold and SwitchTime anyway, and
 	-- each look reads three attributes a fish and casts a few rays)
 	local nowAt = os.clock()
@@ -108,7 +129,7 @@ function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, l
 	pickedAt = nowAt
 	refreshSight()
 	local l = Config.Lock
-	local range = Config.Jump.GrabRange
+	local range = reach or Config.Jump.GrabRange
 	local folder = workspace:FindFirstChild("Fish")
 	if not folder then
 		return nil
@@ -118,7 +139,7 @@ function Lock.pick(from: Vector3, eye: Vector3, aim: Vector3, current: Model?, l
 	local currentScore: number? = nil
 	for _, model in folder:GetChildren() do
 		if model:IsA("Model") and model ~= skip and State.isFreeFish(model) then
-			local s = score(model, from, eye, aim, range, model == current)
+			local s = score(model, from, eye, aim, range, model == current, wide == true)
 			if s then
 				if model == left then
 					s += l.LeftPenalty

@@ -1,0 +1,30 @@
+# Props playtest driver (b1, 2026-11-13)
+
+Temporary scripted test of the props: who breaks, who goes through, the approach fade, the flying boxes and the
+rebuild. It drives the real controllers and the server's mounts; it replaces no game module. Only the chat that has
+Studio runs it (docs/Sessions.md). Use the HTTP runner, never Studio MCP.
+
+```sh
+python3 tools/studio/props_b1/install.py
+node ~/Projects/studio-runner/studio-run.mjs /tmp/ride-fish-props/install.luau
+node ~/Projects/studio-runner/studio-run.mjs play
+```
+
+Wait for `driver up` in `game.ServerStorage.B1Log.Value` (read with `--ctx server`), then set a command, with
+something that changes each time so the same command can be sent twice:
+
+```luau
+game.ReplicatedStorage.B1Cmd.Value = "suite " .. os.clock()
+```
+
+- `run <FishId> [hop 0|1] [hold 0|1]`: onto that fish, straight through the nearest tall prop ahead and on. One
+  `RESULT` line (the speed kept, what the server said, boxes out, copies flying, how see-through the prop got) and
+  one `BACK` line (when the prop was whole and shown again, how far away we were). `hop 1` hops off a second before
+  the prop; `hold 1` keeps `Props.RegenRadius` huge for 8 s to see that a prop stays broken with a player near.
+- `suite`: a Clownfish and a Reef Shark (go through), the Humphead Wrasse (Breaker), Steller's Sea Cow (Tank, with
+  the hold), the Molten Megalodon (giant), the hop off a Clownfish and off the Sea Cow, and the Sea Cow again with
+  `Props.FadeForBreakers` 1. Ends with `SUITE DONE`; a failed check is a `CHECK FAIL` line.
+- `set <Group> <Key> <value>`: a Config number on both machines.
+
+Afterwards: `studio-run.mjs stop`, wait until `status` shows `connected.server` 0, then run
+`/tmp/ride-fish-props/remove.luau`.

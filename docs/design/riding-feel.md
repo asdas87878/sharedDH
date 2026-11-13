@@ -27,6 +27,8 @@ stationary fish gives 1 s of glide and a 2.7 s window. `AirLeast` is a hard mini
 numbers. The pop's 0.4 s and the drop's duration stay the same. A Leaper adds its own extra time as well. A hop
 from floating uses the existing free launch and base time. Neither Oxygen nor wall contact disables jumping.
 The lock keeps its full 180-stud reach at low speeds, and manual grabs remain available before the automatic grab.
+(Since 2026-11-13 the boost fades slowly through the whole glide and the reach is by speed: "The wait between fish,
+the air's shape, the hook's reach", below.)
 
 ### The second hook
 
@@ -130,6 +132,68 @@ What it does now (`Lib/WallRide`, `Lib/Course`; every number in `Config.Wall`, a
   edge. `Course`'s hard rules stay behind all of it and did not fire once in the final runs.
 - **The camera is still untouched.** A look-ahead for the camera's own wall rule was tried and measured to make
   no difference; it is out.
+
+### The wait between fish, the air's shape, the hook's reach (Hugo, 2026-11-13)
+
+Hugo's three notes after playing, built the same day. Measured by script on grey-box 15, with the old and new
+curves drawn: [the playtest](../playtests/2026-11-13-hop-air-reach.md). **Not played by hand yet.** Where the
+sections above say otherwise (the boost gone by 0.75 s, the 0.3 s cooldown, the 180-stud reach), this one holds.
+
+**The wait between fish.** "Really small: it must not last the whole landing animation, only the gap between the
+moment you land and the moment the landing animation starts."
+- You land when the pull-in ends on your own machine (the touch). The landing animation (the fish's dip and
+  reaction, your brace: the partner's, untouched) starts when the server's word comes back, the same word that
+  mounts you. Between the two you are still held in the hop, so that gap is a lock by itself.
+- `Jump.Cooldown` (0.08 s) is now counted **from the touch** and is the least that gap counts as. It was 0.3 s
+  from the mount. From the mount on, a fresh press hops at once and the hop cuts the landing short.
+- The server asks half of it after its own mount (it mounts after the touch and hears the hop after the press, so
+  it never refuses an honest hop).
+- **One landing keeps the old wait:** a fish too strong for you (`Jump.StrainLock`, 0.3 s from the mount, on both
+  sides). Its meter empties in `Oxygen.StrainTime` (0.25 s); with a shorter lock it would be a stepping stone with
+  a refill.
+- **The second hook stays shut, and not by the cooldown:** a press during the pull-in (or while the landing waits
+  for the server) starts a run of presses that can't hop until a gap of `Jump.HopGuard` (0.25 s), as before. And
+  the key itself is now read: a HELD Space or gamepad A is one press however long it is held and whatever the frame
+  rate does (`InputController`: armed by going down, used once); a real second press counts however soon. The
+  mobile button still goes by `Jump.InputGap`.
+- The other timers, and why they stay: `Jump.MinFlight` (0.15 s, so one press can't leave and grab), `LandWait` and
+  `AckTime` (how long the landing may wait for the server: they are the gap, not a lock after it), `RehookGuard`
+  (only the hands-off pull-in after a refused one).
+
+**The air's shape.** "Too linear." Three parts, one curve (`Config.hopSpeed`, `Config.hopSink`):
+1. **Fast:** from the pop's speed (as before: `Launch` x the fish's speed + `HopBoost`), fading only slowly for the
+   whole glide. At its end `Jump.FastKeep` (0.55) of the boost is still there; `FastCurve` (1.5) holds the speed
+   longer and loses it later. The fast part is the glide: `LaunchTime` + `FloatTime`, shorter off a slow fish and
+   longer off a fast one (airtime by speed, unchanged), so less speed still means less of it.
+2. **The stall:** then the speed falls away over `Jump.StallTime` (0.35 s) to `StallShare` (0.25) of the glide's
+   pace. You still go forward and A and D still steer.
+3. **The fall:** as the speed goes you start to fall: `Jump.FallGravity` (130 studs a second every second; the old
+   sink came to about 39) down to `FallSpeed` (90) at most. The pull grows with the stall, so there is no step.
+- The hands-off pull-in still begins when the fast part ends (the glide's end), so with no press you are taken at
+  the long reach, before the stall.
+- Gone: `BoostHold`, `BoostTime`, `Drop`, `DropCurve`, `DropSpeed`. The speed lines and the bubble trail now follow
+  the boost that is really left.
+
+**The hook's reach.** "A shorter base, and it depends on horizontal momentum."
+- `Config.reachOf(speed)`: `Jump.GrabNear` (60) with no speed across the water, `Jump.GrabRange` (150) at
+  `Jump.GrabFullSpeed` (180 studs a second) or faster, in proportion between. It was 180 at every speed.
+- It is read every frame of the hop from the speed you really have across the water (a wall that slows you
+  shortens it; falling adds nothing). So it is long through the fast part and shrinks through the stall.
+- The lock only takes a fish inside the reach you have right then, so the ring and the glow are the reach: a fish
+  that drops out of it loses the ring. The ring thins out as its fish passes `Jump.RingEdge` (0.8) of the reach.
+  The sandbox's line under the panel shows the speed and the reach live through a hop.
+- **The last chance** (`Lock.LastChance`; Claude's addition, for the standing rule that a hop must still reach a
+  fish that is near): once the fast part is over the lock takes any fish inside the reach you still have, all
+  round, the one nearest the aim first. With the shorter reach alone, 2 of 12 hands-off hops off the slowest fish
+  sank; with it, none of 24.
+- **The server counts the same rule itself:** the hop's curve from the speed it saw the fish go at (its own
+  measure of the fish's travel, held to what that fish may do) and its own clock, read `Net.ReachLag` (0.2 s)
+  earlier, times `Net.RangeSlack`. Nothing the client says about its speed or reach is used.
+- **The least there is:** the slowest hop of all (off a fish standing still: 44 studs a second) reaches 82 studs
+  as it leaves and 80 at the end of its fast part; stalled, any hop reaches 60 to 75. Measured, the nearest free
+  fish to a rider in the first two lands is 38 studs away at the median, inside 68 in 95% of looks, and never
+  past 84 (further down: 42, 82, 101, where the fish are faster and reach 112 to 150). The fish you left is
+  always in reach as you leave.
 
 ### Verification for this pass
 
@@ -244,16 +308,46 @@ One button. Space throws you off the fish at once (from floating too).
   drops to 0.45 of what it was and comes back over 1.4 s, the camera is jolted, and it costs a tenth of your max Oxygen;
   never the last of it. Once for each time the nose comes up against the thing, and at most every 1.5 s. The server sees
   it (a ray along the fish's nose), takes the Oxygen and tells your client to slow. `Config.Crash`.
-- **Props break** (`PropService`, `Config.Props`): a fish that swims into one of the map's props knocks loose the boxes
-  it touches, and the boxes of that prop resting above them. They are thrown along its way, turn, sink a little and
-  hang in the water; 8 seconds after the prop was last hit they fly home and it is solid again. The server moves the
-  real boxes, so everyone sees the same prop. The rider goes through, for a small crash: speed to 0.8, 3% of max Oxygen.
-  Breaking gives nothing.
-- **Every fish breaks props for now** (`Props.MinLength` 0). Set it to a length in studs and only fish that long do;
-  shorter ones crash into props like into a wall. This is where "a big enough creature" (2026-11-10) can come back.
-- **Wild fish** steer round the big things, so they are rarely in one; one that is, breaks what it touches.
-- **In the hop** you are stopped by props, as by walls: it costs nothing.
+- **Props, since 2026-11-13 (Hugo):** the section below, "Props: who breaks, who goes through". In short: only a
+  Tank, a Breaker or a giant breaks a prop; every other fish and every rider in the hop goes straight through, and
+  the prop turns see-through as you come up to it.
 - Players' bodies no longer collide with props (so a rider isn't knocked about in the moment before the boxes go).
+
+
+### Props: who breaks, who goes through (Hugo, 2026-11-13)
+In place of "every fish breaks props" (2026-11-11). `Config.Props`, `PropService` (server), `PropController`
+(each player's machine).
+- **Who breaks:** a Tank, a Breaker, and a really big fish even with no archetype (its model's box at least
+  `Props.GiantVolume`, 12,000 cubic studs). 16 of the 82; the list and the why:
+  [archetypes](archetypes.md), "Who breaks props". One function, `Config.breaks`.
+- **Everyone else goes straight through.** No collision, no stop, no slow-down, no Oxygen. The riding code's rays
+  (`Lib/Course`) leave the props out for every fish, and so does the server's crash check. **The same for the rider
+  in the hop and the glide, off any fish** (the boss's call, for Hugo to confirm): a hop used to be stopped by a
+  prop. The wall glide never sees a prop, and works at real walls as before.
+- **The approach fade.** A prop near you turns see-through, smoothly with distance: it starts `FadeFar` (80) studs
+  away and is at `FadeTo` from `FadeNear` (16) studs. `FadeTo` is 0.65 as Roblox counts it (35% solid: Hugo's pick,
+  2026-11-13, from the comparison sheet of 0, 0.2, 0.35, 0.5, 0.65 and 0.8; it was 0.8 before). It also
+  fades for where you will be in `FadeLead` (0.3) seconds, so a fast fish's props fade in time. On your own screen
+  only and by your own distance: another player sees the same prop by theirs. It comes back as smoothly when you
+  leave. A prop fades whole, each on its own, so several near each other don't flicker. Pictures on the boxes and
+  glowing boxes fade with them.
+- **On a fish that breaks props they don't fade** (the boss's reading: they should look like something to smash).
+  `Props.FadeForBreakers` = 1 fades them for it too. In the hop off such a fish they fade, since the rider goes
+  through.
+- **Breaking.** The fish's nose reaches the prop: the boxes it touches, and the boxes of that prop resting above
+  them, are out (at most `MaxLoose`, 60, a hit). The boxes still in place stay. Each box that is out is thrown from
+  where the fish hit, along the fish's way with `Throw` (0.7) of its speed and outward, turns, is slowed by the
+  water, sinks, and after `Hang` (0.5 s) fades away over `FadeOut` (0.8 s) and is removed. Bubbles and a crunch.
+- **Cheap and the same for everyone.** The server decides only which boxes are out and when the prop is back (a tag
+  on each box that is out; where and how fast it was hit on the prop). Each machine throws its own copies of the
+  boxes: nothing flying is sent over the network, nothing flying is solid or seen by any ray, so it can't block,
+  trap or slow anyone. A player who joins late, or loads that part of the map later, sees the prop as it is.
+- **It comes back when you are gone.** No player within `RegenRadius` (300 studs) of the prop for `RegenDelay`
+  (3 s): then its boxes fade in over `RebuildTime` (0.6 s), a few at a time. Never in front of a rider. (The fixed
+  8 seconds are gone.)
+- **Wild fish** that would break props do, when inside one (`Props.WildBreaks`).
+- **Not built:** a scale-in on the rebuild (it fades in only); a tag line that says a giant breaks props (the UI
+  chat's file).
 
 ### Who decides what
 The client moves its own fish and its own hop and picks the lock (the camera's aim is its own). The server decides: the
@@ -273,7 +367,7 @@ values, **not tuned in play**.
 | The window | `Jump.Window`, `Warn` | 3.0 s, 0.8 s (3.2 s since the control pass) |
 | The pop | `Jump.LaunchTime`, `Apex`, `Launch`, `BoostTime`, `FreeLaunch` | 0.4 s, 20 studs, 1.4 times, 0.75 s, 55 |
 | The glide | `Jump.FloatTime`, `FloatRise`, `AirSpeed` | 1.4 s, 1 stud, 38 (1.5 s since the control pass) |
-| The drop | `Jump.Drop`, `DropCurve`, `DropSpeed`, `DropTilt` | 12 studs, 2, 30, 12 degrees |
+| The drop | `Jump.Drop`, `DropCurve`, `DropSpeed`, `DropTilt` | 12 studs, 2, 30, 12 degrees (since 2026-11-13 the first three and `BoostTime` are gone: `FastKeep`, `FastCurve`, `StallTime`, `StallShare`, `FallGravity`, `FallSpeed`; and the reach is `GrabNear` to `GrabRange` by speed) |
 | The body | `Jump.Tilt`, `Bank` | 78, 18 degrees |
 | The reach and the pull-in | `Jump.GrabRange`, `ReelTime`, `GrabSpeed`, `ReelMax`, `ReelCurve`, `ReelSwoop` | 85 studs, 0.14 s, 55, 0.8 s, 2.3, 0.9 (since 2026-11-12 the reach is 180 studs: see "The movement pass" below) |
 | The landing's camera | `Jump.ReelFov`, `LandFov`, `LandFovTime`, `LandKick` | -10, +12 degrees, 0.35 s, 0.45 studs |
@@ -282,7 +376,7 @@ values, **not tuned in play**.
 | Steering | `Ride.YawRate`, `TurnEase`, `Bank` | 95 degrees a second, 10, 28 degrees (135 and 14 since the control pass, with `SteerEase`, `SteerRate`, `Response`, `LandSteerTime`) |
 | Oxygen | `ZoneDrain`, `Oxygen.Refill`, `KeepUp`, `TierDrain`, `FreeDrain` | above; 0.25, 6 s, 0.15, 4 |
 | A crash | `Crash.Slow`, `Recover`, `Cost`, `Cooldown`, `HeadOn` | 0.45, 1.4 s, 0.1, 1.5 s, 0.35 |
-| Props | `Props.MinLength`, `Rebuild`, `Push`, `Topple`, `Slow`, `Cost` | 0, 8 s, 16 studs, 22 studs, 0.8, 0.03 |
+| Props | `Props.GiantVolume`, `FadeTo`, `FadeFar`, `FadeNear`, `FadeForBreakers`, `Throw`, `RegenRadius`, `RegenDelay`, `Slow`, `Cost` | 12,000 cubic studs, 0.65, 80 studs, 16 studs, 0, 0.7, 300 studs, 3 s, 0.8, 0.03 |
 | The camera's springs | `Camera.FocusTime`, `TurnTime`, `ZoomTime`, `FovTime` | 0.12, 0.07, 0.3, 0.2 s |
 
 ### How the lock scores
@@ -309,8 +403,10 @@ Play in Studio; N opens the panel. For the real rules turn **No fail** and **End
    must still work and refill.
 4. **A crash:** steer into a wall square on, then slide along one. The first slows you and costs a tenth; the second
    costs nothing. Does it ever charge you without a touch, or miss a clear crash? (`Crash.HeadOn`, `Reach`.)
-5. **Props:** swim through a coral and a wreck. Boxes fly, you go through a little slower, it rebuilds after 8 s. Is
-   too much or too little of a big prop coming down? (`Props.Topple`, `MaxLoose`.) Try `Props.MinLength` 12.
+5. **Props:** F to a Clownfish and swim through a coral: it fades and you go through untouched. F to the Humphead
+   Wrasse (Breaker), Steller's Sea Cow (Tank) or a megalodon (giant) and do it again: boxes fly, fade and are gone,
+   and the prop is back once you are 300 studs on. Is too much or too little of a big prop coming down?
+   (`Props.Topple`, `MaxLoose`.) Is the fade right? (`Props.FadeTo`, `FadeFar`, `FadeNear`.)
 6. **Co-op and lag:** two players for one fish; a prop one breaks, seen by the other.
 
 ## Decided
@@ -489,7 +585,6 @@ animations, the shakes, the changes of speed) is still to do, in there.
 - A revive after a miss, as in the reference.
 - Zones 7 to 10 have no fish types yet, so no fish.
 - Training max Oxygen (the other half of the progression) isn't built: every land past the second needs it.
-- Whether only big creatures break props (`Props.MinLength`), and whether breaking should ever give anything.
 - The hands-off landing (2026-11-10) against the grab by a press (2026-11-11): `Jump.AutoGrab` holds both.
 
 ## The movement pass (Hugo, 2026-11-12)

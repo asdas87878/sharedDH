@@ -28,6 +28,26 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat, the UI chat and the partner:**
+  props are redone on Hugo's word: only a Tank, a Breaker or a giant breaks one, every other fish and every
+  rider in the hop goes straight through, a prop fades on your own screen as you come up to it, the broken
+  boxes fly and fade on each machine, and the prop is back once no player is near
+  ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-props.md)). Files changed:
+  `PropService` (rewritten), new `client/Controllers/PropController`, `Config` (`Props`, `breaks`, `giant`,
+  `volumeOf`, the `Breaks` field of a `FishStats` row), `RideService.checkCrash` (the prop block),
+  `FishService` (one condition), `Lib/Course` (`Course.begin()` has no argument), `RideController` (that call),
+  `SandboxController` (the `Props` rows and the F list), `Net` (comment), new `tools/creatures/check_breaks.py`
+  and `tools/studio/props_b1`. The map's loader and output were not touched. Those files are free again.
+  Hugo's PC's Studio is free.
+- **2026-11-13, a NULLROOM worker (Hugo's PC, task j1) to the game-code chat, the UI chat and the partner:** the
+  wait between fish is 0.08 s, the hop flies fast then stalls and falls, and the hook's reach is 60 to 150 studs
+  by speed ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-hop-air-reach.md)). Files
+  changed: `JumpController`, `InputController`, `Lib/Lock`, `Lib/State` (one field, `Reach`), `SandboxController`
+  (panel rows and the line under the panel), `RideService` (`jump`, `grab`, `mount`, the riding update), `Config`
+  (`Jump`, `Lock.LastChance`, `Net.ReachLag`, four functions by `Config.airOf`),
+  `tools/studio/movement_w1/driver.client.luau`, new `tools/movement/hop_curves.py`. `Lock.pick` has two more
+  arguments (the reach, the last chance). Animations, the HUD, the camera and the wall ride were not touched.
+  Those files are free again. Hugo's PC's Studio is free.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat and the partner:** the wall
   glide now starts before the wall and the camera keeps out of the water's layer of light
   ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-wall-glide.md)). Files changed:

@@ -7,7 +7,8 @@
 --   V: the side view, square on to the way you are headed, to judge the arc.
 --   R: back to the start of the lane, onto a fish.
 --   F: back to the start, onto the next fish of the try-out list (TRY_OUT: one of each passive archetype, a combo, a
---      plain Common, a Gold and a Rainbow), put there for you.
+--      giant with no archetype, a plain Common, a Gold and a Rainbow), put there for you. For the props: the Humphead
+--      Wrasse, Steller's Sea Cow, the megalodons and the Blue Whale break them; the rest go through and see them fade.
 --   The arc trace: a dot every 0.04 s of the flight, left in the water until the next jump.
 --   After each jump, its numbers: time in the air, height, distance, the speed it came down at.
 -- The switches (no fail, endless air) are the server's (SandboxService); the rest is local.
@@ -24,14 +25,15 @@ local SandboxController = {}
 
 -- F: the fish to try, in turn (fish id, variant): one of each passive archetype, a combo, a plain Common, the variants
 local TRY_OUT: { { string } } = {
-	{ "ReefShark", "" }, -- Predator
-	{ "HumpheadWrasse", "" }, -- Breaker
+	{ "ReefShark", "" }, -- Predator (goes through props)
+	{ "HumpheadWrasse", "" }, -- Breaker: breaks props, and is paid for it
 	{ "Swordfish", "" }, -- Fast
 	{ "Dolphin", "" }, -- Leaper
-	{ "GiantSeaBass", "" }, -- Tank
-	{ "Megalodon", "" }, -- Predator, Frenzy
-	{ "Dunkleosteus", "" }, -- Predator, Breaker
-	{ "Clownfish", "" }, -- none
+	{ "StellersSeaCow", "" }, -- Tank: breaks props, for a small crash
+	{ "Megalodon", "" }, -- Predator, Frenzy; and a giant: breaks props
+	{ "MoltenMegalodon", "" }, -- no archetype, a giant: breaks props
+	{ "BlueWhale", "" }, -- Tank, Breaker
+	{ "Clownfish", "" }, -- none: goes through props, which fade as it comes up to them
 	{ "Clownfish", "Gold" },
 	{ "Clownfish", "Rainbow" },
 }
@@ -44,13 +46,18 @@ local TUNABLES: { { any } } = {
 	{ "Jump", "AutoGrab", 1 },
 	{ "Jump", "MinFlight", 0.05 },
 	{ "Jump", "Cooldown", 0.05 },
+	{ "Jump", "StrainLock", 0.05 },
 	{ "Jump", "InputGap", 0.05 },
 	{ "Jump", "LaunchTime", 0.05 },
-	{ "Jump", "BoostTime", 0.05 },
 	{ "Jump", "Launch", 0.05 },
 	{ "Jump", "HopBoost", 2 },
-	{ "Jump", "BoostHold", 0.02 },
 	{ "Jump", "BoostFloor", 2 },
+	{ "Jump", "FastKeep", 0.05 },
+	{ "Jump", "FastCurve", 0.1 },
+	{ "Jump", "StallTime", 0.05 },
+	{ "Jump", "StallShare", 0.05 },
+	{ "Jump", "FallGravity", 10 },
+	{ "Jump", "FallSpeed", 5 },
 	{ "Jump", "AirSlowSpeed", 5 },
 	{ "Jump", "AirFastSpeed", 5 },
 	{ "Jump", "AirSlow", 0.05 },
@@ -69,9 +76,6 @@ local TUNABLES: { { any } } = {
 	{ "Jump", "AirSpeed", 2 },
 	{ "Jump", "AirShare", 0.05 },
 	{ "Jump", "FreeAirSpeed", 2 },
-	{ "Jump", "Drop", 1 },
-	{ "Jump", "DropCurve", 0.1 },
-	{ "Jump", "DropSpeed", 2 },
 	{ "Jump", "Tilt", 5 },
 	{ "Jump", "TiltFrom", 0.1 },
 	{ "Jump", "TiltTo", 0.1 },
@@ -80,6 +84,10 @@ local TUNABLES: { { any } } = {
 	{ "Jump", "Bank", 2 },
 	{ "Jump", "FloorClearance", 1 },
 	{ "Jump", "GrabRange", 5 },
+	{ "Jump", "GrabNear", 5 },
+	{ "Lock", "LastChance", 1 },
+	{ "Jump", "GrabFullSpeed", 5 },
+	{ "Net", "ReachLag", 0.05 },
 	{ "Jump", "GrabSpeed", 10 },
 	{ "Jump", "ReelTime", 0.02 },
 	{ "Jump", "ReelCurve", 0.1 },
@@ -112,6 +120,7 @@ local TUNABLES: { { any } } = {
 	{ "Jump", "RingSpin", 5 },
 	{ "Jump", "RingFace", 0.05 },
 	{ "Jump", "RingPreview", 0.05 },
+	{ "Jump", "RingEdge", 0.05 },
 	{ "Jump", "FlyGlow", 0.05 },
 	{ "Jump", "PreviewGlow", 0.05 },
 	{ "Jump", "GlowFade", 0.05 },
@@ -181,18 +190,35 @@ local TUNABLES: { { any } } = {
 	{ "Crash", "Reach", 1 },
 	{ "Crash", "Every", 0.05 },
 	{ "Crash", "Kick", 0.05 },
-	{ "Props", "MinLength", 1 },
+	{ "Props", "GiantVolume", 500 },
+	{ "Props", "WildBreaks", 1 },
 	{ "Props", "Reach", 1 },
 	{ "Props", "Topple", 2 },
 	{ "Props", "MaxLoose", 5 },
-	{ "Props", "Push", 2 },
-	{ "Props", "Scatter", 1 },
-	{ "Props", "Sink", 1 },
-	{ "Props", "Spin", 10 },
-	{ "Props", "KnockTime", 0.1 },
-	{ "Props", "Rebuild", 1 },
+	{ "Props", "Throw", 0.05 },
+	{ "Props", "Scatter", 2 },
+	{ "Props", "Pop", 1 },
+	{ "Props", "Drag", 0.2 },
+	{ "Props", "Sink", 2 },
+	{ "Props", "Spin", 20 },
+	{ "Props", "Hang", 0.1 },
+	{ "Props", "FadeOut", 0.1 },
+	{ "Props", "MaxDebris", 20 },
+	{ "Props", "DebrisRange", 50 },
+	{ "Props", "BreakBubbles", 2 },
+	{ "Props", "BreakSound", 0.05 },
+	{ "Props", "RegenRadius", 20 },
+	{ "Props", "RegenDelay", 0.5 },
+	{ "Props", "RegenEvery", 0.1 },
 	{ "Props", "RebuildTime", 0.1 },
 	{ "Props", "RebuildStagger", 0.1 },
+	{ "Props", "FadeTo", 0.05 },
+	{ "Props", "FadeFar", 5 },
+	{ "Props", "FadeNear", 2 },
+	{ "Props", "FadeLead", 0.05 },
+	{ "Props", "FadeEase", 1 },
+	{ "Props", "FadeEvery", 0.05 },
+	{ "Props", "FadeForBreakers", 1 },
 	{ "Props", "Slow", 0.05 },
 	{ "Props", "Cost", 0.01 },
 	{ "Props", "WildEvery", 0.1 },
@@ -930,6 +956,11 @@ local function step()
 	if jumping then
 		flightTop = math.max(flightTop, root.Position.Y - flightFrom.Y)
 		flightSpeed = State.Speed
+		-- (live through the hop: the speed across the water and the hook's reach it gives right now)
+		if State.Reach then
+			stats.Text =
+				string.format("in the air: %.0f studs a second   the hook reaches %.0f studs", State.Speed, State.Reach)
+		end
 		if traceOn and os.clock() - dotAt >= 0.04 and dotIndex < TRACE_DOTS then
 			dotAt = os.clock()
 			dotIndex += 1

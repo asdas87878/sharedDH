@@ -136,10 +136,12 @@ The twist for the great sharks and the last monsters: eats chain.
   time, the view kicking wider). Miss for 6 seconds and it is back to one.
 
 ### Breaker
-It goes through props. The swordfish's cousin with the saw, the whales, the armoured ones.
-- **Free smashing:** a prop costs it no speed and no Oxygen (a plain fish drops to 0.8 of its speed and pays 3% of
-  the meter: `Props.Slow`, `Props.Cost`).
-- **A wider hole:** 5 studs more reach than a plain fish (`Reach`), so more of the prop comes down.
+It breaks props and comes out faster. The swordfish's cousin with the saw, the whales, the armoured ones.
+- **Since 2026-11-13 only some fish break props at all** (below, "Who breaks props"): Breakers, Tanks and the
+  giants. Every other fish swims straight through them.
+- **Free smashing:** a prop costs it no speed and no Oxygen (a Tank or a giant drops to 0.8 of its speed and pays
+  3% of the meter: `Props.Slow`, `Props.Cost`).
+- **A wider hole:** 5 studs more reach than the others (`Reach`), so more of the prop comes down.
 - **What breaking gives:** a short push, x1.12 for 1 s, and **4% of max Oxygen back** per prop, at most once every
   1.5 s. So for a breaker the props are the best line through a land, not the thing to steer round.
 - **Walls:** a crash into a wall costs it half the usual speed and Oxygen (`Crash`). It still stops at the wall.
@@ -165,6 +167,48 @@ The hop off it goes higher and further. Dolphins, rays, the serpents.
   long as it was).
 - **Reads as:** you press hop and get thrown: more bubbles, the view kicks wider, "BIG HOP!". It reaches fish a
   plain hop does not.
+
+### Who breaks props (Hugo, 2026-11-13)
+Only three kinds of fish break props. Every other fish, and every rider in the hop and the glide, goes straight
+through them: no stop, no slow-down, no Oxygen. The rule is one function, `Config.breaks`, the same on the server
+and on every player's machine:
+- **a Tank** breaks them, for a small crash (speed to 0.8, 3% of the meter: `Props.Slow`, `Props.Cost`);
+- **a Breaker** breaks them for nothing and is paid (above);
+- **a really big fish** breaks them even with no archetype, for the same small crash as a Tank. "Really big" is the
+  size of the creature's own model: its box, width x height x length in studs, as its `mesh.json` gives it
+  (`src/shared/Creatures/<Id>.json`, the species' one base size). **At `Props.GiantVolume` = 12,000 cubic studs or
+  more it is a giant.** The box, not the length alone: by length an eel or a serpent would count, and they are thin.
+  12,000 sits in the one wide gap in the list: the Galleon Whale is 13,900, the next one down (the Void Whale) 10,800.
+- **One fish can be set by hand:** `Breaks = true` or `Breaks = false` in its row of `Config.FishStats` wins over
+  all of the above. No row uses it yet.
+
+**16 of the 82 break props:** 7 Tanks, 6 Breakers (the Blue Whale is both) and 4 giants with neither: the three
+megalodons and The Devourer. Printed by `python tools/creatures/check_breaks.py`:
+
+| Creature | Rarity | Land | Box (w x h x l, studs) | Cubic studs | Why it breaks |
+|---|---|---|---|---|---|
+| Kraken | Mythic | 7 | 24 x 21 x 48 | 24,101 | Breaker, giant |
+| Molten Megalodon | Mythic | 8 | 27 x 19 x 42 | 21,011 | giant |
+| Megalodon | Legendary | 8 | 27 x 19 x 42 | 21,011 | giant |
+| Halfbone Megalodon | Mythic | 9 | 27 x 19 x 42 | 20,824 | giant |
+| The Devourer | Secret | 10 | 19 x 24 x 45 | 20,037 | giant |
+| Blue Whale | Mythic | 5 | 20 x 21 x 46 | 19,697 | Tank, Breaker, giant |
+| Aurora Jelly | Secret | 6 | 22 x 34 x 24 | 17,735 | Tank, giant |
+| Abyssal Watcher | Mythic | 10 | 21 x 19 x 39 | 15,699 | Tank, giant |
+| Galleon Whale | Secret | 4 | 17 x 18 x 45 | 13,948 | Breaker, giant |
+| Void Whale | Secret | 7 | 19 x 13 x 45 | 10,816 | Tank |
+| Phantom Whale | Secret | 9 | 19 x 11 x 45 | 9,239 | Breaker |
+| Archelon | Legendary | 1 | 33 x 8 x 30 | 8,264 | Tank |
+| Grave Turtle | Legendary | 9 | 33 x 8 x 30 | 8,043 | Tank |
+| Steller's Sea Cow | Epic | 3 | 10 x 9 x 29 | 2,682 | Tank |
+| Humphead Wrasse | Epic | 2 | 8 x 10 x 22 | 1,727 | Breaker |
+| Sawfish | Rare | 4 | 8 x 5 x 25 | 1,056 | Breaker |
+
+The biggest that go through: Kronosaurus (10,600; wide by its flippers, only 9 tall), Hellmaw (10,000), Coral
+Dragon (8,700), Infernal Angler (8,500). To let them break too, lower `Props.GiantVolume` to 10,000 (two more) or
+8,400 (four more), or give one fish `Breaks = true`.
+
+A wild fish that would break props does so when it is inside one (`Props.WildBreaks`, 1); it gets no reward.
 
 ### How you know before you hop on
 A fish's tag has a small line under its name naming its archetypes, each in its own colour ("PREDATOR · BREAKER");
@@ -335,8 +379,8 @@ rarity and land carry the progression, variants are a small flat bonus on speed,
 3. **What eating gives:** speed and Oxygen (proposed), or only one of them?
 4. **The speeds:** to play. The first thing to check is the hop between a slow and a fast fish of one land, now
    that speeds inside a land differ more (the Open Blue: 76 to 135).
-5. **Props for plain fish:** today every fish breaks props, for a small cost (`Props.MinLength` 0). With Breakers
-   in, should a small plain fish bounce off them? Left as it is.
+5. **Props for plain fish:** answered 2026-11-13: a plain fish goes straight through props; only Tanks, Breakers
+   and giants break them ("Who breaks props").
 
 ## How it is built
 - **The server decides everything** (`RideService`): the eat (`checkEat`), the prop reward and the cheaper wall

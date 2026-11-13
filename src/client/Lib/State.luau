@@ -21,6 +21,7 @@ local State = {
 	Reeling = false, -- in a jump: being pulled onto the fish (its own pose)
 	WindowLeft = nil :: number?, -- in a jump: seconds left to grab a fish (nil outside the window), for the HUD
 	JumpPhase = nil :: string?, -- in a jump: "Pop", "Glide" or "Drop" (nil outside one), for the pose
+	Reach = nil :: number?, -- in a jump: the hook's reach right now, studs (Config.reachOf: by our speed across the water)
 	CrashAt = -math.huge, -- os.clock() the server last said we ran into something (the HUD's meter flashes)
 	NoTargetAt = -math.huge, -- os.clock() of a grab pressed with no fish locked (the HUD's reticle flashes)
 	-- The wall ride (Lib/WallRide; Config.Wall), the hook for authored animations: "Slide" while we ride along a wall,

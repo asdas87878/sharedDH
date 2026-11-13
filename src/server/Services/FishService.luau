@@ -618,7 +618,12 @@ local function mindOne(
 			-- inside its margin: out, harder the deeper in
 			push -= Vector3.new(rx, 0, rz) / away * math.min(2, (clear - away) / body)
 		end
-		if away < o.Radius and os.clock() - w.PropAt >= Config.Props.WildEvery and Config.smashes(w.Type) then
+		if
+			away < o.Radius
+			and Config.Props.WildBreaks ~= 0
+			and os.clock() - w.PropAt >= Config.Props.WildEvery
+			and Config.breaks(w.Type)
+		then
 			w.PropAt = os.clock()
 			local size = w.Body
 			PropService.hit(
@@ -650,8 +655,9 @@ end
 --   into the gaps;
 --   and at once: a fish already within the margin of one (it appeared there, or turned too late) is pushed straight
 --   away from it. Returns that push, to bend the way it swims this frame.
--- The herd steers round the big things, so a wild fish is rarely in one; when it is (inside the thing's own circle), it
--- breaks the boxes it touches as a ridden fish does (PropService), looked for a few times a second and only then.
+-- The herd steers round the big things, so a wild fish is rarely in one; when it is (inside the thing's own circle) and
+-- it is a fish that breaks props (Config.breaks, Props.WildBreaks), it breaks the boxes it touches as a ridden one
+-- does (PropService), looked for a few times a second and only then. Any other fish swims through.
 local function mindObstacles(w: Wild, position: Vector3, dt: number): Vector3
 	local h = Config.Herd
 	local push = Vector3.zero

@@ -24,6 +24,9 @@
 -- carries the CollectionService tag "AngryFish" (Config.Angry.Tag). And for the passive archetypes
 -- (docs/design/archetypes.md, Animation hooks): Archetype ("" or ids comma-separated), Bite and Smash (each counts
 -- up by one with every bite and every paid smash) and Frenzy (1 to 3 while a Frenzy's chain lasts).
+-- The map's props (PropService, Config.Props): a box the server has taken out of a prop carries the CollectionService
+-- tag "PropOut"; its prop (the Model in Lane/Props) carries BreakAt and BreakVel (Vector3: where it was last hit and
+-- the fish's velocity), BreakT and RebuildT (workspace:GetServerTimeNow() of the last hit and the last rebuild).
 -- Sandbox also takes "Ride", fishId, variant (Studio only: onto a fish of that kind, put at the start).
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
 -- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
