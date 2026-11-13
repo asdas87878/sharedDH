@@ -3,6 +3,18 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task t1): one archetype's icon left of the fish name
+**State:** in the game code, run in Hugo's Studio by script (pictures judged, **not played by hand**). StyLua and
+selene pass. Nothing uploaded (the icons still show on Hugo's PC only, see a1 below); the place was not saved (only
+code changed, which Rojo brings).
+- Hugo, on a1's sheet: icons "next to the fish name on the left, unless its 2+". Built as read: **on a fish's tag**,
+  one archetype puts its icon (18 px, badge kept) on the name's line, left of the name, the two centred as one; two
+  or more keep the row under the name (22 px); none, the name alone, centred. **Under the ring nothing changed.**
+- `UI/Tags`: the name sits in a `Head` row with the icon slot before it (`Archetypes.icons` fills it), the name
+  sized to its words; that row grows 3 px when it holds an icon. `Shared/Archetypes`: a comment only.
+- Before/after: `attachments/archetype-icons-tag-left-before-after.png` (Reef Shark, Clownfish, Blue Whale, and
+  "COLOSSAL Rainbow Great White" for the longest name: the icon stays on the tag).
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC, task o1): the Oxygen row as a see-through box, five options
 **State:** in the game code, run in Hugo's Studio by script (each option built in turn on one ride, full and in the
 red; pictures judged, **not played by hand**). StyLua passes; selene's two warnings are in `PropController`, not here.

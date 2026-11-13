@@ -2,7 +2,8 @@
 -- How the passive archetypes are shown (a fish's tag, the line under the ring, the word that pops up):
 -- docs/design/archetypes.md. The rules and numbers are Config.Archetype; this is only the look, in the order a fish's
 -- row lists them. On a tag and under the ring each archetype is its icon, not its word (Hugo, 2026-11-13: the icons he
--- picked from docs/attachments/archetype-icons-draft-1.png, cut by art/ui/archetypes/cut_icons.py); the pop-up words
+-- picked from docs/attachments/archetype-icons-draft-1.png, cut by art/ui/archetypes/cut_icons.py; a tag puts a lone
+-- archetype's icon left of the name and two or more in a row under it, UI/Tags); the pop-up words
 -- (CHOMP!, SMASH!, ...) keep Name's colours.
 local Config = require(script.Parent.Config)
 

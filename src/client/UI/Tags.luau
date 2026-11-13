@@ -39,9 +39,15 @@ local WORDS_WIDE = 118
 local WORDS_HIGH = 51
 local HOLD_HIGH = 14 -- the extra line on the locked fish in the hop
 -- the line of a fish's passive archetypes, when it has any: one icon each, side by side (docs/design/archetypes.md;
--- the icons replaced the words, Hugo, 2026-11-13). Sized to read at riding distance: about twice the name's letters
+-- the icons replaced the words, Hugo, 2026-11-13). Sized to read at riding distance: about twice the name's letters.
+-- A fish with only one has it on the name's own line instead, left of the name, the two centred as one (Hugo,
+-- 2026-11-13: "next to the fish name on the left, unless its 2+"); that icon is a little taller than the letters, and
+-- the name's line grows by LEAD_HIGH to hold it
 local KIND_ICON = 22
 local KIND_HIGH = KIND_ICON + 3
+local LEAD_ICON = 18
+local LEAD_HIGH = 3
+local NAME_HIGH = 16
 local SMALL_WIDE = 62 -- the same for a tag that is only the bubble and the number
 local SMALL_HIGH = 21
 local FAR = 110 -- studs: from here on a tag is only the bubble and the number
@@ -57,9 +63,10 @@ type Tag = {
 	Tier: TextLabel,
 	TierGradient: UIGradient,
 	Name: TextLabel,
-	Kind: Frame, -- its passive archetypes, an icon each (Archetypes.icons); hidden with none
+	Head: Frame, -- the name's line: the name, and left of it the icon of a fish with one archetype
+	Kind: Frame, -- the line under the name, an icon each (Archetypes.icons), for a fish with two or more
 	KindOf: Config.FishType?, -- the fish's kind, for its own seconds (a Tank holds longer)
-	KindHigh: number, -- the height that line takes (0 with none)
+	KindHigh: number, -- the height its icons add to the tag (0 with none)
 	NeedWord: TextLabel,
 	Need: TextLabel,
 	Plate: Frame,
@@ -117,8 +124,28 @@ local function make(parent: Instance): Tag
 	-- (the rarity is the biggest line, as the reference's; the name a little smaller under it)
 	local tier = Kit.text({ Size = UDim2.fromOffset(260, 15), TextSize = 14, LayoutOrder = 1 }, root)
 	local tierGradient = Kit.gradient(tier, Kit.White, Kit.White)
-	local name = Kit.text({ Size = UDim2.fromOffset(260, 16), TextSize = 13, LayoutOrder = 2 }, root)
-	-- its passive archetypes, as icons under the name: you know what a fish does before you hop on it
+	-- the name's line: the name sized to its words, so that one archetype's icon sits just left of it and the two are
+	-- centred together (the name alone stays centred). 260 wide holds the longest name and the icon with room to spare
+	local head: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(260, NAME_HIGH),
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+	}, root)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 3),
+	}, head)
+	-- (Archetypes.icons puts its icon at LayoutOrder 1, before the name)
+	local name = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, NAME_HIGH),
+		TextSize = 13,
+		LayoutOrder = 2,
+	}, head)
+	-- two or more archetypes, as icons under the name: you know what a fish does before you hop on it
 	local kindLine: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(260, KIND_HIGH),
 		BackgroundTransparency = 1,
@@ -185,6 +212,7 @@ local function make(parent: Instance): Tag
 		Tier = tier,
 		TierGradient = tierGradient,
 		Name = name,
+		Head = head,
 		Kind = kindLine,
 		KindOf = nil,
 		KindHigh = 0,
@@ -263,10 +291,14 @@ local function put(tag: Tag, fish: Model)
 	tag.Offset = Vector3.new(0, Config.bodyOf(fish, kind).Y * 0.5 + 2.5, 0)
 	tag.Name.Text = name
 	local line = if Config.ArchetypeFeel.Tags > 0 then Archetypes.line(kind) else ""
+	local count = if line == "" then 0 else #string.split(line, ",")
 	tag.KindOf = kind
-	tag.KindHigh = if line ~= "" then KIND_HIGH else 0
-	Archetypes.icons(tag.Kind, line, KIND_ICON)
-	tag.Kind.Visible = line ~= "" and not tag.Small
+	-- one: its icon left of the name; two or more: a row under the name; none: the name alone
+	Archetypes.icons(tag.Head, if count == 1 then line else "", LEAD_ICON)
+	Archetypes.icons(tag.Kind, if count >= 2 then line else "", KIND_ICON)
+	tag.Head.Size = UDim2.fromOffset(260, if count == 1 then NAME_HIGH + LEAD_HIGH else NAME_HIGH)
+	tag.KindHigh = if count >= 2 then KIND_HIGH elseif count == 1 then LEAD_HIGH else 0
+	tag.Kind.Visible = count >= 2 and not tag.Small
 	tag.TierName = kind.Tier
 	tag.Tier.Text = kind.Tier
 	Kit.tierColours(tag.Tier, tag.TierGradient, kind.Tier, Config.Tiers)
@@ -279,10 +311,10 @@ local function shape(tag: Tag, small: boolean)
 	if small ~= tag.Small then
 		tag.Small = small
 		tag.Tier.Visible = not small
-		tag.Name.Visible = not small
+		tag.Head.Visible = not small
 		tag.NeedWord.Visible = not small
 	end
-	local kindShown = not small and tag.KindHigh > 0
+	local kindShown = not small and tag.KindHigh >= KIND_HIGH
 	if tag.Kind.Visible ~= kindShown then
 		tag.Kind.Visible = kindShown
 	end
