@@ -198,8 +198,10 @@ by eye**. StyLua and selene pass, `rojo build` passes. Nothing uploaded. Not com
   `FishService`, looked at with every top-up; `Pace.Visit*`, `HuntRunMost`, `HuntPast`; a hunter's run now lasts
   until it is past the player. The model's `Visitor` attribute marks one. Studio: `TestVisit`.
 - **For the user:** wild Zoom fish are faster than when ridden; how often the visit comes.
-- **The merge is still not committed:** conflicts resolved and staged, but the vault's sync has not concluded it,
-  and `origin/main` has moved on since. It needs `git commit` and then another pull.
+- **Merged and pushed, on the user's word** (`d847301`): the stuck merge was committed, Hugo's hop as one curve
+  and his rebuilt place were pulled on top (conflicts in `Decisions.md` and `Sessions.md`, both sides kept), the
+  combined code was run in the user's Studio (a ride with three hops, no errors) and pushed. selene shows two
+  shadowing warnings in `PropController`, which are Hugo's and were left.
 
 ## 2026-11-13 · Obsidian chat integration (the user's PC): six sizes and Silver, 24 of every fish; the kinds' own sizes
 **State:** on the user's word of 2026-11-13, with their screenshot of the reference's Index. In the user's Studio
