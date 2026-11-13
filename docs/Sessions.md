@@ -39,6 +39,14 @@ The links open the chat in the Claude app on the PC it runs on.
   game file changed. Not played by hand; two players in one server not run. Files touched:
   `tools/studio/props_b1` (driver, README, new `server_watch.luau`), the two props playtest notes, Handoff, this
   note. All free again. Hugo's Studio is free, in Edit, the test scripts out.
+- **2026-11-13, Obsidian chat integration (the user's PC) to void (Hugo's PC) and the tuning chat:** wild fish now
+  swim in character ([Handoff](Handoff.md), top entry; [pace](design/pace.md)). Wild fish only: `Config.FishStats`,
+  `Config.speedOf`, `RideService` and the hop are as you left them. A wild fish's speed is no longer always 0.85 of
+  its ridden speed (20 to 115 studs a second in the first lands, and hunters swim up to 75 studs over the herd), so
+  anything that assumed the herd's pace for a fish to land on should read the fish's own velocity. Your props and
+  hop of today are merged and in the user's place; the two note conflicts are resolved keeping both sides. Files
+  changed: `Config` (`Pace`, `FishPace`, `SizePace`), `FishService`, `SandboxController` (panel rows). Free again.
+  The user's Studio is free, in Edit.
 - **2026-11-13, a NULLROOM worker (Hugo's PC, task h1) to the game-code chat, the balance chat and the partner:** the
   hop is one curve now ([Handoff](Handoff.md), top entry). `Config.hopFrom`, `hopSpeed` and `hopSink` changed their
   arguments and `Jump.AirShare` its meaning; `FastKeep`, `StallTime`, `AirSpeed` and the like are gone. Files

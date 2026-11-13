@@ -226,6 +226,33 @@ between fish, the air's shape, the hook's reach". One row in [Decisions](Decisio
 - **Left:** the fall ends on the sea floor with a stop in one frame (the camera barely shows it), and you lie
   there until the window ends; the window itself is as long as it was.
 
+## 2026-11-13 · Obsidian chat integration (the user's PC): wild fish swim in character: plod, cruise, zoom, dart, hunt
+**State:** on the user's word of 2026-11-13. In the user's Studio place (synced, 133 scripts, with Hugo's props and
+hop of the same day, which the vault's sync had merged in) and run there on grey-box 15 by script; **not looked at
+by eye**. StyLua and selene pass, `rojo build` passes. Nothing uploaded. Not committed by hand. All of it:
+[pace](design/pace.md). One row in [Decisions](Decisions.md).
+- **The merge:** the vault's sync had stopped half way through merging `origin/main` (Hugo's props and hop), on
+  `docs/Decisions.md` and `docs/design/herd.md`. Both resolved keeping both sides (Hugo's wording of
+  `Herd.BreakLength`, this chat's `Give` numbers) and staged; the merge commit is left to the vault's sync.
+- **`Config`:** `Config.Pace` (the shares and the hunters' round), `Config.FishPace` (each kind's character, 52 of
+  82 named, the rest Cruise), `Config.SizePace`, `Config.paceOf`. `Herd.SpeedShare` is still the Cruise share.
+- **`FishService`:** `paceShare` (a fish's share of its ridden speed now: the lurch, the bursts, a hunter's round)
+  and `steer` (the share eased, a hunter's rise over its place in the herd, kept under the surface); `Wild.Pace`,
+  `Own`, `Gait`, `Mode`, `Rise` and the rest; the model's `Pace` attribute; a wild fish's speed is sent to the
+  clients again when it has changed 1.5 studs a second (0.5); Studio: `Workspace`'s `TestKind`.
+- **Not touched:** ridden speeds (`Config.FishStats`), `RideService`, the hop, `AnimController` (its beat already
+  goes by a fish's speed).
+- **Measured:** plodders 20 to 29, cruisers 42 to 47, zoomers 64 to 70, darters 32 to 82, a hunter's stoop 99 at 20
+  degrees from 65 to 75 studs up; rides with hops, no errors.
+- **The visit** (the user, the same day: predators early "as a rarer event"): `visit` and `huntersOf` in
+  `FishService`, looked at with every top-up; `Pace.Visit*`, `HuntRunMost`, `HuntPast`; a hunter's run now lasts
+  until it is past the player. The model's `Visitor` attribute marks one. Studio: `TestVisit`.
+- **For the user:** wild Zoom fish are faster than when ridden; how often the visit comes.
+- **Merged and pushed, on the user's word** (`d847301`): the stuck merge was committed, Hugo's hop as one curve
+  and his rebuilt place were pulled on top (conflicts in `Decisions.md` and `Sessions.md`, both sides kept), the
+  combined code was run in the user's Studio (a ride with three hops, no errors) and pushed. selene shows two
+  shadowing warnings in `PropController`, which are Hugo's and were left.
+
 ## 2026-11-13 · Obsidian chat integration (the user's PC): six sizes and Silver, 24 of every fish; the kinds' own sizes
 **State:** on the user's word of 2026-11-13, with their screenshot of the reference's Index. In the user's Studio
 place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked at by eye**. StyLua and selene pass,
@@ -252,6 +279,12 @@ place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked
 - **Measured:** sizes over 687 fish 13 / 48 / 24 / 11 / 3.8 / 0.6%; 112 of 113 stretches of 400 studs have a grand
   fish; the biggest fish in a stretch is 4.8 times the smallest; every model is its body's size; rides and hops
   through the mixed sea and with every fish forced Colossal, no errors.
+- **The user's third word, the same day** (big sizes rarer, most of all for Commons; crowded in places):
+  `Config.SizeLarge` and `SizeSmall` (the sizes' chances by rarity; `Config.rollSize(roll, rarity)`); `Config.Grand`
+  is now one in every 800 studs, `Most` 1, `Common` 0.15; `Spawn.FullBand` 300 and `ThinLeast` 0.65 (fewer fish
+  where the band is narrow: `newSlices`, `Stream.width`); `Herd.GiveSide` 18, `GiveAlong` 44; a fish that swims out
+  of sight into a full slice is destroyed. Measured: 610 fish, Tiny 15 / Normal 62 / Big 17 / grand 6%; no grand
+  Common in 25; 54 of 56 stretches of 800 studs have a grand fish; round a rider 1 pair of 42 overlapping.
 - **Not done:** size does not change the Oxygen a fish needs (the user: looks only for now) or its speed (next); no Index;
   nothing remembers which of the 24 a player has. `docs/design/roster.md` and `archetypes.md` still give the old
   sizes where they give any.

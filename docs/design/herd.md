@@ -119,13 +119,14 @@ All in `src/shared/Config.luau`. Those marked "start" are read once, when the se
 | `Herd.SmashLength` | 80 | Wild fish this long always go straight through props |
 | `Herd.StraightShare` | 0.4 | The share of shorter fish that go straight through too (new fish only) |
 | `Herd.BreakLength` | 40 | A fish going through a prop breaks it only if this long (and of a kind that breaks props) |
-| `Herd.GiveSide`, `GiveAlong`, `GiveRate` | 14, 36, 5 | Passing: the gap kept, when it starts, how fast |
+| `Herd.GiveSide`, `GiveAlong`, `GiveRate` | 18, 44, 5 | Passing: the gap kept, when it starts, how fast |
 | `Spawn.BandMax` | 400 (start) | The band's greatest width (200 before) |
 | `Spawn.LaneFill` | 0.95 (start) | The share of the open water each side that is used |
 | `Spawn.HeightMin`, `HeightMax` | 8, 20 | The layer (8, 16 before) |
 | `Spawn.BigLength`, `BigFull`, `BigRise` | 26, 110, 14 | Which fish swim higher, and by how much |
 | `Spawn.Tries`, `Space`, `SpaceByLength` | 14, 32, 1.2 | Placing a new fish |
 | `Spawn.PerThousand` | 30 | Fish per 1,000 real studs (24 per 1,000 of the lane's own measure before: about the same count) |
+| `Spawn.FullBand`, `ThinLeast` | 300, 0.65 | A stretch whose band is narrower than this gets fewer fish, down to this share ([sizes](sizes.md), "Crowding") |
 
 The sandbox panel has the rows that work live: `Turn`, the `Dodge` and `Give` numbers, `SmashLength`,
 `StraightShare`, `BreakLength`, `BigRise`, `Space`, `SpaceByLength`.
@@ -133,5 +134,6 @@ The sandbox panel has the rows that work live: `Turn`, the `Dodge` and `Give` nu
 ## Open
 - **For the user to judge by eye:** the mix (four in ten straight through), small fish swimming through a prop
   that stays whole, and whether 400 is the right width.
-- **Sizes are in** (the same day): [sizes](sizes.md). **Next, on the user's word:** fish speed.
+- **Sizes are in** (the same day): [sizes](sizes.md). **So is speed:** how fast each wild fish swims, and the
+  hunters that come down from above, are in [pace](pace.md).
 - `tools/balance/model.py` still works the band out the old way (the lane's width times `LaneFill`).

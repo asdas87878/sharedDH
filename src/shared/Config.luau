@@ -346,15 +346,44 @@ Config.SizeLimit = { Length = 200, Width = 96 }
 -- (It moves the shares off the reference's: measured over 688 fish with the made-grand shares at 0.6, 0.3 and 0.1,
 -- one fish in six was grand, where the odds alone give one in ten, and a Colossal was 1 in 75, where they give 1 in
 -- 200. So the made-grand shares lean less to the top now. Fewer Normals pay for it.)
+-- (The same day, later: one or two in every 400 studs was too many, and too often a Common. Now one in every 800,
+-- and a Common is seldom the one made grand: the stretch waits for a rarer fish.)
 Config.Grand = {
-	Span = 400, -- studs of lane (FishService looks half of it either way; no more than 480)
+	Span = 800, -- studs of lane (FishService looks half of it either way; no more than 960)
 	Least = 1,
-	Most = 2,
+	Most = 1, -- (2 until the user asked for the large sizes to be rarer: with one near, a fish that rolls grand is a Big)
+	Common = 0.15, -- the chance that a Common may be the fish made grand, when a stretch wants one
 	Giant = 0.72, -- the made-grand fish's size: shares of the three (the odds alone: 0.7, 0.25, 0.05)
 	Huge = 0.24,
 	Colossal = 0.04,
 }
 Config.SizeWorth = { Tiny = 0.8, Normal = 1, Big = 1.2, Giant = 1.5, Huge = 2, Colossal = 3 } :: { [string]: number }
+-- The sizes' chances by rarity (the user, 2026-11-13, having seen every fish on the reference's odds: big sizes were
+-- "over prescribed" on the smaller animals and "should be rarer especially among common folk"; "the fish should tend
+-- to cluster around the smaller sizes, larger sizes being rarer but still occurring every now and then"). The chances
+-- of Big, Giant, Huge and Colossal are times SizeLarge for the fish's rarity, and Tiny's is times SizeSmall; Normal
+-- is the rest. A Common: Tiny 21%, Normal 68.5%, Big 7%, Giant 2.5%, Huge 0.9%, Colossal 0.2%. A Legendary: Tiny
+-- 16.5%, Big 14%, Giant 4.9%, Huge 1.75%, Colossal 0.35%. (So the reference's Index numbers, one set for every
+-- dino, are no longer ours. The first try left Epic and up on the reference's odds, and the deep lands, which are
+-- nearly all Epic and up, still had a grand fish in ten.)
+Config.SizeLarge = {
+	Common = 0.35,
+	Uncommon = 0.5,
+	Rare = 0.6,
+	Epic = 0.7,
+	Legendary = 0.7,
+	Mythic = 0.8,
+	Secret = 0.8,
+} :: { [string]: number }
+Config.SizeSmall = {
+	Common = 1.4,
+	Uncommon = 1.3,
+	Rare = 1.2,
+	Epic = 1.1,
+	Legendary = 1.1,
+	Mythic = 1,
+	Secret = 1,
+} :: { [string]: number }
 
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
@@ -792,11 +821,92 @@ Config.Herd = {
 	BreakLength = 40, -- (32 before) a wild fish going through a thing breaks it only if it is at least this long (and its kind breaks props at all: Config.breaks, Props.WildBreaks); a smaller one swims through and leaves it whole
 	-- Passing: fish swim at their own speeds, so one catches another up. Both give way a little, slowly, and drift
 	-- back once past.
-	GiveSide = 14, -- the water kept between two fish side by side (6 at first: the user wanted the fish further apart)
-	GiveAlong = 36, -- they start giving way when this far apart nose to tail (20 at first)
+	GiveSide = 18, -- the water kept between two fish side by side (6 at first: the user wanted the fish further apart; 14; then, with the bigger fish crowding, 18)
+	GiveAlong = 44, -- they start giving way when this far apart nose to tail (20 at first, then 36)
 	GiveRate = 5, -- how fast a fish moves aside, studs a second
 	GiveEvery = 0.25, -- seconds between looks
 }
+
+-- How a wild fish swims: its pace (the user, 2026-11-13: "we need it to feel like some zoom past, some go slow, some
+-- huge predators come in from above and dart past you, some are slow and clunky"). Until then every wild fish swam at
+-- Herd.SpeedShare of its own ridden speed and nothing else, so the herd moved as one block. Now each KIND has a
+-- character (Config.FishPace), and a wild fish's speed is its own ridden speed times its character's share, times
+-- its own little difference (Own), times its size's (Config.SizePace). Only wild fish: a ridden fish goes at its
+-- ridden speed as ever. The swim animation needs nothing told: its beat goes by the fish's speed and its swing by
+-- how hard it is speeding up, so a burst shows as one (AnimController).
+--   Cruise  the herd's pace, Herd.SpeedShare (0.85: the reference's, measured). Most fish.
+--   Plod    slow and clunky: a little over half speed, in lurches. You ride past them.
+--   Zoom    faster than it is ridden: it comes past you from behind and goes on ahead.
+--   Dart    slower than the herd, then a burst of a second or so at half as fast again, every few seconds.
+--   Hunt    a big predator. It cruises high over the herd; when a player is near it stoops down into the herd, runs
+--           through it at well over its ridden speed, and climbs away again.
+Config.Pace = {
+	Own = 0.06, -- each fish is this much faster or slower than its kind, either way
+	Ease = 2.6, -- how fast a fish's share of its speed changes, a second (a burst comes on in about a third of a second)
+	Send = 1.5, -- a wild fish's speed is sent to the clients again when it has changed this much, studs a second (0.5 before: bursts and lurches would send far more often)
+	Plod = 0.58,
+	PlodLurch = 0.12, -- and this much either way, as it paddles
+	PlodBeat = 2.6, -- seconds a lurch
+	Zoom = 1.12,
+	Dart = 0.78,
+	DartBurst = 1.55,
+	DartTime = 1.1, -- seconds a burst lasts
+	DartEveryMin = 3.5, -- seconds between bursts, from
+	DartEveryMax = 8, -- to
+	Hunt = 0.75, -- cruising high
+	HuntRun = 1.6, -- the stoop and the run through the herd
+	HuntHigh = 46, -- how far over its place in the herd it cruises, studs (and half its own height; never out of the water)
+	HuntFall = 42, -- how fast it comes down, studs a second
+	HuntClimb = 20, -- and goes back up
+	HuntRunTime = 3.5, -- seconds in the herd before it climbs away
+	HuntRunMost = 9, -- but with a player just ahead of it, it runs on until it is past them, this long at most
+	HuntPast = 60, -- "past": this far ahead of the player, studs
+	HuntEveryMin = 8, -- seconds over the herd before it may stoop again, from
+	HuntEveryMax = 16, -- to
+	HuntRange = 450, -- it stoops only with a player this near
+	HuntApart = 900, -- and not while another hunter within this far is in the herd: one at a time
+	-- The visit (the user, 2026-11-13: predators are rare where the game starts, by rarity; "some predators can come
+	-- past early as a rarer event"). A player in the water with no hunter anywhere in sight is now and then sent one:
+	-- a hunter of the land they are in, put in the water high up and well behind them, which stoops at once, runs
+	-- past them and swims on. It is a real fish, to be hooked if you can hold it. In the deep lands a hunter is
+	-- nearly always in sight, so the visit is a thing of the first lands without a rule saying so.
+	VisitEveryMin = 70, -- seconds between a player's visits, from
+	VisitEveryMax = 150, -- to
+	VisitRetry = 20, -- seconds before the next look when a hunter was already in sight, or there was no room
+	VisitBehind = 260, -- how far behind the player it is put in, studs down the lane
+	VisitAside = 45, -- and how far to one side of the player's own line it comes past, at most
+}
+-- A wild fish's speed by its size: the small ones a little quicker, the grand ones heavy
+Config.SizePace =
+	{ Tiny = 1.08, Normal = 1, Big = 0.97, Giant = 0.92, Huge = 0.88, Colossal = 0.82 } :: { [string]: number }
+-- Each kind's character (a kind not listed is "Cruise"). Claude's go, by what the animal is: the round and the
+-- armoured plod; the streamlined zoom; the small and the jet-propelled dart; and one or two great hunters a land hunt.
+-- (The first list had 19 hunters and 23 plodders: the deep lands are nearly all Legendaries, and a quarter of the whole
+-- sea was hunting. A hunter is a thing to see, so there are 12 now, and 15 plodders.)
+-- stylua: ignore
+Config.FishPace = {
+	-- land 1
+	BlueChromis = "Dart", Clownfish = "Dart", Cuttlefish = "Dart", Boxfish = "Plod", Pufferfish = "Plod", SeaTurtle = "Plod", Seahorse = "Plod",
+	Archelon = "Plod", FlyingFish = "Zoom", PearlSerpent = "Zoom", ReefShark = "Hunt",
+	-- land 2
+	MorayEel = "Dart", Octopus = "Dart", CoralDragon = "Zoom", Dunkleosteus = "Hunt",
+	-- land 3
+	Garibaldi = "Dart", SeaLion = "Zoom", KelpWyrm = "Zoom", Dakosaurus = "Zoom", GiantSeaBass = "Plod", StellersSeaCow = "Plod", GreatWhite = "Hunt",
+	-- land 4
+	Barracuda = "Zoom", Xiphactinus = "Zoom", GoliathGrouper = "Plod", GalleonWhale = "Plod", HammerheadShark = "Hunt",
+	-- land 5
+	Dolphin = "Zoom", Swordfish = "Zoom", StormSerpent = "Zoom", BlueWhale = "Plod", Orca = "Hunt",
+	-- land 6
+	Viperfish = "Dart", GiantSquid = "Dart", AuroraJelly = "Plod", Liopleurodon = "Hunt",
+	-- land 7
+	Anglerfish = "Plod", Mosasaurus = "Hunt",
+	-- land 8
+	GiantIsopod = "Plod", SeaScorpion = "Dart", BobbitWorm = "Dart", EmberSerpent = "Zoom", Megalodon = "Hunt", MoltenMegalodon = "Hunt",
+	-- land 9
+	GraveTurtle = "Plod", WraithEel = "Dart", HalfboneMegalodon = "Hunt",
+	-- land 10
+	InfernalAngler = "Plod", BrimstoneEel = "Dart", Hellmaw = "Zoom", HellfinShark = "Hunt", TheDevourer = "Hunt",
+} :: { [string]: string }
 
 -- Running a ridden fish into something solid (a wall, a step's face, a rock): it never kills (Hugo, 2026-11-11). You
 -- lose speed and some Oxygen. The server decides it: a ray along the fish's nose, counted once as the nose comes up
@@ -1145,6 +1255,11 @@ Config.Spawn = {
 	-- fewer fish than v3 had; the user asked for more in all, so 12 (to tune).
 	-- (2026-11-13: 30, from 24. The 1,000 studs are now real studs down the herd's stream, not the lane's own s, which
 	-- runs 28% long on grey-box 15: 30 keeps about as many fish in the sea as 24 did.)
+	-- (2026-11-13, later, the user: crowded in places. The fish are far bigger now, and the first lands' band is a
+	-- third as wide as the deep lands' for the same number of fish. So where the herd's band is narrower than FullBand
+	-- a stretch gets fewer, in proportion, down to ThinLeast of this.)
+	FullBand = 300, -- a stretch whose band is at least this wide gets all of PerThousand
+	ThinLeast = 0.65, -- and the narrowest gets this share of it
 	PerThousand = 30, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
 	Min = 20,
 	Max = 110, -- per zone
@@ -1537,6 +1652,12 @@ function Config.breaks(fish: FishType): boolean
 	return Config.hasArchetype(fish, "Tank") or Config.hasArchetype(fish, "Breaker") or Config.giant(fish)
 end
 
+-- A kind's character as a wild fish (Config.FishPace): "Cruise", "Plod", "Zoom", "Dart" or "Hunt"
+function Config.paceOf(fish: FishType): string
+	local pace = Config.FishPace[fish.Id]
+	return if pace == "Plod" or pace == "Zoom" or pace == "Dart" or pace == "Hunt" then pace else "Cruise"
+end
+
 -- A spawned fish's variant, from a roll of 0 to 1 (Config.Variant): "", "Silver", "Gold" or "Rainbow"
 function Config.rollVariant(roll: number): string
 	local v = Config.Variant
@@ -1550,11 +1671,14 @@ function Config.rollVariant(roll: number): string
 	return ""
 end
 
--- A spawned fish's size, from a roll of 0 to 1 (Config.SizeChance): one of Config.SizeOrder's names
-function Config.rollSize(roll: number): string
+-- A spawned fish's size, from a roll of 0 to 1 (Config.SizeChance; for a fish of a rarity, by Config.SizeLarge and
+-- Config.SizeSmall): one of Config.SizeOrder's names
+function Config.rollSize(roll: number, rarity: string?): string
 	local chance = Config.SizeChance
+	local large = if rarity then Config.SizeLarge[rarity] or 1 else 1
+	local small = if rarity then Config.SizeSmall[rarity] or 1 else 1
 	for _, tier in { "Colossal", "Huge", "Giant", "Big", "Tiny" } do
-		roll -= chance[tier] or 0
+		roll -= (chance[tier] or 0) * (if tier == "Tiny" then small else large)
 		if roll < 0 then
 			return tier
 		end
