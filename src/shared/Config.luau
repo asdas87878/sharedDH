@@ -63,33 +63,35 @@ Config.Speed = {
 
 -- Each creature's own size, times what the creature chat exported it at (Shared.Creatures; a fish not listed is 1).
 -- The user, 2026-11-13: more difference between kinds, most of all in the first lands ("turtle should be a bit bigger
--- and some fish should be smaller and larger"). The numbers are Claude's first go, to be judged by eye: the small reef
--- fish a little smaller, the flat, the round and the heavy ones bigger, the great whales and the last lands' monsters
--- most. A fish's length sets a good deal else: the room it wants in the herd, how high it swims, whether it breaks
--- props (Config.Herd, Config.Spawn), so a change here shows there too.
+-- and some fish should be smaller and larger"); and then, having seen the first go (0.85 to 1.6): "overall the fish
+-- are too small across the board", and too alike at the start. So every kind is bigger (1.2 to 2.6, about 1.75 on
+-- average) and the first land's kinds are spread widest: its seven Commons run from 12 to 23 studs long, where they
+-- were 8 to 13. The numbers are Claude's, to be judged by eye. A fish's length sets a good deal else: the room it
+-- wants in the herd, how high it swims, whether it breaks props (Config.Herd, Config.Spawn), so a change here shows
+-- there too.
 -- stylua: ignore
 Config.BaseScale = {
 	-- land 1: Shallows
-	BlueChromis = 0.85, Boxfish = 0.95, Butterflyfish = 0.9, Clownfish = 0.85, Pufferfish = 1.3, SergeantMajor = 1, YellowTang = 1.1,
-	Cuttlefish = 1.2, FlyingFish = 1, SeaTurtle = 1.6, Stingray = 1.2, Seahorse = 0.95, ReefShark = 1.45, Archelon = 1.25, PearlSerpent = 1.3,
+	BlueChromis = 1.2, Clownfish = 1.3, Butterflyfish = 1.45, SergeantMajor = 1.55, Boxfish = 1.75, YellowTang = 1.8, Pufferfish = 2.3,
+	FlyingFish = 1.7, Stingray = 1.7, Cuttlefish = 2, SeaTurtle = 2.6, Seahorse = 1.8, ReefShark = 2.3, Archelon = 1.7, PearlSerpent = 1.8,
 	-- land 2: Coral Reef
-	Angelfish = 0.95, Lionfish = 1.15, Parrotfish = 1.25, MorayEel = 1.2, Octopus = 1.15, HumpheadWrasse = 1.35, Dunkleosteus = 1.4, CoralDragon = 1.3,
+	Angelfish = 1.3, Lionfish = 1.6, Parrotfish = 1.9, MorayEel = 1.6, Octopus = 1.7, HumpheadWrasse = 2, Dunkleosteus = 2, CoralDragon = 1.8,
 	-- land 3
-	Garibaldi = 0.9, SeaLion = 1.25, GiantSeaBass = 1.3, LeopardShark = 1.15, GreatWhite = 1.4, StellersSeaCow = 1.4, Dakosaurus = 1.2, KelpWyrm = 1.3,
+	Garibaldi = 1.3, SeaLion = 1.8, GiantSeaBass = 1.9, LeopardShark = 1.6, GreatWhite = 2, StellersSeaCow = 2, Dakosaurus = 1.7, KelpWyrm = 1.8,
 	-- land 4
-	Barracuda = 1, HammerheadShark = 1.25, Sawfish = 1.25, ElectricRay = 1.1, GoliathGrouper = 1.35, Xiphactinus = 1.2, GalleonWhale = 1.4,
+	Barracuda = 1.4, HammerheadShark = 1.8, Sawfish = 1.7, ElectricRay = 1.6, GoliathGrouper = 2, Xiphactinus = 1.7, GalleonWhale = 1.9,
 	-- land 5
-	Dolphin = 1.2, Swordfish = 1.15, MantaRay = 1.5, Orca = 1.35, Elasmosaurus = 1.15, Helicoprion = 1.2, BlueWhale = 1.6, StormSerpent = 1.3,
+	Dolphin = 1.7, Swordfish = 1.6, MantaRay = 2.1, Orca = 1.9, Elasmosaurus = 1.6, Helicoprion = 1.7, BlueWhale = 2.2, StormSerpent = 1.8,
 	-- land 6
-	Viperfish = 0.9, GiantSquid = 1.2, GoblinShark = 1.15, Liopleurodon = 1.2, Shonisaurus = 1.3, LanternLeviathan = 1.25, AuroraJelly = 1.2,
+	Viperfish = 1.3, GiantSquid = 1.6, GoblinShark = 1.6, Liopleurodon = 1.7, Shonisaurus = 1.8, LanternLeviathan = 1.7, AuroraJelly = 1.7,
 	-- land 7
-	Anglerfish = 1.1, FrilledShark = 1, Basilosaurus = 1.25, Livyatan = 1.3, Mosasaurus = 1.3, Kraken = 1.4, VoidWhale = 1.45,
+	Anglerfish = 1.6, FrilledShark = 1.4, Basilosaurus = 1.7, Livyatan = 1.8, Mosasaurus = 1.8, Kraken = 1.9, VoidWhale = 2,
 	-- land 8
-	GiantIsopod = 0.9, SeaScorpion = 1.1, Anomalocaris = 1.1, BobbitWorm = 1, Kronosaurus = 1.2, Megalodon = 1.4, MoltenMegalodon = 1.45, EmberSerpent = 1.3,
+	GiantIsopod = 1.3, SeaScorpion = 1.6, Anomalocaris = 1.6, BobbitWorm = 1.4, Kronosaurus = 1.7, Megalodon = 1.9, MoltenMegalodon = 2, EmberSerpent = 1.8,
 	-- land 9
-	GraveRay = 1.4, GraveTurtle = 1.3, SkullAngler = 1.15, WraithEel = 1.2, BoneLeviathan = 1.35, HalfboneMegalodon = 1.45, PhantomWhale = 1.45,
+	GraveRay = 2, GraveTurtle = 1.8, SkullAngler = 1.6, WraithEel = 1.7, BoneLeviathan = 1.8, HalfboneMegalodon = 2, PhantomWhale = 2,
 	-- land 10
-	BrimstoneEel = 1.2, CinderRay = 1.45, HellfinShark = 1.3, InfernalAngler = 1.2, AbyssalWatcher = 1.4, Hellmaw = 1.4, TheDevourer = 1.5,
+	BrimstoneEel = 1.7, CinderRay = 2, HellfinShark = 1.8, InfernalAngler = 1.7, AbyssalWatcher = 1.9, Hellmaw = 1.9, TheDevourer = 2.1,
 } :: { [string]: number }
 
 export type FishStat = {
@@ -327,8 +329,30 @@ Config.Variant = {
 -- change speed here: speed is the next thing to be set.)
 Config.SizeOrder = { "Tiny", "Normal", "Big", "Giant", "Huge", "Colossal" }
 Config.SizeChance = { Tiny = 0.15, Big = 0.2, Giant = 0.07, Huge = 0.025, Colossal = 0.005 } :: { [string]: number } -- Normal: the rest
-Config.SizeScale =
-	{ Tiny = 0.75, Normal = 1, Big = 1.25, Giant = 1.5, Huge = 1.8, Colossal = 2.2 } :: { [string]: number }
+-- (0.75, 1, 1.25, 1.5, 1.8, 2.2 at first. The user, the same day: the fish looked too alike, and one or two should
+-- come through "with a much grander size". The steps are wider, and a Giant is nearly twice its kind.)
+Config.SizeScale = { Tiny = 0.7, Normal = 1, Big = 1.35, Giant = 1.8, Huge = 2.3, Colossal = 3 } :: { [string]: number }
+-- No fish is longer or wider than this, whatever its size: the biggest kinds' biggest sizes stop here (a Blue Whale
+-- is 101 studs long as it is). A lane's neck is about 120 wide.
+-- (Width was 130 for one test: a Colossal Sea Turtle came out 124 wide, wider than the first lands' necks.)
+Config.SizeLimit = { Length = 200, Width = 96 }
+-- Grand fish (the user, 2026-11-13: "there should be 1 or 2 that come through with a much grander size. And that
+-- should be coded for to keep there being variety as you walk through the game"). A grand fish is a Giant, a Huge or
+-- a Colossal. Left to the odds alone they are one fish in ten, and whole stretches have none. So the stocking counts
+-- them: a new fish in a stretch of lane that has fewer than Least grand fish within Span studs IS one (which of the
+-- three: by the three shares here, about as the odds have them), and in a stretch that already has Most, a
+-- fish that rolls grand is a Big instead. Everywhere you ride there is one or two in sight and never a crowd of them.
+-- (It moves the shares off the reference's: measured over 688 fish with the made-grand shares at 0.6, 0.3 and 0.1,
+-- one fish in six was grand, where the odds alone give one in ten, and a Colossal was 1 in 75, where they give 1 in
+-- 200. So the made-grand shares lean less to the top now. Fewer Normals pay for it.)
+Config.Grand = {
+	Span = 400, -- studs of lane (FishService looks half of it either way; no more than 480)
+	Least = 1,
+	Most = 2,
+	Giant = 0.72, -- the made-grand fish's size: shares of the three (the odds alone: 0.7, 0.25, 0.05)
+	Huge = 0.24,
+	Colossal = 0.04,
+}
 Config.SizeWorth = { Tiny = 0.8, Normal = 1, Big = 1.2, Giant = 1.5, Huge = 2, Colossal = 3 } :: { [string]: number }
 
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
@@ -438,7 +462,7 @@ Config.Angry = {
 	Floor = 0.3, -- no style, rarity or heat ever slows a fish under this share of its speed: it never stops
 	-- How much of a style's slow-down there is where the meter turns red; it is whole when the meter is empty.
 	HeatFrom = 0.75,
-	GiantLength = 40, -- a fish at least this long (studs) is a giant: the slow heavy fade, whatever its body type
+	GiantLength = 68, -- (40 until the kinds grew, 2026-11-13: the same kinds but for two Secrets) a fish at least this long (studs) is a giant: the slow heavy fade, whatever its body type
 	-- The stand-in motion: 1, each style's small rock, nod or wag (a sine, on the fish's turn spring); 0, none (for
 	-- when authored animations play instead); between, that share of it.
 	Motion = 1,
@@ -719,11 +743,11 @@ Config.Herd = {
 	DodgeLength = 10, -- the bend starts this many times further ahead than it is wide (higher: gentler, earlier)
 	-- (the lengths here and in Spawn's Big* are a fish's own: its species' size times its size's, Config.SizeScale.
 	-- Raised 2026-11-13 with the bigger base sizes: 40 and 24 before)
-	SmashLength = 60, -- a wild fish at least this long goes round nothing: straight through, breaking it (the reference's big dinos)
+	SmashLength = 80, -- (60 before the second, bigger go at the sizes) a wild fish at least this long goes round nothing: straight through, breaking it (the reference's big dinos)
 	-- (the user, 2026-11-13, after the first build, where every fish under SmashLength went round: "some gentle bends,
 	-- some straight through")
 	StraightShare = 0.4, -- of the shorter fish, this share also go straight through (decided when the fish is made)
-	BreakLength = 32, -- a wild fish going through a thing breaks it only if it is at least this long; a smaller one swims through and leaves it whole
+	BreakLength = 40, -- (32 before) a wild fish going through a thing breaks it only if it is at least this long; a smaller one swims through and leaves it whole
 	-- Passing: fish swim at their own speeds, so one catches another up. Both give way a little, slowly, and drift
 	-- back once past.
 	GiveSide = 14, -- the water kept between two fish side by side (6 at first: the user wanted the fish further apart)
@@ -1049,8 +1073,11 @@ Config.Spawn = {
 	HeightMin = 8, -- above the lane's floor
 	HeightMax = 20, -- (16 until 2026-11-13)
 	HeightFloor = 6, -- in shallow water the herd is pressed down to leave room for a jump, but never lower than this
-	BigLength = 20, -- a fish longer than this swims higher than the layer, (16 and 44 before the bigger sizes of 2026-11-13)
-	BigFull = 80, -- by its length, up to this long,
+	BigLength = 26, -- a fish longer than this swims higher than the layer, (16 and 44 before the bigger sizes of 2026-11-13; 20 and 80 between)
+	BigFull = 110, -- by its length, up to this long,
+	-- Kinds (the user, 2026-11-13: the fish looked too alike; variety is to be kept up all the way down). A new fish's
+	-- kind is the least seen nearby of this many draws from its rarity's kinds. The rarities' shares are untouched.
+	KindTries = 3,
 	BigRise = 14, -- by up to this much (each fish between 0.4 and 1 of what its length gives)
 	Belly = 4, -- and no fish's belly is nearer the floor than this, whatever its size
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
@@ -1336,10 +1363,24 @@ function Config.rollSize(roll: number): string
 	return "Normal"
 end
 
--- What a size is times: the species' size (Config.SizeScale), and what it needs and is worth (Config.SizeWorth)
-function Config.sizeScale(tier: string): number
-	return Config.SizeScale[tier] or 1
+-- What a size is times the species' size (Config.SizeScale). For a fish of a kind: no more than keeps it inside
+-- Config.SizeLimit, and never under 1 for a size that is bigger than Normal.
+function Config.sizeScale(tier: string, fish: FishType?): number
+	local scale = Config.SizeScale[tier] or 1
+	if fish and scale > 1 then
+		local limit = Config.SizeLimit
+		local most = math.min(limit.Length / math.max(fish.Size.Z, 1), limit.Width / math.max(fish.Size.X, 1))
+		scale = math.max(1, math.min(scale, most))
+	end
+	return scale
 end
+
+-- Whether a size is a grand one (Config.Grand)
+function Config.isGrand(tier: string): boolean
+	return tier == "Giant" or tier == "Huge" or tier == "Colossal"
+end
+
+-- What a size needs and is worth, times (Config.SizeWorth)
 
 function Config.sizeWorth(tier: string): number
 	return Config.SizeWorth[tier] or 1

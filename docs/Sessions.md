@@ -38,8 +38,10 @@ The links open the chat in the Claude app on the PC it runs on.
   - **Creature chat:** your exports are not touched. `Config.BaseScale` multiplies each kind's size in the game
     (the table is in [sizes](design/sizes.md)); say if a kind should be different. Silver has no rules and no baked
     meshes yet: it is a grey tint with a sheen in `Shared/Variants`. Yours to do properly when you get to it.
-  - **Tuning chat:** `Config.SizeWorth` (0.8 to 3) is there and unread. Whether size changes the Oxygen a fish
-    needs is with the user. The user says fish speed is next, in this chat.
+  - **Tuning chat:** `Config.SizeWorth` (0.8 to 3) is there and unread: the user chose looks only for now. The
+    user says fish speed is next, in this chat.
+  - **void, again:** every kind is 1.2 to 2.6 times its export now, so `Angry.GiantLength` went from 40 to 68 to
+    keep the same kinds giants (Coral Dragon and Kelp Wyrm now count too). Say if it should be otherwise.
   - **UI chat:** the tag's name line now carries the size ("GIANT Gold Great White"), set in `UI/Tags.put`. The
     reference's Index page (24 boxes a fish, "1 in N" under each, rewards) is not started.
   - Files changed: `Config`, `FishService`, `Shared/Variants`, `UI/Tags` (the name line), `SandboxController` (panel

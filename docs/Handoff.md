@@ -19,9 +19,17 @@ place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked
 - **`Shared/Variants`:** Silver, as a tint with a sheen (no baked meshes: `tools/creatures/local_meshes.py` and
   `install.py` are untouched, so Hugo's place tints Silver too).
 - **`UI/Tags`:** the name line reads "GIANT Gold Great White". **`SandboxController`:** panel rows only.
-- **Measured:** the rolls over 690 fish match the odds; every model is its body's size; a ride and three hops with
-  every fish forced Colossal and Silver, no errors.
-- **Not done:** size does not change the Oxygen a fish needs (the user's to decide) or its speed (next); no Index;
+- **The user's second word, the same day** (looks only; too small across the board; too alike; one or two much
+  grander, kept up by rule): `Config.BaseScale` is now 1.2 to 2.6; `SizeScale` 0.7 / 1 / 1.35 / 1.8 / 2.3 / 3;
+  `Config.SizeLimit` (no fish over 200 long or 96 wide; `Config.sizeScale(tier, fish)` keeps to it);
+  `Config.Grand` and `FishService.census` / `rollSize(grandNear)` (a Giant or bigger in every stretch, never more
+  than two made); `Spawn.KindTries` and `pick(zone, near)` (the least seen kind of three draws); `Wild.Grand`.
+  `Herd.SmashLength` 80, `BreakLength` 40, `Spawn.BigLength` 26, `BigFull` 110, and **`Angry.GiantLength` 68**
+  (Hugo's 40: the kinds grew; the same kinds but Coral Dragon and Kelp Wyrm, which now count).
+- **Measured:** sizes over 687 fish 13 / 48 / 24 / 11 / 3.8 / 0.6%; 112 of 113 stretches of 400 studs have a grand
+  fish; the biggest fish in a stretch is 4.8 times the smallest; every model is its body's size; rides and hops
+  through the mixed sea and with every fish forced Colossal, no errors.
+- **Not done:** size does not change the Oxygen a fish needs (the user: looks only for now) or its speed (next); no Index;
   nothing remembers which of the 24 a player has. `docs/design/roster.md` and `archetypes.md` still give the old
   sizes where they give any.
 

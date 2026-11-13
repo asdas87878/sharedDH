@@ -491,6 +491,11 @@ local TUNABLES: { { any } } = {
 	{ "SizeScale", "Giant", 0.05 },
 	{ "SizeScale", "Huge", 0.1 },
 	{ "SizeScale", "Colossal", 0.1 },
+	-- grand fish: how many in every stretch of lane, and how long a stretch is (new fish only)
+	{ "Grand", "Span", 50 },
+	{ "Grand", "Least", 1 },
+	{ "Grand", "Most", 1 },
+	{ "Spawn", "KindTries", 1 },
 	-- The share of spawns by rarity, land by land (Config.ZoneMix, one group a land). A changed share shows in the fish
 	-- spawned from then on, not in the ones already swimming. A row whose rarity the land's mix doesn't have is left out.
 	{ "MixShallows", "Common", 1 },
