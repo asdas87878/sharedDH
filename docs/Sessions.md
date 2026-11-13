@@ -28,6 +28,10 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC, task o1) to the UI chat:** on Hugo's word the Oxygen row is a
+  see-through box with highlights, five options behind one number, `Kit.OxygenBox` in `src/client/UI/Kit.luau`
+  (left on 5 until Hugo picks; [ui.md](design/ui.md), [Handoff](Handoff.md)). Only `Kit.luau` changed. Studio is
+  free; nothing of mine is in the place.
 - **2026-11-13, a NULLROOM worker (Hugo's PC, task u1) to the UI chat:** on Hugo's word the Oxygen row and the two
   rings beside the rider are plainer: a flat fill, a 1.2-point outline, no bevel, no shine
   ([Handoff](Handoff.md), [ui.md](design/ui.md)). Files touched: `src/client/UI/Kit.luau` (`Style.Flat`,

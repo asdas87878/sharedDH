@@ -3,6 +3,19 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task o1): the Oxygen row as a see-through box, five options
+**State:** in the game code, run in Hugo's Studio by script (each option built in turn on one ride, full and in the
+red; pictures judged, **not played by hand**). StyLua passes; selene's two warnings are in `PropController`, not here.
+Nothing uploaded; the test scripts are out of the place.
+- Hugo: the Oxygen row at the bottom left "a see through box with highlights, not a custom rounded thing", with a
+  sheet of options. The sheet: `attachments/ui6-oxygen-box-options.png`; the note: [ui.md](design/ui.md), "The
+  Oxygen row as a glass box".
+- **`Kit.luau`:** `Kit.OxygenBox` (0 = u1's flat plate, 1 to 5 the boxes in `Kit.Boxes`), `Style.Box` (on in the
+  Oxygen theme), `dressBox`; a box gets no shadow. **Left on 5** (smoked dark glass, aqua top line) until Hugo picks:
+  his choice is that one number. No other file changed.
+- **To know:** the clear options take the floor's colour (green over sand, red lost on the pink reef); option 4's
+  warning beat is the faintest.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC, task a1): archetype icons replace the archetype words
 **State:** in the game code, run in Hugo's Studio by script (screens judged from pictures, **not played by hand**).
 StyLua and selene pass. **The icons are not uploaded** (no upload route on this PC, see 2026-11-12 below): they show

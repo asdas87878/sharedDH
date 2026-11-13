@@ -50,8 +50,48 @@ export type Style = {
 	Bevel: boolean?, -- the light line inside the outline (on, unless false)
 	Shine: boolean?, -- a pale band over the upper half, as on glass
 	Flat: boolean?, -- the plainer plate (Hugo, 2026-11-13): one colour, no light line, no shine, a hairline outline
+	Box: boolean?, -- dressed as the chosen glass box, Kit.OxygenBox (0 there: as Flat)
 	Drop: number?, -- how far under the plate its shadow sits (Kit.panel only; 0 for none)
 }
+
+-- The Oxygen row as a see-through box with highlights (Hugo, 2026-11-13: "a see through box with highlights, not a
+-- custom rounded thing"): the options of docs/design/ui.md, "The Oxygen row as a glass box". Hugo's pick is this
+-- one number: 0 is the flat plate before it (task u1), 1 to 5 the boxes in Kit.Boxes.
+Kit.OxygenBox = 5
+
+export type Box = {
+	Name: string,
+	Fade: number, -- how see-through the body is (0 solid, 1 clear)
+	Radius: number, -- the corners: 0 square
+	Edge: number, -- the thin dark outline's width; 0: none (the line stays, nearly clear, for the warning's beat)
+	Tint: number?, -- smoked glass: how far the body's colour goes toward Kit.Deep
+	TopLine: number?, -- a light line along the inside of the top edge: how see-through (nil for none)
+	TopColour: Color3?, -- its colour (white)
+	Rim: number?, -- a light line all round the inside: how see-through at the top (it fades toward the bottom)
+	Sheen: number?, -- the upper half paler, as on glass: how see-through at its top
+	Streak: number?, -- two slanted glints across the right part: how see-through
+	Glint: boolean?, -- a bright top right corner, fading along the top and down the side
+	Floor: number?, -- a dark line along the inside of the bottom edge: how see-through
+	Pattern: boolean?, -- keep the water's picture on the body
+}
+
+Kit.Boxes = {
+	{ Name = "Clear glass, a top line", Fade = 0.6, Radius = 0, Edge = 1.2, TopLine = 0.15, Floor = 0.7 },
+	{ Name = "Frosted, a light rim", Fade = 0.35, Radius = 2, Edge = 1.2, Rim = 0.35, Pattern = true },
+	{ Name = "Glass with a sheen", Fade = 0.5, Radius = 3, Edge = 1.2, TopLine = 0.4, Sheen = 0.55, Streak = 0.72 },
+	{ Name = "No dark line, a light edge", Fade = 0.55, Radius = 2, Edge = 0, Rim = 0.1, TopLine = 0.05 },
+	{
+		Name = "Smoked glass, an aqua top",
+		Fade = 0.3,
+		Radius = 0,
+		Edge = 1.2,
+		Tint = 0.65,
+		TopLine = 0.05,
+		TopColour = Color3.fromRGB(51, 214, 240),
+		Glint = true,
+		Floor = 0.5,
+	},
+} :: { Box }
 
 -- One theme a purpose: what a plate is for is read from its colour and its pattern before its words
 Kit.Themes = {
@@ -63,6 +103,7 @@ Kit.Themes = {
 		TextureFade = 0.72,
 		TextureSize = 72,
 		Flat = true,
+		Box = true,
 	},
 	-- out of air, a miss: deep red going to black
 	Danger = {
@@ -259,11 +300,176 @@ local function fillOf(style: Style, top: Color3, bottom: Color3): ColorSequence
 	return if style.Flat then ColorSequence.new(top:Lerp(bottom, FLAT_MIX)) else ColorSequence.new(top, bottom)
 end
 
+-- The glass box a style is dressed as, if any (read when it is dressed, so a test can switch Kit.OxygenBox live)
+local function boxOf(style: Style): Box?
+	if style.Box then
+		return Kit.Boxes[Kit.OxygenBox]
+	end
+	return nil
+end
+
+-- A light (or dark) line of `thick` points along the inside of one edge of a face
+local function edgeLine(face: Instance, name: string, bottom: boolean, thick: number, colour: Color3, fade: number)
+	return Kit.new("Frame", {
+		Name = name,
+		AnchorPoint = Vector2.new(0, if bottom then 1 else 0),
+		Position = UDim2.fromScale(0, if bottom then 1 else 0),
+		Size = UDim2.new(1, 0, 0, thick),
+		BackgroundColor3 = colour,
+		BackgroundTransparency = fade,
+		BorderSizePixel = 0,
+		ZIndex = 0,
+	}, face)
+end
+
+-- A plate dressed as a see-through box (Kit.Boxes): one colour over the water, square or nearly square corners, the
+-- thin dark outline (or none) and its highlights. Returns the same handles as a plate, so paint and the beat work.
+local function dressBox(face: GuiObject, style: Style, box: Box): Dressed
+	face.BackgroundColor3 = Kit.White
+	face.BackgroundTransparency = box.Fade
+	face.BorderSizePixel = 0
+	if box.Radius > 0 then
+		Kit.corner(face, box.Radius)
+	end
+	local tint = box.Tint or 0
+	local function colours(top: Color3, bottom: Color3): ColorSequence
+		return ColorSequence.new(top:Lerp(bottom, FLAT_MIX):Lerp(Kit.Deep, tint))
+	end
+	local fill = Kit.gradient(face, style.Top, style.Bottom)
+	fill.Color = colours(style.Top, style.Bottom)
+	-- with no dark line the stroke is kept nearly clear: the row's warning still beats it (StatRows)
+	local outline = Kit.stroke(face, if box.Edge > 0 then box.Edge else 1.2, Kit.Ink, if box.Edge > 0 then 0 else 0.85)
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	outline.LineJoinMode = if box.Radius > 0 then Enum.LineJoinMode.Round else Enum.LineJoinMode.Miter
+	local texture: ImageLabel? = nil
+	if box.Pattern and style.Texture then
+		local size = style.TextureSize or 32
+		texture = Kit.new("ImageLabel", {
+			Name = "Pattern",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Image = Kit.Textures[style.Texture],
+			ImageTransparency = style.TextureFade or 0.8,
+			ScaleType = Enum.ScaleType.Tile,
+			TileSize = UDim2.fromOffset(size, size),
+			ZIndex = 0,
+		}, face)
+		if box.Radius > 0 then
+			Kit.corner(texture :: ImageLabel, box.Radius)
+		end
+	end
+	if box.Sheen then
+		local sheen = Kit.new("Frame", {
+			Name = "Sheen",
+			Size = UDim2.fromScale(1, 0.48),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = 0,
+		}, face)
+		if box.Radius > 0 then
+			Kit.corner(sheen, box.Radius)
+		end
+		Kit.new("UIGradient", { Transparency = NumberSequence.new(box.Sheen, 1), Rotation = 90 }, sheen)
+	end
+	if box.Streak then
+		-- two slanted bands of light, a broad one and a thin one, over the right part of the box
+		local s = box.Streak
+		local band = Kit.new("Frame", {
+			Name = "Streak",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = 0,
+		}, face)
+		if box.Radius > 0 then
+			Kit.corner(band, box.Radius)
+		end
+		Kit.new("UIGradient", {
+			Rotation = -62,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.6, 1),
+				NumberSequenceKeypoint.new(0.601, s),
+				NumberSequenceKeypoint.new(0.68, s),
+				NumberSequenceKeypoint.new(0.681, 1),
+				NumberSequenceKeypoint.new(0.72, 1),
+				NumberSequenceKeypoint.new(0.721, s),
+				NumberSequenceKeypoint.new(0.745, s),
+				NumberSequenceKeypoint.new(0.746, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}, band)
+	end
+	local bevel: UIStroke? = nil
+	if box.Rim then
+		local inset = 1.5
+		local line = Kit.new("Frame", {
+			Name = "Rim",
+			Position = UDim2.fromOffset(inset, inset),
+			Size = UDim2.new(1, -inset * 2, 1, -inset * 2),
+			BackgroundTransparency = 1,
+			ZIndex = 0,
+		}, face)
+		if box.Radius > 0 then
+			Kit.corner(line, math.max(box.Radius - 1, 1))
+		end
+		bevel = Kit.stroke(line, 1, Kit.White)
+		local rim = bevel :: UIStroke
+		rim.LineJoinMode = if box.Radius > 0 then Enum.LineJoinMode.Round else Enum.LineJoinMode.Miter
+		Kit.new(
+			"UIGradient",
+			{ Transparency = NumberSequence.new(box.Rim, math.min(box.Rim + 0.45, 0.95)), Rotation = 90 },
+			rim
+		)
+	end
+	if box.TopLine then
+		local top = edgeLine(face, "TopLine", false, 1.5, box.TopColour or Kit.White, 0)
+		-- brightest at the left, fading toward the right corner
+		Kit.new("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, box.TopLine),
+				NumberSequenceKeypoint.new(0.7, box.TopLine),
+				NumberSequenceKeypoint.new(1, math.min(box.TopLine + 0.5, 0.95)),
+			}),
+		}, top)
+	end
+	if box.Floor then
+		edgeLine(face, "Floor", true, 1.5, Kit.Ink, box.Floor)
+	end
+	if box.Glint then
+		-- a bright corner: a short line along the top and down the side, meeting in the top right corner
+		for _, side in { { 14, 2, 0 }, { 2, 8, 0 } } do
+			local piece = Kit.new("Frame", {
+				Name = "Glint",
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -2, 0, 2),
+				Size = UDim2.fromOffset(side[1], side[2]),
+				BackgroundColor3 = Kit.White,
+				BackgroundTransparency = side[3],
+				BorderSizePixel = 0,
+				ZIndex = 0,
+			}, face)
+			Kit.new("UIGradient", {
+				Rotation = if side[1] > side[2] then 180 else 90,
+				Transparency = NumberSequence.new(0, 1),
+			}, piece)
+		end
+	end
+	local function paint(top: Color3, bottom: Color3)
+		fill.Color = colours(top, bottom)
+	end
+	return { Fill = fill, Outline = outline, Bevel = bevel, Texture = texture, paint = paint }
+end
+
 -- Dresses a frame as a plate of the look: the gradient, the thick outline, the light line inside it, the pattern and
 -- the shine. What it adds sits under the frame's own children (ZIndex 0). The frame's own colour becomes white: the
 -- gradient carries the colour from then on (paint changes it). A Flat style is the plainer plate: one colour (still
 -- carried by the gradient, so paint works the same), a hairline outline, and neither the light line nor the shine.
 function Kit.dress(face: GuiObject, style: Style): Dressed
+	local box = boxOf(style)
+	if box then
+		return dressBox(face, style, box)
+	end
 	local radius = style.Radius or Kit.Radius.Plate
 	local round = radius >= 999
 	face.BackgroundColor3 = Kit.White
@@ -328,7 +534,9 @@ export type Panel = { Frame: Frame, Face: Frame, Shadow: Frame, Look: Dressed }
 function Kit.panel(parent: Instance, props: { [string]: any }, style: Style): Panel
 	props.BackgroundTransparency = 1
 	local holder: Frame = Kit.new("Frame", props, parent)
-	local drop = style.Drop or 3
+	-- a see-through box has no shadow: it would show through the glass
+	local box = boxOf(style)
+	local drop = if box then 0 else style.Drop or 3
 	local shadow: Frame = Kit.new("Frame", {
 		Name = "Shadow",
 		Position = UDim2.fromOffset(0, drop),

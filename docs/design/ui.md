@@ -29,6 +29,42 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 
 ![](../attachments/ui3-phone.jpg)
 
+**Since 2026-11-13 (later) the Oxygen row is a see-through box with highlights, five options for Hugo to pick from;
+the game shows option 5 until he picks** (the section "The Oxygen row as a glass box", right below).
+
+## The Oxygen row as a glass box (2026-11-13, Hugo: options)
+Hugo: "For now only change the oxygen meter in the left bottom (stamina) to be a see through box with highlights, not a
+custom rounded thing. Send spreadsheet to let me choose between options here".
+
+**State: built, five options and the flat plate before them, each run in Hugo's Studio by script on the same ride,
+full and in the red: no errors. Not played by hand. Waiting for Hugo's pick.**
+
+![](../attachments/ui6-oxygen-box-options.png)
+
+| `Kit.OxygenBox` | What it is |
+|---|---|
+| 0 | Now: u1's flat blue plate (rounded, solid, shadow) |
+| 1 | Clear glass, square corners; the thin dark line; a white line inside the top edge; a dark line inside the bottom |
+| 2 | Frosted (less see-through), 2-point corners; a light rim all round, brighter at the top; the water's picture kept |
+| 3 | Glass, 3-point corners; the upper half paler; a faint top line; two slanted glints at the right |
+| 4 | No dark line: a bright light edge all round, 2-point corners, a bright top line |
+| 5 | Smoked dark glass (the colour two thirds of the way to the HUD's dark navy), square; an aqua top line; a bright top-right corner. **In the game now (my pick)** |
+
+**Seen in the run:** the clear boxes (1, 3, 4) take the floor's colour, and the floor is what is behind the row
+while you ride: blue over the yellow sand reads green, and the warning's red over the pink reef nearly fades into it.
+Option 5 keeps its colour over both and still shows the floor through it; that is why it is the pick.
+
+**Kept:** the row's size and place, the bubble sign, the number and its three bubbles; in the red the box is red
+(the same theme colours, through the same glass) and its outline beats pale, as before. On option 4 the dark line is
+kept nearly clear (85% see-through) so the beat still has something to beat: the weakest warning of the five.
+The rings, tags and every other plate are as they were.
+
+**How it is made:** `Kit.OxygenBox` (one number at the top of `Kit.luau`) picks a box in `Kit.Boxes`; the Oxygen
+theme has `Box = true`, so `Kit.dress` builds the box (`dressBox`) and `Kit.panel` leaves out the shadow (it would
+show through the glass). 0, or a style without `Box`, is dressed as before. Each box is a short table (see-through,
+corners, dark line, tint, top line, rim, sheen, streak, corner, floor line, picture), so a new one is a new row.
+`StatRows.luau` is not changed. Picking another option is one line: `Kit.OxygenBox = <n>`.
+
 **Since 2026-11-13 the Oxygen row and the two rings beside the rider are plainer than pass 4** (Hugo: "a little less
 detail"): a flat fill and a thin outline. The section right below.
 
@@ -173,6 +209,12 @@ that is lost:
   shrunk with distance was too small to read.
 - A near fish whose whole tag has no room shows just the bubble and the number. It is left out only when even that
   has no room.
+
+**A fish's passive archetypes on its tag are icons** (Hugo, 2026-11-13; the pictures and their words:
+[archetypes](archetypes.md)). A fish with **one** has its icon (18 px, the round dark badge kept) on the name's own line,
+**left of the name**, the two centred together; a fish with **two or more** has them in a row **under the name** (22 px);
+a fish with none shows only its name, centred. The line under the ring is unchanged (24 px icons). Before and after:
+[archetype-icons-tag-left-before-after](../attachments/archetype-icons-tag-left-before-after.png).
 
 **A sixth run tried those three: no errors.** [The ring stays up while you drown](../attachments/ui-game-out-of-air.jpg),
 and GREAT DIVE! sits higher (measured, not pictured: it is up for 3.2 seconds, which is the length meant). Two
