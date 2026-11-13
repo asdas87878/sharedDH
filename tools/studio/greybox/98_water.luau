@@ -73,8 +73,8 @@ local LOOK = {
 	UnderColour = Color3.fromRGB(170, 240, 255), -- the surface seen from below: a bright sheet,
 	UnderSee = 0.35, -- this see-through,
 	UnderLines = 0.0, -- with the picture's lines this faint on it (0 strongest),
-	UnderTile = 96, -- and this big
-	Blend = 6, -- how many studs of going under it takes for the look to come fully on
+	UnderTile = 128, -- and this big (a sheet is a whole number of these across, so nine sheets join without a seam)
+	Blend = 1.5, -- how many studs of going under it takes for the look to come fully on
 	Border = 260, -- the look changes from one land's to the next over this much lane either side of the border
 	Soft = 0.18, -- how soft the distance is under water (0 off)
 	ShaftCount = 9, -- shafts of light round the camera,
@@ -337,13 +337,22 @@ folder.Parent = ROOT
 local Lighting = game:GetService("Lighting")
 local playing = RunService:IsRunning() -- a look in Edit mode never touches the place's Lighting
 
-local under = layer("Under", LOOK.Gap * 3 + 0.6, LOOK.UnderColour, Enum.Material.Neon, 1)
-local underPicture = Instance.new("Texture")
-underPicture.Texture = LOOK.Picture
-underPicture.Face = Enum.NormalId.Bottom
-underPicture.StudsPerTileU, underPicture.StudsPerTileV = LOOK.UnderTile, LOOK.UnderTile
-underPicture.Transparency = 1
-underPicture.Parent = under
+-- The water overhead is nine sheets, three by three, each as big as a part can be: over 3,000 studs each way from the
+-- camera, further than the view's end. (One sheet reached 1,024: past its edge the sky showed, and the edge jumped
+-- forward as you swam, which read as the water loading in pieces.)
+local unders = {} -- each: the sheet, its picture, where it lies against the middle one
+for dx = -1, 1 do
+	for dz = -1, 1 do
+		local sheet = layer("Under", LOOK.Gap * 3 + 0.6, LOOK.UnderColour, Enum.Material.Neon, 1)
+		local lines = Instance.new("Texture")
+		lines.Texture = LOOK.Picture
+		lines.Face = Enum.NormalId.Bottom
+		lines.StudsPerTileU, lines.StudsPerTileV = LOOK.UnderTile, LOOK.UnderTile
+		lines.Transparency = 1
+		lines.Parent = sheet
+		table.insert(unders, { sheet, lines, Vector3.new(dx, 0, dz) * LOOK.Size })
+	end
+end
 -- (it is placed by `underwater`, not with the other layers: deep down it leaves the surface and rides over the camera)
 
 local fx = Instance.new("Part") -- holds the shafts' ends and the specks; rides with the camera
@@ -454,23 +463,30 @@ end
 local wet = 0 -- 0 above the water, 1 well under it
 local function underwater(eye, t, dt, centre)
 	local depth = LOOK.Top - eye.Y
-	local want = math.clamp((depth - 1) / LOOK.Blend, 0, 1)
-	wet = wet + (want - wet) * math.min(1, dt * 8)
+	local want = math.clamp((depth - 0.5) / LOOK.Blend, 0, 1)
+	wet = wet + (want - wet) * math.min(1, dt * 10)
 	local water, see, tint, vivid, shaft, speck, thick, ceiling = lookAt(alongLane(eye))
 	-- the water overhead, seen from below: the real surface while it is near, and deeper down a ceiling of lit water
 	-- that stays CeilUp over the camera. Only shown from below, or the hub would lose its view down into the water
 	local surfaceY = LOOK.Top - (LOOK.Gap * 3 + 0.6)
 	local ceilY = math.min(surfaceY, eye.Y + LOOK.CeilUp)
 	local deepness = math.clamp((surfaceY - ceilY) / 200, 0, 1) -- 0 while it is the real surface, 1 well below it
-	under.CFrame = CFrame.new(centre.X, ceilY, centre.Z)
-	under.Transparency = mix(1, mix(LOOK.UnderSee, LOOK.CeilSee, deepness), wet)
-	underPicture.Transparency = mix(1, LOOK.UnderLines, wet)
-	underPicture.OffsetStudsU = (t * LOOK.Drift.X * 1.6) % LOOK.UnderTile
-	underPicture.OffsetStudsV = (t * LOOK.Drift.Y * 1.6) % LOOK.UnderTile
+	-- they follow the camera a whole tile of their picture at a time, so the picture never jumps
+	local mid = Vector3.new(math.round(eye.X / LOOK.UnderTile) * LOOK.UnderTile, ceilY, math.round(eye.Z / LOOK.UnderTile) * LOOK.UnderTile)
+	local sheetSee = mix(1, mix(LOOK.UnderSee, LOOK.CeilSee, deepness), wet)
+	local linesSee = mix(1, LOOK.UnderLines, wet)
+	local slideU, slideV = (t * LOOK.Drift.X * 1.6) % LOOK.UnderTile, (t * LOOK.Drift.Y * 1.6) % LOOK.UnderTile
 	-- Near the top it is the bright surface. Deep down it is a sheet of the land's own water, a little lighter: a Neon
 	-- part glows about half as bright again as its colour, and a pale one burnt out to a flat glare with no picture
 	-- on it and a hard edge against the distance, so the deep one is the water's colour turned down
-	under.Color = ceiling:Lerp(Color3.new(water.R * 0.66 + 0.04, water.G * 0.66 + 0.04, water.B * 0.66 + 0.04), deepness)
+	local sheetColour = ceiling:Lerp(Color3.new(water.R * 0.66 + 0.04, water.G * 0.66 + 0.04, water.B * 0.66 + 0.04), deepness)
+	for _, item in unders do
+		item[1].CFrame = CFrame.new(mid + item[3])
+		item[1].Transparency = sheetSee
+		item[1].Color = sheetColour
+		item[2].Transparency = linesSee
+		item[2].OffsetStudsU, item[2].OffsetStudsV = slideU, slideV
+	end
 	-- shafts of light, from that water overhead, in the land's own colour: they stand on a grid in the world, so
 	-- swimming past them they stay where they are
 	fx.CFrame = CFrame.new(eye)
@@ -520,7 +536,10 @@ local function underwater(eye, t, dt, centre)
 		-- the fog has taken `thick` of the view at `see`, and goes on thickening at the same rate beyond it
 		Lighting.FogColor = water
 		Lighting.FogStart = LOOK.FogStart
-		Lighting.FogEnd = mix(100000, LOOK.FogStart + (see - LOOK.FogStart) / math.max(0.05, thick), wet)
+		-- (the thickness is what is mixed in, not the far end: mixing the far end toward 100,000 left almost no fog
+		-- until the camera was wholly under, so near the surface the fog came and went)
+		local full = LOOK.FogStart + (see - LOOK.FogStart) / math.max(0.05, thick)
+		Lighting.FogEnd = LOOK.FogStart + (full - LOOK.FogStart) / math.max(0.02, wet)
 	else
 		if atmosphere then
 			atmosphere.Parent = Lighting
@@ -542,7 +561,7 @@ connection = RunService.Heartbeat:Connect(function(dt)
 	local camera = workspace.CurrentCamera
 	local eye = camera and camera.CFrame.Position or Vector3.zero
 	-- the block follows the camera a whole tile of the picture at a time, so the picture never jumps
-	local snap = LOOK.UnderTile -- a step both pictures fit a whole number of times (96 is twice 48)
+	local snap = LOOK.Tile -- (the water overhead follows by its own tile, in `underwater`)
 	local centre = Vector3.new(math.round(eye.X / snap) * snap, 0, math.round(eye.Z / snap) * snap)
 	local breath = (math.sin(t * 2 * math.pi / LOOK.Periods[1]) + 0.6 * math.sin(t * 2 * math.pi / LOOK.Periods[2] + 1.3)) / 1.6
 	for i, item in parts do
