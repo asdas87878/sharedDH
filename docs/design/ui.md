@@ -29,6 +29,43 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 
 ![](../attachments/ui3-phone.jpg)
 
+**Since 2026-11-13 the Oxygen row and the two rings beside the rider are plainer than pass 4** (Hugo: "a little less
+detail"): a flat fill and a thin outline. The section right below.
+
+## The Oxygen and tame pieces with a little less detail (2026-11-13, Hugo)
+Hugo: "edit the capturing and oxygen ui to have a little less detail -> no gradient thin outline".
+
+**State: built, and run in Hugo's Studio by script (before and after, the same ride): no errors.** From captures of
+the game:
+
+![](../attachments/ui5-flat-before-after.jpg)
+
+**What it was read to mean (the Boss's reading; Hugo can correct it):** only the pieces that show the Oxygen and the
+tame. Every other plate keeps pass 4's bold look.
+
+| Piece | Pass 4 | Now |
+|---|---|---|
+| The big ring (the time left on this fish) | A bold dark line (2 points) outside and round the hole, a pale line on the band, brighter at the top | One dark line of 1.2 points outside and round the hole. No pale line |
+| The tame ring | The same, at 1.6 points | The same as the big ring: 1.2 points, no pale line |
+| Your Oxygen (the row) | Blue, lighter at the top; a shine over the upper half; a pale line inside; a 3-point outline | One blue (56, 172, 241); no shine, no pale line; a 1.2-point outline. In the red: one red (179, 38, 50) |
+
+**Kept, and seen in the run:** sizes, places and colours; the red arc in the low part of the meter; the red glow
+that beats round the ring; the thin red line of what was just lost; the white landing flash and the hop's arc (code
+not touched); the tame ring's pink; the row's outline beating pale in the red and its 0 while you drown.
+
+**Kept on purpose, to judge from the picture:** the water's picture on the row and its three bubbles. On the flat
+blue the picture still reads as water, not as noise (my call). The bubble sign at the row's left keeps its own
+thicker outline and its white dot: it is the same sign the fish tags use, and the tags were not to change.
+
+**Weaker than before:** the row's warning is its outline going pale, and a 1.2-point outline is a much thinner
+signal than a 3-point one. The red plate and the ring's glow carry the warning now. If it reads too quiet: beat the
+plate's colour instead (a change in `StatRows.luau`).
+
+**How it is made:** `Kit.Style` has a `Flat` switch (one colour, 30% of the way from the theme's top colour to its
+bottom one; a `Kit.Outline.Hair` outline of 1.2; no bevel, no shine) and the Oxygen theme has it on. `Kit.ring`
+takes a sixth argument, `plain`: the dark line without the pale one. `Rings.luau` asks for both rings that way.
+The aim ring (`Aim.luau`) and every other plate are built as before.
+
 ## Pass 4: bolder, and themed by purpose (2026-11-12, Hugo)
 Hugo: "the game's UI is overall too bland; there should be more bold bordering, gradients and texture overlays on
 different UI elements. Make every part of the UI cohesive with these new parts and make sure each matches the theming

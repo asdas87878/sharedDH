@@ -27,7 +27,7 @@ Kit.White = Color3.new(1, 1, 1)
 
 -- The spacing every piece keeps to (gaps, paddings), the outline's widths and the corners
 Kit.Space = { Hair = 2, Small = 4, Medium = 8, Large = 12, Huge = 16 }
-Kit.Outline = { Thin = 2, Bold = 3, Heavy = 4 }
+Kit.Outline = { Hair = 1.2, Thin = 2, Bold = 3, Heavy = 4 }
 Kit.Radius = { Tile = 5, Plate = 9, Round = 999 }
 
 -- Pictures laid over a plate as its pattern, both uploaded before this pass: the map's stud tile
@@ -49,6 +49,7 @@ export type Style = {
 	TextureSize: number?, -- one repeat of the picture, in the HUD's points
 	Bevel: boolean?, -- the light line inside the outline (on, unless false)
 	Shine: boolean?, -- a pale band over the upper half, as on glass
+	Flat: boolean?, -- the plainer plate (Hugo, 2026-11-13): one colour, no light line, no shine, a hairline outline
 	Drop: number?, -- how far under the plate its shadow sits (Kit.panel only; 0 for none)
 }
 
@@ -61,7 +62,7 @@ Kit.Themes = {
 		Texture = "Water",
 		TextureFade = 0.72,
 		TextureSize = 72,
-		Shine = true,
+		Flat = true,
 	},
 	-- out of air, a miss: deep red going to black
 	Danger = {
@@ -248,10 +249,20 @@ export type Dressed = {
 
 local BEVEL = NumberSequence.new(0.3, 0.88)
 local SHINE = NumberSequence.new(0.66, 1)
+local FLAT_MIX = 0.3 -- a flat plate's one colour: this far from its theme's top colour to its bottom one
+
+local function outlineOf(style: Style): number
+	return style.Outline or (if style.Flat then Kit.Outline.Hair else Kit.Outline.Bold)
+end
+
+local function fillOf(style: Style, top: Color3, bottom: Color3): ColorSequence
+	return if style.Flat then ColorSequence.new(top:Lerp(bottom, FLAT_MIX)) else ColorSequence.new(top, bottom)
+end
 
 -- Dresses a frame as a plate of the look: the gradient, the thick outline, the light line inside it, the pattern and
 -- the shine. What it adds sits under the frame's own children (ZIndex 0). The frame's own colour becomes white: the
--- gradient carries the colour from then on (paint changes it).
+-- gradient carries the colour from then on (paint changes it). A Flat style is the plainer plate: one colour (still
+-- carried by the gradient, so paint works the same), a hairline outline, and neither the light line nor the shine.
 function Kit.dress(face: GuiObject, style: Style): Dressed
 	local radius = style.Radius or Kit.Radius.Plate
 	local round = radius >= 999
@@ -259,8 +270,10 @@ function Kit.dress(face: GuiObject, style: Style): Dressed
 	face.BackgroundTransparency = style.Fade or 0
 	face.BorderSizePixel = 0
 	Kit.corner(face, radius)
+	local flat = style.Flat == true
 	local fill = Kit.gradient(face, style.Top, style.Bottom)
-	local outline = Kit.stroke(face, style.Outline or Kit.Outline.Bold, style.Edge or Kit.Ink)
+	fill.Color = fillOf(style, style.Top, style.Bottom)
+	local outline = Kit.stroke(face, outlineOf(style), style.Edge or Kit.Ink)
 	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	local texture: ImageLabel? = nil
 	if style.Texture then
@@ -277,7 +290,7 @@ function Kit.dress(face: GuiObject, style: Style): Dressed
 		}, face)
 		Kit.corner(texture :: ImageLabel, radius)
 	end
-	if style.Shine then
+	if style.Shine and not flat then
 		local shine = Kit.new("Frame", {
 			Name = "Shine",
 			Position = UDim2.fromOffset(2, 2),
@@ -290,7 +303,7 @@ function Kit.dress(face: GuiObject, style: Style): Dressed
 		Kit.new("UIGradient", { Transparency = SHINE, Rotation = 90 }, shine)
 	end
 	local bevel: UIStroke? = nil
-	if style.Bevel ~= false then
+	if style.Bevel ~= false and not flat then
 		local line = Kit.new("Frame", {
 			Name = "Bevel",
 			Position = UDim2.fromOffset(2.5, 2.5),
@@ -303,7 +316,7 @@ function Kit.dress(face: GuiObject, style: Style): Dressed
 		Kit.new("UIGradient", { Transparency = BEVEL, Rotation = 90 }, bevel)
 	end
 	local function paint(top: Color3, bottom: Color3)
-		fill.Color = ColorSequence.new(top, bottom)
+		fill.Color = fillOf(style, top, bottom)
 	end
 	return { Fill = fill, Outline = outline, Bevel = bevel, Texture = texture, paint = paint }
 end
@@ -327,7 +340,7 @@ function Kit.panel(parent: Instance, props: { [string]: any }, style: Style): Pa
 		ZIndex = 0,
 	}, holder)
 	Kit.corner(shadow, style.Radius or Kit.Radius.Plate)
-	Kit.stroke(shadow, style.Outline or Kit.Outline.Bold, Color3.fromRGB(4, 10, 22), 0.45)
+	Kit.stroke(shadow, outlineOf(style), Color3.fromRGB(4, 10, 22), 0.45)
 	local face: Frame = Kit.new("Frame", { Name = "Face", Size = UDim2.fromScale(1, 1) }, holder)
 	return { Frame = holder, Face = face, Shadow = shadow, Look = Kit.dress(face, style) }
 end
@@ -572,8 +585,16 @@ end
 -- A ring that empties, as the reference's: the part left runs clockwise from the top, and the used part is dark and
 -- see-through. meter: the reference's meter beside the rider, which also has a thin dark edge, a clear hole, and the
 -- part just lost in red behind what is left (lag). outline: the look's bold dark line round its outer edge and its
--- hole, with a pale line on the band (0 or nil for none; a meter then keeps its thin edge).
-function Kit.ring(parent: Instance, diameter: number, thick: number, meter: boolean?, outline: number?): Ring
+-- hole, with a pale line on the band (0 or nil for none; a meter then keeps its thin edge). plain: that dark line
+-- without the pale one (Hugo, 2026-11-13: the rings beside the rider, with a hairline for the outline).
+function Kit.ring(
+	parent: Instance,
+	diameter: number,
+	thick: number,
+	meter: boolean?,
+	outline: number?,
+	plain: boolean?
+): Ring
 	local inner = diameter - thick * 2
 	local bold = outline or 0
 	local holder: Frame = Kit.new("Frame", {
@@ -611,7 +632,7 @@ function Kit.ring(parent: Instance, diameter: number, thick: number, meter: bool
 	}, holder)
 	Kit.corner(hole, 999)
 	if bold > 0 then
-		-- the dark line round the hole, drawn over the band's inner edge, and a pale line on the band's outside
+		-- the dark line round the hole, drawn over the band's inner edge
 		local lip = Kit.new("Frame", {
 			Position = UDim2.fromOffset(thick, thick),
 			Size = UDim2.fromOffset(inner, inner),
@@ -620,6 +641,9 @@ function Kit.ring(parent: Instance, diameter: number, thick: number, meter: bool
 		}, holder)
 		Kit.corner(lip, 999)
 		Kit.stroke(lip, bold, Kit.Ink)
+	end
+	if bold > 0 and not plain then
+		-- a pale line on the band's outside
 		local pale = Kit.new("Frame", {
 			Position = UDim2.fromOffset(2, 2),
 			Size = UDim2.new(1, -4, 1, -4),
@@ -629,7 +653,7 @@ function Kit.ring(parent: Instance, diameter: number, thick: number, meter: bool
 		Kit.corner(pale, 999)
 		local paleLine = Kit.stroke(pale, 1.5, Kit.White)
 		Kit.new("UIGradient", { Transparency = BEVEL, Rotation = 90 }, paleLine)
-	elseif meter then
+	elseif bold <= 0 and meter then
 		-- the thin dark edge, outside and round the hole
 		Kit.stroke(hole, 1.2, Kit.Ink, 0.45)
 		local edge = Kit.new("Frame", {

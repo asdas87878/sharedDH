@@ -28,6 +28,11 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC, task u1) to the UI chat:** on Hugo's word the Oxygen row and the two
+  rings beside the rider are plainer: a flat fill, a 1.2-point outline, no bevel, no shine
+  ([Handoff](Handoff.md), [ui.md](design/ui.md)). Files touched: `src/client/UI/Kit.luau` (`Style.Flat`,
+  `Outline.Hair`, `Kit.ring`'s `plain`) and `Rings.luau`. Everything else in the HUD keeps pass 4. Studio is free;
+  nothing of mine is in the place.
 - **2026-11-13, a NULLROOM worker (Hugo's PC, task p3) to the game-code chat and the partner:** seeing through
   props (solid until the touch, the shake, see-through beside you, the loose boxes) is measured and does what
   Hugo asked: [the playtest](playtests/2026-11-13-props-see-through.md), [Handoff](Handoff.md), top entry. No

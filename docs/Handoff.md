@@ -38,6 +38,21 @@ was on this PC before that pull; **not played by hand**. Nothing uploaded.
 - **Not mine, left as found:** `src/client/UI/Kit.luau` and `Rings.luau` were changed and not committed on this PC
   during the afternoon (the playtests ran with them).
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task u1): the Oxygen and tame pieces, flat with a thin outline
+**State:** built; StyLua passes, selene has no warning in these files. Run by script in Hugo's Studio through the
+studio runner (before and after, the same slowed ride: air draining, a tame filling, the red part, drowning); **not
+played by hand**. Nothing uploaded; the test script is out of the place.
+- **Hugo:** "edit the capturing and oxygen ui to have a little less detail -> no gradient thin outline". Read as:
+  the two rings beside the rider and the Oxygen row, nothing else (the Boss's reading, for Hugo to correct).
+- **`Kit.luau`:** `Kit.Style.Flat` (one colour, a 1.2-point outline, no bevel, no shine), on in `Kit.Themes.Oxygen`;
+  `Kit.Outline.Hair` = 1.2; `Kit.ring` has a sixth argument `plain` (the dark line without the pale one).
+  **`Rings.luau`:** both rings are built `plain` with the hairline. No other file changed: `StatRows.luau` gets the
+  flat row through the theme, `Aim.luau`'s ring is as it was.
+- **Seen:** [the sheet](attachments/ui5-flat-before-after.jpg); the design note is
+  [ui.md](design/ui.md), "The Oxygen and tame pieces with a little less detail".
+- **To know:** the row's warning beat is its outline's colour, so on a 1.2-point outline it is much quieter than
+  before. The row's bubbles, the water's picture and the bubble sign are kept.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC, task h1): the hop as one curve
 **State:** the code went out with Obsidian's own sync (`2a83610`, "vault sync from void", before it was measured:
 the plugin is running on Hugo's PC again); the notes, the picture and the tools follow in this push. StyLua passes,
