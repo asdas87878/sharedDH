@@ -97,12 +97,12 @@ local ZONES = {
 	{ 1000, Color3.fromRGB(40, 186, 250), 1800, Color3.fromRGB(222, 244, 255), 0.18, 0.9, Color3.fromRGB(255, 240, 250), 0.5, Color3.fromRGB(150, 226, 255) },
 	{ 3500, Color3.fromRGB(40, 206, 128), 1800, Color3.fromRGB(220, 255, 226), 0.2, 0.85, Color3.fromRGB(230, 255, 170), 0.55, Color3.fromRGB(160, 246, 190) },
 	{ 6000, Color3.fromRGB(24, 160, 176), 1800, Color3.fromRGB(214, 246, 244), 0.16, 0.7, Color3.fromRGB(255, 226, 170), 0.6, Color3.fromRGB(140, 228, 228) },
-	{ 8500, Color3.fromRGB(36, 104, 244), 1800, Color3.fromRGB(214, 228, 255), 0.22, 0.65, Color3.fromRGB(200, 230, 255), 0.55, Color3.fromRGB(130, 176, 255) },
-	{ 11000, Color3.fromRGB(104, 72, 232), 1800, Color3.fromRGB(228, 216, 255), 0.26, 0.55, Color3.fromRGB(150, 255, 240), 0.65, Color3.fromRGB(184, 156, 255) },
-	{ 13500, Color3.fromRGB(44, 50, 176), 1300, Color3.fromRGB(206, 210, 255), 0.3, 0.4, Color3.fromRGB(120, 240, 255), 1, Color3.fromRGB(112, 124, 244) },
-	{ 16000, Color3.fromRGB(196, 72, 60), 1800, Color3.fromRGB(255, 222, 206), 0.3, 0.5, Color3.fromRGB(255, 190, 90), 0.7, Color3.fromRGB(255, 156, 112) },
-	{ 18500, Color3.fromRGB(60, 176, 150), 1800, Color3.fromRGB(214, 255, 238), 0.2, 0.5, Color3.fromRGB(190, 255, 210), 0.7, Color3.fromRGB(164, 242, 212) },
-	{ 21000, Color3.fromRGB(176, 30, 78), 1200, Color3.fromRGB(255, 210, 222), 0.34, 0.45, Color3.fromRGB(255, 110, 90), 1, Color3.fromRGB(255, 112, 144) }
+	{ 8500, Color3.fromRGB(36, 104, 244), 1800, Color3.fromRGB(214, 228, 255), 0.14, 0.65, Color3.fromRGB(200, 230, 255), 0.55, Color3.fromRGB(130, 176, 255) },
+	{ 11000, Color3.fromRGB(104, 72, 232), 1800, Color3.fromRGB(228, 216, 255), 0.12, 0.55, Color3.fromRGB(150, 255, 240), 0.65, Color3.fromRGB(150, 112, 250) },
+	{ 13500, Color3.fromRGB(52, 62, 190), 1300, Color3.fromRGB(226, 228, 255), 0.06, 0.4, Color3.fromRGB(120, 240, 255), 1, Color3.fromRGB(86, 100, 240) },
+	{ 16000, Color3.fromRGB(206, 112, 88), 1800, Color3.fromRGB(255, 236, 226), -0.12, 0.5, Color3.fromRGB(255, 190, 90), 0.55, Color3.fromRGB(240, 120, 76) },
+	{ 18500, Color3.fromRGB(60, 176, 150), 1800, Color3.fromRGB(214, 255, 238), 0.1, 0.5, Color3.fromRGB(190, 255, 210), 0.7, Color3.fromRGB(110, 220, 184) },
+	{ 21000, Color3.fromRGB(186, 52, 104), 1200, Color3.fromRGB(255, 228, 236), -0.1, 0.45, Color3.fromRGB(255, 110, 90), 1, Color3.fromRGB(236, 80, 120) }
 }
 -- the lane's line as the map was built: {x, z, s}, so the script knows which land the camera is in
 local LINE = {
@@ -467,7 +467,10 @@ local function underwater(eye, t, dt, centre)
 	underPicture.Transparency = mix(1, LOOK.UnderLines, wet)
 	underPicture.OffsetStudsU = (t * LOOK.Drift.X * 1.6) % LOOK.UnderTile
 	underPicture.OffsetStudsV = (t * LOOK.Drift.Y * 1.6) % LOOK.UnderTile
-	under.Color = ceiling
+	-- Near the top it is the bright surface. Deep down it is a sheet of the land's own water, a little lighter: a Neon
+	-- part glows about half as bright again as its colour, and a pale one burnt out to a flat glare with no picture
+	-- on it and a hard edge against the distance, so the deep one is the water's colour turned down
+	under.Color = ceiling:Lerp(Color3.new(water.R * 0.66 + 0.04, water.G * 0.66 + 0.04, water.B * 0.66 + 0.04), deepness)
 	-- shafts of light, from that water overhead, in the land's own colour: they stand on a grid in the world, so
 	-- swimming past them they stay where they are
 	fx.CFrame = CFrame.new(eye)
@@ -559,6 +562,7 @@ return "water made: one block of " .. LOOK.Size .. " with plain water round it"
 -- the box mesh the layers are copies of: a plain unpainted cube from the Creator Store
 local slab = game:GetService("AssetService"):CreateMeshPartAsync(Content.fromUri("rbxassetid://446556804"))
 slab.Name, slab.Anchored, slab.CanCollide, slab.Size = "Slab", true, false, Vector3.new(4, 0.4, 4)
+slab.CanTouch, slab.CanQuery = false, false
 local kit = surface:FindFirstChild("WaterKit")
 if kit then
 	kit:Destroy()

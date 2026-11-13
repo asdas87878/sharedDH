@@ -53,6 +53,7 @@ for _, r in HttpService:JSONDecode([==[[[3,0,-1,9347971,3,2457.73,-310.0,5341.04
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Color = Color3.fromRGB(bit32.rshift(r[4], 16), bit32.band(bit32.rshift(r[4], 8), 255), bit32.band(r[4], 255))
 	p.CanCollide = bit32.band(r[5], 1) ~= 0
+	p.CanTouch = p.CanCollide -- a part nothing can bump costs nothing in physics either (flags, glows, strips)
 	p.CastShadow = bit32.band(r[5], 2) ~= 0
 	if bit32.band(r[5], 4) ~= 0 then
 		p.Transparency = 0.35

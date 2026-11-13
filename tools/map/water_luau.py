@@ -57,6 +57,7 @@ s.Source = [==[%s]==]
 -- the box mesh the layers are copies of: a plain unpainted cube from the Creator Store
 local slab = game:GetService("AssetService"):CreateMeshPartAsync(Content.fromUri("%s"))
 slab.Name, slab.Anchored, slab.CanCollide, slab.Size = "Slab", true, false, Vector3.new(4, 0.4, 4)
+slab.CanTouch, slab.CanQuery = false, false
 local kit = surface:FindFirstChild("WaterKit")
 if kit then
 	kit:Destroy()

@@ -274,7 +274,10 @@ local function underwater(eye, t, dt, centre)
 	underPicture.Transparency = mix(1, LOOK.UnderLines, wet)
 	underPicture.OffsetStudsU = (t * LOOK.Drift.X * 1.6) % LOOK.UnderTile
 	underPicture.OffsetStudsV = (t * LOOK.Drift.Y * 1.6) % LOOK.UnderTile
-	under.Color = ceiling
+	-- Near the top it is the bright surface. Deep down it is a sheet of the land's own water, a little lighter: a Neon
+	-- part glows about half as bright again as its colour, and a pale one burnt out to a flat glare with no picture
+	-- on it and a hard edge against the distance, so the deep one is the water's colour turned down
+	under.Color = ceiling:Lerp(Color3.new(water.R * 0.66 + 0.04, water.G * 0.66 + 0.04, water.B * 0.66 + 0.04), deepness)
 	-- shafts of light, from that water overhead, in the land's own colour: they stand on a grid in the world, so
 	-- swimming past them they stay where they are
 	fx.CFrame = CFrame.new(eye)

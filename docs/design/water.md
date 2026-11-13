@@ -193,8 +193,22 @@ first guesses. So:
   land's glow colour. Two lines running ahead show the lane's shape and which way it goes.
 - **The cliffs fade into each land's own water** (they all faded to one pale teal).
 
-**Seen:** only the Shallows, in the first version. This version is checked in play after its load; the deep lands
-need the map sent to the camera's place first, which a test can ask for.
+![Under the water, in play](../attachments/map-underwater.jpg)
+
+**Seen in play** (the captures above; a test sends the map to the camera's place by moving the player's
+`ReplicationFocus` to a part there):
+- **Midnight and the Vents:** the canyon's layers show far down the lane, the ledges glow, the view is navigable.
+- **First numbers were too strong and were turned down the same day:** Midnight was one electric blue and the Vents
+  a blinding pure red. The script's extra colour strength stacks on the game's own, so the deep lands now take
+  very little (the hot ones take some away), and the hot lands' water is a warm colour, never pure red.
+- **The deep ceiling was a flat glare** (a pale Neon sheet burns out): it is now the land's own water colour turned
+  down, and its picture shows.
+- **Still to do:** Midnight reads as one blue (its floor, walls and water are all blue: a lighter, greyer floor
+  would give it shape, and needs a map reload). The ceiling's edge can be made out against the distance when you
+  look up. The Twilight, Bone Graveyard and Underworld are not yet seen.
+- **From the game-code chat:** fish are only shown within 700 studs of a player (`Config.Spawn.StreamRadius`), so
+  walls are seen to 2,300 and fish to 700. And the 2,400 loading distance sends each player about five times the
+  map: the first number to turn down on a phone. It is one line in the loader's `00_start`.
 
 **Not built, and worth working through together:**
 - Light rippling on the floor (the water's picture, slid slowly over the floor near the camera).
