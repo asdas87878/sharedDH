@@ -3,6 +3,11 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task c2): chomp and smash pop-ups, options sheet 2
+Proposal only, no game change: after sheet 1 (`attachments/chomp-smash-options-1.png`, Hugo: the icons under the bars
+yes, show more text and text + icon), sheet 2 is `attachments/chomp-smash-options-2-text.png` (T1-T4) and
+`attachments/chomp-smash-options-2-icon.png` (I1-I4), built by `tools/art/chomp_smash_options2.py`; Hugo answers with one code per row.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC, task p3): seeing through props, measured
 **State:** the rework's game code (`Config.Props`, `PropService`, `PropController`) was already on main; this
 adds its check. **No game file and no number changed:** the run showed no bug. Changed: the test
