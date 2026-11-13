@@ -218,8 +218,10 @@ def draw(out: Path, measured: dict):
         f'<line x1="{lx + 470}" y1="60" x2="{lx + 498}" y2="60" stroke="{C_THREE}" stroke-width="2.4" stroke-dasharray="7 4"/><text x="{lx + 504}" y="65" font-size="14" fill="{INK}">three parts: fast, stall, fall (0ca31d4)</text>',
         f'<line x1="{lx + 800}" y1="60" x2="{lx + 828}" y2="60" stroke="{C_FIRST}" stroke-width="2.4" stroke-dasharray="2 4"/><text x="{lx + 834}" y="65" font-size="14" fill="{INK}">first: boost, then the glide (52d62fa)</text>',
         f'<text x="{lx}" y="88" font-size="13" fill="{INK2}">Lines: the game\'s formulas. '
-        + ("Dots: the one curve as flown in Studio (one hop each, every 0.1 s). " if measured else "")
-        + "The thin upright line: the glide's end, where the pull-in begins by itself. Curves end where the window does.</text>",
+        + "Upright line: the glide's end, where the pull-in begins by itself. Curves end where the window does.</text>",
+        f'<text x="{lx}" y="106" font-size="13" fill="{INK2}">'
+        + ("Dots: the one curve as flown in Studio, every 0.1 s (the top is higher with a higher fish locked; the sea floor ends the fall)." if measured else "")
+        + "</text>",
     ]
     for row, (title, f_first, f_three, f_one) in enumerate(ROWS):
         y0 = TOP + row * (PH + GAP_Y)

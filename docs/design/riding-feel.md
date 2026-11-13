@@ -258,7 +258,15 @@ way down the curve instead of dropping at the stall. `GrabNear` 60 and `GrabRang
 120 (was 180, set for hops that left at twice the fish's speed), so the fastest hops still get the whole 150.
 The server counts the same curve (`Config.hopSpeed` from its own clock and the speed it saw the fish at).
 
-REACH_NUMBERS
+- **Spacing, measured again on the partner's new herd** (lands 1 and 2): the nearest free fish is 33 studs away
+  at the median, inside 73 in 95% of looks, never past 86 (the old herd: 38, 68, 84). So `GrabNear` and
+  `GrabRange` stay.
+- **The least there is:** the slowest hop (off a 40 fish standing still, 32 studs a second) reaches 84 studs as
+  it leaves, 70 at the glide's end, 60 stopped. 6 of 6 hands-off hops off slow, angry fish landed (2 of them back
+  on the fish they had left).
+- **What changed for the player:** the long reach is no longer held until the glide's end. A far fish has to be
+  grabbed early; late in the hop only near fish are in reach.
+- Flown: 38 landings with no second hook (24 with Space mashed), the server's check right 7 times of 7.
 
 ### Verification for this pass
 

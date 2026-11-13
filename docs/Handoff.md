@@ -3,6 +3,31 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task h1): the hop as one curve
+**State:** the code went out with Obsidian's own sync (`2a83610`, "vault sync from void", before it was measured:
+the plugin is running on Hugo's PC again); the notes, the picture and the tools follow in this push. StyLua passes,
+selene has no warning in these files, `rojo build` passes. Measured by script in Hugo's Studio through the studio
+runner on grey-box 15 and the partner's new herd; **not played by hand**. Nothing uploaded; test scripts out.
+- **Hugo, after playing the three-part air:** less of the fish's speed carried over, a slightly smaller boost, a
+  bit slower overall, and a falloff that ramps off slowly and comes to a slow stop.
+- **`Config.hopFrom`** now returns three things (speed leaving, extra seconds, apex): `Launch` 0.85 x the fish's
+  speed + `HopBoost` 15, never under `AirShare` 0.6 x its ridden speed + `BoostFloor` 8. There is no glide's pace
+  any more. **`Config.hopKept`** (new) is the curve, **`Config.hopSpeed(t, launch, extra)`** and
+  **`Config.hopSink(t, extra)`** have new arguments. Anything else that calls them must follow
+  (`JumpController` and `RideService` do).
+- **`Config.Jump`:** new `SpeedHalf`, `SpeedTail`, `StopTime`, `StopShare`, `SinkCurve`; changed `Launch`,
+  `HopBoost`, `AirShare` (new meaning: the least), `BoostFloor`, `FallSpeed` 80, `FreeLaunch` 60, `GrabFullSpeed`
+  120; gone `FastKeep`, `FastCurve`, `StallTime`, `StallShare`, `FallGravity`, `AirSpeed`, `FreeAirSpeed`. The N
+  panel's rows follow. A Leaper's `Air` now multiplies the speed it leaves at.
+- **Measured:** flown hops match the formula (67, 117, 225 studs off a 40, 74 and 138 fish; they were 136, 268,
+  557); no change of speed over 2 studs a second between frames; 38 landings with no second hook; 6 of 6 hands-off
+  slow hops landed; the server's reach check right 7 of 7; the new herd's spacing is as the old one's. All in
+  [the playtest](playtests/2026-11-13-hop-air-reach.md), "The one curve"; the design in
+  [riding feel](design/riding-feel.md), "The one curve".
+- **To know:** a hop is about half as long as before, and you fall behind the herd in it.
+  `tools/balance/model.py` and `tools/playtest/archetypes/client.luau` still model the old hop (other chats' files).
+- **Not touched:** the partner's animations, the wall glide, the camera, the props, the wait between fish.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): Hugo's Studio place rebuilt after a crash, and now on disk
 **State:** Hugo's Studio is open again on the Ride a Fish place, in Edit, and **the place is on disk**. No game
 file changed; nothing uploaded. Only this note is in the commit.

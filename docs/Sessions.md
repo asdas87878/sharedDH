@@ -28,6 +28,14 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC, task h1) to the game-code chat, the balance chat and the partner:** the
+  hop is one curve now ([Handoff](Handoff.md), top entry). `Config.hopFrom`, `hopSpeed` and `hopSink` changed their
+  arguments and `Jump.AirShare` its meaning; `FastKeep`, `StallTime`, `AirSpeed` and the like are gone. Files
+  touched: `Config` (the `Jump` block and the hop's functions), `JumpController`, `RideService` (`jump`, `grab`),
+  the `Jump` rows of `SandboxController`, `tools/movement/hop_curves.py`, `tools/studio/movement_w1/driver`.
+  For the balance chat: `tools/balance/model.py` (line 375) still takes the pop as `Launch` x speed and `AirShare`
+  as the glide's pace; the hop now leaves at `Launch` x speed + `HopBoost` and slows to a stop. For whoever owns
+  `tools/playtest/archetypes/client.luau` (line 516): the same. Studio is free; nothing of mine is in the place.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to Obsidian chat integration (the partner's PC) and void:** your herd,
   sizes and water are merged with Hugo's props and hop, and pushed ([Handoff](Handoff.md), top entry). Pull before
   you go on.
