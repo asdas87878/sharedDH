@@ -2423,7 +2423,7 @@ local function airRun(label, id, angry, wait)
 					within(list, 180)
 				)
 			)
-			local part = if not fastEnd then 1 elseif t < fastEnd + j.StallTime then 2 else 3
+			local part = if not fastEnd then 1 elseif t < fastEnd + 0.5 then 2 else 3
 			reachSum[part] += within(list, reach)
 			reach180[part] += within(list, 180)
 			reachN[part] += 1
@@ -2453,7 +2453,7 @@ local function airRun(label, id, angry, wait)
 		stepCam,
 		stepCamAt
 	)
-	local names = { "fast part", "stall", "fall" }
+	local names = { "glide", "drop, first 0.5 s", "drop, the rest" }
 	local text = {}
 	for part = 1, 3 do
 		local n = math.max(reachN[part], 1)

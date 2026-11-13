@@ -21,9 +21,16 @@ game.ReplicatedStorage.B1Cmd.Value = "suite " .. os.clock()
   `RESULT` line (the speed kept, what the server said, boxes out, copies flying, how see-through the prop got) and
   one `BACK` line (when the prop was whole and shown again, how far away we were). `hop 1` hops off a second before
   the prop; `hold 1` keeps `Props.RegenRadius` huge for 8 s to see that a prop stays broken with a player near.
+- `run <FishId> 0 0 <studs>`: the same fish passing BESIDE the prop, its body about that many studs clear of the
+  prop's box. Every run also writes a `SEE` line (p1, 2026-11-13): how see-through the prop was before the body
+  touched it, the body's gap when it first turned, touches and shakes, the most see-through while in it, how often
+  the see-through turned round (2 is one clean fade and back), and how see-through the flying boxes got near us.
+- `cluster <FishId>`: four pillars of the driver's own in a row dead ahead (on the test's machine only), to see
+  the shakes stay `Props.ShakeGap` apart.
 - `suite`: a Clownfish and a Reef Shark (go through), the Humphead Wrasse (Breaker), Steller's Sea Cow (Tank, with
   the hold), the Molten Megalodon (giant), the hop off a Clownfish and off the Sea Cow, and the Sea Cow again with
-  `Props.FadeForBreakers` 1. Ends with `SUITE DONE`; a failed check is a `CHECK FAIL` line.
+  `Props.FadeForBreakers` 1; then a Clownfish beside a prop at 2, 6, 10, 16, 24 and 40 studs, a Reef Shark at 6, and
+  the cluster on both. Ends with `SUITE DONE`; a failed check is a `CHECK FAIL` line.
 - `set <Group> <Key> <value>`: a Config number on both machines.
 
 Afterwards: `studio-run.mjs stop`, wait until `status` shows `connected.server` 0, then run

@@ -4,7 +4,13 @@
 --     the prop got on our screen and whether it came back, and when the prop rebuilt and how far we were then.
 --     hop 1: hops off a second before the prop and glides through it. hold 1: keeps Props.RegenRadius huge for
 --     8 s after the break, to see that a prop does not come back with a player "near".
---   suite: the four kinds of fish, the hop and the hold
+--     side <studs>: passes beside the prop instead, its body about that many studs clear of the prop's box.
+--     Since p1 (2026-11-13) each run also logs a SEE line: how see-through the prop was before our body touched it
+--     (must be 0 head on), our body's gap when it first turned, the touches and shakes, the most see-through while
+--     in it, how often the see-through turned round (flicker), and when it was solid again after we were out.
+--   cluster <FishId>: four pillars of our own (this machine only) in a row dead ahead, to see the shakes are kept
+--     Props.ShakeGap apart
+--   suite: the four kinds of fish, the hop and the hold; then the passes beside and the cluster
 --   set <Group> <Key> <value>
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -143,8 +149,45 @@ local function tagsOf(model)
 	return n
 end
 
+-- our body as PropController takes it: a rod from tail to nose on a fish, a point off one; and its gap to a prop
+local function bodyNow()
+	local root = rootOf()
+	local fish = State.Fish
+	if State.Mode == "Riding" and fish and fish.PrimaryPart then
+		local kind = Config.FishById[fish:GetAttribute("FishType")]
+		local size = Config.bodyOf(fish, kind)
+		local cf = fish.PrimaryPart.CFrame
+		local radius = math.min(math.max(size.X, size.Y), size.Z) / 2
+		local half = math.max(size.Z / 2 - radius, 0)
+		return cf.Position - cf.LookVector * half, cf.Position + cf.LookVector * half, radius
+	end
+	return root.Position, root.Position, 2.5
+end
+local function gapTo(model)
+	local tail, nose, radius = bodyNow()
+	local least = math.huge
+	for _, box in model:GetChildren() do
+		if box:IsA("BasePart") and not CollectionService:HasTag(box, "PropOut") then
+			local ab = nose - tail
+			local on = tail
+			if ab.Magnitude > 0.01 then
+				on = tail + ab * math.clamp((box.Position - tail):Dot(ab) / ab:Dot(ab), 0, 1)
+			end
+			local own = box.CFrame:PointToObjectSpace(on)
+			local h = box.Size / 2
+			local near = Vector3.new(
+				math.clamp(own.X, -h.X, h.X),
+				math.clamp(own.Y, -h.Y, h.Y),
+				math.clamp(own.Z, -h.Z, h.Z)
+			)
+			least = math.min(least, (own - near).Magnitude - radius)
+		end
+	end
+	return least
+end
+
 local laneWay = nil -- the way down the lane at the start, from the first run
-local function run(id, hop, hold)
+local function run(id, hop, hold, side)
 	local kind = Config.FishById[id]
 	log(
 		"RUN %s (%s; box %.0f cubic studs; breaks %s)%s%s",
@@ -153,7 +196,7 @@ local function run(id, hop, hold)
 		Config.volumeOf(kind),
 		tostring(Config.breaks(kind)),
 		if hop then " HOP" else "",
-		if hold then " HOLD" else ""
+		(if hold then " HOLD" else "") .. (if side then string.format(" BESIDE %g", side) else "")
 	)
 	if not getOn(id) then
 		log("CHECK FAIL: no fish")
@@ -202,9 +245,34 @@ local function run(id, hop, hold)
 	)
 	-- through its middle and on, 400 studs past
 	local through = centre
+	if side then
+		-- beside it: past the side of its box, our body about `side` studs clear
+		local across = way:Cross(Vector3.yAxis).Unit
+		local halfAcross = (
+			math.abs(cf.RightVector:Dot(across)) * size.X
+			+ math.abs(cf.UpVector:Dot(across)) * size.Y
+			+ math.abs(cf.LookVector:Dot(across)) * size.Z
+		) / 2
+		local _, _, radius = bodyNow()
+		through = centre + across * (halfAcross + side + radius)
+	end
 	aim = function()
 		return through
 	end
+	local stats0 = { Touches = PropController.Stats.Touches, Shakes = PropController.Stats.Shakes }
+	local see = {
+		Before = 0, -- the most see-through while our body was still clear of it, before the first touch
+		FirstGap = nil, -- our body's gap when it first turned see-through at all
+		In = 0, -- the most see-through with our body in it
+		MinGap = math.huge,
+		Touched = false,
+		ShakeGap = nil, -- our body's gap the frame the shake fired
+		Turns = 0, -- how often the see-through changed direction (up, down: 2 is one clean fade and back)
+		Last = 0,
+		Dir = 0,
+		Debris = 0,
+		ShakeLeft = 0,
+	}
 	table.clear(events)
 	local full = 0
 	local least = math.huge -- the least speed inside 60 studs of it, as a share of the speed we came with
@@ -247,10 +315,34 @@ local function run(id, hop, hold)
 		if tagsOf(model) == 0 then
 			faded = math.max(faded, most)
 		end
+		local g = gapTo(model)
+		see.MinGap = math.min(see.MinGap, g)
+		if g <= 0 then
+			see.Touched = true
+			see.In = math.max(see.In, most)
+		elseif not see.Touched and tagsOf(model) == 0 then
+			see.Before = math.max(see.Before, most)
+		end
+		if most > 0.01 and not see.FirstGap then
+			see.FirstGap = g
+		end
+		if stats.Shakes > stats0.Shakes and not see.ShakeGap then
+			see.ShakeGap = g
+			see.ShakeLeft = RideController.shaking()
+		end
+		if tagsOf(model) == 0 and math.abs(most - see.Last) > 0.004 then
+			local dir = if most > see.Last then 1 else -1
+			if dir ~= see.Dir then
+				see.Turns += 1
+				see.Dir = dir
+			end
+			see.Last = most
+		end
+		see.Debris = math.max(see.Debris, stats.DebrisSeen)
 		flying = math.max(flying, stats.Flying)
 		outMost = math.max(outMost, tagsOf(model))
 		outServer = math.max(outServer, serverOut.Value)
-		if not passed and (far < 6 or off:Dot(way) < 0) then
+		if not passed and (far < 6 or (through - root.Position):Dot(way) < 0) then
 			passed = true
 			local on = root.Position + way * 500
 			through = Vector3.new(on.X, root.Position.Y - 20, on.Z)
@@ -292,6 +384,54 @@ local function run(id, hop, hold)
 		if not ok then
 			log("CHECK FAIL: %s", what)
 		end
+	end
+	local touches = PropController.Stats.Touches - stats0.Touches
+	local shakes = PropController.Stats.Shakes - stats0.Shakes
+	log(
+		"SEE %s: body's least gap %.1f | see-through before the touch, most %.2f | first see-through at gap %s | touches %d, shakes %d (at gap %s, size %.2f) | most in it %.2f | turned round %d times | flying boxes see-through, most %.2f",
+		id,
+		see.MinGap,
+		see.Before,
+		if see.FirstGap then string.format("%.1f", see.FirstGap) else "never",
+		touches,
+		shakes,
+		if see.ShakeGap then string.format("%.1f", see.ShakeGap) else "-",
+		see.ShakeLeft,
+		see.In,
+		see.Turns,
+		see.Debris
+	)
+	local P = Config.Props
+	if side then
+		-- beside: no touch, no shake; see-through if it came within SideNear, solid if it stayed past the slack
+		check(shakes == 0 or see.MinGap <= 0, "a shake with no touch")
+		if not Config.breaks(kind) then
+			if see.MinGap > 0 and see.MinGap <= P.SideNear - 2 then
+				check(faded > P.FadeTo * 0.6, string.format("passed %.1f beside and it stayed solid (%.2f)", see.MinGap, faded))
+			elseif see.MinGap > P.SideNear + P.SideSlack then
+				check(faded < 0.01, string.format("passed %.1f beside and it turned see-through (%.2f)", see.MinGap, faded))
+			end
+			check(see.Turns <= 2, "the see-through flickered")
+		end
+	elseif not breaks then
+		check(see.Before < 0.01, string.format("it was see-through (%.2f) before we touched it", see.Before))
+		check(touches >= 1, "no touch was seen")
+		check(shakes == 1, string.format("%d shakes for one prop", shakes))
+		check(math.abs(see.In - P.FadeTo) < 0.05, string.format("in it, the see-through reached %.2f", see.In))
+		check(see.Turns <= 2, "the see-through flickered")
+	else
+		check(shakes == 0, "the touch's shake on a fish that breaks props")
+		check(see.Debris > 0.3, string.format("the flying boxes stayed solid near us (%.2f)", see.Debris))
+	end
+	if side then
+		aim = nil
+		local t9 = os.clock()
+		waitFor(function()
+			local _, m = seeThrough(model)
+			return m == 0
+		end, 10)
+		log("BACK %s: solid again %.1f s after the pass", id, os.clock() - t9)
+		return
 	end
 	check(inside, "we did not go through the prop's box")
 	if breaks then
@@ -359,12 +499,104 @@ local function run(id, hop, hold)
 	aim = nil
 end
 
+-- four pillars of our own in a row dead ahead (on this machine only: the server never sees them, and they go with
+-- the playtest), 14 studs thick and 8 apart: one touch each, and the shakes Props.ShakeGap apart
+local function cluster(id)
+	log("CLUSTER %s", id)
+	if not getOn(id) then
+		log("CHECK FAIL: no fish")
+		return
+	end
+	if laneWay then
+		local from = rootOf().Position
+		aim = function()
+			return from + laneWay * 2000
+		end
+	end
+	settle(3)
+	local root = rootOf()
+	local way = root.AssemblyLinearVelocity
+	way = if way.Magnitude > 5 then way.Unit else root.CFrame.LookVector
+	local from = root.Position
+	local made = {}
+	for i = 1, 4 do
+		local model = Instance.new("Model")
+		model.Name = "B1Pillar" .. i
+		for k = -1, 1 do
+			local box = Instance.new("Part")
+			box.Anchored = true
+			box.CanCollide = false
+			box.CanQuery = true
+			box.Size = Vector3.new(14, 14, 14)
+			box.CFrame = CFrame.lookAt(from + way * (150 + (i - 1) * 22), from + way * 2000) * CFrame.new(0, k * 14, 0)
+			box.Parent = model
+		end
+		model.Parent = workspace.ClaudeBlockout.Lane.Props
+		table.insert(made, model)
+	end
+	local target = from + way * 600
+	aim = function()
+		return target
+	end
+	local stats = PropController.Stats
+	local t0, s0 = stats.Touches, stats.Shakes
+	local times, last = {}, stats.Shakes
+	local speed = 0
+	local most = 0
+	local c0 = os.clock()
+	while os.clock() - c0 < 20 do
+		RunService.RenderStepped:Wait()
+		root = rootOf()
+		if not root then
+			break
+		end
+		if stats.Shakes > last then
+			last = stats.Shakes
+			table.insert(times, os.clock() - c0)
+		end
+		speed = math.max(speed, root.AssemblyLinearVelocity.Magnitude)
+		most = math.max(most, stats.Inside)
+		if (root.Position - from):Dot(way) > 150 + 3 * 22 + 60 then
+			break
+		end
+	end
+	local gaps = {}
+	local least = math.huge
+	for i = 2, #times do
+		table.insert(gaps, string.format("%.2f", times[i] - times[i - 1]))
+		least = math.min(least, times[i] - times[i - 1])
+	end
+	log(
+		"CLUSTER %s: 4 pillars 22 studs apart at %.0f studs a second (one every %.2f s) | touches %d | shakes %d, seconds between them: %s | Props.ShakeGap %.2f",
+		id,
+		speed,
+		22 / math.max(speed, 1),
+		stats.Touches - t0,
+		stats.Shakes - s0,
+		table.concat(gaps, ", "),
+		Config.Props.ShakeGap
+	)
+	if stats.Touches - t0 ~= 4 then
+		log("CHECK FAIL: %d touches for four pillars", stats.Touches - t0)
+	end
+	if least < Config.Props.ShakeGap - 0.02 or stats.Shakes - s0 < 1 then
+		log("CHECK FAIL: shakes %d, the nearest two %.2f s apart", stats.Shakes - s0, least)
+	end
+	settle(1.5)
+	for _, model in made do
+		model:Destroy()
+	end
+	aim = nil
+end
+
 cmd:GetPropertyChangedSignal("Value"):Connect(function()
 	local words = string.split(cmd.Value, " ")
 	task.spawn(function()
 		local ok, err = pcall(function()
 			if words[1] == "run" then
-				run(words[2], words[3] == "1", words[4] == "1")
+				run(words[2], words[3] == "1", words[4] == "1", tonumber(words[5]))
+			elseif words[1] == "cluster" then
+				cluster(words[2])
 			elseif words[1] == "set" then
 				tune(words[2], words[3], tonumber(words[4]))
 				log("SET %s.%s = %s", words[2], words[3], tostring(Config[words[2]][words[3]]))
@@ -379,6 +611,12 @@ cmd:GetPropertyChangedSignal("Value"):Connect(function()
 				tune("Props", "FadeForBreakers", 1)
 				run("StellersSeaCow", false, false)
 				tune("Props", "FadeForBreakers", 0)
+				for _, beside in { 2, 6, 10, 16, 24, 40 } do
+					run("Clownfish", false, false, beside)
+				end
+				run("ReefShark", false, false, 6)
+				cluster("Clownfish")
+				cluster("ReefShark")
 				log("SUITE DONE")
 			end
 		end)

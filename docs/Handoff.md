@@ -3,6 +3,64 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task h1): the hop as one curve
+**State:** the code went out with Obsidian's own sync (`2a83610`, "vault sync from void", before it was measured:
+the plugin is running on Hugo's PC again); the notes, the picture and the tools follow in this push. StyLua passes,
+selene has no warning in these files, `rojo build` passes. Measured by script in Hugo's Studio through the studio
+runner on grey-box 15 and the partner's new herd; **not played by hand**. Nothing uploaded; test scripts out.
+- **Hugo, after playing the three-part air:** less of the fish's speed carried over, a slightly smaller boost, a
+  bit slower overall, and a falloff that ramps off slowly and comes to a slow stop.
+- **`Config.hopFrom`** now returns three things (speed leaving, extra seconds, apex): `Launch` 0.85 x the fish's
+  speed + `HopBoost` 15, never under `AirShare` 0.6 x its ridden speed + `BoostFloor` 8. There is no glide's pace
+  any more. **`Config.hopKept`** (new) is the curve, **`Config.hopSpeed(t, launch, extra)`** and
+  **`Config.hopSink(t, extra)`** have new arguments. Anything else that calls them must follow
+  (`JumpController` and `RideService` do).
+- **`Config.Jump`:** new `SpeedHalf`, `SpeedTail`, `StopTime`, `StopShare`, `SinkCurve`; changed `Launch`,
+  `HopBoost`, `AirShare` (new meaning: the least), `BoostFloor`, `FallSpeed` 80, `FreeLaunch` 60, `GrabFullSpeed`
+  120; gone `FastKeep`, `FastCurve`, `StallTime`, `StallShare`, `FallGravity`, `AirSpeed`, `FreeAirSpeed`. The N
+  panel's rows follow. A Leaper's `Air` now multiplies the speed it leaves at.
+- **Measured:** flown hops match the formula (67, 117, 225 studs off a 40, 74 and 138 fish; they were 136, 268,
+  557); no change of speed over 2 studs a second between frames; 38 landings with no second hook; 6 of 6 hands-off
+  slow hops landed; the server's reach check right 7 of 7; the new herd's spacing is as the old one's. All in
+  [the playtest](playtests/2026-11-13-hop-air-reach.md), "The one curve"; the design in
+  [riding feel](design/riding-feel.md), "The one curve".
+- **To know:** a hop is about half as long as before, and you fall behind the herd in it.
+  `tools/balance/model.py` and `tools/playtest/archetypes/client.luau` still model the old hop (other chats' files).
+- **Not touched:** the partner's animations, the wall glide, the camera, the props, the wait between fish.
+- **Checked after (task h2, the same day):** the code against Hugo's list, the server in step with the client
+  (`RideService` counts `Config.hopSpeed` and `reachOf` from its own clock), the logs against the note. The
+  picture's caption sat on the column titles: redrawn (`hop_curves.py`, plots moved down). On "not the full
+  speed, a slightly smaller boost": the hop left at 1.6 x the fish's speed + 18 (82, 136, 239 off a 40, 74, 138
+  fish) and leaves at 0.85 x + 15 (49, 78, 132): 85% carried, the kick 3 less, the hop a little faster than the
+  ride off slow fish and a little slower off the fastest. Left there: lower and a normal fish's hop is slower
+  than the ride, which is no boost. `Jump.Launch` is the one number if Hugo wants less carried still.
+
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): Hugo's Studio place rebuilt after a crash, and now on disk
+**State:** Hugo's Studio is open again on the Ride a Fish place, in Edit, and **the place is on disk**. No game
+file changed; nothing uploaded. Only this note is in the commit.
+- **What was lost:** the PC ran out of memory at about 14:27 and took Studio with it. The place had never been
+  saved: the file on disk was from 2026-11-11 03:10 (before grey-box 9). Nothing in the repo was lost.
+- **How it was rebuilt:** from Studio's own auto-recovery file of 14:27 (it held grey-box 15, the code and the 82
+  creatures with their Gold and Rainbow templates). Then, in the open place: Rojo on 34873 synced `src/` (every
+  script the same size as its file); `python tools/studio/load_greybox.py runner` loaded grey-box 15 again from
+  the files on main (103 files, 0 problems, 59,002 parts, the water's script newer than the recovered one). The
+  creatures were not installed again: no mesh changed since `install.py runner --local` of 2026-11-12, Studio is
+  the same version, and all 3 x 1,365 MeshParts point at mesh files that are there.
+- **Checked:** the herd's stream on this map (`herd_stream_test.py`'s code through the runner; the script itself
+  calls the partner's Windows client and does not run here): 3 to 7 degrees per 100 studs, worst 31, 0 places
+  over the edge or under the floor. One playtest by script: no errors (the old asset type warning on `203785492`
+  only), 56 fish, a mount on a Clownfish, a hop onto a Sergeant Major in 1.2 s, 1,915 props. **Not played by
+  hand.** The test scripts are out of the place.
+- **Saved, and where:** a plugin can't save a place opened from a file, so the save is Studio's next
+  auto-recovery file (14:46, after the rebuild, in Edit), copied to `~/Documents/RideAFish/ride-a-fish-map.rbxl`
+  and to `~/Projects/sharedDH-local/ride-a-fish-map.2026-11-13-1446-rebuilt-greybox15.rbxl`. The old disk file is
+  in `sharedDH-local/backups/` (`...2026-11-13-1437-old-disk-file-from-1111.rbxl`). **Hugo: press Ctrl+S in
+  Studio once**, and after any session whose place state matters.
+- **To know:** a playtest of this place left about 600 MB of the PC's 15 GB free with the swap full. One Studio,
+  and no other heavy job (a compile, a second game) while it plays. After a crash: copy
+  `~/.var/app/org.vinegarhq.Vinegar/data/vinegar/appdata/Roblox/RobloxStudio/AutoSaves/ride-a-fish-map_AutoRecovery_0.rbxl`
+  over the place file and move it out of that folder before starting Studio.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): the merge of the partner's herd, sizes and water with Hugo's props and hop
 **State:** merged by hand and **pushed to `origin/main`** (Obsidian is not running on Hugo's PC, so nothing syncs
 there by itself). Both sides are whole: the partner's four vault syncs up to `85b5be8` (the herd's stream, the six sizes and Silver,

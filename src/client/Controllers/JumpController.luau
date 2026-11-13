@@ -3,9 +3,11 @@
 -- and measured from the user's recordings (docs/reference/ride-a-dino.md), with a lock-on and a window. Space throws us
 -- off the fish (or up from floating) at once on our side; the server is told and follows. The hop, placed by CFrame
 -- every frame:
---   the pop: up, above where we left and the fish we look at, and forward faster than we rode;
---   the glide: flat at the top, lying face down, still fast: the pop's speed fades only slowly;
---   the drop: the speed is lost in a moment (the stall) and we fall (Config.hopSpeed, Config.hopSink; Hugo, 2026-11-13).
+--   the pop: up, above where we left and the fish we look at, with most of the fish's speed and a kick on top;
+--   the glide: flat at the top, lying face down, the speed easing off slowly;
+--   the drop: the speed runs out in a long gentle tail to a stop, and the more of it is gone the faster we fall.
+-- The speed is one curve with no knee and the fall is blended in along it (Config.hopSpeed, Config.hopSink; Hugo,
+-- 2026-11-13).
 -- We always go forward, and A and D steer that exactly as they steer a fish (RideController.turn); nothing else moves us.
 -- The whole hop is the window (Jump.Window seconds, shown by the HUD) to grab the next fish. The lock-on (Lib/Lock) holds
 -- the fish we are looking at, along the camera's aim, lenient, far fish as easy as near, sticky so it doesn't flicker,
@@ -42,6 +44,7 @@ local JumpController = {}
 
 local WHITE = Color3.new(1, 1, 1)
 local DASHES = 16
+local RUSH_KEEP = 0.7 -- the hop's speed lines last while this share of the leaving speed is still there
 
 local flying = false
 local clock = 0 -- wall-clock seconds since leaving
@@ -51,13 +54,12 @@ local position = Vector3.zero
 local yaw = 0 -- the way we are going: A and D turn it
 local roll = 0 -- banking into a turn
 local launchSpeed = 0
-local airSpeed = 0 -- the glide's pace for this hop (Jump.AirShare of the speed we rode at, or Jump.AirSpeed)
 local flatSpeed = 0 -- the speed we really have across the water this frame (walls and all): the hook's reach is by it
 local reach = 0 -- the hook's reach right now (Config.reachOf)
 local touchedAt = -math.huge -- os.clock() our last pull-in ended on the saddle (the touch): Jump.Cooldown runs from it
 -- this hop off a Leaper (Config.hopOf; 1 and 0 off any other fish and from floating):
 local leapApex = 1 -- Jump.Apex, times,
-local leapTime = 0 -- and seconds more glide, and so more window (with the airtime by speed: Config.airOf)
+local leapTime = 0 -- and seconds more glide, window and run-out (with the airtime by speed: Config.airOf)
 local wall = WallRide.new() -- the hop's wall ride (Config.Wall)
 local faced = 0 -- the way the body faces: the way we steer, or along a wall we ride (eased)
 local autoAt = 0 -- os.clock() before which the hands-off pull-in holds off (Jump.RehookGuard, after a refused one)
@@ -231,7 +233,7 @@ end
 local function pick(from: Vector3)
 	local view = workspace.CurrentCamera.CFrame
 	local skip = if os.clock() < refusedUntil then refused else nil
-	-- (the last chance, Lock.LastChance: the fast part over, any fish in reach ahead will do; the one nearest the
+	-- (the last chance, Lock.LastChance: the glide over, any fish in reach ahead will do; the one nearest the
 	-- aim still wins, and a fish already locked keeps the lock as it always does)
 	local j = Config.Jump
 	local wide = flying and Config.Lock.LastChance > 0 and clock >= j.LaunchTime + j.FloatTime + leapTime
@@ -344,10 +346,10 @@ local function request(): boolean
 	local leaping = false
 	if mode == "Riding" and fish and fishRoot then
 		yaw = yawOf(fishRoot.CFrame.LookVector)
-		-- the hop's numbers by the speed the fish had as we left it and by its kind (Config.hopFrom: the hop-off
-		-- boost, the glide's pace, airtime by speed, a Leaper's higher and longer hop; the server counts the same)
+		-- the hop's numbers by the speed the fish had as we left it and by its kind (Config.hopFrom: the share
+		-- of that speed kept and the kick, airtime by speed, a Leaper's higher and longer hop; the server counts the same)
 		local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-		launchSpeed, airSpeed, leapTime, leapApex = Config.hopFrom(
+		launchSpeed, leapTime, leapApex = Config.hopFrom(
 			fishRoot.AssemblyLinearVelocity.Magnitude,
 			kind,
 			if kind then Config.riddenOf(fish, kind) else nil
@@ -358,7 +360,7 @@ local function request(): boolean
 		RideController.leave()
 	else
 		yaw = State.Heading
-		launchSpeed, airSpeed, leapTime, leapApex = Config.hopFrom(nil, nil, nil)
+		launchSpeed, leapTime, leapApex = Config.hopFrom(nil, nil, nil)
 		left = nil
 	end
 	flatSpeed = launchSpeed
@@ -402,8 +404,9 @@ local function request(): boolean
 	return true
 end
 
--- The hop's height at its clock: up through the pop, the last of the rise through the glide, then, as the speed is
--- lost, the fall (Config.hopSink: Jump.StallTime, FallGravity, FallSpeed). The glide ends level, so there is no step
+-- The hop's height at its clock: up through the pop, the last of the rise through the glide, and all the while less
+-- what we have fallen, which is by the speed lost (Config.hopSink: Jump.FallSpeed, SinkCurve): next to nothing while
+-- we are fast, a fall once the speed has nearly gone. One curve: nothing is switched on
 local function heightAt(t: number): number
 	local j = Config.Jump
 	local rise = topY - baseY
@@ -411,21 +414,18 @@ local function heightAt(t: number): number
 	local floatTime = j.FloatTime + leapTime
 	local whole = apex + j.FloatRise
 	local popShare = if whole > 0 then apex / whole else 1
+	local sunk = Config.hopSink(t, leapTime)
 	if t < j.LaunchTime then
-		return baseY + rise * popShare * Ease.outQuad(t / math.max(j.LaunchTime, 0.01))
+		return baseY + rise * popShare * Ease.outQuad(t / math.max(j.LaunchTime, 0.01)) - sunk
 	end
-	local glide = t - j.LaunchTime
-	if glide < floatTime then
-		return baseY + rise * (popShare + (1 - popShare) * Ease.outQuad(glide / math.max(floatTime, 0.01)))
-	end
-	return topY - Config.hopSink(glide - floatTime)
+	local glide = math.min(t - j.LaunchTime, floatTime)
+	return baseY + rise * (popShare + (1 - popShare) * Ease.outQuad(glide / math.max(floatTime, 0.01))) - sunk
 end
 
--- And its speed forward: fast off the fish and fading only slowly through the glide, then lost in a moment (the
--- stall): Config.hopSpeed, the curve the server counts the hook's reach by
+-- And its speed forward: most of the fish's speed and a kick as we leave, easing off slowly, then running out in a
+-- long gentle tail to a stop: Config.hopSpeed, the curve the server counts the hook's reach by
 local function speedAt(t: number): number
-	local j = Config.Jump
-	return Config.hopSpeed(t, launchSpeed, airSpeed, j.LaunchTime + j.FloatTime + leapTime)
+	return Config.hopSpeed(t, launchSpeed, leapTime)
 end
 
 local function resumeSwim(root: BasePart)
@@ -626,7 +626,7 @@ local function hop(dt: number)
 	State.Heading = yaw
 	State.Wall = WallRide.state(wall)
 	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
-	-- the hook's reach, by that speed: long through the fast part, shrinking as we stall
+	-- the hook's reach, by that speed: longest as we leave, shrinking as we slow to the stop
 	reach = Config.reachOf(flatSpeed)
 	State.Reach = reach
 	pick(position)
@@ -643,8 +643,9 @@ local function hop(dt: number)
 	root.AssemblyLinearVelocity = (position - was) / math.max(dt, 1e-6)
 	root.AssemblyAngularVelocity = Vector3.zero
 	State.Speed = speedAt(clock) * wall.Kept * wall.Slide
-	-- through the pop's extra speed: speed lines that thin out as it goes, and bubbles left behind us
-	local boost = math.clamp((speedAt(clock) - airSpeed) / math.max(launchSpeed - airSpeed, 1), 0, 1)
+	-- while most of the leaving speed is still there: speed lines that thin out as it goes (none under RUSH_KEEP of
+	-- it), and bubbles left behind us
+	local boost = math.clamp((Config.hopKept(clock, leapTime) - RUSH_KEEP) / (1 - RUSH_KEEP), 0, 1)
 	if boost > 0.05 then
 		Feel.rush(Config.Feel.PopLines * boost)
 	end
