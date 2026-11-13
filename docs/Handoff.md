@@ -3,6 +3,20 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): fewer fish with abilities
+**State:** on Hugo's feedback of 2026-11-13. Data and notes only: `Config.FishStats` and
+[archetypes](design/archetypes.md). No code changed, nothing run in Studio, not played. StyLua, selene and
+`rojo build` pass; `python tools/creatures/check_archetypes.py` (new) checks the ids and the targets.
+- **The table:** 51 of 82 fish have no ability (was 20); Predator 10 (was 39), Breaker 6 (23), Tank 7 (20),
+  Fast 5 (15), Leaper 4 (17), Frenzy 2 (6). 28 fish have one, three have two (Megalodon, The Devourer, Blue
+  Whale), none more. Who and why: the note's "Fewer abilities" and its table of all 82.
+- **One speed changed:** The Devourer 150 to 128. The fastest fish is now the Ember Serpent (138).
+- **For the game-code chat:** the sandbox's F list (`SandboxController`, `TRY_OUT`) names the Giant Sea Bass as
+  its Tank and the Dunkleosteus as its combo; the first has no ability now and the second only Predator.
+  Steller's Sea Cow and the Blue Whale would put that back. Not changed here.
+- **Open for Hugo:** Flying Fish as a Leaper (an Uncommon, left without); the Mosasaurus is its land's fastest
+  and a Predator (left).
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): the hop-off boost, the second hook and the wall ride, finished on grey-box 15
 **State:** on Hugo's word of 2026-11-12. Run in Studio by script through the studio runner on the new map, ten
 playtests, no errors in the output; **not played by hand**. StyLua, selene and `rojo build` pass. Nothing uploaded;

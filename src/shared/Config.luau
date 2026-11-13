@@ -67,8 +67,9 @@ export type FishStat = {
 
 -- THE per-fish table (Hugo, 2026-11-12): each creature's ridden speed and its passive archetypes, the single source
 -- for both. The why of every row, the rules and the numbers: docs/design/archetypes.md (keep its table in step).
--- Commons and Uncommons have no archetype; a Rare may have one; an Epic has one; a Legendary two; a Mythic or a Secret
--- two to four. The server writes a fish's archetypes on its model as the "Archetype" attribute (FishService).
+-- Fewer abilities (Hugo, 2026-11-13): most fish have NONE, whatever their rarity (51 of 82); one only where it is the
+-- real animal's signature; at most 10 Predators and 8 Breakers; three fish have two, none more. Commons and Uncommons
+-- have none. Check with `python tools/creatures/check_archetypes.py`. The server writes a fish's archetypes on its model as the "Archetype" attribute (FishService).
 -- stylua: ignore
 Config.FishStats = {
 	-- land 1: Shallows
@@ -85,84 +86,84 @@ Config.FishStats = {
 	SeaTurtle = { Speed = 44, Archetype = "" }, -- Uncommon: an unhurried glider: slow by its number, no trait
 	Seahorse = { Speed = 42, Archetype = "" }, -- Rare: the slowest swimmer there is: the Rare you catch for the tank, not the ride
 	ReefShark = { Speed = 70, Archetype = "Predator" }, -- Epic: the Shallows' hunter: the first fish that eats, so the trait is met early
-	Archelon = { Speed = 62, Archetype = "Tank,Breaker" }, -- Legendary: a giant turtle: calm to sit on, and its shell goes through anything
-	PearlSerpent = { Speed = 100, Archetype = "Fast,Leaper" }, -- Secret: the first Secret: a long quick serpent that throws you far
+	Archelon = { Speed = 62, Archetype = "Tank" }, -- Legendary: a giant turtle: calm to sit on, and the meter barely moves
+	PearlSerpent = { Speed = 100, Archetype = "" }, -- Secret: the first Secret: a long quick serpent, quick by its number only
 	-- land 2: Coral Reef
 	Parrotfish = { Speed = 50, Archetype = "" }, -- Uncommon: an ordinary grazer
 	Angelfish = { Speed = 48, Archetype = "" }, -- Uncommon: tall and showy, not quick
 	Lionfish = { Speed = 46, Archetype = "" }, -- Uncommon: drifts with its fins spread
-	MorayEel = { Speed = 58, Archetype = "Predator" }, -- Rare: a lunging ambusher with two sets of jaws
+	MorayEel = { Speed = 58, Archetype = "" }, -- Rare: a lunging ambusher with two sets of jaws: a plain Rare
 	Octopus = { Speed = 54, Archetype = "" }, -- Rare: jets in pulses: a plain Rare
 	HumpheadWrasse = { Speed = 60, Archetype = "Breaker" }, -- Epic: it really does crush coral with the bump on its head
-	Dunkleosteus = { Speed = 76, Archetype = "Predator,Breaker" }, -- Legendary: armour plate and a bite that sheared through bone
-	CoralDragon = { Speed = 108, Archetype = "Breaker,Leaper,Tank" }, -- Secret: a reef come alive: heavy, calm, and it launches you
+	Dunkleosteus = { Speed = 76, Archetype = "Predator" }, -- Legendary: a bite that sheared through bone: the Reef's one eater
+	CoralDragon = { Speed = 108, Archetype = "" }, -- Secret: a reef come alive: quick by its number only
 	-- land 3: Kelp Forest
 	SeaLion = { Speed = 58, Archetype = "" }, -- Uncommon: agile and playful: quick for an Uncommon, by its number only
 	Garibaldi = { Speed = 52, Archetype = "" }, -- Uncommon: an ordinary kelp fish
 	LeopardShark = { Speed = 62, Archetype = "" }, -- Rare: a small harmless shark: a plain Rare
-	GiantSeaBass = { Speed = 54, Archetype = "Tank" }, -- Rare: a heavy, slow, gentle giant: the Rare you rest on
+	GiantSeaBass = { Speed = 54, Archetype = "" }, -- Rare: a heavy, slow, gentle giant: slow by its number, no trait
 	GreatWhite = { Speed = 82, Archetype = "Predator" }, -- Epic: the shark
 	StellersSeaCow = { Speed = 56, Archetype = "Tank" }, -- Epic: a gentle floating giant: slow, and the meter barely moves
-	Dakosaurus = { Speed = 88, Archetype = "Predator,Fast" }, -- Legendary: a sea crocodile built for the chase
-	KelpWyrm = { Speed = 112, Archetype = "Fast,Predator,Leaper" }, -- Secret: winds through the kelp and strikes
+	Dakosaurus = { Speed = 88, Archetype = "" }, -- Legendary: a sea crocodile built for the chase: quick by its number only
+	KelpWyrm = { Speed = 112, Archetype = "" }, -- Secret: winds through the kelp: quick by its number only
 	-- land 4: Shipwrecks
 	Barracuda = { Speed = 64, Archetype = "" }, -- Uncommon: a torpedo: the fastest Uncommon, by its number only
-	HammerheadShark = { Speed = 68, Archetype = "Predator" }, -- Rare: a strong schooling shark
+	HammerheadShark = { Speed = 68, Archetype = "" }, -- Rare: a strong schooling shark: a plain Rare
 	Sawfish = { Speed = 64, Archetype = "Breaker" }, -- Rare: a saw for a nose
-	ElectricRay = { Speed = 62, Archetype = "Tank" }, -- Epic: a sluggish disc that waits: slow and easy on the meter
-	GoliathGrouper = { Speed = 60, Archetype = "Predator" }, -- Epic: a heavy lump that gulps fish whole
-	Xiphactinus = { Speed = 96, Archetype = "Fast,Predator" }, -- Legendary: the fast "bulldog fish", found with whole fish inside it
-	GalleonWhale = { Speed = 104, Archetype = "Breaker,Tank,Leaper" }, -- Secret: a whale carrying a ship: it rams, it lasts, and its back is a launch deck
+	ElectricRay = { Speed = 62, Archetype = "" }, -- Epic: a sluggish disc that waits: slow by its number, no trait
+	GoliathGrouper = { Speed = 60, Archetype = "Predator" }, -- Epic: a heavy lump that gulps fish whole: the slow eater
+	Xiphactinus = { Speed = 96, Archetype = "" }, -- Legendary: the fast "bulldog fish": the Shipwrecks' quick one, by its number only
+	GalleonWhale = { Speed = 104, Archetype = "Breaker" }, -- Secret: a whale carrying a ship: it rams through whatever is in the way
 	-- land 5: Open Blue
 	Swordfish = { Speed = 84, Archetype = "Fast" }, -- Rare: one of the fastest fish alive (the small, fast Rare)
 	Dolphin = { Speed = 76, Archetype = "Leaper" }, -- Rare: the leaper: small, quick and loved (a trait on a Rare)
 	Orca = { Speed = 90, Archetype = "Predator" }, -- Epic: the top hunter: big enough to eat most of what swims by
 	MantaRay = { Speed = 78, Archetype = "Leaper" }, -- Epic: a flier: it breaches, and its hop is a long glide
-	Helicoprion = { Speed = 92, Archetype = "Predator,Breaker" }, -- Legendary: the buzz-saw shark
-	Elasmosaurus = { Speed = 86, Archetype = "Predator,Tank" }, -- Legendary: a long-necked fish catcher, and an unhurried paddler
-	BlueWhale = { Speed = 84, Archetype = "Tank,Breaker,Leaper" }, -- Mythic: the biggest and the calmest: nothing stops it, the meter crawls, and it breaches
-	StormSerpent = { Speed = 135, Archetype = "Fast,Leaper,Predator" }, -- Secret: lightning
+	Helicoprion = { Speed = 92, Archetype = "" }, -- Legendary: the buzz-saw shark: a plain Legendary
+	Elasmosaurus = { Speed = 86, Archetype = "" }, -- Legendary: a long-necked, unhurried paddler: a plain Legendary
+	BlueWhale = { Speed = 84, Archetype = "Tank,Breaker" }, -- Mythic: the biggest and the calmest: nothing stops it and the meter crawls; the slowest Mythic by far, which is the trade
+	StormSerpent = { Speed = 135, Archetype = "Fast" }, -- Secret: lightning: the launch, and nothing else
 	-- land 6: Twilight
-	Viperfish = { Speed = 70, Archetype = "Predator" }, -- Rare: a deep ambusher, all teeth
+	Viperfish = { Speed = 70, Archetype = "" }, -- Rare: a deep ambusher, all teeth: a plain Rare
 	GiantSquid = { Speed = 86, Archetype = "Fast" }, -- Epic: jet powered
-	GoblinShark = { Speed = 78, Archetype = "Predator" }, -- Epic: its jaws shoot out
-	Liopleurodon = { Speed = 98, Archetype = "Predator,Breaker" }, -- Legendary: a big four-flippered hunter
-	Shonisaurus = { Speed = 92, Archetype = "Tank,Breaker" }, -- Legendary: a whale-sized ichthyosaur with no teeth: mass, not bite
-	LanternLeviathan = { Speed = 108, Archetype = "Fast,Tank,Leaper" }, -- Mythic: a long lit serpent: quick, easy on the meter, a long hop
-	AuroraJelly = { Speed = 96, Archetype = "Tank,Leaper" }, -- Secret: a drifting jelly: slow for a Secret, but it floats you far and long
+	GoblinShark = { Speed = 78, Archetype = "" }, -- Epic: its jaws shoot out: a plain Epic
+	Liopleurodon = { Speed = 98, Archetype = "Predator" }, -- Legendary: the Twilight's big four-flippered hunter
+	Shonisaurus = { Speed = 92, Archetype = "" }, -- Legendary: a whale-sized ichthyosaur with no teeth: a plain Legendary
+	LanternLeviathan = { Speed = 108, Archetype = "" }, -- Mythic: a long lit serpent: quick by its number only
+	AuroraJelly = { Speed = 96, Archetype = "Tank" }, -- Secret: a drifting jelly: slow for a Secret, and the meter barely moves
 	-- land 7: Midnight
-	FrilledShark = { Speed = 82, Archetype = "Predator" }, -- Epic: an eel of a shark that swallows prey whole
-	Anglerfish = { Speed = 74, Archetype = "Predator" }, -- Epic: a lure and a mouth
-	Mosasaurus = { Speed = 110, Archetype = "Predator,Fast" }, -- Legendary: the star of the deep
-	Livyatan = { Speed = 104, Archetype = "Predator,Breaker" }, -- Legendary: the killer sperm whale: a ram for a head
-	Basilosaurus = { Speed = 102, Archetype = "Predator,Breaker" }, -- Legendary: a serpent whale that crushed its prey
-	Kraken = { Speed = 104, Archetype = "Predator,Breaker,Tank" }, -- Mythic: a mass of arms: it drags fish in and ships down, and it is in no hurry
-	VoidWhale = { Speed = 110, Archetype = "Tank,Breaker,Predator" }, -- Secret: a whale, dark and slow, that swallows what it passes
+	FrilledShark = { Speed = 82, Archetype = "" }, -- Epic: an eel of a shark: a plain Epic
+	Anglerfish = { Speed = 74, Archetype = "" }, -- Epic: a lure and a mouth: a plain Epic
+	Mosasaurus = { Speed = 110, Archetype = "Predator" }, -- Legendary: the star of the deep: the Midnight's eater
+	Livyatan = { Speed = 104, Archetype = "" }, -- Legendary: the killer sperm whale: a plain Legendary
+	Basilosaurus = { Speed = 102, Archetype = "" }, -- Legendary: a serpent whale: a plain Legendary
+	Kraken = { Speed = 104, Archetype = "Breaker" }, -- Mythic: a mass of arms that drags ships down
+	VoidWhale = { Speed = 110, Archetype = "Tank" }, -- Secret: a whale, dark and calm: the meter barely moves
 	-- land 8: Vents
-	SeaScorpion = { Speed = 84, Archetype = "Predator" }, -- Epic: a paddling hunter with claws
-	GiantIsopod = { Speed = 72, Archetype = "Breaker" }, -- Epic: an armoured crawler
+	SeaScorpion = { Speed = 84, Archetype = "" }, -- Epic: a paddling hunter with claws: a plain Epic
+	GiantIsopod = { Speed = 72, Archetype = "" }, -- Epic: an armoured crawler: a plain Epic
 	Megalodon = { Speed = 112, Archetype = "Predator,Frenzy" }, -- Legendary: the biggest shark that ever was: every bite makes the next one bigger
-	Kronosaurus = { Speed = 108, Archetype = "Predator,Breaker" }, -- Legendary: huge jaws, strong flippers
-	Anomalocaris = { Speed = 96, Archetype = "Predator,Leaper" }, -- Legendary: the first big hunter, flying on its side flaps
-	BobbitWorm = { Speed = 90, Archetype = "Predator,Breaker" }, -- Legendary: bursts out of the sand (not in the herd yet)
-	MoltenMegalodon = { Speed = 122, Archetype = "Predator,Frenzy,Breaker" }, -- Mythic: a Megalodon on fire
-	EmberSerpent = { Speed = 138, Archetype = "Fast,Predator,Leaper" }, -- Secret: a serpent of fire
+	Kronosaurus = { Speed = 108, Archetype = "" }, -- Legendary: huge jaws, strong flippers: a plain Legendary
+	Anomalocaris = { Speed = 96, Archetype = "" }, -- Legendary: the first big hunter, flying on its side flaps: a plain Legendary
+	BobbitWorm = { Speed = 90, Archetype = "" }, -- Legendary: bursts out of the sand (not in the herd yet)
+	MoltenMegalodon = { Speed = 122, Archetype = "" }, -- Mythic: a Megalodon on fire: faster than the Megalodon, but it doesn't eat
+	EmberSerpent = { Speed = 138, Archetype = "Fast" }, -- Secret: a serpent of fire: the fastest fish there is, and the launch
 	-- land 9: Bone Graveyard
-	WraithEel = { Speed = 114, Archetype = "Fast,Predator" }, -- Legendary: a quick ghost
-	GraveRay = { Speed = 104, Archetype = "Leaper,Tank" }, -- Legendary: a ghostly glider
-	SkullAngler = { Speed = 98, Archetype = "Predator,Tank" }, -- Legendary: an angler, still: it waits
-	GraveTurtle = { Speed = 92, Archetype = "Tank,Breaker" }, -- Legendary: a turtle, still
-	BoneLeviathan = { Speed = 126, Archetype = "Fast,Breaker,Leaper" }, -- Mythic: a racing skeleton: nothing to slow it
-	HalfboneMegalodon = { Speed = 124, Archetype = "Predator,Frenzy,Tank" }, -- Mythic: half a Megalodon is still a Megalodon, and the dead half needs no air
-	PhantomWhale = { Speed = 120, Archetype = "Tank,Breaker,Leaper" }, -- Secret: a ghost whale
+	WraithEel = { Speed = 114, Archetype = "Fast" }, -- Legendary: a quick ghost
+	GraveRay = { Speed = 104, Archetype = "Leaper" }, -- Legendary: a ghostly glider
+	SkullAngler = { Speed = 98, Archetype = "" }, -- Legendary: an angler, still: a plain Legendary
+	GraveTurtle = { Speed = 92, Archetype = "Tank" }, -- Legendary: a turtle, still
+	BoneLeviathan = { Speed = 126, Archetype = "" }, -- Mythic: a racing skeleton: the Graveyard's fastest, by its number only
+	HalfboneMegalodon = { Speed = 124, Archetype = "" }, -- Mythic: half a Megalodon: quick by its number, and it doesn't eat
+	PhantomWhale = { Speed = 120, Archetype = "Breaker" }, -- Secret: a ghost whale: it goes straight through things
 	-- land 10: The Underworld
-	HellfinShark = { Speed = 118, Archetype = "Predator,Frenzy" }, -- Legendary: a shark from the Underworld
-	BrimstoneEel = { Speed = 116, Archetype = "Fast,Predator" }, -- Legendary: an eel of fire
-	CinderRay = { Speed = 108, Archetype = "Leaper,Fast" }, -- Legendary: a burning glider
-	InfernalAngler = { Speed = 100, Archetype = "Predator,Tank" }, -- Legendary: an angler, still
-	Hellmaw = { Speed = 130, Archetype = "Predator,Frenzy,Breaker" }, -- Mythic: the last land's monster
-	AbyssalWatcher = { Speed = 112, Archetype = "Tank,Predator,Leaper" }, -- Mythic: it watches; it doesn't hurry
-	TheDevourer = { Speed = 150, Archetype = "Predator,Frenzy,Breaker,Fast" }, -- Secret: the end of the list
+	HellfinShark = { Speed = 118, Archetype = "Predator" }, -- Legendary: a shark from the Underworld: the last land's eater
+	BrimstoneEel = { Speed = 116, Archetype = "" }, -- Legendary: an eel of fire: quick by its number only
+	CinderRay = { Speed = 108, Archetype = "Leaper" }, -- Legendary: a burning glider
+	InfernalAngler = { Speed = 100, Archetype = "" }, -- Legendary: an angler, still: a plain Legendary
+	Hellmaw = { Speed = 130, Archetype = "" }, -- Mythic: the last land's monster: the fastest thing in the Underworld, by its number only
+	AbyssalWatcher = { Speed = 112, Archetype = "Tank" }, -- Mythic: it watches; it doesn't hurry
+	TheDevourer = { Speed = 128, Archetype = "Predator,Frenzy" }, -- Secret: the end of the list: the one that chains bites down there, so it is not also the fastest (was 150)
 } :: { [string]: FishStat }
 
 -- The passive archetypes (Hugo, 2026-11-12; docs/design/archetypes.md). All passive: no button, they just happen

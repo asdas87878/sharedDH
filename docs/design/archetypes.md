@@ -8,6 +8,10 @@ motion on a bite and a smash is a stand-in until the partner's animations ([Anim
 and the rules and numbers are still Claude's proposals for Hugo to confirm or change (`Config.Archetype`, and on
 the sandbox's N panel).
 
+**Fewer abilities (Hugo, 2026-11-13):** the table was handed out again. 51 of the 82 fish now have no ability, and
+31 have one (three of those have two). How the six abilities work is unchanged. See
+[Fewer abilities](#fewer-abilities-2026-11-13).
+
 Related: [riding feel](riding-feel.md), [progression](progression.md) ("What else makes a fish different": the eight
 traits proposed earlier; this note takes four of them up), [the reference](../reference/ride-a-dino.md).
 
@@ -21,8 +25,61 @@ traits proposed earlier; this note takes four of them up), [the reference](../re
 - **Archetypes are passive:** no click and no ability button, they just happen while you ride. At least fast fish,
   predators that eat other fish, and breakers that smash props without losing speed.
 - **Commons and Uncommons normally have none.** Exceptions are allowed, such as a few small, quite fast Rares.
-  Higher rarities do cooler things or combine archetypes.
+  Higher rarities do cooler things or combine archetypes. **Changed 2026-11-13, see the next section:** a higher
+  rarity no longer means an ability.
 - Deeper fish may be faster on the whole, but only because each is set so.
+
+## Fewer abilities (2026-11-13)
+Hugo's feedback after the archetypes were built: too many fish had abilities.
+- **Most fish have none**, and that includes Legendaries, Mythics and Secrets. A rare fish does not need one.
+- **An ability only where it is the real animal's signature**, and only on the most fitting fish.
+- **Fewer Predators and Breakers,** and fewer fish with two abilities. A couple may keep more than one.
+- **A high-tier fish must not be overpowered.**
+- No new archetypes, and the six work as built.
+
+The targets (the boss chat's numbers) and what the table holds now:
+
+| | Before | Target | Now |
+|---|---|---|---|
+| Fish with no ability | 20 | at least 45 | **51** |
+| Predators | 39 | at most 10 | **10** |
+| Breakers | 23 | at most 8 | **6** |
+| Tanks | 20 | | **7** |
+| Leapers | 17 | | **4** |
+| Fast | 15 | | **5** |
+| Frenzy | 6 | | **2** |
+| Fish with one ability | 21 | | **28** |
+| Fish with two | 25 | at most 6 | **3** |
+| Fish with three | 15 | at most 2 | **0** |
+| Fish with four | 1 | none | **0** |
+
+How it was handed out (Claude's choices, for Hugo to change):
+- **One eater a land, where the land has an obvious one:** Reef Shark, Dunkleosteus, Great White, Goliath Grouper,
+  Orca, Liopleurodon, Mosasaurus, Megalodon, Hellfin Shark (lands 1 to 8 and 10), and The Devourer. The Bone
+  Graveyard has none.
+- **Breakers are the fish with a tool or the mass for it:** the Humphead Wrasse's bump, the Sawfish's saw, three
+  whales (Blue, Galleon, Phantom) and the Kraken.
+- **The three with two:** the Megalodon and The Devourer (Predator with Frenzy: a Frenzy only works with a
+  Predator, so it always counts as two) and the Blue Whale (Tank and Breaker).
+- **Not overpowered:** a fish with two abilities is never the fastest of its land. The Blue Whale (84) is the
+  slowest Mythic by 20. The Megalodon (112) is slower than the Molten Megalodon (122), which has none.
+  **The Devourer's speed is lowered from 150 to 128**, the only speed changed: it was the fastest fish and had
+  four abilities. Now the Underworld's fastest is the Hellmaw (130, no ability), its eater is the Hellfin Shark
+  (118), and the fastest fish of all is the Ember Serpent (138, Fast only).
+- **Fast by its number only:** many quick fish lost Fast and kept their speed (Xiphactinus, Dakosaurus, the
+  serpents). Fast stays on five: Swordfish, Giant Squid, Wraith Eel, Storm Serpent, Ember Serpent.
+
+Each fish that keeps an ability has its one line of reasoning in the Why column of [Every creature](#every-creature).
+`python tools/creatures/check_archetypes.py` checks the ids and these targets.
+
+**Open from this pass:**
+1. **Flying Fish as a Leaper?** It is the obvious leaper, but it is an Uncommon and Uncommons stay without. Left
+   without. Say the word and it gets Leaper.
+2. **One fish is the fastest of its land and has an ability:** the Mosasaurus (110, Predator; the Void Whale, a
+   Secret, ties it). Left, as "the star of the deep". Lower it a little if it reads as too strong.
+3. **The sandbox's F list** (`SandboxController`, `TRY_OUT`) still names the Giant Sea Bass as its Tank and the
+   Dunkleosteus as its combo. Both ride fine, but the first now has no ability and the second only Predator.
+   Steller's Sea Cow (Tank) and the Blue Whale (Tank, Breaker) would put that back. Not this pass's file.
 
 ## The single source
 `Config.FishStats` in `src/shared/Config.luau`: one row a creature, `{ Speed = 70, Archetype = "Predator" }`.
@@ -115,21 +172,25 @@ the same line sits under the air ring while you ride it. Wording and colours: `s
 `ArchetypeFeel.Tags` 0 hides both.
 
 ## Who gets what
-| Rarity | Archetypes | In the table |
-|---|---|---|
-| Common | none | 7 of 7 have none |
-| Uncommon | none. A quick one (Flying Fish, Barracuda, Sea Lion) is quick by its number only | 10 of 10 have none |
-| Rare | none, or one | 7 of 10 have one (the Swordfish is Fast, the Dolphin a Leaper: the small, fast Rares) |
-| Epic | one | 14 of 14 |
-| Legendary | two | 23 of 23 |
-| Mythic | three | 8 of 8 |
-| Secret | two to four | 10 of 10 |
+Since 2026-11-13 rarity doesn't decide it: a fish has an ability only where its animal is known for it.
 
-How many fish carry each: Predator 39, Breaker 23, Tank 20, Leaper 17, Fast 15, Frenzy 6.
+| Rarity | Fish | None | One | Two |
+|---|---|---|---|---|
+| Common | 7 | 7 | 0 | 0 |
+| Uncommon | 10 | 10 | 0 | 0 |
+| Rare | 10 | 7 | 3 (Swordfish Fast, Dolphin Leaper, Sawfish Breaker) | 0 |
+| Epic | 14 | 6 | 8 | 0 |
+| Legendary | 23 | 13 | 9 | 1 (Megalodon) |
+| Mythic | 8 | 5 | 2 (Kraken, Abyssal Watcher) | 1 (Blue Whale) |
+| Secret | 10 | 3 | 6 | 1 (The Devourer) |
+| All | 82 | 51 | 28 | 3 |
+
+How many fish carry each: Predator 10, Tank 7, Breaker 6, Fast 5, Leaper 4, Frenzy 2. (Before: Predator 39,
+Breaker 23, Tank 20, Leaper 17, Fast 15, Frenzy 6, and 20 fish with none.)
 
 ## Speeds
-From **40** (Pufferfish, Boxfish) to **150** (The Devourer); a Rainbow Devourer does 180. Until now the range was
-41 to 205 (307 as a Rainbow).
+From **40** (Pufferfish, Boxfish) to **138** (Ember Serpent); a Rainbow Ember Serpent does about 166. The Devourer
+was 150 until 2026-11-13 and is 128 now (see [Fewer abilities](#fewer-abilities-2026-11-13)); no other speed changed.
 
 | Rarity | Slowest | Fastest |
 |---|---|---|
@@ -139,7 +200,7 @@ From **40** (Pufferfish, Boxfish) to **150** (The Devourer); a Rainbow Devourer 
 | Epic | 56 | 90 |
 | Legendary | 62 | 118 |
 | Mythic | 84 | 130 |
-| Secret | 96 | 150 |
+| Secret | 96 | 138 |
 
 | Land | Slowest | Fastest | Average |
 |---|---|---|---|
@@ -152,7 +213,7 @@ From **40** (Pufferfish, Boxfish) to **150** (The Devourer); a Rainbow Devourer 
 | 7 Midnight | 74 | 110 | 98 |
 | 8 Vents | 72 | 138 | 103 |
 | 9 Bone Graveyard | 92 | 126 | 111 |
-| 10 The Underworld | 100 | 150 | 119 |
+| 10 The Underworld | 100 | 130 | 116 |
 
 The Shallows' Commons stay where the hop was tuned (40 to 48; they were 41 to 47). The numbers are Claude's, set by
 the real animal and by where it lives, and none has been played.
@@ -176,75 +237,75 @@ has a row but is kept out of the herd, and no land's mix has a Secret yet, as be
 | Sea Turtle | Uncommon | 1 Shallows | 44 | none | An unhurried glider: slow by its number, no trait |
 | Seahorse | Rare | 1 Shallows | 42 | none | The slowest swimmer there is: the Rare you catch for the tank, not the ride |
 | Reef Shark | Epic | 1 Shallows | 70 | Predator | The Shallows' hunter: the first fish that eats, so the trait is met early |
-| Archelon | Legendary | 1 Shallows | 62 | Tank, Breaker | A giant turtle: calm to sit on, and its shell goes through anything |
-| Pearl Serpent | Secret | 1 Shallows | 100 | Fast, Leaper | The first Secret: a long quick serpent that throws you far |
+| Archelon | Legendary | 1 Shallows | 62 | Tank | A giant turtle: calm to sit on, and the meter barely moves |
+| Pearl Serpent | Secret | 1 Shallows | 100 | none | The first Secret: a long quick serpent, quick by its number only |
 | Parrotfish | Uncommon | 2 Coral Reef | 50 | none | An ordinary grazer |
 | Angelfish | Uncommon | 2 Coral Reef | 48 | none | Tall and showy, not quick |
 | Lionfish | Uncommon | 2 Coral Reef | 46 | none | Drifts with its fins spread |
-| Moray Eel | Rare | 2 Coral Reef | 58 | Predator | A lunging ambusher with two sets of jaws |
+| Moray Eel | Rare | 2 Coral Reef | 58 | none | A lunging ambusher with two sets of jaws: a plain Rare |
 | Octopus | Rare | 2 Coral Reef | 54 | none | Jets in pulses: a plain Rare |
 | Humphead Wrasse | Epic | 2 Coral Reef | 60 | Breaker | It really does crush coral with the bump on its head |
-| Dunkleosteus | Legendary | 2 Coral Reef | 76 | Predator, Breaker | Armour plate and a bite that sheared through bone |
-| Coral Dragon | Secret | 2 Coral Reef | 108 | Breaker, Leaper, Tank | A reef come alive: heavy, calm, and it launches you |
+| Dunkleosteus | Legendary | 2 Coral Reef | 76 | Predator | A bite that sheared through bone: the Reef's one eater |
+| Coral Dragon | Secret | 2 Coral Reef | 108 | none | A reef come alive: quick by its number only |
 | Sea Lion | Uncommon | 3 Kelp Forest | 58 | none | Agile and playful: quick for an Uncommon, by its number only |
 | Garibaldi | Uncommon | 3 Kelp Forest | 52 | none | An ordinary kelp fish |
 | Leopard Shark | Rare | 3 Kelp Forest | 62 | none | A small harmless shark: a plain Rare |
-| Giant Sea Bass | Rare | 3 Kelp Forest | 54 | Tank | A heavy, slow, gentle giant: the Rare you rest on |
+| Giant Sea Bass | Rare | 3 Kelp Forest | 54 | none | A heavy, slow, gentle giant: slow by its number, no trait |
 | Great White | Epic | 3 Kelp Forest | 82 | Predator | The shark |
 | Steller's Sea Cow | Epic | 3 Kelp Forest | 56 | Tank | A gentle floating giant: slow, and the meter barely moves |
-| Dakosaurus | Legendary | 3 Kelp Forest | 88 | Predator, Fast | A sea crocodile built for the chase |
-| Kelp Wyrm | Secret | 3 Kelp Forest | 112 | Fast, Predator, Leaper | Winds through the kelp and strikes |
+| Dakosaurus | Legendary | 3 Kelp Forest | 88 | none | A sea crocodile built for the chase: quick by its number only |
+| Kelp Wyrm | Secret | 3 Kelp Forest | 112 | none | Winds through the kelp: quick by its number only |
 | Barracuda | Uncommon | 4 Shipwrecks | 64 | none | A torpedo: the fastest Uncommon, by its number only |
-| Hammerhead Shark | Rare | 4 Shipwrecks | 68 | Predator | A strong schooling shark |
+| Hammerhead Shark | Rare | 4 Shipwrecks | 68 | none | A strong schooling shark: a plain Rare |
 | Sawfish | Rare | 4 Shipwrecks | 64 | Breaker | A saw for a nose |
-| Electric Ray | Epic | 4 Shipwrecks | 62 | Tank | A sluggish disc that waits: slow and easy on the meter |
-| Goliath Grouper | Epic | 4 Shipwrecks | 60 | Predator | A heavy lump that gulps fish whole |
-| Xiphactinus | Legendary | 4 Shipwrecks | 96 | Fast, Predator | The fast "bulldog fish", found with whole fish inside it |
-| Galleon Whale | Secret | 4 Shipwrecks | 104 | Breaker, Tank, Leaper | A whale carrying a ship: it rams, it lasts, and its back is a launch deck |
+| Electric Ray | Epic | 4 Shipwrecks | 62 | none | A sluggish disc that waits: slow by its number, no trait |
+| Goliath Grouper | Epic | 4 Shipwrecks | 60 | Predator | A heavy lump that gulps fish whole: the slow eater |
+| Xiphactinus | Legendary | 4 Shipwrecks | 96 | none | The fast "bulldog fish": the Shipwrecks' quick one, by its number only |
+| Galleon Whale | Secret | 4 Shipwrecks | 104 | Breaker | A whale carrying a ship: it rams through whatever is in the way |
 | Swordfish | Rare | 5 Open Blue | 84 | Fast | One of the fastest fish alive (the small, fast Rare) |
 | Dolphin | Rare | 5 Open Blue | 76 | Leaper | The leaper: small, quick and loved (a trait on a Rare) |
 | Orca | Epic | 5 Open Blue | 90 | Predator | The top hunter: big enough to eat most of what swims by |
 | Manta Ray | Epic | 5 Open Blue | 78 | Leaper | A flier: it breaches, and its hop is a long glide |
-| Helicoprion | Legendary | 5 Open Blue | 92 | Predator, Breaker | The buzz-saw shark |
-| Elasmosaurus | Legendary | 5 Open Blue | 86 | Predator, Tank | A long-necked fish catcher, and an unhurried paddler |
-| Blue Whale | Mythic | 5 Open Blue | 84 | Tank, Breaker, Leaper | The biggest and the calmest: nothing stops it, the meter crawls, and it breaches |
-| Storm Serpent | Secret | 5 Open Blue | 135 | Fast, Leaper, Predator | Lightning |
-| Viperfish | Rare | 6 Twilight | 70 | Predator | A deep ambusher, all teeth |
+| Helicoprion | Legendary | 5 Open Blue | 92 | none | The buzz-saw shark: a plain Legendary |
+| Elasmosaurus | Legendary | 5 Open Blue | 86 | none | A long-necked, unhurried paddler: a plain Legendary |
+| Blue Whale | Mythic | 5 Open Blue | 84 | Tank, Breaker | The biggest and the calmest: nothing stops it and the meter crawls; the slowest Mythic by far, which is the trade |
+| Storm Serpent | Secret | 5 Open Blue | 135 | Fast | Lightning: the launch, and nothing else |
+| Viperfish | Rare | 6 Twilight | 70 | none | A deep ambusher, all teeth: a plain Rare |
 | Giant Squid | Epic | 6 Twilight | 86 | Fast | Jet powered |
-| Goblin Shark | Epic | 6 Twilight | 78 | Predator | Its jaws shoot out |
-| Liopleurodon | Legendary | 6 Twilight | 98 | Predator, Breaker | A big four-flippered hunter |
-| Shonisaurus | Legendary | 6 Twilight | 92 | Tank, Breaker | A whale-sized ichthyosaur with no teeth: mass, not bite |
-| Lantern Leviathan | Mythic | 6 Twilight | 108 | Fast, Tank, Leaper | A long lit serpent: quick, easy on the meter, a long hop |
-| Aurora Jelly | Secret | 6 Twilight | 96 | Tank, Leaper | A drifting jelly: slow for a Secret, but it floats you far and long |
-| Frilled Shark | Epic | 7 Midnight | 82 | Predator | An eel of a shark that swallows prey whole |
-| Anglerfish | Epic | 7 Midnight | 74 | Predator | A lure and a mouth |
-| Mosasaurus | Legendary | 7 Midnight | 110 | Predator, Fast | The star of the deep |
-| Livyatan | Legendary | 7 Midnight | 104 | Predator, Breaker | The killer sperm whale: a ram for a head |
-| Basilosaurus | Legendary | 7 Midnight | 102 | Predator, Breaker | A serpent whale that crushed its prey |
-| Kraken | Mythic | 7 Midnight | 104 | Predator, Breaker, Tank | A mass of arms: it drags fish in and ships down, and it is in no hurry |
-| Void Whale | Secret | 7 Midnight | 110 | Tank, Breaker, Predator | A whale, dark and slow, that swallows what it passes |
-| Sea Scorpion | Epic | 8 Vents | 84 | Predator | A paddling hunter with claws |
-| Giant Isopod | Epic | 8 Vents | 72 | Breaker | An armoured crawler |
+| Goblin Shark | Epic | 6 Twilight | 78 | none | Its jaws shoot out: a plain Epic |
+| Liopleurodon | Legendary | 6 Twilight | 98 | Predator | The Twilight's big four-flippered hunter |
+| Shonisaurus | Legendary | 6 Twilight | 92 | none | A whale-sized ichthyosaur with no teeth: a plain Legendary |
+| Lantern Leviathan | Mythic | 6 Twilight | 108 | none | A long lit serpent: quick by its number only |
+| Aurora Jelly | Secret | 6 Twilight | 96 | Tank | A drifting jelly: slow for a Secret, and the meter barely moves |
+| Frilled Shark | Epic | 7 Midnight | 82 | none | An eel of a shark: a plain Epic |
+| Anglerfish | Epic | 7 Midnight | 74 | none | A lure and a mouth: a plain Epic |
+| Mosasaurus | Legendary | 7 Midnight | 110 | Predator | The star of the deep: the Midnight's eater |
+| Livyatan | Legendary | 7 Midnight | 104 | none | The killer sperm whale: a plain Legendary |
+| Basilosaurus | Legendary | 7 Midnight | 102 | none | A serpent whale: a plain Legendary |
+| Kraken | Mythic | 7 Midnight | 104 | Breaker | A mass of arms that drags ships down |
+| Void Whale | Secret | 7 Midnight | 110 | Tank | A whale, dark and calm: the meter barely moves |
+| Sea Scorpion | Epic | 8 Vents | 84 | none | A paddling hunter with claws: a plain Epic |
+| Giant Isopod | Epic | 8 Vents | 72 | none | An armoured crawler: a plain Epic |
 | Megalodon | Legendary | 8 Vents | 112 | Predator, Frenzy | The biggest shark that ever was: every bite makes the next one bigger |
-| Kronosaurus | Legendary | 8 Vents | 108 | Predator, Breaker | Huge jaws, strong flippers |
-| Anomalocaris | Legendary | 8 Vents | 96 | Predator, Leaper | The first big hunter, flying on its side flaps |
-| Bobbit Worm | Legendary | 8 Vents | 90 | Predator, Breaker | Bursts out of the sand (not in the herd yet) |
-| Molten Megalodon | Mythic | 8 Vents | 122 | Predator, Frenzy, Breaker | A Megalodon on fire |
-| Ember Serpent | Secret | 8 Vents | 138 | Fast, Predator, Leaper | A serpent of fire |
-| Wraith Eel | Legendary | 9 Bone Graveyard | 114 | Fast, Predator | A quick ghost |
-| Grave Ray | Legendary | 9 Bone Graveyard | 104 | Leaper, Tank | A ghostly glider |
-| Skull Angler | Legendary | 9 Bone Graveyard | 98 | Predator, Tank | An angler, still: it waits |
-| Grave Turtle | Legendary | 9 Bone Graveyard | 92 | Tank, Breaker | A turtle, still |
-| Bone Leviathan | Mythic | 9 Bone Graveyard | 126 | Fast, Breaker, Leaper | A racing skeleton: nothing to slow it |
-| Halfbone Megalodon | Mythic | 9 Bone Graveyard | 124 | Predator, Frenzy, Tank | Half a Megalodon is still a Megalodon, and the dead half needs no air |
-| Phantom Whale | Secret | 9 Bone Graveyard | 120 | Tank, Breaker, Leaper | A ghost whale |
-| Hellfin Shark | Legendary | 10 The Underworld | 118 | Predator, Frenzy | A shark from the Underworld |
-| Brimstone Eel | Legendary | 10 The Underworld | 116 | Fast, Predator | An eel of fire |
-| Cinder Ray | Legendary | 10 The Underworld | 108 | Leaper, Fast | A burning glider |
-| Infernal Angler | Legendary | 10 The Underworld | 100 | Predator, Tank | An angler, still |
-| Hellmaw | Mythic | 10 The Underworld | 130 | Predator, Frenzy, Breaker | The last land's monster |
-| Abyssal Watcher | Mythic | 10 The Underworld | 112 | Tank, Predator, Leaper | It watches; it doesn't hurry |
-| The Devourer | Secret | 10 The Underworld | 150 | Predator, Frenzy, Breaker, Fast | The end of the list |
+| Kronosaurus | Legendary | 8 Vents | 108 | none | Huge jaws, strong flippers: a plain Legendary |
+| Anomalocaris | Legendary | 8 Vents | 96 | none | The first big hunter, flying on its side flaps: a plain Legendary |
+| Bobbit Worm | Legendary | 8 Vents | 90 | none | Bursts out of the sand (not in the herd yet) |
+| Molten Megalodon | Mythic | 8 Vents | 122 | none | A Megalodon on fire: faster than the Megalodon, but it doesn't eat |
+| Ember Serpent | Secret | 8 Vents | 138 | Fast | A serpent of fire: the fastest fish there is, and the launch |
+| Wraith Eel | Legendary | 9 Bone Graveyard | 114 | Fast | A quick ghost |
+| Grave Ray | Legendary | 9 Bone Graveyard | 104 | Leaper | A ghostly glider |
+| Skull Angler | Legendary | 9 Bone Graveyard | 98 | none | An angler, still: a plain Legendary |
+| Grave Turtle | Legendary | 9 Bone Graveyard | 92 | Tank | A turtle, still |
+| Bone Leviathan | Mythic | 9 Bone Graveyard | 126 | none | A racing skeleton: the Graveyard's fastest, by its number only |
+| Halfbone Megalodon | Mythic | 9 Bone Graveyard | 124 | none | Half a Megalodon: quick by its number, and it doesn't eat |
+| Phantom Whale | Secret | 9 Bone Graveyard | 120 | Breaker | A ghost whale: it goes straight through things |
+| Hellfin Shark | Legendary | 10 The Underworld | 118 | Predator | A shark from the Underworld: the last land's eater |
+| Brimstone Eel | Legendary | 10 The Underworld | 116 | none | An eel of fire: quick by its number only |
+| Cinder Ray | Legendary | 10 The Underworld | 108 | Leaper | A burning glider |
+| Infernal Angler | Legendary | 10 The Underworld | 100 | none | An angler, still: a plain Legendary |
+| Hellmaw | Mythic | 10 The Underworld | 130 | none | The last land's monster: the fastest thing in the Underworld, by its number only |
+| Abyssal Watcher | Mythic | 10 The Underworld | 112 | Tank | It watches; it doesn't hurry |
+| The Devourer | Secret | 10 The Underworld | 128 | Predator, Frenzy | The end of the list: the one that chains bites down there, so it is not also the fastest (was 150) |
 
 ## What Ride a Dino does
 Looked up 2026-11-12 (web search; the guide pages themselves could not be opened from here, so this is from search
@@ -268,7 +329,7 @@ rarity and land carry the progression, variants are a small flat bonus on speed,
 
 ## Open, for Hugo
 1. **Gold and Rainbow:** Gold x1.1 and Rainbow x1.2 as read, or the other way round?
-2. **The six archetypes and their numbers (all six are built now):** right set? Tank and Leaper are Claude's additions to the three asked
+2. **The six archetypes and their numbers (all six are built now; who has them was cut down 2026-11-13):** right set? Tank and Leaper are Claude's additions to the three asked
    for (fast, predator, breaker); Frenzy is the twist for the top sharks. Any of them can be dropped by clearing it
    from the rows.
 3. **What eating gives:** speed and Oxygen (proposed), or only one of them?

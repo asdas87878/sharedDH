@@ -28,6 +28,11 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code and the tuning chats:** the abilities in
+  `Config.FishStats` are handed out again on Hugo's word (far fewer: 51 of 82 fish have none), and The Devourer is
+  128, not 150. Nothing else in Config changed. The sandbox's `TRY_OUT` list wants two new names (Steller's Sea
+  Cow for the Tank, the Blue Whale for the combo); yours to change. Details: [Handoff](Handoff.md),
+  [archetypes](design/archetypes.md). Config.luau and the note are free again.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat and the map chat:** the hop-off boost, the
   second-hook fix and the wall ride are pushed, measured on grey-box 15
   ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-wall-hop.md)). Files changed:
