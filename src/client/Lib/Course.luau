@@ -27,6 +27,10 @@ local RISE = 3 -- from this far above the point
 local PUSH = 6 -- how hard we are pushed back from the floor, a roof or the surface (studs a second for each stud)
 local PUSH_MAX = 60
 local STEP = 10 -- something in the way that ends within this far above us, with open water over it, is a step: climbed
+local LEDGE = 12 -- and has this much open water on past its face, at that height
+local STEP_SOFT = 4 -- and one that ends within this much of that is part wall to the wall ride's look-ahead
+local EDGE = 6 -- past the lane's own edge our way out is taken over this many studs
+local OPEN = 240 -- with no wall of the map's own within this far out past the lane's edge, the edge itself is the wall
 local SLIVER = 3 -- this much of a boundary box's end showing at its corner is a joint between pieces, not a wall
 
 local lane: Lane.Lane? = nil
@@ -44,6 +48,8 @@ local throughLast: boolean? = nil -- what Course.begin was last asked for (it is
 local laneFloor: number? = nil
 local outside = -math.huge
 local outward = Vector3.xAxis
+local alongHere = Vector3.zAxis -- the lane's own way there,
+local slope = 0 -- and how fast its edge moves out (in, negative) going down it: studs across for each stud along
 local floorHere: number? = nil -- and what the ray down found
 
 local function getLane(): Lane.Lane?
@@ -108,6 +114,26 @@ local function locate(at: Vector3)
 	laneFloor = centre.Y
 	outside = math.abs(across) - (width / 2 + Config.Ride.LaneMargin)
 	outward = if across >= 0 then right else -right
+	alongHere = along
+	local _, _, widthOn = Lane.at(l, s + 12)
+	slope = if s + 12 <= l.Length then (widthOn - width) / 24 else 0
+end
+
+-- Whether the map has a wall of its own out past the lane's edge from the point last surveyed (the lane's walls,
+-- the terraces behind them, the cliffs, the unseen barrier: since grey-box 9 every edge has one). Where it has, that
+-- wall is the edge, and the surveyed line is not one: the line is drawn from a width taken every 24 studs along a
+-- middle, so it stands up to 40 studs inside the real walls in places (measured 2026-11-13: 26 past it with the wall
+-- still 13 away), and where the lane bends it jumps. Held to it there, we rode an unseen wall in open water and
+-- were thrown inward when it jumped. It still holds wherever the map has nothing to stop us.
+local walledAt: Vector3? = nil
+local walledHere = false
+local function walled(from: Vector3): boolean
+	if walledAt ~= from then
+		walledAt = from
+		local hit = workspace:Raycast(from, outward * OPEN, params)
+		walledHere = hit ~= nil and hit.Normal.Y < WALL
+	end
+	return walledHere
 end
 
 -- (from a little above the point: we are held a clearance above the floor, so that is still open water, and a point
@@ -118,14 +144,18 @@ local function rayFloor(x: number, y: number, z: number, rise: number?): number?
 end
 
 -- Whether what a flat ray met (`length` along `dir` from `from`) is only a step: open water over us and over it,
--- STEP higher. The ground on top of a low wall, a terrace's edge, the next slab along a wall's top (grey-box 14 on:
--- the lane's sides step up in terraces). A fish goes up over a step (the floor rule lifts it); it rides a wall.
+-- STEP higher, for LEDGE on past its face (room for a body to go up onto it; a narrow lip with a wall close behind
+-- is that wall). The ground on top of a low wall, a terrace's edge, the next slab along a wall's top (grey-box 14
+-- on: the lane's sides step up in terraces). A fish goes up over a step (the floor rule lifts it); it rides a wall.
+-- The same question, asked the same way, by the look-ahead (Course.feel) and by the hard rule
+-- (Course.clearVelocity): asked over different lengths, one called the hub floor's front a step and let the fish
+-- up to it, and the other called it a wall and stopped it there (measured 2026-11-13).
 local function isStep(from: Vector3, dir: Vector3, length: number): boolean
 	local up = Vector3.new(0, STEP, 0)
 	if workspace:Raycast(from, up, params) then
 		return false
 	end
-	return workspace:Raycast(from + up, dir * (length + 2), params) == nil
+	return workspace:Raycast(from + up, dir * (length + LEDGE), params) == nil
 end
 
 local function higher(a: number?, b: number?): number?
@@ -183,26 +213,82 @@ local function wallNormal(hit: RaycastResult, from: Vector3): Vector3?
 	return if n.Magnitude > 0.01 then n.Unit else nil
 end
 
--- The wall in the way of something at `from` (in open water) steered the flat way `dir` (unit): the wall's own way
--- out, back into the open water (flat, unit), or nil with none within `reach` ahead. A solid wall the ray meets, or
--- the lane's own edge when we are within Wall.Band of it and steered out across it. For the wall ride (Lib/WallRide).
--- `steps`: what is only a step (isStep) is no wall (the ridden fish, which Course.clearVelocity takes up over it).
-function Course.wall(from: Vector3, dir: Vector3, reach: number, steps: boolean?): Vector3?
+-- How far above `from` a thing met by a flat ray ends, when it is a step (isStep): its top, found from above. For
+-- the wall ride's look-ahead, which takes a step that is nearly too high to climb as nearly a wall (Course.feel).
+local function stepRise(from: Vector3, dir: Vector3, hit: RaycastResult): number
+	local over = Vector3.new(hit.Position.X + dir.X * 0.5, from.Y + STEP + 0.5, hit.Position.Z + dir.Z * 0.5)
+	local top = workspace:Raycast(over, Vector3.new(0, -STEP - 1, 0), params)
+	return if top then math.clamp(top.Position.Y - from.Y, 0, STEP) else STEP
+end
+
+-- Feeling for a wall ahead (the wall ride's look-ahead, Lib/WallRide): from `from` (in open water) the flat way `dir`
+-- (unit), as far as `reach`. Back come the wall's own way out, back into the open water (flat, unit), how far
+-- `from` is from the wall's face, measured square to it, and how much of a wall it is (1: a wall); or nil with no
+-- wall that near.
+-- `steps`: what is only a step (isStep) is no wall (the ridden fish goes up over it: Course.clearVelocity), and the
+-- look goes on over it, from a step higher: the next terrace's wall behind a low one is seen before the climb, and
+-- comes back as a second wall (the three values again), counted by as much as we would get over the step. A step within STEP_SOFT of too high to climb is part wall
+-- already (its share comes back as the third value): the lane's terraces often end right at that height, and as we
+-- rose and sank a little beside one it was a wall one frame and nothing the next (measured 2026-11-13: the way we
+-- went thrown 20 to 30 degrees in a frame, 2,850 studs down).
+function Course.feel(
+	from: Vector3,
+	dir: Vector3,
+	reach: number,
+	steps: boolean?
+): (Vector3?, number, number, Vector3?, number, number)
 	if not begun then
 		Course.begin(throughLast)
 	end
-	local hit = workspace:Raycast(from, dir * reach, params)
-	if hit and hit.Normal.Y < WALL and not (steps and isStep(from, dir, reach)) then
-		local n = wallNormal(hit, from)
-		if n then
-			return n
+	local origin = from
+	local low: Vector3?, lowFar: number, lowShare: number = nil, 0, 0
+	local over = 1 -- how much of us gets over the steps looked over so far: what is behind them counts by that much
+	for _ = 1, 3 do
+		local hit = workspace:Raycast(origin, dir * reach, params)
+		if not hit or hit.Normal.Y >= WALL then
+			break
+		end
+		local n = wallNormal(hit, origin)
+		if not n then
+			break
+		end
+		local far = math.max((origin - hit.Position):Dot(n), 0)
+		if steps and isStep(origin, dir, (hit.Position - origin).Magnitude) then
+			local rise = stepRise(origin, dir, hit)
+			local u = math.clamp((rise - (STEP - STEP_SOFT)) / STEP_SOFT, 0, 1)
+			local share = u * u * (3 - 2 * u)
+			if not low and share > 0.01 then
+				low, lowFar, lowShare = n, far, share * over
+			end
+			over *= 1 - share
+			if over < 0.01 then
+				break
+			end
+			origin += Vector3.new(0, STEP, 0)
+		elseif low then
+			return low, lowFar, lowShare, n, far, over
+		else
+			return n, far, over, nil, 0, 0
 		end
 	end
+	return low, lowFar, lowShare, nil, 0, 0
+end
+
+-- The lane's own edge as a wall, for the same look-ahead: its way back in, and how far inside it `from` is (negative
+-- beyond it); nil off the lane (the lagoon behind its start) and where the map has its own wall out there (`walled`:
+-- that wall is felt for like any other). Where the lane narrows or widens the edge is not
+-- along the lane: its way back in leans up or down the lane by as much (so a neck's edge is seen coming, as a
+-- wall's is, and not met side on).
+function Course.edge(from: Vector3): (Vector3?, number)
 	locate(from)
-	if laneFloor and outside > -Config.Wall.Band and dir:Dot(outward) > 0 then
-		return -outward
+	if not begun then
+		Course.begin(throughLast)
 	end
-	return nil
+	if laneFloor and outside > -OPEN and not walled(from) then
+		local normal = (-outward + alongHere * slope).Unit
+		return normal, -outside / math.sqrt(1 + slope * slope)
+	end
+	return nil, 0
 end
 
 -- A velocity for something at `from` (in open water) that keeps it there: what would take it into a wall, the floor, a
@@ -220,7 +306,7 @@ function Course.clearVelocity(from: Vector3, velocity: Vector3, clearance: numbe
 		local dir = flat / run
 		local length = run * LOOK_AHEAD + reach
 		local hit = workspace:Raycast(from, dir * length, params)
-		if hit and hit.Normal.Y < WALL and isStep(from, dir, length) then
+		if hit and hit.Normal.Y < WALL and isStep(from, dir, hit.Distance) then
 			-- a step: its top is the floor a moment ahead, and the floor rule below takes us up over it
 			ahead = hit.Position + dir
 			aheadRise = STEP
@@ -240,9 +326,14 @@ function Course.clearVelocity(from: Vector3, velocity: Vector3, clearance: numbe
 			ahead = from + dir * (run * LOOK_AHEAD)
 		end
 	end
-	-- the lane's edge: no further out, and eased back in from beyond it
-	if outside > 0 then
-		v -= outward * (math.max(v:Dot(outward), 0) + math.min(outside * 2, 30))
+	-- the lane's edge, where the map has no wall of its own beyond it (`walled`): no further out, and eased back in
+	-- from beyond it. (Our way out is taken over the first EDGE
+	-- studs past it, not all at the line: where the lane bends, the nearest point of its middle can jump along it
+	-- and put us some studs outside in one frame, with the real wall still well off; taken at once, that threw the
+	-- way we go round by up to 12 degrees in a frame, measured 2026-11-13. The map's own walls and its barrier are
+	-- the hard edge; the wall ride (Lib/WallRide, Course.edge) rides this line before it is ever crossed.)
+	if outside > 0 and not walled(from) then
+		v -= outward * (math.max(v:Dot(outward), 0) * math.min(outside / EDGE, 1) + math.min(outside * 2, 30))
 	end
 	-- the floor, here and a moment ahead (so a rising floor is met before we are in it)
 	local floor = higher(
@@ -307,8 +398,9 @@ function Course.clearMove(from: Vector3, to: Vector3, clearance: number): Vector
 		end
 	end
 	local x, z = from.X + step.X, from.Z + step.Z
-	locate(Vector3.new(x, from.Y, z))
-	if outside > 0 then
+	local ended = Vector3.new(x, from.Y, z)
+	locate(ended)
+	if outside > 0 and not walled(ended) then
 		-- past the lane's edge: no further out
 		local out = step:Dot(outward)
 		if out > 0 then

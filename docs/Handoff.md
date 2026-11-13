@@ -3,6 +3,47 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): the glide starts before the wall, and the camera under the water's lit sheet
+**State:** on Hugo's hand-play of 2026-11-13. Run in Studio by script through the studio runner on grey-box 15;
+**not played by hand**. StyLua and selene pass. Nothing uploaded; the test scripts are out of the place. Not
+committed or pushed by hand (the vault's own sync carries it). The numbers, before and after, and two pictures:
+[the playtest](playtests/2026-11-13-wall-glide.md). The rules: [riding feel](design/riding-feel.md), "The glide
+starts before the wall" and "Under the water's lit sheet". Two rows in [Decisions](Decisions.md).
+- **The wall glide** (`Lib/WallRide` rewritten, `Lib/Course`, `RideController.drive`, `JumpController`): a wall is
+  seen `Wall.Look` (0.5) seconds of travel ahead on three rays and one along the way really gone, and the way you
+  go is bent onto it by a limit on how fast you may close on it, down to nothing at `Wall.Gap` (5 studs of water
+  beside the body). No moment of contact any more. The speed kept by angle, the swing square on, steering off,
+  `State.Wall` and `State.WallSide` are as they were. `WallRide.step` takes the body's half length and half width
+  now, not a reach.
+- **`Lib/Course`:** `Course.wall` is gone; new `Course.feel` (a wall ahead: its way out, its distance, how much
+  of a wall it is, and the wall behind a step) and `Course.edge`. A step is a step only with 12 studs of open
+  water past its face, asked the same way by the look-ahead and the hard rule. **The lane's surveyed edge now
+  counts only where the map has no wall of its own beyond it** (it stood up to 40 studs inside the real walls and
+  jumped at bends); the walls, terraces and barrier are the edge. The hard rules are still there behind it all.
+- **The camera** (`RideController.cameraStep`): its ceiling is under the water's lit sheet, about 10 under the
+  surface (was 3); riding and in a hop it is always under; it meets the line softly; floating at the surface it
+  stays above the water instead (`Camera.FloatAbove`). And the camera's "never inside a wall" rule leaves the
+  map's breakable props out (`Lane/Props`): riding along a wall past a coral, it came in 8 studs in one frame.
+- **New numbers, all in the N panel:** `Wall.Look`, `Gap`, `Soft`, `Feelers`; `Camera.LightMargin`, `LightLayer`,
+  `SurfaceKnee`, `SurfaceTime`, `FloatAbove`, `AirMargin`. `Wall.Band` now means how far inside the lane's own
+  edge you ride it.
+- **For the partner (the water and the lighting): nothing of yours was changed.** The "thin layer of light" is
+  your water's own stack: the four layers `Foam`, `Water1`, `Water2`, `Water3` from the surface down to 8 studs
+  under it, and the nine bright `Under` sheets at 8.45 under (`tools/map/water_look.luau`,
+  `ClaudeBlockout.Surface.WaterLayers`). None is solid or seen by rays (`CanCollide`, `CanQuery` off), so no
+  property needed changing and `water_look.luau`, `98_water.luau` and the Lighting are untouched. The camera reads
+  the height of the part named `Under` each frame. **If you rename `Under` or `WaterLayers`, or move the sheet,**
+  the camera falls back to `Camera.LightLayer` (8.5 under `WaterTop`): change that number, or tell the game-code
+  chat.
+- **For the map chat:** the look-ahead names the same folders as before (`Lane/Walls`, `Lane/Ground`,
+  `Lane/Barrier`, `Lane/Props`, `Dock`). The surveyed width in `path.json` no longer holds a ridden fish where a
+  wall stands beyond it, so it need not be exact.
+- **The test driver** (`tools/studio/movement_w1/`) gained `glide`, `glideone`, `wander`, `mouth`, `hopglide`,
+  `camtop`, `camwall` and `pose`; its older wall checks (`wall`, `walldeep`) were written for the old contact
+  rule and will report false failures: use `glide`.
+- **Left:** the fish you hop off coasts into a wall the old way for its 1.5 s (`RideController.coast`). A view
+  flicked round in one frame beside a wall still brings the camera in at once (the old rule, unchanged).
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): fewer fish with abilities
 **State:** on Hugo's feedback of 2026-11-13. Data and notes only: `Config.FishStats` and
 [archetypes](design/archetypes.md). No code changed, nothing run in Studio, not played. StyLua, selene and

@@ -32,6 +32,13 @@ Read `game.ServerStorage.W1Log.Value` through the server context. Wait for `FINA
   test walls further down); `walldeep [fish]` runs seven of them; `walltrace <angle> <lead> <from>` adds a line every
   0.12 s (where we are, what we asked for, what `Course` gave, what the rays meet).
 - `set <Group> <Key> <value>`: a Config number on both machines, for comparisons.
+- Since 2026-11-13 (the glide before the wall; `wall` and `walldeep` were written for the old contact rule and
+  report false failures now): `glide [fish] [lead s]` (15 to 90 degrees into the side, steering off, hugging: the
+  least water kept from the wall, the most the way turned and the speed changed in a frame, whether `Course`'s
+  hard rule fired), `glideone <angle> [fish] [lead] [extras 0|1] [trace 0|1]`, `wander [fish] [seconds]` (both
+  walls down the lane, stalls logged where they happen), `mouth [fish]` (back up into the hub's mouth),
+  `hopglide [fish]`, `camtop [label]` (the camera against the water's lit sheet), `camwall [fish]`,
+  `pose <float|hop|ride> <pitch> <seconds>` (holds a view for a picture).
 
 A failed check is logged as `CHECK FAIL` and the run goes on. The wall check compares the speed kept with the
 design's share at the angle the wall is REALLY met at (the walls wave: the angle to the lane is not it), and checks

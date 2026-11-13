@@ -596,10 +596,11 @@ local function hop(dt: number)
 		local t = math.max(0, clock - dt + i * h)
 		local before = yaw
 		yaw = RideController.steer(yaw, h)
-		-- the wall ride (Config.Wall, Lib/WallRide): steered into a wall or the lane's edge we go along it, keeping our
-		-- speed but for a share by how square on; dead straight in, the swing lifts us and lets us down again
+		-- the wall ride (Config.Wall, Lib/WallRide): steered at a wall or the lane's edge we are turned along it from
+		-- Wall.Look seconds ahead, keeping our speed but for a share by how square on; dead straight in, we slow
+		-- into it and the swing lifts us and lets us down again
 		local pace = speedAt(math.max(0, t - h / 2))
-		local way, kept = WallRide.step(wall, position, (before + yaw) / 2, pace, 3 + pace * h, h)
+		local way, kept = WallRide.step(wall, position, (before + yaw) / 2, pace, 3, 1.5, h)
 		local velocity = way * (pace * kept)
 		local height = heightAt(t) + resumeHeight
 		if wall.Lift ~= 0 then
@@ -608,11 +609,7 @@ local function hop(dt: number)
 		local want = Vector3.new(position.X + velocity.X * h, height, position.Z + velocity.Z * h)
 		position = Course.clearMove(position, want, j.FloorClearance)
 		if i == steps then
-			faced = Ease.lerpAngle(
-				faced,
-				if wall.Touch then Ease.lerpAngle(yaw, yawOf(way), wall.Slide) else yaw,
-				Ease.alpha(12, dt)
-			)
+			faced = Ease.lerpAngle(faced, Ease.lerpAngle(yaw, yawOf(way), wall.Slide), Ease.alpha(12, dt))
 		end
 	end
 	State.Heading = yaw

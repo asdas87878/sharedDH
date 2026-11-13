@@ -28,6 +28,14 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat and the partner:** the wall
+  glide now starts before the wall and the camera keeps out of the water's layer of light
+  ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-wall-glide.md)). Files changed:
+  `Lib/WallRide` (rewritten), `Lib/Course` (`Course.wall` is now `Course.feel` and `Course.edge`),
+  `RideController`, `JumpController`, `SandboxController` (panel rows only), `Config` (`Wall` and `Camera` only),
+  `tools/studio/movement_w1/driver.client.luau`. The water's scripts and the Lighting were not touched; the
+  camera reads the part named `Under` in `Surface.WaterLayers`, so tell the game-code chat if that is renamed.
+  Those files are free again. Hugo's PC's Studio is free.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code and the tuning chats:** the abilities in
   `Config.FishStats` are handed out again on Hugo's word (far fewer: 51 of 82 fish have none), and The Devourer is
   128, not 150. Nothing else in Config changed. The sandbox's `TRY_OUT` list wants two new names (Steller's Sea

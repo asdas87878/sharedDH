@@ -25,9 +25,62 @@ local camera = workspace.CurrentCamera
 local Course = require(Client.Lib.Course)
 local wallContact = {}
 local wallMet = {}
-local wallOriginal = Course.wall
-Course.wall = function(from, dir, reach)
-	local normal = wallOriginal(from, dir, reach)
+-- (the wall ride's own state, as its last step left it: the ridden fish's, or the hop's)
+local WallRide = require(Client.Lib.WallRide)
+local rideState = nil
+local stepOriginal = WallRide.step
+local feels = {} -- every ray the wall ride cast this step
+local ring = {} -- the last steps: what went in, what came out, and those rays
+WallRide.step = function(ride, at, yaw, speed, ...)
+	rideState = ride
+	feels = {}
+	local way, share = stepOriginal(ride, at, yaw, speed, ...)
+	table.insert(ring, {
+		T = os.clock(),
+		Line = string.format(
+			"at (%.1f, %.1f, %.1f) yaw %.1f speed %.0f -> way yaw %.1f share %.2f | taken %.2f slide %.2f kept %.2f near %.1f normal (%.2f, %.2f) | rays: %s",
+			at.X,
+			at.Y,
+			at.Z,
+			math.deg(yaw),
+			speed,
+			math.deg(math.atan2(-way.X, -way.Z)),
+			share,
+			ride.Taken or -1,
+			ride.Slide,
+			ride.Kept,
+			ride.Near or -1,
+			ride.Normal.X,
+			ride.Normal.Z,
+			table.concat(feels, "; ")
+		),
+	})
+	if #ring > 8 then
+		table.remove(ring, 1)
+	end
+	return way, share
+end
+local hardFrames = 0 -- frames Lib/Course's hard wall rule changed the flat velocity it was asked for
+-- (until 2026-11-13 the wall ride asked Course.wall; now it feels ahead with Course.feel: its ray along our heading)
+local wallName = if Course.feel then "feel" else "wall"
+local wallOriginal = Course[wallName]
+Course[wallName] = function(from, dir, reach, steps)
+	local normal, far, share, normal2, far2, share2 = wallOriginal(from, dir, reach, steps)
+	if wallName == "feel" then
+		table.insert(
+			feels,
+			string.format(
+				"dir %.0f: %s%s",
+				math.deg(math.atan2(-dir.X, -dir.Z)),
+				if normal then string.format("n (%.2f, %.2f) far %.1f x%.2f", normal.X, normal.Z, far, share) else "-",
+				if normal2 then string.format(" + n (%.2f, %.2f) far %.1f", normal2.X, normal2.Z, far2) else ""
+			)
+		)
+		local heading = CFrame.fromOrientation(0, State.Heading or 0, 0).LookVector
+		if dir:Dot(heading) < 0.999 then
+			return normal, far, share, normal2, far2, share2
+		end
+	end
 	wallContact = { From = from, Dir = dir, Reach = reach, Normal = normal }
 	if normal then
 		-- what was met: which kind of part, its broad face or its end, or the lane's own edge with nothing solid there
@@ -53,8 +106,10 @@ Course.wall = function(from, dir, reach)
 		end
 		wallMet[what] = (wallMet[what] or 0) + 1
 	end
-	return normal
+	return normal, far, share, normal2, far2, share2
 end
+local stallDumps = 0
+local askedLast, gotLast, askedBefore, gotBefore = Vector3.zero, Vector3.zero, Vector3.zero, Vector3.zero
 local clearOriginal = Course.clearVelocity
 local lastStall = -math.huge
 local tracing, lastTrace = false, -math.huge
@@ -62,6 +117,13 @@ Course.clearVelocity = function(from, velocity, clearance, reach)
 	local result = clearOriginal(from, velocity, clearance, reach)
 	local flatWanted = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
 	local flatGot = Vector3.new(result.X, 0, result.Z).Magnitude
+	if clearance == Config.Ride.FloorClearance and reach > 2.5 then
+		askedBefore, gotBefore = askedLast, gotLast
+		askedLast, gotLast = velocity, result
+	end
+	if flatWanted > 3 and (Vector3.new(velocity.X - result.X, 0, velocity.Z - result.Z)).Magnitude > 0.03 * flatWanted then
+		hardFrames += 1
+	end
 	if tracing and os.clock() - lastTrace > 0.12 then
 		lastTrace = os.clock()
 		local params = RaycastParams.new()
@@ -130,6 +192,12 @@ Course.clearVelocity = function(from, velocity, clearance, reach)
 		params.FilterDescendantsInstances = skip
 		local direction = Vector3.new(velocity.X, 0, velocity.Z).Unit
 		local hit = workspace:Raycast(from, direction * (flatWanted * 0.12 + reach), params)
+		if stallDumps < 2 then
+			stallDumps += 1
+			for _, item in ring do
+				log("    step %.3f s ago: %s", os.clock() - item.T, item.Line)
+			end
+		end
 		log(
 			"STALL mode=%s wall=%s at=%s wanted=%s got=%s hit=%s normal=%s hitAt=%s HEADING=%s CAMYAW=%.1f WALLDIR=%s WALLNORMAL=%s REACH=%.1f",
 			State.Mode,
@@ -1351,6 +1419,813 @@ local function phaseChain()
 end
 
 ------------------------------------------------------------------------------------------------------------------
+-- THE GLIDE (2026-11-13): the wall ride starts before the wall. How near the wall we really come, how smoothly the
+-- way we go, the body and the camera turn, and whether Lib/Course's hard rule ever had to step in.
+local glideParams = RaycastParams.new()
+glideParams.RespectCanCollide = true
+glideParams.FilterType = Enum.RaycastFilterType.Exclude
+local function glideSkip()
+	local skip = { camera, player.Character }
+	local map = workspace:FindFirstChild("ClaudeBlockout")
+	if map then
+		if map:FindFirstChild("Surface") then
+			table.insert(skip, map.Surface)
+		end
+		local props = map:FindFirstChild("Lane") and map.Lane:FindFirstChild("Props")
+		if props then
+			table.insert(skip, props) -- (every fish breaks props and swims through them: Config.Props.MinLength 0)
+		end
+	end
+	glideParams.FilterDescendantsInstances = skip
+end
+-- the nearest wall face to a point, all round (floors and low steps with open water over them are not walls)
+local function wallDistance(at)
+	local best = math.huge
+	local up = Vector3.new(0, 10, 0)
+	local roofed = workspace:Raycast(at, up, glideParams) ~= nil
+	for i = 0, 23 do
+		local a = i * math.pi / 12
+		local dir = Vector3.new(math.sin(a), 0, math.cos(a))
+		local hit = workspace:Raycast(at, dir * 90, glideParams)
+		if hit and hit.Normal.Y < 0.5 and hit.Distance < best then
+			local step = not roofed and not workspace:Raycast(at + up, dir * (hit.Distance + 12), glideParams)
+			if not step then
+				best = hit.Distance
+			end
+		end
+	end
+	return best
+end
+local function takenNow()
+	local r = rideState
+	if not r then
+		return 0
+	end
+	return r.Taken or (if r.Touch then 1 else 0)
+end
+local function angleBetween(a, b)
+	local fa, fb = Vector3.new(a.X, 0, a.Z), Vector3.new(b.X, 0, b.Z)
+	if fa.Magnitude < 0.01 or fb.Magnitude < 0.01 then
+		return 0
+	end
+	return math.deg(math.acos(math.clamp(fa.Unit:Dot(fb.Unit), -1, 1)))
+end
+-- a meter over a stretch of frames. `mover`: the part that moves (the fish's root, or ours in the hop)
+local function newMeter(mover, wide, long, v0)
+	glideSkip()
+	local m = {
+		Frames = 0,
+		Wall = math.huge, -- least distance, centre to the nearest wall face
+		Side = math.huge, -- that less the body's half width
+		Nose = math.huge, -- the least distance from the nose (along the body) to a wall
+		Edge = math.huge, -- the least distance inside the lane's own edge
+		Turn = 0, -- the biggest change of the way we go in one frame, degrees
+		TurnRate = 0, -- and as a rate
+		Dv = 0, -- the biggest change of flat speed in one frame, studs a second
+		Face = 0, -- the fastest the body turned, degrees a second
+		Split = 0, -- the most the body pointed away from the way it went, degrees
+		Slow = 0, -- the longest time under a quarter of v0 while not in the swing, seconds
+		Zero = 0, -- frames under 2 studs a second while not in the swing
+		CamDv = 0, -- the biggest change of the camera's speed in one frame
+		CamTurn = 0, -- the camera's fastest turn with no look command in the last 0.3 s
+		Hard = 0, -- frames Lib/Course's hard wall rule changed the flat velocity
+		Logged = 0,
+		CamLogged = 0,
+	}
+	local lastV, lastLook, lastCamPos, lastCamV, lastCamLook = nil, nil, nil, nil, nil
+	local slowFor = 0
+	local hard0 = hardFrames
+	local lastAim, aimedAt = State.CamYaw or 0, -math.huge
+	function m.step(dt)
+		if dt <= 0 or dt > 0.1 then
+			lastV, lastCamV = nil, nil
+			return
+		end
+		m.Frames += 1
+		local at = mover.Position
+		local v = mover.AssemblyLinearVelocity
+		local speed = flat(v)
+		local look = mover.CFrame.LookVector
+		local d = wallDistance(at)
+		m.Wall = math.min(m.Wall, d)
+		m.Side = math.min(m.Side, d - wide)
+		local ahead = workspace:Raycast(at, Vector3.new(look.X, 0, look.Z).Unit * 90, glideParams)
+		if ahead and ahead.Normal.Y < 0.5 then
+			local up = Vector3.new(0, 10, 0)
+			local step = not workspace:Raycast(at, up, glideParams)
+				and not workspace:Raycast(at + up, Vector3.new(look.X, 0, look.Z).Unit * (ahead.Distance + 12), glideParams)
+			if not step then
+				m.Nose = math.min(m.Nose, ahead.Distance - long)
+			end
+		end
+		local _, _, across, width = laneAt(at)
+		m.Edge = math.min(m.Edge, width / 2 + Config.Ride.LaneMargin - math.abs(across))
+		local swinging = rideState and rideState.Slide < 0.9
+		if lastV then
+			if speed > math.max(5, v0 * 0.15) and flat(lastV) > math.max(5, v0 * 0.15) then
+				local turn = angleBetween(v, lastV)
+				if (turn > 8 and speed > v0 * 0.3 and m.Logged < 2) or (turn > 20 and m.Logged < 6) then
+					m.Logged += 1
+					local _, _, across, width, sNow = laneAt(at)
+					local r = rideState
+					for _, item in ring do
+						log("    step %.3f s ago: %s", os.clock() - item.T, item.Line)
+					end
+					log(
+						"  asked (%.1f, %.1f) got (%.1f, %.1f); the frame before asked (%.1f, %.1f) got (%.1f, %.1f)",
+						askedLast.X,
+						askedLast.Z,
+						gotLast.X,
+						gotLast.Z,
+						askedBefore.X,
+						askedBefore.Z,
+						gotBefore.X,
+						gotBefore.Z
+					)
+					log(
+						"  TURN %.1f deg in a frame (dt %.3f) at (%.0f, %.0f, %.0f) s %.0f across %.0f of %.0f | v (%.1f, %.1f) was (%.1f, %.1f) | heading %.1f | taken %.2f bend %.1f share %.2f slide %.2f near %.1f normal (%.2f, %.2f) | wall %.1f state %s mode %s",
+						turn,
+						dt,
+						at.X,
+						at.Y,
+						at.Z,
+						sNow,
+						across,
+						width / 2,
+						v.X,
+						v.Z,
+						lastV.X,
+						lastV.Z,
+						math.deg(State.Heading or 0),
+						takenNow(),
+						r and r.Bend and math.deg(r.Bend) or 0,
+						r and r.Share or -1,
+						r and r.Slide or -1,
+						r and r.Near or -1,
+						r and r.Normal.X or 0,
+						r and r.Normal.Z or 0,
+						d,
+						tostring(State.Wall),
+						State.Mode
+					)
+				end
+				m.Turn = math.max(m.Turn, turn)
+				m.TurnRate = math.max(m.TurnRate, turn / dt)
+			end
+			m.Dv = math.max(m.Dv, math.abs(speed - flat(lastV)))
+			m.Face = math.max(m.Face, angleBetween(look, lastLook) / dt)
+		end
+		if speed > 8 and not swinging then
+			m.Split = math.max(m.Split, angleBetween(look, v))
+		end
+		if not swinging and speed < v0 * 0.25 then
+			slowFor += dt
+			m.Slow = math.max(m.Slow, slowFor)
+		else
+			slowFor = 0
+		end
+		if not swinging and speed < 2 then
+			m.Zero += 1
+		end
+		lastV, lastLook = v, look
+		local camPos, camLook = camera.CFrame.Position, camera.CFrame.LookVector
+		local aim = State.CamYaw or 0
+		if math.deg(math.abs(math.atan2(math.sin(aim - lastAim), math.cos(aim - lastAim)))) / dt > 20 then
+			aimedAt = os.clock()
+		end
+		lastAim = aim
+		if lastCamPos then
+			local camV = (camPos - lastCamPos) / dt
+			if lastCamV then
+				local jump = math.abs(camV.Magnitude - lastCamV.Magnitude)
+				if jump > 100 and m.CamLogged < 3 then
+					m.CamLogged += 1
+					local hit = workspace:Raycast(at, camPos - at, glideParams)
+					log(
+						"  CAMJUMP %.0f st/s (dt %.3f; camera moved %.1f, the character's root is %.1f from the fish's, shake %s kick %s): camera %.1f from us (was %.1f), at (%.0f, %.0f, %.0f); between us and it: %s; wall state %s, mode %s, %d frames in",
+						jump,
+						dt,
+						(camPos - lastCamPos).Magnitude,
+						rootOf() and (rootOf().Position - at).Magnitude or -1,
+						tostring(Config.Jump.LandShake),
+						tostring(Config.Crash.Kick),
+						(camPos - at).Magnitude,
+						(lastCamPos - at).Magnitude,
+						camPos.X,
+						camPos.Y,
+						camPos.Z,
+						if hit then hit.Instance:GetFullName() else "nothing solid (props not counted)",
+						tostring(State.Wall),
+						State.Mode,
+						m.Frames
+					)
+				end
+				m.CamDv = math.max(m.CamDv, jump)
+			end
+			lastCamV = camV
+			if os.clock() - aimedAt > 0.3 then
+				m.CamTurn = math.max(m.CamTurn, math.deg(math.acos(math.clamp(camLook:Dot(lastCamLook), -1, 1))) / dt)
+			end
+		end
+		lastCamPos, lastCamLook = camPos, camLook
+		m.Hard = hardFrames - hard0
+	end
+	function m.line()
+		return string.format(
+			"nearest wall %.1f from the centre (%.1f clear of the side; body %.1f wide, %.1f long), nose %.1f clear, lane edge %.1f | way turned at most %.1f deg in a frame (%.0f deg/s), speed changed at most %.1f st/s in a frame, body turned at most %.0f deg/s, body off its way at most %.0f deg | under a quarter speed for %.2f s, %d frames near zero | camera: speed changed at most %.1f st/s in a frame, turned %.0f deg/s unasked | Course's hard wall rule: %d of %d frames",
+			m.Wall,
+			m.Side,
+			wide * 2,
+			long * 2,
+			m.Nose,
+			m.Edge,
+			m.Turn,
+			m.TurnRate,
+			m.Dv,
+			m.Face,
+			m.Split,
+			m.Slow,
+			m.Zero,
+			m.CamDv,
+			m.CamTurn,
+			m.Hard,
+			m.Frames
+		)
+	end
+	return m
+end
+local function bodyOfRidden()
+	local fish = State.Fish
+	local kind = fish and Config.FishById[fish:GetAttribute("FishType")]
+	if not fish or not kind then
+		return 2, 3
+	end
+	local size = Config.bodyOf(fish, kind)
+	return size.X / 2, size.Z / 2
+end
+local function designKept()
+	-- what the design says we keep at the angle we are steered into the wall that has us
+	local r = rideState
+	if not r or not State.Heading then
+		return nil
+	end
+	local heading = CFrame.fromOrientation(0, State.Heading, 0).LookVector
+	local into = math.clamp(-heading:Dot(r.Normal), 0, 1)
+	local off = 90 - math.deg(math.asin(into))
+	local w = Config.Wall
+	local u = math.clamp((off - w.HeadOn) / math.max(w.Blend, 0.1), 0, 1)
+	return Config.wallKeep(into) * u * u * (3 - 2 * u), math.deg(math.asin(into))
+end
+
+local glideTrace, lastGlideTrace = false, 0
+local function glideRun(angle, id, lead, extras)
+	if not getOn(id) then
+		log("GLIDE %d: could not get on", angle)
+		return
+	end
+	lookAlongLane(0)
+	settle(lead or 3)
+	local fish = State.Fish
+	local mover = fish.PrimaryPart
+	local wide, long = bodyOfRidden()
+	local speeds = {}
+	local t0 = os.clock()
+	while os.clock() - t0 < 0.8 do
+		RunService.RenderStepped:Wait()
+		table.insert(speeds, flat(mover.AssemblyLinearVelocity))
+	end
+	local v0 = median(speeds)
+	local sign = if angle < 0 then -1 else 1
+	local _, _, _, _, s0 = laneAt(mover.Position)
+	lookAlongLane(angle)
+	local m = newMeter(mover, wide, long, v0)
+	local began = os.clock()
+	local seenAt, seenFar, rodeAt = nil, nil, nil
+	local kept, design, angles = {}, {}, {}
+	local states = {}
+	local crashes = #events
+	while os.clock() - began < 12 do
+		local dt = RunService.RenderStepped:Wait()
+		if State.Mode ~= "Riding" or State.Fish ~= fish then
+			break
+		end
+		m.step(dt)
+		local now = os.clock()
+		local taken = takenNow()
+		if glideTrace and now - lastGlideTrace > 0.1 then
+			lastGlideTrace = now
+			local p, v, look = mover.Position, mover.AssemblyLinearVelocity, mover.CFrame.LookVector
+			log(
+				"  t %.2f at (%.1f, %.1f, %.1f) v (%.1f, %.1f, %.1f) body yaw %.0f heading %.0f | taken %.2f slide %.2f kept %.2f near %.1f normal (%.2f, %.2f) lift %.1f | wall %.1f state %s",
+				now - began,
+				p.X,
+				p.Y,
+				p.Z,
+				v.X,
+				v.Y,
+				v.Z,
+				math.deg(yawOf(look)),
+				math.deg(State.Heading or 0),
+				taken,
+				rideState and rideState.Slide or -1,
+				rideState and rideState.Kept or -1,
+				rideState and rideState.Near or -1,
+				rideState and rideState.Normal.X or 0,
+				rideState and rideState.Normal.Z or 0,
+				rideState and rideState.Lift or 0,
+				wallDistance(p),
+				tostring(State.Wall)
+			)
+		end
+		if not seenAt and taken > 0.03 then
+			seenAt = now
+			seenFar = wallDistance(mover.Position)
+		end
+		if seenAt and not rodeAt and taken > 0.9 then
+			rodeAt = now
+		end
+		if State.Wall then
+			states[State.Wall] = true
+		end
+		if rodeAt and now - rodeAt > 0.4 and now - rodeAt < 1.4 then
+			local want, real = designKept()
+			if want then
+				table.insert(kept, flat(mover.AssemblyLinearVelocity) / v0)
+				table.insert(design, want)
+				table.insert(angles, real)
+			end
+		end
+		if rodeAt and now - rodeAt > 2.2 then
+			break
+		end
+	end
+	local names = {}
+	for name in states do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	local crashed = 0
+	for i = crashes + 1, #events do
+		if events[i].Kind == "Crashed" then
+			crashed += 1
+		end
+	end
+	log(
+		"GLIDE %d on %s at %.0f st/s, %.0f down the lane | wall first turned us %.1f studs off it, %.2f s before we rode it | real angle %.0f | kept %.0f%% (design %.0f%%) | states %s | crashes %d | %s",
+		angle,
+		fishId(fish),
+		v0,
+		s0,
+		seenFar or -1,
+		if seenAt and rodeAt then rodeAt - seenAt else -1,
+		median(angles),
+		median(kept) * 100,
+		median(design) * 100,
+		table.concat(names, "+"),
+		crashed,
+		m.line()
+	)
+	if extras and State.Mode == "Riding" and State.Fish == fish then
+		-- steering off it
+		lookAlongLane(-35 * sign)
+		local off = newMeter(mover, wide, long, v0)
+		local turned = os.clock()
+		local freeAt, fastAt = nil, nil
+		while os.clock() - turned < 3 do
+			off.step(RunService.RenderStepped:Wait())
+			if not freeAt and not State.Wall then
+				freeAt = os.clock() - turned
+			end
+			if freeAt and not fastAt and flat(mover.AssemblyLinearVelocity) >= v0 * 0.9 then
+				fastAt = os.clock() - turned
+			end
+		end
+		log("GLIDE %d steering off: free of the wall after %.2f s, at 90%% speed after %.2f s | %s", angle, freeAt or -1, fastAt or -1, off.line())
+		-- and holding into it at a shallow angle: hugging it
+		lookAlongLane(12 * sign)
+		waitFor(function()
+			return takenNow() > 0.9
+		end, 14)
+		settle(1)
+		local hug = newMeter(mover, wide, long, v0)
+		local low, high, flips, last = math.huge, -math.huge, 0, State.Wall
+		local hugSpeeds = {}
+		local t1 = os.clock()
+		while os.clock() - t1 < 4 do
+			hug.step(RunService.RenderStepped:Wait())
+			local d = wallDistance(mover.Position)
+			if glideTrace and os.clock() - lastGlideTrace > 0.1 then
+				lastGlideTrace = os.clock()
+				local p, v = mover.Position, mover.AssemblyLinearVelocity
+				local _, _, across, width, sNow = laneAt(p)
+				log(
+					"  hug at (%.1f, %.1f, %.1f) s %.0f across %.1f half width %.1f | v (%.1f, %.1f) heading %.0f | taken %.2f slide %.2f share %.2f near %.1f normal (%.2f, %.2f) | wall %.1f state %s hard %d",
+					p.X,
+					p.Y,
+					p.Z,
+					sNow,
+					across,
+					width / 2,
+					v.X,
+					v.Z,
+					math.deg(State.Heading or 0),
+					takenNow(),
+					rideState and rideState.Slide or -1,
+					rideState and rideState.Share or -1,
+					rideState and rideState.Near or -1,
+					rideState and rideState.Normal.X or 0,
+					rideState and rideState.Normal.Z or 0,
+					d,
+					tostring(State.Wall),
+					hardFrames
+				)
+			end
+			low, high = math.min(low, d), math.max(high, d)
+			if (State.Wall ~= nil) ~= (last ~= nil) then
+				flips += 1
+			end
+			last = State.Wall
+			table.insert(hugSpeeds, flat(mover.AssemblyLinearVelocity) / v0)
+		end
+		log(
+			"GLIDE %d hugging (held 12 degrees into it for 4 s): wall %.1f to %.1f from the centre, the wall state came and went %d times, speed %.0f%% | %s",
+			angle,
+			low,
+			high,
+			flips,
+			median(hugSpeeds) * 100,
+			hug.line()
+		)
+	end
+end
+
+local function phaseGlide(id, lead)
+	for _, angle in { 15, 30, 45, 60, 75, 90 } do
+		glideRun(angle, id, lead, angle == 30 or angle == 60)
+	end
+	glideRun(-45, id, lead, false)
+end
+
+-- steering all over the lane for a while: both sides, necks, joints, terraces. A stall is logged where it happens.
+local function wander(id, seconds, start)
+	if not getOn(id) then
+		log("WANDER: could not get on")
+		return
+	end
+	lookAlongLane(0)
+	settle(start or 1)
+	local fish = State.Fish
+	local mover = fish.PrimaryPart
+	local wide, long = bodyOfRidden()
+	local v0 = Config.riddenOf(fish, Config.FishById[fish:GetAttribute("FishType")])
+	local m = newMeter(mover, wide, long, v0)
+	local began = os.clock()
+	lookYaw = function()
+		local root = rootOf()
+		if not root then
+			return nil
+		end
+		local along, right = laneAt(root.Position)
+		local t = os.clock() - began
+		local a = math.rad(72 * math.sin(2 * math.pi * t / 9) + 22 * math.sin(2 * math.pi * t / 2.7))
+		return yawOf(along * math.cos(a) + right * math.sin(a))
+	end
+	local slowFor, stalls = 0, 0
+	local s1 = 0
+	local _, _, _, _, sStart = laneAt(mover.Position)
+	local walled = 0
+	while os.clock() - began < seconds do
+		local dt = RunService.RenderStepped:Wait()
+		if State.Mode ~= "Riding" or State.Fish ~= fish then
+			log("WANDER: off the fish after %.1f s (mode %s)", os.clock() - began, State.Mode)
+			break
+		end
+		m.step(dt)
+		if State.Wall then
+			walled += 1
+		end
+		local swinging = rideState and rideState.Slide < 0.9
+		if not swinging and flat(mover.AssemblyLinearVelocity) < v0 * 0.2 then
+			slowFor += dt
+			if slowFor > 0.35 then
+				stalls += 1
+				slowFor = -1.5
+				local p = mover.Position
+				local _, _, across, width, s = laneAt(p)
+				log(
+					"WANDER STALL at (%.0f, %.0f, %.0f), %.0f down the lane, %.0f from the middle of %.0f: speed %.1f, wall %s, taken %.2f, slide %.2f",
+					p.X,
+					p.Y,
+					p.Z,
+					s,
+					across,
+					width,
+					flat(mover.AssemblyLinearVelocity),
+					tostring(State.Wall),
+					takenNow(),
+					rideState and rideState.Slide or -1
+				)
+			end
+		elseif slowFor > 0 then
+			slowFor = 0
+		elseif slowFor < 0 then
+			slowFor = math.min(0, slowFor + dt)
+		end
+		local _, _, _, _, s = laneAt(mover.Position)
+		s1 = s
+	end
+	log(
+		"WANDER on %s for %.0f s, %.0f to %.0f down the lane, at a wall in %d frames: %d stalls | %s",
+		fishId(fish),
+		os.clock() - began,
+		sStart,
+		s1,
+		walled,
+		stalls,
+		m.line()
+	)
+end
+
+-- the rounded mouth of the hub: back up the lane from the start, at its sides and its gate
+local function phaseMouth(id, only)
+	for _, angle in only or { 150, 165, 180, -165, -150, 120, -120 } do
+		if getOn(id) then
+			local fish = State.Fish
+			local mover = fish.PrimaryPart
+			local wide, long = bodyOfRidden()
+			local v0 = Config.riddenOf(fish, Config.FishById[fish:GetAttribute("FishType")])
+			lookAlongLane(angle)
+			local m = newMeter(mover, wide, long, v0)
+			local began = os.clock()
+			local states = {}
+			while os.clock() - began < 9 and State.Mode == "Riding" and State.Fish == fish do
+				m.step(RunService.RenderStepped:Wait())
+				if State.Wall then
+					states[State.Wall] = (states[State.Wall] or 0) + 1
+				end
+			end
+			local p = mover.Position
+			local _, _, across, width, s = laneAt(p)
+			log(
+				"MOUTH %d on %s: ended %.0f down the lane, %.0f from the middle of %.0f, at (%.0f, %.0f, %.0f), mode %s | Slide frames %d, Swing frames %d | %s",
+				angle,
+				fishId(fish),
+				s,
+				across,
+				width,
+				p.X,
+				p.Y,
+				p.Z,
+				State.Mode,
+				states.Slide or 0,
+				states.Swing or 0,
+				m.line()
+			)
+		end
+	end
+end
+
+-- the hop and its glide, steered at a wall
+local function phaseHopGlide(id, only)
+	tune("Jump", "AutoGrab", 0)
+	for _, angle in only or { 25, 45, 90 } do
+		if getOn(id) then
+			lookAlongLane(angle)
+			settle(1.2)
+			local root = rootOf()
+			local fish = State.Fish
+			local v0 = flat(fish.PrimaryPart.AssemblyLinearVelocity)
+			glideSkip()
+			-- leave when the wall is about a second and a half of the hop away
+			waitFor(function()
+				local look = CFrame.fromOrientation(0, State.Heading, 0).LookVector
+				local hit = workspace:Raycast(root.Position, look * 400, glideParams)
+				return hit ~= nil and hit.Normal.Y < 0.5 and hit.Distance < math.max(v0, 40) * 1.6
+			end, 10)
+			Actions.jump()
+			waitFor(function()
+				return State.Mode == "Jumping"
+			end, 1)
+			local m = newMeter(root, 1.5, 3, math.max(v0, 30))
+			local began = os.clock()
+			local seenAt, rodeAt = nil, nil
+			local states = {}
+			local dumped = true
+			local leastRoom = math.huge
+			while State.Mode == "Jumping" and os.clock() - began < 7 do
+				m.step(RunService.RenderStepped:Wait())
+				local taken = takenNow()
+				if not dumped and m.Wall < 4.5 then
+					dumped = true
+					for _, item in ring do
+						log("    step %.3f s ago: %s", os.clock() - item.T, item.Line)
+					end
+				end
+				if taken > 0.5 and rideState and rideState.Near then
+					leastRoom = math.min(leastRoom, rideState.Near)
+				end
+				if not seenAt and taken > 0.03 then
+					seenAt = os.clock() - began
+				end
+				if not rodeAt and taken > 0.9 then
+					rodeAt = os.clock() - began
+				end
+				if State.Wall then
+					states[State.Wall] = true
+				end
+			end
+			local names = {}
+			for name in states do
+				table.insert(names, name)
+			end
+			table.sort(names)
+			log(
+				"HOPGLIDE %d: left at %.0f st/s | the wall first turned us %.2f s into the hop, rode it from %.2f s | by the game's own rays the least water left to the gap line was %.1f (the gap is Wall.Gap %.1f and half our width; the meter's nearest wall also counts the seabed's tile edges as we sink to the floor) | states %s | ended %s | %s",
+				angle,
+				v0,
+				seenAt or -1,
+				rodeAt or -1,
+				leastRoom,
+				Config.Wall.Gap,
+				table.concat(names, "+"),
+				State.Mode,
+				m.line()
+			)
+			settle(1)
+		end
+	end
+	tune("Jump", "AutoGrab", 2)
+end
+
+-- the camera beside a wall: riding along one, the view is swung away from it (so the camera swings toward the wall)
+local function phaseCamWall(id)
+	do
+		for _, sign in { 1, -1 } do
+			if getOn(id) then
+				lookAlongLane(30 * sign)
+				waitFor(function()
+					return takenNow() > 0.9
+				end, 12)
+				settle(0.8)
+				local fish = State.Fish
+				local mover = fish.PrimaryPart
+				local wide, long = bodyOfRidden()
+				local t0 = os.clock()
+				lookYaw = function()
+					local root = rootOf()
+					if not root then
+						return nil
+					end
+					local along, right = laneAt(root.Position)
+					local u = math.clamp((os.clock() - t0) / 0.6, 0, 1)
+					u = u * u * (3 - 2 * u)
+					local a = math.rad((30 - 80 * u) * sign)
+					return yawOf(along * math.cos(a) + right * math.sin(a))
+				end
+				local m = newMeter(mover, wide, long, 64)
+				local inside = 0
+				local op = OverlapParams.new()
+				op.RespectCanCollide = true
+				op.FilterType = Enum.RaycastFilterType.Include
+				op.FilterDescendantsInstances = { workspace.ClaudeBlockout.Lane.Walls, workspace.ClaudeBlockout.Lane.Ground }
+				while os.clock() - t0 < 2 do
+					m.step(RunService.RenderStepped:Wait())
+					if #workspace:GetPartBoundsInRadius(camera.CFrame.Position, 0.2, op) > 0 then
+						inside += 1
+					end
+				end
+				log(
+					"CAMWALL wall on the %s: the view swung 80 degrees away from the wall in 0.6 s | camera's speed changed at most %.1f st/s in a frame | camera inside a wall in %d of %d frames | fish at least %.1f from the wall",
+					if sign > 0 then "right" else "left",
+					m.CamDv,
+					inside,
+					m.Frames,
+					m.Wall
+				)
+			end
+		end
+	end
+end
+
+-- THE CAMERA UNDER THE LIGHT (2026-11-13): where the camera is against the water's lit sheet, riding, looking about,
+-- in a hop and floating in the first land
+local function phaseCamTop(label)
+	local function sheetBottom()
+		local map = workspace:FindFirstChild("ClaudeBlockout")
+		local layers = map and map:FindFirstChild("Surface") and map.Surface:FindFirstChild("WaterLayers")
+		local sheet = layers and layers:FindFirstChild("Under")
+		return if sheet then sheet.Position.Y - sheet.Size.Y / 2 else nil
+	end
+	local function watch(name, seconds, each, skip)
+		local began = os.clock()
+		local frames, above, inBand = 0, 0, 0
+		local high, low = -math.huge, math.huge
+		local lastY, lastVy, jump, lastPos, lastV, dv = nil, nil, 0, nil, nil, 0
+		local rootHigh = -math.huge
+		while os.clock() - began < seconds do
+			local dt = RunService.RenderStepped:Wait()
+			if each and each(os.clock() - began) == false then
+				break
+			end
+			if os.clock() - began > (skip or 0) and dt > 0 and dt < 0.1 then
+				local y = camera.CFrame.Position.Y
+				local bottom = sheetBottom() or -8.5
+				frames += 1
+				if y > bottom then
+					above += 1
+				end
+				if y > bottom and y < 0 then
+					inBand += 1
+				end
+				high, low = math.max(high, y), math.min(low, y)
+				local root = rootOf()
+				if root then
+					rootHigh = math.max(rootHigh, root.Position.Y)
+				end
+				if lastY then
+					local vy = (y - lastY) / dt
+					if lastVy then
+						jump = math.max(jump, math.abs(vy - lastVy))
+					end
+					lastVy = vy
+				end
+				lastY = y
+				local pos = camera.CFrame.Position
+				if lastPos then
+					local v = (pos - lastPos) / dt
+					if lastV then
+						dv = math.max(dv, (v - lastV).Magnitude)
+					end
+					lastV = v
+				end
+				lastPos = pos
+			end
+		end
+		log(
+			"CAMTOP %s %s: camera height %.1f to %.1f (the lit sheet's underside is at %.2f; we were as high as %.1f) | above the sheet's underside in %d of %d frames, in the band of layers in %d | the camera's rise changed by at most %.1f st/s in a frame, its velocity by %.1f",
+			label,
+			name,
+			low,
+			high,
+			sheetBottom() or -8.5,
+			rootHigh,
+			above,
+			frames,
+			inBand,
+			jump,
+			dv
+		)
+	end
+	if not getOn("Barracuda") then
+		return
+	end
+	lookAlongLane(0)
+	watch("riding, view left alone", 5, nil, 1.5)
+	-- looking up and down while riding: the view from well above us to well below
+	local t0 = os.clock()
+	lookYaw = function()
+		local root = rootOf()
+		if not root then
+			return nil
+		end
+		local along = laneAt(root.Position)
+		return yawOf(along), math.rad(-65 + 110 * (0.5 - 0.5 * math.cos((os.clock() - t0) * 2 * math.pi / 4)))
+	end
+	watch("riding, looking up and down", 8)
+	-- a hop, the view high behind us
+	tune("Jump", "AutoGrab", 0)
+	if getOn("Barracuda") then
+		lookYaw = function()
+			local root = rootOf()
+			if not root then
+				return nil
+			end
+			return yawOf((laneAt(root.Position))), math.rad(-40)
+		end
+		settle(2)
+		Actions.jump()
+		watch("in a hop, the view 40 degrees down", 6, function()
+			return State.Mode == "Jumping" or State.Mode == "Riding"
+		end)
+		-- and floating after it (the sandbox doesn't fail): the view left where it was, then swung up and down
+		settle(0.5)
+		log("CAMTOP %s: mode now %s, we are at height %.1f", label, State.Mode, rootOf() and rootOf().Position.Y or 0)
+		watch("after the hop (" .. State.Mode .. "), the view 40 degrees down", 4)
+		t0 = os.clock()
+		lookYaw = function()
+			local root = rootOf()
+			if not root then
+				return nil
+			end
+			local along = laneAt(root.Position)
+			return yawOf(along), math.rad(-65 + 110 * (0.5 - 0.5 * math.cos((os.clock() - t0) * 2 * math.pi / 4)))
+		end
+		watch("after the hop (" .. State.Mode .. "), looking up and down", 8)
+	end
+	tune("Jump", "AutoGrab", 2)
+end
+
+------------------------------------------------------------------------------------------------------------------
 local busy = false
 cmd:GetPropertyChangedSignal("Value"):Connect(function()
 	local words = string.split(cmd.Value, " ")
@@ -1379,6 +2254,61 @@ cmd:GetPropertyChangedSignal("Value"):Connect(function()
 				phaseRegress()
 				camReport("regress")
 				log("FINAL SUITE DONE (%d checks failed)", failures)
+			elseif name == "glide" then
+				-- glide [fish] [lead seconds]: 15 to 90 degrees into the side, steering off, hugging
+				phaseGlide(words[2] or "Barracuda", tonumber(words[3]) or 3)
+				log("GLIDE DONE")
+			elseif name == "glideone" then
+				-- glideone <angle> [fish] [lead seconds] [extras 0|1]
+				glideTrace = words[6] == "1"
+				glideRun(tonumber(words[2]) or 45, words[3] or "Barracuda", tonumber(words[4]) or 3, words[5] == "1")
+				glideTrace = false
+			elseif name == "wander" then
+				-- wander [fish] [seconds] [straight seconds first]
+				wander(words[2] or "Barracuda", tonumber(words[3]) or 60, tonumber(words[4]) or 1)
+			elseif name == "mouth" then
+				phaseMouth(words[2] or "Barracuda", if words[4] and tonumber(words[3]) then { tonumber(words[3]) } else nil)
+				log("MOUTH DONE")
+			elseif name == "hopglide" then
+				phaseHopGlide(words[2] or "Barracuda", if words[4] and tonumber(words[3]) then { tonumber(words[3]) } else nil)
+				log("HOPGLIDE DONE")
+			elseif name == "pose" then
+				-- pose <float|hop|ride> <pitch degrees> <seconds>: hold a view for a picture
+				local pitchTo = math.rad(tonumber(words[3]) or 10)
+				local function hold()
+					lookYaw = function()
+						local root = rootOf()
+						if not root then
+							return nil
+						end
+						return yawOf((laneAt(root.Position))), pitchTo
+					end
+				end
+				if getOn("Barracuda") then
+					hold()
+					if words[2] ~= "ride" then
+						tune("Jump", "AutoGrab", 0)
+						settle(1.5)
+						Actions.jump()
+						if words[2] == "float" then
+							waitFor(function()
+								local root = rootOf()
+								return State.Mode == "Free" and root ~= nil and root.Position.Y > -3.6
+							end, 40)
+						else
+							settle(0.9)
+						end
+					end
+					log("POSE %s ready: mode %s, we at %.1f, camera at %.1f", tostring(words[2]), State.Mode, rootOf().Position.Y, camera.CFrame.Position.Y)
+					settle(tonumber(words[4]) or 20)
+					tune("Jump", "AutoGrab", 2)
+				end
+			elseif name == "camwall" then
+				phaseCamWall(words[2] or "Barracuda")
+				log("CAMWALL DONE")
+			elseif name == "camtop" then
+				phaseCamTop(words[2] or "")
+				log("CAMTOP DONE")
 			elseif name == "walldeep" then
 				-- the walls further down: a fast fish rides straight for a while first (each run starts at the top)
 				local list = pickFish()

@@ -61,7 +61,11 @@ What to reach for:
   it starts is `Oxygen.AngryAt`; `Angry.Motion` 0 takes the stand-in rocking off; `Angry.PulseSlow`, `PulseFast`,
   `PulseLow`, `PulseHigh` are the red; `AngryTier` is how much harder a rarer fish slows. Each style's own numbers
   are in `src/shared/AngryStyles.luau`, not in the panel.
-- **The camera under the surface:** `Camera.Submerge` (0 off), `WaterTop`, `SurfaceMargin`, `SurfaceTilt`.
+- **The camera under the surface:** `Camera.Submerge` (0 off), `WaterTop`, `SurfaceMargin`, `SurfaceTilt`; under
+  the water's lit sheet: `LightMargin`, `LightLayer`, `SurfaceKnee`, `SurfaceTime`; above the water while floating
+  at the surface: `FloatAbove` (0 off), `AirMargin`.
+- **The glide along a wall:** `Wall.Look` (seconds ahead a wall starts to turn you), `Gap` (water kept beside
+  you), `Soft`, `Feelers`, with the wall ride's older numbers (`Loss`, `Curve`, `HeadOn`, `Blend`, the swing).
 - **The rider's animation:** the `Pose` group (`CrawlRate`, `BreastRate`, `FloatTilt`, `PopTuck`, `Flip`, `FlipStart`,
   `RideCrouch`, `RideLean`, `BraceLean`). **The juice:** the `Feel` group (`PopFov`, `PopLines`, `ReelLines`,
   `BoltLines`, `Trail`, `Whoosh`, `Splash`, `Mark`).

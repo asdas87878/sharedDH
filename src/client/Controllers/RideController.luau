@@ -114,9 +114,15 @@ local wasScripted = false
 local cameraParams = RaycastParams.new() -- for keeping the camera out of the floor and walls
 cameraParams.FilterType = Enum.RaycastFilterType.Exclude
 cameraParams.RespectCanCollide = true
+local cameraProps: Instance? = nil -- the map's breakable props, which the camera's rule leaves out
 local cameraFor: Model? = nil -- the character those rays skip
 local deathBlend = 0 -- 0 to 1, how far the camera has turned to look at a death shot's focus
 local submerged = false -- we have dived: the camera stays under the surface until the dock or a respawn
+local surfaced = false -- floating at the surface ourselves, over the water's lit sheet: the camera is kept above the water
+local heldBy = 0 -- how far the ceiling or the floor has the camera off where its arm would put it, studs (eased as they let go)
+local heldHow, heldOver, heldAt = 0, 0, 0 -- which line holds it (1 the ceiling, 2 the floor), and what the last one left, running out
+local lineFrom, lineAt = 0, 0 -- where the ceiling or the floor set off from, and when
+local floorLine = 0 -- the lowest the camera may be then (it comes up to its line from where the camera was)
 local ceiling = 0 -- the highest the camera may be now (it comes down to the surface's line from where the camera was)
 
 -- The move stick or keys: X is right, Z is back (W is -Z)
@@ -508,11 +514,13 @@ local function drive(dt: number)
 			rock += math.rad(af.Shudder * math.min(af.Motion, 2)) * math.sin(6 * math.pi * u) * (1 - u)
 		end
 	end
-	-- The wall ride (Config.Wall, Lib/WallRide): steered into a wall or the lane's edge, the fish is turned along it
-	-- and keeps its speed but for a share by how square on; dead straight in, it rocks up the wall and back down.
+	-- The wall ride (Config.Wall, Lib/WallRide): steered at a wall or the lane's edge, the fish is turned along it
+	-- from Wall.Look seconds ahead, so it curves along the wall without touching, and keeps its speed but for a share
+	-- by how square on; dead straight in, it slows into the wall and rocks up it and back down.
 	-- The way we steer (`yaw`) is untouched: steering off the wall is just steering.
-	local body = Config.bodyOf(fish, rideType).Z / 2 + 1
-	local way, kept = WallRide.step(wall, at, yaw, speed, body + speed * 0.12, dt, true)
+	local size = Config.bodyOf(fish, rideType)
+	local body = size.Z / 2 + 1
+	local way, kept = WallRide.step(wall, at, yaw, speed, body, math.min(size.X / 2, body), dt, true)
 	speed *= kept
 	local swung = if wall.Swinging then 1 - wall.Slide else 0
 	if swung > 0 then
@@ -529,17 +537,12 @@ local function drive(dt: number)
 	State.Wall = WallRide.state(wall)
 	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
 	roll += wall.Lean * math.rad(Config.Wall.Lean) * Ease.alpha(r.BankEase, dt)
-	-- (the body turns along the wall by as much as it slides along it: square on, in the swing, it faces the wall)
-	local heading = CFrame.fromOrientation(
-		pitch,
-		if wall.Touch then Ease.lerpAngle(yaw, math.atan2(-way.X, -way.Z), wall.Slide) else yaw,
-		0
-	)
+	-- (the body turns with the way it really goes by as much as it slides along the wall: square on, in the swing,
+	-- it faces the wall. Off a wall that way is the way we steer, so this is `yaw`.)
+	local heading = CFrame.fromOrientation(pitch, Ease.lerpAngle(yaw, math.atan2(-way.X, -way.Z), wall.Slide), 0)
 	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
 	-- the air or out of the lane, however the keys are held
-	local wanted = if wall.Touch
-		then way * (speed * math.cos(pitch)) + Vector3.new(0, math.sin(pitch) * speed, 0)
-		else heading.LookVector * speed
+	local wanted = way * (speed * math.cos(pitch)) + Vector3.new(0, math.sin(pitch) * speed, 0)
 	if swung > 0 then
 		wanted = Vector3.new(wanted.X, Ease.lerp(wanted.Y, wall.LiftSpeed, swung), wanted.Z)
 	end
@@ -686,6 +689,29 @@ local function adopt()
 	fovEased, fovSpeed = camera.FieldOfView, 0
 end
 
+-- The underside of the lit sheet the map's water hangs under its surface (tools/map/water_look.luau: the parts named
+-- "Under" in ClaudeBlockout.Surface.WaterLayers, made on this machine; deep down the script lifts them high over the
+-- camera, which only raises this). Without that water (another place, a look that hasn't begun): Camera.LightLayer
+-- under Camera.WaterTop.
+local lightSheet: BasePart? = nil
+local function lightFloor(): number
+	local sheet = lightSheet
+	if not sheet or not sheet.Parent then
+		local map = workspace:FindFirstChild("ClaudeBlockout")
+		local surface = map and map:FindFirstChild("Surface")
+		local layers = surface and surface:FindFirstChild("WaterLayers")
+		local found = layers and layers:FindFirstChild("Under")
+		sheet = if found and found:IsA("BasePart") then found else nil
+		lightSheet = sheet
+	end
+	local c = Config.Camera
+	if sheet then
+		-- (never above where the water's layers end, wherever the sheet is)
+		return math.min(sheet.Position.Y - sheet.Size.Y / 2, c.WaterTop)
+	end
+	return c.WaterTop - c.LightLayer
+end
+
 local function cameraStep(dt: number)
 	local character, root = State.character()
 	if not State.inWater() or not character or not root then
@@ -794,39 +820,110 @@ local function cameraStep(dt: number)
 	local lift = c.Height * c.ArmHeight
 	-- Under the surface, once we have dived (Camera.Submerge): where the arm would lift the camera past the line, it
 	-- swings down behind us instead, as far as it must, and the view gives up a share of that tilt (SurfaceTilt).
-	local line = c.WaterTop - c.SurfaceMargin
+	-- The line is under the water's own layers AND under the lit sheet the water script hangs below them (the surface
+	-- seen from below, the bright ceiling; `lightFloor`): held at the old line, 3 under the surface, the camera sat
+	-- in between those layers, over the lit sheet, looking at the fish through it (Hugo, 2026-11-13: stuck on a thin
+	-- layer of light). Nothing there is solid and no ray meets it: it was this line itself that held the camera there.
+	local top = c.WaterTop - c.SurfaceMargin
+	local line = math.min(top, lightFloor() - c.LightMargin)
 	local armRotation = rotation
-	if c.Submerge <= 0 then
+	-- Floating at the surface (not on a fish, not in a hop) we are over that lit sheet ourselves, and a camera held
+	-- under it sees us only as a dark shape behind it (pictured 2026-11-13). So there the same idea is turned over:
+	-- the camera stays AirMargin above the water, swinging up behind us instead of dipping, until we go under
+	-- again. Either way it never rests in the band of layers.
+	local sheet = lightFloor()
+	local wasSurfaced = surfaced
+	surfaced = c.Submerge > 0
+		and c.FloatAbove > 0
+		and mode == "Free"
+		and root.Position.Y > sheet - (if surfaced then 4 else 1)
+	if surfaced then
+		local air = c.WaterTop + c.AirMargin
+		if not wasSurfaced then
+			lineFrom = math.min(air, (camPosition or focus).Y) - math.max(c.SurfaceKnee, 0)
+			lineAt = os.clock()
+		end
+		-- (the line sets off gently and arrives gently, Camera.SurfaceTime: the camera rides it through the layers)
+		floorLine = Ease.lerp(lineFrom, air, Ease.smoothstep(0, math.max(c.SurfaceTime, 0.01), os.clock() - lineAt))
+		submerged = false
+	elseif c.Submerge <= 0 then
 		submerged = false
 	elseif not submerged then
-		-- dived: the camera is under by itself, or we are well under (it is then brought down, not snapped)
+		-- dived: we are riding or in a hop (always under), the camera is under by itself, or we are well under. It is
+		-- then brought down from where it is, not snapped.
 		local wantedY = focus.Y + lift - rotation.LookVector.Y * distance
-		if wantedY <= line or root.Position.Y < line - 6 then
+		if mode == "Riding" or mode == "Jumping" or wantedY <= top or root.Position.Y < top - 6 then
 			submerged = true
-			ceiling = math.max(line, wantedY, (camPosition or focus).Y)
+			-- (from where the camera is, and the knee below clear of it, so nothing moves in the frame we dive)
+			lineFrom = math.max(line, wantedY, (camPosition or focus).Y) + math.max(c.SurfaceKnee, 0)
+			lineAt = os.clock()
 		end
 	end
 	if submerged then
-		ceiling = Ease.lerp(ceiling, line, Ease.alpha(5, dt))
-		if ceiling - line < 0.01 then
-			ceiling = line
-		end
-		if not State.SideCam then
-			local rise = -rotation.LookVector.Y -- the sine of how far the camera sits above our level
-			local most = math.clamp((ceiling - focus.Y - lift) / math.max(distance, 0.1), -0.5, 1)
-			if rise > most then
-				local lost = math.asin(math.clamp(rise, -1, 1)) - math.asin(most)
-				armRotation = CFrame.fromOrientation(-math.asin(most), shownYaw, 0)
-				rotation = CFrame.fromOrientation(shownPitch + lost * math.clamp(c.SurfaceTilt, 0, 1), shownYaw, 0)
+		ceiling = Ease.lerp(lineFrom, line, Ease.smoothstep(0, math.max(c.SurfaceTime, 0.01), os.clock() - lineAt))
+	end
+	-- Where that leaves the camera: under its ceiling, or over its floor. Each line is met softly: from SurfaceKnee
+	-- short of it the camera gives up more and more of its way there, and all of it at the line (met hard, a camera
+	-- rising with us in a hop stopped dead at the line). The arm swings down (up) behind us by as much as it must,
+	-- and the view gives up SurfaceTilt of that tilt. When a line lets go (we surface, or dive from the surface)
+	-- what it held the camera by runs out over a moment, so the camera is never thrown to where it would be.
+	do
+		local rise = -rotation.LookVector.Y -- the sine of how far the camera sits above our level
+		local wantedY = focus.Y + lift + rise * distance
+		local knee = math.max(c.SurfaceKnee, 0)
+		local heldY = wantedY
+		if State.SideCam then
+			heldY = wantedY
+		elseif submerged then
+			heldY = math.min(wantedY, ceiling)
+			if knee > 0 and wantedY > ceiling - knee and wantedY < ceiling + knee then
+				local u = (wantedY - (ceiling - knee)) / (2 * knee)
+				heldY = wantedY - knee * u * u
 			end
+		elseif surfaced then
+			heldY = math.max(wantedY, floorLine)
+			if knee > 0 and wantedY > floorLine - knee and wantedY < floorLine + knee then
+				local u = ((floorLine + knee) - wantedY) / (2 * knee)
+				heldY = wantedY + knee * u * u
+			end
+		end
+		local by = heldY - wantedY
+		local holder = if submerged then 1 elseif surfaced then 2 else 0
+		if holder ~= heldHow then
+			-- one line let go, the other took over: what the first held the camera by runs out over SurfaceTime
+			heldHow = holder
+			heldOver = heldBy - by
+			heldAt = os.clock()
+		end
+		heldBy = by + heldOver * (1 - Ease.smoothstep(0, math.max(c.SurfaceTime, 0.01), os.clock() - heldAt))
+		-- (a line that holds the camera has it at once; what the other line left runs out, short of this one)
+		if submerged then
+			heldBy = math.min(heldBy, if by < 0 then by else ceiling - wantedY)
+		elseif surfaced then
+			heldBy = math.max(heldBy, if by > 0 then by else floorLine - wantedY)
+		end
+		if State.SideCam or math.abs(heldBy) < 0.01 then
+			heldBy = if State.SideCam then 0 else heldBy
+		else
+			local level = math.clamp((wantedY + heldBy - focus.Y - lift) / math.max(distance, 0.1), -0.5, 0.9)
+			local lost = math.asin(math.clamp(rise, -1, 1)) - math.asin(level)
+			armRotation = CFrame.fromOrientation(-math.asin(level), shownYaw, 0)
+			rotation = CFrame.fromOrientation(shownPitch + lost * math.clamp(c.SurfaceTilt, 0, 1), shownYaw, 0)
 		end
 	end
 	local arm = -armRotation.LookVector * distance + Vector3.new(0, lift, 0)
 
 	-- keep the camera out of the floor and walls: it comes in at once (never inside one), and eases back out
-	if cameraFor ~= character then
+	-- (not out of the map's props: a fish breaks them and swims through, and a camera that came in at once for the
+	-- coral we were breaking jumped 8 studs in a frame, measured 2026-11-13 riding along a wall past one)
+	if cameraFor ~= character or not cameraProps then
 		cameraFor = character
-		cameraParams.FilterDescendantsInstances = { character, camera }
+		local map = workspace:FindFirstChild("ClaudeBlockout")
+		local laneFolder = map and map:FindFirstChild("Lane")
+		cameraProps = laneFolder and laneFolder:FindFirstChild("Props")
+		cameraParams.FilterDescendantsInstances = if cameraProps
+			then { character, camera, cameraProps }
+			else { character, camera }
 	end
 	local hit = workspace:Raycast(focus, arm, cameraParams)
 	local free = if hit
@@ -870,6 +967,8 @@ local function cameraStep(dt: number)
 	if submerged and view.Position.Y > ceiling then
 		-- whatever is left (the jolt, the shake, the side view, a camera that had nowhere lower to go): held under
 		view -= Vector3.new(0, view.Position.Y - ceiling, 0)
+	elseif surfaced and view.Position.Y < floorLine then
+		view += Vector3.new(0, floorLine - view.Position.Y, 0)
 	end
 	camera.CFrame = view
 

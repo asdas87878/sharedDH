@@ -682,7 +682,14 @@ Config.Wall = {
 	Loss = 0.5, -- the share of your speed lost riding a wall you are steered square into (just short of the swing)
 	Curve = 2, -- how the loss grows with the angle: 2 keeps 97% at 15 degrees, 88% at 30, 75% at 45, 62% at 60
 	Ease = 9, -- how quickly your speed takes that share, and gets it back as you steer off (higher is quicker)
-	Band = 1.5, -- this near the lane's edge counts as touching it, studs
+	-- The glide starts before the wall (Hugo, 2026-11-13: "approaching the wall should instantly glide you off before
+	-- you hit it"). A wall is seen Look seconds of travel ahead and the way you go is bent onto its line from there,
+	-- gently at first and wholly by the time you are Gap from it, so you curve along it and never touch.
+	Look = 0.5, -- seconds of travel ahead a wall starts to turn you (0.12 until 2026-11-13, and the turn was made at once)
+	Gap = 5, -- the water kept between your side and a wall you ride, studs (your nose, facing it square on)
+	Soft = 14, -- how quickly a wall's turn and its share of your speed come on and go (higher is quicker): only a wall that is suddenly there is slowed by this, one seen coming is slower already
+	Feelers = 45, -- a ray looks for walls this many degrees to each side of the way you steer, as well as along it
+	Band = 1.5, -- you ride the lane's own edge this far inside it, studs
 	HeadOn = 12, -- inside this many degrees of square on: the swing, no slide
 	Blend = 12, -- and over this many degrees past it the slide comes in (so there is no edge between the two)
 	SwingKick = 0.55, -- the swing: you go up the wall with this share of your speed,
@@ -800,7 +807,16 @@ Config.Camera = {
 	-- tilt that costs, so we stay in the picture and the aim hardly moves. The jolt and the shake are held under too.
 	Submerge = 1, -- 0: the camera may leave the water, as before
 	WaterTop = 0, -- the height of the water's surface (the map's water: tools/map/water_look.luau, Top)
-	SurfaceMargin = 3, -- the camera stays this far under it, studs (clear of the water's own breathing layers)
+	SurfaceMargin = 3, -- once dived the camera never comes nearer the surface than this, studs,
+	-- and it stays under the lit sheet the water hangs below its layers (the surface seen from below, 8.5 under the
+	-- surface in tools/map/water_look.luau; read from the map's own part while it is there). Hugo, 2026-11-13: held
+	-- 3 under the surface, the camera sat in that band of layers, over the sheet: "stuck on a thin layer of light".
+	LightMargin = 1.5, -- the camera stays this far under that sheet, studs
+	FloatAbove = 1, -- 1: floating at the surface (off a fish, over that sheet ourselves) the camera stays above the water instead, where it can see us; 0: under the sheet then too
+	AirMargin = 1.5, -- and this far above the water, studs
+	SurfaceTime = 0.7, -- seconds the camera takes to be brought under (or above) from where it was, setting off and arriving gently
+	SurfaceKnee = 4, -- from this far below its line the camera starts giving up its climb, so it meets the line softly (0: it stops dead at it, as until 2026-11-13)
+	LightLayer = 8.5, -- how far under WaterTop the sheet's underside is, where the map's water isn't there to ask
 	SurfaceTilt = 0.5, -- 0: the view keeps its tilt (we sit high in the picture); 1: it levels out to keep us in the middle
 }
 

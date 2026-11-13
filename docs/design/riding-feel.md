@@ -88,6 +88,49 @@ What the wall ride stands on, since the new map (grey-box 15, 2026-11-13; measur
   the view never turned by itself at a wall (15 degrees a second at most), and the spring made the camera's jumps
   larger.
 
+### The glide starts before the wall (Hugo, 2026-11-13)
+Hugo, after playing the wall ride by hand: "you're usually going forward so approaching the wall should instantly
+glide you off before you hit it; make sure this feels smooth; right now you hit the wall and then the glide tries
+to work but it feels awkward." Measured on that code, the causes were four
+([the playtest](../playtests/2026-11-13-wall-glide.md)):
+
+1. **The wall was only seen at the wall.** One ray along the heading, as long as the body and 0.12 s of travel.
+   The whole turn onto the wall was made in the frame it was met: the way the fish went was thrown 22 to 64
+   degrees in one frame (15 to 75 degree approaches), with no warning at all.
+2. **A wall that waves has ends that stick out,** and a terrace whose top is right at the height a fish still
+   climbs over was a wall one frame and nothing the next.
+3. **The lane's surveyed edge is not where the walls are.** It stands up to 40 studs inside them in places, and
+   jumps where the lane bends. Held to it, the fish rode an unseen wall in open water and was thrown inward.
+4. **Two walls at a corner were taken one after the other,** and which came first changed from frame to frame.
+
+What it does now (`Lib/WallRide`, `Lib/Course`; every number in `Config.Wall`, all in the N panel):
+
+- **Look ahead.** Three rays feel for walls: the way you steer, and `Wall.Feelers` (45) degrees to each side; a
+  fourth goes the way you really went last frame. A wall counts from `Wall.Look` (0.5) seconds of travel away.
+- **A limit on closing speed, not a turn at contact.** You may close on a wall no faster than brings you to
+  `Wall.Gap` (5 studs of water beside the body) in about half of `Look`. Nothing is taken at twice that distance,
+  everything at the gap, with no corner at either end. What that takes out of the way you steer is what turns you
+  along the wall. So there is no moment of contact: steered at a wall you curve along it, and held into it you
+  settle at the gap.
+- **The speed you keep** is the same rule as before (`Config.wallKeep`: by the angle you are steered at the wall),
+  and it comes on as the wall takes you, not at the wall.
+- **Square on** (inside `HeadOn` degrees) you slow into the wall over the look-ahead and the swing takes the speed
+  the wall takes from you, as it is taken. No kick at an impact.
+- **The body's own reach.** The gap is from the body as it really points: its width riding along a wall, its
+  length facing one.
+- **Steering is never eased.** Only what the walls add to it is, a little (`Wall.Soft`), so a wall that is
+  suddenly there (a prop building itself back) still does not turn you in one frame.
+- **Several walls** are gone over a few times until they agree, so the result does not hang on their order. A
+  corner you steer square into leaves nothing: that is the swing.
+- **Steps.** A step within 4 studs of too high to climb is part wall already, and what stands behind a step counts
+  only by as much as you would get over the step. The look-ahead and `Course`'s hard rule now ask "is it a step"
+  the same way (open water for 12 studs past its face).
+- **The lane's surveyed edge only counts where the map has no wall of its own beyond it** (a ray out across it
+  finds none within 240 studs). On grey-box 15 that is nowhere: the walls, the terraces and the barrier are the
+  edge. `Course`'s hard rules stay behind all of it and did not fire once in the final runs.
+- **The camera is still untouched.** A look-ahead for the camera's own wall rule was tried and measured to make
+  no difference; it is out.
+
 ### Verification for this pass
 
 The HTTP Studio runner was used for the following scripted checks. StyLua, selene and Rojo build pass. Direct checks
@@ -718,3 +761,21 @@ behind you instead of rising, and the view gives up `SurfaceTilt` (half) of the 
 picture; the landing's jolt and shake and the drowning's shot are held under too. `Camera.Submerge` 0 turns it off.
 Measured in the first land, one hop looking 40 degrees down: 94 frames above the surface with it off (up to 2.4
 studs above), none with it on.
+
+**Under the water's lit sheet (Hugo, 2026-11-13).** The partner's water hangs four thin layers from the surface
+down to 8 studs under it, and below them a bright sheet: the surface seen from below (`tools/map/water_look.luau`,
+the parts named `Under`, 8.45 under the surface). Hugo: "a thin layer of light just under the surface that the
+camera gets stuck on". Nothing there is solid and no ray meets it. It was this rule's own line: held 3 studs under
+the surface, the camera sat inside that band of layers, over the lit sheet, looking down at the fish through it.
+Measured before: in the band in 115 of 180 frames of a hop, and pinned at exactly -3.0 while floating.
+
+- **The line is under the sheet now:** `Camera.LightMargin` (1.5) under the sheet's own underside, read from the
+  map's part while it is there (`Camera.LightLayer` 8.5 where it isn't), so the camera's ceiling is about 10 under
+  the surface. The partner's water is not changed in any way.
+- **Riding and in a hop the camera is always under it** (it used to wait until the camera went under by itself).
+- **It meets the line softly:** from `SurfaceKnee` (4) below it the camera gives up more and more of its climb. A
+  camera rising with you in a hop no longer stops dead.
+- **Floating at the surface it is the other way up** (`Camera.FloatAbove` 1). There you are over the sheet
+  yourself, and a camera under it sees you only as a dark shape behind it. So the camera stays `AirMargin` (1.5)
+  above the water until you go under again. Either way it never rests in the band; it passes through it once, in
+  about a quarter of a second, each time you dive or surface (`SurfaceTime`).
