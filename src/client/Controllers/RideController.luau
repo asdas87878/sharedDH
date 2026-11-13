@@ -42,6 +42,7 @@ local Course = require(script.Parent.Parent.Lib.Course)
 local Feel = require(script.Parent.Parent.Lib.Feel)
 local Spring = require(script.Parent.Parent.Lib.Spring)
 local State = require(script.Parent.Parent.Lib.State)
+local WallRide = require(script.Parent.Parent.Lib.WallRide)
 
 local RideController = {}
 
@@ -68,6 +69,7 @@ local boostBy = 1 -- how many times our speed it is,
 local boostTime = 0 -- and for how long (it fades over the last third: Config.burstShare)
 local actAt = -math.huge -- os.clock() of the last bite or smash, for the stand-in motion,
 local actKind = "" -- and which: "Eat" or "Smash"
+local wall = WallRide.new() -- the wall ride of the fish under us (Config.Wall)
 
 -- the fish we just left, coasting on its heading to idle until the server takes it back
 type Coast = { Fish: Model, At: number, Speed: number, Look: Vector3, Idle: number }
@@ -303,6 +305,7 @@ local function onMounted(fish: Model, landing: boolean?)
 	angry = false
 	angryIn = 0
 	boostAt = -math.huge -- (a burst belongs to the fish that earned it)
+	WallRide.reset(wall)
 	actAt = -math.huge
 	clearFloat()
 	-- (a fish that breaks props swims through them: the server knocks their boxes loose as it does)
@@ -505,13 +508,44 @@ local function drive(dt: number)
 			rock += math.rad(af.Shudder * math.min(af.Motion, 2)) * math.sin(6 * math.pi * u) * (1 - u)
 		end
 	end
-	local heading = CFrame.fromOrientation(pitch, yaw, 0)
+	-- The wall ride (Config.Wall, Lib/WallRide): steered into a wall or the lane's edge, the fish is turned along it
+	-- and keeps its speed but for a share by how square on; dead straight in, it rocks up the wall and back down.
+	-- The way we steer (`yaw`) is untouched: steering off the wall is just steering.
+	local body = Config.bodyOf(fish, rideType).Z / 2 + 1
+	local way, kept = WallRide.step(wall, at, yaw, speed, body + speed * 0.12, dt, true)
+	speed *= kept
+	local swung = if wall.Swinging then 1 - wall.Slide else 0
+	if swung > 0 then
+		-- THE STAND-IN MOTION for the swing (Wall.SwingPitch): the nose goes up the wall and comes back down with it.
+		-- Authored animations play by State.Wall ("Swing", "Slide") instead.
+		local w = Config.Wall
+		local most = math.max(w.SwingMost * 2 * math.pi * math.max(w.SwingRate, 0.05), 1)
+		local nose = math.rad(w.SwingPitch) * math.clamp(wall.LiftSpeed / most * 2, -1, 1)
+		pitch = Ease.lerp(pitch, nose, Ease.alpha(10, dt) * swung)
+	elseif not wall.Swinging then
+		-- (the swing is this fish's only while it is in one: off the wall its height is the herd's again)
+		wall.Lift, wall.LiftSpeed = 0, 0
+	end
+	State.Wall = WallRide.state(wall)
+	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
+	roll += wall.Lean * math.rad(Config.Wall.Lean) * Ease.alpha(r.BankEase, dt)
+	-- (the body turns along the wall by as much as it slides along it: square on, in the swing, it faces the wall)
+	local heading = CFrame.fromOrientation(
+		pitch,
+		if wall.Touch then Ease.lerpAngle(yaw, math.atan2(-way.X, -way.Z), wall.Slide) else yaw,
+		0
+	)
 	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
 	-- the air or out of the lane, however the keys are held
-	local wanted = heading.LookVector * speed
-	local velocity = Course.clearVelocity(at, wanted, r.FloorClearance, Config.bodyOf(fish, rideType).Z / 2 + 1)
+	local wanted = if wall.Touch
+		then way * (speed * math.cos(pitch)) + Vector3.new(0, math.sin(pitch) * speed, 0)
+		else heading.LookVector * speed
+	if swung > 0 then
+		wanted = Vector3.new(wanted.X, Ease.lerp(wanted.Y, wall.LiftSpeed, swung), wanted.Z)
+	end
+	local velocity = Course.clearVelocity(at, wanted, r.FloorClearance, body)
 	swim.VectorVelocity = velocity
-	if math.abs(velocity.Y - wanted.Y) > 1 then
+	if math.abs(velocity.Y - wanted.Y) > 1 and swung <= 0 then
 		-- stopped from diving or climbing: the nose comes round to the way it is really going
 		local truePitch = math.asin(math.clamp(velocity.Y / math.max(speed, 1), -1, 1))
 		pitch = Ease.lerp(pitch, truePitch, Ease.alpha(8, dt))
@@ -935,6 +969,10 @@ local function step(dt: number)
 			end
 			State.Speed = root.AssemblyLinearVelocity.Magnitude
 		end
+	end
+	if State.Wall and mode ~= "Riding" and mode ~= "Jumping" then
+		State.Wall = nil
+		State.WallSide = 0
 	end
 	coast()
 	cameraStep(dt)

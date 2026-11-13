@@ -34,6 +34,7 @@ local Feel = require(script.Parent.Parent.Lib.Feel)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Lock = require(script.Parent.Parent.Lib.Lock)
 local State = require(script.Parent.Parent.Lib.State)
+local WallRide = require(script.Parent.Parent.Lib.WallRide)
 local RideController = require(script.Parent.RideController)
 
 local JumpController = {}
@@ -52,7 +53,12 @@ local launchSpeed = 0
 local airSpeed = 0 -- the glide's pace for this hop (Jump.AirShare of the speed we rode at, or Jump.AirSpeed)
 -- this hop off a Leaper (Config.hopOf; 1 and 0 off any other fish and from floating):
 local leapApex = 1 -- Jump.Apex, times,
-local leapTime = 0 -- and seconds more glide, and so more window
+local leapTime = 0 -- and seconds more glide, and so more window (with the airtime by speed: Config.airOf)
+local wall = WallRide.new() -- the hop's wall ride (Config.Wall)
+local faced = 0 -- the way the body faces: the way we steer, or along a wall we ride (eased)
+local autoAt = 0 -- os.clock() before which the hands-off pull-in holds off (Jump.RehookGuard, after a refused one)
+local mashing = false -- Space was pressed again during the pull-in: that run of presses can't hop us off the fish we land on
+local pressedAt = -math.huge -- os.clock() of the last press of any kind
 local baseY, topY = 0, 0 -- where we left, and the top of the glide
 local left: Model? = nil -- the fish this hop left
 local locked: Model? = nil -- the locked fish: the one a grab takes; it glows
@@ -234,6 +240,10 @@ local function stop()
 	locked = nil
 	State.JumpTarget = nil
 	Feel.trail(nil, false)
+	if State.Wall then
+		State.Wall = nil
+		State.WallSide = 0
+	end
 	if not glowLandedAt then
 		setGlow(nil)
 	end
@@ -286,22 +296,48 @@ local function request(): boolean
 			else
 				State.NoTargetAt = os.clock()
 			end
+		elseif reeling or asked then
+			mashing = true
 		end
+		pressedAt = os.clock()
 		return true
 	end
+	local pressedBefore = pressedAt
+	pressedAt = os.clock()
 	local mode = State.Mode
 	local _, root = State.character()
-	if (mode ~= "Riding" and mode ~= "Free") or not root or os.clock() < State.JumpReadyAt then
+	if (mode ~= "Riding" and mode ~= "Free") or not root then
 		return false
 	end
+	if os.clock() < State.JumpReadyAt then
+		return false
+	end
+	-- The second hook (Hugo, 2026-11-12; reproduced by script, docs/design/riding-feel.md): Space mashed through a
+	-- landing threw us off the fish we had just reached (the first press after Cooldown) and onto the next one (the
+	-- press after that). So a run of presses that began DURING the pull-in (where a press can do nothing) can't hop:
+	-- it ends at the first gap of Jump.HopGuard between presses (or Jump.MashMost after the landing, whatever the
+	-- keys do). A chain of hops made on purpose, one press to grab and the next after the landing, never starts such
+	-- a run, and leaves at Cooldown exactly as before.
+	if mashing and mode == "Riding" and j.HopGuard > 0 then
+		if os.clock() - pressedBefore < j.HopGuard and os.clock() - State.MountedAt < j.MashMost then
+			return false
+		end
+	end
+	mashing = false
 	local fish = State.Fish
 	local fishRoot = fish and fish.PrimaryPart
 	airSpeed = j.AirSpeed
 	leapApex, leapTime = 1, 0
 	local leapAir = 1
+	local leaping = false
 	if mode == "Riding" and fish and fishRoot then
 		yaw = yawOf(fishRoot.CFrame.LookVector)
-		launchSpeed = fishRoot.AssemblyLinearVelocity.Magnitude * j.Launch
+		-- the hop-off boost: extra speed on top of what the fish had as we left it (a slowed fish gives less)
+		local had = fishRoot.AssemblyLinearVelocity.Magnitude
+		if had ~= had then
+			had = 0
+		end
+		launchSpeed = had * j.Launch + j.HopBoost
 		-- the reference floats at 0.85 of the speed it rode at: the herd's pace, so we hang over the fish ahead
 		local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
 		if j.AirShare > 0 and kind then
@@ -310,6 +346,9 @@ local function request(): boolean
 		-- off a Leaper: higher, a faster glide, and a longer one (the server's window grows by the same)
 		leapApex, leapAir, leapTime = Config.hopOf(kind)
 		airSpeed *= leapAir
+		leaping = leapApex > 1 or leapTime > 0
+		-- airtime by speed: a longer glide off a fast fish, a shorter one off a slow or slowed one
+		leapTime += Config.airOf(had)
 		left = fish
 		RideController.leave()
 	else
@@ -320,7 +359,10 @@ local function request(): boolean
 		end
 		left = nil
 	end
-	launchSpeed = math.max(launchSpeed, airSpeed)
+	launchSpeed = math.max(launchSpeed, airSpeed + (if left then j.BoostFloor else 0))
+	WallRide.reset(wall)
+	faced = yaw
+	autoAt = 0
 	Course.begin()
 	position = root.Position
 	baseY = position.Y
@@ -340,7 +382,7 @@ local function request(): boolean
 	setGlow(locked)
 	-- the push off: the view kicks wider, bubbles are kicked off where we left, a swish
 	local f = Config.Feel
-	local leap = leapApex > 1 or leapTime > 0
+	local leap = leaping
 	local af = Config.ArchetypeFeel
 	State.FovPunch = f.PopFov + (if leap then af.LeapFov else 0)
 	local bubbles = f.PopBurst + (if leap then af.LeapBubbles else 0)
@@ -380,7 +422,12 @@ end
 local function speedAt(t: number): number
 	local j = Config.Jump
 	local dropAt = j.LaunchTime + j.FloatTime + leapTime
-	local cruise = Ease.lerp(launchSpeed, airSpeed, Ease.smoothstep(j.BoostTime * 0.5, j.BoostTime + 0.3, t))
+	-- (the boost is whole for BoostHold, then falls off, gone by BoostTime: semi-quickly, not at once)
+	local cruise = Ease.lerp(
+		launchSpeed,
+		airSpeed,
+		Ease.smoothstep(math.min(j.BoostHold, j.BoostTime - 0.05), math.max(j.BoostTime, 0.06), t)
+	)
 	-- (with AirShare the drop slows by the same share as DropSpeed is of AirSpeed, whatever fish we left)
 	local slow = if j.AirShare > 0
 		then cruise * math.min(1, j.DropSpeed / math.max(j.AirSpeed, 1))
@@ -400,6 +447,8 @@ local function resumeSwim(root: BasePart)
 	resumeHeight = position.Y - heightAt(clock)
 	refused = locked
 	refusedUntil = os.clock() + Config.Jump.RefusedTime
+	-- (and the hands-off pull-in doesn't take ANOTHER fish the very next frame: the second hook. A press still does.)
+	autoAt = os.clock() + Config.Jump.RehookGuard
 	locked = nil
 	State.JumpTarget = nil
 	setGlow(nil)
@@ -547,11 +596,28 @@ local function hop(dt: number)
 		local t = math.max(0, clock - dt + i * h)
 		local before = yaw
 		yaw = RideController.steer(yaw, h)
-		local velocity = CFrame.fromOrientation(0, (before + yaw) / 2, 0).LookVector * speedAt(math.max(0, t - h / 2))
-		local want = Vector3.new(position.X + velocity.X * h, heightAt(t) + resumeHeight, position.Z + velocity.Z * h)
+		-- the wall ride (Config.Wall, Lib/WallRide): steered into a wall or the lane's edge we go along it, keeping our
+		-- speed but for a share by how square on; dead straight in, the swing lifts us and lets us down again
+		local pace = speedAt(math.max(0, t - h / 2))
+		local way, kept = WallRide.step(wall, position, (before + yaw) / 2, pace, 3 + pace * h, h)
+		local velocity = way * (pace * kept)
+		local height = heightAt(t) + resumeHeight
+		if wall.Lift ~= 0 then
+			height = math.min(height + wall.Lift, math.max(height, Config.Oxygen.SurfaceY - j.Ceiling))
+		end
+		local want = Vector3.new(position.X + velocity.X * h, height, position.Z + velocity.Z * h)
 		position = Course.clearMove(position, want, j.FloorClearance)
+		if i == steps then
+			faced = Ease.lerpAngle(
+				faced,
+				if wall.Touch then Ease.lerpAngle(yaw, yawOf(way), wall.Slide) else yaw,
+				Ease.alpha(12, dt)
+			)
+		end
 	end
 	State.Heading = yaw
+	State.Wall = WallRide.state(wall)
+	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
 	pick(position)
 
 	-- upright off the fish for a moment, then lying flat, face down, swimming through the glide (as the reference's
@@ -560,12 +626,12 @@ local function hop(dt: number)
 		+ math.rad(j.DropTilt) * Ease.smoothstep(dropAt, dropAt + math.max(j.DropTiltTime, 0.01), clock)
 	roll = Ease.lerp(roll, RideController.lean() * math.rad(j.Bank), Ease.alpha(Config.Ride.BankEase, dt))
 	root.CFrame = CFrame.new(position)
-		* CFrame.fromOrientation(0, yaw, 0)
-		* CFrame.Angles(0, 0, roll)
+		* CFrame.fromOrientation(0, faced, 0)
+		* CFrame.Angles(0, 0, roll + wall.Lean * math.rad(Config.Wall.Lean))
 		* CFrame.Angles(-tip, 0, 0)
 	root.AssemblyLinearVelocity = (position - was) / math.max(dt, 1e-6)
 	root.AssemblyAngularVelocity = Vector3.zero
-	State.Speed = speedAt(clock)
+	State.Speed = speedAt(clock) * wall.Kept * wall.Slide
 	-- through the pop's extra speed: speed lines that thin out, and bubbles left behind us
 	local boost = 1 - clock / math.max(j.BoostTime, 0.01)
 	if boost > 0 then
@@ -576,7 +642,7 @@ local function hop(dt: number)
 	-- The reference's hands-off landing (Jump.AutoGrab 2): when the glide is over the locked fish pulls us in by
 	-- itself, about 1.7 s after the press; with none locked then, the first fish locked in the drop does. A press still
 	-- grabs sooner.
-	if j.AutoGrab >= 2 and clock >= dropAt and clock < window then
+	if j.AutoGrab >= 2 and clock >= dropAt and clock < window and os.clock() >= autoAt then
 		local targetRoot = locked and locked.PrimaryPart
 		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= j.GrabRange then
 			startReel(root)

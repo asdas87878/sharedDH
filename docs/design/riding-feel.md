@@ -67,6 +67,27 @@ which rocks up and back down. The floor and surface still clamp it; steering awa
 motion. The current stand-in turns and leans the body along the wall and tips the nose during a swing; no animation
 asset or partner animation code changes. No wall-specific camera kick or steering correction is added.
 
+What the wall ride stands on, since the new map (grey-box 15, 2026-11-13; measured in
+[the playtest](../playtests/2026-11-13-wall-hop.md)):
+
+- **A rider's body is solid to nothing while riding** (the server's collision group "Riding", `PropService.riding`,
+  switched with the rider's state). The fish is kept in open water by `Lib/Course`'s rays from the fish's middle.
+  The rider sits above that, and their body caught on what those rays pass under (the lip of the ground on a low
+  wall's top): the fish was held still with nothing in its way.
+- **A low step is climbed, not ridden.** Something in the way that ends within 10 studs above the fish, with open
+  water over it, is no wall: the floor rule takes the fish up over it (`Course`, `isStep`; a terrace's edge, the
+  next slab along a wall's top). The hop keeps the old rule.
+- **A sliver of a box's end is its broad face.** The boundary is short boxes along a curve; at a bend a ray can
+  catch up to 3 studs of one box's end, a wall square across the way that isn't there. That counts as the box's
+  broad face. More of an end than that is a real corner and keeps its own way out.
+- **The server's edge is the map's boundary boxes** (`Lane/Walls`, `Lane/Ground`, `Lane/Barrier`), or anything
+  within `Wall.EdgeBand` of the lane's surveyed width. The canyon's walls wave far inside that width, so the
+  distance alone would have charged a crash for riding them.
+- **In the swing the fish faces the wall.** The body turns along the wall by as much as it slides along it.
+- **The camera is untouched by the wall ride.** A turn cap and a position spring were tried and taken out: measured,
+  the view never turned by itself at a wall (15 degrees a second at most), and the spring made the camera's jumps
+  larger.
+
 ### Verification for this pass
 
 The HTTP Studio runner was used for the following scripted checks. StyLua, selene and Rojo build pass. Direct checks
@@ -88,24 +109,12 @@ with the base glide temporarily set below `AirLeast`. These are numerical checks
 - **Slow-down and fairness:** angry Anglerfish shortened its glide end from 1.78 to 1.65 s and its whole window from
   3.08 to 2.95 s. Angry Pufferfish ended its glide at 1.52 s / 66 studs, window 2.81 s / 105 studs. All six hands-off
   slow/angry fairness hops reached another fish (2.60–2.94 s including the driver's 0.3 s settling observation).
-- **Walls on the real map:** steady speed retained at 30/45/60 degrees was 87%/77%/66% versus target 88%/75%/63%.
-  Direct head-on contact moved 0 studs sideways over 7 s; vertical turning points were +8.7, -4.9, +2.3, -1.5,
-  +0.5 and -0.5 studs. Steering away regained 90% speed in 0.35 s. Hop-off was accepted during both slide and swing.
-  Every riding and glide test stayed inside the lane; the closest approach was still 3.3 studs inside its nominal
-  edge. A 40-degree glide rode the wall at median 36 studs/s; a head-on glide had zero horizontal speed.
-- **Remaining wall issue and tested draft:** the repository client code still has shallow-contact stalls. The trace
-  identifies end caps of the wall-top grass slabs (`Lane/Ground/Grass`): their normals redirect a shallow approach
-  into the broad wall face, where the final collision check removes most motion. A temporary `W1Course` test module
-  used the authored broad-face axis for boundary walls, barriers and wall-top grass. With that draft, the minimum
-  speed at 15/30/45/60 degrees was 59/56/50/42 studs/s from a baseline of 64; steady retention was 93%/86%/77%/66%.
-  A direct hit still moved 0 studs sideways, with damped vertical turning points +8.5, -5.0, +2.2 and -1.6 studs,
-  and 90% speed recovered in 0.36 s after steering away. The closest recorded glide position was 2.8 studs inside
-  the nominal lane edge. The draft has **not** been applied to repository client source: this task's ownership
-  list names only Config and this note, and permission to edit client files has not arrived.
-  The draft run also recorded a 168-degrees/s camera turn and a large camera translation-speed change on a
-  hop/landing transition. Camera calmness has not passed verification. The wall pass remains unfinished.
-- **Departure-speed sweep with the draft:** repeated with the exact velocity sampled immediately before departure;
-  the draft changes collision handling only. These are complete hop windows with auto-grab disabled:
+- **Walls, the camera and the final numbers on grey-box 15:** [the playtest of 2026-11-13](../playtests/2026-11-13-wall-hop.md)
+  replaces what was written here on 2026-11-12 (the old map, and a draft that was not in the code). In short: the
+  speed kept matches the design at the angle really met (92, 84, 77, 65, 44% at 23, 34, 44, 57, 70 degrees to the
+  wall), square on there is no sideways travel and the swing dies away in about five seconds, steering off frees
+  the fish within 0.33 s, 85 mash-mounts gave no second hook, and nothing was ever behind a wall or the barrier.
+- **Departure-speed sweep (2026-11-12, the old map; the same sweep on grey-box 15 is in the playtest):** repeated with the exact velocity sampled immediately before departure. These are complete hop windows with auto-grab disabled:
 
   | Case | Departure speed | Peak speed | Glide ends: time / distance | Window: time / displacement |
   |---|---:|---:|---:|---:|
@@ -113,18 +122,15 @@ with the base glide temporarily set below `AirLeast`. These are numerical checks
   | Anglerfish | 63.6 | 120 | 1.80 s / 138 studs | 3.11 s / 210 studs |
   | Fast Devourer, passives active | 199.1 | 337 | 2.40 s / 376 studs | 3.70 s / 502 studs |
 
-  All were back near normal glide pace by 0.7–0.8 s. These tests establish the boost and speed/time relationship;
-  they do not establish that every map collision or camera transition is finished.
+  All were back near normal glide pace by 0.7–0.8 s.
 - **Regressions:** D for 1 s turned 127 degrees (the prior control pass: 129); the observed landing dip was x0.78
   against the configured x0.8, followed by full speed recovery. Angry Cuttlefish was x0.68 with its angry attribute
   set. Leaper duration and the other archetypes' formulas were retained, but not every archetype was independently
   exercised in this movement suite. The output also contained existing asset-type warnings for asset 203785492;
   no assets were uploaded.
 
-Reproducible scripts and raw results on Hugo's PC: `/tmp/w1/README.md`, `/tmp/w1/client.luau`,
-`/tmp/w1/install.luau`, `/tmp/w1/suite.log`, `/tmp/w1/before-suite.log`, `/tmp/w1/module-check.luau` and
-`/tmp/w1/module-check.log`, `/tmp/w1/proposed-v2.log` and `/tmp/w1/Course-proposed.patch`. The README gives the install, run, collection and cleanup commands. These temporary
-files are local verification artifacts, not part of the partner's git sync.
+The driver is in `tools/studio/movement_w1/` (its README has the commands). The raw logs of 2026-11-13 are on
+Hugo's PC in `~/Projects/sharedDH-local/w2-logs/`, not in the repo.
 
 ## Movement v3.1
 

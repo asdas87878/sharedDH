@@ -9,7 +9,8 @@
 -- joins late sees it as it is. Breaking a prop gives nothing.
 -- Players' characters don't collide with props (collision groups "Riders" and "Props"): a rider's body would otherwise
 -- knock against the boxes in the moment before the server takes them out of the fish's way. What a prop stops is
--- decided by the riding code's rays (Lib/Course), which still see props.
+-- decided by the riding code's rays (Lib/Course), which still see props. And a character that is riding a fish
+-- collides with nothing (group "Riding", PropService.riding below).
 local PhysicsService = game:GetService("PhysicsService")
 local TweenService = game:GetService("TweenService")
 
@@ -50,13 +51,31 @@ end
 function PropService.passThrough(character: Model)
 	local function mark(d: Instance)
 		if d:IsA("BasePart") then
-			d.CollisionGroup = "Riders"
+			d.CollisionGroup = if character:GetAttribute("Riding") then "Riding" else "Riders"
 		end
 	end
 	for _, d in character:GetDescendants() do
 		mark(d)
 	end
 	character.DescendantAdded:Connect(mark)
+end
+
+-- On a fish, a rider's body touches nothing at all (group "Riding"); off it, it is solid to the map again. The fish
+-- is kept in open water by its own steering's rays, from the fish's middle (Lib/Course). The rider sits above that,
+-- and their body caught on what those rays pass under, the lip of the ground on top of a low wall and the end of the
+-- next slab along it: the fish was held still there with nothing in its way (grey-box 15, 2026-11-13: measured at
+-- 1 stud a second, 30 degrees into a terrace wall 2,750 studs down; docs/playtests/2026-11-13-wall-hop.md).
+function PropService.riding(character: Model, on: boolean)
+	if (character:GetAttribute("Riding") == true) == on then
+		return
+	end
+	character:SetAttribute("Riding", if on then true else nil)
+	local group = if on then "Riding" else "Riders"
+	for _, d in character:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CollisionGroup = group
+		end
+	end
 end
 
 local function knock(b: Broken, part: BasePart, at: Vector3, way: Vector3)
@@ -179,12 +198,15 @@ function PropService.folder(): Instance?
 end
 
 function PropService.Init()
-	for _, group in { "Props", "Riders" } do
+	for _, group in { "Props", "Riders", "Riding" } do
 		if not PhysicsService:IsCollisionGroupRegistered(group) then
 			PhysicsService:RegisterCollisionGroup(group)
 		end
 	end
 	PhysicsService:CollisionGroupSetCollidable("Props", "Riders", false)
+	for _, group in { "Default", "Props", "Riders", "Riding" } do
+		PhysicsService:CollisionGroupSetCollidable("Riding", group, false)
+	end
 end
 
 function PropService.Start()

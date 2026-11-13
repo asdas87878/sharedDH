@@ -217,6 +217,11 @@ local function setState(r: Rider, state: string)
 	end
 	r.State = state
 	r.Player:SetAttribute("State", state)
+	-- (on a fish the rider's body is solid to nothing: the fish's own steering keeps both in open water)
+	local character = r.Player.Character
+	if character then
+		PropService.riding(character, state == "Riding")
+	end
 end
 
 local function sendOxygen(r: Rider, force: boolean?)
@@ -413,6 +418,10 @@ local function jump(r: Rider)
 	r.JumpFrom = r.Fish
 	-- (off a Leaper the glide and the window are longer: Config.hopOf, the same number the client flies by)
 	local _, _, extra = Config.hopOf(if r.Fish then r.Fish.Type else nil)
+	if r.Fish then
+		-- (and by the speed the fish had as we left it, as the server sees it: airtime by speed, Config.airOf)
+		extra += Config.airOf(r.Fish.Root.AssemblyLinearVelocity.Magnitude)
+	end
 	r.JumpExtra = extra
 	if r.Fish then
 		dismount(r, "Jump", true)
@@ -505,11 +514,39 @@ local function landOn(r: Rider, target: any)
 	-- the server sees the player a moment late, and a pull-in arrives fast
 	local reach = w.Body.Z / 2 + j.LandSlack * 2
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
-		-- (a refused grab, not a miss: the hop goes on with what is left of its window. It was a drown, "MISSED THE
-		-- FISH" while sitting on the fish, which a slow connection on a fast fish could reach)
-		FishService.unreserve(w, r.Player)
-		r.Grab = nil
-		return deny(r, "Grab", "Range", target)
+		-- Not seen at the fish yet. The rider's machine is holding them on the saddle and waiting for our word, and we
+		-- see them a moment late, most of all after a fast pull-in (its last tenth of a second covers most of the
+		-- distance): so the landing is given Jump.LandWait to be seen arriving before it is refused. Refusing it at
+		-- once sent the rider back into the hop from the saddle, where the hands-off pull-in took the next fish it
+		-- saw: "landed on a fish, instantly hooked onto another" (Hugo, 2026-11-12).
+		local token = r.Token
+		local waitUntil = os.clock() + j.LandWait
+		task.spawn(function()
+			while os.clock() < waitUntil do
+				task.wait()
+				if riders[r.Player] ~= r or r.Token ~= token or r.State ~= "Jumping" or r.Grab ~= w then
+					return
+				end
+				local here = parts(r.Player)
+				if here and (w.Root.Position - here.Position).Magnitude <= reach then
+					if not mount(r, w, true) then
+						FishService.unreserve(w, r.Player)
+						r.Grab = nil
+						deny(r, "Grab", "Target", target)
+					end
+					return
+				end
+			end
+			if riders[r.Player] ~= r or r.Token ~= token or r.State ~= "Jumping" or r.Grab ~= w then
+				return
+			end
+			-- (a refused grab, not a miss: the hop goes on with what is left of its window. It was a drown, "MISSED
+			-- THE FISH" while sitting on the fish, which a slow connection on a fast fish could reach)
+			FishService.unreserve(w, r.Player)
+			r.Grab = nil
+			deny(r, "Grab", "Range", target)
+		end)
+		return
 	end
 	if not mount(r, w, true) then
 		FishService.unreserve(w, r.Player)
@@ -617,6 +654,23 @@ crashParams.IgnoreWater = true
 
 -- What is in the ridden fish's way (Config.Crash, Config.Props). The client steers the fish and keeps it out of solid
 -- things itself; what running into one costs is decided here, from where the server sees the fish.
+-- Whether a part is one of the map's own boundary boxes: a wall of the lane, the ground on top of it or the unseen
+-- barrier behind (the loader's Lane/Walls, Lane/Ground and Lane/Barrier). Not the seabed, and not a prop.
+local function boundary(part: Instance): boolean
+	local blockout = workspace:FindFirstChild("ClaudeBlockout")
+	local laneFolder = blockout and blockout:FindFirstChild("Lane")
+	if not laneFolder then
+		return false
+	end
+	for _, name in { "Walls", "Ground", "Barrier" } do
+		local folder = laneFolder:FindFirstChild(name)
+		if folder and part:IsDescendantOf(folder) then
+			return true
+		end
+	end
+	return false
+end
+
 local function checkCrash(r: Rider, w: Wild)
 	local t = os.clock()
 	if t < r.CrashCheckAt then
@@ -678,7 +732,22 @@ local function checkCrash(r: Rider, w: Wild)
 	local ahead = half + 1 + FishService.ridden(w) * Config.Ride.Surge * 0.12 + c.Reach
 	local hit = workspace:Raycast(root.Position, look * ahead, crashParams)
 	local nosed = hit ~= nil and hit.Normal.Y < 0.5 and -look:Dot(hit.Normal) >= c.HeadOn
-	if nosed and not r.Nosed and t - r.FastAt <= 0.5 and t >= r.CrashReadyAt then
+	-- The lane's own edge is a wall ride (Config.Wall: the rider's machine turns the fish along it), not a crash:
+	-- nothing is taken and the fish isn't slowed here, unless Wall.EdgeCost says so. What stands IN the lane still is.
+	-- The edge is the map's own boundary boxes (Lane/Walls, Lane/Ground, Lane/Barrier: since grey-box 14 the canyon's
+	-- walls wave in and out, in places a hundred studs inside the lane's surveyed width), or anything within EdgeBand
+	-- of that width.
+	local wall = Config.Wall
+	if
+		nosed
+		and hit
+		and wall.On ~= 0
+		and (boundary(hit.Instance) or FishService.inside(hit.Position) <= wall.EdgeBand)
+	then
+		if not r.Nosed and wall.EdgeCost > 0 and t - r.FastAt <= 0.5 and t >= r.CrashReadyAt then
+			bump(r, wall.EdgeCost, 1)
+		end
+	elseif nosed and not r.Nosed and t - r.FastAt <= 0.5 and t >= r.CrashReadyAt then
 		-- (a Breaker loses only Breaker.Crash of what a wall costs: of the Oxygen, and of the speed it drops by)
 		local share = if breaker then math.clamp(b.Crash, 0, 1) else 1
 		bump(r, c.Cost * share, 1 - (1 - c.Slow) * share)

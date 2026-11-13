@@ -716,6 +716,15 @@ local function steer(w: Wild, dt: number)
 	end
 end
 
+-- How far inside the lane's edge a place is, studs across (negative: beyond it). For telling the lane's own walls
+-- from what stands in it (RideService.checkCrash: the edge is a wall ride, Config.Wall)
+function FishService.inside(position: Vector3): number
+	local s = Lane.project(lane, position)
+	local centre, along, width = Lane.at(lane, s)
+	local right = along:Cross(Vector3.yAxis)
+	return width / 2 - math.abs((position - centre):Dot(right))
+end
+
 -- A point in the middle of the lane at the herd's height (kept under the surface), and the way down the lane there
 function FishService.lanePoint(s: number): (Vector3, Vector3)
 	local _, along = Lane.at(lane, s)

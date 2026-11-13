@@ -26,6 +26,8 @@ local DOWN = 260 -- how far down the floor is looked for
 local RISE = 3 -- from this far above the point
 local PUSH = 6 -- how hard we are pushed back from the floor, a roof or the surface (studs a second for each stud)
 local PUSH_MAX = 60
+local STEP = 10 -- something in the way that ends within this far above us, with open water over it, is a step: climbed
+local SLIVER = 3 -- this much of a boundary box's end showing at its corner is a joint between pieces, not a wall
 
 local lane: Lane.Lane? = nil
 local laneZones: { Zones.Zone }? = nil
@@ -109,10 +111,21 @@ local function locate(at: Vector3)
 end
 
 -- (from a little above the point: we are held a clearance above the floor, so that is still open water, and a point
--- that has dipped under a thin crust still finds it)
-local function rayFloor(x: number, y: number, z: number): number?
-	local hit = workspace:Raycast(Vector3.new(x, y + RISE, z), Vector3.new(0, -DOWN, 0), params)
+-- that has dipped under a thin crust still finds it. `rise`: from that far above instead, over a step)
+local function rayFloor(x: number, y: number, z: number, rise: number?): number?
+	local hit = workspace:Raycast(Vector3.new(x, y + (rise or RISE), z), Vector3.new(0, -DOWN, 0), params)
 	return if hit then hit.Position.Y else nil
+end
+
+-- Whether what a flat ray met (`length` along `dir` from `from`) is only a step: open water over us and over it,
+-- STEP higher. The ground on top of a low wall, a terrace's edge, the next slab along a wall's top (grey-box 14 on:
+-- the lane's sides step up in terraces). A fish goes up over a step (the floor rule lifts it); it rides a wall.
+local function isStep(from: Vector3, dir: Vector3, length: number): boolean
+	local up = Vector3.new(0, STEP, 0)
+	if workspace:Raycast(from, up, params) then
+		return false
+	end
+	return workspace:Raycast(from + up, dir * (length + 2), params) == nil
 end
 
 local function higher(a: number?, b: number?): number?
@@ -139,6 +152,59 @@ function Course.floor(at: Vector3): number?
 	return higher(floorHere, laneFloor)
 end
 
+-- The map's boundary is short boxes laid along a curve (Lane/Walls, Lane/Barrier, the ground on top in Lane/Ground;
+-- each box's X is across the wall, its Z along it). Where two meet at a bend a ray can catch a sliver of one box's
+-- END instead of its broad face: a wall square across our way that isn't there, which threw the wall ride into the
+-- next box's face (a stall, measured 2026-11-12). So an end met within SLIVER of the box's corner on our side counts
+-- as that box's broad face. More of an end than that is a real corner (the wall steps in), and keeps its own way
+-- out, as does everything that isn't the boundary.
+local function wallNormal(hit: RaycastResult, from: Vector3): Vector3?
+	local n = Vector3.new(hit.Normal.X, 0, hit.Normal.Z)
+	local part = hit.Instance
+	if Config.Wall.On ~= 0 and part:IsA("BasePart") then
+		local map = workspace:FindFirstChild("ClaudeBlockout")
+		local laneFolder = map and map:FindFirstChild("Lane")
+		local folder = part.Parent
+		if
+			laneFolder
+			and folder
+			and folder.Parent == laneFolder
+			and (folder.Name == "Walls" or folder.Name == "Barrier" or folder.Name == "Ground")
+			and math.abs(part.CFrame.LookVector:Dot(hit.Normal)) > 0.7
+		then
+			local broad = part.CFrame.RightVector
+			local side = if broad:Dot(from - part.Position) < 0 then -1 else 1
+			local depth = part.Size.X / 2 - side * part.CFrame:PointToObjectSpace(hit.Position).X
+			if depth <= SLIVER then
+				n = Vector3.new(broad.X, 0, broad.Z) * side
+			end
+		end
+	end
+	return if n.Magnitude > 0.01 then n.Unit else nil
+end
+
+-- The wall in the way of something at `from` (in open water) steered the flat way `dir` (unit): the wall's own way
+-- out, back into the open water (flat, unit), or nil with none within `reach` ahead. A solid wall the ray meets, or
+-- the lane's own edge when we are within Wall.Band of it and steered out across it. For the wall ride (Lib/WallRide).
+-- `steps`: what is only a step (isStep) is no wall (the ridden fish, which Course.clearVelocity takes up over it).
+function Course.wall(from: Vector3, dir: Vector3, reach: number, steps: boolean?): Vector3?
+	if not begun then
+		Course.begin(throughLast)
+	end
+	local hit = workspace:Raycast(from, dir * reach, params)
+	if hit and hit.Normal.Y < WALL and not (steps and isStep(from, dir, reach)) then
+		local n = wallNormal(hit, from)
+		if n then
+			return n
+		end
+	end
+	locate(from)
+	if laneFloor and outside > -Config.Wall.Band and dir:Dot(outward) > 0 then
+		return -outward
+	end
+	return nil
+end
+
 -- A velocity for something at `from` (in open water) that keeps it there: what would take it into a wall, the floor, a
 -- roof, the air above the surface or out past the lane's edge is taken out, and it is pushed back from the floor and the
 -- surface. `clearance` is how near the floor it may come, `reach` how far ahead of `from` its body goes.
@@ -148,15 +214,20 @@ function Course.clearVelocity(from: Vector3, velocity: Vector3, clearance: numbe
 	local flat = Vector3.new(v.X, 0, v.Z)
 	local run = flat.Magnitude
 	local ahead = from
+	local aheadRise: number? = nil
 	local climb = 0
 	if run > 0.1 then
 		local dir = flat / run
-		local hit = workspace:Raycast(from, dir * (run * LOOK_AHEAD + reach), params)
-		if hit and hit.Normal.Y < WALL then
+		local length = run * LOOK_AHEAD + reach
+		local hit = workspace:Raycast(from, dir * length, params)
+		if hit and hit.Normal.Y < WALL and isStep(from, dir, length) then
+			-- a step: its top is the floor a moment ahead, and the floor rule below takes us up over it
+			ahead = hit.Position + dir
+			aheadRise = STEP
+		elseif hit and hit.Normal.Y < WALL then
 			-- a wall: slide along it
-			local n = Vector3.new(hit.Normal.X, 0, hit.Normal.Z)
-			if n.Magnitude > 0.01 then
-				n = n.Unit
+			local n = wallNormal(hit, from)
+			if n then
 				local into = v:Dot(n)
 				if into < 0 then
 					v -= n * into
@@ -174,8 +245,10 @@ function Course.clearVelocity(from: Vector3, velocity: Vector3, clearance: numbe
 		v -= outward * (math.max(v:Dot(outward), 0) + math.min(outside * 2, 30))
 	end
 	-- the floor, here and a moment ahead (so a rising floor is met before we are in it)
-	local floor =
-		higher(higher(floorHere, if ahead ~= from then rayFloor(ahead.X, from.Y, ahead.Z) else nil), laneFloor)
+	local floor = higher(
+		higher(floorHere, if ahead ~= from then rayFloor(ahead.X, from.Y, ahead.Z, aheadRise) else nil),
+		laneFloor
+	)
 	if floor then
 		-- never sinking faster than brings us to the clearance line (so we slow on the way down, however fast we came
 		-- or long the frame), and pushed back up from under it
@@ -216,19 +289,21 @@ function Course.clearMove(from: Vector3, to: Vector3, clearance: number): Vector
 		if not hit or hit.Normal.Y >= WALL then
 			break
 		end
-		local n = Vector3.new(hit.Normal.X, 0, hit.Normal.Z)
-		if n.Magnitude < 0.01 then
+		local n = wallNormal(hit, from)
+		if not n then
 			step = Vector3.zero
 			break
 		end
-		n = n.Unit
 		step -= n * math.min(0, step:Dot(n))
 	end
 	-- the second try may still run into a corner: then we don't move across at all
 	if step.Magnitude >= 0.001 then
 		local blocked = workspace:Raycast(from, step.Unit * (step.Magnitude + 2), params)
 		if blocked and blocked.Normal.Y < WALL then
-			step = Vector3.zero
+			local normal = wallNormal(blocked, from)
+			if not normal or step:Dot(normal) < -0.01 then
+				step = Vector3.zero
+			end
 		end
 	end
 	local x, z = from.X + step.X, from.Z + step.Z

@@ -3,6 +3,32 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): the hop-off boost, the second hook and the wall ride, finished on grey-box 15
+**State:** on Hugo's word of 2026-11-12. Run in Studio by script through the studio runner on the new map, ten
+playtests, no errors in the output; **not played by hand**. StyLua, selene and `rojo build` pass. Nothing uploaded;
+the test scripts are out of the place. The numbers and three pictures:
+[the playtest](playtests/2026-11-13-wall-hop.md). The rules: [riding feel](design/riding-feel.md), "Hop-off speed
+and the map edge". A row in [Decisions](Decisions.md).
+- **The hop** (`JumpController`, `Config.Jump`, `RideService.jump`): the pop is `Launch` x the fish's speed as you
+  leave + `HopBoost`, whole for `BoostHold`, gone by `BoostTime`; the glide and the window are longer off a fast
+  fish and shorter off a slow one (`Config.airOf`, the server counts the same), never under `AirLeast`.
+- **The second hook:** `HopGuard` and `MashMost` (presses that began in the pull-in can't hop you off the fish you
+  land on), `LandWait` (the server waits for a landing to be seen arriving before it refuses it), `RehookGuard`
+  (after a refused pull-in the hands-off one waits).
+- **The wall ride:** new `src/client/Lib/WallRide.luau`, used by `RideController.drive` and the hop;
+  `Lib/Course` gained `Course.wall`, the step rule and the corner rule; `State.Wall` ("Slide", "Swing") and
+  `State.WallSide` are the hooks for authored animations (none is played; the partner's animation code is
+  untouched). Numbers in `Config.Wall`, all in the N panel.
+- **Server:** a riding character collides with nothing (`PropService.riding`, group "Riding", set from
+  `RideService`'s state); the map's boundary boxes are the lane's edge for `checkCrash`
+  (`FishService.inside` is the old distance rule, still used beside it).
+- **Map and code:** `Course` and `RideService` now name the loader's folders `Lane/Walls`, `Lane/Ground` and
+  `Lane/Barrier`, and take a boundary box's X as across the wall and its Z as along it. **For the map chat: if
+  the loader renames those folders or turns the boxes another way, say so here.**
+- **Taken out again:** the last worker's camera turn cap and camera position spring (measured: no use, see the
+  playtest). `Config.Camera` is as it was.
+- **Not checked:** the archetypes one by one after this (they ran throughout); two riders at once; anything by hand.
+
 ## 2026-11-12 · Obsidian chat integration (the user's PC): Hugo's latest passes merged onto the user's new map (grey-box 13)
 **State:** on the user's word ("crossover his new changes with my new map", the map kept). Merged, built, in the
 user's Studio place and run once. (Since then the map chat has loaded grey-box 14 and then 15, which is what the loader files now

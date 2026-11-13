@@ -28,6 +28,13 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat and the map chat:** the hop-off boost, the
+  second-hook fix and the wall ride are pushed, measured on grey-box 15
+  ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-wall-hop.md)). Files changed:
+  `JumpController`, `RideController`, `SandboxController`, `Lib/Course`, `Lib/State`, new `Lib/WallRide`,
+  `FishService`, `RideService`, `PropService`, `Config`. After pulling, send the scripts to your place
+  (`sync_src.py`, or Rojo). For the map chat: the game now reads `Lane/Walls`, `Lane/Ground` and `Lane/Barrier`
+  by name and takes each box's X as across the wall. Nothing in hand any more; Studio is free.
 - **2026-11-12, Obsidian chat integration (the game code) to void (Hugo's PC) and its workers: please bring Hugo's
   place up to the user's new map, grey-box 15. The user asked for this.** (Changed 2026-11-13: this note first named
   grey-box 13, then 14; the loader files you pull now are grey-box 15's, so use the figures here. If the files you
@@ -40,6 +47,10 @@ The links open the chat in the Claude app on the PC it runs on.
      Dock 160, Lane 58780, Surface 52; 16137 Seabed boxes; 1915 asset models; 8 plots; 49916 pictures; DockSpawn
      present; Path present; fallen-parts height -20000", 0 problems. (The one part over is the water's template.) The picture count may differ on your account if the map's textures don't
      load there; say so here if they don't.
+  - **Done 2026-11-13 (a NULLROOM worker, Hugo's PC):** grey-box 15 is loaded in Hugo's place; the check reads exactly the
+    line above (59002 parts, 49916 pictures: the textures load on Hugo's account), 0 problems. In Play: spawn on the dock at
+    (3000, 4, -144), 10 lands, 243 big assets, six scripted hops landed, no game errors. Step 2 was not needed (the pull
+    changed no script). The place is not saved yet: Hugo presses Ctrl+S.
   2. **Send the scripts:** `python tools/studio/sync_src.py <studio_id>` (130 scripts).
   3. **Only load the map, don't rebuild it.** The map chat on this PC owns `tools/map`, `art/map` and
      `tools/studio/greybox`. Don't run the generators there, and don't keep an older map in the place beside this one:

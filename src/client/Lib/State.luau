@@ -23,6 +23,10 @@ local State = {
 	JumpPhase = nil :: string?, -- in a jump: "Pop", "Glide" or "Drop" (nil outside one), for the pose
 	CrashAt = -math.huge, -- os.clock() the server last said we ran into something (the HUD's meter flashes)
 	NoTargetAt = -math.huge, -- os.clock() of a grab pressed with no fish locked (the HUD's reticle flashes)
+	-- The wall ride (Lib/WallRide; Config.Wall), the hook for authored animations: "Slide" while we ride along a wall,
+	-- "Swing" while we rock up and down one we met square on, nil off a wall; and which side the wall is on
+	Wall = nil :: string?,
+	WallSide = 0, -- -1: the wall is on our left; 1: on our right; 0: none
 	Heading = 0, -- the way we are going (its yaw): A and D turn it, on a fish, in a jump and floating
 	CamYaw = 0, -- where the camera looks (its yaw)
 	SideCam = false, -- the sandbox's side view: the camera stands off to the side, and the steering keeps its own heading
