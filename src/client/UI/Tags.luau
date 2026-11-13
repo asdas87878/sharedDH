@@ -38,7 +38,10 @@ local QUICK = 0.08 -- and the soonest another look comes when the locked fish ch
 local WORDS_WIDE = 118
 local WORDS_HIGH = 51
 local HOLD_HIGH = 14 -- the extra line on the locked fish in the hop
-local KIND_HIGH = 12 -- the line naming a fish's passive archetypes, when it has any (docs/design/archetypes.md)
+-- the line of a fish's passive archetypes, when it has any: one icon each, side by side (docs/design/archetypes.md;
+-- the icons replaced the words, Hugo, 2026-11-13). Sized to read at riding distance: about twice the name's letters
+local KIND_ICON = 22
+local KIND_HIGH = KIND_ICON + 3
 local SMALL_WIDE = 62 -- the same for a tag that is only the bubble and the number
 local SMALL_HIGH = 21
 local FAR = 110 -- studs: from here on a tag is only the bubble and the number
@@ -54,7 +57,7 @@ type Tag = {
 	Tier: TextLabel,
 	TierGradient: UIGradient,
 	Name: TextLabel,
-	Kind: TextLabel, -- its passive archetypes, each in its colour ("PREDATOR · BREAKER"); hidden with none
+	Kind: Frame, -- its passive archetypes, an icon each (Archetypes.icons); hidden with none
 	KindOf: Config.FishType?, -- the fish's kind, for its own seconds (a Tank holds longer)
 	KindHigh: number, -- the height that line takes (0 with none)
 	NeedWord: TextLabel,
@@ -115,14 +118,20 @@ local function make(parent: Instance): Tag
 	local tier = Kit.text({ Size = UDim2.fromOffset(260, 15), TextSize = 14, LayoutOrder = 1 }, root)
 	local tierGradient = Kit.gradient(tier, Kit.White, Kit.White)
 	local name = Kit.text({ Size = UDim2.fromOffset(260, 16), TextSize = 13, LayoutOrder = 2 }, root)
-	-- its passive archetypes, small, under the name: you know what a fish does before you hop on it
-	local kindLine = Kit.text({
+	-- its passive archetypes, as icons under the name: you know what a fish does before you hop on it
+	local kindLine: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(260, KIND_HIGH),
-		TextSize = 10,
-		RichText = true,
+		BackgroundTransparency = 1,
 		LayoutOrder = 3,
 		Visible = false,
 	}, root)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 4),
+	}, kindLine)
 	local needRow = Kit.new("Frame", {
 		Size = UDim2.fromOffset(260, 20),
 		BackgroundTransparency = 1,
@@ -253,11 +262,11 @@ local function put(tag: Tag, fish: Model)
 	end
 	tag.Offset = Vector3.new(0, Config.bodyOf(fish, kind).Y * 0.5 + 2.5, 0)
 	tag.Name.Text = name
-	local does = if Config.ArchetypeFeel.Tags > 0 then Archetypes.rich(kind) else ""
+	local line = if Config.ArchetypeFeel.Tags > 0 then Archetypes.line(kind) else ""
 	tag.KindOf = kind
-	tag.KindHigh = if does ~= "" then KIND_HIGH else 0
-	tag.Kind.Text = does
-	tag.Kind.Visible = does ~= "" and not tag.Small
+	tag.KindHigh = if line ~= "" then KIND_HIGH else 0
+	Archetypes.icons(tag.Kind, line, KIND_ICON)
+	tag.Kind.Visible = line ~= "" and not tag.Small
 	tag.TierName = kind.Tier
 	tag.Tier.Text = kind.Tier
 	Kit.tierColours(tag.Tier, tag.TierGradient, kind.Tier, Config.Tiers)

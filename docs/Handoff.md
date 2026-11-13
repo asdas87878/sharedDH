@@ -3,6 +3,20 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task a1): archetype icons replace the archetype words
+**State:** in the game code, run in Hugo's Studio by script (screens judged from pictures, **not played by hand**).
+StyLua and selene pass. **The icons are not uploaded** (no upload route on this PC, see 2026-11-12 below): they show
+in Studio on Hugo's PC only, from Studio's content folder; on the other PC a tag's icon line is empty until uploaded.
+- Hugo's picks from `attachments/archetype-icons-draft-1.png`: Fast A, Predator B, Frenzy C, Breaker B, Tank A,
+  Leaper B. `art/ui/archetypes/cut_icons.py` cuts them to 256 px PNGs (`art/ui/archetypes/<id>.png`, the round dark
+  badge kept: without it the cyan Fast fish vanishes on the water; `plain/` has the badge-less cut for comparison);
+  `--install` copies them to `<Studio content>/ridefish/ui/archetypes/` (again after Studio updates itself).
+- `Shared/Archetypes`: each `Info` has an `Icon`; `UPLOADED` is where the `rbxassetid://` ids go once uploaded.
+  `Archetypes.line` (old name `rich` kept for HudController) gives the ids, `Archetypes.icons` fills a row with them.
+  The tag's line under the name (22 px icons) and the line under the ring (24 px) are icons now; two archetypes, two
+  icons side by side; none, nothing. The pop-up words are unchanged.
+- Before/after: `attachments/archetype-icons-ingame-before-after.png`.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC, task c2): chomp and smash pop-ups, options sheet 2
 Proposal only, no game change: after sheet 1 (`attachments/chomp-smash-options-1.png`, Hugo: the icons under the bars
 yes, show more text and text + icon), sheet 2 is `attachments/chomp-smash-options-2-text.png` (T1-T4) and

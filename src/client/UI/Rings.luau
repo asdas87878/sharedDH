@@ -15,6 +15,7 @@
 -- written on the ring, and the fish's name and rarity under it.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Archetypes = require(ReplicatedStorage.Shared.Archetypes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
 
@@ -60,7 +61,7 @@ export type View = {
 	Ready: number, -- 0 to 1: how far the hop is from being ready again after a landing
 	Strained: boolean, -- the fish under us is too strong: the meter is emptying at once
 	Low: boolean, -- the meter is in its low part (Config.low, Oxygen.AngryAt): red, and the fish under us is angry
-	Kind: string, -- the passive archetypes of the fish under us, as rich text ("" for none): a third line under the ring
+	Kind: string, -- the passive archetypes of the fish under us (Archetypes.line, "" for none): icons under the ring
 	Endless: boolean, -- the Studio sandbox's endless air: the meter doesn't drain
 }
 
@@ -96,7 +97,8 @@ local shownSeconds = ""
 local shownTitle = ""
 local shownSub = ""
 local shownKind = ""
-local kindText: TextLabel
+local kindRow: Frame
+local KIND_ICON = 24 -- the archetype icons under the ring (they replaced the words, Hugo, 2026-11-13)
 local shownWarn = false
 
 function Rings.build(parent: Instance)
@@ -140,14 +142,20 @@ function Rings.build(parent: Instance)
 		TextSize = 10.5,
 	}, holder)
 	tierGradient = Kit.gradient(tierText, Kit.White, Kit.White)
-	-- the passive archetypes of the fish under us, each in its colour (docs/design/archetypes.md)
-	kindText = Kit.text({
+	-- the passive archetypes of the fish under us, an icon each, side by side (docs/design/archetypes.md)
+	kindRow = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromOffset(0, BIG / 2 + 5),
-		Size = UDim2.fromOffset(220, 12),
-		TextSize = 10,
-		RichText = true,
+		Size = UDim2.fromOffset(220, KIND_ICON),
+		BackgroundTransparency = 1,
 	}, holder)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 4),
+	}, kindRow)
 end
 
 -- The tame ring sits to the left of the big one, level with it: closer on a phone, where the rider is small
@@ -327,11 +335,11 @@ function Rings.update(now: number, v: View)
 	local kindLine = if v.Note == "" then v.Kind else "" -- (a note has the room: "Too strong!", "Floating")
 	if kindLine ~= shownKind then
 		shownKind = kindLine
-		kindText.Text = kindLine
+		Archetypes.icons(kindRow, kindLine, KIND_ICON)
 	end
 	if title ~= shownTitle then
 		-- (the line sits right under the ring when no words are above it, and under them when there are)
-		kindText.Position = UDim2.fromOffset(0, BIG / 2 + (if title == "" then 5 else 31))
+		kindRow.Position = UDim2.fromOffset(0, BIG / 2 + (if title == "" then 5 else 31))
 		shownTitle = title
 		nameText.Text = title
 	end
