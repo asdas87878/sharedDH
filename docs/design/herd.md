@@ -57,6 +57,8 @@ Measured on grey-box 15 before the change.
   through every prop, decided when the fish is made; so does every fish 80 studs long or more. A fish going through
   a prop breaks it only if it is at least 40 studs long. A smaller one swims through and leaves it whole, as the
   reference's small dinos do.
+  Since the merge with Hugo's props (2026-11-13) its kind must break props too (`Config.breaks`: a Tank, a Breaker
+  or a giant; [archetypes](archetypes.md), "Who breaks props"); any other fish, however long, leaves it whole.
 - **Passing.** Fish swim at their own speeds, so one catches another up. The two move apart a little, at 5 studs a
   second at most, and drift back after.
 - **Where a new fish goes.** Of fourteen places in its slice, the one with the most room round it. Room is counted
@@ -116,7 +118,7 @@ All in `src/shared/Config.luau`. Those marked "start" are read once, when the se
 | `Herd.DodgeLength` | 10 | How far ahead the bend starts, in bend widths. Higher is gentler |
 | `Herd.SmashLength` | 80 | Wild fish this long always go straight through props |
 | `Herd.StraightShare` | 0.4 | The share of shorter fish that go straight through too (new fish only) |
-| `Herd.BreakLength` | 40 | A fish going through a prop breaks it only if this long |
+| `Herd.BreakLength` | 40 | A fish going through a prop breaks it only if this long (and of a kind that breaks props) |
 | `Herd.GiveSide`, `GiveAlong`, `GiveRate` | 18, 44, 5 | Passing: the gap kept, when it starts, how fast |
 | `Spawn.BandMax` | 400 (start) | The band's greatest width (200 before) |
 | `Spawn.LaneFill` | 0.95 (start) | The share of the open water each side that is used |
@@ -132,5 +134,6 @@ The sandbox panel has the rows that work live: `Turn`, the `Dodge` and `Give` nu
 ## Open
 - **For the user to judge by eye:** the mix (four in ten straight through), small fish swimming through a prop
   that stays whole, and whether 400 is the right width.
-- **Sizes are in** (the same day): [sizes](sizes.md). **Next, on the user's word:** fish speed.
+- **Sizes are in** (the same day): [sizes](sizes.md). **So is speed:** how fast each wild fish swims, and the
+  hunters that come down from above, are in [pace](pace.md).
 - `tools/balance/model.py` still works the band out the old way (the lane's width times `LaneFill`).

@@ -3,6 +3,146 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): the merge of the partner's herd, sizes and water with Hugo's props and hop
+**State:** merged by hand and **pushed to `origin/main`** (Obsidian is not running on Hugo's PC, so nothing syncs
+there by itself). Both sides are whole: the partner's four vault syncs up to `85b5be8` (the herd's stream, the six sizes and Silver,
+the bigger kinds and the grand fish, the water's fog; the fourth came in while the first three were being tested
+and was merged the same way) and Hugo's commit `0ca31d4` (props, the hop). StyLua and selene pass, `rojo build` passes. Run in
+Hugo's Studio through the studio runner on grey-box 15, by script; **not played by hand**. Nothing uploaded; the test
+scripts are out of the place.
+- **`FishService`: the partner's file, whole,** with one condition changed. A wild fish inside a prop breaks it when
+  **both** sides' rules say so: its kind breaks props (Hugo: `Config.breaks`, a Tank, a Breaker or a giant;
+  `Props.WildBreaks` 0 turns it off) **and** the fish itself is at least `Herd.BreakLength` (40) long (the partner).
+  `Config.smashes`, which the partner's code still called, went with Hugo's commit. Hugo's old place for this
+  (`mindObstacles`, `mindOne`) is gone with the partner's rewrite.
+- **What that changes for each side, to judge:** for the partner, a long wild fish that is no Tank, Breaker or giant
+  (a Basilosaurus, a Bone Leviathan) now swims through a prop and leaves it whole. For Hugo, all 16 kinds that
+  break are 40 or longer at Normal size, so they break; only a Tiny one of five kinds is under it and leaves the
+  prop whole (Archelon, Humphead Wrasse, Sawfish, Aurora Jelly, Grave Turtle). Ridden, every one of the 16 breaks
+  as before, whatever its size. `Herd.BreakLength` 0 gives Hugo's rule alone.
+- **`Config.volumeOf`: the giants stay Hugo's 16.** A fish's `Size` is now its export times the partner's
+  `Config.BaseScale` (1.2 to 2.6), and a volume grows with the cube of that: left alone, 44 of the 82 kinds would
+  have been giants and broken props, where Hugo chose 9 giants (16 kinds that break, with the Tanks and Breakers). `volumeOf` takes the
+  scale out again, so `Props.GiantVolume` is still measured on the exported box. A fish's rolled size (Tiny to
+  Colossal) does not change who breaks either. Open, for Hugo and the partner: whether size should count.
+- **Not changed, to know about:** `Config.Angry.GiantLength` is the partner's 68 (Hugo's 40, raised with the
+  kinds' sizes; their entry below says which kinds). `Config.Variant` is the partner's (Silver 1/12, Gold 1/50, Rainbow 1/250), as their entry below says.
+- **The panel:** no row twice, every row has its number; `Props` and the `Herd` and `Spawn` rows are both sides'.
+- **Measured (the final merged code, and the same before the fourth sync):** the game starts with no errors (the
+  old asset type warning on `203785492` only); the herd near the dock turns 3 degrees in 4 seconds on average
+  (worst fish 6 to 10), sizes Tiny to Huge and a Silver and a Gold seen; the props suite as in
+  [the props playtest](playtests/2026-11-13-props.md): a Clownfish and a Reef Shark through a whole prop at 0.65
+  see-through, the Wrasse, the Sea Cow and the Molten Megalodon break all of it, props back 4.5 s after leaving;
+  wild fish held 3 s inside a prop: Humphead Wrasse 14 of 16 boxes out, Steller's Sea Cow 13, Molten Megalodon 2
+  to 5, Bone Leviathan (long, no breaker) 0, Clownfish 0; a hop from a Megalodon onto a wild Seahorse and from the
+  Wrasse onto a Butterflyfish; the Wrasse's `Archetype` is "Breaker", its Smash boost and the Reef Shark's Eat
+  fired; with the air draining a Clownfish got `Angry` and `AngryStyle` "Zigzag".
+- **As before the merge, to know:** a wild fish looks for props only inside one of the map's 243 big things'
+  circles (`BigAssets`, `Stream.inside`). The other props in `Lane.Props` (1,915 models in all) a wild breaker
+  swims through whole; a ridden one breaks any of them.
+- **Not checked:** by eye, anything. The lands past the second. `tools/studio/herd_stream_test.py` (it goes through
+  `run_luau.js`, the partner's PC).
+- **The partner:** pull, then sync your Studio as usual. Nothing of yours was replaced.
+
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): props, only Tanks, Breakers and giants break them; the rest go through
+**State:** on Hugo's word of 2026-11-13. Run in Studio by script through the studio runner on grey-box 15
+([the playtest](playtests/2026-11-13-props.md)); **not played by hand, and no one has seen the fade or the break
+yet**. StyLua and selene pass. Nothing uploaded; the test scripts are out of the place. Not committed or pushed by
+hand (the vault's own sync carries it). The rules: [riding feel](design/riding-feel.md), "Props: who breaks, who
+goes through"; who qualifies: [archetypes](design/archetypes.md), "Who breaks props". One row in
+[Decisions](Decisions.md).
+- **Who breaks** (`Config.breaks`, shared by server and clients): a Tank, a Breaker, or a giant (model box of
+  `Props.GiantVolume` = 12,000 cubic studs or more, from the creature's `mesh.json` size); a row of
+  `Config.FishStats` may carry `Breaks = true/false` to override. 16 of 82. `python tools/creatures/check_breaks.py`
+  prints the list. `Config.smashes` and `Props.MinLength` are gone.
+- **Everyone else goes through:** `Lib/Course`'s rays leave `Lane/Props` out for every fish and for the hop
+  (`Course.begin` takes no argument now), and so does the server's crash ray (`RideService.checkCrash`). No stop,
+  no slow-down, no Oxygen. The wall glide never sees a prop.
+- **The approach fade** (new `client/Controllers/PropController`): by the player's own distance, on their own
+  screen, to `Props.FadeTo` (0.65, Hugo's pick from the sheet). One spatial query ten times a second; it writes
+  `LocalTransparencyModifier` on a box and its Textures, never `Transparency`. Not on a fish that breaks props
+  unless `Props.FadeForBreakers` is 1.
+- **Breaking** (`PropService` rewritten): the server no longer moves any box. A box that is out carries the tag
+  `PropOut` and isn't solid; its prop's Model carries `BreakAt`, `BreakVel`, `BreakT`, and `RebuildT` when it is
+  back. Each machine hides the tagged boxes and throws its own copies of them (under the camera, not solid, not
+  seen by rays), which fade and are removed. A Breaker is paid as before; a Tank or a giant pays the small crash
+  (`Props.Slow`, `Props.Cost`).
+- **Regenerate:** when no player has been within `Props.RegenRadius` (300) of the prop for `Props.RegenDelay`
+  (3 s), the tags come off and the boxes fade in. `Props.Rebuild` (the fixed 8 s) is gone.
+- **Numbers:** all in `Config.Props`, all on the N panel. The sandbox's F list now has Steller's Sea Cow (Tank),
+  the Molten Megalodon (a giant with no archetype) and the Blue Whale.
+- **For the partner (the map):** nothing of the generator or the loader changed, and the props need no new tag
+  or attribute from it. The game finds them as before, by name: `ClaudeBlockout.Lane.Props`, one Model a prop,
+  its boxes anchored parts inside. A reload of the map while the game runs is fine (the broken list drops props
+  that are gone). If a prop ever gets parts that are not solid on purpose, they will never break (only
+  `CanCollide` boxes do).
+- **For the animations:** nothing of the partner's was touched. The fish's `Smash` attribute still counts up only
+  for a Breaker's paid smash; a Tank's or a giant's break is a "Crashed" to its rider, as a prop was before.
+- **For the UI chat:** a fish's tag does not say that a Tank or a giant breaks props (`Shared/Archetypes`'s
+  `Does` lines are as they were). `Config.breaks(fish)` is there to ask.
+- **Open:** small props (sea grass, floor tiles) also cost a Tank or a giant the small crash, see the playtest
+  note; two players at one prop were not run; the rebuild fades in only (no scale-in).
+
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): a short wait between fish, the hop flies fast then stalls and falls, the hook's reach by speed
+**State:** on Hugo's hand-play of 2026-11-13. Run in Studio by script through the studio runner on grey-box 15;
+**not played by hand**. StyLua and selene pass. Nothing uploaded; the test scripts are out of the place. Not
+committed or pushed by hand (the vault's own sync carries it). The numbers and the old and new curves:
+[the playtest](playtests/2026-11-13-hop-air-reach.md). The rules: [riding feel](design/riding-feel.md), "The wait
+between fish, the air's shape, the hook's reach". One row in [Decisions](Decisions.md).
+- **The wait between fish** (`JumpController`, `RideService`, `InputController`): `Jump.Cooldown` is 0.08 s counted
+  from the touch (the pull-in's end), not 0.3 s from the mount: the lock is only the gap until the landing
+  animation starts. The server asks half of it after its own mount. A fish too strong for you keeps 0.3 s
+  (`Jump.StrainLock`, both sides): `Oxygen.StrainTime` must stay shorter than the lock, or such a fish is a
+  stepping stone. The second hook is still shut by `HopGuard`; and a held Space or gamepad A is now one press
+  whatever the frame rate (`InputController` reads the key going down; the mobile button still uses `InputGap`).
+- **The air** (`Config.hopFrom`, `Config.hopSpeed`, `Config.hopSink`; `JumpController` flies them): fast for the
+  whole glide (`FastKeep`, `FastCurve`), then the stall (`StallTime`, `StallShare`), then a fall (`FallGravity`,
+  `FallSpeed`). `BoostHold`, `BoostTime`, `Drop`, `DropCurve` and `DropSpeed` are gone from Config and the panel.
+- **The hook's reach** (`Config.reachOf`; `Lib/Lock` takes the reach as an argument): `Jump.GrabNear` 60 with no
+  speed to `Jump.GrabRange` 150 at `Jump.GrabFullSpeed` 180, by the speed across the water each frame. It was 180
+  always. The ring thins out near the edge of the reach (`Jump.RingEdge`); `State.Reach` holds the reach in a hop
+  (the sandbox shows it; free for the HUD). After the fast part the lock takes any fish in reach, all round
+  (`Lock.LastChance`), so a hop that aimed at a fish too far still finds a near one.
+- **The server** (`RideService`): the grab's range is `Config.reachOf` of the hop's own curve, from the server's
+  clock and the speed it saw the fish go at. New: it measures the ridden fish's speed itself, from where it sees
+  the fish go (`RideSpeed`): the velocity it read at the hop's word before was the hopping rider's, not the fish's
+  (that had only made its window a little long). `Net.ReachLag` (0.2 s) is the lag allowance on the shrinking reach.
+- **For the UI chat:** `State.Reach` (studs, nil outside a hop) is there if the reticle should show the reach.
+  `HudController` was not changed; its `Ready` still divides by `Jump.Cooldown`, now 0.08.
+- **For the partner (animations): nothing of yours was changed.** A hop can now begin 0.09 s after a landing, so
+  the fish's landing reaction and the rider's brace (`Animation.Brace` 0.45 s) are often cut by the next hop's
+  pop. `State.JumpPhase` still says Pop, Glide, Drop; the Drop is now a stall and then a real fall (up to 90
+  studs a second down), which may want its own pose.
+- **The test driver** (`tools/studio/movement_w1/`) gained `spacing`, `air`, `relock`, `rate`, `serverreach`, and
+  a cadence on `mounts`. `tools/movement/hop_curves.py` draws the old and new curves from the formulas.
+- **Left:** the fall ends on the sea floor with a stop in one frame (the camera barely shows it), and you lie
+  there until the window ends; the window itself is as long as it was.
+
+## 2026-11-13 · Obsidian chat integration (the user's PC): wild fish swim in character: plod, cruise, zoom, dart, hunt
+**State:** on the user's word of 2026-11-13. In the user's Studio place (synced, 133 scripts, with Hugo's props and
+hop of the same day, which the vault's sync had merged in) and run there on grey-box 15 by script; **not looked at
+by eye**. StyLua and selene pass, `rojo build` passes. Nothing uploaded. Not committed by hand. All of it:
+[pace](design/pace.md). One row in [Decisions](Decisions.md).
+- **The merge:** the vault's sync had stopped half way through merging `origin/main` (Hugo's props and hop), on
+  `docs/Decisions.md` and `docs/design/herd.md`. Both resolved keeping both sides (Hugo's wording of
+  `Herd.BreakLength`, this chat's `Give` numbers) and staged; the merge commit is left to the vault's sync.
+- **`Config`:** `Config.Pace` (the shares and the hunters' round), `Config.FishPace` (each kind's character, 52 of
+  82 named, the rest Cruise), `Config.SizePace`, `Config.paceOf`. `Herd.SpeedShare` is still the Cruise share.
+- **`FishService`:** `paceShare` (a fish's share of its ridden speed now: the lurch, the bursts, a hunter's round)
+  and `steer` (the share eased, a hunter's rise over its place in the herd, kept under the surface); `Wild.Pace`,
+  `Own`, `Gait`, `Mode`, `Rise` and the rest; the model's `Pace` attribute; a wild fish's speed is sent to the
+  clients again when it has changed 1.5 studs a second (0.5); Studio: `Workspace`'s `TestKind`.
+- **Not touched:** ridden speeds (`Config.FishStats`), `RideService`, the hop, `AnimController` (its beat already
+  goes by a fish's speed).
+- **Measured:** plodders 20 to 29, cruisers 42 to 47, zoomers 64 to 70, darters 32 to 82, a hunter's stoop 99 at 20
+  degrees from 65 to 75 studs up; rides with hops, no errors.
+- **The visit** (the user, the same day: predators early "as a rarer event"): `visit` and `huntersOf` in
+  `FishService`, looked at with every top-up; `Pace.Visit*`, `HuntRunMost`, `HuntPast`; a hunter's run now lasts
+  until it is past the player. The model's `Visitor` attribute marks one. Studio: `TestVisit`.
+- **For the user:** wild Zoom fish are faster than when ridden; how often the visit comes.
+- **The merge is still not committed:** conflicts resolved and staged, but the vault's sync has not concluded it,
+  and `origin/main` has moved on since. It needs `git commit` and then another pull.
+
 ## 2026-11-13 · Obsidian chat integration (the user's PC): six sizes and Silver, 24 of every fish; the kinds' own sizes
 **State:** on the user's word of 2026-11-13, with their screenshot of the reference's Index. In the user's Studio
 place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked at by eye**. StyLua and selene pass,

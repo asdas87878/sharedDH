@@ -121,7 +121,10 @@ Course.clearVelocity = function(from, velocity, clearance, reach)
 		askedBefore, gotBefore = askedLast, gotLast
 		askedLast, gotLast = velocity, result
 	end
-	if flatWanted > 3 and (Vector3.new(velocity.X - result.X, 0, velocity.Z - result.Z)).Magnitude > 0.03 * flatWanted then
+	if
+		flatWanted > 3
+		and (Vector3.new(velocity.X - result.X, 0, velocity.Z - result.Z)).Magnitude > 0.03 * flatWanted
+	then
 		hardFrames += 1
 	end
 	if tracing and os.clock() - lastTrace > 0.12 then
@@ -649,6 +652,7 @@ end
 
 -- one mount. `mash`: Space is pressed every 0.1 s from the grab until a second after the landing.
 local mountCam, mountRoot = {}, {}
+local mashEvery = 0.1 -- seconds between the mash's presses (mounts <count> <fix> <mash> <every>)
 local function mountOnce(i, mash)
 	local root = rootOf()
 	if State.Mode ~= "Riding" or not State.Fish then
@@ -692,7 +696,7 @@ local function mountOnce(i, mash)
 	local wasMode = State.Mode
 	local firstLand = nil
 	local seen = #events
-	local nextPress = pressAt + 0.1
+	local nextPress = pressAt + mashEvery
 	local presses = 1
 	local camLast, camVel, rootVel = nil, nil, nil
 	local camJump, rootJump, camFast = 0, 0, 0
@@ -737,7 +741,7 @@ local function mountOnce(i, mash)
 			end
 		end
 		if mash and now >= nextPress and (not firstLand or now - firstLand < 1) then
-			nextPress = now + 0.1
+			nextPress = now + mashEvery
 			presses += 1
 			Actions.jump()
 		end
@@ -1433,7 +1437,7 @@ local function glideSkip()
 		end
 		local props = map:FindFirstChild("Lane") and map.Lane:FindFirstChild("Props")
 		if props then
-			table.insert(skip, props) -- (every fish breaks props and swims through them: Config.Props.MinLength 0)
+			table.insert(skip, props) -- (no fish is stopped by a prop: Config.Props, 2026-11-13)
 		end
 	end
 	glideParams.FilterDescendantsInstances = skip
@@ -1513,7 +1517,11 @@ local function newMeter(mover, wide, long, v0)
 		if ahead and ahead.Normal.Y < 0.5 then
 			local up = Vector3.new(0, 10, 0)
 			local step = not workspace:Raycast(at, up, glideParams)
-				and not workspace:Raycast(at + up, Vector3.new(look.X, 0, look.Z).Unit * (ahead.Distance + 12), glideParams)
+				and not workspace:Raycast(
+					at + up,
+					Vector3.new(look.X, 0, look.Z).Unit * (ahead.Distance + 12),
+					glideParams
+				)
 			if not step then
 				m.Nose = math.min(m.Nose, ahead.Distance - long)
 			end
@@ -1800,7 +1808,13 @@ local function glideRun(angle, id, lead, extras)
 				fastAt = os.clock() - turned
 			end
 		end
-		log("GLIDE %d steering off: free of the wall after %.2f s, at 90%% speed after %.2f s | %s", angle, freeAt or -1, fastAt or -1, off.line())
+		log(
+			"GLIDE %d steering off: free of the wall after %.2f s, at 90%% speed after %.2f s | %s",
+			angle,
+			freeAt or -1,
+			fastAt or -1,
+			off.line()
+		)
 		-- and holding into it at a shallow angle: hugging it
 		lookAlongLane(12 * sign)
 		waitFor(function()
@@ -2087,7 +2101,8 @@ local function phaseCamWall(id)
 				local op = OverlapParams.new()
 				op.RespectCanCollide = true
 				op.FilterType = Enum.RaycastFilterType.Include
-				op.FilterDescendantsInstances = { workspace.ClaudeBlockout.Lane.Walls, workspace.ClaudeBlockout.Lane.Ground }
+				op.FilterDescendantsInstances =
+					{ workspace.ClaudeBlockout.Lane.Walls, workspace.ClaudeBlockout.Lane.Ground }
 				while os.clock() - t0 < 2 do
 					m.step(RunService.RenderStepped:Wait())
 					if #workspace:GetPartBoundsInRadius(camera.CFrame.Position, 0.2, op) > 0 then
@@ -2226,6 +2241,556 @@ local function phaseCamTop(label)
 end
 
 ------------------------------------------------------------------------------------------------------------------
+-- J1 (2026-11-13): the wait between fish, the air's three parts, the hook's reach by speed
+local JumpController = require(Client.Controllers.JumpController)
+local fxLandAt = nil -- os.clock() the server's "Land" for our own player came in: the landing animation starts
+Net.Fx.OnClientEvent:Connect(function(kind, who)
+	if kind == "Land" and who == player then
+		fxLandAt = os.clock()
+	end
+end)
+
+local function freeFishFrom(at)
+	local folder = workspace:FindFirstChild("Fish")
+	local list = {}
+	for _, model in folder and folder:GetChildren() or {} do
+		if model:IsA("Model") and State.isFreeFish(model) then
+			table.insert(list, (model.PrimaryPart.Position - at).Magnitude)
+		end
+	end
+	table.sort(list)
+	return list
+end
+local function within(list, range)
+	local n = 0
+	for _, d in list do
+		if d <= range then
+			n += 1
+		end
+	end
+	return n
+end
+local function percentile(sorted, share)
+	if #sorted == 0 then
+		return -1
+	end
+	return sorted[math.clamp(math.ceil(#sorted * share), 1, #sorted)]
+end
+
+-- SPACING: ride down the lane and look, twice a second, at how far the free fish are from the rider
+local RANGES = { 40, 60, 80, 100, 120, 150, 180 }
+local function phaseSpacing(id, seconds)
+	if not getOn(id) then
+		log("SPACING: could not get on")
+		return
+	end
+	lookAlongLane(0)
+	settle(2)
+	local nearest, second = {}, {}
+	local counts, none = {}, {}
+	for _, r in RANGES do
+		counts[r], none[r] = 0, 0
+	end
+	local samples = 0
+	local t0 = os.clock()
+	local s0, s1 = nil, nil
+	while os.clock() - t0 < seconds do
+		settle(0.5)
+		local root = rootOf()
+		if State.Mode ~= "Riding" or not root then
+			log("SPACING: no longer riding (%s) after %.0f s", State.Mode, os.clock() - t0)
+			break
+		end
+		local _, _, _, _, s = laneAt(root.Position)
+		s0 = s0 or s
+		s1 = s
+		local list = freeFishFrom(root.Position)
+		samples += 1
+		table.insert(nearest, list[1] or 999)
+		table.insert(second, list[2] or 999)
+		for _, r in RANGES do
+			local n = within(list, r)
+			counts[r] += n
+			if n == 0 then
+				none[r] += 1
+			end
+		end
+		if samples % 20 == 0 then
+			log("SPACING .. %d samples, s %.0f, nearest now %.0f", samples, s, list[1] or -1)
+		end
+	end
+	table.sort(nearest)
+	table.sort(second)
+	log(
+		"SPACING %d samples over s %.0f to %.0f | nearest free fish: median %.0f, 75%% %.0f, 90%% %.0f, 95%% %.0f, worst %.0f | second nearest: median %.0f, 90%% %.0f",
+		samples,
+		s0 or -1,
+		s1 or -1,
+		percentile(nearest, 0.5),
+		percentile(nearest, 0.75),
+		percentile(nearest, 0.9),
+		percentile(nearest, 0.95),
+		nearest[#nearest] or -1,
+		percentile(second, 0.5),
+		percentile(second, 0.9)
+	)
+	local text = {}
+	for _, r in RANGES do
+		table.insert(
+			text,
+			string.format(
+				"%d: %.1f fish, none in %.0f%%",
+				r,
+				counts[r] / math.max(samples, 1),
+				100 * none[r] / math.max(samples, 1)
+			)
+		)
+	end
+	log("SPACING within | %s", table.concat(text, " | "))
+end
+
+-- AIR: one whole hop with no grab: speed across the water, height, the hook's reach and the fish inside it, every
+-- 0.1 s; and how smooth: the most the rider's speed and the camera's speed change between two frames
+local function airRun(label, id, angry, wait)
+	tune("Angry", "Test", if angry then 1 else 0)
+	if not getOn(id) then
+		log("AIR %s: could not get on %s", label, tostring(id))
+		return
+	end
+	lookAlongLane(0)
+	settle(wait or 3.5)
+	local kind = Config.FishById[State.Fish:GetAttribute("FishType")]
+	local had = fishSpeed().Magnitude
+	local root = rootOf()
+	local from = root.Position
+	if not Actions.jump() then
+		log("AIR %s: the jump was refused", label)
+		return
+	end
+	local began = os.clock()
+	local series = {}
+	local nextMark = 0
+	local lastAt, lastV, lastVy = root.Position, nil, nil
+	local camLast, camVel = camera.CFrame.Position, nil
+	local stepFlat, stepFall, stepCam = 0, 0, 0 -- the biggest change between two frames, studs a second
+	local stepFlatAt, stepFallAt, stepCamAt = 0, 0, 0
+	local path = 0
+	local top = 0
+	local fallMost = 0
+	local reachSum, reach180, reachN = { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } -- fast part, stall, fall
+	local j = Config.Jump
+	local fastEnd = nil
+	while State.Mode == "Jumping" and os.clock() - began < 8 do
+		local dt = RunService.RenderStepped:Wait()
+		local t = os.clock() - began
+		local at = root.Position
+		local v = flat(at - lastAt) / math.max(dt, 1e-6)
+		local vy = (at.Y - lastAt.Y) / math.max(dt, 1e-6)
+		path += flat(at - lastAt)
+		top = math.max(top, at.Y - from.Y)
+		fallMost = math.max(fallMost, -vy)
+		if lastV and t > 0.1 then
+			if math.abs(v - lastV) > stepFlat then
+				stepFlat, stepFlatAt = math.abs(v - lastV), t
+			end
+			if math.abs(vy - lastVy) > stepFall then
+				stepFall, stepFallAt = math.abs(vy - lastVy), t
+			end
+		end
+		lastAt, lastV, lastVy = at, v, vy
+		local eye = camera.CFrame.Position
+		local cv = (eye - camLast) / math.max(dt, 1e-6)
+		if camVel and t > 0.1 and (cv - camVel).Magnitude > stepCam then
+			stepCam, stepCamAt = (cv - camVel).Magnitude, t
+		end
+		camLast, camVel = eye, cv
+		if State.JumpPhase == "Drop" and not fastEnd then
+			fastEnd = t
+		end
+		if t >= nextMark then
+			nextMark += 0.1
+			local list = freeFishFrom(at)
+			local reach = State.Reach or -1
+			table.insert(
+				series,
+				string.format(
+					"%.1f,%.0f,%.1f,%.0f,%d,%d",
+					t,
+					v,
+					at.Y - from.Y,
+					reach,
+					within(list, reach),
+					within(list, 180)
+				)
+			)
+			local part = if not fastEnd then 1 elseif t < fastEnd + j.StallTime then 2 else 3
+			reachSum[part] += within(list, reach)
+			reach180[part] += within(list, 180)
+			reachN[part] += 1
+		end
+	end
+	local window = os.clock() - began
+	log(
+		"AIR %s fish=%s had=%.1f | fast part ends %.2fs, window %.2fs, %.0f studs along (path %.0f), top %.1f up, ends %.1f from where it left, fastest fall %.0f st/s",
+		label,
+		kind.Id,
+		had,
+		fastEnd or -1,
+		window,
+		flat(root.Position - from),
+		path,
+		top,
+		root.Position.Y - from.Y,
+		fallMost
+	)
+	log(
+		"AIR %s smoothness: biggest change between two frames: speed across %.1f st/s (at %.2fs), fall speed %.1f st/s (at %.2fs), camera %.1f st/s (at %.2fs)",
+		label,
+		stepFlat,
+		stepFlatAt,
+		stepFall,
+		stepFallAt,
+		stepCam,
+		stepCamAt
+	)
+	local names = { "fast part", "stall", "fall" }
+	local text = {}
+	for part = 1, 3 do
+		local n = math.max(reachN[part], 1)
+		table.insert(
+			text,
+			string.format(
+				"%s: %.1f fish in reach now, %.1f inside 180",
+				names[part],
+				reachSum[part] / n,
+				reach180[part] / n
+			)
+		)
+	end
+	log("AIR %s fish in reach | %s", label, table.concat(text, " | "))
+	log("AIR %s t,speed,height,reach,inreach,in180: %s", label, table.concat(series, " "))
+end
+
+local function speedFish()
+	local list = {}
+	for _, fish in Config.Fish do
+		if not Config.hasArchetype(fish, "Leaper") then
+			table.insert(list, fish)
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.RiddenSpeed < b.RiddenSpeed
+	end)
+	local slow, fast = list[1], list[#list]
+	local mid = list[1]
+	for _, fish in list do
+		if math.abs(fish.RiddenSpeed - 75) < math.abs(mid.RiddenSpeed - 75) then
+			mid = fish
+		end
+	end
+	return slow, mid, fast
+end
+
+local function phaseAir(times)
+	local saved = Config.Jump.AutoGrab
+	tune("Jump", "AutoGrab", 0)
+	local slow, mid, fast = speedFish()
+	log(
+		"AIR fish: slow %s %.0f, mid %s %.0f, fast %s %.0f",
+		slow.Id,
+		slow.RiddenSpeed,
+		mid.Id,
+		mid.RiddenSpeed,
+		fast.Id,
+		fast.RiddenSpeed
+	)
+	for i = 1, times do
+		airRun("slow-angry#" .. i, slow.Id, true, 5)
+		airRun("slow#" .. i, slow.Id, false)
+		airRun("normal#" .. i, mid.Id, false)
+		airRun("fast#" .. i, fast.Id, false)
+	end
+	tune("Angry", "Test", 0)
+	tune("Jump", "AutoGrab", saved)
+	log("AIR done")
+end
+
+-- RELOCK: land on a fish (one press to grab, none in the pull-in), then ask to hop every frame from the mount on.
+-- When does the landing animation start (the server's "Land"), when does the mount come, when does the hop begin?
+local function landOnce()
+	if State.Mode ~= "Riding" then
+		getOn(nil)
+		lookAlongLane(0)
+		settle(1.5)
+	end
+	local root = rootOf()
+	local list = freeAhead(root, 40, 140)
+	if #list == 0 then
+		settle(1)
+		list = freeAhead(root, 30, 150)
+		if #list == 0 then
+			getOn(nil)
+			return nil
+		end
+	end
+	local target = list[math.random(1, #list)]
+	lookAt(target)
+	settle(0.4)
+	fxLandAt = nil
+	local seen = #events
+	local mark = os.clock()
+	Actions.jump()
+	waitFor(function()
+		return os.clock() - mark > 0.3 and State.JumpTarget ~= nil
+	end, 1.2)
+	Actions.jump() -- the grab: one press, none in the pull-in
+	return seen
+end
+local function jumpsDenied()
+	local n = 0
+	for index = 1, #events do
+		if events[index].Kind == "Denied" and events[index].A == "Jump" then
+			n += 1
+		end
+	end
+	return n
+end
+local function phaseRelock(count)
+	local touchToAnim, touchToMount, touchToHop, mountToHop = {}, {}, {}, {}
+	local denied = 0
+	for i = 1, count do
+		local seen = landOnce()
+		if seen then
+			-- the touch: the first frame the pull-in is whole
+			local touch = nil
+			local hopAt = nil
+			local t0 = os.clock()
+			local deniedBefore = jumpsDenied()
+			while os.clock() - t0 < 6 do
+				RunService.RenderStepped:Wait()
+				local u = JumpController.reel()
+				if not touch and u and u >= 1 then
+					touch = os.clock()
+				end
+				if touch and State.Mode == "Riding" then
+					-- a fresh press each frame from the mount on (nothing was pressed in the pull-in)
+					if Actions.jump() and State.Mode == "Jumping" then
+						hopAt = os.clock()
+						break
+					end
+				end
+				if State.Mode == "Free" then
+					break
+				end
+			end
+			local mountAt = nil
+			for index = seen + 1, #events do
+				if events[index].Kind == "Mounted" then
+					mountAt = events[index].At
+					break
+				end
+			end
+			settle(0.25)
+			local refused = jumpsDenied() - deniedBefore
+			denied += refused
+			if touch and mountAt and hopAt then
+				table.insert(touchToMount, mountAt - touch)
+				table.insert(touchToHop, hopAt - touch)
+				table.insert(mountToHop, hopAt - mountAt)
+				if fxLandAt then
+					table.insert(touchToAnim, fxLandAt - touch)
+				end
+				log(
+					"RELOCK %d: touch -> landing animation starts %.3f s, -> mounted %.3f s, -> the next hop began %.3f s (%.3f s after the mount); server refused the hop: %d",
+					i,
+					if fxLandAt then fxLandAt - touch else -1,
+					mountAt - touch,
+					hopAt - touch,
+					hopAt - mountAt,
+					refused
+				)
+			else
+				log(
+					"RELOCK %d: incomplete (touch %s mount %s hop %s, mode %s)",
+					i,
+					tostring(touch),
+					tostring(mountAt),
+					tostring(hopAt),
+					State.Mode
+				)
+			end
+			waitFor(function()
+				return State.Mode ~= "Jumping"
+			end, 8)
+			settle(0.6)
+		end
+	end
+	table.sort(touchToAnim)
+	table.sort(touchToMount)
+	table.sort(touchToHop)
+	table.sort(mountToHop)
+	log(
+		"RELOCK done (%d, Jump.Cooldown %.2f): touch to animation start median %.3f worst %.3f | touch to mount median %.3f worst %.3f | touch to next hop median %.3f, least %.3f, worst %.3f | mount to next hop median %.3f worst %.3f | hops the server refused: %d",
+		#touchToHop,
+		Config.Jump.Cooldown,
+		median(touchToAnim),
+		touchToAnim[#touchToAnim] or -1,
+		median(touchToMount),
+		touchToMount[#touchToMount] or -1,
+		median(touchToHop),
+		touchToHop[1] or -1,
+		touchToHop[#touchToHop] or -1,
+		median(mountToHop),
+		mountToHop[#mountToHop] or -1,
+		denied
+	)
+end
+
+-- RATE: fish to fish as fast as presses allow, for a while: hop the first frame it is allowed, grab the first frame a
+-- fish is locked and a grab counts. How many landings, and the time from one landing to the next
+local function phaseRate(seconds, label)
+	if not getOn(nil) then
+		return
+	end
+	lookAlongLane(0)
+	settle(2)
+	local t0 = os.clock()
+	local landings = {}
+	local seen = #events
+	local misses = 0
+	while os.clock() - t0 < seconds do
+		RunService.RenderStepped:Wait()
+		if State.Mode == "Riding" then
+			Actions.jump()
+		elseif State.Mode == "Jumping" then
+			if State.JumpTarget and not JumpController.reel() then
+				Actions.jump()
+			end
+		elseif State.Mode == "Free" then
+			misses += 1
+			getOn(nil)
+			lookAlongLane(0)
+			settle(1)
+		end
+		while seen < #events do
+			seen += 1
+			if events[seen].Kind == "Mounted" and events[seen].B == true then
+				table.insert(landings, events[seen].At)
+			end
+		end
+	end
+	local gaps = {}
+	for index = 2, #landings do
+		local gap = landings[index] - landings[index - 1]
+		if gap < 3 then
+			table.insert(gaps, gap)
+		end
+	end
+	table.sort(gaps)
+	log(
+		"RATE %s (Cooldown %.2f): %d landings in %.0f s, %d sank | landing to landing: least %.3f, median %.3f, 90%% %.3f",
+		label,
+		Config.Jump.Cooldown,
+		#landings,
+		seconds,
+		misses,
+		gaps[1] or -1,
+		median(gaps),
+		percentile(gaps, 0.9)
+	)
+	waitFor(function()
+		return State.Mode ~= "Jumping"
+	end, 8)
+end
+
+-- SERVERREACH: the server's own check. A grab asked for straight from the remote, past what the client would allow:
+-- early in the hop (fast: a long reach) and after the stall (a short one)
+local function phaseServerReach(count)
+	local saved = Config.Jump.AutoGrab
+	tune("Jump", "AutoGrab", 0)
+	local _, mid = speedFish()
+	local asked, wrong = 0, 0
+	for i = 1, count do
+		if getOn(mid.Id) then
+			lookAlongLane(0)
+			settle(3)
+			local late = i % 2 == 0
+			local root = rootOf()
+			Actions.jump()
+			local began = os.clock()
+			local j = Config.Jump
+			-- (late: well after the stall; early: 0.3 s in)
+			waitFor(function()
+				if late then
+					return State.JumpPhase == "Drop" and (State.Reach or 999) <= j.GrabNear + 16
+				end
+				return os.clock() - began > 0.3
+			end, 6)
+			if late then
+				settle(0.45) -- (past the server's Net.ReachLag and a little)
+			end
+			if State.Mode == "Jumping" then
+				local reach = State.Reach or 0
+				local best, bestD = nil, nil
+				local folder = workspace:FindFirstChild("Fish")
+				-- late: a fish past the reach we have now (by more than the server's slack), but inside the old 180: to
+				-- be refused. Early: the furthest fish INSIDE the reach we have (the fast part's long one): to be granted
+				for _, model in folder and folder:GetChildren() or {} do
+					if model:IsA("Model") and State.isFreeFish(model) then
+						local d = (model.PrimaryPart.Position - root.Position).Magnitude
+						if late then
+							if d > reach * Config.Net.RangeSlack + 15 and d < 178 and (not bestD or d < bestD) then
+								best, bestD = model, d
+							end
+						elseif d > 75 and d < reach - 3 and (not bestD or d > bestD) then
+							best, bestD = model, d
+						end
+					end
+				end
+				if best then
+					local seen = #events
+					Net.Action:FireServer("Grab", best)
+					settle(0.35)
+					local word = "granted (no refusal came)"
+					for index = seen + 1, #events do
+						local e = events[index]
+						if e.Kind == "Denied" and e.A == "Grab" then
+							word = "refused: " .. tostring(e.B)
+						end
+					end
+					asked += 1
+					if (string.find(word, "Range") ~= nil) ~= late then
+						wrong += 1
+					end
+					Net.Action:FireServer("CancelGrab")
+					log(
+						"SERVERREACH %d (%s, %.2f s in): our reach %.0f, asked the server for a fish %.0f away -> %s",
+						i,
+						if late then "after the stall" else "fast part",
+						os.clock() - began,
+						reach,
+						bestD,
+						word
+					)
+				else
+					log("SERVERREACH %d: no fish at the distance wanted (reach %.0f)", i, reach)
+				end
+			end
+			waitFor(function()
+				return State.Mode ~= "Jumping"
+			end, 8)
+			settle(0.4)
+		end
+	end
+	tune("Jump", "AutoGrab", saved)
+	log(
+		"SERVERREACH done: %d grabs asked of the server (even: past the stalled reach, to be refused; odd: inside the fast part's reach, to be granted), %d answered wrongly",
+		asked,
+		wrong
+	)
+end
+
+------------------------------------------------------------------------------------------------------------------
 local busy = false
 cmd:GetPropertyChangedSignal("Value"):Connect(function()
 	local words = string.split(cmd.Value, " ")
@@ -2267,10 +2832,16 @@ cmd:GetPropertyChangedSignal("Value"):Connect(function()
 				-- wander [fish] [seconds] [straight seconds first]
 				wander(words[2] or "Barracuda", tonumber(words[3]) or 60, tonumber(words[4]) or 1)
 			elseif name == "mouth" then
-				phaseMouth(words[2] or "Barracuda", if words[4] and tonumber(words[3]) then { tonumber(words[3]) } else nil)
+				phaseMouth(
+					words[2] or "Barracuda",
+					if words[4] and tonumber(words[3]) then { tonumber(words[3]) } else nil
+				)
 				log("MOUTH DONE")
 			elseif name == "hopglide" then
-				phaseHopGlide(words[2] or "Barracuda", if words[4] and tonumber(words[3]) then { tonumber(words[3]) } else nil)
+				phaseHopGlide(
+					words[2] or "Barracuda",
+					if words[4] and tonumber(words[3]) then { tonumber(words[3]) } else nil
+				)
 				log("HOPGLIDE DONE")
 			elseif name == "pose" then
 				-- pose <float|hop|ride> <pitch degrees> <seconds>: hold a view for a picture
@@ -2299,7 +2870,13 @@ cmd:GetPropertyChangedSignal("Value"):Connect(function()
 							settle(0.9)
 						end
 					end
-					log("POSE %s ready: mode %s, we at %.1f, camera at %.1f", tostring(words[2]), State.Mode, rootOf().Position.Y, camera.CFrame.Position.Y)
+					log(
+						"POSE %s ready: mode %s, we at %.1f, camera at %.1f",
+						tostring(words[2]),
+						State.Mode,
+						rootOf().Position.Y,
+						camera.CFrame.Position.Y
+					)
 					settle(tonumber(words[4]) or 20)
 					tune("Jump", "AutoGrab", 2)
 				end
@@ -2370,6 +2947,17 @@ cmd:GetPropertyChangedSignal("Value"):Connect(function()
 				report:FireServer("__clear")
 			elseif name == "hop" then
 				phaseHop()
+			elseif name == "spacing" then
+				-- spacing [fish] [seconds]
+				phaseSpacing(if words[2] and words[2] ~= "-" then words[2] else "Barracuda", tonumber(words[3]) or 60)
+			elseif name == "air" then
+				phaseAir(tonumber(words[2]) or 1)
+			elseif name == "relock" then
+				phaseRelock(tonumber(words[2]) or 12)
+			elseif name == "rate" then
+				phaseRate(tonumber(words[2]) or 40, words[3] or "")
+			elseif name == "serverreach" then
+				phaseServerReach(tonumber(words[2]) or 8)
 			elseif name == "fair" then
 				phaseFair()
 			elseif name == "mounts" then
@@ -2377,11 +2965,17 @@ cmd:GetPropertyChangedSignal("Value"):Connect(function()
 				local count = tonumber(words[2]) or 30
 				local fix = words[3] ~= "0"
 				local mash = words[4] == "1"
+				mashEvery = tonumber(words[5]) or 0.1
 				tune("Jump", "RehookGuard", if fix then 0.45 else 0)
 				tune("Jump", "LandWait", if fix then 0.5 else 0)
 				tune("Jump", "HopGuard", if fix then 0.25 else 0)
 				tune("Angry", "Test", 0)
-				phaseMounts(count, mash, string.format("fix=%s mash=%s", tostring(fix), tostring(mash)))
+				phaseMounts(
+					count,
+					mash,
+					string.format("fix=%s mash=%s every=%.2f", tostring(fix), tostring(mash), mashEvery)
+				)
+				mashEvery = 0.1
 				tune("Jump", "RehookGuard", 0.45)
 				tune("Jump", "LandWait", 0.5)
 				tune("Jump", "HopGuard", 0.25)

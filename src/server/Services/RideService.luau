@@ -6,10 +6,11 @@
 --   the progression). At zero the fish throws you off and you drown (Drowning, DeathAt). A hop is never refused for
 --   Oxygen and costs none, so at almost nothing you can still go fish to fish, and every landing refills.
 --   Running the fish into something solid never kills (Config.Crash): it costs Oxygen and the client is told to slow.
---   A prop breaks instead (PropService), for less.
+--   A prop never stops a fish: a Tank, a Breaker or a giant breaks it (PropService), the rest go through.
 --   Going fish to fish (Config.Jump): from a fish or from floating, the player leaves into a hop their own client
 --   moves (the pop, the glide, the drop; A and D). That is the window, Jump.Window seconds, with no drain. To take a fish
---   the client says which it is going for ("Grab"): the server checks it is free and within Jump.GrabRange of the
+--   the client says which it is going for ("Grab"): the server checks it is free and within the hook's reach (by the
+--   hop's speed then, which the server works out itself: Config.reachOf, Config.hopSpeed) of the
 --   player (the same hard cap the client uses) and keeps it for them, so two players
 --   can't be pulled onto one fish. When the pull-in ends the client says so ("Land"): it must be the fish that was
 --   granted, with the player now at it, and the server mounts them, with the refill. A refused grab costs nothing but
@@ -79,7 +80,11 @@ type Rider = {
 	Nosed: boolean, -- the fish's nose is up against something solid (so it is counted once)
 	FastAt: number, -- os.clock() the fish was last seen going fast enough to crash
 	-- the passive archetypes (Config.Archetype)
-	JumpExtra: number, -- seconds this hop's window is longer by (off a Leaper)
+	JumpExtra: number, -- seconds this hop's glide and window are longer by (off a Leaper; airtime by speed)
+	RideSpeed: number, -- how fast the fish under us is going, as WE see it move (its place from frame to frame, eased): a hop's numbers are from it
+	RideFrom: Vector3?, -- where that fish was last frame
+	JumpLaunch: number, -- this hop's speed as it left and
+	JumpAir: number, -- its glide's pace (Config.hopFrom, from the speed we saw the fish leave at): the hook's reach is counted from them
 	BoostUntil: number, -- os.clock() the last burst of speed we were given ends (an eat's, a smash's),
 	BoostMost: number, -- and how many times its speed the fish may go until then (the speed check)
 	EatCheckAt: number, -- os.clock() of the next look for something to eat
@@ -306,6 +311,9 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.Weld = weld
 	r.CheckAt = os.clock() + 1
 	r.CheckFrom = w.Root.Position
+	-- (a wild fish is ours to move, so the speed it has now is true)
+	r.RideSpeed = w.Root.AssemblyLinearVelocity.Magnitude
+	r.RideFrom = w.Root.Position
 	r.Nosed = false
 	-- (a new fish: no burst carried over, and its first bite is a first bite)
 	r.BoostUntil = 0
@@ -326,7 +334,11 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 			r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * Config.Oxygen.Refill)
 		end
 		r.JumpFrom = nil
-		r.JumpReadyAt = os.clock() + Config.Jump.Cooldown
+		-- (the wait between fish is the client's, counted from its touch: Jump.Cooldown. We mount a moment after
+		-- that touch and hear the next hop a moment after it was pressed, so half of it here never refuses an honest
+		-- hop and still keeps one message from landing and leaving at once)
+		-- (a fish too strong for us is no stepping stone: the old wait, longer than the meter takes to empty)
+		r.JumpReadyAt = os.clock() + (if r.Strained then Config.Jump.StrainLock else Config.Jump.Cooldown / 2)
 		sendOxygen(r, true)
 		r.Landings += 1
 		Net.Fx:FireAllClients("Land", r.Player, w.Model, r.Landings)
@@ -416,13 +428,23 @@ local function jump(r: Rider)
 		return deny(r, "Jump", "Cooldown")
 	end
 	r.JumpFrom = r.Fish
-	-- (off a Leaper the glide and the window are longer: Config.hopOf, the same number the client flies by)
-	local _, _, extra = Config.hopOf(if r.Fish then r.Fish.Type else nil)
-	if r.Fish then
-		-- (and by the speed the fish had as we left it, as the server sees it: airtime by speed, Config.airOf)
-		extra += Config.airOf(r.Fish.Root.AssemblyLinearVelocity.Magnitude)
+	-- The hop's numbers, as the client flies them (Config.hopFrom): off a Leaper the glide and the window are longer,
+	-- and both go by the speed the fish had as we left it, as the server sees it (airtime by speed). The hook's reach
+	-- is counted from these and our own clock (grab), never from what the client says: so the speed is held to what
+	-- this fish may do (its surge or a burst we gave it, with the speed check's slack).
+	local w = r.Fish
+	if w then
+		local most = (Config.surgeOf(w.Type))
+		if os.clock() < r.BoostUntil then
+			most *= r.BoostMost
+		end
+		-- (the speed is r.RideSpeed, from where we saw the fish go: by the time the hop's word is here the rider's
+		-- machine is already flying, and the velocity it reports for the fish it left is the hop's, not the fish's)
+		local had = math.min(r.RideSpeed, FishService.ridden(w) * most * Config.Ride.SpeedSlack)
+		r.JumpLaunch, r.JumpAir, r.JumpExtra = Config.hopFrom(had, w.Type, FishService.ridden(w))
+	else
+		r.JumpLaunch, r.JumpAir, r.JumpExtra = Config.hopFrom(nil, nil, nil)
 	end
-	r.JumpExtra = extra
 	if r.Fish then
 		dismount(r, "Jump", true)
 	end
@@ -458,9 +480,18 @@ local function grab(r: Rider, target: any)
 	if r.Grab or elapsed > j.Window + r.JumpExtra + j.Slack then
 		return deny(r, "Grab", "Window", target)
 	end
-	-- The client's hard cap, and a little for lag (we see the player and the fish a moment apart, both moving): without
-	-- it a grab near the edge of the range is refused though the client was inside it. Landing slack never widens this.
-	local reach = j.GrabRange * Config.Net.RangeSlack
+	-- The hook's reach is by the hop's speed across the water (Config.reachOf): long while it is fast, short once it
+	-- has stalled. The speed is ours: the hop's own curve (Config.hopSpeed) from the speed we saw the fish leave at,
+	-- at our own clock, read Net.ReachLag earlier (the grab's word arrives late and the reach is shrinking). And a
+	-- little for lag (we see the player and the fish a moment apart, both moving): without it a grab near the edge
+	-- of the range is refused though the client was inside it. Landing slack never widens this.
+	local speed = Config.hopSpeed(
+		math.max(0, elapsed - Config.Net.ReachLag),
+		r.JumpLaunch,
+		r.JumpAir,
+		j.LaunchTime + j.FloatTime + r.JumpExtra
+	)
+	local reach = Config.reachOf(speed) * Config.Net.RangeSlack
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
 		return deny(r, "Grab", "Range", target)
 	end
@@ -686,12 +717,14 @@ local function checkCrash(r: Rider, w: Wild)
 	if speed >= c.MinSpeed then
 		r.FastAt = t
 	end
-	-- a prop: its boxes are knocked loose and the fish swims on through (reaching as far as it swims between two looks)
+	-- a prop (Config.Props): only a Tank, a Breaker or a giant breaks it (Config.breaks); its boxes go and the fish
+	-- swims on through (reaching as far as it swims between two looks), for a small crash. Every other fish goes
+	-- straight through props, for nothing: they are left out of the look below for every fish.
 	-- A Breaker (Config.Archetype.Breaker) knocks a wider hole, loses nothing by it, and is paid: a push and a little
 	-- Oxygen, at most once every Breaker.Cooldown.
 	local breaker = Config.hasArchetype(w.Type, "Breaker")
 	local b = Config.Archetype.Breaker
-	if speed >= c.MinSpeed and Config.smashes(w.Type) then
+	if speed >= c.MinSpeed and Config.breaks(w.Type) then
 		local reach = math.max(w.Body.X, w.Body.Y) / 2
 			+ Config.Props.Reach
 			+ (if breaker then b.Reach else 0)
@@ -724,8 +757,8 @@ local function checkCrash(r: Rider, w: Wild)
 		table.insert(skip, surface)
 	end
 	local props = PropService.folder()
-	if props and Config.smashes(w.Type) then
-		-- (this fish breaks props: they were looked at above)
+	if props then
+		-- (no fish is stopped by a prop: one that breaks them was looked at above, the rest go through)
 		table.insert(skip, props)
 	end
 	crashParams.FilterDescendantsInstances = skip
@@ -839,6 +872,13 @@ local function tick(r: Rider, dt: number)
 				r.Player:SetAttribute("Drain", rate)
 			end
 			drain(r, rate * dt)
+			-- how fast the fish is going, from where we see it (eased over about 0.15 s: its place comes in steps)
+			local at = w.Root.Position
+			if r.RideFrom and dt > 0 then
+				local seen = (at - r.RideFrom).Magnitude / dt
+				r.RideSpeed += (seen - r.RideSpeed) * (1 - math.exp(-dt / 0.15))
+			end
+			r.RideFrom = at
 			tame(r, w, dt)
 			setAngry(r, if isAngry(r, w) then w else nil)
 			checkSpeed(r, w)
@@ -954,6 +994,10 @@ local function onPlayer(player: Player)
 		Nosed = false,
 		FastAt = 0,
 		JumpExtra = 0,
+		RideSpeed = 0,
+		RideFrom = nil,
+		JumpLaunch = 0,
+		JumpAir = 0,
 		BoostUntil = 0,
 		BoostMost = 1,
 		EatCheckAt = 0,

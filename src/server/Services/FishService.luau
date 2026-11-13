@@ -60,6 +60,16 @@ export type Wild = {
 	Dodge: number, -- 1: its line bends round the big things in the lane; 0: straight through them (Herd.SmashLength)
 	Space: number, -- the room it wants round it (Spawn.Space and its length)
 	SyncAt: number, -- os.clock() its place along the stream was last read off where it really is
+	-- how it swims (Config.Pace; steer and its helpers)
+	Pace: string, -- its kind's character: "Cruise", "Plod", "Zoom", "Dart" or "Hunt"
+	Own: number, -- its own pace, times its kind's (a little either side of 1), and its size's (Config.SizePace)
+	Gait: number, -- the share of its ridden speed it swims at now (it changes over a moment, never at once)
+	Phase: number, -- where it is in its lurch (a Plod), radians
+	Mode: number, -- a Hunt's: 0 cruising high, 1 stooping, 2 running through the herd, 3 climbing back
+	NextAt: number, -- os.clock() of its next burst (a Dart) or the next time it may stoop (a Hunt)
+	Until: number, -- os.clock() its burst, or its run through the herd, ends
+	Rise: number, -- how far above its place in the herd it is now, studs (a Hunt),
+	RiseWant: number, -- and where that is going
 	Slice: number?, -- the slice it counts for (nil past the stocked zones)
 	Parked: boolean,
 	UnparkedAt: number, -- os.clock() it last came back into the Workspace (0: never parked)
@@ -96,6 +106,8 @@ local wild: { [Model]: Wild } = {}
 local STOCK = 240
 local stock: { [number]: { Wild } } = {}
 local NO_FISH: { Wild } = {}
+-- the hunters that are in the herd now (stooping, or running through it): one at a time in any one place (Config.Pace)
+local stooping: { [Wild]: boolean } = {}
 local SYNC = 0.5 -- seconds between reads of a fish's place along the stream off where it really is
 
 FishService.Tag = FishModel.Tag
@@ -407,6 +419,11 @@ local function placeInStream(w: Wild)
 	w.Give = 0
 	w.GiveWant = 0
 	w.Lift = math.clamp(position.Y - Stream.floor(stream, s, across), low, high)
+	-- (a hunter let go low in the herd climbs back to where it cruises)
+	w.Rise = 0
+	w.RiseWant = 0
+	w.Mode = if w.Pace == "Hunt" then 3 else 0
+	stooping[w] = nil
 end
 
 -- Where the players are, read at most five times a second and kept: the top-up asks "is a player near?" once or twice
@@ -454,6 +471,99 @@ local function nearestPlayer(position: Vector3): number
 	return best
 end
 
+-- The highest a fish's middle may be: under the surface by half its height and a little
+local function ceilingFor(body: Vector3): number
+	return Config.Oxygen.SurfaceY - body.Y / 2 - 4
+end
+
+-- How far over its place in the herd a hunter cruises
+local function huntHigh(w: Wild): number
+	return Config.Pace.HuntHigh + w.Body.Y / 2
+end
+
+-- The share of its ridden speed a wild fish wants to swim at now, by its character (Config.Pace). For a Dart this
+-- starts and ends its bursts; for a Hunt it is the whole of its round: cruising high, the stoop when a player is near,
+-- the run through the herd, the climb back (it sets where its Rise is going).
+local function paceShare(w: Wild, now: number, position: Vector3): number
+	local p = Config.Pace
+	local pace = w.Pace
+	local share = Config.Herd.SpeedShare
+	if pace == "Plod" then
+		share = p.Plod * (1 + p.PlodLurch * math.sin(now * math.pi * 2 / math.max(p.PlodBeat, 0.1) + w.Phase))
+	elseif pace == "Zoom" then
+		share = p.Zoom
+	elseif pace == "Dart" then
+		if now >= w.NextAt then
+			w.Until = now + p.DartTime
+			w.NextAt = w.Until + rng:NextNumber(p.DartEveryMin, math.max(p.DartEveryMin, p.DartEveryMax))
+		end
+		share = if now < w.Until then p.DartBurst else p.Dart
+	elseif pace == "Hunt" then
+		local high = huntHigh(w)
+		if w.Mode == 0 then
+			w.RiseWant = high
+			share = p.Hunt
+			if now >= w.NextAt then
+				w.NextAt = now + 1
+				if nearAPlayer(position, p.HuntRange) then
+					-- (not while another is at it nearby: one hunter coming through is a thing to see, five at once
+					-- is the herd)
+					local alone = true
+					for other in stooping do
+						if (other.Root.Position - position).Magnitude < p.HuntApart then
+							alone = false
+							break
+						end
+					end
+					if alone then
+						w.Mode = 1
+						stooping[w] = true
+					end
+				end
+			end
+		elseif w.Mode == 1 then
+			w.RiseWant = 0
+			share = p.HuntRun
+			if w.Rise <= 1 then
+				w.Mode = 2
+				w.Until = now + p.HuntRunTime
+				w.NextAt = now + p.HuntRunMost
+			end
+		elseif w.Mode == 2 then
+			w.RiseWant = 0
+			share = p.HuntRun
+			if now >= w.Until then
+				-- not before it has gone past: with a player still just ahead of it, it runs on (to HuntRunMost)
+				local chasing = false
+				if now < w.NextAt then
+					readPlayers()
+					for _, at in playerAt do
+						local to = at - position
+						local ahead = to:Dot(w.Dir)
+						if ahead > -p.HuntPast and ahead < 300 and to.Magnitude < 320 then
+							chasing = true
+							break
+						end
+					end
+				end
+				if chasing then
+					w.Until = now + 0.3
+				else
+					w.Mode = 3
+					stooping[w] = nil
+				end
+			end
+		else
+			w.RiseWant = high
+			if w.Rise >= high - 2 then
+				w.Mode = 0
+				w.NextAt = now + rng:NextNumber(p.HuntEveryMin, math.max(p.HuntEveryMin, p.HuntEveryMax))
+			end
+		end
+	end
+	return share * w.Own
+end
+
 local function park(w: Wild, parked: boolean)
 	if w.Parked == parked then
 		return
@@ -488,6 +598,7 @@ local function make(
 	local body = fishType.Size * scale
 	resize(model, tier, scale)
 	model:SetAttribute("Variant", variant)
+	model:SetAttribute("Pace", Config.paceOf(fishType))
 	-- its passive archetypes (Config.FishStats; docs/design/archetypes.md): "" for none, more than one comma-separated.
 	-- The hook for the passives and for the partner's animations
 	model:SetAttribute("Archetype", fishType.Archetype)
@@ -513,6 +624,15 @@ local function make(
 		Dodge = dodge or rollDodge(body),
 		Space = spaceOf(body),
 		SyncAt = os.clock() + rng:NextNumber(0, SYNC),
+		Pace = Config.paceOf(fishType),
+		Own = (1 + rng:NextNumber(-1, 1) * Config.Pace.Own) * (Config.SizePace[tier] or 1),
+		Gait = 0,
+		Phase = rng:NextNumber(0, math.pi * 2),
+		Mode = 0,
+		NextAt = os.clock() + rng:NextNumber(0, Config.Pace.DartEveryMax),
+		Until = 0,
+		Rise = 0,
+		RiseWant = 0,
 		Slice = slice,
 		Parked = true,
 		UnparkedAt = 0,
@@ -535,12 +655,20 @@ local function make(
 	wild[model] = w
 	if u and lift then
 		w.A = Stream.across(stream, home, u, 0, w.Dodge, body.X / 2)
+		if w.Pace == "Hunt" then
+			-- a hunter starts where it cruises: high over its place in the herd
+			local high = math.max(0, math.min(huntHigh(w), ceilingFor(body) - at.Y))
+			w.Rise, w.RiseWant = high, high
+			model:PivotTo(model:GetPivot() + Vector3.new(0, high, 0))
+		end
 	else
 		placeInStream(w)
 	end
+	w.Gait = paceShare(w, os.clock(), at)
 	addToStock(w)
 	model.Destroying:Connect(function()
 		wild[model] = nil
+		stooping[w] = nil
 	end)
 	return w
 end
@@ -614,6 +742,12 @@ local function spawnFish(index: number): Wild?
 	local fishType = pick(slice.Zone, kinds)
 	if not fishType then
 		return nil
+	end
+	-- Studio only: the workspace's "TestKind" attribute (a fish's Id) makes every new fish that kind, for looking at
+	-- one kind's way of swimming
+	if RunService:IsStudio() then
+		local testKind = workspace:GetAttribute("TestKind")
+		fishType = (if type(testKind) == "string" then Config.FishById[testKind] else nil) or fishType
 	end
 	local tier = rollSize(grandNear, fishType)
 	local body = fishType.Size * Config.sizeScale(tier, fishType)
@@ -828,7 +962,7 @@ local function giveWay()
 				local side = (a.Body.X + b.Body.X) / 2 + h.GiveSide
 				local across = a.A - b.A
 				local short = side - math.abs(across)
-				if short > 0 and math.abs(a.Lift - b.Lift) < (a.Body.Y + b.Body.Y) / 2 + 2 then
+				if short > 0 and math.abs(a.Lift + a.Rise - b.Lift - b.Rise) < (a.Body.Y + b.Body.Y) / 2 + 2 then
 					local push = short / 2 * (1 - ds / along)
 					local way = if across > 0 then 1 elseif across < 0 then -1 elseif a.U >= b.U then 1 else -1
 					a.GiveWant += way * push
@@ -842,7 +976,15 @@ end
 local function steer(w: Wild, dt: number)
 	local h = Config.Herd
 	local position = w.Root.Position
-	local speed = FishService.ridden(w) * h.SpeedShare
+	local now = os.clock()
+	-- its speed: its ridden speed times the share its character wants now, come to over a moment
+	local ease = math.max(Config.Pace.Ease, 0.1) * dt
+	w.Gait += math.clamp(paceShare(w, now, position) - w.Gait, -ease, ease)
+	local speed = FishService.ridden(w) * w.Gait
+	if w.Rise ~= w.RiseWant then
+		local step = (if w.RiseWant < w.Rise then Config.Pace.HuntFall else Config.Pace.HuntClimb) * dt
+		w.Rise += math.clamp(w.RiseWant - w.Rise, -step, step)
+	end
 	if w.ReleasedAt then
 		local t = (os.clock() - w.ReleasedAt) / Config.Ride.SlowDownTime
 		if t >= 1 then
@@ -852,7 +994,6 @@ local function steer(w: Wild, dt: number)
 		end
 	end
 	-- its place along the stream: carried forward by its speed, and every SYNC seconds read off where it really is
-	local now = os.clock()
 	if now - w.SyncAt >= SYNC then
 		w.SyncAt = now
 		w.S = (Stream.project(stream, position, w.S))
@@ -873,20 +1014,29 @@ local function steer(w: Wild, dt: number)
 	if aheadS >= stream.Length - 1 then
 		want = Stream.along(stream, aheadS)
 	else
-		local to = Stream.point(stream, aheadS, across, w.Lift) - position
+		local target = Stream.point(stream, aheadS, across, w.Lift)
+		if w.Rise > 0 then
+			-- (a hunter over the herd: up by its rise, never out of the water)
+			local up = math.max(target.Y, math.min(target.Y + w.Rise, ceilingFor(w.Body)))
+			target = Vector3.new(target.X, up, target.Z)
+		end
+		local to = target - position
 		want = if to.Magnitude < 5 then Stream.along(stream, aheadS) else to.Unit
 		want = Vector3.new(want.X, math.clamp(want.Y, -0.45, 0.45), want.Z).Unit
 	end
 	w.Dir = w.Dir:Lerp(want, 1 - math.exp(-h.Turn * dt)).Unit
 	w.Speed = speed
 	-- inside one of the big things (a fish that goes round nothing, or one pressed against the band's edge): a fish
-	-- at least Herd.BreakLength long breaks the boxes it touches, as a ridden fish does (PropService), looked for a few
-	-- times a second. A smaller one swims through and leaves the thing whole, as the reference's small dinos do.
+	-- whose kind breaks props (Hugo's rule, Config.breaks: a Tank, a Breaker or a giant; Props.WildBreaks 0 turns it
+	-- off) and that is itself at least Herd.BreakLength long breaks the boxes it touches, as a ridden fish does
+	-- (PropService), looked for a few times a second. Any other fish swims through and leaves the thing whole, as the
+	-- reference's small dinos do.
 	if now - w.PropAt >= Config.Props.WildEvery then
 		w.PropAt = now
 		if
-			w.Body.Z >= h.BreakLength
-			and Config.smashes(w.Type)
+			Config.Props.WildBreaks ~= 0
+			and w.Body.Z >= h.BreakLength
+			and Config.breaks(w.Type)
 			and Stream.inside(stream, w.S, position.X, position.Z)
 		then
 			local size = w.Body
@@ -899,7 +1049,11 @@ local function steer(w: Wild, dt: number)
 	end
 	-- (both replicate to every client: written when the way has turned about a degree or the speed has changed half a
 	-- stud a second, and twice a second whatever, in case a rider's machine left them at something else)
-	if now - w.SentAt > 0.5 or math.abs(speed - w.SentSpeed) > 0.5 or (w.Dir - w.SentDir).Magnitude > 0.017 then
+	if
+		now - w.SentAt > 0.5
+		or math.abs(speed - w.SentSpeed) > Config.Pace.Send
+		or (w.Dir - w.SentDir).Magnitude > 0.017
+	then
 		w.SentAt = now
 		w.SentDir = w.Dir
 		w.SentSpeed = speed
@@ -991,6 +1145,101 @@ end
 -- (Spawn.TopUpEvery, away from every player: Spawn.AppearClear).
 function FishService.eat(w: Wild)
 	w.Model:Destroy()
+end
+
+-- The visit (Config.Pace.Visit*): a player in the water who has no hunter in sight is now and then sent one, from
+-- behind and above. Looked at with every top-up.
+local visitAt: { [Player]: number } = {}
+
+-- The hunters that live in a land (its own, or ones that swim on into it); with none, the nearest land's
+local function huntersOf(zone: number): { Config.FishType }
+	local list: { Config.FishType } = {}
+	local nearest: Config.FishType? = nil
+	for _, fish in Config.Fish do
+		if Config.paceOf(fish) == "Hunt" and fish.Reach >= 0 then
+			if zone >= fish.Home and zone <= fish.Home + fish.Reach then
+				table.insert(list, fish)
+			end
+			if not nearest or math.abs(fish.Home - zone) < math.abs(nearest.Home - zone) then
+				nearest = fish
+			end
+		end
+	end
+	if #list == 0 and nearest then
+		table.insert(list, nearest)
+	end
+	return list
+end
+
+local function visit(player: Player, now: number)
+	local p = Config.Pace
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+	local due = visitAt[player]
+	if not due then
+		visitAt[player] = now + rng:NextNumber(p.VisitEveryMin, math.max(p.VisitEveryMin, p.VisitEveryMax))
+		return
+	elseif now < due and not (RunService:IsStudio() and workspace:GetAttribute("TestVisit")) then
+		-- (Studio only: the workspace's "TestVisit" attribute makes a visit due now, for looking at one)
+		return
+	end
+	visitAt[player] = now + p.VisitRetry
+	-- only to a player who is in the water and far enough down the lane to have room behind them
+	local here = root.Position
+	local s, across = Stream.project(stream, here)
+	if here.Y > Config.Oxygen.SurfaceY or s < p.VisitBehind + 40 or s > stream.Length - 200 then
+		return
+	end
+	-- and has no hunter in sight already
+	for _, w in wild do
+		if w.Pace == "Hunt" and not w.Parked and (w.Root.Position - here).Magnitude < Config.Spawn.StreamRadius then
+			return
+		end
+	end
+	-- which hunter: by the land's own share of each one's rarity (Config.ZoneMix), so the commoner hunter is the
+	-- usual visitor and a Legendary one the odd time
+	local land = Lane.zoneAt(lane, Stream.laneS(stream, s))
+	local kinds = huntersOf(land)
+	local mix = Config.ZoneMix[land] or {}
+	local total = 0
+	for _, fish in kinds do
+		total += mix[fish.Tier] or 0.05
+	end
+	local roll = rng:NextNumber() * total
+	local fishType: Config.FishType? = kinds[#kinds]
+	for _, fish in kinds do
+		roll -= mix[fish.Tier] or 0.05
+		if roll <= 0 then
+			fishType = fish
+			break
+		end
+	end
+	if not fishType then
+		return
+	end
+	local from = s - p.VisitBehind
+	local grandNear = census(from)
+	local tier = rollSize(grandNear, fishType)
+	local body = fishType.Size * Config.sizeScale(tier, fishType)
+	-- on a line that passes a little to one side of the player
+	local u = Stream.share(stream, s, across + rng:NextNumber(-1, 1) * p.VisitAside)
+	local lift = rollLift(body, from)
+	local at = Stream.point(stream, from, Stream.across(stream, from, u, 0, 0, body.X / 2), lift)
+	local zone = Lane.zoneAt(lane, Stream.laneS(stream, from))
+	local w = make(fishType, rollVariant(), from, at, Stream.along(stream, from), zone, sliceAt(from), u, lift, 0, tier)
+	w.Model:SetAttribute("Visitor", true)
+	if RunService:IsStudio() then
+		workspace:SetAttribute("TestVisit", nil)
+	end
+	-- it comes down at once
+	w.Mode = 1
+	stooping[w] = true
+	w.Gait = p.HuntRun * w.Own
+	park(w, false)
+	visitAt[player] = now + rng:NextNumber(p.VisitEveryMin, math.max(p.VisitEveryMin, p.VisitEveryMax))
 end
 
 -- Studio only (the sandbox's "Ride": a chosen fish to try): a fish of this kind and variant put in the water at a
@@ -1085,9 +1334,16 @@ function FishService.Start()
 			end
 		end
 	end)
+	Players.PlayerRemoving:Connect(function(player)
+		visitAt[player] = nil
+	end)
 	while true do
 		task.wait(Config.Spawn.TopUpEvery)
 		topUp(Config.Spawn.PerTopUp)
+		local now = os.clock()
+		for _, player in Players:GetPlayers() do
+			visit(player, now)
+		end
 	end
 end
 

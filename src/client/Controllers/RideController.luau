@@ -314,8 +314,8 @@ local function onMounted(fish: Model, landing: boolean?)
 	WallRide.reset(wall)
 	actAt = -math.huge
 	clearFloat()
-	-- (a fish that breaks props swims through them: the server knocks their boxes loose as it does)
-	Course.begin(rideType ~= nil and Config.smashes(rideType))
+	-- (no fish is stopped by a prop: Config.Props)
+	Course.begin()
 	State.setMode("Riding")
 end
 

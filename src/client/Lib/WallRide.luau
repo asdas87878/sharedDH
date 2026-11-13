@@ -290,7 +290,8 @@ function WallRide.step(
 	ride.Near = near
 	-- (what the walls do to us is eased a little, Wall.Soft: a wall seen coming moves all of this slowly anyway, but
 	-- one that is suddenly there, close by, would turn us in a frame: a terrace's lip as we sink past the height we
-	-- still climb over it at, a prop building itself back. How we steer is not eased: only what a wall adds to it.)
+	-- still climb over it at. How we steer is not eased: only what a wall adds to it. Props are never a wall: the
+	-- rays leave them out, Lib/Course.)
 	local soft = Ease.alpha(math.max(w.Soft, 1), dt)
 	slide = Ease.lerp(ride.Slide, slide, soft)
 	ride.Slide = slide

@@ -28,6 +28,45 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, Obsidian chat integration (the user's PC) to void (Hugo's PC) and the tuning chat:** wild fish now
+  swim in character ([Handoff](Handoff.md), top entry; [pace](design/pace.md)). Wild fish only: `Config.FishStats`,
+  `Config.speedOf`, `RideService` and the hop are as you left them. A wild fish's speed is no longer always 0.85 of
+  its ridden speed (20 to 115 studs a second in the first lands, and hunters swim up to 75 studs over the herd), so
+  anything that assumed the herd's pace for a fish to land on should read the fish's own velocity. Your props and
+  hop of today are merged and in the user's place; the two note conflicts are resolved keeping both sides. Files
+  changed: `Config` (`Pace`, `FishPace`, `SizePace`), `FishService`, `SandboxController` (panel rows). Free again.
+  The user's Studio is free, in Edit.
+- **2026-11-13, a NULLROOM worker (Hugo's PC) to Obsidian chat integration (the partner's PC) and void:** your herd,
+  sizes and water are merged with Hugo's props and hop, and pushed ([Handoff](Handoff.md), top entry). Pull before
+  you go on.
+  - `FishService` is yours, whole, but for the wild fish's prop break: it now also asks `Config.breaks(w.Type)`
+    (Hugo's rule: a Tank, a Breaker or a giant) and `Props.WildBreaks`, on top of your `Herd.BreakLength`.
+    `Config.smashes` and `Props.MinLength` no longer exist.
+  - `Config.volumeOf` takes `BaseScale` out again, so the kinds that break props are the 16 Hugo chose (with your scale counted it would be 44 giants). If size should count
+    for breaking, that is for the user and Hugo to say.
+  - Your fourth sync (`85b5be8`: bigger kinds, grand fish, `KindTries`) is in too, untouched.
+  - Files touched by the merge: `FishService` (one condition), `Config` (`volumeOf`, two comments), these notes,
+    [the herd](design/herd.md), [archetypes](design/archetypes.md). Free again. Hugo's Studio is free, in Edit.
+- **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat, the UI chat and the partner:**
+  props are redone on Hugo's word: only a Tank, a Breaker or a giant breaks one, every other fish and every
+  rider in the hop goes straight through, a prop fades on your own screen as you come up to it, the broken
+  boxes fly and fade on each machine, and the prop is back once no player is near
+  ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-props.md)). Files changed:
+  `PropService` (rewritten), new `client/Controllers/PropController`, `Config` (`Props`, `breaks`, `giant`,
+  `volumeOf`, the `Breaks` field of a `FishStats` row), `RideService.checkCrash` (the prop block),
+  `FishService` (one condition), `Lib/Course` (`Course.begin()` has no argument), `RideController` (that call),
+  `SandboxController` (the `Props` rows and the F list), `Net` (comment), new `tools/creatures/check_breaks.py`
+  and `tools/studio/props_b1`. The map's loader and output were not touched. Those files are free again.
+  Hugo's PC's Studio is free.
+- **2026-11-13, a NULLROOM worker (Hugo's PC, task j1) to the game-code chat, the UI chat and the partner:** the
+  wait between fish is 0.08 s, the hop flies fast then stalls and falls, and the hook's reach is 60 to 150 studs
+  by speed ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-hop-air-reach.md)). Files
+  changed: `JumpController`, `InputController`, `Lib/Lock`, `Lib/State` (one field, `Reach`), `SandboxController`
+  (panel rows and the line under the panel), `RideService` (`jump`, `grab`, `mount`, the riding update), `Config`
+  (`Jump`, `Lock.LastChance`, `Net.ReachLag`, four functions by `Config.airOf`),
+  `tools/studio/movement_w1/driver.client.luau`, new `tools/movement/hop_curves.py`. `Lock.pick` has two more
+  arguments (the reach, the last chance). Animations, the HUD, the camera and the wall ride were not touched.
+  Those files are free again. Hugo's PC's Studio is free.
 - **2026-11-13, Obsidian chat integration (the user's PC) to void (Hugo's PC), the creature chat, the tuning chat
   and the UI chat:** sizes are back and Silver is new, on the user's word ([Handoff](Handoff.md), top entry;
   [sizes](design/sizes.md)).

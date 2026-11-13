@@ -1,27 +1,38 @@
 --!strict
--- Props that break (Config.Props; Hugo, 2026-11-11). The map's props are Models of loose boxes in
--- Workspace.ClaudeBlockout.Lane.Props (tools/map/greybox_luau.py: every box anchored, the solid ones CanCollide). A
--- fish that swims into one (RideService for a ridden fish, FishService for a wild one inside a big thing's circle)
--- calls PropService.hit: the boxes it touches are knocked loose, and so are the boxes of the same prop resting on them.
--- A loose box stops being solid, is thrown along the fish's way and hangs in the water; Props.Rebuild seconds after the
--- prop was last hit its boxes fly home and are solid again.
--- All of it is here on the server, moving the real parts (tweened), so every player sees the same prop and a player who
--- joins late sees it as it is. Breaking a prop gives nothing.
--- Players' characters don't collide with props (collision groups "Riders" and "Props"): a rider's body would otherwise
--- knock against the boxes in the moment before the server takes them out of the fish's way. What a prop stops is
--- decided by the riding code's rays (Lib/Course), which still see props. And a character that is riding a fish
--- collides with nothing (group "Riding", PropService.riding below).
+-- Props that break (Config.Props; Hugo, 2026-11-13, in place of 2026-11-11's). The map's props are Models of loose
+-- boxes in Workspace.ClaudeBlockout.Lane.Props (tools/map/greybox_luau.py: every box anchored). Only some fish break
+-- them (Config.breaks: a Tank, a Breaker, a giant); every other fish and every rider in the hop goes straight through,
+-- which costs this file nothing: nothing of the game's is stopped by a prop any more.
+-- A fish that breaks props and swims into one (RideService for a ridden fish, FishService for a wild one inside a big
+-- thing's circle) calls PropService.hit: the boxes it touches are out, and so are the boxes of the same prop resting
+-- on them. The boxes still in place stay.
+-- WHAT THE SERVER KEEPS is only which boxes are out and when the prop is back:
+--   a box that is out carries the CollectionService tag "PropOut" (PropService.Tag) and isn't solid;
+--   its prop (the Model) carries BreakAt (where it was hit), BreakVel (the fish's velocity) and BreakT (the server's
+--   clock, workspace:GetServerTimeNow()), written before the tags of that hit;
+--   a prop that builds itself back loses the tags and gets RebuildT (the server's clock).
+-- The boxes themselves never move here. Every player's own machine hides the tagged boxes, throws copies of them
+-- from BreakAt along BreakVel, fades those out, and fades the real ones back in when the tag goes
+-- (client/Controllers/PropController). A player who joins late, or whose machine loads that part of the map later,
+-- finds the tags and sees the prop as it is. Nothing flying is solid or seen by any ray, so it can't block, trap or
+-- slow anyone.
+-- A broken prop builds itself back once no player has been within Props.RegenRadius of it for Props.RegenDelay
+-- seconds: never in front of a rider.
+-- Players' characters don't collide with props (collision groups "Riders" and "Props"), and a character that is
+-- riding a fish collides with nothing (group "Riding", PropService.riding below).
+local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
-local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
-type Loose = { Part: BasePart, Home: CFrame }
-type Broken = { Loose: { Loose }, Token: number }
+-- a prop with boxes out: the boxes, its middle, and since when no player has been near it (nil: one is)
+type Broken = { Out: { BasePart }, Centre: Vector3, ClearSince: number? }
 
 local PropService = {}
 
-local rng = Random.new()
+PropService.Tag = "PropOut"
+
 local folder: Instance? = nil
 local overlap = OverlapParams.new()
 overlap.FilterType = Enum.RaycastFilterType.Include
@@ -78,62 +89,23 @@ function PropService.riding(character: Model, on: boolean)
 	end
 end
 
-local function knock(b: Broken, part: BasePart, at: Vector3, way: Vector3)
-	local p = Config.Props
-	local home = part.CFrame
-	table.insert(b.Loose, { Part = part, Home = home })
-	part.CanCollide = false
-	local out = home.Position - at
-	out = if out.Magnitude > 0.1 then out.Unit else Vector3.yAxis
-	local spin = math.rad(p.Spin)
-	local goal = CFrame.new(
-		home.Position
-			+ way * (p.Push * rng:NextNumber(0.5, 1))
-			+ out * (p.Scatter * rng:NextNumber(0.3, 1))
-			- Vector3.new(0, p.Sink * rng:NextNumber(), 0)
-	) * home.Rotation * CFrame.Angles(
-		rng:NextNumber(-spin, spin),
-		rng:NextNumber(-spin, spin),
-		rng:NextNumber(-spin, spin)
-	)
-	local info = TweenInfo.new(math.max(p.KnockTime, 0.05), Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	TweenService:Create(part, info, { CFrame = goal }):Play()
-end
-
--- The prop builds itself back: its loose boxes fly home, a few at a time, and are solid again when they get there
+-- The prop builds itself back: its boxes are solid again and lose their tag (each machine fades them in)
 local function rebuild(model: Instance, b: Broken)
-	local p = Config.Props
-	local batch = b.Loose
-	b.Loose = {}
-	if broken[model] == b then
-		broken[model] = nil
+	broken[model] = nil
+	if not model.Parent then
+		return
 	end
-	local time = math.max(p.RebuildTime, 0.05)
-	for _, loose in batch do
-		if loose.Part.Parent then
-			local info = TweenInfo.new(
-				time,
-				Enum.EasingStyle.Back,
-				Enum.EasingDirection.Out,
-				0,
-				false,
-				rng:NextNumber(0, math.max(p.RebuildStagger, 0))
-			)
-			TweenService:Create(loose.Part, info, { CFrame = loose.Home }):Play()
+	for _, part in b.Out do
+		if part.Parent then
+			part.CanCollide = true
+			CollectionService:RemoveTag(part, PropService.Tag)
 		end
 	end
-	task.delay(time + math.max(p.RebuildStagger, 0) + 0.05, function()
-		for _, loose in batch do
-			if loose.Part.Parent then
-				loose.Part.CFrame = loose.Home
-				loose.Part.CanCollide = true
-			end
-		end
-	end)
+	model:SetAttribute("RebuildT", workspace:GetServerTimeNow())
 end
 
--- Something swam into the props at `at`, going `velocity`: the solid boxes within `reach` are knocked loose, with what
--- rests on them. Returns how many boxes came loose (0: no prop there).
+-- Something that breaks props swam into them at `at`, going `velocity`: the solid boxes within `reach` are out, with
+-- what rests on them. Returns how many boxes went (0: no prop there).
 function PropService.hit(at: Vector3, velocity: Vector3, reach: number): number
 	local root = props()
 	if not root then
@@ -144,7 +116,6 @@ function PropService.hit(at: Vector3, velocity: Vector3, reach: number): number
 	if #touched == 0 then
 		return 0
 	end
-	local way = if velocity.Magnitude > 0.1 then velocity.Unit else Vector3.zero
 	-- the lowest box touched of each prop: what is above it has lost its footing
 	local lowest: { [Instance]: number } = {}
 	local hit: { [Instance]: boolean } = {}
@@ -157,39 +128,85 @@ function PropService.hit(at: Vector3, velocity: Vector3, reach: number): number
 	end
 	local count = 0
 	for model, y in lowest do
-		local b = broken[model]
-		if not b then
-			b = { Loose = {}, Token = 0 }
-			broken[model] = b
-		end
-		local state = b :: Broken
+		local out: { BasePart } = {}
 		for _, part in model:GetChildren() do
-			if count >= p.MaxLoose then
+			if count + #out >= p.MaxLoose then
 				break
 			end
 			if part:IsA("BasePart") and part.CanCollide then
 				local off = part.Position - at
 				local above = part.Position.Y > y and Vector3.new(off.X, 0, off.Z).Magnitude <= p.Topple
 				if hit[part] or above then
-					knock(state, part, at, way)
-					count += 1
+					table.insert(out, part)
 				end
 			end
 		end
-		if #state.Loose == 0 then
-			broken[model] = nil
-		else
-			-- the wait starts again with every hit
-			state.Token += 1
-			local token = state.Token
-			task.delay(p.Rebuild, function()
-				if broken[model] == state and state.Token == token then
-					rebuild(model, state)
-				end
-			end)
+		if #out > 0 then
+			local b = broken[model]
+			if not b then
+				local centre = if model:IsA("Model") then model:GetBoundingBox().Position else at
+				b = { Out = {}, Centre = centre, ClearSince = nil }
+				broken[model] = b
+			end
+			local state = b :: Broken
+			state.ClearSince = nil -- (whoever broke it is here: the wait starts again)
+			-- the push first, then the tags: a machine that sees a box tagged reads how to throw it from its prop
+			model:SetAttribute("BreakAt", at)
+			model:SetAttribute("BreakVel", velocity)
+			model:SetAttribute("BreakT", workspace:GetServerTimeNow())
+			for _, part in out do
+				part.CanCollide = false -- (so it isn't found, and broken, again)
+				CollectionService:AddTag(part, PropService.Tag)
+				table.insert(state.Out, part)
+			end
+			count += #out
 		end
 	end
 	return count
+end
+
+-- The broken props, looked at a couple of times a second: one that no player has been near for long enough builds
+-- itself back
+local function regenerate()
+	local p = Config.Props
+	local now = os.clock()
+	local where: { Vector3 } = {}
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			table.insert(where, root.Position)
+		end
+	end
+	for model, b in broken do
+		if not model.Parent then
+			broken[model] = nil -- (the map was built again under us)
+			continue
+		end
+		local near = false
+		for _, at in where do
+			if (at - b.Centre).Magnitude <= p.RegenRadius then
+				near = true
+				break
+			end
+		end
+		if near then
+			b.ClearSince = nil
+		elseif not b.ClearSince then
+			b.ClearSince = now
+		elseif now - b.ClearSince >= p.RegenDelay then
+			rebuild(model, b)
+		end
+	end
+end
+
+-- How many props are broken now (for tests)
+function PropService.brokenCount(): number
+	local n = 0
+	for _ in broken do
+		n += 1
+	end
+	return n
 end
 
 -- The props folder (nil with no map), for rays that must tell a prop from the rest of the map
@@ -211,6 +228,10 @@ end
 
 function PropService.Start()
 	props()
+	while true do
+		task.wait(math.max(Config.Props.RegenEvery, 0.1))
+		regenerate()
+	end
 end
 
 return PropService
