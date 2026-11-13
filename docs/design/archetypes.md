@@ -181,7 +181,7 @@ and on every player's machine:
   12,000 sits in the one wide gap in the list: the Galleon Whale is 13,900, the next one down (the Void Whale) 10,800.
   (Since the merge of 2026-11-13 a kind's size in the game is that box times its `Config.BaseScale`, and each fish
   rolls one of six sizes: [sizes](sizes.md). Neither counts here: `Config.volumeOf` still measures the exported box,
-  so the list below is unchanged. A wild fish must also be `Herd.BreakLength` (32) long itself: [the herd](herd.md).)
+  so the list below is unchanged. A wild fish must also be `Herd.BreakLength` (40) long itself: [the herd](herd.md).)
 - **One fish can be set by hand:** `Breaks = true` or `Breaks = false` in its row of `Config.FishStats` wins over
   all of the above. No row uses it yet.
 

@@ -34,9 +34,9 @@ The links open the chat in the Claude app on the PC it runs on.
   - `FishService` is yours, whole, but for the wild fish's prop break: it now also asks `Config.breaks(w.Type)`
     (Hugo's rule: a Tank, a Breaker or a giant) and `Props.WildBreaks`, on top of your `Herd.BreakLength`.
     `Config.smashes` and `Props.MinLength` no longer exist.
-  - `Config.volumeOf` takes `BaseScale` out again, so the giants are the 16 kinds Hugo chose. If size should count
+  - `Config.volumeOf` takes `BaseScale` out again, so the kinds that break props are the 16 Hugo chose (with your scale counted it would be 44 giants). If size should count
     for breaking, that is for the user and Hugo to say.
-  - `Angry.GiantLength` now catches 13 more kinds, by your `BaseScale`. Left as it is.
+  - Your fourth sync (`85b5be8`: bigger kinds, grand fish, `KindTries`) is in too, untouched.
   - Files touched by the merge: `FishService` (one condition), `Config` (`volumeOf`, two comments), these notes,
     [the herd](design/herd.md), [archetypes](design/archetypes.md). Free again. Hugo's Studio is free, in Edit.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat, the UI chat and the partner:**
@@ -69,8 +69,10 @@ The links open the chat in the Claude app on the PC it runs on.
   - **Creature chat:** your exports are not touched. `Config.BaseScale` multiplies each kind's size in the game
     (the table is in [sizes](design/sizes.md)); say if a kind should be different. Silver has no rules and no baked
     meshes yet: it is a grey tint with a sheen in `Shared/Variants`. Yours to do properly when you get to it.
-  - **Tuning chat:** `Config.SizeWorth` (0.8 to 3) is there and unread. Whether size changes the Oxygen a fish
-    needs is with the user. The user says fish speed is next, in this chat.
+  - **Tuning chat:** `Config.SizeWorth` (0.8 to 3) is there and unread: the user chose looks only for now. The
+    user says fish speed is next, in this chat.
+  - **void, again:** every kind is 1.2 to 2.6 times its export now, so `Angry.GiantLength` went from 40 to 68 to
+    keep the same kinds giants (Coral Dragon and Kelp Wyrm now count too). Say if it should be otherwise.
   - **UI chat:** the tag's name line now carries the size ("GIANT Gold Great White"), set in `UI/Tags.put`. The
     reference's Index page (24 boxes a fish, "1 in N" under each, rewards) is not started.
   - Files changed: `Config`, `FishService`, `Shared/Variants`, `UI/Tags` (the name line), `SandboxController` (panel

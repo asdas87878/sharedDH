@@ -27,71 +27,85 @@ Every one of the 23 is a size's chance times a colour's chance. Worked back:
 - **How much bigger each size looks can't be read off it.**
 
 ## What is built
+The user's second word, the same day, after seeing the first go: looks only for now; the fish are too small across
+the board; too alike at the start; one or two should come through with a much grander size; and variety is to be
+kept up all the way down, by rule. What follows is the second go.
+
 - **Every spawned fish rolls a size and a colour, apart, with the reference's odds.** 24 of every fish.
 - **A size is the whole fish scaled:** model, seat, the body the lock and the hop use, and its tag.
 
-  | Size | Times the species' size |
-  |---|---|
-  | Tiny | 0.75 |
-  | Normal | 1 |
-  | Big | 1.25 |
-  | Giant | 1.5 |
-  | Huge | 1.8 |
-  | Colossal | 2.2 |
+  | Size | Times the kind's size | At first |
+  |---|---|---|
+  | Tiny | 0.7 | 0.75 |
+  | Normal | 1 | 1 |
+  | Big | 1.35 | 1.25 |
+  | Giant | 1.8 | 1.5 |
+  | Huge | 2.3 | 1.8 |
+  | Colossal | 3 | 2.2 |
 
-  These are ours, to be judged by eye.
-- **The tag names it,** as the reference's does: "GIANT Gold Great White". A Normal size isn't named.
+  These are ours, to be judged by eye. No fish is longer than 200 studs or wider than 96, whatever its size
+  (`Config.SizeLimit`): the biggest kinds' biggest sizes stop there.
+- **A grand fish or two in every stretch.** A grand fish is a Giant, a Huge or a Colossal. By the odds alone they
+  are one in ten, and whole stretches have none. So the stocking counts them (`Config.Grand`): a new fish going
+  into a stretch with no grand fish within 200 studs either way is made one, and in a stretch that already has two,
+  a fish that rolls grand is a Big instead.
+- **Kinds are mixed.** A new fish's rarity is rolled as ever. Its kind is the least seen nearby of three draws from
+  that rarity's kinds (`Spawn.KindTries`), so the same fish doesn't come three in a row.
+- **The tag names the size,** as the reference's does: "GIANT Gold Great White". A Normal size isn't named.
 - **Silver is new.** A cool grey with a mirror's sheen, white sparkles, an ice-blue glow. It is a tint: a stand-in
   until the creature chat writes its rules and bakes it, as Gold and Rainbow were. Its speed is x1.05 for now, under
   Gold's 1.1 and Rainbow's 1.2.
 - **Gold and Rainbow's chances changed** to the reference's: 1 in 50 and 1 in 250 (Hugo's were 3% and 0.8%).
-- **Size changes nothing else yet:** not speed (that is next) and not the Oxygen a fish needs. `Config.SizeWorth`
+- **Size is looks only** (the user): not speed (that is next) and not the Oxygen a fish needs. `Config.SizeWorth`
   holds the reference's numbers for that (0.8, 1, 1.2, 1.5, and our 2 and 3), but nothing reads it.
 - **The herd goes by a fish's own length:** the room it wants, how high it swims, whether it goes straight through
   props and whether it breaks them. A Colossal reef fish behaves like the big fish it now is.
 
 ## The kinds' own sizes
 `Config.BaseScale`: each kind's size, times what the creature chat exported it at. The creature files are not
-touched. Claude's first go, for the user's eye: small reef fish a little smaller; the flat, the round and the heavy
-bigger; the whales and the last lands' monsters most. The average is 1.23, from 0.85 to 1.6.
+touched. Claude's numbers, for the user's eye. Every kind is bigger than it was exported (1.2 to 2.6, 1.75 on
+average), and the first land's kinds are spread widest. The first go was 0.85 to 1.6.
 
-| Land | Smaller | As it was | Bigger |
-|---|---|---|---|
-| 1 | Blue Chromis 0.85, Clownfish 0.85, Butterflyfish 0.9, Boxfish 0.95, Seahorse 0.95 | Sergeant Major, Flying Fish | Yellow Tang 1.1, Cuttlefish 1.2, Stingray 1.2, Archelon 1.25, Pufferfish 1.3, Pearl Serpent 1.3, Reef Shark 1.45, **Sea Turtle 1.6** |
-| 2 | Angelfish 0.95 | | Lionfish 1.15, Octopus 1.15, Moray Eel 1.2, Parrotfish 1.25, Coral Dragon 1.3, Humphead Wrasse 1.35, Dunkleosteus 1.4 |
-| 3 | Garibaldi 0.9 | | Leopard Shark 1.15, Dakosaurus 1.2, Sea Lion 1.25, Giant Sea Bass 1.3, Kelp Wyrm 1.3, Great White 1.4, Steller's Sea Cow 1.4 |
-| 4 | | Barracuda | Electric Ray 1.1, Xiphactinus 1.2, Hammerhead 1.25, Sawfish 1.25, Goliath Grouper 1.35, Galleon Whale 1.4 |
-| 5 | | | Swordfish 1.15, Elasmosaurus 1.15, Dolphin 1.2, Helicoprion 1.2, Storm Serpent 1.3, Orca 1.35, Manta Ray 1.5, Blue Whale 1.6 |
-| 6 | Viperfish 0.9 | | Goblin Shark 1.15, Giant Squid 1.2, Liopleurodon 1.2, Aurora Jelly 1.2, Lantern Leviathan 1.25, Shonisaurus 1.3 |
-| 7 | | Frilled Shark | Anglerfish 1.1, Basilosaurus 1.25, Livyatan 1.3, Mosasaurus 1.3, Kraken 1.4, Void Whale 1.45 |
-| 8 | Giant Isopod 0.9 | Bobbit Worm | Sea Scorpion 1.1, Anomalocaris 1.1, Kronosaurus 1.2, Ember Serpent 1.3, Megalodon 1.4, Molten Megalodon 1.45 |
-| 9 | | | Skull Angler 1.15, Wraith Eel 1.2, Grave Turtle 1.3, Bone Leviathan 1.35, Grave Ray 1.4, Halfbone Megalodon 1.45, Phantom Whale 1.45 |
-| 10 | | | Brimstone Eel 1.2, Infernal Angler 1.2, Hellfin Shark 1.3, Abyssal Watcher 1.4, Hellmaw 1.4, Cinder Ray 1.45, The Devourer 1.5 |
+| Land | Times its export |
+|---|---|
+| 1 | Blue Chromis 1.2, Clownfish 1.3, Butterflyfish 1.45, Sergeant Major 1.55, Flying Fish 1.7, Stingray 1.7, Archelon 1.7, Boxfish 1.75, Yellow Tang 1.8, Seahorse 1.8, Pearl Serpent 1.8, Cuttlefish 2, Pufferfish 2.3, Reef Shark 2.3, **Sea Turtle 2.6** |
+| 2 | Angelfish 1.3, Lionfish 1.6, Moray Eel 1.6, Octopus 1.7, Coral Dragon 1.8, Parrotfish 1.9, Humphead Wrasse 2, Dunkleosteus 2 |
+| 3 | Garibaldi 1.3, Leopard Shark 1.6, Dakosaurus 1.7, Sea Lion 1.8, Kelp Wyrm 1.8, Giant Sea Bass 1.9, Great White 2, Steller's Sea Cow 2 |
+| 4 | Barracuda 1.4, Electric Ray 1.6, Sawfish 1.7, Xiphactinus 1.7, Hammerhead 1.8, Galleon Whale 1.9, Goliath Grouper 2 |
+| 5 | Swordfish 1.6, Elasmosaurus 1.6, Dolphin 1.7, Helicoprion 1.7, Storm Serpent 1.8, Orca 1.9, Manta Ray 2.1, Blue Whale 2.2 |
+| 6 | Viperfish 1.3, Giant Squid 1.6, Goblin Shark 1.6, Liopleurodon 1.7, Lantern Leviathan 1.7, Aurora Jelly 1.7, Shonisaurus 1.8 |
+| 7 | Frilled Shark 1.4, Anglerfish 1.6, Basilosaurus 1.7, Livyatan 1.8, Mosasaurus 1.8, Kraken 1.9, Void Whale 2 |
+| 8 | Giant Isopod 1.3, Bobbit Worm 1.4, Sea Scorpion 1.6, Anomalocaris 1.6, Kronosaurus 1.7, Ember Serpent 1.8, Megalodon 1.9, Molten Megalodon 2 |
+| 9 | Skull Angler 1.6, Wraith Eel 1.7, Grave Turtle 1.8, Bone Leviathan 1.8, Grave Ray 2, Halfbone Megalodon 2, Phantom Whale 2 |
+| 10 | Brimstone Eel 1.7, Infernal Angler 1.7, Hellfin Shark 1.8, Abyssal Watcher 1.9, Hellmaw 1.9, Cinder Ray 2, The Devourer 2.1 |
 
-- The fish of the first land's kinds now run from 6 to 42 studs long in one sea, 13 at the median (measured on 60
-  of them). Before, each kind was one size, 9 to 37.
-- The longest fish there can be: a Colossal Blue Whale, 162 studs.
+- **The first land's seven Commons** are now 12, 13, 14, 15, 18, 20 and 23 studs long (Blue Chromis, Clownfish,
+  Butterflyfish, Boxfish, Yellow Tang, Sergeant Major, Pufferfish). As exported they were 9 to 13.
+- A Sea Turtle is 37 long and 41 wide; a Reef Shark 40 long; a Blue Whale 101.
 
 ## Measured
-In Studio on grey-box 15, by script.
-- **The rolls:** of 690 fish, Tiny 13%, Normal 58%, Big 18%, Giant 7%, Huge 2.3%, Colossal 0.6%; Silver 8.4%,
-  Gold 1.6%, Rainbow 0.3%. Inside what the odds give for 690.
-- **Every model is the size its body says** (0% off, all 690).
-- **Riding the biggest:** with every fish forced Colossal and Silver, a sandbox ride and three hops worked: the seat
-  on the back, the fish at its speed (a Silver Blue Chromis at 50), 12 fish inside the hook's reach, 4 pairs of 1,378
-  overlapping, the tag reading "COLOSSAL Silver Sergeant Major". No errors.
-- **Not checked:** anything by eye, Silver's look most of all (Studio draws no 3D for Claude on this PC). A Colossal
-  of the biggest kinds in the narrow first lands. Phones.
+In Studio on grey-box 15, by script, on the second go.
+- **The sizes over 687 fish:** Tiny 13%, Normal 48%, Big 24%, Giant 11%, Huge 3.8%, Colossal 0.6%. The grand rule
+  is why this is not the odds: one fish in six or seven is grand, not one in ten, and Normals pay for it.
+- **Grand fish down the lane:** of 113 stretches of 400 studs, 1 had none, 38 had one, 51 had two, 23 had more.
+- **In a stretch, the biggest fish is 4.8 times as long as the smallest,** on average.
+- **Round a rider in the second land,** the 13 fish inside the hook's reach were 12 to 51 studs long: a Tiny, five
+  Normals, five Bigs and two Giants, of ten kinds.
+- **The colours** (first go, unchanged): Silver 8.4%, Gold 1.6%, Rainbow 0.3% of 690.
+- **Every model is the size its body says** (0% off, all 690, first go).
+- **Riding:** a sandbox ride with four hops through the mixed sea, and one with every fish forced Colossal, landing
+  on a Sea Turtle 124 wide and 112 long (before the width was stopped at 96): the rider on its back, the fish at its
+  speed, 13 fish inside the hook's reach. No errors.
+- **Not checked:** anything by eye, Silver's look most of all (Studio draws no 3D for Claude on this PC). Phones.
 
 ## To look at one
 In Studio, on `Workspace`, before Play: the attribute `TestSize` (a size's name, such as `Colossal`) makes every new
 fish that size, and `TestVariant` (`Silver`, `Gold`, `Rainbow`) that colour. Take them off after. The sandbox panel
-has `SizeChance`, `SizeScale` and `Variant` rows; they change the fish spawned from then on.
+has `SizeChance`, `SizeScale`, `Grand` and `Variant` rows; they change the fish spawned from then on.
 
 ## Open, for the user
-- **Should a bigger fish need more Oxygen,** as the reference's needs more stamina (x0.8 to x1.5)? Not built: it
-  changes how hard every Big fish is to hold, and there is no earning yet to pay for it.
-- **How big each size is** (0.75 to 2.2), and each kind's own number.
+- **A bigger fish needing more Oxygen** is not built: the user chose looks only for now.
+- **How big each size is** (0.7 to 3), each kind's own number, and how often a grand fish comes (`Config.Grand`).
 - **The Index** (the page in the screenshot, with its 24 boxes and rewards) is not built. Nothing remembers which of
   the 24 a player has caught yet.
 - **Speed** comes next.

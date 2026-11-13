@@ -5,36 +5,41 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): the merge of the partner's herd, sizes and water with Hugo's props and hop
 **State:** merged by hand and **pushed to `origin/main`** (Obsidian is not running on Hugo's PC, so nothing syncs
-there by itself). Both sides are whole: the partner's three vault syncs (the herd's stream, the six sizes and Silver,
-the water's fog) and Hugo's commit `0ca31d4` (props, the hop). StyLua and selene pass, `rojo build` passes. Run in
+there by itself). Both sides are whole: the partner's four vault syncs up to `85b5be8` (the herd's stream, the six sizes and Silver,
+the bigger kinds and the grand fish, the water's fog; the fourth came in while the first three were being tested
+and was merged the same way) and Hugo's commit `0ca31d4` (props, the hop). StyLua and selene pass, `rojo build` passes. Run in
 Hugo's Studio through the studio runner on grey-box 15, by script; **not played by hand**. Nothing uploaded; the test
 scripts are out of the place.
 - **`FishService`: the partner's file, whole,** with one condition changed. A wild fish inside a prop breaks it when
   **both** sides' rules say so: its kind breaks props (Hugo: `Config.breaks`, a Tank, a Breaker or a giant;
-  `Props.WildBreaks` 0 turns it off) **and** the fish itself is at least `Herd.BreakLength` (32) long (the partner).
+  `Props.WildBreaks` 0 turns it off) **and** the fish itself is at least `Herd.BreakLength` (40) long (the partner).
   `Config.smashes`, which the partner's code still called, went with Hugo's commit. Hugo's old place for this
   (`mindObstacles`, `mindOne`) is gone with the partner's rewrite.
 - **What that changes for each side, to judge:** for the partner, a long wild fish that is no Tank, Breaker or giant
-  (a Basilosaurus, a Bone Leviathan) now swims through a prop and leaves it whole. For Hugo, a wild Humphead Wrasse
-  (30 long), Sawfish (31) or Aurora Jelly (29) at Normal size is under 32 and leaves it whole; ridden, they break as
-  before. `Herd.BreakLength` 0 gives Hugo's rule alone.
+  (a Basilosaurus, a Bone Leviathan) now swims through a prop and leaves it whole. For Hugo, all 16 kinds that
+  break are 40 or longer at Normal size, so they break; only a Tiny one of five kinds is under it and leaves the
+  prop whole (Archelon, Humphead Wrasse, Sawfish, Aurora Jelly, Grave Turtle). Ridden, every one of the 16 breaks
+  as before, whatever its size. `Herd.BreakLength` 0 gives Hugo's rule alone.
 - **`Config.volumeOf`: the giants stay Hugo's 16.** A fish's `Size` is now its export times the partner's
-  `Config.BaseScale`, and a volume grows with the cube of that: left alone, 13 more kinds would have been giants and
-  broken props (Archelon, Coral Dragon, Hellmaw, the Void and Phantom Whales and eight more). `volumeOf` takes the
+  `Config.BaseScale` (1.2 to 2.6), and a volume grows with the cube of that: left alone, 44 of the 82 kinds would
+  have been giants and broken props, where Hugo chose 9 giants (16 kinds that break, with the Tanks and Breakers). `volumeOf` takes the
   scale out again, so `Props.GiantVolume` is still measured on the exported box. A fish's rolled size (Tiny to
   Colossal) does not change who breaks either. Open, for Hugo and the partner: whether size should count.
-- **Not changed, to know about:** `Config.Angry.GiantLength` (40) reads a kind's length, which `BaseScale` has
-  raised: 13 more kinds now take the giant's slow fade when angry (Steller's Sea Cow, Hellmaw, the eels and serpents
-  among them). `Config.Variant` is the partner's (Silver 1/12, Gold 1/50, Rainbow 1/250), as their entry below says.
+- **Not changed, to know about:** `Config.Angry.GiantLength` is the partner's 68 (Hugo's 40, raised with the
+  kinds' sizes; their entry below says which kinds). `Config.Variant` is the partner's (Silver 1/12, Gold 1/50, Rainbow 1/250), as their entry below says.
 - **The panel:** no row twice, every row has its number; `Props` and the `Herd` and `Spawn` rows are both sides'.
-- **Measured (merged code):** the game starts with no errors (the old asset type warning on `203785492` only); the
-  herd near the dock turns 2.7 degrees in 4 seconds on average (worst fish 10), sizes rolled (Tiny to Giant seen);
-  the props suite as in [the props playtest](playtests/2026-11-13-props.md): a Clownfish and a Reef Shark through
-  a whole prop at 0.65 see-through, the Wrasse, the Sea Cow and the Molten Megalodon break all of it, props back
-  4.5 s after leaving; wild fish held inside a prop for 3 s: Molten Megalodon 5 of 16 boxes out, Bone Leviathan
-  (67 long, no breaker) 0, Clownfish 0; a hop from a Megalodon onto a wild Seahorse and from the Wrasse onto a
-  Butterflyfish; the Wrasse's `Archetype` is "Breaker", its Smash boost and the Reef Shark's Eat fired; with the air
-  draining a Clownfish got `Angry` and `AngryStyle` "Zigzag".
+- **Measured (the final merged code, and the same before the fourth sync):** the game starts with no errors (the
+  old asset type warning on `203785492` only); the herd near the dock turns 3 degrees in 4 seconds on average
+  (worst fish 6 to 10), sizes Tiny to Huge and a Silver and a Gold seen; the props suite as in
+  [the props playtest](playtests/2026-11-13-props.md): a Clownfish and a Reef Shark through a whole prop at 0.65
+  see-through, the Wrasse, the Sea Cow and the Molten Megalodon break all of it, props back 4.5 s after leaving;
+  wild fish held 3 s inside a prop: Humphead Wrasse 14 of 16 boxes out, Steller's Sea Cow 13, Molten Megalodon 2
+  to 5, Bone Leviathan (long, no breaker) 0, Clownfish 0; a hop from a Megalodon onto a wild Seahorse and from the
+  Wrasse onto a Butterflyfish; the Wrasse's `Archetype` is "Breaker", its Smash boost and the Reef Shark's Eat
+  fired; with the air draining a Clownfish got `Angry` and `AngryStyle` "Zigzag".
+- **As before the merge, to know:** a wild fish looks for props only inside one of the map's 243 big things'
+  circles (`BigAssets`, `Stream.inside`). The other props in `Lane.Props` (1,915 models in all) a wild breaker
+  swims through whole; a ridden one breaks any of them.
 - **Not checked:** by eye, anything. The lands past the second. `tools/studio/herd_stream_test.py` (it goes through
   `run_luau.js`, the partner's PC).
 - **The partner:** pull, then sync your Studio as usual. Nothing of yours was replaced.
@@ -129,9 +134,17 @@ place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked
 - **`Shared/Variants`:** Silver, as a tint with a sheen (no baked meshes: `tools/creatures/local_meshes.py` and
   `install.py` are untouched, so Hugo's place tints Silver too).
 - **`UI/Tags`:** the name line reads "GIANT Gold Great White". **`SandboxController`:** panel rows only.
-- **Measured:** the rolls over 690 fish match the odds; every model is its body's size; a ride and three hops with
-  every fish forced Colossal and Silver, no errors.
-- **Not done:** size does not change the Oxygen a fish needs (the user's to decide) or its speed (next); no Index;
+- **The user's second word, the same day** (looks only; too small across the board; too alike; one or two much
+  grander, kept up by rule): `Config.BaseScale` is now 1.2 to 2.6; `SizeScale` 0.7 / 1 / 1.35 / 1.8 / 2.3 / 3;
+  `Config.SizeLimit` (no fish over 200 long or 96 wide; `Config.sizeScale(tier, fish)` keeps to it);
+  `Config.Grand` and `FishService.census` / `rollSize(grandNear)` (a Giant or bigger in every stretch, never more
+  than two made); `Spawn.KindTries` and `pick(zone, near)` (the least seen kind of three draws); `Wild.Grand`.
+  `Herd.SmashLength` 80, `BreakLength` 40, `Spawn.BigLength` 26, `BigFull` 110, and **`Angry.GiantLength` 68**
+  (Hugo's 40: the kinds grew; the same kinds but Coral Dragon and Kelp Wyrm, which now count).
+- **Measured:** sizes over 687 fish 13 / 48 / 24 / 11 / 3.8 / 0.6%; 112 of 113 stretches of 400 studs have a grand
+  fish; the biggest fish in a stretch is 4.8 times the smallest; every model is its body's size; rides and hops
+  through the mixed sea and with every fish forced Colossal, no errors.
+- **Not done:** size does not change the Oxygen a fish needs (the user: looks only for now) or its speed (next); no Index;
   nothing remembers which of the 24 a player has. `docs/design/roster.md` and `archetypes.md` still give the old
   sizes where they give any.
 

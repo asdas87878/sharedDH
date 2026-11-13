@@ -44,6 +44,7 @@ export type Wild = {
 	Type: Config.FishType,
 	Variant: string, -- "", "Silver", "Gold" or "Rainbow"
 	SizeTier: string, -- its size's name (Config.SizeOrder)
+	Grand: boolean, -- a Giant, a Huge or a Colossal (Config.Grand: the stocking keeps one or two in every stretch)
 	Body: Vector3, -- its own width, height and length: Type.Size times its size's (Config.SizeScale)
 	Zone: number,
 	-- (2026-11-13: "along" is studs down the herd's stream, Lib/Stream, for fish and slices alike. The lane's own s is
@@ -121,10 +122,18 @@ local function rollVariant(): string
 	return variant
 end
 
--- The roll for a new fish's size. Studio only: the workspace's "TestSize" attribute (a name of Config.SizeOrder) makes
--- every new fish that size, for looking at them.
-local function rollSize(): string
+-- The roll for a new fish's size, for a place with `grandNear` grand fish near it already (Config.Grand): with too
+-- few, the fish is made grand; with enough, a fish that rolls grand is a Big. Studio only: the workspace's "TestSize"
+-- attribute (a name of Config.SizeOrder) makes every new fish that size, for looking at them.
+local function rollSize(grandNear: number): string
+	local g = Config.Grand
 	local tier = Config.rollSize(rng:NextNumber())
+	if grandNear < g.Least then
+		local roll = rng:NextNumber() * (g.Giant + g.Huge + g.Colossal)
+		tier = if roll < g.Colossal then "Colossal" elseif roll < g.Colossal + g.Huge then "Huge" else "Giant"
+	elseif grandNear >= g.Most and Config.isGrand(tier) then
+		tier = "Big"
+	end
 	if RunService:IsStudio() then
 		local testSize = workspace:GetAttribute("TestSize")
 		if type(testSize) == "string" and Config.SizeScale[testSize] then
@@ -135,8 +144,7 @@ local function rollSize(): string
 end
 
 -- A fish model made its size: the whole model and its seat (the seat's own height above the back is not scaled)
-local function resize(model: Model, tier: string)
-	local scale = Config.sizeScale(tier)
+local function resize(model: Model, tier: string, scale: number)
 	model:SetAttribute("SizeTier", tier)
 	model:SetAttribute("Size", scale)
 	if scale == 1 then
@@ -175,7 +183,10 @@ end
 
 local pools: { { [string]: { { fish: Config.FishType, weight: number } } } } = {}
 
-local function pick(zoneIndex: number): Config.FishType?
+-- (`near`: how many of each kind swim nearby, FishService's census. The rarity is rolled as ever; the kind is the
+-- least seen nearby of Spawn.KindTries draws from that rarity's kinds, so the same fish doesn't come three in a row
+-- where there are others to be had.)
+local function pick(zoneIndex: number, near: { [string]: number }): Config.FishType?
 	local byTier = pools[zoneIndex]
 	local mix = Config.ZoneMix[zoneIndex]
 	if not byTier or not mix then
@@ -201,14 +212,22 @@ local function pick(zoneIndex: number): Config.FishType?
 				for _, option in options do
 					sum += option.weight
 				end
-				local r = rng:NextNumber() * sum
-				for _, option in options do
-					r -= option.weight
-					if r <= 0 then
-						return option.fish
+				local best: Config.FishType? = nil
+				for _ = 1, math.max(1, Config.Spawn.KindTries) do
+					local drawn = options[#options].fish
+					local r = rng:NextNumber() * sum
+					for _, option in options do
+						r -= option.weight
+						if r <= 0 then
+							drawn = option.fish
+							break
+						end
+					end
+					if not best or (near[drawn.Id] or 0) < (near[best.Id] or 0) then
+						best = drawn
 					end
 				end
-				return options[#options].fish
+				return best
 			end
 		end
 	end
@@ -452,8 +471,9 @@ local function make(
 ): Wild
 	local model = FishModel.build(fishType)
 	local tier = sizeTier or "Normal"
-	local body = fishType.Size * Config.sizeScale(tier)
-	resize(model, tier)
+	local scale = Config.sizeScale(tier, fishType)
+	local body = fishType.Size * scale
+	resize(model, tier, scale)
 	model:SetAttribute("Variant", variant)
 	-- its passive archetypes (Config.FishStats; docs/design/archetypes.md): "" for none, more than one comma-separated.
 	-- The hook for the passives and for the partner's animations
@@ -467,6 +487,7 @@ local function make(
 		Type = fishType,
 		Variant = variant,
 		SizeTier = tier,
+		Grand = Config.isGrand(tier),
 		Body = body,
 		Zone = zone,
 		Home = home,
@@ -552,14 +573,37 @@ local function placeFor(index: number, size: Vector3, clearOf: number, dodge: nu
 	return home, at, bestU, bestLift
 end
 
+-- Who swims near a place: how many grand fish, and how many of each kind, within half of Grand.Span either way
+local function census(s: number): (number, { [string]: number })
+	local reach = Config.Grand.Span / 2
+	local grand = 0
+	local kinds: { [string]: number } = {}
+	local bucket = math.floor(s / STOCK)
+	for b = bucket - 2, bucket + 2 do
+		for _, o in stock[b] or NO_FISH do
+			if math.abs(o.S - s) <= reach then
+				if o.Grand then
+					grand += 1
+				end
+				kinds[o.Type.Id] = (kinds[o.Type.Id] or 0) + 1
+			end
+		end
+	end
+	return grand, kinds
+end
+
 local function spawnFish(index: number): Wild?
 	local slice = slices[index]
-	local fishType = slice and pick(slice.Zone)
-	if not slice or not fishType then
+	if not slice then
 		return nil
 	end
-	local tier = rollSize()
-	local body = fishType.Size * Config.sizeScale(tier)
+	local grandNear, kinds = census((slice.Start + slice.End) / 2)
+	local fishType = pick(slice.Zone, kinds)
+	if not fishType then
+		return nil
+	end
+	local tier = rollSize(grandNear)
+	local body = fishType.Size * Config.sizeScale(tier, fishType)
 	local dodge = rollDodge(body)
 	local home, at, u, lift = placeFor(index, body, Config.Spawn.AppearClear, dodge)
 	local along = Stream.along(stream, home)
