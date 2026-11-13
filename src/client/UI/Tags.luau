@@ -240,10 +240,19 @@ local function put(tag: Tag, fish: Model)
 		return
 	end
 	tag.Fish = fish
-	-- this fish's variant before its name ("Gold Great White"); no size is shown: there is no size roll for now
+	-- this fish's size and variant before its name, as the reference's tags have them ("GIANT Gold Great White"); a
+	-- Normal size isn't named
 	local variant = Config.variantOf(fish)
+	local size = Config.sizeTierOf(fish)
+	local name = kind.Name
+	if variant ~= "" then
+		name = variant .. " " .. name
+	end
+	if size ~= "Normal" then
+		name = string.upper(size) .. " " .. name
+	end
 	tag.Offset = Vector3.new(0, Config.bodyOf(fish, kind).Y * 0.5 + 2.5, 0)
-	tag.Name.Text = if variant ~= "" then variant .. " " .. kind.Name else kind.Name
+	tag.Name.Text = name
 	local does = if Config.ArchetypeFeel.Tags > 0 then Archetypes.rich(kind) else ""
 	tag.KindOf = kind
 	tag.KindHigh = if does ~= "" then KIND_HIGH else 0

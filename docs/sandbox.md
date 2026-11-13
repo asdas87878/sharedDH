@@ -81,7 +81,7 @@ What to reach for:
 - **The tuning rows** ([progression](design/progression.md); [riding feel](design/riding-feel.md), "Speed by fish"):
   `Speed.Gold`, `Speed.Rainbow` (wild fish, the
   glide and the server's speed check follow at once); `Variant.Gold`, `Rainbow` (the variants' chances, for fish
-  spawned from then on; the `Size` rows and `Speed.SizeBonus` went with the size roll, 2026-11-12); and
+  spawned from then on; the `Size` rows and `Speed.SizeBonus` went with the size roll, 2026-11-12; since 2026-11-13 `Variant.Silver`, and `SizeChance` and `SizeScale` for the six sizes: [sizes](design/sizes.md)); and
   `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12; so did `Speed.Base`, `TierMult`, `Speed.AreaStep` and `AreaGrow`, with the reset: a fish's speed is its own number in `Config.FishStats`, changed in Config, not on the panel: [archetypes](design/archetypes.md).)
 - **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.Rebuild`, `Push`, `Topple`, `MinLength`.
 

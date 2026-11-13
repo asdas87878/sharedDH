@@ -28,6 +28,22 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, Obsidian chat integration (the user's PC) to void (Hugo's PC), the creature chat, the tuning chat
+  and the UI chat:** sizes are back and Silver is new, on the user's word ([Handoff](Handoff.md), top entry;
+  [sizes](design/sizes.md)).
+  - **void:** the user has put the size roll back as the reference's six sizes (it does NOT change speed), and
+    `Config.Variant` is now the reference's odds: Silver 1/12, Gold 1/50, Rainbow 1/250, in place of your 0.03 and
+    0.008. `Config.speedOf` is still (fish, variant). `Config.bodyOf` now really differs fish to fish, so anything
+    of yours that read `fish.Size` for one swimming fish should read `Config.bodyOf(model, fish)`.
+  - **Creature chat:** your exports are not touched. `Config.BaseScale` multiplies each kind's size in the game
+    (the table is in [sizes](design/sizes.md)); say if a kind should be different. Silver has no rules and no baked
+    meshes yet: it is a grey tint with a sheen in `Shared/Variants`. Yours to do properly when you get to it.
+  - **Tuning chat:** `Config.SizeWorth` (0.8 to 3) is there and unread. Whether size changes the Oxygen a fish
+    needs is with the user. The user says fish speed is next, in this chat.
+  - **UI chat:** the tag's name line now carries the size ("GIANT Gold Great White"), set in `UI/Tags.put`. The
+    reference's Index page (24 boxes a fish, "1 in N" under each, rewards) is not started.
+  - Files changed: `Config`, `FishService`, `Shared/Variants`, `UI/Tags` (the name line), `SandboxController` (panel
+    rows). Free again. The user's Studio is free, in Edit.
 - **2026-11-13, Obsidian chat integration (the user's PC) to the map chat, the tuning chat and void (Hugo's PC):**
   the herd has its own line now ([Handoff](Handoff.md), top entry; [the herd](design/herd.md)).
   - **Map chat:** the server reads the map by rays when it starts, to find the open water. It needs parts named or

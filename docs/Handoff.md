@@ -3,6 +3,28 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · Obsidian chat integration (the user's PC): six sizes and Silver, 24 of every fish; the kinds' own sizes
+**State:** on the user's word of 2026-11-13, with their screenshot of the reference's Index. In the user's Studio
+place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked at by eye**. StyLua and selene pass,
+`rojo build` passes. Nothing uploaded. Not committed by hand. All of it, with the odds worked out and every number:
+[sizes](design/sizes.md). One row in [Decisions](Decisions.md).
+- **`Config`:** `Config.BaseScale` (new: each kind's size times the creature chat's export, 0.85 to 1.6, all 82);
+  `Config.SizeOrder`, `SizeChance`, `SizeScale`, `SizeWorth` (new; `SizeWorth` is read by nothing yet);
+  `Config.Variant` is now `Silver` 1/12, `Gold` 1/50, `Rainbow` 1/250 (**Hugo's 0.03 and 0.008 are replaced**);
+  `Config.Speed.Silver` 1.05; `rollSize`, `sizeScale`, `sizeWorth`, `sizeTierOf` (new); `rollVariant` and `speedOf`
+  know Silver. `Herd.SmashLength` 60 (40), `BreakLength` 32 (24), `Spawn.BigLength` 20 (16), `BigFull` 80 (44).
+- **`FishService`:** every new fish rolls a size; `resize` scales the model and its seat (Hugo's own function of
+  2026-11-12, back); `Wild.SizeTier`, and `Wild.Body` is the fish's own; the model's `SizeTier` and `Size`
+  attributes. The herd's rules go by the fish's own length. Studio: `Workspace`'s `TestSize` and `TestVariant`.
+- **`Shared/Variants`:** Silver, as a tint with a sheen (no baked meshes: `tools/creatures/local_meshes.py` and
+  `install.py` are untouched, so Hugo's place tints Silver too).
+- **`UI/Tags`:** the name line reads "GIANT Gold Great White". **`SandboxController`:** panel rows only.
+- **Measured:** the rolls over 690 fish match the odds; every model is its body's size; a ride and three hops with
+  every fish forced Colossal and Silver, no errors.
+- **Not done:** size does not change the Oxygen a fish needs (the user's to decide) or its speed (next); no Index;
+  nothing remembers which of the 24 a player has. `docs/design/roster.md` and `archetypes.md` still give the old
+  sizes where they give any.
+
 ## 2026-11-13 · Obsidian chat integration (the user's PC): the herd swims its own straight line, spread out, big fish higher
 **State:** on the user's word of 2026-11-13. In the user's Studio place (synced, 132 scripts) and run there on
 grey-box 15 by script; **not looked at by eye**. StyLua and selene pass, `rojo build` passes. Nothing uploaded. Not

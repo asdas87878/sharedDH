@@ -54,8 +54,8 @@ Measured on grey-box 15 before the change.
   so the herd keeps its spread through the gaps. A fish pressed between a thing and the edge just goes through the
   thing's rim.
 - **Some bend, some go straight through** (the user, after the first build). Four in ten of the fish go straight
-  through every prop, decided when the fish is made; so does every fish 40 studs long or more. A fish going through
-  a prop breaks it only if it is at least 24 studs long. A smaller one swims through and leaves it whole, as the
+  through every prop, decided when the fish is made; so does every fish 60 studs long or more. A fish going through
+  a prop breaks it only if it is at least 32 studs long. A smaller one swims through and leaves it whole, as the
   reference's small dinos do.
 - **Passing.** Fish swim at their own speeds, so one catches another up. The two move apart a little, at 5 studs a
   second at most, and drift back after.
@@ -63,7 +63,9 @@ Measured on grey-box 15 before the change.
   in what each fish wants: 32 studs and 1.2 times its own length. So a whale gets clear water and small fish fill
   in between. (Ten places, 22 studs and its length at first; the user asked for the fish further apart, and some
   out at the sides.)
-- **Height.** The layer is 8 to 20 studs above the floor. A fish longer than 16 studs swims above it by its size,
+- **A fish's length is its own:** its kind's size times its size's ([sizes](sizes.md)). The lengths here were
+  raised with the bigger sizes of 2026-11-13 (40, 24, 16 and 44 before).
+- **Height.** The layer is 8 to 20 studs above the floor. A fish longer than 20 studs swims above it by its size,
   up to 14 studs higher. No belly is nearer the floor than 4.
 - **Out of sight.** A fish that swims out of everyone's sight (700 studs) is given a new place with room round it.
   Before, such fish stopped in a row at that distance.
@@ -112,14 +114,14 @@ All in `src/shared/Config.luau`. Those marked "start" are read once, when the se
 | `Herd.Turn` | 2.5 | How quickly a fish comes round to its heading |
 | `Herd.DodgeShare`, `DodgeGap` | 0.85, 4 | How much of a thing's circle a fish goes round, and the water left |
 | `Herd.DodgeLength` | 10 | How far ahead the bend starts, in bend widths. Higher is gentler |
-| `Herd.SmashLength` | 40 | Wild fish this long always go straight through props |
+| `Herd.SmashLength` | 60 | Wild fish this long always go straight through props |
 | `Herd.StraightShare` | 0.4 | The share of shorter fish that go straight through too (new fish only) |
-| `Herd.BreakLength` | 24 | A fish going through a prop breaks it only if this long |
+| `Herd.BreakLength` | 32 | A fish going through a prop breaks it only if this long |
 | `Herd.GiveSide`, `GiveAlong`, `GiveRate` | 14, 36, 5 | Passing: the gap kept, when it starts, how fast |
 | `Spawn.BandMax` | 400 (start) | The band's greatest width (200 before) |
 | `Spawn.LaneFill` | 0.95 (start) | The share of the open water each side that is used |
 | `Spawn.HeightMin`, `HeightMax` | 8, 20 | The layer (8, 16 before) |
-| `Spawn.BigLength`, `BigFull`, `BigRise` | 16, 44, 14 | Which fish swim higher, and by how much |
+| `Spawn.BigLength`, `BigFull`, `BigRise` | 20, 80, 14 | Which fish swim higher, and by how much |
 | `Spawn.Tries`, `Space`, `SpaceByLength` | 14, 32, 1.2 | Placing a new fish |
 | `Spawn.PerThousand` | 30 | Fish per 1,000 real studs (24 per 1,000 of the lane's own measure before: about the same count) |
 
@@ -129,6 +131,5 @@ The sandbox panel has the rows that work live: `Turn`, the `Dodge` and `Give` nu
 ## Open
 - **For the user to judge by eye:** the mix (four in ten straight through), small fish swimming through a prop
   that stays whole, and whether 400 is the right width.
-- **Next, on the user's word:** proper size variations for fish, and getting fish speed right. Sizes will change
-  the room a fish wants, its height and whether it breaks props: all three read the fish's length.
+- **Sizes are in** (the same day): [sizes](sizes.md). **Next, on the user's word:** fish speed.
 - `tools/balance/model.py` still works the band out the old way (the lane's width times `LaneFill`).

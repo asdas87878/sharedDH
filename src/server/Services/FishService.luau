@@ -19,6 +19,10 @@
 -- attribute), and its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant), which the herd, the
 -- rider's client and the server's checks all use. There is no size roll for now (Hugo, the same day): every fish is
 -- its species' size.
+-- (2026-11-13, the user: sizes are back, as the reference has them. Every spawned fish is one of six sizes,
+-- Config.SizeChance, rolled apart from its variant: its model, seat and body are its species' times Config.SizeScale,
+-- its "Size" and "SizeTier" attributes say so. Size changes neither speed nor what a fish needs (Config.SizeWorth
+-- is there for when it does). The herd's rules that go by a fish's length, Config.Herd and Config.Spawn, go by its own.)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -38,8 +42,9 @@ export type Wild = {
 	Model: Model,
 	Root: BasePart,
 	Type: Config.FishType,
-	Variant: string, -- "", "Gold" or "Rainbow"
-	Body: Vector3, -- its width, height and length: Type.Size (no size roll for now)
+	Variant: string, -- "", "Silver", "Gold" or "Rainbow"
+	SizeTier: string, -- its size's name (Config.SizeOrder)
+	Body: Vector3, -- its own width, height and length: Type.Size times its size's (Config.SizeScale)
 	Zone: number,
 	-- (2026-11-13: "along" is studs down the herd's stream, Lib/Stream, for fish and slices alike. The lane's own s is
 	-- measured along its wandering middle, 28% longer on grey-box 15 and unevenly so; Stream.laneS gives it when the
@@ -109,11 +114,40 @@ local function rollVariant(): string
 	local variant = Config.rollVariant(rng:NextNumber())
 	if RunService:IsStudio() then
 		local testVariant = workspace:GetAttribute("TestVariant")
-		if testVariant == "Gold" or testVariant == "Rainbow" then
+		if testVariant == "Silver" or testVariant == "Gold" or testVariant == "Rainbow" then
 			variant = testVariant
 		end
 	end
 	return variant
+end
+
+-- The roll for a new fish's size. Studio only: the workspace's "TestSize" attribute (a name of Config.SizeOrder) makes
+-- every new fish that size, for looking at them.
+local function rollSize(): string
+	local tier = Config.rollSize(rng:NextNumber())
+	if RunService:IsStudio() then
+		local testSize = workspace:GetAttribute("TestSize")
+		if type(testSize) == "string" and Config.SizeScale[testSize] then
+			tier = testSize
+		end
+	end
+	return tier
+end
+
+-- A fish model made its size: the whole model and its seat (the seat's own height above the back is not scaled)
+local function resize(model: Model, tier: string)
+	local scale = Config.sizeScale(tier)
+	model:SetAttribute("SizeTier", tier)
+	model:SetAttribute("Size", scale)
+	if scale == 1 then
+		return
+	end
+	model:ScaleTo(model:GetScale() * scale)
+	local root = model.PrimaryPart
+	local saddle = root and root:FindFirstChild("Saddle")
+	if saddle and saddle:IsA("Attachment") then
+		saddle.Position -= Vector3.new(0, Config.Ride.SeatHeight * (scale - 1), 0)
+	end
 end
 
 function FishService.get(instance: Instance?): Wild?
@@ -259,45 +293,45 @@ local function sliceAt(s: number): number?
 	return nil
 end
 
--- The room a fish of this kind wants round it in the herd
-local function spaceOf(fishType: Config.FishType): number
-	return Config.Spawn.Space + fishType.Size.Z * Config.Spawn.SpaceByLength
+-- The room a fish with this body wants round it in the herd
+local function spaceOf(body: Vector3): number
+	return Config.Spawn.Space + body.Z * Config.Spawn.SpaceByLength
 end
 
 -- A new fish's way with the big things in the lane: 1, its line bends round them; 0, straight through them. The
 -- longest always go straight through (Herd.SmashLength); of the rest, Herd.StraightShare do (the user, 2026-11-13:
 -- "some gentle bends, some straight through").
-local function rollDodge(fishType: Config.FishType): number
+local function rollDodge(body: Vector3): number
 	local h = Config.Herd
-	if fishType.Size.Z >= h.SmashLength or rng:NextNumber() < h.StraightShare then
+	if body.Z >= h.SmashLength or rng:NextNumber() < h.StraightShare then
 		return 0
 	end
 	return 1
 end
 
--- How far above the herd's layer a fish of this kind may swim, as a share of Spawn.BigRise: by its length
-local function bigShare(fishType: Config.FishType): number
+-- How far above the herd's layer a fish with this body may swim, as a share of Spawn.BigRise: by its length
+local function bigShare(body: Vector3): number
 	local sp = Config.Spawn
-	return math.clamp((fishType.Size.Z - sp.BigLength) / math.max(sp.BigFull - sp.BigLength, 1), 0, 1)
+	return math.clamp((body.Z - sp.BigLength) / math.max(sp.BigFull - sp.BigLength, 1), 0, 1)
 end
 
--- The lowest and the highest a fish of this kind swims above the floor in open water
-local function liftRange(fishType: Config.FishType): (number, number)
+-- The lowest and the highest a fish with this body swims above the floor in open water
+local function liftRange(body: Vector3): (number, number)
 	local sp = Config.Spawn
-	local low = math.max(math.min(sp.HeightMin, sp.HeightMax), fishType.Size.Y / 2 + sp.Belly)
-	return low, math.max(low, sp.HeightMax + sp.BigRise * bigShare(fishType))
+	local low = math.max(math.min(sp.HeightMin, sp.HeightMax), body.Y / 2 + sp.Belly)
+	return low, math.max(low, sp.HeightMax + sp.BigRise * bigShare(body))
 end
 
 -- A new fish's lift: somewhere in the herd's layer, and above it by its size (a big fish is seen over the others)
-local function rollLift(fishType: Config.FishType, s: number): number
+local function rollLift(body: Vector3, s: number): number
 	local sp = Config.Spawn
-	local low, high = liftRange(fishType)
+	local low, high = liftRange(body)
 	local lift = rng:NextNumber(math.min(sp.HeightMin, sp.HeightMax), math.max(sp.HeightMin, sp.HeightMax))
-		+ sp.BigRise * bigShare(fishType) * rng:NextNumber(0.4, 1)
+		+ sp.BigRise * bigShare(body) * rng:NextNumber(0.4, 1)
 	-- under an arch, a shelf or a sign, keep clear of the roof (the map's Path c)
 	local roof = Lane.clearanceAt(lane, Stream.laneS(stream, s))
 	if roof then
-		high = math.min(high, roof - sp.RoofGap - fishType.Size.Y / 2)
+		high = math.min(high, roof - sp.RoofGap - body.Y / 2)
 	end
 	return math.clamp(lift, low, math.max(low, high))
 end
@@ -334,7 +368,7 @@ end
 local function placeInStream(w: Wild)
 	local position = w.Root.Position
 	local s, across = Stream.project(stream, position)
-	local low, high = liftRange(w.Type)
+	local low, high = liftRange(w.Body)
 	w.S = s
 	w.U = Stream.share(stream, s, across)
 	w.A = across
@@ -413,9 +447,13 @@ local function make(
 	slice: number?,
 	u: number?,
 	lift: number?,
-	dodge: number?
+	dodge: number?,
+	sizeTier: string?
 ): Wild
 	local model = FishModel.build(fishType)
+	local tier = sizeTier or "Normal"
+	local body = fishType.Size * Config.sizeScale(tier)
+	resize(model, tier)
 	model:SetAttribute("Variant", variant)
 	-- its passive archetypes (Config.FishStats; docs/design/archetypes.md): "" for none, more than one comma-separated.
 	-- The hook for the passives and for the partner's animations
@@ -428,7 +466,8 @@ local function make(
 		Root = root,
 		Type = fishType,
 		Variant = variant,
-		Body = fishType.Size,
+		SizeTier = tier,
+		Body = body,
 		Zone = zone,
 		Home = home,
 		S = home,
@@ -437,8 +476,8 @@ local function make(
 		A = 0,
 		Give = 0,
 		GiveWant = 0,
-		Dodge = dodge or rollDodge(fishType),
-		Space = spaceOf(fishType),
+		Dodge = dodge or rollDodge(body),
+		Space = spaceOf(body),
 		SyncAt = os.clock() + rng:NextNumber(0, SYNC),
 		Slice = slice,
 		Parked = true,
@@ -461,7 +500,7 @@ local function make(
 	model.Parent = parkedFolder
 	wild[model] = w
 	if u and lift then
-		w.A = Stream.across(stream, home, u, 0, w.Dodge, fishType.Size.X / 2)
+		w.A = Stream.across(stream, home, u, 0, w.Dodge, body.X / 2)
 	else
 		placeInStream(w)
 	end
@@ -479,18 +518,13 @@ local placed: { [number]: number } = {}
 -- the tries walk evenly across the band from where the slice's last fish went, so the band is filled from side to
 -- side; the rest are anywhere. A place near a player counts for much less (a new fish appeared out of nothing 0 to 120
 -- studs from a player standing at the lane's start, about one a second), and one inside a big thing, for a fish that
--- doesn't go round them, for nothing. `clearOf`: how far from every player the place should be; `dodge`: the fish's
--- way with the big things (rollDodge).
+-- doesn't go round them, for nothing. `size`: the fish's own width, height and length; `clearOf`: how far from every
+-- player the place should be; `dodge`: the fish's way with the big things (rollDodge).
 -- Returns how far along it is, the place itself, and the fish's share of the band and its lift there.
-local function placeFor(
-	index: number,
-	fishType: Config.FishType,
-	clearOf: number,
-	dodge: number
-): (number, Vector3, number, number)
+local function placeFor(index: number, size: Vector3, clearOf: number, dodge: number): (number, Vector3, number, number)
 	local slice = slices[index]
 	local sp = Config.Spawn
-	local space, body = spaceOf(fishType), fishType.Size.X / 2
+	local space, body = spaceOf(size), size.X / 2
 	local count = placed[index] or 0
 	placed[index] = count + 1
 	local bestScore = -1
@@ -500,7 +534,7 @@ local function placeFor(
 		local u = if try % 2 == 1
 			then ((count * 0.618034 + try * 0.381966 + index * 0.271) % 1) * 2 - 1
 			else rng:NextNumber(-1, 1)
-		local lift = rollLift(fishType, s)
+		local lift = rollLift(size, s)
 		local across = Stream.across(stream, s, u, 0, dodge, body)
 		local point = Stream.point(stream, s, across, lift)
 		local score = math.min(roomAt(s, across, lift, space), 4)
@@ -524,9 +558,12 @@ local function spawnFish(index: number): Wild?
 	if not slice or not fishType then
 		return nil
 	end
-	local dodge = rollDodge(fishType)
-	local home, at, u, lift = placeFor(index, fishType, Config.Spawn.AppearClear, dodge)
-	local w = make(fishType, rollVariant(), home, at, Stream.along(stream, home), slice.Zone, index, u, lift, dodge)
+	local tier = rollSize()
+	local body = fishType.Size * Config.sizeScale(tier)
+	local dodge = rollDodge(body)
+	local home, at, u, lift = placeFor(index, body, Config.Spawn.AppearClear, dodge)
+	local along = Stream.along(stream, home)
+	local w = make(fishType, rollVariant(), home, at, along, slice.Zone, index, u, lift, dodge, tier)
 	park(w, not nearAPlayer(at, Config.Spawn.StreamRadius))
 	return w
 end
@@ -535,7 +572,7 @@ end
 -- the most room, and waits there (parked). Left where they stopped, such fish piled up in a row at the edge of
 -- Spawn.StreamRadius: every fish stops at the same distance from a player who is standing still, or leaving them behind.
 local function reseat(w: Wild, index: number)
-	local home, at, u, lift = placeFor(index, w.Type, Config.Spawn.StreamRadius + 30, w.Dodge)
+	local home, at, u, lift = placeFor(index, w.Body, Config.Spawn.StreamRadius + 30, w.Dodge)
 	local dir = Stream.along(stream, home)
 	w.S, w.Home, w.U, w.Lift = home, home, u, lift
 	w.Give, w.GiveWant = 0, 0
@@ -896,7 +933,7 @@ function FishService.eat(w: Wild)
 end
 
 -- Studio only (the sandbox's "Ride": a chosen fish to try): a fish of this kind and variant put in the water at a
--- place, swimming `dir`. nil for a kind there is none of.
+-- place, swimming `dir`. nil for a kind there is none of. Its size is Normal, or the workspace's "TestSize".
 function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Vector3): Wild?
 	local fishType = Config.FishById[id]
 	if not fishType or not RunService:IsStudio() then
@@ -905,7 +942,7 @@ function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Ve
 	local home = (Stream.project(stream, at))
 	local w = make(
 		fishType,
-		if variant == "Gold" or variant == "Rainbow" then variant else "",
+		if variant == "Silver" or variant == "Gold" or variant == "Rainbow" then variant else "",
 		home,
 		at,
 		dir,

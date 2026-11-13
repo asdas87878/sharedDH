@@ -477,8 +477,20 @@ local TUNABLES: { { any } } = {
 	{ "Speed", "Gold", 0.02 },
 	{ "Speed", "Rainbow", 0.02 },
 	-- the variants' chances (new fish only: the ones swimming keep theirs)
-	{ "Variant", "Gold", 0.01 },
-	{ "Variant", "Rainbow", 0.005 },
+	{ "Variant", "Silver", 0.01 },
+	{ "Variant", "Gold", 0.005 },
+	{ "Variant", "Rainbow", 0.002 },
+	-- the sizes' chances (new fish only; Normal is the rest), and how big each is
+	{ "SizeChance", "Tiny", 0.01 },
+	{ "SizeChance", "Big", 0.01 },
+	{ "SizeChance", "Giant", 0.01 },
+	{ "SizeChance", "Huge", 0.005 },
+	{ "SizeChance", "Colossal", 0.005 },
+	{ "SizeScale", "Tiny", 0.05 },
+	{ "SizeScale", "Big", 0.05 },
+	{ "SizeScale", "Giant", 0.05 },
+	{ "SizeScale", "Huge", 0.1 },
+	{ "SizeScale", "Colossal", 0.1 },
 	-- The share of spawns by rarity, land by land (Config.ZoneMix, one group a land). A changed share shows in the fish
 	-- spawned from then on, not in the ones already swimming. A row whose rarity the land's mix doesn't have is left out.
 	{ "MixShallows", "Common", 1 },
