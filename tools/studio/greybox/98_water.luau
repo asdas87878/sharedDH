@@ -371,6 +371,21 @@ specks.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), Num
 specks.LightEmission = 0.7
 specks.Parent = fx
 
+-- The end of the view. Roblox's fog doesn't cover the sky, so past the last thing you could see, the sky showed through
+-- in its own blue. Four walls and a floor stand round the camera where the view ends: at that distance they are
+-- wholly the water's colour, so the water closes in on every side.
+local curtain = {}
+for i = 1, 5 do
+	local p = Instance.new("Part")
+	p.Name = "WaterEnd"
+	p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = true, false, false, false, false
+	p.Material = Enum.Material.SmoothPlastic
+	p.TopSurface, p.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+	p.Transparency = 1
+	p.Parent = folder
+	curtain[i] = p
+end
+
 local colour, soft, atmosphere
 if playing then
 	colour = Instance.new("ColorCorrectionEffect")
@@ -457,6 +472,20 @@ local function underwater(eye, t, dt)
 	end
 	specks.Rate = LOOK.Specks * wet
 	specks.Color = ColorSequence.new(speck)
+	local far = see * 1.03
+	for i, p in curtain do
+		p.Transparency = wet > 0.5 and 0 or 1
+		p.Color = water
+		if i == 5 then -- the floor of the view, for looking down where there is no ground
+			p.Size = Vector3.new(far * 2.2, 4, far * 2.2)
+			p.CFrame = CFrame.new(eye.X, eye.Y - far, eye.Z)
+		else
+			local a_ = (i - 1) * math.pi / 2
+			local dx, dz = math.cos(a_), math.sin(a_)
+			p.Size = Vector3.new(math.abs(dz) * far * 2.2 + 4, 2000, math.abs(dx) * far * 2.2 + 4)
+			p.CFrame = CFrame.new(eye.X + dx * far, math.min(eye.Y, LOOK.Top - 1000 - LOOK.Gap * 4), eye.Z + dz * far)
+		end
+	end
 	if not playing then
 		return
 	end

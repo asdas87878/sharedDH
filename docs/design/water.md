@@ -154,7 +154,16 @@ only gently, and even the last lands are a deep colour, never black or grey. The
 out of Lighting while under water (Roblox's fog doesn't work with one) and puts it back at the surface, and adds two
 effects of its own, `WaterColour` and `WaterSoft`. It never writes the numbers `Config.Look` owns.
 
-**Not judged by eye yet.** Written and installed without a view of Studio; the first real look is the user's.
+![Under water in the Shallows, in play](../attachments/map-underwater-shallows.jpg)
+
+**Seen in play, in the Shallows only** (2026-11-13, the capture above): the surface overhead with its picture, the
+shafts, the sand floor and the walls bright and clean. Read back by number in three lands (Shallows, Coral Reef,
+Kelp Forest): each takes its own fog colour, distance and tint, and all of it goes back when the camera comes up.
+- **The deeper lands are not seen:** the map only reaches a player's machine near their character, so a camera
+  sent ahead alone sees nothing there. They need a ride down, or the user's eye.
+- **The end of the view:** Roblox's fog leaves the sky showing where nothing stands, so four walls and a floor in
+  the water's colour ride round the camera where the view ends (`WaterEnd`). In the capture the far end of the lane
+  is still a deeper blue than the water's aqua: to look at again.
 
 **Not built, and worth working through together:**
 - Light rippling on the floor (the water's picture, slid slowly over the floor near the camera).
