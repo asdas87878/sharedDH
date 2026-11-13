@@ -1,4 +1,4 @@
-"""Grey-box 13 of the map (docs/design/map-method.md, docs/design/map-structure.md): the reference's build, shaped for a
+"""Grey-box 14 of the map (docs/design/map-method.md, docs/design/map-structure.md): the reference's build, shaped for a
 game where you fly through water.
 
 The lane goes narrow, wide, narrow, wide, its two sides waving against each other, and it gets wider the further you
@@ -101,10 +101,20 @@ HUB_GROUND = HUB_LOOK["floor"]
 # a wall is up to three tiers going away from the lane, the same distances everywhere so a wall never breaks its line
 TIER_BACK, TIER_DEEP = (0.0, 24.0, 56.0), (24.0, 32.0, 24.0)  # whole squares: 3, 4 and 3 deep
 KIND = {  # each tier's height in squares under its grass; 0 = that tier isn't there
-    "wall": (2, 7, 0),  # the reference's hub wall: a low terrace, then the tall wall
-    "hill": (2, 4, 7),  # broad steps climbing away
-    "rim": (1, 0, 0),  # a low rim with the ground falling away behind it: the view out
+    "wall": (2, 9, 0),  # the reference's hub wall: a low terrace, then the tall wall
+    "hill": (2, 5, 9),  # broad steps climbing away
+    "rim": (1, 0, 0),  # a low shelf: the view out to the cliffs behind
 }
+# Behind every wall, two layers of cliff, and behind those nothing needs to be seen: the lane is a canyon in the sea's
+# floor. Each: how far behind the wall's face; how round its line is made (no nose sharper); its height in squares over
+# the lane's floor and how many squares it steps up or down; its height over the water round the hub; the highest it
+# may stand over the water anywhere; how far its colour has gone toward the water's haze.
+CLIFFS = [
+    {"back": 96.0, "round": 260.0, "squares": 15, "step": 2, "hub": 112.0, "cap": 120.0, "pale": 0.35},
+    {"back": 192.0, "round": 360.0, "squares": 27, "step": 3, "hub": 184.0, "cap": 200.0, "pale": 0.7},
+]
+CLIFF_PIECE = 64.0  # a piece of cliff: four tiles of the picture
+CLIFF_WAVE = 4  # pieces between changes of a cliff's height
 HUB_TIERS = (2, 9, 0)  # the hub's wall, in squares over the water: a low terrace and the tall wall (the reference's)
 JOIN = 420.0  # over this much lane the hub's wall steps down to the lane's own heights
 
@@ -740,7 +750,7 @@ def wrap(v, period):
     return v % period if period > 1e-6 else 0.0
 
 
-def cell(af, bf, ab, bb, out_hint, top, deep, at, odd, before, after, colours, close, spots):
+def cell(af, bf, ab, bb, out_hint, top, deep, at, odd, before, after, colours, close, spots, tiles=1):
     """One piece of one tier: its face from af to bf, and the ground on top of it, which reaches back to ab and bb on
     the same two ribs. `before` and `after` are the tops of the pieces either side (or far below, if none)."""
     lx, lz = bf[0] - af[0], bf[1] - af[1]
@@ -757,9 +767,9 @@ def cell(af, bf, ab, bb, out_hint, top, deep, at, odd, before, after, colours, c
     shows = before < top or after < top  # an end of this piece stands clear of its neighbour
     count["ends"] += (before < -1e8) + (after < -1e8)
     fd = deep if shows else 1.0
-    quarter = wrap(lf / 4 - (lf + 0.02) / 2, lf / 2)
+    sq = lf / tiles / 2  # a square's width on the face; half a square is slid in, so one straddles each end
     add("Wall", "face", (mx + out[0] * fd / 2, (foot + top) / 2, mz + out[2] * fd / 2), (fd, top - foot, lf + 0.02), face, out, (0, 1, 0), al,
-        tex={"side": [lf, PIECE, quarter, top % PIECE]})
+        tex={"side": [lf / tiles, PIECE, wrap(sq / 2 - 0.01, sq), top % PIECE]})
     count["face"] += 1
     # the ground on top: from the lip in front of the face back to under the next wall, as wide as its widest end
     lift = 0.04 if odd else 0.0  # neighbours a hair apart in height, so tops that overlap on a bend don't flicker
@@ -774,8 +784,8 @@ def cell(af, bf, ab, bb, out_hint, top, deep, at, odd, before, after, colours, c
     gd = deep + BACK + PROUD
     add("Grass", "grass", (mx + out[0] * (gd / 2 - PROUD), top + (GRASS + lift) / 2, mz + out[2] * (gd / 2 - PROUD)), (gd, GRASS + lift, wide),
         ground, out, (0, 1, 0), al,
-        tex={"top": [PIECE, mid, wrap(-(deep + BACK), SQUARE), wrap(mid / 4 - wide / 2, mid / 2)],
-             "side": [lf, PIECE, wrap(lf / 4 - wide / 2, lf / 2), (top + GRASS) % PIECE]})
+        tex={"top": [PIECE, mid / tiles, wrap(-(deep + BACK), SQUARE), wrap(mid / tiles / 4 - wide / 2 + mid / 2, mid / tiles / 2)],
+             "side": [lf / tiles, PIECE, wrap(sq / 2 - (wide - lf) / 2, sq), (top + GRASS) % PIECE]})
     if close and lb > 1.0:  # the outermost tier where its back can be seen: a slab across the back
         add("Back", "core", (mx + out[0] * (deep - 0.5), (foot + top) / 2, mz + out[2] * (deep - 0.5)), (1.0, top - foot, max(lf, lb) + 0.1), face, out, (0, 1, 0), al)
     if spots and deep >= 15 and top + GRASS < -10.0:  # nothing stands on a terrace that is out of the water
@@ -839,6 +849,115 @@ for side in (-1, 1):
             cell(fa, fb, ba, bb, outs[k], top, deep, V[k][4], i % 2 == 1, before, after, lane_colours,
                  V[k][4] < JOIN and outer[k], True)
 
+# ---------------------------------------------------------------- the canyon: shelves and cliffs behind the walls
+# A swimmer can rise over any wall and look behind it. So the last near tier's ground carries on back, as a shelf, to
+# the first cliff, and that cliff's ground to the second: there is no empty water behind a wall. A shelf is one long
+# slab to four pieces of wall, a hair lower than the tops in front of it, at the lowest of their heights.
+def hazed(colour, share):
+    return tuple(int(c + (h_ - c) * share) for c, h_ in zip(colour, HAZE))
+
+
+for side in (-1, 1):
+    V = wall_corners[side]
+    n = len(V) - 1
+    outs = []
+    for k in range(n):
+        d = unit((V[k + 1][0] - V[k][0], 0.0, V[k + 1][1] - V[k][1]))
+        o = (d[2], 0.0, -d[0])
+        if o[0] * (V[k][2] + V[k + 1][2]) + o[2] * (V[k][3] + V[k + 1][3]) < 0:
+            o = (-o[0], 0.0, -o[2])
+        outs.append(o)
+    ribs = []
+    for k in range(n + 1):
+        o0, o1 = outs[max(0, k - 1)], outs[min(n - 1, k)]
+        bx, bz = o0[0] + o1[0], o0[2] + o1[2]
+        m = math.hypot(bx, bz) or 1.0
+        c = max(0.5, (bx * o1[0] + bz * o1[2]) / m)
+        ribs.append((bx / m / c, bz / m / c))
+    blocks = [math.floor(V[k][4] / (WAVE * PIECE)) for k in range(n)]
+    k = 0
+    while k < n:
+        e = min(n, k + 4)
+        best = None  # the lowest outermost top over these pieces, and how far back that tier ends
+        for i in range(k, e):
+            for j in (2, 1, 0):
+                t = tier_top(side, j, blocks[i])
+                if t is not None:
+                    if best is None or t < best[0]:
+                        best = (t, TIER_BACK[j] + TIER_DEEP[j])
+                    break
+        if best is not None:
+            top, d0 = best
+            d1 = CLIFFS[0]["back"] + 90.0
+            fa, fb = (V[k][0] + ribs[k][0] * d0, V[k][1] + ribs[k][1] * d0), (V[e][0] + ribs[e][0] * d0, V[e][1] + ribs[e][1] * d0)
+            ba, bb = (V[k][0] + ribs[k][0] * d1, V[k][1] + ribs[k][1] * d1), (V[e][0] + ribs[e][0] * d1, V[e][1] + ribs[e][1] * d1)
+            lf = math.hypot(fb[0] - fa[0], fb[1] - fa[1])
+            if lf > 0.5:
+                al = ((fb[0] - fa[0]) / lf, 0.0, (fb[1] - fa[1]) / lf)
+                o = (al[2], 0.0, -al[0])
+                if o[0] * outs[k][0] + o[2] * outs[k][2] < 0:
+                    o = (-o[0], 0.0, -o[2])
+                mx, mz = (fa[0] + fb[0]) / 2, (fa[1] + fb[1]) / 2
+                wide = 2 * max(abs((q[0] - mx) * al[0] + (q[1] - mz) * al[2]) for q in (fa, fb, ba, bb)) + 0.5
+                deep = d1 - d0
+                ground, _face = lane_colours(V[k][4])
+                sq = lf / 8  # four tiles to its length at the front
+                add("Shelf", "grass", (mx + o[0] * deep / 2, top + GRASS / 2 - 0.05, mz + o[2] * deep / 2), (deep, GRASS - 0.1, wide), ground, o, (0, 1, 0), al,
+                    tex={"top": [PIECE, sq * 2, wrap(-(d1 - (d0 - (d0 % SQUARE))), SQUARE), wrap(sq / 2 - wide / 2 + lf / 2, sq)],
+                         "side": [sq * 2, PIECE, 0.0, (top + GRASS) % PIECE]})
+        k = e
+
+for side in (-1, 1):
+    for ci, cl in enumerate(CLIFFS):
+        deep = (CLIFFS[ci + 1]["back"] - cl["back"] + 40.0) if ci + 1 < len(CLIFFS) else 110.0
+        C = march(unfold(opened(wall_line(side), cl["round"]), cl["back"]), lambda at: CLIFF_PIECE)
+        n = len(C) - 1
+        outs, lens = [], []
+        for k in range(n):
+            dx, dz = C[k + 1][0] - C[k][0], C[k + 1][1] - C[k][1]
+            lens.append(math.hypot(dx, dz))
+            d = unit((dx, 0.0, dz)) if lens[-1] > 0.05 else (0.0, 0.0, 0.0)
+            o = (d[2], 0.0, -d[0])
+            if o[0] * (C[k][2] + C[k + 1][2]) + o[2] * (C[k][3] + C[k + 1][3]) < 0:
+                o = (-o[0], 0.0, -o[2])
+            outs.append(o)
+        real = [k for k in range(n) if lens[k] > 0.05]
+
+        def rib(k):
+            """the way back from corner k: the bisector of the real pieces either side of it"""
+            before = max((i for i in real if i < k), default=None)
+            after = min((i for i in real if i >= k), default=None)
+            o0 = outs[before] if before is not None else outs[after]
+            o1 = outs[after] if after is not None else outs[before]
+            if abs(o0[0] * o1[0] + o0[2] * o1[2]) < 0.2:  # a sharp corner: straight back from this piece's own face
+                return None
+            bx, bz = o0[0] + o1[0], o0[2] + o1[2]
+            m = math.hypot(bx, bz) or 1.0
+            c = max(0.5, (bx * o1[0] + bz * o1[2]) / m)
+            return (bx / m / c, bz / m / c)
+
+        def cliff_top(at, k):
+            block = math.floor(at / (CLIFF_WAVE * CLIFF_PIECE))
+            step = (int(frac(block, 71 + ci * 5 + (side > 0 and at > 0)) * 3) - 1) * cl["step"]
+            hub = cl["hub"] + step * SQUARE
+            if at <= 0.0:
+                return hub
+            lane = round(floor_y(at) / SQUARE) * SQUARE + round((cl["squares"] + step) * grow(at) ** 0.6) * SQUARE
+            return min(cl["cap"] + step * SQUARE, round((hub + (lane - hub) * smooth(at / 500.0)) / SQUARE) * SQUARE)
+
+        tops = [cliff_top(C[k][4], k) if lens[k] > 0.05 else None for k in range(n)]
+        for i, k in enumerate(real):
+            ra, rb = rib(k), rib(k + 1)
+            o = outs[k]
+            af, bf = (C[k][0], C[k][1]), (C[k + 1][0], C[k + 1][1])
+            ab = (af[0] + (ra[0] if ra else o[0]) * deep, af[1] + (ra[1] if ra else o[2]) * deep)
+            bb = (bf[0] + (rb[0] if rb else o[0]) * deep, bf[1] + (rb[1] if rb else o[2]) * deep)
+            before = tops[real[i - 1]] if i > 0 else -1e9
+            after = tops[real[i + 1]] if i + 1 < len(real) else -1e9
+            cell(af, bf, ab, bb, o, tops[k], deep, C[k][4], i % 2 == 1, before, after,
+                 lambda at, pale=cl["pale"]: (hazed(lane_colours(at)[0], pale * 0.6), face_of(lane_colours(at)[0], pale)),
+                 False, False, tiles=max(1, round(lens[k] / PIECE)))
+
 # the barrier: unseen and solid, just behind the wall's face, from under the floor to over the surface. A swimmer can go
 # over any wall and a fish can get behind a thin one; this is what keeps them in the lane. One panel to two pieces.
 for side in (-1, 1):
@@ -859,35 +978,6 @@ for side in (-1, 1):
                 add("Barrier", "barrier", (bx, (y0 + y1) / 2, bz), (1.0, y1 - y0, long + 1.0), (255, 255, 255), o, (0, 1, 0), al, t=1.0)
                 y0 = y1
         k += 2
-
-# ---------------------------------------------------------------- behind the walls: the fall behind a rim, the unseen
-# barrier, the backdrop
-for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
-    mid_s = (a + b) / 2
-    ground = GROUND[min(land_at(mid_s), len(GROUND) - 1)]
-    for side in (-1, 1):
-        ea, eb = edges[side][i], edges[side][i + 1]
-        low_y, high_y = min(ea[1], eb[1]), max(ea[1], eb[1])
-        if span_at(side, mid_s)["kind"] == "rim" and mid_s >= 330.0:  # behind a rim the ground rolls away
-            run = math.hypot(eb[0] - ea[0], eb[2] - ea[2])
-            along = ((eb[0] - ea[0]) / run, 0.0, (eb[2] - ea[2]) / run)
-            out = normals[side][i]
-            start = ((ea[0] + eb[0]) / 2 + out[0] * TIER_DEEP[0], high_y + KIND["rim"][0] * SQUARE + GRASS - 4.5, (ea[2] + eb[2]) / 2 + out[2] * TIER_DEEP[0])
-            for tilt, slab in ((14.0, 26.0), (40.0, 34.0)):
-                ca, sa = math.cos(math.radians(tilt)), math.sin(math.radians(tilt))
-                ax = (out[0] * ca, -sa, out[2] * ca)
-                ay = (out[0] * sa, ca, out[2] * sa)
-                c = (start[0] + ax[0] * slab / 2 - ay[0] * 5, start[1] + ax[1] * slab / 2 - ay[1] * 5, start[2] + ax[2] * slab / 2 - ay[2] * 5)
-                add("Shoulder", "plain", c, (slab + 1.0, 10.0, run + (TIER_DEEP[0] + slab) * abs(heading(b) - heading(a)) + 3.0), ground, ax, ay, along)
-                start = (start[0] + ax[0] * slab, start[1] + ax[1] * slab, start[2] + ax[2] * slab)
-            continue
-        block = math.floor(mid_s / 260.0)  # far behind a wall, now and then, something taller and paler
-        if frac(block, 40 + side) > 0.5 and mid_s > 500.0:  # none beside the hub: a slab there cut through its corner
-            tall = high_y + 110.0 + 80.0 * frac(block, 41 + side)
-            (cx, cz), o, al, long = strip(side, i, 185.0 + 80.0 * frac(block, 42 + side), 110.0)
-            add("Far", "far", (cx, (low_y - 30.0 + tall) / 2, cz), (110, tall - low_y + 30.0, long), face_of(ground, 1.0), o, (0, 1, 0), al)
-            add("FarTop", "far", (cx, tall + CAP / 2, cz), (112, CAP, long + 0.6), tuple(int(g + (h_ - g) * 0.6) for g, h_ in zip(ground, HAZE)), o, (0, 1, 0), al)
-
 
 # ---------------------------------------------------------------- the floor: square tiles on one world grid
 def locate(x, z, hint):
@@ -976,21 +1066,6 @@ for (ix, iz), t in tiles.items():
                 z = (iz + (1 if dz else e)) * CELL
                 worst = max(worst, abs(top_at(t, x, z) - top_at(other, x, z)))
 
-for side in (-1, 1):  # out past a rim: big flat-topped shapes in the blue
-    for sp in spans[side]:
-        if sp["kind"] != "rim" or sp["s0"] > BUILD_TO:
-            continue
-        ground = GROUND[min(land_at(sp["s0"] + 5), len(GROUND) - 1)]
-        for j in range(3):
-            at = min(BUILD_TO, sp["s0"] + (sp["s1"] - sp["s0"]) * (0.2 + 0.3 * j))
-            far = half(side, at) + 300.0 + 260.0 * frac(sp["seed"] * 3 + j, 61)
-            w, d = 150 + 130 * frac(sp["seed"] + j, 62), 130 + 110 * frac(sp["seed"] + j, 63)
-            p = across(at, side * far)
-            top = p[1] + 30 + 110 * frac(sp["seed"] + j, 64)
-            ax, ay, az = yawed(360 * frac(sp["seed"] + j, 65))
-            add("Mesa", "far", (p[0], top - 160, p[2]), (w, 320, d), face_of(ground, 1.0), ax, ay, az)
-            add("MesaTop", "far", (p[0], top + CAP / 2, p[2]), (w + 2, CAP, d + 2), tuple(int(g + (h_ - g) * 0.6) for g, h_ in zip(ground, HAZE)), ax, ay, az)
-
 for g in necks:  # a line of flags across every neck
     c, rt = centre(g), right(g)
     lo, hi = -half(-1, g) - 6, half(1, g) + 6
@@ -1026,9 +1101,16 @@ for room in rooms:
     # each room draws its own numbers, one stream for each kind of thing, so changing how one kind is placed never
     # moves another (grey-box 6 moved the big assets by accident when the terraces changed)
     prng = random.Random(7700 + room["seed"])
-    for _ in range(int(length / (150 if li == 0 else 70))):  # big things in the lane, with water left to pass
+    # Big things stand toward the sides: the middle of the lane is the herd's road and the rider's, and a thing in it
+    # stops both (the user, 2026-11-12: a few in the middle work, not many, and none at the start). So: none in the
+    # first 420 studs; in the first land none in the middle at all; after it, now and then, one to a room.
+    middle = 0 if li == 0 else (1 if prng.random() < (0.35 if li == 1 else 0.6) else 0)
+    for number in range(int(length / (170 if li == 0 else 95)) + middle):
+        in_middle = number < middle
         for _try in range(8):
-            at = prng.uniform(max(room["s0"] + 30, 250.0 if li == 0 else 130.0), stop - 30)
+            at = prng.uniform(max(room["s0"] + 30, 420.0), stop - 30)
+            if at >= stop - 30:
+                break
             name = prng.choice(kit)
             scale = prng.uniform(0.85, 1.2) if props.ASSETS[name][1] != "huge" else prng.uniform(0.9, 1.05)
             hx, _hy, hz = props.extent(props.bricks(name, count["prop"], ground))
@@ -1036,9 +1118,10 @@ for room in rooms:
             lo, hi = -half(-1, at) + radius * 0.6 + 6, half(1, at) - radius * 0.6 - 6
             if hi - lo < 20 or width(at) < radius * 2 + 70:  # never where it would plug a neck
                 continue
-            x = prng.uniform(lo, hi)
-            if li == 0:  # the first land keeps its middle clear: things stand toward the sides
-                x = prng.uniform(0.4 * hi, hi) if prng.random() < 0.5 else prng.uniform(lo, 0.4 * lo)
+            if in_middle:
+                x = prng.uniform(0.3 * lo, 0.3 * hi)
+            else:  # in the outer third of the lane, on one side or the other
+                x = prng.uniform(0.68 * hi, hi) if prng.random() < 0.5 else prng.uniform(lo, 0.68 * lo)
             if all(math.hypot(at - ps, x - px) > radius + pr + 42 for ps, px, pr in placed):
                 turn_deg = math.degrees(heading(at)) + (prng.uniform(-30, 30) if props.ASSETS[name][1] == "huge" else prng.uniform(0, 360))
                 place(name, across(at, x), scale, turn_deg, ground, count["prop"])
@@ -1198,7 +1281,7 @@ for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2))
         col = tuple(int(c * 0.86) for c in col)
     d.polygon(pts, fill=col)
 font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
-d.text((20, 14), f"Grey-box 13 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
+d.text((20, 14), f"Grey-box 14 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
 if not os.environ.get("GREYBOX_OUT"):
     im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))
 print("plan drawn")

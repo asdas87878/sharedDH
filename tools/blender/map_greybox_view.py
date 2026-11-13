@@ -215,6 +215,7 @@ else:
         "hub": (Vector((0, 9, -166)), Vector((0, 4, 60)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
         "hub_back": (Vector((0, 9, -40)), Vector((0, 8, -352)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
         "hub_above": (Vector((-220, 270, -520)), Vector((10, -10, 20)), HAZE, 12000, SKY, 55, 0.25),
+        "probe": (*lane_view(float(os.environ.get("PROBE_S", "950")), 0, float(os.environ.get("PROBE_UP", "50")), 60, -20, float(os.environ.get("PROBE_SIDE", "0")), float(os.environ.get("PROBE_LOOK", "-110"))), HAZE, 6000, SKY, 70, 0.0),
         "hub_look": (Vector((120, 70, -250)), Vector((-60, 0, 10)), HAZE, 12000, SKY, 70, 0.6),  # for judging the hub's colours
         "hub_top": (Vector((0, 640, -164)), Vector((0, 0, -160)), HAZE, 12000, SKY, 45, 0.6),
         # the reference's own flight views, for laying side by side: no water, daylight

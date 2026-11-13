@@ -13,6 +13,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Blockout](docs/blockout.md): the dock and the long dive, v4 back to v1.
 - [The map: how we build it](docs/design/map-method.md): the new direction (2026-11-10): walls in wavy steps, props that break, the descent.
 - [The map's structure](docs/design/map-structure.md): matching how the reference builds its walls, squares and studs, pass by pass on a bench in Studio.
+- [The map's feel](docs/design/map-feel.md): the lane as a canyon in the sea's floor, a look for each zone, lighting the dark lands.
 - [The moving water](docs/design/water.md): the tutorial's four-layer water with foam, drifting and breathing; shows in Play.
 - [Map state](docs/map-state.md): blockout v4 as it stood, and the stud tiles. Set aside.
 
