@@ -29,6 +29,12 @@ place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked
 - **Measured:** sizes over 687 fish 13 / 48 / 24 / 11 / 3.8 / 0.6%; 112 of 113 stretches of 400 studs have a grand
   fish; the biggest fish in a stretch is 4.8 times the smallest; every model is its body's size; rides and hops
   through the mixed sea and with every fish forced Colossal, no errors.
+- **The user's third word, the same day** (big sizes rarer, most of all for Commons; crowded in places):
+  `Config.SizeLarge` and `SizeSmall` (the sizes' chances by rarity; `Config.rollSize(roll, rarity)`); `Config.Grand`
+  is now one in every 800 studs, `Most` 1, `Common` 0.15; `Spawn.FullBand` 300 and `ThinLeast` 0.65 (fewer fish
+  where the band is narrow: `newSlices`, `Stream.width`); `Herd.GiveSide` 18, `GiveAlong` 44; a fish that swims out
+  of sight into a full slice is destroyed. Measured: 610 fish, Tiny 15 / Normal 62 / Big 17 / grand 6%; no grand
+  Common in 25; 54 of 56 stretches of 800 studs have a grand fish; round a rider 1 pair of 42 overlapping.
 - **Not done:** size does not change the Oxygen a fish needs (the user: looks only for now) or its speed (next); no Index;
   nothing remembers which of the 24 a player has. `docs/design/roster.md` and `archetypes.md` still give the old
   sizes where they give any.

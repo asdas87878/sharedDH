@@ -31,7 +31,8 @@ The user's second word, the same day, after seeing the first go: looks only for 
 the board; too alike at the start; one or two should come through with a much grander size; and variety is to be
 kept up all the way down, by rule. What follows is the second go.
 
-- **Every spawned fish rolls a size and a colour, apart, with the reference's odds.** 24 of every fish.
+- **Every spawned fish rolls a size and a colour, apart.** 24 of every fish. The colours are on the reference's
+  odds. The sizes started there and were then leaned small (below).
 - **A size is the whole fish scaled:** model, seat, the body the lock and the hop use, and its tag.
 
   | Size | Times the kind's size | At first |
@@ -45,10 +46,25 @@ kept up all the way down, by rule. What follows is the second go.
 
   These are ours, to be judged by eye. No fish is longer than 200 studs or wider than 96, whatever its size
   (`Config.SizeLimit`): the biggest kinds' biggest sizes stop there.
-- **A grand fish or two in every stretch.** A grand fish is a Giant, a Huge or a Colossal. By the odds alone they
-  are one in ten, and whole stretches have none. So the stocking counts them (`Config.Grand`): a new fish going
-  into a stretch with no grand fish within 200 studs either way is made one, and in a stretch that already has two,
-  a fish that rolls grand is a Big instead.
+- **Sizes lean small, most of all for Commons** (the user's third word: big sizes were "over prescribed" on the
+  smaller animals and "should be rarer especially among common folk"; fish "should tend to cluster around the
+  smaller sizes, larger sizes being rarer but still occurring every now and then"). The chances of Big and up are
+  times `Config.SizeLarge` for the fish's rarity, and Tiny's is times `Config.SizeSmall`:
+
+  | Rarity | Big and up, times | Tiny, times | Tiny | Normal | Big | Giant | Huge | Colossal |
+  |---|---|---|---|---|---|---|---|---|
+  | The reference | 1 | 1 | 15% | 55% | 20% | 7% | 2.5% | 0.5% |
+  | Common | 0.35 | 1.4 | 21% | 68.5% | 7% | 2.5% | 0.9% | 0.2% |
+  | Uncommon | 0.5 | 1.3 | 19.5% | 65.5% | 10% | 3.5% | 1.25% | 0.25% |
+  | Rare | 0.6 | 1.2 | 18% | 64% | 12% | 4.2% | 1.5% | 0.3% |
+  | Epic, Legendary | 0.7 | 1.1 | 16.5% | 62.5% | 14% | 4.9% | 1.75% | 0.35% |
+  | Mythic, Secret | 0.8 | 1 | 15% | 61% | 16% | 5.6% | 2% | 0.4% |
+
+- **A grand fish every now and then, by rule.** A grand fish is a Giant, a Huge or a Colossal. On the odds above
+  whole stretches would have none. So the stocking counts them (`Config.Grand`): a new fish going into a stretch
+  with no grand fish within 400 studs either way is made one, and where there is one already a fish that rolls
+  grand is a Big instead. A Common is seldom the one made grand (15 times in 100): the stretch waits for a rarer
+  fish. (One or two in every 400 studs at first: too many, and too often a Common.)
 - **Kinds are mixed.** A new fish's rarity is rolled as ever. Its kind is the least seen nearby of three draws from
   that rarity's kinds (`Spawn.KindTries`), so the same fish doesn't come three in a row.
 - **The tag names the size,** as the reference's does: "GIANT Gold Great White". A Normal size isn't named.
@@ -84,28 +100,47 @@ average), and the first land's kinds are spread widest. The first go was 0.85 to
 - A Sea Turtle is 37 long and 41 wide; a Reef Shark 40 long; a Blue Whale 101.
 
 ## Measured
-In Studio on grey-box 15, by script, on the second go.
-- **The sizes over 687 fish:** Tiny 13%, Normal 48%, Big 24%, Giant 11%, Huge 3.8%, Colossal 0.6%. The grand rule
-  is why this is not the odds: one fish in six or seven is grand, not one in ten, and Normals pay for it.
-- **Grand fish down the lane:** of 113 stretches of 400 studs, 1 had none, 38 had one, 51 had two, 23 had more.
-- **In a stretch, the biggest fish is 4.8 times as long as the smallest,** on average.
-- **Round a rider in the second land,** the 13 fish inside the hook's reach were 12 to 51 studs long: a Tiny, five
-  Normals, five Bigs and two Giants, of ten kinds.
+In Studio on grey-box 15, by script, on the third go.
+- **The sizes over 610 fish:** Tiny 15%, Normal 62%, Big 17%, Giant 4.6%, Huge 1.3%, Colossal 0.3%. One fish in
+  sixteen is grand (the second go: one in six or seven).
+- **By rarity:** no grand fish among the 25 Commons, 3% of the Uncommons, 6 to 8% of the Rares, Epics and
+  Legendaries.
+- **Grand fish down the lane:** of 56 stretches of 800 studs, 2 had none, 34 had one, 19 had two, 1 had three.
+- **The first land (2,300 studs):** 43 fish; half are under 19 studs long, three quarters under 24, nine in ten
+  under 37; the biggest was 63.
+- **Round a rider there,** the ten fish inside the hook's reach: a Tiny, eight Normals and a Big, 11 to 37 studs.
+- **Crowding, round a rider:** before, 8 to 11 of 41 swimming fish overlapped another by a rough measure, and 13
+  or 14 were within 10 studs of touching. After the first changes, 6 and 7 to 10 of 30. On the last run, by a
+  truer measure (bodies as boxes down the lane): 1 pair of 42 fish overlapping, 4 pairs within 8 studs.
 - **The colours** (first go, unchanged): Silver 8.4%, Gold 1.6%, Rainbow 0.3% of 690.
-- **Every model is the size its body says** (0% off, all 690, first go).
-- **Riding:** a sandbox ride with four hops through the mixed sea, and one with every fish forced Colossal, landing
-  on a Sea Turtle 124 wide and 112 long (before the width was stopped at 96): the rider on its back, the fish at its
-  speed, 13 fish inside the hook's reach. No errors.
+- **Riding:** sandbox rides with hops through the mixed sea on each go, and one with every fish forced Colossal
+  (second go). No errors.
 - **Not checked:** anything by eye, Silver's look most of all (Studio draws no 3D for Claude on this PC). Phones.
+
+## Crowding
+The user, on the second go: "there's a crowded amount in some places". Measured: standing at the dock the sea was
+even; riding, a third of the swimming fish were within touching distance of another. What was done:
+- **Fewer big bodies** (above).
+- **Fewer fish where the band is narrow.** The first lands' band is a third as wide as the deep lands' and had the
+  same number of fish in every 1,000 studs. A stretch whose band is under 300 wide now gets fewer, in proportion,
+  down to 0.65 of the number (`Spawn.FullBand`, `ThinLeast`). The sea went from 688 fish to 610.
+- **Passing fish keep 18 studs apart** (14), from 44 studs nose to tail (36).
+- **A fish that swims out of sight into a stretch that has its share is taken away,** not put back in.
+- **What is left is speed.** Wild fish swim at 0.85 of their own ridden speed, so fast kinds run into slow ones
+  all the time, and the fish a rider has just left stay beside them for a while. The reference's herd runs at one
+  pace. That belongs to the speed work, which is next.
 
 ## To look at one
 In Studio, on `Workspace`, before Play: the attribute `TestSize` (a size's name, such as `Colossal`) makes every new
 fish that size, and `TestVariant` (`Silver`, `Gold`, `Rainbow`) that colour. Take them off after. The sandbox panel
-has `SizeChance`, `SizeScale`, `Grand` and `Variant` rows; they change the fish spawned from then on.
+has `SizeChance`, `SizeScale`, `SizeLarge`, `SizeSmall`, `Grand` and `Variant` rows; they change the fish spawned from then on.
 
 ## Open, for the user
 - **A bigger fish needing more Oxygen** is not built: the user chose looks only for now.
-- **How big each size is** (0.7 to 3), each kind's own number, and how often a grand fish comes (`Config.Grand`).
+- **How big each size is** (0.7 to 3), each kind's own number, how far the sizes lean small by rarity, and how
+  often a grand fish comes (`Config.Grand`).
+- **The reference's Index numbers are no longer ours:** it has one set of odds for every dino; ours differ by
+  rarity and the grand rule moves them again. An Index of ours would show its own numbers.
 - **The Index** (the page in the screenshot, with its 24 boxes and rewards) is not built. Nothing remembers which of
   the 24 a player has caught yet.
 - **Speed** comes next.

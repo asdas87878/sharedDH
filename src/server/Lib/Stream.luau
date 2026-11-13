@@ -561,6 +561,12 @@ function Stream.build(lane: Lane.Lane, bigAssets: { { number } }): Stream
 	return stream
 end
 
+-- The band's whole width at s
+function Stream.width(stream: Stream, s: number): number
+	local i, t = locate(stream, s)
+	return lerp(stream.HalfLeft[i], stream.HalfLeft[i + 1], t) + lerp(stream.HalfRight[i], stream.HalfRight[i + 1], t)
+end
+
 -- The share of the band's width (-1 to 1, on its own side of the middle) a place `across` studs from the middle is at
 function Stream.share(stream: Stream, s: number, across: number): number
 	local i, t = locate(stream, s)

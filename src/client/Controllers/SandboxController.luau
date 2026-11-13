@@ -492,6 +492,11 @@ local TUNABLES: { { any } } = {
 	{ "SizeScale", "Huge", 0.1 },
 	{ "SizeScale", "Colossal", 0.1 },
 	-- grand fish: how many in every stretch of lane, and how long a stretch is (new fish only)
+	{ "SizeLarge", "Common", 0.05 },
+	{ "SizeLarge", "Uncommon", 0.05 },
+	{ "SizeLarge", "Rare", 0.05 },
+	{ "SizeSmall", "Common", 0.05 },
+	{ "SizeSmall", "Uncommon", 0.05 },
 	{ "Grand", "Span", 50 },
 	{ "Grand", "Least", 1 },
 	{ "Grand", "Most", 1 },

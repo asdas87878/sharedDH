@@ -345,15 +345,44 @@ Config.SizeLimit = { Length = 200, Width = 96 }
 -- (It moves the shares off the reference's: measured over 688 fish with the made-grand shares at 0.6, 0.3 and 0.1,
 -- one fish in six was grand, where the odds alone give one in ten, and a Colossal was 1 in 75, where they give 1 in
 -- 200. So the made-grand shares lean less to the top now. Fewer Normals pay for it.)
+-- (The same day, later: one or two in every 400 studs was too many, and too often a Common. Now one in every 800,
+-- and a Common is seldom the one made grand: the stretch waits for a rarer fish.)
 Config.Grand = {
-	Span = 400, -- studs of lane (FishService looks half of it either way; no more than 480)
+	Span = 800, -- studs of lane (FishService looks half of it either way; no more than 960)
 	Least = 1,
-	Most = 2,
+	Most = 1, -- (2 until the user asked for the large sizes to be rarer: with one near, a fish that rolls grand is a Big)
+	Common = 0.15, -- the chance that a Common may be the fish made grand, when a stretch wants one
 	Giant = 0.72, -- the made-grand fish's size: shares of the three (the odds alone: 0.7, 0.25, 0.05)
 	Huge = 0.24,
 	Colossal = 0.04,
 }
 Config.SizeWorth = { Tiny = 0.8, Normal = 1, Big = 1.2, Giant = 1.5, Huge = 2, Colossal = 3 } :: { [string]: number }
+-- The sizes' chances by rarity (the user, 2026-11-13, having seen every fish on the reference's odds: big sizes were
+-- "over prescribed" on the smaller animals and "should be rarer especially among common folk"; "the fish should tend
+-- to cluster around the smaller sizes, larger sizes being rarer but still occurring every now and then"). The chances
+-- of Big, Giant, Huge and Colossal are times SizeLarge for the fish's rarity, and Tiny's is times SizeSmall; Normal
+-- is the rest. A Common: Tiny 21%, Normal 68.5%, Big 7%, Giant 2.5%, Huge 0.9%, Colossal 0.2%. A Legendary: Tiny
+-- 16.5%, Big 14%, Giant 4.9%, Huge 1.75%, Colossal 0.35%. (So the reference's Index numbers, one set for every
+-- dino, are no longer ours. The first try left Epic and up on the reference's odds, and the deep lands, which are
+-- nearly all Epic and up, still had a grand fish in ten.)
+Config.SizeLarge = {
+	Common = 0.35,
+	Uncommon = 0.5,
+	Rare = 0.6,
+	Epic = 0.7,
+	Legendary = 0.7,
+	Mythic = 0.8,
+	Secret = 0.8,
+} :: { [string]: number }
+Config.SizeSmall = {
+	Common = 1.4,
+	Uncommon = 1.3,
+	Rare = 1.2,
+	Epic = 1.1,
+	Legendary = 1.1,
+	Mythic = 1,
+	Secret = 1,
+} :: { [string]: number }
 
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
@@ -750,8 +779,8 @@ Config.Herd = {
 	BreakLength = 40, -- (32 before) a wild fish going through a thing breaks it only if it is at least this long; a smaller one swims through and leaves it whole
 	-- Passing: fish swim at their own speeds, so one catches another up. Both give way a little, slowly, and drift
 	-- back once past.
-	GiveSide = 14, -- the water kept between two fish side by side (6 at first: the user wanted the fish further apart)
-	GiveAlong = 36, -- they start giving way when this far apart nose to tail (20 at first)
+	GiveSide = 18, -- the water kept between two fish side by side (6 at first: the user wanted the fish further apart; 14; then, with the bigger fish crowding, 18)
+	GiveAlong = 44, -- they start giving way when this far apart nose to tail (20 at first, then 36)
 	GiveRate = 5, -- how fast a fish moves aside, studs a second
 	GiveEvery = 0.25, -- seconds between looks
 }
@@ -1051,6 +1080,11 @@ Config.Spawn = {
 	-- fewer fish than v3 had; the user asked for more in all, so 12 (to tune).
 	-- (2026-11-13: 30, from 24. The 1,000 studs are now real studs down the herd's stream, not the lane's own s, which
 	-- runs 28% long on grey-box 15: 30 keeps about as many fish in the sea as 24 did.)
+	-- (2026-11-13, later, the user: crowded in places. The fish are far bigger now, and the first lands' band is a
+	-- third as wide as the deep lands' for the same number of fish. So where the herd's band is narrower than FullBand
+	-- a stretch gets fewer, in proportion, down to ThinLeast of this.)
+	FullBand = 300, -- a stretch whose band is at least this wide gets all of PerThousand
+	ThinLeast = 0.65, -- and the narrowest gets this share of it
 	PerThousand = 30, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
 	Min = 20,
 	Max = 110, -- per zone
@@ -1351,11 +1385,14 @@ function Config.rollVariant(roll: number): string
 	return ""
 end
 
--- A spawned fish's size, from a roll of 0 to 1 (Config.SizeChance): one of Config.SizeOrder's names
-function Config.rollSize(roll: number): string
+-- A spawned fish's size, from a roll of 0 to 1 (Config.SizeChance; for a fish of a rarity, by Config.SizeLarge and
+-- Config.SizeSmall): one of Config.SizeOrder's names
+function Config.rollSize(roll: number, rarity: string?): string
 	local chance = Config.SizeChance
+	local large = if rarity then Config.SizeLarge[rarity] or 1 else 1
+	local small = if rarity then Config.SizeSmall[rarity] or 1 else 1
 	for _, tier in { "Colossal", "Huge", "Giant", "Big", "Tiny" } do
-		roll -= chance[tier] or 0
+		roll -= (chance[tier] or 0) * (if tier == "Tiny" then small else large)
 		if roll < 0 then
 			return tier
 		end

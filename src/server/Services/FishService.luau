@@ -122,13 +122,14 @@ local function rollVariant(): string
 	return variant
 end
 
--- The roll for a new fish's size, for a place with `grandNear` grand fish near it already (Config.Grand): with too
--- few, the fish is made grand; with enough, a fish that rolls grand is a Big. Studio only: the workspace's "TestSize"
--- attribute (a name of Config.SizeOrder) makes every new fish that size, for looking at them.
-local function rollSize(grandNear: number): string
+-- The roll for a new fish's size, by its rarity (Config.SizeLarge), for a place with `grandNear` grand fish near it
+-- already (Config.Grand): with too few, the fish is made grand (a Common seldom: the stretch waits for a rarer fish);
+-- with enough, a fish that rolls grand is a Big. Studio only: the workspace's "TestSize" attribute (a name of
+-- Config.SizeOrder) makes every new fish that size, for looking at them.
+local function rollSize(grandNear: number, fishType: Config.FishType): string
 	local g = Config.Grand
-	local tier = Config.rollSize(rng:NextNumber())
-	if grandNear < g.Least then
+	local tier = Config.rollSize(rng:NextNumber(), fishType.Tier)
+	if grandNear < g.Least and (fishType.Tier ~= "Common" or rng:NextNumber() < g.Common) then
 		local roll = rng:NextNumber() * (g.Giant + g.Huge + g.Colossal)
 		tier = if roll < g.Colossal then "Colossal" elseif roll < g.Colossal + g.Huge then "Huge" else "Giant"
 	elseif grandNear >= g.Most and Config.isGrand(tier) then
@@ -260,10 +261,22 @@ local function newSlices(): { Slice }
 		local length = s1 - s0
 		if length > 1 and hasRoster(z) then
 			local n = math.max(1, math.floor(length / sp.Slice + 0.5))
-			local want = math.max(n, math.clamp(math.floor(length / 1000 * sp.PerThousand), sp.Min, sp.Max))
+			-- how full each slice is to be, by how wide the herd's band is there (Spawn.FullBand, Spawn.ThinLeast)
+			local full: { number } = table.create(n, 1)
+			local sum = 0
 			for k = 1, n do
-				-- the zone's fish shared out as evenly as whole numbers allow
-				local share = math.floor(want * k / n) - math.floor(want * (k - 1) / n)
+				local middle = s0 + length * (k - 0.5) / n
+				local band = Stream.width(stream, middle)
+				full[k] = math.clamp(band / math.max(sp.FullBand, 1), math.clamp(sp.ThinLeast, 0.05, 1), 1)
+				sum += full[k]
+			end
+			local want = math.max(n, math.clamp(math.floor(length / 1000 * sp.PerThousand * sum / n), sp.Min, sp.Max))
+			local dealt = 0
+			for k = 1, n do
+				-- the zone's fish shared out by that, as evenly as whole numbers allow
+				local before = dealt
+				dealt += full[k] / sum
+				local share = math.floor(want * dealt + 1e-6) - math.floor(want * before + 1e-6)
 				table.insert(list, {
 					Start = s0 + length * (k - 1) / n,
 					End = s0 + length * k / n,
@@ -602,7 +615,7 @@ local function spawnFish(index: number): Wild?
 	if not fishType then
 		return nil
 	end
-	local tier = rollSize(grandNear)
+	local tier = rollSize(grandNear, fishType)
 	local body = fishType.Size * Config.sizeScale(tier, fishType)
 	local dodge = rollDodge(body)
 	local home, at, u, lift = placeFor(index, body, Config.Spawn.AppearClear, dodge)
@@ -698,6 +711,10 @@ local function topUp(limit: number)
 			-- lives in
 			local strayed = w.Zone > w.Type.Home + w.Type.Reach
 			local over = not slice or strayed or (per[slice] or 0) > slices[slice].Want + 1
+			-- one that has just swum out of sight into a slice that has its share already goes at once: put back
+			-- in, it made the crowd that a player rides into next
+			local full = slice ~= nil and not near and not w.Parked and (per[slice] or 0) > slices[slice].Want
+			over = over or full
 			if over and not nearAPlayer(w.Root.Position, 250) then
 				if slice then
 					per[slice] -= 1
