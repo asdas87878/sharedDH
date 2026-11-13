@@ -196,7 +196,7 @@ def table():
 # ---- drawing (an SVG by hand: matplotlib isn't on this PC) ----
 INK, INK2, GRID, SURFACE = "#1f1f1d", "#5d5c56", "#e4e2da", "#ffffff"
 C_ONE, C_THREE, C_FIRST = "#2a78d6", "#eb6834", "#8a8880"
-PW, PH, GAP_X, GAP_Y, LEFT, TOP = 330, 200, 64, 74, 70, 150
+PW, PH, GAP_X, GAP_Y, LEFT, TOP = 330, 200, 64, 74, 70, 172
 ROWS = [
     ("Speed across the water, studs a second", first_speed, three_speed, one_speed),
     ("Height above where you left, studs (open water: the sea floor stops the fall sooner)", first_height, three_height, one_height),

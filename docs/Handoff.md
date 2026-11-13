@@ -27,6 +27,13 @@ runner on grey-box 15 and the partner's new herd; **not played by hand**. Nothin
 - **To know:** a hop is about half as long as before, and you fall behind the herd in it.
   `tools/balance/model.py` and `tools/playtest/archetypes/client.luau` still model the old hop (other chats' files).
 - **Not touched:** the partner's animations, the wall glide, the camera, the props, the wait between fish.
+- **Checked after (task h2, the same day):** the code against Hugo's list, the server in step with the client
+  (`RideService` counts `Config.hopSpeed` and `reachOf` from its own clock), the logs against the note. The
+  picture's caption sat on the column titles: redrawn (`hop_curves.py`, plots moved down). On "not the full
+  speed, a slightly smaller boost": the hop left at 1.6 x the fish's speed + 18 (82, 136, 239 off a 40, 74, 138
+  fish) and leaves at 0.85 x + 15 (49, 78, 132): 85% carried, the kick 3 less, the hop a little faster than the
+  ride off slow fish and a little slower off the fastest. Left there: lower and a normal fish's hop is slower
+  than the ride, which is no boost. `Jump.Launch` is the one number if Hugo wants less carried still.
 
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): Hugo's Studio place rebuilt after a crash, and now on disk
 **State:** Hugo's Studio is open again on the Ride a Fish place, in Edit, and **the place is on disk**. No game
