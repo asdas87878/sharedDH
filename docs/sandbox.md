@@ -49,12 +49,16 @@ Config, and then they are the game's.
 4. When it is better, Copy changes and paste them to Claude with a line on what you were after.
 
 What to reach for:
-- **The arc:** `Jump.LaunchTime`, `Launch`, `HopBoost` and `Apex` (the pop), `FloatTime` (the fast part: how long
-  you keep your speed), `FastKeep` and `FastCurve` (how much of the boost is left at its end, and how late it goes),
-  `StallTime` and `StallShare` (how quickly the speed is lost then, and what is left), `FallGravity` and `FallSpeed`
-  (the fall). `Window` is the whole hop: the stall and the fall are what the pop and the glide leave of it
-  (3.2 - 0.4 - 1.5 = 1.3 s). The pull-in begins by itself when the fast part ends (`LaunchTime` + `FloatTime`:
-  1.9 s after the press, sooner off a slow fish).
+- **The arc:** `Jump.LaunchTime` and `Apex` (the pop up), `FloatTime` (the level part at the top).
+- **How fast you leave the fish:** `Jump.Launch` (the share of the fish's speed carried over: 0.85), `HopBoost`
+  (the kick on top: 15), `AirShare` and `BoostFloor` (the least, off a fish standing still), `FreeLaunch` (from
+  floating).
+- **How the speed runs out** (one curve, no knee): `Jump.SpeedHalf` (seconds until half the speed is gone),
+  `SpeedTail` (how long and soft the run-out to the stop is; 1 is a straight line into the stop), `StopTime`
+  (seconds until you have stopped), `StopShare` (what is left then; 0 is a real stop).
+- **The fall:** `Jump.FallSpeed` (the fastest you fall, once all the speed is gone) and `SinkCurve` (how late the
+  fall comes in as the speed goes: 1 in step with it, higher later). `Window` is the whole hop; the pull-in begins
+  by itself at the glide's end (`LaunchTime` + `FloatTime`: 1.9 s after the press, sooner off a slow fish).
 - **The wait between fish:** `Jump.Cooldown` (from the touch; 0.08), `HopGuard` and `MashMost` (mashed presses),
   `StrainLock` (a fish too strong for you).
 - **The hook's reach:** `Jump.GrabNear` (no speed), `GrabRange` (full speed), `GrabFullSpeed`, `RingEdge`. In a hop
@@ -89,7 +93,7 @@ What to reach for:
   glide and the server's speed check follow at once); `Variant.Gold`, `Rainbow` (the variants' chances, for fish
   spawned from then on; the `Size` rows and `Speed.SizeBonus` went with the size roll, 2026-11-12; since 2026-11-13 `Variant.Silver`, and `SizeChance` and `SizeScale` for the six sizes: [sizes](design/sizes.md)); and
   `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12; so did `Speed.Base`, `TierMult`, `Speed.AreaStep` and `AreaGrow`, with the reset: a fish's speed is its own number in `Config.FishStats`, changed in Config, not on the panel: [archetypes](design/archetypes.md).)
-- **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.GiantVolume` (who is a giant), `FadeTo`, `FadeFar`, `FadeNear`, `FadeLead`, `FadeEase`, `FadeForBreakers` (the approach fade), `Topple`, `MaxLoose`, `Throw`, `Scatter`, `Pop`, `Drag`, `Sink`, `Spin`, `Hang`, `FadeOut` (the boxes flying), `RegenRadius`, `RegenDelay`, `RebuildTime` (the prop coming back), `Slow`, `Cost`.
+- **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.GiantVolume` (who is a giant), `FadeTo`, `FadeEase`, `FadeForBreakers`, `PathWidth`, `PathSlack` (in your way: solid), `TouchEase`, `TouchSlack`, `Shake`, `ShakeTime`, `ShakeAt`, `ShakeBySpeed`, `ShakeGap`, `ShakeMin`, `TouchBubbles`, `TouchSound` (the touch), `SideNear`, `SideSlack`, `ViewNear` (beside you), `DebrisNear`, `DebrisFar` (the loose boxes near you), `Topple`, `MaxLoose`, `Throw`, `Scatter`, `Pop`, `Drag`, `Sink`, `Spin`, `Hang`, `FadeOut` (the boxes flying), `RegenRadius`, `RegenDelay`, `RebuildTime` (the prop coming back), `Slow`, `Cost`.
 
 ## What it doesn't do yet
 - No slow motion and no replay of a jump.

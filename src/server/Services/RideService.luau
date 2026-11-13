@@ -83,8 +83,7 @@ type Rider = {
 	JumpExtra: number, -- seconds this hop's glide and window are longer by (off a Leaper; airtime by speed)
 	RideSpeed: number, -- how fast the fish under us is going, as WE see it move (its place from frame to frame, eased): a hop's numbers are from it
 	RideFrom: Vector3?, -- where that fish was last frame
-	JumpLaunch: number, -- this hop's speed as it left and
-	JumpAir: number, -- its glide's pace (Config.hopFrom, from the speed we saw the fish leave at): the hook's reach is counted from them
+	JumpLaunch: number, -- this hop's speed as it left (Config.hopFrom, from the speed we saw the fish leave at): the hook's reach is counted from it
 	BoostUntil: number, -- os.clock() the last burst of speed we were given ends (an eat's, a smash's),
 	BoostMost: number, -- and how many times its speed the fish may go until then (the speed check)
 	EatCheckAt: number, -- os.clock() of the next look for something to eat
@@ -441,9 +440,9 @@ local function jump(r: Rider)
 		-- (the speed is r.RideSpeed, from where we saw the fish go: by the time the hop's word is here the rider's
 		-- machine is already flying, and the velocity it reports for the fish it left is the hop's, not the fish's)
 		local had = math.min(r.RideSpeed, FishService.ridden(w) * most * Config.Ride.SpeedSlack)
-		r.JumpLaunch, r.JumpAir, r.JumpExtra = Config.hopFrom(had, w.Type, FishService.ridden(w))
+		r.JumpLaunch, r.JumpExtra = Config.hopFrom(had, w.Type, FishService.ridden(w))
 	else
-		r.JumpLaunch, r.JumpAir, r.JumpExtra = Config.hopFrom(nil, nil, nil)
+		r.JumpLaunch, r.JumpExtra = Config.hopFrom(nil, nil, nil)
 	end
 	if r.Fish then
 		dismount(r, "Jump", true)
@@ -480,17 +479,12 @@ local function grab(r: Rider, target: any)
 	if r.Grab or elapsed > j.Window + r.JumpExtra + j.Slack then
 		return deny(r, "Grab", "Window", target)
 	end
-	-- The hook's reach is by the hop's speed across the water (Config.reachOf): long while it is fast, short once it
-	-- has stalled. The speed is ours: the hop's own curve (Config.hopSpeed) from the speed we saw the fish leave at,
+	-- The hook's reach is by the hop's speed across the water (Config.reachOf): longest as the hop leaves, shrinking as it
+	-- slows to its stop. The speed is ours: the hop's own curve (Config.hopSpeed) from the speed we saw the fish leave at,
 	-- at our own clock, read Net.ReachLag earlier (the grab's word arrives late and the reach is shrinking). And a
 	-- little for lag (we see the player and the fish a moment apart, both moving): without it a grab near the edge
 	-- of the range is refused though the client was inside it. Landing slack never widens this.
-	local speed = Config.hopSpeed(
-		math.max(0, elapsed - Config.Net.ReachLag),
-		r.JumpLaunch,
-		r.JumpAir,
-		j.LaunchTime + j.FloatTime + r.JumpExtra
-	)
+	local speed = Config.hopSpeed(math.max(0, elapsed - Config.Net.ReachLag), r.JumpLaunch, r.JumpExtra)
 	local reach = Config.reachOf(speed) * Config.Net.RangeSlack
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
 		return deny(r, "Grab", "Range", target)
@@ -997,7 +991,6 @@ local function onPlayer(player: Player)
 		RideSpeed = 0,
 		RideFrom = nil,
 		JumpLaunch = 0,
-		JumpAir = 0,
 		BoostUntil = 0,
 		BoostMost = 1,
 		EatCheckAt = 0,

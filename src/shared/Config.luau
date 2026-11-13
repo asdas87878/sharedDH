@@ -253,7 +253,7 @@ Config.Archetype = {
 	-- Leaper: the hop off it goes higher and further.
 	Leaper = {
 		Apex = 1.3, -- Jump.Apex, times
-		Air = 1.2, -- the glide's speed (Jump.AirShare of this fish's speed), times
+		Air = 1.2, -- the speed the hop leaves at (Config.hopFrom), times
 		FloatTime = 0.3, -- seconds added to Jump.FloatTime (and to the window, so the drop is as long as it was)
 	},
 }
@@ -577,27 +577,34 @@ Config.Jump = {
 	-- The shape, from the user's side-on recording (2026-11-10): a quick pop up (about 0.3 s), then a long flat glide
 	-- lying face down, sinking hardly at all.
 	LaunchTime = 0.4, -- the pop up (0.3 in the reference, whose pop is half as high)
-	Launch = 1.6, -- times the speed you left the fish at (the reference: about 1.3 to 1.8; 1.4 until 2026-11-11)
-	-- The hop-off boost (Hugo, 2026-11-12): leaving a fish gives you extra speed on top of the speed the fish had
-	-- THEN (a slowed fish, startled, angry or just off a wall, gives less): the pop's speed is Launch x the fish's
-	-- speed + HopBoost.
-	HopBoost = 18, -- studs a second on top of Launch x the fish's speed
-	BoostFloor = 10, -- the pop is never less than this much faster than the glide (off a slowed fish there is still a kick)
-	-- The air's shape (Hugo, 2026-11-13, after playing: "too linear"), in three parts (Config.hopSpeed, Config.hopSink):
-	--   fast: from the pop's speed, fading only slowly, for the whole glide (LaunchTime + FloatTime, shorter off a slow
-	--     fish and longer off a fast one: airtime by speed, below). At its end FastKeep of the boost (what the pop's
-	--     speed has over the glide's pace, AirShare of the fish's) is still there.
-	--   the stall: then, over StallTime, the speed falls away to StallShare of the glide's pace,
-	--   the fall: and as it goes you start to fall, FallGravity pulling you down to FallSpeed at most.
-	-- One curve with no step in it: the stall is blended in from nothing, and the fall's pull grows with it.
-	-- Until 2026-11-13 the boost was gone 0.75 s after the press (BoostHold, BoostTime), the glide went on at the
-	-- glide's pace, and the drop slowed to 0.78 of it while sinking 33 studs in 1.3 s (Drop, DropCurve, DropSpeed).
-	FastKeep = 0.55, -- the share of the boost still there when the fast part ends (1: none of it fades; 0: all of it, back at the glide's pace)
-	FastCurve = 1.5, -- how that fading comes in: 1 steadily, higher holds the speed longer and loses it later
-	StallTime = 0.35, -- the speed is lost over this long, from the fast part's end
-	StallShare = 0.25, -- what is left of it then, as a share of the glide's pace (you still go forward, and A and D still steer)
-	FallGravity = 130, -- the fall's pull, studs a second every second (Roblox's own gravity is 196; the old sink came to about 39)
-	FallSpeed = 90, -- and the fastest you fall, studs a second
+	-- Leaving the fish (Hugo, 2026-11-13, after playing the three-part air: "the horizontal movement shouldn't carry
+	-- over fully when jumping off a fish, you should get a slight speed boost (a little less than right now)... the
+	-- speed is generally a bit too quick"): the hop leaves at Launch x the speed the fish had THEN (a slowed fish,
+	-- startled, angry or just off a wall, gives less) + HopBoost. So off a slow fish you leave a little faster than you
+	-- rode, off a fast one a little slower, and a fast fish still gives the faster hop. (Launch was 1.6 and HopBoost 18:
+	-- the hop left at about twice the fish's speed.)
+	Launch = 0.85, -- the share of the fish's speed the hop keeps (1.6 until 2026-11-13; the reference: about 1.3 to 1.8)
+	HopBoost = 15, -- studs a second on top of that: the kick off the fish (18 until 2026-11-13)
+	-- (the least a hop off a fish leaves at: off one standing still or badly slowed there is still a hop worth having)
+	AirShare = 0.6, -- the hop never leaves slower than this share of the fish's own ridden speed, plus BoostFloor
+	BoostFloor = 8, -- studs a second (with AirShare, above)
+	-- The air's speed is ONE curve with no knee (Hugo, the same note: "the falloff doesn't feel right... it should ramp
+	-- off slowly then come to a slow stop in a logarithmic-like way"): Config.hopSpeed. From the speed you leave at it
+	-- eases off slowly at first, loses speed fastest about halfway, and runs out in a long gentle tail to a stop:
+	--   speed = leaving speed x (1 - u ^ a) ^ SpeedTail, u = time / the stop's time,
+	-- with a worked out so that half the speed is gone at SpeedHalf. The stop's time is StopTime, longer off a fast fish
+	-- and shorter off a slow one by the same seconds as the glide and the window (airtime by speed, below), and
+	-- SpeedHalf in proportion. Until this the speed held for the whole glide and was then lost in 0.35 s (FastKeep,
+	-- FastCurve, StallTime, StallShare: gone); before that the boost was gone 0.75 s after the press.
+	SpeedHalf = 1.5, -- seconds after leaving at which half the speed is gone (later: fast for longer, then lost quicker)
+	SpeedTail = 2.5, -- how long and gentle the run-out to the stop is (1: the speed runs straight into the stop; higher: more of it is lost before the tail, which is then longer and softer)
+	StopTime = 3.2, -- seconds after leaving at which you have stopped (with the airtime by speed added); the last fifth of it is under a tenth of the speed
+	StopShare = 0, -- the share of the leaving speed still there at the stop and after (0: a real stop; a little keeps A and D steering to the end)
+	-- The fall is blended in along the same curve (Hugo, earlier the same day: "sink way quicker, like a fall, after
+	-- losing speed"; and now with no switch): you fall at FallSpeed x (the share of your speed that is gone) ^
+	-- SinkCurve (Config.hopSink). Hardly at all while you are fast, a real fall once the speed has nearly gone.
+	FallSpeed = 80, -- the fastest you fall, studs a second, with all the speed gone (90 until the one curve)
+	SinkCurve = 3, -- how late the fall comes in: 1 sinks in step with the speed lost; higher stays level longer and falls later (but harder)
 	-- Airtime by speed (Hugo, 2026-11-12: "the less speed, the less airtime"): the glide, and the window with it, are
 	-- longer off a fast fish and shorter off a slow or slowed one, by the speed the fish had as you left
 	-- (Config.airOf; the server counts the same). Fair at the slow end: the glide is never under AirLeast, the lock's
@@ -607,22 +614,17 @@ Config.Jump = {
 	AirSlow = -0.5, -- seconds on Jump.FloatTime (and the window) off the slowest fish
 	AirFast = 0.5, -- and off the fastest
 	AirLeast = 0.6, -- the glide is never shorter than this, whatever the numbers above
-	FreeLaunch = 78, -- the pop's speed from floating, with no fish under you (55 until 2026-11-11)
+	FreeLaunch = 60, -- the speed of a hop from floating, with no fish under you (78 until 2026-11-13: the air a bit slower)
 	-- The height (2026-11-10, the user: the reference has flat ground, we don't): the hop rises this far above where
 	-- you left, or above the locked fish if that is higher, so there is always a swoop down onto the fish. It never
 	-- leaves the water; where the water is too shallow for it the herd swims lower (Config.herdTop).
 	Apex = 20,
 	Ceiling = 3, -- the hop stays this far under the surface line (Oxygen.SurfaceY)
 	SeatRoom = 5, -- a rider sits about this far above the middle of a fish: the hop's rise is counted from the seat
-	FloatTime = 1.5, -- the glide at the top, swimming. With LaunchTime it ends 1.9 s after the press, when the pull-in begins by itself: 12% more air than the reference's 1.7 s (1.3 until 2026-11-12, Hugo: a little more airtime)
+	FloatTime = 1.5, -- the glide at the top, swimming (the rise's last part; the fall is by the speed lost, above). With LaunchTime it ends 1.9 s after the press, when the pull-in begins by itself: 12% more air than the reference's 1.7 s (1.3 until 2026-11-12, Hugo: a little more airtime)
 	FloatRise = 1, -- still rising this much through the glide
-	-- (Hugo, 2026-11-11, after playing: the air was too slow. The glide was 38, the herd's pace, and the drop 30.)
-	AirSpeed = 54, -- the glide's speed with AirShare 0: well past the herd's pace (38), so a hop gains on the fish ahead
-	-- (the user, later the same day: match the reference. Measured there, the rider floats at 0.85 of the speed they
-	-- rode at, keeping pace with the herd, so they hang over the fish ahead instead of flying past it.)
-	AirShare = 0.85, -- the glide's speed as a share of the ridden speed of the fish you left; 0: AirSpeed, whatever the fish
-	FreeAirSpeed = 38, -- and from floating, with no fish left behind (a Common's herd pace)
-	-- The drop is the rest of the window (Window - LaunchTime - FloatTime: 1.3 s): the stall and the fall, above.
+	-- The drop is the rest of the window (Window - LaunchTime - FloatTime: 1.3 s): by then most of the speed has gone
+	-- and the fall is well under way (above); the pull-in begins by itself as it starts (AutoGrab).
 	DropTime = 0, -- (worked out in Config.refresh)
 	Tilt = 78, -- the body lies forward this much through the glide, face down, swimming
 	TiltFrom = 0.2, -- it starts to tip at this share of LaunchTime (upright off the fish for a moment)
@@ -666,14 +668,15 @@ Config.Jump = {
 	-- The hook's reach is by your momentum (Hugo, 2026-11-13: a shorter base, and "more horizontal speed = longer
 	-- reach, less = shorter"): Config.reachOf, from GrabNear with no speed across the water to GrabRange at
 	-- GrabFullSpeed, in proportion between, read every frame of the hop from the speed you really have (a wall that
-	-- slows you shortens it; the fall does not lengthen it). So it is long through the fast part and shrinks through
-	-- the stall. The lock (and its ring) only ever takes a fish inside the reach you have right then; the ring thins
-	-- out as its fish nears the edge of it (RingEdge). The server counts the same rule from its own clock and the
+	-- slows you shortens it; the fall does not lengthen it). So it is longest as you leave and shrinks all the way
+	-- down the curve. The lock (and its ring) only ever takes a fish inside the reach you have right then; the ring
+	-- thins out as its fish nears the edge of it (RingEdge). The server counts the same rule from its own clock and the
 	-- speed it saw the fish leave at (never from what the client says), with Net.RangeSlack and Net.ReachLag for lag.
-	-- The numbers are from the herd's spacing, measured (docs/playtests/2026-11-13-hop-air-reach.md).
+	-- The numbers are from the herd's spacing, measured again on the partner's new herd and with the slower hop
+	-- (docs/playtests/2026-11-13-hop-air-reach.md, "The one curve").
 	GrabRange = 150, -- the reach at GrabFullSpeed or faster, rider to fish: the longest there is. 180 at every speed until 2026-11-13
-	GrabNear = 60, -- the reach with no speed at all: what is left when you have stalled (and the least there ever is)
-	GrabFullSpeed = 180, -- the speed across the water, studs a second, that gives the whole GrabRange
+	GrabNear = 60, -- the reach with no speed at all: what is left when you have stopped (and the least there ever is)
+	GrabFullSpeed = 120, -- the speed across the water, studs a second, that gives the whole GrabRange (180 while the hop left at twice the fish's speed)
 	AckTime = 1, -- seconds to wait for the server's word on a landing before going back to the hop
 	RefusedTime = 0.6, -- a fish the server refused, or that was lost, can't be locked again for this long
 	-- The second hook (Hugo, 2026-11-12: "sometimes when you jump onto a fish you are instantly hooked onto ANOTHER
@@ -849,7 +852,8 @@ Config.Wall = {
 --   archetype: one whose model's box (width x height x length, studs, from its mesh.json) is GiantVolume or more. A
 --   row of Config.FishStats can say otherwise for one fish (Breaks = true or false).
 --   EVERYONE ELSE GOES STRAIGHT THROUGH: no stop, no slow-down, no Oxygen. So does every rider in the hop and the
---   glide. A prop near you turns see-through as you come up to it, on your own screen only (PropController).
+--   glide. A prop in your way looks solid until you touch it (a shake, and it turns see-through while you are in
+--   it); a prop you pass close by is see-through while it is close; on your own screen only (PropController).
 --   BREAKING: the server decides which boxes are out (PropService: the tag "PropOut" on each) and when the prop is
 --   back; every player's own machine throws the boxes, fades them and takes them away. Nothing of it is solid. The
 --   prop comes back when no player has been within RegenRadius of it for RegenDelay seconds.
@@ -881,14 +885,34 @@ Config.Props = {
 	RegenEvery = 0.5, -- seconds between the server's looks at the broken props
 	RebuildTime = 0.6, -- seconds a box takes to fade back in,
 	RebuildStagger = 0.5, -- the boxes starting over this long, not all at once
-	-- the approach fade (your own screen only)
-	FadeTo = 0.65, -- how see-through a prop is when you are at it: Roblox Transparency (0.65 = 35% solid: Hugo's pick from the sheet, 2026-11-13; 0.8 before; 0 turns the fade off)
-	FadeFar = 80, -- it starts to fade this far from you, studs,
-	FadeNear = 16, -- and is at FadeTo from this near
-	FadeLead = 0.3, -- and it fades for where you will be in this many seconds as well (so a fast fish's props fade in time)
-	FadeEase = 9, -- how quickly a prop follows that (higher is quicker; it never jumps)
-	FadeEvery = 0.1, -- seconds between looks for props near you
-	FadeForBreakers = 0, -- 0: on a fish that breaks props they stay solid-looking (something to smash); 1: they fade for it too
+	-- seeing through props (your own screen only; Hugo, 2026-11-13, in place of the fade from 80 studs off: "it should
+	-- stay solid and at full opacity until you collide with the block, at which point the camera shakes and the block
+	-- goes transparent", and "when you're passing something it goes transparent if it's close to you")
+	FadeTo = 0.65, -- how see-through a prop gets: Roblox Transparency (0.65 = 35% solid: Hugo's pick from the sheet, 2026-11-13; 0.8 before; 0 turns all of it off)
+	FadeEase = 9, -- how quickly a prop you pass turns see-through, and how quickly any prop comes back (higher is quicker; it never jumps)
+	FadeEvery = 0.1, -- seconds between looks for the props round you
+	FadeForBreakers = 0, -- 0: on a fish that breaks props they stay solid-looking (something to smash); 1: they turn see-through for it too
+	-- in your way: a prop ahead of you that your body would run into stays SOLID until you touch it
+	PathWidth = 2, -- "in your way" is ahead of you and within your body's own half width plus this, studs, each side
+	PathSlack = 4, -- and it stays "in your way" until it is this much further out (so it can't flicker at the edge)
+	-- the touch: the prop turns see-through quickly while you are in it, with a shake, bubbles and a thud
+	TouchEase = 26, -- how quickly the prop you ran into turns see-through (FadeEase brings it back)
+	TouchSlack = 3, -- you are out of a prop when your body is this clear of it, studs
+	Shake = 0.5, -- the camera is thrown this far, studs, touching a prop at ShakeAt (0 no shake; the landing's is Jump.LandShake 0.9)
+	ShakeTime = 0.25, -- seconds until it has died away
+	ShakeAt = 60, -- the speed that gives exactly Shake, studs a second,
+	ShakeBySpeed = 0.4, -- and how much the speed counts (0 not at all; never under half of Shake nor over 1.6 times it)
+	ShakeGap = 0.7, -- seconds before the next shake, so a cluster of props doesn't rattle the camera
+	ShakeMin = 10, -- a prop smaller than this across its biggest side gives no shake, bubbles or thud, studs (sea grass, small stones; 0: every prop does)
+	TouchBubbles = 8, -- bubbles where you ran into it (0 off),
+	TouchSound = 0.5, -- and how loud the thud is (0 off)
+	-- beside you: a prop you pass close to, and not in your way, is see-through while it is close
+	SideNear = 12, -- this near your body or nearer, studs,
+	SideSlack = 6, -- and it comes back once it is this much further (so it can't flicker at the edge)
+	ViewNear = 5, -- a prop this near the line from your camera to you is see-through as well (the one you just went through, now between you and the camera); 0 off
+	-- the loose boxes of a broken prop: see-through while they are close to you or between you and the camera
+	DebrisNear = 12, -- fully (to FadeTo) this near, studs,
+	DebrisFar = 30, -- not at all from this far (0: never)
 	-- what breaking costs a rider who isn't a Breaker
 	Slow = 0.8, -- the rider's speed drops to this share (it comes back over Crash.Recover)
 	Cost = 0.03, -- of max Oxygen
@@ -1396,75 +1420,79 @@ function Config.airOf(speed: number?): number
 	return math.max(j.AirSlow + (j.AirFast - j.AirSlow) * u, j.AirLeast - j.FloatTime)
 end
 
--- The hop as it leaves (Config.Jump): its speed off the fish, the glide's pace, the seconds added to Jump.FloatTime
--- and Jump.Window, and what Jump.Apex is times. `had` is the speed the fish had as we left it and `ridden` that
+-- The hop as it leaves (Config.Jump): its speed off the fish, the seconds added to Jump.FloatTime, Jump.Window and
+-- Jump.StopTime, and what Jump.Apex is times. `had` is the speed the fish had as we left it and `ridden` that
 -- fish's own ridden speed (Config.riddenOf); both nil from floating. `fish` nil: its kind isn't known here. The
 -- client flies by these and the server counts the hook's reach from the same.
-function Config.hopFrom(had: number?, fish: FishType?, ridden: number?): (number, number, number, number)
+function Config.hopFrom(had: number?, fish: FishType?, ridden: number?): (number, number, number)
 	local j = Config.Jump
-	local launch, air, extra, apex = j.FreeLaunch, j.AirSpeed, 0, 1
-	if had then
-		if had ~= had then
-			had = 0
-		end
-		-- the hop-off boost: extra speed on top of what the fish had as we left it (a slowed fish gives less)
-		launch = (had :: number) * j.Launch + j.HopBoost
-		-- the reference floats at 0.85 of the speed it rode at: the herd's pace
-		if j.AirShare > 0 and fish and ridden then
-			air = j.AirShare * ridden
-		end
-		-- off a Leaper: higher, a faster glide, and a longer one
-		local leapApex, leapAir, leapTime = Config.hopOf(fish)
-		air *= leapAir
-		apex = leapApex
-		-- airtime by speed: a longer glide off a fast fish, a shorter one off a slow or slowed one
-		extra = leapTime + Config.airOf(had)
-		launch = math.max(launch, air + j.BoostFloor)
-	else
-		if j.AirShare > 0 then
-			air = j.FreeAirSpeed
-		end
-		launch = math.max(launch, air)
+	if not had then
+		return j.FreeLaunch, 0, 1
 	end
-	return launch, air, extra, apex
+	if had ~= had then
+		had = 0
+	end
+	-- less than the fish's whole speed, and a kick on top (a slowed fish gives less)
+	local launch = (had :: number) * j.Launch + j.HopBoost
+	-- but never a hop not worth having, off a fish standing still
+	if fish and ridden then
+		launch = math.max(launch, j.AirShare * ridden + j.BoostFloor)
+	end
+	-- off a Leaper: higher, faster, and longer
+	local leapApex, leapAir, leapTime = Config.hopOf(fish)
+	-- airtime by speed: a longer hop off a fast fish, a shorter one off a slow or slowed one
+	return launch * leapAir, leapTime + Config.airOf(had), leapApex
 end
 
--- The hop's speed across the water `t` seconds after leaving (Jump.FastKeep...): `launch` and `air` from
--- Config.hopFrom, `fastEnd` when the fast part ends (Jump.LaunchTime + Jump.FloatTime + the hop's extra seconds).
--- One smooth curve: the slow fade runs on under the stall, which is blended in from nothing.
-function Config.hopSpeed(t: number, launch: number, air: number, fastEnd: number): number
+-- The share of the hop's leaving speed still there `t` seconds after leaving (Jump.SpeedHalf, SpeedTail, StopTime,
+-- StopShare), `extra` the hop's extra seconds (Config.hopFrom). One curve with no knee: it eases off slowly, loses
+-- speed fastest about halfway and runs out in a long gentle tail to the stop.
+function Config.hopKept(t: number, extra: number): number
 	local j = Config.Jump
-	local stall = air * math.clamp(j.StallShare, 0, 1)
-	local u = math.max(t, 0) / math.max(fastEnd, 0.05)
-	local fast = launch - (launch - air) * (1 - math.clamp(j.FastKeep, 0, 1)) * u ^ math.max(j.FastCurve, 1)
-	fast = math.max(fast, stall)
-	local x = math.clamp((t - fastEnd) / math.max(j.StallTime, 0.01), 0, 1)
-	return fast + (stall - fast) * (x * x * (3 - 2 * x))
+	local stop = math.max(j.StopTime + extra, 0.2)
+	local rest = math.clamp(j.StopShare, 0, 1)
+	local u = math.max(t, 0) / stop
+	if u >= 1 then
+		return rest
+	end
+	local tail = math.max(j.SpeedTail, 1)
+	-- (half the speed gone at SpeedHalf, as far through this hop as it is through one of StopTime; never a curve
+	-- that begins with a drop: a is at least 1)
+	local half = math.clamp(j.SpeedHalf / math.max(j.StopTime, 0.2), 0.05, 0.95)
+	local a = math.max(1, math.log(1 - 0.5 ^ (1 / tail)) / math.log(half))
+	return rest + (1 - rest) * (1 - u ^ a) ^ tail
 end
 
--- And how far it has fallen from the glide's height `t` seconds after the fast part ended: the pull comes in with
--- the stall (the same blend), then it is a fall, FallGravity down to FallSpeed
-function Config.hopSink(t: number): number
+-- The hop's speed across the water `t` seconds after leaving: `launch` and `extra` from Config.hopFrom. The client
+-- flies by it and the server counts the hook's reach by it.
+function Config.hopSpeed(t: number, launch: number, extra: number): number
+	return launch * Config.hopKept(t, extra)
+end
+
+-- And how far it has fallen `t` seconds after leaving: the fall comes in along the same curve, at Jump.FallSpeed x
+-- (the share of the speed that is gone) ^ Jump.SinkCurve, summed here (Simpson's rule: the same answer at any frame
+-- rate, and at any moment the hop is picked up again)
+function Config.hopSink(t: number, extra: number): number
 	if t <= 0 then
 		return 0
 	end
 	local j = Config.Jump
-	local time = math.max(j.StallTime, 0.01)
-	local most = math.max(j.FallSpeed, 1)
-	-- (the pull never brings more than FallSpeed by the stall's end, however long the stall)
-	local pull = math.min(math.max(j.FallGravity, 1), 2 * most / time)
-	local x = math.min(t / time, 1)
-	local depth = pull * time * time * (x ^ 4 / 4 - x ^ 5 / 10)
-	if t <= time then
-		return depth
+	local curve = math.max(j.SinkCurve, 0.1)
+	local rest = math.clamp(j.StopShare, 0, 1)
+	local function rate(at: number): number
+		local gone = if rest < 1 then (1 - Config.hopKept(at, extra)) / (1 - rest) else 1
+		return math.clamp(gone, 0, 1) ^ curve
 	end
-	local speed = pull * time / 2
-	local rest = t - time
-	local toMost = (most - speed) / pull
-	if rest <= toMost then
-		return depth + speed * rest + pull * rest * rest / 2
+	-- (past the stop the fall is steady: only the curve itself is summed)
+	local stop = math.max(j.StopTime + extra, 0.2)
+	local to = math.min(t, stop)
+	local n = 24
+	local h = to / n
+	local sum = rate(0) + rate(to)
+	for i = 1, n - 1 do
+		sum += rate(i * h) * (if i % 2 == 1 then 4 else 2)
 	end
-	return depth + speed * toMost + pull * toMost * toMost / 2 + most * (rest - toMost)
+	return math.max(j.FallSpeed, 0) * (sum * h / 3 + (t - to))
 end
 
 -- The hook's reach at a speed across the water (Jump.GrabNear, GrabRange, GrabFullSpeed): the client's lock and the

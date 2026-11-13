@@ -106,6 +106,7 @@ local kickAt, kickSpeed = 0, 0 -- the landing's jolt: the camera's height off tr
 local shakeAt = -math.huge -- os.clock() of the landing's shake,
 local shakeSize = 0 -- how far it throws the camera, studs,
 local shakeSeed = 0 -- and which way: a new pattern each time
+local shakeTime: number? = nil -- its own time to die away (nil: Jump.LandShakeTime)
 local airAt = -math.huge -- os.clock() the hop began
 local lookedAt = -math.huge -- os.clock() the player last looked round themselves
 local rightHeld = false
@@ -201,11 +202,19 @@ local function riddenSpeed(): number
 	return if rideType then rideType.RiddenSpeed else Config.Speed.Base
 end
 
--- The landing's shake (Config.Jump.LandShake...): `size` is how far the camera is thrown, studs
-function RideController.shake(size: number)
+-- The landing's shake (Config.Jump.LandShake...): `size` is how far the camera is thrown, studs; `time` is this
+-- shake's own seconds to die away (without it, Jump.LandShakeTime)
+function RideController.shake(size: number, time: number?)
 	shakeAt = os.clock()
 	shakeSize = size
 	shakeSeed = math.random() * 100
+	shakeTime = time
+end
+
+-- How far the shake still throws the camera now, studs (0: none running), so a small shake can leave a big one be
+function RideController.shaking(): number
+	local shaken = (os.clock() - shakeAt) / math.max(shakeTime or Config.Jump.LandShakeTime, 0.01)
+	return if shaken < 1 then shakeSize * (1 - shaken) ^ 2 else 0
 end
 
 -- How hard we are turning, -1 to 1, for banking into it
@@ -952,7 +961,7 @@ local function cameraStep(dt: number)
 	end
 	-- and its shake: thrown about for a moment, dying away
 	local shake = CFrame.identity
-	local shaken = (os.clock() - shakeAt) / math.max(j.LandShakeTime, 0.01)
+	local shaken = (os.clock() - shakeAt) / math.max(shakeTime or j.LandShakeTime, 0.01)
 	if shaken < 1 and shakeSize > 0 then
 		local size = shakeSize * (1 - shaken) ^ 2
 		local t = shakeSeed + (os.clock() - shakeAt) * j.LandShakeRate

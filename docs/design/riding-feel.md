@@ -195,6 +195,71 @@ moment you land and the moment the landing animation starts."
   past 84 (further down: 42, 82, 101, where the fish are faster and reach 112 to 150). The fish you left is
   always in reach as you leave.
 
+### The one curve: less carried over, a smaller kick, a slow stop (Hugo, 2026-11-13, after playing the three parts)
+
+Hugo, after playing the three-part air by hand: "the horizontal movement shouldn't carry over fully when jumping off
+a fish, you should get a slight speed boost (a little less than right now) and the falloff also doesn't feel right,
+the speed is generally a bit too quick and it should ramp off slowly then come to a slow stop in a logarithmic-like
+way." Built the same day; measured by script: [the playtest](../playtests/2026-11-13-hop-air-reach.md), "The one
+curve". **Not played by hand yet.** Where "The air's shape" above and "The hop-off boost" say otherwise, this holds;
+the wait between fish, the lock, the last chance and the server's rule are as they were.
+
+![the hop, three versions](../attachments/hop-one-curve.png)
+
+**Leaving the fish** (`Config.hopFrom`):
+- The hop leaves at `Jump.Launch` (0.85) x the speed the fish had then + `Jump.HopBoost` (15). It was 1.6 x + 18,
+  about twice the fish's speed. Now a slow fish gives a hop a little faster than you rode (40 gives 49), a normal
+  one about its own speed (74 gives 78), a fast one a little less (138 gives 132). A fast fish still gives the
+  faster hop, and a slowed fish (startled, angry, off a wall) a slower one.
+- **The least:** a hop off a fish never leaves slower than `Jump.AirShare` (0.6) of that fish's own ridden speed +
+  `Jump.BoostFloor` (8): off a 40 fish standing still, 32. `AirShare` used to be the glide's pace (0.85); there is
+  no glide's pace any more, so it only does this.
+- From floating: `Jump.FreeLaunch` 60 (was 78). A Leaper's `Air` (1.2) now multiplies the speed it leaves at.
+
+**The speed is one curve with no knee** (`Config.hopKept`, `Config.hopSpeed`):
+- `speed = leaving speed x (1 - u ^ a) ^ SpeedTail`, where `u` is the time as a share of the stop's time. It eases
+  off slowly at first (no drop at the start), loses speed fastest about halfway and runs out in a long gentle tail
+  to a stop. Nothing is held and then dropped: the 0.35 s stall is gone.
+- `Jump.SpeedHalf` (1.5 s): when half the speed is gone (`a` is worked out from it). Later is fast for longer and
+  then lost quicker.
+- `Jump.SpeedTail` (2.5): how long and soft the run-out is. 1 runs straight into the stop.
+- `Jump.StopTime` (3.2 s): when you have stopped. The last fifth of it is under a tenth of the speed.
+- `Jump.StopShare` (0): what is left at the stop. 0 is a real stop (A and D then turn you on the spot); a little
+  keeps you drifting.
+- **Airtime by speed stays:** the same seconds that lengthen or shorten the glide and the window (-0.5 s off the
+  slowest fish, +0.5 off the fastest) are added to the stop's time, and `SpeedHalf` moves in proportion. So a hop
+  off a fast fish is faster and also keeps its speed longer.
+- Gone: `FastKeep`, `FastCurve`, `StallTime`, `StallShare`, `FallGravity`, `AirSpeed`, `FreeAirSpeed`.
+
+**The fall is on the same curve** (`Config.hopSink`): you fall at `Jump.FallSpeed` (80) x (the share of your speed
+that is gone) ^ `Jump.SinkCurve` (3). With a tenth of the speed gone that is nothing; with half gone, 10 studs a
+second; with nine tenths gone, 58. So the hop stays level while it is fast and becomes a real fall as it stops
+("sink way quicker, like a fall, after losing speed"), with no moment where the fall is switched on. `SinkCurve` 1
+sinks in step with the speed; higher stays level longer.
+
+**What it does to a hop** (from the formulas; the playtest has the flown numbers):
+
+| Hop off | Leaves at (three parts) | At 1 s | At the glide's end | 0.5 s later | Studs along (three parts; first) |
+|---|---:|---:|---:|---:|---:|
+| A 40 fish standing still | 32 (44) | 21 | 13 | 5 | 41 (22; 8) |
+| A 40 fish, angry (29) | 40 (64) | 27 | 16 | 6 | 52 (100; 82) |
+| A slow fish (40) | 49 (82) | 34 | 18 | 7 | 67 (136; 114) |
+| A normal fish (74) | 78 (136) | 58 | 24 | 9 | 117 (268; 224) |
+| A fast fish (138) | 132 (239) | 106 | 30 | 11 | 231 (585; 470) |
+
+- **A hop is now about half as long as it was.** That is what "less carried over" and "a stop" add up to with
+  these numbers; it is the first thing to judge by hand. `Launch` and `SpeedHalf` are the two sliders for it.
+- **You fall behind the herd.** The fish swim on at their pace while you slow, so the fish that were beside and
+  behind you come past. The hands-off pull-in still begins at the glide's end (`LaunchTime` + `FloatTime`), by
+  then at a quarter to a third of the leaving speed.
+
+**The hook's reach** is still by the speed you really have (`Config.reachOf`), so it now shrinks smoothly all the
+way down the curve instead of dropping at the stall. `GrabNear` 60 and `GrabRange` 150 stay; `GrabFullSpeed` is
+120 (was 180, set for hops that left at twice the fish's speed), so the fastest hops still get the whole 150.
+The server counts the same curve (`Config.hopSpeed` from its own clock and the speed it saw the fish at).
+
+REACH_NUMBERS
+
 ### Verification for this pass
 
 The HTTP Studio runner was used for the following scripted checks. StyLua, selene and Rojo build pass. Direct checks
@@ -310,7 +375,8 @@ One button. Space throws you off the fish at once (from floating too).
   it (a ray along the fish's nose), takes the Oxygen and tells your client to slow. `Config.Crash`.
 - **Props, since 2026-11-13 (Hugo):** the section below, "Props: who breaks, who goes through". In short: only a
   Tank, a Breaker or a giant breaks a prop; every other fish and every rider in the hop goes straight through, and
-  the prop turns see-through as you come up to it.
+  a prop in your way looks solid until you touch it (a shake, then see-through while you are in it), and one
+  you pass close by is see-through while it is close.
 - Players' bodies no longer collide with props (so a rider isn't knocked about in the moment before the boxes go).
 
 
@@ -324,16 +390,35 @@ In place of "every fish breaks props" (2026-11-11). `Config.Props`, `PropService
   (`Lib/Course`) leave the props out for every fish, and so does the server's crash check. **The same for the rider
   in the hop and the glide, off any fish** (the boss's call, for Hugo to confirm): a hop used to be stopped by a
   prop. The wall glide never sees a prop, and works at real walls as before.
-- **The approach fade.** A prop near you turns see-through, smoothly with distance: it starts `FadeFar` (80) studs
-  away and is at `FadeTo` from `FadeNear` (16) studs. `FadeTo` is 0.65 as Roblox counts it (35% solid: Hugo's pick,
-  2026-11-13, from the comparison sheet of 0, 0.2, 0.35, 0.5, 0.65 and 0.8; it was 0.8 before). It also
-  fades for where you will be in `FadeLead` (0.3) seconds, so a fast fish's props fade in time. On your own screen
-  only and by your own distance: another player sees the same prop by theirs. It comes back as smoothly when you
-  leave. A prop fades whole, each on its own, so several near each other don't flicker. Pictures on the boxes and
-  glowing boxes fade with them.
-- **On a fish that breaks props they don't fade** (the boss's reading: they should look like something to smash).
-  `Props.FadeForBreakers` = 1 fades them for it too. In the hop off such a fish they fade, since the rider goes
-  through.
+- **Seeing through props** (Hugo, 2026-11-13, after playing the fade from 80 studs off: "when approaching
+  something it should stay solid and at full opacity until you collide with the block, at which point the camera
+  shakes and the block goes transparent", and "when you're passing something it goes transparent if it's close to
+  you"). On your own screen only, by your own body: another player sees the same prop by theirs. Your body is the
+  fish's, from tail to nose and as thick as it is wide or tall; in the hop it is the rider.
+  - **In your way: solid until you touch it.** A prop ahead of you, inside the corridor your body sweeps (your
+    half width plus `PathWidth`, 2 studs, each side), looks fully solid however near it is.
+  - **The touch.** The frame your body reaches it: the camera shakes once (`Shake` 0.5 studs for `ShakeTime`
+    0.25 s, the landing's own shake code; a little harder when faster, `ShakeAt` 60 and `ShakeBySpeed` 0.4, never
+    under half nor over 1.6 times), a few bubbles and a soft thud (`TouchBubbles`, `TouchSound`), and the prop
+    turns see-through quickly (`TouchEase`, to `FadeTo`) for as long as you are in it. No slow-down, no Oxygen:
+    it is feedback only. No second shake for the same prop while you are in it, none within `ShakeGap` (0.7 s) of
+    the last (a cluster of props doesn't rattle the camera), none for a small thing (under `ShakeMin`, 10 studs,
+    across: sea grass, small stones), and never over a bigger shake still going (a landing's).
+  - **Beside you: see-through while it is close.** A prop within `SideNear` (12 studs) of your body and not in
+    your way is see-through, and comes back once it is `SideSlack` (6) further. So is a prop within `ViewNear`
+    (5) of the line from the camera to you: the one you just went through stays see-through while it is between
+    you and the camera.
+  - **No flicker:** every rule starts at a nearer line than it stops at, and a prop that is see-through stays so
+    until you are clear of it (turning into one you were passing does not make it solid again; touching it still
+    shakes). It eases both ways (`FadeEase`), never jumps.
+  - `FadeTo` is 0.65 as Roblox counts it (35% solid: Hugo's pick, 2026-11-13, from the comparison sheet of 0,
+    0.2, 0.35, 0.5, 0.65 and 0.8). A prop turns whole, each on its own. Pictures on the boxes and glowing boxes
+    go with them. (`FadeFar`, `FadeNear` and `FadeLead`, the fade from 80 studs off, are gone.)
+- **On a fish that breaks props they stay solid-looking** (something to smash; `Props.FadeForBreakers` = 1 gives
+  it the same rules, without the touch's shake). In the hop off such a fish the rider's rules are a passing
+  fish's. **The loose boxes of a broken prop** are see-through for everyone while they are close to you or between
+  the camera and you (fully within `DebrisNear`, 12 studs, of that line; not at all from `DebrisFar`, 30), so a
+  flying box never blocks the view; then they fade out as before.
 - **Breaking.** The fish's nose reaches the prop: the boxes it touches, and the boxes of that prop resting above
   them, are out (at most `MaxLoose`, 60, a hit). The boxes still in place stay. Each box that is out is thrown from
   where the fish hit, along the fish's way with `Throw` (0.7) of its speed and outward, turns, is slowed by the
@@ -376,7 +461,7 @@ values, **not tuned in play**.
 | Steering | `Ride.YawRate`, `TurnEase`, `Bank` | 95 degrees a second, 10, 28 degrees (135 and 14 since the control pass, with `SteerEase`, `SteerRate`, `Response`, `LandSteerTime`) |
 | Oxygen | `ZoneDrain`, `Oxygen.Refill`, `KeepUp`, `TierDrain`, `FreeDrain` | above; 0.25, 6 s, 0.15, 4 |
 | A crash | `Crash.Slow`, `Recover`, `Cost`, `Cooldown`, `HeadOn` | 0.45, 1.4 s, 0.1, 1.5 s, 0.35 |
-| Props | `Props.GiantVolume`, `FadeTo`, `FadeFar`, `FadeNear`, `FadeForBreakers`, `Throw`, `RegenRadius`, `RegenDelay`, `Slow`, `Cost` | 12,000 cubic studs, 0.65, 80 studs, 16 studs, 0, 0.7, 300 studs, 3 s, 0.8, 0.03 |
+| Props | `Props.GiantVolume`, `FadeTo`, `SideNear`, `Shake`, `ShakeTime`, `ShakeGap`, `FadeForBreakers`, `Throw`, `RegenRadius`, `RegenDelay`, `Slow`, `Cost` | 12,000 cubic studs, 0.65, 12 studs, 0.5 studs, 0.25 s, 0.7 s, 0, 0.7, 300 studs, 3 s, 0.8, 0.03 |
 | The camera's springs | `Camera.FocusTime`, `TurnTime`, `ZoomTime`, `FovTime` | 0.12, 0.07, 0.3, 0.2 s |
 
 ### How the lock scores
@@ -406,7 +491,7 @@ Play in Studio; N opens the panel. For the real rules turn **No fail** and **End
 5. **Props:** F to a Clownfish and swim through a coral: it fades and you go through untouched. F to the Humphead
    Wrasse (Breaker), Steller's Sea Cow (Tank) or a megalodon (giant) and do it again: boxes fly, fade and are gone,
    and the prop is back once you are 300 studs on. Is too much or too little of a big prop coming down?
-   (`Props.Topple`, `MaxLoose`.) Is the fade right? (`Props.FadeTo`, `FadeFar`, `FadeNear`.)
+   (`Props.Topple`, `MaxLoose`.) Is the see-through right: solid until the touch, the shake's size, how near "beside" is? (`Props.FadeTo`, `Shake`, `ShakeTime`, `ShakeGap`, `SideNear`, `ViewNear`.)
 6. **Co-op and lag:** two players for one fish; a prop one breaks, seen by the other.
 
 ## Decided
