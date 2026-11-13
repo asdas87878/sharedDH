@@ -165,6 +165,37 @@ Kelp Forest): each takes its own fog colour, distance and tint, and all of it go
   the water's colour ride round the camera where the view ends (`WaterEnd`). In the capture the far end of the lane
   is still a deeper blue than the water's aqua: to look at again.
 
+### Seeing far, and the deep lands (2026-11-13, second version)
+The user, after diving: the deeper lands are too obscured, "once you can't see far enough ahead it doesn't work".
+Only the darkest lands should have fog that fully hides what is past a point; in most it should be translucent.
+The first few lands look the best; the deep ones must feel as immersive, and navigable.
+
+**What was limiting the view, in order of how much:**
+1. **The place only sent a player the map within 1,024 studs** (Roblox's own streaming radius). Past that there was
+   nothing to see, whatever the fog did. The loader now sets `workspace.StreamingTargetRadius` to 2,400.
+2. **The fog was a wall:** full at 340 to 900 studs. It is now a veil. Each land has a distance (`see`) and a share
+   of the view the water has taken by then (`thick`): at 1,800 studs the water has taken 45% in the Shallows, up to
+   70% in the Vents and the Bone Graveyard. Things stay visible beyond, more and more in the land's colour.
+3. **Only Midnight and the Underworld close the view,** at 1,300 and 1,200 studs.
+4. Past everything the map shows, a ring in the water's colour rides 2,300 from the camera, so the view ends in
+   water and never in sky.
+
+**Why the first lands looked best, and what the deep ones were missing:** bright moving water overhead, shafts of
+light, and a light floor. Deep down the surface was out of sight, the shafts stopped, and the floors were dark
+first guesses. So:
+- **A ceiling of lit water all the way down.** While the real surface is within 520 studs it is the surface you
+  see. Deeper, a sheet of lit water in the land's own colour rides 520 over the camera, with the same moving picture.
+- **Shafts in every land,** from that ceiling, in the land's colour: violet in the Twilight, orange in the Vents.
+  Fewer and fainter the deeper the land.
+- **The deep lands' floors are lighter** (`GROUND` in `tools/map/water_zones.py`), so the canyon keeps its shape
+  under coloured water.
+- **Ledges that glow,** from the Twilight down: a line of light along the low terrace's edge on both sides, in the
+  land's glow colour. Two lines running ahead show the lane's shape and which way it goes.
+- **The cliffs fade into each land's own water** (they all faded to one pale teal).
+
+**Seen:** only the Shallows, in the first version. This version is checked in play after its load; the deep lands
+need the map sent to the camera's place first, which a test can ask for.
+
 **Not built, and worth working through together:**
 - Light rippling on the floor (the water's picture, slid slowly over the floor near the camera).
 - Bubbles: off the fish, and a burst with a splash when you cross the surface. Needs a bubble picture uploaded.

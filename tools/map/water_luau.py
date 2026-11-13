@@ -23,7 +23,8 @@ def c3(c):
     return f"Color3.fromRGB({c[0]}, {c[1]}, {c[2]})"
 
 
-zones = ",\n\t".join("{ %g, %s, %d, %s, %g, %g, %s }" % (s0, c3(z["water"]), z["see"], c3(z["tint"]), z["vivid"], z["shafts"], c3(z["specks"]))
+zones = ",\n\t".join("{ %g, %s, %d, %s, %g, %g, %s, %g, %s }" % (s0, c3(z["water"]), z["see"], c3(z["tint"]), z["vivid"], z["shafts"], c3(z["specks"]),
+                                                                    z["thick"], c3(z["ceiling"]))
                        for s0, z in zip(starts, ZONES))
 line = ",\n\t".join(", ".join("{ %g, %g, %g }" % (r[1] + 3000, r[3], r[0]) for r in info["Path"][k:k + 6]) for k in range(0, len(info["Path"]), 6))
 assert "--ZONES--" in source and "--LINE--" in source

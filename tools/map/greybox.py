@@ -1,4 +1,4 @@
-"""Grey-box 14 of the map (docs/design/map-method.md, docs/design/map-structure.md): the reference's build, shaped for a
+"""Grey-box 15 of the map (docs/design/map-method.md, docs/design/map-structure.md): the reference's build, shaped for a
 game where you fly through water.
 
 The lane goes narrow, wide, narrow, wide, its two sides waving against each other, and it gets wider the further you
@@ -29,6 +29,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import props  # noqa: E402
+import water_zones  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.environ.get("GREYBOX_OUT") or os.path.join(ROOT, "art", "map", "greybox")  # a trial build can go elsewhere
@@ -69,8 +70,7 @@ LANDS = [("Shallows", 1000, 2.0), ("Coral Reef", 2500, 2.5), ("Kelp Forest", 250
          ("Bone Graveyard", 2500, 7.0), ("The Underworld", 2500, 8.0)]
 STEEPER = {4: (12.0, 700.0), 7: (14.0, 900.0)}  # at the start of these lands (counted from 0): a stretch easing up to
 # this slope and back over this length. They stand where the big drops were: a long steeper slope, never a drop.
-GROUND = [(242, 214, 128), (244, 148, 152), (120, 172, 92), (160, 148, 124), (90, 124, 176),  # one colour per land
-          (104, 96, 170), (62, 66, 120), (120, 72, 64), (150, 150, 168), (110, 44, 60)]  # (the last five are first guesses)
+GROUND = water_zones.GROUND  # one colour per land (kept with the lands' water, so the two are chosen together)
 ASSET_SET = [0, 1, 2, 3, 0, 1, 2, 3, 4, 4]  # which of props.LANDS each land borrows: five lands have no set of their own yet
 # the hub's colours: its floor, its walls' faces and tops, the start strip, the aquariums' frames. HUB_LOOK picks one
 # (an environment variable, for trying them side by side: tools/map/hub_looks.py); "Dino" is what is built
@@ -122,11 +122,11 @@ JOIN = 420.0  # over this much lane the hub's wall steps down to the lane's own 
 HAZE = (120, 175, 195)  # the water's colour far off: the backdrop is drawn half way to it, so it sits back
 
 
-def face_of(ground, pale=0.0):
+def face_of(ground, pale=0.0, haze=HAZE):
     """a wall's side: the land's colour pulled toward a mid grey, as the reference's faces are. `pale` (0 to 1) is for
-    the backdrop: the same colour fading into the water's haze (pale slabs read as white blocks in Studio)"""
+    the cliffs behind: the same colour fading into that land's water"""
     near = [0.4 * g + 0.6 * 158 for g in ground]
-    return tuple(int(n + (h - n) * 0.6 * pale) for n, h in zip(near, HAZE))
+    return tuple(int(n + (h - n) * 0.6 * pale) for n, h in zip(near, haze))
 
 
 parts = []
@@ -848,13 +848,26 @@ for side in (-1, 1):
             after = tops[pieces[i + 1][6]] if i + 1 < len(pieces) and pieces[i + 1][4] == k1 else -1e9
             cell(fa, fb, ba, bb, outs[k], top, deep, V[k][4], i % 2 == 1, before, after, lane_colours,
                  V[k][4] < JOIN and outer[k], True)
+            glow = water_zones.ZONES[min(land_at(max(0.0, V[k][4])), len(water_zones.ZONES) - 1)]["glow"] if V[k][4] > 0 else None
+            if j == 0 and glow:  # the deep lands' ledges glow: two lines of light that show the lane's shape and its way
+                lf = math.hypot(fb[0] - fa[0], fb[1] - fa[1])
+                if lf > 0.5:
+                    al = ((fb[0] - fa[0]) / lf, 0.0, (fb[1] - fa[1]) / lf)
+                    o = outs[k]
+                    add("Glow", "glow", ((fa[0] + fb[0]) / 2 - o[0] * (PROUD + 0.2), top + GRASS + 0.25, (fa[1] + fb[1]) / 2 - o[2] * (PROUD + 0.2)),
+                        (1.0, 1.0, lf + 0.1), glow, o, (0, 1, 0), al, solid=False)
 
 # ---------------------------------------------------------------- the canyon: shelves and cliffs behind the walls
 # A swimmer can rise over any wall and look behind it. So the last near tier's ground carries on back, as a shelf, to
 # the first cliff, and that cliff's ground to the second: there is no empty water behind a wall. A shelf is one long
 # slab to four pieces of wall, a hair lower than the tops in front of it, at the lowest of their heights.
-def hazed(colour, share):
-    return tuple(int(c + (h_ - c) * share) for c, h_ in zip(colour, HAZE))
+def hazed(colour, share, haze=HAZE):
+    return tuple(int(c + (h_ - c) * share) for c, h_ in zip(colour, haze))
+
+
+def water_at(at):
+    """the colour of the water in the land here: what its cliffs fade into"""
+    return water_zones.ZONES[min(land_at(max(0.0, at)), len(water_zones.ZONES) - 1)]["water"]
 
 
 for side in (-1, 1):
@@ -955,7 +968,7 @@ for side in (-1, 1):
             before = tops[real[i - 1]] if i > 0 else -1e9
             after = tops[real[i + 1]] if i + 1 < len(real) else -1e9
             cell(af, bf, ab, bb, o, tops[k], deep, C[k][4], i % 2 == 1, before, after,
-                 lambda at, pale=cl["pale"]: (hazed(lane_colours(at)[0], pale * 0.6), face_of(lane_colours(at)[0], pale)),
+                 lambda at, pale=cl["pale"]: (hazed(lane_colours(at)[0], pale * 0.6, water_at(at)), face_of(lane_colours(at)[0], pale, water_at(at))),
                  False, False, tiles=max(1, round(lens[k] / PIECE)))
 
 # the barrier: unseen and solid, just behind the wall's face, from under the floor to over the surface. A swimmer can go
@@ -1268,7 +1281,7 @@ sc = W / (z1 - z0)
 H = int((x1 - x0) * sc)
 im = Image.new("RGB", (W, H), (58, 118, 168))
 d = ImageDraw.Draw(im)
-order = {"barrier": 0, "ground": 1, "plain": 1, "hub": 1, "face": 1, "grass": 1, "core": 1, "fill": 1, "prop": 3, "station": 3, "glass": 3, "trim": 4, "figure": 5}
+order = {"glow": 4, "barrier": 0, "ground": 1, "plain": 1, "hub": 1, "face": 1, "grass": 1, "core": 1, "fill": 1, "prop": 3, "station": 3, "glass": 3, "trim": 4, "figure": 5}
 for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2)):
     hx, hz = p["s"][0] / 2, p["s"][2] / 2
     pts = []
@@ -1281,7 +1294,7 @@ for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2))
         col = tuple(int(c * 0.86) for c in col)
     d.polygon(pts, fill=col)
 font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
-d.text((20, 14), f"Grey-box 14 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
+d.text((20, 14), f"Grey-box 15 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
 if not os.environ.get("GREYBOX_OUT"):
     im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))
 print("plan drawn")

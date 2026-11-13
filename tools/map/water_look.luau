@@ -60,10 +60,17 @@ local LOOK = {
 	ShaftGrid = 78, -- standing this far apart,
 	ShaftLong = 190, -- reaching this far down,
 	ShaftSee = 0.86, -- this faint at their brightest (1 unseen),
-	ShaftDeep = 320, -- and gone by this depth
 	Specks = 26, -- drifting specks a second
+	-- Seeing far (2026-11-13). The water is a veil: it starts FogStart from the camera and has taken a land's own share
+	-- of the view ("thick") by that land's distance ("see"); in most lands that is well short of hiding anything.
+	FogStart = 80,
+	EndAt = 2300, -- where the view ends for good: a ring of the water's colour, past anything the map shows
+	-- The deep lands keep a ceiling: the lit water overhead never gets further than this above the camera, so the
+	-- best thing about the first lands (bright moving water over your head) goes all the way down
+	CeilUp = 520,
+	CeilSee = 0.12, -- how see-through that deep ceiling is (the real surface, near the top, is UnderSee)
 }
--- each land's water: {s where it begins, water colour, how far you see, tint, extra colour, shafts, specks' colour}
+-- each land's water: {s where it begins, water colour, see, tint, extra colour, shafts, specks' colour, thick, ceiling}
 local ZONES = {
 	--ZONES--
 }
@@ -144,7 +151,7 @@ underPicture.Face = Enum.NormalId.Bottom
 underPicture.StudsPerTileU, underPicture.StudsPerTileV = LOOK.UnderTile, LOOK.UnderTile
 underPicture.Transparency = 1
 underPicture.Parent = under
-table.insert(parts, { under, LOOK.Gap * 3 + 0.6 })
+-- (it is placed by `underwater`, not with the other layers: deep down it leaves the surface and rides over the camera)
 
 local fx = Instance.new("Part") -- holds the shafts' ends and the specks; rides with the camera
 fx.Name = "WaterFx"
@@ -182,11 +189,12 @@ specks.Parent = fx
 -- in its own blue. Four walls and a floor stand round the camera where the view ends: at that distance they are
 -- wholly the water's colour, so the water closes in on every side.
 local curtain = {}
-for i = 1, 5 do
+for i = 1, 16 do
 	local p = Instance.new("Part")
 	p.Name = "WaterEnd"
 	p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = true, false, false, false, false
-	p.Material = Enum.Material.SmoothPlastic
+	p.Size = Vector3.new(2048, 2048, 4)
+	p.Material = Enum.Material.Neon -- its own colour whatever the light: it is the water, not a wall
 	p.TopSurface, p.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
 	p.Transparency = 1
 	p.Parent = folder
@@ -246,24 +254,31 @@ local function lookAt(at)
 	elseif i > 1 and at < a[1] + LOOK.Border then
 		b, t = ZONES[i - 1], 0.5 - 0.5 * (at - a[1]) / LOOK.Border
 	end
-	return a[2]:Lerp(b[2], t), mix(a[3], b[3], t), a[4]:Lerp(b[4], t), mix(a[5], b[5], t), mix(a[6], b[6], t), a[7]:Lerp(b[7], t)
+	return a[2]:Lerp(b[2], t), mix(a[3], b[3], t), a[4]:Lerp(b[4], t), mix(a[5], b[5], t), mix(a[6], b[6], t), a[7]:Lerp(b[7], t),
+		mix(a[8], b[8], t), a[9]:Lerp(b[9], t)
 end
 
 local wet = 0 -- 0 above the water, 1 well under it
-local function underwater(eye, t, dt)
+local function underwater(eye, t, dt, centre)
 	local depth = LOOK.Top - eye.Y
 	local want = math.clamp((depth - 1) / LOOK.Blend, 0, 1)
 	wet = wet + (want - wet) * math.min(1, dt * 8)
-	local water, see, tint, vivid, shaft, speck = lookAt(alongLane(eye))
-	-- the surface from below: only shown from below, or the hub would lose its view down into the water
-	under.Transparency = mix(1, LOOK.UnderSee, wet)
+	local water, see, tint, vivid, shaft, speck, thick, ceiling = lookAt(alongLane(eye))
+	-- the water overhead, seen from below: the real surface while it is near, and deeper down a ceiling of lit water
+	-- that stays CeilUp over the camera. Only shown from below, or the hub would lose its view down into the water
+	local surfaceY = LOOK.Top - (LOOK.Gap * 3 + 0.6)
+	local ceilY = math.min(surfaceY, eye.Y + LOOK.CeilUp)
+	local deepness = math.clamp((surfaceY - ceilY) / 200, 0, 1) -- 0 while it is the real surface, 1 well below it
+	under.CFrame = CFrame.new(centre.X, ceilY, centre.Z)
+	under.Transparency = mix(1, mix(LOOK.UnderSee, LOOK.CeilSee, deepness), wet)
 	underPicture.Transparency = mix(1, LOOK.UnderLines, wet)
 	underPicture.OffsetStudsU = (t * LOOK.Drift.X * 1.6) % LOOK.UnderTile
 	underPicture.OffsetStudsV = (t * LOOK.Drift.Y * 1.6) % LOOK.UnderTile
-	under.Color = LOOK.UnderColour:Lerp(water, 0.25)
-	-- shafts of light: they stand on a grid in the world, so swimming past them they stay where they are
+	under.Color = ceiling
+	-- shafts of light, from that water overhead, in the land's own colour: they stand on a grid in the world, so
+	-- swimming past them they stay where they are
 	fx.CFrame = CFrame.new(eye)
-	local strength = wet * shaft * math.clamp(1 - (depth - 60) / (LOOK.ShaftDeep - 60), 0, 1)
+	local strength = wet * shaft
 	local gx, gz = math.floor(eye.X / LOOK.ShaftGrid), math.floor(eye.Z / LOOK.ShaftGrid)
 	for i, item in shafts do
 		local cx, cz = gx + (i - 1) % 3 - 1, gz + math.floor((i - 1) / 3) - 1
@@ -271,27 +286,24 @@ local function underwater(eye, t, dt)
 		local r1, r2 = h - math.floor(h), (h * 7.13) % 1
 		local x, z = (cx + 0.15 + 0.7 * r1) * LOOK.ShaftGrid, (cz + 0.15 + 0.7 * r2) * LOOK.ShaftGrid
 		local lean = math.sin(t * 0.25 + r1 * 6) * 12
-		item[1].WorldPosition = Vector3.new(x, LOOK.Top - 2, z)
-		item[2].WorldPosition = Vector3.new(x + 46 + lean, LOOK.Top - LOOK.ShaftLong, z + 28)
+		item[1].WorldPosition = Vector3.new(x, ceilY - 2, z)
+		item[2].WorldPosition = Vector3.new(x + 46 + lean, math.max(ceilY - LOOK.ShaftLong - 260 * deepness, eye.Y - 60), z + 28)
 		local see_ = mix(1, LOOK.ShaftSee + 0.08 * r2, strength)
 		item[3].Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, see_), NumberSequenceKeypoint.new(0.6, mix(1, 0.95, strength)), NumberSequenceKeypoint.new(1, 1) })
-		item[3].Color = ColorSequence.new(Color3.new(1, 1, 1):Lerp(water, 0.25))
+		item[3].Color = ColorSequence.new(Color3.new(1, 1, 1):Lerp(ceiling, 0.3 + 0.4 * deepness))
+		item[3].Width0, item[3].Width1 = 7 + 10 * deepness, 30 + 30 * deepness
 	end
 	specks.Rate = LOOK.Specks * wet
 	specks.Color = ColorSequence.new(speck)
-	local far = see * 1.03
+	-- the end of the view: a ring of sixteen sheets, two rows of eight, kept under the surface
+	local low = math.min(eye.Y, LOOK.Top - 12 - 1024)
 	for i, p in curtain do
-		p.Transparency = wet > 0.5 and 0 or 1
+		local a_ = (i - 1) % 8 * math.pi / 4
+		local y = low + (i > 8 and 2048 or 0)
+		local at = Vector3.new(eye.X + math.cos(a_) * LOOK.EndAt, y, eye.Z + math.sin(a_) * LOOK.EndAt)
+		p.CFrame = CFrame.lookAt(at, Vector3.new(eye.X, y, eye.Z))
 		p.Color = water
-		if i == 5 then -- the floor of the view, for looking down where there is no ground
-			p.Size = Vector3.new(far * 2.2, 4, far * 2.2)
-			p.CFrame = CFrame.new(eye.X, eye.Y - far, eye.Z)
-		else
-			local a_ = (i - 1) * math.pi / 2
-			local dx, dz = math.cos(a_), math.sin(a_)
-			p.Size = Vector3.new(math.abs(dz) * far * 2.2 + 4, 2000, math.abs(dx) * far * 2.2 + 4)
-			p.CFrame = CFrame.new(eye.X + dx * far, math.min(eye.Y, LOOK.Top - 1000 - LOOK.Gap * 4), eye.Z + dz * far)
-		end
+		p.Transparency = (wet > 0.5 and y - 1024 < LOOK.Top - 13) and 0 or 1 -- a row wholly over the surface stays unseen
 	end
 	if not playing then
 		return
@@ -309,9 +321,10 @@ local function underwater(eye, t, dt)
 				atmosphere.Parent = script
 			end
 		end
+		-- the fog has taken `thick` of the view at `see`, and goes on thickening at the same rate beyond it
 		Lighting.FogColor = water
-		Lighting.FogStart = mix(see, see * 0.08, wet)
-		Lighting.FogEnd = mix(100000, see, wet)
+		Lighting.FogStart = LOOK.FogStart
+		Lighting.FogEnd = mix(100000, LOOK.FogStart + (see - LOOK.FogStart) / math.max(0.05, thick), wet)
 	else
 		if atmosphere then
 			atmosphere.Parent = Lighting
@@ -346,6 +359,6 @@ connection = RunService.Heartbeat:Connect(function(dt)
 	local sway = breath * LOOK.Sway
 	picture.OffsetStudsU = (t * LOOK.Drift.X + sway) % LOOK.Tile
 	picture.OffsetStudsV = (t * LOOK.Drift.Y - sway) % LOOK.Tile
-	underwater(eye, t, dt)
+	underwater(eye, t, dt, centre)
 end)
 return "water made: one block of " .. LOOK.Size .. " with plain water round it"
