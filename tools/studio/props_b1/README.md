@@ -31,6 +31,21 @@ game.ReplicatedStorage.B1Cmd.Value = "suite " .. os.clock()
   the hold), the Molten Megalodon (giant), the hop off a Clownfish and off the Sea Cow, and the Sea Cow again with
   `Props.FadeForBreakers` 1; then a Clownfish beside a prop at 2, 6, 10, 16, 24 and 40 studs, a Reef Shark at 6, and
   the cluster on both. Ends with `SUITE DONE`; a failed check is a `CHECK FAIL` line.
+- `suite3` (p3, 2026-11-13: the see-through rework's five points in one go, about 5 minutes): the fish that go
+  through head on, the three that break with the game's own `Props.Hang`, the hop off a Clownfish and off the Sea
+  Cow, the passes beside, `view`, both clusters, then the three that break with `Hang` 3 so the loose boxes are
+  seen at every distance (`DEBRIS` lines: see-through by distance). Ends with `SUITE3 DONE`.
+- `view <FishId>`: a box of the driver's own kept on the line from the camera to the fish, then 20 studs off it,
+  then on it again: only `Props.ViewNear` can turn it see-through (`SideNear` is pulled in for the test if the
+  camera sits that close, and put back).
+- Each run's `TOUCH` line: the mode at the touch, the engine's speed at the touch and the least inside the prop,
+  the worst frame before and inside, shakes at other props on the way (a run's shakes and touches count only
+  those with the body at its own prop), and for a hop its speed across the water against `Config.hopSpeed`.
+  `SHAKE`: a touch that gave no shake because `Props.ShakeGap` held it back. `MISS`: the steering never got the
+  fish to the prop; the run is done again at another.
+- `server_watch.luau`: run once in the playtest's server before a suite
+  (`studio-run.mjs --ctx server tools/studio/props_b1/server_watch.luau`); it counts twice a second, into
+  `ServerStorage.B1Watch`, anything of the see-through that the server would hold (there must be none).
 - `set <Group> <Key> <value>`: a Config number on both machines.
 
 Afterwards: `studio-run.mjs stop`, wait until `status` shows `connected.server` 0, then run

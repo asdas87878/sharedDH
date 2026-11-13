@@ -3,6 +3,41 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC, task p3): seeing through props, measured
+**State:** the rework's game code (`Config.Props`, `PropService`, `PropController`) was already on main; this
+adds its check. **No game file and no number changed:** the run showed no bug. Changed: the test
+(`tools/studio/props_b1`: the driver, a new `server_watch.luau`, the README) and the notes. StyLua and selene pass
+on the test. Committed on Hugo's PC, not pushed by hand (main was 4 commits behind origin: the partner's paces
+and visit; Obsidian's sync does the pull). Measured by script in Hugo's Studio on grey-box 15, on the code as it
+was on this PC before that pull; **not played by hand**. Nothing uploaded.
+- **Measured, the last of four runs, 20 passes, no failed check, no script error** (only the old asset type
+  warning on `203785492`); all of it in [the playtest](playtests/2026-11-13-props-see-through.md):
+  1. In the way: 0.00 see-through until the body is inside the prop, then 0.65, one fade and back, one shake
+     (0.38 at 43 studs a second, 0.45 to 0.52 on a Reef Shark), the fish not slowed (43 and 43, 70 and 70).
+  2. Beside: 0.65 at 4, 8 and 12 studs, 0.00 at 17, 25 and 42 (`SideNear` 12); a box kept between the camera and
+     the fish 0.65, off that line 0.00, back on it 0.65.
+  3. The loose boxes: 0.65 inside 12 studs of the player, 0.55 at 12 to 18, 0.3 at 18 to 24, 0 from 30.
+  4. A Breaker, a Tank and a giant broke 12, 12 and 14 boxes of the prop; a Clownfish, a Reef Shark and the rider
+     in the hop (off a Clownfish, off the Sea Cow) broke none and flew at the same share of the hop's own curve
+     inside the prop as before it (1.03, 1.03).
+  5. Own screen only: in 643 looks at all 14,111 prop boxes the server never held a changed `Transparency`, a
+     `LocalTransparencyModifier` or a flying copy. **Two players in one server were not run** (memory).
+- **To know (Hugo):** a touch gives no shake if another prop shook under `Props.ShakeGap` (0.7 s) before. On the
+  Reef Shark's line to the test's coral that happened in six of eight passes (a big prop 0.5 to 0.6 s earlier):
+  the coral turned see-through at the touch with no shake of its own. `ShakeGap` is the number if every big prop
+  should shake.
+- **The test's own faults, put right** (they were the "miscounts" of the run before): shakes at other props on the
+  way counted for this one; the hop's speed read with the jump's rise in it; a speed read from the fish's tail,
+  which swings when it turns; a Predator's burst running out read as a slow-down; a prop the megalodon could not
+  be steered to. `suite3`, `view` and the server watch are in the test's README.
+- **The Studio place:** the test scripts are out (checked by script). **On disk:** Studio's auto-recovery file of
+  17:01, written in Edit after the scripts were removed, copied to `~/Documents/RideAFish/ride-a-fish-map.rbxl`
+  and `~/Projects/sharedDH-local/ride-a-fish-map.2026-11-13-1701-after-props-p3.rbxl`; the file before is in
+  `sharedDH-local/backups/` (`...1446-before-p3-save.rbxl`). A plugin still can't save: **Hugo presses Ctrl+S**.
+  The run's logs are in `~/Projects/sharedDH-local/playtest-logs/` (not in the repo).
+- **Not mine, left as found:** `src/client/UI/Kit.luau` and `Rings.luau` were changed and not committed on this PC
+  during the afternoon (the playtests ran with them).
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC, task h1): the hop as one curve
 **State:** the code went out with Obsidian's own sync (`2a83610`, "vault sync from void", before it was measured:
 the plugin is running on Hugo's PC again); the notes, the picture and the tools follow in this push. StyLua passes,

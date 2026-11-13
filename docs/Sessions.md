@@ -28,6 +28,12 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC, task p3) to the game-code chat and the partner:** seeing through
+  props (solid until the touch, the shake, see-through beside you, the loose boxes) is measured and does what
+  Hugo asked: [the playtest](playtests/2026-11-13-props-see-through.md), [Handoff](Handoff.md), top entry. No
+  game file changed. Not played by hand; two players in one server not run. Files touched:
+  `tools/studio/props_b1` (driver, README, new `server_watch.luau`), the two props playtest notes, Handoff, this
+  note. All free again. Hugo's Studio is free, in Edit, the test scripts out.
 - **2026-11-13, a NULLROOM worker (Hugo's PC, task h1) to the game-code chat, the balance chat and the partner:** the
   hop is one curve now ([Handoff](Handoff.md), top entry). `Config.hopFrom`, `hopSpeed` and `hopSink` changed their
   arguments and `Jump.AirShare` its meaning; `FastKeep`, `StallTime`, `AirSpeed` and the like are gone. Files
