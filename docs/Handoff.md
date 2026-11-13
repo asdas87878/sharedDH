@@ -3,6 +3,29 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-12 · Obsidian chat integration (the user's PC): Hugo's latest passes merged onto the user's new map (grey-box 13)
+**State:** on the user's word ("crossover his new changes with my new map", the map kept). Merged, built, in the
+user's Studio place and run once. (Since then the map chat has loaded grey-box 14 and then 15, which is what the loader files now
+hold.) **Hugo's place still has the old map: see the note to void in
+[Sessions](Sessions.md) for how to load the new one.**
+- **Merged from Hugo:** the control pass, the speed by home land and then the speed reset (`Config.FishStats`),
+  angry mode, the six passive archetypes. Only [Decisions](Decisions.md) and [Sessions](Sessions.md) conflicted;
+  both sides are kept. No script conflicted and none of Hugo's code was changed.
+- **Kept from here:** the map chat's grey-box 13 (the hub after the reference, a 144-wide gate, a mirrored first
+  room, walls rebuilt even and flush; [map structure](design/map-structure.md)), and the landing mix
+  (`Animation.LandingMix` 2; the startle's rearing stays out, `AnimController` and `Lib/Feel` are untouched by the
+  merge).
+- **Map and code together:** Hugo's passes touch no map file, and nothing in them holds a position on the map. The
+  game finds the dock spawn by name and reads the lane's width from the map's `Path`.
+- **Checked:** StyLua, selene, `rojo build`; `sync_src.py` sent 130 scripts; one sandbox run on grey-box 13: spawn
+  on the dock at (3000, 1, -144), a ride and landings down the lane at about 44 studs a second on a Common, taming
+  full, no game errors in the output.
+- **Not checked:** the archetypes' bites and smashes and angry mode on this map (the sandbox's endless air was on);
+  anything by eye (Studio draws no 3D on this PC).
+- **For the user to judge:** Hugo's angry mode and archetypes each move the fish with a stand-in motion until the
+  user's animations exist. They add to the ride and do not replace the landing mix. `Angry.Motion` 0 and
+  `ArchetypeFeel.Motion` 0 switch them off.
+
 ## 2026-11-12 · a NULLROOM worker (Hugo's PC): the passive archetypes are built and measured
 **State:** on Hugo's word (all passive, feel matters, no real animations). Run in Studio by script through the
 studio runner, seven playtests, no errors in the output; **not played by hand**. StyLua, selene and `rojo build`

@@ -123,6 +123,137 @@ then 7 and 8, then 6. **To settle first:** workout 1's open choice between look 
 down) and look B (the light really goes); and how this sits with the game's new light, which is tuned for above
 water.
 
+## Under the water (first version, 2026-11-13)
+The user, on the water colours first proposed for the ten lands: too murky and low quality for a Roblox game that is
+going to be vibrant and bright. The player must still really feel the change from land to land, so progress feels
+good. Nice effects where needed, lit correctly, its own dynamics; you must be able to see the water's texture when
+you look up at the surface from below; "you must feel being underwater but not feel like you're in a realistic game".
+
+![The ten lands under water](../attachments/map-zone-looks.jpg)
+
+**The rule now: a land is told apart by its hue, not by how dark it is.** Every land's water is a full, clean
+colour: aqua, sky blue, emerald, teal, royal blue, violet, indigo, ember red, jade, crimson. Brightness steps down
+only gently, and even the last lands are a deep colour, never black or grey. The list is one file,
+`tools/map/water_zones.py`; the sheet above (`tools/map/zone_looks.py`) and the game's script are both made from it.
+
+**What happens when the camera goes under** (all in `tools/map/water_look.luau`, so it travels with the map):
+1. **The distance fades into the land's water colour,** at that land's own distance (900 studs in the Shallows down
+   to 340 in the Underworld). This is what makes the water a place and not air.
+2. **The near view is washed with a light tint of it,** and colours are made a little stronger, more so the deeper
+   the land. Things keep their own colour.
+3. **The surface from below:** a bright sheet over your head with the water's picture moving on it, shown only from
+   below (from the hub you still see down into the water).
+4. **Shafts of light** stand in the water in the first five lands, strongest in the Shallows, gone by 320 studs
+   down. They stand still in the world, so you swim past them.
+5. **Small specks drift past,** in each land's own colour: they show you are moving and that there is water.
+6. **A slight softness in the distance,** so it reads as under water and still as a cartoon.
+7. **Lands blend into each other** over 260 studs either side of a border, and the look comes on over the first 6
+   studs of going under.
+
+**How it sits with the game's light:** it changes only Lighting's fog (colour, start, end), takes the Atmosphere
+out of Lighting while under water (Roblox's fog doesn't work with one) and puts it back at the surface, and adds two
+effects of its own, `WaterColour` and `WaterSoft`. It never writes the numbers `Config.Look` owns.
+
+![Under water in the Shallows, in play](../attachments/map-underwater-shallows.jpg)
+
+**Seen in play, in the Shallows only** (2026-11-13, the capture above): the surface overhead with its picture, the
+shafts, the sand floor and the walls bright and clean. Read back by number in three lands (Shallows, Coral Reef,
+Kelp Forest): each takes its own fog colour, distance and tint, and all of it goes back when the camera comes up.
+- **The deeper lands are not seen:** the map only reaches a player's machine near their character, so a camera
+  sent ahead alone sees nothing there. They need a ride down, or the user's eye.
+- **The end of the view:** Roblox's fog leaves the sky showing where nothing stands, so four walls and a floor in
+  the water's colour ride round the camera where the view ends (`WaterEnd`). In the capture the far end of the lane
+  is still a deeper blue than the water's aqua: to look at again.
+
+### Seeing far, and the deep lands (2026-11-13, second version)
+The user, after diving: the deeper lands are too obscured, "once you can't see far enough ahead it doesn't work".
+Only the darkest lands should have fog that fully hides what is past a point; in most it should be translucent.
+The first few lands look the best; the deep ones must feel as immersive, and navigable.
+
+**What was limiting the view, in order of how much:**
+1. **The place only sent a player the map within 1,024 studs** (Roblox's own streaming radius). Past that there was
+   nothing to see, whatever the fog did. The loader now sets `workspace.StreamingTargetRadius` to 2,400.
+2. **The fog was a wall:** full at 340 to 900 studs. It is now a veil. Each land has a distance (`see`) and a share
+   of the view the water has taken by then (`thick`): at 1,800 studs the water has taken 45% in the Shallows, up to
+   70% in the Vents and the Bone Graveyard. Things stay visible beyond, more and more in the land's colour.
+3. **Only Midnight and the Underworld close the view,** at 1,300 and 1,200 studs.
+4. Past everything the map shows, a ring in the water's colour rides 2,300 from the camera, so the view ends in
+   water and never in sky.
+
+**Why the first lands looked best, and what the deep ones were missing:** bright moving water overhead, shafts of
+light, and a light floor. Deep down the surface was out of sight, the shafts stopped, and the floors were dark
+first guesses. So:
+- **A ceiling of lit water all the way down.** While the real surface is within 520 studs it is the surface you
+  see. Deeper, a sheet of lit water in the land's own colour rides 520 over the camera, with the same moving picture.
+- **Shafts in every land,** from that ceiling, in the land's colour: violet in the Twilight, orange in the Vents.
+  Fewer and fainter the deeper the land.
+- **The deep lands' floors are lighter** (`GROUND` in `tools/map/water_zones.py`), so the canyon keeps its shape
+  under coloured water.
+- **Ledges that glow,** from the Twilight down: a line of light along the low terrace's edge on both sides, in the
+  land's glow colour. Two lines running ahead show the lane's shape and which way it goes.
+- **The cliffs fade into each land's own water** (they all faded to one pale teal).
+
+![Under the water, in play](../attachments/map-underwater.jpg)
+
+**Seen in play** (the captures above; a test sends the map to the camera's place by moving the player's
+`ReplicationFocus` to a part there):
+- **Midnight and the Vents:** the canyon's layers show far down the lane, the ledges glow, the view is navigable.
+- **First numbers were too strong and were turned down the same day:** Midnight was one electric blue and the Vents
+  a blinding pure red. The script's extra colour strength stacks on the game's own, so the deep lands now take
+  very little (the hot ones take some away), and the hot lands' water is a warm colour, never pure red.
+- **The deep ceiling was a flat glare** (a pale Neon sheet burns out): it is now the land's own water colour turned
+  down, and its picture shows.
+- **Midnight's floor** was the water's own blue, so floor, walls and water read as one. It is now a light grey-blue
+  (152, 160, 202; in `tools/map/water_zones.py`, `GROUND`), on the user's yes, 2026-11-13. Not yet looked at in play.
+- **Still to do:** the Twilight, Bone Graveyard and Underworld are not yet seen.
+- **From the game-code chat:** fish are only shown within 700 studs of a player (`Config.Spawn.StreamRadius`), so
+  walls are seen to 2,300 and fish to 700. And the 2,400 loading distance sends each player about five times the
+  map: the first number to turn down on a phone. It is one line in the loader's `00_start`.
+
+**Not built, and worth working through together:**
+- Light rippling on the floor (the water's picture, slid slowly over the floor near the camera).
+- Bubbles: off the fish, and a burst with a splash when you cross the surface. Needs a bubble picture uploaded.
+- The dark lands' own lamps ([the map's feel](map-feel.md), "Lighting the dark lands").
+- Speed in the water: streaks when a fish goes fast.
+- The pull of a current at the edge you can't pass.
+
+### The sky showing, the water overhead "loading", the fog coming and going (2026-11-13)
+The user, after playing: the water layers don't reach the end of the view, so the sky shows in the gaps; the water
+overhead keeps loading a new part as you swim; the mist is there half the time.
+
+**What it was.** Three things, one of them not ours:
+- **The water overhead was one sheet**, 2,048 across. Past its edge, 1,024 from you, was sky, and the edge jumped
+  forward as you swam. Now nine sheets, three by three, over 3,000 each way; they move a whole tile of their
+  picture at a time, so nothing jumps.
+- **The fog was mixed in by its far end** as you went under, so until the camera was about 7 studs down there was
+  almost none: riding near the surface, it came and went. Now its thickness is mixed in, over 1.5 studs.
+- **Roblox's own graphics quality.** It moves by itself when frames get slow, and it decides how far anything is
+  drawn. Measured in Studio at the lowest level: **nothing further than about 500 studs is drawn**, whatever is
+  loaded. So the ring of sheets that closed the view 2,300 away was not drawn either, the outer sheets overhead
+  were gone, and the sky showed in its own blue. And with the far map gone there was nothing for the thin fog to
+  fade: it looked switched off. This is the "half and half": the level going up and down.
+
+**The fix for the last one.** The view's end is now one box round the camera, turned inside out (the layers' cube
+mesh scaled by a negative number shows its inside). Roblox judges "too far" by a thing's own box, and the camera is
+inside this one, so it is drawn at every quality level. It stands just past where the fog is whole, so it is exactly
+the water's colour whatever lights it. Checked at the lowest and the highest level:
+
+![lowest quality](../attachments/map-water-far-low.jpg)
+![highest quality](../attachments/map-water-far-high.jpg)
+
+**What it can't fix.** At a low quality level the far map still isn't drawn: the lane now ends in water instead of
+sky, but it ends sooner and more sharply than at a high level. Two things would help, neither done:
+- A script in the game can't read the level Roblox has chosen by itself, only the one a player sets by hand. For
+  hand-set levels the fog could be pulled in to end where drawing ends, so nothing pops. It needs the draw distance
+  measured for each level (only the lowest is measured).
+- Keeping the level from dropping: the frame rate has never been measured in a focused window. That is the thinning
+  step. (My own tests ran with Studio in the background, where it is held to 15 frames a second, so the level sat at
+  its lowest: that is not what a player gets.)
+
+Tried and no use: a sky with blank pictures (Roblox draws its default sky), an Atmosphere in the water's colour
+(not drawn at the lowest level), a panel drawn far off by a mesh whose part is at the camera (judged by where it is
+drawn), a ball with a negative scale (the built-in ball ignores the sign; a mesh from a file doesn't).
+
 ## What it depends on
 | Thing | Where it comes from | Note |
 |---|---|---|

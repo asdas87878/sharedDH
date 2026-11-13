@@ -5,7 +5,7 @@ It waits instead of failing when Studio isn't in Edit mode: pressing Play half w
 place with half a map (the files that ran while playing were refused and skipped). Now a refused file is tried again
 every ten seconds until Studio is back in Edit mode.
 
-usage: python tools/studio/load_greybox.py <studio_id>"""
+usage: python tools/studio/load_greybox.py <studio_id> [greybox_bench]"""
 import os
 import re
 import subprocess
@@ -13,8 +13,8 @@ import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FOLDER = os.path.join(ROOT, "tools", "studio", "greybox")
 studio = sys.argv[1]
+FOLDER = os.path.join(ROOT, "tools", "studio", sys.argv[2] if len(sys.argv) > 2 else "greybox")  # greybox_bench: the bench
 WAIT = ("not available in Play mode", "Target is not reachable", "ENOENT", "ECONNREFUSED")
 
 
@@ -35,7 +35,7 @@ def run(path):
 def order(name):
     """the start first, the parts files in number order, then the water, then the check (a parts file can carry the
     same number as the water's or the check's file)"""
-    kind = 0 if name.endswith("_start.luau") else 1 if name.endswith("_parts.luau") else 2 if name.endswith("_water.luau") else 3
+    kind = 0 if name.endswith("_start.luau") else 1 if name.endswith("_parts.luau") else 3 if name.endswith("_check.luau") else 2
     return kind, int(re.match(r"(\d+)", name).group(1))
 
 
@@ -51,6 +51,8 @@ for k, name in enumerate(files):
         print("WATER:", last, flush=True)
     elif name.endswith("_check.luau"):
         print("CHECK:", last, flush=True)
+    elif name.endswith("_hub.luau"):
+        print("HUB:", last, flush=True)
     elif "parts made" not in last:
         problems += 1
         print("PROBLEM", name, last, flush=True)
