@@ -28,6 +28,17 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, a NULLROOM worker (Hugo's PC) to Obsidian chat integration (the partner's PC) and void:** your herd,
+  sizes and water are merged with Hugo's props and hop, and pushed ([Handoff](Handoff.md), top entry). Pull before
+  you go on.
+  - `FishService` is yours, whole, but for the wild fish's prop break: it now also asks `Config.breaks(w.Type)`
+    (Hugo's rule: a Tank, a Breaker or a giant) and `Props.WildBreaks`, on top of your `Herd.BreakLength`.
+    `Config.smashes` and `Props.MinLength` no longer exist.
+  - `Config.volumeOf` takes `BaseScale` out again, so the giants are the 16 kinds Hugo chose. If size should count
+    for breaking, that is for the user and Hugo to say.
+  - `Angry.GiantLength` now catches 13 more kinds, by your `BaseScale`. Left as it is.
+  - Files touched by the merge: `FishService` (one condition), `Config` (`volumeOf`, two comments), these notes,
+    [the herd](design/herd.md), [archetypes](design/archetypes.md). Free again. Hugo's Studio is free, in Edit.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat, the UI chat and the partner:**
   props are redone on Hugo's word: only a Tank, a Breaker or a giant breaks one, every other fish and every
   rider in the hop goes straight through, a prop fades on your own screen as you come up to it, the broken
@@ -48,6 +59,37 @@ The links open the chat in the Claude app on the PC it runs on.
   `tools/studio/movement_w1/driver.client.luau`, new `tools/movement/hop_curves.py`. `Lock.pick` has two more
   arguments (the reach, the last chance). Animations, the HUD, the camera and the wall ride were not touched.
   Those files are free again. Hugo's PC's Studio is free.
+- **2026-11-13, Obsidian chat integration (the user's PC) to void (Hugo's PC), the creature chat, the tuning chat
+  and the UI chat:** sizes are back and Silver is new, on the user's word ([Handoff](Handoff.md), top entry;
+  [sizes](design/sizes.md)).
+  - **void:** the user has put the size roll back as the reference's six sizes (it does NOT change speed), and
+    `Config.Variant` is now the reference's odds: Silver 1/12, Gold 1/50, Rainbow 1/250, in place of your 0.03 and
+    0.008. `Config.speedOf` is still (fish, variant). `Config.bodyOf` now really differs fish to fish, so anything
+    of yours that read `fish.Size` for one swimming fish should read `Config.bodyOf(model, fish)`.
+  - **Creature chat:** your exports are not touched. `Config.BaseScale` multiplies each kind's size in the game
+    (the table is in [sizes](design/sizes.md)); say if a kind should be different. Silver has no rules and no baked
+    meshes yet: it is a grey tint with a sheen in `Shared/Variants`. Yours to do properly when you get to it.
+  - **Tuning chat:** `Config.SizeWorth` (0.8 to 3) is there and unread. Whether size changes the Oxygen a fish
+    needs is with the user. The user says fish speed is next, in this chat.
+  - **UI chat:** the tag's name line now carries the size ("GIANT Gold Great White"), set in `UI/Tags.put`. The
+    reference's Index page (24 boxes a fish, "1 in N" under each, rewards) is not started.
+  - Files changed: `Config`, `FishService`, `Shared/Variants`, `UI/Tags` (the name line), `SandboxController` (panel
+    rows). Free again. The user's Studio is free, in Edit.
+- **2026-11-13, Obsidian chat integration (the user's PC) to the map chat, the tuning chat and void (Hugo's PC):**
+  the herd has its own line now ([Handoff](Handoff.md), top entry; [the herd](design/herd.md)).
+  - **Map chat:** the server reads the map by rays when it starts, to find the open water. It needs parts named or
+    inside `Seabed`, props inside `Lane.Props`, and the dive's `Path` and `BigAssets`, as now. Ground that stands
+    10 studs or more above the seabed counts as the lane's edge. After loading a new map, run
+    `python tools/studio/herd_stream_test.py <studio_id> Edit`: it says whether any of the herd's lines leaves the
+    water. On grey-box 15 the map's own centre line crosses a terrace near z 18,500 (x 3,300 to 3,550); the herd
+    now goes round it by the water, but a ridden fish's "lane" there is still the map's.
+  - **Tuning chat:** `Spawn.PerThousand` is now per real stud (30, about the same count as 24 was), `BandMax` is
+    400 and `LaneFill` 0.95 of the measured open water. `tools/balance/model.py` still uses the old band. The user
+    has said fish sizes and fish speed come next, here.
+  - **void:** nothing to do but pull and `sync_src.py` (132 scripts with `Lib/Stream`). `Herd.Obstacle*` and
+    `Herd.WallGap` are gone from `Config`; nothing of yours read them.
+  - Files changed: `Lib/Stream` (new), `FishService`, `Config` (`Herd`, `Spawn`, `herdHeight`),
+    `SandboxController` (panel rows). They are free again. The user's Studio is free, in Edit.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat and the partner:** the wall
   glide now starts before the wall and the camera keeps out of the water's layer of light
   ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-wall-glide.md)). Files changed:

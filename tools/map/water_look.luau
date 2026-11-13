@@ -65,6 +65,21 @@ local LOOK = {
 	-- of the view ("thick") by that land's distance ("see"); in most lands that is well short of hiding anything.
 	FogStart = 80,
 	EndAt = 2300, -- where the view ends in Studio's Edit mode (in play it ends where the fog is whole, see WaterEnd)
+	-- How far the map is there to be seen (2026-11-13). Two things end it, and a piece arriving inside the view pops in,
+	-- sometimes before its picture:
+	-- - the place sends the map to a player a piece at a time, out to 2,400 studs (workspace.StreamingTargetRadius).
+	--   Measured in Studio, moving at 100 and at 250 studs a second: pieces arrive 2,060 or more ahead.
+	-- - Roblox draws less far at lower graphics quality, the same whatever is in view. Measured, by its 21 levels:
+	--   1: 500, 2: 800, 3: 1,200, 4 to 12: 1,600, 14: 3,000, 16: 6,000, 21: 12,000 and more.
+	-- So in every land the fog is whole by Reach at the furthest, just inside what the middle levels draw: nothing is
+	-- seen arriving. Lands whose own fog is nearer (the Midnight, the Underworld) keep theirs.
+	Reach = 1550,
+	-- A graphics quality set by hand (1 to 10 in Roblox's menu) that draws less far than Reach -> how far. (1 in the
+	-- menu is levels 1 and 2 of the 21, 2 is levels 3 to 5; 3 and up draw to 1,600 or more)
+	Drawn = { 470, 1150 },
+	-- On automatic quality Roblox doesn't tell a game which level it has chosen. But it only goes to its lowest when
+	-- frames stay slow, so frames this slow (a second) are read as the lowest level
+	SlowFrames = 20,
 	-- The deep lands keep a ceiling: the lit water overhead never gets further than this above the camera, so the
 	-- best thing about the first lands (bright moving water over your head) goes all the way down
 	CeilUp = 520,
@@ -271,6 +286,40 @@ local function lookAt(at)
 		mix(a[8], b[8], t), a[9]:Lerp(b[9], t)
 end
 
+-- how far the map is there to be seen on this player's machine, right now (see LOOK.Reach)
+local quality = 0 -- 1 to 10 when the player has set the graphics quality by hand; 0 on automatic
+if playing then
+	pcall(function()
+		local theirs = UserSettings():GetService("UserGameSettings")
+		local function read()
+			quality = theirs.SavedQualityLevel.Value
+		end
+		read()
+		theirs:GetPropertyChangedSignal("SavedQualityLevel"):Connect(read)
+	end)
+end
+local reach, frame, slow, calm = LOOK.Reach, 1 / 60, false, 0
+local function reachNow(dt)
+	local want = LOOK.Reach
+	if quality > 0 then
+		want = math.min(want, LOOK.Drawn[quality] or want)
+		slow = false
+	else
+		frame = frame + (dt - frame) * math.min(1, dt / 3) -- the frame time, averaged over about three seconds
+		if frame > 1 / LOOK.SlowFrames then
+			slow, calm = true, 0
+		elseif slow then -- and not back out until frames have been quick for a good while
+			calm = if frame < 1 / (LOOK.SlowFrames * 1.5) then calm + dt else 0
+			slow = calm < 10
+		end
+		if slow then
+			want = math.min(want, LOOK.Drawn[1] or want)
+		end
+	end
+	reach = reach + (want - reach) * math.min(1, dt * 0.8) -- eased, so the fog never jumps
+	return reach
+end
+
 local wet = 0 -- 0 above the water, 1 well under it
 local function underwater(eye, t, dt, centre)
 	local depth = LOOK.Top - eye.Y
@@ -318,11 +367,12 @@ local function underwater(eye, t, dt, centre)
 	end
 	specks.Rate = LOOK.Specks * wet
 	specks.Color = ColorSequence.new(speck)
-	-- the end of the view: the inside-out box, just past where the fog is whole
+	-- the end of the view: the inside-out box, just past where the fog is whole; and the fog is whole no further than
+	-- the map is there to be seen (LOOK.Reach)
 	-- (the fog has taken `thick` of the view at `see`, and goes on thickening at the same rate beyond it. The
 	-- thickness is what is mixed in as you go under, not the far end: mixing the far end toward 100,000 left almost no
 	-- fog until the camera was wholly under, so near the surface the fog came and went)
-	local full = LOOK.FogStart + (see - LOOK.FogStart) / math.max(0.05, thick)
+	local full = math.min(LOOK.FogStart + (see - LOOK.FogStart) / math.max(0.05, thick), reachNow(dt))
 	local fogEnd = LOOK.FogStart + (full - LOOK.FogStart) / math.max(0.02, wet)
 	local half = if playing then math.min(fogEnd, full * 2) * 1.02 else LOOK.EndAt
 	if math.abs(half - shellHalf) > shellHalf * 0.005 then

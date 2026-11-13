@@ -227,10 +227,16 @@ local TUNABLES: { { any } } = {
 	{ "Herd", "RideHeightGain", 0.1 },
 	{ "Herd", "RideHeightPitch", 5 },
 	{ "Herd", "Ahead", 10 },
-	{ "Herd", "ObstacleLook", 10 },
-	{ "Herd", "ObstacleGap", 2 },
-	{ "Herd", "ObstacleShift", 5 },
-	{ "Herd", "WallGap", 1 },
+	{ "Herd", "Turn", 0.1 },
+	{ "Herd", "DodgeShare", 0.05 },
+	{ "Herd", "DodgeGap", 1 },
+	{ "Herd", "DodgeLength", 1 },
+	{ "Herd", "SmashLength", 2 },
+	{ "Herd", "StraightShare", 0.05 },
+	{ "Herd", "BreakLength", 2 },
+	{ "Herd", "GiveSide", 1 },
+	{ "Herd", "GiveAlong", 2 },
+	{ "Herd", "GiveRate", 0.5 },
 	{ "Ride", "RampTime", 0.1 },
 	{ "Ride", "Surge", 0.05 },
 	{ "Ride", "SurgeTime", 0.1 },
@@ -487,6 +493,9 @@ local TUNABLES: { { any } } = {
 	{ "Spawn", "HeightMin", 2 },
 	{ "Spawn", "HeightMax", 2 },
 	{ "Spawn", "HeightFloor", 1 },
+	{ "Spawn", "BigRise", 1 },
+	{ "Spawn", "Space", 2 },
+	{ "Spawn", "SpaceByLength", 0.1 },
 	-- The tuning rows (docs/design/progression.md). Every fish's speed: wild fish, the glide and the server's speed
 	-- check all follow at once.
 	-- (Hugo, 2026-11-12, the reset: every fish has its own hand-set speed in Config.FishStats, no rarity or land
@@ -494,8 +503,20 @@ local TUNABLES: { { any } } = {
 	{ "Speed", "Gold", 0.02 },
 	{ "Speed", "Rainbow", 0.02 },
 	-- the variants' chances (new fish only: the ones swimming keep theirs)
-	{ "Variant", "Gold", 0.01 },
-	{ "Variant", "Rainbow", 0.005 },
+	{ "Variant", "Silver", 0.01 },
+	{ "Variant", "Gold", 0.005 },
+	{ "Variant", "Rainbow", 0.002 },
+	-- the sizes' chances (new fish only; Normal is the rest), and how big each is
+	{ "SizeChance", "Tiny", 0.01 },
+	{ "SizeChance", "Big", 0.01 },
+	{ "SizeChance", "Giant", 0.01 },
+	{ "SizeChance", "Huge", 0.005 },
+	{ "SizeChance", "Colossal", 0.005 },
+	{ "SizeScale", "Tiny", 0.05 },
+	{ "SizeScale", "Big", 0.05 },
+	{ "SizeScale", "Giant", 0.05 },
+	{ "SizeScale", "Huge", 0.1 },
+	{ "SizeScale", "Colossal", 0.1 },
 	-- The share of spawns by rarity, land by land (Config.ZoneMix, one group a land). A changed share shows in the fish
 	-- spawned from then on, not in the ones already swimming. A row whose rarity the land's mix doesn't have is left out.
 	{ "MixShallows", "Common", 1 },

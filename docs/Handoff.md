@@ -3,6 +3,42 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · a NULLROOM worker (Hugo's PC): the merge of the partner's herd, sizes and water with Hugo's props and hop
+**State:** merged by hand and **pushed to `origin/main`** (Obsidian is not running on Hugo's PC, so nothing syncs
+there by itself). Both sides are whole: the partner's three vault syncs (the herd's stream, the six sizes and Silver,
+the water's fog) and Hugo's commit `0ca31d4` (props, the hop). StyLua and selene pass, `rojo build` passes. Run in
+Hugo's Studio through the studio runner on grey-box 15, by script; **not played by hand**. Nothing uploaded; the test
+scripts are out of the place.
+- **`FishService`: the partner's file, whole,** with one condition changed. A wild fish inside a prop breaks it when
+  **both** sides' rules say so: its kind breaks props (Hugo: `Config.breaks`, a Tank, a Breaker or a giant;
+  `Props.WildBreaks` 0 turns it off) **and** the fish itself is at least `Herd.BreakLength` (32) long (the partner).
+  `Config.smashes`, which the partner's code still called, went with Hugo's commit. Hugo's old place for this
+  (`mindObstacles`, `mindOne`) is gone with the partner's rewrite.
+- **What that changes for each side, to judge:** for the partner, a long wild fish that is no Tank, Breaker or giant
+  (a Basilosaurus, a Bone Leviathan) now swims through a prop and leaves it whole. For Hugo, a wild Humphead Wrasse
+  (30 long), Sawfish (31) or Aurora Jelly (29) at Normal size is under 32 and leaves it whole; ridden, they break as
+  before. `Herd.BreakLength` 0 gives Hugo's rule alone.
+- **`Config.volumeOf`: the giants stay Hugo's 16.** A fish's `Size` is now its export times the partner's
+  `Config.BaseScale`, and a volume grows with the cube of that: left alone, 13 more kinds would have been giants and
+  broken props (Archelon, Coral Dragon, Hellmaw, the Void and Phantom Whales and eight more). `volumeOf` takes the
+  scale out again, so `Props.GiantVolume` is still measured on the exported box. A fish's rolled size (Tiny to
+  Colossal) does not change who breaks either. Open, for Hugo and the partner: whether size should count.
+- **Not changed, to know about:** `Config.Angry.GiantLength` (40) reads a kind's length, which `BaseScale` has
+  raised: 13 more kinds now take the giant's slow fade when angry (Steller's Sea Cow, Hellmaw, the eels and serpents
+  among them). `Config.Variant` is the partner's (Silver 1/12, Gold 1/50, Rainbow 1/250), as their entry below says.
+- **The panel:** no row twice, every row has its number; `Props` and the `Herd` and `Spawn` rows are both sides'.
+- **Measured (merged code):** the game starts with no errors (the old asset type warning on `203785492` only); the
+  herd near the dock turns 2.7 degrees in 4 seconds on average (worst fish 10), sizes rolled (Tiny to Giant seen);
+  the props suite as in [the props playtest](playtests/2026-11-13-props.md): a Clownfish and a Reef Shark through
+  a whole prop at 0.65 see-through, the Wrasse, the Sea Cow and the Molten Megalodon break all of it, props back
+  4.5 s after leaving; wild fish held inside a prop for 3 s: Molten Megalodon 5 of 16 boxes out, Bone Leviathan
+  (67 long, no breaker) 0, Clownfish 0; a hop from a Megalodon onto a wild Seahorse and from the Wrasse onto a
+  Butterflyfish; the Wrasse's `Archetype` is "Breaker", its Smash boost and the Reef Shark's Eat fired; with the air
+  draining a Clownfish got `Angry` and `AngryStyle` "Zigzag".
+- **Not checked:** by eye, anything. The lands past the second. `tools/studio/herd_stream_test.py` (it goes through
+  `run_luau.js`, the partner's PC).
+- **The partner:** pull, then sync your Studio as usual. Nothing of yours was replaced.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): props, only Tanks, Breakers and giants break them; the rest go through
 **State:** on Hugo's word of 2026-11-13. Run in Studio by script through the studio runner on grey-box 15
 ([the playtest](playtests/2026-11-13-props.md)); **not played by hand, and no one has seen the fade or the break
@@ -76,6 +112,64 @@ between fish, the air's shape, the hook's reach". One row in [Decisions](Decisio
   a cadence on `mounts`. `tools/movement/hop_curves.py` draws the old and new curves from the formulas.
 - **Left:** the fall ends on the sea floor with a stop in one frame (the camera barely shows it), and you lie
   there until the window ends; the window itself is as long as it was.
+
+## 2026-11-13 · Obsidian chat integration (the user's PC): six sizes and Silver, 24 of every fish; the kinds' own sizes
+**State:** on the user's word of 2026-11-13, with their screenshot of the reference's Index. In the user's Studio
+place (synced, 132 scripts) and run there on grey-box 15 by script; **not looked at by eye**. StyLua and selene pass,
+`rojo build` passes. Nothing uploaded. Not committed by hand. All of it, with the odds worked out and every number:
+[sizes](design/sizes.md). One row in [Decisions](Decisions.md).
+- **`Config`:** `Config.BaseScale` (new: each kind's size times the creature chat's export, 0.85 to 1.6, all 82);
+  `Config.SizeOrder`, `SizeChance`, `SizeScale`, `SizeWorth` (new; `SizeWorth` is read by nothing yet);
+  `Config.Variant` is now `Silver` 1/12, `Gold` 1/50, `Rainbow` 1/250 (**Hugo's 0.03 and 0.008 are replaced**);
+  `Config.Speed.Silver` 1.05; `rollSize`, `sizeScale`, `sizeWorth`, `sizeTierOf` (new); `rollVariant` and `speedOf`
+  know Silver. `Herd.SmashLength` 60 (40), `BreakLength` 32 (24), `Spawn.BigLength` 20 (16), `BigFull` 80 (44).
+- **`FishService`:** every new fish rolls a size; `resize` scales the model and its seat (Hugo's own function of
+  2026-11-12, back); `Wild.SizeTier`, and `Wild.Body` is the fish's own; the model's `SizeTier` and `Size`
+  attributes. The herd's rules go by the fish's own length. Studio: `Workspace`'s `TestSize` and `TestVariant`.
+- **`Shared/Variants`:** Silver, as a tint with a sheen (no baked meshes: `tools/creatures/local_meshes.py` and
+  `install.py` are untouched, so Hugo's place tints Silver too).
+- **`UI/Tags`:** the name line reads "GIANT Gold Great White". **`SandboxController`:** panel rows only.
+- **Measured:** the rolls over 690 fish match the odds; every model is its body's size; a ride and three hops with
+  every fish forced Colossal and Silver, no errors.
+- **Not done:** size does not change the Oxygen a fish needs (the user's to decide) or its speed (next); no Index;
+  nothing remembers which of the 24 a player has. `docs/design/roster.md` and `archetypes.md` still give the old
+  sizes where they give any.
+
+## 2026-11-13 · Obsidian chat integration (the user's PC): the herd swims its own straight line, spread out, big fish higher
+**State:** on the user's word of 2026-11-13. In the user's Studio place (synced, 132 scripts) and run there on
+grey-box 15 by script; **not looked at by eye**. StyLua and selene pass, `rojo build` passes. Nothing uploaded. Not
+committed by hand. The study, what was wrong, what it does now, the measurements and every number:
+[the herd](design/herd.md). One row in [Decisions](Decisions.md).
+- **New: `src/server/Lib/Stream.luau`.** The herd's water, built once when the server starts (a third of a second):
+  a smooth spine that finds its own way through the open water, a band of open seabed, a floor with its steps
+  rounded, and the bends round the big things. It reads the map by rays, so it needs `Seabed` and `Props` named as
+  they are.
+- **`FishService`:** a fish keeps its share of the band, its lift and how far along it is; `steer` heads for its
+  line of the stream. The old looking-ahead dodge (`mindObstacles`) is gone. New fish are placed where there is the
+  most room; big fish want more and swim higher; fish passing give way a little; a fish that swims out of sight is
+  given a new place. **"How far along" (`S`, `Home`, the slices) is now studs down the stream, not the lane's own
+  s:** `Stream.laneS` and `Stream.fromLane` go between them.
+- **`Config`:** `Herd.Obstacle*` and `Herd.WallGap` are gone; `Herd.Turn`, `Smooth`, `EdgeGap`, `NeckAhead`,
+  `BandSmooth`, `Floor*`, `Dodge*`, `SmashLength`, `Give*` are new. `Spawn`: `HeightMax` 20 (16), `BandMax` 300
+  (200; 400 since the second word), `LaneFill` 0.9 (0.7, and it now means the open water's width), `PerThousand` 30 (24, now per real stud),
+  new `Big*`, `Belly`, `Tries`, `Space`, `SpaceByLength`. `Config.herdHeight` allows for the big fish's rise.
+  `SandboxController`: panel rows only.
+- **The user's second word, the same day** ("some gentle bends, some straight through", "separate the fish a bit
+  more, some to the sides"): `Herd.StraightShare` 0.4 of the fish go straight through props, `BreakLength` 24 is how
+  long a fish must be to break one; the band is up to 400 wide (`BandMax`) with its two sides fitted one by one
+  (`Stream.HalfLeft`, `HalfRight`; `Herd.SpineRoom`); `Space` 32, `SpaceByLength` 1.2, `Tries` 14, `GiveSide` 14,
+  `GiveAlong` 36, `LaneFill` 0.95. Synced and run again.
+- **Measured:** the herd's middle line turns 3 degrees per 100 studs and its side lines 7 (the middle was 32, the
+  sides over 200); live fish at the start 1.2 to 1.9 (4.0), round a rider in the bending second land 6 to 7; no
+  line leaves the water or the floor in 4,825 places; nearest neighbour 85 studs at the median; a sandbox ride
+  with hops, no errors.
+- **Next, on the user's word:** proper fish size variations, and fish speed.
+- **New tool:** `python tools/studio/herd_stream_test.py <studio_id> Edit` measures the stream on whatever map is
+  in Studio. Run it after a new map.
+- **Not done:** Hugo's place has none of this until he pulls and syncs. `tools/balance/model.py` still works the
+  band out the old way.
+- **For the user to judge:** the mix of bending and straight-through fish; small fish swimming through a prop
+  that stays whole; the band's width; how the big fish read above the layer.
 
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): the glide starts before the wall, and the camera under the water's lit sheet
 **State:** on Hugo's hand-play of 2026-11-13. Run in Studio by script through the studio runner on grey-box 15;

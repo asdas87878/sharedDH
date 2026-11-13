@@ -2,6 +2,11 @@
 -- Wild fish: spawned per zone by the roster's rarity mix (each fish one or two zones past its home at most), spread
 -- evenly over the whole dive lane, and swimming as a herd: all the same way, down the lane, each at its own place across
 -- it and above the floor, at Herd.SpeedShare of the speed it is ridden at (as the reference's herds run along its track).
+-- The herd's water is the stream (Lib/Stream, 2026-11-13): the lane's middle evened out, a band of open seabed measured
+-- off the built map, and a floor with its steps rounded. A fish keeps three numbers for as long as it swims: its share
+-- of the band's width (U), its lift above the floor, and how far along it is. Its path is the stream's line for those
+-- numbers, so it is straight wherever the lane is, bends once and gently round a big thing in its way, and is decided
+-- before it gets there. New fish go where there is the most room (bigger fish want more), and a big fish swims higher.
 -- The lane's path (Shared.Lane) is cut into Spawn.Slice-stud slices, each zone's share of fish spread over its slices,
 -- every slice keeping at least one (the dive board's keeps Spawn.BoardSlice). The herd drains downstream, so the top-up
 -- keeps putting new fish into the emptiest slices, and takes away fish that have swum past the zones their kind lives
@@ -14,6 +19,10 @@
 -- attribute), and its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant), which the herd, the
 -- rider's client and the server's checks all use. There is no size roll for now (Hugo, the same day): every fish is
 -- its species' size.
+-- (2026-11-13, the user: sizes are back, as the reference has them. Every spawned fish is one of six sizes,
+-- Config.SizeChance, rolled apart from its variant: its model, seat and body are its species' times Config.SizeScale,
+-- its "Size" and "SizeTier" attributes say so. Size changes neither speed nor what a fish needs (Config.SizeWorth
+-- is there for when it does). The herd's rules that go by a fish's length, Config.Herd and Config.Spawn, go by its own.)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -26,19 +35,30 @@ local Variants = require(ReplicatedStorage.Shared.Variants)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local FishModel = require(script.Parent.Parent.Lib.FishModel)
 local LaneSurvey = require(script.Parent.Parent.Lib.LaneSurvey)
+local Stream = require(script.Parent.Parent.Lib.Stream)
 local PropService = require(script.Parent.PropService)
 
 export type Wild = {
 	Model: Model,
 	Root: BasePart,
 	Type: Config.FishType,
-	Variant: string, -- "", "Gold" or "Rainbow"
-	Body: Vector3, -- its width, height and length: Type.Size (no size roll for now)
+	Variant: string, -- "", "Silver", "Gold" or "Rainbow"
+	SizeTier: string, -- its size's name (Config.SizeOrder)
+	Body: Vector3, -- its own width, height and length: Type.Size times its size's (Config.SizeScale)
 	Zone: number,
-	Home: number, -- s along the lane: where it is, as far as the stocking knows (kept up by the top-up)
-	S: number, -- s along the lane now, carried forward as it swims
-	Across: number, -- its place across the lane, from the centre
-	Height: number, -- and above the lane's floor
+	-- (2026-11-13: "along" is studs down the herd's stream, Lib/Stream, for fish and slices alike. The lane's own s is
+	-- measured along its wandering middle, 28% longer on grey-box 15 and unevenly so; Stream.laneS gives it when the
+	-- lane is asked something, such as which zone a place is in.)
+	Home: number, -- how far along it is, as far as the stocking knows (kept up by the top-up)
+	S: number, -- how far along it is now, carried forward as it swims
+	U: number, -- its place across the herd's band, as a share of the band's half width (-1 to 1): kept for good
+	Lift: number, -- and above the floor, in open water: kept for good
+	A: number, -- where that puts it across the band just now, studs from the band's middle
+	Give: number, -- how far it has moved aside for a fish it is passing, studs,
+	GiveWant: number, -- and how far it should have
+	Dodge: number, -- 1: its line bends round the big things in the lane; 0: straight through them (Herd.SmashLength)
+	Space: number, -- the room it wants round it (Spawn.Space and its length)
+	SyncAt: number, -- os.clock() its place along the stream was last read off where it really is
 	Slice: number?, -- the slice it counts for (nil past the stocked zones)
 	Parked: boolean,
 	UnparkedAt: number, -- os.clock() it last came back into the Workspace (0: never parked)
@@ -59,8 +79,6 @@ export type Wild = {
 }
 
 type Slice = { Start: number, End: number, Zone: number, Want: number }
--- a big solid thing in the lane: where it stands, its place across the lane, and the lane's half width there
-type Obstacle = { X: number, Z: number, Radius: number, Across: number, Half: number }
 
 local FishService = {}
 
@@ -70,13 +88,14 @@ local parkedFolder: Folder
 local zones: { Zones.Zone } = {}
 local lane: Lane.Lane
 local slices: { Slice } = {}
-local obstacles: { Obstacle } = {}
--- the same obstacles by where they stand along the lane, in stretches of OBSTACLE_BUCKET studs: a fish looks only at
--- its own stretch and the ones either side (it looked at all 302 every frame: 725,000 steps a second for 40 fish)
-local OBSTACLE_BUCKET = 250
-local obstacleBuckets: { [number]: { Obstacle } } = {}
-local NO_OBSTACLES: { Obstacle } = {}
+local stream: Stream.Stream
 local wild: { [Model]: Wild } = {}
+-- every fish by where it is along the lane, in stretches of STOCK studs: what a new fish's place is weighed against
+-- (made again at each top-up; a new fish is added as it is made)
+local STOCK = 240
+local stock: { [number]: { Wild } } = {}
+local NO_FISH: { Wild } = {}
+local SYNC = 0.5 -- seconds between reads of a fish's place along the stream off where it really is
 
 FishService.Tag = FishModel.Tag
 
@@ -95,11 +114,40 @@ local function rollVariant(): string
 	local variant = Config.rollVariant(rng:NextNumber())
 	if RunService:IsStudio() then
 		local testVariant = workspace:GetAttribute("TestVariant")
-		if testVariant == "Gold" or testVariant == "Rainbow" then
+		if testVariant == "Silver" or testVariant == "Gold" or testVariant == "Rainbow" then
 			variant = testVariant
 		end
 	end
 	return variant
+end
+
+-- The roll for a new fish's size. Studio only: the workspace's "TestSize" attribute (a name of Config.SizeOrder) makes
+-- every new fish that size, for looking at them.
+local function rollSize(): string
+	local tier = Config.rollSize(rng:NextNumber())
+	if RunService:IsStudio() then
+		local testSize = workspace:GetAttribute("TestSize")
+		if type(testSize) == "string" and Config.SizeScale[testSize] then
+			tier = testSize
+		end
+	end
+	return tier
+end
+
+-- A fish model made its size: the whole model and its seat (the seat's own height above the back is not scaled)
+local function resize(model: Model, tier: string)
+	local scale = Config.sizeScale(tier)
+	model:SetAttribute("SizeTier", tier)
+	model:SetAttribute("Size", scale)
+	if scale == 1 then
+		return
+	end
+	model:ScaleTo(model:GetScale() * scale)
+	local root = model.PrimaryPart
+	local saddle = root and root:FindFirstChild("Saddle")
+	if saddle and saddle:IsA("Attachment") then
+		saddle.Position -= Vector3.new(0, Config.Ride.SeatHeight * (scale - 1), 0)
+	end
 end
 
 function FishService.get(instance: Instance?): Wild?
@@ -188,7 +236,8 @@ local function newSlices(): { Slice }
 	local sp = Config.Spawn
 	local total = 0
 	for z = 1, #zones do
-		local s0, s1 = lane.ZoneStart[z], lane.ZoneEnd[z]
+		local s0 = Stream.fromLane(stream, lane.ZoneStart[z])
+		local s1 = Stream.fromLane(stream, lane.ZoneEnd[z])
 		local length = s1 - s0
 		if length > 1 and hasRoster(z) then
 			local n = math.max(1, math.floor(length / sp.Slice + 0.5))
@@ -244,57 +293,88 @@ local function sliceAt(s: number): number?
 	return nil
 end
 
--- How far either side of the lane's middle the herd swims where the lane is `width` wide
-local function band(width: number): number
-	return math.min(width / 2 * Config.Spawn.LaneFill, Config.Spawn.BandMax / 2)
+-- The room a fish with this body wants round it in the herd
+local function spaceOf(body: Vector3): number
+	return Config.Spawn.Space + body.Z * Config.Spawn.SpaceByLength
 end
 
--- A spot in the lane at s: across 0.7 of its width, a random height above the floor, under the surface and any roof
-local function pointAt(s: number): Vector3
-	local _, _, width = Lane.at(lane, s)
-	local x = rng:NextNumber(-1, 1) * band(width)
-	-- not inside one of the big things standing in the lane (a few tries; the steering sorts out the rest)
-	for _ = 1, 6 do
-		local at = Lane.point(lane, s, x, 0)
-		local clear = true
-		for _, o in obstacles do
-			local dx, dz = at.X - o.X, at.Z - o.Z
-			if dx * dx + dz * dz < (o.Radius + 8) ^ 2 then
-				clear = false
-				break
+-- A new fish's way with the big things in the lane: 1, its line bends round them; 0, straight through them. The
+-- longest always go straight through (Herd.SmashLength); of the rest, Herd.StraightShare do (the user, 2026-11-13:
+-- "some gentle bends, some straight through").
+local function rollDodge(body: Vector3): number
+	local h = Config.Herd
+	if body.Z >= h.SmashLength or rng:NextNumber() < h.StraightShare then
+		return 0
+	end
+	return 1
+end
+
+-- How far above the herd's layer a fish with this body may swim, as a share of Spawn.BigRise: by its length
+local function bigShare(body: Vector3): number
+	local sp = Config.Spawn
+	return math.clamp((body.Z - sp.BigLength) / math.max(sp.BigFull - sp.BigLength, 1), 0, 1)
+end
+
+-- The lowest and the highest a fish with this body swims above the floor in open water
+local function liftRange(body: Vector3): (number, number)
+	local sp = Config.Spawn
+	local low = math.max(math.min(sp.HeightMin, sp.HeightMax), body.Y / 2 + sp.Belly)
+	return low, math.max(low, sp.HeightMax + sp.BigRise * bigShare(body))
+end
+
+-- A new fish's lift: somewhere in the herd's layer, and above it by its size (a big fish is seen over the others)
+local function rollLift(body: Vector3, s: number): number
+	local sp = Config.Spawn
+	local low, high = liftRange(body)
+	local lift = rng:NextNumber(math.min(sp.HeightMin, sp.HeightMax), math.max(sp.HeightMin, sp.HeightMax))
+		+ sp.BigRise * bigShare(body) * rng:NextNumber(0.4, 1)
+	-- under an arch, a shelf or a sign, keep clear of the roof (the map's Path c)
+	local roof = Lane.clearanceAt(lane, Stream.laneS(stream, s))
+	if roof then
+		high = math.min(high, roof - sp.RoofGap - body.Y / 2)
+	end
+	return math.clamp(lift, low, math.max(low, high))
+end
+
+-- How much room a place has: the nearest fish to it, in shares of the room the two of them want (1: just enough;
+-- less: too near). Height counts double, so two fish one above the other are not "apart".
+local function roomAt(s: number, across: number, lift: number, space: number): number
+	local best = math.huge
+	local bucket = math.floor(s / STOCK)
+	for b = bucket - 1, bucket + 1 do
+		for _, o in stock[b] or NO_FISH do
+			local ds = o.S - s
+			if ds > -STOCK and ds < STOCK then
+				local da = o.A - across
+				local dl = (o.Lift - lift) * 2
+				local d = math.sqrt(ds * ds + da * da + dl * dl) / (space + o.Space)
+				if d < best then
+					best = d
+				end
 			end
 		end
-		if clear then
-			break
-		end
-		x = rng:NextNumber(-1, 1) * band(width)
 	end
-	local floorY = Lane.point(lane, s, x, 0).Y
-	-- (and low enough in the shallows that a jump has room to rise above the herd)
-	local room = math.min(Config.Oxygen.SurfaceY - 6 - floorY, Config.herdTop(floorY))
-	-- under an arch, a shelf or a sign, keep clear of the roof (the map's Path c)
-	local roof = Lane.clearanceAt(lane, s)
-	if roof then
-		room = math.min(room, roof - Config.Spawn.RoofGap)
-	end
-	local top = math.min(Config.Spawn.HeightMax, room)
-	local low = math.min(Config.Spawn.HeightMin, top * 0.8)
-	local h = if top > 3 then rng:NextNumber(low, top) else math.max(room * 0.5, 2)
-	return Lane.point(lane, s, x, h)
+	return best
 end
 
--- Where a fish is in the lane, from its position: s along it, its place across and its height above the floor (kept
--- inside the part of the lane fish use)
-local function placeInLane(w: Wild)
+local function addToStock(w: Wild)
+	local bucket = math.floor(w.S / STOCK)
+	stock[bucket] = stock[bucket] or {}
+	table.insert(stock[bucket], w)
+end
+
+-- Where a fish is in the stream, from its position: s along it, its share of the band and its lift (kept inside what
+-- a fish of its kind uses). For a fish that didn't get its place from the stocking: one just let go, or put in by hand.
+local function placeInStream(w: Wild)
 	local position = w.Root.Position
-	local s = Lane.project(lane, position)
-	local centre, along, width = Lane.at(lane, s)
-	local right = along:Cross(Vector3.yAxis)
-	local half = band(width)
+	local s, across = Stream.project(stream, position)
+	local low, high = liftRange(w.Body)
 	w.S = s
-	w.Across = math.clamp((position - centre):Dot(right), -half, half)
-	local lowest = math.min(Config.Spawn.HeightMin, Config.Spawn.HeightMax)
-	w.Height = math.clamp(position.Y - centre.Y, lowest, math.max(Config.Spawn.HeightMax, lowest))
+	w.U = Stream.share(stream, s, across)
+	w.A = across
+	w.Give = 0
+	w.GiveWant = 0
+	w.Lift = math.clamp(position.Y - Stream.floor(stream, s, across), low, high)
 end
 
 -- Where the players are, read at most five times a second and kept: the top-up asks "is a player near?" once or twice
@@ -364,9 +444,16 @@ local function make(
 	at: Vector3,
 	dir: Vector3,
 	zone: number,
-	slice: number?
+	slice: number?,
+	u: number?,
+	lift: number?,
+	dodge: number?,
+	sizeTier: string?
 ): Wild
 	local model = FishModel.build(fishType)
+	local tier = sizeTier or "Normal"
+	local body = fishType.Size * Config.sizeScale(tier)
+	resize(model, tier)
 	model:SetAttribute("Variant", variant)
 	-- its passive archetypes (Config.FishStats; docs/design/archetypes.md): "" for none, more than one comma-separated.
 	-- The hook for the passives and for the partner's animations
@@ -379,12 +466,19 @@ local function make(
 		Root = root,
 		Type = fishType,
 		Variant = variant,
-		Body = fishType.Size,
+		SizeTier = tier,
+		Body = body,
 		Zone = zone,
 		Home = home,
 		S = home,
-		Across = 0,
-		Height = Config.Spawn.HeightMin,
+		U = u or 0,
+		Lift = lift or Config.Spawn.HeightMin,
+		A = 0,
+		Give = 0,
+		GiveWant = 0,
+		Dodge = dodge or rollDodge(body),
+		Space = spaceOf(body),
+		SyncAt = os.clock() + rng:NextNumber(0, SYNC),
 		Slice = slice,
 		Parked = true,
 		UnparkedAt = 0,
@@ -405,11 +499,57 @@ local function make(
 	}
 	model.Parent = parkedFolder
 	wild[model] = w
-	placeInLane(w)
+	if u and lift then
+		w.A = Stream.across(stream, home, u, 0, w.Dodge, body.X / 2)
+	else
+		placeInStream(w)
+	end
+	addToStock(w)
 	model.Destroying:Connect(function()
 		wild[model] = nil
 	end)
 	return w
+end
+
+-- How many fish each slice has been given a place for, for spreading them across the band (placeFor)
+local placed: { [number]: number } = {}
+
+-- A place in a slice for a fish of this kind: of Spawn.Tries places, the one with the most room round it (roomAt). Half
+-- the tries walk evenly across the band from where the slice's last fish went, so the band is filled from side to
+-- side; the rest are anywhere. A place near a player counts for much less (a new fish appeared out of nothing 0 to 120
+-- studs from a player standing at the lane's start, about one a second), and one inside a big thing, for a fish that
+-- doesn't go round them, for nothing. `size`: the fish's own width, height and length; `clearOf`: how far from every
+-- player the place should be; `dodge`: the fish's way with the big things (rollDodge).
+-- Returns how far along it is, the place itself, and the fish's share of the band and its lift there.
+local function placeFor(index: number, size: Vector3, clearOf: number, dodge: number): (number, Vector3, number, number)
+	local slice = slices[index]
+	local sp = Config.Spawn
+	local space, body = spaceOf(size), size.X / 2
+	local count = placed[index] or 0
+	placed[index] = count + 1
+	local bestScore = -1
+	local home, at, bestU, bestLift = slice.Start, Vector3.zero, 0, sp.HeightMin
+	for try = 1, math.max(1, sp.Tries) do
+		local s = rng:NextNumber(slice.Start, slice.End)
+		local u = if try % 2 == 1
+			then ((count * 0.618034 + try * 0.381966 + index * 0.271) % 1) * 2 - 1
+			else rng:NextNumber(-1, 1)
+		local lift = rollLift(size, s)
+		local across = Stream.across(stream, s, u, 0, dodge, body)
+		local point = Stream.point(stream, s, across, lift)
+		local score = math.min(roomAt(s, across, lift, space), 4)
+		local clear = nearestPlayer(point)
+		if clear < clearOf then
+			score *= 0.2 * clear / clearOf
+		end
+		if dodge == 0 and Stream.inside(stream, s, point.X, point.Z) then
+			score *= 0.05
+		end
+		if score > bestScore then
+			bestScore, home, at, bestU, bestLift = score, s, point, u, lift
+		end
+	end
+	return home, at, bestU, bestLift
 end
 
 local function spawnFish(index: number): Wild?
@@ -418,26 +558,30 @@ local function spawnFish(index: number): Wild?
 	if not slice or not fishType then
 		return nil
 	end
-	-- its place in the slice: of a few tries, the one furthest from every player, and the first that is far enough
-	-- (a new fish appeared out of nothing 0 to 120 studs from a player standing at the lane's start, about one a second)
-	local home = rng:NextNumber(slice.Start, slice.End)
-	local at = pointAt(home)
-	local clear = nearestPlayer(at)
-	for _ = 1, 4 do
-		if clear >= Config.Spawn.AppearClear then
-			break
-		end
-		local tryHome = rng:NextNumber(slice.Start, slice.End)
-		local tryAt = pointAt(tryHome)
-		local tryClear = nearestPlayer(tryAt)
-		if tryClear > clear then
-			home, at, clear = tryHome, tryAt, tryClear
-		end
-	end
-	local _, dir = Lane.at(lane, home)
-	local w = make(fishType, rollVariant(), home, at, dir, slice.Zone, index)
+	local tier = rollSize()
+	local body = fishType.Size * Config.sizeScale(tier)
+	local dodge = rollDodge(body)
+	local home, at, u, lift = placeFor(index, body, Config.Spawn.AppearClear, dodge)
+	local along = Stream.along(stream, home)
+	local w = make(fishType, rollVariant(), home, at, along, slice.Zone, index, u, lift, dodge, tier)
 	park(w, not nearAPlayer(at, Config.Spawn.StreamRadius))
 	return w
+end
+
+-- A fish that has just swum out of everyone's sight is given a new place in the slice it has reached, where there is
+-- the most room, and waits there (parked). Left where they stopped, such fish piled up in a row at the edge of
+-- Spawn.StreamRadius: every fish stops at the same distance from a player who is standing still, or leaving them behind.
+local function reseat(w: Wild, index: number)
+	local home, at, u, lift = placeFor(index, w.Body, Config.Spawn.StreamRadius + 30, w.Dodge)
+	local dir = Stream.along(stream, home)
+	w.S, w.Home, w.U, w.Lift = home, home, u, lift
+	w.Give, w.GiveWant = 0, 0
+	w.A = Stream.across(stream, home, u, 0, w.Dodge, w.Body.X / 2)
+	w.Dir = dir
+	w.ReleasedAt = nil
+	w.Model:PivotTo(CFrame.lookAt(at, at + dir))
+	w.Root.AssemblyLinearVelocity = Vector3.zero
+	w.Root.AssemblyAngularVelocity = Vector3.zero
 end
 
 -- Free fish per slice (parked ones count; ridden, reserved and coasting ones don't), and every fish in all
@@ -472,6 +616,10 @@ local function emptiest(per: { [number]: number }): number?
 end
 
 local function topUp(limit: number)
+	table.clear(stock)
+	for _, w in wild do
+		addToStock(w)
+	end
 	local per, total = count()
 	local made = 0
 	while made < limit and total < Config.Spawn.MaxTotal do
@@ -486,13 +634,8 @@ local function topUp(limit: number)
 	for _, w in wild do
 		if not w.Rider and not w.Reserved and not w.CoastToken then
 			local near = nearAPlayer(w.Root.Position, Config.Spawn.StreamRadius)
-			-- its place along the lane, from where it really is (a fish in the Workspace only: a parked one doesn't
-			-- move). Between top-ups S is carried forward by its speed, and each detour round an obstacle left it a
-			-- few studs behind that: the point it steered for crept ahead of it, far enough over two lands to cut a
-			-- bend. (The window round the old S keeps this cheap, and takes a gap back a little at a time.)
-			if not w.Parked then
-				w.S = (Lane.project(lane, w.Root.Position, w.S))
-			end
+			-- (its place along the lane is kept true as it swims: steer reads it off where the fish really is every
+			-- SYNC seconds)
 			-- the herd swims on: the fish counts for the slice it has reached
 			local old = w.Slice
 			local slice = sliceAt(w.S)
@@ -505,7 +648,7 @@ local function topUp(limit: number)
 				end
 				w.Home = w.S
 				w.Slice = slice
-				w.Zone = Lane.zoneAt(lane, w.S)
+				w.Zone = Lane.zoneAt(lane, Stream.laneS(stream, w.S))
 			end
 			-- out of sight, take away fish in a crowded slice, past the stocked zones, or past the zones their kind
 			-- lives in
@@ -516,6 +659,10 @@ local function topUp(limit: number)
 					per[slice] -= 1
 				end
 				w.Model:Destroy()
+			elseif not near and not w.Parked and slice then
+				-- (parked first: the move is then not sent to anyone)
+				park(w, true)
+				reseat(w, slice)
 			else
 				park(w, not near)
 			end
@@ -570,7 +717,8 @@ local function takeBack(w: Wild)
 	w.ReleaseSpeed = velocity.Magnitude
 	w.ReleasedAt = os.clock()
 	w.Dir = if velocity.Magnitude > 1 then velocity.Unit else w.Root.CFrame.LookVector
-	placeInLane(w)
+	placeInStream(w)
+	w.SyncAt = os.clock()
 end
 
 -- After the rider's weld is gone. With a hand-back time, the last rider's client keeps it that long, coasting.
@@ -580,9 +728,9 @@ function FishService.release(w: Wild, handBack: number?)
 	if not w.Model.Parent then
 		return
 	end
-	w.Home = (Lane.project(lane, w.Root.Position))
+	w.Home = (Stream.project(stream, w.Root.Position))
 	w.Slice = sliceAt(w.Home)
-	w.Zone = Lane.zoneAt(lane, w.Home)
+	w.Zone = Lane.zoneAt(lane, Stream.laneS(stream, w.Home))
 	if handBack and handBack > 0 then
 		local token = {}
 		w.CoastToken = token
@@ -596,90 +744,44 @@ function FishService.release(w: Wild, handBack: number?)
 	end
 end
 
--- One obstacle against one fish (mindObstacles, below): returns the push so far and whether the fish's place across
--- the lane has been moved
-local function mindOne(
-	w: Wild,
-	o: Obstacle,
-	position: Vector3,
-	dir: Vector3,
-	body: number,
-	dt: number,
-	push: Vector3,
-	moved: boolean
-): (Vector3, boolean)
+-- Passing (Herd.Give*): fish swim at their own speeds, so one catches another up on the same line. Each pair that is
+-- about to overlap gives way, half each, to the side each is already on, by how much they would overlap and how near
+-- they are nose to tail; steer moves a fish toward that slowly, and back once the other has gone by.
+local passing: { Wild } = {}
+local function giveWay()
 	local h = Config.Herd
-	local rx, rz = o.X - position.X, o.Z - position.Z
-	local clear = o.Radius + body
-	local ahead = rx * dir.X + rz * dir.Z
-	if ahead > -clear and ahead < h.ObstacleLook + o.Radius then
-		local away = math.sqrt(rx * rx + rz * rz)
-		if away < clear and away > 0.01 then
-			-- inside its margin: out, harder the deeper in
-			push -= Vector3.new(rx, 0, rz) / away * math.min(2, (clear - away) / body)
+	table.clear(passing)
+	for _, w in wild do
+		if not w.Parked and not w.Rider and not w.CoastToken then
+			w.GiveWant = 0
+			table.insert(passing, w)
 		end
-		if
-			away < o.Radius
-			and Config.Props.WildBreaks ~= 0
-			and os.clock() - w.PropAt >= Config.Props.WildEvery
-			and Config.breaks(w.Type)
-		then
-			w.PropAt = os.clock()
-			local size = w.Body
-			PropService.hit(
-				position + w.Dir * (size.Z / 2),
-				w.Dir * w.Speed,
-				math.max(size.X, size.Y) / 2 + Config.Props.Reach
-			)
-		end
-		-- how far to our right it stands (the lane's "across" runs the same way going down the lane)
-		local right = rx * -dir.Z + rz * dir.X
-		if not moved and math.abs(right) < clear then
-			local room = o.Half - h.WallGap
-			local side = if right > 0 then -1 elseif right < 0 then 1 elseif w.Across >= o.Across then 1 else -1
-			if o.Across + side * clear > room or o.Across + side * clear < -room then
-				side = -side
+	end
+	for i = 1, #passing - 1 do
+		local a = passing[i]
+		for j = i + 1, #passing do
+			local b = passing[j]
+			local along = (a.Body.Z + b.Body.Z) / 2 + h.GiveAlong
+			local ds = math.abs(a.S - b.S)
+			if ds < along then
+				local side = (a.Body.X + b.Body.X) / 2 + h.GiveSide
+				local across = a.A - b.A
+				local short = side - math.abs(across)
+				if short > 0 and math.abs(a.Lift - b.Lift) < (a.Body.Y + b.Body.Y) / 2 + 2 then
+					local push = short / 2 * (1 - ds / along)
+					local way = if across > 0 then 1 elseif across < 0 then -1 elseif a.U >= b.U then 1 else -1
+					a.GiveWant += way * push
+					b.GiveWant -= way * push
+				end
 			end
-			local goal = math.clamp(o.Across + side * clear, -room, room)
-			local step = h.ObstacleShift * dt
-			w.Across += math.clamp(goal - w.Across, -step, step)
-			moved = true
 		end
 	end
-	return push, moved
-end
-
--- Round the big things in the lane, two ways:
---   ahead of time: if the fish would pass too near one ahead of it, its place across the lane moves to the side it is
---   already on, or to the other if the lane's edge is too near on that side. Its place stays moved, so the herd settles
---   into the gaps;
---   and at once: a fish already within the margin of one (it appeared there, or turned too late) is pushed straight
---   away from it. Returns that push, to bend the way it swims this frame.
--- The herd steers round the big things, so a wild fish is rarely in one; when it is (inside the thing's own circle) and
--- it is a fish that breaks props (Config.breaks, Props.WildBreaks), it breaks the boxes it touches as a ridden one
--- does (PropService), looked for a few times a second and only then. Any other fish swims through.
-local function mindObstacles(w: Wild, position: Vector3, dt: number): Vector3
-	local h = Config.Herd
-	local push = Vector3.zero
-	local dir = Vector3.new(w.Dir.X, 0, w.Dir.Z)
-	if dir.Magnitude < 0.1 then
-		return push
-	end
-	dir = dir.Unit
-	local body = w.Body.X / 2 + h.ObstacleGap
-	local moved = false
-	local bucket = math.floor(w.S / OBSTACLE_BUCKET)
-	for b = bucket - 1, bucket + 1 do
-		for _, o in obstacleBuckets[b] or NO_OBSTACLES do
-			push, moved = mindOne(w, o, position, dir, body, dt, push, moved)
-		end
-	end
-	return push
 end
 
 local function steer(w: Wild, dt: number)
+	local h = Config.Herd
 	local position = w.Root.Position
-	local speed = FishService.ridden(w) * Config.Herd.SpeedShare
+	local speed = FishService.ridden(w) * h.SpeedShare
 	if w.ReleasedAt then
 		local t = (os.clock() - w.ReleasedAt) / Config.Ride.SlowDownTime
 		if t >= 1 then
@@ -688,31 +790,57 @@ local function steer(w: Wild, dt: number)
 			speed = w.ReleaseSpeed + (speed - w.ReleaseSpeed) * t
 		end
 	end
-	-- straight down the lane: toward a point ahead, at its own place across the lane and above the floor. Past the
-	-- last stocked zone it carries on level until the top-up takes it away.
-	w.S += speed * dt
-	local push = if #obstacles > 0 then mindObstacles(w, position, dt) else Vector3.zero
-	local aheadS = math.min(w.S + Config.Herd.Ahead, lane.Length)
-	local floorAhead = Lane.point(lane, aheadS, w.Across, 0)
-	local to = floorAhead + Vector3.new(0, Config.herdHeight(w.Height, floorAhead.Y), 0) - position
-	if to.Magnitude < 5 then
-		local _, along = Lane.at(lane, aheadS)
-		to = along
+	-- its place along the stream: carried forward by its speed, and every SYNC seconds read off where it really is
+	local now = os.clock()
+	if now - w.SyncAt >= SYNC then
+		w.SyncAt = now
+		w.S = (Stream.project(stream, position, w.S))
+	else
+		w.S = math.min(w.S + speed * dt, stream.Length)
 	end
-	local want = to.Unit
-	want = Vector3.new(want.X, math.clamp(want.Y, -0.45, 0.45), want.Z).Unit
-	local turn = 1 - math.exp(-1.4 * dt)
-	w.Dir = w.Dir:Lerp(want, turn).Unit
-	if push ~= Vector3.zero then
-		local bent = w.Dir + push
-		if bent.Magnitude > 0.05 then
-			w.Dir = bent.Unit
+	if w.Give ~= w.GiveWant then
+		local step = h.GiveRate * dt
+		w.Give += math.clamp(w.GiveWant - w.Give, -step, step)
+	end
+	-- down its own line of the stream: toward the point of that line Herd.Ahead further on. The line is smooth, so the
+	-- fish swims straight where the lane is straight; nothing here looks at what is round it. Past the lane's end it
+	-- carries on level until the top-up takes it away.
+	local aheadS = math.min(w.S + h.Ahead, stream.Length)
+	local across = Stream.across(stream, aheadS, w.U, w.Give, w.Dodge, w.Body.X / 2)
+	w.A = across
+	local want: Vector3
+	if aheadS >= stream.Length - 1 then
+		want = Stream.along(stream, aheadS)
+	else
+		local to = Stream.point(stream, aheadS, across, w.Lift) - position
+		want = if to.Magnitude < 5 then Stream.along(stream, aheadS) else to.Unit
+		want = Vector3.new(want.X, math.clamp(want.Y, -0.45, 0.45), want.Z).Unit
+	end
+	w.Dir = w.Dir:Lerp(want, 1 - math.exp(-h.Turn * dt)).Unit
+	w.Speed = speed
+	-- inside one of the big things (a fish that goes round nothing, or one pressed against the band's edge): a fish
+	-- whose kind breaks props (Hugo's rule, Config.breaks: a Tank, a Breaker or a giant; Props.WildBreaks 0 turns it
+	-- off) and that is itself at least Herd.BreakLength long breaks the boxes it touches, as a ridden fish does
+	-- (PropService), looked for a few times a second. Any other fish swims through and leaves the thing whole, as the
+	-- reference's small dinos do.
+	if now - w.PropAt >= Config.Props.WildEvery then
+		w.PropAt = now
+		if
+			Config.Props.WildBreaks ~= 0
+			and w.Body.Z >= h.BreakLength
+			and Config.breaks(w.Type)
+			and Stream.inside(stream, w.S, position.X, position.Z)
+		then
+			local size = w.Body
+			PropService.hit(
+				position + w.Dir * (size.Z / 2),
+				w.Dir * speed,
+				math.max(size.X, size.Y) / 2 + Config.Props.Reach
+			)
 		end
 	end
-	w.Speed = speed
 	-- (both replicate to every client: written when the way has turned about a degree or the speed has changed half a
 	-- stud a second, and twice a second whatever, in case a rider's machine left them at something else)
-	local now = os.clock()
 	if now - w.SentAt > 0.5 or math.abs(speed - w.SentSpeed) > 0.5 or (w.Dir - w.SentDir).Magnitude > 0.017 then
 		w.SentAt = now
 		w.SentDir = w.Dir
@@ -808,20 +936,20 @@ function FishService.eat(w: Wild)
 end
 
 -- Studio only (the sandbox's "Ride": a chosen fish to try): a fish of this kind and variant put in the water at a
--- place, swimming `dir`. nil for a kind there is none of.
+-- place, swimming `dir`. nil for a kind there is none of. Its size is Normal, or the workspace's "TestSize".
 function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Vector3): Wild?
 	local fishType = Config.FishById[id]
 	if not fishType or not RunService:IsStudio() then
 		return nil
 	end
-	local home = (Lane.project(lane, at))
+	local home = (Stream.project(stream, at))
 	local w = make(
 		fishType,
-		if variant == "Gold" or variant == "Rainbow" then variant else "",
+		if variant == "Silver" or variant == "Gold" or variant == "Rainbow" then variant else "",
 		home,
 		at,
 		dir,
-		Lane.zoneAt(lane, home),
+		Lane.zoneAt(lane, Stream.laneS(stream, home)),
 		sliceAt(home)
 	)
 	park(w, false)
@@ -866,30 +994,9 @@ function FishService.Init()
 	Net.Folder:SetAttribute("Zones", Zones.encode(zones))
 	-- the clients build the same lane, to keep what they move themselves inside it (src/client/Lib/Course.luau)
 	Net.Folder:SetAttribute("LanePath", pathJson or "")
-	for _, row in Zones.bigAssets() do
-		local at = Vector3.new(row[1], 0, row[2])
-		-- its place in the lane, from the nearest point of the centreline on the flat (the floor's depth doesn't come
-		-- into it)
-		local s = 0
-		local best = math.huge
-		for i, point in lane.Points do
-			local d = (Vector3.new(point.X, 0, point.Z) - at).Magnitude
-			if d < best then
-				best = d
-				s = lane.S[i]
-			end
-		end
-		local centre, along, width = Lane.at(lane, s)
-		local across = (at - Vector3.new(centre.X, 0, centre.Z)):Dot(along:Cross(Vector3.yAxis))
-		local obstacle = { X = row[1], Z = row[2], Radius = row[3], Across = across, Half = width / 2 }
-		table.insert(obstacles, obstacle)
-		local bucket = math.floor(s / OBSTACLE_BUCKET)
-		obstacleBuckets[bucket] = obstacleBuckets[bucket] or {}
-		table.insert(obstacleBuckets[bucket], obstacle)
-	end
-	if #obstacles > 0 then
-		print(string.format("[FishService] %d big obstacles in the lane: the herd steers round them", #obstacles))
-	end
+	-- the herd's own water, worked out from the lane and the built map (Lib/Stream says why and how)
+	stream = Stream.build(lane, Zones.bigAssets())
+	print("[FishService] the herd's stream: " .. stream.Report)
 	for i = 1, #zones do
 		pools[i] = pool(i)
 	end
@@ -907,7 +1014,13 @@ end
 
 function FishService.Start()
 	topUp(math.huge)
+	local gaveAt = 0
 	RunService.Heartbeat:Connect(function(dt)
+		local now = os.clock()
+		if now - gaveAt >= Config.Herd.GiveEvery then
+			gaveAt = now
+			giveWay()
+		end
 		for _, w in wild do
 			if not w.Rider and not w.CoastToken and not w.Parked then
 				steer(w, dt)

@@ -58,7 +58,39 @@ Config.Speed = {
 	Base = 45, -- studs a second: only for a fish that FishStats doesn't list (it warns), and the fallback with no fish
 	Gold = 1.1, -- a Gold fish's speed, times (Hugo, 2026-11-12: "rainbow and gold 1.1x and 1.2x"; read as the rarer
 	Rainbow = 1.2, -- Rainbow getting the bigger one. To flip them, swap these two numbers)
+	Silver = 1.05, -- (2026-11-13: Silver is new and sits under Gold; a stand-in until fish speed is set)
 }
+
+-- Each creature's own size, times what the creature chat exported it at (Shared.Creatures; a fish not listed is 1).
+-- The user, 2026-11-13: more difference between kinds, most of all in the first lands ("turtle should be a bit bigger
+-- and some fish should be smaller and larger"). The numbers are Claude's first go, to be judged by eye: the small reef
+-- fish a little smaller, the flat, the round and the heavy ones bigger, the great whales and the last lands' monsters
+-- most. A fish's length sets a good deal else: the room it wants in the herd, how high it swims, whether it breaks
+-- props (Config.Herd, Config.Spawn), so a change here shows there too.
+-- stylua: ignore
+Config.BaseScale = {
+	-- land 1: Shallows
+	BlueChromis = 0.85, Boxfish = 0.95, Butterflyfish = 0.9, Clownfish = 0.85, Pufferfish = 1.3, SergeantMajor = 1, YellowTang = 1.1,
+	Cuttlefish = 1.2, FlyingFish = 1, SeaTurtle = 1.6, Stingray = 1.2, Seahorse = 0.95, ReefShark = 1.45, Archelon = 1.25, PearlSerpent = 1.3,
+	-- land 2: Coral Reef
+	Angelfish = 0.95, Lionfish = 1.15, Parrotfish = 1.25, MorayEel = 1.2, Octopus = 1.15, HumpheadWrasse = 1.35, Dunkleosteus = 1.4, CoralDragon = 1.3,
+	-- land 3
+	Garibaldi = 0.9, SeaLion = 1.25, GiantSeaBass = 1.3, LeopardShark = 1.15, GreatWhite = 1.4, StellersSeaCow = 1.4, Dakosaurus = 1.2, KelpWyrm = 1.3,
+	-- land 4
+	Barracuda = 1, HammerheadShark = 1.25, Sawfish = 1.25, ElectricRay = 1.1, GoliathGrouper = 1.35, Xiphactinus = 1.2, GalleonWhale = 1.4,
+	-- land 5
+	Dolphin = 1.2, Swordfish = 1.15, MantaRay = 1.5, Orca = 1.35, Elasmosaurus = 1.15, Helicoprion = 1.2, BlueWhale = 1.6, StormSerpent = 1.3,
+	-- land 6
+	Viperfish = 0.9, GiantSquid = 1.2, GoblinShark = 1.15, Liopleurodon = 1.2, Shonisaurus = 1.3, LanternLeviathan = 1.25, AuroraJelly = 1.2,
+	-- land 7
+	Anglerfish = 1.1, FrilledShark = 1, Basilosaurus = 1.25, Livyatan = 1.3, Mosasaurus = 1.3, Kraken = 1.4, VoidWhale = 1.45,
+	-- land 8
+	GiantIsopod = 0.9, SeaScorpion = 1.1, Anomalocaris = 1.1, BobbitWorm = 1, Kronosaurus = 1.2, Megalodon = 1.4, MoltenMegalodon = 1.45, EmberSerpent = 1.3,
+	-- land 9
+	GraveRay = 1.4, GraveTurtle = 1.3, SkullAngler = 1.15, WraithEel = 1.2, BoneLeviathan = 1.35, HalfboneMegalodon = 1.45, PhantomWhale = 1.45,
+	-- land 10
+	BrimstoneEel = 1.2, CinderRay = 1.45, HellfinShark = 1.3, InfernalAngler = 1.2, AbyssalWatcher = 1.4, Hellmaw = 1.4, TheDevourer = 1.5,
+} :: { [string]: number }
 
 export type FishStat = {
 	Speed: number, -- studs a second, ridden, no variant
@@ -270,13 +302,35 @@ Config.ArchetypeFeel = {
 	Tags = 1, -- 0: tags don't name the archetypes
 }
 
--- Variants (Hugo, 2026-11-12): the chance that a spawned fish is one, 0 to 1 (Rainbow is rolled first). The fish's
--- "Variant" attribute ("", "Gold" or "Rainbow"); the look is Shared/Variants; the speed is Speed.Gold and Speed.Rainbow
--- (x1.1 and x1.2, flat for every fish).
+-- Variants: the chance that a spawned fish is one, 0 to 1 (the rarest is rolled first). The fish's "Variant" attribute
+-- ("", "Silver", "Gold" or "Rainbow"); the look is Shared/Variants; the speed is Config.Speed's (flat for every fish).
+-- (2026-11-13, the user: as the reference's Index, which has Normal, Silver, Golden and Rainbow of every dino in six
+-- sizes, 24 in all. The chances are the reference's own, worked out from the Index's "1 in N" under each of the 24
+-- (the user's screenshot of the Bronto's): every one of them is a size's chance times a colour's, with Silver 1 in 12,
+-- Golden 1 in 50 and Rainbow 1 in 250. Hugo's Gold 0.03 and Rainbow 0.008 until then; there was no Silver.)
 Config.Variant = {
-	Gold = 0.03,
-	Rainbow = 0.008,
+	Silver = 1 / 12,
+	Gold = 1 / 50,
+	Rainbow = 1 / 250,
 }
+
+-- Sizes (2026-11-13, the user: the reference's six, on every fish, with its odds). A spawned fish is one of six sizes:
+-- its "SizeTier" attribute, and "Size", the number its species' size is times (Config.sizeOf, Config.bodyOf: the
+-- model, the seat, the lock, the tag and the herd all read that). Rolled apart from the variant, so there are 24 of
+-- every fish. The chances are the reference's own, from the same Index page: Tiny 15%, Normal 55%, Big 20%, Giant 7%,
+-- Huge 2.5%, Colossal 0.5% (a Rainbow Colossal: 1 in 50,000, as its Index says).
+-- The reference's size also raises what a dino needs (measured 2026-11-09: Tiny x0.8, Big x1.2, Giant x1.5), and no
+-- doubt what it earns: Config.SizeWorth holds those numbers (Huge and Colossal were never seen there: 2 and 3 are
+-- ours). NOTHING READS SizeWorth YET: whether a bigger fish takes more Oxygen to hold is the user's to decide, and
+-- there is no earning yet. How much BIGGER each size is can't be read off the reference: SizeScale is ours, to be
+-- judged by eye.
+-- (Hugo's size roll of 2026-11-12, 0.8 to 1.4 on a curve and speed with it, was taken out the same day. Size does not
+-- change speed here: speed is the next thing to be set.)
+Config.SizeOrder = { "Tiny", "Normal", "Big", "Giant", "Huge", "Colossal" }
+Config.SizeChance = { Tiny = 0.15, Big = 0.2, Giant = 0.07, Huge = 0.025, Colossal = 0.005 } :: { [string]: number } -- Normal: the rest
+Config.SizeScale =
+	{ Tiny = 0.75, Normal = 1, Big = 1.25, Giant = 1.5, Huge = 1.8, Colossal = 2.2 } :: { [string]: number }
+Config.SizeWorth = { Tiny = 0.8, Normal = 1, Big = 1.2, Giant = 1.5, Huge = 2, Colossal = 3 } :: { [string]: number }
 
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
@@ -684,13 +738,37 @@ Config.Herd = {
 	RideHeight = 12, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
 	RideHeightGain = 1.6, -- degrees of pitch for each stud it is off that height
 	RideHeightPitch = 35, -- at most
-	-- The big solid things standing in the lane (the map's BigAssets): a ridden fish is stopped by them; wild fish don't
-	-- collide with anything, so they are steered round. A fish that would pass too near one ahead moves its place
-	-- across the lane to the side it is already on (the other, if the wall is too near).
-	ObstacleLook = 150, -- how far ahead a fish minds one
-	ObstacleGap = 12, -- the water it leaves between its side and the obstacle
-	ObstacleShift = 45, -- how fast its place across the lane moves, studs a second
-	WallGap = 8, -- and how near the lane's edge its middle may come doing so
+	Turn = 2.5, -- how quickly a fish comes round to the way it should be heading (higher is quicker; 1.4 until 2026-11-13)
+	-- The herd's own line (2026-11-13, the user: straighter, less minding of obstacles, not all in one line; the study
+	-- of the reference's herd is in docs/reference/ride-a-dino.md, the build in src/server/Lib/Stream.luau). The lane's
+	-- middle wanders with every bulge of its walls; the herd swims the lane's middle evened out, in a band worked out
+	-- once from the built map. The numbers from here to FloorSmooth are read once, when the server starts.
+	Smooth = 240, -- the lane's middle is evened out over about this many studs each way: only its long bends are left
+	SpineRoom = 150, -- the herd's middle line keeps this far from the edges where the water is wide enough (else it takes the water's middle)
+	EdgeGap = 12, -- the band stays this far inside where the seabed ends (a terrace or a wall)
+	NeckAhead = 96, -- the band starts to narrow this far before the lane does
+	BandSmooth = 120, -- and its width and its middle change no quicker than over about this many studs
+	FloorAhead = 96, -- a fish is already above a step in the floor this far before it,
+	FloorSmooth = 72, -- and the floor's steps are rounded off over about this many studs
+	-- The big things standing in the lane (the map's BigAssets, all props that break): a wild fish collides with
+	-- nothing, so its line is bent round each one, starting a long way before it. Never a swerve: nothing is decided
+	-- as it swims. Until 2026-11-13 each fish looked 150 studs ahead and moved its place across at 45 studs a second.
+	DodgeShare = 0.85, -- how much of a thing's circle a fish goes round (the circle is drawn round the whole thing)
+	DodgeGap = 4, -- and the water it leaves between its side and that
+	DodgeLength = 10, -- the bend starts this many times further ahead than it is wide (higher: gentler, earlier)
+	-- (the lengths here and in Spawn's Big* are a fish's own: its species' size times its size's, Config.SizeScale.
+	-- Raised 2026-11-13 with the bigger base sizes: 40 and 24 before)
+	SmashLength = 60, -- a wild fish at least this long goes round nothing: straight through, breaking it (the reference's big dinos)
+	-- (the user, 2026-11-13, after the first build, where every fish under SmashLength went round: "some gentle bends,
+	-- some straight through")
+	StraightShare = 0.4, -- of the shorter fish, this share also go straight through (decided when the fish is made)
+	BreakLength = 32, -- a wild fish going through a thing breaks it only if it is at least this long (and its kind breaks props at all: Config.breaks, Props.WildBreaks); a smaller one swims through and leaves it whole
+	-- Passing: fish swim at their own speeds, so one catches another up. Both give way a little, slowly, and drift
+	-- back once past.
+	GiveSide = 14, -- the water kept between two fish side by side (6 at first: the user wanted the fish further apart)
+	GiveAlong = 36, -- they start giving way when this far apart nose to tail (20 at first)
+	GiveRate = 5, -- how fast a fish moves aside, studs a second
+	GiveEvery = 0.25, -- seconds between looks
 }
 
 -- Running a ridden fish into something solid (a wall, a step's face, a rock): it never kills (Hugo, 2026-11-11). You
@@ -755,7 +833,7 @@ Config.Wall = {
 Config.Props = {
 	-- who breaks
 	GiantVolume = 12000, -- a fish whose box is this many cubic studs or more breaks props, archetype or not (docs/design/archetypes.md lists them)
-	WildBreaks = 1, -- 1: a wild fish that would break props does, when it is inside one (0: only ridden fish)
+	WildBreaks = 1, -- 1: a wild fish that would break props does, when it is inside one and at least Herd.BreakLength long (0: only ridden fish)
 	-- what one hit takes out (the server's)
 	Reach = 2, -- boxes this near the fish's nose (past its own half width) are knocked
 	Topple = 22, -- boxes of the same prop above the lowest one knocked, and this near across, come down with it
@@ -1017,7 +1095,9 @@ Config.Spawn = {
 	-- Round 2 spreads fish evenly along the lane's path: cut into Slice-stud slices, every slice keeps at least one fish
 	-- (the dive board's keeps BoardSlice), and new fish go into the emptiest slice. The spec's 8 per 1,000 would make
 	-- fewer fish than v3 had; the user asked for more in all, so 12 (to tune).
-	PerThousand = 24, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
+	-- (2026-11-13: 30, from 24. The 1,000 studs are now real studs down the herd's stream, not the lane's own s, which
+	-- runs 28% long on grey-box 15: 30 keeps about as many fish in the sea as 24 did.)
+	PerThousand = 30, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
 	Min = 20,
 	Max = 110, -- per zone
 	-- Fish go in every zone along the whole lane that has a roster (a fish type that can turn up there: today zones 1
@@ -1034,15 +1114,31 @@ Config.Spawn = {
 	-- The herd keeps to one layer above the lane's floor (2026-11-10, from 10 to 60): the reference's dinos are all on
 	-- the ground, and a jump has to find a fish at about its own depth.
 	-- (2026-11-10: lowered from 16 to 30, so that even in the shallows there is water above the herd to jump up into)
+	-- (2026-11-13, the user: a little more spread in height, and the bigger fish given room to be seen. The layer is
+	-- 8 to 20, and a big fish swims above it by its size: the hop already rises over a higher fish and swoops down.)
 	HeightMin = 8, -- above the lane's floor
-	HeightMax = 16,
+	HeightMax = 20, -- (16 until 2026-11-13)
 	HeightFloor = 6, -- in shallow water the herd is pressed down to leave room for a jump, but never lower than this
+	BigLength = 20, -- a fish longer than this swims higher than the layer, (16 and 44 before the bigger sizes of 2026-11-13)
+	BigFull = 80, -- by its length, up to this long,
+	BigRise = 14, -- by up to this much (each fish between 0.4 and 1 of what its length gives)
+	Belly = 4, -- and no fish's belly is nearer the floor than this, whatever its size
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
-	LaneFill = 0.7, -- fraction of the lane's half width fish use
+	-- Where a new fish goes (2026-11-13: balanced, not bunched and not in a line). Of Tries places in its slice of the
+	-- lane, the one with the most room round it, counted in the room each fish wants: Space studs and SpaceByLength of
+	-- its own length. So a big fish gets clear water round it and small fish fill in between.
+	-- (the user, 2026-11-13, after the first build: "separate the fish from each other a bit more, some to the sides".
+	-- More tries and more room wanted; the band wider, BandMax, and nearer the lane's edges, Herd.EdgeGap.)
+	Tries = 14, -- (10 at first)
+	Space = 32, -- (22 at first)
+	SpaceByLength = 1.2, -- (1 at first)
+	LaneFill = 0.95, -- fraction of the open water's half width fish use, inside Herd.EdgeGap (0.7 of the lane's whole half width until 2026-11-13; 0.9 at first)
 	-- The herd is never wider than this, however wide the lane (2026-11-11: the lane now widens to 980). Spread over a
 	-- lane that wide the fish were too far apart to jump between; kept to a band down the middle, a jump finds one in
 	-- every land the way it does in the Shallows.
-	BandMax = 200,
+	-- (2026-11-13: 300, from 200. The hook reaches 180 since 2026-11-12, and at 200 the herd read as one line.)
+	-- (the same day, the user: some fish to the sides. 400. A rider in the middle still has every fish inside the hook.)
+	BandMax = 400,
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
 	AppearClear = 160, -- a new fish is put this far from every player when its slice of the lane has such a place
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
@@ -1136,7 +1232,7 @@ do
 			warn("[Config] " .. id .. ": no such rarity as " .. tostring(rig.Tier) .. "; left out")
 			continue
 		end
-		local size = Vector3.new(rig.Size[1], rig.Size[2], rig.Size[3])
+		local size = Vector3.new(rig.Size[1], rig.Size[2], rig.Size[3]) * (Config.BaseScale[id] or 1)
 		local i = at[id]
 		if i then
 			local spec = FISH[i]
@@ -1363,9 +1459,13 @@ function Config.wallKeep(into: number): number
 end
 
 -- How big a fish is, for the props: its model's box in cubic studs (width x height x length of the species' one base
--- size, from its mesh.json), and whether that makes it a giant (Props.GiantVolume)
+-- size, from its mesh.json), and whether that makes it a giant (Props.GiantVolume).
+-- (The merge of 2026-11-13: FishType.Size is now that box times the kind's Config.BaseScale. The giants were picked
+-- on the exported box (docs/design/archetypes.md: 16 kinds break props), so the scale is taken out again here; left
+-- in, 13 more kinds would be giants. Neither BaseScale nor a fish's rolled size changes who breaks.)
 function Config.volumeOf(fish: FishType): number
-	return fish.Size.X * fish.Size.Y * fish.Size.Z
+	local k = Config.BaseScale[fish.Id] or 1
+	return fish.Size.X * fish.Size.Y * fish.Size.Z / (k * k * k)
 end
 
 function Config.giant(fish: FishType): boolean
@@ -1382,15 +1482,38 @@ function Config.breaks(fish: FishType): boolean
 	return Config.hasArchetype(fish, "Tank") or Config.hasArchetype(fish, "Breaker") or Config.giant(fish)
 end
 
--- A spawned fish's variant, from a roll of 0 to 1 (Config.Variant): "", "Gold" or "Rainbow"
+-- A spawned fish's variant, from a roll of 0 to 1 (Config.Variant): "", "Silver", "Gold" or "Rainbow"
 function Config.rollVariant(roll: number): string
 	local v = Config.Variant
 	if roll < v.Rainbow then
 		return "Rainbow"
 	elseif roll < v.Rainbow + v.Gold then
 		return "Gold"
+	elseif roll < v.Rainbow + v.Gold + v.Silver then
+		return "Silver"
 	end
 	return ""
+end
+
+-- A spawned fish's size, from a roll of 0 to 1 (Config.SizeChance): one of Config.SizeOrder's names
+function Config.rollSize(roll: number): string
+	local chance = Config.SizeChance
+	for _, tier in { "Colossal", "Huge", "Giant", "Big", "Tiny" } do
+		roll -= chance[tier] or 0
+		if roll < 0 then
+			return tier
+		end
+	end
+	return "Normal"
+end
+
+-- What a size is times: the species' size (Config.SizeScale), and what it needs and is worth (Config.SizeWorth)
+function Config.sizeScale(tier: string): number
+	return Config.SizeScale[tier] or 1
+end
+
+function Config.sizeWorth(tier: string): number
+	return Config.SizeWorth[tier] or 1
 end
 
 -- One fish's ridden speed: its species' own (Config.FishStats: RiddenSpeed), by its variant (x Speed.Gold or
@@ -1402,15 +1525,22 @@ function Config.speedOf(fish: FishType, variant: string?): number
 		speed *= s.Gold
 	elseif variant == "Rainbow" then
 		speed *= s.Rainbow
+	elseif variant == "Silver" then
+		speed *= s.Silver
 	end
 	return speed
 end
 
--- A fish model's size and variant (its attributes). No fish has a "Size" for now (the size roll is out: Hugo,
--- 2026-11-12), so every fish is 1; the readers of sizeOf and bodyOf stay for when sizing comes back.
+-- A fish model's size and variant (its attributes). "Size" is the number its species' size is times; "SizeTier" is
+-- the size's name (Config.SizeOrder; "Normal" for a model that has none).
 function Config.sizeOf(model: Instance): number
 	local size = model:GetAttribute("Size")
 	return if type(size) == "number" and size > 0 then size else 1
+end
+
+function Config.sizeTierOf(model: Instance): string
+	local tier = model:GetAttribute("SizeTier")
+	return if type(tier) == "string" and Config.SizeScale[tier] then tier else "Normal"
 end
 
 function Config.variantOf(model: Instance): string
@@ -1500,10 +1630,12 @@ end
 function Config.herdHeight(own: number, floorY: number): number
 	local sp = Config.Spawn
 	local top = Config.herdTop(floorY)
-	if top >= sp.HeightMax then
+	-- (the highest any fish swims in open water: the layer's top and a big fish's rise)
+	local most = sp.HeightMax + sp.BigRise
+	if top >= most then
 		return own
 	end
-	local share = math.clamp((own - sp.HeightMin) / math.max(sp.HeightMax - sp.HeightMin, 1), 0, 1)
+	local share = math.clamp((own - sp.HeightMin) / math.max(most - sp.HeightMin, 1), 0, 1)
 	return math.min(own, top * (0.8 + 0.2 * share))
 end
 

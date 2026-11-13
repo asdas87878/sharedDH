@@ -106,6 +106,20 @@ landing, and the dust the dinos kick up as they run.
 **Not readable from the recordings:** the outline round the glowing dino (too small on screen), whether the flight is
 pulled toward a dino or only steered, what the second press does exactly, and whether an untamed dino can be steered.
 
+## The herd
+Read 2026-11-13 from the flight over the first two lands (frames a quarter second apart, from above) and the 35-second
+ride. What we took from it is in [the herd](../design/herd.md).
+- **Every dino runs dead straight.** Each leaves a dust trail; the trails are long straight lines, all parallel to the
+  track. Nothing weaves or swerves.
+- **Nothing is avoided.** Dinos and the rider pass straight through trees and rocks. The prop turns see-through while
+  something is in it, or breaks apart if the dino is big.
+- **A loose scatter, not a line.** From above the dinos fill about the middle half of a room, five or six abreast, at
+  uneven distances along it. No two overlap for long.
+- **They funnel at a neck** and spread again in the next room.
+- **All one way, at about one pace** (0.85 of riding speed, measured above).
+- **Big dinos run among the small ones.**
+- **Not readable:** whether dinos of different kinds run at different speeds, and how new ones appear.
+
 ## Rarity and spawns
 Measured 2026-11-09 from every creature tag in the recording's two runs, one frame a second (read with Windows' text reader,
 checked by eye). The runs reached 3,546 m and 2,215 m, so only the first two zones were seen.

@@ -1,5 +1,9 @@
 --!strict
--- The look of a Gold or a Rainbow fish (a fish model's "Variant" attribute: "", "Gold" or "Rainbow"; Config.Variant).
+-- The look of a Silver, a Gold or a Rainbow fish (a fish model's "Variant" attribute: "", "Silver", "Gold" or
+-- "Rainbow"; Config.Variant).
+-- Silver (2026-11-13, the user: the reference's Index has Normal, Silver, Golden and Rainbow of every dino) has no
+-- baked meshes yet, so it is always the tint: a cool grey by how light the part was, with a mirror's sheen, and an
+-- ice-blue light. A stand-in, as the other two were; the creature chat's rules for it are still to be written.
 -- Placeholders until the creature chat exports real variant meshes; the rules are theirs (docs/style/06-textures.md,
 -- tools/blender/voxel_kit.py): gold is yellow gold, never brown, and its light is violet; the rainbow is one smooth,
 -- straight gradient from nose to tail, vivid and a little pastel, and its light is white.
@@ -22,13 +26,19 @@ local RunService = game:GetService("RunService")
 
 local Variants = {}
 
+Variants.Silver = "Silver"
 Variants.Gold = "Gold"
 Variants.Rainbow = "Rainbow"
 
 Variants.Accent = {
+	Silver = Color3.fromRGB(140, 215, 255),
 	Gold = Color3.fromRGB(178, 92, 255),
 	Rainbow = Color3.fromRGB(255, 255, 255),
 }
+
+local SILVER = { Color3.fromRGB(112, 122, 138), Color3.fromRGB(178, 188, 202), Color3.fromRGB(240, 244, 250) }
+-- (the sheen that greyed gold is what silver wants: it washes the mesh's own colours toward the sky's)
+local SILVER_REFLECTANCE = 0.45
 
 local GOLD = { Color3.fromRGB(232, 174, 22), Color3.fromRGB(255, 206, 43), Color3.fromRGB(255, 241, 168) }
 local STOPS = {
@@ -57,7 +67,21 @@ function Variants.light(colour: Color3): number
 end
 
 function Variants.is(variant: any): boolean
-	return variant == Variants.Gold or variant == Variants.Rainbow
+	return variant == Variants.Silver or variant == Variants.Gold or variant == Variants.Rainbow
+end
+
+-- A colour as silver: the darkest colour of the creature (`low`) steel, the lightest (`high`) nearly white
+function Variants.silver(colour: Color3, low: number?, high: number?): Color3
+	local light = Variants.light(colour)
+	if light < DARK then
+		return colour
+	end
+	local lo, hi = math.max(low or 0, DARK), high or 1
+	local t = if hi - lo < 1e-3 then 0.5 else math.clamp((light - lo) / (hi - lo), 0, 1)
+	if t <= 0.5 then
+		return SILVER[1]:Lerp(SILVER[2], t * 2)
+	end
+	return SILVER[2]:Lerp(SILVER[3], t * 2 - 1)
 end
 
 -- A colour as gold: the darkest colour of the creature (`low`) deep gold, the lightest (`high`) pale gold
@@ -212,6 +236,8 @@ local function sparkle(model: Model, variant: string)
 	})
 	if variant == Variants.Gold then
 		emitter.Color = ColorSequence.new(GOLD[3], GOLD[2])
+	elseif variant == Variants.Silver then
+		emitter.Color = ColorSequence.new(WHITE, SILVER[2])
 	else
 		local keys = {}
 		for i, stop in STOPS do
@@ -280,6 +306,10 @@ function Variants.apply(model: Model, variant: string)
 			elseif variant == Variants.Gold then
 				part.Color = Variants.gold(part.Color, low, high)
 				part.Material = GOLD_MATERIAL
+			elseif variant == Variants.Silver then
+				part.Color = Variants.silver(part.Color, low, high)
+				part.Material = Enum.Material.SmoothPlastic
+				part.Reflectance = SILVER_REFLECTANCE
 			else
 				local along = pivot:PointToObjectSpace(part.Position).Z / length + 0.5
 				part.Color = Variants.rainbow(part.Color, along)
