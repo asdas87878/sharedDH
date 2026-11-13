@@ -380,6 +380,8 @@ The server decides: the client says which fish it came down on, and the server c
 over it, give or take lag.
 
 ### The herd
+*(2026-11-13: how the herd finds its way, spreads out and takes its heights is now in [the herd](herd.md). The layer
+is 8 to 20, bigger fish swim higher, and the herd swims its own smooth line, not the lane's middle.)*
 - **All wild fish swim straight down the lane,** each at its own place across it.
 - **At 0.85 of the speed they are ridden at** (a Common: 38 wild, 45 ridden). Measured from the reference: riding about
   55 m a second, the herd about 46. Before, wild fish idled at 14, a third of riding speed, so a jump flew past them.

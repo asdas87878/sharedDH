@@ -118,7 +118,9 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   of the two pieces and kept clear of its steps (the gate checks cube faces across parts).
 - **The game code (2026-11-10):** riding is `RideService` (server: states Dock, Free, Riding, Jumping, Drowning; Oxygen)
   with `RideController` (the fish turns to where the camera looks; the camera), fish are `FishService` (a herd swimming
-  straight down the lane in one layer), and going fish to fish is `JumpController`: Ride a Dino's jump, read from the
+  straight down the lane; since 2026-11-13 down its own smooth line through the open water, `src/server/Lib/Stream.luau`,
+  built once from the map at server start: [the herd](docs/design/herd.md); check a new map with
+  `python tools/studio/herd_stream_test.py <studio_id> Edit`), and going fish to fish is `JumpController`: Ride a Dino's jump, read from the
   user's recordings ([reference](docs/reference/ride-a-dino.md)). What is built, measured and still open:
   [riding feel](docs/design/riding-feel.md). Every number is in `src/shared/Config.luau`, read live. Every fish has its own
   speed and passive archetypes, set by hand in one table (`Config.FishStats`; `Config.speedOf` = that number x the variant's, Gold 1.1, Rainbow 1.2;

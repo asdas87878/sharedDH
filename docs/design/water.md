@@ -245,7 +245,7 @@ the water's colour whatever lights it. Checked at the lowest and the highest lev
 sky, but it ends sooner and more sharply than at a high level. Two things would help, neither done:
 - A script in the game can't read the level Roblox has chosen by itself, only the one a player sets by hand. For
   hand-set levels the fog could be pulled in to end where drawing ends, so nothing pops. It needs the draw distance
-  measured for each level (only the lowest is measured).
+  measured for each level (done the same day: see the next section).
 - Keeping the level from dropping: the frame rate has never been measured in a focused window. That is the thinning
   step. (My own tests ran with Studio in the background, where it is held to 15 frames a second, so the level sat at
   its lowest: that is not what a player gets.)
@@ -253,6 +253,47 @@ sky, but it ends sooner and more sharply than at a high level. Two things would 
 Tried and no use: a sky with blank pictures (Roblox draws its default sky), an Atmosphere in the water's colour
 (not drawn at the lowest level), a panel drawn far off by a mesh whose part is at the camera (judged by where it is
 drawn), a ball with a negative scale (the built-in ball ignores the sign; a mesh from a file doesn't).
+
+### Fog out to where the map is there to be seen (2026-11-13)
+The user, after the fix above: things still load in inside the view, sometimes in the wrong colour. "Add a fog that
+extends to the player's render distance so they can't clearly see loading-in parts; Ride a Dino does something similar."
+
+**What was measured** (in Studio, in Play, the real map):
+- **The map arriving.** The place sends the map out to 2,400 studs from the player. With the point the map loads
+  round moved down the lane at 100 and at 250 studs a second (the fastest fish now is 100), pieces arrived 2,060 or
+  more ahead: loading keeps up. (On Studio's own machine: a real server over a slow connection may be later.)
+- **How far Roblox draws**, by its 21 quality levels, the same whatever is in view:
+
+| Level (of 21) | In Roblox's menu (1 to 10) | Drawn to, studs |
+|---|---|---|
+| 1 | 1 | 500 |
+| 2 | 1 | 800 |
+| 3 | 2 | 1,200 |
+| 4 to 12 | 2 to 6 | 1,600 |
+| 14 | 7 | 3,000 |
+| 16 | 8 | 6,000 |
+| 21 | 10 | 12,000 and more |
+
+  (Method: 900 small parts put at a distance, the scene's triangle count read with and without them, the distance
+  halved. Each number is within 100 to 200 studs. Levels 13, 15 and 17 to 20 were not measured.)
+
+The user's own quality was at the top level, so what they saw was the map arriving at 2,400 while the fog was only
+whole at 2,700 to 3,900. But most players on automatic sit in the middle levels, where nothing past 1,600 is drawn.
+
+**What was done.** `LOOK.Reach = 1550`: in every land the fog is whole by 1,550 studs at the furthest, just inside
+what the middle levels draw and well inside where the map arrives. The Midnight and the Underworld keep their own
+nearer fog. Below that:
+- a quality set by hand to 1 or 2 in the menu pulls the fog in to 470 or 1,150 (`LOOK.Drawn`); checked in Play;
+- on automatic, Roblox doesn't tell a game the level it chose. Frames staying under 20 a second are read as the
+  lowest level, and the fog comes in to 470 until frames have been quick again for ten seconds (`LOOK.SlowFrames`).
+  **Not tested:** Studio can't be put on automatic from a script. The 20 is a guess at when Roblox drops to its lowest.
+
+**What it costs.** The bright lands are about twice as thick in the distance as they were: half faded at about 800
+studs, where it was 1,800. All the lands that were thinner than this now share one distance and differ only by colour.
+
+**Known gaps.** On automatic at levels 2 and 3 with quick frames, the fog is past what is drawn (800 and 1,200), so
+things can still pop there, in fog that is half to three-quarters whole. Nothing is pulled in for a slow connection.
+Not looked at by eye: Studio's captures came back blank during the check, so only the numbers were read.
 
 ## What it depends on
 | Thing | Where it comes from | Note |

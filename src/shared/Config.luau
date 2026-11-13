@@ -645,13 +645,35 @@ Config.Herd = {
 	RideHeight = 12, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
 	RideHeightGain = 1.6, -- degrees of pitch for each stud it is off that height
 	RideHeightPitch = 35, -- at most
-	-- The big solid things standing in the lane (the map's BigAssets): a ridden fish is stopped by them; wild fish don't
-	-- collide with anything, so they are steered round. A fish that would pass too near one ahead moves its place
-	-- across the lane to the side it is already on (the other, if the wall is too near).
-	ObstacleLook = 150, -- how far ahead a fish minds one
-	ObstacleGap = 12, -- the water it leaves between its side and the obstacle
-	ObstacleShift = 45, -- how fast its place across the lane moves, studs a second
-	WallGap = 8, -- and how near the lane's edge its middle may come doing so
+	Turn = 2.5, -- how quickly a fish comes round to the way it should be heading (higher is quicker; 1.4 until 2026-11-13)
+	-- The herd's own line (2026-11-13, the user: straighter, less minding of obstacles, not all in one line; the study
+	-- of the reference's herd is in docs/reference/ride-a-dino.md, the build in src/server/Lib/Stream.luau). The lane's
+	-- middle wanders with every bulge of its walls; the herd swims the lane's middle evened out, in a band worked out
+	-- once from the built map. The numbers from here to FloorSmooth are read once, when the server starts.
+	Smooth = 240, -- the lane's middle is evened out over about this many studs each way: only its long bends are left
+	SpineRoom = 150, -- the herd's middle line keeps this far from the edges where the water is wide enough (else it takes the water's middle)
+	EdgeGap = 12, -- the band stays this far inside where the seabed ends (a terrace or a wall)
+	NeckAhead = 96, -- the band starts to narrow this far before the lane does
+	BandSmooth = 120, -- and its width and its middle change no quicker than over about this many studs
+	FloorAhead = 96, -- a fish is already above a step in the floor this far before it,
+	FloorSmooth = 72, -- and the floor's steps are rounded off over about this many studs
+	-- The big things standing in the lane (the map's BigAssets, all props that break): a wild fish collides with
+	-- nothing, so its line is bent round each one, starting a long way before it. Never a swerve: nothing is decided
+	-- as it swims. Until 2026-11-13 each fish looked 150 studs ahead and moved its place across at 45 studs a second.
+	DodgeShare = 0.85, -- how much of a thing's circle a fish goes round (the circle is drawn round the whole thing)
+	DodgeGap = 4, -- and the water it leaves between its side and that
+	DodgeLength = 10, -- the bend starts this many times further ahead than it is wide (higher: gentler, earlier)
+	SmashLength = 40, -- a wild fish at least this long goes round nothing: straight through, breaking it (the reference's big dinos)
+	-- (the user, 2026-11-13, after the first build, where every fish under SmashLength went round: "some gentle bends,
+	-- some straight through")
+	StraightShare = 0.4, -- of the shorter fish, this share also go straight through (decided when the fish is made)
+	BreakLength = 24, -- a wild fish going through a thing breaks it only if it is at least this long; a smaller one swims through and leaves it whole
+	-- Passing: fish swim at their own speeds, so one catches another up. Both give way a little, slowly, and drift
+	-- back once past.
+	GiveSide = 14, -- the water kept between two fish side by side (6 at first: the user wanted the fish further apart)
+	GiveAlong = 36, -- they start giving way when this far apart nose to tail (20 at first)
+	GiveRate = 5, -- how fast a fish moves aside, studs a second
+	GiveEvery = 0.25, -- seconds between looks
 }
 
 -- Running a ridden fish into something solid (a wall, a step's face, a rock): it never kills (Hugo, 2026-11-11). You
@@ -947,7 +969,9 @@ Config.Spawn = {
 	-- Round 2 spreads fish evenly along the lane's path: cut into Slice-stud slices, every slice keeps at least one fish
 	-- (the dive board's keeps BoardSlice), and new fish go into the emptiest slice. The spec's 8 per 1,000 would make
 	-- fewer fish than v3 had; the user asked for more in all, so 12 (to tune).
-	PerThousand = 24, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
+	-- (2026-11-13: 30, from 24. The 1,000 studs are now real studs down the herd's stream, not the lane's own s, which
+	-- runs 28% long on grey-box 15: 30 keeps about as many fish in the sea as 24 did.)
+	PerThousand = 30, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
 	Min = 20,
 	Max = 110, -- per zone
 	-- Fish go in every zone along the whole lane that has a roster (a fish type that can turn up there: today zones 1
@@ -964,15 +988,31 @@ Config.Spawn = {
 	-- The herd keeps to one layer above the lane's floor (2026-11-10, from 10 to 60): the reference's dinos are all on
 	-- the ground, and a jump has to find a fish at about its own depth.
 	-- (2026-11-10: lowered from 16 to 30, so that even in the shallows there is water above the herd to jump up into)
+	-- (2026-11-13, the user: a little more spread in height, and the bigger fish given room to be seen. The layer is
+	-- 8 to 20, and a big fish swims above it by its size: the hop already rises over a higher fish and swoops down.)
 	HeightMin = 8, -- above the lane's floor
-	HeightMax = 16,
+	HeightMax = 20, -- (16 until 2026-11-13)
 	HeightFloor = 6, -- in shallow water the herd is pressed down to leave room for a jump, but never lower than this
+	BigLength = 16, -- a fish longer than this swims higher than the layer,
+	BigFull = 44, -- by its length, up to this long,
+	BigRise = 14, -- by up to this much (each fish between 0.4 and 1 of what its length gives)
+	Belly = 4, -- and no fish's belly is nearer the floor than this, whatever its size
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
-	LaneFill = 0.7, -- fraction of the lane's half width fish use
+	-- Where a new fish goes (2026-11-13: balanced, not bunched and not in a line). Of Tries places in its slice of the
+	-- lane, the one with the most room round it, counted in the room each fish wants: Space studs and SpaceByLength of
+	-- its own length. So a big fish gets clear water round it and small fish fill in between.
+	-- (the user, 2026-11-13, after the first build: "separate the fish from each other a bit more, some to the sides".
+	-- More tries and more room wanted; the band wider, BandMax, and nearer the lane's edges, Herd.EdgeGap.)
+	Tries = 14, -- (10 at first)
+	Space = 32, -- (22 at first)
+	SpaceByLength = 1.2, -- (1 at first)
+	LaneFill = 0.95, -- fraction of the open water's half width fish use, inside Herd.EdgeGap (0.7 of the lane's whole half width until 2026-11-13; 0.9 at first)
 	-- The herd is never wider than this, however wide the lane (2026-11-11: the lane now widens to 980). Spread over a
 	-- lane that wide the fish were too far apart to jump between; kept to a band down the middle, a jump finds one in
 	-- every land the way it does in the Shallows.
-	BandMax = 200,
+	-- (2026-11-13: 300, from 200. The hook reaches 180 since 2026-11-12, and at 200 the herd read as one line.)
+	-- (the same day, the user: some fish to the sides. 400. A rider in the middle still has every fish inside the hook.)
+	BandMax = 400,
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
 	AppearClear = 160, -- a new fish is put this far from every player when its slice of the lane has such a place
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
@@ -1333,10 +1373,12 @@ end
 function Config.herdHeight(own: number, floorY: number): number
 	local sp = Config.Spawn
 	local top = Config.herdTop(floorY)
-	if top >= sp.HeightMax then
+	-- (the highest any fish swims in open water: the layer's top and a big fish's rise)
+	local most = sp.HeightMax + sp.BigRise
+	if top >= most then
 		return own
 	end
-	local share = math.clamp((own - sp.HeightMin) / math.max(sp.HeightMax - sp.HeightMin, 1), 0, 1)
+	local share = math.clamp((own - sp.HeightMin) / math.max(most - sp.HeightMin, 1), 0, 1)
 	return math.min(own, top * (0.8 + 0.2 * share))
 end
 

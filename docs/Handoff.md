@@ -3,6 +3,42 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-13 · Obsidian chat integration (the user's PC): the herd swims its own straight line, spread out, big fish higher
+**State:** on the user's word of 2026-11-13. In the user's Studio place (synced, 132 scripts) and run there on
+grey-box 15 by script; **not looked at by eye**. StyLua and selene pass, `rojo build` passes. Nothing uploaded. Not
+committed by hand. The study, what was wrong, what it does now, the measurements and every number:
+[the herd](design/herd.md). One row in [Decisions](Decisions.md).
+- **New: `src/server/Lib/Stream.luau`.** The herd's water, built once when the server starts (a third of a second):
+  a smooth spine that finds its own way through the open water, a band of open seabed, a floor with its steps
+  rounded, and the bends round the big things. It reads the map by rays, so it needs `Seabed` and `Props` named as
+  they are.
+- **`FishService`:** a fish keeps its share of the band, its lift and how far along it is; `steer` heads for its
+  line of the stream. The old looking-ahead dodge (`mindObstacles`) is gone. New fish are placed where there is the
+  most room; big fish want more and swim higher; fish passing give way a little; a fish that swims out of sight is
+  given a new place. **"How far along" (`S`, `Home`, the slices) is now studs down the stream, not the lane's own
+  s:** `Stream.laneS` and `Stream.fromLane` go between them.
+- **`Config`:** `Herd.Obstacle*` and `Herd.WallGap` are gone; `Herd.Turn`, `Smooth`, `EdgeGap`, `NeckAhead`,
+  `BandSmooth`, `Floor*`, `Dodge*`, `SmashLength`, `Give*` are new. `Spawn`: `HeightMax` 20 (16), `BandMax` 300
+  (200; 400 since the second word), `LaneFill` 0.9 (0.7, and it now means the open water's width), `PerThousand` 30 (24, now per real stud),
+  new `Big*`, `Belly`, `Tries`, `Space`, `SpaceByLength`. `Config.herdHeight` allows for the big fish's rise.
+  `SandboxController`: panel rows only.
+- **The user's second word, the same day** ("some gentle bends, some straight through", "separate the fish a bit
+  more, some to the sides"): `Herd.StraightShare` 0.4 of the fish go straight through props, `BreakLength` 24 is how
+  long a fish must be to break one; the band is up to 400 wide (`BandMax`) with its two sides fitted one by one
+  (`Stream.HalfLeft`, `HalfRight`; `Herd.SpineRoom`); `Space` 32, `SpaceByLength` 1.2, `Tries` 14, `GiveSide` 14,
+  `GiveAlong` 36, `LaneFill` 0.95. Synced and run again.
+- **Measured:** the herd's middle line turns 3 degrees per 100 studs and its side lines 7 (the middle was 32, the
+  sides over 200); live fish at the start 1.2 to 1.9 (4.0), round a rider in the bending second land 6 to 7; no
+  line leaves the water or the floor in 4,825 places; nearest neighbour 85 studs at the median; a sandbox ride
+  with hops, no errors.
+- **Next, on the user's word:** proper fish size variations, and fish speed.
+- **New tool:** `python tools/studio/herd_stream_test.py <studio_id> Edit` measures the stream on whatever map is
+  in Studio. Run it after a new map.
+- **Not done:** Hugo's place has none of this until he pulls and syncs. `tools/balance/model.py` still works the
+  band out the old way.
+- **For the user to judge:** the mix of bending and straight-through fish; small fish swimming through a prop
+  that stays whole; the band's width; how the big fish read above the layer.
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC): the glide starts before the wall, and the camera under the water's lit sheet
 **State:** on Hugo's hand-play of 2026-11-13. Run in Studio by script through the studio runner on grey-box 15;
 **not played by hand**. StyLua and selene pass. Nothing uploaded; the test scripts are out of the place. Not

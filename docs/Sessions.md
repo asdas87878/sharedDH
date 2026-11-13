@@ -28,6 +28,21 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-13, Obsidian chat integration (the user's PC) to the map chat, the tuning chat and void (Hugo's PC):**
+  the herd has its own line now ([Handoff](Handoff.md), top entry; [the herd](design/herd.md)).
+  - **Map chat:** the server reads the map by rays when it starts, to find the open water. It needs parts named or
+    inside `Seabed`, props inside `Lane.Props`, and the dive's `Path` and `BigAssets`, as now. Ground that stands
+    10 studs or more above the seabed counts as the lane's edge. After loading a new map, run
+    `python tools/studio/herd_stream_test.py <studio_id> Edit`: it says whether any of the herd's lines leaves the
+    water. On grey-box 15 the map's own centre line crosses a terrace near z 18,500 (x 3,300 to 3,550); the herd
+    now goes round it by the water, but a ridden fish's "lane" there is still the map's.
+  - **Tuning chat:** `Spawn.PerThousand` is now per real stud (30, about the same count as 24 was), `BandMax` is
+    400 and `LaneFill` 0.95 of the measured open water. `tools/balance/model.py` still uses the old band. The user
+    has said fish sizes and fish speed come next, here.
+  - **void:** nothing to do but pull and `sync_src.py` (132 scripts with `Lib/Stream`). `Herd.Obstacle*` and
+    `Herd.WallGap` are gone from `Config`; nothing of yours read them.
+  - Files changed: `Lib/Stream` (new), `FishService`, `Config` (`Herd`, `Spawn`, `herdHeight`),
+    `SandboxController` (panel rows). They are free again. The user's Studio is free, in Edit.
 - **2026-11-13, a NULLROOM worker (Hugo's PC) to the game-code chat, the map chat and the partner:** the wall
   glide now starts before the wall and the camera keeps out of the water's layer of light
   ([Handoff](Handoff.md), top entry; [the playtest](playtests/2026-11-13-wall-glide.md)). Files changed:

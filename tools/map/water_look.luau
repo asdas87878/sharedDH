@@ -65,15 +65,18 @@ local LOOK = {
 	-- of the view ("thick") by that land's distance ("see"); in most lands that is well short of hiding anything.
 	FogStart = 80,
 	EndAt = 2300, -- where the view ends in Studio's Edit mode (in play it ends where the fog is whole, see WaterEnd)
-	-- How far the map is there to be seen (2026-11-13). The place sends the map to a player a piece at a time, out to
-	-- 2,400 studs (workspace.StreamingTargetRadius), and pieces arrive late when you swim fast; and at low graphics
-	-- quality Roblox draws less far. A piece arriving inside the view pops in, sometimes before its picture. So in
-	-- every land the fog is whole by Reach at the furthest: nothing is seen arriving. Lands whose own fog is nearer
-	-- (the Midnight, the Underworld) keep theirs.
-	Reach = 1700,
-	-- a graphics quality set by hand (1 to 10 in Roblox's menu) -> how far Roblox draws this map at it; a level not
-	-- listed is drawn at least as far as Reach
-	Drawn = { 450 },
+	-- How far the map is there to be seen (2026-11-13). Two things end it, and a piece arriving inside the view pops in,
+	-- sometimes before its picture:
+	-- - the place sends the map to a player a piece at a time, out to 2,400 studs (workspace.StreamingTargetRadius).
+	--   Measured in Studio, moving at 100 and at 250 studs a second: pieces arrive 2,060 or more ahead.
+	-- - Roblox draws less far at lower graphics quality, the same whatever is in view. Measured, by its 21 levels:
+	--   1: 500, 2: 800, 3: 1,200, 4 to 12: 1,600, 14: 3,000, 16: 6,000, 21: 12,000 and more.
+	-- So in every land the fog is whole by Reach at the furthest, just inside what the middle levels draw: nothing is
+	-- seen arriving. Lands whose own fog is nearer (the Midnight, the Underworld) keep theirs.
+	Reach = 1550,
+	-- A graphics quality set by hand (1 to 10 in Roblox's menu) that draws less far than Reach -> how far. (1 in the
+	-- menu is levels 1 and 2 of the 21, 2 is levels 3 to 5; 3 and up draw to 1,600 or more)
+	Drawn = { 470, 1150 },
 	-- On automatic quality Roblox doesn't tell a game which level it has chosen. But it only goes to its lowest when
 	-- frames stay slow, so frames this slow (a second) are read as the lowest level
 	SlowFrames = 20,
