@@ -203,9 +203,9 @@ first guesses. So:
   very little (the hot ones take some away), and the hot lands' water is a warm colour, never pure red.
 - **The deep ceiling was a flat glare** (a pale Neon sheet burns out): it is now the land's own water colour turned
   down, and its picture shows.
-- **Still to do:** Midnight reads as one blue (its floor, walls and water are all blue: a lighter, greyer floor
-  would give it shape, and needs a map reload). The ceiling's edge can be made out against the distance when you
-  look up. The Twilight, Bone Graveyard and Underworld are not yet seen.
+- **Midnight's floor** was the water's own blue, so floor, walls and water read as one. It is now a light grey-blue
+  (152, 160, 202; in `tools/map/water_zones.py`, `GROUND`), on the user's yes, 2026-11-13. Not yet looked at in play.
+- **Still to do:** the Twilight, Bone Graveyard and Underworld are not yet seen.
 - **From the game-code chat:** fish are only shown within 700 studs of a player (`Config.Spawn.StreamRadius`), so
   walls are seen to 2,300 and fish to 700. And the 2,400 loading distance sends each player about five times the
   map: the first number to turn down on a phone. It is one line in the loader's `00_start`.
@@ -216,6 +216,43 @@ first guesses. So:
 - The dark lands' own lamps ([the map's feel](map-feel.md), "Lighting the dark lands").
 - Speed in the water: streaks when a fish goes fast.
 - The pull of a current at the edge you can't pass.
+
+### The sky showing, the water overhead "loading", the fog coming and going (2026-11-13)
+The user, after playing: the water layers don't reach the end of the view, so the sky shows in the gaps; the water
+overhead keeps loading a new part as you swim; the mist is there half the time.
+
+**What it was.** Three things, one of them not ours:
+- **The water overhead was one sheet**, 2,048 across. Past its edge, 1,024 from you, was sky, and the edge jumped
+  forward as you swam. Now nine sheets, three by three, over 3,000 each way; they move a whole tile of their
+  picture at a time, so nothing jumps.
+- **The fog was mixed in by its far end** as you went under, so until the camera was about 7 studs down there was
+  almost none: riding near the surface, it came and went. Now its thickness is mixed in, over 1.5 studs.
+- **Roblox's own graphics quality.** It moves by itself when frames get slow, and it decides how far anything is
+  drawn. Measured in Studio at the lowest level: **nothing further than about 500 studs is drawn**, whatever is
+  loaded. So the ring of sheets that closed the view 2,300 away was not drawn either, the outer sheets overhead
+  were gone, and the sky showed in its own blue. And with the far map gone there was nothing for the thin fog to
+  fade: it looked switched off. This is the "half and half": the level going up and down.
+
+**The fix for the last one.** The view's end is now one box round the camera, turned inside out (the layers' cube
+mesh scaled by a negative number shows its inside). Roblox judges "too far" by a thing's own box, and the camera is
+inside this one, so it is drawn at every quality level. It stands just past where the fog is whole, so it is exactly
+the water's colour whatever lights it. Checked at the lowest and the highest level:
+
+![lowest quality](../attachments/map-water-far-low.jpg)
+![highest quality](../attachments/map-water-far-high.jpg)
+
+**What it can't fix.** At a low quality level the far map still isn't drawn: the lane now ends in water instead of
+sky, but it ends sooner and more sharply than at a high level. Two things would help, neither done:
+- A script in the game can't read the level Roblox has chosen by itself, only the one a player sets by hand. For
+  hand-set levels the fog could be pulled in to end where drawing ends, so nothing pops. It needs the draw distance
+  measured for each level (only the lowest is measured).
+- Keeping the level from dropping: the frame rate has never been measured in a focused window. That is the thinning
+  step. (My own tests ran with Studio in the background, where it is held to 15 frames a second, so the level sat at
+  its lowest: that is not what a player gets.)
+
+Tried and no use: a sky with blank pictures (Roblox draws its default sky), an Atmosphere in the water's colour
+(not drawn at the lowest level), a panel drawn far off by a mesh whose part is at the camera (judged by where it is
+drawn), a ball with a negative scale (the built-in ball ignores the sign; a mesh from a file doesn't).
 
 ## What it depends on
 | Thing | Where it comes from | Note |

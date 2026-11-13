@@ -64,7 +64,7 @@ local LOOK = {
 	-- Seeing far (2026-11-13). The water is a veil: it starts FogStart from the camera and has taken a land's own share
 	-- of the view ("thick") by that land's distance ("see"); in most lands that is well short of hiding anything.
 	FogStart = 80,
-	EndAt = 2300, -- where the view ends for good: a ring of the water's colour, past anything the map shows
+	EndAt = 2300, -- where the view ends in Studio's Edit mode (in play it ends where the fog is whole, see WaterEnd)
 	-- The deep lands keep a ceiling: the lit water overhead never gets further than this above the camera, so the
 	-- best thing about the first lands (bright moving water over your head) goes all the way down
 	CeilUp = 520,
@@ -194,21 +194,25 @@ specks.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), Num
 specks.LightEmission = 0.7
 specks.Parent = fx
 
--- The end of the view. Roblox's fog doesn't cover the sky, so past the last thing you could see, the sky showed through
--- in its own blue. Four walls and a floor stand round the camera where the view ends: at that distance they are
--- wholly the water's colour, so the water closes in on every side.
-local curtain = {}
-for i = 1, 16 do
-	local p = Instance.new("Part")
-	p.Name = "WaterEnd"
-	p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = true, false, false, false, false
-	p.Size = Vector3.new(2048, 2048, 4)
-	p.Material = Enum.Material.Neon -- its own colour whatever the light: it is the water, not a wall
-	p.TopSurface, p.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
-	p.Transparency = 1
-	p.Parent = folder
-	curtain[i] = p
-end
+-- The end of the view. Roblox's fog doesn't cover the sky, so past the last thing drawn the sky showed through in its
+-- own blue. And how far things are drawn is the player's graphics quality, which Roblox moves by itself when frames get
+-- slow: at its lowest nothing past about 500 studs is drawn (measured 2026-11-13), so a ring of flat sheets standing
+-- 2,300 away was simply not there, and neither were the outer sheets of the water overhead.
+-- So the end is ONE box round the camera, turned inside out (a mesh scaled by a negative number shows its inside).
+-- Roblox judges "too far to draw" by a thing's own box, and the camera is inside this one, so it is drawn at every
+-- quality. It stands just past where the fog is whole, so whatever lights it, it is exactly the water's colour.
+local shell = Instance.new("Part")
+shell.Name = "WaterEnd"
+shell.Anchored, shell.CanCollide, shell.CanQuery, shell.CanTouch, shell.CastShadow = true, false, false, false, false
+shell.Size = Vector3.new(4, 4, 4)
+shell.Transparency = 1
+local shellMesh = Instance.new("SpecialMesh")
+shellMesh.MeshType = Enum.MeshType.FileMesh
+shellMesh.MeshId = SLAB.MeshId
+shellMesh.Parent = shell
+shell.Parent = folder
+local shellUnit = SLAB.MeshSize.X -- the mesh's own width, before any scaling
+local shellHalf = 0
 
 local colour, soft, atmosphere
 if playing then
@@ -314,16 +318,21 @@ local function underwater(eye, t, dt, centre)
 	end
 	specks.Rate = LOOK.Specks * wet
 	specks.Color = ColorSequence.new(speck)
-	-- the end of the view: a ring of sixteen sheets, two rows of eight, kept under the surface
-	local low = math.min(eye.Y, LOOK.Top - 12 - 1024)
-	for i, p in curtain do
-		local a_ = (i - 1) % 8 * math.pi / 4
-		local y = low + (i > 8 and 2048 or 0)
-		local at = Vector3.new(eye.X + math.cos(a_) * LOOK.EndAt, y, eye.Z + math.sin(a_) * LOOK.EndAt)
-		p.CFrame = CFrame.lookAt(at, Vector3.new(eye.X, y, eye.Z))
-		p.Color = water
-		p.Transparency = (wet > 0.5 and y - 1024 < LOOK.Top - 13) and 0 or 1 -- a row wholly over the surface stays unseen
+	-- the end of the view: the inside-out box, just past where the fog is whole
+	-- (the fog has taken `thick` of the view at `see`, and goes on thickening at the same rate beyond it. The
+	-- thickness is what is mixed in as you go under, not the far end: mixing the far end toward 100,000 left almost no
+	-- fog until the camera was wholly under, so near the surface the fog came and went)
+	local full = LOOK.FogStart + (see - LOOK.FogStart) / math.max(0.05, thick)
+	local fogEnd = LOOK.FogStart + (full - LOOK.FogStart) / math.max(0.02, wet)
+	local half = if playing then math.min(fogEnd, full * 2) * 1.02 else LOOK.EndAt
+	if math.abs(half - shellHalf) > shellHalf * 0.005 then
+		shellHalf = half
+		local k = -2 * half / shellUnit
+		shellMesh.Scale = Vector3.new(k, k, k)
 	end
+	shell.CFrame = CFrame.new(eye)
+	shell.Color = water
+	shell.Transparency = wet > 0.5 and 0 or 1
 	if not playing then
 		return
 	end
@@ -340,13 +349,9 @@ local function underwater(eye, t, dt, centre)
 				atmosphere.Parent = script
 			end
 		end
-		-- the fog has taken `thick` of the view at `see`, and goes on thickening at the same rate beyond it
 		Lighting.FogColor = water
 		Lighting.FogStart = LOOK.FogStart
-		-- (the thickness is what is mixed in, not the far end: mixing the far end toward 100,000 left almost no fog
-		-- until the camera was wholly under, so near the surface the fog came and went)
-		local full = LOOK.FogStart + (see - LOOK.FogStart) / math.max(0.05, thick)
-		Lighting.FogEnd = LOOK.FogStart + (full - LOOK.FogStart) / math.max(0.02, wet)
+		Lighting.FogEnd = fogEnd
 	else
 		if atmosphere then
 			atmosphere.Parent = Lighting

@@ -42,5 +42,7 @@ ZONES = [
 ]
 # the lands' floors (and wall tops): the deep ones are kept light enough to read (2026-11-13: the dark ones were first
 # guesses, and with dark water over them the deep lands lost their shape)
+# Midnight's floor is a light grey-blue, not the water's own blue (2026-11-13): floor, walls and water were one blue,
+# and the land had no shape
 GROUND = [(242, 214, 128), (244, 148, 152), (120, 172, 92), (160, 148, 124), (110, 150, 220),
-          (150, 130, 230), (104, 112, 214), (214, 120, 92), (196, 212, 204), (206, 84, 112)]
+          (150, 130, 230), (152, 160, 202), (214, 120, 92), (196, 212, 204), (206, 84, 112)]
