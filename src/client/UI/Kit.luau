@@ -59,6 +59,13 @@ export type Style = {
 -- one number: 0 is the flat plate before it (task u1), 1 to 5 the boxes in Kit.Boxes.
 Kit.OxygenBox = 5
 
+-- Hugo picked 5 (2026-11-14) and drew it grown into the screen's bottom left corner, with "a fade going from top to
+-- bottom" on its fill (docs/design/ui.md, "The Oxygen box in the corner"). Which way the fade runs, one letter:
+-- "A" strongest at the top, see-through at the screen's bottom edge; "B" the other way round; "" no fade.
+Kit.OxygenBoxFade = "A"
+-- how see-through the fill is at each end of the fade, on top of the box's own Fade (0 as the box is, 1 clear)
+Kit.FadeEnds = { Strong = 0, Clear = 1 }
+
 export type Box = {
 	Name: string,
 	Fade: number, -- how see-through the body is (0 solid, 1 clear)
@@ -73,6 +80,8 @@ export type Box = {
 	Glint: boolean?, -- a bright top right corner, fading along the top and down the side
 	Floor: number?, -- a dark line along the inside of the bottom edge: how see-through
 	Pattern: boolean?, -- keep the water's picture on the body
+	Corner: boolean?, -- grows into the screen's bottom left corner (StatRows), fading as Kit.OxygenBoxFade says; no
+	-- floor line there (it would sit on the screen's edge)
 }
 
 Kit.Boxes = {
@@ -90,6 +99,7 @@ Kit.Boxes = {
 		TopColour = Color3.fromRGB(51, 214, 240),
 		Glint = true,
 		Floor = 0.5,
+		Corner = true,
 	},
 } :: { Box }
 
@@ -308,6 +318,26 @@ local function boxOf(style: Style): Box?
 	return nil
 end
 
+-- Whether the Oxygen box is the one that sits in the screen's corner (read when the rows are built and placed)
+function Kit.oxygenCorner(): boolean
+	local box = Kit.Boxes[Kit.OxygenBox]
+	return box ~= nil and box.Corner == true
+end
+
+-- The top-to-bottom fade of a corner box's fill (Kit.OxygenBoxFade), or nil for none
+local function fadeOf(box: Box): NumberSequence?
+	if not box.Corner then
+		return nil
+	end
+	local strong, clear = Kit.FadeEnds.Strong, Kit.FadeEnds.Clear
+	if Kit.OxygenBoxFade == "A" then
+		return NumberSequence.new(strong, clear)
+	elseif Kit.OxygenBoxFade == "B" then
+		return NumberSequence.new(clear, strong)
+	end
+	return nil
+end
+
 -- A light (or dark) line of `thick` points along the inside of one edge of a face
 local function edgeLine(face: Instance, name: string, bottom: boolean, thick: number, colour: Color3, fade: number)
 	return Kit.new("Frame", {
@@ -337,6 +367,11 @@ local function dressBox(face: GuiObject, style: Style, box: Box): Dressed
 	end
 	local fill = Kit.gradient(face, style.Top, style.Bottom)
 	fill.Color = colours(style.Top, style.Bottom)
+	-- the fade rides on the fill's own gradient (rotation 90: top to bottom), so painting it red keeps it
+	local fade = fadeOf(box)
+	if fade then
+		fill.Transparency = fade
+	end
 	-- with no dark line the stroke is kept nearly clear: the row's warning still beats it (StatRows)
 	local outline = Kit.stroke(face, if box.Edge > 0 then box.Edge else 1.2, Kit.Ink, if box.Edge > 0 then 0 else 0.85)
 	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -433,7 +468,7 @@ local function dressBox(face: GuiObject, style: Style, box: Box): Dressed
 			}),
 		}, top)
 	end
-	if box.Floor then
+	if box.Floor and not box.Corner then
 		edgeLine(face, "Floor", true, 1.5, Kit.Ink, box.Floor)
 	end
 	if box.Glint then

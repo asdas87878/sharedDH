@@ -31,6 +31,33 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 
 **Since 2026-11-13 (later) the Oxygen row is a see-through box with highlights, five options for Hugo to pick from;
 the game shows option 5 until he picks** (the section "The Oxygen row as a glass box", right below).
+**Since 2026-11-14 Hugo has picked 5, and it sits in the screen's bottom left corner with a fade** (the section "The
+Oxygen box in the corner", below).
+
+## The Oxygen box in the corner (2026-11-14, Hugo: drawn on the options sheet)
+Hugo picked option 5 and drew on the sheet: the box's top edge carried on to the left and its right edge carried on
+down, so the box no longer floats but fills the screen's bottom left corner; and "a fade going from top to bottom".
+
+**State: built and run in Hugo's Studio by script (one ride; the before, fade A and fade B each built in turn, full and
+with the warning forced on, over the sand and the pink reef): no errors. Not played by hand. Fade A is in the game;
+Hugo picks A or B.**
+
+![](../attachments/ui6-oxygen-box-corner-fade.png)
+
+- **The corner (keyboard layout):** the box's glass runs out to the screen's left and bottom edges (the rows' own
+  12 and 14 point gaps), so only its top edge (with the aqua line) and its right edge show. The bubble and the number
+  stay where they were. The dark floor line is gone (it would sit on the screen's edge). Measured in the run: the
+  face starts at x 0 and ends on the screen's bottom pixel. The warning still beats: the outline's left and bottom
+  parts are off the screen, so the beat runs along the top and right only. If coins ever show, their row sits above.
+- **The fade** is on the fill's own gradient (top to bottom), so the red of the warning fades the same way.
+  `Kit.OxygenBoxFade`: **"A"** strongest at the top, see-through at the screen's bottom edge (in the game); **"B"**
+  see-through at the top, strongest at the bottom; **""** no fade. How see-through each end is: `Kit.FadeEnds`.
+- **Phone layout:** unchanged: the rows sit at the top left there (clear of Roblox's stick), so the box floats as
+  before, with the fade. Not tried on a real phone or the device emulator; the HUD's ScreenGui keeps to the device's
+  safe area, so on a phone with a notch a corner box would stop at the safe area (it is not in the corner there).
+- **How it is made:** a box with `Corner = true` (option 5) gets the fade and no floor line (`Kit.luau`, `dressBox`);
+  `StatRows.place` grows the Oxygen row's face into the corner on a keyboard and moves the row's `Inner` frame (the
+  bubble, the number, the three bubbles) back by as much. Options 1 to 4 and 0 are still in `Kit.Boxes`.
 
 ## The Oxygen row as a glass box (2026-11-13, Hugo: options)
 Hugo: "For now only change the oxygen meter in the left bottom (stamina) to be a see through box with highlights, not a

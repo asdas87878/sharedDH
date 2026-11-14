@@ -3,6 +3,9 @@
 -- (the stat you train) is water: blue, with bubbles; it turns red and beats in the last second on a fish and while
 -- you drown. Your coins are gold bricks; that row stays hidden until the game has coins (the player's "Coins").
 -- On a phone the rows sit at the top left, clear of Roblox's stick.
+-- With a corner box (Kit.oxygenCorner, Hugo 2026-11-14) the Oxygen row on a keyboard grows into the screen's bottom left
+-- corner: its glass runs out to the left and bottom edges, so only its top and right edges show; the bubble and the
+-- number stay where they were (they sit in the row's Inner frame, which keeps the row's old size and place).
 local Kit = require(script.Parent.Kit)
 
 local StatRows = {}
@@ -10,6 +13,8 @@ local StatRows = {}
 local WIDTH = 104
 local HEIGHT = 29
 local GAP = Kit.Space.Medium
+local LEFT = 12 -- the rows' gap to the screen's left edge, and to its bottom on a keyboard
+local BOTTOM = 14
 local ON_TOUCH = 0.85 -- the rows' size on a phone, where they share the top left with Roblox's own buttons
 
 local holder: Frame
@@ -18,6 +23,7 @@ local list: UIListLayout
 local oxygenText: TextLabel
 local oxygenLook: Kit.Dressed
 local oxygenBeat: (on: boolean) -> ()
+local airRow: Kit.Panel
 local coinsRow: Frame
 local coinsText: TextLabel
 
@@ -30,9 +36,12 @@ local function row(
 	sign: (Instance, number) -> Frame,
 	colour: Color3,
 	style: Kit.Style
-): (Kit.Panel, TextLabel)
+): (Kit.Panel, TextLabel, Frame)
 	local panel = Kit.panel(holder, { Size = UDim2.fromOffset(WIDTH, HEIGHT), LayoutOrder = order }, style)
-	local icon = sign(panel.Face, 19)
+	-- what the row shows, in a clear frame the row's size: the face can then grow round it (a corner box)
+	local inner: Frame =
+		Kit.new("Frame", { Name = "Inner", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, panel.Face)
+	local icon = sign(inner, 19)
 	icon.AnchorPoint = Vector2.new(0, 0.5)
 	icon.Position = UDim2.new(0, Kit.Space.Medium, 0.5, 0)
 	local label = Kit.text({
@@ -42,8 +51,8 @@ local function row(
 		TextSize = 17,
 		TextColor3 = colour,
 		TextXAlignment = Enum.TextXAlignment.Left,
-	}, panel.Face)
-	return panel, label
+	}, inner)
+	return panel, label, inner
 end
 
 function StatRows.build(parent: Instance)
@@ -58,10 +67,11 @@ function StatRows.build(parent: Instance)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 	}, holder)
-	local air, oxygen = row(1, Kit.bubble, Kit.White, Kit.Themes.Oxygen)
+	local air, oxygen, airInner = row(1, Kit.bubble, Kit.White, Kit.Themes.Oxygen)
+	airRow = air
 	oxygenText = oxygen
 	oxygenLook = air.Look
-	Kit.bubbles(air.Face, { { 0.66, 0.34, 7 }, { 0.8, 0.68, 5 }, { 0.91, 0.3, 4 } })
+	Kit.bubbles(airInner, { { 0.66, 0.34, 7 }, { 0.8, 0.68, 5 }, { 0.91, 0.3, 4 } })
 	oxygenBeat = Kit.pulse(air.Look.Outline, { Color = Kit.Ink }, { Color = Color3.fromRGB(255, 196, 180) })
 	local money, coins = row(2, Kit.coin, Kit.White, Kit.Themes.Gold)
 	coinsRow = money.Frame
@@ -69,16 +79,36 @@ function StatRows.build(parent: Instance)
 	coinsRow.Visible = false
 end
 
+-- A corner box on a keyboard: the Oxygen row is the bottom one and its face reaches the screen's left and bottom edges
+-- (the rows' own gaps to them, LEFT and BOTTOM); the Inner frame is moved back by as much, so its contents stay put
+local function corner(on: boolean)
+	local face = airRow.Face
+	local inner = face:FindFirstChild("Inner") :: Frame
+	airRow.Frame.LayoutOrder = if on then 3 else 1
+	if on then
+		face.Position = UDim2.fromOffset(-LEFT, 0)
+		face.Size = UDim2.new(1, LEFT, 1, BOTTOM)
+		inner.Position = UDim2.fromOffset(LEFT, 0)
+		inner.Size = UDim2.new(1, -LEFT, 1, -BOTTOM)
+	else
+		face.Position = UDim2.fromOffset(0, 0)
+		face.Size = UDim2.fromScale(1, 1)
+		inner.Position = UDim2.fromOffset(0, 0)
+		inner.Size = UDim2.fromScale(1, 1)
+	end
+end
+
 function StatRows.place(touch: boolean)
+	corner(Kit.oxygenCorner() and not touch)
 	if touch then
 		holder.AnchorPoint = Vector2.new(0, 0)
-		holder.Position = UDim2.fromOffset(12, 58)
+		holder.Position = UDim2.fromOffset(LEFT, 58)
 		list.VerticalAlignment = Enum.VerticalAlignment.Top
 		size.Scale = ON_TOUCH
 	else
 		-- its bottom edge level with the slots' (Slots.place)
 		holder.AnchorPoint = Vector2.new(0, 1)
-		holder.Position = UDim2.new(0, 12, 1, -14)
+		holder.Position = UDim2.new(0, LEFT, 1, -BOTTOM)
 		list.VerticalAlignment = Enum.VerticalAlignment.Bottom
 		size.Scale = 1
 	end

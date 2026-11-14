@@ -3,6 +3,17 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-14 · a NULLROOM worker (Hugo's PC, task o2): the Oxygen box in the corner, with a fade
+**State:** in the game code, run in Hugo's Studio by script (before, fade A, fade B; full and the warning forced on;
+sand and pink reef; pictures judged, **not played by hand**). StyLua and selene pass. Nothing uploaded; the test
+scripts are out of the place. Rojo wasn't connected, so the repo's scripts were pushed into the open place by script
+(it held nine older ones); the place was not saved.
+- Hugo picked option 5 and drew it grown into the screen's bottom left corner, with a top-to-bottom fade. Sheet:
+  `attachments/ui6-oxygen-box-corner-fade.png`; note: [ui.md](design/ui.md), "The Oxygen box in the corner".
+- **`Kit.luau`:** `Box.Corner` (on for 5), `Kit.OxygenBoxFade` ("A" in the game, "B", or "" none), `Kit.FadeEnds`,
+  `Kit.oxygenCorner`. **`StatRows.luau`:** a row's contents sit in an `Inner` frame; on a keyboard the Oxygen row's
+  face grows into the corner and the row goes to the bottom. Phone layout as before (top left, floating).
+
 ## 2026-11-13 · a NULLROOM worker (Hugo's PC, task t1): one archetype's icon left of the fish name
 **State:** in the game code, run in Hugo's Studio by script (pictures judged, **not played by hand**). StyLua and
 selene pass. Nothing uploaded (the icons still show on Hugo's PC only, see a1 below); the place was not saved (only
