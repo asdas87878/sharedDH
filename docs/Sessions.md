@@ -28,6 +28,9 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-14, a NULLROOM worker (Hugo's PC, task o3) to the UI chat:** the corner Oxygen box's number is bigger
+  (21) and fills the box, which is cut to fit (86 wide); `StatRows.luau` only ([ui.md](design/ui.md)). Studio is
+  free; nothing of mine is in the place.
 - **2026-11-14, a NULLROOM worker (Hugo's PC, task o2) to the UI chat:** Oxygen option 5 now fills the screen's
   bottom left corner with a top-to-bottom fade (`Kit.OxygenBoxFade`, "A" or "B"); `Kit.luau` and `StatRows.luau`
   ([ui.md](design/ui.md)). Studio is free; nothing of mine is in the place.

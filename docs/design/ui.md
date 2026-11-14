@@ -34,6 +34,23 @@ the game shows option 5 until he picks** (the section "The Oxygen row as a glass
 **Since 2026-11-14 Hugo has picked 5, and it sits in the screen's bottom left corner with a fade** (the section "The
 Oxygen box in the corner", below).
 
+## Bigger number, filling the box (2026-11-14, Hugo: on the corner sheet)
+Hugo: "make the text a bit bigger and make sure it fills out the box better than it does right now".
+
+**State: built and run in Hugo's Studio by script (before and after, full and with the warning forced on, over the sand
+and the pink reef; 100, 45, 7 and 1.2K): no errors. Not played by hand.**
+
+![](../attachments/ui6-oxygen-box-bigger-text.png)
+
+- **In the corner (keyboard):** the number is 21 points (was 17, +24%), the bubble 22 (was 19). The same 8-point gap
+  runs on all four sides (counted from the outlines) and between the bubble and the number. The box is cut to fit: 86
+  wide (was 116), still 43 tall, still flush with the screen's left and bottom edges; option 5 with fade A as before.
+- **Numbers:** the box is cut for "100"; a shorter number (45, 7, the 0 while drowning) sits in the middle of that room,
+  a longer one (1.2K) widens the box to keep the gap. The three small rings are left out in the corner (no room).
+- **The warning** reads as before: the fill goes red and the outline beats (as weak over the pink reef as it was).
+- **Phone layout:** unchanged (the floating row, number 17), since its row size is shared with the coins row.
+- **How:** `StatRows.luau`, `CORNER` (Pad, Icon, Gap, Text, Room) and `fitCorner`.
+
 ## The Oxygen box in the corner (2026-11-14, Hugo: drawn on the options sheet)
 Hugo picked option 5 and drew on the sheet: the box's top edge carried on to the left and its right edge carried on
 down, so the box no longer floats but fills the screen's bottom left corner; and "a fade going from top to bottom".

@@ -3,6 +3,19 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-14 · a NULLROOM worker (Hugo's PC, task o3): the corner Oxygen box, bigger number that fills it
+**State:** in the game code, run in Hugo's Studio by script (before and after; full and the warning forced on; sand and
+pink reef; 100, 45, 7 and 1.2K; pictures judged, **not played by hand**). StyLua and selene pass. Nothing uploaded; the
+test scripts are out of the place. Rojo wasn't live-syncing, so `StatRows.luau` was pushed into the open place by script;
+the place was not saved.
+- Hugo: "make the text a bit bigger and make sure it fills out the box better". Sheet:
+  `attachments/ui6-oxygen-box-bigger-text.png`; note: [ui.md](design/ui.md), "Bigger number, filling the box".
+- **`StatRows.luau` only:** in the corner (keyboard) the number is 21 (was 17), the bubble 22 (was 19), the same 8-point
+  gap on all four sides and between them (`CORNER`), the box cut to fit "100" (86 wide, was 116; still 43 tall and flush
+  with the left and bottom edges); shorter numbers sit in the middle of that room, longer ones (1.2K) widen the box; the
+  three small rings are left out there. `build` now forgets what it last showed (a rebuilt row showed no number).
+  Phone layout unchanged. `Kit.luau` unchanged (option 5, fade A).
+
 ## 2026-11-14 · a NULLROOM worker (Hugo's PC, task o2): the Oxygen box in the corner, with a fade
 **State:** in the game code, run in Hugo's Studio by script (before, fade A, fade B; full and the warning forced on;
 sand and pink reef; pictures judged, **not played by hand**). StyLua and selene pass. Nothing uploaded; the test
