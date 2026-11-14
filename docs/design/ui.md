@@ -40,6 +40,38 @@ right below); looks 0 to 6 stay behind `Kit.FishTags`.
 **Since 2026-11-14 (later still) the size word sits on line 1 beside the rarity, and the rarity word has four designed
 styles per rarity behind `Kit.RarityWords`, the game left on r1's word until Hugo picks** (the section "Rarity word
 options", right below).
+**Since 2026-11-14 (evening) the rarity word is Gotham Black for every rarity, and Legendary, Mythic and Secret move**
+(the section "The rarity word in Gotham Black", right below).
+
+## The rarity word in Gotham Black, Legendary and up moving (2026-11-14, Hugo: on the rarity word sheet)
+Hugo, on `fish-tags-rarity-text-options-1.png`: "use the gotham black and make sure legendary + are animated and
+integrated".
+
+**State: live in the game (`Kit.RarityWords` = 5 for every rarity). Run in Hugo's Studio by script (each rarity's fish
+close up, a crowd, far fish, darker water in the Wrecks, then 26 frames each of the Legendary, Mythic and Secret words
+at a held clock): no errors. Pictures judged, not played by hand; not seen on a phone.**
+
+![](../attachments/fish-tags-gotham-black-1.png)
+
+![](../attachments/fish-tags-gotham-black-anim-1.gif)
+
+- **The word (style 5, "Live"):** Gotham Black, Chrome's metal shading split at the middle in the rarity's colours,
+  but edged in the name's own dark ink (2.4) with one dark step under it, so the word and the white name read as one
+  tag. Its box hugs the letters (`Tight`), so the gap to the size pill is the line's own 5 points. The ladder: Common
+  and Uncommon plain; a soft glow of the colour from Rare, stronger on Epic with a still shine line; Legendary,
+  Mythic and Secret bigger, a star either side, and moving.
+- **The motion, louder up the ladder (`liveWord` in `Tags.luau`):** Legendary "gold": a white shine crosses the word
+  every 2.6 s, the glow breathes, the stars twinkle. Mythic "ember": the shine every 1.7 s, the metal's light rises
+  and falls like heat, the glow throbs from its red to a hot orange, the stars spin. Secret "prism": the rainbow
+  letters turn round, the glow runs through every colour, the shine every 1.5 s, the stars spin fast in a moving hue.
+- **Cheap:** only gradient offsets and turns, transparencies, colours and the stars' turn change, never a size, so
+  the tag never moves. Only Legendary and up are touched per frame, and only while their tag is drawn; Common to Epic
+  cost nothing after they are built.
+- **Far and crowded:** the word keeps its look and motion over the number (a Legendary or rarer mark is 1.3 times
+  bigger, as before).
+- **Kept:** r1's word and the four option columns stay behind the switch (`RarityWord` "0" to "4" in Studio). New
+  Studio attribute `WordClock` (a number) holds the motion at that time, for frames; `ShineAt` still holds the sweep.
+- **Not checked:** the locked fish in the hop (it only scales the same tag 1.2 times), the deepest dark lands, a phone.
 
 ## Rarity word options, and the size beside the rarity (2026-11-14, Hugo: on the rarities sheet)
 Hugo, on `fish-tags-rarities-1.png`: "move size next to/behind rarity instead of title, improve upon the rarity text,

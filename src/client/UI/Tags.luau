@@ -791,6 +791,8 @@ export type WordStyle = {
 	PlateGlow: number?, -- a soft halo round the plate, how see-through
 	Sparks: boolean,
 	Spin: boolean, -- the fill (or the edge, when the edge is the rainbow) turns round
+	Tight: boolean, -- the word's box hugs its letters (its edge and glow spill over), so line 1 keeps the name's spacing
+	Anim: string?, -- family 5's own motion: "gold" (Legendary), "ember" (Mythic), "prism" (Secret); nil: none
 }
 
 type Pal = { Light: Color3, Mid: Color3, Dark: Color3, Deep: Color3, Fill: ColorSequence? }
@@ -871,6 +873,8 @@ local function base(p: Pal): WordStyle
 		PlateGlow = nil,
 		Sparks = false,
 		Spin = false,
+		Tight = false,
+		Anim = nil,
 	}
 end
 
@@ -978,6 +982,48 @@ local FAMILIES: { (r: number, p: Pal) -> WordStyle } = {
 		s.PlateGlow = if r >= 5 then 0.55 else nil
 		s.Sparks = r >= 5
 		s.Spin = secret(r)
+		return s
+	end,
+	-- 5 Live (Gotham Black; Hugo, 2026-11-14: "use the gotham black and make sure legendary + are animated and
+	-- integrated"): Chrome's metal shading split at the middle, but edged in the name's own ink so the word and the
+	-- name read as one tag; one dark step of depth; a glow of its colour from Rare; a still shine line on Epic; from
+	-- Legendary each top rarity moves in its own way (shimmer: "gold", "ember", "prism")
+	function(r, p)
+		local s = base(p)
+		s.Font = Enum.Font.GothamBlack
+		s.Size = 15.5 + GROW[r]
+		if secret(r) then
+			s.Fill = RAINBOW
+			s.FillTurn = 0
+			s.GlowColour = rgb(200, 140, 255)
+		else
+			s.Fill = seq({
+				0,
+				Kit.lighter(p.Light, 0.5),
+				0.48,
+				p.Light:Lerp(p.Mid, 0.35),
+				0.52,
+				p.Mid,
+				1,
+				p.Mid:Lerp(p.Dark, 0.55),
+			})
+			s.FillTurn = 90
+		end
+		s.Edge = Kit.Ink
+		s.EdgeThick = 2.4
+		s.Drops = 1
+		s.DropColour = Kit.darker(p.Deep, 0.2)
+		s.DropEdge = Kit.Ink
+		s.DropStep = Vector2.new(0, 1.6)
+		s.Glow = (
+			{ nil, nil, { 3.5, 0.74 }, { 4.5, 0.64 }, { 5.5, 0.52 }, { 6, 0.46 }, { 6.5, 0.42 } } :: { { number }? }
+		)[r]
+		s.Shine = if r >= 4 then 0.12 else nil
+		s.Sweep = r >= 5
+		s.Sparks = r >= 5
+		s.Spin = secret(r)
+		s.Tight = true
+		s.Anim = if r == 5 then "gold" elseif r == 6 then "ember" elseif r == 7 then "prism" else nil
 		return s
 	end,
 }
@@ -1359,7 +1405,7 @@ end
 -- A designed style's word (WordStyle) into the Art layers; its width and the line's height
 local function putArt(st: StackParts, style: WordStyle, text: string): (number, number)
 	local measured = TextService:GetTextSize(text, style.Size, style.Font, Vector2.new(1000, 100))
-	local spread = style.EdgeThick + 2 + math.max(style.DropStep.X * style.Drops, 0)
+	local spread = if style.Tight then 1 else style.EdgeThick + 2 + math.max(style.DropStep.X * style.Drops, 0)
 	local wide = measured.X + spread * 2
 	local high = math.max(STACK_TOP, style.Size + 8)
 	local plated = style.Plate ~= nil
@@ -1463,7 +1509,10 @@ local function putStack(st: StackParts, rare: number, tier: string, line: string
 	if style then
 		st.WordWide, high = putArt(st, style, text)
 		st.Turn = style.FillTurn
-		st.Animated = style.Sweep or style.Spin or style.Sparks
+		st.Animated = style.Sweep or style.Spin or style.Sparks or style.Anim ~= nil
+		st.AGlow.TextColor3 = style.GlowColour
+		st.AGlowEdge.Color = style.GlowColour
+		st.MainFill.Offset = Vector2.zero
 	else
 		-- r1's word: the tag's own font, its colour, a glow from Rare, stars and a shimmer from Legendary
 		local size = WORD_SIZE[rare] or 14
@@ -1493,6 +1542,7 @@ local function putStack(st: StackParts, rare: number, tier: string, line: string
 	for _, spark in st.Sparks do
 		spark.Visible = shiny
 		spark.BackgroundColor3 = sparkColour
+		spark.BackgroundTransparency = 0
 	end
 	st.SparkWide = if shiny then 2 * (SPARK + 6) else 0
 	-- the size word: Tiny to Colossal; a Normal fish has none
@@ -1517,12 +1567,63 @@ end
 local SWEEP_EVERY = 2.6
 local SWEEP_TIME = 0.8
 local shineAt: number? = nil -- in Studio the workspace's "ShineAt" holds the sweep still there (-1.2 to 1.2), for pictures
+-- Family 5's three motions (Hugo, 2026-11-14: "legendary + are animated"). Only gradients' offsets and turns,
+-- transparencies, colours and the stars' turn change, never a size, so the tag never moves. Louder up the ladder:
+--   gold (Legendary): a white shine crosses the word every 2.6 s, the glow breathes slowly, the stars twinkle;
+--   ember (Mythic): the shine every 1.7 s, the metal's bright half rises and falls like heat, the glow throbs between
+--     its red and a hot orange, the stars spin;
+--   prism (Secret): the rainbow letters turn round, the glow goes through every colour, the shine every 1.5 s, the
+--     stars spin fast in the glow's colour.
+local EMBER_HOT = Color3.fromRGB(255, 150, 60)
+local function liveWord(tag: Alt, st: StackParts, style: WordStyle, t: number)
+	local anim = style.Anim
+	local glow = style.Glow or { 5, 0.5 }
+	local every = if anim == "gold" then 2.6 elseif anim == "ember" then 1.7 else 1.5
+	local u = ((t + tag.Rare * 0.37) % every) / SWEEP_TIME
+	st.ShineFill.Offset = Vector2.new(shineAt or (if u < 1 then -1.2 + 2.4 * u else 1.5), 0)
+	if anim == "gold" then
+		local b = math.sin(t * 2.4)
+		st.AGlowEdge.Transparency = glow[2] + b * 0.1
+		local tw = 0.5 + 0.5 * math.sin(t * 5)
+		st.Sparks[1].Rotation = 45 + tw * 45
+		st.Sparks[2].Rotation = 90 - tw * 45
+		st.Sparks[1].BackgroundTransparency = 0.35 * (1 - tw)
+		st.Sparks[2].BackgroundTransparency = 0.35 * tw
+	elseif anim == "ember" then
+		local b = 0.5 + 0.5 * math.sin(t * 4.2)
+		st.MainFill.Offset = Vector2.new(0, (math.sin(t * 3.1) * 0.6 + math.sin(t * 7.3) * 0.4) * 0.09)
+		st.AGlowEdge.Transparency = glow[2] + 0.14 - b * 0.24
+		local c = style.GlowColour:Lerp(EMBER_HOT, b)
+		st.AGlowEdge.Color = c
+		st.AGlow.TextColor3 = c
+		local spin = (t * 120) % 360
+		st.Sparks[1].Rotation = 45 + spin
+		st.Sparks[2].Rotation = 45 - spin
+	else
+		st.MainFill.Rotation = (t * 80) % 360
+		local c = Color3.fromHSV((t * 0.18) % 1, 0.55, 1)
+		st.AGlowEdge.Color = c
+		st.AGlow.TextColor3 = c
+		st.AGlowEdge.Transparency = glow[2] + math.sin(t * 3) * 0.08
+		local spin = (t * 200) % 360
+		st.Sparks[1].Rotation = 45 + spin
+		st.Sparks[2].Rotation = 45 - spin
+		local sc = Color3.fromHSV((t * 0.18 + 0.5) % 1, 0.35, 1)
+		st.Sparks[1].BackgroundColor3 = sc
+		st.Sparks[2].BackgroundColor3 = sc
+	end
+end
+
 local function shimmer(tag: Alt, st: StackParts, t: number)
 	local phase = t * 2.2 + tag.Rare
 	local spin = (t * 90) % 360
 	st.Sparks[1].Rotation = 45 + spin
 	st.Sparks[2].Rotation = 45 - spin
 	local style = st.Style
+	if style and style.Anim then
+		liveWord(tag, st, style, t)
+		return
+	end
 	if style then
 		if style.Spin then
 			local turn = (t * 70) % 360
@@ -1913,8 +2014,9 @@ local function shapeAlt(tag: Alt, form: number, lk: Look)
 	tag.Scale.Scale = size * hudScale
 end
 
+local wordClock: number? = nil -- in Studio the workspace's "WordClock" holds the words' animation at that time, for frames
 local function followAlt(camera: Camera)
-	local t = os.clock()
+	local t = wordClock or os.clock()
 	for _, tag in alts do
 		local st = tag.Stk
 		if st and st.Animated and tag.Fish and tag.Frame.Visible then
@@ -2221,6 +2323,8 @@ function Tags.update(
 	if RunService:IsStudio() then
 		local held = workspace:GetAttribute("ShineAt")
 		shineAt = if type(held) == "number" then held else nil
+		local clock = workspace:GetAttribute("WordClock")
+		wordClock = if type(clock) == "number" then clock else nil
 	end
 	if nowKey ~= wordKey or nowSize ~= sizeAt then
 		wordPicks, wordKey, sizeAt = nowPicks, nowKey, nowSize

@@ -203,7 +203,17 @@ Kit.FishTagSize = "chip-after"
 -- r1's look (the tag's own font, its colour, glow from Rare). A rarity's number is its column on the options sheet,
 -- e.g. { Common = 1, Legendary = 4 }; a rarity not named keeps r1's look. In Studio the workspace's "RarityWord"
 -- string overrides it: "0" r1's look, "2" option 2 for every rarity, or codes "C1 U1 R2 E1 L4 M1 S3".
-Kit.RarityWords = {} :: { [string]: number }
+-- Live since 2026-11-14 (Hugo: "use the gotham black and make sure legendary + are animated and integrated"): style 5,
+-- Gotham Black in the name's ink edge, every rarity; Legendary, Mythic and Secret each move in their own way.
+Kit.RarityWords = {
+	Common = 5,
+	Uncommon = 5,
+	Rare = 5,
+	Epic = 5,
+	Legendary = 5,
+	Mythic = 5,
+	Secret = 5,
+} :: { [string]: number }
 
 -- A fish you would hold this long reads green; shorter, yellow; under Short, red (the tuning chat's three steps)
 Kit.HoldFine = 2
