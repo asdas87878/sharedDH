@@ -3,6 +3,30 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-14 · a NULLROOM worker (Hugo's PC, task h2): the hop faster, in slow-mo, the fall-off later, no balls
+**State:** in the game code, run in Hugo's Studio by script (hops off a slow, a normal and a fast fish before and
+after, the server's reach check, hands-off and mashed landings, glide pictures), **not played by hand**. StyLua and
+selene pass; luau-lsp finds the same 5 old errors as before the change, none new. Nothing uploaded; the test scripts
+are out of the place; the place was not saved. Rojo was not syncing: the three scripts were pushed into the place by
+`push_scripts.py`, so the place has them unsaved.
+- Hugo: "The Player gets way too little speed when jumping off a fish, it should feel like youre moving fast but in
+  like a slowmo mode, still faster than right now, also remove the trail of balls when gliding and make the falloff
+  impact speed with a later delay". Note: [riding feel](design/riding-feel.md), "Faster, in slow-mo"; numbers:
+  [the playtest](playtests/2026-11-14-hop-fast-slowmo.md); chart and pictures:
+  `attachments/hop-fast-slowmo-before-after.png` (`tools/movement/hop_slowmo_chart.py`).
+- **`Config.luau`:** `Jump.Launch` 0.85 to 1.15, `HopBoost` 15 to 24 (leaves about 40% faster, goes about twice as
+  far), `SpeedHalf` 1.5 to 2.1 (the fall-off, and the fall with it, later), `CameraZoom` 1.2 to 1.35, and new
+  `Jump.SlowFull`, `SlowUntil`, `SlowIn`, `SlowOut`, `SlowFov`, `SlowSaturation`, `SlowContrast`, `SlowTint`,
+  `SlowWhoosh`, `SlowWhooshPitch`, `SlowWhooshTime`.
+- **`JumpController.luau`:** the slow-mo look (`slowMo`: the view held wider, a ColorCorrection under the camera, the
+  stretched whoosh at the pop), on the hopping player's screen only; no bubble trail in the glide.
+- **`SandboxController.luau`** (one line, outside the task's files, told to the Boss): the arc trace's white balls off
+  by default (`traceOn = false`); the N panel's "Arc trace" switch is kept.
+- Read differently from the brief: the "trail of balls" is mostly the sandbox's arc trace, not the hop's bubbles
+  (both gone from the glide). Slow-mo was done as a look (view, colour, sound), with the real speed faster, as asked.
+- Not done: the `Slow*` numbers aren't on the N panel; the rider's animation isn't slowed (AnimController); Leaper,
+  wall glide and chain pace not run again.
+
 ## 2026-11-14 · a NULLROOM worker (Hugo's PC, task r1): fish tags in Hugo's three lines, every rarity
 **State:** in the game code and switched on (`Kit.FishTags = 7`; looks 0 to 6 kept), run in Hugo's Studio by script
 (one ride: one fish of each of the seven rarities, a long name, a crowd, far fish, the old tag; pictures judged,

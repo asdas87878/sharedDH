@@ -23,8 +23,12 @@
 -- The hop doesn't collide with anything: Lib/Course keeps it out of the floor, the walls and the lane's edge.
 -- The ring's dashes, the dots and the glow are made once here and reused: nothing is created per hop.
 -- The juice (Config.Feel, Lib/Feel; Hugo, 2026-11-12): the pop kicks the view wider, with a burst of bubbles where we
--- left, a swish, and speed lines and a bubble trail through its extra speed; the pull-in has a whoosh, lines that grow
--- as it speeds up and the trail; our own landing throws bubbles out round the fish, with a splash.
+-- left, a swish, and speed lines through its extra speed; the pull-in has a whoosh, lines that grow as it speeds up and
+-- a bubble trail; our own landing throws bubbles out round the fish, with a splash. (No bubble trail in the glide since
+-- 2026-11-14, Hugo: "remove the trail of balls when gliding".)
+-- The slow-mo look (Jump.Slow*; Hugo, 2026-11-14: "feel like youre moving fast but in like a slowmo mode"): while most
+-- of the leaving speed is there the view is held wider, the colours drained a little, the contrast up, and a low,
+-- stretched whoosh plays as we leave. On our screen only: the hop's speed and the game's clock are untouched.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -99,6 +103,8 @@ local ringTurn = 0 -- the dashes go round
 local ringArc, ringThick = 0, 0 -- the size the dashes were last given
 
 local glow: Highlight
+local slowLook: ColorCorrectionEffect -- the slow-mo look's colours (under the camera: on our screen only)
+local slowNow = 0 -- how much of the slow-mo look is on, 0 to 1 (eased)
 local glowLandedAt: number? = nil -- os.clock() of the landing, while the glow fades off the fish
 
 -- Where we sit on a fish: nil once it has gone (put away by the server, or destroyed)
@@ -396,6 +402,8 @@ local function request(): boolean
 		Fx.burst(position - Vector3.new(0, 1.5, 0), bubbles, 0, if leap then 7 else 4)
 	end
 	Feel.sound("Swish", f.Swish * (if leap then 1.4 else 1), if leap then 1.15 else 1.5, 0.35)
+	-- and the slow-mo hop's own sound: the whoosh, slowed down and stretched
+	Feel.sound("Whoosh", j.SlowWhoosh, j.SlowWhooshPitch, j.SlowWhooshTime)
 	if leap then
 		State.Leapt:Fire()
 	end
@@ -644,12 +652,12 @@ local function hop(dt: number)
 	root.AssemblyAngularVelocity = Vector3.zero
 	State.Speed = speedAt(clock) * wall.Kept * wall.Slide
 	-- while most of the leaving speed is still there: speed lines that thin out as it goes (none under RUSH_KEEP of
-	-- it), and bubbles left behind us
+	-- it). No bubbles left behind us in the glide (Hugo, 2026-11-14): only the pull-in leaves them.
 	local boost = math.clamp((Config.hopKept(clock, leapTime) - RUSH_KEEP) / (1 - RUSH_KEEP), 0, 1)
 	if boost > 0.05 then
 		Feel.rush(Config.Feel.PopLines * boost)
 	end
-	Feel.trail(root, boost > 0.05)
+	Feel.trail(root, false)
 
 	-- The reference's hands-off landing (Jump.AutoGrab 2): when the glide is over the locked fish pulls us in by
 	-- itself, about 1.7 s after the press; with none locked then, the first fish locked in the drop does. A press still
@@ -675,8 +683,41 @@ local function hop(dt: number)
 	end
 end
 
+-- The slow-mo look (Jump.Slow*): by the share of the leaving speed still there, in over the leaving, out at the
+-- pull-in, the landing, or with the speed gone. Only our screen: a ColorCorrection under the camera and the view's width.
+local function slowMo(dt: number)
+	local j = Config.Jump
+	local goal = 0
+	if flying and not reeling and not asked then
+		local kept = Config.hopKept(clock, leapTime)
+		goal = Ease.smoothstep(j.SlowUntil, math.max(j.SlowFull, j.SlowUntil + 0.01), kept)
+	end
+	local rate = if goal > slowNow then j.SlowIn else j.SlowOut
+	slowNow = if rate <= 0 then goal else slowNow + math.clamp(goal - slowNow, -dt / rate, dt / rate)
+	if slowNow <= 0.001 then
+		slowNow = 0
+		if slowLook.Enabled then
+			slowLook.Enabled = false
+		end
+		return
+	end
+	local camera = workspace.CurrentCamera
+	if slowLook.Parent ~= camera then
+		slowLook.Parent = camera
+	end
+	slowLook.Enabled = true
+	slowLook.Saturation = j.SlowSaturation * slowNow
+	slowLook.Contrast = j.SlowContrast * slowNow
+	slowLook.TintColor = WHITE:Lerp(j.SlowTint, slowNow)
+	-- the view held wider (the punch runs down by itself; this keeps it up while the look is on)
+	if not reeling and not asked then
+		State.FovPunch = math.max(State.FovPunch, j.SlowFov * slowNow)
+	end
+end
+
 local function step(dt: number)
 	hop(dt)
+	slowMo(dt)
 	placeRing(dt)
 	Feel.step(dt)
 end
@@ -717,6 +758,11 @@ function JumpController.Init()
 		trailDots[i] = dot
 		trailBorn[i] = -math.huge
 	end
+
+	slowLook = Instance.new("ColorCorrectionEffect")
+	slowLook.Name = "HopSlowMo"
+	slowLook.Enabled = false
+	slowLook.Parent = workspace.CurrentCamera
 
 	glow = Instance.new("Highlight")
 	glow.Name = "JumpGlow"

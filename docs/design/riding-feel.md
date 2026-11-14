@@ -195,6 +195,36 @@ moment you land and the moment the landing animation starts."
   past 84 (further down: 42, 82, 101, where the fish are faster and reach 112 to 150). The fish you left is
   always in reach as you leave.
 
+### Faster, in slow-mo: more speed, the fall-off later, no balls (Hugo, 2026-11-14)
+
+Hugo: "The Player gets way too little speed when jumping off a fish, it should feel like youre moving fast but in like
+a slowmo mode, still faster than right now, also remove the trail of balls when gliding and make the falloff impact
+speed with a later delay". Built the same day (task h2), measured by script:
+[the playtest](../playtests/2026-11-14-hop-fast-slowmo.md). **Not played by hand yet.** Where "The one curve" below
+says otherwise, this holds; its shape (one curve, no knee) and the server's rule are unchanged.
+
+![before and after](../attachments/hop-fast-slowmo-before-after.png)
+
+- **More speed:** `Jump.Launch` 0.85 to 1.15, `HopBoost` 15 to 24. The hop leaves about 40% faster (off a 40 fish
+  70, was 49; off a 74, 109, was 78; off a 138, 183, was 132) and goes about twice as far (129, 222, 409 studs; was
+  67, 117, 227). You keep up with the herd now.
+- **The fall-off later:** `SpeedHalf` 1.5 to 2.1 s. Nine tenths of the speed holds for 1.0 to 1.4 s (was 0.5 to 0.7),
+  half is gone at 1.9 to 2.4 s. The fall comes in by the speed lost (`hopSink`), so it starts later by itself; then
+  it is a little harder (78 studs a second at the most, was 60 to 73). `StopTime`, `SpeedTail`, `FallSpeed`,
+  `SinkCurve`, the glide's and the window's times: unchanged.
+- **The reach** follows the speed as before (`Config.reachOf`, numbers unchanged), so it is longer and held longer:
+  142 off a normal fish as it leaves (was 118). The server counts the same speed from the same Config, so it moved
+  with the client; checked (8 grabs, none answered wrongly).
+- **"Slow-mo" is a look, on your screen only** (`Jump.Slow*`; JumpController): while most of the leaving speed is there
+  the view is held 6 degrees wider, the colours drained a little and the contrast up (a ColorCorrection under the
+  camera), and a low, stretched whoosh plays as you leave; the camera sits further back in the hop (`CameraZoom` 1.2
+  to 1.35). Nobody's clock and no real speed is slowed: other players in the server see nothing of it.
+- **The trail of balls:** the sandbox's arc trace (white balls every 0.04 s along the flight) is off by default; the
+  N panel's "Arc trace" switch brings it back. The bubble trail (`Feel.trail`) is no longer left in the glide, only in
+  the pull-in.
+- To tune: `Launch`, `HopBoost`, `SpeedHalf`, `CameraZoom` on the N panel; the `Slow*` numbers in Config only (not on
+  the panel yet).
+
 ### The one curve: less carried over, a smaller kick, a slow stop (Hugo, 2026-11-13, after playing the three parts)
 
 Hugo, after playing the three-part air by hand: "the horizontal movement shouldn't carry over fully when jumping off

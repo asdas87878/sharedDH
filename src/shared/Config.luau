@@ -612,8 +612,12 @@ Config.Jump = {
 	-- startled, angry or just off a wall, gives less) + HopBoost. So off a slow fish you leave a little faster than you
 	-- rode, off a fast one a little slower, and a fast fish still gives the faster hop. (Launch was 1.6 and HopBoost 18:
 	-- the hop left at about twice the fish's speed.)
-	Launch = 0.85, -- the share of the fish's speed the hop keeps (1.6 until 2026-11-13; the reference: about 1.3 to 1.8)
-	HopBoost = 15, -- studs a second on top of that: the kick off the fish (18 until 2026-11-13)
+	-- (Hugo, 2026-11-14: "The Player gets way too little speed when jumping off a fish, it should feel like youre moving
+	-- fast but in like a slowmo mode, still faster than right now". Launch 0.85 to 1.15 and HopBoost 15 to 24: the hop
+	-- leaves about 40% faster (49 to 70 off a 40 fish, 78 to 109 off a 74, 132 to 183 off a 138) and goes about twice
+	-- as far. The "slow-mo" is only on your own screen (Slow, below): nobody's time is changed.)
+	Launch = 1.15, -- the share of the fish's speed the hop keeps (0.85 until 2026-11-14, 1.6 until 2026-11-13; the reference: about 1.3 to 1.8)
+	HopBoost = 24, -- studs a second on top of that: the kick off the fish (15 until 2026-11-14, 18 until 2026-11-13)
 	-- (the least a hop off a fish leaves at: off one standing still or badly slowed there is still a hop worth having)
 	AirShare = 0.6, -- the hop never leaves slower than this share of the fish's own ridden speed, plus BoostFloor
 	BoostFloor = 8, -- studs a second (with AirShare, above)
@@ -625,7 +629,10 @@ Config.Jump = {
 	-- and shorter off a slow one by the same seconds as the glide and the window (airtime by speed, below), and
 	-- SpeedHalf in proportion. Until this the speed held for the whole glide and was then lost in 0.35 s (FastKeep,
 	-- FastCurve, StallTime, StallShare: gone); before that the boost was gone 0.75 s after the press.
-	SpeedHalf = 1.5, -- seconds after leaving at which half the speed is gone (later: fast for longer, then lost quicker)
+	-- (Hugo, 2026-11-14: "make the falloff impact speed with a later delay". SpeedHalf 1.5 to 2.1: nine tenths of the
+	-- speed is still there 1.1 to 1.4 s after leaving (0.5 to 0.7 s before), half of it at 1.9 to 2.4 s; and since the
+	-- fall comes in by the speed lost, it comes later too. StopTime, SpeedTail, FallSpeed and SinkCurve are unchanged.)
+	SpeedHalf = 2.1, -- seconds after leaving at which half the speed is gone (later: fast for longer, then lost quicker; 1.5 until 2026-11-14)
 	SpeedTail = 2.5, -- how long and gentle the run-out to the stop is (1: the speed runs straight into the stop; higher: more of it is lost before the tail, which is then longer and softer)
 	StopTime = 3.2, -- seconds after leaving at which you have stopped (with the airtime by speed added); the last fifth of it is under a tenth of the speed
 	StopShare = 0, -- the share of the leaving speed still there at the stop and after (0: a real stop; a little keeps A and D steering to the end)
@@ -719,7 +726,23 @@ Config.Jump = {
 	-- (Hugo, 2026-11-11: the camera felt forced. The view is no longer tilted for you in the hop: it stays where you
 	-- have it. Camera.AirRest 1 gives the tilt to CameraPitch back, for as long as you don't move the view.)
 	CameraPitch = -30, -- with Camera.AirRest on: where the view rests in the hop, looking down on the herd
-	CameraZoom = 1.2, -- how far back the camera sits in the hop, times the riding distance
+	CameraZoom = 1.35, -- how far back the camera sits in the hop, times the riding distance (1.2 until 2026-11-14: pulled back a little more for the slow-mo hop)
+	-- The slow-mo look (Hugo, 2026-11-14: "feel like youre moving fast but in like a slowmo mode"). Only on the hopping
+	-- player's own screen; the hop's real speed and everyone's clock are untouched (co-op). While most of the leaving
+	-- speed is still there: the view held wider, the colours drained a little and the contrast up (a ColorCorrection
+	-- under the camera), and a slowed-down, stretched whoosh as you leave. Measured as the share of the leaving speed
+	-- still there (Config.hopKept): full above SlowFull, nothing at SlowUntil and under.
+	SlowFull = 0.85,
+	SlowUntil = 0.45,
+	SlowIn = 0.2, -- seconds it takes to come in as you leave
+	SlowOut = 0.35, -- and to go once the speed has gone, or at the pull-in (the pull-in has its own zoom)
+	SlowFov = 6, -- the view held this much wider (on top of the speed's own widening, Camera.SpeedFov)
+	SlowSaturation = -0.22, -- the colours (0: as they are; -1: grey)
+	SlowContrast = 0.08,
+	SlowTint = rgb(225, 240, 255), -- a faint cold tint (white: none)
+	SlowWhoosh = 0.45, -- how loud the stretched whoosh is (0 off),
+	SlowWhooshPitch = 0.55, -- how low (the pull-in's is Feel.WhooshPitch 2.2),
+	SlowWhooshTime = 1.3, -- and how long, seconds
 	TrailDots = 18, -- yellow dots left along the pull-in (made once at the start: not on the sandbox panel)
 	TrailEvery = 0.025, -- seconds between them
 	TrailLife = 0.4, -- seconds before one has faded
@@ -1230,7 +1253,7 @@ Config.Feel = {
 	BoltFov = 3, -- the view kicks this much wider as it does
 	LinesFade = 0.3, -- seconds the lines take to die away
 	LinesInner = 0.42, -- how near the middle of the screen they reach, as a share of half its diagonal (1: the corners only)
-	Trail = 70, -- bubbles a second left behind us through the pop's extra speed and the pull-in (0 off)
+	Trail = 70, -- bubbles a second left behind us through the pull-in (0 off); not in the glide since 2026-11-14 (Hugo: "remove the trail of balls when gliding")
 	Whoosh = 0.5, -- how loud the pull-in's whoosh is (0 off),
 	WhooshPitch = 2.2, -- and how high
 	Swish = 0.35, -- the pop's swish

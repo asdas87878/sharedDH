@@ -9,7 +9,7 @@
 --   F: back to the start, onto the next fish of the try-out list (TRY_OUT: one of each passive archetype, a combo, a
 --      giant with no archetype, a plain Common, a Gold and a Rainbow), put there for you. For the props: the Humphead
 --      Wrasse, Steller's Sea Cow, the megalodons and the Blue Whale break them; the rest go through and see them fade.
---   The arc trace: a dot every 0.04 s of the flight, left in the water until the next jump.
+--   The arc trace: a dot every 0.04 s of the flight, left in the water until the next jump (off until switched on in the panel).
 --   After each jump, its numbers: time in the air, height, distance, the speed it came down at.
 -- The switches (no fail, endless air) are the server's (SandboxService); the rest is local.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -622,7 +622,8 @@ local stats: TextLabel
 local output: TextBox
 local flagButtons: { [string]: TextButton } = {}
 
-local traceOn = true
+-- the arc trace's white balls: off unless switched on in the panel (Hugo, 2026-11-14: "remove the trail of balls when gliding")
+local traceOn = false
 local traceFolder: Folder
 local dots: { Part } = {}
 local dotIndex = 0

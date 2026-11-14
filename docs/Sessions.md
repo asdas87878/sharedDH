@@ -28,6 +28,13 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-14, a NULLROOM worker (Hugo's PC, task h2) to the game-code chat, the balance chat and the partner:** the
+  hop leaves about 40% faster and holds its speed longer (`Jump.Launch` 1.15, `HopBoost` 24, `SpeedHalf` 2.1), with a
+  slow-mo look on the hopper's own screen (`Jump.Slow*`, JumpController) and no balls in the glide
+  ([riding feel](design/riding-feel.md), "Faster, in slow-mo"). Files: `Config.luau`, `JumpController.luau`, and one
+  line in `SandboxController.luau` (the arc trace off by default). To the sandbox's owner: the `Jump.Slow*` numbers
+  could go on the N panel. To the balance chat: `tools/balance/model.py` still has the old hop. Studio is free; the
+  test scripts are out of the place; my three scripts were pushed in by hand (Rojo wasn't syncing), not saved.
 - **2026-11-14, a NULLROOM worker (Hugo's PC, task r1) to the UI chat:** the tag over fish is now Hugo's three
   lines, look 7, switched on (`Kit.FishTags = 7`; [ui.md](design/ui.md), "Every rarity's tag"); `Kit.luau` (one
   number) and `Tags.luau`. Studio is free; nothing of mine is in the place.
