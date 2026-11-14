@@ -33,6 +33,45 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 the game shows option 5 until he picks** (the section "The Oxygen row as a glass box", right below).
 **Since 2026-11-14 Hugo has picked 5, and it sits in the screen's bottom left corner with a fade** (the section "The
 Oxygen box in the corner", below).
+**Since 2026-11-14 the tags over fish have six options behind `Kit.FishTags`, left on 0 (today's) until Hugo picks**
+(the section "Fish tag options", below).
+
+## Fish tag options (2026-11-14, Hugo: options sheet 1)
+Hugo: "send me a sheet of possible changes to the whole ui/text above fishes. It should attract the player more and feel
+less clumped".
+
+**State: six options built behind one number, `Kit.FishTags` in `src/client/UI/Kit.luau` (0 = today's stacked tag, left
+on 0: the game looks as before). Run in Hugo's Studio by script (one ride, the same four scenes for every option): no
+errors. Not played by hand. Hugo picks.**
+
+![](../attachments/fish-tags-options-1.png)
+
+Today's tag is four stacked lines of the same size and weight (rarity word, name, icon, a "Needs" pill), so nothing
+leads the eye and a herd piles into one lump. Every option shows the rarity by colour (the name's letters, a plate's
+edge or fill, or a small diamond "gem" in the rarity's colours) instead of a word, and gives far or crowded fish less
+than the whole tag. A crowded tag steps down (whole to a gem, a gem to left out), as today's does.
+
+| # | Look | What changed |
+|---|---|---|
+| 0 | Today | Rarity word, name with one icon, two or more icons under, the Needs pill; far fish only the number |
+| 1 | One line | The name in its rarity's colours, the price chip at the end of the line; no rarity word, no "Needs". Far (110+) or crowded: a gem and the price |
+| 2 | Glass plate | The line on a dark see-through plate edged in the rarity's colour; Legendary and up glow. Far or crowded: a small plate with the gem and the price |
+| 3 | Only the focus is whole | The locked fish, or else the fish nearest the middle of the screen within hook reach, gets the whole tag: a small rarity word, the name bigger, the price under. Every other fish is only a gem and its price. Two or more icons stay under the name |
+| 4 | By distance | Near: one line with the price; from 70 studs only the name; from 150 a gem (bigger for Legendary and up). Epic and up are tagged out to 420 studs. **Drops the price far off** (today the price is the one thing never lost) |
+| 5 | Can I take it? | A gem for the rarity, the name white. The price only within the hook's longest reach (`Jump.GrabRange`): a green chip if you can hold the fish; too strong, a red chip and the name faded. Far: a gem |
+| 6 | Rarity ribbon | A plate filled with the rarity's colours, the name on it, the price hanging under it; Legendary and up glow. Far or crowded: a small ribbon with the gem and the price |
+
+- **Changed on purpose in 1, 2, 4, 5 and 6:** up to three archetype icons sit left of the name (today two or more go
+  in a row under it). 3 keeps today's rule. The single icon left of the name and the icons-not-words rule are kept by all.
+- **My pick: 3.** One tag wins (the fish you are aiming at), the crowd shrinks to small gems that still carry the
+  price, so a herd stays calm and the too-strong warning is never lost; rare fish still read from far by their gem's
+  colour. Second choice: 2 (the clearest single tag, but a crowd still shows several plates).
+- **Seen on the sheet:** a Mythic name (ember) reads close to the red of a too-strong price; a fish very high on the
+  screen (the Blue Whale) can sit under the strip of lands, in every option and today.
+- **How:** `Tags.Looks` in `src/client/UI/Tags.luau` (one row of settings per option: plate, name size and colour,
+  gem, icons left, price under or beside, focus, distances, reach, glow, padding); `makeAlt`, `updateAlt`. Today's
+  tag code is unchanged. In Studio the workspace's number attribute `FishTags` overrides `Kit.FishTags` live (the
+  sheet was made that way).
 
 ## Bigger number, filling the box (2026-11-14, Hugo: on the corner sheet)
 Hugo: "make the text a bit bigger and make sure it fills out the box better than it does right now".

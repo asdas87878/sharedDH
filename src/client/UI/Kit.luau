@@ -187,6 +187,11 @@ Kit.Lands = {
 }
 Kit.LandShort = { "Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Midnight", "Vents", "Bones", "Under" }
 
+-- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
+-- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks.
+-- Hugo's pick is this one number. In Studio the workspace's "FishTags" number overrides it, live.
+Kit.FishTags = 0
+
 -- A fish you would hold this long reads green; shorter, yellow; under Short, red (the tuning chat's three steps)
 Kit.HoldFine = 2
 Kit.HoldShort = 0.5

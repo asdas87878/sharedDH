@@ -3,6 +3,20 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-14 · a NULLROOM worker (Hugo's PC, task g1): fish tag options, sheet 1
+**State:** in the game code behind a switch left on today's look (`Kit.FishTags = 0`), run in Hugo's Studio by script
+(one ride; every option in the same four scenes: a rare fish alone, a crowd, a far view, a long name with a two-icon
+fish; pictures judged, **not played by hand**). StyLua, selene and luau-lsp pass on the two files. Nothing uploaded;
+the test script is out of the place. Rojo wasn't live-syncing, so `Tags.luau` and `Kit.luau` were pushed into the open
+place by script; the place was not saved.
+- Hugo: "a sheet of possible changes to the whole ui/text above fishes. It should attract the player more and feel
+  less clumped". Sheet: `attachments/fish-tags-options-1.png`; note: [ui.md](design/ui.md), "Fish tag options".
+  My pick is 3 (only the fish in focus is whole, the rest are gems with their price).
+- **`Kit.luau`:** `Kit.FishTags` (0 today's, 1 to 6 the options); in Studio the workspace's `FishTags` attribute
+  overrides it. **`Tags.luau`:** `Tags.Looks` and the options' own tag (`makeAlt`, `putAlt`, `updateAlt`); the pool is
+  rebuilt when the number changes; `pin` takes the tag's room, `look` can reach further for Epic and up. Option 0's
+  code path is as before.
+
 ## 2026-11-14 · a NULLROOM worker (Hugo's PC, task o3): the corner Oxygen box, bigger number that fills it
 **State:** in the game code, run in Hugo's Studio by script (before and after; full and the warning forced on; sand and
 pink reef; 100, 45, 7 and 1.2K; pictures judged, **not played by hand**). StyLua and selene pass. Nothing uploaded; the

@@ -21,6 +21,8 @@
 --   distance was too small to read);
 --   a near fish whose whole tag has no room shows just the bubble and the number, before it is left out.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TextService = game:GetService("TextService")
 
 local Archetypes = require(ReplicatedStorage.Shared.Archetypes)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -102,6 +104,10 @@ local lastLocked: Model? = nil
 local hudScale = 1
 
 local NEED = { Kit.Good, Kit.Sun, Color3.fromRGB(255, 100, 104) }
+-- the rarities in order, for the options' "rare" fish (Epic and up are seen from further; Legendary and up glow)
+local RANK = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6, Secret = 7 }
+local RARE = 4
+local SHINY = 5
 
 local function make(parent: Instance): Tag
 	local root: Frame = Kit.new("Frame", {
@@ -242,32 +248,10 @@ local function make(parent: Instance): Tag
 	}
 end
 
-function Tags.build(parent: Instance)
-	for i = 1, POOL do
-		tags[i] = make(parent)
-	end
-end
-
-function Tags.scale(value: number)
-	hudScale = value
-	for _, tag in tags do
-		tag.Size = 0
-	end
-end
-
 local function clear(tag: Tag)
 	tag.Fish = nil
 	tag.Crowded = false
 	tag.Frame.Visible = false
-end
-
-function Tags.hide()
-	for _, tag in tags do
-		if tag.Fish then
-			clear(tag)
-		end
-	end
-	sinceLook = math.huge
 end
 
 local function put(tag: Tag, fish: Model)
@@ -352,16 +336,16 @@ end
 -- behind the camera (the fish just left can be grabbed again), and its tag was then off the screen: the hop button
 -- said GRAB and no tag said what (2026-11-12). Held inside the edges, clear of the strip of lands and the slots; a
 -- fish behind the camera has its tag at the bottom, on the side it is on.
-local function pin(tag: Tag, point: Vector3, camera: Camera): (number, number)
+local function pin(wide: number, high: number, point: Vector3, camera: Camera): (number, number)
 	local size = camera.ViewportSize
-	local side = tag.Wide / 2 + 8 * hudScale
+	local side = wide / 2 + 8 * hudScale
 	local x, y = point.X, point.Y
 	if point.Z <= 0 then
 		x = size.X - x
 		y = size.Y
 	end
 	return math.clamp(x, side, math.max(size.X - side, side)),
-		math.clamp(y, tag.High + 64 * hudScale, math.max(size.Y - 92 * hudScale, tag.High + 64 * hudScale))
+		math.clamp(y, high + 64 * hudScale, math.max(size.Y - 92 * hudScale, high + 64 * hudScale))
 end
 
 -- Each tag over its fish, every frame: the one thing here that runs per frame
@@ -370,7 +354,7 @@ local function follow(camera: Camera)
 		local fish = tag.Fish
 		local root = fish and fish.PrimaryPart
 		if root and tag.Locked then
-			local x, y = pin(tag, camera:WorldToViewportPoint(root.Position + tag.Offset), camera)
+			local x, y = pin(tag.Wide, tag.High, camera:WorldToViewportPoint(root.Position + tag.Offset), camera)
 			tag.Frame.Visible = true
 			tag.Frame.Position = UDim2.fromOffset(x, y)
 		elseif root and not tag.Crowded then
@@ -387,7 +371,7 @@ local function follow(camera: Camera)
 end
 
 -- The nearest free fish ahead of the camera, nearest first, into picks (no table is made)
-local function look(camera: Camera, ridden: Model?, locked: Model?)
+local function look(camera: Camera, ridden: Model?, locked: Model?, rareReach: number?)
 	picked = 0
 	local eye = camera.CFrame.Position
 	local ahead = camera.CFrame.LookVector
@@ -401,7 +385,12 @@ local function look(camera: Camera, ridden: Model?, locked: Model?)
 			if root then
 				local to = root.Position - eye
 				local distance = to.Magnitude
-				if distance < REACH and to:Dot(ahead) > distance * 0.25 then
+				local inReach = distance < REACH
+				if not inReach and rareReach and distance < rareReach then
+					local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
+					inReach = kind ~= nil and (RANK[kind.Tier] or 0) >= RARE
+				end
+				if inReach and to:Dot(ahead) > distance * 0.25 then
 					-- insert by distance, keeping the nearest POOL - 1
 					local at = picked + 1
 					while at > 1 and reach[at - 1] > distance do
@@ -453,6 +442,798 @@ local function give(fish: Model)
 	end
 end
 
+-- ===================================================================================================================
+-- The options (Hugo, 2026-11-14: "attract the player more and feel less clumped"; docs/design/ui.md, "Fish tag
+-- options"). Kit.FishTags picks one: 0 is the stacked tag above, 1 to 6 the looks here. Every look has one line that
+-- leads (the name, or the plate it is on), shows the rarity by colour instead of a word, and gives far or crowded
+-- fish less than the whole tag. A tag is in one of three shapes:
+--   whole: the name's line (a rarity gem, the archetype icons, the name) and the price;
+--   name: the name's line without the price;
+--   mark: only the rarity gem, with the price if the look keeps it far off.
+-- A crowded tag steps down (whole or name to mark, mark to left out), as the stacked tag does.
+
+export type Look = {
+	Name: string,
+	Plate: string, -- "": words on the world; "glass": a dark see-through plate edged in the rarity; "ribbon": a plate
+	-- filled with the rarity's colours
+	NameSize: number,
+	NameTier: boolean, -- the name in its rarity's colours (else white)
+	TierWord: boolean, -- the rarity's word, small, over the whole tag of the fish in focus
+	Gem: boolean, -- the rarity gem left of the name on a whole tag too (a mark is always the gem)
+	IconsLeft: number, -- up to this many archetype icons sit left of the name; more go in a row under it
+	IconSize: number,
+	ChipUnder: boolean, -- the price on its own line under the name (else at the end of the name's line)
+	Focus: boolean, -- only the fish in focus (locked, or nearest the middle of the screen) is whole; the rest are marks
+	NameFrom: number?, -- studs from which a tag is only the name
+	MarkFrom: number, -- studs from which a tag is only the mark
+	FarPrice: boolean, -- a mark keeps the price
+	ReachPrice: boolean, -- the price only on a fish within the hook's longest reach (Config.Jump.GrabRange)
+	Bright: boolean, -- a fish you can hold: its price on a green chip
+	Dim: boolean, -- a fish too strong: its name faded
+	RareReach: number?, -- Epic and up are tagged this far (the stacked tag: REACH for all)
+	Glow: boolean, -- Legendary and up: a soft glow round the plate, or round the gem of a mark
+	Pad: number, -- room kept clear round each tag, in points
+}
+
+Tags.Looks = {
+	{
+		Name = "One line: the name in its rarity's colours, the price beside it",
+		Plate = "",
+		NameSize = 16,
+		NameTier = true,
+		TierWord = false,
+		Gem = false,
+		IconsLeft = 3,
+		IconSize = 18,
+		ChipUnder = false,
+		Focus = false,
+		MarkFrom = 110,
+		FarPrice = true,
+		ReachPrice = false,
+		Bright = false,
+		Dim = false,
+		Glow = false,
+		Pad = 6,
+	},
+	{
+		Name = "A dark glass plate edged in the rarity's colour",
+		Plate = "glass",
+		NameSize = 15,
+		NameTier = false,
+		TierWord = false,
+		Gem = false,
+		IconsLeft = 3,
+		IconSize = 17,
+		ChipUnder = false,
+		Focus = false,
+		MarkFrom = 110,
+		FarPrice = true,
+		ReachPrice = false,
+		Bright = false,
+		Dim = false,
+		Glow = true,
+		Pad = 6,
+	},
+	{
+		Name = "Only the fish in focus is whole; every other fish is a gem and its price",
+		Plate = "",
+		NameSize = 18,
+		NameTier = true,
+		TierWord = true,
+		Gem = false,
+		IconsLeft = 1,
+		IconSize = 20,
+		ChipUnder = true,
+		Focus = true,
+		MarkFrom = 0,
+		FarPrice = true,
+		ReachPrice = false,
+		Bright = false,
+		Dim = false,
+		Glow = true,
+		Pad = 4,
+	},
+	{
+		Name = "By distance: near whole, then the name, far a gem; rare fish seen from far",
+		Plate = "",
+		NameSize = 16,
+		NameTier = true,
+		TierWord = false,
+		Gem = false,
+		IconsLeft = 3,
+		IconSize = 18,
+		ChipUnder = false,
+		Focus = false,
+		NameFrom = 70,
+		MarkFrom = 150,
+		FarPrice = false,
+		ReachPrice = false,
+		Bright = false,
+		Dim = false,
+		RareReach = 420,
+		Glow = true,
+		Pad = 6,
+	},
+	{
+		Name = "Can I take it: the price only in reach, green if yes, the name faded if not",
+		Plate = "",
+		NameSize = 15,
+		NameTier = false,
+		TierWord = false,
+		Gem = true,
+		IconsLeft = 3,
+		IconSize = 17,
+		ChipUnder = false,
+		Focus = false,
+		MarkFrom = 150,
+		FarPrice = false,
+		ReachPrice = true,
+		Bright = true,
+		Dim = true,
+		Glow = true,
+		Pad = 6,
+	},
+	{
+		Name = "A ribbon in the rarity's colours, the price hanging under it",
+		Plate = "ribbon",
+		NameSize = 15,
+		NameTier = false,
+		TierWord = false,
+		Gem = false,
+		IconsLeft = 3,
+		IconSize = 18,
+		ChipUnder = true,
+		Focus = false,
+		MarkFrom = 110,
+		FarPrice = true,
+		ReachPrice = false,
+		Bright = false,
+		Dim = false,
+		Glow = true,
+		Pad = 6,
+	},
+} :: { Look }
+
+local WHOLE, NAME, MARK = 1, 2, 3
+local WIDE = 340 -- the frame of a tag in the options: wide enough for the longest name and its icons
+local CHIP_HIGH = 19
+local GEM = 11
+
+-- a rarity as one colour (an edge, a glow): its own, or the middle of gold, the ember and the rainbow
+local function solid(tier: string): Color3
+	if tier == "Legendary" then
+		return Color3.fromRGB(255, 200, 40)
+	elseif tier == "Mythic" then
+		return Color3.fromRGB(255, 80, 110)
+	elseif tier == "Secret" then
+		return Color3.fromRGB(200, 140, 255)
+	end
+	local entry = Config.Tiers[tier]
+	return if entry then entry.Colour else Kit.White
+end
+
+type Alt = {
+	Frame: Frame,
+	Scale: UIScale,
+	Word: TextLabel,
+	WordFill: UIGradient,
+	Halo: UIStroke,
+	Card: Frame,
+	CardFill: UIGradient,
+	CardEdge: UIStroke,
+	GemBox: Frame,
+	GemFill: UIGradient,
+	GemGlow: Frame,
+	Lead: Frame,
+	Name: TextLabel,
+	NameFill: UIGradient,
+	Under: Frame,
+	ChipRow: Frame,
+	Chip: Frame,
+	Need: TextLabel,
+	Hold: TextLabel,
+	Offset: Vector3,
+	Fish: Model?,
+	KindOf: Config.FishType?,
+	TierName: string,
+	Rare: number,
+	Needs: number,
+	State: number,
+	HoldText: string,
+	NameWide: number,
+	LeadCount: number,
+	UnderCount: number,
+	Locked: boolean,
+	Focus: boolean,
+	Want: number, -- the shape it would have with room
+	Shape: number, -- the shape it is drawn in
+	Size: number,
+	Extra: number,
+	Distance: number,
+	Rank: number,
+	Crowded: boolean,
+	Point: Vector3, -- its foot on the screen at the last look (and how far in front)
+	X: number,
+	Y: number,
+	Wide: number,
+	High: number,
+	Drawn: string, -- what was last written to it, so nothing is written twice
+}
+
+local alts: { Alt } = {}
+local altOrder: { Alt } = table.create(POOL)
+
+local function makeAlt(parent: Instance, lk: Look): Alt
+	local root: Frame = Kit.new("Frame", {
+		Name = "FishTag",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(WIDE, 120),
+		BackgroundTransparency = 1,
+		Visible = false,
+	}, parent)
+	local scale: UIScale = Kit.new("UIScale", {}, root)
+	Kit.new("UIListLayout", {
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 1),
+	}, root)
+	local word = Kit.text({ Size = UDim2.fromOffset(WIDE, 13), TextSize = 11, LayoutOrder = 1, Visible = false }, root)
+	local wordFill = Kit.gradient(word, Kit.White, Kit.White)
+	-- the plate's glow is a wide soft line on a frame that wraps the plate exactly
+	local holder: Frame = Kit.new("Frame", {
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.fromOffset(0, 0),
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+	}, root)
+	local radius = if lk.Plate == "ribbon" then 6 else 8
+	Kit.corner(holder, radius)
+	local halo = Kit.stroke(holder, 7, Kit.White, 0.55)
+	halo.Enabled = false
+	local card: Frame = Kit.new("Frame", {
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.fromOffset(0, 0),
+		BackgroundColor3 = if lk.Plate == "glass" then Kit.Deep else Kit.White,
+		BackgroundTransparency = if lk.Plate == "glass" then 0.28 elseif lk.Plate == "ribbon" then 0 else 1,
+	}, holder)
+	Kit.corner(card, radius)
+	local cardFill = Kit.gradient(card, Kit.White, Kit.White)
+	cardFill.Enabled = lk.Plate == "ribbon"
+	local cardEdge = Kit.stroke(card, 2.5, Kit.Ink)
+	cardEdge.Enabled = lk.Plate ~= ""
+	if lk.Plate ~= "" then
+		Kit.new("UIPadding", {
+			PaddingLeft = UDim.new(0, 8),
+			PaddingRight = UDim.new(0, 8),
+			PaddingTop = UDim.new(0, 2),
+			PaddingBottom = UDim.new(0, 2),
+		}, card)
+	end
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 4),
+	}, card)
+	-- the rarity gem: a square turned to a diamond, in the rarity's colours; Legendary and up a glow behind it
+	local gemBox: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(GEM + 6, GEM + 6),
+		BackgroundTransparency = 1,
+		LayoutOrder = 1,
+	}, card)
+	local gemGlow: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(GEM + 9, GEM + 9),
+		Rotation = 45,
+		BackgroundTransparency = 0.5,
+		Visible = false,
+	}, gemBox)
+	Kit.corner(gemGlow, 4)
+	local gem: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(GEM, GEM),
+		Rotation = 45,
+		BackgroundColor3 = Kit.White,
+	}, gemBox)
+	Kit.corner(gem, 2)
+	local gemFill = Kit.gradient(gem, Kit.White, Kit.White)
+	Kit.stroke(gem, 2, Kit.Ink)
+	local lead: Frame = Kit.new("Frame", {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, lk.IconSize),
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+	}, card)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 2),
+	}, lead)
+	local name = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, lk.NameSize + 4),
+		TextSize = lk.NameSize,
+	}, card)
+	name.LayoutOrder = 3
+	local nameFill = Kit.gradient(name, Kit.White, Kit.White)
+	nameFill.Enabled = lk.NameTier
+	local under: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(WIDE, lk.IconSize + 3),
+		BackgroundTransparency = 1,
+		LayoutOrder = 3,
+		Visible = false,
+	}, root)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 4),
+	}, under)
+	local chipRow: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(WIDE, CHIP_HIGH + 2),
+		BackgroundTransparency = 1,
+		LayoutOrder = 4,
+		Visible = lk.ChipUnder,
+	}, root)
+	-- the price: the bubble and the number on a small dark chip (green or red as the fish is)
+	local chip: Frame = Kit.new("Frame", {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, CHIP_HIGH),
+		BackgroundColor3 = Kit.Deep,
+		BackgroundTransparency = 0.25,
+		LayoutOrder = 4,
+	}, if lk.ChipUnder then chipRow else card)
+	if lk.ChipUnder then
+		chip.AnchorPoint = Vector2.new(0.5, 0)
+		chip.Position = UDim2.fromScale(0.5, 0)
+	end
+	Kit.corner(chip, 999)
+	Kit.stroke(chip, 2, Kit.Ink)
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 6) }, chip)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 3),
+	}, chip)
+	Kit.bubble(chip, 11).LayoutOrder = 1
+	local need = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 15),
+		TextSize = 12.5,
+		LayoutOrder = 2,
+	}, chip)
+	local hold =
+		Kit.text({ Size = UDim2.fromOffset(WIDE, 15), TextSize = 11.5, LayoutOrder = 5, Visible = false }, root)
+	return {
+		Frame = root,
+		Scale = scale,
+		Word = word,
+		WordFill = wordFill,
+		Halo = halo,
+		Card = card,
+		CardFill = cardFill,
+		CardEdge = cardEdge,
+		GemBox = gemBox,
+		GemFill = gemFill,
+		GemGlow = gemGlow,
+		Lead = lead,
+		Name = name,
+		NameFill = nameFill,
+		Under = under,
+		ChipRow = chipRow,
+		Chip = chip,
+		Need = need,
+		Hold = hold,
+		Offset = Vector3.zero,
+		Fish = nil,
+		KindOf = nil,
+		TierName = "",
+		Rare = 0,
+		Needs = -1,
+		State = 0,
+		HoldText = "",
+		NameWide = 0,
+		LeadCount = 0,
+		UnderCount = 0,
+		Locked = false,
+		Focus = false,
+		Want = WHOLE,
+		Shape = -1,
+		Size = 0,
+		Extra = 0,
+		Distance = 0,
+		Rank = 0,
+		Crowded = false,
+		Point = Vector3.zero,
+		X = 0,
+		Y = 0,
+		Wide = 0,
+		High = 0,
+		Drawn = "",
+	}
+end
+
+local function putAlt(tag: Alt, fish: Model, lk: Look)
+	local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
+	local root = fish.PrimaryPart
+	if not kind or not root then
+		return
+	end
+	tag.Fish = fish
+	local variant = Config.variantOf(fish)
+	local size = Config.sizeTierOf(fish)
+	local name = kind.Name
+	if variant ~= "" then
+		name = variant .. " " .. name
+	end
+	if size ~= "Normal" then
+		name = string.upper(size) .. " " .. name
+	end
+	tag.Offset = Vector3.new(0, Config.bodyOf(fish, kind).Y * 0.5 + 2.5, 0)
+	tag.Name.Text = name
+	tag.NameWide = TextService:GetTextSize(name, lk.NameSize, Kit.Font, Vector2.new(1000, 100)).X
+	local line = if Config.ArchetypeFeel.Tags > 0 then Archetypes.line(kind) else ""
+	local count = if line == "" then 0 else #string.split(line, ",")
+	tag.LeadCount = if count <= lk.IconsLeft then count else 0
+	tag.UnderCount = if count > lk.IconsLeft then count else 0
+	Archetypes.icons(tag.Lead, if tag.LeadCount > 0 then line else "", lk.IconSize)
+	Archetypes.icons(tag.Under, if tag.UnderCount > 0 then line else "", lk.IconSize + 2)
+	tag.KindOf = kind
+	tag.TierName = kind.Tier
+	tag.Rare = RANK[kind.Tier] or 1
+	local fill, turn = Kit.tierFill(kind.Tier, Config.Tiers)
+	tag.Word.Text = string.upper(kind.Tier)
+	tag.WordFill.Color, tag.WordFill.Rotation = fill, turn
+	tag.NameFill.Color, tag.NameFill.Rotation = fill, turn
+	tag.GemFill.Color, tag.GemFill.Rotation = fill, turn
+	tag.CardFill.Color, tag.CardFill.Rotation = fill, turn
+	local colour = solid(kind.Tier)
+	if lk.Plate == "glass" then
+		tag.CardEdge.Color = colour
+	end
+	local shiny = lk.Glow and tag.Rare >= SHINY
+	tag.Halo.Color = colour
+	tag.Halo.Enabled = shiny and lk.Plate ~= ""
+	tag.GemGlow.BackgroundColor3 = colour
+	tag.GemGlow.Visible = shiny
+	tag.Needs = -1
+	tag.State = 0
+	tag.Shape = -1
+	tag.Drawn = ""
+end
+
+-- The room a tag takes on the screen in a shape, kept clear by the look's Pad
+local function roomAlt(tag: Alt, form: number, lk: Look)
+	local s = tag.Size * hudScale
+	local plate = if lk.Plate ~= "" then 20 else 0
+	local chip = 28 + 8 * #tag.Need.Text
+	local wide, high
+	if form == MARK then
+		wide = GEM + 10 + plate + (if lk.FarPrice and not lk.ChipUnder then chip else 0)
+		high = 22 + (if lk.FarPrice and lk.ChipUnder then CHIP_HIGH + 2 else 0)
+	else
+		local gem = if lk.Gem then GEM + 10 else 0
+		local icons = if tag.LeadCount > 0 then tag.LeadCount * (lk.IconSize + 2) + 4 else 0
+		local priced = form == WHOLE
+		wide = gem + icons + tag.NameWide + plate + (if priced and not lk.ChipUnder then chip + 4 else 0)
+		high = lk.NameSize + 6 + (if plate > 0 then 4 else 0)
+		if tag.UnderCount > 0 then
+			high += lk.IconSize + 5
+		end
+		if priced and lk.ChipUnder then
+			high += CHIP_HIGH + 3
+		end
+		if lk.TierWord and form == WHOLE and (tag.Focus or tag.Locked) then
+			high += 14
+		end
+	end
+	tag.Wide = (wide + lk.Pad * 2) * s
+	tag.High = (high + tag.Extra + lk.Pad * 2) * s
+end
+
+local function clashAlt(tag: Alt, before: number): boolean
+	for j = 1, before do
+		local placed = altOrder[j]
+		if
+			not placed.Crowded
+			and math.abs(tag.X - placed.X) < (tag.Wide + placed.Wide) / 2
+			and tag.Y - tag.High < placed.Y
+			and placed.Y - placed.High < tag.Y
+		then
+			return true
+		end
+	end
+	return false
+end
+
+-- Draws a tag in a shape: written only when the shape, the focus or the size changed
+local function shapeAlt(tag: Alt, form: number, lk: Look)
+	local key = form .. (if tag.Focus or tag.Locked then "f" else "") .. tag.Size .. "/" .. hudScale
+	if key == tag.Drawn then
+		return
+	end
+	tag.Drawn = key
+	tag.Shape = form
+	local marked = form == MARK
+	local priced = form == WHOLE or (marked and lk.FarPrice)
+	tag.Word.Visible = lk.TierWord and form == WHOLE and (tag.Focus or tag.Locked)
+	tag.GemBox.Visible = lk.Gem or marked
+	tag.Lead.Visible = not marked and tag.LeadCount > 0
+	tag.Name.Visible = not marked
+	tag.Under.Visible = not marked and tag.UnderCount > 0
+	tag.Chip.Visible = priced
+	tag.ChipRow.Visible = lk.ChipUnder and priced
+	-- a mark of a Legendary or rarer fish is bigger: the rare fish are the ones seen from far off
+	local size = if marked and tag.Rare >= SHINY then tag.Size * 1.3 else tag.Size
+	tag.Scale.Scale = size * hudScale
+end
+
+local function followAlt(camera: Camera)
+	for _, tag in alts do
+		local fish = tag.Fish
+		local root = fish and fish.PrimaryPart
+		if root and tag.Locked then
+			local x, y = pin(tag.Wide, tag.High, camera:WorldToViewportPoint(root.Position + tag.Offset), camera)
+			tag.Frame.Visible = true
+			tag.Frame.Position = UDim2.fromOffset(x, y)
+		elseif root and not tag.Crowded then
+			local point = camera:WorldToViewportPoint(root.Position + tag.Offset)
+			local onScreen = point.Z > 0
+			tag.Frame.Visible = onScreen
+			if onScreen then
+				tag.Frame.Position = UDim2.fromOffset(point.X, point.Y)
+			end
+		elseif fish then
+			tag.Frame.Visible = false
+		end
+	end
+end
+
+local function clearAlt(tag: Alt)
+	tag.Fish = nil
+	tag.Crowded = false
+	tag.Frame.Visible = false
+end
+
+local function updateAlt(
+	lk: Look,
+	camera: Camera,
+	zones: { Zones.Zone },
+	maxOxygen: number,
+	ridden: Model?,
+	locked: Model?,
+	hopping: boolean
+)
+	look(camera, ridden, locked, lk.RareReach)
+	for _, tag in alts do
+		local fish = tag.Fish
+		if fish and (fish.Parent == nil or fish.PrimaryPart == nil or not wanted(fish, locked)) then
+			clearAlt(tag)
+		end
+	end
+	local function has(fish: Model): boolean
+		for _, tag in alts do
+			if tag.Fish == fish then
+				return true
+			end
+		end
+		return false
+	end
+	local function giveAlt(fish: Model)
+		for _, tag in alts do
+			if not tag.Fish then
+				putAlt(tag, fish, lk)
+				return
+			end
+		end
+	end
+	if locked and locked.Parent and not has(locked) then
+		giveAlt(locked)
+	end
+	for i = 1, picked do
+		if not has(picks[i]) then
+			giveAlt(picks[i])
+		end
+	end
+
+	local eye = camera.CFrame.Position
+	local middle = camera.ViewportSize / 2
+	local focus: Alt? = nil
+	local focusBy = math.huge
+	for _, tag in alts do
+		local fish = tag.Fish
+		local root = fish and fish.PrimaryPart
+		if fish and root then
+			local isLocked = fish == locked
+			local zone = Zones.locate(zones, root.Position)
+			local land = if zone then zone.Index else 1
+			local needs = Config.required(land, tag.TierName)
+			if needs ~= tag.Needs then
+				tag.Needs = needs
+				tag.Need.Text = Kit.short(needs)
+			end
+			local seconds = Config.secondsOn(land, tag.TierName, maxOxygen, tag.KindOf)
+			local state = if Config.strained(land, tag.TierName, maxOxygen) or seconds < Kit.HoldShort
+				then 3
+				elseif seconds >= Kit.HoldFine then 1
+				else 2
+			if state ~= tag.State then
+				tag.State = state
+				local tooStrong = state == 3
+				local bright = lk.Bright and state == 1
+				tag.Need.TextColor3 = if tooStrong or bright then Kit.White else NEED[state]
+				tag.Hold.TextColor3 = NEED[state]
+				tag.Chip.BackgroundColor3 = if tooStrong
+					then Kit.Danger
+					elseif bright then Color3.fromRGB(38, 168, 72)
+					else Kit.Deep
+				tag.Chip.BackgroundTransparency = if tooStrong or bright then 0.04 else 0.25
+				tag.Name.TextTransparency = if lk.Dim and tooStrong then 0.45 else 0
+			end
+			local holdText = if not (isLocked and hopping)
+				then ""
+				elseif state == 3 then "TOO STRONG!"
+				else "holds " .. Kit.seconds(seconds) .. " s"
+			if holdText ~= tag.HoldText then
+				tag.HoldText = holdText
+				tag.Hold.Text = holdText
+				tag.Hold.Visible = holdText ~= ""
+			end
+			local distance = (root.Position - eye).Magnitude
+			tag.Distance = distance
+			tag.Locked = isLocked
+			tag.Focus = false
+			tag.Extra = if holdText ~= "" then HOLD_HIGH else 0
+			tag.Size = if isLocked then 1.2 elseif distance < 60 then 1 else 0.86
+			local want = WHOLE
+			if isLocked then
+				want = WHOLE
+			elseif lk.Focus then
+				want = MARK
+			else
+				if lk.NameFrom and distance >= lk.NameFrom then
+					want = NAME
+				end
+				if lk.ReachPrice and distance >= Config.Jump.GrabRange then
+					want = NAME
+				end
+				if distance >= lk.MarkFrom then
+					want = MARK
+				end
+			end
+			tag.Want = want
+			local point = camera:WorldToViewportPoint(root.Position + tag.Offset)
+			tag.Rank = if isLocked then -2 elseif point.Z > 0 then distance else math.huge
+			tag.Point = point
+			tag.X = point.X
+			tag.Y = point.Y
+			-- the fish in focus, for a look that draws only one whole: nearest the middle of the screen, in reach
+			if lk.Focus and point.Z > 0 and distance < Config.Jump.GrabRange then
+				local by = (Vector2.new(point.X, point.Y) - middle).Magnitude
+				if by < focusBy then
+					focus, focusBy = tag, by
+				end
+			end
+		end
+	end
+	if lk.Focus and not locked and focus then
+		focus.Focus = true
+		focus.Want = WHOLE
+		focus.Rank = -1
+		focus.Size = math.max(focus.Size, 1.05)
+	end
+
+	local count = 0
+	for _, tag in alts do
+		if tag.Fish then
+			count += 1
+			local at = count
+			while at > 1 and altOrder[at - 1].Rank > tag.Rank do
+				altOrder[at] = altOrder[at - 1]
+				at -= 1
+			end
+			altOrder[at] = tag
+		end
+	end
+	for i = 1, count do
+		local tag = altOrder[i]
+		local form = tag.Want
+		local crowded = tag.Rank == math.huge
+		if tag.Locked then
+			roomAlt(tag, WHOLE, lk)
+			tag.X, tag.Y = pin(tag.Wide, tag.High, tag.Point, camera)
+		elseif not crowded then
+			roomAlt(tag, form, lk)
+			crowded = clashAlt(tag, i - 1)
+			if crowded and form ~= MARK then
+				form = MARK
+				roomAlt(tag, form, lk)
+				crowded = clashAlt(tag, i - 1)
+			end
+		end
+		tag.Crowded = crowded
+		if not crowded then
+			shapeAlt(tag, form, lk)
+		end
+	end
+	followAlt(camera)
+end
+
+-- Which tags are drawn: Kit.FishTags, or in Studio the workspace's "FishTags" (to try them in a playtest)
+local function chosen(): number
+	if RunService:IsStudio() then
+		local forced = workspace:GetAttribute("FishTags")
+		if type(forced) == "number" then
+			return forced
+		end
+	end
+	return Kit.FishTags
+end
+
+local layer: Instance? = nil
+local built = -1
+
+-- The pool of tags for the chosen look; made again when the choice changes (only ever in Studio)
+local function build(option: number)
+	for _, tag in tags do
+		tag.Frame:Destroy()
+	end
+	for _, tag in alts do
+		tag.Frame:Destroy()
+	end
+	table.clear(tags)
+	table.clear(alts)
+	built = option
+	local parent = layer
+	if not parent then
+		return
+	end
+	local lk = Tags.Looks[option]
+	for i = 1, POOL do
+		if lk then
+			alts[i] = makeAlt(parent, lk)
+		else
+			tags[i] = make(parent)
+		end
+	end
+end
+
+function Tags.build(parent: Instance)
+	layer = parent
+	build(chosen())
+end
+
+function Tags.scale(value: number)
+	hudScale = value
+	for _, tag in tags do
+		tag.Size = 0
+	end
+	for _, tag in alts do
+		tag.Drawn = ""
+	end
+end
+
+function Tags.hide()
+	for _, tag in tags do
+		if tag.Fish then
+			clear(tag)
+		end
+	end
+	for _, tag in alts do
+		if tag.Fish then
+			clearAlt(tag)
+		end
+	end
+	sinceLook = math.huge
+end
+
 -- zones: the lands; maxOxygen: the player's; ridden: the fish under the player; locked: the fish a grab would take;
 -- hopping: whether the player is in the hop
 function Tags.update(
@@ -473,14 +1254,28 @@ function Tags.update(
 	if locked ~= lastLocked and sinceLook >= QUICK then
 		sinceLook = math.huge
 	end
+	local lk = Tags.Looks[built]
 	if sinceLook < PERIOD then
-		follow(camera)
+		if lk then
+			followAlt(camera)
+		else
+			follow(camera)
+		end
 		return
 	end
 	sinceLook = 0
 	lastLocked = locked
 	if locked and not hopping and not LOCKED_WHILE_RIDING then
 		locked = nil
+	end
+	local option = chosen()
+	if option ~= built then
+		build(option)
+		lk = Tags.Looks[built]
+	end
+	if lk then
+		updateAlt(lk, camera, zones, maxOxygen, ridden, locked, hopping)
+		return
 	end
 	look(camera, ridden, locked)
 	for _, tag in tags do
@@ -545,7 +1340,7 @@ function Tags.update(
 			tag.Rank = if isLocked then -1 elseif point.Z > 0 then distance else math.huge
 			if isLocked then
 				room(tag, false)
-				tag.X, tag.Y = pin(tag, point, camera)
+				tag.X, tag.Y = pin(tag.Wide, tag.High, point, camera)
 			else
 				tag.X = point.X
 				tag.Y = point.Y
