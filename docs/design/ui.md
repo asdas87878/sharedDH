@@ -35,6 +35,41 @@ the game shows option 5 until he picks** (the section "The Oxygen row as a glass
 Oxygen box in the corner", below).
 **Since 2026-11-14 the tags over fish have six options behind `Kit.FishTags`, left on 0 (today's) until Hugo picks**
 (the section "Fish tag options", below).
+**Since 2026-11-14 (later) the game's tag is Hugo's own three lines, look 7** (the section "Every rarity's tag",
+right below); looks 0 to 6 stay behind `Kit.FishTags`.
+
+## Every rarity's tag (2026-11-14, Hugo: his own layout)
+Hugo, after the options sheet: "Make the names white, give me a spreadsheet of all rarities with a cool design like
+in ride a dino, it should be -> RARITY (class icons) / NAME / Required: n Oxygen icon".
+
+**State: built as look 7 and switched on (`Kit.FishTags = 7`; 0 to 6 kept). Run in Hugo's Studio by script (one
+ride: one fish of each of the seven rarities close up, a long name, a crowd, far fish, and the old tag for the same
+long name): no errors. Pictures judged, not played by hand.** Read "spreadsheet" as a picture sheet like the options
+sheet:
+
+![](../attachments/fish-tags-rarities-1.png)
+
+- **Line 1:** the rarity's word in capitals, then the fish's archetype (class) icons on the same line (none, one or
+  two; 18 px). **Line 2:** the name (with its size and variant, "COLOSSAL Rainbow Great White"), white for every
+  rarity, 16 pt with a thick dark edge so it reads on sand and on the pink reef. **Line 3:** "Required:" in pale
+  white, the number, the Oxygen bubble. The number is what the fish needs where it swims now (`Config.required`, as
+  before): green or yellow when you can hold it, and the whole line on a red plate when it is too strong (the old
+  "Needs" pill's warning, kept). 3 points between lines.
+- **The rarity's word grows with the rarity** (the reference's tags make the rare ones loud; its look isn't copied):
+  Common and Uncommon their colour lighter at the top with the dark edge; Rare adds a soft glow of its colour round
+  the letters; Epic a little bigger and a stronger glow; Legendary gold, Mythic ember and Secret the rainbow, bigger
+  again, with a small star either side; from Legendary the gradient swings and the glow breathes, the stars turn, and
+  the Secret's rainbow goes round (all in `Tags.luau`: `WORD_SIZE`, `WORD_GLOW`, `shimmer`).
+- **Far (110 studs on) or with no room in a crowd:** only the rarity's word (no icons, the stars kept) over the number
+  and the bubble. So a rare fish still reads from far by its word, and what a fish needs is never lost.
+- **The locked fish in the hop** is 1.2 times bigger and has "holds 2.3 s" or "TOO STRONG!" under it, as before.
+- **Seen on the sheet:** in the sandbox (max Oxygen 100, the Shallows) every fish from Rare up is too strong, so
+  their line 3 is red; with more Oxygen it is plain like the Common's. A big fish swimming high puts its tag under the
+  strip of lands (every look does; the shots were taken with the big fish lower). The archetype icons show only on
+  Hugo's PC until they are uploaded (`Shared/Archetypes`).
+- **How:** `Tags.Looks[7]` (`Stack`, `ChipClear`), `makeStack`, `putStack`, `shimmer` in `src/client/UI/Tags.luau`;
+  it shares the options' updating, crowding and pinning. The options' own pieces moved into `Opt` on each tag (no
+  change to how 1 to 6 look).
 
 ## Fish tag options (2026-11-14, Hugo: options sheet 1)
 Hugo: "send me a sheet of possible changes to the whole ui/text above fishes. It should attract the player more and feel

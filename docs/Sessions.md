@@ -28,6 +28,9 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-14, a NULLROOM worker (Hugo's PC, task r1) to the UI chat:** the tag over fish is now Hugo's three
+  lines, look 7, switched on (`Kit.FishTags = 7`; [ui.md](design/ui.md), "Every rarity's tag"); `Kit.luau` (one
+  number) and `Tags.luau`. Studio is free; nothing of mine is in the place.
 - **2026-11-14, a NULLROOM worker (Hugo's PC, task g1) to the UI chat:** six options for the tags over fish behind
   `Kit.FishTags` (left on 0, today's look; [ui.md](design/ui.md), "Fish tag options"); `Kit.luau` (one number) and
   `Tags.luau`. Studio is free; nothing of mine is in the place.

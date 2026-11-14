@@ -473,6 +473,8 @@ export type Look = {
 	RareReach: number?, -- Epic and up are tagged this far (the stacked tag: REACH for all)
 	Glow: boolean, -- Legendary and up: a soft glow round the plate, or round the gem of a mark
 	Pad: number, -- room kept clear round each tag, in points
+	Stack: boolean?, -- the three-line tag (7): the rarity's word and icons, the name in white, "Required:"
+	ChipClear: boolean?, -- what the fish needs on no plate (a plate only when it is too strong)
 }
 
 Tags.Looks = {
@@ -592,12 +594,45 @@ Tags.Looks = {
 		Glow = true,
 		Pad = 6,
 	},
+	{
+		-- Hugo, 2026-11-14, his own layout after sheet 1: "RARITY (class icons) / NAME / Required: n Oxygen icon",
+		-- the names white, each rarity's word with "a cool design like in ride a dino"
+		Name = "Three lines: the rarity's word and icons, the name in white, Required and the bubble",
+		Plate = "",
+		NameSize = 16,
+		NameTier = false,
+		TierWord = true,
+		Gem = false,
+		IconsLeft = 9,
+		IconSize = 18,
+		ChipUnder = true,
+		Focus = false,
+		MarkFrom = 110,
+		FarPrice = true,
+		ReachPrice = false,
+		Bright = false,
+		Dim = false,
+		Glow = true,
+		Pad = 5,
+		Stack = true,
+		ChipClear = true,
+	},
 } :: { Look }
 
 local WHOLE, NAME, MARK = 1, 2, 3
 local WIDE = 340 -- the frame of a tag in the options: wide enough for the longest name and its icons
 local CHIP_HIGH = 19
 local GEM = 11
+-- the three-line tag (7): each line's height, the room between them, the icons on line 1, the stars by the word
+local STACK_TOP = 22
+local STACK_NAME = 19
+local STACK_REQ = 18
+local STACK_GAP = 3
+local STACK_ICON = 18
+local SPARK = 7
+local REQ_SIZE = 12
+local NUMBER_SIZE = 14
+local BUBBLE = 13
 
 -- a rarity as one colour (an edge, a glow): its own, or the middle of gold, the ember and the rainbow
 local function solid(tier: string): Color3
@@ -612,9 +647,8 @@ local function solid(tier: string): Color3
 	return if entry then entry.Colour else Kit.White
 end
 
-type Alt = {
-	Frame: Frame,
-	Scale: UIScale,
+-- the pieces only the options 1 to 6 have
+type OptParts = {
 	Word: TextLabel,
 	WordFill: UIGradient,
 	Halo: UIStroke,
@@ -625,13 +659,35 @@ type Alt = {
 	GemFill: UIGradient,
 	GemGlow: Frame,
 	Lead: Frame,
-	Name: TextLabel,
 	NameFill: UIGradient,
 	Under: Frame,
 	ChipRow: Frame,
+}
+
+-- the pieces only the three-line tag (7) has: line 1 the rarity's word and the archetype icons, line 3 "Required:"
+type StackParts = {
+	Word: TextLabel,
+	WordFill: UIGradient,
+	Glow: TextLabel, -- the same word behind it, in the rarity's colour with a wide soft edge: its glow
+	GlowEdge: UIStroke,
+	Sparks: { Frame }, -- a small star either side of the word, Legendary and up
+	Icons: Frame,
+	Req: TextLabel,
+	ChipEdge: UIStroke,
+	WordSize: number,
+	WordWide: number,
+	Turn: number, -- the word's gradient's own turn, which the shimmer swings about
+}
+
+type Alt = {
+	Frame: Frame,
+	Scale: UIScale,
+	Name: TextLabel,
 	Chip: Frame,
 	Need: TextLabel,
 	Hold: TextLabel,
+	Opt: OptParts?,
+	Stk: StackParts?,
 	Offset: Vector3,
 	Fish: Model?,
 	KindOf: Config.FishType?,
@@ -663,7 +719,241 @@ type Alt = {
 local alts: { Alt } = {}
 local altOrder: { Alt } = table.create(POOL)
 
+-- The rarity's word grows with the rarity, as the reference's does: the lower ones their colour with the dark edge,
+-- from Rare a glow of their colour round the letters, from Legendary bigger, two stars and a shimmer (the gradient
+-- swings), the Secret's rainbow turning. Size, then the glow's width and how see-through it is (nil: none)
+local WORD_SIZE = { 14, 14, 15, 15.5, 16.5, 17, 17.5 }
+local WORD_GLOW: { { number }? } = { nil, nil, { 3.5, 0.72 }, { 4.5, 0.6 }, { 5.5, 0.5 }, { 6, 0.45 }, { 6.5, 0.4 } }
+local REQ_WIDE = 0 -- "Required:" at REQ_SIZE, measured once
+
+local function makeStack(parent: Instance): Alt
+	local root: Frame = Kit.new("Frame", {
+		Name = "FishTag",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(WIDE, 120),
+		BackgroundTransparency = 1,
+		Visible = false,
+	}, parent)
+	local scale: UIScale = Kit.new("UIScale", {}, root)
+	Kit.new("UIListLayout", {
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, STACK_GAP),
+	}, root)
+	-- line 1: [star] RARITY [star] and the icons, centred together
+	local top: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(WIDE, STACK_TOP),
+		BackgroundTransparency = 1,
+		LayoutOrder = 1,
+	}, root)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 5),
+	}, top)
+	local sparks: { Frame } = {}
+	for i = 1, 2 do
+		local spark: Frame = Kit.new("Frame", {
+			Size = UDim2.fromOffset(SPARK, SPARK),
+			Rotation = 45,
+			BackgroundColor3 = Kit.White,
+			LayoutOrder = if i == 1 then 1 else 3,
+			Visible = false,
+		}, top)
+		Kit.corner(spark, 2)
+		Kit.stroke(spark, 1.5, Kit.Ink)
+		sparks[i] = spark
+	end
+	local holder: Frame = Kit.new("Frame", {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STACK_TOP),
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+	}, top)
+	local glow: TextLabel = Kit.new("TextLabel", {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STACK_TOP),
+		BackgroundTransparency = 1,
+		Font = Kit.Font,
+		TextSize = 14,
+		Text = "",
+		TextTransparency = 0.3,
+		Visible = false,
+	}, holder)
+	local glowEdge = Kit.stroke(glow, 4, Kit.White, 0.6)
+	local word = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STACK_TOP),
+		TextSize = 14,
+		ZIndex = 2,
+	}, holder, 2.6)
+	local wordFill = Kit.gradient(word, Kit.White, Kit.White)
+	local icons: Frame = Kit.new("Frame", {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STACK_ICON),
+		BackgroundTransparency = 1,
+		LayoutOrder = 4,
+		Visible = false,
+	}, top)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 3),
+	}, icons)
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 2) }, icons)
+	-- line 2: the name, white for every rarity, with the thick dark edge (it reads on sand and on the pink reef)
+	local name = Kit.text({
+		Size = UDim2.fromOffset(WIDE, STACK_NAME),
+		TextSize = 16,
+		LayoutOrder = 2,
+	}, root, 3)
+	-- line 3: "Required: n" and the bubble; on a red plate when the fish is too strong
+	local reqRow: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(WIDE, STACK_REQ),
+		BackgroundTransparency = 1,
+		LayoutOrder = 3,
+	}, root)
+	local chip: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STACK_REQ),
+		BackgroundColor3 = Kit.Danger,
+		BackgroundTransparency = 1,
+	}, reqRow)
+	Kit.corner(chip, 999)
+	local chipEdge = Kit.stroke(chip, 2, Kit.Ink)
+	chipEdge.Enabled = false
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }, chip)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 4),
+	}, chip)
+	local req = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STACK_REQ),
+		TextSize = REQ_SIZE,
+		Text = "Required:",
+		TextColor3 = Color3.fromRGB(226, 238, 255),
+		LayoutOrder = 1,
+	}, chip, 2)
+	local need = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STACK_REQ),
+		TextSize = NUMBER_SIZE,
+		LayoutOrder = 2,
+	}, chip, 2.4)
+	Kit.bubble(chip, BUBBLE).LayoutOrder = 3
+	local hold =
+		Kit.text({ Size = UDim2.fromOffset(WIDE, 15), TextSize = 11.5, LayoutOrder = 5, Visible = false }, root)
+	if REQ_WIDE == 0 then
+		REQ_WIDE = TextService:GetTextSize("Required:", REQ_SIZE, Kit.Font, Vector2.new(1000, 100)).X + 4
+	end
+	return {
+		Frame = root,
+		Scale = scale,
+		Name = name,
+		Chip = chip,
+		Need = need,
+		Hold = hold,
+		Opt = nil,
+		Stk = {
+			Word = word,
+			WordFill = wordFill,
+			Glow = glow,
+			GlowEdge = glowEdge,
+			Sparks = sparks,
+			Icons = icons,
+			Req = req,
+			ChipEdge = chipEdge,
+			WordSize = 14,
+			WordWide = 0,
+			Turn = 90,
+		},
+		Offset = Vector3.zero,
+		Fish = nil,
+		KindOf = nil,
+		TierName = "",
+		Rare = 0,
+		Needs = -1,
+		State = 0,
+		HoldText = "",
+		NameWide = 0,
+		LeadCount = 0,
+		UnderCount = 0,
+		Locked = false,
+		Focus = false,
+		Want = WHOLE,
+		Shape = -1,
+		Size = 0,
+		Extra = 0,
+		Distance = 0,
+		Rank = 0,
+		Crowded = false,
+		Point = Vector3.zero,
+		X = 0,
+		Y = 0,
+		Wide = 0,
+		High = 0,
+		Drawn = "",
+	}
+end
+
+-- A three-line tag's rarity word and icons for its fish
+local function putStack(st: StackParts, rare: number, tier: string, line: string, lk: Look)
+	local text = string.upper(tier)
+	local size = WORD_SIZE[rare] or 14
+	local fill, turn = Kit.tierFill(tier, Config.Tiers)
+	local colour = solid(tier)
+	st.Word.Text = text
+	st.Word.TextSize = size
+	st.WordFill.Color, st.WordFill.Rotation = fill, turn
+	st.Turn = turn
+	st.WordSize = size
+	st.WordWide = TextService:GetTextSize(text, size, Kit.Font, Vector2.new(1000, 100)).X
+	local glow = if lk.Glow then WORD_GLOW[rare] else nil
+	st.Glow.Visible = glow ~= nil
+	if glow then
+		st.Glow.Text = text
+		st.Glow.TextSize = size
+		st.Glow.TextColor3 = colour
+		st.GlowEdge.Color = colour
+		st.GlowEdge.Thickness = glow[1]
+		st.GlowEdge.Transparency = glow[2]
+	end
+	local shiny = rare >= SHINY
+	for _, spark in st.Sparks do
+		spark.Visible = shiny
+		spark.BackgroundColor3 = Kit.lighter(colour, 0.55)
+	end
+	Archetypes.icons(st.Icons, line, STACK_ICON)
+end
+
+-- The shimmer of Legendary and up on the three-line tag: the word's gradient swings, its glow breathes, the stars
+-- turn; the Secret's rainbow goes all the way round. Per frame, on the tags drawn only
+local function shimmer(tag: Alt, st: StackParts, t: number)
+	local phase = t * 2.2 + tag.Rare
+	if tag.TierName == "Secret" then
+		st.WordFill.Rotation = (t * 70) % 360
+	else
+		st.WordFill.Rotation = st.Turn + math.sin(phase) * 28
+	end
+	st.GlowEdge.Transparency = (WORD_GLOW[tag.Rare] or { 0, 0.5 })[2] + math.sin(phase * 1.3) * 0.12
+	local spin = (t * 90) % 360
+	st.Sparks[1].Rotation = 45 + spin
+	st.Sparks[2].Rotation = 45 - spin
+end
+
 local function makeAlt(parent: Instance, lk: Look): Alt
+	if lk.Stack then
+		return makeStack(parent)
+	end
 	local root: Frame = Kit.new("Frame", {
 		Name = "FishTag",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -814,23 +1104,26 @@ local function makeAlt(parent: Instance, lk: Look): Alt
 	return {
 		Frame = root,
 		Scale = scale,
-		Word = word,
-		WordFill = wordFill,
-		Halo = halo,
-		Card = card,
-		CardFill = cardFill,
-		CardEdge = cardEdge,
-		GemBox = gemBox,
-		GemFill = gemFill,
-		GemGlow = gemGlow,
-		Lead = lead,
 		Name = name,
-		NameFill = nameFill,
-		Under = under,
-		ChipRow = chipRow,
 		Chip = chip,
 		Need = need,
 		Hold = hold,
+		Opt = {
+			Word = word,
+			WordFill = wordFill,
+			Halo = halo,
+			Card = card,
+			CardFill = cardFill,
+			CardEdge = cardEdge,
+			GemBox = gemBox,
+			GemFill = gemFill,
+			GemGlow = gemGlow,
+			Lead = lead,
+			NameFill = nameFill,
+			Under = under,
+			ChipRow = chipRow,
+		},
+		Stk = nil,
 		Offset = Vector3.zero,
 		Fish = nil,
 		KindOf = nil,
@@ -883,26 +1176,33 @@ local function putAlt(tag: Alt, fish: Model, lk: Look)
 	local count = if line == "" then 0 else #string.split(line, ",")
 	tag.LeadCount = if count <= lk.IconsLeft then count else 0
 	tag.UnderCount = if count > lk.IconsLeft then count else 0
-	Archetypes.icons(tag.Lead, if tag.LeadCount > 0 then line else "", lk.IconSize)
-	Archetypes.icons(tag.Under, if tag.UnderCount > 0 then line else "", lk.IconSize + 2)
 	tag.KindOf = kind
 	tag.TierName = kind.Tier
 	tag.Rare = RANK[kind.Tier] or 1
 	local fill, turn = Kit.tierFill(kind.Tier, Config.Tiers)
-	tag.Word.Text = string.upper(kind.Tier)
-	tag.WordFill.Color, tag.WordFill.Rotation = fill, turn
-	tag.NameFill.Color, tag.NameFill.Rotation = fill, turn
-	tag.GemFill.Color, tag.GemFill.Rotation = fill, turn
-	tag.CardFill.Color, tag.CardFill.Rotation = fill, turn
 	local colour = solid(kind.Tier)
-	if lk.Plate == "glass" then
-		tag.CardEdge.Color = colour
+	local o = tag.Opt
+	if o then
+		Archetypes.icons(o.Lead, if tag.LeadCount > 0 then line else "", lk.IconSize)
+		Archetypes.icons(o.Under, if tag.UnderCount > 0 then line else "", lk.IconSize + 2)
+		o.Word.Text = string.upper(kind.Tier)
+		o.WordFill.Color, o.WordFill.Rotation = fill, turn
+		o.NameFill.Color, o.NameFill.Rotation = fill, turn
+		o.GemFill.Color, o.GemFill.Rotation = fill, turn
+		o.CardFill.Color, o.CardFill.Rotation = fill, turn
+		if lk.Plate == "glass" then
+			o.CardEdge.Color = colour
+		end
+		local shiny = lk.Glow and tag.Rare >= SHINY
+		o.Halo.Color = colour
+		o.Halo.Enabled = shiny and lk.Plate ~= ""
+		o.GemGlow.BackgroundColor3 = colour
+		o.GemGlow.Visible = shiny
 	end
-	local shiny = lk.Glow and tag.Rare >= SHINY
-	tag.Halo.Color = colour
-	tag.Halo.Enabled = shiny and lk.Plate ~= ""
-	tag.GemGlow.BackgroundColor3 = colour
-	tag.GemGlow.Visible = shiny
+	local st = tag.Stk
+	if st then
+		putStack(st, tag.Rare, kind.Tier, line, lk)
+	end
 	tag.Needs = -1
 	tag.State = 0
 	tag.Shape = -1
@@ -912,6 +1212,23 @@ end
 -- The room a tag takes on the screen in a shape, kept clear by the look's Pad
 local function roomAlt(tag: Alt, form: number, lk: Look)
 	local s = tag.Size * hudScale
+	local st = tag.Stk
+	if st then
+		local word = st.WordWide + (if tag.Rare >= SHINY then 2 * (SPARK + 6) else 0)
+		local number = 13 + 8 * #tag.Need.Text
+		local wide, high
+		if form == MARK then
+			wide = math.max(word, number + 12)
+			high = STACK_TOP + STACK_GAP + STACK_REQ
+		else
+			local icons = if tag.LeadCount > 0 then tag.LeadCount * (STACK_ICON + 3) + 4 else 0
+			wide = math.max(word + icons, tag.NameWide, REQ_WIDE + number + 12)
+			high = STACK_TOP + STACK_NAME + STACK_REQ + STACK_GAP * 2
+		end
+		tag.Wide = (wide + lk.Pad * 2) * s
+		tag.High = (high + tag.Extra + lk.Pad * 2) * s
+		return
+	end
 	local plate = if lk.Plate ~= "" then 20 else 0
 	local chip = 28 + 8 * #tag.Need.Text
 	local wide, high
@@ -963,20 +1280,34 @@ local function shapeAlt(tag: Alt, form: number, lk: Look)
 	tag.Shape = form
 	local marked = form == MARK
 	local priced = form == WHOLE or (marked and lk.FarPrice)
-	tag.Word.Visible = lk.TierWord and form == WHOLE and (tag.Focus or tag.Locked)
-	tag.GemBox.Visible = lk.Gem or marked
-	tag.Lead.Visible = not marked and tag.LeadCount > 0
+	local o = tag.Opt
+	if o then
+		o.Word.Visible = lk.TierWord and form == WHOLE and (tag.Focus or tag.Locked)
+		o.GemBox.Visible = lk.Gem or marked
+		o.Lead.Visible = not marked and tag.LeadCount > 0
+		o.Under.Visible = not marked and tag.UnderCount > 0
+		o.ChipRow.Visible = lk.ChipUnder and priced
+	end
+	local st = tag.Stk
+	if st then
+		-- far or crowded: the rarity's word and what the fish needs, no icons, no name
+		st.Icons.Visible = not marked and tag.LeadCount > 0
+		st.Req.Visible = not marked
+	end
 	tag.Name.Visible = not marked
-	tag.Under.Visible = not marked and tag.UnderCount > 0
 	tag.Chip.Visible = priced
-	tag.ChipRow.Visible = lk.ChipUnder and priced
 	-- a mark of a Legendary or rarer fish is bigger: the rare fish are the ones seen from far off
 	local size = if marked and tag.Rare >= SHINY then tag.Size * 1.3 else tag.Size
 	tag.Scale.Scale = size * hudScale
 end
 
 local function followAlt(camera: Camera)
+	local t = os.clock()
 	for _, tag in alts do
+		local st = tag.Stk
+		if st and tag.Rare >= SHINY and tag.Fish and tag.Frame.Visible then
+			shimmer(tag, st, t)
+		end
 		local fish = tag.Fish
 		local root = fish and fish.PrimaryPart
 		if root and tag.Locked then
@@ -1074,7 +1405,11 @@ local function updateAlt(
 					then Kit.Danger
 					elseif bright then Color3.fromRGB(38, 168, 72)
 					else Kit.Deep
-				tag.Chip.BackgroundTransparency = if tooStrong or bright then 0.04 else 0.25
+				tag.Chip.BackgroundTransparency = if tooStrong or bright then 0.04 elseif lk.ChipClear then 1 else 0.25
+				local st = tag.Stk
+				if st then
+					st.ChipEdge.Enabled = tooStrong
+				end
 				tag.Name.TextTransparency = if lk.Dim and tooStrong then 0.45 else 0
 			end
 			local holdText = if not (isLocked and hopping)

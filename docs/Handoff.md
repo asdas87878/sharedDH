@@ -3,6 +3,23 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-14 · a NULLROOM worker (Hugo's PC, task r1): fish tags in Hugo's three lines, every rarity
+**State:** in the game code and switched on (`Kit.FishTags = 7`; looks 0 to 6 kept), run in Hugo's Studio by script
+(one ride: one fish of each of the seven rarities, a long name, a crowd, far fish, the old tag; pictures judged,
+**not played by hand**). StyLua, selene and luau-lsp pass on the two files. Nothing uploaded; the test script is out
+of the place; the place was not saved (only code changed, which Rojo brings).
+- Hugo: "Make the names white, give me a spreadsheet of all rarities with a cool design like in ride a dino, it should
+  be -> RARITY (class icons) / NAME / Required: n Oxygen icon". Read as: a picture sheet (not a spreadsheet file),
+  and his layout replacing sheet 1's options. Sheet: `attachments/fish-tags-rarities-1.png`; note:
+  [ui.md](design/ui.md), "Every rarity's tag".
+- **`Tags.luau`:** look 7 (`makeStack`, `putStack`, `shimmer`): line 1 the rarity's word, its treatment growing with
+  the rarity (colour, glow from Rare, stars and a shimmer from Legendary, the Secret's rainbow turning), and the class
+  icons; line 2 the name in white; line 3 "Required: n" and the bubble, on a red plate when too strong. Far or
+  crowded: the word over the number. The options' pieces moved into a tag's `Opt` (1 to 6 look the same).
+  **`Kit.luau`:** `Kit.FishTags = 7`.
+- Read differently from the brief: none. One choice of mine: the far/crowded form keeps the rarity's word (not a gem),
+  so a rare fish shows off from far.
+
 ## 2026-11-14 · a NULLROOM worker (Hugo's PC, task g1): fish tag options, sheet 1
 **State:** in the game code behind a switch left on today's look (`Kit.FishTags = 0`), run in Hugo's Studio by script
 (one ride; every option in the same four scenes: a rare fish alone, a crowd, a far view, a long name with a two-icon
