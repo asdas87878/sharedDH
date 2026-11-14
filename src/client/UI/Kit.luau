@@ -193,6 +193,18 @@ Kit.LandShort = { "Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Mid
 -- the bubble; ui.md, "Every rarity's tag"), the game's tag. In Studio the workspace's "FishTags" number overrides it.
 Kit.FishTags = 7
 
+-- On the three-line tag (7), the fish's size word sits on line 1 with the rarity's word, no longer on the name's line
+-- (Hugo, 2026-11-14: "move size next to/behind rarity instead of title"): "after" or "before" the word, "chip" (on a
+-- small dark pill) or "plain". In Studio the workspace's "FishTagSize" string ("chip-after") overrides it.
+Kit.FishTagSize = "chip-after"
+
+-- The rarity's word on the three-line tag: which designed style each rarity takes (ui.md, "Rarity word options";
+-- Hugo, 2026-11-14: "needs different font and they all need a look with highlights shading and gradients"). Empty:
+-- r1's look (the tag's own font, its colour, glow from Rare). A rarity's number is its column on the options sheet,
+-- e.g. { Common = 1, Legendary = 4 }; a rarity not named keeps r1's look. In Studio the workspace's "RarityWord"
+-- string overrides it: "0" r1's look, "2" option 2 for every rarity, or codes "C1 U1 R2 E1 L4 M1 S3".
+Kit.RarityWords = {} :: { [string]: number }
+
 -- A fish you would hold this long reads green; shorter, yellow; under Short, red (the tuning chat's three steps)
 Kit.HoldFine = 2
 Kit.HoldShort = 0.5

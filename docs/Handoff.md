@@ -27,6 +27,24 @@ are out of the place; the place was not saved. Rojo was not syncing: the three s
 - Not done: the `Slow*` numbers aren't on the N panel; the rider's animation isn't slowed (AnimController); Leaper,
   wall glide and chain pace not run again.
 
+## 2026-11-14 · a NULLROOM worker (Hugo's PC, task r2): the size beside the rarity, rarity word options
+**State:** in the game code, run in Hugo's Studio by script (two rides: each rarity's fish close up in r1's word and
+the four options, the size in four places, a crowd and far fish with my picks; pictures judged, **not played by
+hand**). StyLua, selene and luau-lsp pass on the two files. Nothing uploaded; the test script is out of the place; the
+place was not saved (only code changed, which Rojo brought in).
+- Hugo: "move size next to/behind rarity instead of title, improve upon the rarity text, needs different font and they
+  all need a look with highlights shading and gradients, send me a spreadsheet with options for each one". Sheet:
+  `attachments/fish-tags-rarity-text-options-1.png`; note: [ui.md](design/ui.md), "Rarity word options".
+- **Live:** the size word is on line 1 after the rarity's word, on a small dark pill (`Kit.FishTagSize =
+  "chip-after"`); the name's line is the name and variant only.
+- **Behind a switch (left on r1's word):** four designed styles per rarity, `Kit.RarityWords` (empty = r1's);
+  in Studio the workspace's `RarityWord` ("3", or "C3 U3 R1 ...") and `FishTagSize` override. My pick: C3 U3 R3 E3 L3
+  M3 S3 (Comic, Bangers).
+- **`Tags.luau`:** `WordStyle`, `FAMILIES`, `putArt`, the size's `SizeBox`, the new animation in `shimmer`; looks 0 to
+  6 unchanged. **`Kit.luau`:** `Kit.FishTagSize`, `Kit.RarityWords`.
+- Read differently from the brief: none. The Boss's codes are used as given (C1 to C4 and so on); one column is one
+  family, so Hugo can also answer "3 for all".
+
 ## 2026-11-14 · a NULLROOM worker (Hugo's PC, task r1): fish tags in Hugo's three lines, every rarity
 **State:** in the game code and switched on (`Kit.FishTags = 7`; looks 0 to 6 kept), run in Hugo's Studio by script
 (one ride: one fish of each of the seven rarities, a long name, a crowd, far fish, the old tag; pictures judged,

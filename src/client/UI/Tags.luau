@@ -677,6 +677,38 @@ type StackParts = {
 	WordSize: number,
 	WordWide: number,
 	Turn: number, -- the word's gradient's own turn, which the shimmer swings about
+	Top: Frame, -- line 1
+	Holder: Frame, -- r1's word and glow
+	-- a designed style's layers (WordStyle), in Art
+	Art: Frame,
+	Plate: Frame,
+	PlateFill: UIGradient,
+	PlateEdge: UIStroke,
+	PlateEdgeFill: UIGradient,
+	PlateHalo: Frame,
+	PlateSweep: UIGradient,
+	PlateShine: Frame,
+	AGlow: TextLabel,
+	AGlowEdge: UIStroke,
+	Drops: { TextLabel },
+	DropEdges: { UIStroke },
+	Main: TextLabel,
+	MainFill: UIGradient,
+	MainEdge: UIStroke,
+	MainEdgeFill: UIGradient,
+	Gloss: TextLabel,
+	GlossFill: UIGradient,
+	Shine: TextLabel,
+	ShineFill: UIGradient,
+	Style: WordStyle?,
+	-- the fish's size word on line 1
+	SizeBox: Frame,
+	SizePad: UIPadding,
+	SizeEdge: UIStroke,
+	SizeWord: TextLabel,
+	SizeWide: number,
+	SparkWide: number,
+	Animated: boolean,
 }
 
 type Alt = {
@@ -725,6 +757,301 @@ local altOrder: { Alt } = table.create(POOL)
 local WORD_SIZE = { 14, 14, 15, 15.5, 16.5, 17, 17.5 }
 local WORD_GLOW: { { number }? } = { nil, nil, { 3.5, 0.72 }, { 4.5, 0.6 }, { 5.5, 0.5 }, { 6, 0.45 }, { 6.5, 0.4 } }
 local REQ_WIDE = 0 -- "Required:" at REQ_SIZE, measured once
+
+-- The rarity word's designed styles (Hugo, 2026-11-14: "improve upon the rarity text, needs different font and they
+-- all need a look with highlights shading and gradients"; ui.md, "Rarity word options"). Behind Kit.RarityWords: the
+-- game keeps r1's word until Hugo picks. Each is layers of the same word, all from what Roblox ships (no upload):
+-- a plate behind (a gradient pill with a lit top), a soft glow, one to three darker copies under it (the letters'
+-- depth), the word in a gradient (its shading), a white copy cut to its top half (the highlight), and a thin white
+-- line across it, still or sweeping. Four families, one per column of the sheet, each growing richer with the rarity:
+--   1 Candy (Luckiest Guy): soft light-to-dark letters, a dark edge, a gloss on the top half, depth under them;
+--   2 Chrome (Gotham Black): hard metal shading split at the middle, an edge of the rarity's darkest, a shine line;
+--   3 Comic (Bangers): pale letters with a thick edge in the rarity's own gradient, a dark shadow down and right;
+--   4 Badge (Denk One): white letters on a plate of the rarity's colours, the plate lit on top.
+export type WordStyle = {
+	Font: Enum.Font,
+	Size: number,
+	Fill: ColorSequence,
+	FillTurn: number,
+	Edge: Color3,
+	EdgeThick: number,
+	EdgeFill: ColorSequence?, -- the edge itself in a gradient (nil: Edge)
+	Drops: number, -- darker copies under the word, each a step further
+	DropColour: Color3,
+	DropEdge: Color3,
+	DropStep: Vector2,
+	Gloss: number?, -- how see-through the white top half is (nil: none)
+	Shine: number?, -- how see-through the thin white line is (nil: none)
+	Sweep: boolean, -- the line sweeps across now and then instead of staying still
+	Glow: { number }?, -- the soft edge's width and how see-through
+	GlowColour: Color3,
+	Plate: ColorSequence?, -- a plate behind the word
+	PlateEdge: Color3,
+	PlateEdgeFill: ColorSequence?,
+	PlateGlow: number?, -- a soft halo round the plate, how see-through
+	Sparks: boolean,
+	Spin: boolean, -- the fill (or the edge, when the edge is the rainbow) turns round
+}
+
+type Pal = { Light: Color3, Mid: Color3, Dark: Color3, Deep: Color3, Fill: ColorSequence? }
+
+local function seq(points: { any }): ColorSequence
+	local keys = {}
+	for i = 1, #points, 2 do
+		table.insert(keys, ColorSequenceKeypoint.new(points[i], points[i + 1]))
+	end
+	return ColorSequence.new(keys)
+end
+
+local rgb = Color3.fromRGB
+local RAINBOW = seq({
+	0,
+	rgb(255, 96, 120),
+	0.18,
+	rgb(255, 176, 70),
+	0.36,
+	rgb(255, 240, 100),
+	0.54,
+	rgb(100, 236, 140),
+	0.72,
+	rgb(90, 190, 255),
+	0.88,
+	rgb(170, 120, 255),
+	1,
+	rgb(255, 96, 200),
+})
+-- each rarity's four tones: the lit top, its own colour, the shade, the deepest (edges, depth)
+local PAL: { [string]: Pal } = {
+	Common = { Light = rgb(252, 253, 255), Mid = rgb(198, 206, 218), Dark = rgb(128, 140, 160), Deep = rgb(58, 66, 84) },
+	Uncommon = { Light = rgb(222, 255, 180), Mid = rgb(104, 224, 84), Dark = rgb(34, 160, 64), Deep = rgb(14, 80, 40) },
+	Rare = { Light = rgb(200, 238, 255), Mid = rgb(76, 168, 255), Dark = rgb(36, 94, 226), Deep = rgb(18, 40, 124) },
+	Epic = { Light = rgb(244, 210, 255), Mid = rgb(186, 98, 255), Dark = rgb(118, 46, 216), Deep = rgb(58, 18, 120) },
+	Legendary = {
+		Light = rgb(255, 252, 200),
+		Mid = rgb(255, 208, 48),
+		Dark = rgb(238, 128, 16),
+		Deep = rgb(122, 52, 6),
+	},
+	Mythic = { Light = rgb(255, 210, 180), Mid = rgb(255, 72, 98), Dark = rgb(192, 22, 106), Deep = rgb(92, 8, 56) },
+	Secret = {
+		Light = rgb(255, 255, 255),
+		Mid = rgb(200, 140, 255),
+		Dark = rgb(110, 60, 200),
+		Deep = rgb(26, 14, 46),
+		Fill = RAINBOW,
+	},
+}
+local WHITE = Kit.White
+
+local function soft(p: Pal): ColorSequence
+	return p.Fill or seq({ 0, p.Light, 0.5, p.Mid, 1, p.Dark })
+end
+
+local function base(p: Pal): WordStyle
+	return {
+		Font = Enum.Font.LuckiestGuy,
+		Size = 15,
+		Fill = soft(p),
+		FillTurn = if p.Fill then 0 else 90,
+		Edge = Kit.Ink,
+		EdgeThick = 2.4,
+		EdgeFill = nil,
+		Drops = 1,
+		DropColour = p.Deep,
+		DropEdge = Kit.Ink,
+		DropStep = Vector2.new(0, 1.5),
+		Gloss = nil,
+		Shine = nil,
+		Sweep = false,
+		Glow = nil,
+		GlowColour = p.Mid,
+		Plate = nil,
+		PlateEdge = Kit.Ink,
+		PlateEdgeFill = nil,
+		PlateGlow = nil,
+		Sparks = false,
+		Spin = false,
+	}
+end
+
+local GROW = { 0, 0, 1, 1.5, 2.5, 3, 3.5 } -- each rarity's word this much bigger than the Common's
+local secret = function(r: number): boolean
+	return r == 7
+end
+
+local FAMILIES: { (r: number, p: Pal) -> WordStyle } = {
+	-- 1 Candy
+	function(r, p)
+		local s = base(p)
+		s.Size = 19 + GROW[r]
+		s.Drops = if r >= 4 then 2 else 1
+		s.Gloss = 0.5 - 0.035 * r
+		s.Glow = if r >= 3 then { 2.5 + 0.6 * r, 0.86 - 0.05 * r } else nil
+		s.Sweep = r >= 5
+		s.Shine = if r >= 5 then 0.15 else nil
+		s.Sparks = r >= 5
+		s.Spin = secret(r)
+		return s
+	end,
+	-- 2 Chrome
+	function(r, p)
+		local s = base(p)
+		s.Font = Enum.Font.GothamBlack
+		s.Size = 17 + GROW[r]
+		if secret(r) then
+			-- the void: near-black metal with the rainbow round it
+			s.Fill =
+				seq({ 0, rgb(236, 226, 255), 0.47, rgb(170, 146, 230), 0.53, rgb(70, 46, 130), 1, rgb(120, 90, 200) })
+			s.FillTurn = 90
+			s.EdgeFill = RAINBOW
+			s.Edge = WHITE
+			s.GlowColour = rgb(200, 140, 255)
+		else
+			s.Fill = seq({
+				0,
+				Kit.lighter(p.Light, 0.5),
+				0.48,
+				p.Light:Lerp(p.Mid, 0.3),
+				0.52,
+				p.Mid,
+				1,
+				p.Mid:Lerp(p.Dark, 0.6),
+			})
+			s.Edge = Kit.darker(p.Deep, 0.25)
+		end
+		s.EdgeThick = 2.2
+		s.Drops = if r >= 4 then 3 else 2
+		s.DropColour = Kit.darker(p.Deep, 0.3)
+		s.DropEdge = Kit.darker(p.Deep, 0.45)
+		s.DropStep = Vector2.new(0, 1.2)
+		s.Shine = 0.1
+		s.Sweep = r >= 6
+		s.Glow = if r >= 4 then { 2 + 0.7 * r, 0.9 - 0.05 * r } else nil
+		s.Sparks = r >= 6
+		s.Spin = secret(r)
+		return s
+	end,
+	-- 3 Comic
+	function(r, p)
+		local s = base(p)
+		s.Font = Enum.Font.Bangers
+		s.Size = 22 + GROW[r]
+		s.Fill = seq({ 0, WHITE, 0.55, Kit.lighter(p.Light, 0.3), 1, p.Light })
+		s.FillTurn = 90
+		s.Edge = p.Dark
+		s.EdgeThick = 3
+		s.EdgeFill = if p.Fill then RAINBOW else seq({ 0, p.Mid, 1, p.Dark })
+		s.Drops = 1
+		s.DropColour = Kit.Ink
+		s.DropEdge = Kit.Ink
+		s.DropStep = Vector2.new(1.6, 2.4)
+		s.Gloss = if r >= 3 then 0.55 else nil
+		s.Glow = if r >= 3 then { 3 + 0.6 * r, 0.86 - 0.05 * r } else nil
+		s.Sweep = r >= 5
+		s.Shine = if r >= 5 then 0.2 else nil
+		s.Sparks = r >= 5
+		s.Spin = secret(r)
+		return s
+	end,
+	-- 4 Badge
+	function(r, p)
+		local s = base(p)
+		s.Font = Enum.Font.DenkOne
+		s.Size = 16 + GROW[r] * 0.8
+		s.Fill = seq({ 0, WHITE, 1, Kit.lighter(p.Light, 0.2) })
+		s.FillTurn = 90
+		s.EdgeThick = 2
+		s.Drops = 1
+		s.DropColour = p.Deep
+		s.DropStep = Vector2.new(0, 1.3)
+		if secret(r) then
+			s.Plate = seq({ 0, rgb(70, 50, 110), 0.5, rgb(26, 14, 46), 1, rgb(10, 6, 20) })
+			s.PlateEdgeFill = RAINBOW
+			s.Fill = RAINBOW
+			s.FillTurn = 0
+		else
+			s.Plate = seq({ 0, p.Mid:Lerp(p.Light, 0.35), 0.5, p.Mid, 1, p.Dark })
+		end
+		s.Gloss = nil
+		s.Shine = if r >= 4 then 0.25 else nil
+		s.Sweep = r >= 4
+		s.PlateGlow = if r >= 5 then 0.55 else nil
+		s.Sparks = r >= 5
+		s.Spin = secret(r)
+		return s
+	end,
+}
+Tags.Families = #FAMILIES
+local CODE: { [string]: string } =
+	{ Common = "C", Uncommon = "U", Rare = "R", Epic = "E", Legendary = "L", Mythic = "M", Secret = "S" }
+
+-- A rarity's style in a family (1 to 4), or nil for r1's look
+function Tags.wordStyle(tier: string, family: number): WordStyle?
+	local family_ = FAMILIES[family]
+	local p = PAL[tier]
+	if not family_ or not p then
+		return nil
+	end
+	return family_(RANK[tier] or 1, p)
+end
+
+-- Which style each rarity's word takes: Kit.RarityWords, or in Studio the workspace's "RarityWord" ("0", "2", or
+-- codes "C1 U2 ..."). Read a few times a second; the answer is the text it came from, to tell when it changed
+local function wordChoice(): ({ [string]: number }, string)
+	local forced = if RunService:IsStudio() then workspace:GetAttribute("RarityWord") else nil
+	if type(forced) ~= "string" then
+		local key = ""
+		for tier, n in Kit.RarityWords do
+			key ..= tier .. n
+		end
+		return Kit.RarityWords, key
+	end
+	local out: { [string]: number } = {}
+	local all = tonumber(forced)
+	if all then
+		for tier in CODE do
+			out[tier] = all
+		end
+		return out, forced
+	end
+	for _, code in string.split(forced, " ") do
+		for tier, letter in CODE do
+			if string.sub(code, 1, 1) == letter then
+				out[tier] = tonumber(string.sub(code, 2)) or 0
+			end
+		end
+	end
+	return out, forced
+end
+
+-- Where the size word sits: Kit.FishTagSize, or in Studio the workspace's "FishTagSize"
+local function sizeChoice(): string
+	local forced = if RunService:IsStudio() then workspace:GetAttribute("FishTagSize") else nil
+	return if type(forced) == "string" then forced else Kit.FishTagSize
+end
+local wordPicks, wordKey = wordChoice()
+local sizeAt = sizeChoice()
+
+local GLOSS_CUT = 0.5
+local function glossSeq(t: number): NumberSequence
+	return NumberSequence.new({
+		NumberSequenceKeypoint.new(0, t),
+		NumberSequenceKeypoint.new(GLOSS_CUT - 0.06, math.min(t + 0.2, 1)),
+		NumberSequenceKeypoint.new(GLOSS_CUT, 1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+end
+local function lineSeq(t: number, at: number, half: number): NumberSequence
+	return NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(at - half, 1),
+		NumberSequenceKeypoint.new(at, t),
+		NumberSequenceKeypoint.new(at + half, 1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+end
+local DROPS = 3
+local PLATE_X, PLATE_Y = 8, 3
 
 local function makeStack(parent: Instance): Alt
 	local root: Frame = Kit.new("Frame", {
@@ -791,11 +1118,105 @@ local function makeStack(parent: Instance): Alt
 		ZIndex = 2,
 	}, holder, 2.6)
 	local wordFill = Kit.gradient(word, Kit.White, Kit.White)
+	-- a designed style's word: its layers stacked in one frame, back to front
+	local art: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(10, STACK_TOP),
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+		Visible = false,
+	}, top)
+	local plate: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Kit.White,
+		ZIndex = 2,
+		Visible = false,
+	}, art)
+	Kit.corner(plate, 7)
+	local plateFill = Kit.gradient(plate, Kit.White, Kit.White)
+	local plateEdge = Kit.stroke(plate, 2, Kit.Ink)
+	local plateEdgeFill: UIGradient = Kit.new("UIGradient", { Enabled = false }, plateEdge)
+	local plateGloss: Frame = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Kit.White,
+		ZIndex = 3,
+	}, plate)
+	Kit.corner(plateGloss, 7)
+	Kit.new("UIGradient", { Rotation = 90, Transparency = glossSeq(0.45) }, plateGloss)
+	local plateShine: Frame = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Kit.White,
+		ZIndex = 4,
+		Visible = false,
+	}, plate)
+	Kit.corner(plateShine, 7)
+	local plateSweep: UIGradient =
+		Kit.new("UIGradient", { Rotation = 20, Transparency = lineSeq(0.35, 0.5, 0.09) }, plateShine)
+	local halo: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 8, 1, 8),
+		BackgroundColor3 = Kit.White,
+		ZIndex = 1,
+		Visible = false,
+	}, art)
+	Kit.corner(halo, 11)
+	local function layer(z: number): TextLabel
+		return Kit.new("TextLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Font = Enum.Font.LuckiestGuy,
+			TextSize = 15,
+			Text = "",
+			TextColor3 = Kit.White,
+			ZIndex = z,
+		}, art)
+	end
+	local aGlow = layer(3)
+	aGlow.TextTransparency = 0.3
+	local aGlowEdge = Kit.stroke(aGlow, 4, Kit.White, 0.6)
+	local drops: { TextLabel } = {}
+	local dropEdges: { UIStroke } = {}
+	for i = 1, DROPS do
+		local d = layer(8 - i)
+		drops[i] = d
+		dropEdges[i] = Kit.stroke(d, 2, Kit.Ink)
+	end
+	local main = layer(10)
+	local mainFill = Kit.gradient(main, Kit.White, Kit.White)
+	local mainEdge = Kit.stroke(main, 2, Kit.Ink)
+	local mainEdgeFill: UIGradient = Kit.new("UIGradient", { Enabled = false }, mainEdge)
+	local gloss = layer(11)
+	local glossFill: UIGradient = Kit.new("UIGradient", { Rotation = 90, Transparency = glossSeq(0.5) }, gloss)
+	local shine = layer(12)
+	local shineFill: UIGradient =
+		Kit.new("UIGradient", { Rotation = 90, Transparency = lineSeq(0.2, 0.3, 0.06) }, shine)
+	-- the fish's size (Hugo, 2026-11-14: beside the rarity, not on the name's line), plain or on a small dark pill
+	local sizeBox: Frame = Kit.new("Frame", {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 16),
+		BackgroundColor3 = Kit.Deep,
+		BackgroundTransparency = 1,
+		LayoutOrder = 4,
+		Visible = false,
+	}, top)
+	Kit.corner(sizeBox, 999)
+	local sizePad: UIPadding = Kit.new("UIPadding", {}, sizeBox)
+	local sizeEdge = Kit.stroke(sizeBox, 1.5, Kit.Ink)
+	local sizeWord = Kit.text({
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 16),
+		TextSize = 12,
+		TextColor3 = Color3.fromRGB(240, 246, 255),
+	}, sizeBox, 2)
 	local icons: Frame = Kit.new("Frame", {
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, STACK_ICON),
 		BackgroundTransparency = 1,
-		LayoutOrder = 4,
+		LayoutOrder = 5,
 		Visible = false,
 	}, top)
 	Kit.new("UIListLayout", {
@@ -875,6 +1296,36 @@ local function makeStack(parent: Instance): Alt
 			WordSize = 14,
 			WordWide = 0,
 			Turn = 90,
+			Top = top,
+			Holder = holder,
+			Art = art,
+			Plate = plate,
+			PlateFill = plateFill,
+			PlateEdge = plateEdge,
+			PlateEdgeFill = plateEdgeFill,
+			PlateHalo = halo,
+			PlateSweep = plateSweep,
+			PlateShine = plateShine,
+			AGlow = aGlow,
+			AGlowEdge = aGlowEdge,
+			Drops = drops,
+			DropEdges = dropEdges,
+			Main = main,
+			MainFill = mainFill,
+			MainEdge = mainEdge,
+			MainEdgeFill = mainEdgeFill,
+			Gloss = gloss,
+			GlossFill = glossFill,
+			Shine = shine,
+			ShineFill = shineFill,
+			Style = nil,
+			SizeBox = sizeBox,
+			SizePad = sizePad,
+			SizeEdge = sizeEdge,
+			SizeWord = sizeWord,
+			SizeWide = 0,
+			SparkWide = 0,
+			Animated = false,
 		},
 		Offset = Vector3.zero,
 		Fish = nil,
@@ -905,49 +1356,207 @@ local function makeStack(parent: Instance): Alt
 	}
 end
 
--- A three-line tag's rarity word and icons for its fish
-local function putStack(st: StackParts, rare: number, tier: string, line: string, lk: Look)
-	local text = string.upper(tier)
-	local size = WORD_SIZE[rare] or 14
-	local fill, turn = Kit.tierFill(tier, Config.Tiers)
-	local colour = solid(tier)
-	st.Word.Text = text
-	st.Word.TextSize = size
-	st.WordFill.Color, st.WordFill.Rotation = fill, turn
-	st.Turn = turn
-	st.WordSize = size
-	st.WordWide = TextService:GetTextSize(text, size, Kit.Font, Vector2.new(1000, 100)).X
-	local glow = if lk.Glow then WORD_GLOW[rare] else nil
-	st.Glow.Visible = glow ~= nil
-	if glow then
-		st.Glow.Text = text
-		st.Glow.TextSize = size
-		st.Glow.TextColor3 = colour
-		st.GlowEdge.Color = colour
-		st.GlowEdge.Thickness = glow[1]
-		st.GlowEdge.Transparency = glow[2]
+-- A designed style's word (WordStyle) into the Art layers; its width and the line's height
+local function putArt(st: StackParts, style: WordStyle, text: string): (number, number)
+	local measured = TextService:GetTextSize(text, style.Size, style.Font, Vector2.new(1000, 100))
+	local spread = style.EdgeThick + 2 + math.max(style.DropStep.X * style.Drops, 0)
+	local wide = measured.X + spread * 2
+	local high = math.max(STACK_TOP, style.Size + 8)
+	local plated = style.Plate ~= nil
+	if plated then
+		wide += PLATE_X * 2
+		high = math.max(STACK_TOP + 2, style.Size + PLATE_Y * 2 + 6)
 	end
-	local shiny = rare >= SHINY
+	st.Art.Size = UDim2.fromOffset(wide, high)
+	local function letters(label: TextLabel)
+		label.Font = style.Font
+		label.TextSize = style.Size
+		label.Text = text
+	end
+	-- the plate, its lit top, its sweep and halo
+	st.Plate.Visible = plated
+	if plated then
+		st.Plate.Size = UDim2.new(1, 0, 0, style.Size + PLATE_Y * 2 + 2)
+		st.PlateFill.Color = style.Plate :: ColorSequence
+		st.PlateEdge.Color = style.PlateEdge
+		st.PlateEdge.Thickness = 2
+		st.PlateEdgeFill.Enabled = style.PlateEdgeFill ~= nil
+		if style.PlateEdgeFill then
+			st.PlateEdge.Color = WHITE
+			st.PlateEdgeFill.Color = style.PlateEdgeFill
+		end
+		st.PlateShine.Visible = style.Shine ~= nil
+		if style.Shine then
+			st.PlateSweep.Transparency = lineSeq(style.Shine, 0.5, 0.1)
+			st.PlateSweep.Offset = Vector2.new(if style.Sweep then -1.5 else 0, 0)
+		end
+	end
+	st.PlateHalo.Visible = plated and style.PlateGlow ~= nil
+	if plated and style.PlateGlow then
+		st.PlateHalo.Size = UDim2.new(1, 8, 0, style.Size + PLATE_Y * 2 + 10)
+		st.PlateHalo.BackgroundColor3 = style.GlowColour
+		st.PlateHalo.BackgroundTransparency = style.PlateGlow
+	end
+	-- the glow
+	local glow = style.Glow
+	st.AGlow.Visible = glow ~= nil
+	if glow then
+		letters(st.AGlow)
+		st.AGlow.TextColor3 = style.GlowColour
+		st.AGlowEdge.Color = style.GlowColour
+		st.AGlowEdge.Thickness = glow[1]
+		st.AGlowEdge.Transparency = glow[2]
+	end
+	-- the depth under the letters
+	for i, drop in st.Drops do
+		drop.Visible = i <= style.Drops
+		if i <= style.Drops then
+			letters(drop)
+			drop.TextColor3 = style.DropColour
+			drop.Position = UDim2.new(0.5, style.DropStep.X * i, 0.5, style.DropStep.Y * i)
+			st.DropEdges[i].Color = style.DropEdge
+			st.DropEdges[i].Thickness = style.EdgeThick
+		end
+	end
+	-- the letters, their edge
+	letters(st.Main)
+	st.MainFill.Color, st.MainFill.Rotation = style.Fill, style.FillTurn
+	st.MainEdge.Color = style.Edge
+	st.MainEdge.Thickness = style.EdgeThick
+	st.MainEdgeFill.Enabled = style.EdgeFill ~= nil
+	if style.EdgeFill then
+		st.MainEdgeFill.Color = style.EdgeFill
+		st.MainEdgeFill.Rotation = if style.EdgeFill == RAINBOW then 0 else 90
+	end
+	-- the highlight on the top half, the shine line
+	st.Gloss.Visible = style.Gloss ~= nil
+	if style.Gloss then
+		letters(st.Gloss)
+		st.GlossFill.Transparency = glossSeq(style.Gloss)
+	end
+	local line = not plated and style.Shine ~= nil
+	st.Shine.Visible = line
+	if line and style.Shine then
+		letters(st.Shine)
+		if style.Sweep then
+			st.ShineFill.Rotation = 25
+			st.ShineFill.Transparency = lineSeq(style.Shine, 0.5, 0.08)
+			st.ShineFill.Offset = Vector2.new(-1.5, 0)
+		else
+			st.ShineFill.Rotation = 90
+			st.ShineFill.Transparency = lineSeq(style.Shine, 0.3, 0.05)
+			st.ShineFill.Offset = Vector2.zero
+		end
+	end
+	return wide, high
+end
+
+-- A three-line tag's rarity word, its size word and icons for its fish
+local function putStack(st: StackParts, rare: number, tier: string, line: string, lk: Look, sizeTier: string)
+	local text = string.upper(tier)
+	local pick = wordPicks[tier]
+	local style = if pick and pick > 0 then Tags.wordStyle(tier, pick) else nil
+	st.Style = style
+	st.Holder.Visible = style == nil
+	st.Art.Visible = style ~= nil
+	local high = STACK_TOP
+	if style then
+		st.WordWide, high = putArt(st, style, text)
+		st.Turn = style.FillTurn
+		st.Animated = style.Sweep or style.Spin or style.Sparks
+	else
+		-- r1's word: the tag's own font, its colour, a glow from Rare, stars and a shimmer from Legendary
+		local size = WORD_SIZE[rare] or 14
+		local fill, turn = Kit.tierFill(tier, Config.Tiers)
+		local colour = solid(tier)
+		st.Word.Text = text
+		st.Word.TextSize = size
+		st.WordFill.Color, st.WordFill.Rotation = fill, turn
+		st.Turn = turn
+		st.WordSize = size
+		st.WordWide = TextService:GetTextSize(text, size, Kit.Font, Vector2.new(1000, 100)).X
+		local glow = if lk.Glow then WORD_GLOW[rare] else nil
+		st.Glow.Visible = glow ~= nil
+		if glow then
+			st.Glow.Text = text
+			st.Glow.TextSize = size
+			st.Glow.TextColor3 = colour
+			st.GlowEdge.Color = colour
+			st.GlowEdge.Thickness = glow[1]
+			st.GlowEdge.Transparency = glow[2]
+		end
+		st.Animated = rare >= SHINY
+	end
+	st.Top.Size = UDim2.fromOffset(WIDE, high)
+	local shiny = if style then style.Sparks else rare >= SHINY
+	local sparkColour = Kit.lighter(if style then style.GlowColour else solid(tier), 0.55)
 	for _, spark in st.Sparks do
 		spark.Visible = shiny
-		spark.BackgroundColor3 = Kit.lighter(colour, 0.55)
+		spark.BackgroundColor3 = sparkColour
 	end
+	st.SparkWide = if shiny then 2 * (SPARK + 6) else 0
+	-- the size word: Tiny to Colossal; a Normal fish has none
+	local sized = sizeTier ~= "Normal" and sizeTier ~= ""
+	local chip = string.find(sizeAt, "chip", 1, true) ~= nil
+	local pad = if chip then 5 else 0
+	st.SizeBox.LayoutOrder = if string.find(sizeAt, "before", 1, true) then 0 else 4
+	st.SizeBox.BackgroundTransparency = if chip then 0.15 else 1
+	st.SizeEdge.Enabled = chip
+	st.SizePad.PaddingLeft = UDim.new(0, pad)
+	st.SizePad.PaddingRight = UDim.new(0, pad)
+	st.SizeWord.Text = if sized then string.upper(sizeTier) else ""
+	st.SizeWide = if sized
+		then TextService:GetTextSize(st.SizeWord.Text, 12, Kit.Font, Vector2.new(1000, 100)).X + pad * 2 + 5
+		else 0
 	Archetypes.icons(st.Icons, line, STACK_ICON)
 end
 
--- The shimmer of Legendary and up on the three-line tag: the word's gradient swings, its glow breathes, the stars
--- turn; the Secret's rainbow goes all the way round. Per frame, on the tags drawn only
+-- The animation of a word: r1's shimmer for Legendary and up (the gradient swings, the glow breathes, the stars turn,
+-- the Secret's rainbow goes round), or a designed style's own (its shine sweeps across now and then, its rainbow
+-- turns, its glow breathes). Per frame, on the tags drawn only
+local SWEEP_EVERY = 2.6
+local SWEEP_TIME = 0.8
+local shineAt: number? = nil -- in Studio the workspace's "ShineAt" holds the sweep still there (-1.2 to 1.2), for pictures
 local function shimmer(tag: Alt, st: StackParts, t: number)
 	local phase = t * 2.2 + tag.Rare
+	local spin = (t * 90) % 360
+	st.Sparks[1].Rotation = 45 + spin
+	st.Sparks[2].Rotation = 45 - spin
+	local style = st.Style
+	if style then
+		if style.Spin then
+			local turn = (t * 70) % 360
+			if style.Fill == RAINBOW then
+				st.MainFill.Rotation = turn
+			end
+			if style.EdgeFill == RAINBOW then
+				st.MainEdgeFill.Rotation = turn
+			end
+			if style.PlateEdgeFill then
+				st.PlateEdgeFill.Rotation = turn
+			end
+		end
+		if style.Sweep then
+			local u = ((t + tag.Rare * 0.37) % SWEEP_EVERY) / SWEEP_TIME
+			local x = shineAt or (if u < 1 then -1.2 + 2.4 * u else 1.5)
+			if style.Plate then
+				st.PlateSweep.Offset = Vector2.new(x, 0)
+			else
+				st.ShineFill.Offset = Vector2.new(x, 0)
+			end
+		end
+		local glow = style.Glow
+		if glow and style.Sparks then
+			st.AGlowEdge.Transparency = glow[2] + math.sin(phase * 1.3) * 0.1
+		end
+		return
+	end
 	if tag.TierName == "Secret" then
 		st.WordFill.Rotation = (t * 70) % 360
 	else
 		st.WordFill.Rotation = st.Turn + math.sin(phase) * 28
 	end
 	st.GlowEdge.Transparency = (WORD_GLOW[tag.Rare] or { 0, 0.5 })[2] + math.sin(phase * 1.3) * 0.12
-	local spin = (t * 90) % 360
-	st.Sparks[1].Rotation = 45 + spin
-	st.Sparks[2].Rotation = 45 - spin
 end
 
 local function makeAlt(parent: Instance, lk: Look): Alt
@@ -1166,7 +1775,8 @@ local function putAlt(tag: Alt, fish: Model, lk: Look)
 	if variant ~= "" then
 		name = variant .. " " .. name
 	end
-	if size ~= "Normal" then
+	-- the three-line tag has the size on line 1, beside the rarity (Hugo, 2026-11-14); the options keep it here
+	if size ~= "Normal" and not lk.Stack then
 		name = string.upper(size) .. " " .. name
 	end
 	tag.Offset = Vector3.new(0, Config.bodyOf(fish, kind).Y * 0.5 + 2.5, 0)
@@ -1201,7 +1811,7 @@ local function putAlt(tag: Alt, fish: Model, lk: Look)
 	end
 	local st = tag.Stk
 	if st then
-		putStack(st, tag.Rare, kind.Tier, line, lk)
+		putStack(st, tag.Rare, kind.Tier, line, lk, size)
 	end
 	tag.Needs = -1
 	tag.State = 0
@@ -1214,16 +1824,17 @@ local function roomAlt(tag: Alt, form: number, lk: Look)
 	local s = tag.Size * hudScale
 	local st = tag.Stk
 	if st then
-		local word = st.WordWide + (if tag.Rare >= SHINY then 2 * (SPARK + 6) else 0)
+		local word = st.WordWide + st.SparkWide
 		local number = 13 + 8 * #tag.Need.Text
+		local top = st.Top.Size.Y.Offset
 		local wide, high
 		if form == MARK then
 			wide = math.max(word, number + 12)
-			high = STACK_TOP + STACK_GAP + STACK_REQ
+			high = top + STACK_GAP + STACK_REQ
 		else
 			local icons = if tag.LeadCount > 0 then tag.LeadCount * (STACK_ICON + 3) + 4 else 0
-			wide = math.max(word + icons, tag.NameWide, REQ_WIDE + number + 12)
-			high = STACK_TOP + STACK_NAME + STACK_REQ + STACK_GAP * 2
+			wide = math.max(word + st.SizeWide + icons, tag.NameWide, REQ_WIDE + number + 12)
+			high = top + STACK_NAME + STACK_REQ + STACK_GAP * 2
 		end
 		tag.Wide = (wide + lk.Pad * 2) * s
 		tag.High = (high + tag.Extra + lk.Pad * 2) * s
@@ -1292,6 +1903,7 @@ local function shapeAlt(tag: Alt, form: number, lk: Look)
 	if st then
 		-- far or crowded: the rarity's word and what the fish needs, no icons, no name
 		st.Icons.Visible = not marked and tag.LeadCount > 0
+		st.SizeBox.Visible = not marked and st.SizeWide > 0
 		st.Req.Visible = not marked
 	end
 	tag.Name.Visible = not marked
@@ -1305,7 +1917,7 @@ local function followAlt(camera: Camera)
 	local t = os.clock()
 	for _, tag in alts do
 		local st = tag.Stk
-		if st and tag.Rare >= SHINY and tag.Fish and tag.Frame.Visible then
+		if st and st.Animated and tag.Fish and tag.Frame.Visible then
 			shimmer(tag, st, t)
 		end
 		local fish = tag.Fish
@@ -1604,6 +2216,16 @@ function Tags.update(
 		locked = nil
 	end
 	local option = chosen()
+	local nowPicks, nowKey = wordChoice()
+	local nowSize = sizeChoice()
+	if RunService:IsStudio() then
+		local held = workspace:GetAttribute("ShineAt")
+		shineAt = if type(held) == "number" then held else nil
+	end
+	if nowKey ~= wordKey or nowSize ~= sizeAt then
+		wordPicks, wordKey, sizeAt = nowPicks, nowKey, nowSize
+		built = -1
+	end
 	if option ~= built then
 		build(option)
 		lk = Tags.Looks[built]

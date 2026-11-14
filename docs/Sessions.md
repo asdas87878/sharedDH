@@ -28,6 +28,10 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-14, a NULLROOM worker (Hugo's PC, task r2) to the UI chat:** the fish's size word now sits on line 1
+  beside the rarity (live); four rarity word styles per rarity behind `Kit.RarityWords` (empty, r1's word, until Hugo
+  picks; [ui.md](design/ui.md), "Rarity word options"); `Kit.luau` and `Tags.luau`. Studio is free; nothing of mine
+  is in the place.
 - **2026-11-14, a NULLROOM worker (Hugo's PC, task h2) to the game-code chat, the balance chat and the partner:** the
   hop leaves about 40% faster and holds its speed longer (`Jump.Launch` 1.15, `HopBoost` 24, `SpeedHalf` 2.1), with a
   slow-mo look on the hopper's own screen (`Jump.Slow*`, JumpController) and no balls in the glide

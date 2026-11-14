@@ -37,6 +37,42 @@ Oxygen box in the corner", below).
 (the section "Fish tag options", below).
 **Since 2026-11-14 (later) the game's tag is Hugo's own three lines, look 7** (the section "Every rarity's tag",
 right below); looks 0 to 6 stay behind `Kit.FishTags`.
+**Since 2026-11-14 (later still) the size word sits on line 1 beside the rarity, and the rarity word has four designed
+styles per rarity behind `Kit.RarityWords`, the game left on r1's word until Hugo picks** (the section "Rarity word
+options", right below).
+
+## Rarity word options, and the size beside the rarity (2026-11-14, Hugo: on the rarities sheet)
+Hugo, on `fish-tags-rarities-1.png`: "move size next to/behind rarity instead of title, improve upon the rarity text,
+needs different font and they all need a look with highlights shading and gradients, send me a spreadsheet with
+options for each one".
+
+**State: in the game code. The size move is live; the word styles are behind a switch left on r1's word. Run in
+Hugo's Studio by script (one ride per pass: each rarity's fish close up in r1's word and the four options, the size
+in four places, a crowd and far fish with my picks): no errors. Pictures judged, not played by hand.** The sheet:
+
+![](../attachments/fish-tags-rarity-text-options-1.png)
+
+- **The size (live):** the fish's size word (Tiny to Colossal; a Normal fish has none) left the name's line and sits
+  on line 1 after the rarity's word, in capitals on a small dark pill (`Kit.FishTagSize = "chip-after"`; also
+  `"plain-after"`, `"chip-before"`, `"plain-before"`, codes Z1 to Z4 on the sheet). Line 2 is the name with its
+  variant only ("Rainbow Great White"). Far or crowded, the size is left out with the icons. Looks 1 to 6 keep the
+  size in the name as before.
+- **The rarity word (proposal):** four styles per rarity, codes C1 to C4, U1 to U4, R, E, L, M, S. Each column is
+  one family growing richer down the rarities, all from what Roblox ships (no upload): the same word in layers, a
+  darker copy or two under it for depth, a gradient for the shading, a white copy cut to its top half for the
+  highlight, a thin white shine line (sweeping across now and then from Legendary), a soft glow from Rare, stars from
+  Legendary, the Secret's rainbow turning. 1 Candy (Luckiest Guy): soft light-to-dark letters, dark edge, gloss.
+  2 Chrome (Gotham Black): metal shading split at the middle, a shine line, a deeper extrusion. 3 Comic (Bangers):
+  pale letters, a thick edge in the rarity's own gradient, a dark shadow down and right. 4 Badge (Denk One): white
+  letters on a plate of the rarity's colours, lit on top. Every family's word is bigger than the name.
+- **My pick: column 3 (Comic) all through, C3 U3 R3 E3 L3 M3 S3:** one font for the set, it reads clearly beside
+  the name's round font, and its gradient edge carries the rarity's colour from far. Runner-up: L4 (the gold plate)
+  for Legendary. S2 (the dark Chrome Secret) is the weakest.
+- **Switching:** `Kit.RarityWords` names each rarity's column, e.g. `{ Common = 3, Uncommon = 3, ... }`; empty is
+  r1's word. In Studio the workspace's `RarityWord` string overrides it ("0", "3", or "C3 U3 R1 ..."), and `FishTagSize`
+  the size's place; `ShineAt` (a number) holds the sweep still for pictures.
+- **How:** `WordStyle`, `PAL`, `FAMILIES`, `Tags.wordStyle`, `putArt` (the layers in `Art`), the size in `SizeBox`,
+  the animation in `shimmer`, all in `src/client/UI/Tags.luau`.
 
 ## Every rarity's tag (2026-11-14, Hugo: his own layout)
 Hugo, after the options sheet: "Make the names white, give me a spreadsheet of all rarities with a cool design like
