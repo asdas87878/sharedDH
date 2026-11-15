@@ -1055,8 +1055,24 @@ def cover(ix, iz, n, hint):
     ay = unit(cross((0.0, sz, 1.0), ax))
     az = cross(ax, ay)
     mx_, mz_ = x0 + size / 2, z0 + size / 2
-    add("Seabed", "ground", (mx_ - ay[0] * PLINTH / 2, h - ay[1] * PLINTH / 2, mz_ - ay[2] * PLINTH / 2), (size + 0.1, PLINTH, size + 0.1),
-        GROUND[min(land_at(hint), len(GROUND) - 1)], ax, ay, az)
+    # Sized to the slope (2026-11-15, Hugo: "the slope starts showing edges when at a steeper angle"). The tile's top
+    # is the floor's plane over its square of ground: along X that is e1 = (size, sx size, 0), along Z e2 = (0, sz size,
+    # size). A box sized `size` along its tilted axes covered only size x cos(slope) of ground, so on the steep stretches
+    # tiles stood up to 1.3 studs apart and the next one's plain side showed as a line. Now the box is e1 long along X
+    # (plus how far e2 leans along X, so the slanted square is covered), and e2's own length along Z; still 0.1 over.
+    e2x = sz * size * ax[1]  # e2 . ax (ax has no z)
+    e2z = sz * size * az[1] + size * az[2]  # e2 . az
+    long_x = size * math.sqrt(1.0 + sx * sx) + abs(e2x) + 0.1
+    long_z = e2z + 0.1
+    # The picture (16 studs a tile) laid on the world's grid, as on flat ground: stretched by the slope so four tiles
+    # of it span each 64 of ground, and slid so its lines fall where a flat tile's would (that tile's +X and +Z edges
+    # 0.05 past the square). On a part's Top, U runs along X from the +X edge and V along Z from the +Z edge (`cell`).
+    su, sv = 16.0 / ax[0], 16.0 / az[2]
+    ou = wrap((size / 2 + 0.05) / ax[0] - long_x / 2, su)
+    ov = wrap((size / 2 + 0.05) / az[2] - long_z / 2, sv)
+    tilted = abs(sx) > 1e-6 or abs(sz) > 1e-6
+    add("Seabed", "ground", (mx_ - ay[0] * PLINTH / 2, h - ay[1] * PLINTH / 2, mz_ - ay[2] * PLINTH / 2), (long_x, PLINTH, long_z),
+        GROUND[min(land_at(hint), len(GROUND) - 1)], ax, ay, az, tex={"top": [su, sv, ou, ov]} if tilted else None)
     count["ground"] += 1
     count["tile%d" % n] = count.get("tile%d" % n, 0) + 1
 
@@ -1293,7 +1309,10 @@ for p in sorted(shown, key=lambda q: (order[q["k"]], q["p"][1] + q["s"][1] / 2))
     if p["k"] in ("grass", "fill"):  # raised ground a shade darker, so the terraces show from above
         col = tuple(int(c * 0.86) for c in col)
     d.polygon(pts, fill=col)
-font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
+try:
+    font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
+except OSError:  # not on Windows (Hugo's PC): any bold sans
+    font = ImageFont.truetype("DejaVuSans-Bold.ttf", 26)
 d.text((20, 14), f"Grey-box 15 from above: the hub (left) and all ten lands, {BUILD_TO:,.0f} studs. Straight at first, then bends, wider as it goes. Wall tops are a shade darker.", font=font, fill=(255, 255, 255))
 if not os.environ.get("GREYBOX_OUT"):
     im.save(os.path.join(ROOT, "docs", "attachments", "map-greybox-plan.png"))

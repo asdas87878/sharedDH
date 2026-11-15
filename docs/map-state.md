@@ -8,6 +8,22 @@ Up: [Home](../Home.md). The map itself is described in [Blockout](blockout.md). 
 ([Sessions](Sessions.md)). **Nothing here is decided: the texture part is a proposal with one test picture, made in Blender,
 not in Roblox. Nothing was uploaded.**
 
+## The floor on slopes (2026-11-15, grey-box 15)
+Hugo: "the slope starts showing edges when at a steeper angle, make this seemless" (the steep stretches at the start of
+land 5, Open Blue, 12 degrees, and land 8, Vents, 14). **The cause:** each floor tile (`Seabed`) is a flat box tilted
+to the slope, but it was sized as if flat (64.1 studs along its tilted axes), so it covered only 64 x cos(slope) of
+ground: up to 1.3 studs short on the steep stretches (7,869 of 16,137 tiles had a gap over 0.05), and the next tile's
+plain side showed through as a light line. And the picture started again at each tile's edge at 16 studs along the
+surface, so on a slope the squares drifted off the world grid and jumped at every joint. **The fix,** in
+`tools/map/greybox.py` (`cover`): a tile is now as long as the slope over its square of ground (plus how far the
+square leans, plus the same 0.1 overlap), and its picture is stretched by the slope (`StudsPerTile` 16 / cos) and slid
+so its lines fall where a flat tile's would (the `tex` "top" row, read by the loader as before). No tile moved or
+turned: the slope, its angles and its collision are the same; a flat tile is built exactly as before. Checked with
+`tools/studio/slope_seam_probe.luau` (rays down the lane; before: 42 rays on a tile's side on land 8's line, 18 on
+land 5's; after: none, whole lane, three lines across). Before and after: `attachments/slope-tiling-seam.png`,
+`attachments/slope-tiling-seam-zoom.png`. Left: tiles still meet at the fitted planes' 0.117-stud tolerance, a lip
+too small to see from a fish.
+
 ## Where the map stands
 **Blockout v4**, built by one script (`tools/studio/claude_blockout.luau`) into `Workspace.ClaudeBlockout`:
 - **The island:** a half circle, flat edge to the dive. Spawn 110 studs from the board's end; the dock along the flat
