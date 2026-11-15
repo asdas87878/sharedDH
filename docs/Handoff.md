@@ -3,6 +3,28 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-15 · a NULLROOM worker (Hugo's PC, task r4): size and icons on a row under the rarity word, cooler size chips
+**State:** in the game code and live, run in Hugo's Studio by script (one fish of each rarity with no icon, one icon
+and two, sizes Tiny to Colossal, a Normal fish with no icons, the three chip styles, a crowd, far fish, deeper water,
+and the animated words frame by frame; pictures judged, **not played by hand**). StyLua and selene pass; luau-lsp
+finds nothing new in the two files. Nothing uploaded; the test script is out of the place; the place was not saved
+(only code changed, which Rojo brought in).
+- Hugo: "put size and icons below rarity, make the sizes cooler too". Sheet: `attachments/fish-tags-size-row-1.png`;
+  chip styles: `attachments/fish-tags-size-row-1-options.png`; animation: `attachments/fish-tags-size-row-1.gif`.
+- **The stack (look 7):** RARITY / the size chip and every archetype icon on one row, centred, 6 px apart / the name /
+  Required. The name stayed where it was, under the rarity, so the row sits between the word and the name. A Normal
+  fish with no icons has no row; far or crowded tags drop the row (the word over the number, as before). Nothing on
+  the row moves, so it doesn't shift while Legendary, Mythic and Secret animate.
+- **The size chip:** Gotham Black like the word, but smaller and on a pill, coloured cool to hot as the size grows
+  (Tiny steel, Big mint, Giant sky, Huge amber, Colossal red). **`Kit.SizeChip`** (Studio: the workspace's `SizeChip`
+  attribute): **1 Glass, live** (a dark pill edged and lettered in the size's colour; a gloss from Giant, a glow from
+  Huge, two gems on Colossal), 2 Meter (a dark pill, white letters, five bars filled to the size), 3 Solid (a pill
+  filled with the size's colour, white letters, glossy; a glow and gems at the top).
+- **`Kit.luau`:** `Kit.FishTagSize` (r2's placement string) is gone, replaced by `Kit.SizeChip`. **`Tags.luau`:**
+  `Tags.chipLook`, the row in `makeStack`, the chip in `putStack`, `roomAlt` and `shapeAlt` count the row.
+- Seen in the pictures, not changed: with a tall fish close by (The Devourer, the Kraken), the tag, now a row taller,
+  can reach up under the land bar at the top of the screen.
+
 ## 2026-11-14 · a NULLROOM worker (Hugo's PC, task h2): the hop faster, in slow-mo, the fall-off later, no balls
 **State:** in the game code, run in Hugo's Studio by script (hops off a slow, a normal and a fast fish before and
 after, the server's reach check, hands-off and mashed landings, glide pictures), **not played by hand**. StyLua and

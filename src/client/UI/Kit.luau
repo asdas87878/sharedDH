@@ -193,10 +193,12 @@ Kit.LandShort = { "Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Mid
 -- the bubble; ui.md, "Every rarity's tag"), the game's tag. In Studio the workspace's "FishTags" number overrides it.
 Kit.FishTags = 7
 
--- On the three-line tag (7), the fish's size word sits on line 1 with the rarity's word, no longer on the name's line
--- (Hugo, 2026-11-14: "move size next to/behind rarity instead of title"): "after" or "before" the word, "chip" (on a
--- small dark pill) or "plain". In Studio the workspace's "FishTagSize" string ("chip-after") overrides it.
-Kit.FishTagSize = "chip-after"
+-- On the three-line tag (7), the fish's size chip and all its archetype icons sit on one row under the rarity's word
+-- (Hugo, 2026-11-14: "put size and icons below rarity, make the sizes cooler too"; Handoff, task r4). Which
+-- chip: 1 Glass (a dark pill edged and lettered in the size's colour; from Giant a gloss, from Huge a glow, Colossal
+-- two gems), 2 Meter (a dark pill, white letters and five bars filled to the size), 3 Solid (a pill filled with the
+-- size's colour, white letters, glossy; glow and gems at the top). In Studio the workspace's "SizeChip" overrides it.
+Kit.SizeChip = 1
 
 -- The rarity's word on the three-line tag: which designed style each rarity takes (ui.md, "Rarity word options";
 -- Hugo, 2026-11-14: "needs different font and they all need a look with highlights shading and gradients"). Empty:

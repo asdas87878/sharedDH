@@ -701,11 +701,21 @@ type StackParts = {
 	Shine: TextLabel,
 	ShineFill: UIGradient,
 	Style: WordStyle?,
-	-- the fish's size word on line 1
-	SizeBox: Frame,
-	SizePad: UIPadding,
+	-- the row under the word: the fish's size chip, then its archetype icons
+	Row: Frame,
+	RowOn: boolean,
+	RowWide: number,
+	SizeSlot: Frame,
+	SizePill: Frame,
+	SizePillFill: UIGradient,
 	SizeEdge: UIStroke,
+	SizeGloss: Frame,
+	SizeGlossFill: UIGradient,
+	SizeHalos: { Frame },
+	SizeGems: { Frame },
+	SizePips: { Frame },
 	SizeWord: TextLabel,
+	SizeWordFill: UIGradient,
 	SizeWide: number,
 	SparkWide: number,
 	Animated: boolean,
@@ -1070,13 +1080,97 @@ local function wordChoice(): ({ [string]: number }, string)
 	return out, forced
 end
 
--- Where the size word sits: Kit.FishTagSize, or in Studio the workspace's "FishTagSize"
-local function sizeChoice(): string
-	local forced = if RunService:IsStudio() then workspace:GetAttribute("FishTagSize") else nil
-	return if type(forced) == "string" then forced else Kit.FishTagSize
+-- Which size chip: Kit.SizeChip, or in Studio the workspace's "SizeChip"
+local function sizeChoice(): number
+	local forced = if RunService:IsStudio() then workspace:GetAttribute("SizeChip") else nil
+	return if type(forced) == "number" then forced else Kit.SizeChip
 end
 local wordPicks, wordKey = wordChoice()
 local sizeAt = sizeChoice()
+
+-- The size chip (Hugo, 2026-11-14: "put size and icons below rarity, make the sizes cooler too"; Handoff, task
+-- r4). Gotham Black like the rarity's word, but smaller and on a pill, so it never out-shouts it. Each size has its
+-- colour, cool to hot as it grows (Tiny a pale steel, Big mint, Giant sky, Huge amber, Colossal a hot red), and the
+-- bigger sizes get more: a brighter fill, a gloss, a glow round the pill, two gems either side. Nothing on it moves,
+-- so the row never shifts while the word above animates.
+local SIZE_RANK = { Tiny = 1, Big = 2, Giant = 3, Huge = 4, Colossal = 5 }
+local SIZE_HUE = {
+	Tiny = Color3.fromRGB(150, 178, 204),
+	Big = Color3.fromRGB(84, 226, 190),
+	Giant = Color3.fromRGB(80, 182, 255),
+	Huge = Color3.fromRGB(255, 160, 48),
+	Colossal = Color3.fromRGB(255, 72, 80),
+}
+local SIZE_TEXT = { 10.5, 11, 11.5, 12, 12.5 }
+local ROW_HIGH = 20
+local ROW_GAP = 6
+local CHIP_PAD = 6
+local GEM_SIDE = 10 -- room for a gem either side of the pill
+local PIP_W, PIP_GAP, PIPS = 3, 2, 5
+local PIPS_WIDE = PIPS * PIP_W + (PIPS - 1) * PIP_GAP + 4
+
+type ChipLook = {
+	Plate: ColorSequence,
+	PlateAlpha: number,
+	Edge: Color3,
+	EdgeThick: number,
+	Letters: ColorSequence,
+	Size: number,
+	High: number,
+	Gloss: number?, -- how see-through the white top half of the pill is (nil: none)
+	Halo: number?, -- a glow of the size's colour round the pill, how see-through (nil: none)
+	Gems: boolean,
+	Pips: boolean, -- five bars after the word, filled to the size (Meter)
+	Hue: Color3,
+	Rank: number,
+}
+
+function Tags.chipLook(style: number, tier: string): ChipLook?
+	local r = SIZE_RANK[tier]
+	local hue = SIZE_HUE[tier]
+	if not r or not hue then
+		return nil
+	end
+	local deep = Kit.Deep
+	local cl: ChipLook = {
+		Plate = ColorSequence.new(deep:Lerp(hue, 0.16 + 0.06 * r), deep),
+		PlateAlpha = 0.1,
+		Edge = if r == 1 then hue:Lerp(deep, 0.4) else hue,
+		EdgeThick = if r <= 2 then 1.5 else 2,
+		Letters = if r == 1
+			then ColorSequence.new(Color3.fromRGB(214, 226, 238), Color3.fromRGB(164, 182, 202))
+			else ColorSequence.new(Kit.lighter(hue, 0.5), hue),
+		Size = SIZE_TEXT[r],
+		High = 15 + math.ceil(r / 2),
+		Gloss = if r == 5 then 0.72 elseif r >= 3 then 0.8 else nil,
+		Halo = if r == 5 then 0.45 elseif r == 4 then 0.62 else nil,
+		Gems = r == 5,
+		Pips = false,
+		Hue = hue,
+		Rank = r,
+	}
+	if style == 2 then
+		-- Meter: the pill stays dark and plain, the letters white; the bars say how big
+		cl.Plate = ColorSequence.new(deep:Lerp(Kit.White, 0.08), deep)
+		cl.PlateAlpha = 0.15
+		cl.Edge = Kit.Ink
+		cl.EdgeThick = 1.5
+		cl.Letters = ColorSequence.new(Kit.White, Color3.fromRGB(206, 218, 234))
+		cl.Gloss = nil
+		cl.Halo = if r == 5 then 0.55 else nil
+		cl.Gems = false
+		cl.Pips = true
+	elseif style == 3 then
+		-- Solid: the pill is the size's colour, lit on top, white letters in the ink edge
+		cl.Plate = ColorSequence.new(Kit.lighter(hue, 0.3), Kit.darker(hue, if r == 1 then 0.35 else 0.22))
+		cl.PlateAlpha = 0
+		cl.Edge = Kit.Ink
+		cl.EdgeThick = 2
+		cl.Letters = ColorSequence.new(Kit.White, Color3.fromRGB(232, 238, 246))
+		cl.Gloss = if r >= 4 then 0.55 else 0.68
+	end
+	return cl
+end
 
 local GLOSS_CUT = 0.5
 local function glossSeq(t: number): NumberSequence
@@ -1240,49 +1334,129 @@ local function makeStack(parent: Instance): Alt
 	local shine = layer(12)
 	local shineFill: UIGradient =
 		Kit.new("UIGradient", { Rotation = 90, Transparency = lineSeq(0.2, 0.3, 0.06) }, shine)
-	-- the fish's size (Hugo, 2026-11-14: beside the rarity, not on the name's line), plain or on a small dark pill
-	local sizeBox: Frame = Kit.new("Frame", {
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 16),
-		BackgroundColor3 = Kit.Deep,
+	-- line 2 (Hugo, 2026-11-14: "put size and icons below rarity"): the size chip and every archetype icon, one row,
+	-- centred, evenly spaced; hidden when the fish has neither
+	local row: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(WIDE, ROW_HIGH),
 		BackgroundTransparency = 1,
-		LayoutOrder = 4,
+		LayoutOrder = 2,
 		Visible = false,
-	}, top)
-	Kit.corner(sizeBox, 999)
-	local sizePad: UIPadding = Kit.new("UIPadding", {}, sizeBox)
-	local sizeEdge = Kit.stroke(sizeBox, 1.5, Kit.Ink)
+	}, root)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, ROW_GAP),
+	}, row)
+	-- the chip: its pieces placed by hand in one slot (halo, pill, gloss, word, bars, gems), so its size is known
+	local slot: Frame = Kit.new("Frame", {
+		Size = UDim2.fromOffset(10, ROW_HIGH),
+		BackgroundTransparency = 1,
+		LayoutOrder = 1,
+		Visible = false,
+	}, row)
+	local halos: { Frame } = {}
+	for i = 1, 2 do
+		local h: Frame = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = i,
+			Visible = false,
+		}, slot)
+		Kit.corner(h, 999)
+		halos[i] = h
+	end
+	local pill: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+	}, slot)
+	Kit.corner(pill, 999)
+	local pillFill = Kit.gradient(pill, Kit.White, Kit.White)
+	local sizeEdge = Kit.stroke(pill, 1.5, Kit.Ink)
+	local gloss2: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = 4,
+		Visible = false,
+	}, slot)
+	Kit.corner(gloss2, 999)
+	local glossFill2: UIGradient = Kit.new("UIGradient", { Rotation = 90, Transparency = glossSeq(0.7) }, gloss2)
 	local sizeWord = Kit.text({
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 16),
-		TextSize = 12,
-		TextColor3 = Color3.fromRGB(240, 246, 255),
-	}, sizeBox, 2)
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0, 0.5),
+		Size = UDim2.fromOffset(10, 14),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 11,
+		ZIndex = 6,
+	}, slot, 1.5)
+	local sizeWordFill = Kit.gradient(sizeWord, Kit.White, Kit.White)
+	local pips: { Frame } = {}
+	for i = 1, PIPS do
+		local p: Frame = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0, 1),
+			Size = UDim2.fromOffset(PIP_W, 3 + 2 * i),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = 6,
+			Visible = false,
+		}, slot)
+		Kit.corner(p, 1)
+		Kit.stroke(p, 1, Kit.Ink)
+		pips[i] = p
+	end
+	local gems: { Frame } = {}
+	for i = 1, 2 do
+		local g: Frame = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(
+				if i == 1 then 0 else 1,
+				if i == 1 then GEM_SIDE / 2 - 1 else 1 - GEM_SIDE / 2,
+				0.5,
+				0
+			),
+			Size = UDim2.fromOffset(6, 6),
+			Rotation = 45,
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = 6,
+			Visible = false,
+		}, slot)
+		Kit.corner(g, 1)
+		Kit.stroke(g, 1.5, Kit.Ink)
+		gems[i] = g
+	end
 	local icons: Frame = Kit.new("Frame", {
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, STACK_ICON),
 		BackgroundTransparency = 1,
-		LayoutOrder = 5,
+		LayoutOrder = 2,
 		Visible = false,
-	}, top)
+	}, row)
 	Kit.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 3),
+		Padding = UDim.new(0, ROW_GAP),
 	}, icons)
-	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 2) }, icons)
-	-- line 2: the name, white for every rarity, with the thick dark edge (it reads on sand and on the pink reef)
+	-- line 3: the name, white for every rarity, with the thick dark edge (it reads on sand and on the pink reef)
 	local name = Kit.text({
 		Size = UDim2.fromOffset(WIDE, STACK_NAME),
 		TextSize = 16,
-		LayoutOrder = 2,
+		LayoutOrder = 3,
 	}, root, 3)
-	-- line 3: "Required: n" and the bubble; on a red plate when the fish is too strong
+	-- line 4: "Required: n" and the bubble; on a red plate when the fish is too strong
 	local reqRow: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(WIDE, STACK_REQ),
 		BackgroundTransparency = 1,
-		LayoutOrder = 3,
+		LayoutOrder = 4,
 	}, root)
 	local chip: Frame = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1365,10 +1539,20 @@ local function makeStack(parent: Instance): Alt
 			Shine = shine,
 			ShineFill = shineFill,
 			Style = nil,
-			SizeBox = sizeBox,
-			SizePad = sizePad,
+			Row = row,
+			RowOn = false,
+			RowWide = 0,
+			SizeSlot = slot,
+			SizePill = pill,
+			SizePillFill = pillFill,
 			SizeEdge = sizeEdge,
+			SizeGloss = gloss2,
+			SizeGlossFill = glossFill2,
+			SizeHalos = halos,
+			SizeGems = gems,
+			SizePips = pips,
 			SizeWord = sizeWord,
+			SizeWordFill = sizeWordFill,
 			SizeWide = 0,
 			SparkWide = 0,
 			Animated = false,
@@ -1545,20 +1729,63 @@ local function putStack(st: StackParts, rare: number, tier: string, line: string
 		spark.BackgroundTransparency = 0
 	end
 	st.SparkWide = if shiny then 2 * (SPARK + 6) else 0
-	-- the size word: Tiny to Colossal; a Normal fish has none
-	local sized = sizeTier ~= "Normal" and sizeTier ~= ""
-	local chip = string.find(sizeAt, "chip", 1, true) ~= nil
-	local pad = if chip then 5 else 0
-	st.SizeBox.LayoutOrder = if string.find(sizeAt, "before", 1, true) then 0 else 4
-	st.SizeBox.BackgroundTransparency = if chip then 0.15 else 1
-	st.SizeEdge.Enabled = chip
-	st.SizePad.PaddingLeft = UDim.new(0, pad)
-	st.SizePad.PaddingRight = UDim.new(0, pad)
-	st.SizeWord.Text = if sized then string.upper(sizeTier) else ""
-	st.SizeWide = if sized
-		then TextService:GetTextSize(st.SizeWord.Text, 12, Kit.Font, Vector2.new(1000, 100)).X + pad * 2 + 5
-		else 0
-	Archetypes.icons(st.Icons, line, STACK_ICON)
+	-- the row under the word: the size chip (Tiny to Colossal; a Normal fish has none) and the icons
+	local chip = Tags.chipLook(sizeAt, sizeTier)
+	st.SizeSlot.Visible = chip ~= nil
+	st.SizeWide = 0
+	if chip then
+		local word = string.upper(sizeTier)
+		local textWide = TextService:GetTextSize(word, chip.Size, Enum.Font.GothamBlack, Vector2.new(1000, 100)).X + 2
+		local pillWide = textWide + CHIP_PAD * 2 + (if chip.Pips then PIPS_WIDE else 0)
+		local side = if chip.Gems then GEM_SIDE else 0
+		local pillHigh = chip.High
+		st.SizeWide = pillWide + side * 2
+		st.SizeSlot.Size = UDim2.fromOffset(st.SizeWide, ROW_HIGH)
+		st.SizePill.Size = UDim2.fromOffset(pillWide, pillHigh)
+		st.SizePillFill.Color = chip.Plate
+		st.SizePill.BackgroundTransparency = chip.PlateAlpha
+		st.SizeEdge.Color = chip.Edge
+		st.SizeEdge.Thickness = chip.EdgeThick
+		st.SizeGloss.Visible = chip.Gloss ~= nil
+		if chip.Gloss then
+			st.SizeGloss.Size = UDim2.fromOffset(pillWide - 4, pillHigh - 3)
+			st.SizeGlossFill.Transparency = glossSeq(chip.Gloss)
+		end
+		for i, h in st.SizeHalos do
+			h.Visible = chip.Halo ~= nil
+			if chip.Halo then
+				local grow = if i == 1 then 10 else 5
+				h.Size = UDim2.fromOffset(pillWide + grow, pillHigh + grow)
+				h.BackgroundColor3 = chip.Hue
+				h.BackgroundTransparency = if i == 1 then (1 + chip.Halo) / 2 else chip.Halo
+			end
+		end
+		local left = side + CHIP_PAD
+		st.SizeWord.Text = word
+		st.SizeWord.TextSize = chip.Size
+		st.SizeWord.Size = UDim2.fromOffset(textWide, pillHigh)
+		st.SizeWord.Position = UDim2.new(0, left, 0.5, 0)
+		st.SizeWordFill.Color = chip.Letters
+		local foot = ROW_HIGH / 2 + 5.5
+		for i, p in st.SizePips do
+			p.Visible = chip.Pips
+			if chip.Pips then
+				p.Position = UDim2.fromOffset(left + textWide + 3 + (i - 1) * (PIP_W + PIP_GAP), foot)
+				p.BackgroundColor3 = if i <= chip.Rank then chip.Hue else Kit.Deep:Lerp(Kit.White, 0.12)
+			end
+		end
+		for _, g in st.SizeGems do
+			g.Visible = chip.Gems
+			g.BackgroundColor3 = Kit.lighter(chip.Hue, 0.45)
+		end
+	end
+	local icons = Archetypes.icons(st.Icons, line, STACK_ICON)
+	st.Icons.Visible = icons > 0
+	st.RowOn = chip ~= nil or icons > 0
+	st.Row.Visible = st.RowOn
+	st.RowWide = st.SizeWide
+		+ (if icons > 0 then icons * STACK_ICON + (icons - 1) * ROW_GAP else 0)
+		+ (if chip and icons > 0 then ROW_GAP else 0)
 end
 
 -- The animation of a word: r1's shimmer for Legendary and up (the gradient swings, the glow breathes, the stars turn,
@@ -1933,9 +2160,8 @@ local function roomAlt(tag: Alt, form: number, lk: Look)
 			wide = math.max(word, number + 12)
 			high = top + STACK_GAP + STACK_REQ
 		else
-			local icons = if tag.LeadCount > 0 then tag.LeadCount * (STACK_ICON + 3) + 4 else 0
-			wide = math.max(word + st.SizeWide + icons, tag.NameWide, REQ_WIDE + number + 12)
-			high = top + STACK_NAME + STACK_REQ + STACK_GAP * 2
+			wide = math.max(word, st.RowWide, tag.NameWide, REQ_WIDE + number + 12)
+			high = top + STACK_NAME + STACK_REQ + STACK_GAP * 2 + (if st.RowOn then ROW_HIGH + STACK_GAP else 0)
 		end
 		tag.Wide = (wide + lk.Pad * 2) * s
 		tag.High = (high + tag.Extra + lk.Pad * 2) * s
@@ -2002,9 +2228,8 @@ local function shapeAlt(tag: Alt, form: number, lk: Look)
 	end
 	local st = tag.Stk
 	if st then
-		-- far or crowded: the rarity's word and what the fish needs, no icons, no name
-		st.Icons.Visible = not marked and tag.LeadCount > 0
-		st.SizeBox.Visible = not marked and st.SizeWide > 0
+		-- far or crowded: the rarity's word and what the fish needs, no size, no icons, no name
+		st.Row.Visible = not marked and st.RowOn
 		st.Req.Visible = not marked
 	end
 	tag.Name.Visible = not marked
