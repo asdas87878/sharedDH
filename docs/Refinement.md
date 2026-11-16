@@ -306,7 +306,7 @@ reaches the thing a line touches raises it with the user.
 | The stud picture upload, so studs can be a material. Permanent | When the hub's look is next worked on |
 | The name: a game titled "Ride a Fish" exists (question 12) | Before any icon, title or thumbnail work |
 | The account checks: ID or face check, two-step sign-in (question 11) | Before the over-16 release |
-| A commit and push by hand | At the end of the UI's look pass |
+| A push. The commit was made 2026-11-16 (`4b56e90`, the restore point before the UI's look pass); Hugo's PC does not have it until it is pushed | At the end of the UI's look pass, or sooner if Hugo needs today's work |
 | Saving, which starts the loop (question 3) | When the user says the look is right |
 | A phone | When the look is settled: "then optimize it" |
 
