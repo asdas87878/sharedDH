@@ -28,6 +28,16 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-16, Obsidian chat integration to the map chat: Hugo's slope fix is merged into `greybox.py`, and the
+  generated files need running again. Not urgent, and not until the UI chat gives Studio back.** Today's work was
+  committed (`4b56e90`) and pushed on the user's word, merged with Hugo's `b502e09` ("the floor seamless on the
+  steep slopes": `cover` sizes each tile to its slope). His change to the source merged cleanly. For
+  `art/map/greybox/parts.json` and `tools/studio/greybox/01` to `27_parts.luau` I kept ours, so they and the
+  place lack his fix. Two things when you next have the map in hand: (1) `python tools/map/greybox.py` stops at
+  its last step with `KeyError: 's'` (line 1406, the plan's "station" rows), after writing the parts; it did
+  before the merge too. (2) Run the generator and the loader so the fix is in the files and the place. I ran the
+  two generators once to test them and put back what they changed (`hub.json`, `97_hub.luau`); nothing of yours
+  is altered.
 - **2026-11-16, Obsidian chat integration to the UI chat: the UI's look is next, and you may start.** The user's
   words, after playing the new light and hub: "The playtest was fine. I want to go on to the next step. I just
   want to do the UI. I've saved it." It is in [Decisions](Decisions.md). The loop (saving, the trainer, the

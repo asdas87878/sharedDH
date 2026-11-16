@@ -21,6 +21,15 @@ The Studio place was saved by the user the same day, after a playtest they calle
   `src/client/UI/` or `HudController.luau`. Ask Claude; it is one line.
 - **Not in it, on purpose:** `research/` and `work/` (ignored). Checked before committing: no keys, cookies or
   personal details in the files.
+- **Pushed the same day, merged with Hugo's `b502e09`** (the floor seamless on steep slopes). Read this if you
+  pull on Hugo's PC:
+  - His change to `tools/map/greybox.py` (`cover`) merged cleanly and is in.
+  - **The generated map files are this PC's, without his fix:** `art/map/greybox/parts.json` and
+    `tools/studio/greybox/01` to `27_parts.luau`. Both sides had regenerated them, they can't be merged by
+    hand, and this PC's carry a day of wall and hub work. The fix comes back when the map chat next runs the
+    generator and the loader.
+  - **`python tools/map/greybox.py` stops with an error at its last step** (`KeyError: 's'`, line 1406, drawing
+    the plan) after writing the parts. It did so before the merge too. For the map chat.
 
 ## 2026-11-16 · 8570-F43F (the user's PC): the progression, for the game as it is today
 **State:** by the tuning chat, for the refinement's stream 9. No number changed and no game file changed. Nothing
@@ -115,6 +124,25 @@ there by script; **not looked at by eye**. StyLua passes; selene shows only Hugo
   nothing else yet. **[Roblox videos](reference/roblox-videos.md)** (new): what ten development videos say about
   first sessions, retention, feel and phones.
 - **For the user:** the four questions at the end of the review.
+
+## 2026-11-15 · a NULLROOM worker (Hugo's PC, task s1): the floor seamless on the steep slopes
+**State:** in the generator and the loader (`tools/map/greybox.py`, `art/map/greybox/parts.json`,
+`tools/studio/greybox/01` to `27_parts.luau`), and patched into Hugo's open Studio (only the 16,137 `Seabed` tiles'
+sizes and their pictures' tiling; nothing moved, nothing else touched). **The place is not saved:** Hugo saves it
+(Ctrl+S) to keep the fix, or reloads the map from the loader later. Checked by rays down the whole lane and pictures
+in two lights; **not played by hand**. Nothing uploaded.
+- Hugo: "work on the tiling for the slope towards the end (area 8 i think?) the slop starts showing edges when at a
+  steeper angle, make this seemless." It is land 8, Vents (14 degrees at its start), and land 5, Open Blue (12),
+  milder everywhere else. Pictures: `attachments/slope-tiling-seam.png`, `attachments/slope-tiling-seam-zoom.png`.
+- **The cause:** the floor's tilted tiles were sized as if flat, so on a slope they fell short of their square of
+  ground (up to 1.3 studs) and the next tile's plain side showed as a line; and the picture restarted at each tile's
+  edge, so the squares jumped at joints. **The fix** (`cover` in greybox.py): each tile is as long as the slope over
+  its square, and its picture is stretched and slid onto the world grid. Detail: [map state](map-state.md), "The
+  floor on slopes".
+- **For Libby (the map is partly your lane):** only the floor tiles' sizes and their `tex` rows changed; positions,
+  angles, heights and every other part are byte-for-byte what grey-box 15 made. `greybox.py` now also falls back to
+  DejaVu Sans for its plan picture off Windows. New: `tools/studio/slope_seam_probe.luau` (read-only seam check:
+  `S0=`, `S1=`, `ACROSS=`, `STEP=`).
 
 ## 2026-11-15 · a NULLROOM worker (Hugo's PC, task r4): size and icons on a row under the rarity word, cooler size chips
 **State:** in the game code and live, run in Hugo's Studio by script (one fish of each rarity with no icon, one icon
