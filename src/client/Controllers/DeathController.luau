@@ -16,6 +16,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Fx = require(script.Parent.Parent.Lib.Fx)
+local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
 
 local DeathController = {}
@@ -246,6 +247,9 @@ function DeathController.Init()
 		local root = fish.PrimaryPart
 		if root then
 			State.Buck[fish] = os.clock()
+			if player == State.Player then
+				Shake.play("Thrown")
+			end
 			-- thrown back the way the fish came, so it swims on out from under you
 			throwDirs[player] = -flat(root.CFrame.LookVector)
 			Fx.sound("Splash", root)

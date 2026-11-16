@@ -47,7 +47,32 @@ A model file is Python. It sets:
                        two neighbouring hues are mixed pixel by pixel (1 = the whole way, a smooth gradient),
                        "wobble": how far the edge between two hues wanders (0: straight across the body),
                        "grain": "bayer" (an ordered pattern) or "noise"}
---look <file.json> lays TEXTURES, VARIANT or KEEP from a file over the model's own, to try looks without editing it.
+--look <file.json> lays TEXTURES, VARIANT, KEEP or PAINT from a file over the model's own, to try looks without editing it.
+--hero renders the turnaround only (no seat view, no riding view): for sheets of looks.
+PAINT (optional, docs/style/08-colour-treatments.md): a list of rules run in order after build(). Each rule picks cubes,
+and free pieces by their middles, and changes their colour: {"on": {...}, "to": {...}}.
+  on (all that are given must hold; the colour names are the ones build() gave, whatever was painted since):
+    "colours": [names]     "parts": [names]     "not_parts": [names]
+    "along": [a, b]        0 at the nose, 1 at the tail
+    "height": [a, b]       0 at the lowest cube of the model, 1 at the highest
+    "depth": [a, b]        cubes down from the top of its column (0: the top cube)
+    "width": [a, b]        how far out from the middle, as a share of the body's half width at that slice
+    "span": [a, b]         the same, as a share of the whole model's half width
+    "touching": {"colours": [names], "where": "below" | "beside" | "any"}   it has a neighbour of one of these colours
+    "size": [a, b]         its largest measure in cubes (a cube is 1; a free piece can be a whole fin)
+    "exposed": "side"      a cube with nothing beside it on its outer side: it shows on the flank
+    "pieces": true | false  only free pieces (fins and other boxes at an angle), or only cubes
+    "edge": "top"          a cube with nothing above it and nothing beside it on at least one side: the rim of a plate
+    "edge": "inner"        a cube with nothing above it and a cube beside it on every side: the middle of a plate
+    "thin": {"y": n} or {"z": n}   it is part of something at most n cubes thick that way (a fin; a free piece by its measure)
+    "waterline": {"top": [names], "belly": [names], "rows": [a, b]}   cubes in the row where top meets belly along most
+                           of the flank (rows: how many cubes above or below that row): one straight line
+  to:
+    "hex": "#RRGGBB"       that colour          "mix": ["#RRGGBB", amount]   that much of the way toward it
+    "hue": degrees, "sat": times, "val": times   turned, and made stronger or darker
+    any number may be [from, to]: it then runs over "over" ("along", "height", "depth", "width" or "span"; "along" if
+    left out), within the rule's own range of it, in "steps" flat steps (4 if left out)
+    "glow": strength       the new colour shines by itself
 --export <folder> writes the game mesh there and stops (after the gate): <Name>.obj with one object to a part (its rest
 pose), <Name>.mtl, <Name>_palette.png (a strip of the colours; every face is UV-mapped onto its colour's cell) and
 <Name>.mesh.json (size, seat, each part's parent and pivot, the colours, which of them glow, the swim, the stud rules).
@@ -292,6 +317,175 @@ class Model:
 
 model = Model()
 M.build(model)
+
+
+# ---------------------------------------------------------------- paint: colour treatments laid over the built model
+def apply_paint(rules):
+    import colorsys
+
+    palette_in = M.PALETTE
+
+    def rgb_of(colour):
+        h = colour.lstrip("#")
+        return tuple(int(h[i : i + 2], 16) / 255 for i in (0, 2, 4))
+
+    def hex_of(rgb):
+        return "#%02X%02X%02X" % tuple(max(0, min(255, round(c * 255))) for c in rgb)
+
+    # every cube and free piece: where it is, what build() called its colour, and what it is now
+    things = []  # [part, key (a cell, or a shape's number), (x, y, z) middle, the name build() gave, is a cell]
+    occupied = {}
+    for part in model.parts.values():
+        for cell, colour in part.cells.items():
+            things.append([part, cell, (cell[0] + 0.5, float(cell[1]), cell[2] + 0.5), colour, True, 1.0, None])
+            occupied[cell] = colour.rstrip("+-")
+        for n, (verts, _, colour) in enumerate(part.shapes):
+            mid = tuple(sum(v[a] for v in verts) / len(verts) for a in range(3))
+            extent = tuple(max(v[a] for v in verts) - min(v[a] for v in verts) for a in range(3))
+            things.append([part, n, mid, colour, False, max(extent), extent])
+    if not things:
+        return
+    xs = [t[2][0] for t in things]
+    zs = [t[2][2] for t in things]
+    x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+    tops, half, whole = {}, {}, 0.5
+    for (i, j, k) in occupied:
+        tops[(i, j)] = max(tops.get((i, j), k), k)
+        half[i] = max(half.get(i, 0.5), abs(j) + 0.5)
+        whole = max(whole, abs(j) + 0.5)
+
+    def measure(thing):
+        (x, y, z), is_cell = thing[2], thing[4]
+        i, j = (thing[1][0], thing[1][1]) if is_cell else (math.floor(x), round(y))
+        top = tops.get((i, j))
+        return {"along": (x - x0) / max(x1 - x0, 1e-6), "height": (z - z0) / max(z1 - z0, 1e-6),
+                "depth": 0.0 if top is None else max(0.0, top + 0.5 - z),
+                "width": abs(y) / half.get(i, whole), "span": abs(y) / whole, "size": thing[5]}
+
+    def touches(thing, want):
+        if not thing[4]:
+            return False
+        i, j, k = thing[1]
+        where = want.get("where", "any")
+        near = []
+        if where in ("below", "any"):
+            near.append((i, j, k - 1))
+        if where in ("beside", "any"):
+            near += [(i, j - 1, k), (i, j + 1, k)]
+        if where == "any":
+            near += [(i - 1, j, k), (i + 1, j, k), (i, j, k + 1)]
+        return any(occupied.get(c) in want["colours"] for c in near)
+
+    def shows(cell):
+        i, j, k = cell
+        return (i, j + 1, k) not in occupied if j > 0 else (i, j - 1, k) not in occupied if j < 0 else (
+            (i, 1, k) not in occupied or (i, -1, k) not in occupied)
+
+    def rim(cell):
+        """None: something sits on it. True: an open top with a side open too. False: an open top closed in all round"""
+        i, j, k = cell
+        if (i, j, k + 1) in occupied:
+            return None
+        return any(c not in occupied for c in ((i - 1, j, k), (i + 1, j, k), (i, j - 1, k), (i, j + 1, k)))
+
+    def run(cell, axis):
+        """how many cubes thick the thing is through this cube, along y (1) or z (2)"""
+        count = 1
+        for step in (-1, 1):
+            c = list(cell)
+            while True:
+                c[axis] += step
+                if tuple(c) not in occupied:
+                    break
+                count += 1
+        return count
+
+    def waterline(want):
+        rows = {}
+        for (i, j, k), colour in occupied.items():
+            if colour in want["top"] and occupied.get((i, j, k - 1)) in want["belly"] and shows((i, j, k)):
+                rows[k] = rows.get(k, 0) + 1
+        return max(rows, key=rows.get) if rows else None
+
+    made = {}
+    for number, rule in enumerate(rules):
+        on, to = rule.get("on", {}), rule["to"]
+        ramped = any(isinstance(v, (list, tuple)) and k != "mix" for k, v in to.items()) or ("mix" in to and isinstance(to["mix"][1], (list, tuple)))
+        over, steps = to.get("over", "along"), (max(1, int(to.get("steps", 4))) if ramped else 1)  # one flat colour unless something runs
+        lo_t, hi_t = on.get(over, (0.0, 1.0))
+        level = waterline(on["waterline"]) if "waterline" in on else None
+        for thing in things:
+            part, key, _, name, is_cell = thing[:5]
+            base = name.rstrip("+-")
+            if "colours" in on and base not in on["colours"]:
+                continue
+            if "parts" in on and part.name not in on["parts"]:
+                continue
+            if part.name in on.get("not_parts", ()):
+                continue
+            m = measure(thing)
+            if any(k in on and not (on[k][0] <= m[k] <= on[k][1]) for k in ("along", "height", "depth", "width", "span", "size")):
+                continue
+            if "touching" in on and not touches(thing, on["touching"]):
+                continue
+            if "pieces" in on and on["pieces"] == is_cell:
+                continue
+            if "exposed" in on and not (is_cell and shows(key)):
+                continue
+            if "edge" in on:
+                open_rim = rim(key) if is_cell else None
+                if open_rim is None or open_rim != (on["edge"] == "top"):
+                    continue
+            if "thin" in on:
+                axis, most = (1, on["thin"]["y"]) if "y" in on["thin"] else (2, on["thin"]["z"])
+                if (run(key, axis) if is_cell else thing[6][axis]) > most:
+                    continue
+            if "waterline" in on:
+                rows = on["waterline"].get("rows", (0, 0))
+                if level is None or not is_cell or not (level + rows[0] <= key[2] <= level + rows[1]):
+                    continue
+            t = (m[over] - lo_t) / max(hi_t - lo_t, 1e-6)
+            t = min(steps - 1, max(0, int(t * steps))) / max(steps - 1, 1) if steps > 1 else 0.0
+
+            def at(v):
+                return v[0] + (v[1] - v[0]) * t if isinstance(v, (list, tuple)) else v
+
+            now = part.cells[key] if is_cell else part.shapes[key][2]
+            now_base, tone = now.rstrip("+-"), now[len(now.rstrip("+-")) :]
+            new_name = f"{now_base}~{number}_{round(t * 100)}"
+            if new_name not in made:
+                r, g, b = rgb_of(palette_in[now_base])
+                if "hex" in to:
+                    r, g, b = rgb_of(to["hex"])
+                if "mix" in to:
+                    target, amount = rgb_of(to["mix"][0]), at(to["mix"][1])
+                    r, g, b = (c + (d - c) * amount for c, d in zip((r, g, b), target))
+                if any(k in to for k in ("hue", "sat", "val")):
+                    h, sat, val = colorsys.rgb_to_hsv(r, g, b)
+                    h = (h + at(to.get("hue", 0)) / 360.0) % 1.0
+                    sat = max(0.0, min(1.0, sat * at(to.get("sat", 1))))
+                    val = max(0.0, min(1.0, val * at(to.get("val", 1))))
+                    r, g, b = colorsys.hsv_to_rgb(h, sat, val)
+                palette_in[new_name] = hex_of((r, g, b))
+                made[new_name] = True
+                # the new colour carries what the old one did: its studs, and a glow if the rule asks for one
+                for texture in getattr(M, "TEXTURES", []) or []:
+                    if now_base in texture.get("colours", ()) and new_name not in texture["colours"]:
+                        texture["colours"].append(new_name)
+                if "glow" in to:
+                    glow = dict(getattr(M, "GLOW", {}))
+                    glow[new_name] = to["glow"]
+                    M.GLOW = glow
+            if is_cell:
+                part.cells[key] = new_name + tone
+            else:
+                verts, faces, _ = part.shapes[key]
+                part.shapes[key] = (verts, faces, new_name + tone)
+    print(f"voxel kit: paint: {len(rules)} rules, {len(made)} colours made")
+
+
+if getattr(M, "PAINT", None):
+    apply_paint(M.PAINT)
 
 # ---------------------------------------------------------------- checks: gaps, hidden faces, faces too close
 MIN_GAP = 0.05 / U  # in cubes: two faces that face the same way and overlap must be at least 0.05 studs apart. In one plane
@@ -1135,6 +1329,9 @@ if INSPECT:  # close views from the sides nobody draws: below, behind, above, an
     sys.exit(0)
 
 K.turnaround(front_x, mid_x)
+if "--hero" in argv:  # the turnaround is all a sheet of looks needs
+    print("voxel kit: done", OUT)
+    sys.exit(0)
 if WIRE:
     K.wire(front_x)
 sx, sz, sw_ = M.SEAT

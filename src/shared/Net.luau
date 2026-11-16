@@ -5,8 +5,9 @@
 --     "Miss" (the window ran out with no fish)
 --   Ride (server -> one client): "Mounted", fish, landing | "Dismounted", reason | "Denied", action, reason |
 --     "Respawned" | "Crashed", slow (our fish ran into something: the share of its speed it keeps) |
---     "Tamed", fish, fishId (the fish under us is ours now) | "Caught", ids (what we carry on this dive: fish ids,
---     oldest first; an empty list at the dock) | "Boost", kind, by, time, oxygen, count (a passive archetype paid us:
+--     "Tamed", fish, fishId (the fish under us is ours now) | "Caught", ids (what we carry: fish ids, oldest first;
+--     an empty list once it is in our tank, or at the dock with no tank) | "Deposited", count, gained, income (that
+--     many fish went into our tank: the coins a second gained, and what the tank earns now; AquariumService) | "Boost", kind, by, time, oxygen, count (a passive archetype paid us:
 --     kind "Eat" or "Smash", our fish goes `by` times its speed for `time` seconds, `oxygen` of the max meter came
 --     back, `count` is the Frenzy's stacks or the boxes knocked loose: Config.Archetype)
 --   Fx (server -> every client): "Land", player, fish, count (that rider's landings so far) | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
@@ -35,6 +36,7 @@
 -- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being
 -- yours; nil off a fish, on one too strong, or with taming off), Owned (how many creatures you have brought home this
 -- session),
+-- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

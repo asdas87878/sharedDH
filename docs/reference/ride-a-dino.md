@@ -1,5 +1,7 @@
 # Ride a Dino breakdown
 
+> **Studies, 2026-11-16.** A deeper study corrects several things below (the cap of seven, the second press, the fuse, what auras and machines give): [Ride a Dino, studied from the outside](ride-a-dino-deep.md), "Our notes say one thing, the sources another". The short of it: [findings](../Findings.md).
+
 From the user's 5-minute recording (2026-11-09). The recording and frames are private, in `research/ride-a-dino/` (gitignored).
 The contact sheets there show a frame every 3 seconds. Copy the loop and the feel; never the look, models or layout.
 

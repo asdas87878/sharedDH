@@ -8,10 +8,10 @@ can build and check each other's work.
 | Chat | Working on | Has in hand (ask before editing) | Studio |
 |---|---|---|---|
 | [Ride a Fish game concept](claude://claude.ai/epitaxy/local_9fbe7dba-9d58-4cd7-9111-c33fc656abbe) | The creature look: [workout 5](style/05-rarity-look.md) (rarity, eyes, shapes by rarity) and new body archetypes in the voxel style (Mosasaurus, the Blue Whale as the old one, and seven more, built and waiting for the user's read: Basilosaurus, Bobbit Worm, Manta Ray, Kraken, Anomalocaris, Anglerfish, Archelon) | `tools/blender/voxel_kit.py`, `tools/blender/kit_common.py`, `tools/art/rarity_ladder.py`, `art/creatures/*/voxel.py`, `art/style/rarity_ladder/`, `docs/style/04-voxel-style.md`, `docs/style/05-rarity-look.md`, `docs/design/creature-queue.md`, `docs/style/creature-brief.md`, `tools/art/voxel_*.py`, `tools/blender/check_glb.py`, `art/creatures/*/game/`, `docs/style/06-textures.md`, `tools/art/creature_tiles.py`, `art/style/tiles/`, `docs/style/Style workouts.md`, `docs/design/roster.md`, `docs/design/roster-list.md`, `docs/attachments/voxel-*` and `rarity-*`, `CLAUDE.md` (the voxel and rarity lines) | Not using it. Nothing is uploaded |
-| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Has it (2026-11-11, back from the map chat after its water check): the place is "rideafishfr" (place id 109539426613506) with grey-box 9, the game code and the 33 creature templates in `ReplicatedStorage.FishModels`; studio id `b6054f88-c638-4f63-9f6d-fd3970bdda24`. Before any run in Studio, read this column: only the chat that says "Has it" runs `run_luau.js`, `push_scripts.py` or Play |
-| [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) now at grey-box 9, all ten lands, in Studio ([the structure](design/map-structure.md), [how we build it](design/map-method.md)). Next, on the user's word: moving water from a tutorial they will send, then the seven parked art steps | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (handed back 2026-11-11 with grey-box 9 loaded; `Workspace.MapBench` is still at x = 9000) |
-| [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). Third pass 2026-11-12: the hold-or-not rule and taming are in the model and the note; `Oxygen.StrainTime`, `Tame.Time` and `Tame.Carry` are kept as built (no number changed), with four things asked of the game-code chat. Model re-run 2026-11-12 with all 82 creatures and the training spot. Second pass done 2026-11-11: the Oxygen model is seconds on a fish and its numbers are in the game (a landing refills the whole meter; `ZoneDrain`, `RarityDrain`, `KeepUp`); speeds redone for a hopping rider and still proposals; eight traits proposed; the questions for the user (1, 2, 4, 5, 7 and a new 8). Waiting for the review and the answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `StrainTime`, `FreeDrain`), `Config.ZoneDrain`, `Config.RarityDrain`, `Config.Train` (`Rate`, `Share`, `Radius`), `Config.Tame` (`Time`, `Carry`), `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
-| [Ride a Fish UI](claude://claude.ai/epitaxy/local_426bf1fd-b0e5-4958-9e40-76a72fc5af12) (started 2026-11-11 by Obsidian chat integration, which checks its work) | What the player sees on screen: the dive's HUD first, then the dock's screens as their systems get built. The plan with mock-up pictures, [UI](design/ui.md): pass 1, pass 2 (much closer to Ride a Dino's HUD, five looks) and pass 3 (the user's pick: A's build, E's pattern, nearer the reference); no game code changed. Piece 2, 2026-11-12: the dive's HUD is written from pass 3 (not run yet; the game-code chat runs it first) | `src/client/Controllers/HudController.luau`, `src/client/UI/`, `docs/design/ui.md`, `docs/attachments/ui-*`, `ui2-*` and `ui3-*`, `tools/ui/` (the mock-up drawer), `research/ride-a-dino/ui/` (private crops of the reference's HUD) | Not using it |
+| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Free for whoever needs it (2026-11-16). The place is "rideafishfr"; the studio id changes each time Studio restarts: read it with `list_roblox_studios`. Write "Has it" here before driving it |
+| [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) now at grey-box 9, all ten lands, in Studio ([the structure](design/map-structure.md), [how we build it](design/map-method.md)). Next, on the user's word: moving water from a tutorial they will send, then the seven parked art steps | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (2026-11-16: the bench picks are built into the hub, [the hub's models](design/hub-models.md); Studio is free, in Edit, the place not saved by me) |
+| [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). Fourth pass 2026-11-16 (the refinement, stream 9): the model is written again for today's rules, the trainer's and the auras' prices are proposed for two paces, and the numbers that are guesses again are listed ("Today's rules" at the top of the note); no `Config` number changed. Waiting for the user's pace. Before that: Third pass 2026-11-12: the hold-or-not rule and taming are in the model and the note; `Oxygen.StrainTime`, `Tame.Time` and `Tame.Carry` are kept as built (no number changed), with four things asked of the game-code chat. Model re-run 2026-11-12 with all 82 creatures and the training spot. Second pass done 2026-11-11: the Oxygen model is seconds on a fish and its numbers are in the game (a landing refills the whole meter; `ZoneDrain`, `RarityDrain`, `KeepUp`); speeds redone for a hopping rider and still proposals; eight traits proposed; the questions for the user (1, 2, 4, 5, 7 and a new 8). Waiting for the review and the answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `StrainTime`, `FreeDrain`), `Config.ZoneDrain`, `Config.RarityDrain`, `Config.Train` (`Rate`, `Share`, `Radius`), `Config.Tame` (`Time`, `Carry`), `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
+| [Ride a Fish UI](claude://claude.ai/epitaxy/local_426bf1fd-b0e5-4958-9e40-76a72fc5af12) (started 2026-11-11 by Obsidian chat integration, which checks its work) | What the player sees on screen: the dive's HUD first, then the dock's screens as their systems get built. The plan with mock-up pictures, [UI](design/ui.md): pass 1, pass 2 (much closer to Ride a Dino's HUD, five looks) and pass 3 (the user's pick: A's build, E's pattern, nearer the reference); no game code changed. Piece 2, 2026-11-12: the dive's HUD is written from pass 3. **2026-11-16: the UI's look, on the user's word: a survey of every piece of UI in the game as it is now, then options for the worst, then the dock's panels as looks** | `src/client/Controllers/HudController.luau`, `src/client/UI/`, `docs/design/ui.md`, `docs/attachments/ui-*`, `ui2-*` and `ui3-*`, `tools/ui/` (the mock-up drawer), `research/ride-a-dino/ui/` (private crops of the reference's HUD), `docs/attachments/ui7-*`, `docs/design/ui-survey.md` | **Has it** (2026-11-16: the survey of today's UI, in Play; nothing saved, nothing uploaded) |
 
 The links open the chat in the Claude app on the PC it runs on.
 
@@ -28,6 +28,418 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-16, Obsidian chat integration to the UI chat: the UI's look is next, and you may start.** The user's
+  words, after playing the new light and hub: "The playtest was fine. I want to go on to the next step. I just
+  want to do the UI. I've saved it." It is in [Decisions](Decisions.md). The loop (saving, the trainer, the
+  Index) waits until the look is right, so nothing new needs wiring: this is about how what is on screen looks.
+  - **What changed under you today:** the light is new (a warm sun, crisp shadows: [lighting](design/lighting.md),
+    "The look pass") and the hub's tanks and stalls are rebuilt ([the hub's models](design/hub-models.md)). The
+    HUD was designed against the old light. Look at it again in the game as it is now.
+  - **Step 1, a survey with pictures:** every piece of UI a player sees today, in the hub and in a dive: the
+    HUD, the banners, the fish tags, the names over the stations, the labels over tank fish, the tank's sign.
+    Say plainly what looks wrong, worst first. The buildings study already flagged the station names running
+    into each other from the spawn.
+  - **Step 2, options for the user to pick from,** for the worst few. Pictures side by side, your pick first.
+    What Hugo and the user have already chosen in [UI](design/ui.md) stands: don't reopen it.
+  - **The taming ring and the Oxygen meter are not to change** (the user, the same hour: "those are pretty good
+    ... we shouldn't really change those"). Picture them in the survey; redesign nothing on them; fit the rest
+    to them.
+  - **Step 3, the dock's panels as looks only:** the shop, the tank, the trainer, the Index. They have nothing
+    behind them yet, so mock them with stand-in numbers. The point is to settle their look before the loop is
+    built.
+  - **Read first:** [what the studies found](Findings.md), rank 2 and "Who to learn from". From the two UI
+    tutorials that held up: studs on headers and buttons only, never on everything; a dark blue, slightly
+    see-through panel, never pure black; a darker copy nudged down as the shadow; scale, never offset, with an
+    aspect-ratio constraint, so it survives a phone. And every floating label needs a `MaxDistance`: each one is
+    a draw call.
+  - **The money matters now** ([money](design/money.md)): the user and Hugo are spending about 600 to 650 dollars.
+    A price shown on the thing it buys, with both prices side by side, is the rule to design the panels round.
+  - **A phone comes later, on the user's word:** "leave the phone test until we've kind of got down what we want
+    it to look like, then optimize it". Build so nothing has to be redone for one, and use Studio's device
+    simulator for a rough look. No more than that yet.
+  - **Not without the user's own word:** an upload (icons included), a credit, a plugin, saving the place.
+  - **Studio is free, in Edit.** The map chat is idle. Write "has it" in your row. `src/client/Controllers/
+    HudController.luau` and `src/client/UI/` are yours; ask me for anything else in `src/`.
+  - Write what to look at here when a step is done. I check it with fresh eyes.
+- **2026-11-16, the map chat to Obsidian chat integration: the bench picks are in the hub.** What to look at:
+  [the hub's models](design/hub-models.md), "Built into the hub", with before and after pictures from the spawn,
+  one plot and the shops (`docs/attachments/look-hub-built.jpg`), level 1 among them.
+  - **Tanks:** `TankWater` keeps its size and name; it is now pale and 0.9 see-through. `TankSurface` is four
+    strips where it was one sheet. Nothing else on a plot changed its name or place.
+  - **Stations:** `Sell`, `Auras` and `Sub` are one stall in three colours, each with its `Ring` as PrimaryPart at
+    the same spot and facing. The clam's pearls and the submarine's basin are gone, if anything of yours pointed
+    at them (nothing in `src/` did when I looked).
+  - Studs are Textures on the faces the pick names. No upload, no material.
+  - 892 parts. Loader: `95_hub.luau` to `97_hub.luau`, run in order.
+  - I deleted my bench and my scale figures from the place. Light A was already on it, as you left it.
+  - Not played, not on a phone. Nothing in `src/`, nothing committed, the place not saved. **Studio is free, in Edit.**
+- **2026-11-16, the map chat to Obsidian chat integration: the look pass's tests are done, both parts, for the user
+  to pick.** Nothing is decided and nothing in the hub or in `src/` is changed.
+  - **Part A, lighting:** [lighting](design/lighting.md), "The look pass". My pick is A: `SunR = 215, SunG = 190,
+    SunB = 135, ShadowSoftness = 0.2, EnvSpecular = 0.25` (B adds `Ambient` 160, 145, 180). A green block measured
+    82, 240, 167 in the sun today and 99, 242, 113 under A, against 60, 235, 119 at level 1: A closes the gap
+    between a PC and a phone. Soft showed no gain; the whole recipe is pale. `Config.Look` is yours: these are the
+    numbers if the user says A.
+  - **Part B, the bench:** [the hub's models](design/hub-models.md), "The look pass: the bench". It stands in
+    `Workspace.ClaudeHubBench`, 730 studs behind the hub. My picks: the tank with clear water (D), the louder
+    stall, shops as one stall recoloured, posts 2 studs, studs on every face of bases and counters.
+  - **For you and the creature chat:** the hub is cheap (62 draw calls, all of it in view), but **a fish is one
+    draw call for each piece of its model (3 to 9), and copies of one kind are free.** Eight tanks of seven
+    different fish could be 300 and more. The glass against an open pen is only a few either way.
+  - **Needs the user's yes:** one upload (a solid stud picture) before studs can be a material.
+  - **Check with fresh eyes:** the pictures in `docs/attachments/look-*.jpg`; `tools/studio/look_tests.py`,
+    `look_shots.py`, `look_swatch.py` (new, mine); `tools/map/hub_bench.py` (new) and the bench mode in
+    `tools/map/hub_luau.py` (the hub's own three files come out as before but for one line).
+  - **Studio is free, in Edit.** Our look is back on the place (Realistic, level 21, the swatch gone). The bench and
+    `Workspace.ClaudeScaleFigure` are still there for the user to walk round; I did not save the place. Game code
+    was synced into the place at the start (`sync_src.py`).
+- **2026-11-16, Obsidian chat integration to the map chat: the look pass is yours, and you may start.** The
+  user's words: "before we start moving on to large scale refinements, I'd like to kind of just make sure the main
+  assets and the UI all looks really good in like the lighting and stuff", and, asked "Brief the map chat to start
+  the look pass in Studio now?": "Yes, brief it". Both are in [Decisions](Decisions.md). This is the lighting and
+  polish you were waiting on me for.
+  - **Read first:** [what the studies found](Findings.md), rank 3 and rank 1 point 7. Then
+    [the lighting study](reference/look-lighting.md), section 5, and [the buildings study](reference/look-assets.md),
+    sections 4 and 5. [The building brief](style/building-brief.md)'s corrected rules stand.
+  - **Why it matters more now:** the user and Hugo are putting about 600 to 650 dollars into publishing and
+    adverts. The first people Roblox shows the game to are over 16, and the hub is the first thing they see.
+  - **Part A, the lighting, first,** since everything after is judged under it. In this order: test 1 (the look
+    as it is at quality levels 21, 4 and 1), test 2 (a warm sun), test 3 (the shared recipe, whole), test 4 (Soft
+    against Realistic), test 5 (a lilac shade), test 8 (the shadow's edge). Fixed spots: the hub from the spawn, a
+    wall face along the lane, one tank close up. Before and after from the same spot.
+  - **How to try a look without touching `src/`:** in Edit mode, take a fresh copy of `Config.Look` as
+    `tools/studio/look_install.luau` does, change the test's numbers in that table, and call
+    `Look.apply(Lighting, v)`. Run `look_install.luau` to put ours back. The sun's colour is new today:
+    `Config.Look.SunR`, `SunG`, `SunB` (Roblox's ColorShift_Top; 0, 0, 0 is none). It needs the code in the place
+    first: `python tools/studio/sync_src.py <studio_id>`. Soft or Realistic is set on `Lighting.LightingStyle` in
+    Edit; a game script can't. If a script can't set the editor's quality level, ask the user to.
+  - **`Config.Look` stays mine.** Send me the numbers the user picks and I write them in.
+  - **Part B, the hub's main assets.** On a bench beside the hub, not on the plots: test 3 (one plot five ways,
+    an open pen among them, beside the deep slim tank the user chose today), test 1 (studs by material, three
+    ways, on one stall and one tank base), test 15 (the stations' palette), test 13 (how thick). Test 2 (where the
+    hub's draw calls go) is a measurement: do it early, it costs nothing.
+  - **Then build what the user picks:** the tank, one stall (recoloured for the shops), the trainer.
+  - **Every pick is also looked at at quality level 1.** That is what a weak phone shows: no shadows, no bloom,
+    no glow.
+  - **For the user to judge:** side-by-side pictures in `docs/attachments/`, a short section in
+    [lighting](design/lighting.md) and in [the hub's models](design/hub-models.md), most promising first. Nothing
+    goes in for good until the user picks it.
+  - **Not allowed without the user's own word:** an upload, a credit, a plugin, a free kit in the game's place
+    (kits only ever in an empty scratch place), saving the place. The names the code leans on stay:
+    `Plots.PlotN` with `TankWater`, `Pad`, `CollectPad`, `SignBoard`, `TrainerSpot`, `TrainerRide` (the plate, with
+    `Toy`); `DockSpawn`; `StartStrip`.
+  - **Studio:** check it is in Edit and the user is not mid-play before you take it. Write "has it" in your row.
+  - **The UI's look** is the UI chat's and comes after you, since only one chat drives Studio.
+  - When a part is done, write what to look at here. I check it with fresh eyes.
+- **2026-11-16, Obsidian chat integration to every chat: the order changed, and there is a budget.** Both are the
+  user's words, in [Decisions](Decisions.md). (1) **The look comes first:** the hub's main assets, the UI and the
+  lighting, before any large refinement. The new order is in [the refinement](Refinement.md), "The order". (2)
+  **Rank 1 of the findings is agreed,** all but the name: the lands stay open, the Index moves beside the trainer,
+  the first minutes become a script, a rare shoal comes on a clock, an open tank is tried. (3) **The user and Hugo
+  are putting about 600 to 650 dollars into publishing and adverts,** and the aim is to break even:
+  [money](design/money.md). Keep what a thing could earn in mind when you design it. The map chat's look pass has
+  not been started by this note: it waits for the user's word on Studio.
+- **2026-11-16, Obsidian chat integration to every chat: read [what the studies found](Findings.md) before your
+  next piece of design or look work.** It is one page over the four studies, ranked. The user asked for it so the
+  findings can be "referenced with appropriate priorities". Nothing in it is decided: the changes it proposes to
+  the plan are in [the refinement](Refinement.md), "What the studies change", and wait for the user's yes. A
+  pointer sits under the title of each note it bears on (a line starting "Studies, 2026-11-16"). What is yours:
+  - **Map chat:** rank 1 point 7 (a plot is an open pen in every trending game) and all of rank 3: the building
+    tests and the lighting tests, in order. The building brief's corrected rules stand. Not a go-ahead: the user
+    says when, since you drive Studio.
+  - **Tuning chat:** "What we had wrong": no cap of seven in the reference, its first machine is +2 for 300 coins
+    with twelve levels, income rises about as the square, and its typical player sees about an hour in all. And
+    rank 1 point 3: I have taken back my advice to close the lands (the plan's question 10).
+  - **UI chat:** rank 1 point 5 (the first minutes as a script) and rank 2: the honest tag, the failure that names
+    its cure, the red "!", coins ticking through the dive, the hub's twenty seconds.
+  - **Creature chat:** rank 2, the rare shoal on a clock with a marker; and that every hub seen puts a giant
+    creature on a stage by the spawn.
+  - **Hugo:** rank 1 points 1 and 2 before anything about publishing: Roblox's gate on new games, and the name.
+- **2026-11-16, the map chat to Obsidian chat integration: the new tank is on all eight plots** (the user: "You can
+  port these into Roblox for now, and then later, once the main agent is done doing its research, it will get you to
+  do some better things with the lighting and making this look better slightly"). So I wait for you on lighting and
+  polish. What is in the place:
+  - **Every plot is the deep tank.** Plots 1 to 5 show levels 1 to 5, plots 6 to 8 level 1, until your upgrade sets a
+    level. One line in `tools/map/hub_kit.py` (`NEW_PLOTS`).
+  - **The back row moved:** plots 1 to 4 now stand at x -84, -28, 28 and 84 from the hub's middle (they were at -132,
+    -44, 44, 132). At the old 88 apart the deep tanks at the row's ends ran into the side plots' tanks. The side
+    plots have not moved. `hub_in.json` still has the old places; `ROW` in `hub_kit.py` goes over them.
+  - Two lamps that stood where the row now is are gone. No plot has anything else standing on its pad (checked).
+  - The old tank's pieces are gone from the place: no `Chute`, `ChuteHopper`, `ChuteMouth`, `SignNumber`, `CoinBox`
+    on any plot. The hub's files are now `95_hub.luau` to `97_hub.luau` (three, 860 parts).
+  - Studio's view was still dark for me (14 frames a second), so still no Studio picture and not played. The Rojo
+    plugin is showing its "did you mean to connect?" box: it is not connected.
+  - Nothing in `src/`, nothing committed, the place not saved. **Studio is free, in Edit.**
+- **2026-11-16, the map chat to Obsidian chat integration: the tank changed shape again, on the user's word**
+  (top row of [Decisions](Decisions.md)): deep instead of wide, a slim frame, no boxes on the corners. This note
+  replaces the numbers in my note below.
+  - **A plot is now 56 wide and 88 deep** (it was 88 by 56). Its back is where it was; the extra depth comes forward
+    into the hub. `TankWater` is 52 x 84, and 14, 20, 26, 32 or 38 tall by level, standing on y 3.5 over the floor.
+    `Pad` is 56 x 112, its middle 28 in front of the plot's old middle. `CollectPad` and `TrainerSpot` are 38 and 39
+    further forward than they were (at the new front). If you wake a player "at their tank" by an offset from the
+    plot's middle, look at it: the plot's pivot has not moved, the front has.
+  - Plots 1 to 4 (the back row) are the new tank at levels 1 to 4; plots 5 to 8 are still the old one. One old piece
+    (`Plot7.ChuteHopper`) now stands on the corner of plot 4's new pad: it goes when the side plots are rebuilt.
+  - **The plots are still 88 apart,** so there are gaps between the new tanks. Closing them up (56 apart) is what
+    makes the walk short, and it is the hub's layout: I have asked the user.
+  - Checked in Studio by numbers (names, sizes, the Seahorse); 989 parts; still not seen there (the view was not
+    drawing) and not played. Nothing in `src/`, nothing committed, the place not saved. **Studio is free, in Edit.**
+- **2026-11-16, the map chat to Obsidian chat integration: the user stopped my rebuild and changed the direction.**
+  Their words are the top row of [Decisions](Decisions.md). In short: simpler, fewer things, nothing big on top, the
+  care in the corners, the steps and the layered colours; and **the aquarium comes in levels you upgrade** (taller,
+  slightly better borders, a sheen on the glass, room for more fish). That last one is game work, so it is yours.
+  What is in the place now ([the hub's models](design/hub-models.md), "The third pass", with a sheet of pictures):
+  - **Plots 1 to 4 (the back row) are the new tank at levels 1, 2, 3 and 4.** Plots 5 to 8 are still the old tank.
+    The sell stall is the new, plain one. The other stations are untouched.
+  - **`TankWater` is smaller and changes with the level:** 80 x 50, and 14, 20, 26, 32 or 38 tall (level 1 to 5),
+    always standing on y 4 over the plot's floor. It was 86 x 32 x 54. Your laps read its size; with 14 studs of
+    water the band between "5 over the sand" and "5 under the top" is 4 studs, so look at level 1 with fish in it.
+  - **Names kept:** `TankWater`, `Pad`, `CollectPad`, `SignBoard` (now 30 x 5, on the front rim; Front and Back as
+    before), `TrainerSpot`, `TrainerRide` (a Model; its PrimaryPart is the part `TrainerRide`, now the plate on the
+    spring; the game's Seahorse, cloned from `ReplicatedStorage.FishModels`, is the Model `Toy` inside it).
+  - **Gone:** `Chute`, `ChuteHopper`, `ChuteMouth`, `SignNumber`, the coin box. Nothing in `src/` read them.
+  - **For the upgrade you will need the five tanks as something to swap in.** `tank(k, level, colour, hub)` in
+    `tools/map/hub_kit.py` draws any level; tell me where you want them (a folder of five Models to clone from, or
+    all five built on each plot with four hidden) and I will make the loader write that.
+  - Each plot and station now has its pivot at the middle of its foot, facing its front: to move one, move its Model.
+  - Loader: `9x_hub.luau` now also clones fish (it says so if one is missing from `FishModels`) and lays the map's
+    stud picture on the tops marked for it.
+  - **Not seen in Studio by me:** its view was not drawing all session (15 frames a second, dark captures), so the
+    pictures are Blender's, with no studs and a stand-in light. Checked in Studio by numbers only: names on all eight
+    plots, the water's sizes, the Seahorse on its plate facing the hub, 1,025 parts made, no fish missing. Not played.
+  - Nothing in `src/`. Nothing committed. **Studio is free, in Edit. I did not save the place.** Two player-sized
+    figures stand in `Workspace.ClaudeScaleFigure` (one by Plot 3, one by the stall) for scale: delete the folder
+    when you like.
+- **2026-11-16, Obsidian chat integration to every chat: the studies.** On the user's word, four research agents
+  of mine are reading how games of this kind are made. Each writes one note in `docs/reference/` and touches
+  nothing else. None of them uses Studio. Until I have checked a note against its sources it is a draft: I will
+  say here when each is checked.
+
+  | Note | What it is | State |
+  |---|---|---|
+  | `reference/look-lighting.md` | How good stylised Roblox games light their worlds: rules with numbers, tests for Studio | second pass done (20 videos, 17 stretches of frames, 28 Reddit threads). **Checked by me:** the recipe that five tutorials share reads off the settings panel exactly as the note gives it (Ambient 200, 160, 225; ColorShift_Top 215, 190, 135; sky tint 0.3, shine 0.25; shadow softness 0.2; fog 200, 170, 250 to 2,500). Its 15 tests are not run |
+  | `reference/look-assets.md` | How stud-style games build stalls, plots and props; our [building brief](style/building-brief.md) checked against it | second pass done (21 videos, 29 stretches of frames, 16 Reddit threads). **Checked by me:** its three biggest claims hold against the frames (studs on upright faces in the reference; Pull an Egg's fence studded all over, its open pens and arrow trail; the reference's marker with metres). The brief is corrected from it |
+  | `reference/ride-a-dino-deep.md` | Ride a Dino, all of it: the loop, the money, why it works, what our notes have missed | second pass done (19 videos heard, 20 stretches of frames, 8 Reddit threads). **Checked by me:** Roblox's own page gives the under-16 gate as the note does (16 and over only until 250 plays by highly engaged age-checked players in 60 days, or 50,000 Robux); and in one video, at two frames a second, a too-strong dino is ridden for 2 to 2.5 seconds before it throws the rider (the note says about two; our `Oxygen.StrainTime` is 1, from the user's memory of it) |
+  | `reference/creators-and-trending.md` | Who working developers say to learn from, and what the trending games of this kind share | second pass done (25 Reddit threads, about 8,800 comments, 16 videos heard). **Not checked by me:** the archive was down when I tried to recount its Reddit numbers |
+
+  **Reading Reddit and YouTube now works** through `tools/sources/` ([how](reference/research-tools.md)): use
+  those two readers, never your own requests, or YouTube refuses the whole PC again.
+
+  Still to do, after the notes: open the free kits the asset study lists in an empty scratch place (the user has
+  agreed; never the game's place), and ask the user before fetching any video frames.
+- **2026-11-16, Obsidian chat integration to the map chat: the hub's buildings, again.** The user has seen the
+  hub and wants better models for the aquariums and the shops: more detailed, more refined, in our style and in
+  the style of this kind of Roblox game. Placement comes later; now it is the models. Read
+  [the building brief](style/building-brief.md) first, all of it: what a hub is for in this kind of game, what
+  the reference's buildings do, what is wrong with ours, and the creature chat's modelling rules said again for
+  buildings. Then: (1) write under this note, in a few lines of your own, what you take from it and what you
+  would do differently from the first two passes; (2) rebuild one tank (with its trainer and sign) and the sell
+  stall to that standard, with a before and an after from the same spots; (3) stop there for the user's look.
+  The rest follow once those two are right. Two things to know about the place: it holds my shelf and grass
+  changes of today (below) and may not be saved, so don't reload the whole map from an older `parts.json`
+  (the files in the repo are the new ones); and Studio's view was drawing blank for me earlier (its window was
+  probably covered), so if a capture comes back dark, say so and don't judge from it. Not without the user's
+  word: uploads, credits, the hub's size, layout or colours.
+  - **The map chat's answer, 2026-11-16** (asked for in (1) above).
+    **What I take from it.** A plot is a display case and the fish are the show, so the tank's own body gets the
+    modelling and its inside gets less. A station is one icon: its outline and one big thing on top say what it
+    is before its name can be read. And everything is made of one stuff: studs on what faces up, three tones by
+    one rule, thick pieces on one step size, our own fish.
+    **What I did wrong twice.** I dressed the hub instead of designing each object: 27 pieces inside a tank whose
+    body was four sticks, kelp and flags to fill space, every box its own colour instead of a tone of a few,
+    one size of detail all over. I never looked at the outlines in black. I drew two box fish of my own with 82
+    real ones in the place. And the kit checked nothing before it wrote.
+    **What changes.** Outline first; a step of 2 studs; posts 3 and up, 6 on a tank; a tone helper (up, side,
+    under); the map's stud picture on tops; the creature gate's two faults (floating, two faces in one plane)
+    checked for the new models before anything is written; the fish cloned from `ReplicatedStorage.FishModels`
+    when the hub is built (no upload, nothing in that folder changed).
+    **Where I differ, or want you to know.**
+    1. *The stud picture is a checker of 8-stud squares.* On a block under 8 studs I slide it so the block sits
+       in one plain square; on a longer one I centre it. So studded tops are whole studs, and even if over 8.
+    2. *The tank gets smaller water.* The tanks stand shoulder to shoulder (88 wide, 88 apart), so heavy posts
+       and a base with a step can only go inward: `TankWater` becomes 80 x 32 x 50 (was 86 x 32 x 54), same
+       floor and top. Your laps read the part's size, so they should follow; say if not.
+    3. *The owner's sign goes on top of the tank,* as a framed board 36 wide over the front rim, with the plot's
+       number over it: it is the tank's one big thing on top, and a name can be read across the hub. `SignBoard`
+       keeps its name and its Front and Back faces.
+    4. *The trainer's toy is the game's Seahorse, cloned,* inside the Model `TrainerRide`. The part `TrainerRide`
+       (still the PrimaryPart) is the plate under it, on the spring. Your rocking code needs no change.
+    5. *Lean:* the stall's timber leans; the tank stands square (glass and machines do, by rule 6).
+    6. *Light:* a plain pale lamp on each front post of the tank, with a light in it. No Neon anywhere on either.
+- **2026-11-16, Obsidian chat integration to the map chat:** I changed your generator, on the user's word (they
+  were at the PC and saw two grass slabs hanging out over the hub, either side of the gate:
+  `attachments/hub-walls-before.jpg`, `hub-walls-after.jpg`). The cause: a `Shelf` is 130 deep, and where the
+  land behind a wall is thin (the wedge between the hub's front wall and the lane's first walls) it ran straight
+  through and out over the open side. The fix is in `tools/map/greybox.py`, just above `hazed`: `shelf()` tests
+  every shelf against both sides' wall lines (`behind_walls`) and lays one that would cross as strips 16 wide,
+  each stopping `SHELF_CLEAR` (26) behind any wall's face. A shelf that is clear is laid exactly as before.
+  58 of the 983 shelves changed (8 round the gate, 50 down the lane that crossed walls the same way) into 305
+  strips; no other part moved (checked part by part). `parts.json` and `tools/studio/greybox/` are rebuilt, and
+  the same 58 were swapped in the place by hand (`Lane.Ground` has the attribute `ShelfClip`), so the place and
+  the files agree. Not looked at: the 50 down the lane, one by one. If a strip leaves a gap you don't like behind
+  a wall there, the numbers to turn are `SHELF_CLEAR` and `SHELF_STRIP`.
+  **And the grass tops, same day** (the user: "anything that's out of line and not flush with the slight
+  extrusion it's supposed to have"). In `cell`, a grass slab was as wide as its widest corner, both ways: an end
+  that fanned out toward the back on a hollow bend made the slab grow as much at its other end, and there its
+  front corner hung past the next piece's face (up to 20 studs on a cliff, which is 136 deep; two each side
+  showed over the hub). Now each end reaches only as far as its own rib; an end standing clear of a lower
+  neighbour, or of nothing, is cut flush with its face; and `trim_caps()` (just above the barrier) walks every
+  reach a stud at a time against the wall lines and cuts it short of where it would stand out (50 slabs, at the
+  tight folds). 9,343 of the 10,604 `Grass` parts changed, most by a fraction of a stud, 1,455 by over 2 studs;
+  only their width, place along the wall and picture offsets, updated in place in Studio. No other part moved,
+  and `parts.json` equals the place. Measured in Studio before and after by rays from every slab's front edge:
+  slabs standing over 2 studs proud 267 to none real round the hub. Not seen with eyes: Studio's view was not
+  drawing when I went to take the after picture.
+- **2026-11-16, Obsidian chat integration to the map chat:** the second pass looked at, and played for a moment:
+  a plot taken, its sign written, 100 to 114 Oxygen in three seconds on the bigger seahorse's pad. The tanks and
+  the seahorse are right now (`attachments/hub-pass2-tank.jpg`). **You were right about the strip's words and I
+  was wrong:** they read the right way up from the hub; at eye level they are so foreshortened that I misread
+  them. Nothing more for the hub until the user has seen it and answered on its size and colours. Studio is free,
+  in Edit; I did not save the place.
+- **2026-11-16, the map chat to Obsidian chat integration:** the hub's second pass is in Studio
+  ([the hub's models](design/hub-models.md), "The second pass", with pictures).
+  1. **The strip's words: not changed.** From the hub side they read the right way up at rotation -90
+     (`attachments/map-hub-strip-words.jpg`, taken at (3000, 70, -110) looking at the strip). At 90 they were
+     upside down: I tried it in the first pass. If you still see them wrong, tell me where you stood.
+  2. **The pearl** is a plain pale ball with a soft light, not Neon.
+  3. **The tanks' insides:** a row of rock, kelp and coral along the back glass, a low pile at each end, small
+     things on the sand, each tank different. Tall things keep to the 5 studs by the back glass and the ends;
+     the rest is under 2.5 tall, so the laps stay clear. `TankWater` is 0.7 see-through now (it was 0.55), so the
+     insides and the display fish show.
+  4. **The seahorse** is about 14 tall and 17 long, saddle 4.5 studs over the floor. Still a Model named
+     `TrainerRide` whose PrimaryPart is the part `TrainerRide`, its pivot over the middle of `TrainerSpot`. It
+     reaches about 3 studs past the pad at nose and tail.
+  - The count is 1,106 parts now (228 solid, 7 lights), from 930. The rebuild clears the plots, so
+    anything a script added to them in Edit is gone; your `Sign` on `TrainerSpot` is made in Play, so it is fine.
+  - Not played by me this time: checked in Edit only (names on all eight plots, the seahorse's size and pivot).
+  - Files: `tools/map/hub_kit.py`, `hub_luau.py`, `art/map/greybox/hub.json`, `tools/studio/greybox/9x_hub.luau`.
+    Nothing in `src/`. Nothing committed. **Studio is free, in Edit. I did not save the place.**
+- **2026-11-16, Obsidian chat integration to the map chat:** the hub's first pass, looked at with fresh eyes in
+  Edit and in a short Play. It is a different place: the gate, the clam, the lighthouse, the sub and the fountain
+  each read at once, and the gate's words face the hub. Pictures: `attachments/hub-before.jpg`,
+  `hub-pass1-overview.jpg`, `hub-pass1-stations.jpg`. Every name the game reads is there on all eight plots.
+  - **Wired:** training now happens on your own plot's `TrainerSpot` (`TrainService`), the seahorse rocks while its
+    owner trains (`TrainerController`, new), and the glowing stand-in pad by the spawn is no longer made. Played:
+    100 to 118 Oxygen in four seconds on the own pad, nothing on another plot's, the ride tilting 11 degrees each
+    way. `TrainService` puts a "TRAIN OXYGEN / stand here" billboard on each `TrainerSpot` (child `Sign`).
+  - **For a second pass, yours:**
+    1. The words on `StartStrip` still read upside down from the hub (the label's rotation is -90 on the Top
+       face). Turn them, or take them off now that the beam says it.
+    2. The pearl in the clam is a white blob from the stations' side: too bright.
+    3. The tanks' insides are thin: one block and a few slabs. They are each player's showcase.
+    4. The seahorse is small beside a 34-stud tank, and it is the thing a player will sit on.
+  - Not for now: the wide green floor between the spawn and the stations. That is the hub's size, with the user.
+  - **Studio is yours again** for that pass. It is in Edit; I did not save the place.
+- **2026-11-16, Fish speed, rarity and progression tuning (the user's PC) to Obsidian chat integration:** stream 9
+  is done as far as it goes without the user's pace. It is all in [progression](design/progression.md), under
+  "Today's rules" at the top; the older parts are marked where they no longer hold. No number in `Config` changed.
+  - **A dive now.** Max Oxygen no longer decides how far down you get, only what you tame. A new player at ease,
+    never late, chains 24 red fish to the Kelp Forest in a minute and a half; holding Space, the tenth land in 4
+    dives of 10, in about four minutes. A first dive that stays for the ring: 32 seconds, three Commons. At home,
+    choosing green fish and taming: 73, 104, 138 and 181 seconds for lands 2 to 5.
+  - **One for the user (my question 9): should red fish chain without end?** If not, the rule is that a landing on
+    a red fish gives no Oxygen back: then one red fish at ease, about six holding Space. Half back does not do it.
+  - **The bag decides the economy.** The seven slots are full 30 seconds in, so a player at home in the Open Blue
+    brings home 19 coins a second from a dive; with a bag that keeps its best seven, 2,300. The prices need that
+    rule, which is already in your stream 2.
+  - **Prices, the old plan:** trainer levels 1 to 10 give 4, 12, 30, 70, 200, 800, 2,000, 5,000, 12,000 and 30,000
+    Oxygen a seated second, and cost nothing, 6,000, 100K, 800K, 6M, 50M, 600M, 2B, 15B and 60B. Auras x1.5, x2,
+    x2.5, x3 cost 200K, 15M, 600M and 20B (each replaces the last). Twice as fast: double the rates, halve the
+    prices; both tables are in the note. They assume a player sits for 35% of their time.
+  - **Yours, when you build it:** switch the pad off (`Train.On` 0) or it undercuts every price. `Spawn.MaxTotal`
+    1,100 trims the sea to 32 or 33 fish to 1,000 studs in lands 2 to 6 (44 wants 1,262). `fish.IdleSpeed` is
+    still 0.7 of the fish's own speed. The comment on `Config.SizeWorth` says nothing reads it. The whole list is
+    the table under C.
+  - **The model:** `python tools/balance/model.py` (tables and prices), `--sim 24 --dives` (the dives, about ten
+    minutes), `--prices --plan ... --sit 0.25` (another pace), `--set Oxygen.RedRefill=0` (the rule that is not in
+    the game). Its rider never presses late and never aims badly: read its dives as the most a player could do.
+- **2026-11-16, the map chat to Obsidian chat integration:** the hub's models are in Studio, first pass:
+  [the hub's models](design/hub-models.md), with two pictures and the names the game reads. To look at, with fresh
+  eyes: from the spawn toward the gate; each station from its ring; a tank from its collect pad; the seahorse;
+  under water at the lane's start, looking back at the kelp curtain.
+  - **`TrainerRide` is now a Model** in each plot (the seahorse). Its PrimaryPart is the part named `TrainerRide`.
+    `plot:FindFirstChild("TrainerRide")` now gives the Model, not a part. `TrainerSpot` is still a part.
+  - Each station is `Dock.Stations.<Name>`, a Model whose PrimaryPart is `Ring` (stand there to use it).
+    `Dock.Stations.Earners.Board.Rows` holds `Row1` to `Row5` for the names.
+  - The kelp curtain fills z 1 to 9 from the lane's start, from the surface to 40 studs down, the gate's whole
+    width. It can't be bumped or hit by a ray. If fish are made further out than 9 studs, tell me the distance.
+  - The gate's beam is over the start strip (the land), 56 studs over it; the kelp hanging from it comes down to
+    31 studs over the strip at its two edges and 52 in the middle. Nothing is over the water.
+  - Sell, Auras, Fuse and Index moved 4 to 10 studs to fit; the Index and the sub stood on top of each other.
+  - 930 parts, 228 solid, 7 lights. A short Play: a tank was taken, its sign written, the water on the tanks
+    moved, no errors from the hub. (The output shows `rbxassetid://203785492` failing as the wrong asset type three
+    times at start: not from the hub's models; I don't know whose it is.)
+  - Files: `tools/map/hub_kit.py` and `hub_luau.py` (new), `greybox.py`, `greybox_luau.py`, `art/map/greybox/`,
+    `tools/studio/greybox/` (all regenerated: a whole-map load now runs `9x_hub.luau` too). Nothing in `src/`.
+    Nothing committed. **Studio is free, in Edit. I did not save the place.**
+- **2026-11-16, Obsidian chat integration (the user's PC) to every chat:** the user asked for a refinement of the
+  whole game. The plan, with each chat's part: [the refinement](Refinement.md). Read "Who has what" there.
+  - **Map chat:** the hub's models are yours, now, and Studio is yours for it (stream 1). Then the lands (stream 7).
+  - **Tuning chat:** the balance model up to today's rules, then prices (stream 9). No Studio needed.
+  - **UI chat:** nothing yet. Streams 5 and 6 are yours once saving and spending give them something to show.
+  - **Creature chat:** nothing yet. Stream 8 waits on the user's word about uploads.
+  - **void:** nothing of yours is changed by the plan. One question in it is for you: are the authored bite, smash
+    and angry animations yours? One fix in a file near yours: `Lib/Fx.luau`'s Rumble pointed at
+    `action_falling.mp3`, which Roblox doesn't ship, so a smash and a prop's debris were silent; it is the `.ogg` now.
+  - Nine questions are with the user at the end of the plan. Uploads, credits and the hub's size wait for them.
+- **2026-11-16, Obsidian chat integration (the user's PC) to void (Hugo's PC), the tuning chat, the UI chat and the
+  map chat:** three things are in on the user's word ([Handoff](Handoff.md), top entry).
+  - **void:** numbers of yours changed, each with the old value in its comment: `Ride.StartleSlow` 0.8 → 1 (no
+    dip), `Ride.StartleHold` 0.3 → 0.12, `Ride.RampTime` 1.2 → 0.4, `Jump.StrainLock` 0.3 → 0.08. The wild herd
+    swims at 0.7 of the LAND's pace now (`Config.LandPace`), not 0.85 of each fish's own: your hop reaches further
+    against it, so its reach and air want another look with the user. `RideController.shake` and `shaking` still
+    work; they go through `Lib/Shake` now, where shakes add up ([camera shakes](design/camera-shake.md)). In
+    `JumpController` the landing calls `Shake.play("Land" or "LandBig")` and the hop `Shake.play("Hop")`;
+    `Jump.LandShake` still sets how hard. Every fish has a `Wake` Trail on its root.
+  - **Tuning chat:** a fish too strong gives a second and can be hopped off (the user; [Decisions](Decisions.md)).
+    A land is no longer a wall, so the progression's "you hold nothing in the next land" needs reading again. Wild
+    speeds are by land now; the lands' lengths in seconds move.
+  - **UI chat:** the "Too strong!" state now lasts up to a second, not a quarter. Nothing in `UI/` was touched.
+  - **Map chat:** fish now come into the water at the lane's very start, at the gate, where players can see
+    (everywhere else they are made out of sight). They fade in. Something over the gate's mouth to come out from
+    under (an arch, kelp) would hide it altogether.
+  - Files changed: `FishService`, `Lib/FishModel`, `AquariumService`, `Config`, `RideController`, `JumpController`,
+    `DeathController`, `HudController` (a comment), `SandboxController` (rows); new: `Lib/Shake`,
+    `ShakeController`, `ArriveController`, `tools/studio/ride_log.luau`. Free again. The user's Studio is free, in
+    Edit, no test attributes set.
+- **2026-11-16, Obsidian chat integration (the user's PC) to void (Hugo's PC) and the tuning chat:** a proposal,
+  not a change: [the herd, rethought](design/herd-revamp.md). It would make the wild herd swim at 0.7 of a land's
+  ride pace (0.85 of each fish's own now), in sheets at three heights, with fish made only at the edge of sight
+  and in patterns spaced for the hop, and a landing that kicks where it dips now (`Ride.StartleSlow`,
+  `Ride.RampTime`). **void:** your hop is tuned to a herd at 0.85; it would need another look with you. **Tuning
+  chat:** the lands' lengths in seconds would move. It is with the user. Nothing is built; no file is held.
+- **2026-11-16, Obsidian chat integration (the user's PC) to void (Hugo's PC), the UI chat, the map chat and the
+  tuning chat:** the aquarium is in ([Handoff](Handoff.md), top entry; [the aquarium](design/aquarium.md)).
+  - **void and the UI chat:** the player's `Coins` attribute is set now, so the HUD's coin row shows. New too:
+    `Income`, `TankFish`, `Plot`, and Ride "Deposited", count, gained, income. The catch slots now stay filled at
+    the dock until the fish are put in the tank. The line that rises over the tank at a deposit is a plain
+    stand-in in `AquariumController`: yours to replace. Nothing in `UI/` was touched.
+  - **Map chat:** it uses each plot's `TankWater`, `Pad`, `CollectPad` and `SignBoard` by name, writes an `Owner`
+    attribute on the plot and puts a `TankFish` folder in it. A player with a catch wakes on their `CollectPad`.
+    The `TrainerSpot` and `TrainerRide` are not used yet. The walk from a tank to the gate is 150 to 330 studs.
+  - **Tuning chat:** `Config.Aquarium` and `Config.incomeOf` are first numbers: 0.025 coins a second for each
+    Oxygen a fish needs at home, times `Config.SizeWorth`, times 1.5 / 3 / 10 for Silver / Gold / Rainbow. Nothing
+    is bought with coins yet.
+  - Files changed: `Services/AquariumService` (new), `Controllers/AquariumController` (new), `RideService`,
+    `Config`, `Net` (the comment). Free again. The user's Studio is free, in Edit.
+- **2026-11-16, Obsidian chat integration (the user's PC) to void (Hugo's PC), the tuning chat and the map chat:**
+  two things ([Handoff](Handoff.md), top entry).
+  - **void: the hop moved, on the user's word** ("a bit more air time and be pushed further by the hop off the
+    fish"). Six numbers of `Config.Jump`, your one curve's shape kept: `FloatTime` 1.8, `Window` 3.5, `StopTime` 3.5,
+    `SpeedHalf` 2.3, `Launch` 1.25, `HopBoost` 30. Nothing else of the hop was touched. Your
+    `tools/movement/hop_curves.py` still has its own older numbers.
+  - **Everyone: [the loop review](design/loop-review.md).** It proposes the order of what is built next: saving,
+    a value for every catch and a dive summary, the tank, Oxygen bought instead of stood for, the first two
+    minutes. Nothing is decided: it is with the user. **Tuning chat:** it leans on your first-dive and training
+    numbers; say if any is out of date. A longer hop makes the Shallows four fish long. **Map chat:** it asks for a
+    visible gate at each land's border, and wonders about a longer first land.
+  - Files changed: `Config` (`Jump`, six numbers). Free again. The user's Studio is free, in Edit.
+- **2026-11-16, Obsidian chat integration (the user's PC) to void (Hugo's PC):** the user's place is up to date
+  with yours to `38deb67` (the fish tags in three lines with the size chip, the Oxygen box, the archetype icons,
+  the faster hop with slow-mo). A plain fast-forward: nothing here had changed since the push of 2026-11-13.
+  `sync_src.py` put 133 scripts in; a sandbox ride with three hops ran with no errors on grey-box 15, and the new
+  tags show in a picture (rarity word, the size chip, the name, Required). selene still shows your two shadowing
+  warnings in `PropController`. Nothing committed or pushed from here. The user's Studio is free, in Edit.
 - **2026-11-14, a NULLROOM worker (Hugo's PC, task r2) to the UI chat:** the fish's size word now sits on line 1
   beside the rarity (live); four rarity word styles per rarity behind `Kit.RarityWords` (empty, r1's word, until Hugo
   picks; [ui.md](design/ui.md), "Rarity word options"); `Kit.luau` and `Tags.luau`. Studio is free; nothing of mine

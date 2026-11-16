@@ -4,6 +4,8 @@ Ride prehistoric sea creatures deeper and deeper. Tame them, show them off in yo
 further. A quick game in the Ride a Dino genre, going down instead of across. This page links everything. Pin it in Obsidian.
 
 ## Start here
+- [The refinement](docs/Refinement.md): the plan to get every part of the game up to scratch (2026-11-16): where each part stands, ten streams of work, the order, and the questions for the user.
+- [What the studies found](docs/Findings.md): one page over the four studies of 2026-11-16, ranked: what to decide first, what to build next, what to test in Studio, what to keep in mind, and what we had wrong.
 - [Inbox](docs/Inbox.md): drop ideas and voice-mode brain dumps here, unsorted. Claude files them into the right notes.
 - [Handoff](docs/Handoff.md): what each push changed and where things stand. Read it after pulling.
 - [Decisions](docs/Decisions.md): what's settled, when, and why.
@@ -29,6 +31,8 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Creature queue](docs/design/creature-queue.md): the voxel models exported and waiting to go into the game
 - [Creature import](docs/design/creature-import.md): what goes into the game next, the user's picks, and the steps
 - [Creature brief](docs/style/creature-brief.md): how to build a voxel creature, and how to run a batch of them
+- [Workout 7: telling creatures apart](docs/style/07-shape-variety.md): shape, mouth, colour and mark; a trial on four sharks
+- [Workout 8: colour treatments](docs/style/08-colour-treatments.md): eight ways to add colour by rule, and a ladder by rarity; a trial
 - [Money and Robux](docs/design/money.md): income, upgrades, what's for sale.
 - [First version](docs/design/first-version.md): what ships first and what waits.
 
@@ -41,6 +45,15 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 ## The reference
 - [Ride a Dino breakdown](docs/reference/ride-a-dino.md): how it works, from the user's recording.
 - [How its map is built](docs/reference/ride-a-dino-map.md): floor, walls, breakable props and the hub.
+- [Ride a Dino, studied from the outside](docs/reference/ride-a-dino-deep.md): its first minutes, systems, money, why it works, where it is weak, and what our team was missing.
+
+## The studies (2026-11-16)
+Start with [what the studies found](docs/Findings.md). The evidence:
+- [Lighting](docs/reference/look-lighting.md): how stylised Roblox games are lit, with numbers and 15 tests for Studio.
+- [Buildings and props](docs/reference/look-assets.md): how stud-style games build hubs, plots and stalls, our brief checked, 17 tests.
+- [Creators and trending games](docs/reference/creators-and-trending.md): who to learn from, who to skip, what the trending games share.
+- [Roblox videos](docs/reference/roblox-videos.md) and [repos](docs/reference/roblox-repos.md): the earlier surveys.
+- [How Reddit and YouTube are read](docs/reference/research-tools.md): the two readers in `tools/sources/`.
 
 ## For Claude
 - [CLAUDE.md](CLAUDE.md): the project's instructions.

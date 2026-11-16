@@ -750,6 +750,9 @@ def wrap(v, period):
     return v % period if period > 1e-6 else 0.0
 
 
+caps = []  # every grass slab `cell` lays, for `trim_caps`
+
+
 def cell(af, bf, ab, bb, out_hint, top, deep, at, odd, before, after, colours, close, spots, tiles=1):
     """One piece of one tier: its face from af to bf, and the ground on top of it, which reaches back to ab and bb on
     the same two ribs. `before` and `after` are the tops of the pieces either side (or far below, if none)."""
@@ -775,17 +778,28 @@ def cell(af, bf, ab, bb, out_hint, top, deep, at, odd, before, after, colours, c
     lift = 0.04 if odd else 0.0  # neighbours a hair apart in height, so tops that overlap on a bend don't flicker
     def on_rib(f, b_, d):  # the point on a rib at d behind the face
         return (f[0] + (b_[0] - f[0]) * d / deep, f[1] + (b_[1] - f[1]) * d / deep)
-    reach = 0.0
-    for q in (on_rib(af, ab, -PROUD), on_rib(bf, bb, -PROUD), on_rib(af, ab, deep + BACK), on_rib(bf, bb, deep + BACK)):
-        reach = max(reach, abs((q[0] - mx) * al[0] + (q[1] - mz) * al[2]))
-    wide = max(2.0, 2 * reach + 0.05)
+    # How far the slab reaches past each end of its face (2026-11-16: the user saw tops standing out of line with
+    # their walls). It was as wide as its widest corner, both ways: where one end fanned out toward the back (a
+    # hollow bend) the slab grew by as much at its other end too, and there, if the wall turned away, its front
+    # corner hung out past the next piece's face (up to 20 studs on a cliff, which is 136 deep). So each end now
+    # reaches only as far as its own rib does; and an end that stands clear of a lower neighbour (or of nothing) is
+    # cut flush with the face under it, as the fan would hang in the air there: the lower piece's own top fills it.
+    def along(q):
+        return (q[0] - mx) * al[0] + (q[1] - mz) * al[2]
+    lo = min(-lf / 2, along(on_rib(af, ab, -PROUD)), along(on_rib(af, ab, deep + BACK))) if before >= top else -lf / 2
+    hi = max(lf / 2, along(on_rib(bf, bb, -PROUD)), along(on_rib(bf, bb, deep + BACK))) if after >= top else lf / 2
+    lo, hi = lo - 0.025, hi + 0.025
+    if hi - lo < 2.0:
+        lo, hi = (lo + hi) / 2 - 1.0, (lo + hi) / 2 + 1.0
+    wide, shift = hi - lo, (lo + hi) / 2
     lb = (bb[0] - ab[0]) * al[0] + (bb[1] - ab[1]) * al[2]  # the back's length, with its sign
     mid = max(lf / 2, (lf + lb) / 2)  # the squares' width on top: the cell's width half way back
     gd = deep + BACK + PROUD
-    add("Grass", "grass", (mx + out[0] * (gd / 2 - PROUD), top + (GRASS + lift) / 2, mz + out[2] * (gd / 2 - PROUD)), (gd, GRASS + lift, wide),
-        ground, out, (0, 1, 0), al,
-        tex={"top": [PIECE, mid / tiles, wrap(-(deep + BACK), SQUARE), wrap(mid / tiles / 4 - wide / 2 + mid / 2, mid / tiles / 2)],
-             "side": [lf / tiles, PIECE, wrap(sq / 2 - (wide - lf) / 2, sq), (top + GRASS) % PIECE]})
+    add("Grass", "grass", (mx + out[0] * (gd / 2 - PROUD) + al[0] * shift, top + (GRASS + lift) / 2, mz + out[2] * (gd / 2 - PROUD) + al[2] * shift),
+        (gd, GRASS + lift, wide), ground, out, (0, 1, 0), al,
+        tex={"top": [PIECE, mid / tiles, wrap(-(deep + BACK), SQUARE), wrap(mid / tiles / 4 - hi + mid / 2, mid / tiles / 2)],
+             "side": [lf / tiles, PIECE, wrap(sq / 2 - (-lf / 2 - lo), sq), (top + GRASS) % PIECE]})
+    caps.append({"part": parts[-1], "m": (mx, mz), "al": al, "out": out, "lf": lf, "lo": lo, "hi": hi, "gd": gd, "mid": mid, "tiles": tiles, "sq": sq})
     if close and lb > 1.0:  # the outermost tier where its back can be seen: a slab across the back
         add("Back", "core", (mx + out[0] * (deep - 0.5), (foot + top) / 2, mz + out[2] * (deep - 0.5)), (1.0, top - foot, max(lf, lb) + 0.1), face, out, (0, 1, 0), al)
     if spots and deep >= 15 and top + GRASS < -10.0:  # nothing stands on a terrace that is out of the water
@@ -861,6 +875,113 @@ for side in (-1, 1):
 # A swimmer can rise over any wall and look behind it. So the last near tier's ground carries on back, as a shelf, to
 # the first cliff, and that cliff's ground to the second: there is no empty water behind a wall. A shelf is one long
 # slab to four pieces of wall, a hair lower than the tops in front of it, at the lowest of their heights.
+#
+# A shelf never crosses a wall (2026-11-16: the user saw two slabs hanging out over the hub, either side of the gate).
+# Where the land behind a wall is thin (the wedge between the hub's front wall and the lane's first walls) a shelf
+# 130 deep ran straight through it and out over the open water on the other side. So every shelf is tested against
+# both sides' wall lines; one that would come nearer than SHELF_CLEAR to the open side of any wall is laid as strips
+# instead, each stopping where it would cross.
+SHELF_CLEAR = 26.0  # a shelf keeps this far behind every wall's face: under the tall wall's own grass
+SHELF_STRIP, SHELF_ROW = 16.0, 4.0  # a strip's width, and how finely its length is tried
+count["shelf strips"] = 0
+_seg = {}
+
+
+def wall_segments():
+    """both sides' wall faces as arrays: each piece's ends, its way out, and the way out at each end (the bisector)"""
+    if not _seg:
+        A, B, N, NA, NB = [], [], [], [], []
+        for sd in (-1, 1):
+            W = wall_corners[sd]
+            m = len(W) - 1
+            o_ = []
+            for k in range(m):
+                d = unit((W[k + 1][0] - W[k][0], 0.0, W[k + 1][1] - W[k][1]))
+                o = (d[2], -d[0])
+                if o[0] * (W[k][2] + W[k + 1][2]) + o[1] * (W[k][3] + W[k + 1][3]) < 0:
+                    o = (-o[0], -o[1])
+                o_.append(o)
+            for k in range(m):
+                a0, a1 = o_[max(0, k - 1)], o_[min(m - 1, k + 1)]
+                A.append((W[k][0], W[k][1]))
+                B.append((W[k + 1][0], W[k + 1][1]))
+                N.append(o_[k])
+                NA.append((a0[0] + o_[k][0], a0[1] + o_[k][1]))
+                NB.append((a1[0] + o_[k][0], a1[1] + o_[k][1]))
+        _seg.update(A=np.array(A), B=np.array(B), N=np.array(N), NA=np.array(NA), NB=np.array(NB))
+        _seg["M"] = (_seg["A"] + _seg["B"]) / 2
+    return _seg
+
+
+def behind_walls(P, centre, reach):
+    """for each point (x, z): how far behind the nearest wall face it is; below zero on the open side"""
+    S = wall_segments()
+    near = np.hypot(S["M"][:, 0] - centre[0], S["M"][:, 1] - centre[1]) < reach
+    if not near.any():
+        return np.full(len(P), 1e9)
+    A, B, N, NA, NB = S["A"][near], S["B"][near], S["N"][near], S["NA"][near], S["NB"][near]
+    D = B - A
+    L2 = np.maximum(1e-9, (D * D).sum(1))
+    T = np.clip(((P[:, None, :] - A[None]) * D[None]).sum(2) / L2[None], 0.0, 1.0)
+    C = A[None] + T[:, :, None] * D[None]
+    diff = P[:, None, :] - C
+    dist = np.hypot(diff[:, :, 0], diff[:, :, 1])
+    i = dist.argmin(1)
+    rows = np.arange(len(P))
+    t_, df = T[rows, i], diff[rows, i]
+    nrm = np.where((t_ <= 0.0)[:, None], NA[i], np.where((t_ >= 1.0)[:, None], NB[i], N[i]))
+    return np.where((df * nrm).sum(1) >= 0, 1.0, -1.0) * dist[rows, i]
+
+
+def shelf(front, o, al, deep, wide, top, ground, d0, sq, lf, back):
+    """one shelf: a slab from `front` (the middle of its front edge) `deep` back along o and `wide` along al; cut into
+    strips that stop short of any wall it would cross"""
+    clear = min(d0, SHELF_CLEAR + 4.0) - 4.0
+    off_u, off_v = wrap(-(back - (d0 - (d0 % SQUARE))), SQUARE), wrap(sq / 2 - wide / 2 + lf / 2, sq)
+    y = top + GRASS / 2 - 0.05
+
+    def lay(w0, w1, t0, t1):
+        cx, cz = front[0] + al[0] * ((w0 + w1) / 2 - wide / 2) + o[0] * (t0 + t1) / 2, front[1] + al[2] * ((w0 + w1) / 2 - wide / 2) + o[2] * (t0 + t1) / 2
+        add("Shelf", "grass", (cx, y, cz), (t1 - t0, GRASS - 0.1, w1 - w0), ground, o, (0, 1, 0), al,
+            tex={"top": [PIECE, sq * 2, (off_u + deep - t1) % PIECE, (off_v + wide - w1) % (sq * 2)],
+                 "side": [sq * 2, PIECE, 0.0, (top + GRASS) % PIECE]})
+
+    def grid(ws, ts):
+        P = np.array([(front[0] + al[0] * (w - wide / 2) + o[0] * t_, front[1] + al[2] * (w - wide / 2) + o[2] * t_) for t_ in ts for w in ws])
+        centre = (front[0] + o[0] * deep / 2, front[1] + o[2] * deep / 2)
+        return behind_walls(P, centre, math.hypot(deep, wide) / 2 + 260.0).reshape(len(ts), len(ws))
+
+    # a quick look first: nearly every shelf is clear of every wall, and is laid whole as it always was
+    quick = grid(np.linspace(0.0, wide, max(2, int(wide / 8) + 1)), np.linspace(0.0, deep, max(2, int(deep / 8) + 1)))
+    if quick[1:].min() >= clear:
+        lay(0.0, wide, 0.0, deep)
+        return
+    strips = max(1, round(wide / SHELF_STRIP))
+    ts = np.linspace(0.0, deep, int(round(deep / SHELF_ROW)) + 1)
+    runs = []  # (w0, w1, t0, t1) of each strip that has room
+    for s_ in range(strips):
+        w0, w1 = wide * s_ / strips, wide * (s_ + 1) / strips
+        ok = (grid(np.linspace(w0, w1, 5), ts) >= clear).all(1)
+        a = 0
+        while a < len(ts) and not ok[a] and ts[a] <= 40.0:  # a hollow bend: its front may begin a little further back
+            a += 1
+        if a >= len(ts) or not ok[a]:
+            continue
+        b = a
+        while b + 1 < len(ts) and ok[b + 1]:
+            b += 1
+        t0, t1 = float(ts[a]), float(ts[b])
+        if t1 - t0 < 8.0:
+            continue
+        if runs and abs(runs[-1][1] - w0) < 1e-6 and runs[-1][2] == t0 and runs[-1][3] == t1:
+            runs[-1] = (runs[-1][0], w1, t0, t1)
+        else:
+            runs.append((w0, w1, t0, t1))
+    for w0, w1, t0, t1 in runs:
+        lay(w0, w1, t0, t1)
+    count["shelf strips"] += len(runs)
+
+
 def hazed(colour, share, haze=HAZE):
     return tuple(int(c + (h_ - c) * share) for c, h_ in zip(colour, haze))
 
@@ -915,9 +1036,7 @@ for side in (-1, 1):
                 deep = d1 - d0
                 ground, _face = lane_colours(V[k][4])
                 sq = lf / 8  # four tiles to its length at the front
-                add("Shelf", "grass", (mx + o[0] * deep / 2, top + GRASS / 2 - 0.05, mz + o[2] * deep / 2), (deep, GRASS - 0.1, wide), ground, o, (0, 1, 0), al,
-                    tex={"top": [PIECE, sq * 2, wrap(-(d1 - (d0 - (d0 % SQUARE))), SQUARE), wrap(sq / 2 - wide / 2 + lf / 2, sq)],
-                         "side": [sq * 2, PIECE, 0.0, (top + GRASS) % PIECE]})
+                shelf((mx, mz), o, al, deep, wide, top, ground, d0, sq, lf, d1)
         k = e
 
 for side in (-1, 1):
@@ -970,6 +1089,51 @@ for side in (-1, 1):
             cell(af, bf, ab, bb, o, tops[k], deep, C[k][4], i % 2 == 1, before, after,
                  lambda at, pale=cl["pale"]: (hazed(lane_colours(at)[0], pale * 0.6, water_at(at)), face_of(lane_colours(at)[0], pale, water_at(at))),
                  False, False, tiles=max(1, round(lens[k] / PIECE)))
+
+# No grass slab stands out of line (2026-11-16, the user: "anything that's out of line and not flush with the slight
+# extrusion it's supposed to have"). A slab's front stands PROUD of its own face; past the ends of that face it may
+# reach on only while it stays as far behind the wall's line as its own front does. Where the wall folds tightly (a
+# tooth, a pinch) a reach that is hidden behind the next piece on an easy bend came out the other side: here every
+# reach is walked a stud at a time and cut just short of where it would.
+def trim_caps():
+    cut, most = 0, 0.0
+    for c in caps:
+        (mx, mz), al, out, lf, lo, hi = c["m"], c["al"], c["out"], c["lf"], c["lo"], c["hi"]
+        if hi - lf / 2 < 0.6 and -lf / 2 - lo < 0.6:
+            continue
+
+        def behind(ls):
+            P = np.array([(mx + al[0] * l_ + out[0] * (d_ - PROUD), mz + al[2] * l_ + out[2] * (d_ - PROUD)) for l_ in ls for d_ in (0.0, 4.0)])
+            return behind_walls(P, (mx, mz), 300.0 + hi - lo).reshape(len(ls), 2).min(1)
+
+        own = behind(np.linspace(-lf / 2 + 0.4, lf / 2 - 0.4, 5)).min() - 1.0
+        new_lo, new_hi = lo, hi
+        if hi - lf / 2 >= 0.6:
+            ls = np.append(np.arange(lf / 2 + 0.5, hi, 1.0), hi)
+            bad = np.nonzero(behind(ls) < own)[0]
+            if len(bad):
+                new_hi = max(lf / 2 + 0.025, float(ls[bad[0]]) - 1.0)
+        if -lf / 2 - lo >= 0.6:
+            ls = np.append(np.arange(-lf / 2 - 0.5, lo, -1.0), lo)
+            bad = np.nonzero(behind(ls) < own)[0]
+            if len(bad):
+                new_lo = min(-lf / 2 - 0.025, float(ls[bad[0]]) + 1.0)
+        if new_lo == lo and new_hi == hi:
+            continue
+        cut += 1
+        most = max(most, hi - new_hi, new_lo - lo)
+        part, gd, mid, tiles, sq = c["part"], c["gd"], c["mid"], c["tiles"], c["sq"]
+        wide, shift = new_hi - new_lo, (new_lo + new_hi) / 2
+        part["p"][0] = round(mx + out[0] * (gd / 2 - PROUD) + al[0] * shift, 2)
+        part["p"][2] = round(mz + out[2] * (gd / 2 - PROUD) + al[2] * shift, 2)
+        part["s"][2] = round(wide, 2)
+        part["tex"]["top"][3] = round(wrap(mid / tiles / 4 - new_hi + mid / 2, mid / tiles / 2), 3)
+        part["tex"]["side"][2] = round(wrap(sq / 2 - (-lf / 2 - new_lo), sq), 3)
+    count["caps cut"] = cut
+    print(f"grass slabs cut back to their walls: {cut} of {len(caps)} (the most, {most:.1f} studs)")
+
+
+trim_caps()
 
 # the barrier: unseen and solid, just behind the wall's face, from under the floor to over the surface. A swimmer can go
 # over any wall and a fish can get behind a thin one; this is what keeps them in the lane. One panel to two pieces.
@@ -1163,21 +1327,7 @@ add("HubFloor", "hub", (0, 0.5 - 60, HUB_BACK / 2), (HUB_HALF * 2, 120, -HUB_BAC
 add("StartStrip", "trim", (0, 0.75, FRONT / 2), (GATE * 2, 0.5, -FRONT), HUB_LOOK["strip"], solid=False)
 for z_ in (FRONT + 1.0, -1.0):  # a white line along each edge of it, as the reference's start zone has
     add("StartLine", "trim", (0, 0.8, z_), (GATE * 2, 0.5, 2.0), (250, 250, 250), solid=False)
-# a line of flags over the start, wall to wall, seen from anywhere in the hub (arrows on the floor were tried and taken
-# out on the user's word, 2026-11-12)
-span_ = GATE * 2
-add("StartFlagLine", "trim", (0, 30.0, FRONT / 2), (span_, 0.6, 0.6), (250, 250, 250), solid=False)
-for j in range(int(span_ / 9)):
-    add("StartFlag", "trim", (-span_ / 2 + 5 + j * (span_ - 10) / (int(span_ / 9) - 1), 27.3, FRONT / 2), (4.6, 5, 0.4),
-        ((250, 200, 80), (240, 110, 130), (110, 190, 240), (140, 220, 150), (250, 250, 250))[j % 5], solid=False)
-
-
-def stall(name, x, z, colour, turn=0):
-    ax, ay, az = yawed(turn)
-    add(name + "Counter", "station", (x, 3.5, z), (14, 6, 8), (190, 140, 90), ax, ay, az)
-    add(name + "Roof", "station", (x, 13, z), (18, 2, 12), colour, ax, ay, az)
-    for sx in (-7, 7):
-        add(name + "Post", "station", (x + ax[0] * sx, 6.5, z + ax[2] * sx), (1.5, 12, 1.5), (160, 115, 75), ax, ay, az)
+# (the line of flags over the start went when the gate got its arch: tools/map/hub_kit.py)
 
 
 PLOT = (88.0, 56.0, 34.0)  # an aquarium (88 wide since 2026-11-12, so four fill the back between the side rows). The reference's pen is about 50 by 62 for dinos up to 40 long; our biggest
@@ -1185,48 +1335,26 @@ PLOT = (88.0, 56.0, 34.0)  # an aquarium (88 wide since 2026-11-12, so four fill
 PLOT_COLOURS = [(240, 110, 130), (255, 170, 70), (250, 215, 90), (120, 200, 120), (90, 190, 220), (120, 140, 240), (180, 120, 230), (240, 140, 200)]
 
 
-def plot(index, cx, cz, turn_deg):
-    """a player's plot: the tank at the back, and in front of it the owner's sign, the trainer and the collect pad"""
-    ax, ay, az = yawed(turn_deg)
-    w, d, h = PLOT
-    colour = PLOT_COLOURS[(index - 1) % len(PLOT_COLOURS)]
-    frame = HUB_LOOK["frame"]
-
-    def put(name, x, y0, z, size, col, kind="station", **more):
-        add(f"Plot{index}_{name}", kind, (cx + ax[0] * x + az[0] * z, y0 + size[1] / 2, cz + ax[2] * x + az[2] * z), size, col, ax, ay, az, **more)
-
-    put("Pad", 0, 0.5, 12, (w, 0.4, d + 24), HUB_LOOK.get("pad") or tuple(int(c * 0.35 + 160) for c in colour), solid=False)
-    put("TankBase", 0, 0.5, 0, (w, 3, d), frame)
-    put("TankSand", 0, 3.5, 0, (w - 2, 1, d - 2), (236, 222, 172))
-    put("TankWater", 0, 4.5, 0, (w - 2, h - 2, d - 2), (90, 190, 225), kind="glass", solid=False, t=0.55)
-    for sx in (-1, 1):
-        for sz in (-1, 1):
-            put("Post", sx * (w / 2 - 1), 3.5, sz * (d / 2 - 1), (2, h, 2), frame)
-        put("RimSide", sx * (w / 2 - 1), 3.5 + h - 1.5, 0, (2, 1.5, d), frame)
-    for sz in (-1, 1):
-        put("RimEnd", 0, 3.5 + h - 1.5, sz * (d / 2 - 1), (w, 1.5, 2), frame)
-    put("SignPost", -w / 2 + 4, 0.5, d / 2 + 4, (1.2, 9, 1.2), frame)
-    put("SignBoard", -w / 2 + 4, 9.5, d / 2 + 4, (14, 5, 1), colour)
-    put("TrainerSpot", 9, 0.5, d / 2 + 9, (10, 0.6, 10), (225, 70, 70))
-    put("TrainerRide", 9, 1.1, d / 2 + 9, (3, 4, 7), (250, 150, 80))
-    put("CollectPad", -8, 0.5, d / 2 + 9, (8, 0.6, 8), (110, 210, 120), solid=False)
-
-
 # The reference's pens stand in a U: a row along the far side from the start and a row down each side, sharing fences,
 # open toward the start. Ours the same: four along the back, two down each side beginning where the back row's pads end.
+plots = []  # index, x, z, turn in degrees
 for k in range(4):
-    plot(k + 1, (k - 1.5) * PLOT[0], HUB_BACK + 8 + PLOT[1] / 2, 0)
+    plots.append((k + 1, (k - 1.5) * PLOT[0], HUB_BACK + 8 + PLOT[1] / 2, 0))
 side_z = HUB_BACK + 8 + PLOT[1] + 24  # the back row's depth and its pads
 for k in range(2):
-    plot(5 + k, -(HUB_HALF - 8 - PLOT[1] / 2), side_z + (k + 0.5) * PLOT[0], 90)
-    plot(7 + k, HUB_HALF - 8 - PLOT[1] / 2, side_z + (k + 0.5) * PLOT[0], -90)
-# the stalls stand to either side of the way from the spawn to the start, never in it
-stall("Sell", -112, -80, (235, 80, 80), 20)
-stall("Auras", 112, -80, (170, 110, 240), -20)
-stall("Fuse", -186, -84, (250, 190, 70), 45)
-stall("Index", 186, -84, (90, 170, 240), -45)
-stall("Sub", GATE + GATE_TURN + 60, FRONT - 22, (70, 190, 190), -20)  # the ride to a later land, at the start's right end
-add("EarnersBoard", "station", (-(GATE + GATE_TURN + 20), 14, FRONT - 3), (22, 26, 4), (40, 44, 60))  # on the wall at its left end
+    plots.append((5 + k, -(HUB_HALF - 8 - PLOT[1] / 2), side_z + (k + 0.5) * PLOT[0], 90))
+    plots.append((7 + k, HUB_HALF - 8 - PLOT[1] / 2, side_z + (k + 0.5) * PLOT[0], -90))
+# The hub's models (the tanks and their trainers, the stations, the gate's arch, the landmark, the small things) are
+# tools/map/hub_kit.py's: richer than a plain box (round things, glows, words), so they go to their own file, hub.json,
+# and into Studio by tools/map/hub_luau.py. Only the numbers they stand on are given from here.
+import hub_kit  # noqa: E402
+
+hub_in = {"Half": HUB_HALF, "Back": HUB_BACK, "Front": FRONT, "Gate": GATE, "GateTurn": GATE_TURN, "FrontTurn": FRONT_TURN,
+          "StartDepth": START_DEPTH, "Look": HUB_LOOK, "Plot": PLOT, "PlotColours": PLOT_COLOURS, "Plots": sorted(plots)}
+os.makedirs(OUT, exist_ok=True)
+json.dump(hub_in, open(os.path.join(OUT, "hub_in.json"), "w"), indent=1)
+hub_parts = hub_kit.build(hub_in)
+json.dump({"parts": hub_parts}, open(os.path.join(OUT, "hub.json"), "w"))
 add("DockSpawn", "trim", (0, 1.0, -144), (14, 1, 14), (255, 255, 255))  # nearer the start than the hub's middle
 add("Figure", "figure", (10, 3.5, -128), (2, 5, 1), (90, 170, 230))
 
@@ -1272,6 +1400,10 @@ try:
 except ImportError:
     raise SystemExit
 shown = [p for p in parts if p["k"] not in ("water", "far", "barrier")]
+for q in hub_parts:  # the hub's models, as plain boxes
+    if q.get("t", 0) < 1 and q["p"][1] > -1:
+        zx = [q["x"][1] * q["y"][2] - q["x"][2] * q["y"][1], q["x"][2] * q["y"][0] - q["x"][0] * q["y"][2], q["x"][0] * q["y"][1] - q["x"][1] * q["y"][0]]
+        shown.append({"k": "station", "p": q["p"], "s": q["s"], "x": q["x"], "y": q["y"], "z": zx, "c": q["c"]})
 xs = [p["p"][0] for p in shown]
 zs = [p["p"][2] for p in shown]
 pad = 160

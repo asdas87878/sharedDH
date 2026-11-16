@@ -43,6 +43,7 @@ local FishService = require(script.Parent.FishService)
 local PropService = require(script.Parent.PropService)
 
 type Wild = FishService.Wild
+export type Carry = { Id: string, Size: string, Variant: string }
 type Rider = {
 	Player: Player,
 	State: string,
@@ -65,7 +66,8 @@ type Rider = {
 	Tame: number, -- seconds ridden toward taming the fish under us
 	SentTame: number, -- the Tame attribute as last told (-1: none)
 	Tamed: { [Wild]: boolean }, -- the fish made ours on this dive (so one fish is not tamed twice)
-	Caught: { string }, -- what we carry on this dive: fish ids, oldest first
+	Caught: { string }, -- what we carry: fish ids, oldest first (with an aquarium: until it is put in the tank)
+	Carried: { Carry }, -- the same fish, each with its size and colour (what the aquarium needs to know)
 	Owned: number, -- creatures brought home this session
 	Trained: number, -- max Oxygen gained on the training spot this session (TrainService), on top of the start
 	Landings: number, -- landings so far this session: sent with each "Land", so every client picks the same reaction
@@ -94,6 +96,11 @@ type Rider = {
 }
 
 local RideService = {}
+
+-- Set by AquariumService when the map has tanks: whether this player's catch is kept in hand at the dock (they have a
+-- tank to put it in), and where they come home to (nil: the dock's spawn)
+RideService.Keeps = nil :: ((player: Player) -> boolean)?
+RideService.Home = nil :: ((player: Player) -> CFrame?)?
 
 -- The sandbox's reset seats a rider only on a fish that has been in the Workspace this long, so the player's machine
 -- has the fish too (it is told to sit on it).
@@ -358,7 +365,11 @@ local function toDock(r: Rider)
 	if root and humanoid then
 		humanoid.PlatformStand = false
 		local character = r.Player.Character :: Model
-		if dockSpawn then
+		-- (with fish in hand and a tank of their own: in front of the tank, AquariumService)
+		local home = if RideService.Home then RideService.Home(r.Player) else nil
+		if home then
+			character:PivotTo(home + Vector3.new(0, 3, 0))
+		elseif dockSpawn then
 			character:PivotTo(dockSpawn.CFrame + Vector3.new(0, 4, 0))
 		else
 			-- (the state first: loading a character yields, and a rider still Free or Drowning was sent to the dock
@@ -376,12 +387,17 @@ local function toDock(r: Rider)
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
 	setState(r, "Dock")
-	-- the dive's catch comes home (death or not, as the reference's): counted, and the hands are empty again
-	if #r.Caught > 0 then
-		r.Owned += #r.Caught
-		r.Player:SetAttribute("Owned", r.Owned)
+	-- the dive's catch comes home (death or not, as the reference's). With a tank of their own the player still
+	-- carries it, until they put it in (AquariumService: RideService.deposited). With none it is counted here and the
+	-- hands are empty again.
+	if not (RideService.Keeps and RideService.Keeps(r.Player)) then
+		if #r.Caught > 0 then
+			r.Owned += #r.Caught
+			r.Player:SetAttribute("Owned", r.Owned)
+		end
+		table.clear(r.Caught)
+		table.clear(r.Carried)
 	end
-	table.clear(r.Caught)
 	table.clear(r.Tamed)
 	sendCaught(r)
 	Net.Ride:FireClient(r.Player, "Respawned")
@@ -824,6 +840,7 @@ local function tame(r: Rider, w: Wild, dt: number)
 			r.Tamed[w] = true
 			if #r.Caught < c.Carry then
 				table.insert(r.Caught, w.Type.Id)
+				table.insert(r.Carried, { Id = w.Type.Id, Size = w.SizeTier, Variant = w.Variant })
 				sendCaught(r)
 				Net.Ride:FireClient(r.Player, "Tamed", w.Model, w.Type.Id)
 			end
@@ -945,7 +962,9 @@ local function onCharacter(r: Rider, character: Model)
 		local root = character:WaitForChild("HumanoidRootPart", 10)
 		if root then
 			task.wait()
-			character:PivotTo(dockSpawn.CFrame + Vector3.new(0, 4, 0))
+			-- (with fish in hand and a tank of their own: in front of the tank, as after a dive)
+			local home = if RideService.Home then RideService.Home(r.Player) else nil
+			character:PivotTo(if home then home + Vector3.new(0, 3, 0) else dockSpawn.CFrame + Vector3.new(0, 4, 0))
 		end
 	end
 end
@@ -978,6 +997,7 @@ local function onPlayer(player: Player)
 		SentTame = -1,
 		Tamed = setmetatable({}, { __mode = "k" }) :: any,
 		Caught = {},
+		Carried = {},
 		Owned = 0,
 		CheckAt = 0,
 		CheckFrom = nil,
@@ -1169,6 +1189,32 @@ function RideService.Init()
 		end
 		riders[player] = nil
 	end)
+end
+
+-- The aquarium (AquariumService): what a player carries, each fish with its size and colour (not to be changed);
+local NOTHING: { Carry } = {}
+function RideService.carried(player: Player): { Carry }
+	local r = riders[player]
+	return if r then r.Carried else NOTHING
+end
+
+-- that it has all gone into their tank: counted, and the hands are empty;
+function RideService.deposited(player: Player)
+	local r = riders[player]
+	if not r then
+		return
+	end
+	r.Owned += #r.Carried
+	r.Player:SetAttribute("Owned", r.Owned)
+	table.clear(r.Caught)
+	table.clear(r.Carried)
+	sendCaught(r)
+end
+
+-- and a player's state ("Dock", "Free", "Riding", "Jumping", "Drowning"; nil for a player we don't know)
+function RideService.stateOf(player: Player): string?
+	local r = riders[player]
+	return if r then r.State else nil
 end
 
 -- Training (TrainService): a player standing on the dock gains max Oxygen. Returns whether it was given (only on the

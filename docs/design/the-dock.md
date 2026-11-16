@@ -1,5 +1,7 @@
 # The dock
 
+> **Studies, 2026-11-16.** In every trending game a plot is an open pen, a shop is one stall recoloured, and a trail or a marker leads a new player to their plot. After each run creators do the same four things in twenty seconds: Equip Best, read the new total, Claim All, look at the next price. [Findings](../Findings.md), rank 1 point 7 and rank 2.
+
 The hub where every player spawns, with each player's base and the stations.
 
 ## Decided

@@ -22,6 +22,7 @@ end
 local PLAIN = {
 	Ambient = Color3.fromRGB(70, 70, 70),
 	OutdoorAmbient = Color3.fromRGB(70, 70, 70),
+	ColorShift_Top = Color3.fromRGB(0, 0, 0),
 	Brightness = 3,
 	ShadowSoftness = 0.2,
 	ClockTime = 14.5,
@@ -70,6 +71,7 @@ function Look.apply(lighting: Lighting, v: Values)
 	end
 	lighting.Ambient = rgb(v, "Ambient")
 	lighting.OutdoorAmbient = rgb(v, "Outdoor")
+	lighting.ColorShift_Top = rgb(v, "Sun") -- the colour on sunlit faces; black is none
 	lighting.Brightness = v.Brightness
 	lighting.ShadowSoftness = math.clamp(v.ShadowSoftness, 0, 1)
 	lighting.ClockTime = v.ClockTime % 24

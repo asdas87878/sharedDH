@@ -16,7 +16,8 @@ type SoundSpec = { Id: string, Speed: number, Volume: number }
 local SOUNDS: { [string]: SoundSpec } = {
 	Pop = { Id = "rbxasset://sounds/action_jump_land.mp3", Speed = 1.7, Volume = 0.35 },
 	Tick = { Id = "rbxasset://sounds/action_jump_land.mp3", Speed = 2.6, Volume = 0.25 },
-	Rumble = { Id = "rbxasset://sounds/action_falling.mp3", Speed = 0.25, Volume = 0.9 },
+	-- (it was "action_falling.mp3" until 2026-11-16: Roblox ships only the .ogg, so a smash and a prop's debris were silent)
+	Rumble = { Id = "rbxasset://sounds/action_falling.ogg", Speed = 0.25, Volume = 0.9 },
 	Chomp = { Id = "rbxasset://sounds/action_jump_land.mp3", Speed = 0.45, Volume = 1 },
 	Splash = { Id = "rbxasset://sounds/impact_water.mp3", Speed = 0.8, Volume = 0.5 },
 }

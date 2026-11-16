@@ -1,5 +1,7 @@
 # First version
 
+> **Studies, 2026-11-16.** Three things decide the launch more than the list below: Roblox keeps a new game from under-16s until it passes a gate, a game titled "Ride a Fish" already exists, and a verb's window is weeks. [Findings](../Findings.md), rank 1, points 1 and 2.
+
 Ship small and fast (about two weeks), then add while players are coming.
 
 ## Ideas not agreed

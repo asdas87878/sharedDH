@@ -1,5 +1,7 @@
 # UI: what the player sees on screen
 
+> **Studies, 2026-11-16.** The reference's first minutes are a script of about twenty lines, one on screen at a time. Its night timer is the reset clock, not decoration. A failure names its cure with both numbers. A tag at exactly your number still throws you, so ours can be the honest one. [Findings](../Findings.md), rank 1 point 5 and rank 2; the lesson line by line in [Ride a Dino](../reference/ride-a-dino-deep.md), "The first minutes".
+
 The plan for the dive's HUD and the dock's screens. Written 2026-11-11 by the UI chat ([Sessions](../Sessions.md)).
 **Pass 3, the same day, is the current proposal:** the user picked look A for its simple build, with E's pattern, and
 asked for it to go nearer still to Ride a Dino's HUD. Pass 2 (five looks) and pass 1 are kept below.

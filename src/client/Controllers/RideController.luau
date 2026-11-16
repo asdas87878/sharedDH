@@ -3,7 +3,8 @@
 -- coasting the fish we just left (it stays ours for Switch.HandBack seconds, so it swims off without a hitch), floating
 -- while off a fish, and the camera for everything underwater.
 -- Steering: we always go forward. A and D (or the stick's sideways) turn the way we go directly, and the view by as
--- much; a look (a drag, a stick, the mouse in the hop) is followed by the way we go (Ride.CameraSteer). The same on a
+-- much; a look (a drag, a stick, the mouse in the hop) is followed by the way we go (Ride.CameraSteer), and the key
+-- against that look holds our line with the view left on the fish's side. The same on a
 -- fish, in the hop off it (JumpController) and floating: RideController.steer. W and S do nothing; a ridden fish
 -- follows the lane down at the herd's height above the floor by itself.
 -- The camera follows our own character (so leaving a fish and landing on one never cut), behind the way we are going.
@@ -40,6 +41,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Course = require(script.Parent.Parent.Lib.Course)
 local Feel = require(script.Parent.Parent.Lib.Feel)
+local Shake = require(script.Parent.Parent.Lib.Shake)
 local Spring = require(script.Parent.Parent.Lib.Spring)
 local State = require(script.Parent.Parent.Lib.State)
 local WallRide = require(script.Parent.Parent.Lib.WallRide)
@@ -53,6 +55,7 @@ local camera = workspace.CurrentCamera
 local yaw, pitch, roll = 0, 0, 0
 local turnNow = 0 -- how fast A and D are turning us now, radians a second (eased in and out)
 local turned = 0 -- and by how much this frame: the camera turns by as much
+local keyNow = 0 -- the plain way (Ride.CameraSteer 2): A and D now, -1 to 1 (eased in and out)
 local steerRate = 0 -- how fast the way we are going is really turning, radians a second (eased): the bank follows it
 local lastMode = "Dock"
 local startSpeed = 0
@@ -103,10 +106,6 @@ local zoomScale, zoomSpeed = 1, 0 -- the hop sits a little further back
 local reach, reachSpeed = 1, 0 -- how much of its distance the camera has, with a wall behind it
 local fovEased, fovSpeed = Config.Camera.Fov, 0 -- the field of view before the punch
 local kickAt, kickSpeed = 0, 0 -- the landing's jolt: the camera's height off true, on a spring
-local shakeAt = -math.huge -- os.clock() of the landing's shake,
-local shakeSize = 0 -- how far it throws the camera, studs,
-local shakeSeed = 0 -- and which way: a new pattern each time
-local shakeTime: number? = nil -- its own time to die away (nil: Jump.LandShakeTime)
 local airAt = -math.huge -- os.clock() the hop began
 local lookedAt = -math.huge -- os.clock() the player last looked round themselves
 local rightHeld = false
@@ -165,24 +164,75 @@ end
 -- Ride.CameraSteer on (the reference, and the user after playing, 2026-11-11) it also comes round to where the camera
 -- looks, no faster than Ride.SteerRate: a drag, a stick or the mouse in the hop turn the view, and the fish, the hop
 -- and the float all follow it. With it off, only A and D turn us (Movement v3.1).
+--
+-- Two pulls, added (the user, 2026-11-16: "you should be able to turn the camera and see the side of your fish, it will
+-- still turn you toward that direction but you should have the freedom to do that if you're counteracting the direction
+-- of turning with a direction key"): the look pulls the way we go round to it, and a key turns it. A key held AGAINST
+-- the look's pull is spent on that pull first: with the look far to one side and the other key held, the two cancel, we
+-- hold our line and the view stays where it was put, on the fish's side. Only what is left of the key turns us, and
+-- the view by as much. On a fish the look pulls no harder than a key at full press (Ride.LookRate), so one key holds
+-- it; until this the way we went came round at 220 degrees a second and a key turned the view with it, so the side of
+-- the fish was never in view for longer than a moment.
+--
+-- The plain way (Ride.CameraSteer 2; the user, 2026-11-16, on the two pulls above: "too intentionally coded ... in
+-- ride a dino I think the movement is more simple and this feature comes from a byproduct of how it was coded"). It is
+-- how any Roblox character moves: the keys mean a direction as the camera sees it. No key is forward, where the
+-- camera looks; A and D are the camera's left and right (Ride.KeyAngle off its look); we turn to face that, no faster
+-- than a fish turns. Nothing else. The camera is never touched by the keys and never pulls. What falls out of it:
+-- turn the view and we come round to it; turn the view to our side and hold the key that points down our line, and we
+-- hold the line with our side in view (the reference's side-on recording, 30 seconds of it); tap a key and we veer,
+-- let go and we come back to the look.
+local function steerPlain(now: number, dt: number): number
+	local r = Config.Ride
+	local riding = State.Mode == "Riding"
+	keyNow = Ease.lerp(keyNow, RideController.moveVector().X, Ease.alpha(r.TurnEase, dt))
+	if math.abs(keyNow) > 0.05 then
+		-- (a held key is the player steering: the view is not brought back behind us meanwhile)
+		lookedAt = os.clock()
+	end
+	local wanted = camYaw - keyNow * math.rad(r.KeyAngle)
+	local gap = math.atan2(math.sin(wanted - now), math.cos(wanted - now))
+	local most = math.rad(if riding then r.LookRate else r.SteerRate) * dt
+	local by = math.clamp(gap * Ease.alpha(if riding then r.LookEase else r.SteerEase, dt), -most, most)
+	if riding and r.LandSteerTime > 0 then
+		by *= Ease.smoothstep(0, r.LandSteerTime, os.clock() - State.MountedAt)
+	end
+	turnNow = 0
+	steerRate = Ease.lerp(steerRate, by / math.max(dt, 1e-4), Ease.alpha(r.TurnEase, dt))
+	return now + by
+end
+
 function RideController.steer(now: number, dt: number): number
 	local r = Config.Ride
-	local by = RideController.turn(dt)
-	local after = now + by
+	if r.CameraSteer >= 2 then
+		return steerPlain(now, dt)
+	end
+	turnNow = Ease.lerp(turnNow, -RideController.moveVector().X * math.rad(r.YawRate), Ease.alpha(r.TurnEase, dt))
+	local key = turnNow * dt
 	if r.CameraSteer <= 0 then
+		turned += key
 		steerRate = turnNow
-		return after
+		return now + key
 	end
-	local view = camYaw + turned -- (this frame's A and D reach camYaw in cameraStep, a moment later)
-	local gap = math.atan2(math.sin(view - after), math.cos(view - after))
-	local most = math.rad(r.SteerRate) * dt
-	local delta = math.clamp(gap * Ease.alpha(r.SteerEase, dt), -most, most)
+	local riding = State.Mode == "Riding"
+	local view = camYaw + turned -- (key turns not yet given to camYaw: cameraStep takes them a moment later)
+	local gap = math.atan2(math.sin(view - now), math.cos(view - now))
+	local most = math.rad(if riding then r.LookRate else r.SteerRate) * dt
+	local pull = math.clamp(gap * Ease.alpha(if riding then r.LookEase else r.SteerEase, dt), -most, most)
 	-- just landed: the fish swims on the way it swam, and comes round to our look gently (Ride.LandSteerTime)
-	if State.Mode == "Riding" and r.LandSteerTime > 0 then
-		delta *= Ease.smoothstep(0, r.LandSteerTime, os.clock() - State.MountedAt)
+	if riding and r.LandSteerTime > 0 then
+		pull *= Ease.smoothstep(0, r.LandSteerTime, os.clock() - State.MountedAt)
 	end
-	steerRate = Ease.lerp(steerRate, (by + delta) / math.max(dt, 1e-4), Ease.alpha(r.TurnEase, dt))
-	return after + delta
+	if key * pull < 0 then
+		local spent = math.min(math.abs(key), math.abs(pull))
+		key -= math.sign(key) * spent
+		pull -= math.sign(pull) * spent
+		-- (holding the view to one side this way is looking round: the view is not brought back behind us meanwhile)
+		lookedAt = os.clock()
+	end
+	turned += key
+	steerRate = Ease.lerp(steerRate, (key + pull) / math.max(dt, 1e-4), Ease.alpha(r.TurnEase, dt))
+	return now + key + pull
 end
 
 -- Turns the view to a yaw and a pitch (radians), as a drag of the mouse would: for the sandbox and for tests driven by
@@ -202,19 +252,16 @@ local function riddenSpeed(): number
 	return if rideType then rideType.RiddenSpeed else Config.Speed.Base
 end
 
--- The landing's shake (Config.Jump.LandShake...): `size` is how far the camera is thrown, studs; `time` is this
--- shake's own seconds to die away (without it, Jump.LandShakeTime)
+-- A plain shake: `size` is how far the camera is thrown, studs; `time` is this shake's own seconds to die away
+-- (without it, Jump.LandShakeTime). Since 2026-11-16 the shakes are Lib/Shake's: they add up, where a new one used to
+-- replace the old, and the moments with a character of their own ask Shake for it by name (Config.Shake.Presets).
 function RideController.shake(size: number, time: number?)
-	shakeAt = os.clock()
-	shakeSize = size
-	shakeSeed = math.random() * 100
-	shakeTime = time
+	Shake.jolt(size, time)
 end
 
--- How far the shake still throws the camera now, studs (0: none running), so a small shake can leave a big one be
+-- How far the shakes throw the camera now, studs (0: none running), so a small shake can leave a big one be
 function RideController.shaking(): number
-	local shaken = (os.clock() - shakeAt) / math.max(shakeTime or Config.Jump.LandShakeTime, 0.01)
-	return if shaken < 1 then shakeSize * (1 - shaken) ^ 2 else 0
+	return Shake.moving()
 end
 
 -- How hard we are turning, -1 to 1, for banking into it
@@ -959,19 +1006,8 @@ local function cameraStep(dt: number)
 		kickSpeed += (-w * w * kickAt - 2 * j.LandKickDamp * w * kickSpeed) * h
 		kickAt += kickSpeed * h
 	end
-	-- and its shake: thrown about for a moment, dying away
-	local shake = CFrame.identity
-	local shaken = (os.clock() - shakeAt) / math.max(shakeTime or j.LandShakeTime, 0.01)
-	if shaken < 1 and shakeSize > 0 then
-		local size = shakeSize * (1 - shaken) ^ 2
-		local t = shakeSeed + (os.clock() - shakeAt) * j.LandShakeRate
-		shake = CFrame.new(math.noise(t, 1.5) * 2 * size, math.noise(t, 7.5) * 2 * size, 0)
-			* CFrame.Angles(
-				0,
-				0,
-				math.noise(t, 13.5) * 2 * math.rad(j.LandShakeRoll) * size / math.max(j.LandShake, 0.01)
-			)
-	end
+	-- and the shakes: every one running, added together (Lib/Shake)
+	local shake = Shake.update(dt)
 	local view = CFrame.lookAt(position, position + rotation.LookVector) * CFrame.new(0, kickAt, 0) * shake
 	if submerged and view.Position.Y > ceiling then
 		-- whatever is left (the jolt, the shake, the side view, a camera that had nowhere lower to go): held under
@@ -1123,6 +1159,8 @@ function RideController.Init()
 				crashSlow = math.clamp(a, 0, 1)
 				State.CrashAt = crashAt
 				State.KickVelocity = Config.Crash.Kick * 2 * math.pi * Config.Jump.LandKickRate
+				-- (harder the more speed it took; rolled to one side or the other)
+				Shake.play("Crash", 0.5 + 0.7 * (1 - crashSlow), if math.random() < 0.5 then -1 else 1)
 			end
 		elseif kind == "Dismounted" then
 			if a == "Jump" or a == "OutOfOxygen" then

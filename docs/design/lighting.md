@@ -1,8 +1,92 @@
 # Lighting
 
+> **Studies, 2026-11-16.** This look has only been judged at the top quality level, and a warm sun colour (`ColorShift_Top`) has never been tried. One recipe runs through five tutorials. The tests, in order: [the lighting study](../reference/look-lighting.md), section 5. The short of it: [findings](../Findings.md), rank 3.
+
 The look of the light, from the tutorial video the user sent on 2026-11-11 (a 50-second TikTok by kh_studios). The user
 likes its vibrant look. Built the same day by the game-code chat ([Sessions](../Sessions.md)). **Not seen by anyone
 yet:** Studio's window wasn't being drawn when it went in, so it was checked by its numbers in play, not by eye.
+
+## The look pass: seven tests in Studio (2026-11-16)
+**The user picked A the same day** ("Choose A for the lighting id say"). The game-code chat wrote its three numbers
+into `Config.Look` and put the look on the place in Edit: the sun 215, 190, 135, `ShadowSoftness` 0.2,
+`EnvSpecular` 0.25. Not yet seen by the user in Play. What follows is the pass as it was written before the pick.
+
+**For the user to pick from. Nothing is changed:** `Config.Look` is as it was, and the place has our own look back
+on it. By the map chat, on the user's word ("make sure the main assets and the UI all looks really good in like the
+lighting and stuff"). The tests are [the lighting study](../reference/look-lighting.md)'s first six (1, 2, 3, 4, 5
+and 8) and one more it led to (7). Each is one change against today's look, pictured from the same three spots: the
+hub from the spawn, down the lane over the water, one tank close up. A block painted one green (83, 214, 100) stands
+by the tank as a measure: its colour is read off the picture. Most promising first.
+
+### What I would pick: A
+![today's look, A and B, at the top level and at level 1](../attachments/look-light-pick.jpg)
+
+- **A is three numbers:** the sun's colour 215, 190, 135 (`SunR`, `SunG`, `SunB`), `ShadowSoftness` 0.2 (it is 1),
+  `EnvSpecular` 0.25 (it is 1).
+- **B is A with a little lilac in the shade:** `AmbientR`, `G`, `B` 160, 145, 180 (they are 118, 128, 138).
+- **Why A.** Today the floor's green reads as mint at the top quality level, and as a truer green on a weak phone:
+  the picture changes with the device. A makes the two nearly the same, and nearer the paint:
+
+| The green block's top, in the sun | Red | Green | Blue |
+|---|---|---|---|
+| Its paint | 83 | 214 | 100 |
+| Today, top level | 82 | 240 | 167 |
+| Today, level 1 | 60 | 235 | 119 |
+| **A, top level** | 99 | 242 | 113 |
+| **A, level 1** | 77 | 236 | 90 |
+| B, top level | 100 | 242 | 116 |
+
+  Blue is the one to watch: 167 is what makes green look washed. This may be the "washed out" the user has
+  reported (a guess, as the study's was).
+- **B against A** is a small matter of taste: the shaded walls go faintly violet. I would take A and leave the
+  shade grey until the deep lands are lit, since the lilac was the tutorial's and we took it out once already.
+
+### The tests, one by one
+**2. A warm sun.** The biggest single change. Sunlit faces go warm, the floor goes from mint to green, the lit wall
+of the lane parts from the shaded one in colour and not only in brightness. 215, 190, 135 is a little stronger
+than the paler 232, 222, 160; on the block the two measure the same. It survives level 1.
+![a warm sun](../attachments/look-light-sun.jpg)
+
+**8. The shadow's edge.** At 0.2 the tank's frame draws clean lines on the pad and the palm's shadow has a shape. At
+our 1 they are smudges. Nothing looked harsh.
+![the shadow's edge](../attachments/look-light-shadow.jpg)
+
+**7. Less sky in the floor** (not one of the six: test 1 pointed at it). The floor is greener at level 4 than at
+level 21, in Soft and in Realistic alike, so the difference is the sky's reflection, which only the high levels
+draw. Turning `EnvSpecular` down takes the block's blue from 167 to 150 (at 0.5), 140 (at 0.25) and 129 (at 0).
+By eye it is a nudge; with the warm sun it is what closes the gap between a PC and a phone.
+![less sky in the floor](../attachments/look-light-shine.jpg)
+
+**5. A lilac shade** (with the warm sun). The recipe's full lilac turns every shaded wall purple and lifts the shade
+a long way. Halfway is a faint violet. Neither brought the mint back.
+![a lilac shade](../attachments/look-light-lilac.jpg)
+
+**3. The shared recipe, whole.** Pale and pastel: lilac walls, a soft yellow-green floor, a lavender haze over the
+lane. It is the same picture at level 21 and at level 1, which is its strength. It is also the least vivid of
+everything tried, and the user's word for the look was "vibrant". A yardstick, not a proposal.
+![the recipe](../attachments/look-light-recipe.jpg)
+
+**4. Soft against Realistic.** Almost no difference in the hub: Soft's shadows are a little fainter. It was not
+steadier between levels here (both change the same way from 21 to 4). No reason found to change.
+![Soft and Realistic](../attachments/look-light-soft.jpg)
+
+**1. Today's look by quality level.** Levels 4 and 1 look the same from all three spots:
+- **Gone:** every shadow, the glow round the lamps (they are flat white boxes), the sky's shine on the floor.
+- **Still there:** the colour effect (the tint and the vividness), the difference between a lit wall and a shaded
+  one, the water's blue in the lane, the sky.
+- So the hub stands without shadows. What it loses most is the lamps, which is one more reason not to lean on glow.
+![by quality level](../attachments/look-light-levels.jpg)
+
+### Not done, or not sure
+- **Not on a phone, and not in Play.** Everything is Studio's Edit mode with the editor's quality level set by
+  script. Under water was not in this pass's three spots.
+- **The sun's angle, the tone mapper, the bloom, the tint and air for the hub** (tests 6 and 9 to 13) are not done.
+- **How it was done, to do it again:** `python tools/studio/look_tests.py <plan.json> <look>[@level] ...` writes a
+  plan, `python tools/studio/look_shots.py <studio_id> <plan.json>` runs it and saves the pictures, and
+  `tools/studio/look_swatch.py` reads the block. The looks are a table at the top of `look_tests.py`. `--restore`
+  puts ours back.
+- **For the game-code chat, if the user picks A:** `SunR = 215, SunG = 190, SunB = 135, ShadowSoftness = 0.2,
+  EnvSpecular = 0.25`. For B also `AmbientR = 160, AmbientG = 145, AmbientB = 180`.
 
 ## What the tutorial does
 Read from its frames and its voice.

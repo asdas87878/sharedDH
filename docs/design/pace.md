@@ -5,6 +5,11 @@ zoom past, some go slow, some huge predators come in from above and dart past yo
 animations countered in and more". The numbers: `Config.Pace`, `Config.FishPace`, `Config.SizePace` in
 `src/shared/Config.luau`. The code: `paceShare` and `steer` in `src/server/Services/FishService.luau`.
 
+**Changed 2026-11-16:** a wild fish's speed is now a share of its LAND's pace, not of its own ridden speed, and
+each character has its own height: [the herd, rethought](herd-revamp.md), "Built: stage 1". The shares are 0.45
+(plod), 0.7 (the herd), 1.3 (zoom); a darter bursts at 1.6 and drifts back at 0.5. `Pace.Own` is 0 and
+`Config.SizePace` is all 1. The hunters, the stoop and the visit are as below.
+
 ## Before
 Every wild fish swam at 0.85 of its own ridden speed, and nothing else. In the first land that is 34 to 41 studs a
 second for nearly every fish: the herd moved as one block, and a rider on a Common slid past all of it at 5 to 10.

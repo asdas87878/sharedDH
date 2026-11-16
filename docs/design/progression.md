@@ -1,7 +1,10 @@
 # Progression: speed, rarity and Oxygen
 
+> **Studies, 2026-11-16.** Four things to know before the next pass. The reference has no cap of seven on a run's catch. Its first machine gives +2 for 300 coins, and it has twelve levels. Its typical player sees about an hour in all, so lands 1 to 3 are the game. Its zones are open to anyone who hops, and that is its trailer. [Findings](../Findings.md), rank 1 and "What we had wrong".
+
 How long you can stay on a fish, how fast each fish is, how often each rarity turns up, and so how a player gets from
-the Shallows to the tenth land. By the tuning chat ([Sessions](../Sessions.md)); second pass 2026-11-11, after the
+the Shallows to the tenth land. **Start at "Today's rules": the rest is the record.** By the tuning chat
+([Sessions](../Sessions.md)); fourth pass 2026-11-16, for the refinement; second pass 2026-11-11, after the
 user's answer on how the Oxygen cost works; third pass 2026-11-12, after the user's answer on a fish that is too
 strong for you, and with taming built ([Decisions](../Decisions.md)).
 
@@ -22,12 +25,301 @@ It reads [Config](../../src/shared/Config.luau), the creature files in `src/shar
 (`art/map/greybox/path.json`). The dives are a model of the herd's rules, not a play test: they leave out steering,
 walls and other players. Where a number matters, it should be checked in play.
 
+## Today's rules: the fourth pass (2026-11-16)
+For the refinement ([the plan](../Refinement.md), stream 9). The game changed under this note in six ways since
+2026-11-12, and the model is written again for them (`tools/balance/model.py`). **Everything under this section is
+the note as it stood on 2026-11-12.** Where a part no longer holds, a line under its heading says so. Nothing in
+`Config` was changed in this pass: the numbers here are proposals for the game-code chat to put in with the code.
+
+| What changed | Whose word | What it does here |
+|---|---|---|
+| A fish too strong gives a second and can be hopped off (`Oxygen.StrainTime` 1, `Jump.StrainLock` 0.08) | The user, 2026-11-16 | "A land is a wall" is gone. A landing on a red fish still gives the whole meter back, so red fish can be chained |
+| The hop is longer (`Jump.FloatTime` 1.8, `Window` 3.5, `Launch` 1.25, `HopBoost` 30) | The user, 2026-11-16 | Off a 46 fish it is 155 studs on when the pull-in starts |
+| Every fish has its own ridden speed (`Config.FishStats`) | Hugo, 2026-11-12 | Speed by rarity is gone, and my proposal of 54 to 90 with it |
+| The herd swims at a share of its land's pace (`Config.LandPace`), 44 fish to 1,000 studs | Built 2026-11-16 | A rider gains more on the herd; a land's seconds move |
+| A catch earns in the tank (`Config.Aquarium`) | The user, 2026-11-16 | There is something to set prices against |
+| A landing no longer dips (`Ride.StartleSlow` 1, `RampTime` 0.4) | Built 2026-11-16 | A fish is at its own speed 0.4 seconds after you land |
+
+```
+python tools/balance/model.py                    the tables and the prices
+python tools/balance/model.py --sim 24 --dives   the dives (about ten minutes)
+python tools/balance/model.py --prices --sit 0.25 --plan 0,3,8,15,28,45,75,120,180,270
+python tools/balance/model.py --sim 24 --dives --set Oxygen.RedRefill=0     try a rule that is not in the game
+```
+
+### The short of it
+1. **Max Oxygen no longer decides how far down you get. It decides what you can tame, and so what you earn.** Every
+   fish gives the whole meter back, red or not, and a red one gives a second to hop off. The model's new player, at
+   ease and never late, chains 24 red fish and is in the Kelp Forest a minute and a half in. Holding Space they
+   are in the Twilight zone, and at the end of the tenth land in 4 dives of 10. Nothing is caught past the Shallows.
+2. **A first dive** is 32 seconds and three Commons for a player who stays on each fish for the ring. For one who
+   rides on it is as long as they keep finding a fish inside each second: 36 seconds if they are late off one red
+   fish in ten, 88 if never.
+3. **A dive at home**, choosing green fish and taming: 73 seconds in the Coral Reef, 104 in the Kelp Forest, 138 in
+   the Shipwrecks, 181 in the Open Blue. It ends a little past the player's own land.
+4. **The bag is the first seven fish, 30 seconds in, whatever land the player is at home in.** A player at home in
+   the Open Blue brings home 19 coins a second from a dive. With a bag that keeps its best seven: 2,300. The prices
+   below stand on that rule (it is in the plan, stream 2).
+5. **The trainer: ten levels, each 2.3 to 4 times the last, and four auras** (x1.5, x2, x2.5, x3 from lands 4, 6, 8
+   and 10). A level costs about what the tank earns between two lands: 8 times the level before on average. Worked
+   for the old plan and for one twice as fast.
+6. **The numbers whose reasons were undone** are in the table under C. The one that matters most is not a
+   number: what a landing on a red fish gives back.
+
+### A. What a dive is now
+**The lane.** 30,155 studs to ride over 10 lands (art/map/greybox/path.json); 1100 wild fish in all (Spawn.PerThousand 44, fewer where the water is narrow; Max 170 a land, MaxTotal 1100). The herd swims at 0.7 of the land's pace, plodders at 0.45, the fast ones at 1.3 (hunters at 0.75 of their own speed, high over the herd). "Ridden": the ridden speeds of the land's fish, weighted by how often each spawns.
+
+| Land | Studs | Fish | To 1,000 studs | Land pace | The herd | Plodders | The fast | Ridden, mean | Ridden, range |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 Shallows | 1,001 | 29 | 29.0 | 46 | 32.2 | 20.7 | 59.8 | 45.1 | 40 to 70 |
+| 2 Coral Reef | 2,844 | 91 | 32.0 | 55 | 38.5 | 24.8 | 71.5 | 50.1 | 40 to 76 |
+| 3 Kelp Forest | 2,807 | 90 | 32.1 | 60 | 42.0 | 27.0 | 78.0 | 57.2 | 42 to 88 |
+| 4 Shipwrecks | 3,160 | 104 | 32.9 | 65 | 45.5 | 29.2 | 84.5 | 64.0 | 46 to 96 |
+| 5 Open Blue | 3,168 | 104 | 32.8 | 82 | 57.4 | 36.9 | 106.6 | 77.6 | 52 to 96 |
+| 6 Twilight | 3,295 | 108 | 32.8 | 90 | 63.0 | 40.5 | 117.0 | 83.4 | 60 to 108 |
+| 7 Midnight | 3,581 | 144 | 40.2 | 100 | 70.0 | 45.0 | 130.0 | 91.5 | 70 to 110 |
+| 8 Vents | 3,120 | 130 | 41.7 | 104 | 72.8 | 46.8 | 135.2 | 98.8 | 72 to 122 |
+| 9 Bone Graveyard | 3,837 | 160 | 41.7 | 112 | 78.4 | 50.4 | 145.6 | 103.2 | 72 to 126 |
+| 10 The Underworld | 3,342 | 140 | 41.9 | 116 | 81.2 | 52.2 | 150.8 | 109.9 | 92 to 130 |
+
+- **The sea holds 1,100 fish, not 44 to every 1,000 studs.** `Spawn.PerThousand` 44 wants 1,262; `Spawn.MaxTotal`
+  1,100 trims the rest from the fullest stretches, so lands 2 to 6 have 32 or 33 to 1,000 studs. The Shallows have
+  29: their water is narrow (`Spawn.ThinLeast`).
+- **`Config.LandPace` holds:** a land's fish are ridden at 0.91 to 0.98 of its pace on average. Inside a land they
+  run wide: 40 to 76 in the Coral Reef, 72 to 126 in the Bone Graveyard.
+
+**The hop today.** Off a fish at its ridden speed: it leaves at speed x Jump.Launch 1.25 + HopBoost 30; the locked fish pulls you in by itself when the glide ends (LaunchTime 0.4 + FloatTime 1.8 + the air its speed adds); the window is Jump.Window 3.5 s + the same. The reach runs from GrabRange 150 at 120 studs a second down to GrabNear 60. "Gains on the herd": the studs it has made on a fish of the herd in a land of that pace when the glide ends. The last line of each pair: the same fish angry (red, or the meter low), at 0.65 of its speed.
+
+| Fish going | Leaves at | Glide ends (s) | Studs by then | Speed then | Reach then | Gains on the herd | Window (s) | Studs at the window's end | Reach then |
+|---|---|---|---|---|---|---|---|---|---|
+| 40 | 80 | 1.88 | 139 | 49 | 97 | 86 | 3.18 | 165 | 60 |
+| 40, angry | 62 | 1.75 | 101 | 41 | 91 | 52 | 3.05 | 124 | 60 |
+| 46 | 88 | 1.94 | 155 | 53 | 100 | 93 | 3.24 | 183 | 60 |
+| 46, angry | 67 | 1.79 | 111 | 43 | 93 | 54 | 3.09 | 135 | 60 |
+| 60 | 105 | 2.06 | 195 | 62 | 107 | 108 | 3.36 | 228 | 60 |
+| 60, angry | 79 | 1.87 | 134 | 51 | 98 | 55 | 3.17 | 162 | 60 |
+| 82 | 132 | 2.26 | 267 | 73 | 115 | 137 | 3.56 | 305 | 60 |
+| 82, angry | 97 | 2.00 | 175 | 58 | 104 | 61 | 3.30 | 206 | 60 |
+| 100 | 155 | 2.43 | 334 | 77 | 118 | 164 | 3.73 | 373 | 60 |
+| 100, angry | 111 | 2.11 | 211 | 65 | 109 | 63 | 3.41 | 245 | 60 |
+| 116 | 175 | 2.57 | 393 | 87 | 125 | 184 | 3.87 | 437 | 60 |
+| 116, angry | 124 | 2.20 | 245 | 69 | 112 | 66 | 3.50 | 281 | 60 |
+
+- A hop gains 86 to 184 studs on the herd before the pull-in starts. Before the longer hop and the slower herd,
+  a hop off a 46 fish gained about 50 where it gains 93 now.
+- **A hop off an angry fish is a quarter to two fifths shorter.** A fish is angry when the meter is in its last 0.3, and
+  from the touch when it is red. So every hop off a red fish is the short one, and so is leaving a fish late.
+
+**A ride down the whole lane with endless air.** 6 rides, 1.8 s on each fish. Seconds in each land and the ground made a second (riding and hopping together), against the land's pace. Only rides that crossed the whole land are counted in its line.
+
+| Land | Seconds in it | Studs a second | The land's pace | Rides that crossed it |
+|---|---|---|---|---|
+| 1 Shallows | 15 | 69 | 46 | 6 of 6 |
+| 2 Coral Reef | 43 | 66 | 55 | 6 of 6 |
+| 3 Kelp Forest | 35 | 80 | 60 | 5 of 6 |
+| 4 Shipwrecks | 43 | 73 | 65 | 4 of 6 |
+| 5 Open Blue | 36 | 87 | 82 | 4 of 6 |
+| 6 Twilight | 32 | 104 | 90 | 4 of 6 |
+| 7 Midnight | 33 | 109 | 100 | 4 of 6 |
+| 8 Vents | 27 | 115 | 104 | 4 of 6 |
+| 9 Bone Graveyard | 31 | 126 | 112 | 4 of 6 |
+| 10 The Underworld | 25 | 132 | 116 | 4 of 6 |
+| All ten | 320 | 94 |  |  |
+
+Hops landed a ride: 52. Ended: the lane's end 4, missed every fish in a hop 2.
+
+- All ten lands take 5 minutes 20 seconds at ease: it was about 6. The game's own log of 2026-11-16 made 76 studs a
+  second through the first two lands; the model makes 66 to 69 there.
+
+**How a dive goes today.** Endless air off. "At ease": on each fish they hold until 0.7 s are left (1.8 s at most), never hopping sooner than 0.7 s after a landing; off a red fish at 0.7 s. "Chooses green fish and tames": turns the hop to a fish they hold when one will be in reach, takes a red one only when none is, and stays on each fish they hold until it is theirs (Tame.Time 2 s) while a slot is free (Tame.Carry 7). "A bag that keeps its best seven": not built; they go on taming whatever beats the cheapest fish carried. "Space held": a hop the moment it is allowed and a grab 0.15 s in. 24 dives each. The model's rider never presses late and never misses an aim, so a dive here ends only for want of a fish. "Studs" and "Ends in land": the middle dive, the best of ten, the best. "Red landings": on a fish too strong, a dive. "Catch earns": the coins a second the dive's catch adds to a tank, sizes and colours averaged.
+
+| Player | Max Oxygen | Rider | Lasts (s) | Studs | Ends in land | Hops landed | Red landings | Caught | Catch earns /s | Slots full | How it ended |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| a new player | 100 | at ease, takes what the lock gives | 88 | 5,870 / 10,067 / 14,335 | 3 / 5 / 6 | 27 | 23.8 | 0.0 | 0.0 | 0 of 24 | ran out on a red fish 23, rode over the next land's border and ran out 1 |
+| a new player | 100 | chooses green fish and tames | 32 | 1,835 / 2,444 / 15,457 | 2 / 2 / 6 | 12 | 8.5 | 2.9 (to Common) | 6.5 | 0 of 24 | ran out on a red fish 20, missed every fish in a hop 3, rode over the next land's border and ran out 1 |
+| a new player | 100 | the same, with a bag that keeps its best seven | 32 | 1,835 / 2,444 / 15,457 | 2 / 2 / 6 | 12 | 8.5 | 2.9 (to Common) | 6.5 | 0 of 24 | ran out on a red fish 20, missed every fish in a hop 3, rode over the next land's border and ran out 1 |
+| a new player | 100 | Space held | 186 | 13,613 / 30,207 / 30,330 | 6 / 10 / 10 | 180 | 169.8 | 0.4 (to Common) | 0.8 | 0 of 24 | missed every fish in a hop 15, the lane's end 9 |
+| at home in land 2 | 500 | at ease, takes what the lock gives | 103 | 6,894 / 11,776 / 30,152 | 4 / 5 / 10 | 34 | 24.1 | 0.0 (to Common) | 0.1 | 0 of 24 | ran out on a red fish 22, ran out waiting for a fish in reach 1, the lane's end 1 |
+| at home in land 2 | 500 | chooses green fish and tames | 73 | 4,686 / 5,559 / 6,771 | 3 / 3 / 4 | 16 | 5.2 | 6.8 (to Rare) | 17.5 | 22 of 24, 30 s in | ran out on a red fish 18, missed every fish in a hop 4, ran out waiting for a fish in reach 2 |
+| at home in land 2 | 500 | the same, with a bag that keeps its best seven | 80 | 4,994 / 6,880 / 9,161 | 3 / 4 / 4 | 20 | 8.2 | 7.0 (to Rare) | 42.1 | 24 of 24, 30 s in | ran out on a red fish 17, missed every fish in a hop 6, ran out waiting for a fish in reach 1 |
+| at home in land 2 | 500 | Space held | 234 | 22,055 / 30,257 / 30,300 | 8 / 10 / 10 | 182 | 150.9 | 1.2 (to Uncommon) | 4.9 | 0 of 24 | missed every fish in a hop 13, the lane's end 11 |
+| at home in land 3 | 3,000 | at ease, takes what the lock gives | 127 | 8,944 / 14,111 / 30,151 | 4 / 6 / 10 | 38 | 18.4 | 0.2 (to Rare) | 4.8 | 0 of 24 | ran out on a red fish 17, ran out waiting for a fish in reach 3, missed every fish in a hop 2, rode over the next land's border and ran out 1, the lane's end 1 |
+| at home in land 3 | 3,000 | chooses green fish and tames | 104 | 7,275 / 8,962 / 19,576 | 4 / 4 / 7 | 25 | 6.0 | 7.0 (to Legendary) | 20.3 | 24 of 24, 30 s in | ran out on a red fish 12, missed every fish in a hop 9, ran out waiting for a fish in reach 3 |
+| at home in land 3 | 3,000 | the same, with a bag that keeps its best seven | 109 | 7,357 / 9,773 / 17,765 | 4 / 4 / 7 | 29 | 9.7 | 7.0 (to Legendary) | 204 | 24 of 24, 30 s in | ran out on a red fish 17, missed every fish in a hop 5, ran out waiting for a fish in reach 2 |
+| at home in land 3 | 3,000 | Space held | 260 | 30,172 / 30,257 / 30,324 | 10 / 10 / 10 | 192 | 135.8 | 3.3 (to Rare) | 60.6 | 2 of 24, 97 s in | the lane's end 15, missed every fish in a hop 9 |
+| at home in land 4 | 12.5K | at ease, takes what the lock gives | 151 | 11,108 / 15,614 / 26,246 | 5 / 6 / 9 | 39 | 12.5 | 0.5 (to Rare) | 29.2 | 0 of 24 | ran out on a red fish 17, ran out waiting for a fish in reach 5, missed every fish in a hop 2 |
+| at home in land 4 | 12.5K | chooses green fish and tames | 138 | 9,817 / 10,384 / 13,866 | 5 / 5 / 6 | 29 | 1.8 | 7.0 (to Rare) | 16.4 | 24 of 24, 29 s in | missed every fish in a hop 11, ran out on a red fish 9, ran out waiting for a fish in reach 4 |
+| at home in land 4 | 12.5K | the same, with a bag that keeps its best seven | 144 | 10,069 / 13,792 / 16,827 | 5 / 6 / 7 | 33 | 5.9 | 6.8 (to Epic) | 470 | 23 of 24, 30 s in | ran out on a red fish 11, missed every fish in a hop 10, ran out waiting for a fish in reach 3 |
+| at home in land 4 | 12.5K | Space held | 224 | 30,166 / 30,331 / 30,338 | 10 / 10 / 10 | 182 | 103.8 | 4.0 (to Epic) | 178 | 3 of 24, 101 s in | the lane's end 15, missed every fish in a hop 9 |
+| at home in land 5 | 67.5K | at ease, takes what the lock gives | 203 | 15,546 / 29,893 / 30,154 | 6 / 10 / 10 | 54 | 18.0 | 0.6 (to Epic) | 105 | 0 of 24 | ran out on a red fish 15, missed every fish in a hop 3, the lane's end 3, ran out waiting for a fish in reach 2, rode over the next land's border and ran out 1 |
+| at home in land 5 | 67.5K | chooses green fish and tames | 181 | 13,422 / 16,381 / 21,525 | 6 / 7 / 8 | 39 | 2.5 | 7.0 (to Rare) | 19.2 | 24 of 24, 30 s in | missed every fish in a hop 11, ran out on a red fish 9, ran out waiting for a fish in reach 3, rode over the next land's border and ran out 1 |
+| at home in land 5 | 67.5K | the same, with a bag that keeps its best seven | 181 | 13,550 / 17,218 / 22,820 | 6 / 7 / 8 | 39 | 4.8 | 7.0 (to Epic) | 2,299 | 24 of 24, 30 s in | missed every fish in a hop 11, ran out on a red fish 11, ran out waiting for a fish in reach 1, rode over the next land's border and ran out 1 |
+| at home in land 5 | 67.5K | Space held | 231 | 30,211 / 30,261 / 30,327 | 10 / 10 / 10 | 201 | 97.1 | 5.1 (to Epic) | 777 | 7 of 24, 111 s in | the lane's end 20, missed every fish in a hop 4 |
+
+- **Read the "at ease" lines as an upper limit.** That rider is never late off a red fish and never aims badly. What
+  ends their dive is a red fish with no other fish to reach inside its second.
+- **At ease, a dive runs one or two lands past the player's own.** A new player to the Kelp Forest, a player at
+  home in the Coral Reef to the Shipwrecks, one at home in the Open Blue to the Twilight zone.
+- **Holding Space, anyone reaches the tenth land** in 4 to 8 dives of 10, in about four minutes.
+- **Taming keeps a dive near home.** Staying 2 seconds on each fish they hold, a player's dive ends a little past
+  their own land.
+- **What the catch is worth depends on one rule.** The seven slots are full 30 seconds in, in the first two lands.
+  As built, a tame past seven is not kept, so the dive of a player at home in the Kelp Forest adds 20 coins a
+  second and one at home in the Open Blue 19. With a bag that keeps its best seven: 204 and 2,299.
+
+**How far down a new player gets by chaining red fish.** 100 max Oxygen: every fish past the Shallows is red, gives 1 s, and today the landing gives the whole meter back. The share of 24 dives that got into each land. Nothing is caught past the Shallows. The last lines try a rule that is not in the game: a landing on a red fish gives back less (Oxygen.RedRefill in the model).
+
+| Rider | Land 2 | Land 3 | Land 4 | Land 5 | Land 6 | Land 8 | Land 10 | The lane's end | Studs, the middle dive | Red landings | Lasts (s), mean |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Today: at ease | 100% | 58% | 38% | 25% | 4.2% | 0% | 0% | 0% | 5,870 | 23.8 | 89 |
+| Today: at ease, too slow off one red fish in ten | 96% | 17% | 0% | 0% | 0% | 0% | 0% | 0% | 1,572 | 7.0 | 36 |
+| Today: at ease, too slow off one in four | 96% | 4.2% | 0% | 0% | 0% | 0% | 0% | 0% | 1,504 | 4.1 | 27 |
+| Today: Space held | 100% | 79% | 79% | 62% | 50% | 46% | 38% | 38% | 13,613 | 169.8 | 187 |
+| If a red landing gave half the meter back: at ease | 100% | 0% | 0% | 0% | 0% | 0% | 0% | 0% | 1,402 | 2.1 | 20 |
+| If a red landing gave half the meter back: Space held | 100% | 96% | 96% | 79% | 62% | 58% | 54% | 50% | 30,152 | 213.1 | 230 |
+| If a red landing gave nothing back: at ease | 96% | 0% | 0% | 0% | 0% | 0% | 0% | 0% | 1,216 | 1.0 | 16 |
+| If a red landing gave nothing back: Space held | 100% | 0% | 0% | 0% | 0% | 0% | 0% | 0% | 1,423 | 6.4 | 17 |
+
+- **Today there is no end to it but a slip.** At ease and never late: 24 red fish, the Kelp Forest. Late off one red
+  fish in ten: 7 red fish, 1,570 studs, 36 seconds. Holding Space: the Twilight zone in the middle dive, the lane's
+  end in 4 of 10.
+- **The user's words** (2026-11-16): "This allows players to sometimes get further than they can handle but they
+  can't get anything real out of it still." The second half holds: nothing is tamed. Whether "sometimes" should be
+  "as far as you like" is question 9.
+- **If it should have an end, the rule that gives one is: a landing on a red fish gives no Oxygen back.** Then a
+  player at ease gets one red fish, and one holding Space about six, 400 studs past their own land. Half the meter
+  back does not do it: it stops the player at ease after two and lets the one holding Space run on, because a hop
+  taken at once has spent almost nothing. It is one line in `RideService`, and not mine.
+- "Best depth" measures nerve now, not Oxygen. A gate at a land's border with its Oxygen written on it (stream 7)
+  would be showing a number that stops nobody.
+
+### B. What the trainer and the auras should cost
+For what the game-code chat builds next: the toy ride on each plot (Oxygen a second while you sit on it, in levels
+bought with coins) and auras (a multiplier on Oxygen gained).
+
+**How it is worked out.**
+- **The pace:** minutes of play by which a player is at home in each land (2.5 seconds on its commonest fish). It is
+  the user's to set (the plan's question 4). Two are worked here: the old one (5, 15, 30, 55, 90, 150, 240, 360,
+  540 minutes for lands 2 to 10) and one twice as fast.
+- **Sitting:** a player sits on the trainer for 35% of their play time. This is the biggest guess. Every rate is in
+  proportion to one over it: at 25% the same rates take 1.4 times as long.
+- **A level's rate** is what a seated second has to give over the stretch from one land to the next, with the aura
+  a player on the plan has by then.
+- **The tank:** a player just at home in a land has seven of the dearest fish they hold in numbers there, earning
+  1.3 times the plain fish for sizes and colours. (The best seven of 14 catches earn 1.35 times; of 60, 2.1 times.)
+  Between two lands the tank grows with the max Oxygen.
+- **A level's price** is 1.15 times what that tank earns over the stretch before the one the level is for. Where
+  an aura comes with it, the aura takes a quarter of that and the level that much less. Nothing is gated by land:
+  the price is the gate.
+- **Checked by playing it through** in the model: buying the cheapest thing not yet owned as soon as the coins
+  are there lands within a tenth of the plan, a little ahead.
+
+**The old plan.** At home in lands 2 to 10 by 5, 15, 30, 55, 90, 150, 240, 360 and 540 minutes.
+
+| Stretch | Minutes | Seated (min) | Max Oxygen | Trainer | Its rate /s | x the level before | Aura | Coins /s then | Coins over the stretch | The level's price | In minutes of the tank then | The aura's price |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 Shallows to Coral Reef | 0 to 5 | 1.8 | 100 to 500 | Level 1 | 4 |  | x1 | 22.8 | 5,460 | free |  |  |
+| 2 Coral Reef to Kelp Forest | 5 to 15 | 3.5 | 500 to 3,000 | Level 2 | 12 | x3.0 | x1 | 91 | 103K | $6,000 | 1.1 |  |
+| 3 Kelp Forest to Shipwrecks | 15 to 30 | 5.2 | 3,000 to 12.5K | Level 3 | 30 | x2.5 | x1 | 546 | 829K | $100K | 3.1 |  |
+| 4 Shipwrecks to Open Blue | 30 to 55 | 8.8 | 12.5K to 67.5K | Level 4 | 70 | x2.3 | x1.5 | 2,275 | 5.87M | $800K | 5.9 | $200K |
+| 5 Open Blue to Twilight | 55 to 90 | 12.2 | 67.5K to 270K | Level 5 | 200 | x2.9 | x1.5 | 12.3K | 52.6M | $6M | 8.1 |  |
+| 6 Twilight to Midnight | 90 to 150 | 21.0 | 270K to 2.25M | Level 6 | 800 | x4.0 | x2 | 49.1K | 497M | $50M | 17.0 | $15M |
+| 7 Midnight to Vents | 150 to 240 | 31.5 | 2.25M to 9M | Level 7 | 2,000 | x2.5 | x2 | 410K | 2.21B | $600M | 24.4 |  |
+| 8 Vents to Bone Graveyard | 240 to 360 | 42.0 | 9M to 37.5M | Level 8 | 5,000 | x2.5 | x2.5 | 1.64M | 11.8B | $2B | 20.4 | $600M |
+| 9 Bone Graveyard to The Underworld | 360 to 540 | 63.0 | 37.5M to 150M | Level 9 | 12K | x2.4 | x2.5 | 6.83M | 73.7B | $15B | 36.6 |  |
+| 10 The Underworld to its Mythics | 540 to 720 | 63.0 | 150M to 500M | Level 10 | 30K | x2.5 | x3 | 27.3M | 491B | $60B | 36.6 | $20B |
+
+Played through, buying the cheapest thing not yet owned as soon as the coins are there: at home in land 2 at 5 min, land 3 at 15 min, land 4 at 26 min, land 5 at 53 min, land 6 at 82 min, land 7 at 147 min, land 8 at 229 min, land 9 at 342 min, land 10 at 506 min; its Mythics at 698 min. Level bought at (min): 2 at 5, 3 at 15, 4 at 29, 5 at 53, 6 at 90, 7 at 176, 8 at 236, 9 at 353, 10 at 517.
+
+**Twice as fast.** At home in lands 2 to 10 by 2.5, 7.5, 15, 27.5, 45, 75, 120, 180 and 270 minutes. The rates
+double and the prices halve (the tank earns the same a second, for half as long).
+
+| Stretch | Minutes | Seated (min) | Max Oxygen | Trainer | Its rate /s | x the level before | Aura | Coins /s then | Coins over the stretch | The level's price | In minutes of the tank then | The aura's price |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 Shallows to Coral Reef | 0 to 2.5 | 0.9 | 100 to 500 | Level 1 | 8 |  | x1 | 22.8 | 2,047 | free |  |  |
+| 2 Coral Reef to Kelp Forest | 2.5 to 7.5 | 1.8 | 500 to 3,000 | Level 2 | 25 | x3.1 | x1 | 91 | 51.3K | $2,500 | 0.5 |  |
+| 3 Kelp Forest to Shipwrecks | 7.5 to 15 | 2.6 | 3,000 to 12.5K | Level 3 | 60 | x2.4 | x1 | 546 | 415K | $60K | 1.8 |  |
+| 4 Shipwrecks to Open Blue | 15 to 27.5 | 4.4 | 12.5K to 67.5K | Level 4 | 150 | x2.5 | x1.5 | 2,275 | 2.93M | $400K | 2.9 | $100K |
+| 5 Open Blue to Twilight | 27.5 to 45 | 6.1 | 67.5K to 270K | Level 5 | 350 | x2.3 | x1.5 | 12.3K | 26.3M | $3M | 4.1 |  |
+| 6 Twilight to Midnight | 45 to 75 | 10.5 | 270K to 2.25M | Level 6 | 1,500 | x4.3 | x2 | 49.1K | 248M | $25M | 8.5 | $6M |
+| 7 Midnight to Vents | 75 to 120 | 15.7 | 2.25M to 9M | Level 7 | 3,500 | x2.3 | x2 | 410K | 1.11B | $300M | 12.2 |  |
+| 8 Vents to Bone Graveyard | 120 to 180 | 21.0 | 9M to 37.5M | Level 8 | 10K | x2.9 | x2.5 | 1.64M | 5.9B | $1B | 10.2 | $300M |
+| 9 Bone Graveyard to The Underworld | 180 to 270 | 31.5 | 37.5M to 150M | Level 9 | 25K | x2.5 | x2.5 | 6.83M | 36.9B | $6B | 14.7 |  |
+| 10 The Underworld to its Mythics | 270 to 360 | 31.5 | 150M to 500M | Level 10 | 60K | x2.4 | x3 | 27.3M | 245B | $30B | 18.3 | $10B |
+
+Played through, buying the cheapest thing not yet owned as soon as the coins are there: at home in land 2 at 2 min, land 3 at 7 min, land 4 at 13 min, land 5 at 26 min, land 6 at 42 min, land 7 at 76 min, land 8 at 120 min, land 9 at 176 min, land 10 at 253 min; its Mythics at 349 min. Level bought at (min): 2 at 2, 3 at 8, 4 at 15, 5 at 26, 6 at 45, 7 at 90, 8 at 123, 9 at 178, 10 at 259.
+
+- **Against the reference:** its first machine gives +15 a second, the next (+36) costs $4M, the one after $80M.
+  The steps are alike: 2.4 times the rate for 20 times the price there, 2.3 to 4 times for 3 to 17 times here. Its
+  numbers are bigger and its levels fewer: +15 a second would carry our player past the Kelp Forest by itself. We
+  need a level a land because being at home costs 4 to 8 times more each land.
+- **Its first dino earns $2 a second and so does ours** (a Shallows Common). Our seven-fish tank earns 23 a second
+  for a new player, 550 in the Kelp Forest, 12,300 in the Open Blue, 27 million in the Underworld.
+- **What it needs to be true:** the bag keeps its best seven (or players learn to hop off early fish); the tank is
+  saved; the training pad is switched off (`Train.On` 0) once the trainer is in, or it undercuts every price: it
+  gives 4 a second and 0.4% of your max for nothing.
+- **To put in Config** (the old plan; the fast one is in the table):
+
+| | Level 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Oxygen a second, seated | 4 | 12 | 30 | 70 | 200 | 800 | 2,000 | 5,000 | 12,000 | 30,000 |
+| Price | free | 6,000 | 100K | 800K | 6M | 50M | 600M | 2B | 15B | 60B |
+
+| Aura | x1.5 | x2 | x2.5 | x3 |
+|---|---|---|---|---|
+| Price | 200K | 15M | 600M | 20B |
+
+- An aura replaces the one before it (x2 is the whole multiplier, not x1.5 times x2).
+- **Not priced here:** selling, the Index's Oxygen for each new fish, earning while away, Robux. Each of them
+  moves the pace and wants its own row when it is built.
+
+### C. The numbers that are guesses again
+Every number in `Config` whose reason was undone by the six changes, and three found on the way.
+
+| Number | Today | Whose | What undid it | What I would do |
+|---|---|---|---|---|
+| `Oxygen.Refill` on a red landing | 1 | A rule, the game-code chat's | A red fish can be hopped off: with the whole meter back each time, red fish chain without end | The user's call (question 9). If it should end: nothing back on a red landing |
+| `Oxygen.StrainTime` | 1 | Mine; the user's number | Nothing: it is the reference's second | Keep |
+| `Jump.StrainLock` | 0.08 | Hugo's | It was 0.3 so a red fish could not be a stepping stone. It is one on purpose now | Keep |
+| `Train.Rate`, `Train.Share` | 4, 0.004 | Mine | Coins exist: the pad gives for nothing what the trainer will sell | Replace with the trainer's levels (B). `Train.On` 0 then |
+| `Aquarium.PerRequired`; `Silver`, `Gold`, `Rainbow`; `SizeWorth` | 0.025; 1.5, 3, 10; 0.8 to 3 | First numbers, mine to tune | Never set against a price | Keep. B stands on them: if one moves, the prices move in proportion |
+| `Tame.Carry`, and "a tame past seven is not kept" | 7 | A rule | A catch earns now: the first seven fish of a dive are the first lands' | The bag keeps its best seven (in the plan) |
+| `Tame.Time` | 2 | Mine | A fish at your bar is tamed as it throws you off | Keep, with "a fish that is yours never drowns you" (in the plan) |
+| `Spawn.MaxTotal` | 1,100 | The game-code chat's | 44 to 1,000 studs wants 1,262 fish | Raise it to 1,300 if the frame time allows, or call the sea 33 to 1,000 |
+| `Jump.GrabRange`, `GrabNear`, `GrabFullSpeed`; `Launch`, `HopBoost` | 150, 60, 120; 1.25, 30 | Hugo's | Tuned to a herd at 0.85 of each fish's speed. With the longer hop, a hop off a 46 fish gains 93 studs on the herd where it gained about 50 | Hugo and the user, by hand |
+| `Oxygen.AngryAt` | 0.3 | Hugo's | The longer hop leans on the fish's speed as you leave: off an angry fish it is 40 to 150 studs shorter | Know it. It is a fair price for leaving late; on a red fish it is one more reason they are hard to chain |
+| The speeds by rarity (`TierSpeed`, my 54 to 90) | Gone | Mine | Every fish has its own speed | Withdrawn, and question 4 with it |
+| `fish.IdleSpeed` (set in `Config.refresh` as the ridden speed x `Herd.SpeedShare`) | 0.7 of its own speed | The game-code chat's | The herd swims by the land's pace now. `RideController` still eases a left fish to this number | Check what reads it |
+| `Oxygen.FreeDrain` | 4 a second | Mine | Found on the way: it does not grow. A player at home in the Underworld floats for a year | A share of max each second (one line of code), about a twenty-fifth |
+| `Config.SizeWorth`'s comment | "Nothing reads SizeWorth yet" | The game-code chat's | `Config.incomeOf` reads it | Fix the comment |
+| "At home": 2.5 seconds on a land's commonest fish | My guess | Mine | Nothing: it still means you hold 65 to 97% of a land's fish | Keep, as the unit the pace and the prices are counted in |
+
+**Still true from the earlier passes:** the Oxygen numbers (`ZoneDrain`, `RarityDrain`, `KeepUp`), the bar (the
+number on a tag), the table of what max Oxygen means, the taming table, and each land's shares by rarity.
+
+### Questions for the user, as they stand
+| | Question | Stands |
+|---|---|---|
+| 1 | What is "the level"? | Open |
+| 2 | The pace: how long to be at home in each land? | Open: it is the plan's question 4. B is worked for two paces. With it: how much of the time should a player sit on the trainer? |
+| 3 | The training spot | Built as a stand-in; the trainer replaces it |
+| 4 | Speed: 54 to 90, or 45 to 100? | Gone: every fish has its own speed |
+| 5 | Holding Space | Bigger than it was: see 9 |
+| 6 | A fish too strong | Answered twice: 2026-11-12 (drains at once), 2026-11-16 (a second, and you can hop off) |
+| 7 | Which traits? | Built by Hugo as archetypes: Tank, Predator, Leaper, Fast, Breaker |
+| 8 | A full bag keeps the best seven? | In the plan (stream 2), not built. B needs it |
+| 9 | **New: should red fish chain without end?** Today a new player who holds Space reaches the tenth land in about four minutes, in 4 dives of 10. If not: a landing on a red fish gives no Oxygen back, and it is one fish at ease, about six holding Space | Open |
+
 ## The short version
+**As it stood on 2026-11-12. Superseded 2026-11-16** by "Today's rules" above: a land is no longer a wall, the first dive is longer, speeds are by fish, and reading the tags saves a catch, not a dive.
+
 1. **The unit is seconds on a fish, and every fish starts with the whole meter.** A new player has 2.5 seconds on a
    Shallows Common and 2 on an Uncommon. You hop or you are thrown off.
 2. **A fish is held or it is not** (the user, 2026-11-12). The number on a fish's tag is the max Oxygen for 2 seconds
    on it. With less you still land, but the meter empties in a quarter of a second and the fish throws you off. So a
    land is a wall now, not a slope: a player at home in one land holds nothing in the next.
+   **(Changed 2026-11-16, the user: a fish too strong gives a second and can be hopped off, so a player can go
+   further than they can hold, and keep nothing from it. The numbers here were worked out for the wall.)**
 3. **A new player's dive is about 15 seconds:** the Shallows, five fish long. It ends at the Coral Reef, where 100
    Oxygen holds no fish (played before the new rule: 15.6 seconds, 1,141 studs). Being at home in a land takes 4 to
    8 times the Oxygen of the land before; the training pad in the hub is what grows it.
@@ -43,6 +335,8 @@ walls and other players. Where a number matters, it should be checked in play.
 
 ## The Oxygen model
 ### How the meter behaves between fish
+**Superseded in part, 2026-11-16:** a landing still refills the whole meter. What ends a dive is no longer a fish too strong: it gives a second and can be hopped off.
+
 The user's picture: almost no time on a fish, 2 to 3 seconds on the first, so you jump from fish to fish. The
 reference draws a green ring that is the time left on this dino. Three ways the meter could go when you land:
 
@@ -78,6 +372,8 @@ reference draws a green ring that is the time left on this dino. Three ways the 
 - Studio starts with Endless air on, so none of this is felt until it is switched off on the N panel.
 
 ### Hold or not: a fish too strong (2026-11-12)
+**Superseded 2026-11-16.** The rule is the reference's now (the user): a red fish gives one second and can be hopped off. In every table below read "too strong" as: red, one second. "The next land is a wall", "it can't be hopped off" and the dives' table no longer hold; the bar, the doors and "at home" do.
+
 The user: "A fish shouldn't refuse landing, the landing should just drain all stamina / oxygen insanely quickly.
 Stamina bar goes red etc." Built by the game-code chat ([Decisions](../Decisions.md)).
 
@@ -223,6 +519,8 @@ All three are this chat's since 2026-11-12, and rows on the N panel. No number w
   there sooner.
 
 ### The first dive, played, and what it means
+**Superseded 2026-11-16:** played on the rules of 2026-11-11. A first dive today is under "Today's rules", A.
+
 The game-code chat rode it with the real rules on 100 Oxygen (2026-11-11): 2.5 seconds on a Common and 2.0 on an
 Uncommon, as the table says; each landing refilled the meter; a hop took 2.4 seconds and carried about 180 studs; the
 dive ended 15.6 seconds in, 1,141 studs down, on a Common 100 studs into the Coral Reef.
@@ -247,6 +545,8 @@ dive ended 15.6 seconds in, 1,141 studs down, on a Common 100 studs into the Cor
   the Shallows. No number is changed for this: it waits for the user's answer on the pace (question 2).
 
 ## What the HUD should show
+**2026-11-16:** the strain lasts a second now, not a quarter. The rest stands.
+
 For the UI chat. The unit a player should read is **seconds on a fish**; max Oxygen is the one big number they train.
 
 | On screen | The number | Unit | In the game, or proposed |
@@ -265,6 +565,8 @@ For the UI chat. The unit a player should read is **seconds on a fish**; max Oxy
   which is one more reason to show them.
 
 ## Speed, for a rider who hops all the time
+**Superseded 2026-11-16,** all of it. Every fish has its own speed (`Config.FishStats`), the hop and the herd are different, and the proposal of 54 to 90 is withdrawn. Today's speeds, hop and pace are under "Today's rules", A.
+
 **By rarity.** A wild fish swims at Herd.SpeedShare 0.85 of its ridden speed. The hop off a fish: the pop at Jump.Launch 1.6 times the ridden speed, the glide at AirShare 0.85 of it, and the pull-in begins 1.7 s after the press.
 
 | Rarity | Ridden | Step up | Wild (herd) | Pop | Glide | Hop carries (studs) | and gains on its own herd | Drain x | View widens (deg) | Turn circle (studs across) | Lands |
@@ -388,6 +690,8 @@ Later, with their own systems: how long a fish takes to tame, and what it earns.
 one. An Epic and up has two, and always smashes. Each Legendary keeps one thing only it does.
 
 ## How often each rarity spawns
+**2026-11-16:** the shares by rarity stand. The counts of fish and "what a rider meets" are from a sea of 24 to 1,000 studs with the old herd; today's are under "Today's rules", A.
+
 No share was changed.
 
 **Wild fish by land and rarity.** The share each rarity really gets (a rarity with no creature in the land is skipped and the others share it out), and the fish of it standing in the land at once. "1 in" is how many crossings of the land it takes to have one of that rarity in it.
@@ -461,6 +765,9 @@ exists).
 Nothing here asks to change a creature's rarity or land.
 
 ## What changed
+- **2026-11-16, fourth pass:** no number changed. The model is written again for the game as it is (a red fish that
+  can be hopped off, the longer hop, a speed for every fish, the herd by the land's pace, the tank), with the
+  trainer's and the auras' prices worked for two paces. It is all under "Today's rules" at the top.
 - **2026-11-12, third pass:** no number changed. The model knows the hold-or-not rule (`Oxygen.StrainTime`) and
   taming (`Config.Tame`). Every table from "Seconds on a fish" to the dives is made again, with two new ones: the
   bar, and the rarest fish a player can tame. `StrainTime`, `Tame.Time` and `Tame.Carry` are this chat's now, and
@@ -481,6 +788,8 @@ Nothing here asks to change a creature's rarity or land.
 - StyLua, selene and `rojo build` pass. Not type-checked (no luau-lsp on this PC).
 
 ### The panel
+**2026-11-16:** the `TierSpeed` rows are gone with the speeds by rarity. The rest are still there.
+
 | Number | Row | Live? |
 |---|---|---|
 | Ridden speed by rarity | `TierSpeed` Common to Secret | Yes, on fish already swimming too |
@@ -503,6 +812,8 @@ By the game-code chat in Studio, 2026-11-11, hands off, **with the first pass's 
 - **Not checked:** a dive with hops, and anything with the new Oxygen numbers.
 
 ### For the game-code chat (its files)
+**2026-11-16, where each stands:** 1 is with the user; 2 is done; 4 and 5 are in the plan (stream 2); 6 no longer applies (a red fish is meant to be hopped off).
+
 Things the model wants that are not numbers of mine. The first five follow from the hold-or-not rule and taming.
 1. **The lock gives red fish.** Taking what it gives ends 36 dives of 40 on a red fish, at home in the Coral Reef.
    Proposed: the lock takes a fish you can hold when one is about as near the aim, so a red fish is locked only
@@ -524,6 +835,8 @@ Proposals, apart from the training spot and taming, which are built as stand-ins
 user says so.
 
 ### Training: built as a stand-in, and where it stops
+**2026-11-16:** still as built. The trainer's levels under "Today's rules", B, are to replace it.
+
 **Built 2026-11-12 by the game-code chat:** stand on the pad in the hub and max Oxygen grows by `Train.Rate` a
 second (4) plus `Train.Share` of your max a second (0.004), for the session only. Both are this chat's to tune, and
 both are rows on the N panel. Not played yet.
@@ -555,6 +868,8 @@ both are rows on the N panel. Not played yet.
 - To jump straight to a land in Studio, Workspace's `TestMaxOxygen` still works.
 
 ### Taming: built, and what the numbers say
+**2026-11-16:** the two rules asked for here are in the plan (stream 2). The numbers are made again under "Today's rules", A: the slots fill 30 seconds in.
+
 **Built 2026-11-12 by the game-code chat** (`Config.Tame`): ride a fish you hold for `Tame.Time` (2 seconds) and it
 is yours, up to `Tame.Carry` (7) a dive. One fish once a dive. A fish too strong is never tamed. The catch is
 counted at the dock, however the dive ended. For the session only, and nothing earns yet.
@@ -606,6 +921,8 @@ counted at the dock, however the dive ended. For the session only, and nothing e
   steeply.
 
 ### What income and prices would need
+**Superseded 2026-11-16:** a catch earns by what it takes to hold (`Config.Aquarium`), and the prices are under "Today's rules", B.
+
 - **Income by how cool a creature is** (decided). Proposed: a creature earns in line with what it costs to hold: the
   land's number times the rarity's.
 - **Prices** follow from the pace: a machine level costs so many minutes of a full base's income from the land it
@@ -614,6 +931,8 @@ counted at the dock, however the dive ended. For the session only, and nothing e
 - Sizes and mutations multiply both the cost and the income (the reference: 0.8, 1.2 and 1.5 times by size).
 
 ## Questions for the user
+**2026-11-16:** how each stands today, and a new one, is at the end of "Today's rules". The list below is as it stood on 2026-11-12.
+
 1. **"The level":** do you mean a level on each fish (it grows as you ride or keep it), a level on the player, or
    simply the land you have reached? No note defines one.
 2. **The pace:** how long should a new player take to be at home in land 2, land 5 and land 10? (My guess: 5

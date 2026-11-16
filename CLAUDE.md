@@ -15,6 +15,10 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   stop (Claude's edits too) and pulls on open and every 5 minutes. Never commit secrets.
 - **The reference:** Ride a Dino, broken down in [docs/reference/ride-a-dino.md](docs/reference/ride-a-dino.md) from the user's
   recording (frames in the gitignored `research/ride-a-dino/`). Copy the loop and the feel, never its look, models or layout.
+- **The studies (2026-11-16):** before design or look work read [docs/Findings.md](docs/Findings.md): one ranked page over four
+  studies (the reference in depth, lighting, buildings, creators and trending games; evidence in `docs/reference/`), with what
+  we had wrong. Its changes to the plan are proposals in [docs/Refinement.md](docs/Refinement.md) until the user says yes.
+  Reddit and YouTube are read through `tools/sources/` ([how](docs/reference/research-tools.md)), one request at a time.
 - Toolchain as in the RPG (`C:\Users\blast\RpgGame`): `rokit.toml`, `rojo serve`, `stylua src`, `selene src`.
 - `src/server` -> ServerScriptService.Server (`Main` loads `Services/`), `src/client` -> StarterPlayerScripts.Client
   (`Main` loads `Controllers/`), `src/shared` -> ReplicatedStorage.Shared. Modules have optional `Init` (no yield) / `Start`.
@@ -120,12 +124,15 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   with `RideController` (the fish turns to where the camera looks; the camera), fish are `FishService` (a herd swimming
   straight down the lane; since 2026-11-13 down its own smooth line through the open water, `src/server/Lib/Stream.luau`,
   built once from the map at server start: [the herd](docs/design/herd.md); check a new map with
-  `python tools/studio/herd_stream_test.py <studio_id> Edit`), and going fish to fish is `JumpController`: Ride a Dino's jump, read from the
+  `python tools/studio/herd_stream_test.py <studio_id> Edit`; since 2026-11-16 a wild fish swims at a share of its
+  land's pace in one of three layers, the sea flows out of sight and fish are made only out of sight:
+  [the herd, rethought](docs/design/herd-revamp.md); measure a ride with `tools/studio/ride_log.luau`), and going fish to fish is `JumpController`: Ride a Dino's jump, read from the
   user's recordings ([reference](docs/reference/ride-a-dino.md)). What is built, measured and still open:
   [riding feel](docs/design/riding-feel.md). Every number is in `src/shared/Config.luau`, read live. Every fish has its own
   speed and passive archetypes, set by hand in one table (`Config.FishStats`; `Config.speedOf` = that number x the variant's, Gold 1.1, Rainbow 1.2;
   no rarity or land formula; since 2026-11-13 every fish also rolls one of six sizes and four colours, 24 of each, with the
-  reference's odds, and each kind has its own size multiplier, `Config.BaseScale`: [sizes](docs/design/sizes.md); size does not change speed; wild fish swim in character (plod, cruise, zoom, dart, and hunters that stoop from above:
+  reference's odds, and each kind has its own size multiplier, `Config.BaseScale`: [sizes](docs/design/sizes.md); size does not change speed; a catch is carried home, put in the player's own tank on the dock and earns coins
+  (`AquariumService`, `Config.Aquarium`, [the aquarium](docs/design/aquarium.md); not saved yet); wild fish swim in character (plod, cruise, zoom, dart, and hunters that stoop from above:
   `Config.Pace`, `Config.FishPace`, [pace](docs/design/pace.md)); the `Archetype` attribute, "" or ids comma-separated; rules, numbers and all 82 rows in
   [archetypes](docs/design/archetypes.md); the passives are built: `RideService` decides, `ArchetypeController` and `Config.ArchetypeFeel` are the feedback, a fish's tag names them, sandbox key F rides a try-out fish; measured in [docs/playtests/2026-11-12-archetypes.md](docs/playtests/2026-11-12-archetypes.md), not played by hand; animation hooks at the end of the note) and now and then a
   variant (`Variant`; look in `Shared/Variants`); the camera stays under the surface once dived (`Camera.Submerge`). In Studio the game

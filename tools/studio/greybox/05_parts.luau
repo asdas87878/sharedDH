@@ -5,7 +5,7 @@ local HttpService = game:GetService("HttpService")
 local root = workspace:FindFirstChild("ClaudeBlockout")
 assert(root and root:GetAttribute("Build") == "greybox 15", "run 00_start.luau first")
 local FOLDERS = { "Surface", "Lane/Seabed", "Lane/Ground", "Lane/Walls", "Lane/Far", "Lane/Props", "Lane/Trim", "Dock", "Dock/Plots", "Lane/Barrier" }
-local NAMES = { "Wall", "Grass", "Glow", "Back", "Shelf", "Barrier", "Seabed", "FlagLine", "Flag", "Brick", "Mouth", "Blade", "Barrel", "Hoop", "Keel", "Rib", "Plank", "Stern", "Bow", "Mast", "Yard", "Nest", "Ring", "Stock", "Sail", "Jaw", "Cranium", "Snout", "Crown", "Socket", "Nostril", "Tooth", "Horn", "Vertebra", "HubFloor", "StartStrip", "StartLine", "StartFlagLine", "StartFlag", "Pad", "TankBase", "TankSand", "TankWater", "Post", "RimSide", "RimEnd", "SignPost", "SignBoard", "TrainerSpot", "TrainerRide", "CollectPad", "SellCounter", "SellRoof", "SellPost", "AurasCounter", "AurasRoof", "AurasPost", "FuseCounter", "FuseRoof", "FusePost", "IndexCounter", "IndexRoof", "IndexPost", "SubCounter", "SubRoof", "SubPost", "EarnersBoard", "DockSpawn", "SeaTile" }
+local NAMES = { "Wall", "Grass", "Glow", "Back", "Shelf", "Barrier", "Seabed", "FlagLine", "Flag", "Brick", "Mouth", "Blade", "Barrel", "Hoop", "Keel", "Rib", "Plank", "Stern", "Bow", "Mast", "Yard", "Nest", "Ring", "Stock", "Sail", "Jaw", "Cranium", "Snout", "Crown", "Socket", "Nostril", "Tooth", "Horn", "Vertebra", "HubFloor", "StartStrip", "StartLine", "DockSpawn", "SeaTile" }
 local MODELS = {  }
 local function folderAt(path)
 	local at = root

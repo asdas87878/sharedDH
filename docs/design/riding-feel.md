@@ -1,8 +1,14 @@
 # Riding feel
 
+> **Studies, 2026-11-16.** A too-strong dino gives about two seconds in the reference (ours gives 1). Its tag is the break-even for that one animal. Players' one complaint about its hop is that they can't choose the target, which our lock-on may beat: try it on a phone. The parent game had slow motion in the leap. [Findings](../Findings.md), rank 2.
+
 How riding, the Oxygen meter and the hop from fish to fish feel, with starting numbers to tune in play. The run around it
 is in [the dive](the-dive.md). The hop follows the reference's, read from the user's recordings
 ([the reference's jump](../reference/ride-a-dino.md)).
+
+**Changed 2026-11-16 (the user):** a fish too strong for you gives you a second, and you may hop off it
+([Decisions](../Decisions.md)); a landing no longer dips, it kicks ([the herd, rethought](herd-revamp.md)); the
+camera's shakes are a system of their own ([camera shakes](camera-shake.md)).
 
 **Oxygen** is the riding resource, and it is what the design notes call stamina ([Decisions](../Decisions.md),
 2026-11-09 and 2026-11-11). The meter is Oxygen, and the stat you train is your max Oxygen. A creature's tag shows the
@@ -194,6 +200,36 @@ moment you land and the moment the landing animation starts."
   fish to a rider in the first two lands is 38 studs away at the median, inside 68 in 95% of looks, and never
   past 84 (further down: 42, 82, 101, where the fish are faster and reach 112 to 150). The fish you left is
   always in reach as you leave.
+
+### More air, more push (the user, 2026-11-16)
+The user: "we need a bit more air time and be pushed further by the hop off the fish". Hugo's one curve keeps its
+shape; six numbers moved.
+
+| Number | Was | Now |
+|---|---|---|
+| `Jump.FloatTime` (the glide) | 1.5 | 1.8 |
+| `Jump.Window` | 3.2 | 3.5 |
+| `Jump.StopTime` | 3.2 | 3.5 |
+| `Jump.SpeedHalf` (the same share of the hop as before) | 2.1 | 2.3 |
+| `Jump.Launch` | 1.15 | 1.25 |
+| `Jump.HopBoost` | 24 | 30 |
+
+Worked out from the game's own formulas (`Config.hopFrom`, `hopKept`, `airOf`):
+
+| The fish you leave | Leaves at | The pull-in starts by itself | By then you have gone |
+|---|---|---|---|
+| 40 studs a second | 80 (70) | 1.88 s (1.58) | 137 studs (103) |
+| 46 | 88 (77) | 1.94 s (1.64) | 154 (116) |
+| 75 | 124 (110) | 2.2 s (1.9) | 243 (190) |
+| 138 | 202 (183) | 2.7 s (2.4) | 473 (386) |
+
+- **Played in the user's Studio by script:** two hops off Shallows fish landed after 2.86 and 2.74 seconds in the
+  air, 266 and 241 studs along (2.46 to 2.55 seconds and 235 to 239 studs before). No errors.
+- **What it changes besides the feel:** a hop covers about a third more ground before the pull-in, so the Shallows
+  are four hops long, not five, and a new player's first dive is a little shorter in seconds. The hook's reach goes
+  by the hop's speed, so it is a little longer too. See [the loop review](loop-review.md).
+- **Not checked:** by eye or by hand; phones; `tools/movement/hop_curves.py` still draws older numbers (it did
+  before this too).
 
 ### Faster, in slow-mo: more speed, the fall-off later, no balls (Hugo, 2026-11-14)
 
@@ -999,3 +1035,72 @@ Measured before: in the band in 115 of 180 frames of a hop, and pinned at exactl
   yourself, and a camera under it sees you only as a dark shape behind it. So the camera stays `AirMargin` (1.5)
   above the water until you go under again. Either way it never rests in the band; it passes through it once, in
   about a quarter of a second, each time you dive or surface (`SurfaceTime`).
+
+## Looking at the side of your fish (2026-11-16)
+The user, after playing: on a fish the camera's hold on the turn is too strong. You should be able to turn the camera
+and see the side of your fish. It still turns you that way, but holding the other direction key should let you keep
+the view. "The end result is a more simple system of movement."
+
+**What was wrong.** The way you go chased the camera at up to 220 degrees a second, and A and D turned the camera
+along with you. So a look to the side lasted under half a second, and no key could hold it.
+
+**The rule now: two pulls that add.**
+- The look pulls the way you go round to it.
+- A key turns it.
+- **A key held against the look is spent on the look first.** Look left and hold D: the two cancel, you hold your
+  line, and the view stays where you put it, on the fish's side. Let go and the fish comes round to your look.
+- Whatever is left of the key turns you, and the view by as much, as before.
+- Holding a view this way counts as looking round, so the camera does not drift back behind you meanwhile.
+
+**The numbers** (`Config.Ride`): on a fish the look pulls at `LookRate` 135 degrees a second at most, the same as one
+key at full press, with `LookEase` 5. The hop and the float keep `SteerRate` 220 and `SteerEase` 12 (Hugo's, 2026-11-12);
+the same rule about an opposing key runs there too. Both new numbers are in the sandbox's panel.
+
+**Worked through by sums, not played:**
+
+| What you do | What happens |
+|---|---|
+| Look 90 degrees left, no key | the fish is 67 degrees round after half a second and there after about a second (it was there in 0.4 s) |
+| Look 90 left and hold D for 3 seconds | you drift 9 degrees, the view stays 81 degrees off the fish |
+| Look 20 left and hold D | you turn right with the view, which stays 18 degrees off the fish |
+| No look, D for a second | 126 degrees, as before |
+
+**To try:** is the look's pull on a fish now too soft for aiming at the next fish? `LookEase` is the knob (12 is the
+old tightness). Hugo tuned the old numbers: he should try this too.
+
+## The plain way (2026-11-16, the same afternoon)
+The user, after playing the two pulls above: "this is too intentionally coded to be like this, in ride a dino I think
+the movement is more simple and this feature comes from a byproduct of how it was coded, not intentional. Which makes
+ours feel a bit weird."
+
+**The guess at how the reference is coded:** as any Roblox character moves. The keys mean a direction as the camera
+sees it, and the mount turns to face that direction. Nothing is written about the camera at all. Roblox's own free
+camera does the rest.
+
+**What supports it.** The user's side-on recording (2026-11-10, 30 seconds): the camera sits square to the herd for
+the whole run, through several hops, and the rider goes on in a straight line. A game whose camera dragged the mount
+round could not be filmed that way. A game where a held key means "the camera's right" can: the key points down the
+lane.
+
+**Built (`Ride.CameraSteer` 2, now the default):**
+- **No key:** you go forward, where the camera looks.
+- **A or D:** you go to the camera's left or right (`Ride.KeyAngle` 90 degrees off its look).
+- You turn to face that, no faster than a fish turns (`LookRate`, `LookEase` on a fish; `SteerRate`, `SteerEase` in
+  the hop and floating).
+- The keys never turn the camera. The camera never pulls. No rule about cancelling anything.
+
+**What falls out of it, by sums (not played):**
+
+| What you do | What happens |
+|---|---|
+| Turn the view 90 degrees left, no key | you are 67 degrees round after half a second, and there after about a second |
+| Turn the view 90 left and hold D | you hold your line exactly, with your own side in view |
+| View behind, tap D for a quarter second | you veer 33 degrees right, then come back to the look within a second |
+| View behind, hold D for a second, let go | you turn 88 degrees right, then come back to the look |
+
+**What changes from before:** A and D no longer turn you like a wheel. They veer you while held, and you come back
+to where the camera looks when you let go. To go round a bend you turn the camera, or hold a key.
+
+**Not known:** whether the reference's keys point straight to the camera's side (90) or forward and to the side
+(45). The side-on recording says 90. `KeyAngle` is in the sandbox panel. The two older ways are still there:
+`CameraSteer` 1 is the two pulls, 0 is keys only.

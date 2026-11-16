@@ -11,8 +11,8 @@
 --   Aim         in the hop: the aim, and the window as a ring
 --   Slots       what you carry, with each creature's picture
 --   Banners     a miss, the end of a dive, a catch, a new land
--- A fish too strong for you (Oxygen.StrainTime: a landing is never refused, the whole meter empties in a quarter of a
--- second and the fish throws you off) is told four ways: the red plate on its tag before the hop; the ring red, bigger
+-- A fish too strong for you (Oxygen.StrainTime: a landing is never refused, the whole meter empties in a second and
+-- the fish throws you off, unless you hop on first) is told four ways: the red plate on its tag before the hop; the ring red, bigger
 -- and shaking from the landing, with "Too strong!" and what the fish needs under it; the same words under the empty
 -- ring while you drown; and "TOO STRONG!" as the last words in place of "OUT OF AIR!".
 -- Under them, on a screen of their own that covers the whole display: the speed lines, the edges closing in as you

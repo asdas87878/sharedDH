@@ -6,6 +6,9 @@ line, be spaced out in a balanced way, and vary a little in height, most of all 
 be seen. The code: `src/server/Lib/Stream.luau` (the herd's water) and `src/server/Services/FishService.luau`.
 The numbers: `Config.Herd` and `Config.Spawn`.
 
+**Changed 2026-11-16:** how fish are stocked and how fast they swim: [the herd, rethought](herd-revamp.md),
+"Built: stage 1". The stream, the band and the lines below are as they were.
+
 ## What the reference does
 Read from the user's recordings, most of all the flight over the first two lands (frames a quarter second apart,
 from above).

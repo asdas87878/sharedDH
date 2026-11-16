@@ -2,9 +2,13 @@
 -- The training spot: stand on it in the hub and your max Oxygen grows (Config.Train). It is the smallest thing that
 -- lets the progression be played: more max Oxygen is more seconds on a fish, so deeper lands (docs/design/
 -- progression.md). The gain is RideService's to give (RideService.train: only on the dock) and lasts the session; there
--- are no saves yet. The spot is the map's part named TrainSpot under the hub when it has one; until the map has it, a
--- stand-in pad is made once, beside the dock's spawn. The player's "Training" attribute is true while they are gaining,
--- for the HUD.
+-- are no saves yet.
+-- Where (since 2026-11-16, with the hub's models): on your own plot, at its toy ride. Every plot has a `TrainerSpot`
+-- (the pad) with a `TrainerRide` on it (the seahorse on a spring); you train standing on your own plot's pad, and the
+-- ride rocks while you do (TrainerController, on each player's machine). A player with no plot (more players than
+-- plots) may use any plot's. Only a map with no such plots gets the old stand-in: the map's part named TrainSpot
+-- under the hub, or a pad made once beside the dock's spawn. The player's "Training" attribute is true while they
+-- are gaining, for the HUD and the ride.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -53,6 +57,47 @@ local function standIn(dock: CFrame): BasePart
 	return pad
 end
 
+-- A sign over a plot's ride, as the stand-in pad had
+local function label(spot: BasePart)
+	if spot:FindFirstChild("Sign") then
+		return
+	end
+	local sign = Instance.new("BillboardGui")
+	sign.Name = "Sign"
+	sign.Size = UDim2.fromOffset(200, 54)
+	sign.StudsOffsetWorldSpace = Vector3.new(0, 13, 0)
+	sign.MaxDistance = 160
+	sign.AlwaysOnTop = false
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.fromScale(1, 1)
+	text.BackgroundTransparency = 1
+	text.Font = Enum.Font.FredokaOne
+	text.TextSize = 22
+	text.TextColor3 = Color3.new(1, 1, 1)
+	text.TextStrokeTransparency = 0.2
+	text.Text = "TRAIN OXYGEN\nstand here"
+	text.Parent = sign
+	sign.Parent = spot
+end
+
+-- The plots' own training pads, by the plot's name (none on a map without them)
+local function plotSpots(): { [string]: BasePart }
+	local spots: { [string]: BasePart } = {}
+	local blockout = workspace:FindFirstChild("ClaudeBlockout")
+	local hub = blockout and blockout:FindFirstChild("Dock")
+	local plots = hub and hub:FindFirstChild("Plots")
+	if plots then
+		for _, plot in plots:GetChildren() do
+			local spot = plot:FindFirstChild("TrainerSpot")
+			if spot and spot:IsA("BasePart") then
+				spots[plot.Name] = spot
+				label(spot)
+			end
+		end
+	end
+	return spots
+end
+
 local function findSpot(): BasePart?
 	local blockout = workspace:FindFirstChild("ClaudeBlockout")
 	local hub = blockout and blockout:FindFirstChild("Dock")
@@ -77,10 +122,14 @@ function TrainService.Start()
 	if Config.Train.On <= 0 then
 		return
 	end
-	local spot = findSpot()
-	if not spot then
-		warn("[TrainService] no training spot: the map has no TrainSpot and no dock spawn to put one by")
-		return
+	local spots = plotSpots()
+	local spot: BasePart? = nil
+	if next(spots) == nil then
+		spot = findSpot()
+		if not spot then
+			warn("[TrainService] no training spot: the map has no plots, no TrainSpot and no dock spawn to put one by")
+			return
+		end
 	end
 	local training: { [Player]: boolean } = {}
 	Players.PlayerRemoving:Connect(function(player)
@@ -89,14 +138,35 @@ function TrainService.Start()
 	while true do
 		local dt = task.wait(EVERY)
 		local t = Config.Train
-		local middle = spot.Position
 		for _, player in Players:GetPlayers() do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
 			local on = false
 			if root and root:IsA("BasePart") then
+				-- where this player trains: their own plot's pad; with no plot, the nearest plot's; on a map with
+				-- no plots, the one stand-in
+				local here: BasePart? = spot
+				local reach = t.Radius
+				if not here then
+					local own = player:GetAttribute("Plot")
+					here = if type(own) == "string" then spots[own] else nil
+					if not here then
+						local best = math.huge
+						for _, other in spots do
+							local far = (other.Position - root.Position).Magnitude
+							if far < best then
+								best, here = far, other
+							end
+						end
+					end
+					if here then
+						-- (the pad is square: a little past its half width counts)
+						reach = math.max(here.Size.X, here.Size.Z) / 2 + 2
+					end
+				end
+				local middle = if here then here.Position else root.Position + Vector3.new(0, 1000, 0)
 				local away = (root.Position - middle) * Vector3.new(1, 0, 1)
-				if away.Magnitude <= t.Radius and math.abs(root.Position.Y - middle.Y) < 12 then
+				if away.Magnitude <= reach and math.abs(root.Position.Y - middle.Y) < 12 then
 					local max = player:GetAttribute("MaxOxygen")
 					local share = if type(max) == "number" then max * t.Share else 0
 					on = RideService.train(player, (t.Rate + share) * dt)

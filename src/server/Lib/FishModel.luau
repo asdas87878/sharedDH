@@ -99,6 +99,40 @@ local function finish(model: Model, root: BasePart, fish: Config.FishType, top: 
 	turn.CFrame = root.CFrame.Rotation
 	turn.Parent = root
 
+	-- its wake (Config.Wake): a streak from the tail, facing whoever looks, as long as the fish is fast
+	local wake = Config.Wake
+	if wake.On ~= 0 then
+		local half = math.max(fish.Size.Y * wake.Height / 2, 0.3)
+		local high = Instance.new("Attachment")
+		high.Name = "WakeHigh"
+		high.Position = Vector3.new(0, half, fish.Size.Z * 0.4)
+		high.Parent = root
+		local low = Instance.new("Attachment")
+		low.Name = "WakeLow"
+		low.Position = Vector3.new(0, -half, fish.Size.Z * 0.4)
+		low.Parent = root
+		local trail = Instance.new("Trail")
+		trail.Name = "Wake"
+		trail.Attachment0 = high
+		trail.Attachment1 = low
+		trail.FaceCamera = true
+		trail.Lifetime = wake.Life
+		trail.MinLength = 0.3
+		trail.LightEmission = 0.7
+		trail.LightInfluence = 0
+		trail.Brightness = 1.5
+		trail.Color = ColorSequence.new(Color3.new(1, 1, 1))
+		local see = math.clamp(wake.See, 0, 1)
+		trail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.06, 1 - see),
+			NumberSequenceKeypoint.new(0.5, 1 - see * 0.4),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		trail.WidthScale = NumberSequence.new(1, 0.2)
+		trail.Parent = root
+	end
+
 	model.Name = fish.Name
 	model:SetAttribute("FishType", fish.Id)
 	model:SetAttribute("Tier", fish.Tier)

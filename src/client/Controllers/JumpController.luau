@@ -40,6 +40,7 @@ local Course = require(script.Parent.Parent.Lib.Course)
 local Feel = require(script.Parent.Parent.Lib.Feel)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Lock = require(script.Parent.Parent.Lib.Lock)
+local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
 local WallRide = require(script.Parent.Parent.Lib.WallRide)
 local RideController = require(script.Parent.RideController)
@@ -408,6 +409,7 @@ local function request(): boolean
 		State.Leapt:Fire()
 	end
 	Net.Action:FireServer("Jump")
+	Shake.play("Hop", if leap then 1.6 else 1)
 	State.setMode("Jumping")
 	return true
 end
@@ -579,7 +581,14 @@ local function hop(dt: number)
 				State.KickVelocity = j.LandKick * 2 * math.pi * j.LandKickRate
 				local pull = reelOffset.Magnitude / math.max(reelTime, 0.01)
 				local by = 1 + j.LandShakeBySpeed * (pull - j.LandShakeAt) / math.max(j.LandShakeAt, 1)
-				RideController.shake(j.LandShake * math.clamp(by, 0.5, 1.6))
+				-- (its own shake, Config.Shake: a harder one after a faster pull-in, the heavy one on a giant. Jump.LandShake
+				-- still sets how hard, against the 0.9 it was made at; 0 is none)
+				local landedOn = locked
+				local kind = landedOn and Config.FishById[landedOn:GetAttribute("FishType") :: string]
+				local heavy = landedOn ~= nil
+					and kind ~= nil
+					and Config.bodyOf(landedOn, kind).Z >= Config.Shake.GrandLength
+				Shake.play(if heavy then "LandBig" else "Land", j.LandShake / 0.9 * math.clamp(by, 0.5, 1.6))
 				-- and bubbles thrown out round the fish, with a splash
 				local f = Config.Feel
 				Feel.trail(root, false)

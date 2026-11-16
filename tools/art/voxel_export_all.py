@@ -18,6 +18,8 @@ RANK = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "SECRET"]
 rows, failed, only = [], [], sys.argv[1:]
 for model in sorted(glob.glob(R + "art/creatures/*/voxel.py")):
     folder = os.path.basename(os.path.dirname(model))
+    if folder.startswith("Trial"):  # a trial model beside the game's (docs/style/07-shape-variety.md): never exported
+        continue
     out = R + f"art/creatures/{folder}/game"
     log = "voxel kit: export"
     if not only or folder in only:

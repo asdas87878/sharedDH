@@ -1,5 +1,7 @@
 # The dive
 
+> **Studies, 2026-11-16.** The reference's main run can't fail hard and has no danger in it; ours has walls, crashes and a drowning. Worth choosing on purpose. Its zones are open to anyone who hops. Riding your own is taught as the last step of its lesson. [Findings](../Findings.md), rank 1 point 3 and "What I am not sure of".
+
 The run: riding, jumping, taming, going down. This is the part that has to feel great. How riding, Oxygen, the dash and the
 grapple feel, with numbers: [riding feel](riding-feel.md). Oxygen is the riding resource (it replaces stamina here).
 

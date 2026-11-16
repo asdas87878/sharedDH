@@ -1,42 +1,40 @@
-"""The balance model for Ride a Fish: what today's numbers mean for a dive, land by land.
+"""The balance model for Ride a Fish: what today's numbers mean for a dive, land by land, and what things should cost.
 
 usage:  python tools/balance/model.py                  the tables (plain text)
         python tools/balance/model.py --md             the same tables as markdown, for docs/design/progression.md
-        python tools/balance/model.py --sim 8          also play 8 dives per rider through the herd (takes a minute or so)
-        python tools/balance/model.py --sim 40 --dives only the dives' table ("How far a max Oxygen gets")
-        python tools/balance/model.py --set RarityDrain.Legendary=15 --set Tiers.Rare=56 --set ZoneDrain.3=640 --set ZoneMix.1.Rare=5
+        python tools/balance/model.py --sim 40         also play 40 dives per rider through the herd (some minutes)
+        python tools/balance/model.py --sim 40 --dives only the dives' tables
+        python tools/balance/model.py --prices         only the trainer, aura and tank tables
+        python tools/balance/model.py --set Oxygen.StrainTime=0.25 --set ZoneDrain.3=640 --set ZoneMix.1.Rare=5
                                                        try numbers without editing Config (any of the above with it)
-        python tools/balance/model.py --max 1280       the "your Oxygen" tables for a player with this max, not the start's
+        python tools/balance/model.py --max 3000       the "seconds on a fish" table for a player with this max
 
-Nothing is copied here: every number is read from src/shared/Config.luau (the rarities' speeds, Oxygen, ZoneDrain,
-RarityDrain, ZoneMix, ReachWeight, Spawn, Herd, Jump, Props, Crash, Camera, Ride and the hand-written fish table), the
-creatures from src/shared/Creatures/*.json (rarity, home land), and the lands' lengths from the map's path,
-art/map/greybox/path.json (measured along the winding centreline, as the game does: the map's own "s" runs about a
-quarter short of it).
+Nothing is copied here: every number is read from src/shared/Config.luau, the creatures from
+src/shared/Creatures/*.json (name, rarity, home land, size), and the lands' lengths from the map's path,
+art/map/greybox/path.json (measured along the winding centreline, as the game does).
 
-The unit is SECONDS ON A FISH (the user, 2026-11-11): what your max Oxygen buys on a fish of this land and rarity,
-max / (ZoneDrain[land] x RarityDrain[rarity]). A landing on another fish gives back Oxygen.Refill of max; at 1 every
-fish starts with the whole meter, as the reference's ring does.
+THE RULES IT KNOWS (rewritten 2026-11-16 for the game as it is that day)
+  Oxygen      seconds on a fish = max Oxygen / (ZoneDrain[land] x RarityDrain[rarity]); a Tank drains 0.65 of that.
+              A landing on another fish gives back Oxygen.Refill of max (1: the whole meter), on a red fish too.
+  The bar     a fish needs Config.required (KeepUp seconds on it, by the land you land on it in). With less it is
+              too strong (red): the whole meter empties in Oxygen.StrainTime (1 s since 2026-11-16) and it can be
+              hopped off (Jump.StrainLock). It is never tamed.
+  Taming      Tame.Time seconds on a fish you hold makes it yours, up to Tame.Carry a dive.
+  The tank    the best Aquarium.Earning fish earn coins: required(home land, rarity) x PerRequired x size x colour.
+  Speed       every fish has its own ridden speed (Config.FishStats). A wild fish swims at a share of its LAND's
+              pace (Config.LandPace x Herd.SpeedShare; plodders Pace.Plod, the fast ones Pace.Zoom; hunters at
+              Pace.Hunt of their own speed, high over the herd).
+  The hop     leaves at the fish's speed x Jump.Launch + HopBoost and runs down one curve to a stop (Config.hopKept);
+              the locked fish pulls you in by itself from the glide's end (LaunchTime + FloatTime + the air a fast
+              fish adds), within a reach that shrinks with your speed (GrabNear to GrabRange).
+  The herd    Spawn.PerThousand fish to 1,000 studs, fewer where the water is narrow; no fish made or taken away
+              within Spawn.SightClear of the rider; three layers by height (Config.Layer).
 
-HOLD OR NOT (the user, 2026-11-12): a fish that needs more than your max Oxygen (Config.required, the number on its
-tag: Oxygen.KeepUp seconds on it, by the land you land on it in) is too strong for you. The landing is never refused:
-the whole meter empties in Oxygen.StrainTime seconds and you are thrown off. So every fish is either held (KeepUp
-seconds or more) or not, and a land is a bar, not a slope. A fish you hold makes itself yours after Tame.Time seconds
-on it (Config.Tame), up to Tame.Carry a dive.
-
-What it works out
-  per land     its length and the seconds to cross it, the seconds a new player has on each rarity there, the max
-               Oxygen the land stands for, how many wild fish it holds by rarity, which creatures turn up
-  per rarity   speed, the herd's pace, the hop's speeds, the drain, where it appears
-  hopping      the pace of a rider who hops every few seconds (most of a dive is hop), and what it closes on
-  the bar      the max Oxygen each fish needs, the share of a land's fish a player can hold, and the rarest fish a
-               player can tame in each land
-  --sim        a rider played through the game's own stocking rules (FishService: slices, top-ups, parking beyond
-               Spawn.StreamRadius, the cull), to count the fish of each rarity that really come within reach, how
-               far a given max Oxygen gets, and what a dive brings home
-
-What the sim leaves out: steering, walls, props and big assets, the height of fish, other players, lag. It is a model,
-not a measurement: where it matters, have it checked in play.
+What the dives leave out: walls, props, the lock's cone before the last chance, predators eating, other players and
+lag. The rider turns each hop toward a fish (up to STEER degrees off the lane) and otherwise rides straight, easing
+back toward the middle of the herd. A hop that finds no other fish is pulled back onto the fish it left when that is
+still in reach (the lock's last chance), with no Oxygen back. They never press late unless told to (`late`: the
+chance of being too slow off a red fish). A model, not a measurement.
 """
 import argparse
 import glob
@@ -52,20 +50,21 @@ CONFIG = os.path.join(ROOT, "src", "shared", "Config.luau")
 CREATURES = os.path.join(ROOT, "src", "shared", "Creatures")
 PATH = os.path.join(ROOT, "art", "map", "greybox", "path.json")
 
-# Guesses, not decisions (change with --home, --scrape, --ride, --plan). The rider's own numbers (RIDE to LOCK_AHEAD)
-# were set after the first played dive of 2026-11-11: 1.2 s on each fish, hops of 2.4 s and 180 studs, the dive over on
-# the first Coral Reef fish, 15.6 s in. The first model's rider hopped 0.3 s after every landing in the Reef, which no
-# player at ease does, and its hop was 20 studs short.
+# Guesses, not decisions (change with --home, --ride, --sit, --plan).
 HOME = 2.5  # seconds on a land's commonest fish that count as being at home there (a new player's on a Shallows Common)
-SCRAPE = 1.0  # seconds on it that just get you through, hopping all the time
-RIDE = 1.8  # seconds a rider at ease spends on each fish before hopping (0.7 s left on a fish that gives 2.5)
-REACT = 0.7  # a rider at ease can't hop sooner than this after landing: on a fish that gives less they are thrown off
+RIDE = 1.8  # seconds a rider at ease spends on a fish they hold before hopping
+REACT = 0.7  # a rider at ease can't hop sooner than this after landing
 LEAVE = 0.7  # and hops when this many seconds are left on the fish, if that comes first
-TAGS = 1.0  # a rider who reads the tags doesn't choose a fish that gives less than this (only with Oxygen.StrainTime 0: with it on they choose the fish they can hold)
-MIN_SIT = 0.4  # with Space held: doesn't choose a fish that gives less than this (the hop's cooldown is 0.3)
-LOCK_AHEAD = 60  # the lock gives the fish nearest the view's aim, about this far ahead (played 2026-11-11: hops of 180 studs)
-# minutes of play at which a player should first be at home in each land; only used for the training table
-PLAN_MINUTES = [0, 5, 15, 30, 55, 90, 150, 240, 360, 540]
+ANGRY_KEEP = 0.65  # the share of its speed an angry fish keeps at its worst: about the middle of Shared/AngryStyles
+STEER = 45  # degrees either side of straight down the lane that a rider turns a hop toward a fish
+DRIFT = 12  # studs a second a rider at ease lets their fish come back toward the middle of the herd's band
+SIT_SHARE = 0.35  # the share of play time spent sitting on the trainer (the prices' biggest guess)
+TANK_LUCK = 1.3  # a tank's sizes and colours, times: seven fish picked from a few dozen catches earn about this much more
+PLAN_MINUTES = [0, 5, 15, 30, 55, 90, 150, 240, 360, 540]  # minutes of play to be at home in each land (the old plan)
+AURAS = [(4, 1.5), (6, 2), (8, 2.5), (10, 3)]  # the aura a player on the plan has from this land on, and what it multiplies (the reference's four)
+TRAINER_SHARE = 1.15  # a trainer level costs this many times what the tank earns over the stretch before the one it is for (set so the play-through lands on the plan)
+AURA_SHARE = 0.25  # an aura costs this share of it, and the level bought with it that much less
+TANK_FILL = 120  # seconds of play before a new player's tank has its seven fish
 
 
 # ---------------------------------------------------------------- reading Config.luau
@@ -91,7 +90,7 @@ def block(src, opener, must=True):
 
 def number(text):
     text = text.strip()
-    if not re.fullmatch(r"[-\d.\s/*+()]+", text):
+    if not text or not re.fullmatch(r"[-\d.\s/*+()]+", text):
         return None
     try:
         return float(eval(text, {"__builtins__": {}}))  # only digits and arithmetic get this far
@@ -111,56 +110,62 @@ def numbers_in(body):
     return out
 
 
+def pairs_in(body):
+    """`Key = 1.5` pairs anywhere in a flat table, on one line or many."""
+    out = {}
+    for key, value in re.findall(r"(\w+)\s*=\s*([-\d.\s/*]+?)\s*(?:,|$)", body, re.M):
+        if number(value) is not None:
+            out[key] = number(value)
+    return out
+
+
+def list_in(body):
+    return [number(v) for v in body.split(",") if v.strip() and number(v) is not None]
+
+
 def read_config():
     src = strip_comments(open(CONFIG, encoding="utf-8").read())
     cfg = {}
     cfg["TierOrder"] = re.findall(r'"(\w+)"', block(src, r"Config\.TierOrder\s*="))
-    cfg["Tiers"] = {}
-    for name, ridden in re.findall(r"(\w+)\s*=\s*\{\s*Idle\s*=\s*[\d.]+,\s*Ridden\s*=\s*([\d.]+)", block(src, r"Config\.Tiers\s*=")):
-        cfg["Tiers"][name] = float(ridden)
-    for group in ("Oxygen", "Spawn", "Herd", "Jump", "Props", "Crash", "Camera", "Ride"):
+    for group in ("Oxygen", "Spawn", "Herd", "Jump", "Ride", "Pace", "Speed", "Angry", "Grand"):
         cfg[group] = numbers_in(block(src, rf"Config\.{group}\s*="))
-    cfg["ZoneDrain"] = [number(v) for v in block(src, r"Config\.ZoneDrain\s*=").split(",") if v.strip()]
-    # how many times a Common's Oxygen each rarity takes (until 2026-11-11 a straight line, Oxygen.TierDrain a step)
-    rarity = block(src, r"Config\.RarityDrain\s*=", must=False)
-    if rarity is not None:
-        cfg["RarityDrain"] = numbers_in(rarity)
-    else:
-        step = cfg["Oxygen"].get("TierDrain", 0)
-        cfg["RarityDrain"] = {t: 1 + step * i for i, t in enumerate(cfg["TierOrder"])}
+    for group in ("Train", "Tame", "Aquarium"):
+        body = block(src, rf"Config\.{group}\s*=", must=False)
+        cfg[group] = numbers_in(body) if body is not None else {}
+    for group in ("RarityDrain", "SizeWorth", "SizeChance", "SizeLarge", "SizeSmall", "Variant", "BaseScale"):
+        cfg[group] = pairs_in(block(src, rf"Config\.{group}\s*="))
+    cfg["ZoneDrain"] = list_in(block(src, r"Config\.ZoneDrain\s*="))
+    cfg["LandPace"] = list_in(block(src, r"Config\.LandPace\s*="))
+    cfg["ReachWeight"] = list_in(block(src, r"Config\.ReachWeight\s*="))
     cfg["ZoneMix"] = []
     for row in re.findall(r"\{([^{}]*)\}", block(src, r"Config\.ZoneMix\s*=")):
         cfg["ZoneMix"].append({k: float(v) for k, v in re.findall(r"(\w+)\s*=\s*([\d.]+)", row)})
-    cfg["ReachWeight"] = [number(v) for v in block(src, r"Config\.ReachWeight\s*=").split(",") if v.strip()]
-    fish = {}
+    cfg["Layer"] = {k: (float(a), float(b)) for k, a, b in
+                    re.findall(r"(\w+)\s*=\s*\{\s*([\d.]+)\s*,\s*([\d.]+)\s*\}", block(src, r"Config\.Layer\s*="))}
+    arch = block(src, r"Config\.Archetype\s*=")
+    cfg["Arch"] = {name: numbers_in(block(arch, rf"\b{name}\s*=")) for name in ("Fast", "Predator", "Breaker", "Tank", "Leaper")}
+    stats = {fid: (float(speed), [a for a in kinds.split(",") if a]) for fid, speed, kinds in
+             re.findall(r'(\w+)\s*=\s*\{\s*Speed\s*=\s*([\d.]+)\s*,\s*Archetype\s*=\s*"([^"]*)"', block(src, r"Config\.FishStats\s*="))}
+    pace = dict(re.findall(r'(\w+)\s*=\s*"(\w+)"', block(src, r"Config\.FishPace\s*=")))
+    # the hand table only matters for a fish's Reach now; the creature files bring name, rarity, land and size
+    reach = {}
     for row in re.findall(r"\{\s*Id\s*=[^\n]*\}", block(src, r"local FISH[^=]*=")):
-        f = {"Id": re.search(r'Id\s*=\s*"(\w+)"', row).group(1), "Name": re.search(r'Name\s*=\s*"([^"]+)"', row).group(1),
-             "Tier": re.search(r'Tier\s*=\s*"(\w+)"', row).group(1), "Home": int(re.search(r"Home\s*=\s*(\d+)", row).group(1)),
-             "Reach": 2, "Modelled": False, "RiddenSpeed": None}
         m = re.search(r"\bReach\s*=\s*(\d+)", row)
-        if m:
-            f["Reach"] = int(m.group(1))
-        m = re.search(r"RiddenSpeed\s*=\s*([\d.]+)", row)
-        if m:
-            f["RiddenSpeed"] = float(m.group(1))
-        fish[f["Id"]] = f
-    # the modelled creatures bring their own name, rarity and land, as Config.luau's own loop does
+        reach[re.search(r'Id\s*=\s*"(\w+)"', row).group(1)] = int(m.group(1)) if m else 2
+    kept_out = set(re.findall(r"(\w+)\s*=\s*true", block(src, r"local NO_SPAWN[^=]*=", must=False) or ""))
+    fish = []
     for path in sorted(glob.glob(os.path.join(CREATURES, "*.json"))):
         j = json.load(open(path, encoding="utf-8"))
         fid = os.path.splitext(os.path.basename(path))[0]
-        # (a creature that isn't in Config's own table takes Reach 2, or 1 if it is a Common: Config's rule)
-        f = fish.setdefault(fid, {"Id": fid, "Reach": 1 if j["Tier"] == "Common" else 2, "RiddenSpeed": None})
-        f.update(Name=j["Name"], Tier=j["Tier"], Home=int(j["Zone"]), Modelled=True)
-    # a creature Config keeps out of the herd (NO_SPAWN: Reach -1, so no land takes it)
-    kept_out = block(src, r"local NO_SPAWN[^=]*=", must=False)
-    for fid in re.findall(r"(\w+)\s*=\s*true", kept_out or ""):
-        if fid in fish:
-            fish[fid]["Reach"] = -1
-    cfg["Fish"] = list(fish.values())
-    train = block(src, r"Config\.Train\s*=", must=False)
-    cfg["Train"] = numbers_in(train) if train is not None else {}
-    tame = block(src, r"Config\.Tame\s*=", must=False)
-    cfg["Tame"] = numbers_in(tame) if tame is not None else {}
+        if j.get("Tier") not in cfg["TierOrder"]:
+            continue
+        speed, kinds = stats.get(fid, (cfg["Speed"].get("Base", 45), []))
+        scale = cfg["BaseScale"].get(fid, 1)
+        fish.append({"Id": fid, "Name": j["Name"], "Tier": j["Tier"], "Home": int(j["Zone"]),
+                     "Reach": -1 if fid in kept_out else reach.get(fid, 1 if j["Tier"] == "Common" else 2),
+                     "Speed": speed, "Arch": kinds, "Pace": pace.get(fid, "Cruise"), "Length": j["Size"][2] * scale,
+                     "Listed": fid in stats})
+    cfg["Fish"] = fish
     return cfg
 
 
@@ -168,16 +173,14 @@ def apply_sets(cfg, sets):
     for item in sets:
         path, _, value = item.partition("=")
         keys, v = path.split("."), float(value)
-        if keys[0] == "Tiers" and len(keys) == 2:
-            cfg["Tiers"][keys[1]] = v
-        elif keys[0] == "ZoneDrain" and len(keys) == 2:
-            cfg["ZoneDrain"][int(keys[1]) - 1] = v
+        if keys[0] in ("ZoneDrain", "LandPace", "ReachWeight") and len(keys) == 2:
+            cfg[keys[0]][int(keys[1]) - 1] = v
         elif keys[0] == "ZoneMix" and len(keys) == 3:
             cfg["ZoneMix"][int(keys[1]) - 1][keys[2]] = v
-        elif keys[0] == "ReachWeight" and len(keys) == 2:
-            cfg["ReachWeight"][int(keys[1]) - 1] = v
-        elif keys[0] == "Fish" and len(keys) == 3:  # Fish.ReefShark.RiddenSpeed=70
+        elif keys[0] == "Fish" and len(keys) == 3:  # Fish.ReefShark.Speed=80
             next(f for f in cfg["Fish"] if f["Id"] == keys[1])[keys[2]] = v
+        elif keys[0] == "Arch" and len(keys) == 3:  # Arch.Tank.Drain=0.8
+            cfg["Arch"][keys[1]][keys[2]] = v
         elif len(keys) == 2 and keys[0] in cfg and isinstance(cfg[keys[0]], dict):
             cfg[keys[0]][keys[1]] = v
         else:
@@ -198,7 +201,7 @@ def read_lane():
             starts.append(at)
             at += 30163 * share / sum(shares)
         return {"Names": names, "Start": starts, "End": starts[1:] + [30163.0], "Length": 30163.0, "S": [0, 30163.0],
-                "W": [200, 200], "Y": [0, -2225], "Source": "no path.json: 30,163 studs shared out by the map's plan"}
+                "W": [200, 200], "Source": "no path.json: 30,163 studs shared out by the map's plan"}
     j = json.load(open(PATH, encoding="utf-8"))
     pts = j["Path"]
     true = [0.0]
@@ -214,8 +217,7 @@ def read_lane():
 
     starts = [at_map_s(land["S0"]) for land in j["Lands"]]
     return {"Names": [land["Name"] for land in j["Lands"]], "Start": starts, "End": starts[1:] + [true[-1]],
-            "Length": true[-1], "S": true, "W": [p[4] for p in pts], "Y": [p[2] for p in pts],
-            "Source": os.path.relpath(PATH, ROOT).replace("\\", "/")}
+            "Length": true[-1], "S": true, "W": [p[4] for p in pts], "Source": os.path.relpath(PATH, ROOT).replace("\\", "/")}
 
 
 def width_at(lane, s):
@@ -242,59 +244,54 @@ def land_at(lane, s):
     return 0
 
 
-# ---------------------------------------------------------------- the game's own sums
+def band_at(cfg, lane, s):
+    """The herd's band: the open water inside Herd.EdgeGap, times Spawn.LaneFill, never wider than Spawn.BandMax."""
+    sp = cfg["Spawn"]
+    return max(20.0, min((width_at(lane, s) - 2 * cfg["Herd"].get("EdgeGap", 0)) * sp.get("LaneFill", 1), sp.get("BandMax", 400)))
+
+
+# ---------------------------------------------------------------- the rules
+
+def clamp(v, lo=0.0, hi=1.0):
+    return lo if v < lo else hi if v > hi else v
+
 
 def tier_step(cfg, tier):
     return cfg["TierOrder"].index(tier) if tier in cfg["TierOrder"] else 0
 
 
-def tier_mult(cfg, tier):
-    """Config.RarityDrain: how many times a Common's Oxygen this rarity takes a second."""
-    return cfg["RarityDrain"].get(tier, 1)
-
-
 def drain(cfg, land, tier):
     """Config.drain: Oxygen a second on a fish of this rarity in land number `land` (0-based here)."""
     per = cfg["ZoneDrain"]
-    return per[min(max(land, 0), len(per) - 1)] * tier_mult(cfg, tier)
+    return per[min(max(land, 0), len(per) - 1)] * cfg["RarityDrain"].get(tier, 1)
+
+
+def drain_of(cfg, land, fish):
+    """Config.drainOf: this fish's own drain: less on a Tank."""
+    return drain(cfg, land, fish["Tier"]) * (cfg["Arch"]["Tank"].get("Drain", 1) if "Tank" in fish["Arch"] else 1)
 
 
 def required(cfg, land, tier="Common"):
-    """Config.required: what the HUD and a fish's tag show. drain x KeepUp / Refill: with Refill 1, the max Oxygen
-    that gives KeepUp seconds on that fish."""
+    """Config.required: the number on a fish's tag: the max Oxygen that gives KeepUp seconds on it."""
     o = cfg["Oxygen"]
     return math.ceil(drain(cfg, land, tier) * o["KeepUp"] / max(o["Refill"], 0.01))
 
 
 def holds(cfg, land, tier, max_oxygen):
-    """Whether this max Oxygen is at least the number on that fish's tag (Config.required)."""
     return max_oxygen >= required(cfg, land, tier)
 
 
 def strained(cfg, land, tier, max_oxygen):
-    """Config.strained: a fish that needs more than your max Oxygen is too strong for you. Landing on it empties the
-    whole meter in Oxygen.StrainTime seconds, whatever the fish. StrainTime 0 turns the rule off."""
+    """Config.strained: too strong for you (red): the whole meter in Oxygen.StrainTime, whatever the fish."""
     return cfg["Oxygen"].get("StrainTime", 0) > 0 and not holds(cfg, land, tier, max_oxygen)
 
 
-def seconds_on(cfg, land, tier, max_oxygen):
-    """Config.secondsOn: how long a full meter lasts on that fish."""
-    if strained(cfg, land, tier, max_oxygen):
-        return cfg["Oxygen"]["StrainTime"]
-    return max_oxygen / drain(cfg, land, tier)
-
-
 def held_share(cfg, mix, land, max_oxygen):
-    """The share of a land's fish that this max Oxygen holds."""
     return sum(share for t, share in mix.items() if holds(cfg, land, t, max_oxygen))
 
 
-def ridden(cfg, fish):
-    return fish.get("RiddenSpeed") or cfg["Tiers"][fish["Tier"]]
-
-
 def pools(cfg, lands):
-    """FishService.pool: for each land, by rarity, the fish that can turn up there with their weights."""
+    """FishService's roster: for each land, by rarity, the fish that can turn up there with their weights."""
     out = []
     for z in range(lands):
         by = {}
@@ -307,7 +304,7 @@ def pools(cfg, lands):
 
 
 def effective_mix(cfg, pool, z):
-    """The land's mix as FishService.pick uses it: a rarity with no fish there is skipped and the rest share it out."""
+    """The land's mix as the spawner uses it: a rarity with no fish there is skipped and the rest share it out."""
     mix = cfg["ZoneMix"][z] if z < len(cfg["ZoneMix"]) else {}
     live = {t: share for t, share in mix.items() if t in pool}
     total = sum(live.values())
@@ -315,27 +312,40 @@ def effective_mix(cfg, pool, z):
 
 
 def commonest(cfg, mix):
-    """The rarity most of a land's fish are (the commoner of two that tie)."""
     if not mix:
         return "Common"
     return max(mix, key=lambda t: (mix[t], -tier_step(cfg, t)))
 
 
+def kinds_in(pool, mix):
+    """Every creature that spawns in a land with its share of the land's spawns."""
+    out = []
+    for t, share in mix.items():
+        total = sum(w for _, w in pool[t])
+        out.extend((f, share * w / total) for f, w in pool[t])
+    return out
+
+
 def slices(cfg, lane, pool_list):
-    """FishService.newSlices: the lane cut into slices, each with the fish it should hold."""
+    """FishService's stretches: the lane cut into slices of Spawn.Slice studs, each with the fish it should hold: a
+    land's fish (PerThousand, fewer where the band is narrow: FullBand, ThinLeast; Min to Max a land) shared out by
+    how wide each slice is, and the whole sea never over MaxTotal."""
     sp, out, total = cfg["Spawn"], [], 0
     for z in range(len(lane["Start"])):
         s0, s1 = lane["Start"][z], lane["End"][z]
         length = s1 - s0
         if length > 1 and effective_mix(cfg, pool_list[z], z):
             n = max(1, math.floor(length / sp["Slice"] + 0.5))
-            want = max(n, min(max(math.floor(length / 1000 * sp["PerThousand"]), sp["Min"]), sp["Max"]))
-            for k in range(1, n + 1):
-                share = max(1, math.floor(want * k / n) - math.floor(want * (k - 1) / n))
-                out.append({"Start": s0 + length * (k - 1) / n, "End": s0 + length * k / n, "Zone": z, "Want": share})
+            full = [clamp(band_at(cfg, lane, s0 + length * (k + 0.5) / n) / max(sp.get("FullBand", 1), 1),
+                          clamp(sp.get("ThinLeast", 1), 0.05, 1), 1) for k in range(n)]
+            want = max(n, min(max(math.floor(length / 1000 * sp["PerThousand"] * sum(full) / n), sp["Min"]), sp["Max"]))
+            dealt = 0.0
+            for k in range(n):
+                before = dealt
+                dealt += full[k] / sum(full)
+                share = math.floor(want * dealt + 1e-6) - math.floor(want * before + 1e-6)
+                out.append({"Start": s0 + length * k / n, "End": s0 + length * (k + 1) / n, "Zone": z, "Want": share})
                 total += share
-    if out:
-        out[0]["Want"] = max(out[0]["Want"], int(sp["BoardSlice"]))
     while total > sp["MaxTotal"]:
         fullest = max((s for s in out if s["Want"] > 1), key=lambda s: s["Want"], default=None)
         if not fullest:
@@ -345,9 +355,128 @@ def slices(cfg, lane, pool_list):
     return out
 
 
+def wild_speed(cfg, fish, land_pace):
+    """FishService: a wild fish swims at a share of its LAND's pace; a hunter at a share of its own speed."""
+    p = cfg["Pace"]
+    if fish["Pace"] == "Hunt":
+        return fish["Speed"] * p.get("Hunt", 0.75)
+    share = p["Plod"] if fish["Pace"] == "Plod" else p["Zoom"] if fish["Pace"] == "Zoom" else cfg["Herd"]["SpeedShare"]
+    return land_pace * share
+
+
+def size_odds(cfg, tier):
+    """Config.rollSize: a spawned fish's size chances by its rarity."""
+    c = cfg["SizeChance"]
+    large, small = cfg["SizeLarge"].get(tier, 1), cfg["SizeSmall"].get(tier, 1)
+    odds = {"Tiny": c.get("Tiny", 0) * small}
+    for name in ("Big", "Giant", "Huge", "Colossal"):
+        odds[name] = c.get(name, 0) * large
+    odds["Normal"] = max(0.0, 1 - sum(odds.values()))
+    return odds
+
+
+def colour_odds(cfg):
+    v = cfg["Variant"]
+    odds = {"Rainbow": v.get("Rainbow", 0), "Gold": v.get("Gold", 0), "Silver": v.get("Silver", 0)}
+    odds[""] = max(0.0, 1 - sum(odds.values()))
+    return odds
+
+
+def worth_mean(cfg, tier):
+    """What a fish of this rarity earns, times, on average, for its size and colour."""
+    a = cfg["Aquarium"]
+    size = sum(p * cfg["SizeWorth"].get(name, 1) for name, p in size_odds(cfg, tier).items())
+    colour = sum(p * (a.get(name, 1) if name else 1) for name, p in colour_odds(cfg).items())
+    return size * colour
+
+
+def best_seven(cfg, tier, catches, rng, tries=400):
+    """The same, for the best Aquarium.Earning fish of `catches` of that rarity: what picking the tank is worth."""
+    a = cfg["Aquarium"]
+    sizes, colours = size_odds(cfg, tier), colour_odds(cfg)
+    keep = int(a.get("Earning", 7))
+    total = 0.0
+    for _ in range(tries):
+        worths = sorted((cfg["SizeWorth"].get(rng.choices(list(sizes), list(sizes.values()))[0], 1)
+                         * (a.get(c, 1) if (c := rng.choices(list(colours), list(colours.values()))[0]) else 1)
+                         for _ in range(catches)), reverse=True)
+        total += sum(worths[:keep]) / min(keep, catches)
+    return total / tries
+
+
+def income_of(cfg, home, tier, worth=1.0):
+    """Config.incomeOf: coins a second in the tank, for a fish at home in land `home` (0-based)."""
+    return required(cfg, home, tier) * cfg["Aquarium"].get("PerRequired", 0) * worth
+
+
+# ---------------------------------------------------------------- the hop
+
+def air_of(cfg, speed):
+    """Config.airOf: the seconds a fish's speed adds to (or takes off) the glide and the window."""
+    j = cfg["Jump"]
+    u = clamp((speed - j["AirSlowSpeed"]) / max(j["AirFastSpeed"] - j["AirSlowSpeed"], 1))
+    return max(j["AirSlow"] + (j["AirFast"] - j["AirSlow"]) * u, j["AirLeast"] - j["FloatTime"])
+
+
+def hop_from(cfg, had, fish):
+    """Config.hopFrom: the hop's leaving speed, its extra seconds, and what Jump.Apex is times."""
+    j = cfg["Jump"]
+    launch = max(had * j["Launch"] + j["HopBoost"], j["AirShare"] * fish["Speed"] + j["BoostFloor"])
+    leap = cfg["Arch"]["Leaper"] if "Leaper" in fish["Arch"] else {}
+    return launch * leap.get("Air", 1), air_of(cfg, had) + leap.get("FloatTime", 0), leap.get("Apex", 1)
+
+
+def hop_kept(cfg, t, extra):
+    """Config.hopKept: the share of the leaving speed still there t seconds on."""
+    j = cfg["Jump"]
+    stop = max(j["StopTime"] + extra, 0.2)
+    rest = clamp(j.get("StopShare", 0))
+    u = max(t, 0) / stop
+    if u >= 1:
+        return rest
+    tail = max(j["SpeedTail"], 1)
+    half = clamp(j["SpeedHalf"] / max(j["StopTime"], 0.2), 0.05, 0.95)
+    a = max(1, math.log(1 - 0.5 ** (1 / tail)) / math.log(half))
+    return rest + (1 - rest) * (1 - u ** a) ** tail
+
+
+def reach_of(cfg, speed):
+    """Config.reachOf: the hook's reach at a speed across the water."""
+    j = cfg["Jump"]
+    near = min(j["GrabNear"], j["GrabRange"])
+    return near + (j["GrabRange"] - near) * clamp(speed / max(j["GrabFullSpeed"], 1))
+
+
+def hop_profile(cfg, had, fish, dt=0.05):
+    """One hop off `fish` going `had`: when the glide ends (the pull-in can begin by itself), when the window ends,
+    and for each dt the distance gone, the speed, the height over where it left, and the reach."""
+    j = cfg["Jump"]
+    launch, extra, apex = hop_from(cfg, had, fish)
+    glide_end = j["LaunchTime"] + j["FloatTime"] + extra
+    window = j["Window"] + extra
+    steps = int(math.ceil(window / dt)) + 1
+    dist, sink, rows = 0.0, 0.0, []
+    rest = clamp(j.get("StopShare", 0))
+    for i in range(steps + 1):
+        t = i * dt
+        kept = hop_kept(cfg, t, extra)
+        speed = launch * kept
+        rise = j["Apex"] * apex * (1 - (1 - clamp(t / max(j["LaunchTime"], 0.01))) ** 2)
+        rise += j.get("FloatRise", 0) * clamp((t - j["LaunchTime"]) / max(glide_end - j["LaunchTime"], 0.1))
+        rows.append((dist, speed, rise - sink, reach_of(cfg, speed)))
+        gone = clamp((1 - kept) / (1 - rest)) if rest < 1 else 1
+        dist += speed * dt
+        sink += max(j["FallSpeed"], 0) * gone ** max(j["SinkCurve"], 0.1) * dt
+    return {"launch": launch, "extra": extra, "glide": glide_end, "window": window, "rows": rows, "dt": dt}
+
+
+def reel_time(cfg, gap):
+    j = cfg["Jump"]
+    return min(max(j["ReelTime"] + gap / j["GrabSpeed"], j["ReelMin"]), j["ReelMax"])
+
+
 def stand_time(cfg, have, want):
-    """Seconds standing on the training spot to take max Oxygen from `have` to `want`: Train.Rate a second, plus
-    Train.Share of your max a second (--set Train.Share=0 for the steady rate alone)."""
+    """Seconds on today's training pad to take max Oxygen from `have` to `want` (Train.Rate + Train.Share of max)."""
     rate, share = cfg["Train"].get("Rate", 0), cfg["Train"].get("Share", 0)
     if want <= have:
         return 0.0
@@ -356,71 +485,7 @@ def stand_time(cfg, have, want):
     return (want - have) / rate if rate > 0 else float("inf")
 
 
-def clock(seconds):
-    if seconds == float("inf"):
-        return "never"
-    if seconds < 120:
-        return f"{seconds:.0f} s"
-    if seconds < 7200:
-        return f"{seconds / 60:.0f} min"
-    if seconds < 172800:
-        return f"{seconds / 3600:.0f} h"
-    return f"{seconds / 86400:.0f} days"
-
-
-def hop(cfg, speed, air=None):
-    """The hop off a fish ridden at `speed`: its top speed, the glide's, how far it carries you in `air` seconds (by
-    default until the pull-in begins by itself, Jump.LaunchTime + FloatTime after the press), and that time."""
-    j = cfg["Jump"]
-    pop = j["Launch"] * speed
-    glide = j["AirShare"] * speed if j.get("AirShare", 0) > 0 else j["AirSpeed"]
-    if air is None:
-        air = j["LaunchTime"] + j["FloatTime"]
-    far, t, dt = 0.0, 0.0, 0.01
-    while t < air - 1e-9:
-        far += hop_speed(cfg, pop, glide, t + dt / 2) * min(dt, air - t)
-        t += dt
-    return pop, glide, far, air
-
-
-def hop_speed(cfg, pop, glide, t):
-    """The speed `t` seconds into a hop, as JumpController runs it: the pop holds for half of Jump.BoostTime, then
-    eases to the glide by BoostTime + 0.3."""
-    b = cfg["Jump"]["BoostTime"]
-    lo, hi = b * 0.5, b + 0.3
-    x = min(max((t - lo) / (hi - lo), 0), 1) if hi > lo else 1
-    return pop + (glide - pop) * x * x * (3 - 2 * x)
-
-
-def ride_distance(cfg, speed, seconds):
-    """How far a fish carries you in `seconds` from the landing: it comes up from the herd's pace to its ridden speed
-    over Ride.RampTime, with the burst on mount (Ease.rideSpeed)."""
-    r, start = cfg["Ride"], speed * cfg["Herd"]["SpeedShare"]
-    far, t, dt = 0.0, 0.0, 0.02
-    while t < seconds:
-        u = min(t / r["RampTime"], 1) if r["RampTime"] > 0 else 1
-        base = start + (speed - start) * (1 - (1 - u) ** 2)
-        lo, hi = r["SurgeTime"] * 0.6, r["SurgeTime"] * 1.4
-        x = min(max((t - lo) / (hi - lo), 0), 1) if hi > lo else 1
-        far += base * (1 + (r["Surge"] - 1) * (1 - x * x * (3 - 2 * x))) * min(dt, seconds - t)
-        t += dt
-    return far
-
-
-def reel_time(cfg, gap):
-    j = cfg["Jump"]
-    return min(max(j["ReelTime"] + gap / j["GrabSpeed"], j["ReelMin"]), j["ReelMax"])
-
-
-def hop_pace(cfg, speed, target_pace, sit, gap, air=None):
-    """Studs a second, all told, of a rider who sits `sit` seconds on each fish, hops, and is pulled onto a fish `gap`
-    studs ahead of where the glide ends (that fish swimming on at `target_pace`)."""
-    _, _, far, air = hop(cfg, speed, air)
-    reel = reel_time(cfg, gap)
-    return (ride_distance(cfg, speed, sit) + far + gap + target_pace * reel) / (sit + air + reel)
-
-
-# ---------------------------------------------------------------- the tables
+# ---------------------------------------------------------------- printing
 
 class Out:
     def __init__(self, md):
@@ -444,7 +509,12 @@ class Out:
         widths = [max(len(head[i]), *(len(r[i]) for r in rows)) if rows else len(head[i]) for i in range(len(head))]
         print("  ".join(h.ljust(w) for h, w in zip(head, widths)))
         for row in rows:
-            print("  ".join(c.rjust(w) if re.fullmatch(r"[-+x]?[\d,.]+[%sKMB]?", c) else c.ljust(w) for c, w in zip(row, widths)).rstrip())
+            print("  ".join(c.rjust(w) if re.fullmatch(r"[-+x$]?[\d,.]+[%sKMBT]?", c) else c.ljust(w) for c, w in zip(row, widths)).rstrip())
+
+    def line(self, text):
+        if self.md:
+            print()
+        print(text)
 
 
 def n(v, places=0):
@@ -457,14 +527,23 @@ def n(v, places=0):
 
 def big(v):
     """A big number the way a player would read it: 1,280 then 20K, 2.5M, 1.2B."""
-    for cut, unit, mark in ((1e9, 1e9, "B"), (1e6, 1e6, "M"), (1e4, 1e3, "K")):
+    for cut, unit, mark in ((1e12, 1e12, "T"), (1e9, 1e9, "B"), (1e6, 1e6, "M"), (1e4, 1e3, "K")):
         if abs(v) >= cut:
             return f"{v / unit:.3g}{mark}"
     return f"{v:,.0f}"
 
 
+def nice(v, leads=(1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10)):
+    """A price rounded to a number a sign can carry: 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8 times ten to something."""
+    if v <= 0:
+        return 0
+    exp = math.floor(math.log10(v))
+    lead = v / 10 ** exp
+    pick = min(leads, key=lambda c: abs(math.log(c / lead)))
+    return pick * 10 ** exp
+
+
 def secs(v):
-    """Seconds on a fish, as a rider would feel them."""
     if v >= 600:
         return f"{v / 60:.0f} min"
     if v >= 10:
@@ -474,123 +553,118 @@ def secs(v):
     return f"{v:.2f}"
 
 
+def clock(seconds):
+    if seconds == float("inf"):
+        return "never"
+    if seconds < 120:
+        return f"{seconds:.0f} s"
+    if seconds < 7200:
+        return f"{seconds / 60:.0f} min"
+    if seconds < 172800:
+        return f"{seconds / 3600:.1f} h"
+    return f"{seconds / 86400:.0f} days"
+
+
 def pct(share):
     if share <= 0:
         return ""
     return f"{share * 100:.1f}%" if share < 0.1 else f"{share * 100:.0f}%"
 
 
-def tables(cfg, lane, out, your_max):
-    order = cfg["TierOrder"]
+# ---------------------------------------------------------------- the tables
+
+def world(cfg, lane):
     lands = len(lane["Start"])
     pool_list = pools(cfg, lands)
     mixes = [effective_mix(cfg, pool_list[z], z) for z in range(lands)]
+    usual = [commonest(cfg, mixes[z]) for z in range(lands)]
+    return {"lands": lands, "pools": pool_list, "mixes": mixes, "usual": usual,
+            "name": [f"{z + 1} {lane['Names'][z]}" for z in range(lands)],
+            "home": [drain(cfg, z, usual[z]) * HOME for z in range(lands)]}
+
+
+def tables(cfg, lane, out, your_max):
+    order = cfg["TierOrder"]
+    w = world(cfg, lane)
+    lands, pool_list, mixes, usual, name, home_max = w["lands"], w["pools"], w["mixes"], w["usual"], w["name"], w["home"]
     sl = slices(cfg, lane, pool_list)
     fish_in = [sum(s["Want"] for s in sl if s["Zone"] == z) for z in range(lands)]
     lengths = [lane["End"][z] - lane["Start"][z] for z in range(lands)]
-    o, j = cfg["Oxygen"], cfg["Jump"]
+    o, j, p = cfg["Oxygen"], cfg["Jump"], cfg["Pace"]
     share = cfg["Herd"]["SpeedShare"]
-    usual = [commonest(cfg, mixes[z]) for z in range(lands)]
-    name = [f"{z + 1} {lane['Names'][z]}" for z in range(lands)]
+    pace = [cfg["LandPace"][min(z, len(cfg["LandPace"]) - 1)] for z in range(lands)]
 
-    out.title("The lane", f"{lane['Length']:,.0f} studs to ride over {lands} lands ({lane['Source']}); "
-              f"{sum(fish_in)} wild fish in all (Spawn.PerThousand {cfg['Spawn']['PerThousand']:g}, MaxTotal {cfg['Spawn']['MaxTotal']:g}). "
-              f"\"Hopping\" is a rider on the land's commonest fish who sits {RIDE:g} s on each and hops to one about {LOCK_AHEAD} studs ahead.")
-    head = ["Land", "Studs", "Width", "Fish", "Commonest fish", "s riding it", "s hopping"] + [f"s at {t} ({cfg['Tiers'][t]:g})" for t in order]
+    unlisted = [f["Id"] for f in cfg["Fish"] if not f["Listed"]]
+    out.title("The lane", f"{lane['Length']:,.0f} studs to ride over {lands} lands ({lane['Source']}); {sum(fish_in)} wild fish "
+              f"in all (Spawn.PerThousand {cfg['Spawn']['PerThousand']:g}, fewer where the water is narrow; Max "
+              f"{cfg['Spawn']['Max']:g} a land, MaxTotal {cfg['Spawn']['MaxTotal']:g}). The land's pace is Config.LandPace; "
+              f"the herd swims at {share:g} of it, plodders at {p['Plod']:g}, the fast ones at {p['Zoom']:g}. \"Ridden\": the "
+              "ridden speeds of the land's fish (Config.FishStats), weighted by how often each spawns, and the slowest and "
+              "fastest of them." + (f" NOT IN FishStats (they ride at Speed.Base): {', '.join(unlisted)}." if unlisted else ""))
+    head = ["Land", "Studs", "Width", "Fish", "To 1,000 studs", "Land pace", "The herd", "Plodders", "The fast", "Ridden, mean",
+            "Ridden, range", "Mean over pace", "s to cross at the mean"]
     rows = []
-    total_hop = 0.0
     for z in range(lands):
         ws = [width_at(lane, lane["Start"][z] + lengths[z] * k / 20) for k in range(21)]
-        v = cfg["Tiers"][usual[z]]
-        pace = hop_pace(cfg, v, v * share, RIDE, LOCK_AHEAD)
-        total_hop += lengths[z] / pace
-        rows.append([name[z], n(lengths[z]), f"{min(ws):.0f} to {max(ws):.0f}", fish_in[z], usual[z], n(lengths[z] / v), n(lengths[z] / pace)]
-                    + [n(lengths[z] / cfg["Tiers"][t]) for t in order])
-    rows.append(["All ten", n(lane["Length"]), "", sum(fish_in), "", n(sum(lengths[z] / cfg["Tiers"][usual[z]] for z in range(lands))),
-                 n(total_hop)] + [n(lane["Length"] / cfg["Tiers"][t]) for t in order])
+        kinds = kinds_in(pool_list[z], mixes[z])
+        mean = sum(f["Speed"] * s for f, s in kinds) / max(sum(s for _, s in kinds), 1e-9)
+        speeds = [f["Speed"] for f, _ in kinds] or [0]
+        rows.append([name[z], n(lengths[z]), f"{min(ws):.0f} to {max(ws):.0f}", fish_in[z], n(fish_in[z] / lengths[z] * 1000, 1),
+                     n(pace[z]), n(pace[z] * share, 1), n(pace[z] * p["Plod"], 1), n(pace[z] * p["Zoom"], 1), n(mean, 1),
+                     f"{min(speeds):g} to {max(speeds):g}", f"x{mean / pace[z]:.2f}", n(lengths[z] / mean)])
     out.table(head, rows)
 
     refill = "the whole meter" if o["Refill"] >= 1 else f"{o['Refill']:g} of the meter"
     strain = o.get("StrainTime", 0)
-    if strain > 0:
-        rule = (f"\"Too strong\": the fish needs more max Oxygen than this (the number on its tag: {o['KeepUp']:g} s on it), so a "
-                f"landing on it empties the whole meter in Oxygen.StrainTime {strain:g} s and throws you off. The hop's cooldown is "
-                f"{j['Cooldown']:g} s, " + ("so it can't be hopped off." if strain < j["Cooldown"] else
-                                            "SO IT CAN BE HOPPED OFF, and the next landing gives the whole meter back."))
-    else:
-        rule = (f"The game's \"enough\" is Oxygen.KeepUp {o['KeepUp']:g} s; under the hop's cooldown ({j['Cooldown']:g} s) you are "
-                "thrown off before you can hop.")
+    rule = (f"\"Red\": the fish needs more max Oxygen than this (the number on its tag: {o['KeepUp']:g} s on it), so a landing on "
+            f"it empties the whole meter in Oxygen.StrainTime {strain:g} s. It can be hopped off after Jump.StrainLock "
+            f"{j['StrainLock']:g} s, the next landing gives the meter back, and it is never tamed.") if strain > 0 else (
+            f"The game's \"enough\" is Oxygen.KeepUp {o['KeepUp']:g} s.")
 
     def cell(z, t, m):
         if t not in mixes[z]:
             return ""
-        return "too strong" if strained(cfg, z, t, m) else secs(m / drain(cfg, z, t))
+        return f"red, {strain:g}" if strained(cfg, z, t, m) else secs(m / drain(cfg, z, t))
 
     out.title(f"Seconds on a fish with {your_max:,.0f} max Oxygen" + (" (a new player)" if your_max == o["StartMax"] else ""),
-              f"Max Oxygen / (ZoneDrain x RarityDrain): how long a full meter lasts on a fish of that rarity, landed on in that land. "
-              f"A landing on another fish gives back {refill}. Blank: that rarity doesn't spawn there. {rule} The last column: the "
-              "share of the land's fish this player can hold.")
+              f"Max Oxygen / (ZoneDrain x RarityDrain): how long a full meter lasts on a fish of that rarity, landed on in that "
+              f"land. A landing on another fish gives back {refill}. Blank: that rarity doesn't spawn there. {rule} The last "
+              "column: the share of the land's fish this player can hold.")
     head = ["Land", "Oxygen a second (Common)"] + order + ["Fish they can hold"]
-    rows = []
-    for z in range(lands):
-        rows.append([name[z], big(drain(cfg, z, "Common"))] + [cell(z, t, your_max) for t in order]
-                    + [pct(held_share(cfg, mixes[z], z, your_max)) or "none"])
-    out.table(head, rows)
+    out.table(head, [[name[z], big(drain(cfg, z, "Common"))] + [cell(z, t, your_max) for t in order]
+                     + [pct(held_share(cfg, mixes[z], z, your_max)) or "none"] for z in range(lands)])
 
-    out.title("The bar: the max Oxygen that holds a fish", f"Config.required, the number on a fish's tag: {o['KeepUp']:g} s on it, by "
-              "the land you land on it in. In brackets: the share of the land's fish you hold with exactly that much (that rarity "
-              "and every commoner one)." + (" With less, the fish is too strong for you; with it, the fish can be tamed." if strain > 0 else ""))
-    head = ["Land"] + order
-    rows = []
-    for z in range(lands):
-        rows.append([name[z]] + [f"{big(required(cfg, z, t))} ({pct(held_share(cfg, mixes[z], z, required(cfg, z, t)))})"
-                                 if t in mixes[z] else "" for t in order])
-    out.table(head, rows)
+    out.title("The bar: the max Oxygen that holds a fish", f"Config.required, the number on a fish's tag: {o['KeepUp']:g} s on it, "
+              "by the land you land on it in. In brackets: the share of the land's fish you hold with exactly that much (that "
+              "rarity and every commoner one). With it, the fish can be tamed; with less, it is red.")
+    out.table(["Land"] + order, [[name[z]] + [f"{big(required(cfg, z, t))} ({pct(held_share(cfg, mixes[z], z, required(cfg, z, t)))})"
+                                             if t in mixes[z] else "" for t in order] for z in range(lands)])
 
-    cheapest = [min(mixes[z], key=lambda t: tier_mult(cfg, t)) if mixes[z] else "Common" for z in range(lands)]
-    out.title("What max Oxygen means, land by land", f"\"The door\": the max Oxygen that holds the land's cheapest fish, and the share "
-              f"of its fish that is. \"Holds its commonest\": the number on the commonest fish's tag ({o['KeepUp']:g} s on it). "
-              f"\"At home\": {HOME:g} s on the commonest fish (a new player's time on a Shallows Common; a guess), and the share of the "
-              "land's fish held then. \"HUD\" is what the game shows as the land's need: the tag of a Common there. The last two: "
+    cheapest = [min(mixes[z], key=lambda t: cfg["RarityDrain"].get(t, 1)) if mixes[z] else "Common" for z in range(lands)]
+    out.title("What max Oxygen means, land by land", f"\"The door\": the max Oxygen that holds the land's cheapest fish, and the "
+              f"share of its fish that is. \"Holds its commonest\": the number on the commonest fish's tag. \"At home\": {HOME:g} s "
+              "on the commonest fish (a guess), and the share of the land's fish held then, and of the next land's. The last two: "
               "the max Oxygen that holds (and so tames) the land's Legendary and Mythic.")
     head = ["Land", "Commonest fish", "It takes /s", "The door", "Holds its commonest", f"At home ({HOME:g} s on it)",
-            "x the land before", "Fish held at home", "HUD", "Its Legendary", "Its Mythic"]
-    rows, home_max, last = [], [], None
+            "x the land before", "Held at home", "Held in the next land", "Its Legendary", "Its Mythic"]
+    rows, last = [], None
     for z in range(lands):
         d = drain(cfg, z, usual[z])
-        home_max.append(d * HOME)
         door = required(cfg, z, cheapest[z])
         rows.append([name[z], usual[z], big(d), f"{big(door)} ({cheapest[z]}, {pct(held_share(cfg, mixes[z], z, door))})",
                      big(required(cfg, z, usual[z])), big(d * HOME), f"x{d / last:.1f}" if last else "",
-                     pct(held_share(cfg, mixes[z], z, d * HOME)), big(required(cfg, z)),
+                     pct(held_share(cfg, mixes[z], z, d * HOME)),
+                     (pct(held_share(cfg, mixes[z + 1], z + 1, d * HOME)) or "none") if z + 1 < lands else "",
                      big(required(cfg, z, "Legendary")) if "Legendary" in mixes[z] else "",
                      big(required(cfg, z, "Mythic")) if "Mythic" in mixes[z] else ""])
         last = d
     out.table(head, rows)
 
-    out.title("Seconds on a fish for a player at home in each land", f"A player whose max Oxygen gives {HOME:g} s on that land's commonest "
-              "fish: their time on each rarity there, the share of the fish they hold in the land before and the land after, and "
-              "their time on the fish they rode in on once it is over the next land's border (a fish you hold is not judged again "
-              "at a border: it only costs the new land's drain).")
-    head = ["At home in", "Max Oxygen"] + order + ["Held in the land before", "Held in the land after", "Over the border on their commonest (s)"]
-    rows = []
-    for z in range(lands):
-        m = home_max[z]
-        rows.append([name[z], big(m)] + [cell(z, t, m) for t in order]
-                    + [pct(held_share(cfg, mixes[z - 1], z - 1, m)) if z else "",
-                       (pct(held_share(cfg, mixes[z + 1], z + 1, m)) or "none") if z + 1 < lands else "",
-                       secs(m / drain(cfg, z + 1, usual[z])) if z + 1 < lands else ""])
-    out.table(head, rows)
-
     tm = cfg["Tame"]
     if tm and tm.get("On", 0) != 0:
-        spare = o["KeepUp"] - tm["Time"]
         out.title("Taming: the rarest fish a player can make theirs, land by land", f"Tame.Time {tm['Time']:g} s on a fish you hold "
-                  f"makes it yours, up to Tame.Carry {tm['Carry']:g} a dive; a fish too strong for you is never tamed. A fish right "
-                  f"at your bar gives {o['KeepUp']:g} s, so the tame leaves {spare:g} s to hop off it"
-                  + (" (none: it is tamed as you are thrown off, if at all)." if spare <= 0 else ".")
-                  + " Each line is a player at home in a land; each cell the rarest rarity they hold in that land, and so can tame.")
-        head = ["At home in", "Max Oxygen"] + [str(z + 1) for z in range(lands)]
+                  f"makes it yours, up to Tame.Carry {tm['Carry']:g} a dive; a red fish is never tamed. Each line is a player at "
+                  "home in a land; each cell the rarest rarity they hold in that land.")
         rows = []
         for z in range(lands):
             row = [name[z], big(home_max[z])]
@@ -598,143 +672,174 @@ def tables(cfg, lane, out, your_max):
                 held = [t for t in order if t in mixes[y] and holds(cfg, y, t, home_max[z])]
                 row.append(held[-1] if held else "none")
             rows.append(row)
-        out.table(head, rows)
+        out.table(["At home in", "Max Oxygen"] + [str(z + 1) for z in range(lands)], rows)
 
-    out.title("By rarity", f"A wild fish swims at Herd.SpeedShare {share:g} of its ridden speed. The hop off a fish: the pop at Jump.Launch "
-              f"{j['Launch']:g} times the ridden speed, the glide at AirShare {j.get('AirShare', 0):g} of it, and the pull-in begins "
-              f"{j['LaunchTime'] + j['FloatTime']:g} s after the press.")
-    cam = cfg["Camera"]
-    head = ["Rarity", "Ridden", "Step up", "Wild (herd)", "Pop", "Glide", "Hop carries (studs)", "and gains on its own herd", "Drain x",
-            "View widens (deg)", "Turn circle (studs across)", "Lands"]
+    out.title("The hop today", f"Off a fish at its ridden speed: it leaves at speed x Jump.Launch {j['Launch']:g} + HopBoost "
+              f"{j['HopBoost']:g}; the locked fish pulls you in by itself when the glide ends (LaunchTime {j['LaunchTime']:g} + "
+              f"FloatTime {j['FloatTime']:g} + the air its speed adds); the window is Jump.Window {j['Window']:g} s + the same. The "
+              f"reach runs from GrabRange {j['GrabRange']:g} at {j['GrabFullSpeed']:g} studs a second down to GrabNear "
+              f"{j['GrabNear']:g}. \"Gains on the herd\": the studs it has made on a fish of the herd in a land of that pace when "
+              f"the glide ends. The last line of each pair: the same fish angry (red, or the meter low), at {ANGRY_KEEP:g} of its speed.")
+    head = ["Fish going", "Leaves at", "Glide ends (s)", "Studs by then", "Speed then", "Reach then", "Gains on the herd",
+            "Window (s)", "Studs at the window's end", "Reach then"]
     rows = []
-    for i, t in enumerate(order):
-        v = cfg["Tiers"][t]
-        pop, glide, far, air = hop(cfg, v)
-        fov = cam["SpeedFov"] * min(max((v - cam["SpeedFovFrom"]) / (cam["SpeedFovTo"] - cam["SpeedFovFrom"]), 0), 1)
-        where = [str(z + 1) for z in range(lands) if t in mixes[z]]
-        planned = [str(z + 1) for z in range(min(lands, len(cfg["ZoneMix"]))) if t in cfg["ZoneMix"][z]]
-        rows.append([t, n(v), f"+{(v / cfg['Tiers'][order[i - 1]] - 1) * 100:.0f}%" if i else "", n(v * share, 1), n(pop), n(glide, 1), n(far),
-                     n(far - v * share * air), f"{tier_mult(cfg, t):g}", n(fov, 1), n(2 * v / math.radians(cfg["Ride"]["YawRate"])),
-                     (", ".join(where) or "nowhere") + ("" if where == planned else f" (the mix asks for {', '.join(planned) or 'none'})")])
+    plain = {"Speed": 0, "Arch": []}
+    for v in (40, 46, 60, 82, 100, 116):
+        for label, had in ((f"{v:g}", v), (f"{v:g}, angry", v * ANGRY_KEEP)):
+            hp = hop_profile(cfg, had, dict(plain, Speed=v))
+            at = hp["rows"][int(round(hp["glide"] / hp["dt"]))]
+            end = hp["rows"][int(hp["window"] / hp["dt"])]
+            rows.append([label, n(hp["launch"]), n(hp["glide"], 2), n(at[0]), n(at[1]), n(at[3]),
+                         n(at[0] - v * share * hp["glide"]), n(hp["window"], 2), n(end[0]), n(end[3])])
     out.table(head, rows)
 
-    out.title("A rider who hops all the time: the pace", f"Studs a second all told, sitting {RIDE:g} s on each fish. \"Near\": pulled onto "
-              f"a fish {LOCK_AHEAD} studs ahead when the glide ends (what the lock gives); \"far\": 110 studs ahead (reach is Jump.GrabRange {j['GrabRange']:g}). "
-              f"\"Space held\": {j['Cooldown']:g} s on each fish and a grab {j['MinFlight']:g} s into the hop, onto a fish 110 ahead. "
-              "The target is a fish of the same rarity.")
-    head = ["Riding", "Ridden speed", "Hopping, near", "Hopping, far", "x riding", "Space held, far", "x riding", "Share of the time on a fish"]
-    rows = []
-    paces = {}
-    for t in order:
-        v = cfg["Tiers"][t]
-        near, far = hop_pace(cfg, v, v * share, RIDE, LOCK_AHEAD), hop_pace(cfg, v, v * share, RIDE, 110)
-        mash = hop_pace(cfg, v, v * share, j["Cooldown"], 110, air=j["MinFlight"])
-        paces[t] = (near, far)
-        on = RIDE / (RIDE + j["LaunchTime"] + j["FloatTime"] + reel_time(cfg, LOCK_AHEAD))
-        rows.append([t, n(v), n(near), n(far), f"x{far / v:.2f}", n(mash), f"x{mash / v:.2f}", f"{on * 100:.0f}%"])
-    out.table(head, rows)
-
-    out.title("The ladder for a hopping rider: closing speed", "Studs a second gained on a wild fish ahead. First number: hopping to "
-              "near fish; second: to far ones. Negative: the wild fish pulls away, and can only be caught if it starts within reach "
-              "or comes up from behind. (Only riding, never hopping: the ridden speed minus the wild pace, which is +1 or +2 on "
-              "the next rarity up and negative beyond.)")
-    head = ["Riding a \\ wild"] + order
-    rows = []
-    for t in order:
-        rows.append([t] + [f"{paces[t][0] - cfg['Tiers'][u] * share:+.0f} / {paces[t][1] - cfg['Tiers'][u] * share:+.0f}" for u in order])
-    out.table(head, rows)
-
-    out.title("Wild fish by land and rarity", "The share each rarity really gets (a rarity with no creature in the land is skipped and "
-              "the others share it out), and the fish of it standing in the land at once. \"1 in\" is how many crossings of the land "
-              "it takes to have one of that rarity in it.")
-    head = ["Land", "Fish"] + order
+    out.title("Wild fish by land and rarity", "The share each rarity gets and the fish of it standing in the land at once.")
     rows = []
     for z in range(lands):
-        asked = cfg["ZoneMix"][z] if z < len(cfg["ZoneMix"]) else {}
         row = [name[z], fish_in[z]]
         for t in order:
-            if t in mixes[z]:
-                count = mixes[z][t] * fish_in[z]
-                row.append(f"{pct(mixes[z][t])}, {count:.1f}" + (f" (1 in {1 / count:.0f})" if count < 0.5 else ""))
-            elif t in asked:
-                row.append(f"asks {asked[t]:g}%: no creature")
-            else:
-                row.append("")
+            count = mixes[z].get(t, 0) * fish_in[z]
+            row.append(f"{pct(mixes[z][t])}, {count:.1f}" if t in mixes[z] else "")
         rows.append(row)
-    out.table(head, rows)
+    out.table(["Land", "Fish"] + order, rows)
 
-    out.title("Which creatures turn up", "By land: each creature that can spawn there and its share of all spawns in that land. "
-              "A star marks a creature with no model in the place yet (it spawns as a placeholder body).")
-    head = ["Land", "Creatures (share of the land's spawns)"]
+    out.title("Which characters swim where", "The share of each land's fish by how it swims wild (Config.FishPace): the herd "
+              "(Cruise and Dart), plodders low and slow, the fast ones high, hunters over the herd; and the share that has an "
+              "archetype (Config.FishStats).")
+    head = ["Land", "The herd", "Plodders", "The fast", "Hunters", "Tank", "Predator", "Leaper", "Fast", "Breaker"]
     rows = []
     for z in range(lands):
-        parts = []
-        for t in order:
-            if t not in mixes[z]:
-                continue
-            total = sum(w for _, w in pool_list[z][t])
-            names = sorted(pool_list[z][t], key=lambda fw: -fw[1])
-            parts.append(f"{t}: " + ", ".join(f"{f['Name']}{'' if f['Modelled'] else '*'} {pct(mixes[z][t] * w / total)}" for f, w in names))
-        rows.append([name[z], "; ".join(parts) or "nothing can spawn here: the land stays empty"])
+        kinds = kinds_in(pool_list[z], mixes[z])
+        by = lambda test: pct(sum(s for f, s in kinds if test(f))) or "0%"
+        rows.append([name[z], by(lambda f: f["Pace"] in ("Cruise", "Dart")), by(lambda f: f["Pace"] == "Plod"),
+                     by(lambda f: f["Pace"] == "Zoom"), by(lambda f: f["Pace"] == "Hunt")]
+                    + [by(lambda f, a=a: a in f["Arch"]) for a in ("Tank", "Predator", "Leaper", "Fast", "Breaker")])
     out.table(head, rows)
 
     tr = cfg["Train"]
-    spot = (f"Train.Rate {tr.get('Rate', 0):g} a second" + (f" plus Train.Share {tr['Share']:g} of your max a second" if tr.get("Share") else "")) if tr else "no training spot in Config"
-    out.title("What training would have to give", f"The plan is a guess (PLAN_MINUTES in the model, --plan to change it): the minutes "
-              f"of play at which a player should first be at home in each land ({HOME:g} s on its commonest fish). From it, the max "
-              "Oxygen wanted by then and the gain a second of ALL play time between two lands that gets there. The last two columns are "
-              f"the training spot as it is ({spot}): seconds standing on it from the land before, and from the start.")
-    head = ["Land", "At home by (min)", "Max Oxygen then", "Gain over the stretch", "A second of play", "x the stretch before",
-            "Standing, from the land before", "Standing, from the start"]
-    rows, have, last_rate, last_t = [], o["StartMax"], None, 0
+    if tr:
+        out.title("The training pad as it is today", f"Train.Rate {tr.get('Rate', 0):g} a second plus Train.Share "
+                  f"{tr.get('Share', 0):g} of your max a second while you stand on it. Seconds standing to be at home in each land.")
+        rows, have = [], o["StartMax"]
+        for z in range(lands):
+            rows.append([name[z], big(home_max[z]), clock(stand_time(cfg, have, home_max[z])), clock(stand_time(cfg, o["StartMax"], home_max[z]))])
+            have = max(have, home_max[z])
+        out.table(["Land", "At home", "Standing, from the land before", "Standing, from the start"], rows)
+
+
+# ---------------------------------------------------------------- prices: the trainer, auras and the tank
+
+def tank_income(cfg, w, max_oxygen, luck=TANK_LUCK):
+    """A plausible tank for a player with this max Oxygen: Aquarium.Earning fish of the dearest kind they hold that is
+    at least a tenth of the fish of a land they are at home in (so it really is caught in numbers), times `luck` for
+    sizes and colours. Returns coins a second and what the fish is."""
+    best, what = 0, "nothing"
+    for z in range(w["lands"]):
+        if w["home"][z] > max_oxygen and z > 0:
+            break
+        for t, share in w["mixes"][z].items():
+            if share >= 0.1 and holds(cfg, z, t, max_oxygen) and required(cfg, z, t) > best:
+                best, what = required(cfg, z, t), f"{t}s of land {z + 1}"
+    return cfg["Aquarium"].get("Earning", 7) * best * cfg["Aquarium"].get("PerRequired", 0) * luck, what
+
+
+def prices(cfg, lane, out, plan, label, sit=SIT_SHARE):
+    w = world(cfg, lane)
+    lands, name = w["lands"], w["name"]
+    o = cfg["Oxygen"]
+    # the targets: at home in each land, and then one more, for the last land's Mythics
+    goals = list(w["home"]) + [drain(cfg, lands - 1, "Mythic") * HOME]
+    plan = list(plan) + [plan[-1] + (plan[-1] - plan[-2])]
+    names = [f"{name[z]} to {lane['Names'][z + 1]}" for z in range(lands - 1)] + [f"{name[-1]} to its Mythics"]
+    aura_at = dict(AURAS)
+    aura, auras_now = 1.0, []
     for z in range(lands):
-        need = home_max[z]
-        t = PLAN_MINUTES[z] if z < len(PLAN_MINUTES) else PLAN_MINUTES[-1]
-        gain = max(0, need - have)
-        rate = gain / ((t - last_t) * 60) if t > last_t and gain > 0 else None
-        rows.append([name[z], n(t), big(need), big(gain) if gain else "none", (big(rate) if rate >= 100 else n(rate, 1)) if rate else "",
-                     f"x{rate / last_rate:.1f}" if rate and last_rate else "",
-                     clock(stand_time(cfg, have, need)) if tr else "", clock(stand_time(cfg, o["StartMax"], need)) if tr else ""])
-        if rate:
-            last_rate = rate
-        have, last_t = max(have, need), t
+        aura = aura_at.get(z + 1, aura)
+        auras_now.append(aura)
+    out.title(f"The trainer and the auras: {label}", f"At home in each land by {', '.join(f'{m:g}' for m in plan[:lands])} minutes "
+              f"of play. A player sits on the trainer for {sit * 100:.0f}% of that (the biggest guess here: every rate is in "
+              "proportion to one over it). \"Needed, seated\": the Oxygen a seated second has to give over the stretch. "
+              f"\"Aura\": the one a player on the plan has by then ({', '.join(f'x{m:g} from land {z}' for z, m in AURAS)}). "
+              "\"The tank\": a plausible one for a player just at home in that land: seven of the dearest fish they hold in "
+              f"numbers, times {TANK_LUCK:g} for sizes and colours. \"Coins over the stretch\": what it earns from one land to "
+              f"the next, the max Oxygen rising in a straight line. A trainer level costs {TRAINER_SHARE * 100:.0f}% of the coins "
+              f"of the stretch before the one it is for; where an aura comes with it, the aura costs {AURA_SHARE * 100:.0f}% "
+              "and the level that much less. So each is bought as that stretch ends. Nothing is gated by land: the price is "
+              "the gate.")
+    head = ["Stretch", "Minutes", "Seated (min)", "Max Oxygen", "Needed, seated /s", "Trainer", "Its rate /s", "x the level before", "Aura",
+            "Seated /s with it", "The tank at its start", "Coins /s then", "Coins over the stretch", "The level's price",
+            "In minutes of the tank then", "The aura's price"]
+    rows, earned_before, last_rate, levels = [], 0.0, None, []
+    for z in range(lands):
+        t0, t1 = plan[z], plan[z + 1]
+        m0, m1 = goals[z], goals[z + 1]
+        seated = (t1 - t0) * 60 * sit
+        need = (m1 - m0) / seated
+        rate = nice(need / auras_now[z], (1, 1.2, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 10))
+        income0, what = tank_income(cfg, w, m0)
+        steps, coins = 200, 0.0
+        for q in range(steps):
+            at = (t0 + (t1 - t0) * (q + 0.5) / steps) * 60
+            coins += tank_income(cfg, w, m0 + (m1 - m0) * (q + 0.5) / steps)[0] * min(at / TANK_FILL, 1) * (t1 - t0) * 60 / steps
+        new_aura = z > 0 and auras_now[z] != auras_now[z - 1]
+        price = nice(earned_before * (TRAINER_SHARE - (AURA_SHARE if new_aura else 0))) if z > 0 else 0
+        aura_price = nice(earned_before * AURA_SHARE) if new_aura else None
+        levels.append({"level": z + 1, "rate": rate, "price": price, "aura": auras_now[z] if new_aura else None, "aura_price": aura_price})
+        show = lambda v: big(v) if v >= 100 else f"{v:.3g}"
+        rows.append([names[z], f"{t0:g} to {t1:g}", n((t1 - t0) * sit, 1), f"{big(m0)} to {big(m1)}", show(need), f"Level {z + 1}",
+                     show(rate), f"x{rate / last_rate:.1f}" if last_rate else "", f"x{auras_now[z]:g}", show(rate * auras_now[z]),
+                     what, show(income0), big(coins), "free" if z == 0 else "$" + big(price),
+                     n(price / income0 / 60, 1) if z > 0 and income0 > 0 else "", ("$" + big(aura_price)) if aura_price else ""])
+        earned_before, last_rate = coins, rate
     out.table(head, rows)
+    # does it add up: play it through, buying the cheapest thing not yet owned as soon as the coins are there
+    m, coins, t, level, own_aura, reached, bought = o["StartMax"], 0.0, 0.0, 0, 1.0, {0: 0.0}, {}
+    todo = sorted([(lv["price"], "level", lv["level"]) for lv in levels[1:]]
+                  + [(lv["aura_price"], "aura", lv["aura"]) for lv in levels if lv["aura_price"]])
+    step = 2.0
+    while t < plan[-1] * 60 * 3 and len(reached) <= lands:
+        while todo and coins >= todo[0][0]:
+            cost, kind, value = todo.pop(0)
+            coins -= cost
+            if kind == "level":
+                level = value - 1
+                bought[value] = t
+            else:
+                own_aura = value
+        m += levels[level]["rate"] * own_aura * sit * step
+        coins += tank_income(cfg, w, m)[0] * min(t / TANK_FILL, 1) * step
+        t += step
+        for z in range(lands + 1):
+            if z not in reached and m >= goals[z]:
+                reached[z] = t
+    out.line("Played through, buying the cheapest thing not yet owned as soon as the coins are there: at home in "
+             + ", ".join(f"land {z + 1} at {reached[z] / 60:.0f} min" for z in range(1, lands) if z in reached)
+             + (f"; its Mythics at {reached[lands] / 60:.0f} min" if lands in reached else "")
+             + ". Level bought at (min): " + ", ".join(f"{lv} at {bought[lv] / 60:.0f}" for lv in sorted(bought)) + ".")
+    return levels
 
 
 # ---------------------------------------------------------------- the dive, played through the herd
 
 class Herd:
-    """FishService's stocking, in one line along the lane with a place across it."""
+    """The stocking, in one line along the lane with a place across it and a height: FishService as of 2026-11-16."""
 
     def __init__(self, cfg, lane, rng):
         self.cfg, self.lane, self.rng = cfg, lane, rng
-        self.pools = pools(cfg, len(lane["Start"]))
+        self.lands = len(lane["Start"])
+        self.pools = pools(cfg, self.lands)
+        self.mixes = [effective_mix(cfg, self.pools[z], z) for z in range(self.lands)]
         self.slices = slices(cfg, lane, self.pools)
-        self.fish = []
-        self.mixes = [effective_mix(cfg, self.pools[z], z) for z in range(len(lane["Start"]))]
-        self.share = cfg["Herd"]["SpeedShare"]
+        self.fish, self.near, self.grid = [], [], {}
+        for i, sl in enumerate(self.slices):
+            for _ in range(sl["Want"]):
+                self.spawn(i)
 
-    def band(self, s):
-        sp = self.cfg["Spawn"]
-        return min(width_at(self.lane, s) / 2 * sp["LaneFill"], sp["BandMax"] / 2)
-
-    def slice_at(self, s):
-        lo, hi = 0, len(self.slices) - 1
-        while lo <= hi:
-            mid = (lo + hi) // 2
-            sl = self.slices[mid]
-            if s < sl["Start"]:
-                hi = mid - 1
-            elif s >= sl["End"]:
-                lo = mid + 1
-            else:
-                return mid
-        return None
+    def pace(self, s):
+        return self.cfg["LandPace"][min(land_at(self.lane, s), len(self.cfg["LandPace"]) - 1)]
 
     def pick(self, z):
         mix = self.mixes[z]
-        if not mix:
-            return None
         roll, tier = self.rng.random(), None
         for t in self.cfg["TierOrder"]:
             if t in mix:
@@ -750,344 +855,415 @@ class Herd:
                 return f
         return options[-1][0]
 
-    def spawn(self, index, rider):
+    def spawn(self, index, at_start=False):
         sl = self.slices[index]
+        sp = self.cfg["Spawn"]
         kind = self.pick(sl["Zone"])
-        if not kind:
-            return None
-        s = self.rng.uniform(sl["Start"], sl["End"])
-        f = {"s": s, "x": self.rng.uniform(-1, 1) * self.band(s), "kind": kind, "tier": kind["Tier"],
-             "speed": ridden(self.cfg, kind) * self.share, "slice": index, "ridden": False, "parked": True, "seen": False}
-        f["parked"] = not self.near(f, rider, self.cfg["Spawn"]["StreamRadius"])
+        room = sp.get("Space", 0)
+        for _ in range(max(1, int(sp.get("Tries", 1)))):
+            s = self.rng.uniform(0, sp.get("EntryAt", 30)) if at_start else self.rng.uniform(sl["Start"], sl["End"])
+            x = self.rng.uniform(-0.5, 0.5) * band_at(self.cfg, self.lane, s)
+            cell = int(s // 100)
+            if all(math.hypot(g["s"] - s, g["x"] - x) >= room for c in (cell - 1, cell, cell + 1) for g in self.grid.get(c, ())):
+                break
+        lo, hi = self.cfg["Layer"].get(kind["Pace"], (14, 26))
+        y = self.rng.uniform(lo, hi) + (self.cfg["Pace"].get("HuntHigh", 46) if kind["Pace"] == "Hunt" else 0)
+        f = {"s": s, "x": x, "y": y, "kind": kind, "tier": kind["Tier"],
+             "v": wild_speed(self.cfg, kind, self.pace(s)), "tamed": False}
         self.fish.append(f)
+        self.grid.setdefault(int(s // 100), []).append(f)
         return f
 
-    @staticmethod
-    def near(f, rider, radius):
-        return rider is not None and math.hypot(f["s"] - rider["s"], f["x"] - rider["x"]) < radius
-
-    def top_up(self, limit, rider):
+    def refresh(self, rider_s, dt_since):
+        """Every Spawn.TopUpEvery: the far fish swim on as numbers, the stock is put right out of sight, and the list of
+        fish near the rider is made again."""
         sp = self.cfg["Spawn"]
-        per = [0] * len(self.slices)
-        for f in self.fish:
-            if f["slice"] is not None and not f["ridden"]:
-                per[f["slice"]] += 1
-        total, made = len(self.fish), 0
-        while made < limit and total < sp["MaxTotal"]:
-            best, best_score = None, 0
-            for i, sl in enumerate(self.slices):
-                if per[i] < sl["Want"]:
-                    score = (sl["Want"] - per[i]) / sl["Want"] + self.rng.random() * 0.01
-                    if score > best_score:
-                        best, best_score = i, score
-            if best is None or not self.spawn(best, rider):
-                break
-            per[best] += 1
-            total += 1
-            made += 1
+        lane = self.lane
+        live = [lane["Start"][z] - sp.get("LiveReach", 1500) <= rider_s <= lane["End"][z] + sp.get("LiveReach", 1500) for z in range(self.lands)]
+        clear = sp.get("SightClear", 500)
+        near_ids = {id(f) for f in self.near}
+        count = [0] * len(self.slices)
         keep = []
+        starts = [sl["Start"] for sl in self.slices]
         for f in self.fish:
-            if f["ridden"]:
-                keep.append(f)
+            z = land_at(lane, f["s"])
+            if id(f) not in near_ids and live[z]:
+                f["s"] += f["v"] * dt_since
+            if f["s"] >= lane["Length"]:
                 continue
-            old, now = f["slice"], self.slice_at(f["s"])
-            if now != old:
-                if old is not None:
-                    per[old] -= 1
-                if now is not None:
-                    per[now] += 1
-                f["slice"] = now
-            zone = land_at(self.lane, f["s"]) + 1
-            strayed = zone > f["kind"]["Home"] + f["kind"]["Reach"]
-            over = now is None or strayed or per[now] > self.slices[now]["Want"] + 1
-            if over and not self.near(f, rider, 250):
-                if now is not None:
-                    per[now] -= 1
-                continue
-            f["parked"] = not self.near(f, rider, sp["StreamRadius"])
+            z = land_at(lane, f["s"])
+            f["v"] = wild_speed(self.cfg, f["kind"], self.pace(f["s"]))
+            far = abs(f["s"] - rider_s) >= clear
+            if far and live[z] and z + 1 > f["kind"]["Home"] + max(f["kind"]["Reach"], 0):
+                continue  # swum out of its lands, out of sight
+            lo, hi = 0, len(starts) - 1
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if starts[mid] <= f["s"]:
+                    lo = mid
+                else:
+                    hi = mid - 1
+            f["slice"] = lo
+            count[lo] += 1
             keep.append(f)
         self.fish = keep
+        self.grid = {}
+        for f in keep:
+            self.grid.setdefault(int(f["s"] // 100), []).append(f)
+        span = int(sp.get("Window", 2))
+        made = 0
+        order = list(range(len(self.slices)))
+        self.rng.shuffle(order)
+        for i in order:
+            sl = self.slices[i]
+            if not live[sl["Zone"]]:
+                continue
+            a, b = max(0, i - span), min(len(self.slices), i + span + 1)
+            have, want = sum(count[a:b]), sum(s["Want"] for s in self.slices[a:b])
+            middle = (sl["Start"] + sl["End"]) / 2
+            far = abs(middle - rider_s) >= clear + sp["Slice"] / 2
+            if (have < want and count[i] < sl["Want"] and made < sp.get("PerTopUp", 6) and (far or i == 0)
+                    and len(self.fish) < sp["MaxTotal"]):
+                self.spawn(i, at_start=(i == 0 and not far))
+                count[i] += 1
+                made += 1
+            elif far and have > want * (1 + sp.get("OverBy", 0.3)) and have - want >= 2 and count[i] > sl["Want"]:
+                victim = next((f for f in self.fish if f.get("slice") == i and abs(f["s"] - rider_s) >= clear), None)
+                if victim:
+                    self.fish.remove(victim)
+                    count[i] -= 1
+        self.near = [f for f in self.fish if -700 <= f["s"] - rider_s <= 1400]
 
     def step(self, dt):
-        for f in self.fish:
-            if not f["parked"] and not f["ridden"]:
-                f["s"] += f["speed"] * dt
+        for f in self.near:
+            f["s"] += f["v"] * dt
 
 
-def dive(cfg, lane, rng, policy, sit, max_oxygen, props_every=0.0, dt=0.1, endless=False, air=None, react=None, screen=0.0,
-         tame=False):
-    """One dive. The rider sits `sit` seconds on each fish, or until LEAVE seconds are left on it, but never hops
-    sooner than `react` seconds after landing (on a fish that gives less, they are thrown off). They hop when a fish
-    will be ahead and in reach, and are pulled onto one `air` seconds into the hop (by default when the glide ends).
-    policy "lock": the fish the lock gives, nearest a point LOCK_AHEAD studs ahead; "rarest": the rarest in reach;
-    "far": the furthest. `screen`: the rider only chooses fish that give at least this many seconds (Config.secondsOn:
-    a fish too strong gives Oxygen.StrainTime), and waits on their fish for one. `tame`: they stay on a fish they hold
-    until it is theirs (Tame.Time), while they have a slot free (Tame.Carry)."""
-    o, j, sp = cfg["Oxygen"], cfg["Jump"], cfg["Spawn"]
-    tm = cfg["Tame"]
-    tame_on = bool(tm) and tm.get("On", 0) != 0 and not endless
-    tame_len, carry = max(tm.get("Time", 0), 0.05), tm.get("Carry", 0)
+def dive(cfg, lane, rng, max_oxygen, sit=RIDE, react=REACT, green=False, tame=False, mash=False, endless=False, dt=0.05,
+         limit=1500.0, late=0.0, best=False):
+    """One dive. The rider sits `sit` seconds on a fish they hold (or until LEAVE seconds are left), never hopping
+    sooner than `react` after a landing; on a red fish they hop as soon as they can. They turn the hop toward a fish
+    that will be in reach (up to STEER degrees off the lane). The pull-in takes a fish in reach from the glide's end
+    (`mash`: from Jump.MinFlight, Space held). `green`: they choose a fish they hold when one is in reach, and take a
+    red one only when the hop is about to run out. `tame`: they stay on a fish they hold until it is theirs. `best`:
+    a full bag keeps the best Tame.Carry (not built: today a tame past them is not kept). `late`: the chance, on each
+    red fish, that they are too slow and it throws them off. Oxygen.RedRefill (not in Config: try it with --set) is
+    what a landing on a red fish gives back; without it, Oxygen.Refill."""
+    o, j, sp, tm = cfg["Oxygen"], cfg["Jump"], cfg["Spawn"], cfg["Tame"]
     order = cfg["TierOrder"]
     herd = Herd(cfg, lane, rng)
-    rider = {"s": 30.0, "x": 0.0}
-    herd.top_up(10 ** 9, rider)
-    free = [f for f in herd.fish if not f["ridden"] and f["tier"] == "Common"] or [f for f in herd.fish if not f["ridden"]]
-    mount = min(free, key=lambda f: math.hypot(f["s"] - rider["s"], f["x"])) if free else None
-    if not mount:
-        return None
-    mount["ridden"] = True
-    start_s = mount["s"]
-    rider["s"], rider["x"] = mount["s"], mount["x"]
-    lands = len(lane["Start"])
-    res = {"met": [dict.fromkeys(order, 0) for _ in range(lands)], "time": [0.0] * lands, "first": {}, "end": "the lane's end",
-           "rode": dict.fromkeys(order, 0.0), "hops": 0, "props": 0, "caught": [], "tames": 0, "full_at": None}
-
-    def ok(f, at_s=None):
-        """Whether a rider who screens would choose this fish (judged by the land it will be in)."""
-        if endless or screen <= 0:
-            return True
-        return seconds_on(cfg, land_at(lane, f["s"] if at_s is None else at_s), f["tier"], max_oxygen) >= screen
-
-    # too strong for us? Judged once, at the mount, by the land the fish is in (RideService.mount)
-    mount_land = land_at(lane, mount["s"])
-    strain_now = not endless and strained(cfg, mount_land, mount["tier"], max_oxygen)
-    tame_t, stayed = 0.0, False  # stayed: the rider stayed on this fish to make it theirs
+    lands = herd.lands
+    tame_on = bool(tm) and tm.get("On", 0) != 0 and not endless
+    tame_len, carry = max(tm.get("Time", 0), 0.05), tm.get("Carry", 0)
+    ramp = max(cfg["Ride"].get("RampTime", 0.4), 0.01)
+    angry_at, angry_in = o.get("AngryAt", 0), max(cfg["Angry"].get("EaseIn", 0.5), 0.01)
+    heat_from = cfg["Angry"].get("HeatFrom", 0.75)
+    herd.refresh(30.0, 0.0)
+    first = [f for f in herd.near if f["s"] < 250 and f["kind"]["Pace"] != "Hunt" and holds(cfg, 0, f["tier"], max_oxygen)] \
+        or [f for f in herd.near if f["kind"]["Pace"] != "Hunt"]
+    mount = min(first, key=lambda f: abs(f["s"] - 30))
+    rider = {"s": mount["s"], "x": mount["x"], "y": mount["y"]}
+    start_s = rider["s"]
+    res = {"end": "the lane's end", "hops": 0, "red": 0, "caught": [], "earn": 0.0, "full_at": None, "time": [0.0] * lands,
+           "first_red": None, "red_run": 0, "red_best": 0}
     oxygen = max_oxygen
-    t, since_top, since_hop, since_prop = 0.0, 0.0, 0.0, 0.0
-    state, air_left, air_at = "ride", 0.0, 0.0
-    left, pop, glide = None, 0.0, 0.0
-    reach = j["GrabRange"]
-    grab_at = j["LaunchTime"] + j["FloatTime"] if air is None else air
+    t, since_top, since_land, angry_t = 0.0, 0.0, 0.0, 0.0
+    state = "ride"
+    mount_land = land_at(lane, mount["s"])
+    red = not endless and strained(cfg, mount_land, mount["tier"], max_oxygen)
+    tame_t, stayed, from_v = 0.0, False, mount["v"]
+    hp, air_t, left, speed_now = None, 0.0, None, mount["v"]
+    turn_c, turn_s, slow = 1.0, 0.0, False
+    steer = math.radians(STEER)
+    red_refill = o.get("RedRefill", o["Refill"])
+    profiles = {}
+    worth = {tier: worth_mean(cfg, tier) for tier in order}
 
-    def gap(f):
-        return math.hypot(f["s"] - rider["s"], f["x"] - rider["x"])
+    def ok(f, at_s):
+        return holds(cfg, land_at(lane, at_s), f["tier"], max_oxygen)
 
-    while rider["s"] < lane["Length"] - 5 and t < 3600:
+    def gap(f, rs, rx, ry, ahead=0.0):
+        return math.sqrt((f["s"] + f["v"] * ahead - rs) ** 2 + (f["x"] - rx) ** 2 + (f["y"] - ry) ** 2)
+
+    while rider["s"] < lane["Length"] - 5 and t < limit:
         z = land_at(lane, rider["s"])
         res["time"][z] += dt
         herd.step(dt)
         if state == "ride":
-            v = ridden(cfg, mount["kind"])
-            # the fish comes up from the herd's pace to its ridden speed over Ride.RampTime
-            ramp = min(since_hop / cfg["Ride"]["RampTime"], 1) if cfg["Ride"]["RampTime"] > 0 else 1
-            now = v * herd.share + (v - v * herd.share) * (1 - (1 - ramp) ** 2)
-            rider["s"] += now * dt
-            mount["s"], rider["x"] = rider["s"], mount["x"]
-            res["rode"][mount["tier"]] += dt
-            cost = drain(cfg, z, mount["tier"])
-            if strain_now:
-                cost = max_oxygen / o["StrainTime"]  # the whole meter in StrainTime, whatever the fish
+            kind = mount["kind"]
+            v = kind["Speed"]
+            cost = drain_of(cfg, z, kind)
+            if red:
+                cost = max_oxygen / o["StrainTime"]
+            low = red or (not endless and oxygen <= max_oxygen * angry_at * (cfg["Arch"]["Tank"].get("AngryAt", 1) if "Tank" in kind["Arch"] else 1))
+            angry_t = min(angry_t + dt, angry_in) if low else max(angry_t - dt, 0.0)
+            heat = 1.0 if red else clamp(1 - oxygen / max(max_oxygen * angry_at, 1e-9))
+            keep = 1 - (1 - ANGRY_KEEP) * (heat_from + (1 - heat_from) * heat) * (angry_t / angry_in) if angry_t > 0 else 1
+            up = 1 - (1 - min(since_land / ramp, 1)) ** 2
+            speed_now = (from_v + (v - from_v) * up) * keep
+            rider["s"] += speed_now * dt
+            mount["x"] -= max(-DRIFT * dt, min(DRIFT * dt, mount["x"]))
+            mount["s"], rider["x"], rider["y"] = rider["s"], mount["x"], mount["y"]
             if not endless:
                 oxygen -= cost * dt
-                if props_every > 0:
-                    since_prop += dt
-                    if since_prop >= props_every:
-                        since_prop = 0.0
-                        res["props"] += 1
-                        oxygen = max(min(oxygen, cfg["Crash"]["Floor"]), oxygen - max_oxygen * cfg["Props"]["Cost"])
-                # the game's order: the drain, then the tame, then the throw (a tame that fills on the last tick counts)
-                if tame_on and not strain_now and not mount.get("tamed"):
+                if tame_on and not red and not mount["tamed"]:
                     tame_t += dt
                     if tame_t >= tame_len - 1e-9:
                         mount["tamed"] = True
-                        res["tames"] += 1
+                        gain = income_of(cfg, kind["Home"] - 1, kind["Tier"], worth[kind["Tier"]])
                         if len(res["caught"]) < carry:
-                            res["caught"].append(mount["tier"])
+                            res["caught"].append((gain, mount["tier"]))
                             if len(res["caught"]) >= carry:
                                 res["full_at"] = t
+                        elif best and gain > min(res["caught"])[0]:
+                            res["caught"].remove(min(res["caught"]))
+                            res["caught"].append((gain, mount["tier"]))
                 if oxygen <= 0:
-                    # thrown off: a fish too strong, a fish ridden on over a border, a fish that never gave time to hop,
-                    # or a fish that did and no other (that the rider would choose) came in reach
-                    short = max_oxygen / cost < max(j["Cooldown"], react or 0) + 0.05
-                    if strain_now:
-                        res["end"] = "landed on a fish too strong for them"
-                    elif stayed and mount.get("tamed") and z == mount_land:
-                        res["end"] = "thrown off the fish they had just made theirs"
-                    elif z != mount_land:
-                        res["end"] = "rode over the next land's border and ran out there"
-                    elif short:
-                        res["end"] = "thrown off a fish that gave no time to hop"
-                    else:
-                        res["end"] = "no fish in reach before the time ran out"
+                    res["end"] = ("too slow off a red fish" if red and slow else "ran out on a red fish" if red
+                                  else "ran out on the fish just made theirs" if stayed and mount["tamed"]
+                                  else "rode over the next land's border and ran out" if z != mount_land else "ran out waiting for a fish in reach")
                     break
-            since_hop += dt
-            pop, glide, far, _ = hop(cfg, v, grab_at)
-            # a rider looks before hopping (the lock shows while riding): they go when their time is up, or their Oxygen
-            # nearly is, and a fish will be ahead and in reach when the pull-in can begin; until then they ride on
-            due = since_hop >= sit or (not endless and oxygen <= cost * LEAVE)
-            if tame and tame_on and not strain_now and not mount.get("tamed") and len(res["caught"]) < carry:
-                due, stayed = False, True  # staying on until it is theirs
-            if due and since_hop >= max(j["Cooldown"], react or 0) and any(
-                    not f["parked"] and f is not mount and -5 <= f["s"] + f["speed"] * grab_at - rider["s"] - far <= reach
-                    and math.hypot(f["s"] + f["speed"] * grab_at - rider["s"] - far, f["x"] - rider["x"]) <= reach * 0.9
-                    and ok(f, f["s"] + f["speed"] * grab_at)
-                    for f in herd.fish):
-                state, air_left, air_at, since_hop = "air", j["Window"], 0.0, 0.0
-                mount["ridden"] = False
-                left, mount = mount, None
+            since_land += dt
+            left_s = oxygen / cost if not endless else 99.0
+            if red:
+                due = not slow
+            else:
+                due = since_land >= sit or left_s <= LEAVE
+                worth_it = (len(res["caught"]) < carry
+                            or best and income_of(cfg, kind["Home"] - 1, kind["Tier"], worth[kind["Tier"]]) > min(res["caught"])[0])
+                if tame and tame_on and not mount["tamed"] and worth_it and left_s > 0.12:
+                    due, stayed = False, True
+            lock = j.get("StrainLock", 0) if red else j.get("Cooldown", 0) / 2
+            if due and since_land >= max(lock, react):
+                key = (round(speed_now), kind["Id"])
+                hp = profiles.get(key)
+                if hp is None:
+                    hp = profiles[key] = hop_profile(cfg, speed_now, kind, dt)
+                # turn the hop toward a fish that will be in reach as the glide ends or in the drop (with Space held: at
+                # once, the furthest); or go straight and blind, when the time is nearly up
+                pick, pick_score = None, None
+                times = (j.get("MinFlight", 0.15) + dt,) if mash else (hp["glide"], (hp["glide"] + hp["window"]) / 2)
+                for at in times:
+                    row = hp["rows"][int(at / dt)]
+                    for f in herd.near:
+                        if f is mount:
+                            continue
+                        ds, dx = f["s"] + f["v"] * at - rider["s"], f["x"] - rider["x"]
+                        if ds <= 0:
+                            continue
+                        angle = math.atan2(dx, ds)
+                        if abs(angle) > steer:
+                            continue
+                        flat = math.hypot(ds, dx) - row[0]
+                        if math.sqrt(flat * flat + (f["y"] - rider["y"] - row[2]) ** 2) > row[3]:
+                            continue
+                        held = red or not green or ok(f, f["s"] + f["v"] * at)
+                        score = (0 if held else 1, -ds if mash else abs(angle))
+                        if pick_score is None or score < pick_score:
+                            pick, pick_score = angle, score
+                    if pick is not None and pick_score[0] == 0:
+                        break
+                go = pick is not None and (pick_score[0] == 0 or left_s <= 0.5)
+                if not go and (left_s <= 0.2 or endless and since_land >= sit + 2):
+                    go, pick = True, (pick or 0.0)
+                if go:
+                    state, air_t, left = "air", 0.0, mount
+                    base_s, base_x, base_y = rider["s"], rider["x"], rider["y"]
+                    turn_c, turn_s = math.cos(pick), math.sin(pick)
+                    mount = None
         else:
-            # the hop: the pop easing to the glide; the pull-in begins `grab_at` seconds in if a fish is in reach
-            rider["s"] += hop_speed(cfg, pop, glide, air_at + dt / 2) * dt
-            air_at += dt
-            air_left -= dt
-            if air_at >= grab_at:
-                options = [f for f in herd.fish if not f["parked"] and f is not left and f["s"] >= rider["s"] - 5 and gap(f) <= reach]
-                if options:
-                    fits = [f for f in options if ok(f)] or options
-                    if policy == "rarest":
-                        target = min(fits, key=lambda f: (-order.index(f["tier"]), gap(f)))
-                    elif policy == "far":
-                        target = max(fits, key=lambda f: f["s"])
-                    else:
-                        target = min(fits, key=lambda f: abs(f["s"] - rider["s"] - LOCK_AHEAD) + abs(f["x"] - rider["x"]))
-                    reel = reel_time(cfg, gap(target))
+            air_t += dt
+            row = hp["rows"][min(int(air_t / dt), len(hp["rows"]) - 1)]
+            rider["s"] = base_s + row[0] * turn_c
+            rider["x"] = base_x + row[0] * turn_s
+            rider["y"] = max(base_y + row[2], j.get("FloorClearance", 4))
+            if air_t >= (j.get("MinFlight", 0.15) if mash else hp["glide"]):
+                reach = row[3]
+                cands = [f for f in herd.near if f is not left and gap(f, rider["s"], rider["x"], rider["y"]) <= reach]
+                if green and not endless:
+                    held = [f for f in cands if ok(f, f["s"])]
+                    cands = held or (cands if air_t >= hp["window"] - 0.3 else [])
+                back = False
+                if not cands and not mash and gap(left, rider["s"], rider["x"], rider["y"]) <= reach and (
+                        not green or endless or air_t >= hp["window"] - 0.3):
+                    cands, back = [left], True
+                if cands:
+                    def aim(f):
+                        ds = f["s"] - rider["s"]
+                        off = math.atan2(math.hypot(f["x"] - rider["x"], f["y"] - rider["y"]), max(ds, 1.0))
+                        return off + (math.pi if ds < -5 else 0)
+                    target = cands[0] if back else min(cands, key=aim)
+                    reel = reel_time(cfg, gap(target, rider["s"], rider["x"], rider["y"]))
                     herd.step(reel)
                     t += reel
                     res["time"][z] += reel
                     mount, state = target, "ride"
-                    mount["ridden"] = True
-                    rider["s"], rider["x"] = mount["s"], mount["x"]
+                    rider["s"], rider["x"], rider["y"] = mount["s"], mount["x"], mount["y"]
                     res["hops"] += 1
-                    oxygen = min(max_oxygen, oxygen + max_oxygen * o["Refill"])
                     mount_land = land_at(lane, mount["s"])
-                    strain_now = not endless and strained(cfg, mount_land, mount["tier"], max_oxygen)
-                    tame_t, stayed = (tame_len if mount.get("tamed") else 0.0), False
-                elif air_left <= 0:
-                    res["end"] = "missed every fish"
+                    red = not endless and strained(cfg, mount_land, mount["tier"], max_oxygen)
+                    if back:
+                        res["back"] = res.get("back", 0) + 1  # onto the fish we left: nothing back
+                    else:
+                        oxygen = min(max_oxygen, oxygen + max_oxygen * (red_refill if red else o["Refill"]))
+                    slow = red and late > 0 and rng.random() < late
+                    if red:
+                        res["red"] += 1
+                        res["red_run"] += 1
+                        res["red_best"] = max(res["red_best"], res["red_run"])
+                        if res["first_red"] is None:
+                            res["first_red"] = (t, rider["s"])
+                    else:
+                        res["red_run"] = 0
+                    tame_t, stayed = (tame_len if mount["tamed"] else 0.0), False
+                    since_land, angry_t, from_v = 0.0, 0.0, mount["v"]
+                elif air_t >= hp["window"]:
+                    res["end"] = "missed every fish in a hop"
                     break
-        # who is within reach now
-        for f in herd.fish:
-            if not f["seen"] and not f["parked"] and not f["ridden"] and abs(f["s"] - rider["s"]) <= reach and gap(f) <= reach:
-                f["seen"] = True
-                res["met"][z][f["tier"]] += 1
-                res["first"].setdefault(f["tier"], t)
         t += dt
         since_top += dt
         if since_top >= sp["TopUpEvery"]:
+            herd.refresh(rider["s"], since_top)
             since_top = 0.0
-            herd.top_up(int(sp["PerTopUp"]), rider)
+    res["earn"] = sum(g for g, _ in res["caught"])
+    res["caught"] = [tier for _, tier in res["caught"]]
     res["seconds"], res["reached"], res["s"] = t, land_at(lane, rider["s"]), rider["s"]
     res["pace"] = (rider["s"] - start_s) / t if t > 0 else 0
     return res
 
 
-def sim(cfg, lane, out, runs, seed, your_max, dives_only=False):
-    order = cfg["TierOrder"]
-    lands = len(lane["Start"])
-    o, j = cfg["Oxygen"], cfg["Jump"]
-    riders = [] if dives_only else [
-        (f"the fish the lock gives, {RIDE:g} s on each", "lock", RIDE, None),
-        (f"rarest fish in reach, {RIDE:g} s on each", "rarest", RIDE, None),
-        (f"furthest fish in reach, {RIDE:g} s on each", "far", RIDE, None)]
-    for label, policy, sit, air in riders:
-        rng = random.Random(seed)
-        all_runs = [r for r in (dive(cfg, lane, rng, policy, sit, your_max, endless=True, air=air) for _ in range(runs)) if r]
-        out.title(f"Played through the herd, endless air: {label}", f"{len(all_runs)} dives. Fish of each rarity that came within reach "
-                  f"(Jump.GrabRange) a minute, by land; then the seconds into the dive at which the first of each rarity did.")
-        head = ["Land", "Seconds in it"] + order + ["All"]
-        rows = []
-        for z in range(lands):
-            total = sum(r["time"][z] for r in all_runs)
-            if total <= 0:
-                continue
-            per = [sum(r["met"][z][t] for r in all_runs) / total * 60 for t in order]
-            rows.append([f"{z + 1} {lane['Names'][z]}", n(total / len(all_runs))] + [n(v, 1) if v > 0 else "" for v in per] + [n(sum(per), 1)])
-        out.table(head, rows)
-        firsts = []
-        for tier in order:
-            times = sorted(r["first"][tier] for r in all_runs if tier in r["first"])
-            if times:
-                firsts.append(f"{tier} {times[len(times) // 2]:.0f} s ({len(times)} of {len(all_runs)} dives)")
-        rode = {tier: sum(r["rode"][tier] for r in all_runs) for tier in order}
-        total = sum(rode.values()) or 1
-        ends = {}
-        for r in all_runs:
-            ends[r["end"]] = ends.get(r["end"], 0) + 1
-        if out.md:
-            print()
-        print("First within reach (the middle dive): " + "; ".join(firsts) + ".")
-        print("Time ridden by rarity: " + ", ".join(f"{tier} {rode[tier] / total * 100:.0f}%" for tier in order if rode[tier] > 0)
-              + f". The dive took {sum(r['seconds'] for r in all_runs) / len(all_runs) / 60:.1f} minutes on average, at "
-              + f"{sum(r['pace'] for r in all_runs) / len(all_runs):.0f} studs a second; ended: " + ", ".join(f"{k} {v}" for k, v in ends.items()) + ".")
+def spread(values):
+    v = sorted(values)
+    return v[len(v) // 2], v[max(int(len(v) * 0.9) - 1, 0)], v[-1]
 
-    pool_list = pools(cfg, lands)
-    usual = [commonest(cfg, effective_mix(cfg, pool_list[z], z)) for z in range(lands)]
-    players = [("a new player", o["StartMax"], 0)] + [(f"at home in land {z + 1}", drain(cfg, z, usual[z]) * HOME, z) for z in (1, 2, 4)]
-    if your_max != o["StartMax"]:
-        players = [(f"{your_max:,.0f} max Oxygen", your_max, max(z for z in range(lands) if drain(cfg, z, usual[z]) * HOME <= your_max or z == 0))]
-    strain = o.get("StrainTime", 0)
-    tm = cfg["Tame"]
-    reads = (f"only fish they can hold (the green tags), waiting on their fish for one" if strain > 0
-             else f"only fish that give {TAGS:g} s or more, when one is in reach")
-    out.title("How far a max Oxygen gets", f"Endless air off. Each line is a player and a way of riding. \"At ease\": on each fish "
-              f"until {LEAVE:g} s are left ({RIDE:g} s at most), never hopping sooner than {REACT:g} s after a landing, onto the fish "
-              f"the lock gives (about {LOCK_AHEAD} studs ahead). \"Reads the tags\": {reads}. \"And tames\": stays on each fish "
-              f"they hold until it is theirs (Tame.Time {tm.get('Time', 0):g} s), while a slot is free (Tame.Carry {tm.get('Carry', 0):g}). "
-              f"\"Space held\": a hop the moment the cooldown ends and a grab at once, only fish that give {MIN_SIT:g} s or more. "
-              f"{runs} dives each. \"On a fish too strong\": dives that ended by landing on one, and how many of those were "
-              "before the next land's door (in the lands the player can hold). \"Caught\": fish brought home a "
-              "dive, and the rarest of them in any dive. \"Slots full\": dives that filled every slot, and the seconds into the dive "
-              "when they did.")
-    head = ["Player", "Max Oxygen", "Rider", "Lasts (s)", "Studs", "Ends in land", "On a fish too strong", "Hops landed",
-            "Caught", "Slots full", "How it ended"]
-    rows = []
-    screen_tags = o["KeepUp"] if strain > 0 else TAGS
-    ways = [("at ease", "lock", RIDE, None, REACT, 0.0, False), ("at ease, reads the tags", "lock", RIDE, None, REACT, screen_tags, False),
-            ("reads the tags and tames", "lock", RIDE, None, REACT, screen_tags, True),
-            ("Space held", "lock", j["Cooldown"], j["MinFlight"], None, MIN_SIT, False)]
-    for who, max_oxygen, home in players:
-        for label, policy, sit, air, react, screen, tame in ways:
+
+def ends_of(rs):
+    ends = {}
+    for r in rs:
+        ends[r["end"]] = ends.get(r["end"], 0) + 1
+    return ", ".join(f"{k} {v}" for k, v in sorted(ends.items(), key=lambda kv: -kv[1]))
+
+
+def sim(cfg, lane, out, runs, seed):
+    w = world(cfg, lane)
+    lands, home = w["lands"], w["home"]
+    o, j, tm = cfg["Oxygen"], cfg["Jump"], cfg["Tame"]
+    order = cfg["TierOrder"]
+
+    rng = random.Random(seed)
+    free = [dive(cfg, lane, rng, 1.0, endless=True) for _ in range(max(4, runs // 4))]
+    out.title("A ride down the whole lane with endless air", f"{len(free)} rides, {RIDE:g} s on each fish. Seconds in each land "
+              "and the ground made a second (riding and hopping together), against the land's pace. Only rides that crossed "
+              "the whole land are counted in its line.")
+    rows, total = [], 0.0
+    for z in range(lands):
+        through = [r for r in free if r["reached"] > z or r["end"] == "the lane's end"]
+        secs_in = sum(r["time"][z] for r in through) / len(through) if through else 0
+        total += secs_in
+        length = lane["End"][z] - lane["Start"][z]
+        rows.append([w["name"][z], n(secs_in), n(length / secs_in) if secs_in else "",
+                     n(cfg["LandPace"][min(z, len(cfg["LandPace"]) - 1)]), f"{len(through)} of {len(free)}"])
+    rows.append(["All ten", n(total), n(lane["Length"] / total) if total else "", "", ""])
+    out.table(["Land", "Seconds in it", "Studs a second", "The land's pace", "Rides that crossed it"], rows)
+    out.line(f"Hops landed a ride: {sum(r['hops'] for r in free) / len(free):.0f}. Ended: {ends_of(free)}.")
+
+    ways = [("at ease, takes what the lock gives", dict()),
+            ("chooses green fish and tames", dict(green=True, tame=True)),
+            ("the same, with a bag that keeps its best seven", dict(green=True, tame=True, best=True)),
+            ("Space held", dict(sit=j.get("Cooldown", 0.08), react=0.0, mash=True))]
+    players = [("a new player", o["StartMax"], 0)] + [(f"at home in land {z + 1}", home[z], z) for z in (1, 2, 3, 4)]
+    out.title("How a dive goes today", f"Endless air off. \"At ease\": on each fish they hold until {LEAVE:g} s are left ({RIDE:g} s "
+              f"at most), never hopping sooner than {REACT:g} s after a landing; off a red fish at {REACT:g} s. \"Chooses green "
+              "fish and tames\": turns the hop to a fish they hold when one will be in reach, takes a red one only when none is, "
+              f"and stays on each fish they hold until it is theirs (Tame.Time {tm.get('Time', 0):g} s) while a slot is free "
+              f"(Tame.Carry {tm.get('Carry', 0):g}). \"A bag that keeps its best seven\": not built; they go on taming whatever "
+              f"beats the cheapest fish carried. \"Space held\": a hop the moment it is allowed and a grab {j.get('MinFlight', 0):g} "
+              f"s in. {runs} dives each. The model's rider never presses late and never misses an aim, so a dive here ends only "
+              "for want of a fish. \"Studs\" and \"Ends in land\": the middle dive, the best of ten, the best. \"Red landings\": "
+              "on a fish too strong, a dive. \"Catch earns\": the coins a second the dive's catch adds to a tank, sizes and "
+              "colours averaged.")
+    head = ["Player", "Max Oxygen", "Rider", "Lasts (s)", "Studs", "Ends in land", "Past their own land", "Hops landed", "Red landings",
+            "Caught", "Catch earns /s", "Slots full", "How it ended"]
+    rows, kept = [], {}
+    for who, max_oxygen, own in players:
+        for label, kw in ways:
             rng = random.Random(seed)
-            rs = [r for r in (dive(cfg, lane, rng, policy, sit, max_oxygen, air=air, react=react, screen=screen, tame=tame)
-                              for _ in range(runs)) if r]
-            lands_hit = sorted(r["reached"] + 1 for r in rs)
-            ends = {}
-            for r in rs:
-                ends[r["end"]] = ends.get(r["end"], 0) + 1
+            rs = [dive(cfg, lane, rng, max_oxygen, **kw) for _ in range(runs)]
+            kept[(who, label)] = rs
             caught = [t for r in rs for t in r["caught"]]
-            best = max(caught, key=order.index) if caught else ""
+            top = max(caught, key=order.index) if caught else ""
             full = [r["full_at"] for r in rs if r["full_at"] is not None]
-            rows.append([who, big(max_oxygen), label, n(sum(r["seconds"] for r in rs) / len(rs)), n(sum(r["s"] for r in rs) / len(rs)),
-                         f"{lands_hit[0]} to {lands_hit[-1]}" if lands_hit[0] != lands_hit[-1] else lands_hit[0],
-                         f"{sum(1 for r in rs if r['end'].startswith('landed on a fish too strong'))} of {len(rs)}, "
-                         f"{sum(1 for r in rs if r['end'].startswith('landed on a fish too strong') and r['reached'] <= home)} before the door",
-                         n(sum(r["hops"] for r in rs) / len(rs)),
-                         f"{len(caught) / len(rs):.1f}" + (f" (to {best})" if best else ""),
-                         f"{len(full)} of {len(rs)}" + (f", {sum(full) / len(full):.0f} s in" if full else ""),
-                         ", ".join(f"{k} {v}" for k, v in sorted(ends.items(), key=lambda kv: -kv[1]))])
+            earn = sum(r["earn"] for r in rs) / len(rs)
+            rows.append([who, big(max_oxygen), label, n(sorted(r["seconds"] for r in rs)[len(rs) // 2]),
+                         " / ".join(n(v) for v in spread([r["s"] for r in rs])),
+                         " / ".join(str(v) for v in spread([r["reached"] + 1 for r in rs])),
+                         f"{sum(1 for r in rs if r['reached'] > own)} of {len(rs)}", n(sum(r["hops"] for r in rs) / len(rs)),
+                         n(sum(r["red"] for r in rs) / len(rs), 1),
+                         f"{len(caught) / len(rs):.1f}" + (f" (to {top})" if top else ""),
+                         big(earn) if earn >= 100 else n(earn, 1),
+                         f"{len(full)} of {len(rs)}" + (f", {sum(full) / len(full):.0f} s in" if full else ""), ends_of(rs)])
     out.table(head, rows)
+
+    start = o["StartMax"]
+    no_refill = dict(cfg, Oxygen=dict(o, RedRefill=0))
+    half_refill = dict(cfg, Oxygen=dict(o, RedRefill=0.5))
+    mash = dict(sit=j.get("Cooldown", 0.08), react=0.0, mash=True)
+    cases = [("Today: at ease", cfg, dict()), ("Today: at ease, too slow off one red fish in ten", cfg, dict(late=0.1)),
+             ("Today: at ease, too slow off one in four", cfg, dict(late=0.25)), ("Today: Space held", cfg, mash),
+             ("If a red landing gave half the meter back: at ease", half_refill, dict()),
+             ("If a red landing gave half the meter back: Space held", half_refill, mash),
+             ("If a red landing gave nothing back: at ease", no_refill, dict()),
+             ("If a red landing gave nothing back: Space held", no_refill, mash)]
+    out.title("How far down a new player gets by chaining red fish", f"{start:g} max Oxygen: every fish past the Shallows is red, "
+              f"gives {o.get('StrainTime', 0):g} s, and today the landing gives the whole meter back. The share of {runs} dives "
+              "that got into each land. Nothing is caught past the Shallows. The last lines try a rule that is not in the game: "
+              "a landing on a red fish gives back less (Oxygen.RedRefill in the model).")
+    rows = []
+    for label, c, kw in cases:
+        rng = random.Random(seed)
+        rs = [dive(c, lane, rng, start, **kw) for _ in range(runs)]
+        rows.append([label] + [pct(sum(1 for r in rs if r["reached"] >= z) / len(rs)) or "0%" for z in range(1, lands)]
+                    + [pct(sum(1 for r in rs if r["end"] == "the lane's end") / len(rs)) or "0%",
+                       n(spread([r["s"] for r in rs])[0]), n(sum(r["red"] for r in rs) / len(rs), 1),
+                       n(sum(r["seconds"] for r in rs) / len(rs)), ends_of(rs)])
+    out.table(["Rider"] + [f"Land {z + 1}" for z in range(1, lands)] + ["The lane's end", "Studs, the middle dive", "Red landings",
+                                                                       "Lasts (s), mean", "How it ended"], rows)
 
 
 def main():
-    global PLAN_MINUTES, HOME, SCRAPE, RIDE
+    global PLAN_MINUTES, HOME, RIDE, SIT_SHARE
     p = argparse.ArgumentParser(description="Ride a Fish balance model")
     p.add_argument("--md", action="store_true", help="markdown tables")
     p.add_argument("--sim", type=int, default=0, metavar="N", help="play N dives per rider through the herd")
-    p.add_argument("--dives", action="store_true", help="with --sim: only the \"How far a max Oxygen gets\" table")
+    p.add_argument("--dives", action="store_true", help="with --sim: only the dives' tables")
+    p.add_argument("--prices", action="store_true", help="only the trainer, aura and tank tables")
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--set", action="append", default=[], metavar="Group.Key=value", help="try a number without editing Config")
     p.add_argument("--max", type=float, default=0, help="the max Oxygen the \"seconds on a fish\" table is for (default: Oxygen.StartMax)")
     p.add_argument("--home", type=float, default=HOME, help="seconds on a land's commonest fish that count as at home there")
-    p.add_argument("--scrape", type=float, default=SCRAPE, help="seconds on it that just get you through")
     p.add_argument("--ride", type=float, default=RIDE, help="seconds a rider at ease sits on each fish")
+    p.add_argument("--sit", type=float, default=SIT_SHARE, help="the share of play time spent on the trainer")
     p.add_argument("--plan", default="", help="minutes of play by which a player should be at home in each land, ten numbers with commas")
     a = p.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     cfg = read_config()
     apply_sets(cfg, a.set)
-    HOME, SCRAPE, RIDE = a.home, a.scrape, a.ride
+    HOME, RIDE, SIT_SHARE = a.home, a.ride, a.sit
     if a.plan:
         PLAN_MINUTES = [float(v) for v in a.plan.split(",")]
     lane = read_lane()
     out = Out(a.md)
     if a.set:
         print("With: " + ", ".join(a.set))
-    your_max = a.max or cfg["Oxygen"]["StartMax"]
-    if not (a.dives and a.sim > 0):
-        tables(cfg, lane, out, your_max)
+    only = a.prices or (a.dives and a.sim > 0)
+    if not only:
+        tables(cfg, lane, out, a.max or cfg["Oxygen"]["StartMax"])
+    if a.prices or not only:
+        prices(cfg, lane, out, PLAN_MINUTES, "the old plan", SIT_SHARE)
+        prices(cfg, lane, out, [m / 2 for m in PLAN_MINUTES], "twice as fast", SIT_SHARE)
     if a.sim > 0:
-        sim(cfg, lane, out, a.sim, a.seed, your_max, a.dives)
+        sim(cfg, lane, out, a.sim, a.seed)
 
 
 if __name__ == "__main__":

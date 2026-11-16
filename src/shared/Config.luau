@@ -323,8 +323,8 @@ Config.Variant = {
 -- Huge 2.5%, Colossal 0.5% (a Rainbow Colossal: 1 in 50,000, as its Index says).
 -- The reference's size also raises what a dino needs (measured 2026-11-09: Tiny x0.8, Big x1.2, Giant x1.5), and no
 -- doubt what it earns: Config.SizeWorth holds those numbers (Huge and Colossal were never seen there: 2 and 3 are
--- ours). NOTHING READS SizeWorth YET: whether a bigger fish takes more Oxygen to hold is the user's to decide, and
--- there is no earning yet. How much BIGGER each size is can't be read off the reference: SizeScale is ours, to be
+-- ours). Since 2026-11-16 SizeWorth is what a fish EARNS in a tank, times (Config.incomeOf). It does not change
+-- what a fish needs: whether a bigger fish takes more Oxygen to hold is the user's to decide. How much BIGGER each size is can't be read off the reference: SizeScale is ours, to be
 -- judged by eye.
 -- (Hugo's size roll of 2026-11-12, 0.8 to 1.4 on a curve and speed with it, was taken out the same day. Size does not
 -- change speed here: speed is the next thing to be set.)
@@ -401,9 +401,12 @@ Config.Oxygen = {
 	KeepUp = 2, -- seconds on a fish that count as enough (6 until 2026-11-11, when it was the seconds between landings)
 	-- A fish too strong for you (the user, 2026-11-12): a landing is never refused. A fish that needs more than your
 	-- max Oxygen (Config.required, where you land on it) empties the whole meter in this many seconds, whatever the
-	-- fish, and then throws you off. Shorter than Jump.Cooldown, so it can't be hopped off in time: the number on a
-	-- fish's tag is a real bar. 0: off (the fish's own drain, as before).
-	StrainTime = 0.25,
+	-- fish, and then throws you off. 0: off (the fish's own drain, as before).
+	-- (The user, 2026-11-16, from the reference: "you end up getting around 1 second to hop off and get to the next
+	-- one. This allows players to sometimes get further than they can handle but they can't get anything real out of
+	-- it." So it is a second, and the hop off it is as free as any other (Jump.StrainLock). It is still never tamed,
+	-- so nothing is caught there. It was 0.25 with the hop held back for 0.3: a wall.)
+	StrainTime = 1,
 	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
 	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
 	-- angry here (Config.Angry, RideService). 0.3 of a new player's 2.5 s on a Shallows Common is the last 0.75 s;
@@ -473,6 +476,31 @@ Config.Tame = {
 	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
 }
 
+-- The aquarium (the user, 2026-11-16: "catches are for depositing in your aquarium, in which they then earn money").
+-- AquariumService; docs/design/aquarium.md. Every number here is Claude's first go.
+Config.Aquarium = {
+	On = 1, -- 0: no aquariums: a catch is only counted at the dock, as before
+	Earning = 7, -- how many of a tank's fish earn at once: the best ones (the reference's pen: 7 active)
+	Hold = 60, -- the most fish a tank keeps; past it the poorest are let go
+	-- What a fish earns: coins a second for each Oxygen it needs at home (Config.required: its land and rarity), times
+	-- its size's worth (Config.SizeWorth) and its colour's. A Shallows Common needs 80: 2 coins a second, the
+	-- reference's first dino.
+	PerRequired = 0.025,
+	Silver = 1.5,
+	Gold = 3,
+	Rainbow = 10,
+	Every = 1, -- seconds between payments
+	HomeAtTank = 1, -- 1: a player carrying fish wakes on the dock in front of their own tank; 0: at the dock's spawn
+	-- the earning fish, shown swimming in the tank: how many, and how long each is shown (a share of its own length,
+	-- between two lengths, so a Tiny shows and a Colossal fits)
+	Show = 7,
+	ShowShare = 0.7,
+	ShowLeast = 7,
+	ShowMost = 28,
+	SwimPace = 5, -- studs a second round its lap
+	SeeFrom = 450, -- a client moves a tank's fish only when its camera is this near
+}
+
 -- Angry mode (Hugo, 2026-11-12: "make the fishes pulse red and go into angry mode ... different fishes should have
 -- different slowdowns ... when the bar turns red"; the reference's T-rex starts jumping and its bison rocks back and
 -- forth: each animal shows in its own way that it wants you off). While you ride with the meter in its red part
@@ -528,7 +556,7 @@ Config.Dock = {
 }
 
 Config.Ride = {
-	RampTime = 1.2, -- idle to ridden speed, easing out
+	RampTime = 0.4, -- idle to ridden speed, easing out (1.2 until 2026-11-16: on a 2.5-second ride that was half the ride spent getting going; the wild herd swims at 0.7 of the land's pace now, so this is the kick of a landing)
 	Surge = 1.25, -- the burst on mount
 	SurgeTime = 0.5,
 	SlowDownTime = 2, -- back to idle once nobody rides it
@@ -536,7 +564,14 @@ Config.Ride = {
 	-- you move the camera the movement should follow, alongside A and D; that's what makes the reference feel better"):
 	-- A and D turn the camera, a drag, a stick or the mouse in the hop turn it too, and the fish, the hop and the float
 	-- come round to it. CameraSteer 0 is Movement v3.1's way: only A and D steer, and the view is free of the heading.
-	CameraSteer = 1,
+	-- CameraSteer 2 (the user, 2026-11-16: the reference's steering reads as a byproduct of plain code, ours as a
+	-- rule made on purpose) is the plain way, how any Roblox character moves: the keys mean a direction as the
+	-- camera sees it. No key: forward, where the camera looks. A and D: the camera's left and right (KeyAngle off its
+	-- look). You turn to face it at LookRate (on a fish) or SteerRate (the hop, floating). The keys never turn the
+	-- camera and the camera never pulls. 1 is the way before it: A and D turn you and the view like a wheel, and a look
+	-- pulls you round.
+	CameraSteer = 2,
+	KeyAngle = 90, -- with CameraSteer 2: how far off the camera's look A and D point, degrees. 90: straight to its side (Roblox's own); 45: forward and to the side
 	-- The control pass (Hugo, 2026-11-12: "the left right is kinda too slow and clunky, it should be smooth but you
 	-- should be able to turn faster and you should be able to steer better"). What made it clunky was three lags one
 	-- after the other: the key's own ease, then the way you go chasing the view the key had turned (it trailed a held
@@ -545,8 +580,13 @@ Config.Ride = {
 	-- hop) is chased. The same in the hop and floating (RideController.steer). Measured by script in Studio, before
 	-- and after: A held for a second turns you 129 degrees (was 73); the first 10 degrees take 0.12 s (was 0.30); let
 	-- go, you turn 9 degrees more (was 23).
-	SteerEase = 12, -- how quickly the way you go comes round to a look (higher is snappier; 6 until 2026-11-12)
+	SteerEase = 12, -- in the hop and floating: how quickly the way you go comes round to a look (higher is snappier; 6 until 2026-11-12)
 	SteerRate = 220, -- and never faster than this, degrees a second (140 until 2026-11-12)
+	-- On a fish the look pulls more gently, and a key held against it holds your line with the view left on the fish's
+	-- side (the user, 2026-11-16: the camera's hold on the turn was too strong). Until then a fish used the two numbers
+	-- above. Keep LookRate at or under YawRate, or one key can no longer hold the look off.
+	LookEase = 5, -- on a fish: how quickly the way you go comes round to a look (the pull is the gap times this, a second)
+	LookRate = 135, -- and never faster than this, degrees a second: a key at full press cancels it exactly
 	YawRate = 135, -- A and D turn you (and the view) at this rate at full press, degrees a second (95 until 2026-11-12)
 	TurnEase = 14, -- how quickly a turn comes in and stops (higher is snappier; 10 until 2026-11-12)
 	Response = 45, -- how tightly the fish's body follows the way you steer it (its turn spring; 14, the herd's, until 2026-11-12). The limits on its torque and turning speed (Lib/FishModel) are untouched
@@ -568,8 +608,8 @@ Config.Ride = {
 	StartleBrake = 0.12, -- it comes down to StartleSlow over this long at the touch
 	-- (Hugo, 2026-11-12, later: "the startle is too strong make it just slow down by like 0.8x". A wild fish swims at
 	-- 0.85 of its speed, so at 0.8 the landing is a short soft dip: 0.9 s in all, was 1.2.)
-	StartleSlow = 0.8, -- its speed for that moment, as a share of its ridden speed (0.6 until 2026-11-12)
-	StartleHold = 0.3, -- seconds it stays that slow (0.4 until 2026-11-12)
+	StartleSlow = 1, -- its speed for that moment, as a share of its ridden speed (0.6 until 2026-11-12; 0.8 until 2026-11-16, when the dip was taken out: the user wants a landing to feel faster, and a wild fish is at 0.7 already. Below 1 the dip is back)
+	StartleHold = 0.12, -- seconds it stays that slow (0.4 until 2026-11-12; 0.3 until 2026-11-16: with no dip there is nothing to hold, and the view's kick and the speed lines that come when it is over now come with the landing)
 	StartleRecover = 0.6, -- then it eases back to its ridden speed over this long (0.8 until 2026-11-12)
 }
 
@@ -584,7 +624,11 @@ Config.Jump = {
 	-- going deeper is paid for in Oxygen (Config.ZoneDrain), never in a shorter window.
 	-- (Hugo, 2026-11-12: "more airtime (just a little)". The glide is 0.2 s longer, FloatTime below, and the window
 	-- grew by the same, so the drop is as long as it was. Still one window for every land.)
-	Window = 3.2, -- seconds from leaving the fish in which to grab the next one (3.0 until 2026-11-12)
+	-- (The user, 2026-11-16: "we need a bit more air time and be pushed further by the hop off the fish". 0.3 s more air:
+	-- FloatTime 1.5 to 1.8, with Window and StopTime up by the same and SpeedHalf kept at the same share of the hop; and
+	-- more push: Launch 1.15 to 1.25, HopBoost 24 to 30. Off a 46 fish the hop leaves at 88 (77), the pull-in starts by
+	-- itself 1.94 s after the press (1.64), 154 studs on (116); off a 75 fish 124, 2.2 s and 243 studs (110, 1.9, 190).)
+	Window = 3.5, -- seconds from leaving the fish in which to grab the next one (3.0 until 2026-11-12, 3.2 until 2026-11-16)
 	Warn = 0.8, -- the HUD's timer turns red and pulses for this last part
 	-- (the user, 2026-11-11: the reference feels more automatic; match its hop one to one. There the pull-in starts by
 	-- itself about 1.7 s after the press, and a second press only brings it sooner.)
@@ -599,9 +643,10 @@ Config.Jump = {
 	-- from the server it is all that is left of the lock. The server asks half of it after its own mount. It was 0.3
 	-- from the mount, most of the landing's reaction. The second hook stays shut by HopGuard (below), not by this.
 	Cooldown = 0.08, -- seconds from the touch (the pull-in's end) before the next hop; 0.3 from the mount until 2026-11-13
-	-- (One landing keeps the old wait: on a fish too strong for you. Its meter empties in Oxygen.StrainTime, 0.25 s,
-	-- and this must be longer, or a fish you can't hold is a stepping stone with a refill: the progression's bar.)
-	StrainLock = 0.3, -- seconds from the mount before a hop off a fish too strong for you (keep it above Oxygen.StrainTime)
+	-- (A fish too strong for you had the old wait until 2026-11-16, longer than its meter took to empty, so it could
+	-- not be hopped off. The user, from the reference: you get about a second and may hop on. So it is the plain wait
+	-- now, and the fish is a stepping stone that gives you nothing to keep: Oxygen.StrainTime.)
+	StrainLock = 0.08, -- seconds from the mount before a hop off a fish too strong for you (0.3 until 2026-11-16)
 	InputGap = 0.2, -- seconds between JumpRequest repeats that count as a new press
 	-- The shape, from the user's side-on recording (2026-11-10): a quick pop up (about 0.3 s), then a long flat glide
 	-- lying face down, sinking hardly at all.
@@ -616,8 +661,8 @@ Config.Jump = {
 	-- fast but in like a slowmo mode, still faster than right now". Launch 0.85 to 1.15 and HopBoost 15 to 24: the hop
 	-- leaves about 40% faster (49 to 70 off a 40 fish, 78 to 109 off a 74, 132 to 183 off a 138) and goes about twice
 	-- as far. The "slow-mo" is only on your own screen (Slow, below): nobody's time is changed.)
-	Launch = 1.15, -- the share of the fish's speed the hop keeps (0.85 until 2026-11-14, 1.6 until 2026-11-13; the reference: about 1.3 to 1.8)
-	HopBoost = 24, -- studs a second on top of that: the kick off the fish (15 until 2026-11-14, 18 until 2026-11-13)
+	Launch = 1.25, -- the share of the fish's speed the hop keeps (1.15 until 2026-11-16, 0.85 until 2026-11-14, 1.6 until 2026-11-13; the reference: about 1.3 to 1.8)
+	HopBoost = 30, -- studs a second on top of that: the kick off the fish (24 until 2026-11-16, 15 until 2026-11-14, 18 until 2026-11-13)
 	-- (the least a hop off a fish leaves at: off one standing still or badly slowed there is still a hop worth having)
 	AirShare = 0.6, -- the hop never leaves slower than this share of the fish's own ridden speed, plus BoostFloor
 	BoostFloor = 8, -- studs a second (with AirShare, above)
@@ -632,9 +677,9 @@ Config.Jump = {
 	-- (Hugo, 2026-11-14: "make the falloff impact speed with a later delay". SpeedHalf 1.5 to 2.1: nine tenths of the
 	-- speed is still there 1.1 to 1.4 s after leaving (0.5 to 0.7 s before), half of it at 1.9 to 2.4 s; and since the
 	-- fall comes in by the speed lost, it comes later too. StopTime, SpeedTail, FallSpeed and SinkCurve are unchanged.)
-	SpeedHalf = 2.1, -- seconds after leaving at which half the speed is gone (later: fast for longer, then lost quicker; 1.5 until 2026-11-14)
+	SpeedHalf = 2.3, -- (2.1 until 2026-11-16) seconds after leaving at which half the speed is gone (later: fast for longer, then lost quicker; 1.5 until 2026-11-14)
 	SpeedTail = 2.5, -- how long and gentle the run-out to the stop is (1: the speed runs straight into the stop; higher: more of it is lost before the tail, which is then longer and softer)
-	StopTime = 3.2, -- seconds after leaving at which you have stopped (with the airtime by speed added); the last fifth of it is under a tenth of the speed
+	StopTime = 3.5, -- (3.2 until 2026-11-16) seconds after leaving at which you have stopped (with the airtime by speed added); the last fifth of it is under a tenth of the speed
 	StopShare = 0, -- the share of the leaving speed still there at the stop and after (0: a real stop; a little keeps A and D steering to the end)
 	-- The fall is blended in along the same curve (Hugo, earlier the same day: "sink way quicker, like a fall, after
 	-- losing speed"; and now with no switch): you fall at FallSpeed x (the share of your speed that is gone) ^
@@ -657,7 +702,7 @@ Config.Jump = {
 	Apex = 20,
 	Ceiling = 3, -- the hop stays this far under the surface line (Oxygen.SurfaceY)
 	SeatRoom = 5, -- a rider sits about this far above the middle of a fish: the hop's rise is counted from the seat
-	FloatTime = 1.5, -- the glide at the top, swimming (the rise's last part; the fall is by the speed lost, above). With LaunchTime it ends 1.9 s after the press, when the pull-in begins by itself: 12% more air than the reference's 1.7 s (1.3 until 2026-11-12, Hugo: a little more airtime)
+	FloatTime = 1.8, -- (1.5 until 2026-11-16: more air) the glide at the top, swimming (the rise's last part; the fall is by the speed lost, above). With LaunchTime it ends 1.9 s after the press, when the pull-in begins by itself: 12% more air than the reference's 1.7 s (1.3 until 2026-11-12, Hugo: a little more airtime)
 	FloatRise = 1, -- still rising this much through the glide
 	-- The drop is the rest of the window (Window - LaunchTime - FloatTime: 1.3 s): by then most of the speed has gone
 	-- and the fall is well under way (above); the pull-in begins by itself as it starts (AutoGrab).
@@ -812,7 +857,10 @@ Config.Lock = {
 -- Wild fish swim as a herd: all the same way, down the lane, at this share of the speed they are ridden at (the
 -- reference: riding about 55 m a second, the herd about 46, measured off its distance counter)
 Config.Herd = {
-	SpeedShare = 0.85,
+	-- The herd's pace, as a share of the land's ride pace (Config.LandPace). 0.85 of each fish's own ridden speed until
+	-- 2026-11-16: slower now, so more of the herd goes past a rider and a landing takes the fish from this to its full
+	-- speed under you.
+	SpeedShare = 0.7,
 	Ahead = 60, -- each fish heads for a point this far down the lane, at its own place across it and above the floor
 	RideHeight = 12, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
 	RideHeightGain = 1.6, -- degrees of pitch for each stud it is off that height
@@ -863,19 +911,32 @@ Config.Herd = {
 --   Dart    slower than the herd, then a burst of a second or so at half as fast again, every few seconds.
 --   Hunt    a big predator. It cruises high over the herd; when a player is near it stoops down into the herd, runs
 --           through it at well over its ridden speed, and climbs away again.
+--
+-- One pace a land, in layers (2026-11-16; measured first: docs/design/herd-revamp.md). A wild fish's speed was a share
+-- of its OWN ridden speed, and one land's fish are ridden at 40 to 100: neighbours closed or parted at up to 40 studs
+-- a second, so the room a fish was given when it was made was gone in five seconds. Now a wild fish's speed is a share
+-- of the LAND's pace (Config.LandPace), the same for every fish of its character, and each character has its own
+-- height (Config.Layer): fish in one layer never close on each other, and the layers slide over one another. A
+-- fish's own speed is what you get when you ride it. Hunters alone keep a share of their own speed: they are an
+-- event, high over everything.
 Config.Pace = {
-	Own = 0.06, -- each fish is this much faster or slower than its kind, either way
+	Land = 1, -- every land's pace, times (for trying a faster or a slower sea as a whole)
+	LandBlend = 240, -- the pace changes from one land's to the next over this many studs, half each side of the border
+	Own = 0, -- each fish is this much faster or slower than its kind, either way (0.06 until 2026-11-16: any difference inside a layer bunches it)
 	Ease = 2.6, -- how fast a fish's share of its speed changes, a second (a burst comes on in about a third of a second)
 	Send = 1.5, -- a wild fish's speed is sent to the clients again when it has changed this much, studs a second (0.5 before: bursts and lurches would send far more often)
-	Plod = 0.58,
+	Plod = 0.45, -- (0.58 of its own speed until 2026-11-16)
 	PlodLurch = 0.12, -- and this much either way, as it paddles
 	PlodBeat = 2.6, -- seconds a lurch
-	Zoom = 1.12,
-	Dart = 0.78,
-	DartBurst = 1.55,
-	DartTime = 1.1, -- seconds a burst lasts
-	DartEveryMin = 3.5, -- seconds between bursts, from
-	DartEveryMax = 8, -- to
+	Zoom = 1.3, -- (1.12 of its own speed until 2026-11-16)
+	-- A darter has a place in the herd like any other. It bursts ahead of it, drifts back to it slower than the herd,
+	-- and then swims with the herd until its next burst: it never gains or loses ground for good.
+	Dart = 0.5, -- drifting back to its place after a burst
+	DartBurst = 1.6,
+	DartTime = 1, -- seconds a burst lasts
+	DartRise = 7, -- and it lifts this far over its place as it bursts, so it goes over the fish ahead of it, not through
+	DartEveryMin = 2.5, -- seconds in its place between bursts, from
+	DartEveryMax = 6, -- to
 	Hunt = 0.75, -- cruising high
 	HuntRun = 1.6, -- the stoop and the run through the herd
 	HuntHigh = 46, -- how far over its place in the herd it cruises, studs (and half its own height; never out of the water)
@@ -900,8 +961,86 @@ Config.Pace = {
 	VisitAside = 45, -- and how far to one side of the player's own line it comes past, at most
 }
 -- A wild fish's speed by its size: the small ones a little quicker, the grand ones heavy
-Config.SizePace =
-	{ Tiny = 1.08, Normal = 1, Big = 0.97, Giant = 0.92, Huge = 0.88, Colossal = 0.82 } :: { [string]: number }
+-- (all 1 since 2026-11-16, for the same reason as Pace.Own; they were 1.08, 1, 0.97, 0.92, 0.88, 0.82)
+Config.SizePace = { Tiny = 1, Normal = 1, Big = 1, Giant = 1, Huge = 1, Colossal = 1 } :: { [string]: number }
+-- Each land's ride pace, studs a second: about what its middling fish is ridden at (Config.FishStats). The herd swims
+-- at shares of this (Herd.SpeedShare, Pace.Plod, Pace.Zoom, the darters' bursts). A land past the list has the last.
+Config.LandPace = { 46, 55, 60, 65, 82, 90, 100, 104, 112, 116 } :: { number }
+-- The water each character keeps to, studs above the floor in open water, from and to: its whole BODY, belly to
+-- back, not its middle. The slow ones low, the herd over them, the fast ones over the herd, with clear water between,
+-- so the layers slide over each other without touching. A fish too tall for its layer rests on the layer's floor and
+-- stands up out of it. A big fish of the herd or of the fast ones still swims higher by its length (Spawn.BigRise);
+-- a plodder doesn't, it would rise into the herd. Hunters have the herd's layer and cruise Pace.HuntHigh over it.
+-- (Measured 2026-11-16, with the layers set by the fish's middles and 2 studs between them: no two fish of one layer
+-- ever overlapped, and every overlap left was a plodder under a fish of the herd.)
+Config.Layer = {
+	Plod = { 4, 12 },
+	Cruise = { 14, 26 },
+	Dart = { 14, 26 },
+	Zoom = { 30, 42 },
+	Hunt = { 14, 26 },
+} :: { [string]: { number } }
+export type ShakePreset = {
+	Move: { number }, -- right, up, forward: studs at full strength
+	Turn: { number }, -- nose, side to side, roll: degrees at full strength
+	Rate: number, -- trembles a second: slow reads as heavy, quick as sharp
+	In: number, -- seconds coming on,
+	Hold: number, -- held,
+	Out: number, -- and dying away
+	Shape: number, -- how it dies: 1 evenly, 2 quick at first with a long tail
+	Knock: { number }?, -- a one-way push that swings back: nose (degrees, + is up), roll (degrees), back (studs)
+	KnockRate: number?, -- its swings a second
+	KnockDamp: number?, -- how fast it settles (1: no swing back at all)
+}
+
+-- Camera shakes (2026-11-16, the user: "professional camera shakes"). Until then there was one shake at a time (a new
+-- one replaced the old) and one pattern for all. Now any number run together and add up (src/client/Lib/Shake.luau),
+-- and each moment has a character of its own: how far it moves the camera and how far it turns it, how fast it
+-- trembles, how it comes on and dies away, and a push one way that swings back (a landing dips the nose). The
+-- numbers are Claude's first go, to be judged by playing.
+-- stylua: ignore
+Config.Shake = {
+	Amount = 1, -- every shake, times (0: none)
+	Touch = 0.7, -- and on a phone, times this again (the same shake looks harder on a small screen held close)
+	MostMove = 2.2, -- all the shakes together never move the camera further than this, studs,
+	MostTurn = 5, -- or turn it more than this, degrees
+	GrandLength = 60, -- landing on a fish at least this long is the heavy landing (LandBig)
+	StrainFrom = 0.35, -- the rumble on a fish too strong for you starts at this strength, and reaches 1 as the meter empties
+	SpeedFrom = 78, -- the tremble of speed starts at this many studs a second
+	SpeedFull = 135, -- and is at its full by this
+	PassRange = 75, -- a hunter or a giant going by within this far of you shakes the water,
+	PassSpeed = 22, -- if it is this much faster or slower than you, studs a second,
+	PassEvery = 5, -- and the same fish not again for this long, seconds
+	Presets = {
+		-- a landing: a sharp drop that is over in a third of a second, the nose dipping and coming back
+		Land = { Move = { 0.5, 0.75, 0.1 }, Turn = { 0.5, 0.3, 1.2 }, Rate = 15, In = 0, Hold = 0.02, Out = 0.36, Shape = 2, Knock = { -1.2, 0, 0.25 }, KnockRate = 3.2, KnockDamp = 0.5 },
+		-- on a giant: bigger, slower, longer: weight
+		LandBig = { Move = { 0.7, 1.1, 0.2 }, Turn = { 0.9, 0.4, 1.8 }, Rate = 10, In = 0, Hold = 0.05, Out = 0.6, Shape = 2, Knock = { -2.2, 0, 0.5 }, KnockRate = 2.4, KnockDamp = 0.45 },
+		-- the hop off: small and quick, the nose flicking up
+		Hop = { Move = { 0.1, 0.18, 0.05 }, Turn = { 0.2, 0.1, 0.4 }, Rate = 22, In = 0, Hold = 0, Out = 0.18, Shape = 2, Knock = { 0.9, 0, -0.2 }, KnockRate = 4, KnockDamp = 0.6 },
+		-- running into something: hard, thrown back, rolled
+		Crash = { Move = { 1, 0.8, 0.4 }, Turn = { 1.3, 1.2, 2.6 }, Rate = 19, In = 0, Hold = 0.04, Out = 0.5, Shape = 2, Knock = { -1.5, 2.2, 0.8 }, KnockRate = 3, KnockDamp = 0.4 },
+		-- thrown off a fish: slow and wide, the world turning over
+		Thrown = { Move = { 0.6, 0.6, 0.2 }, Turn = { 1.5, 1, 3.5 }, Rate = 9, In = 0, Hold = 0.08, Out = 0.7, Shape = 1.5, Knock = { 2.5, 3, 0.6 }, KnockRate = 2, KnockDamp = 0.35 },
+		-- a hunter or a giant going by: a swell that comes on and goes, low and slow
+		Pass = { Move = { 0.3, 0.4, 0.05 }, Turn = { 0.35, 0.25, 0.9 }, Rate = 5.5, In = 0.2, Hold = 0.1, Out = 0.8, Shape = 1.5 },
+		-- the fish under you becomes yours: one soft lift
+		Tame = { Move = { 0.12, 0.2, 0 }, Turn = { 0.2, 0.1, 0.5 }, Rate = 7, In = 0.08, Hold = 0.05, Out = 0.45, Shape = 1.5, Knock = { 0.6, 0, -0.15 }, KnockRate = 2.5, KnockDamp = 0.5 },
+		-- rumbles, held for as long as they last (In, Hold and Out are not used): a fish too strong, and top speed
+		Strain = { Move = { 0.14, 0.14, 0.03 }, Turn = { 0.3, 0.25, 0.7 }, Rate = 24, In = 0, Hold = 0, Out = 0.2, Shape = 1 },
+		Speed = { Move = { 0.035, 0.035, 0 }, Turn = { 0.06, 0.05, 0.14 }, Rate = 28, In = 0, Hold = 0, Out = 0.2, Shape = 1 },
+	} :: { [string]: ShakePreset },
+}
+
+-- The trail a fish leaves in the water (2026-11-16): a soft streak from its tail, as long as it is fast, so a fish's
+-- speed and its line can be read from behind, and the herd shows as lines going by. On every wild and ridden fish;
+-- not on the fish in a tank.
+Config.Wake = {
+	On = 1, -- 0: none
+	Life = 0.8, -- seconds a streak lasts: its length is this times the fish's speed
+	Height = 0.55, -- how tall at the tail, as a share of the fish's height (it narrows to a fifth of that)
+	See = 0.65, -- how solid at the tail (0 to 1); it fades to nothing along its length (0.25 could not be seen against the bright water)
+}
 -- Each kind's character (a kind not listed is "Cruise"). Claude's go, by what the animal is: the round and the
 -- armoured plod; the streamlined zoom; the small and the jet-propelled dart; and one or two great hunters a land hunt.
 -- (The first list had 19 hunters and 23 plodders: the deep lands are nearly all Legendaries, and a quarter of the whole
@@ -1156,7 +1295,7 @@ Config.Camera = {
 Config.Look = {
 	On = 1, -- 0: the place's own lighting, untouched (to compare)
 	Brightness = 2.8, -- the sun's strength (Roblox's own start is 3; the tutorial's 4 washed the sand and studs out, 2.4 looked washed out to the user, 3 a touch too bright)
-	ShadowSoftness = 1, -- 0 hard to 1 soft
+	ShadowSoftness = 0.2, -- 0 hard to 1 soft (it was 1: the user's pick A, 2026-11-16; shadows have a shape)
 	ClockTime = 14.5, -- the hour: where the sun stands
 	Latitude = 0, -- tilts the sun's path
 	Exposure = -0.25, -- the whole picture lighter or darker, in stops
@@ -1166,8 +1305,11 @@ Config.Look = {
 	OutdoorR = 150, -- the light in shade under the open sky; the tutorial's is 157, 178, 255 (as blue as the sky)
 	OutdoorG = 158,
 	OutdoorB = 170,
+	SunR = 215, -- a colour laid on faces turned to the sun (Roblox's ColorShift_Top); 0, 0, 0 is none, as it was until
+	SunG = 190, -- 2026-11-16. The tutorials' warm sun, the user's pick A: the floor goes from mint to green and a lit
+	SunB = 135, -- wall parts from a shaded one in colour (docs/design/lighting.md, "The look pass"). A paler one: 232, 222, 160
 	EnvDiffuse = 0.35, -- how much the sky tints everything (1 laid the sky's blue over every surface)
-	EnvSpecular = 1, -- how much the sky shows in shiny things
+	EnvSpecular = 0.25, -- how much the sky shows in shiny things (it was 1: pick A; less of the sky's blue in the floor, so a PC and a phone match)
 	BloomIntensity = 0.6, -- the glow round bright things: how strong (the tutorial's is 1),
 	BloomSize = 48, -- how wide (Roblox's own start is 24, the tutorial's 56),
 	BloomThreshold = 2.2, -- and how bright a thing must be to glow (the tutorial's is 2)
@@ -1283,20 +1425,20 @@ Config.Spawn = {
 	-- a stretch gets fewer, in proportion, down to ThinLeast of this.)
 	FullBand = 300, -- a stretch whose band is at least this wide gets all of PerThousand
 	ThinLeast = 0.65, -- and the narrowest gets this share of it
-	PerThousand = 30, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight)
+	PerThousand = 44, -- wild fish per 1,000 studs of lane (doubled 2026-11-10: a jump needs a fish within its flight; 30 until 2026-11-16. The still sea woke as a rider came and bunched up ahead of them, about twice as thick as it was stocked; the flowing sea is as thick near a rider as anywhere, so it is stocked nearer what a rider used to see)
 	Min = 20,
-	Max = 110, -- per zone
+	Max = 170, -- per zone (110 until 2026-11-16)
 	-- Fish go in every zone along the whole lane that has a roster (a fish type that can turn up there: today zones 1
 	-- to 6, the four homes plus two zones of reach); zones with none stay empty until their fish exist. 12 a 1,000 over
 	-- zones 1 to 6 makes about 171; all ten zones would make about 290, so the cap sits above that.
 	-- (2026-11-11: the whole ten-land lane is 30,000 studs, which wants about 720. At 480 the deep lands took the lot,
 	-- the Shallows were left with 11 fish 90 studs apart, and a jump in a deep land found nothing to land on.)
-	MaxTotal = 800,
+	MaxTotal = 1100, -- (800 until 2026-11-16)
 	Slice = 120,
 	BoardSlice = 2,
 	Wander = 80, -- a fish wanders this far either way along the lane from its home
 	TopUpEvery = 2,
-	PerTopUp = 6,
+	PerTopUp = 14, -- (6 until 2026-11-16: the whole sea flows now, so each land's first stretches are making fish all the time)
 	-- The herd keeps to one layer above the lane's floor (2026-11-10, from 10 to 60): the reference's dinos are all on
 	-- the ground, and a jump has to find a fish at about its own depth.
 	-- (2026-11-10: lowered from 16 to 30, so that even in the shallows there is water above the herd to jump up into)
@@ -1310,6 +1452,9 @@ Config.Spawn = {
 	-- Kinds (the user, 2026-11-13: the fish looked too alike; variety is to be kept up all the way down). A new fish's
 	-- kind is the least seen nearby of this many draws from its rarity's kinds. The rarities' shares are untouched.
 	KindTries = 3,
+	LiveReach = 1500, -- the fish of a land swim on out of sight only while a player is in it or within this far of it along the lane; a land nobody is near stands still
+	WrapShare = 20, -- "plain" for WrapHome: a fish of an ordinary size and colour whose rarity is at least this share (of 100) of its own land's fish
+	WrapHome = 1, -- 1: a plain fish that swims out of its lands, out of sight, comes in again at the start of its own (the same fish, not a new one made); 0: every such fish is taken away and a new one made
 	BigRise = 14, -- by up to this much (each fish between 0.4 and 1 of what its length gives)
 	Belly = 4, -- and no fish's belly is nearer the floor than this, whatever its size
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
@@ -1330,6 +1475,14 @@ Config.Spawn = {
 	BandMax = 400,
 	StreamRadius = 700, -- fish further than this from every player are parked (out of Workspace, not simulated)
 	AppearClear = 160, -- a new fish is put this far from every player when its slice of the lane has such a place
+	-- No fish out of nothing (2026-11-16; measured: 56 new fish within 500 studs of a rider in 58 seconds, the nearest
+	-- 76 studs away). The whole sea swims on now, in sight or not, so a stretch near a player is filled by the fish
+	-- coming down from upstream, and a new fish is made only where nobody can see it. The one place that can't be so
+	-- is the lane's very start, where the herd begins: fish come in there at the gate.
+	SightClear = 500, -- no fish is made, and none is taken away, within this far along the lane of a player
+	EntryAt = 30, -- at the lane's start, in sight, a new fish comes in within this far of the gate
+	Window = 2, -- a stretch is short of fish, or over, by the count of itself and this many stretches each side
+	OverBy = 0.3, -- that many are over by this share of what they should hold before one is taken away (and at least two)
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
 }
 
@@ -1719,6 +1872,32 @@ function Config.sizeScale(tier: string, fish: FishType?): number
 		scale = math.max(1, math.min(scale, most))
 	end
 	return scale
+end
+
+-- What a fish earns in a tank, coins a second (Config.Aquarium): by what it takes to hold at home, its size's worth
+-- and its colour's
+function Config.incomeOf(fish: FishType, sizeTier: string, variant: string): number
+	local a = Config.Aquarium
+	local colour = if variant == "Rainbow"
+		then a.Rainbow
+		elseif variant == "Gold" then a.Gold
+		elseif variant == "Silver" then a.Silver
+		else 1
+	return Config.required(fish.Home, fish.Tier) * a.PerRequired * Config.sizeWorth(sizeTier) * colour
+end
+
+-- A number written short: 950, 1.2K, 34M (for signs made on the server; the HUD has its own, Kit.short)
+function Config.shortNumber(value: number): string
+	local units = { "", "K", "M", "B", "T", "Qa", "Qi" }
+	local unit = 1
+	while value >= 1000 and unit < #units do
+		value /= 1000
+		unit += 1
+	end
+	local text = if value >= 100 or unit == 1 and value == math.floor(value)
+		then string.format("%d", math.floor(value + 0.5))
+		else string.format("%.1f", value)
+	return text .. units[unit]
 end
 
 -- Whether a size is a grand one (Config.Grand)

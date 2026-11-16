@@ -3,6 +3,119 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-16 · Obsidian chat integration (the user's PC): the restore point before the UI's look pass
+**State:** one commit of everything as it stands, on the user's word ("Yeah, commit"), so the UI can be changed
+and any piece put back. **Committed, not pushed.** It holds every entry below that says "not committed by hand".
+The Studio place was saved by the user the same day, after a playtest they called fine.
+
+- **Why now:** nothing had been committed since `38deb67` (15 November) and Obsidian's sync had not been
+  committing either. The HUD the user likes existed only as working files.
+- **The game, since the last commit:** the tank and what it earns, training on your own plot, the herd's first
+  stage, the one-second rule on a fish too strong, camera shakes, the silent sounds fixed, the plain steering
+  (`Ride.CameraSteer` 2), and light A (`Config.Look`: a warm sun, `ShadowSoftness` 0.2, `EnvSpecular` 0.25).
+- **The hub:** the map chat's models through to today's picks: clear-water tanks, one stall in three colours.
+- **The vault:** [the refinement](Refinement.md), the four studies and [what they found](Findings.md),
+  [money](design/money.md) with the budget, the building brief, and the pictures of both look passes.
+- **Tools:** the Reddit and YouTube readers (`tools/sources/`), the look-test scripts, the hub's bench.
+- **To put one UI piece back later:** `git checkout <this commit> -- <the file>`, for a file under
+  `src/client/UI/` or `HudController.luau`. Ask Claude; it is one line.
+- **Not in it, on purpose:** `research/` and `work/` (ignored). Checked before committing: no keys, cookies or
+  personal details in the files.
+
+## 2026-11-16 · 8570-F43F (the user's PC): the progression, for the game as it is today
+**State:** by the tuning chat, for the refinement's stream 9. No number changed and no game file changed. Nothing
+played: it is the model.
+
+- **The model** (`tools/balance/model.py`) is written again: a red fish that gives a second and can be hopped off,
+  the longer hop, each fish's own speed, the herd by its land's pace in three layers, taming, the tank, and prices.
+- **The note** ([progression](design/progression.md), "Today's rules" at the top): what a dive is now, the
+  trainer's ten levels and four auras priced for two paces, and the numbers that are guesses again. The parts of
+  2026-11-12 are kept and marked where they no longer hold.
+- **Found:** max Oxygen no longer limits how far down a player gets, only what they tame; red fish chain without
+  end (a question for the user); the bag's first seven fish decide what a dive earns.
+
+## 2026-11-16 · Obsidian chat integration (the user's PC): the refinement plan
+**State:** a plan and one small fix. On the user's word: organise a refinement across the whole game.
+[The refinement](Refinement.md).
+- **The plan:** where each part stands, ten streams of work with who does each, the order, nine questions for the
+  user. Linked from Home.
+- **Going:** the hub's models (the map chat, which has Studio) and the balance model (the tuning chat).
+- **Fixed:** `Lib/Fx.luau`'s Rumble sound asked for a file Roblox doesn't ship; the smash and a prop's debris
+  were silent. In the user's Studio place (synced). Not heard by anyone.
+- Not committed by hand.
+
+## 2026-11-16 · Obsidian chat integration (the user's PC): the herd's first stage, the one-second rule, camera shakes
+**State:** on the user's word of 2026-11-16. In the user's Studio place (synced, 138 scripts) and measured there by
+script. StyLua passes; selene shows only Hugo's two shadowing warnings in `PropController`; `rojo build` passes.
+Nothing uploaded. Not committed by hand. Four rows in [Decisions](Decisions.md).
+- **A fish too strong:** a second on it, and the hop off it is free (`Oxygen.StrainTime` 1, `Jump.StrainLock`
+  0.08). Never tamed, as before. **Not played end to end:** the sandbox would not seat the test rider on the day.
+- **The herd** ([the herd, rethought](design/herd-revamp.md), "Built: stage 1"): one pace a land
+  (`Config.LandPace`) in three layers (`Config.Layer`); parked fish swim on as numbers; fish are made only out of
+  sight (`Spawn.SightClear`) and at the lane's start; only lands near a player flow (`Spawn.LiveReach`); 44 fish to
+  1,000 studs. `FishService`: `landPace`, `meanSpeed`, `layerOf`, `streamPoint`, `wake`, `windowOf`, `emptiest`,
+  `wrapHome`, `makeSome`, `topUp` rewritten, `reseat` gone, `FishService.stats` (and a Studio-only `FishStats`
+  bindable in ServerStorage).
+- **Measured, the same 58-second ride:** new fish within 500 studs 56 → 7; fish ahead from "none to eight" to
+  "four to twelve"; overlapping pairs 0.41 → 0.27. The logger is `tools/studio/ride_log.luau`.
+- **Wakes:** a Trail on every fish's root (`Config.Wake`, `Lib/FishModel`); taken off the tank's fish.
+- **New client files:** `Lib/Shake.luau`, `Controllers/ShakeController.luau` ([camera shakes](design/camera-shake.md)),
+  `Controllers/ArriveController.luau` (arriving fish fade in).
+- **The landing:** `Ride.StartleSlow` 1, `StartleHold` 0.12, `RampTime` 0.4 (Hugo's numbers: see Sessions).
+- **For the user:** play it. The herd's pace, the wake's look and every shake are first numbers.
+
+## 2026-11-16 · Obsidian chat integration (the user's PC): the herd rethought (a proposal, with two measured rides)
+**State:** notes only. No code changed. On the user's word: how to revamp fish speed, spawn patterns and paths.
+[The herd, rethought](design/herd-revamp.md).
+- **Measured** (a 58-second ride with hops, logged on the server): the rider makes 62.6 studs a second; 56 new
+  fish were made within 500 studs of the rider, the nearest 76 studs away; the fish ahead within 300 studs swing
+  from none to eight; 0.41 pairs of bodies overlap at any moment.
+- **The finding:** the sea is stocked in fixed stretches of lane while the fish swim out of them at 26 to 110
+  studs a second, each kind at its own speed. So spacing never lasts and the top-up makes fish in sight.
+- **The proposal:** the herd as sheets (one pace a sheet: slow, herd, fast, at three heights), fish made only at
+  the edge of a window round each player, in patterns spaced for the hop; a herd at 0.7 of the land's ride pace;
+  wakes; a landing that kicks. Three stages; stage 1 fits today's code.
+- **Not shown:** that one pace cuts the overlaps. The ride meant to test it did not make one pace (a wild fish's
+  speed is a share of its own ridden speed) and is said so in the note.
+- **For the user:** the five questions at the end of the note.
+
+## 2026-11-16 · Obsidian chat integration (the user's PC): the aquarium: a catch goes in your tank and earns
+**State:** on the user's word of 2026-11-16. In the user's Studio place (synced, 135 scripts) and run there by
+script through a whole dive, with two pictures looked at. StyLua passes; selene shows only Hugo's two shadowing
+warnings in `PropController`; `rojo build` passes. Nothing uploaded. Not committed by hand. All of it:
+[the aquarium](design/aquarium.md). One row in [Decisions](Decisions.md).
+- **New: `Services/AquariumService`** (server): a plot each from `Dock.Plots`, the deposit, the earning, the
+  fish shown in the tank, the sign. **New: `Controllers/AquariumController`** (client): moves the tank's fish
+  round their laps (no traffic), and at a deposit turns the view to the tank and raises a line over it.
+- **`RideService`:** a catch is kept in hand at the dock for a player who has a tank (`Rider.Carried`: each fish
+  with its size and colour; `RideService.Keeps`, `Home`, `carried`, `deposited`, `stateOf`). A player carrying
+  fish wakes at their tank (`toDock`, `onCharacter`). With no tank it is as before.
+- **`Config`:** `Config.Aquarium`, `Config.incomeOf`, `Config.shortNumber`. **`Net`:** Ride "Deposited"; the
+  player's `Coins`, `Income`, `TankFish`, `Plot`.
+- **Measured:** a dive ended by running out of Oxygen: home at the tank, three fish in at once, 5.6 to 7.75
+  coins a second, the HUD's coin row counting up.
+- **Not built:** saving; anything to buy; a dive summary with values; earning while away. See the note's "What it
+  is not yet".
+- **For the user:** the earning numbers; the walk from tank to gate (5 to 12 seconds after every dive).
+
+## 2026-11-16 · Obsidian chat integration (the user's PC): the hop with more air and push; the loop reviewed
+**State:** on the user's word of 2026-11-16. The hop is in the user's Studio place (synced, 133 scripts) and played
+there by script; **not looked at by eye**. StyLua passes; selene shows only Hugo's two shadowing warnings in
+`PropController`. The review is notes only: nothing in it is built. Not committed by hand.
+- **Pulled first:** the user's place was fast-forwarded to Hugo's `38deb67` (tags, the Oxygen box, icons, the hop in
+  slow-mo) with nothing to merge.
+- **The hop** (`Config.Jump`, six numbers; nothing else): `FloatTime` 1.8 (1.5), `Window` 3.5 (3.2), `StopTime` 3.5
+  (3.2), `SpeedHalf` 2.3 (2.1), `Launch` 1.25 (1.15), `HopBoost` 30 (24). Hugo's one curve keeps its shape. Played:
+  2.74 to 2.86 seconds in the air and 241 to 266 studs (2.46 to 2.55 and 235 to 239). Table and the user's words:
+  [riding feel](design/riding-feel.md), "More air, more push". `tools/movement/hop_curves.py` was not touched.
+- **[The loop review](design/loop-review.md)** (new): the game as a whole, where its mechanics don't connect, and
+  the changes in order. Its finding: the dive is built and the rest of the loop is not, and progress comes from
+  standing on a pad. Proposals only.
+- **[Roblox repos](reference/roblox-repos.md)** (new): a survey of about 20. Take ProfileStore for saving; almost
+  nothing else yet. **[Roblox videos](reference/roblox-videos.md)** (new): what ten development videos say about
+  first sessions, retention, feel and phones.
+- **For the user:** the four questions at the end of the review.
+
 ## 2026-11-15 · a NULLROOM worker (Hugo's PC, task r4): size and icons on a row under the rarity word, cooler size chips
 **State:** in the game code and live, run in Hugo's Studio by script (one fish of each rarity with no icon, one icon
 and two, sizes Tiny to Colossal, a Normal fish with no icons, the three chip styles, a crowd, far fish, deeper water,
