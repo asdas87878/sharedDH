@@ -59,8 +59,16 @@ minimalistic."
 [selection 1](../attachments/land-icons-selection-1.jpg) (lands 1 to 5) and
 [selection 2](../attachments/land-icons-selection-2.jpg) (6 to 10), six new captures a land (h to m: the first asset
 from the other side, the second low, a third, from above, from the floor, across the lane), each with its tile in the
-new look at 3x and real size, round one's under them. Answer like "3k, 7h". Hugo also asked (2026-11-17, 23:18) for
-the chosen pictures redrawn as one cohesive set by ChatGPT's image model: see the Handoff entry.
+new look at 3x and real size, round one's under them. Answer like "3k, 7h".
+
+**The pictures redrawn as one set** (Hugo, 2026-11-17: "take selected icons and run through chatgpt image generation to
+make a visually pretty and cohesive version"): the ten picks, laid out 5 by 2, through OpenAI's gpt-image-2 (one
+image edit through the ElevenLabs connector, four variations, about 0.31 dollars; Higgsfield had no credits and
+Meshy refuses tasks on its free plan). [The four sets against today's](../attachments/land-icons-gen-1.png): G1 to
+G4, each as the strip's tiles at 3x and real size; and [G2 in the game's own strip](../attachments/land-icons-gen-1-ingame.jpg).
+The sets keep each land's subject and colour and read far better at 28 px than the captures: one voxel finish, light
+from above, bubbles. The generated sheets and the 40 squares: `docs/attachments/land-icons/gen/`
+(`tools/ui/land_icons/gen_sheet.py` slices them); `atlas.py --gen 2` builds the atlas from a set.
 
 **How the game gets the pictures:** one atlas image, ten cells of 96 px, colour on the top row and the grey locked
 look under it (`tools/ui/land_icons/atlas.py` writes `docs/attachments/land-icons/land_atlas.png`). It is one upload,
@@ -85,7 +93,7 @@ size, Dive against Best, three frames of a real ride on a desktop, the phone wid
 in a Studio playtest, not a mock-up. The phone frames are the strip at its real phone size (HUD scale 1, 298 of 844
 GUI px) over the game; Studio's window was not resized to a phone.
 
-**Not done / open:** Hugo's picks (N1 to N3, Dive or Best, the pictures), the atlas upload, turning it on
+**Not done / open:** Hugo's picks (N1 to N3, Dive or Best, the pictures: a capture per land or a generated set G1 to G4), the atlas upload, turning it on
 (`Kit.LandStripStyle = 1`), saving the best. The strip shows on the dock as today's does (all grey there in Dive).
 
 ## The UI's look, 2026-11-16: the survey, two fixes, options and the dock's panels

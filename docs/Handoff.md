@@ -28,6 +28,52 @@ uploaded, the place not saved, the test script removed, mouse and camera reset.
   `Kit.SizeChip` in `Kit.luau`. Another worker's uncommitted land strip settings in `Kit.luau` were left as they
   were.
 
+## 2026-11-17 · The land strip in style A: built behind a switch, with sheets to pick from (task l1, not pushed by hand)
+**State:** built and run in Studio, **off by default** (`Kit.LandStripStyle = 0`); nothing uploaded; the place was not
+saved (the temporary scripts were removed, the test attributes cleared, the mouse and camera reset). Hugo's words and
+the full description: [ui.md, "The land strip, style A"](design/ui.md).
+- **Hugo's order:** style A without the inner border, numbers styled to each land, new screenshots to choose from,
+  the locked look kept, his avatar under the strip moving with him and a metres bar under it, each land's colour
+  picture revealed over its grey one linearly as he goes, a yellow dashed best line with "BEST" and its metres,
+  "somewhat simplistic but still stylised ... not modernised minimalistic". Later the same evening: the chosen
+  pictures redrawn as one cohesive set by ChatGPT's image model, and "the inner border still isn't removed" (that
+  remark was about the old framings sheet; its tiles are redrawn without the band now).
+- **The Boss's reading, used here (Hugo has not confirmed the details):** "first style" is treatment A; its inner
+  band is gone (one ink frame, the picture straight inside); the land you are in is a size up with a white rim. The
+  avatar is Roblox's headshot of you. **The reveal follows the current dive** (`Kit.LandReveal = "Dive"`): every
+  dive starts grey and fills in; your best stays visible as the dashed line. **The alternative, "Best"** (lands ever
+  reached stay in colour), is one switch and is on the sheet beside it.
+- **To pick (Hugo):**
+  - the numbers N1 Metal, N2 Material (default), N3 Badge, and Dive or Best:
+    [the strip's sheet](attachments/land-strip-A-options-1.png) and [a whole dive](attachments/land-strip-A-1.gif);
+  - the pictures: six new captures a land (h to m) in [lands 1 to 5](attachments/land-icons-selection-1.jpg) and
+    [6 to 10](attachments/land-icons-selection-2.jpg) (answer "3k, 7h"), or a generated set:
+    [G1 to G4 against the captures](attachments/land-icons-gen-1.png), [G2 in the game](attachments/land-icons-gen-1-ingame.jpg).
+- **Built:**
+  - `src/client/UI/LandStrip.luau`: style 1 beside today's strip (`LandStrip.build` picks by the switch;
+    `LandStrip.preview` builds an extra one for sheets). The pictures come from one atlas image (colour row, grey
+    row); without it the tiles are plain land colour, which still works.
+  - `src/client/UI/Kit.luau`: `LandStripStyle`, `LandNumbers`, `LandReveal`, `LandAtlas` (each overridable by a
+    workspace attribute in Studio).
+  - `src/server/Services/BestService.luau` (new): each player's furthest distance, server-side, as the attributes
+    `BestMetres` and `BestLands`; the strip reads them. For the session only (no saves yet).
+  - `tools/ui/land_icons/`: `plan2.py` (the new camera spots), `capture.py` (the Play captures through
+    studio-runner), `selection.py` (the selection sheets), `atlas.py` (the atlas; `--studio` copies it into Studio's
+    content folder for tests without an upload; `--gen K` from a generated set), `preview_client.luau` and
+    `strip_capture.py` (the strip's shots in a playtest), `strip_sheet.py` (its sheet and GIF), `gen_sheet.py` (the
+    generated sets). `sheet.py`'s framings sheet now draws the tiles without the band.
+- **Checked in Studio:** the strip draws with no errors on the dock and in a ride; on a real sandbox ride the
+  server's best rose 8, 15, 26 m in 45 s, then 173, 1,000 and 1,414 m (land 6.4) and the line followed it; the BEST
+  tag covered the avatar while a new best was being set, and now hangs under the metres then. StyLua and selene pass
+  on the changed files. **Not checked:** a real phone (the phone frames are the strip at its real phone size over
+  the game, Studio's window was not resized), other players, several dives in a row.
+- **Generated pictures:** one gpt-image-2 edit, four variations, through the ElevenLabs connector (about 0.31
+  dollars; Higgsfield had 0 credits, Meshy refuses tasks on its free plan). Kept in
+  `docs/attachments/land-icons/gen/`.
+- **To turn it on, after the picks:** build the atlas from the pick (`atlas.py`, or `--gen K`), upload
+  `docs/attachments/land-icons/land_atlas.png` once (permanent), put its id in `Kit.LandAtlas`, set
+  `Kit.LandStripStyle = 1` and `Kit.LandNumbers`/`Kit.LandReveal` to the picks.
+
 ## 2026-11-17 · Options only: the size text on fish tags in the rarity word's style (task u2, not pushed by hand)
 **State:** sheets for Hugo to pick from. Nothing in the game changed, nothing was uploaded, and the place was not
 saved. Hugo's asks: "The size text still looks really bad, give me some versions that match the rarity style more"
