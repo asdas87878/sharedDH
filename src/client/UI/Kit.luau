@@ -35,9 +35,16 @@ Kit.Radius = { Tile = 5, Plate = 9, Round = 999 }
 Kit.Textures = {
 	Studs = "rbxassetid://124244361010023",
 	Water = "rbxassetid://6126332496",
-	-- the user's own two icons (2026-11-17; art/ui/icons): the O2 bubble and the stack of cash
-	Oxygen = "rbxassetid://75102671889473",
-	Cash = "rbxassetid://90175555285878",
+	-- the user's own O2 bubble (2026-11-17; art/ui/icons), and the green cash of the free icon pack the reference
+	-- uses, which took the place of the user's own cash picture that day (art/ui/icons/CREDITS.md)
+	Oxygen = "rbxassetid://133981557523389", -- the user's second O2 picture, in the pack's flat style
+	Cash = "rbxassetid://119031387165673",
+	-- from the free icon pack the reference uses (art/ui/icons/CREDITS.md): the Shop's basket, the Index's book
+	Shop = "rbxassetid://139519009824812",
+	Index = "rbxassetid://136062585112653",
+	-- the raised square tile for a button's faint block pattern (art/ui/tiles/emboss_square.png, drawn by
+	-- tools/ui/make_ui_tile.py), uploaded 2026-11-17 on the user's word
+	Emboss = "rbxassetid://74391096180253",
 }
 -- The colour of money beside the cash: the reference's pale green
 Kit.Cash = Color3.fromRGB(170, 255, 127)

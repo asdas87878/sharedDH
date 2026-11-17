@@ -7,7 +7,9 @@
 --     a prop IN OUR WAY (ahead of us, inside the corridor our body sweeps: Props.PathWidth) looks solid until our
 --     body touches it. At the touch the camera shakes once (Props.Shake, a little harder when faster; bubbles and
 --     a thud), and the prop turns see-through quickly (Props.TouchEase, to Props.FadeTo) for as long as we are in
---     it. No slow-down and nothing taken: it is feedback only;
+--     it. Nothing is taken. Since 2026-11-17 (the user) a fish ridden straight into one is STUNNED first: stopped
+--     against it for Props.StunTime, the prop still solid, and only then does it turn see-through and let us on
+--     (Props.Stun; RideController.stun). In the hop, and with Stun off, it is the touch alone, as before;
 --     a prop BESIDE us (within Props.SideNear of our body and not in our way), or between the camera and us
 --     (Props.ViewNear), is see-through while it is that close, so it never blocks the view.
 --   Once see-through, a prop stays so until we are clear of it (SideSlack): turning into one we were passing does
@@ -55,6 +57,7 @@ type Fade = {
 	Through: boolean, -- see-through for us (held until we are clear of it)
 	Path: boolean, -- in our way: solid until touched
 	In: boolean, -- our body is in it
+	SolidUntil: number, -- os.clock() until which it stays solid though we are in it (the stun)
 	Centre: Vector3, -- the ball all its boxes are in,
 	Radius: number,
 	Span: number, -- and its biggest side, studs
@@ -105,6 +108,7 @@ local lastAt: Vector3? = nil -- where our body was a frame ago, and what it was 
 local lastOn: Instance? = nil
 local velocity = Vector3.zero
 local shookAt = -math.huge -- os.clock() of the last touch's shake
+local stunnedAt = -math.huge -- and of the last stun
 
 -- Counts for tests and the sandbox (how many props are fading, boxes are out, copies are flying)
 -- Round = props being watched; Through, Inside, Path = how many are see-through for us, have us in them, are in our
@@ -122,6 +126,7 @@ PropController.Stats = {
 	Touches = 0,
 	Shakes = 0,
 	Shook = 0,
+	Stuns = 0,
 	DebrisSeen = 0,
 }
 
@@ -305,6 +310,7 @@ local function look(body: Body?)
 						Through = false,
 						Path = false,
 						In = false,
+						SolidUntil = 0,
 						Centre = part.Position,
 						Radius = 0,
 						Span = 0,
@@ -337,6 +343,37 @@ local function touched(fade: Fade, body: Body)
 	local stats = PropController.Stats
 	stats.Touches += 1
 	local now = os.clock()
+	-- The stun (Props.Stun): riding a fish that can't break it, straight into a prop that was still solid for us.
+	-- (`fade.Through` is still what it was before this touch: a prop we were passing beside is see-through already,
+	-- and brushing it is not running into it.)
+	if
+		p.Stun > 0
+		and State.Mode == "Riding"
+		and not body.Breaker
+		and not fade.Through
+		and not State.dying()
+		and fade.Span >= p.ShakeMin
+		and body.Speed >= p.StunSpeed
+		and now - stunnedAt >= p.StunGap
+	then
+		stunnedAt = now
+		shookAt = now
+		fade.SolidUntil = now + math.max(p.StunTime, 0)
+		RideController.stun(p.StunTime, p.StunRecover, p.StunSlow, p.StunShake)
+		stats.Stuns += 1
+		local front = body.Nose + (body.Way or Vector3.zero) * body.Radius
+		if p.StunBubbles > 0 then
+			Fx.burst(front, p.StunBubbles, 0, 7)
+		end
+		if p.TouchSound > 0 then
+			local sound = Fx.sound("Pop")
+			if sound then
+				sound.Volume *= math.min(p.TouchSound * 1.6, 1)
+				sound.PlaybackSpeed = 0.42
+			end
+		end
+		return
+	end
 	if body.Breaker or State.dying() or now - shookAt < p.ShakeGap or fade.Span < p.ShakeMin then
 		return
 	end
@@ -371,6 +408,7 @@ local function judge(body: Body?)
 	local slack = math.max(p.SideSlack, 0)
 	local sideIn = math.max(p.SideNear, 0)
 	local viewIn = if p.ViewNear > 0 then p.ViewNear else -math.huge
+	local clock = os.clock()
 	local round, through, inside, inWay = 0, 0, 0, 0
 	for model, fade in fades do
 		if not (on and body) or fade.Seen ~= stamp or not model.Parent then
@@ -421,7 +459,8 @@ local function judge(body: Body?)
 		elseif touching or (not fade.Path and (bodyGap <= sideIn or viewGap <= viewIn)) then
 			fade.Through = true
 		end
-		fade.Goal = if fade.Through then to else 0
+		-- (stunned against it, it stays solid until the stun is over: Props.StunTime)
+		fade.Goal = if fade.Through and clock >= fade.SolidUntil then to else 0
 		through += if fade.Through then 1 else 0
 		inside += if fade.In then 1 else 0
 		inWay += if fade.Path then 1 else 0

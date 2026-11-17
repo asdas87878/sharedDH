@@ -706,7 +706,7 @@ Config.Jump = {
 	SpeedHalf = 2.3, -- (2.1 until 2026-11-16) seconds after leaving at which half the speed is gone (later: fast for longer, then lost quicker; 1.5 until 2026-11-14)
 	SpeedTail = 2.5, -- how long and gentle the run-out to the stop is (1: the speed runs straight into the stop; higher: more of it is lost before the tail, which is then longer and softer)
 	StopTime = 3.5, -- (3.2 until 2026-11-16) seconds after leaving at which you have stopped (with the airtime by speed added); the last fifth of it is under a tenth of the speed
-	StopShare = 0, -- the share of the leaving speed still there at the stop and after (0: a real stop; a little keeps A and D steering to the end)
+	StopShare = 0.5, -- the share of the leaving speed still there at the stop and after (0 until 2026-11-17: a real stop, in a sea that now swims at 48 and more. From about 2.3 seconds into a hop you were slower than the herd, and every fish ahead of you was getting away while the window ran on. At 0.5 you ease down to about the herd's pace. The fall is unchanged: it comes in as before. 0: a real stop; a little keeps A and D steering to the end)
 	-- The fall is blended in along the same curve (Hugo, earlier the same day: "sink way quicker, like a fall, after
 	-- losing speed"; and now with no switch): you fall at FallSpeed x (the share of your speed that is gone) ^
 	-- SinkCurve (Config.hopSink). Hardly at all while you are fast, a real fall once the speed has nearly gone.
@@ -781,9 +781,10 @@ Config.Jump = {
 	-- speed it saw the fish leave at (never from what the client says), with Net.RangeSlack and Net.ReachLag for lag.
 	-- The numbers are from the herd's spacing, measured again on the partner's new herd and with the slower hop
 	-- (docs/playtests/2026-11-13-hop-air-reach.md, "The one curve").
-	GrabRange = 105, -- the reach at GrabFullSpeed or faster, rider to fish: the longest there is. (150 until 2026-11-17, the user: "we need a lesser distance to grab onto the next fish when in the air".) 180 at every speed until 2026-11-13
-	GrabNear = 45, -- the reach with no speed at all: what is left when you have stopped (and the least there ever is). (60 until 2026-11-17, with GrabRange)
-	GrabFullSpeed = 190, -- (120 until 2026-11-17: less bunching: every fish is 1.6 times faster now, so the hop's reach was nearly always at its longest; this puts it back to what it was for a fish of its kind); the speed across the water, studs a second, that gives the whole GrabRange (180 while the hop left at twice the fish's speed)
+	GrabRange = 95, -- the reach while the hop has most of its speed (GrabFullShare), rider to fish: the longest there is. (105 for an hour of 2026-11-17, then the user: "needs more tolerance on how far it can hook onto now".) (150 until 2026-11-17, the user: "we need a lesser distance to grab onto the next fish when in the air".) 180 at every speed until 2026-11-13
+	GrabNear = 55, -- the reach with no speed at all: what is left when you have stopped (and the least there ever is). (45 for the same hour.) (60 until 2026-11-17, with GrabRange)
+	GrabFullShare = 0.75, -- the hop has its whole reach while it still has this share of the speed it left with, and less in proportion below that. The reach used to go by a fixed speed (GrabFullSpeed), so every change to how fast fish are, or to how much of their speed a hop keeps, changed the reach as well without anyone meaning it to: with fish 1.6 times faster, the hop keeping 0.8 of their speed and that fixed speed raised to 190, a hop off a 74 fish began with a reach of 70 studs, not the 105 written above, and ended at 45
+	GrabFullSpeed = 190, -- (only where the leaving speed isn't known) (120 until 2026-11-17: less bunching: every fish is 1.6 times faster now, so the hop's reach was nearly always at its longest; this puts it back to what it was for a fish of its kind); the speed across the water, studs a second, that gives the whole GrabRange (180 while the hop left at twice the fish's speed)
 	AckTime = 1, -- seconds to wait for the server's word on a landing before going back to the hop
 	RefusedTime = 0.6, -- a fish the server refused, or that was lost, can't be locked again for this long
 	-- The second hook (Hugo, 2026-11-12: "sometimes when you jump onto a fish you are instantly hooked onto ANOTHER
@@ -851,6 +852,57 @@ Config.Jump = {
 -- distance as a share of the range); the lowest score wins.
 -- Hugo, 2026-11-12: the fish you AIM at, far ones as easy to pick as near ones. So being far counts a third of what it
 -- did, and a far fish, small on the screen, has a margin round it that counts as on it (FarAim).
+-- The hook (HookController; the user, 2026-11-17: "we have the hook mechanic, you can hook onto the next fish, but
+-- there's nothing actually doing that ... a harpoon gun or a grappling hook ... something that flails about in the air,
+-- something that has very dynamic movements"). A small anchor on a rope in the rider's hand: whirled over the head on
+-- a fish, whirled hard in the hop, thrown at the fish as the grab begins, pulled taut for the pull-in. A picture only:
+-- nothing here changes the hop, the lock or the grab. Built from plain parts in code, nothing uploaded.
+Config.Hook = {
+	On = 1, -- 0: no hook at all
+	Ride = 1, -- 1: whirled lazily over the head while you ride; 0: put away on a fish, out only in the hop
+	-- what it is made of
+	Segments = 12, -- cylinders in the rope (more bends smoother and costs a little more)
+	Thick = 0.45, -- the rope's thickness, studs
+	HeadSize = 1.4, -- the anchor's size, times (1: about 2.4 studs long)
+	Outline = 1, -- 1: a thin black outline round rope and anchor, so they read against the water
+	RopeColor = Color3.fromRGB(244, 226, 184),
+	HeadColor = Color3.fromRGB(255, 196, 46),
+	HeadDark = Color3.fromRGB(64, 56, 60),
+	-- how the rope moves: a chain of points with their own momentum
+	Carry = 0.8, -- the rope is carried along with you by this share of your movement; the rest is the water it drags through, so it streams out behind (1: no streaming; 0: it is left behind)
+	Drag = 2.5, -- the water takes the rope's own speed away this quickly (higher is calmer, lower whips more)
+	Sink = 30, -- and it sinks, studs a second gained each second
+	Stiff = 9, -- how many times a frame the rope is pulled back to its length (fewer is stretchier; at 5 the hop's rope drew half as long again as its length)
+	-- the whirl on a fish
+	RideLength = 7.5, -- the rope's length, studs
+	RideRadius = 3.4, -- the ring the anchor goes round, studs across its half
+	RideRate = 1, -- turns a second
+	RideLift = 5, -- the ring's middle is this far over you, studs
+	-- the whirl in the hop
+	HopLength = 13,
+	HopRadius = 7,
+	HopRate = 2.3,
+	HopLift = 5.5,
+	Wobble = 0.24, -- the ring breathes in and out by this share, and rocks out of its plane by half of it (0: a clean circle)
+	Tilt = 16, -- the ring's plane is tipped this far, degrees, the tip going slowly round
+	-- with a fish locked: it winds up
+	LockRate = 1.4, -- faster by this,
+	LockRadius = 1.2, -- wider by this,
+	LockLean = 28, -- and the ring leans this far toward the fish, degrees
+	SpinEase = 5, -- how quickly the whirl changes from one of these to the next (higher is quicker)
+	Swish = 0.1, -- a swish each turn in the hop, this loud (0 off)
+	-- the throw
+	ThrowShare = 0.4, -- the anchor flies to the fish in this share of the pull-in's time (the pull-in creeps at first: Jump.ReelCurve),
+	ThrowMin = 0.05, -- never quicker than this, seconds,
+	ThrowMost = 0.28, -- nor slower than this
+	ThrowArc = 0.07, -- it rises this share of the way on its flight
+	ThrowSlack = 1.3, -- the rope is this much longer than the straight line as it leaves (it whips out behind the anchor),
+	TautSlack = 1.02, -- and this much once the anchor has bitten (1: dead straight)
+	BiteBubbles = 12, -- bubbles where it bites (0 off),
+	BiteSound = 1, -- and how loud the tick is, times (0 off)
+	Retract = 0.22, -- seconds it takes to come back to the hand's whirl after a landing or a refused grab
+}
+
 Config.Lock = {
 	Cone = 40, -- full angle round the aim that a far fish must be inside
 	AimRadius = 8, -- the aim ray's thickness, studs
@@ -859,14 +911,26 @@ Config.Lock = {
 	DistanceWeight = 0.07, -- being far: only close calls go to the nearer fish; 0.07 is a degree and a half of aim over the whole range (0.2 until 2026-11-12, 0.35 before the range went from 85 to 130)
 	FarAim = 5, -- degrees round a fish at the full range that count as aimed at it, and that much more allowance (in proportion nearer; 0: a far fish must be aimed at exactly, as before)
 	-- The fish you just left swims on right under the middle of the view, so with no penalty it takes nearly every lock.
-	LeftPenalty = 0.5, -- added to its score: any other fish near the aim wins; with none, a grab takes it back
+	LeftPenalty = 2, -- added to its score in the last chance: any other fish in reach wins; with none, a grab takes it back (0.5 until 2026-11-17)
+	LeftBan = 1, -- 1: the fish you just left is not locked at all before the last chance (the user, 2026-11-17: "it still locks onto ur current fish ... too much"); 0: it may be, with LeftPenalty
+	Ahead = 8, -- a fish must be this far ahead of you, the way the camera looks across the water, studs: not one under you or behind you (the same day: "or fish near the bottom of ur screen"). Not in the last chance
+	AheadLead = 0.6, -- and it is judged where it will be this many seconds on, against you: a slow fish you are about to fly over doesn't count, a fast one coming up from behind does once it will be ahead
+	AheadKeep = 25, -- the fish already locked may be this much further back before it is let go, studs
+	Assist = 1, -- 1: with no fish under the aim, the lock takes the fish ahead of you nearest to the aim, so there is nearly always a lock while a fish ahead is in reach (2026-11-17: in a thin sea, hops flown without steering the camera found nothing to lock for two seconds and then fell back on the last chance); 0: only a fish you aim at
+	AssistAngle = 70, -- and no further off the aim than this, degrees
+	AssistPenalty = 1.5, -- added to such a fish's score: any fish that is aimed at beats it
+	UpEase = 0.6, -- a fish above the aim counts as this much less off it ("needs to work better for ... ones that are more high up"); 1: up and down alike
+	DownHard = 1.8, -- and one below the aim as this much more off it
+	Lead = 0.2, -- seconds ahead a fish is aimed at, by its speed against yours ("needs to work better for fish that come by fast"); 0: where it is now
+	Linger = 0.45, -- seconds the locked fish keeps the lock after it has left the reach or the aim ("you keep locked onto it for a small window of time to provide slightly more leeway"); 0: it is dropped at once
+	LingerReach = 1.12, -- and in that time a grab may take it from this much further than the hook's reach (the server allows Net.RangeSlack)
 	-- so the lock doesn't flicker between two fish
 	-- 2026-11-11, the user after playing: the lock switched between too many fish too close together. Steadier now:
 	-- Sticky 0.2 to 0.35, MinHold 0.3 to 0.45, KeepCone 1.4 to 1.6, and the two new rows below.
 	Sticky = 0.35, -- another fish must score this much better to take the lock (with EdgeAim: 0.35 is 7 degrees of aim),
-	MinHold = 0.45, -- and never sooner than this after the lock was taken,
+	MinHold = 0.3, -- and never sooner than this after the lock was taken (0.45 until 2026-11-17: "more locked and responsive"),
 	KeepCone = 1.6, -- and the locked fish keeps the lock this much further off the aim than it took to win it,
-	SwitchTime = 0.15, -- and the better fish must stay the better one this long first (0: at once, as before)
+	SwitchTime = 0.1, -- and the better fish must stay the better one this long first (0: at once; 0.15 until 2026-11-17)
 	EdgeAim = 1, -- 1: "off the aim" is measured from the fish's nearest edge in degrees (a fish the aim passes through scores 0); 0: from its middle as a share of its own allowance (until 2026-11-11: near fish off to the side took the lock)
 	FallbackRadius = 4, -- assumed fish radius if its type has not replicated
 	-- The last chance (2026-11-13, with the reach that shrinks: Hugo's standing rule, a hop must still be able to
@@ -961,8 +1025,9 @@ Config.Pace = {
 	-- still. Riding one is faster too, so the fast ones are worth wrangling. Its Swift attribute says how much.
 	FastShare = 0.3, -- of the herd's fish, this share are born fast (they swim at Pace.Zoom, in the fast layer). (0.22 at first: measured, 24 in 100 of the herd were, but only 2 of the 58 fish near a rider, since a fast fish soon swims out of sight)
 	BoltShare = 0.1, -- and this share are bolts (0.07 at first)
-	Bolt = 1.8, -- a bolt's pace, as a share of the land's (the fast ones': Pace.Zoom, 1.3). (2.4 for an hour; the user, 2026-11-17: "some are really darting past insanely quick")
-	FastVary = 0.15, -- each fast fish and each bolt is this much faster or slower than that, either way
+	Bolt = 1.45, -- a bolt's pace, as a share of the land's (the fast ones': Pace.Zoom, 1.3). (1.8 until later on 2026-11-17, the user: "the super fast fish are still too fast. Impossible to grab when theyre that fast". Measured in land 1, whose pace is 69: the herd swims at 48, a common fish is ridden at 66 and its hop leaves at 73; a bolt at 1.8 and FastVary swam at 105 to 143, so it left a hop behind at 32 to 70 studs a second. Now 96 to 105: 23 to 32 faster than the hop. Before that: 2.4 for an hour; the user, 2026-11-17: "some are really darting past insanely quick")
+	FastVary = 0.1, -- each fast fish is this much faster or slower than that, either way (0.15 until 2026-11-17: the fastest of them swam at 103 in land 1, as fast as a bolt; now 81 to 99),
+	BoltVary = 0.05, -- and each bolt this much (it was FastVary for both: a bolt could come out 15% over an already fast pace)
 	FastRide = 1.2, -- a fish born fast is ridden this much faster than its kind,
 	BoltRide = 1.5, -- and a bolt this much
 	Plod = 0.45, -- (0.58 of its own speed until 2026-11-16)
@@ -1218,6 +1283,19 @@ Config.Props = {
 	ShakeMin = 10, -- a prop smaller than this across its biggest side gives no shake, bubbles or thud, studs (sea grass, small stones; 0: every prop does)
 	TouchBubbles = 8, -- bubbles where you ran into it (0 off),
 	TouchSound = 0.5, -- and how loud the thud is (0 off)
+	-- the stun (the user, 2026-11-17: "when you run into an object as a smaller fish, instead of the object just fading
+	-- out as you ride into it, it needs to stunt you for a moment then fade out"). Riding a fish that doesn't break
+	-- props, straight into one that is in your way: the fish is stopped against it, the prop stays solid, and only
+	-- then does it turn see-through and let you on. Nothing is taken (no Oxygen). Not in the hop, not for a prop you
+	-- were already passing beside (that one was see-through before you touched it), not for small things (ShakeMin).
+	Stun = 1, -- 1: on; 0: the prop turns see-through at the touch, as before
+	StunTime = 0.4, -- seconds you are held against it, the prop solid,
+	StunSlow = 0.05, -- at this share of your speed (0: dead still),
+	StunRecover = 0.5, -- and seconds your speed takes to come back after that, as the prop turns see-through
+	StunShake = 0.9, -- the crash's shake at this strength, in place of the touch's (0: none)
+	StunBubbles = 18, -- bubbles where you hit it (the touch's own are TouchBubbles)
+	StunSpeed = 12, -- slower than this it is a nudge: no stun, studs a second
+	StunGap = 1.5, -- seconds from one stun before the next can happen, so a cluster of props stops you once
 	-- beside you: a prop you pass close to, and not in your way, is see-through while it is close
 	SideNear = 12, -- this near your body or nearer, studs,
 	SideSlack = 6, -- and it comes back once it is this much further (so it can't flicker at the edge)
@@ -1269,7 +1347,7 @@ Config.Sandbox = {
 }
 
 Config.Net = {
-	RangeSlack = 1.2, -- the server allows this much more than the hook's reach (it sees the player and the fish a moment apart; 1.1 until 2026-11-11: at the faster air speed a grab at the full 130 studs was refused in Studio)
+	RangeSlack = 1.3, -- the server allows this much more than the hook's reach (1.2 until 2026-11-17: the lock's leeway, Lock.LingerReach, lets a grab reach 1.12 times as far; it sees the player and the fish a moment apart; 1.1 until 2026-11-11: at the faster air speed a grab at the full 130 studs was refused in Studio)
 	ReachLag = 0.2, -- and it reads the hop's speed, for that reach, as it was this long before (the reach shrinks as the hop stalls, and the grab's word arrives late)
 }
 
@@ -1558,7 +1636,19 @@ Config.Dive = {
 	GrabAfter = 0.5, -- seconds into the hop before it may (the pop is seen first)
 	GateShare = 0.5, -- (0.45 until 2026-11-17; 0.6 was tried and left the first room empty); the sea's pace at the gate, as a share of the land's: fish gather there. 1: no gathering
 	RampTo = 220, -- and it is back to the whole pace this far down the stream, studs (0: no gathering, no rise)
-	Rise = 12, -- at the gate fish swim this much higher than their place in the herd, studs, sinking to it by RampTo
+	Rise = 0, -- at the gate fish swim this much higher than their place in the herd, studs, sinking to it by RampTo (12 until 2026-11-17, the user: "I don't like how far up you are in the first zone after you dive in". The first fish you land on is now down in the herd, 20 to 30 studs under the surface)
+	-- The plunge (the same day: "when you first dive in, some VFX, a few bubbles, your camera follows a certain
+	-- direction just for the dive in so that it feels and looks better"). As the dive's hop begins:
+	Plunge = 10, -- the dive's hop goes down, not up: this much deeper than where it began, studs. An ordinary hop from floating rises Jump.Apex (20), which took the dive back up to the surface: measured, in at 21 studs under, then up to 12 before the pull-in. That was the "far up"
+	PlungeTime = 0.6, -- over this long, seconds
+	Splash = 46, -- bubbles thrown out where you went in (0: none),
+	SplashReach = 13, -- this far, studs,
+	SplashSound = 0.7, -- with a splash this loud
+	Trail = 1, -- 1: bubbles stream off you all the way down (an ordinary hop leaves none in its glide)
+	Shake = 0.8, -- the landing's shake at this strength, as you hit the water (0: none)
+	Fov = 9, -- the view kicks this much wider, degrees
+	Camera = 1, -- 1: the view turns to look the way you are going, down the lane, and tips down at the fish below; 0: it stays where you had it
+	CameraPitch = -34, -- how far down it tips, degrees (a hop rests at Jump.CameraPitch, -30; riding at Camera.RestPitch, -12)
 	FirstDockWait = 20, -- seconds floating at the surface by the dock before a player who has not ridden yet this dive is put back on it (Oxygen.DockWait once they have)
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
 }
@@ -1865,11 +1955,20 @@ end
 
 -- The hook's reach at a speed across the water (Jump.GrabNear, GrabRange, GrabFullSpeed): the client's lock and the
 -- server's check both ask this
-function Config.reachOf(speed: number?): number
+function Config.reachOf(speed: number?, launch: number?): number
 	local j = Config.Jump
 	local near = math.min(j.GrabNear, j.GrabRange)
 	if not speed or speed ~= speed then
 		return near
+	end
+	-- (`launch`: the speed this hop left with. The reach is whole while GrabFullShare of that is still there, so it
+	-- does not move when the fish's speeds or the hop's are tuned. With no launch given: by a fixed speed, as before.)
+	if launch and launch == launch and launch > 0 then
+		-- (from the share the hop ends on, Jump.StopShare, where the reach is GrabNear, up to GrabFullShare)
+		local rest = math.clamp(j.StopShare, 0, 0.95)
+		local share = speed / launch
+		local u = (share - rest) / math.max(j.GrabFullShare - rest, 0.05)
+		return near + (j.GrabRange - near) * math.clamp(u, 0, 1)
 	end
 	return near + (j.GrabRange - near) * math.clamp(speed / math.max(j.GrabFullSpeed, 1), 0, 1)
 end

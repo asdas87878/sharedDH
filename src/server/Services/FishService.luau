@@ -884,16 +884,18 @@ local function spawnFish(index: number, entry: boolean?): Wild?
 	local p = Config.Pace
 	local pace = Config.paceOf(fishType)
 	local own, swift = 1, 1
+	local bolt = false
 	if pace == "Cruise" then
 		local roll = rng:NextNumber()
 		if roll < p.BoltShare then
 			pace, own, swift = "Zoom", p.Bolt / math.max(p.Zoom, 0.01), p.BoltRide
+			bolt = true
 		elseif roll < p.BoltShare + p.FastShare then
 			pace, swift = "Zoom", p.FastRide
 		end
 	end
 	if pace == "Zoom" then
-		own *= 1 + rng:NextNumber(-1, 1) * p.FastVary
+		own *= 1 + rng:NextNumber(-1, 1) * (if bolt then p.BoltVary else p.FastVary)
 	end
 	local home, at, u, lift = placeFor(
 		index,

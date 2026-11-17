@@ -5,8 +5,9 @@
 -- with a black edge and a dark line inside it, paler at the top, a darker lip along the foot, a slanted band of
 -- stronger colour toward the right, a faint pattern, a picture at the left, the word in white with a black outline, and
 -- on the Index a round red "!" when there is something new in it.
--- Ours, not the reference's: the pattern is our stud tile, and the two pictures are drawn here from frames (a bag and a
--- book) until there are painted ones.
+-- The two pictures are the red basket and the blue book of the free icon pack the reference itself uses (gvesster's
+-- Free Icon Pack, the user's copy, 2026-11-17; art/ui/icons/CREDITS.md). Ours, not the reference's: the pattern is our
+-- stud tile until our own square tile is uploaded.
 -- They show at the dock only. Neither opens anything yet: a press dips the button and fires Pressed.
 local Kit = require(script.Parent.Kit)
 
@@ -23,6 +24,7 @@ local LEFT = 10 -- as the stat rows'
 local DOWN = 4 -- the pair's middle sits a hair under the screen's
 local EDGE = 1.5
 local ICON_AT = 25 -- the picture's middle, from the button's left edge
+local PICTURE = 40 -- the picture's box: the reference's basket is 39 wide
 local WORD_AT = 0.62 -- the word's middle, across the button
 local WORD = 16.5
 local MARK = 23
@@ -63,82 +65,7 @@ local function block(props: { [string]: any }, parent: Instance): Frame
 	return Kit.new("Frame", props, parent)
 end
 
--- The Shop's picture: a bag with a handle
-local function bag(parent: Instance)
-	local handle = block({
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 2),
-		Size = UDim2.fromOffset(15, 16),
-		BackgroundTransparency = 1,
-	}, parent)
-	Kit.corner(handle, 7)
-	Kit.stroke(handle, 4.6, BLACK)
-	local grip = block({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2 }, handle)
-	Kit.corner(grip, 7)
-	Kit.stroke(grip, 2, Color3.fromRGB(158, 178, 202))
-	local body = block({
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -2),
-		Size = UDim2.fromOffset(25, 20),
-		BackgroundColor3 = Kit.White,
-		ZIndex = 3,
-	}, parent)
-	Kit.corner(body, 3)
-	Kit.stroke(body, EDGE, BLACK)
-	Kit.gradient(body, Color3.fromRGB(240, 62, 112), Color3.fromRGB(198, 22, 72))
-	local lip = block({
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, -24),
-		Size = UDim2.fromOffset(29, 6),
-		BackgroundColor3 = Color3.fromRGB(252, 104, 142),
-		ZIndex = 4,
-	}, parent)
-	Kit.corner(lip, 2)
-	Kit.stroke(lip, EDGE, BLACK)
-end
-
--- The Index's picture: a book with a marker
-local function book(parent: Instance)
-	local cover = block({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(24, 30),
-		BackgroundColor3 = Kit.White,
-	}, parent)
-	Kit.corner(cover, 2.5)
-	Kit.stroke(cover, EDGE, BLACK)
-	Kit.gradient(cover, Color3.fromRGB(52, 124, 232), Color3.fromRGB(26, 82, 200))
-	local panel = block({
-		Position = UDim2.fromOffset(5, 4),
-		Size = UDim2.fromOffset(14, 10),
-		BackgroundColor3 = Color3.fromRGB(150, 200, 250),
-		ZIndex = 2,
-	}, cover)
-	Kit.corner(panel, 1)
-	block({
-		Position = UDim2.fromOffset(5, 17),
-		Size = UDim2.fromOffset(14, 1.5),
-		BackgroundColor3 = Color3.fromRGB(150, 200, 250),
-		ZIndex = 2,
-	}, cover)
-	block({
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 2, 1, -2),
-		Size = UDim2.new(1, -2, 0, 3.5),
-		BackgroundColor3 = Color3.fromRGB(236, 242, 252),
-		ZIndex = 2,
-	}, cover)
-	local marker = block({
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 14, 1, 3),
-		Size = UDim2.fromOffset(4.5, 9),
-		BackgroundColor3 = Color3.fromRGB(226, 52, 84),
-		ZIndex = 3,
-	}, cover)
-	Kit.stroke(marker, 1, BLACK)
-end
-
-local function button(order: number, name: string, look: Look, picture: (Instance) -> (), turn: number): TextButton
+local function button(order: number, name: string, look: Look, picture: string): TextButton
 	local plate: TextButton = Kit.new("TextButton", {
 		Name = name,
 		Size = UDim2.fromOffset(WIDTH, HEIGHT),
@@ -156,14 +83,23 @@ local function button(order: number, name: string, look: Look, picture: (Instanc
 		ZIndex = 2,
 	}, plate)
 	Kit.gradient(face, look.Top, look.Bottom)
+	-- The faint block pattern, as the reference lays it (docs/design/ui.md, "How the reference does its stud
+	-- pattern"): one tiled picture over the face, a tile 28 across (5% of the screen's height), started from the
+	-- face's upper left corner and cut off by its edges. The reference's first square is flush with the button's left
+	-- edge and a little down from its top: 8 across and 3 up from
+	-- where our tile's would, so the picture starts that far outside the face. Until our tile is uploaded the map's
+	-- stud tile stands in, smaller and fainter
+	local emboss = Kit.Textures.Emboss ~= ""
+	face.ClipsDescendants = true
 	Kit.new("ImageLabel", {
 		Name = "Pattern",
-		Size = UDim2.fromScale(1, 1),
+		Position = if emboss then UDim2.fromOffset(-7.8, -2.7) else UDim2.fromOffset(0, 0),
+		Size = if emboss then UDim2.new(1, 7.8, 1, 2.7) else UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
-		Image = Kit.Textures.Studs,
-		ImageTransparency = 0.8,
+		Image = if emboss then Kit.Textures.Emboss else Kit.Textures.Studs,
+		ImageTransparency = if emboss then 0 else 0.8,
 		ScaleType = Enum.ScaleType.Tile,
-		TileSize = UDim2.fromOffset(15, 15),
+		TileSize = if emboss then UDim2.fromOffset(28, 28) else UDim2.fromOffset(15, 15),
 		ZIndex = 3,
 	}, face)
 	local band = block({ Name = "Band", Size = UDim2.fromScale(1, 1), BackgroundColor3 = look.Band, ZIndex = 4 }, face)
@@ -185,15 +121,16 @@ local function button(order: number, name: string, look: Look, picture: (Instanc
 	}, face)
 	local rim = Kit.stroke(inner, EDGE, BLACK, 0.76)
 	rim.LineJoinMode = Enum.LineJoinMode.Miter
-	local sign = block({
+	Kit.new("ImageLabel", {
+		Name = "Picture",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0, ICON_AT, 0.5, 0),
-		Size = UDim2.fromOffset(36, 36),
+		Size = UDim2.fromOffset(PICTURE, PICTURE),
 		BackgroundTransparency = 1,
-		Rotation = turn,
+		Image = picture,
+		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 7,
 	}, plate)
-	picture(sign)
 	local word: TextLabel = Kit.new("TextLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(WORD_AT, 0.5),
@@ -232,8 +169,8 @@ function HubButtons.build(parent: Instance)
 	}, parent)
 	size = Kit.new("UIScale", {}, holder)
 	Kit.new("UIListLayout", { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder }, holder)
-	button(1, "Shop", SHOP, bag, -6)
-	local index = button(2, "Index", INDEX, book, -16)
+	button(1, "Shop", SHOP, Kit.Textures.Shop)
+	local index = button(2, "Index", INDEX, Kit.Textures.Index)
 	shown = false
 
 	-- the red "!" on the Index's upper right corner: a dark edge, a white ring, a red disc

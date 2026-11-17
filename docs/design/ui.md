@@ -380,7 +380,7 @@ Measured off the user's recording of the reference's hub and matched as shares o
 | The pattern | Faint pale squares | Our stud tile, faint |
 | The word | White, black outline, its middle 62% across | The same; the font is ours |
 | The red "!" | A red disc in a white ring on the Index's upper right corner | The same |
-| The pictures | A painted basket and a painted book | **Drawn from frames here: a bag and a book. Stand-ins** |
+| The pictures | A painted basket and a painted book | The same pack's basket and its blue book (see below). First built as a bag and a book drawn from frames |
 
 - **They show at the dock only,** as the reference's show at its hub.
 - **They open nothing yet.** A press dips the button and fires `HubButtons.Pressed` with "Shop" or "Index".
@@ -398,6 +398,88 @@ the banner held up by hand for the picture: it shows for 2.6 seconds and the cap
 ![](../attachments/ui15-catch-banner-cash.jpg)
 
 The fish tags keep their small drawn bubble: the user named the banner only.
+
+**The pictures, from the icon pack the reference uses (the user, 2026-11-17).** "here is an asset pack that ride a
+dino actually uses, its a free one. Should have everything we need except O2, which i will use chatgpt to gen": in
+[Decisions](../Decisions.md).
+
+![](../attachments/ui16-hub-buttons-icons.jpg)
+
+- **State: uploaded, in the code, run and seen in Studio on 2026-11-17,** at the dock on a desktop. The drawn bag
+  and book are gone.
+- **The pack:** "Free Icon Pack 3.0.1 (Basic)" by gvesster: about 170 icons (its own count), 2,044 pictures in all: each
+  in several colours, with and without an outline, at 64 and 256 pixels. Its rules: free for commercial use; not to be resold or claimed as ours;
+  credit optional. It stays out of the repo (unpacked to `D:\ResearchCache\packs`); only the icons in use are
+  copied in, with the credit in `art/ui/icons/CREDITS.md`.
+- **Shop:** its red basket ("Red Shopping Cart 1st Outline"). It is the very picture on the reference's button.
+- **Index:** its blue book ("Blue Book 1st Outline"). The reference's book is another drawing (upright, with a red
+  marker) that this version of the pack does not hold; this is the pack's nearest.
+- **Two uploads, on the user's word:** `rbxassetid://139519009824812` (basket) and `rbxassetid://136062585112653`
+  (book), in `Kit.Textures.Shop` and `Kit.Textures.Index`.
+- **Also in the pack, not used yet:** the green cash and the yellow bolt the reference's rows use, a paw, a plus, a
+  cross for closing, an exclamation mark, a clover, a trophy, a gift, a lock. No O2 or bubble, and no stud tile.
+- **The cash is the pack's now** (the user, 2026-11-17: "yes use the packs for the cash"): its green cash ("Green
+  Cash 1st Outline", the one on the reference's own row) is uploaded as `rbxassetid://119031387165673` and is
+  `Kit.Textures.Cash`, so the coins row and the catch banner's chip both have it. Seen on the coins row; the banner
+  not seen again. The user's own cash picture is kept as `art/ui/icons/cash_user.png`.
+- **The O2 picture is the user's second one** (sent 2026-11-17 after "02 is coming"): a flat blue bubble with a dark
+  outline and "O2" in white, in the pack's style. Cut out, uploaded as `rbxassetid://133981557523389`
+  (`Kit.Textures.Oxygen`), run and seen in Studio at the dock. The first is kept as
+  `art/ui/icons/oxygen_user_v1.png`. The fish tags' small bubbles are still the drawn ones.
+
+![](../attachments/ui18-o2-icon-close.jpg)
+
+### How the reference does its stud pattern (the user, 2026-11-17)
+"in the meantime before i do that i need you to figure out how they do that stud effect for the ui."
+
+**State: worked out from pictures, not from their code. Our own tile is uploaded and on the Shop and Index buttons
+(the user, 2026-11-17: "add the stud texture in to it"), run and seen in Studio at the dock on a desktop.**
+
+![](../attachments/ui17-hub-buttons-studs.jpg)
+
+Beside the reference's at the same size (private: `research/ride-a-dino/ui/compare-hub-buttons.png`): the squares
+are the same size, in the same places and about as strong.
+
+**How it was read.** Their Shop and Index buttons, cut from the user's recording at 65 moments over 13 seconds and
+averaged, so the video's noise goes and the faint pattern stays. Then the plate's own shading was taken out and one
+tile read pixel by pixel on both buttons (private: `research/ride-a-dino/ui/buttons_avg.png`, `compare-stud-tile.png`).
+
+**What it is:**
+
+| | Read off the picture |
+|---|---|
+| The shape | **One raised square to a tile.** Not a grid of lines: between the squares the plate is plain |
+| The tile | 36 pixels across at 720 high: **5% of the screen's height.** The same across and down |
+| The square | 20 pixels, a little over half the tile |
+| Its edges | **Top and right edges pale, left and bottom edges dark:** lit from the upper right. Each line about 3 pixels, inside the square. The right line is the brightest |
+| Its face | A touch paler than the plate, 2 to 3 parts in 100 |
+| How strong | The top line about 5 in 100 lighter than the plate, the right line about 8, the dark lines about 7 in 100 darker. On a red plate that is white at 13 and 18 in 100, and black at 8 in 100 |
+| Where it starts | **From each button's own upper left corner.** Both buttons carry the squares at the same places, measured from their own corners: the first square flush with the left edge and 6.5 pixels down. It is not one sheet behind the whole screen |
+| Where it ends | Cut off by the button's edges, mid-square if need be |
+| Over or under | Over the top-to-bottom colour and over the slanted band: the squares show in the band too |
+| Movement | **None.** The same place in every frame |
+| What has it | Buttons and panel headers. Their stamina and cash rows and the green plus buttons have none |
+
+**How it is built in Roblox** (what the pixels fit; their code is not seen):
+- **One picture, tiled.** An image label the size of the button's face, its `ScaleType` set to `Tile` and its
+  `TileSize` to one tile, lying over the colour and under the picture and the word.
+- **The picture is white and black at a low strength on a clear ground,** so the same one works over red, blue or
+  any colour: the white lightens, the black darkens.
+- **Cut to the button** by the face clipping what is in it.
+- **It grows with the screen** as the rest of their UI does (5% of the height at any size).
+- One instance a button. Nothing is made per frame.
+
+**Ours today:** the map's stud tile (round studs), 15 units across and faint. It is our own look, but it is not what
+theirs does: theirs is nearly twice the size and square.
+
+**In the game:** `tools/ui/make_ui_tile.py` draws the tile from the measures above (code, not an image
+generator): `art/ui/tiles/emboss_square.png`, 144 across, uploaded as `rbxassetid://74391096180253`
+(`Kit.Textures.Emboss`). `HubButtons` lays it at 28 units a tile, started where theirs starts. Only those two
+buttons have it so far; the reference also has it on its panel headers, which we have not built.
+
+**How sure:** the tile's size, the square's size, which edges are pale and dark, and that it does not move are
+measured and agree across both buttons. The picture's own softness and exact strength are a guess from a blurred
+video. Their file is not seen.
 
 ## The short version
 - **Today's HUD says the wrong thing.** It shows a tank, "OXYGEN 68 / 100", at the bottom edge. With 2 to 3 seconds on a

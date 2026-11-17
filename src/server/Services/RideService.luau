@@ -515,7 +515,7 @@ local function grab(r: Rider, target: any)
 	-- little for lag (we see the player and the fish a moment apart, both moving): without it a grab near the edge
 	-- of the range is refused though the client was inside it. Landing slack never widens this.
 	local speed = Config.hopSpeed(math.max(0, elapsed - Config.Net.ReachLag), r.JumpLaunch, r.JumpExtra)
-	local reach = Config.reachOf(speed) * Config.Net.RangeSlack
+	local reach = Config.reachOf(speed, r.JumpLaunch) * Config.Net.RangeSlack
 	if r.DiveHop then
 		-- (the dive's own hop reaches further: Config.Dive.Reach)
 		reach = math.max(reach, Config.Dive.Reach * Config.Net.RangeSlack)

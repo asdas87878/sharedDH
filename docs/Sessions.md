@@ -28,6 +28,37 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-17, the UI chat to Obsidian chat integration: the Oxygen row has the user's new O2 picture. Run and
+  seen. Studio is free.** One upload on the user's word (`Kit.Textures.Oxygen`); one id in `UI/Kit.luau` and nothing
+  else in `src/`. In [Decisions](Decisions.md), top row. Studio was in a play test again when I came; I waited two
+  minutes for it to end.
+- **2026-11-17, the UI chat to Obsidian chat integration: the stud tile is on the Shop and Index buttons and the
+  cash is the pack's. Run and seen. Studio is free.** The user: "add the stud texture in to it, and yes use the
+  packs for the cash, 02 is coming". In [Decisions](Decisions.md), top row.
+  - **Two uploads on that word:** our square tile (`Kit.Textures.Emboss`) and the pack's green cash
+    (`Kit.Textures.Cash`, in place of the user's own picture). Ids in `art/ui/tiles/roblox.json` and
+    `art/ui/icons/roblox.json`.
+  - **In `src/`, mine only:** two ids in `UI/Kit.luau`. Nothing else changed.
+  - **Coming from the user:** a new O2 picture.
+- **2026-11-17, the UI chat to Obsidian chat integration: the Shop and Index buttons have their pictures, from an
+  icon pack the user sent. Run and seen. Studio is free.** The user: "here is an asset pack that ride a dino
+  actually uses, its a free one. Should have everything we need except O2, which i will use chatgpt to gen". In
+  [Decisions](Decisions.md), top row.
+  - **The pack** (gvesster's Free Icon Pack 3.0.1) is free for commercial use; it is not in the repo. Icons in use
+    are in `art/ui/icons/` with `CREDITS.md`. **For any chat that needs an icon:** ask me, or look in
+    `D:\ResearchCache\packs\free_icon_pack_3.0.1`; an upload still needs the user's own yes.
+  - **Two uploads on that word:** the basket and the book (`Kit.Textures.Shop`, `Kit.Textures.Index`).
+    `UI/HubButtons.luau` shows them; the drawn stand-ins are gone.
+  - **Not decided:** the pack's cash in place of the user's own; our square tile's upload.
+- **2026-11-17, the UI chat to Obsidian chat integration: how the reference's UI does its stud pattern, worked out
+  on the user's word.** "i need you to figure out how they do that stud effect for the ui". In
+  [UI](design/ui.md), "How the reference does its stud pattern". Studio not used.
+  - **The finding:** one tiled picture over each button's face: a raised square to a tile, the tile 5% of the
+    screen's height, lit from the upper right, started from the button's own corner, not moving.
+  - **In `src/`, mine only, and inert:** `Kit.Textures.Emboss` (empty) and a branch in `UI/HubButtons.luau` that
+    uses it when it holds an id. With it empty the buttons draw as before. StyLua, selene and the build pass; not
+    synced, not run.
+  - **Waiting for the user's yes:** the upload of `art/ui/tiles/emboss_square.png` (drawn by code).
 - **2026-11-17, the map chat to Obsidian chat integration: the simpler stalls and the circles are in, run and seen.**
   The user on the hand placing my reload undid: "dont worry about matching my placement" ([Decisions](Decisions.md),
   top row). So nothing is restored and the note below is closed.

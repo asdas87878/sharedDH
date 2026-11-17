@@ -284,6 +284,188 @@ outline remains from the fish for 1-2 seconds, not the yellow glow. Just the out
   more common than it was this morning. That is what was asked for; if it overshoots, `Jump.GrabRange` is the
   first dial.
 
+### The lock (2026-11-17)
+The user: "we need to alter the lock on mechanism, it still locks onto ur current fish or fish near the bottom of
+ur screen too much, now it is also too hard to get to the next fish. I think the tolerance for how far it reaches
+is vaugley okay but we need some new ways to make it feel smoother, more locked and responsive. Needs to work
+better for fish that come by fast, ones that are more high up ... if you lock onto a fish even if it goes outside
+of your boundaries you keep locked onto it for a small window of time to provide slightly more leeway".
+
+**The cause of the first complaint.** The camera looks at the rider, so the aim's line runs through the rider's
+own place. A fish right under you, the one you just left most of all, sat dead on the aim.
+
+| Change | The dial (`Config.Lock`, all in the N panel) |
+|---|---|
+| The fish you just left is not locked at all until the hop's last chance | `LeftBan` 1; `LeftPenalty` 2 in the last chance |
+| A fish must be ahead of you, the way the camera looks across the water: not under you or behind | `Ahead` 8 studs |
+| "Ahead" is judged where the fish will be in a moment, against your own speed: a slow fish you are about to fly over doesn't count, a fast one coming up from behind does as soon as it will be ahead | `AheadLead` 0.6 s |
+| The fish already locked may fall a little further back before it is let go | `AheadKeep` 25 studs |
+| A fish above the aim is easier to take than one as far below it | `UpEase` 0.6, `DownHard` 1.8 |
+| A fast fish is aimed at where it is going | `Lead` 0.2 s |
+| **The leeway:** the locked fish keeps the lock for a moment after it leaves the reach or the aim, and a grab in that moment reaches a little further | `Linger` 0.45 s, `LingerReach` 1.12 (the server's `Net.RangeSlack` is 1.3 for it) |
+| Quicker to take and to change | `MinHold` 0.3 (was 0.45), `SwitchTime` 0.1 (was 0.15) |
+
+Run in Studio by script: a dive and five hops by key press, the camera not steered.
+
+| | Result |
+|---|---|
+| Hops that landed | 6 of 6 |
+| Looks with the lock on the fish just left | 0, in every hop |
+| In the three short hops, looks with the target behind the rider | 5, 5 and 0 of about 45 each |
+| In the three long hops | 17, 13 and 20: the last chance, which takes any fish in reach all round once the glide is over |
+
+- **The last chance still takes a fish behind you.** That is the safety net (a hop must still be able to reach a
+  fish that is near), and it is the only time the lock goes back. If the user wants that gone too, it is
+  `Lock.LastChance` 0.
+- **Not tested: aiming.** The script pressed keys and never moved the camera, so "smoother" and "more responsive"
+  are the user's to judge. Two long hops had nothing ahead to lock for over a second, in the thinner sea.
+- Where it is in the code: `src/client/Lib/Lock.luau`; the grab's distance in `JumpController` (`Lock.slack`).
+
+### What was wrong with the hop, and the fixes (2026-11-17)
+The user: "needs more tolerance on how far it can hook onto now. Id also like you to just thiink hard and find out
+what might be wrong with our system and how to make it feel better."
+
+**Three things were wrong, and all three came from changing one number at a time in a system where the numbers
+lean on each other.**
+
+1. **The reach was not what its setting said.** The hook's reach went by a fixed speed (`Jump.GrabFullSpeed`): the
+   whole reach at that speed or faster, less below it. Three changes of the same day each cut it without meaning
+   to: fish 1.6 times faster made me raise that fixed speed to 190; the hop was set to keep 0.8 of the fish's
+   speed, where it kept 1.25; and the reach itself went from 150 to 105. Together, a hop off a 74 fish began with
+   a reach of **70 studs, not 105, and ended at 45.** The morning's was 150.
+2. **The hop died in a sea that kept moving.** The hop eased to a dead stop, and the herd now swims at 48. From
+   about 2.3 seconds in you were slower than every fish of the herd, so every fish ahead was getting away while
+   the window ran on for another second and more. A hop gained about 48 studs on the herd in all, where the
+   morning's gained about 140.
+3. **With nothing dead on the aim there was no lock at all.** The lock took only a fish inside a cone round the
+   middle of the view. In the thin sea, a hop flown without steering the camera found nothing for two seconds and
+   then fell back on the last chance: three hops of six in one run.
+
+| Fix | The dial |
+|---|---|
+| The reach goes by the share of its own leaving speed the hop still has, not by a fixed speed: tuning the fish or the hop no longer moves it | `Jump.GrabFullShare` 0.75 |
+| More reach: 95 studs while the hop has most of its speed, 55 at its end | `Jump.GrabRange` 95, `GrabNear` 55 |
+| The hop eases down to half its leaving speed, about the herd's pace, not to a stop. The fall is as it was | `Jump.StopShare` 0.5 |
+| An assist: with no fish under the aim, the lock takes the fish ahead nearest to the aim. Any fish that is aimed at still beats it, so aiming chooses | `Lock.Assist` 1, `AssistAngle` 70 |
+
+The hop off a 74 fish, by the numbers:
+
+| Seconds in | Speed, before | Reach, before | Speed, now | Reach, now |
+|---|---|---|---|---|
+| 0 | 79 | 70 | 79 | 95 |
+| 1 | 77 | 69 | 78 | 95 |
+| 2 | 60 | 64 | 70 | 95 |
+| 2.5 | 42 | 58 | 61 | 95 |
+| 3 | 21 | 52 | 50 | 76 |
+| 3.5 | 4 | 46 | 42 | 59 |
+
+Run in Studio by script (a dive and five hops by key press, the camera not steered):
+
+| | The lock rework alone | With the reach and the stop fixed | With the assist as well |
+|---|---|---|---|
+| Hops that landed | 6 of 6 | 5 of 6 | 6 of 6 |
+| Hops with a lock from the start | 4 of 6 | 3 of 6 | 5 of 6 |
+| Hops under 2 seconds | 3 | 1 | 4 |
+| Looks with the lock on the fish just left | 0 | 18, in one last chance | 0 |
+
+- One run each, and runs differ: the middle column is not worse than the first, it is noise. Read the last
+  column as "locks at once nearly always".
+- **Still not known:** how any of it feels with the camera steered. That is the user's.
+- **What I would look at next, if it is still not right:** the camera rests 30 degrees down in a hop, so the
+  middle of the view points at the water 35 studs ahead and far fish sit high on the screen; and the sea is at
+  20 fish to 1,000 studs, which may be thinner than the hop now wants.
+
+### The plunge (2026-11-17)
+The user: "how can we make the initial dive better? Instantly, I don't like how far up you are in the first zone
+after you dive in. I also think maybe we could make it so that when you first dive in, some VFX, a few bubbles,
+your camera follows a certain direction just for the dive in so that it feels and looks better."
+
+**Why you were so far up: two causes.**
+
+1. Fish at the gate were held 12 studs above their place in the herd (`Dive.Rise`), so the first fish was near the
+   surface on purpose.
+2. The dive's hop was an ordinary hop, and an ordinary hop rises 20 studs. Measured: you went in to 21 studs
+   under, and the hop then took you back up to 12 under before the pull-in. The dive went up.
+
+| Change | The dial (`Config.Dive`, all in the N panel) |
+|---|---|
+| Fish at the gate swim at their own depth in the herd | `Rise` 0 (was 12) |
+| The dive's hop goes down, not up: no rise, and 10 studs deeper over 0.6 seconds | `Plunge` 10, `PlungeTime` 0.6 |
+| Bubbles thrown out at the surface where you went in, and a smaller burst round you | `Splash` 46, `SplashReach` 13 |
+| A splash sound | `SplashSound` 0.7 |
+| Bubbles stream off you all the way down | `Trail` 1 |
+| A shake as you hit the water | `Shake` 0.8 |
+| The view kicks wider | `Fov` 9 degrees |
+| The view turns down the lane and tips down at the fish below, for the dive only. It goes back to the riding view at the landing. Touch the mouse and your own look takes over | `Camera` 1, `CameraPitch` -34 |
+
+One scripted dive in Studio, before and after (the surface is at -3, the floor at the gate at -46):
+
+| | Before | Now |
+|---|---|---|
+| Depth when the hop begins | -21 | -19 |
+| Depth half a second in | about -12 (it rose) | -33 |
+| Depth at the landing | -37 with `Rise` 0; about -25 with `Rise` 12 | -38 |
+| Dock to riding | 1.43 s | 1.46 s |
+| The view's tilt in the hop | -22, then -14, then -28: it did not hold | -34 all the way |
+| The view after the landing | -12 | -12, reached in about half a second |
+| Widest view | 85 | 85 |
+
+- **Why the tilt did not hold at first.** The camera is kept under the water's surface. With the rider rising to
+  12 under there was no room above for a camera tipped 34 degrees down, so it gave the tilt up. Going down fixed
+  that. The hop also pulled the tilt to its own -30; the dive's hop now rests at `CameraPitch`.
+- **Not seen by eye.** The numbers are from a script. The bubbles, the splash and the shake ran (the trail's
+  emitter was on for the whole plunge) but nobody has looked at them. How it looks and feels is the user's.
+- **If it should go deeper still:** `Plunge`. The first fish is 35 to 41 studs under, about 8 above the floor.
+- Where it is in the code: the dive's hook and the flight in `JumpController` (`plunging`, `plungeDepth`); the
+  hop's own tilt in `RideController.look(yaw, pitch, true)`.
+
+### Bolts slower again, and the stun on hitting an object (2026-11-17)
+The user: "the super fast fish are still too fast. Impossible to grab when theyre that fast. Now the next step is
+to fix that, make it so that when you run into an object as a smaller fish, instead of the object just fading out
+as you ride into it, it needs to stunt you for a moment then fade out."
+
+**The bolts.** The earlier cut (2.4 to 1.8) was judged against the wrong number. Measured in land 1:
+
+| | Studs a second |
+|---|---|
+| The herd | 46 to 56 |
+| You, on a common fish | 55 to 66 |
+| Your hop, as it leaves | about 73 |
+| Fast fish, before | 76 to 103 |
+| Bolts, before | 105 to 143: 32 to 70 faster than the hop |
+| Fast fish, now | 81 to 99 (measured 87 to 91) |
+| Bolts, now | 96 to 105 (measured 102 to 106): 23 to 32 faster than the hop |
+
+- Dials: `Pace.Bolt` 1.45 (was 1.8), `Pace.BoltVary` 0.05 (new: bolts had the fast fish's 15% either way),
+  `Pace.FastVary` 0.1 (was 0.15).
+- Riding a bolt is still 1.5 times its kind (`BoltRide`).
+- **Not known:** whether 23 to 32 over the hop is grabbable by hand. If not, the next step is `Pace.Bolt` 1.35.
+
+**The stun.** Riding a fish that can't break props, straight into one that is in your way:
+
+1. The fish is stopped against it, at 5% of its speed, for 0.4 seconds. The prop stays solid.
+2. The crash's shake, more bubbles and a deeper thud.
+3. Then the prop turns see-through and your speed comes back over half a second.
+
+| Dial (`Config.Props`, in the N panel) | Value |
+|---|---|
+| `Stun` | 1 (0: the old way, see-through at the touch) |
+| `StunTime` | 0.4 s held |
+| `StunSlow` | 0.05 of your speed |
+| `StunRecover` | 0.5 s to pick up again |
+| `StunShake` | 0.9 |
+| `StunGap` | 1.5 s before the next stun, so a cluster of props stops you once |
+| `StunSpeed` | 12: slower than this is a nudge |
+
+- **What does not stun:** the hop; a prop you were passing beside (it is see-through before you touch it); small
+  things under 10 studs (`ShakeMin`: sea grass, small stones); a fish that breaks props.
+- **Nothing is taken.** No Oxygen. It costs about 0.9 seconds of speed.
+- It is the rider's own machine that stops the fish, as with all the steering. The server is not told.
+- Run in Studio by script, riding straight down the lane: two hits. Speed 3 for 0.4 s, back over 45 by 0.66 s.
+  In the clean hit the prop stayed solid for 0.34 s and was see-through by 0.46 s.
+- **Not seen by eye.** Whether 0.4 seconds is the right "moment" is the user's to say.
+- Where it is in the code: `touched` and `judge` in `PropController` (`SolidUntil`), `RideController.stun`.
+
 ## Part 2: swimming speeds and the feel of speed
 
 ### Four different speeds

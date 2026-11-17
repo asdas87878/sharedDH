@@ -34,6 +34,14 @@ local challengerAt = 0
 local PICK_EVERY = 0.05
 local picked: Model? = nil -- what the last look chose,
 local pickedAt = -1 -- and when
+-- the leeway (Lock.Linger): the locked fish, and when it was last inside the reach and the aim
+local heldFish: Model? = nil
+local heldAt = -math.huge
+local lingering = false
+-- the rider's own velocity, from where they were at the last look (for the lead, Lock.Lead)
+local lastFrom: Vector3? = nil
+local lastFromAt = 0
+local riderVelocity = Vector3.zero
 
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
@@ -72,10 +80,31 @@ local function score(
 	wide: boolean
 ): number?
 	local l = Config.Lock
-	local at = (model.PrimaryPart :: BasePart).Position
+	local root = model.PrimaryPart :: BasePart
+	local at = root.Position
 	local distance = (at - from).Magnitude
 	if distance > range then
 		return nil
+	end
+	-- Not a fish under us or behind us (Lock.Ahead; 2026-11-17, the user: "it still locks onto ur current fish or
+	-- fish near the bottom of ur screen too much"). The camera looks at the rider, so the aim's line runs through
+	-- the rider's own place: a fish right under us, the one we just left most of all, sat dead on the aim. A fish
+	-- must be this far ahead of us, the way the camera looks across the water. (Not in the last chance, and the
+	-- fish already locked keeps its lock.)
+	local flat = Vector3.new(aim.X, 0, aim.Z)
+	local against = root.AssemblyLinearVelocity - riderVelocity
+	if not wide and flat.Magnitude > 0.05 then
+		-- (judged where it will be in AheadLead seconds, against us: a slow fish just ahead that we are about to
+		-- fly over doesn't count, and a fast one coming up from behind does as soon as it will be ahead. The fish
+		-- already locked may fall AheadKeep further back before it is let go.)
+		local ahead = ((at - from) + against * l.AheadLead):Dot(flat.Unit)
+		if ahead < (if keep then l.Ahead - l.AheadKeep else l.Ahead) then
+			return nil
+		end
+	end
+	-- Where it will be in a moment, against us (Lock.Lead): a fish coming past fast is aimed at where it is going
+	if l.Lead > 0 then
+		at += against * l.Lead
 	end
 	local to = at - eye
 	local away = to.Magnitude
@@ -83,6 +112,14 @@ local function score(
 		return nil
 	end
 	local angle = math.acos(math.clamp(to:Dot(aim) / away, -1, 1))
+	-- Up counts for less and down for more (Lock.UpEase, DownHard): a fish above the aim is easier to take than one
+	-- as far below it, by how much of its being off the aim is height. The fast fish swim high; the fish at the
+	-- bottom of the view are the ones under us.
+	if angle > 0.001 then
+		local rise = math.asin(math.clamp(to.Y / away, -1, 1)) - math.asin(math.clamp(aim.Y, -1, 1))
+		local share = math.clamp(math.abs(rise) / angle, 0, 1)
+		angle *= 1 + share * ((if rise >= 0 then l.UpEase else l.DownHard) - 1)
+	end
 	local kind = Config.FishById[model:GetAttribute("FishType") :: string]
 	local body = if kind then Config.bodyOf(model, kind).Z / 2 else l.FallbackRadius
 	local radius = l.AimRadius + body
@@ -92,16 +129,23 @@ local function score(
 	local allowance =
 		math.min(math.rad(l.Cone / 2) + math.atan(radius / math.max(away, 1)) + grace, math.rad(l.MaxAngle))
 	-- (`wide`, the last chance: anything in reach counts, however far off the aim, behind us too)
+	-- Outside its allowance. With the assist (Lock.Assist) a fish ahead of us still counts, behind every fish
+	-- that is aimed at: so with nothing under the aim the lock takes the fish ahead nearest to it, and there is
+	-- nearly always a lock while any fish ahead is in reach. Aiming still chooses.
+	local outside = 0
 	if not wide and angle > math.min(allowance * (if keep then l.KeepCone else 1), math.rad(l.MaxAngle)) then
-		return nil
+		if l.Assist <= 0 or angle > math.rad(l.AssistAngle) then
+			return nil
+		end
+		outside = l.AssistPenalty
 	end
 	local far = l.DistanceWeight * share
 	if l.EdgeAim > 0 then
 		-- how far the aim passes from the fish itself, not from its middle: 0 when the aim goes through it
 		local off = math.max(angle - math.atan(body / math.max(away, 1)) - grace, 0)
-		return l.AngleWeight * off / math.max(math.rad(l.Cone / 2), 0.01) + far
+		return l.AngleWeight * off / math.max(math.rad(l.Cone / 2), 0.01) + far + outside
 	end
-	return l.AngleWeight * angle / allowance + far
+	return l.AngleWeight * angle / allowance + far + outside
 end
 
 -- The fish to lock: `from` is the rider, `eye` and `aim` the camera's place and look, `current` the fish locked now,
@@ -126,6 +170,13 @@ function Lock.pick(
 			return picked
 		end
 	end
+	-- (our own velocity, for the lead: from where we were at the last look)
+	if lastFrom and nowAt - lastFromAt > 0.01 and nowAt - lastFromAt < 0.5 then
+		riderVelocity = (from - lastFrom) / (nowAt - lastFromAt)
+	else
+		riderVelocity = Vector3.zero
+	end
+	lastFrom, lastFromAt = from, nowAt
 	pickedAt = nowAt
 	refreshSight()
 	local l = Config.Lock
@@ -138,7 +189,9 @@ function Lock.pick(
 	local bestScore = math.huge
 	local currentScore: number? = nil
 	for _, model in folder:GetChildren() do
-		if model:IsA("Model") and model ~= skip and State.isFreeFish(model) then
+		-- (the fish we just left is not taken at all until the last chance: Lock.LeftBan)
+		local banned = model == left and l.LeftBan > 0 and wide ~= true
+		if model:IsA("Model") and model ~= skip and not banned and State.isFreeFish(model) then
 			local s = score(model, from, eye, aim, range, model == current, wide == true)
 			if s then
 				if model == left then
@@ -158,6 +211,25 @@ function Lock.pick(
 		end
 	end
 	local now = os.clock()
+	-- The leeway (Lock.Linger; the user, 2026-11-17: "if you lock onto a fish even if it goes outside of your
+	-- boundaries you keep locked onto it for a small window of time"). The locked fish that has just left the reach
+	-- or the aim keeps the lock for Linger seconds, while it is free and within LingerReach of the reach.
+	lingering = false
+	if current and currentScore then
+		heldFish, heldAt = current, now
+	elseif
+		current
+		and current == heldFish
+		and now - heldAt < l.Linger
+		and current ~= skip
+		and State.isFreeFish(current)
+		and ((current.PrimaryPart :: BasePart).Position - from).Magnitude <= range * l.LingerReach
+	then
+		lingering = true
+		challenger = nil
+		picked = current
+		return current
+	end
 	if current and currentScore and best ~= current then
 		if now - lockedAt < l.MinHold or bestScore > currentScore - l.Sticky then
 			challenger = nil
@@ -180,6 +252,12 @@ function Lock.pick(
 	end
 	picked = best
 	return best
+end
+
+-- How much further than the hook's reach a grab may take the locked fish right now: Lock.LingerReach while the lock
+-- is being kept on a fish that has left the reach or the aim (the leeway), 1 otherwise
+function Lock.slack(): number
+	return if lingering then Config.Lock.LingerReach else 1
 end
 
 return Lock

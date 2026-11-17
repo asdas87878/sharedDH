@@ -24,7 +24,7 @@ edge = np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, 
 outside = np.isin(labels, edge[edge > 0])
 keep = ~outside
 # the outline's own colour: the darkest tenth of what is kept
-dark = rgb[keep & (lum < np.percentile(lum[keep], 10))].mean(axis=0)
+dark = rgb[keep & (lum <= np.percentile(lum[keep], 10))].mean(axis=0)
 # the kept pixels next to the outside are the outline's soft edge, mixed with the halo: give them the outline's colour
 # and an alpha by how dark they are
 near = ndimage.binary_dilation(outside, iterations=3) & keep

@@ -55,6 +55,10 @@ local flying = false
 -- The dive-in (Config.Dive; docs/design/dive-in.md): this hop is the one that began by itself as we dropped off the
 -- dock into the water. It takes the nearest fish in reach without a press, wherever the camera looks.
 local diving = false
+-- (and this is that hop all the way to the landing, for the plunge's bubbles: `diving` ends when the grab begins)
+local plunging = false
+-- how far that hop goes down as it flies (Config.Dive.Plunge; 0 in any other hop)
+local plungeDepth = 0
 local clock = 0 -- wall-clock seconds since leaving
 local startedAt = 0
 local resumeHeight = 0 -- keeps a failed pull-in from snapping us back onto the hop's arc
@@ -262,6 +266,8 @@ end
 local function stop()
 	flying = false
 	diving = false
+	plunging = false
+	plungeDepth = 0
 	reeling = false
 	State.Reeling = false
 	State.WindowLeft = nil
@@ -322,7 +328,7 @@ local function request(): boolean
 			if
 				locked
 				and saddleOf(locked)
-				and ((locked.PrimaryPart :: BasePart).Position - root.Position).Magnitude <= reach
+				and ((locked.PrimaryPart :: BasePart).Position - root.Position).Magnitude <= reach * Lock.slack()
 			then
 				startReel(root)
 			else
@@ -379,7 +385,7 @@ local function request(): boolean
 		left = nil
 	end
 	flatSpeed = launchSpeed
-	reach = Config.reachOf(flatSpeed)
+	reach = Config.reachOf(flatSpeed, launchSpeed)
 	State.Reach = reach
 	WallRide.reset(wall)
 	faced = yaw
@@ -509,9 +515,10 @@ local function hop(dt: number)
 						kind,
 						if kind then Config.riddenOf(fish, kind) else nil
 					)
-					reach = Config.reachOf(launch)
+					reach = Config.reachOf(launch, launch)
 				else
-					reach = Config.reachOf((Config.hopFrom(nil, nil, nil)))
+					local free = (Config.hopFrom(nil, nil, nil))
+					reach = Config.reachOf(free, free)
 				end
 				pick(root.Position)
 			end
@@ -650,6 +657,9 @@ local function hop(dt: number)
 		local way, kept = WallRide.step(wall, position, (before + yaw) / 2, pace, 3, 1.5, h)
 		local velocity = way * (pace * kept)
 		local height = heightAt(t) + resumeHeight
+		if plungeDepth > 0 then
+			height -= plungeDepth * Ease.smoothstep(0, math.max(Config.Dive.PlungeTime, 0.05), t)
+		end
 		if wall.Lift ~= 0 then
 			height = math.min(height + wall.Lift, math.max(height, Config.Oxygen.SurfaceY - j.Ceiling))
 		end
@@ -665,7 +675,7 @@ local function hop(dt: number)
 	State.Wall = WallRide.state(wall)
 	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
 	-- the hook's reach, by that speed: longest as we leave, shrinking as we slow to the stop
-	reach = Config.reachOf(flatSpeed)
+	reach = Config.reachOf(flatSpeed, launchSpeed)
 	if diving then
 		-- (the dive's own hop reaches further: Config.Dive.Reach)
 		reach = math.max(reach, Config.Dive.Reach)
@@ -691,13 +701,13 @@ local function hop(dt: number)
 	if boost > 0.05 then
 		Feel.rush(Config.Feel.PopLines * boost)
 	end
-	Feel.trail(root, false)
+	Feel.trail(root, plunging)
 
 	-- The dive-in's hop (Config.Dive.AutoGrab): the nearest fish in reach pulls us in by itself, once the pop is seen
 	local d = Config.Dive
 	if diving and d.AutoGrab > 0 and clock >= math.max(d.GrabAfter, j.MinFlight) and clock < window then
 		local targetRoot = locked and locked.PrimaryPart
-		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach then
+		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach * Lock.slack() then
 			diving = false
 			startReel(root)
 			return
@@ -709,7 +719,7 @@ local function hop(dt: number)
 	-- grabs sooner.
 	if j.AutoGrab >= 2 and clock >= dropAt and clock < window and os.clock() >= autoAt then
 		local targetRoot = locked and locked.PrimaryPart
-		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach then
+		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach * Lock.slack() then
 			startReel(root)
 			return
 		end
@@ -906,6 +916,33 @@ function JumpController.Init()
 				State.Heading = yawOf(look)
 				if request() then
 					diving = true
+					-- the plunge (Config.Dive): a splash where we went in, the view kicked wider and turned down the
+					-- lane and onto the fish below, and bubbles all the way down
+					local d = Config.Dive
+					plunging = d.Trail > 0
+					-- down, not up: no pop (the hop's rise), and the plunge's own drop instead
+					leapApex = 0
+					topY = baseY
+					plungeDepth = math.max(d.Plunge, 0)
+					if d.Splash > 0 then
+						Fx.burst(
+							Vector3.new(root.Position.X, Config.Oxygen.SurfaceY - 1, root.Position.Z),
+							d.Splash,
+							0,
+							d.SplashReach
+						)
+						Fx.burst(root.Position, math.ceil(d.Splash / 2), 0, d.SplashReach / 2)
+					end
+					if d.SplashSound > 0 then
+						Feel.sound("Splash", d.SplashSound, 0.85, 0.9)
+					end
+					if d.Shake > 0 then
+						Shake.play("Land", d.Shake)
+					end
+					State.FovPunch = math.max(State.FovPunch, d.Fov)
+					if d.Camera > 0 then
+						RideController.look(State.Heading, math.rad(d.CameraPitch), true)
+					end
 				end
 			end)
 		end

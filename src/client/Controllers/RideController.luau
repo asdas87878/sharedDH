@@ -67,6 +67,10 @@ local angryAt = 0 -- since this os.clock(),
 local angryIn = 0 -- and how far its slow-down is in, 0 to 1 (eased in and out)
 local crashAt = -math.huge -- os.clock() of the last crash or smashed prop,
 local crashSlow = 1 -- and the share of our speed it left us (it comes back over Crash.Recover)
+-- stunned against a prop (Config.Props.Stun; PropController calls RideController.stun): when, how long we are held,
+-- how long the speed takes to come back after that, and the share of our speed we are held at
+local stunAt = -math.huge
+local stunHold, stunRecover, stunSlow = 0, 0, 1
 local boostAt = -math.huge -- os.clock() of the last burst of speed (a bite's, a smashed prop's: Config.Archetype),
 local boostBy = 1 -- how many times our speed it is,
 local boostTime = 0 -- and for how long (it fades over the last third: Config.burstShare)
@@ -108,6 +112,8 @@ local fovEased, fovSpeed = Config.Camera.Fov, 0 -- the field of view before the 
 local kickAt, kickSpeed = 0, 0 -- the landing's jolt: the camera's height off true, on a spring
 local airAt = -math.huge -- os.clock() the hop began
 local lookedAt = -math.huge -- os.clock() the player last looked round themselves
+-- the tilt this one hop rests at, radians, in place of Jump.CameraPitch (the dive-in's plunge; nil: the usual)
+local hopPitch: number? = nil
 local rightHeld = false
 local stick = Vector2.zero -- a gamepad's right stick
 local wasScripted = false
@@ -237,10 +243,17 @@ end
 
 -- Turns the view to a yaw and a pitch (radians), as a drag of the mouse would: for the sandbox and for tests driven by
 -- script, which have no mouse. It counts as the player looking round.
-function RideController.look(toYaw: number, toPitch: number)
+-- (`hop`: this is the hop's own view, not the player's. The hop that is beginning rests at this tilt in place of
+-- Jump.CameraPitch and gives it back at the landing, as any hop does; a touch of the mouse still takes over.)
+function RideController.look(toYaw: number, toPitch: number, hop: boolean?)
 	camYaw = toYaw
 	camPitch = math.clamp(toPitch, math.rad(Config.Camera.PitchMin), math.rad(Config.Camera.PitchMax))
-	lookedAt = os.clock()
+	if hop then
+		hopPitch = camPitch
+		lookedAt = -math.huge
+	else
+		lookedAt = os.clock()
+	end
 end
 
 -- This fish's own ridden speed now (its species, rarity, home land and variant; read live, so the sandbox's panel shows)
@@ -257,6 +270,18 @@ end
 -- replace the old, and the moments with a character of their own ask Shake for it by name (Config.Shake.Presets).
 function RideController.shake(size: number, time: number?)
 	Shake.jolt(size, time)
+end
+
+-- Our fish has run into a prop it can't break (Config.Props.Stun): it is held at `slow` of its speed for `hold`
+-- seconds and takes `recover` more to pick up again, with the crash's jolt and its shake at `shake`. Ours alone: we
+-- steer the fish, and the server only ever minds a fish going too fast.
+function RideController.stun(hold: number, recover: number, slow: number, shake: number)
+	stunAt = os.clock()
+	stunHold, stunRecover, stunSlow = math.max(hold, 0), math.max(recover, 0), math.clamp(slow, 0, 1)
+	State.KickVelocity = Config.Crash.Kick * 2 * math.pi * Config.Jump.LandKickRate
+	if shake > 0 then
+		Shake.play("Crash", shake, if math.random() < 0.5 then -1 else 1)
+	end
 end
 
 -- How far the shakes throw the camera now, studs (0: none running), so a small shake can leave a big one be
@@ -547,6 +572,12 @@ local function drive(dt: number)
 	-- just run into something: slowed at once, picking up again
 	local crashed = os.clock() - crashAt
 	speed *= Ease.lerp(crashSlow, 1, Ease.smoothstep(0, math.max(Config.Crash.Recover, 0.01), crashed))
+	-- stunned against a prop: held for a moment, then picking up again
+	local stunned = os.clock() - stunAt
+	if stunned < stunHold + stunRecover then
+		local back = math.clamp((stunned - stunHold) / math.max(stunRecover, 0.01), 0, 1)
+		speed *= Ease.lerp(stunSlow, 1, back * back * (3 - 2 * back))
+	end
 	-- angry (the meter in its red part, or a fish too strong): slowed in its own style's way
 	local angryShare, nod, wag, rock = angrySpeed(fish, rideType, dt)
 	speed *= angryShare
@@ -835,7 +866,8 @@ local function cameraStep(dt: number)
 	local heading = State.Heading
 	if mode == "Jumping" then
 		if c.AirRest > 0 and lookedAt < airAt then
-			camPitch = Ease.lerp(camPitch, math.rad(Config.Jump.CameraPitch), Ease.alpha(c.AirPitchFollow, dt))
+			camPitch =
+				Ease.lerp(camPitch, hopPitch or math.rad(Config.Jump.CameraPitch), Ease.alpha(c.AirPitchFollow, dt))
 		end
 	elseif c.AutoRecentre > 0 and os.clock() - math.max(lookedAt, airAt, State.MountedAt) >= c.LookBack then
 		-- (a hop and a landing count as looking: the view is never brought round sooner than LookBack after one)
@@ -1064,6 +1096,9 @@ end
 local function step(dt: number)
 	local mode = State.Mode
 	if mode ~= lastMode then
+		if lastMode == "Jumping" then
+			hopPitch = nil
+		end
 		if mode == "Dock" then
 			faceWater()
 		elseif mode == "Free" then

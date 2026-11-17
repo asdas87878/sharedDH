@@ -1,12 +1,34 @@
 {
   "oxygen.png": {
-    "id": "rbxassetid://75102671889473",
+    "id": "rbxassetid://133981557523389",
     "uploaded": "2026-11-17",
-    "from": "art/ui/icons_src/image-1794932267538.webp"
+    "from": "art/ui/icons_src/o2_user_v2.webp"
   },
   "cash.png": {
+    "id": "rbxassetid://119031387165673",
+    "uploaded": "2026-11-17",
+    "from": "art/ui/icons_src/pack_green_cash_1st_outline.png"
+  },
+  "shop.png": {
+    "id": "rbxassetid://139519009824812",
+    "uploaded": "2026-11-17",
+    "from": "art/ui/icons_src/pack_red_shopping_cart_1st_outline.png"
+  },
+  "index.png": {
+    "id": "rbxassetid://136062585112653",
+    "uploaded": "2026-11-17",
+    "from": "art/ui/icons_src/pack_blue_book_1st_outline.png"
+  },
+  "cash_user.png": {
     "id": "rbxassetid://90175555285878",
     "uploaded": "2026-11-17",
-    "from": "art/ui/icons_src/image-1794932272153.webp"
+    "from": "art/ui/icons_src/image-1794932272153.webp",
+    "note": "the user's own cash picture, in the game 2026-11-17 until the pack's replaced it"
+  },
+  "oxygen_user_v1.png": {
+    "id": "rbxassetid://75102671889473",
+    "uploaded": "2026-11-17",
+    "from": "art/ui/icons_src/image-1794932267538.webp",
+    "note": "the user's first O2 picture, in the game 2026-11-17 until the second replaced it"
   }
 }
