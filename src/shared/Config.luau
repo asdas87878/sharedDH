@@ -862,33 +862,35 @@ Config.Hook = {
 	Ride = 1, -- 1: whirled lazily over the head while you ride; 0: put away on a fish, out only in the hop
 	-- what it is made of
 	Segments = 12, -- cylinders in the rope (more bends smoother and costs a little more)
-	Thick = 0.45, -- the rope's thickness, studs
-	HeadSize = 1.4, -- the anchor's size, times (1: about 2.4 studs long)
-	Outline = 1, -- 1: a thin black outline round rope and anchor, so they read against the water
-	RopeColor = Color3.fromRGB(244, 226, 184),
+	Thick = 0.2, -- the rope's thickness, studs (0.45 at first (the user, 2026-11-17: "the model is too bulky and the wire is too bulky ... it flales around in the air too randomly, it should flale but not like a madman"))
+	HeadSize = 0.85, -- the anchor's size, times (1: about 2.4 studs long; 1.4 at first, and its pieces were thicker)
+	Outline = 1, -- 1: a thin black outline round the anchor, so it reads against the water
+	RopeOutline = 0, -- 1: round the rope as well (it was, at first: an outline is as wide on screen however thin the rope, so it was most of the rope's bulk)
+	RopeColor = Color3.fromRGB(122, 84, 58), -- (dark, now it has no outline: a pale rope was lost against the pale floors)
 	HeadColor = Color3.fromRGB(255, 196, 46),
 	HeadDark = Color3.fromRGB(64, 56, 60),
 	-- how the rope moves: a chain of points with their own momentum
-	Carry = 0.8, -- the rope is carried along with you by this share of your movement; the rest is the water it drags through, so it streams out behind (1: no streaming; 0: it is left behind)
-	Drag = 2.5, -- the water takes the rope's own speed away this quickly (higher is calmer, lower whips more)
+	Carry = 0.9, -- the rope is carried along with you by this share of your movement; the rest is the water it drags through, so it streams out behind (1: no streaming; 0: it is left behind; 0.8 at first)
+	Drag = 5, -- the water takes the rope's own speed away this quickly (higher is calmer, lower whips more; 2.5 at first)
 	Sink = 30, -- and it sinks, studs a second gained each second
 	Stiff = 9, -- how many times a frame the rope is pulled back to its length (fewer is stretchier; at 5 the hop's rope drew half as long again as its length)
 	-- the whirl on a fish
-	RideLength = 7.5, -- the rope's length, studs
-	RideRadius = 3.4, -- the ring the anchor goes round, studs across its half
-	RideRate = 1, -- turns a second
-	RideLift = 5, -- the ring's middle is this far over you, studs
+	RideLength = 6.2, -- the rope's length, studs: a little more than from the hand to the ring, so it bows without flapping (7.5 at first)
+	RideRadius = 2.6, -- the ring the anchor goes round, studs across its half (3.4 at first)
+	RideRate = 0.8, -- turns a second (1 at first)
+	RideLift = 4.5, -- the ring's middle is this far over you, studs
 	-- the whirl in the hop
-	HopLength = 13,
-	HopRadius = 7,
-	HopRate = 2.3,
-	HopLift = 5.5,
-	Wobble = 0.24, -- the ring breathes in and out by this share, and rocks out of its plane by half of it (0: a clean circle)
-	Tilt = 16, -- the ring's plane is tipped this far, degrees, the tip going slowly round
+	HopLength = 8.2, -- (13 at first: half as long again as the ring needed, and all of that spare rope flapped)
+	HopRadius = 4.8, -- (7 at first)
+	HopRate = 1.6, -- (2.3 at first)
+	HopLift = 5,
+	Wobble = 0.07, -- the ring breathes in and out by this share, once in about a turn and a half (0: a clean circle; 0.24 at first, and it rocked out of its plane twice a turn as well: that was the madman)
+	Tilt = 9, -- the ring's plane is tipped this far, degrees, the tip going slowly round (16 at first)
+	HeadSpin = 0.5, -- the anchor rolls about its own length this many times a turn of the whirl (2 at first)
 	-- with a fish locked: it winds up
-	LockRate = 1.4, -- faster by this,
-	LockRadius = 1.2, -- wider by this,
-	LockLean = 28, -- and the ring leans this far toward the fish, degrees
+	LockRate = 1.3, -- faster by this (1.4 at first),
+	LockRadius = 1.15, -- wider by this,
+	LockLean = 24, -- and the ring leans this far toward the fish, degrees
 	SpinEase = 5, -- how quickly the whirl changes from one of these to the next (higher is quicker)
 	Swish = 0.1, -- a swish each turn in the hop, this loud (0 off)
 	-- the throw

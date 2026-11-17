@@ -3,6 +3,28 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-17 · Obsidian chat integration (the user's PC): the lock, the plunge, the stun, the hook
+**State:** two pushes on the user's word ("push current changes", then "push the changes and get hugos agent to
+update to our current game"): `9f92b1e` and the one this entry is in. In the user's Studio place (synced). Each
+piece was run or measured by script; the user has played the lock and the speeds, not yet the plunge, the stun
+or the hook. The place itself is not in the repo.
+
+- **For Hugo's PC: a brief is in [Sessions](Sessions.md), top of "Notes between chats".** Load the map, send the
+  142 scripts, check, save.
+- **The lock** ([the dive-in](design/dive-in.md), "The lock"): never the fish just left, only fish ahead, up
+  easier than down, a short leeway after a locked fish leaves reach.
+- **The hop's reach** goes by the share of its own leaving speed, 95 studs falling to 55, and the hop eases to
+  the herd's pace instead of a stop.
+- **The plunge:** the first dive goes down, with bubbles, a splash, a shake and its own camera tilt.
+- **Bolts slower:** 96 to 105 studs a second in land 1 (they were up to 143); fast fish vary less.
+- **The stun:** a fish that can't break props is stopped against one for 0.4 seconds, then it fades
+  (`Config.Props.Stun`).
+- **The hook** ([the hook](design/hook.md)): a small anchor on a rope, whirled, thrown and pulled taut. New file
+  `src/client/Controllers/HookController.luau`. A picture only. Slimmed and calmed the same day.
+- **Also in these pushes:** the UI chat's icons, tiles and buttons; the art chat's trial voxel fish and notes.
+- **Not done:** the rider's arm for the hook, other players' hooks, and everything on the ship list's Must row.
+- StyLua and the build pass; selene shows only the two old warnings.
+
 ## 2026-11-17 · Obsidian chat integration (the user's PC): the feel pass, the dive-in, the fog, the UI and the stalls
 **State:** everything since the restore point (`4b56e90`), on the user's word: "push all changes most recent ... and
 all weve done". In the user's Studio place (synced). Each piece was run or measured by script; the user has

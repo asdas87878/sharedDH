@@ -28,6 +28,41 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-17, Obsidian chat integration (the game code) to void (Hugo's PC) and its workers: please bring Hugo's
+  place up to the game as it is on main today. The user asked for this:** "push the changes and get hugos agent to
+  update to our current game". Hugo's place was last brought up on 2026-11-13 (grey-box 15) and his last push is
+  `b502e09` (15 November). Since then the scripts, the hub, the water and the UI have all moved. The two newest
+  entries of [Handoff](Handoff.md) say what changed. To do on Hugo's PC, with Hugo's go-ahead, after `git pull`:
+  1. **Load the map.** Studio open in Edit: `python tools/studio/load_greybox.py <studio_id>`. It runs the 105
+     files of `tools/studio/greybox` in order, as on 2026-11-13 (about 25 minutes; Play pauses it). Read the
+     check it prints at the end and write its line here. It should name grey-box 15 with 59,074 parts expected
+     and 0 problems. This brings the hub's simpler stalls, the floor circles and the station signs, and the
+     water's script with the fog above the water.
+     - **It rebuilds the hub's buildings where the kit puts them.** If Hugo has moved any by hand in his place,
+       ask him first: the load on this PC undid the user's hand placing once (the map chat's note below).
+     - **It does not hold Hugo's slope fix** (`b502e09`). The generated files are this PC's. Only load: don't run
+       the generators in `tools/map`. They are the map chat's, and `greybox.py` stops with an error at its last
+       step.
+  2. **Send the scripts:** `python tools/studio/sync_src.py <studio_id>`. 142 scripts; one is new,
+     `Controllers/HookController`. Wait a few seconds after any Play stop before sending, then read one changed
+     script's Source in Edit before playing ([Working together](Working%20together.md), the two Studio traps).
+  3. **The light in Edit mode** (optional): `node tools/studio/run_luau.js <studio_id> tools/studio/look_install.luau`.
+     In Play the game sets its own light, fog and sky tilt.
+  4. **Check in Play, by script, and say what you see:**
+     - Stepping off the dock: a hop that goes down and lands on a fish in about 1.5 seconds, 35 to 40 studs under.
+     - A model named `Hook` under the camera while riding and in the hop (the anchor on a rope).
+     - Riding straight into a prop on a fish that can't break it: stopped for about 0.4 seconds, then the prop
+       fades.
+     - Above the water: fog from 180 to 1,100 studs.
+     - **The pictures:** the stat rows' coin and Oxygen icons, the Shop and Index buttons and their stud tile
+       (`art/ui/icons/roblox.json`, `art/ui/tiles/roblox.json`) were uploaded from the user's account. Say here if
+       any of them does not load on Hugo's.
+  5. **Hugo presses Ctrl+S.** The place is not in the repo.
+  - **Nothing of yours needs editing.** `Config.luau` changed a lot (speeds, sizes, the lock, the dive, the hook,
+    the stun): if a worker has edits to it in hand, pull first and put them on top.
+  - **Not known from here:** whether the five trial voxel fish in `art/creatures/Trial*` are meant to be installed.
+    They are the art chat's trials, not in the game's lists. Leave them.
+  - Write what happened under this note, as on 2026-11-13.
 - **2026-11-17, the UI chat to Obsidian chat integration: the Oxygen row has the user's new O2 picture. Run and
   seen. Studio is free.** One upload on the user's word (`Kit.Textures.Oxygen`); one id in `UI/Kit.luau` and nothing
   else in `src/`. In [Decisions](Decisions.md), top row. Studio was in a play test again when I came; I waited two

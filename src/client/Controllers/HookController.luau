@@ -35,6 +35,7 @@ local TURN = CFrame.Angles(0, math.pi / 2, 0) -- a cylinder lies along its X: th
 local FAR = 80 -- the rider moved further than this in one frame: a teleport, the rope starts again
 
 local container: Model
+local anchor: Model -- the anchor's pieces, inside it (the outline is theirs alone unless Hook.RopeOutline)
 local parts: { BasePart } = {} -- the rope's cylinders, hand to anchor, then the anchor's pieces: one BulkMoveTo
 local cframes: { CFrame } = {}
 local lengths: { number } = {} -- each cylinder's length as last written
@@ -56,6 +57,7 @@ local target: Model? = nil -- the fish it is thrown at
 -- the whirl, each eased to what the moment asks for
 local angle = 0
 local precess = 0
+local breath = 0 -- the ring's breathing: its own count, never wound back (wound back with `angle`, the ring jumped once a turn)
 local rate = 0 -- turns a second
 local radius = 0
 local lift = 0
@@ -68,7 +70,7 @@ local handOf: Model? = nil
 -- Counts for tests (what it is doing, how long the rope is drawn, how far the anchor is from the hand)
 HookController.Stats = { Phase = "Off", Rope = 0, Out = 0, Throws = 0, Bites = 0 }
 
-local function piece(shape: Enum.PartType, size: Vector3, colour: Color3): Part
+local function piece(shape: Enum.PartType, size: Vector3, colour: Color3, into: Instance): Part
 	local part = Instance.new("Part")
 	part.Shape = shape
 	part.Size = size
@@ -81,7 +83,7 @@ local function piece(shape: Enum.PartType, size: Vector3, colour: Color3): Part
 	part.CanQuery = false
 	part.CanTouch = false
 	part.CastShadow = false
-	part.Parent = container
+	part.Parent = into
 	return part
 end
 
@@ -89,6 +91,9 @@ end
 local function build()
 	local h = Config.Hook
 	container:ClearAllChildren()
+	anchor = Instance.new("Model")
+	anchor.Name = "Anchor"
+	anchor.Parent = container
 	table.clear(parts)
 	table.clear(cframes)
 	table.clear(lengths)
@@ -96,20 +101,20 @@ local function build()
 	count = math.clamp(math.floor(h.Segments), 2, 40)
 	builtThick, builtHead = h.Thick, h.HeadSize
 	for i = 1, count do
-		parts[i] = piece(Enum.PartType.Cylinder, Vector3.new(1, h.Thick, h.Thick), h.RopeColor)
+		parts[i] = piece(Enum.PartType.Cylinder, Vector3.new(1, h.Thick, h.Thick), h.RopeColor, container)
 		cframes[i] = CFrame.identity
 		lengths[i] = 1
 	end
 	-- the anchor: a knot where the rope ends, a shaft, a crown, and three flukes that sweep out and back
 	local s = h.HeadSize
 	local function add(shape: Enum.PartType, size: Vector3, colour: Color3, offset: CFrame)
-		table.insert(parts, piece(shape, size * s, colour))
+		table.insert(parts, piece(shape, size * s, colour, anchor))
 		table.insert(cframes, CFrame.identity)
 		table.insert(headOffsets, offset)
 	end
-	add(Enum.PartType.Ball, Vector3.one * 0.85, h.HeadDark, CFrame.identity)
-	add(Enum.PartType.Cylinder, Vector3.new(2.4, 0.5, 0.5), h.HeadColor, CFrame.new(0, 0, -1.2 * s) * TURN)
-	add(Enum.PartType.Ball, Vector3.one * 0.8, h.HeadColor, CFrame.new(0, 0, -2.4 * s))
+	add(Enum.PartType.Ball, Vector3.one * 0.6, h.HeadDark, CFrame.identity)
+	add(Enum.PartType.Cylinder, Vector3.new(2.4, 0.34, 0.34), h.HeadColor, CFrame.new(0, 0, -1.2 * s) * TURN)
+	add(Enum.PartType.Ball, Vector3.one * 0.56, h.HeadColor, CFrame.new(0, 0, -2.4 * s))
 	local tip = Vector3.new(0, 0, -2.4 * s)
 	for k = 0, 2 do
 		local a = k * TAU / 3
@@ -119,14 +124,14 @@ local function build()
 		local armEnd = tip + arm * (1.5 * s)
 		add(
 			Enum.PartType.Block,
-			Vector3.new(0.42, 0.42, 1.6),
+			Vector3.new(0.3, 0.3, 1.6),
 			h.HeadColor,
 			CFrame.lookAt(tip + arm * (0.75 * s), armEnd, side)
 		)
 		local point = (out * 0.25 + Vector3.zAxis * 0.97).Unit
 		add(
 			Enum.PartType.Block,
-			Vector3.new(0.34, 0.34, 1),
+			Vector3.new(0.24, 0.24, 1),
 			h.HeadDark,
 			CFrame.lookAt(armEnd + point * (0.4 * s), armEnd + point * s, side)
 		)
@@ -137,7 +142,7 @@ local function build()
 		outline.OutlineColor = Color3.new(0, 0, 0)
 		outline.OutlineTransparency = 0
 		outline.DepthMode = Enum.HighlightDepthMode.Occluded
-		outline.Parent = container
+		outline.Parent = if h.RopeOutline > 0 then container else anchor
 	end
 	for i = 1, count + 1 do
 		points[i] = points[i] or Vector3.zero
@@ -198,7 +203,7 @@ local function bite(fish: Model?): Vector3?
 	return root.CFrame * Vector3.new(0, body.Y * 0.5, -body.Z * 0.2)
 end
 
--- Where the whirl has the anchor now: round a ring over the rider's head, the ring wobbling and its plane tipping
+-- Where the whirl has the anchor now: round a ring over the rider's head, the ring breathing a little and its plane tipping
 -- round slowly, leaning toward a locked fish. Never further from the hand than the rope reaches.
 local function whirl(root: Vector3, from: Vector3): Vector3
 	local h = Config.Hook
@@ -210,11 +215,8 @@ local function whirl(root: Vector3, from: Vector3): Vector3
 	end
 	u = u.Unit
 	local v = normal:Cross(u)
-	local r = radius * (1 + h.Wobble * math.sin(angle * 0.63 + 1.3))
-	local goal = root
-		+ UP * lift
-		+ (u * math.cos(angle) + v * math.sin(angle)) * r
-		+ normal * (math.sin(angle * 2.3) * h.Wobble * radius * 0.5)
+	local r = radius * (1 + h.Wobble * math.sin(breath))
+	local goal = root + UP * lift + (u * math.cos(angle) + v * math.sin(angle)) * r
 	local off = goal - from
 	local most = rope * 0.96
 	if off.Magnitude > most then
@@ -296,8 +298,9 @@ local function step(dt: number)
 		end
 	end
 	lean = lean:Lerp(leanTo, ease)
-	precess += dt * 0.7
+	precess += dt * 0.35
 	angle += rate * TAU * dt
+	breath = (breath + rate * TAU * dt * 0.63) % (TAU * 100)
 	if angle >= TAU then
 		angle -= TAU
 		if phase == "Whirl" and mode == "Jumping" and h.Swish > 0 then
@@ -313,7 +316,7 @@ local function step(dt: number)
 	local goal: Vector3
 	local length = rope
 	local heading: Vector3? = nil -- the way the anchor points (nil: along the rope's end)
-	local spin = angle * 2
+	local spin = angle * h.HeadSpin
 	if phase == "Throw" or phase == "Taut" then
 		local at = bite(target)
 		if not at then
