@@ -15,6 +15,10 @@
 --     fish, where, boxes (that rider's Breaker was paid for a prop)
 --   and for the sandbox's reset only: Ride "SandboxMount", fish (sit on this fish yourself) answered by Action
 --     "SandboxSit", fish (we are on its saddle: join us)
+--   The submarine (SubService, docs/design/submarine.md): Action "SubBuy" (the next tier) | "SubPick", land, fishKey
+--     (where to go, 0: no sub; the tank fish to ride with, "id|size|variant" or "") | "SubLand", fish (the kick has put
+--     us on our fish); Ride "SubFish", fish (our fish, beside the sub: drive it there) | "SubDrop", "Fling" or
+--     "Kick", fish | "SubDenied", reason ("Coins", "Dock", "Land", "Top") | "SubBought", tier.
 --   Sandbox (client -> server, Studio only): "Tune", "Group.Key", number | "Flag", name, boolean | "Reset"
 -- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
@@ -30,7 +34,8 @@
 -- the fish's velocity), BreakT and RebuildT (workspace:GetServerTimeNow() of the last hit and the last rebuild).
 -- Sandbox also takes "Ride", fishId, variant (Studio only: onto a fish of that kind, put at the start).
 -- Workspace attributes in Studio: Sandbox, SandboxNoFail, SandboxEndlessAir (the movement sandbox's switches).
--- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning"), Oxygen, MaxOxygen,
+-- Player attributes the server owns: State ("Dock", "Free", "Riding", "Jumping", "Drowning", "Carried": on the
+-- submarine), SubTier, SubDest, SubFish, SubPhase, SubTrip (SubService), Tank (AquariumService: the tank's best fish), Oxygen, MaxOxygen,
 -- Drain (the Oxygen a second the fish under you takes, as the server counts it; 0 off a fish), Training (true while
 -- you stand on the training spot and your max Oxygen is growing), Strained (true while you ride a fish too strong for
 -- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being

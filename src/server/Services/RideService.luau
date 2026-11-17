@@ -103,6 +103,9 @@ local RideService = {}
 -- tank to put it in), and where they come home to (nil: the dock's spawn)
 RideService.Keeps = nil :: ((player: Player) -> boolean)?
 RideService.Home = nil :: ((player: Player) -> CFrame?)?
+-- Set by SubService: asked as a player on the dock goes into the water. true: the submarine takes them (state
+-- "Carried": no drain, no hop, no send-back, until SubService lets them go with RideService.fling, seatOn or letGo)
+RideService.Diving = nil :: ((player: Player) -> boolean)?
 
 -- The sandbox's reset seats a rider only on a fish that has been in the Workspace this long, so the player's machine
 -- has the fish too (it is told to sit on it).
@@ -880,8 +883,19 @@ local function tick(r: Rider, dt: number)
 	local o = Config.Oxygen
 	if r.State == "Dock" then
 		if root.Position.Y < o.WaterY then
-			setState(r, "Free")
+			-- (the submarine, when one has been picked at the hub: docs/design/submarine.md)
+			if RideService.Diving and RideService.Diving(r.Player) then
+				r.Token += 1
+				r.Oxygen = r.Max
+				setState(r, "Carried")
+				sendOxygen(r, true)
+			else
+				setState(r, "Free")
+			end
 		end
+	elseif r.State == "Carried" then
+		-- carried by the submarine: nothing drains, nothing is checked; SubService moves the trip on
+		r.Oxygen = r.Max
 	elseif r.State == "Riding" then
 		local w = r.Fish
 		if not w or not w.Model.Parent or not r.Weld or not r.Weld.Parent then
@@ -1233,7 +1247,58 @@ function RideService.deposited(player: Player)
 	sendCaught(r)
 end
 
--- and a player's state ("Dock", "Free", "Riding", "Jumping", "Drowning"; nil for a player we don't know)
+-- The submarine's drop-off (SubService; docs/design/submarine.md). Each only from "Carried".
+-- (a) No fish: flung forward into an ordinary hop at the sub's drop speed, as the player's machine flies it
+-- (JumpController.fling: Config.hopFrom of Sub.DropSpeed). It is the dive's first hop: a miss leaves them floating.
+function RideService.fling(player: Player): boolean
+	local r = riders[player]
+	if not r or r.State ~= "Carried" then
+		return false
+	end
+	r.JumpFrom = nil
+	r.DiveHop = true
+	r.JumpLaunch, r.JumpExtra = Config.hopFrom(Config.Sub.DropSpeed, nil, nil)
+	r.Token += 1
+	r.JumpAt = os.clock()
+	setState(r, "Jumping")
+	return true
+end
+
+-- (b) Their own fish beside the sub: on it, as a landing (the refill, every client's landing). It is theirs already,
+-- so riding it tames nothing new.
+function RideService.seatOn(player: Player, w: Wild): boolean
+	local r = riders[player]
+	if not r or r.State ~= "Carried" then
+		return false
+	end
+	r.Tamed[w] = true
+	r.JumpFrom = nil
+	r.JumpAt = os.clock() - 60 -- (a landing that earns the refill)
+	r.Token += 1
+	return mount(r, w, true)
+end
+
+-- Home to the dock now, as after a dive (Studio's tests: SubService's "home")
+function RideService.sendHome(player: Player)
+	local r = riders[player]
+	if r then
+		toDock(r)
+	end
+end
+
+-- Or let go into the water where they are (a drop that went wrong, or a fish that was gone)
+function RideService.letGo(player: Player)
+	local r = riders[player]
+	if not r or r.State ~= "Carried" then
+		return
+	end
+	r.Token += 1
+	r.DiveHop = false
+	setState(r, "Free")
+	Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
+end
+
+-- and a player's state ("Dock", "Free", "Riding", "Jumping", "Drowning", "Carried"; nil for a player we don't know)
 function RideService.stateOf(player: Player): string?
 	local r = riders[player]
 	return if r then r.State else nil

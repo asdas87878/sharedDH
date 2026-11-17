@@ -15,6 +15,7 @@
 --   traffic. They are not in Workspace.Fish, so nothing can lock on to one, tag it or ride it.
 -- For the session only: there are no saves yet.
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -204,10 +205,18 @@ local function show(tank: Tank)
 	tank.Shown = folder
 end
 
+local TANK_LISTED = 12 -- the tank's best fish listed for the player's own panels (the submarine's "Ride with")
+
 local function tell(tank: Tank)
 	tank.Player:SetAttribute("Coins", math.floor(tank.Coins))
 	tank.Player:SetAttribute("Income", tank.Income)
 	tank.Player:SetAttribute("TankFish", #tank.Fish)
+	local listed = {}
+	for i = 1, math.min(#tank.Fish, TANK_LISTED) do
+		local f = tank.Fish[i]
+		table.insert(listed, { f.Id, f.Size, f.Variant })
+	end
+	tank.Player:SetAttribute("Tank", HttpService:JSONEncode(listed))
 end
 
 -- What the tank earns: its best Aquarium.Earning fish (the list is kept best first)
@@ -318,6 +327,46 @@ end
 function AquariumService.tankOf(player: Player): { Entry }?
 	local tank = tanks[player]
 	return if tank then tank.Fish else nil
+end
+
+-- What a player has to spend (0 with no tank), and spending it: false, and nothing taken, when they haven't enough
+function AquariumService.coinsOf(player: Player): number
+	local tank = tanks[player]
+	return if tank then tank.Coins else 0
+end
+
+function AquariumService.spend(player: Player, amount: number): boolean
+	local tank = tanks[player]
+	if not tank or amount ~= amount or amount < 0 or tank.Coins < amount then
+		return false
+	end
+	tank.Coins -= amount
+	tell(tank)
+	return true
+end
+
+-- Studio's tests only: coins and fish given straight to a tank
+function AquariumService.give(player: Player, coins: number, fish: { { string } }?)
+	local tank = tanks[player]
+	if not tank then
+		return
+	end
+	tank.Coins += coins
+	local list: { { string } } = fish or {}
+	for _, f in list do
+		local kind = Config.FishById[f[1]]
+		if kind then
+			local size, variant = f[2] or "Normal", f[3] or ""
+			table.insert(
+				tank.Fish,
+				{ Id = f[1], Size = size, Variant = variant, Income = Config.incomeOf(kind, size, variant) }
+			)
+		end
+	end
+	count(tank)
+	tell(tank)
+	show(tank)
+	sign(tank.Plot, tank)
 end
 
 function AquariumService.Init()

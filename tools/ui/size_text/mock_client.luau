@@ -955,29 +955,24 @@ local function hudScale(cam)
 	return math.clamp(cam.ViewportSize.Y / 560, 1, 2.2)
 end
 
+-- the grid: rows of rarities, columns of sizes (SizeMockRows, SizeMockCols: names, comma-separated), zoomed
+local NEEDS = { Common = 40, Uncommon = 70, Rare = 120, Epic = 160, Legendary = 240, Mythic = 330, Secret = 420 }
 local function buildGrid(version, zoom, cam)
-	local tiers = { "Common", "Rare", "Legendary", "Secret" }
-	local icons = { Common = "", Rare = "Fast", Legendary = "Predator,Frenzy", Secret = "Tank" }
+	local rowsAt = RS:GetAttribute("SizeMockRows") or "Common,Rare,Legendary,Secret"
+	local colsAt = RS:GetAttribute("SizeMockCols") or "Tiny,Normal,Big,Giant,Huge,Colossal"
+	local tiers = string.split(rowsAt, ",")
+	local sizes = string.split(colsAt, ",")
+	local icons = { Common = "", Rare = "Fast", Legendary = "Predator,Frenzy", Secret = "Tank", Mythic = "Predator" }
 	local vp = cam.ViewportSize
-	local cellW, cellH = vp.X / 6, (vp.Y - 30) / 4
+	local cellW, cellH = vp.X / #sizes, (vp.Y - 10) / #tiers
 	for row, tier in tiers do
-		for col, size in SIZES do
+		for col, size in sizes do
 			local root, scale, anim =
-				buildTag(gui, { Tier = tier, Size = size, Icons = icons[tier], Need = 80 + row * 40 }, version)
+				buildTag(gui, { Tier = tier, Size = size, Icons = icons[tier] or "", Need = NEEDS[tier] }, version)
 			scale.Scale = zoom
-			root.Position = UDim2.fromOffset((col - 0.5) * cellW, 30 + row * cellH - 8)
+			root.Position = UDim2.fromOffset((col - 0.5) * cellW, 10 + row * cellH - 6 * zoom)
 			table.insert(live, { root = root, anim = anim })
 		end
-	end
-	-- the column heads
-	for col, size in SIZES do
-		textLabel({
-			Position = UDim2.fromOffset((col - 1) * cellW, 4),
-			Size = UDim2.fromOffset(cellW, 22),
-			TextSize = 18,
-			Text = if size == "Normal" then "Normal (no size)" else size,
-			TextColor3 = rgb(255, 255, 255),
-		}, gui, 2)
 	end
 end
 
@@ -1205,7 +1200,13 @@ RunService:BindToRenderStep("ZZSizeMock", Enum.RenderPriority.Last.Value + 60, f
 	local set = RS:GetAttribute("SizeMockSet") or "near"
 	local zoom = RS:GetAttribute("SizeMockZoom") or 2
 	local stamp = RS:GetAttribute("SizeMockStamp") or 0 -- bump to rebuild with the fish in view now
-	local key = version .. mode .. set .. zoom .. stamp
+	local key = version
+		.. mode
+		.. set
+		.. zoom
+		.. stamp
+		.. tostring(RS:GetAttribute("SizeMockRows"))
+		.. tostring(RS:GetAttribute("SizeMockCols"))
 	-- the game's own tags out of sight; in the grid the whole HUD too
 	-- (the game writes their Visible every frame, so they are moved into a switched-off holder, where it keeps
 	-- updating them unseen)

@@ -90,11 +90,15 @@ if __name__ == "__main__":
     elif what == "dark":
         scene(what, vs, SET="dark")
     elif what == "grid":
-        scene("grid", vs, MODE="grid", ZOOM=float(sys.argv[3]) if False else 1.9)
+        scene("grid", vs, MODE="grid", ZOOM=1.9)
+    elif what == "zoom":
+        # two zoomed grids a version: Common and Legendary at Tiny, Huge, Colossal; Rare and Secret at Big, Giant, Colossal
+        scene("zoomA", vs, MODE="grid", ZOOM=3.6, ROWS="Common,Legendary", COLS="Tiny,Huge,Colossal")
+        scene("zoomB", vs, MODE="grid", ZOOM=3.6, ROWS="Rare,Secret", COLS="Big,Giant,Colossal")
     elif what == "gif":
         # frames of one version's grid, every 0.1 s over 2.6 s (one gold sweep)
         v = vs[0]
         for i in range(27):
-            drive(VERSION=v, MODE="grid", ZOOM=1.9, CLOCK=round(i * 0.1, 2))
+            drive(VERSION=v, MODE="grid", ZOOM=3.6, CLOCK=round(i * 0.1, 2), ROWS="Common,Legendary", COLS="Giant,Huge,Colossal")
             time.sleep(0.6)
             shot(f"gif_{v}_{i:02d}")

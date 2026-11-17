@@ -1,0 +1,63 @@
+start state Dock
+give {"Fish":"","Tank":"[[\"SergeantMajor\",\"Big\",\"Rainbow\"]]","Tier":0,"Dest":0,"State":"Dock","Coins":1000000000000}
+pick {"Fish":"SergeantMajor|Big|Rainbow","Tank":"[[\"SergeantMajor\",\"Big\",\"Rainbow\"]]","Tier":9,"Dest":3,"State":"Dock","Coins":940832722500}
+0.00 Dock nil pos 3000 -9 6 v 0
+0.26 phase Approach
+0.26 Carried Approach pos 3000 -9 6 v 0
+0.52 Carried Approach pos 3000 -9 7 v 9
+0.79 Carried Approach pos 3000 -10 10 v 14
+1.04 Carried Approach pos 3000 -10 14 v 16
+1.33 Carried Approach pos 3000 -11 18 v 16
+1.59 Carried Approach pos 3000 -11 22 v 15
+1.84 Carried Approach pos 3000 -11 25 v 11
+2.10 phase Pickup
+2.10 Carried Pickup pos 3000 -12 27 v 9
+2.36 Carried Pickup pos 3000 -12 27 v 5
+2.63 Carried Pickup pos 3000 -11 26 v 11
+2.89 Carried Pickup pos 3000 -7 21 v 26
+3.16 Carried Pickup pos 3000 -13 17 v 7
+3.42 phase Ride
+3.42 Carried Ride pos 3000 -14 15 v 90
+3.68 Carried Ride pos 2999 -12 33 v 111
+3.93 Carried Ride pos 2998 -9 89 v 270
+4.21 Carried Ride pos 2996 -10 173 v 356
+4.47 Carried Ride pos 2994 -14 281 v 461
+4.74 Carried Ride pos 2990 -19 420 v 581
+4.99 Carried Ride pos 2989 -24 554 v 515
+5.25 Carried Ride pos 2990 -29 689 v 548
+5.52 Carried Ride pos 2984 -33 821 v 507
+5.78 Carried Ride pos 2968 -39 959 v 530
+6.04 Carried Ride pos 2949 -44 1094 v 524
+6.29 Carried Ride pos 2956 -47 1225 v 511
+6.56 Carried Ride pos 2977 -54 1361 v 522
+6.82 Carried Ride pos 2971 -61 1496 v 521
+7.08 Carried Ride pos 2945 -65 1631 v 514
+7.34 Carried Ride pos 2943 -71 1768 v 520
+7.60 Carried Ride pos 2946 -79 1899 v 518
+7.86 Carried Ride pos 2915 -85 2024 v 524
+8.12 Carried Ride pos 2863 -89 2148 v 528
+8.39 Carried Ride pos 2828 -92 2284 v 521
+8.65 Carried Ride pos 2840 -101 2419 v 521
+8.90 Carried Ride pos 2853 -109 2555 v 523
+9.16 Carried Ride pos 2823 -112 2681 v 522
+9.44 Carried Ride pos 2787 -116 2812 v 515
+9.71 Carried Ride pos 2744 -126 2960 v 535
+9.98 Carried Ride pos 2708 -132 3091 v 521
+10.24 Carried Ride pos 2685 -136 3234 v 521
+10.50 Carried Ride pos 2703 -143 3354 v 461
+10.75 Carried Ride pos 2721 -149 3452 v 388
+11.01 Carried Ride pos 2720 -153 3542 v 324
+11.28 Carried Ride pos 2699 -156 3612 v 245
+11.54 Carried Ride pos 2672 -156 3660 v 176
+11.82 phase Arrive
+11.82 Carried Arrive pos 2651 -157 3690 v 105
+12.08 Carried Arrive pos 2637 -158 3707 v 90
+12.33 Carried Arrive pos 2623 -159 3725 v 86
+12.59 phase Drop
+12.59 Carried Drop pos 2609 -160 3744 v 95
+12.85 Carried Drop pos 2592 -156 3762 v 110
+13.10 phase nil
+13.10 Carried nil pos 2571 -161 3782 v 124
+13.36 Riding nil pos 2562 -168 3803 v 93
+RIDING SergeantMajor (Big Rainbow) state Riding oxygen 100
+rode true final Riding land 3

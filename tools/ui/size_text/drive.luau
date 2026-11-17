@@ -12,6 +12,8 @@ local STAMP = 0
 local RIDE = nil -- a new number: onto a fish (the sandbox reset)
 local FREEZE = nil -- a new number freezes the scene as it is now, 0 lets go; nil leaves it
 local BACK = 0 -- the frozen camera this many studs further back (the far view)
+local ROWS = nil -- the grid's rarities, e.g. "Common,Legendary"
+local COLS = nil -- the grid's sizes, e.g. "Tiny,Huge,Colossal"
 local FREE = false -- let the character go (unanchored)
 local RS = game:GetService("ReplicatedStorage")
 local plr = game:GetService("Players"):GetPlayers()[1]
@@ -31,6 +33,8 @@ RS:SetAttribute("SizeMockClock", CLOCK)
 RS:SetAttribute("SizeMockNoHud", NOHUD)
 RS:SetAttribute("SizeMockStamp", STAMP)
 RS:SetAttribute("SizeMockBack", BACK)
+RS:SetAttribute("SizeMockRows", ROWS)
+RS:SetAttribute("SizeMockCols", COLS)
 if RIDE then
 	RS:SetAttribute("SizeMockRide", RIDE)
 end

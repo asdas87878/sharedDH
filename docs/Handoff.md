@@ -3,6 +3,90 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-17 · The size sticker live on fish tags, the stars off (task u2, Hugo's pick; not pushed by hand)
+**State:** in the game code, run in Hugo's Studio by script: a ride through the Shallows and the Reef with sizes forced
+by `TestSize`, pictures judged. **Not played by hand.** StyLua and selene pass; luau-lsp isn't on this PC. Nothing
+uploaded, the place not saved, the test script removed, mouse and camera reset.
+- Hugo: "sticker version but remove the squares/circles or whatever shapes on the sides of higher tiers" (S8 of
+  [the options](attachments/fish-tags-size-text-options-1.png)). Live picture:
+  [fish-tags-size-sticker-live-1.png](attachments/fish-tags-size-sticker-live-1.png).
+- **`Kit.luau`:** `Kit.SizeChip = 4` (Sticker). Styles 1 to 3 kept; in Studio the workspace's `SizeChip` still
+  overrides it.
+- **`Tags.luau`:**
+  - `LADDER` and the `STICKER_*` numbers.
+  - `putSticker`, and the sticker's layers in `makeStack` (a turned frame on the word's `Art`).
+  - `putStack` shows the sticker and no chip on style 4. On r1's word, which isn't live, it falls back to the Glass
+    chip.
+  - Family 5: `Sparks = false`, so Legendary, Mythic and Secret have no stars. Their shine, glow and colour motion
+    are unchanged.
+- **Seen:** TINY, BIG, GIANT and HUGE stickers on real tags, near and on far tags.
+- **Not seen:** a Legendary or rarer tag in play (the Megalodons swam overhead with no tag). The stars are off by
+  code for every rarity.
+- **Open:** the sticker reaches about 8 px above the word, and the tag's measured height doesn't count it. The
+  crowding check could let a tag above touch it.
+- **For the UI chat (your files):** only the size row and the word's stars changed in `Tags.luau`, and only
+  `Kit.SizeChip` in `Kit.luau`. Another worker's uncommitted land strip settings in `Kit.luau` were left as they
+  were.
+
+## 2026-11-17 · Options only: the size text on fish tags in the rarity word's style (task u2, not pushed by hand)
+**State:** sheets for Hugo to pick from. Nothing in the game changed, nothing was uploaded, and the place was not
+saved. Hugo's asks: "The size text still looks really bad, give me some versions that match the rarity style more"
+and "let me choose for each thing before integrating".
+- **The sheet:** [fish-tags-size-text-options-1.png](attachments/fish-tags-size-text-options-1.png). It shows **Now**
+  (r4's Glass chip) and what is wrong with it, then eight versions, all Gotham Black built the way the rarity word is
+  built (gradient metal, ink edge, one step of depth, glow and shine by the same rules):
+  - **S1 Echo:** the rarity's own metal, paler and smaller.
+  - **S2 Size ladder:** its own colours, cool to hot, growing louder with the size.
+  - **S3 One line:** "HUGE LEGENDARY" on one line.
+  - **S4 Ribbon:** the size between two slim bars in the rarity's metal, under the word.
+  - **S5 Spaced capitals:** small capitals spread to the word's width.
+  - **S6 Soft plate:** the ladder word on a soft dark plate that fades at its ends.
+  - **S7 Big two:** quiet up to Giant; Huge and Colossal get their own glow, stars and a shine in step with the
+    word.
+  - **S8 Sticker:** the size tilted on the word's corner.
+
+  Each version is shown zoomed (Common and Legendary at Tiny, Huge and Colossal) and at real size: riding in the
+  Shallows, and in Midnight's dark water.
+- **Also:** [scenes](attachments/fish-tags-size-text-options-1-scenes.jpg) (Rare and Secret, a crowd, further off,
+  real size), [every size](attachments/fish-tags-size-text-options-1-all-sizes.jpg) (six sizes by four rarities,
+  half size) and [S7 moving](attachments/fish-tags-size-text-options-1-S7.gif).
+- **A Normal fish has no size text in every version,** as today. Far and crowded tags still drop the row, so only
+  S3 and S8 keep the size there.
+- **How it was made:** `tools/ui/size_text/`:
+  - `mock_client.luau`: a temporary LocalScript, installed by `run_install.py`, that hides the game's tags and draws
+    copies of look 7 with the size in each version.
+  - `drive.luau`, `cluster.luau`, `wait_freeze.luau`: run in the server context. The scene is frozen as a local copy,
+    so every version is shot over the same moment.
+  - `capture.py`: the Studio shots, through studio-runner.
+  - `sheet.py`: the sheets.
+
+  The script was removed afterwards; Studio is in Edit, with the mouse and camera reset.
+- **Integration, once Hugo picks:** a new style in `Tags.luau`'s row, or line 1 for S3 and S8, behind `Kit.SizeChip`.
+  That is the UI chat's file.
+
+## 2026-11-17 · The submarine: carried to a land, flung or kicked onto your fish (task m1, not pushed by hand)
+**State:** built in `src/` on Hugo's order, placeholders only (plain parts, motion by code, no uploads). Run by
+script in Hugo's Studio to lands 2, 3, 5, 7 and 10 with both drop-offs; **not played by hand.** Synced by the sync
+script, not a hand push. StyLua, selene (only the two old warnings) and `rojo build` pass; luau-lsp shows no new type
+errors in the files touched.
+- **What it is** ([the submarine](design/submarine.md)): a SUB button under Shop and Index (or F on the dock) opens a
+  panel: buy tier N (to land N + 1), pick a land, and pick a fish from your tank to ride with (or none). Then walk
+  off the dock as usual: you swim, a yellow sub comes up under you, scoops you onto its seat, runs the herd's line to
+  the land in 4 to 10 s, and either flings you into an ordinary hop or brings your fish up beside it and kicks you
+  onto it. Prices and several rules are marked "reading, not confirmed" in the note.
+- **Game code touched** (the partner's chat should know): `RideService` (a "Carried" state; `Diving` hook,
+  `fling`, `seatOn`, `letGo`, `sendHome`), `FishService` (`keepFor`, `spawnFor`, `stockNear`, `streamPoint`,
+  `discard`, a `SubFor` attribute), `AquariumService` (`spend`, `coinsOf`, `give`, the `Tank` attribute),
+  `JumpController.fling`, `RideController` (mirrors "Carried"), `AnimController` (a "Carried" pose), `Net` (the
+  remotes listed), `Config.Sub`. New: `SubService`, `Shared/SubTrip`, `SubController`, `UI/SubPanel`.
+- **Studio trap found:** new script files arrive in Hugo's Studio twice (two Rojo sessions, it seems). The extra
+  identical copies of `SubService`, `SubController`, `SubPanel`, `SubTrip`, `BestService` and `HookController` were
+  removed in Edit. Before that Hugo's place ran two `HookController`s. Worth a look at why (one Rojo plugin too many?).
+- [The playtests](playtests/2026-11-17-submarine.md); clips: [fling](attachments/submarine-fling.gif),
+  [fish](attachments/submarine-fish-dropoff.gif).
+- **Not done:** saving (the tiers sit with the tank's coins for when it comes), Robux prices, the partner's model
+  and animations (hooks in the note), the N panel rows, a phone check.
+
 ## 2026-11-17 · Options only: the land strip with a picture of each land (task u1, not pushed by hand)
 **State:** sheets for Hugo to pick from; nothing in the game changed, nothing uploaded. Hugo's ask: "The map icons on
 the top ... filled in with a screenshot of a part of the map fitting the part its describing"; "let me choose for each

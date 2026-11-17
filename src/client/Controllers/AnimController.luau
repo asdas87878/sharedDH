@@ -1101,6 +1101,20 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 	elseif state == "Free" then
 		j.phase += dt * TAU * p.BreastRate
 		return breaststroke((j.phase / TAU) % 1)
+	elseif state == "Carried" then
+		-- the submarine (docs/design/submarine.md): swimming while it comes, tucked as it scoops us up, sat on its seat
+		-- for the run, thrown out stretched for the drop. Placeholders for the partner's animations (the hook: the
+		-- player's SubPhase attribute)
+		local phase = player:GetAttribute("SubPhase")
+		if phase == "Approach" then
+			j.phase += dt * TAU * p.BreastRate * 1.4
+			return breaststroke((j.phase / TAU) % 1)
+		elseif phase == "Pickup" then
+			return tucked()
+		elseif phase == "Drop" then
+			return streamlined(t, 4)
+		end
+		return astride(t, 1.6, 0, 0, 0)
 	end
 	return {}
 end
