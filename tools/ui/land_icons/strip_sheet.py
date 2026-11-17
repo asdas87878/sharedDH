@@ -18,8 +18,8 @@ CARD = (34, 37, 46)
 WHITE = (236, 238, 242)
 GREY = (165, 170, 182)
 GOLD = (255, 220, 90)
-BIG = (520, 40, 1500, 290)  # the 3x strip in a preview shot
-SMALL = (820, 355, 1190, 445)  # the real-size one
+BIG = (500, 40, 1530, 320)  # the 3x strip in a preview shot
+SMALL = (800, 355, 1210, 450)  # the real-size one
 W = 2000
 F = icons.font
 
@@ -38,14 +38,15 @@ def main():
     d = ImageDraw.Draw(img)
     d.text((28, 20), "Ride a Fish: the land strip in style A (the new strip, in the game's own code)", font=F(40), fill=GOLD)
     d.text((28, 76), "Hugo: \"use first style, but remove the inner border, make the numbers more stylised to each map part ... a round icon of "
-           "the player right below ... a meter bar right under ... slowly reveal the fully color map icon over the locked grey icon ... a yellow "
-           "striped line connected to a meter number saying best\".", font=F(18), fill=GREY)
-    d.text((28, 102), "Every strip below is a Studio capture of LandStrip.luau's style 1 (off by default: Kit.LandStripStyle). The pictures are "
+           "the player right below ... a meter bar right under ...", font=F(18), fill=GREY)
+    d.text((28, 100), "... slowly reveal the fully color map icon over the locked grey icon ... a yellow striped line connected to a meter "
+           "number saying best\".", font=F(18), fill=GREY)
+    d.text((28, 124), "Every strip below is a Studio capture of LandStrip.luau's style 1 (off by default: Kit.LandStripStyle). The pictures are "
            "round one's picks until you choose from the selection sheets; they are not uploaded yet.", font=F(18), fill=GREY)
-    y = 150
+    y = 170
 
     # 1. the numbers
-    card(img, y, 1010)
+    top1 = y
     d.text((40, y + 16), "1. The numbers: pick N1, N2 or N3", font=F(32), fill=WHITE)
     d.text((40, y + 58), "Gotham Black, ink edge, still readable at real size. Left: in the Kelp Forest (lands 1-2 done, 3 half way, 4-10 locked, "
            "the number grey there). Right: every land reached, every number lit.", font=F(18), fill=GREY)
@@ -62,47 +63,51 @@ def main():
         d.text((120, yy + 12), notes[n], font=F(19), fill=WHITE)
         a = im(f"num_N{n}").crop(BIG)
         b = im(f"num_N{n}_all").crop(BIG)
-        a = a.resize((a.width * 88 // 100, a.height * 88 // 100), Image.LANCZOS)
+        a = a.resize((a.width * 9 // 10, a.height * 9 // 10), Image.LANCZOS)
         b = b.resize(a.size, Image.LANCZOS)
         img.paste(a, (40, yy + 46))
-        img.paste(b, (40 + a.width + 20, yy + 46))
+        img.paste(b, (40 + a.width + 30, yy + 46))
         s = im(f"num_N{n}").crop(SMALL)
-        img.paste(s, (W - s.width - 40, yy + 4))
-        d.text((W - s.width - 40, yy - 18), "real size", font=F(15), fill=GREY)
-        yy += 300
-    y += 1030
-
+        img.paste(s, (40, yy + 46 + a.height + 24))
+        d.text((40, yy + 46 + a.height + 2), "real size (1 GUI px = 1 px)", font=F(15), fill=GREY)
+        s = im(f"num_N{n}_all").crop(SMALL)
+        img.paste(s, (40 + a.width + 30, yy + 46 + a.height + 24))
+        yy += a.height + 180
+    y = yy + 20
     # 2. the reveal
-    card(img, y, 700)
+    card(img, y, 740)
     d.text((40, y + 16), "2. What colours the pictures in: Dive (the Boss's reading) or Best (the alternative)", font=F(32), fill=WHITE)
-    d.text((40, y + 58), "Your best here: 108 m, four tenths into the Open Blue (land 5). Dive: the colour follows this dive, so every dive starts "
-           "grey and fills in as you go; the best line shows how far you got before. Best: lands you have ever reached stay in colour.",
-           font=F(18), fill=GREY)
+    d.text((40, y + 58), "Your best here: 108 m, four tenths into the Open Blue (land 5). Dive: the colour follows this dive, so every dive "
+           "starts grey and fills in as you go;", font=F(18), fill=GREY)
+    d.text((40, y + 80), "the best line shows how far you got before. Best: lands you have ever reached stay in colour.", font=F(18), fill=GREY)
     yy = y + 100
     for mode in ("Dive", "Best"):
         d.text((40, yy), mode, font=F(36), fill=GOLD)
         for k, (state, label) in enumerate((("start", "a dive's first metre"), ("past", "past the best, a third into Twilight"))):
             c = im(f"rev_{mode}_{state}").crop(BIG)
-            c = c.resize((c.width * 9 // 10, c.height * 9 // 10), Image.LANCZOS)
-            x = 160 + k * (c.width + 20)
+            c = c.resize((c.width * 85 // 100, c.height * 85 // 100), Image.LANCZOS)
+            x = 150 + k * (c.width + 20)
             img.paste(c, (x, yy))
             d.text((x, yy + c.height + 2), label, font=F(16), fill=GREY)
         yy += 290
-    y += 720
+    y += 720 + 40
 
     # 3. in the game, desktop
-    games = sorted(SH.glob("game_[0-9].png"))
-    card(img, y, 1320)
+    games = [SH / f"game_{k}.png" for k in (2, 3, 4)]
+    card(img, y, 1420)
     d.text((40, y + 16), "3. In the game, desktop: a real ride down the lane (Studio, sandbox, endless air)", font=F(32), fill=WHITE)
     d.text((40, y + 58), "Your avatar slides along under the strip with the metres; the land you are in is a size up with a white rim; "
-           "its picture colours in as you go; BEST is the server's furthest (BestService), here pushed along by this ride.",
+           "its picture colours in as you go; BEST is the server's furthest (BestService), pushed along by this ride.",
            font=F(18), fill=GREY)
     yy = y + 96
-    for k, g in enumerate(games[:4]):
-        c = Image.open(g).convert("RGB")
-        c = c.resize((940, 505), Image.LANCZOS)
+    for k, g in enumerate(games):
+        c = Image.open(g).convert("RGB").resize((940, 505), Image.LANCZOS)
         img.paste(c, (40 + (k % 2) * 960, yy + (k // 2) * 520))
-    y += 1340
+    z = Image.open(games[1]).convert("RGB").crop((690, 0, 1300, 160))
+    z = z.resize((z.width * 3 // 2, z.height * 3 // 2), Image.LANCZOS)
+    img.paste(z, (1000 + (940 - z.width) // 2, yy + 520 + 40))
+    d.text((1000, yy + 528), "the strip in the frame on the right, 1.5x (Midnight, 1,000 m)", font=F(17), fill=GREY)
+    y += 1440
 
     # 4. phone width
     card(img, y, 1000)

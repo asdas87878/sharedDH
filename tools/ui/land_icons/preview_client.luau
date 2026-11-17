@@ -12,7 +12,7 @@ local LandStrip = require(client:WaitForChild("UI"):WaitForChild("LandStrip"))
 
 local NAMES = { "Shallows", "Coral Reef", "Kelp Forest", "Shipwrecks", "Open Blue", "Twilight", "Midnight", "Vents",
 	"Bone Graveyard", "The Underworld" }
-local ATLAS = "rbxasset://textures/ridefish/land_atlas.png"
+local ATLAS = workspace:GetAttribute("LandAtlas") or "rbxasset://textures/ridefish/land_atlas.png"
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "ZZStripPreview"

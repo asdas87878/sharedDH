@@ -216,12 +216,14 @@ def framings_sheet():
     d = ImageDraw.Draw(out)
     text(d, (16, 14), "Land icons: the pictures per land (answer e.g. \"3c\")", icons.font(30), GOLD)
     text(d, (16, 56), "a, b: two of the land's big assets; c: down the lane; d, e: a and b close up; f: a third asset close up; "
-         "g: closer still. Gold frame: the crop the options use. Captured in Play, 2026-11-17.", F_NOTE, GREY)
+         "g: closer still. Gold frame: the crop the strip uses. The tile on the left: style A as built, no inner band (2026-11-17).", F_NOTE, GREY)
     y = 100
     for land in range(1, 11):
         text(d, (16, y + 4), f"{land}", icons.font(36), icons.LANDS[land - 1])
         text(d, (60, y + 14), icons.NAMES[land - 1], F_NOTE, WHITE)
-        tile = icons.icon("A", land, "done", 3)
+        # style A as built (task l1): one ink frame, the picture straight inside it, no coloured band
+        from selection import tile_A
+        tile = tile_A(icons.picture(land, 120, 120), 84)
         out.paste(tile, (16, y + 46), tile)
         x = lw
         for th in rows[land]:
