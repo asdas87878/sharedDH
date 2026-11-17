@@ -78,7 +78,13 @@ function LandStrip.build(parent: Instance)
 		active = buildA(parent, {
 			Numbers = setting("LandNumbers", Kit.LandNumbers),
 			Reveal = setting("LandReveal", Kit.LandReveal),
-			Atlas = setting("LandAtlas", Kit.LandAtlas),
+			Atlas = (function(): string
+				local atlas = setting("LandAtlas", Kit.LandAtlas)
+				if atlas == "" and RunService:IsStudio() then
+					return Kit.LandAtlasStudio
+				end
+				return atlas
+			end)(),
 		})
 		return
 	end

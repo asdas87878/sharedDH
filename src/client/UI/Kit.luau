@@ -202,8 +202,9 @@ Kit.LandShort = { "Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Mid
 -- The land strip with a picture of each land (Hugo, 2026-11-17: "use first style, but remove the inner border, make the
 -- numbers more stylised to each map part"; task l1, docs/design/ui.md "The land strip, style A"). 0 is today's strip
 -- of coloured tiles; 1 the framed pictures, your avatar under them, the colour revealed as you go and the best line.
--- In Studio the workspace's "LandStripStyle" number overrides it. Off until Hugo has looked.
-Kit.LandStripStyle = 0
+-- In Studio the workspace's "LandStripStyle" number overrides it. On (Boss, 2026-11-17, Hugo: "make sure map icons are
+-- implemented"); the pictures are the generated set G2 (docs/attachments/land-icons-gen-1.png).
+Kit.LandStripStyle = 1
 -- On style 1: the numbers' look (1 Metal: the land's colour as a gradient; 2 Material: each land's own stuff, sand,
 -- coral, kelp ribs, planks, glow; 3 Badge: the number on a small sign of its land). Workspace "LandNumbers".
 Kit.LandNumbers = 2
@@ -215,6 +216,8 @@ Kit.LandReveal = "Dive"
 -- Studio the workspace's "LandAtlas" string overrides it (rbxasset://textures/ridefish/land_atlas.png is a copy in
 -- Studio's own content folder, for tests without an upload).
 Kit.LandAtlas = ""
+-- In Studio, while LandAtlas is empty, the strip reads the local copy so the pictures show without an upload.
+Kit.LandAtlasStudio = "rbxasset://textures/ridefish/land_atlas.png"
 
 -- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
 -- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks;
