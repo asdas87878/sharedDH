@@ -1104,3 +1104,42 @@ to where the camera looks when you let go. To go round a bend you turn the camer
 **Not known:** whether the reference's keys point straight to the camera's side (90) or forward and to the side
 (45). The side-on recording says 90. `KeyAngle` is in the sandbox panel. The two older ways are still there:
 `CameraSteer` 1 is the two pulls, 0 is keys only.
+
+## Failing, the drain in ticks, tame time and the red zone (2026-11-18)
+Hugo, 2026-11-18: "add failing that fades out and sends you back to the start, with all the animals collected, make
+the oxygen like this, go down in ticks, the more oxygen you have + the more oxygen required should be linked to how
+fast the oxygen drains, make sure fishes need longer to be captured as well, the higher stamina ones should have a
+longer time since you ride on them for longer once you have enough stamina, the stamina should also drop down to a
+'red zone' when not having the stamina required instantly, the stamina should also go down to the red zone in regular,
+the red zone should be hit at about 1/3 of the total stamina left". Built by NULLROOM task o1; every number in
+`Config.luau`, Claude's first go.
+
+- **Ticks** (`Oxygen.Tick` 0.5): the meter never runs down smoothly. Every half second a piece goes at once, each piece
+  a whole share of the meter (it empties in equal steps). The server tells the rider's client each one: Ride
+  `"OxygenTick", lost, oxygen, every, kind` (kind `"Tick"`, or `"Red"` for the drop below). Floating off a fish ticks
+  too (`Config.freeDrain`: at least `FreeDrain` a second, the whole meter in `FreeSeconds` 25 at most).
+- **How long a full meter lasts on a fish** (`Config.secondsOn`): `KeepUp` (2 s) x grow x more.
+  - grow: a fish that needs more is ridden longer, `(required / 80)^Grow`, `Grow` 0.1, at most `GrowMost` 4.
+  - more: having more than it needs gives a little more, `(max / required)^MaxShare`, `MaxShare` 0.25, at most
+    `MaxMost` 2.
+  So the drain a second grows with your max Oxygen and with the fish's need. A new player on a Shallows Common: 2 s, 4
+  ticks of 25. A land-10 Common at exactly its need: about 6 s. A Legendary there: 8 s. A 100,000 player on a Shallows
+  Legendary (need 1,200): 5 s (it was over 80 s before). On a Tank: divided by `Tank.Drain`, as before.
+- **Tame time** (`Config.tameTime`): `Tame.Time` (2 s) x the same grow (`Tame.Grow` 1 on, 0 off). So a player with
+  exactly what a fish needs still just tames it, at any depth. Measured: a Common 1.93 s, a Shallows Legendary 2.55 s.
+- **The red zone** (`Oxygen.AngryAt` 1/3, was 0.3): the ring turns red and the fish angry there, as before. Mounting a
+  fish too strong for you (`RedDrop` 1) drops the meter at once to that line, then it empties in `StrainTime` (1 s, two
+  ticks). A normal ride ticks down through it.
+- **Failing** (`Config.Death`): out of air (or a missed hop) drowns, shorter than before (`Struggle` 1.4, was 2.5), with
+  a longer fade to black (`DrownFade` 1.2, was 0.7). You wake at the dock, at your own tank with fish in hand, and the
+  black holds `HoldBlack` 0.5 s, then lifts over `FadeIn` 0.8 s. Every fish tamed on the dive is kept and goes into the
+  tank as if you had swum home (measured: the slots empty into the tank as you wake). `Death.On` 0 turns failing off
+  everywhere; in Studio the sandbox's NoFail does the same: thrown off, left floating with a full meter.
+- **The sandbox now starts with NoFail and EndlessAir off** (`Config.Sandbox`), so the ticks and the fail are seen in
+  Studio. N's panel switches them back on.
+- **For the HUD** (task h1): `Drain` is now the average a second on this fish (`Config.drainFor`). Between ticks the
+  meter doesn't move, so the HUD's own count-down should step on `OxygenTick` rather than slide. On a fish too strong
+  the drain is `max x AngryAt / StrainTime`, not `max / StrainTime`.
+- **Not played by hand.** Checked by a scripted ride in Hugo's Studio: [fading out, 1 caught](../attachments/fail-fade-out-1.png),
+  [black at the dock, the catch already in the tank](../attachments/fail-black-at-dock-1.png),
+  [back on the dock](../attachments/fail-dock-return-1.png).

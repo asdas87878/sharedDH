@@ -3,6 +3,29 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · Failing, Oxygen in ticks, tame time by need, the red zone at a third (NULLROOM task o1, Hugo's PC)
+**State:** in the game code, run in Hugo's Studio by script (four rides: a Common at 200 max, a Legendary too strong at
+200, a Legendary at 100,000, the no-fail switch). **Not played by hand.** StyLua passes; selene shows only the three
+old warnings. Nothing uploaded, the place not saved, the test scripts removed, mouse and camera reset. The whole
+description: [riding feel](design/riding-feel.md), "Failing, the drain in ticks, tame time and the red zone".
+- **Ticks:** the meter drops in equal pieces every `Oxygen.Tick` (0.5 s), told to the client as Ride `"OxygenTick"`.
+  Seen: 200 to 160, 120, 80, 40, 0 on a Common.
+- **The drain grows with your max and the fish's need** (`Config.secondsOn`, `drainFor`; `Oxygen.Grow`, `GrowMost`,
+  `MaxShare`, `MaxMost`): a full meter lasts 2 s on a Shallows Common for a new player, longer on fish that need
+  more (up to 4 times), a little longer with more max (up to 2 times). A trained player no longer sits on one fish
+  for a minute: 5 s on a Legendary at 100,000.
+- **Tame time grows the same way** (`Config.tameTime`, `Tame.Grow`): a Common 1.93 s, a Shallows Legendary 2.55 s.
+- **The red zone at 1/3** (`Oxygen.AngryAt`, was 0.3): a fish too strong drops the meter at once to the line
+  (`RedDrop`; seen: 200 to 66.7 on the mount), then two ticks to empty.
+- **Failing:** a shorter drown, a longer fade, the black held at the dock (`Death.HoldBlack`, `FadeIn`), the dive's
+  catch kept and put in the tank. `Death.On` 0 turns it off; the sandbox's NoFail leaves you floating with a full
+  meter. **The sandbox now starts with NoFail and EndlessAir off**, so it can be seen.
+- Pictures: [fading out](attachments/fail-fade-out-1.png), [black at the dock](attachments/fail-black-at-dock-1.png),
+  [back on the dock](attachments/fail-dock-return-1.png).
+- **For the HUD task (h1):** step the meter on `OxygenTick` instead of counting down between updates; on a fish too
+  strong the drain is `max x AngryAt / StrainTime`. `Net.luau` documents the event.
+- **For the tuning chat:** `tools/balance/model.py` still models the old smooth, max-linear drain and the fixed tame.
+
 ## 2026-11-17 · Obsidian chat integration (the user's PC): the wild ride, the sling, the feel log; the smaller hub, the catch slots
 **State:** on the user's word ("update my changes to obsidian, my partner is updating his. When they are both updated,
 merge our changes"): everything on this PC since `be06813`, committed, then merged with Hugo's commits up to `57b5f83`

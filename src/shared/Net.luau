@@ -9,7 +9,9 @@
 --     an empty list once it is in our tank, or at the dock with no tank) | "Deposited", count, gained, income (that
 --     many fish went into our tank: the coins a second gained, and what the tank earns now; AquariumService) | "Boost", kind, by, time, oxygen, count (a passive archetype paid us:
 --     kind "Eat" or "Smash", our fish goes `by` times its speed for `time` seconds, `oxygen` of the max meter came
---     back, `count` is the Frenzy's stacks or the boxes knocked loose: Config.Archetype)
+--     back, `count` is the Frenzy's stacks or the boxes knocked loose: Config.Archetype) | "OxygenTick", lost, oxygen,
+--     every, kind (the meter dropped by `lost` to `oxygen` at once; the next tick in `every` seconds; kind "Tick" for
+--     the drain, Oxygen.Tick, or "Red" for the drop to the red zone's line on mounting a fish too strong, RedDrop)
 --   Fx (server -> every client): "Land", player, fish, count (that rider's landings so far) | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
 --     player off) | "Eat", player, fish, where, stacks (that rider's Predator ate a wild fish there) | "Smash", player,
 --     fish, where, boxes (that rider's Breaker was paid for a prop)

@@ -1,7 +1,9 @@
 --!strict
 -- Drowning (docs/design/riding-feel.md), procedural, played on every client from the server's State, DeathAt and
 -- DeathThrown attributes, so friends see it too; the local victim also gets the camera, the dark and the fade. It takes
--- no input; the server sends the victim to the dock when the time is up.
+-- no input; the server sends the victim to the dock when the time is up. That is the fail (Hugo, 2026-11-18): it fades
+-- out (Death.DrownFade), the black holds at the dock (Death.HoldBlack) and lifts (Death.FadeIn); the dive's catch is
+-- kept (RideService). With Death.On 0 or the sandbox's NoFail there is none: you are left floating.
 --   Out of Oxygen on a fish, it bucks and throws you up and back, tumbling (Death.Throw; the buck itself is
 --   AnimController's, on the fish), then you struggle with a steady stream of bubbles from the mouth (Death.Struggle),
 --   weaken as they thin out (Death.Weak), go still and sink with the last bubble (Death.Still), and it fades out. A jump
@@ -39,6 +41,7 @@ type Death = {
 local deaths: { [Player]: Death } = {}
 local throwDirs: { [Player]: Vector3 } = {} -- from the ThrowOff Fx: which way the fish was swimming
 local darken: ColorCorrectionEffect
+local blackSince: number? = nil -- os.clock() the death ended with the screen still black (Death.HoldBlack)
 
 local function flat(v: Vector3): Vector3
 	local f = v * Vector3.new(1, 0, 1)
@@ -223,9 +226,16 @@ local function step(dt: number)
 		end
 	end
 
-	-- back from a death: the black lifts
-	if not State.dying() and State.Fade > 0 then
-		State.Fade = math.max(0, State.Fade - dt / 0.8)
+	-- back from a death (the fail: Config.Death): the black holds a moment at the dock, so the move home isn't seen,
+	-- then lifts
+	if State.dying() then
+		blackSince = nil
+	elseif State.Fade > 0 then
+		blackSince = blackSince or clock
+	end
+	local held = blackSince ~= nil and clock - (blackSince :: number) >= Config.Death.HoldBlack
+	if not State.dying() and State.Fade > 0 and held then
+		State.Fade = math.max(0, State.Fade - dt / math.max(Config.Death.FadeIn, 0.05))
 		if State.Fade <= 0 then
 			State.FadeText = ""
 		end

@@ -2,9 +2,13 @@
 -- Riding, Oxygen, the jump fish to fish and drowning, all decided here (docs/design/riding-feel.md); clients only steer
 -- and animate. Per player: a state (Dock, Free, Riding, Jumping, Drowning, mirrored in the player's State attribute),
 -- the Oxygen meter (the design notes' stamina), and the fish they're on.
---   Riding drains Oxygen by the land the rider is in and the fish's rarity (Config.drain: steep, land by land; this is
---   the progression). At zero the fish throws you off and you drown (Drowning, DeathAt). A hop is never refused for
---   Oxygen and costs none, so at almost nothing you can still go fish to fish, and every landing refills.
+--   Riding drains Oxygen in ticks (Oxygen.Tick: a piece every half second, each told to the client, Ride
+--   "OxygenTick"), the whole meter in Config.secondsOn: longer on a fish that needs more (by the land the rider is in
+--   and the fish's rarity, Config.required), a little longer with more max Oxygen. A fish too strong for you drops
+--   the meter at once to the red zone's line (Oxygen.AngryAt, RedDrop) and empties it from there in StrainTime. At
+--   zero the fish throws you off and you drown (Drowning, DeathAt): the fail, which fades out and ends at the dock
+--   with the dive's catch kept. A hop is never refused for Oxygen and costs none, so at almost nothing you can still
+--   go fish to fish, and every landing refills.
 --   Running the fish into something solid never kills (Config.Crash): it costs Oxygen and the client is told to slow.
 --   A prop never stops a fish: a Tank, a Breaker or a giant breaks it (PropService), the rest go through.
 --   Going fish to fish (Config.Jump): from a fish or from floating, the player leaves into a hop their own client
@@ -26,7 +30,7 @@
 --   The passive archetypes (Config.Archetype; docs/design/archetypes.md), all decided here: a Predator eats the
 --   smaller wild fish its nose reaches (checkEat: the fish is gone, the rider gets a burst of speed and Oxygen; a
 --   Frenzy chains them), a Breaker goes through props for nothing and is paid for it (checkCrash), a Tank drains
---   slower and turns angry later (Config.drainOf, Config.low), a Leaper's hop has a longer window (jump), a Fast
+--   slower and turns angry later (Config.drainFor, Config.low), a Leaper's hop has a longer window (jump), a Fast
 --   fish's bigger burst is allowed by the speed check (Config.surgeOf). The rider's client is told of a burst
 --   ("Boost"), every client of the bite or the smash (Fx "Eat", "Smash"), and the fish carries "Bite", "Smash" and
 --   "Frenzy" attributes for the animations to come.
@@ -63,7 +67,8 @@ type Rider = {
 	Strained: boolean, -- the fish under us is too strong for us (decided at the mount): the meter empties at once
 	AngryFish: Wild?, -- the fish we have marked angry (its attributes and tag are ours to take off again)
 	AngryAt: number, -- os.clock() it turned angry
-	Tame: number, -- seconds ridden toward taming the fish under us
+	Tame: number, -- how far the fish under us is from being ours, 0 to 1 (Config.tameTime)
+	TickAt: number, -- os.clock() the next Oxygen tick is due (Oxygen.Tick)
 	SentTame: number, -- the Tame attribute as last told (-1: none)
 	Tamed: { [Wild]: boolean }, -- the fish made ours on this dive (so one fish is not tamed twice)
 	Caught: { string }, -- what we carry: fish ids, oldest first (with an aquarium: until it is put in the tank)
@@ -238,6 +243,10 @@ local function setState(r: Rider, state: string)
 		end
 		setAngry(r, nil)
 	end
+	if state ~= r.State and (state == "Riding" or state == "Free") then
+		-- a new stretch of drain: its first tick is a whole Tick away
+		r.TickAt = os.clock() + Config.Oxygen.Tick
+	end
 	r.State = state
 	r.Player:SetAttribute("State", state)
 	-- (on a fish the rider's body is solid to nothing: the fish's own steering keeps both in open water)
@@ -343,7 +352,7 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	-- drain.
 	r.Strained = Config.strained(zoneOf(w.Root.Position), w.Type.Tier, r.Max) and not sandbox("EndlessAir")
 	r.Player:SetAttribute("Strained", if r.Strained then true else nil)
-	r.Tame = if r.Tamed[w] then Config.Tame.Time else 0
+	r.Tame = if r.Tamed[w] then 1 else 0
 	if landing then
 		-- the refill is for reaching another fish: not for hopping off and back onto the same one, nor for a landing
 		-- sooner than a flight can be
@@ -357,6 +366,19 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 		-- hop and still keeps one message from landing and leaving at once)
 		-- (a fish too strong for us is no stepping stone: the old wait, longer than the meter takes to empty)
 		r.JumpReadyAt = os.clock() + (if r.Strained then Config.Jump.StrainLock else Config.Jump.Cooldown / 2)
+	end
+	-- the red zone (Hugo, 2026-11-18: "the stamina should also drop down to a 'red zone' when not having the stamina
+	-- required instantly"): on a fish too strong, the meter drops at once to the red zone's line if it is above it
+	local o = Config.Oxygen
+	if r.Strained and o.RedDrop ~= 0 then
+		local line = r.Max * o.AngryAt
+		if r.Oxygen > line then
+			local lost = r.Oxygen - line
+			r.Oxygen = line
+			Net.Ride:FireClient(r.Player, "OxygenTick", lost, r.Oxygen, o.Tick, "Red")
+		end
+	end
+	if landing then
 		sendOxygen(r, true)
 		r.Landings += 1
 		Net.Fx:FireAllClients("Land", r.Player, w.Model, r.Landings)
@@ -431,10 +453,29 @@ local function die(r: Rider, state: string, length: number, thrown: boolean, qui
 	end)
 end
 
--- Out of Oxygen: on a fish it bucks and throws you off first (everyone's clients animate both), then you drown
+-- No failing (Config.Death.On 0, or the sandbox's NoFail): nothing ends the dive
+local function noFail(): boolean
+	return Config.Death.On == 0 or sandbox("NoFail")
+end
+
+-- Out of Oxygen: on a fish it bucks and throws you off first (everyone's clients animate both), then you drown: the
+-- fail (Config.Death), which fades out and ends at the dock with the dive's catch kept (toDock)
 local function drown(r: Rider)
 	local d = Config.Death
 	local w = r.Fish
+	if noFail() then
+		-- thrown off (or not) and left floating with a whole meter, to go on
+		if w then
+			local model = w.Model
+			dismount(r, "OutOfOxygen", true)
+			Net.Fx:FireAllClients("ThrowOff", r.Player, model)
+		end
+		r.Oxygen = r.Max
+		sendOxygen(r, true)
+		setState(r, "Free")
+		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
+		return
+	end
 	if w then
 		local model = w.Model
 		dismount(r, "OutOfOxygen", true)
@@ -487,7 +528,7 @@ local function miss(r: Rider)
 	-- ride of the dive, costs nothing when it lands on nothing)
 	local forgiven = r.DiveHop and Config.Dive.ForgiveMiss > 0
 	r.DiveHop = false
-	if sandbox("NoFail") or forgiven then
+	if noFail() or forgiven then
 		-- the sandbox: left floating, to jump again
 		setState(r, "Free")
 		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
@@ -623,6 +664,31 @@ local function drain(r: Rider, amount: number)
 		return
 	end
 	r.Oxygen = math.max(0, r.Oxygen - amount)
+end
+
+-- The drain in ticks (Oxygen.Tick): nothing between ticks, then `rate` x Tick at once, told to the rider's client
+-- (Ride "OxygenTick", lost, oxygen now, seconds to the next, "Tick") for the HUD to show it go. Tick 0: smooth.
+local function tickDrain(r: Rider, rate: number, dt: number)
+	local every = Config.Oxygen.Tick
+	if every <= 0 then
+		drain(r, rate * dt)
+		return
+	end
+	local t = os.clock()
+	if t < r.TickAt then
+		return
+	end
+	-- (one tick a frame at most; a long hitch doesn't take several at once)
+	r.TickAt = math.max(r.TickAt + every, t + every * 0.5)
+	-- (each tick a whole share of the meter, so it empties in equal steps and never leaves a sliver for a last one)
+	local count = math.max(1, math.floor(r.Max / math.max(rate * every, 0.001) + 0.5))
+	local before = r.Oxygen
+	drain(r, r.Max / count)
+	local lost = before - r.Oxygen
+	if lost > 0 then
+		sendOxygen(r, true)
+		Net.Ride:FireClient(r.Player, "OxygenTick", lost, r.Oxygen, every, "Tick")
+	end
 end
 
 -- The fish ran into something: Oxygen is taken here, and the rider's client is told to slow (`slow`: the share of its
@@ -848,16 +914,20 @@ local function checkSpeed(r: Rider, w: Wild)
 	r.CheckFrom = position
 end
 
--- Riding a fish we can hold makes it ours after Tame.Time seconds on it (one fish once a dive)
-local function tame(r: Rider, w: Wild, dt: number)
+-- Riding a fish we can hold makes it ours after Config.tameTime seconds on it (Tame.Time, longer for a fish that
+-- needs more; one fish once a dive). `zone`: the land we are in.
+local function tame(r: Rider, w: Wild, dt: number, zone: number)
 	local c = Config.Tame
 	if c.On == 0 or r.Strained then
 		return
 	end
-	local length = math.max(c.Time, 0.05)
+	local length = Config.tameTime(zone, w.Type.Tier)
 	if not r.Tamed[w] then
-		r.Tame += dt
-		if r.Tame >= length then
+		r.Tame += dt / length
+		-- (a frame's leeway: the tame counts frames, the ticks the clock, and at exactly what a fish needs both end
+		-- together)
+		if r.Tame >= 0.98 then
+			r.Tame = 1
 			r.Tamed[w] = true
 			if #r.Caught < c.Carry then
 				table.insert(r.Caught, w.Type.Id)
@@ -868,7 +938,7 @@ local function tame(r: Rider, w: Wild, dt: number)
 		end
 	end
 	-- (told in fortieths: twenty updates over a tame of two seconds, and none once it is full)
-	local share = math.floor(math.clamp(r.Tame / length, 0, 1) * 40 + 0.5) / 40
+	local share = math.floor(math.clamp(r.Tame, 0, 1) * 40 + 0.5) / 40
 	if share ~= r.SentTame then
 		r.SentTame = share
 		r.Player:SetAttribute("Tame", share)
@@ -904,17 +974,21 @@ local function tick(r: Rider, dt: number)
 		else
 			-- the deeper the land, the more the fish takes a second: this is the progression
 			-- (told to the client when it changes, for the HUD's seconds left on this fish: the Drain attribute)
-			-- (and less on a Tank: Config.drainOf)
-			local rate = Config.drainOf(zoneOf(root.Position), w.Type)
+			-- (and less on a Tank; 2026-11-18: in ticks, and by our max Oxygen too: Config.drainFor)
+			local zone = zoneOf(root.Position)
+			local rate = Config.drainFor(zone, w.Type, r.Max)
 			if r.Strained and o.StrainTime > 0 then
-				-- a fish too strong for us: the whole meter in StrainTime, whatever the fish
-				rate = r.Max / o.StrainTime
+				-- a fish too strong for us: what is left of the meter from the red zone's line (RedDrop; the whole
+				-- meter without it) in StrainTime, whatever the fish
+				rate = r.Max * (if o.RedDrop ~= 0 then o.AngryAt else 1) / o.StrainTime
 			end
 			if rate ~= r.SentDrain then
 				r.SentDrain = rate
 				r.Player:SetAttribute("Drain", rate)
 			end
-			drain(r, rate * dt)
+			-- (the tame first: a rider with exactly what the fish needs tames it as the last tick goes)
+			tame(r, w, dt, zone)
+			tickDrain(r, rate, dt)
 			-- how fast the fish is going, from where we see it (eased over about 0.15 s: its place comes in steps)
 			local at = w.Root.Position
 			if r.RideFrom and dt > 0 then
@@ -922,7 +996,6 @@ local function tick(r: Rider, dt: number)
 				r.RideSpeed += (seen - r.RideSpeed) * (1 - math.exp(-dt / 0.15))
 			end
 			r.RideFrom = at
-			tame(r, w, dt)
 			setAngry(r, if isAngry(r, w) then w else nil)
 			checkSpeed(r, w)
 			checkCrash(r, w)
@@ -941,7 +1014,7 @@ local function tick(r: Rider, dt: number)
 			miss(r)
 		end
 	elseif r.State == "Free" then
-		drain(r, o.FreeDrain * dt)
+		tickDrain(r, Config.freeDrain(r.Max), dt)
 		if r.Oxygen <= 0 then
 			drown(r)
 		else
@@ -1028,6 +1101,7 @@ local function onPlayer(player: Player)
 		AngryFish = nil,
 		AngryAt = 0,
 		Tame = 0,
+		TickAt = 0,
 		SentTame = -1,
 		Tamed = setmetatable({}, { __mode = "k" }) :: any,
 		Caught = {},

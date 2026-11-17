@@ -435,9 +435,28 @@ Config.Oxygen = {
 	StrainTime = 1,
 	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
 	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
-	-- angry here (Config.Angry, RideService). 0.3 of a new player's 2.5 s on a Shallows Common is the last 0.75 s;
-	-- of a trained 10 s, the last 3.
-	AngryAt = 0.3,
+	-- angry here (Config.Angry, RideService).
+	-- (Hugo, 2026-11-18: "the red zone should be hit at about 1/3 of the total stamina left": 0.3 until then.) It is
+	-- also the red zone's line: a fish too strong for you drops the meter to it at once (RedDrop).
+	AngryAt = 1 / 3,
+	-- The drain in ticks (Hugo, 2026-11-18: "make the oxygen like this, go down in ticks, the more oxygen you have +
+	-- the more oxygen required should be linked to how fast the oxygen drains"). The meter never runs down smoothly:
+	-- every Tick seconds a piece goes at once (RideService; each told to the client, Ride "OxygenTick"). On a fish
+	-- the piece is what the seconds on it (Config.secondsOn) allow: seconds = KeepUp x grow(required) x more(max).
+	--   grow: a fish that needs more is ridden longer, (required / the Shallows Common's)^Grow, at most GrowMost
+	--   more: having more than it needs gives a little more time, (max / required)^MaxShare, at most MaxMost.
+	-- So the drain a second grows with your max Oxygen (a trained player no longer sits on a Shallows fish for a
+	-- minute) and with what the fish needs. Claude's first numbers, 2026-11-18: a new player on a Shallows Common
+	-- 2 s (4 ticks), a land-10 Common at exactly its need about 6 s, a Legendary there about 8.
+	Tick = 0.5, -- seconds between ticks (0: the old smooth drain)
+	Grow = 0.1,
+	GrowMost = 4,
+	MaxShare = 0.25, -- twice what the fish needs: 1.19 times the seconds; ten times: 1.78
+	MaxMost = 2,
+	FreeSeconds = 25, -- floating off a fish empties the meter in at most this long (and FreeDrain a second at least)
+	-- Mounting a fish too strong for you (it needs more than your max): 1, the meter drops at once to the red zone's
+	-- line (AngryAt) if it is above it, then empties in StrainTime; 0, it empties from where it is (as before)
+	RedDrop = 1,
 	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 15: the spawn is 144 behind the lane's start and the gate's corners are 161 away, so this is the hub, the gate and the first 21 studs of water in the middle; it was 60 studs of water on grey-box 9; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
@@ -499,6 +518,11 @@ Config.Tame = {
 	-- seconds on a fish to make it yours. The tuning chat's proposal (docs/design/progression.md): the 2 seconds the
 	-- game already calls enough (Oxygen.KeepUp), so the number on a fish's tag is exactly the Oxygen that tames it.
 	Time = 2,
+	-- (Hugo, 2026-11-18: "make sure fishes need longer to be captured as well, the higher stamina ones should have a
+	-- longer time since you ride on them for longer"): Time is for a Shallows Common; a fish that needs more takes
+	-- longer, by the same grow as the seconds on it (Oxygen.Grow, GrowMost: Config.tameTime). So a player with
+	-- exactly what a fish needs still just tames it, at any depth.
+	Grow = 1, -- 1: by Oxygen's grow; 0: Time for every fish
 	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
 }
 
@@ -1418,8 +1442,15 @@ Config.Burst = {
 }
 
 -- Out of Oxygen (and a jump that comes down on nothing, until there is a revive): no input, ends at the dock.
-local DROWN = { Throw = 0.8, Struggle = 2.5, MissStruggle = 0.6, Weak = 1.2, Still = 0.8, Tail = 0.2 }
+-- Failing (Hugo, 2026-11-18: "add failing that fades out and sends you back to the start, with all the animals
+-- collected"): the drown fades to black, you wake at the dock (at your own tank with fish in hand), and every fish
+-- tamed on the dive is kept, as if you had swum home (RideService toDock; AquariumService puts them in the tank).
+-- The drown is shorter than before (Struggle 2.5, DrownFade 0.7 until 2026-11-18), so the fade is what you see.
+local DROWN = { Throw = 0.8, Struggle = 1.4, MissStruggle = 0.6, Weak = 0.9, Still = 0.6, Tail = 0.2 }
 Config.Death = {
+	On = 1, -- 0: no failing anywhere: out of Oxygen throws you off and leaves you floating with a full meter (the sandbox's NoFail does this in Studio)
+	HoldBlack = 0.5, -- seconds the black holds at the dock before it lifts, so the move home isn't seen
+	FadeIn = 0.8, -- seconds the black takes to lift
 	-- a jump that sank: the sinking was the struggle, so the drown that follows is short
 	MissStruggle = DROWN.MissStruggle,
 	MissTime = DROWN.MissStruggle + DROWN.Weak + DROWN.Still + DROWN.Tail,
@@ -1429,7 +1460,7 @@ Config.Death = {
 	Struggle = DROWN.Struggle, -- flailing, a steady stream of bubbles
 	Weak = DROWN.Weak, -- the bubbles thin out
 	Still = DROWN.Still, -- still and sinking, the last bubble
-	DrownFade = 0.7, -- the fade to black, ending with the drown
+	DrownFade = 1.2, -- the fade to black, ending with the drown
 	DrownTime = DROWN.Throw + DROWN.Struggle + DROWN.Weak + DROWN.Still + DROWN.Tail, -- less Throw when not thrown
 }
 
@@ -1450,8 +1481,9 @@ Config.FeelLog = {
 
 Config.Sandbox = {
 	On = true, -- in Studio, start with the sandbox on
-	NoFail = true, -- a jump that sinks leaves you floating instead of drowning, and floating never sends you to the dock
-	EndlessAir = true, -- Oxygen doesn't drain (turn it off to judge the drain by land)
+	-- (both off since 2026-11-18, so the ticks and the fail are seen in Studio; N's panel switches them on again)
+	NoFail = false, -- a jump that sinks, or a meter that empties, leaves you floating instead of drowning, and floating never sends you to the dock
+	EndlessAir = false, -- Oxygen doesn't drain (turn it on to ride anywhere without the drain)
 	StartS = 130, -- R puts you back here: studs down the lane from its start, or further down, at the first place
 	StartRoom = 34, -- with this much water above the herd, so a jump has room to rise
 }
@@ -2000,13 +2032,51 @@ function Config.hopOf(fish: FishType?): (number, number, number)
 	return 1, 1, 0
 end
 
+-- How many times longer a fish that needs `required` is ridden (and tamed) than a Shallows Common: Oxygen.Grow
+function Config.grow(required: number): number
+	local o = Config.Oxygen
+	local base = math.max(Config.required(1, "Common"), 1)
+	return math.clamp((math.max(required, base) / base) ^ o.Grow, 1, math.max(o.GrowMost, 1))
+end
+
+-- Seconds a full meter lasts on a fish of this rarity in land `zone`, for a rider with this max Oxygen (2026-11-18:
+-- the ticks; Oxygen.Tick). KeepUp x grow(required) x a little more for more max (Oxygen.MaxShare); longer on a Tank.
+-- A fish too strong: StrainTime (from the red zone's line, with Oxygen.RedDrop).
 -- (`fish`: with it, the seconds are this fish's own: longer on a Tank)
 function Config.secondsOn(zone: number, tier: string, max: number, fish: FishType?): number
 	if Config.strained(zone, tier, max) then
 		return Config.Oxygen.StrainTime
 	end
-	local rate = if fish then Config.drainOf(zone, fish) else Config.drain(zone, tier)
-	return max / math.max(rate, 0.001)
+	local o = Config.Oxygen
+	local required = math.max(Config.required(zone, tier), 1)
+	local more = math.clamp((math.max(max, required) / required) ^ o.MaxShare, 1, math.max(o.MaxMost, 1))
+	local seconds = o.KeepUp * Config.grow(required) * more
+	if fish and Config.hasArchetype(fish, "Tank") then
+		seconds /= math.max(Config.Archetype.Tank.Drain, 0.01)
+	end
+	return seconds
+end
+
+-- The Oxygen a second a rider with this max loses on this fish in land `zone` (what each tick takes, a second):
+-- the whole meter in Config.secondsOn
+function Config.drainFor(zone: number, fish: FishType, max: number): number
+	return max / math.max(Config.secondsOn(zone, fish.Tier, max, fish), 0.01)
+end
+
+-- Seconds on this fish to tame it (Config.Tame): Tame.Time, longer for a fish that needs more (Tame.Grow)
+function Config.tameTime(zone: number, tier: string): number
+	local t = Config.Tame
+	local time = math.max(t.Time, 0.05)
+	if t.Grow ~= 0 then
+		time *= Config.grow(Config.required(zone, tier))
+	end
+	return time
+end
+
+-- Oxygen a second floating off a fish: FreeDrain, or the whole meter in Oxygen.FreeSeconds if that is faster
+function Config.freeDrain(max: number): number
+	local o = Config.Oxygen
+	return math.max(o.FreeDrain, if o.FreeSeconds > 0 then max / o.FreeSeconds else 0)
 end
 
 -- Airtime by speed (Config.Jump.AirSlow...): the seconds added to Jump.FloatTime and Jump.Window for a hop off a
