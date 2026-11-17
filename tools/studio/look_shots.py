@@ -76,7 +76,7 @@ try:
             time.sleep(step["wait"])
         elif "luau" in step or "file" in step:
             code = step.get("luau") or open(step["file"], encoding="utf-8").read()
-            res = call("execute_luau", {"studio_id": studio, "datamodel_type": "Edit", "code": code})
+            res = call("execute_luau", {"studio_id": studio, "datamodel_type": step.get("model", "Edit"), "code": code}, step.get("timeout", 120))
             print("luau:", text_of(res), flush=True)
             if res.get("isError"):
                 sys.exit("stopped at step %d: a Luau step failed" % n)

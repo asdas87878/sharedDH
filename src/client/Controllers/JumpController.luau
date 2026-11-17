@@ -38,6 +38,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Actions = require(script.Parent.Parent.Lib.Actions)
 local Course = require(script.Parent.Parent.Lib.Course)
 local Feel = require(script.Parent.Parent.Lib.Feel)
+local FeelLog = require(script.Parent.Parent.Lib.FeelLog)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Lock = require(script.Parent.Parent.Lib.Lock)
 local Shake = require(script.Parent.Parent.Lib.Shake)
@@ -89,6 +90,15 @@ local reelStartedAt = 0
 local reelFrom = CFrame.identity -- our turn when it began
 local reelOffset = Vector3.zero -- and where we were from the saddle: the gap that closes
 local reelTime = 0
+local reelHow = "" -- what began the pull-in (the feel log): "press", "early", "glide", "window" or "dive"
+local reelStartPos = Vector3.zero -- the sling (Jump.Sling): where we were as it began,
+local reelVelocity = Vector3.zero -- and the speed we carry into it
+local reelLow, reelLast = 0, 0 -- (the feel log's: our slowest in the pull-in's first part, and our speed at the touch)
+local lockedSince = 0 -- os.clock() the lock last went to another fish (Jump.SlingSettle)
+local viewYaw: number? = nil -- the camera's yaw last frame, and until when we count as still choosing (Jump.SlingHoldTurn)
+local aimingUntil = 0
+local queuedAt: number? = nil -- a hop pressed a moment too early, kept to be made as soon as we may (Jump.Buffer)
+local queueUntil = math.huge -- and until when (a press kept in the pull-in waits for the landing first)
 
 -- the dots left behind us through the pull-in, as the reference leaves them (made once, reused)
 local TRAIL_DOTS = Config.Jump.TrailDots
@@ -255,9 +265,11 @@ local function pick(from: Vector3)
 	-- aim still wins, and a fish already locked keeps the lock as it always does)
 	local j = Config.Jump
 	local wide = flying and (diving or (Config.Lock.LastChance > 0 and clock >= j.LaunchTime + j.FloatTime + leapTime))
-	local best = Lock.pick(from, view.Position, view.LookVector, locked, left, skip, reach, wide)
+	local back = flying and clock >= Config.Lock.LeftBackAfter
+	local best = Lock.pick(from, view.Position, view.LookVector, locked, left, skip, reach, wide, back)
 	if best ~= locked then
 		locked = best
+		lockedSince = os.clock()
 		setGlow(best)
 	end
 	State.JumpTarget = locked
@@ -265,6 +277,7 @@ end
 
 local function stop()
 	flying = false
+	viewYaw = nil
 	diving = false
 	plunging = false
 	plungeDepth = 0
@@ -297,7 +310,8 @@ function JumpController.reel(): (number?, number)
 	return u, reelTime
 end
 
-local function startReel(root: BasePart)
+-- (`how`: what began it, for the feel log: "press", "early", "glide", "window" or "dive")
+local function startReel(root: BasePart, how: string)
 	local saddle = saddleOf(locked)
 	local gap = if saddle then root.Position - saddle.Position else Vector3.zero
 	local away = gap.Magnitude
@@ -306,38 +320,66 @@ local function startReel(root: BasePart)
 	reelOffset = gap
 	reelStartedAt = os.clock()
 	local j = Config.Jump
-	reelTime = math.max(j.ReelMin, math.min(j.ReelTime + away / math.max(j.GrabSpeed, 1), j.ReelMax))
+	if j.Sling > 0 then
+		-- the sling (Jump.Sling): by the gap, quicker than the old pull-in
+		reelTime =
+			math.clamp(j.SlingBase + away / math.max(j.SlingSpeed, 1), j.ReelMin, math.max(j.SlingMax, j.ReelMin))
+	else
+		reelTime = math.max(j.ReelMin, math.min(j.ReelTime + away / math.max(j.GrabSpeed, 1), j.ReelMax))
+	end
+	reelHow = how
+	-- (where we are and the speed we have now: the sling carries it on, dying away, so a press never brakes us)
+	reelStartPos = root.Position
+	reelVelocity = root.AssemblyLinearVelocity * math.clamp(j.SlingCarry, 0, 1.5)
 	reelFrom = root.CFrame
+	reelLow = root.AssemblyLinearVelocity.Magnitude
+	reelLast = reelLow
+	FeelLog.event("reel", { How = how, Gap = away, Time = reelTime, Lock = locked, Speed = reelLow })
 	Feel.sound("Whoosh", Config.Feel.Whoosh, Config.Feel.WhooshPitch, reelTime)
 	-- the server checks the range from here and keeps the fish for us
 	Net.Action:FireServer("Grab", locked)
 end
 
 -- Space: off the fish (or from floating) into the hop. In the hop: onto the locked fish; with none, nothing.
-local function request(): boolean
+-- (`fromQueue`: the press was kept a moment, Jump.Buffer, and is made now: the mash guard has nothing to say about it)
+local function request(fromQueue: boolean?): boolean
 	local j = Config.Jump
 	if flying then
 		local _, root = State.character()
-		if
-			os.clock() - startedAt < j.Window + leapTime
-			and clock >= j.MinFlight
-			and not reeling
-			and not asked
-			and root
-		then
+		local now = os.clock()
+		if now - startedAt < j.Window + leapTime and clock >= j.MinFlight and not reeling and not asked and root then
 			if
 				locked
 				and saddleOf(locked)
 				and ((locked.PrimaryPart :: BasePart).Position - root.Position).Magnitude <= reach * Lock.slack()
 			then
-				startReel(root)
+				FeelLog.event("press", { Did = "grab" })
+				startReel(root, "press")
 			else
-				State.NoTargetAt = os.clock()
+				State.NoTargetAt = now
+				FeelLog.event("press", { Did = "nothing" })
 			end
 		elseif reeling or asked then
-			mashing = true
+			-- The next hop, pressed a moment early (Jump.Buffer): in the second half of the pull-in within Buffer of the
+			-- touch, or after the touch while the server answers, the press is kept and made the moment we may. Not
+			-- after a press earlier in this pull-in: that is the mash the guard (Jump.HopGuard) is for.
+			local u = if asked then 1 else (now - reelStartedAt) / math.max(reelTime, 0.01)
+			local late = asked or (u >= 0.5 and reelStartedAt + reelTime - now <= j.Buffer)
+			if j.Buffer > 0 and late and not mashing then
+				if not queuedAt then
+					queuedAt = now
+					queueUntil = math.huge
+				end
+				FeelLog.event("press", { Did = "kept" })
+			else
+				mashing = true
+				queuedAt = nil
+				FeelLog.event("press", { Did = "mash" })
+			end
+		else
+			FeelLog.event("press", { Did = "early" })
 		end
-		pressedAt = os.clock()
+		pressedAt = now
 		return true
 	end
 	local pressedBefore = pressedAt
@@ -348,6 +390,14 @@ local function request(): boolean
 		return false
 	end
 	if os.clock() < State.JumpReadyAt then
+		-- (a moment too soon after a landing: kept and made the moment we may, Jump.Buffer; not in a mash)
+		if j.Buffer > 0 and not fromQueue and not mashing and mode == "Riding" and not queuedAt then
+			queuedAt = os.clock()
+			queueUntil = os.clock() + j.Buffer
+			FeelLog.event("press", { Did = "kept" })
+		else
+			FeelLog.event("press", { Did = "wait" })
+		end
 		return false
 	end
 	-- The second hook (Hugo, 2026-11-12; reproduced by script, docs/design/riding-feel.md): Space mashed through a
@@ -356,12 +406,14 @@ local function request(): boolean
 	-- it ends at the first gap of Jump.HopGuard between presses (or Jump.MashMost after the landing, whatever the
 	-- keys do). A chain of hops made on purpose, one press to grab and the next after the landing, never starts such
 	-- a run, and leaves at Cooldown exactly as before.
-	if mashing and mode == "Riding" and j.HopGuard > 0 then
+	if mashing and mode == "Riding" and j.HopGuard > 0 and not fromQueue then
 		if os.clock() - pressedBefore < j.HopGuard and os.clock() - State.MountedAt < j.MashMost then
+			FeelLog.event("press", { Did = "guard" })
 			return false
 		end
 	end
 	mashing = false
+	queuedAt = nil
 	local fish = State.Fish
 	local fishRoot = fish and fish.PrimaryPart
 	local leaping = false
@@ -422,6 +474,7 @@ local function request(): boolean
 	if leap then
 		State.Leapt:Fire()
 	end
+	FeelLog.event("hop", { From = left, Launch = launchSpeed, Reach = reach, Kept = fromQueue == true })
 	Net.Action:FireServer("Jump")
 	Shake.play("Hop", if leap then 1.6 else 1)
 	State.setMode("Jumping")
@@ -454,6 +507,8 @@ end
 
 local function resumeSwim(root: BasePart)
 	Net.Action:FireServer("CancelGrab")
+	FeelLog.event("lost")
+	queuedAt = nil
 	reeling = false
 	asked = false
 	State.Reeling = false
@@ -572,12 +627,30 @@ local function hop(dt: number)
 			-- Ease the normalized pull before shaping its acceleration: creep, pull, then soften onto the saddle.
 			-- Keeping the offset relative to the moving saddle carries us forward throughout the pull.
 			local u = math.clamp((os.clock() - reelStartedAt) / reelTime, 0, 1)
-			local progress = Ease.inOutSine(u)
-			local closed = progress ^ j.ReelCurve
-			-- the height closes later than the rest (ReelSwoop): we hold our height, then swoop down onto it
-			local sunk = progress ^ (j.ReelCurve + j.ReelSwoop)
-			local at = saddle.Position
-				+ Vector3.new(reelOffset.X * (1 - closed), reelOffset.Y * (1 - sunk), reelOffset.Z * (1 - closed))
+			local at: Vector3
+			if j.Sling > 0 then
+				-- The sling (Jump.Sling): from where our own speed would carry us (that speed dying away to nothing by
+				-- the touch, so nothing brakes as it begins) onto the saddle, the gap closing as time to SlingCurve:
+				-- a creep, then faster and faster, fastest at the touch. The height closes later still (ReelSwoop).
+				local t = u * reelTime
+				local carried = reelStartPos + reelVelocity * (t - t * t / (2 * math.max(reelTime, 0.01)))
+				local power = math.max(j.SlingCurve, 1)
+				local closed = u ^ power
+				local sunk = u ^ (power + j.ReelSwoop)
+				local to = saddle.Position
+				at = Vector3.new(
+					carried.X + (to.X - carried.X) * closed,
+					carried.Y + (to.Y - carried.Y) * sunk,
+					carried.Z + (to.Z - carried.Z) * closed
+				)
+			else
+				local progress = Ease.inOutSine(u)
+				local closed = progress ^ j.ReelCurve
+				-- the height closes later than the rest (ReelSwoop): we hold our height, then swoop down onto it
+				local sunk = progress ^ (j.ReelCurve + j.ReelSwoop)
+				at = saddle.Position
+					+ Vector3.new(reelOffset.X * (1 - closed), reelOffset.Y * (1 - sunk), reelOffset.Z * (1 - closed))
+			end
 			-- head first along the line, turning to sit as we arrive
 			local toSaddle = saddle.Position - at
 			local headFirst = if toSaddle.Magnitude > 0.5
@@ -598,10 +671,22 @@ local function hop(dt: number)
 			root.AssemblyAngularVelocity = Vector3.zero
 			position = body.Position
 			State.Speed = root.AssemblyLinearVelocity.Magnitude
+			if u < 0.4 then
+				reelLow = math.min(reelLow, State.Speed)
+			end
+			reelLast = State.Speed
 			if u >= 1 then
 				asked = true
 				askedAt = os.clock()
 				touchedAt = askedAt
+				local ontoRoot = locked and locked.PrimaryPart
+				FeelLog.event("touch", {
+					Onto = locked,
+					How = reelHow,
+					Low = reelLow,
+					Arrive = reelLast,
+					FishSpeed = if ontoRoot then ontoRoot.AssemblyLinearVelocity.Magnitude else 0,
+				})
 				State.Reeling = false
 				-- the landing, at once on our side: the view snaps wider and settles, the camera is knocked down and
 				-- springs back, and it is shaken, a little harder after a faster pull-in
@@ -709,7 +794,46 @@ local function hop(dt: number)
 		local targetRoot = locked and locked.PrimaryPart
 		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach * Lock.slack() then
 			diving = false
-			startReel(root)
+			startReel(root, "dive")
+			return
+		end
+	end
+
+	-- (turning the view: still choosing, Jump.SlingHoldTurn)
+	local look = workspace.CurrentCamera.CFrame.LookVector
+	local yawNow = math.atan2(-look.X, -look.Z)
+	if viewYaw and dt > 0 and j.SlingHoldTurn > 0 then
+		local turned = math.abs(math.atan2(math.sin(yawNow - viewYaw), math.cos(yawNow - viewYaw)))
+		if math.deg(turned) / dt > j.SlingHoldTurn then
+			aimingUntil = os.clock() + 0.2
+		end
+	end
+	viewYaw = yawNow
+	-- Sooner (Jump.EarlySling): from SlingAfter on, the locked fish pulls us in by itself as soon as it is within
+	-- SlingNear across the water (under us, whatever the height), or at SlingBy whatever the gap; either way only
+	-- once the lock has been on it for SlingSettle, and not while we are turning the view (still choosing). Never the fish we just left: that one only when the glide
+	-- ends, or by a press.
+	if
+		j.EarlySling > 0
+		and j.AutoGrab >= 2
+		and not diving
+		and clock >= math.max(j.SlingAfter, j.MinFlight)
+		and clock < dropAt
+		and os.clock() >= autoAt
+		and locked
+		and locked ~= left
+		and os.clock() - lockedSince >= j.SlingSettle
+		and os.clock() >= aimingUntil
+	then
+		local targetRoot = locked.PrimaryPart
+		local off = if targetRoot then targetRoot.Position - position else Vector3.zero
+		if
+			targetRoot
+			and saddleOf(locked)
+			and (Vector3.new(off.X, 0, off.Z).Magnitude <= j.SlingNear or clock >= j.SlingBy)
+			and off.Magnitude <= reach * Lock.slack()
+		then
+			startReel(root, "early")
 			return
 		end
 	end
@@ -720,7 +844,7 @@ local function hop(dt: number)
 	if j.AutoGrab >= 2 and clock >= dropAt and clock < window and os.clock() >= autoAt then
 		local targetRoot = locked and locked.PrimaryPart
 		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach * Lock.slack() then
-			startReel(root)
+			startReel(root, "glide")
 			return
 		end
 	end
@@ -728,10 +852,11 @@ local function hop(dt: number)
 	if clock >= window then
 		if j.AutoGrab > 0 and locked and saddleOf(locked) then
 			-- (the old hands-off landing, when switched on: the locked fish is grabbed without a press)
-			startReel(root)
+			startReel(root, "window")
 		else
 			-- the drop is over, the window gone with no fish grabbed: sunk
 			Net.Action:FireServer("Miss")
+			FeelLog.event("miss")
 			stop()
 			State.setMode("Free") -- for the moment until the server's word (the drown)
 		end
@@ -772,6 +897,24 @@ end
 
 local function step(dt: number)
 	hop(dt)
+	-- a hop pressed a moment early (Jump.Buffer), made the moment we may: once we are on the fish and the wait is over
+	if queuedAt and not flying then
+		if State.Mode ~= "Riding" then
+			if State.Mode ~= "Jumping" then
+				queuedAt = nil
+			end
+		else
+			if queueUntil == math.huge then
+				queueUntil = os.clock() + Config.Jump.Buffer
+			end
+			if os.clock() >= State.JumpReadyAt and State.Fish then
+				queuedAt = nil
+				request(true)
+			elseif os.clock() > queueUntil then
+				queuedAt = nil
+			end
+		end
+	end
 	slowMo(dt)
 	placeRing(dt)
 	Feel.step(dt)
@@ -837,6 +980,7 @@ function JumpController.Init()
 
 	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, _reason: any, about: any)
 		if kind == "Mounted" then
+			FeelLog.event("mount", { Onto = a })
 			if flying then
 				local fish = locked
 				stop()

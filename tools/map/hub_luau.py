@@ -502,7 +502,8 @@ gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 gui.PixelsPerStud = 4 -- coarse on purpose: text is at most 100 pixels tall, and this makes that about 25 studs
 gui.LightInfluence = 1
 local label = Instance.new("TextLabel")
-label.Size = UDim2.fromOffset(strip.Size.X * 4 * 0.7, strip.Size.Z * 4 * 0.92) -- along the strip, across it
+label.Size = UDim2.fromOffset(strip.Size.X * 4 * 0.7, math.min(strip.Size.Z * 4 * 0.92, strip.Size.X * 4 * 0.7 / 2.6)) -- along the strip, across it (no taller than a
+-- line of it, or a narrow strip breaks DIVE IN onto two lines)
 label.AnchorPoint = Vector2.new(0.5, 0.5)
 label.Position = UDim2.fromScale(0.5, 0.5)
 label.Rotation = {TURN} -- the strip's top runs the short way across the picture, so the words are turned to lie along it

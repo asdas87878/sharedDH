@@ -718,8 +718,8 @@ Config.Jump = {
 	-- reach is by your speed (GrabRange), and the pull-in still starts by itself when the glide ends. From floating: 0.
 	AirSlowSpeed = 20, -- a fish this slow or slower as you leave it: AirSlow seconds on the glide
 	AirFastSpeed = 130, -- one this fast or faster: AirFast. In between, in proportion (no change at 75 studs a second)
-	AirSlow = -0.5, -- seconds on Jump.FloatTime (and the window) off the slowest fish
-	AirFast = 0.5, -- and off the fastest
+	AirSlow = 0, -- seconds on Jump.FloatTime (and the window) off the slowest fish (-0.5 until 2026-11-17, the sling's day: with AirFast a faster fish gave a LONGER hop, 2.4 s to the pull-in off a fast one against 2.1 off a common one, the reverse of quick. A fast fish's hop now goes further, not longer)
+	AirFast = 0, -- and off the fastest (0.5 until 2026-11-17)
 	AirLeast = 0.6, -- the glide is never shorter than this, whatever the numbers above
 	FreeLaunch = 60, -- the speed of a hop from floating, with no fish under you (78 until 2026-11-13: the air a bit slower)
 	-- The height (2026-11-10, the user: the reference has flat ground, we don't): the hop rises this far above where
@@ -752,6 +752,26 @@ Config.Jump = {
 	ReelTip = 80, -- the body pitches head first toward the fish, degrees
 	ReelTurnEnd = 0.25, -- the share of the pull-in by which the body faces the fish
 	ReelSitStart = 0.8, -- the share of the pull-in from which the body settles onto the saddle
+	-- The sling (the user, 2026-11-17: "it doesnt feel as snappy, quick, and the selection doesnt feel like it grabs
+	-- onto what is proper ... the most smooth sick feeling movement ever"; docs/design/sling.md). The pull-in above
+	-- began from the fish's own speed, so a press braked you for its first quarter second, and it eased out onto the
+	-- saddle, so you landed slowing. With Sling it keeps your own speed and bends it onto the fish, closing fastest
+	-- at the touch, as the reference's does ("no slowing at the end ... then it stops dead on the dino").
+	Sling = 1, -- 1: the sling; 0: the pull-in as it was (ReelTime, GrabSpeed, ReelMax, ReelCurve)
+	SlingCurve = 2, -- the gap closes as time to this power: a creep, then faster and faster to the touch (the reference's two pull-ins fit 1.5 and 2.5)
+	SlingBase = 0.14, -- its time with no gap, seconds,
+	SlingSpeed = 170, -- and the gap over this, studs a second,
+	SlingMax = 0.5, -- never longer than this (the reference's: 0.33 s over its short gap, 0.47 s over its long one; the old pull-in took up to 0.7)
+	SlingCarry = 1, -- the share of your own speed carried into it, dying away to nothing by the touch (0: it starts from a standstill)
+	-- Sooner (the same day): the hands-off pull-in waited for the glide to end, 2.1 s after the press off a common
+	-- fish and 2.4 off a fast one, where the reference's comes at 1.7. With EarlySling the locked fish pulls you in by
+	-- itself as soon as it is near enough, from SlingAfter on. The end of the glide is still the latest.
+	EarlySling = 1, -- 1: on; 0: only when the glide ends (AutoGrab 2), as before
+	SlingAfter = 0.7, -- not before this, seconds after the press (the pop must be seen)
+	SlingNear = 30, -- the locked fish within this many studs ACROSS the water (height not counted: it is the fish under you, as the reference's ring takes the dino under it; a straight-line 38 never came true in a test, as the hop floats 20 to 30 studs over the herd), and within the hook's reach,
+	SlingBy = 1.3, -- and whatever the distance, by this many seconds after the press (the reference's comes at 1.7): in a test with the view left alone the lock held fish 50 to 90 studs ahead, which never came under you before the glide's end
+	SlingSettle = 0.2, -- either way, only once the lock has been on that fish this long (not one it has only just swung onto). Never the fish you just left: that one only when the glide ends, or by a press
+	SlingHoldTurn = 90, -- and not while you are turning the view faster than this, degrees a second: you are still choosing (0: never waits)
 	-- The camera through a landing, measured between every pair of frames of the side-on recording (four landings):
 	-- the picture grows through the pull-in, then in ONE frame shrinks to 0.79 to 0.81 of its size (the view snaps
 	-- wider), and comes back over 0.3 to 0.4 s; with it a short up-and-down jolt of 10 to 17 pixels in 720, gone in
@@ -793,6 +813,11 @@ Config.Jump = {
 	LandWait = 0.5, -- the server gives a landing this long to be seen arriving at the fish before it refuses it (it sees the rider a moment late, most of all after a fast pull-in)
 	HopGuard = 0.25, -- Space pressed again DURING a pull-in starts a run of presses that can't hop you off the fish you land on; the run ends at the first gap this long between presses. A hop made on purpose (no press in the pull-in) is untouched. 0: off
 	MashMost = 1.5, -- and such a run never holds the hop back longer than this after the landing
+	-- A hop pressed a moment too early (the same day): such a press was thrown away, and armed the guard above, so the
+	-- next press could be refused too. A press in the second half of a pull-in within Buffer of the touch, or between
+	-- the touch and the moment you may hop, is now kept and made the moment you may. Presses early in a pull-in are
+	-- still the mash the guard is for.
+	Buffer = 0.2, -- seconds (0: dropped, as before)
 	Slack = 0.6, -- the server waits this long past the window and the pull-in for the landing (lag)
 	LandSlack = 20, -- allows the landing this many studs wider; never widens GrabRange (it sees the player a moment late)
 	-- (Hugo, 2026-11-11: the camera felt forced. The view is no longer tilted for you in the hop: it stays where you
@@ -857,6 +882,59 @@ Config.Jump = {
 -- something that has very dynamic movements"). A small anchor on a rope in the rider's hand: whirled over the head on
 -- a fish, whirled hard in the hop, thrown at the fish as the grab begins, pulled taut for the pull-in. A picture only:
 -- nothing here changes the hop, the lock or the grab. Built from plain parts in code, nothing uploaded.
+-- The wild ride (the user, 2026-11-17: "making the ride feel proper, like rodeo wild style, because ours is still
+-- feeling too tame, even though the speeds is technically correct, the actual feel isn't correct ... really feel
+-- more wild, untamed, and interesting, just in the way we manipulate the camera"). Until now a fish was wild for two
+-- seconds after a landing and then carried its rider on rails: a still body, a straight line, one speed, a still
+-- camera. Amount scales every part of this (0: the ride as it was). In four places:
+--   the fish (AnimController): fits while it is ridden, and a bigger beat;
+--   the rider (AnimController): one arm up with the rope, the body whipping against the fish's turns;
+--   the line and the speed (RideController.drive): it rises, falls and weaves, each beat is a push, a fit checks or
+--     bursts the speed;
+--   the camera (WildController): a shake for each fit, a loose sway at any riding speed, a roll into turns.
+-- The rider being locked to the fish's back is not here: Animation.RiderLock.
+Config.Wild = {
+	Amount = 1, -- all of it, times (0: off; 2: twice as wild)
+	-- the fits: while ridden, the fish throws one of the landing's reactions (a buck, a thrash, a bolt, a wobble, a
+	-- shudder, a startle, now and then a barrel roll) again and again. Each client works out the same ones.
+	Fits = 1, -- 0: only the landing's own reaction, as before
+	FitFirst = 2.6, -- the first comes this long after the landing, seconds,
+	FitMin = 2.8, -- and each next one this long after the last began, from
+	FitMax = 4.6, -- to
+	Fit = 0.75, -- how hard, against the landing's own reaction (Animation.Wild)
+	Barrel = 0.3, -- of the barrel rolls drawn, this share are kept (the rest are bucks)
+	TameCalm = 0.45, -- your own fish calms by this share as its taming fills: wild when new, steadier when nearly yours
+	ByTier = { Common = 0.85, Uncommon = 0.95, Rare = 1.05, Epic = 1.15, Legendary = 1.25, Mythic = 1.3, Secret = 1.35 }, -- the rarer, the wilder
+	Body = 1.6, -- a ridden fish's heave, nod, sway and rock each beat, times (Animation.Body is every fish's)
+	-- the rider
+	Whip = 0.7, -- the rider's body bends against the fish's quick turns by this share of them: the hips are locked to the back, the chest and head are a moment behind (0: stiff)
+	WhipEase = 4, -- how quickly the body catches up (lower: it trails longer)
+	Rodeo = 1, -- 1: the right arm up, swinging the rope, the left on the fish; 0: both hands down
+	RodeoArm = 158, -- how far up, degrees (180: straight up)
+	RodeoRate = 0.8, -- the arm circles this many times a second (the hook's own whirl is Hook.RideRate)
+	-- the line and the speed (the fish itself moves: the server allows it, Ride.SpeedSlack)
+	Porpoise = 3.5, -- its line rises and falls: the nose this far up and down, degrees,
+	PorpoiseRate = 0.42, -- this many times a second
+	Weave = 2.5, -- and it weaves this far to each side, degrees,
+	WeaveRate = 0.27, -- this many times a second
+	BeatSurge = 0.035, -- each stroke of the tail is a push: the speed this share up and down
+	FitSpeed = 1, -- a fit changes the speed: a bolt gathers (a fifth slower) and lunges (a seventh faster), the others check it by an eighth; 0: not at all
+	-- the camera
+	Shake = 1, -- each fit's own shake, times (Config.Shake.Presets "Fit...")
+	Rumble = 1, -- the loose sway of riding, times ("Ride")
+	RumbleFrom = 25, -- it starts at this speed, studs a second,
+	RumbleFull = 75, -- and is whole by this
+	CamRoll = 4, -- the view leans this far into a full turn, degrees
+	CamRollEase = 5, -- how quickly
+	BoltFov = 7, -- a bolt kicks the view this much wider, degrees,
+	Pull = 0.14, -- and leaves the camera this share further back,
+	PullEase = 2.5, -- which it makes up this quickly
+	BuckKick = 0.3, -- a buck knocks the view up this far, studs
+	BeatKick = 0.03, -- each stroke of the tail knocks it this far (0 off)
+	FitBubbles = 10, -- bubbles from the tail at a fit (0 off)
+	FitRush = 0.8, -- speed lines at a bolt (0 off)
+}
+
 Config.Hook = {
 	On = 1, -- 0: no hook at all
 	Ride = 1, -- 1: whirled lazily over the head while you ride; 0: put away on a fish, out only in the hop
@@ -875,10 +953,10 @@ Config.Hook = {
 	Sink = 30, -- and it sinks, studs a second gained each second
 	Stiff = 9, -- how many times a frame the rope is pulled back to its length (fewer is stretchier; at 5 the hop's rope drew half as long again as its length)
 	-- the whirl on a fish
-	RideLength = 6.2, -- the rope's length, studs: a little more than from the hand to the ring, so it bows without flapping (7.5 at first)
+	RideLength = 5.2, -- the rope's length, studs: a little more than from the raised hand to the ring, so it bows without flapping (6.2 with the hand down; 7.5 at first)
 	RideRadius = 2.6, -- the ring the anchor goes round, studs across its half (3.4 at first)
 	RideRate = 0.8, -- turns a second (1 at first)
-	RideLift = 4.5, -- the ring's middle is this far over you, studs
+	RideLift = 6.5, -- the ring's middle is this far over you, studs (4.5 until the rider's arm went up: Wild.Rodeo)
 	-- the whirl in the hop
 	HopLength = 8.2, -- (13 at first: half as long again as the ring needed, and all of that spare rope flapped)
 	HopRadius = 4.8, -- (7 at first)
@@ -914,6 +992,8 @@ Config.Lock = {
 	FarAim = 5, -- degrees round a fish at the full range that count as aimed at it, and that much more allowance (in proportion nearer; 0: a far fish must be aimed at exactly, as before)
 	-- The fish you just left swims on right under the middle of the view, so with no penalty it takes nearly every lock.
 	LeftPenalty = 2, -- added to its score in the last chance: any other fish in reach wins; with none, a grab takes it back (0.5 until 2026-11-17)
+	LeftBack = 1, -- 1: with no other fish to lock, the fish you just left takes the lock, wherever it is round you, so you can hop and hook straight back onto it (the user, 2026-11-17: "its now really hard to hook back onto the previous fish ... a lot of the time you want to hop back onto the same fish to farm the small period of oxygen you have if you have nowhere else to hop"). Any other fish that can be locked takes the lock from it at once; 0: only in the last chance, as before
+	LeftBackAfter = 0.4, -- but not in the hop's first moment, seconds: a second press straight after the first doesn't put you back
 	LeftBan = 1, -- 1: the fish you just left is not locked at all before the last chance (the user, 2026-11-17: "it still locks onto ur current fish ... too much"); 0: it may be, with LeftPenalty
 	Ahead = 8, -- a fish must be this far ahead of you, the way the camera looks across the water, studs: not one under you or behind you (the same day: "or fish near the bottom of ur screen"). Not in the last chance
 	AheadLead = 0.6, -- and it is judged where it will be this many seconds on, against you: a slow fish you are about to fly over doesn't count, a fast one coming up from behind does once it will be ahead
@@ -1011,7 +1091,7 @@ Config.Herd = {
 -- a second, so the room a fish was given when it was made was gone in five seconds. Now a wild fish's speed is a share
 -- of the LAND's pace (Config.LandPace), the same for every fish of its character, and each character has its own
 -- height (Config.Layer): fish in one layer never close on each other, and the layers slide over one another. A
--- fish's own speed is what you get when you ride it. Hunters alone keep a share of their own speed: they are an
+-- fish's own speed is what you get when you ride it. Hunters kept a share of their own speed until 2026-11-17 (now the land's too): they are an
 -- event, high over everything.
 Config.Pace = {
 	Land = 1.5, -- every land's pace, times: the whole herd faster or slower (1 until 2026-11-17: "everything needs to be faster"; the herd's fish still swim at their shares of it)
@@ -1044,8 +1124,8 @@ Config.Pace = {
 	DartRise = 7, -- and it lifts this far over its place as it bursts, so it goes over the fish ahead of it, not through
 	DartEveryMin = 2.5, -- seconds in its place between bursts, from
 	DartEveryMax = 6, -- to
-	Hunt = 0.75, -- cruising high
-	HuntRun = 1.6, -- the stoop and the run through the herd
+	Hunt = 1.05, -- a hunter's pace, as a share of the LAND's pace like every other fish's (the user, 2026-11-17: "some of the fish go quite fast then stop their fast speed randomly usually when passing by a player. Need that to stop. The shark speed is also too fast to catch normally". It was 0.75 of the hunter's own ridden speed: 114 studs a second for the first land's shark after the speed pass, and 243 on its run, against a hop that leaves at 73. Now 72 there)
+	HuntRun = 1.05, -- the stoop and the run through the herd: the same pace, so it no longer sprints at a player and drops back once past them (1.6 of its ridden speed until 2026-11-17). It still comes down through the herd and climbs away
 	HuntHigh = 46, -- how far over its place in the herd it cruises, studs (and half its own height; never out of the water)
 	HuntFall = 42, -- how fast it comes down, studs a second
 	HuntClimb = 20, -- and goes back up
@@ -1136,6 +1216,21 @@ Config.Shake = {
 		-- rumbles, held for as long as they last (In, Hold and Out are not used): a fish too strong, and top speed
 		Strain = { Move = { 0.14, 0.14, 0.03 }, Turn = { 0.3, 0.25, 0.7 }, Rate = 24, In = 0, Hold = 0, Out = 0.2, Shape = 1 },
 		Speed = { Move = { 0.035, 0.035, 0 }, Turn = { 0.06, 0.05, 0.14 }, Rate = 28, In = 0, Hold = 0, Out = 0.2, Shape = 1 },
+		-- the wild ride (Config.Wild): one for each fit of the fish under you, and the loose sway of riding
+		-- a buck: heavy, up and down, the nose thrown up
+		FitBuck = { Move = { 0.25, 0.7, 0.1 }, Turn = { 0.9, 0.3, 0.8 }, Rate = 9, In = 0.05, Hold = 0.12, Out = 0.75, Shape = 1.6, Knock = { 2, 0, 0.3 }, KnockRate = 2.2, KnockDamp = 0.4 },
+		-- a startle: a quick flinch
+		FitStartle = { Move = { 0.3, 0.4, 0.1 }, Turn = { 0.7, 0.5, 1 }, Rate = 16, In = 0, Hold = 0.1, Out = 0.45, Shape = 2, Knock = { 1.1, 1, 0.2 }, KnockRate = 3, KnockDamp = 0.5 },
+		-- a thrash: side to side, rolled over to one side and back
+		FitThrash = { Move = { 0.7, 0.2, 0.05 }, Turn = { 0.3, 1.1, 1.6 }, Rate = 11, In = 0.05, Hold = 0.3, Out = 0.8, Shape = 1.4, Knock = { 0, 2.4, 0 }, KnockRate = 2.6, KnockDamp = 0.35 },
+		-- a bolt: a buzz, thrown back
+		FitBolt = { Move = { 0.15, 0.15, 0.5 }, Turn = { 0.4, 0.3, 0.6 }, Rate = 20, In = 0.1, Hold = 0.25, Out = 0.6, Shape = 1.5, Knock = { 0.8, 0, 0.9 }, KnockRate = 2, KnockDamp = 0.5 },
+		-- a wobble (and the barrel roll): slow and wide, the world rocking
+		FitWobble = { Move = { 0.4, 0.3, 0 }, Turn = { 0.3, 0.4, 2.2 }, Rate = 4.5, In = 0.15, Hold = 0.5, Out = 0.9, Shape = 1.2, Knock = { 0, 3, 0 }, KnockRate = 1.6, KnockDamp = 0.3 },
+		-- a shudder: fine and fast
+		FitShudder = { Move = { 0.2, 0.25, 0 }, Turn = { 0.4, 0.3, 0.8 }, Rate = 26, In = 0.05, Hold = 0.5, Out = 0.6, Shape = 1.3 },
+		-- riding (a rumble, held): slow and loose, like a camera held by hand on something alive
+		Ride = { Move = { 0.16, 0.2, 0.04 }, Turn = { 0.3, 0.26, 0.7 }, Rate = 5, In = 0, Hold = 0, Out = 0.3, Shape = 1 },
 	} :: { [string]: ShakePreset },
 }
 
@@ -1340,6 +1435,19 @@ Config.Death = {
 
 -- The movement sandbox (Studio only; docs/sandbox.md): for play-testing the ride, the jump and the camera. The flags can
 -- be switched in its panel (N) while playing.
+-- The feel log (Studio only; the user, 2026-11-17: "How can we go about getting you to understand this the best").
+-- Every hop is written to the Output as one "[FeelHop]" line: when the lock first took a fish and how often it changed,
+-- how the pull-in began and how long it took, the server's answer, every press and what it did. And a black box of the
+-- last few seconds: press M and it is written out ("[FeelMark]"), and numbers come up over the fish near you: press the
+-- number of the one you WANTED ("[FeelPick]"; 0: none of them). Controllers/FeelLogController; docs/design/sling.md.
+Config.FeelLog = {
+	On = 1, -- 0: off (it is never on outside Studio)
+	BoxTime = 5, -- seconds the black box keeps
+	SampleEvery = 0.1, -- seconds between its samples
+	PickTime = 6, -- seconds the numbers stay up after a mark
+	PickCount = 6, -- how many fish get a number (the nearest; the locked fish always gets one)
+}
+
 Config.Sandbox = {
 	On = true, -- in Studio, start with the sandbox on
 	NoFail = true, -- a jump that sinks leaves you floating instead of drowning, and floating never sends you to the dock
@@ -1492,7 +1600,8 @@ Config.Animation = {
 	LandingMix = 2, -- 2: a mix of landing types (the user, 2026-11-12): the body type's own most often, its second often, now and then any of the seven; 1: always its own; 0: none
 	-- The rider
 	RiderFollow = 1, -- 1: the rider moves with the fish's body; 0: sits still over it
-	RiderCalm = 1, -- 1: they take the body's shift eased and at half its turning, so they aren't shaken; 0: exactly
+	RiderLock = 1, -- 1: the rider is fixed to the very part of the fish they sit on and goes wherever it goes, at once and in full (the user, 2026-11-17: "the character clips into and out of the fish it isnt fully locked onto it": with RiderCalm they took half the body's turning, late, and none of its keyed swim, so the back moved through them); 0: the old way, by RiderCalm
+	RiderCalm = 1, -- (with RiderLock 0) 1: they take the body's shift eased and at half its turning, so they aren't shaken; 0: exactly
 	Brace = 0.45, -- seconds of the landing's brace: arms up, knees folded, then the grab (0 off)
 }
 

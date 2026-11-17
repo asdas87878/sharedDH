@@ -239,6 +239,54 @@ Read from Studio's own counters, in Edit mode. The budget the study gives is 500
   (tests 4 to 7) and the rest of the study's list.
 - Building what is picked onto the plots and stations: after the user picks.
 
+## The hub, smaller (2026-11-17)
+The user placed the tanks and stalls by hand in Studio, changed the tank, and asked for four things
+([Decisions](../Decisions.md), top row): close the gap behind the back row, push the low terrace in against the
+tall wall "in most places but not all", a narrower gate whose cliffs "curve in less and be more blocked off but not
+entirely", and the hub 15 to 20% smaller, with the walks checked in play.
+
+| | Before | Now |
+|---|---|---|
+| The hub | 480 wide, 320 from the back wall to the front wall | **400 by 272** (17% narrower, 15% shallower) |
+| Behind the back row | 55 studs | **7** (and 7 behind the side rows) |
+| The low terrace | 24 deep (three squares) all round | **8** (one square) along most of the ring; 16 round the gate and the front wall, for the arch's piers; 24 on one stretch of each side |
+| The gate | 144 wide, corners of 48, front corners of 80 (a funnel) | **96 wide**, corners of 24, front corners of 40 (straight across) |
+
+- **The space shrank; the buildings kept their size** (Claude's reading of "base scale"). Shrinking them too is one
+  number in the kit.
+- **The user's placing is the kit's now** (`plots` in `tools/map/greybox.py`, `spots` in `tools/map/hub_kit.py`):
+  the back row, SELL and AURAS facing each other either side of the spawn, FUSE behind the spawn facing the start,
+  the spawn between the stalls. The side rows moved in with the walls (left 14, right 23). The INDEX moved to the
+  left front corner, facing the gate: its old place was outside the new wall.
+- **The user's tank:** no pad under it and sunk 1.6 into the floor; all eight green and at level 4, as the user's
+  copies of Plot 4 were. The game still needs a part named `Pad` on every plot, so it is there, unseen; the collect
+  pad and the trainer stay on the floor (sinking the whole model had buried them). Names `Plot1` to `Plot8` again.
+- **Gone:** the fountain (the user deleted it), its lamps and stepping stones, the flag poles and the two far lamps
+  (they would have stood in the tanks). The start strip is the gate's width again (the user had widened it).
+
+![before and after](../attachments/map-hub-smaller.jpg)
+
+**The walks, timed in play** (2026-11-17, `tools/studio/hub_walk.luau` and the pathfinding version run from the
+chat: the player walked along Roblox's own path round the stalls and tanks, at the hub's walk speed; the measured
+running speed matched it, 27.5 to 27.8 and 31.5 to 31.8). The reference, measured: own pen to the start, 4 seconds.
+
+| Walk | Path | At 28 (now) | At 32 |
+|---|---|---|---|
+| Spawn to the start strip | 69 | 2.9 s | 2.4 s |
+| Spawn to the INDEX | 166 | 6.8 s | 5.8 s |
+| Nearest tank (Plot 6) to the start | 107 | 4.4 s | 3.8 s |
+| Side tanks (Plots 5, 7, 8) to the start | 125 to 176 | 5.2 to 7.2 s | 4.4 to 6.2 s |
+| Back row (Plots 1 to 4) to the start | 172 to 197 | 7.1 to 8.1 s | 6.0 to 6.9 s |
+
+- **What the smaller hub changed:** the walls, not the walks. The walks are set by where the tanks stand, and the
+  user's placing already had them nearer than the old layout (about 8 seconds on average from a tank to the
+  start). The new walls only take away space no one walked.
+- **Speed:** 32 (one step up from 28, 14%) makes every walk 15% shorter and brings the nearest tank under the
+  reference's 4 seconds. It is `Config.Dock.WalkSpeed`, the game-code chat's number: not changed.
+- **The back row stays the long walk** (6 to 7 seconds even at 32), because its tanks are 88 deep and stand behind
+  the side rows. Speed alone would need about 45 to make it 4 seconds; the layout is what would.
+
+
 ## The stall, simpler (2026-11-17)
 The user: "change the stalls so they are more simplistic, more alike to ride a dino", and of the mark on the floor:
 "ride a dino is just a circle with a transluscent thing inside which gains opacity when you step on it"

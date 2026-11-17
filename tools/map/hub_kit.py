@@ -458,7 +458,7 @@ def arch(k, hub):
     under the water a curtain of kelp down the wall below the lip (fish are made there: they come out from under it)"""
     face, top = hub["Look"]["face"], hub["Look"]["top"]
     gate_half = hub["Gate"]
-    px, pz, y0 = gate_half + 16, -14.0, 24.0  # the piers stand on the low terrace's grass (8 over two squares)
+    px, pz, y0 = gate_half + hub.get("GateLedge", 32.0) / 2, -14.0, 24.0  # the piers stand on the low terrace's grass (8 over two squares)
     for sx in (-1, 1):
         k.box(sx * px, y0, pz, 14, 5, 14, STONE_D)  # white piers with a blue band, the lighthouse's colours: not the wall's
         k.box(sx * px, y0 + 5, pz, 12, 10, 12, WHITE)
@@ -692,6 +692,10 @@ def tank(k, level, colour, hub):
     lane_prop(inside, "sea_stack", level, 0.14, 15.5, -hz + 4.2)
 
 
+SUNK = 1.6  # how far the tank stands sunk into the floor (the user's, 2026-11-17)
+PLOT_COLOUR = (120, 200, 120)  # every tank green, as the user's copies of Plot 4 are (None: each plot its own colour)
+
+
 def plot(out, index, cx, cz, turn_deg, hub, level=1):
     """a player's plot, simple (the user, 2026-11-16): a studded pad, the tank at its level (`tank`), the pad to
     collect on, and the trainer: the game's own Seahorse on a spring, on a plate (the part TrainerRide). The plot's
@@ -699,12 +703,14 @@ def plot(out, index, cx, cz, turn_deg, hub, level=1):
     w, d = TANK
     back = -hub["Plot"][1] / 2
     front = back + d
-    colour = tuple(hub["PlotColours"][(index - 1) % len(hub["PlotColours"])])
+    colour = PLOT_COLOUR or tuple(hub["PlotColours"][(index - 1) % len(hub["PlotColours"])])
     name = f"Plots/Plot{index}"
     k = Kit(out, name, (cx, FLOOR_Y, cz), turn_deg)
-    pad = hub["Look"].get("pad") or tuple(int(c * 0.35 + 160) for c in colour)
-    k.box(0, 0, back + (d + 24) / 2, w, 0.4, d + 24, pad, n="Pad", solid=False, shadow=False, tex="stud")
-    tank(k.sub((0, 0, back + d / 2)), level, colour, hub)
+    # (the user, 2026-11-17, by hand in Studio: no studded pad under the tank, and the tank sunk 1.6 studs into the
+    # floor so its glass starts low. The game still needs a part named Pad, the area that counts as the plot, so it
+    # stays, unseen. The pads in front stay on the floor)
+    k.box(0, 0, back + (d + 24) / 2, w, 0.4, d + 24, colour, n="Pad", solid=False, shadow=False, t=1)
+    tank(k.sub((0, -SUNK, back + d / 2)), level, colour, hub)
     k.box(-12, 0, front + 10, 10, 0.5, 10, (70, 160, 90), n="CollectRim", solid=False, shadow=False)
     k.box(-12, 0, front + 10, 8, 0.6, 8, (110, 210, 120), n="CollectPad", solid=False, shadow=False, tex="stud")
     tx, tz = 13, front + 11
@@ -902,12 +908,9 @@ def gate(out, model):
 
 
 # ---------------------------------------------------------------- the whole hub
-NEW_PLOTS = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 1, 7: 1, 8: 1}  # plot: the level its tank is shown at, until the game's upgrade sets it (plots 1 to 5 show the five levels)
+NEW_PLOTS = {i: 4 for i in range(1, 9)}  # plot: the level its tank is shown at, until the game's upgrade sets it. All
+# level 4 since 2026-11-17, as the user's copies are (they were 1 to 5, to show the levels)
 SHEET = "--levels" in sys.argv  # all the levels in a row, into hub_levels.json, for tools/blender/hub_view.py
-# The back row, closed up: the deep tank is 56 wide, and at the old 88 apart the row's end tanks ran into the side
-# plots' tanks at the hub's two back corners. Side by side they clear them, and the walk along the row is shorter.
-# (tools/map/greybox.py still gives the old places in hub_in.json; this goes over them until the hub's layout is redone)
-ROW = {1: -84.0, 2: -28.0, 3: 28.0, 4: 84.0}
 
 
 def facing(x, z, toward):
@@ -919,8 +922,11 @@ def build(hub, feet=None):
     focus = (0.0, -150.0)  # the stations look at where a player stands when they arrive
     front, half, gate_half, gate_turn = hub["Front"], hub["Half"], hub["Gate"], hub["GateTurn"]
     spots = {  # each station: where it stands (x, z) and which way it faces. One line to move one
-        "Sell": (-108.0, front - 36, None), "Auras": (108.0, front - 36, None),
-        "Fuse": (-(half - 44), front - 32, None), "Index": (half - 44, front - 32, None),
+        # (2026-11-17: SELL and AURAS face each other either side of the spawn and FUSE stands behind it, facing the
+        # start: the user's own placing in Studio. The INDEX went to the front corner on the left, facing the gate, as
+        # its old place was outside the smaller hub's wall)
+        "Sell": (-35.10, -112.71, 90.0), "Auras": (43.55, -112.70, -90.0), "Fuse": (4.73, -154.77, 0.0),
+        "Index": (-(half - 34), front - 16, 90.0),
         "Sub": (gate_half + gate_turn + 32, front - 21, 180.0),
         "Earners": (-(gate_half + gate_turn + 20), front - 0.9, 180.0),
     }
@@ -932,36 +938,20 @@ def build(hub, feet=None):
         feet["Stations/" + name] = k.foot()
     arch(Kit(out, "Gate", (0, 0, 0)), hub)
     for index_, cx, cz, turn_deg in hub["Plots"]:
-        if not OLD:
-            cx = ROW.get(index_, cx)
         if index_ in NEW_PLOTS and not OLD:
             plot(out, index_, cx, cz, turn_deg, hub, NEW_PLOTS[index_])
         else:
             plot_old(out, index_, cx, cz, turn_deg, hub)
         feet[f"Plots/Plot{index_}"] = Kit(out, "", (cx, FLOOR_Y, cz), turn_deg).foot()
     back = hub["Back"]
-    mid_z = (front + back) / 2 - 6
-    landmark(Kit(out, "Landmark", (0, FLOOR_Y, mid_z)))
+    # (the landmark, its lamps and its stepping stones went on 2026-11-17: the user deleted the landmark, and FUSE now
+    # stands in the middle. The flags' poles and the far lamps would have stood in the tanks of the smaller hub)
     k = Kit(out, "Dressing")
     r = random.Random(12)
     for sx in (-1, 1):
-        lamp(k.sub((sx * 34, FLOOR_Y, mid_z)), True)
-        lamp(k.sub((sx * (half - 92), FLOOR_Y, mid_z + 22)), False)
         buoy(k.sub((sx * (gate_half + 5), FLOOR_Y, front - 3)), RED if sx < 0 else (90, 200, 120))
-        pole = (sx * 136, FLOOR_Y, front - 66)  # a tall pole, and a line of flags from the gate's pier down to it
-        k.box(pole[0], pole[1], pole[2], 1.6, 32, 1.6, WOOD_D)
-        k.box(pole[0], pole[1] + 32, pole[2], 2.6, 2.6, 2.6, BRASS, solid=False)
-        bunting(k, (sx * (gate_half + 9), 56, -21), (pole[0], pole[1] + 31, pole[2]), 11)
-    for sx in (-1, 1):
         palm(k.sub((sx * (gate_half + 14), FLOOR_Y, front - 12), yaw=90 - sx * 90), r)
-        palm(k.sub((sx * 100, FLOOR_Y, mid_z), yaw=90 + sx * 60), r, 1.1)
         palm(k.sub((sx * (half - 34), FLOOR_Y, back + 52), yaw=sx * 40), r, 1.35)
-    sand = tuple(hub["Look"]["strip"])  # stepping stones: from the landmark to the start, and off to the two stalls beside it
-    stones(k, (0, mid_z + 24), (0, front - 4), r, sand)
-    for name in ("Sell", "Auras"):
-        x, z, _yaw = spots[name]
-        a = math.radians(facing(x, z, focus))
-        stones(k, (x * 0.12, front - 62), (x + math.sin(a) * 26, z + math.cos(a) * 26), r, sand)
     return out
 
 

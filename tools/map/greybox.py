@@ -43,13 +43,16 @@ ROOM = (420.0, 700.0)  # the distance between one side's pinches
 OFFSET = (0.24, 0.42)  # the other side pinches this share of a room further on (or back)
 # The way out of the hub, as the reference has it: a narrow gate in the hub's wall, and the lane's walls curving away
 # just behind it. From the hub you see a narrow, easy-to-read opening; a few strides in, the lane has opened out.
-GATE = 72.0  # half the gate's width: the gap in the hub's wall, and the start strip that lies in it
+GATE = 48.0  # half the gate's width: the gap in the hub's wall, and the start strip that lies in it. 72 until
+# 2026-11-17, when the user asked for it narrower and "more blocked off but not entirely", as the reference's is
 WIDEN = 42.0  # how much wider each side is, on top of the lane's own shape, just inside the gate,
 WIDEN_BY = 110.0  # reached this far in,
 WIDEN_TO = 330.0  # and given back by here (the first neck)
-GATE_TURN = 48.0  # the wall turns from the hub's front into the gate round a corner this big (the tall wall behind
-# it turns on a corner 24 smaller, so this has to be well over 24 for that one to be round too)
-FRONT_TURN = 80.0  # and the hub's front corners are this round, so its front wall bends toward the gate
+GATE_TURN = 24.0  # the wall turns from the hub's front into the gate round a corner this big (the tall wall behind
+# it turns on a corner HUB_LEDGE_GATE smaller, so this has to be over that for that one to be round too). 48 until
+# 2026-11-17: the user wanted the cliffs either side of the gate to "curve in less"
+FRONT_TURN = 40.0  # and the hub's front corners are this round (80 until 2026-11-17: the front wall bent toward the
+# gate like a funnel; now it runs straight across, as the reference's does)
 FILLET = 34.0  # a set-back tier's sharp corner near the gate is rounded over this much of its line each way
 START_DEPTH = 46.0  # under the start: a jump needs 38 studs of water over the floor (riding chat)
 EASE = 300.0  # a change of slope is spread over this much lane
@@ -559,10 +562,30 @@ def lane_colours(at):
     return land
 
 
-HUB_HALF, HUB_BACK, CORNER, FRONT = 240.0, -368.0, 32.0, -48.0  # 480 wide and 320 from the back wall to the front
-# wall's face (whole tiles of the picture). The user, 2026-11-12: longer, not narrower; more room between the aquariums
-# at the back and the start. The front wall's face is FRONT back from the water, so the start strip lies in the gap
-# of the wall itself, in line with it, as the reference's does
+HUB_HALF, HUB_BACK, CORNER, FRONT = 200.0, -320.0, 32.0, -48.0  # 400 wide and 272 from the back wall to the front
+# wall's face. Until 2026-11-17 it was 480 by 320. The user then placed the tanks and stalls by hand and asked: the
+# space behind the back row "should be reduced and the gap should be almost closed", and "a base scale reduction of
+# the hub, by about 15-20% to be more akin to ride a dino". So the walls stand 7 studs behind the tanks, round the
+# user's own placing: 17% narrower and 15% shallower. The front wall's face is FRONT back from the water, so the start
+# strip lies in the gap of the wall itself, in line with it, as the reference's does
+# The low terrace in front of the hub's tall wall (the user, 2026-11-17: "id like the first layer to be more flush
+# with the wall in most places but not all ... more pushed in so it looks like an extrusion of a cliff almost"): how
+# far the tall wall stands behind the terrace's face, by stretch of the ring (TIER_BACK's 24 everywhere else)
+HUB_LEDGE = 8.0  # most of the ring: the terrace is one square deep
+HUB_LEDGE_WIDE = 24.0  # one stretch of each side keeps the old deep ledge
+HUB_LEDGE_GATE = 16.0  # round the gate and along the front wall: two squares, for the arch's piers to stand on
+WIDE_BLOCK = -5  # which stretch of the ring (counted back from the gate, WAVE pieces each) keeps the deep ledge
+
+
+def tier_span(j, block, at):
+    """how far tier j's face stands behind the wall's line, and how deep it is. Round the hub the terrace (0) and the
+    tall wall (1) share one line between them that moves by stretch; the tall wall's back stays where it was"""
+    if at >= 0.0 or j > 1:
+        return TIER_BACK[j], TIER_DEEP[j]
+    ledge = HUB_LEDGE_GATE if block >= -3 else (HUB_LEDGE_WIDE if block == WIDE_BLOCK else HUB_LEDGE)
+    if j == 0:
+        return 0.0, ledge
+    return ledge, TIER_BACK[1] + TIER_DEEP[1] - ledge
 
 
 def hub_half_ring(side):
@@ -831,7 +854,7 @@ for side in (-1, 1):
 
     blocks = [math.floor(V[k][4] / (WAVE * PIECE)) for k in range(n)]
     for j in range(3):
-        df, deep = TIER_BACK[j], TIER_DEEP[j]
+        spans_ = [tier_span(j, blocks[k_], V[k_][4]) for k_ in range(n)]
         tops = [tier_top(side, j, b_) for b_ in blocks]
         outer = [j == 2 or tier_top(side, j + 1, b_) is None for b_ in blocks]
         # this tier's pieces: one to a stretch between two ribs; two where that stretch is long (a hollow bend), and
@@ -843,8 +866,9 @@ for side in (-1, 1):
                 k += 1
                 continue
             e = k + 1
+            df, deep = spans_[k]
             fa, fb = at_rib(k, df), at_rib(e, df)
-            while math.hypot(fb[0] - fa[0], fb[1] - fa[1]) < SHORT and e < n and tops[e] == tops[k] and e - k < 3:
+            while math.hypot(fb[0] - fa[0], fb[1] - fa[1]) < SHORT and e < n and tops[e] == tops[k] and spans_[e] == spans_[k] and e - k < 3:
                 e += 1
                 fb = at_rib(e, df)
             ba, bb = at_rib(k, df + deep), at_rib(e, df + deep)
@@ -860,7 +884,7 @@ for side in (-1, 1):
             top = tops[k]
             before = tops[pieces[i - 1][6]] if i > 0 and pieces[i - 1][5] == k0 else -1e9  # the piece it follows on from
             after = tops[pieces[i + 1][6]] if i + 1 < len(pieces) and pieces[i + 1][4] == k1 else -1e9
-            cell(fa, fb, ba, bb, outs[k], top, deep, V[k][4], i % 2 == 1, before, after, lane_colours,
+            cell(fa, fb, ba, bb, outs[k], top, spans_[k][1], V[k][4], i % 2 == 1, before, after, lane_colours,
                  V[k][4] < JOIN and outer[k], True)
             glow = water_zones.ZONES[min(land_at(max(0.0, V[k][4])), len(water_zones.ZONES) - 1)]["glow"] if V[k][4] > 0 else None
             if j == 0 and glow:  # the deep lands' ledges glow: two lines of light that show the lane's shape and its way
@@ -1353,25 +1377,28 @@ PLOT_COLOURS = [(240, 110, 130), (255, 170, 70), (250, 215, 90), (120, 200, 120)
 
 # The reference's pens stand in a U: a row along the far side from the start and a row down each side, sharing fences,
 # open toward the start. Ours the same: four along the back, two down each side beginning where the back row's pads end.
-plots = []  # index, x, z, turn in degrees
-for k in range(4):
-    plots.append((k + 1, (k - 1.5) * PLOT[0], HUB_BACK + 8 + PLOT[1] / 2, 0))
-side_z = HUB_BACK + 8 + PLOT[1] + 24  # the back row's depth and its pads
-for k in range(2):
-    plots.append((5 + k, -(HUB_HALF - 8 - PLOT[1] / 2), side_z + (k + 0.5) * PLOT[0], 90))
-    plots.append((7 + k, HUB_HALF - 8 - PLOT[1] / 2, side_z + (k + 0.5) * PLOT[0], -90))
+# Since 2026-11-17 they stand where the user placed them by hand in Studio: the back row side by side 7 studs in front
+# of the back wall, two down each side, the left pair a little nearer the start than the right. The side rows are
+# moved in with the walls, 7 studs from them too. A plot's middle is 27 in front of its tank's back (hub_kit.plot).
+PLOT_GAP = 7.0  # from a tank's back to the wall's face
+plots = [(1, -83.41, HUB_BACK + PLOT_GAP + 27.0, 0), (2, -25.47, HUB_BACK + PLOT_GAP + 27.0, 0),
+         (3, 32.03, HUB_BACK + PLOT_GAP + 27.0, 0), (4, 91.43, HUB_BACK + PLOT_GAP + 27.0, 0),
+         (5, -(HUB_HALF - PLOT_GAP - 27.0), -168.99, 90), (6, -(HUB_HALF - PLOT_GAP - 27.0), -105.45, 90),
+         (7, HUB_HALF - PLOT_GAP - 27.0, -178.33, -90), (8, HUB_HALF - PLOT_GAP - 27.0, -114.79, -90)]
 # The hub's models (the tanks and their trainers, the stations, the gate's arch, the landmark, the small things) are
 # tools/map/hub_kit.py's: richer than a plain box (round things, glows, words), so they go to their own file, hub.json,
 # and into Studio by tools/map/hub_luau.py. Only the numbers they stand on are given from here.
 import hub_kit  # noqa: E402
 
 hub_in = {"Half": HUB_HALF, "Back": HUB_BACK, "Front": FRONT, "Gate": GATE, "GateTurn": GATE_TURN, "FrontTurn": FRONT_TURN,
-          "StartDepth": START_DEPTH, "Look": HUB_LOOK, "Plot": PLOT, "PlotColours": PLOT_COLOURS, "Plots": sorted(plots)}
+          "StartDepth": START_DEPTH, "Look": HUB_LOOK, "Plot": PLOT, "PlotColours": PLOT_COLOURS, "Plots": sorted(plots),
+          "GateLedge": HUB_LEDGE_GATE}
 os.makedirs(OUT, exist_ok=True)
 json.dump(hub_in, open(os.path.join(OUT, "hub_in.json"), "w"), indent=1)
 hub_parts = hub_kit.build(hub_in)
 json.dump({"parts": hub_parts}, open(os.path.join(OUT, "hub.json"), "w"))
-add("DockSpawn", "trim", (0, 1.0, -144), (14, 1, 14), (255, 255, 255))  # nearer the start than the hub's middle
+add("DockSpawn", "trim", (1.0, 1.0, -115.2), (14, 1, 14), (255, 255, 255), t=1.0)  # where the user put it (2026-11-17), between
+# the two stalls, 67 studs in from the start; see-through, as the user hid it under the floor
 add("Figure", "figure", (10, 3.5, -128), (2, 5, 1), (90, 170, 230))
 
 SEA = 2000.0  # the sea's surface, in tiles this big, over the hub and the whole lane
@@ -1417,7 +1444,7 @@ except ImportError:
     raise SystemExit
 shown = [p for p in parts if p["k"] not in ("water", "far", "barrier")]
 for q in hub_parts:  # the hub's models, as plain boxes
-    if q.get("t", 0) < 1 and q["p"][1] > -1:
+    if "s" in q and q.get("t", 0) < 1 and q["p"][1] > -1:
         zx = [q["x"][1] * q["y"][2] - q["x"][2] * q["y"][1], q["x"][2] * q["y"][0] - q["x"][0] * q["y"][2], q["x"][0] * q["y"][1] - q["x"][1] * q["y"][0]]
         shown.append({"k": "station", "p": q["p"], "s": q["s"], "x": q["x"], "y": q["y"], "z": zx, "c": q["c"]})
 xs = [p["p"][0] for p in shown]

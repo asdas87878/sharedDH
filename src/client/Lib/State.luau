@@ -10,6 +10,8 @@ local Zones = require(ReplicatedStorage.Shared.Zones)
 
 export type DeathCam = { Focus: Vector3, Position: Vector3 }
 export type Caught = { Id: string, Tier: string }
+-- a fit of the fish under us (Config.Wild): which fish, which kind, when, to which side, how hard
+export type Fit = { Fish: Model, Kind: string, At: number, Sign: number, Power: number }
 
 local State = {
 	Player = Players.LocalPlayer,
@@ -33,6 +35,14 @@ local State = {
 	SideCam = false, -- the sandbox's side view: the camera stands off to the side, and the steering keeps its own heading
 	FovPunch = 0, -- extra field of view put on at once, with no easing (the pull-in's zoom, the landing's snap)
 	KickVelocity = 0, -- a knock to the camera, studs a second downward: RideController's spring takes it
+	-- The wild ride (Config.Wild). AnimController says what the fish under us is doing; RideController's drive and
+	-- camera and WildController read it
+	Fit = nil :: Fit?, -- its last fit (a buck, a thrash, a bolt ...)
+	Fitted = Instance.new("BindableEvent"), -- fired as one begins: kind, sign, power
+	RideBeat = 0, -- its swim beat, radians, counting up (one stroke of the tail each 2 pi)
+	RideEffort = 1, -- how hard it is working (1: cruising)
+	CamRoll = 0, -- the view's roll, radians (WildController: into a turn)
+	CamPull = 0, -- the camera is this share further back (WildController: left behind by a bolt)
 	JumpReadyAt = 0,
 	Zones = {} :: { Zones.Zone },
 	Squash = {} :: { [Model]: number }, -- character -> os.clock() of its last landing

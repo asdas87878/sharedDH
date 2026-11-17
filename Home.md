@@ -23,6 +23,8 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Core loop](docs/design/core-loop.md): the cycle in one page.
 - [Archetypes and speed per fish](docs/design/archetypes.md): every creature's own speed and its passive archetypes (fast, predator, breaker and more), in one table.
 - [Riding feel](docs/design/riding-feel.md): the ride, the jump fish to fish and the herd, as built.
+- [The sling](docs/design/sling.md): getting from fish to fish: what was weak, the three fixes on switches, the feel log and the M key (built 2026-11-17).
+- [The wild ride](docs/design/wild-ride.md): the rider locked to the fish's back, fits while you ride, the rodeo pose, and the camera that goes with it (built 2026-11-17).
 - [The hook](docs/design/hook.md): the anchor on a rope the rider whirls and throws to reach the next fish (built 2026-11-17).
 - [The dive-in, and the speed of the sea](docs/design/dive-in.md): a plan (2026-11-16) for the first seconds from the gate to the first fish, and for what speed should mean to the player.
 - [The dive](docs/design/the-dive.md): riding, jumping, taming, the zones going down.
@@ -35,6 +37,8 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Creature brief](docs/style/creature-brief.md): how to build a voxel creature, and how to run a batch of them
 - [Workout 7: telling creatures apart](docs/style/07-shape-variety.md): shape, mouth, colour and mark; a trial on four sharks
 - [Workout 8: colour treatments](docs/style/08-colour-treatments.md): eight ways to add colour by rule, and a ladder by rarity; a trial
+- [Workout 9: fifteen early creatures remodelled](docs/style/09-early-remodels.md): the dull ones of the first four zones redesigned; 4 of 15 built, stopped
+- [Cosmic](docs/design/cosmic.md): a rarity above Mythic, proposed, and a book of effect, lighting and gimmick ideas; a draft
 - [Money and Robux](docs/design/money.md): income, upgrades, what's for sale.
 - [First version](docs/design/first-version.md): what ships first and what waits.
 

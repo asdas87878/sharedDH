@@ -466,6 +466,46 @@ as you ride into it, it needs to stunt you for a moment then fade out."
 - **Not seen by eye.** Whether 0.4 seconds is the right "moment" is the user's to say.
 - Where it is in the code: `touched` and `judge` in `PropController` (`SolidUntil`), `RideController.stun`.
 
+### Sharks at a steady pace, and back onto the fish you left (2026-11-17)
+The user: "some of the fish go quite fast then stop their fast speed randomly usually when passing by a player.
+Need that to stop. The shark speed is also too fast to catch normally." And: "make it easier for the player to
+hop off a fish and then hook back onto the same fish ... a lot of the time you want to hop back onto the same
+fish to farm the small period of oxygen you have if you have nowhere else to hop".
+
+**The fish that sprinted and stopped were the hunters (the sharks).** Two causes, one fish:
+
+- A hunter stoops into the herd when a player is near, runs through it until it is past that player, and then
+  climbs away. It ran at 1.6 times its pace and climbed at the herd's share, so it sprinted at you and slowed
+  once past.
+- A hunter's pace went by its own ridden speed, not the land's. The speed pass more than doubled ridden speeds,
+  so the first land's shark cruised at 114 studs a second and ran at 243. A hop leaves at 73.
+
+| | Before | Now |
+|---|---|---|
+| The first land's shark, cruising | 114 | 72 |
+| On its run through the herd | 243 | 72 |
+| Climbing away, past the player | the herd's 48 | 72 |
+
+- A hunter's pace is now a share of the land's pace, like every other fish's: `Pace.Hunt` 1.05, and the same on
+  its run (`Pace.HuntRun` 1.05). It still comes down through the herd and climbs away; only the speed is steady.
+- Riding a shark is as fast as it was.
+- Measured, one visit by script: 72 a second for 13 seconds in land 1, rising to 87 as it crossed into land 2
+  (that land's pace), and still 86 to 87 after it had passed the rider. One-second dips to about 60 twice.
+- **If it was not only the sharks:** the first land's commonest fish (Blue Chromis, Clownfish, Cuttlefish) are
+  darters. They burst to 1.6 times the herd's pace for a second and drift back at half of it, on their own clock,
+  not near players. That is unchanged. Its dials are `Pace.DartBurst` and `Pace.Dart`.
+
+**Back onto the fish you left.** The lock would not take the fish you had just left until the hop's last chance,
+and never a fish under or behind you.
+
+- Now, with no other fish to lock, the fish you left takes the lock, wherever it is round you (`Lock.LeftBack`).
+- Any other fish that can be locked takes the lock from it at once, so it never gets in the way of a real hop.
+- Not in the hop's first 0.4 seconds (`Lock.LeftBackAfter`), so a double press doesn't put you straight back.
+- Tested by script with every other fish made unlockable: hop, press again 0.9 seconds later, twice. Both times
+  the rider was back on the same fish 1.5 seconds after hopping. A press 0.2 seconds after the hop did nothing,
+  as meant.
+- **Not tested:** the lock flipping between the old fish and one at the edge of reach. That is for a played hop.
+
 ## Part 2: swimming speeds and the feel of speed
 
 ### Four different speeds

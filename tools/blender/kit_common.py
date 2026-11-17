@@ -344,7 +344,11 @@ class Kit:
         rider_cam = self.camera("Ride")
         rider_cam.data.sensor_fit = "VERTICAL"
         rider_cam.data.angle_y = math.radians(70)
-        look_from(rider_cam, (mid_x + 16.0 * fr, 3.0 * fr, 8.0 * fr), (mid_x - 6.0 * fr, 0.0, 0.5))
+        view = getattr(self, "ride_view", None)  # (from, at): the game's own riding camera, if the caller set it
+        if view:
+            look_from(rider_cam, *view)
+        else:
+            look_from(rider_cam, (mid_x + 16.0 * fr, 3.0 * fr, 8.0 * fr), (mid_x - 6.0 * fr, 0.0, 0.5))
         for f in range(frames):
             pose(2 * math.pi * f / frames)
             for name, cam, size in (("hero", hero, (560, 410)), ("top", top, (560, 260)), ("ride", rider_cam, (560, 410))):

@@ -481,6 +481,196 @@ buttons have it so far; the reference also has it on its panel headers, which we
 measured and agree across both buttons. The picture's own softness and exact strength are a guess from a blurred
 video. Their file is not seen.
 
+### The fish pictures (the user, 2026-11-17)
+"could you find a way to frame all the fish icons better. For example in ride a dino they are all rendered nicely
+at an angle which shows the most interesting facial part+neck area or the whole model if its small enough. With
+black outlines, good lighting and easy readability": in [Decisions](../Decisions.md).
+
+**State: in the code, and run and seen in Studio on 2026-11-17:** all 82 fish on a test sheet in Edit, and the catch
+slots and the catch banner in a play test on a desktop. Not seen: the end-of-dive tokens, a phone, how much it
+costs a phone.
+
+![](../attachments/ui19-fish-pictures-before-after.jpg)
+
+In the game:
+
+![](../attachments/ui19-fish-pictures-in-game.jpg)
+
+**What the reference does** (its slots, read from the user's recording): a creature's head and neck from the front
+quarter, facing left, a little from above, with a thin dark outline and bright even light; a small creature whole.
+
+**What ours do now.** Still the creature's own model drawn in a small window, so no picture is uploaded and a new
+fish needs nothing made. What changed is where the viewer stands, what is framed, the light and the outline:
+
+| A fish that is | Is shown | From |
+|---|---|---|
+| Big, with a head of its own (sharks, whales, eels, the sea monsters) | **A bust:** the head and a neck's length behind it; the rest runs off the window's edge | The front quarter, a little above |
+| Small (14 studs long or under) | Whole | The front quarter |
+| Thin and tall (an angelfish, a tang) | Whole | Nearly side on, where its shape is |
+| Flat and wide (a ray, a turtle) | Whole | From above |
+| Mostly face, with no head part (the anglers, a jelly) | Whole | The front quarter |
+
+- **Every fish faces left,** as the reference's creatures do.
+- **The outline** is the same fish drawn four more times in black just behind it, a hair to each corner. A window
+  can't outline what it draws, and this needs no upload.
+- **The light** comes from over the viewer's shoulder onto the face, with less fill light than before, so the
+  boxes' steps show.
+- **A bust goes by the part's names:** a model with a part called `Head` gets one, framed on `Head`, `Jaw`,
+  `Crown`, `Brow`, `Eye` parts. All of today's 82 were built with those names.
+
+**Where it is weak:**
+- **The squid, the octopus and the kraken:** their bust is a block of head with one eye, and the arms are cut.
+- **The rays and the turtles** are small in their window: from above, their tails and flippers set the frame.
+- **Anomalocaris** is cut oddly: its arms count as part of its head.
+- **Cost:** a picture is now five copies of the fish, not one: with seven slots, seven tokens and the banner that is
+  75 small windows. A window that is not changing costs nothing to draw, but the copies are held in memory.
+  **Not measured on a phone.**
+
+**If more polish is wanted:** pictures rendered once outside the game (smooth outline, soft shadow) and uploaded as
+two or three sheets would look cleaner and cost a phone less. It needs uploads and a new render for each new fish.
+Not started; for the user to say.
+
+- **Files:** `src/client/UI/Portrait.luau` (written again; `Portrait.new` and `show` take what they took, plus an
+  optional `Outline`), `tools/ui/portrait_sheet.luau` (the test sheet of every fish, Edit mode).
+
+### The catch slots, faded, with the pictures over them (the user, 2026-11-17)
+"now lets do changes to the inventory bar, id like to retain the texture but make the texture fade out in a gradient
+to some capacity alongside the outline to a different lesser capacity. then id like to scale the icons so that they
+all overlap the inventory artistically and stay at the same size and silhouette placement depending on the icon
+archetype": in [Decisions](../Decisions.md).
+
+**State: in the code, and run and seen in Studio on 2026-11-17:** the slots in a play test on a desktop with four
+small fish, and all 82 pictures on the test sheet. Not seen: a bust in a slot in the game (the sandbox's start has
+only small fish), a full row of seven, a phone.
+
+![](../attachments/ui20-slots-before-after.jpg)
+
+Every fish's picture with the new placement:
+
+![](../attachments/ui20-fish-pictures-placed.jpg)
+
+**The slots:**
+
+| | Before | Now |
+|---|---|---|
+| The glass and its pattern | The same strength top to bottom | **Fade out toward the top:** nearly gone at the top edge, 40% gone at the middle, whole at the foot |
+| The outline | Solid all round | **Firm:** whole for its lower three quarters, thinning only over the top quarter, to 30% see-through at the very top (second round, below) |
+| The shadow under a slot | Solid | Fades with the glass |
+| The pale band over the upper half | There | Gone: it sat where the glass now fades out |
+
+**The pictures:**
+
+| | Before | Now |
+|---|---|---|
+| A picture's window | Inside the slot | **Bigger than the slot:** 8% wider a side, and reaching a third of a slot above its top, so the fish stands over the slot's top and its sides |
+| Where a fish sits | Fitted to a box round it, so fins and tails pushed the body about | **By its outline, the same for every fish of a kind of picture** (below) |
+| "3 CAUGHT" | Just above the slots | Lifted clear of the pictures |
+
+| Kind of picture | Its outline, in its window |
+|---|---|
+| A bust | The head alone is measured: its left edge at the window's left, its middle half way down, up to 80% of the width and 86% of the height. The neck and body run off the right |
+| A small fish, whole | In the middle, up to 94% of the width and 84% of the height |
+| A thin tall fish | In the middle, up to 90% of the width and 94% of the height |
+| A flat wide one | A hair under the middle, up to 96% of the width and 80% of the height |
+
+- **Second round, the same day:** asked whether upward was the direction meant, the user said "yes, but make the
+  border more concrete and less transparent and fade differently". The outline was half gone at the top and fading
+  all the way down; it is now whole for most of its height and thins only over the top quarter (`EDGE` in
+  `Slots.luau`). **Seen in Studio over a plain backdrop only:** Studio had stopped drawing its 3D view (15 frames
+  a second, a black scene), so the picture has no sea behind it and no fish pictures in the slots.
+
+![](../attachments/ui21-slots-outline.jpg)
+
+- **How it is found:** the corners of the fish's parts are worked out as the window would show them, and the viewer
+  is stepped back, forward, sideways and up until the outline is the size and place its kind asks. Done when a
+  picture changes, never per frame.
+- **This also made the rays and the turtles bigger,** which were small in the first round.
+- **Read by Claude, for the user to confirm:** the fade runs upward (the fish rises out of the slot), and "the
+  texture" is the slot's whole glass, its colour and its pattern. Each is one number to turn round or change
+  (`BODY`, `EDGE` and `WINDOW` in `Slots.luau`; `PLACE` in `Portrait.luau`).
+- **Left as it was:** the thin pale line just inside a slot's outline; it is half as strong now.
+- **A Secret fish's slot** (the rainbow, which runs side to side) can't fade top to bottom: it is evenly a third
+  see-through instead.
+- **Files:** `src/client/UI/Slots.luau`, `src/client/UI/Portrait.luau`.
+
+### The catch slots, closer to the reference's (the user, 2026-11-17)
+Six changes asked at once: square corners; a border mainly opaque and more black; a caught fish's slot less
+see-through and brighter with a faint pattern, and a light rim "like ride a dino" ("if you catch a fish it feels more
+satisfying"); a squarer font with a thinner outline; the fish more in the middle and nearer its name, still over the
+top edge; the slots spaced as the reference's; and a small grow under the mouse. The user's words are in
+[Decisions](../Decisions.md).
+
+**State: in the code, and run and seen in Studio on 2026-11-17,** on a desktop with three small fish caught, and the
+grow played on one slot. Not seen: a bust in a slot in the game, a full row, a real mouse over it (the grow was played
+by script, the way the mouse would), a phone.
+
+![](../attachments/ui22-slots-before-after.jpg)
+
+Beside the reference at the same size (private: `research/ride-a-dino/ui/compare-slots.png`).
+
+| | Before | Now | The reference's, measured |
+|---|---|---|---|
+| Corners | Rounded 5 | **Square** | Square |
+| The outline | Navy ink, 2.5, fading at the top | **Nearly black, 2, solid** (a touch of fade over the top eighth only) | Black, about 2 |
+| A caught fish's slot | The rarity's colours, as see-through as an empty one, fading upward | **Nearly solid, its colours 14% brighter, the water's pattern faint behind** | Solid grey, a faint block pattern |
+| Its rim | None | **A white line inside the outline, strong at the top, softer down the sides, over a darker lip at the foot** | A pale line inside the outline, a darker band at the foot |
+| The newest catch | A white outline | The same | (the reference's chosen slot has one) |
+| The names | Fredoka One, outline 1.6 | **Gotham Black** (the fish tags' rarity words use it too), **outline 1** | A heavy square sans, thin dark outline |
+| The fish | In a window 16% wider than the slot, a third of a slot above it | **10% wider, a fifth of a slot above; a bust in the middle, not at the left.** The fish comes down to its name | Over the top edge a little, down to the name |
+| The gap between slots | 6 on a keyboard (13% of a slot) | **10 (22%)**, so a fish's overhang and the grow never touch the next slot | About 24% of a slot |
+| Under the mouse | Nothing | **Grows to 106% in an eighth of a second, and back** | Grows a little |
+
+**Second round, the same day: the white ring, square slots, a thin even fish outline.** Three asks, each in
+[Decisions](../Decisions.md): the white ring was "still rounded", and should be "on the last dino caught or the one
+you select with the mouse when clicking, but should appear on hover"; the slots looked "rectangular ish"; the fish
+outline was "thicker on one end than the other ... too thick all over and especially too thick at the top".
+**Run and seen in Studio on 2026-11-17:** the ring on the newest catch, on a hovered slot and on a clicked one, each
+with the game's own mouse; a slot measured 72 by 72 pixels outline to outline.
+
+![](../attachments/ui24-slots-square-before-after.jpg)
+
+| | Before | Now |
+|---|---|---|
+| The chosen catch | Its outline turned white, with round corners | **A square white ring a little outside the black outline** (the reference's, measured off the user's screenshot: 5% of a slot thick, 3% out). The black outline stays |
+| Which slot has it | The newest | The newest, until the player clicks another caught slot; the next catch takes it back. **Also any caught slot while the mouse is over it.** An empty slot shows none |
+| A click | Nothing | Chooses the slot and fires `Slots.Selected`. **What choosing does is not decided;** nothing listens |
+| Corners of the black outline | Rounded (every outline Kit draws has round joins) | Square |
+| A shadow under each slot | 2 units down: the foot looked thicker, so the slot read 3 pixels taller than wide | **None** (the reference has none) |
+| The pale line inside | Strong at the top, faint at the foot: an inner box that seemed to rest high | **Even all round,** square |
+| A caught slot's foot band | Nearly black: a second outline | A darker tone of the slot's colour |
+| The fish outline | 1.3 units, its four black copies a fraction of a pixel off, so one side drew 2 pixels and the other 1 | **0.8 units, rounded to whole pixels, the same on every side:** 1 pixel on this screen, 2 on a screen twice as tall |
+
+- **Files:** `src/client/UI/Slots.luau`, `src/client/UI/Portrait.luau` (the outline: the catch banner and the end of a
+  dive get it too).
+
+**Third round: a caught slot's highlight, as the reference's.** "the highlight between the outline and the inner bit
+isnt placed correctly, and isnt thick enough and doesnt fade correctly like ride a dino does. it also shouldnt be
+present if you dont have a fish selected": in [Decisions](../Decisions.md). Measured off the user's screenshot of the
+reference's caught slot and rebuilt; **run and seen in Studio on 2026-11-17** with an Uncommon and a Common caught.
+
+| | Before | Now, as the reference's |
+|---|---|---|
+| Where | A thin line just inside the outline, on all four sides | **A band right inside the black outline, along the top and down both sides; not the foot** |
+| How wide | 1.5 units (3% of a slot) | **2.3 units (5%)** |
+| How it fades | Barely: strong all round | **Nearly white along the top; down the sides from strong to faint** |
+| The foot | A faint dark strip | **A darker band of the slot's own colour,** 2.5 units |
+| The slot's colour | The rarity's colour lightened 45% at the top, then 14% brighter again: a Common was nearly white, so the band did not show | **The rarity's colour as a mid tone,** a touch lighter at the top and darker at the foot. Legendary, Mythic and Secret keep their gold, ember and rainbow |
+| An empty slot | A pale line inside its outline | **No line** |
+
+- **Claude's reading, to confirm:** "if you dont have a fish selected" is read as a slot with no fish; the
+  reference's other caught slots carry the band too. If it means only the chosen slot, it is one line.
+- **Not seen:** a Rare, Epic or the top three with the band, a phone.
+
+![](../attachments/ui25-slots-rim.jpg)
+
+- **The font was picked from ten** that Roblox has built in, drawn side by side in Studio (Fredoka One, Gotham
+  Heavy and Bold, Builder Sans, Montserrat, Nunito, Roboto, Arimo; private: `research/ride-a-dino/ui/font-sheet.jpg`).
+  Gotham Black is the nearest to the reference's square, heavy letters and is already the fish tags' font. "3
+  CAUGHT" takes it too.
+- **The empty slots** keep the water-glass look and the upward fade; only their corners and outline changed.
+- **A phone** keeps its own smaller size (34) and gets a gap of 8. The grow does nothing on a phone (no mouse).
+- **Files:** `src/client/UI/Slots.luau`; one line in `src/client/UI/Portrait.luau` (a bust in the middle).
+
 ## The short version
 - **Today's HUD says the wrong thing.** It shows a tank, "OXYGEN 68 / 100", at the bottom edge. With 2 to 3 seconds on a
   fish, what a player needs is "how long do I have on this fish", next to the fish, and "which fish next".

@@ -25,6 +25,7 @@ A model file is Python. It sets:
   GLOW                 optional: {colour name: strength}: colours that shine by themselves (Roblox's Neon)
   LIGHTS               optional: [(part, (x, y, z), "#hex", watts, radius)]: small lights; y not 0 makes a pair
   SHADE, LIFT          optional: how dark the "name-" tone is (0.8) and how light the "name+" tone is (1.12)
+  part.fine            optional, set in build(): a part's cubes are this many times smaller than U (see Part)
   FLOATING             optional: names of parts whose pieces float on purpose (a crown of shards, orbiting rocks): the
                        gate doesn't ask them to touch anything or to have a buried root
   SWIM                 a fish swim: {"chain": [part names, head first], "amplitudes": [degrees per joint], "phaseStep", "headCounter"}
@@ -121,6 +122,8 @@ class Part:
 
     def __init__(self, name, pivot, parent):
         self.name, self.pivot, self.parent, self.cells, self.shapes = name, pivot, parent, {}, []
+        self.fine = 1  # cubes this many times smaller than U in this part (its cells count in small cubes; its pivot
+        # stays in the model's cubes). For a set piece that wants finer cubes than its creature: cells only, no free pieces
 
     # ---- free pieces: the grid isn't law. Where a slope or a point looks better than steps (a snout, a tooth, a horn tip),
     # these add plain solids to the part. Their coordinates are real numbers in cubes, y measured from the middle (a cube
@@ -571,7 +574,7 @@ def check_part(part):
     3. a piece with no face buried in something else: it only crosses a surface, and a wedge of air shows under it.
     What it does not find: a piece that pokes out through another where it should not (use --inspect for that)."""
     shapes, hidden = solids(part), hidden_faces(part)
-    every_cell = [other.cells for other in model.parts.values()]
+    every_cell = [other.cells for other in model.parts.values() if other.fine == 1]
     everything = [(other, j, sh) for other in model.parts.values() for j, sh in enumerate(solids(other))]
 
     def in_cells(pt, margin=0.02):
@@ -665,7 +668,7 @@ def check_part(part):
     # 2b: cube faces of this part lying on cube faces of another part, facing the same way (a joint's sleeve in the
     # plane of the stepped corner in front of it): they flicker too
     for other in model.parts.values():
-        if other is part or other.name < part.name:
+        if other is part or other.name < part.name or part.fine != 1 or other.fine != 1:
             continue
         hits, where_at = 0, None
         for (i, j, k) in part.cells:
@@ -834,6 +837,16 @@ def islands(bm):
     return count
 
 
+def ride_view():
+    """--ridecam: where the game's camera is while riding (src/shared/Config.luau, Camera: Distance 17, Height 5,
+    FocusHeight 0.5, ArmHeight 0.3, RestPitch -12), in studs: behind the rider (+x) and above, looking at a point 2.5
+    studs over the seat"""
+    seat_x, seat_top = M.SEAT[0] * U, M.SEAT[1] * U
+    focus = (seat_x, 0.0, seat_top + 2.5)
+    pitch = math.radians(12)
+    return (focus[0] + 17 * math.cos(pitch), 0.0, focus[2] + 17 * math.sin(pitch) + 1.5), focus
+
+
 # ---------------------------------------------------------------- the parts
 objects, triangles, cubes, all_triangles, faults = {}, 0, 0, 0, []
 lo, hi = [10**9] * 3, [-(10**9)] * 3
@@ -841,12 +854,12 @@ for part in model.parts.values():
     cells = {c: names.index(colour) for c, colour in part.cells.items()}
     for c in cells:
         for a in range(3):
-            lo[a], hi[a] = min(lo[a], c[a]), max(hi[a], c[a] + 1)
+            lo[a], hi[a] = min(lo[a], math.floor(c[a] / part.fine)), max(hi[a], math.ceil((c[a] + 1) / part.fine))
     for verts, _, _ in part.shapes:
         for x, y, z in verts:
             for a, v in enumerate((x, y, z)):
                 lo[a], hi[a] = min(lo[a], math.floor(v)), max(hi[a], math.ceil(v))
-    bm, quads = kc.cells_to_bm(cells, U)
+    bm, quads = kc.cells_to_bm(cells, U / part.fine)
     part_triangles = everything = 2 * quads + sum(len(f) - 2 for _, faces, _ in part.shapes for f in faces)
     note = ""
     if WELD and (cells or part.shapes):  # one closed shell: nothing hidden at all, but more triangles (every pierced face is cut)
@@ -1305,6 +1318,8 @@ if SWIM:
                 ob.rotation_euler.z = math.radians(sw["amplitudes"][k]) * math.sin(phase - sw.get("phaseStep", 0.9) * (k + 1))
 
     folder = os.path.join(OUT, "swim_voxel")
+    if "--ridecam" in argv:
+        K.ride_view = ride_view()
     K.swim(folder, 24, pose, mid_x)
     print("voxel kit: swim", folder)
     sys.exit(0)
@@ -1337,4 +1352,12 @@ if WIRE:
 sx, sz, sw_ = M.SEAT
 K.seat_view(sx * U, sz * U, sw_ * U)
 K.ride(sx * U, sz * U, sw_ * U)
+if "--ridecam" in argv:  # the game's riding camera exactly (Config.Camera: 17 studs back, 12 degrees down)
+    cam = K.camera("RideCam")
+    cam.data.sensor_fit = "VERTICAL"
+    cam.data.angle_y = math.radians(70)
+    kc.look_from(cam, *ride_view())
+    if hasattr(M, "pose"):  # as the animation holds it at its start (a disc's lean is in the pose, not the mesh)
+        M.pose(objects, 0.0)
+    K.render(cam, os.path.join(OUT, "ridecam.png"), 1280, 720)
 print("voxel kit: done", OUT)

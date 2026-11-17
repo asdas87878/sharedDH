@@ -71,6 +71,8 @@ local crashSlow = 1 -- and the share of our speed it left us (it comes back over
 -- how long the speed takes to come back after that, and the share of our speed we are held at
 local stunAt = -math.huge
 local stunHold, stunRecover, stunSlow = 0, 0, 1
+-- the wild ride's rise, fall and weave: where in their rhythms this machine's rider starts (Config.Wild)
+local wildSeed = math.random() * 100
 local boostAt = -math.huge -- os.clock() of the last burst of speed (a bite's, a smashed prop's: Config.Archetype),
 local boostBy = 1 -- how many times our speed it is,
 local boostTime = 0 -- and for how long (it fades over the last third: Config.burstShare)
@@ -578,6 +580,35 @@ local function drive(dt: number)
 		local back = math.clamp((stunned - stunHold) / math.max(stunRecover, 0.01), 0, 1)
 		speed *= Ease.lerp(stunSlow, 1, back * back * (3 - 2 * back))
 	end
+	-- The wild ride (Config.Wild; AnimController's fits, WildController's camera): the fish does not carry us on
+	-- rails. Each stroke of its tail is a small push; a fit changes its speed for a moment (a bolt gathers and
+	-- lunges, the others check it); and its line rises, falls and weaves a little (wildPitch and wildYaw, used
+	-- below for the way it goes and the way it faces). All well inside what the server allows (Ride.SpeedSlack).
+	local wd = Config.Wild
+	local wildPitch, wildYaw = 0, 0
+	if wd.Amount > 0 then
+		local amount = math.min(wd.Amount, 2)
+		local clock = os.clock()
+		local going = math.clamp(speed / math.max(ridden, 1), 0, 1)
+		wildPitch = math.rad(wd.Porpoise) * amount * going * math.sin(clock * 2 * math.pi * wd.PorpoiseRate + wildSeed)
+		wildYaw = math.rad(wd.Weave) * amount * going * math.sin(clock * 2 * math.pi * wd.WeaveRate + wildSeed * 1.7)
+		speed *= 1 + wd.BeatSurge * amount * math.sin(State.RideBeat)
+		local fit = State.Fit
+		if fit and fit.Fish == fish and wd.FitSpeed > 0 then
+			local u = clock - fit.At
+			local by = 0
+			if fit.Kind == "bolt" then
+				by = if u < 0.15
+					then -0.2 * u / 0.15
+					elseif u < 0.45 then Ease.lerp(-0.2, 0.14, (u - 0.15) / 0.3)
+					elseif u < 1.5 then 0.14 * (1 - (u - 0.45) / 1.05)
+					else 0
+			elseif u < 0.9 then
+				by = -0.12 * math.sin(math.pi * u / 0.9)
+			end
+			speed *= 1 + by * wd.FitSpeed * math.min(fit.Power, 1.3)
+		end
+	end
 	-- angry (the meter in its red part, or a fish too strong): slowed in its own style's way
 	local angryShare, nod, wag, rock = angrySpeed(fish, rideType, dt)
 	speed *= angryShare
@@ -607,7 +638,7 @@ local function drive(dt: number)
 	-- The way we steer (`yaw`) is untouched: steering off the wall is just steering.
 	local size = Config.bodyOf(fish, rideType)
 	local body = size.Z / 2 + 1
-	local way, kept = WallRide.step(wall, at, yaw, speed, body, math.min(size.X / 2, body), dt, true)
+	local way, kept = WallRide.step(wall, at, yaw + wildYaw, speed, body, math.min(size.X / 2, body), dt, true)
 	speed *= kept
 	local swung = if wall.Swinging then 1 - wall.Slide else 0
 	if swung > 0 then
@@ -626,10 +657,12 @@ local function drive(dt: number)
 	roll += wall.Lean * math.rad(Config.Wall.Lean) * Ease.alpha(r.BankEase, dt)
 	-- (the body turns with the way it really goes by as much as it slides along the wall: square on, in the swing,
 	-- it faces the wall. Off a wall that way is the way we steer, so this is `yaw`.)
-	local heading = CFrame.fromOrientation(pitch, Ease.lerpAngle(yaw, math.atan2(-way.X, -way.Z), wall.Slide), 0)
+	local nose = pitch + wildPitch
+	local heading =
+		CFrame.fromOrientation(nose, Ease.lerpAngle(yaw + wildYaw, math.atan2(-way.X, -way.Z), wall.Slide), 0)
 	-- the easing above is the soft part; this is the hard one: the fish can't be steered into the floor, a wall, a roof,
 	-- the air or out of the lane, however the keys are held
-	local wanted = way * (speed * math.cos(pitch)) + Vector3.new(0, math.sin(pitch) * speed, 0)
+	local wanted = way * (speed * math.cos(nose)) + Vector3.new(0, math.sin(nose) * speed, 0)
 	if swung > 0 then
 		wanted = Vector3.new(wanted.X, Ease.lerp(wanted.Y, wall.LiftSpeed, swung), wanted.Z)
 	end
@@ -892,7 +925,8 @@ local function cameraStep(dt: number)
 	-- what it shows: each on its spring
 	shownYaw, yawSpeed = Spring.angle(shownYaw, camYaw, yawSpeed, c.TurnTime, dt)
 	shownPitch, pitchSpeed = Spring.number(shownPitch, camPitch, pitchSpeed, c.TurnTime, dt)
-	local zoomGoal = if mode == "Jumping" then Config.Jump.CameraZoom else 1
+	-- (and left behind for a moment by a bolt: State.CamPull, WildController's)
+	local zoomGoal = (if mode == "Jumping" then Config.Jump.CameraZoom else 1) * (1 + State.CamPull)
 	zoomScale, zoomSpeed = Spring.number(zoomScale, zoomGoal, zoomSpeed, c.ZoomTime, dt)
 	local distance = zoom * zoomScale
 	local rotation = CFrame.fromOrientation(shownPitch, shownYaw, 0)
@@ -1040,7 +1074,11 @@ local function cameraStep(dt: number)
 	end
 	-- and the shakes: every one running, added together (Lib/Shake)
 	local shake = Shake.update(dt)
-	local view = CFrame.lookAt(position, position + rotation.LookVector) * CFrame.new(0, kickAt, 0) * shake
+	-- (and the roll into a turn: State.CamRoll, WildController's)
+	local view = CFrame.lookAt(position, position + rotation.LookVector)
+		* CFrame.new(0, kickAt, 0)
+		* shake
+		* CFrame.Angles(0, 0, State.CamRoll)
 	if submerged and view.Position.Y > ceiling then
 		-- whatever is left (the jolt, the shake, the side view, a camera that had nowhere lower to go): held under
 		view -= Vector3.new(0, view.Position.Y - ceiling, 0)

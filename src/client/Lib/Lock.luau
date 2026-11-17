@@ -24,9 +24,12 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local FeelLog = require(script.Parent.FeelLog)
 local State = require(script.Parent.State)
 
 local Lock = {}
+-- (the feel log's: every fish the last look scored, and its score, lower being better; only while it is on)
+Lock.Debug = nil :: { At: number, Scores: { { Model: Model, Score: number } } }?
 
 local lockedAt = -math.huge
 local challenger: Model? = nil -- the fish that scores better than the locked one, waiting out SwitchTime
@@ -149,6 +152,7 @@ local function score(
 end
 
 -- The fish to lock: `from` is the rider, `eye` and `aim` the camera's place and look, `current` the fish locked now,
+-- `back`: the fish we just left may take the lock when nothing else can (Lock.LeftBack);
 -- `left` the fish we just left, `skip` one not to take at all (the server just refused it), `reach` how far the hook
 -- goes right now (nil: Jump.GrabRange, the most it ever does), `wide` the last chance (Lock.LastChance): take any
 -- fish in reach, all round, the one nearest the aim first
@@ -160,7 +164,8 @@ function Lock.pick(
 	left: Model?,
 	skip: Model?,
 	reach: number?,
-	wide: boolean?
+	wide: boolean?,
+	back: boolean?
 ): Model?
 	-- (the herd is gone over 20 times a second, not every frame: the lock holds for MinHold and SwitchTime anyway, and
 	-- each look reads three attributes a fish and casts a few rays)
@@ -187,6 +192,7 @@ function Lock.pick(
 	end
 	local best: Model? = nil
 	local bestScore = math.huge
+	local debugScores: { { Model: Model, Score: number } }? = if FeelLog.On then {} else nil
 	local currentScore: number? = nil
 	for _, model in folder:GetChildren() do
 		-- (the fish we just left is not taken at all until the last chance: Lock.LeftBan)
@@ -196,6 +202,9 @@ function Lock.pick(
 			if s then
 				if model == left then
 					s += l.LeftPenalty
+				end
+				if debugScores then
+					table.insert(debugScores, { Model = model, Score = s })
 				end
 				-- the line of sight last, and only for a fish that would matter: it costs a ray
 				if (s < bestScore or model == current) and inSight(from, (model.PrimaryPart :: BasePart).Position) then
@@ -209,6 +218,19 @@ function Lock.pick(
 				end
 			end
 		end
+	end
+	-- Back onto the fish we just left (Lock.LeftBack; the user, 2026-11-17: "its now really hard to hook back onto
+	-- the previous fish"). With no other fish to lock, the one we left takes the lock, wherever it is round us, if
+	-- it is in reach and in sight (`back`: the hop is past its first moment). It is never scored, so any other fish
+	-- that can be locked takes the lock from it at once, with none of the lock's stickiness.
+	if not best and back and left and left ~= skip and l.LeftBack > 0 and left.Parent and State.isFreeFish(left) then
+		local at = (left.PrimaryPart :: BasePart).Position
+		if (at - from).Magnitude <= range and inSight(from, at) then
+			best = left
+		end
+	end
+	if debugScores then
+		Lock.Debug = { At = nowAt, Scores = debugScores }
 	end
 	local now = os.clock()
 	-- The leeway (Lock.Linger; the user, 2026-11-17: "if you lock onto a fish even if it goes outside of your

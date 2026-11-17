@@ -554,14 +554,14 @@ end
 local function meanSpeed(w: Wild): number
 	local p = Config.Pace
 	if w.Pace == "Hunt" then
-		return FishService.ridden(w) * p.Hunt * w.Own
+		return landPace(w.S) * p.Hunt * w.Own
 	end
 	local share = if w.Pace == "Plod" then p.Plod elseif w.Pace == "Zoom" then p.Zoom else Config.Herd.SpeedShare
 	return landPace(w.S) * share * w.Own
 end
 
--- The share of the land's pace a wild fish wants to swim at now, by its character (Config.Pace); a Hunt's is of its
--- own ridden speed. For a Dart this starts and ends its bursts and brings it back to its place; for a Hunt it is the
+-- The share of the land's pace a wild fish wants to swim at now, by its character (Config.Pace); a Hunt's was of its
+-- own ridden speed until 2026-11-17. For a Dart this starts and ends its bursts and brings it back to its place; for a Hunt it is the
 -- whole of its round: cruising high, the stoop when a player is near, the run through the herd, the climb back (it
 -- sets where its Rise is going).
 local function paceShare(w: Wild, now: number, position: Vector3): number
@@ -650,6 +650,9 @@ local function paceShare(w: Wild, now: number, position: Vector3): number
 				end
 			end
 		else
+			-- (climbing back: at its own pace too. It was left at the herd's share here, so a hunter that had gone
+			-- past a player dropped from its pace to the herd's: found 2026-11-17, 89 studs a second to 60)
+			share = p.Hunt
 			w.RiseWant = high
 			if w.Rise >= high - 2 then
 				w.Mode = 0
@@ -938,7 +941,7 @@ local function wake(w: Wild, at: Vector3)
 	w.Dir = dir
 	w.Land = landPace(w.S)
 	w.Gait = paceShare(w, os.clock(), at)
-	w.Speed = (if w.Pace == "Hunt" then FishService.ridden(w) else w.Land) * w.Gait
+	w.Speed = w.Land * w.Gait
 	w.Model:PivotTo(CFrame.lookAt(at, at + dir))
 	w.Root.AssemblyLinearVelocity = dir * w.Speed
 	w.Root.AssemblyAngularVelocity = Vector3.zero
@@ -1349,11 +1352,12 @@ local function steer(w: Wild, dt: number)
 	local h = Config.Herd
 	local position = w.Root.Position
 	local now = os.clock()
-	-- its speed: the land's pace (a hunter: its own ridden speed) times the share its character wants now, come to
+	-- its speed: the land's pace times the share its character wants now (a hunter's too, since 2026-11-17: it went
+	-- by its own ridden speed, which the speed pass had more than doubled), come to
 	-- over a moment
 	local ease = math.max(Config.Pace.Ease, 0.1) * dt
 	w.Gait += math.clamp(paceShare(w, now, position) - w.Gait, -ease, ease)
-	local speed = (if w.Pace == "Hunt" then FishService.ridden(w) else w.Land) * w.Gait
+	local speed = w.Land * w.Gait
 	if w.Rise ~= w.RiseWant then
 		-- (a hunter stoops fast and climbs slow; a darter's little lift comes and goes gently)
 		local step = (

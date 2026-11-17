@@ -3,6 +3,33 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-17 · Obsidian chat integration (the user's PC): the wild ride, the sling, the feel log; the smaller hub, the catch slots
+**State:** on the user's word ("update my changes to obsidian, my partner is updating his. When they are both updated,
+merge our changes"): everything on this PC since `be06813`, committed, then merged with Hugo's commits up to `57b5f83`
+(the submarine, the land strip, the size sticker). In the user's Studio place (synced). Each piece was run or measured
+by script; none of it has been played by hand yet. The place itself is not in the repo: it needs saving in Studio.
+
+- **The wild ride** ([the wild ride](design/wild-ride.md)): the rider fixed to the very part of the fish they sit on
+  (measured: no slip at all); the fish throws fits while ridden, wilder the rarer, calmer as it is tamed; one arm up
+  with the rope; the line rises, falls and weaves; the camera shakes, sways and rolls with it. One dial: `Wild.Amount`.
+  New: `Controllers/WildController`.
+- **Sharks at a steady pace** (72 in land 1, was 114 cruising and 243 on the run) and **hooking back onto the fish
+  you left** when nothing else is lockable (`Lock.LeftBack`): [the dive-in](design/dive-in.md).
+- **The sling** ([the sling](design/sling.md)), each on a switch: the pull-in keeps your speed and hits the fish
+  fastest (0.31 to 0.50 s, was 0.7 with a brake at its start); the locked fish pulls you in by itself once it is
+  under you or by 1.3 s (press to touch 1.0 to 2.2 s, was 2.4 to 3.0); airtime no longer grows with the fish's
+  speed; a hop pressed just before you may is kept.
+- **The feel log** (Studio only): a `[FeelHop]` line in the Output for every hop; **M** saves the last 5 seconds and
+  puts numbers over the nearby fish to say which one you wanted. New: `Lib/FeelLog`, `Controllers/FeelLogController`.
+- **The hub, smaller** (the map chat; [hub models](design/hub-models.md), "The hub, smaller"): 400 by 272 round the
+  user's own placing, a narrow square gate, a thin terrace. The generated map files changed. **On Hugo's PC the map
+  needs loading again** (`python tools/studio/load_greybox.py <studio_id>`, in Edit) to get it.
+- **The catch slots and the fish pictures** (the UI chat; [UI](design/ui.md)): square slots with a black outline and
+  a lit rim on a caught slot, Gotham Black names, a grow on hover; busts framed by kind.
+- **Drafts, nothing wired in:** the Cosmic rarity ([Cosmic](design/cosmic.md)), trial voxel creatures
+  (`art/creatures/Trial*`), a black hole effect (`Lib/BlackHole`, tried with `tools/studio/black_hole_demo.luau`).
+- StyLua and the build pass; selene shows only the two old warnings.
+
 ## 2026-11-17 · Obsidian chat integration (the user's PC): the lock, the plunge, the stun, the hook
 **State:** two pushes on the user's word ("push current changes", then "push the changes and get hugos agent to
 update to our current game"): `9f92b1e` and the one this entry is in. In the user's Studio place (synced). Each

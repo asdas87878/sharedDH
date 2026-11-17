@@ -18,8 +18,11 @@
 --     roll; RideStyles.Landings, Animation.LandingMix) that builds quickly from the touch and falls off over two
 --     seconds. Each client picks it from the rider's id and their count of landings, so all see the same one;
 --   a jaw that hangs and opens now and then instead of chomping every beat.
--- The rider sits on the body's shift EASED and in part (Animation.RiderCalm), so they ride the slow motions and are
--- spared the quick ones; they brace at a landing, are thrown off the seat by a buck, and flail while the animal fights.
+-- The rider is LOCKED to the part of the fish they sit on (Animation.RiderLock; 2026-11-17): wherever that part
+-- goes, they go, at once and in full, so the back never moves through them. Their chest and head whip against its
+-- quick turns (Config.Wild.Whip). They brace at a landing, are thrown off the seat by a buck, and flail while the
+-- animal fights. (Until then they sat on the body's shift eased and in part, Animation.RiderCalm.)
+-- While it is ridden the fish throws FITS (Config.Wild): the landing's reactions, again and again.
 -- Not here, because they need the Root to move (RideController, the server): the wave's small change of speed, the
 -- bolt's burst of speed, the surge waiting for the build-up. Not here, because FishModel welds them: eyes that look
 -- about.
@@ -95,15 +98,29 @@ type FishJoints = {
 	riderSwing: number,
 	riderRoll: number,
 	mount: CFrame?,
+	-- the lock (Animation.RiderLock): the joints from the Root out to the part the rider sits on, and that part's
+	-- rest place undone; and what the back has just turned by quicker than the rider's body follows
+	seatChain: { Motor6D }?,
+	seatRest: CFrame,
+	lagNose: number,
+	lagRoll: number,
+	whipNose: number,
+	whipRoll: number,
+	-- the fits (Config.Wild): the landing they are counted from, how many so far, and when the next is due
+	fitFor: number,
+	fitCount: number,
+	fitNext: number,
 }
 local fishJoints: { [Model]: FishJoints } = setmetatable({}, { __mode = "k" }) :: any
 local landedOn: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- fish -> os.clock() a rider landed on it
 local ridden: { [number]: Model } = {} -- this frame: UserId -> the fish they ride (only fish near the camera)
 local spines: { [string]: { [string]: number } } = {} -- creature Id -> part -> its place in the turn layer
 -- a landing's reaction: which, to which side, how far through its jolts
-type Landing = { kind: string, sign: number, phase: number }
+-- (`at`: os.clock() it began; `power`: how hard, against a landing's own, which is 1)
+type Landing = { kind: string, sign: number, phase: number, at: number, power: number }
 local reactOn: { [Model]: Landing } = setmetatable({}, { __mode = "k" }) :: any
 local landings: { [number]: number } = {} -- UserId -> landings counted here (it seeds the pick)
+local landSeed: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- fish -> its last landing's seed (the fits')
 local TAU = math.pi * 2
 local REST = CFrame.new()
 local rad = math.rad
@@ -265,6 +282,64 @@ local function due(model: Model, j: FishJoints?, offset: Vector3, away: number, 
 	return true
 end
 
+-- The part of a modelled creature the rider sits on, and the joints from the Root out to it (Animation.RiderLock).
+-- Worked out once a fish: the part whose box is nearest the point just under the Saddle, as the creature stands at
+-- rest. Each frame the rider is given that part's own move from its rest place (seat), so they are fixed to the
+-- back itself: the keyed swim, the turn layer's bends, the body's shift, a fit, a barrel roll, all of it.
+local function seatOf(model: Model, root: BasePart): ({ Motor6D }?, CFrame)
+	local saddle = root:FindFirstChild("Saddle")
+	if not saddle or not saddle:IsA("Attachment") then
+		return nil, CFrame.identity
+	end
+	local byPart: { [BasePart]: Motor6D } = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("Motor6D") and string.sub(d.Name, 1, 4) == "Rig_" and d.Part1 then
+			byPart[d.Part1] = d
+		end
+	end
+	local under = saddle.Position - Vector3.new(0, Config.Ride.SeatHeight + 0.3, 0)
+	local best: { Motor6D }? = nil
+	local bestRest = CFrame.identity
+	local bestGap = math.huge
+	for part in byPart do
+		-- the joints from the Root out to this part (a part that doesn't hang from the Root is passed over)
+		local chain: { Motor6D } = {}
+		local at: BasePart? = part
+		local whole = false
+		for _ = 1, 12 do
+			local motor = if at then byPart[at] else nil
+			if not motor then
+				break
+			end
+			table.insert(chain, 1, motor)
+			at = motor.Part0
+			if at == root then
+				whole = true
+				break
+			end
+		end
+		if whole then
+			local rest = CFrame.identity
+			for _, motor in chain do
+				rest *= motor.C0 * motor.C1:Inverse()
+			end
+			local own = rest:PointToObjectSpace(under)
+			local half = part.Size / 2
+			local nearest = Vector3.new(
+				math.clamp(own.X, -half.X, half.X),
+				math.clamp(own.Y, -half.Y, half.Y),
+				math.clamp(own.Z, -half.Z, half.Z)
+			)
+			-- (of two the point is inside, the one nearer the Root)
+			local gap = (own - nearest).Magnitude + #chain * 0.01
+			if gap < bestGap then
+				best, bestRest, bestGap = chain, rest, gap
+			end
+		end
+	end
+	return best, bestRest:Inverse()
+end
+
 -- The rider's mount on a fish: the body's shift eased and in part, so they ride the slow motions (the wave, the dip, a
 -- buck) and are spared the quick ones. RiderCalm 0 follows the body exactly; a braced rider (the startle) goes with
 -- the rearing whole. A barrel roll carries them round whole.
@@ -280,6 +355,29 @@ local function seat(
 	dt: number
 )
 	local a = Config.Animation
+	if isRidden and a.RiderFollow > 0 and a.RiderLock > 0 then
+		-- Locked (Animation.RiderLock): exactly where the part under them has gone, this frame. What the body turned
+		-- by quicker than the rider's chest can follow is kept as the whiplash (Config.Wild.Whip: the pose's).
+		local lag = Ease.alpha(math.max(Config.Wild.WhipEase, 0.5), dt)
+		j.lagNose = Ease.lerp(j.lagNose, nose, lag)
+		j.lagRoll = Ease.lerp(j.lagRoll, roll, lag)
+		j.whipNose, j.whipRoll = nose - j.lagNose, roll - j.lagRoll
+		local chain = j.seatChain
+		local moved: CFrame
+		if chain then
+			moved = CFrame.identity
+			for _, motor in chain do
+				moved *= motor.C0 * motor.Transform * motor.C1:Inverse()
+			end
+			moved *= j.seatRest
+		else
+			moved = CFrame.new(0, up, -fore) * rot(nose, yaw, roll + spin)
+		end
+		-- (a buck still throws them up off the seat, along the back's own up)
+		j.mount = if j.air ~= 0 then moved * CFrame.new(0, j.air, 0) else moved
+		return
+	end
+	j.whipNose, j.whipRoll = 0, 0
 	if isRidden and a.RiderFollow > 0 then
 		local calm = math.clamp(a.RiderCalm, 0, 1)
 		local share = Ease.lerp(Ease.lerp(1, 0.5, calm), 1, j.brace)
@@ -362,6 +460,15 @@ local function animateFish()
 						riderSwing = 0,
 						riderRoll = 0,
 						mount = nil,
+						seatChain = nil,
+						seatRest = CFrame.identity,
+						lagNose = 0,
+						lagRoll = 0,
+						whipNose = 0,
+						whipRoll = 0,
+						fitFor = 0,
+						fitCount = 0,
+						fitNext = math.huge,
 						at = now,
 						turn = math.random(0, 2),
 					}
@@ -460,6 +567,7 @@ local function animateFish()
 						j.style = RideStyles.of(id :: string)
 						j.wave = RideStyles.waveOf(id :: string)
 						j.fins = RideStyles.finsOf(id :: string)
+						j.seatChain, j.seatRest = seatOf(model, root)
 						-- a big creature beats slower than a small one
 						local kind = Config.FishById[id :: string]
 						local length = if kind then Config.bodyOf(model, kind).Z else 14
@@ -525,15 +633,54 @@ local function animateFish()
 					-- longest; the jolts quicken toward the peak. A big animal takes longer over it.
 					local rxUp, rxNose, rxSwing, rxRoll, rxSpin, rxEffort, rxWhip, rxFore = 0, 0, 0, 0, 0, 0, 0, 0
 					local air, flail, leanBack = 0, 0, 0
+					-- The fits (Config.Wild): while it is ridden the fish throws one of the landing's reactions again and
+					-- again, so the ride is never on rails. When, which and to which side come from the landing's own seed, so
+					-- every client works out the same ones. Our own fish's are told to the camera and the drive (State.Fit).
+					local wd = Config.Wild
+					if isRidden and landedAt and wd.Amount > 0 and wd.Fits > 0 and a.Wild > 0 then
+						if j.fitFor ~= landedAt then
+							j.fitFor = landedAt
+							j.fitCount = 0
+							j.fitNext = landedAt + wd.FitFirst
+						end
+						if now >= j.fitNext then
+							j.fitCount += 1
+							local random = Random.new((landSeed[model] or 0) * 131 + j.fitCount)
+							j.fitNext = now + random:NextNumber(wd.FitMin, math.max(wd.FitMin, wd.FitMax))
+							local rigId = model:GetAttribute("Rig")
+							local pair = if type(rigId) == "string"
+								then RideStyles.landingsOf(rigId)
+								else RideStyles.AllLandings
+							local dice = random:NextNumber()
+							local pick = if dice < 0.4
+								then pair[1]
+								elseif dice < 0.7 then pair[2]
+								else RideStyles.AllLandings[random:NextInteger(1, #RideStyles.AllLandings)]
+							if pick == "barrel" and random:NextNumber() > wd.Barrel then
+								pick = "buck"
+							end
+							local side = if random:NextNumber() < 0.5 then -1 else 1
+							local power = wd.Fit
+								* math.min(wd.Amount, 2)
+								* ((wd.ByTier :: { [string]: number })[tostring(model:GetAttribute("Tier"))] or 1)
+							if model == State.Fish then
+								power *= 1 - math.clamp(wd.TameCalm, 0, 1) * (State.Tame or 0)
+								State.Fit = { Fish = model, Kind = pick, At = now, Sign = side, Power = power }
+								State.Fitted:Fire(pick, side, power)
+							end
+							reactOn[model] = { kind = pick, sign = side, phase = 0, at = now, power = power }
+						end
+					end
 					local react = reactOn[model]
 					if react and landedAt and a.Wild > 0 then
 						local slow = Ease.lerp(1.25, 1.1, math.clamp((j.pace - 0.4) / 0.9, 0, 1))
-						local t = sinceLand / slow
+						local t = (now - react.at) / slow
 						if t > 3.3 then
 							reactOn[model] = nil
 						else
 							-- a small fish fights less hard, a mid-sized one hardest, a giant slowly and less
 							local w = a.Wild
+								* react.power
 								* (
 									if length < 25
 										then Ease.lerp(0.7, 0.9, math.clamp((length - 10) / 15, 0, 1))
@@ -666,6 +813,11 @@ local function animateFish()
 						then Ease.lerp(j.rate, rate, Ease.alpha(if buck > 0 then 12 else 4, dt))
 						else rate
 					j.phase += dt * TAU * j.rate
+					if model == State.Fish then
+						-- (for the drive's pulse of speed and the camera: Config.Wild)
+						State.RideBeat = j.phase
+						State.RideEffort = effort
+					end
 					local u = (j.phase / TAU) % 1
 
 					-- the turn layer: the head leads, the tail trails
@@ -742,6 +894,7 @@ local function animateFish()
 					if style and a.Body > 0 then
 						-- (a quick beat with a full sway is a shake: the faster the beat and the smaller the fish, the less of it)
 						local amount = a.Body
+							* (if isRidden then 1 + (Config.Wild.Body - 1) * math.min(Config.Wild.Amount, 2) else 1)
 							* math.clamp(1.6 / math.max(j.rate, 0.1), 0.45, 1)
 							* Ease.lerp(0.45, 1, math.clamp((length - 10) / 25, 0, 1))
 						local s = math.sin(j.phase)
@@ -1008,8 +1161,23 @@ end
 -- Astride the fish. `pace` is its speed as a share of its ridden speed (the rider leans forward over it as it goes
 -- faster), `lean` how hard it turns, -1 to 1 (they lean into the turn), `brace` the startle's hold (curled forward
 -- against the rearing, arms round its back, trembling), `thrown` how far the bolt throws them back, degrees.
-local function astride(t: number, pace: number, lean: number, brace: number, thrown: number): Pose
+-- `whipNose` and `whipRoll` are what the fish's back has just turned by quicker than a body follows, degrees: the
+-- hips are locked to the back (Animation.RiderLock), the chest and the head stay behind a moment and catch up
+-- (Config.Wild.Whip). With Config.Wild.Rodeo the right arm is up, swinging the hook's rope; the left holds on.
+local function astride(
+	t: number,
+	pace: number,
+	lean: number,
+	brace: number,
+	thrown: number,
+	whipNose: number,
+	whipRoll: number
+): Pose
 	local p = Config.Pose
+	local wd = Config.Wild
+	local wild = math.min(wd.Amount, 2)
+	local wn = math.clamp(whipNose * wd.Whip * wild, -35, 35)
+	local wr = math.clamp(whipRoll * wd.Whip * wild, -30, 30)
 	local bob = math.sin(t * 6) * 3
 	local crouch = Ease.smoothstep(0.55, 1.3, pace) * (1 - brace)
 	local forward = p.RideCrouch * crouch + p.BraceLean * brace
@@ -1019,17 +1187,24 @@ local function astride(t: number, pace: number, lean: number, brace: number, thr
 	local arm = 52 + bob + 0.8 * forward - 0.5 * thrown
 	local elbow = math.max(4, 30 + 25 * brace - thrown)
 	local knee = -85 - 10 * crouch - 15 * brace
+	-- the rodeo arm: up over the head, going round (not while braced round the fish's back)
+	local rodeo = if wd.Rodeo > 0 and wild > 0 then 1 - brace else 0
+	local swing = t * TAU * wd.RodeoRate
+	local right = rot(arm - tremble, 0, -10)
+	if rodeo > 0 then
+		right = right:Lerp(rot(wd.RodeoArm + 9 * math.sin(swing) - wn * 0.5, 0, 16 + 9 * math.cos(swing)), rodeo)
+	end
 	return {
 		LeftHip = rot(72, 0, -30),
 		RightHip = rot(72, 0, 30),
 		LeftKnee = rot(knee, 0, 0),
 		RightKnee = rot(knee, 0, 0),
 		LeftShoulder = rot(arm + tremble, 0, 10),
-		RightShoulder = rot(arm - tremble, 0, -10),
+		RightShoulder = right,
 		LeftElbow = rot(elbow, 0, 0),
-		RightElbow = rot(elbow, 0, 0),
-		Waist = rot(torso, 0, side),
-		Neck = rot(-torso * 0.8, 0, -side * 0.5),
+		RightElbow = rot(Ease.lerp(elbow, 24, rodeo), 0, 0),
+		Waist = rot(torso - wn, 0, side - wr),
+		Neck = rot(-torso * 0.8 - wn * 0.35, 0, -side * 0.5 - wr * 0.35),
 	}
 end
 
@@ -1038,7 +1213,7 @@ end
 local function dash(t: number, u: number, time: number): Pose
 	local p = Config.Pose
 	local from = math.clamp(p.FlipStart, 0, 0.9)
-	local out = blend(streamlined(t, 7), astride(t, 0, 0, 0, 0), Ease.smoothstep(0.82, 1, u))
+	local out = blend(streamlined(t, 7), astride(t, 0, 0, 0, 0, 0, 0), Ease.smoothstep(0.82, 1, u))
 	local turns = math.floor(p.Flip + 0.5)
 	if turns <= 0 or time < p.FlipMin then
 		return out
@@ -1067,7 +1242,15 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 				else math.clamp(fishRoot.AssemblyAngularVelocity.Y / rad(math.max(Config.Ride.YawRate, 1)), -1, 1)
 		end
 		j.lean = Ease.lerp(j.lean, lean, Ease.alpha(6, dt))
-		return astride(t, pace, j.lean, if fj then fj.brace else 0, if fj then fj.thrown else 0)
+		return astride(
+			t,
+			pace,
+			j.lean,
+			if fj then fj.brace else 0,
+			if fj then fj.thrown else 0,
+			if fj then fj.whipNose else 0,
+			if fj then fj.whipRoll else 0
+		)
 	elseif state == "Jumping" then
 		-- our own hop says which part of it this is; another player's is told from how long ago it began and how fast
 		-- they are going (a pull-in is far faster than a glide)
@@ -1269,6 +1452,7 @@ function AnimController.Start()
 				-- (the server may send the landing's number, so a player who joined late picks the same; else we count)
 				local count = if type(serial) == "number" then serial else (landings[userId] or 0) + 1
 				landings[userId] = count
+				landSeed[fish] = userId * 31 + count
 				local random = Random.new(userId * 31 + count)
 				local pair = RideStyles.landingsOf(id)
 				local pick = pair[1]
@@ -1280,7 +1464,13 @@ function AnimController.Start()
 						pick = pair[2]
 					end
 				end
-				reactOn[fish] = { kind = pick, sign = if random:NextNumber() < 0.5 then -1 else 1, phase = 0 }
+				reactOn[fish] = {
+					kind = pick,
+					sign = if random:NextNumber() < 0.5 then -1 else 1,
+					phase = 0,
+					at = os.clock(),
+					power = 1,
+				}
 			else
 				reactOn[fish] = nil
 			end
