@@ -1,5 +1,5 @@
 """The camera spots for the land-icon captures: for each land two close views of its signature big assets (a, b) and
-one view down the lane (c). Reads the props list from Studio (props_list.luau, as JSON) and the lane's line.
+one view down the lane (c) and a close-up of the first asset (d). Reads the props list from Studio (props_list.luau, as JSON) and the lane's line.
     python tools/ui/land_icons/plan.py <props.json> > plan.json
 """
 import json
@@ -70,7 +70,8 @@ for land in range(1, 11):
             kinds.add(f[2]["n"])
         if len(picked) == 2:
             break
-    for letter, (rank, _, pr, i), far, lift in zip("ab", picked, (1.7, 2.3), (0.15, 0.45)):
+    picked = picked + picked[:1]  # d: the first again, close up
+    for letter, (rank, _, pr, i), far, lift in zip("abd", picked, (1.7, 2.3, 0.9), (0.15, 0.45, 0.3)):
         px, py, pz = pr["p"]
         size = max(pr["s"])
         cx, cz = P[i][1] + OX, P[i][3]
@@ -82,7 +83,7 @@ for land in range(1, 11):
         n = math.hypot(dx, dz)
         dx, dz = dx / n, dz / n
         dist = size * far + 18
-        eye = [px + dx * dist, py + size * lift + 6, pz + dz * dist]
+        eye = [px + dx * dist, min(py + size * lift + 6, -8), pz + dz * dist]  # always under the surface
         shots.append({"name": f"land{land:02d}{letter}", "what": pr["n"], "cam": eye + [px, py, pz]})
     # c: down the lane, from a little above, in the land's middle
     mid = (S0[land - 1] + S0[land]) / 2 - 200

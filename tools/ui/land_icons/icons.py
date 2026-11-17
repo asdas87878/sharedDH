@@ -1,6 +1,6 @@
 """Land-strip icon treatments (task u1, options only): each land's tile filled with a capture of that land.
     python tools/ui/land_icons/icons.py            builds docs/attachments/land-icons/icons/<code>/... and the sheets
-Pictures: docs/attachments/land-icons/land<NN><letter>.png (a capture of the game's view, see shots.md). Which picture
+Pictures: docs/attachments/land-icons/land<NN><letter>.jpg (a capture of the game's view, see shots.md). Which picture
 and which part of it each land uses: picks.json beside this file ({"1": ["b", cx, cy, side]}, cx/cy/side as shares of
 the picture; side of its height).
 An icon is drawn at SS times its size and shrunk, so its edges are smooth at the real 28-ish GUI pixels.
@@ -69,7 +69,7 @@ def picture(land, w, h, pick=None):
     """The land's picture cropped to w:h about its focus, punched up (colour, contrast) so it survives 28 px."""
     choice = pick or picks().get(str(land), ["a", 0.5, 0.5, 0.8])
     letter, cx, cy, side = choice
-    path = SHOTS / f"land{land:02d}{letter}.png"
+    path = SHOTS / f"land{land:02d}{letter}.jpg"
     if path not in _pics:
         _pics[path] = Image.open(path).convert("RGB")
     src = _pics[path]
