@@ -29,6 +29,155 @@ by script; none of it has been played by hand yet. The place itself is not in th
 - **Drafts, nothing wired in:** the Cosmic rarity ([Cosmic](design/cosmic.md)), trial voxel creatures
   (`art/creatures/Trial*`), a black hole effect (`Lib/BlackHole`, tried with `tools/studio/black_hole_demo.luau`).
 - StyLua and the build pass; selene shows only the two old warnings.
+## 2026-11-17 · The size sticker live on fish tags, the stars off (task u2, Hugo's pick; not pushed by hand)
+**State:** in the game code, run in Hugo's Studio by script: a ride through the Shallows and the Reef with sizes forced
+by `TestSize`, pictures judged. **Not played by hand.** StyLua and selene pass; luau-lsp isn't on this PC. Nothing
+uploaded, the place not saved, the test script removed, mouse and camera reset.
+- Hugo: "sticker version but remove the squares/circles or whatever shapes on the sides of higher tiers" (S8 of
+  [the options](attachments/fish-tags-size-text-options-1.png)). Live picture:
+  [fish-tags-size-sticker-live-1.png](attachments/fish-tags-size-sticker-live-1.png).
+- **`Kit.luau`:** `Kit.SizeChip = 4` (Sticker). Styles 1 to 3 kept; in Studio the workspace's `SizeChip` still
+  overrides it.
+- **`Tags.luau`:**
+  - `LADDER` and the `STICKER_*` numbers.
+  - `putSticker`, and the sticker's layers in `makeStack` (a turned frame on the word's `Art`).
+  - `putStack` shows the sticker and no chip on style 4. On r1's word, which isn't live, it falls back to the Glass
+    chip.
+  - Family 5: `Sparks = false`, so Legendary, Mythic and Secret have no stars. Their shine, glow and colour motion
+    are unchanged.
+- **Seen:** TINY, BIG, GIANT and HUGE stickers on real tags, near and on far tags.
+- **Not seen:** a Legendary or rarer tag in play (the Megalodons swam overhead with no tag). The stars are off by
+  code for every rarity.
+- **Open:** the sticker reaches about 8 px above the word, and the tag's measured height doesn't count it. The
+  crowding check could let a tag above touch it.
+- **For the UI chat (your files):** only the size row and the word's stars changed in `Tags.luau`, and only
+  `Kit.SizeChip` in `Kit.luau`. Another worker's uncommitted land strip settings in `Kit.luau` were left as they
+  were.
+
+## 2026-11-17 · The land strip in style A: built behind a switch, with sheets to pick from (task l1, not pushed by hand)
+**State:** built and run in Studio, **off by default** (`Kit.LandStripStyle = 0`); nothing uploaded; the place was not
+saved (the temporary scripts were removed, the test attributes cleared, the mouse and camera reset). Hugo's words and
+the full description: [ui.md, "The land strip, style A"](design/ui.md).
+- **Hugo's order:** style A without the inner border, numbers styled to each land, new screenshots to choose from,
+  the locked look kept, his avatar under the strip moving with him and a metres bar under it, each land's colour
+  picture revealed over its grey one linearly as he goes, a yellow dashed best line with "BEST" and its metres,
+  "somewhat simplistic but still stylised ... not modernised minimalistic". Later the same evening: the chosen
+  pictures redrawn as one cohesive set by ChatGPT's image model, and "the inner border still isn't removed" (that
+  remark was about the old framings sheet; its tiles are redrawn without the band now).
+- **The Boss's reading, used here (Hugo has not confirmed the details):** "first style" is treatment A; its inner
+  band is gone (one ink frame, the picture straight inside); the land you are in is a size up with a white rim. The
+  avatar is Roblox's headshot of you. **The reveal follows the current dive** (`Kit.LandReveal = "Dive"`): every
+  dive starts grey and fills in; your best stays visible as the dashed line. **The alternative, "Best"** (lands ever
+  reached stay in colour), is one switch and is on the sheet beside it.
+- **To pick (Hugo):**
+  - the numbers N1 Metal, N2 Material (default), N3 Badge, and Dive or Best:
+    [the strip's sheet](attachments/land-strip-A-options-1.png) and [a whole dive](attachments/land-strip-A-1.gif);
+  - the pictures: six new captures a land (h to m) in [lands 1 to 5](attachments/land-icons-selection-1.jpg) and
+    [6 to 10](attachments/land-icons-selection-2.jpg) (answer "3k, 7h"), or a generated set:
+    [G1 to G4 against the captures](attachments/land-icons-gen-1.png), [G2 in the game](attachments/land-icons-gen-1-ingame.jpg).
+- **Built:**
+  - `src/client/UI/LandStrip.luau`: style 1 beside today's strip (`LandStrip.build` picks by the switch;
+    `LandStrip.preview` builds an extra one for sheets). The pictures come from one atlas image (colour row, grey
+    row); without it the tiles are plain land colour, which still works.
+  - `src/client/UI/Kit.luau`: `LandStripStyle`, `LandNumbers`, `LandReveal`, `LandAtlas` (each overridable by a
+    workspace attribute in Studio).
+  - `src/server/Services/BestService.luau` (new): each player's furthest distance, server-side, as the attributes
+    `BestMetres` and `BestLands`; the strip reads them. For the session only (no saves yet).
+  - `tools/ui/land_icons/`: `plan2.py` (the new camera spots), `capture.py` (the Play captures through
+    studio-runner), `selection.py` (the selection sheets), `atlas.py` (the atlas; `--studio` copies it into Studio's
+    content folder for tests without an upload; `--gen K` from a generated set), `preview_client.luau` and
+    `strip_capture.py` (the strip's shots in a playtest), `strip_sheet.py` (its sheet and GIF), `gen_sheet.py` (the
+    generated sets). `sheet.py`'s framings sheet now draws the tiles without the band.
+- **Checked in Studio:** the strip draws with no errors on the dock and in a ride; on a real sandbox ride the
+  server's best rose 8, 15, 26 m in 45 s, then 173, 1,000 and 1,414 m (land 6.4) and the line followed it; the BEST
+  tag covered the avatar while a new best was being set, and now hangs under the metres then. StyLua and selene pass
+  on the changed files. **Not checked:** a real phone (the phone frames are the strip at its real phone size over
+  the game, Studio's window was not resized), other players, several dives in a row.
+- **Generated pictures:** one gpt-image-2 edit, four variations, through the ElevenLabs connector (about 0.31
+  dollars; Higgsfield had 0 credits, Meshy refuses tasks on its free plan). Kept in
+  `docs/attachments/land-icons/gen/`.
+- **To turn it on, after the picks:** build the atlas from the pick (`atlas.py`, or `--gen K`), upload
+  `docs/attachments/land-icons/land_atlas.png` once (permanent), put its id in `Kit.LandAtlas`, set
+  `Kit.LandStripStyle = 1` and `Kit.LandNumbers`/`Kit.LandReveal` to the picks.
+
+## 2026-11-17 · Options only: the size text on fish tags in the rarity word's style (task u2, not pushed by hand)
+**State:** sheets for Hugo to pick from. Nothing in the game changed, nothing was uploaded, and the place was not
+saved. Hugo's asks: "The size text still looks really bad, give me some versions that match the rarity style more"
+and "let me choose for each thing before integrating".
+- **The sheet:** [fish-tags-size-text-options-1.png](attachments/fish-tags-size-text-options-1.png). It shows **Now**
+  (r4's Glass chip) and what is wrong with it, then eight versions, all Gotham Black built the way the rarity word is
+  built (gradient metal, ink edge, one step of depth, glow and shine by the same rules):
+  - **S1 Echo:** the rarity's own metal, paler and smaller.
+  - **S2 Size ladder:** its own colours, cool to hot, growing louder with the size.
+  - **S3 One line:** "HUGE LEGENDARY" on one line.
+  - **S4 Ribbon:** the size between two slim bars in the rarity's metal, under the word.
+  - **S5 Spaced capitals:** small capitals spread to the word's width.
+  - **S6 Soft plate:** the ladder word on a soft dark plate that fades at its ends.
+  - **S7 Big two:** quiet up to Giant; Huge and Colossal get their own glow, stars and a shine in step with the
+    word.
+  - **S8 Sticker:** the size tilted on the word's corner.
+
+  Each version is shown zoomed (Common and Legendary at Tiny, Huge and Colossal) and at real size: riding in the
+  Shallows, and in Midnight's dark water.
+- **Also:** [scenes](attachments/fish-tags-size-text-options-1-scenes.jpg) (Rare and Secret, a crowd, further off,
+  real size), [every size](attachments/fish-tags-size-text-options-1-all-sizes.jpg) (six sizes by four rarities,
+  half size) and [S7 moving](attachments/fish-tags-size-text-options-1-S7.gif).
+- **A Normal fish has no size text in every version,** as today. Far and crowded tags still drop the row, so only
+  S3 and S8 keep the size there.
+- **How it was made:** `tools/ui/size_text/`:
+  - `mock_client.luau`: a temporary LocalScript, installed by `run_install.py`, that hides the game's tags and draws
+    copies of look 7 with the size in each version.
+  - `drive.luau`, `cluster.luau`, `wait_freeze.luau`: run in the server context. The scene is frozen as a local copy,
+    so every version is shot over the same moment.
+  - `capture.py`: the Studio shots, through studio-runner.
+  - `sheet.py`: the sheets.
+
+  The script was removed afterwards; Studio is in Edit, with the mouse and camera reset.
+- **Integration, once Hugo picks:** a new style in `Tags.luau`'s row, or line 1 for S3 and S8, behind `Kit.SizeChip`.
+  That is the UI chat's file.
+
+## 2026-11-17 · The submarine: carried to a land, flung or kicked onto your fish (task m1, not pushed by hand)
+**State:** built in `src/` on Hugo's order, placeholders only (plain parts, motion by code, no uploads). Run by
+script in Hugo's Studio to lands 2, 3, 5, 7 and 10 with both drop-offs; **not played by hand.** Synced by the sync
+script, not a hand push. StyLua, selene (only the two old warnings) and `rojo build` pass; luau-lsp shows no new type
+errors in the files touched.
+- **What it is** ([the submarine](design/submarine.md)): a SUB button under Shop and Index (or F on the dock) opens a
+  panel: buy tier N (to land N + 1), pick a land, and pick a fish from your tank to ride with (or none). Then walk
+  off the dock as usual: you swim, a yellow sub comes up under you, scoops you onto its seat, runs the herd's line to
+  the land in 4 to 10 s, and either flings you into an ordinary hop or brings your fish up beside it and kicks you
+  onto it. Prices and several rules are marked "reading, not confirmed" in the note.
+- **Game code touched** (the partner's chat should know): `RideService` (a "Carried" state; `Diving` hook,
+  `fling`, `seatOn`, `letGo`, `sendHome`), `FishService` (`keepFor`, `spawnFor`, `stockNear`, `streamPoint`,
+  `discard`, a `SubFor` attribute), `AquariumService` (`spend`, `coinsOf`, `give`, the `Tank` attribute),
+  `JumpController.fling`, `RideController` (mirrors "Carried"), `AnimController` (a "Carried" pose), `Net` (the
+  remotes listed), `Config.Sub`. New: `SubService`, `Shared/SubTrip`, `SubController`, `UI/SubPanel`.
+- **Studio trap found:** new script files arrive in Hugo's Studio twice (two Rojo sessions, it seems). The extra
+  identical copies of `SubService`, `SubController`, `SubPanel`, `SubTrip`, `BestService` and `HookController` were
+  removed in Edit. Before that Hugo's place ran two `HookController`s. Worth a look at why (one Rojo plugin too many?).
+- [The playtests](playtests/2026-11-17-submarine.md); clips: [fling](attachments/submarine-fling.gif),
+  [fish](attachments/submarine-fish-dropoff.gif).
+- **Not done:** saving (the tiers sit with the tank's coins for when it comes), Robux prices, the partner's model
+  and animations (hooks in the note), the N panel rows, a phone check.
+
+## 2026-11-17 · Options only: the land strip with a picture of each land (task u1, not pushed by hand)
+**State:** sheets for Hugo to pick from; nothing in the game changed, nothing uploaded. Hugo's ask: "The map icons on
+the top ... filled in with a screenshot of a part of the map fitting the part its describing"; "let me choose for each
+thing before integrating".
+- **The sheet:** [land-icons-options-1.png](attachments/land-icons-options-1.png): today's strip as **Now**, and six
+  treatments **A** framed square, **B** round badge, **C** tilted photo card with a name ribbon, **D** stud hex,
+  **E** wide chip with the depth, **F** name cap. Each is laid over a Play capture in place of today's strip, at real
+  size (1 GUI px = 1 px), zoomed 3x with lands done / current / not reached, the three states big, and all ten pictures.
+- **The pictures:** [land-icons-framings.jpg](attachments/land-icons-framings.jpg): 3 to 6 captures per land (1a, 1c,
+  ...) taken in Play with each land's own water and fog; the gold frame is the crop the options use. Lands 5, 7, 9
+  and 10 got a second round of closer framings (e, f, g). Four captures were dropped and are marked in their place.
+  Files in `docs/attachments/land-icons/`. Answer with a letter and, if wanted, a picture per land ("A, 3c, 7a").
+- **Reads poorly at 28 px:** the Underworld (10: the skull is a pale box with horns; 10e, the ribcage, is the other
+  choice, but then 9 and 10 differ only by colour), Midnight (7: kelp on indigo, better since 7e). Open Blue and
+  Twilight (5, 6) are told apart by hue more than shape. Lands 5 to 8 borrow the first four lands' assets, so their
+  pictures repeat 1 to 4's shapes.
+- **Tools:** `tools/ui/land_icons/` (plan.py picks the camera spots from the map and the props, aim.luau and
+  shotcam_client.luau hold the camera in Play through studio-runner, icons.py draws the treatments, sheet.py the
+  sheets, picks.json the crop per land). The temporary LocalScript was removed after each run; the place is as it was.
 
 ## 2026-11-17 · Obsidian chat integration (the user's PC): the lock, the plunge, the stun, the hook
 **State:** two pushes on the user's word ("push current changes", then "push the changes and get hugos agent to

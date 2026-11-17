@@ -1205,6 +1205,10 @@ local function fromServerState()
 		-- also the end of a jump that missed from floating, or lost its fish
 		State.Fish = nil
 		State.setMode("Free")
+	elseif state == "Carried" then
+		-- the submarine has us (SubController moves us and the camera)
+		State.Fish = nil
+		State.setMode("Carried")
 	end
 end
 

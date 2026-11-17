@@ -458,6 +458,8 @@ local playersReadAt = -1
 -- a place that counts as having a player near, whoever is there (FishService.keepNear): the fish round it stay in the
 -- Workspace, so they are never new to anyone's machine. The sandbox's start is one (Studio only).
 local keptPlace: Vector3? = nil
+-- and one more such place for each player the submarine is carrying (FishService.keepFor): where they will be dropped
+local keptFor: { [Player]: Vector3 } = {}
 local function readPlayers()
 	if os.clock() - playersReadAt < 0.2 then
 		return
@@ -473,6 +475,9 @@ local function readPlayers()
 	end
 	if keptPlace then
 		table.insert(playerAt, keptPlace)
+	end
+	for _, place in keptFor do
+		table.insert(playerAt, place)
 	end
 end
 
@@ -1264,6 +1269,7 @@ function FishService.setRider(w: Wild, player: Player)
 	w.Reserved = nil
 	w.ReleasedAt = nil
 	w.CoastToken = nil
+	w.Model:SetAttribute("SubFor", nil)
 	w.Model:SetAttribute("Rider", player.UserId)
 	w.Model:SetAttribute("Reserved", 0)
 	pcall(function()
@@ -1651,6 +1657,120 @@ function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Ve
 end
 
 -- After the sandbox changes how many fish there should be: the slices' shares again; the top-up does the rest
+-- The submarine (SubService; docs/design/submarine.md): the fish round the place a player is being carried to are kept
+-- in the water before they get there, as if they were there already (nil: no longer)
+function FishService.keepFor(player: Player, place: Vector3?)
+	if place then
+		keptFor[player] = place
+	else
+		keptFor[player] = nil
+	end
+	playersReadAt = -1
+end
+
+-- Where a place is along the herd's stream, studs; where each land begins along it; and how long it is
+function FishService.streamS(position: Vector3): number
+	return (Stream.project(stream, position))
+end
+
+function FishService.landStart(index: number): number?
+	return zoneFrom[index]
+end
+
+function FishService.streamLength(): number
+	return stream.Length
+end
+
+-- A point on the herd's own line through the open water (its middle, round the big things), `lift` over the floor, kept under the surface
+-- by `under` studs
+function FishService.streamPoint(s: number, lift: number, under: number): Vector3
+	s = math.clamp(s, 0, stream.Length)
+	-- (bent round the big things as the herd is, with room for a body 8 studs wide either side)
+	local across = Stream.across(stream, s, 0, 0, 1, 8)
+	local at, floorY = Stream.point(stream, s, across, 0)
+	return Vector3.new(at.X, math.min(floorY + lift, Config.Oxygen.SurfaceY - under), at.Z)
+end
+
+-- The fish a player rides with off the submarine: one of their tank's, made in the water for them, its kind, colour
+-- and size. Kept for them (no one else can take it), driven by their machine (it swims up beside the sub) and not by
+-- the herd, until they are on it.
+function FishService.spawnFor(
+	id: string,
+	variant: string,
+	size: string,
+	at: Vector3,
+	dir: Vector3,
+	player: Player
+): Wild?
+	local fishType = Config.FishById[id]
+	if not fishType then
+		return nil
+	end
+	local home = (Stream.project(stream, at))
+	local w = make(
+		fishType,
+		if variant == "Silver" or variant == "Gold" or variant == "Rainbow" then variant else "",
+		home,
+		at,
+		dir,
+		Lane.zoneAt(lane, Stream.laneS(stream, home)),
+		sliceAt(home),
+		nil,
+		nil,
+		nil,
+		if Config.SizeScale[size] then size else "Normal"
+	)
+	park(w, false)
+	w.Model:SetAttribute("SubFor", player.UserId)
+	FishService.reserve(w, player)
+	-- (not steered by the herd while this is set: the player's machine moves it beside the sub)
+	w.CoastToken = {}
+	pcall(function()
+		w.Root:SetNetworkOwner(player)
+	end)
+	return w
+end
+
+-- A few fish of the herd put in the water ahead of a place along the stream, between `from` and `to` studs on, for a
+-- player about to arrive there (the submarine's drop point): the kinds, sizes and colours the herd has there, each at
+-- its own place across the band and height over the floor. Kept in the water; the top-up thins them out later if the
+-- stretch has too many.
+function FishService.stockNear(s: number, from: number, to: number, count: number)
+	for i = 1, count do
+		local at = math.clamp(s + from + (to - from) * (i - 0.5) / count + rng:NextNumber(-15, 15), 0, stream.Length)
+		local zone = Lane.zoneAt(lane, Stream.laneS(stream, at))
+		local grandNear, kinds = census(at)
+		local fishType = pick(zone, kinds)
+		if fishType then
+			local tier = rollSize(grandNear, fishType)
+			local half = Stream.width(stream, at) / 2
+			local across = rng:NextNumber(-0.55, 0.55) * half
+			local point = Stream.point(stream, at, across, rng:NextNumber(12, 24))
+			local w = make(
+				fishType,
+				rollVariant(),
+				at,
+				point,
+				Stream.along(stream, at),
+				zone,
+				sliceAt(at),
+				nil,
+				nil,
+				nil,
+				tier
+			)
+			park(w, false)
+		end
+	end
+end
+
+-- That fish, given back to the herd (the drop went wrong) or taken out of the water (the trip was given up)
+function FishService.discard(w: Wild)
+	if w.Model.Parent then
+		w.Model:Destroy()
+	end
+end
+
 function FishService.restock()
 	local fresh = newSlices()
 	for i, slice in fresh do
@@ -1736,6 +1856,7 @@ function FishService.Start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		visitAt[player] = nil
+		keptFor[player] = nil
 	end)
 	while true do
 		task.wait(Config.Spawn.TopUpEvery)

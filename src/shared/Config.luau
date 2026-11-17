@@ -1764,6 +1764,38 @@ Config.Dive = {
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
 }
 
+-- The submarine (Hugo, 2026-11-17: "you should jump in the water start swimming while the submarine swims in and
+-- picks you up, then swims really fast to your destination"; docs/design/submarine.md). Bought tier by tier at the hub:
+-- tier N carries you to land N + 1 or any land before it. Every number is a first go, unplayed; the prices are guesses.
+Config.Sub = {
+	On = 1, -- 0: no sub; stepping off the dock is always the dive-in
+	Prices = { 2500, 25e3, 250e3, 2e6, 15e6, 150e6, 1e9, 8e9, 50e9 } :: { number }, -- tier 1 (to land 2) .. tier 9 (to land 10)
+	Approach = 2.0, -- seconds swimming at the surface while the sub swims in
+	Pickup = 1.2, -- the scoop onto its seat
+	Speed = 520, -- its top speed down the lane, studs a second
+	SpeedUp = 1.2, -- seconds to reach it
+	SlowDown = 1.6, -- seconds to slow from it to DropSpeed
+	MinRide = 4, -- the run takes at least this long (a slower top speed for a short trip)
+	MaxRide = 10, -- and at most this long: a far land is reached at a higher top speed (the reference's flight is about ten seconds, whatever the zone)
+	Stock = 6, -- herd fish put in the water just ahead of the drop point before you arrive, so the fling always has fish to hook
+	StockAt = 2.5, -- seconds before the drop
+	Arrive = 0.8, -- seconds at DropSpeed with "NOW ARRIVING" before the drop
+	DropSpeed = 90, -- its speed as it lets you go: the fling's hop leaves at this (Config.hopFrom)
+	Drop = 1.0, -- the fling: the nose comes up and you are thrown; with a fish, its swim up beside the sub
+	FishIn = 1.4, -- your fish's swim up beside the sub, seconds (it begins during Arrive)
+	Kick = 0.6, -- the kick off the sub onto your fish, seconds
+	Into = 150, -- you are dropped this far into the land, studs
+	Lift = 34, -- the sub runs this high over the floor, studs (kept under the surface)
+	Sample = 60, -- the path's points, this far apart, studs
+	FishSide = 16, -- your fish swims this far beside the sub, studs
+	Under = 17, -- the sub comes up this far under the surface to take you (its seat is 7 over its middle: you swim about 9 under)
+	LandSlack = 40, -- the kick's landing: how far from the fish the server still believes us, studs
+	Late = 2.5, -- seconds past the drop with no word from the player's machine before the server lets them go itself
+	Shake = 1, -- the pick-up's and the kick's shakes, at this strength (0: none)
+	Fov = 18, -- the run's view, this much wider at full speed, degrees
+	Distance = 30, -- the camera's distance behind the sub on the run, studs
+}
+
 -- Share of spawns by rarity per zone, from the roster's draft weights. A tier with no fish in a zone is skipped.
 Config.ZoneMix = {
 	{ Common = 74, Uncommon = 22, Rare = 3.2, Epic = 0.6, Legendary = 0.2 },

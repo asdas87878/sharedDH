@@ -731,6 +731,16 @@ type StackParts = {
 	SizeWord: TextLabel,
 	SizeWordFill: UIGradient,
 	SizeWide: number,
+	-- the size as a sticker on the word's top-left corner (Kit.SizeChip 4)
+	Sticker: Frame,
+	StickerGlow: TextLabel,
+	StickerGlowEdge: UIStroke,
+	StickerDrop: TextLabel,
+	StickerDropEdge: UIStroke,
+	StickerMain: TextLabel,
+	StickerFill: UIGradient,
+	StickerEdge: UIStroke,
+	StickerShine: TextLabel,
 	SparkWide: number,
 	Animated: boolean,
 }
@@ -1044,7 +1054,9 @@ local FAMILIES: { (r: number, p: Pal) -> WordStyle } = {
 		)[r]
 		s.Shine = if r >= 4 then 0.12 else nil
 		s.Sweep = r >= 5
-		s.Sparks = r >= 5
+		-- no stars beside the word (Hugo, 2026-11-17: "remove the squares/circles or whatever shapes on the sides of
+		-- higher tiers")
+		s.Sparks = false
 		s.Spin = secret(r)
 		s.Tight = true
 		s.Anim = if r == 5 then "gold" elseif r == 6 then "ember" elseif r == 7 then "prism" else nil
@@ -1185,6 +1197,22 @@ function Tags.chipLook(style: number, tier: string): ChipLook?
 	end
 	return cl
 end
+
+-- The sticker (Kit.SizeChip 4; Hugo, 2026-11-17, S8 of fish-tags-size-text-options-1.png): the size as a smaller word
+-- built like the rarity word (metal split at the middle, the ink edge, one step of depth), tilted on the word's
+-- top-left corner. Its own colours, cool and quiet to hot and loud; a shine line on Giant and Huge, a glow from Huge.
+-- It sits in line 1, so far and crowded tags keep it.
+local LADDER: { [string]: { Light: Color3, Mid: Color3, Dark: Color3, Deep: Color3 } } = {
+	Tiny = { Light = rgb(238, 242, 248), Mid = rgb(170, 184, 202), Dark = rgb(118, 132, 152), Deep = rgb(50, 58, 74) },
+	Big = { Light = rgb(214, 255, 240), Mid = rgb(80, 224, 186), Dark = rgb(22, 158, 138), Deep = rgb(8, 74, 66) },
+	Giant = { Light = rgb(206, 244, 255), Mid = rgb(60, 196, 255), Dark = rgb(20, 120, 220), Deep = rgb(10, 46, 110) },
+	Huge = { Light = rgb(255, 238, 186), Mid = rgb(255, 162, 40), Dark = rgb(230, 96, 12), Deep = rgb(112, 42, 4) },
+	Colossal = { Light = rgb(255, 220, 200), Mid = rgb(255, 64, 76), Dark = rgb(196, 14, 52), Deep = rgb(92, 4, 28) },
+}
+local STICKER_SIZE = { 9.5, 10.5, 11.25, 12.25, 13 }
+local STICKER_EDGE = { 1.7, 1.8, 2, 2.1, 2.2 }
+local STICKER_TURN = -12
+local STICKER_Z = 20
 
 local GLOSS_CUT = 0.5
 local function glossSeq(t: number): NumberSequence
@@ -1348,6 +1376,39 @@ local function makeStack(parent: Instance): Alt
 	local shine = layer(12)
 	local shineFill: UIGradient =
 		Kit.new("UIGradient", { Rotation = 90, Transparency = lineSeq(0.2, 0.3, 0.06) }, shine)
+	-- the sticker: its own small stack of the same layers, turned, on the word's top-left corner
+	local sticker: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(2, 1),
+		Size = UDim2.fromOffset(10, 18),
+		Rotation = STICKER_TURN,
+		BackgroundTransparency = 1,
+		ZIndex = STICKER_Z,
+		Visible = false,
+	}, art)
+	local function stickerLayer(z: number): TextLabel
+		return Kit.new("TextLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Font = Enum.Font.GothamBlack,
+			TextSize = 11,
+			Text = "",
+			TextColor3 = Kit.White,
+			ZIndex = STICKER_Z + z,
+		}, sticker)
+	end
+	local sGlow = stickerLayer(1)
+	sGlow.TextTransparency = 0.3
+	local sGlowEdge = Kit.stroke(sGlow, 4, Kit.White, 0.6)
+	local sDrop = stickerLayer(2)
+	local sDropEdge = Kit.stroke(sDrop, 2, Kit.Ink)
+	local sMain = stickerLayer(3)
+	local sFill = Kit.gradient(sMain, Kit.White, Kit.White)
+	local sEdge = Kit.stroke(sMain, 2, Kit.Ink)
+	local sShine = stickerLayer(4)
+	Kit.new("UIGradient", { Rotation = 90, Transparency = lineSeq(0.15, 0.3, 0.05) }, sShine)
 	-- line 2 (Hugo, 2026-11-14: "put size and icons below rarity"): the size chip and every archetype icon, one row,
 	-- centred, evenly spaced; hidden when the fish has neither
 	local row: Frame = Kit.new("Frame", {
@@ -1568,6 +1629,15 @@ local function makeStack(parent: Instance): Alt
 			SizeWord = sizeWord,
 			SizeWordFill = sizeWordFill,
 			SizeWide = 0,
+			Sticker = sticker,
+			StickerGlow = sGlow,
+			StickerGlowEdge = sGlowEdge,
+			StickerDrop = sDrop,
+			StickerDropEdge = sDropEdge,
+			StickerMain = sMain,
+			StickerFill = sFill,
+			StickerEdge = sEdge,
+			StickerShine = sShine,
 			SparkWide = 0,
 			Animated = false,
 		},
@@ -1695,6 +1765,46 @@ local function putArt(st: StackParts, style: WordStyle, text: string): (number, 
 	return wide, high
 end
 
+-- The sticker for a size (rank 1 Tiny to 5 Colossal), or hidden (nil: Normal, or another size style)
+local function putSticker(st: StackParts, r: number?, sizeTier: string)
+	st.Sticker.Visible = r ~= nil
+	if not r then
+		return
+	end
+	local p = LADDER[sizeTier]
+	local text = string.upper(sizeTier)
+	local size = STICKER_SIZE[r]
+	local measured = TextService:GetTextSize(text, size, Enum.Font.GothamBlack, Vector2.new(1000, 100))
+	st.Sticker.Size = UDim2.fromOffset(measured.X + 2, math.ceil(size + 8))
+	for _, label in { st.StickerGlow, st.StickerDrop, st.StickerMain, st.StickerShine } do
+		label.Text = text
+		label.TextSize = size
+	end
+	local glow = if r == 5 then { 4.5, 0.55 } elseif r == 4 then { 3.5, 0.68 } else nil
+	st.StickerGlow.Visible = glow ~= nil
+	if glow then
+		st.StickerGlow.TextColor3 = p.Mid
+		st.StickerGlowEdge.Color = p.Mid
+		st.StickerGlowEdge.Thickness = glow[1]
+		st.StickerGlowEdge.Transparency = glow[2]
+	end
+	st.StickerDrop.TextColor3 = Kit.darker(p.Deep, 0.2)
+	st.StickerDrop.Position = UDim2.new(0.5, 0, 0.5, if r >= 4 then 1.4 else 1.2)
+	st.StickerDropEdge.Thickness = STICKER_EDGE[r]
+	st.StickerFill.Color = seq({
+		0,
+		Kit.lighter(p.Light, 0.5),
+		0.48,
+		p.Light:Lerp(p.Mid, 0.35),
+		0.52,
+		p.Mid,
+		1,
+		p.Mid:Lerp(p.Dark, 0.55),
+	})
+	st.StickerEdge.Thickness = STICKER_EDGE[r]
+	st.StickerShine.Visible = r == 3 or r == 4
+end
+
 -- A three-line tag's rarity word, its size word and icons for its fish
 local function putStack(st: StackParts, rare: number, tier: string, line: string, lk: Look, sizeTier: string)
 	local text = string.upper(tier)
@@ -1744,7 +1854,12 @@ local function putStack(st: StackParts, rare: number, tier: string, line: string
 	end
 	st.SparkWide = if shiny then 2 * (SPARK + 6) else 0
 	-- the row under the word: the size chip (Tiny to Colossal; a Normal fish has none) and the icons
-	local chip = Tags.chipLook(sizeAt, sizeTier)
+	-- the sticker (4) needs a designed word to sit on; on r1's word it falls back to the Glass chip
+	local stickerRank = if sizeAt == 4 and style then SIZE_RANK[sizeTier] else nil
+	putSticker(st, stickerRank, sizeTier)
+	local chip = if stickerRank or sizeAt == 4 and SIZE_RANK[sizeTier] == nil
+		then nil
+		else Tags.chipLook(if sizeAt == 4 then 1 else sizeAt, sizeTier)
 	st.SizeSlot.Visible = chip ~= nil
 	st.SizeWide = 0
 	if chip then

@@ -199,6 +199,26 @@ Kit.Lands = {
 }
 Kit.LandShort = { "Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Midnight", "Vents", "Bones", "Under" }
 
+-- The land strip with a picture of each land (Hugo, 2026-11-17: "use first style, but remove the inner border, make the
+-- numbers more stylised to each map part"; task l1, docs/design/ui.md "The land strip, style A"). 0 is today's strip
+-- of coloured tiles; 1 the framed pictures, your avatar under them, the colour revealed as you go and the best line.
+-- In Studio the workspace's "LandStripStyle" number overrides it. On (Boss, 2026-11-17, Hugo: "make sure map icons are
+-- implemented"); the pictures are the generated set G2 (docs/attachments/land-icons-gen-1.png).
+Kit.LandStripStyle = 1
+-- On style 1: the numbers' look (1 Metal: the land's colour as a gradient; 2 Material: each land's own stuff, sand,
+-- coral, kelp ribs, planks, glow; 3 Badge: the number on a small sign of its land). Workspace "LandNumbers".
+Kit.LandNumbers = 2
+-- What colours the pictures in: "Dive" (how far this dive has got) or "Best" (the furthest ever, so the lands you have
+-- reached stay in colour at a dive's start). Workspace "LandReveal".
+Kit.LandReveal = "Dive"
+-- The pictures: one uploaded atlas, ten cells of LAND_CELL pixels across, colour on the top row and the grey locked
+-- look under it (tools/ui/land_icons/atlas.py). Not uploaded yet: until it is, the tiles are plain land colour. In
+-- Studio the workspace's "LandAtlas" string overrides it (rbxasset://textures/ridefish/land_atlas.png is a copy in
+-- Studio's own content folder, for tests without an upload).
+Kit.LandAtlas = ""
+-- In Studio, while LandAtlas is empty, the strip reads the local copy so the pictures show without an upload.
+Kit.LandAtlasStudio = "rbxasset://textures/ridefish/land_atlas.png"
+
 -- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
 -- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks;
 -- 7 Hugo's own three lines (2026-11-14: the rarity's word and the class icons, the name in white, "Required: n" and
@@ -209,8 +229,11 @@ Kit.FishTags = 7
 -- (Hugo, 2026-11-14: "put size and icons below rarity, make the sizes cooler too"; Handoff, task r4). Which
 -- chip: 1 Glass (a dark pill edged and lettered in the size's colour; from Giant a gloss, from Huge a glow, Colossal
 -- two gems), 2 Meter (a dark pill, white letters and five bars filled to the size), 3 Solid (a pill filled with the
--- size's colour, white letters, glossy; glow and gems at the top). In Studio the workspace's "SizeChip" overrides it.
-Kit.SizeChip = 1
+-- size's colour, white letters, glossy; glow and gems at the top), 4 Sticker (live since 2026-11-17, Hugo's pick, S8 of
+-- docs/attachments/fish-tags-size-text-options-1.png: no chip; the size as a small word built like the rarity word, in
+-- its own colours cool to hot, tilted on the word's top-left corner, kept on far and crowded tags). In Studio the
+-- workspace's "SizeChip" overrides it.
+Kit.SizeChip = 4
 
 -- The rarity's word on the three-line tag: which designed style each rarity takes (ui.md, "Rarity word options";
 -- Hugo, 2026-11-14: "needs different font and they all need a look with highlights shading and gradients"). Empty:

@@ -1,0 +1,55 @@
+start state Dock
+give {"Fish":"","Tank":"[]","Tier":0,"Dest":0,"State":"Dock","Coins":1000000000000}
+pick {"Fish":"","Tank":"[]","Tier":9,"Dest":2,"State":"Dock","Coins":940832722500}
+0.00 Dock nil pos 3000 -9 6 v 0
+0.27 phase Approach
+0.27 Carried Approach pos 3000 -9 6 v 3
+0.52 Carried Approach pos 3000 -8 7 v 8
+0.77 Carried Approach pos 3000 -7 10 v 13
+1.03 Carried Approach pos 3000 -6 14 v 16
+1.28 Carried Approach pos 3000 -4 18 v 16
+1.55 Carried Approach pos 3000 -2 22 v 15
+1.80 Carried Approach pos 3000 -1 25 v 10
+2.07 phase Pickup
+2.07 Carried Pickup pos 3000 -0 27 v 5
+2.32 Carried Pickup pos 3000 -0 27 v 4
+2.58 Carried Pickup pos 3000 0 27 v 3
+2.83 Carried Pickup pos 3000 5 22 v 25
+3.10 Carried Pickup pos 3000 -1 17 v 25
+3.35 phase Ride
+3.35 Carried Ride pos 3000 0 19 v 5
+3.62 Carried Ride pos 3000 -1 24 v 49
+3.88 Carried Ride pos 2999 -3 53 v 165
+4.13 Carried Ride pos 2998 -8 108 v 244
+4.40 Carried Ride pos 2996 -11 180 v 310
+4.67 Carried Ride pos 2994 -14 275 v 391
+4.93 Carried Ride pos 2991 -18 389 v 466
+5.19 Carried Ride pos 2988 -23 516 v 513
+5.45 Carried Ride pos 2988 -27 642 v 461
+5.70 Carried Ride pos 2991 -31 748 v 409
+5.95 Carried Ride pos 2996 -35 841 v 363
+6.22 Carried Ride pos 2996 -38 930 v 309
+6.49 Carried Ride pos 2990 -40 1004 v 258
+6.75 Carried Ride pos 2980 -41 1066 v 214
+7.02 Carried Ride pos 2971 -43 1114 v 162
+7.28 phase Arrive
+7.28 Carried Arrive pos 2967 -43 1149 v 109
+7.53 Carried Arrive pos 2965 -44 1172 v 90
+7.80 Carried Arrive pos 2964 -45 1196 v 91
+8.07 phase Drop
+8.07 Jumping Drop pos 2963 -46 1220 v 90
+8.32 Jumping Drop pos 2964 -38 1242 v 115
+8.58 Jumping Drop pos 2967 -27 1266 v 93
+8.83 Jumping Drop pos 2970 -26 1289 v 92
+9.10 phase nil
+9.10 Jumping nil pos 2973 -26 1313 v 91
+9.37 Jumping nil pos 2976 -26 1337 v 90
+9.63 Jumping nil pos 2979 -26 1360 v 88
+9.89 Jumping nil pos 2982 -26 1382 v 85
+10.15 Jumping nil pos 2984 -26 1403 v 80
+10.42 Jumping nil pos 2987 -27 1424 v 75
+10.67 Jumping nil pos 2988 -28 1438 v 39
+10.92 Jumping nil pos 2977 -35 1452 v 156
+11.18 Riding nil pos 2931 -90 1496 v 293
+RIDING Boxfish (Tiny ) state Riding oxygen 100
+rode true final Riding land 2

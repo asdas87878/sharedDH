@@ -60,6 +60,9 @@ local diving = false
 local plunging = false
 -- how far that hop goes down as it flies (Config.Dive.Plunge; 0 in any other hop)
 local plungeDepth = 0
+-- this hop is the submarine's fling (JumpController.fling): it reaches as far as the dive's (Config.Dive.Reach), as the
+-- server counts it (RideService.fling makes it the dive's first hop)
+local flung = false
 local clock = 0 -- wall-clock seconds since leaving
 local startedAt = 0
 local resumeHeight = 0 -- keeps a failed pull-in from snapping us back onto the hop's arc
@@ -279,6 +282,7 @@ local function stop()
 	flying = false
 	viewYaw = nil
 	diving = false
+	flung = false
 	plunging = false
 	plungeDepth = 0
 	reeling = false
@@ -477,6 +481,50 @@ local function request(fromQueue: boolean?): boolean
 	FeelLog.event("hop", { From = left, Launch = launchSpeed, Reach = reach, Kept = fromQueue == true })
 	Net.Action:FireServer("Jump")
 	Shake.play("Hop", if leap then 1.6 else 1)
+	State.setMode("Jumping")
+	return true
+end
+
+-- The submarine's fling (docs/design/submarine.md): off its seat at its drop speed into an ordinary hop, the way
+-- `heading` faces, with the pop's punch made bigger. The server began the hop itself (RideService.fling, from the
+-- carried state), with the same numbers (Config.hopFrom of Sub.DropSpeed): nothing is sent.
+function JumpController.fling(heading: number): boolean
+	local _, root = State.character()
+	if flying or not root then
+		return false
+	end
+	local j = Config.Jump
+	yaw = heading
+	launchSpeed, leapTime, leapApex = Config.hopFrom(Config.Sub.DropSpeed, nil, nil)
+	left = nil
+	flung = true
+	flatSpeed = launchSpeed
+	reach = math.max(Config.reachOf(flatSpeed, launchSpeed), Config.Dive.Reach)
+	State.Reach = reach
+	WallRide.reset(wall)
+	faced = yaw
+	autoAt = 0
+	Course.begin()
+	position = root.Position
+	baseY = position.Y
+	topY = math.max(baseY, math.min(baseY + j.Apex * leapApex + j.FloatRise, Config.Oxygen.SurfaceY - j.Ceiling))
+	clock = 0
+	startedAt = os.clock()
+	resumeHeight = 0
+	roll = 0
+	reeling = false
+	asked = false
+	flying = true
+	State.Heading = yaw
+	State.WindowLeft = j.Window + leapTime
+	State.JumpPhase = "Pop"
+	local f = Config.Feel
+	State.FovPunch = f.PopFov + 8
+	Fx.burst(position - Vector3.new(0, 1.5, 0), f.PopBurst + 24, 0, 9)
+	Feel.sound("Swish", f.Swish * 1.6, 1.05, 0.45)
+	Feel.sound("Whoosh", j.SlowWhoosh, j.SlowWhooshPitch, j.SlowWhooshTime)
+	Shake.play("Hop", 2)
+	FeelLog.event("hop", { Launch = launchSpeed, Reach = reach, Fling = true })
 	State.setMode("Jumping")
 	return true
 end
@@ -761,8 +809,8 @@ local function hop(dt: number)
 	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
 	-- the hook's reach, by that speed: longest as we leave, shrinking as we slow to the stop
 	reach = Config.reachOf(flatSpeed, launchSpeed)
-	if diving then
-		-- (the dive's own hop reaches further: Config.Dive.Reach)
+	if diving or flung then
+		-- (the dive's own hop reaches further: Config.Dive.Reach; and the submarine's fling)
 		reach = math.max(reach, Config.Dive.Reach)
 	end
 	State.Reach = reach

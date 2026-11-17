@@ -1,0 +1,68 @@
+start state Dock
+give {"Fish":"","Tank":"[[\"ReefShark\",\"Big\",\"Gold\"]]","Tier":0,"Dest":0,"State":"Dock","Coins":1000000000000}
+pick {"Fish":"ReefShark|Big|Gold","Tank":"[[\"ReefShark\",\"Big\",\"Gold\"]]","Tier":9,"Dest":10,"State":"Dock","Coins":940832722500}
+0.00 Dock nil pos 3000 -9 6 v 0
+0.25 phase Approach
+0.25 Carried Approach pos 3000 -9 6 v 0
+0.53 Carried Approach pos 3000 -9 7 v 10
+0.85 Carried Approach pos 3000 -10 11 v 19
+1.11 Carried Approach pos 3000 -11 13 v 23
+1.37 Carried Approach pos 3000 -11 19 v 16
+1.64 Carried Approach pos 3000 -11 23 v 13
+1.90 Carried Approach pos 3000 -12 26 v 10
+2.16 phase Pickup
+2.16 Carried Pickup pos 3000 -12 27 v 6
+2.42 Carried Pickup pos 3000 -12 27 v 3
+2.68 Carried Pickup pos 3000 -10 26 v 27
+2.95 Carried Pickup pos 3000 -8 19 v 32
+3.23 Carried Pickup pos 3000 -12 18 v 9
+3.50 phase Ride
+3.50 Carried Ride pos 2999 -12 28 v 159
+3.75 Carried Ride pos 2996 -10 168 v 711
+4.00 Carried Ride pos 2993 -20 427 v 1235
+4.27 Carried Ride pos 2995 -34 867 v 1810
+4.52 Carried Ride pos 2987 -53 1381 v 2291
+4.80 Carried Ride pos 2921 -87 2037 v 2438
+5.07 Carried Ride pos 2882 -116 2697 v 2480
+5.32 Carried Ride pos 2671 -138 3298 v 2497
+5.58 Carried Ride pos 2552 -171 3892 v 2477
+5.84 Carried Ride pos 2549 -204 4555 v 2471
+6.10 Carried Ride pos 2760 -240 5142 v 2431
+6.36 Carried Ride pos 2825 -272 5791 v 2482
+6.70 Carried Ride pos 2677 -327 6576 v 2486
+7.00 Carried Ride pos 2543 -377 7271 v 2477
+7.25 Carried Ride pos 2443 -411 7751 v 2464
+7.50 Carried Ride pos 2496 -461 8408 v 2530
+7.76 Carried Ride pos 2400 -561 9070 v 2426
+8.02 Carried Ride pos 2195 -612 9719 v 2449
+8.29 Carried Ride pos 2191 -662 10395 v 2478
+8.54 Carried Ride pos 2263 -714 11001 v 2498
+8.80 Carried Ride pos 2352 -770 11640 v 2460
+9.05 Carried Ride pos 2482 -819 12169 v 2444
+9.31 Carried Ride pos 2612 -871 12766 v 2469
+9.56 Carried Ride pos 2719 -933 13409 v 2460
+9.83 Carried Ride pos 2878 -1006 14084 v 2491
+10.08 Carried Ride pos 2993 -1073 14708 v 2443
+10.35 Carried Ride pos 2965 -1150 15434 v 2501
+10.62 Carried Ride pos 2975 -1250 16094 v 2462
+10.90 Carried Ride pos 3036 -1357 16707 v 2436
+11.20 Carried Ride pos 3167 -1446 17457 v 2452
+11.48 Carried Ride pos 3235 -1512 18041 v 2448
+11.74 Carried Ride pos 3306 -1589 18668 v 2482
+12.00 Carried Ride pos 3270 -1668 19324 v 2213
+12.27 Carried Ride pos 3189 -1740 19906 v 1803
+12.55 Carried Ride pos 3132 -1793 20329 v 1406
+12.81 Carried Ride pos 3098 -1835 20633 v 980
+13.08 Carried Ride pos 3078 -1855 20790 v 693
+13.33 phase Arrive
+13.33 Carried Arrive pos 3060 -1870 20899 v 313
+13.59 Carried Arrive pos 3056 -1873 20921 v 151
+13.84 Carried Arrive pos 3052 -1876 20943 v 97
+14.12 phase Drop
+14.12 Carried Drop pos 3048 -1879 20966 v 91
+14.38 Carried Drop pos 3043 -1878 20984 v 83
+14.63 phase nil
+14.63 Carried nil pos 3028 -1882 21012 v 134
+14.89 Riding nil pos 3017 -1896 21039 v 99
+RIDING ReefShark (Big Gold) state Riding oxygen 100
+rode true final Riding land 10

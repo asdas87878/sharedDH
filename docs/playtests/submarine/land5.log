@@ -1,0 +1,77 @@
+start state Dock
+give {"Fish":"","Tank":"[]","Tier":0,"Dest":0,"State":"Dock","Coins":1000000000000}
+pick {"Fish":"","Tank":"[]","Tier":9,"Dest":5,"State":"Dock","Coins":940832722500}
+0.00 Dock nil pos 3000 -9 6 v 0
+0.27 phase Approach
+0.27 Carried Approach pos 3000 -9 6 v 4
+0.53 Carried Approach pos 3000 -9 7 v 9
+0.84 Carried Approach pos 3000 -10 11 v 16
+1.11 Carried Approach pos 3000 -11 16 v 19
+1.38 Carried Approach pos 3000 -11 20 v 16
+1.65 Carried Approach pos 3000 -11 24 v 13
+1.92 Carried Approach pos 3000 -12 26 v 11
+2.19 phase Pickup
+2.19 Carried Pickup pos 3000 -12 27 v 7
+2.45 Carried Pickup pos 3000 -12 27 v 5
+2.71 Carried Pickup pos 3000 -9 25 v 30
+3.00 Carried Pickup pos 3000 -10 18 v 39
+3.27 phase Ride
+3.27 Carried Ride pos 3000 -12 18 v 9
+3.52 Carried Ride pos 3000 -13 22 v 58
+3.78 Carried Ride pos 2998 -9 83 v 354
+4.04 Carried Ride pos 2996 -12 206 v 538
+4.31 Carried Ride pos 2992 -18 384 v 771
+4.56 Carried Ride pos 2990 -27 618 v 989
+4.83 Carried Ride pos 2975 -37 879 v 1023
+5.12 Carried Ride pos 2949 -44 1166 v 975
+5.38 Carried Ride pos 2983 -59 1444 v 1010
+5.64 Carried Ride pos 2943 -68 1694 v 1006
+5.91 Carried Ride pos 2927 -84 1975 v 1020
+6.18 Carried Ride pos 2840 -90 2226 v 1009
+6.44 Carried Ride pos 2852 -106 2503 v 1016
+6.71 Carried Ride pos 2796 -116 2762 v 1020
+7.01 Carried Ride pos 2723 -130 3050 v 1011
+7.26 Carried Ride pos 2695 -140 3302 v 1017
+7.55 Carried Ride pos 2704 -155 3575 v 994
+7.81 Carried Ride pos 2571 -165 3797 v 1019
+8.06 Carried Ride pos 2551 -181 4058 v 1022
+8.33 Carried Ride pos 2546 -194 4335 v 1006
+8.58 Carried Ride pos 2562 -209 4593 v 1017
+8.86 Carried Ride pos 2676 -222 4841 v 1026
+9.11 Carried Ride pos 2737 -236 5095 v 1000
+9.38 Carried Ride pos 2774 -248 5335 v 1020
+9.63 Carried Ride pos 2833 -262 5556 v 1030
+9.91 Carried Ride pos 2793 -277 5851 v 1063
+10.17 Carried Ride pos 2714 -292 6107 v 988
+10.42 Carried Ride pos 2667 -316 6380 v 1029
+10.69 Carried Ride pos 2622 -331 6654 v 1027
+10.94 Carried Ride pos 2628 -354 6918 v 1011
+11.21 Carried Ride pos 2569 -369 7164 v 1002
+11.46 Carried Ride pos 2507 -392 7426 v 1004
+11.72 Carried Ride pos 2473 -402 7646 v 1018
+11.98 Carried Ride pos 2481 -423 7904 v 936
+12.24 Carried Ride pos 2476 -437 8142 v 765
+12.50 Carried Ride pos 2494 -454 8323 v 629
+12.78 Carried Ride pos 2493 -464 8460 v 459
+13.04 Carried Ride pos 2475 -477 8558 v 319
+13.29 phase Arrive
+13.29 Carried Arrive pos 2465 -486 8613 v 179
+13.55 Carried Arrive pos 2460 -491 8638 v 90
+13.80 Carried Arrive pos 2455 -495 8660 v 91
+14.07 phase Drop
+14.07 Jumping Drop pos 2450 -500 8682 v 91
+14.35 Jumping Drop pos 2445 -495 8706 v 123
+14.62 Jumping Drop pos 2442 -484 8731 v 93
+14.88 Jumping Drop pos 2441 -471 8755 v 99
+15.15 phase nil
+15.15 Jumping nil pos 2440 -469 8779 v 91
+15.43 Jumping nil pos 2440 -469 8805 v 90
+15.71 Jumping nil pos 2439 -468 8827 v 87
+15.96 Jumping nil pos 2438 -468 8850 v 85
+16.24 Jumping nil pos 2437 -468 8873 v 80
+16.52 Jumping nil pos 2437 -469 8895 v 74
+16.77 Jumping nil pos 2437 -472 8916 v 100
+17.02 Jumping nil pos 2454 -485 8945 v 214
+17.28 Riding nil pos 2482 -518 9003 v 254
+RIDING HammerheadShark (Normal ) state Riding oxygen 100
+rode true final Riding land 5

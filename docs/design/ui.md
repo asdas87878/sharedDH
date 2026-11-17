@@ -16,6 +16,86 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The land strip, style A (2026-11-17, Hugo; task l1): built, off until Hugo picks
+Hugo, on the options sheet of the land pictures ([land-icons-options-1](../attachments/land-icons-options-1.png)):
+"for the map ui, use first style, but remove the inner border, make the numbers more stylised to each map part as
+well, can you give me a selection of screenshots from each area to choose, Keep the locked but add a round icon of the
+player right below the map ui, moving along the screen with a meter bar right under, this should slowly reveal the
+fully color map icon over the locked grey icon in a progressive linear manner, following how far the player has
+gotten, add a record system where theres a yellow striped line(- - -) connected to a meter number saying "best", this
+should all be somewhat simplistic but still stylised to match the rest of the game and not look like modernised
+minimalistic."
+
+**How it was read** (the Boss's reading; Hugo has not confirmed the details):
+- "First style" is treatment A: a 28 px rounded square. Its inner band (the ring of the land's colour, white on the
+  land you are in) is gone: one ink frame (2.5 px) with the picture straight inside. The land you are in is a size up
+  (1.18) with a white rim outside the frame instead.
+- The locked look stays: a land not reached is its grey picture with a padlock. A land you have been all through
+  gets a small green tick.
+- The reveal: the colour picture is uncovered over the grey one from left to right, linearly, by how far you are
+  through that land (half way through land 3: land 3 half colour, 1 and 2 whole, 4 to 10 grey). A thin white line
+  marks where colour meets grey.
+- **What drives the reveal: this dive** (Kit.LandReveal "Dive"), as the Boss read it: your marker and the reveal
+  are where you are now; the best line is how far you have ever got. It makes every dive start grey and fill in.
+  **The alternative, "Best",** keeps every land you have ever reached in colour; it is one switch, and both are on
+  the sheet for Hugo.
+- Under the strip: your avatar's face (Roblox's headshot of you, no upload) in a round white-rimmed frame with a
+  notch pointing up, sliding left to right with you; under it the metres on a small dark bar in the land's colour
+  ("1,240 m"; on a phone it also names the land, as today's pill).
+- The best: a yellow dashed line (dashes of 3.5, gaps of 2.5, ink edged) through the strip at your furthest ever,
+  with "BEST 1,240 m" on a dark tag edged in yellow hanging from its foot, on the side away from you; when you are at
+  the line (on your way to a new best) the tag hangs centred under your metres instead, so the two never cover each
+  other. The furthest is the server's (below).
+- The numbers in the land's own style, Gotham Black as on the fish tags, ink edged, bottom left of each tile. Three
+  versions for Hugo:
+  | | Look |
+  |---|---|
+  | **N1 Metal** | The land's colour as a gradient: pale at the top, the colour, a little darker at the foot |
+  | **N2 Material** (the default) | Each land's own stuff: sun on sand, banded coral, kelp ribs, a plank seam, water, dusk, dark letters with a glowing lure edge (Midnight), lava with a glow (Vents), bone, embers (Underworld) |
+  | **N3 Badge** | A white number on a small sign of its land made of frames: sun, coral head, kelp leaf, porthole, bubble, star, lure, flame, bone, horns |
+  A land not reached has its number in grey (and its badge grey), lit once you get there.
+
+**The pictures** are round one's picks (picks.json) until Hugo chooses again from round two:
+[selection 1](../attachments/land-icons-selection-1.jpg) (lands 1 to 5) and
+[selection 2](../attachments/land-icons-selection-2.jpg) (6 to 10), six new captures a land (h to m: the first asset
+from the other side, the second low, a third, from above, from the floor, across the lane), each with its tile in the
+new look at 3x and real size, round one's under them. Answer like "3k, 7h".
+
+**The pictures redrawn as one set** (Hugo, 2026-11-17: "take selected icons and run through chatgpt image generation to
+make a visually pretty and cohesive version"): the ten picks, laid out 5 by 2, through OpenAI's gpt-image-2 (one
+image edit through the ElevenLabs connector, four variations, about 0.31 dollars; Higgsfield had no credits and
+Meshy refuses tasks on its free plan). [The four sets against today's](../attachments/land-icons-gen-1.png): G1 to
+G4, each as the strip's tiles at 3x and real size; and [G2 in the game's own strip](../attachments/land-icons-gen-1-ingame.jpg).
+The sets keep each land's subject and colour and read far better at 28 px than the captures: one voxel finish, light
+from above, bubbles. The generated sheets and the 40 squares: `docs/attachments/land-icons/gen/`
+(`tools/ui/land_icons/gen_sheet.py` slices them); `atlas.py --gen 2` builds the atlas from a set.
+
+**How the game gets the pictures:** one atlas image, ten cells of 96 px, colour on the top row and the grey locked
+look under it (`tools/ui/land_icons/atlas.py` writes `docs/attachments/land-icons/land_atlas.png`). It is one upload,
+**not done**: until it is, `Kit.LandAtlas` is empty and the tiles are plain land colour (grey-blue when locked), which
+still works. In Studio, `atlas.py --studio` puts a copy in Studio's own content folder and the workspace's `LandAtlas`
+attribute `rbxasset://textures/ridefish/land_atlas.png` shows it without an upload (that path works in Studio only).
+
+**The furthest distance is the server's:** `src/server/Services/BestService.luau`. Every quarter second, for a player
+in the water (State Free, Riding or Jumping), it finds their land and how far along it (Zones.locate, as the HUD) and
+raises their best. It sets the player attributes `BestMetres` (whole metres) and `BestLands` (2.6 = six tenths
+through land 3); the strip reads them. A jump of more than one land in one check is not counted. It lasts the
+session: there are no saves yet, and when saves come these two are what to keep. Measured in Studio on a real ride
+(sandbox, endless air): 8, 15, 26 m in the first 45 s, then 173, 1,000, 1,414 m (land 6.4) as the fish went down.
+
+**The switches** (Kit.luau; each also a workspace attribute in Studio): `LandStripStyle` 0 (today's strip, the
+default) or 1 (this); `LandNumbers` 1, 2 or 3 (2); `LandReveal` "Dive" or "Best" ("Dive"); `LandAtlas` "" (the
+upload's id).
+
+**What it looks like:** [the sheet](../attachments/land-strip-A-options-1.png) (the numbers N1 to N3 at 3x and real
+size, Dive against Best, three frames of a real ride on a desktop, the phone width for each number style) and
+[a whole dive](../attachments/land-strip-A-1.gif) (0 to 10,935 m, N2). All of it is a capture of the game's own code
+in a Studio playtest, not a mock-up. The phone frames are the strip at its real phone size (HUD scale 1, 298 of 844
+GUI px) over the game; Studio's window was not resized to a phone.
+
+**Not done / open:** Hugo's picks (N1 to N3, Dive or Best, the pictures: a capture per land or a generated set G1 to G4), the atlas upload, turning it on
+(`Kit.LandStripStyle = 1`), saving the best. The strip shows on the dock as today's does (all grey there in Dive).
+
 ## The UI's look, 2026-11-16: the survey, two fixes, options and the dock's panels
 The user: "I just want to do the UI" ([Decisions](../Decisions.md)). Three steps, asked for by the game-code chat's
 brief in [Sessions](../Sessions.md). All of it was looked at in Studio on this PC under the new light, not on a phone.
