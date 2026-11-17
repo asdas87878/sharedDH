@@ -63,6 +63,35 @@ The links open the chat in the Claude app on the PC it runs on.
   - **Not known from here:** whether the five trial voxel fish in `art/creatures/Trial*` are meant to be installed.
     They are the art chat's trials, not in the game's lists. Leave them.
   - Write what happened under this note, as on 2026-11-13.
+  - **Done 2026-11-17 (void and a NULLROOM worker, Hugo's PC):** pulled to `be06813`. Step 1: the map loaded by
+    `load_greybox.py`: "greybox 15 in Studio: 59139 parts (expected 59074) and 826 of the hub's models, 55101 solid;
+    Dive 10, Dock 893, Lane 59010, Surface 52; 16137 Seabed boxes; 1915 asset models; 8 plots; 50702 pictures;
+    DockSpawn present; Path present", 105 files, 0 problems. The 65 parts over were not traced (the loader renames
+    boxes, so they don't match `parts.json` by name; `parts.json` itself holds 59,065). Step 2: the scripts came in
+    through the connected Rojo plugin, not `sync_src.py`: 143 script instances, `HookController` there with its
+    whole Source. Step 3: `look_install.luau` ran. Step 4, one scripted Play (studio runner, Sandbox on):
+    - **The dive-in:** walked off the start strip. Under the water line 5.48 s in, the hop began 0.16 s later, seated
+      on a Clownfish 1.62 s after entering the water (the hop itself 1.27 s). The plunge went down to 36.8 studs
+      under the surface (y 0); the pull-in then rose to the fish, seated at 24.8 under, and the fish sank to 38.5
+      under over the next 2 s. So the hop reaches 35 to 40 under, but you land on the fish at about 25.
+    - **The hook:** a Model `Hook` under `Workspace.Camera`, 23 pieces, there in every frame of the hop (75 of 76:
+      the first frame was before it was built) and of the ride (121 of 121).
+    - **The stun:** on a Sergeant Major (not a breaker) steered at `sea_grass_12` at 73.6 studs/s: at the touch the
+      speed fell to 3.7 (0.05 of it) and stayed there 0.40 s, the prop began to fade 0.42 s after the touch (to 0.65
+      see-through), the speed was back to 73.6 about 0.47 s later, and the prop came back solid about 1 s after we
+      passed. One earlier try, aimed down at `table_coral_71` on the floor, counted no stun: the fish slowed and
+      sat still for 12 s inside the prop. Probably my aim steered it into the seabed; not looked into further.
+    - **The fog above the water:** on the dock `FogStart` 180, `FogEnd` 1,100, colour (205, 232, 255), no
+      Atmosphere.
+    - **The pictures load on Hugo's account:** the Oxygen and Coins icons, the Shop and Index pictures and the stud
+      tile on both buttons all read `IsLoaded` true and show in the screenshot
+      ([hugo-pc-hud-2026-11-17.png](attachments/hugo-pc-hud-2026-11-17.png)). Only the Catch panel's coin icon read
+      false, because that panel was not shown yet. (`ContentProvider:PreloadAsync` on the bare id strings said
+      Failure for all five, which doesn't match what showed on screen, so that reading was not used.)
+    - No game errors were seen. The test scripts were removed after the run; Studio is in Edit with the mouse and
+      camera reset.
+    - **Still missing:** Hugo's slope fix (`b502e09`): the seam probe on land 8 shows 42 gap hits, as expected.
+      **The place is not saved: Hugo presses Ctrl+S.**
 - **2026-11-17, the UI chat to Obsidian chat integration: the Oxygen row has the user's new O2 picture. Run and
   seen. Studio is free.** One upload on the user's word (`Kit.Textures.Oxygen`); one id in `UI/Kit.luau` and nothing
   else in `src/`. In [Decisions](Decisions.md), top row. Studio was in a play test again when I came; I waited two
