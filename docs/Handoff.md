@@ -11,12 +11,14 @@ thing before integrating".
   treatments **A** framed square, **B** round badge, **C** tilted photo card with a name ribbon, **D** stud hex,
   **E** wide chip with the depth, **F** name cap. Each is laid over a Play capture in place of today's strip, at real
   size (1 GUI px = 1 px), zoomed 3x with lands done / current / not reached, the three states big, and all ten pictures.
-- **The pictures:** [land-icons-framings.jpg](attachments/land-icons-framings.jpg): 2 to 4 captures per land (1a, 1c,
-  ...) taken in Play with each land's own water and fog; the gold frame is the crop the options use. Files in
-  `docs/attachments/land-icons/`. Answer with a letter and, if wanted, a picture per land ("A, 3c, 7a").
-- **Reads poorly at 28 px:** Midnight (7: no one strong shape, kelp on indigo), the Bone Graveyard and the Underworld
-  (9, 10: the skull is a pale box, the two differ only by colour); Open Blue and Twilight (5, 6) are told apart by hue
-  more than shape. Lands 5 to 8 borrow the first four lands' assets, so their pictures repeat 1 to 4's shapes.
+- **The pictures:** [land-icons-framings.jpg](attachments/land-icons-framings.jpg): 3 to 6 captures per land (1a, 1c,
+  ...) taken in Play with each land's own water and fog; the gold frame is the crop the options use. Lands 5, 7, 9
+  and 10 got a second round of closer framings (e, f, g). Four captures were dropped and are marked in their place.
+  Files in `docs/attachments/land-icons/`. Answer with a letter and, if wanted, a picture per land ("A, 3c, 7a").
+- **Reads poorly at 28 px:** the Underworld (10: the skull is a pale box with horns; 10e, the ribcage, is the other
+  choice, but then 9 and 10 differ only by colour), Midnight (7: kelp on indigo, better since 7e). Open Blue and
+  Twilight (5, 6) are told apart by hue more than shape. Lands 5 to 8 borrow the first four lands' assets, so their
+  pictures repeat 1 to 4's shapes.
 - **Tools:** `tools/ui/land_icons/` (plan.py picks the camera spots from the map and the props, aim.luau and
   shotcam_client.luau hold the camera in Play through studio-runner, icons.py draws the treatments, sheet.py the
   sheets, picks.json the crop per land). The temporary LocalScript was removed after each run; the place is as it was.
