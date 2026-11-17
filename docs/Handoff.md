@@ -28,7 +28,12 @@ by script; none of it has been played by hand yet. The place itself is not in th
   a lit rim on a caught slot, Gotham Black names, a grow on hover; busts framed by kind.
 - **Drafts, nothing wired in:** the Cosmic rarity ([Cosmic](design/cosmic.md)), trial voxel creatures
   (`art/creatures/Trial*`), a black hole effect (`Lib/BlackHole`, tried with `tools/studio/black_hole_demo.luau`).
-- StyLua and the build pass; selene shows only the two old warnings.
+- **The merge with Hugo's side:** only `Decisions.md` and this note clashed (both kept). Two things git could not
+  see, fixed in the merge: the submarine's seated pose (`Carried`) called the riding pose with the old number of
+  inputs, which the wild ride's whiplash would have stopped with an error; and the sub's fling is now a hop in the
+  feel log. The sling, the kept presses and the early pull-in apply to the fling's hop as to any other.
+- StyLua and the build pass; selene shows the two old warnings and one in Hugo's `FishService.stockNear` (its
+  `count` is named like a function above it; harmless).
 ## 2026-11-17 · The size sticker live on fish tags, the stars off (task u2, Hugo's pick; not pushed by hand)
 **State:** in the game code, run in Hugo's Studio by script: a ride through the Shallows and the Reef with sizes forced
 by `TestSize`, pictures judged. **Not played by hand.** StyLua and selene pass; luau-lsp isn't on this PC. Nothing
