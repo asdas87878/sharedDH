@@ -1031,6 +1031,7 @@ local function freeze(cam)
 						if d:IsA("BasePart") then
 							d.Anchored = true
 							d.CanCollide = false
+							d.LocalTransparencyModifier = 0
 						elseif d:IsA("Script") or d:IsA("LocalScript") or d:IsA("Constraint") then
 							d:Destroy()
 						end
@@ -1049,6 +1050,7 @@ local function freeze(cam)
 				if d:IsA("BasePart") then
 					d.Anchored = true
 					d.CanCollide = false
+					d.LocalTransparencyModifier = 0
 				elseif d:IsA("Script") or d:IsA("LocalScript") or d:IsA("Humanoid") then
 					d:Destroy()
 				end

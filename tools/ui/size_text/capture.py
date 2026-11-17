@@ -1,6 +1,7 @@
 """Captures for the size text options (task u2). Run with a playtest up and ZZSizeMock installed (run_install.py):
     python tools/ui/size_text/capture.py <scene> [versions...]
-scene: ride (onto a fish, wait), freeze, near, crowd, far, dark-go, dark, grid, gif, unfreeze
+scene: ride (onto a fish), freeze, knot <back> [x y z] (crowd 42, far 95, dark 40), near, crowd, far, dark-go,
+    dark, grid, gif, unfreeze
 Pictures go to work/size_text/ (not kept in the repo), cropped to the game view.
 """
 import subprocess
@@ -38,9 +39,27 @@ def drive(**kw):
 
 def shot(name):
     raw = OUT / "raw.png"
+    # two shots, the second kept: a capture now and then shows the frame before
     subprocess.run(["node", RUN, "shot", str(raw)], check=True, capture_output=True)
-    Image.open(raw).convert("RGB").crop(VIEW).save(OUT / f"{name}.png")
+    time.sleep(0.8)
+    subprocess.run(["node", RUN, "shot", str(raw)], check=True, capture_output=True)
+    for _ in range(5):
+        try:
+            Image.open(raw).convert("RGB").crop(VIEW).save(OUT / f"{name}.png")
+            break
+        except OSError:  # the picture was still being written
+            time.sleep(1)
+            subprocess.run(["node", RUN, "shot", str(raw)], check=True, capture_output=True)
     print("shot", name)
+
+
+def knot(back, near=None):
+    args = [f"BACK={back}", "UP=-4"]
+    if near:
+        args.append("NEAR={" + ",".join(map(str, near)) + "}")
+    r = subprocess.run(["node", RUN, "--ctx", "server", str(HERE / "cluster.luau"), *args], capture_output=True, text=True)
+    print(r.stdout.strip(), r.stderr.strip())
+    time.sleep(1)
 
 
 def scene(name, versions, **kw):
@@ -52,17 +71,19 @@ def scene(name, versions, **kw):
 
 if __name__ == "__main__":
     what = sys.argv[1]
-    vs = sys.argv[2:] or VERSIONS
+    vs = (sys.argv[2:] if what != "knot" else []) or VERSIONS
     if what == "ride":
         drive(VERSION="Now", RIDE=stamp + 1)
     elif what == "freeze":
         drive(VERSION="Now", FREEZE=stamp + 1)
     elif what == "unfreeze":
         drive(VERSION="Now", FREEZE=0)
-    elif what in ("near", "crowd"):
+    elif what in ("near", "crowd", "far"):
+        # the camera behind the densest knot of fish, near (scale 1), crowd, or far (0.86 and marks)
         scene(what, vs, SET=what)
-    elif what == "far":
-        scene(what, vs, SET="far", BACK=55)
+    elif what == "knot":
+        # python capture.py knot <back> [x y z]: aim at the densest knot (near x y z) and freeze there
+        knot(float(sys.argv[2]), [float(v) for v in sys.argv[3:6]] if len(sys.argv) > 5 else None)
     elif what == "dark-go":
         # land 7, Midnight: hold the character there so the herd is made round it
         drive(VERSION="Now", FREEZE=0, EYE=[2840, -1020, 14180], AT=[2980, -1040, 14240])
