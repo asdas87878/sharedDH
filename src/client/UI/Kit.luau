@@ -78,6 +78,23 @@ Kit.OxygenBoxFade = "A"
 -- how see-through the fill is at each end of the fade, on top of the box's own Fade (0 as the box is, 1 clear)
 Kit.FadeEnds = { Strong = 0, Clear = 1 }
 
+-- The Oxygen ring and the tame ring beside the rider (Hugo, 2026-11-18, task h1; docs/design/ui.md, "The Oxygen ring
+-- in ticks, the red zone and the extra rings"):
+Kit.RingLook = {
+	Outline = 0.6, -- the dark line round both rings and their holes (Kit.Outline.Hair, 1.2, until 2026-11-18)
+	-- each Oxygen tick lost (Config.Oxygen.Tick): its piece of the ring shows red, holds, then fades out
+	TickHold = 0.1, -- seconds fully red
+	TickFade = 0.35, -- seconds fading to clear (hold + fade under Oxygen.Tick, so one piece is gone before the next)
+	-- the red zone's line (Config.angryAt: a third of the meter), a short mark across the band
+	Mark = 2, -- its width, in the HUD's points
+	MarkOver = 1, -- how far past the band's edges it reaches, each side
+	-- past Config.Oxygen.BarSize of max Oxygen, each further bar's worth is a thin ring round the big one, the
+	-- outermost draining first
+	ExtraThick = 2.5, -- a ring's band (the big ring's is 16)
+	ExtraGap = 1.5, -- between one ring and the next
+	ExtraMost = 5, -- at most this many; past it every bar (the big ring's too) holds max / (ExtraMost + 1)
+}
+
 export type Box = {
 	Name: string,
 	Fade: number, -- how see-through the body is (0 solid, 1 clear)
@@ -819,6 +836,7 @@ export type Ring = {
 	Glow: UIStroke, -- a line round the whole ring, clear until a warning lights it (Kit.pulse)
 	spent: (spent: boolean) -> (), -- the emptied part in red (an empty ring has no arc left to carry the colour)
 	lag: (fraction: number) -> (), -- a meter only: the part just lost, in red behind what is left
+	lagFade: (transparency: number) -> (), -- and how see-through that red is (a tick's piece fades out: Kit.RingLook)
 }
 
 local TRACK = Kit.Deep
@@ -994,6 +1012,11 @@ function Kit.ring(
 			behind.set(fraction)
 		end
 	end
+	local function lagFade(transparency: number)
+		if behind then
+			behind.fade(transparency)
+		end
+	end
 	return {
 		Frame = holder,
 		Hole = hole,
@@ -1002,6 +1025,7 @@ function Kit.ring(
 		colour = front.colour,
 		spent = spent,
 		lag = lag,
+		lagFade = lagFade,
 	}
 end
 

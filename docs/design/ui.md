@@ -16,6 +16,29 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The Oxygen ring in ticks, the red zone and the extra rings (2026-11-18, Hugo; NULLROOM task h1)
+Hugo: "add more bars for stamina when you increase it past a set amount (for example 2000, will all be handled in the
+progression setup later), the extra bar should grow around the oxygen bar in a outline like shape, it should be way
+thinner than the regular oxygen bar, make sure the ticks are also animated showing red and then fading out for each
+oxygen tick lost, decrease outline thickness for both capture and oxygen bar."
+
+**Built, run in Hugo's Studio by script at 4500 max Oxygen; not played by hand.** `UI/Rings.luau`, `UI/Kit.luau`
+(`Kit.RingLook`, every number), `HudController.luau`, and `Config.Oxygen.BarSize` (2000).
+- **Ticks:** the ring no longer counts down between the server's updates; it steps with each tick (`Oxygen.Tick`,
+  told as Ride `"OxygenTick"`). The piece lost shows red behind what is left for `TickHold` (0.1 s), then fades out
+  over `TickFade` (0.35 s), so one is gone before the next. A crash, the red zone's drop on a fish too strong and any
+  other loss show the same way. (Replaces the red that used to trail down after the meter.)
+- **The red zone's mark:** a short red line across the band at a third of the meter (`Config.angryAt`: lower on a
+  Tank), on whichever ring that falls. At 4500 max it sits on the big ring at 9 o'clock (1500 of 2000).
+- **Extra rings:** the big ring holds the first `BarSize` of Oxygen; each further `BarSize` is a thin ring round it
+  (`ExtraThick` 2.5 against the big ring's 16, `ExtraGap` 1.5 apart), the last one only as long as what it holds.
+  The outermost drains first. At most `ExtraMost` (5); past that each bar holds max / 6, a stop-gap until the
+  progression decides. The hop's arc moves out past them.
+- **Thinner outlines:** both rings' dark line is `RingLook.Outline` 0.6 (was `Kit.Outline.Hair`, 1.2).
+- Seen: [the two thin rings round the big one](../attachments/h1-rings-extra.jpg),
+  [16 moments of one ride](../attachments/h1-rings-sheet.jpg) (red pieces on the outer ring, then on the big ring;
+  the whole ring red under a third), [as a GIF](../attachments/h1-rings-ticks.gif).
+
 ## The land strip, style A (2026-11-17, Hugo; task l1): built, off until Hugo picks
 Hugo, on the options sheet of the land pictures ([land-icons-options-1](../attachments/land-icons-options-1.png)):
 "for the map ui, use first style, but remove the inner border, make the numbers more stylised to each map part as

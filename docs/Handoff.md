@@ -3,6 +3,19 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · The Oxygen ring in ticks, the red zone's mark, extra rings, thinner outlines (NULLROOM task h1, Hugo's PC)
+**State:** in the game code, run in Hugo's Studio by script (a Common ridden at 4500 max with `Oxygen.KeepUp` 8 for a
+longer ride). **Not played by hand.** StyLua passes; selene shows only the three old warnings. Nothing uploaded, the
+place not saved, the test scripts removed. The whole description: [UI](design/ui.md), "The Oxygen ring in ticks".
+- **The ring steps with each tick** and the piece lost goes red, then fades (`Kit.RingLook.TickHold`, `TickFade`).
+- **A red mark at the red zone's line** (a third; lower on a Tank).
+- **Past `Config.Oxygen.BarSize` (2000, new) each further 2000 is a thin ring round the big one**, outermost drained
+  first; at most 5 (`RingLook.ExtraMost`). Seen at 4500: two rings, the second a quarter long.
+- **Both rings' outline 0.6** (was 1.2).
+- Pictures: [the extra rings](attachments/h1-rings-extra.jpg), [one ride, 16 moments](attachments/h1-rings-sheet.jpg),
+  [GIF](attachments/h1-rings-ticks.gif).
+- **For the progression:** `Oxygen.BarSize` is the bar's worth; past 12,000 max the 5-ring cap makes each bar bigger.
+
 ## 2026-11-18 · Failing, Oxygen in ticks, tame time by need, the red zone at a third (NULLROOM task o1, Hugo's PC)
 **State:** in the game code, run in Hugo's Studio by script (four rides: a Common at 200 max, a Legendary too strong at
 200, a Legendary at 100,000, the no-fail switch). **Not played by hand.** StyLua passes; selene shows only the three

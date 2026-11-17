@@ -457,6 +457,9 @@ Config.Oxygen = {
 	-- Mounting a fish too strong for you (it needs more than your max): 1, the meter drops at once to the red zone's
 	-- line (AngryAt) if it is above it, then empties in StrainTime; 0, it empties from where it is (as before)
 	RedDrop = 1,
+	-- The HUD's big ring holds this much Oxygen; past it each further BarSize is a thin ring round it, the outermost
+	-- draining first (Hugo, 2026-11-18, task h1: "will all be handled in the progression setup later"; Kit.RingLook)
+	BarSize = 2000,
 	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 15: the spawn is 144 behind the lane's start and the gate's corners are 161 away, so this is the hub, the gate and the first 21 studs of water in the middle; it was 60 studs of water on grey-box 9; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's

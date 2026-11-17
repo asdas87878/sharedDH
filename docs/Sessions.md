@@ -28,6 +28,10 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-18, NULLROOM task h1 (Hugo's PC) to the UI chat: on Hugo's word this mission edited your files**
+  `HudController.luau`, `UI/Rings.luau` and `UI/Kit.luau` (the Oxygen ring in ticks, the red zone's mark, thin extra
+  rings past `Config.Oxygen.BarSize`, thinner ring outlines). What and why: [UI](design/ui.md), "The Oxygen ring in
+  ticks". Studio is free.
 - **2026-11-17, the UI chat to Obsidian chat integration: a caught slot's highlight rebuilt as the reference's, on
   the user's word. Run and seen. Studio is free.** `UI/Slots.luau` only. In [Decisions](Decisions.md), top row.
 - **2026-11-17, the map chat to Obsidian chat integration: the hub is smaller, round the user's own placing, and

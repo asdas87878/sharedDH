@@ -25,6 +25,7 @@ local UserInputService = game:GetService("UserInputService")
 local Archetypes = require(ReplicatedStorage.Shared.Archetypes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
+local Net = require(ReplicatedStorage.Shared.Net)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Actions = require(script.Parent.Parent.Lib.Actions)
 local State = require(script.Parent.Parent.Lib.State)
@@ -72,7 +73,8 @@ local linesShown = 0
 local linesStep = -1
 
 -- this dive, and the best of this session (until the game saves a best)
--- The meter, counted down between the server's updates (about ten a second) so the ring turns smoothly
+-- The meter: as the server last said (it drops in ticks, Config.Oxygen.Tick, each piece shown red on the ring); with
+-- Tick 0 the old smooth drain, counted down between the server's updates (about ten a second)
 local heardOxygen = -1
 local meter = 0
 
@@ -116,6 +118,9 @@ local ringView: Rings.View = {
 	Wide = 0,
 	High = 0,
 	Fraction = 1,
+	Amount = 0,
+	Max = 1,
+	RedAt = 0,
 	Seconds = math.huge,
 	Name = "",
 	Tier = "",
@@ -386,8 +391,14 @@ local function update(dt: number)
 		drain = Config.Oxygen.FreeDrain
 	end
 	if oxygen ~= heardOxygen or endlessAir then
+		-- a drop: its piece goes red on the ring and fades (the server's OxygenTick says the same; Rings.lose keeps one)
+		if heardOxygen >= 0 and oxygen < heardOxygen and not endlessAir then
+			Rings.lose(now, heardOxygen, oxygen)
+		end
 		heardOxygen = oxygen
 		meter = oxygen
+	elseif Config.Oxygen.Tick > 0 then
+		meter = oxygen -- (in ticks: nothing goes between them)
 	else
 		-- never more than a third of a second ahead of what the server last said
 		meter = math.max(meter - drain * dt, oxygen - drain * 0.33, 0)
@@ -420,6 +431,9 @@ local function update(dt: number)
 	view.Low = false
 	view.Kind = ""
 	view.Endless = endlessAir
+	view.Max = max
+	view.Amount = meter
+	view.RedAt = max * Config.angryAt(if mode == "Riding" then kind else nil)
 	if mode == "Riding" and kind then
 		seconds = meter / math.max(drain, 0.001)
 		view.Fraction = meter / max
@@ -450,6 +464,7 @@ local function update(dt: number)
 		-- reason is on the screen at once; it goes when the words come up over the middle. The Oxygen row at the
 		-- corner is the most you can carry, not what is left, so it can't say this
 		view.Fraction = 0
+		view.Amount = 0
 		view.Seconds = 0
 		view.Note = if strainRide then "Too strong!" else "Out of air"
 		view.NoteSub = if strainRide then strainNeeds else ""
@@ -582,6 +597,13 @@ function HudController.Start()
 		Banners.caught(fishId, earns, isNew)
 	end)
 	HubSigns.start()
+	-- the server's word of a tick (Oxygen.Tick) or the red zone's drop (RedDrop): that piece goes red on the ring.
+	-- The red zone's drop comes with the landing's refill, so the Oxygen attribute alone would show a rise
+	Net.Ride.OnClientEvent:Connect(function(what: string, lost: any, oxygen: any)
+		if what == "OxygenTick" and type(lost) == "number" and type(oxygen) == "number" and not endlessAir then
+			Rings.lose(os.clock(), oxygen + lost, oxygen)
+		end
+	end)
 
 	RunService.RenderStepped:Connect(update)
 end
