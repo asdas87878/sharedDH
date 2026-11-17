@@ -50,6 +50,7 @@ RunService:BindToRenderStep("ZZShotCam", Enum.RenderPriority.Last.Value + 50, fu
 		local strip = pg:FindFirstChild("LandStrip", true)
 		if strip and strip:IsA("GuiObject") and RS:GetAttribute("ShotNoStrip") == true then
 			strip.Visible = false
+			strip.Position = UDim2.fromOffset(-5000, -5000) -- the HUD sets Visible back each frame; it never moves it
 		end
 	end
 end)

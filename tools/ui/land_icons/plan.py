@@ -68,10 +68,13 @@ for land in range(1, 11):
         if f[2]["n"] not in kinds:
             picked.append(f)
             kinds.add(f[2]["n"])
-        if len(picked) == 2:
+        if len(picked) == 3:
             break
-    picked = picked + picked[:1]  # d: the first again, close up
-    for letter, (rank, _, pr, i), far, lift in zip("abd", picked, (1.7, 2.3, 0.9), (0.15, 0.45, 0.3)):
+    # a, b: the first two kinds; d, e: the same two close up; f: a third kind close up (from the second round)
+    order = [(picked[0], "a", 1.7, 0.15)] + ([(picked[1], "b", 2.3, 0.45)] if len(picked) > 1 else [])
+    order += [(picked[0], "d", 0.9, 0.3)] + ([(picked[1], "e", 0.8, 0.25)] if len(picked) > 1 else [])
+    order += [(picked[2], "f", 0.8, 0.25)] if len(picked) > 2 else []
+    for (rank, _, pr, i), letter, far, lift in order:
         px, py, pz = pr["p"]
         size = max(pr["s"])
         cx, cz = P[i][1] + OX, P[i][3]

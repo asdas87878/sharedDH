@@ -3,6 +3,24 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-17 · Options only: the land strip with a picture of each land (task u1, not pushed by hand)
+**State:** sheets for Hugo to pick from; nothing in the game changed, nothing uploaded. Hugo's ask: "The map icons on
+the top ... filled in with a screenshot of a part of the map fitting the part its describing"; "let me choose for each
+thing before integrating".
+- **The sheet:** [land-icons-options-1.png](attachments/land-icons-options-1.png): today's strip as **Now**, and six
+  treatments **A** framed square, **B** round badge, **C** tilted photo card with a name ribbon, **D** stud hex,
+  **E** wide chip with the depth, **F** name cap. Each is laid over a Play capture in place of today's strip, at real
+  size (1 GUI px = 1 px), zoomed 3x with lands done / current / not reached, the three states big, and all ten pictures.
+- **The pictures:** [land-icons-framings.jpg](attachments/land-icons-framings.jpg): 2 to 4 captures per land (1a, 1c,
+  ...) taken in Play with each land's own water and fog; the gold frame is the crop the options use. Files in
+  `docs/attachments/land-icons/`. Answer with a letter and, if wanted, a picture per land ("A, 3c, 7a").
+- **Reads poorly at 28 px:** Midnight (7: no one strong shape, kelp on indigo), the Bone Graveyard and the Underworld
+  (9, 10: the skull is a pale box, the two differ only by colour); Open Blue and Twilight (5, 6) are told apart by hue
+  more than shape. Lands 5 to 8 borrow the first four lands' assets, so their pictures repeat 1 to 4's shapes.
+- **Tools:** `tools/ui/land_icons/` (plan.py picks the camera spots from the map and the props, aim.luau and
+  shotcam_client.luau hold the camera in Play through studio-runner, icons.py draws the treatments, sheet.py the
+  sheets, picks.json the crop per land). The temporary LocalScript was removed after each run; the place is as it was.
+
 ## 2026-11-17 · Obsidian chat integration (the user's PC): the lock, the plunge, the stun, the hook
 **State:** two pushes on the user's word ("push current changes", then "push the changes and get hugos agent to
 update to our current game"): `9f92b1e` and the one this entry is in. In the user's Studio place (synced). Each

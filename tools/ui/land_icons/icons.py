@@ -1,6 +1,6 @@
 """Land-strip icon treatments (task u1, options only): each land's tile filled with a capture of that land.
     python tools/ui/land_icons/icons.py            builds docs/attachments/land-icons/icons/<code>/... and the sheets
-Pictures: docs/attachments/land-icons/land<NN><letter>.jpg (a capture of the game's view, see shots.md). Which picture
+Pictures: docs/attachments/land-icons/land<NN><letter>.jpg (a capture of the game view in Play: plan.py, aim.luau, shotcam_client.luau). Which picture
 and which part of it each land uses: picks.json beside this file ({"1": ["b", cx, cy, side]}, cx/cy/side as shares of
 the picture; side of its height).
 An icon is drawn at SS times its size and shrunk, so its edges are smooth at the real 28-ish GUI pixels.
@@ -80,9 +80,9 @@ def picture(land, w, h, pick=None):
     im = src.crop((round(x0), round(y0), round(x0 + cw), round(y0 + ch)))
     # punch at a middle size first (so the boost works on shapes, not on pixels), then up to the drawing size
     mid = im.resize((max(8, w // SS * 2), max(8, h // SS * 2)), Image.LANCZOS)
-    mid = ImageOps.autocontrast(mid, cutoff=1)
-    mid = ImageEnhance.Color(mid).enhance(1.5)
-    mid = ImageEnhance.Contrast(mid).enhance(1.25)
+    mid = ImageOps.autocontrast(mid, cutoff=0.5)
+    mid = ImageEnhance.Color(mid).enhance(1.3)
+    mid = ImageEnhance.Contrast(mid).enhance(1.12)
     mid = mid.filter(ImageFilter.UnsharpMask(radius=1.2, percent=90, threshold=2))
     return mid.resize((w, h), Image.BICUBIC)
 
@@ -90,9 +90,9 @@ def picture(land, w, h, pick=None):
 def state_picture(pic, state):
     if state == "locked":
         g = ImageOps.grayscale(pic).convert("RGB")
-        g = ImageEnhance.Brightness(g).enhance(0.55)
+        g = ImageEnhance.Brightness(g).enhance(0.8)
         tint = Image.new("RGB", pic.size, (30, 44, 74))
-        return Image.blend(g, tint, 0.45)
+        return Image.blend(g, tint, 0.4)
     return pic
 
 
@@ -118,8 +118,9 @@ def text_outlined(d, xy, s, px, fill=WHITE, stroke=INK, anchor="mm", sw=None):
     d.text(xy, s, font=font(px), fill=fill, stroke_width=sw, stroke_fill=stroke, anchor=anchor)
 
 
-def lock_glyph(im, cx, cy, u):
-    """A small padlock, u = the size of one GUI pixel in this drawing."""
+def lock_glyph(im, cx, cy, u, k=1.0):
+    """A small padlock, u = the size of one GUI pixel in this drawing (k: a smaller one)."""
+    u = u * k
     d = ImageDraw.Draw(im)
     w, h = 9 * u, 7 * u
     d.rounded_rectangle((cx - w / 2 - 3 * u / 2, cy - 5 * u - u, cx + w / 2 + 3 * u / 2, cy + h / 2 + u), 2 * u, fill=None)
@@ -235,7 +236,7 @@ def draw_C(land, state, scale, pick=None):
     ry0, ry1 = 23 * u, 31 * u
     d.rectangle((0.8 * u, ry0, w * u - 0.8 * u, ry1), fill=rib, outline=INK, width=round(1 * u))
     name = SHORT[land - 1]
-    px = 6.6 if len(name) <= 6 else (5.6 if len(name) <= 7 else 5.0)
+    px = 6.6 if len(name) <= 5 else (6.0 if len(name) <= 6 else (5.6 if len(name) <= 7 else 5.0))
     text_outlined(d, (w * u / 2, (ry0 + ry1) / 2), name.upper(), px * u, sw=round(1.1 * u))
     if state == "locked":
         lock_glyph(flat, w * u / 2, 13.5 * u, u)
@@ -322,7 +323,7 @@ def draw_E(land, state, scale, pick=None):
     d.rounded_rectangle(pr, 3.5 * u, fill=DEEP + (210,))
     d.text(((pr[0] + pr[2]) / 2, (pr[1] + pr[3]) / 2), s, font=f, fill=SUN if state != "locked" else (170, 176, 190), anchor="mm")
     if state == "locked":
-        lock_glyph(im, (inner[0] + 12 * u + inner[2]) / 2 - 5 * u, inner[1] + 9 * u, u)
+        lock_glyph(im, inner[0] + 16 * u, inner[1] + 5.6 * u, u, 0.68)
     elif state == "done":
         check_glyph(im, box[2] - 3 * u, box[1] + 3 * u, u)
     return finish(im, scale)
