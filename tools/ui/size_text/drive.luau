@@ -11,6 +11,7 @@ local NOHUD = false
 local STAMP = 0
 local RIDE = nil -- a new number: onto a fish (the sandbox reset)
 local FREEZE = nil -- a new number freezes the scene as it is now, 0 lets go; nil leaves it
+local BACK = 0 -- the frozen camera this many studs further back (the far view)
 local FREE = false -- let the character go (unanchored)
 local RS = game:GetService("ReplicatedStorage")
 local plr = game:GetService("Players"):GetPlayers()[1]
@@ -22,8 +23,6 @@ if EYE and AT and plr and plr.Character then
 		root.CFrame = CFrame.new(eye + (eye - at).Unit * 14 + Vector3.new(0, 6, 0))
 	end
 	RS:SetAttribute("SizeMockCam", CFrame.lookAt(eye, at))
-elseif EYE == nil then
-	RS:SetAttribute("SizeMockCam", nil)
 end
 RS:SetAttribute("SizeMockMode", MODE)
 RS:SetAttribute("SizeMockSet", SET)
@@ -31,6 +30,7 @@ RS:SetAttribute("SizeMockZoom", ZOOM)
 RS:SetAttribute("SizeMockClock", CLOCK)
 RS:SetAttribute("SizeMockNoHud", NOHUD)
 RS:SetAttribute("SizeMockStamp", STAMP)
+RS:SetAttribute("SizeMockBack", BACK)
 if RIDE then
 	RS:SetAttribute("SizeMockRide", RIDE)
 end

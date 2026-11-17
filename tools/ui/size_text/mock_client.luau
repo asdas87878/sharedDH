@@ -940,6 +940,7 @@ local gui = new("ScreenGui", {
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 }, pg)
 
+local tagJail = new("ScreenGui", { Name = "ZZTagJail", Enabled = false, ResetOnSpawn = false }, pg)
 local built = "" -- what is drawn now
 local live = {} -- { root, scale, anim, fish }
 
@@ -1094,7 +1095,12 @@ local function buildScene(version, set, cam)
 			end
 		end
 	end
+	-- nearest first, but the fish that will be drawn whole before the far ones, so the list's sizes land on them
 	table.sort(cands, function(a, b)
+		local fa, fb = a.d >= 110, b.d >= 110
+		if fa ~= fb then
+			return fb
+		end
 		return a.d < b.d
 	end)
 	local list = SETS[set] or SETS.near
@@ -1178,7 +1184,8 @@ RunService:BindToRenderStep("ZZSizeMock", Enum.RenderPriority.Last.Value + 60, f
 	end
 	if frozenCam then
 		cam.CameraType = Enum.CameraType.Scriptable
-		cam.CFrame = frozenCam
+		local back = RS:GetAttribute("SizeMockBack") or 0
+		cam.CFrame = frozenCam * CFrame.new(0, back * 0.2, back)
 		hideLive(true)
 	end
 	if type(version) ~= "string" or version == "" then
@@ -1198,9 +1205,11 @@ RunService:BindToRenderStep("ZZSizeMock", Enum.RenderPriority.Last.Value + 60, f
 	local stamp = RS:GetAttribute("SizeMockStamp") or 0 -- bump to rebuild with the fish in view now
 	local key = version .. mode .. set .. zoom .. stamp
 	-- the game's own tags out of sight; in the grid the whole HUD too
+	-- (the game writes their Visible every frame, so they are moved into a switched-off holder, where it keeps
+	-- updating them unseen)
 	for _, d in pg:GetDescendants() do
-		if d.Name == "FishTag" and d:IsA("GuiObject") then
-			d.Visible = false
+		if d.Name == "FishTag" and d:IsA("GuiObject") and not d:IsDescendantOf(tagJail) then
+			d.Parent = tagJail
 		end
 	end
 	for _, g in pg:GetChildren() do
