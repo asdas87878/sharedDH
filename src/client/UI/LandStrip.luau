@@ -543,7 +543,7 @@ local function number(parent: Instance, land: number, style: number, z: number):
 		end
 		under.TextColor3 = material.Glow
 		under.Parent = box
-		glow = Kit.stroke(under, 3.6, material.Glow :: Color3, 0.35)
+		glow = Kit.stroke(under, 2.6, material.Glow :: Color3, 0.5)
 	end
 	local function set(lit: boolean)
 		if not lit then
@@ -974,21 +974,27 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		end
 		local bestWhole = math.floor(bestMetres)
 		local bx = xOf(bestLands)
-		-- the tag hangs on the side away from you, so the two never cover each other
-		local side = if x > bx then -1 else 1
+		-- the tag hangs on the side away from you, so the two never cover each other; when you are at the line (on
+		-- your way to a new best) it hangs centred under your metres instead
+		local side = if math.abs(x - bx) < 48 then 0 elseif x > bx then -1 else 1
 		if bestWhole ~= aBest or side ~= aSide then
 			aBest = bestWhole
 			aSide = side
 			best.Visible = bestWhole > 0
 			best.Position = UDim2.fromOffset(bx, -4)
 			bestWords.Text = "BEST " .. grouped(bestWhole) .. " m"
+			local drop = if side == 0 then FACE + 16 else 0
 			-- kept inside the strip at its two ends
-			if side < 0 or bx > A_WIDE - 50 then
+			if side == 0 then
+				local shift = math.clamp(bx, 34, A_WIDE - 34) - bx
+				bestTag.AnchorPoint = Vector2.new(0.5, 0)
+				bestTag.Position = UDim2.new(0.5, shift, 1, drop)
+			elseif side < 0 or bx > A_WIDE - 50 then
 				bestTag.AnchorPoint = Vector2.new(1, 0)
-				bestTag.Position = UDim2.new(0.5, 3, 1, 0)
+				bestTag.Position = UDim2.new(0.5, 3, 1, drop)
 			else
 				bestTag.AnchorPoint = Vector2.new(0, 0)
-				bestTag.Position = UDim2.new(0.5, -3, 1, 0)
+				bestTag.Position = UDim2.new(0.5, -3, 1, drop)
 			end
 		end
 	end

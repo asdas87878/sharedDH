@@ -62,7 +62,8 @@ def sheet(lands, out, page):
     d = ImageDraw.Draw(img)
     d.text((24, 18), f"Ride a Fish: pictures for the land strip, round two ({page} of 2). Answer e.g. \"3k, 7h\"", font=icons.font(36), fill=GOLD)
     d.text((24, 66), "Big: six new captures a land (h to m), each with its style-A tile (no inner band) at 3x and real size. "
-           "Small: round one's (a to g). Captured in Play, 2026-11-17.", font=icons.font(19), fill=GREY)
+           "Small: round one's (a to g; 1b and 9b were dropped then). "
+           "2l, 5l, 6l, 7i, 7l and 10i were retaken from the lane's middle (the first try faced a wall). Captured in Play, 2026-11-17.", font=icons.font(19), fill=GREY)
     y = head
     for land in lands:
         d.rounded_rectangle((12, y, W - 12, y + row_h - 12), 14, fill=CARD)

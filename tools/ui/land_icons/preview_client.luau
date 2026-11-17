@@ -49,6 +49,18 @@ local key = ""
 RunService.RenderStepped:Connect(function()
 	local show = RS:GetAttribute("PrevShow") == true
 	gui.Enabled = show
+	local hide = show and RS:GetAttribute("PrevHideHud") == true
+	for _, g in gui.Parent:GetChildren() do
+		if g:IsA("ScreenGui") and g ~= gui and g.Name ~= "ZZStripPreview" then
+			if hide and g.Enabled then
+				g:SetAttribute("PrevWas", true)
+				g.Enabled = false
+			elseif not hide and g:GetAttribute("PrevWas") then
+				g:SetAttribute("PrevWas", nil)
+				g.Enabled = true
+			end
+		end
+	end
 	if not show then
 		return
 	end
@@ -84,5 +96,19 @@ RunService.RenderStepped:Connect(function()
 			RS:GetAttribute("PrevBestLands") or 4.4,
 			RS:GetAttribute("PrevBestMetres") or 108
 		)
+	end
+end)
+
+-- PrevRide (a number that changes): the sandbox's own reset onto a fish at the start, with endless air and no fail,
+-- for a real ride down the lane (the server's BestService then raises BestMetres and BestLands)
+local Net = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Net"))
+local lastRide = RS:GetAttribute("PrevRide")
+RS:GetAttributeChangedSignal("PrevRide"):Connect(function()
+	local now = RS:GetAttribute("PrevRide")
+	if now ~= lastRide then
+		lastRide = now
+		Net.Sandbox:FireServer("Flag", "EndlessAir", true)
+		Net.Sandbox:FireServer("Flag", "NoFail", true)
+		Net.Sandbox:FireServer("Reset")
 	end
 end)

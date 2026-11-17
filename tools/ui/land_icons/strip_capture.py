@@ -86,7 +86,9 @@ if __name__ == "__main__":
             shot(f"gif_{i:03d}", wait=0.4)
             i += 1
     elif what == "phone":
-        prev(Show=True, Back=1, Scale=1, Numbers=2, Reveal="Dive", Touch=True, Land=3, Along=0.5, Metres=60, **BEST)
-        shot("phone")
+        for n in (1, 2, 3):
+            prev(Show=True, Back=1, HideHud=True, Scale=1, Numbers=n, Reveal="Dive", Touch=True, Land=3, Along=0.5, Metres=60, **BEST)
+            shot(f"phone_N{n}")
+        prev(HideHud=False)
     elif what == "clear":
         print(prev(Show=False))
