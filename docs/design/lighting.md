@@ -6,6 +6,48 @@ The look of the light, from the tutorial video the user sent on 2026-11-11 (a 50
 likes its vibrant look. Built the same day by the game-code chat ([Sessions](../Sessions.md)). **Not seen by anyone
 yet:** Studio's window wasn't being drawn when it went in, so it was checked by its numbers in play, not by eye.
 
+## The air above the water (2026-11-17)
+The user: "could we add the fog from ride a dino to an extent. The one that appears from the hub, ours will be
+different for in hub and in water cuz we have water fog now we need like base fog as to obscure the far
+surroundings."
+
+- **A plain fog while the camera is above the surface.** Under it the water's own fog takes over, as before.
+- **Its numbers are in `Config.Look`,** live in the N panel: `AirFog` 1 (0: off), `AirFogStart` 220 studs,
+  `AirFogEnd` 1,500, and its colour `AirFogR`, `G`, `B` 205, 232, 255, a pale sky blue. The hub is about 480
+  studs across, so it stays clear and what is far fades out.
+- **How it is built.** The water's script (`tools/map/water_look.luau`) is the one thing that owns Lighting's fog,
+  so it puts this fog on too, reading the numbers from attributes the game's look writes on Lighting
+  (`Shared/Look.luau`). Roblox's fog only works with the Atmosphere taken out, so the Atmosphere now stays out
+  above the water as well while the fog is on. `AirFog` 0 puts the Atmosphere back.
+- **It needs two things put into Studio:** the game code (`sync_src.py`) and the water's script
+  (`python tools/map/water_luau.py`, then `tools/studio/greybox/98_water.luau` run in Edit).
+- **Why a plain fog and not the Atmosphere:** the lighting study found the Atmosphere is not drawn at the lowest
+  quality level, and a plain fog is. This is the study's test 13, taken as the user's pick without the side by
+  side.
+- **In Studio and run once (the same day).** In the hub the client reads the fog as 205, 232, 255 from 220 to
+  1,500 with the Atmosphere out; on a fish under water it reads the water's own (72, 224, 232 from 80 to 1,550).
+  The numbers are a first go; the user has not judged it. The place needs saving: the water's script changed.
+
+### Thicker, and the sky brought down (the same day)
+The user, on seeing it: "slightly thicker fog. And is there a way to get that skybox to not look like it cuts off
+in a weird way in the distance, anyway to bring that cloud down so to speak".
+
+- **Thicker:** `AirFogStart` 180 and `AirFogEnd` 1,100, were 220 and 1,500.
+- **Why the sky cut off.** The sky's clouds stop well above its own horizon, with a plain blue band under them. A
+  plain fog fades the far land but leaves the sky alone, so the faded land sat under that empty band.
+- **The fix: the sky is tipped 14 degrees toward the lane** (`Config.Look.SkyTilt`, new; the sky's own
+  `SkyboxOrientation`). Looking out of the hub the clouds now sit down on the far land. Behind you they rise by as
+  much, where the hub's wall hides it. To the sides the sky's horizon is slanted; not looked at from there.
+- **Tried first and dropped: an Atmosphere** (`AirFog` 2, kept as an option). It hazes the sky's horizon as well as
+  the land, which is what was wanted. But at a haze of 2.4 it wiped the clouds out to one flat blue, at 0.6 it
+  left a dark blue band on the horizon, and its colour can't be made pale. `AirFog` is 1, the plain fog, which
+  the lowest quality level also draws.
+
+Before (the first fog, the sky level) and after (thicker, the sky tipped):
+
+![before](../attachments/look-air-fog-before.jpg)
+![after](../attachments/look-air-fog.jpg)
+
 ## The look pass: seven tests in Studio (2026-11-16)
 **The user picked A the same day** ("Choose A for the lighting id say"). The game-code chat wrote its three numbers
 into `Config.Look` and put the look on the place in Edit: the sun 215, 190, 135, `ShadowSoftness` 0.2,

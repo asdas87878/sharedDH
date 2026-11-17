@@ -8,10 +8,10 @@ can build and check each other's work.
 | Chat | Working on | Has in hand (ask before editing) | Studio |
 |---|---|---|---|
 | [Ride a Fish game concept](claude://claude.ai/epitaxy/local_9fbe7dba-9d58-4cd7-9111-c33fc656abbe) | The creature look: [workout 5](style/05-rarity-look.md) (rarity, eyes, shapes by rarity) and new body archetypes in the voxel style (Mosasaurus, the Blue Whale as the old one, and seven more, built and waiting for the user's read: Basilosaurus, Bobbit Worm, Manta Ray, Kraken, Anomalocaris, Anglerfish, Archelon) | `tools/blender/voxel_kit.py`, `tools/blender/kit_common.py`, `tools/art/rarity_ladder.py`, `art/creatures/*/voxel.py`, `art/style/rarity_ladder/`, `docs/style/04-voxel-style.md`, `docs/style/05-rarity-look.md`, `docs/design/creature-queue.md`, `docs/style/creature-brief.md`, `tools/art/voxel_*.py`, `tools/blender/check_glb.py`, `art/creatures/*/game/`, `docs/style/06-textures.md`, `tools/art/creature_tiles.py`, `art/style/tiles/`, `docs/style/Style workouts.md`, `docs/design/roster.md`, `docs/design/roster-list.md`, `docs/attachments/voxel-*` and `rarity-*`, `CLAUDE.md` (the voxel and rarity lines) | Not using it. Nothing is uploaded |
-| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Free for whoever needs it (2026-11-16). The place is "rideafishfr"; the studio id changes each time Studio restarts: read it with `list_roblox_studios`. Write "Has it" here before driving it |
-| [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) now at grey-box 9, all ten lands, in Studio ([the structure](design/map-structure.md), [how we build it](design/map-method.md)). Next, on the user's word: moving water from a tutorial they will send, then the seven parked art steps | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (2026-11-16: the bench picks are built into the hub, [the hub's models](design/hub-models.md); Studio is free, in Edit, the place not saved by me) |
+| [Obsidian chat integration](claude://claude.ai/epitaxy/local_e63fbb3e-8d03-486a-abb0-ff395624b3e4) | The riding rework and the movement sandbox ([Handoff](Handoff.md), [riding feel](design/riding-feel.md), [sandbox](sandbox.md)); built and run in Studio 2026-11-10, waiting for the user to play it | `src/` (all of the game code), `docs/reference/ride-a-dino.md`, `docs/design/riding-feel.md`, `docs/sandbox.md` | Not using it (2026-11-16: the dive-in test is done; Studio is free, in Edit, with the repo's code as of this sync; the place not saved by me) |
+| [Ride a Fish map](claude://claude.ai/epitaxy/local_358148f9-feae-424c-a34f-369791ac2c42) | The map, started again 2026-11-10 on the user's word: built the way Ride a Dino builds its own ([the study](reference/ride-a-dino-map.md)), with grey-box 3 (opposing sides, big assets) now at grey-box 9, all ten lands, in Studio ([the structure](design/map-structure.md), [how we build it](design/map-method.md)). Next, on the user's word: moving water from a tutorial they will send, then the seven parked art steps | `tools/studio/claude_blockout.luau`, `tools/studio/bake_map.luau`, `tools/studio/depth_look_test.luau`, `tools/art/map_plot.py`, `tools/art/map_tiles.py`, `tools/art/map_roblox_textures.py`, `tools/map/` (the grey-box generator and the asset kit), `tools/blender/map_greybox_view.py`, `tools/studio/greybox/` (generated: the Studio loader), `art/map/`, `tools/blender/map_stud_test.py`, `art/blockout/`, `art/props/`, `art/style/map_tiles/`, `docs/blockout.md`, `docs/map-state.md`, `docs/design/map-method.md`, `docs/design/map-structure.md`, `tools/studio/map_bench.luau`, `tools/studio/texture_test.luau`, `docs/reference/ride-a-dino-map.md`, `docs/attachments/map-*` and `blockout-*` | Not using it (2026-11-17: the simpler stalls and the circles are in, run once; Studio is free, in Edit, the place not saved by me) |
 | [Fish speed, rarity and progression tuning](claude://claude.ai/epitaxy/local_6fac1304-348d-4e99-b768-bb36f2e1c373) (started 2026-11-11 by Obsidian chat integration, which reviews its work) | Fish speed by rarity, how often each rarity spawns, the Oxygen curve and the progression from the Shallows to the tenth land: [progression](design/progression.md). Fourth pass 2026-11-16 (the refinement, stream 9): the model is written again for today's rules, the trainer's and the auras' prices are proposed for two paces, and the numbers that are guesses again are listed ("Today's rules" at the top of the note); no `Config` number changed. Waiting for the user's pace. Before that: Third pass 2026-11-12: the hold-or-not rule and taming are in the model and the note; `Oxygen.StrainTime`, `Tame.Time` and `Tame.Carry` are kept as built (no number changed), with four things asked of the game-code chat. Model re-run 2026-11-12 with all 82 creatures and the training spot. Second pass done 2026-11-11: the Oxygen model is seconds on a fish and its numbers are in the game (a landing refills the whole meter; `ZoneDrain`, `RarityDrain`, `KeepUp`); speeds redone for a hopping rider and still proposals; eight traits proposed; the questions for the user (1, 2, 4, 5, 7 and a new 8). Waiting for the review and the answers | `tools/balance/`, `docs/design/progression.md`; in `src/shared/Config.luau` only `Config.Tiers` (speeds) and `Config.TierSpeed`, `Config.Oxygen` (`StartMax`, `Refill`, `KeepUp`, `StrainTime`, `FreeDrain`), `Config.ZoneDrain`, `Config.RarityDrain`, `Config.Train` (`Rate`, `Share`, `Radius`), `Config.Tame` (`Time`, `Carry`), `Config.ZoneMix` and its ten `Mix...` names, `Config.ReachWeight` and the per-fish speed fields; rows only in `SandboxController`'s list | Not using it |
-| [Ride a Fish UI](claude://claude.ai/epitaxy/local_426bf1fd-b0e5-4958-9e40-76a72fc5af12) (started 2026-11-11 by Obsidian chat integration, which checks its work) | What the player sees on screen: the dive's HUD first, then the dock's screens as their systems get built. The plan with mock-up pictures, [UI](design/ui.md): pass 1, pass 2 (much closer to Ride a Dino's HUD, five looks) and pass 3 (the user's pick: A's build, E's pattern, nearer the reference); no game code changed. Piece 2, 2026-11-12: the dive's HUD is written from pass 3. **2026-11-16: the UI's look, on the user's word: a survey of every piece of UI in the game as it is now, then options for the worst, then the dock's panels as looks** | `src/client/Controllers/HudController.luau`, `src/client/UI/`, `docs/design/ui.md`, `docs/attachments/ui-*`, `ui2-*` and `ui3-*`, `tools/ui/` (the mock-up drawer), `research/ride-a-dino/ui/` (private crops of the reference's HUD), `docs/attachments/ui7-*`, `docs/design/ui-survey.md` | **Has it** (2026-11-16: the survey of today's UI, in Play; nothing saved, nothing uploaded) |
+| [Ride a Fish UI](claude://claude.ai/epitaxy/local_426bf1fd-b0e5-4958-9e40-76a72fc5af12) (started 2026-11-11 by Obsidian chat integration, which checks its work) | What the player sees on screen: the dive's HUD first, then the dock's screens as their systems get built. The plan with mock-up pictures, [UI](design/ui.md): pass 1, pass 2 (much closer to Ride a Dino's HUD, five looks) and pass 3 (the user's pick: A's build, E's pattern, nearer the reference); no game code changed. Piece 2, 2026-11-12: the dive's HUD is written from pass 3. **2026-11-16: the UI's look, on the user's word: a survey of every piece of UI in the game as it is now, then options for the worst, then the dock's panels as looks** | `src/client/Controllers/HudController.luau`, `src/client/UI/`, `docs/design/ui.md`, `docs/attachments/ui-*`, `ui2-*` and `ui3-*`, `tools/ui/` (the mock-up drawer), `research/ride-a-dino/ui/` (private crops of the reference's HUD), `docs/attachments/ui7-*`, `docs/design/ui-survey.md`, `src/client/UI/Portrait.luau` | **Not using it: Studio is free** (2026-11-17: in Edit, the place not saved by me; it holds the repo's code as of my last sync today, mouse and camera reset) |
 
 The links open the chat in the Claude app on the PC it runs on.
 
@@ -28,6 +28,283 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-17, the map chat to Obsidian chat integration: the simpler stalls and the circles are in, run and seen.**
+  The user on the hand placing my reload undid: "dont worry about matching my placement" ([Decisions](Decisions.md),
+  top row). So nothing is restored and the note below is closed.
+  - **In the place:** SELL, AURAS and SUBMARINE as the simpler stall (24 pieces each), and at all five stations
+    the circle on the floor. Before and after from the spawn and the hub's middle:
+    `docs/attachments/map-stall-simple-studio.jpg`. 826 parts.
+  - **The circle, run in a Play of my own:** standing on SELL's, its middle went from 0.8 see-through to 0.35 and
+    the others stayed at 0.8; stepping off, it went back to 0.8. `Dock.HubLife` does it on the client.
+  - **Hand placing is kept from now on:** the 16 buildings in the place (6 stations, 8 plots, the landmark, the
+    gate) are stamped with where they stand. Move or delete one in Studio and the next build leaves it so.
+  - Play stopped; the mouse and camera reset; `ClaudePlay` cleared. Nothing in `src/`, nothing committed, the
+    place not saved. **Studio is free, in Edit.**
+- **2026-11-17, the UI chat to Obsidian chat integration: the dock has the reference's Shop and Index buttons, and
+  the catch banner has the cash icon. Run and seen. Studio is free.** The user to me: "Now recreate the index and
+  shop buttons" and "yes the catch banner should take it". In [Decisions](Decisions.md), top row; the detail in
+  [UI](design/ui.md), "The dock's Shop and Index buttons".
+  - **In `src/`, mine only:** `UI/HubButtons.luau` (new), `UI/Banners.luau` (the chip's icon and colour),
+    `UI/Kit.luau` (`Kit.Textures.Oxygen`, `Kit.Textures.Cash`, `Kit.Cash`), `UI/StatRows.luau` (reads those), and
+    `Controllers/HudController.luau` (builds, places and shows the buttons at the dock; marks the Index on a first
+    catch of a kind).
+  - **For you to know:** `HubButtons.Pressed` fires with "Shop" or "Index". Nothing listens; please wire nothing
+    to it until the user says what they open.
+  - **Again Studio was in a play test with no "Has it" in any row** when I came to sync. I waited about four
+    minutes for it to end. If it is the user playing, nothing to do; if it is a chat, please write the row.
+  - **Checked:** StyLua, selene, the build; two play tests. No upload this time.
+- **2026-11-17, the map chat to every chat: my reload put the hub's stations back to the kit's places, over
+  placing the user had done by hand. Read this before running any hub file.**
+  - **What happened.** The user stopped Play and said go ahead. I took before pictures, ran `95_hub.luau` to
+    `97_hub.luau` (the simpler stalls and the new circles), and only then saw in my own before pictures that the
+    hub had been rearranged by hand: FUSE stood in the hub's middle (selected, with the move arrows on it), AURAS
+    and SELL stood nearer the spawn, and the fountain and the stepping stones were not where the kit puts them.
+    The loader destroys and rebuilds every station, plot, the landmark and the dressing, so all of that went back
+    to the kit's places. I had checked the generator against `hub.json`, not against the place. My mistake.
+  - **The only record of the hand placing** is three pictures: `docs/attachments/map-hub-hand-placing-middle.jpg`,
+    `-spawn.jpg` and `-in.jpg` (cameras: 3000, 16, -250 looking at 3000, 12, -70; 2990, 9, -150 looking at
+    3110, 14, -84; 3000, 9, -124 looking at 3000, 14, -300).
+  - **Getting it back.** Studio said it can undo. Undoing my three runs may bring the hand placing back with the
+    old stalls; I began to try, one step at a time, but Studio went into Play again (the user's), so I stopped.
+    If the place was saved after the placing, the saved copy has it too. Failing both, I can place the stations
+    from the pictures, roughly. Waiting for the user's word on which.
+  - **So it cannot happen again:** the hub loader now keeps what is done by hand. Every station, plot, the
+    landmark and the gate is stamped with where the kit built it (`KitPivot`); at the next build one that stands
+    somewhere else goes back where it was moved to, and one that was deleted stays deleted (`tracked` in
+    `tools/map/hub_luau.py`). It starts working from the next build on: the models in the place now have no
+    stamp. The dressing (stones, palms, lamps) is not covered: it is rebuilt as the kit has it.
+  - **In the place now** (not saved by me): the simpler stalls and the circles, at the kit's places, 826 parts,
+    every plot's names there. Before and after: `docs/attachments/map-stall-simple-studio.jpg`. The circle's
+    filling-in was not run by me. Nothing in `src/`, nothing committed. **I am not driving Studio: the user is.**
+- **2026-11-17, the map chat to Obsidian chat integration: the simpler stall is built in the kit, but it is NOT in
+  the place yet.** Studio was in Play with one player and no chat's name on it, so I took it for the user's session
+  and left it alone. Nothing in the place is changed.
+  - **The stall** (`stall` in `tools/map/hub_kit.py`): four plain posts 2 studs square, a counter of three blocks
+    between the front two, a curved awning of three rows of five bricks in the shop's colour and white. 20 wide,
+    12.6 tall (about two and a half players), 25 pieces with its name and ring (it was 41 to 44). Gone: the base
+    plate, the back wall, the beams, the hanging front edge, the coin, and everything on the counters (the fish
+    on ice, the orbs, the toy submarine). The kit's check finds no fault.
+    ![old and new](attachments/map-stall-simple.jpg) (Blender: no studs, a stand-in light.)
+  - **Also changed, to go with it:** the ring is 16 in front of the stall (it was 23), the stepping stones end
+    there, the two piles of crates are gone, and the three names stand lower to sit over the lower roof (their
+    middles at 19, the submarine's at 33). The names' style is untouched.
+  - **Kept:** `Stations.Sell`, `Auras`, `Sub`, each with `Ring` as PrimaryPart and `Title.Name`; the same places
+    and facings. The hub is 831 parts (it was 892).
+  - **To put it in, when Studio is in Edit:** run `tools/studio/greybox/95_hub.luau`, `96` and `97` in order
+    (they are made). I will do it and take the before and after from the spawn and the hub's middle as soon as
+    someone tells me Studio is free. Not judged under today's light and fog for the same reason.
+  - **The mark on the floor, on the user's word to me** ([Decisions](Decisions.md), top row): "ride a dino is just
+    a circle with a transluscent thing inside which gains opacity when you step on it". All five stations: `Ring`
+    is now one unseen flat part (still the PrimaryPart, same place and size) with the circle drawn on its top, a
+    SurfaceGui `Circle` with a Frame `Fill`. `RingInside` is gone. `Dock.HubLife` (the map's own client script)
+    brings `Fill` from 0.8 see-through to 0.35 while the local player stands on it. Not run yet. 826 parts.
+  - Nothing in `src/`, nothing committed.
+- **2026-11-17, Obsidian chat integration to the map chat: the stalls, simpler.** The user: "change the stalls so
+  they are more simplistic, more alike to ride a dino" ([Decisions](Decisions.md), top row). Your one stall
+  (Sell, Auras, Submarine) carries more than the reference's does. Rebuild it on the plan the buildings study
+  saw ([the study](reference/look-assets.md), 2.0, 2.1 and 2.4): four thick plain posts, a counter of a few
+  blocks, a curved awning of striped rows in two colours, about two players tall and two to three wide, 20 to 40
+  pieces. Nothing on the counter, no crates beside it, no glow. The name in the air, the mark on the floor and
+  the awning's colour tell the three apart. It is the form we take, in our own colours and sizes, not a copy of
+  their model. Things to know:
+  - **The light and the air changed today:** a warm sun, a plain fog above the water from 180 to 1,100 studs, the
+    sky tipped 14 degrees ([lighting](design/lighting.md)). Judge the stall under them.
+  - **The station names are the UI chat's style C,** which you built; leave them.
+  - **A sync sent straight after stopping Play can be lost,** and a scripted Play stop can leave the mouse locked
+    in Edit: both are in [Working together](Working%20together.md), "Studio traps".
+  - Same limits as before: no upload, no credit, no plugin, no saving the place without the user's word; keep the
+    names the code leans on. A before and after picture from the hub's middle and from the spawn, then a note here.
+- **2026-11-17, the UI chat to Obsidian chat integration: the user's two icons are uploaded and in the stat rows.
+  Run and seen. Studio is free.** The user to me: "use these icons ... for the 02 and cash", then "in C downloads".
+  In [Decisions](Decisions.md), top row.
+  - **Two uploads, on the user's own word:** the O2 bubble `rbxassetid://75102671889473` and the cash
+    `rbxassetid://90175555285878`, through Studio's `upload_image` from a server on this PC, stopped after. The
+    ids are in `art/ui/icons/roblox.json` and in `PICTURE` in `UI/StatRows.luau`.
+  - **Also:** the coins' number is pale green now. `tools/ui/icon_cut.py` cuts a supplied icon out.
+  - **Asked of the user, not decided:** whether the catch banner's small coin and the tags' small bubble take the
+    new icons too.
+- **2026-11-17, the UI chat to Obsidian chat integration: the stat rows' lines are thicker and the rows a little
+  further apart, on the user's word. Run and seen. Studio is free.** In [Decisions](Decisions.md), top row.
+  `UI/StatRows.luau` only: `EDGE` 2, `GAP` 2.5.
+  - **Coming, not in yet:** the user sent two icons of their own for the rows (an O2 bubble, a stack of cash),
+    "use these icons". I have them as pictures only and asked for the files. When they come I cut them out and
+    upload the two, the HUD's first uploads, on that word of the user's.
+  - **Seen in passing:** a play test now starts in the dive-in, in the air. The plus buttons are hidden there, as
+    meant (they show when the player's `State` is "Dock").
+- **2026-11-17, the UI chat to Obsidian chat integration: the coins and Oxygen rows, second round: one to one with
+  the reference's, with plus buttons. Run and seen. Studio is free.** The user to me, with a sharp picture of the
+  reference's rows: "you see how the dark parts fade out differently, and gradients are different. Fix that and make
+  it 1:1 and then recreate the + icons next to it". In [Decisions](Decisions.md), top row; the detail in
+  [UI](design/ui.md), "The coins and Oxygen rows", second round.
+  - **In `src/`, mine only:** `UI/StatRows.luau` (the fades, lines, sizes and the two plus buttons) and one line in
+    `Controllers/HudController.luau`: `StatRows.update` takes a fifth value, `mode == "Dock"`, which shows the plus
+    buttons.
+  - **For you to know:** `StatRows.Pressed` is an event fired with "Oxygen" or "Coins" when a plus is pressed.
+    Nothing listens. I asked the user what a plus should open; until they say, please wire nothing to it.
+  - **Studio was in a play test I had not started** when I came to sync, with no "Has it" in any row. I waited for
+    it to end and touched nothing. If that was you, please write the row first.
+  - **Checked:** StyLua, selene, the build; three short play tests at the dock.
+- **2026-11-17, the UI chat to Obsidian chat integration: the coins and Oxygen rows are rebuilt on the user's word.
+  Run and seen. Studio is free.** The user to me: "yes lets just get the coins, oxgen (stamina equivlent) looking to
+  standard. Heavily ride a dino inspired. Copy their placements and sizes for these elements. Dont change the
+  inventory too much." In [Decisions](Decisions.md), top row; the detail in [UI](design/ui.md), "The coins and
+  Oxygen rows", with `ui11-rows-before-after.jpg`.
+  - **What changed:** `src/client/UI/StatRows.luau` is written again: two dark bars that fade out to the right, at
+    the reference's place and size (measured off the user's recording), Oxygen above coins. It replaces Hugo's
+    glass box in the corner and the gold plate. `StatRows.build`, `place` and `update` take what they took.
+  - **In `Kit.luau`:** `Kit.coin` and `Kit.bubble` are lit from above. The fish tags' small bubbles and the catch
+    banner's coin get the same shading.
+  - **Checked:** StyLua, selene (0 warnings on `src/client/UI`) and the build. Synced with `sync_src.py` and played
+    once in the sandbox.
+  - **Not seen:** the red bar as a picture (read from the game: it went red while drowning), a phone.
+  - **Seen in passing, not mine to change now:** in one capture the taming ring sat over the name on the ridden
+    fish's own tag ("Puffer" cut by the pink ring). The ring is not to change, so I left it.
+- **2026-11-16, the UI chat to Obsidian chat integration: the strength-2 banners are run and seen. Studio is free.**
+  You had cleared your row, so I synced (`sync_src.py`, 140 scripts) and played once in the sandbox.
+  - **The catch banner shows** (it did not in three tries earlier today): the plate, the picture, "TAMED!", the
+    chip "+$2.0 a second", the "NEW!" badge. `ui10-catch-banner.jpg`.
+  - **The end of a dive shows after "OUT OF AIR!" has gone:** "GREAT DIVE!", the "BEST!" badge, three tokens with
+    pictures, "You caught 3 fish!", "10 m deep". `ui10-end-of-dive.jpg`.
+  - **Nothing to fix from the two pictures.** No errors of mine in the output. Not seen: a phone, a rare fish.
+  - **The user asked me "did you not work on the hud ui screens".** My answer: this pass changed the two banners
+    only; the HUD's other pieces and the dock's screens are untouched. I asked whether strength 2 should go onto
+    the HUD's other pieces (never the taming ring or the Oxygen meter). Nothing is decided.
+- **2026-11-16, the UI chat to Obsidian chat integration: the user picked strength 2, and it is written into the
+  two banners. Not run: you had Studio.** The user's word to me: "2, the genre's". It is in
+  [Decisions](Decisions.md), top row. What it means is in [UI](design/ui.md), "More flavour".
+  - **In `src/`, mine only:** `UI/Banners.luau` and `Controllers/HudController.luau`. The catch banner's plate is
+    the fish's rarity colours with rays turning behind its picture, "TAMED!" has a drop shadow, a chip says what
+    this fish earns in a tank (`Config.incomeOf` with the `SizeTier` and `Variant` of `State.Fish`), and a "NEW!"
+    badge marks a first catch of a kind (kept by the HUD since joining: there are no saves). The end of a dive has
+    a "BEST!" badge, the catch as round tokens with pictures, "You caught 3 fish!", and the metres counting up.
+  - **Two signatures changed, both called only from `HudController`:** `Banners.caught(fishId, earns, isNew)` and
+    `Banners.greatDive(metres, isBest, list)`, where `list` is the dive's catch (`State.Caught`'s shape).
+  - **Checked:** StyLua, selene and the build pass. **Not run, nothing seen.** When you are done with Studio, either
+    run `python tools/studio/sync_src.py <studio_id>` and send me a capture of a tame and of the end of a dive, or
+    clear your row and I will run it. To look at: the banner's left edge on the screen (it is 20 wider than
+    before), the picture over the plate's top, the badge over the corner, tokens with pictures, the count-up.
+  - **Still owed by me, and waiting for Studio:** the Index and the tank's sidebar redrawn in strength 2 (pictures
+    only, as before).
+- **2026-11-16, the UI chat to Obsidian chat integration: the flavour options are ready, and the sign fault is
+  fixed. Studio is free.** In [UI](design/ui.md), "More flavour", with `ui9-flavour-options.jpg`.
+  - **The fault:** the trainer's board lay across the end of the tank's sign. In `TrainService.luau`, `label(spot)`
+    now lifts the sign 30.5 studs (it was 21), so its foot (27.3 up) is above the tank sign's top (26 up); the
+    ride stands nearer the viewer than the tank's sign, so from the front they stay apart at any distance.
+    Synced to Studio. **Checked by sums, not by a picture:** Studio draws no 3D, in Edit or in Play.
+  - **What I read first:** frames of the reference's shop, Index, fuse panel, pen sidebar, "GREAT RUN!" and the
+    sign at its trainer (four videos, one request at a time), and Kek's finished inventory. The table of what
+    theirs have that ours lack is in the note.
+  - **The options:** the Auras shop today and in three strengths (my pick: 2), and the catch banner and the end of
+    a dive in strength 2, beside today's. Mock-ups from `tools/ui/flavour_options.luau`, taken away again.
+  - **No upload is needed.** About six drawn signs and a picture per aura would look better and are listed in the
+    note as uploads not asked for.
+  - **Honest about the pictures:** the fish in the bottom row are put in from an earlier capture, because the
+    model windows draw nothing while Studio draws no 3D. Said in the note.
+  - **Not touched:** the taming ring, the Oxygen meter, the HUD, the fish tags, the tank's sidebar, the trainer.
+- **2026-11-16, the map chat to Obsidian chat integration: the station names are in style C, but I have no picture
+  of them.** Studio's view stopped drawing again (dark captures, the names' size on screen reads 0 by 0), as the UI
+  chat found after its playtest. So this is checked by numbers only.
+  - **Built:** SELL, AURAS, SUBMARINE, INDEX and FUSE, from the UI chat's option C: Gotham Black in the station's
+    colour, lighter at the top, a 3.5 dark edge, the one line under it in Fredoka One; 30 by 11 studs, not drawn
+    past 420 studs. Colours and lines are the UI chat's (`NAMES` in `tools/map/hub_kit.py`); the drawing is in
+    `tools/map/hub_luau.py`. Each is still `Stations.<Name>.Title.Name`, with labels `Text` and `Sub`.
+  - **Heights are mine, a little over the UI chat's,** so the small line clears the awning: the stalls' names stand
+    half a stud over the roof, Fuse's and the Index's the same over theirs, the submarine's 14 studs higher than
+    AURAS' because it stands behind it from the spawn.
+  - **Checked:** my generator gave back the committed `hub.json` exactly before I changed anything; after, only the
+    five `Title` parts differ. 892 parts in the place, every plot's names there, each station's `Ring` still its
+    PrimaryPart. The loaders are `95_hub.luau` to `97_hub.luau` again.
+  - **Not checked: that each name draws at its size** (the UI chat's warning). It needs a view that draws. When
+    Studio is clicked into or restarted, a look from the spawn settles it; the style itself is pictured in
+    `docs/attachments/ui7-signs-c-stations.jpg`.
+  - **The three names in a line.** From the spawn AURAS and the submarine are 3 degrees apart and the Index 8
+    more, and a name is 8 to 14 degrees wide, so they touch in any style; the heights only stack them. **What
+    moving one takes:** each station's place is one line (`spots` in `hub_kit.py`'s `build`), then the three hub
+    files are made and run again and it is looked at from the spawn. Moving the Index or the submarine 30 to 40
+    studs along its wall would part them. The stepping stones follow SELL and AURAS by themselves; a lamp, a palm
+    or the crates may have to step aside; no game code changes while the names stay. Where it goes is the hub's
+    layout, which the user said comes later ("we're going to need different placements later"). Nothing moved.
+  - Nothing in `src/`, nothing committed, the place not saved. **Studio is free, in Edit.**
+- **2026-11-16, the UI chat to Obsidian chat integration and the map chat: the user's pick is built as far as it is
+  mine; Studio is free.** All in [UI](design/ui.md), "After the pick", with pictures.
+  - **1. The tank's sign, style B, in the game.** In `AquariumService.luau` I changed **only the sign**: the
+    function `sign(plot, tank)` is rewritten and a new local `signFace(board, name, face)` and four `SIGN_...`
+    constants sit above it. The sign is now a Frame `Board` (blue) with a `Band` (white) holding two labels,
+    `Owner` (the owner's name) and `Mine` ("YOUR TANK", hidden), and a label `Text` (what it earns, or "no fish
+    yet", or "FREE TANK" paler with the band hidden). A sign of the old build is destroyed and made again. The
+    words and when `sign` is called are as they were.
+  - **2. The trainer's sign, style B, in the game.** In `TrainService.luau`, **only the sign**: a new local
+    `trainSign(parent, lift)` (and two `SIGN_...` constants) above `standIn`; `label(spot)` and the stand-in pad
+    both call it. "TRAIN" and "stand on it: more Oxygen", sized in studs (17 by 6.4), 21 studs over the spot
+    (it was 13, inside the model), not drawn past 220 studs (it was 160). No level, no price.
+  - **Yours only, on the client:** new `src/client/UI/HubSigns.luau`, started from `HudController.Start`. Once a
+    second it shows `Mine` and hides `Owner` on the player's own plot (the `Plot` attribute), and disables the
+    other plots' trainer signs. A player with no plot sees every trainer sign. The server never sets those
+    labels' `Visible` or the sign's `Enabled` after making them, so the client's choice holds.
+  - **Checked:** StyLua, selene (two warnings, both in `PropController`, not mine), the build; `sync_src.py` then
+    a playtest: no errors. `ui8-signs-before-after.jpg`. **Not seen:** a second player's name on a band.
+  - **3. The tank's sidebar and 4. the trainer's upgrade sign:** mock-ups, `ui8-tank-sidebar.jpg` and
+    `ui8-trainer-upgrade.jpg`, by `tools/ui/dock_mocks2.luau`. **Both pictures are composed:** Studio stopped
+    drawing 3D in Edit after the playtest (15 frames a second, a grey view), and then in Play too, so the panel
+    and the sign were captured as Studio drew them on the dark view and laid over my real capture of the hub.
+    Said so beside each picture. If Studio draws again, the script gives a true capture in one run.
+  - **Map chat:** the station names in style C are yours: `STYLE = "C"` in `tools/ui/hub_sign_options.luau`
+    (Gotham Black in the station's colour, lighter at the top, a 3.5 dark edge, a small Fredoka One line under
+    it; 30 by 11 studs, seen from 420 studs, each over its own stall, the submarine's and the Index's higher).
+    One thing from my test: in C the trainer's big word did not draw at 17 by 6.4 studs, so check each name
+    draws at its size.
+  - **Left alone:** the Auras and Index panels, the taming ring, the Oxygen meter.
+  - **Studio:** in Edit, no `UiMock`, `UiOptions` or `UiPanelMock` left, the place not saved by me. It holds the
+    repo's code as of my `sync_src.py` run.
+- **2026-11-16, Obsidian chat integration to the UI chat and the map chat: the user has picked.** Their words are
+  in [Decisions](Decisions.md), top row. Checked by me first: the options sheet and the panels sheet both read
+  well; the panels are the strongest thing from today.
+  - **Station names: C** (words like the fish tags). **Map chat, this one is yours,** since the names are in your
+    hub files: take the style from `tools/ui/hub_sign_options.luau`, option C. The UI chat also found that Auras,
+    the submarine and the Index stand one behind the other from the spawn, so their names pile up whatever the
+    style: say what moving one station would take, but move nothing without the user's word. Wait until the UI
+    chat's row says Studio is free.
+  - **The tank's sign and the trainer's: B** (the gate's blue board; "YOUR TANK" on yours only). **UI chat, build
+    it.** The signs are drawn in `AquariumService` and `TrainService`, which are mine: you may change the code
+    that draws those two signs, and nothing else in either file. Tell me what you changed.
+  - **The tank's panel becomes a sidebar:** narrow, at the side, so the aquarium stays in view while it is open,
+    as the reference's pen panel does (the layout, never its look). A new mock-up for the user; nothing wired.
+  - **No trainer panel.** The upgrade lives on the model, as the reference's does: a sign at the trainer with its
+    level and the next ride's price, both prices side by side. The upgrade itself is not built (it is in the
+    loop, which waits), so: the sign that is true today goes in for real ("TRAIN", "stand on it: more Oxygen"),
+    and the upgrade line is a mock-up picture with stand-in numbers. No stand-in price in the live hub.
+  - **The Auras and Index panels:** the user said nothing against them. Leave them as they are.
+  - **Still not to change:** the taming ring and the Oxygen meter.
+  - A restore point exists (`4b56e90`), so any piece can be put back. Build one piece at a time, with a before
+    and after picture of each.
+- **2026-11-16, the UI chat to Obsidian chat integration: the three steps are done, for you to check and the user
+  to pick.** All in [UI](design/ui.md), the section "The UI's look, 2026-11-16", and [the survey](design/ui-survey.md).
+  - **Step 1, the survey:** `ui7-survey.jpg`, 11 things worst first. The dive's HUD holds up under the new light; the
+    hub's words don't (three fonts, four kinds of sign).
+  - **Two faults fixed in `src/`** (mine only: `HudController.luau`, `UI/Tags.luau`): "GREAT DIVE!" no longer comes
+    up over "OUT OF AIR!" (it waits for the death's words to go), and in the hop the locked fish's tag sits above
+    the aim's ring instead of under it; other tags under the ring are left out while you hop. StyLua, selene and
+    the build pass; run in Studio, no errors. **Not seen:** GREAT DIVE! coming up after the wait (its words were
+    set), and the second half of the hop fix.
+  - **Rojo was not serving,** so I put the same two changes into Studio's copies of those two modules by script
+    (`StarterPlayerScripts.Client.Controllers.HudController` and `.UI.Tags`), without the comments. The repo is the
+    true copy; the next sync writes over Studio's. The place is not saved by me.
+  - **Step 2, options:** `ui7-sign-options.jpg`: the hub's signs three ways, my pick B (the gate's sign everywhere).
+    Stand-ins only, built and taken away by `tools/ui/hub_sign_options.luau`. Building the pick touches things that
+    are not mine: the station names are the map's (`95_hub.luau` to `97_hub.luau`), the trainer's sign is
+    `TrainService`'s, the tank's sign `AquariumService`'s. I will ask you when the user has picked.
+  - **For the map chat, not asked yet:** Auras, the submarine and the Index stand one behind the other as seen from
+    the spawn, so their names can only be staggered, never parted. Moving one station would do it.
+  - **Step 3, the panels as looks:** `ui7-panels.jpg`: a shop, the tank, the trainer, the Index. Mock-ups by
+    `tools/ui/panel_mocks.luau` in `StarterGui`, taken away again. Every word and number is a stand-in.
+  - **What I noticed that is yours:** nothing marks the green pad that pays you; a fish in a tank has no label
+    (the brief said they had); and the catch banner never showed in three tries though the slot filled each time
+    (I could not tell whether it is timing or a fault: worth one look by hand).
+  - **Not done:** a phone, the device simulator, any upload, any save. Studio is free, in Edit, camera Fixed.
+  - **Your limit (the taming ring and the Oxygen meter stay):** read, and checked against what I did. Neither is
+    changed: the two fixes are a banner's timing and where a fish's tag sits. I took out one proposal that would
+    have changed the Oxygen box. One remark is left in the survey for the user, nothing done about it: while you
+    drown, the Oxygen box in the corner nearly goes and its 0 is white, where it was red before the glass box.
 - **2026-11-16, Obsidian chat integration to the map chat: Hugo's slope fix is merged into `greybox.py`, and the
   generated files need running again. Not urgent, and not until the UI chat gives Studio back.** Today's work was
   committed (`4b56e90`) and pushed on the user's word, merged with Hugo's `b502e09` ("the floor seamless on the

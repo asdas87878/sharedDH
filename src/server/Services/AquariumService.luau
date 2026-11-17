@@ -48,46 +48,98 @@ local function part(plot: Model, name: string): BasePart?
 	return if found and found:IsA("BasePart") then found else nil
 end
 
--- The plot's sign: the owner's name and what the tank earns
+-- The plot's sign, in the hub's sign style (the user's pick of 2026-11-16, "B": the gate's sign; docs/design/ui.md):
+-- a blue board, a white band across its top with the owner's name in blue, and under it what the tank earns in white
+-- letters with a dark edge. A free tank says so, paler, with no band.
+-- Each player's own machine writes "YOUR TANK" over its own tank's band (Client.UI.HubSigns shows the label "Mine"
+-- and hides "Owner"), so nothing here sets those two labels' Visible after they are made.
+local SIGN_BLUE = Color3.fromRGB(30, 140, 255)
+local SIGN_INK = Color3.fromRGB(16, 36, 63)
+local SIGN_PALE = Color3.fromRGB(196, 224, 255)
+local SIGN_FONT = Enum.Font.LuckiestGuy
+
+local function signFace(board: BasePart, name: string, face: Enum.NormalId): SurfaceGui
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = name
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 24
+	gui.LightInfluence = 0
+	local root = Instance.new("Frame")
+	root.Name = "Board"
+	root.Size = UDim2.fromScale(1, 1)
+	root.BackgroundColor3 = SIGN_BLUE
+	root.BorderSizePixel = 0
+	root.Parent = gui
+	local band = Instance.new("Frame")
+	band.Name = "Band"
+	band.Size = UDim2.fromScale(1, 0.3)
+	band.BackgroundColor3 = Color3.new(1, 1, 1)
+	band.BorderSizePixel = 0
+	band.Parent = root
+	for _, which in { "Owner", "Mine" } do
+		local label = Instance.new("TextLabel")
+		label.Name = which
+		label.BackgroundTransparency = 1
+		label.Position = UDim2.fromScale(0.03, 0.08)
+		label.Size = UDim2.fromScale(0.94, 0.84)
+		label.Font = SIGN_FONT
+		label.TextScaled = true
+		label.TextColor3 = SIGN_BLUE
+		label.Text = if which == "Mine" then "YOUR TANK" else ""
+		label.Visible = which == "Owner"
+		label.Parent = band
+	end
+	local text = Instance.new("TextLabel")
+	text.Name = "Text"
+	text.BackgroundTransparency = 1
+	text.Font = SIGN_FONT
+	text.TextScaled = true
+	text.Parent = root
+	local edge = Instance.new("UIStroke")
+	edge.Thickness = 3
+	edge.Color = SIGN_INK
+	edge.LineJoinMode = Enum.LineJoinMode.Round
+	edge.Parent = text
+	gui.Parent = board
+	return gui
+end
+
 local function sign(plot: Model, tank: Tank?)
 	local board = part(plot, "SignBoard")
 	if not board then
 		return
 	end
-	local text = "FREE TANK"
-	if tank then
-		text = tank.Player.DisplayName
-			.. "\n"
-			.. (
-				if tank.Income > 0
-					then string.format("$%s a second", Config.shortNumber(tank.Income))
-					else "no fish yet"
-			)
-	end
+	local owner = if tank then tank.Player.DisplayName else ""
+	local text = if not tank
+		then "FREE TANK"
+		elseif tank.Income > 0 then string.format("$%s a second", Config.shortNumber(tank.Income))
+		else "no fish yet"
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 		local name = "Sign" .. face.Name
 		local gui = board:FindFirstChild(name)
-		if not gui then
-			local made = Instance.new("SurfaceGui")
-			made.Name = name
-			made.Face = face
-			made.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-			made.PixelsPerStud = 24
-			made.LightInfluence = 0
-			local label = Instance.new("TextLabel")
-			label.Name = "Text"
-			label.Size = UDim2.fromScale(1, 1)
-			label.BackgroundColor3 = Color3.fromRGB(24, 32, 52)
-			label.TextColor3 = Color3.new(1, 1, 1)
-			label.Font = Enum.Font.GothamBlack
-			label.TextScaled = true
-			label.Parent = made
-			made.Parent = board
-			gui = made
+		if gui and not gui:FindFirstChild("Board") then
+			gui:Destroy() -- (a sign of the old build)
+			gui = nil
 		end
-		local label = (gui :: Instance):FindFirstChild("Text")
-		if label and label:IsA("TextLabel") then
+		local root = (gui or signFace(board, name, face)):FindFirstChild("Board")
+		local band = root and root:FindFirstChild("Band")
+		local ownerLabel = band and band:FindFirstChild("Owner")
+		local label = root and root:FindFirstChild("Text")
+		if
+			band
+			and band:IsA("Frame")
+			and ownerLabel
+			and ownerLabel:IsA("TextLabel")
+			and label
+			and label:IsA("TextLabel")
+		then
+			band.Visible = tank ~= nil
+			ownerLabel.Text = owner
 			label.Text = text
+			label.TextColor3 = if tank then Color3.new(1, 1, 1) else SIGN_PALE
+			label.Position = if tank then UDim2.fromScale(0.03, 0.34) else UDim2.fromScale(0.05, 0.2)
+			label.Size = if tank then UDim2.fromScale(0.94, 0.6) else UDim2.fromScale(0.9, 0.6)
 		end
 	end
 end

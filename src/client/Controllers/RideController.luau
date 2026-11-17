@@ -249,7 +249,7 @@ local function riddenSpeed(): number
 	if fish and rideType then
 		return Config.riddenOf(fish, rideType)
 	end
-	return if rideType then rideType.RiddenSpeed else Config.Speed.Base
+	return if rideType then Config.speedOf(rideType) else Config.Speed.Base
 end
 
 -- A plain shake: `size` is how far the camera is thrown, studs; `time` is this shake's own seconds to die away

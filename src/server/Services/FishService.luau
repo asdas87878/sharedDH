@@ -86,6 +86,7 @@ export type Wild = {
 	SentAt: number, -- os.clock() its Swim and Turn were last written,
 	SentDir: Vector3, -- and the way and the speed written then: they replicate to every client, so they are
 	SentSpeed: number, -- written only when they have changed enough to see
+	Swift: number, -- how much faster than its kind it is ridden (1; Config.Pace.FastRide for a fish born fast, BoltRide for a bolt)
 	Swim: LinearVelocity,
 	Turn: AlignOrientation,
 	Saddle: Attachment,
@@ -124,7 +125,7 @@ end
 
 -- A fish's own ridden speed (its species, rarity, home land and variant), as Config has it now
 function FishService.ridden(w: Wild): number
-	return Config.speedOf(w.Type, w.Variant)
+	return Config.speedOf(w.Type, w.Variant) * w.Swift
 end
 
 -- The roll for a new fish's variant. Studio only: the workspace's "TestVariant" attribute ("Gold" or "Rainbow") makes
@@ -413,7 +414,7 @@ local function roomAt(s: number, across: number, lift: number, space: number): n
 			local ds = o.S - s
 			if ds > -STOCK and ds < STOCK then
 				local da = o.A - across
-				local dl = (o.Lift - lift) * 2
+				local dl = (o.Lift - lift) * Config.Spawn.LiftRoom
 				local d = math.sqrt(ds * ds + da * da + dl * dl) / (space + o.Space)
 				if d < best then
 					best = d
@@ -505,6 +506,22 @@ local function huntHigh(w: Wild): number
 	return Config.Pace.HuntHigh + w.Body.Y / 2
 end
 
+-- The dive-in (Config.Dive; docs/design/dive-in.md): how much of the gate's gathering a place along the stream has,
+-- 1 at the lane's start easing to 0 at Dive.RampTo. The sea is slower by it (landPace) and higher (gateRise).
+local function gateEase(s: number): number
+	local to = Config.Dive.RampTo
+	if to <= 0 then
+		return 0
+	end
+	local u = math.clamp(s / to, 0, 1)
+	return 1 - u * u * (3 - 2 * u)
+end
+
+-- How far over its place in the herd a fish swims because of the gate: up toward the surface where the dive begins
+local function gateRise(s: number): number
+	return Config.Dive.Rise * gateEase(s)
+end
+
 -- The ride pace of the land at a place along the stream (Config.LandPace), eased across each border so the herd
 -- never changes speed at a line
 local function landPace(s: number): number
@@ -528,7 +545,8 @@ local function landPace(s: number): number
 			here = before + (here - before) * (0.5 + (s - zoneFrom[z]) / blend)
 		end
 	end
-	return here * Config.Pace.Land
+	-- (and slower at the gate, where the sea gathers for the dive-in)
+	return here * Config.Pace.Land * (1 - (1 - Config.Dive.GateShare) * gateEase(s))
 end
 
 -- How fast a fish swims on average, studs a second: what it does out of sight, where it is only a number. A darter's
@@ -550,6 +568,12 @@ local function paceShare(w: Wild, now: number, position: Vector3): number
 	local p = Config.Pace
 	local pace = w.Pace
 	local share = Config.Herd.SpeedShare
+	if pace == "Cruise" and p.CruiseSurge ~= 0 then
+		-- each fish of the herd a little faster and slower in its own slow beat (its Phase gives the beat and where
+		-- it is in it): mean nothing, so it keeps its place
+		local beat = math.max(p.CruiseBeat, 0.5) * (0.7 + 0.6 * ((w.Phase * 7.31) % 1))
+		share *= 1 + p.CruiseSurge * math.sin(now * math.pi * 2 / beat + w.Phase)
+	end
 	if pace == "Plod" then
 		share = p.Plod * (1 + p.PlodLurch * math.sin(now * math.pi * 2 / math.max(p.PlodBeat, 0.1) + w.Phase))
 	elseif pace == "Zoom" then
@@ -676,7 +700,10 @@ local function make(
 	u: number?,
 	lift: number?,
 	dodge: number?,
-	sizeTier: string?
+	sizeTier: string?,
+	pace: string?,
+	own: number?,
+	swift: number?
 ): Wild
 	local model = FishModel.build(fishType)
 	local tier = sizeTier or "Normal"
@@ -684,7 +711,8 @@ local function make(
 	local body = fishType.Size * scale
 	resize(model, tier, scale)
 	model:SetAttribute("Variant", variant)
-	model:SetAttribute("Pace", Config.paceOf(fishType))
+	model:SetAttribute("Pace", pace or Config.paceOf(fishType))
+	model:SetAttribute("Swift", swift or 1)
 	-- its passive archetypes (Config.FishStats; docs/design/archetypes.md): "" for none, more than one comma-separated.
 	-- The hook for the passives and for the partner's animations
 	model:SetAttribute("Archetype", fishType.Archetype)
@@ -703,15 +731,16 @@ local function make(
 		Home = home,
 		S = home,
 		U = u or 0,
-		Lift = lift or (layerOf(Config.paceOf(fishType))),
+		Lift = lift or (layerOf(pace or Config.paceOf(fishType))),
 		A = 0,
 		Give = 0,
 		GiveWant = 0,
 		Dodge = dodge or rollDodge(body),
 		Space = spaceOf(body),
 		SyncAt = os.clock() + rng:NextNumber(0, SYNC),
-		Pace = Config.paceOf(fishType),
-		Own = (1 + rng:NextNumber(-1, 1) * Config.Pace.Own) * (Config.SizePace[tier] or 1),
+		Pace = pace or Config.paceOf(fishType),
+		Own = (own or 1) * (1 + rng:NextNumber(-1, 1) * Config.Pace.Own) * (Config.SizePace[tier] or 1),
+		Swift = swift or 1,
 		Land = landPace(home),
 		Gait = 0,
 		Lead = 0,
@@ -850,16 +879,37 @@ local function spawnFish(index: number, entry: boolean?): Wild?
 	local tier = rollSize(grandNear, fishType)
 	local body = fishType.Size * Config.sizeScale(tier, fishType)
 	local dodge = rollDodge(body)
+	-- Its pace: its kind's, but a fish of the herd may be born swift (Config.Pace.FastShare, BoltShare): up in the
+	-- fast layer at the fast ones' pace, a bolt far faster, and each ridden faster than its kind
+	local p = Config.Pace
+	local pace = Config.paceOf(fishType)
+	local own, swift = 1, 1
+	if pace == "Cruise" then
+		local roll = rng:NextNumber()
+		if roll < p.BoltShare then
+			pace, own, swift = "Zoom", p.Bolt / math.max(p.Zoom, 0.01), p.BoltRide
+		elseif roll < p.BoltShare + p.FastShare then
+			pace, swift = "Zoom", p.FastRide
+		end
+	end
+	if pace == "Zoom" then
+		own *= 1 + rng:NextNumber(-1, 1) * p.FastVary
+	end
 	local home, at, u, lift = placeFor(
 		index,
 		body,
 		if entry then 0 else Config.Spawn.AppearClear,
 		dodge,
-		Config.paceOf(fishType),
+		pace,
 		if entry then Config.Spawn.EntryAt else nil
 	)
+	-- (at the gate it comes in already as high as the fish there swim: Config.Dive.Rise)
+	local up = gateRise(home)
+	if up > 0 then
+		at = Vector3.new(at.X, math.max(at.Y, math.min(at.Y + up, ceilingFor(body))), at.Z)
+	end
 	local along = Stream.along(stream, home)
-	local w = make(fishType, rollVariant(), home, at, along, slice.Zone, index, u, lift, dodge, tier)
+	local w = make(fishType, rollVariant(), home, at, along, slice.Zone, index, u, lift, dodge, tier, pace, own, swift)
 	park(w, not nearAPlayer(at, Config.Spawn.StreamRadius))
 	return w
 end
@@ -871,8 +921,9 @@ local function streamPoint(w: Wild): Vector3
 	local across = Stream.across(stream, s, w.U, 0, w.Dodge, w.Body.X / 2)
 	w.A = across
 	local at = Stream.point(stream, s, across, w.Lift)
-	if w.Rise > 0 then
-		at = Vector3.new(at.X, math.max(at.Y, math.min(at.Y + w.Rise, ceilingFor(w.Body))), at.Z)
+	local rise = w.Rise + gateRise(s)
+	if rise > 0 then
+		at = Vector3.new(at.X, math.max(at.Y, math.min(at.Y + rise, ceilingFor(w.Body))), at.Z)
 	end
 	return at
 end
@@ -957,7 +1008,7 @@ local function emptiest(per: { [number]: number }, anywhere: boolean?): (number?
 			local around, wanted = windowOf(per, i)
 			if around < wanted then
 				local hidden = anywhere or alongClear(slice.Start, slice.End, sp.SightClear)
-				if hidden or i == 1 then
+				if hidden or i <= math.max(1, sp.EntrySlices) then
 					local score = (wanted - around) / wanted
 						+ 0.1 * (slice.Want - have) / slice.Want
 						+ rng:NextNumber() * 0.01
@@ -1018,7 +1069,11 @@ local function wrapHome(w: Wild, per: { [number]: number }): boolean
 		local slice = slices[index]
 		-- (where nobody can see; or, at the lane's very start with someone looking on, in at the gate like a new one)
 		local hidden = alongClear(slice.Start, slice.End, sp.SightClear)
-		if slice.Zone == w.Type.Home and (per[index] or 0) < slice.Want and (hidden or index == 1) then
+		if
+			slice.Zone == w.Type.Home
+			and (per[index] or 0) < slice.Want
+			and (hidden or index <= math.max(1, sp.EntrySlices))
+		then
 			local around, wanted = windowOf(per, index)
 			if around < wanted then
 				local home, _, u, lift = placeFor(index, w.Body, 0, w.Dodge, w.Pace, if hidden then nil else sp.EntryAt)
@@ -1274,7 +1329,10 @@ local function giveWay()
 				local side = (a.Body.X + b.Body.X) / 2 + h.GiveSide
 				local across = a.A - b.A
 				local short = side - math.abs(across)
-				if short > 0 and math.abs(a.Lift + a.Rise - b.Lift - b.Rise) < (a.Body.Y + b.Body.Y) / 2 + 2 then
+				if
+					short > 0
+					and math.abs(a.Lift + a.Rise - b.Lift - b.Rise) < (a.Body.Y + b.Body.Y) / 2 + h.GiveHeight
+				then
 					local push = short / 2 * (1 - ds / along)
 					local way = if across > 0 then 1 elseif across < 0 then -1 elseif a.U >= b.U then 1 else -1
 					a.GiveWant += way * push
@@ -1336,9 +1394,11 @@ local function steer(w: Wild, dt: number)
 		want = Stream.along(stream, aheadS)
 	else
 		local target = Stream.point(stream, aheadS, across, w.Lift)
-		if w.Rise > 0 then
-			-- (a hunter over the herd: up by its rise, never out of the water)
-			local up = math.max(target.Y, math.min(target.Y + w.Rise, ceilingFor(w.Body)))
+		-- (a hunter over the herd: up by its rise, never out of the water. And every fish near the gate, by the
+		-- gate's own rise there: it sinks to its place in the herd as it swims on)
+		local rise = w.Rise + gateRise(aheadS)
+		if rise > 0 then
+			local up = math.max(target.Y, math.min(target.Y + rise, ceilingFor(w.Body)))
 			target = Vector3.new(target.X, up, target.Z)
 		end
 		local to = target - position

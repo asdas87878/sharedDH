@@ -206,6 +206,35 @@ trainer goes in.
 
 **Who:** the user for the phone; the game-code chat for the counting.
 
+## The ship list (2026-11-17)
+**This replaces the order below.** The user, 2026-11-17: finish the game fast (their own deadline: two days), all
+ten lands with the first ones polished most, something at the end, then a test of whether it has potential: two
+bought TikTok accounts going live, 120 to 150 dollars of adverts, about 200 dollars in all. No potential means a
+pivot. Their words are in [Decisions](Decisions.md).
+
+**What the test can and can't show.** Roblox shows a new game only to age-checked players of 16 and over until
+250 engaged ones have played it, or 50,000 Robux is paid ([findings](Findings.md), rank 1 point 1). The 200
+dollars does not cover that fee. So unless that changes, **nobody under 16 who sees the game on TikTok can join
+it,** and nor can anyone who has not done Roblox's age check. Raised with the user on 2026-11-17.
+
+In the order I would build it. "Must" is what the test needs to mean anything.
+
+| | What | Why the test needs it | Who |
+|---|---|---|---|
+| Must | **Saving:** Oxygen, coins, the tank, the best depth | Without it nobody can return, and return is what "potential" is | Game code |
+| Must | **The trainer bought in levels, and auras** | Coins buy nothing today; the loop stops at "earn" | Game code, the UI chat for the sign and the panel |
+| Must | **A small shop for Robux:** x2 coins, x2 Oxygen gain, a starter pack | "Does anyone buy" is half the test. The products are made by the user in Roblox's dashboard | Game code; the user |
+| Must | **The steps counted:** dived, tamed, deposited, bought, came back | It is the only way to read the test afterwards | Game code |
+| Must | **Published, with the creature models owned by the publishing account,** an icon, a name | It can't be joined otherwise | The user, with Claude |
+| Should | **The ending:** a goal at the bottom of the tenth land | The user's "something onto the end" | Game code, the map chat |
+| Should | **Sounds** from Roblox's own library, and the plunge | Most payoffs are silent | Game code |
+| Should | **The Index,** paying Oxygen | The active road to the stat | Game code, the UI chat |
+| Should | **The first lands' look;** the others left plainer | The user's emphasis | The map chat |
+| Should | **A phone:** one run on a real one | Most players are on phones | The user |
+| Could | The dive summary, the hub's twenty seconds, a rare shoal on a clock, tank levels | Better, not needed to read the test | |
+
+**First to go if it does not fit:** the Index, then the ending's dressing, then the later lands' look.
+
 ## The order
 **Changed 2026-11-16 on the user's word:** "go ahead with the rank 1 proposals", and "before we start moving on
 to large scale refinements, I'd like to kind of just make sure the main assets and the UI all looks really good

@@ -162,6 +162,12 @@ The user: "Just build the assets. Sure." ([Decisions](../Decisions.md)). Under l
 - **Not done:** not played, not on a phone, the place not saved. The bench and the scale figures are deleted from
   the place (`hub_bench.py` builds the bench again; it needs two figures put back in `Workspace.ClaudeScaleFigure`).
 
+**The stations' names, style C (later the same evening).** The user: "for stations, C" ([Decisions](../Decisions.md)).
+SELL, AURAS, SUBMARINE, INDEX and FUSE are bare words in the station's colour with a dark edge and one small line
+under each, as the UI chat's option C (`../attachments/ui7-signs-c-stations.jpg`). **Not seen by me:** Studio's view
+was not drawing when they went in, so they are checked by numbers only. AURAS, the submarine and the Index still
+stand in a line from the spawn; moving one is a line in `hub_kit.py` and waits for the user's word.
+
 ### 1. One plot five ways (test 3)
 The same five fish in each (the Seahorse is the Rare), a name over each as a stand-in for the game's labels.
 ![five ways](../attachments/look-bench-plots.jpg)
@@ -232,6 +238,24 @@ Read from Studio's own counters, in Edit mode. The budget the study gives is 500
 - The trail to the plot, the stall three times against three one-offs, the labels' cut-off, the flicker board
   (tests 4 to 7) and the rest of the study's list.
 - Building what is picked onto the plots and stations: after the user picks.
+
+## The stall, simpler (2026-11-17)
+The user: "change the stalls so they are more simplistic, more alike to ride a dino", and of the mark on the floor:
+"ride a dino is just a circle with a transluscent thing inside which gains opacity when you step on it"
+([Decisions](../Decisions.md)). In the place, seen and run.
+
+![before and after in Studio](../attachments/map-stall-simple-studio.jpg)
+
+- **The stall** is the form the buildings study read off the reference, in our colours and sizes: four plain posts
+  2 studs square, a counter of three blocks between the front two, a curved awning of three rows of five bricks in
+  the shop's colour and white. 20 wide and 12.6 tall, about two and a half players (it was 36 by 22). 24 pieces
+  with its name and mark. Nothing on the counter, no base plate, no back wall, nothing glows.
+- **The mark** at every station is a circle's line in the station's colour with a see-through middle; the middle
+  goes more solid while you stand on it. One unseen part, `Ring`, with the circle drawn on its top.
+- **With it:** the mark is nearer the stall, the stepping stones end at it, the two piles of crates are gone, the
+  names stand lower over the lower roof. 826 parts (it was 892).
+- **Run:** standing on SELL's circle its middle went from 0.8 see-through to 0.35, and back on stepping off.
+- **Not done:** not on a phone; the place not saved.
 
 ## What moved, and why
 The hub's size, layout and colours are questions waiting for the user, so nothing of those changed. Three things

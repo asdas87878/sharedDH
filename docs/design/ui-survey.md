@@ -26,7 +26,7 @@ a phone, not with a second player.
 | 2 | **The station names run into each other** | [right](../attachments/ui7-hub-right.jpg), [left](../attachments/ui7-hub-left.jpg) | From the spawn AURAS sits on SUBMARINE and INDEX floats behind both. Pale lilac letters with a thin edge and no plate, on a pale wall. They are drawn from 900 studs away, at every size, so far ones are specks |
 | 3 | **"TRAIN OXYGEN / stand here"** | [the plots](../attachments/ui7-hub-plots.jpg) | Thin white words with a faint edge. The same words hang over every plot, so three show at once and none says which is yours. The trainer's own model cuts through the letters |
 | 4 | **Four sign styles and three fonts in one hub** | [the gate](../attachments/ui7-hub-gate.jpg), [a tank](../attachments/ui7-hub-tank-fish.jpg), [the earners](../attachments/ui7-hub-earners.jpg) | The gate: white Luckiest Guy on a blue board. A tank: white Gotham Black on a navy board with a gold rim. The earners: black Luckiest Guy on yellow over a black board. Stations: bare Luckiest Guy. The trainer: bare Fredoka One. The HUD: Fredoka One and Gotham Black |
-| 5 | **The bottom left corner** | [riding](../attachments/ui7-dive-riding.jpg), [drowning](../attachments/ui7-dive-drowning.jpg) | Your coins are a gold studded plate; your Oxygen is a smoked glass box in the corner. Two builds, and they touch. While you drown the glass box all but goes and a white 0 floats on nothing |
+| 5 | **The bottom left corner** | [riding](../attachments/ui7-dive-riding.jpg), [drowning](../attachments/ui7-dive-drowning.jpg) | Your coins are a gold studded plate; your Oxygen is a smoked glass box in the corner. Two builds, and they touch. **One remark on the Oxygen box, for the user to judge, nothing changed:** while you drown the glass box all but goes and a white 0 floats on nothing (the meter was red here before, and the 0 was red) |
 | 6 | **In the hop the aim sits on the tag** | [the hop](../attachments/ui7-dive-hop.jpg) | The locked fish's tag is put at the fish, the aim ring at the middle of the screen, and in a hop those are the same place: the ring covers "Required" and "TOO STRONG!", and the tag covers the rider |
 | 7 | **Seven empty slots** | [the spawn](../attachments/ui7-hub-spawn.jpg) | Empty, they are the heaviest thing on the screen: seven glass tiles with the water's picture. They show on the dock too, where nothing can be caught |
 | 8 | **The strip of lands** | [the spawn](../attachments/ui7-hub-spawn.jpg) | The land names are too small to read at this size. From the spawn the strip sits right on the gate's "DIVE IN". "BEST 48 m" is written across a land's name. It shows on the dock, where you are in no land |
@@ -35,6 +35,8 @@ a phone, not with a second player.
 | 11 | **"DIVE IN" on the floor** | [the spawn](../attachments/ui7-hub-spawn.jpg) | Unreadable from the spawn (seen edge on). The sign over the gate already says it |
 
 ## What reads well, and stays
+- **The taming ring and the Oxygen meter stay as they are,** on the user's word of the same day
+  ([Decisions](../Decisions.md)): they match the reference now. Other pieces are made to fit them.
 - **The gate's sign:** big white letters, a dark edge, a blue board with a white rim. The best sign in the hub.
 - **A tank's sign up close:** the owner and "$4.4 a second" read at once.
 - **The fish tags** (Hugo's three lines), near and far, and the red plate on a fish too strong.

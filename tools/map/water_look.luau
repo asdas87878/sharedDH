@@ -402,6 +402,45 @@ local function underwater(eye, t, dt, centre)
 		Lighting.FogColor = water
 		Lighting.FogStart = LOOK.FogStart
 		Lighting.FogEnd = fogEnd
+	elseif Lighting:GetAttribute("AirFog") == 2 then
+		-- Above the water, the second way (2026-11-17, the user: the sky "cuts off in a weird way in the distance ...
+		-- bring that cloud down"). A plain fog stops at the last thing drawn: the sky behind it is untouched, so the
+		-- far cliffs faded to a pale shape under a hard, clear sky. An Atmosphere fogs what is far AND hazes the
+		-- sky's own horizon in one colour, so the two meet. Its numbers come from the look, as attributes.
+		if atmosphere then
+			atmosphere.Parent = Lighting
+			atmosphere = nil
+		end
+		local air = Lighting:FindFirstChildOfClass("Atmosphere")
+		if not air then
+			air = Instance.new("Atmosphere")
+			air.Name = "Air"
+			air.Parent = Lighting
+		end
+		local tint = Lighting:GetAttribute("AirFogColor")
+		air.Color = if typeof(tint) == "Color3" then tint else Color3.fromRGB(205, 232, 255)
+		air.Decay = air.Color
+		air.Density = Lighting:GetAttribute("AirDensity") or 0.36
+		air.Offset = Lighting:GetAttribute("AirOffset") or 0.2
+		air.Haze = Lighting:GetAttribute("AirHaze") or 2.4
+		air.Glare = 0
+		Lighting.FogEnd = 100000
+		Lighting.FogStart = 0
+	elseif Lighting:GetAttribute("AirFog") == 1 and typeof(Lighting:GetAttribute("AirFogEnd")) == "number" then
+		-- Above the water: the hub's own air (2026-11-17, the user: "we need like base fog as to obscure the far
+		-- surroundings"). A plain fog whose numbers the game's look puts on Lighting as attributes (Shared.Look, from
+		-- Config.Look's AirFog rows), so they can be tuned in play. Roblox's fog only works with the Atmosphere out,
+		-- so it stays out up here too while this is on.
+		if not atmosphere then
+			atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmosphere then
+				atmosphere.Parent = script
+			end
+		end
+		local air = Lighting:GetAttribute("AirFogColor")
+		Lighting.FogColor = if typeof(air) == "Color3" then air else Color3.fromRGB(205, 232, 255)
+		Lighting.FogStart = Lighting:GetAttribute("AirFogStart") or 0
+		Lighting.FogEnd = Lighting:GetAttribute("AirFogEnd")
 	else
 		if atmosphere then
 			atmosphere.Parent = Lighting

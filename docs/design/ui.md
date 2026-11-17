@@ -16,6 +16,389 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The UI's look, 2026-11-16: the survey, two fixes, options and the dock's panels
+The user: "I just want to do the UI" ([Decisions](../Decisions.md)). Three steps, asked for by the game-code chat's
+brief in [Sessions](../Sessions.md). All of it was looked at in Studio on this PC under the new light, not on a phone.
+
+**A limit from the user, the same day** ([Decisions](../Decisions.md)): the taming ring and the Oxygen meter stay as
+they are. Nothing here changes them and no option redesigns them; other pieces are made to fit them. Checked
+against this pass: the two fixes touch neither (one is a banner's timing, the other where a fish's tag sits), and
+the one proposal that would have changed the Oxygen box is taken out and left as a remark for the user in the survey.
+
+### Step 1: the survey
+[The UI today](ui-survey.md): every piece of UI in the hub and in a dive, with pictures, worst first. In short: the
+dive's HUD holds up under the new light; the hub's words do not (three fonts, four kinds of sign, names that run
+into each other); and two things were plain faults.
+
+### Two faults fixed
+**State: in the game code, formatted, checked, built, and run in Studio: no errors.** They are faults, not looks, so
+they were fixed without waiting for a pick.
+
+| Fault | Fix | Seen |
+|---|---|---|
+| At the end of a dive "GREAT DIVE!" came up over "OUT OF AIR!" while the black lifted: two banners saying opposite things | The end of the dive waits until the death's own words are gone, then comes up by itself | ["OUT OF AIR!" alone](../attachments/ui7-fix-end.jpg). The banner after it was not caught in a picture; its words were set ("26 m, NEW BEST, 3 CAUGHT") |
+| In the hop the aim's ring sat on the locked fish's tag, covering what it needs | A locked fish's tag that would touch the ring sits just above it. Any other tag that would sit under the ring is left out while you hop | [The locked tag above the aim](../attachments/ui7-fix-hop.jpg). In that picture another fish's tag is still under the ring: the second half of the fix was written after it, ran with no errors, and is not yet seen |
+
+### Step 2: the hub's signs, three options (the user picks)
+The worst of the survey that is a matter of look: the station names, the trainer's words, the tanks' signs
+(numbers 2, 3, 4 and 9). One answer covers all four: **one sign style for the whole hub.**
+
+![](../attachments/ui7-sign-options.jpg)
+
+| | What it is | For | Against |
+|---|---|---|---|
+| **B (my pick)** | The gate's sign everywhere: white Luckiest Guy with a dark edge, on a board in the station's own colour with a white rim | It is the best sign the hub already has, and the user played with it. Colour tells the stations apart from far, as the stalls' own colours do. Loud flat colour is what the building study asks of a hub | A second font beside the HUD's round one |
+| A | The HUD's dark see-through panel, a coloured header with studs, white Fredoka One | One look for world and screen | Dark boxes in a bright hub. The names read smallest of the three |
+| C | No plate: Gotham Black in the station's colour with a thick dark edge, like the fish tags | Lightest on the view | Still words on a wall: the far ones run together, and small lines under them are lost. Its "TRAIN" did not draw in the test |
+
+**The same in all three:**
+- **A name sits over its own stall,** not 20 studs up in one row. Under it, one small line says what the station is for.
+- **Seen from 420 studs,** not 900 (each floating label is a draw call on a phone).
+- **Your tank's sign says "YOUR TANK"** over what it earns. The others say whose they are, or "FREE TANK", fainter.
+- **The trainer is named once, over the model, on your own plot only,** with what it gives.
+- **Auras, the submarine and the Index stand one behind the other from the spawn.** The signs are staggered in
+  height, which helps; only moving one of the stations parts them for good. That is the map chat's, not asked yet.
+
+**Not covered by a picture, proposed for after the pick:**
+
+| # in the survey | Proposal |
+|---|---|
+| 5 The bottom left corner | The coins are made to fit the Oxygen box: its build (smoked glass, a gold top line), sitting on it as one piece. **The Oxygen box itself is not touched** (the user, 2026-11-16) |
+| 7 Empty slots | No slots on the dock. In a dive, empty slots are hairlines with no water picture; a filled slot is as now |
+| 8 The strip of lands | Hidden on the dock (it covers the gate's sign there). BEST moves under the strip, as on a phone |
+| 10 The earners' board, 11 the floor's "DIVE IN" | The earners' board takes the picked sign style when it has names to show. The floor's words go: the gate says it |
+
+`tools/ui/hub_sign_options.luau` builds any of the three in Studio as stand-ins and takes them away again.
+
+### Step 3: the dock's panels as looks
+Nothing is behind these. **Every word and number is a stand-in.** They are mock-ups built in Studio from Roblox's own
+pieces and the stud tile that was already uploaded, then taken away again (`tools/ui/panel_mocks.luau`).
+
+![](../attachments/ui7-panels.jpg)
+
+**One panel, four times,** by the rules in [the findings](../Findings.md):
+- **Dark blue, a little see-through, never black,** with a darker copy nudged down as its shadow.
+- **Studs on the header and the buttons only.** The header is the station's own colour, the one on its sign.
+- **Every size is a share of the panel,** and the panel's shape is held, so a phone gets the same panel smaller.
+- **A price sits on the thing it buys, coins and Robux side by side.** Gold is coins, green is Robux, everywhere.
+- **A ladder shows your next step only:** what you have, an arrow, the next one. One line names the step after.
+- **Nothing asks for Robux unasked.** The only Robux-only button (train twice as fast) is small, at the bottom.
+- **A creature's picture is its own model in a small window,** so no picture is uploaded. An unfound fish in the
+  Index is its shadow, with its rarity's colour on the frame.
+
+| Panel | What it shows |
+|---|---|
+| A shop (auras) | What you have, the next aura with what it lets you hold, both prices, your coins |
+| Your tank (**redone as a sidebar** after the user's pick, see "After the pick") | What it earns a second, COLLECT with the sum waiting, each fish on its rarity's colour with what it earns, empty places, KEEP THE BEST, more room with both prices |
+| The trainer (**dropped by the user's pick:** the upgrade goes on the trainer's sign, see "After the pick") | Your Oxygen against what the next land's fish need, as a bar. The ride you have, the next ride, both prices. Twice as fast for Robux |
+| The Index | A tab a land, found fish with name and rarity, the rest as shadows, a bar toward the land's reward |
+
+**Seen in the pictures, to mend when it is built:** the auras have no picture yet (plain discs), and in the shop the
+next aura's words touch its disc (moved in the script since).
+
+**Not done:** a phone (on the user's word that waits; Studio's device simulator was not tried, a script can't drive
+it), the sell and fuse stations, the submarine, a first-minute script, buttons that open any of this.
+
+**For the user to pick:** the sign style (B, A or C), and whether the panels' look is right.
+
+### After the pick (the user, 2026-11-16)
+"for stations, C. For aquarium ss id go for B. and could we turn just the tank selection into more of a sidebar
+looking thing like in ride a dino to shrink it and keep the aquarium visible whilst it being open. Remove the
+trainer UI because we want it to be integrated into the model for upgrades like ride a dino": in
+[Decisions](../Decisions.md). Four things follow; the station names in style C are the map chat's to build.
+
+**1 and 2. The tank's sign and the trainer's sign are in the game, in style B.**
+**State: in the game code, formatted, checked, built, and run in Studio: no errors.**
+
+![](../attachments/ui8-signs-before-after.jpg)
+
+- **A tank's sign:** the gate's blue board. A white band across its top carries the owner's name in blue; under it,
+  what the tank earns, in white letters with a dark edge. **On your own tank the band says "YOUR TANK".** A free
+  tank says "FREE TANK", paler, with no band.
+- **The trainer's sign:** a blue board with a white rim over the ride: "TRAIN", and under it "stand on it: more
+  Oxygen". **You see it once, over your own ride;** the other plots' are hidden on your machine. It sits above the
+  model's head, so the model no longer cuts the words. Only what is true today is on it.
+- **How "yours" is known:** the server draws every sign the same. Each player's own machine then swaps the name on
+  its own tank's band for "YOUR TANK" and hides the other trainers' signs (`src/client/UI/HubSigns.luau`, looked
+  at once a second).
+- **Seen in the run:** your tank read "YOUR TANK, NO FISH YET" and the seven others "FREE TANK"; one TRAIN sign,
+  over your ride. **Not seen:** another player's name on a band (one player in the test), and a phone.
+
+**3. Your tank's panel as a sidebar** (a mock-up; nothing is wired, every number is a stand-in).
+
+![](../attachments/ui8-tank-sidebar.jpg)
+
+- **Narrow, at the right edge,** about a quarter of the screen wide, so the aquarium stays in view while it is
+  open. Its shape is held and its width follows the screen's height, so a phone gets the same panel smaller.
+- **Top to bottom:** what the tank earns and COLLECT with the sum waiting; the fish one a row, the best earner
+  first, each with its picture on its rarity's colour, its name and what it earns; the empty places; KEEP THE
+  BEST; more room, with both prices side by side.
+- **The same build as the other panels:** dark blue, a little see-through, studs on the header and the buttons.
+- **The picture is composed:** the panel as Studio drew it, laid over a real capture of the hub with today's HUD.
+  Studio was drawing no 3D when it was made, so the fish in it are taken from the earlier wide panel's capture.
+- **It replaces the wide tank panel** of step 3. The Auras and Index panels stay as they were.
+
+**4. No trainer panel: the upgrade is on the trainer's sign** (a mock-up; the upgrade is not built).
+
+![](../attachments/ui8-trainer-upgrade.jpg)
+
+- **Today's two lines stay on top.** Under them: the ride's level and what it gives, the next level and what that
+  gives, and its price in coins and in Robux side by side, as buttons on the sign.
+- **None of that is in the game:** the live sign has only "TRAIN" and "stand on it: more Oxygen", and no price.
+- **Open, for when it is built:** whether the two prices are pressed on the sign itself or by walking up and
+  pressing a key; and that this taller sign needs more room above the ride (here it reaches the strip of lands).
+- **The picture is composed** the same way as the sidebar's.
+
+`tools/ui/dock_mocks2.luau` builds both mock-ups in Studio and takes them away again.
+
+### More flavour (the user, 2026-11-16): options to pick from
+"overall this UI just needs a bit more flavour in its look and style. It doesnst match the quality of similar slop
+games in the overlays and stuff. Get it to do that": in [Decisions](../Decisions.md).
+
+**State: options, as mock-ups built in Studio and taken away again (`tools/ui/flavour_options.luau`). Nothing is in
+the game. Every number is a stand-in. No upload.**
+
+![](../attachments/ui9-flavour-options.jpg)
+
+**What the reference's overlays have that ours lack.** Read from frames of four videos (its shop, its Index, its
+fuse panel, its pen sidebar, its "GREAT RUN!", a sign at its trainer) and one tutorial's finished inventory. The
+devices are taken, never the art.
+
+| Theirs | Ours, today |
+|---|---|
+| **Each offer is its own banner in its own colours,** with rays behind the thing on offer | Every card is the same dark blue |
+| **The thing itself is drawn big,** and breaks out of its box | A flat disc in a box |
+| **A sign on every button and row:** the coin, the bolt, the Robux mark, a clover | Words and numbers only |
+| **Tilted badges and ribbons** on corners: LIMITED TIME, EXCLUSIVE, 15 MIN, a red "!" on what waits for you | None |
+| **What a thing does as two big numbers:** x1 > x2, the new one brighter | A line of small words |
+| **Buttons with a light band across the top** and a thick dark edge | Flat gradient buttons |
+| **Headings with a thick edge and a drop shadow** | A thin edge, no shadow |
+| **The close button hangs over the panel's corner;** a sign hangs over the header's end | Everything sits inside the box |
+| **Rarity as the whole tile's colour,** with the creature's head filling it | Ours do this in the Index and the tank |
+| **The end of a run lists the catch as round tokens** and says "You caught 8 dinos!" | Metres and a count in words |
+| **A bar wherever something is counted** (Unlocked 12/61) | Ours do this in the Index |
+
+**Three strengths of the same shop:**
+
+| | What it adds | For | Against |
+|---|---|---|---|
+| 1. A little | Gloss on buttons, a coin on the price, a tilted NEXT, drop shadows, a drawn aura, a faint pattern in the body | Safe; nothing shouts | Still reads as plain beside the genre. The user asked for more than this |
+| **2. The genre's (my pick)** | All of 1, and: the offer is a banner in the aura's own colours with rays behind it; "x1.5 > x2" big; the aura's sign and the close button hang over the panel's edges; a bar from your coins to the price | It has the genre's devices and still reads at a glance. The bar says how near you are, which the reference doesn't | More pieces to build |
+| 3. Loud | All of 2, and: a bursting "x2!" badge, a red "NEXT UP!", sparkles, stronger rays | Closest to the loudest games | The badge repeats what the big numbers say, and the sparkles are noise when they stand still |
+
+**The catch banner and the end of a dive, in strength 2:**
+- **The catch:** the plate takes the fish's rarity colours, with rays behind the fish's own picture; "TAMED!" in
+  gold with a drop shadow; **what it will earn** on a chip; a "NEW!" badge the first time you catch that kind.
+- **The end of a dive:** the title with a drop shadow and a "BEST!" badge on a new best; **the catch as round tokens
+  with each fish's picture** and "You caught 3 fish!"; two chips, how deep and what the catch will earn.
+
+**What moves, when built** (pictures can't show it): a panel opens with a small bounce; a button dips when pressed;
+the rays turn slowly; coins and metres count up; badges pop in. Pictures and plates move; text never changes size.
+
+**What it costs a phone:** about twice the pieces a panel, made once when it opens. The rays are bars on one plate
+that turns; one number is tweened. Nothing is made per frame. Not measured.
+
+**Uploads: none needed for any of this.** The coin, the bubble, the badges, the rays and the auras are made of
+Roblox's own pieces. What would look better drawn, and would be an upload each (not asked for yet): a clover, a
+bolt, a fish, a book and a cart as signs for the hub's buttons, about six small pictures; and one picture per aura.
+
+**Honest about the pictures:** the shop is as Studio drew it. Studio is drawing no 3D at the moment, so the little
+windows that show a fish's model came out empty; in the bottom row the fish are put in from an earlier capture of
+the same models.
+
+**Limits kept:** the taming ring, the Oxygen meter, the HUD and the fish tags are not touched or redrawn here.
+
+**Picked (the user, 2026-11-16): "2, the genre's".** In [Decisions](../Decisions.md). It goes onto the Auras shop,
+the Index, the tank's sidebar, the catch banner and the end of a dive.
+
+**Strength 2 is in the game's two banners. State: in the code, and run and seen in Studio on 2026-11-16** (one
+play test in the sandbox: three fish tamed, then out of air). Not seen: a phone, a rare fish's plate, the count-up
+(a still picture can't show it).
+
+![](../attachments/ui10-catch-banner.jpg)
+
+![](../attachments/ui10-end-of-dive.jpg)
+
+**What this pass did not touch, said plainly:** the rest of the dive's HUD (the coins, the slots, the hop button,
+the land strip) is as Hugo and the user left it, and the dock's screens (the Auras shop, the Index, the tank's
+sidebar) are still pictures, not in the game. Whether strength 2 goes onto the HUD's other pieces is asked of the
+user; the taming ring and the Oxygen meter stay out of it either way.
+
+| Piece | Before | Now |
+|---|---|---|
+| The catch banner's plate | A green brick plate for every fish | **The fish's rarity colours,** going darker, with pale rays turning slowly behind the fish's picture, a light band across the top, a dark edge with a pale line inside, and a shadow under it. Gold, the ember and the rainbow for the top three rarities |
+| The fish's picture | Inside the plate | A little bigger, breaking out of the plate's top |
+| "TAMED!" | Pale green | White to gold, with a drop shadow |
+| What the fish is worth | Not shown | **A chip with a coin: "+$18.0 a second",** what this very fish earns in a tank. Its size and its colour count (the fish under you carries them) |
+| A first catch | Not marked | **A bursting "NEW!" badge** on the plate's corner the first time you catch that kind. Until the game saves, "first" means since you joined |
+| The end of a dive: the title | Gold letters | The same, with a drop shadow |
+| A new best | The words "NEW BEST" in the pill | **A bursting "BEST!" badge** on the streak's end |
+| The catch at the end | "3 CAUGHT" | **One round token a fish,** in its rarity's colours with its picture, and "You caught 3 fish!" with the number in gold |
+| How deep | "48 m" | A chip under the catch, "48 m deep", **counting up** over half a second |
+
+- **Left out of the game on purpose:** the mock-up's "+$29.2 a second" chip at the end of a dive. Only the best few
+  fish in a tank earn, so a sum of the catch could promise more than the tank pays. The true number is the one the
+  tank shows when the catch goes in.
+- **What moves:** the rays turn (one number, only while the banner is up), the banners slide in with a small
+  bounce, the metres count up. No text changes size.
+- **Made of:** frames, gradients and outlines; the badges are two squares, one turned. Nothing is uploaded.
+- **Files:** `src/client/UI/Banners.luau` (the two banners; `Banners.caught` and `Banners.greatDive` take a little
+  more), `src/client/Controllers/HudController.luau` (what a catch earns, which kinds are new, the dive's catch kept
+  for the end).
+
+**Still to do for strength 2:** the Auras shop, the Index and the tank's sidebar are mock-ups, so they are redrawn
+as pictures, not built: the shop is done (the sheet above); the Index and the sidebar wait for Studio.
+
+**Also since the last note:** the trainer's sign sat across the end of the tank's sign when seen from the front of
+your plot. It is raised (its foot is now above the tank sign's top). In the code and in Studio; checked by sums, not
+by a picture, since Studio draws no 3D.
+
+### The coins and Oxygen rows (the user, 2026-11-17)
+"yes lets just get the coins, oxgen (stamina equivlent) looking to standard. Heavily ride a dino inspired. Copy their
+placements and sizes for these elements. Dont change the inventory too much.": in [Decisions](../Decisions.md).
+
+**State: in the code, and run and seen in Studio on 2026-11-17** (one play test in the sandbox, on a desktop). Not
+seen: the red bar as a picture (it went red while drowning, read from the game, and was over before the capture), a
+phone, a number in the thousands.
+
+![](../attachments/ui11-rows-before-after.jpg)
+
+![](../attachments/ui11-stat-rows.jpg)
+
+**Measured off the user's recording of the reference** (its stamina row and its cash row, at the lower left), then
+matched as shares of the screen's height:
+
+| | The reference's | Ours now | Ours before |
+|---|---|---|---|
+| A row's height | 7.2% | 7.1% | 5.2%, and the Oxygen box ran off the corner |
+| The gap between rows | 0.6% | 0.5% | 1.4% |
+| From the screen's left edge | 1.8% | 1.8% | 2.1% (coins); 0 (Oxygen) |
+| From the screen's bottom | 2.6% | 2.5%, level with the slots | 2.5% (coins); 0 (Oxygen) |
+| The bar's length | 24% | 24% | 19% |
+| The sign's height | 4.9% | 5% | 4.1% |
+| The number's capitals | 2.3% | 2.5% | 2.1% |
+| Order, top to bottom | Stamina, cash | Oxygen, coins | Coins, Oxygen |
+
+**How a row is built, as the reference builds its own:** a dark see-through bar that fades out to the right; a dark
+line down its left and along its top and bottom; a sign; the number in thick outlined letters with a drop shadow.
+
+**Ours, where it differs:** a bubble for Oxygen and a coin for coins (the reference has a bolt and a wad of cash,
+which are its pictures); the coins' number is pale gold where its cash is pale green; no plus buttons beside the
+rows, since nothing is sold there.
+
+- **Replaced:** the gold plate for coins, and the glass box in the corner for Oxygen (Hugo, 2026-11-14). `Kit` still
+  holds the glass box; the rows no longer use it.
+- **Kept:** the row is your max Oxygen; it reads 0 and goes red and beats while you drown, and red in the last second
+  on a fish. The coins row shows only when the game has coins.
+- **Not touched:** the catch slots, the taming ring, the Oxygen ring beside the rider, the hop button, the land strip.
+- **One thing that reaches further:** the coin and the bubble signs are now lit from above (pale at the top, deeper
+  at the bottom; the coin has a small shine). The same signs are in the catch banner's chip and on the fish tags, so
+  those small bubbles have the shading too.
+- **On a phone:** the rows keep their place at the top left, in the new build. Not seen.
+- **No upload.** Frames, gradients and outlines only.
+- **Files:** `src/client/UI/StatRows.luau` (written again), `src/client/UI/Kit.luau` (`Kit.coin`, `Kit.bubble`);
+  the picture by `tools/ui/rows_before_after.py`.
+
+**Second round, the same day: one to one, with the plus buttons.** The user sent a sharp picture of the reference's
+two rows: "you see how the dark parts fade out differently, and gradients are different. Fix that and make it 1:1
+and then recreate the + icons next to it". In [Decisions](../Decisions.md).
+
+**State: in the code, and run and seen in Studio on 2026-11-17, at the dock on a desktop.** Laid beside the user's
+picture at the same size (private: `research/ride-a-dino/ui/compare-rows.png`, by `tools/ui/rows_compare.py`).
+Not seen: a press on a plus, the rows while riding in this build, the red bar, a phone.
+
+![](../attachments/ui12-stat-rows-dock.jpg)
+
+Everything was measured off that picture, where a row is 80 pixels tall, and matched:
+
+| | The reference's | The first round | Now |
+|---|---|---|---|
+| The dark fill | 43% black at the left, thinning evenly to nothing along the whole bar | Too dark (70%), flat for most of the bar, then a quick fade | As the reference's |
+| The edge lines | Black, nearly solid at the left, half gone at two thirds, then quickly to nothing; they run a little past the fill | Navy, fading with the fill | As the reference's |
+| The gap between rows | 3.75% of a row | 7.5% | As the reference's |
+| The number | White, capitals 31% of the row, a thin black outline, no shadow | Smaller capitals, a navy outline twice as thick, a drop shadow | As the reference's |
+| The sign | 58% of the row tall | 70%, on a shadow | 61%, no shadow |
+| The plus button | A green square 68% of the row, past the bar's end: black edge, pale rim, bright face going darker, a darker lip, a white plus with a black outline | None | Recreated from frames, at its size and place |
+
+- **The plus buttons show at the dock only,** as the reference's show at its hub and not on a ride.
+- **They do nothing yet.** A press dips the button and fires `StatRows.Pressed` with "Oxygen" or "Coins"; nothing
+  listens. What a plus opens is for the user to say (asked).
+- **Still ours:** the bubble and the coin for signs, and pale gold for the coins' number (the reference's cash is pale
+  green).
+- **Where it is not exact:** at this screen size our lines draw a pixel thinner than the reference's in places,
+  and the font is ours (Fredoka One).
+- **A fault found and fixed on the way:** with the fill laid beside the lines, a pale gap showed between the fill and
+  the bottom line. The fill now runs under the lines.
+
+**Third round, the same day: thicker lines, a little more room.** The user, seeing the rows beside the reference's:
+"needs slightly thicker borders then a slight more degree of seperation to compensate for that. as it is somewhat
+different to ride a dino in this aspect". In [Decisions](../Decisions.md).
+
+- **The lines are 2 thick** (were 1.5, which drew a pixel thinner than the reference's on our screens). The plus
+  button's black edge too.
+- **The gap between the rows is 2.5** (was 1.5).
+- **State: run and seen in Studio on 2026-11-17,** on the way into a dive (no plus buttons there, as meant).
+
+![](../attachments/ui13-stat-rows.jpg)
+
+**The user's own icons are in.** The user sent two pictures, "use these icons ... for the 02 and cash": a blue O2
+bubble with two small bubbles, and a green stack of cash with a $. The files were in the user's Downloads.
+
+![](../attachments/ui14-stat-rows-icons.jpg)
+
+- **State: uploaded, in the code, run and seen in Studio on 2026-11-17,** at the dock on a desktop.
+- **Cut out first:** each came with a pale sticker halo round its dark outline. `tools/ui/icon_cut.py` takes the
+  halo off, trims the picture, makes it square at 256, and puts the outline's colour under the clear pixels so no
+  pale fringe shows in the game. Sources in `art/ui/icons_src/`, results and previews in `art/ui/icons/`.
+- **Uploaded to Roblox on the user's word,** the HUD's first two uploads: the O2 bubble is
+  `rbxassetid://75102671889473`, the cash is `rbxassetid://90175555285878` (`art/ui/icons/roblox.json`).
+- **In the rows:** `PICTURE` in `StatRows.luau` holds the two ids; a picture is 27 units square, which draws the
+  cash as wide as the reference's.
+- **The coins' number is now the reference's pale green,** to go with the cash.
+- **Not changed:** the catch banner's chip ("+$2.0 a second") still has the small drawn gold coin, and the fish
+  tags the small drawn bubble. Whether those take the new icons is for the user to say.
+
+### The dock's Shop and Index buttons (the user, 2026-11-17)
+"Now recreate the index and shop buttons", and, of the new cash icon, "yes the catch banner should take it": in
+[Decisions](../Decisions.md).
+
+**State: in the code, and run and seen in Studio on 2026-11-17, at the dock on a desktop.** Laid beside the
+reference's at the same size (private: `research/ride-a-dino/ui/compare-hub-buttons.png`). Not seen: a press, the
+red "!" going up by itself after a first catch (it was switched on by hand for the picture), a phone.
+
+![](../attachments/ui15-hub-buttons.jpg)
+
+Measured off the user's recording of the reference's hub and matched as shares of the screen's height:
+
+| | The reference's | Ours |
+|---|---|---|
+| A button | 26% wide, 8.6% tall | The same |
+| The gap between the two | 1.5% | The same |
+| Where | The left edge, 1.7% in; the pair's middle a hair under the screen's middle | The same |
+| The plate | Black edge, a dark line inside it, paler at the top, a darker lip along the foot | The same |
+| The slanted band | A band of stronger colour toward the right, leaning like a "/", running off the top right corner | The same place and lean; ours is one strength, theirs is faint at the top and strong at the foot |
+| The pattern | Faint pale squares | Our stud tile, faint |
+| The word | White, black outline, its middle 62% across | The same; the font is ours |
+| The red "!" | A red disc in a white ring on the Index's upper right corner | The same |
+| The pictures | A painted basket and a painted book | **Drawn from frames here: a bag and a book. Stand-ins** |
+
+- **They show at the dock only,** as the reference's show at its hub.
+- **They open nothing yet.** A press dips the button and fires `HubButtons.Pressed` with "Shop" or "Index".
+  Nothing listens: the panels are pictures so far (see "After the pick").
+- **The red "!"** goes up when you catch a kind for the first time since joining, and comes off when the Index is
+  pressed. That is the reference's use of it; with no Index to open, it is only a mark for now.
+- **The pictures are the weak part.** A bag and a book made of rectangles read, but they are not at the level of
+  the user's O2 and cash icons. Two icons of that kind, sent as files, would go in the same way (an upload each).
+- **Files:** `src/client/UI/HubButtons.luau` (new), four lines in `src/client/Controllers/HudController.luau`.
+
+**The catch banner takes the cash icon.** Its chip ("+$2.0 a second") has the cash in place of the small drawn
+coin, and its number is the same pale green as the coins row (`Kit.Textures.Cash`, `Kit.Cash`). Seen in Studio, with
+the banner held up by hand for the picture: it shows for 2.6 seconds and the captures kept missing it.
+
+![](../attachments/ui15-catch-banner-cash.jpg)
+
+The fish tags keep their small drawn bubble: the user named the banner only.
+
 ## The short version
 - **Today's HUD says the wrong thing.** It shows a tank, "OXYGEN 68 / 100", at the bottom edge. With 2 to 3 seconds on a
   fish, what a player needs is "how long do I have on this fish", next to the fish, and "which fish next".

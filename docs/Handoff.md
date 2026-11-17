@@ -3,6 +3,38 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-17 · Obsidian chat integration (the user's PC): the feel pass, the dive-in, the fog, the UI and the stalls
+**State:** everything since the restore point (`4b56e90`), on the user's word: "push all changes most recent ... and
+all weve done". In the user's Studio place (synced). Each piece was run or measured by script; the user has
+played the earlier ones and not the last few. The place itself is not in the repo: it needs saving in Studio.
+
+- **The plan changed** ([the refinement](Refinement.md), "The ship list"): finish fast, all ten lands, a test of
+  whether the game has potential on about 200 dollars; pivot if not. Roblox's under-16 gate is not paid for.
+- **The dive-in** ([the dive-in](design/dive-in.md)): stepping off the dock is a hop that takes the nearest fish;
+  a missed first hop no longer drowns you. **Two faults in the herd's stream were found and fixed:** it began 142
+  studs inside the lane (no fish could be at the gate), and it was pinched to one line at the gate.
+- **Speeds:** every fish ridden 1.6 times faster, the herd 1.5 times, the swim beat up a fifth; kinds further
+  apart (`Speed.Spread` 2); any fish of the herd may be born fast or a bolt, and riding one is faster.
+- **Sizes** ([sizes](design/sizes.md)): the first three lands' basic fish smaller; a basic fish takes only part
+  of a big size's growth; the larger sizes rarer.
+- **Less bunching:** more room per fish, fish at different heights give way, a thinner sea
+  (`Spawn.PerThousand` 20). Measured: about half the fish in a hop's reach.
+- **The hop:** a shorter reach (105 and 45), less of the fish's speed carried, the black outline alone on the
+  fish for 1.5 seconds after a landing.
+- **The look** ([lighting](design/lighting.md)): light A; a plain fog above the water from 180 to 1,100 studs; the
+  sky tipped 14 degrees so its clouds sit on the far land. `tools/map/water_look.luau` changed: run
+  `98_water.luau` in Edit after pulling.
+- **The UI** (the UI chat): the tank's and trainer's signs in the gate's style, the catch and end-of-dive
+  banners with more flavour, the coins and Oxygen rows after the user's picture with uploaded icons, Shop and
+  Index buttons that open nothing yet.
+- **The hub** (the map chat): station names in the fish tags' style, the three shops as one simpler stall,
+  floor circles that fill in when stood on.
+- **The studies' record:** [findings](Findings.md), the odds trial in [money](design/money.md).
+- **Studio traps found:** a stuck mouse after a scripted Play stop, and a sync lost if sent straight after one
+  ([Working together](Working%20together.md)).
+- **Not done:** saving, the bought trainer, auras, a shop that sells, the step counting, sounds, a phone.
+- StyLua and the build pass; selene shows only Hugo's two old warnings.
+
 ## 2026-11-16 · Obsidian chat integration (the user's PC): the restore point before the UI's look pass
 **State:** one commit of everything as it stands, on the user's word ("Yeah, commit"), so the UI can be changed
 and any piece put back. **Committed, not pushed.** It holds every entry below that says "not committed by hand".

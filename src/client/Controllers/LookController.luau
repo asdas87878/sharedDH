@@ -78,6 +78,11 @@ local function apply()
 	Look.apply(Lighting, v)
 	-- (switched off: the place's first sky, the plain one, when the folder has it)
 	showSky(if v.On > 0 then math.floor(v.Sky + 0.5) else 1)
+	-- the sky tipped toward the lane, so its clouds sit down on the far land (Look.SkyTilt)
+	local ours = Lighting:FindFirstChild(SKY)
+	if ours and ours:IsA("Sky") then
+		ours.SkyboxOrientation = Vector3.new(if v.On > 0 then v.SkyTilt or 0 else 0, 0, 0)
+	end
 end
 
 function LookController.Start()

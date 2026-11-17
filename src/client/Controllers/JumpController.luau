@@ -52,6 +52,9 @@ local DASHES = 16
 local RUSH_KEEP = 0.7 -- the hop's speed lines last while this share of the leaving speed is still there
 
 local flying = false
+-- The dive-in (Config.Dive; docs/design/dive-in.md): this hop is the one that began by itself as we dropped off the
+-- dock into the water. It takes the nearest fish in reach without a press, wherever the camera looks.
+local diving = false
 local clock = 0 -- wall-clock seconds since leaving
 local startedAt = 0
 local resumeHeight = 0 -- keeps a failed pull-in from snapping us back onto the hop's arc
@@ -106,6 +109,10 @@ local ringArc, ringThick = 0, 0 -- the size the dashes were last given
 local glow: Highlight
 local slowLook: ColorCorrectionEffect -- the slow-mo look's colours (under the camera: on our screen only)
 local slowNow = 0 -- how much of the slow-mo look is on, 0 to 1 (eased)
+-- the fish we landed on keeps its outline for a moment (Jump.LandOutline): a highlight of its own, with no fill, so the
+-- lock's glow is free at once for the next fish
+local landGlow: Highlight
+local landOutlineAt: number? = nil
 local glowLandedAt: number? = nil -- os.clock() of the landing, while the glow fades off the fish
 
 -- Where we sit on a fish: nil once it has gone (put away by the server, or destroyed)
@@ -243,7 +250,7 @@ local function pick(from: Vector3)
 	-- (the last chance, Lock.LastChance: the glide over, any fish in reach ahead will do; the one nearest the
 	-- aim still wins, and a fish already locked keeps the lock as it always does)
 	local j = Config.Jump
-	local wide = flying and Config.Lock.LastChance > 0 and clock >= j.LaunchTime + j.FloatTime + leapTime
+	local wide = flying and (diving or (Config.Lock.LastChance > 0 and clock >= j.LaunchTime + j.FloatTime + leapTime))
 	local best = Lock.pick(from, view.Position, view.LookVector, locked, left, skip, reach, wide)
 	if best ~= locked then
 		locked = best
@@ -254,6 +261,7 @@ end
 
 local function stop()
 	flying = false
+	diving = false
 	reeling = false
 	State.Reeling = false
 	State.WindowLeft = nil
@@ -458,6 +466,19 @@ local function resumeSwim(root: BasePart)
 end
 
 local function hop(dt: number)
+	-- the outline staying on the fish we landed on, then leaving it
+	local outlineAt = landOutlineAt
+	if outlineAt then
+		local j = Config.Jump
+		local t = os.clock() - outlineAt
+		if t >= j.LandOutline + j.GlowFade or not landGlow.Adornee or not landGlow.Adornee.Parent then
+			landGlow.Enabled = false
+			landGlow.Adornee = nil
+			landOutlineAt = nil
+		else
+			landGlow.OutlineTransparency = math.clamp((t - j.LandOutline) / math.max(j.GlowFade, 0.01), 0, 1)
+		end
+	end
 	-- the glow leaving the fish we landed on
 	local landedAt = glowLandedAt
 	if landedAt then
@@ -645,6 +666,10 @@ local function hop(dt: number)
 	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
 	-- the hook's reach, by that speed: longest as we leave, shrinking as we slow to the stop
 	reach = Config.reachOf(flatSpeed)
+	if diving then
+		-- (the dive's own hop reaches further: Config.Dive.Reach)
+		reach = math.max(reach, Config.Dive.Reach)
+	end
 	State.Reach = reach
 	pick(position)
 
@@ -667,6 +692,17 @@ local function hop(dt: number)
 		Feel.rush(Config.Feel.PopLines * boost)
 	end
 	Feel.trail(root, false)
+
+	-- The dive-in's hop (Config.Dive.AutoGrab): the nearest fish in reach pulls us in by itself, once the pop is seen
+	local d = Config.Dive
+	if diving and d.AutoGrab > 0 and clock >= math.max(d.GrabAfter, j.MinFlight) and clock < window then
+		local targetRoot = locked and locked.PrimaryPart
+		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach then
+			diving = false
+			startReel(root)
+			return
+		end
+	end
 
 	-- The reference's hands-off landing (Jump.AutoGrab 2): when the glide is over the locked fish pulls us in by
 	-- itself, about 1.7 s after the press; with none locked then, the first fish locked in the drop does. A press still
@@ -781,16 +817,26 @@ function JumpController.Init()
 	glow.Enabled = false
 	glow.Parent = workspace.CurrentCamera
 
+	landGlow = Instance.new("Highlight")
+	landGlow.Name = "LandOutline"
+	landGlow.FillTransparency = 1
+	landGlow.OutlineColor = Config.Jump.GlowOutline
+	landGlow.DepthMode = Enum.HighlightDepthMode.Occluded
+	landGlow.Enabled = false
+	landGlow.Parent = workspace.CurrentCamera
+
 	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, _reason: any, about: any)
 		if kind == "Mounted" then
 			if flying then
 				local fish = locked
 				stop()
-				if fish and fish == a then
-					-- the glow stays on the fish we landed on and fades off it
-					glow.Adornee = fish
-					glow.Enabled = true
-					glowLandedAt = os.clock()
+				if fish and fish == a and Config.Jump.LandOutline > 0 then
+					-- the fish we landed on keeps its black outline for a moment, with no yellow (Jump.LandOutline)
+					landGlow.Adornee = fish
+					landGlow.OutlineColor = Config.Jump.GlowOutline
+					landGlow.OutlineTransparency = 0
+					landGlow.Enabled = true
+					landOutlineAt = os.clock()
 				end
 			end
 			-- The wait between fish: only the gap from the touch to this word, with which the landing animation starts
@@ -834,9 +880,34 @@ function JumpController.Init()
 			Fx.landing(player.Character, fish, State.Squash, if tier then tier.Colour else WHITE)
 		end
 	end)
-	State.ModeChanged.Event:Connect(function(mode: string)
+	State.ModeChanged.Event:Connect(function(mode: string, old: string)
 		if flying and mode ~= "Jumping" and mode ~= "Riding" then
 			stop()
+		end
+		-- The dive-in (Config.Dive.AutoHop): off the dock and into the water is a hop, begun for us. Only by the
+		-- dock: the sandbox's reset also goes from the dock to floating, far down the lane, and seats us itself.
+		-- (Not told by depth: we have sunk 30 studs by the time the server's word is here.)
+		if mode == "Free" and old == "Dock" and Config.Dive.AutoHop > 0 then
+			task.delay(math.max(Config.Dive.HopDelay, 0), function()
+				local _, root = State.character()
+				if State.Mode ~= "Free" or flying or not root then
+					return
+				end
+				local dock = Net.Folder:GetAttribute("Dock")
+				local far = if typeof(dock) == "CFrame"
+					then ((root.Position - dock.Position) * Vector3.new(1, 0, 1)).Magnitude
+					else 0
+				if far > Config.Oxygen.DockRadius + 90 then
+					return
+				end
+				-- the way we were going as we stepped off; standing still, the way the camera looks
+				local going = root.AssemblyLinearVelocity * Vector3.new(1, 0, 1)
+				local look = if going.Magnitude > 4 then going else workspace.CurrentCamera.CFrame.LookVector
+				State.Heading = yawOf(look)
+				if request() then
+					diving = true
+				end
+			end)
 		end
 	end)
 end

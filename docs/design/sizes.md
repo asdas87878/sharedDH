@@ -4,6 +4,55 @@ Up: [creatures](creatures.md). The herd these fish swim in: [the herd](herd.md).
 more difference between the kinds' own sizes, and every fish in the reference's six sizes and four colours. The
 numbers are in `src/shared/Config.luau`: `BaseScale`, `SizeChance`, `SizeScale`, `SizeWorth`, `Variant`.
 
+## Basic fish made smaller, and kept from inflating (2026-11-17)
+The user: "we need an overall size reduction mainly for these common fish in these starter lands, basic fish
+shouldnt get as big as they are getting, and the larger sizes should be slightly rarer. This applies to the turtle
+aswell. There should still be variety in size but that variety should be intentional and thought through as to
+not make basic models look inflated."
+
+**What was wrong, in numbers.** A rider is about 5 studs tall. A plain Sergeant Major was 20 studs long and 13
+tall; a plain Pufferfish 23 long and 21 wide; a Sea Turtle 41 wide. And every kind took the same size steps, so a
+Colossal Sergeant Major was 59 studs long.
+
+Three changes, all in `Config`:
+
+1. **The first three lands' Commons, Uncommons and Rares are smaller** by a fifth to a third (`Config.BaseScale`),
+   in a set order. The predators and the Legendaries keep their size: they are meant to look big.
+2. **A basic fish takes only a share of a big size's growth** (`Config.SizeGrow`, new): a Common half of it, an
+   Uncommon 0.6, a Rare 0.75, an Epic 0.9, a Legendary and up the whole step. So a Common's Big is 1.18 times its
+   kind, its Giant 1.4 and its Colossal 2, where they were 1.35, 1.8 and 3. Tiny is unchanged.
+3. **The larger sizes are a little rarer** (`Config.SizeChance`): Big 0.17 (was 0.2), Giant 0.055 (0.07), Huge
+   0.018 (0.025), Colossal 0.004 (0.005), before each rarity's own share. A Common now: Tiny 21%, Normal 70.4%,
+   Big 5.9%, Giant 1.9%, Huge 0.6%, Colossal 0.14%.
+
+The Shallows' fish, length in studs at each size, read back from the game's own numbers:
+
+| | Kind | Normal, before | Tiny | Normal | Big | Giant | Huge | Colossal |
+|---|---|---|---|---|---|---|---|---|
+| Common | Blue Chromis | 11.8 | 6.9 | 9.8 | 11.5 | 13.7 | 16.2 | 19.6 |
+| Common | Clownfish | 13.1 | 7.4 | 10.6 | 12.5 | 14.9 | 17.5 | 21.2 |
+| Common | Butterflyfish | 13.7 | 7.6 | 10.9 | 12.8 | 15.2 | 17.9 | 21.7 |
+| Common | Boxfish | 15.5 | 8.4 | 11.9 | 14.0 | 16.7 | 19.7 | 23.9 |
+| Common | Sergeant Major | 19.7 | 9.4 | 13.4 | 15.7 | 18.7 | 22.0 | 26.7 |
+| Common | Yellow Tang | 17.6 | 9.6 | 13.7 | 16.1 | 19.1 | 22.6 | 27.3 |
+| Common | Pufferfish | 23.0 | 10.5 | 15.0 | 17.7 | 21.0 | 24.8 | 30.1 |
+| Uncommon | Flying Fish | 21.0 | 11.2 | 16.0 | 19.4 | 23.7 | 28.5 | 35.3 |
+| Uncommon | Cuttlefish | 26.0 | 13.2 | 18.9 | 22.8 | 27.9 | 33.6 | 41.5 |
+| Uncommon | Sea Turtle | 37.2 | 17.5 | 25.1 | 30.3 | 37.1 | 44.6 | 55.1 |
+| Uncommon | Stingray | 39.8 | 18.9 | 27.0 | 32.6 | 39.9 | 48.0 | 59.3 |
+| Rare | Seahorse | 22.6 | 11.4 | 16.3 | 20.6 | 26.1 | 32.3 | 40.8 |
+| Epic | Reef Shark | 39.7 | 25.4 | 36.3 | 47.7 | 62.4 | 78.7 | 101.6 |
+| Legendary | Archelon | 50.8 | 35.6 | 50.8 | 68.6 | 87.3 | 87.3 | 87.3 |
+
+- **The order is on purpose:** the small reef fish smallest, the plain first fish in the middle, the round
+  Pufferfish the biggest Common, then the Uncommons, with the turtle and the ray the big gentle ones. A basic fish
+  at its very biggest (30 studs) is still smaller than a plain Reef Shark (36).
+- **A Sea Turtle is 28 studs wide at Normal,** was 41. Its model is wide by its flippers.
+- **Not run in Play, not seen.** The numbers are read back from the game's own table in Studio. A fish's length
+  also sets the room it wants in the herd and whether it breaks props, so the first lands are a little less
+  crowded and fewer of their fish break things.
+- **To put it back:** `Config.SizeGrow` all 1 gives the old growth; the old base sizes are in git.
+
 ## The reference's 24
 Ride a Dino's Index shows every dino in six sizes (Tiny, Normal, Big, Giant, Huge, Colossal) and four colours (Normal,
 Silver, Golden, Rainbow), with "1 in N" under each. The user's screenshot of the Bronto's page gives 23 of them.

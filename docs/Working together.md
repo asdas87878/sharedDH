@@ -56,6 +56,14 @@ The user and their partner share one Claude account and work from two PCs. The p
 ## Studio traps (from the other projects)
 - **Captures:** one screen capture per message (two together cost minutes). Blank or dark captures, or 15 fps, mean Studio's
   window is covered.
+- **A stuck mouse after a scripted play test** (2026-11-16: the user, "the cursor is acting weird and following
+  weirdly"). The game locks the mouse while you hop or hold the right button. When a chat stops Play by script, the
+  lock can be left on in Edit mode, and Studio's cursor then drags the view about. After every scripted stop, run
+  in Edit, inside a `task.delay`: `UserInputService.MouseBehavior = Enum.MouseBehavior.Default`, and set the
+  camera's `CameraType` to `Fixed`. Then read it back.
+- **A sync straight after stopping Play can be lost** (2026-11-17). Stopping takes a few seconds; code sent in
+  that time goes into the game that is shutting down, and the next Play runs the old code though the sync said
+  "sent". Wait a few seconds after a stop, sync, then read one changed script back in Edit before playing.
 - **The glb importer** turns each mesh 180 degrees about its centre.
 - **Model pivots:** a Model with a PrimaryPart pivots on that part and ignores WorldPivot.
 - **Terrain** sits about 2 studs above the written height. Past about 1,024 studs it doesn't load on the client.

@@ -83,8 +83,12 @@ local function lerp(a: number, b: number, t: number): number
 	return a + (b - a) * t
 end
 
--- A list evened out: each value becomes the weighted mean of those within about 3 x sigma samples of it
-local function smooth(values: { number }, sigma: number): { number }
+-- A list evened out: each value becomes the weighted mean of those within about 3 x sigma samples of it.
+-- `line`: the list is a line's x or z, and past its ends it is carried on straight (each value mirrored through the
+-- end's own). Without it an end is repeated, which pulls the first and last points inward: the herd's stream began
+-- 142 studs inside the lane (0.4 of Herd.Smooth and of UNTANGLE), so no fish could ever be in the water at the gate
+-- (found 2026-11-16, the user: "fish spawn too far away initially"; docs/design/dive-in.md).
+local function smooth(values: { number }, sigma: number, line: boolean?): { number }
 	if sigma < 0.05 then
 		return table.clone(values)
 	end
@@ -101,7 +105,16 @@ local function smooth(values: { number }, sigma: number): { number }
 	for i = 1, n do
 		local sum = 0
 		for d = -radius, radius do
-			sum += values[math.clamp(i + d, 1, n)] * kernel[d + radius + 1]
+			local j = i + d
+			local value: number
+			if not line or (j >= 1 and j <= n) then
+				value = values[math.clamp(j, 1, n)]
+			elseif j < 1 then
+				value = 2 * values[1] - values[math.clamp(2 - j, 1, n)]
+			else
+				value = 2 * values[n] - values[math.clamp(2 * n - j, 1, n)]
+			end
+			sum += value * kernel[d + radius + 1]
 		end
 		out[i] = sum / total
 	end
@@ -359,10 +372,10 @@ function Stream.build(lane: Lane.Lane, bigAssets: { { number } }): Stream
 		local centre = Lane.at(lane, (k - 1) * FINE)
 		fx[k], fz[k], fs[k] = centre.X, centre.Z, (k - 1) * FINE
 	end
-	local ux, uz, us = resample(smooth(fx, UNTANGLE / FINE), smooth(fz, UNTANGLE / FINE), fs)
+	local ux, uz, us = resample(smooth(fx, UNTANGLE / FINE, true), smooth(fz, UNTANGLE / FINE, true), fs)
 	-- the spine: that, evened out over Herd.Smooth real studs each way, and sampled evenly along itself
 	local sigma = math.max(herd.Smooth, 0) / STEP
-	local sx, sz, laneS = resample(smooth(ux, sigma), smooth(uz, sigma), us)
+	local sx, sz, laneS = resample(smooth(ux, sigma, true), smooth(uz, sigma, true), us)
 
 	-- and let find its own way through the open water: pushed off every edge nearer than the band is wide, evened out
 	-- again, ROUNDS times (its two ends stay where they are)
@@ -395,6 +408,7 @@ function Stream.build(lane: Lane.Lane, bigAssets: { { number } }): Stream
 	local cy = table.create(count, 0)
 	local low, high = table.create(count, 0), table.create(count, 0) -- the open water's edges, from the spine
 	local shut = 0
+	local closed: { [number]: boolean } = {}
 	for k = 1, count do
 		cy[k] = (Lane.at(lane, laneS[k])).Y
 		local l, h = openSpan(water, sx[k], sz[k], rx[k], rz[k], cy[k], SCAN, true)
@@ -403,7 +417,26 @@ function Stream.build(lane: Lane.Lane, bigAssets: { { number } }): Stream
 		else
 			-- no open water anywhere near (the map has no floor here): a narrow band where the spine is
 			shut += 1
+			closed[k] = true
 			low[k], high[k] = -MIN_HALF, MIN_HALF
+		end
+	end
+	-- An end of the stream that stands where there is no floor takes the water of the first sample that has some. The
+	-- lane's very start is in the hub's gate, in the thickness of its wall: left as a narrow band it pinched the herd
+	-- to one line for the whole first room, since the band changes its width slowly (found 2026-11-16, the user:
+	-- "fish spawn point needs to be spread out instead of a fixed singular point").
+	for _, order in { { 1, count, 1 }, { count, 1, -1 } } do
+		local k = order[1]
+		while closed[k] and k ~= order[2] do
+			k += order[3]
+		end
+		if not closed[k] then
+			local j = order[1]
+			while closed[j] do
+				low[j], high[j] = low[k], high[k]
+				closed[j] = nil
+				j += order[3]
+			end
 		end
 	end
 

@@ -63,6 +63,22 @@ function Look.apply(lighting: Lighting, v: Values)
 			effect.Enabled = not on
 		end
 	end
+	-- the air above the water: a plain fog, put on by the water's own script (tools/map/water_look.luau), which is
+	-- the one that owns Lighting's fog; it reads these
+	lighting:SetAttribute("AirFog", if on then math.clamp(math.floor((v.AirFog or 0) + 0.5), 0, 2) else 0)
+	lighting:SetAttribute("AirDensity", math.clamp(v.AirDensity or 0.36, 0, 1))
+	lighting:SetAttribute("AirOffset", math.clamp(v.AirOffset or 0.2, 0, 1))
+	lighting:SetAttribute("AirHaze", math.clamp(v.AirHaze or 2.4, 0, 10))
+	lighting:SetAttribute("AirFogStart", math.max(0, v.AirFogStart or 0))
+	lighting:SetAttribute("AirFogEnd", math.max(10, v.AirFogEnd or 100000))
+	lighting:SetAttribute(
+		"AirFogColor",
+		Color3.fromRGB(
+			math.clamp(v.AirFogR or 205, 0, 255),
+			math.clamp(v.AirFogG or 232, 0, 255),
+			math.clamp(v.AirFogB or 255, 0, 255)
+		)
+	)
 	if not on then
 		for name, value in PLAIN do
 			(lighting :: any)[name] = value

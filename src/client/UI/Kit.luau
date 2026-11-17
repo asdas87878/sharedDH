@@ -35,7 +35,12 @@ Kit.Radius = { Tile = 5, Plate = 9, Round = 999 }
 Kit.Textures = {
 	Studs = "rbxassetid://124244361010023",
 	Water = "rbxassetid://6126332496",
+	-- the user's own two icons (2026-11-17; art/ui/icons): the O2 bubble and the stack of cash
+	Oxygen = "rbxassetid://75102671889473",
+	Cash = "rbxassetid://90175555285878",
 }
+-- The colour of money beside the cash: the reference's pale green
+Kit.Cash = Color3.fromRGB(170, 255, 127)
 
 export type Style = {
 	Top: Color3, -- the fill, top to bottom
@@ -723,10 +728,12 @@ end
 function Kit.bubble(parent: Instance, size: number): Frame
 	local bubble: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(size, size),
-		BackgroundColor3 = Color3.fromRGB(127, 227, 255),
+		BackgroundColor3 = Kit.White,
 	}, parent)
 	Kit.corner(bubble, 999)
 	Kit.stroke(bubble, math.max(1.5, size * 0.11), Kit.Ink)
+	-- lit from above: pale at the top, a deeper blue at the bottom
+	Kit.gradient(bubble, Color3.fromRGB(176, 240, 255), Color3.fromRGB(72, 188, 250))
 	local shine = Kit.new("Frame", {
 		Position = UDim2.fromScale(0.2, 0.16),
 		Size = UDim2.fromScale(0.3, 0.22),
@@ -741,10 +748,21 @@ end
 function Kit.coin(parent: Instance, size: number): Frame
 	local coin: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(size, size),
-		BackgroundColor3 = Kit.Sun,
+		BackgroundColor3 = Kit.White,
 	}, parent)
 	Kit.corner(coin, 999)
 	Kit.stroke(coin, math.max(1.5, size * 0.11), Kit.Ink)
+	-- lit from above: pale gold at the top, orange at the bottom, and a small shine as the bubble has
+	Kit.gradient(coin, Color3.fromRGB(255, 232, 110), Color3.fromRGB(255, 172, 28))
+	local shine = Kit.new("Frame", {
+		Position = UDim2.fromScale(0.18, 0.12),
+		Size = UDim2.fromScale(0.26, 0.16),
+		BackgroundColor3 = Kit.White,
+		BackgroundTransparency = 0.15,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+	}, coin)
+	Kit.corner(shine, 999)
 	local rim = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),

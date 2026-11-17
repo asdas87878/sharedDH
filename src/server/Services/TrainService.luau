@@ -21,6 +21,68 @@ local TrainService = {}
 local EVERY = 0.25 -- seconds between checks: the gain is given in steps this long
 local PAD_COLOUR = Color3.fromRGB(90, 220, 255)
 
+-- The trainer's sign, in the hub's sign style (the user's pick of 2026-11-16, "B": the gate's sign; docs/design/
+-- ui.md): a blue board with a white rim and a darker copy under it, "TRAIN" in white letters with a dark edge, and
+-- one line saying what it does. It is sized in studs, so it keeps its size in the world, and is not drawn past 220
+-- studs. Only what is true today is on it: the ride's level and the next ride's price come with the upgrade.
+-- Every plot's ride has one. Each player's own machine hides the others' (Client.UI.HubSigns), so a player sees the
+-- sign once, over their own ride; nothing here sets Enabled after the sign is made.
+local SIGN_BLUE = Color3.fromRGB(30, 140, 255)
+local SIGN_INK = Color3.fromRGB(16, 36, 63)
+
+local function trainSign(parent: BasePart, lift: number)
+	local sign = Instance.new("BillboardGui")
+	sign.Name = "Sign"
+	sign.Size = UDim2.fromScale(17, 6.4)
+	sign.StudsOffsetWorldSpace = Vector3.new(0, lift, 0)
+	sign.MaxDistance = 220
+	sign.LightInfluence = 0
+	sign.AlwaysOnTop = false
+	local shadow = Instance.new("Frame")
+	shadow.Position = UDim2.fromScale(0, 0.08)
+	shadow.Size = UDim2.fromScale(1, 0.92)
+	shadow.BackgroundColor3 = SIGN_BLUE:Lerp(Color3.new(0, 0, 0), 0.6)
+	shadow.BorderSizePixel = 0
+	shadow.Parent = sign
+	local board = Instance.new("Frame")
+	board.Name = "Board"
+	board.Size = UDim2.fromScale(1, 0.92)
+	board.BackgroundColor3 = SIGN_BLUE
+	board.BorderSizePixel = 0
+	board.ZIndex = 2
+	board.Parent = sign
+	for _, frame in { shadow, board } do
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.1, 0)
+		corner.Parent = frame
+	end
+	local rim = Instance.new("UIStroke")
+	rim.Thickness = 4
+	rim.Color = Color3.new(1, 1, 1)
+	rim.Parent = board
+	local function line(name: string, text: string, y: number, high: number, colour: Color3, edge: number)
+		local label = Instance.new("TextLabel")
+		label.Name = name
+		label.BackgroundTransparency = 1
+		label.Position = UDim2.fromScale(0.06, y)
+		label.Size = UDim2.fromScale(0.88, high)
+		label.Font = Enum.Font.LuckiestGuy
+		label.TextScaled = true
+		label.TextColor3 = colour
+		label.Text = text
+		label.ZIndex = 3
+		label.Parent = board
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = edge
+		stroke.Color = SIGN_INK
+		stroke.LineJoinMode = Enum.LineJoinMode.Round
+		stroke.Parent = label
+	end
+	line("Title", "TRAIN", 0.1, 0.56, Color3.new(1, 1, 1), 3)
+	line("What", "stand on it: more Oxygen", 0.7, 0.2, Color3.fromRGB(214, 234, 255), 1.5)
+	sign.Parent = parent
+end
+
 local function standIn(dock: CFrame): BasePart
 	local t = Config.Train
 	local pad = Instance.new("Part")
@@ -37,47 +99,21 @@ local function standIn(dock: CFrame): BasePart
 	local at = dock.Position + dock.RightVector * t.Right + dock.LookVector * t.Ahead
 	-- (a cylinder's round faces are along its X: stood on end, just above the hub's floor)
 	pad.CFrame = CFrame.new(at.X, dock.Position.Y - 0.6, at.Z) * CFrame.Angles(0, 0, math.rad(90))
-	local sign = Instance.new("BillboardGui")
-	sign.Name = "Sign"
-	sign.Size = UDim2.fromOffset(220, 60)
-	sign.StudsOffsetWorldSpace = Vector3.new(0, 9, 0)
-	sign.MaxDistance = 220
-	sign.AlwaysOnTop = false
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextSize = 24
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.2
-	label.Text = "TRAIN OXYGEN\nstand here"
-	label.Parent = sign
-	sign.Parent = pad
+	trainSign(pad, 12)
 	pad.Parent = workspace
 	return pad
 end
 
--- A sign over a plot's ride, as the stand-in pad had
+-- A sign over a plot's ride. The ride stands in front of the right end of its tank's sign (SignBoard: 4 studs tall,
+-- its top 26 studs up), and at 21 studs the trainer's board lay across that sign's end as seen from the front of
+-- the plot, cutting off its words. Its foot is now above the tank sign's top, and the ride is nearer the viewer than
+-- the tank's sign, so from the front the two are clear of each other at any distance: the tank's sign, and the
+-- trainer's above its end.
 local function label(spot: BasePart)
 	if spot:FindFirstChild("Sign") then
 		return
 	end
-	local sign = Instance.new("BillboardGui")
-	sign.Name = "Sign"
-	sign.Size = UDim2.fromOffset(200, 54)
-	sign.StudsOffsetWorldSpace = Vector3.new(0, 13, 0)
-	sign.MaxDistance = 160
-	sign.AlwaysOnTop = false
-	local text = Instance.new("TextLabel")
-	text.Size = UDim2.fromScale(1, 1)
-	text.BackgroundTransparency = 1
-	text.Font = Enum.Font.FredokaOne
-	text.TextSize = 22
-	text.TextColor3 = Color3.new(1, 1, 1)
-	text.TextStrokeTransparency = 0.2
-	text.Text = "TRAIN OXYGEN\nstand here"
-	text.Parent = sign
-	sign.Parent = spot
+	trainSign(spot, 30.5)
 end
 
 -- The plots' own training pads, by the plot's name (none on a map without them)

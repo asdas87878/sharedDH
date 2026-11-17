@@ -38,6 +38,7 @@ INK = (62, 70, 96)  # the dark tint: no pure black on anything big (the building
 ICE, NAVY, CREAM = (214, 238, 250), (24, 32, 52), (250, 244, 226)
 SUB = (40, 186, 160)  # the submarine's ring and name: greener than the Index's blue beside it
 FLOOR_Y = 0.5
+OLD = "--old" in sys.argv  # the first two passes' stall and tanks everywhere: for the before pictures
 
 
 def mix(a, b, k):
@@ -142,16 +143,36 @@ class Kit:
         return self._put(n, (x, y0 + thick / 2, z), (thick, across, across), c, ((0, 1, 0), (-1, 0, 0), (0, 0, 1)), dict(o, sh="Cylinder"))
 
 
+# The stations' names, style C (the user, 2026-11-16: "for stations, C"; the UI chat's option C in
+# tools/ui/hub_sign_options.luau): bare words like the fish tags, in the station's colour, lighter at the top, with a
+# dark edge and one small line under them. The name's colour and its line, by station; the UI chat's own numbers
+NAMES = {
+    "SELL": ((232, 62, 62), "fish for coins"),
+    "FUSE": ((58, 112, 224), "two fish into one"),
+    "AURAS": ((186, 72, 232), "ride for longer"),
+    "SUBMARINE": ((34, 168, 196), "skip to a deeper land"),
+    "INDEX": ((240, 164, 36), "every fish you have met"),
+}
+
+
 def title(k, text, y, colour, w=30.0, h=7.0):
-    """the name floating over a station: an unseen part carrying a BillboardGui"""
+    """the name floating over a station: an unseen part carrying a BillboardGui. A station in NAMES gets style C (30
+    by 11 studs, its middle at y, seen from 420 studs); anything else the old plain name"""
+    if text in NAMES and not OLD:
+        c, line = NAMES[text]
+        k.box(0, y, 0, 1, 1, 1, c, n="Title", solid=False, shadow=False, t=1,
+              bill={"text": text, "sub": line, "size": [30, 11], "colour": list(c), "far": 420})
+        return
     k.box(0, y, 0, 1, 1, 1, colour, n="Title", solid=False, shadow=False, t=1, bill={"text": text, "size": [w, h], "colour": list(colour)})
 
 
 def ring(k, z, colour, across=16.0):
-    """the coloured ring on the floor in front of a station: where a player stands to use it. The station Model's
-    PrimaryPart"""
-    k.disc(0, 0.02, z, across, 0.3, colour, n="Ring", solid=False, shadow=False)
-    k.disc(0, 0.1, z, across - 3.6, 0.3, light(colour, 0.55), n="RingInside", solid=False, shadow=False)
+    """the mark on the floor in front of a station, where a player stands to use it: just a circle, see-through
+    inside, and the inside fills in while you stand on it (the user, 2026-11-17: "ride a dino is just a circle with a
+    transluscent thing inside which gains opacity when you step on it"). One unseen flat part named Ring, the
+    station Model's PrimaryPart, carrying the circle as a picture on its top (the loader draws it; Dock.HubLife
+    fills it in on each player's own machine). No second part: RingInside is gone"""
+    k.box(0, 0.02, z, across, 0.1, across, colour, n="Ring", solid=False, shadow=False, t=1, circle={"colour": list(colour), "edge": 0.7})
 
 
 def tones(c, k=0.2):
@@ -228,92 +249,52 @@ def sell_old(k):
     ring(k, 23, RED)
 
 
-STALL_WOOD, STALL_FOOT = (132, 84, 44), (246, 202, 84)  # the shops' timber and base plate: deep brown, gold
+STALL_WOOD = (132, 84, 44)  # the shops' timber: deep brown
+STALL_TOP = 12.6  # the awning's highest point over the floor
 
 
-def stall(k, name, colour, show, title_w=20.0):
-    """a shop: one market stall for every shop, told apart by its colour, its name and what is on the counter (the
-    user's pick from the look pass's bench, 2026-11-16: louder colours, one stall recoloured, posts 2 studs, studs
-    on every face of the base and the counter). Four timber posts that lean a little; an awning of bricks in the
-    shop's colour and white, in three rows, each turned steeper than the last, with a deep front edge; a counter on
-    a dark toe with a top a stud proud all round and the shop's colour across its front. Nothing on the roof,
-    nothing glows. Timber is plain; the base plate and the counter are studded on every face that shows, the
-    awning on top."""
-    _c_l, c, c_d = tones(colour)
+def stall(k, name, colour, name_y=19.0):
+    """a shop: one small market stall for every shop (the user, 2026-11-17: "change the stalls so they are more
+    simplistic, more alike to ride a dino"). The form the buildings study read off the reference, in our own colours
+    and sizes: four thick plain posts, a counter of a few blocks between the front two, and a curved awning of
+    striped rows in the shop's colour and white. About two players tall, 20 studs wide, 25 pieces. Nothing on the
+    counter, no base plate, no back wall, nothing glows: the name in the air, the ring on the floor and the awning's
+    colour tell the shops apart. Timber is plain; the counter is studded on its showing faces, the awning on top.
+    Every size is a whole number of studs where studs lie, so none is cut."""
     wood_l, wood, wood_d = tones(STALL_WOOD)
-    white_d = (226, 224, 214)
-    k.box(0, 0, 0, 36, 0.6, 26, STALL_FOOT, n="Foot", tex="studs", shadow=False)  # a base plate, as a toy set has
-    k.beam((-15, 0.3, 9), 2, 13.0, 2, wood, pitch=2, roll=3, n="Post")
-    k.beam((15, 0.3, 9), 2, 13.0, 2, wood, pitch=2, roll=-3, n="Post")
-    k.beam((-15, 0.3, -8), 2, 20.6, 2, wood, pitch=-2, roll=2, n="Post")
-    k.beam((15, 0.3, -8), 2, 20.6, 2, wood, pitch=-2, roll=-2, n="Post")
-    k.box(0, 19.2, -8.3, 33, 1.4, 1.4, wood_d, n="Beam", solid=False)
-    k.box(0, 12.2, 9.3, 33, 1.4, 1.4, wood_d, n="Beam", solid=False)
-    k.box(0, 0.3, -9.5, 28, 9, 2, wood, n="Back")
-    k.box(0, 9.3, -9.5, 30, 1, 3, wood_l, n="BackCap", tex="stud", solid=False)
-    # the awning: coloured bricks thick, white ones thinner and set back between them
-    z, y = -10.0, 22.0
-    for pitch in (8.0, 20.0, 34.0):
+    for sx in (-1, 1):  # the posts: 2 studs square, the back pair taller, each ending inside the awning
+        k.box(sx * 8, 0, 3.5, 2, 9.0, 2, wood, n="Post")
+        k.box(sx * 8, 0, -3.5, 2, 12.0, 2, wood, n="Post")
+    # the counter, between the front posts: a body, a lighter top a little proud front and back, the shop's colour
+    # across its front
+    k.box(0, 0, 3.5, 14, 3.4, 3, wood, n="Counter", tex="studs")
+    k.box(0, 3.4, 3.5, 14, 0.8, 4, wood_l, n="CounterTop", tex="studs")
+    k.box(0, 1.0, 5.2, 12, 1.4, 0.4, colour, n="CounterBand", solid=False, shadow=False)
+    # the awning: three rows of five bricks, each row turned steeper than the last, so it curves down to the front.
+    # A brick is 4 by 4 by 1; the stripes run front to back
+    z, y = -5.2, STALL_TOP
+    for pitch in (8.0, 22.0, 38.0):
         a = math.radians(pitch)
         dz, dy = math.cos(a), -math.sin(a)
-        mz, my = z + dz * 4, y + dy * 4
+        mz, my = z + dz * 2, y + dy * 2  # the middle of the row's top line
         for j in range(5):
-            thick, back = (1.6, 0.0) if j % 2 == 0 else (1.2, 0.3)
-            off = back + thick / 2  # the brick's middle lies this far under the roof's line
-            k.box(-14 + j * 7, my - math.cos(a) * off - thick / 2, mz - math.sin(a) * off, 7, thick, 8, c if j % 2 == 0 else WHITE,
+            k.box(-8 + j * 4, my - math.cos(a) * 0.5 - 0.5, mz - math.sin(a) * 0.5, 4, 1, 4, colour if j % 2 == 0 else WHITE,
                   pitch=pitch, n="Awning", tex="stud", solid=False)
-        z, y = z + dz * 8, y + dy * 8
-    for j in range(5):  # the deep front edge, hanging from the last row
-        tall = 3.0 if j % 2 == 0 else 2.2
-        k.box(-14 + j * 7, y - 0.5 - tall, z - 0.3, 6.8, tall, 1.2, c_d if j % 2 == 0 else white_d, n="Valance", solid=False, shadow=False)
-    # the counter: a dark toe, the body, a lighter top a stud proud all round, the shop's colour across the front
-    k.box(0, 0.3, 7, 27, 1, 5, wood_d, n="CounterToe")
-    k.box(0, 1.3, 7, 28, 3.7, 6, wood, n="Counter", tex="studs")
-    k.box(0, 5, 7, 30, 1, 8, wood_l, n="CounterTop", tex="studs")
-    k.box(0, 2.2, 10.25, 24, 2, 0.5, c, n="CounterBand", solid=False, shadow=False)
-    k.wheel(0, 3.2, 10.6, 3, 0.5, GOLD, n="CounterCoin", solid=False, shadow=False)
-    show(k, wood_d)
-    title(k, name, 30, colour, title_w)
-    ring(k, 23, colour)
-
-
-def _catch(k, wood_d):
-    """SELL's counter: the catch on ice, two of the game's own fish"""
-    k.box(0, 6, 7, 14, 1.6, 6, wood_d, n="Tray", solid=False)
-    k.box(0, 7.6, 7, 13, 1, 5, ICE, n="Ice", solid=False, shadow=False)
-    k.fish("Clownfish", -3.4, 9.95, 7.2, 0.55, yaw=15, roll=90)
-    k.fish("BlueChromis", 2.6, 9.75, 6.8, 0.6, yaw=-20, roll=90)
-
-
-def _orbs(k, wood_d):
-    """AURAS' counter: three plain orbs on stands, the three kinds of aura"""
-    for x, orb in ((-8, (255, 206, 70)), (0, (80, 220, 255)), (8, (255, 96, 190))):
-        k.box(x, 6, 7, 3, 1.2, 3, wood_d, n="Stand", solid=False, shadow=False)
-        k.ball(x, 9.0, 7, 1.8, orb, n="Orb", solid=False, shadow=False)
-
-
-def _toy_sub(k, wood_d):
-    """SUBMARINE's counter: a small submarine on a stand"""
-    hull = (30, 200, 170)
-    k.box(0, 6, 7, 12, 1.2, 4, wood_d, n="Stand", solid=False, shadow=False)
-    k.box(0, 7.2, 7, 10, 3, 3.4, hull, n="ToySub", solid=False)
-    k.box(5.9, 7.7, 7, 1.8, 2, 2.4, light(hull, 0.15), n="ToySub", solid=False, shadow=False)
-    k.box(-5.9, 7.9, 7, 1.8, 1.6, 2, dark(hull, 0.2), n="ToySub", solid=False, shadow=False)
-    k.box(-0.5, 10.2, 7, 3, 2, 2.2, hull, n="ToySub", solid=False, shadow=False)
-    k.box(-0.5, 12.2, 7, 3.6, 0.5, 2.8, YELLOW, n="ToySub", solid=False, shadow=False)
-    k.box(0, 8.4, 8.85, 9, 0.7, 0.3, YELLOW, n="ToySub", solid=False, shadow=False)
+        z, y = z + dz * 4, y + dy * 4
+    title(k, name, name_y, colour)
+    ring(k, 16, colour)
 
 
 def sell(k):
-    stall(k, "SELL", (240, 44, 52), _catch)
+    stall(k, "SELL", (240, 44, 52))
 
 
 def auras_stall(k):
-    stall(k, "AURAS", (160, 70, 255), _orbs, 26)
+    stall(k, "AURAS", (160, 70, 255))
 
 
 def sub_stall(k):
-    stall(k, "SUBMARINE", (20, 190, 160), _toy_sub, 34)
+    stall(k, "SUBMARINE", (20, 190, 160), name_y=33.0)  # its name over AURAS' as seen from the spawn
 
 
 def auras(k):
@@ -406,7 +387,7 @@ def index(k):
         for j, c in enumerate(((ORANGE, TEAL), (PINK, YELLOW))[(sx + 1) // 2]):
             b.box(sx * 3.8, 1.25 - 0.1 * j, 2 - 3.8 * j, 3, 0.3, 1.6, c, roll=sx * 6)
     b.box(0.2, 0.9, 1.5, 0.8, 0.3, 11, RED)
-    title(k, "INDEX", 50, BLUE, 24)
+    title(k, "INDEX", 50 if OLD else 54, BLUE, 24)
     ring(k, 26, BLUE)
 
 
@@ -927,7 +908,6 @@ SHEET = "--levels" in sys.argv  # all the levels in a row, into hub_levels.json,
 # plots' tanks at the hub's two back corners. Side by side they clear them, and the walk along the row is shorter.
 # (tools/map/greybox.py still gives the old places in hub_in.json; this goes over them until the hub's layout is redone)
 ROW = {1: -84.0, 2: -28.0, 3: 28.0, 4: 84.0}
-OLD = "--old" in sys.argv  # the first two passes' stall and tanks everywhere: for the before pictures
 
 
 def facing(x, z, toward):
@@ -981,9 +961,7 @@ def build(hub, feet=None):
     for name in ("Sell", "Auras"):
         x, z, _yaw = spots[name]
         a = math.radians(facing(x, z, focus))
-        stones(k, (x * 0.12, front - 62), (x + math.sin(a) * 33, z + math.cos(a) * 33), r, sand)
-    crates(k.sub((-(gate_half + gate_turn + 44), FLOOR_Y, front - 12), yaw=20), r)
-    crates(k.sub((gate_half + gate_turn - 4, FLOOR_Y, front - 9), yaw=200), r)
+        stones(k, (x * 0.12, front - 62), (x + math.sin(a) * 26, z + math.cos(a) * 26), r, sand)
     return out
 
 

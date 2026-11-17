@@ -336,6 +336,13 @@ end
 -- behind the camera (the fish just left can be grabbed again), and its tag was then off the screen: the hop button
 -- said GRAB and no tag said what (2026-11-12). Held inside the edges, clear of the strip of lands and the slots; a
 -- fish behind the camera has its tag at the bottom, on the side it is on.
+local AIM_CLEAR = 34 -- the aim's ring and a little air, from the middle of the screen, in the HUD's units
+-- Whether a tag with its foot at x, y would touch the aim's ring
+local function underAim(x: number, y: number, wide: number, high: number, camera: Camera): boolean
+	local size = camera.ViewportSize
+	local ring = AIM_CLEAR * hudScale
+	return math.abs(x - size.X / 2) < wide / 2 + ring and y > size.Y / 2 - ring and y - high < size.Y / 2 + ring
+end
 local function pin(wide: number, high: number, point: Vector3, camera: Camera): (number, number)
 	local size = camera.ViewportSize
 	local side = wide / 2 + 8 * hudScale
@@ -344,8 +351,15 @@ local function pin(wide: number, high: number, point: Vector3, camera: Camera): 
 		x = size.X - x
 		y = size.Y
 	end
-	return math.clamp(x, side, math.max(size.X - side, side)),
-		math.clamp(y, high + 64 * hudScale, math.max(size.Y - 92 * hudScale, high + 64 * hudScale))
+	x = math.clamp(x, side, math.max(size.X - side, side))
+	y = math.clamp(y, high + 64 * hudScale, math.max(size.Y - 92 * hudScale, high + 64 * hudScale))
+	-- Clear of the aim at the middle of the screen. In a hop the locked fish is often dead ahead, so its tag sat
+	-- under the aim's ring: the ring covered what the fish needs, and the tag covered the rider (the survey of
+	-- 2026-11-16). A tag that would touch the ring sits just above it.
+	if underAim(x, y, wide, high, camera) then
+		y = size.Y / 2 - AIM_CLEAR * hudScale
+	end
+	return x, y
 end
 
 -- Each tag over its fish, every frame: the one thing here that runs per frame
@@ -2430,6 +2444,11 @@ local function updateAlt(
 				form = MARK
 				roomAlt(tag, form, lk)
 				crowded = clashAlt(tag, i - 1)
+			end
+			-- in the hop the aim is at the middle of the screen: a tag that would sit under its ring is left out
+			-- (the fish just left is often right there; the locked fish's tag is moved clear instead, in pin)
+			if not crowded and hopping and underAim(tag.X, tag.Y, tag.Wide, tag.High, camera) then
+				crowded = true
 			end
 		end
 		tag.Crowded = crowded

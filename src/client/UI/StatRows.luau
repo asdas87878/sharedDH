@@ -1,96 +1,227 @@
 --!strict
--- The stat rows (where the reference has its own, at the lower left): a plate each, a sign and a number. Your Oxygen
--- (the stat you train) is water: blue, with bubbles; it turns red and beats in the last second on a fish and while
--- you drown. Your coins are gold bricks; that row stays hidden until the game has coins (the player's "Coins").
+-- The stat rows, at the lower left where the reference has its own (the user, 2026-11-17: "get the coins, oxygen
+-- (stamina equivalent) looking to standard. Heavily ride a dino inspired. Copy their placements and sizes", then, with
+-- a sharp picture of the reference's two rows: "make it 1:1 and then recreate the + icons next to it").
+-- Every size and every fade below is measured off that picture, where a row is 80 pixels tall: half a unit here to its
+-- pixel. A row is a black see-through bar whose fill thins evenly to nothing along its length, inside a line down its
+-- left and along its top and bottom that stay dark for two thirds of the way and then go; a sign; the number in white
+-- with a thin black outline; and, at the dock only (as the reference's at its hub), a green plus button past the bar's
+-- end. Your Oxygen (the stat you train) is the upper row, with a bubble for its sign; it turns red and beats in the
+-- last second on a fish and while you drown. Your coins are the lower row; it stays hidden until the game has coins
+-- (the player's "Coins"), and the Oxygen row then sits where it was.
 -- On a phone the rows sit at the top left, clear of Roblox's stick.
--- With a corner box (Kit.oxygenCorner, Hugo 2026-11-14) the Oxygen row on a keyboard grows into the screen's bottom left
--- corner: its glass runs out to the left and bottom edges, so only its top and right edges show. In the corner the
--- bubble and the number are bigger and fill the box (Hugo 2026-11-14: "make the text a bit bigger and make sure it fills
--- out the box better"): the box is cut to fit them, with the same gap on every side (CORNER).
-local TextService = game:GetService("TextService")
-
+-- This replaces the glass box in the corner (Kit.OxygenBox, Hugo 2026-11-14): Kit still holds it, nothing here uses it.
 local Kit = require(script.Parent.Kit)
 
 local StatRows = {}
 
-local WIDTH = 104
-local HEIGHT = 29
-local GAP = Kit.Space.Medium
-local LEFT = 12 -- the rows' gap to the screen's left edge, and to its bottom on a keyboard
-local BOTTOM = 14
+local pressed = Instance.new("BindableEvent")
+-- Fired with "Oxygen" or "Coins" when that row's plus button is pressed. Nothing listens yet: what a plus opens is
+-- not decided
+StatRows.Pressed = pressed.Event
+
+local HEIGHT = 40
+local GAP = 2.5 -- a little more than the reference's 1.5, to go with the thicker lines (the user, 2026-11-17)
+local LENGTH = 129 -- the bar, to where its lines have gone
+local EDGE = 2 -- the lines' thickness: the reference's 1.5 drew thinner than its own on our screens (the user)
+local LEFT = 10 -- the rows' gap to the screen's left edge (the reference's, off the user's recording)
+local BOTTOM = 14 -- and to its bottom: the slots' own, so the two stay level
+local ICON = 20 -- with its outline: 24.4, as the reference's signs
+local ICON_AT = 20 -- the sign's middle, from the bar's left end
+local TEXT = 22 -- capitals 12.5 tall (the font's capitals are 0.56 of its size)
+local TEXT_AT = 41
+local TEXT_LINE = 1.5
+local PLUS = 27
+local PLUS_AT = 129.5
+local WIDTH = PLUS_AT + PLUS
 local ON_TOUCH = 0.85 -- the rows' size on a phone, where they share the top left with Roblox's own buttons
-local ICON = 19
-local TEXT = 17
--- The Oxygen box in the corner: the gap round what it shows, the same on every side (to the screen's edges too; counted
--- from the outlines, which stand out past the bubble and the letters), the bubble's size, the gap from it to the
--- number, the number's size (a quarter bigger than a row's 17), and the widest number the box is cut for: a narrower one
--- sits in the middle of that room, a wider one (1.2K) widens the box. The box is as tall as the row and its gap to the
--- screen's bottom (29 + 14), so the bubble's size and Pad go together: 22 and its outline (2.4 a side) leave 8.
-local CORNER = { Pad = 8, Icon = 22, Gap = 6, Text = 21, Room = "100" }
+
+local BLACK = Color3.new(0, 0, 0)
+-- How see-through the fill is along the bar: 43% black at the left, thinning evenly, gone a little before the lines
+local FILL = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0.57),
+	NumberSequenceKeypoint.new(0.2, 0.65),
+	NumberSequenceKeypoint.new(0.4, 0.73),
+	NumberSequenceKeypoint.new(0.58, 0.8),
+	NumberSequenceKeypoint.new(0.68, 0.88),
+	NumberSequenceKeypoint.new(0.78, 0.925),
+	NumberSequenceKeypoint.new(0.87, 0.97),
+	NumberSequenceKeypoint.new(0.96, 1),
+	NumberSequenceKeypoint.new(1, 1),
+})
+-- And the top and bottom lines: nearly solid at the left, half gone at two thirds, then quickly to nothing
+local LINE = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0.13),
+	NumberSequenceKeypoint.new(0.31, 0.31),
+	NumberSequenceKeypoint.new(0.5, 0.41),
+	NumberSequenceKeypoint.new(0.64, 0.47),
+	NumberSequenceKeypoint.new(0.78, 0.66),
+	NumberSequenceKeypoint.new(0.87, 0.82),
+	NumberSequenceKeypoint.new(0.96, 0.95),
+	NumberSequenceKeypoint.new(1, 1),
+})
+-- The signs as pictures: the user's own two icons (an O2 bubble, a stack of cash; 2026-11-17, "use these icons"),
+-- cut out by tools/ui/icon_cut.py (art/ui/icons) and uploaded that day. Empty: the drawn bubble and coin stand in
+local PICTURE: { [string]: string } = { Oxygen = Kit.Textures.Oxygen, Coins = Kit.Textures.Cash }
+local PICTURE_SIZE = 27
+-- the coins' number: pale gold beside the drawn coin, the reference's pale green beside the cash
+local COINS = if PICTURE.Coins == "" then Color3.fromRGB(255, 226, 120) else Kit.Cash
+local WARN = Color3.fromRGB(255, 170, 160) -- the Oxygen number on a red bar
+local HOT = Color3.fromRGB(255, 122, 110) -- what a red bar beats to
+-- The plus button's greens, top to bottom: its pale rim, its face, and the lip along its foot
+local RIM = { Color3.fromRGB(209, 254, 196), Color3.fromRGB(60, 227, 56) }
+local FACE = { Color3.fromRGB(172, 254, 0), Color3.fromRGB(36, 217, 0) }
+local LIP = Color3.fromRGB(28, 189, 4)
+
+type Row = { Frame: Frame, Fill: Frame, Text: TextLabel, Plus: TextButton, Colour: Color3 }
 
 local holder: Frame
 local size: UIScale
 local list: UIListLayout
-local oxygenText: TextLabel
-local oxygenLook: Kit.Dressed
+local air: Row
+local money: Row
 local oxygenBeat: (on: boolean) -> ()
-local oxygenIcon: Frame
-local inCorner = false
-local airRow: Kit.Panel
-local coinsRow: Frame
-local coinsText: TextLabel
 
 local shownOxygen = -1
 local shownLow = false
 local shownCoins = -1
+local shownDocked = false
 
-local function row(
-	order: number,
-	sign: (Instance, number) -> Frame,
-	colour: Color3,
-	style: Kit.Style
-): (Kit.Panel, TextLabel, Frame, Frame)
-	local panel = Kit.panel(holder, { Size = UDim2.fromOffset(WIDTH, HEIGHT), LayoutOrder = order }, style)
-	-- what the row shows, in a clear frame the row's size: the face can then grow round it (a corner box)
-	local inner: Frame =
-		Kit.new("Frame", { Name = "Inner", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 }, panel.Face)
-	local icon = sign(inner, ICON)
-	icon.AnchorPoint = Vector2.new(0, 0.5)
-	icon.Position = UDim2.new(0, Kit.Space.Medium, 0.5, 0)
-	local label = Kit.text({
+local function block(props: { [string]: any }, parent: Instance): Frame
+	props.BorderSizePixel = 0
+	return Kit.new("Frame", props, parent)
+end
+
+-- A line on a bar's top or bottom edge, fading out as LINE says
+local function line(parent: Instance, bottom: boolean)
+	local edge = block({
+		AnchorPoint = Vector2.new(0, if bottom then 1 else 0),
+		Position = UDim2.fromScale(0, if bottom then 1 else 0),
+		Size = UDim2.fromOffset(LENGTH, EDGE),
+		BackgroundColor3 = BLACK,
+		ZIndex = 2,
+	}, parent)
+	Kit.new("UIGradient", { Transparency = LINE }, edge)
+end
+
+-- One arm of the plus: a black bar (its outline, a hair deeper at the foot) or the white bar over it
+local function arm(parent: Instance, wide: number, high: number, white: boolean)
+	block({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, if white then 0 else 0.25),
+		Size = if white then UDim2.fromOffset(wide, high) else UDim2.fromOffset(wide + 2, high + 2.5),
+		BackgroundColor3 = if white then Kit.White else BLACK,
+		ZIndex = if white then 7 else 6,
+	}, parent)
+end
+
+-- The green plus button past a bar's end: a black edge, a pale rim, a brighter face, a darker lip along the foot
+local function plus(parent: Instance, name: string): TextButton
+	local at = UDim2.new(0, PLUS_AT, 0.5, 0)
+	local button: TextButton = Kit.new("TextButton", {
+		Name = "Plus",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 34, 0.5, 0),
-		Size = UDim2.fromOffset(WIDTH - 38, HEIGHT),
+		Position = at,
+		Size = UDim2.fromOffset(PLUS, PLUS),
+		BackgroundColor3 = BLACK,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = "",
+		Visible = false,
+		ZIndex = 3,
+	}, parent)
+	Kit.corner(button, 1)
+	-- the black edge is a little deeper along the foot
+	local rim = block({
+		Position = UDim2.fromOffset(EDGE, EDGE),
+		Size = UDim2.new(1, -EDGE * 2, 1, -EDGE * 2 - 0.5),
+		BackgroundColor3 = Kit.White,
+		ZIndex = 4,
+	}, button)
+	Kit.gradient(rim, RIM[1], RIM[2])
+	local face = block({
+		Position = UDim2.fromOffset(2.5, 2),
+		Size = UDim2.new(1, -5, 1, -4.5),
+		BackgroundColor3 = Kit.White,
+		ZIndex = 5,
+	}, rim)
+	Kit.gradient(face, FACE[1], FACE[2])
+	block({
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 2.5),
+		BackgroundColor3 = LIP,
+		ZIndex = 5,
+	}, rim)
+	arm(button, 3.5, 10.5, false)
+	arm(button, 10.5, 3.5, false)
+	arm(button, 3.5, 10.5, true)
+	arm(button, 10.5, 3.5, true)
+	-- a press dips it; letting go, or sliding off, puts it back
+	local function rest()
+		button.Position = at
+	end
+	button.MouseButton1Down:Connect(function()
+		button.Position = at + UDim2.fromOffset(0, 1)
+	end)
+	button.MouseButton1Up:Connect(rest)
+	button.MouseLeave:Connect(rest)
+	button.Activated:Connect(function()
+		pressed:Fire(name)
+	end)
+	return button
+end
+
+local function row(order: number, name: string, sign: (Instance, number) -> Frame, colour: Color3): Row
+	local frame: Frame = Kit.new("Frame", {
+		Name = name,
+		Size = UDim2.fromOffset(WIDTH, HEIGHT),
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+	}, holder)
+	-- the fill runs under the lines, edge to edge: laid beside them, a row that falls between two pixels showed a
+	-- pale gap between its fill and its bottom line
+	local fill = block({
+		Name = "Fill",
+		Size = UDim2.fromOffset(LENGTH, HEIGHT),
+		BackgroundColor3 = BLACK,
+	}, frame)
+	Kit.new("UIGradient", { Transparency = FILL }, fill)
+	line(frame, false)
+	line(frame, true)
+	block({
+		Name = "Left",
+		Size = UDim2.fromOffset(EDGE, HEIGHT),
+		BackgroundColor3 = BLACK,
+		BackgroundTransparency = 0.13,
+		ZIndex = 2,
+	}, frame)
+	local picture = PICTURE[name]
+	local icon: GuiObject = if picture and picture ~= ""
+		then Kit.new("ImageLabel", {
+			Size = UDim2.fromOffset(PICTURE_SIZE, PICTURE_SIZE),
+			BackgroundTransparency = 1,
+			Image = picture,
+			ScaleType = Enum.ScaleType.Fit,
+		}, frame)
+		else sign(frame, ICON)
+	icon.AnchorPoint = Vector2.new(0.5, 0.5)
+	icon.Position = UDim2.new(0, ICON_AT, 0.5, 0)
+	icon.ZIndex = 3
+	local label: TextLabel = Kit.new("TextLabel", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, TEXT_AT, 0.5, 0),
+		Size = UDim2.fromOffset(LENGTH - TEXT_AT, HEIGHT),
+		BackgroundTransparency = 1,
+		Font = Kit.Font,
+		Text = "",
 		TextSize = TEXT,
 		TextColor3 = colour,
 		TextXAlignment = Enum.TextXAlignment.Left,
-	}, inner)
-	return panel, label, inner, icon
-end
-
--- How wide a number is at a size, in the rows' font
-local function wide(text: string, textSize: number): number
-	return TextService:GetTextSize(text, textSize, Kit.Font, Vector2.new(1000, 100)).X
-end
-
--- The outlines' widths in the corner: the bubble's (as Kit.bubble draws it) and the number's (as Kit.text does)
-local function iconLine(): number
-	return math.max(1.5, CORNER.Icon * 0.11)
-end
-local function textLine(): number
-	return math.clamp(CORNER.Text * 0.19, 1.6, 4)
-end
-
--- The Oxygen box in the corner: the number's slot starts after the bubble and Gap, and the box ends Pad after it. The
--- slot is as wide as the number shown (never narrower than CORNER.Room) and its outline; the face runs out LEFT past
--- the row's left edge, to the screen's
-local function fitCorner()
-	local room = math.max(wide(oxygenText.Text, CORNER.Text), wide(CORNER.Room, CORNER.Text))
-	local slot = math.ceil(room + textLine() * 2)
-	local start = math.floor(CORNER.Pad + iconLine() * 2 + CORNER.Icon + CORNER.Gap + 0.5)
-	oxygenText.Position = UDim2.new(0, start, 0.5, 0)
-	oxygenText.Size = UDim2.new(0, slot, 1, 0)
-	airRow.Face.Size = UDim2.new(0, start + slot + CORNER.Pad, 1, BOTTOM)
+		ZIndex = 4,
+	}, frame)
+	Kit.stroke(label, TEXT_LINE, BLACK)
+	return { Frame = frame, Fill = fill, Text = label, Plus = plus(frame, name), Colour = colour }
 end
 
 function StatRows.build(parent: Instance)
@@ -105,66 +236,17 @@ function StatRows.build(parent: Instance)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 	}, holder)
-	local air, oxygen, airInner, airIcon = row(1, Kit.bubble, Kit.White, Kit.Themes.Oxygen)
-	airRow = air
-	oxygenText = oxygen
-	oxygenIcon = airIcon
-	inCorner = false
+	air = row(1, "Oxygen", Kit.bubble, Kit.White)
+	money = row(2, "Coins", Kit.coin, COINS)
+	money.Frame.Visible = false
 	shownOxygen = -1
 	shownLow = false
-	oxygenLook = air.Look
-	Kit.bubbles(airInner, { { 0.66, 0.34, 7 }, { 0.8, 0.68, 5 }, { 0.91, 0.3, 4 } })
-	oxygenBeat = Kit.pulse(air.Look.Outline, { Color = Kit.Ink }, { Color = Color3.fromRGB(255, 196, 180) })
-	local money, coins = row(2, Kit.coin, Kit.White, Kit.Themes.Gold)
-	coinsRow = money.Frame
-	coinsText = coins
-	coinsRow.Visible = false
-end
-
--- A corner box on a keyboard: the Oxygen row is the bottom one and its face reaches the screen's left and bottom edges
--- (the rows' own gaps to them, LEFT and BOTTOM). Its Inner frame then covers the whole face, and the bubble and the
--- number are laid out in it with CORNER's gaps; the plate's three small rings are left out (no room for them)
-local function corner(on: boolean)
-	inCorner = on
-	local face = airRow.Face
-	local inner = face:FindFirstChild("Inner") :: Frame
-	local outline = oxygenText:FindFirstChildOfClass("UIStroke")
-	airRow.Frame.LayoutOrder = if on then 3 else 1
-	for _, ring in inner:GetChildren() do
-		if ring.Name == "Bubble" and ring:IsA("GuiObject") then
-			ring.Visible = not on
-		end
-	end
-	inner.Position = UDim2.fromOffset(0, 0)
-	inner.Size = UDim2.fromScale(1, 1)
-	if on then
-		face.Position = UDim2.fromOffset(-LEFT, 0)
-		oxygenIcon.Size = UDim2.fromOffset(CORNER.Icon, CORNER.Icon)
-		oxygenIcon.Position = UDim2.new(0, CORNER.Pad + iconLine(), 0.5, 0)
-		oxygenText.TextSize = CORNER.Text
-		oxygenText.TextXAlignment = Enum.TextXAlignment.Center
-		fitCorner()
-	else
-		face.Position = UDim2.fromOffset(0, 0)
-		face.Size = UDim2.fromScale(1, 1)
-		oxygenIcon.Size = UDim2.fromOffset(ICON, ICON)
-		oxygenIcon.Position = UDim2.new(0, Kit.Space.Medium, 0.5, 0)
-		oxygenText.TextSize = TEXT
-		oxygenText.TextXAlignment = Enum.TextXAlignment.Left
-		oxygenText.Position = UDim2.new(0, 34, 0.5, 0)
-		oxygenText.Size = UDim2.fromOffset(WIDTH - 38, HEIGHT)
-	end
-	if outline then
-		outline.Thickness = math.clamp(oxygenText.TextSize * 0.19, 1.6, 4)
-	end
-	local ring = oxygenIcon:FindFirstChildOfClass("UIStroke")
-	if ring then
-		ring.Thickness = math.max(1.5, oxygenIcon.Size.X.Offset * 0.11)
-	end
+	shownCoins = -1
+	shownDocked = false
+	oxygenBeat = Kit.pulse(air.Fill, { BackgroundColor3 = Kit.Danger }, { BackgroundColor3 = HOT })
 end
 
 function StatRows.place(touch: boolean)
-	corner(Kit.oxygenCorner() and not touch)
 	if touch then
 		holder.AnchorPoint = Vector2.new(0, 0)
 		holder.Position = UDim2.fromOffset(LEFT, 58)
@@ -180,36 +262,39 @@ function StatRows.place(touch: boolean)
 end
 
 -- oxygen: your max Oxygen; coins: nil until the game has them; spent: drowning with none left; low: the last second
--- on a fish. The row is the most you can carry, which a drowning player read as what they had left ("100"), so for
--- that moment it is a 0. Low or spent, the plate is red and its outline beats
-function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: boolean)
+-- on a fish; docked: at the dock, where the plus buttons show. The row is the most you can carry, which a drowning
+-- player read as what they had left ("100"), so for that moment it is a 0. Low or spent, the bar is red and beats
+function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: boolean, docked: boolean)
 	local whole = if spent then 0 else math.floor(oxygen + 0.5)
 	if whole ~= shownOxygen then
 		shownOxygen = whole
-		oxygenText.Text = Kit.short(whole)
-		if inCorner then
-			fitCorner()
-		end
+		air.Text.Text = Kit.short(whole)
 	end
 	local red = low or spent
 	if red ~= shownLow then
 		shownLow = red
-		local theme = if red then Kit.Themes.Danger else Kit.Themes.Oxygen
-		oxygenLook.paint(theme.Top, theme.Bottom)
-		-- the water's picture is blue: over the red it is nearly taken out, or the plate goes grey
-		local pattern = oxygenLook.Texture
-		if pattern then
-			pattern.ImageTransparency = if red then 0.93 else Kit.Themes.Oxygen.TextureFade or 0.8
+		-- the beat runs from the colour the bar has when it starts, so the red goes on first
+		if red then
+			air.Fill.BackgroundColor3 = Kit.Danger
 		end
 		oxygenBeat(red)
-	end
-	local money = if coins then math.floor(coins) else -1
-	if money ~= shownCoins then
-		shownCoins = money
-		coinsRow.Visible = coins ~= nil
-		if coins then
-			coinsText.Text = "$" .. Kit.short(money)
+		if not red then
+			air.Fill.BackgroundColor3 = BLACK
 		end
+		air.Text.TextColor3 = if red then WARN else air.Colour
+	end
+	local count = if coins then math.floor(coins) else -1
+	if count ~= shownCoins then
+		shownCoins = count
+		money.Frame.Visible = coins ~= nil
+		if coins then
+			money.Text.Text = "$" .. Kit.short(count)
+		end
+	end
+	if docked ~= shownDocked then
+		shownDocked = docked
+		air.Plus.Visible = docked
+		money.Plus.Visible = docked
 	end
 end
 

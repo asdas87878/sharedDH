@@ -77,6 +77,8 @@ type Rider = {
 	CheckFrom: Vector3?,
 	Flagged: boolean,
 	SurfacedAt: number?, -- os.clock() a Free rider came up near the dock
+	Rode: boolean, -- we have sat on a fish since we last left the dock (the dive-in, Config.Dive: until then no send-back to the dock and no drowning for a miss)
+	DiveHop: boolean, -- this hop is one from floating before the first ride of the dive: forgiven if it lands on nothing
 	CrashCheckAt: number, -- os.clock() of the next look for something in the fish's way
 	CrashReadyAt: number, -- and before this a crash or a smashed prop costs nothing
 	Nosed: boolean, -- the fish's nose is up against something solid (so it is counted once)
@@ -200,6 +202,13 @@ end
 local function setState(r: Rider, state: string)
 	if state ~= "Free" then
 		r.SurfacedAt = nil
+	end
+	if state == "Dock" then
+		-- back on the dock: the next time into the water is a new dive (Config.Dive)
+		r.Rode = false
+		r.DiveHop = false
+	elseif state == "Riding" then
+		r.Rode = true
 	end
 	if state ~= "Jumping" and r.Grab then
 		-- the pull-in is over, one way or another: the fish it was granted is let go (nothing to do once we ride it)
@@ -443,6 +452,7 @@ local function jump(r: Rider)
 		return deny(r, "Jump", "Cooldown")
 	end
 	r.JumpFrom = r.Fish
+	r.DiveHop = r.Fish == nil and not r.Rode
 	-- The hop's numbers, as the client flies them (Config.hopFrom): off a Leaper the glide and the window are longer,
 	-- and both go by the speed the fish had as we left it, as the server sees it (airtime by speed). The hook's reach
 	-- is counted from these and our own clock (grab), never from what the client says: so the speed is held to what
@@ -470,7 +480,11 @@ end
 
 -- A flight that came down on nothing: sunk, and a short drown
 local function miss(r: Rider)
-	if sandbox("NoFail") then
+	-- (the dive-in, Config.Dive.ForgiveMiss: the hop into the water, and any other from floating before the first
+	-- ride of the dive, costs nothing when it lands on nothing)
+	local forgiven = r.DiveHop and Config.Dive.ForgiveMiss > 0
+	r.DiveHop = false
+	if sandbox("NoFail") or forgiven then
 		-- the sandbox: left floating, to jump again
 		setState(r, "Free")
 		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
@@ -502,6 +516,10 @@ local function grab(r: Rider, target: any)
 	-- of the range is refused though the client was inside it. Landing slack never widens this.
 	local speed = Config.hopSpeed(math.max(0, elapsed - Config.Net.ReachLag), r.JumpLaunch, r.JumpExtra)
 	local reach = Config.reachOf(speed) * Config.Net.RangeSlack
+	if r.DiveHop then
+		-- (the dive's own hop reaches further: Config.Dive.Reach)
+		reach = math.max(reach, Config.Dive.Reach * Config.Net.RangeSlack)
+	end
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
 		return deny(r, "Grab", "Range", target)
 	end
@@ -921,7 +939,9 @@ local function tick(r: Rider, dt: number)
 				and not sandbox("NoFail")
 			then
 				r.SurfacedAt = r.SurfacedAt or os.clock()
-				if os.clock() - (r.SurfacedAt :: number) >= o.DockWait then
+				-- (a player who has not ridden yet this dive is given far longer: Config.Dive.FirstDockWait)
+				local wait = if r.Rode then o.DockWait else math.max(o.DockWait, Config.Dive.FirstDockWait)
+				if os.clock() - (r.SurfacedAt :: number) >= wait then
 					toDock(r)
 				end
 			else
@@ -1003,6 +1023,8 @@ local function onPlayer(player: Player)
 		CheckFrom = nil,
 		Flagged = false,
 		SurfacedAt = nil,
+		Rode = false,
+		DiveHop = false,
 		CrashCheckAt = 0,
 		CrashReadyAt = 0,
 		Nosed = false,

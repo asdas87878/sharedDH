@@ -657,6 +657,7 @@ local function animateFish()
 						0,
 						(0.5 + speed * 0.03 + buck * 2)
 							* j.beatPace
+							* a.Beat
 							* cadence
 							* (1 + (effort - 1) * a.EffortBeat)
 							* waveBeat

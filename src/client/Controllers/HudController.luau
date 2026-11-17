@@ -33,6 +33,8 @@ local UI = script.Parent.Parent.UI
 local Aim = require(UI.Aim)
 local Banners = require(UI.Banners)
 local HopButton = require(UI.HopButton)
+local HubButtons = require(UI.HubButtons)
+local HubSigns = require(UI.HubSigns)
 local Kit = require(UI.Kit)
 local LandStrip = require(UI.LandStrip)
 local Rings = require(UI.Rings)
@@ -86,7 +88,17 @@ local endlessAir = false
 local diveMetres = 0
 local diveLands = 0
 local diveCaught = 0
+local diveList: { State.Caught }? = nil -- the dive's catch at its longest (the server empties it at the dock)
+-- the kinds caught since joining: a first catch of a kind says NEW! (until saves exist it is "new this session")
+local kindsCaught: { [string]: boolean } = {}
 local landSeen = 0 -- the deepest land of this dive so far (0: not in the water yet)
+-- The end of the dive, kept until the words of the death that ended it are gone. Most dives end in a drowning, and
+-- "GREAT DIVE!" came up on the dock while "OUT OF AIR!" was still fading with the black: two banners saying opposite
+-- things, one over the other (the survey of 2026-11-16). Now one follows the other.
+local endMetres = 0
+local endBest = false
+local endList: { State.Caught }? = nil
+local endWaits = false
 local bestMetres = 0
 local bestLands = 0
 local caughtCount = -1
@@ -186,6 +198,7 @@ local function build()
 
 	LandStrip.build(root)
 	StatRows.build(root)
+	HubButtons.build(root)
 	Slots.build(root)
 	Rings.build(root)
 	Aim.build(root)
@@ -212,6 +225,7 @@ local function layout()
 	root.Size = UDim2.fromScale(1 / wanted, 1 / wanted)
 	LandStrip.place(onTouch)
 	StatRows.place(onTouch)
+	HubButtons.place(onTouch)
 	Slots.place(onTouch)
 	Rings.place(onTouch)
 	HopButton.place(onTouch)
@@ -447,7 +461,8 @@ local function update(dt: number)
 	end
 
 	local hot = mode == "Riding" and kind ~= nil and Config.low(meter, max, kind) and not endlessAir
-	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir, hot)
+	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir, hot, mode == "Dock")
+	HubButtons.update(mode == "Dock")
 
 	-- the hop: the button, the aim, the window
 	local target = State.JumpTarget
@@ -477,7 +492,10 @@ local function update(dt: number)
 		caughtCount = count
 		Slots.update(caught)
 		-- (the most carried this dive, for the words at its end: the server empties the list as it puts us on the dock)
-		diveCaught = math.max(diveCaught, count)
+		if caught and count >= diveCaught then
+			diveCaught = count
+			diveList = caught -- (TameController makes a new list each change, so this one is ours to keep)
+		end
 	end
 
 	sinceJumpCheck += dt
@@ -489,6 +507,15 @@ local function update(dt: number)
 			and workspace:GetAttribute("SandboxEndlessAir") == true
 	end
 
+	-- the end of a dive comes up once the death's own words are gone (and not at all if we are diving again)
+	if endWaits then
+		if mode ~= "Dock" then
+			endWaits = false
+		elseif State.FadeText == "" and State.Fade <= 0.02 then
+			endWaits = false
+			Banners.greatDive(endMetres, endBest, endList)
+		end
+	end
 	-- the last words: thrown off a fish too strong says so, in place of "OUT OF AIR!"
 	Banners.miss(if State.FadeText ~= "" and strainRide and outOfAir then "TOO STRONG!" else State.FadeText, State.Fade)
 	updateFx(now)
@@ -522,14 +549,39 @@ function HudController.Start()
 					bestMetres = diveMetres
 					bestLands = diveLands
 				end
-				Banners.greatDive(diveMetres, isBest, diveCaught)
+				endMetres = diveMetres
+				endBest = isBest
+				endList = diveList
+				endWaits = true
 			end
 			diveMetres = 0
 			diveLands = 0
 			diveCaught = 0
+			diveList = nil
 		end
 	end)
-	State.Tamed.Event:Connect(Banners.caught)
+	-- a tame: the banner, with what this very fish earns in a tank (its size and colour count: the fish under us
+	-- carries them) and whether it is the first of its kind
+	State.Tamed.Event:Connect(function(fishId: string)
+		local kind = Config.FishById[fishId]
+		local fish = State.Fish
+		local earns: number? = nil
+		if kind and fish and fish:GetAttribute("FishType") == fishId then
+			local size, variant = fish:GetAttribute("SizeTier"), fish:GetAttribute("Variant")
+			earns = Config.incomeOf(
+				kind,
+				if type(size) == "string" then size else "Normal",
+				if type(variant) == "string" then variant else ""
+			)
+		end
+		local isNew = not kindsCaught[fishId]
+		kindsCaught[fishId] = true
+		if isNew then
+			HubButtons.mark(true)
+		end
+		Banners.caught(fishId, earns, isNew)
+	end)
+	HubSigns.start()
 
 	RunService.RenderStepped:Connect(update)
 end
