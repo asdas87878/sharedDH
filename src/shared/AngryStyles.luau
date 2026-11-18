@@ -106,6 +106,10 @@ AngryStyles.Sync = {
 	On = 1, -- 0: the struggle runs on its own clock again, and the server leaves the gaps alone
 	Bend = 0.2, -- the most the server moves a red-zone tick, as a share of its gap, to land it on a thrash
 	Pull = 10, -- how quickly the struggle catches a beat it is off (a late or early tick), per second
+	-- Seconds the struggle runs ahead of the ticks, because the fish's body trails what it is given: the stand-in
+	-- goes through the turn spring (RideController), measured 70 to 90 ms behind on a Clownfish (2026-11-18). An
+	-- animation played on the body itself has no such lag: set it to 0 for the real ones.
+	Lead = 0.08,
 }
 
 -- Seconds between two thrashes of a style, as authored
@@ -173,7 +177,8 @@ function AngryStyles.clock(s: Style, t: number): number
 		return t
 	end
 	-- where a thrash on each tick puts the struggle now: a thrash (0.25) on the last tick heard, then one every `every`
-	local want = 0.25 + (os.clock() - lock.At) / (2 * every)
+	-- (Sync.Lead ahead, so the body, which trails, is at the thrash on the tick)
+	local want = 0.25 + (os.clock() + AngryStyles.Sync.Lead - lock.At) / (2 * every)
 	local dt = t - lock.Last
 	if lock.Last < 0 or dt < 0 or dt > 0.5 then
 		lock.Phase = want -- (a new stretch of anger, or a long pause: straight onto the beat)

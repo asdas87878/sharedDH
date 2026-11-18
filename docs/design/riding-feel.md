@@ -1195,3 +1195,38 @@ Measured with the real Config under Lune (piece = share of max, gap in seconds):
 Floating off a fish ticks the same pieces: the whole meter in `FreeSeconds` 25, so a tick every 2.5 s.
 **For the HUD (o2):** each `OxygenTick` is one piece to fade, the fifth value `"Tick"` or `"Break"`; `Oxygen.Cap` is
 there if the extra ring should fill toward it. **Not played by hand.**
+
+## The struggle on the ticks (task o3, 2026-11-18)
+
+Hugo: "When a fish gets into the red zone and it plays the struggling animation, make sure the oxygen loss ticks are
+matched up with the animation of the fish." Built in `src/shared/AngryStyles.luau` (block "THE STRUGGLE ON THE OXYGEN
+TICKS", numbers in `AngryStyles.Sync`), `RideService.tickDrain` and `AngryController`.
+
+- **A thrash** is each extreme of the struggle: the stand-in sine's top and bottom (a wag to each side, a roll each
+  way), so one every half `Beat` of the style. Where the slow-down has a cycle (`Period` = `Beat`) its stall falls
+  there too.
+- **Server:** while the fish is angry, the gap to the next tick is moved to a whole number of thrashes
+  (`AngryStyles.snapGap`), but only if that moves it by at most `Sync.Bend` (0.2) of itself. The piece each tick takes
+  never changes. Examples: Clownfish 0.94 s to 0.90, Moray Eel 1.0 s to 1.10, Galloper 0.94 s left alone. A fish too
+  strong (the strain ticks) is left alone.
+- **Client:** `AngryController` hears every `OxygenTick` and its gap (`AngryStyles.tick`). The struggle is
+  phase-locked to it: one thrash on each tick, a whole number between ticks, with the Beat stretched or squeezed the
+  rest of the way. Being off by a frame or a late packet is pulled back (`Sync.Pull`), so the two can't drift.
+  `Sync.Lead` (0.08 s) runs the stand-in ahead, because the body trails it through the turn spring.
+- **Measured in Studio** (Angry.Test 0.5, endless air off, a scripted ride; log
+  `~/Pictures/ride-a-fish/oxygen-ticks-v2/o3-studio-log.txt`, picture `../attachments/o3-struggle-ticks.gif`):
+
+  | Ride | Tick gap | Tick to nearest thrash: mean, worst |
+  |---|---|---|
+  | Clownfish (Zigzag), synced | 0.90 s | 14 ms, 30 ms |
+  | Moray Eel (Coil), synced | 1.10 s | 11 ms, 22 ms |
+  | Moray Eel, synced, turning while it rolls | 1.10 s | 53 ms, 114 ms (the bank tilts the wave) |
+  | Clownfish, sync off (before) | 0.94 s | 99 ms, 188 ms, drifting |
+
+  **Not played by hand.**
+
+**Hook for the partner's real animations:** put a keyframe marker named **`Thrash`** at each thrash of the struggle
+animation (one or more a loop, evenly spaced). Each frame, `local every, toNext = AngryStyles.beat(style)`. Play the
+track at speed (marker spacing in the animation) / `every`. When a tick is heard, nudge `TimePosition` so the next
+`Thrash` is `toNext` seconds of play away. With `nil` (nothing locked), play it at its own speed. Set `Sync.Lead` to 0
+for an animation on the body (no spring lag), and `Angry.Motion` to 0 to drop the stand-in sine.
