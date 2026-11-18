@@ -90,6 +90,20 @@ local function landPlace(index: number): { At: Vector3, Along: Vector3 }?
 	return { At = at, Along = if flat.Magnitude > 0.01 then flat.Unit else Vector3.new(0, 0, 1) }
 end
 
+-- The fish to seat a player on at a land's start: the commonest kind living there (put there for them, as the
+-- sandbox's F does; without it the herd near the spot was often still out of the water and the seat found none)
+local function landFish(index: number): string?
+	local best: Config.FishType? = nil
+	local bestRank = math.huge
+	for _, fish in Config.Fish do
+		local rank = table.find(Config.TierOrder, fish.Tier) or 99
+		if fish.Home == index and (rank < bestRank or (rank == bestRank and best and fish.Id < best.Id)) then
+			best, bestRank = fish, rank
+		end
+	end
+	return if best then best.Id else nil
+end
+
 local function act(player: Player, kind: any, a: any, b: any, c: any)
 	if type(kind) ~= "string" then
 		return
@@ -129,7 +143,7 @@ local function act(player: Player, kind: any, a: any, b: any, c: any)
 		if not place then
 			return refuse(player, "no start for land " .. index)
 		end
-		RideService.sandboxReset(player, nil, nil, nil, place)
+		RideService.sandboxReset(player, nil, landFish(index), "", place)
 		local zone = FishService.zones()[index]
 		done(player, "to land " .. index .. (if zone then " (" .. zone.Name .. ")" else ""))
 	elseif kind == "Fish" then
@@ -140,7 +154,7 @@ local function act(player: Player, kind: any, a: any, b: any, c: any)
 			return refuse(player, "no such fish, size or variant")
 		end
 		if not RideService.giveCarried(player, { Id = fish.Id, Size = size, Variant = variant }) then
-			return refuse(player, "no rider yet")
+			return refuse(player, "slots full (" .. Config.Tame.Carry .. "): put some in the tank")
 		end
 		done(
 			player,

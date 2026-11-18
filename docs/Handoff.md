@@ -18,8 +18,11 @@ for playtesting."
   (tier 9), a Giant Gold Megalodon into the slots, fail refused on the dock; land 3 seated on a fish in 4 s and the
   meter held 4500 with endless air; with it off it ticked down, FAIL NOW drowned and woke at the dock with both fish
   kept; with no fail and a 200 meter, floating never failed. [The panel](attachments/d1-admin-panel.png).
+- **Review round 1:** GIVE is refused once the 7 slots are full (`Tame.Carry`, as a catch; tested: the 8th said
+  "slots full"). The land jump now puts the commonest kind of that land at the spot for you (as F does) and seats you
+  on it: all ten lands pressed, riding within about 3 s each.
 - **Found:** Studio held two copies each of `AdminService` and `AdminController` (the double-sync trap): every
-  action ran twice until the extra copies were removed. Lands 2 and 4 left me floating, with no fish to sit on.
+  action ran twice until the extra copies were removed.
 
 ## 2026-11-18 · The sub shop at the stand: nine subs to buy and equip, the SUB button gone, the stand moved (NULLROOM task s1, Hugo's PC)
 **State:** built and run by script in Hugo's Studio; **not played by hand.** Hugo's words: "Move submarine stand a

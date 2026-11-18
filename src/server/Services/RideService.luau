@@ -1476,9 +1476,10 @@ function RideService.forceFail(player: Player): boolean
 end
 
 -- and a fish put in the hands, as if caught on this dive (to be put in the tank like any catch)
+-- (false with no rider, or with the slots full: Tame.Carry, as a catch)
 function RideService.giveCarried(player: Player, fish: Carry): boolean
 	local r = riders[player]
-	if not r then
+	if not r or #r.Caught >= Config.Tame.Carry then
 		return false
 	end
 	table.insert(r.Caught, fish.Id)
