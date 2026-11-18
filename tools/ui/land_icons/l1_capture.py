@@ -80,18 +80,23 @@ def intro(cell, land, metres, new=False):
 
 
 def shot(name, wait=1.0, fresh=True):
-    """fresh: two shots, the first can be the screen from before (as options_capture's); off for fast frame runs"""
+    """A new file each time, read once it is whole (the runner writes it after it returns)"""
     time.sleep(wait)
-    raw = OUT / "raw.png"
-    for _ in range(2 if fresh else 1):
-        run(["shot", str(raw)])
-    for _ in range(6):
-        try:
-            im = Image.open(raw).convert("RGB").crop(VIEW)
-            im.save(OUT / f"{name}.png")
-            return im
-        except OSError:
-            time.sleep(1)
+    raw = OUT / f"raw_{name}.png"
+    raw.unlink(missing_ok=True)
+    run(["shot", str(raw)])
+    last = -1
+    for _ in range(60):
+        if raw.exists() and raw.stat().st_size == last and last > 0:
+            try:
+                im = Image.open(raw).convert("RGB").crop(VIEW)
+                im.save(OUT / f"{name}.png")
+                raw.unlink(missing_ok=True)
+                return im
+            except OSError:
+                pass
+        last = raw.stat().st_size if raw.exists() else -1
+        time.sleep(0.05)
     raise RuntimeError("no shot")
 
 

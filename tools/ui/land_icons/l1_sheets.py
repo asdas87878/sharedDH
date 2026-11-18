@@ -35,16 +35,18 @@ def paste_label(im, xy, s, px=19, fill=GREY):
 
 def strip():
     # 3x: four at once, one under another
-    items = [{"x": 20, "y": 70 + k * 245, "s": 3, "o": {"Intro": 0}, "st": st} for k, (st, _) in enumerate(STATES)]
-    cap.cells(items)
-    view = cap.shot("strip3x", 3)
-    big = [cap.crop(view, it, CW, 82) for it in items]
+    big = []
+    for pair in (STATES[:2], STATES[2:]):
+        items = [{"x": 20, "y": 70 + k * 330, "s": 3, "o": {"Intro": 0}, "st": st} for k, (st, _) in enumerate(pair)]
+        cap.cells(items)
+        view = cap.shot("strip3x", 3)
+        big += [cap.crop(view, it, CW, 100) for it in items]
     # real size on the dark, and at a phone's (HUD scale 1)
     items1 = [{"x": 20 + k * 330, "y": 80, "s": 1, "o": {"Intro": 0}, "st": st} for k, (st, _) in enumerate(STATES)]
     items1 += [{"x": 20 + k * 330, "y": 260, "s": GAME_SCALE, "o": {"Intro": 0}, "st": st} for k, (st, _) in enumerate(STATES[:2])]
     cap.cells(items1)
     view = cap.shot("strip1x", 2.5)
-    real = [cap.crop(view, it, CW, 82) for it in items1[:4]]
+    real = [cap.crop(view, it, CW, 100) for it in items1[:4]]
     # over the game: the game's own HUD (its strip is this code), ridden
     cap.attrs(Show=False, HideHud=False)
     cap.attrs(Ride=time.time())
@@ -61,7 +63,7 @@ def strip():
         "Mix 3's gold diamond with BEST in gold; a thin bar, white to you then on to gold at your best; your face",
         "in a black ring over a flat black oval (0.3 see-through) with the metres; every word built as a rarity word.",
     ]
-    H = 140 + 4 * 280 + 60 + 120 + 40 + game.height // 2 + 60
+    H = 140 + 4 * 340 + 60 + 120 + 40 + game.height // 2 + 60
     im = Image.new("RGB", (W, H), BG)
     im.paste(header(W, "Land strip, Hugo's picks (task l1)", lines), (0, 0))
     y = 150
@@ -70,7 +72,7 @@ def strip():
         im.paste(big[k], (30, y + 28))
         im.paste(real[k], (30 + big[k].width + 40, y + 28 + 60))
         paste_label(im, (30 + big[k].width + 40, y + 28 + 30), "real size (1:1, HUD scale 1)", 17)
-        y += 280
+        y += 340
     paste_label(im, (30, y), "In the game, Studio's view at its real size (HUD scale 1.9):", 19, WHITE)
     half = game.resize((game.width // 2, game.height // 2), Image.LANCZOS)
     top = game.crop((int(1983 / 2 - 450), 0, int(1983 / 2 + 450), 230))
@@ -127,20 +129,22 @@ def locks():
         im = cap.shot(f"lock_{len(frames)}", 0, fresh=False)
         frames.append(((time.time() - t0) / slow, cap.crop(im, item, 160, 70)))
     # the sheet: a row of frames
+    # close on land 4's tile (strip x 90 to 118 in a holder 310 wide: + 6), 4x, full size
+    frames = [(t, fr.crop((70 * 4, 0, 150 * 4, 62 * 4))) for t, fr in frames]
     pick = [frames[0]] + frames[1::max(1, (len(frames) - 1) // 7)][:7] + [frames[-1]]
     fw, fh = pick[0][1].size
-    W = 60 + len(pick) * (fw // 2 + 12)
-    im = Image.new("RGB", (max(W, 1200), 140 + fh // 2 + 70), BG)
+    W = 60 + len(pick) * (fw + 12)
+    im = Image.new("RGB", (max(W, 1200), 140 + fh + 70), BG)
     im.paste(header(im.width, "A lock breaking (task l1)", [
         "The first time your best gets into a land: a white burst and a crack, the halves tip apart, fall and fade",
-        f"in 0.5 s, and it never comes back. Captured at 1/{slow} speed, times are the game's; 4x, half size here.",
+        f"in 0.5 s, and it never comes back. Captured at 1/{slow} speed, times are the game's; 4x.",
     ]), (0, 0))
     for k, (t, fr) in enumerate(pick):
-        x = 30 + k * (fw // 2 + 12)
-        im.paste(fr.resize((fw // 2, fh // 2), Image.LANCZOS), (x, 140))
-        paste_label(im, (x, 140 + fh // 2 + 8), f"{t:.2f} s", 17)
+        x = 30 + k * (fw + 12)
+        im.paste(fr, (x, 140))
+        paste_label(im, (x, 140 + fh + 8), f"{t:.2f} s", 17)
     save(im, "land-strip-l1-locks-1.png")
-    gif = [fr.resize((fw // 2, fh // 2), Image.LANCZOS) for _, fr in frames]
+    gif = [fr for _, fr in frames]
     durs = [600] + [max(40, int((frames[k + 1][0] - frames[k][0]) * 1000)) for k in range(1, len(frames) - 1)] + [900]
     gif[0].save(cap.ROOT / "docs/attachments/land-strip-l1-locks-1.gif", save_all=True, append_images=gif[1:], duration=durs, loop=0)
     print("wrote gif", len(gif))

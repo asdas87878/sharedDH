@@ -517,14 +517,16 @@ local function lockBreak(lock: Lock)
 	):Play()
 	task.delay(pace(0.07), function()
 		lock.crack.Visible = false
-		local fall = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		-- they drop at once and slow, and fade late, so the fall is seen
+		local fall = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local fade = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		for k, half in lock.halves do
 			local side = if k == 1 then -1 else 1
 			TweenService:Create(half, fall, {
-				Position = half.Position + UDim2.fromOffset(side * 4, 11),
-				Rotation = side * 28,
-				GroupTransparency = 1,
+				Position = half.Position + UDim2.fromOffset(side * 5, 15),
+				Rotation = side * 40,
 			}):Play()
+			TweenService:Create(half, fade, { GroupTransparency = 1 }):Play()
 		end
 		task.delay(pace(BREAK_TIME), function()
 			lock.root.Visible = false
@@ -1052,7 +1054,7 @@ buildA = function(parent: Instance, options: Options): any
 	local bestWord = Kit.word(strip, {
 		Name = "BestWord",
 		Text = "BEST",
-		TextSize = 9,
+		TextSize = 10,
 		Pal = Kit.GoldPal,
 		Glow = true,
 		AnchorPoint = Vector2.new(0.5, 0),
