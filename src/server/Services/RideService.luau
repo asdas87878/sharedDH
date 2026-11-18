@@ -726,6 +726,10 @@ local function tickDrain(r: Rider, rate: number, dt: number, piece: number?, eve
 	if not piece and r.TickPiece > 0 then
 		size = r.TickPiece
 	end
+	-- (a crumb left by rounding is taken with this piece: a fish too strong's last tick empties the meter, task r1)
+	if r.Oxygen - size < r.Max * 1e-6 then
+		size = r.Oxygen
+	end
 	local before = r.Oxygen
 	drain(r, size)
 	-- (the next gap: in the red part (angry after this tick) calmer, redGap. Not on a fish too strong: its own gap is

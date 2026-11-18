@@ -1230,3 +1230,47 @@ animation (one or more a loop, evenly spaced). Each frame, `local every, toNext 
 track at speed (marker spacing in the animation) / `every`. When a tick is heard, nudge `TimePosition` so the next
 `Thrash` is `toNext` seconds of play away. With `nil` (nothing locked), play it at its own speed. Set `Sync.Lead` to 0
 for an animation on the body (no spring lag), and `Angry.Motion` to 0 to drop the stand-in sine.
+
+## The red zone's calm ticks (task r1, 2026-11-18)
+
+Hugo: "the ticking also goes way too fast when in the red zone." Claude's decisions (Hugo ran this without input):
+
+- **`Oxygen.RedTick` 0.5 s:** in the red part (the fish angry: under `AngryAt`, or a fish too strong) no two ticks
+  come closer than this. That is twice the 30-tick floor (`Tick` 0.25, which Hugo called "slightly fast") and the
+  o1 ring's own floor. It is long enough for the ring's whole fade (`Kit.RingLook.TickFade` 0.3) and for at least
+  one thrash of most struggles. As under `Tick`, a longer gap takes a bigger piece (the drain a second x the gap:
+  `RideService.redGap`, `TickPiece`), so **the seconds on a fish do not change**. The red third goes in fewer,
+  bigger pieces. Red gaps are never shorter than the fish's own normal gap.
+- **`AngryStyles.snapGap` only lengthens:** the gap goes up to the next whole number of thrashes, if that adds at
+  most `Sync.Bend` (0.2). Before, it went to the nearest whole number, so it could shorten the gap.
+- **A fish too strong:** `StrainTime` 1 -> **1.5 s**, and `Config.strainTicks` keeps `RedTick` as its floor. After
+  the 2/3 break-off the rest goes in **3 ticks of 1/9 of the max, 0.5 s apart: the meter is empty 1.5 s after the
+  break-off** (measured on the server: ticks at +0.54, +1.04, +1.54 s from the mount). Before, it was 4 ticks
+  0.25 s apart in 1.0 s. It is still never tamed.
+- **Also fixed:** the break-off's `OxygenTick` now tells the gap to the first strain tick (`StrainEvery`), not
+  `StrainTime`, so the struggle locks to the strain's ticks from the start. And a crumb left by rounding is taken
+  with the last piece: before, a too-strong ride got a 4th, empty tick 0.5 s later, which kept the rider on.
+- **Why it read so fast:** the o3 lock squeezes the struggle to one thrash per tick. So at 0.25 s ticks the
+  Clownfish thrashed 4 times a second (authored: every 0.45 s) and the Moray Eel too (authored: every 1.1 s). At
+  0.5 s the Clownfish is near its own pace again. The Moray Eel still thrashes twice as fast as authored, because
+  0.5 s is shorter than one of its thrashes and the snap only lengthens by 20%. Left as it is: a longer red floor
+  for slow styles would be a per-style number.
+- **Not changed (not in r1's files):** the red pulse (`Config.Angry.PulseSlow` 1.2 rising to `PulseFast` 4 pulses
+  a second as the meter empties, and at 4 on a fish too strong) also makes the red part look busy. If it still
+  reads as fast, lower `PulseFast` next.
+
+**Measured in Studio** (scripted rides from the sandbox start, endless air off, no-fail on; "before" is the same
+code with `RedTick` 0 and `StrainTime` 1 set through the sandbox Tune, which gives exactly the old server gaps;
+logs `~/Pictures/ride-a-fish/r1-logs/`):
+
+| Ride | Normal gap | Red gaps before | Red gaps after | Tick to nearest thrash after: mean, worst |
+|---|---|---|---|---|
+| Clownfish (Zigzag), max 100 | 0.25 s | 0.25 s x 7 | 0.50 s x 4 | 13 ms, 27 ms |
+| Clownfish, max 1,000 | 0.31 s | 0.31 s x 10 | 0.50 s x 7 | 18 ms, 38 ms |
+| Moray Eel (Coil), max 1,000 | 0.27 s | 0.27 s x 10 | 0.50 s x 6 | 11 ms, 19 ms |
+| Clownfish too strong (max 5) | | 0.25 s x 4, 1.0 s | 0.50 s x 3, 1.5 s | 14 ms, 29 ms |
+
+The struggle stays synced: every red tick lands on a thrash within 40 ms (o3 measured 14 and 30 ms). Picture:
+`~/Pictures/ride-a-fish/red-zone-ticks-1.gif`. It replays the logged tick and thrash times on a drawn ring and fish,
+because Studio's window is off-screen and one shot takes 2.6 s. A real frame of a red-zone ride:
+`red-zone-ticks-1-studio.png`. **Not played by hand.**
