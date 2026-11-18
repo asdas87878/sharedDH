@@ -154,7 +154,8 @@ Kit.RingLook = {
 	-- breaks off (fades out) when the next tick starts, and the new piece is white in its place. The 2/3 break-off on
 	-- a fish too strong (Config.Oxygen.BreakOff) is one such piece. (Until o2: red, held 0.1 s, faded at once.)
 	Held = Color3.new(1, 1, 1), -- the piece just lost, until the next tick
-	TickFade = 0.3, -- seconds a broken-off piece takes to fade out (under Oxygen.Tick, so one is gone before the next)
+	TickFade = 0.3, -- seconds a broken-off piece takes to fade out; at most TickFadeShare of the gap between ticks
+	TickFadeShare = 0.8, -- (task s1: with more ticks the gap gets short; the fade shortens so one is gone before the next)
 	TickWait = 3, -- seconds a white piece waits for a next tick that never comes (a stop, the end) before it breaks
 	-- (o2: the red zone's mark across the band is gone; the angry mode on the fish stays)
 	-- past Config.Oxygen.BarSize of max Oxygen, ONE more ring all round the big one: the Oxygen above BarSize

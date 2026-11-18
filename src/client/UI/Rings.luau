@@ -11,7 +11,8 @@
 -- the landing, bigger, and shakes while the whole meter empties in a quarter of a second, with "Too strong!" and what
 -- the fish needs under it. Words under the ring only for a state the ring can't show: floating, out of air, too strong.
 -- In ticks (Hugo, 2026-11-18, tasks h1 and o2): the meter steps down a piece at a time, every piece 1 / Oxygen.Ticks of
--- the max (o1), so on the big ring every tick is the same tenth of the circle whatever the max. The piece just lost
+-- the max (o1), so on the big ring every tick is the same share of the circle whatever the max (a tenth; Oxygen.TickSize
+-- picks more, task s1). The piece just lost
 -- stays WHITE behind what is left; when the next tick starts it breaks off (fades out, Kit.RingLook) and the new piece
 -- is white. The 2/3 break-off on a fish too strong comes as one tick: one big white piece, broken off by the next.
 -- Past Config.Oxygen.BarSize of max Oxygen ONE more ring goes all round the big one, in the same look: the Oxygen above
@@ -197,7 +198,7 @@ local function makeExtra(): Extra
 	return { Frame = frame, Track = thin.Track, Broken = thin.Broken, Held = thin.Held, Front = thin.Front }
 end
 
--- How full the big ring is with `amount` in it: the whole meter, so every tick is the same tenth of it
+-- How full the big ring is with `amount` in it: the whole meter, so every tick is the same 1 / Ticks of it
 local function bigFill(amount: number, max: number): number
 	return math.clamp(amount / max, 0, 1)
 end
@@ -380,9 +381,11 @@ function Rings.update(now: number, v: View)
 		ring.Held.set(extraFill(heldUpTo, max))
 	end
 	-- the piece before it, breaking off: fading out over TickFade
+	-- (shorter on quick ticks, so it is gone before the next one breaks off: Kit.RingLook.TickFadeShare)
 	local faded = 20
 	if brokeOn then
-		faded = math.floor(math.clamp((now - brokeAt) / math.max(LOOK.TickFade, 0.001), 0, 1) * 20 + 0.5)
+		local fadeTime = if lastGap > 0 then math.min(LOOK.TickFade, LOOK.TickFadeShare * lastGap) else LOOK.TickFade
+		faded = math.floor(math.clamp((now - brokeAt) / math.max(fadeTime, 0.001), 0, 1) * 20 + 0.5)
 		if faded >= 20 then
 			brokeOn = false
 		end

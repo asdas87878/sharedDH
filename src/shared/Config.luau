@@ -465,8 +465,24 @@ Config.Oxygen = {
 	-- So the gap between ticks is secondsOn / Ticks (Config.tickEvery): a new player on a Shallows Common 5 s, 10
 	-- ticks half a second apart; a land-10 Legendary at twice its need about 4 s apart. Until then the gap was a fixed
 	-- Tick and the piece what the seconds allowed (20 small ones on a 10 s fish).
+	-- (Ticks and Tick are set from TickSize, below: one switch)
 	Ticks = 10, -- pieces in a full meter
-	Tick = 0.5, -- the shortest gap between two ticks, seconds (so one piece has faded, Kit.TickFade, before the next); 0: the old smooth drain
+	Tick = 0.5, -- the shortest gap between two ticks, seconds (the white piece's fade fits in it: Kit.RingLook.TickFade, shortened to the gap); 0: the old smooth drain
+	-- Tick sizes (Hugo, 2026-11-18, task s1: "make the increments smaller there should be way more ticks in a circle,
+	-- send different sizes for review"): one number picks a row of TickSizes, the options on
+	-- docs/attachments/oxygen-tick-sizes-1.png. The gap is secondsOn / Ticks, so more ticks = faster ticks: a new
+	-- player on a Shallows Common has 5.3 s, a land-10 Common at its need 16.5 s. Under Tick (the floor) a fish's
+	-- ticks merge into fewer, bigger pieces so its seconds hold (Config.tickOf). 1 (10 ticks) until Hugo picks.
+	TickSize = 1,
+	TickSizes = {
+		{ Ticks = 10, Tick = 0.5 }, -- (the o1 ring)
+		{ Ticks = 20, Tick = 0.2 },
+		{ Ticks = 30, Tick = 0.2 },
+		{ Ticks = 40, Tick = 0.2 },
+		{ Ticks = 60, Tick = 0.2 },
+		{ Ticks = 80, Tick = 0.2 },
+		{ Ticks = 100, Tick = 0.2 },
+	} :: { { Ticks: number, Tick: number } },
 	Grow = 0.1,
 	GrowMost = 4,
 	MaxShare = 0.25, -- twice what the fish needs: 1.19 times the seconds; ten times: 1.78
@@ -497,6 +513,13 @@ Config.Oxygen = {
 	-- "TestMaxOxygen" attribute overrides it live (0 turns it off).
 	StudioMax = 0,
 }
+do -- the tick size switch (Oxygen.TickSize)
+	local size = Config.Oxygen.TickSizes[Config.Oxygen.TickSize]
+	if size then
+		Config.Oxygen.Ticks = size.Ticks
+		Config.Oxygen.Tick = size.Tick
+	end
+end
 
 -- The progression (Hugo, 2026-11-11): the deeper you are, the more Oxygen the fish under you takes a second. One number
 -- a land, for a Common, by the land you are IN (not the fish's home); steep, so each land needs a clearly bigger max
@@ -2140,11 +2163,14 @@ function Config.drainFor(zone: number, fish: FishType, max: number): number
 end
 
 -- One tick's piece and the seconds between ticks (Oxygen.Ticks, the reading of 2026-11-18): the piece is always
--- 1 / Ticks of the max; the gap is what the drain a second (`rate`) makes of it, at least Oxygen.Tick
+-- 1 / Ticks of the max; the gap is what the drain a second (`rate`) makes of it. A gap under Oxygen.Tick (the floor,
+-- task s1) takes a bigger piece instead, rate x Tick, so the seconds on the fish hold (until s1 the gap was held at the
+-- floor and the fish lasted longer; with 10 ticks and the 0.5 floor no fish ever got there)
 function Config.tickOf(max: number, rate: number): (number, number)
 	local o = Config.Oxygen
-	local piece = math.max(max, 0.001) / math.max(o.Ticks, 1)
-	return piece, math.max(piece / math.max(rate, 0.001), o.Tick)
+	rate = math.max(rate, 0.001)
+	local piece = math.max(math.max(max, 0.001) / math.max(o.Ticks, 1), rate * math.max(o.Tick, 0))
+	return piece, piece / rate
 end
 
 -- The ticks on a fish too strong, after the break-off: `left` Oxygen in StrainTime, in pieces as near 1 / Ticks of
