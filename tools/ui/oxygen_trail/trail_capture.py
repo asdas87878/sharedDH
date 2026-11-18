@@ -158,7 +158,7 @@ def moment(im):
     return best
 
 
-def live(mode, slow=0.12, crop=None, zoom=2, fps=30):
+def live(mode, slow=0.12, crop=None, zoom=1.5, fps=25):
     """Shots as fast as niri takes them while the copy runs on a slowed clock; each frame's moment read off the bar"""
     crop = crop or CROP
     win = studio_window()
@@ -166,7 +166,7 @@ def live(mode, slow=0.12, crop=None, zoom=2, fps=30):
         clip = subprocess.run(["wl-paste", "-n", "-t", "text/plain"], capture_output=True, text=True, timeout=2).stdout
     except Exception:
         clip = None
-    attrs(Run=time.time() % 100000, Mode=mode, Script=json.dumps(PLAN), T=0, Slow=0)
+    attrs(Run=time.time() % 100000, Mode=mode, Script=json.dumps(PLAN), T=0, Slow=0, HoldCam=True)
     time.sleep(0.8)
     attrs(Slow=slow, Go=time.time() % 100000)
     files = []
@@ -179,6 +179,7 @@ def live(mode, slow=0.12, crop=None, zoom=2, fps=30):
         subprocess.run(["niri", "msg", "action", "screenshot-window", "--id", str(win), "--path", str(f)], check=True)
         files.append(f)
         i += 1
+    attrs(HoldCam=False)
     if clip:
         subprocess.run(["wl-copy"], input=clip, text=True, timeout=2)
     time.sleep(0.5)
@@ -200,15 +201,18 @@ def live(mode, slow=0.12, crop=None, zoom=2, fps=30):
         t = k / fps
         tt, im = min(timed, key=lambda p: abs(p[0] - t))
         c = im.crop(crop)
-        c = c.resize((c.width * zoom, c.height * zoom), Image.LANCZOS)
+        c = c.resize((int(c.width * zoom), int(c.height * zoom)), Image.LANCZOS)
         d = ImageDraw.Draw(c)
-        d.text((10, 8), f"{LETTER[mode]}: {NAMES[mode]}", fill="white", font=font, stroke_width=2, stroke_fill="black")
-        d.text((10, c.height - 30), f"t {tt:4.2f} s", fill="white", font=font, stroke_width=2, stroke_fill="black")
+        d.text((8, 6), f"{LETTER[mode]}: {NAMES[mode]}", fill="white", font=font, stroke_width=2, stroke_fill="black")
+        d.text((8, c.height - 28), f"t {tt:4.2f} s", fill="white", font=font, stroke_width=2, stroke_fill="black")
         frames.append(c)
     name = f"oxygen-trail-{LETTER[mode]}.gif"
     dest = ROOT / "docs/attachments" / name
-    pal = [f.quantize(colors=160, method=Image.MEDIANCUT, dither=Image.NONE) for f in frames]
+    # one palette for every frame (the background is still: the frames differ only where the ring moves)
+    base = frames[len(frames) // 2].quantize(colors=96, method=Image.MEDIANCUT, dither=Image.NONE)
+    pal = [f.quantize(palette=base, dither=Image.NONE) for f in frames]
     pal[0].save(dest, save_all=True, append_images=pal[1:], duration=int(1000 / fps), loop=0, optimize=True)
+    print(f"{dest.stat().st_size // 1024} KB")
     SHEETS.mkdir(parents=True, exist_ok=True)
     shutil.copy(dest, SHEETS / name)
     return dest

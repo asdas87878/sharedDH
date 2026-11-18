@@ -56,6 +56,7 @@ local view = {
 	Endless = false,
 }
 
+local heldCam: CFrame? = nil
 local goSeen: any = nil
 local goAt = 0
 local bar: Frame
@@ -142,6 +143,18 @@ local function step()
 	local realRings = hud and hud:FindFirstChild("Rings", true)
 	if realRings and realRings:IsA("Frame") then
 		realRings.Visible = false
+	end
+	-- TrailHoldCam: the camera held where it is (the background still behind the ring: small GIFs)
+	local camera = workspace.CurrentCamera
+	if ReplicatedStorage:GetAttribute("TrailHoldCam") == true then
+		if not heldCam then
+			heldCam = camera.CFrame
+		end
+		camera.CameraType = Enum.CameraType.Scriptable
+		camera.CFrame = heldCam :: CFrame
+	elseif heldCam then
+		heldCam = nil
+		camera.CameraType = Enum.CameraType.Custom
 	end
 	-- the moment: TrailT, or with TrailSlow on a slowed clock from the last TrailGo (shown by the bar for the shots)
 	local t = (ReplicatedStorage:GetAttribute("TrailT") :: number?) or 0
