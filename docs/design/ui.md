@@ -16,6 +16,25 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The white piece draws back like a damage trail (2026-11-19, Hugo; NULLROOM task t1)
+Hugo: "the white should not just fade out but be drawn back with damage taken". **Built, three versions behind one
+switch, `Kit.RingLook.TickTrail`; captured in Studio by script, not played by hand.** `UI/Rings.luau`, `UI/Kit.luau`.
+- **How it draws back:** the white piece's end runs back along the ring to what is left, like a health bar's damage
+  trail. A tick that comes during a draw-back carries on from where the end is, so it never jumps. One tick's piece takes
+  `TrailDraw` 0.22 s, but never more than `TrailShare` 0.7 of the gap between ticks: ticks are 0.35 s apart or more (the
+  30-tick floor), and `RedTick` 0.5 s. A bigger piece (the 2/3 break-off) takes longer, growing with the square root of
+  its size in ticks, up to `TrailDrawMost` 0.5 s. It works the same on the thin extra ring. A landing's refill clears it.
+- **The versions (`TickTrail`):**
+  - 0, the old fade (o2): white until the next tick, then it fades out.
+  - 1, straight: white until the next tick (as in o2), then the old piece draws back evenly to the new one.
+  - 2, hold, then ease in (**the default**): every tick's white piece holds for `TrailHold` 0.08 s, then draws in fast at
+    first and slows as it reaches what is left. Every hit reads at once, with no waiting for the next tick.
+  - 3, draw and melt: as 2, but the white also turns see-through as it draws in (to `TrailMelt` 0.6).
+- Seen: [b, hold then ease in](../attachments/oxygen-trail-b.gif) (in the game at 4500 max Oxygen: three ticks on the
+  extra ring, three on the big ring, the 2/3 break-off, two red ticks). The a and c captures are still to make (Studio
+  was down after the 2026-11-19 reboot): `python tools/ui/oxygen_trail/trail_capture.py live 1 0.12` and `live 3 0.12`
+  while riding in a playtest, after `install` and `listen`.
+
 ## The Oxygen ring in ticks, the red zone and the extra rings (2026-11-18, Hugo; NULLROOM task h1)
 Hugo: "add more bars for stamina when you increase it past a set amount (for example 2000, will all be handled in the
 progression setup later), the extra bar should grow around the oxygen bar in a outline like shape, it should be way
