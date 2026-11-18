@@ -312,6 +312,29 @@ Kit.LandReveal = "Dive"
 Kit.LandAtlas = ""
 -- In Studio, while LandAtlas is empty, the strip reads the local copy so the pictures show without an upload.
 Kit.LandAtlasStudio = "rbxasset://textures/ridefish/land_atlas.png"
+-- A land not reached (Hugo, 2026-11-18: "make sure its actually a screenshot even when locked, just unsaturated and
+-- darker"; task s2): its own picture, desaturated and darkened in the game. The atlas carries a grey copy under each
+-- colour picture; the colour one lies over it at Saturation (0 grey, 1 full colour) and both are multiplied by Tint
+-- times Dark (1 as bright as the picture). Blur 0 sharp, 1 soft, 2 very soft: a pre-blurred copy in the atlas (a
+-- Roblox ImageLabel cannot blur). Workspace "LandDark", "LandSaturation", "LandBlur" override them in Studio.
+-- Sheet docs/attachments/land-strip-D-1.png.
+Kit.LandLocked = { Dark = 0.62, Saturation = 0.3, Blur = 0, Tint = Color3.fromRGB(214, 224, 255) }
+-- The option switches of task s2, one sheet each (docs/attachments/land-strip-<A..E>-1.png); 1 is the look of
+-- 2026-11-17 on every one, so any mix combines. Workspace "LandBestLook" etc. override them in Studio.
+-- A, your best: 1 a yellow dashed line, its tag hanging aside; 2 a solid gold bar, the tag centred under it; 3 a pole
+-- with a BEST pennant; 4 no line, a gold notch under the pictures; 5 a gold glow column, a gold tag; 6 a star on top.
+Kit.LandBestLook = 1
+-- B, you and your metres: 1 your face, the metres on a bar under it; 2 the bar beside the face; 3 a pin: the face in
+-- the land's colour, big outlined metres, no bar; 4 the face and the metres in one pill; 5 no face, an arrow in the
+-- land's colour; 6 a bigger face in a gold ring, the land's name always on the bar.
+Kit.LandYouLook = 1
+-- C, the lock on a land not reached: 1 the white padlock; 2 a gold padlock; 3 a padlock on a dark disc; 4 a quiet
+-- see-through padlock; 5 a question mark; 6 a keyhole.
+Kit.LandLockLook = 1
+-- E, the line under the pictures that you travel along, and what is under it: 1 none (the pictures alone); 2 a rail
+-- filled in each land's colour; 3 a dark tray behind the strip; 4 a thin line with a dot at each border; 5 a rail
+-- with the stretch to your best in gold; 6 a ruler, a tick each half land.
+Kit.LandLineLook = 1
 
 -- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
 -- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks;
