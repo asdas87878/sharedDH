@@ -433,7 +433,10 @@ Config.Oxygen = {
 	-- one. This allows players to sometimes get further than they can handle but they can't get anything real out of
 	-- it." So it is a second, and the hop off it is as free as any other (Jump.StrainLock). It is still never tamed,
 	-- so nothing is caught there. It was 0.25 with the hop held back for 0.3: a wall.)
-	StrainTime = 1,
+	-- (Hugo, 2026-11-18, task r1: "the ticking also goes way too fast when in the red zone". 1 s was 4 ticks at the
+	-- 0.25 s floor; now its ticks keep RedTick, below: 1.5 s is three ticks half a second apart, still nothing to
+	-- tame and little more than the reference's second.)
+	StrainTime = 1.5,
 	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
 	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
 	-- angry here (Config.Angry, RideService).
@@ -468,6 +471,13 @@ Config.Oxygen = {
 	-- (Ticks and Tick are set from TickSize, below: one switch)
 	Ticks = 10, -- pieces in a full meter
 	Tick = 0.5, -- the shortest gap between two ticks, seconds (the white piece's fade fits in it: Kit.RingLook.TickFade, shortened to the gap); 0: the old smooth drain
+	-- The red part's calm (Hugo, 2026-11-18, task r1: "the ticking also goes way too fast when in the red zone"). In
+	-- the red part (the fish angry: under AngryAt, or a fish too strong) no two ticks come closer than this, seconds.
+	-- As under Tick, a longer gap takes a bigger piece (the drain a second x the gap), so the seconds on a fish hold;
+	-- the struggle's snap to a thrash (AngryStyles.snapGap) only ever lengthens it further. Claude's pick: 0.5, twice
+	-- the 30-tick floor (0.25, "slightly fast"), the o1 ring's own floor, and long enough for the ring's whole fade
+	-- (Kit.RingLook.TickFade 0.3) and at least one thrash of most struggles. 0: the red part ticks as the rest.
+	RedTick = 0.5,
 	-- Tick sizes (Hugo, 2026-11-18, task s1: "make the increments smaller there should be way more ticks in a circle,
 	-- send different sizes for review"): one number picks a row of TickSizes, the options on
 	-- docs/attachments/oxygen-tick-sizes-1.png. The gap is secondsOn / Ticks, so more ticks = faster ticks: a new
@@ -2174,10 +2184,12 @@ function Config.tickOf(max: number, rate: number): (number, number)
 end
 
 -- The ticks on a fish too strong, after the break-off: `left` Oxygen in StrainTime, in pieces as near 1 / Ticks of
--- the max as the gap (at least Oxygen.Tick) allows. Returns the piece and the gap.
+-- the max as the gap (at least Oxygen.Tick, and RedTick: a fish too strong is the red part) allows. Returns the piece
+-- and the gap.
 function Config.strainTicks(max: number, left: number): (number, number)
 	local o = Config.Oxygen
-	local most = math.max(1, math.floor(o.StrainTime / math.max(o.Tick, 0.01) + 1e-6))
+	local least = math.max(o.Tick, o.RedTick, 0.01)
+	local most = math.max(1, math.floor(o.StrainTime / least + 1e-6))
 	local count = math.clamp(math.floor(left / (math.max(max, 0.001) / math.max(o.Ticks, 1)) + 0.5), 1, most)
 	return math.max(left, 0.001) / count, math.max(o.StrainTime, 0.01) / count
 end

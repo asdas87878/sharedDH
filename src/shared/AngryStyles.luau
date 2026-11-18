@@ -94,9 +94,9 @@ end
 -- animation, make sure the oxygen loss ticks are matched up with the animation of the fish"). A THRASH is each
 -- extreme of the struggle: the stand-in sine's top and bottom (a wag to each side, a nod up and a nod down), so one
 -- every half Beat, and where a style's slow-down has a cycle (Period = Beat) its deepest stall falls on it too.
---   The server (RideService): while the fish is angry, the gap to the next tick is moved to a whole number of
---   thrashes (AngryStyles.snapGap) when that moves it by at most Sync.Bend of itself; the Oxygen it takes per tick is
---   never touched.
+--   The server (RideService): while the fish is angry, the gap to the next tick is at least Oxygen.RedTick and then
+--   lengthened to a whole number of thrashes (AngryStyles.snapGap) when that adds at most Sync.Bend of itself (task
+--   r1: never shortened); a longer gap takes a bigger piece, so the seconds on the fish hold.
 --   The client (AngryController hears each "OxygenTick" and its gap, AngryStyles.tick): the struggle is phase-locked
 --   to the ticks: a thrash on the tick just heard and one on the next, with a whole number of thrashes between them
 --   (the Beat stretched or squeezed the rest of the way), so the two can't drift. motion() and speed() read that
@@ -104,7 +104,7 @@ end
 -- Numbers here, not in Config, while this belongs to the angry mode's files; they read live like Config's.
 AngryStyles.Sync = {
 	On = 1, -- 0: the struggle runs on its own clock again, and the server leaves the gaps alone
-	Bend = 0.2, -- the most the server moves a red-zone tick, as a share of its gap, to land it on a thrash
+	Bend = 0.2, -- the most the server lengthens a red-zone tick, as a share of its gap, to land it on a thrash
 	Pull = 10, -- how quickly the struggle catches a beat it is off (a late or early tick), per second
 	-- Seconds the struggle runs ahead of the ticks, because the fish's body trails what it is given: the stand-in
 	-- goes through the turn spring (RideController), measured 70 to 90 ms behind on a Clownfish (2026-11-18). An
@@ -128,15 +128,18 @@ function AngryStyles.thrashesIn(s: Style, gap: number): number
 	return n
 end
 
--- The server's gap to the next tick while the fish is angry: a whole number of thrashes if that is within Sync.Bend
--- of `gap` and not under `least` (Oxygen.Tick), else `gap` as it was
+-- The server's gap to the next tick while the fish is angry: the next whole number of thrashes at or above `gap`, if
+-- that lengthens it by at most Sync.Bend and is not under `least` (Oxygen.Tick), else `gap` as it was. Never shorter
+-- (task r1, 2026-11-18: the red part's ticks are never quicker than the fish's own; until then it snapped to the
+-- nearest, either way). The server makes the piece bigger to match (RideService.redGap), so the seconds hold.
 function AngryStyles.snapGap(s: Style, gap: number, least: number): number
 	local sync = AngryStyles.Sync
 	if sync.On == 0 or gap <= 0 then
 		return gap
 	end
-	local snapped = AngryStyles.thrashesIn(s, gap) * AngryStyles.thrashEvery(s)
-	if snapped >= least and math.abs(snapped / gap - 1) <= sync.Bend then
+	local every = AngryStyles.thrashEvery(s)
+	local snapped = math.max(1, math.ceil(gap / every - 1e-6)) * every
+	if snapped >= least and snapped >= gap and snapped / gap - 1 <= sync.Bend then
 		return snapped
 	end
 	return gap

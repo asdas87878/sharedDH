@@ -3,7 +3,7 @@
 -- were caught in with a better animation, give me a couple options. make sure the text and spawning in also all has a
 -- animation"). Four looks behind Kit.CatchLook (0 keeps Banners' own end of a dive, as before):
 --   1 Cards: the title pops, each fish drops in as a face-down card and flips over with a burst, the count ticks up
---   2 Stack: a list at the left: each fish slides in as a row with its name and rarity, a badge counts them
+--   2 Stack: a list at the right: each fish slides in as a row with its name and rarity, a badge counts them
 --   3 Big number: rays turn behind one big number that rolls up a fish at a time, each fish bursts out to an arc
 --   4 Toast: a compact pill drops in under the strip, the fish pop into it one by one as it widens, then the metres
 -- Every word and piece comes in by its own move; nothing is a plain switch-on. Each look is a pose of the time since it
@@ -474,7 +474,7 @@ local function stack(parent: Instance, metres: number, isBest: boolean, list: { 
 	local high = HEAD + n * ROW + 44
 	local root: Frame = Kit.new("Frame", {
 		Name = "CatchShow",
-		AnchorPoint = Vector2.new(0, 0.5),
+		AnchorPoint = Vector2.new(1, 0.5),
 		Size = UDim2.fromOffset(WIDE, high),
 		BackgroundTransparency = 1,
 		ZIndex = 15,
@@ -604,7 +604,7 @@ local function stack(parent: Instance, metres: number, isBest: boolean, list: { 
 	local function pose(t: number)
 		-- the header slides in from the left edge and settles; its words follow a beat behind
 		local hp = at(t, 0, 0.34)
-		head.Position = UDim2.fromOffset(-WIDE * (1 - backOut(hp)), 0)
+		head.Position = UDim2.fromOffset((WIDE + 40) * (1 - backOut(hp)), 0)
 		local tp = at(t, 0.12, 0.3)
 		titleScale.Scale = 0.5 + 0.5 * backOut(tp)
 		title.fade(quadOut(tp))
@@ -627,7 +627,7 @@ local function stack(parent: Instance, metres: number, isBest: boolean, list: { 
 			local leave = at(t, leaveAt + 0.05 * (n - i), OUT)
 			row.frame.Visible = t >= a and leave < 1
 			row.frame.Position =
-				UDim2.fromOffset(8 - (WIDE + 20) * (1 - backOut(p)) - (WIDE + 20) * backIn(leave), HEAD + (i - 1) * ROW)
+				UDim2.fromOffset(8 + (WIDE + 40) * (1 - backOut(p)) + (WIDE + 40) * backIn(leave), HEAD + (i - 1) * ROW)
 			row.tk.frame.Rotation = -200 * (1 - quadOut(p))
 			row.tk.scale.Scale = 1 + 0.35 * bump(t, times[i], 0.3)
 			burst(row.tk, t, times[i], 0.4, if BIG[items[i].Tier] then 1.2 else 0.6)
@@ -642,15 +642,15 @@ local function stack(parent: Instance, metres: number, isBest: boolean, list: { 
 		-- the foot slides up into place and counts
 		local fp = at(t, metresAtT, 0.3)
 		foot.Visible = t >= metresAtT
-		foot.Position = UDim2.fromOffset(8 - (WIDE + 20) * backIn(o), footY + 16 * (1 - backOut(fp)))
+		foot.Position = UDim2.fromOffset(8 + (WIDE + 40) * backIn(o), footY + 16 * (1 - backOut(fp)))
 		fadeText(metresText, quadOut(fp))
 		metresText.Text = metresAt(metres, t, metresAtT, 0.7)
 		-- out: the header goes after the rows
 		local ho = at(t, leaveAt + 0.05 * n, OUT)
 		if ho > 0 then
-			head.Position = UDim2.fromOffset(-(WIDE + 20) * backIn(ho), 0)
-			countBox.Position = UDim2.fromOffset(WIDE - 30 - (WIDE + 40) * backIn(ho), 22)
-			best.Position = UDim2.fromOffset(WIDE - 74 - (WIDE + 40) * backIn(ho), -6)
+			head.Position = UDim2.fromOffset((WIDE + 40) * backIn(ho), 0)
+			countBox.Position = UDim2.fromOffset(WIDE - 30 + (WIDE + 40) * backIn(ho), 22)
+			best.Position = UDim2.fromOffset(WIDE - 74 + (WIDE + 40) * backIn(ho), -6)
 		else
 			countBox.Position = UDim2.fromOffset(WIDE - 30, 22)
 			best.Position = UDim2.fromOffset(WIDE - 74, -6)
@@ -842,7 +842,7 @@ local function toast(parent: Instance, metres: number, isBest: boolean, list: { 
 		ZIndex = 15,
 	}, parent)
 	local TOK, GAP = 32, 4
-	local LEFT = 132 -- the words at the pill's left
+	local LEFT = 142 -- the words at the pill's left
 	local RIGHT = 160 -- the count and the metres at its right
 	local function wideFor(k: number): number
 		return LEFT + k * TOK + math.max(k - 1, 0) * GAP + RIGHT
@@ -951,7 +951,7 @@ local BUILDERS: { [number]: (Instance, number, boolean, { Item }) -> Show } = {
 -- where each sits on the HUD: clear of the rider at the middle and of the land strip at the top
 local PLACES: { [number]: UDim2 } = {
 	[1] = UDim2.fromScale(0.5, 0.36),
-	[2] = UDim2.new(0, 24, 0.5, 0),
+	[2] = UDim2.new(1, -24, 0.5, 0),
 	[3] = UDim2.fromScale(0.5, 0.36),
 	[4] = UDim2.new(0.5, 0, 0, 96),
 }

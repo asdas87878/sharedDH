@@ -70,6 +70,7 @@ type Rider = {
 	AngryAt: number, -- os.clock() it turned angry
 	Tame: number, -- how far the fish under us is from being ours, 0 to 1 (Config.tameTime)
 	TickAt: number, -- os.clock() the next Oxygen tick is due (Config.tickOf); -1: a new stretch, not yet counted
+	TickPiece: number, -- the piece the next tick takes when its gap was made longer in the red part (redGap); 0: none
 	StrainPiece: number, -- on a fish too strong: each tick's piece of what the break-off left (Config.strainTicks)
 	StrainEvery: number, -- and the seconds between them
 	SentTame: number, -- the Tame attribute as last told (-1: none)
@@ -383,7 +384,10 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 		if o.BreakOff > 0 and r.Oxygen > 0 then
 			local lost = r.Oxygen * math.clamp(o.BreakOff, 0, 1)
 			r.Oxygen -= lost
-			Net.Ride:FireClient(r.Player, "OxygenTick", lost, r.Oxygen, o.StrainTime, "Break")
+			r.StrainPiece, r.StrainEvery = Config.strainTicks(r.Max, r.Oxygen)
+			-- (the gap told is the one to the first strain tick, so the struggle locks to it: until task r1 it was
+			-- StrainTime, and the struggle ran out of step with the strain's ticks)
+			Net.Ride:FireClient(r.Player, "OxygenTick", lost, r.Oxygen, r.StrainEvery, "Break")
 		end
 		r.StrainPiece, r.StrainEvery = Config.strainTicks(r.Max, r.Oxygen)
 		-- (the first of the rest a whole gap after the break-off)
@@ -681,6 +685,25 @@ end
 -- (Ride "OxygenTick", lost, oxygen now, seconds to the next, "Tick") for the HUD to show it go. Every piece is
 -- 1 / Ticks of the max (Config.tickOf: `rate` only sets the gap), or on a fish too strong the strain's own (`piece`,
 -- `every`: Config.strainTicks). Oxygen.Tick 0: smooth.
+-- The red part's gap (task r1): while the fish under us is angry, a gap is at least Oxygen.RedTick, then lengthened to a
+-- whole number of the struggle's thrashes if that is only a little longer (AngryStyles.snapGap: never shorter). A gap
+-- made longer here takes a bigger piece, the drain a second x the gap (r.TickPiece, for the tick at its end), so the
+-- seconds on the fish hold as they do under Oxygen.Tick. The client locks the struggle to the ticks the rest of the way.
+local function redGap(r: Rider, rate: number, gap: number): number
+	r.TickPiece = 0
+	local w = r.Fish
+	if not w or r.State ~= "Riding" or not isAngry(r, w) then
+		return gap
+	end
+	local red = math.max(gap, Config.Oxygen.RedTick)
+	red = AngryStyles.snapGap(AngryStyles.of(w.Type), red, Config.Oxygen.Tick)
+	if red > gap then
+		r.TickPiece = rate * red
+		return red
+	end
+	return gap
+end
+
 local function tickDrain(r: Rider, rate: number, dt: number, piece: number?, every: number?)
 	if Config.Oxygen.Tick <= 0 then
 		drain(r, rate * dt)
@@ -693,20 +716,24 @@ local function tickDrain(r: Rider, rate: number, dt: number, piece: number?, eve
 	local t = os.clock()
 	if r.TickAt < 0 then
 		-- (a new stretch: its first tick a whole gap away)
-		r.TickAt = t + gap
+		r.TickAt = t + (if piece then gap else redGap(r, rate, gap))
 		return
 	end
 	if t < r.TickAt then
 		return
 	end
+	-- (the gap just waited was a red one: its piece is what the drain takes in it, redGap)
+	if not piece and r.TickPiece > 0 then
+		size = r.TickPiece
+	end
 	local before = r.Oxygen
 	drain(r, size)
-	-- (angry after this tick: the next one a whole number of the struggle's thrashes away, if that bends the gap only
-	-- a little, AngryStyles.snapGap; the client locks the struggle to the ticks the rest of the way. Not on a fish too
-	-- strong: its StrainTime holds.)
-	local w = r.Fish
-	if not piece and w and r.State == "Riding" and isAngry(r, w) then
-		gap = AngryStyles.snapGap(AngryStyles.of(w.Type), gap, Config.Oxygen.Tick)
+	-- (the next gap: in the red part (angry after this tick) calmer, redGap. Not on a fish too strong: its own gap is
+	-- at least RedTick already, Config.strainTicks, and its StrainTime holds.)
+	if piece then
+		r.TickPiece = 0
+	else
+		gap = redGap(r, rate, gap)
 	end
 	-- (one tick a frame at most; a long hitch doesn't take several at once)
 	r.TickAt = math.max(r.TickAt + gap, t + gap * 0.5)
@@ -1141,6 +1168,7 @@ local function onPlayer(player: Player)
 		AngryAt = 0,
 		Tame = 0,
 		TickAt = -1,
+		TickPiece = 0,
 		StrainPiece = 0,
 		StrainEvery = 1,
 		SentTame = -1,

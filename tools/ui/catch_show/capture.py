@@ -43,11 +43,15 @@ CELL = {1: (480, 250), 2: (300, 370), 3: (460, 310), 4: (600, 130)}
 NAMES = {1: "Cards", 2: "Stack", 3: "Big number", 4: "Toast"}
 WHAT = {
     1: "the title pops over a streak; each fish drops in face down, flips over with a burst, the count ticks; then the metres",
-    2: "a list at the left: each fish slides in as a row (name, rarity), a gold badge counts them; the metres at its foot",
+    2: "a list at the right: each fish slides in as a row (name, rarity), a gold badge counts them; the metres at its foot",
     3: "rays turn behind one big number that rolls up a fish at a time; each fish bursts out of it to an arc",
     4: "a compact pill drops in under the strip and widens as each fish pops in, the count, then the metres",
 }
-FPS = 12.5
+FPS = 10
+# Cells a shot. Studio draws only so many fish pictures (ViewportFrames, five to a fish) at once: with 11 to 16
+# cells some came out black, with 4 still some; one cell drew the same frame whole (checked 2026-11-18). A capture
+# limit only: the game shows one look at a time
+MAX_CELLS = 2
 TOP = 64  # clear of Roblox's own buttons at the top left
 
 
@@ -141,7 +145,7 @@ def layout(look, count, scale=1.0, gap=6):
 def frames(look, ts, scale=1.0, tag="f"):
     """Pictures of one look at each time in ts (as many shots as it takes)."""
     out = []
-    per = len(layout(look, 999, scale))
+    per = min(MAX_CELLS, len(layout(look, 999, scale)))
     cells = layout(look, min(per, len(ts)), scale)
     attrs(Cells=json.dumps(cells), On=True, HideHud=True)
     time.sleep(2.5)  # (the models load into the pictures)
@@ -217,7 +221,7 @@ def sheet(looks, keys, ingame):
     cols = 6
     pad = 14
     width = pad + cols * (330 + pad) + 420
-    height = 110
+    height = 118
     for look, tw, th, _ in rows:
         n = len(keys[look])
         height += 60 + ((n + cols - 1) // cols) * (th + 34) + pad
@@ -227,7 +231,9 @@ def sheet(looks, keys, ingame):
     d.text((pad, 60), "Each row: the look's key frames in order (seconds since it began), 7 fish caught, a new best, "
            "312 m. Right: the look in the game at its own place. Switch: Kit.CatchLook (0 = today's, unchanged).",
            font=s, fill=(190, 200, 215))
-    y = 100
+    d.text((pad, 80), "A black fish picture in a frame would be a capture limit (Studio draws only so many fish pictures at once; "
+           "shot two cells at a time), not the look: the game shows one look at a time.", font=s, fill=(150, 160, 175))
+    y = 108
     for look, tw, th, scale in rows:
         d.text((pad, y), f"{look}  {NAMES[look]}", font=F, fill=(255, 210, 63))
         d.text((pad + 230, y + 9), WHAT[look], font=s, fill=(200, 210, 225))

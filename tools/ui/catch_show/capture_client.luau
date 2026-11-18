@@ -93,8 +93,8 @@ local function rebuild(json: string)
 		local root = show.root
 		if cell.game then
 			root.Position = CatchShow.placeOf(cell.look)
-		elseif root.AnchorPoint.X == 0 then
-			root.Position = UDim2.new(0, 14, 0.5, 0)
+		elseif root.AnchorPoint.X == 1 then
+			root.Position = UDim2.new(1, -14, 0.5, 0)
 		elseif root.AnchorPoint.Y == 0 then
 			root.Position = UDim2.new(0.5, 0, 0, 12)
 		else
