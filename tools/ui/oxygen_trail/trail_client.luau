@@ -92,7 +92,25 @@ local function fresh()
 	fired = 0
 end
 
-RunService:BindToRenderStep("ZZTrail", Enum.RenderPriority.Last.Value + 5, function()
+-- TrailMount (a new number): onto a fish, as the sandbox's R
+local Net = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Net")) :: any
+ReplicatedStorage:GetAttributeChangedSignal("TrailMount"):Connect(function()
+	Net.Sandbox:FireServer("Reset")
+end)
+
+local said = ""
+local function report(text: string)
+	if text == said then
+		return
+	end
+	local r = ReplicatedStorage:FindFirstChild("ZZTrailReport")
+	if r and r:IsA("RemoteEvent") then
+		said = text
+		r:FireServer(text)
+	end
+end
+
+local function step()
 	local want = ReplicatedStorage:GetAttribute("TrailRun")
 	if typeof(want) ~= "number" or want <= 0 then
 		if gui then
@@ -128,4 +146,22 @@ RunService:BindToRenderStep("ZZTrail", Enum.RenderPriority.Last.Value + 5, funct
 	view.Fraction = view.Amount / plan.max
 	view.Low = view.Amount < plan.max / 3
 	rings.update(t, view)
+	local h = root:FindFirstChild("Rings", true) :: Frame?
+	report(string.format(
+		"run %s t %.2f amount %d at %s vis %s gui %s",
+		tostring(run),
+		t,
+		view.Amount,
+		tostring(h and h.AbsolutePosition),
+		tostring(h and h.Visible),
+		tostring((gui :: ScreenGui).Enabled)
+	))
+end
+
+RunService:BindToRenderStep("ZZTrail", Enum.RenderPriority.Last.Value + 5, function()
+	local ok, err = pcall(step)
+	if not ok then
+		report("error: " .. tostring(err))
+	end
 end)
+report("client up")

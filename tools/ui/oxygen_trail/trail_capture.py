@@ -82,6 +82,21 @@ return "installed " .. #s.Source
     return run([f.name])
 
 
+LISTEN = """local RS = game:GetService('ReplicatedStorage')
+local SS = game:GetService('ServerStorage')
+local log = SS:FindFirstChild('ZZTrailLog') or Instance.new('StringValue')
+log.Name = 'ZZTrailLog' log.Parent = SS
+if not RS:FindFirstChild('ZZTrailReport') then
+	local r = Instance.new('RemoteEvent') r.Name = 'ZZTrailReport' r.Parent = RS
+	r.OnServerEvent:Connect(function(_, text) log.Value = string.sub(log.Value .. '\\n' .. tostring(text), -3000) end)
+end
+return 'listening'"""
+
+
+def log():
+    return server("local v = game:GetService('ServerStorage'):FindFirstChild('ZZTrailLog') return v and v.Value or 'none'")
+
+
 def shot(path):
     out = run(["shot", str(path)], timeout=60)
     if not Path(path).exists():
@@ -125,6 +140,10 @@ if __name__ == "__main__":
     elif cmd == "remove":
         print(install(remove=True))
         print(server("local RS = game:GetService('ReplicatedStorage') RS:SetAttribute('TrailRun', 0) return 'off'"))
+    elif cmd == "listen":
+        print(server(LISTEN))
+    elif cmd == "log":
+        print(log())
     elif cmd == "probe":
         attrs(Run=time.time() % 100000, Mode=2, Script=json.dumps(PLAN), T=0.5)
         time.sleep(1)
