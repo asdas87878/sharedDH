@@ -39,6 +39,66 @@ oxygen tick lost, decrease outline thickness for both capture and oxygen bar."
   [16 moments of one ride](../attachments/h1-rings-sheet.jpg) (red pieces on the outer ring, then on the big ring;
   the whole ring red under a third), [as a GIF](../attachments/h1-rings-ticks.gif).
 
+## The land strip, Hugo's picks (2026-11-18, Hugo; NULLROOM task l1): in the game
+Hugo picked from [the mixes](../attachments/land-strip-mixes-1.png) and the option sheets of task s2. Built live (the
+option switches of s2, `Kit.LandBestLook`, `LandYouLook`, `LandLockLook`, `LandLineLook` and `LandNumbers`, are gone),
+except the land intros, which are five choices. [The strip](../attachments/land-strip-l1-1.png) (four moments of a
+dive at 3x, real size, in the game, a phone's size), [the metres' fonts](../attachments/land-strip-l1-fonts-1.png),
+[a lock breaking](../attachments/land-strip-l1-locks-1.png) ([GIF](../attachments/land-strip-l1-locks-1.gif)),
+[the intros](../attachments/land-strip-l1-intro-1.png) (a GIF each, `land-strip-l1-intro-<n>.gif`). All are Studio
+captures of the game's own code (`tools/ui/land_icons/l1_sheets.py`, client `l1_client.luau`).
+
+- **The pictures:** the generated set G4 (`atlas.py --gen 4 --studio`). `--studio` now also copies the atlas under
+  the set's own name, `land_atlas_g4.png`, which `Kit.LandAtlasStudio` reads: Studio keeps a picture it has loaded
+  until it restarts, so a new name shows a rebuilt atlas without a restart. The upload is still not done.
+- **The tiles:** one frame per land the size of its picture, with one 2 px ink stroke round it: no ink frame behind, no
+  inset picture, no shine line, no tray (the old build drew a dark frame and a second rounded picture inside it, which
+  read as a doubled, soft edge). The land you are in is 32 px instead of 28 (resized, not scaled, so its edge stays
+  sharp) with a white border and a thin ink line round that. The tick on a land you have been all through stays.
+- **The locks, by your best:** a land you have never reached is its own picture darker and desaturated
+  (`Kit.LandLocked`, as s2) with the white padlock. The first time your best (the server's `BestLands`) gets into
+  it, the lock cracks: a white burst and a dark crack, then its two halves (each a CanvasGroup, so each fades whole)
+  tip apart, fall and fade, 0.5 s in all. It never comes back this session (a table in the module; saving it waits
+  for saves). A land already reached when the strip is built loses its lock without the show. Where you are now does
+  not break locks; your best does (it follows you within a quarter second when you are on a new best).
+- **The colour:** `Kit.LandReveal` is now "Best": a reached land's colour fills from the left as far as your best has
+  gone through it and stays, the rest of it darker and grey. The bar shows the dive.
+- **The bar:** thinner than Mix 1's (3 px, a 1 px ink edge, was 4.5 and 1.4), on a dark track the strip's width. Its
+  fill runs from the left to you in white, then on to your best as a gradient from white to gold, so the stretch left
+  to beat reads at a glance. Past your best it is all white.
+- **Your best:** Mix 3's gold diamond on the bar at your best, with "BEST 1,300 m" in gold under it. When you are
+  within 40 px of it (on your way to a new best) the words hang under your metres instead, so they never cover each
+  other.
+- **You:** your face (Roblox's headshot) in a pure black 2 px ring, over a flat black oval at 0.3 see-through with no
+  border (Mix 2's pill, without its gradient), the metres on it. No notch, no land name.
+- **The metres' font:** Luckiest Guy (`Kit.LandMetresFont`; workspace `LandMetresFont`, a font's name, in Studio),
+  picked from six on [the font sheet](../attachments/land-strip-l1-fonts-1.png): the chunkiest at real size, its round
+  letters keep the thick edge clear.
+- **Every word as a rarity word:** `Kit.word` builds a word the way the fish tags' live rarity word is built (Tags.luau
+  family 5, `Kit.RarityWords` = 5): a soft glow in its colour where it fits, a darker copy a step down, the word in the
+  metal gradient split at the middle (`Kit.wordFill`), a thick ink edge (0.17 of the size), a thin white shine line.
+  Its colours are a palette of four tones like Tags' rarities: `Kit.palOf(colour)` makes one from a land's colour
+  (brighter and fuller, since the map's colours are muted), `Kit.GoldPal` is Tags' Legendary (your best),
+  `Kit.LockedPal` greys a land not reached, `Kit.WhitePal`. Each land's number is in its land's palette and lights
+  when its lock breaks; the lands that glow on the map (Midnight, Vents, The Underworld, `Kit.LandGlows`) glow in
+  their number too; the metres take the land you are in; BEST is gold with a glow. The intros' plates get the chunky
+  plate (a gradient in the land's tones, a lit top, a 3 px ink edge, a dark drop); the black oval stays flat.
+- **The land intros** (`Kit.LandIntroLook`; workspace `LandIntroLook`): **when:** you enter a land deeper than any yet
+  this dive, not the one a dive starts in; going back up and down again does not replay it; every dive plays them
+  again. **The first time ever** in a land (its lock breaking) it also says NEW. 1 **Punch** (the default): the land's
+  name big at the top centre, "LAND 6" over it, NEW LAND! in gold over that the first time, punching in from 1.9 times
+  its size with a bounce, held to 1.5 s, then fading. 2 **Banner**: a chunky plate in the land's colours slides in from
+  the left with "LAND 6 OF 10" and the name, 1.7 s. 3 **Fly**: the land's tile pops on the strip, flies to the centre
+  growing to 96 px with its number, the name under it, then flies back. 4 **Subtitle**: one line under the strip,
+  "LAND 6 · TWILIGHT · 600 m", 2 s. 5 **Flash**: the screen flashes the land's colour and the depth punches in, the
+  land under it. 0 is off, and then the old land banner (`Banners.land`) plays as before; with any intro on,
+  HudController no longer plays the old banner (one guarded line).
+- **Captures:** `LandStrip.Slow` slows every break and intro (the capture runs them at a sixth to a sixteenth of speed
+  to shoot them frame by frame; the times on the sheets are the game's).
+
+**Not done / open:** the atlas upload; saving the broken locks and the best with the rest of the save; Hugo's pick
+of the intro (1 is on).
+
 ## The land strip, style A (2026-11-17, Hugo; task l1): built, off until Hugo picks
 Hugo, on the options sheet of the land pictures ([land-icons-options-1](../attachments/land-icons-options-1.png)):
 "for the map ui, use first style, but remove the inner border, make the numbers more stylised to each map part as

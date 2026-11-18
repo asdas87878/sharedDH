@@ -313,7 +313,7 @@ Kit.LandReveal = "Best"
 -- Studio's own content folder, for tests without an upload).
 Kit.LandAtlas = ""
 -- In Studio, while LandAtlas is empty, the strip reads the local copy so the pictures show without an upload.
-Kit.LandAtlasStudio = "rbxasset://textures/ridefish/land_atlas.png"
+Kit.LandAtlasStudio = "rbxasset://textures/ridefish/land_atlas_g4.png"
 -- A land not reached (Hugo, 2026-11-18: "make sure its actually a screenshot even when locked, just unsaturated and
 -- darker"; task s2): its own picture, desaturated and darkened in the game. The atlas carries a grey copy under each
 -- colour picture; the colour one lies over it at Saturation (0 grey, 1 full colour) and both are multiplied by Tint
@@ -511,9 +511,11 @@ Kit.WhitePal = {
 -- hue made brighter and fuller, the way the rarities' are
 function Kit.palOf(colour: Color3): Pal
 	local h, s, v = colour:ToHSV()
-	local mid = Color3.fromHSV(h, math.min(1, s * 1.35 + 0.08), math.max(v, 0.9))
+	local full = Color3.fromHSV(h, math.min(1, s * 1.35 + 0.08), math.max(v, 0.9))
+	-- a touch of white, so the deep blues and violets still read on the dark
+	local mid = full:Lerp(Color3.new(1, 1, 1), 0.2)
 	return {
-		Light = mid:Lerp(Color3.new(1, 1, 1), 0.62),
+		Light = full:Lerp(Color3.new(1, 1, 1), 0.66),
 		Mid = mid,
 		Dark = Color3.fromHSV(h, math.min(1, s * 1.35 + 0.15), math.max(v, 0.9) * 0.66),
 		Deep = Color3.fromHSV(h, math.min(1, s * 1.2 + 0.2), 0.3),
@@ -569,8 +571,8 @@ function Kit.word(parent: Instance, props: { [string]: any }): Word
 		}, root)
 	end
 	local glow = layer(0)
-	glow.TextTransparency = 0.3
-	local glowEdge = Kit.stroke(glow, 4, Kit.White, 0.55)
+	glow.TextTransparency = 0.4
+	local glowEdge = Kit.stroke(glow, 4, Kit.White, 0.62)
 	local drop = layer(1)
 	local dropEdge = Kit.stroke(drop, 2, Kit.Ink)
 	local main = layer(2)
@@ -612,7 +614,8 @@ function Kit.word(parent: Instance, props: { [string]: any }): Word
 		end
 		mainEdge.Thickness = edge
 		dropEdge.Thickness = edge
-		glowEdge.Thickness = edge + size * 0.28
+		-- Tags' glow is 3.5 to 6.5 px round a 15 to 19 px word; a small word gets a thin one, or it reads as a blot
+		glowEdge.Thickness = edge + math.clamp(size * 0.14, 1, 4)
 		drop.Position = UDim2.new(0.5, 0, 0.5, math.max(1, size * 0.1))
 		fit()
 	end

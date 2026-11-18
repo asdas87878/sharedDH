@@ -5,7 +5,8 @@
 -- the metres under it, on a pill in that land's colour; your best is a thin yellow line with a diamond and its metres.
 -- On a keyboard the tiles carry the lands' names and the pill only the metres; on a phone the tiles carry numbers and
 -- the pill the land's name too.
--- Style 1 (Kit.LandStripStyle, task l1) is further down: each land a framed picture that colours in as you go.
+-- Style 1 (Kit.LandStripStyle, task l1, the game's) is further down: each land a framed picture that colours in as you
+-- go, built to Hugo's picks of 2026-11-18.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -65,7 +66,7 @@ export type Options = {
 	Reveal: string,
 	Atlas: string,
 	Fixed: boolean?,
-	-- the switches of task s2 (Kit.LandBestLook, LandYouLook, LandLockLook, LandLineLook, LandLocked); nil = Kit's
+	-- Best, You, Lock, Line, Numbers: task s2's switches, unread since Hugo picked (task l1). The rest: nil = Kit's
 	Best: number?,
 	You: number?,
 	Lock: number?,
@@ -74,6 +75,8 @@ export type Options = {
 	Saturation: number?,
 	Blur: number?,
 	Tint: Color3?,
+	Intro: number?, -- Kit.LandIntroLook
+	Font: Enum.Font?, -- Kit.LandMetresFont
 }
 
 local buildA: (parent: Instance, options: Options) -> any
@@ -92,7 +95,7 @@ end
 function LandStrip.build(parent: Instance)
 	if setting("LandStripStyle", Kit.LandStripStyle) == 1 then
 		active = buildA(parent, {
-			Numbers = setting("LandNumbers", Kit.LandNumbers),
+			Numbers = 0,
 			Reveal = setting("LandReveal", Kit.LandReveal),
 			Atlas = (function(): string
 				local atlas = setting("LandAtlas", Kit.LandAtlas)
@@ -101,10 +104,6 @@ function LandStrip.build(parent: Instance)
 				end
 				return atlas
 			end)(),
-			Best = setting("LandBestLook", Kit.LandBestLook),
-			You = setting("LandYouLook", Kit.LandYouLook),
-			Lock = setting("LandLockLook", Kit.LandLockLook),
-			Line = setting("LandLineLook", Kit.LandLineLook),
 			Dark = setting("LandDark", Kit.LandLocked.Dark),
 			Saturation = setting("LandSaturation", Kit.LandLocked.Saturation),
 			Blur = setting("LandBlur", Kit.LandLocked.Blur),
@@ -347,64 +346,45 @@ function LandStrip.update(
 end
 
 -- ============================================================================================================
--- Style 1: the framed pictures (Hugo, 2026-11-17; task l1, docs/design/ui.md "The land strip, style A").
--- Treatment A of the options sheet (docs/attachments/land-icons-options-1.png) without its inner band: a rounded
--- square, one thick ink frame, the land's picture filling it. A land not reached is its grey locked picture with a
--- padlock; the colour picture is uncovered over it from left to right, in step with how far you have got through
--- that land (Kit.LandReveal: this dive, or your furthest). The land you are in is a size up with a white rim. Each
--- land's number is drawn in that land's own style (Kit.LandNumbers). Under the strip your avatar's face in a round
--- frame slides along with you, the metres on a small bar under it. Your furthest ever (the server's, BestService)
--- is a yellow dashed line through the strip with "BEST 1,240 m" hanging from its foot.
+-- Style 1: the framed pictures (Hugo, 2026-11-17; built to Hugo's picks of 2026-11-18, task l1, docs/design/ui.md
+-- "The land strip, Hugo's picks"). Ten pictures (the generated set G4), each with one even ink border and nothing
+-- behind them; the land you are in a size up with a white border. A land you have never reached is locked: its own
+-- picture darker and desaturated with a white padlock. The first time your best gets into it the lock cracks, falls
+-- and fades (half a second) and never comes back; its colour then fills from the left as your best goes on through it.
+-- Under the pictures a thin bar: white to where you are, then a gradient on to gold at your best, where a gold diamond
+-- sits on it with "BEST 1,300 m" under it. Your face in a black ring rides under the bar with the metres on a flat
+-- black oval. Every number and word is a rarity word (Kit.word) in its land's colour; your best is gold. Entering a
+-- land plays its intro (Kit.LandIntroLook).
 -- ============================================================================================================
 
+local TweenService = game:GetService("TweenService")
+
+-- How slowly the breaks and intros play (1 the game's; the capture scripts slow them to shoot them frame by frame)
+LandStrip.Slow = 1
+local function pace(seconds: number): number
+	return seconds * LandStrip.Slow
+end
+
 local A_TILE = 28
+local A_BIG = 32 -- the land you are in
 local A_GAP = 2
-local A_FRAME = 2.5 -- the ink frame's width
-local A_INNER = A_TILE - 2 * A_FRAME
+local A_STEP = A_TILE + A_GAP
 local A_WIDE = COUNT * A_TILE + (COUNT - 1) * A_GAP
-local A_POP = 1.18 -- the land you are in
+local A_EDGE = 2 -- every picture's border
+local A_RADIUS = 5
 local LAND_CELL = 96 -- one picture's square in the atlas (tools/ui/land_icons/atlas.py)
 local FACE = 18 -- the avatar's disc
-local LOCKED_TOP = Color3.fromRGB(226, 230, 238)
-local LOCKED_BOTTOM = Color3.fromRGB(140, 148, 164)
+local RAIL_Y = A_TILE + 6 -- the bar's middle, under the pictures
+local RAIL_HIGH = 3
+local LOCK = 16 -- the padlock's box (a 12 px padlock in it, room for its edge)
+local BREAK_TIME = 0.5
+
+-- the lands whose locks are broken this session (by your best; session-only until saving exists)
+local brokenLive: { [number]: boolean } = {}
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
-
--- keypoints { position, colour }
-local function sequence(keys: { { any } }): ColorSequence
-	local list = {}
-	for _, key in keys do
-		table.insert(list, ColorSequenceKeypoint.new(key[1], key[2]))
-	end
-	return ColorSequence.new(list)
-end
-
--- N2, Material: each land's own stuff in its number. Rotation 90 runs top to bottom, 0 left to right.
--- stylua: ignore
-local MATERIAL: { { Keys: { { any } }, Rotation: number, Edge: Color3, Glow: Color3? } } = {
-	-- 1 Shallows: sun on sand, a white glint along the top
-	{ Keys = { { 0, rgb(255, 255, 236) }, { 0.3, rgb(255, 236, 140) }, { 1, rgb(226, 162, 52) } }, Rotation = 90, Edge = rgb(94, 56, 18) },
-	-- 2 Coral Reef: coral pink, banded like a branch
-	{ Keys = { { 0, rgb(255, 214, 200) }, { 0.45, rgb(255, 128, 132) }, { 0.5, rgb(236, 84, 110) }, { 0.55, rgb(255, 150, 120) }, { 1, rgb(230, 76, 96) } }, Rotation = 90, Edge = rgb(104, 18, 56) },
-	-- 3 Kelp Forest: kelp ribs, light and dark green stripes across the letters
-	{ Keys = { { 0, rgb(170, 240, 100) }, { 0.3, rgb(170, 240, 100) }, { 0.32, rgb(66, 150, 56) }, { 0.45, rgb(66, 150, 56) }, { 0.47, rgb(170, 240, 100) }, { 0.7, rgb(150, 226, 88) }, { 0.72, rgb(66, 150, 56) }, { 1, rgb(80, 164, 60) } }, Rotation = 10, Edge = rgb(16, 56, 22) },
-	-- 4 Shipwrecks: old planks, a dark seam through the middle
-	{ Keys = { { 0, rgb(222, 176, 116) }, { 0.46, rgb(176, 122, 72) }, { 0.5, rgb(92, 58, 36) }, { 0.54, rgb(186, 132, 80) }, { 1, rgb(128, 84, 50) } }, Rotation = 90, Edge = rgb(40, 22, 12) },
-	-- 5 Open Blue: water, pale at the top, deep at the foot
-	{ Keys = { { 0, rgb(214, 250, 255) }, { 0.35, rgb(90, 190, 255) }, { 1, rgb(30, 86, 210) } }, Rotation = 90, Edge = rgb(8, 30, 84) },
-	-- 6 Twilight: the last light, pink over violet
-	{ Keys = { { 0, rgb(255, 190, 236) }, { 0.5, rgb(186, 126, 255) }, { 1, rgb(96, 62, 196) } }, Rotation = 90, Edge = rgb(40, 18, 84) },
-	-- 7 Midnight: dark letters with a glowing edge, as a lure
-	{ Keys = { { 0, rgb(96, 110, 196) }, { 1, rgb(30, 34, 92) } }, Rotation = 90, Edge = rgb(10, 14, 40), Glow = rgb(90, 244, 255) },
-	-- 8 Vents: lava, yellow to red
-	{ Keys = { { 0, rgb(255, 246, 140) }, { 0.4, rgb(255, 156, 40) }, { 1, rgb(214, 44, 26) } }, Rotation = 90, Edge = rgb(70, 10, 6), Glow = rgb(255, 120, 40) },
-	-- 9 Bone Graveyard: bone, pale with a worn grey foot
-	{ Keys = { { 0, rgb(255, 252, 236) }, { 0.6, rgb(232, 224, 200) }, { 1, rgb(176, 168, 148) } }, Rotation = 90, Edge = rgb(58, 52, 44) },
-	-- 10 The Underworld: crimson to near black, an ember edge
-	{ Keys = { { 0, rgb(255, 110, 100) }, { 0.45, rgb(206, 30, 56) }, { 1, rgb(84, 8, 24) } }, Rotation = 90, Edge = rgb(30, 4, 10), Glow = rgb(255, 84, 50) },
-}
 
 local function grouped(value: number): string
 	local text = tostring(math.floor(value))
@@ -418,7 +398,6 @@ local function grouped(value: number): string
 	end
 end
 
--- A small shape made of frames (the N3 badges, the padlock, the tick)
 local function blob(parent: Instance, props: { [string]: any }, radius: number?, edge: number?): Frame
 	props.BorderSizePixel = 0
 	local frame: Frame = Kit.new("Frame", props, parent)
@@ -431,203 +410,12 @@ local function blob(parent: Instance, props: { [string]: any }, radius: number?,
 	return frame
 end
 
--- N3, Badge: a small sign of the land behind its number, built of frames. Returns the parts to grey out when locked.
-local function signOf(parent: Instance, land: number, z: number): { Frame }
-	local colour = Kit.Lands[land]
-	local parts: { Frame } = {}
-	local function part(props: { [string]: any }, radius: number?, edge: number?): Frame
-		props.ZIndex = props.ZIndex or z
-		props.AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5)
-		local frame = blob(parent, props, radius, edge)
-		table.insert(parts, frame)
-		return frame
-	end
-	local mid = UDim2.fromScale(0.5, 0.5)
-	if land == 1 then -- a sun: a disc with a ring of rays (a turned square behind it)
-		part(
-			{ Position = mid, Size = UDim2.fromOffset(13, 13), Rotation = 45, BackgroundColor3 = rgb(255, 200, 70) },
-			2,
-			1.2
-		)
-		part({ Position = mid, Size = UDim2.fromOffset(12, 12), BackgroundColor3 = rgb(255, 226, 110) }, 999, 1.2)
-	elseif land == 2 then -- a coral head: three bumps on a disc
-		for _, dx in { -4, 0, 4 } do
-			part(
-				{ Position = UDim2.new(0.5, dx, 0.5, -4), Size = UDim2.fromOffset(6, 6), BackgroundColor3 = colour },
-				999,
-				1.2
-			)
-		end
-		part({ Position = mid, Size = UDim2.fromOffset(14, 11), BackgroundColor3 = colour }, 999, 1.2)
-	elseif land == 3 then -- a kelp leaf: a turned rounded square with a rib
-		part({ Position = mid, Size = UDim2.fromOffset(11, 11), Rotation = 45, BackgroundColor3 = colour }, 5, 1.2)
-		part({
-			Position = mid,
-			Size = UDim2.fromOffset(1.5, 13),
-			Rotation = 45,
-			BackgroundColor3 = Kit.darker(colour, 0.35),
-		})
-	elseif land == 4 then -- a porthole: a brass ring round dark glass
-		part({ Position = mid, Size = UDim2.fromOffset(14, 14), BackgroundColor3 = rgb(214, 160, 70) }, 999, 1.2)
-		part({ Position = mid, Size = UDim2.fromOffset(8, 8), BackgroundColor3 = rgb(40, 70, 90) }, 999, 1)
-	elseif land == 5 then -- a bubble with its shine
-		part({ Position = mid, Size = UDim2.fromOffset(14, 14), BackgroundColor3 = rgb(110, 190, 255) }, 999, 1.2)
-		part({
-			Position = UDim2.new(0.5, -3, 0.5, -3),
-			Size = UDim2.fromOffset(4, 4),
-			BackgroundColor3 = Kit.White,
-			ZIndex = z + 1,
-		}, 999)
-	elseif land == 6 then -- a star: two squares turned against each other
-		part({ Position = mid, Size = UDim2.fromOffset(11, 11), BackgroundColor3 = colour }, 2, 1.2)
-		part({ Position = mid, Size = UDim2.fromOffset(11, 11), Rotation = 45, BackgroundColor3 = colour }, 2, 1.2)
-	elseif land == 7 then -- a lure: a glowing orb
-		local orb = part({ Position = mid, Size = UDim2.fromOffset(13, 13), BackgroundColor3 = rgb(70, 230, 255) }, 999)
-		Kit.stroke(orb, 2, rgb(160, 255, 255), 0.35)
-	elseif land == 8 then -- a flame: a tall diamond with a yellow heart
-		part({
-			Position = UDim2.new(0.5, 0, 0.5, -1),
-			Size = UDim2.fromOffset(11, 11),
-			Rotation = 45,
-			BackgroundColor3 = rgb(255, 110, 40),
-		}, 3, 1.2)
-		part({
-			Position = UDim2.new(0.5, 0, 0.5, 1),
-			Size = UDim2.fromOffset(5, 5),
-			Rotation = 45,
-			BackgroundColor3 = rgb(255, 230, 90),
-		}, 1)
-	elseif land == 9 then -- a bone: a bar with knobs at both ends
-		for _, dx in { -6, 6 } do
-			for _, dy in { -2, 2 } do
-				part({
-					Position = UDim2.new(0.5, dx, 0.5, dy),
-					Size = UDim2.fromOffset(5, 5),
-					BackgroundColor3 = rgb(240, 234, 214),
-				}, 999, 1.2)
-			end
-		end
-		part({ Position = mid, Size = UDim2.fromOffset(13, 4), BackgroundColor3 = rgb(240, 234, 214) }, 1)
-	else -- 10: horns on a dark disc
-		for _, side in { -1, 1 } do
-			part({
-				Position = UDim2.new(0.5, side * 5, 0.5, -5),
-				Size = UDim2.fromOffset(4, 8),
-				Rotation = side * 30,
-				BackgroundColor3 = rgb(250, 236, 220),
-			}, 2, 1)
-		end
-		part({ Position = mid, Size = UDim2.fromOffset(13, 13), BackgroundColor3 = rgb(180, 30, 52) }, 999, 1.2)
-	end
-	return parts
+local function palOfLand(i: number): Kit.Pal
+	return Kit.palOf(Kit.Lands[math.clamp(i, 1, COUNT)])
 end
 
-type Number = {
-	label: TextLabel,
-	gradient: UIGradient,
-	stroke: UIStroke,
-	glow: UIStroke?,
-	parts: { Frame },
-	colours: { Color3 },
-	set: (boolean) -> (),
-}
-
--- The land's number at the tile's lower left, in style 1 Metal, 2 Material or 3 Badge. `set(true)` shows it in its
--- land's look, `set(false)` greyed as the land's picture is.
-local function number(parent: Instance, land: number, style: number, z: number): Number
-	local colour = Kit.Lands[land]
-	local box = Kit.new("Frame", {
-		Name = "Number",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, -2, 1, 3),
-		Size = UDim2.fromOffset(15, 15),
-		BackgroundTransparency = 1,
-		ZIndex = z,
-	}, parent)
-	local parts: { Frame } = if style == 3 then signOf(box, land, z) else {}
-	local colours: { Color3 } = {}
-	for i, frame in parts do
-		colours[i] = frame.BackgroundColor3
-	end
-	local label: TextLabel = Kit.new("TextLabel", {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		Font = Enum.Font.GothamBlack,
-		Text = tostring(land),
-		TextSize = if land >= 10 then (if style == 3 then 8.5 else 10.5) else (if style == 3 then 10 else 12.5),
-		TextColor3 = Kit.White,
-		ZIndex = z + 2,
-	}, box)
-	local stroke = Kit.stroke(label, if style == 3 then 1.4 else 1.8, Kit.Ink)
-	local gradient: UIGradient = Kit.new("UIGradient", { Rotation = 90 }, label)
-	local material = MATERIAL[land]
-	local glow: UIStroke? = nil
-	if style == 2 and material.Glow then
-		-- a second, wider and see-through edge round the ink one: the glow (a label takes one stroke, so it sits on a
-		-- copy of the letters under the first)
-		local under: TextLabel = label:Clone()
-		under.ZIndex = z + 1
-		for _, child in under:GetChildren() do
-			child:Destroy()
-		end
-		under.TextColor3 = material.Glow
-		under.Parent = box
-		glow = Kit.stroke(under, 2.6, material.Glow :: Color3, 0.5)
-	end
-	local function set(lit: boolean)
-		if not lit then
-			gradient.Color = ColorSequence.new(LOCKED_TOP, LOCKED_BOTTOM)
-			gradient.Rotation = 90
-			stroke.Color = Kit.Ink
-			if glow then
-				glow.Enabled = false
-				(glow.Parent :: TextLabel).Visible = false
-			end
-			for _, frame in parts do
-				local _, s, v = frame.BackgroundColor3:ToHSV()
-				frame.BackgroundColor3 = Color3.fromHSV(0.62, math.min(s, 0.08), math.clamp(v * 0.75, 0.35, 0.8))
-			end
-			return
-		end
-		if style == 1 then
-			gradient.Color = sequence({
-				{ 0, Kit.lighter(colour, 0.65) },
-				{ 0.5, Kit.lighter(colour, 0.15) },
-				{ 1, Kit.darker(colour, 0.15) },
-			})
-			gradient.Rotation = 90
-		elseif style == 2 then
-			gradient.Color = sequence(material.Keys)
-			gradient.Rotation = material.Rotation
-			stroke.Color = material.Edge
-			if glow then
-				glow.Enabled = true
-				(glow.Parent :: TextLabel).Visible = true
-			end
-		else
-			gradient.Color = ColorSequence.new(Kit.White, rgb(226, 232, 242))
-			gradient.Rotation = 90
-		end
-		for i, frame in parts do
-			frame.BackgroundColor3 = colours[i]
-		end
-	end
-	set(true)
-	return {
-		label = label,
-		gradient = gradient,
-		stroke = stroke,
-		glow = glow,
-		parts = parts,
-		colours = colours,
-		set = set,
-	}
-end
-
--- The lock on a land not reached (Kit.LandLockLook, sheet C): centred on the picture, drawn under the land's number
--- where the two meet (Hugo, 2026-11-18: "make the lock centered and if its corner clips with the number, layer it
--- below the number").
-local function padlockShape(lock: Frame, z: number, body: Color3, edge: Color3, see: number, inkEdge: boolean)
+-- The white padlock, ink edged, in a 12 px box
+local function padlockShape(lock: Instance, z: number)
 	local shackle = blob(lock, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0),
@@ -635,104 +423,113 @@ local function padlockShape(lock: Frame, z: number, body: Color3, edge: Color3, 
 		BackgroundTransparency = 1,
 		ZIndex = z,
 	}, 999)
-	if inkEdge then
-		Kit.stroke(shackle, 3.4, edge, see)
-	end
+	Kit.stroke(shackle, 3.4, Kit.Ink)
 	local inner = blob(shackle, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = z + 1 }, 999)
-	Kit.stroke(inner, 1.6, body, see)
+	Kit.stroke(inner, 1.6, Kit.White)
 	local box = blob(lock, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromScale(0.5, 1),
 		Size = UDim2.fromOffset(10, 7),
-		BackgroundColor3 = body,
-		BackgroundTransparency = see,
+		BackgroundColor3 = Kit.White,
 		ZIndex = z + 2,
 	}, 2)
-	if inkEdge then
-		Kit.stroke(box, 1.2, edge, see)
-	end
+	Kit.stroke(box, 1.2, Kit.Ink)
 	blob(lock, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -2),
 		Size = UDim2.fromOffset(1.5, 3),
-		BackgroundColor3 = edge,
-		BackgroundTransparency = see,
+		BackgroundColor3 = Kit.Ink,
 		ZIndex = z + 3,
 	})
 end
 
-local function padlock(parent: Instance, z: number, look: number): Frame
-	local lock = Kit.new("Frame", {
+type Lock = { root: Frame, halves: { CanvasGroup }, flash: Frame, crack: Frame, gone: boolean }
+
+-- The lock: two halves of one padlock (each a canvas, so a half fades as one), so it can crack apart
+local function lockOf(parent: Instance, z: number): Lock
+	local root = Kit.new("Frame", {
 		Name = "Lock",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(12, 12),
+		Size = UDim2.fromOffset(LOCK, LOCK),
 		BackgroundTransparency = 1,
 		ZIndex = z,
 	}, parent)
-	if look == 2 then -- gold
-		padlockShape(lock, z, rgb(255, 214, 80), rgb(84, 50, 8), 0, true)
-	elseif look == 3 then -- a small white padlock on a dark disc
-		local disc = blob(lock, {
+	local halves: { CanvasGroup } = {}
+	for side = 0, 1 do
+		local half: CanvasGroup = Kit.new("CanvasGroup", {
+			Name = if side == 0 then "Left" else "Right",
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromOffset(16, 16),
-			BackgroundColor3 = Kit.Deep,
-			BackgroundTransparency = 0.15,
+			Position = UDim2.fromOffset(LOCK / 4 + side * LOCK / 2, LOCK / 2),
+			Size = UDim2.fromOffset(LOCK / 2, LOCK),
+			BackgroundTransparency = 1,
 			ZIndex = z,
-		}, 999)
-		Kit.stroke(disc, 1.2, Kit.White, 0.35)
-		local inside = Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0.5, -0.5),
+		}, root)
+		local whole = Kit.new("Frame", {
+			Position = UDim2.fromOffset(2 - side * LOCK / 2, 2),
 			Size = UDim2.fromOffset(12, 12),
 			BackgroundTransparency = 1,
-			ZIndex = z + 1,
-		}, lock)
-		Kit.new("UIScale", { Scale = 0.72 }, inside)
-		padlockShape(inside, z + 1, Kit.White, Kit.Deep, 0, false)
-	elseif look == 4 then -- quiet: see-through white, no ink, a little smaller
-		Kit.new("UIScale", { Scale = 0.85 }, lock)
-		padlockShape(lock, z, Kit.White, rgb(60, 70, 96), 0.3, false)
-	elseif look == 5 then -- a question mark
-		local mark: TextLabel = Kit.new("TextLabel", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromOffset(16, 16),
-			BackgroundTransparency = 1,
-			Font = Enum.Font.GothamBlack,
-			Text = "?",
-			TextSize = 16,
-			TextColor3 = Kit.White,
 			ZIndex = z,
-		}, lock)
-		Kit.stroke(mark, 1.8, Kit.Ink)
-	elseif look == 6 then -- a keyhole in a white disc
-		local disc = blob(lock, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromOffset(14, 14),
-			BackgroundColor3 = Kit.White,
-			ZIndex = z,
-		}, 999, 1.4)
-		blob(disc, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0.5, -1.5),
-			Size = UDim2.fromOffset(5, 5),
-			BackgroundColor3 = Kit.Ink,
-			ZIndex = z + 1,
-		}, 999)
-		blob(disc, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0.5, -0.5),
-			Size = UDim2.fromOffset(2.6, 5),
-			BackgroundColor3 = Kit.Ink,
-			ZIndex = z + 1,
-		}, 1)
-	else -- 1: the white padlock, ink edged
-		padlockShape(lock, z, Kit.White, Kit.Ink, 0, true)
+		}, half)
+		padlockShape(whole, z)
+		halves[side + 1] = half
 	end
-	return lock
+	-- the crack: a dark zigzag down the middle, seen for the first moment of the break
+	local crack = blob(root, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 3),
+		Size = UDim2.fromOffset(1.2, 6),
+		Rotation = 12,
+		BackgroundColor3 = Kit.Ink,
+		Visible = false,
+		ZIndex = z + 5,
+	})
+	local flash = blob(root, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(0, 0),
+		BackgroundColor3 = Kit.White,
+		BackgroundTransparency = 1,
+		ZIndex = z + 6,
+	}, 999)
+	return { root = root, halves = halves, flash = flash, crack = crack, gone = false }
+end
+
+-- Gone at once (a land already reached when the strip is built)
+local function lockGone(lock: Lock)
+	lock.gone = true
+	lock.root.Visible = false
+end
+
+-- The break: a white burst and a crack, then the two halves tip apart, fall and fade
+local function lockBreak(lock: Lock)
+	if lock.gone then
+		return
+	end
+	lock.gone = true
+	lock.crack.Visible = true
+	lock.flash.BackgroundTransparency = 0.2
+	lock.flash.Size = UDim2.fromOffset(6, 6)
+	TweenService:Create(
+		lock.flash,
+		TweenInfo.new(pace(0.22), Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ Size = UDim2.fromOffset(26, 26), BackgroundTransparency = 1 }
+	):Play()
+	task.delay(pace(0.07), function()
+		lock.crack.Visible = false
+		local fall = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		for k, half in lock.halves do
+			local side = if k == 1 then -1 else 1
+			TweenService:Create(half, fall, {
+				Position = half.Position + UDim2.fromOffset(side * 4, 11),
+				Rotation = side * 28,
+				GroupTransparency = 1,
+			}):Play()
+		end
+		task.delay(pace(BREAK_TIME), function()
+			lock.root.Visible = false
+		end)
+	end)
 end
 
 -- The tick on a land you have been all through: a green disc, white check
@@ -764,47 +561,350 @@ end
 
 type Tile = {
 	root: Frame,
-	scale: UIScale,
-	rim: UIStroke,
+	border: UIStroke,
+	outer: Frame,
 	clip: Frame,
+	colour: ImageLabel,
 	edge: Frame,
-	lock: Frame,
+	lock: Lock,
 	tick: Frame,
-	number: Number,
+	number: Kit.Word,
+	size: number,
+	share: number,
 	shown: number,
+	lit: boolean?,
 	current: boolean,
 }
 
--- One dashed line of frames, top to bottom
-local function dashes(parent: Instance, length: number, wide: number, colour: Color3, z: number)
-	local DASH, SPACE = 3.5, 2.5
-	local y = 0
-	while y < length do
-		blob(parent, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, y),
-			Size = UDim2.fromOffset(wide, math.min(DASH, length - y)),
-			BackgroundColor3 = colour,
-			ZIndex = z,
-		}, nil, 1)
-		y += DASH + SPACE
+-- In Studio, the font named in the workspace's "LandMetresFont"
+local function fontSetting(): Enum.Font
+	local name = setting("LandMetresFont", "")
+	if name ~= "" then
+		local ok, font = pcall(function()
+			return (Enum.Font :: any)[name]
+		end)
+		if ok and font then
+			return font
+		end
 	end
+	return Kit.LandMetresFont
+end
+
+-- ---- the intros (Kit.LandIntroLook) ----
+
+-- A plate with the chunky treatment: a gradient in the land's colours, a lit top, a thick ink edge, a dark drop
+local function plate(parent: Instance, props: { [string]: any }, p: Kit.Pal): Frame
+	local z = props.ZIndex or 1
+	local shadow = blob(parent, {
+		AnchorPoint = props.AnchorPoint,
+		Position = (props.Position :: UDim2) + UDim2.fromOffset(0, 4),
+		Size = props.Size,
+		BackgroundColor3 = Kit.Ink,
+		BackgroundTransparency = 0.35,
+		ZIndex = z,
+	}, 10)
+	props.ZIndex = z + 1
+	props.BackgroundColor3 = Kit.White
+	local face = blob(parent, props, 10)
+	Kit.new("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, p.Mid:Lerp(p.Light, 0.35)),
+			ColorSequenceKeypoint.new(0.5, p.Mid:Lerp(p.Dark, 0.35)),
+			ColorSequenceKeypoint.new(1, p.Dark:Lerp(p.Deep, 0.4)),
+		}),
+	}, face)
+	Kit.stroke(face, 3, Kit.Ink)
+	local gloss = blob(face, {
+		Position = UDim2.fromOffset(4, 3),
+		Size = UDim2.new(1, -8, 0.42, 0),
+		BackgroundColor3 = Kit.White,
+		BackgroundTransparency = 0.72,
+		ZIndex = z + 2,
+	}, 7)
+	local _ = gloss
+	face:GetPropertyChangedSignal("Position"):Connect(function()
+		shadow.Position = face.Position + UDim2.fromOffset(0, 4)
+	end)
+	return face
+end
+
+type IntroArgs = { land: number, name: string, metres: number, new: boolean }
+
+local function canvas(parent: Instance, props: { [string]: any }): CanvasGroup
+	props.BackgroundTransparency = 1
+	props.GroupTransparency = props.GroupTransparency or 1
+	return Kit.new("CanvasGroup", props, parent)
+end
+
+local function fadeOut(group: CanvasGroup, after: number, time: number, extra: { [string]: any }?)
+	task.delay(pace(after), function()
+		if not group.Parent then
+			return
+		end
+		local goal: { [string]: any } = { GroupTransparency = 1 }
+		if extra then
+			for k, v in extra do
+				goal[k] = v
+			end
+		end
+		local tween =
+			TweenService:Create(group, TweenInfo.new(pace(time), Enum.EasingStyle.Quad, Enum.EasingDirection.In), goal)
+		tween.Completed:Once(function()
+			group:Destroy()
+		end)
+		tween:Play()
+	end)
+end
+
+-- 1 Punch: the name big at the top centre, "LAND 3" over it, NEW LAND in gold the first time
+local function introPunch(layer: Instance, a: IntroArgs)
+	local p = palOfLand(a.land)
+	local glow = Kit.LandGlows[a.land] == true
+	local group = canvas(layer, {
+		Name = "IntroPunch",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 132),
+		Size = UDim2.fromOffset(460, 96),
+		ZIndex = 60,
+	})
+	local scale = Kit.new("UIScale", { Scale = 1.9 }, group)
+	local name = Kit.word(group, {
+		Text = string.upper(a.name),
+		TextSize = 34,
+		Pal = p,
+		Glow = true,
+		Position = UDim2.new(0.5, 0, 0, 58),
+		ZIndex = 4,
+	})
+	local _ = name
+	Kit.word(group, {
+		Text = "LAND " .. a.land,
+		TextSize = 16,
+		Pal = p,
+		Glow = glow,
+		Position = UDim2.new(0.5, 0, 0, 28),
+		ZIndex = 4,
+	})
+	if a.new then
+		Kit.word(group, {
+			Text = "NEW LAND!",
+			TextSize = 13,
+			Pal = Kit.GoldPal,
+			Glow = true,
+			Position = UDim2.new(0.5, 0, 0, 10),
+			ZIndex = 4,
+		})
+	end
+	TweenService:Create(group, TweenInfo.new(pace(0.1)), { GroupTransparency = 0 }):Play()
+	TweenService
+		:Create(scale, TweenInfo.new(pace(0.32), Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		:Play()
+	fadeOut(group, 1.5, 0.35)
+	task.delay(pace(1.5), function()
+		if scale.Parent then
+			TweenService:Create(scale, TweenInfo.new(pace(0.35)), { Scale = 1.08 }):Play()
+		end
+	end)
+end
+
+-- 2 Banner: a chunky plate in the land's colours slides in from the left
+local function introBanner(layer: Instance, a: IntroArgs)
+	local p = palOfLand(a.land)
+	local group = canvas(layer, {
+		Name = "IntroBanner",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(-320, 138),
+		Size = UDim2.fromOffset(300, 74),
+		GroupTransparency = 0,
+		ZIndex = 60,
+	})
+	local face = plate(group, {
+		Position = UDim2.fromOffset(6, 6),
+		Size = UDim2.new(1, -12, 0, 58),
+		ZIndex = 1,
+	}, p)
+	local _ = face
+	Kit.word(group, {
+		Text = (if a.new then "NEW!  " else "") .. "LAND " .. a.land .. " OF 10",
+		TextSize = 12,
+		Pal = if a.new then Kit.GoldPal else Kit.WhitePal,
+		Position = UDim2.new(0.5, 0, 0, 20),
+		ZIndex = 5,
+	})
+	Kit.word(group, {
+		Text = string.upper(a.name),
+		TextSize = 24,
+		Pal = Kit.WhitePal,
+		Glow = false,
+		Position = UDim2.new(0.5, 0, 0, 42),
+		ZIndex = 5,
+	})
+	TweenService:Create(
+		group,
+		TweenInfo.new(pace(0.34), Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Position = UDim2.fromOffset(14, 138) }
+	):Play()
+	fadeOut(group, 1.7, 0.3, { Position = UDim2.fromOffset(-320, 138) })
+end
+
+-- 3 Fly: the strip's tile pops and flies to the centre, the name under it, then goes back
+local function introFly(layer: Instance, a: IntroArgs, from: Vector2, atlas: string)
+	local p = palOfLand(a.land)
+	local group = canvas(layer, {
+		Name = "IntroFly",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(from.X, from.Y),
+		Size = UDim2.fromOffset(240, 150),
+		GroupTransparency = 0,
+		ZIndex = 60,
+	})
+	local scale = Kit.new("UIScale", { Scale = 0.33 }, group)
+	local picture: ImageLabel = Kit.new("ImageLabel", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromOffset(96, 96),
+		BorderSizePixel = 0,
+		BackgroundColor3 = Kit.Lands[a.land],
+		Image = atlas,
+		ImageRectOffset = Vector2.new((a.land - 1) * LAND_CELL, 0),
+		ImageRectSize = Vector2.new(LAND_CELL, LAND_CELL),
+		ZIndex = 2,
+	}, group)
+	Kit.corner(picture, 14)
+	Kit.stroke(picture, 5, Kit.White)
+	local word = Kit.word(group, {
+		Text = string.upper(a.name),
+		TextSize = 26,
+		Pal = p,
+		Glow = true,
+		Position = UDim2.new(0.5, 0, 0, 122),
+		ZIndex = 4,
+	})
+	word.root.Visible = false
+	Kit.word(picture, {
+		Text = tostring(a.land),
+		TextSize = 30,
+		Pal = p,
+		Glow = Kit.LandGlows[a.land] == true,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 2, 1, 4),
+		ZIndex = 6,
+	})
+	local centre = UDim2.new(0.5, 0, 0, 160)
+	-- the pop where it is, then the flight
+	TweenService
+		:Create(scale, TweenInfo.new(pace(0.12), Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 0.5 })
+		:Play()
+	task.delay(pace(0.12), function()
+		local fly = TweenInfo.new(pace(0.38), Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		TweenService:Create(group, fly, { Position = centre }):Play()
+		TweenService:Create(scale, fly, { Scale = 1 }):Play()
+		task.delay(pace(0.3), function()
+			word.root.Visible = true
+		end)
+	end)
+	fadeOut(group, 1.7, 0.35, { Position = UDim2.fromOffset(from.X, from.Y) })
+	task.delay(pace(1.7), function()
+		if scale.Parent then
+			TweenService
+				:Create(
+					scale,
+					TweenInfo.new(pace(0.35), Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+					{ Scale = 0.3 }
+				)
+				:Play()
+		end
+	end)
+end
+
+-- 4 Subtitle: one line under the strip
+local function introSubtitle(layer: Instance, a: IntroArgs, y: number)
+	local p = palOfLand(a.land)
+	local group = canvas(layer, {
+		Name = "IntroSubtitle",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, y + 8),
+		Size = UDim2.fromOffset(520, 30),
+		ZIndex = 60,
+	})
+	local text = "LAND " .. a.land .. "  ·  " .. string.upper(a.name) .. "  ·  " .. grouped(a.metres) .. " m"
+	if a.new then
+		text = "NEW!  " .. text
+	end
+	Kit.word(group, {
+		Text = text,
+		TextSize = 15,
+		Pal = p,
+		Glow = Kit.LandGlows[a.land] == true,
+		Position = UDim2.fromScale(0.5, 0.5),
+		ZIndex = 4,
+	})
+	TweenService:Create(
+		group,
+		TweenInfo.new(pace(0.25), Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ GroupTransparency = 0, Position = UDim2.new(0.5, 0, 0, y) }
+	):Play()
+	fadeOut(group, 2.0, 0.4)
+end
+
+-- 5 Flash: the screen flashes the land's colour, the depth punches in with the name under it
+local function introFlash(layer: Instance, a: IntroArgs)
+	local p = palOfLand(a.land)
+	local flash = blob(layer, {
+		Name = "IntroFlash",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = p.Mid,
+		BackgroundTransparency = 0.45,
+		ZIndex = 58,
+	})
+	TweenService:Create(flash, TweenInfo.new(pace(0.7), Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1,
+	}):Play()
+	task.delay(pace(0.75), function()
+		flash:Destroy()
+	end)
+	local group = canvas(layer, {
+		Name = "IntroDepth",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.36),
+		Size = UDim2.fromOffset(420, 110),
+		GroupTransparency = 0,
+		ZIndex = 60,
+	})
+	local scale = Kit.new("UIScale", { Scale = 2.2 }, group)
+	Kit.word(group, {
+		Text = grouped(a.metres) .. " m",
+		TextSize = 44,
+		Font = fontSetting(),
+		Pal = if a.new then Kit.GoldPal else Kit.WhitePal,
+		Glow = true,
+		Position = UDim2.new(0.5, 0, 0, 36),
+		ZIndex = 4,
+	})
+	Kit.word(group, {
+		Text = "LAND " .. a.land .. "  ·  " .. string.upper(a.name),
+		TextSize = 17,
+		Pal = p,
+		Glow = Kit.LandGlows[a.land] == true,
+		Position = UDim2.new(0.5, 0, 0, 82),
+		ZIndex = 4,
+	})
+	TweenService
+		:Create(scale, TweenInfo.new(pace(0.26), Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		:Play()
+	fadeOut(group, 1.4, 0.35)
 end
 
 buildA = function(parent: Instance, options: Options): any
-	local bestLook = options.Best or Kit.LandBestLook
-	local youLook = options.You or Kit.LandYouLook
-	local lockLook = options.Lock or Kit.LandLockLook
-	local lineLook = options.Line or Kit.LandLineLook
 	local dark = options.Dark or Kit.LandLocked.Dark
 	local saturation = options.Saturation or Kit.LandLocked.Saturation
 	local blur = math.clamp(math.floor(options.Blur or Kit.LandLocked.Blur), 0, 2)
 	local tint = options.Tint or Kit.LandLocked.Tint
 	local shade = Color3.new(tint.R * dark, tint.G * dark, tint.B * dark)
-
-	-- where the line under the pictures runs (E), and so where your marker hangs from
-	local railY = A_TILE + 5
-	local markerY = if lineLook == 1 then A_TILE + 4 else railY + 3
+	local broken: { [number]: boolean } = if options.Fixed then {} else brokenLive
+	local brokeAt: { [number]: number } = {}
+	local metresFont = options.Font or fontSetting()
 
 	local strip = Kit.new("Frame", {
 		Name = "LandStrip",
@@ -816,21 +916,32 @@ buildA = function(parent: Instance, options: Options): any
 	local tiles: { Tile } = {}
 	for i = 1, COUNT do
 		local colour = Kit.Lands[i]
-		local root = blob(strip, {
+		-- one frame the size of the picture; its border is one stroke round it, nothing under it
+		local root = Kit.new("Frame", {
 			Name = "Land" .. i,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromOffset((i - 1) * (A_TILE + A_GAP) + A_TILE / 2, A_TILE / 2),
+			Position = UDim2.fromOffset((i - 1) * A_STEP + A_TILE / 2, A_TILE / 2),
 			Size = UDim2.fromOffset(A_TILE, A_TILE),
-			BackgroundColor3 = Kit.Ink,
+			BackgroundTransparency = 1,
 			ZIndex = 2,
-		}, 6)
-		local scale = Kit.new("UIScale", {}, root)
-		local rim = Kit.stroke(root, 2, Kit.White)
-		rim.Enabled = false
-		-- one atlas cell: rows 0, 2, 4 the colour pictures sharp, soft and very soft, 1, 3, 5 their grey copies
+		}, strip)
+		Kit.corner(root, A_RADIUS)
+		local border = Kit.stroke(root, A_EDGE, Kit.Ink)
+		border.LineJoinMode = Enum.LineJoinMode.Round
+		-- the land you are in: the white border, and a thin ink line round it so it holds on bright water
+		local outer = Kit.new("Frame", {
+			Name = "Outer",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, 2 * A_EDGE, 1, 2 * A_EDGE),
+			BackgroundTransparency = 1,
+			Visible = false,
+			ZIndex = 2,
+		}, root)
+		Kit.corner(outer, A_RADIUS + A_EDGE)
+		Kit.stroke(outer, 1.5, Kit.Ink)
 		local function picture(row: number, into: Instance, z: number, props: { [string]: any }): ImageLabel
-			props.Position = UDim2.fromOffset(if into == root then A_FRAME else 0, if into == root then A_FRAME else 0)
-			props.Size = UDim2.fromOffset(A_INNER, A_INNER)
+			props.Size = UDim2.fromOffset(A_TILE, A_TILE)
 			props.BorderSizePixel = 0
 			props.Image = options.Atlas
 			props.ImageRectOffset = Vector2.new((i - 1) * LAND_CELL, row * LAND_CELL)
@@ -838,507 +949,285 @@ buildA = function(parent: Instance, options: Options): any
 			props.ScaleType = Enum.ScaleType.Stretch
 			props.ZIndex = z
 			local image: ImageLabel = Kit.new("ImageLabel", props, into)
-			Kit.corner(image, 3.5)
+			Kit.corner(image, A_RADIUS)
 			return image
 		end
-		-- locked: the grey copy, the colour one over it at the saturation, both darkened (Kit.LandLocked). Without
-		-- the atlas, the land's colour the same way.
+		-- not reached: the grey copy, the colour one over it at the saturation, both darkened (Kit.LandLocked).
+		-- Without the atlas, the land's colour the same way.
 		local flat = colour:Lerp(rgb(128, 128, 128), 1 - saturation)
-		picture(1 + blur * 2, root, 3, {
+		local grey = picture(1 + blur * 2, root, 3, {
 			ImageColor3 = shade,
 			BackgroundColor3 = Color3.new(flat.R * shade.R, flat.G * shade.G, flat.B * shade.B),
 		})
-		picture(blur * 2, root, 4, {
+		grey.Size = UDim2.fromScale(1, 1)
+		local over = picture(blur * 2, root, 4, {
 			ImageColor3 = shade,
 			ImageTransparency = 1 - saturation,
 			BackgroundTransparency = 1,
 		})
+		over.Size = UDim2.fromScale(1, 1)
 		-- then the colour picture uncovered from the left
 		local clip = Kit.new("Frame", {
 			Name = "Reveal",
-			Position = UDim2.fromOffset(A_FRAME, A_FRAME),
-			Size = UDim2.fromOffset(0, A_INNER),
+			Size = UDim2.fromOffset(0, A_TILE),
 			BackgroundTransparency = 1,
 			ClipsDescendants = true,
 			ZIndex = 5,
 		}, root)
-		picture(0, clip, 5, { BackgroundColor3 = colour })
+		local full = picture(0, clip, 5, { BackgroundColor3 = colour })
 		-- the line where the colour meets the grey
 		local edge = blob(root, {
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromOffset(A_FRAME, A_FRAME),
-			Size = UDim2.fromOffset(1.5, A_INNER),
+			Size = UDim2.new(0, 1, 1, 0),
 			BackgroundColor3 = Kit.White,
-			BackgroundTransparency = 0.25,
+			BackgroundTransparency = 0.3,
 			Visible = false,
 			ZIndex = 6,
 		})
-		-- a pale shine along the picture's top
-		blob(root, {
-			Position = UDim2.fromOffset(A_FRAME + 3, A_FRAME + 1),
-			Size = UDim2.fromOffset(A_INNER - 6, 1.2),
-			BackgroundColor3 = Kit.White,
-			BackgroundTransparency = 0.5,
-			ZIndex = 7,
+		local number = Kit.word(root, {
+			Name = "Number",
+			Text = tostring(i),
+			TextSize = if i >= 10 then 10 else 11.5,
+			Pal = Kit.LockedPal,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, -2, 1, 3),
+			ZIndex = 12, -- over the lock (8 to 14 for its burst)
 		})
 		tiles[i] = {
 			root = root,
-			scale = scale,
-			rim = rim,
+			border = border,
+			outer = outer,
 			clip = clip,
+			colour = full,
 			edge = edge,
-			lock = padlock(root, 8, lockLook), -- under the number (9 to 11)
-			tick = tick(root, 12),
-			number = number(root, i, options.Numbers, 9),
+			lock = lockOf(root, 8),
+			tick = tick(root, 17),
+			number = number,
+			size = A_TILE,
+			share = -1,
 			shown = -1,
+			lit = nil,
 			current = false,
 		}
 	end
 
-	-- E: the line under the pictures, and what is under it
-	local railFills: { Frame } = {}
-	local railYou: Frame? = nil
-	local railBest: Frame? = nil
-	local railBestMark: Frame? = nil
-	if lineLook == 3 then -- a dark tray behind the whole strip, as today's strip has
-		local tray: Kit.Style = table.clone(Kit.Themes.Navy)
-		tray.Radius = 9
-		Kit.panel(strip, {
-			Name = "Tray",
-			Position = UDim2.fromOffset(-5, -5),
-			Size = UDim2.new(1, 10, 0, A_TILE + 10),
-			ZIndex = 1,
-		}, tray)
-	elseif lineLook == 2 or lineLook == 5 then
-		local rail = blob(strip, {
-			Name = "Rail",
-			Position = UDim2.fromOffset(0, railY - 2),
-			Size = UDim2.fromOffset(A_WIDE, 4.5),
-			BackgroundColor3 = Kit.Deep,
-			BackgroundTransparency = 0.1,
-			ClipsDescendants = true,
-			ZIndex = 1,
-		}, 999)
-		Kit.stroke(rail, 1.4, Kit.Ink)
-		if lineLook == 2 then -- a piece under each land, filled in its colour as you go
-			for i = 1, COUNT do
-				railFills[i] = blob(rail, {
-					Position = UDim2.fromOffset((i - 1) * (A_TILE + A_GAP), 0),
-					Size = UDim2.fromOffset(0, 4.5),
-					BackgroundColor3 = Kit.lighter(Kit.Lands[i], 0.15),
-					ZIndex = 2,
-				})
-			end
-		else -- white to you, gold on to your best: the stretch to beat
-			railBest = blob(rail, { Size = UDim2.fromOffset(0, 4.5), BackgroundColor3 = Kit.Sun, ZIndex = 2 })
-			railYou = blob(rail, { Size = UDim2.fromOffset(0, 4.5), BackgroundColor3 = Kit.White, ZIndex = 3 })
-		end
-	elseif lineLook == 4 or lineLook == 6 then
-		local line = blob(strip, {
-			Name = "Rail",
-			Position = UDim2.fromOffset(0, railY - 0.75),
-			Size = UDim2.fromOffset(A_WIDE, 1.5),
-			BackgroundColor3 = Kit.Ink,
-			ZIndex = 1,
-		})
-		railYou = blob(line, {
-			Position = UDim2.fromOffset(0, -0.5),
-			Size = UDim2.fromOffset(0, 2.5),
-			BackgroundColor3 = Kit.White,
-			ZIndex = 2,
-		})
-		if lineLook == 4 then -- a dot at each border, the ends too
-			for i = 0, COUNT do
-				local x = if i == 0 then 0 elseif i == COUNT then A_WIDE else i * (A_TILE + A_GAP) - A_GAP / 2
-				railFills[i + 1] = blob(strip, {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.fromOffset(x, railY),
-					Size = UDim2.fromOffset(4.5, 4.5),
-					BackgroundColor3 = rgb(120, 132, 156),
-					ZIndex = 3,
-				}, 999, 1.2)
-			end
-		else -- a ruler: a tick each half land, a longer one at each border
-			for k = 0, COUNT * 2 do
-				local land = k / 2
-				local x = math.clamp(land * (A_TILE + A_GAP) - (if k % 2 == 0 then A_GAP / 2 else 0), 0, A_WIDE)
-				if k % 2 == 1 then
-					x = (math.floor(land)) * (A_TILE + A_GAP) + A_TILE / 2
-				end
-				railFills[k + 1] = blob(strip, {
-					AnchorPoint = Vector2.new(0.5, 0),
-					Position = UDim2.fromOffset(x, railY - 0.75),
-					Size = UDim2.fromOffset(1.5, if k % 2 == 0 then 5 else 3),
-					BackgroundColor3 = rgb(150, 160, 182),
-					ZIndex = 3,
-				})
-			end
-		end
-	end
-	if lineLook == 5 then
-		railBestMark = blob(strip, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromOffset(0, railY),
-			Size = UDim2.fromOffset(6, 6),
-			Rotation = 45,
-			BackgroundColor3 = Kit.Sun,
-			Visible = false,
-			ZIndex = 4,
-		}, 1, 1.2)
-	end
+	-- the bar under the pictures: white to you, then the gradient on to gold at your best
+	local rail = blob(strip, {
+		Name = "Rail",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(0, RAIL_Y),
+		Size = UDim2.fromOffset(A_WIDE, RAIL_HIGH),
+		BackgroundColor3 = Kit.Deep,
+		BackgroundTransparency = 0.2,
+		ZIndex = 1,
+	}, 999)
+	Kit.stroke(rail, 1, Kit.Ink)
+	local fill = blob(rail, {
+		Name = "Fill",
+		Size = UDim2.fromOffset(0, RAIL_HIGH),
+		BackgroundColor3 = Kit.White,
+		ZIndex = 2,
+	}, 999)
+	local fillShade: UIGradient = Kit.new("UIGradient", {}, fill)
 
-	-- A: your best. The holder sits at the best's x; what is in it depends on the look.
+	-- your best: Mix 3's gold diamond on the bar, BEST and the metres in gold under it
 	local best = Kit.new("Frame", {
 		Name = "Best",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Size = UDim2.fromOffset(6, A_TILE + 14),
-		Position = UDim2.fromOffset(0, -4),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(0, RAIL_Y),
+		Size = UDim2.fromOffset(8, 8),
 		BackgroundTransparency = 1,
 		Visible = false,
 		ZIndex = 20,
 	}, strip)
-	local tagFill, tagEdge, tagText = Kit.Deep, Kit.Sun, Kit.Sun
-	local tagBottom = A_TILE + 14 -- where under the holder's top the tag hangs
-	if bestLook == 2 then -- one solid gold bar with an ink edge
-		blob(best, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0),
-			Size = UDim2.new(0, 2.5, 1, 0),
-			BackgroundColor3 = Kit.Sun,
-			ZIndex = 20,
-		}, 999, 1.2)
-	elseif bestLook == 3 then -- a thin pole, the pennant on it does the talking
-		blob(best, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0),
-			Size = UDim2.new(0, 1.5, 1, 0),
-			BackgroundColor3 = Kit.White,
-			ZIndex = 20,
-		}, nil, 1)
-		tagFill, tagEdge, tagText = Kit.Sun, Kit.Ink, Kit.Ink
-		tagBottom = A_TILE + 9 -- clear of the lands' numbers
-	elseif bestLook == 4 then -- no line over the pictures: a gold notch under them
-		best.Size = UDim2.fromOffset(6, 10)
-		blob(best, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0, A_TILE + 5),
-			Size = UDim2.fromOffset(7, 7),
-			Rotation = 45,
-			BackgroundColor3 = Kit.Sun,
-			ZIndex = 20,
-		}, 1, 1.4)
-		tagBottom = A_TILE + 8
-	elseif bestLook == 5 then -- a column of gold light with a bright core
-		blob(best, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 3),
-			Size = UDim2.new(0, 8, 1, -6),
-			BackgroundColor3 = Kit.Sun,
-			BackgroundTransparency = 0.6,
-			ZIndex = 20,
-		}, 999)
-		blob(best, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0),
-			Size = UDim2.new(0, 2, 1, 0),
-			BackgroundColor3 = rgb(255, 246, 190),
-			ZIndex = 21,
-		}, 999)
-		tagFill, tagEdge, tagText = Kit.Sun, Kit.Ink, Kit.Ink
-	elseif bestLook == 6 then -- a gold star on the pictures' top edge, a dashed line from it
-		local star = Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0, 4),
-			Size = UDim2.fromOffset(10, 10),
-			BackgroundTransparency = 1,
-			ZIndex = 22,
-		}, best)
-		for _, turn in { 0, 45 } do
-			blob(star, {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromOffset(8, 8),
-				Rotation = turn,
-				BackgroundColor3 = Kit.Sun,
-				ZIndex = 22,
-			}, 1.5, 1.2)
-		end
-		local below = Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 10),
-			Size = UDim2.new(0, 6, 1, -10),
-			BackgroundTransparency = 1,
-			ZIndex = 20,
-		}, best)
-		dashes(below, A_TILE + 2, 1.5, Kit.Sun, 20)
-		tagFill, tagEdge, tagText = Kit.Sun, Kit.Ink, Kit.Ink
-	else -- 1: the yellow dashed line
-		dashes(best, A_TILE + 10, 2, Kit.Sun, 20)
-	end
-	local bestTag = Kit.new("Frame", {
-		Name = "Tag",
-		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.fromOffset(0, tagBottom),
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 12),
-		BackgroundColor3 = tagFill,
-		BackgroundTransparency = if tagFill == Kit.Deep then 0.1 else 0,
-		ZIndex = 20,
-	}, best)
-	Kit.corner(bestTag, if bestLook == 3 then 2 else 999)
-	Kit.stroke(bestTag, 1.5, tagEdge)
-	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5) }, bestTag)
-	local bestWords: TextLabel = Kit.new("TextLabel", {
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 12),
-		BackgroundTransparency = 1,
-		Font = Enum.Font.GothamBlack,
-		TextSize = 8,
-		TextColor3 = tagText,
-		Text = "BEST",
+	local diamond = blob(best, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(7, 7),
+		Rotation = 45,
+		BackgroundColor3 = Kit.White,
 		ZIndex = 21,
-	}, bestTag)
-	if tagText == Kit.Sun then
-		Kit.stroke(bestWords, 1.2, Kit.Ink)
-	end
-	if bestLook == 4 then -- just the words, outlined, no plate
-		bestTag.BackgroundTransparency = 1
-		local edgeStroke = bestTag:FindFirstChildOfClass("UIStroke")
-		if edgeStroke then
-			edgeStroke.Enabled = false
-		end
-		bestWords.TextSize = 8.5
-	end
+	}, 1.5, 1.4)
+	Kit.new("UIGradient", { Rotation = 45, Color = Kit.wordFill(Kit.GoldPal) }, diamond)
+	local bestWord = Kit.word(strip, {
+		Name = "BestWord",
+		Text = "BEST",
+		TextSize = 9,
+		Pal = Kit.GoldPal,
+		Glow = true,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromOffset(0, RAIL_Y + 4),
+		ZIndex = 22,
+	})
+	bestWord.root.Visible = false
 
-	-- B: you, a marker hanging from the line with your metres
-	local face = if youLook == 6 then FACE + 4 else FACE
+	-- you: your face in a black ring, the metres on a flat black oval under it
 	local marker = Kit.new("Frame", {
 		Name = "You",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromOffset(0, markerY),
-		Size = UDim2.fromOffset(face, face + 16),
+		Position = UDim2.fromOffset(0, RAIL_Y + 3),
+		Size = UDim2.fromOffset(FACE, FACE + 14),
 		BackgroundTransparency = 1,
 		ZIndex = 30,
 	}, strip)
-	local notch = blob(marker, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.fromOffset(6, 6),
-		Rotation = 45,
-		BackgroundColor3 = Kit.White,
-		ZIndex = 30,
-	}, 1, 1.5)
-	local ring: UIStroke? = nil
-	local disc: Frame
-	if youLook == 5 then -- no face: an arrow in the land's colour pointing up at the strip
-		notch.Visible = false
-		disc = blob(marker, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0),
-			Size = UDim2.fromOffset(12, 12),
-			Rotation = 45,
-			BackgroundColor3 = Kit.White,
-			ZIndex = 31,
-		}, 2.5, 2)
-		face = 10
-	else
-		disc = blob(marker, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0),
-			Size = UDim2.fromOffset(face, face),
-			BackgroundColor3 = Kit.White,
-			ZIndex = 31,
-		}, 999, 2)
-		if youLook == 6 then
-			ring = Kit.stroke(disc, 2.4, Kit.Sun)
-			local outer = blob(disc, {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.new(1, 6, 1, 6),
-				BackgroundTransparency = 1,
-				ZIndex = 30,
-			}, 999)
-			Kit.stroke(outer, 1.2, Kit.Ink)
-		elseif youLook == 3 then
-			ring = disc:FindFirstChildOfClass("UIStroke")
-			if ring then
-				ring.Thickness = 2.4
-			end
-		end
-		local headshot: ImageLabel = Kit.new("ImageLabel", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, -4, 1, -4),
-			BackgroundColor3 = rgb(61, 139, 240),
-			BorderSizePixel = 0,
-			ZIndex = 32,
-		}, disc)
-		Kit.corner(headshot, 999)
-		local player = Players.LocalPlayer
-		if player then
-			task.spawn(function()
-				local ok, image = pcall(function()
-					return Players:GetUserThumbnailAsync(
-						math.max(player.UserId, 1),
-						Enum.ThumbnailType.HeadShot,
-						Enum.ThumbnailSize.Size48x48
-					)
-				end)
-				if ok then
-					headshot.Image = image
-				end
-			end)
-		end
-	end
-	local bar = Kit.new("Frame", {
-		Name = "Metres",
+	local disc = blob(marker, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, face + 1),
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 12),
-		ZIndex = 31,
-	}, marker)
-	local barLook = Kit.dress(bar, {
-		Top = Kit.Navy,
-		Bottom = Kit.Ink,
-		Outline = Kit.Outline.Thin,
-		Radius = Kit.Radius.Round,
-		Bevel = false,
-	})
-	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5) }, bar)
-	local list = Kit.new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, 3),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, bar)
-	local barLand: TextLabel = Kit.text({
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 12),
-		TextSize = 7.5,
-		LayoutOrder = 1,
-		Visible = false,
-		ZIndex = 32,
-	}, bar)
-	local barText: TextLabel = Kit.new("TextLabel", {
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 12),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromOffset(FACE, FACE),
+		BackgroundColor3 = rgb(61, 139, 240),
+		ZIndex = 34,
+	}, 999)
+	Kit.stroke(disc, 2, Color3.new(0, 0, 0))
+	local headshot: ImageLabel = Kit.new("ImageLabel", {
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
-		Font = Enum.Font.GothamBlack,
-		TextSize = 8.5,
-		TextColor3 = Kit.White,
-		Text = "0 m",
-		LayoutOrder = 2,
-		ZIndex = 32,
-	}, bar)
-	Kit.stroke(barText, 1.3, Kit.Ink)
-	-- where the bar sits against the face, per look
-	local under = face + 13 -- how far under the marker's top it reaches, for the best tag to clear
-	if youLook == 2 then -- beside the face
-		bar.AnchorPoint = Vector2.new(0, 0.5)
-		bar.Position = UDim2.new(0.5, face / 2 - 2, 0, face / 2)
-		bar.ZIndex = 30
-		local pad = bar:FindFirstChildOfClass("UIPadding")
-		if pad then
-			pad.PaddingLeft = UDim.new(0, 6)
-		end
-		under = face
-	elseif youLook == 3 then -- big outlined metres, no bar: the words straight under the face
-		bar.Visible = false
-		for k, label in { barText, barLand } do
-			label.Parent = marker
-			label.AnchorPoint = Vector2.new(0.5, 0)
-			label.Position = UDim2.new(0.5, 0, 0, face - 1 + (k - 1) * 11)
-		end
-		barText.TextSize = 11
-		local textStroke = barText:FindFirstChildOfClass("UIStroke")
-		if textStroke then
-			textStroke.Thickness = 1.8
-		end
-		under = face + 11
-	elseif youLook == 4 then -- the face and the metres in one pill
-		disc.Size = UDim2.fromOffset(13, 13)
-		disc.AnchorPoint = Vector2.new(0, 0.5)
-		disc.Parent = bar
-		disc.LayoutOrder = 0
-		disc.Position = UDim2.new()
-		local discStroke = disc:FindFirstChildOfClass("UIStroke")
-		if discStroke then
-			discStroke.Thickness = 1.4
-		end
-		bar.Size = UDim2.fromOffset(0, 16)
-		barText.Size = UDim2.fromOffset(0, 16)
-		bar.Position = UDim2.new(0.5, 0, 0, 2)
-		local pad = bar:FindFirstChildOfClass("UIPadding")
-		if pad then
-			pad.PaddingLeft = UDim.new(0, 2)
-		end
-		under = 18
-	elseif youLook == 5 then
-		bar.Position = UDim2.new(0.5, 0, 0, 14)
-		under = 26
+		BorderSizePixel = 0,
+		ZIndex = 35,
+	}, disc)
+	Kit.corner(headshot, 999)
+	local player = Players.LocalPlayer
+	if player then
+		task.spawn(function()
+			local ok, image = pcall(function()
+				return Players:GetUserThumbnailAsync(
+					math.max(player.UserId, 1),
+					Enum.ThumbnailType.HeadShot,
+					Enum.ThumbnailSize.Size48x48
+				)
+			end)
+			if ok then
+				headshot.Image = image
+			end
+		end)
 	end
-	local _ = list
+	local OVAL_HIGH = 16
+	local oval = blob(marker, {
+		Name = "Oval",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, FACE - 1),
+		Size = UDim2.fromOffset(30, OVAL_HIGH),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.3,
+		ZIndex = 31,
+	}, 999)
+	local metresWord = Kit.word(oval, {
+		Name = "Metres",
+		Text = "0 m",
+		TextSize = 12,
+		Font = metresFont,
+		Pal = palOfLand(1),
+		Position = UDim2.new(0.5, 0, 0.5, 0.5),
+		ZIndex = 32,
+	})
+	local under = FACE - 1 + OVAL_HIGH -- how far under the marker's top it reaches, for the best's words to clear
 
 	local self = {}
-	local aLand, aMetres, aX, aBest, aSide, aRail = -1, -1, -1, -1, 0, -1
+	local aLand, aMetres, aX, aBest, aSide, aRail = -1, -1, -1, -1, 0, ""
 	local here = 0
+	local seen = 0 -- the deepest land this dive (0 on the dock), for the intros
+	local built = false
 
 	local function xOf(lands: number): number
 		local index = math.clamp(math.floor(lands), 0, COUNT - 1)
-		return index * (A_TILE + A_GAP) + math.clamp(lands - index, 0, 1) * A_TILE
+		return index * A_STEP + math.clamp(lands - index, 0, 1) * A_TILE
+	end
+
+	-- a tile's size (the land you are in is a size up); everything in it follows
+	local function sized(tile: Tile, size: number)
+		tile.size = size
+		tile.root.Size = UDim2.fromOffset(size, size)
+		tile.colour.Size = UDim2.fromOffset(size, size)
+		tile.shown = -1
 	end
 
 	local function reveal(i: number, share: number)
 		local tile = tiles[i]
 		share = math.clamp(share, 0, 1)
-		local px = math.floor(share * A_INNER * 4 + 0.5) / 4
+		tile.share = share
+		local px = math.floor(share * tile.size * 4 + 0.5) / 4
 		if px == tile.shown then
 			return
 		end
-		local was = tile.shown
 		tile.shown = px
-		tile.clip.Size = UDim2.fromOffset(px, A_INNER)
-		tile.edge.Visible = px > 0 and px < A_INNER
-		tile.edge.Position = UDim2.fromOffset(A_FRAME + px, A_FRAME)
-		tile.lock.Visible = px <= 0
-		tile.tick.Visible = px >= A_INNER
-		if (was <= 0) ~= (px <= 0) or was < 0 then
-			tile.number.set(px > 0)
+		tile.clip.Size = UDim2.fromOffset(px, tile.size)
+		tile.edge.Visible = px > 0 and px < tile.size
+		tile.edge.Position = UDim2.fromOffset(px, 0)
+		tile.tick.Visible = px >= tile.size
+	end
+
+	-- a land's lock and number: reached (by your best) or not; `animate` false on the strip's first update
+	local function reached(i: number, yes: boolean, animate: boolean)
+		local tile = tiles[i]
+		if tile.lit == yes then
+			return
+		end
+		tile.lit = yes
+		tile.number.paint(if yes then palOfLand(i) else Kit.LockedPal, yes and Kit.LandGlows[i] == true)
+		if yes then
+			if not broken[i] then
+				broken[i] = true
+				brokeAt[i] = os.clock()
+			end
+			if animate then
+				lockBreak(tile.lock)
+			else
+				lockGone(tile.lock)
+			end
 		end
 	end
 
-	-- E: the line's fill, from where you are (and your best on 5)
-	local function rail(reach: number, x: number, bx: number)
-		local key = math.floor(reach * 400) + math.floor(bx) * 10000
+	local function railFill(x: number, bx: number)
+		local key = x .. ":" .. bx
 		if key == aRail then
 			return
 		end
 		aRail = key
-		if lineLook == 2 then
-			for i = 1, COUNT do
-				railFills[i].Size = UDim2.fromOffset(math.clamp(reach - (i - 1), 0, 1) * (A_TILE + A_GAP), 4.5)
-			end
-		elseif lineLook == 4 or lineLook == 6 then
-			for k, dot in railFills do
-				local at = if lineLook == 4 then k - 1 else (k - 1) / 2
-				dot.BackgroundColor3 = if at <= reach + 0.001 then Kit.White else rgb(120, 132, 156)
-			end
+		local reach = math.max(x, bx)
+		fill.Size = UDim2.fromOffset(reach, RAIL_HIGH)
+		if reach <= 0 then
+			return
 		end
-		if railYou then
-			railYou.Size = UDim2.fromOffset(x, railYou.Size.Y.Offset)
-		end
-		if railBest then
-			railBest.Size = UDim2.fromOffset(math.max(bx, x), 4.5)
-		end
-		if railBestMark then
-			railBestMark.Visible = bx > 0
-			railBestMark.Position = UDim2.fromOffset(bx, railY)
+		local you = math.clamp(x / reach, 0.001, 0.998)
+		if bx <= x + 0.5 then
+			fillShade.Color = ColorSequence.new(Kit.White)
+		else
+			fillShade.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Kit.White),
+				ColorSequenceKeypoint.new(you, Kit.White),
+				ColorSequenceKeypoint.new(math.min(you + (1 - you) * 0.25, 0.999), rgb(255, 244, 196)),
+				ColorSequenceKeypoint.new(1, Kit.GoldPal.Mid),
+			})
 		end
 	end
 
-	function self.place(phone: boolean)
-		barLand.Visible = phone or youLook == 6
+	local function intro(land: number, landName: string, metres: number, isNew: boolean)
+		local look = options.Intro or setting("LandIntroLook", Kit.LandIntroLook)
+		if look == 0 or not strip.Parent then
+			return
+		end
+		local layer = strip.Parent :: Instance
+		local args: IntroArgs = { land = land, name = landName, metres = metres, new = isNew }
+		if look == 2 then
+			introBanner(layer, args)
+		elseif look == 3 then
+			local tile = tiles[land].root
+			-- the tile's centre in the layer's own units (the HUD is scaled)
+			local layerGui = layer :: GuiObject
+			local k = if strip.AbsoluteSize.X > 0 then strip.AbsoluteSize.X / A_WIDE else 1
+			local at = (tile.AbsolutePosition + tile.AbsoluteSize / 2 - layerGui.AbsolutePosition) / k
+			introFly(layer, args, at, options.Atlas)
+		elseif look == 4 then
+			local y = strip.Position.Y.Offset + RAIL_Y + 3 + under + 14
+			introSubtitle(layer, args, y)
+		elseif look == 5 then
+			introFlash(layer, args)
+		else
+			introPunch(layer, args)
+		end
+	end
+	self.intro = intro
+
+	function self.place(_phone: boolean)
 		aBest = -1
 	end
 
@@ -1354,7 +1243,6 @@ buildA = function(parent: Instance, options: Options): any
 		strip.Visible = true
 		local at = math.max(land, 1)
 		here = if land >= 1 then land - 1 + math.clamp(along, 0, 1) else 0
-		local player = Players.LocalPlayer
 		if player and not options.Fixed then
 			local served = player:GetAttribute("BestLands")
 			if typeof(served) == "number" then
@@ -1362,7 +1250,12 @@ buildA = function(parent: Instance, options: Options): any
 				bestMetres = (player:GetAttribute("BestMetres") :: number?) or bestMetres
 			end
 		end
-		local reach = if options.Reveal == "Best" then math.max(here, bestLands) else here
+		-- the locks, by your best (not where you are now)
+		for i = 1, COUNT do
+			local yes = broken[i] == true or bestLands > i - 1
+			reached(i, yes, built)
+		end
+		local reach = if options.Reveal == "Dive" then here else math.max(here, bestLands)
 		for i = 1, COUNT do
 			reveal(i, reach - (i - 1))
 		end
@@ -1372,71 +1265,59 @@ buildA = function(parent: Instance, options: Options): any
 				local now = i == land
 				if now ~= tile.current then
 					tile.current = now
-					tile.scale.Scale = if now then A_POP else 1
-					tile.rim.Enabled = now
+					sized(tile, if now then A_BIG else A_TILE)
+					tile.border.Color = if now then Kit.White else Kit.Ink
+					tile.outer.Visible = now
 					tile.root.ZIndex = if now then 10 else 2
+					reveal(i, tile.share)
 				end
 			end
-			local colour = Kit.Lands[math.clamp(at, 1, COUNT)]
-			barLook.paint(Kit.darker(colour, 0.38), Kit.darker(colour, 0.72))
-			barLand.Text = string.upper(landName)
-			barLand.TextColor3 = Kit.lighter(colour, 0.35)
-			if youLook == 3 then
-				barText.TextColor3 = Kit.lighter(colour, 0.55)
-			end
-			if youLook == 3 and ring then
-				ring.Color = Kit.lighter(colour, 0.1)
-			elseif youLook == 5 then
-				disc.BackgroundColor3 = Kit.lighter(colour, 0.5)
+			metresWord.paint(palOfLand(at), Kit.LandGlows[at] == true)
+			-- the intro: a land deeper than any yet this dive, not the one it starts in
+			if land < 1 then
+				seen = 0
+			elseif seen == 0 or not built then
+				seen = land
+			elseif land > seen then
+				seen = land
+				-- new: never reached before (the server's best often catches up a moment after you get there)
+				local isNew = not broken[land] or os.clock() - (brokeAt[land] or -10) < 1
+				intro(land, landName, metres, isNew)
 			end
 		end
+		built = true
 		local whole = math.floor(metres)
 		if whole ~= aMetres then
 			aMetres = whole
-			barText.Text = grouped(whole) .. " m"
+			metresWord.set(grouped(whole) .. " m")
+			oval.Size = UDim2.fromOffset(math.max(metresWord.wide + 10, 26), OVAL_HIGH)
 		end
 		local x = math.floor(xOf(here) * 4 + 0.5) / 4
 		if x ~= aX then
 			aX = x
-			marker.Position = UDim2.fromOffset(x, markerY)
+			marker.Position = UDim2.fromOffset(x, RAIL_Y + 3)
 		end
 		local bestWhole = math.floor(bestMetres)
-		local bx = xOf(bestLands)
-		rail(here, x, if bestWhole > 0 then bx else 0)
-		-- the tag hangs on the side away from you, so the two never cover each other; when you are at the line (on
-		-- your way to a new best) it hangs centred under your metres instead
-		local side = if math.abs(x - bx) < 48 then 0 elseif x > bx then -1 else 1
+		local bx = math.floor(xOf(bestLands) * 4 + 0.5) / 4
+		railFill(x, if bestWhole > 0 then bx else 0)
+		-- BEST hangs under the diamond; when you are close to it (on your way to a new best) it hangs under your
+		-- metres instead, so the two never cover each other
+		local side = if math.abs(x - bx) < 40 then 0 else 1
 		if bestWhole ~= aBest or side ~= aSide then
 			aBest = bestWhole
 			aSide = side
 			best.Visible = bestWhole > 0
-			best.Position = UDim2.fromOffset(bx, -4)
-			bestWords.Text = "BEST " .. grouped(bestWhole) .. " m"
-			-- under your marker's metres when the two meet
-			local drop = if side == 0 then math.max(markerY + under + 3 + 4 - tagBottom, 0) else 0
-			-- kept inside the strip at its two ends
-			if side == 0 then
-				local shift = math.clamp(bx, 34, A_WIDE - 34) - bx
-				bestTag.AnchorPoint = Vector2.new(0.5, 0)
-				bestTag.Position = UDim2.new(0.5, shift, 0, tagBottom + drop)
-			elseif bestLook == 3 then -- a pennant flies from the pole, away from you
-				if side < 0 or bx > A_WIDE - 50 then
-					bestTag.AnchorPoint = Vector2.new(1, 0)
-					bestTag.Position = UDim2.new(0.5, -0.75, 0, tagBottom)
-				else
-					bestTag.AnchorPoint = Vector2.new(0, 0)
-					bestTag.Position = UDim2.new(0.5, 0.75, 0, tagBottom)
-				end
-			elseif bestLook == 2 or bestLook == 4 then -- centred under the line or the notch
-				local shift = math.clamp(bx, 34, A_WIDE - 34) - bx
-				bestTag.AnchorPoint = Vector2.new(0.5, 0)
-				bestTag.Position = UDim2.new(0.5, shift, 0, tagBottom)
-			elseif side < 0 or bx > A_WIDE - 50 then
-				bestTag.AnchorPoint = Vector2.new(1, 0)
-				bestTag.Position = UDim2.new(0.5, 3, 0, tagBottom)
-			else
-				bestTag.AnchorPoint = Vector2.new(0, 0)
-				bestTag.Position = UDim2.new(0.5, -3, 0, tagBottom)
+			bestWord.root.Visible = bestWhole > 0
+			best.Position = UDim2.fromOffset(bx, RAIL_Y)
+			bestWord.set("BEST " .. grouped(bestWhole) .. " m")
+		end
+		if bestWhole > 0 then
+			local half = bestWord.wide / 2 + 1
+			local wordAt = if side == 0
+				then UDim2.fromOffset(math.clamp(x, half, A_WIDE - half), RAIL_Y + 3 + under + 1)
+				else UDim2.fromOffset(math.clamp(bx, half, A_WIDE - half), RAIL_Y + 4)
+			if bestWord.root.Position ~= wordAt then
+				bestWord.root.Position = wordAt
 			end
 		end
 	end
@@ -1446,7 +1327,7 @@ buildA = function(parent: Instance, options: Options): any
 	return self
 end
 
--- For the options sheets and tests: another strip of style 1 under `parent`, with its own options
+-- For the option sheets and tests: another strip of style 1 under `parent`, with its own options (its locks its own)
 function LandStrip.preview(parent: Instance, options: Options): any
 	return buildA(parent, options)
 end

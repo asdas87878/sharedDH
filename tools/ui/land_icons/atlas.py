@@ -4,7 +4,8 @@ darkens both, so a locked land is its own picture, desaturated and darker), 2 an
 very blurred (Kit.LandLocked.Blur 1 and 2: a Roblox ImageLabel cannot blur, so the blur is baked in here).
     python tools/ui/land_icons/atlas.py [--studio] [--picks picks.json] [--gen 1-4]
 writes docs/attachments/land-icons/land_atlas.png (the file to upload once Hugo has picked the pictures) and, with --studio, a copy in
-Studio's own content folder (rbxasset://textures/ridefish/land_atlas.png), for tests in Studio without an upload.
+Studio's own content folder (rbxasset://textures/ridefish/land_atlas.png, and with --gen k also land_atlas_g<k>.png,
+which the game reads in Studio), for tests in Studio without an upload.
 """
 import json
 import shutil
@@ -58,4 +59,8 @@ if __name__ == "__main__":
             studio = version / "content/textures/ridefish"
             studio.mkdir(parents=True, exist_ok=True)
             shutil.copy(OUT, studio / "land_atlas.png")
+            # also under the set's own name: Studio keeps a picture it has loaded until it restarts, so a new name
+            # shows a rebuilt atlas at once (Kit.LandAtlasStudio reads land_atlas_g4.png since task l1)
+            if gen:
+                shutil.copy(OUT, studio / f"land_atlas_g{gen}.png")
             print("copied to", studio)

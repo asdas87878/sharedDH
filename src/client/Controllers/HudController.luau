@@ -350,7 +350,10 @@ local function update(dt: number)
 			landSeen = land
 		elseif land > landSeen then
 			landSeen = land
-			Banners.land(land, zone.Name, Kit.Lands[math.clamp(land, 1, #Kit.Lands)])
+			-- the strip plays its own intro instead, unless it is off (Kit.LandIntroLook, task l1)
+			if Kit.LandStripStyle ~= 1 or Kit.LandIntroLook == 0 then
+				Banners.land(land, zone.Name, Kit.Lands[math.clamp(land, 1, #Kit.Lands)])
+			end
 		end
 	elseif mode == "Dock" then
 		landSeen = 0
