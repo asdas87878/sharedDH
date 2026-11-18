@@ -53,7 +53,35 @@ local function rebuild(json: string)
 	if not ok then
 		return
 	end
+	report("rebuild " .. #cells .. " atlas=" .. tostring(workspace:GetAttribute("LandAtlas")))
 	for _, cell in cells do
+		if cell.game then
+			-- in the game's own HUD, in place of its strip (which is hidden while this one is up)
+			local root = player.PlayerGui:FindFirstChild("RideHud") and player.PlayerGui.RideHud:FindFirstChild("Root")
+			if root then
+				local o = cell.o or {}
+				local okGame, strip = pcall(LandStrip.preview, root, {
+					Numbers = o.Numbers or 2,
+					Reveal = o.Reveal or "Dive",
+					Atlas = workspace:GetAttribute("LandAtlas") or "rbxasset://textures/ridefish/land_atlas.png",
+					Fixed = true,
+					Best = o.Best,
+					You = o.You,
+					Lock = o.Lock,
+					Line = o.Line,
+					Dark = o.Dark,
+					Saturation = o.Saturation,
+					Blur = o.Blur,
+				})
+				if okGame then
+					strip.root.Name = "LandStripMix"
+					table.insert(built, { holder = strip.root, strip = strip, st = cell.st or {}, game = true })
+				else
+					report("game build: " .. tostring(strip))
+				end
+			end
+			continue
+		end
 		local holder = Instance.new("Frame")
 		holder.Position = UDim2.fromOffset(cell.x, cell.y)
 		holder.Size = UDim2.fromOffset(310, 100)
@@ -110,6 +138,26 @@ RunService.RenderStepped:Connect(function()
 		rebuild(json)
 	end
 	back.BackgroundTransparency = RS:GetAttribute("OptBack") or 0
+	local hud = player.PlayerGui:FindFirstChild("RideHud")
+	local original = hud and hud:FindFirstChild("Root") and hud.Root:FindFirstChild("LandStrip")
+	local mixing = false
+	for _, c in built do
+		if c.game then
+			mixing = true
+			local at = c.holder.AbsolutePosition
+			local size = c.holder.AbsoluteSize
+			local inset = if hud and not hud.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset() else Vector2.zero
+			local spot = string.format("%d,%d,%d,%d", at.X + inset.X, at.Y + inset.Y, size.X, size.Y)
+			if spot ~= c.spot then
+				c.spot = spot
+				report("spot " .. spot)
+			end
+		end
+	end
+	if original then
+		-- moved off screen, not hidden: the game's own update shows its strip every frame
+		original.Position = if mixing then UDim2.new(0.5, 0, 0, -2000) else UDim2.new(0.5, 0, 0, 10)
+	end
 	for _, c in built do
 		local st = c.st
 		if c.failed then

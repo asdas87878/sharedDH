@@ -1016,7 +1016,7 @@ buildA = function(parent: Instance, options: Options): any
 			ZIndex = 20,
 		}, nil, 1)
 		tagFill, tagEdge, tagText = Kit.Sun, Kit.Ink, Kit.Ink
-		tagBottom = A_TILE + 4
+		tagBottom = A_TILE + 9 -- clear of the lands' numbers
 	elseif bestLook == 4 then -- no line over the pictures: a gold notch under them
 		best.Size = UDim2.fromOffset(6, 10)
 		blob(best, {
@@ -1134,12 +1134,12 @@ buildA = function(parent: Instance, options: Options): any
 		notch.Visible = false
 		disc = blob(marker, {
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 1),
-			Size = UDim2.fromOffset(11, 11),
+			Position = UDim2.new(0.5, 0, 0, 0),
+			Size = UDim2.fromOffset(12, 12),
 			Rotation = 45,
 			BackgroundColor3 = Kit.White,
 			ZIndex = 31,
-		}, 2.5, 1.6)
+		}, 2.5, 2)
 		face = 10
 	else
 		disc = blob(marker, {
@@ -1387,7 +1387,7 @@ buildA = function(parent: Instance, options: Options): any
 			if youLook == 3 and ring then
 				ring.Color = Kit.lighter(colour, 0.1)
 			elseif youLook == 5 then
-				disc.BackgroundColor3 = Kit.lighter(colour, 0.25)
+				disc.BackgroundColor3 = Kit.lighter(colour, 0.5)
 			end
 		end
 		local whole = math.floor(metres)
