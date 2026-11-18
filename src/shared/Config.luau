@@ -1507,6 +1507,15 @@ Config.Sandbox = {
 	StartRoom = 34, -- with this much water above the herd, so a jump has room to rise
 }
 
+-- The admin panel for playtesting (key P; AdminService, docs/sandbox.md "The admin panel"). Open to everyone in
+-- Studio, and in a live server to the place's owner and these user ids. The server checks it on every action.
+Config.Admin = {
+	Users = {} :: { number }, -- user ids allowed besides the owner
+	Owner = 1, -- 1: the place's owner (a user, or a group's owner) is allowed; 0: only the list
+	Maxes = { 200, 500, 2000, 4500, 8000 } :: { number }, -- the max Oxygen buttons (past 2000: the extra thin rings)
+	Coins = { 1000, 100000 } :: { number }, -- the coin buttons
+}
+
 Config.Net = {
 	RangeSlack = 1.3, -- the server allows this much more than the hook's reach (1.2 until 2026-11-17: the lock's leeway, Lock.LingerReach, lets a grab reach 1.12 times as far; it sees the player and the fish a moment apart; 1.1 until 2026-11-11: at the faster air speed a grab at the full 130 studs was refused in Studio)
 	ReachLag = 0.2, -- and it reads the hop's speed, for that reach, as it was this long before (the reach shrinks as the hop stalls, and the grab's word arrives late)

@@ -413,6 +413,24 @@ local function test(op: string, userId: number, a: any, b: any): any
 	})
 end
 
+-- The admin panel (AdminService, which has checked the player is allowed): every sub bought, for nothing, and the
+-- best one equipped
+function SubService.unlockAll(player: Player)
+	local sub = subs[player]
+	if not sub then
+		return
+	end
+	local top = math.min(#Config.Sub.Prices, lands() - 1)
+	if top <= sub.Tier then
+		return
+	end
+	sub.Tier = top
+	sub.Equip = top
+	sub.Dest = top + 1
+	tell(player, sub)
+	Net.Ride:FireClient(player, "SubBought", top)
+end
+
 function SubService.Init()
 	RideService.Diving = diving
 	Net.Action.OnServerEvent:Connect(function(player, action, a, b)

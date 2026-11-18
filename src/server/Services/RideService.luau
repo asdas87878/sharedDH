@@ -123,8 +123,12 @@ local function now(): number
 	return workspace:GetServerTimeNow()
 end
 
--- The movement sandbox's switches (Studio only; SandboxService sets the attributes)
-local function sandbox(flag: string): boolean
+-- The movement sandbox's switches (Studio only; SandboxService sets the attributes), or the same switch from the admin
+-- panel for this rider alone (AdminService: the player attributes AdminNoFail and AdminEndlessAir, server-set)
+local function sandbox(flag: string, r: Rider?): boolean
+	if r and r.Player:GetAttribute("Admin" .. flag) == true then
+		return true
+	end
 	return RunService:IsStudio()
 		and workspace:GetAttribute("Sandbox") == true
 		and workspace:GetAttribute("Sandbox" .. flag) == true
@@ -350,7 +354,7 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	-- Too strong for us? Decided here, at the mount, by the land the fish is in: a landing is never refused, the meter
 	-- just empties at once (Oxygen.StrainTime). Riding a fish we can hold on into a deeper land only costs that land's
 	-- drain.
-	r.Strained = Config.strained(zoneOf(w.Root.Position), w.Type.Tier, r.Max) and not sandbox("EndlessAir")
+	r.Strained = Config.strained(zoneOf(w.Root.Position), w.Type.Tier, r.Max) and not sandbox("EndlessAir", r)
 	r.Player:SetAttribute("Strained", if r.Strained then true else nil)
 	r.Tame = if r.Tamed[w] then 1 else 0
 	if landing then
@@ -454,8 +458,8 @@ local function die(r: Rider, state: string, length: number, thrown: boolean, qui
 end
 
 -- No failing (Config.Death.On 0, or the sandbox's NoFail): nothing ends the dive
-local function noFail(): boolean
-	return Config.Death.On == 0 or sandbox("NoFail")
+local function noFail(r: Rider): boolean
+	return Config.Death.On == 0 or sandbox("NoFail", r)
 end
 
 -- Out of Oxygen: on a fish it bucks and throws you off first (everyone's clients animate both), then you drown: the
@@ -463,7 +467,7 @@ end
 local function drown(r: Rider)
 	local d = Config.Death
 	local w = r.Fish
-	if noFail() then
+	if noFail(r) then
 		-- thrown off (or not) and left floating with a whole meter, to go on
 		if w then
 			local model = w.Model
@@ -528,7 +532,7 @@ local function miss(r: Rider)
 	-- ride of the dive, costs nothing when it lands on nothing)
 	local forgiven = r.DiveHop and Config.Dive.ForgiveMiss > 0
 	r.DiveHop = false
-	if noFail() or forgiven then
+	if noFail(r) or forgiven then
 		-- the sandbox: left floating, to jump again
 		setState(r, "Free")
 		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
@@ -659,7 +663,7 @@ local function landOn(r: Rider, target: any)
 end
 
 local function drain(r: Rider, amount: number)
-	if sandbox("EndlessAir") then
+	if sandbox("EndlessAir", r) then
 		r.Oxygen = r.Max
 		return
 	end
@@ -696,7 +700,7 @@ end
 local function bump(r: Rider, cost: number, slow: number)
 	local c = Config.Crash
 	r.CrashReadyAt = os.clock() + c.Cooldown
-	if not sandbox("EndlessAir") then
+	if not sandbox("EndlessAir", r) then
 		r.Oxygen = math.max(math.min(r.Oxygen, c.Floor), r.Oxygen - r.Max * cost)
 	end
 	sendOxygen(r, true)
@@ -719,7 +723,7 @@ local function reward(
 )
 	r.BoostUntil = os.clock() + time
 	r.BoostMost = math.max(burst, 1)
-	if not sandbox("EndlessAir") then
+	if not sandbox("EndlessAir", r) then
 		r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * oxygen)
 	end
 	sendOxygen(r, true)
@@ -836,7 +840,7 @@ local function checkCrash(r: Rider, w: Wild)
 				if t >= r.BreakReadyAt then
 					r.BreakReadyAt = t + b.Cooldown
 					reward(r, w, "Smash", b.Burst, b.BurstTime, oxygen, nose, loose)
-				elseif oxygen > 0 and not sandbox("EndlessAir") then
+				elseif oxygen > 0 and not sandbox("EndlessAir", r) then
 					r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * oxygen)
 					sendOxygen(r, true)
 				end
@@ -1032,7 +1036,7 @@ local function tick(r: Rider, dt: number)
 				flat
 				and flat.Magnitude < o.DockRadius
 				and root.Position.Y > o.SurfaceY - 2
-				and not sandbox("NoFail")
+				and not sandbox("NoFail", r)
 			then
 				r.SurfacedAt = r.SurfacedAt or os.clock()
 				-- (a player who has not ridden yet this dive is given far longer: Config.Dive.FirstDockWait)
@@ -1168,10 +1172,18 @@ end
 
 -- The sandbox's reset: into the water at the lane's start, onto the nearest fish there if there is one
 -- (`fishId`, `variant`: the sandbox's "Ride": a fish of that kind is put at the start and it is the one we are seated on)
-function RideService.sandboxReset(player: Player, again: number?, fishId: string?, variant: string?)
+-- (`place`: somewhere else than the lane's start, with the way down there: the admin panel's land jump. An admin
+-- (the player attribute Admin, AdminService) may use it outside Studio too.)
+function RideService.sandboxReset(
+	player: Player,
+	again: number?,
+	fishId: string?,
+	variant: string?,
+	place: { At: Vector3, Along: Vector3 }?
+)
 	local r = riders[player]
 	local root, humanoid = parts(player)
-	if not r or not root or not humanoid or not RunService:IsStudio() then
+	if not r or not root or not humanoid or not (RunService:IsStudio() or player:GetAttribute("Admin") == true) then
 		return
 	end
 	if r.Fish then
@@ -1181,6 +1193,9 @@ function RideService.sandboxReset(player: Player, again: number?, fishId: string
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
 	local at, along = RideService.sandboxStart()
+	if place then
+		at, along = place.At, place.Along
+	end
 	-- the fish round the start stay in the Workspace from now on (see SEAT_SETTLED): the first reset to a new start
 	-- waits for them, the next ones don't
 	FishService.keepNear(at)
@@ -1257,7 +1272,7 @@ function RideService.Init()
 			-- the sandbox's reset: the player's machine has put the character on the saddle of the fish we kept
 			local w = r.SandboxSeat
 			r.SandboxSeat = nil
-			if w and RunService:IsStudio() then
+			if w and (RunService:IsStudio() or player:GetAttribute("Admin") == true) then
 				local root = parts(player)
 				local near = root and (w.Root.Position - root.Position).Magnitude <= w.Body.Z / 2 + 40
 				local seated = r.State == "Free" and FishService.get(target) == w and near and mount(r, w, false)
@@ -1426,6 +1441,50 @@ function RideService.readMax()
 		end
 		sendOxygen(r, true)
 	end
+end
+
+-- The admin panel (AdminService, docs/sandbox.md; it has checked the player is allowed): a max Oxygen of exactly
+-- `max` (by the training on top of the start), the meter full
+function RideService.setMax(player: Player, max: number)
+	local r = riders[player]
+	if not r or max ~= max or max < 1 then
+		return
+	end
+	r.Trained = max - maxOxygen()
+	r.Max = max
+	r.Oxygen = r.Max
+	sendOxygen(r, true)
+end
+
+-- a fail now, from the water, whatever the no-fail switches say (on a fish: thrown off first, as out of Oxygen)
+function RideService.forceFail(player: Player): boolean
+	local r = riders[player]
+	if not r or (r.State ~= "Riding" and r.State ~= "Free" and r.State ~= "Jumping") then
+		return false
+	end
+	local d = Config.Death
+	local w = r.Fish
+	if w then
+		local model = w.Model
+		dismount(r, "OutOfOxygen", true)
+		Net.Fx:FireAllClients("ThrowOff", r.Player, model)
+		die(r, "Drowning", d.DrownTime, true)
+	else
+		die(r, "Drowning", d.DrownTime - d.Throw, false)
+	end
+	return true
+end
+
+-- and a fish put in the hands, as if caught on this dive (to be put in the tank like any catch)
+function RideService.giveCarried(player: Player, fish: Carry): boolean
+	local r = riders[player]
+	if not r then
+		return false
+	end
+	table.insert(r.Caught, fish.Id)
+	table.insert(r.Carried, { Id = fish.Id, Size = fish.Size, Variant = fish.Variant })
+	sendCaught(r)
+	return true
 end
 
 function RideService.Start()
