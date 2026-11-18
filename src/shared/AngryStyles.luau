@@ -89,6 +89,106 @@ function AngryStyles.of(fish: Config.FishType): Style
 	return AngryStyles.Styles[RideStyles.nameOf(fish.Id)] or AngryStyles.Styles.Cruiser
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- THE STRUGGLE ON THE OXYGEN TICKS (Hugo, 2026-11-18: "when a fish gets into the red zone and it plays the struggling
+-- animation, make sure the oxygen loss ticks are matched up with the animation of the fish"). A THRASH is each
+-- extreme of the struggle: the stand-in sine's top and bottom (a wag to each side, a nod up and a nod down), so one
+-- every half Beat, and where a style's slow-down has a cycle (Period = Beat) its deepest stall falls on it too.
+--   The server (RideService): while the fish is angry, the gap to the next tick is moved to a whole number of
+--   thrashes (AngryStyles.snapGap) when that moves it by at most Sync.Bend of itself; the Oxygen it takes per tick is
+--   never touched.
+--   The client (AngryController hears each "OxygenTick" and its gap, AngryStyles.tick): the struggle is phase-locked
+--   to the ticks: a thrash on the tick just heard and one on the next, with a whole number of thrashes between them
+--   (the Beat stretched or squeezed the rest of the way), so the two can't drift. motion() and speed() read that
+--   locked clock. Nothing is locked on the server, nor before the first tick: there they run on `t` as before.
+-- Numbers here, not in Config, while this belongs to the angry mode's files; they read live like Config's.
+AngryStyles.Sync = {
+	On = 1, -- 0: the struggle runs on its own clock again, and the server leaves the gaps alone
+	Bend = 0.2, -- the most the server moves a red-zone tick, as a share of its gap, to land it on a thrash
+	Pull = 10, -- how quickly the struggle catches a beat it is off (a late or early tick), per second
+}
+
+-- Seconds between two thrashes of a style, as authored
+function AngryStyles.thrashEvery(s: Style): number
+	return math.max(s.Beat, 0.05) / 2
+end
+
+-- How many thrashes a gap of `gap` seconds holds best (at least one): the whole number nearest by ratio, so the
+-- Beat is bent as little as it can be either way
+function AngryStyles.thrashesIn(s: Style, gap: number): number
+	local x = math.max(gap, 0.01) / AngryStyles.thrashEvery(s)
+	local n = math.max(1, math.floor(x))
+	if x >= 1 and x / n > (n + 1) / x then
+		n += 1
+	end
+	return n
+end
+
+-- The server's gap to the next tick while the fish is angry: a whole number of thrashes if that is within Sync.Bend
+-- of `gap` and not under `least` (Oxygen.Tick), else `gap` as it was
+function AngryStyles.snapGap(s: Style, gap: number, least: number): number
+	local sync = AngryStyles.Sync
+	if sync.On == 0 or gap <= 0 then
+		return gap
+	end
+	local snapped = AngryStyles.thrashesIn(s, gap) * AngryStyles.thrashEvery(s)
+	if snapped >= least and math.abs(snapped / gap - 1) <= sync.Bend then
+		return snapped
+	end
+	return gap
+end
+
+-- The client's lock (one: only the rider's own fish struggles on their screen)
+local lock = {
+	At = -1, -- os.clock() the last tick was heard (-1: none yet)
+	Gap = 0, -- seconds from it to the next, as the server said
+	Phase = 0, -- where the struggle is, in turns of its Beat (a thrash at 0.25 and 0.75)
+	Last = -1, -- the `t` it was last moved on at
+}
+
+-- A tick was just heard (Ride "OxygenTick"), the next due in `gap` seconds: lock the struggle to it
+function AngryStyles.tick(gap: number)
+	if gap > 0 then
+		lock.At = os.clock()
+		lock.Gap = gap
+	end
+end
+
+-- The thrash the struggle is locked to now: seconds between thrashes (the Beat bent to fit the ticks) and seconds
+-- to the next tick (0 to the gap), or nil with nothing locked. For animations that play by the beat (see below).
+function AngryStyles.beat(s: Style): (number?, number?)
+	if AngryStyles.Sync.On == 0 or lock.At < 0 then
+		return nil, nil
+	end
+	local every = lock.Gap / AngryStyles.thrashesIn(s, lock.Gap)
+	local since = os.clock() - lock.At
+	return every, lock.Gap - since % lock.Gap
+end
+
+-- The struggle's clock: `t` seconds into being angry, turned into where in its cycle the struggle is (seconds, as
+-- motion() and share() read time). Moved on once a frame (a second call at the same `t` gives the same).
+function AngryStyles.clock(s: Style, t: number): number
+	local every = AngryStyles.beat(s)
+	if not every then
+		return t
+	end
+	-- where a thrash on each tick puts the struggle now: a thrash (0.25) on the last tick heard, then one every `every`
+	local want = 0.25 + (os.clock() - lock.At) / (2 * every)
+	local dt = t - lock.Last
+	if lock.Last < 0 or dt < 0 or dt > 0.5 then
+		lock.Phase = want -- (a new stretch of anger, or a long pause: straight onto the beat)
+	else
+		lock.Phase += dt / (2 * every)
+		-- (off by part of a thrash: pulled to the nearest one, top or bottom, never a half turn round)
+		local off = (want - lock.Phase + 0.25) % 0.5 - 0.25
+		lock.Phase += off * Ease.alpha(AngryStyles.Sync.Pull, dt)
+	end
+	lock.Phase %= 1
+	lock.Last = t
+	return lock.Phase * math.max(s.Beat, 0.05)
+end
+----------------------------------------------------------------------------------------------------------------------
+
 -- The share of its speed a fish keeps `t` seconds into being angry, by the style's shape alone (Slow to Peak)
 function AngryStyles.share(s: Style, t: number): number
 	local period = math.max(s.Period, 0.05)
@@ -125,7 +225,8 @@ end
 -- Angry.HeatFrom of itself to whole), and a rarer fish loses more (Config.AngryTier). Never under Angry.Floor.
 function AngryStyles.speed(s: Style, t: number, heat: number, tier: string): number
 	local a = Config.Angry
-	local loss = 1 - AngryStyles.share(s, t)
+	-- (on the ticks' beat, AngryStyles.clock; a Fade isn't a cycle, it runs on `t`)
+	local loss = 1 - AngryStyles.share(s, if s.Shape == "Fade" then t else AngryStyles.clock(s, t))
 	if loss > 0 then
 		loss *= (Config.AngryTier[tier] or 1) * Ease.lerp(math.clamp(a.HeatFrom, 0, 1), 1, math.clamp(heat, 0, 1))
 	end
@@ -144,8 +245,14 @@ end
 -- It is here only so each style reads before there are animations. To replace it: set Angry.Motion to 0 and play an
 -- animation by the fish's "AngryStyle" attribute (set while its "Angry" attribute is true), in AnimController, the
 -- way a landing's reaction is played. Nothing else reads this block.
+-- Its thrashes (the sine's top and bottom) fall on the Oxygen ticks: it runs on AngryStyles.clock.
+-- FOR THE REAL ANIMATIONS (the partner's): mark each thrash in the struggle animation with a keyframe marker named
+-- "Thrash" (one or more a loop, evenly spaced). To keep them on the ticks, each frame: `every, toNext =
+-- AngryStyles.beat(style)`; play the track at speed (marker spacing in the animation) / every, and when a tick is heard
+-- (AngryStyles.tick, from AngryController) nudge TimePosition so the next "Thrash" is toNext seconds of play away.
+-- With no lock (nil), play it at its own speed. Docs: docs/design/riding-feel.md, "The struggle on the ticks".
 function AngryStyles.motion(s: Style, t: number): (number, number, number)
-	local wave = math.sin(2 * math.pi * t / math.max(s.Beat, 0.05))
+	local wave = math.sin(2 * math.pi * AngryStyles.clock(s, t) / math.max(s.Beat, 0.05))
 	return s.Pitch * wave, s.Yaw * wave, s.Roll * wave
 end
 ----------------------------------------------------------------------------------------------------------------------

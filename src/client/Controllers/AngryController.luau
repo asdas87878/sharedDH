@@ -5,14 +5,18 @@
 -- block stand-in's and a Gold's or a Rainbow's look (Shared/Variants) are never touched and there is nothing to put
 -- back; when the mode ends the red fades and the Highlight is switched off. Kept and used again, never more than
 -- there are angry fish (one a rider), and only moved while one is.
+-- It also hears the server's Oxygen ticks (Ride "OxygenTick" ... gap) and locks the struggle of the fish we ride to
+-- them (AngryStyles.tick: each tick lands on a thrash; Hugo, 2026-11-18).
 -- How fast it pulses comes from the rider's own Oxygen and MaxOxygen attributes (the server's, seen by everyone), so no
 -- extra word is sent for it.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local AngryStyles = require(game:GetService("ReplicatedStorage").Shared.AngryStyles)
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Ease = require(game:GetService("ReplicatedStorage").Shared.Ease)
+local Net = require(game:GetService("ReplicatedStorage").Shared.Net)
 
 local AngryController = {}
 
@@ -108,6 +112,12 @@ function AngryController.Start()
 		begin(fish)
 	end
 	RunService.RenderStepped:Connect(step)
+	-- every tick (and a fish too strong's): the struggle's next thrash on the next tick, `gap` seconds on
+	Net.Ride.OnClientEvent:Connect(function(what: string, _lost: any, _oxygen: any, gap: any)
+		if what == "OxygenTick" and type(gap) == "number" then
+			AngryStyles.tick(gap)
+		end
+	end)
 end
 
 return AngryController

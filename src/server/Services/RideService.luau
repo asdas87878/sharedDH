@@ -699,10 +699,17 @@ local function tickDrain(r: Rider, rate: number, dt: number, piece: number?, eve
 	if t < r.TickAt then
 		return
 	end
-	-- (one tick a frame at most; a long hitch doesn't take several at once)
-	r.TickAt = math.max(r.TickAt + gap, t + gap * 0.5)
 	local before = r.Oxygen
 	drain(r, size)
+	-- (angry after this tick: the next one a whole number of the struggle's thrashes away, if that bends the gap only
+	-- a little, AngryStyles.snapGap; the client locks the struggle to the ticks the rest of the way. Not on a fish too
+	-- strong: its StrainTime holds.)
+	local w = r.Fish
+	if not piece and w and r.State == "Riding" and isAngry(r, w) then
+		gap = AngryStyles.snapGap(AngryStyles.of(w.Type), gap, Config.Oxygen.Tick)
+	end
+	-- (one tick a frame at most; a long hitch doesn't take several at once)
+	r.TickAt = math.max(r.TickAt + gap, t + gap * 0.5)
 	local lost = before - r.Oxygen
 	if lost > 0 then
 		sendOxygen(r, true)
