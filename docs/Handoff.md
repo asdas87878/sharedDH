@@ -3,6 +3,27 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · Props break by size (NULLROOM task p1, Hugo's PC)
+**State:** in the game code, run in Hugo's Studio by script (ten runs: small fish through grass and into coral, a
+Reef Shark just bigger than a table coral, a Megalodon, the Sawfish as the Breaker). **Not played by hand.** StyLua
+passes; selene shows only the three old warnings. Nothing uploaded, the place not saved, the test scripts and the
+`TestMaxOxygen` attribute removed. The rule: [archetypes](design/archetypes.md), "Who breaks props"; the numbers:
+[the playtest](playtests/2026-11-18-props-by-size.md).
+- **One rule, `Config.propBreak`**, on the server (`PropService.hit`, prop by prop) and on the rider's screen
+  (`PropController`), comparing sizes (`Config.boxSize`: the cube root of a box's volume). The fish's is its real body
+  (BaseScale and rolled size in); the prop's is its bounding box, measured by the server and kept as `PropSize`.
+- **Small props** (`Props.SmallSize` 12: grass, stones, tiles) break for every fish, never slowing it.
+- **A bigger prop breaks for a bigger fish**, slowed to `Props.Slow` (0.5, was 0.8) when just bigger, easing to no
+  slow at `Props.ClearRatio` (2.5x) by `SlowCurve`; the Oxygen cost (`Props.Cost`) shrinks with it. A fish no bigger
+  goes through as before (the stun first).
+- **A Breaker breaks everything**, never slowed, and gets Oxygen for each prop (`Archetype.Breaker.Oxygen` 4%,
+  `SmallOxygen` 1%); the push keeps its cooldown, the Oxygen has none.
+- **Tanks and giants no longer break every prop when ridden.** Wild fish keep the old rule (`Config.breaks`,
+  `GiantVolume`): `FishService` was not touched.
+- **Outside the task's files:** `RideService.checkCrash` (the call to `PropService.hit` and the slow/Oxygen it pays).
+- **Test driver kept:** `tools/studio/props_p1/`. The old `props_b1` driver checks `Config.breaks` for ridden fish
+  and is out of date.
+
 ## 2026-11-18 · The Oxygen ring in ticks, the red zone's mark, extra rings, thinner outlines (NULLROOM task h1, Hugo's PC)
 **State:** in the game code, run in Hugo's Studio by script (a Common ridden at 4500 max with `Oxygen.KeepUp` 8 for a
 longer ride). **Not played by hand.** StyLua passes; selene shows only the three old warnings. Nothing uploaded, the

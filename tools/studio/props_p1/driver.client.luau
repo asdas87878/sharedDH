@@ -168,6 +168,10 @@ local function run(id, prefix, tier, attempt)
 		return cf.Position
 	end
 	table.clear(events)
+	local outBefore = {}
+	for _, box in CollectionService:GetTagged("PropOut") do
+		outBefore[box] = true
+	end
 	local stuns0 = PropController.Stats.Stuns
 	-- swim at it until the body touches its box
 	local speeds = {}
@@ -208,7 +212,7 @@ local function run(id, prefix, tier, attempt)
 	end
 	local oxygenBefore = player:GetAttribute("Oxygen") or -1
 	local least, leastAt = math.huge, 0
-	while os.clock() - touchAt < 1.5 and State.Mode == "Riding" do
+	while os.clock() - touchAt < 0.8 and State.Mode == "Riding" do
 		RunService.RenderStepped:Wait()
 		local v = fishRoot.AssemblyLinearVelocity.Magnitude
 		if v < least then
@@ -246,6 +250,20 @@ local function run(id, prefix, tier, attempt)
 		player:GetAttribute("MaxOxygen") or -1,
 		PropController.Stats.Stuns - stuns0
 	)
+	-- every prop broken in this run, with its size and what the rule says for it
+	settle(0.7)
+	local seen = {}
+	local list = {}
+	for _, box in CollectionService:GetTagged("PropOut") do
+		local model = box.Parent
+		if not outBefore[box] and model and not seen[model] then
+			seen[model] = true
+			local ps = model:GetAttribute("PropSize") or -1
+			local _, k = Config.propBreak(kind, fishSize, ps)
+			table.insert(list, string.format("%s %.1f keep %.2f", model.Name, ps, k))
+		end
+	end
+	log("  BROKE %s", table.concat(list, "; "))
 	aim = nil
 end
 

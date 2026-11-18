@@ -1432,10 +1432,12 @@ Config.Props = {
 	DebrisFar = 30, -- not at all from this far (0: never)
 	-- who breaks what, ridden (Hugo, 2026-11-18; Config.propBreak). A size is the cube root of a box's volume, studs:
 	-- a fish's after its kind's BaseScale and its rolled size, a prop's from its bounding box (PropService writes it
-	-- on the prop as PropSize). Sizes as measured: stones 4-8, floor tiles 5-9, sea grass 9-16, table coral and
-	-- crates about 22, boulders and sea stacks 30-45, corals, anemones and clams 40-60, kelp 45-80, masts, ribs and
-	-- skulls 70-115, the hull 120-140. Fish (Normal size): a Chromis 6, a Reef Shark 23, a Megalodon 52, a Blue Whale 59.
-	SmallSize = 16, -- a prop this size or smaller (grass, stones, tiles) breaks for any ridden fish, and slows it not at all
+	-- on the prop as PropSize). Sizes as measured in Studio (2026-11-18, grey-box 15): floor tiles 3-5, stones 4-7,
+	-- sea grass 5-9, table coral 15-21, crates 21-35, anchors, bone pillars and fan corals 22-40, boulders, sea stacks,
+	-- pillar and brain corals and tube clusters 26-51, coral trees, anemones, reef walls, masts and kelp 37-91, skulls
+	-- and ribs 65-77, the hulls 80-91. Fish, at Normal size (times 0.7 Tiny to 3 Colossal): a Blue Chromis 6, a
+	-- Clownfish 8, a Sawfish 17, a Reef Shark 23, a Great White 30, a Megalodon 52, a Blue Whale 59.
+	SmallSize = 12, -- a prop this size or smaller (grass, stones, tiles) breaks for any ridden fish, and slows it not at all
 	-- a bigger prop breaks for a fish bigger than it. How much of its speed it keeps: Slow when only just bigger,
 	-- easing up to all of it when ClearRatio times the prop's size or more (by SlowCurve: higher keeps more sooner)
 	Slow = 0.5, -- the rider's speed drops to this share for a fish only just bigger (it comes back over Crash.Recover)
