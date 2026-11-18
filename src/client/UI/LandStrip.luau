@@ -60,7 +60,23 @@ end
 -- top to bottom over a tile's own colour: full at the top, a little darker at its foot
 local SHADE = ColorSequence.new(Kit.White, Color3.fromRGB(176, 176, 190))
 
-local buildA: (parent: Instance, options: { Numbers: number, Reveal: string, Atlas: string, Fixed: boolean? }) -> any
+export type Options = {
+	Numbers: number,
+	Reveal: string,
+	Atlas: string,
+	Fixed: boolean?,
+	-- the switches of task s2 (Kit.LandBestLook, LandYouLook, LandLockLook, LandLineLook, LandLocked); nil = Kit's
+	Best: number?,
+	You: number?,
+	Lock: number?,
+	Line: number?,
+	Dark: number?,
+	Saturation: number?,
+	Blur: number?,
+	Tint: Color3?,
+}
+
+local buildA: (parent: Instance, options: Options) -> any
 local active: any = nil -- style 1's strip, when it is the one in use
 
 local function setting(name: string, default: any): any
@@ -85,6 +101,13 @@ function LandStrip.build(parent: Instance)
 				end
 				return atlas
 			end)(),
+			Best = setting("LandBestLook", Kit.LandBestLook),
+			You = setting("LandYouLook", Kit.LandYouLook),
+			Lock = setting("LandLockLook", Kit.LandLockLook),
+			Line = setting("LandLineLook", Kit.LandLineLook),
+			Dark = setting("LandDark", Kit.LandLocked.Dark),
+			Saturation = setting("LandSaturation", Kit.LandLocked.Saturation),
+			Blur = setting("LandBlur", Kit.LandLocked.Blur),
 		})
 		return
 	end
@@ -601,16 +624,10 @@ local function number(parent: Instance, land: number, style: number, z: number):
 	}
 end
 
--- The padlock on a land not reached: a white body and its shackle, ink edged
-local function padlock(parent: Instance, z: number): Frame
-	local lock = Kit.new("Frame", {
-		Name = "Lock",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 2, 0.5, -1),
-		Size = UDim2.fromOffset(12, 12),
-		BackgroundTransparency = 1,
-		ZIndex = z,
-	}, parent)
+-- The lock on a land not reached (Kit.LandLockLook, sheet C): centred on the picture, drawn under the land's number
+-- where the two meet (Hugo, 2026-11-18: "make the lock centered and if its corner clips with the number, layer it
+-- below the number").
+local function padlockShape(lock: Frame, z: number, body: Color3, edge: Color3, see: number, inkEdge: boolean)
 	local shackle = blob(lock, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0),
@@ -618,23 +635,103 @@ local function padlock(parent: Instance, z: number): Frame
 		BackgroundTransparency = 1,
 		ZIndex = z,
 	}, 999)
-	Kit.stroke(shackle, 3.4, Kit.Ink)
+	if inkEdge then
+		Kit.stroke(shackle, 3.4, edge, see)
+	end
 	local inner = blob(shackle, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = z + 1 }, 999)
-	Kit.stroke(inner, 1.6, Kit.White)
-	blob(lock, {
+	Kit.stroke(inner, 1.6, body, see)
+	local box = blob(lock, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromScale(0.5, 1),
 		Size = UDim2.fromOffset(10, 7),
-		BackgroundColor3 = Kit.White,
+		BackgroundColor3 = body,
+		BackgroundTransparency = see,
 		ZIndex = z + 2,
-	}, 2, 1.2)
+	}, 2)
+	if inkEdge then
+		Kit.stroke(box, 1.2, edge, see)
+	end
 	blob(lock, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -2),
 		Size = UDim2.fromOffset(1.5, 3),
-		BackgroundColor3 = Kit.Ink,
+		BackgroundColor3 = edge,
+		BackgroundTransparency = see,
 		ZIndex = z + 3,
 	})
+end
+
+local function padlock(parent: Instance, z: number, look: number): Frame
+	local lock = Kit.new("Frame", {
+		Name = "Lock",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(12, 12),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+	}, parent)
+	if look == 2 then -- gold
+		padlockShape(lock, z, rgb(255, 214, 80), rgb(84, 50, 8), 0, true)
+	elseif look == 3 then -- a small white padlock on a dark disc
+		local disc = blob(lock, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(16, 16),
+			BackgroundColor3 = Kit.Deep,
+			BackgroundTransparency = 0.15,
+			ZIndex = z,
+		}, 999)
+		Kit.stroke(disc, 1.2, Kit.White, 0.35)
+		local inside = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, -0.5),
+			Size = UDim2.fromOffset(12, 12),
+			BackgroundTransparency = 1,
+			ZIndex = z + 1,
+		}, lock)
+		Kit.new("UIScale", { Scale = 0.72 }, inside)
+		padlockShape(inside, z + 1, Kit.White, Kit.Deep, 0, false)
+	elseif look == 4 then -- quiet: see-through white, no ink, a little smaller
+		Kit.new("UIScale", { Scale = 0.85 }, lock)
+		padlockShape(lock, z, Kit.White, rgb(60, 70, 96), 0.3, false)
+	elseif look == 5 then -- a question mark
+		local mark: TextLabel = Kit.new("TextLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(16, 16),
+			BackgroundTransparency = 1,
+			Font = Enum.Font.GothamBlack,
+			Text = "?",
+			TextSize = 16,
+			TextColor3 = Kit.White,
+			ZIndex = z,
+		}, lock)
+		Kit.stroke(mark, 1.8, Kit.Ink)
+	elseif look == 6 then -- a keyhole in a white disc
+		local disc = blob(lock, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(14, 14),
+			BackgroundColor3 = Kit.White,
+			ZIndex = z,
+		}, 999, 1.4)
+		blob(disc, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, -1.5),
+			Size = UDim2.fromOffset(5, 5),
+			BackgroundColor3 = Kit.Ink,
+			ZIndex = z + 1,
+		}, 999)
+		blob(disc, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0.5, -0.5),
+			Size = UDim2.fromOffset(2.6, 5),
+			BackgroundColor3 = Kit.Ink,
+			ZIndex = z + 1,
+		}, 1)
+	else -- 1: the white padlock, ink edged
+		padlockShape(lock, z, Kit.White, Kit.Ink, 0, true)
+	end
 	return lock
 end
 
@@ -678,7 +775,37 @@ type Tile = {
 	current: boolean,
 }
 
-buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, Atlas: string, Fixed: boolean? }): any
+-- One dashed line of frames, top to bottom
+local function dashes(parent: Instance, length: number, wide: number, colour: Color3, z: number)
+	local DASH, SPACE = 3.5, 2.5
+	local y = 0
+	while y < length do
+		blob(parent, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, y),
+			Size = UDim2.fromOffset(wide, math.min(DASH, length - y)),
+			BackgroundColor3 = colour,
+			ZIndex = z,
+		}, nil, 1)
+		y += DASH + SPACE
+	end
+end
+
+buildA = function(parent: Instance, options: Options): any
+	local bestLook = options.Best or Kit.LandBestLook
+	local youLook = options.You or Kit.LandYouLook
+	local lockLook = options.Lock or Kit.LandLockLook
+	local lineLook = options.Line or Kit.LandLineLook
+	local dark = options.Dark or Kit.LandLocked.Dark
+	local saturation = options.Saturation or Kit.LandLocked.Saturation
+	local blur = math.clamp(math.floor(options.Blur or Kit.LandLocked.Blur), 0, 2)
+	local tint = options.Tint or Kit.LandLocked.Tint
+	local shade = Color3.new(tint.R * dark, tint.G * dark, tint.B * dark)
+
+	-- where the line under the pictures runs (E), and so where your marker hangs from
+	local railY = A_TILE + 5
+	local markerY = if lineLook == 1 then A_TILE + 4 else railY + 3
+
 	local strip = Kit.new("Frame", {
 		Name = "LandStrip",
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -700,33 +827,42 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		local scale = Kit.new("UIScale", {}, root)
 		local rim = Kit.stroke(root, 2, Kit.White)
 		rim.Enabled = false
-		-- the grey picture, then the colour one over it in a frame that grows from the left
-		local function picture(row: number, into: Instance, z: number): ImageLabel
-			local image: ImageLabel = Kit.new("ImageLabel", {
-				Position = UDim2.fromOffset(if row == 0 then 0 else A_FRAME, if row == 0 then 0 else A_FRAME),
-				Size = UDim2.fromOffset(A_INNER, A_INNER),
-				-- the land's colour (or its grey) shows until the pictures are uploaded
-				BackgroundColor3 = if row == 0 then colour else colour:Lerp(rgb(96, 104, 124), 0.75),
-				BorderSizePixel = 0,
-				Image = options.Atlas,
-				ImageRectOffset = Vector2.new((i - 1) * LAND_CELL, row * LAND_CELL),
-				ImageRectSize = Vector2.new(LAND_CELL, LAND_CELL),
-				ScaleType = Enum.ScaleType.Stretch,
-				ZIndex = z,
-			}, into)
+		-- one atlas cell: rows 0, 2, 4 the colour pictures sharp, soft and very soft, 1, 3, 5 their grey copies
+		local function picture(row: number, into: Instance, z: number, props: { [string]: any }): ImageLabel
+			props.Position = UDim2.fromOffset(if into == root then A_FRAME else 0, if into == root then A_FRAME else 0)
+			props.Size = UDim2.fromOffset(A_INNER, A_INNER)
+			props.BorderSizePixel = 0
+			props.Image = options.Atlas
+			props.ImageRectOffset = Vector2.new((i - 1) * LAND_CELL, row * LAND_CELL)
+			props.ImageRectSize = Vector2.new(LAND_CELL, LAND_CELL)
+			props.ScaleType = Enum.ScaleType.Stretch
+			props.ZIndex = z
+			local image: ImageLabel = Kit.new("ImageLabel", props, into)
 			Kit.corner(image, 3.5)
 			return image
 		end
-		picture(1, root, 3)
+		-- locked: the grey copy, the colour one over it at the saturation, both darkened (Kit.LandLocked). Without
+		-- the atlas, the land's colour the same way.
+		local flat = colour:Lerp(rgb(128, 128, 128), 1 - saturation)
+		picture(1 + blur * 2, root, 3, {
+			ImageColor3 = shade,
+			BackgroundColor3 = Color3.new(flat.R * shade.R, flat.G * shade.G, flat.B * shade.B),
+		})
+		picture(blur * 2, root, 4, {
+			ImageColor3 = shade,
+			ImageTransparency = 1 - saturation,
+			BackgroundTransparency = 1,
+		})
+		-- then the colour picture uncovered from the left
 		local clip = Kit.new("Frame", {
 			Name = "Reveal",
 			Position = UDim2.fromOffset(A_FRAME, A_FRAME),
 			Size = UDim2.fromOffset(0, A_INNER),
 			BackgroundTransparency = 1,
 			ClipsDescendants = true,
-			ZIndex = 4,
+			ZIndex = 5,
 		}, root)
-		picture(0, clip, 4)
+		picture(0, clip, 5, { BackgroundColor3 = colour })
 		-- the line where the colour meets the grey
 		local edge = blob(root, {
 			AnchorPoint = Vector2.new(0.5, 0),
@@ -735,7 +871,7 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 			BackgroundColor3 = Kit.White,
 			BackgroundTransparency = 0.25,
 			Visible = false,
-			ZIndex = 5,
+			ZIndex = 6,
 		})
 		-- a pale shine along the picture's top
 		blob(root, {
@@ -743,7 +879,7 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 			Size = UDim2.fromOffset(A_INNER - 6, 1.2),
 			BackgroundColor3 = Kit.White,
 			BackgroundTransparency = 0.5,
-			ZIndex = 6,
+			ZIndex = 7,
 		})
 		tiles[i] = {
 			root = root,
@@ -751,15 +887,107 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 			rim = rim,
 			clip = clip,
 			edge = edge,
-			lock = padlock(root, 7),
-			tick = tick(root, 7),
-			number = number(root, i, options.Numbers, 8),
+			lock = padlock(root, 8, lockLook), -- under the number (9 to 11)
+			tick = tick(root, 12),
+			number = number(root, i, options.Numbers, 9),
 			shown = -1,
 			current = false,
 		}
 	end
 
-	-- your best: a yellow dashed line through the strip, "BEST 1,240 m" hanging from its foot
+	-- E: the line under the pictures, and what is under it
+	local railFills: { Frame } = {}
+	local railYou: Frame? = nil
+	local railBest: Frame? = nil
+	local railBestMark: Frame? = nil
+	if lineLook == 3 then -- a dark tray behind the whole strip, as today's strip has
+		local tray: Kit.Style = table.clone(Kit.Themes.Navy)
+		tray.Radius = 9
+		Kit.panel(strip, {
+			Name = "Tray",
+			Position = UDim2.fromOffset(-5, -5),
+			Size = UDim2.new(1, 10, 0, A_TILE + 10),
+			ZIndex = 1,
+		}, tray)
+	elseif lineLook == 2 or lineLook == 5 then
+		local rail = blob(strip, {
+			Name = "Rail",
+			Position = UDim2.fromOffset(0, railY - 2),
+			Size = UDim2.fromOffset(A_WIDE, 4.5),
+			BackgroundColor3 = Kit.Deep,
+			BackgroundTransparency = 0.1,
+			ClipsDescendants = true,
+			ZIndex = 1,
+		}, 999)
+		Kit.stroke(rail, 1.4, Kit.Ink)
+		if lineLook == 2 then -- a piece under each land, filled in its colour as you go
+			for i = 1, COUNT do
+				railFills[i] = blob(rail, {
+					Position = UDim2.fromOffset((i - 1) * (A_TILE + A_GAP), 0),
+					Size = UDim2.fromOffset(0, 4.5),
+					BackgroundColor3 = Kit.lighter(Kit.Lands[i], 0.15),
+					ZIndex = 2,
+				})
+			end
+		else -- white to you, gold on to your best: the stretch to beat
+			railBest = blob(rail, { Size = UDim2.fromOffset(0, 4.5), BackgroundColor3 = Kit.Sun, ZIndex = 2 })
+			railYou = blob(rail, { Size = UDim2.fromOffset(0, 4.5), BackgroundColor3 = Kit.White, ZIndex = 3 })
+		end
+	elseif lineLook == 4 or lineLook == 6 then
+		local line = blob(strip, {
+			Name = "Rail",
+			Position = UDim2.fromOffset(0, railY - 0.75),
+			Size = UDim2.fromOffset(A_WIDE, 1.5),
+			BackgroundColor3 = Kit.Ink,
+			ZIndex = 1,
+		})
+		railYou = blob(line, {
+			Position = UDim2.fromOffset(0, -0.5),
+			Size = UDim2.fromOffset(0, 2.5),
+			BackgroundColor3 = Kit.White,
+			ZIndex = 2,
+		})
+		if lineLook == 4 then -- a dot at each border, the ends too
+			for i = 0, COUNT do
+				local x = if i == 0 then 0 elseif i == COUNT then A_WIDE else i * (A_TILE + A_GAP) - A_GAP / 2
+				railFills[i + 1] = blob(strip, {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromOffset(x, railY),
+					Size = UDim2.fromOffset(4.5, 4.5),
+					BackgroundColor3 = rgb(120, 132, 156),
+					ZIndex = 3,
+				}, 999, 1.2)
+			end
+		else -- a ruler: a tick each half land, a longer one at each border
+			for k = 0, COUNT * 2 do
+				local land = k / 2
+				local x = math.clamp(land * (A_TILE + A_GAP) - (if k % 2 == 0 then A_GAP / 2 else 0), 0, A_WIDE)
+				if k % 2 == 1 then
+					x = (math.floor(land)) * (A_TILE + A_GAP) + A_TILE / 2
+				end
+				railFills[k + 1] = blob(strip, {
+					AnchorPoint = Vector2.new(0.5, 0),
+					Position = UDim2.fromOffset(x, railY - 0.75),
+					Size = UDim2.fromOffset(1.5, if k % 2 == 0 then 5 else 3),
+					BackgroundColor3 = rgb(150, 160, 182),
+					ZIndex = 3,
+				})
+			end
+		end
+	end
+	if lineLook == 5 then
+		railBestMark = blob(strip, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(0, railY),
+			Size = UDim2.fromOffset(6, 6),
+			Rotation = 45,
+			BackgroundColor3 = Kit.Sun,
+			Visible = false,
+			ZIndex = 4,
+		}, 1, 1.2)
+	end
+
+	-- A: your best. The holder sits at the best's x; what is in it depends on the look.
 	local best = Kit.new("Frame", {
 		Name = "Best",
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -769,30 +997,96 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		Visible = false,
 		ZIndex = 20,
 	}, strip)
-	local DASH, SPACE = 3.5, 2.5
-	local y = 0
-	while y < A_TILE + 10 do
+	local tagFill, tagEdge, tagText = Kit.Deep, Kit.Sun, Kit.Sun
+	local tagBottom = A_TILE + 14 -- where under the holder's top the tag hangs
+	if bestLook == 2 then -- one solid gold bar with an ink edge
 		blob(best, {
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, y),
-			Size = UDim2.fromOffset(2, DASH),
+			Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.new(0, 2.5, 1, 0),
 			BackgroundColor3 = Kit.Sun,
 			ZIndex = 20,
+		}, 999, 1.2)
+	elseif bestLook == 3 then -- a thin pole, the pennant on it does the talking
+		blob(best, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.new(0, 1.5, 1, 0),
+			BackgroundColor3 = Kit.White,
+			ZIndex = 20,
 		}, nil, 1)
-		y += DASH + SPACE
+		tagFill, tagEdge, tagText = Kit.Sun, Kit.Ink, Kit.Ink
+		tagBottom = A_TILE + 4
+	elseif bestLook == 4 then -- no line over the pictures: a gold notch under them
+		best.Size = UDim2.fromOffset(6, 10)
+		blob(best, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0, A_TILE + 5),
+			Size = UDim2.fromOffset(7, 7),
+			Rotation = 45,
+			BackgroundColor3 = Kit.Sun,
+			ZIndex = 20,
+		}, 1, 1.4)
+		tagBottom = A_TILE + 8
+	elseif bestLook == 5 then -- a column of gold light with a bright core
+		blob(best, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 3),
+			Size = UDim2.new(0, 8, 1, -6),
+			BackgroundColor3 = Kit.Sun,
+			BackgroundTransparency = 0.6,
+			ZIndex = 20,
+		}, 999)
+		blob(best, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.new(0, 2, 1, 0),
+			BackgroundColor3 = rgb(255, 246, 190),
+			ZIndex = 21,
+		}, 999)
+		tagFill, tagEdge, tagText = Kit.Sun, Kit.Ink, Kit.Ink
+	elseif bestLook == 6 then -- a gold star on the pictures' top edge, a dashed line from it
+		local star = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0, 4),
+			Size = UDim2.fromOffset(10, 10),
+			BackgroundTransparency = 1,
+			ZIndex = 22,
+		}, best)
+		for _, turn in { 0, 45 } do
+			blob(star, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromOffset(8, 8),
+				Rotation = turn,
+				BackgroundColor3 = Kit.Sun,
+				ZIndex = 22,
+			}, 1.5, 1.2)
+		end
+		local below = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 10),
+			Size = UDim2.new(0, 6, 1, -10),
+			BackgroundTransparency = 1,
+			ZIndex = 20,
+		}, best)
+		dashes(below, A_TILE + 2, 1.5, Kit.Sun, 20)
+		tagFill, tagEdge, tagText = Kit.Sun, Kit.Ink, Kit.Ink
+	else -- 1: the yellow dashed line
+		dashes(best, A_TILE + 10, 2, Kit.Sun, 20)
 	end
 	local bestTag = Kit.new("Frame", {
 		Name = "Tag",
 		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.fromScale(0.5, 1),
+		Position = UDim2.fromOffset(0, tagBottom),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 12),
-		BackgroundColor3 = Kit.Deep,
-		BackgroundTransparency = 0.1,
+		BackgroundColor3 = tagFill,
+		BackgroundTransparency = if tagFill == Kit.Deep then 0.1 else 0,
 		ZIndex = 20,
 	}, best)
-	Kit.corner(bestTag, 999)
-	Kit.stroke(bestTag, 1.5, Kit.Sun)
+	Kit.corner(bestTag, if bestLook == 3 then 2 else 999)
+	Kit.stroke(bestTag, 1.5, tagEdge)
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5) }, bestTag)
 	local bestWords: TextLabel = Kit.new("TextLabel", {
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -800,22 +1094,33 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamBlack,
 		TextSize = 8,
-		TextColor3 = Kit.Sun,
+		TextColor3 = tagText,
 		Text = "BEST",
 		ZIndex = 21,
 	}, bestTag)
-	Kit.stroke(bestWords, 1.2, Kit.Ink)
+	if tagText == Kit.Sun then
+		Kit.stroke(bestWords, 1.2, Kit.Ink)
+	end
+	if bestLook == 4 then -- just the words, outlined, no plate
+		bestTag.BackgroundTransparency = 1
+		local edgeStroke = bestTag:FindFirstChildOfClass("UIStroke")
+		if edgeStroke then
+			edgeStroke.Enabled = false
+		end
+		bestWords.TextSize = 8.5
+	end
 
-	-- you: your avatar's face in a round frame, a notch pointing up at the strip, the metres on a bar under it
+	-- B: you, a marker hanging from the line with your metres
+	local face = if youLook == 6 then FACE + 4 else FACE
 	local marker = Kit.new("Frame", {
 		Name = "You",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromOffset(0, A_TILE + 4),
-		Size = UDim2.fromOffset(FACE, FACE + 16),
+		Position = UDim2.fromOffset(0, markerY),
+		Size = UDim2.fromOffset(face, face + 16),
 		BackgroundTransparency = 1,
 		ZIndex = 30,
 	}, strip)
-	blob(marker, {
+	local notch = blob(marker, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromOffset(6, 6),
@@ -823,41 +1128,72 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		BackgroundColor3 = Kit.White,
 		ZIndex = 30,
 	}, 1, 1.5)
-	local disc = blob(marker, {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.fromOffset(FACE, FACE),
-		BackgroundColor3 = Kit.White,
-		ZIndex = 31,
-	}, 999, 2)
-	local face: ImageLabel = Kit.new("ImageLabel", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -4, 1, -4),
-		BackgroundColor3 = rgb(61, 139, 240),
-		BorderSizePixel = 0,
-		ZIndex = 32,
-	}, disc)
-	Kit.corner(face, 999)
-	local player = Players.LocalPlayer
-	if player then
-		task.spawn(function()
-			local ok, image = pcall(function()
-				return Players:GetUserThumbnailAsync(
-					math.max(player.UserId, 1),
-					Enum.ThumbnailType.HeadShot,
-					Enum.ThumbnailSize.Size48x48
-				)
-			end)
-			if ok then
-				face.Image = image
+	local ring: UIStroke? = nil
+	local disc: Frame
+	if youLook == 5 then -- no face: an arrow in the land's colour pointing up at the strip
+		notch.Visible = false
+		disc = blob(marker, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 1),
+			Size = UDim2.fromOffset(11, 11),
+			Rotation = 45,
+			BackgroundColor3 = Kit.White,
+			ZIndex = 31,
+		}, 2.5, 1.6)
+		face = 10
+	else
+		disc = blob(marker, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.fromOffset(face, face),
+			BackgroundColor3 = Kit.White,
+			ZIndex = 31,
+		}, 999, 2)
+		if youLook == 6 then
+			ring = Kit.stroke(disc, 2.4, Kit.Sun)
+			local outer = blob(disc, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.new(1, 6, 1, 6),
+				BackgroundTransparency = 1,
+				ZIndex = 30,
+			}, 999)
+			Kit.stroke(outer, 1.2, Kit.Ink)
+		elseif youLook == 3 then
+			ring = disc:FindFirstChildOfClass("UIStroke")
+			if ring then
+				ring.Thickness = 2.4
 			end
-		end)
+		end
+		local headshot: ImageLabel = Kit.new("ImageLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, -4, 1, -4),
+			BackgroundColor3 = rgb(61, 139, 240),
+			BorderSizePixel = 0,
+			ZIndex = 32,
+		}, disc)
+		Kit.corner(headshot, 999)
+		local player = Players.LocalPlayer
+		if player then
+			task.spawn(function()
+				local ok, image = pcall(function()
+					return Players:GetUserThumbnailAsync(
+						math.max(player.UserId, 1),
+						Enum.ThumbnailType.HeadShot,
+						Enum.ThumbnailSize.Size48x48
+					)
+				end)
+				if ok then
+					headshot.Image = image
+				end
+			end)
+		end
 	end
 	local bar = Kit.new("Frame", {
 		Name = "Metres",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, FACE + 1),
+		Position = UDim2.new(0.5, 0, 0, face + 1),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, 12),
 		ZIndex = 31,
@@ -870,7 +1206,7 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		Bevel = false,
 	})
 	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5) }, bar)
-	Kit.new("UIListLayout", {
+	local list = Kit.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 		Padding = UDim.new(0, 3),
@@ -896,9 +1232,57 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		ZIndex = 32,
 	}, bar)
 	Kit.stroke(barText, 1.3, Kit.Ink)
+	-- where the bar sits against the face, per look
+	local under = face + 13 -- how far under the marker's top it reaches, for the best tag to clear
+	if youLook == 2 then -- beside the face
+		bar.AnchorPoint = Vector2.new(0, 0.5)
+		bar.Position = UDim2.new(0.5, face / 2 - 2, 0, face / 2)
+		bar.ZIndex = 30
+		local pad = bar:FindFirstChildOfClass("UIPadding")
+		if pad then
+			pad.PaddingLeft = UDim.new(0, 6)
+		end
+		under = face
+	elseif youLook == 3 then -- big outlined metres, no bar: the words straight under the face
+		bar.Visible = false
+		for k, label in { barText, barLand } do
+			label.Parent = marker
+			label.AnchorPoint = Vector2.new(0.5, 0)
+			label.Position = UDim2.new(0.5, 0, 0, face - 1 + (k - 1) * 11)
+		end
+		barText.TextSize = 11
+		local textStroke = barText:FindFirstChildOfClass("UIStroke")
+		if textStroke then
+			textStroke.Thickness = 1.8
+		end
+		under = face + 11
+	elseif youLook == 4 then -- the face and the metres in one pill
+		disc.Size = UDim2.fromOffset(13, 13)
+		disc.AnchorPoint = Vector2.new(0, 0.5)
+		disc.Parent = bar
+		disc.LayoutOrder = 0
+		disc.Position = UDim2.new()
+		local discStroke = disc:FindFirstChildOfClass("UIStroke")
+		if discStroke then
+			discStroke.Thickness = 1.4
+		end
+		bar.Size = UDim2.fromOffset(0, 16)
+		barText.Size = UDim2.fromOffset(0, 16)
+		bar.Position = UDim2.new(0.5, 0, 0, 2)
+		local pad = bar:FindFirstChildOfClass("UIPadding")
+		if pad then
+			pad.PaddingLeft = UDim.new(0, 2)
+		end
+		under = 18
+	elseif youLook == 5 then
+		bar.Position = UDim2.new(0.5, 0, 0, 14)
+		under = 26
+	end
+	local _ = list
 
 	local self = {}
-	local aLand, aMetres, aX, aBest, aSide = -1, -1, -1, -1, 0
+	local aLand, aMetres, aX, aBest, aSide, aRail = -1, -1, -1, -1, 0, -1
+	local here = 0
 
 	local function xOf(lands: number): number
 		local index = math.clamp(math.floor(lands), 0, COUNT - 1)
@@ -924,8 +1308,37 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		end
 	end
 
+	-- E: the line's fill, from where you are (and your best on 5)
+	local function rail(reach: number, x: number, bx: number)
+		local key = math.floor(reach * 400) + math.floor(bx) * 10000
+		if key == aRail then
+			return
+		end
+		aRail = key
+		if lineLook == 2 then
+			for i = 1, COUNT do
+				railFills[i].Size = UDim2.fromOffset(math.clamp(reach - (i - 1), 0, 1) * (A_TILE + A_GAP), 4.5)
+			end
+		elseif lineLook == 4 or lineLook == 6 then
+			for k, dot in railFills do
+				local at = if lineLook == 4 then k - 1 else (k - 1) / 2
+				dot.BackgroundColor3 = if at <= reach + 0.001 then Kit.White else rgb(120, 132, 156)
+			end
+		end
+		if railYou then
+			railYou.Size = UDim2.fromOffset(x, railYou.Size.Y.Offset)
+		end
+		if railBest then
+			railBest.Size = UDim2.fromOffset(math.max(bx, x), 4.5)
+		end
+		if railBestMark then
+			railBestMark.Visible = bx > 0
+			railBestMark.Position = UDim2.fromOffset(bx, railY)
+		end
+	end
+
 	function self.place(phone: boolean)
-		barLand.Visible = phone
+		barLand.Visible = phone or youLook == 6
 		aBest = -1
 	end
 
@@ -940,7 +1353,8 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 	)
 		strip.Visible = true
 		local at = math.max(land, 1)
-		local here = if land >= 1 then land - 1 + math.clamp(along, 0, 1) else 0
+		here = if land >= 1 then land - 1 + math.clamp(along, 0, 1) else 0
+		local player = Players.LocalPlayer
 		if player and not options.Fixed then
 			local served = player:GetAttribute("BestLands")
 			if typeof(served) == "number" then
@@ -967,6 +1381,14 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 			barLook.paint(Kit.darker(colour, 0.38), Kit.darker(colour, 0.72))
 			barLand.Text = string.upper(landName)
 			barLand.TextColor3 = Kit.lighter(colour, 0.35)
+			if youLook == 3 then
+				barText.TextColor3 = Kit.lighter(colour, 0.55)
+			end
+			if youLook == 3 and ring then
+				ring.Color = Kit.lighter(colour, 0.1)
+			elseif youLook == 5 then
+				disc.BackgroundColor3 = Kit.lighter(colour, 0.25)
+			end
 		end
 		local whole = math.floor(metres)
 		if whole ~= aMetres then
@@ -976,10 +1398,11 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 		local x = math.floor(xOf(here) * 4 + 0.5) / 4
 		if x ~= aX then
 			aX = x
-			marker.Position = UDim2.fromOffset(x, A_TILE + 4)
+			marker.Position = UDim2.fromOffset(x, markerY)
 		end
 		local bestWhole = math.floor(bestMetres)
 		local bx = xOf(bestLands)
+		rail(here, x, if bestWhole > 0 then bx else 0)
 		-- the tag hangs on the side away from you, so the two never cover each other; when you are at the line (on
 		-- your way to a new best) it hangs centred under your metres instead
 		local side = if math.abs(x - bx) < 48 then 0 elseif x > bx then -1 else 1
@@ -989,18 +1412,31 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 			best.Visible = bestWhole > 0
 			best.Position = UDim2.fromOffset(bx, -4)
 			bestWords.Text = "BEST " .. grouped(bestWhole) .. " m"
-			local drop = if side == 0 then FACE + 16 else 0
+			-- under your marker's metres when the two meet
+			local drop = if side == 0 then math.max(markerY + under + 3 + 4 - tagBottom, 0) else 0
 			-- kept inside the strip at its two ends
 			if side == 0 then
 				local shift = math.clamp(bx, 34, A_WIDE - 34) - bx
 				bestTag.AnchorPoint = Vector2.new(0.5, 0)
-				bestTag.Position = UDim2.new(0.5, shift, 1, drop)
+				bestTag.Position = UDim2.new(0.5, shift, 0, tagBottom + drop)
+			elseif bestLook == 3 then -- a pennant flies from the pole, away from you
+				if side < 0 or bx > A_WIDE - 50 then
+					bestTag.AnchorPoint = Vector2.new(1, 0)
+					bestTag.Position = UDim2.new(0.5, -0.75, 0, tagBottom)
+				else
+					bestTag.AnchorPoint = Vector2.new(0, 0)
+					bestTag.Position = UDim2.new(0.5, 0.75, 0, tagBottom)
+				end
+			elseif bestLook == 2 or bestLook == 4 then -- centred under the line or the notch
+				local shift = math.clamp(bx, 34, A_WIDE - 34) - bx
+				bestTag.AnchorPoint = Vector2.new(0.5, 0)
+				bestTag.Position = UDim2.new(0.5, shift, 0, tagBottom)
 			elseif side < 0 or bx > A_WIDE - 50 then
 				bestTag.AnchorPoint = Vector2.new(1, 0)
-				bestTag.Position = UDim2.new(0.5, 3, 1, drop)
+				bestTag.Position = UDim2.new(0.5, 3, 0, tagBottom)
 			else
 				bestTag.AnchorPoint = Vector2.new(0, 0)
-				bestTag.Position = UDim2.new(0.5, -3, 1, drop)
+				bestTag.Position = UDim2.new(0.5, -3, 0, tagBottom)
 			end
 		end
 	end
@@ -1011,10 +1447,7 @@ buildA = function(parent: Instance, options: { Numbers: number, Reveal: string, 
 end
 
 -- For the options sheets and tests: another strip of style 1 under `parent`, with its own options
-function LandStrip.preview(
-	parent: Instance,
-	options: { Numbers: number, Reveal: string, Atlas: string, Fixed: boolean? }
-): any
+function LandStrip.preview(parent: Instance, options: Options): any
 	return buildA(parent, options)
 end
 

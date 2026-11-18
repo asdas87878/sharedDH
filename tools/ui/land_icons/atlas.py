@@ -1,5 +1,7 @@
-"""The land strip's pictures as one atlas (task l1): ten cells of 96 px across, the colour pictures on the top row and
-the grey locked look under them (the game's LandStrip style 1 reads cells from it: Kit.LandAtlas, LAND_CELL).
+"""The land strip's pictures as one atlas (task l1, rows reworked in s2): ten cells of 96 px across, six rows: 0 the
+colour pictures, 1 their plain grey copies (the game lays the colour over the grey at Kit.LandLocked.Saturation and
+darkens both, so a locked land is its own picture, desaturated and darker), 2 and 3 the same softly blurred, 4 and 5
+very blurred (Kit.LandLocked.Blur 1 and 2: a Roblox ImageLabel cannot blur, so the blur is baked in here).
     python tools/ui/land_icons/atlas.py [--studio] [--picks picks.json] [--gen 1-4]
 writes docs/attachments/land-icons/land_atlas.png (the file to upload once Hugo has picked the pictures) and, with --studio, a copy in
 Studio's own content folder (rbxasset://textures/ridefish/land_atlas.png), for tests in Studio without an upload.
@@ -9,18 +11,20 @@ import shutil
 import sys
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter, ImageOps
 
 import icons
 
 CELL = 96
+BLURS = (0, 4, 8)  # Gaussian radius in atlas pixels for Blur 0, 1, 2 (a cell shows at about 23 GUI px: 1 and 2 px)
 ROOT = icons.ROOT
 OUT = ROOT / "docs/attachments/land-icons/land_atlas.png"
-STUDIO = Path.home() / ".var/app/org.vinegarhq.Vinegar/data/vinegar/versions/version-63eb6055af4e4688/content/textures/ridefish"
+# every Studio version Vinegar has (the one that runs changes with Studio's updates)
+VERSIONS = Path.home() / ".var/app/org.vinegarhq.Vinegar/data/vinegar/versions"
 
 
 def build(picks=None, gen=None):
-    atlas = Image.new("RGB", (CELL * 10, CELL * 2))
+    atlas = Image.new("RGB", (CELL * 10, CELL * 2 * len(BLURS)))
     for land in range(1, 11):
         pick = (picks or {}).get(str(land))
         if gen:  # a generated set (gen_sheet.py): docs/attachments/land-icons/gen/G<k>_land<NN>.png
@@ -28,8 +32,16 @@ def build(picks=None, gen=None):
             pic = Image.open(src).convert("RGB").resize((CELL, CELL), Image.LANCZOS)
         else:
             pic = icons.picture(land, CELL, CELL, pick)
-        atlas.paste(pic, ((land - 1) * CELL, 0))
-        atlas.paste(icons.state_picture(pic, "locked"), ((land - 1) * CELL, CELL))
+        for k, radius in enumerate(BLURS):
+            soft = pic
+            if radius:  # blurred inside its own cell: padded with its own edge so no neighbour bleeds in
+                pad = radius * 3
+                big = ImageOps.expand(pic, pad)
+                big.paste(pic.resize((CELL + 2 * pad, CELL + 2 * pad)), (0, 0))
+                big.paste(pic, (pad, pad))
+                soft = big.filter(ImageFilter.GaussianBlur(radius)).crop((pad, pad, pad + CELL, pad + CELL))
+            atlas.paste(soft, ((land - 1) * CELL, 2 * k * CELL))
+            atlas.paste(ImageOps.grayscale(soft).convert("RGB"), ((land - 1) * CELL, (2 * k + 1) * CELL))
     return atlas
 
 
@@ -42,6 +54,8 @@ if __name__ == "__main__":
     build(picks, gen).save(OUT)
     print("wrote", OUT)
     if "--studio" in sys.argv:
-        STUDIO.mkdir(parents=True, exist_ok=True)
-        shutil.copy(OUT, STUDIO / "land_atlas.png")
-        print("copied to", STUDIO)
+        for version in VERSIONS.glob("version-*"):
+            studio = version / "content/textures/ridefish"
+            studio.mkdir(parents=True, exist_ok=True)
+            shutil.copy(OUT, studio / "land_atlas.png")
+            print("copied to", studio)
