@@ -62,6 +62,11 @@ oxygen tick lost, decrease outline thickness for both capture and oxygen bar."
 [The sheet](../attachments/land-strip-m1-1.png) (six moments at 3x and real size: short and long bests at both ends,
 mid-dive, on a new best, and your marker at 5x from 5 m to 99,999 m; Studio captures by
 `tools/ui/land_icons/m1_sheets.py` with l1's client). Everything else is as l1 below.
+**The sheet is not made yet** (2026-11-19): the open Studio started without the graphics card and draws only white, so
+it waits for a Studio restart. Measured instead in Studio from the game's own code (Edit, the strip's laid-out sizes,
+ten states from 5 m to 99,999 m): BEST's centre equals the diamond's in every state, including both clamped ends; the
+metres are always 10 px or more narrower than the oval (size 13 at 1,290 m in a 60 px oval, 11 at 12,480 m,
+10 at 99,999 m in a 56 px oval); the face is 20 px and the metres cover only its lowest 3.5 px.
 - **BEST is always centred on its gold diamond**, at every distance. Near an end of the strip the diamond and the
   words stop together (`BEST_SPILL`: the words may stand at most 10 px past the strip's end first, so a short best
   still sits near the start); the bar's gold fill ends at the diamond too. When you are close to your best (closer than
