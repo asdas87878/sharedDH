@@ -3,6 +3,32 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · The sub shop at the stand: nine subs to buy and equip, the SUB button gone, the stand moved (NULLROOM task s1, Hugo's PC)
+**State:** built and run by script in Hugo's Studio; **not played by hand.** Hugo's words: "Move submarine stand a
+little back and to the right (looking from front) and remove the sub button, make the player able to buy the subs
+there and equip them, add placeholder models for upgrades and let upgrades be free for now."
+- **The stand** (`Dock.Stations.Sub`) is 12 studs to its right and 8 back, seen from its front (world x -12, z +8),
+  in the generator (`tools/map/hub_kit.py` `spots`, then `hub.json` and the loader `95_hub`/`97_hub` regenerated:
+  only the stall's 24 parts changed) **and** moved in the open place by hand (`PivotTo`). **The place is not saved:**
+  press Ctrl+S in Studio to keep the move (or reload the hub with the `9?_hub.luau` files).
+- **The shop:** the HUD's SUB button and F are gone. A ProximityPrompt (E, "Submarines") on the stand's ring opens
+  the panel (`UI/SubPanel`): NO SUB, then the nine subs with a picture each, the land each reaches, its price, and
+  BUY: FREE / EQUIP / EQUIPPED / LOCKED; GO TO cycles the lands the equipped sub reaches; RIDE WITH as before. It
+  closes past `Sub.Near`.
+- **Server** (`SubService`): a new `Equip` per player (attribute `SubEquip`), Action `"SubEquip", n`. Buying
+  equips the new sub and picks its furthest land. Buy, equip and pick are refused unless on the dock within
+  `Config.Sub.Near` (30) of the stand's ring. The dive takes the sub only with one equipped and the land within its
+  reach. `Config.Sub.Free` 1: no coins taken.
+- **The models:** new `src/shared/SubModels.luau` (the builder moved out of `SubController`; nine colours, a piece
+  more a tier, the name over the tower). Each machine builds the trip's sub from the rider's `SubEquip`.
+- **Run:** from the spawn a buy was refused ("Dock"); walked to the stand in 3.4 s; the prompt opened the shop;
+  bought 1, 2, 3 (coins stayed 0); equipped 2, a pick of land 4 refused, equipped 3; dived: the Kelp Cruiser
+  (tier 3, green) carried the player to Shipwrecks and they were riding 16 s after going in. Pictures:
+  [the shop](attachments/s1-sub-shop.png), [the stand moved](attachments/s1-sub-stand-moved.png),
+  [the nine subs](attachments/s1-sub-tiers.png), [the ride](attachments/s1-sub-ride.png).
+- **Found, not mine:** Studio's client folder holds two copies each of `Lib.FeelLog`, `Lib.BlackHole`,
+  `FeelLogController` and `WildController` (the double-sync trap; a `SubModels` copy was removed). Not touched.
+
 ## 2026-11-18 · Putting a catch in the tank by hand (NULLROOM task a1, Hugo's PC)
 **State:** in the game code, run in Hugo's Studio by script: two fish caught, the dive failed, woke at the tank
 carrying both, a refused try from 96 studs away, a stale id ignored, then the prompt put each fish in (both swam in the

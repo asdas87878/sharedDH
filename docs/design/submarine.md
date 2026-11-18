@@ -34,9 +34,13 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
   skips them.
 
 ## How ours goes, beat by beat
-1. **At the hub** you open the SUB panel (a button under Shop and Index, or F on the dock), buy a tier, pick where
-   to go and, if you like, a fish from your tank to ride with. The pick stays until you change it, as the
-   reference's "Equip". A small ticket under the buttons says where the sub will take you.
+1. **At the sub stand** (2026-11-18, Hugo: "remove the sub button, make the player able to buy the subs there and
+   equip them"): walk up to the SUBMARINE stall and press its prompt (E). The shop lists nine subs, one a tier
+   (Bathtub, Reef Runner, Kelp Cruiser, Wreck Diver, Blue Streak, Twilight Ray, Midnight Hunter, Vent Crawler, Abyss
+   King), each with its picture, the land it reaches and its price. You buy them in order (free for now), and
+   **equip** one; the equipped sub is the one that comes for you, and it reaches its own land or any before it.
+   "NO SUB" is the ordinary dive-in. Under the list, GO TO picks the land and RIDE WITH a fish from your tank.
+   The shop closes as you walk away. A small ticket at the left edge says where the sub will take you.
 2. **You jump in.** With a destination picked, stepping off the dock is no longer the dive-in's auto-hop: you drop
    in with a splash and **swim** at the surface, breaststroking forward.
 3. **The sub swims in** from ahead and below (2 s), its light on you, a wake of bubbles, the view tipped to show it
@@ -103,6 +107,9 @@ The player can't steer or hop while carried, and no Oxygen goes. The whole trip 
 - Other players riding along (a bus), and seeing the trip on the land strip.
 
 ## Open
+- (2026-11-18) The nine subs are placeholders (`Shared/SubModels`: the same hull in a new colour with one more
+  piece a tier, its name floating over the tower). Only the look changes with the tier; speed and the trip are the
+  same for all. Buying is free while `Config.Sub.Free` is 1; the prices still show.
 - Hugo's word on the readings above, and a play by hand: is it satisfying? (Measured only by script.)
 - At the pick-up the gate's posts stand close and the camera is pulled in against one for a moment.
 - The panel and the ticket are placeholders, not the UI chat's style; the N panel doesn't list `Sub` yet.

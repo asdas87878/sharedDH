@@ -4,9 +4,12 @@
 -- a hop, or kicked onto a fish of their own that swims up beside it. All of it decided here; every machine moves its
 -- own copy of the sub from the trip written on the player (Shared/SubTrip, Client SubController).
 --   Per player, for the session (nothing is saved yet; kept beside the tank's coins, AquariumService, to be saved
---   with them): Tier (0 to 9: tier N carries to land N + 1 or any land before it), Dest (the land picked, 0: none) and
---   Fish (the tank fish to ride with, "id|size|variant", "": none). Mirrored in the attributes SubTier, SubDest and
---   SubFish. Bought and picked only on the dock ("SubBuy", "SubPick").
+--   with them): Tier (0 to 9: the subs bought, one a tier, Shared/SubModels; sub N carries to land N + 1 or any land
+--   before it), Equip (the sub equipped, 0: none, so the dive is the ordinary dive-in), Dest (the land picked, up to
+--   Equip + 1; 0: none) and Fish (the tank fish to ride with, "id|size|variant", "": none). Mirrored in the attributes
+--   SubTier, SubEquip, SubDest and SubFish. Bought, equipped and picked only on the dock at the stand,
+--   Dock.Stations.Sub, within Sub.Near of its ring ("SubBuy", "SubEquip", n, "SubPick", land, fish; Hugo,
+--   2026-11-18: the shop is at the stand, the HUD's SUB button is gone). Free while Sub.Free is 1.
 --   The trip: as a player with a land picked goes into the water, RideService asks us (RideService.Diving) and they are
 --   "Carried". We write the trip ("SubTrip": its start, phases and path, Shared/SubTrip) and its phase ("SubPhase").
 --   The fish round the drop point are kept in the water from the start (FishService.keepFor). At the drop:
@@ -31,6 +34,7 @@ local RideService = require(script.Parent.RideService)
 type Wild = FishService.Wild
 type Sub = {
 	Tier: number,
+	Equip: number,
 	Dest: number,
 	Fish: string,
 	Trip: SubTrip.Trip?,
@@ -57,6 +61,7 @@ end
 
 local function tell(player: Player, sub: Sub)
 	player:SetAttribute("SubTier", sub.Tier)
+	player:SetAttribute("SubEquip", sub.Equip)
 	player:SetAttribute("SubDest", sub.Dest)
 	player:SetAttribute("SubFish", sub.Fish)
 end
@@ -86,35 +91,75 @@ local function deny(player: Player, reason: string)
 	Net.Ride:FireClient(player, "SubDenied", reason)
 end
 
-local function buy(player: Player, sub: Sub)
+-- On the dock and at the stand (no stand in the place: anywhere on the dock)
+local function atStand(player: Player): boolean
+	if RideService.stateOf(player) ~= "Dock" then
+		return false
+	end
+	local blockout = workspace:FindFirstChild("ClaudeBlockout")
+	local dock = blockout and blockout:FindFirstChild("Dock")
+	local stations = dock and dock:FindFirstChild("Stations")
+	local stand = stations and stations:FindFirstChild("Sub")
+	local ring = stand and (stand:FindFirstChild("Ring") or (stand:IsA("Model") and stand.PrimaryPart))
+	if not ring or not ring:IsA("BasePart") then
+		return true
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return false
+	end
+	local gap = root.Position - ring.Position
+	return Vector3.new(gap.X, 0, gap.Z).Magnitude <= Config.Sub.Near
+end
+
+local function buy(player: Player, sub: Sub, checked: boolean?)
 	local c = Config.Sub
 	local next = sub.Tier + 1
 	local price = c.Prices[next]
 	if not price or next + 1 > lands() then
 		return deny(player, "Top")
 	end
-	if RideService.stateOf(player) ~= "Dock" then
+	if not checked and not atStand(player) then
 		return deny(player, "Dock")
 	end
-	if not AquariumService.spend(player, price) then
+	if c.Free ~= 1 and not AquariumService.spend(player, price) then
 		return deny(player, "Coins")
 	end
 	sub.Tier = next
-	-- (the land just bought is the one picked: the reference's "Your boarding pass is ready!")
+	-- (the sub just bought is equipped and its furthest land picked: the reference's "Your boarding pass is ready!")
+	sub.Equip = next
 	sub.Dest = next + 1
 	tell(player, sub)
 	Net.Ride:FireClient(player, "SubBought", next)
 end
 
-local function pick(player: Player, sub: Sub, land: any, fish: any)
-	if RideService.stateOf(player) ~= "Dock" then
+local function equip(player: Player, sub: Sub, n: any, checked: boolean?)
+	if not checked and not atStand(player) then
+		return deny(player, "Dock")
+	end
+	if type(n) ~= "number" or n ~= n then
+		return deny(player, "Land")
+	end
+	n = math.floor(n)
+	if n < 0 or n > sub.Tier then
+		return deny(player, "Land")
+	end
+	sub.Equip = n
+	-- (the furthest land this sub reaches, as on buying; a nearer one is picked after)
+	sub.Dest = if n == 0 then 0 else n + 1
+	tell(player, sub)
+end
+
+local function pick(player: Player, sub: Sub, land: any, fish: any, checked: boolean?)
+	if not checked and not atStand(player) then
 		return deny(player, "Dock")
 	end
 	if type(land) ~= "number" or land ~= land then
 		return deny(player, "Land")
 	end
 	land = math.floor(land)
-	if land ~= 0 and (land < 2 or land > sub.Tier + 1 or land > lands()) then
+	if land ~= 0 and (land < 2 or land > sub.Equip + 1 or land > lands()) then
 		return deny(player, "Land")
 	end
 	sub.Dest = land
@@ -217,7 +262,7 @@ end
 -- Asked by RideService as a player on the dock goes into the water: does the sub take them?
 local function diving(player: Player): boolean
 	local sub = subs[player]
-	if Config.Sub.On == 0 or not sub or sub.Trip or sub.Dest < 2 or sub.Dest > sub.Tier + 1 then
+	if Config.Sub.On == 0 or not sub or sub.Trip or sub.Equip < 1 or sub.Dest < 2 or sub.Dest > sub.Equip + 1 then
 		return false
 	end
 	local character = player.Character
@@ -319,6 +364,7 @@ end
 local function join(player: Player)
 	local sub: Sub = {
 		Tier = 0,
+		Equip = 0,
 		Dest = 0,
 		Fish = "",
 		Trip = nil,
@@ -335,8 +381,8 @@ local function join(player: Player)
 end
 
 -- Studio's tests only (a script can't send the player's remotes): ServerStorage.SubTest:Invoke(op, userId, ...),
---   "give", coins, { {id, size, variant} } | "home" (back on the dock) | "buy" | "pick", land, fishKey; each returns the
---   state as JSON
+--   "give", coins, { {id, size, variant} } | "home" (back on the dock) | "buy" | "equip", n | "pick", land, fishKey |
+--   "near" (is the player at the stand?); each returns the state as JSON. buy, equip and pick skip the stand check
 local function test(op: string, userId: number, a: any, b: any): any
 	local player = Players:GetPlayerByUserId(userId)
 	local sub = player and subs[player]
@@ -348,12 +394,16 @@ local function test(op: string, userId: number, a: any, b: any): any
 	elseif op == "home" then
 		RideService.sendHome(player)
 	elseif op == "buy" then
-		buy(player, sub)
+		buy(player, sub, true)
+	elseif op == "equip" then
+		equip(player, sub, a, true)
 	elseif op == "pick" then
-		pick(player, sub, a, b or "")
+		pick(player, sub, a, b or "", true)
 	end
 	return HttpService:JSONEncode({
 		Tier = sub.Tier,
+		Equip = sub.Equip,
+		Near = atStand(player),
 		Dest = sub.Dest,
 		Fish = sub.Fish,
 		Coins = AquariumService.coinsOf(player),
@@ -372,6 +422,8 @@ function SubService.Init()
 		end
 		if action == "SubBuy" then
 			buy(player, sub)
+		elseif action == "SubEquip" then
+			equip(player, sub, a)
 		elseif action == "SubPick" then
 			pick(player, sub, a, b)
 		elseif action == "SubLand" then

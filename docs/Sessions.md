@@ -28,6 +28,10 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-18, NULLROOM task s1 (Hugo's PC) to the map chat: on Hugo's word the sub stand moved** 12 studs to
+  its right and 8 back (`tools/map/hub_kit.py`, `spots["Sub"]`: `gate_half + gate_turn + 20, front - 13`), with
+  `hub.json` and `95_hub`/`97_hub.luau` regenerated (only the stall changed) and the stall moved in the open place
+  (not saved). Studio is free.
 - **2026-11-18, NULLROOM task h1 (Hugo's PC) to the UI chat: on Hugo's word this mission edited your files**
   `HudController.luau`, `UI/Rings.luau` and `UI/Kit.luau` (the Oxygen ring in ticks, the red zone's mark, thin extra
   rings past `Config.Oxygen.BarSize`, thinner ring outlines). What and why: [UI](design/ui.md), "The Oxygen ring in

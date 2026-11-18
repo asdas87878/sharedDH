@@ -12,7 +12,7 @@
 --   Drop: on the server's word, flung forward into an ordinary hop (JumpController.fling), or, with our fish swum up
 --     beside the sub ("SubFish", driven here), kicked off in an arc onto its saddle; we tell the server ("SubLand").
 --   Then the sub peels away, up and to the side, and fades.
--- Placeholders only: the sub is plain parts (buildSub) and the motion is by code (the *Pose functions); the partner's
+-- Placeholders only: the sub is plain parts (Shared/SubModels, the tier the player has equipped) and the motion is by code (the *Pose functions); the partner's
 -- model and animations replace them (the note's "Animation hooks").
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,6 +22,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
+local SubModels = require(ReplicatedStorage.Shared.SubModels)
 local SubTrip = require(ReplicatedStorage.Shared.SubTrip)
 local Feel = require(script.Parent.Parent.Lib.Feel)
 local Fx = require(script.Parent.Parent.Lib.Fx)
@@ -35,8 +36,6 @@ local SubController = {}
 -- The rider's seat against the sub's middle, and how far its middle sits under the seat
 local SEAT = CFrame.new(0, 7.4, 5)
 local UP = Vector3.yAxis
-local HULL = Color3.fromRGB(255, 196, 38)
-local TRIM = Color3.fromRGB(40, 54, 78)
 
 type Visual = {
 	Player: Player,
@@ -86,115 +85,6 @@ end
 local function landName(index: number): string
 	local zone = State.Zones[index]
 	return if zone then string.upper(zone.Name) else ("LAND " .. index)
-end
-
--- The placeholder sub: a yellow hull, a tower with a window, fins, a propeller, a light at the nose, the seat. It faces
--- -Z. Every part is anchored and touches nothing; the whole model is moved by PivotTo.
-local function buildSub(): (Model, { BasePart }, BasePart, ParticleEmitter)
-	local model = Instance.new("Model")
-	model.Name = "Submarine"
-	local parts: { BasePart } = {}
-	local function part(
-		name: string,
-		shape: Enum.PartType,
-		size: Vector3,
-		at: CFrame,
-		colour: Color3,
-		material: Enum.Material?
-	): Part
-		local p = Instance.new("Part")
-		p.Name = name
-		p.Shape = shape
-		p.Size = size
-		p.CFrame = at
-		p.Color = colour
-		p.Material = material or Enum.Material.SmoothPlastic
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanQuery = false
-		p.CanTouch = false
-		p.CastShadow = false
-		p.TopSurface = Enum.SurfaceType.Smooth
-		p.BottomSurface = Enum.SurfaceType.Smooth
-		p.Parent = model
-		table.insert(parts, p)
-		return p
-	end
-	local along = CFrame.Angles(0, math.rad(90), 0) -- a cylinder's axis is its X: turned to lie along Z
-	local hull = part("Hull", Enum.PartType.Cylinder, Vector3.new(26, 10, 10), along, HULL)
-	model.PrimaryPart = hull
-	part("Nose", Enum.PartType.Ball, Vector3.new(10, 10, 10), CFrame.new(0, 0, -13), HULL)
-	part("Tail", Enum.PartType.Ball, Vector3.new(8, 8, 8), CFrame.new(0, 0, 13), HULL)
-	part("Tower", Enum.PartType.Block, Vector3.new(5, 6, 9), CFrame.new(0, 6.5, -2), HULL)
-	part("TowerCap", Enum.PartType.Block, Vector3.new(5.6, 1, 9.6), CFrame.new(0, 9.8, -2), TRIM)
-	part(
-		"Window",
-		Enum.PartType.Block,
-		Vector3.new(4, 2, 0.4),
-		CFrame.new(0, 7.4, -6.6),
-		Color3.fromRGB(120, 220, 255),
-		Enum.Material.Neon
-	)
-	part("Seat", Enum.PartType.Block, Vector3.new(3.4, 1, 3.4), CFrame.new(0, 5.2, 5), TRIM)
-	part("Bar", Enum.PartType.Block, Vector3.new(4.4, 0.6, 0.6), CFrame.new(0, 6.8, 2.6), TRIM)
-	for _, side in { -1, 1 } do
-		part(
-			"Port",
-			Enum.PartType.Cylinder,
-			Vector3.new(0.6, 2.6, 2.6),
-			CFrame.new(side * 5, 0.5, -6),
-			Color3.fromRGB(120, 220, 255),
-			Enum.Material.Neon
-		)
-		part(
-			"Port",
-			Enum.PartType.Cylinder,
-			Vector3.new(0.6, 2.6, 2.6),
-			CFrame.new(side * 5, 0.5, 0),
-			Color3.fromRGB(120, 220, 255),
-			Enum.Material.Neon
-		)
-		part("Wing", Enum.PartType.Block, Vector3.new(6, 0.8, 3.4), CFrame.new(side * 7, -1, -7), TRIM)
-	end
-	part("FinFlat", Enum.PartType.Block, Vector3.new(14, 0.8, 3.4), CFrame.new(0, 0, 14), TRIM)
-	part("FinTall", Enum.PartType.Block, Vector3.new(0.8, 9, 3.4), CFrame.new(0, 0, 14), TRIM)
-	part("PropHub", Enum.PartType.Ball, Vector3.new(2.4, 2.4, 2.4), CFrame.new(0, 0, 17), TRIM)
-	local prop = part("Prop", Enum.PartType.Block, Vector3.new(0.6, 7, 1.4), CFrame.new(0, 0, 17.6), TRIM)
-	local lamp = part(
-		"Light",
-		Enum.PartType.Ball,
-		Vector3.new(3, 3, 3),
-		CFrame.new(0, -1.5, -17.4),
-		Color3.fromRGB(255, 250, 210),
-		Enum.Material.Neon
-	)
-	local beam = Instance.new("SpotLight")
-	beam.Face = Enum.NormalId.Front
-	beam.Range = 60
-	beam.Angle = 50
-	beam.Brightness = 4
-	beam.Color = Color3.fromRGB(255, 244, 200)
-	beam.Parent = lamp
-	local glow = Instance.new("PointLight")
-	glow.Range = 22
-	glow.Brightness = 1.5
-	glow.Color = Color3.fromRGB(255, 220, 140)
-	glow.Parent = hull
-	local bubbles = Instance.new("ParticleEmitter")
-	bubbles.Name = "Wake"
-	bubbles.Color = ColorSequence.new(Color3.new(1, 1, 1))
-	bubbles.LightEmission = 0.4
-	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1.4) })
-	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
-	bubbles.Lifetime = NumberRange.new(0.8, 1.6)
-	bubbles.Speed = NumberRange.new(4, 10)
-	bubbles.SpreadAngle = Vector2.new(35, 35)
-	bubbles.Acceleration = Vector3.new(0, 6, 0)
-	bubbles.Rate = 0
-	bubbles.EmissionDirection = Enum.NormalId.Back
-	bubbles.Parent = prop
-	model.WorldPivot = CFrame.identity
-	return model, parts, prop, bubbles
 end
 
 -- The sub's place at `t` seconds into the trip, and how fast it goes (studs a second)
@@ -250,7 +140,9 @@ local function subAt(trip: SubTrip.Trip, t: number): (CFrame, number)
 end
 
 local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
-	local model, parts, prop, bubbles = buildSub()
+	-- (the sub the player has equipped at the stand: SubService's SubEquip)
+	local equip = player:GetAttribute("SubEquip")
+	local model, parts, prop, bubbles = SubModels.build(if type(equip) == "number" and equip >= 1 then equip else 1)
 	-- every part's place against the hull's own frame
 	local hull = model.PrimaryPart :: BasePart
 	local offsets: { [BasePart]: CFrame } = {}
@@ -657,6 +549,10 @@ local function step(dt: number)
 			place(v, cf, speed, dt)
 			if t > endAt and not v.Faded then
 				v.Faded = true
+				local label = v.Model:FindFirstChild("Label", true)
+				if label and label:IsA("BillboardGui") then
+					label.Enabled = false
+				end
 			end
 			if v.Faded then
 				local fade = math.clamp((t - endAt) / 3, 0, 1)

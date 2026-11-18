@@ -927,7 +927,8 @@ def build(hub, feet=None):
         # its old place was outside the smaller hub's wall)
         "Sell": (-35.10, -112.71, 90.0), "Auras": (43.55, -112.70, -90.0), "Fuse": (4.73, -154.77, 0.0),
         "Index": (-(half - 34), front - 16, 90.0),
-        "Sub": (gate_half + gate_turn + 32, front - 21, 180.0),
+        # (the sub stand: 12 studs to its right and 8 back as seen from its front, Hugo 2026-11-18)
+        "Sub": (gate_half + gate_turn + 20, front - 13, 180.0),
         "Earners": (-(gate_half + gate_turn + 20), front - 0.9, 180.0),
     }
     shops = (("Sell", sell_old), ("Auras", auras), ("Sub", sub)) if OLD else (("Sell", sell), ("Auras", auras_stall), ("Sub", sub_stall))
