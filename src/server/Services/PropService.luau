@@ -137,7 +137,13 @@ export type Hit = { Loose: number, Small: number, Big: number, Keep: number }
 -- with what rests on them. `kind` and `size` are a ridden fish's (Config.propBreak decides prop by prop); left out
 -- (a wild fish that breaks props: Config.breaks), every prop touched breaks. Returns how many boxes went (0: no prop
 -- there, or none it breaks), and the Hit.
-function PropService.hit(at: Vector3, velocity: Vector3, reach: number, kind: Config.FishType?, size: number?): (number, Hit)
+function PropService.hit(
+	at: Vector3,
+	velocity: Vector3,
+	reach: number,
+	kind: Config.FishType?,
+	size: number?
+): (number, Hit)
 	local result: Hit = { Loose = 0, Small = 0, Big = 0, Keep = 1 }
 	local root = props()
 	if not root then

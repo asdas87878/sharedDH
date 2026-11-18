@@ -13,8 +13,9 @@
 --     a prop BESIDE us (within Props.SideNear of our body and not in our way), or between the camera and us
 --     (Props.ViewNear), is see-through while it is that close, so it never blocks the view.
 --   Once see-through, a prop stays so until we are clear of it (SideSlack): turning into one we were passing does
---   not make it solid again, and nothing flickers at an edge. On a fish that breaks props they stay solid-looking,
---   something to smash (Props.FadeForBreakers = 1: the same rules for it too, without the shake). It is by OUR
+--   not make it solid again, and nothing flickers at an edge. A prop the fish we ride breaks (Config.propBreak: by
+--   size, Hugo 2026-11-18) stays solid-looking, something to smash (Props.FadeForBreakers = 1: the same rules for it
+--   too, without the shake). It is by OUR
 --   body and on our screen only, so another player sees the same prop by their own.
 --   THE BREAK. A box the server takes out is hidden, and a copy of it is thrown from where the fish hit, along the
 --   fish's way and with its speed, turning, slowing in the water, sinking, then fading away. The copies are ours
@@ -61,6 +62,8 @@ type Fade = {
 	Centre: Vector3, -- the ball all its boxes are in,
 	Radius: number,
 	Span: number, -- and its biggest side, studs
+	Size: number, -- its size for breaking (its PropSize: Config.boxSize of its bounding box)
+	Breaks: boolean, -- the fish we ride breaks it (Config.propBreak): it stays solid-looking, something to smash
 }
 -- us: the body that touches props (a fish: from its tail to its nose; a rider off one: a point), and the camera
 type Body = {
@@ -71,7 +74,8 @@ type Body = {
 	Way: Vector3?, -- where we are going (nil: nowhere)
 	Speed: number,
 	Eye: Vector3,
-	Breaker: boolean, -- on a fish that breaks props
+	Kind: Config.FishType?, -- the fish we ride (nil: in the hop, floating),
+	Size: number, -- and its size for breaking props (Config.boxSize of its body)
 }
 -- a box fading back in: when it starts (os.clock())
 type Rise = { At: number }
@@ -210,21 +214,23 @@ local function where(dt: number): Body?
 	local at = root.Position
 	local tail, nose = at, at
 	local radius = RIDER
-	local breaker = false
+	local kind: Config.FishType? = nil
+	local fishSize = 0
 	local on: Instance = root
 	local fish = State.Fish
 	local fishRoot = fish and fish.PrimaryPart
 	if State.Mode == "Riding" and fish and fishRoot then
-		local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-		if kind then
-			local size = Config.bodyOf(fish, kind)
+		local ridden = Config.FishById[fish:GetAttribute("FishType") :: string]
+		if ridden then
+			local size = Config.bodyOf(fish, ridden)
 			local cf = fishRoot.CFrame
 			radius = math.min(math.max(size.X, size.Y), size.Z) / 2
 			local half = math.max(size.Z / 2 - radius, 0)
 			at = cf.Position
 			nose = at + cf.LookVector * half
 			tail = at - cf.LookVector * half
-			breaker = Config.breaks(kind)
+			kind = ridden
+			fishSize = Config.boxSize(size)
 			on = fishRoot
 		end
 	end
@@ -246,18 +252,14 @@ local function where(dt: number): Body?
 		Way = if speed >= MOVING then velocity / speed else nil,
 		Speed = speed,
 		Eye = workspace.CurrentCamera.CFrame.Position,
-		Breaker = breaker,
+		Kind = kind,
+		Size = fishSize,
 	}
 end
 
--- Whether whole props turn see-through for us now: in the water, and not on a fish that breaks them (unless
--- Props.FadeForBreakers)
+-- Whether props turn see-through for us now: in the water (each prop our fish breaks stays solid-looking: judge)
 local function passing(body: Body?): boolean
-	local p = Config.Props
-	if not body or p.FadeTo <= 0 or not State.inWater() then
-		return false
-	end
-	return not body.Breaker or p.FadeForBreakers ~= 0
+	return body ~= nil and Config.Props.FadeTo > 0 and State.inWater()
 end
 
 -- A prop's boxes, and the ball they are all in (read again when a box has loaded in or gone)
@@ -278,6 +280,13 @@ local function measure(model: Instance, fade: Fade)
 		fade.Centre = (low + high) / 2
 		fade.Radius = size.Magnitude / 2
 		fade.Span = math.max(size.X, size.Y, size.Z)
+	end
+	local known = model:GetAttribute("PropSize") -- (the server's, so we judge it by the same number)
+	if type(known) == "number" then
+		fade.Size = known
+	elseif model:IsA("Model") and #list > 0 then
+		local _, extent = model:GetBoundingBox()
+		fade.Size = Config.boxSize(extent)
 	end
 end
 
@@ -314,6 +323,8 @@ local function look(body: Body?)
 						Centre = part.Position,
 						Radius = 0,
 						Span = 0,
+						Size = 0,
+						Breaks = false,
 					}
 					fade = new
 					fades[model] = new
@@ -349,7 +360,7 @@ local function touched(fade: Fade, body: Body)
 	if
 		p.Stun > 0
 		and State.Mode == "Riding"
-		and not body.Breaker
+		and not fade.Breaks
 		and not fade.Through
 		and not State.dying()
 		and fade.Span >= p.ShakeMin
@@ -374,7 +385,7 @@ local function touched(fade: Fade, body: Body)
 		end
 		return
 	end
-	if body.Breaker or State.dying() or now - shookAt < p.ShakeGap or fade.Span < p.ShakeMin then
+	if fade.Breaks or State.dying() or now - shookAt < p.ShakeGap or fade.Span < p.ShakeMin then
 		return
 	end
 	shookAt = now
@@ -417,6 +428,14 @@ local function judge(body: Body?)
 			continue
 		end
 		round += 1
+		-- (a prop our fish breaks: solid-looking, something to smash, unless Props.FadeForBreakers)
+		local kind = body.Kind
+		fade.Breaks = kind ~= nil and fade.Size > 0 and (Config.propBreak(kind, body.Size, fade.Size))
+		if fade.Breaks and p.FadeForBreakers == 0 then
+			fade.Through, fade.Path, fade.In = false, false, false
+			fade.Goal = 0
+			continue
+		end
 		local way = body.Way
 		local pathIn = body.Radius + math.max(p.PathWidth, 0)
 		local pathOut = pathIn + math.max(p.PathSlack, 0)
