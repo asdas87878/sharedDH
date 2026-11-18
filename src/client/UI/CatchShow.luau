@@ -8,7 +8,7 @@
 --   4 Toast: a compact pill drops in under the strip, the fish pop into it one by one as it widens, then the metres
 -- Every word and piece comes in by its own move; nothing is a plain switch-on. Each look is a pose of the time since it
 -- began (pose(t)), so the game plays it frame by frame and a sheet can stop it at any moment (preview).
--- Docs: docs/design/ui.md, "The end of a dive, animated". Sheets docs/attachments/catch-ui-options-1.png.
+-- Sheet: docs/attachments/catch-ui-options-1.png (GIFs catch-ui-option-<n>.gif), by tools/ui/catch_show/capture.py.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 

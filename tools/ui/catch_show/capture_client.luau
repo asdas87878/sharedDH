@@ -112,23 +112,7 @@ RunService.RenderStepped:Connect(function()
 	local hide = on and RS:GetAttribute("CatchHideHud") == true
 	for _, g in gui.Parent:GetChildren() do
 		if g:IsA("ScreenGui") and g ~= gui then
-			if g.Name == "RideHud" then
-				-- the HUD stays on for cells in it; only its own pieces are hidden
-				local root = g:FindFirstChild("Root")
-				if root then
-					for _, child in root:GetChildren() do
-						if child:IsA("GuiObject") and child.Name ~= "ZZCatchGame" then
-							if hide and child.Visible then
-								child:SetAttribute("ZZWas", true)
-								child.Visible = false
-							elseif not hide and child:GetAttribute("ZZWas") then
-								child:SetAttribute("ZZWas", nil)
-								child.Visible = true
-							end
-						end
-					end
-				end
-			elseif hide and g.Enabled then
+			if hide and g.Enabled then
 				g:SetAttribute("ZZWas", true)
 				g.Enabled = false
 			elseif not hide and g:GetAttribute("ZZWas") then
