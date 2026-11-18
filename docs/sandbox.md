@@ -95,6 +95,26 @@ What to reach for:
   `MixShallows` to `MixUnderworld`, the share of spawns by rarity in each land. (`TierSpeed` went 2026-11-12; so did `Speed.Base`, `TierMult`, `Speed.AreaStep` and `AreaGrow`, with the reset: a fish's speed is its own number in `Config.FishStats`, changed in Config, not on the panel: [archetypes](design/archetypes.md).)
 - **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.GiantVolume` (who is a giant), `FadeTo`, `FadeEase`, `FadeForBreakers`, `PathWidth`, `PathSlack` (in your way: solid), `TouchEase`, `TouchSlack`, `Shake`, `ShakeTime`, `ShakeAt`, `ShakeBySpeed`, `ShakeGap`, `ShakeMin`, `TouchBubbles`, `TouchSound` (the touch), `SideNear`, `SideSlack`, `ViewNear` (beside you), `DebrisNear`, `DebrisFar` (the loose boxes near you), `Topple`, `MaxLoose`, `Throw`, `Scatter`, `Pop`, `Drag`, `Sink`, `Spin`, `Hang`, `FadeOut` (the boxes flying), `RegenRadius`, `RegenDelay`, `RebuildTime` (the prop coming back), `Slow`, `Cost`.
 
+## The admin panel (P)
+For playtesting the progression without playing up to it (Hugo, 2026-11-18). **P** opens and closes it, on the left
+of the screen. It works with the sandbox on or off, and also in a live server, but only for an allowed player: everyone
+in Studio, and in a live server the place's owner and the user ids in `Config.Admin.Users`. The server checks that on
+every button, so a client can't use it by sending the same messages. The line at the bottom says what the server did,
+or why it didn't (red).
+
+| Button | What it does |
+|---|---|
+| **Endless air** | Your Oxygen doesn't drain and a crash costs none: the sandbox's switch, for you alone. |
+| **No fail** | An empty meter or a missed hop leaves you floating with a full meter, and floating never sends you home: the sandbox's switch, for you alone. |
+| **Max Oxygen** 200, 500, 2000, 4500, 8000 | Your max Oxygen becomes that, the meter full. Past 2000 the extra thin rings show. It stays through dives until the next button (or `TestMaxOxygen` / the N panel's `Oxygen.StartMax`, which set everyone's again). The list is `Config.Admin.Maxes`. |
+| **1 Shallows .. 10 Under** | Into the water a little way into that land, onto a fish there if one comes within a few seconds (else you float and can hop). Not while on the submarine or drowning. |
+| **A fish in your hands** | `<` `>` step through every kind (by home land), or type part of a name and press Enter; **size** and **colour** cycle the six sizes and plain, Silver, Gold, Rainbow; **GIVE THIS FISH** puts it in your slots as if caught. Put it in your tank as any catch (E at your tank). |
+| **+1k coins, +100k coins** | Coins in your tank's purse (needs a plot). The amounts are `Config.Admin.Coins`. |
+| **All subs** | Every sub bought, for nothing, and the best equipped. |
+| **FAIL NOW** | A fail at once, from the water (on a fish you are thrown off first), even with no fail on: the fade, home, the catch kept. Refused on the dock. |
+
+There are no other upgrades in the game yet: max Oxygen is the training's, so the Max buttons stand in for it.
+
 ## What it doesn't do yet
 - No slow motion and no replay of a jump.
 - No side-by-side with the reference: compare by eye against your recordings.
@@ -110,6 +130,11 @@ What to reach for:
 - Client: `src/client/Controllers/SandboxController.luau` (the panel, the keys, the trace, the jump's numbers). The list of
   numbers on the panel is `TUNABLES` at its top: add a row there when Config gets a number worth tuning. A row's key
   can be a number, for a list (`{ "ZoneDrain", 3, 2 }` is `Config.ZoneDrain[3]`).
+- The admin panel: `src/client/Controllers/AdminController.luau` (key P, the panel) and
+  `src/server/Services/AdminService.luau` (its own remote, `Remotes.Admin`; the allow-list check on every action; the
+  player attributes `Admin`, `AdminNoFail`, `AdminEndlessAir`, which `RideService`'s `sandbox(flag, r)` reads). Its
+  hooks: `RideService.setMax`, `forceFail`, `giveCarried`, `sandboxReset(..., place)`, `SubService.unlockAll`,
+  `AquariumService.give`. Numbers in `Config.Admin`.
 - `Config.refresh()` works out the numbers that depend on others (the drop's time, the hop's longest time, each fish's
   wild speed and Required).
   Call it after changing Config at run time.

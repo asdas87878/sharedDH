@@ -142,7 +142,10 @@ local function act(player: Player, kind: any, a: any, b: any, c: any)
 		if not RideService.giveCarried(player, { Id = fish.Id, Size = size, Variant = variant }) then
 			return refuse(player, "no rider yet")
 		end
-		done(player, string.format("%s %s%s in your hands", size, if variant ~= "" then variant .. " " else "", fish.Name))
+		done(
+			player,
+			string.format("%s %s%s in your hands", size, if variant ~= "" then variant .. " " else "", fish.Name)
+		)
 	elseif kind == "Fail" then
 		if not RideService.forceFail(player) then
 			return refuse(player, "only in the water (now " .. tostring(state) .. ")")

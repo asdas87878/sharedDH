@@ -3,6 +3,24 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · The admin panel for playtesting, key P (NULLROOM task d1, Hugo's PC)
+**State:** built and run by script in Hugo's Studio; **not played by hand.** Hugo's words: "Add a quick admin mode
+for playtesting."
+- **P** opens a panel (left of the screen): endless air and no fail for you alone, max Oxygen 200/500/2000/4500/8000,
+  into the water at any land's start, any fish (kind, size, colour) into your slots, +1k/+100k coins, all subs, fail
+  now. All in [the sandbox note](sandbox.md), "The admin panel".
+- **Who:** everyone in Studio; in a live server the place's owner and `Config.Admin.Users`. `AdminService` checks it
+  on every action and marks allowed players with the attribute `Admin`; its remote is its own (`Remotes.Admin`).
+- **Outside my files:** `RideService` (`sandbox(flag, r)` now also reads the player's `AdminNoFail` /
+  `AdminEndlessAir`; new `setMax`, `forceFail`, `giveCarried`; `sandboxReset` takes a place and works for an admin
+  outside Studio), `SubService.unlockAll`, `Config.Admin`.
+- **Run:** every action once in a playtest: each switch, Max 4500 (4.5K on the HUD) and 200, +1000 coins, all subs
+  (tier 9), a Giant Gold Megalodon into the slots, fail refused on the dock; land 3 seated on a fish in 4 s and the
+  meter held 4500 with endless air; with it off it ticked down, FAIL NOW drowned and woke at the dock with both fish
+  kept; with no fail and a 200 meter, floating never failed. [The panel](attachments/d1-admin-panel.png).
+- **Found:** Studio held two copies each of `AdminService` and `AdminController` (the double-sync trap): every
+  action ran twice until the extra copies were removed. Lands 2 and 4 left me floating, with no fish to sit on.
+
 ## 2026-11-18 · The sub shop at the stand: nine subs to buy and equip, the SUB button gone, the stand moved (NULLROOM task s1, Hugo's PC)
 **State:** built and run by script in Hugo's Studio; **not played by hand.** Hugo's words: "Move submarine stand a
 little back and to the right (looking from front) and remove the sub button, make the player able to buy the subs
