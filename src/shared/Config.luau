@@ -443,11 +443,13 @@ Config.Oxygen = {
 	AngryAt = 1 / 3,
 	-- The drain in ticks (Hugo, 2026-11-18: "make the oxygen like this, go down in ticks, the more oxygen you have +
 	-- the more oxygen required should be linked to how fast the oxygen drains"). The meter never runs down smoothly:
-	-- every Tick seconds a piece goes at once (RideService; each told to the client, Ride "OxygenTick"). On a fish
-	-- the piece is what the seconds on it (Config.secondsOn) allow: seconds = KeepUp x grow(required) x more(max)
-	-- x RideTime.
+	-- a piece goes at once now and then (RideService; each told to the client, Ride "OxygenTick"). On a fish the
+	-- whole meter lasts the seconds on it (Config.secondsOn): seconds = KeepUp x grow(required) x more(max)
+	-- x RideTime x pastCap(max); since task o1 every piece is the same 1 / Ticks of the meter and the seconds only
+	-- set the gap between them (Ticks, below).
 	--   grow: a fish that needs more is ridden longer, (required / the Shallows Common's)^Grow, at most GrowMost
-	--   more: having more than it needs gives a little more time, (max / required)^MaxShare, at most MaxMost.
+	--   more: having more than it needs gives a little more time, (max / required)^MaxShare, at most MaxMost (max
+	--   counted only up to Cap, below)
 	-- So the drain a second grows with your max Oxygen (a trained player no longer sits on a Shallows fish for a
 	-- minute) and with what the fish needs. Claude's first numbers, 2026-11-18: a new player on a Shallows Common
 	-- 2 s (4 ticks), a land-10 Common at exactly its need about 6 s, a Legendary there about 8.

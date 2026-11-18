@@ -1148,3 +1148,50 @@ the red zone should be hit at about 1/3 of the total stamina left". Built by NUL
 - **Not played by hand.** Checked by a scripted ride in Hugo's Studio: [fading out, 1 caught](../attachments/fail-fade-out-1.png),
   [black at the dock, the catch already in the tank](../attachments/fail-black-at-dock-1.png),
   [back on the dock](../attachments/fail-dock-return-1.png).
+
+## Same-size ticks, the 500k cap and the 2/3 break-off (2026-11-18, task o1)
+Hugo, 2026-11-18: "the fade out ticks should all be the same no matter how much oxygen you have it should just add an
+extra bar and then slow down the ticks, only one extra bar that goes fully around. when hitting 500k oxygen, make sure
+the claiming is slower and the breathing tick is consistent, remove the red zone indicator, also when hopping on a dino
+that doesnt have the right amount of stamina make sure it just instantly breaks off 2/3rds of the stamina with the same
+fade out animation ... The higher oxygen should also make the oxygen drain slower by a very marginal amount after
+capping out." This replaces the ticks and the red zone's drop of the section above. The server side (Config,
+RideService) is task o1; the HUD (one extra ring, no red zone mark) is task o2. The ring keeps the default look
+(`Kit.RingStyle` 1).
+
+**A reading (the boss's, not yet confirmed by Hugo):**
+- (a) **Every tick is the same piece:** 1 / `Oxygen.Ticks` (10) of the max, whatever the max and whatever the fish. More
+  seconds on a fish (`Config.secondsOn`, unchanged in shape, `RideTime` 2.5 kept) means the ticks come further apart,
+  never bigger or more of them: the gap is `secondsOn / Ticks` (`Config.tickOf`), at least `Oxygen.Tick` 0.5 s so one
+  piece has faded before the next. Before, the gap was a fixed 0.5 s and the piece what the seconds allowed.
+- (b) **The cap, `Oxygen.Cap` 500,000:** the "more" in `secondsOn` (`MaxShare`) counts your max only up to the cap, so
+  from the cap on a fish breathes at one steady pace. Taming at or past the cap takes `Tame.CapSlow` 1.5 times longer
+  (Claude's number: a fish held at exactly its need still lasts 5/3 of its tame). Your max itself is not capped: what a
+  fish needs (its tag, Strained) is still against the whole of it.
+- (c) **Past the cap,** more Oxygen still slows the drain, very marginally: the seconds on a fish (and so the gap) times
+  `1 + PastMost x (1 - Cap / max)` (`Config.pastCap`, `PastMost` 0.05): +2.5% at 1M, +4.5% at 5M, never +5%. The gap
+  stretching by under 5% is how (b)'s "consistent" and (c) are read together; the piece stays exactly 1/10.
+- (d) **The break-off** (`Oxygen.BreakOff` 2/3, replaces `RedDrop`): mounting a fish whose need is above your max takes
+  2/3 of the Oxygen you land with at once, as one piece, told to the client like a tick: Ride `"OxygenTick", lost,
+  oxygen, StrainTime, "Break"` (was `"Red"`), so the ring fades it with the same animation. What is left empties in
+  `StrainTime` 1 s, in pieces as near 1/10 of the max as the 0.5 s gap allows (`Config.strainTicks`: two of 1/6 after a
+  full meter). The angry mode still starts at `AngryAt` 1/3; only the ring's red zone mark goes (o2).
+
+Measured with the real Config under Lune (piece = share of max, gap in seconds):
+
+| Rider, fish | Seconds on it | Piece | Gap | Tame |
+|---|---|---|---|---|
+| 100, Shallows Common | 5.3 | 0.1 | 0.53 | 2.0 |
+| 1,000, Shallows Common | 9.4 | 0.1 | 0.94 | 2.0 |
+| 500,000, Shallows Common | 10.0 | 0.1 | 1.00 | 3.0 |
+| 5,000,000, Shallows Common | 10.45 | 0.1 | 1.04 | 3.0 |
+| 480,000, land-8 Common (its need) | 11.9 | 0.1 | 1.19 | 4.8 |
+| 500,000, land-8 Common | 12.1 | 0.1 | 1.21 | 7.2 |
+| 50,000,000, land-8 Common | 12.65 | 0.1 | 1.27 | 7.2 |
+| 8,000,000, land-10 Common (its need) | 16.6 | 0.1 | 1.66 | 9.5 |
+| 240M, land-10 Legendary (twice its need) | 21.0 | 0.1 | 2.10 | 12.0 |
+| 1,000, land-3 Legendary (too strong) | 1 (after the break-off) | 2/3 at once, then 1/6 x 2 | 0.5 | never |
+
+Floating off a fish ticks the same pieces: the whole meter in `FreeSeconds` 25, so a tick every 2.5 s.
+**For the HUD (o2):** each `OxygenTick` is one piece to fade, the fifth value `"Tick"` or `"Break"`; `Oxygen.Cap` is
+there if the extra ring should fill toward it. **Not played by hand.**
