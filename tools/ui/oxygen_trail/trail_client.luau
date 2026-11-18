@@ -56,6 +56,10 @@ local view = {
 	Endless = false,
 }
 
+local goSeen: any = nil
+local goAt = 0
+local bar: Frame
+
 local function fresh()
 	if gui then
 		gui:Destroy()
@@ -85,6 +89,15 @@ local function fresh()
 	local scale = Instance.new("UIScale")
 	scale.Scale = if realScale then realScale.Scale else 1
 	scale.Parent = root
+	root.Size = UDim2.fromScale(1 / scale.Scale, 1 / scale.Scale) -- (as the HUD's root: the scale grows it back)
+	-- the moment as a magenta bar along the bottom (the whole width at plan.finish): each shot reads its own moment
+	bar = Instance.new("Frame")
+	bar.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
+	bar.BorderSizePixel = 0
+	bar.AnchorPoint = Vector2.new(0, 1)
+	bar.Position = UDim2.fromScale(0, 1)
+	bar.ZIndex = 50
+	bar.Parent = made
 	made.Parent = playerGui
 	rings.build(root)
 	rings.place(false)
@@ -130,7 +143,18 @@ local function step()
 	if realRings and realRings:IsA("Frame") then
 		realRings.Visible = false
 	end
+	-- the moment: TrailT, or with TrailSlow on a slowed clock from the last TrailGo (shown by the bar for the shots)
 	local t = (ReplicatedStorage:GetAttribute("TrailT") :: number?) or 0
+	local slow = ReplicatedStorage:GetAttribute("TrailSlow")
+	if typeof(slow) == "number" and slow > 0 then
+		local go = ReplicatedStorage:GetAttribute("TrailGo")
+		if go ~= goSeen then
+			goSeen = go
+			goAt = os.clock()
+		end
+		t = math.min((os.clock() - goAt) * slow, plan.finish or 5)
+	end
+	bar.Size = UDim2.new(t / (plan.finish or 5), 0, 0, 6)
 	-- the drops up to now, each heard at its own moment
 	while plan.events[fired + 1] and plan.events[fired + 1][1] <= t do
 		local e = plan.events[fired + 1]
@@ -139,23 +163,13 @@ local function step()
 	end
 	local root = (gui :: ScreenGui):FindFirstChildOfClass("Frame") :: Frame
 	local s = (root:FindFirstChildOfClass("UIScale") :: UIScale).Scale
-	view.Wide = root.AbsoluteSize.X / s
+	view.Wide = root.AbsoluteSize.X / s -- (AbsoluteSize is after the scale: the screen)
 	view.High = root.AbsoluteSize.Y / s
 	view.Max = plan.max
 	view.Amount = amountAt(t)
 	view.Fraction = view.Amount / plan.max
 	view.Low = view.Amount < plan.max / 3
 	rings.update(t, view)
-	local h = root:FindFirstChild("Rings", true) :: Frame?
-	report(string.format(
-		"run %s t %.2f amount %d at %s vis %s gui %s",
-		tostring(run),
-		t,
-		view.Amount,
-		tostring(h and h.AbsolutePosition),
-		tostring(h and h.Visible),
-		tostring((gui :: ScreenGui).Enabled)
-	))
 end
 
 RunService:BindToRenderStep("ZZTrail", Enum.RenderPriority.Last.Value + 5, function()

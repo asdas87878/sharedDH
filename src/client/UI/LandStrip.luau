@@ -385,7 +385,9 @@ local A_WIDE = COUNT * A_TILE + (COUNT - 1) * A_GAP
 local A_EDGE = 2 -- every picture's border
 local A_RADIUS = 5
 local LAND_CELL = 96 -- one picture's square in the atlas (tools/ui/land_icons/atlas.py)
-local FACE = 18 -- the avatar's disc
+local FACE = 20 -- the avatar's disc (18 until task m1: Hugo, "a little bigger")
+-- BEST and its diamond may stand this far past either end of the strip before both stop together (task m1)
+local BEST_SPILL = 10
 local RAIL_Y = A_TILE + 6 -- the bar's middle, under the pictures
 local RAIL_HIGH = 3
 local LOCK = 16 -- the padlock's box (a 12 px padlock in it, room for its edge)
@@ -1114,29 +1116,47 @@ buildA = function(parent: Instance, options: Options): any
 			end
 		end)
 	end
+	-- the oval tucks up under the face (drawn below it); the metres sit on the oval and are drawn over the face, so
+	-- they cover only its lower edge (task m1). Both are the marker's children beside the disc, since the HUD's
+	-- ZIndexBehavior is Sibling: a word inside the oval could never be drawn over the disc.
 	local OVAL_HIGH = 17
+	local OVAL_TOP = FACE - 5
+	local OVAL_MIN, OVAL_MAX = 26, 60 -- the oval grows with the metres up to OVAL_MAX, then the metres shrink
+	local METRES_SIZE, METRES_MIN = 13, 8
 	local oval = blob(marker, {
 		Name = "Oval",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, FACE - 1),
+		Position = UDim2.new(0.5, 0, 0, OVAL_TOP),
 		Size = UDim2.fromOffset(30, OVAL_HIGH),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0.3,
 		ZIndex = 31,
 	}, 999)
-	local metresWord = Kit.word(oval, {
+	local metresWord = Kit.word(marker, {
 		Name = "Metres",
 		Text = "0 m",
-		TextSize = 13,
+		TextSize = METRES_SIZE,
 		Font = metresFont,
 		Pal = palOfLand(1),
-		Position = UDim2.new(0.5, 0, 0.5, 0.5),
-		ZIndex = 32,
+		Position = UDim2.new(0.5, 0, 0, OVAL_TOP + OVAL_HIGH / 2 + 0.5),
+		ZIndex = 36, -- over the disc (34) and its picture (35)
 	})
-	local under = FACE - 1 + OVAL_HIGH -- how far under the marker's top it reaches, for the best's words to clear
+	-- the metres at their size if they fit the oval with 5 px a side (their ink edge is 2.2), else smaller until they do
+	local function fitMetres(text: string)
+		local size = METRES_SIZE
+		metresWord.setSize(size)
+		metresWord.set(text)
+		while metresWord.wide + 10 > OVAL_MAX and size > METRES_MIN do
+			size -= 0.5
+			metresWord.setSize(size)
+		end
+		oval.Size = UDim2.fromOffset(math.clamp(metresWord.wide + 10, OVAL_MIN, OVAL_MAX), OVAL_HIGH)
+	end
+	marker.Size = UDim2.fromOffset(FACE, OVAL_TOP + OVAL_HIGH)
+	local under = OVAL_TOP + OVAL_HIGH -- how far under the marker's top it reaches, for the best's words to clear
 
 	local self = {}
-	local aLand, aMetres, aX, aBest, aSide, aRail = -1, -1, -1, -1, 0, ""
+	local aLand, aMetres, aX, aBest, aRail = -1, -1, -1, -1, ""
 	local here = 0
 	local seen = 0 -- the deepest land this dive (0 on the dock), for the intros
 	local built = false
@@ -1320,8 +1340,7 @@ buildA = function(parent: Instance, options: Options): any
 		local whole = math.floor(metres)
 		if whole ~= aMetres then
 			aMetres = whole
-			metresWord.set(grouped(whole) .. " m")
-			oval.Size = UDim2.fromOffset(math.max(metresWord.wide + 10, 26), OVAL_HIGH)
+			fitMetres(grouped(whole) .. " m")
 		end
 		local x = math.floor(xOf(here) * 4 + 0.5) / 4
 		if x ~= aX then
@@ -1329,28 +1348,32 @@ buildA = function(parent: Instance, options: Options): any
 			marker.Position = UDim2.fromOffset(x, RAIL_Y + 3)
 		end
 		local bestWhole = math.floor(bestMetres)
-		local bx = math.floor(xOf(bestLands) * 4 + 0.5) / 4
-		railFill(x, if bestWhole > 0 then bx else 0)
-		-- BEST hangs under the diamond; when you are close to it (on your way to a new best) it hangs under your
-		-- metres instead, so the two never cover each other
-		local side = if math.abs(x - bx) < 40 then 0 else 1
-		if bestWhole ~= aBest or side ~= aSide then
+		if bestWhole ~= aBest then
 			aBest = bestWhole
-			aSide = side
 			best.Visible = bestWhole > 0
 			bestWord.root.Visible = bestWhole > 0
 			bestWord.set("BEST " .. grouped(bestWhole) .. " m")
 		end
+		-- BEST is always centred on its diamond (task m1). Near an end of the strip the two stop together, the
+		-- words at most BEST_SPILL past it, so the words never slide off the diamond.
+		local bx = xOf(bestLands)
+		if bestWhole > 0 then
+			local half = bestWord.wide / 2
+			bx = math.clamp(bx, half - BEST_SPILL, A_WIDE - half + BEST_SPILL)
+		end
+		bx = math.floor(bx * 4 + 0.5) / 4
+		railFill(x, if bestWhole > 0 then bx else 0)
+		-- BEST hangs just under the diamond; when you are close to it (on your way to a new best) it drops below your
+		-- marker instead, still centred on the diamond, so the two never cover each other
+		local clear = bestWord.wide / 2 + math.max(oval.Size.X.Offset, FACE) / 2
+		local side = if math.abs(x - bx) < math.max(clear + 2, 40) then 0 else 1
 		if bestWhole > 0 then
 			-- the tiles move when the land you are in changes, so the diamond follows every frame it has to
 			local diamondAt = UDim2.fromOffset(bx, RAIL_Y)
 			if best.Position ~= diamondAt then
 				best.Position = diamondAt
 			end
-			local half = bestWord.wide / 2 + 1
-			local wordAt = if side == 0
-				then UDim2.fromOffset(math.clamp(x, half, A_WIDE - half), RAIL_Y + 3 + under + 1)
-				else UDim2.fromOffset(math.clamp(bx, half, A_WIDE - half), RAIL_Y + 4)
+			local wordAt = UDim2.fromOffset(bx, if side == 0 then RAIL_Y + 3 + under + 1 else RAIL_Y + 4)
 			if bestWord.root.Position ~= wordAt then
 				bestWord.root.Position = wordAt
 			end

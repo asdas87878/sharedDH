@@ -39,6 +39,21 @@ oxygen tick lost, decrease outline thickness for both capture and oxygen bar."
   [16 moments of one ride](../attachments/h1-rings-sheet.jpg) (red pieces on the outer ring, then on the big ring;
   the whole ring red under a third), [as a GIF](../attachments/h1-rings-ticks.gif).
 
+## The land strip, Hugo's fixes (2026-11-19, Hugo; NULLROOM task m1): in the game
+[The sheet](../attachments/land-strip-m1-1.png) (six moments at 3x and real size: short and long bests at both ends,
+mid-dive, on a new best, and your marker at 5x from 5 m to 99,999 m; Studio captures by
+`tools/ui/land_icons/m1_sheets.py` with l1's client). Everything else is as l1 below.
+- **BEST is always centred on its gold diamond**, at every distance. Near an end of the strip the diamond and the
+  words stop together (`BEST_SPILL`: the words may stand at most 10 px past the strip's end first, so a short best
+  still sits near the start); the bar's gold fill ends at the diamond too. When you are close to your best (closer than
+  half the words plus half your oval), the words drop under your marker, still centred on the diamond, so they never
+  cover each other.
+- **Your marker in layers:** the black oval (0.3 see-through) is drawn under your face and tucked up 5 px behind it; the
+  metres are drawn over the face (ZIndex 36 over the disc's 34 and 35; both are the marker's children, since the HUD's
+  ZIndexBehavior is Sibling), so they cover only its lower edge. The oval grows with the metres from 26 to 60 px wide;
+  past that the metres shrink in half steps from 13 (down to 8) until they fit with 5 px a side, so 99,999 m fits.
+- **Your face** is 20 px (was 18).
+
 ## The land strip, Hugo's picks (2026-11-18, Hugo; NULLROOM task l1): in the game
 Hugo picked from [the mixes](../attachments/land-strip-mixes-1.png) and the option sheets of task s2. Built live (the
 option switches of s2, `Kit.LandBestLook`, `LandYouLook`, `LandLockLook`, `LandLineLook` and `LandNumbers`, are gone),
@@ -70,9 +85,9 @@ captures of the game's own code (`tools/ui/land_icons/l1_sheets.py`, client `l1_
   to beat reads at a glance. Past your best it is all white.
 - **Your best:** Mix 3's gold diamond on the bar at your best, with "BEST 1,300 m" in gold under it. When you are
   within 40 px of it (on your way to a new best) the words hang under your metres instead, so they never cover each
-  other.
+  other. (Since m1, above: always centred on the diamond.)
 - **You:** your face (Roblox's headshot) in a pure black 2 px ring, over a flat black oval at 0.3 see-through with no
-  border (Mix 2's pill, without its gradient), the metres on it. No notch, no land name.
+  border (Mix 2's pill, without its gradient), the metres on it. No notch, no land name. (Since m1, above: layered.)
 - **The metres' font:** Luckiest Guy (`Kit.LandMetresFont`; workspace `LandMetresFont`, a font's name, in Studio),
   picked from six on [the font sheet](../attachments/land-strip-l1-fonts-1.png): the chunkiest at real size, its round
   letters keep the thick edge clear.

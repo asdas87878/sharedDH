@@ -39,6 +39,7 @@ for t in (3.5, 4.0):
     PLAN["events"].append([t, a, a - TICK])
     a -= TICK
 END = 4.8
+PLAN["finish"] = END
 
 
 def run(args, timeout=120):
@@ -133,6 +134,86 @@ def gif(mode, fps=30, crop=None, zoom=3):
     return dest
 
 
+def studio_window():
+    wins = json.loads(subprocess.check_output(["niri", "msg", "--json", "windows"], text=True))
+    studio = [w for w in wins if "robloxstudio" in (w.get("app_id") or "").lower() or "ride-a-fish" in (w.get("title") or "")]
+    return max(studio, key=lambda w: w["layout"]["window_size"][0] * w["layout"]["window_size"][1])["id"]
+
+
+def moment(im):
+    """The bar's length along the bottom, in pixels (the client's clock as a magenta bar)"""
+    px = im.load()
+    best = 0
+    for y in range(im.height - 1, im.height // 2, -1):
+        n = 0
+        x = 0
+        while x < im.width:
+            r, g, b = px[x, y][:3]
+            if r > 230 and g < 40 and b > 230:
+                n += 1
+            x += 1
+        best = max(best, n)
+        if best and n == 0:
+            break
+    return best
+
+
+def live(mode, slow=0.12, crop=None, zoom=2, fps=30):
+    """Shots as fast as niri takes them while the copy runs on a slowed clock; each frame's moment read off the bar"""
+    crop = crop or CROP
+    win = studio_window()
+    try:
+        clip = subprocess.run(["wl-paste", "-n", "-t", "text/plain"], capture_output=True, text=True, timeout=2).stdout
+    except Exception:
+        clip = None
+    attrs(Run=time.time() % 100000, Mode=mode, Script=json.dumps(PLAN), T=0, Slow=0)
+    time.sleep(0.8)
+    attrs(Slow=slow, Go=time.time() % 100000)
+    files = []
+    stop = time.time() + END / slow + 1.5
+    i = 0
+    while time.time() < stop:
+        f = OUT / f"l{mode}_{i:04d}.png"
+        if f.exists():
+            f.unlink()
+        subprocess.run(["niri", "msg", "action", "screenshot-window", "--id", str(win), "--path", str(f)], check=True)
+        files.append(f)
+        i += 1
+    if clip:
+        subprocess.run(["wl-copy"], input=clip, text=True, timeout=2)
+    time.sleep(0.5)
+    shots = []
+    for f in files:
+        for _ in range(30):
+            if f.exists():
+                break
+            time.sleep(0.1)
+        im = Image.open(f).convert("RGB")
+        shots.append((moment(im), im))
+    full = max(m for m, _ in shots)
+    print(f"{len(shots)} shots, bar full {full} px")
+    # one frame per 1/fps of the clock: the shot nearest each moment
+    timed = [(m / full * END, im) for m, im in shots if m > 0]
+    font = ImageFont.load_default(size=20)
+    frames = []
+    for k in range(int(END * fps) + 1):
+        t = k / fps
+        tt, im = min(timed, key=lambda p: abs(p[0] - t))
+        c = im.crop(crop)
+        c = c.resize((c.width * zoom, c.height * zoom), Image.LANCZOS)
+        d = ImageDraw.Draw(c)
+        d.text((10, 8), f"{LETTER[mode]}: {NAMES[mode]}", fill="white", font=font, stroke_width=2, stroke_fill="black")
+        d.text((10, c.height - 30), f"t {tt:4.2f} s", fill="white", font=font, stroke_width=2, stroke_fill="black")
+        frames.append(c)
+    name = f"oxygen-trail-{LETTER[mode]}.gif"
+    dest = ROOT / "docs/attachments" / name
+    pal = [f.quantize(colors=160, method=Image.MEDIANCUT, dither=Image.NONE) for f in frames]
+    pal[0].save(dest, save_all=True, append_images=pal[1:], duration=int(1000 / fps), loop=0, optimize=True)
+    SHEETS.mkdir(parents=True, exist_ok=True)
+    shutil.copy(dest, SHEETS / name)
+    return dest
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1]
     if cmd == "install":
@@ -149,6 +230,9 @@ if __name__ == "__main__":
         time.sleep(1)
         shot(OUT / "probe.png")
         print(OUT / "probe.png")
+    elif cmd == "live":
+        crop = tuple(int(x) for x in sys.argv[4].split(",")) if len(sys.argv) > 4 else None
+        print(live(int(sys.argv[2]), float(sys.argv[3]), crop))
     elif cmd == "gif":
         crop = tuple(int(x) for x in sys.argv[4].split(",")) if len(sys.argv) > 4 else None
         print(gif(int(sys.argv[2]), int(sys.argv[3]) if len(sys.argv) > 3 else 30, crop))
