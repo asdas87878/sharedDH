@@ -421,7 +421,7 @@ Config.Oxygen = {
 	SurfaceY = -3, -- floating stops here
 	WaterY = -4, -- below this, a player on the dock counts as in the water
 	-- The unit is seconds on a fish (the user, 2026-11-11): your max Oxygen / the fish's drain (Config.drain). A new
-	-- player has 2.5 s on a Shallows Common, so you have to go fish to fish.
+	-- player has 5 s on a Shallows Common (RideTime, below), so you have to go fish to fish.
 	Refill = 1, -- of max Oxygen, on landing a hop on another fish. 1: every fish starts with the whole meter, as the reference's ring is the time left on this dino (0.25 until 2026-11-11)
 	-- What the HUD and a fish's tag show as needed (Config.required): drain x KeepUp / Refill. With Refill 1 that is
 	-- the max Oxygen that gives KeepUp seconds on the fish.
@@ -443,12 +443,18 @@ Config.Oxygen = {
 	-- The drain in ticks (Hugo, 2026-11-18: "make the oxygen like this, go down in ticks, the more oxygen you have +
 	-- the more oxygen required should be linked to how fast the oxygen drains"). The meter never runs down smoothly:
 	-- every Tick seconds a piece goes at once (RideService; each told to the client, Ride "OxygenTick"). On a fish
-	-- the piece is what the seconds on it (Config.secondsOn) allow: seconds = KeepUp x grow(required) x more(max).
+	-- the piece is what the seconds on it (Config.secondsOn) allow: seconds = KeepUp x grow(required) x more(max)
+	-- x RideTime.
 	--   grow: a fish that needs more is ridden longer, (required / the Shallows Common's)^Grow, at most GrowMost
 	--   more: having more than it needs gives a little more time, (max / required)^MaxShare, at most MaxMost.
 	-- So the drain a second grows with your max Oxygen (a trained player no longer sits on a Shallows fish for a
 	-- minute) and with what the fish needs. Claude's first numbers, 2026-11-18: a new player on a Shallows Common
 	-- 2 s (4 ticks), a land-10 Common at exactly its need about 6 s, a Legendary there about 8.
+	-- (Hugo, 2026-11-18: "the Oxygen drain is too fast". RideTime 2.5: every fish lasts 2.5 times as long, so a new
+	-- player on a Shallows Common 5 s (10 ticks), a land-10 Common at its need about 15 s, a Legendary there about 20.
+	-- It was 1, i.e. the numbers above. Only the seconds on a fish: KeepUp stays 2, so what a fish needs (its tag,
+	-- taming, coins) does not change; StrainTime, a fish too strong for you, stays 1 s.)
+	RideTime = 2.5, -- times the seconds a full meter lasts on a fish (Config.secondsOn)
 	Tick = 0.5, -- seconds between ticks (0: the old smooth drain)
 	Grow = 0.1,
 	GrowMost = 4,
@@ -2070,7 +2076,8 @@ function Config.grow(required: number): number
 end
 
 -- Seconds a full meter lasts on a fish of this rarity in land `zone`, for a rider with this max Oxygen (2026-11-18:
--- the ticks; Oxygen.Tick). KeepUp x grow(required) x a little more for more max (Oxygen.MaxShare); longer on a Tank.
+-- the ticks; Oxygen.Tick). KeepUp x grow(required) x a little more for more max (Oxygen.MaxShare) x RideTime;
+-- longer on a Tank.
 -- A fish too strong: StrainTime (from the red zone's line, with Oxygen.RedDrop).
 -- (`fish`: with it, the seconds are this fish's own: longer on a Tank)
 function Config.secondsOn(zone: number, tier: string, max: number, fish: FishType?): number
@@ -2080,7 +2087,7 @@ function Config.secondsOn(zone: number, tier: string, max: number, fish: FishTyp
 	local o = Config.Oxygen
 	local required = math.max(Config.required(zone, tier), 1)
 	local more = math.clamp((math.max(max, required) / required) ^ o.MaxShare, 1, math.max(o.MaxMost, 1))
-	local seconds = o.KeepUp * Config.grow(required) * more
+	local seconds = o.KeepUp * Config.grow(required) * more * math.max(o.RideTime, 0.01)
 	if fish and Config.hasArchetype(fish, "Tank") then
 		seconds /= math.max(Config.Archetype.Tank.Drain, 0.01)
 	end

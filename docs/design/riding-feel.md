@@ -1118,7 +1118,12 @@ the red zone should be hit at about 1/3 of the total stamina left". Built by NUL
   a whole share of the meter (it empties in equal steps). The server tells the rider's client each one: Ride
   `"OxygenTick", lost, oxygen, every, kind` (kind `"Tick"`, or `"Red"` for the drop below). Floating off a fish ticks
   too (`Config.freeDrain`: at least `FreeDrain` a second, the whole meter in `FreeSeconds` 25 at most).
-- **How long a full meter lasts on a fish** (`Config.secondsOn`): `KeepUp` (2 s) x grow x more.
+- **How long a full meter lasts on a fish** (`Config.secondsOn`): `KeepUp` (2 s) x grow x more x `RideTime`
+  (2.5 since 2026-11-18, Hugo: "the Oxygen drain is too fast"; it was 1). The figures below are the first numbers,
+  with `RideTime` 1; now each is 2.5 times longer: a new player on a Shallows Common 5 s (10 ticks of 10), a land-10
+  Common at its need about 15 s, a Legendary there about 20, the 100,000 player on a Shallows Legendary about 12.
+  `KeepUp` stays 2, so what a fish needs (its tag, taming, coins) is unchanged; `StrainTime` stays 1 s and
+  `FreeSeconds` 25.
   - grow: a fish that needs more is ridden longer, `(required / 80)^Grow`, `Grow` 0.1, at most `GrowMost` 4.
   - more: having more than it needs gives a little more, `(max / required)^MaxShare`, `MaxShare` 0.25, at most
     `MaxMost` 2.
