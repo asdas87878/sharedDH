@@ -11,11 +11,16 @@ The code: `src/server/Services/AquariumService.luau`, `src/client/Controllers/Aq
 1. **A tank each.** A player takes the first free plot on the dock as they join, the nearest to the dock's spawn
    first, and gives it up as they leave. Its sign shows their name and what the tank earns.
 2. **The catch comes home in your hands.** What you tamed on a dive is still carried at the dock (it was only
-   counted before). The seven slots stay filled until it is put away.
+   counted before), a failed dive's too. The seven slots stay filled until you put the fish in, and they stay with
+   you through the next dive if you don't (you can carry seven).
 3. **You wake at your own tank.** With fish in hand, a dive that ends puts you on the pad in front of your tank,
-   not at the dock's spawn. The view turns to the tank.
-4. **Standing on your plot puts them in.** A line rises over the tank: how many went in, and what they add a
-   second. The slots empty.
+   not at the dock's spawn.
+4. **You put them in, one at a time** (Hugo, 2026-11-18: "make the player actually be able to place down fishes in
+   aquarium once back"). At your tank a prompt, "Put in tank" (hold E a quarter second, or tap it), puts in the fish
+   with the white ring in the slots: the newest, or the one you clicked. While the prompt shows, a click on a caught
+   slot puts that one in at once. The view turns to the tank and a line rises over it: the fish's name and what it
+   adds a second. The server checks it: on the dock, at your own tank (on the plot, or within 28 studs of its front
+   pad), and that slot still holds that fish.
 5. **They swim there and earn.** The best seven earn coins every second. The coin row on the HUD shows itself.
    The rest are kept (up to 60) and take a place when they are among the best.
 
@@ -41,6 +46,9 @@ In the user's Studio on grey-box 15, by script.
   the seven slots empty.
 - **The sign:** the player's name and "$7.2 a second".
 - No errors.
+- **Putting in by hand (2026-11-18, task a1, by script):** two fish caught, the dive failed, woke at the tank
+  carrying both with the prompt up; a try from 96 studs away refused; the prompt put each in, both swam in the tank,
+  the income went 0, 3, 8, the slots emptied and the prompt went away. Pictures: `../attachments/a1-*.png`.
 - **Not checked:** two players and two tanks; a full tank of 60; a phone; the line over the tank by eye (it had
   gone by the time the picture was taken).
 
@@ -74,7 +82,9 @@ In the user's Studio on grey-box 15, by script.
 ## For the other chats
 - **Player attributes, new:** `Coins` (whole coins; the HUD's coin row was waiting for it), `Income` (coins a
   second), `TankFish` (how many the tank holds), `Plot` (the plot's name). `Owned` now counts at the deposit.
-- **Ride "Deposited", count, gained, income:** sent to the player as their catch goes in.
+- **Action "Place", index, id:** put the index-th carried fish (oldest first) in, if it is still that kind. Refused
+  with Ride "Denied", "Place", "Far" off the dock or away from your tank.
+- **Ride "Deposited", count, gained, income, id:** sent to the player as a fish goes in (count 1; id its kind).
 - **The map's names it leans on:** `Dock.Plots.PlotN` with `TankWater`, `Pad`, `CollectPad`, `SignBoard`. A plot
   gets an `Owner` attribute (the user id) and a `TankFish` folder while it is someone's.
 - **Tank fish** carry the tag `TankFish`. They are not in `Workspace.Fish`, so tags, the lock and the ride never

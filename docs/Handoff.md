@@ -3,6 +3,24 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · Putting a catch in the tank by hand (NULLROOM task a1, Hugo's PC)
+**State:** in the game code, run in Hugo's Studio by script: two fish caught, the dive failed, woke at the tank
+carrying both, a refused try from 96 studs away, a stale id ignored, then the prompt put each fish in (both swam in the
+tank, the income rose, the slots emptied, the prompt went away). **Not played by hand.** StyLua passes; selene shows
+only the three old warnings. The place not saved, the test scripts removed. Hugo's words: "Make the player actually
+be able to place down fishes in aquarium once back." The description: [the aquarium](design/aquarium.md).
+- **No more putting in by standing on the plot.** The catch stays in the slots (in your hands) after a dive, a failed
+  one too, until you put it in.
+- **At your own tank a prompt "Put in tank"** (E, held a quarter second; a tap on a phone) puts in the chosen slot's
+  fish: the one with the white ring, the newest unless you clicked another. While the prompt shows, clicking a caught
+  slot puts that fish in at once. One fish at a time; the line over the tank names it.
+- **Server-authoritative:** Action `"Place", index, id`; `AquariumService` checks the Dock state, that you stand at
+  your own tank (on the plot or within 28 studs of its `CollectPad`), that the index still holds that kind, and a
+  0.15 s gap. A refusal answers Ride `"Denied", "Place", "Far"`. `Deposited` now also carries the fish's id.
+- **Outside the task's files:** `RideService.takeCarried(player, index)` (one carried fish out of the hands, counted in
+  `Owned`), and one line in `Net.luau`'s comments.
+- Pictures: `docs/attachments/a1-home-carrying.png`, `a1-placed-one.png`, `a1-placed-line.png`.
+
 ## 2026-11-18 · Props break by size (NULLROOM task p1, Hugo's PC)
 **State:** in the game code, run in Hugo's Studio by script (ten runs: small fish through grass and into coral, a
 Reef Shark just bigger than a table coral, a Megalodon, the Sawfish as the Breaker). **Not played by hand.** StyLua
