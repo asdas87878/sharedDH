@@ -105,9 +105,9 @@ export type RingStyle = {
 }
 
 Kit.RingStyles = {
-	-- the live look: h1's ring, its line black, a faint light line inside the top of the band and a faint shade
-	-- round the hole; the thin rings get a black hairline outside
-	{ Name = "Clean (live)", Outline = 0.6, TrackFade = 0.5, Highlight = 0.55, HoleShade = 0.55, ExtraEdge = 0.6 },
+	-- the live look: h1's ring, its line black, the band one flat colour (Hugo, 2026-11-18: "remove highlights/shadows
+	-- make it blank": b1's light line at the top and shade round the hole taken out); the extra ring a black hairline
+	{ Name = "Clean (live)", Outline = 0.6, TrackFade = 0.5, ExtraEdge = 0.6 },
 	-- a black line across the band every twelfth of the circle
 	{
 		Name = "Segmented",
