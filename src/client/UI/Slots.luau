@@ -7,8 +7,8 @@
 -- The chosen catch has a square white ring a little outside its black outline, as the reference's (measured off the
 -- user's screenshot, 2026-11-17: 5% of a slot thick, 3% out from the outline): the newest catch until the player
 -- clicks another, and any caught slot while the mouse is over it ("it will just be on the last dino caught or the one
--- you select with the mouse when clicking, but should appear on hover"). A click fires Slots.Selected; nothing
--- listens yet.
+-- you select with the mouse when clicking, but should appear on hover"). A click fires Slots.Selected; back at your
+-- tank, its prompt puts the chosen one in (Slots.chosen, AquariumController).
 -- The glass fades out toward its top, and its outline does too, but less (the user, 2026-11-17: "retain the texture
 -- but make the texture fade out in a gradient to some capacity alongside the outline to a different lesser capacity"),
 -- and the picture is bigger than its slot and stands over the slot's top and sides ("scale the icons so that they all
@@ -312,6 +312,13 @@ function Slots.place(touch: boolean)
 		slots[i].Frame.Position = UDim2.new(0, (i - 1) * (size + gap) + size / 2, 1, -size / 2)
 		names[i].TextSize = if touch then 8.5 else 11
 	end
+end
+
+-- The chosen catch (the one with the white ring): its place in the list and the catch, or nil with none. What the
+-- tank's prompt puts in (AquariumController)
+function Slots.chosen(): (number?, Caught?)
+	local item = if selected then current[selected] else nil
+	return if item then selected else nil, item
 end
 
 -- list: what the player carries, newest last (nil: the game has no taming, and the row stays hidden).

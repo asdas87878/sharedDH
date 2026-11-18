@@ -6,7 +6,9 @@
 --   as they join and gives it up as they leave. With more players than plots, the rest have none: their catch is only
 --   counted, as before.
 --   Coming home: a player who is carrying fish wakes on the dock at their own tank (RideService.Home), not at the
---   dock's spawn. Standing on their plot with fish in hand, the fish go in (RideService.carried, RideService.deposited).
+--   dock's spawn. The catch stays in their hands (the slots) until they put it in: at their own tank a prompt puts the
+--   chosen fish in, one at a time (Action "Place", index, id; AquariumController; RideService.takeCarried). A failed
+--   dive keeps its catch the same way.
 --   Earning: each fish earns by what it takes to hold at home, its size and its colour (Config.incomeOf). The best
 --   Aquarium.Earning of them earn; the rest are kept and wait their turn. Coins are the player's "Coins" attribute (the
 --   HUD's coin row shows itself when it is there), "Income" what the tank earns a second, "TankFish" how many it holds.
@@ -231,35 +233,37 @@ local function count(tank: Tank)
 	tank.Income = income
 end
 
--- The fish in the player's hands go into their tank
-local function deposit(tank: Tank)
+-- One fish from the player's hands goes into their tank: the index-th they carry (oldest first), which must still be
+-- the kind their machine saw there (`id`), so a list that changed under the click puts nothing in
+local function place(tank: Tank, index: number, id: string): boolean
 	local carried = RideService.carried(tank.Player)
-	if #carried == 0 then
-		return
+	local c = carried[index]
+	if not c or c.Id ~= id or not Config.FishById[id] then
+		return false
+	end
+	local taken = RideService.takeCarried(tank.Player, index)
+	local kind = taken and Config.FishById[taken.Id]
+	if not taken or not kind then
+		return false
 	end
 	local before = tank.Income
-	local added = 0
-	for _, c in carried do
-		local kind = Config.FishById[c.Id]
-		if kind then
-			table.insert(
-				tank.Fish,
-				{ Id = c.Id, Size = c.Size, Variant = c.Variant, Income = Config.incomeOf(kind, c.Size, c.Variant) }
-			)
-			added += 1
-		end
-	end
+	table.insert(tank.Fish, {
+		Id = taken.Id,
+		Size = taken.Size,
+		Variant = taken.Variant,
+		Income = Config.incomeOf(kind, taken.Size, taken.Variant),
+	})
 	-- (a tank is not endless: past Aquarium.Hold the poorest are let go)
 	count(tank)
 	while #tank.Fish > Config.Aquarium.Hold do
 		table.remove(tank.Fish)
 	end
 	count(tank)
-	RideService.deposited(tank.Player)
 	tell(tank)
 	show(tank)
 	sign(tank.Plot, tank)
-	Net.Ride:FireClient(tank.Player, "Deposited", added, tank.Income - before, tank.Income)
+	Net.Ride:FireClient(tank.Player, "Deposited", 1, tank.Income - before, tank.Income, taken.Id)
+	return true
 end
 
 local function join(player: Player)
@@ -305,6 +309,22 @@ local function onPlot(plot: Model, at: Vector3): boolean
 		and math.abs(offset.Z) <= pad.Size.Z / 2
 		and offset.Y > -4
 		and offset.Y < 30
+end
+
+-- Whether a player stands at their tank, near enough to put a fish in (on its plot, or by its front pad: the prompt's
+-- reach and some slack for lag)
+local PLACE_REACH = 28
+local function atTank(tank: Tank): boolean
+	local character = tank.Player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return false
+	end
+	if onPlot(tank.Plot, root.Position) then
+		return true
+	end
+	local spot = part(tank.Plot, "CollectPad") or part(tank.Plot, "TankWater")
+	return spot ~= nil and (spot.Position - root.Position).Magnitude <= PLACE_REACH + spot.Size.Magnitude / 2
 end
 
 -- Where a player comes home to: in front of their own tank, facing it, when they carry fish
@@ -407,6 +427,28 @@ function AquariumService.Start()
 	if #plots == 0 then
 		return
 	end
+	-- the player puts a fish they carry into their tank (Action "Place", index, id: AquariumController's prompt). Only
+	-- on the dock, at their own tank, a few a second at most
+	local lastPlace: { [Player]: number } = {}
+	Net.Action.OnServerEvent:Connect(function(player: Player, action: any, index: any, id: any)
+		if action ~= "Place" or type(index) ~= "number" or type(id) ~= "string" then
+			return
+		end
+		local tank = tanks[player]
+		local now = os.clock()
+		if not tank or now - (lastPlace[player] or 0) < 0.15 then
+			return
+		end
+		lastPlace[player] = now
+		if RideService.stateOf(player) ~= "Dock" or not atTank(tank) then
+			Net.Ride:FireClient(player, "Denied", "Place", "Far")
+			return
+		end
+		place(tank, index, id)
+	end)
+	Players.PlayerRemoving:Connect(function(player: Player)
+		lastPlace[player] = nil
+	end)
 	Players.PlayerAdded:Connect(join)
 	Players.PlayerRemoving:Connect(leave)
 	for _, player in Players:GetPlayers() do
@@ -421,14 +463,6 @@ function AquariumService.Start()
 			if pay and tank.Income > 0 then
 				tank.Coins += tank.Income * (now - paidAt)
 				player:SetAttribute("Coins", math.floor(tank.Coins))
-			end
-			-- home with fish in hand, on their own plot: in they go
-			if RideService.stateOf(player) == "Dock" and #RideService.carried(player) > 0 then
-				local character = player.Character
-				local root = character and character:FindFirstChild("HumanoidRootPart")
-				if root and root:IsA("BasePart") and onPlot(tank.Plot, root.Position) then
-					deposit(tank)
-				end
 			end
 		end
 		if pay then

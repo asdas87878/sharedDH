@@ -1330,6 +1330,21 @@ function RideService.deposited(player: Player)
 	sendCaught(r)
 end
 
+-- and that one of them, the index-th carried (oldest first), has gone in: counted, and taken out of the hands. Gives
+-- that fish back, or nil when there is none at that place.
+function RideService.takeCarried(player: Player, index: number): Carry?
+	local r = riders[player]
+	if not r or index ~= index or index < 1 or index > #r.Carried or index % 1 ~= 0 then
+		return nil
+	end
+	local fish = table.remove(r.Carried, index)
+	table.remove(r.Caught, index)
+	r.Owned += 1
+	r.Player:SetAttribute("Owned", r.Owned)
+	sendCaught(r)
+	return fish
+end
+
 -- The submarine's drop-off (SubService; docs/design/submarine.md). Each only from "Carried".
 -- (a) No fish: flung forward into an ordinary hop at the sub's drop speed, as the player's machine flies it
 -- (JumpController.fling: Config.hopFrom of Sub.DropSpeed). It is the dive's first hop: a miss leaves them floating.
