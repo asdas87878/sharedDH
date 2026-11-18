@@ -487,7 +487,7 @@ Config.Oxygen = {
 	TickSizes = {
 		{ Ticks = 10, Tick = 0.5 }, -- (the o1 ring)
 		{ Ticks = 20, Tick = 0.2 },
-		{ Ticks = 30, Tick = 0.25 }, -- Hugo picked 30 (2026-11-18: "30 ticks but slightly fast"): a slower floor than the rest
+		{ Ticks = 30, Tick = 0.35 }, -- Hugo picked 30 (2026-11-18: "30 ticks but slightly fast"): a slower floor than the rest; 0.25 -> 0.35 (later that day: "the ticks for riding in general, they should be a little slower")
 		{ Ticks = 40, Tick = 0.2 },
 		{ Ticks = 60, Tick = 0.2 },
 		{ Ticks = 80, Tick = 0.2 },
