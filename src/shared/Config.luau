@@ -109,7 +109,7 @@ Config.BaseScale = {
 export type FishStat = {
 	Speed: number, -- studs a second, ridden, no variant
 	Archetype: string, -- "" for none; more than one comma-separated; the ids are Config.Archetype's keys
-	Breaks: boolean?, -- props: true, it breaks them whatever its size and archetypes; false, it never does; left out: Config.breaks decides (Tank, Breaker or a giant)
+	Breaks: boolean?, -- props: true, a ridden one breaks every prop (slowed by size: Config.propBreak), and a wild one breaks them; false, it breaks only the small ones ridden and none wild; left out: its size (ridden) or Config.breaks (wild) decides
 }
 
 -- THE per-fish table (Hugo, 2026-11-12): each creature's ridden speed and its passive archetypes, the single source
@@ -247,14 +247,15 @@ Config.Archetype = {
 		TimePer = 0.5, -- seconds added to Predator.BurstTime per stack
 		Cooldown = 1.2, -- in place of Predator.Cooldown
 	},
-	-- Breaker: breaks props for free (no speed lost, no Oxygen: Props.Slow and Props.Cost, which a Tank and a giant
-	-- pay, don't apply), knocks a wider hole, and each prop broken gives a short push and a little Oxygen.
+	-- Breaker (Hugo, 2026-11-18): breaks EVERY prop whatever its size, never slowed and never charged (Props.Slow
+	-- and Props.Cost don't apply), knocks a wider hole, and each prop broken gives Oxygen to the ride, and a short push.
 	Breaker = {
 		Reach = 5, -- added to Props.Reach
 		Burst = 1.12, -- its speed, times, after breaking a prop,
 		BurstTime = 1, -- for this many seconds
-		Oxygen = 0.04, -- of max Oxygen back per prop
-		Cooldown = 1.5, -- seconds between two rewards (the breaking itself has none)
+		Oxygen = 0.04, -- of max Oxygen back for each prop broken (small ones too: SmallOxygen)
+		SmallOxygen = 0.01, -- for each small prop broken (Props.SmallSize: grass, stones), of max Oxygen
+		Cooldown = 1.5, -- seconds between two pushes (the breaking and its Oxygen have none)
 		Crash = 0.5, -- a crash into a wall costs it this share of the usual speed and Oxygen loss (Crash.Slow, Crash.Cost)
 	},
 	-- Tank: the calm one. Oxygen drains slower on it, and it never gets angry as early.
@@ -1349,19 +1350,21 @@ Config.Wall = {
 
 -- Props (Hugo, 2026-11-13; before it, 2026-11-11: every fish broke them; the map's Lane/Props: each a Model of loose
 -- boxes). Three things, all here:
---   WHO BREAKS (Config.breaks): a fish with the Tank or the Breaker archetype, and a really big fish even with no
---   archetype: one whose model's box (width x height x length, studs, from its mesh.json) is GiantVolume or more. A
---   row of Config.FishStats can say otherwise for one fish (Breaks = true or false).
---   EVERYONE ELSE GOES STRAIGHT THROUGH: no stop, no slow-down, no Oxygen. So does every rider in the hop and the
---   glide. A prop in your way looks solid until you touch it (a shake, and it turns see-through while you are in
+--   WHO BREAKS, RIDDEN (Hugo, 2026-11-18, Config.propBreak; before it a Tank, a Breaker or a giant broke every prop):
+--   by size. Small things (SmallSize: grass, stones) break for any fish and cost nothing; a bigger prop breaks for
+--   a fish bigger than it, which is slowed a lot when only just bigger and hardly at all when far bigger (Slow,
+--   ClearRatio); a Breaker breaks everything, never slowed, and gets Oxygen for each. A row of Config.FishStats can
+--   say otherwise for one fish (Breaks = true: every prop, by the size slow-down; false: only the small ones).
+--   WILD FISH still go by Config.breaks (a Tank, a Breaker or a giant: GiantVolume) and Herd.BreakLength.
+--   A FISH NO BIGGER THAN THE PROP GOES THROUGH IT: stunned first (Stun), then no slow-down, no Oxygen. So does every
+--   rider in the hop and the glide. A prop in your way looks solid until you touch it (a shake, and it turns see-through while you are in
 --   it); a prop you pass close by is see-through while it is close; on your own screen only (PropController).
 --   BREAKING: the server decides which boxes are out (PropService: the tag "PropOut" on each) and when the prop is
 --   back; every player's own machine throws the boxes, fades them and takes them away. Nothing of it is solid. The
 --   prop comes back when no player has been within RegenRadius of it for RegenDelay seconds.
--- Breaking costs a Tank or a giant a small crash (Slow, Cost); a Breaker pays nothing and is paid (Archetype.Breaker).
 Config.Props = {
-	-- who breaks
-	GiantVolume = 12000, -- a fish whose box is this many cubic studs or more breaks props, archetype or not (docs/design/archetypes.md lists them)
+	-- who breaks, wild (ridden: SmallSize and on, below)
+	GiantVolume = 12000, -- a WILD fish whose box is this many cubic studs or more breaks props, archetype or not
 	WildBreaks = 1, -- 1: a wild fish that would break props does, when it is inside one and at least Herd.BreakLength long (0: only ridden fish)
 	-- what one hit takes out (the server's)
 	Reach = 2, -- boxes this near the fish's nose (past its own half width) are knocked
@@ -1427,9 +1430,20 @@ Config.Props = {
 	-- the loose boxes of a broken prop: see-through while they are close to you or between you and the camera
 	DebrisNear = 12, -- fully (to FadeTo) this near, studs,
 	DebrisFar = 30, -- not at all from this far (0: never)
-	-- what breaking costs a rider who isn't a Breaker
-	Slow = 0.8, -- the rider's speed drops to this share (it comes back over Crash.Recover)
-	Cost = 0.03, -- of max Oxygen
+	-- who breaks what, ridden (Hugo, 2026-11-18; Config.propBreak). A size is the cube root of a box's volume, studs:
+	-- a fish's after its kind's BaseScale and its rolled size, a prop's from its bounding box (PropService writes it
+	-- on the prop as PropSize). Sizes as measured: stones 4-8, floor tiles 5-9, sea grass 9-16, table coral and
+	-- crates about 22, boulders and sea stacks 30-45, corals, anemones and clams 40-60, kelp 45-80, masts, ribs and
+	-- skulls 70-115, the hull 120-140. Fish (Normal size): a Chromis 6, a Reef Shark 23, a Megalodon 52, a Blue Whale 59.
+	SmallSize = 16, -- a prop this size or smaller (grass, stones, tiles) breaks for any ridden fish, and slows it not at all
+	-- a bigger prop breaks for a fish bigger than it. How much of its speed it keeps: Slow when only just bigger,
+	-- easing up to all of it when ClearRatio times the prop's size or more (by SlowCurve: higher keeps more sooner)
+	Slow = 0.5, -- the rider's speed drops to this share for a fish only just bigger (it comes back over Crash.Recover)
+	ClearRatio = 2.5, -- this many times the prop's size and the fish isn't slowed at all
+	SlowCurve = 1.5,
+	Cost = 0.03, -- of max Oxygen for a fish only just bigger; less as it is bigger, none at ClearRatio
+	-- a fish no bigger than a prop goes through it (the stun first: Stun above); a Breaker breaks every prop, never
+	-- slowed and paid Oxygen for each (Archetype.Breaker)
 	WildEvery = 0.3, -- seconds between a wild fish's checks while it is inside a big thing's circle
 }
 
@@ -2210,8 +2224,35 @@ function Config.giant(fish: FishType): boolean
 	return Config.volumeOf(fish) >= Config.Props.GiantVolume
 end
 
--- Whether a fish breaks the props it swims into: a Tank, a Breaker or a giant; or what its own row of FishStats says
--- (Breaks). Every other fish goes straight through them. The same answer on the server and on every client.
+-- A size, for the props (Props.SmallSize): the cube root of a box's volume, studs. A ridden fish's box is
+-- Config.bodyOf (its kind's BaseScale and its rolled size in); a prop's is its bounding box (its PropSize attribute).
+function Config.boxSize(box: Vector3): number
+	return math.max(box.X * box.Y * box.Z, 0) ^ (1 / 3)
+end
+
+-- Whether a ridden fish of size `fish` breaks a prop of size `prop`, and the share of its speed it keeps doing so
+-- (Config.Props; Hugo, 2026-11-18). `kind` (the FishType) brings the Breaker archetype and a FishStats Breaks row.
+-- The same answer on the server (PropService.hit) and on the rider's own screen (PropController).
+function Config.propBreak(kind: FishType, fish: number, prop: number): (boolean, number)
+	local p = Config.Props
+	if Config.hasArchetype(kind, "Breaker") then
+		return true, 1
+	end
+	if prop <= p.SmallSize then
+		return true, 1
+	end
+	local stat = Config.FishStats[kind.Id]
+	local forced = stat and stat.Breaks
+	if forced == false or (forced ~= true and fish <= prop) then
+		return false, 1
+	end
+	local clear = math.max(p.ClearRatio, 1.01)
+	local near = math.clamp((clear - fish / math.max(prop, 0.01)) / (clear - 1), 0, 1)
+	return true, 1 - (1 - math.clamp(p.Slow, 0, 1)) * near ^ math.max(p.SlowCurve, 0.1)
+end
+
+-- Whether a WILD fish breaks the props it swims into (FishService; ridden fish go by Config.propBreak): a Tank, a
+-- Breaker or a giant; or what its own row of FishStats says (Breaks). The same answer on the server and every client.
 function Config.breaks(fish: FishType): boolean
 	local stat = Config.FishStats[fish.Id]
 	if stat and stat.Breaks ~= nil then

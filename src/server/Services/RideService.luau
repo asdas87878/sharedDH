@@ -10,7 +10,7 @@
 --   with the dive's catch kept. A hop is never refused for Oxygen and costs none, so at almost nothing you can still
 --   go fish to fish, and every landing refills.
 --   Running the fish into something solid never kills (Config.Crash): it costs Oxygen and the client is told to slow.
---   A prop never stops a fish: a Tank, a Breaker or a giant breaks it (PropService), the rest go through.
+--   A prop never stops a fish: one big enough for it breaks it (PropService, Config.propBreak), the rest go through.
 --   Going fish to fish (Config.Jump): from a fish or from floating, the player leaves into a hop their own client
 --   moves (the pop, the glide, the drop; A and D). That is the window, Jump.Window seconds, with no drain. To take a fish
 --   the client says which it is going for ("Grab"): the server checks it is free and within the hook's reach (by the
@@ -814,28 +814,37 @@ local function checkCrash(r: Rider, w: Wild)
 	if speed >= c.MinSpeed then
 		r.FastAt = t
 	end
-	-- a prop (Config.Props): only a Tank, a Breaker or a giant breaks it (Config.breaks); its boxes go and the fish
-	-- swims on through (reaching as far as it swims between two looks), for a small crash. Every other fish goes
-	-- straight through props, for nothing: they are left out of the look below for every fish.
-	-- A Breaker (Config.Archetype.Breaker) knocks a wider hole, loses nothing by it, and is paid: a push and a little
-	-- Oxygen, at most once every Breaker.Cooldown.
+	-- a prop (Config.Props; Hugo, 2026-11-18): by size (Config.propBreak, prop by prop in PropService.hit). Small
+	-- things break for any fish for nothing; a bigger prop breaks for a fish bigger than it, its boxes go and the fish
+	-- swims on through (reaching as far as it swims between two looks), slowed the more the nearer the two sizes are;
+	-- a fish no bigger goes straight through (its rider's screen stuns it first: PropController). Props are left out
+	-- of the look below for every fish.
+	-- A Breaker (Config.Archetype.Breaker) breaks every prop, knocks a wider hole, loses nothing by it, and is paid:
+	-- Oxygen for each prop broken, and a push at most once every Breaker.Cooldown.
 	local breaker = Config.hasArchetype(w.Type, "Breaker")
 	local b = Config.Archetype.Breaker
-	if speed >= c.MinSpeed and Config.breaks(w.Type) then
+	if speed >= c.MinSpeed then
 		local reach = math.max(w.Body.X, w.Body.Y) / 2
 			+ Config.Props.Reach
 			+ (if breaker then b.Reach else 0)
 			+ speed * c.Every / 2
 		local nose = root.Position + look * half
-		local loose = PropService.hit(nose, velocity, reach)
+		local loose, broke = PropService.hit(nose, velocity, reach, w.Type, Config.boxSize(w.Body))
 		if loose > 0 then
 			if breaker then
+				local oxygen = b.Oxygen * broke.Big + b.SmallOxygen * broke.Small
 				if t >= r.BreakReadyAt then
 					r.BreakReadyAt = t + b.Cooldown
-					reward(r, w, "Smash", b.Burst, b.BurstTime, b.Oxygen, nose, loose)
+					reward(r, w, "Smash", b.Burst, b.BurstTime, oxygen, nose, loose)
+				elseif oxygen > 0 and not sandbox("EndlessAir") then
+					r.Oxygen = math.min(r.Max, r.Oxygen + r.Max * oxygen)
+					sendOxygen(r, true)
 				end
-			elseif t >= r.CrashReadyAt then
-				bump(r, Config.Props.Cost, Config.Props.Slow)
+			elseif broke.Keep < 1 and t >= r.CrashReadyAt then
+				-- (the Oxygen it costs shrinks with the slow-down: all of Props.Cost at Props.Slow, none at no slow)
+				local p = Config.Props
+				local share = (1 - broke.Keep) / math.max(1 - p.Slow, 0.01)
+				bump(r, p.Cost * math.clamp(share, 0, 1), broke.Keep)
 			end
 		end
 	end

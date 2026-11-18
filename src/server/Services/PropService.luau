@@ -1,11 +1,15 @@
 --!strict
 -- Props that break (Config.Props; Hugo, 2026-11-13, in place of 2026-11-11's). The map's props are Models of loose
--- boxes in Workspace.ClaudeBlockout.Lane.Props (tools/map/greybox_luau.py: every box anchored). Only some fish break
--- them (Config.breaks: a Tank, a Breaker, a giant); every other fish and every rider in the hop goes straight through,
--- which costs this file nothing: nothing of the game's is stopped by a prop any more.
--- A fish that breaks props and swims into one (RideService for a ridden fish, FishService for a wild one inside a big
--- thing's circle) calls PropService.hit: the boxes it touches are out, and so are the boxes of the same prop resting
--- on them. The boxes still in place stay.
+-- boxes in Workspace.ClaudeBlockout.Lane.Props (tools/map/greybox_luau.py: every box anchored). Who breaks which:
+-- a ridden fish by its size against the prop's (Config.propBreak, Hugo 2026-11-18: small things for anyone, a bigger
+-- prop for a bigger fish, everything for a Breaker), a wild one by Config.breaks. A fish that doesn't break a prop,
+-- and every rider in the hop, goes straight through it, which costs this file nothing: nothing of the game's is
+-- stopped by a prop any more.
+-- Each prop carries its size (the attribute PropSize: Config.boxSize of its bounding box, written here when the
+-- props are found), so the server and the rider's screen judge it by the same number.
+-- A fish swimming into props (RideService for a ridden fish, FishService for a wild one inside a big thing's circle)
+-- calls PropService.hit: the boxes it touches of the props it breaks are out, and so are the boxes of the same prop
+-- resting on them. The boxes still in place stay.
 -- WHAT THE SERVER KEEPS is only which boxes are out and when the prop is back:
 --   a box that is out carries the CollectionService tag "PropOut" (PropService.Tag) and isn't solid;
 --   its prop (the Model) carries BreakAt (where it was hit), BreakVel (the fish's velocity) and BreakT (the server's
@@ -39,6 +43,24 @@ overlap.FilterType = Enum.RaycastFilterType.Include
 overlap.RespectCanCollide = true -- a loose box isn't solid, so it isn't found again
 local broken: { [Instance]: Broken } = {}
 
+-- A prop's size (Config.boxSize of its bounding box), kept on it as PropSize
+function PropService.sizeOf(model: Instance): number
+	local size = model:GetAttribute("PropSize")
+	if type(size) == "number" then
+		return size
+	end
+	local box = Vector3.zero
+	if model:IsA("Model") then
+		local _, extent = model:GetBoundingBox()
+		box = extent
+	elseif model:IsA("BasePart") then
+		box = model.Size
+	end
+	local measured = Config.boxSize(box)
+	model:SetAttribute("PropSize", measured)
+	return measured
+end
+
 -- The map's props folder, looked for when needed: the map can be rebuilt in Studio while the game runs
 local function props(): Instance?
 	if folder and folder.Parent then
@@ -53,6 +75,9 @@ local function props(): Instance?
 			if d:IsA("BasePart") then
 				d.CollisionGroup = "Props"
 			end
+		end
+		for _, model in folder:GetChildren() do
+			PropService.sizeOf(model)
 		end
 	end
 	return folder
@@ -104,17 +129,24 @@ local function rebuild(model: Instance, b: Broken)
 	model:SetAttribute("RebuildT", workspace:GetServerTimeNow())
 end
 
--- Something that breaks props swam into them at `at`, going `velocity`: the solid boxes within `reach` are out, with
--- what rests on them. Returns how many boxes went (0: no prop there).
-function PropService.hit(at: Vector3, velocity: Vector3, reach: number): number
+-- What one hit did: boxes knocked loose, props broken (small ones, Props.SmallSize, and bigger), and the share of its
+-- speed the fish keeps (the least of Config.propBreak's over the props broken; 1: not slowed)
+export type Hit = { Loose: number, Small: number, Big: number, Keep: number }
+
+-- A fish swam into props at `at`, going `velocity`: the solid boxes within `reach` of the props it breaks are out,
+-- with what rests on them. `kind` and `size` are a ridden fish's (Config.propBreak decides prop by prop); left out
+-- (a wild fish that breaks props: Config.breaks), every prop touched breaks. Returns how many boxes went (0: no prop
+-- there, or none it breaks), and the Hit.
+function PropService.hit(at: Vector3, velocity: Vector3, reach: number, kind: Config.FishType?, size: number?): (number, Hit)
+	local result: Hit = { Loose = 0, Small = 0, Big = 0, Keep = 1 }
 	local root = props()
 	if not root then
-		return 0
+		return 0, result
 	end
 	local p = Config.Props
 	local touched = workspace:GetPartBoundsInRadius(at, reach, overlap)
 	if #touched == 0 then
-		return 0
+		return 0, result
 	end
 	-- the lowest box touched of each prop: what is above it has lost its footing
 	local lowest: { [Instance]: number } = {}
@@ -124,6 +156,18 @@ function PropService.hit(at: Vector3, velocity: Vector3, reach: number): number
 		if model and model.Parent == root then
 			hit[part] = true
 			lowest[model] = math.min(lowest[model] or math.huge, part.Position.Y)
+		end
+	end
+	-- the props this fish doesn't break stay whole (it goes through them)
+	local keeps: { [Instance]: number } = {}
+	if kind and size then
+		for model in lowest do
+			local breaks, keep = Config.propBreak(kind, size, PropService.sizeOf(model))
+			if breaks then
+				keeps[model] = keep
+			else
+				lowest[model] = nil
+			end
 		end
 	end
 	local count = 0
@@ -160,9 +204,16 @@ function PropService.hit(at: Vector3, velocity: Vector3, reach: number): number
 				table.insert(state.Out, part)
 			end
 			count += #out
+			if PropService.sizeOf(model) <= p.SmallSize then
+				result.Small += 1
+			else
+				result.Big += 1
+			end
+			result.Keep = math.min(result.Keep, keeps[model] or 1)
 		end
 	end
-	return count
+	result.Loose = count
+	return count, result
 end
 
 -- The broken props, looked at a couple of times a second: one that no player has been near for long enough builds
