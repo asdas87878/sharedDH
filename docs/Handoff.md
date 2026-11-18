@@ -3,6 +3,25 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · Option sheets: Oxygen tick sizes, the land strip, the end-of-dive catch (NULLROOM tasks s1-s3, Hugo's PC)
+**State:** new switches only; **every default is today's look**, so the game plays as before until Hugo picks. The sheets
+are Studio captures (s2, s3) or drawn in Python from the live look (s1); **none played by hand or seen on a phone.**
+- **s1, Oxygen tick size:** `Config.Oxygen.TickSize` picks a row of `Config.Oxygen.TickSizes` (10, 20, 30, 40, 60, 80,
+  100 ticks). The default is 10 ticks with the 0.5 s floor. The other rows use a 0.2 s floor, and under the floor
+  `Config.tickOf` now takes bigger pieces instead of making the fish last longer. The fade is at most
+  `Kit.RingLook.TickFadeShare` (0.8) of the gap. A change applies after a playtest restart. Sheet:
+  `docs/attachments/oxygen-tick-sizes-1.png`.
+- **s2, the land strip:** fixed, live: a locked land shows its own screenshot, greyed and darker (`Kit.LandLocked`:
+  the atlas now holds a grey copy and two blurred copies of each picture), and the lock is centred under the number.
+  Options: `Kit.LandBestLook`, `LandYouLook`, `LandLockLook`, `LandLineLook` (1-6 each) and `LandLocked`, each
+  overridable by a workspace attribute in Studio. Sheets: `docs/attachments/land-strip-{A,B,C,D,E,mixes}-1.png`. The
+  atlas isn't uploaded yet, so live servers show plain tiles.
+- **s3, the catch at the end of a dive:** `Kit.CatchLook` 0 (today's banner, default), 1 Cards, 2 Stack, 3 Big number,
+  4 Toast (`UI/CatchShow.luau`; workspace attribute `CatchLook` in Studio). Sheet
+  `docs/attachments/catch-ui-options-1.png`, GIFs `catch-ui-option-1.gif` to `-4.gif`.
+- **Waiting on Hugo's picks:** a TickSize (Claude's pick 20), the land strip codes (Claude's pick "A2 B1 C1 E5 D2b Z0")
+  and a CatchLook (Claude's pick 1).
+
 ## 2026-11-18 · Oxygen ticks rework: same-size pieces, one extra ring, the white piece, 2/3 break-off, ticks on the struggle (NULLROOM tasks o1-o3, Hugo's PC)
 **State:** in the game code, checked by numbers under Lune and by scripted runs in Hugo's Studio; **not played by
 hand.** StyLua passes, selene shows only the three old warnings. Hugo still has to confirm the readings below.
