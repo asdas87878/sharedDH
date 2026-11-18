@@ -460,7 +460,9 @@ Config.Oxygen = {
 	-- player on a Shallows Common 5 s (10 ticks), a land-10 Common at its need about 15 s, a Legendary there about 20.
 	-- It was 1, i.e. the numbers above. Only the seconds on a fish: KeepUp stays 2, so what a fish needs (its tag,
 	-- taming, coins) does not change; StrainTime, a fish too strong for you, stays 1 s.)
-	RideTime = 2.5, -- times the seconds a full meter lasts on a fish (Config.secondsOn)
+	-- (Hugo, 2026-11-18, later: "make the draining slightly slower again". 2.5 -> 3: every fish lasts a fifth longer,
+	-- a new player on a Shallows Common 6 s, a land-10 Common at its need about 18 s; needs and taming unchanged.)
+	RideTime = 3, -- times the seconds a full meter lasts on a fish (Config.secondsOn)
 	-- Same-size ticks (Hugo, 2026-11-18, task o1: "the fade out ticks should all be the same no matter how much oxygen
 	-- you have it should just add an extra bar and then slow down the ticks"). READING (the boss's, not confirmed by
 	-- Hugo): every tick takes the same share of the meter, 1 / Ticks of your max, whatever the max and whatever the
