@@ -159,7 +159,7 @@ function Rings.build(parent: Instance)
 		BorderSizePixel = 0,
 		ZIndex = 3,
 	}, markPivot)
-	Kit.stroke(markLine, LOOK.Outline, Kit.Ink)
+	Kit.stroke(markLine, LOOK.Outline, LOOK.Border)
 	if SECONDS_ON_RING then
 		number = Kit.text({
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -208,12 +208,8 @@ local function makeExtra(k: number): Extra
 		Size = UDim2.fromOffset(d, d),
 		BackgroundTransparency = 1,
 	}, holder)
-	local track = Kit.sweep(frame, d, LOOK.ExtraThick, Kit.Deep)
-	track.fade(0.5)
-	local lag = Kit.sweep(frame, d, LOOK.ExtraThick, Kit.Coral)
-	lag.set(0)
-	local front = Kit.sweep(frame, d, LOOK.ExtraThick, Kit.Aqua)
-	return { Frame = frame, Track = track, Lag = lag, Front = front, Diameter = d }
+	local thin = Kit.thinRing(frame, d, LOOK.ExtraThick) -- (in the chosen look, Kit.RingStyle)
+	return { Frame = frame, Track = thin.Track, Lag = thin.Lag, Front = thin.Front, Diameter = d }
 end
 
 -- How much one bar holds: the whole meter under BarSize, else BarSize (more past ExtraMost rings)

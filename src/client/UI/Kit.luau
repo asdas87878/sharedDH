@@ -80,8 +80,76 @@ Kit.FadeEnds = { Strong = 0, Clear = 1 }
 
 -- The Oxygen ring and the tame ring beside the rider (Hugo, 2026-11-18, task h1; docs/design/ui.md, "The Oxygen ring
 -- in ticks, the red zone and the extra rings"):
+-- Which look the two rings wear (Hugo, 2026-11-18, task b1: "give me more options for the bars, show me how they
+-- progress, make it very slightly more detailed and make the border completely black"). 1 is the live look; 2 to 7
+-- are the options on docs/attachments/oxygen-bar-options-1.png, one number to try each. Every look's border is
+-- pure black and solid. Read when this module loads: a change shows after a restart of the playtest.
+Kit.RingStyle = 1
+
+export type RingStyle = {
+	Name: string,
+	Outline: number, -- the black line round the ring and its hole
+	TrackFade: number, -- how see-through the used part is (0.5 until b1)
+	Highlight: number?, -- a thin light line inside the outer edge, strongest at the top: how see-through there
+	HoleShade: number?, -- a soft dark line on the band round the hole, strongest at the top: how see-through there
+	Sheen: number?, -- the band's upper half paler, as on glass: how see-through at the top
+	Rim: number?, -- a light line round the hole: how see-through
+	TwoTone: number?, -- the inner half of the part left a lighter shade: how far toward white
+	Segments: number?, -- black lines across the band, this many round the circle
+	SegmentWidth: number?, -- whole points
+	Shadow: number?, -- a dark copy of the band this far below it
+	Lead: boolean?, -- a white line across the band at the end of the part left
+	ExtraThick: number?, -- the thin rings past BarSize: their band (else RingLook's)
+	ExtraGap: number?,
+	ExtraEdge: number?, -- a black line round each thin ring's outside (0: none)
+}
+
+Kit.RingStyles = {
+	-- the live look: h1's ring, its line black, a faint light line inside the top of the band and a faint shade
+	-- round the hole; the thin rings get a black hairline outside
+	{ Name = "Clean (live)", Outline = 0.6, TrackFade = 0.5, Highlight = 0.55, HoleShade = 0.55, ExtraEdge = 0.6 },
+	-- a black line across the band every twelfth of the circle
+	{
+		Name = "Segmented",
+		Outline = 0.8,
+		TrackFade = 0.5,
+		Highlight = 0.6,
+		Segments = 12,
+		SegmentWidth = 1, -- (whole points: a UI offset is a whole number, 0.8 drew nothing)
+		ExtraEdge = 0.6,
+	},
+	-- a heavier black line, a solid dark used part, a brighter light line: a cartoon sticker
+	{
+		Name = "Bold cartoon",
+		Outline = 1.8,
+		TrackFade = 0.2,
+		Highlight = 0.2,
+		ExtraThick = 3,
+		ExtraGap = 2,
+		ExtraEdge = 1,
+	},
+	-- see-through used part, the upper half paler, a light line round the hole
+	{ Name = "Glass", Outline = 0.8, TrackFade = 0.7, Sheen = 0.55, Rim = 0.45, ExtraEdge = 0.6 },
+	-- the inner half of the band a lighter aqua
+	{ Name = "Two-tone band", Outline = 0.8, TrackFade = 0.5, TwoTone = 0.45, HoleShade = 0.6, ExtraEdge = 0.6 },
+	-- a dark shadow under the ring, as if it floated over the water
+	{
+		Name = "Drop shadow",
+		Outline = 1.2,
+		TrackFade = 0.35,
+		Highlight = 0.45,
+		Shadow = 2.5,
+		ExtraEdge = 0.8,
+	},
+	-- a white line where the part left ends, so the edge that moves is easy to read
+	{ Name = "Lit edge", Outline = 0.8, TrackFade = 0.5, Highlight = 0.55, Lead = true, ExtraEdge = 0.6 },
+} :: { RingStyle }
+
+-- The Oxygen ring and the tame ring beside the rider (Hugo, 2026-11-18, task h1; docs/design/ui.md, "The Oxygen ring
+-- in ticks, the red zone and the extra rings"): the chosen look (Kit.RingStyle) over these
 Kit.RingLook = {
-	Outline = 0.6, -- the dark line round both rings and their holes (Kit.Outline.Hair, 1.2, until 2026-11-18)
+	Outline = 0.6, -- the black line round both rings and their holes (Kit.Outline.Hair, 1.2, until 2026-11-18)
+	Border = Color3.new(0, 0, 0), -- its colour: pure black, solid (Kit.Ink until b1)
 	-- each Oxygen tick lost (Config.Oxygen.Tick): its piece of the ring shows red, holds, then fades out
 	TickHold = 0.1, -- seconds fully red
 	TickFade = 0.35, -- seconds fading to clear (hold + fade under Oxygen.Tick, so one piece is gone before the next)
@@ -93,7 +161,15 @@ Kit.RingLook = {
 	ExtraThick = 2.5, -- a ring's band (the big ring's is 16)
 	ExtraGap = 1.5, -- between one ring and the next
 	ExtraMost = 5, -- at most this many; past it every bar (the big ring's too) holds max / (ExtraMost + 1)
+	Style = Kit.RingStyles[1],
 }
+do
+	local style = Kit.RingStyles[Kit.RingStyle] or Kit.RingStyles[1]
+	Kit.RingLook.Style = style
+	Kit.RingLook.Outline = style.Outline
+	Kit.RingLook.ExtraThick = style.ExtraThick or Kit.RingLook.ExtraThick
+	Kit.RingLook.ExtraGap = style.ExtraGap or Kit.RingLook.ExtraGap
+end
 
 export type Box = {
 	Name: string,
@@ -936,10 +1012,25 @@ function Kit.ring(
 ): Ring
 	local inner = diameter - thick * 2
 	local bold = outline or 0
+	-- the rings beside the rider wear the chosen look (Kit.RingStyle); others (the aim) as before
+	local style: RingStyle? = if plain then Kit.RingLook.Style else nil
+	local border = if plain then Kit.RingLook.Border else Kit.Ink
+	local trackFade = if style then style.TrackFade else 0.5
 	local holder: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(diameter, diameter),
 		BackgroundTransparency = 1,
 	}, parent)
+	if style and style.Shadow and bold > 0 then
+		-- a dark copy of the band and its line, a little below (behind everything)
+		local shadow = Kit.new("Frame", {
+			Position = UDim2.fromOffset(thick, thick + style.Shadow),
+			Size = UDim2.fromOffset(inner, inner),
+			BackgroundTransparency = 1,
+			ZIndex = 0,
+		}, holder)
+		Kit.corner(shadow, 999)
+		Kit.stroke(shadow, thick + bold, Kit.RingLook.Border, 0.55)
+	end
 	-- the warning's glow, then the dark line round the outside (both drawn outward from the ring's own edge)
 	local rim = Kit.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 0 }, holder)
 	Kit.corner(rim, 999)
@@ -947,7 +1038,7 @@ function Kit.ring(
 	if bold > 0 then
 		local dark = Kit.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 0 }, holder)
 		Kit.corner(dark, 999)
-		Kit.stroke(dark, bold, Kit.Ink)
+		Kit.stroke(dark, bold, border)
 	end
 	local trackCircle = Kit.new("Frame", {
 		Position = UDim2.fromOffset(thick, thick),
@@ -955,7 +1046,7 @@ function Kit.ring(
 		BackgroundTransparency = 1,
 	}, holder)
 	Kit.corner(trackCircle, 999)
-	local track = Kit.stroke(trackCircle, thick, TRACK, 0.5)
+	local track = Kit.stroke(trackCircle, thick, TRACK, trackFade)
 	local behind: Sweep? = nil
 	if meter then
 		local made = Kit.sweep(holder, diameter, thick, Kit.Coral)
@@ -963,6 +1054,84 @@ function Kit.ring(
 		behind = made
 	end
 	local front = Kit.sweep(holder, diameter, thick, Kit.Aqua)
+	-- two-tone: the inner half of the part left a lighter shade, swept with it
+	local lighterHalf: Sweep? = nil
+	local twoTone = if style then style.TwoTone else nil
+	if twoTone then
+		local half = math.floor(thick / 2) -- (whole points: a UI offset is a whole number)
+		local made = Kit.sweep(holder, diameter - half * 2, half, Kit.lighter(Kit.Aqua, twoTone))
+		made.Frame.Position = UDim2.fromOffset(half, half)
+		lighterHalf = made
+	end
+	-- a line from the band's outer edge to its inner, turned to `degrees` clockwise from the top
+	local function across(degrees: number, width: number, colour: Color3, z: number): Frame
+		local pivot: Frame = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(diameter, diameter),
+			BackgroundTransparency = 1,
+			Rotation = degrees,
+			ZIndex = z,
+		}, holder)
+		Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.fromOffset(width, thick),
+			BackgroundColor3 = colour,
+			BorderSizePixel = 0,
+			ZIndex = z,
+		}, pivot)
+		return pivot
+	end
+	if style and style.Segments and style.Segments > 1 then
+		for i = 0, style.Segments - 1 do
+			across(i * 360 / style.Segments, style.SegmentWidth or 1, border, 2)
+		end
+	end
+	if style and style.Sheen then
+		-- the upper half of the band paler, fading out toward the middle
+		local sheenCircle = Kit.new("Frame", {
+			Position = UDim2.fromOffset(thick, thick),
+			Size = UDim2.fromOffset(inner, inner),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, holder)
+		Kit.corner(sheenCircle, 999)
+		local sheen = Kit.stroke(sheenCircle, thick, Kit.White)
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, style.Sheen),
+				NumberSequenceKeypoint.new(0.45, 0.92),
+				NumberSequenceKeypoint.new(0.5, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}, sheen)
+	end
+	if style and style.Highlight then
+		-- a thin light line just inside the outer edge, strongest at the top
+		local inset = 1.6
+		local light = Kit.new("Frame", {
+			Position = UDim2.fromOffset(inset, inset),
+			Size = UDim2.new(1, -inset * 2, 1, -inset * 2),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, holder)
+		Kit.corner(light, 999)
+		local line = Kit.stroke(light, 1, Kit.White)
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, style.Highlight),
+				NumberSequenceKeypoint.new(0.55, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}, line)
+	end
+	local lead: Frame? = nil
+	if style and style.Lead then
+		lead = across(0, 1, Kit.White, 3)
+	end
 	local hole: Frame = Kit.new("Frame", {
 		Position = UDim2.fromOffset(thick, thick),
 		Size = UDim2.fromOffset(inner, inner),
@@ -979,7 +1148,37 @@ function Kit.ring(
 			ZIndex = 2,
 		}, holder)
 		Kit.corner(lip, 999)
-		Kit.stroke(lip, bold, Kit.Ink)
+		Kit.stroke(lip, bold, border)
+	end
+	if style and bold > 0 and (style.HoleShade or style.Rim) then
+		-- round the hole, just outside its black line: a soft shade strongest at the top, or a light line
+		local reach = bold + 0.5
+		local around = Kit.new("Frame", {
+			Position = UDim2.fromOffset(thick - reach, thick - reach),
+			Size = UDim2.fromOffset(inner + reach * 2, inner + reach * 2),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, holder)
+		Kit.corner(around, 999)
+		if style.HoleShade then
+			local shade = Kit.stroke(around, 1.6, Kit.RingLook.Border)
+			Kit.new("UIGradient", {
+				Rotation = 90,
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, style.HoleShade),
+					NumberSequenceKeypoint.new(0.6, 1),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}, shade)
+		else
+			Kit.stroke(around, 1, Kit.White, style.Rim)
+		end
+	end
+	if lead then
+		local line = lead:FindFirstChildOfClass("Frame")
+		if line then
+			Kit.stroke(line, 0.6, border)
+		end
 	end
 	if bold > 0 and not plain then
 		-- a pale line on the band's outside
@@ -1005,7 +1204,24 @@ function Kit.ring(
 
 	local function spent(value: boolean)
 		track.Color = if value then Kit.Coral else TRACK
-		track.Transparency = if value then 0.15 else 0.5
+		track.Transparency = if value then 0.15 else trackFade
+	end
+	local function set(fraction: number)
+		front.set(fraction)
+		if lighterHalf then
+			lighterHalf.set(fraction)
+		end
+		if lead then
+			local f = math.clamp(fraction, 0, 1)
+			lead.Visible = f > 0.002 and f < 0.998
+			lead.Rotation = f * 360
+		end
+	end
+	local function setColour(value: Color3)
+		front.colour(value)
+		if lighterHalf and twoTone then
+			lighterHalf.colour(Kit.lighter(value, twoTone))
+		end
 	end
 	local function lag(fraction: number)
 		if behind then
@@ -1021,12 +1237,36 @@ function Kit.ring(
 		Frame = holder,
 		Hole = hole,
 		Glow = glow,
-		set = front.set,
-		colour = front.colour,
+		set = set,
+		colour = setColour,
 		spent = spent,
 		lag = lag,
 		lagFade = lagFade,
 	}
+end
+
+export type ThinRing = { Track: Sweep, Lag: Sweep, Front: Sweep }
+
+-- One of the thin rings past Config.Oxygen.BarSize (Rings), in the chosen look: its used part, the red of a tick
+-- just lost, the part left, and the look's black line round it
+function Kit.thinRing(parent: Instance, diameter: number, thick: number): ThinRing
+	local style = Kit.RingLook.Style
+	local track = Kit.sweep(parent, diameter, thick, Kit.Deep)
+	track.fade(style.TrackFade)
+	local lag = Kit.sweep(parent, diameter, thick, Kit.Coral)
+	lag.set(0)
+	local front = Kit.sweep(parent, diameter, thick, Kit.Aqua)
+	local edge = style.ExtraEdge or 0
+	if edge > 0 then
+		local outside = Kit.new("Frame", {
+			Size = UDim2.fromOffset(diameter, diameter),
+			BackgroundTransparency = 1,
+			ZIndex = 0,
+		}, parent)
+		Kit.corner(outside, 999)
+		Kit.stroke(outside, edge, Kit.RingLook.Border)
+	end
+	return { Track = track, Lag = lag, Front = front }
 end
 
 -- Seconds as the HUD writes them: two decimals under a second, one up to ten, whole seconds to a minute, then nothing
