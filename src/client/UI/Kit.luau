@@ -146,21 +146,21 @@ Kit.RingStyles = {
 } :: { RingStyle }
 
 -- The Oxygen ring and the tame ring beside the rider (Hugo, 2026-11-18, task h1; docs/design/ui.md, "The Oxygen ring
--- in ticks, the red zone and the extra rings"): the chosen look (Kit.RingStyle) over these
+-- in ticks, the red zone and the extra rings"; the white piece and one extra ring since o2): the chosen look (Kit.RingStyle) over these
 Kit.RingLook = {
 	Outline = 0.6, -- the black line round both rings and their holes (Kit.Outline.Hair, 1.2, until 2026-11-18)
 	Border = Color3.new(0, 0, 0), -- its colour: pure black, solid (Kit.Ink until b1)
-	-- each Oxygen tick lost (Config.Oxygen.Tick): its piece of the ring shows red, holds, then fades out
-	TickHold = 0.1, -- seconds fully red
-	TickFade = 0.35, -- seconds fading to clear (hold + fade under Oxygen.Tick, so one piece is gone before the next)
-	-- the red zone's line (Config.angryAt: a third of the meter), a short mark across the band
-	Mark = 2, -- its width, in the HUD's points
-	MarkOver = 1, -- how far past the band's edges it reaches, each side
-	-- past Config.Oxygen.BarSize of max Oxygen, each further bar's worth is a thin ring round the big one, the
-	-- outermost draining first
-	ExtraThick = 2.5, -- a ring's band (the big ring's is 16)
-	ExtraGap = 1.5, -- between one ring and the next
-	ExtraMost = 5, -- at most this many; past it every bar (the big ring's too) holds max / (ExtraMost + 1)
+	-- each Oxygen tick (Hugo, 2026-11-18, task o2): the bar ticks down and leaves the piece it lost WHITE; that piece
+	-- breaks off (fades out) when the next tick starts, and the new piece is white in its place. The 2/3 break-off on
+	-- a fish too strong (Config.Oxygen.BreakOff) is one such piece. (Until o2: red, held 0.1 s, faded at once.)
+	Held = Color3.new(1, 1, 1), -- the piece just lost, until the next tick
+	TickFade = 0.3, -- seconds a broken-off piece takes to fade out (under Oxygen.Tick, so one is gone before the next)
+	TickWait = 3, -- seconds a white piece waits for a next tick that never comes (a stop, the end) before it breaks
+	-- (o2: the red zone's mark across the band is gone; the angry mode on the fish stays)
+	-- past Config.Oxygen.BarSize of max Oxygen, ONE more ring all round the big one: the Oxygen above BarSize
+	-- (Hugo, 2026-11-18, task o2: "only one extra bar that goes fully around"; until o2 a thin ring per BarSize)
+	ExtraThick = 4, -- its band (the big ring's is 16)
+	ExtraGap = 1.5, -- between it and the big ring
 	Style = Kit.RingStyles[1],
 }
 do
@@ -911,8 +911,8 @@ export type Ring = {
 	colour: (colour: Color3) -> (),
 	Glow: UIStroke, -- a line round the whole ring, clear until a warning lights it (Kit.pulse)
 	spent: (spent: boolean) -> (), -- the emptied part in red (an empty ring has no arc left to carry the colour)
-	lag: (fraction: number) -> (), -- a meter only: the part just lost, in red behind what is left
-	lagFade: (transparency: number) -> (), -- and how see-through that red is (a tick's piece fades out: Kit.RingLook)
+	held: (fraction: number) -> (), -- a meter only: up to here, the piece just lost, white behind what is left
+	broken: (fraction: number, transparency: number) -> (), -- up to here, the piece before it, fading out behind both
 }
 
 local TRACK = Kit.Deep
@@ -1047,11 +1047,16 @@ function Kit.ring(
 	}, holder)
 	Kit.corner(trackCircle, 999)
 	local track = Kit.stroke(trackCircle, thick, TRACK, trackFade)
-	local behind: Sweep? = nil
+	-- a meter: the piece breaking off (fading), over it the piece just lost (white), both behind the part left
+	local breaking: Sweep? = nil
+	local holding: Sweep? = nil
 	if meter then
-		local made = Kit.sweep(holder, diameter, thick, Kit.Coral)
+		local made = Kit.sweep(holder, diameter, thick, Kit.RingLook.Held)
 		made.set(0)
-		behind = made
+		breaking = made
+		local white = Kit.sweep(holder, diameter, thick, Kit.RingLook.Held)
+		white.set(0)
+		holding = white
 	end
 	local front = Kit.sweep(holder, diameter, thick, Kit.Aqua)
 	-- two-tone: the inner half of the part left a lighter shade, swept with it
@@ -1223,14 +1228,15 @@ function Kit.ring(
 			lighterHalf.colour(Kit.lighter(value, twoTone))
 		end
 	end
-	local function lag(fraction: number)
-		if behind then
-			behind.set(fraction)
+	local function held(fraction: number)
+		if holding then
+			holding.set(fraction)
 		end
 	end
-	local function lagFade(transparency: number)
-		if behind then
-			behind.fade(transparency)
+	local function broken(fraction: number, transparency: number)
+		if breaking then
+			breaking.set(fraction)
+			breaking.fade(transparency)
 		end
 	end
 	return {
@@ -1240,21 +1246,23 @@ function Kit.ring(
 		set = set,
 		colour = setColour,
 		spent = spent,
-		lag = lag,
-		lagFade = lagFade,
+		held = held,
+		broken = broken,
 	}
 end
 
-export type ThinRing = { Track: Sweep, Lag: Sweep, Front: Sweep }
+export type ThinRing = { Track: Sweep, Broken: Sweep, Held: Sweep, Front: Sweep }
 
--- One of the thin rings past Config.Oxygen.BarSize (Rings), in the chosen look: its used part, the red of a tick
--- just lost, the part left, and the look's black line round it
+-- The one ring round the big one past Config.Oxygen.BarSize (Rings), in the chosen look: its used part (all round),
+-- the piece breaking off, the white piece just lost, the part left, and the look's black line outside and inside
 function Kit.thinRing(parent: Instance, diameter: number, thick: number): ThinRing
 	local style = Kit.RingLook.Style
 	local track = Kit.sweep(parent, diameter, thick, Kit.Deep)
 	track.fade(style.TrackFade)
-	local lag = Kit.sweep(parent, diameter, thick, Kit.Coral)
-	lag.set(0)
+	local broken = Kit.sweep(parent, diameter, thick, Kit.RingLook.Held)
+	broken.set(0)
+	local held = Kit.sweep(parent, diameter, thick, Kit.RingLook.Held)
+	held.set(0)
 	local front = Kit.sweep(parent, diameter, thick, Kit.Aqua)
 	local edge = style.ExtraEdge or 0
 	if edge > 0 then
@@ -1265,8 +1273,17 @@ function Kit.thinRing(parent: Instance, diameter: number, thick: number): ThinRi
 		}, parent)
 		Kit.corner(outside, 999)
 		Kit.stroke(outside, edge, Kit.RingLook.Border)
+		-- and round its inner edge, drawn over the band (as the big ring's hole)
+		local inside = Kit.new("Frame", {
+			Position = UDim2.fromOffset(thick, thick),
+			Size = UDim2.fromOffset(diameter - thick * 2, diameter - thick * 2),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, parent)
+		Kit.corner(inside, 999)
+		Kit.stroke(inside, edge, Kit.RingLook.Border)
 	end
-	return { Track = track, Lag = lag, Front = front }
+	return { Track = track, Broken = broken, Held = held, Front = front }
 end
 
 -- Seconds as the HUD writes them: two decimals under a second, one up to ten, whole seconds to a minute, then nothing

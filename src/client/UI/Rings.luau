@@ -1,8 +1,7 @@
 --!strict
 -- The two rings beside the rider, as the reference's (measured off its frames, 2026-11-12):
 --   the big one is the time left on this fish: a thick flat ring with a small clear hole. The part left runs clockwise
---   from the top; the used part is dark and see-through; the part just lost shows red for a moment behind what is left,
---   so a steady drain has a thin red line at its edge and a sudden loss a red wedge;
+--   from the top; the used part is dark and see-through;
 --   the small one, to its left, is the tame: dark, filling pink, and it stays pink when full;
 --   a thin arc outside the big ring, from the top to the upper right, fills as the hop comes ready after a landing;
 --   on a landing the big ring comes in white and a little small, and is its colour again in a fifth of a second;
@@ -11,10 +10,13 @@
 -- Ours: the ring is our Oxygen's aqua, and red in the last second. On a fish too strong for you the ring is red from
 -- the landing, bigger, and shakes while the whole meter empties in a quarter of a second, with "Too strong!" and what
 -- the fish needs under it. Words under the ring only for a state the ring can't show: floating, out of air, too strong.
--- In ticks (Hugo, 2026-11-18, task h1): the meter steps down every Config.Oxygen.Tick; each piece lost shows red, holds
--- a moment and fades out (Kit.RingLook). A short red mark across the band is the red zone's line (Config.angryAt).
--- Past Config.Oxygen.BarSize of max Oxygen, each further bar's worth is a thin ring hugging the big one, the outermost
--- draining first; the hop's arc moves out past them.
+-- In ticks (Hugo, 2026-11-18, tasks h1 and o2): the meter steps down a piece at a time, every piece 1 / Oxygen.Ticks of
+-- the max (o1), so on the big ring every tick is the same tenth of the circle whatever the max. The piece just lost
+-- stays WHITE behind what is left; when the next tick starts it breaks off (fades out, Kit.RingLook) and the new piece
+-- is white. The 2/3 break-off on a fish too strong comes as one tick: one big white piece, broken off by the next.
+-- Past Config.Oxygen.BarSize of max Oxygen ONE more ring goes all round the big one, in the same look: the Oxygen above
+-- BarSize, full when the meter is full, emptying with it and empty once the meter is down to BarSize; the hop's arc
+-- moves out past it. No mark for the red zone (o2); the ring still goes red there, and the fish turns angry.
 -- Two things the HUD had and the reference doesn't are switched off below, one line each to bring back: the seconds
 -- written on the ring, and the fish's name and rarity under it.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -56,7 +58,7 @@ export type View = {
 	Fraction: number, -- how full the meter is (unused by the rings since h1: Amount and Max)
 	Amount: number, -- the meter, in Oxygen
 	Max: number, -- the most it holds
-	RedAt: number, -- the red zone's line, in Oxygen (0: no mark)
+	RedAt: number, -- the red zone's line, in Oxygen (unused since o2: no mark)
 	Seconds: number, -- how long it lasts on this fish
 	Name: string, -- the fish under us and its rarity ("" for none)
 	Tier: string,
@@ -93,22 +95,23 @@ local shownY = -1
 local shownAmount = -1
 local shownMax = -1
 
--- The piece of the meter just lost (Rings.lose): from, to, and when
-local chunkOn = false
-local chunkFrom = 0
-local chunkTo = 0
-local chunkAt = -math.huge
-local chunkFaded = -1
+-- The piece of the meter just lost (Rings.lose), white until the next tick: from, to, and when
+local heldOn = false
+local heldFrom = 0
+local heldTo = 0
+local heldAt = -math.huge
+local lastGap = 0 -- seconds between the last two ticks (0: not known yet on this fish)
+-- the piece before it, breaking off: down from `brokeFrom`, since when
+local brokeOn = false
+local brokeFrom = 0
+local brokeAt = -math.huge
+local brokeShown = -1
 
--- The thin rings past Config.Oxygen.BarSize (made when first needed, kept)
-type Extra = { Frame: Frame, Track: Kit.Sweep, Lag: Kit.Sweep, Front: Kit.Sweep, Diameter: number }
-local extras: { Extra } = {}
-local extraCount = 0
+-- The one ring past Config.Oxygen.BarSize (made when first needed, kept)
+type Extra = { Frame: Frame, Track: Kit.Sweep, Broken: Kit.Sweep, Held: Kit.Sweep, Front: Kit.Sweep }
+local extra: Extra? = nil
+local extraOn = false
 local outerScale: UIScale
-local markPivot: Frame
-local markLine: Frame
-local markOn = -1 -- which bar carries the red zone's mark (0: the big ring; -1: none)
-local markTurn = -1
 local shownSpent = false
 local shownTone = 0
 local shownSize = 1
@@ -144,22 +147,6 @@ function Rings.build(parent: Instance)
 	small.Frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	small.colour(Kit.Pink)
 	small.Frame.Visible = false
-	-- the red zone's line: a frame the size of its ring, turned, with the mark at its top
-	markPivot = Kit.new("Frame", {
-		Name = "RedZone",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		BackgroundTransparency = 1,
-		ZIndex = 3,
-		Visible = false,
-	}, big.Frame)
-	markLine = Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Kit.Coral,
-		BorderSizePixel = 0,
-		ZIndex = 3,
-	}, markPivot)
-	Kit.stroke(markLine, LOOK.Outline, LOOK.Border)
 	if SECONDS_ON_RING then
 		number = Kit.text({
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -196,40 +183,35 @@ function Rings.build(parent: Instance)
 	}, kindRow)
 end
 
-local function extraDiameter(k: number): number
-	return BIG + 2 * k * (LOOK.ExtraThick + LOOK.ExtraGap)
-end
+local EXTRA = BIG + 2 * (LOOK.ExtraThick + LOOK.ExtraGap) -- the extra ring across
 
-local function makeExtra(k: number): Extra
-	local d = extraDiameter(k)
+local function makeExtra(): Extra
 	local frame: Frame = Kit.new("Frame", {
-		Name = "Extra" .. k,
+		Name = "Extra",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(d, d),
+		Size = UDim2.fromOffset(EXTRA, EXTRA),
 		BackgroundTransparency = 1,
 	}, holder)
-	local thin = Kit.thinRing(frame, d, LOOK.ExtraThick) -- (in the chosen look, Kit.RingStyle)
-	return { Frame = frame, Track = thin.Track, Lag = thin.Lag, Front = thin.Front, Diameter = d }
+	local thin = Kit.thinRing(frame, EXTRA, LOOK.ExtraThick) -- (in the chosen look, Kit.RingStyle)
+	thin.Track.set(1) -- (all round, whatever the max)
+	return { Frame = frame, Track = thin.Track, Broken = thin.Broken, Held = thin.Held, Front = thin.Front }
 end
 
--- How much one bar holds: the whole meter under BarSize, else BarSize (more past ExtraMost rings)
-local function barOf(max: number): number
-	local size = math.max(Config.Oxygen.BarSize or 0, 0)
-	if size <= 0 or max <= size then
-		return math.max(max, 0.001)
-	end
-	return math.max(size, max / (LOOK.ExtraMost + 1))
+-- How full the big ring is with `amount` in it: the whole meter, so every tick is the same tenth of it
+local function bigFill(amount: number, max: number): number
+	return math.clamp(amount / max, 0, 1)
 end
 
--- How full bar k (0: the big ring) is with `amount` in it
-local function fill(amount: number, bar: number, k: number): number
-	return math.clamp((amount - k * bar) / bar, 0, 1)
+-- How full the extra ring is: the Oxygen above BarSize, out of the max's share above it
+local function extraFill(amount: number, max: number): number
+	local size = Config.Oxygen.BarSize or 0
+	return math.clamp((amount - size) / math.max(max - size, 0.001), 0, 1)
 end
 
 local function paint(colour: Color3)
 	big.colour(colour)
-	for i = 1, extraCount do
-		extras[i].Front.colour(colour)
+	if extra and extraOn then
+		extra.Front.colour(colour)
 	end
 end
 
@@ -250,19 +232,20 @@ function Rings.hide(now: number)
 	if not leftAt then
 		leftAt = now
 		big.colour(PALE)
-		big.lag(0)
+		big.held(0)
+		big.broken(0, 1)
 		beat(false)
 		shownTone = 0
 		small.Frame.Visible = false
 		shownTame = -2
 		outer.Frame.Visible = false
-		for _, extra in extras do
+		if extra then
 			extra.Frame.Visible = false
 		end
-		markPivot.Visible = false
-		markOn = -1
-		chunkOn = false
-		chunkFaded = -1
+		heldOn = false
+		brokeOn = false
+		brokeShown = -1
+		lastGap = 0
 		nameText.Visible = false
 		tierText.Visible = false
 		if number then
@@ -287,21 +270,28 @@ function Rings.landed(now: number)
 	flashing = true
 end
 
--- The meter dropped from `from` to `to` (a tick, the red zone's drop, a crash): that piece shows red, then fades.
--- The same drop heard twice (the Oxygen attribute and the server's "OxygenTick") is one piece, not restarted.
+-- The meter dropped from `from` to `to` (a tick, the 2/3 break-off, a crash): that piece stays white, and the one
+-- before it, if still there, breaks off now. The same drop heard twice (the Oxygen attribute and the server's
+-- "OxygenTick") is one piece, not a new tick.
 function Rings.lose(now: number, from: number, to: number)
 	if from <= to then
 		return
 	end
-	if chunkOn and now - chunkAt < 0.15 and math.abs(chunkTo - to) < 0.01 then
-		chunkFrom = math.max(chunkFrom, from)
+	if heldOn and now - heldAt < 0.15 and math.abs(heldTo - to) < 0.01 then
+		heldFrom = math.max(heldFrom, from)
 		return
 	end
-	chunkOn = true
-	chunkFrom = from
-	chunkTo = to
-	chunkAt = now
-	chunkFaded = -1
+	if heldOn then
+		brokeOn = true
+		brokeFrom = heldFrom
+		brokeAt = now
+		brokeShown = -1
+		lastGap = now - heldAt
+	end
+	heldOn = true
+	heldFrom = from
+	heldTo = to
+	heldAt = now
 end
 
 function Rings.update(now: number, v: View)
@@ -310,7 +300,7 @@ function Rings.update(now: number, v: View)
 		leftAt = nil
 		holder.Visible = true
 		outer.Frame.Visible = true
-		shownMax = -1 -- (the extra rings come back with the next count)
+		shownMax = -1 -- (the extra ring comes back with the next max)
 		nameText.Visible = true
 		tierText.Visible = true
 		if number then
@@ -341,82 +331,72 @@ function Rings.update(now: number, v: View)
 		holder.Position = UDim2.fromOffset(x, y)
 	end
 
-	-- the bars: the big ring holds the first BarSize, each thin ring round it the next; the outermost drains first
+	-- the bars: the big ring is the whole meter; past BarSize one ring round it holds the Oxygen above BarSize
 	local spent = v.Amount <= 0 and not v.Endless
 	local max = math.max(v.Max, 0.001)
-	local bar = barOf(max)
 	if max ~= shownMax then
 		shownMax = max
 		shownAmount = -1
-		markOn = -1
-		local count = math.max(math.ceil(max / bar - 1e-6) - 1, 0)
-		for k = #extras + 1, count do
-			extras[k] = makeExtra(k)
+		local size = Config.Oxygen.BarSize or 0
+		extraOn = size > 0 and max > size
+		if extraOn and not extra then
+			extra = makeExtra()
 		end
-		for k, extra in extras do
-			extra.Frame.Visible = k <= count
-			if k <= count then
-				extra.Track.set(fill(max, bar, k))
-			end
+		if extra then
+			extra.Frame.Visible = extraOn
 		end
-		extraCount = count
-		outerScale.Scale = (OUTER + extraDiameter(count) - BIG) / OUTER
-		shownTone = 0 -- (paint the new rings)
+		outerScale.Scale = if extraOn then (OUTER + EXTRA - BIG) / OUTER else 1
+		shownTone = 0 -- (paint the new ring)
 	end
+	local ring = if extraOn then extra else nil
 	if v.Amount ~= shownAmount then
 		shownAmount = v.Amount
-		big.set(fill(v.Amount, bar, 0))
-		for k = 1, extraCount do
-			extras[k].Front.set(fill(v.Amount, bar, k))
+		big.set(bigFill(v.Amount, max))
+		if ring then
+			ring.Front.set(extraFill(v.Amount, max))
 		end
 	end
-	-- the piece just lost: red, held, then fading out (a landing's refill takes it away)
-	if chunkOn and (v.Endless or spent or v.Amount > chunkTo + 0.01) then
-		chunkOn = false
+	-- the piece just lost: white until the next tick (Rings.lose), or until one is long overdue (the meter emptied,
+	-- the drain stopped); a landing's refill takes it away
+	if heldOn and (v.Endless or v.Amount > heldTo + 0.01) then
+		heldOn = false
+		lastGap = 0 -- (a new fish: its own gap)
 	end
-	local faded = 1
-	if chunkOn then
-		local since = now - chunkAt
-		if since >= LOOK.TickHold + LOOK.TickFade then
-			chunkOn = false
-		else
-			faded = math.clamp((since - LOOK.TickHold) / math.max(LOOK.TickFade, 0.001), 0, 1)
+	if heldOn then
+		local due = if spent
+			then (if lastGap > 0 then lastGap else Config.Oxygen.Tick)
+			else math.max(lastGap * 1.5, LOOK.TickWait)
+		if now - heldAt >= due then
+			brokeOn = true
+			brokeFrom = heldFrom
+			brokeAt = now
+			brokeShown = -1
+			heldOn = false
 		end
 	end
-	local faded20 = math.floor(faded * 20 + 0.5)
-	if faded20 ~= chunkFaded then
-		chunkFaded = faded20
-		local from = if faded20 >= 20 then 0 else chunkFrom
-		big.lag(if faded20 >= 20 then 0 else fill(from, bar, 0))
-		big.lagFade(faded20 / 20)
-		for k = 1, extraCount do
-			local extra = extras[k]
-			extra.Lag.set(if faded20 >= 20 then 0 else fill(from, bar, k))
-			extra.Lag.fade(faded20 / 20)
+	local heldUpTo = if heldOn then heldFrom else 0
+	big.held(bigFill(heldUpTo, max))
+	if ring then
+		ring.Held.set(extraFill(heldUpTo, max))
+	end
+	-- the piece before it, breaking off: fading out over TickFade
+	local faded = 20
+	if brokeOn then
+		faded = math.floor(math.clamp((now - brokeAt) / math.max(LOOK.TickFade, 0.001), 0, 1) * 20 + 0.5)
+		if faded >= 20 then
+			brokeOn = false
 		end
 	end
-	-- the red zone's line, on whichever bar it falls
-	local markBar, markAt = -1, 0
-	if v.RedAt > 0 and not v.Endless then
-		markBar = math.min(math.floor(v.RedAt / bar), extraCount)
-		markAt = fill(v.RedAt, bar, markBar)
-		if markAt <= 0 or markAt >= 1 then
-			markBar = -1
-		end
-	end
-	local turn = math.floor(markAt * 720 + 0.5)
-	if markBar ~= markOn or turn ~= markTurn then
-		markOn = markBar
-		markTurn = turn
-		markPivot.Visible = markBar >= 0
-		if markBar >= 0 then
-			local d = if markBar == 0 then BIG else extras[markBar].Diameter
-			local band = if markBar == 0 then BIG_THICK else LOOK.ExtraThick
-			markPivot.Parent = if markBar == 0 then big.Frame else extras[markBar].Frame
-			markPivot.Size = UDim2.fromOffset(d, d)
-			markPivot.Rotation = turn / 2
-			markLine.Size = UDim2.fromOffset(LOOK.Mark, band + 2 * LOOK.MarkOver)
-			markLine.Position = UDim2.new(0.5, 0, 0, -LOOK.MarkOver)
+	if faded ~= brokeShown then
+		brokeShown = faded
+		local upTo = if faded >= 20 then 0 else brokeFrom
+		-- (eased: it lets go quickly, then the last of it lingers a little)
+		local t = faded / 20
+		local fade = 1 - (1 - t) * (1 - t)
+		big.broken(bigFill(upTo, max), fade)
+		if ring then
+			ring.Broken.set(extraFill(upTo, max))
+			ring.Broken.fade(fade)
 		end
 	end
 	-- an empty meter: the whole ring red (with nothing left there is no arc to be red)
