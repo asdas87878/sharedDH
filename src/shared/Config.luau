@@ -437,8 +437,9 @@ Config.Oxygen = {
 	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
 	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
 	-- angry here (Config.Angry, RideService).
-	-- (Hugo, 2026-11-18: "the red zone should be hit at about 1/3 of the total stamina left": 0.3 until then.) It is
-	-- also the red zone's line: a fish too strong for you drops the meter to it at once (RedDrop).
+	-- (Hugo, 2026-11-18: "the red zone should be hit at about 1/3 of the total stamina left": 0.3 until then.) The
+	-- red zone's mark on the ring goes (Hugo, 2026-11-18, task o1/o2: "remove the red zone indicator"); the angry
+	-- mode still starts here. A fish too strong no longer drops the meter to this line: BreakOff, below.
 	AngryAt = 1 / 3,
 	-- The drain in ticks (Hugo, 2026-11-18: "make the oxygen like this, go down in ticks, the more oxygen you have +
 	-- the more oxygen required should be linked to how fast the oxygen drains"). The meter never runs down smoothly:
@@ -455,15 +456,36 @@ Config.Oxygen = {
 	-- It was 1, i.e. the numbers above. Only the seconds on a fish: KeepUp stays 2, so what a fish needs (its tag,
 	-- taming, coins) does not change; StrainTime, a fish too strong for you, stays 1 s.)
 	RideTime = 2.5, -- times the seconds a full meter lasts on a fish (Config.secondsOn)
-	Tick = 0.5, -- seconds between ticks (0: the old smooth drain)
+	-- Same-size ticks (Hugo, 2026-11-18, task o1: "the fade out ticks should all be the same no matter how much oxygen
+	-- you have it should just add an extra bar and then slow down the ticks"). READING (the boss's, not confirmed by
+	-- Hugo): every tick takes the same share of the meter, 1 / Ticks of your max, whatever the max and whatever the
+	-- fish; more seconds on a fish (Config.secondsOn) means the ticks come further apart, never bigger or more pieces.
+	-- So the gap between ticks is secondsOn / Ticks (Config.tickEvery): a new player on a Shallows Common 5 s, 10
+	-- ticks half a second apart; a land-10 Legendary at twice its need about 4 s apart. Until then the gap was a fixed
+	-- Tick and the piece what the seconds allowed (20 small ones on a 10 s fish).
+	Ticks = 10, -- pieces in a full meter
+	Tick = 0.5, -- the shortest gap between two ticks, seconds (so one piece has faded, Kit.TickFade, before the next); 0: the old smooth drain
 	Grow = 0.1,
 	GrowMost = 4,
 	MaxShare = 0.25, -- twice what the fish needs: 1.19 times the seconds; ten times: 1.78
 	MaxMost = 2,
+	-- The cap (Hugo, 2026-11-18, task o1: "when hitting 500k oxygen, make sure the claiming is slower and the breathing
+	-- tick is consistent ... The higher oxygen should also make the oxygen drain slower by a very marginal amount after
+	-- capping out"). READING (the boss's): the meter counts your max Oxygen up to Cap for the ticks (MaxShare's "more"
+	-- stops growing there), so from the cap on the breathing tick keeps one steady pace on a fish; past it, more
+	-- Oxygen only stretches the seconds on a fish (and so the gap between ticks) by at most PastMost, diminishing:
+	-- 1 + PastMost x (1 - Cap / max) (Config.pastCap): +2.5% at 1M, +4.5% at 5M, never +5%. Taming at or past the
+	-- cap takes Tame.CapSlow times longer. Your max itself is not capped: what a fish needs (its tag, Strained) is
+	-- still against the whole of it.
+	Cap = 500000,
+	PastMost = 0.05,
 	FreeSeconds = 25, -- floating off a fish empties the meter in at most this long (and FreeDrain a second at least)
-	-- Mounting a fish too strong for you (it needs more than your max): 1, the meter drops at once to the red zone's
-	-- line (AngryAt) if it is above it, then empties in StrainTime; 0, it empties from where it is (as before)
-	RedDrop = 1,
+	-- Mounting a fish too strong for you (it needs more than your max; Hugo, 2026-11-18, task o1: "when hopping on a
+	-- dino that doesnt have the right amount of stamina make sure it just instantly breaks off 2/3rds of the stamina
+	-- with the same fade out animation"): this share of the Oxygen you land with goes at once, as one piece (told to
+	-- the client as a tick, Ride "OxygenTick" ... "Break", so the ring fades it like any other), and what is left
+	-- empties in StrainTime. 0: it empties from where it is. (It was RedDrop: a drop to the red zone's line, AngryAt.)
+	BreakOff = 2 / 3,
 	-- The HUD's big ring holds this much Oxygen; past it each further BarSize is a thin ring round it, the outermost
 	-- draining first (Hugo, 2026-11-18, task h1: "will all be handled in the progression setup later"; Kit.RingLook)
 	BarSize = 2000,
@@ -533,6 +555,10 @@ Config.Tame = {
 	-- longer, by the same grow as the seconds on it (Oxygen.Grow, GrowMost: Config.tameTime). So a player with
 	-- exactly what a fish needs still just tames it, at any depth.
 	Grow = 1, -- 1: by Oxygen's grow; 0: Time for every fish
+	-- (Hugo, 2026-11-18, task o1: "when hitting 500k oxygen, make sure the claiming is slower"): a rider whose max
+	-- Oxygen is at or past Oxygen.Cap tames this many times slower (Claude's number; with RideTime 2.5 a fish held at
+	-- its need still lasts 5 / 3 of the tame)
+	CapSlow = 1.5,
 	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
 }
 
@@ -2075,10 +2101,20 @@ function Config.grow(required: number): number
 	return math.clamp((math.max(required, base) / base) ^ o.Grow, 1, math.max(o.GrowMost, 1))
 end
 
+-- How much longer a fish lasts for a rider past Oxygen.Cap: 1 up to the cap, then 1 + PastMost x (1 - Cap / max),
+-- a very marginal, diminishing slowing of the drain (never quite 1 + PastMost)
+function Config.pastCap(max: number): number
+	local o = Config.Oxygen
+	if o.Cap <= 0 or max <= o.Cap then
+		return 1
+	end
+	return 1 + math.max(o.PastMost, 0) * (1 - o.Cap / max)
+end
+
 -- Seconds a full meter lasts on a fish of this rarity in land `zone`, for a rider with this max Oxygen (2026-11-18:
--- the ticks; Oxygen.Tick). KeepUp x grow(required) x a little more for more max (Oxygen.MaxShare) x RideTime;
--- longer on a Tank.
--- A fish too strong: StrainTime (from the red zone's line, with Oxygen.RedDrop).
+-- the ticks; Oxygen.Ticks). KeepUp x grow(required) x a little more for more max (Oxygen.MaxShare, counted only up
+-- to Oxygen.Cap) x RideTime x pastCap(max); longer on a Tank.
+-- A fish too strong: StrainTime (from what is left after the break-off, Oxygen.BreakOff).
 -- (`fish`: with it, the seconds are this fish's own: longer on a Tank)
 function Config.secondsOn(zone: number, tier: string, max: number, fish: FishType?): number
 	if Config.strained(zone, tier, max) then
@@ -2086,8 +2122,9 @@ function Config.secondsOn(zone: number, tier: string, max: number, fish: FishTyp
 	end
 	local o = Config.Oxygen
 	local required = math.max(Config.required(zone, tier), 1)
-	local more = math.clamp((math.max(max, required) / required) ^ o.MaxShare, 1, math.max(o.MaxMost, 1))
-	local seconds = o.KeepUp * Config.grow(required) * more * math.max(o.RideTime, 0.01)
+	local counted = if o.Cap > 0 then math.min(max, o.Cap) else max
+	local more = math.clamp((math.max(counted, required) / required) ^ o.MaxShare, 1, math.max(o.MaxMost, 1))
+	local seconds = o.KeepUp * Config.grow(required) * more * math.max(o.RideTime, 0.01) * Config.pastCap(max)
 	if fish and Config.hasArchetype(fish, "Tank") then
 		seconds /= math.max(Config.Archetype.Tank.Drain, 0.01)
 	end
@@ -2100,12 +2137,34 @@ function Config.drainFor(zone: number, fish: FishType, max: number): number
 	return max / math.max(Config.secondsOn(zone, fish.Tier, max, fish), 0.01)
 end
 
--- Seconds on this fish to tame it (Config.Tame): Tame.Time, longer for a fish that needs more (Tame.Grow)
-function Config.tameTime(zone: number, tier: string): number
+-- One tick's piece and the seconds between ticks (Oxygen.Ticks, the reading of 2026-11-18): the piece is always
+-- 1 / Ticks of the max; the gap is what the drain a second (`rate`) makes of it, at least Oxygen.Tick
+function Config.tickOf(max: number, rate: number): (number, number)
+	local o = Config.Oxygen
+	local piece = math.max(max, 0.001) / math.max(o.Ticks, 1)
+	return piece, math.max(piece / math.max(rate, 0.001), o.Tick)
+end
+
+-- The ticks on a fish too strong, after the break-off: `left` Oxygen in StrainTime, in pieces as near 1 / Ticks of
+-- the max as the gap (at least Oxygen.Tick) allows. Returns the piece and the gap.
+function Config.strainTicks(max: number, left: number): (number, number)
+	local o = Config.Oxygen
+	local most = math.max(1, math.floor(o.StrainTime / math.max(o.Tick, 0.01) + 1e-6))
+	local count = math.clamp(math.floor(left / (math.max(max, 0.001) / math.max(o.Ticks, 1)) + 0.5), 1, most)
+	return math.max(left, 0.001) / count, math.max(o.StrainTime, 0.01) / count
+end
+
+-- Seconds on this fish to tame it (Config.Tame): Tame.Time, longer for a fish that needs more (Tame.Grow), and
+-- Tame.CapSlow times that for a rider at or past Oxygen.Cap (`max`, when known)
+function Config.tameTime(zone: number, tier: string, max: number?): number
 	local t = Config.Tame
 	local time = math.max(t.Time, 0.05)
 	if t.Grow ~= 0 then
 		time *= Config.grow(Config.required(zone, tier))
+	end
+	local cap = Config.Oxygen.Cap
+	if max and cap > 0 and max >= cap then
+		time *= math.max(t.CapSlow, 0.05)
 	end
 	return time
 end
