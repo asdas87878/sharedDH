@@ -297,14 +297,16 @@ Kit.LandShort = { "Shallows", "Reef", "Kelp", "Wrecks", "Blue", "Twilight", "Mid
 -- numbers more stylised to each map part"; task l1, docs/design/ui.md "The land strip, style A"). 0 is today's strip
 -- of coloured tiles; 1 the framed pictures, your avatar under them, the colour revealed as you go and the best line.
 -- In Studio the workspace's "LandStripStyle" number overrides it. On (Boss, 2026-11-17, Hugo: "make sure map icons are
--- implemented"); the pictures are the generated set G2 (docs/attachments/land-icons-gen-1.png).
+-- implemented"); the pictures are the generated set G4 since task l1 (docs/attachments/land-icons-gen-1.png; `atlas.py
+-- --gen 4 --studio`).
 Kit.LandStripStyle = 1
--- On style 1: the numbers' look (1 Metal: the land's colour as a gradient; 2 Material: each land's own stuff, sand,
--- coral, kelp ribs, planks, glow; 3 Badge: the number on a small sign of its land). Workspace "LandNumbers".
-Kit.LandNumbers = 2
+-- On style 1 every number and word is built as a rarity word (Kit.word) in its land's colour (task l1 replaced the
+-- three number looks N1 to N3 of task l1's first round). The lands that glow in the map glow in their number too.
+Kit.LandGlows = { [7] = true, [8] = true, [10] = true }
 -- What colours the pictures in: "Dive" (how far this dive has got) or "Best" (the furthest ever, so the lands you have
--- reached stay in colour at a dive's start). Workspace "LandReveal".
-Kit.LandReveal = "Dive"
+-- reached stay in colour at a dive's start). Workspace "LandReveal". "Best" since task l1 (2026-11-18): a land's lock
+-- breaks once, at your best, and the colour stays with it; the bar under the strip shows this dive.
+Kit.LandReveal = "Best"
 -- The pictures: one uploaded atlas, ten cells of LAND_CELL pixels across, colour on the top row and the grey locked
 -- look under it (tools/ui/land_icons/atlas.py). Not uploaded yet: until it is, the tiles are plain land colour. In
 -- Studio the workspace's "LandAtlas" string overrides it (rbxasset://textures/ridefish/land_atlas.png is a copy in
@@ -319,22 +321,20 @@ Kit.LandAtlasStudio = "rbxasset://textures/ridefish/land_atlas.png"
 -- Roblox ImageLabel cannot blur). Workspace "LandDark", "LandSaturation", "LandBlur" override them in Studio.
 -- Sheet docs/attachments/land-strip-D-1.png.
 Kit.LandLocked = { Dark = 0.62, Saturation = 0.3, Blur = 0, Tint = Color3.fromRGB(214, 224, 255) }
--- The option switches of task s2, one sheet each (docs/attachments/land-strip-<A..E>-1.png); 1 is the look of
--- 2026-11-17 on every one, so any mix combines. Workspace "LandBestLook" etc. override them in Studio.
--- A, your best: 1 a yellow dashed line, its tag hanging aside; 2 a solid gold bar, the tag centred under it; 3 a pole
--- with a BEST pennant; 4 no line, a gold notch under the pictures; 5 a gold glow column, a gold tag; 6 a star on top.
-Kit.LandBestLook = 1
--- B, you and your metres: 1 your face, the metres on a bar under it; 2 the bar beside the face; 3 a pin: the face in
--- the land's colour, big outlined metres, no bar; 4 the face and the metres in one pill; 5 no face, an arrow in the
--- land's colour; 6 a bigger face in a gold ring, the land's name always on the bar.
-Kit.LandYouLook = 1
--- C, the lock on a land not reached: 1 the white padlock; 2 a gold padlock; 3 a padlock on a dark disc; 4 a quiet
--- see-through padlock; 5 a question mark; 6 a keyhole.
-Kit.LandLockLook = 1
--- E, the line under the pictures that you travel along, and what is under it: 1 none (the pictures alone); 2 a rail
--- filled in each land's colour; 3 a dark tray behind the strip; 4 a thin line with a dot at each border; 5 a rail
--- with the stretch to your best in gold; 6 a ruler, a tick each half land.
-Kit.LandLineLook = 1
+-- Hugo's picks from the mixes sheet (2026-11-18, task l1, docs/attachments/land-strip-mixes-1.png) are built in, not
+-- switches: Mix 3's gold diamond on the line for your best, a thin bar like Mix 1's filled toward your best, your face
+-- in a black ring over a flat black oval with the metres, one even border on every picture, locks that break once.
+-- The metres' font (Hugo: "a cartoon font ... pick the best"; the sheet docs/attachments/land-strip-l1-fonts-1.png).
+-- Workspace "LandMetresFont" (the font's name) overrides it in Studio.
+Kit.LandMetresFont = Enum.Font.LuckiestGuy
+-- The intro when you enter a land deeper than any yet this dive (not the one a dive starts in; going back up and down
+-- again does not replay it). The first time ever in a land it also says NEW LAND and its lock breaks on the strip.
+-- 0 off (the old land banner, Banners.land, plays instead); 1 Punch: the land's name big at the top centre, its number
+-- over it, in its colour, about 1.5 s; 2 Banner: a chunky plate slides in from the left; 3 Fly: the strip's tile pops
+-- and flies to the centre with the name under it; 4 Subtitle: one line "LAND 3 · KELP FOREST · 600 m" under the strip;
+-- 5 Flash: the screen flashes the land's colour, the depth punches in. Workspace "LandIntroLook" overrides it in Studio.
+-- Sheet docs/attachments/land-strip-l1-intro-1.png.
+Kit.LandIntroLook = 1
 
 -- The end of a dive and what came home (task s3; Hugo, 2026-11-18: "make sure it counts all the fish that were caught
 -- in with a better animation, give me a couple options"): 0 Banners' own (the title, the tokens, the metres, as
@@ -477,6 +477,166 @@ end
 function Kit.tierColours(label: TextLabel, gradient: UIGradient, tier: string, colours: { [string]: any })
 	label.TextColor3 = Kit.White
 	gradient.Color, gradient.Rotation = Kit.tierFill(tier, colours)
+end
+
+-- Words built like the fish tags' rarity word (Tags.luau, family 5, the live Kit.RarityWords style): the same layers
+-- of one word, back to front: a soft glow in its colour (where it fits), one darker copy a step down (its depth), the
+-- word in a metal gradient split at the middle (lit top, its colour, a shade) with a thick ink edge, and a thin white
+-- shine line across its top third. A palette is a rarity's four tones (Tags' PAL): the lit top, the colour, the shade,
+-- the deepest. Used by the land strip (task l1, Hugo 2026-11-18: "every text and number on the strip ... built like the
+-- fish tags' rarity words").
+export type Pal = { Light: Color3, Mid: Color3, Dark: Color3, Deep: Color3 }
+-- Tags' Legendary tones: your best is gold
+Kit.GoldPal = {
+	Light = Color3.fromRGB(255, 252, 200),
+	Mid = Color3.fromRGB(255, 208, 48),
+	Dark = Color3.fromRGB(238, 128, 16),
+	Deep = Color3.fromRGB(122, 52, 6),
+} :: Pal
+-- Tags' Common tones, darker: a land not reached
+Kit.LockedPal = {
+	Light = Color3.fromRGB(214, 220, 230),
+	Mid = Color3.fromRGB(150, 158, 174),
+	Dark = Color3.fromRGB(98, 108, 128),
+	Deep = Color3.fromRGB(40, 46, 62),
+} :: Pal
+Kit.WhitePal = {
+	Light = Color3.new(1, 1, 1),
+	Mid = Color3.fromRGB(236, 242, 250),
+	Dark = Color3.fromRGB(178, 192, 214),
+	Deep = Color3.fromRGB(58, 66, 84),
+} :: Pal
+
+-- A palette from one colour: the map's land colours are muted (Midnight is a dark navy), so the word's colour is that
+-- hue made brighter and fuller, the way the rarities' are
+function Kit.palOf(colour: Color3): Pal
+	local h, s, v = colour:ToHSV()
+	local mid = Color3.fromHSV(h, math.min(1, s * 1.35 + 0.08), math.max(v, 0.9))
+	return {
+		Light = mid:Lerp(Color3.new(1, 1, 1), 0.62),
+		Mid = mid,
+		Dark = Color3.fromHSV(h, math.min(1, s * 1.35 + 0.15), math.max(v, 0.9) * 0.66),
+		Deep = Color3.fromHSV(h, math.min(1, s * 1.2 + 0.2), 0.3),
+	}
+end
+
+-- Tags' family-5 fill: hard metal shading split at the middle
+function Kit.wordFill(p: Pal): ColorSequence
+	return ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Kit.lighter(p.Light, 0.5)),
+		ColorSequenceKeypoint.new(0.48, p.Light:Lerp(p.Mid, 0.35)),
+		ColorSequenceKeypoint.new(0.52, p.Mid),
+		ColorSequenceKeypoint.new(1, p.Mid:Lerp(p.Dark, 0.55)),
+	})
+end
+
+export type Word = {
+	root: Frame,
+	main: TextLabel,
+	wide: number,
+	high: number,
+	set: (text: string) -> (),
+	paint: (p: Pal, glow: boolean?) -> (),
+	setSize: (size: number) -> (),
+}
+
+local WordText = game:GetService("TextService")
+
+-- One word in that style. props: TextSize, Text, Font (Gotham Black, as the tags), ZIndex (its back layer; it takes
+-- four), AnchorPoint, Position, Name, Pal, Glow. Its root frame hugs the letters (edge and glow spill over), and is
+-- resized as the text changes; `wide` and `high` are that size.
+function Kit.word(parent: Instance, props: { [string]: any }): Word
+	local font: Enum.Font = props.Font or Enum.Font.GothamBlack
+	local size: number = props.TextSize or 12
+	local z: number = props.ZIndex or 1
+	local root: Frame = Kit.new("Frame", {
+		Name = props.Name or "Word",
+		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
+		Position = props.Position or UDim2.new(),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+	}, parent)
+	local function layer(at: number): TextLabel
+		return Kit.new("TextLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Font = font,
+			TextColor3 = Kit.White,
+			Text = "",
+			ZIndex = z + at,
+		}, root)
+	end
+	local glow = layer(0)
+	glow.TextTransparency = 0.3
+	local glowEdge = Kit.stroke(glow, 4, Kit.White, 0.55)
+	local drop = layer(1)
+	local dropEdge = Kit.stroke(drop, 2, Kit.Ink)
+	local main = layer(2)
+	local mainFill = Kit.gradient(main, Kit.White, Kit.White)
+	local mainEdge = Kit.stroke(main, 2, Kit.Ink)
+	local shine = layer(3)
+	Kit.new("UIGradient", {
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.25, 1),
+			NumberSequenceKeypoint.new(0.3, 0.15),
+			NumberSequenceKeypoint.new(0.35, 1),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+	}, shine)
+	local layers = { glow, drop, main, shine }
+	local self: Word = {
+		root = root,
+		main = main,
+		wide = 0,
+		high = 0,
+		set = nil :: any,
+		paint = nil :: any,
+		setSize = nil :: any,
+	}
+	local text = ""
+	local function fit()
+		local measured = WordText:GetTextSize(text, size, font, Vector2.new(2000, 200))
+		self.wide = math.ceil(measured.X) + 2
+		self.high = math.ceil(size) + 2
+		root.Size = UDim2.fromOffset(self.wide, self.high)
+	end
+	function self.setSize(n: number)
+		size = n
+		local edge = math.clamp(size * 0.17, 1.5, 3.4)
+		for _, label in layers do
+			label.TextSize = size
+		end
+		mainEdge.Thickness = edge
+		dropEdge.Thickness = edge
+		glowEdge.Thickness = edge + size * 0.28
+		drop.Position = UDim2.new(0.5, 0, 0.5, math.max(1, size * 0.1))
+		fit()
+	end
+	function self.set(t: string)
+		if t == text then
+			return
+		end
+		text = t
+		for _, label in layers do
+			label.Text = t
+		end
+		fit()
+	end
+	function self.paint(p: Pal, withGlow: boolean?)
+		mainFill.Color = Kit.wordFill(p)
+		drop.TextColor3 = Kit.darker(p.Deep, 0.2)
+		glow.Visible = withGlow == true
+		glow.TextColor3 = p.Mid
+		glowEdge.Color = p.Mid
+	end
+	self.setSize(size)
+	self.set(props.Text or "")
+	self.paint(props.Pal or Kit.WhitePal, props.Glow)
+	return self
 end
 
 export type Dressed = {
