@@ -3,6 +3,30 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-18 · Oxygen ticks rework: same-size pieces, one extra ring, the white piece, 2/3 break-off, ticks on the struggle (NULLROOM tasks o1-o3, Hugo's PC)
+**State:** in the game code, checked by numbers under Lune and by scripted runs in Hugo's Studio; **not played by
+hand.** StyLua passes, selene shows only the three old warnings. Hugo still has to confirm the readings below.
+Write-up with numbers: [riding feel](design/riding-feel.md), its last two sections.
+- **o1, the server** (`Config`, `RideService`): every tick takes the same 1/10 of the meter (`Oxygen.Ticks` 10);
+  more Oxygen only spaces ticks further apart (`Config.tickOf`, never under 0.5 s). `Oxygen.Cap` 500k: past it the
+  pace stays, taming is 1.5x slower (`Tame.CapSlow`) and the seconds on a fish grow at most +5% (`Config.pastCap`).
+  A fish too strong breaks off 2/3 at once as one `OxygenTick` of kind `"Break"` (`Oxygen.BreakOff`, replaces
+  `RedDrop`), the rest in two ticks over `StrainTime`. Floating off a fish now ticks every 2.5 s.
+- **o2, the HUD** (`UI/Rings`, `UI/Kit`): the piece a tick loses stays white and breaks off (fades) when the next
+  tick starts; the 2/3 loss is one big white piece. Past `BarSize` (2,000) there is ONE extra ring all round the
+  big one: the big ring is the whole meter, the extra ring the Oxygen above 2,000, emptying with it. The red zone's
+  mark is gone (angry mode stays). Frames: `docs/attachments/o2-*`.
+- **o3, ticks on the struggle** (`Shared/AngryStyles`, `RideService`, `AngryController`): in the red zone the
+  server bends the tick gap by at most 20% (`AngryStyles.Sync.Bend`) to fit a whole number of thrashes, and the
+  client locks the stand-in struggle to each tick. Measured in Studio: 11-14 ms tick to thrash (188 ms drifting
+  before). For the real animations: a `Thrash` marker hook in `AnimController` and `Sync.Lead` to 0 (riding-feel.md,
+  "The struggle on the ticks"). Picture: `docs/attachments/o3-struggle-ticks.gif`.
+- **Still stale, small:** comments in `Net.luau` and `HudController.luau` (~394, ~600) say `"Red"` / `RedDrop`;
+  `docs/design/ui.md` "The Oxygen ring in ticks" still describes red pieces, the mark and thin rings. In the red zone
+  the HUD's "seconds left on this fish" can be up to 20% off (the gap is bent, `Drain` is not).
+- **To check by hand:** ride in Studio: ten equal ticks, the white piece breaking off at each next tick, 2/3 gone at
+  once on a fish too strong, each red-zone tick on a wag or roll.
+
 ## 2026-11-18 · The admin panel for playtesting, key P (NULLROOM task d1, Hugo's PC)
 **State:** built and run by script in Hugo's Studio; **not played by hand.** Hugo's words: "Add a quick admin mode
 for playtesting."
