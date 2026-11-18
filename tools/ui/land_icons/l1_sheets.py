@@ -43,17 +43,19 @@ def strip():
         big += [cap.crop(view, it, CW, 100) for it in items]
     # real size on the dark, and at a phone's (HUD scale 1)
     items1 = [{"x": 20 + k * 330, "y": 80, "s": 1, "o": {"Intro": 0}, "st": st} for k, (st, _) in enumerate(STATES)]
-    items1 += [{"x": 20 + k * 330, "y": 260, "s": GAME_SCALE, "o": {"Intro": 0}, "st": st} for k, (st, _) in enumerate(STATES[:2])]
+    items1 += [{"x": 60 + k * 480, "y": 300, "s": 1, "o": {"Intro": 0}, "st": dict(st, touch=True)} for k, (st, _) in enumerate(STATES)]
     cap.cells(items1)
     view = cap.shot("strip1x", 2.5)
     real = [cap.crop(view, it, CW, 100) for it in items1[:4]]
+    # a phone's strip is Kit.LandPhoneScale (1.25) bigger, round its top centre
+    phones = [view.crop((it["x"] + 155 - 200, it["y"], it["x"] + 155 + 200, it["y"] + 125)) for it in items1[4:]]
     # over the game: the game's own HUD (its strip is this code), ridden
     cap.attrs(Show=False, HideHud=False)
     cap.attrs(Ride=time.time())
     time.sleep(6)
     game = cap.shot("game", 1)
     # phone: the strip at HUD scale 1 over the game, in a phone's 844 by 390
-    cap.cells([{"x": 1983 / 2 - 155, "y": 6, "s": 1, "o": {"Intro": 0}, "st": AHEAD}], back=1, hide=True)
+    cap.cells([{"x": 1983 / 2 - 155, "y": 6, "s": 1, "o": {"Intro": 0}, "st": dict(AHEAD, touch=True)}], back=1, hide=True)
     phone_view = cap.shot("phone", 2.5)
     phone = phone_view.crop((int(1983 / 2 - 422), 0, int(1983 / 2 + 422), 390))
 
@@ -70,8 +72,10 @@ def strip():
     for k, (st, name) in enumerate(STATES):
         paste_label(im, (30, y), f"3x: {name}", 19, WHITE)
         im.paste(big[k], (30, y + 28))
-        im.paste(real[k], (30 + big[k].width + 40, y + 28 + 60))
-        paste_label(im, (30 + big[k].width + 40, y + 28 + 30), "real size (1:1, HUD scale 1)", 17)
+        im.paste(real[k], (30 + big[k].width + 40, y + 28 + 30))
+        paste_label(im, (30 + big[k].width + 40, y + 28), "real size (1:1, HUD scale 1, keyboard)", 17)
+        im.paste(phones[k], (30 + big[k].width + 40, y + 28 + 170))
+        paste_label(im, (30 + big[k].width + 40, y + 28 + 140), "a phone, 1:1 (HUD scale 1, the strip 1.25)", 17)
         y += 340
     paste_label(im, (30, y), "In the game, Studio's view at its real size (HUD scale 1.9):", 19, WHITE)
     half = game.resize((game.width // 2, game.height // 2), Image.LANCZOS)
@@ -80,7 +84,7 @@ def strip():
     paste_label(im, (30 + top.width + 30, y + 30), "the whole frame, half size:", 17)
     im.paste(half.resize((W - top.width - 90, int(half.height * (W - top.width - 90) / half.width))), (30 + top.width + 30, y + 56))
     y += 30 + top.height + 40
-    paste_label(im, (30, y), "At a phone's size (844 by 390 GUI px, HUD scale 1), 1:1:", 19, WHITE)
+    paste_label(im, (30, y), "At a phone's size (844 by 390 GUI px, HUD scale 1, the strip 1.25), 1:1:", 19, WHITE)
     im.paste(phone, (30, y + 30))
     im = im.crop((0, 0, W, max(y + 30 + phone.height + 30, 200)))
     save(im, "land-strip-l1-1.png")
@@ -158,10 +162,14 @@ def intro():
     s = GAME_SCALE
     w, h = 1983 / s, 1065 / s
     shots = []
+    # underwater: on a fish down the lane (endless air, no fail), the game's HUD hidden, only the test strip
+    cap.attrs(Show=False, HideHud=False)
+    cap.attrs(Ride=time.time())
+    time.sleep(14)
     for look in range(1, 6):
         item = {"x": 0, "y": 0, "s": s, "w": w, "h": h, "o": {"Intro": look}, "st": AHEAD}
         cap.cells([item], back=1, hide=True, slow=slow)
-        time.sleep(3)
+        time.sleep(1.5)
         cap.intro(1, 6, 600, new=look in (1, 3))
         t0 = time.time()
         frames = []

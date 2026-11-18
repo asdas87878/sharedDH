@@ -133,6 +133,11 @@ RunService.RenderStepped:Connect(function()
 		end
 		local land = st.land or 6
 		local okUpdate, err = pcall(function()
+			local phone = st.touch == true
+			if c.phone ~= phone then
+				c.phone = phone
+				c.strip.place(phone)
+			end
 			c.strip.update(
 				land,
 				NAMES[math.clamp(land, 1, 10)],

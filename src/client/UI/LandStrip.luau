@@ -92,6 +92,15 @@ local function setting(name: string, default: any): any
 	return default
 end
 
+-- The land intro in use (Kit.LandIntroLook, or in Studio the workspace's "LandIntroLook"); 0 when the strip is not
+-- style 1. HudController asks this too, so the old land banner plays exactly when no intro does.
+function LandStrip.introLook(): number
+	if setting("LandStripStyle", Kit.LandStripStyle) ~= 1 then
+		return 0
+	end
+	return setting("LandIntroLook", Kit.LandIntroLook)
+end
+
 function LandStrip.build(parent: Instance)
 	if setting("LandStripStyle", Kit.LandStripStyle) == 1 then
 		active = buildA(parent, {
@@ -367,6 +376,9 @@ end
 
 local A_TILE = 28
 local A_BIG = 32 -- the land you are in
+-- the tiles either side of the land you are in move this far away from it, so its bigger picture, white border and
+-- ink line never cover their numbers or ticks (Nemu's review, round 1: 2 px of gap was not room for 5.5 px of border)
+local A_ROOM = 6
 local A_GAP = 2
 local A_STEP = A_TILE + A_GAP
 local A_WIDE = COUNT * A_TILE + (COUNT - 1) * A_GAP
@@ -539,7 +551,7 @@ local function tick(parent: Instance, z: number): Frame
 	local disc = blob(parent, {
 		Name = "Tick",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -1, 0, 1),
+		Position = UDim2.new(1, -3, 0, 2),
 		Size = UDim2.fromOffset(9, 9),
 		BackgroundColor3 = rgb(60, 190, 70),
 		ZIndex = z,
@@ -667,34 +679,34 @@ local function introPunch(layer: Instance, a: IntroArgs)
 		Name = "IntroPunch",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, 132),
-		Size = UDim2.fromOffset(460, 96),
+		Size = UDim2.fromOffset(620, 116),
 		ZIndex = 60,
 	})
 	local scale = Kit.new("UIScale", { Scale = 1.9 }, group)
 	local name = Kit.word(group, {
 		Text = string.upper(a.name),
-		TextSize = 34,
+		TextSize = 46,
 		Pal = p,
 		Glow = true,
-		Position = UDim2.new(0.5, 0, 0, 58),
+		Position = UDim2.new(0.5, 0, 0, 74),
 		ZIndex = 4,
 	})
 	local _ = name
 	Kit.word(group, {
 		Text = "LAND " .. a.land,
-		TextSize = 16,
+		TextSize = 19,
 		Pal = p,
 		Glow = glow,
-		Position = UDim2.new(0.5, 0, 0, 28),
+		Position = UDim2.new(0.5, 0, 0, 34),
 		ZIndex = 4,
 	})
 	if a.new then
 		Kit.word(group, {
 			Text = "NEW LAND!",
-			TextSize = 13,
+			TextSize = 15,
 			Pal = Kit.GoldPal,
 			Glow = true,
-			Position = UDim2.new(0.5, 0, 0, 10),
+			Position = UDim2.new(0.5, 0, 0, 12),
 			ZIndex = 4,
 		})
 	end
@@ -989,10 +1001,10 @@ buildA = function(parent: Instance, options: Options): any
 		local number = Kit.word(root, {
 			Name = "Number",
 			Text = tostring(i),
-			TextSize = if i >= 10 then 10 else 11.5,
+			TextSize = if i >= 10 then 11.5 else 13,
 			Pal = Kit.LockedPal,
 			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, -2, 1, 3),
+			Position = UDim2.new(0, 0, 1, 3),
 			ZIndex = 12, -- over the lock (8 to 14 for its burst)
 		})
 		tiles[i] = {
@@ -1054,7 +1066,7 @@ buildA = function(parent: Instance, options: Options): any
 	local bestWord = Kit.word(strip, {
 		Name = "BestWord",
 		Text = "BEST",
-		TextSize = 10,
+		TextSize = 11,
 		Pal = Kit.GoldPal,
 		Glow = true,
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -1102,7 +1114,7 @@ buildA = function(parent: Instance, options: Options): any
 			end
 		end)
 	end
-	local OVAL_HIGH = 16
+	local OVAL_HIGH = 17
 	local oval = blob(marker, {
 		Name = "Oval",
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -1115,7 +1127,7 @@ buildA = function(parent: Instance, options: Options): any
 	local metresWord = Kit.word(oval, {
 		Name = "Metres",
 		Text = "0 m",
-		TextSize = 12,
+		TextSize = 13,
 		Font = metresFont,
 		Pal = palOfLand(1),
 		Position = UDim2.new(0.5, 0, 0.5, 0.5),
@@ -1128,10 +1140,22 @@ buildA = function(parent: Instance, options: Options): any
 	local here = 0
 	local seen = 0 -- the deepest land this dive (0 on the dock), for the intros
 	local built = false
+	local phoneScale = 1 -- Kit.LandPhoneScale on a phone (self.place)
 
+	-- where a tile's centre is: its place in the row, moved A_ROOM away from the land you are in
+	local function centreOf(i: number, land: number): number
+		local x = (i - 1) * A_STEP + A_TILE / 2
+		if land >= 1 and land <= COUNT and i ~= land then
+			x += if i < land then -A_ROOM else A_ROOM
+		end
+		return x
+	end
+
+	-- a distance in lands (2.6: six tenths through land 3) as x along the strip, on the tiles as they stand
 	local function xOf(lands: number): number
 		local index = math.clamp(math.floor(lands), 0, COUNT - 1)
-		return index * A_STEP + math.clamp(lands - index, 0, 1) * A_TILE
+		local tile = tiles[index + 1]
+		return centreOf(index + 1, aLand) - tile.size / 2 + math.clamp(lands - index, 0, 1) * tile.size
 	end
 
 	-- a tile's size (the land you are in is a size up); everything in it follows
@@ -1203,7 +1227,7 @@ buildA = function(parent: Instance, options: Options): any
 	end
 
 	local function intro(land: number, landName: string, metres: number, isNew: boolean)
-		local look = options.Intro or setting("LandIntroLook", Kit.LandIntroLook)
+		local look = options.Intro or LandStrip.introLook()
 		if look == 0 or not strip.Parent then
 			return
 		end
@@ -1215,7 +1239,7 @@ buildA = function(parent: Instance, options: Options): any
 			local tile = tiles[land].root
 			-- the tile's centre in the layer's own units (the HUD is scaled)
 			local layerGui = layer :: GuiObject
-			local k = if strip.AbsoluteSize.X > 0 then strip.AbsoluteSize.X / A_WIDE else 1
+			local k = if strip.AbsoluteSize.X > 0 then strip.AbsoluteSize.X / (A_WIDE * phoneScale) else 1
 			local at = (tile.AbsolutePosition + tile.AbsoluteSize / 2 - layerGui.AbsolutePosition) / k
 			introFly(layer, args, at, options.Atlas)
 		elseif look == 4 then
@@ -1229,7 +1253,11 @@ buildA = function(parent: Instance, options: Options): any
 	end
 	self.intro = intro
 
-	function self.place(_phone: boolean)
+	-- on a phone the whole strip a size up (Kit.LandPhoneScale), so its numbers and words stay readable at HUD scale 1
+	local stripScale = Kit.new("UIScale", {}, strip)
+	function self.place(phone: boolean)
+		phoneScale = if phone then Kit.LandPhoneScale else 1
+		stripScale.Scale = phoneScale
 		aBest = -1
 	end
 
@@ -1273,6 +1301,7 @@ buildA = function(parent: Instance, options: Options): any
 					tile.root.ZIndex = if now then 10 else 2
 					reveal(i, tile.share)
 				end
+				tile.root.Position = UDim2.fromOffset(centreOf(i, land), A_TILE / 2)
 			end
 			metresWord.paint(palOfLand(at), Kit.LandGlows[at] == true)
 			-- the intro: a land deeper than any yet this dive, not the one it starts in
@@ -1310,10 +1339,14 @@ buildA = function(parent: Instance, options: Options): any
 			aSide = side
 			best.Visible = bestWhole > 0
 			bestWord.root.Visible = bestWhole > 0
-			best.Position = UDim2.fromOffset(bx, RAIL_Y)
 			bestWord.set("BEST " .. grouped(bestWhole) .. " m")
 		end
 		if bestWhole > 0 then
+			-- the tiles move when the land you are in changes, so the diamond follows every frame it has to
+			local diamondAt = UDim2.fromOffset(bx, RAIL_Y)
+			if best.Position ~= diamondAt then
+				best.Position = diamondAt
+			end
 			local half = bestWord.wide / 2 + 1
 			local wordAt = if side == 0
 				then UDim2.fromOffset(math.clamp(x, half, A_WIDE - half), RAIL_Y + 3 + under + 1)

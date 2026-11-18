@@ -15,6 +15,8 @@
 -- picks more, task s1). The piece just lost
 -- stays WHITE behind what is left; when the next tick starts it breaks off (fades out, Kit.RingLook) and the new piece
 -- is white. The 2/3 break-off on a fish too strong comes as one tick: one big white piece, broken off by the next.
+-- Since t1 (Hugo, 2026-11-18) the white piece DRAWS BACK along the ring instead of fading, as a health bar's damage
+-- trail (Kit.RingLook.TickTrail picks how; 0 the fade above).
 -- Past Config.Oxygen.BarSize of max Oxygen ONE more ring goes all round the big one, in the same look: the Oxygen above
 -- BarSize, full when the meter is full, emptying with it and empty once the meter is down to BarSize; the hop's arc
 -- moves out past it. No mark for the red zone (o2); the ring still goes red there, and the fish turns angry.
@@ -107,6 +109,18 @@ local brokeOn = false
 local brokeFrom = 0
 local brokeAt = -math.huge
 local brokeShown = -1
+-- The damage trail (Kit.RingLook.TickTrail 1 to 3): the white's end, drawing back from `trailStart` (in Oxygen) to
+-- `trailTarget` (1) or to what is left (2, 3), after a hold; `trailPos` is where it was last drawn
+local trailOn = false
+local trailStart = 0
+local trailTarget = 0
+local trailAt = -math.huge
+local trailHold = 0
+local trailDur = 0.2
+local trailPos = 0
+local trailShown = -1
+local lostAt = -math.huge -- the last drop heard, and what it left
+local lostTo = 0
 
 -- The one ring past Config.Oxygen.BarSize (made when first needed, kept)
 type Extra = { Frame: Frame, Track: Kit.Sweep, Broken: Kit.Sweep, Held: Kit.Sweep, Front: Kit.Sweep }
@@ -246,6 +260,8 @@ function Rings.hide(now: number)
 		heldOn = false
 		brokeOn = false
 		brokeShown = -1
+		trailOn = false
+		trailShown = -1
 		lastGap = 0
 		nameText.Visible = false
 		tierText.Visible = false
@@ -271,6 +287,35 @@ function Rings.landed(now: number)
 	flashing = true
 end
 
+-- The trail draws back from `from` (or from where it is, if further out: it never jumps) to `target`, after `hold`.
+-- One tick's piece takes TrailDraw (at most TrailShare of the gap between ticks); a bigger one longer, as the square
+-- root of its size in ticks, up to TrailDrawMost: the 2/3 break-off draws back slowly.
+local function startTrail(now: number, from: number, target: number, hold: number)
+	local start = if trailOn then math.max(trailPos, from) else from
+	local max = if shownMax > 0 then shownMax else math.max(from, 0.001)
+	local tick = max / math.max(Config.Oxygen.Ticks or 10, 1)
+	local base = if lastGap > 0 then math.min(LOOK.TrailDraw, LOOK.TrailShare * lastGap) else LOOK.TrailDraw
+	local pieces = math.max((start - target) / tick, 1)
+	trailOn = true
+	trailStart = start
+	trailTarget = target
+	trailPos = start
+	trailAt = now
+	trailHold = hold
+	trailDur = math.clamp(base * math.sqrt(pieces), 0.05, math.max(LOOK.TrailDrawMost, base))
+end
+
+-- Where the trail's end is now, and how far through its draw-in (0 to 1)
+local function trailNow(now: number, amount: number): (number, number)
+	local t = math.clamp((now - trailAt - trailHold) / trailDur, 0, 1)
+	if LOOK.TickTrail == 1 then
+		return trailStart + (trailTarget - trailStart) * t, t
+	end
+	local e = 1 - (1 - t) * (1 - t) * (1 - t) -- (quick, then slowing into what is left)
+	local target = math.min(amount, trailStart)
+	return trailStart + (target - trailStart) * e, t
+end
+
 -- The meter dropped from `from` to `to` (a tick, the 2/3 break-off, a crash): that piece stays white, and the one
 -- before it, if still there, breaks off now. The same drop heard twice (the Oxygen attribute and the server's
 -- "OxygenTick") is one piece, not a new tick.
@@ -278,16 +323,42 @@ function Rings.lose(now: number, from: number, to: number)
 	if from <= to then
 		return
 	end
+	local mode = LOOK.TickTrail or 0
+	if mode >= 2 then
+		-- 2, 3: no piece waits for the next tick; each drop holds a moment and draws back to what is left
+		if trailOn and now - lostAt < 0.15 and math.abs(lostTo - to) < 0.01 then
+			if from > trailStart and now < trailAt + trailHold then
+				trailStart = from
+				trailPos = from
+			end
+			return
+		end
+		local gap = now - lostAt
+		lastGap = if gap < LOOK.TickWait then gap else 0
+		-- (a tick while the trail is still running takes it on at once, no second hold: it keeps moving)
+		local moving = trailOn and now > trailAt + trailHold
+		startTrail(now, from, to, if moving then 0 else LOOK.TrailHold)
+		lostAt = now
+		lostTo = to
+		return
+	end
 	if heldOn and now - heldAt < 0.15 and math.abs(heldTo - to) < 0.01 then
 		heldFrom = math.max(heldFrom, from)
 		return
 	end
+	lostAt = now
+	lostTo = to
 	if heldOn then
-		brokeOn = true
-		brokeFrom = heldFrom
-		brokeAt = now
-		brokeShown = -1
 		lastGap = now - heldAt
+		if mode == 1 then
+			-- the old piece draws straight back to the new white one
+			startTrail(now, heldFrom, from, 0)
+		else
+			brokeOn = true
+			brokeFrom = heldFrom
+			brokeAt = now
+			brokeShown = -1
+		end
 	end
 	heldOn = true
 	heldFrom = from
@@ -338,6 +409,7 @@ function Rings.update(now: number, v: View)
 	if max ~= shownMax then
 		shownMax = max
 		shownAmount = -1
+		trailShown = -1
 		local size = Config.Oxygen.BarSize or 0
 		extraOn = size > 0 and max > size
 		if extraOn and not extra then
@@ -368,10 +440,14 @@ function Rings.update(now: number, v: View)
 			then (if lastGap > 0 then lastGap else Config.Oxygen.Tick)
 			else math.max(lastGap * 1.5, LOOK.TickWait)
 		if now - heldAt >= due then
-			brokeOn = true
-			brokeFrom = heldFrom
-			brokeAt = now
-			brokeShown = -1
+			if LOOK.TickTrail == 1 then
+				startTrail(now, heldFrom, heldTo, 0)
+			else
+				brokeOn = true
+				brokeFrom = heldFrom
+				brokeAt = now
+				brokeShown = -1
+			end
 			heldOn = false
 		end
 	end
@@ -380,10 +456,43 @@ function Rings.update(now: number, v: View)
 	if ring then
 		ring.Held.set(extraFill(heldUpTo, max))
 	end
+	-- the damage trail (TickTrail 1 to 3): the white's end drawing back; a refill (a landing) takes it away
+	if trailOn and (v.Endless or v.Amount > lostTo + 0.01) then
+		trailOn = false
+	end
+	if (LOOK.TickTrail or 0) ~= 0 then
+		local upTo, melt = 0, 0
+		if trailOn then
+			local pos, t = trailNow(now, v.Amount)
+			trailPos = pos
+			if t >= 1 then
+				trailOn = false
+			else
+				upTo = pos
+				melt = if LOOK.TickTrail == 3 then LOOK.TrailMelt * t else 0
+			end
+		end
+		-- (only when it shows a change: the sweep's half-degree steps, the melt in twentieths)
+		local key = math.floor(bigFill(upTo, max) * 720 + 0.5) * 32 + math.floor(melt * 20 + 0.5)
+		if ring then
+			key = key * 1024 + math.floor(extraFill(upTo, max) * 720 + 0.5)
+		end
+		if key ~= trailShown then
+			trailShown = key
+			big.broken(bigFill(upTo, max), melt)
+			if ring then
+				ring.Broken.set(extraFill(upTo, max))
+				ring.Broken.fade(melt)
+			end
+		end
+	end
 	-- the piece before it, breaking off: fading out over TickFade
 	-- (shorter on quick ticks, so it is gone before the next one breaks off: Kit.RingLook.TickFadeShare)
 	local faded = 20
-	if brokeOn then
+	if (LOOK.TickTrail or 0) ~= 0 then
+		brokeOn = false
+		faded = brokeShown -- (the trail draws the broken sweep)
+	elseif brokeOn then
 		local fadeTime = if lastGap > 0 then math.min(LOOK.TickFade, LOOK.TickFadeShare * lastGap) else LOOK.TickFade
 		faded = math.floor(math.clamp((now - brokeAt) / math.max(fadeTime, 0.001), 0, 1) * 20 + 0.5)
 		if faded >= 20 then

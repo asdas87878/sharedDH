@@ -157,6 +157,20 @@ Kit.RingLook = {
 	TickFade = 0.3, -- seconds a broken-off piece takes to fade out; at most TickFadeShare of the gap between ticks
 	TickFadeShare = 0.8, -- (task s1: with more ticks the gap gets short; the fade shortens so one is gone before the next)
 	TickWait = 3, -- seconds a white piece waits for a next tick that never comes (a stop, the end) before it breaks
+	-- The white piece DRAWS BACK instead of fading (Hugo, 2026-11-18, task t1: "the white should not just fade out but
+	-- be drawn back with damage taken"): a health bar's damage trail, the white's end running back along the ring to
+	-- what is left. A tick during a draw-in takes the trail on from where it is (it never jumps). Big pieces (the 2/3
+	-- break-off) take longer, up to TrailDrawMost. On the extra ring too. Captures docs/attachments/oxygen-trail-*.gif.
+	--   0 the old fade (o2: white until the next tick, then it fades out)
+	--   1 Straight: white until the next tick as o2, then the old piece draws straight (evenly) back to the new one
+	--   2 Hold, then ease in: every tick's white piece holds TrailHold, then draws in, quick then slowing, to what is left
+	--   3 Draw and melt: as 2, and the white goes see-through (to TrailMelt) as it draws in
+	TickTrail = 2,
+	TrailHold = 0.08, -- seconds the white piece holds before it draws in (2, 3)
+	TrailDraw = 0.22, -- seconds one tick's piece takes to draw in; at most TrailShare of the gap between ticks
+	TrailShare = 0.7,
+	TrailDrawMost = 0.5, -- a bigger piece takes longer (as the square root of its size in ticks), up to this
+	TrailMelt = 0.6, -- 3: how see-through the white is at the end of its draw-in
 	-- (o2: the red zone's mark across the band is gone; the angry mode on the fish stays)
 	-- past Config.Oxygen.BarSize of max Oxygen, ONE more ring all round the big one: the Oxygen above BarSize
 	-- (Hugo, 2026-11-18, task o2: "only one extra bar that goes fully around"; until o2 a thin ring per BarSize)
@@ -335,6 +349,9 @@ Kit.LandMetresFont = Enum.Font.LuckiestGuy
 -- 5 Flash: the screen flashes the land's colour, the depth punches in. Workspace "LandIntroLook" overrides it in Studio.
 -- Sheet docs/attachments/land-strip-l1-intro-1.png.
 Kit.LandIntroLook = 1
+-- On a phone (HUD scale 1 at 390 px high) the strip is drawn this much bigger, so its numbers and words read
+-- (Nemu's review of task l1: at 1 they were a few pixels high)
+Kit.LandPhoneScale = 1.25
 
 -- The end of a dive and what came home (task s3; Hugo, 2026-11-18: "make sure it counts all the fish that were caught
 -- in with a better animation, give me a couple options"): 0 Banners' own (the title, the tokens, the metres, as

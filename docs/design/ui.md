@@ -54,7 +54,9 @@ captures of the game's own code (`tools/ui/land_icons/l1_sheets.py`, client `l1_
 - **The tiles:** one frame per land the size of its picture, with one 2 px ink stroke round it: no ink frame behind, no
   inset picture, no shine line, no tray (the old build drew a dark frame and a second rounded picture inside it, which
   read as a doubled, soft edge). The land you are in is 32 px instead of 28 (resized, not scaled, so its edge stays
-  sharp) with a white border and a thin ink line round that. The tick on a land you have been all through stays.
+  sharp) with a white border and a thin ink line round that; the tiles either side of it move 6 px away from it
+  (`A_ROOM`), so it never covers their numbers or ticks, and the numbers sit just inside each tile's lower left
+  corner (Nemu's review, round 1). The tick on a land you have been all through stays.
 - **The locks, by your best:** a land you have never reached is its own picture darker and desaturated
   (`Kit.LandLocked`, as s2) with the white padlock. The first time your best (the server's `BestLands`) gets into
   it, the lock cracks: a white burst and a dark crack, then its two halves (each a CanvasGroup, so each fades whole)
@@ -83,16 +85,19 @@ captures of the game's own code (`tools/ui/land_icons/l1_sheets.py`, client `l1_
   when its lock breaks; the lands that glow on the map (Midnight, Vents, The Underworld, `Kit.LandGlows`) glow in
   their number too; the metres take the land you are in; BEST is gold with a glow. The intros' plates get the chunky
   plate (a gradient in the land's tones, a lit top, a 3 px ink edge, a dark drop); the black oval stays flat.
+  Sizes: the land numbers 13 (10: 11.5), the metres 13, BEST 11. **On a phone** (HUD scale 1) the whole strip is
+  drawn 1.25 times bigger (`Kit.LandPhoneScale`), so numbers and words stay readable; the sheet shows both at 1:1.
 - **The land intros** (`Kit.LandIntroLook`; workspace `LandIntroLook`): **when:** you enter a land deeper than any yet
   this dive, not the one a dive starts in; going back up and down again does not replay it; every dive plays them
-  again. **The first time ever** in a land (its lock breaking) it also says NEW. 1 **Punch** (the default): the land's
+  again. **The first time ever** in a land (its lock breaking) it also says NEW. 1 **Punch** (the default, 46 px): the land's
   name big at the top centre, "LAND 6" over it, NEW LAND! in gold over that the first time, punching in from 1.9 times
   its size with a bounce, held to 1.5 s, then fading. 2 **Banner**: a chunky plate in the land's colours slides in from
   the left with "LAND 6 OF 10" and the name, 1.7 s. 3 **Fly**: the land's tile pops on the strip, flies to the centre
   growing to 96 px with its number, the name under it, then flies back. 4 **Subtitle**: one line under the strip,
   "LAND 6 · TWILIGHT · 600 m", 2 s. 5 **Flash**: the screen flashes the land's colour and the depth punches in, the
   land under it. 0 is off, and then the old land banner (`Banners.land`) plays as before; with any intro on,
-  HudController no longer plays the old banner (one guarded line).
+  HudController no longer plays the old banner (one guarded line). Both ask `LandStrip.introLook()` (Kit's, or the
+  workspace attribute in Studio), so they never disagree. The intro sheet is shot underwater, on a ridden fish.
 - **Captures:** `LandStrip.Slow` slows every break and intro (the capture runs them at a sixth to a sixteenth of speed
   to shoot them frame by frame; the times on the sheets are the game's).
 
