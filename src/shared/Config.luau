@@ -472,12 +472,12 @@ Config.Oxygen = {
 	-- send different sizes for review"): one number picks a row of TickSizes, the options on
 	-- docs/attachments/oxygen-tick-sizes-1.png. The gap is secondsOn / Ticks, so more ticks = faster ticks: a new
 	-- player on a Shallows Common has 5.3 s, a land-10 Common at its need 16.5 s. Under Tick (the floor) a fish's
-	-- ticks merge into fewer, bigger pieces so its seconds hold (Config.tickOf). 1 (10 ticks) until Hugo picks.
-	TickSize = 1,
+	-- ticks merge into fewer, bigger pieces so its seconds hold (Config.tickOf). Hugo picked 3 (30 ticks), 2026-11-18.
+	TickSize = 3,
 	TickSizes = {
 		{ Ticks = 10, Tick = 0.5 }, -- (the o1 ring)
 		{ Ticks = 20, Tick = 0.2 },
-		{ Ticks = 30, Tick = 0.2 },
+		{ Ticks = 30, Tick = 0.25 }, -- Hugo picked 30 (2026-11-18: "30 ticks but slightly fast"): a slower floor than the rest
 		{ Ticks = 40, Tick = 0.2 },
 		{ Ticks = 60, Tick = 0.2 },
 		{ Ticks = 80, Tick = 0.2 },
