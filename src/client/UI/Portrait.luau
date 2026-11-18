@@ -251,6 +251,15 @@ local function master(id: string): Model?
 	return copy
 end
 
+-- How a kind is shown: "Bust", "Whole", "Thin" or "Flat" (nil while it has no model to draw yet)
+function Portrait.kindOf(id: string): string?
+	if not master(id) then
+		return nil
+	end
+	local view = views[id]
+	return if view then view.Kind else nil
+end
+
 -- props: where the picture sits (a Frame's own properties), and Outline: its outline's thickness (0 for none)
 function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 	local thick: number = if props.Outline ~= nil then props.Outline else OUTLINE

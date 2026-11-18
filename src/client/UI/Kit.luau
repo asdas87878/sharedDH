@@ -358,7 +358,8 @@ Kit.LandPhoneScale = 1.25
 -- before); in CatchShow, 1 Cards (each fish flips over in turn, the count ticks), 2 Stack (a list slides in at the
 -- right, a badge counts), 3 Big number (one number rolls up, the fish burst out of it), 4 Toast (a compact pill under the
 -- strip that fills). Sheet docs/attachments/catch-ui-options-1.png. In Studio the workspace's "CatchLook" overrides it.
-Kit.CatchLook = 0
+-- Hugo picked 3 (task c1, 2026-11-19), built into the game with his changes: the catch screen (CatchShow, "3").
+Kit.CatchLook = 3
 
 -- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
 -- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks;
@@ -562,11 +563,13 @@ export type Word = {
 local WordText = game:GetService("TextService")
 
 -- One word in that style. props: TextSize, Text, Font (Gotham Black, as the tags), ZIndex (its back layer; it takes
--- four), AnchorPoint, Position, Name, Pal, Glow. Its root frame hugs the letters (edge and glow spill over), and is
--- resized as the text changes; `wide` and `high` are that size.
+-- four), AnchorPoint, Position, Name, Pal, Glow, Edge (the ink edge's share of the size, for big words: 0.17 and at
+-- most 3.4 px if not given). Its root frame hugs the letters (edge and glow spill over), and is resized as the text
+-- changes; `wide` and `high` are that size.
 function Kit.word(parent: Instance, props: { [string]: any }): Word
 	local font: Enum.Font = props.Font or Enum.Font.GothamBlack
 	local size: number = props.TextSize or 12
+	local edgeShare: number? = props.Edge
 	local z: number = props.ZIndex or 1
 	local root: Frame = Kit.new("Frame", {
 		Name = props.Name or "Word",
@@ -625,7 +628,7 @@ function Kit.word(parent: Instance, props: { [string]: any }): Word
 	end
 	function self.setSize(n: number)
 		size = n
-		local edge = math.clamp(size * 0.17, 1.5, 3.4)
+		local edge = if edgeShare then math.max(1.5, size * edgeShare) else math.clamp(size * 0.17, 1.5, 3.4)
 		for _, label in layers do
 			label.TextSize = size
 		end
