@@ -390,8 +390,46 @@ local FACE = 20 -- the avatar's disc (18 until task m1: Hugo, "a little bigger")
 local BEST_SPILL = 10
 local RAIL_Y = A_TILE + 6 -- the bar's middle, under the pictures
 local RAIL_HIGH = 3
-local LOCK = 16 -- the padlock's box (a 12 px padlock in it, room for its edge)
+local LOCK = 16 -- the drawn padlock's box (a 12 px padlock in it, room for its edge)
+local LOCK_ART = 20 -- the pictured padlock's square (task k1; the lock itself fills about 14 by 17 of it)
 local BREAK_TIME = 0.5
+
+-- The padlock as a picture in the HUD icons' style (task k1, Hugo 2026-11-19: "just as stylised as the text ... the
+-- same style as the icons we use for index, shop, cash, oxygen"): tools/ui/lock_icon/lock_art.py draws it and its
+-- break pieces in one atlas, art/ui/icons/lock_atlas.png. Not uploaded yet: until it is, Studio reads its own copy
+-- (lock_art.py --studio) and a live game keeps the drawn padlock. In Studio the workspace's "LandLockArt" overrides.
+local LOCK_ATLAS = "" -- the upload's id, once Hugo says to upload it
+local LOCK_ATLAS_STUDIO = "rbxasset://textures/ridefish/lock_atlas_k1.png"
+-- each piece: its rect in the atlas (x, y, w, h in atlas pixels) and its box in the lock's square (x, y, w, h as
+-- fractions), as lock_art.py prints them
+type Piece = { rect: { number }, box: { number } }
+local PIECES: { [string]: Piece } = {
+	Whole = { rect = { 4, 4, 182, 221 }, box = { 0.141, 0.070, 0.711, 0.863 } },
+	Shackle = { rect = { 190, 4, 135, 110 }, box = { 0.230, 0.070, 0.527, 0.430 } },
+	Left = { rect = { 329, 4, 100, 153 }, box = { 0.141, 0.336, 0.391, 0.598 } },
+	Right = { rect = { 433, 4, 125, 153 }, box = { 0.363, 0.336, 0.488, 0.598 } },
+	Chip1 = { rect = { 562, 4, 47, 49 }, box = { 0.414, 0.414, 0.184, 0.191 } },
+	Chip2 = { rect = { 613, 4, 42, 44 }, box = { 0.414, 0.414, 0.164, 0.172 } },
+	Chip3 = { rect = { 659, 4, 44, 42 }, box = { 0.414, 0.414, 0.172, 0.164 } },
+	Glint = { rect = { 707, 4, 256, 256 }, box = { 0.000, 0.000, 1.000, 1.000 } },
+}
+-- where each piece flies on the break: x, y in px and its turn in degrees (the chips burst out from the crack)
+local FLY: { [string]: { number } } = {
+	Shackle = { -3, -9, -55 },
+	Left = { -6, 14, -38 },
+	Right = { 6, 15, 42 },
+	Chip1 = { -9, -5, -120 },
+	Chip2 = { 10, -3, 140 },
+	Chip3 = { 2, 10, 200 },
+}
+
+local function lockArt(): string
+	local art = setting("LandLockArt", LOCK_ATLAS)
+	if art == "" and RunService:IsStudio() then
+		return LOCK_ATLAS_STUDIO
+	end
+	return art
+end
 
 -- the lands whose locks are broken this session (by your best; session-only until saving exists)
 local brokenLive: { [number]: boolean } = {}
@@ -457,10 +495,71 @@ local function padlockShape(lock: Instance, z: number)
 	})
 end
 
-type Lock = { root: Frame, halves: { CanvasGroup }, flash: Frame, crack: Frame, gone: boolean }
+type Lock = {
+	root: Frame,
+	halves: { CanvasGroup },
+	flash: Frame?, -- the drawn lock's burst and crack
+	crack: Frame?,
+	gone: boolean,
+	-- the pictured lock (task k1): the whole one, its pieces and the glint
+	whole: ImageLabel?,
+	pieces: { [string]: ImageLabel }?,
+	glint: ImageLabel?,
+}
 
--- The lock: two halves of one padlock (each a canvas, so a half fades as one), so it can crack apart
+local function pieceOf(parent: Instance, art: string, name: string, z: number, visible: boolean): ImageLabel
+	local p = PIECES[name]
+	return Kit.new("ImageLabel", {
+		Name = name,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(p.box[1] + p.box[3] / 2, p.box[2] + p.box[4] / 2),
+		Size = UDim2.fromScale(p.box[3], p.box[4]),
+		BackgroundTransparency = 1,
+		Image = art,
+		ImageRectOffset = Vector2.new(p.rect[1], p.rect[2]),
+		ImageRectSize = Vector2.new(p.rect[3], p.rect[4]),
+		ScaleType = Enum.ScaleType.Stretch,
+		Visible = visible,
+		ZIndex = z,
+	}, parent)
+end
+
+-- The pictured lock: the whole padlock, and hidden under it the pieces it breaks into
+local function lockPictured(parent: Instance, z: number, art: string): Lock
+	local root = Kit.new("Frame", {
+		Name = "Lock",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		-- a pixel right and up, so the land's number (bottom left) covers less of it
+		Position = UDim2.new(0.5, 1, 0.5, -1),
+		Size = UDim2.fromOffset(LOCK_ART, LOCK_ART),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+	}, parent)
+	local pieces: { [string]: ImageLabel } = {}
+	for name in FLY do
+		-- the shackle behind the body, the chips over it
+		local depth = if name == "Shackle" then 0 elseif string.sub(name, 1, 4) == "Chip" then 2 else 1
+		pieces[name] = pieceOf(root, art, name, z + depth, false)
+	end
+	local glint = pieceOf(root, art, "Glint", z + 3, false)
+	glint.Size = UDim2.fromScale(0, 0)
+	return {
+		root = root,
+		halves = {},
+		gone = false,
+		whole = pieceOf(root, art, "Whole", z + 1, true),
+		pieces = pieces,
+		glint = glint,
+	}
+end
+
+-- The lock: two halves of one padlock (each a canvas, so a half fades as one), so it can crack apart. The pictured
+-- one when its atlas is there (task k1)
 local function lockOf(parent: Instance, z: number): Lock
+	local art = lockArt()
+	if art ~= "" then
+		return lockPictured(parent, z, art)
+	end
 	local root = Kit.new("Frame", {
 		Name = "Lock",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -521,16 +620,52 @@ local function lockBreak(lock: Lock)
 		return
 	end
 	lock.gone = true
-	lock.crack.Visible = true
-	lock.flash.BackgroundTransparency = 0.2
-	lock.flash.Size = UDim2.fromOffset(6, 6)
+	local pieces, whole, glint = lock.pieces, lock.whole, lock.glint
+	if pieces and whole and glint then
+		-- the pictured lock: a white four-point glint opens over it as it splits along its crack (the halves a pixel
+		-- apart, the chips out), then everything tips away, falls and fades
+		whole.Visible = false
+		for name, piece in pieces do
+			piece.Visible = true
+			if name == "Left" or name == "Right" then
+				piece.Position += UDim2.fromOffset(if name == "Left" then -1 else 1, 0)
+			end
+		end
+		glint.Size = UDim2.fromScale(0.3, 0.3)
+		glint.ImageTransparency = 0
+		TweenService:Create(
+			glint,
+			TweenInfo.new(pace(0.26), Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = UDim2.fromScale(1.9, 1.9), Rotation = 45, ImageTransparency = 1 }
+		):Play()
+		task.delay(pace(0.07), function()
+			local fall = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			local fade = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			for name, piece in pieces do
+				local fly = FLY[name]
+				TweenService:Create(piece, fall, {
+					Position = piece.Position + UDim2.fromOffset(fly[1], fly[2]),
+					Rotation = fly[3],
+				}):Play()
+				TweenService:Create(piece, fade, { ImageTransparency = 1 }):Play()
+			end
+			task.delay(pace(BREAK_TIME), function()
+				lock.root.Visible = false
+			end)
+		end)
+		return
+	end
+	local flash, crack = lock.flash :: Frame, lock.crack :: Frame
+	crack.Visible = true
+	flash.BackgroundTransparency = 0.2
+	flash.Size = UDim2.fromOffset(6, 6)
 	TweenService:Create(
-		lock.flash,
+		flash,
 		TweenInfo.new(pace(0.22), Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{ Size = UDim2.fromOffset(26, 26), BackgroundTransparency = 1 }
 	):Play()
 	task.delay(pace(0.07), function()
-		lock.crack.Visible = false
+		crack.Visible = false
 		-- they drop at once and slow, and fade late, so the fall is seen
 		local fall = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local fade = TweenInfo.new(pace(BREAK_TIME - 0.07), Enum.EasingStyle.Quad, Enum.EasingDirection.In)

@@ -58,6 +58,36 @@ oxygen tick lost, decrease outline thickness for both capture and oxygen bar."
   [16 moments of one ride](../attachments/h1-rings-sheet.jpg) (red pieces on the outer ring, then on the big ring;
   the whole ring red under a third), [as a GIF](../attachments/h1-rings-ticks.gif).
 
+## The land strip's locks in the icons' style (2026-11-19, Hugo; NULLROOM task k1): in Studio, not uploaded
+Hugo: "Improve upon the actual locks and make them just as stylised as the text, try to replicate the same style as
+the icons we use for index, shop, cash, oxygen etc." The lock is now a picture drawn by the pack's rules: we copied
+the Index's book, the Shop's basket and the cash from gvesster's pack (`art/ui/icons/CREDITS.md`). The pack has a lock
+of its own, but the pack isn't on Hugo's Linux PC, so this one is drawn by code to match.
+
+- **The look** (read off our three pack icons): one thick ink outline (4,4,53) round the whole silhouette and none inside.
+  It's 8% of the icon, heavier than the pack's 6%, so it holds at 20 px. Flat faces in a 3/4 view: a light top, a mid
+  front with a pale lip along its top edge, a dark side. White four-point glints on two corners and an ink keyhole.
+  The gold is the cash band's and the shackle's steel the basket handle's. On a darkened land it reads as a gold
+  padlock at real size.
+- **The break, in the same style:** the atlas also holds the shackle, the body's two halves cut along a zigzag crack
+  (each with its own ink outline), three gold chips and the white glint. On the break the glint opens and turns over
+  the lock as it splits a pixel apart. Then the shackle flies up and turns, the halves tip apart and fall, and the
+  chips burst out. Everything fades over the same half second as before (`FLY` in `LandStrip.luau`).
+- **Made by** `tools/ui/lock_icon/lock_art.py` (`art/ui/icons/lock.png`, `lock_atlas.png`, `lock_atlas.json`; its
+  printout is the `PIECES` table in `LandStrip.luau`); `--studio` puts the atlas in Studio's own content folder.
+- **Size:** a 20 px square (the old drawn one was 16), a pixel right of centre and a pixel up, so the land's number
+  covers less of it.
+- **Not uploaded:** in Studio it reads `rbxasset://textures/ridefish/lock_atlas_k1.png`. A live game keeps the old
+  drawn padlock until `LOCK_ATLAS` in `LandStrip.luau` holds the upload's id. In Studio the workspace's `LandLockArt`
+  overrides it.
+- **Checked in Studio (Edit mode, the repo's code):** every lock shows the picture. A land your best already passed
+  has its lock gone at once. A new best into land 3 split that lock and hid it after the break.
+- **Seen: a preview, not a capture.** The open Studio draws only white (it started before the graphics card was
+  ready, see m1 below). So [the before and after](../attachments/land-strip-locks-2-preview.png) and
+  [the break](../attachments/land-strip-locks-2-preview.gif) are drawn offline by `tools/ui/lock_icon/lock_preview.py`,
+  with the atlas and the code's own numbers on the grey land pictures. Still to make after a Studio restart:
+  `land-strip-locks-2.png` and `.gif`, captured from the game (l1's capture, `l1_capture.py`).
+
 ## The land strip, Hugo's fixes (2026-11-19, Hugo; NULLROOM task m1): in the game
 [The sheet](../attachments/land-strip-m1-1.png) (six moments at 3x and real size: short and long bests at both ends,
 mid-dive, on a new best, and your marker at 5x from 5 m to 99,999 m; Studio captures by
