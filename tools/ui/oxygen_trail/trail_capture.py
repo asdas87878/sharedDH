@@ -158,6 +158,21 @@ def moment(im):
     return best
 
 
+def small(frames, side=420):
+    """Frames made small for the vault (b was 10 MB at 600 px and 96 colours): 420 px, one palette of 62 colours taken
+    from eight frames, plus pure white and black so the white piece and the outline stay true"""
+    frames = [f.resize((side, side), Image.LANCZOS) if f.width != side else f for f in frames]
+    pick = frames[:: max(1, len(frames) // 8)]
+    sheet = Image.new("RGB", (side * len(pick), side))
+    for i, f in enumerate(pick):
+        sheet.paste(f, (side * i, 0))
+    p = sheet.quantize(colors=62, method=Image.MEDIANCUT, dither=Image.NONE).getpalette()[: 62 * 3]
+    p += [255, 255, 255, 0, 0, 0]
+    base = Image.new("P", (1, 1))
+    base.putpalette(p + [0] * (768 - len(p)))
+    return [f.quantize(palette=base, dither=Image.NONE) for f in frames]
+
+
 def live(mode, slow=0.12, crop=None, zoom=1.5, fps=25):
     """Shots as fast as niri takes them while the copy runs on a slowed clock; each frame's moment read off the bar"""
     crop = crop or CROP
@@ -208,9 +223,7 @@ def live(mode, slow=0.12, crop=None, zoom=1.5, fps=25):
         frames.append(c)
     name = f"oxygen-trail-{LETTER[mode]}.gif"
     dest = ROOT / "docs/attachments" / name
-    # one palette for every frame (the background is still: the frames differ only where the ring moves)
-    base = frames[len(frames) // 2].quantize(colors=96, method=Image.MEDIANCUT, dither=Image.NONE)
-    pal = [f.quantize(palette=base, dither=Image.NONE) for f in frames]
+    pal = small(frames)
     pal[0].save(dest, save_all=True, append_images=pal[1:], duration=int(1000 / fps), loop=0, optimize=True)
     print(f"{dest.stat().st_size // 1024} KB")
     SHEETS.mkdir(parents=True, exist_ok=True)
