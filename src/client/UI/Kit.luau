@@ -336,6 +336,13 @@ Kit.LandLockLook = 1
 -- with the stretch to your best in gold; 6 a ruler, a tick each half land.
 Kit.LandLineLook = 1
 
+-- The end of a dive and what came home (task s3; Hugo, 2026-11-18: "make sure it counts all the fish that were caught
+-- in with a better animation, give me a couple options"): 0 Banners' own (the title, the tokens, the metres, as
+-- before); in CatchShow, 1 Cards (each fish flips over in turn, the count ticks), 2 Stack (a list slides in at the
+-- left, a badge counts), 3 Big number (one number rolls up, the fish burst out of it), 4 Toast (a compact pill under the
+-- strip that fills). Sheet docs/attachments/catch-ui-options-1.png. In Studio the workspace's "CatchLook" overrides it.
+Kit.CatchLook = 0
+
 -- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
 -- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks;
 -- 7 Hugo's own three lines (2026-11-14: the rarity's word and the class icons, the name in white, "Required: n" and

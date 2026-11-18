@@ -14,9 +14,11 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
+local CatchShow = require(script.Parent.CatchShow)
 
 local Banners = {}
 
+local hudRoot: Instance? = nil
 local miss: TextLabel
 local missGroup: CanvasGroup
 local great: Frame
@@ -176,6 +178,7 @@ local function plateFill(tier: string): (ColorSequence, number)
 end
 
 function Banners.build(parent: Instance)
+	hudRoot = parent
 	-- the miss: one group, so the whole of it fades in with the black as one number
 	missGroup = Kit.new("CanvasGroup", {
 		Name = "Miss",
@@ -552,6 +555,12 @@ end
 function Banners.greatDive(metres: number, isBest: boolean, list: { { Id: string, Tier: string } }?)
 	greatRun += 1
 	local run = greatRun
+	-- one of the animated looks (Kit.CatchLook), when one is chosen
+	local look = CatchShow.look()
+	if look ~= 0 and hudRoot and CatchShow.play(hudRoot, look, metres, isBest, list) then
+		great.Visible = false
+		return
+	end
 	local count = if list then #list else 0
 	greatBest.Visible = isBest
 	greatCatch.Visible = count > 0
