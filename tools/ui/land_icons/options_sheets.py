@@ -260,7 +260,7 @@ def mixes():
             {"x": 0, "y": 700, "s": 3, "o": o, "st": EARLY},
         ]
         _, got = cap.grab("mix_" + name[4], items, wait=2.5)
-        game_view, _ = cap.grab("mixgame_" + name[4], [{"game": True, "o": o, "st": AHEAD, "x": 0, "y": 0}], back=1, hide=False, wait=3)
+        game_view, _ = cap.grab("mixgame_" + name[4], [{"game": True, "o": o, "st": AHEAD, "x": 0, "y": 0}], back=1, hide=False, wait=6)
         spots = [line.split()[1] for line in cap.log().splitlines() if line.startswith("spot ")]
         sx, _, sw, _ = (int(v) for v in spots[-1].split(",")) if spots else (700, 0, 570, 0)
         spot = (sx, sw)
