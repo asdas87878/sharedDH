@@ -670,7 +670,7 @@ end
 ---------------------------------------------------------------------------------------------------------------------
 -- 3 The catch screen: Hugo's pick (task c1, 2026-11-19), built into the game with his changes. One big number rolls
 -- up a fish at a time behind turning rays, each fish bursts out of it to its own rarity tile on an arc; "GREAT DIVE!"
--- with BEST! right beside it, "FISH CAUGHT!", the metres on a black oval, a CONTINUE button. Every word is a rarity
+-- with BEST! right beside it, "FISH CAUGHT!", the metres on a black oval (no CONTINUE button since 2026-11-19). Every word is a rarity
 -- word (Kit.word) in an angular font (Bangers) with a thick dark edge, a gradient, a shine line and a glow; the
 -- metres in the land strip's cartoon font. A see-through dark backdrop under it, and the backdrop and the screen fade
 -- in and out together. A click or tap anywhere skips to the end; the next closes (CatchShow.play).
@@ -690,12 +690,6 @@ local ROLL_FADE = NumberSequence.new({
 	NumberSequenceKeypoint.new(0.2, 0),
 	NumberSequenceKeypoint.new(0.8, 0),
 	NumberSequenceKeypoint.new(1, 1),
-})
-local CUT = NumberSequence.new({ -- the arrow: the right half of a turned square
-	NumberSequenceKeypoint.new(0, 1),
-	NumberSequenceKeypoint.new(0.499, 1),
-	NumberSequenceKeypoint.new(0.5, 0),
-	NumberSequenceKeypoint.new(1, 0),
 })
 -- a word's letters and edges faded as one (a = 1 as built); each layer keeps its own see-through as built
 local bases: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
@@ -832,7 +826,9 @@ local function fishTile(parent: Instance, item: Item, size: number, z: number): 
 	return { frame = frame, scale = scale, ring = ring }
 end
 
--- A burst of points (BEST!): squares turned through one point, gold over red, each with the ink edge
+-- A burst of points (BEST!): a red medallion of squares turned through one point with the ink edge round it (Hugo,
+-- 2026-11-19: "remove the yellow stuff around BEST! just keep the red medallion shape with the text"). The edged
+-- squares are under, the same squares over them hide the lines that cross inside
 local function star(parent: Instance, size: number, z: number): Frame
 	local frame: Frame = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -842,14 +838,14 @@ local function star(parent: Instance, size: number, z: number): Frame
 		ZIndex = z,
 	}, parent)
 	for layer = 1, 2 do
-		local share = if layer == 1 then 0.7 else 0.56
+		local share = 0.7
 		for _, angle in { 0, 30, 60 } do
 			local square = Kit.new("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromScale(0.5, 0.5),
 				Size = UDim2.fromScale(share, share),
 				Rotation = angle,
-				BackgroundColor3 = if layer == 1 then Kit.Sun else Kit.Danger,
+				BackgroundColor3 = Kit.Danger,
 				BorderSizePixel = 0,
 				ZIndex = z + layer - 1,
 			}, frame)
@@ -942,10 +938,13 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 	})
 	bestWord.root.Rotation = 12
 	bestBox.Visible = isBest
-	local pair = title.wide + (if isBest then BEST_SIZE * 0.95 else 0)
+	-- BEST! sits right on the end of the title, just touching its last letter (Hugo, 2026-11-19); the title's tilt lifts that
+	-- end a little
+	local pair = title.wide + (if isBest then BEST_SIZE * 0.72 else 0)
 	local TITLE_Y = 46
 	titleBox.Position = UDim2.fromOffset(CX - pair / 2 + title.wide / 2, TITLE_Y)
-	bestBox.Position = UDim2.fromOffset(CX - pair / 2 + title.wide + BEST_SIZE * 0.46, TITLE_Y - 10)
+	local lift = math.sin(math.rad(3)) * title.wide / 2
+	bestBox.Position = UDim2.fromOffset(CX - pair / 2 + title.wide + BEST_SIZE * 0.36, TITLE_Y - lift - 10)
 
 	-- the number: two words in a window that fades out at its top and bottom, the old count rolling out downward as
 	-- the new one drops in from above
@@ -1034,40 +1033,9 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 	setMetres(math.floor(metres) .. " METERS DEEP")
 	local ovalWide = ovalBox.Size.X.Offset
 
-	-- CONTINUE, with a filled arrow at its far right
-	local buttonBox, buttonScale = holder(group, UDim2.fromOffset(200, 46), 18)
-	buttonBox.Position = UDim2.fromOffset(CX, OVAL_Y + 56)
-	local plate: Frame = Kit.new("Frame", {
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 18,
-	}, buttonBox)
-	local good = table.clone(Kit.Themes.Good)
-	good.Radius = Kit.Radius.Plate
-	Kit.dress(plate, good)
-	local go = Kit.word(buttonBox, {
-		Text = "CONTINUE",
-		TextSize = 28,
-		Font = SCREEN_FONT,
-		Pal = Kit.WhitePal,
-		Edge = 0.12,
-		Position = UDim2.new(0.5, -14, 0.5, 0),
-		ZIndex = 20,
-	})
-	local ARROW = 24
-	local arrow: Frame = Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -ARROW * 0.8, 0.5, 0),
-		Size = UDim2.fromOffset(ARROW, ARROW),
-		Rotation = 45,
-		BackgroundColor3 = Kit.White,
-		BorderSizePixel = 0,
-		ZIndex = 24,
-	}, buttonBox)
-	Kit.new("UIGradient", { Rotation = -45, Transparency = CUT }, arrow)
-
 	local metresAtT = lastFish + 0.32
-	local buttonAt = metresAtT + 0.75
-	local settled = buttonAt + 0.35 -- everything in its place, every pop over
+	-- (no CONTINUE button: Hugo, 2026-11-19; a click or tap anywhere still closes it)
+	local settled = metresAtT + 0.8 -- everything in its place, every pop over
 	local leaveAt: number? = nil
 
 	-- The screen made smaller to fit between the land strip and the slots where the HUD is short (a phone held
@@ -1175,11 +1143,6 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 		ovalBox.Position = UDim2.fromOffset(CX, OVAL_Y + 14 * (1 - quadOut(mp)))
 		metresWord.set(math.floor(math.floor(metres) * quadOut(at(t, metresAtT, 0.7)) + 0.5) .. " METERS DEEP")
 		ovalBox.Size = UDim2.fromOffset(ovalWide, 44)
-		-- CONTINUE pops up last
-		local gp = at(t, buttonAt, 0.3)
-		buttonBox.Visible = t >= buttonAt
-		buttonScale.Scale = backOut(gp)
-		fadeWord(go, quadOut(gp))
 	end
 	pose(0)
 	local self: Show = {
