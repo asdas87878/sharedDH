@@ -26,11 +26,13 @@ local AuraController = {}
 
 local STUDIO = RunService:IsStudio()
 local TEX = {
-	Glow = "rbxasset://textures/particles/forcefield_glow_main.dds",
+	-- (forcefield_glow_main is nearly black: the implosion picture is the soft round glow)
+	Glow = "rbxasset://textures/particles/explosion01_implosion_main.dds",
+	Bubble = "rbxasset://textures/particles/explosion01_shockwave_main.dds",
 	Spark = "rbxasset://textures/particles/sparkles_main.dds",
 	Smoke = "rbxasset://textures/particles/smoke_main.dds",
 	Fire = "rbxasset://textures/particles/fire_main.dds",
-	Embers = "rbxasset://textures/particles/fire_sparks_main.dds",
+	Embers = "rbxasset://textures/particles/explosion01_implosion_main.dds", -- (fire_sparks_main is too faint)
 	Square = "rbxasset://textures/particles/SquareParticle.png",
 }
 local TAU = math.pi * 2
@@ -219,8 +221,8 @@ local function ribbon(
 		Rate = rate,
 		Lifetime = NumberRange.new(life * 0.8, life),
 		Speed = NumberRange.new(0, 0.2),
-		Size = seq({ { 0, size }, { 1, 0 } }),
-		Transparency = seq({ { 0, 0.1 }, { 1, 0.9 } }),
+		Size = seq({ { 0, size * 1.6 }, { 0.5, size * 1.3 }, { 1, 0 } }),
+		Transparency = seq({ { 0, 0 }, { 1, 0.85 } }),
 		LockedToPart = false,
 	}
 	for k, v in (props or {}) :: { [string]: any } do
@@ -229,26 +231,19 @@ local function ribbon(
 	return emit(fx, parent, p)
 end
 
-local function light(fx: Fx, color: Color3, brightness: number, range: number, height: number): PointLight
-	local a = area(fx, Vector3.new(0.2, 0.2, 0.2), CFrame.new(0, height, 0))
-	local l = Instance.new("PointLight")
-	l.Color = color
-	l.Brightness = brightness
-	l.Range = range
-	l.Shadows = false
-	l.Parent = a
-	return l
-end
+-- (Hugo: no glow on the floor, so nothing here carries a light: a PointLight lights the ground round the player)
 
 -- Round, small glows rising off the body
 local function bubbles(fx: Fx, parent: Instance, color: Color3, rate: number, size: number?)
 	return wrap(fx, parent, {
+		Texture = TEX.Bubble,
+		Brightness = 3.5,
 		Color = cseq(color),
 		Rate = rate,
 		Speed = NumberRange.new(0.3, 0.8),
 		Acceleration = Vector3.new(0, 3, 0),
 		Lifetime = NumberRange.new(1.2, 1.8),
-		Size = seq({ { 0, 0 }, { 0.15, size or 0.3 }, { 0.85, (size or 0.3) * 0.9 }, { 1, 0 } }),
+		Size = seq({ { 0, 0 }, { 0.15, size or 0.8 }, { 0.85, (size or 0.8) * 0.9 }, { 1, 0 } }),
 		Transparency = seq({ { 0, 0.2 }, { 0.8, 0.4 }, { 1, 1 } }),
 	})
 end
@@ -263,7 +258,7 @@ local Build: { (Fx) -> () } = {}
 -- 1 Bubble: a few soft bubbles rise off you
 Build[1] = function(fx)
 	local s = shell(fx)
-	bubbles(fx, s, rgb(190, 235, 255), 9)
+	bubbles(fx, s, rgb(190, 235, 255), 14)
 	wrap(fx, s, {
 		Texture = TEX.Spark,
 		Color = cseq(rgb(235, 250, 255)),
@@ -276,7 +271,7 @@ end
 -- 2 Foam: more bubbles, and a white foam haze hugging you
 Build[2] = function(fx)
 	local s = shell(fx)
-	bubbles(fx, s, rgb(225, 248, 255), 14, 0.34)
+	bubbles(fx, s, rgb(225, 248, 255), 18, 0.85)
 	wrap(fx, s, {
 		Texture = TEX.Smoke,
 		Color = cseq(rgb(255, 255, 255), rgb(170, 225, 255)),
@@ -286,7 +281,7 @@ Build[2] = function(fx)
 		Acceleration = Vector3.new(0, 1.2, 0),
 		Lifetime = NumberRange.new(1.2, 1.8),
 		Size = seq({ { 0, 0.7 }, { 1, 1.6 } }),
-		Transparency = seq({ { 0, 0.65 }, { 1, 1 } }),
+		Transparency = seq({ { 0, 0.45 }, { 1, 1 } }),
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-30, 30),
 	})
@@ -301,7 +296,7 @@ Build[3] = function(fx)
 			local a = t * 2.4 + k * math.pi
 			return Vector3.new(math.cos(a) * 1.8, BODY_Y + math.sin(a * 2 + t) * 1.6, math.sin(a) * 1.8)
 		end)
-		ribbon(fx, c, cseq(white, teal, teal), 70, 0.55, 0.7)
+		ribbon(fx, c, cseq(white, teal, teal), 90, 0.55, 1.1)
 	end
 	bubbles(fx, s, rgb(170, 255, 240), 8)
 end
@@ -317,7 +312,7 @@ Build[4] = function(fx)
 			local r = 2 - u * 0.5
 			return Vector3.new(math.cos(a) * r, 0.6 + u * 5.6, math.sin(a) * r)
 		end)
-		ribbon(fx, c, cseq(pale, blue), 80, 0.45, 0.4)
+		ribbon(fx, c, cseq(pale, blue), 100, 0.45, 0.6)
 	end
 	wrap(fx, s, {
 		Texture = TEX.Square,
@@ -340,11 +335,12 @@ Build[5] = function(fx)
 		wrap(fx, s, {
 			Texture = TEX.Spark,
 			Color = cseq(col),
-			Rate = 7,
+			Rate = 12,
+			Brightness = 3.5,
 			Speed = NumberRange.new(0.1, 0.4),
 			Acceleration = Vector3.new(0, 0.6, 0),
 			Lifetime = NumberRange.new(0.6, 1),
-			Size = seq({ { 0, 0 }, { 0.4, 0.55 }, { 1, 0 } }),
+			Size = seq({ { 0, 0 }, { 0.4, 0.85 }, { 1, 0 } }),
 			Rotation = NumberRange.new(0, 360),
 			RotSpeed = NumberRange.new(-120, 120),
 		})
@@ -363,9 +359,9 @@ Build[6] = function(fx)
 	local s = shell(fx)
 	emit(fx, area(fx, Vector3.new(2.8, 1.2, 2.8), CFrame.new(0, 5.4, 0)), {
 		Texture = TEX.Smoke,
-		Color = cseq(rgb(80, 90, 135), rgb(45, 50, 80)),
-		Rate = 22,
-		LightEmission = 0,
+		Color = cseq(rgb(120, 130, 185), rgb(70, 78, 120)),
+		Rate = 30,
+		LightEmission = 0.3,
 		Brightness = 1,
 		Lifetime = NumberRange.new(1, 1.5),
 		Speed = NumberRange.new(0.2, 0.6),
@@ -378,12 +374,12 @@ Build[6] = function(fx)
 	wrap(fx, s, {
 		Texture = TEX.Spark,
 		Color = cseq(rgb(255, 255, 220), yellow),
-		Rate = 30,
-		Brightness = 4,
+		Rate = 45,
+		Brightness = 5,
 		Speed = NumberRange.new(0, 0.2),
 		Acceleration = Vector3.zero,
-		Lifetime = NumberRange.new(0.06, 0.14),
-		Size = seq({ { 0, 1.2 }, { 1, 0.6 } }),
+		Lifetime = NumberRange.new(0.08, 0.16),
+		Size = seq({ { 0, 2 }, { 1, 1 } }),
 		Rotation = NumberRange.new(0, 360),
 	})
 	wrap(fx, s, {
@@ -395,12 +391,8 @@ Build[6] = function(fx)
 		Drag = 4,
 		Acceleration = Vector3.new(0, -6, 0),
 		Lifetime = NumberRange.new(0.25, 0.45),
-		Size = seq({ { 0, 0.35 }, { 1, 0 } }),
+		Size = seq({ { 0, 0.4 }, { 1, 0 } }),
 	})
-	local l = light(fx, yellow, 0, 14, 4)
-	step(fx, function(t)
-		l.Brightness = if math.floor(t / 0.09) % 3 == 0 then 3 else 0.3
-	end)
 end
 
 -- 7 Moon: two silver rings of light turn round you on crossing tilts, a small moon circles your head, starlight
@@ -412,7 +404,7 @@ Build[7] = function(fx)
 			local a = t * 2.2 * (if k == 1 then 1 else -1)
 			return Vector3.new(0, BODY_Y, 0) + tilt * Vector3.new(math.cos(a) * 2.3, 0, math.sin(a) * 2.3)
 		end)
-		ribbon(fx, c, cseq(silver, lilac), 90, 0.4, 0.9)
+		ribbon(fx, c, cseq(silver, lilac), 120, 0.4, 1.3)
 	end
 	local moon = carrier(fx, function(t)
 		local a = t * 0.9
@@ -428,7 +420,6 @@ Build[7] = function(fx)
 		Lifetime = NumberRange.new(0.5, 0.9),
 		Size = seq({ { 0, 0 }, { 0.5, 0.45 }, { 1, 0 } }),
 	})
-	light(fx, lilac, 1.5, 12, 3)
 end
 
 -- 8 Lantern: four warm lanterns of light circle you at different heights, warm motes rise off you
@@ -450,9 +441,7 @@ Build[8] = function(fx)
 		Size = seq({ { 0, 0 }, { 0.2, 0.3 }, { 1, 0 } }),
 		Transparency = seq({ { 0, 0.2 }, { 1, 1 } }),
 	})
-	local lt = light(fx, gold, 2, 16, 3)
 	step(fx, function(t)
-		lt.Brightness = 1.6 + 0.6 * flicker(t, 0)
 		for i, e in lamps do
 			e.Brightness = 2.2 + 1.4 * flicker(t, i)
 		end
@@ -463,6 +452,16 @@ end
 Build[9] = function(fx)
 	local hot, deep, yellow = rgb(255, 120, 30), rgb(220, 40, 20), rgb(255, 235, 130)
 	local s = shell(fx, 0.9, 2.4)
+	wrap(fx, s, {
+		Color = cseq(yellow, hot, deep),
+		Rate = 60,
+		Brightness = 3,
+		Speed = NumberRange.new(1, 2),
+		Acceleration = Vector3.new(0, 7, 0),
+		Lifetime = NumberRange.new(0.5, 0.8),
+		Size = seq({ { 0, 1.6 }, { 0.6, 1.1 }, { 1, 0.2 } }),
+		Transparency = seq({ { 0, 0.2 }, { 0.7, 0.5 }, { 1, 1 } }),
+	})
 	wrap(fx, s, {
 		Texture = TEX.Fire,
 		Color = cseq(yellow, hot, deep),
@@ -484,12 +483,8 @@ Build[9] = function(fx)
 		SpreadAngle = Vector2.new(25, 25),
 		Acceleration = Vector3.zero,
 		Lifetime = NumberRange.new(0.8, 1.3),
-		Size = seq({ { 0, 0.3 }, { 1, 0 } }),
+		Size = seq({ { 0, 0.4 }, { 1, 0 } }),
 	})
-	local lt = light(fx, hot, 2, 16, 3)
-	step(fx, function(t)
-		lt.Brightness = 1.6 + 1.2 * flicker(t, 3)
-	end)
 end
 
 -- 10 Phantom: a ghostly mist rises off you, four wisps swirl round you
@@ -517,7 +512,6 @@ Build[10] = function(fx)
 		end)
 		ribbon(fx, c, cseq(if k % 2 == 0 then mint else violet, rgb(255, 255, 255)), 60, 0.45, 0.8)
 	end
-	light(fx, mint, 1.5, 12, 3)
 end
 
 -- 11 Abyss: a dark void smoke wraps you, light is pulled in from all round, a violet halo spins over your head
@@ -526,7 +520,7 @@ Build[11] = function(fx)
 	local s = shell(fx)
 	wrap(fx, s, {
 		Texture = TEX.Smoke,
-		Color = cseq(void, rgb(60, 20, 100)),
+		Color = cseq(rgb(70, 25, 120), void),
 		Rate = 20,
 		LightEmission = 0,
 		Brightness = 1,
@@ -540,10 +534,10 @@ Build[11] = function(fx)
 	})
 	emit(fx, area(fx, Vector3.new(9, 9, 9), CFrame.new(0, BODY_Y, 0)), {
 		Color = cseq(bright, purple),
-		Rate = 34,
+		Rate = 55,
 		Lifetime = NumberRange.new(0.6, 0.75),
 		Speed = NumberRange.new(6, 7),
-		Size = seq({ { 0, 0.45 }, { 1, 0.05 } }),
+		Size = seq({ { 0, 0.75 }, { 1, 0.1 } }),
 		Transparency = seq({ { 0, 1 }, { 0.3, 0.15 }, { 1, 0 } }),
 		Shape = Enum.ParticleEmitterShape.Sphere,
 		ShapeInOut = Enum.ParticleEmitterShapeInOut.Inward,
@@ -553,7 +547,7 @@ Build[11] = function(fx)
 		local a = t * 5
 		return Vector3.new(math.cos(a) * 1.1, 6.3, math.sin(a) * 1.1)
 	end)
-	ribbon(fx, halo, cseq(bright, purple), 120, 0.35, 0.45, { Brightness = 3 })
+	ribbon(fx, halo, cseq(bright, purple), 160, 0.4, 0.9, { Brightness = 3.5 })
 	wrap(fx, s, {
 		Texture = TEX.Spark,
 		Color = cseq(bright, purple),
@@ -565,12 +559,27 @@ Build[11] = function(fx)
 		Size = seq({ { 0, 1 }, { 1, 0.5 } }),
 		Rotation = NumberRange.new(0, 360),
 	})
-	light(fx, purple, 2.5, 16, 3)
 end
 
 -- 12 Leviathan: a rainbow flame wraps you, two rainbow serpents of light coil round you, stars in every colour
 Build[12] = function(fx)
 	local s = shell(fx, 0.9, 2.4)
+	wrap(fx, s, {
+		Color = cseq(
+			rgb(255, 120, 200),
+			rgb(255, 220, 120),
+			rgb(130, 255, 170),
+			rgb(120, 200, 255),
+			rgb(200, 140, 255)
+		),
+		Rate = 55,
+		Brightness = 3,
+		Speed = NumberRange.new(1, 2),
+		Acceleration = Vector3.new(0, 7, 0),
+		Lifetime = NumberRange.new(0.6, 0.9),
+		Size = seq({ { 0, 1.4 }, { 0.6, 1 }, { 1, 0.2 } }),
+		Transparency = seq({ { 0, 0.25 }, { 0.7, 0.5 }, { 1, 1 } }),
+	})
 	wrap(fx, s, {
 		Texture = TEX.Fire,
 		Color = cseq(
@@ -617,9 +626,7 @@ Build[12] = function(fx)
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-120, 120),
 	})
-	local lt = light(fx, Color3.new(1, 1, 1), 2.5, 18, 3.5)
 	step(fx, function(t)
-		lt.Color = hue(t * 0.15, 0.4)
 		-- each serpent's colour turns as it goes, so its body is a rainbow
 		for k, e in snakes do
 			e.Color = cseq(hue(t * 0.6 + k * 0.5, 0.55))
@@ -723,13 +730,11 @@ Spawn[2] = function(fx)
 		ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
 	})
 	burstAt(fx, "pop", 1.15, pop, 70)
-	local flash = light(fx, white, 0, 18, 2.6)
 	step(fx, function(t)
 		local u = t - fx.Data.Start
 		for _, e in streams do
 			e.Rate = if u >= 0 and u < 1.15 then 140 else 0
 		end
-		flash.Brightness = if u > 1.1 then math.max(0, 6 * (1 - (u - 1.15) / 0.4)) else 0
 	end)
 	return function(u)
 		return math.clamp((u - 0.55) / 0.6, 0, 1)
@@ -768,7 +773,6 @@ Spawn[3] = function(fx)
 	})
 	burstAt(fx, "burst", 0.45, burst, 60)
 	burstAt(fx, "glow", 0.45, glow, 40)
-	local flash = light(fx, gold, 0, 20, 2)
 	step(fx, function(t, base)
 		local u = t - fx.Data.Start
 		-- the beam: thin, widens as it lands, then narrows away
@@ -783,7 +787,6 @@ Spawn[3] = function(fx)
 		put(fx, core, base * CFrame.new(0, top, 0) * up)
 		beam.Transparency = if w <= 0.06 then 1 else 0.35 + out * 0.65
 		core.Transparency = if w <= 0.06 then 1 else out
-		flash.Brightness = if u >= 0.45 then math.max(0, 8 * (1 - (u - 0.45) / 0.35)) else 0
 	end)
 	return function(u)
 		return if u < 0.42 then 0 else math.clamp((u - 0.42) / 0.1, 0, 1)
