@@ -18,6 +18,8 @@ the player about every 0.5 s."
   under the seahorse, and sets the seahorse down to the coil's length. **Not yet in the kit:** `tools/map/hub_kit.py`
   still builds the old machine, so in Edit (and after a hub rebuild) it is there until Play. Changing the kit means a
   hub rebuild in the place: left for Hugo's word.
+- **The floor under the ride** is the highest seen surface of the plot under its coil (a plot's Pad can cover the
+  trainer's corner, 0.4 studs over the hub's floor, and buried the levels' thin pads), not the kit spot's underside.
 - **Getting on:** walk up to it (within 5.5 studs of the coil, flat) and you are seated; or jump on it (come down within
   3.6 studs of the coil, above the body's underside). After hopping off you must step away before a walk-up seats you
   again (and off its top before coming down on it does), so you don't hop straight back on. Your own plot's toy only; with no plot, the nearest free one.
@@ -42,6 +44,10 @@ The draft (mission 20e4833b task m1, `art/creatures/Seahorse/tiers/trainer.py`, 
 Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismatic, the stand climbing with it.
 
 ![each level on a plot in the game](../attachments/seahorse-tiers-game-1.png)
+![no plate: the spring into the seahorse, every level, side on](../attachments/seahorse-tiers-joint-1.png)
+![level 5 ridden: five frames of the rock, the coil bending and still in the body](../attachments/seahorse-tier5-rock-1.png)
+![level 12 ridden](../attachments/seahorse-tier12-rider-1.png)
+![an upgrade, 11 to 12 (frames about a second apart: the spring up and the flash fall between them)](../attachments/seahorse-tier-upgrade-1.png)
 
 - **Each plot shows its owner's level.** The player's `TrainerLevel` (1 to 12, the server's, for the session like
   the coins) picks which seahorse and stand the plot's ride is: `ReplicatedStorage.TrainerModels.T<n>`. A plot with no

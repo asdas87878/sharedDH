@@ -3,6 +3,25 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-19 · The seahorse trainer's 12 levels in the game, no plate (NULLROOM task sh1, Hugo's PC)
+**State:** in the game code, the 12 models installed **locally** in Hugo's Studio (not uploaded), checked in a Studio
+playtest by script; **not played by hand. The place is not saved** (Ctrl+S keeps `ReplicatedStorage.TrainerModels`).
+All in [the trainer](design/trainer.md), "The 12 levels".
+- The draft m1 (Toy to Prismatic, the stand climbing with it), exported per level by
+  `art/creatures/Seahorse/tiers/build_tiers.py --export` and installed by `install_tiers.py` (mesh files in Studio's
+  content folder, `rbxasset://ridefish/Trainer<n>/`, as the creatures' `--local`).
+- Each plot's seahorse is its owner's `TrainerLevel` (1 to 12, the server's, for the session). E by your own ride
+  goes up a level (free for now, `Train.Free`), rebuilt at once with a spring-up, a flash, sparks and a "LEVEL n: NAME!"
+  banner; a seated rider stays on. The sign shows the level, the next and its price.
+- **Hugo's change (no plate):** the spring goes from the stand straight into the seahorse's belly on every level
+  (`SpringLength` 5.2), a little slimmer coil (radius 1.0, wire 0.45, the kit's toy too).
+- `Config.Train.Levels`: Oxygen a second and price per level, **placeholders** for the economy pick (b1); level 1 is
+  today's 4. Riding gains the level's Oxygen (plus `Share`, until b1 sets it to 0).
+- The ride's floor is now the plot's highest seen surface (a plot Pad buried the thin pads).
+- Pictures: `seahorse-tiers-game-1.png`, `seahorse-tiers-joint-1.png`, `seahorse-tier5-rock-1.png`,
+  `seahorse-tier12-rider-1.png`, `seahorse-tier-upgrade-1.png`.
+- **Not done:** the upload (needs Hugo's OK), saves, a Robux price.
+
 ## 2026-11-19 · The fish pictures are the partner's renders (NULLROOM task r1, Hugo's PC)
 **State:** in the game code and checked in a Studio playtest by script; **not uploaded, so live servers still draw the
 models**; not played by hand or on a phone. All in [UI](design/ui.md), "The fish pictures are the partner's renders".

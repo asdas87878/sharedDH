@@ -205,14 +205,14 @@ def rider(level=12):
     time.sleep(2.5)
     r = ask("info")
     print("rider:", r.get("rider"), flush=True)
-    camera(r, side=11, ahead=9, up=3.5, at=8)
+    camera(r, side=17, ahead=14, up=4.0, at=9.5)
     time.sleep(1.2)
     keep(label(shot(OUT / "rider.png", 1280), f"Level {level}: {NAMES[level]}, ridden", 34),
          f"seahorse-tier{level}-rider-1.png")
     server("workspace:SetAttribute('SH1Cam', nil) return 'ok'")
 
 
-def side_camera(r, far=10.0, up=0.6, at=5.2):
+def side_camera(r, far=17.0, up=1.0, at=4.2):
     """from the ride's right side, level with where the coil meets the body (the stand's top + SpringLength)"""
     ax = r["axis"]
     lx, lz = r["look"]
@@ -256,7 +256,7 @@ def rock(level=12):
     time.sleep(3.5)
     r = ask("info")
     print("rider:", r.get("rider"), flush=True)
-    side_camera(r, far=15, up=1.5, at=6.5)
+    side_camera(r, far=21, up=2.0, at=6.0)
     time.sleep(1)
     frames = [label(shot(OUT / f"rock{k}.png", 640), f"{level} {NAMES[level]}, ridden") for k in range(5)]
     w, h = frames[0].size

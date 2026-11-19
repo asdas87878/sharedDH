@@ -354,6 +354,20 @@ local function makeRide(plot: Instance, spot: BasePart): Ride?
 		end
 	end
 	local floor = spot.Position.Y - spot.Size.Y / 2
+	-- (the floor you see may be higher than the spot's underside: a plot's Pad, seen, can cover the trainer's
+	-- corner, 0.4 studs over the hub's floor, and buried the levels' thin pads. The highest seen top of the plot's
+	-- own parts under the coil, within a stud of the spot's underside)
+	local under = Vector3.new(body.Position.X, floor, body.Position.Z)
+	for _, child in plot:GetChildren() do
+		if child:IsA("BasePart") and child ~= spot and child.Transparency < 1 then
+			local top = child.Position.Y + child.Size.Y / 2
+			local at = child.CFrame:PointToObjectSpace(Vector3.new(under.X, child.Position.Y, under.Z))
+			local half = child.Size / 2
+			if math.abs(at.X) <= half.X and math.abs(at.Z) <= half.Z and top > floor and top < floor + 1 then
+				floor = top
+			end
+		end
+	end
 	local head = (toy :: Instance):FindFirstChild("Head")
 	local ahead = if head and head:IsA("BasePart") then flat(head.Position - body.Position) else Vector3.zero
 	if ahead.Magnitude < 0.1 then
