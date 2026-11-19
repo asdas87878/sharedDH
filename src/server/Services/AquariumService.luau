@@ -9,8 +9,17 @@
 --   dock's spawn. The catch stays in their hands (the slots) until they put it in: at their own tank a prompt puts the
 --   chosen fish in, one at a time (Action "Place", index, id; AquariumController; RideService.takeCarried). A failed
 --   dive keeps its catch the same way.
---   Earning: each fish earns by what it takes to hold at home, its size and its colour (Config.incomeOf). The best
---   Aquarium.Earning of them earn; the rest are kept and wait their turn. Coins are the player's "Coins" attribute (the
+--   Earning: each fish earns by what it takes to hold at home, its size and its colour (Config.incomeOf). Up to
+--   Aquarium.Earning of them are equipped and earn; the rest are kept (stored) and earn nothing. A new fish takes a free
+--   place if there is one, else it is stored.
+--   The tank's popup (Hugo, 2026-11-19: "you should be able to click on the plot from nearby, then get a little popup
+--   where you can equip the best fish instantly, unequip certain fishes and see how much money they produce"):
+--   Client.UI.TankPanel. Its asks are Action "Tank", verb, a, b: "Best" (equip the best Earning, the rest stored),
+--   "Equip", key, "Unequip", key, "PutIn", index, id (one carried fish in) and "PutAll" (every carried fish in). Each
+--   only on the dock, near one's own tank (the plot's "PanelReach" attribute, studs from the tank, plus some slack);
+--   refused with Ride "TankDenied", reason ("Far", "Full", "Gone"). What the popup shows comes from the player's
+--   attributes "TankList" (every fish: key, id, size, variant, 1 if equipped) and "Hands" (what they carry: id, size,
+--   variant, oldest first). Coins are the player's "Coins" attribute (the
 --   HUD's coin row shows itself when it is there), "Income" what the tank earns a second, "TankFish" how many it holds.
 --   Seen: the earning fish swim in the tank, small. The server puts each in its place, anchored, with the tag
 --   "TankFish" and the numbers of its lap; every client moves them round itself (AquariumController), so they cost no
@@ -27,13 +36,22 @@ local Variants = require(ReplicatedStorage.Shared.Variants)
 local FishModel = require(script.Parent.Parent.Lib.FishModel)
 local RideService = require(script.Parent.RideService)
 
-type Entry = { Id: string, Size: string, Variant: string, Income: number }
+type Entry = {
+	Key: string, -- the fish's own name in its tank, for the popup's asks
+	Id: string,
+	Size: string,
+	Variant: string,
+	Income: number,
+	On: boolean, -- equipped: earning and swimming in the tank
+}
 type Tank = {
 	Player: Player,
 	Plot: Model,
 	Fish: { Entry }, -- everything in the tank, the best earner first
 	Coins: number,
-	Income: number, -- coins a second: the best Aquarium.Earning of them
+	Income: number, -- coins a second: the equipped ones (at most Aquarium.Earning)
+	Made: number, -- fish keys handed out so far
+	Hands: string, -- the "Hands" attribute last written
 	Shown: Folder?,
 }
 
@@ -42,6 +60,10 @@ local AquariumService = {}
 AquariumService.Tag = "TankFish"
 
 local EVERY = 0.25 -- seconds between looks at who is standing where
+-- How near one's own tank the popup opens (studs from the tank's water, across the floor), and the server's slack
+-- over that for lag. Written on each plot as "PanelReach" so the player's machine uses the same number
+local PANEL_REACH = 36
+local PANEL_SLACK = 12
 local plots: { Model } = {}
 local tanks: { [Player]: Tank } = {}
 local owners: { [Model]: Player } = {}
@@ -155,15 +177,21 @@ local function show(tank: Tank)
 		tank.Shown = nil
 	end
 	local water = part(tank.Plot, "TankWater")
-	if not water or #tank.Fish == 0 then
+	local equipped = {}
+	for _, entry in tank.Fish do
+		if entry.On then
+			table.insert(equipped, entry)
+		end
+	end
+	if not water or #equipped == 0 then
 		return
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = "TankFish"
-	local count = math.min(#tank.Fish, a.Show)
+	local count = math.min(#equipped, a.Show)
 	local half = water.Size / 2
 	for i = 1, count do
-		local entry = tank.Fish[i]
+		local entry = equipped[i]
 		local kind = Config.FishById[entry.Id]
 		if kind then
 			local model = FishModel.build(kind)
@@ -219,18 +247,105 @@ local function tell(tank: Tank)
 		table.insert(listed, { f.Id, f.Size, f.Variant })
 	end
 	tank.Player:SetAttribute("Tank", HttpService:JSONEncode(listed))
+	-- every fish, for the popup (Client.UI.TankPanel): key, id, size, variant, 1 if equipped
+	local all = {}
+	for _, f in tank.Fish do
+		local row: { any } = { f.Key, f.Id, f.Size, f.Variant, if f.On then 1 else 0 }
+		table.insert(all, row)
+	end
+	tank.Player:SetAttribute("TankList", HttpService:JSONEncode(all))
+	tank.Player:SetAttribute("TankEarning", Config.Aquarium.Earning)
 end
 
--- What the tank earns: its best Aquarium.Earning fish (the list is kept best first)
+-- What a player carries, for the popup ("Hands": id, size, variant, oldest first), written only when it changed
+local function tellHands(tank: Tank)
+	local rows = {}
+	for _, c in RideService.carried(tank.Player) do
+		table.insert(rows, { c.Id, c.Size, c.Variant })
+	end
+	local json = HttpService:JSONEncode(rows)
+	if json ~= tank.Hands then
+		tank.Hands = json
+		tank.Player:SetAttribute("Hands", json)
+	end
+end
+
+local function equippedCount(tank: Tank): number
+	local n = 0
+	for _, f in tank.Fish do
+		if f.On then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- What the tank earns: its equipped fish (the list is kept best first). Each fish's number is Config.incomeOf, worked
+-- out again here so a change to how size or colour pays (the economy draft) reaches the fish already in tanks
 local function count(tank: Tank)
+	for _, f in tank.Fish do
+		local kind = Config.FishById[f.Id]
+		f.Income = if kind then Config.incomeOf(kind, f.Size, f.Variant) else 0
+	end
 	table.sort(tank.Fish, function(x, y)
-		return x.Income > y.Income
+		if x.Income ~= y.Income then
+			return x.Income > y.Income
+		end
+		return x.Key < y.Key
 	end)
 	local income = 0
-	for i = 1, math.min(#tank.Fish, Config.Aquarium.Earning) do
-		income += tank.Fish[i].Income
+	local most = Config.Aquarium.Earning
+	local on = 0
+	for _, f in tank.Fish do
+		if f.On then
+			on += 1
+			if on > most then
+				f.On = false -- (Earning was lowered: the poorest step out)
+			else
+				income += f.Income
+			end
+		end
 	end
 	tank.Income = income
+end
+
+-- A new fish in the tank: equipped if there is a free place, else stored
+local function add(tank: Tank, id: string, size: string, variant: string): Entry?
+	local kind = Config.FishById[id]
+	if not kind then
+		return nil
+	end
+	tank.Made += 1
+	local entry: Entry = {
+		Key = tostring(tank.Made),
+		Id = id,
+		Size = size,
+		Variant = variant,
+		Income = Config.incomeOf(kind, size, variant),
+		On = equippedCount(tank) < Config.Aquarium.Earning,
+	}
+	table.insert(tank.Fish, entry)
+	return entry
+end
+
+-- (a tank is not endless: past Aquarium.Hold the poorest stored fish are let go; equipped ones are kept)
+local function trim(tank: Tank)
+	count(tank)
+	local i = #tank.Fish
+	while #tank.Fish > Config.Aquarium.Hold and i >= 1 do
+		if not tank.Fish[i].On then
+			table.remove(tank.Fish, i)
+		end
+		i -= 1
+	end
+end
+
+-- Everything that follows a change to the tank: the numbers, the attributes, the fish in the water and the sign
+local function changed(tank: Tank)
+	count(tank)
+	tell(tank)
+	show(tank)
+	sign(tank.Plot, tank)
 end
 
 -- One fish from the player's hands goes into their tank: the index-th they carry (oldest first), which must still be
@@ -247,23 +362,45 @@ local function place(tank: Tank, index: number, id: string): boolean
 		return false
 	end
 	local before = tank.Income
-	table.insert(tank.Fish, {
-		Id = taken.Id,
-		Size = taken.Size,
-		Variant = taken.Variant,
-		Income = Config.incomeOf(kind, taken.Size, taken.Variant),
-	})
-	-- (a tank is not endless: past Aquarium.Hold the poorest are let go)
-	count(tank)
-	while #tank.Fish > Config.Aquarium.Hold do
-		table.remove(tank.Fish)
-	end
-	count(tank)
-	tell(tank)
-	show(tank)
-	sign(tank.Plot, tank)
+	add(tank, taken.Id, taken.Size, taken.Variant)
+	trim(tank)
+	changed(tank)
+	tellHands(tank)
 	Net.Ride:FireClient(tank.Player, "Deposited", 1, tank.Income - before, tank.Income, taken.Id)
 	return true
+end
+
+-- The popup's asks (Action "Tank"). Each returns nil when done, or why not
+local function equipBest(tank: Tank): string?
+	count(tank)
+	local most = Config.Aquarium.Earning
+	for i, f in tank.Fish do
+		f.On = i <= most
+	end
+	changed(tank)
+	return nil
+end
+
+local function find(tank: Tank, key: string): Entry?
+	for _, f in tank.Fish do
+		if f.Key == key then
+			return f
+		end
+	end
+	return nil
+end
+
+local function equip(tank: Tank, key: string, on: boolean): string?
+	local entry = find(tank, key)
+	if not entry then
+		return "Gone"
+	end
+	if on and not entry.On and equippedCount(tank) >= Config.Aquarium.Earning then
+		return "Full"
+	end
+	entry.On = on
+	changed(tank)
+	return nil
 end
 
 local function join(player: Player)
@@ -272,7 +409,16 @@ local function join(player: Player)
 	end
 	for _, plot in plots do
 		if not owners[plot] then
-			local tank: Tank = { Player = player, Plot = plot, Fish = {}, Coins = 0, Income = 0, Shown = nil }
+			local tank: Tank = {
+				Player = player,
+				Plot = plot,
+				Fish = {},
+				Coins = 0,
+				Income = 0,
+				Made = 0,
+				Hands = "",
+				Shown = nil,
+			}
 			owners[plot] = player
 			tanks[player] = tank
 			plot:SetAttribute("Owner", player.UserId)
@@ -324,7 +470,19 @@ local function atTank(tank: Tank): boolean
 		return true
 	end
 	local spot = part(tank.Plot, "CollectPad") or part(tank.Plot, "TankWater")
-	return spot ~= nil and (spot.Position - root.Position).Magnitude <= PLACE_REACH + spot.Size.Magnitude / 2
+	if spot ~= nil and (spot.Position - root.Position).Magnitude <= PLACE_REACH + spot.Size.Magnitude / 2 then
+		return true
+	end
+	-- (or near enough for the popup, which can put fish in too)
+	local water = part(tank.Plot, "TankWater")
+	if not water then
+		return false
+	end
+	local offset = water.CFrame:PointToObjectSpace(root.Position)
+	local half = water.Size / 2
+	local dx = math.max(math.abs(offset.X) - half.X, 0)
+	local dz = math.max(math.abs(offset.Z) - half.Z, 0)
+	return math.sqrt(dx * dx + dz * dz) <= PANEL_REACH + PANEL_SLACK and math.abs(offset.Y) < half.Y + 40
 end
 
 -- Where a player comes home to: in front of their own tank, facing it, when they carry fish
@@ -374,19 +532,10 @@ function AquariumService.give(player: Player, coins: number, fish: { { string } 
 	tank.Coins += coins
 	local list: { { string } } = fish or {}
 	for _, f in list do
-		local kind = Config.FishById[f[1]]
-		if kind then
-			local size, variant = f[2] or "Normal", f[3] or ""
-			table.insert(
-				tank.Fish,
-				{ Id = f[1], Size = size, Variant = variant, Income = Config.incomeOf(kind, size, variant) }
-			)
-		end
+		add(tank, f[1], f[2] or "Normal", f[3] or "")
 	end
-	count(tank)
-	tell(tank)
-	show(tank)
-	sign(tank.Plot, tank)
+	trim(tank)
+	changed(tank)
 end
 
 function AquariumService.Init()
@@ -399,6 +548,7 @@ function AquariumService.Init()
 	if folder then
 		for _, plot in folder:GetChildren() do
 			if plot:IsA("Model") and part(plot, "TankWater") and part(plot, "Pad") then
+				plot:SetAttribute("PanelReach", PANEL_REACH)
 				table.insert(plots, plot)
 			end
 		end
@@ -446,8 +596,48 @@ function AquariumService.Start()
 		end
 		place(tank, index, id)
 	end)
+	-- the popup's asks (Action "Tank", verb, a, b: Client.UI.TankPanel). Only on the dock, near one's own tank, ten a
+	-- second at most
+	local lastAsk: { [Player]: number } = {}
+	Net.Action.OnServerEvent:Connect(function(player: Player, action: any, verb: any, a: any, b: any)
+		if action ~= "Tank" or type(verb) ~= "string" then
+			return
+		end
+		local tank = tanks[player]
+		local now = os.clock()
+		if not tank or now - (lastAsk[player] or 0) < 0.1 then
+			return
+		end
+		lastAsk[player] = now
+		if RideService.stateOf(player) ~= "Dock" or not atTank(tank) then
+			Net.Ride:FireClient(player, "TankDenied", "Far")
+			return
+		end
+		local why: string? = nil
+		if verb == "Best" then
+			why = equipBest(tank)
+		elseif (verb == "Equip" or verb == "Unequip") and type(a) == "string" then
+			why = equip(tank, a, verb == "Equip")
+		elseif verb == "PutIn" and type(a) == "number" and type(b) == "string" then
+			if not place(tank, a, b) then
+				why = "Gone"
+			end
+		elseif verb == "PutAll" then
+			-- the newest first, so each index still names the fish it did
+			for i = #RideService.carried(player), 1, -1 do
+				local c = RideService.carried(player)[i]
+				if c then
+					place(tank, i, c.Id)
+				end
+			end
+		end
+		if why then
+			Net.Ride:FireClient(player, "TankDenied", why)
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		lastPlace[player] = nil
+		lastAsk[player] = nil
 	end)
 	Players.PlayerAdded:Connect(join)
 	Players.PlayerRemoving:Connect(leave)
@@ -464,6 +654,7 @@ function AquariumService.Start()
 				tank.Coins += tank.Income * (now - paidAt)
 				player:SetAttribute("Coins", math.floor(tank.Coins))
 			end
+			tellHands(tank)
 		end
 		if pay then
 			paidAt = now

@@ -19,6 +19,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
 local Slots = require(script.Parent.Parent.UI.Slots)
+local TankPanel = require(script.Parent.Parent.UI.TankPanel)
 
 local AquariumController = {}
 
@@ -180,6 +181,8 @@ local function updatePrompt()
 end
 
 function AquariumController.Start()
+	-- the tank's popup: a click on our own tank from nearby (UI.TankPanel, task p1)
+	TankPanel.init()
 	Net.Ride.OnClientEvent:Connect(function(what: string, count: any, gained: any, _income: any, id: any)
 		if what == "Deposited" and type(count) == "number" and type(gained) == "number" then
 			deposited(count, gained, if type(id) == "string" then id else nil)
