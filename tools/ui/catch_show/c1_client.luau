@@ -52,8 +52,59 @@ local function state(): string
 	)
 end
 
-local seenShow, seenPress, seenRide = nil, nil, nil
+local seenShow, seenPress, seenRide, seenProbe = nil, nil, nil, nil
 RunService.RenderStepped:Connect(function()
+	local probe = RS:GetAttribute("C1Probe")
+	if probe ~= seenProbe then
+		seenProbe = probe
+		local root = player.PlayerGui:FindFirstChild("RideHud")
+		local back = root and root:FindFirstChild("Backdrop", true)
+		local out = {}
+		local at: Instance? = back
+		while at and at ~= game do
+			local vis = if at:IsA("GuiObject") then tostring(at.Visible) .. " z" .. at.ZIndex else at.ClassName
+			table.insert(out, at.Name .. "(" .. vis .. ")")
+			at = at.Parent
+		end
+		if back and back:IsA("GuiObject") then
+			table.insert(out, "abs " .. tostring(back.AbsolutePosition) .. " / " .. tostring(back.AbsoluteSize))
+			table.insert(out, "colour " .. tostring(back.BackgroundColor3) .. " t" .. back.BackgroundTransparency)
+		end
+		if probe == "frame" then
+			local g = Instance.new("ScreenGui")
+			g.Name = "ZZProbe"
+			g.DisplayOrder = 50
+			local f = Instance.new("Frame")
+			f.Size = UDim2.fromScale(0.5, 1)
+			f.BackgroundColor3 = Color3.new(0, 0, 0)
+			f.BackgroundTransparency = 0.55
+			f.Parent = g
+			g.Parent = player.PlayerGui
+		end
+		if probe == "inhud" and root then
+			local f = Instance.new("Frame")
+			f.Name = "ZZProbe"
+			f.Size = UDim2.fromScale(0.5, 1)
+			f.Position = UDim2.fromScale(0.5, 0)
+			f.BackgroundColor3 = Color3.new(0, 0, 0)
+			f.BackgroundTransparency = 0.55
+			f.ZIndex = 60
+			f.Parent = root:FindFirstChild("Root")
+		end
+		if probe == "inshow" and back then
+			local f = Instance.new("Frame")
+			f.Name = "ZZProbe2"
+			f.Size = UDim2.fromScale(0.3, 0.6)
+			f.BackgroundColor3 = Color3.new(1, 0, 0)
+			f.BackgroundTransparency = 0.3
+			f.ZIndex = 3
+			f.Parent = back.Parent
+			if back:IsA("Frame") then
+				back.BackgroundColor3 = Color3.new(0, 0, 1)
+			end
+		end
+		report("probe " .. table.concat(out, " < "))
+	end
 	local clock = RS:GetAttribute("C1Clock")
 	if type(clock) == "number" then
 		CatchShow.Clock = function()

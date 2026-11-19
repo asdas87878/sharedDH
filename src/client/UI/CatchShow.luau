@@ -675,7 +675,7 @@ end
 -- metres in the land strip's cartoon font. A see-through dark backdrop under it, and the backdrop and the screen fade
 -- in and out together. A click or tap anywhere skips to the end; the next closes (CatchShow.play).
 local SCREEN_FONT = Enum.Font.Bangers
-local BACKDROP = 0.45 -- how dark the backdrop gets (black at this share)
+local BACKDROP = 0.35 -- how dark the backdrop gets (black at this share: a little darker, still see-through)
 local FADE_IN, FADE_OUT = 0.22, 0.3
 local TILE = 52 -- a fish's tile
 local TILE_STEP = 60
@@ -873,7 +873,7 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 		Name = "Backdrop",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, 600, 1, 600),
+		Size = UDim2.new(1, 160, 1, 160),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
@@ -1053,7 +1053,7 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 	local ARROW = 24
 	local arrow: Frame = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -ARROW * 0.62, 0.5, 0),
+		Position = UDim2.new(1, -ARROW * 0.8, 0.5, 0),
 		Size = UDim2.fromOffset(ARROW, ARROW),
 		Rotation = 45,
 		BackgroundColor3 = Kit.White,
@@ -1061,11 +1061,6 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 		ZIndex = 24,
 	}, buttonBox)
 	Kit.new("UIGradient", { Rotation = -45, Transparency = CUT }, arrow)
-	local arrowDrop: Frame = arrow:Clone()
-	arrowDrop.BackgroundColor3 = Kit.darker(Kit.Themes.Good.Bottom, 0.45)
-	arrowDrop.Position = UDim2.new(1, -ARROW * 0.62, 0.5, 2.5)
-	arrowDrop.ZIndex = 23
-	arrowDrop.Parent = buttonBox
 
 	local metresAtT = lastFish + 0.32
 	local buttonAt = metresAtT + 0.75
@@ -1158,10 +1153,6 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 		local gp = at(t, buttonAt, 0.3)
 		buttonBox.Visible = t >= buttonAt
 		buttonScale.Scale = backOut(gp)
-		local nudge = math.max(t - settled, 0)
-		local push = math.max(0, math.sin(nudge * 4)) * 3 * gp
-		arrow.Position = UDim2.new(1, -ARROW * 0.62 + push, 0.5, 0)
-		arrowDrop.Position = UDim2.new(1, -ARROW * 0.62 + push, 0.5, 2.5)
 		fadeWord(go, quadOut(gp))
 	end
 	pose(0)

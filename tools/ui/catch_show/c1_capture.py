@@ -50,6 +50,47 @@ def set_attrs(**kw):
     return C.server(code + "return 'ok'")
 
 
+def view_of(raw):
+    """The game view in a shot of Studio in a playtest: from (3, 141) to where the panels on its right begin (Studio
+    shows or hides its Explorer during a run, so the width is found in each shot: the first run of 40 columns that
+    are flat and pale)."""
+    import numpy as np
+    a = np.asarray(raw.convert("L"), dtype=np.float32)[300:1300]
+    mean, std = a.mean(axis=0), a.std(axis=0)
+    flat = (mean > 225) & (std < 8)
+    right = a.shape[1]
+    for x in range(800, a.shape[1] - 40):
+        if flat[x:x + 40].all():
+            right = x
+            break
+    # the bottom: the first pale flat row under the view
+    b = np.asarray(raw.convert("L"), dtype=np.float32)[:, 200:right - 200]
+    rm, rs = b.mean(axis=1), b.std(axis=1)
+    bottom = raw.height
+    for y in range(900, raw.height - 6):
+        if ((rm[y:y + 6] > 225) & (rs[y:y + 6] < 8)).all():
+            bottom = y
+            break
+    return raw.crop((3, 141, right - 1, bottom))
+
+
+def vshot(name, wait=0.35):
+    time.sleep(wait)
+    raw = OUT / "raw.png"
+    if raw.exists():
+        raw.unlink()
+    C.run(["shot", str(raw)])
+    from PIL import Image
+    for _ in range(10):
+        try:
+            im = view_of(Image.open(raw).convert("RGB"))
+            im.save(OUT / f"{name}.png")
+            return im
+        except OSError:
+            time.sleep(0.5)
+    raise RuntimeError("no shot")
+
+
 def crop(im):
     # the middle of the game view: the screen and a little round it
     W, H = im.size
@@ -65,27 +106,28 @@ def start_show(count=None, best=True):
 
 def at(t, name):
     set_attrs(C1Clock=T0 + t)
-    return C.shot(name, 0.35)
+    return vshot(name)
 
 
 def save_gif(pics, path, fps=FPS, hold_last=8):
     pics = pics + [pics[-1]] * hold_last
-    small = [p.resize((p.width * 560 // p.height, 560)) for p in pics]
-    pal = [p.convert("P", palette=1, colors=255) for p in small]
+    small = [p.resize((420 * p.width // p.height, 420)) for p in pics]
+    pal = [p.convert("P", palette=1, colors=128) for p in small]
     pal[0].save(path, save_all=True, append_images=pal[1:], duration=int(1000 / fps), loop=0, disposal=1)
 
 
 def final():
     start_show()
-    ts = [i / FPS for i in range(int(4.4 * FPS))]
+    ts = [i / FPS for i in range(int(4.3 * FPS))]
     pics = [crop(at(t, f"final_{i:03d}")) for i, t in enumerate(ts)]
     pics[-1].save(ATT / "catch-ui-final.png")
-    save_gif(pics, ATT / "catch-ui-final.gif")
-    # and its close: a click, the fade
+    # its close: a click at 4.3 s, then the fade
+    set_attrs(C1Clock=T0 + 4.3)
+    time.sleep(0.3)
     set_attrs(C1Press=f"f{int(time.time())}:1:0")
     time.sleep(0.5)
-    out = [crop(at(4.4 + i / FPS, f"close_{i:02d}")) for i in range(6)]
-    save_gif(pics + out, ATT / "catch-ui-final.gif", hold_last=4)
+    out = [crop(at(4.3 + i / 24, f"close_{i:02d}")) for i in range(9)]
+    save_gif(pics + [pics[-1]] * 10 + out, ATT / "catch-ui-final.gif", hold_last=4)
     print("final", len(pics) + len(out))
 
 
@@ -96,7 +138,10 @@ def skip():
     t = 0.0
     step = 1 / FPS
     plan = {round(0.8, 3): "skip", round(1.3, 3): "close", round(1.4, 3): "spam"}
+    from PIL import ImageDraw
+    words = {"skip": "CLICK: skip to the end", "close": "CLICK: close", "spam": "8 more clicks in one frame: nothing"}
     i = 0
+    label, left = "", 0
     while t < 2.0:
         key = round(t, 3)
         for when, what in plan.items():
@@ -106,7 +151,14 @@ def skip():
                 n = 1 if what != "spam" else 8
                 set_attrs(C1Press=f"{what}{i}:{n}:0")
                 time.sleep(0.4)
-        pics.append(crop(at(t, f"skip_{i:03d}")))
+                label, left = words[what], 5
+        im = crop(at(t, f"skip_{i:03d}"))
+        if left > 0:
+            d = ImageDraw.Draw(im)
+            d.rectangle((20, im.height - 110, 20 + 34 * len(label), im.height - 30), fill=(200, 30, 40))
+            d.text((40, im.height - 100), label, font=C.font(56), fill="white")
+            left -= 1
+        pics.append(im)
         t += step
         i += 1
     save_gif(pics, ATT / "catch-ui-skip.gif", hold_last=3)
@@ -133,7 +185,7 @@ def ride():
         last = [ln for ln in lg.splitlines() if ln.startswith("caught")]
         if last and last[-1].count("Id") >= 1:
             time.sleep(0.6)
-            im = C.shot("inventory", 0.1)
+            im = vshot("inventory", 0.1)
             im.save(ATT / "catch-inventory.png")
             print("caught after", k, "s:", last[-1])
             print(C.server("local RideService = require(game.ServerScriptService.Server.Services.RideService) "
