@@ -357,7 +357,9 @@ local function standing(spot: BasePart)
 	end
 end
 
-type Rider = { Ride: Ride?, OffAt: number, Clear: boolean, Gained: number, ToldAt: number }
+-- (Clear: we have walked away since our last ride, so a walk-up seats us again; Left: we have at least left its top,
+-- so coming down on it seats us)
+type Rider = { Ride: Ride?, OffAt: number, Clear: boolean, Left: boolean, Gained: number, ToldAt: number }
 
 local CHECK = 0.1 -- seconds between looks: a walk-up seats you this soon
 
@@ -383,7 +385,7 @@ function TrainService.Start()
 	local function riderOf(player: Player): Rider
 		local r = riders[player]
 		if not r then
-			r = { Ride = nil, OffAt = -math.huge, Clear = true, Gained = 0, ToldAt = 0 }
+			r = { Ride = nil, OffAt = -math.huge, Clear = true, Left = true, Gained = 0, ToldAt = 0 }
 			riders[player] = r
 		end
 		return r
@@ -403,6 +405,7 @@ function TrainService.Start()
 		r.Ride = nil
 		r.OffAt = os.clock()
 		r.Clear = false
+		r.Left = false
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
@@ -503,8 +506,11 @@ function TrainService.Start()
 					if far > t.Reach + 1.5 then
 						r.Clear = true
 					end
+					if far > t.OnTop + 0.5 then
+						r.Left = true
+					end
 					local walkedUp = r.Clear and far <= t.Reach and y > here.Axis.Y - 2 and y < here.Bottom + 12
-					local landed = os.clock() - r.OffAt > 0.6 and far <= t.OnTop and y >= here.Bottom
+					local landed = r.Left and os.clock() - r.OffAt > 0.6 and far <= t.OnTop and y >= here.Bottom
 					if here.Rider == nil and (walkedUp or landed) then
 						on(player, r, here, root :: BasePart, humanoid)
 					end

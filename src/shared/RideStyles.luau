@@ -203,8 +203,8 @@ RideStyles.Trainer = {
 	-- the spring
 	Length = 4.2, -- studs from the pad's top to the body's underside
 	Radius = 1.25, -- from the coil's axis to the middle of its wire
-	Wire = 0.55, -- the wire's square side: chunky
-	Turns = 4.5,
+	Wire = 0.5, -- the wire's square side: chunky
+	Turns = 3.5,
 	PerTurn = 12, -- straight pieces a turn
 	Colour = Color3.fromRGB(176, 184, 198),
 	CapColour = Color3.fromRGB(128, 136, 152), -- the two round plates the coil is fixed to
