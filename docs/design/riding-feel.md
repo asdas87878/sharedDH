@@ -1423,6 +1423,10 @@ The old jaws drawn over the screen are gone: the swallow is seen, then it fades 
 
 **Seen in Studio (2026-11-19, from the real game, not played by hand):** `fail-<outcome>-3.gif` for all nine in
 `docs/attachments/` and the sheet `fail-outcomes-3.gif` (copies in `~/Pictures/ride-a-fish/sheets/`).
+Then, after Hugo's last notes (the fish carries on, never through the floor, no arms over the screen), two stills
+per outcome, the rider thrown off and the key moment: `fail-<outcome>-4a.png` and `-4b.png`, all eighteen in
+`fail-outcomes-4.png` (`fail_live_capture.py stills`). In some the small black avatar is hard to see (the Gulp pair,
+the Chomp's toss, the Pin).
 **How they were made** (`tools/studio/fail_live_capture.py`): Studio redraws its window only about once a second
 while it is hidden on another workspace, so a live run can't be filmed. The game records one live run of the fail
 (workspace `FailRecord`: FailController keeps every part of the loose body, each frame, in the fish's space) and plays
