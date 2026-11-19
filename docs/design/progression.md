@@ -3,7 +3,9 @@
 > **Studies, 2026-11-16.** Four things to know before the next pass. The reference has no cap of seven on a run's catch. Its first machine gives +2 for 300 coins, and it has twelve levels. Its typical player sees about an hour in all, so lands 1 to 3 are the game. Its zones are open to anyone who hops, and that is its trailer. [Findings](../Findings.md), rank 1 and "What we had wrong".
 
 How long you can stay on a fish, how fast each fish is, how often each rarity turns up, and so how a player gets from
-the Shallows to the tenth land. **Start at "Today's rules": the rest is the record.** By the tuning chat
+the Shallows to the tenth land. **Start at "Today's rules": the rest is the record.** The economy draft of
+2026-11-19 (the seahorse in fixed levels, twelve auras, size and colour in the need) is the next section, for
+Hugo's pick; nothing in it is in the game. By the tuning chat
 ([Sessions](../Sessions.md)); fourth pass 2026-11-16, for the refinement; second pass 2026-11-11, after the
 user's answer on how the Oxygen cost works; third pass 2026-11-12, after the user's answer on a fish that is too
 strong for you, and with taming built ([Decisions](../Decisions.md)).
@@ -24,6 +26,216 @@ python tools/balance/model.py --set Tiers.Common=54 --set RarityDrain.Legendary=
 It reads [Config](../../src/shared/Config.luau), the creature files in `src/shared/Creatures` and the map's path
 (`art/map/greybox/path.json`). The dives are a model of the herd's rules, not a play test: they leave out steering,
 walls and other players. Where a number matters, it should be checked in play.
+
+## The economy, draft 1 (2026-11-19): for Hugo's pick
+Hugo, 2026-11-19: *"seahorse oxygen generator, why does it go up in decimals? it should always give the same amount
+then be upgradeable ... seahorse always same oxygen amount only going up on upgrades or multipliers."* The decimals
+come from `Train.Share`: the pad gives 4 a second **plus 0.4% of your max**, so the number on screen is never round
+and grows by itself. This draft replaces that. **A draft: no number in `Config` is changed.** Worked the same way as
+B below (stretches, the tank's coins over each, a play-through); the one page of it:
+[economy-draft-1.png](../attachments/economy-draft-1.png).
+
+```
+python tools/balance/model.py --economy                      the tables (--md for markdown)
+python tools/balance/model.py --economy --colour B           colours that raise the need less
+python tools/balance/model.py --economy --sheet docs/attachments/economy-draft-1.png
+python tools/balance/model.py --economy --sit 0.25           a player who sits less (every rate x1.4)
+```
+
+### The short of it
+1. **The seahorse has 12 levels, each a fixed whole number of Oxygen a tick** (a tick is a second): 6, 12, 25, 60,
+   100, 600, 1,000, 2,500, 6,000, 15,000, 40,000, 80,000 on the pick (pace C). No share of max: the number on the
+   sign is what you get, and it changes only when you buy a level or an aura. Prices go up 6 to 17 times a level
+   early, 4 to 6 times late: $3,000 for level 2, $25M for level 6, $600B for level 12.
+2. **12 auras with Hugo's multipliers**, x1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 10, 12, bought one after another at the
+   aura stand (each replaces the one before). An aura multiplies every Oxygen you gain, so the seahorse's 600 with
+   the x3.5 aura is 2,100 a tick. About one aura a land, at about a third of the price of the level beside it.
+3. **What a fish needs stays `Config.required`** (land x rarity: a Shallows Common 80, an Underworld Legendary 120M),
+   now **times its size and colour** (D2). Being "at home" in a land here means you can tame its commonest fish.
+4. **A fish earns its tag / 40 a second** (`Aquarium.PerRequired` 0.025, as now). Since size and colour scale the
+   tag, a bigger or rarer-coloured fish is both harder to tame and worth exactly that much more. Every price is set
+   from what the tank earns, so the prices are always reachable: a level costs under a minute to 3 minutes of the tank early,
+   10 to 35 late, an hour and a half for the last level.
+5. **Taming gets much slower with the need** (D5): 2 s on a Shallows Common, 10 s on a Midnight Legendary, 20 on an
+   Underworld Legendary, 24 on a Mythic (today: 2, 8, 12, 12). To keep every fish tameable at its need, the deep rides
+   get longer too (B).
+6. **Three paces.** A = the 2026-11-16 "twice as fast", B = its "old plan", C (the pick) = A's start with B's long tail.
+   The model plays each through: it lands within a tenth of the plan, a little ahead.
+
+### D1. What a fish needs (unchanged): `Config.required`, a Normal plain fish's tag
+The land's commonest rarity is in bold: the "at home" mark the paces count by.
+
+| Land | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret |
+|---|---|---|---|---|---|---|---|
+| 1 Shallows | **80** | 100 | 200 | 360 | 1,200 |  |  |
+| 2 Coral Reef | 320 | **400** | 800 | 1,440 | 4,800 |  |  |
+| 3 Kelp Forest |  | 1,200 | **2,400** | 4,320 | 14.4K |  |  |
+| 4 Shipwrecks |  | 5,000 | **10K** | 18K | 60K |  |  |
+| 5 Open Blue |  | 15K | 30K | **54K** | 180K | 600K |  |
+| 6 Twilight |  |  | 120K | **216K** | 720K | 2.4M |  |
+| 7 Midnight |  |  | 300K | 540K | **1.8M** | 6M |  |
+| 8 Vents |  |  |  | 2.16M | **7.2M** | 24M |  |
+| 9 Bone Graveyard |  |  |  | 9M | **30M** | 100M |  |
+| 10 The Underworld |  |  |  |  | **120M** | 400M | 1.2B |
+
+- Being at home costs 4 to 8 times more each land, so the seahorse's rate x the aura has to grow about that much a
+  land. The auras give 1.1 to 1.5 times a land; the levels the rest (1.7 to 2.7 times, and 6 at the Midnight, where
+  the commonest fish turns Legendary).
+- I kept these numbers: they are the riding, the tags and the coins all at once. If the deep end's billions read
+  badly, that is a separate pass (it would move everything here in proportion).
+
+### D2. Size and colour: times the need and times the coins
+Sizes are `Config.SizeWorth` as it is, now read for the need as well. Colours' coins are `Aquarium.Silver/Gold/Rainbow`
+as they are; for the need there is a real choice:
+
+| | Tiny | Normal | Big | Giant | Huge | Colossal | Silver | Gold | Rainbow |
+|---|---|---|---|---|---|---|---|---|---|
+| Need and coins, times | 0.8 | 1 | 1.2 | 1.5 | 2 | 3 | | | |
+| Coins, times | | | | | | | 1.5 | 3 | 10 |
+| **Need A** (the same as the coins) | | | | | | | 1.5 | 3 | 10 |
+| Need B (gentler) | | | | | | | 1.25 | 2 | 4 |
+| A Common's chance | 21% | 70% | 6% | 1.9% | 0.6% | 0.14% | 1 in 12 | 1 in 50 | 1 in 250 |
+
+| Fish | Tiny | Normal | Big | Giant | Huge | Colossal | Gold, A | Gold, B | Rainbow Colossal, A | Rainbow Colossal, B |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Shallows Common | 64 | 80 | 96 | 120 | 160 | 240 | 240 | 160 | 2,400 | 960 |
+| Kelp Forest Rare | 1,920 | 2,400 | 2,880 | 3,600 | 4,800 | 7,200 | 7,200 | 4,800 | 72K | 28.8K |
+| Underworld Legendary | 96M | 120M | 144M | 180M | 240M | 360M | 360M | 240M | 3.6B | 1.44B |
+
+- **My pick: A.** One rule a player can read off the tag: "x3 Gold" is x3 the Oxygen and x3 the coins, and a fish
+  always earns its tag / 40. A Rainbow Colossal Shallows Common (2,400) is then a Kelp Forest-level catch: a trophy to
+  come back for. B lets players keep a lucky colour sooner; it breaks "tag / 40".
+- **It barely moves the economy** (the tank earns about 1% more on B): colours are too rare to matter to the average. The
+  choice is about how the trophies feel.
+- A Gold fish no longer swims faster for free: it is harder to keep, so its speed (x1.1) is now a reward, not a gift.
+
+### D3. What a fish earns: its tag / 40 a second (`Aquarium.PerRequired` 0.025, as now)
+A tank of seven: the best seven of 30 catches by a player who has just reached that land's need (sizes and colours as
+far as their max lets them tame).
+
+| Land | Commonest | Its need | One fish /s | A tank of 7 /s | A tank, a minute |
+|---|---|---|---|---|---|
+| 1 Shallows | Common | 80 | 2.0 | 18 | 1,050 |
+| 2 Coral Reef | Uncommon | 400 | 10 | 70 | 4,200 |
+| 3 Kelp Forest | Rare | 2,400 | 60 | 420 | 25.2K |
+| 4 Shipwrecks | Rare | 10K | 250 | 1,750 | 105K |
+| 5 Open Blue | Epic | 54K | 1,350 | 9,450 | 567K |
+| 6 Twilight | Epic | 216K | 5,400 | 37.8K | 2.27M |
+| 7 Midnight | Legendary | 1.8M | 45,000 | 315K | 18.9M |
+| 8 Vents | Legendary | 7.2M | 180,000 | 1.26M | 75.6M |
+| 9 Bone Graveyard | Legendary | 30M | 750,000 | 5.25M | 315M |
+| 10 The Underworld | Legendary | 120M | 3,000,000 | 21M | 1.26B |
+
+- **The income is not changed; the prices are set from it.** Raising `PerRequired` would only make every price
+  bigger by as much. What decides "reachable but not rushed" is the price in minutes of the tank (D4): 1 to 3
+  minutes early so the first buys come fast, 10 to 35 minutes late, about an hour for the last level.
+- The reference's first dino earns $2 a second and so does ours.
+
+### D4. The seahorse and the auras, on three paces
+Minutes of play to tame each land's commonest fish (lands 2 to 10), then its Mythics, a Secret and a Rainbow Mythic.
+Sitting on the seahorse 35% of the time (the biggest guess, as in B: at 25% every rate wants x1.4). Level n is for
+stretch n; at its start a player on the plan buys level n and the next aura. A level costs 85% of what the tank earned
+over the stretch before it, the aura 30%.
+
+| Pace | Land 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | Mythics | Played through: land 10 / Mythics |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A Quick (2026-11-16's "twice as fast") | 2.5 | 7.5 | 15 | 27.5 | 45 | 75 | 120 | 180 | 270 | 360 | 247 / 338 |
+| B Steady (2026-11-16's "old plan") | 5 | 15 | 30 | 55 | 90 | 150 | 240 | 360 | 540 | 720 | 494 / 678 |
+| **C Quick start, long tail** | 2.5 | 7.5 | 15 | 30 | 55 | 90 | 150 | 240 | 360 | 480 | 342 / 464 |
+
+**Pace C, the pick.** The first three lands are A's (the reference's typical player sees about an hour, and lands 1
+to 3 are the game for them: Findings, rank 1), so a new player buys something every few minutes. From the Open Blue it
+slows to B's spacing, so the deep lands last: six hours to the Underworld, eight to its Mythics.
+
+| Level | Seahorse | Minutes | Max Oxygen | Then tames | Oxygen a tick | x before | Aura bought with it | With the aura, a tick | Level's price | In minutes of the tank | Aura's price | Played through (min) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Pip | 0 to 2.5 | 100 to 400 | Uncommons of land 2 | 6 |  | none | 6 | free |  |  | 2 |
+| 2 | Sprout | 2.5 to 7.5 | 400 to 2,400 | Rares of land 3 | 12 | x2.0 | Bubble x1.5 | 18 | $3,000 | 0.7 | $1,000 | 7 |
+| 3 | Coral Colt | 7.5 to 15 | 2,400 to 10K | Rares of land 4 | 25 | x2.1 | Foam x2 | 50 | $50K | 2.0 | $15K | 14 |
+| 4 | Kelp Runner | 15 to 30 | 10K to 54K | Epics of land 5 | 60 | x2.4 | Tide x2.5 | 150 | $300K | 2.9 | $100K | 27 |
+| 5 | Wreck Racer | 30 to 55 | 54K to 216K | Epics of land 6 | 100 | x1.7 | Current x3 | 300 | $4M | 7.1 | $1.5M | 52 |
+| 6 | Blue Charger | 55 to 90 | 216K to 1.8M | Legendaries of land 7 | 600 | x6.0 | Reef x3.5 | 2,100 | $25M | 11.0 | $10M | 89 |
+| 7 | Twilight Mare | 90 to 150 | 1.8M to 7.2M | Legendaries of land 8 | 1,000 | x1.7 | Storm x4 | 4,000 | $250M | 13.2 | $80M | 147 |
+| 8 | Midnight Steed | 150 to 240 | 7.2M to 30M | Legendaries of land 9 | 2,500 | x2.5 | Moon x5 | 12,500 | $1.5B | 19.8 | $500M | 228 |
+| 9 | Vent Stallion | 240 to 360 | 30M to 120M | Legendaries of land 10 | 6,000 | x2.4 | Lantern x6 | 36,000 | $8B | 25.4 | $3B | 342 |
+| 10 | Bone Destrier | 360 to 480 | 120M to 400M | Mythics of land 10 | 15,000 | x2.5 | Ember x7 | 105,000 | $40B | 31.7 | $15B | 464 |
+| 11 | Hellhorse | 480 to 600 | 400M to 1.2B | a Secret of land 10 | 40,000 | x2.7 | Phantom x8 | 320,000 | $150B | 35.7 | $60B | 571 |
+| 12 | Abyss King | 600 to 780 | 1.2B to 4B | a Rainbow Mythic | 80,000 | x2.0 | Abyss x10 | 800,000 | $600B | 92.4 | $200B | 759 |
+| | | | | | | | Leviathan x12, the last trophy | | | | $400B | |
+
+Played through (buying the cheapest thing not yet owned as soon as the coins are there): levels 2 at 3 min, 3 at 8,
+4 at 14, 5 at 31, 6 at 56, 7 at 93, 8 at 152, 9 at 238, 10 at 350, 11 at 469, 12 at 668; auras x1.5 at 2, x2 at 5,
+x2.5 at 10, x3 at 22, x3.5 at 42, x4 at 72, x5 at 113, x6 at 185, x7 at 277, x8 at 391, x10 at 510, x12 at 578.
+
+**Paces A and B** (the same twelve names and auras; only the ticks and prices differ):
+
+| Level | A: a tick | A: price | A: aura's price | B: a tick | B: price | B: aura's price |
+|---|---|---|---|---|---|---|
+| 1 | 6 | free | | 3 | free | |
+| 2 | 12 | $3,000 | $1,000 | 6 | $8,000 | $2,500 |
+| 3 | 25 | $50K | $15K | 12 | $100K | $30K |
+| 4 | 60 | $300K | $100K | 30 | $600K | $250K |
+| 5 | 150 | $3M | $1M | 80 | $6M | $2M |
+| 6 | 800 | $20M | $6M | 400 | $40M | $15M |
+| 7 | 1,500 | $200M | $60M | 800 | $400M | $150M |
+| 8 | 4,000 | $1B | $400M | 2,000 | $2B | $800M |
+| 9 | 8,000 | $5B | $2B | 4,000 | $10B | $4B |
+| 10 | 20,000 | $30B | $10B | 10,000 | $60B | $25B |
+| 11 | 50,000 | $150B | $50B | 25,000 | $250B | $100B |
+| 12 | 100,000 | $400B | $150B | 50,000 | $800B | $300B |
+| Leviathan x12 | | | $250B | | | $500B |
+
+(An aura's price is on the row of the level it is bought with: Bubble with level 2, and so on.)
+
+- **Against 2026-11-16's B section:** the same paces give the same order of prices (level 2 $2,500 then, $3,000 now
+  on A), but there are 12 levels and 12 auras where there were 10 and 4, and nothing grows by itself.
+- **Why the ticks must differ by pace:** with a fixed tick, Oxygen is what sets the pace and the prices only decide
+  when you can buy. A slow pace with fast ticks would let a player sit past two lands on one level.
+- **The names are cooler stand-ins, by land** (Pip the starter, Coral Colt, Kelp Runner ... Hellhorse, Abyss King),
+  so each level could be its own seahorse look on the plot. The auras follow the panel's Bubble, Foam, Tide.
+- **What it needs to be true:** the pad's `Train.Share` goes (0) and `Train.Rate` becomes the level's tick; the
+  aura multiplies the seahorse's Oxygen (and any other Oxygen gained later, such as the Index); the tank is saved.
+
+### D5. Taming: much slower the more a fish needs
+Today a tame is `Tame.Time` 2 s x the ride's grow, at most x4, and x1.5 once your max is past 500K (`Tame.CapSlow`).
+The limit: a fish must last longer than its tame for a rider with exactly its need, or it can never be tamed. Both
+versions make the tame a growing share of the seconds on the fish (by the log of its need, from a Shallows Common to
+an Underworld Mythic), so it always fits; `Tame.CapSlow` is folded in.
+
+- **A:** the rides as they are; the tame from 0.4 of the ride to 0.85.
+- **B (the pick):** `Oxygen.Grow` 0.1 -> 0.13 and `GrowMost` 4 -> 10, so a deep fish is ridden longer; the tame
+  from 0.4 of the ride to 0.65.
+
+| Fish | Need | Ride today | Tame today | Tame A | Ride, B | Tame B |
+|---|---|---|---|---|---|---|
+| 1 Shallows Common | 80 | 5.0 | 2.0 | 2.0 | 5.0 | 2.0 |
+| 2 Coral Reef Uncommon | 400 | 5.9 | 2.3 | 2.6 | 6.2 | 2.6 |
+| 3 Kelp Forest Rare | 2,400 | 7.0 | 2.8 | 3.5 | 7.8 | 3.5 |
+| 4 Shipwrecks Rare | 10K | 8.1 | 3.2 | 4.4 | 9.4 | 4.5 |
+| 5 Open Blue Epic | 54K | 9.6 | 3.8 | 5.7 | 11.7 | 5.9 |
+| 6 Twilight Epic | 216K | 11.0 | 4.4 | 6.9 | 14.0 | 7.4 |
+| 7 Midnight Legendary | 1.8M | 13.6 | 8.2 | 9.4 | 18.4 | 10.3 |
+| 8 Vents Legendary | 7.2M | 15.6 | 9.4 | 11.5 | 22.0 | 12.9 |
+| 9 Bone Graveyard Legendary | 30M | 18.0 | 10.8 | 14.0 | 26.5 | 16.1 |
+| 10 The Underworld Legendary | 120M | 20.0 | 12.0 | 16.3 | 31.8 | 20.0 |
+| 10 The Underworld Mythic | 400M | 20.0 | 12.0 | 17.0 | 37.1 | 24.1 |
+
+- "Today" is at the max shown; the x1.5 past 500K is in it from the Midnight on.
+- **A** is only 1.15 to 1.4 times today at depth: the rides cap it. "Much slower" needs longer rides, so **B**: 1.3 to 2
+  times today's tame in the deep lands, a Mythic 24 s. The price: a deep fish lasts 30 to 37 s at its need, so a dive
+  there is fewer, longer rides (the 50 ticks come about 0.7 s apart). Having more than a fish needs still gives a
+  little more time on it (`MaxShare`), so overtraining makes taming comfortable.
+- A size or colour raises the need and so the tame: a Colossal Underworld Legendary (360M) takes about as long as a
+  Mythic.
+
+### Hugo's picks
+| | Choice | Options | My pick |
+|---|---|---|---|
+| 1 | The pace | A quick, B steady, C quick start and long tail | C |
+| 2 | Colour in the need | A as the coins (x1.5, 3, 10), B gentler (x1.25, 2, 4) | A |
+| 3 | Taming | A within today's rides, B much slower with longer deep rides | B |
+| 4 | Names | the twelve seahorses and auras above | stand-ins: rename freely |
+| 5 | How much of the time a player sits on the seahorse | 35% assumed | check in a playtest |
 
 ## Today's rules: the fourth pass (2026-11-16)
 For the refinement ([the plan](../Refinement.md), stream 9). The game changed under this note in six ways since

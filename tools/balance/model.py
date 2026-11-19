@@ -819,6 +819,371 @@ def prices(cfg, lane, out, plan, label, sit=SIT_SHARE):
     return levels
 
 
+# ---------------------------------------------------------------- the economy draft (task b1, 2026-11-19)
+# Hugo, 2026-11-19: "seahorse oxygen generator, why does it go up in decimals? it should always give the same amount
+# then be upgradeable ... seahorse always same oxygen amount only going up on upgrades or multipliers". A DRAFT: the
+# numbers below are not in Config. Twelve seahorse levels, each a fixed whole number of Oxygen a tick (a tick is a
+# second; no share of max), twelve auras with Hugo's multipliers, a fish's size and colour scaling both its need and
+# its coins, taming slower the more a fish needs. docs/design/progression.md, "D. The economy, draft 1".
+
+SEAHORSES = ["Pip", "Sprout", "Coral Colt", "Kelp Runner", "Wreck Racer", "Blue Charger", "Twilight Mare",
+             "Midnight Steed", "Vent Stallion", "Bone Destrier", "Hellhorse", "Abyss King"]
+AURA_LADDER = [("Bubble", 1.5), ("Foam", 2), ("Tide", 2.5), ("Current", 3), ("Reef", 3.5), ("Storm", 4), ("Moon", 5),
+               ("Lantern", 6), ("Ember", 7), ("Phantom", 8), ("Abyss", 10), ("Leviathan", 12)]
+# minutes of play by which a player can tame their land's commonest fish (lands 1 to 10)
+PACES = {"A": ("Quick", [0, 2.5, 7.5, 15, 27.5, 45, 75, 120, 180, 270]),  # the 2026-11-16 "twice as fast"
+         "B": ("Steady", [0, 5, 15, 30, 55, 90, 150, 240, 360, 540]),  # the 2026-11-16 "old plan"
+         "C": ("Quick start, long tail", [0, 2.5, 7.5, 15, 30, 55, 90, 150, 240, 360])}
+# what a colour multiplies a fish's NEED by (its coins are Aquarium.Silver/Gold/Rainbow either way)
+COLOUR_NEED = {"A": {"Silver": 1.5, "Gold": 3, "Rainbow": 10}, "B": {"Silver": 1.25, "Gold": 2, "Rainbow": 4}}
+ECON_LEVEL_SHARE = 0.85  # a level costs this share of what the tank earned over the stretch before the one it is for
+ECON_AURA_SHARE = 0.3  # and the aura bought beside it this share
+ECON_CATCHES = 30  # the tank's seven are the best of this many catches of its fish
+WHOLE_LEADS = (1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10)
+
+
+def whole(v):
+    """A seahorse rate: a whole number, and a round one once it is big."""
+    return max(1, round(v)) if v < 10 else int(nice(v, WHOLE_LEADS))
+
+
+def econ_goals(cfg, w):
+    """The max Oxygen each stretch ends at: tame the land's commonest fish (a Normal) in lands 2 to 10, then its
+    Mythics, a Secret, and a Rainbow (or Colossal) Mythic. Returns (goals, what each is)."""
+    lands = w["lands"]
+    goals = [cfg["Oxygen"]["StartMax"]] + [required(cfg, z, w["usual"][z]) for z in range(1, lands)]
+    plural = lambda t: t[:-1] + "ies" if t.endswith("y") else t + "s"
+    what = ["the start"] + [f"{plural(w['usual'][z])} of land {z + 1}" for z in range(1, lands)]
+    myth = required(cfg, lands - 1, "Mythic")
+    goals += [myth, required(cfg, lands - 1, "Secret"), myth * 10]
+    what += [f"Mythics of land {lands}", f"a Secret of land {lands}", "a Rainbow Mythic"]
+    return goals, what
+
+
+def econ_minutes(plan):
+    """The minutes each goal is reached at on a plan of ten lands: the Mythics, the Secret and the trophy after."""
+    gap = plan[-1] - plan[-2]
+    return list(plan) + [plan[-1] + gap, plan[-1] + 2 * gap, plan[-1] + 3.5 * gap]
+
+
+_LUCK = {}
+
+
+def econ_luck(cfg, tier, headroom, need_col):
+    """The mean coins-worth (size x colour) of the best Aquarium.Earning of ECON_CATCHES catches of a rarity, when
+    only fish whose NEED (size x colour need) is at most `headroom` x the plain fish's can be tamed."""
+    key = (tier, round(math.log(max(headroom, 1)), 1), tuple(sorted(need_col.items())))
+    if key in _LUCK:
+        return _LUCK[key]
+    a, rng = cfg["Aquarium"], random.Random(11)
+    sizes, colours = size_odds(cfg, tier), colour_odds(cfg)
+    keep, total = int(a.get("Earning", 7)), 0.0
+    room = math.exp(key[1])
+    for _ in range(300):
+        got = []
+        for _ in range(ECON_CATCHES):
+            s = rng.choices(list(sizes), list(sizes.values()))[0]
+            c = rng.choices(list(colours), list(colours.values()))[0]
+            sw = cfg["SizeWorth"].get(s, 1)
+            if sw * (need_col.get(c, 1) if c else 1) <= room * 1.0001:
+                got.append(sw * (a.get(c, 1) if c else 1))
+        got.sort(reverse=True)
+        total += sum(got[:keep]) / keep
+    _LUCK[key] = total / 300
+    return _LUCK[key]
+
+
+def econ_tank(cfg, w, max_oxygen, need_col):
+    """Coins a second from a tank of the best seven of the dearest fish a player with this max can tame in numbers
+    (a tenth of a land's fish or more), sizes and colours as they come and as far as the max allows."""
+    best, tier = 0, "Common"
+    for z in range(w["lands"]):
+        for t, share in w["mixes"][z].items():
+            r = required(cfg, z, t)
+            if share >= 0.1 and r <= max_oxygen and r > best:
+                best, tier = r, t
+    if best == 0:
+        return 0.0, best, tier
+    luck = econ_luck(cfg, tier, max_oxygen / best, need_col)
+    return cfg["Aquarium"].get("Earning", 7) * best * cfg["Aquarium"].get("PerRequired", 0) * luck, best, tier
+
+
+def econ_ladder(cfg, w, plan, need_col, sit):
+    """The seahorse levels and the auras for one pace: each level's rate is what a seated second must give over its
+    stretch with the aura a player on the plan has then; each price a share of the tank's coins over the stretch
+    before. Returns the stretches."""
+    goals, what = econ_goals(cfg, w)
+    mins = econ_minutes(plan)
+    stretches, earned_before = [], 0.0
+    for s in range(1, len(goals)):  # stretch s: goals[s-1] to goals[s], on level s with aura s-1
+        t0, t1 = mins[s - 1], mins[s]
+        aura = AURA_LADDER[s - 2][1] if s >= 2 else 1
+        seated = (t1 - t0) * 60 * sit
+        need = (goals[s] - goals[s - 1]) / seated
+        rate = whole(need / aura)
+        coins, steps = 0.0, 200
+        for q in range(steps):
+            at = (t0 + (t1 - t0) * (q + 0.5) / steps) * 60
+            m = goals[s - 1] + (goals[s] - goals[s - 1]) * (q + 0.5) / steps
+            coins += econ_tank(cfg, w, m, need_col)[0] * min(at / TANK_FILL, 1) * (t1 - t0) * 60 / steps
+        income0 = econ_tank(cfg, w, goals[s - 1], need_col)[0]
+        stretches.append({"s": s, "t0": t0, "t1": t1, "m0": goals[s - 1], "m1": goals[s], "what": what[s],
+                          "seated": seated, "need": need, "rate": rate, "aura": aura,
+                          "price": nice(earned_before * ECON_LEVEL_SHARE) if s >= 2 else 0,
+                          "aura_price": nice(earned_before * ECON_AURA_SHARE) if s >= 2 else 0,
+                          "coins": coins, "income0": income0})
+        earned_before = coins
+    # the last aura (x12) is the trophy: a share of the last stretch's coins
+    stretches.append({"s": len(goals), "aura": AURA_LADDER[-1][1], "aura_price": nice(earned_before * ECON_AURA_SHARE)})
+    return stretches
+
+
+def econ_play(cfg, w, ladder, need_col, sit, step=2.0):
+    """Play it through: buy the cheapest thing not yet owned as soon as the coins are there. Returns the minute each
+    goal is reached and each thing bought."""
+    goals, _ = econ_goals(cfg, w)
+    levels = [st for st in ladder if "rate" in st]
+    todo = sorted([(st["price"], "level", st["s"]) for st in levels[1:]]
+                  + [(st["aura_price"], "aura", st["s"] - 1) for st in ladder if st["s"] >= 2])
+    m, coins, t, level, aura = goals[0], 0.0, 0.0, 1, 1.0
+    reached, bought, end = {0: 0.0}, {}, (ladder[-2]["t1"]) * 60 * 2.5
+    while t < end and len(reached) < len(goals):
+        while todo and coins >= todo[0][0]:
+            cost, kind, value = todo.pop(0)
+            coins -= cost
+            if kind == "level":
+                level = max(level, value)
+            else:
+                aura = max(aura, AURA_LADDER[value - 1][1])
+            bought[(kind, value)] = t
+        m += levels[level - 1]["rate"] * aura * sit * step
+        coins += econ_tank(cfg, w, m, need_col)[0] * min(t / TANK_FILL, 1) * step
+        t += step
+        for g in range(len(goals)):
+            if g not in reached and m >= goals[g]:
+                reached[g] = t
+    return reached, bought
+
+
+def ride_at_need(cfg, req, grow=None, grow_most=None):
+    """Seconds a full meter lasts on a fish for a rider with exactly its need (Config.secondsOn, `more` 1)."""
+    o = cfg["Oxygen"]
+    base = required(cfg, 0, "Common")
+    g = min(max(req / base, 1) ** (grow or o["Grow"]), grow_most or o["GrowMost"])
+    return o["KeepUp"] * g * o["RideTime"]
+
+
+def tame_today(cfg, req, max_oxygen):
+    o, t = cfg["Oxygen"], cfg["Tame"]
+    base = required(cfg, 0, "Common")
+    g = min(max(req / base, 1) ** o["Grow"], o["GrowMost"])
+    return t["Time"] * g * (t.get("CapSlow", 1) if max_oxygen >= o["Cap"] > 0 else 1)
+
+
+# Taming, two versions. Both: the tame is a share of the seconds on the fish for a rider with just its need, growing
+# from a Shallows Common to an Underworld Mythic (by the log of the need), so a fish is always tameable at its need;
+# Tame.CapSlow goes (it is folded into the curve).
+TAME = {"A": {"share": (0.4, 0.85), "grow": None, "most": None},  # the rides as they are
+        "B": {"share": (0.4, 0.65), "grow": 0.13, "most": 10}}  # Oxygen.Grow 0.13, GrowMost 10: deep rides longer
+
+
+def tame_v(cfg, req, w, v):
+    t = TAME[v]
+    base, top = required(cfg, 0, "Common"), required(cfg, w["lands"] - 1, "Mythic")
+    u = clamp(math.log(max(req, base) / base) / math.log(top / base))
+    return (t["share"][0] + (t["share"][1] - t["share"][0]) * u) * ride_at_need(cfg, req, t["grow"], t["most"])
+
+
+def economy(cfg, lane, out, sit=SIT_SHARE, colour="A"):
+    """The economy draft's tables. Returns everything the sheet needs."""
+    w = world(cfg, lane)
+    lands, name, order = w["lands"], w["name"], cfg["TierOrder"]
+    a = cfg["Aquarium"]
+    need_col = COLOUR_NEED[colour]
+    data = {"lands": lands, "name": name, "paces": {}}
+
+    # 1. what a fish needs: its land and rarity (Config.required, today), times its size and colour
+    out.title("D1. What a fish needs, by land and rarity (Config.required, as today)",
+              "The number on a plain Normal fish's tag. A blank: the rarity does not swim there. The land's commonest "
+              "rarity is in bold: taming it is what \"at home\" means here.")
+    tiers = [t for t in order if any(t in w["mixes"][z] for z in range(lands))] + ["Secret"]
+    rows = []
+    for z in range(lands):
+        row = [name[z]]
+        for t in tiers:
+            if t in w["mixes"][z] or (t == "Secret" and z == lands - 1):
+                v = big(required(cfg, z, t))
+                row.append(f"**{v}**" if (t == w["usual"][z] and out.md) else v)
+            else:
+                row.append("")
+        rows.append(row)
+    out.table(["Land"] + tiers, rows)
+    data["need"] = {"tiers": tiers, "rows": rows}
+
+    sizes = ["Tiny", "Normal", "Big", "Giant", "Huge", "Colossal"]
+    out.title("D2. Size and colour: times the need and times the coins",
+              "Sizes: Config.SizeWorth as it is (0.8 to 3), now read for the need as well as the coins. Colours: the "
+              "coins are Aquarium.Silver/Gold/Rainbow as they are; the need is version A (the same numbers) or B "
+              "(gentler). A Gold Big fish needs 1.2 x the colour's number. Chances: a Common's.")
+    so, co = size_odds(cfg, "Common"), colour_odds(cfg)
+    rows = [[s, f"x{cfg['SizeWorth'].get(s, 1):g}", f"x{cfg['SizeWorth'].get(s, 1):g}", "", pct(so[s])] for s in sizes]
+    for c in ("Silver", "Gold", "Rainbow"):
+        rows.append([c, f"x{COLOUR_NEED['A'][c]:g} (A) / x{COLOUR_NEED['B'][c]:g} (B)", f"x{a.get(c, 1):g}", "", f"1 in {1 / co[c]:.0f}"])
+    out.table(["Size or colour", "Need, times", "Coins, times", "", "Chance"], rows)
+    ex = [("Shallows Common", 0, "Common"), ("Kelp Forest Rare", 2, "Rare"), ("Underworld Legendary", lands - 1, "Legendary")]
+    rows = []
+    for label, z, t in ex:
+        r = required(cfg, z, t)
+        rows.append([label] + [big(r * cfg["SizeWorth"][s]) for s in sizes]
+                    + [big(r * COLOUR_NEED["A"]["Gold"]), big(r * COLOUR_NEED["B"]["Gold"]),
+                       big(r * COLOUR_NEED["A"]["Rainbow"] * cfg["SizeWorth"]["Colossal"]),
+                       big(r * COLOUR_NEED["B"]["Rainbow"] * cfg["SizeWorth"]["Colossal"])])
+    out.table(["Fish"] + sizes + ["Gold (A)", "Gold (B)", "Rainbow Colossal (A)", "Rainbow Colossal (B)"], rows)
+    data["sizes"] = rows
+
+    # 3. fish income: tag / 40
+    per = a.get("PerRequired", 0)
+    out.title("D3. What a fish earns: its tag x Aquarium.PerRequired (one fortieth of it a second)",
+              f"Coins a second for one Normal plain fish of the land's commonest rarity, and for a tank of seven of "
+              f"the best of {ECON_CATCHES} catches by a player who just tames them (sizes and colours as far as their "
+              f"max allows; colour need {colour}). One coin a second for every {1 / per:g} Oxygen on the tag.")
+    rows = []
+    for z in range(lands):
+        r = required(cfg, z, w["usual"][z])
+        inc, _, _ = econ_tank(cfg, w, r if z else cfg["Oxygen"]["StartMax"], need_col)
+        rows.append([name[z], w["usual"][z], big(r), n(r * per, 0 if r * per >= 10 else 1), big(inc), big(inc * 60)])
+    out.table(["Land", "Commonest", "Its need", "One fish /s", "A tank of 7 /s", "A tank, a minute"], rows)
+    data["income"] = rows
+
+    # 4. the ladders and the play-through, per pace
+    for key, (label, plan) in PACES.items():
+        ladder = econ_ladder(cfg, w, plan, need_col, sit)
+        reached, bought = econ_play(cfg, w, ladder, need_col, sit)
+        data["paces"][key] = {"label": label, "plan": plan, "ladder": ladder, "reached": reached, "bought": bought}
+        mins = econ_minutes(plan)
+        out.title(f"D4{key}. Pace {key}, {label.lower()}: the seahorse and the auras",
+                  f"Able to tame each land's commonest fish by {', '.join(f'{m:g}' for m in plan[1:])} minutes (lands 2 "
+                  f"to 10), then its Mythics, a Secret and a Rainbow Mythic. Sitting on the seahorse {sit * 100:.0f}% "
+                  "of the time. \"Per tick\": a tick is a second, a fixed whole number. \"With the aura\": the level x "
+                  "the aura a player on this pace has then. A level costs "
+                  f"{ECON_LEVEL_SHARE * 100:.0f}% of the tank's coins over the stretch before it, the aura bought beside "
+                  f"it {ECON_AURA_SHARE * 100:.0f}%.")
+        rows = []
+        for st in ladder:
+            if "rate" not in st:
+                rows.append(["", "", "", "", "", "", f"{AURA_LADDER[-1][0]} x{AURA_LADDER[-1][1]:g}", "", "", "", "$" + big(st["aura_price"]), ""])
+                continue
+            s = st["s"]
+            prev = ladder[s - 2]["rate"] if s >= 2 else None
+            aname = f"{AURA_LADDER[s - 2][0]} x{st['aura']:g}" if s >= 2 else "none"
+            rows.append([f"{s} {SEAHORSES[s - 1]}", f"{st['t0']:g} to {st['t1']:g}", f"{big(st['m0'])} to {big(st['m1'])}",
+                         st["what"], f"{st['rate']:,}", f"x{st['rate'] / prev:.1f}" if prev else "", aname,
+                         f"{st['rate'] * st['aura']:,.0f}", "free" if s == 1 else "$" + big(st["price"]),
+                         n(st["price"] / st["income0"] / 60, 1) if s >= 2 and st["income0"] else "",
+                         ("$" + big(st["aura_price"])) if s >= 2 else "",
+                         f"{reached[s] / 60:.0f}" if s in reached else "later"])
+        out.table(["Level", "Minutes", "Max Oxygen", "Then tames", "Per tick", "x before", "Aura with it", "With the aura /s",
+                   "Level's price", "In minutes of the tank", "Aura's price", "Played through (min)"], rows)
+        lv = [f"{v} at {t / 60:.0f}" for (k, v), t in sorted(bought.items(), key=lambda kv: kv[1]) if k == "level"]
+        au = [f"x{AURA_LADDER[v - 1][1]:g} at {t / 60:.0f}" for (k, v), t in sorted(bought.items(), key=lambda kv: kv[1]) if k == "aura"]
+        out.line(f"Played through (buying the cheapest thing not yet owned as soon as the coins are there): levels "
+                 f"{', '.join(lv)}; auras {', '.join(au)} (minutes).")
+
+    # 5. taming
+    out.title("D5. Taming: seconds on a fish to make it yours",
+              "Today: Tame.Time 2 x the ride's grow (at most 4, so 8 s), and 1.5 times that once your max is past "
+              "500K (Tame.CapSlow). A and B: the tame is a growing share of the seconds on the fish for a rider with "
+              f"just its need (Tame.CapSlow folded in): A {TAME['A']['share'][0]:g} on a Shallows Common to "
+              f"{TAME['A']['share'][1]:g} on an Underworld Mythic, the rides as they are; B {TAME['B']['share'][0]:g} to "
+              f"{TAME['B']['share'][1]:g}, with Oxygen.Grow {TAME['B']['grow']:g} and GrowMost {TAME['B']['most']} so "
+              "deep rides are longer too. \"Ride\": seconds on the fish with just its need.")
+    picks = [(0, "Common"), (1, "Uncommon"), (2, "Rare"), (3, "Rare"), (4, "Epic"), (5, "Epic"), (6, "Legendary"),
+             (7, "Legendary"), (8, "Legendary"), (9, "Legendary"), (9, "Mythic")]
+    rows = []
+    for z, t in picks:
+        r = required(cfg, z, t)
+        rows.append([f"{name[z]} {t}", big(r), n(ride_at_need(cfg, r), 1), n(tame_today(cfg, r, r), 1),
+                     n(tame_v(cfg, r, w, "A"), 1),
+                     n(ride_at_need(cfg, r, TAME["B"]["grow"], TAME["B"]["most"]), 1), n(tame_v(cfg, r, w, "B"), 1)])
+    out.table(["Fish", "Need", "Ride today", "Tame today", "Tame A", "Ride with B", "Tame B"], rows)
+    data["tame"] = rows
+    return data
+
+
+def econ_sheet(data, path):
+    """One page of the draft's tables, as a PNG (an HTML page shot by headless Chromium)."""
+    import html
+    import shutil
+    import subprocess
+    import tempfile
+
+    def table(head, rows, cls=""):
+        h = "".join(f"<th>{html.escape(str(c))}</th>" for c in head)
+        b = "".join("<tr>" + "".join(f"<td>{html.escape(str(c)).replace('**', '')}</td>" for c in r) + "</tr>" for r in rows)
+        return f"<table class='{cls}'><tr>{h}</tr>{b}</table>"
+
+    rec = "C"
+    blocks = []
+    p = data["paces"][rec]
+    rows = []
+    for st in p["ladder"]:
+        if "rate" not in st:
+            continue
+        s = st["s"]
+        rows.append([f"{s}", SEAHORSES[s - 1], f"{st['rate']:,}", "free" if s == 1 else "$" + big(st["price"]),
+                     f"{AURA_LADDER[s - 1][0]}", f"x{AURA_LADDER[s - 1][1]:g}",
+                     "$" + big(p["ladder"][s]["aura_price"]), st["what"]])
+    blocks.append(("Seahorse levels and auras (pace C, the pick)", table(
+        ["Lvl", "Seahorse", "Oxygen a tick", "Price", "Aura", "x", "Aura price", "The level is for"], rows, "big")))
+    paces = []
+    for key, pp in data["paces"].items():
+        mins = econ_minutes(pp["plan"])
+        r = pp["reached"]
+        paces.append([f"{key} {pp['label']}"] + [f"{mins[g]:g} / {r[g] / 60:.0f}" if g in r else f"{mins[g]:g} / -" for g in range(1, 11)])
+    blocks.append(("The paces: minutes planned / played through, to tame each land's commonest fish (10 = Mythics)",
+                   table(["Pace"] + [f"L{g + 1}" if g < 10 else "Myth" for g in range(1, 11)], paces)))
+    for key in ("A", "B"):
+        pp = data["paces"][key]
+        rows = [[f"{st['s']}", f"{st['rate']:,}", "free" if st["s"] == 1 else "$" + big(st["price"]),
+                 "$" + big(pp["ladder"][st["s"]]["aura_price"])] for st in pp["ladder"] if "rate" in st]
+        blocks.append((f"Pace {key}, {pp['label'].lower()}", table(["Lvl", "Oxy/tick", "Price", "Aura price"], rows, "small")))
+    blocks.append(("What a fish needs (Config.required, unchanged)", table(["Land"] + data["need"]["tiers"], data["need"]["rows"])))
+    blocks.append(("Size and colour scale the need and the coins", table(
+        ["Fish", "Tiny", "Normal", "Big", "Giant", "Huge", "Colossal", "Gold A", "Gold B", "Rbw Col. A", "Rbw Col. B"], data["sizes"])))
+    blocks.append(("What a fish earns (tag / 40 a second)", table(
+        ["Land", "Commonest", "Need", "1 fish /s", "Tank of 7 /s", "Tank /min"], data["income"])))
+    blocks.append(("Taming, seconds on the fish (B, much slower deep down, is the pick)", table(
+        ["Fish", "Need", "Ride", "Today", "A", "Ride B", "B"], data["tame"])))
+
+    body = "".join(f"<div class='blk {'wide' if i < 2 else ''}'><h2>{html.escape(t)}</h2>{tb}</div>" for i, (t, tb) in enumerate(blocks))
+    page = f"""<html><head><meta charset='utf-8'><style>
+    body {{ margin:0; background:#0f1b33; font-family:'DejaVu Sans',sans-serif; color:#e8eefc; width:2000px; }}
+    h1 {{ margin:0; padding:22px 30px 4px; font-size:34px; color:#ffd34d; }}
+    .sub {{ padding:0 30px 14px; color:#a9bce6; font-size:16px; }}
+    .grid {{ display:flex; flex-wrap:wrap; gap:16px; padding:0 30px 30px; }}
+    .blk {{ background:#172748; border-radius:12px; padding:12px 16px; }}
+    .blk.wide {{ flex:1 1 100%; }}
+    h2 {{ font-size:18px; margin:2px 0 8px; color:#7fd3ff; }}
+    table {{ border-collapse:collapse; font-size:14px; }}
+    th {{ text-align:left; color:#ffd34d; padding:3px 9px; border-bottom:1px solid #2f4677; }}
+    td {{ padding:3px 9px; border-bottom:1px solid #22355e; white-space:nowrap; }}
+    table.big td {{ font-size:16px; }}
+    </style></head><body><h1>Ride a Fish: the economy, draft 1 (2026-11-19)</h1>
+    <div class='sub'>A draft for Hugo's pick: nothing here is in the game. The seahorse gives a fixed whole number of
+    Oxygen every tick (a second); only a new level or an aura changes it. Auras multiply Oxygen gained (they replace
+    each other). Size and colour scale a fish's need and its coins. Made by tools/balance/model.py --economy.</div>
+    <div class='grid'>{body}</div></body></html>"""
+    tmp = tempfile.mkdtemp()
+    page_path = os.path.join(tmp, "sheet.html")
+    open(page_path, "w", encoding="utf-8").write(page)
+    browser = shutil.which("chromium") or shutil.which("chromium-browser") or shutil.which("google-chrome")
+    if not browser:
+        raise SystemExit("model.py: --sheet needs Chromium; the page is at " + page_path)
+    subprocess.run([browser, "--headless", "--disable-gpu", "--hide-scrollbars", f"--screenshot={path}",
+                    "--window-size=2000,1760", "file://" + page_path], check=True, capture_output=True)
+    return page_path
+
+
 # ---------------------------------------------------------------- the dive, played through the herd
 
 class Herd:
@@ -1244,6 +1609,9 @@ def main():
     p.add_argument("--ride", type=float, default=RIDE, help="seconds a rider at ease sits on each fish")
     p.add_argument("--sit", type=float, default=SIT_SHARE, help="the share of play time spent on the trainer")
     p.add_argument("--plan", default="", help="minutes of play by which a player should be at home in each land, ten numbers with commas")
+    p.add_argument("--economy", action="store_true", help="only the economy draft (task b1): seahorse levels, auras, needs, income, taming")
+    p.add_argument("--colour", default="A", choices=["A", "B"], help="with --economy: what a colour multiplies the need by (A as the coins, B gentler)")
+    p.add_argument("--sheet", default="", metavar="PNG", help="with --economy: also draw the draft's one-page sheet")
     a = p.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -1256,7 +1624,13 @@ def main():
     out = Out(a.md)
     if a.set:
         print("With: " + ", ".join(a.set))
-    only = a.prices or (a.dives and a.sim > 0)
+    if a.economy:
+        data = economy(cfg, lane, out, SIT_SHARE, a.colour)
+        if a.sheet:
+            econ_sheet(data, os.path.abspath(a.sheet))
+            print("\nsheet: " + os.path.abspath(a.sheet))
+        return
+    only =a.prices or (a.dives and a.sim > 0)
     if not only:
         tables(cfg, lane, out, a.max or cfg["Oxygen"]["StartMax"])
     if a.prices or not only:
