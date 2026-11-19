@@ -73,7 +73,8 @@ def gif(fish, outcome, suffix="3", fps=10):
     # 2. the playback
     n_out = int(round(T * fps)) + 1 if T > 0 else 0
     n_tail = int(round((0.8 if taken else rag + 1.6) * fps)) + 1
-    slow = max(15, (n_out + 6) * 2.2 / max(T, 0.1))
+    # (each frame takes about 2.5 s: the server's waits stretched well past the whole capture)
+    slow = max(60, (n_out + n_tail + 6) * 3 / max(T, 0.1))
     fc.setw(FailReplay=True, FailSlow=slow, FailClock=0, DeathClock=0)
     print(fc.cmd("ride|" + fish))
     fc.wait_state({"Riding"})

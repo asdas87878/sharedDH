@@ -536,7 +536,7 @@ OUTCOMES.Wrap = function(f, t)
 	local seat = frame * f.Saddle
 	local rider = seat * CFrame.new(0, buck * 1.5, 0)
 	local beak = (frame * CFrame.new(f.Beak)).Position
-	local focus = if torso then torso:Lerp(beak, 0.3) else beak
+	local focus = if torso then torso:Lerp(beak, 0.12) else beak
 	return { Fish = frame, Rider = rider, Rig = rig, Focus = focus }
 end
 
@@ -760,6 +760,7 @@ local function makeColliders(b: Body)
 				On = false,
 				-- (off while it swallows you; an octopus's all of them once its arms have you)
 				Mouth = b.Kind == "Wrap"
+					or b.Kind == "Pin"
 					or (
 						mouthy and (string.find(name, "Jaw") ~= nil or name == "Head" or name == "Body" or name == "S1")
 					),
@@ -1026,7 +1027,7 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 			b.MouthOff = true
 			local deep = ss(1.45, 1.8, t)
 			local at = (fishNow * mouthOf(f) * CFrame.new(0, 0, L * 0.3 * deep)).Position
-			hold(b, "Mouth", "Torso", at, 8 + 30 * ss(1.0, 1.5, t), 900)
+			hold(b, "Mouth", "Torso", at, 14 + 36 * ss(1.0, 1.45, t), 2200)
 		end
 	elseif kind == "Wrap" then
 		-- each arm, once it has hold, hauls its limb in under the body, with weight and lag
@@ -1071,6 +1072,7 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 	elseif kind == "Pin" then
 		-- slammed under its head and dragged along the floor by it, the legs trailing
 		if t >= 0.85 then
+			b.MouthOff = true -- (its boxes off once it has you: pressed under its jaws, not pushed up onto its head)
 			local floorY = f.FloorY or (f.From.Position.Y - 20)
 			-- (under its jaws, just ahead of the head, so you are seen pinned)
 			local under = fishNow * CFrame.new(0, -H * 0.4, -L * 0.55)
@@ -1262,7 +1264,7 @@ local function updateShade(gui: ScreenGui, t: number, from: number, to: number)
 	local aspect = camera.ViewportSize.X / math.max(camera.ViewportSize.Y, 1)
 	local dim = gui:FindFirstChild("Dim") :: Frame?
 	if dim then
-		dim.BackgroundTransparency = 1 - 0.55 * ss(from, to, t)
+		dim.BackgroundTransparency = 1 - 0.35 * ss(from, to, t)
 	end
 	for i = 1, SHADE_ARMS do
 		local arm = gui:FindFirstChild("Arm" .. i)
@@ -1301,17 +1303,31 @@ end
 -- The shot: one move to it, eased in and out, then held. Where it stands round the fish's way as it began (Side:
 -- across it, on the side we were already on; Back: behind; Up: above, below for a low angle), and how far (Far, in
 -- the fish's own size). It never comes closer to the fish than its own length.
-local SHOTS: { [string]: { Side: number, Back: number, Up: number, Far: number, Ahead: number } } = {
-	Chomp = { Side = 1, Back = -0.15, Up = 0.2, Far = 0.8, Ahead = 0.3 }, -- side view
-	Gulp = { Side = 1, Back = -0.55, Up = 0.2, Far = 0.6, Ahead = 0.4 }, -- side, from ahead, close on the mouth
-	-- (from behind it, where it throws you: you between the camera and its arms, never hidden behind them)
-	Wrap = { Side = 0.6, Back = 1, Up = 0.35, Far = 1.25, Ahead = 0 },
-	Roll = { Side = 1, Back = 0.25, Up = -0.5, Far = 1.2, Ahead = 0.3 }, -- low angle
-	Flip = { Side = 1, Back = 0.2, Up = -0.65, Far = 1.05, Ahead = 0.3 }, -- low, looking up at the belly
-	Shell = { Side = 0.8, Back = -0.6, Up = 0.55, Far = 1.0, Ahead = 0.1 }, -- three-quarter front, high
-	Coil = { Side = 1, Back = 0.3, Up = 0.6, Far = 1.45, Ahead = 0.2 }, -- wide and high
-	Pin = { Side = 0.9, Back = -0.6, Up = 0.55, Far = 0.75, Ahead = 0.4 }, -- high three-quarter front, on the jaws
-}
+-- `Near`: a shot sized to the rider, not the fish (for a giant whose grab happens off its body): this many studs from
+-- where it throws you (`Behind` studs behind its root, `Lift` above), whatever its size
+local SHOTS: {
+	[string]: {
+		Side: number,
+		Back: number,
+		Up: number,
+		Far: number,
+		Ahead: number,
+		Near: number?,
+		Behind: number?,
+		Lift: number?,
+	},
+} =
+	{
+		Chomp = { Side = 1, Back = -0.15, Up = 0.2, Far = 0.8, Ahead = 0.3 }, -- side view
+		Gulp = { Side = 1, Back = -0.55, Up = 0.2, Far = 0.6, Ahead = 0.4 }, -- side, from ahead, close on the mouth
+		-- (on you where it throws you, from the side, its arms behind you: sized to you, not to a giant)
+		Wrap = { Side = 1, Back = 0.25, Up = 0.3, Far = 1, Ahead = 0, Near = 30, Behind = 24, Lift = 14 },
+		Roll = { Side = 1, Back = 0.25, Up = -0.5, Far = 1.2, Ahead = 0.3 }, -- low angle
+		Flip = { Side = 1, Back = 0.2, Up = -0.65, Far = 1.05, Ahead = 0.3 }, -- low, looking up at the belly
+		Shell = { Side = 0.8, Back = -0.6, Up = 0.55, Far = 1.0, Ahead = 0.1 }, -- three-quarter front, high
+		Coil = { Side = 1, Back = 0.3, Up = 0.6, Far = 1.45, Ahead = 0.2 }, -- wide and high
+		Pin = { Side = 0.9, Back = -0.6, Up = 0.55, Far = 0.75, Ahead = 0.4 }, -- high three-quarter front, on the jaws
+	}
 
 -- what the shot may pass through: fish, players, our own props, the map's props (they fade, PropController)
 local function viewParams(): RaycastParams
@@ -1346,6 +1362,10 @@ local function shotFor(f: Fail, sideSign: number): Vector3
 	dir = if dir.Magnitude > 0.01 then dir.Unit else right
 	local far = (f.Length * 0.48 + 15) * s.Far
 	far = math.max(far, f.Length * 0.55 + 8)
+	if s.Near then
+		anchor = f.From.Position - look * (s.Behind or 0) + Vector3.new(0, s.Lift or 0, 0)
+		far = s.Near
+	end
 	local at = anchor + dir * far
 	-- not under the floor, and not behind a wall: brought in to the near side of it
 	if f.FloorY then
@@ -1893,7 +1913,7 @@ local function outlineStep()
 				h.FillTransparency = 1
 				h.OutlineColor = Color3.fromRGB(255, 250, 235)
 				h.OutlineTransparency = 0.15
-				h.DepthMode = Enum.HighlightDepthMode.Occluded
+				h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 				h.Parent = character
 				outlines[player] = h
 			end
@@ -2036,14 +2056,17 @@ local function step(dt: number)
 		local at = f.CamStart:Lerp(f.CamTo, move)
 		-- (never into the fish: kept a length off it)
 		local off = at - fishNow.Position
-		local least = f.Length * 0.55 + 6
+		local least = if SHOTS[f.Kind] and SHOTS[f.Kind].Near then 8 else f.Length * 0.55 + 6
 		if off.Magnitude < least then
 			at = fishNow.Position + (if off.Magnitude > 0.1 then off.Unit else Vector3.yAxis) * least
 		end
 		local subject = frame.Focus or riderPos:Lerp(fishNow.Position, 0.5)
 		f.Focus = f.Focus:Lerp(subject, Ease.alpha(4, math.max(stepT, dt)))
 		-- the rider and the fish both kept in the shot: backed off along its line as they draw apart (smoothly)
-		local spread = (riderPos - fishNow.Position).Magnitude + f.Length * 0.5
+		local near = SHOTS[f.Kind] and SHOTS[f.Kind].Near
+		local spread = if near
+			then (riderPos - fishNow.Position).Magnitude * 0.5 + 8
+			else (riderPos - fishNow.Position).Magnitude + f.Length * 0.5
 		local need = spread * 0.5 / math.tan(rad(workspace.CurrentCamera.FieldOfView / 2)) * 1.15
 		local away = at - f.Focus
 		if away.Magnitude > 0.1 then
