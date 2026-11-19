@@ -5,7 +5,6 @@ Uses the x3 driver (tools/ui/catch_show/x3_client.luau).
     python tools/ui/fish_icons/r1_capture.py shots                  # in a playtest: work/catch_show/r1_*.png
     python tools/ui/fish_icons/r1_capture.py sheet                  # docs/attachments/fish-icons-old-new.png + the still
 """
-import shutil
 import sys
 import time
 from pathlib import Path
@@ -36,8 +35,10 @@ def shots():
             X.start(s, slots=False)  # (empties the slots, so they show again in the new mode)
             time.sleep(0.5)
             X.start(s, slots=True)
-            X.still(s)
-            shutil.copy(OUT / f"x3_{s}.png", OUT / f"r1_{tag}_{s}.png")
+            for k in (1.0, 2.5, 4.0):  # (stepped there, as x3's still)
+                X.at(k, f"r1_step")
+            im = X.at(X.END + 1.5, f"r1_{tag}_{s}", cropped=False)  # (later than x3's: the last tile has landed)
+            print("still", tag, s, im.size)
             print(tag, s)
     mode(False)
 

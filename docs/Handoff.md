@@ -3,6 +3,19 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-19 · The fish pictures are the partner's renders (NULLROOM task r1, Hugo's PC)
+**State:** in the game code and checked in a Studio playtest by script; **not uploaded, so live servers still draw the
+models**; not played by hand or on a phone. All in [UI](design/ui.md), "The fish pictures are the partner's renders".
+- `UI/Portrait.luau` shows a fish's render (the Three-quarter panel of `docs/attachments/voxel-<fish>.jpg`) in place of
+  its model, with the same outline, everywhere it draws a fish: the slots, the catch tiles, the banners. 82 of 88 fish
+  have one; the six try-out fish keep the model. `hero.png` isn't used (it's the old faceted kit).
+- Pages `docs/attachments/fish-icons/fish_icons_{1,2,3}.png` (1024 each), made by `tools/ui/fish_icons/cut.py`, with
+  the generated `UI/FishIcons.luau`. Until `FishIcons.Pages` hold asset ids, live servers keep the models and Studio
+  reads local copies. Workspace `FishIcons` = "Model" in Studio shows the old pictures.
+- Possibly out of date against the game: BlueWhale (old sheet), Dunkleosteus, Hellmaw, SergeantMajor.
+- **Partner merge:** nothing new from 8570-F43F since 2026-11-13.
+- Captures: `fish-icons-old-new.png`, `fish-icons-catch-still.png`.
+
 ## 2026-11-19 · GREAT DIVE rebuilt on caught text 5's banner, four variants (NULLROOM task gd1, Hugo's PC)
 **State:** the default end of a dive (`Kit.CatchLook` 5, `UI/DiveScreen.luau`; variant `Kit.DiveLook` 1 Slam, 2 Drop,
 3 Pop, 4 Stamp), captured from Studio by script; **not played by hand, not seen on a phone.** The band and title slam
