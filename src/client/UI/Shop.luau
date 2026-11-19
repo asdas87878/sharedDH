@@ -31,7 +31,7 @@ Shop.Textures = {
 local STUDIO = {
 	Body = "rbxasset://textures/ridefish/shop_body_s1.png",
 	Head = "rbxasset://textures/ridefish/shop_head_s1.png",
-	Icons = "rbxasset://textures/ridefish/shop_icons_s1.png",
+	Icons = "rbxasset://textures/ridefish/shop_icons_s1b.png",
 }
 -- Roblox's own Robux sign, shipped with every client
 Shop.Robux = "rbxasset://textures/ui/common/robux.png"
@@ -49,7 +49,7 @@ local function picture(name: string): string
 end
 
 -- The header icons, by their place in shop_icons.png
-Shop.Icons = { Sub = 0, Shell = 1, Seahorse = 2, Bubble = 3 }
+Shop.Icons = { Sub = 0, Shell = 1, Seahorse = 2, Bubble = 3, Arrow = 4 }
 
 -- The colours. The body is a cool slate, a little blue, so it sits under water with the HUD's navy
 Shop.Body = Color3.fromRGB(34, 40, 54)
@@ -483,13 +483,17 @@ function Shop.window(props: { [string]: any }): Window
 		end
 		gui.Enabled = on
 	end
+	local function refit()
+		if gui.Enabled then
+			self.fit()
+		end
+	end
 	local camera = workspace.CurrentCamera
 	if camera then
-		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-			if gui.Enabled then
-				self.fit()
-			end
-		end)
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
+	end
+	if RunService:IsStudio() then
+		workspace:GetAttributeChangedSignal("PanelPhone"):Connect(refit)
 	end
 	return self
 end
@@ -742,34 +746,55 @@ function Shop.itemCard(parent: Instance, props: { [string]: any }): ItemCard
 	return { Root = root, Name = name, Picture = pic, Rate = rate, Price = price }
 end
 
+-- A fat white arrow: the atlas' arrow turned to its way (0 right, 90 down, 180 left), or, before the upload in a live
+-- game, one drawn of two frames (a turned square for the head, a bar for the tail)
+function Shop.arrow(parent: Instance, turn: number, size: number, at: UDim2, z: number): GuiObject
+	if picture("Icons") ~= "" then
+		return Shop.icon(parent, "Arrow", size, {
+			Name = "Arrow",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = at,
+			Rotation = turn,
+			ZIndex = z,
+		})
+	end
+	local holder: Frame = Kit.new("Frame", {
+		Name = "Arrow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = at,
+		Size = UDim2.fromOffset(size, size),
+		Rotation = turn,
+		BackgroundTransparency = 1,
+		ZIndex = z,
+	}, parent)
+	local head: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.62, 0.5),
+		Size = UDim2.fromScale(0.42, 0.42),
+		Rotation = 45,
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = z,
+	}, holder)
+	Kit.stroke(head, 2.5, Shop.Edge)
+	local tail: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.36, 0.5),
+		Size = UDim2.fromScale(0.36, 0.26),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = z + 1,
+	}, holder)
+	Kit.stroke(tail, 2.5, Shop.Edge)
+	return holder
+end
+
 -- A sort button: a down arrow and a word, green when on, grey when off. Returns the button; set its kind to switch.
 function Shop.sort(parent: Instance, props: { [string]: any }): Button
 	props.Kind = if props.On then "Cash" else "Off"
 	props.TextSize = props.TextSize or 22
 	local b = Shop.button(parent, props)
-	-- the arrow: a white-and-aqua chevron drawn as a turned square, left of the words
-	local arrow: Frame = Kit.new("Frame", {
-		Name = "Arrow",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, 22, 0.5, -3),
-		Size = UDim2.fromOffset(16, 16),
-		Rotation = 45,
-		BackgroundColor3 = Kit.White,
-		BorderSizePixel = 0,
-		ZIndex = 4,
-	}, b.Root)
-	Kit.gradient(arrow, Color3.fromRGB(230, 250, 255), Color3.fromRGB(80, 180, 250))
-	Kit.stroke(arrow, 2.5, Shop.Edge)
-	local stem: Frame = Kit.new("Frame", {
-		Name = "Stem",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0, 22, 0.5, -2),
-		Size = UDim2.fromOffset(8, 12),
-		BackgroundColor3 = Color3.fromRGB(230, 250, 255),
-		BorderSizePixel = 0,
-		ZIndex = 5,
-	}, b.Root)
-	Kit.stroke(stem, 2.5, Shop.Edge)
+	Shop.arrow(b.Root, 90, 30, UDim2.new(0, 24, 0.5, 0), 4)
 	return b
 end
 
@@ -833,29 +858,7 @@ function Shop.carousel(parent: Instance, props: { [string]: any }): Carousel
 			Size = UDim2.fromOffset(arrowWide, 64),
 		})
 		b.Root.ZIndex = 6
-		-- a fat white arrow with an ink edge: a turned square for its head and a bar for its tail
-		local head: Frame = Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, side * 4, 0.5, 0),
-			Size = UDim2.fromOffset(22, 22),
-			Rotation = 45,
-			BackgroundColor3 = Kit.White,
-			BorderSizePixel = 0,
-			ZIndex = 7,
-		}, b.Root)
-		Kit.gradient(head, Kit.White, Color3.fromRGB(200, 236, 255))
-		Kit.stroke(head, 3, Shop.Edge)
-		-- (only the outward half of the square shows past the tail's cover; the tail sits over its inner corner)
-		local tail: Frame = Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, -side * 6, 0.5, 0),
-			Size = UDim2.fromOffset(16, 12),
-			BackgroundColor3 = Kit.White,
-			BorderSizePixel = 0,
-			ZIndex = 8,
-		}, b.Root)
-		Kit.gradient(tail, Kit.White, Color3.fromRGB(200, 236, 255))
-		Kit.stroke(tail, 3, Shop.Edge)
+		Shop.arrow(b.Root, if side < 0 then 180 else 0, 40, UDim2.fromScale(0.5, 0.5), 7)
 		return b
 	end
 	local left = arrow(-1)

@@ -7,9 +7,10 @@ Writes to art/ui/shop/:
   shop_head.png   - 128x128: the header's and buttons' pattern (rows of fish scales with a lit fleck)
                     Both white on clear: the game tints them with ImageColor3 and fades them with ImageTransparency,
                     so one picture serves every colour (a tiled picture can't use an image rect, so two files).
-  shop_icons.png  - 512x128: four 128 px header icons in the icon pack's rules (one thick ink outline round the
+  shop_icons.png  - 640x128: five 128 px header icons in the icon pack's rules (one thick ink outline round the
                     silhouette, flat faces lit from the top left, a pale lip, white four-point glints):
-                    0 submarine, 1 shell, 2 seahorse, 3 bubble.
+                    0 submarine, 1 shell, 2 seahorse, 3 bubble, 4 an arrow
+                    pointing right (turned for left and down).
 --studio also copies both into Studio's own content folder (rbxasset://textures/ridefish/...), as the other UI tools
 do: nothing is uploaded. A live game falls back to an uploaded picture until Shop.Textures hold upload ids.
 """
@@ -222,6 +223,31 @@ def icon_bubble(n=128) -> Image.Image:
     return down(img, (n, n))
 
 
+def icon_arrow(n=128) -> Image.Image:
+    """A fat arrow pointing right (turned in the game for left and down): white over pale aqua, one ink outline."""
+    S = n * SS
+    u = S / 128
+    edge = int(10 * u)
+    pts = [(14, 46), (64, 46), (64, 18), (116, 64), (64, 110), (64, 82), (14, 82)]
+    poly = [(x * u, y * u) for x, y in pts]
+
+    def sil(d):
+        d.polygon(poly, fill=255)
+
+    img = outlined(sil, S, edge)
+    body = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    db = ImageDraw.Draw(body)
+    db.polygon(poly, fill=(150, 220, 255, 255))
+    top = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    ImageDraw.Draw(top).polygon(poly, fill=WHITE)
+    cut = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(cut).rectangle((0, 0, S, 66 * u), fill=255)
+    body.paste(top, (0, 0), Image.composite(top.getchannel("A"), Image.new("L", (S, S), 0), cut))
+    img.alpha_composite(body)
+    glint(ImageDraw.Draw(img), 30 * u, 52 * u, 6 * u)
+    return down(img, (n, n))
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     tiles = Image.new("RGBA", (256, 128), (0, 0, 0, 0))
@@ -229,8 +255,8 @@ def main():
     tiles.paste(head_tile(), (128, 0))
     tiles.crop((0, 0, 128, 128)).save(OUT / "shop_body.png")
     tiles.crop((128, 0, 256, 128)).save(OUT / "shop_head.png")
-    icons = Image.new("RGBA", (512, 128), (0, 0, 0, 0))
-    for i, f in enumerate((icon_sub, icon_shell, icon_seahorse, icon_bubble)):
+    icons = Image.new("RGBA", (640, 128), (0, 0, 0, 0))
+    for i, f in enumerate((icon_sub, icon_shell, icon_seahorse, icon_bubble, icon_arrow)):
         icons.paste(f(), (i * 128, 0))
     icons.save(OUT / "shop_icons.png")
     # a preview on the shop's colours
@@ -249,7 +275,7 @@ def main():
                 dest.mkdir(parents=True, exist_ok=True)
                 shutil.copy(OUT / "shop_body.png", dest / "shop_body_s1.png")
                 shutil.copy(OUT / "shop_head.png", dest / "shop_head_s1.png")
-                shutil.copy(OUT / "shop_icons.png", dest / "shop_icons_s1.png")
+                shutil.copy(OUT / "shop_icons.png", dest / "shop_icons_s1b.png")
                 print("copied to", dest)
 
 

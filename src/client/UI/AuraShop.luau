@@ -30,7 +30,7 @@ end
 
 -- An aura's picture: a glow of its two colours with bubbles round it (no art of the aura exists yet)
 local function swatch(well: Frame, tier: any)
-	for i, step in { { 0.92, 0.55 }, { 0.7, 0.3 }, { 0.46, 0 } } do
+	for i, step in { { 0.96, 0.6 }, { 0.74, 0.35 }, { 0.5, 0.05 } } do
 		local disc = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.52),
@@ -42,9 +42,6 @@ local function swatch(well: Frame, tier: any)
 		}, well)
 		Kit.corner(disc, 999)
 		Kit.gradient(disc, tier.Second, tier.Main)
-		if i == 3 then
-			Kit.stroke(disc, 3, Shop.Edge)
-		end
 	end
 	for _, b in { { 0.18, 0.3, 14 }, { 0.82, 0.24, 18 }, { 0.2, 0.78, 10 }, { 0.8, 0.74, 12 }, { 0.5, 0.12, 9 } } do
 		local bubble = Kit.bubble(well, b[3])
@@ -52,7 +49,7 @@ local function swatch(well: Frame, tier: any)
 		bubble.Position = UDim2.fromScale(b[1], b[2])
 		bubble.ZIndex = 8
 	end
-	Shop.icon(well, "Bubble", 40, {
+	Shop.icon(well, "Bubble", 52, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
 		ZIndex = 9,

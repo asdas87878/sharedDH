@@ -16,6 +16,64 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## Shop style (2026-11-20, Hugo; NULLROOM task s1): the sub stand in the game, the rest ready
+Hugo: the buy screens should look like his three shots from another game in the genre (a sell list, an auras shop,
+a tier shop), "replicated as well as you can but more stylised and cohesive". We copy the **style** only, never its
+art, icons, words or names. Run in Studio by script, captured from the game, not played by hand, not seen on a real
+phone.
+
+**The rules, read off the shots, made ours:**
+- **The window:** a dark slate body (34,40,54: a little blue, so it sits under water with the HUD's navy) with a fine
+  **bubble-dot** pattern (ours, in place of the reference's studs), a thick near-black border (`Shop.Edge`) and a
+  drop shadow; it pops in (0.16 s).
+- **The header bar:** one colour per shop (`Shop.Heads`: Sea for the sub stand, Lavender for auras, Kelp for selling
+  and the tank, Coral, Sand), its top half lit and split hard at the middle, a **fish-scale** pattern, a darker ledge
+  along its foot, and two pale **diagonal gloss** streaks. A shop icon at the left (drawn by us, in the icon pack's
+  rules: one ink outline, flat lit faces, white glints: a sub, a shell, a seahorse, a bubble), the title in big
+  white FredokaOne (the Kit's font) with a heavy ink edge, left after the icon or centred. The **red square X** at the right.
+- **Buttons** (`Shop.button`): flat and bright, a lighter top half, a white lip line, the scale pattern, a 3 px dark
+  edge, outlined words; a press dips them. **Green = you can pay** (or Equip), **grey = you can't** (or not yet),
+  **blue = equipped**, **orange-yellow = Robux** (Roblox's own Robux sign in green), purple and lavender for the rest.
+- **Cards** (`Shop.card`): tinted all over in their tier's colour (lit top half), a small name, a big line ("Tier 2 •
+  Sub", "Lvl 3"), a **cream picture well** with an ink edge, an optional dark stat strip ("**x2** Oxygen", the
+  multiplier in green), buttons at the foot. The chosen one gets a **light border**.
+- **List cards** (`Shop.itemCard`): the name in its rarity's colour, the picture, a green rate ("$400/s"), a dark
+  price strip with the cash sign. **Sort buttons** (`Shop.sort`): a fat down arrow and a word, green when on.
+- **Carousel** (`Shop.carousel`): a sideways row of cards with a big arrow button either side (one card a press) and a
+  thin scroll bar; drag or scroll on a phone.
+- **Money** (`Shop.money`, `Shop.cash`): green, abbreviated by `Kit.short` ($950, $5K, $31.4K, $1.4B), the cash
+  sign before it; the balance sits at the top right under the header.
+- **Fitting the screen:** a window is laid out in its own points and scaled to the screen like the tank popup (a
+  phone gets bigger points; never past the screen's edges). In Studio the workspace's `PanelPhone` (a Vector2) lays it
+  out for that phone and now refits while open.
+
+**The screens:**
+- **The sub stand (in the game, `UI/SubPanel.luau`):** rebuilt on the kit after the tier-shop shot: SUBMARINES with
+  the sub icon on the Sea header, "Pick a sub, pick a land, jump in!" and your coins in green, a carousel of the ten
+  cards (NO SUB and the nine subs, each tinted its hull colour, its model in the cream well, a zone box with LAND n in
+  gold and the land's name), and a footer with GO TO and RIDE WITH. The card's button: EQUIPPED (blue, the card
+  outlined), EQUIP (green), the next sub's price (green when you can pay, grey when you can't; FREE while
+  `Config.Sub.Free` is 1), later subs their price in grey (they used to say LOCKED). "SUBS ARE FREE FOR NOW!" shows
+  in gold while they are. Nothing it asks of the server changed; no prices changed.
+- **The aura shop (`UI/AuraShop.luau`): ready, not wired.** Auras can't be bought yet (no prices, no stand action), so
+  nothing opens it; the aura stand's owner calls `AuraShop.open(true)`. AURAS centred on the Lavender header, the
+  twelve auras as cards in their own colour, "x1.5 Oxygen", the cash button grey "SOON" and a Robux button "SOON"
+  (visual only: no product ids exist, none were made up). Your `Aura` shows EQUIPPED.
+- **The seahorse trainer's upgrade** is a prompt, not a screen (its sign is task s2); **the tank popup** is task s3,
+  which builds on this kit.
+
+**Not uploaded.** The pictures are `art/ui/shop/` (`shop_body.png`, `shop_head.png`, `shop_icons.png`), drawn by
+`tools/ui/shop_kit/shop_art.py` (`--studio` copies them into Studio's content folder:
+`rbxasset://textures/ridefish/shop_*_s1*.png`). A live game uses `Shop.Textures`' ids once they are filled; until
+then it falls back to the water picture for both patterns, shows no header icons, and draws its arrows from frames.
+
+**Seen** (Studio captures beside the references; `tools/ui/shop_kit/s1_capture.py` with the client
+`shop_client.luau`): [the sub stand](../attachments/shop-sub-vs-ref.jpg),
+[on a phone, 844x390](../attachments/shop-sub-phone.jpg), [the aura shop](../attachments/shop-aura-vs-ref.jpg),
+[the kit's list pieces](../attachments/shop-kit-vs-ref.jpg) (a "Sell Fish" sample built only in the capture: sort
+buttons, list cards, a footer with a total and a Robux and a grey sell button; there is no sell screen in the game).
+The shots were taken with `Config.Sub.Free` set to 0 on the capturing client only, to show the price colours.
+
 ## The fish pictures are the partner's renders (2026-11-19, Hugo; NULLROOM task r1): in Studio, not uploaded
 Hugo: "wasnt there other icons of the fishes that my partner made? check and replace if there is, just the renders
 though". Every fish picture that goes through `UI/Portrait.luau` (the inventory slots, the catch screen's tiles, the

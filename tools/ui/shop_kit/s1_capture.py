@@ -104,10 +104,18 @@ def font(size):
     return ImageFont.load_default()
 
 
-def pair(ref, ours, out, title):
+def window_box(im, phone=False):
+    """Our window in a shot: the game view's middle (the phone box: 844x390 at its centre)."""
+    w, h = im.size
+    if phone:
+        return im.crop((w // 2 - 430, h // 2 - 200, w // 2 + 430, h // 2 + 200))
+    return im.crop((w // 2 - 600, 140, w // 2 + 560, 905))
+
+
+def pair(ref, ours, out, title, phone=False):
     h = 560
     a = Image.open(ref).convert("RGB")
-    b = Image.open(ours).convert("RGB")
+    b = window_box(Image.open(ours).convert("RGB"), phone)
     a = a.resize((round(a.width * h / a.height), h), Image.LANCZOS)
     b = b.resize((round(b.width * h / b.height), h), Image.LANCZOS)
     sheet = Image.new("RGB", (a.width + b.width + 30, h + 60), (24, 26, 32))
@@ -116,18 +124,19 @@ def pair(ref, ours, out, title):
     d = ImageDraw.Draw(sheet)
     d.text((14, 12), "Reference (style only)", fill=(220, 220, 220), font=font(22))
     d.text((a.width + 24, 12), title, fill=(255, 230, 120), font=font(22))
-    sheet.save(out, quality=90)
+    sheet.convert("RGB").save(out, quality=90)
     print("wrote", out)
 
 
 def sheet():
-    for which, ours, out, title in (
-        ("Sub", "sub", "shop-sub-vs-ref.jpg", "Ours: the sub stand (in the game)"),
-        ("Aura", "aura", "shop-aura-vs-ref.jpg", "Ours: the aura shop (ready, not wired)"),
-        ("Kit", "kit", "shop-kit-vs-ref.jpg", "Ours: the kit's list pieces (a sample)"),
+    for which, ours, out, title, phone in (
+        ("Sub", "sub", "shop-sub-vs-ref.jpg", "Ours: the sub stand (in the game)", False),
+        ("Aura", "aura", "shop-aura-vs-ref.jpg", "Ours: the aura shop (ready, not wired)", False),
+        ("Kit", "kit", "shop-kit-vs-ref.jpg", "Ours: the kit's list pieces (a sample)", False),
+        ("Sub", "sub-phone", "shop-sub-phone.jpg", "Ours: the sub stand on a phone (844x390)", True),
     ):
         if (OUT / f"{ours}.png").exists():
-            pair(REFS[which], OUT / f"{ours}.png", ATT / out, title)
+            pair(REFS[which], OUT / f"{ours}.png", ATT / out, title, phone)
 
 
 if __name__ == "__main__":
