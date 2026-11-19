@@ -39,7 +39,7 @@ def sim(seconds):
             size = a
         out.append([round(t, 3), round(a, 2), round(a - size, 2)])
         a -= size
-        if red_piece is None and 0 < a <= line:
+        if red_piece is None and 0 < a <= line + 1e-6:
             count = max(1, min(RED_TICKS, int(red / FLOOR + 1e-6)))
             red_piece, gap = a / count, red / count
     return out

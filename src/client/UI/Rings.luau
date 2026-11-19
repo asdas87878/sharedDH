@@ -19,10 +19,10 @@
 -- Since t1 (Hugo, 2026-11-18) the white piece DRAWS BACK along the ring instead of fading, as a health bar's damage
 -- trail (Kit.RingLook.TickTrail picks how; 0 the fade above).
 -- Past Config.Oxygen.BarSize of max Oxygen ONE thin ring goes all round the big one, in the same look (Config.ringsOf,
--- Oxygen.RingsMost 2: Hugo, 2026-11-19, "i only want 1 extra oxygen ring"; this file can draw a third if that is
--- ever raised). The meter is shared evenly between the rings and they empty one after the other, the outermost first,
+-- Oxygen.RingsMost 2: Hugo, 2026-11-19, "i only want 1 extra oxygen ring"; Config.ringsOf never gives more than 2,
+-- task x2). The meter is shared evenly between the rings and they empty one after the other, the outermost first,
 -- each ticking at the same pace; the big ring starts only once the thin one is empty (task o1, 2026-11-19: until then
--- the big ring and the extra ring emptied together). The hop's arc moves out past it. No mark for the red zone (o2); the ring still goes red there, and the fish turns angry.
+-- the big ring and the extra ring emptied together). The hop's arc moves out past it. No mark for the red zone (o2); the big ring still goes red there (its last third: Config.redLine, task x2), and the fish turns angry.
 -- Two things the HUD had and the reference doesn't are switched off below, one line each to bring back: the seconds
 -- written on the ring, and the fish's name and rarity under it.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -239,9 +239,12 @@ end
 
 local function paint(colour: Color3)
 	big.colour(colour)
+	-- (the thin ring is never red, task x2: the red part is the big ring's last third only, Config.redLine; on a fish
+	-- too strong it keeps its aqua too)
+	local thin = if colour == Kit.Coral then Kit.Aqua else colour
 	for i, ring in extras do
 		if i < rings then
-			ring.Front.colour(colour)
+			ring.Front.colour(thin)
 		end
 	end
 end

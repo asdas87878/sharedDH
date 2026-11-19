@@ -1336,7 +1336,7 @@ local function tick(r: Rider, dt: number)
 			-- the red part in even ticks (Oxygen.RedTime): RedTicks pieces of what was left at the line
 			local redLine: number?, redSeconds: number? = nil, nil
 			if not strained and o.RedTime > 0 then
-				local line = r.Max * Config.angryAt(w.Type)
+				local line = Config.redLine(r.Max, w.Type) -- (a third of the big ring: task x2)
 				local seconds = Config.redSeconds(Config.secondsOn(zone, w.Type.Tier, r.Max, w.Type))
 				redLine, redSeconds = line, seconds
 				if r.Oxygen > line then

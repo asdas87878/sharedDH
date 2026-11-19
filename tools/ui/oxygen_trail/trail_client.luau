@@ -15,6 +15,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local client = player:WaitForChild("PlayerScripts"):WaitForChild("Client")
 local ui = client:WaitForChild("UI")
 local Kit = require(ui:WaitForChild("Kit")) :: any
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config")) :: any
 
 local gui: ScreenGui? = nil
 local rings: any = nil
@@ -181,7 +182,7 @@ local function step()
 	view.Max = plan.max
 	view.Amount = amountAt(t)
 	view.Fraction = view.Amount / plan.max
-	view.Low = view.Amount < plan.max / 3
+	view.Low = Config.low(view.Amount, plan.max) -- (the game's own red line: a third of the big ring, task x2)
 	rings.update(t, view)
 end
 
