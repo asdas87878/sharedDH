@@ -3,6 +3,28 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-19 · This session on Hugo's PC: catch screen, land strip picks and fixes, stylised locks, the ring's damage trail, Oxygen tick floor (NULLROOM mission, tasks c1 l1 m1 k1 t1 e1 d0 g1)
+**State:** all in the game code and Studio-checked by script; **nothing played by hand or on a phone.** StyLua clean,
+selene 0 errors (the three old warnings), `rojo build` passes. **No partner changes to merge:** origin had nothing new
+from the other PC since the merge of 2026-11-17 (56edd32), so this push is fast-forward.
+- **The catch screen** (c1, entry below): option 3 is the default (`Kit.CatchLook` 3).
+- **The land strip** ([UI](design/ui.md)): Hugo's picks live (l1: generated pictures G4, single-stroke tiles, the
+  option switches gone except the intros, `Kit.LandIntroLook`); marker fixes (m1: BEST centred on its diamond and
+  stopping with it at the ends, `BEST_SPILL`; the metres over the face, the oval under it, shrinking text so 99,999 m
+  fits; face 20 px). Measured in Studio; its sheet `land-strip-m1-1.png` is **not made yet** (Studio drew white).
+- **Stylised locks** (k1): a gold padlock in the HUD pack icons' style that breaks into shackle, halves, chips and a
+  glint; drawn by `tools/ui/lock_icon/lock_art.py` into `art/ui/icons/lock_atlas.png`. **Not uploaded** (`LOCK_ATLAS`
+  is ""), so live servers keep the old white padlock; Studio reads it from `rbxasset://textures/ridefish/`. Offline
+  preview `docs/attachments/land-strip-locks-2-preview.{png,gif}`; in-game captures still to make.
+- **Oxygen:** the tick floor for riding is 0.35 s (`Config.Oxygen.TickSizes`, the 30-tick row Hugo picked; was 0.25).
+  The ring's white piece now draws back like a health bar's damage trail (t1): `Kit.RingLook.TickTrail` 1 straight,
+  **2 hold then ease (default)**, 3 draw and melt; GIFs `docs/attachments/oxygen-trail-{a,b,c}.gif`. Hugo to pick.
+- **Out of Oxygen** (e1): each fish's own fail outcome, `Config.Fail`/`failOf`, stand-in motions; sheet
+  `fail-outcomes-1.gif`.
+- **Outside the repo:** the "Roblox Dev Session" launcher (`sharedDH-local/start-dev-session.sh`, d0) now waits for the
+  graphics card before opening Studio (a Studio opened too early drew white), retries once, and says when Rojo needs
+  its Connect click.
+
 ## 2026-11-19 · The catch screen: option 3 built in, with Hugo's changes (NULLROOM task c1, Hugo's PC)
 **State:** in the game and the default (`Kit.CatchLook` 3); run in Studio by script, **not played by hand, not on a
 phone.** All in [UI](design/ui.md), "The catch screen". Files: `UI/CatchShow.luau` (look 3 rewritten, clicks, backdrop),
