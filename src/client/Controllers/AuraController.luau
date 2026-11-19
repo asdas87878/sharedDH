@@ -357,6 +357,21 @@ end
 Build[6] = function(fx)
 	local yellow = rgb(255, 240, 110)
 	local s = shell(fx)
+	-- two bolts: carriers that jump from point to point over the body every 0.07 s, drawing jagged bright arcs
+	for k = 1, 2 do
+		local function point(n: number): Vector3
+			local r = Random.new(n * 13 + k * 101)
+			local ang = r:NextNumber() * TAU
+			local rad = r:NextNumber(1.1, 1.9)
+			return Vector3.new(math.cos(ang) * rad, r:NextNumber(1, 6), math.sin(ang) * rad)
+		end
+		local c = carrier(fx, function(t)
+			local n = t / 0.07
+			local i = math.floor(n)
+			return point(i):Lerp(point(i + 1), n - i)
+		end)
+		ribbon(fx, c, cseq(rgb(255, 255, 230), yellow), 400, 0.3, 0.2, { Brightness = 5 })
+	end
 	emit(fx, area(fx, Vector3.new(2.8, 1.2, 2.8), CFrame.new(0, 5.4, 0)), {
 		Texture = TEX.Smoke,
 		Color = cseq(rgb(120, 130, 185), rgb(70, 78, 120)),

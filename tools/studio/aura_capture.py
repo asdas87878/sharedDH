@@ -352,7 +352,7 @@ def sheet2():
     print(dest)
 
 
-def gif(tier, seconds=2.0, slow=0.05, size=440):
+def gif(tier, seconds=1.6, slow=0.018, size=440):
     """A tier in motion: the game's clock and every emitter run at `slow` of real time, frames shot as fast as Studio
     gives them, each frame's length the game time that passed."""
     print(cmd(f"cam|{tier}"))
