@@ -23,8 +23,8 @@ OUT = ROOT / "work/fail_capture"
 OUT.mkdir(parents=True, exist_ok=True)
 SHEETS = Path.home() / "Pictures/ride-a-fish/sheets"
 RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
-# the game view inside the Studio window's shot (3440 x 1440, panels on the right)
-CROP = (0, 141, 3027, 1368)
+# the game view inside the Studio window's shot (2400 x 1280, panels on the right)
+CROP = (4, 142, 1984, 1205)
 WIDTH = 560
 
 SERVER = r'''
@@ -42,7 +42,9 @@ RS:GetAttributeChangedSignal("E1Cmd"):Connect(function()
 	end
 	local ok, said = pcall(function()
 		if verb == "ride" then
-			RideService.sandboxReset(player, nil, arg)
+			-- (further down than the sandbox's start, which faces the lane's wall: open water round the fish)
+			local at, along = RideService.sandboxStart()
+			RideService.sandboxReset(player, nil, arg, nil, { At = at + along * (tonumber(RS:GetAttribute("E1Ahead")) or 160), Along = along })
 			return "ride " .. arg
 		elseif verb == "fail" then
 			return "fail " .. tostring(RideService.forceFail(player, if arg ~= "" then arg else nil))
@@ -152,13 +154,14 @@ def gif(fish, outcome, fps=12):
     n_tail = int(round((0.7 if taken else 1.0) * fps)) + 1
     # the server's waits stretched past the capture (about 1.2 s a frame)
     slow = max(2, (n_out + 4) * 1.3 / max(T, 0.1)) if T > 0 else 60
-    setw(TestMaxOxygen=10000000, FailSlow=slow, FailClock=0, DeathClock=0)
+    # (CatchLook 0: the dock's plain banner, which goes by itself, not the catch screen that waits for a press)
+    setw(TestMaxOxygen=10000000, FailSlow=slow, FailClock=0, DeathClock=0, CatchLook=0)
     print(cmd("ride|" + fish))
     wait_state({"Riding"})
     time.sleep(3)
     frames = []
     # a moment of riding first (the clocks only hold the fail)
-    for i in range(3):
+    for i in range(2):
         frames.append(label(shot(OUT / f"{outcome}_ride{i}.png"), f"{fish}: riding, Oxygen hits 0"))
     print(cmd("fail|" + outcome))
     for i in range(n_out):

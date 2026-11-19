@@ -327,7 +327,7 @@ local function makeProps(f: Fail)
 		table.insert(f.Props, ball)
 	elseif f.Kind == "Wrap" then
 		local kind = Config.FishById[f.Fish:GetAttribute("FishType") :: string]
-		local colour = if kind then kind.Fin else Color3.fromRGB(150, 60, 90)
+		local colour = (if kind then kind.Fin else Color3.fromRGB(150, 60, 90)):Lerp(Color3.new(1, 1, 1), 0.3)
 		for i = 1, 6 do
 			local arm = localPart(Vector3.new(1, 1, 1), colour, Enum.Material.SmoothPlastic)
 			arm.Shape = Enum.PartType.Cylinder
@@ -368,7 +368,7 @@ local function updateProps(f: Fail, fish: CFrame, rider: Vector3, t: number)
 				arm.Transparency = 1
 			else
 				arm.Transparency = 0
-				local thick = Ease.lerp(1.6, 0.8, tight) * (0.6 + f.Length * 0.004)
+				local thick = Ease.lerp(2.4, 1.3, tight) * (0.8 + f.Length * 0.006)
 				arm.Size = Vector3.new(span, thick, thick)
 				arm.CFrame = CFrame.lookAt((from + tip) / 2, tip) * CFrame.Angles(0, math.pi / 2, 0)
 			end
@@ -437,9 +437,9 @@ local function begin(player: Player, fish: Model, kind: string)
 		Saddle = if weld then weld.C0 else CFrame.new(0, body.Y / 2, 0),
 		Weld = weld,
 		Character = character,
-		CamFrom = from.Position + right * sideSign * (body.Z * 0.7 + 22) + Vector3.new(0, body.Y + 9, 0) - flat(
+		CamFrom = from.Position + right * sideSign * (body.Z * 0.45 + 14) + Vector3.new(0, body.Y * 0.6 + 6, 0) - flat(
 			from.LookVector
-		) * body.Z * 0.2,
+		) * body.Z * 0.15,
 		FloorY = Course.floor(from.Position),
 		Hidden = {},
 		Props = {},
@@ -580,7 +580,21 @@ local function step(_dt: number)
 		if beat >= 0 and (f.Kind == "Chomp" or f.Kind == "Gulp") and t >= beat - 0.12 then
 			local jaws = f.Jaws or makeJaws()
 			f.Jaws = jaws
-			setJaws(jaws, Ease.outQuad(math.clamp((t - (beat - 0.12)) / 0.12, 0, 1)))
+			-- snap almost shut at the bite (a slit to see it shake its head through), all the way as it ends, then
+			-- dark from the mouth outward as the fade comes in
+			local snap = 0.84 * Ease.outQuad(math.clamp((t - (beat - 0.12)) / 0.12, 0, 1))
+			setJaws(jaws, snap + 0.16 * Ease.smoothstep(def.Time - 0.2, def.Time, t))
+			local dark = Ease.smoothstep(def.Time, def.Time + Config.Fail.TakenFade * 0.6, t)
+			for _, half in jaws:GetChildren() do
+				if half:IsA("Frame") then
+					half.BackgroundColor3 = Color3.fromRGB(60, 8, 14):Lerp(Color3.new(0, 0, 0), dark)
+					for _, tooth in half:GetChildren() do
+						if tooth:IsA("Frame") then
+							tooth.BackgroundTransparency = dark
+						end
+					end
+				end
+			end
 		end
 		if taken and t >= def.Time then
 			State.Fade = math.clamp((t - def.Time) / math.max(Config.Fail.TakenFade, 0.05), 0, 1)
