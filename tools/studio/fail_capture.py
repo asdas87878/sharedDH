@@ -122,8 +122,19 @@ def wait_state(want, timeout=30):
 
 
 def shot(path):
+    # (the shot is written after studio-run returns: an old file at the path was read as the new frame, so it is
+    # removed first and the new one waited for until its size holds)
+    path = Path(path)
+    path.unlink(missing_ok=True)
     out = run(["shot", str(path)], timeout=60)
-    if not Path(path).exists():
+    size, end = -1, time.time() + 10
+    while time.time() < end:
+        now = path.stat().st_size if path.exists() else -1
+        if now > 0 and now == size:
+            break
+        size = now
+        time.sleep(0.15)
+    else:
         raise SystemExit("no shot: " + out)
     im = Image.open(path).convert("RGB")
     c = im.crop(CROP)
@@ -136,8 +147,8 @@ def label(im, text):
     return im
 
 
-def save(frames, dest, fps):
-    pal = [f.quantize(colors=128, method=Image.MEDIANCUT, dither=Image.NONE) for f in frames]
+def save(frames, dest, fps, colours=128):
+    pal = [f.quantize(colors=colours, method=Image.MEDIANCUT, dither=Image.NONE) for f in frames]
     durations = [int(1000 / fps)] * len(pal)
     durations[-1] = 900
     pal[0].save(dest, save_all=True, append_images=pal[1:], duration=durations, loop=0, optimize=True)
@@ -193,14 +204,15 @@ def gif(fish, outcome, fps=12):
     return dest
 
 
-def sheet(name, gifs, cols=3):
+def sheet(name, gifs, cols=3, scale=0.62):
     seqs = []
     for g in gifs:
         im = Image.open(g)
         fr = []
         try:
             while True:
-                fr.append(im.convert("RGB"))
+                f = im.convert("RGB")
+                fr.append(f.resize((round(f.width * scale), round(f.height * scale)), Image.LANCZOS))
                 im.seek(im.tell() + 1)
         except EOFError:
             pass
@@ -215,7 +227,7 @@ def sheet(name, gifs, cols=3):
             canvas.paste(s[min(i, len(s) - 1)], ((k % cols) * w, (k // cols) * h))
         frames.append(canvas)
     dest = ROOT / "docs/attachments" / name
-    save(frames, dest, 12)
+    save(frames, dest, 10, 64)
 
 
 if __name__ == "__main__":

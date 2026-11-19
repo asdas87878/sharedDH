@@ -251,15 +251,15 @@ local function makeJaws(): ScreenGui
 		half.AnchorPoint = Vector2.new(0.5, if top then 1 else 0)
 		half.Position = UDim2.fromScale(0.5, if top then 0 else 1)
 		half.Parent = gui
-		for i = 0, 9 do
+		for i = 0, 15 do
 			local tooth = Instance.new("Frame")
 			tooth.BorderSizePixel = 0
 			tooth.BackgroundColor3 = Color3.fromRGB(250, 244, 226)
-			tooth.Size = UDim2.fromScale(0.07, 0.15)
+			tooth.Size = UDim2.fromScale(0.032, 0.032)
 			tooth.SizeConstraint = Enum.SizeConstraint.RelativeXX
 			tooth.AnchorPoint = Vector2.new(0.5, 0.5)
 			tooth.Rotation = 45
-			tooth.Position = UDim2.fromScale((i + 0.5 + (if top then 0 else 0.5)) / 10, if top then 1 else 0)
+			tooth.Position = UDim2.fromScale((i + 0.5 + (if top then 0 else 0.5)) / 16, if top then 1 else 0)
 			tooth.ZIndex = 0
 			tooth.Parent = half
 		end
@@ -582,8 +582,8 @@ local function step(_dt: number)
 			f.Jaws = jaws
 			-- snap almost shut at the bite (a slit to see it shake its head through), all the way as it ends, then
 			-- dark from the mouth outward as the fade comes in
-			local snap = 0.84 * Ease.outQuad(math.clamp((t - (beat - 0.12)) / 0.12, 0, 1))
-			setJaws(jaws, snap + 0.16 * Ease.smoothstep(def.Time - 0.2, def.Time, t))
+			local snap = 0.72 * Ease.outQuad(math.clamp((t - (beat - 0.12)) / 0.12, 0, 1))
+			setJaws(jaws, snap + 0.28 * Ease.smoothstep(def.Time - 0.2, def.Time, t))
 			local dark = Ease.smoothstep(def.Time, def.Time + Config.Fail.TakenFade * 0.6, t)
 			for _, half in jaws:GetChildren() do
 				if half:IsA("Frame") then
