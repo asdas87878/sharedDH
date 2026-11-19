@@ -70,6 +70,42 @@ RunService.RenderStepped:Connect(function()
 			table.insert(out, "abs " .. tostring(back.AbsolutePosition) .. " / " .. tostring(back.AbsoluteSize))
 			table.insert(out, "colour " .. tostring(back.BackgroundColor3) .. " t" .. back.BackgroundTransparency)
 		end
+		local pw, ph = string.match(tostring(probe), "^phone:(%d+):(%d+)$")
+		if pw then
+			-- a phone held sideways at the HUD's scale 1: a frame that size, the land strip's and the slots' room
+			-- marked in red, and the real screen played into it
+			local old = player.PlayerGui:FindFirstChild("ZZPhone")
+			if old then
+				old:Destroy()
+			end
+			local g = Instance.new("ScreenGui")
+			g.Name = "ZZPhone"
+			g.DisplayOrder = 60
+			g.IgnoreGuiInset = true
+			g.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			local f = Instance.new("Frame")
+			f.AnchorPoint = Vector2.new(0.5, 0.5)
+			f.Position = UDim2.fromScale(0.5, 0.5)
+			f.Size = UDim2.fromOffset(tonumber(pw) :: number, tonumber(ph) :: number)
+			f.BackgroundColor3 = Color3.fromRGB(70, 150, 70)
+			f.ClipsDescendants = true
+			f.Parent = g
+			for _, zone in { { 0, 70, "land strip" }, { 1, 64, "slots" } } do
+				local z = Instance.new("TextLabel")
+				z.AnchorPoint = Vector2.new(0, zone[1] :: number)
+				z.Position = UDim2.fromScale(0, zone[1] :: number)
+				z.Size = UDim2.new(1, 0, 0, zone[2] :: number)
+				z.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
+				z.BackgroundTransparency = 0.5
+				z.Text = zone[3] :: string
+				z.TextSize = 14
+				z.TextColor3 = Color3.new(1, 1, 1)
+				z.Parent = f
+			end
+			g.Parent = player.PlayerGui
+			CatchShow.Clock = realClock
+			CatchShow.play(f, 3, 312, true, LIST)
+		end
 		if probe == "frame" then
 			local g = Instance.new("ScreenGui")
 			g.Name = "ZZProbe"

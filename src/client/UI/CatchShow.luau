@@ -677,6 +677,9 @@ end
 local SCREEN_FONT = Enum.Font.Bangers
 local BACKDROP = 0.35 -- how dark the backdrop gets (black at this share: a little darker, still see-through)
 local FADE_IN, FADE_OUT = 0.22, 0.3
+-- the room the screen leaves round it when it has to shrink: the land strip over it and the slots under it (keyboard
+-- and phone alike), and a little at the sides
+local FIT_ROOM = Vector2.new(40, 150)
 local TILE = 52 -- a fish's tile
 local TILE_STEP = 60
 local TILE_LINE = 2.5
@@ -1067,6 +1070,26 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 	local settled = buttonAt + 0.35 -- everything in its place, every pop over
 	local leaveAt: number? = nil
 
+	-- The screen made smaller to fit between the land strip and the slots where the HUD is short (a phone held
+	-- sideways is 340 to 390 tall, and the HUD's scale is never under 1): the room in the HUD's units is the root's
+	-- size over every UIScale above it
+	local function fit(): number
+		local scale = 1
+		local up: Instance? = root.Parent
+		while up do
+			local s = up:FindFirstChildOfClass("UIScale")
+			if s then
+				scale *= s.Scale
+			end
+			up = up.Parent
+		end
+		local size = root.AbsoluteSize / scale
+		if size.Y <= 0 then
+			return 1
+		end
+		return math.min(1, (size.Y - FIT_ROOM.Y) / H, (size.X - FIT_ROOM.X) / W)
+	end
+
 	local function pose(t: number)
 		-- the backdrop and the screen fade in, and out once it is closing
 		local a = quadOut(at(t, 0, FADE_IN))
@@ -1075,9 +1098,12 @@ local function screen(parent: Instance, metres: number, isBest: boolean, list: {
 		end
 		group.GroupTransparency = 1 - a
 		backdrop.BackgroundTransparency = 1 - BACKDROP * a
-		groupScale.Scale = 0.94
-			+ 0.06 * quadOut(at(t, 0, FADE_IN))
-			- (if leaveAt then 0.04 * quadIn(at(t, leaveAt, FADE_OUT)) else 0)
+		groupScale.Scale = fit()
+			* (
+				0.94
+				+ 0.06 * quadOut(at(t, 0, FADE_IN))
+				- (if leaveAt then 0.04 * quadIn(at(t, leaveAt, FADE_OUT)) else 0)
+			)
 		root.Visible = a > 0.001 or t < FADE_IN
 		-- rays open and turn the whole time; a gold flash on a Legendary or rarer
 		local rp = quadOut(at(t, 0, 0.45))
@@ -1411,8 +1437,9 @@ function CatchShow.play(parent: Instance, look: number, metres: number, isBest: 
 		)
 		table.insert(
 			entry.conns,
-			UserInputService.InputBegan:Connect(function(input: InputObject)
-				if KEYS[input.KeyCode] then
+			UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+				-- (not a key the game has taken already: typing in the chat box)
+				if KEYS[input.KeyCode] and not processed then
 					pressNow()
 				end
 			end)
