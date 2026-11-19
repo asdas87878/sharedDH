@@ -1,0 +1,900 @@
+{
+ "fish": {
+  "BlueChromis": {
+   "sheet": "voxel-bluechromis.jpg",
+   "page": 1,
+   "rect": [
+    4,
+    38,
+    162,
+    93
+   ],
+   "bust": false
+  },
+  "YellowTang": {
+   "sheet": "voxel-yellowtang.jpg",
+   "page": 1,
+   "rect": [
+    174,
+    4,
+    162,
+    162
+   ],
+   "bust": false
+  },
+  "Butterflyfish": {
+   "sheet": "voxel-butterflyfish.jpg",
+   "page": 1,
+   "rect": [
+    344,
+    26,
+    162,
+    118
+   ],
+   "bust": false
+  },
+  "Boxfish": {
+   "sheet": "voxel-boxfish.jpg",
+   "page": 1,
+   "rect": [
+    514,
+    19,
+    162,
+    131
+   ],
+   "bust": false
+  },
+  "Pufferfish": {
+   "sheet": "voxel-pufferfish.jpg",
+   "page": 1,
+   "rect": [
+    684,
+    22,
+    162,
+    126
+   ],
+   "bust": false
+  },
+  "FlyingFish": {
+   "sheet": "voxel-flyingfish.jpg",
+   "page": 1,
+   "rect": [
+    854,
+    41,
+    162,
+    87
+   ],
+   "bust": true
+  },
+  "Stingray": {
+   "sheet": "voxel-stingray.jpg",
+   "page": 1,
+   "rect": [
+    4,
+    212,
+    162,
+    85
+   ],
+   "bust": true
+  },
+  "Cuttlefish": {
+   "sheet": "voxel-cuttlefish.jpg",
+   "page": 1,
+   "rect": [
+    174,
+    203,
+    162,
+    104
+   ],
+   "bust": true
+  },
+  "SeaTurtle": {
+   "sheet": "voxel-seaturtle.jpg",
+   "page": 1,
+   "rect": [
+    344,
+    204,
+    162,
+    102
+   ],
+   "bust": true
+  },
+  "Seahorse": {
+   "sheet": "voxel-seahorse.jpg",
+   "page": 1,
+   "rect": [
+    532,
+    174,
+    126,
+    162
+   ],
+   "bust": false
+  },
+  "ReefShark": {
+   "sheet": "voxel-reefshark.jpg",
+   "page": 1,
+   "rect": [
+    684,
+    204,
+    162,
+    102
+   ],
+   "bust": false
+  },
+  "Archelon": {
+   "sheet": "voxel-archelon.jpg",
+   "page": 1,
+   "rect": [
+    854,
+    204,
+    162,
+    101
+   ],
+   "bust": true
+  },
+  "PearlSerpent": {
+   "sheet": "voxel-pearlserpent.jpg",
+   "page": 1,
+   "rect": [
+    4,
+    383,
+    162,
+    83
+   ],
+   "bust": true
+  },
+  "Parrotfish": {
+   "sheet": "voxel-parrotfish.jpg",
+   "page": 1,
+   "rect": [
+    174,
+    374,
+    162,
+    101
+   ],
+   "bust": false
+  },
+  "Angelfish": {
+   "sheet": "voxel-angelfish.jpg",
+   "page": 1,
+   "rect": [
+    348,
+    344,
+    153,
+    162
+   ],
+   "bust": false
+  },
+  "Lionfish": {
+   "sheet": "voxel-lionfish.jpg",
+   "page": 1,
+   "rect": [
+    514,
+    358,
+    162,
+    134
+   ],
+   "bust": false
+  },
+  "MorayEel": {
+   "sheet": "voxel-morayeel.jpg",
+   "page": 1,
+   "rect": [
+    684,
+    376,
+    162,
+    98
+   ],
+   "bust": true
+  },
+  "Octopus": {
+   "sheet": "voxel-octopus.jpg",
+   "page": 1,
+   "rect": [
+    854,
+    384,
+    162,
+    82
+   ],
+   "bust": false
+  },
+  "HumpheadWrasse": {
+   "sheet": "voxel-humpheadwrasse.jpg",
+   "page": 1,
+   "rect": [
+    4,
+    548,
+    162,
+    94
+   ],
+   "bust": false
+  },
+  "Dunkleosteus": {
+   "sheet": "voxel-dunkleosteus-legendary.jpg",
+   "page": 1,
+   "rect": [
+    174,
+    550,
+    162,
+    90
+   ],
+   "bust": false
+  },
+  "CoralDragon": {
+   "sheet": "voxel-coraldragon.jpg",
+   "page": 1,
+   "rect": [
+    344,
+    542,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "SeaLion": {
+   "sheet": "voxel-sealion.jpg",
+   "page": 1,
+   "rect": [
+    514,
+    544,
+    162,
+    102
+   ],
+   "bust": true
+  },
+  "Garibaldi": {
+   "sheet": "voxel-garibaldi.jpg",
+   "page": 1,
+   "rect": [
+    684,
+    537,
+    162,
+    116
+   ],
+   "bust": false
+  },
+  "LeopardShark": {
+   "sheet": "voxel-leopardshark.jpg",
+   "page": 1,
+   "rect": [
+    854,
+    544,
+    162,
+    101
+   ],
+   "bust": true
+  },
+  "GiantSeaBass": {
+   "sheet": "voxel-giantseabass.jpg",
+   "page": 1,
+   "rect": [
+    4,
+    718,
+    162,
+    93
+   ],
+   "bust": false
+  },
+  "GreatWhite": {
+   "sheet": "voxel-greatwhite.jpg",
+   "page": 1,
+   "rect": [
+    174,
+    720,
+    162,
+    89
+   ],
+   "bust": false
+  },
+  "StellersSeaCow": {
+   "sheet": "voxel-stellersseacow.jpg",
+   "page": 1,
+   "rect": [
+    344,
+    712,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "Dakosaurus": {
+   "sheet": "voxel-dakosaurus.jpg",
+   "page": 1,
+   "rect": [
+    514,
+    724,
+    162,
+    82
+   ],
+   "bust": true
+  },
+  "KelpWyrm": {
+   "sheet": "voxel-kelpwyrm.jpg",
+   "page": 1,
+   "rect": [
+    684,
+    717,
+    162,
+    95
+   ],
+   "bust": true
+  },
+  "Barracuda": {
+   "sheet": "voxel-barracuda.jpg",
+   "page": 1,
+   "rect": [
+    854,
+    719,
+    162,
+    91
+   ],
+   "bust": true
+  },
+  "HammerheadShark": {
+   "sheet": "voxel-hammerheadshark.jpg",
+   "page": 1,
+   "rect": [
+    4,
+    895,
+    162,
+    79
+   ],
+   "bust": false
+  },
+  "Sawfish": {
+   "sheet": "voxel-sawfish.jpg",
+   "page": 1,
+   "rect": [
+    174,
+    904,
+    162,
+    62
+   ],
+   "bust": true
+  },
+  "ElectricRay": {
+   "sheet": "voxel-electricray.jpg",
+   "page": 1,
+   "rect": [
+    344,
+    892,
+    162,
+    85
+   ],
+   "bust": true
+  },
+  "GoliathGrouper": {
+   "sheet": "voxel-goliathgrouper.jpg",
+   "page": 1,
+   "rect": [
+    514,
+    887,
+    162,
+    96
+   ],
+   "bust": false
+  },
+  "Xiphactinus": {
+   "sheet": "voxel-xiphactinus.jpg",
+   "page": 1,
+   "rect": [
+    684,
+    896,
+    162,
+    77
+   ],
+   "bust": true
+  },
+  "GalleonWhale": {
+   "sheet": "voxel-galleonwhale.jpg",
+   "page": 1,
+   "rect": [
+    854,
+    893,
+    162,
+    84
+   ],
+   "bust": false
+  },
+  "Swordfish": {
+   "sheet": "voxel-swordfish.jpg",
+   "page": 2,
+   "rect": [
+    4,
+    32,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "Dolphin": {
+   "sheet": "voxel-dolphin.jpg",
+   "page": 2,
+   "rect": [
+    174,
+    32,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "Orca": {
+   "sheet": "voxel-orca.jpg",
+   "page": 2,
+   "rect": [
+    344,
+    42,
+    162,
+    86
+   ],
+   "bust": false
+  },
+  "MantaRay": {
+   "sheet": "voxel-mantaray.jpg",
+   "page": 2,
+   "rect": [
+    514,
+    32,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "Helicoprion": {
+   "sheet": "voxel-helicoprion.jpg",
+   "page": 2,
+   "rect": [
+    684,
+    31,
+    162,
+    107
+   ],
+   "bust": false
+  },
+  "Elasmosaurus": {
+   "sheet": "voxel-elasmosaurus.jpg",
+   "page": 2,
+   "rect": [
+    854,
+    51,
+    162,
+    67
+   ],
+   "bust": true
+  },
+  "BlueWhale": {
+   "sheet": "voxel-bluewhale-old-one.jpg",
+   "page": 2,
+   "rect": [
+    4,
+    211,
+    162,
+    87
+   ],
+   "bust": false
+  },
+  "StormSerpent": {
+   "sheet": "voxel-stormserpent.jpg",
+   "page": 2,
+   "rect": [
+    174,
+    218,
+    162,
+    74
+   ],
+   "bust": true
+  },
+  "Viperfish": {
+   "sheet": "voxel-viperfish.jpg",
+   "page": 2,
+   "rect": [
+    344,
+    202,
+    162,
+    106
+   ],
+   "bust": false
+  },
+  "GiantSquid": {
+   "sheet": "voxel-giantsquid.jpg",
+   "page": 2,
+   "rect": [
+    514,
+    215,
+    162,
+    79
+   ],
+   "bust": true
+  },
+  "GoblinShark": {
+   "sheet": "voxel-goblinshark.jpg",
+   "page": 2,
+   "rect": [
+    684,
+    213,
+    162,
+    84
+   ],
+   "bust": true
+  },
+  "Liopleurodon": {
+   "sheet": "voxel-liopleurodon.jpg",
+   "page": 2,
+   "rect": [
+    854,
+    203,
+    162,
+    104
+   ],
+   "bust": true
+  },
+  "Shonisaurus": {
+   "sheet": "voxel-shonisaurus.jpg",
+   "page": 2,
+   "rect": [
+    4,
+    381,
+    162,
+    88
+   ],
+   "bust": true
+  },
+  "LanternLeviathan": {
+   "sheet": "voxel-lanternleviathan.jpg",
+   "page": 2,
+   "rect": [
+    174,
+    376,
+    162,
+    97
+   ],
+   "bust": true
+  },
+  "AuroraJelly": {
+   "sheet": "voxel-aurorajelly.jpg",
+   "page": 2,
+   "rect": [
+    369,
+    344,
+    112,
+    162
+   ],
+   "bust": false
+  },
+  "FrilledShark": {
+   "sheet": "voxel-frilledshark.jpg",
+   "page": 2,
+   "rect": [
+    514,
+    382,
+    162,
+    86
+   ],
+   "bust": true
+  },
+  "Anglerfish": {
+   "sheet": "voxel-anglerfish.jpg",
+   "page": 2,
+   "rect": [
+    684,
+    353,
+    162,
+    144
+   ],
+   "bust": false
+  },
+  "Mosasaurus": {
+   "sheet": "voxel-mosasaurus.jpg",
+   "page": 2,
+   "rect": [
+    854,
+    381,
+    162,
+    88
+   ],
+   "bust": true
+  },
+  "Livyatan": {
+   "sheet": "voxel-livyatan.jpg",
+   "page": 2,
+   "rect": [
+    4,
+    545,
+    162,
+    99
+   ],
+   "bust": true
+  },
+  "Basilosaurus": {
+   "sheet": "voxel-basilosaurus.jpg",
+   "page": 2,
+   "rect": [
+    174,
+    551,
+    162,
+    87
+   ],
+   "bust": true
+  },
+  "Kraken": {
+   "sheet": "voxel-kraken.jpg",
+   "page": 2,
+   "rect": [
+    344,
+    556,
+    162,
+    77
+   ],
+   "bust": false
+  },
+  "VoidWhale": {
+   "sheet": "voxel-voidwhale.jpg",
+   "page": 2,
+   "rect": [
+    514,
+    542,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "SeaScorpion": {
+   "sheet": "voxel-seascorpion.jpg",
+   "page": 2,
+   "rect": [
+    684,
+    551,
+    162,
+    88
+   ],
+   "bust": true
+  },
+  "GiantIsopod": {
+   "sheet": "voxel-giantisopod.jpg",
+   "page": 2,
+   "rect": [
+    854,
+    542,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "Megalodon": {
+   "sheet": "voxel-megalodon.jpg",
+   "page": 2,
+   "rect": [
+    4,
+    713,
+    162,
+    104
+   ],
+   "bust": false
+  },
+  "Kronosaurus": {
+   "sheet": "voxel-kronosaurus.jpg",
+   "page": 2,
+   "rect": [
+    174,
+    713,
+    162,
+    103
+   ],
+   "bust": true
+  },
+  "Anomalocaris": {
+   "sheet": "voxel-anomalocaris.jpg",
+   "page": 2,
+   "rect": [
+    344,
+    724,
+    162,
+    82
+   ],
+   "bust": false
+  },
+  "BobbitWorm": {
+   "sheet": "voxel-bobbitworm.jpg",
+   "page": 2,
+   "rect": [
+    514,
+    719,
+    162,
+    92
+   ],
+   "bust": true
+  },
+  "MoltenMegalodon": {
+   "sheet": "voxel-moltenmegalodon.jpg",
+   "page": 2,
+   "rect": [
+    684,
+    711,
+    162,
+    107
+   ],
+   "bust": false
+  },
+  "EmberSerpent": {
+   "sheet": "voxel-emberserpent.jpg",
+   "page": 2,
+   "rect": [
+    854,
+    717,
+    162,
+    96
+   ],
+   "bust": true
+  },
+  "WraithEel": {
+   "sheet": "voxel-wraitheel.jpg",
+   "page": 2,
+   "rect": [
+    4,
+    892,
+    162,
+    86
+   ],
+   "bust": true
+  },
+  "GraveRay": {
+   "sheet": "voxel-graveray.jpg",
+   "page": 2,
+   "rect": [
+    174,
+    882,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "SkullAngler": {
+   "sheet": "voxel-skullangler.jpg",
+   "page": 2,
+   "rect": [
+    344,
+    874,
+    162,
+    121
+   ],
+   "bust": false
+  },
+  "GraveTurtle": {
+   "sheet": "voxel-graveturtle.jpg",
+   "page": 2,
+   "rect": [
+    514,
+    884,
+    162,
+    101
+   ],
+   "bust": true
+  },
+  "BoneLeviathan": {
+   "sheet": "voxel-boneleviathan.jpg",
+   "page": 2,
+   "rect": [
+    684,
+    884,
+    162,
+    102
+   ],
+   "bust": true
+  },
+  "HalfboneMegalodon": {
+   "sheet": "voxel-halfbonemegalodon.jpg",
+   "page": 2,
+   "rect": [
+    854,
+    881,
+    162,
+    108
+   ],
+   "bust": false
+  },
+  "PhantomWhale": {
+   "sheet": "voxel-phantomwhale.jpg",
+   "page": 3,
+   "rect": [
+    4,
+    35,
+    162,
+    99
+   ],
+   "bust": true
+  },
+  "HellfinShark": {
+   "sheet": "voxel-hellfinshark.jpg",
+   "page": 3,
+   "rect": [
+    174,
+    39,
+    162,
+    92
+   ],
+   "bust": false
+  },
+  "BrimstoneEel": {
+   "sheet": "voxel-brimstoneeel.jpg",
+   "page": 3,
+   "rect": [
+    344,
+    38,
+    162,
+    93
+   ],
+   "bust": true
+  },
+  "CinderRay": {
+   "sheet": "voxel-cinderray.jpg",
+   "page": 3,
+   "rect": [
+    514,
+    32,
+    162,
+    105
+   ],
+   "bust": true
+  },
+  "InfernalAngler": {
+   "sheet": "voxel-infernalangler.jpg",
+   "page": 3,
+   "rect": [
+    684,
+    15,
+    162,
+    139
+   ],
+   "bust": false
+  },
+  "Hellmaw": {
+   "sheet": "voxel-hellmaw-mythic.jpg",
+   "page": 3,
+   "rect": [
+    854,
+    19,
+    162,
+    131
+   ],
+   "bust": false
+  },
+  "AbyssalWatcher": {
+   "sheet": "voxel-abyssalwatcher.jpg",
+   "page": 3,
+   "rect": [
+    4,
+    203,
+    162,
+    104
+   ],
+   "bust": false
+  },
+  "TheDevourer": {
+   "sheet": "voxel-thedevourer.jpg",
+   "page": 3,
+   "rect": [
+    174,
+    199,
+    162,
+    112
+   ],
+   "bust": false
+  }
+ },
+ "missing": [
+  "SergeantMajor",
+  "Clownfish",
+  "Fast",
+  "Predator",
+  "Frenzy",
+  "Breaker",
+  "Tank",
+  "Leaper"
+ ],
+ "stale": {
+  "BlueWhale": "the sheet is the old Blue Whale; voxel.py was rebuilt 2026-11-12",
+  "Dunkleosteus": "voxel.py edited 44 min after the sheet (2026-11-10)",
+  "Hellmaw": "voxel.py edited after the Mythic sheet (2026-11-10)"
+ },
+ "heroNotUsed": "art/creatures/*/renders/hero.png are the old faceted kit (2026-11-09), not the game's voxel models"
+}
