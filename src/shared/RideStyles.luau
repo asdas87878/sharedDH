@@ -195,4 +195,72 @@ function RideStyles.of(id: string): Style
 	return RideStyles.Styles[RideStyles.nameOf(id)]
 end
 
+-- The trainer on every plot (Hugo, 2026-11-19, task h1: "a real spring on a small red pad; ride it"): the toy Seahorse
+-- on a short grey coil, from the middle of its body's underside down to a small round red pad. The server builds it
+-- (TrainService) and seats the rider; every machine rocks it, and the rider with it (TrainerController). Kept here,
+-- not in Config, so both sides read the same shape. Claude's numbers, 2026-11-19, judged on captures only.
+RideStyles.Trainer = {
+	-- the spring
+	Length = 4.2, -- studs from the pad's top to the body's underside
+	Radius = 1.25, -- from the coil's axis to the middle of its wire
+	Wire = 0.55, -- the wire's square side: chunky
+	Turns = 4.5,
+	PerTurn = 12, -- straight pieces a turn
+	Colour = Color3.fromRGB(176, 184, 198),
+	CapColour = Color3.fromRGB(128, 136, 152), -- the two round plates the coil is fixed to
+	-- the pad: just wider than the coil
+	PadRadius = 2.05,
+	PadHigh = 0.7,
+	PadColour = Color3.fromRGB(226, 62, 62),
+	-- the rock: nose down and up about the pad, a little dip at each end of the swing
+	Beat = 0.95, -- swings (forward and back) a second
+	Swing = 11, -- degrees each way
+	Dip = 0.22, -- studs the spring gives at each end of a swing
+	Ease = 2.2, -- how quickly the rock grows when a rider sits and dies away when they leave (a second)
+	-- a hop's landing on it: the spring gives, then bounces back
+	Bounce = 0.7, -- studs
+	BounceDamp = 5,
+	BounceRate = 2.6, -- bounces a second
+	-- riding it
+	Reach = 5.5, -- studs from the coil's axis (flat) inside which walking up seats you
+	OnTop = 3.6, -- a jump that comes down within this of the axis, above the body's underside, seats you anywhere
+	Seat = Vector3.new(0, 2.3, -0.9), -- where the rider's root sits: from the body's middle, along its up and forward
+	HopOn = 0.42, -- seconds of the hop up onto the seat
+	HopArc = 3.2, -- studs the hop rises over the straight line
+	HopOff = Vector3.new(0, 30, 17), -- the hop off: speed up, and away (studs a second)
+	Every = 0.5, -- seconds between the "+n" Oxygen pops
+}
+
+export type TrainerShape = typeof(RideStyles.Trainer)
+
+-- The coil's pieces between a base frame (on the pad's top, its up along the coil) and a top frame (at the body's
+-- underside), each a CFrame and a length (along its Z). Bent: the coil's middle follows a curve that leaves the base
+-- straight up and meets the top along the top's own up, so a rocking toy bends it rather than tearing it.
+function RideStyles.coil(base: CFrame, top: CFrame): { { any } }
+	local t = RideStyles.Trainer
+	local p0, p3 = base.Position, top.Position
+	local reach = (p3 - p0).Magnitude / 3
+	local p1, p2 = p0 + base.UpVector * reach, p3 - top.UpVector * reach
+	local count = math.floor(t.Turns * t.PerTurn + 0.5)
+	local points = table.create(count + 1)
+	local ups = table.create(count + 1)
+	for k = 0, count do
+		local s = k / count
+		local u = 1 - s
+		local middle = p0 * (u * u * u) + p1 * (3 * u * u * s) + p2 * (3 * u * s * s) + p3 * (s * s * s)
+		local turn = base:Lerp(top, s).Rotation
+		local a = s * t.Turns * math.pi * 2
+		points[k + 1] = middle + turn:VectorToWorldSpace(Vector3.new(math.cos(a) * t.Radius, 0, math.sin(a) * t.Radius))
+		ups[k + 1] = turn.UpVector
+	end
+	local pieces = table.create(count)
+	for k = 1, count do
+		local a, b = points[k], points[k + 1]
+		local length = (b - a).Magnitude
+		-- (a little longer than the gap, so the outer corners of two pieces meet)
+		pieces[k] = { CFrame.lookAt((a + b) / 2, b, ups[k]), length + t.Wire * 0.55 }
+	end
+	return pieces
+end
+
 return RideStyles

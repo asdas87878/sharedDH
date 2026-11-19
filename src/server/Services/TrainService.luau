@@ -1,20 +1,27 @@
 --!strict
--- The training spot: stand on it in the hub and your max Oxygen grows (Config.Train). It is the smallest thing that
+-- The training spot: ride the toy on your plot and your max Oxygen grows (Config.Train). It is the smallest thing that
 -- lets the progression be played: more max Oxygen is more seconds on a fish, so deeper lands (docs/design/
 -- progression.md). The gain is RideService's to give (RideService.train: only on the dock) and lasts the session; there
 -- are no saves yet.
 -- Where (since 2026-11-16, with the hub's models): on your own plot, at its toy ride. Every plot has a `TrainerSpot`
--- (the pad) with a `TrainerRide` on it (the seahorse on a spring); you train standing on your own plot's pad, and the
--- ride rocks while you do (TrainerController, on each player's machine). A player with no plot (more players than
--- plots) may use any plot's. Only a map with no such plots gets the old stand-in: the map's part named TrainSpot
--- under the hub, or a pad made once beside the dock's spawn. The player's "Training" attribute is true while they
--- are gaining, for the HUD and the ride.
+-- with a `TrainerRide` on it (the seahorse). A player with no plot (more players than plots) may use any free plot's.
+-- Only a map with no such plots gets the old stand-in: the map's part named TrainSpot under the hub, or a pad made once
+-- beside the dock's spawn, where standing is training. The player's "Training" attribute is true while they are
+-- gaining, for the HUD and the ride.
+-- The ride (Hugo, 2026-11-19, task h1, docs/design/trainer.md): the kit's square pad, block and post are taken away at
+-- start, and the seahorse goes on a real grey coil (RideStyles.Trainer, RideStyles.coil) from the middle of its body's
+-- underside down to a small round red pad. Walk up to it, or jump onto it, and you are seated on it (a weld to its
+-- body; every machine plays the hop up and rocks the toy, and the rider with it: TrainerController); jump or walk off
+-- and you hop off. Only a seated rider trains, and every half second they are told what they gained ("Gain"), for the
+-- "+n" pops. The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
+-- "Gain", amount. The ride model carries Rider (the user id on it), SpringBase, SpringTop and Seat (CFrames at rest).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RideService = require(script.Parent.RideService)
+local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 
 local TrainService = {}
 
@@ -30,7 +37,7 @@ local PAD_COLOUR = Color3.fromRGB(90, 220, 255)
 local SIGN_BLUE = Color3.fromRGB(30, 140, 255)
 local SIGN_INK = Color3.fromRGB(16, 36, 63)
 
-local function trainSign(parent: BasePart, lift: number)
+local function trainSign(parent: BasePart, lift: number, riding: boolean?)
 	local sign = Instance.new("BillboardGui")
 	sign.Name = "Sign"
 	sign.Size = UDim2.fromScale(17, 6.4)
@@ -79,7 +86,7 @@ local function trainSign(parent: BasePart, lift: number)
 		stroke.Parent = label
 	end
 	line("Title", "TRAIN", 0.1, 0.56, Color3.new(1, 1, 1), 3)
-	line("What", "stand on it: more Oxygen", 0.7, 0.2, Color3.fromRGB(214, 234, 255), 1.5)
+	line("What", if riding then "ride it: more Oxygen" else "stand on it: more Oxygen", 0.7, 0.2, Color3.fromRGB(214, 234, 255), 1.5)
 	sign.Parent = parent
 end
 
@@ -113,7 +120,7 @@ local function label(spot: BasePart)
 	if spot:FindFirstChild("Sign") then
 		return
 	end
-	trainSign(spot, 30.5)
+	trainSign(spot, 30.5, true)
 end
 
 -- The plots' own training pads, by the plot's name (none on a map without them)

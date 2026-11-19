@@ -436,7 +436,9 @@ Config.Oxygen = {
 	-- (Hugo, 2026-11-18, task r1: "the ticking also goes way too fast when in the red zone". 1 s was 4 ticks at the
 	-- 0.25 s floor; now its ticks keep RedTick, below: 1.5 s is three ticks half a second apart, still nothing to
 	-- tame and little more than the reference's second.)
-	StrainTime = 1.5,
+	-- (Hugo, 2026-11-19, task o1 of mission 865072de: the red zone "5-7 ticks from entering it to 0", about 2-3 s:
+	-- 2.5, so what is left after the 2/3 break-off goes in RedTicks even ticks, as the red zone on any other fish)
+	StrainTime = 2.5,
 	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
 	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
 	-- angry here (Config.Angry, RideService).
@@ -477,13 +479,27 @@ Config.Oxygen = {
 	-- the struggle's snap to a thrash (AngryStyles.snapGap) only ever lengthens it further. Claude's pick: 0.5, twice
 	-- the 30-tick floor (0.25, "slightly fast"), the o1 ring's own floor, and long enough for the ring's whole fade
 	-- (Kit.RingLook.TickFade 0.3) and at least one thrash of most struggles. 0: the red part ticks as the rest.
-	RedTick = 0.5,
+	-- (0.5 until 2026-11-19; now only where RedTime is 0)
+	RedTick = 0.4,
+	-- The red zone in even ticks (Hugo, 2026-11-19, task o1: "the red zone shows 5-7 ticks from entering it to 0 ...
+	-- about 2-3 s on each fish, with even ticks"). From the tick that takes the meter under the red line (AngryAt, a
+	-- Tank's lower) what is left goes in RedTicks equal pieces over RedTime seconds, on every fish (RideService;
+	-- Config.redTicks). The seconds on a fish hold: the part above the line drains faster to make room
+	-- (Config.drainFor). On a fish so short the red part would be most of it, the red part takes at most RedMost of
+	-- its seconds (a new player on a Shallows Common: 2.4 of 5.3 s). A fish too strong ends the same way, after its
+	-- break-off (StrainTime). 0: the red part ticks as the rest (RedTick, above).
+	RedTime = 2.5,
+	RedTicks = 6,
+	RedMost = 0.45,
 	-- Tick sizes (Hugo, 2026-11-18, task s1: "make the increments smaller there should be way more ticks in a circle,
 	-- send different sizes for review"): one number picks a row of TickSizes, the options on
 	-- docs/attachments/oxygen-tick-sizes-1.png. The gap is secondsOn / Ticks, so more ticks = faster ticks: a new
 	-- player on a Shallows Common has 5.3 s, a land-10 Common at its need 16.5 s. Under Tick (the floor) a fish's
 	-- ticks merge into fewer, bigger pieces so its seconds hold (Config.tickOf). Hugo picked 3 (30 ticks), 2026-11-18.
-	TickSize = 3,
+	-- (2026-11-19, task o1: "ticks even SHORTER: smaller, more frequent pieces": 5, 60 ticks with a 0.2 s floor. Above
+	-- the red line that is 40 ticks; a new player's Shallows Common ticks a piece of 4.6% of the ring every 0.2 s
+	-- (it was 6.6% every 0.35), a land-10 Common at its need 1.7% every 0.35 s (it was 3.3% every 0.55))
+	TickSize = 5,
 	TickSizes = {
 		{ Ticks = 10, Tick = 0.5 }, -- (the o1 ring)
 		{ Ticks = 20, Tick = 0.2 },
@@ -516,7 +532,11 @@ Config.Oxygen = {
 	BreakOff = 2 / 3,
 	-- The HUD's big ring holds this much Oxygen; past it each further BarSize is a thin ring round it, the outermost
 	-- draining first (Hugo, 2026-11-18, task h1: "will all be handled in the progression setup later"; Kit.RingLook)
+	-- (2026-11-19, task o1: past BarSize a second ring, past 2 x BarSize a third, never more (RingsMost); the meter
+	-- shared EVENLY between the rings, so every ring ticks at the same pace, and the outermost empties first, then the
+	-- next, the big ring last: Config.ringsOf. Until then the big ring and the one extra ring emptied together.)
 	BarSize = 2000,
+	RingsMost = 3,
 	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 15: the spawn is 144 behind the lane's start and the gate's corners are 161 away, so this is the hub, the gate and the first 21 studs of water in the middle; it was 60 studs of water on grey-box 9; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
@@ -2259,10 +2279,48 @@ function Config.secondsOn(zone: number, tier: string, max: number, fish: FishTyp
 	return seconds
 end
 
+-- Seconds the red part lasts on a fish whose whole meter lasts `seconds` (Oxygen.RedTime, at most RedMost of them);
+-- 0: the red part ticks as the rest
+function Config.redSeconds(seconds: number): number
+	local o = Config.Oxygen
+	if o.RedTime <= 0 then
+		return 0
+	end
+	return math.min(o.RedTime, math.max(o.RedMost, 0.05) * seconds)
+end
+
 -- The Oxygen a second a rider with this max loses on this fish in land `zone` (what each tick takes, a second):
--- the whole meter in Config.secondsOn
+-- the whole meter in Config.secondsOn. With Oxygen.RedTime on, this is the drain above the red line: the red part
+-- has its own even ticks (Config.redTicks, RideService), and the two together still last Config.secondsOn
 function Config.drainFor(zone: number, fish: FishType, max: number): number
-	return max / math.max(Config.secondsOn(zone, fish.Tier, max, fish), 0.01)
+	local seconds = math.max(Config.secondsOn(zone, fish.Tier, max, fish), 0.01)
+	local red = Config.redSeconds(seconds)
+	if red <= 0 or Config.strained(zone, fish.Tier, max) then
+		return max / seconds
+	end
+	-- (above the red line: what is above it in what the red part leaves, Oxygen.RedTime)
+	return max * (1 - Config.angryAt(fish)) / math.max(seconds - red, 0.01)
+end
+
+-- The red part's ticks: `left` Oxygen in `seconds`, in Oxygen.RedTicks even pieces (fewer if their gap would be under
+-- the floor, Oxygen.Tick). Returns the piece and the gap.
+function Config.redTicks(left: number, seconds: number): (number, number)
+	local o = Config.Oxygen
+	seconds = math.max(seconds, 0.01)
+	local most = math.max(1, math.floor(seconds / math.max(o.Tick, 0.01) + 1e-6))
+	local count = math.clamp(math.floor(o.RedTicks + 0.5), 1, most)
+	return math.max(left, 0.001) / count, seconds / count
+end
+
+-- How many rings the HUD shows for this max Oxygen (Oxygen.BarSize, RingsMost): 1 up to BarSize, 2 up to twice
+-- it, then 3. The meter is shared evenly between them; the outermost empties first.
+function Config.ringsOf(max: number): number
+	local o = Config.Oxygen
+	local size = o.BarSize or 0
+	if size <= 0 then
+		return 1
+	end
+	return math.clamp(math.ceil(max / size - 1e-6), 1, math.max(o.RingsMost or 1, 1))
 end
 
 -- One tick's piece and the seconds between ticks (Oxygen.Ticks, the reading of 2026-11-18): the piece is always
@@ -2276,11 +2334,14 @@ function Config.tickOf(max: number, rate: number): (number, number)
 	return piece, piece / rate
 end
 
--- The ticks on a fish too strong, after the break-off: `left` Oxygen in StrainTime, in pieces as near 1 / Ticks of
--- the max as the gap (at least Oxygen.Tick, and RedTick: a fish too strong is the red part) allows. Returns the piece
--- and the gap.
+-- The ticks on a fish too strong, after the break-off: `left` Oxygen in StrainTime. With Oxygen.RedTime on, the red
+-- part's even ticks (Config.redTicks); else pieces as near 1 / Ticks of the max as the gap (at least Oxygen.Tick, and
+-- RedTick) allows. Returns the piece and the gap.
 function Config.strainTicks(max: number, left: number): (number, number)
 	local o = Config.Oxygen
+	if o.RedTime > 0 then
+		return Config.redTicks(left, o.StrainTime)
+	end
 	local least = math.max(o.Tick, o.RedTick, 0.01)
 	local most = math.max(1, math.floor(o.StrainTime / least + 1e-6))
 	local count = math.clamp(math.floor(left / (math.max(max, 0.001) / math.max(o.Ticks, 1)) + 0.5), 1, most)

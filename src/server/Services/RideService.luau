@@ -77,6 +77,8 @@ type Rider = {
 	TickPiece: number, -- the piece the next tick takes when its gap was made longer in the red part (redGap); 0: none
 	StrainPiece: number, -- on a fish too strong: each tick's piece of what the break-off left (Config.strainTicks)
 	StrainEvery: number, -- and the seconds between them
+	RedPiece: number, -- in the red part (Oxygen.RedTime): each tick's piece of what was left at the line; 0: not in it
+	RedEvery: number, -- and the seconds between them (Config.redTicks)
 	SentTame: number, -- the Tame attribute as last told (-1: none)
 	Tamed: { [Wild]: boolean }, -- the fish made ours on this dive (so one fish is not tamed twice)
 	Caught: { string }, -- what we carry: fish ids, oldest first (with an aquarium: until it is put in the tank)
@@ -762,7 +764,22 @@ local function redGap(r: Rider, rate: number, gap: number): number
 	return gap
 end
 
-local function tickDrain(r: Rider, rate: number, dt: number, piece: number?, every: number?)
+-- The red part in even ticks (Oxygen.RedTime, task o1 of 2026-11-19): `redLine` (Oxygen) and `redSeconds` given, the
+-- tick that takes the meter under the line starts it: what is left goes in Config.redTicks, and the gap told with
+-- that tick is already the red one (the struggle locks to it). The caller then passes RedPiece and RedEvery.
+local function startRed(r: Rider, redSeconds: number)
+	r.RedPiece, r.RedEvery = Config.redTicks(r.Oxygen, redSeconds)
+end
+
+local function tickDrain(
+	r: Rider,
+	rate: number,
+	dt: number,
+	piece: number?,
+	every: number?,
+	redLine: number?,
+	redSeconds: number?
+)
 	if Config.Oxygen.Tick <= 0 then
 		drain(r, rate * dt)
 		return
@@ -794,6 +811,11 @@ local function tickDrain(r: Rider, rate: number, dt: number, piece: number?, eve
 	-- at least RedTick already, Config.strainTicks, and its StrainTime holds.)
 	if piece then
 		r.TickPiece = 0
+	elseif redLine and redSeconds and r.Oxygen > 0 and r.Oxygen <= redLine then
+		-- (this tick crossed the red line: the red part's even ticks from here)
+		r.TickPiece = 0
+		startRed(r, redSeconds)
+		gap = r.RedEvery
 	else
 		gap = redGap(r, rate, gap)
 	end
@@ -1102,9 +1124,25 @@ local function tick(r: Rider, dt: number)
 			local zone = zoneOf(root.Position)
 			local rate = Config.drainFor(zone, w.Type, r.Max)
 			local strained = r.Strained and o.StrainTime > 0
+			-- the red part in even ticks (Oxygen.RedTime): RedTicks pieces of what was left at the line
+			local redLine: number?, redSeconds: number? = nil, nil
+			if not strained and o.RedTime > 0 then
+				local line = r.Max * Config.angryAt(w.Type)
+				local seconds = Config.redSeconds(Config.secondsOn(zone, w.Type.Tier, r.Max, w.Type))
+				redLine, redSeconds = line, seconds
+				if r.Oxygen > line then
+					r.RedPiece = 0 -- (above it again: a landing's refill)
+				elseif r.RedPiece <= 0 and r.Oxygen > 0 then
+					startRed(r, seconds) -- (got under it between ticks: a crash)
+				end
+			else
+				r.RedPiece = 0
+			end
 			if strained then
 				-- a fish too strong for us: what the break-off left (Oxygen.BreakOff) in StrainTime, whatever the fish
 				rate = r.StrainPiece / math.max(r.StrainEvery, 0.01)
+			elseif r.RedPiece > 0 then
+				rate = r.RedPiece / math.max(r.RedEvery, 0.01)
 			end
 			if rate ~= r.SentDrain then
 				r.SentDrain = rate
@@ -1114,8 +1152,10 @@ local function tick(r: Rider, dt: number)
 			tame(r, w, dt, zone)
 			if strained then
 				tickDrain(r, rate, dt, r.StrainPiece, r.StrainEvery)
+			elseif r.RedPiece > 0 then
+				tickDrain(r, rate, dt, r.RedPiece, r.RedEvery)
 			else
-				tickDrain(r, rate, dt)
+				tickDrain(r, rate, dt, nil, nil, redLine, redSeconds)
 			end
 			-- how fast the fish is going, from where we see it (eased over about 0.15 s: its place comes in steps)
 			local at = w.Root.Position
@@ -1233,6 +1273,8 @@ local function onPlayer(player: Player)
 		TickPiece = 0,
 		StrainPiece = 0,
 		StrainEvery = 1,
+		RedPiece = 0,
+		RedEvery = 1,
 		SentTame = -1,
 		Tamed = setmetatable({}, { __mode = "k" }) :: any,
 		Caught = {},
