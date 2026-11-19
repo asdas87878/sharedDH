@@ -639,6 +639,26 @@ Config.Train = {
 	} :: { { Name: string, Oxygen: number, Price: number } },
 	Free = 1, -- 1: every level costs nothing for now (Hugo, 2026-11-18: "let upgrades be free for now"); the price is still shown
 	UpgradeNear = 14, -- studs from the coil's axis (flat) inside which the owner can upgrade (the prompt's reach)
+	-- The next level's price in Robux, shown on the upgrade sign beside the cash price (task s2, after Ride a Dino's
+	-- "Upgrade Machine" sign). !! PLACEHOLDERS, shown only: there is no developer product yet (RobuxProduct 0), so
+	-- nothing can be bought with them. Index = the level bought; 0 or missing = no Robux block on the sign.
+	Robux = { 0, 25, 39, 49, 79, 99, 149, 199, 249, 349, 499, 799 } :: { number },
+	RobuxProduct = 0, -- the developer product's id, once there is one (0: the Robux block is a picture only)
+	-- The upgrade sign: a board on a post beside each plot's seahorse (TrainService puts the parts there when the map
+	-- has none; tools/map/hub_kit.py builds the same, its numbers copied from here; Client.UI.UpgradeSign writes on it).
+	-- Studs, in the trainer pad's own frame: Side along the plot's front (minus: toward the collect pad), Ahead toward
+	-- the hub, from the coil's axis.
+	Sign = {
+		Side = -11,
+		Ahead = 4,
+		Wide = 9, -- the board
+		High = 5.4,
+		Foot = 2.6, -- the board's underside over the floor
+		Post = 0.8, -- the post's thickness
+		Thick = 0.5, -- the board's
+		PixelsPerStud = 60, -- the writing's sharpness (and its size: the layout is in these pixels)
+		Far = 160, -- studs: not drawn past this
+	},
 }
 
 -- The little effects on land (Hugo, 2026-11-20, task v1; Controllers/GroundFxController), on every machine for every

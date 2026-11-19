@@ -60,9 +60,17 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
   overshoot, 0.45 s), a white flash fades off it (0.7 s), sparks burst from the top of the coil, and the spring bounces.
   The owner also sees "LEVEL n: NAME!" in the middle of the screen. Numbers in `RideStyles.Trainer` (UpIn, UpFlash,
   UpSparks).
-- **The sign** (as the mock-up [ui8-trainer-upgrade.jpg](../attachments/ui8-trainer-upgrade.jpg)): under TRAIN and
-  "ride it: more Oxygen", the level and what it gives on a white bar, the next level and what it gives, and its price
-  on an orange button (FREE for now). There is no Robux button yet (no Robux prices).
+- **The upgrade sign** (task s2, 2026-11-20, after Ride a Dino's "Upgrade Machine" board, reference
+  `nullroom/data/uploads/2026-11-19/235338-pasted-235338.png`): a board on a post beside each plot's seahorse, toward
+  the collect pad and a little toward the hub, facing the hub (parts `UpgradeBoard` and `UpgradePost` in the plot;
+  `Config.Train.Sign`). Written on each machine by `Client.UI.UpgradeSign` (a SurfaceGui in the shop kit's look: the
+  dark slate with bubbles, the thick dark border, Fredoka with the ink edge, the kit's flat blocks): UPGRADE SEAHORSE;
+  the next level's own model in a dark well and "LV n NAME" in the cash green; "+4 > +6 Oxygen/s" (now > next,
+  `Levels[n].Oxygen`); a red cash block (FREE while `Train.Free` is 1) and a purple Robux block (`Train.Robux`,
+  **placeholders, shown only**: no developer product, `Train.RobuxProduct` 0). At level 12: SEAHORSE MAXED!, the
+  level-12 seahorse, its name in gold, "+600 Oxygen/s" and one gold MAX LEVEL block. Each sign shows its plot owner's
+  level, so your own is yours; it changes (with a pop) the moment you upgrade. Upgrading is still E by the ride. The
+  floating TRAIN sign keeps only its two lines (its level lines are gone: the board says them).
 - **What a level gives:** riding it gains that level's Oxygen a second (`Config.Train.Levels[n].Oxygen`) in place of
   `Train.Rate`, plus the old share of max (`Train.Share`) until the economy is picked. **The Oxygen and the prices
   are placeholders** (marked so in Config): fixed whole numbers, waiting for Hugo's pick of the economy draft
@@ -116,13 +124,13 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
 - `tools/studio/trainer_capture.py`: the GIF and the still from a playtest, frame by frame on that clock.
 - The levels: `Config.Train.Levels` (names, Oxygen, prices: placeholders), `Train.Free`, `Train.UpgradeNear`;
   `RideStyles.Trainer` Scale, SeatLift, SeatBack, UpIn, UpFlash, UpSparks and `RideStyles.CoilColours`; in
-  `TrainService` `build` (a ride at a level), the "Up" request, the sign's level lines, and the Studio hook
+  `TrainService` `build` (a ride at a level), the "Up" request, `upgradeSign` (the sign's parts on a map without them), and the Studio hook
   `ServerStorage.TrainerTest`; the ride model also carries Level, Title, Build, PartCount and UpgradeAt. Models:
   `art/creatures/Seahorse/tiers/` (trainer.py, build_tiers.py, install_tiers.py, tier_stills.py, game/).
   `RideStyles.Trainer.SpringLength`; the model's attributes Foot, StandTop, SpringAt, SeatAt.
 
 ## Open
-- The levels' Oxygen and prices wait for Hugo's pick of the economy draft (b1); the sign has no Robux button yet.
+- The levels' Oxygen and prices wait for Hugo's pick of the economy draft (b1); the sign's Robux prices are placeholders, with no product behind them.
 - The level is kept for the session only (no saves yet), like the coins.
 - The 12 models are local to Hugo's PC until uploaded (needs Hugo's OK).
 - Judged on captures only, not played by hand: the upgrade's look, the seat on each level, the higher stand.

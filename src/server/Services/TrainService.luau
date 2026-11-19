@@ -42,7 +42,8 @@ local PAD_COLOUR = Color3.fromRGB(90, 220, 255)
 -- The trainer's sign, in the hub's sign style (the user's pick of 2026-11-16, "B": the gate's sign; docs/design/
 -- ui.md): a blue board with a white rim and a darker copy under it, "TRAIN" in white letters with a dark edge, and
 -- one line saying what it does. It is sized in studs, so it keeps its size in the world, and is not drawn past 220
--- studs. Only what is true today is on it: the ride's level and the next ride's price come with the upgrade.
+-- studs. It says only what the ride is for: its level, the next one and the prices are on the upgrade sign beside
+-- the ride (upgradeSign, below; task s2).
 -- Every plot's ride has one. Each player's own machine hides the others' (Client.UI.HubSigns), so a player sees the
 -- sign once, over their own ride; nothing here sets Enabled after the sign is made.
 local SIGN_BLUE = Color3.fromRGB(30, 140, 255)
@@ -146,93 +147,50 @@ local function levelRow(n: number): { Name: string, Oxygen: number, Price: numbe
 	return levels[math.clamp(n, 1, #levels)]
 end
 
-local function short(n: number): string
-	local sizes, marks = { 1e12, 1e9, 1e6, 1e3 }, { "T", "B", "M", "K" }
-	for i, size in sizes do
-		if n >= size then
-			local text = string.format("%.1f", n / size)
-			return (string.gsub(text, "%.0$", "")) .. marks[i]
-		end
-	end
-	return tostring(math.floor(n))
-end
+-- The upgrade sign's board and post (task s2: Ride a Dino's "Upgrade Machine" sign, ours): beside the ride, toward
+-- the collect pad and a little toward the hub, facing the hub (Config.Train.Sign; tools/map/hub_kit.py builds the
+-- same parts, so a map from it already has them and this does nothing). What it says is each machine's to write
+-- (Client.UI.UpgradeSign); the board is the colour of the writing's border.
+local SIGN_EDGE = Color3.fromRGB(10, 12, 22)
+local SIGN_POST = Color3.fromRGB(28, 32, 46)
 
--- The sign's level lines (the mock-up ui8-trainer-upgrade.jpg): under today's two lines, the ride's level and what it
--- gives on a white bar, the next level and what that gives, and its price on an orange button (press E by the ride).
--- The board grows to hold them, its foot kept where it was.
-local function levelSign(spot: BasePart, level: number)
-	local sign = spot:FindFirstChild("Sign")
-	local board = sign and sign:FindFirstChild("Board")
-	if not (sign and sign:IsA("BillboardGui") and board and board:IsA("Frame")) then
+local function upgradeSign(plot: Instance, spot: BasePart)
+	if plot:FindFirstChild("UpgradeBoard") then
 		return
 	end
-	local tall = 11.6
-	if sign.Size.Y.Scale ~= tall then
-		sign.Size = UDim2.fromScale(17, tall)
-		sign.StudsOffsetWorldSpace = Vector3.new(0, 30.5 + (tall - 6.4) / 2, 0)
-		local scale = 6.4 / tall -- today's two lines keep their size, at the top
-		for _, line in board:GetChildren() do
-			if line:IsA("TextLabel") then
-				line.Position = UDim2.fromScale(line.Position.X.Scale, line.Position.Y.Scale * scale)
-				line.Size = UDim2.fromScale(line.Size.X.Scale, line.Size.Y.Scale * scale)
-			end
-		end
+	local s = Config.Train.Sign
+	local floor = spot.Position.Y - spot.Size.Y / 2
+	local at = spot.CFrame:PointToWorldSpace(Vector3.new(s.Side, 0, s.Ahead))
+	local z = spot.CFrame.ZVector
+	local front = Vector3.new(z.X, 0, z.Z).Unit
+	local function piece(name: string, size: Vector3, middle: Vector3, colour: Color3): Part
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = CFrame.lookAt(middle, middle + front)
+		p.Anchored = true
+		p.CanCollide = true
+		p.CanTouch = false
+		p.Material = Enum.Material.SmoothPlastic
+		p.Color = colour
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = plot
+		return p
 	end
-	local function text(name: string, y: number, high: number, colour: Color3, back: Color3?): TextLabel
-		local found = board:FindFirstChild(name) :: TextLabel?
-		if not found then
-			local made = Instance.new("TextLabel")
-			made.Name = name
-			made.Position = UDim2.fromScale(0.06, y)
-			made.Size = UDim2.fromScale(0.88, high)
-			made.Font = Enum.Font.LuckiestGuy
-			made.TextScaled = true
-			made.ZIndex = 3
-			made.BorderSizePixel = 0
-			local stroke = Instance.new("UIStroke")
-			stroke.Thickness = 1.5
-			stroke.Color = SIGN_INK
-			stroke.LineJoinMode = Enum.LineJoinMode.Round
-			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-			stroke.Parent = made
-			if back then
-				local corner = Instance.new("UICorner")
-				corner.CornerRadius = UDim.new(0.25, 0)
-				corner.Parent = made
-				local pad = Instance.new("UIPadding")
-				pad.PaddingTop = UDim.new(0.14, 0)
-				pad.PaddingBottom = UDim.new(0.14, 0)
-				pad.Parent = made
-			end
-			made.Parent = board
-			found = made
-		end
-		local l = found :: TextLabel
-		l.TextColor3 = colour
-		l.BackgroundTransparency = if back then 0 else 1
-		if back then
-			l.BackgroundColor3 = back
-		end
-		return l
-	end
-	local now = levelRow(level)
-	local top = #Config.Train.Levels
-	text("Level", 0.42, 0.12, Color3.fromRGB(30, 110, 230), Color3.new(1, 1, 1)).Text =
-		string.format("LEVEL %d: %s: +%s A SECOND", level, string.upper(now.Name), short(now.Oxygen))
-	local nextLine = text("Next", 0.58, 0.1, Color3.new(1, 1, 1))
-	local price = text("Price", 0.73, 0.2, Color3.new(1, 1, 1), Color3.fromRGB(255, 150, 20))
-	price.Size = UDim2.fromScale(0.5, 0.2)
-	price.Position = UDim2.fromScale(0.25, 0.73)
-	if level >= top then
-		nextLine.Text = "THE TOP LEVEL"
-		price.Visible = false
-	else
-		local after = levelRow(level + 1)
-		nextLine.Text =
-			string.format("NEXT, LEVEL %d: %s: +%s A SECOND", level + 1, string.upper(after.Name), short(after.Oxygen))
-		price.Visible = true
-		price.Text = if Config.Train.Free == 1 then "FREE" else "$" .. short(after.Price)
-	end
+	local postHigh = s.Foot + s.High / 2
+	piece(
+		"UpgradePost",
+		Vector3.new(s.Post, postHigh, s.Post),
+		Vector3.new(at.X, floor + postHigh / 2, at.Z) - front * (s.Thick / 2 + s.Post / 2),
+		SIGN_POST
+	)
+	piece(
+		"UpgradeBoard",
+		Vector3.new(s.Wide, s.High, s.Thick),
+		Vector3.new(at.X, floor + s.Foot + s.High / 2, at.Z),
+		SIGN_EDGE
+	)
 end
 
 -- One plot's ride, made over (see the top of the file)
@@ -523,7 +481,6 @@ local function build(ride: Ride, level: number, upgrade: boolean): boolean
 	end
 	ride.Model:SetAttribute("PartCount", count)
 	ride.Model:SetAttribute("Build", ride.Build)
-	levelSign(ride.Spot, level)
 	-- a rider stays on: welded to the new body at the new seat
 	if rider and weld then
 		local root = weld.Part1
@@ -550,6 +507,7 @@ local function plotRides(): { [string]: Ride }
 			local spot = plot:FindFirstChild("TrainerSpot")
 			if spot and spot:IsA("BasePart") then
 				label(spot)
+				upgradeSign(plot, spot)
 				local ride = makeRide(plot, spot)
 				if ride then
 					rides[plot.Name] = ride
@@ -649,9 +607,7 @@ function TrainService.Start()
 	end)
 	local rides = plotRides()
 	for _, ride in rides do
-		if not build(ride, 1, false) then
-			levelSign(ride.Spot, 1)
-		end
+		build(ride, 1, false)
 	end
 	if next(rides) == nil then
 		local spot = findSpot()
@@ -741,9 +697,8 @@ function TrainService.Start()
 		local owner = ownerOf(ride)
 		local want = if owner then levelOf(owner) else 1
 		if ride.Level ~= want and not build(ride, want, upgrade) then
-			-- (no level models: the kit's toy stays, and the sign says the level)
+			-- (no level models: the kit's toy stays, and the upgrade sign says the level)
 			ride.Level = want
-			levelSign(ride.Spot, want)
 		end
 	end
 

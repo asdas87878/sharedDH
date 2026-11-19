@@ -12,8 +12,8 @@ What they build:
   Dock/Stations/Earners/Board       its SurfaceGui "Rows" holds Row1 ... Row5 (TextLabels) for the game to write on
   Dock/Gate                         the arch, its sign, the kelp
   Dock/Plots/Plot1 ... Plot8        a Model each, with the parts the game reads by name: TankWater, Pad, CollectPad,
-                                    SignBoard, TrainerSpot; TrainerRide is a Model (the seahorse) whose PrimaryPart is
-                                    the part named TrainerRide
+                                    SignBoard, TrainerSpot, UpgradeBoard and UpgradePost (the seahorse's upgrade sign);
+                                    TrainerRide is a Model (the seahorse) whose PrimaryPart is the part named TrainerRide
   Dock/Landmark, Dock/Dressing
   Dock/HubLife                      a small client script: the water on the tanks and pools moves
 The first file clears what the last run made (and the blockout's stalls and flags, if this map still has them)."""

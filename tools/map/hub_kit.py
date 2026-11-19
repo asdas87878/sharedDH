@@ -722,7 +722,25 @@ def plot(out, index, cx, cz, turn_deg, hub, level=1):
     ride = k.sub((tx, 5, tz), model=name + "/TrainerRide", solid=False)
     ride.box(0, 0, 0, 6, 0.8, 8, tuple(colour), n="TrainerRide", tex="stud")
     ride.fish("Seahorse", 0, 0.6 + 14.2 * 0.85 / 2, 0, 0.85, n="Toy")
+    upgrade_sign(k, tx, tz)
     return k
+
+
+# the seahorse's upgrade sign (task s2, after Ride a Dino's "Upgrade Machine" board): copied from Config.Train.Sign,
+# which TrainService uses for a map without these parts. Side along the plot's front (minus: toward the collect pad),
+# Ahead toward the hub, from the trainer's middle; the board's face (UpgradeBoard's front) toward the hub; the game
+# writes on it (Client.UI.UpgradeSign)
+SIGN = {"Side": -11, "Ahead": 4, "Wide": 9, "High": 5.4, "Foot": 2.6, "Post": 0.8, "Thick": 0.5}
+SIGN_EDGE = (10, 12, 22)  # the writing's border colour (Shop.Edge)
+SIGN_POST = (28, 32, 46)
+
+
+def upgrade_sign(k, tx, tz):
+    s = SIGN
+    x, z = tx + s["Side"], tz + s["Ahead"]
+    post = s["Foot"] + s["High"] / 2
+    k.box(x, 0, z - s["Thick"] / 2 - s["Post"] / 2, s["Post"], post, s["Post"], SIGN_POST, yaw=180, n="UpgradePost")
+    k.box(x, s["Foot"], z, s["Wide"], s["High"], s["Thick"], SIGN_EDGE, yaw=180, n="UpgradeBoard", shadow=False)
 
 
 # ---------------------------------------------------------------- the middle

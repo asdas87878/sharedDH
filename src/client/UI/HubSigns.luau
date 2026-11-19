@@ -7,6 +7,8 @@
 -- Looked at once a second: eight plots, and a property is written only when it changes.
 local Players = game:GetService("Players")
 
+local UpgradeSign = require(script.Parent.UpgradeSign)
+
 local HubSigns = {}
 
 local EVERY = 1
@@ -47,6 +49,8 @@ local function look()
 end
 
 function HubSigns.start()
+	-- the seahorse's upgrade sign on its post, beside every plot's ride (UpgradeSign)
+	UpgradeSign.start()
 	task.spawn(function()
 		while true do
 			look()
