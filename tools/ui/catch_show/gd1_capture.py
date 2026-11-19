@@ -6,6 +6,7 @@ real end of a dive (Banners.greatDive) in a Studio playtest, shot frame by frame
     python tools/ui/catch_show/gd1_capture.py final                 # variant 1 with a click to close: great-dive-final.gif
     python tools/ui/catch_show/gd1_capture.py skip                  # a click while it comes in, a click to close, spam
     python tools/ui/catch_show/gd1_capture.py sheet                 # great-dive-options-1.png from the variants' frames
+    python tools/ui/catch_show/gd1_capture.py rebuild               # the GIFs and the sheet from the frames shot
     python tools/ui/catch_show/gd1_capture.py copy                  # to ~/Pictures/ride-a-fish/sheets/
 Needs Studio with the studio-runner plugin, the repo's code in the place, and a playtest running (after `install`).
 """
@@ -66,9 +67,33 @@ def start(variant, count=None, best=True):
     time.sleep(2.0)  # (the fish pictures load)
 
 
+def tight(im):
+    """The screen and a little round it: the middle 62% of the view's width, its top 84%."""
+    W, H = im.size
+    w = int(W * 0.62)
+    return im.crop(((W - w) // 2, int(H * 0.09), (W + w) // 2, int(H * 0.84)))
+
+
 def at(t, name):
     set_attrs(GD1Clock=T0 + t)
-    return K.crop(K.vshot(name))
+    return tight(K.vshot(name))
+
+
+def load(name):
+    return tight(Image.open(OUT / f"{name}.png").convert("RGB"))
+
+
+def rebuild():
+    """The GIFs and the sheet again from the frames already shot (work/catch_show/gd1_*.png)."""
+    n_frames = len(times())
+    for n in NAMES:
+        pics = [load(f"gd1_{n}_{i:03d}") for i in range(n_frames)]
+        K.save_gif(pics, ATT / f"great-dive-option-{n}.gif", fps=FPS)
+        if n == 1:
+            pics[-1].save(ATT / "great-dive-final.png")
+            out = [load(f"gd1_close_{i:02d}") for i in range(9)]
+            K.save_gif(pics + out, ATT / "great-dive-final.gif", fps=FPS, hold_last=4)
+    sheet()
 
 
 def times():
@@ -116,9 +141,9 @@ def sheet():
         for t in STRIP:
             i = min(int(round(t * FPS)), len(times()) - 1)
             p = OUT / f"gd1_{n}_{i:03d}.png"
-            frames.append(Image.open(p).convert("RGB"))
+            frames.append(tight(Image.open(p).convert("RGB")))
         pics[n] = frames
-    cw = 300
+    cw = 380
     ch = int(frames[0].height * cw / frames[0].width)
     head = 40
     W = 20 + len(STRIP) * (cw + 6)
@@ -174,5 +199,7 @@ if __name__ == "__main__":
         skip()
     elif what == "sheet":
         sheet()
+    elif what == "rebuild":
+        rebuild()
     elif what == "copy":
         copy_out()
