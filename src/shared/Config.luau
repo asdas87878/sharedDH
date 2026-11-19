@@ -641,6 +641,32 @@ Config.Train = {
 	UpgradeNear = 14, -- studs from the coil's axis (flat) inside which the owner can upgrade (the prompt's reach)
 }
 
+-- The little effects on land (Hugo, 2026-11-20, task v1; Controllers/GroundFxController), on every machine for every
+-- player near the camera, local parts only (nothing replicates, nothing uploaded):
+-- the hop off the seahorse trainer: a puff of bubbles and sparkles from the seat and a boing of the spring;
+-- a landing on the ground (a jump, the seahorse, a fish): a flat cartoon ring that runs out and fades, with a few
+-- round puffs, all sized by the drop. Not under the sea, not on the trainer, not after a small step down.
+Config.GroundFx = {
+	On = 1, -- 0: neither effect
+	-- the hop off
+	OffBubbles = 7, -- round bubbles from the seat
+	OffSparkles = 6, -- sparkles with them
+	OffTime = 0.45, -- seconds the puff lasts
+	OffReach = 2.6, -- studs the bubbles fly out
+	OffBoing = 1.3, -- the spring's give as the rider leaves, in RideStyles.Trainer.Bounce (it was 0.6)
+	-- the landing
+	MinDrop = 3.5, -- studs fallen (from the highest point) below which a landing makes nothing (a curb, a stair)
+	FullDrop = 18, -- studs at which the ring is its biggest
+	Radius = 3.2, -- studs the ring runs out to after the smallest drop that counts
+	RadiusMax = 7.5, -- and after FullDrop or more
+	Width = 0.55, -- studs: the ring's band
+	Edge = 0.18, -- studs: its dark outline each side
+	Time = 0.38, -- seconds the ring lasts
+	Puffs = 4, -- round dust puffs (more after a big drop: up to twice)
+	PuffSize = 1.1, -- studs across at their biggest, after the smallest drop (1.8 x after FullDrop)
+	Range = 220, -- studs from the camera: landings further off are not watched
+}
+
 -- Taming (the dive, decided 2026-11-09: stay on a wild fish long enough and it is yours). Riding a fish you can hold
 -- fills its tame; full, it joins what you carry on this dive, and at the dock the dive's catch is added to what you
 -- own. Kept for the session only: there are no saves, no tank and no income yet. A fish too strong for you

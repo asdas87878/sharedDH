@@ -22,6 +22,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 local Kit = require(script.Parent.Parent.UI.Kit)
+local GroundFx = require(script.Parent.GroundFxController)
 
 local TrainerController = {}
 
@@ -53,6 +54,7 @@ type Ride = {
 	Moved: boolean,
 	Hop: Hop?,
 	Seen: { [Weld]: boolean },
+	SeatC0: CFrame?, -- where the last rider sat, from the body (for the hop off's puff)
 }
 
 local rides: { Ride } = {}
@@ -170,6 +172,7 @@ local function gather()
 			Moved = false,
 			Hop = nil,
 			Seen = {},
+			SeatC0 = nil,
 		})
 	end
 end
@@ -290,6 +293,7 @@ local function watchWelds(ride: Ride, now: number)
 		end
 		if child:IsA("Weld") and child.Name == "TrainerWeld" and not ride.Seen[child] then
 			ride.Seen[child] = true
+			ride.SeatC0 = child.C0
 			local root = child.Part1
 			local before = if root then lastRoot[root] else nil
 			if before then
@@ -472,8 +476,13 @@ local function step()
 		if seated ~= ride.Had then
 			ride.Had = seated
 			if not seated then
-				-- (the rider's weight is off: it springs up)
-				bounce(ride, -T.Bounce * 0.6)
+				-- (the rider's weight is off: it springs up, a boing, and a puff from the seat: Config.GroundFx)
+				bounce(ride, -T.Bounce * Config.GroundFx.OffBoing)
+				local seat = ride.SeatC0
+				local puff = if seat
+					then (ride.Body.CFrame * seat).Position - Vector3.new(0, 1.2, 0)
+					else ride.Body.Position + Vector3.new(0, 1, 0)
+				GroundFx.hopOff(puff)
 			end
 		end
 		if (ride.Base.Position - eye).Magnitude > SEE then
