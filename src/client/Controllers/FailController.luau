@@ -52,6 +52,9 @@ type Joint = {
 	Dir: Vector3, -- an arm segment's way at rest, in the fish's space
 	Pivot: Vector3, -- in the fish's space
 	Count: number, -- how many joints of its kind there are (a spine's turn is shared out)
+	Parent: string, -- the part it hangs from (its chain's links)
+	Chain: number?, -- an arm's: which of the fish's own arms it is (f.Chains), and which link of it
+	Link: number?,
 }
 
 -- the fish's rig this frame (every number eased by the outcome itself)
@@ -89,15 +92,17 @@ type Body = {
 	Replay: boolean, -- (Studio: this one is a playback: no physics of ours)
 }
 
--- one of the kraken's arms shooting out to a limb
-type Tentacle = {
-	Segs: { BasePart },
-	From: BasePart?, -- the rig's arm it comes out of (nil: the fish's underside)
-	Target: string, -- the limb it goes for
-	Start: number, -- seconds in it leaves
+-- One of the fish's own arms (an octopus's, a crawler's claws), its joints root to tip (Hugo, 2026-11-19: "use the
+-- actual tentacles from the model, don't add new ones"). Posed by a little inverse kinematics in the fish's own
+-- space: each link's turn worked out so the tip reaches its target, from the rest pivots of Shared/Creatures.
+type Chain = {
+	Joints: { Joint },
+	Rest: { Vector3 }, -- the pivots at rest, and the tip after them (fish space)
+	Turns: { CFrame }, -- this frame's turn of each link against the one before
+	Live: boolean, -- posed by the kinematics this frame
+	Target: string?, -- the limb it takes
+	Start: number, -- seconds in it reaches out
 	Grab: number, -- and takes hold
-	Phase: number,
-	Thick: number,
 }
 
 type Fail = {
@@ -125,7 +130,7 @@ type Fail = {
 	Joints: { Joint },
 	Bulge: { BasePart }, -- the spine's parts, nose to tail (the swallow's bulge runs down them)
 	Sizes: { [BasePart]: Vector3 }, -- their own sizes
-	Tentacles: { Tentacle },
+	Chains: { Chain },
 	Shade: ScreenGui?,
 	CamStart: Vector3,
 	CamTo: Vector3,
@@ -257,6 +262,7 @@ local function readRig(fish: Model, length: number): { Joint }
 			or string.match(name, "^T[RL][a-z]$") ~= nil
 			or string.find(name, "Arm") ~= nil
 			or string.find(name, "Tentacle") ~= nil
+			or string.find(name, "Claw") ~= nil
 	end
 	local function depthOf(name: string): number
 		local d, at = 1, rows[name]
@@ -332,6 +338,9 @@ local function readRig(fish: Model, length: number): { Joint }
 			Dir = dir,
 			Pivot = pivot,
 			Count = 0,
+			Parent = parent,
+			Chain = nil,
+			Link = nil,
 		})
 	end
 	for _, j in joints do
@@ -348,6 +357,167 @@ local function turnTo(a: Vector3, b: Vector3, w: number, most: number): CFrame
 	end
 	local angle = math.min(math.acos(math.clamp(a:Dot(b), -1, 1)), most) * w
 	return CFrame.fromAxisAngle(axis.Unit, angle)
+end
+
+-- The fish's own arms, found once: each chain from a first segment (Depth 1) out through its children
+local function readChains(joints: { Joint }): { Chain }
+	local byParent: { [string]: Joint } = {}
+	for _, j in joints do
+		if j.Kind == "arm" and j.Depth > 1 then
+			byParent[j.Parent] = j
+		end
+	end
+	local chains: { Chain } = {}
+	for _, j in joints do
+		if j.Kind == "arm" and j.Depth == 1 then
+			local list: { Joint } = {}
+			local at: Joint? = j
+			while at and #list < 8 do
+				table.insert(list, at)
+				at = byParent[at.Name]
+			end
+			local rest: { Vector3 } = {}
+			for _, link in list do
+				table.insert(rest, link.Pivot)
+			end
+			-- the tip: on past the last pivot by the last link's own length (or its part's, for a one-link claw)
+			local last = list[#list]
+			local before = if #list > 1 then list[#list - 1].Pivot else nil
+			local length = if before then (last.Pivot - before).Magnitude else last.Part.Size.Magnitude * 0.8
+			table.insert(rest, last.Pivot + last.Dir * length)
+			table.insert(chains, {
+				Joints = list,
+				Rest = rest,
+				Turns = {},
+				Live = false,
+				Target = nil,
+				Start = 0,
+				Grab = 0,
+			})
+			for i, link in list do
+				link.Chain = #chains
+				link.Link = i
+			end
+		end
+	end
+	return chains
+end
+
+-- Where a chain's tip is with these absolute turns of its links (fish space)
+local function chainTip(chain: Chain, abs: { CFrame }): Vector3
+	local at = chain.Rest[1]
+	for i = 1, #chain.Joints do
+		at += abs[i] * (chain.Rest[i + 1] - chain.Rest[i])
+	end
+	return at
+end
+
+-- and where it is as posed this frame
+local function tipNow(chain: Chain): Vector3
+	local abs: { CFrame } = {}
+	local acc = CFrame.identity
+	for i = 1, #chain.Joints do
+		acc = acc * (chain.Turns[i] or CFrame.identity)
+		abs[i] = acc
+	end
+	return chainTip(chain, abs)
+end
+
+-- Reach for `target` (fish space), `w` of the way from rest: cyclic coordinate descent, each link turned at most
+-- 75 degrees against the one before, so it bends like an arm and never folds through itself
+local function reach(chain: Chain, target: Vector3, w: number)
+	local n = #chain.Joints
+	local abs: { CFrame } = table.create(n, CFrame.identity)
+	for _ = 1, 10 do
+		for i = n, 1, -1 do
+			local pivot = chain.Rest[1]
+			for k = 1, i - 1 do
+				pivot += abs[k] * (chain.Rest[k + 1] - chain.Rest[k])
+			end
+			local a, b = chainTip(chain, abs) - pivot, target - pivot
+			if a.Magnitude > 0.01 and b.Magnitude > 0.01 then
+				local turn = turnTo(a.Unit, b.Unit, 1, rad(30))
+				for k = i, n do
+					abs[k] = turn * abs[k]
+				end
+				local before = if i > 1 then abs[i - 1] else CFrame.identity
+				local axis, angle = (before:Inverse() * abs[i]):ToAxisAngle()
+				if angle > rad(75) then
+					local fix = before * CFrame.fromAxisAngle(axis, rad(75)) * abs[i]:Inverse()
+					for k = i, n do
+						abs[k] = fix * abs[k]
+					end
+				end
+			end
+		end
+		if (chainTip(chain, abs) - target).Magnitude < 0.3 then
+			break
+		end
+	end
+	local rest = CFrame.identity
+	for i = 1, n do
+		abs[i] = rest:Lerp(abs[i], w)
+	end
+	for i = 1, n do
+		chain.Turns[i] = if i == 1 then abs[1] else abs[i - 1]:Inverse() * abs[i]
+	end
+	chain.Live = true
+end
+
+-- Which of its own arms take which limb, and where each reaches this frame (every machine works out the same from
+-- the body it sees). An octopus: the six nearest you, one after another, each to a limb, then curling back in toward
+-- its beak with it. A crawler: its claws to your body, pressing you down under its jaws.
+local LIMB_ORDER = { "Torso", "LArm", "RArm", "LLeg", "RLeg", "Lower" }
+
+local function armsStep(f: Fail, t: number)
+	for _, chain in f.Chains do
+		chain.Live = false
+	end
+	if #f.Chains == 0 or not f.Character or (f.Kind ~= "Wrap" and f.Kind ~= "Pin") then
+		return
+	end
+	local rootCF = f.FishRoot.CFrame
+	local torso = limb(f.Character, "Torso")
+	local first = if f.Kind == "Wrap" then 0.55 else 0.7
+	if not torso or t < first then
+		return
+	end
+	-- (handed out once: the arms nearest the body as they first reach)
+	local given = false
+	for _, chain in f.Chains do
+		given = given or chain.Target ~= nil
+	end
+	if not given then
+		local torsoLocal = rootCF:PointToObjectSpace(torso.Position)
+		local order = table.clone(f.Chains)
+		table.sort(order, function(a, b)
+			return (a.Rest[#a.Rest] - torsoLocal).Magnitude < (b.Rest[#b.Rest] - torsoLocal).Magnitude
+		end)
+		local count = math.min(if f.Kind == "Wrap" then 6 else 2, #order)
+		for i = 1, count do
+			local chain = order[i]
+			chain.Target = if f.Kind == "Wrap" then LIMB_ORDER[i] else "Torso"
+			chain.Start = first + (i - 1) * 0.07
+			chain.Grab = chain.Start + (if f.Kind == "Wrap" then 0.4 else 0.3)
+		end
+	end
+	-- where they haul you: below and behind an octopus's beak, among its arms; under a crawler's jaws
+	local home = if f.Kind == "Wrap"
+		then f.Beak + Vector3.new(0, -f.Height * 0.3, f.Length * 0.2)
+		else Vector3.new(0, -f.Height * 0.4, -f.Length * 0.55)
+	for _, chain in f.Chains do
+		local target = chain.Target
+		local part = if target then limb(f.Character, target) else nil
+		if target and part and t >= chain.Start then
+			local goal = rootCF:PointToObjectSpace(part.Position)
+			if t >= chain.Grab then
+				-- (it holds the limb where it is and draws it in: the limb follows the tip, by the grab's pull)
+				goal = goal:Lerp(home, ss(chain.Grab, chain.Grab + 1.0, t) * 0.35)
+			end
+			local w = Ease.outQuad(math.clamp((t - chain.Start) / math.max(chain.Grab - chain.Start, 0.05), 0, 1))
+			reach(chain, goal, w)
+		end
+	end
 end
 
 local function poseRig(f: Fail, rig: Rig, t: number)
@@ -367,6 +537,11 @@ local function poseRig(f: Fail, rig: Rig, t: number)
 			local flap = 0.7 + 0.3 * math.sin(t * 9 + j.Z * 3 + j.Depth)
 			local amount = rig.Flare * (if j.Depth > 1 then 0.5 else 1)
 			r = CFrame.Angles(0, -j.Side * rad(18) * amount, j.Side * rad(38) * amount * flap)
+		elseif j.Kind == "arm" and j.Chain and f.Chains[j.Chain].Live then
+			-- its own arm reaching for, holding and hauling a limb (armsStep)
+			local chain = f.Chains[j.Chain]
+			local writhe = math.sin(t * 4 + j.Pivot.X * 0.7 + j.Depth) * rad(4)
+			r = (chain.Turns[j.Link :: number] or CFrame.identity) * CFrame.Angles(writhe, 0, 0)
 		elseif j.Kind == "arm" then
 			-- writhing always; the first segment turns toward what it reaches for, the rest curl round it
 			local writhe = math.sin(t * 5 + j.Pivot.X * 0.7 + j.Depth) * rad(10)
@@ -1031,24 +1206,13 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 		end
 	elseif kind == "Wrap" then
 		-- each arm, once it has hold, hauls its limb in under the body, with weight and lag
-		for i, tent in f.Tentacles do
-			if t >= tent.Grab then
+		-- its own arms (not drawn ones): each takes a limb at its tip, and as they curl back in the limb is hauled
+		-- with them, hanging and lagging with its own weight
+		for _, chain in f.Chains do
+			local target = chain.Target
+			if target and t >= chain.Grab and chain.Live then
 				b.MouthOff = true
-				-- in to its beak, among the roots of its arms
-				local spot = fishNow
-					* CFrame.new(
-						f.Beak
-							+ Vector3.new(
-								math.cos(i * 1.7) * 1.5,
-								-f.Height * 0.3 + math.sin(i * 1.3) * 1.5,
-								f.Length * 0.2
-							)
-					)
-				local haul = ss(tent.Grab, tent.Grab + 1.0, t)
-				local part = limb(b.Character, tent.Target)
-				local from = if part then part.Position else spot.Position
-				-- (held among its arms, below and behind the beak: in sight, not pulled inside its body)
-				hold(b, "Arm" .. i, tent.Target, from:Lerp(spot.Position, 0.4 + 0.45 * haul), 12 + 14 * haul, 900)
+				hold(b, "Arm" .. target, target, fishNow * tipNow(chain), 22, 1200)
 			end
 		end
 	elseif kind == "Coil" then
@@ -1078,6 +1242,12 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 			local under = fishNow * CFrame.new(0, -H * 0.4, -L * 0.55)
 			local at = Vector3.new(under.Position.X, math.max(floorY + 1.2, under.Position.Y), under.Position.Z)
 			hold(b, "Pin", "Torso", at, 14 + 14 * ss(0.85, 1.2, t), 700)
+			-- (and its own claws on you, where it has them: the body drawn to their tips)
+			for _, chain in f.Chains do
+				if chain.Target and t >= chain.Grab and chain.Live then
+					hold(b, "Claw" .. chain.Joints[1].Name, "Lower", fishNow * tipNow(chain), 10, 300)
+				end
+			end
 			local feet = fishNow * CFrame.new(0, -H * 0.4, L * 0.05)
 			hold(b, "Drag", "LLeg", Vector3.new(feet.Position.X, floorY + 1, feet.Position.Z), 6, 160)
 		end
@@ -1101,15 +1271,6 @@ local function localPart(size: Vector3, colour: Color3, material: Enum.Material)
 	return p
 end
 
-local TENTACLE_SEGS = 14
--- each octopus's arms in its own two colours (from its palette: art/creatures/<Name>/game/<Name>.mesh.json)
-local ARM_COLOURS: { [string]: { Color3 } } = {
-	Kraken = { Color3.fromHex("#63233A"), Color3.fromHex("#8E4F6C") },
-	Octopus = { Color3.fromHex("#E4572E"), Color3.fromHex("#F7CFA4") },
-	GiantSquid = { Color3.fromHex("#B2362F"), Color3.fromHex("#F2CDBD") },
-	AuroraJelly = { Color3.fromHex("#6D5FCB"), Color3.fromHex("#33D6D0") },
-}
-
 local function makeProps(f: Fail)
 	if f.Kind == "Gulp" then
 		local ball = localPart(Vector3.one * (1 + f.Length * 0.05), Color3.fromRGB(255, 244, 170), Enum.Material.Neon)
@@ -1121,101 +1282,6 @@ local function makeProps(f: Fail)
 		light.Brightness = 0
 		light.Parent = ball
 		table.insert(f.Props, ball)
-	elseif f.Kind == "Wrap" then
-		local kind = Config.FishById[f.Fish:GetAttribute("FishType") :: string]
-		local colours = ARM_COLOURS[f.Fish:GetAttribute("Rig") :: string]
-			or { if kind then kind.Body else Color3.fromRGB(99, 35, 58), Color3.fromRGB(142, 79, 108) }
-		-- the rig's arm tips they shoot from (the last segment of each arm), else the underside
-		local tips: { BasePart } = {}
-		for _, j in f.Joints do
-			if j.Kind == "arm" and j.Depth >= 3 then
-				table.insert(tips, j.Part)
-			end
-		end
-		local targets = { "LArm", "RArm", "LLeg", "RLeg", "Torso", "Lower" }
-		for i, target in targets do
-			local segs: { BasePart } = {}
-			for k = 1, TENTACLE_SEGS do
-				-- (segments of two shades, so it reads as jointed, the lighter one the underside's)
-				local seg = localPart(Vector3.one, colours[if k % 2 == 0 then 2 else 1], Enum.Material.SmoothPlastic)
-				seg.Shape = Enum.PartType.Cylinder
-				seg.Name = "Tentacle" .. i
-				seg.Transparency = 1
-				table.insert(segs, seg)
-				table.insert(f.Props, seg)
-			end
-			local start = 0.72 + (i - 1) * 0.07
-			table.insert(f.Tentacles, {
-				Segs = segs,
-				From = if #tips > 0 then tips[(i * 3 - 1) % #tips + 1] else nil,
-				Target = target,
-				Start = start,
-				Grab = start + 0.32,
-				Phase = i * 1.9,
-				Thick = (1.6 + f.Length * 0.04) * (if target == "Torso" or target == "Lower" then 1.25 else 1),
-			})
-		end
-	end
-end
-
--- a point along a curve from a to b bending through c (0 to 1)
-local function bezier(a: Vector3, c: Vector3, b: Vector3, u: number): Vector3
-	return a:Lerp(c, u):Lerp(c:Lerp(b, u), u)
-end
-
-local function updateTentacles(f: Fail, fishNow: CFrame, t: number)
-	for _, tent in f.Tentacles do
-		local part = limb(f.Character, tent.Target)
-		local base = if tent.From and tent.From.Parent
-			then (tent.From.CFrame * CFrame.new(0, 0, tent.From.Size.Z * 0.45)).Position
-			else (fishNow * CFrame.new(0, -f.Height * 0.4, 0)).Position
-		local shoot = Ease.outQuad(math.clamp((t - tent.Start) / 0.32, 0, 1))
-		local wrap = ss(tent.Grab, tent.Grab + 0.45, t)
-		if shoot <= 0 or not part then
-			for _, seg in tent.Segs do
-				seg.Transparency = 1
-			end
-			continue
-		end
-		local target = part.Position
-		-- the way out whips through a point off to the side, then settles straight
-		local mid = base:Lerp(target, 0.5)
-			+ Vector3.new(math.sin(tent.Phase) * 6, 5 + math.cos(tent.Phase) * 3, math.cos(tent.Phase * 1.3) * 6)
-				* (1 - wrap * 0.7)
-		local points: { Vector3 } = {}
-		local n = TENTACLE_SEGS
-		-- the last share of it coils round the limb (a helix about its length), tightening as it takes hold
-		local coilShare = 0.45 * wrap
-		local reach = shoot
-		local axis = part.CFrame
-		local radius = math.max(part.Size.X, part.Size.Z) * 0.5 + tent.Thick * 0.35 + (1 - wrap) * 1.2
-		local lengthOf = part.Size.Y
-		for s = 0, n do
-			local u = s / n * reach
-			local p: Vector3
-			if u > 1 - coilShare and coilShare > 0.01 then
-				local k = (u - (1 - coilShare)) / coilShare
-				local a = tent.Phase + k * TAU * 1.6 + t * 1.5 * (1 - wrap)
-				local along = (k - 0.5) * lengthOf * 0.9
-				p = (axis * CFrame.new(math.cos(a) * radius, along, math.sin(a) * radius)).Position
-			else
-				local wiggle = math.sin(u * 9 - t * 7 + tent.Phase) * 0.8 * (1 - wrap)
-				p = bezier(base, mid, target, u / math.max(1 - coilShare, 0.01)) + Vector3.new(0, wiggle, 0)
-			end
-			points[s + 1] = p
-		end
-		for s, seg in tent.Segs do
-			local a, b2 = points[s], points[s + 1]
-			local span = (b2 - a).Magnitude
-			if span < 0.05 then
-				seg.Transparency = 1
-			else
-				local thick = tent.Thick * Ease.lerp(1.15, 0.45, s / n)
-				seg.Transparency = 0
-				seg.Size = Vector3.new(span + thick * 0.6, thick, thick)
-				seg.CFrame = CFrame.lookAt((a + b2) / 2, b2) * CFrame.Angles(0, math.pi / 2, 0)
-			end
-		end
 	end
 end
 
@@ -1286,15 +1352,15 @@ local function updateShade(gui: ScreenGui, t: number, from: number, to: number)
 				continue
 			end
 			local u = (k - 1) / (SHADE_DOTS - 1)
-			local reach = u * grow * 0.62
+			local inAt = u * grow * 0.62
 			local wave = math.sin(u * 6 - t * 2.6 + i) * 0.09 * u
 			-- the tip curls round
 			local curl = ss(0.7, 1, u) * grow
-			local p = edge + inward * reach + perp * (wave + curl * 0.06 * math.sin(i))
+			local p = edge + inward * inAt + perp * (wave + curl * 0.06 * math.sin(i))
 			dot.Position = UDim2.fromScale(p.X, p.Y)
 			local size = Ease.lerp(0.2, 0.035, u) * (0.6 + 0.4 * grow)
 			dot.Size = UDim2.fromScale(size, size)
-			dot.BackgroundTransparency = if reach > 0.005 or u == 0 then 0.05 + 0.9 * (1 - grow) else 1
+			dot.BackgroundTransparency = if inAt > 0.005 or u == 0 then 0.05 + 0.9 * (1 - grow) else 1
 		end
 	end
 end
@@ -1671,7 +1737,7 @@ local function begin(player: Player, fish: Model, kind: string)
 		Joints = readRig(fish, body.Z),
 		Bulge = {},
 		Sizes = {},
-		Tentacles = {},
+		Chains = {},
 		Shade = nil,
 		CamStart = camera.Position,
 		CamTo = camera.Position,
@@ -1684,6 +1750,7 @@ local function begin(player: Player, fish: Model, kind: string)
 		Pull = 0,
 		Beak = Vector3.new(0, -body.Y * 0.2, 0),
 	}
+	f.Chains = readChains(f.Joints)
 	local roots, sum = 0, Vector3.zero
 	for _, j in f.Joints do
 		if j.Kind == "arm" and j.Depth == 1 then
@@ -1995,6 +2062,7 @@ local function step(dt: number)
 		end
 		local fishNow = f.FishRoot.CFrame
 		-- its own parts (every machine)
+		armsStep(f, t)
 		poseRig(f, frame.Rig, t)
 		-- the rider, still on the saddle (everyone works out the same), then loose
 		local b = bodies[player]
@@ -2036,8 +2104,6 @@ local function step(dt: number)
 					light.Brightness = 7 * glow * pulse
 				end
 			end
-		elseif f.Kind == "Wrap" then
-			updateTentacles(f, fishNow, t)
 		end
 		local beats: { { At: number, Name: string } } = BEATS[f.Kind] or {}
 		for _, m in beats do

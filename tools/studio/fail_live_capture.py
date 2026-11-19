@@ -86,7 +86,7 @@ def gif(fish, outcome, suffix="3", fps=10):
         t = i / fps
         fc.setw(FailClock=t)
         time.sleep(0.9)
-        frames.append(label(fc.shot(OUT / f"{outcome}_{i:03d}.png"), f"{fish}: {outcome}   {t:4.2f} s"))
+        frames.append(label(big_shot(OUT / f"{outcome}_{i:03d}.png", 960), f"{fish}: {outcome}   {t:4.2f} s"))
         print(f"\r{outcome} {i + 1}/{n_out}", end="", flush=True)
     print()
     if taken:
@@ -94,7 +94,7 @@ def gif(fish, outcome, suffix="3", fps=10):
             t = T + i / fps
             fc.setw(FailClock=t)
             time.sleep(0.9)
-            frames.append(label(fc.shot(OUT / f"{outcome}_f{i:03d}.png"), f"{fish}: {outcome}   {t:4.2f} s"))
+            frames.append(label(big_shot(OUT / f"{outcome}_f{i:03d}.png", 960), f"{fish}: {outcome}   {t:4.2f} s"))
     else:
         if T > 0:
             fc.setw(FailClock=T + 0.2)
@@ -103,7 +103,7 @@ def gif(fish, outcome, suffix="3", fps=10):
             t = i / fps
             fc.setw(DeathClock=t)
             time.sleep(0.9)
-            frames.append(label(fc.shot(OUT / f"{outcome}_d{i:03d}.png"), f"{fish}: {outcome}, thrown   +{T + t:4.2f} s"))
+            frames.append(label(big_shot(OUT / f"{outcome}_d{i:03d}.png", 960), f"{fish}: {outcome}, thrown   +{T + t:4.2f} s"))
             print(f"\rtail {i + 1}/{n_tail}", end="", flush=True)
         print()
     fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailReplay=False)
@@ -131,7 +131,7 @@ STILLS = {
 }
 
 
-def big_shot(path):
+def big_shot(path, width=1200):
     path = Path(path)
     path.unlink(missing_ok=True)
     fc.run(["shot", str(path)], timeout=60)
@@ -143,7 +143,7 @@ def big_shot(path):
         size = now
         time.sleep(0.15)
     c = Image.open(path).convert("RGB").crop(fc.CROP)
-    return c.resize((1200, round(c.height * 1200 / c.width)), Image.LANCZOS)
+    return c.resize((width, round(c.height * width / c.width)), Image.LANCZOS)
 
 
 def stills(fish, outcome, suffix="4"):
@@ -210,7 +210,7 @@ def still_sheet(name, pngs, cols=4, width=560):
 
 def label(im, text):
     d = ImageDraw.Draw(im)
-    d.text((10, 8), text, fill="white", font=ImageFont.load_default(size=18), stroke_width=2, stroke_fill="black")
+    d.text((10, 8), text, fill="white", font=ImageFont.load_default(size=26), stroke_width=3, stroke_fill="black")
     return im
 
 
