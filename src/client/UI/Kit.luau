@@ -367,8 +367,9 @@ Kit.CatchLook = 3
 -- slams down with dust, the name unrolls on a ribbon), 3 Banner (the old plate at the left redone: whips in, the
 -- portrait pops, the word drops on), 4 Burst (the portrait bursts out of a point with rays and confetti), 5 Slam (a
 -- rarity band slashes across, the word slams onto it, the screen shakes). Sheet docs/attachments/caught-text-options-1.png
--- (GIFs caught-text-<n>.gif). Not picked yet: Hugo chooses. In Studio the workspace's "CaughtLook" number overrides it.
-Kit.CaughtLook = 4
+-- (GIFs caught-text-<n>.gif). Hugo picked 3 Banner (2026-11-19). In Studio the workspace's "CaughtLook" number
+-- overrides it.
+Kit.CaughtLook = 3
 
 -- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
 -- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks;

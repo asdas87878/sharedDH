@@ -745,7 +745,7 @@ local function banner(parent: Instance, info: Info): Show
 	local pillScale = scaler(pill)
 	local row = nameRow(body, info, 34, P(PX + 8, PY + PH + 20), 0)
 	local new = badge(body, "NEW!", 44, 40)
-	new.Position = P(PX + PW - 4, PY - 6)
+	new.Position = P(PX + PW + 2, PY) -- Hugo, 2026-11-19: "slightly to the right and down, just a touch"
 	new.Visible = info.New == true
 	local newScale = scaler(new)
 	local shine = specks(fx, if big then 14 else 8, 33, { Kit.White, pal.Light }, 39)
