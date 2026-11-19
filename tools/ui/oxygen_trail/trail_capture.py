@@ -205,7 +205,7 @@ def live(mode, slow=0.12, crop=None, zoom=1.5, fps=25):
                 break
             time.sleep(0.1)
         im = Image.open(f).convert("RGB")
-        shots.append((moment(im), im))
+        shots.append((moment(im), im.crop(crop)))  # (cropped at once: 400 whole shots are 4 GB)
     full = max(m for m, _ in shots)
     print(f"{len(shots)} shots, bar full {full} px")
     # one frame per 1/fps of the clock: the shot nearest each moment
@@ -215,8 +215,7 @@ def live(mode, slow=0.12, crop=None, zoom=1.5, fps=25):
     for k in range(int(END * fps) + 1):
         t = k / fps
         tt, im = min(timed, key=lambda p: abs(p[0] - t))
-        c = im.crop(crop)
-        c = c.resize((int(c.width * zoom), int(c.height * zoom)), Image.LANCZOS)
+        c = im.resize((int(im.width * zoom), int(im.height * zoom)), Image.LANCZOS)
         d = ImageDraw.Draw(c)
         d.text((8, 6), f"{LETTER[mode]}: {NAMES[mode]}", fill="white", font=font, stroke_width=2, stroke_fill="black")
         d.text((8, c.height - 28), f"t {tt:4.2f} s", fill="white", font=font, stroke_width=2, stroke_fill="black")

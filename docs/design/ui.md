@@ -62,10 +62,11 @@ switch, `Kit.RingLook.TickTrail`; captured in Studio by script, not played by ha
   - 2, hold, then ease in (**the default**): every tick's white piece holds for `TrailHold` 0.08 s, then draws in fast at
     first and slows as it reaches what is left. Every hit reads at once, with no waiting for the next tick.
   - 3, draw and melt: as 2, but the white also turns see-through as it draws in (to `TrailMelt` 0.6).
-- Seen: [b, hold then ease in](../attachments/oxygen-trail-b.gif) (in the game at 4500 max Oxygen: three ticks on the
-  extra ring, three on the big ring, the 2/3 break-off, two red ticks). The a and c captures are still to make (Studio
-  was down after the 2026-11-19 reboot): `python tools/ui/oxygen_trail/trail_capture.py live 1 0.12` and `live 3 0.12`
-  while riding in a playtest, after `install` and `listen`.
+- Seen, in the game while riding at 4500 max Oxygen (three ticks on the extra ring, three on the big ring, the 2/3
+  break-off as one piece, then two red ticks): [a, straight](../attachments/oxygen-trail-a.gif),
+  [b, hold then ease in](../attachments/oxygen-trail-b.gif), [c, draw and melt](../attachments/oxygen-trail-c.gif).
+  Made by `python tools/ui/oxygen_trail/trail_capture.py install`, then in a playtest on a fish `listen` and
+  `live <1|2|3> 0.12 <x0,y0,x1,y1>` (a copy of the ring on a slowed clock; 320 pixels round the ring, saved at 420 px).
 
 ## The Oxygen ring in ticks, the red zone and the extra rings (2026-11-18, Hugo; NULLROOM task h1)
 Hugo: "add more bars for stamina when you increase it past a set amount (for example 2000, will all be handled in the
