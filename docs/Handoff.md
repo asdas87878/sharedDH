@@ -3,6 +3,15 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-19 · GREAT DIVE rebuilt on caught text 5's banner, four variants (NULLROOM task gd1, Hugo's PC)
+**State:** the default end of a dive (`Kit.CatchLook` 5, `UI/DiveScreen.luau`; variant `Kit.DiveLook` 1 Slam, 2 Drop,
+3 Pop, 4 Stamp), captured from Studio by script; **not played by hand, not seen on a phone.** The band and title slam
+of caught text 5, the fish plopping in one by one on CatchShow's own tiles (x3's icons), a shiny gold number counting
+them; the backdrop, METERS DEEP oval, BEST! and the click-to-skip/close are kept. Look 3 is still there
+(`Kit.CatchLook` 3). In [ui](design/ui.md), "GREAT DIVE on caught text 5's banner"; sheet
+`great-dive-options-1.png`, GIFs `great-dive-final.gif` and `great-dive-option-<n>.gif`; tool
+`tools/ui/catch_show/gd1_capture.py`.
+
 ## 2026-11-19 · Caught text option 3, ring ticks and red third, catch screen icons (NULLROOM tasks x1 x2 x3, Hugo's PC)
 **State:** Studio-checked by script, not played by hand. Caught text is Banner (`Kit.CaughtLook` 3, NEW! nudged); the oxygen ring ticks 1.2x slower, at most one thin ring, red only in the big ring's last third (`Config.redLine`); catch tiles show the inventory's own picture under the border (`Portrait` `Aspect`, `Slots.Aspect`). Nothing new from the partner on origin to merge; f3 (fails) still running. GIFs: `caught-text-final.gif`, `oxygen-trail-b-3.gif`, `catch-ui-final-2.gif`.
 

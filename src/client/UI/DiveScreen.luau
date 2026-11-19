@@ -302,7 +302,7 @@ function DiveScreen.build(
 	Kit.new("UIGradient", {
 		Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, landPal.Deep),
-			ColorSequenceKeypoint.new(0.5, landPal.Dark),
+			ColorSequenceKeypoint.new(0.5, landPal.Dark:Lerp(landPal.Deep, 0.35)),
 			ColorSequenceKeypoint.new(1, landPal.Deep),
 		}),
 		Transparency = BAND_ENDS,

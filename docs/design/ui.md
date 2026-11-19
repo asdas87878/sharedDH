@@ -16,6 +16,31 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## GREAT DIVE on caught text 5's banner (2026-11-19, Hugo; NULLROOM task gd1)
+Hugo: the GREAT DIVE part of the catch screen needed heavy improvement; reuse caught text option 5's banner and
+animation when you respawn, the caught fish plop down one by one with the same animation, a shiny number counts them.
+**In the game, the default (`Kit.CatchLook` 5, `UI/DiveScreen.luau`); its variant is `Kit.DiveLook` (1 to 4; in Studio
+the workspace's `DiveLook`). Run in Studio by script (the real `Banners.greatDive` on the dock, a stopped clock for the
+frames), not played by hand, not seen on a phone.**
+- **The banner:** caught text 5's band (a hairline that opens past its height and rings back, light edges, speed lines,
+  a white flash, chips, the screen shaking), in the colours of the land reached; GREAT DIVE! slams onto it from the
+  camera in gold; BEST! (the red medallion) slams onto the title's end.
+- **The count:** a big gold number with FISH CAUGHT! beside it; it ticks up as each fish lands, kicks, and a bright
+  strip runs across it (the shimmer), again every 1.6 s once all is in.
+- **The fish:** CatchShow's own tiles (the inventory's pictures under the border, task x3), in one row, plopping down in
+  turn 0.26 s apart, each with a white flash, a ring and chips, a small shake (bigger on a Legendary or rarer). Never
+  turned while landing: a turned frame doesn't clip, so the fish would show past the border.
+- **Kept from the catch screen below:** Bangers rarity words, the 35% backdrop fading in and out with it, METERS DEEP
+  on the black oval in the land's colours, a click anywhere skips to the end and the next closes (spam-proof, the same
+  `CatchShow.play`), the fit between the land strip and the slots on a phone, NO CATCH THIS TIME when empty.
+- **The variants** ([sheet](../attachments/great-dive-options-1.png), a GIF each: `great-dive-option-<n>.gif`):
+  1 Slam (default): the band slashes open, the fish slam down from the camera, the number shimmers gold.
+  2 Drop: the band drops from above and bounces, the fish drop and bounce, the number takes each fish's rarity colours.
+  3 Pop: the band unrolls from its left end, the fish pop out of nothing and overshoot, the number bursts (rays, a ring,
+  chips) on every count. 4 Stamp: the band and each fish hover big, then stamp down with dust; the number shimmers and
+  bursts.
+- Seen: [the default](../attachments/great-dive-final.gif). Captures: `tools/ui/catch_show/gd1_capture.py`.
+
 ## The catch screen: option 3 in the game, with Hugo's changes (2026-11-19, Hugo; NULLROOM task c1)
 Hugo picked option 3 (Big number) of the catch-UI sheet. **In the game, the default (`Kit.CatchLook` 3); run in Studio
 by script (the real `Banners.greatDive`, a stopped clock for the frames), not played by hand, not seen on a phone.**
