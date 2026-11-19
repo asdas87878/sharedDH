@@ -649,14 +649,14 @@ Config.Train = {
 	-- Studs, in the trainer pad's own frame: Side along the plot's front (minus: toward the collect pad), Ahead toward
 	-- the hub, from the coil's axis.
 	Sign = {
-		Side = -11,
+		Side = -12,
 		Ahead = 4,
-		Wide = 9, -- the board
-		High = 5.4,
-		Foot = 2.6, -- the board's underside over the floor
-		Post = 0.8, -- the post's thickness
+		Wide = 10.8, -- the board (540 by 324 of the layout's pixels at PixelsPerStud: its title about 1.1 studs tall)
+		High = 6.48,
+		Foot = 2.4, -- the board's underside over the floor
+		Post = 0.9, -- the post's thickness
 		Thick = 0.5, -- the board's
-		PixelsPerStud = 60, -- the writing's sharpness (and its size: the layout is in these pixels)
+		PixelsPerStud = 50, -- the layout is 540 by 324 of these pixels: fewer a stud, bigger letters (Wide and High with it)
 		Far = 160, -- studs: not drawn past this
 	},
 }

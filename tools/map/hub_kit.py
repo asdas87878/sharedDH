@@ -730,7 +730,7 @@ def plot(out, index, cx, cz, turn_deg, hub, level=1):
 # which TrainService uses for a map without these parts. Side along the plot's front (minus: toward the collect pad),
 # Ahead toward the hub, from the trainer's middle; the board's face (UpgradeBoard's front) toward the hub; the game
 # writes on it (Client.UI.UpgradeSign)
-SIGN = {"Side": -11, "Ahead": 4, "Wide": 9, "High": 5.4, "Foot": 2.6, "Post": 0.8, "Thick": 0.5}
+SIGN = {"Side": -12, "Ahead": 4, "Wide": 10.8, "High": 6.48, "Foot": 2.4, "Post": 0.9, "Thick": 0.5}
 SIGN_EDGE = (10, 12, 22)  # the writing's border colour (Shop.Edge)
 SIGN_POST = (28, 32, 46)
 
