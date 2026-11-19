@@ -10,7 +10,6 @@ GIFs go to docs/attachments/fail-<outcome>-<suffix>.gif (suffix 3 by default) an
 Needs Studio open with the studio-runner plugin and Rojo serving this repo. niri copies each shot to the clipboard: the
 text that was there is put back at the end.
 """
-import json
 import shutil
 import subprocess
 import sys
@@ -26,18 +25,10 @@ ROOT = fc.ROOT
 OUT = ROOT / "work/fail_live"
 OUT.mkdir(parents=True, exist_ok=True)
 SHEETS = fc.SHEETS
-WIDTH = 560
 
 # seconds held, and whether it is taken (Config.Fail.Outcomes; the ragdoll's flight 1.8 s after a throw)
 TIMES = {"Throw": 0, "Chomp": 2.3, "Gulp": 2.5, "Wrap": 3.0, "Roll": 1.7, "Flip": 1.5, "Shell": 1.6, "Coil": 1.9, "Pin": 2.4}
 TAKEN = {"Chomp", "Gulp", "Wrap", "Pin"}
-
-
-def window_id():
-    windows = json.loads(subprocess.run(["niri", "msg", "--json", "windows"], capture_output=True, text=True).stdout)
-    studio = [w for w in windows if "robloxstudio" in (w.get("app_id") or "").lower() or (w.get("title") or "").endswith(" - Roblox Studio")]
-    studio.sort(key=lambda w: -w["layout"]["window_size"][0] * w["layout"]["window_size"][1])
-    return studio[0]["id"]
 
 
 def clipboard():
@@ -45,39 +36,6 @@ def clipboard():
         return subprocess.run(["wl-paste", "-n", "-t", "text/plain"], capture_output=True, text=True, timeout=2).stdout
     except Exception:
         return None
-
-
-def film(seconds, fps, tag):
-    """Shots of the window for `seconds`, as close to `fps` a second as niri allows: [(time, path)]."""
-    wid = window_id()
-    shots = []
-    t0 = time.time()
-    i = 0
-    while time.time() - t0 < seconds:
-        path = OUT / f"{tag}_{i:04d}.png"
-        path.unlink(missing_ok=True)
-        at = time.time() - t0
-        subprocess.run(["niri", "msg", "action", "screenshot-window", "--id", str(wid), "--path", str(path)])
-        shots.append((at, path))
-        i += 1
-        wait = (i / fps) - (time.time() - t0)
-        if wait > 0:
-            time.sleep(wait)
-    # (niri writes them after it returns)
-    end = time.time() + 15
-    while time.time() < end and not all(p.exists() and p.stat().st_size > 0 for _, p in shots):
-        time.sleep(0.2)
-    time.sleep(0.5)
-    return [(a, p) for a, p in shots if p.exists() and p.stat().st_size > 0]
-
-
-def frame(path, text):
-    im = Image.open(path).convert("RGB")
-    c = im.crop(fc.CROP)
-    c = c.resize((WIDTH, round(c.height * WIDTH / c.width)), Image.LANCZOS)
-    d = ImageDraw.Draw(c)
-    d.text((10, 8), text, fill="white", font=ImageFont.load_default(size=18), stroke_width=2, stroke_fill="black")
-    return c
 
 
 def save(frames, durations, dest, colours=128):
