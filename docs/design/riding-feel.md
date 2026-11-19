@@ -1432,6 +1432,16 @@ they show inside the kraken's arms), the kraken's shot sized to the rider instea
 kraken holding you among its arms rather than inside it, the crawler pinning you under its jaws (its boxes off once it
 has you), stronger suction for the angler; and GIFs from the final code: `fail-wrap-5.gif`, `fail-gulp-5.gif`,
 `fail-pin-5.gif`.
+**The fish's own arms** (Hugo, 2026-11-19: "the tentacle wrapping is really bad. Use the actual tentacles from the
+model, don't add new ones"): the drawn arms are gone. An octopus's own arms (Kraken, Octopus, Giant Squid, Aurora
+Jelly: the `A`/`T` segment chains of its rig) and a crawler's claws (`Arm`, `Claw`) are posed by a little inverse
+kinematics on their `Rig_` joints, from the rest pivots in Shared/Creatures: the six arms nearest you reach out one
+after another, each takes a limb at its real tip (the grab pulls the limb to that tip, so it hangs and lags with its
+weight) and curls back in toward the beak with it; a crawler's claws reach your body as it pins you, just ahead of its
+jaws (its body lies on the floor, so under its head would be inside it). Same creature, same colours, joined at the
+real roots: nothing added. Seen from the final code: `fail-wrap-6.gif`, `fail-gulp-6.gif`, `fail-pin-6.gif` (960 px)
+and two stills of every outcome, `fail-<outcome>-6a.png` (thrown off) and `-6b.png` (the grab, the swallow, the pin or
+the body come to rest), all eighteen in `fail-outcomes-6.png`.
 **How they were made** (`tools/studio/fail_live_capture.py`): Studio redraws its window only about once a second
 while it is hidden on another workspace, so a live run can't be filmed. The game records one live run of the fail
 (workspace `FailRecord`: FailController keeps every part of the loose body, each frame, in the fish's space) and plays

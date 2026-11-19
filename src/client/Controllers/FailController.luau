@@ -504,7 +504,7 @@ local function armsStep(f: Fail, t: number)
 	-- where they haul you: below and behind an octopus's beak, among its arms; under a crawler's jaws
 	local home = if f.Kind == "Wrap"
 		then f.Beak + Vector3.new(0, -f.Height * 0.3, f.Length * 0.2)
-		else Vector3.new(0, -f.Height * 0.4, -f.Length * 0.55)
+		else Vector3.new(0, -f.Height * 0.4, -f.Length * 0.72)
 	for _, chain in f.Chains do
 		local target = chain.Target
 		local part = if target then limb(f.Character, target) else nil
@@ -1239,9 +1239,10 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 			b.MouthOff = true -- (its boxes off once it has you: pressed under its jaws, not pushed up onto its head)
 			local floorY = f.FloorY or (f.From.Position.Y - 20)
 			-- (under its jaws, just ahead of the head, so you are seen pinned)
-			local under = fishNow * CFrame.new(0, -H * 0.4, -L * 0.55)
+			-- (its body lies on the floor, so "under its head" would be inside it: just ahead of its jaws)
+			local under = fishNow * CFrame.new(0, -H * 0.4, -L * 0.72)
 			local at = Vector3.new(under.Position.X, math.max(floorY + 1.2, under.Position.Y), under.Position.Z)
-			hold(b, "Pin", "Torso", at, 14 + 14 * ss(0.85, 1.2, t), 700)
+			hold(b, "Pin", "Torso", at, 20 + 20 * ss(0.85, 1.2, t), 1500)
 			-- (and its own claws on you, where it has them: the body drawn to their tips)
 			for _, chain in f.Chains do
 				if chain.Target and t >= chain.Grab and chain.Live then

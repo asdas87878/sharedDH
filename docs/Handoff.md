@@ -43,7 +43,10 @@ phone, not with two players.** All in [riding feel](design/riding-feel.md), "The
   `CameraTime`.
 - **After a fail the fish carries on** the way it was going (its turn eased back onto the old heading, leaving at its
   old speed; the server's hand-back puts it on its line).
-- **Captures:** `fail-<outcome>-3.gif` and the sheet `fail-outcomes-3.gif`; tool `tools/studio/fail_live_capture.py`
+- **The fish's own arms** take you (Hugo's note): inverse kinematics on the creature's own arm joints, no drawn
+  arms; the rider kept in view (an outline, the kraken's shot sized to the rider, pinned just ahead of the jaws).
+- **Captures from the final code:** `fail-wrap-6.gif`, `fail-gulp-6.gif`, `fail-pin-6.gif` and the sheet of all nine,
+  `fail-outcomes-6.png` (two stills each). Older: `fail-<outcome>-3.gif` and the sheet `fail-outcomes-3.gif`; tool `tools/studio/fail_live_capture.py`
   (Studio only switches `FailRecord`, `FailReplay`).
 
 ## 2026-11-19 · This session on Hugo's PC: catch screen, land strip picks and fixes, stylised locks, the ring's damage trail, Oxygen tick floor (NULLROOM mission, tasks c1 l1 m1 k1 t1 e1 d0 g1)
