@@ -22,7 +22,15 @@ local NAMES: { [string]: { string } } = {
 	RightElbow = { "RightElbow" },
 }
 
-type Arms = { motors: { [string]: Motor6D }, turns: { [string]: CFrame }, weight: number }
+-- `wrote`: what we set each joint to last frame. A joint still at that value was not driven by the Animator this frame
+-- (some idle animations leave the elbows alone), so it blends from rest, not from our own last pose: the arms come
+-- all the way down when the fish is put away
+type Arms = {
+	motors: { [string]: Motor6D },
+	turns: { [string]: CFrame },
+	wrote: { [string]: CFrame },
+	weight: number,
+}
 local arms: { [Model]: Arms } = setmetatable({}, { __mode = "k" }) :: any
 
 local function rot(x: number, y: number, z: number): CFrame
@@ -43,7 +51,7 @@ local function armsOf(character: Model): Arms
 	if a then
 		return a
 	end
-	local made: Arms = { motors = {}, turns = {}, weight = 0 }
+	local made: Arms = { motors = {}, turns = {}, wrote = {}, weight = 0 }
 	for key, names in NAMES do
 		for _, name in names do
 			local m = joint(character, name)
@@ -95,7 +103,18 @@ function HoldController.Start()
 							want = turn:Inverse() * want * turn
 						end
 						-- (from what the Animator gave this frame, so the swing comes and goes smoothly)
-						motor.Transform = motor.Transform:Lerp(want, a.weight)
+						local from = motor.Transform
+						if a.wrote[key] == from then
+							from = CFrame.identity
+						end
+						if a.weight > 0 then
+							local now = from:Lerp(want, a.weight)
+							motor.Transform = now
+							a.wrote[key] = now
+						else
+							motor.Transform = from -- (down: handed back to the Animator, or to rest)
+							a.wrote[key] = nil
+						end
 					end
 				end
 			end
