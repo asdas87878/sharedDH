@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Course = require(script.Parent.Parent.Lib.Course)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
@@ -253,6 +254,13 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 			frame = CFrame.new(frame.Position) * d.Settle:Lerp(frame.Rotation, Ease.smoothstep(0, 0.6, tt))
 		end
 	end
+	-- (never into the floor or through a wall: the throw and the sink kept in open water, and the sinking stops on
+	-- the floor, the body lying there)
+	local kept = Course.clearMove(root.Position, frame.Position, 2.2)
+	if kept.Y > frame.Position.Y + 0.05 then
+		d.Sink = math.max(0, d.Sink - (kept.Y - frame.Position.Y))
+	end
+	frame = CFrame.new(kept) * frame.Rotation
 	root.CFrame = frame
 	root.AssemblyLinearVelocity = Vector3.zero
 	root.AssemblyAngularVelocity = Vector3.zero

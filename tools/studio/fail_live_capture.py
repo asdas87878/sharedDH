@@ -6,6 +6,8 @@ time, each shot after Studio has redrawn (about 2 s a frame).
     python tools/studio/fail_live_capture.py install | remove      (in Edit, before Play: fail_capture's server Script)
     python tools/studio/fail_live_capture.py gif <Fish> <Outcome> [suffix] [fps]
     python tools/studio/fail_live_capture.py sheet <name> <gif> ...
+    python tools/studio/fail_live_capture.py stills <Fish> <Outcome> [suffix]   (two stills: fail-<outcome>-4a/b.png)
+    python tools/studio/fail_live_capture.py stillsheet <name> <png> ...
 GIFs go to docs/attachments/fail-<outcome>-<suffix>.gif (suffix 3 by default) and ~/Pictures/ride-a-fish/sheets/.
 Needs Studio open with the studio-runner plugin and Rojo serving this repo. niri copies each shot to the clipboard: the
 text that was there is put back at the end.
@@ -113,6 +115,98 @@ def gif(fish, outcome, suffix="3", fps=10):
     return dest
 
 
+# Two stills per outcome (Hugo, 2026-11-19: "stills are enough"): (a) the rider thrown off, (b) the key moment
+# (swallowed, tangled, pinned, or the body come to rest). ("f", t): the fail's clock; ("d", t): the drown's after it.
+STILLS = {
+    "Throw": [("d", 0.45, "thrown off"), ("d", 1.5, "tumbled and come to rest")],
+    "Chomp": [("f", 0.6, "tossed off its back"), ("f", 1.2, "in the jaws")],
+    "Gulp": [("f", 1.1, "bucked over its head"), ("f", 1.5, "sucked into the mouth")],
+    "Wrap": [("f", 0.6, "thrown off"), ("f", 1.7, "tangled in its arms")],
+    "Roll": [("f", 0.95, "slid off its flank"), ("d", 1.0, "thrown, on the floor")],
+    "Flip": [("f", 0.85, "dropped off its underside"), ("d", 0.8, "thrown, on the floor")],
+    "Shell": [("f", 1.25, "bucked off the shell"), ("d", 0.8, "thrown")],
+    "Coil": [("f", 1.0, "held on its coil"), ("f", 1.7, "flung")],
+    "Pin": [("f", 0.6, "scraped off ahead"), ("f", 1.7, "pinned and dragged")],
+}
+
+
+def big_shot(path):
+    path = Path(path)
+    path.unlink(missing_ok=True)
+    fc.run(["shot", str(path)], timeout=60)
+    size, end = -1, time.time() + 10
+    while time.time() < end:
+        now = path.stat().st_size if path.exists() else -1
+        if now > 0 and now == size:
+            break
+        size = now
+        time.sleep(0.15)
+    c = Image.open(path).convert("RGB").crop(fc.CROP)
+    return c.resize((1200, round(c.height * 1200 / c.width)), Image.LANCZOS)
+
+
+def stills(fish, outcome, suffix="4"):
+    """The same record-and-replay as gif(), shooting only the outcome's two STILLS: fail-<outcome>-<suffix>a/b.png"""
+    kept = clipboard()
+    T = TIMES[outcome]
+    fc.server("workspace:SetAttribute('TestMaxOxygen', nil) workspace:SetAttribute('SandboxEndlessAir', true) return 'ok'")
+    fc.setw(FailRecord=True, FailReplay=False, FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
+    print(fc.cmd("ride|" + fish))
+    fc.wait_state({"Riding"})
+    time.sleep(0.3)
+    print("live:", fc.cmd("fail|" + outcome))
+    time.sleep(1)
+    fc.wait_state({"Dock"}, timeout=40)
+    fc.setw(FailRecord=False)
+    time.sleep(1.5)
+    fc.setw(FailReplay=True, FailSlow=30, FailClock=0, DeathClock=0)
+    print(fc.cmd("ride|" + fish))
+    fc.wait_state({"Riding"})
+    time.sleep(0.3)
+    print("playback:", fc.cmd("fail|" + outcome))
+    out = []
+    for k, (clock, t, words) in zip("ab", STILLS[outcome]):
+        if clock == "f":
+            fc.setw(FailClock=t)
+        else:
+            if T > 0:
+                fc.setw(FailClock=T + 0.2)
+            fc.wait_state({"Drowning"}, timeout=max(60, 30 * T + 20))
+            fc.setw(DeathClock=t)
+        time.sleep(1.6)
+        im = big_shot(OUT / f"{outcome}_still_{k}.png")
+        when = t if clock == "f" else T + t
+        d = ImageDraw.Draw(im)
+        d.text((16, 12), f"{fish}: {outcome}, {words}  ({when:.2f} s)", fill="white",
+               font=ImageFont.load_default(size=30), stroke_width=3, stroke_fill="black")
+        dest = ROOT / "docs/attachments" / f"fail-{outcome.lower()}-{suffix}{k}.png"
+        im.save(dest)
+        SHEETS.mkdir(parents=True, exist_ok=True)
+        shutil.copy(dest, SHEETS / dest.name)
+        out.append(dest)
+        print(dest)
+    fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailReplay=False)
+    print(fc.cmd("home"))
+    fc.wait_state({"Dock"}, timeout=30)
+    if kept:
+        subprocess.run(["wl-copy"], input=kept, text=True)
+    return out
+
+
+def still_sheet(name, pngs, cols=4, width=560):
+    ims = [Image.open(p).convert("RGB") for p in pngs]
+    ims = [i.resize((width, round(i.height * width / i.width)), Image.LANCZOS) for i in ims]
+    w, h = ims[0].size
+    rows = (len(ims) + cols - 1) // cols
+    canvas = Image.new("RGB", (w * cols, h * rows), "black")
+    for k, im in enumerate(ims):
+        canvas.paste(im, ((k % cols) * w, (k // cols) * h))
+    dest = ROOT / "docs/attachments" / name
+    canvas.save(dest)
+    shutil.copy(dest, SHEETS / dest.name)
+    print(dest)
+
+
 def label(im, text):
     d = ImageDraw.Draw(im)
     d.text((10, 8), text, fill="white", font=ImageFont.load_default(size=18), stroke_width=2, stroke_fill="black")
@@ -163,3 +257,7 @@ if __name__ == "__main__":
         gif(a[1], a[2], a[3] if len(a) > 3 else "3", int(a[4]) if len(a) > 4 else 12)
     elif a[0] == "sheet":
         sheet(a[1], a[2:])
+    elif a[0] == "stills":
+        stills(a[1], a[2], a[3] if len(a) > 3 else "4")
+    elif a[0] == "stillsheet":
+        still_sheet(a[1], a[2:])

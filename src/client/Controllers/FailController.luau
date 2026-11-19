@@ -137,6 +137,7 @@ type Fail = {
 	Snap: CFrame?, -- where a Chomp bit (it goes on from there)
 	Pull: number, -- studs the shot is backed off by to keep both in it
 	Beak: Vector3, -- an octopus's beak, in the fish's space (among the roots of its arms)
+	FishAt: Vector3?, -- where we last put the fish (its next move is kept in open water from there)
 }
 
 local fails: { [Player]: Fail } = {}
@@ -813,7 +814,8 @@ local function hold(b: Body, key: string, partName: string, at: Vector3, pull: n
 		h = { Attachment = a, Align = align, Part = part }
 		b.Holds[key] = h
 	end
-	(h :: Hold).Align.Position = at
+	-- (a grab never pulls into the floor or through a wall: its place kept in open water from the part it holds)
+	(h :: Hold).Align.Position = Course.clearMove((h :: Hold).Part.Position, at, 1.5)
 end
 
 local function endBody(player: Player)
@@ -1207,7 +1209,8 @@ local function updateTentacles(f: Fail, fishNow: CFrame, t: number)
 end
 
 -- the dark closing in, with arms reaching over the screen (the kraken's)
-local SHADE_ARMS = 7
+-- (no arms over the screen now: Hugo, 2026-11-19, "remove the tentacles coming in from the screen"; only the dark)
+local SHADE_ARMS = 0
 local SHADE_DOTS = 16
 
 local function makeShade(): ScreenGui
@@ -1841,11 +1844,21 @@ local function replayStep()
 	local a, b = frames[i], frames[math.min(i + 1, #frames)]
 	local k = if b.T > a.T then math.clamp((tb - a.T) / (b.T - a.T), 0, 1) else 0
 	local base = if f then f.From else last.Base
+	-- (the second run's map round it can differ a little: the whole body kept above the floor there)
+	local lift = 0
+	local torsoFrame = a.Parts.UpperTorso or a.Parts.Torso
+	if torsoFrame then
+		local torsoAt = (base * torsoFrame).Position
+		local floor = Course.floor(torsoAt + Vector3.new(0, 6, 0))
+		if floor and torsoAt.Y < floor + 1.2 then
+			lift = floor + 1.2 - torsoAt.Y
+		end
+	end
 	for name, cf in a.Parts do
 		local part = character:FindFirstChild(name)
 		if part and part:IsA("BasePart") then
 			local other = b.Parts[name] or cf
-			part.CFrame = base * cf:Lerp(other, k)
+			part.CFrame = (base * cf:Lerp(other, k)) + Vector3.new(0, lift, 0)
 		end
 	end
 end
@@ -1904,7 +1917,12 @@ local function step(dt: number)
 		-- the fish: ours to move through the outcome (it holds us, then lets go: the server's throwOff)
 		if f.Driving and f.Mine then
 			if t < def.Time + (if taken then def.Time else 0.05) then
-				f.FishRoot.CFrame = frame.Fish
+				-- (never into the floor or through a wall: each frame's move kept in open water, Course.clearMove, so
+				-- the rider on its back never goes in either)
+				local from = f.FishAt or f.From.Position
+				local at = Course.clearMove(from, frame.Fish.Position, f.Height * 0.5 + 1)
+				f.FishAt = at
+				f.FishRoot.CFrame = CFrame.new(at) * frame.Fish.Rotation
 				f.FishRoot.AssemblyLinearVelocity = Vector3.zero
 				f.FishRoot.AssemblyAngularVelocity = Vector3.zero
 			else
@@ -1917,7 +1935,13 @@ local function step(dt: number)
 		-- the rider, still on the saddle (everyone works out the same), then loose
 		local b = bodies[player]
 		if weld then
-			weld.C0 = if frame.Rider then fishNow:Inverse() * frame.Rider else f.Saddle
+			local riderAt = frame.Rider
+			if riderAt then
+				-- (the rider too: kept above the floor and out of walls as it is slid about on the saddle)
+				local seat = (fishNow * f.Saddle).Position
+				riderAt = CFrame.new(Course.clearMove(seat, riderAt.Position, 2.5)) * riderAt.Rotation
+			end
+			weld.C0 = if riderAt then fishNow:Inverse() * riderAt else f.Saddle
 			f.Pose = riderPose(f, t)
 		else
 			f.Pose = nil

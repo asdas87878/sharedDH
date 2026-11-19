@@ -1398,12 +1398,17 @@ trailing.
 | Throw (low tiers) | the drown's, following the body | bucked off up and back as a ragdoll, far, tumbling, hitting what is there; then the drown |
 | Chomp 2.3 s | side view | it rears and tosses you up off its back, swings round with the jaws wide, the mouth lands on you, snap, a head shake, you are pulled in and the bulge runs down it |
 | Gulp 2.5 s | side, from ahead | the lure flares, you lean to it, it bucks you over its head, the jaw opens huge and the suction takes you in; it shuts, gulps |
-| Wrap 3.0 s | wide on you and the arms | it bucks you off in an arc; its own arms reach for you and six jointed arms shoot out of their tips, wrap your arms, legs and body and haul you in to its beak as it backs away into the dark; dark arms creep in over the screen |
+| Wrap 3.0 s | wide on you and the arms | it bucks you off in an arc; its own arms reach for you and six jointed arms shoot out of their tips, wrap your arms, legs and body and haul you in to its beak as it backs away into the dark; the screen darkens (no arms drawn over it: Hugo, 2026-11-19) |
 | Roll 1.7 s | low angle | it rolls right over; you slide off its flank and its side sweeps past you |
 | Flip 1.5 s | low, looking up | it flips; you drop off its underside and its wings come back over |
 | Shell 1.6 s | three-quarter front, high | it tucks in and shakes harder and harder, you bounce, then it bucks you off high |
 | Coil 1.9 s | wide and high | it spins round itself with you held on its coil, swinging out, then flings you |
 | Pin 2.4 s | high, looking down | it noses down and scrapes you off ahead, slams down on you and drags you along the floor |
+
+**Never through the floor, a wall or a prop** (Hugo, 2026-11-19): everything moved by script is kept in open water
+each frame (`Course.clearMove`): the fish on its path, the rider slid about on its back, the grabs' pull, the drown's
+throw and sink (the sinking stops on the floor, the body lying there); a loose body is physics and collides with the
+map and the props itself, and is lifted back if it ever ends under the lane's floor.
 
 **After it, the fish carries on** (Hugo, 2026-11-19): whatever turn, roll or lunge it made eases back onto its old
 heading over the outcome's last part, swimming on; it leaves the way it came at about its old speed (no U-turn, no

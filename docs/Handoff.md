@@ -12,7 +12,7 @@ phone, not with two players.** All in [riding feel](design/riding-feel.md), "The
   `Config.Fail.Ragdoll.Time` into the drown (`DeathLoose`), a taken one stays loose until the dock.
 - **Client** (`FailController`, rewritten): the throw, the water's hold and drag, solid boxes on the fish for real
   hits, soft grabs (jaws, suction, the kraken's six jointed arms, the coil, the pin), the fish's rig posed (jaw,
-  spine, fins, arms), the swallow's bulge, the screen's dark arms, one eased camera move per outcome then held, kept
+  spine, fins, arms), the swallow's bulge, nothing moved by script through the floor or a wall, one eased camera move per outcome then held, kept
   out of walls, fish and props in the way faded. Small hooks in `DeathController` (a loose body left to the physics,
   the shot held) and `AnimController` (`FailPose`, `settle`). `Config.Fail`: longer times, `Loose`, `Ragdoll`,
   `CameraTime`.
