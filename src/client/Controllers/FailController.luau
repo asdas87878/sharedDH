@@ -1304,7 +1304,8 @@ end
 local SHOTS: { [string]: { Side: number, Back: number, Up: number, Far: number, Ahead: number } } = {
 	Chomp = { Side = 1, Back = -0.15, Up = 0.2, Far = 0.8, Ahead = 0.3 }, -- side view
 	Gulp = { Side = 1, Back = -0.55, Up = 0.2, Far = 0.6, Ahead = 0.4 }, -- side, from ahead, close on the mouth
-	Wrap = { Side = 1, Back = 0.3, Up = 0.25, Far = 0.75, Ahead = 0.1 }, -- on the rider and the arms
+	-- (from behind it, where it throws you: you between the camera and its arms, never hidden behind them)
+	Wrap = { Side = 0.6, Back = 1, Up = 0.35, Far = 1.25, Ahead = 0 },
 	Roll = { Side = 1, Back = 0.25, Up = -0.5, Far = 1.2, Ahead = 0.3 }, -- low angle
 	Flip = { Side = 1, Back = 0.2, Up = -0.65, Far = 1.05, Ahead = 0.3 }, -- low, looking up at the belly
 	Shell = { Side = 0.8, Back = -0.6, Up = 0.55, Far = 1.0, Ahead = 0.1 }, -- three-quarter front, high
