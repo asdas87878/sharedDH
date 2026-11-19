@@ -134,6 +134,7 @@ type Fail = {
 	Trails: { Trail }, -- the fish's wake, off while it does its thing
 	Snap: CFrame?, -- where a Chomp bit (it goes on from there)
 	Pull: number, -- studs the shot is backed off by to keep both in it
+	Beak: Vector3, -- an octopus's beak, in the fish's space (among the roots of its arms)
 }
 
 local fails: { [Player]: Fail } = {}
@@ -497,9 +498,10 @@ OUTCOMES.Wrap = function(f, t)
 		local local_ = f.From:PointToObjectSpace(torso)
 		face = math.atan2(-local_.X, -local_.Z) * ss(0.4, 1.0, t)
 	end
+	-- down and away backward into the dark (along the floor, where the floor is close)
 	local fall = math.max(0, t - 1.6)
-	local down = 9 * fall * fall + 3 * fall
-	local at = base.Position - Vector3.new(0, down, 0)
+	local away = 9 * fall * fall + 3 * fall
+	local at = base.Position - Vector3.new(0, away * 0.75, 0) - flat(f.From.LookVector) * away * 0.65
 	if f.FloorY then
 		at = Vector3.new(at.X, math.max(at.Y, f.FloorY + H * 0.6 + 2), at.Z)
 	end
@@ -715,7 +717,9 @@ local function makeColliders(b: Body)
 	for _, d in fish:GetDescendants() do
 		if d:IsA("BasePart") and d ~= fish.PrimaryPart and d.Transparency < 1 then
 			local size = d.Size * 0.82
-			if size.Magnitude < 1.2 or string.find(d.Name, "_Glow") then
+			-- (an octopus's own arms reach for you without batting you away: its shooting arms do the taking)
+			local arm = string.match(d.Name, "^[AT]%d+[a-z]$") ~= nil or string.match(d.Name, "^T[RL][a-z]$") ~= nil
+			if size.Magnitude < 1.2 or string.find(d.Name, "_Glow") or (arm and b.Kind == "Wrap") then
 				continue
 			end
 			local c = Instance.new("Part")
@@ -735,8 +739,11 @@ local function makeColliders(b: Body)
 				Of = d,
 				Was = d.Position,
 				On = false,
-				Mouth = mouthy
-					and (string.find(name, "Jaw") ~= nil or name == "Head" or name == "Body" or name == "S1"),
+				-- (off while it swallows you; an octopus's all of them once its arms have you)
+				Mouth = b.Kind == "Wrap"
+					or (
+						mouthy and (string.find(name, "Jaw") ~= nil or name == "Head" or name == "Body" or name == "S1")
+					),
 			})
 		end
 	end
@@ -892,7 +899,11 @@ local function stepBody(b: Body, dt: number)
 	local keep = math.exp(-r.Drag * dt)
 	for _, p in b.Parts do
 		if p.AssemblyRootPart == p then
-			p.AssemblyLinearVelocity = p.AssemblyLinearVelocity * keep + Vector3.new(0, lift, 0)
+			local v = p.AssemblyLinearVelocity * keep + Vector3.new(0, lift, 0)
+			if v.Magnitude > 140 then
+				v = v.Unit * 140
+			end
+			p.AssemblyLinearVelocity = v
 			p.AssemblyAngularVelocity = p.AssemblyAngularVelocity * keep
 		end
 	end
@@ -914,6 +925,10 @@ local function stepBody(b: Body, dt: number)
 		end
 		local cf = c.Of.CFrame
 		local velocity = (cf.Position - c.Was) / dt
+		-- (a hit, not a cannon: a part swung hard in one frame would throw the body at hundreds of studs a second)
+		if velocity.Magnitude > 45 then
+			velocity = velocity.Unit * 45
+		end
 		c.Was = cf.Position
 		c.Part.CFrame = cf
 		c.Part.AssemblyLinearVelocity = velocity
@@ -972,12 +987,14 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 		-- each arm, once it has hold, hauls its limb in under the body, with weight and lag
 		for i, tent in f.Tentacles do
 			if t >= tent.Grab then
+				b.MouthOff = true
+				-- in to its beak, among the roots of its arms
 				local spot = fishNow
-					* CFrame.new(math.cos(i * 1.7) * f.Width * 0.25, -H * 0.45, -L * 0.1 + math.sin(i * 1.3) * 3)
-				local haul = ss(tent.Grab, tent.Grab + 0.9, t)
+					* CFrame.new(f.Beak + Vector3.new(math.cos(i * 1.7) * 1.5, math.sin(i * 1.3) * 1.5, 2))
+				local haul = ss(tent.Grab, tent.Grab + 1.0, t)
 				local part = limb(b.Character, tent.Target)
 				local from = if part then part.Position else spot.Position
-				hold(b, "Arm" .. i, tent.Target, from:Lerp(spot.Position, 0.35 + 0.65 * haul), 10 + 8 * haul, 450)
+				hold(b, "Arm" .. i, tent.Target, from:Lerp(spot.Position, 0.4 + 0.6 * haul), 12 + 14 * haul, 900)
 			end
 		end
 	elseif kind == "Coil" then
@@ -1043,7 +1060,7 @@ local function makeProps(f: Fail)
 		table.insert(f.Props, ball)
 	elseif f.Kind == "Wrap" then
 		local kind = Config.FishById[f.Fish:GetAttribute("FishType") :: string]
-		local colour = (if kind then kind.Fin else Color3.fromRGB(150, 60, 90)):Lerp(Color3.fromRGB(70, 20, 50), 0.25)
+		local colour = (if kind then kind.Body else Color3.fromRGB(150, 60, 90)):Lerp(Color3.new(1, 1, 1), 0.12)
 		-- the rig's arm tips they shoot from (the last segment of each arm), else the underside
 		local tips: { BasePart } = {}
 		for _, j in f.Joints do
@@ -1070,7 +1087,7 @@ local function makeProps(f: Fail)
 				Start = start,
 				Grab = start + 0.32,
 				Phase = i * 1.9,
-				Thick = (0.9 + f.Length * 0.025) * (if target == "Torso" or target == "Lower" then 1.25 else 1),
+				Thick = (1.3 + f.Length * 0.03) * (if target == "Torso" or target == "Lower" then 1.25 else 1),
 			})
 		end
 	end
@@ -1222,7 +1239,7 @@ end
 -- the fish's own size). It never comes closer to the fish than its own length.
 local SHOTS: { [string]: { Side: number, Back: number, Up: number, Far: number, Ahead: number } } = {
 	Chomp = { Side = 1, Back = -0.15, Up = 0.22, Far = 1.05, Ahead = 0.3 }, -- side view
-	Gulp = { Side = 1, Back = -0.45, Up = 0.12, Far = 0.95, Ahead = 0.4 }, -- side, from a little ahead, the mouth and the lure
+	Gulp = { Side = 0.8, Back = -0.8, Up = 0.15, Far = 0.95, Ahead = 0.4 }, -- side, from ahead, the mouth and the lure
 	Wrap = { Side = 1, Back = 0.35, Up = 0.38, Far = 1.5, Ahead = 0.1 }, -- wide
 	Roll = { Side = 1, Back = 0.25, Up = -0.5, Far = 1.2, Ahead = 0.3 }, -- low angle
 	Flip = { Side = 1, Back = 0.2, Up = -0.65, Far = 1.05, Ahead = 0.3 }, -- low, looking up at the belly
@@ -1230,6 +1247,30 @@ local SHOTS: { [string]: { Side: number, Back: number, Up: number, Far: number, 
 	Coil = { Side = 1, Back = 0.3, Up = 0.6, Far = 1.45, Ahead = 0.2 }, -- wide and high
 	Pin = { Side = 0.75, Back = -0.35, Up = 0.9, Far = 1.0, Ahead = 0.4 }, -- high, looking down at the floor
 }
+
+-- what the shot may pass through: fish, players, our own props, the map's props (they fade, PropController)
+local function viewParams(): RaycastParams
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local skip: { Instance } = { workspace.CurrentCamera }
+	local folder = workspace:FindFirstChild("Fish")
+	if folder then
+		table.insert(skip, folder)
+	end
+	local blockout = workspace:FindFirstChild("ClaudeBlockout")
+	local lane = blockout and blockout:FindFirstChild("Lane")
+	local props = lane and lane:FindFirstChild("Props")
+	if props then
+		table.insert(skip, props)
+	end
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(skip, player.Character)
+		end
+	end
+	params.FilterDescendantsInstances = skip
+	return params
+end
 
 local function shotFor(f: Fail, sideSign: number): Vector3
 	local s = SHOTS[f.Kind] or SHOTS.Chomp
@@ -1245,21 +1286,7 @@ local function shotFor(f: Fail, sideSign: number): Vector3
 	if f.FloorY then
 		at = Vector3.new(at.X, math.max(at.Y, f.FloorY + 5), at.Z)
 	end
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	local skip: { Instance } = { workspace.CurrentCamera }
-	for _, name in { "Fish" } do
-		local folder = workspace:FindFirstChild(name)
-		if folder then
-			table.insert(skip, folder)
-		end
-	end
-	for _, player in Players:GetPlayers() do
-		if player.Character then
-			table.insert(skip, player.Character)
-		end
-	end
-	params.FilterDescendantsInstances = skip
+	local params = viewParams()
 	local hit = workspace:Raycast(anchor, at - anchor, params)
 	if hit then
 		local back = (at - anchor).Unit
@@ -1310,41 +1337,6 @@ end
 
 -- Wild fish between the camera and what it looks at are made see-through (our own screen; LocalTransparencyModifier)
 local faded: { [BasePart]: boolean } = {}
-local function clearView(f: Fail, from: Vector3, to: Vector3)
-	local folder = workspace:FindFirstChild("Fish")
-	if not folder then
-		return
-	end
-	local way = to - from
-	local span = way.Magnitude
-	if span < 1 then
-		return
-	end
-	local dir = way / span
-	for _, model in folder:GetChildren() do
-		local root = model:IsA("Model") and model.PrimaryPart
-		if not root or model == f.Fish then
-			continue
-		end
-		local rel = root.Position - from
-		local along = rel:Dot(dir)
-		local near = along > 0 and along < span - 2 and (rel - dir * along).Magnitude < root.Size.Magnitude * 0.6 + 6
-		for _, d in model:GetDescendants() do
-			if d:IsA("BasePart") then
-				local want = if near then 0.85 else 0
-				if want > 0 or faded[d] then
-					d.LocalTransparencyModifier = d.LocalTransparencyModifier
-						+ (want - d.LocalTransparencyModifier) * 0.25
-					faded[d] = if d.LocalTransparencyModifier > 0.01 then true else nil
-					if not faded[d] then
-						d.LocalTransparencyModifier = 0
-					end
-				end
-			end
-		end
-	end
-end
-
 local function unfade()
 	for d in faded do
 		if d.Parent then
@@ -1352,6 +1344,121 @@ local function unfade()
 		end
 	end
 	table.clear(faded)
+end
+
+-- (the map's props, each with its box, found again now and then: they can be rebuilt)
+type Prop = { Model: Instance, At: CFrame, Size: Vector3, Parts: { BasePart } }
+local propList: { Prop } = {}
+local propsAt = -math.huge
+
+local function propsNow(): { Prop }
+	if os.clock() - propsAt < 3 then
+		return propList
+	end
+	propsAt = os.clock()
+	table.clear(propList)
+	local blockout = workspace:FindFirstChild("ClaudeBlockout")
+	local lane = blockout and blockout:FindFirstChild("Lane")
+	local folder = lane and lane:FindFirstChild("Props")
+	for _, model in if folder then folder:GetChildren() else {} do
+		if model:IsA("Model") then
+			local at, size = model:GetBoundingBox()
+			local parts: { BasePart } = {}
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") then
+					table.insert(parts, d)
+				end
+			end
+			table.insert(propList, { Model = model, At = at, Size = size, Parts = parts })
+		end
+	end
+	return propList
+end
+
+local fishParts: { [Instance]: { BasePart } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function fade(parts: { BasePart }, near: boolean)
+	for _, d in parts do
+		local want = if near then 0.85 else 0
+		if want > 0 or faded[d] then
+			d.LocalTransparencyModifier = d.LocalTransparencyModifier + (want - d.LocalTransparencyModifier) * 0.25
+			faded[d] = if d.LocalTransparencyModifier > 0.01 then true else nil
+			if not faded[d] then
+				d.LocalTransparencyModifier = 0
+			end
+		end
+	end
+end
+
+-- Wild fish and the map's props between the camera and what it looks at are made see-through, on our own screen
+-- (LocalTransparencyModifier), while a death's shot is up. `skip`: the fish doing it (never faded).
+local function clearView(skip: Model?, from: Vector3, to: Vector3)
+	local way = to - from
+	local span = way.Magnitude
+	if span < 1 then
+		return
+	end
+	local dir = way / span
+	local function between(at: Vector3, radius: number): boolean
+		local rel = at - from
+		local along = rel:Dot(dir)
+		return along > -radius and along < span - 1 and (rel - dir * along).Magnitude < radius
+	end
+	local folder = workspace:FindFirstChild("Fish")
+	for _, model in if folder then folder:GetChildren() else {} do
+		local root = model:IsA("Model") and model.PrimaryPart
+		if root and model ~= skip then
+			local parts = fishParts[model]
+			if not parts then
+				local list: { BasePart } = {}
+				for _, d in model:GetDescendants() do
+					if d:IsA("BasePart") then
+						table.insert(list, d)
+					end
+				end
+				fishParts[model] = list
+				parts = list
+			end
+			fade(parts :: { BasePart }, between(root.Position, root.Size.Magnitude * 0.6 + 5))
+		end
+	end
+	for _, prop in propsNow() do
+		fade(prop.Parts, between(prop.At.Position, prop.Size.Magnitude * 0.5 + 2))
+	end
+end
+
+-- Every death's shot (a fail's, the drown after it): never through a wall (kept on the near side of anything solid
+-- between it and what it looks at, eased so it slides rather than jumps), and nothing in the way of it
+local viewReach = 1e4
+local viewParamsNow: RaycastParams? = nil
+local viewParamsAt = -math.huge
+
+local function viewStep(dt: number)
+	local shot = State.DeathCam
+	if not shot then
+		viewReach = 1e4
+		if next(faded) then
+			unfade()
+		end
+		return
+	end
+	if not viewParamsNow or os.clock() - viewParamsAt > 1 then
+		viewParamsNow = viewParams()
+		viewParamsAt = os.clock()
+	end
+	local line = shot.Position - shot.Focus
+	if line.Magnitude > 1 then
+		local wall = workspace:Raycast(shot.Focus, line, viewParamsNow)
+		local reachTo = if wall then math.max(4, (wall.Position - shot.Focus).Magnitude - 3) else line.Magnitude
+		viewReach = Ease.lerp(
+			math.min(viewReach, line.Magnitude * 2),
+			reachTo,
+			Ease.alpha(if reachTo < viewReach then 10 else 2, dt)
+		)
+		State.DeathCam = { Position = shot.Focus + line.Unit * math.min(line.Magnitude, viewReach), Focus = shot.Focus }
+	end
+	local fail = fails[State.Player]
+	clearView(if fail then fail.Fish else nil, workspace.CurrentCamera.CFrame.Position, shot.Focus)
 end
 
 local function letFishGo(f: Fail)
@@ -1424,7 +1531,18 @@ local function begin(player: Player, fish: Model, kind: string)
 		Trails = {},
 		Snap = nil,
 		Pull = 0,
+		Beak = Vector3.new(0, -body.Y * 0.2, 0),
 	}
+	local roots, sum = 0, Vector3.zero
+	for _, j in f.Joints do
+		if j.Kind == "arm" and j.Depth == 1 then
+			roots += 1
+			sum += j.Pivot
+		end
+	end
+	if roots > 0 then
+		f.Beak = sum / roots
+	end
 	for _, d in fish:GetDescendants() do
 		if d:IsA("Trail") and d.Enabled then
 			d.Enabled = false
@@ -1655,12 +1773,11 @@ local function step(dt: number)
 			f.Pull = Ease.lerp(f.Pull, math.max(0, need - away.Magnitude), Ease.alpha(2.5, math.max(stepT, dt)))
 			at += away.Unit * f.Pull
 		end
+		-- (walls and what is in the way: viewStep, after the drown's own step)
 		State.DeathCam = { Position = at, Focus = f.Focus }
 		local u = math.clamp(t / math.max(def.Time, 0.01), 0, 1)
-		State.Darken = 0.3 * u
-		State.Vignette = 0.35 * u
-		-- wild fish that swim into the shot are see-through while they are in it
-		clearView(f, at, f.Focus)
+		State.Darken = 0.15 * u
+		State.Vignette = 0.3 * u
 		if f.Kind == "Wrap" then
 			local shade = f.Shade or makeShade()
 			f.Shade = shade
@@ -1709,6 +1826,8 @@ end
 function FailController.Start()
 	-- before the drown's step (DeathController, Camera - 3), so it takes the shot over on the same frame
 	RunService:BindToRenderStep("RideFail", Enum.RenderPriority.Camera.Value - 4, step)
+	-- after the drown's (Camera - 3), before the camera's own: the shot kept out of walls, the view kept clear
+	RunService:BindToRenderStep("RideFailView", Enum.RenderPriority.Camera.Value - 2, viewStep)
 end
 
 return FailController

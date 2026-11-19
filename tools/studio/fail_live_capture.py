@@ -99,7 +99,7 @@ def gif(fish, outcome, suffix="3", fps=12):
     fc.setw(FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
     print(fc.cmd("ride|" + fish))
     fc.wait_state({"Riding"})
-    time.sleep(1.5)
+    time.sleep(0.7)
     # the fail is asked for half a second into the filming, so a moment of riding comes first
     import threading
 

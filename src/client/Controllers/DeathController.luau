@@ -33,6 +33,7 @@ type Death = {
 	Look: Vector3, -- the victim's flat heading then
 	Back: Vector3, -- the throw's flat direction
 	CamFrom: Vector3, -- where the drowning shot watches from
+	CamOffset: Vector3, -- a loose body's shot: kept this far off it, following it
 	Bubbles: ParticleEmitter?,
 	LastBubble: boolean,
 	Sink: number,
@@ -108,7 +109,15 @@ local function begin(player: Player, kind: string): Death?
 			Sink = 0,
 			Loose = if ragdolled then left :: number else nil,
 			Settle = nil,
+			CamOffset = Vector3.zero,
 		}
+	if ragdolled then
+		-- a loose body is followed, from the side the shot already is, no further than 26 studs (one push in, eased
+		-- by the camera)
+		local away = camera.Position - root.Position
+		local length = math.clamp(away.Magnitude, 14, 26)
+		d.CamOffset = (if away.Magnitude > 0.1 then away.Unit else Vector3.new(0, 0.3, 1).Unit) * length
+	end
 	throwDirs[player] = nil
 	d.Bubbles = Fx.mouthBubbles(character)
 	State.DeathStart[player] = start
@@ -180,7 +189,7 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 	if d.Loose and tt < 0 then
 		-- flying loose: the physics has the body (FailController); only the shot follows it
 		State.DeathCam = {
-			Position = d.CamFrom + Vector3.new(0, t * 0.3, 0),
+			Position = root.Position + d.CamOffset,
 			Focus = root.Position + Vector3.new(0, 1, 0),
 		}
 		State.Vignette = 0
@@ -188,7 +197,9 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		return
 	end
 	if d.Loose and not d.Settle then
-		-- the joints are back: the drown goes on from where the body came to rest, turning upright gently
+		-- the joints are back: the drown goes on from where the body came to rest, turning upright gently, and the
+		-- shot stays where it was following from
+		d.CamFrom = root.Position + d.CamOffset
 		d.At = root.CFrame
 		d.Settle = root.CFrame.Rotation
 		d.Back = Vector3.zero
