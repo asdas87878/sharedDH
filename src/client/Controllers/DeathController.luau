@@ -118,7 +118,19 @@ local function begin(player: Player, kind: string): Death?
 		-- by the camera)
 		local away = camera.Position - root.Position
 		local length = math.clamp(away.Magnitude, 14, 26)
-		d.CamOffset = (if away.Magnitude > 0.1 then away.Unit else Vector3.new(0, 0.3, 1).Unit) * length
+		local dir = if away.Magnitude > 0.1 then away.Unit else Vector3.new(0, 0.3, 1).Unit
+		if not fromFail then
+			-- a plain throw goes back the way we came, at the camera behind us: the shot is taken from the side of
+			-- it instead (the side the camera was on), so the body crosses the frame
+			local side = d.Back:Cross(Vector3.yAxis)
+			side = if side.Magnitude > 0.01 then side.Unit else Vector3.xAxis
+			if side:Dot(away) < 0 then
+				side = -side
+			end
+			dir = (side + d.Back * 0.35 + Vector3.new(0, 0.4, 0)).Unit
+			length = 30
+		end
+		d.CamOffset = dir * length
 	end
 	throwDirs[player] = nil
 	d.Bubbles = Fx.mouthBubbles(character)
