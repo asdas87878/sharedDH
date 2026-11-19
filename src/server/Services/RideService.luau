@@ -39,6 +39,7 @@
 --   ("Boost"), every client of the bite or the smash (Fx "Eat", "Smash"), and the fish carries "Bite", "Smash" and
 --   "Frenzy" attributes for the animations to come.
 local CollectionService = game:GetService("CollectionService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -127,6 +128,17 @@ RideService.Diving = nil :: ((player: Player) -> boolean)?
 local SEAT_SETTLED = 1
 
 local riders: { [Player]: Rider } = {}
+-- the ragdolls (ragdoll, below): who is loose, and what to put back
+type Loose = {
+	Character: Model,
+	Joints: { Instance }, -- the joints switched off
+	Made: { Instance }, -- what we made (the ball sockets and their attachments)
+	Collide: { [BasePart]: boolean }, -- each part's own CanCollide
+	Neck: boolean, -- the Humanoid's RequiresNeck
+	Token: number,
+}
+local looseOf: { [Player]: Loose } = {}
+local looseToken = 0
 local dockSpawn: BasePart? = nil
 
 local function now(): number
@@ -245,6 +257,7 @@ local function setState(r: Rider, state: string)
 		r.Player:SetAttribute("DeathAt", nil)
 		r.Player:SetAttribute("DeathThrown", nil)
 		r.Player:SetAttribute("DeathQuick", nil)
+		r.Player:SetAttribute("DeathLoose", nil)
 	end
 	if state ~= "Riding" then
 		if r.SentDrain ~= 0 then
@@ -271,6 +284,14 @@ local function setState(r: Rider, state: string)
 	local character = r.Player.Character
 	if character then
 		PropService.riding(character, state == "Riding" or state == "Failing")
+		if looseOf[r.Player] then
+			-- (a ragdoll stays solid to the map, the props and the fish whatever the state: ragdoll, below)
+			for _, d in character:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.CollisionGroup = "Ragdoll"
+				end
+			end
+		end
 	end
 end
 
@@ -330,6 +351,163 @@ local function dismount(r: Rider, reason: string, handBack: boolean?)
 		end)
 	end
 	Net.Ride:FireClient(r.Player, "Dismounted", reason)
+end
+
+-- The ragdoll (Config.Fail.Ragdoll; Hugo, 2026-11-19, task f3: "enable a real Roblox ragdoll (BallSocketConstraints
+-- replacing Motor6Ds on the character) with an impulse, colliding with the map, props and the fish"). The joints are
+-- the server's to change, so the swap is made here; the body stays the rider's own machine's to move (its network
+-- owner), which throws it, holds it up in the water and lets the fish grab it (FailController). The character's
+-- "Ragdoll" attribute says it is loose (the server time it began). Every joint but the root's is swapped (an avatar's
+-- Motor6Ds, or the newer AnimationConstraints), the limbs made solid ("Ragdoll" group: the map, the props and the
+-- fish, never another player), and it is all put back as it was by unragdoll.
+local ROOT_JOINTS = { Root = true, RootJoint = true }
+-- how far each joint may swing (by the R15 joint names; an R6 one by its own)
+local function limitsOf(name: string): (number, number)
+	if string.find(name, "Neck") then
+		return 35, 25
+	elseif string.find(name, "Knee") or string.find(name, "Elbow") then
+		return 60, 5
+	elseif string.find(name, "Ankle") or string.find(name, "Wrist") then
+		return 25, 10
+	elseif string.find(name, "Waist") then
+		return 25, 20
+	end
+	return 75, 40 -- shoulders and hips
+end
+
+local function unragdoll(player: Player)
+	local l = looseOf[player]
+	if not l then
+		return
+	end
+	looseOf[player] = nil
+	for _, made in l.Made do
+		made:Destroy()
+	end
+	for _, j in l.Joints do
+		if j.Parent then
+			(j :: any).Enabled = true
+		end
+	end
+	for part, was in l.Collide do
+		if part.Parent then
+			part.CanCollide = was
+		end
+	end
+	local humanoid = l.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.RequiresNeck = l.Neck
+	end
+	-- (back to the group the body had: solid to the map off a fish, PropService)
+	local group = if l.Character:GetAttribute("Riding") then "Riding" else "Riders"
+	for _, d in l.Character:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CollisionGroup = group
+		end
+	end
+	l.Character:SetAttribute("Ragdoll", nil)
+end
+
+-- `seconds`: how long it stays loose (nil: until the dock, toDock)
+local function ragdoll(r: Rider, seconds: number?): boolean
+	local character = r.Player.Character
+	local root, humanoid = parts(r.Player)
+	if not character or not root or not humanoid or Config.Fail.Ragdoll.On == 0 then
+		return false
+	end
+	if looseOf[r.Player] then
+		unragdoll(r.Player)
+	end
+	looseToken += 1
+	local l: Loose = {
+		Character = character,
+		Joints = {},
+		Made = {},
+		Collide = {},
+		Neck = humanoid.RequiresNeck,
+		Token = looseToken,
+	}
+	humanoid.RequiresNeck = false
+	humanoid.BreakJointsOnDeath = false
+	local friction = Config.Fail.Ragdoll.Friction
+	local function socket(name: string, a0: Attachment, a1: Attachment, parent: Instance)
+		local swing, twist = limitsOf(name)
+		local b = Instance.new("BallSocketConstraint")
+		b.Name = "Ragdoll_" .. name
+		b.Attachment0 = a0
+		b.Attachment1 = a1
+		b.LimitsEnabled = true
+		b.UpperAngle = swing
+		b.TwistLimitsEnabled = true
+		b.TwistLowerAngle = -twist
+		b.TwistUpperAngle = twist
+		b.MaxFrictionTorque = friction
+		b.Restitution = 0
+		b.Parent = parent
+		table.insert(l.Made, b)
+	end
+	for _, d in character:GetDescendants() do
+		if d:IsA("Motor6D") and not ROOT_JOINTS[d.Name] and d.Enabled and d.Part0 and d.Part1 then
+			local p0, p1 = d.Part0 :: BasePart, d.Part1 :: BasePart
+			local a0 = Instance.new("Attachment")
+			a0.Name = "RagdollA0_" .. d.Name
+			a0.CFrame = d.C0
+			a0.Parent = p0
+			local a1 = Instance.new("Attachment")
+			a1.Name = "RagdollA1_" .. d.Name
+			a1.CFrame = d.C1
+			a1.Parent = p1
+			table.insert(l.Made, a0)
+			table.insert(l.Made, a1)
+			socket(d.Name, a0, a1, p1)
+			d.Enabled = false
+			table.insert(l.Joints, d)
+		elseif d:IsA("AnimationConstraint") and not ROOT_JOINTS[d.Name] and d.Enabled then
+			local a0, a1 = d.Attachment0, d.Attachment1
+			if a0 and a1 and a1.Parent then
+				socket(d.Name, a0, a1, a1.Parent)
+				d.Enabled = false
+				table.insert(l.Joints, d)
+			end
+		end
+	end
+	for _, d in character:GetDescendants() do
+		if d:IsA("BasePart") then
+			local accessory = d:FindFirstAncestorOfClass("Accessory") ~= nil
+			l.Collide[d] = d.CanCollide
+			-- (the root part rides along with the lower body; hats and hair stay out of it)
+			d.CanCollide = not accessory and d ~= root
+			d.CollisionGroup = "Ragdoll"
+		end
+	end
+	looseOf[r.Player] = l
+	character:SetAttribute("Ragdoll", now())
+	pcall(function()
+		root:SetNetworkOwner(r.Player)
+	end)
+	if seconds then
+		local token = l.Token
+		task.delay(seconds, function()
+			local still = looseOf[r.Player]
+			if still and still.Token == token then
+				unragdoll(r.Player)
+			end
+		end)
+	end
+	return true
+end
+
+-- Off the fish's back as a ragdoll, mid-outcome (Config.Fail's Loose): the weld goes, the fish stays ours for the rest
+-- of the outcome (its owner's machine still moves it), and every client is told (Fx "Ragdoll": player, fish, kind)
+local function letLoose(r: Rider, kind: string, seconds: number?)
+	if r.Weld then
+		r.Weld:Destroy()
+		r.Weld = nil
+	end
+	local fish = r.Fish
+	if ragdoll(r, seconds) then
+		Net.Fx:FireAllClients("Ragdoll", r.Player, if fish then fish.Model else nil, kind)
+	end
 end
 
 local function mount(r: Rider, w: Wild, landing: boolean): boolean
@@ -419,6 +597,8 @@ local function toDock(r: Rider)
 	if r.Fish then
 		dismount(r, "Dock")
 	end
+	-- (a ragdoll gets its joints back before the move home)
+	unragdoll(r.Player)
 	r.Token += 1
 	local root, humanoid = parts(r.Player)
 	if root and humanoid then
@@ -519,6 +699,8 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 	local slow = if type(slowed) == "number" and slowed > 1 then slowed else 1
 	local name = if kind and f.Outcomes[kind] then kind else Config.failOf(w.Type, RideStyles.nameOf(w.Type.Id))
 	local outcome = f.Outcomes[name]
+	local rag = f.Ragdoll
+	local ragdolls = rag.On ~= 0 and not soft
 	-- the end of it: off the fish into the drown, or (taken) at the dock; with no failing, left floating with a
 	-- whole meter, to go on
 	local function finish()
@@ -534,8 +716,20 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 			-- (nothing: the fish keeps us, out of sight, until the dock, and toDock lets it go)
 			return
 		else
+			-- thrown: still flying loose (the ragdoll, from the outcome's Loose, or from now for the plain throw), the
+			-- drown's struggle begins when it has had its Ragdoll.Time (DeathLoose: the seconds of it left)
+			local left = 0
+			if ragdolls then
+				if r.Weld then
+					letLoose(r, name, rag.Time * slow)
+					left = rag.Time
+				else
+					left = rag.Time -- (let loose at Loose for Time - Loose + Ragdoll.Time)
+				end
+			end
 			throwOff(r)
-			die(r, "Drowning", d.DrownTime * slow, true)
+			r.Player:SetAttribute("DeathLoose", if ragdolls then left else nil)
+			die(r, "Drowning", (if ragdolls then d.DrownTime - d.Throw + left else d.DrownTime) * slow, true)
 		end
 	end
 	if outcome.Time <= 0 then
@@ -549,11 +743,26 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 	if outcome.End == "Taken" and not soft then
 		-- the fail itself: the outcome, the fade, the black, then the dock (die's own timer)
 		die(r, "Failing", (outcome.Time + f.TakenFade + f.TakenTail) * slow, false)
+	else
+		r.Token += 1
+		setState(r, "Failing")
+	end
+	local token = r.Token
+	-- off its back, loose, partway through (a taken one stays loose until the dock; a thrown one flies on into the drown)
+	if ragdolls and outcome.Loose < outcome.Time then
+		task.delay(outcome.Loose * slow, function()
+			if r.Token == token and r.State == "Failing" and riders[r.Player] == r then
+				letLoose(
+					r,
+					name,
+					if outcome.End == "Taken" then nil else (outcome.Time - outcome.Loose + rag.Time) * slow
+				)
+			end
+		end)
+	end
+	if outcome.End == "Taken" and not soft then
 		return
 	end
-	r.Token += 1
-	local token = r.Token
-	setState(r, "Failing")
 	task.delay(outcome.Time * slow, function()
 		if r.Token == token and r.State == "Failing" and riders[r.Player] == r then
 			finish()
@@ -1209,6 +1418,7 @@ end
 
 local function onCharacter(r: Rider, character: Model)
 	r.Token += 1
+	looseOf[r.Player] = nil
 	-- a fish still marked as ours (the old character went without dying first) is let go
 	if r.Weld then
 		r.Weld:Destroy()
@@ -1482,6 +1692,7 @@ function RideService.Init()
 			FishService.unreserve(r.Grab, player)
 		end
 		riders[player] = nil
+		looseOf[player] = nil
 	end)
 end
 
@@ -1645,6 +1856,16 @@ function RideService.giveCarried(player: Player, fish: Carry): boolean
 end
 
 function RideService.Start()
+	-- the ragdoll's group (ragdoll): solid to the map, the props and the fish, never to another player or itself
+	-- (PropService.Init has made the others)
+	if not PhysicsService:IsCollisionGroupRegistered("Ragdoll") then
+		PhysicsService:RegisterCollisionGroup("Ragdoll")
+	end
+	for _, group in { "Riders", "Riding", "Ragdoll" } do
+		if PhysicsService:IsCollisionGroupRegistered(group) then
+			PhysicsService:CollisionGroupSetCollidable("Ragdoll", group, false)
+		end
+	end
 	dockSpawn = findDockSpawn()
 	if not dockSpawn then
 		warn("[RideService] no dock Spawn found: respawning reloads the character instead")

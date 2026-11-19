@@ -36,6 +36,10 @@ type Death = {
 	Bubbles: ParticleEmitter?,
 	LastBubble: boolean,
 	Sink: number,
+	-- thrown as a ragdoll (Config.Fail.Ragdoll, FailController): the seconds it still flies loose as this begins (the
+	-- throw is the physics', not ours), and the body's turn as it got its joints back, eased out of
+	Loose: number?,
+	Settle: CFrame?,
 }
 
 local deaths: { [Player]: Death } = {}
@@ -77,22 +81,34 @@ local function begin(player: Player, kind: string): Death?
 	end
 	local camera = workspace.CurrentCamera.CFrame
 	local look = flat(root.CFrame.LookVector)
-	local d: Death = {
-		Kind = kind,
-		Start = start,
-		Thrown = player:GetAttribute("DeathThrown") == true,
-		Struggle = if player:GetAttribute("DeathQuick") == true
-			then Config.Death.MissStruggle
-			else Config.Death.Struggle,
-		Character = character,
-		At = root.CFrame,
-		Look = look,
-		Back = throwDirs[player] or -look,
-		CamFrom = root.Position + flat(camera.Position - root.Position) * 15 + Vector3.new(0, 6, 0),
-		Bubbles = nil,
-		LastBubble = false,
-		Sink = 0,
-	}
+	local thrown = player:GetAttribute("DeathThrown") == true
+	local left = player:GetAttribute("DeathLoose")
+	local ragdolled = thrown and type(left) == "number"
+	-- (after a fail's own shot the camera stays where it is: one move, held, no second swing; FailController)
+	local fromFail = player == State.Player and State.DeathCam ~= nil
+	local d: Death =
+		{
+			Kind = kind,
+			Start = start,
+			Thrown = thrown,
+			Struggle = if player:GetAttribute("DeathQuick") == true
+				then Config.Death.MissStruggle
+				else Config.Death.Struggle,
+			Character = character,
+			At = root.CFrame,
+			Look = look,
+			Back = throwDirs[player] or -look,
+			CamFrom = if fromFail
+				then camera.Position
+				else root.Position
+					+ flat(camera.Position - root.Position) * (if ragdolled then 24 else 15)
+					+ Vector3.new(0, if ragdolled then 8 else 6, 0),
+			Bubbles = nil,
+			LastBubble = false,
+			Sink = 0,
+			Loose = if ragdolled then left :: number else nil,
+			Settle = nil,
+		}
 	throwDirs[player] = nil
 	d.Bubbles = Fx.mouthBubbles(character)
 	State.DeathStart[player] = start
@@ -125,7 +141,7 @@ end
 local function drownStep(player: Player, d: Death, t: number, dt: number)
 	local c = Config.Death
 	local mine = player == State.Player
-	local throwT = if d.Thrown then c.Throw else 0
+	local throwT = if d.Thrown then (d.Loose or c.Throw) else 0
 	local tt = t - throwT -- into the drown proper
 	local s, w, still = d.Struggle, c.Weak, c.Still
 
@@ -161,11 +177,28 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		State.Fade = 1
 		return
 	end
+	if d.Loose and tt < 0 then
+		-- flying loose: the physics has the body (FailController); only the shot follows it
+		State.DeathCam = {
+			Position = d.CamFrom + Vector3.new(0, t * 0.3, 0),
+			Focus = root.Position + Vector3.new(0, 1, 0),
+		}
+		State.Vignette = 0
+		State.Darken = 0.35 * Ease.smoothstep(throwT, total, t)
+		return
+	end
+	if d.Loose and not d.Settle then
+		-- the joints are back: the drown goes on from where the body came to rest, turning upright gently
+		d.At = root.CFrame
+		d.Settle = root.CFrame.Rotation
+		d.Back = Vector3.zero
+		d.Look = flat(root.CFrame.LookVector)
+	end
 	local start = d.At.Position
 	local thrownTo = start
 		+ d.Back * (if d.Thrown then c.ThrowBack else 0)
-		+ Vector3.new(0, if d.Thrown then 2 else 0, 0)
-	local face = -d.Back -- looking back at the fish
+		+ Vector3.new(0, if d.Thrown and not d.Loose then 2 else 0, 0)
+	local face = if d.Loose then d.Look else -d.Back -- looking back at the fish
 	local frame: CFrame
 	if tt < 0 then
 		-- up and back, a full backflip, landing tilted back
@@ -184,6 +217,9 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		local position = thrownTo + Vector3.new(0, bob - d.Sink, 0)
 		local sway = math.sin(tt * 4) * math.rad(10) * (1 - weak)
 		frame = CFrame.lookAt(position, position + face) * CFrame.Angles(math.rad(20) + limp * math.rad(30), 0, sway)
+		if d.Settle then
+			frame = CFrame.new(frame.Position) * d.Settle:Lerp(frame.Rotation, Ease.smoothstep(0, 0.6, tt))
+		end
 	end
 	root.CFrame = frame
 	root.AssemblyLinearVelocity = Vector3.zero

@@ -1606,19 +1606,39 @@ Config.Fail = {
 	On = 1, -- 0: every fish throws you off at once (the old out of Oxygen)
 	-- these tiers only ever throw you off (Hugo: "give low-tier fishes just the throwing off")
 	LowTiers = { Common = true, Uncommon = true } :: { [string]: boolean },
+	-- (task f3, 2026-11-19: longer, so each reads in full; Loose: seconds in that the rider comes off the fish, a real
+	-- ragdoll from then on, Fail.Ragdoll)
 	-- stylua: ignore
 	Outcomes = {
-		--         seconds held     how it ends       on the fail screen         placeholder sound   for the real ones
-		Throw = { Time = 0,   End = "Throw", Text = "",              Sound = "Splash", Hook = "FailThrow" },
-		Chomp = { Time = 1.3, End = "Taken", Text = "EATEN!",        Sound = "Chomp",  Hook = "FailChomp" },
-		Gulp  = { Time = 1.5, End = "Taken", Text = "GULPED!",       Sound = "Chomp",  Hook = "FailGulp" },
-		Wrap  = { Time = 1.4, End = "Taken", Text = "DRAGGED DOWN!", Sound = "Rumble", Hook = "FailWrap" },
-		Roll  = { Time = 1.2, End = "Throw", Text = "",              Sound = "Splash", Hook = "FailRoll" },
-		Flip  = { Time = 0.9, End = "Throw", Text = "",              Sound = "Splash", Hook = "FailFlip" },
-		Shell = { Time = 1.1, End = "Throw", Text = "",              Sound = "Pop",    Hook = "FailShell" },
-		Coil  = { Time = 1.3, End = "Throw", Text = "",              Sound = "Rumble", Hook = "FailCoil" },
-		Pin   = { Time = 1.3, End = "Taken", Text = "PINNED!",       Sound = "Rumble", Hook = "FailPin" },
-	} :: { [string]: { Time: number, End: string, Text: string, Sound: string, Hook: string } },
+		--         seconds held  loose          how it ends       on the fail screen         placeholder sound   for the real ones
+		Throw = { Time = 0,   Loose = 0,    End = "Throw", Text = "",              Sound = "Splash", Hook = "FailThrow" },
+		Chomp = { Time = 2.3, Loose = 0.35, End = "Taken", Text = "EATEN!",        Sound = "Chomp",  Hook = "FailChomp" },
+		Gulp  = { Time = 2.5, Loose = 0.95, End = "Taken", Text = "GULPED!",       Sound = "Chomp",  Hook = "FailGulp" },
+		Wrap  = { Time = 3.0, Loose = 0.25, End = "Taken", Text = "DRAGGED DOWN!", Sound = "Rumble", Hook = "FailWrap" },
+		Roll  = { Time = 1.7, Loose = 0.6,  End = "Throw", Text = "",              Sound = "Splash", Hook = "FailRoll" },
+		Flip  = { Time = 1.5, Loose = 0.6,  End = "Throw", Text = "",              Sound = "Splash", Hook = "FailFlip" },
+		Shell = { Time = 1.6, Loose = 1.05, End = "Throw", Text = "",              Sound = "Pop",    Hook = "FailShell" },
+		Coil  = { Time = 1.9, Loose = 0.2,  End = "Throw", Text = "",              Sound = "Rumble", Hook = "FailCoil" },
+		Pin   = { Time = 2.4, Loose = 0.45, End = "Taken", Text = "PINNED!",       Sound = "Rumble", Hook = "FailPin" },
+	} :: { [string]: { Time: number, Loose: number, End: string, Text: string, Sound: string, Hook: string } },
+	-- The rider comes off as a real Roblox ragdoll (Hugo, 2026-11-19: "THROW the player FURTHER, and make him RAGDOLL
+	-- against objects"): the server swaps the body's joints for BallSocketConstraints (RideService), the rider's own
+	-- machine owns its physics: the throw, the water's hold and drag, the fish's grabs (FailController). It collides
+	-- with the map, the props and the fish. After a throw it flies Time seconds, then gets its joints back for the drown.
+	Ragdoll = {
+		On = 1, -- 0: no ragdoll (the old scripted throw)
+		Time = 1.8, -- seconds loose before the drown's struggle (an outcome that ends in the throw)
+		Throw = 80, -- studs a second the plain throw leaves at (the old one went 8 studs in all)
+		Spin = 7, -- radians a second it tumbles as it leaves
+		Float = 0.8, -- share of gravity the water holds up
+		Drag = 1.1, -- share of its speed the water takes a second (and of its spin)
+		Friction = 6, -- the joints' stiffness: a body with some weight, not a doll of string
+		Pull = 30, -- how quickly a grab (an arm, a jaw, a coil) pulls the part it holds to its place (Responsiveness)
+		PullForce = 900, -- and how hard, per unit of the body's mass (the lag and the weight come from this)
+		HitSpeed = 14, -- studs a second against the fish that count as a hit (bubbles, a knock)
+	},
+	-- The camera of a fail: one smooth move to the outcome's shot (FailController's SHOTS) over this many seconds, then held
+	CameraTime = 1.1,
 	-- "Taken": the fade to the fail screen after Time, then black for Tail before the dock
 	TakenFade = 0.7,
 	TakenTail = 0.2,

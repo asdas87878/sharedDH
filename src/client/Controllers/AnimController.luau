@@ -48,6 +48,10 @@ local RideController = require(script.Parent.RideController)
 
 local AnimController = {}
 
+-- A fail's own pose for a rider still on the fish (FailController sets it: the hold, the bounce, the brace for a hit).
+-- nil, or nothing for this player: the plain clinging on.
+AnimController.FailPose = nil :: ((player: Player) -> { [string]: CFrame }?)?
+
 -- A modelled creature's joints (FishModel's "Rig_<part>"), each with its turns through one swim cycle. `bend` is its
 -- place in the turn layer: 1 on the chain to the head, -1 on the chain to the tail, 0 elsewhere.
 -- `side` marks a side fin (the first part off the centre line: a fin, a flipper, a wing, a leg): -1 left, 1 right.
@@ -1274,7 +1278,13 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 		local u, time = JumpController.reel()
 		return dash(t, u or 1, time)
 	elseif state == "Failing" then
-		-- a fish that has had enough (Config.Fail, FailController moves us about): clinging on, legs tight
+		-- a fish that has had enough (Config.Fail, FailController moves us about): clinging on, legs tight, or the
+		-- fail's own pose
+		local hook = AnimController.FailPose
+		local own = if hook then hook(player) else nil
+		if own then
+			return own
+		end
 		return astride(t, 1.6, 0, 1, 0, 0, 0)
 	elseif state == "Drowning" then
 		local started = State.DeathStart[player]
@@ -1455,6 +1465,26 @@ local function stopTracks(character: Model)
 end
 
 local lastStop = 0
+
+-- A ragdoll got its joints back (Config.Fail.Ragdoll): each posed joint's ease starts from where the loose body has it,
+-- so the drown's pose is eased into, not snapped to
+function AnimController.settle(character: Model)
+	local j = riderJoints[character]
+	if not j then
+		return
+	end
+	for name, motor in j.motors do
+		local ok, now = pcall(function(): CFrame
+			local p0, p1 = motor.Part0 :: BasePart, motor.Part1 :: BasePart
+			local relative = motor.C0:Inverse() * p0.CFrame:Inverse() * p1.CFrame * motor.C1
+			local turn = j.turns[name]
+			return if turn then turn * relative * turn:Inverse() else relative
+		end)
+		if ok and name ~= "Root" then
+			j.current[name] = now.Rotation
+		end
+	end
+end
 
 function AnimController.Start()
 	-- a rider landed on a fish (every client hears it): that fish dips and kicks
