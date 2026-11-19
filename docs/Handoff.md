@@ -3,6 +3,9 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-19 · Caught text option 3, ring ticks and red third, catch screen icons (NULLROOM tasks x1 x2 x3, Hugo's PC)
+**State:** Studio-checked by script, not played by hand. Caught text is Banner (`Kit.CaughtLook` 3, NEW! nudged); the oxygen ring ticks 1.2x slower, at most one thin ring, red only in the big ring's last third (`Config.redLine`); catch tiles show the inventory's own picture under the border (`Portrait` `Aspect`, `Slots.Aspect`). Nothing new from the partner on origin to merge; f3 (fails) still running. GIFs: `caught-text-final.gif`, `oxygen-trail-b-3.gif`, `catch-ui-final-2.gif`.
+
 ## 2026-11-19 · The fails rigged and physical: a real ragdoll, real hits, the kraken's arms (NULLROOM task f3, Hugo's PC)
 **State:** in the game code and captured from Studio by script (record and replay); **not played by hand, not on a
 phone, not with two players.** All in [riding feel](design/riding-feel.md), "The fails, rigged and physical".
