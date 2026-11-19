@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
+local Slots = require(script.Parent.Slots)
 local DiveScreen = require(script.Parent.DiveScreen)
 
 local CatchShow = {}
@@ -724,21 +725,19 @@ local function tileFill(tier: string): (ColorSequence, number)
 	return ColorSequence.new(Kit.lighter(colour, 0.08), Kit.darker(colour, 0.1)), 90
 end
 
--- Where a fish's picture sits in its tile, by how it is shown (Portrait): a bust is bigger than the tile, its head
--- in the middle and its neck and body running on past the right and bottom edges, cut off at the tile's inner edge so
--- it fills the tile with no gap; a fish shown whole (small, thin, flat) is centred whole, with a little room round it
-local FIT: { [string]: { X: number, Y: number, Wide: number, High: number } } = {
-	Bust = { X = 0.6, Y = 0.56, Wide = 1.42, High = 1.32 },
-	Whole = { X = 0.5, Y = 0.5, Wide = 1.06, High = 1.06 },
-	Thin = { X = 0.5, Y = 0.5, Wide = 1.0, High = 1.08 },
-	Flat = { X = 0.5, Y = 0.52, Wide = 1.08, High = 1.08 },
-}
+-- A fish's picture in its tile is the very picture its inventory slot shows (Hugo, 2026-11-19: "the same renders as
+-- the inventory"): a window of the slots' shape (Slots.Aspect), so the creature is framed as there, as wide as the
+-- tile's inside and a little taller, centred, cut off at the inside of the black outline. A bust's neck runs on to
+-- the right edge and a fish shown whole sits whole in the middle, as in a slot
+local PICTURE_HIGH = 1 / Slots.Aspect
 
--- A fish on its own rarity tile: square, a black outline, the slots' light rim and dark lip, the picture clipped at
--- the tile's inner edge. The tile is sized by its holder; scale is its own grow
+-- A fish on its own rarity tile: square, a black outline, the slots' light rim and dark lip. Drawn bottom to top: the
+-- rarity's colours, the fish, then the border (the outline, the rim and the lip) over the fish, so the fish goes in
+-- behind the border and never over it. The tile is sized by its holder; scale is its own grow
 type Tile = { frame: Frame, scale: UIScale, ring: Frame }
 local function fishTile(parent: Instance, item: Item, size: number, z: number): Tile
 	local frame, scale = holder(parent, UDim2.fromOffset(size, size), z)
+	-- 1. the rarity's colours
 	local face: Frame = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -747,18 +746,53 @@ local function fishTile(parent: Instance, item: Item, size: number, z: number): 
 		BorderSizePixel = 0,
 		ZIndex = z,
 	}, frame)
-	local line = Kit.stroke(face, TILE_LINE, TILE_BLACK)
-	line.LineJoinMode = Enum.LineJoinMode.Miter
 	local fill = Kit.new("UIGradient", {}, face)
 	fill.Color, fill.Rotation = tileFill(item.Tier)
+	-- 2. the fish, in a window clipped at the tile's inside (the outline stands outside it)
+	local clip: Frame = Kit.new("Frame", {
+		Name = "Picture",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		ZIndex = z + 1,
+	}, face)
+	local picture = Portrait.new(clip, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, PICTURE_HIGH),
+		Aspect = Slots.Aspect,
+		ZIndex = z + 1,
+	})
+	local pictured = picture.show(item.Id)
+	picture.Frame.Visible = pictured
+	if not pictured then
+		local kind = Config.FishById[item.Id]
+		Kit.word(clip, {
+			Text = if kind then string.sub(kind.Name, 1, 1) else "?",
+			TextSize = size * 0.55,
+			Font = SCREEN_FONT,
+			Edge = 0.08,
+			Position = UDim2.fromScale(0.5, 0.5),
+			ZIndex = z + 2,
+		})
+	end
+	-- 3. the border, over the fish (drawn after it: the HUD orders siblings by ZIndex, children over their parent)
+	local border: Frame = Kit.new("Frame", {
+		Name = "Border",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = z + 3,
+	}, face)
+	local line = Kit.stroke(border, TILE_LINE, TILE_BLACK)
+	line.LineJoinMode = Enum.LineJoinMode.Miter
 	-- the light rim along the top and down the sides, the darker lip along the foot (as a caught slot's)
 	Kit.new("Frame", {
 		Size = UDim2.new(1, 0, 0, 2.5),
 		BackgroundColor3 = Kit.White,
 		BackgroundTransparency = 0.25,
 		BorderSizePixel = 0,
-		ZIndex = z + 1,
-	}, face)
+		ZIndex = z + 3,
+	}, border)
 	for _, right in { false, true } do
 		local side = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(if right then 1 else 0, 0),
@@ -766,8 +800,8 @@ local function fishTile(parent: Instance, item: Item, size: number, z: number): 
 			Size = UDim2.new(0, 2.5, 1, -5),
 			BackgroundColor3 = Kit.White,
 			BorderSizePixel = 0,
-			ZIndex = z + 1,
-		}, face)
+			ZIndex = z + 3,
+		}, border)
 		Kit.new("UIGradient", {
 			Rotation = 90,
 			Transparency = NumberSequence.new({
@@ -784,35 +818,8 @@ local function fishTile(parent: Instance, item: Item, size: number, z: number): 
 		BackgroundColor3 = TILE_BLACK,
 		BackgroundTransparency = 0.6,
 		BorderSizePixel = 0,
-		ZIndex = z + 1,
-	}, face)
-	-- the picture's window: clipped at the tile's inner edge (the outline stands outside it)
-	local clip: Frame = Kit.new("Frame", {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		ClipsDescendants = true,
-		ZIndex = z + 2,
-	}, face)
-	local fit = FIT[Portrait.kindOf(item.Id) or "Whole"] or FIT.Whole
-	local picture = Portrait.new(clip, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(fit.X, fit.Y),
-		Size = UDim2.fromScale(fit.Wide, fit.High),
-		ZIndex = z + 2,
-	})
-	local pictured = picture.show(item.Id)
-	picture.Frame.Visible = pictured
-	if not pictured then
-		local kind = Config.FishById[item.Id]
-		Kit.word(clip, {
-			Text = if kind then string.sub(kind.Name, 1, 1) else "?",
-			TextSize = size * 0.55,
-			Font = SCREEN_FONT,
-			Edge = 0.08,
-			Position = UDim2.fromScale(0.5, 0.5),
-			ZIndex = z + 3,
-		})
-	end
+		ZIndex = z + 3,
+	}, border)
 	-- a ring that bursts out of the tile as it lands (gold on a Legendary or rarer)
 	local ring: Frame = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),

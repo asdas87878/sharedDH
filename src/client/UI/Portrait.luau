@@ -260,10 +260,14 @@ function Portrait.kindOf(id: string): string?
 	return if view then view.Kind else nil
 end
 
--- props: where the picture sits (a Frame's own properties), and Outline: its outline's thickness (0 for none)
+-- props: where the picture sits (a Frame's own properties), Outline: its outline's thickness (0 for none), and Aspect:
+-- the window's width over its height to frame by (else measured when shown). Two windows of one Aspect show a creature
+-- as the same picture, whatever their size: the catch screen's tiles use the slots' (Slots.Aspect)
 function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 	local thick: number = if props.Outline ~= nil then props.Outline else OUTLINE
+	local aspect: number? = props.Aspect
 	props.Outline = nil
+	props.Aspect = nil
 	props.BackgroundTransparency = 1
 	local holder: Frame = Kit.new("Frame", props, parent)
 
@@ -342,7 +346,7 @@ function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 		end
 		settle()
 		local across = holder.AbsoluteSize
-		local at = stand(views[id], if across.Y > 0 then across.X / across.Y else 1)
+		local at = stand(views[id], aspect or (if across.Y > 0 then across.X / across.Y else 1))
 		for i, view in windows do
 			local copy = source:Clone()
 			copy.Parent = view

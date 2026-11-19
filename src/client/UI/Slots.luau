@@ -119,6 +119,9 @@ local LIP_FADE = 0.6 -- black at 40% over the slot's colour
 -- The picture's window, in slots: wider than the slot by 5% a side, from 19% above its top to 3% above its foot, so a
 -- fish stands a little over the top edge and comes down to its name
 local WINDOW = { Wide = 1.1, High = 1.16, Foot = 0.97 }
+-- Its shape, which is what frames the creature (UI.Portrait): the catch screen's tiles frame by it too, so a fish there
+-- is the very picture it is in its slot (Hugo, 2026-11-19)
+Slots.Aspect = WINDOW.Wide / WINDOW.High
 local HOVER_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 -- The white ring on the chosen catch and on a caught slot under the mouse
@@ -286,6 +289,7 @@ function Slots.build(parent: Instance)
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.fromScale(0.5, WINDOW.Foot),
 			Size = UDim2.fromScale(WINDOW.Wide, WINDOW.High),
+			Aspect = Slots.Aspect,
 			Visible = false,
 			ZIndex = 2,
 		})
