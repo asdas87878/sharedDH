@@ -22,7 +22,13 @@ OUT = ROOT / "work/p1"
 OUT.mkdir(parents=True, exist_ok=True)
 ATTACH = ROOT / "docs/attachments"
 RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
-CROP = (4, 142, 1984, 1205)  # the game view inside the Studio window's shot
+# The Studio window on Hugo's PC (2026-11-19) is larger than the screen: the shot (2400 x 1280) holds the game view's
+# left part, one shot pixel to a view pixel, the view's top at y 138 (measured with the "probe" step: the panel's
+# AbsolutePosition against where it lands in the shot). VIEW is the game view's size in pixels, read by "probe".
+OFFSET = (0, 138)
+VIEW = [3023, 1226]
+SHOT = (2400, 1280)
+TOP = 124  # the toolbar's foot
 
 TANK = [  # id, size, variant: the first seven are equipped as they go in (poor ones), the rest stored
     ["BlueChromis", "Normal", ""],
@@ -141,6 +147,13 @@ workspace:GetAttributeChangedSignal("P1Do"):Connect(function()
 		local list = player.PlayerGui.TankPanel:FindFirstChild("List", true)
 		list.CanvasPosition = Vector2.new(0, tonumber(a) or 0)
 		said = "scrolled " .. a
+	elseif verb == "probe" then
+		local g = player.PlayerGui.TankPanel
+		local root = g:FindFirstChild("Root")
+		local panel = root and root:FindFirstChild("Panel")
+		said = string.format("view=%s root=%s/%s scale=%s panel=%s/%s inset=%s", tostring(workspace.CurrentCamera.ViewportSize),
+			tostring(root.AbsolutePosition), tostring(root.AbsoluteSize), tostring(root:FindFirstChildOfClass("UIScale").Scale),
+			tostring(panel.AbsolutePosition), tostring(panel.AbsoluteSize), tostring(game:GetService("GuiService"):GetGuiInset()))
 	elseif verb == "open" then
 		said = "open=" .. tostring(TankPanel.isOpen()) .. " mode=" .. tostring(require(Client.Lib.State).Mode)
 	end
@@ -259,12 +272,15 @@ def shot(path, box=None):
         time.sleep(0.15)
     else:
         raise SystemExit("no shot: " + out)
-    im = Image.open(path).convert("RGB").crop(CROP)
+    im = Image.open(path).convert("RGB")
+    # the view's middle in the shot
+    cx, cy = OFFSET[0] + VIEW[0] // 2, OFFSET[1] + VIEW[1] // 2
     if box:
-        w, h = im.size
         bw, bh = box
-        im = im.crop(((w - bw) // 2, (h - bh) // 2, (w + bw) // 2, (h + bh) // 2))
-    return im
+        return im.crop((cx - bw // 2, cy - bh // 2, cx + bw // 2, cy + bh // 2))
+    # as wide either side of the middle as the shot allows, the whole visible height
+    half = min(cx, SHOT[0] - cx)
+    return im.crop((cx - half, TOP, cx + half, SHOT[1]))
 
 
 def equipped(s):
@@ -278,11 +294,18 @@ def check():
         print(text)
         log.append(text)
 
+    import re
+
     spec = json.dumps({"tank": TANK, "hands": HANDS})
     note("setup: " + cmd("setup|" + spec, 2.5))
     s = state()
     note(f"state {s['state']}; {len(s['list'])} in tank, {len(equipped(s))} equipped, {len(s['hands'])} in hands, income {s['income']}")
     note("click from the pad: " + do("click"))
+    probe = do("probe")
+    m = re.search(r"view=(\d+), (\d+)", probe)
+    if m:
+        VIEW[0], VIEW[1] = int(m.group(1)), int(m.group(2))
+    note("probe: " + probe)
     time.sleep(1)
     shot(OUT / "raw_before_best.png").save(OUT / "desktop_before_best.png")
     before = s["income"]

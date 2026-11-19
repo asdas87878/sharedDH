@@ -21,8 +21,44 @@ The code: `src/server/Services/AquariumService.luau`, `src/client/Controllers/Aq
    slot puts that one in at once. The view turns to the tank and a line rises over it: the fish's name and what it
    adds a second. The server checks it: on the dock, at your own tank (on the plot, or within 28 studs of its front
    pad), and that slot still holds that fish.
-5. **They swim there and earn.** The best seven earn coins every second. The coin row on the HUD shows itself.
-   The rest are kept (up to 60) and take a place when they are among the best.
+5. **They swim there and earn.** Up to seven are *equipped*: they earn coins every second and swim in the tank.
+   The coin row on the HUD shows itself. A new fish takes a free place; with seven equipped it is *stored* (up to
+   60 in all) and earns nothing until you equip it (since 2026-11-19, the popup below; before that the best seven
+   always earned by themselves).
+6. **The tank's popup** (Hugo, 2026-11-19: "you should be able to click on the plot from nearby, then get a little
+   popup where you can equip the best fish instantly, unequip certain fishes and see how much money they produce
+   and their rarities and special traits"). See below.
+
+## The tank's popup
+Built 2026-11-19 (task p1). The code: `src/client/UI/TankPanel.luau`, the server's half in `AquariumService`.
+Pictures: [desktop](../attachments/tank-popup-desktop.png), [desktop, scrolled, EQUIP BEST lit](../attachments/tank-popup-desktop-2.png),
+[phone](../attachments/tank-popup-phone.png).
+- **Opening it:** click (or tap) your own tank (its glass, water, rim or sign) from within 36 studs of the water
+  (`PANEL_REACH` in AquariumService, written on each plot as `PanelReach`). Near enough, a sign over the tank says
+  CLICK YOUR TANK (TAP on a phone) and the glass is outlined yellow under the mouse. From further away the sign says
+  WALK CLOSER!. It shuts with its X, a second click on the tank, walking 8 studs past the reach, or leaving the dock.
+  (The click is tested against the tank's box, not a raycast: the map's glass, water and sign are CanQuery off.)
+- **What it shows:** the title, what the tank earns a second, and a card for every fish: IN YOUR HANDS (what you
+  carry), EARNING n/7, STORED n. A card has the fish's picture (the partner's renders), its size word (Tiny to
+  Colossal, in the tags' size colours), a SILVER, GOLD or RAINBOW chip (and the picture's backdrop in that colour),
+  its archetype icons, its name, its rarity in the rarity's colour (the card's edge too), and its coins a second.
+- **What it does:** EQUIP BEST (gold while it would change something, else grey BEST EQUIPPED) equips the seven
+  best earners and stores the rest; each card's EQUIP or UNEQUIP; PUT IN on a carried fish and PUT ALL IN.
+  Equipping with seven already equipped is refused ("THE TANK IS FULL: UNEQUIP ONE FIRST").
+- **Coins a second** on a card are `Config.incomeOf(kind, size, colour)`, the same function the server pays by;
+  the server works every fish's number out again on every change, so new numbers (the economy draft) reach fish
+  already in a tank.
+- **The server decides** (Action `"Tank"`): only on the dock, near your own tank (the reach plus 12 studs of
+  slack); refused with Ride `"TankDenied"`, reason `"Far"`, `"Full"` or `"Gone"`.
+- **Phones:** the same popup with bigger points (the screen's height over 470 instead of 700) and fewer columns.
+- **Checked by script** (`python tools/studio/tank_panel_check.py install`, Play, `... run`): a click from the pad
+  opens it; EQUIP BEST took the income from 22.6 to 1,131.7 a second (7 poor fish swapped for the 7 best); unequip
+  and equip work; an eighth is refused as Full; PUT IN takes a carried fish; from 70 studs away the popup shuts, a
+  click does not open it and an ask is refused as Far. **Not played by hand,** no real mouse or finger: the click
+  goes through `TankPanel.click`, the same path a real click takes after the press.
+- **Not done:** the archetype icons are blank in Studio on this PC (they are not uploaded and this PC's Studio
+  doesn't have the local copies); the phone still is the phone's screen laid out inside Studio's window
+  (`PanelPhone`), not a device.
 
 ## What a fish earns
 Coins a second = what it takes to hold at home (its land and rarity: the number on its tag there) x 0.025 x its
@@ -85,6 +121,10 @@ In the user's Studio on grey-box 15, by script.
 - **Action "Place", index, id:** put the index-th carried fish (oldest first) in, if it is still that kind. Refused
   with Ride "Denied", "Place", "Far" off the dock or away from your tank.
 - **Ride "Deposited", count, gained, income, id:** sent to the player as a fish goes in (count 1; id its kind).
+- **The popup (2026-11-19):** Action `"Tank"`, verb: `"Best"`, `"Equip"` key, `"Unequip"` key, `"PutIn"` index id,
+  `"PutAll"`; Ride `"TankDenied"`, reason. Player attributes `TankList` (JSON rows: key, id, size, variant, 1 if
+  equipped), `TankEarning` (the most equipped), `Hands` (JSON rows: id, size, variant, as carried). `Tank` (the best
+  12, for the sub's "Ride with") is as before. `AquariumService.tankOf` entries gained `Key` and `On`.
 - **The map's names it leans on:** `Dock.Plots.PlotN` with `TankWater`, `Pad`, `CollectPad`, `SignBoard`. A plot
   gets an `Owner` attribute (the user id) and a `TankFish` folder while it is someone's.
 - **Tank fish** carry the tag `TankFish`. They are not in `Workspace.Fish`, so tags, the lock and the ride never
