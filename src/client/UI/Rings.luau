@@ -18,11 +18,11 @@
 -- is white. The 2/3 break-off on a fish too strong comes as one tick: one big white piece, broken off by the next.
 -- Since t1 (Hugo, 2026-11-18) the white piece DRAWS BACK along the ring instead of fading, as a health bar's damage
 -- trail (Kit.RingLook.TickTrail picks how; 0 the fade above).
--- Past Config.Oxygen.BarSize of max Oxygen a second ring goes all round the big one, in the same look, and past twice
--- BarSize a third round that (Config.ringsOf; never more). The meter is shared evenly between the rings and they empty
--- one after the other, the outermost first, every ring ticking at the same pace; the big ring starts only once the
--- thin ones are empty (task o1, 2026-11-19: until then the big ring and one extra ring emptied together). The second
--- ring is a little thicker than the third. The hop's arc moves out past them. No mark for the red zone (o2); the ring still goes red there, and the fish turns angry.
+-- Past Config.Oxygen.BarSize of max Oxygen ONE thin ring goes all round the big one, in the same look (Config.ringsOf,
+-- Oxygen.RingsMost 2: Hugo, 2026-11-19, "i only want 1 extra oxygen ring"; this file can draw a third if that is
+-- ever raised). The meter is shared evenly between the rings and they empty one after the other, the outermost first,
+-- each ticking at the same pace; the big ring starts only once the thin one is empty (task o1, 2026-11-19: until then
+-- the big ring and the extra ring emptied together). The hop's arc moves out past it. No mark for the red zone (o2); the ring still goes red there, and the fish turns angry.
 -- Two things the HUD had and the reference doesn't are switched off below, one line each to bring back: the seconds
 -- written on the ring, and the fish's name and rarity under it.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -546,11 +546,12 @@ Config.Oxygen = {
 	BreakOff = 2 / 3,
 	-- The HUD's big ring holds this much Oxygen; past it each further BarSize is a thin ring round it, the outermost
 	-- draining first (Hugo, 2026-11-18, task h1: "will all be handled in the progression setup later"; Kit.RingLook)
-	-- (2026-11-19, task o1: past BarSize a second ring, past 2 x BarSize a third, never more (RingsMost); the meter
-	-- shared EVENLY between the rings, so every ring ticks at the same pace, and the outermost empties first, then the
-	-- next, the big ring last: Config.ringsOf. Until then the big ring and the one extra ring emptied together.)
+	-- (2026-11-19, task o1: past BarSize ONE thin ring round the big one, never more (RingsMost 2, the big ring
+	-- counted; Hugo, the same day: "i only want 1 extra oxygen ring"); the meter shared EVENLY between the two, so both
+	-- tick at the same pace, and the thin ring empties first, the big ring after: Config.ringsOf. Until then the big
+	-- ring and the extra ring emptied together.)
 	BarSize = 2000,
-	RingsMost = 3,
+	RingsMost = 2,
 	DockRadius = 165, -- staying surfaced this close (flat) to the dock's spawn puts you back on it (grey-box 15: the spawn is 144 behind the lane's start and the gate's corners are 161 away, so this is the hub, the gate and the first 21 studs of water in the middle; it was 60 studs of water on grey-box 9; grey-box 4 had 120, v4 520)
 	DockWait = 2.5, -- seconds at the surface first, so diving in leaves time to hop
 	-- Studio only: when above 0, everyone's max Oxygen, to try the deeper zones before training exists. Workspace's
@@ -2326,8 +2327,8 @@ function Config.redTicks(left: number, seconds: number): (number, number)
 	return math.max(left, 0.001) / count, seconds / count
 end
 
--- How many rings the HUD shows for this max Oxygen (Oxygen.BarSize, RingsMost): 1 up to BarSize, 2 up to twice
--- it, then 3. The meter is shared evenly between them; the outermost empties first.
+-- How many rings the HUD shows for this max Oxygen (Oxygen.BarSize, RingsMost): 1 up to BarSize, then 2 (the big
+-- ring and one thin ring). The meter is shared evenly between them; the outermost empties first.
 function Config.ringsOf(max: number): number
 	local o = Config.Oxygen
 	local size = o.BarSize or 0

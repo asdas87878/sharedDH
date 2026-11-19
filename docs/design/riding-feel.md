@@ -1293,16 +1293,16 @@ playtest (run by script, not played by hand).** `Config.Oxygen`, `UI/Rings.luau`
   Measured (max 600, a Dakosaurus): Break 380, then 6 ticks of 31.7, 0.417 s apart, empty 2.5 s after.
 - **The thin rings first:** the order was wrong. The big ring showed the whole meter and the one extra ring emptied at
   the same time. Now the meter is **shared evenly between the rings** (`Config.ringsOf`: 1 ring up to `BarSize`
-  2000, 2 up to 4000, **a third only past 4000**, never more: `RingsMost` 3). The outermost empties first, then the
-  next, the big ring last, all ticking at the same pace. The second ring is a little thicker than the third (6 to 4).
-  At 3 rings the red zone is exactly the big ring.
+  2000, then 2, never more: `RingsMost` 2). The thin ring empties first, then the big ring, both ticking at the same
+  pace. The thin ring is a little thicker than before (6, was 4). (A third ring past 4000 was built first and is in
+  the GIF; Hugo, the same day: "i only want 1 extra oxygen ring", so `RingsMost` 3 -> 2.)
 - **Measured** (max 4500, a Clownfish, the server's `OxygenTick`s): 37 ticks of 80 every 0.2 s for 7.5 s, then from
   1475, 6 ticks of 245.8 every 0.417 s; empty at 9.5 s after the first tick (`secondsOn` 10 s).
 - Seen: [oxygen-trail-b-2.gif](../attachments/oxygen-trail-b-2.gif), made with the game's own `UI/Rings` on a slowed
   clock with those ticks (`python tools/ui/oxygen_trail/ring_b2_capture.py live 0.12 <crop> 10` after
   `trail_capture.py install` and `listen`; `ring_b2_capture.py ticklog` logs a real ride's ticks).
-- Open: with 3 rings each ring holds a third of the meter, so a tick there is 3 times the share of a ring that it is at
-  1 ring (at 4500 on a 10 s fish, about 5% of a ring every 0.2 s). Shorter would need a floor under 0.2 s.
+- Open: with 2 rings each ring holds half the meter, so a tick there is twice the share of a ring that it is at 1
+  ring. Shorter would need a floor under 0.2 s.
 
 ## Out of Oxygen: eaten, rolled off, dragged down (task e1, 2026-11-19)
 
