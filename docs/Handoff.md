@@ -3,6 +3,22 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-19 · The fails rigged and physical: a real ragdoll, real hits, the kraken's arms (NULLROOM task f3, Hugo's PC)
+**State:** in the game code and captured from Studio by script (record and replay); **not played by hand, not on a
+phone, not with two players.** All in [riding feel](design/riding-feel.md), "The fails, rigged and physical".
+- **Server** (`RideService`): at the outcome's new `Loose` time the rider comes off the fish's back as a ragdoll
+  (`ragdoll`/`letLoose`/`unragdoll`: ball sockets for the joints, the avatar's own where it has them, a `Ragdoll`
+  collision group solid to the map and props, the fish kept the rider's to move); a thrown one flies
+  `Config.Fail.Ragdoll.Time` into the drown (`DeathLoose`), a taken one stays loose until the dock.
+- **Client** (`FailController`, rewritten): the throw, the water's hold and drag, solid boxes on the fish for real
+  hits, soft grabs (jaws, suction, the kraken's six jointed arms, the coil, the pin), the fish's rig posed (jaw,
+  spine, fins, arms), the swallow's bulge, the screen's dark arms, one eased camera move per outcome then held, kept
+  out of walls, fish and props in the way faded. Small hooks in `DeathController` (a loose body left to the physics,
+  the shot held) and `AnimController` (`FailPose`, `settle`). `Config.Fail`: longer times, `Loose`, `Ragdoll`,
+  `CameraTime`.
+- **Captures:** `fail-<outcome>-3.gif` and the sheet `fail-outcomes-3.gif`; tool `tools/studio/fail_live_capture.py`
+  (Studio only switches `FailRecord`, `FailReplay`).
+
 ## 2026-11-19 · This session on Hugo's PC: catch screen, land strip picks and fixes, stylised locks, the ring's damage trail, Oxygen tick floor (NULLROOM mission, tasks c1 l1 m1 k1 t1 e1 d0 g1)
 **State:** all in the game code and Studio-checked by script; **nothing played by hand or on a phone.** StyLua clean,
 selene 0 errors (the three old warnings), `rojo build` passes. **No partner changes to merge:** origin had nothing new

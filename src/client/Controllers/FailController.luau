@@ -1514,6 +1514,7 @@ end
 -- Every death's shot (a fail's, the drown after it): never through a wall (kept on the near side of anything solid
 -- between it and what it looks at, eased so it slides rather than jumps), and nothing in the way of it
 local viewReach = 1e4
+local viewDir: Vector3? = nil
 local viewParamsNow: RaycastParams? = nil
 local viewParamsAt = -math.huge
 
@@ -1521,6 +1522,7 @@ local function viewStep(dt: number)
 	local shot = State.DeathCam
 	if not shot then
 		viewReach = 1e4
+		viewDir = nil
 		if next(faded) then
 			unfade()
 		end
@@ -1532,14 +1534,42 @@ local function viewStep(dt: number)
 	end
 	local line = shot.Position - shot.Focus
 	if line.Magnitude > 1 then
-		local wall = workspace:Raycast(shot.Focus, line, viewParamsNow)
-		local reachTo = if wall then math.max(4, (wall.Position - shot.Focus).Magnitude - 3) else line.Magnitude
-		viewReach = Ease.lerp(
-			math.min(viewReach, line.Magnitude * 2),
-			reachTo,
-			Ease.alpha(if reachTo < viewReach then 10 else 2, dt)
-		)
-		State.DeathCam = { Position = shot.Focus + line.Unit * math.min(line.Magnitude, viewReach), Focus = shot.Focus }
+		-- the way it was asked for, or, when a wall would bring it in close, the clearest of a few swung up and round
+		-- (eased toward, so it swings rather than jumps)
+		local length = line.Magnitude
+		local asked = line.Unit
+		local function clearOf(dir: Vector3): number
+			local hit = workspace:Raycast(shot.Focus, dir * length, viewParamsNow)
+			return if hit then (hit.Position - shot.Focus).Magnitude - 3 else length
+		end
+		local want, best = asked, clearOf(asked)
+		if best < math.min(length, 12) then
+			local flatRight = asked:Cross(Vector3.yAxis)
+			flatRight = if flatRight.Magnitude > 0.01 then flatRight.Unit else Vector3.xAxis
+			for _, turn in
+				{
+					CFrame.fromAxisAngle(flatRight, rad(35)),
+					CFrame.fromAxisAngle(flatRight, rad(65)),
+					CFrame.Angles(0, rad(50), 0),
+					CFrame.Angles(0, -rad(50), 0),
+					CFrame.fromAxisAngle(flatRight, -rad(35)),
+				}
+			do
+				local dir = (turn * CFrame.new(asked)).Position.Unit
+				local clear = clearOf(dir)
+				if clear > best + 2 then
+					want, best = dir, clear
+				end
+			end
+		end
+		viewDir = if viewDir then (viewDir :: Vector3):Lerp(want, Ease.alpha(3, dt)).Unit else want
+		local reachTo = math.max(4, clearOf(viewDir :: Vector3))
+		viewReach =
+			Ease.lerp(math.min(viewReach, length * 2), reachTo, Ease.alpha(if reachTo < viewReach then 10 else 2, dt))
+		State.DeathCam = {
+			Position = shot.Focus + (viewDir :: Vector3) * math.min(length, viewReach),
+			Focus = shot.Focus,
+		}
 	end
 	local fail = fails[State.Player]
 	clearView(if fail then fail.Fish else nil, workspace.CurrentCamera.CFrame.Position, shot.Focus)
