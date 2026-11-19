@@ -227,7 +227,9 @@ RideStyles.Trainer = {
 	Seat = Vector3.new(0, 2.3, -0.9), -- where the rider's root sits: from the body's middle, along its up and forward
 	HopOn = 0.42, -- seconds of the hop up onto the seat
 	HopArc = 3.2, -- studs the hop rises over the straight line
-	HopOff = Vector3.new(0, 30, 17), -- the hop off: speed up, and away (studs a second)
+	OffTime = 0.5, -- seconds of the hop off
+	OffReach = 8, -- studs it carries you away (the way you steer, or off the toy's side)
+	OffRise = 3.4, -- studs it rises over the straight line
 	Every = 0.5, -- seconds between the "+n" Oxygen pops
 }
 
@@ -236,7 +238,9 @@ export type TrainerShape = typeof(RideStyles.Trainer)
 -- The coil's pieces between a base frame (on the pad's top, its up along the coil) and a top frame (at the body's
 -- underside), each a CFrame and a length (along its Z). Bent: the coil's middle follows a curve that leaves the base
 -- straight up and meets the top along the top's own up, so a rocking toy bends it rather than tearing it.
-function RideStyles.coil(base: CFrame, top: CFrame): { { any } }
+export type Piece = { At: CFrame, Length: number }
+
+function RideStyles.coil(base: CFrame, top: CFrame): { Piece }
 	local t = RideStyles.Trainer
 	local p0, p3 = base.Position, top.Position
 	local reach = (p3 - p0).Magnitude / 3
@@ -253,12 +257,12 @@ function RideStyles.coil(base: CFrame, top: CFrame): { { any } }
 		points[k + 1] = middle + turn:VectorToWorldSpace(Vector3.new(math.cos(a) * t.Radius, 0, math.sin(a) * t.Radius))
 		ups[k + 1] = turn.UpVector
 	end
-	local pieces = table.create(count)
+	local pieces: { Piece } = table.create(count)
 	for k = 1, count do
 		local a, b = points[k], points[k + 1]
 		local length = (b - a).Magnitude
 		-- (a little longer than the gap, so the outer corners of two pieces meet)
-		pieces[k] = { CFrame.lookAt((a + b) / 2, b, ups[k]), length + t.Wire * 0.55 }
+		pieces[k] = { At = CFrame.lookAt((a + b) / 2, b, ups[k]), Length = length + t.Wire * 0.55 }
 	end
 	return pieces
 end

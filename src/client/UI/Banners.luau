@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
 local CatchShow = require(script.Parent.CatchShow)
+local CaughtText = require(script.Parent.CaughtText)
 
 local Banners = {}
 
@@ -642,6 +643,14 @@ function Banners.caught(fishId: string, earns: number?, isNew: boolean?)
 	end
 	catchRun += 1
 	local run = catchRun
+	-- one of the stylised looks (Kit.CaughtLook), when one is chosen
+	local look = CaughtText.look()
+	local info = CaughtText.info(fishId, earns, isNew)
+	if look ~= 0 and hudRoot and info and CaughtText.play(hudRoot, look, info) then
+		catch.Visible = false
+		catchSpin:Pause()
+		return
+	end
 	catchName.Text = kind.Name
 	catchTier.Text = kind.Tier
 	Kit.tierColours(catchTier, catchTierGradient, kind.Tier, Config.Tiers)

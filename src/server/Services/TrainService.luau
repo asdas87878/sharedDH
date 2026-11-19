@@ -86,7 +86,14 @@ local function trainSign(parent: BasePart, lift: number, riding: boolean?)
 		stroke.Parent = label
 	end
 	line("Title", "TRAIN", 0.1, 0.56, Color3.new(1, 1, 1), 3)
-	line("What", if riding then "ride it: more Oxygen" else "stand on it: more Oxygen", 0.7, 0.2, Color3.fromRGB(214, 234, 255), 1.5)
+	line(
+		"What",
+		if riding then "ride it: more Oxygen" else "stand on it: more Oxygen",
+		0.7,
+		0.2,
+		Color3.fromRGB(214, 234, 255),
+		1.5
+	)
 	sign.Parent = parent
 end
 
@@ -123,9 +130,161 @@ local function label(spot: BasePart)
 	trainSign(spot, 30.5, true)
 end
 
--- The plots' own training pads, by the plot's name (none on a map without them)
-local function plotSpots(): { [string]: BasePart }
-	local spots: { [string]: BasePart } = {}
+-- One plot's ride, made over (see the top of the file)
+type Ride = {
+	Plot: Instance,
+	Name: string,
+	Model: Model,
+	Body: BasePart,
+	Spot: BasePart,
+	Axis: Vector3, -- the coil's foot: the middle of the pad's top
+	Bottom: number, -- the body's underside (y)
+	Seat: CFrame, -- where a rider's root sits, at rest
+	Rider: Player?,
+	Weld: Weld?,
+}
+
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+local function part(name: string, size: Vector3, at: CFrame, colour: Color3, parent: Instance, round: boolean?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	if round then
+		p.Shape = Enum.PartType.Cylinder
+	end
+	p.Size = size
+	p.CFrame = at
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.CastShadow = true
+	p.Material = Enum.Material.SmoothPlastic
+	p.Color = colour
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+-- (a cylinder's round faces are along its X: this stands one on end)
+local ON_END = CFrame.Angles(0, 0, math.rad(90))
+
+-- Takes the kit's pad, block, post, coils and plate away, sets the toy down to the coil's length over a small red
+-- pad, and builds the coil between them
+local function makeRide(plot: Instance, spot: BasePart): Ride?
+	local model = plot:FindFirstChild("TrainerRide")
+	local toy = model and model:FindFirstChild("Toy")
+	local body = toy and toy:FindFirstChild("Body")
+	if not (model and model:IsA("Model") and body and body:IsA("BasePart")) then
+		return nil
+	end
+	local t = RideStyles.Trainer
+	for _, child in plot:GetChildren() do
+		if
+			child:IsA("BasePart")
+			and (child.Name == "TrainerBase" or child.Name == "TrainerSpring" or child.Name == "SpringCoil")
+		then
+			child:Destroy()
+		end
+	end
+	local plate = model:FindFirstChild("TrainerRide")
+	if plate and plate:IsA("BasePart") then
+		model.WorldPivot = plate.CFrame
+		plate:Destroy()
+	end
+	-- the kit's square red pad stays as the place the sign hangs from, unseen
+	spot.Transparency = 1
+	for _, d in spot:GetDescendants() do
+		if d:IsA("Decal") then
+			d.Transparency = 1
+		end
+	end
+	local floor = spot.Position.Y - spot.Size.Y / 2
+	local head = (toy :: Instance):FindFirstChild("Head")
+	local ahead = if head and head:IsA("BasePart") then flat(head.Position - body.Position) else Vector3.zero
+	if ahead.Magnitude < 0.1 then
+		ahead = flat(model:GetPivot().LookVector)
+	end
+	ahead = ahead.Unit
+	local padTop = floor + t.PadHigh
+	-- the body's underside the coil's length over the pad (the toy's parts are turned about y only)
+	local lift = padTop + t.Length - (body.Position.Y - body.Size.Y / 2)
+	model:PivotTo(model:GetPivot() + Vector3.new(0, lift, 0))
+	local axis = Vector3.new(body.Position.X, padTop, body.Position.Z)
+	local turn = CFrame.lookAt(Vector3.zero, ahead)
+	local bottom = body.Position.Y - body.Size.Y / 2
+
+	local pad = part(
+		"TrainerPad",
+		Vector3.new(t.PadHigh, t.PadRadius * 2, t.PadRadius * 2),
+		CFrame.new(axis.X, floor + t.PadHigh / 2, axis.Z) * ON_END,
+		t.PadColour,
+		plot,
+		true
+	)
+	pad.CanCollide = true
+	-- a lighter top, a little proud: the pad's lit face
+	part(
+		"TrainerPadTop",
+		Vector3.new(0.2, t.PadRadius * 2 - 0.5, t.PadRadius * 2 - 0.5),
+		CFrame.new(axis.X, padTop + 0.06, axis.Z) * ON_END,
+		t.PadColour:Lerp(Color3.new(1, 1, 1), 0.18),
+		plot,
+		true
+	)
+
+	local spring = Instance.new("Model")
+	spring.Name = "TrainerSpring"
+	local base = CFrame.new(axis) * turn
+	local top = CFrame.new(axis + Vector3.new(0, t.Length, 0)) * turn
+	local capAcross = (t.Radius + t.Wire / 2 + 0.15) * 2
+	part(
+		"CapBottom",
+		Vector3.new(0.3, capAcross, capAcross),
+		base * CFrame.new(0, 0.15, 0) * ON_END,
+		t.CapColour,
+		spring,
+		true
+	)
+	part(
+		"CapTop",
+		Vector3.new(0.4, capAcross, capAcross),
+		top * CFrame.new(0, 0.1, 0) * ON_END,
+		t.CapColour,
+		spring,
+		true
+	)
+	for k, piece in RideStyles.coil(base, top) do
+		part("Coil" .. k, Vector3.new(t.Wire, t.Wire, piece.Length), piece.At, t.Colour, spring)
+	end
+	spring.Parent = plot
+
+	local at = body.Position + Vector3.new(0, t.Seat.Y, 0) + ahead * t.Seat.Z
+	local seat = CFrame.lookAt(at, at + ahead)
+	model:SetAttribute("SpringBase", base)
+	model:SetAttribute("SpringTop", top)
+	model:SetAttribute("Seat", seat)
+	model:SetAttribute("Rider", nil)
+	return {
+		Plot = plot,
+		Name = plot.Name,
+		Model = model,
+		Body = body,
+		Spot = spot,
+		Axis = axis,
+		Bottom = bottom,
+		Seat = seat,
+		Rider = nil,
+		Weld = nil,
+	}
+end
+
+-- The plots' rides, by the plot's name (none on a map without them)
+local function plotRides(): { [string]: Ride }
+	local rides: { [string]: Ride } = {}
 	local blockout = workspace:FindFirstChild("ClaudeBlockout")
 	local hub = blockout and blockout:FindFirstChild("Dock")
 	local plots = hub and hub:FindFirstChild("Plots")
@@ -133,12 +292,15 @@ local function plotSpots(): { [string]: BasePart }
 		for _, plot in plots:GetChildren() do
 			local spot = plot:FindFirstChild("TrainerSpot")
 			if spot and spot:IsA("BasePart") then
-				spots[plot.Name] = spot
 				label(spot)
+				local ride = makeRide(plot, spot)
+				if ride then
+					rides[plot.Name] = ride
+				end
 			end
 		end
 	end
-	return spots
+	return rides
 end
 
 local function findSpot(): BasePart?
@@ -161,63 +323,195 @@ local function findSpot(): BasePart?
 	return nil
 end
 
-function TrainService.Start()
-	if Config.Train.On <= 0 then
-		return
-	end
-	local spots = plotSpots()
-	local spot: BasePart? = nil
-	if next(spots) == nil then
-		spot = findSpot()
-		if not spot then
-			warn("[TrainService] no training spot: the map has no plots, no TrainSpot and no dock spawn to put one by")
-			return
-		end
-	end
+local function gain(player: Player, dt: number): (boolean, number)
+	local t = Config.Train
+	local max = player:GetAttribute("MaxOxygen")
+	local share = if type(max) == "number" then max * t.Share else 0
+	local amount = (t.Rate + share) * dt
+	return RideService.train(player, amount), amount
+end
+
+-- The old way, on a map with no plots: standing on the one spot is training
+local function standing(spot: BasePart)
 	local training: { [Player]: boolean } = {}
 	Players.PlayerRemoving:Connect(function(player)
 		training[player] = nil
 	end)
 	while true do
 		local dt = task.wait(EVERY)
-		local t = Config.Train
 		for _, player in Players:GetPlayers() do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
 			local on = false
 			if root and root:IsA("BasePart") then
-				-- where this player trains: their own plot's pad; with no plot, the nearest plot's; on a map with
-				-- no plots, the one stand-in
-				local here: BasePart? = spot
-				local reach = t.Radius
-				if not here then
-					local own = player:GetAttribute("Plot")
-					here = if type(own) == "string" then spots[own] else nil
-					if not here then
-						local best = math.huge
-						for _, other in spots do
-							local far = (other.Position - root.Position).Magnitude
-							if far < best then
-								best, here = far, other
-							end
-						end
-					end
-					if here then
-						-- (the pad is square: a little past its half width counts)
-						reach = math.max(here.Size.X, here.Size.Z) / 2 + 2
-					end
-				end
-				local middle = if here then here.Position else root.Position + Vector3.new(0, 1000, 0)
-				local away = (root.Position - middle) * Vector3.new(1, 0, 1)
-				if away.Magnitude <= reach and math.abs(root.Position.Y - middle.Y) < 12 then
-					local max = player:GetAttribute("MaxOxygen")
-					local share = if type(max) == "number" then max * t.Share else 0
-					on = RideService.train(player, (t.Rate + share) * dt)
+				local away = (root.Position - spot.Position) * Vector3.new(1, 0, 1)
+				if away.Magnitude <= Config.Train.Radius and math.abs(root.Position.Y - spot.Position.Y) < 12 then
+					on = gain(player, dt)
 				end
 			end
 			if training[player] ~= on then
 				training[player] = on
 				player:SetAttribute("Training", on)
+			end
+		end
+	end
+end
+
+type Rider = { Ride: Ride?, OffAt: number, Clear: boolean, Gained: number, ToldAt: number }
+
+local CHECK = 0.1 -- seconds between looks: a walk-up seats you this soon
+
+function TrainService.Start()
+	if Config.Train.On <= 0 then
+		return
+	end
+	local rides = plotRides()
+	if next(rides) == nil then
+		local spot = findSpot()
+		if not spot then
+			warn("[TrainService] no training spot: the map has no plots, no TrainSpot and no dock spawn to put one by")
+			return
+		end
+		standing(spot)
+		return
+	end
+	local remote = Instance.new("RemoteEvent")
+	remote.Name = "Trainer"
+	remote.Parent = Net.Folder
+	local riders: { [Player]: Rider } = {}
+
+	local function riderOf(player: Player): Rider
+		local r = riders[player]
+		if not r then
+			r = { Ride = nil, OffAt = -math.huge, Clear = true, Gained = 0, ToldAt = 0 }
+			riders[player] = r
+		end
+		return r
+	end
+
+	local function off(player: Player, r: Rider, reason: string)
+		local ride = r.Ride
+		if not ride then
+			return
+		end
+		if ride.Weld then
+			ride.Weld:Destroy()
+			ride.Weld = nil
+		end
+		ride.Rider = nil
+		ride.Model:SetAttribute("Rider", nil)
+		r.Ride = nil
+		r.OffAt = os.clock()
+		r.Clear = false
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Sit = false
+		end
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			pcall(function()
+				root:SetNetworkOwner(player)
+			end)
+		end
+		if player.Parent then
+			player:SetAttribute("Training", false)
+			player:SetAttribute("TrainerRide", nil)
+			remote:FireClient(player, "Off", ride.Model, reason)
+		end
+	end
+
+	local function on(player: Player, r: Rider, ride: Ride, root: BasePart, humanoid: Humanoid)
+		local weld = Instance.new("Weld")
+		weld.Name = "TrainerWeld"
+		weld.Part0 = ride.Body
+		weld.Part1 = root
+		weld.C0 = ride.Body.CFrame:ToObjectSpace(ride.Seat)
+		weld:SetAttribute("Rider", player.UserId)
+		weld.Parent = ride.Body
+		humanoid.Sit = true
+		ride.Weld = weld
+		ride.Rider = player
+		ride.Model:SetAttribute("Rider", player.UserId)
+		r.Ride = ride
+		r.Gained = 0
+		r.ToldAt = os.clock()
+		player:SetAttribute("TrainerRide", ride.Name)
+		remote:FireClient(player, "On", ride.Model)
+	end
+
+	remote.OnServerEvent:Connect(function(player, what)
+		local r = riders[player]
+		if what == "Off" and r and r.Ride then
+			off(player, r, "Asked")
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		local r = riders[player]
+		if r then
+			off(player, r, "Gone")
+			riders[player] = nil
+		end
+	end)
+
+	local t = RideStyles.Trainer
+	while true do
+		local dt = task.wait(CHECK)
+		for _, player in Players:GetPlayers() do
+			local r = riderOf(player)
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local alive = root ~= nil and root:IsA("BasePart") and humanoid ~= nil and humanoid.Health > 0
+			local docked = RideService.stateOf(player) == "Dock"
+			local ride = r.Ride
+			if ride then
+				if not alive or not docked or not ride.Weld or ride.Weld.Parent == nil or ride.Weld.Part1 ~= root then
+					off(player, r, "Lost")
+				else
+					local trained, amount = gain(player, dt)
+					if trained then
+						r.Gained += amount
+					end
+					if player:GetAttribute("Training") ~= trained then
+						player:SetAttribute("Training", trained)
+					end
+					if os.clock() - r.ToldAt >= t.Every then
+						r.ToldAt = os.clock()
+						if r.Gained > 0 then
+							remote:FireClient(player, "Gain", r.Gained)
+						end
+						r.Gained = 0
+					end
+				end
+			elseif alive and docked and root and root:IsA("BasePart") and humanoid then
+				-- which ride: our own plot's; with no plot (or none of ours), the nearest free one
+				local own = player:GetAttribute("Plot")
+				local here: Ride? = if type(own) == "string" then rides[own] else nil
+				if not here then
+					local best = math.huge
+					for _, other in rides do
+						local far = flat(other.Axis - root.Position).Magnitude
+						if far < best and (other.Rider == nil or other.Rider == player) then
+							best, here = far, other
+						end
+					end
+				end
+				if here then
+					local far = flat(here.Axis - root.Position).Magnitude
+					local y = root.Position.Y
+					if far > t.Reach + 1.5 then
+						r.Clear = true
+					end
+					local walkedUp = r.Clear and far <= t.Reach and y > here.Axis.Y - 2 and y < here.Bottom + 12
+					local landed = os.clock() - r.OffAt > 0.6 and far <= t.OnTop and y >= here.Bottom
+					if here.Rider == nil and (walkedUp or landed) then
+						on(player, r, here, root :: BasePart, humanoid)
+					end
+				end
+				if player:GetAttribute("Training") == true then
+					player:SetAttribute("Training", false)
+				end
 			end
 		end
 	end

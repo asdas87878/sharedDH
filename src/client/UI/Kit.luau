@@ -361,6 +361,15 @@ Kit.LandPhoneScale = 1.25
 -- Hugo picked 3 (task c1, 2026-11-19), built into the game with his changes: the catch screen (CatchShow, "3").
 Kit.CatchLook = 3
 
+-- The words the moment a fish becomes yours (task t2; Hugo, 2026-11-19: "give me a selection for being caught ... make
+-- it more stylised like the rest of the text UI, and it should feel better"): 0 Banners' own tilted "TAMED!" plate (as
+-- before); in CaughtText, 1 Punch ("CAUGHT!" punches in at the top out of a closing ring), 2 Stamp (a rarity stamp
+-- slams down with dust, the name unrolls on a ribbon), 3 Banner (the old plate at the left redone: whips in, the
+-- portrait pops, the word drops on), 4 Burst (the portrait bursts out of a point with rays and confetti), 5 Slam (a
+-- rarity band slashes across, the word slams onto it, the screen shakes). Sheet docs/attachments/caught-text-options-1.png
+-- (GIFs caught-text-<n>.gif). Not picked yet: Hugo chooses. In Studio the workspace's "CaughtLook" number overrides it.
+Kit.CaughtLook = 4
+
 -- The tags over wild fish (Hugo, 2026-11-14: "attract the player more and feel less clumped"): the options of
 -- docs/design/ui.md, "Fish tag options". 0 is the stacked tag (rarity, name, Needs); 1 to 6 the looks in Tags.Looks;
 -- 7 Hugo's own three lines (2026-11-14: the rarity's word and the class icons, the name in white, "Required: n" and
