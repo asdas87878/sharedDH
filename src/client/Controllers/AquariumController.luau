@@ -194,6 +194,22 @@ function AquariumController.Start()
 			place(index, item)
 		end
 	end)
+	-- anywhere else on the dock, a click on a caught slot holds that fish over the head; the held one's slot again,
+	-- or an empty slot, puts it away (Config.Hold; the server checks it: AquariumService, Action "Hold")
+	Slots.Picked:Connect(function(index: number, item: State.Caught?)
+		if Config.Hold.On == 0 or State.Mode ~= "Dock" or (promptShown and prompt and prompt.Enabled) then
+			return
+		end
+		local me = Players.LocalPlayer
+		local holding = me:GetAttribute("HeldFish") ~= nil
+		if not item or me:GetAttribute("HeldIndex") == index then
+			if holding then
+				Net.Action:FireServer("Hold", 0)
+			end
+		else
+			Net.Action:FireServer("Hold", index, item.Id)
+		end
+	end)
 	-- (looked at a few times a second: the catch, the mode and the chosen slot all change it)
 	task.spawn(function()
 		while true do
