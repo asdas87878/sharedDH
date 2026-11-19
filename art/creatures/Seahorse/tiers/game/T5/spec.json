@@ -1,0 +1,23 @@
+{
+  "name": "SeahorseTrainer5",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 5: IRON",
+  "colours": {
+    "body": "#3F78B8",
+    "belly": "#E8EEF3",
+    "ring": "#C9D3DC",
+    "fin": "#DDE8F0",
+    "tip": "#9FB0C0",
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "saddle": "#5A3420",
+    "blanket": "#2B4E7E",
+    "armour": "#C9D3DC",
+    "s_pad": "#4A5664",
+    "s_rim": "#2E3742",
+    "s_base": "#8E9BA8",
+    "s_trim": "#C9D3DC",
+    "s_coil": "#E3E9EF",
+    "s_plate": "#C9D3DC"
+  }
+}

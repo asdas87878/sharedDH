@@ -1,0 +1,20 @@
+{
+  "name": "SeahorseTrainer1",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 1: TOY",
+  "colours": {
+    "body": "#F07A3E",
+    "belly": "#FBDDA6",
+    "ring": "#C9502A",
+    "fin": "#FFF0CC",
+    "tip": "#FFF0CC",
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "s_pad": "#E1463F",
+    "s_rim": "#E1463F",
+    "s_base": "#F6C431",
+    "s_trim": "#F6C431",
+    "s_coil": "#9AA2AE",
+    "s_plate": "#F07A3E"
+  }
+}

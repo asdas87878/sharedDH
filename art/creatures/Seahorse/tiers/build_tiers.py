@@ -6,6 +6,9 @@ usage: python art/creatures/Seahorse/tiers/build_tiers.py [--check] [--sheet-onl
   renders go to work/voxel/seahorse_tiers/ (not kept in the repo)
   --check       run the gate on each level and stop
   --sheet-only  lay the sheet out from renders already there
+  --export      the game's meshes (GAME = True: no draft coil or plate): voxel_kit.py --export for each level into
+                art/creatures/Seahorse/tiers/game/T<n>/ (SeahorseTrainer<n>.glb and .mesh.json), then
+                tiers.json (each level's name, seat, lights); install_tiers.py puts them in Studio
 """
 import io
 import os
@@ -39,7 +42,7 @@ NOTES = {
 }
 
 args = sys.argv[1:]
-check, sheet_only = "--check" in args, "--sheet-only" in args
+check, sheet_only, export = "--check" in args, "--sheet-only" in args, "--export" in args
 tiers = [int(t) for t in args[args.index("--only") + 1].split(",")] if "--only" in args else list(range(1, 13))
 os.makedirs(OUT, exist_ok=True)
 source = io.open(MODEL, encoding="utf-8").read()
@@ -48,6 +51,31 @@ tier_line = next(ln for ln in source.splitlines() if ln.startswith("TIER = "))
 
 def model_of(t):
     return os.path.join(OUT, f"trainer_{t}.py")
+
+
+if export:
+    import json
+
+    game_line = next(ln for ln in source.splitlines() if ln.startswith("GAME = "))
+    rows, bad = {}, 0
+    for t in tiers:
+        path = os.path.join(OUT, f"game_{t}.py")
+        io.open(path, "w", encoding="utf-8", newline="\n").write(
+            source.replace(tier_line, f"TIER = {t}").replace(game_line, "GAME = True"))
+        folder = os.path.join(HERE, "game", f"T{t}")
+        run = subprocess.run([BLENDER, "--background", "--python", KIT, "--", path, folder, "--export", folder],
+                             capture_output=True, text=True)
+        log = run.stdout + run.stderr
+        keep = [ln for ln in log.splitlines() if any(w in ln for w in ("Error", "Traceback", "  !", "voxel kit: export"))]
+        print(f"level {t}:", " | ".join(keep) or "no output", flush=True)
+        if not os.path.exists(os.path.join(folder, f"SeahorseTrainer{t}.glb")) or any("  !" in k or "Error" in k for k in keep):
+            bad += 1
+        model = runpy.run_path(path)
+        rows[str(t)] = {"name": model["NAMES"][t], "lights": [[n, list(at), c, rng, b] for n, at, c, rng, b in model["LIGHTS"]],
+                        "rainbow": model.get("VARIANT") == "rainbow", "keep": sorted(model.get("KEEP", []))}
+    if tiers == list(range(1, 13)):
+        json.dump(rows, open(os.path.join(HERE, "game", "tiers.json"), "w"), indent=1)
+    sys.exit(1 if bad else 0)
 
 
 if not sheet_only:

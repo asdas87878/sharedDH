@@ -13,10 +13,16 @@ The stand climbs with it: iron coil, chrome, a stepped base, corner posts, gold 
 import math
 
 TIER = 1
+# GAME = True (build_tiers.py --export): the game's mesh. The draft's coil is left out (the game draws its own,
+# RideStyles.coil, bent as the toy rocks, from the stand's top to the plate's underside), and the plate is a part of
+# its own on the body, so it rocks with the seahorse
+GAME = False
 
 NAMES = {1: "Toy", 2: "Painted", 3: "Saddled", 4: "Racer", 5: "Iron", 6: "Spiked", 7: "Knight", 8: "Royal",
          9: "Golden", 10: "Abyssal", 11: "Starfire", 12: "Prismatic"}
 NAME, ZONE, RARITY = "Seahorse", "TRAINER", f"LEVEL {TIER}: {NAMES[TIER].upper()}"
+if GAME:
+    NAME = f"SeahorseTrainer{TIER}"  # the export's file names
 U = 0.4
 FRAME, ORTHO = 3.0, 40.0
 
@@ -299,11 +305,13 @@ def build(m):
     if TIER >= 4:  # a second step
         st.hull(-1, 10, 5, -23, -22, "s_base", [(1, 1)])
         top = -22
-    st.sym(3, 6, 1, top, -14, "s_coil")  # the spring: a core and rings
-    for i, z in enumerate(range(top + 1, -14, 2)):
-        glow = "coilGlow" in S and i % 2 == 1
-        st.hull(1, 8, 3, z, z + 1, "s_coilGlow" if glow else "s_coil", [(1, 0)])
-    st.hull(-5, 14, 5, -14, -12, "s_plate", [(1, 1)])  # the plate the seahorse stands on
+    if not GAME:
+        st.sym(3, 6, 1, top, -14, "s_coil")  # the spring: a core and rings
+        for i, z in enumerate(range(top + 1, -14, 2)):
+            glow = "coilGlow" in S and i % 2 == 1
+            st.hull(1, 8, 3, z, z + 1, "s_coilGlow" if glow else "s_coil", [(1, 0)])
+    plate = m.part("Plate", (4.5, 0, -14), "Body") if GAME else st
+    plate.hull(-5, 14, 5, -14, -12, "s_plate", [(1, 1)])  # the plate the seahorse stands on
     if TIER >= 6:  # corner posts
         for x0 in (-3, 10):
             st.pair(x0, x0 + 2, 5, 7, -23, -19, "s_post")

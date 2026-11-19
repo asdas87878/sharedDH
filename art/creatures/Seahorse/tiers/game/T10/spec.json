@@ -1,0 +1,33 @@
+{
+  "name": "SeahorseTrainer10",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 10: ABYSSAL",
+  "colours": {
+    "body": "#14233F",
+    "belly": "#2A4A6E",
+    "ring": "#4A6E96",
+    "fin": "#1B3558",
+    "tip": "#2FE6FF",
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "saddle": "#0E1626",
+    "blanket": "#2FE6FF",
+    "armour": "#3A5A80",
+    "spike": "#6FA6CC",
+    "halo": "#2FE6FF",
+    "crown": "#2FE6FF",
+    "gem": "#2FE6FF",
+    "ribbon": "#2FE6FF",
+    "wing": "#1B3558",
+    "s_pad": "#0A1222",
+    "s_rim": "#2FE6FF",
+    "s_base": "#17233A",
+    "s_trim": "#2FE6FF",
+    "s_coil": "#2A3B55",
+    "s_plate": "#2A4A6E",
+    "s_post": "#22324E",
+    "s_cap": "#2FE6FF",
+    "s_coilGlow": "#2FE6FF",
+    "s_crystal": "#7FF4FF"
+  }
+}

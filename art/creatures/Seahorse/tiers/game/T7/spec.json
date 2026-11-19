@@ -1,0 +1,28 @@
+{
+  "name": "SeahorseTrainer7",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 7: KNIGHT",
+  "colours": {
+    "body": "#24406E",
+    "belly": "#CFDCE8",
+    "ring": "#DCE3EA",
+    "fin": "#BFE6F2",
+    "tip": "#3FE0D8",
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "saddle": "#2A2F3A",
+    "blanket": "#1C8C88",
+    "armour": "#DCE3EA",
+    "spike": "#EEF2F6",
+    "eye": "#3FF0E6",
+    "s_pad": "#1F2A3C",
+    "s_rim": "#121A26",
+    "s_base": "#5A6A80",
+    "s_trim": "#3FE0D8",
+    "s_coil": "#E8EDF2",
+    "s_plate": "#DCE3EA",
+    "s_post": "#3E4C60",
+    "s_cap": "#DCE3EA",
+    "s_coilGlow": "#3FE0D8"
+  }
+}

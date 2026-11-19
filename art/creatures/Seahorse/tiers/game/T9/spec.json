@@ -1,0 +1,31 @@
+{
+  "name": "SeahorseTrainer9",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 9: GOLDEN",
+  "colours": {
+    "body": "#E9B530",
+    "belly": "#FFE89A",
+    "ring": "#FFD23A",
+    "fin": "#FFE680",
+    "tip": "#FFF1A8",
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "saddle": "#C98F10",
+    "blanket": "#FFD23A",
+    "armour": "#FFE066",
+    "spike": "#FFF0A0",
+    "halo": "#B25CFF",
+    "crown": "#FFDA3A",
+    "gem": "#B25CFF",
+    "ribbon": "#B25CFF",
+    "s_pad": "#FFFFFF",
+    "s_rim": "#E6E1F0",
+    "s_base": "#FFD23A",
+    "s_trim": "#FFE680",
+    "s_coil": "#FFDA3A",
+    "s_plate": "#FFD23A",
+    "s_post": "#FFD23A",
+    "s_cap": "#FFF1A8",
+    "s_coilGlow": "#B25CFF"
+  }
+}

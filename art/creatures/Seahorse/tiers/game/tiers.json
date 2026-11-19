@@ -1,0 +1,281 @@
+{
+ "1": {
+  "name": "Toy",
+  "lights": [],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "2": {
+  "name": "Painted",
+  "lights": [],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "3": {
+  "name": "Saddled",
+  "lights": [],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "4": {
+  "name": "Racer",
+  "lights": [],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "5": {
+  "name": "Iron",
+  "lights": [],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "6": {
+  "name": "Spiked",
+  "lights": [],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "7": {
+  "name": "Knight",
+  "lights": [
+   [
+    "Stand",
+    [
+     4.5,
+     0,
+     -18
+    ],
+    "#3FE0D8",
+    30,
+    6
+   ]
+  ],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "8": {
+  "name": "Royal",
+  "lights": [
+   [
+    "Stand",
+    [
+     4.5,
+     0,
+     -18
+    ],
+    "#FF4FD8",
+    40,
+    6
+   ]
+  ],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "9": {
+  "name": "Golden",
+  "lights": [
+   [
+    "Stand",
+    [
+     4.5,
+     0,
+     -18
+    ],
+    "#B25CFF",
+    50,
+    6
+   ]
+  ],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "10": {
+  "name": "Abyssal",
+  "lights": [
+   [
+    "Stand",
+    [
+     4.5,
+     0,
+     -18
+    ],
+    "#2FE6FF",
+    60,
+    6
+   ],
+   [
+    "Head",
+    [
+     -6.8,
+     3.6,
+     17.4
+    ],
+    "#2FE6FF",
+    6,
+    2
+   ],
+   [
+    "Body",
+    [
+     1,
+     6,
+     3
+    ],
+    "#2FE6FF",
+    25,
+    5
+   ]
+  ],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "11": {
+  "name": "Starfire",
+  "lights": [
+   [
+    "Stand",
+    [
+     4.5,
+     0,
+     -18
+    ],
+    "#FF6A2A",
+    70,
+    6
+   ],
+   [
+    "Head",
+    [
+     -6.8,
+     3.6,
+     17.4
+    ],
+    "#56E8FF",
+    6,
+    2
+   ],
+   [
+    "Body",
+    [
+     1,
+     6,
+     3
+    ],
+    "#FF6A2A",
+    25,
+    5
+   ]
+  ],
+  "rainbow": false,
+  "keep": [
+   "black",
+   "cream",
+   "s_pad",
+   "s_rim"
+  ]
+ },
+ "12": {
+  "name": "Prismatic",
+  "lights": [
+   [
+    "Stand",
+    [
+     4.5,
+     0,
+     -18
+    ],
+    "#FFFFFF",
+    80,
+    6
+   ],
+   [
+    "Head",
+    [
+     -6.8,
+     3.6,
+     17.4
+    ],
+    "#FFFFFF",
+    6,
+    2
+   ],
+   [
+    "Body",
+    [
+     1,
+     6,
+     3
+    ],
+    "#FFFFFF",
+    25,
+    5
+   ]
+  ],
+  "rainbow": true,
+  "keep": [
+   "black",
+   "cream",
+   "s_base",
+   "s_cap",
+   "s_coil",
+   "s_coilGlow",
+   "s_crystal",
+   "s_pad",
+   "s_plate",
+   "s_post",
+   "s_rim",
+   "s_shard",
+   "s_trim"
+  ]
+ }
+}

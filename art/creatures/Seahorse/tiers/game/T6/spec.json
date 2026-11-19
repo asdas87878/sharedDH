@@ -1,0 +1,25 @@
+{
+  "name": "SeahorseTrainer6",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 6: SPIKED",
+  "colours": {
+    "body": "#2F5E9A",
+    "belly": "#DCE6EE",
+    "ring": "#D6DEE6",
+    "fin": "#CFE2F0",
+    "tip": "#FF5A3C",
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "saddle": "#3E2B22",
+    "blanket": "#FF5A3C",
+    "armour": "#D6DEE6",
+    "spike": "#E9EEF3",
+    "s_pad": "#3A4654",
+    "s_rim": "#222A33",
+    "s_base": "#7F8D9B",
+    "s_trim": "#FF5A3C",
+    "s_coil": "#E8EDF2",
+    "s_plate": "#D6DEE6",
+    "s_post": "#5E6B78"
+  }
+}
