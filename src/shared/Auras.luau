@@ -1,7 +1,7 @@
 --!strict
 -- The twelve auras (Hugo, 2026-11-19: "add cool auras that you can buy at the aura stand ... 1.5 2 2.5 3 3.5 4 5 6 7
 -- 8 10 12x ... animated and colored, getting cooler with each tier") and the spawn-in effect ("when you spawn in you
--- play a cool little animation around the player"). DRAFT 1 (task a1): the looks only. Not bought yet: buying waits
+-- play a cool little animation around the player"). DRAFT 2 (task a1): the looks only, particles round the body only (Hugo: nothing on the ground). Not bought yet: buying waits
 -- for the economy's prices (docs/design/progression.md, "The economy, draft 1"); names are that draft's stand-ins.
 --
 -- The switch: a player's "Aura" attribute (a tier number, 1 to 12; 0 or missing is none). The server will set it when
@@ -33,7 +33,7 @@ Auras.Tiers = {
 		Mult = 1.5,
 		Main = rgb(190, 235, 255),
 		Second = rgb(255, 255, 255),
-		Blurb = "bubbles drift up round you",
+		Blurb = "a few soft bubbles rise off you",
 	},
 	{
 		Id = 2,
@@ -41,7 +41,7 @@ Auras.Tiers = {
 		Mult = 2,
 		Main = rgb(235, 250, 255),
 		Second = rgb(120, 210, 255),
-		Blurb = "a ring of foam at your feet, bubbles",
+		Blurb = "bubbles and a white foam haze hug you",
 	},
 	{
 		Id = 3,
@@ -49,7 +49,7 @@ Auras.Tiers = {
 		Mult = 2.5,
 		Main = rgb(40, 210, 200),
 		Second = rgb(200, 255, 245),
-		Blurb = "a wave rolls round your feet",
+		Blurb = "a wave of teal light runs round you",
 	},
 	{
 		Id = 4,
@@ -57,7 +57,7 @@ Auras.Tiers = {
 		Mult = 3,
 		Main = rgb(40, 170, 255),
 		Second = rgb(170, 240, 255),
-		Blurb = "streaks of current spiral up",
+		Blurb = "three streaks spiral up, lines shoot up you",
 	},
 	{
 		Id = 5,
@@ -65,7 +65,7 @@ Auras.Tiers = {
 		Mult = 3.5,
 		Main = rgb(255, 110, 150),
 		Second = rgb(255, 200, 80),
-		Blurb = "coral blocks orbit, sparkles",
+		Blurb = "coral sparkles twinkle all over you",
 	},
 	{
 		Id = 6,
@@ -73,7 +73,7 @@ Auras.Tiers = {
 		Mult = 4,
 		Main = rgb(255, 235, 80),
 		Second = rgb(70, 90, 170),
-		Blurb = "lightning cracks round a dark cloud",
+		Blurb = "a dark cloud, bright crackles, sparks",
 	},
 	{
 		Id = 7,
@@ -81,7 +81,7 @@ Auras.Tiers = {
 		Mult = 5,
 		Main = rgb(215, 220, 255),
 		Second = rgb(160, 130, 255),
-		Blurb = "two silver rings turn like a gyroscope",
+		Blurb = "two silver rings of light, a small moon",
 	},
 	{
 		Id = 8,
@@ -89,7 +89,7 @@ Auras.Tiers = {
 		Mult = 6,
 		Main = rgb(255, 200, 70),
 		Second = rgb(255, 120, 40),
-		Blurb = "glowing lanterns circle you, warm light",
+		Blurb = "four warm lanterns of light circle you",
 	},
 	{
 		Id = 9,
@@ -97,7 +97,7 @@ Auras.Tiers = {
 		Mult = 7,
 		Main = rgb(255, 110, 30),
 		Second = rgb(255, 230, 120),
-		Blurb = "fire rises, a ring of hot blocks",
+		Blurb = "a flame wraps you, embers fly up",
 	},
 	{
 		Id = 10,
@@ -105,7 +105,7 @@ Auras.Tiers = {
 		Mult = 8,
 		Main = rgb(110, 255, 190),
 		Second = rgb(170, 110, 255),
-		Blurb = "ghost wisps swirl, blocks flicker",
+		Blurb = "a ghostly mist, four wisps swirl",
 	},
 	{
 		Id = 11,
@@ -113,7 +113,7 @@ Auras.Tiers = {
 		Mult = 10,
 		Main = rgb(150, 60, 255),
 		Second = rgb(20, 0, 40),
-		Blurb = "a void halo pulls light in",
+		Blurb = "void smoke, light pulled in, a halo",
 	},
 	{
 		Id = 12,
@@ -121,7 +121,7 @@ Auras.Tiers = {
 		Mult = 12,
 		Main = rgb(255, 255, 255),
 		Second = rgb(255, 80, 200),
-		Blurb = "a rainbow serpent coils round you",
+		Blurb = "a rainbow flame, two rainbow serpents",
 	},
 } :: { Tier }
 

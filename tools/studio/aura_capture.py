@@ -4,6 +4,8 @@
     python tools/studio/aura_capture.py auras [tier ...]   (one still a tier, clock held)
     python tools/studio/aura_capture.py spawns             (three moments of each spawn-in)
     python tools/studio/aura_capture.py sheet              (lays the stills out: docs/attachments/auras-draft-1.png)
+    python tools/studio/aura_capture.py sheet2             (draft 2: before | after for each tier, the spawn-ins)
+    python tools/studio/aura_capture.py gif 9 12           (a GIF of a tier, clock and particles slowed while shot)
     python tools/studio/aura_capture.py clean              (the stage away, clock and camera let go)
 How: AuraController draws any Model tagged "AuraRig" by its "Aura" attribute (Studio only), on workspace "AuraClock"
 when it is a number; a rig's "SpawnAt" plays its "SpawnStyle" from then. The server Script builds the rigs (copies of
@@ -31,8 +33,8 @@ TIERS = [
 ]
 SPAWNS = [
     ("Splash", [0.18, 0.4, 0.8]),
-    ("Whirlpool", [0.45, 0.95, 1.3]),
-    ("Drop", [0.3, 0.5, 0.75]),
+    ("Whirlpool", [0.4, 0.9, 1.3]),
+    ("Drop", [0.43, 0.56, 1.0]),
 ]
 # the clock each tier is shot at (a moment where its motion reads: the storm's bolts on, the wave's crest in front)
 CLOCK = {i: 100.0 for i in range(1, 13)}
@@ -61,14 +63,14 @@ RS:GetAttributeChangedSignal("A1Cmd"):Connect(function()
 				local at = origin + Vector3.new((i - 8) * 40, 0, 0)
 				local floor = Instance.new("Part")
 				floor.Anchored = true
-				floor.Size = Vector3.new(36, 1, 36)
+				floor.Size = Vector3.new(40, 1, 40)
 				floor.Color = Color3.fromRGB(28, 40, 70)
 				floor.Material = Enum.Material.SmoothPlastic
 				floor.Position = at - Vector3.new(0, root.Size.Y / 2 + char.Humanoid.HipHeight + 0.5, 0)
 				floor.Parent = stage
 				local wall = Instance.new("Part")
 				wall.Anchored = true
-				wall.Size = Vector3.new(40, 40, 1)
+				wall.Size = Vector3.new(40, 60, 1)
 				wall.Color = Color3.fromRGB(16, 24, 46)
 				wall.Material = Enum.Material.SmoothPlastic
 				wall.Position = at + Vector3.new(0, 10, 16)
@@ -230,16 +232,22 @@ def spawns():
     for s, (name, moments) in enumerate(SPAWNS, start=1):
         rig = 12 + s
         print(cmd(f"cam|{rig}"))
-        start = 500.0 + s * 10
+        start = 500.0 + s * 10 + round(time.time() % 1000)
         clock(start - 1)
         print(cmd(f"spawn|{rig},{s},{start}"))
-        time.sleep(0.6)
+        time.sleep(1.2)
+        # played at a tenth of real time (the clock and every emitter), each moment shot as the game reaches it
+        slow, lead = 0.1, 0.15
+        server(f"workspace:SetAttribute('AuraSlow', {slow}) workspace:SetAttribute('AuraClock', {start - lead}) return 1")
+        t0 = time.time()
         for k, m in enumerate(moments):
-            clock(start + m)
-            time.sleep(0.35)
+            wait = t0 + (m + lead) / slow - 0.25 - time.time()
+            if wait > 0:
+                time.sleep(wait)
             im = shot(OUT / f"raw_s{s}{k}.png")
             im.save(OUT / f"spawn_{s}_{k}.png")
-            print("spawn", name, m)
+            print("spawn", name, m, "at", round((time.time() - t0) * slow - lead, 2))
+        server("workspace:SetAttribute('AuraSlow', nil) return 1")
 
 
 def font(size):
@@ -259,9 +267,9 @@ def sheet():
     H = head + rows * (T + pad) + pad + 50 + spawn_h + pad
     sh = Image.new("RGB", (W, H), (12, 16, 28))
     d = ImageDraw.Draw(sh)
-    d.text((pad, 14), "Auras, draft 1: the twelve tiers (x multiplier, stand-in name), each at one held moment",
+    d.text((pad, 14), "Auras, draft 1: the twelve tiers (x multiplier, stand-in name), one frame each",
            fill="white", font=font(26))
-    d.text((pad, 46), "From a Studio playtest. Particles and glow move in the game; these are single frames.",
+    d.text((pad, 46), "From a Studio playtest (stand-in names from the economy draft). Everything moves in the game; these are single frames.",
            fill=(170, 180, 200), font=font(16))
     for n, (mult, name) in enumerate(TIERS):
         i = n + 1
@@ -294,9 +302,92 @@ def sheet():
     print(dest)
 
 
+def sheet2():
+    """Draft 2 (Hugo: particles round the body only): every tier before (draft 1) and after, and the new spawn-ins."""
+    T = 228
+    pad, head = 10, 78
+    cols = 4  # pairs a row
+    pair = 2 * T + 4
+    W = cols * pair + (cols + 1) * pad
+    rows = 3
+    H = head + rows * (T + 34 + pad) + 60 + T + 40
+    sh = Image.new("RGB", (W, H), (12, 16, 28))
+    d = ImageDraw.Draw(sh)
+    d.text((pad, 12), "Auras, draft 2: particles round the body only (nothing on the ground). Before | after",
+           fill="white", font=font(26))
+    d.text((pad, 46), "Left of each pair: draft 1. Right: draft 2. Stills from a Studio playtest; everything moves in the "
+           "game. Names are the economy draft's stand-ins.", fill=(170, 180, 200), font=font(16))
+    for n, (mult, name) in enumerate(TIERS):
+        i = n + 1
+        x = pad + (n % cols) * (pair + pad)
+        y = head + (n // cols) * (T + 34 + pad)
+        d.text((x, y + 2), f"x{mult:g}  {i}. {name}", fill="white", font=font(22))
+        for k, pre in enumerate(("before", "aura")):
+            p = OUT / f"{pre}_{i:02d}.png"
+            if p.exists():
+                im = Image.open(p).resize((T, T), Image.LANCZOS)
+                if pre == "before":
+                    im = Image.blend(im, Image.new("RGB", im.size, (12, 16, 28)), 0.35)
+                sh.paste(im, (x + k * (T + 4), y + 30))
+        d.text((x + 6, y + 34), "before", fill=(200, 200, 200), font=font(14), stroke_width=2, stroke_fill="black")
+        d.text((x + T + 10, y + 34), "after", fill="white", font=font(16), stroke_width=2, stroke_fill="black")
+    y0 = head + rows * (T + 34 + pad) + 6
+    d.text((pad, y0), "Spawn-in, three versions (pick one), now particles only: three moments each, left to right",
+           fill="white", font=font(22))
+    y = y0 + 34
+    small = (W - pad * 4) // 3
+    st = (small - pad * 2) // 3
+    for s, (name, moments) in enumerate(SPAWNS, start=1):
+        x0 = pad + (s - 1) * (small + pad)
+        d.text((x0, y), f"{s}. {name}", fill="white", font=font(20))
+        for k, m in enumerate(moments):
+            p = OUT / f"spawn_{s}_{k}.png"
+            x = x0 + k * (st + pad)
+            if p.exists():
+                sh.paste(Image.open(p).resize((st, st), Image.LANCZOS), (x, y + 28))
+            d.text((x + 6, y + 32), f"{m:g} s", fill="white", font=font(15), stroke_width=2, stroke_fill="black")
+    sh = sh.crop((0, 0, W, y + 28 + st + pad))
+    dest = ROOT / "docs/attachments/auras-draft-2.png"
+    sh.save(dest)
+    print(dest)
+
+
+def gif(tier, seconds=2.0, slow=0.05, size=440):
+    """A tier in motion: the game's clock and every emitter run at `slow` of real time, frames shot as fast as Studio
+    gives them, each frame's length the game time that passed."""
+    print(cmd(f"cam|{tier}"))
+    server("workspace:SetAttribute('AuraSlow', nil) workspace:SetAttribute('AuraClock', nil) return 1")
+    time.sleep(1.5)  # (the emitters fill at full speed first)
+    server(f"workspace:SetAttribute('AuraSlow', {slow}) workspace:SetAttribute('AuraClock', 200) return 1")
+    time.sleep(0.5)
+    t0 = time.time()
+    frames, stamps = [], []
+    while (time.time() - t0) * slow < seconds:
+        stamps.append(time.time())
+        frames.append(shot(OUT / f"gif_{tier}_{len(frames):03d}.png").resize((size, size), Image.LANCZOS))
+        print(f"\rframe {len(frames)}", end="", flush=True)
+    print()
+    server("workspace:SetAttribute('AuraSlow', nil) workspace:SetAttribute('AuraClock', nil) return 1")
+    stamps.append(time.time())
+    durations = [max(20, int((stamps[i + 1] - stamps[i]) * slow * 1000)) for i in range(len(frames))]
+    mult, name = TIERS[tier - 1]
+    for f in frames:
+        ImageDraw.Draw(f).text((10, 8), f"x{mult:g} {name}", fill="white", font=font(24), stroke_width=3,
+                               stroke_fill="black")
+    pal = [f.quantize(colors=200, method=Image.MEDIANCUT, dither=Image.NONE) for f in frames]
+    dest = ROOT / f"docs/attachments/auras-draft-2-{name.lower()}.gif"
+    pal[0].save(dest, save_all=True, append_images=pal[1:], duration=durations, loop=0, optimize=True)
+    print(dest, len(frames), "frames", sum(durations), "ms")
+
+
 if __name__ == "__main__":
     a = sys.argv[1:]
-    if a[0] == "install":
+    if a[0] == "sheet2":
+        sheet2()
+    elif a[0] == "gif":
+        for t in a[1:]:
+            gif(int(t))
+    elif a[0] == "install":
         print(install())
     elif a[0] == "remove":
         print(install(True))
