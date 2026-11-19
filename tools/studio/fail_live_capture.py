@@ -104,7 +104,7 @@ def gif(fish, outcome, suffix="3", fps=10):
     fc.setw(FailRecord=True, FailReplay=False, FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
     print(fc.cmd("ride|" + fish))
     fc.wait_state({"Riding"})
-    time.sleep(0.7)
+    time.sleep(0.3)
     print("live:", fc.cmd("fail|" + outcome))
     time.sleep(1)
     fc.wait_state({"Dock"}, timeout=40)
@@ -117,10 +117,9 @@ def gif(fish, outcome, suffix="3", fps=10):
     fc.setw(FailReplay=True, FailSlow=slow, FailClock=0, DeathClock=0)
     print(fc.cmd("ride|" + fish))
     fc.wait_state({"Riding"})
-    time.sleep(0.7)
+    time.sleep(0.3)
     frames = []
-    for i in range(2):
-        frames.append(label(fc.shot(OUT / f"{outcome}_ride{i}.png"), f"{fish}: riding, Oxygen hits 0"))
+    # (no riding frames first: the time they take lets the fish be tamed, and its CAUGHT banner covers the shot)
     print("playback:", fc.cmd("fail|" + outcome))
     for i in range(n_out):
         t = i / fps

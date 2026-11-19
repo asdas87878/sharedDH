@@ -1355,3 +1355,75 @@ Mosasaurus rearing and turning on the tossed rider with the jaws snapping the sc
 lure flaring before the gulp; the whale's roll showing its pale belly; the ray flipping; the serpent's spin.
 Weaker, to look at in play: the Kraken's own arms hide the six stand-in ones and the rider under it; the Isopod's
 slam is small (it doesn't drop far in the Shallows, the floor is close) and the rider ends hidden under it.
+
+## The fails, rigged and physical: a real ragdoll, real hits, the kraken's arms (task f3, 2026-11-19)
+
+Hugo's notes on the e1 outcomes, in order (later ones win): every one smoother and one set; the camera eases in ONE
+smooth move to a shot that suits the outcome (a side view for the swallows, a low angle, a wide shot), then holds,
+never into the mouth, never a cut; the rider thrown up and swallowed in full view (jaws open, the rider drops in, the
+mouth shuts, a bulge); the fish's own parts move (jaw, tail, fins, arms); real collisions; the rider thrown further
+as a real Roblox ragdoll that hits the map, the props and the fish; dragging with weight and lag; and the kraken:
+throws you off first, THEN its arms shoot out and wrap you, while the screen darkens with arms closing in.
+
+**What happens now.** At the outcome's `Loose` (new in `Config.Fail.Outcomes`, seconds in) the server takes the rider
+off the fish's back and makes the body a ragdoll (RideService `ragdoll`/`letLoose`/`unragdoll`): every joint but the
+root's is switched off and a BallSocketConstraint takes over (an avatar with Roblox's newer joints, like Hugo's,
+already has one beside each AnimationConstraint, which is used; a Motor6D avatar gets one made), the limbs are made
+solid in a new collision group `Ragdoll` (the map, the props, never other players), and the fish stays the rider's
+machine's to move (its network owner, so it doesn't jump between server and client). The character's `Ragdoll`
+attribute says it is loose. The rider's own machine (FailController) throws it (each outcome its own way and speed,
+`Ragdoll.Throw` 80 for the plain throw: about ten times further than the old 8 studs), holds most of its weight up and
+slows it as water would (`Float`, `Drag`), and gives the fish invisible solid boxes on its parts that follow them
+with their speed, so a sweep of a whale's flank or a turtle's buck really knocks the body (a hit: bubbles, a knock
+sound, a small shake; `HitSpeed`). After a throw the body flies `Ragdoll.Time` (1.8 s) into the drown: the server
+gives the joints back, the drown's pose is eased into from where the limbs lie (AnimController `settle`), and the
+drown goes on from where the body came to rest (DeathController, `DeathLoose`). A taken rider stays loose until the
+dock.
+
+**The fish's rig.** Every machine poses the creature's own joints (FishModel's `Rig_` Motor6Ds, read from
+Shared/Creatures' pivots) on top of its swim: the jaw on its hinge (open wide, then snapped shut), the spine thrashing
+from the middle back and curling round (the turn on you, the serpent's coil), the fins flaring, an octopus's arms
+reaching for the rider and curling round. The swallow's bulge runs down the spine's parts.
+
+**The grabs** (the rider's own machine): AlignPositions at the contact point of a limb, so the body hangs and lags
+with its own weight instead of being glued: the jaws pull you into the mouth and deeper; the angler's suction draws you
+in slowly, then all at once; each kraken arm hauls its limb in to the beak; the serpent holds you on its coil while it
+spins, then lets go and you are flung; the crawler presses you to the floor under its head and drags you, a leg
+trailing.
+
+**The nine, now** (times in `Config.Fail.Outcomes`):
+
+| Outcome | Shot | What you see |
+|---|---|---|
+| Throw (low tiers) | the drown's, following the body | bucked off up and back as a ragdoll, far, tumbling, hitting what is there; then the drown |
+| Chomp 2.3 s | side view | it rears and tosses you up off its back, swings round with the jaws wide, the mouth lands on you, snap, a head shake, you are pulled in and the bulge runs down it |
+| Gulp 2.5 s | side, from ahead | the lure flares, you lean to it, it bucks you over its head, the jaw opens huge and the suction takes you in; it shuts, gulps |
+| Wrap 3.0 s | wide on you and the arms | it bucks you off in an arc; its own arms reach for you and six jointed arms shoot out of their tips, wrap your arms, legs and body and haul you in to its beak as it backs away into the dark; dark arms creep in over the screen |
+| Roll 1.7 s | low angle | it rolls right over; you slide off its flank and its side sweeps past you |
+| Flip 1.5 s | low, looking up | it flips; you drop off its underside and its wings come back over |
+| Shell 1.6 s | three-quarter front, high | it tucks in and shakes harder and harder, you bounce, then it bucks you off high |
+| Coil 1.9 s | wide and high | it spins round itself with you held on its coil, swinging out, then flings you |
+| Pin 2.4 s | high, looking down | it noses down and scrapes you off ahead, slams down on you and drags you along the floor |
+
+**The camera.** One move from wherever the view is to the outcome's shot in `Config.Fail.CameraTime` (1.1 s, eased
+in and out), then held; it only turns to follow what it looks at, eased. It never comes closer to the fish than about
+half its length. If the rider and the fish draw apart it backs off along its line to keep both in the shot; if a wall
+is behind it, it comes in to the near side of it (sliding, not jumping); wild fish and the map's props in the way go
+see-through on your screen. After a throw the drown's shot follows the loose body from the same side, then holds.
+The old jaws drawn over the screen are gone: the swallow is seen, then it fades to the fail screen.
+
+**Seen in Studio (2026-11-19, from the real game, not played by hand):** `fail-<outcome>-3.gif` for all nine in
+`docs/attachments/` and the sheet `fail-outcomes-3.gif` (copies in `~/Pictures/ride-a-fish/sheets/`).
+**How they were made** (`tools/studio/fail_live_capture.py`): Studio redraws its window only about once a second
+while it is hidden on another workspace, so a live run can't be filmed. The game records one live run of the fail
+(workspace `FailRecord`: FailController keeps every part of the loose body, each frame, in the fish's space) and plays
+it back on a second run (`FailReplay`) with the clocks held (`FailClock`, `DeathClock`), one frame every 0.1 s, each
+shot after Studio has redrawn. The physics in the GIFs is the live run's; the second run's map around it can differ a
+little. Studio only; nothing of it runs in a live game.
+
+**Hooks for the partner's animations:** unchanged (`FailKind`, `Config.Fail.Outcomes[kind].Hook`); the rider's pose on
+the fish before coming loose is `AnimController.FailPose`.
+
+**Open, to judge in play:** the throws' speeds and the water's hold (`Config.Fail.Ragdoll`) are first numbers; the
+sandbox's NoFail still throws you off the old way (no ragdoll); a ragdoll on a phone is untested; other players see
+the body by replication (only the rider's machine runs its physics), which was not tried with two players.

@@ -440,11 +440,13 @@ OUTCOMES.Chomp = function(f, t)
 		-- (from the bite on it goes from where it took you: you are in its mouth now, nothing to aim at)
 		frame = f.Snap :: CFrame
 	elseif torso and lunge > 0 then
-		local aim = torso - frame.Position
+		-- (never straight up: the climb is flattened, and the root put so the mouth lands right on you)
+		local aim = (torso - frame.Position) * Vector3.new(1, 0.55, 1)
 		aim = if aim.Magnitude > 0.1 then aim.Unit else frame.LookVector
-		local mouthTo = torso - aim * L * 0.45
-		local at = frame.Position:Lerp(mouthTo, lunge * 0.9)
 		local look = frame.LookVector:Lerp(aim, lunge)
+		look = if look.Magnitude > 0.01 then look.Unit else aim
+		local mouthTo = CFrame.lookAt(Vector3.zero, look) * mouthOf(f)
+		local at = frame.Position:Lerp(torso - mouthTo.Position, lunge)
 		frame = CFrame.lookAt(at, at + look)
 	end
 	if t >= 1.3 then
@@ -532,7 +534,8 @@ OUTCOMES.Wrap = function(f, t)
 	rig.Flare = buck
 	local seat = frame * f.Saddle
 	local rider = seat * CFrame.new(0, buck * 1.5, 0)
-	local focus = if torso then torso:Lerp(frame.Position, 0.4) else frame.Position
+	local beak = (frame * CFrame.new(f.Beak)).Position
+	local focus = if torso then torso:Lerp(beak, 0.3) else beak
 	return { Fish = frame, Rider = rider, Rig = rig, Focus = focus }
 end
 
@@ -1136,7 +1139,7 @@ local function makeProps(f: Fail)
 				Start = start,
 				Grab = start + 0.32,
 				Phase = i * 1.9,
-				Thick = (1.3 + f.Length * 0.03) * (if target == "Torso" or target == "Lower" then 1.25 else 1),
+				Thick = (1.6 + f.Length * 0.04) * (if target == "Torso" or target == "Lower" then 1.25 else 1),
 			})
 		end
 	end
@@ -1287,9 +1290,9 @@ end
 -- across it, on the side we were already on; Back: behind; Up: above, below for a low angle), and how far (Far, in
 -- the fish's own size). It never comes closer to the fish than its own length.
 local SHOTS: { [string]: { Side: number, Back: number, Up: number, Far: number, Ahead: number } } = {
-	Chomp = { Side = 1, Back = -0.15, Up = 0.22, Far = 1.05, Ahead = 0.3 }, -- side view
-	Gulp = { Side = 0.8, Back = -0.8, Up = 0.15, Far = 0.95, Ahead = 0.4 }, -- side, from ahead, the mouth and the lure
-	Wrap = { Side = 1, Back = 0.35, Up = 0.38, Far = 1.5, Ahead = 0.1 }, -- wide
+	Chomp = { Side = 1, Back = -0.15, Up = 0.2, Far = 0.8, Ahead = 0.3 }, -- side view
+	Gulp = { Side = 0.8, Back = -0.8, Up = 0.15, Far = 0.8, Ahead = 0.4 }, -- side, from ahead, the mouth and the lure
+	Wrap = { Side = 1, Back = 0.35, Up = 0.3, Far = 1.0, Ahead = 0.1 }, -- wide on the rider and the arms
 	Roll = { Side = 1, Back = 0.25, Up = -0.5, Far = 1.2, Ahead = 0.3 }, -- low angle
 	Flip = { Side = 1, Back = 0.2, Up = -0.65, Far = 1.05, Ahead = 0.3 }, -- low, looking up at the belly
 	Shell = { Side = 0.8, Back = -0.6, Up = 0.55, Far = 1.0, Ahead = 0.1 }, -- three-quarter front, high
@@ -1329,7 +1332,7 @@ local function shotFor(f: Fail, sideSign: number): Vector3
 	local dir = (right * sideSign * s.Side + -look * s.Back + Vector3.yAxis * s.Up)
 	dir = if dir.Magnitude > 0.01 then dir.Unit else right
 	local far = (f.Length * 0.48 + 15) * s.Far
-	far = math.max(far, f.Length * 0.7 + 8)
+	far = math.max(far, f.Length * 0.55 + 8)
 	local at = anchor + dir * far
 	-- not under the floor, and not behind a wall: brought in to the near side of it
 	if f.FloorY then
@@ -1397,36 +1400,43 @@ local function unfade()
 	table.clear(fadedProps)
 end
 
--- (the map's props, each with its box, found again now and then: they can be rebuilt)
-type Prop = { Model: Instance, At: CFrame, Size: Vector3, Parts: { BasePart } }
-local propList: { Prop } = {}
-
--- (built in the background, a few at a time, and again now and then: GetBoundingBox on every prop at once is a hitch)
-local function readProps()
+-- the map's props in the way: found by sweeping a ball from what the shot looks at back to the camera (props stream in
+-- and out, so they are looked for where they are, not listed)
+local function propsFolder(): Instance?
 	local blockout = workspace:FindFirstChild("ClaudeBlockout")
 	local lane = blockout and blockout:FindFirstChild("Lane")
-	local folder = lane and lane:FindFirstChild("Props")
-	local list: { Prop } = {}
-	for i, model in if folder then folder:GetChildren() else {} do
-		if model:IsA("Model") then
-			local at, size = model:GetBoundingBox()
-			local parts: { BasePart } = {}
-			for _, d in model:GetDescendants() do
-				if d:IsA("BasePart") then
-					table.insert(parts, d)
-				end
-			end
-			table.insert(list, { Model = model, At = at, Size = size, Parts = parts })
-		end
-		if i % 15 == 0 then
-			task.wait()
-		end
-	end
-	propList = list
+	return lane and lane:FindFirstChild("Props")
 end
 
-local function propsNow(): { Prop }
-	return propList
+local function propsInWay(from: Vector3, to: Vector3): { Instance }
+	local folder = propsFolder()
+	local found: { Instance } = {}
+	if not folder then
+		return found
+	end
+	local params = viewParams()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local skip = params.FilterDescendantsInstances
+	-- (viewParams leaves props out; here they are wanted)
+	for i = #skip, 1, -1 do
+		if skip[i] == folder then
+			table.remove(skip, i)
+		end
+	end
+	params.FilterDescendantsInstances = skip
+	for _ = 1, 6 do
+		local hit = workspace:Spherecast(from, 2.5, to - from, params)
+		if not hit or not hit.Instance:IsDescendantOf(folder) then
+			break
+		end
+		local model: Instance = hit.Instance
+		while model.Parent and model.Parent ~= folder do
+			model = model.Parent :: Instance
+		end
+		table.insert(found, model)
+		params:AddToFilter(model)
+	end
+	return found
 end
 
 local fishParts: { [Instance]: { BasePart } } = setmetatable({}, { __mode = "k" }) :: any
@@ -1476,11 +1486,27 @@ local function clearView(skip: Model?, from: Vector3, to: Vector3)
 			fade(parts :: { BasePart }, between(root.Position, root.Size.Magnitude * 0.6 + 5))
 		end
 	end
-	for _, prop in propsNow() do
-		local near = between(prop.At.Position, prop.Size.Magnitude * 0.5 + 2)
-		if near or fadedProps[prop] then
-			fade(prop.Parts, near)
-			fadedProps[prop] = if near or faded[prop.Parts[1]] then true else nil
+	local inWay: { [Instance]: boolean } = {}
+	for _, model in propsInWay(to, from) do
+		inWay[model] = true
+		fadedProps[model] = true
+	end
+	for model in fadedProps do
+		local parts = fishParts[model]
+		if not parts then
+			local list: { BasePart } = {}
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") then
+					table.insert(list, d)
+				end
+			end
+			fishParts[model] = list
+			parts = list
+		end
+		local near = inWay[model] == true
+		fade(parts :: { BasePart }, near)
+		if not near and (#(parts :: { BasePart }) == 0 or not faded[(parts :: { BasePart })[1]]) then
+			fadedProps[model] = nil
 		end
 	end
 end
@@ -1899,7 +1925,7 @@ local function step(dt: number)
 		local at = f.CamStart:Lerp(f.CamTo, move)
 		-- (never into the fish: kept a length off it)
 		local off = at - fishNow.Position
-		local least = f.Length * 0.75 + 6
+		local least = f.Length * 0.55 + 6
 		if off.Magnitude < least then
 			at = fishNow.Position + (if off.Magnitude > 0.1 then off.Unit else Vector3.yAxis) * least
 		end
@@ -1966,12 +1992,6 @@ end
 function FailController.Start()
 	-- before the drown's step (DeathController, Camera - 3), so it takes the shot over on the same frame
 	RunService:BindToRenderStep("RideFail", Enum.RenderPriority.Camera.Value - 4, step)
-	task.spawn(function()
-		while true do
-			pcall(readProps)
-			task.wait(20)
-		end
-	end)
 	-- after the drown's (Camera - 3), before the camera's own: the shot kept out of walls, the view kept clear
 	RunService:BindToRenderStep("RideFailView", Enum.RenderPriority.Camera.Value - 2, viewStep)
 end
