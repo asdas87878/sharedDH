@@ -2,12 +2,14 @@
 -- The submarine shop at the stand (docs/design/submarine.md; Hugo, 2026-11-18: "remove the sub button, make the
 -- player able to buy the subs there and equip them"). Walking up to the stand (Dock.Stations.Sub) shows a prompt on
 -- its ring; pressing it opens the shop: every sub (Shared/SubModels, one a tier) with its picture, the land it reaches
--- and BUY (the next one, its price shown, free while Config.Sub.Free is 1), EQUIP, EQUIPPED or LOCKED; "NO SUB" for
+-- and its price (the next one green when you can pay, free while Config.Sub.Free is 1; later ones grey), EQUIP or
+-- EQUIPPED; "NO SUB" for
 -- the ordinary dive-in. Under the list, GO TO cycles the lands the equipped sub reaches, and RIDE WITH a fish from your
 -- tank to be dropped onto (or none: you are flung into a hop). It closes as you walk away. At the left edge a ticket
 -- says where the sub will take you when you next jump in. The server decides everything (SubService: Action
 -- "SubBuy", "SubEquip", n, "SubPick", land, fishKey, each only at the stand); this only shows the player's SubTier,
--- SubEquip, SubDest, SubFish, Coins and Tank attributes. Placeholder look, in the hub signs' colours.
+-- SubEquip, SubDest, SubFish, Coins and Tank attributes. The look is the shop kit (UI/Shop, task s1): a carousel of
+-- tall cards tinted in each sub's hull colour, after Hugo's tier-shop reference.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
@@ -17,24 +19,31 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local SubModels = require(ReplicatedStorage.Shared.SubModels)
 local State = require(script.Parent.Parent.Lib.State)
 
+local Kit = require(script.Parent.Kit)
+local Shop = require(script.Parent.Shop)
+
 local SubPanel = {}
 
-local BLUE = Color3.fromRGB(30, 140, 255)
-local INK = Color3.fromRGB(16, 36, 63)
 local YELLOW = Color3.fromRGB(255, 196, 38)
-local GREEN = Color3.fromRGB(70, 200, 90)
-local GREY = Color3.fromRGB(120, 130, 145)
-local FONT = Enum.Font.LuckiestGuy
+local GREY = Color3.fromRGB(150, 160, 175)
+local NONE_TINT = Color3.fromRGB(96, 120, 150) -- the NO SUB card
 
-local gui: ScreenGui
+-- sizes in the window's points (Shop.window fits them to the screen)
+local WIDE, HIGH = 800, 520
+local CARD_W, CARD_H = 188, 300
+local TOP = 34 -- the tagline row
+local FOOT = 62 -- the footer bar
+
+local gui: ScreenGui -- the ticket and the hint
+local window: Shop.Window
+local carousel: Shop.Carousel
 local ticket: TextLabel
-local panel: Frame
-local list: ScrollingFrame
 local coinsLabel: TextLabel
-local fishButton: TextButton
-local goButton: TextButton
+local freeLabel: TextLabel
+local fishButton: Shop.Button
+local goButton: Shop.Button
 local prompt: ProximityPrompt? = nil
-type Row = { Name: TextLabel, Reach: TextLabel, Button: TextButton }
+type Row = { Card: Shop.Card, Zone: TextLabel, Button: Shop.Button }
 local shopRows: { [number]: Row } = {} -- 0: no sub
 local hintLabel: TextLabel
 local hintAt = -math.huge
@@ -43,51 +52,6 @@ local open = false
 local function attr(name: string, default: any): any
 	local value = State.Player:GetAttribute(name)
 	return if value == nil then default else value
-end
-
-local function label(parent: Instance, text: string, size: UDim2, at: UDim2, colour: Color3?): TextLabel
-	local l = Instance.new("TextLabel")
-	l.BackgroundTransparency = 1
-	l.Size = size
-	l.Position = at
-	l.Font = FONT
-	l.TextScaled = true
-	l.Text = text
-	l.TextColor3 = colour or Color3.new(1, 1, 1)
-	l.Parent = parent
-	local edge = Instance.new("UIStroke")
-	edge.Thickness = 2
-	edge.Color = INK
-	edge.Parent = l
-	return l
-end
-
-local function plate(parent: Instance, text: string, colour: Color3, size: UDim2, at: UDim2): TextButton
-	local b = Instance.new("TextButton")
-	b.AutoButtonColor = true
-	b.BackgroundColor3 = colour
-	b.Size = size
-	b.Position = at
-	b.Font = FONT
-	b.TextScaled = true
-	b.Text = text
-	b.TextColor3 = Color3.new(1, 1, 1)
-	b.Parent = parent
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = b
-	local edge = Instance.new("UIStroke")
-	edge.Thickness = 2
-	edge.Color = INK
-	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	edge.Parent = b
-	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0, 5)
-	pad.PaddingBottom = UDim.new(0, 5)
-	pad.PaddingLeft = UDim.new(0, 6)
-	pad.PaddingRight = UDim.new(0, 6)
-	pad.Parent = b
-	return b
 end
 
 type TankFish = { Key: string, Name: string }
@@ -140,13 +104,6 @@ local function reachable(): { number }
 	return out
 end
 
-local function setButton(b: TextButton, text: string, colour: Color3, live: boolean)
-	b.Text = text
-	b.BackgroundColor3 = colour
-	b.AutoButtonColor = live
-	b.Active = live
-end
-
 local function refresh()
 	local tier = attr("SubTier", 0)
 	local equipped = attr("SubEquip", 0)
@@ -154,51 +111,55 @@ local function refresh()
 	local coins = attr("Coins", 0)
 	local fish = attr("SubFish", "")
 	local free = Config.Sub.Free == 1
-	coinsLabel.Text = "COINS " .. Config.shortNumber(coins) .. (if free then "   SUBS ARE FREE FOR NOW!" else "")
-	fishButton.Text = "RIDE WITH: " .. fishName(fish)
-	ticket.Text = if equipped >= 1 and dest >= 2 then "SUB > " .. landName(dest) else "SUB: OFF"
-	ticket.TextColor3 = if equipped >= 1 and dest >= 2 then YELLOW else GREY
-	goButton.Text = if equipped >= 1 and dest >= 2 then "GO TO: " .. dest .. " " .. landName(dest) else "GO TO: NO SUB"
-	goButton.BackgroundColor3 = if equipped >= 1 then BLUE else GREY
+	coinsLabel.Text = Shop.cash(coins)
+	freeLabel.Visible = free
+	fishButton.set("RIDE WITH: " .. fishName(fish))
+	local going = equipped >= 1 and dest >= 2
+	ticket.Text = if going then "SUB > " .. landName(dest) else "SUB: OFF"
+	ticket.TextColor3 = if going then YELLOW else GREY
+	goButton.set(
+		if going then "GO TO: " .. dest .. " " .. landName(dest) else "GO TO: NO SUB",
+		if equipped >= 1 then "Blue" else "Off"
+	)
 	for n, row in shopRows do
+		row.Card.select(n == equipped)
 		if n == 0 then
 			if equipped == 0 then
-				setButton(row.Button, "EQUIPPED", GREEN, false)
+				row.Button.set("EQUIPPED", "Blue", false)
 			else
-				setButton(row.Button, "EQUIP", BLUE, true)
+				row.Button.set("EQUIP", "Cash", true)
 			end
 			continue
 		end
 		local price = Config.Sub.Prices[n]
-		local cost = if price then "$" .. Config.shortNumber(price) else ""
-		row.Reach.Text = "TO " .. (n + 1) .. " " .. landName(n + 1) .. (if cost ~= "" then "  " .. cost else "")
+		local cost = if price then Shop.cash(price) else ""
+		row.Zone.Text = landName(n + 1)
 		if n == equipped then
-			setButton(row.Button, "EQUIPPED", GREEN, false)
+			row.Button.set("EQUIPPED", "Blue", false)
 		elseif n <= tier then
-			setButton(row.Button, "EQUIP", BLUE, true)
+			row.Button.set("EQUIP", "Cash", true)
 		elseif n == tier + 1 and price then
+			-- the next sub: green when you can have it, grey when you can't pay
 			local can = free or coins >= price
-			setButton(row.Button, if free then "BUY: FREE" else "BUY " .. cost, if can then YELLOW else GREY, can)
+			row.Button.set(if free then "FREE" else cost, if can then "Cash" else "Off", can)
 		else
-			setButton(row.Button, "LOCKED", GREY, false)
+			-- further on: its price, grey (buy the ones before it first)
+			row.Button.set(cost, "Off", false)
 		end
 	end
 end
 
--- One sub's picture: its model in a viewport, three-quarters from the front
+-- One sub's picture: its model in a viewport, three-quarters from the front, on the card's cream well
 local function picture(parent: Instance, n: number)
 	local view = Instance.new("ViewportFrame")
-	view.BackgroundColor3 = Color3.fromRGB(14, 50, 104)
+	view.BackgroundTransparency = 1
 	view.BorderSizePixel = 0
-	view.Size = UDim2.fromOffset(86, 56)
-	view.Position = UDim2.fromOffset(6, 4)
+	view.Size = UDim2.fromScale(1, 1)
 	view.Ambient = Color3.fromRGB(170, 170, 170)
 	view.LightColor = Color3.new(1, 1, 1)
 	view.LightDirection = Vector3.new(-1, -1, -0.5)
+	view.ZIndex = 4
 	view.Parent = parent
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = view
 	local model = SubModels.build(n)
 	local sign = model:FindFirstChild("Label", true)
 	if sign then
@@ -212,32 +173,71 @@ local function picture(parent: Instance, n: number)
 	view.CurrentCamera = cam
 end
 
+-- The land a card reaches, in a dark box of the card's colour (the reference's zone box)
+local function zoneBox(card: Shop.Card, tint: Color3, land: number, name: string): TextLabel
+	local box = Instance.new("Frame")
+	box.Name = "Zone"
+	box.Size = UDim2.new(1, 0, 0, 50)
+	box.BackgroundColor3 = Kit.darker(tint, 0.55)
+	box.BackgroundTransparency = 0.15
+	box.BorderSizePixel = 0
+	box.LayoutOrder = 5
+	box.ZIndex = 3
+	box.Parent = card.Well.Parent
+	Kit.corner(box, 4)
+	local word = Kit.word(box, {
+		Font = Kit.Font,
+		TextSize = 22,
+		Text = "LAND " .. land,
+		Position = UDim2.new(0.5, 0, 0, 15),
+		Pal = Kit.GoldPal,
+		Edge = 0.16,
+		ZIndex = 4,
+	})
+	word.root.Name = "Land"
+	return Shop.text(box, {
+		Name = "LandName",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -3),
+		Size = UDim2.new(1, -6, 0, 16),
+		TextSize = 15,
+		Text = name,
+		ZIndex = 4,
+	})
+end
+
 local function build()
-	local function row(n: number, name: string)
-		local frame = Instance.new("Frame")
-		frame.BackgroundColor3 = if n % 2 == 0 then Color3.fromRGB(22, 70, 140) else Color3.fromRGB(26, 84, 165)
-		frame.BorderSizePixel = 0
-		frame.Size = UDim2.new(1, -8, 0, 64)
-		frame.LayoutOrder = n
-		frame.Parent = list
-		local left = 10
+	local function card(n: number, name: string)
+		local style = if n >= 1 then SubModels.style(n) else nil
+		local tint = if style then style.Hull else NONE_TINT
+		local c = Shop.card(carousel.List, {
+			Name = "Sub" .. n,
+			Size = UDim2.fromOffset(CARD_W, CARD_H),
+			Tint = tint,
+			Title = name,
+			Line = if n == 0 then "The dive-in" else "Tier " .. n .. " \u{2022} Sub",
+			WellHigh = 112,
+			SlotHigh = 42,
+			LayoutOrder = n,
+		})
 		if n >= 1 then
-			picture(frame, n)
-			left = 100
+			picture(c.Well, n)
+		else
+			Shop.icon(c.Well, "Bubble", 84, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				ZIndex = 4,
+			})
 		end
-		local title = label(frame, name, UDim2.new(0.62, -left, 0, 26), UDim2.fromOffset(left, 7))
-		title.TextXAlignment = Enum.TextXAlignment.Left
-		local reach = label(
-			frame,
-			if n == 0 then "THE ORDINARY DIVE-IN" else "",
-			UDim2.new(0.62, -left, 0, 18),
-			UDim2.fromOffset(left, 37),
-			Color3.fromRGB(190, 225, 255)
-		)
-		reach.TextXAlignment = Enum.TextXAlignment.Left
-		local b = plate(frame, "", BLUE, UDim2.new(0.36, -8, 0, 44), UDim2.new(0.64, 0, 0, 10))
-		b.Activated:Connect(function()
-			if not b.Active then
+		local zone = zoneBox(c, tint, n + 1, if n == 0 then "Jump off the dock" else landName(n + 1))
+		local b = Shop.button(c.Slot, {
+			Name = "Buy",
+			Kind = "Cash",
+			Size = UDim2.new(1, 0, 0, 42),
+			TextSize = 26,
+		})
+		b.Root.Activated:Connect(function()
+			if not b.Live then
 				return
 			end
 			if n >= 1 and n > attr("SubTier", 0) then
@@ -246,22 +246,25 @@ local function build()
 				Net.Action:FireServer("SubEquip", n)
 			end
 		end)
-		shopRows[n] = { Name = title, Reach = reach, Button = b }
+		shopRows[n] = { Card = c, Zone = zone, Button = b }
 	end
-	row(0, "NO SUB")
+	card(0, "No Sub")
 	for n, style in SubModels.List do
 		if Config.Sub.Prices[n] then
-			row(n, string.upper(style.Name))
+			card(n, style.Name)
 		end
 	end
-	list.CanvasSize = UDim2.fromOffset(0, (#SubModels.List + 1) * 68)
 end
 
 local function show(on: boolean)
 	open = on and State.Mode == "Dock"
-	panel.Visible = open
+	window.show(open)
 	if open then
 		refresh()
+		-- the equipped sub in view
+		task.defer(function()
+			carousel.show(attr("SubEquip", 0) + 1)
+		end)
 	end
 end
 
@@ -318,45 +321,79 @@ function SubPanel.init()
 	gui.Parent = State.Player:WaitForChild("PlayerGui")
 
 	-- the ticket at the left edge, where the SUB button was: where the sub takes you
-	ticket = label(gui, "", UDim2.fromOffset(200, 20), UDim2.new(0, 10, 0.5, 112), YELLOW)
-	ticket.TextXAlignment = Enum.TextXAlignment.Left
+	ticket = Shop.text(gui, {
+		Size = UDim2.fromOffset(220, 20),
+		Position = UDim2.new(0, 10, 0.5, 112),
+		TextSize = 18,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = YELLOW,
+	})
 
-	panel = Instance.new("Frame")
-	panel.Name = "Panel"
-	panel.AnchorPoint = Vector2.new(0.5, 0.5)
-	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.fromOffset(520, 580)
-	panel.BackgroundColor3 = BLUE
-	panel.Visible = false
-	panel.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 14)
-	corner.Parent = panel
-	local edge = Instance.new("UIStroke")
-	edge.Thickness = 4
-	edge.Color = INK
-	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	edge.Parent = panel
-	label(panel, "SUBMARINES", UDim2.new(1, -80, 0, 44), UDim2.fromOffset(16, 10), YELLOW)
-	label(panel, "BUY A SUB, EQUIP IT, PICK A LAND, THEN JUMP IN!", UDim2.new(1, -32, 0, 18), UDim2.fromOffset(16, 56))
-	coinsLabel = label(panel, "", UDim2.new(1, -32, 0, 22), UDim2.fromOffset(16, 80), YELLOW)
-	local close = plate(panel, "X", Color3.fromRGB(220, 60, 80), UDim2.fromOffset(44, 44), UDim2.new(1, -56, 0, 12))
-	close.Activated:Connect(function()
-		show(false)
-	end)
-	list = Instance.new("ScrollingFrame")
-	list.BackgroundTransparency = 1
-	list.BorderSizePixel = 0
-	list.Position = UDim2.fromOffset(12, 110)
-	list.Size = UDim2.new(1, -24, 1, -232)
-	list.ScrollBarThickness = 6
-	list.Parent = panel
-	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 4)
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = list
-	goButton = plate(panel, "", BLUE, UDim2.new(1, -24, 0, 48), UDim2.new(0, 12, 1, -114))
-	goButton.Activated:Connect(function()
+	window = Shop.window({
+		Name = "SubShop",
+		Parent = State.Player:WaitForChild("PlayerGui"),
+		Title = "SUBMARINES",
+		Icon = "Sub",
+		Head = "Sea",
+		Width = WIDE,
+		Height = HIGH,
+		DisplayOrder = 7,
+		OnClose = function()
+			show(false)
+		end,
+	})
+	local body = window.Body
+	-- the tagline at the left, your coins at the right in green
+	Shop.text(body, {
+		Name = "Tagline",
+		Size = UDim2.new(0.62, 0, 0, TOP - 6),
+		TextSize = 24,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "Pick a sub, pick a land, jump in!",
+		ZIndex = 3,
+	})
+	freeLabel = Shop.text(body, {
+		Name = "Free",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -150, 0, 4),
+		Size = UDim2.fromOffset(200, 20),
+		TextSize = 17,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = Kit.Sun,
+		Text = "SUBS ARE FREE FOR NOW!",
+		ZIndex = 3,
+	})
+	coinsLabel = Shop.money(body, {
+		Name = "Coins",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, -2),
+		Size = UDim2.fromOffset(150, TOP - 4),
+		TextSize = 30,
+	})
+	carousel = Shop.carousel(body, {
+		Position = UDim2.fromOffset(-6, TOP),
+		Size = UDim2.new(1, 12, 1, -(TOP + FOOT + 8)),
+		CardWide = CARD_W,
+		Gap = 12,
+		Kind = "Blue",
+	})
+	-- the footer: where the sub takes you, and which fish you ride
+	local foot = Shop.inset(body, {
+		Name = "Footer",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, FOOT),
+		ZIndex = 2,
+	})
+	goButton = Shop.button(foot, {
+		Name = "GoTo",
+		Kind = "Blue",
+		TextSize = 22,
+		Position = UDim2.fromOffset(10, 9),
+		Size = UDim2.new(0.5, -15, 1, -18),
+	})
+	goButton.Root.ZIndex = 3
+	goButton.Root.Activated:Connect(function()
 		-- the next land the equipped sub reaches, round to the first
 		local options = reachable()
 		if #options == 0 then
@@ -372,8 +409,16 @@ function SubPanel.init()
 		end
 		Net.Action:FireServer("SubPick", nextLand, attr("SubFish", ""))
 	end)
-	fishButton = plate(panel, "", Color3.fromRGB(150, 90, 230), UDim2.new(1, -24, 0, 48), UDim2.new(0, 12, 1, -60))
-	fishButton.Activated:Connect(function()
+	fishButton = Shop.button(foot, {
+		Name = "RideWith",
+		Kind = "Purple",
+		TextSize = 22,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 9),
+		Size = UDim2.new(0.5, -15, 1, -18),
+	})
+	fishButton.Root.ZIndex = 3
+	fishButton.Root.Activated:Connect(function()
 		-- the next fish of the tank, round to none
 		local options = tankFish()
 		local now = attr("SubFish", "")
@@ -388,8 +433,14 @@ function SubPanel.init()
 	end)
 	build()
 
-	hintLabel = label(gui, "", UDim2.fromOffset(520, 32), UDim2.new(0.5, -260, 0.78, 0), YELLOW)
-	hintLabel.Visible = false
+	hintLabel = Shop.text(gui, {
+		Size = UDim2.fromOffset(520, 32),
+		Position = UDim2.new(0.5, -260, 0.78, 0),
+		TextSize = 26,
+		TextColor3 = YELLOW,
+		Visible = false,
+	})
+	hintLabel.ZIndex = 20
 
 	for _, name in { "SubTier", "SubEquip", "SubDest", "SubFish", "Coins", "Tank" } do
 		State.Player:GetAttributeChangedSignal(name):Connect(function()
