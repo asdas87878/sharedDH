@@ -62,7 +62,10 @@ local function stand(player, away)
 	local water, pad = plot.TankWater, plot.CollectPad
 	local out = Vector3.new(pad.Position.X - water.Position.X, 0, pad.Position.Z - water.Position.Z).Unit
 	local at = pad.Position + out * away + Vector3.new(0, 3.5, 0)
-	player.Character:PivotTo(CFrame.lookAt(at, Vector3.new(water.Position.X, at.Y, water.Position.Z)))
+	local cf = CFrame.lookAt(at, Vector3.new(water.Position.X, at.Y, water.Position.Z))
+	player.Character:PivotTo(cf)
+	-- (the client owns its character: it moves it too, or the server's move can be undone)
+	workspace:SetAttribute("P1Stand", cf)
 	local eye = at + out * 34 + Vector3.new(0, 20, 0)
 	workspace:SetAttribute("P1Cam", CFrame.lookAt(eye, water.Position + Vector3.new(0, 2, 0)))
 	workspace:SetAttribute("P1Water", water.Position)
@@ -134,10 +137,20 @@ workspace:GetAttributeChangedSignal("P1Do"):Connect(function()
 		Net.Action:FireServer("Tank", "PutIn", tonumber(a), b)
 		task.wait(0.5)
 		said = "denied=" .. denied
+	elseif verb == "scroll" then
+		local list = player.PlayerGui.TankPanel:FindFirstChild("List", true)
+		list.CanvasPosition = Vector2.new(0, tonumber(a) or 0)
+		said = "scrolled " .. a
 	elseif verb == "open" then
 		said = "open=" .. tostring(TankPanel.isOpen()) .. " mode=" .. tostring(require(Client.Lib.State).Mode)
 	end
 	report:FireServer(said .. " @" .. cmd)
+end)
+workspace:GetAttributeChangedSignal("P1Stand"):Connect(function()
+	local cf = workspace:GetAttribute("P1Stand")
+	if typeof(cf) == "CFrame" and player.Character then
+		player.Character:PivotTo(cf)
+	end
 end)
 RunService.RenderStepped:Connect(function()
 	local cam = workspace:GetAttribute("P1Cam")
@@ -181,6 +194,7 @@ end
 workspace:SetAttribute("PanelPhone", nil)
 workspace:SetAttribute("HudTouch", nil)
 workspace:SetAttribute("P1Cam", nil)
+workspace:SetAttribute("P1Stand", nil)
 if {lua(remove)} then
 	game:GetService("UserInputService").MouseBehavior = Enum.MouseBehavior.Default
 	return "removed"
@@ -292,6 +306,12 @@ def check():
     note("EQUIP BEST again: " + do("fire|Best"))
     time.sleep(0.8)
     shot(OUT / "raw_desktop.png").save(ATTACH / "tank-popup-desktop.png")
+    # the best one out: EQUIP BEST lights up; scrolled down to the earning and stored fish
+    s = state()
+    note(f"UNEQUIP {equipped(s)[0][1]} (for the second still): " + do(f"fire|Unequip|{equipped(s)[0][0]}"))
+    do("scroll|330")
+    time.sleep(0.8)
+    shot(OUT / "raw_desktop2.png").save(ATTACH / "tank-popup-desktop-2.png")
     # phone: a 2x phone's screen (844 x 390 points) in the middle of the window
     setw(HudTouch=True, PanelPhone=(1688, 780))
     do("click")  # (shut)

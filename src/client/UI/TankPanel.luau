@@ -182,46 +182,38 @@ local function distance(): (number, number)
 	return math.sqrt(dx * dx + dz * dz), if type(reach) == "number" then reach else 36
 end
 
--- The parts of our plot a click opens the popup from: the tank, its sign and the fish in it; not the floor pads or
--- the trainer
-local SKIP = { Pad = true, CollectPad = true, CollectRim = true, TrainerSpot = true, TrainerBase = true }
-local clickParts: { Instance } = {}
-local clickPlot: Model? = nil
-local clickAt = -math.huge
-local function partsOf(plot: Model): { Instance }
-	if plot == clickPlot and os.clock() - clickAt < 3 then
-		return clickParts
-	end
-	clickPlot, clickAt = plot, os.clock()
-	clickParts = {}
-	local ride = plot:FindFirstChild("TrainerRide")
-	for _, d in plot:GetDescendants() do
-		if
-			d:IsA("BasePart")
-			and not SKIP[d.Name]
-			and not string.find(d.Name, "^Trainer")
-			and not string.find(d.Name, "^Spring")
-			and not (ride and d:IsDescendantOf(ride))
-		then
-			table.insert(clickParts, d)
-		end
-	end
-	return clickParts
-end
+-- The tank's box, as a click sees it: the water grown a little on every side, down over the base and up over the rim
+-- and the sign. (The tank's glass, water and sign are CanQuery off in the map, so a raycast passes through them; the
+-- ray is tested against this box instead, which needs nothing of the map's parts but the water)
+local GROW = Vector3.new(4, 10, 4)
 
 -- Whether a point on the screen is over our tank: an input's Position (under the top bar's inset), or with `whole`
 -- a point on the whole viewport (UserInputService:GetMouseLocation)
 local function overTank(x: number, y: number, whole: boolean?): boolean
-	local plot = ownPlot()
+	local _, water = ownPlot()
 	local camera = workspace.CurrentCamera
-	if not plot or not camera then
+	if not water or not camera then
 		return false
 	end
 	local ray = if whole then camera:ViewportPointToRay(x, y) else camera:ScreenPointToRay(x, y)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = partsOf(plot)
-	return workspace:Raycast(ray.Origin, ray.Direction * 600, params) ~= nil
+	-- the slab test, in the water's own space
+	local origin = water.CFrame:PointToObjectSpace(ray.Origin)
+	local direction = water.CFrame:VectorToObjectSpace(ray.Direction)
+	local half = (water.Size + GROW) / 2
+	local near, far = -math.huge, math.huge
+	for _, axis in { "X", "Y", "Z" } do
+		local o, d, h = (origin :: any)[axis], (direction :: any)[axis], (half :: any)[axis]
+		if math.abs(d) < 1e-6 then
+			if math.abs(o) > h then
+				return false
+			end
+		else
+			local a, b = (-h - o) / d, (h - o) / d
+			near = math.max(near, math.min(a, b))
+			far = math.min(far, math.max(a, b))
+		end
+	end
+	return near <= far and far > 0 and near < 600
 end
 
 local function say(text: string)
@@ -530,19 +522,24 @@ local function layout()
 	-- a phone: bigger points, the panel near the whole screen
 	local s = math.clamp(view.Y / (if touch then 470 else 700), 0.6, 1.8)
 	scale.Scale = s
+	-- (as the HUD's root: from the top left, the screen's size over the scale, so the UIScale brings it back to the
+	-- screen; the phone's box sits in the middle of this screen)
 	root.Size = UDim2.fromScale(1 / s, 1 / s)
+	root.Position = UDim2.new()
 	if typeof(phone) == "Vector2" then
+		local whole = camera.ViewportSize
 		root.Size = UDim2.fromOffset(view.X / s, view.Y / s)
+		root.Position = UDim2.fromOffset((whole.X - view.X) / 2, (whole.Y - view.Y) / 2)
 	end
 	local w = math.min(PANEL_W, view.X / s - 20)
 	local h = math.min(PANEL_H, view.Y / s - 16)
 	panel.Frame.Size = UDim2.fromOffset(w, h)
 	local columns = math.max(2, math.floor((w - 28 + GAP) / (CARD_W + GAP)))
 	list.Size = UDim2.new(1, -20, 1, -(HEAD + BAR + 22))
-	-- the cards centred in what the columns leave
+	-- the cards from the left, as an inventory's are
 	for _, s2 in sections do
 		s2.Layout.FillDirectionMaxCells = columns
-		s2.Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		s2.Layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 	end
 end
 
@@ -574,8 +571,6 @@ local function build()
 	}, State.Player:WaitForChild("PlayerGui"))
 	root = Kit.new("Frame", {
 		Name = "Root",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 	}, gui)
