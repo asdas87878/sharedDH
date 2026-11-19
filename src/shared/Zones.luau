@@ -1,17 +1,22 @@
 --!strict
 -- The dive's zones as the code sees them: a frame on the lane's floor at each zone's middle (+Z down the lane, +Y up off
--- the floor), its length and width, and the real-ocean depth the gauge shows.
+-- the floor), its length and width, and the depth where it starts.
 -- The server reads them from the map (any instance with a "DiveZones" attribute, else Workspace.ClaudeBlockout.Dive or
 -- Workspace.Map.Dive: one child per zone, "01_SHALLOWS" and so on, each holding a BasePart named "Floor"; a zone may set
--- "ZoneName" and "Metres" attributes) and falls back to blockout v2's numbers (art/blockout/v2_zones.json). It publishes
--- them to clients as JSON (Net.Folder's "Zones" attribute).
+-- "ZoneName") and falls back to grey-box 15's lands (tools/studio/greybox/00_start.luau). It publishes them to clients
+-- as JSON (Net.Folder's "Zones" attribute).
+-- The gauge (Hugo, 2026-11-19, "every stud is a meter"): metres are how far below the sea's surface you are, one a
+-- stud (Config.Depth, Config.metresAt). A land's Metres is the depth of the lane's floor where it starts, worked out
+-- from its marker; the map's old "Metres" attribute (real-ocean depths, 0 to 6,000 m) is no longer read.
 local HttpService = game:GetService("HttpService")
+
+local Config = require(script.Parent.Config)
 
 export type Zone = {
 	Index: number,
 	Name: string,
-	Metres: number, -- the depth the gauge shows where the zone begins
-	NextMetres: number, -- and where it ends
+	Metres: number, -- the depth of the lane's floor where the zone begins (metres = studs below the surface)
+	NextMetres: number, -- and where it ends (the next zone's start; the last zone's own end)
 	Frame: CFrame,
 	Length: number,
 	Width: number,
@@ -19,39 +24,32 @@ export type Zone = {
 
 local Zones = {}
 
-Zones.BottomMetres = 10935 -- the Challenger Deep, at the end of the last zone
-
--- Blockout v2 (art/blockout/v2_zones.json), lane widths from tools/studio/claude_blockout.luau
-local ORIGIN = Vector3.new(3000, 0, 0)
+-- Grey-box 15 (tools/studio/greybox/00_start.luau): each land's name, the floor's start (x, y, z) and end, its width
 -- stylua: ignore
 local FALLBACK: { { any } } = {
-	{ "SHALLOWS", 0, -30, 260, -56.19, 1260, 260 },
-	{ "CORAL REEF", 10, -76.19, 1260, -163.49, 3760, 220 },
-	{ "KELP FOREST", 40, -203.49, 3760, -290.79, 6260, 240 },
-	{ "SHIPWRECKS", 80, -330.79, 6260, -418.09, 8760, 260 },
-	{ "OPEN BLUE", 150, -568.09, 8760, -655.39, 11260, 400 },
-	{ "TWILIGHT", 200, -735.39, 11260, -822.70, 13760, 200 },
-	{ "MIDNIGHT", 1000, -902.70, 13760, -990.00, 16260, 240 },
-	{ "VENTS", 2000, -1070.00, 16260, -1157.30, 18760, 220 },
-	{ "BONE GRAVEYARD", 4000, -1237.30, 18760, -1324.60, 21260, 320 },
-	{ "THE UNDERWORLD", 6000, -1524.60, 21260, -1611.90, 23760, 140 },
+	{ "SHALLOWS", 3000.0, -46.0, 0.0, 3009.5, -80.5, 984.0, 185.4 },
+	{ "CORAL REEF", 3008.3, -81.5, 1008.0, 2746.4, -189.3, 3449.5, 279.1 },
+	{ "KELP FOREST", 2754.4, -190.5, 3477.0, 2879.6, -321.6, 5896.4, 364.2 },
+	{ "SHIPWRECKS", 2879.6, -321.6, 5896.4, 2537.2, -495.9, 8332.6, 378.3 },
+	{ "OPEN BLUE", 2548.5, -497.6, 8357.4, 2283.3, -738.9, 10775.0, 448.3 },
+	{ "TWILIGHT", 2290.0, -740.9, 10798.8, 2822.4, -957.3, 13204.0, 513.3 },
+	{ "MIDNIGHT", 2821.2, -959.7, 13229.4, 3032.2, -1219.2, 15659.6, 559.8 },
+	{ "VENTS", 3042.3, -1221.9, 15684.2, 3329.8, -1564.0, 18112.2, 595.7 },
+	{ "BONE GRAVEYARD", 3313.4, -1566.9, 18135.9, 3166.9, -1873.7, 20619.8, 669.8 },
+	{ "THE UNDERWORLD", 3166.9, -1873.7, 20619.8, 3000.8, -2223.9, 23073.6, 765.7 },
 }
 
-local function fallbackMetres(name: string, index: number): number
-	for _, row in FALLBACK do
-		if row[1] == name then
-			return row[2]
-		end
-	end
-	local row = FALLBACK[math.min(index, #FALLBACK)]
-	return row[2]
+-- The depth of a zone's floor at its start (s = -1) or its end (s = 1)
+local function floorMetres(zone: Zone, s: number): number
+	return Config.metresAt((zone.Frame * CFrame.new(0, 0, s * zone.Length / 2)).Position.Y)
 end
 
 local function link(list: { Zone }): { Zone }
 	for i, zone in list do
 		zone.Index = i
 		local nextZone = list[i + 1]
-		zone.NextMetres = if nextZone then nextZone.Metres else Zones.BottomMetres
+		zone.Metres = floorMetres(zone, -1)
+		zone.NextMetres = if nextZone then floorMetres(nextZone, -1) else floorMetres(zone, 1)
 	end
 	return list
 end
@@ -59,18 +57,18 @@ end
 function Zones.fallback(): { Zone }
 	local list: { Zone } = {}
 	for _, row in FALLBACK do
-		local a = ORIGIN + Vector3.new(0, row[3], row[4])
-		local b = ORIGIN + Vector3.new(0, row[5], row[6])
+		local a = Vector3.new(row[2], row[3], row[4])
+		local b = Vector3.new(row[5], row[6], row[7])
 		local mid = (a + b) / 2
 		-- lookAt points -Z at its target, so look back up the lane to get +Z down it
 		table.insert(list, {
 			Index = 0,
 			Name = row[1],
-			Metres = row[2],
+			Metres = 0,
 			NextMetres = 0,
 			Frame = CFrame.lookAt(mid, mid - (b - a).Unit),
 			Length = (b - a).Magnitude,
-			Width = row[7],
+			Width = row[8],
 		})
 	end
 	return link(list)
@@ -98,7 +96,7 @@ end
 function Zones.discover(): { Zone }
 	local dive = findDive()
 	if not dive then
-		warn("[Zones] no dive markers in Workspace, using blockout v2's numbers")
+		warn("[Zones] no dive markers in Workspace, using grey-box 15's lands")
 		return Zones.fallback()
 	end
 	local children = dive:GetChildren()
@@ -111,11 +109,10 @@ function Zones.discover(): { Zone }
 		if floor and floor:IsA("BasePart") then
 			local name = child:GetAttribute("ZoneName")
 			local zoneName = if type(name) == "string" then name else (string.gsub(child.Name, "^%d+_", ""))
-			local metres = child:GetAttribute("Metres")
 			table.insert(list, {
 				Index = 0,
 				Name = zoneName,
-				Metres = if type(metres) == "number" then metres else fallbackMetres(zoneName, #list + 1),
+				Metres = 0,
 				NextMetres = 0,
 				Frame = floor.CFrame * CFrame.new(0, floor.Size.Y / 2, 0),
 				Length = floor.Size.Z,
@@ -124,7 +121,7 @@ function Zones.discover(): { Zone }
 		end
 	end
 	if #list == 0 then
-		warn("[Zones] " .. dive:GetFullName() .. " has no zone floors, using blockout v2's numbers")
+		warn("[Zones] " .. dive:GetFullName() .. " has no zone floors, using grey-box 15's lands")
 		return Zones.fallback()
 	end
 	-- make sure every frame's +Z points on down the lane
@@ -219,7 +216,8 @@ function Zones.point(zone: Zone, x: number, h: number, s: number): Vector3
 	return (zone.Frame * CFrame.new(x, 0, s)).Position + Vector3.new(0, h, 0)
 end
 
--- The zone a point is in (nil before the first one, at the dock), how far along it (0 to 1), and the gauge's depth
+-- The zone a point is in (nil before the first one, at the dock), how far along it (0 to 1), and the gauge's metres:
+-- how far below the surface the point is, one a stud (0 at the dock)
 function Zones.locate(list: { Zone }, position: Vector3): (Zone?, number, number)
 	local best: Zone? = nil
 	local bestU = 0
@@ -236,7 +234,7 @@ function Zones.locate(list: { Zone }, position: Vector3): (Zone?, number, number
 		local last = list[#list]
 		local p = last.Frame:PointToObjectSpace(position)
 		if p.Z > last.Length / 2 then
-			return last, 1, last.NextMetres
+			return last, 1, Config.metresAt(position.Y)
 		end
 		-- between two lands (on a waving lane their boxes don't meet end to end): the nearer one. Before the first
 		-- land (the dock, the lagoon) there is still none.
@@ -257,7 +255,7 @@ function Zones.locate(list: { Zone }, position: Vector3): (Zone?, number, number
 	if not best then
 		return nil, 0, 0
 	end
-	return best, bestU, best.Metres + (best.NextMetres - best.Metres) * bestU
+	return best, bestU, Config.metresAt(position.Y)
 end
 
 return Zones

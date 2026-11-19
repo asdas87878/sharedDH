@@ -412,6 +412,20 @@ Config.SizeSmall = {
 	Secret = 1,
 } :: { [string]: number }
 
+-- The depth gauge (Hugo, 2026-11-19: "every stud is a meter"): the metres on the land strip, the catch screen, the
+-- land intros and your best are how far below the sea's surface you are, one metre a stud. A land's border is the
+-- depth of the lane's floor where it starts (Zones). Until 2026-11-19 the gauge showed real-ocean depths spread along
+-- the lane (Coral Reef 10 m ... The Underworld 6,000 m, the Challenger Deep 10,935 m at the end): docs/design/the-dive.md.
+Config.Depth = {
+	SurfaceY = 0, -- the sea's surface (tools/map/greybox.py: y = 0); 0 m
+	MetresPerStud = 1,
+}
+
+-- How deep a point is on the gauge, in metres (never below 0)
+function Config.metresAt(y: number): number
+	return math.max(0, (Config.Depth.SurfaceY - y) * Config.Depth.MetresPerStud)
+end
+
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
 	StartMax = 100, -- max Oxygen before any training

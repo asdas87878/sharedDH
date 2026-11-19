@@ -133,7 +133,8 @@ for i, (land, (name, metres, look)) in enumerate(zip(info["Lands"], LANDS)):
         break
     inside = [r for r in path if s0 <= r[0] <= s1]
     a, b = inside[0], inside[-1]
-    zones.append({"Folder": f"{i + 1:02d}_{name}", "ZoneName": name, "Metres": metres, "A": a[1:4], "B": b[1:4], "Width": round(sum(r[4] for r in inside) / len(inside), 1)})
+    # Metres: the floor's depth where the land starts, one metre a stud (2026-11-19); the game works it out itself (Zones)
+    zones.append({"Folder": f"{i + 1:02d}_{name}", "ZoneName": name, "Metres": math.floor(-a[2]), "A": a[1:4], "B": b[1:4], "Width": round(sum(r[4] for r in inside) / len(inside), 1)})
     looks.append(dict(look, S=s0))
 
 HEAD = '''--!nocheck

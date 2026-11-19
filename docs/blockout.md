@@ -174,7 +174,8 @@ Studio doesn't need to be running. `rojo build default.project.json -o game.rbxl
 - **10 zones, 23,760 studs, 1,612 studs deep,** about 7 minutes end to end at riding speed, 45 seconds a zone. Inside a zone the
   floor slopes 2 degrees; most borders have a drop-off (20 to 200 studs). The first four zones, the first version's, stay in
   the bright upper ocean (down to 418).
-- **Zones** (the [roster](design/roster.md)'s variant C), with the real-ocean depth the gauge would show: Shallows 0 m, Coral
+- **Zones** (the [roster](design/roster.md)'s variant C), with the real-ocean depth the gauge would show (until 2026-11-19; the gauge is now one metre a stud below the
+  surface, [the dive](design/the-dive.md)): Shallows 0 m, Coral
   Reef 10 m, Kelp Forest 40 m, Shipwrecks 80 m, Open Blue 150 m (after the big shelf-break drop), Twilight 200 m, Midnight
   1,000 m, Vents 2,000 m, Bone Graveyard 4,000 m (whale skeletons), The Underworld 6,000 m down to the Challenger Deep, 10,935 m
   (red cracks; the blockout's Megalodon stand-in sits at its end).

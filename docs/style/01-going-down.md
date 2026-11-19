@@ -19,7 +19,8 @@ Seven pieces, each cheap:
 5. **Huge silhouettes far off in the fog:** seamounts, kelp towers, whales, wrecks. They say the ocean goes on.
 6. **Drop-offs at zone borders:** you ride off a cliff edge and look down into the next zone, darker below. The biggest are
    the shelf break into the Open Blue and the plunge into the Trench.
-7. **The depth gauge in real-ocean metres:** the twilight zone really starts at 200 m, the midnight zone at 1,000 m, and the
+7. **The depth gauge in real-ocean metres** (replaced 2026-11-19: the gauge is one metre a stud below the surface, so the
+   Underworld starts at 1,873 m; [the dive](../design/the-dive.md)): the twilight zone really starts at 200 m, the midnight zone at 1,000 m, and the
    trench ends at the Challenger Deep, 10,935 m. Kids who love ocean facts will know these numbers.
 
 **The edge you can't pass:** the first terrace on each side is the lane's edge; beyond it is scenery. An invisible wall there,

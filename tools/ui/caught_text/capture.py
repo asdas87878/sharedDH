@@ -24,7 +24,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 ATT = ROOT / "docs/attachments"
 PICS = Path.home() / "Pictures/ride-a-fish/sheets"
 RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
-VIEW = (3, 141, 3024, 1368)  # the game view inside the Studio shot (set from a probe)
+VIEW = (4, 141, 1986, 1206)  # the game view inside the Studio shot (set from a probe)
 NAMES = {1: "Punch", 2: "Stamp", 3: "Banner", 4: "Burst", 5: "Slam"}
 WHAT = {
     1: "a ring closes in, CAUGHT! punches through it and rings out a wave; rarity + name rise, earnings pop",
@@ -135,7 +135,22 @@ def cut(view, look):
     return view.crop((int(W * l), int(H * t), int(W * r), int(H * b)))
 
 
+def riding():
+    """Make sure the player is on a fish in the water (no fail, endless air; the sandbox's reset when not)"""
+    server("workspace:SetAttribute('SandboxNoFail', true) workspace:SetAttribute('SandboxEndlessAir', true) "
+           "workspace:SetAttribute('TestMaxOxygen', 10000000) return 'ok'")
+    for _ in range(4):
+        state = server("local p = game:GetService('Players'):GetPlayers()[1] return p and p:GetAttribute('State')")
+        if "Riding" in state:
+            return
+        print("state:", state, "- resetting")
+        attrs(Reset=time.time() % 100000)
+        time.sleep(25 if "Dock" in state else 6)  # (the catch screen on the dock goes by itself)
+    raise RuntimeError("not riding")
+
+
 def start(look, fish=FISH):
+    riding()
     attrs(On=True, Look=look, Fish=fish[0], Earns=fish[1], New=fish[2], T=0, Run=time.time() % 100000)
     time.sleep(1.5)  # (the portrait's model loads)
 
@@ -255,6 +270,12 @@ if __name__ == "__main__":
         shot("probe")
         print(raw, log())
     elif what == "gif":
-        gif(int(sys.argv[2]), int(sys.argv[3]) if len(sys.argv) > 3 else 20)
+        for look in [int(x) for x in sys.argv[2].split(",")]:
+            for attempt in range(3):
+                gif(look, int(sys.argv[3]) if len(sys.argv) > 3 else 20)
+                state = server("local p = game:GetService('Players'):GetPlayers()[1] return p and p:GetAttribute('State')")
+                if "Riding" in state:
+                    break
+                print("left the fish during the GIF (", state, "): again")
     elif what == "sheet":
         sheet()

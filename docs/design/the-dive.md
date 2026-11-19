@@ -22,12 +22,37 @@ grapple feel, with numbers: [riding feel](riding-feel.md). Oxygen is the riding 
 - **The 10 zones** (from the [roster](roster.md)'s variant C, 2026-11-09): Shallows, Coral Reef, Kelp Forest, Shipwrecks, Open
   Blue, Twilight, Midnight, Vents, Bone Graveyard, The Underworld. The first version ships the first four.
 
+- **The gauge is one metre a stud, measured straight down from the surface** (Hugo, 2026-11-19: "the meter count seems
+  very wrong, can we change the meaning of a meter so every stud is a meter?"). The metres on the land strip, the catch
+  screen's METERS DEEP, the land intros and your best are all how far below the sea's surface (y = 0) your character is:
+  swim 10 studs down and the number goes up 10. Depth, not distance down the lane, because the game says "deep"
+  everywhere. A land's border is the depth of the lane's floor where it starts, worked out from the map's own markers
+  (`Zones`), so a new map brings its own numbers. The number goes up and down a little as you ride higher or lower over
+  the floor; your dive's deepest and your best only ever go up. One place in the code: `Config.Depth` and
+  `Config.metresAt`, used by `Zones.locate`. Grey-box 15's lands:
+
+| Land | Before (real-ocean label) | Now (floor depth where it starts, 1 m a stud) |
+|---|---|---|
+| 1 Shallows | 0 m | 46 m (the dock and the lagoon read 0 to about 45) |
+| 2 Coral Reef | 10 m | 81 m |
+| 3 Kelp Forest | 40 m | 190 m |
+| 4 Shipwrecks | 80 m | 321 m |
+| 5 Open Blue | 150 m | 497 m |
+| 6 Twilight | 200 m | 740 m |
+| 7 Midnight | 1,000 m | 959 m |
+| 8 Vents | 2,000 m | 1,221 m |
+| 9 Bone Graveyard | 4,000 m | 1,566 m |
+| 10 The Underworld | 6,000 m | 1,873 m |
+| The end of the lane | 10,935 m (the Challenger Deep) | 2,223 m |
+
+  Before, the gauge spread made-up real-ocean depths along the lane, so the first thousand studs read 0 to 10 m.
+
 ## Ideas not agreed
 - **The lane is a long valley in the seabed, not a straight shaft:** riding is a forward run you steer, so a gentle slope keeps
   steering and the camera readable. A depth gauge on screen, the water getting darker as you go.
 - **Sized after the reference's measured run** (blockout v2): 10 zones, about 23,800 studs, 1,600 deep, about 45 seconds a zone
   at riding speed. A 2-degree slope inside each zone and a drop-off at most borders. Details in the [blockout](../blockout.md).
-- **The real-ocean depth on the gauge:** Shallows 0 m, Coral Reef 10 m, Kelp Forest 40 m, Shipwrecks 80 m, Open Blue 150 m,
+- **(Replaced 2026-11-19 by one metre a stud, above.) The real-ocean depth on the gauge:** Shallows 0 m, Coral Reef 10 m, Kelp Forest 40 m, Shipwrecks 80 m, Open Blue 150 m,
   Twilight 200 m, Midnight 1,000 m, Vents 2,000 m, Bone Graveyard 4,000 m, The Underworld 6,000 m down to the Challenger Deep,
   10,935 m.
 - **Each creature has Speed and Oxygen cost:** how far you get = speed × how long your Oxygen lasts on it. A small creature lasts

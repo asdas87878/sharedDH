@@ -11,6 +11,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Kit = require(script.Parent.Kit)
+local State = require(script.Parent.Parent.Lib.State)
 
 local LandStrip = {}
 
@@ -780,6 +781,7 @@ local function plate(parent: Instance, props: { [string]: any }, p: Kit.Pal): Fr
 	return face
 end
 
+-- metres: the land's border, the depth of its floor where it starts (Zones; one metre a stud below the surface)
 type IntroArgs = { land: number, name: string, metres: number, new: boolean }
 
 local function canvas(parent: Instance, props: { [string]: any }): CanvasGroup
@@ -1387,7 +1389,11 @@ buildA = function(parent: Instance, options: Options): any
 			return
 		end
 		local layer = strip.Parent :: Instance
-		local args: IntroArgs = { land = land, name = landName, metres = metres, new = isNew }
+		-- the land's own depth, where its floor starts, not how high above it you happen to swim in (the gauge is one
+		-- metre a stud, 2026-11-19); a capture with no zones keeps the number it was given
+		local zone = State.Zones[land]
+		local border = if zone then math.floor(zone.Metres) else metres
+		local args: IntroArgs = { land = land, name = landName, metres = border, new = isNew }
 		if look == 2 then
 			introBanner(layer, args)
 		elseif look == 3 then

@@ -1,7 +1,7 @@
 -- Temporary client script for the caught-text captures (task t2). Installed into StarterPlayerScripts as "ZZCaughtText"
 -- by capture.py, removed after. While ReplicatedStorage's "CaughtOn" is true it shows the game's own look
 -- (Client.UI.CaughtText.preview) in the HUD at its own place, stopped at "CaughtT" seconds. A change of "CaughtRun"
--- rebuilds it from "CaughtLook", "CaughtFish", "CaughtEarns" (-1: none) and "CaughtNew". "CaughtHideStrip" is unused.
+-- rebuilds it from "CaughtLook", "CaughtFish", "CaughtEarns" (-1: none) and "CaughtNew". "CaughtReset" (any new value) asks the sandbox to put us on a fish.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local RS = game:GetService("ReplicatedStorage")
@@ -20,6 +20,17 @@ if not ok then
 	return
 end
 report("ready")
+
+-- "CaughtReset" changed: the sandbox's reset puts us on a fish (in the water, as when a catch happens)
+local resetKey = RS:GetAttribute("CaughtReset")
+RS:GetAttributeChangedSignal("CaughtReset"):Connect(function()
+	if RS:GetAttribute("CaughtReset") ~= resetKey then
+		resetKey = RS:GetAttribute("CaughtReset")
+		local Net = require(RS:WaitForChild("Shared"):WaitForChild("Net"))
+		Net.Sandbox:FireServer("Reset")
+		report("reset sent")
+	end
+end)
 
 local show: any = nil
 local runKey = nil

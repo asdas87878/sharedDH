@@ -791,9 +791,9 @@ end
 local function burst(parent: Instance, info: Info): Show
 	local pal = palOf(info.Tier)
 	local big = BIG[info.Tier] == true
-	local W, H = 360, 230
+	local W, H = 360, 210
 	local root, body, bodyScale, fx = frames(parent, W, H)
-	local cx, ty = W / 2, 104
+	local cx, ty = W / 2, 98
 	local spin = rays(body, P(cx, ty), 250, if big then 12 else 9, pal.Light, 31)
 	local spinScale = scaler(spin)
 	local core: Frame = Kit.new("Frame", {
@@ -807,12 +807,12 @@ local function burst(parent: Instance, info: Info): Show
 	Kit.stroke(core, 6, pal.Light, 0.3)
 	local coreScale = scaler(core)
 	local shock, shockStroke = ring(fx, Kit.White, 5, 32)
-	local disc = token(body, info, 96, 34, P(cx, ty))
+	local disc = token(body, info, 84, 34, P(cx, ty))
 	local discScale = scaler(disc)
 	local w = word(body, "CAUGHT!", 48, BANGERS, pal, true, 37, P(cx, 32))
 	local wScale = scaler(w.root)
-	local row = nameRow(body, info, 36, P(cx, 172))
-	local pill = chip(body, info.Earns, 36, P(cx, 202))
+	local row = nameRow(body, info, 36, P(cx, 156))
+	local pill = chip(body, info.Earns, 36, P(cx, 183))
 	local pillScale = scaler(pill)
 	local new = badge(body, "NEW!", 42, 40)
 	new.Position = P(cx + 44, ty - 40)
@@ -863,7 +863,7 @@ local function burst(parent: Instance, info: Info): Show
 		w.root.Rotation = -6 + 6 * (1 - settle(wt))
 		local rx = at(t, 0.42, 0.3)
 		row.Visible = rx > 0
-		row.Position = P(cx, 172 + 16 * (1 - backOut(rx)))
+		row.Position = P(cx, 156 + 16 * (1 - backOut(rx)))
 		pill.Visible = info.Earns ~= nil and t >= 0.54
 		pillScale.Scale = settle(t - 0.54)
 		newScale.Scale = settle(t - 0.6)
@@ -1034,7 +1034,7 @@ local PLACES: { [number]: UDim2 } = {
 	[1] = UDim2.fromScale(0.5, 0.27),
 	[2] = UDim2.fromScale(0.5, 0.27),
 	[3] = UDim2.new(0, 6, 0.2, -10),
-	[4] = UDim2.fromScale(0.5, 0.3),
+	[4] = UDim2.fromScale(0.5, 0.28),
 	[5] = UDim2.fromScale(0.5, 0.27),
 }
 function CaughtText.placeOf(look: number): UDim2
