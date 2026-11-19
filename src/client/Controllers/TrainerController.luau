@@ -135,9 +135,63 @@ local function bounce(ride: Ride, by: number)
 	ride.BounceBy = by
 end
 
+-- The seated legs, a little wider than Roblox's sit pose: each hip joint's C0 turned out about the torso's up (the
+-- knees part) and its forward (the feet part), kept on the joint's own place; put back when the weld goes. Here on
+-- every machine (a joint's C0 doesn't replicate). R15 ("LeftHip" in the upper leg) and R6 ("Left Hip" in the Torso).
+type Spread = { Motor: Motor6D, C0: CFrame }
+local spreads: { [Weld]: { Spread } } = {}
+
+local function spreadLegs(weld: Weld)
+	local root = weld.Part1
+	local character = root and root.Parent
+	if not character or spreads[weld] then
+		return
+	end
+	local done: { Spread } = {}
+	for _, motor in character:GetDescendants() do
+		if not motor:IsA("Motor6D") then
+			continue
+		end
+		local side = if motor.Name == "LeftHip" or motor.Name == "Left Hip"
+			then -1
+			elseif motor.Name == "RightHip" or motor.Name == "Right Hip" then 1
+			else 0
+		if side == 0 then
+			continue
+		end
+		local c0 = motor.C0
+		-- (in the torso's space: a forward thigh turned about up goes out to its side; a hanging shin rolled about
+		-- forward goes out too)
+		local turn = CFrame.fromAxisAngle(Vector3.yAxis, -side * math.rad(T.LegSpread))
+			* CFrame.fromAxisAngle(Vector3.zAxis, side * math.rad(T.FootOut))
+		motor.C0 = CFrame.new(c0.Position) * turn * c0.Rotation
+		table.insert(done, { Motor = motor, C0 = c0 })
+	end
+	if #done > 0 then
+		spreads[weld] = done
+	end
+end
+
+local function unspread()
+	for weld, done in spreads do
+		if weld.Parent == nil or weld.Part1 == nil then
+			for _, s in done do
+				if s.Motor.Parent then
+					s.Motor.C0 = s.C0
+				end
+			end
+			spreads[weld] = nil
+		end
+	end
+end
+
 -- A newly seated rider: carried from where they stood (last frame, before the weld pulled them) up onto the seat
 local function watchWelds(ride: Ride, now: number)
 	for _, child in ride.Body:GetChildren() do
+		if child:IsA("Weld") and child.Name == "TrainerWeld" then
+			-- (again until the rider's legs have reached us)
+			spreadLegs(child)
+		end
 		if child:IsA("Weld") and child.Name == "TrainerWeld" and not ride.Seen[child] then
 			ride.Seen[child] = true
 			local root = child.Part1
@@ -204,6 +258,7 @@ local function step()
 	lastNow = now
 	stepPops(now)
 	stepOwn(now, dt)
+	unspread()
 	if not complete and now - lookedAt >= LOOK_EVERY then
 		-- (the map's parts, and the server's making over of them, may arrive after we start)
 		lookedAt = now

@@ -225,6 +225,10 @@ RideStyles.Trainer = {
 	Reach = 5.5, -- studs from the coil's axis (flat) inside which walking up seats you
 	OnTop = 3.6, -- a jump that comes down within this of the axis, above the body's underside, seats you anywhere
 	Seat = Vector3.new(0, 2.3, -0.9), -- where the rider's root sits: from the body's middle, along its up and forward
+	-- the seated legs spread a little wider than Roblox's sit pose (Hugo, 2026-11-19, task s1): each hip turned out
+	-- about the torso's up (the knees part) and rolled out about its forward (the feet part), on every machine
+	LegSpread = 22, -- degrees each knee turns out
+	FootOut = 8, -- degrees each foot rolls out
 	HopOn = 0.42, -- seconds of the hop up onto the seat
 	HopArc = 3.2, -- studs the hop rises over the straight line
 	OffTime = 0.5, -- seconds of the hop off

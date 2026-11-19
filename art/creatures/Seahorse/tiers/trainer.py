@@ -40,7 +40,7 @@ LOOKS = {
     9: dict(body="#E9B530", belly="#FFE89A", ring="#FFD23A", fin="#FFE680", tip="#FFF1A8", saddle="#C98F10",
             blanket="#FFD23A", armour="#FFE066", spike="#FFF0A0", halo="#B25CFF", crown="#FFDA3A", gem="#B25CFF",
             ribbon="#B25CFF"),
-    10: dict(body="#14233F", belly="#2A4A6E", ring="#2FE6FF", fin="#1B3558", tip="#2FE6FF", saddle="#0E1626",
+    10: dict(body="#14233F", belly="#2A4A6E", ring="#4A6E96", fin="#1B3558", tip="#2FE6FF", saddle="#0E1626",
              blanket="#2FE6FF", armour="#3A5A80", spike="#6FA6CC", halo="#2FE6FF", crown="#2FE6FF", gem="#2FE6FF",
              ribbon="#2FE6FF", wing="#1B3558"),
     11: dict(body="#1A0F2E", belly="#3A1F5C", ring="#FF6A2A", fin="#2A1748", tip="#FF8A2A", saddle="#120A20",
@@ -89,7 +89,9 @@ if "eye" in L and TIER in (7, 8, 11):
 if TIER >= 9:
     GLOW.update({"halo": 0.8} if "halo" in L else {})
 if TIER >= 10:
-    GLOW.update({"ribbon": 1.0, "ring": 0.7, "tip": 0.8, "gem": 1.0, "crown": 0.9})
+    GLOW.update({"ribbon": 1.0, "tip": 0.8, "gem": 1.0, "crown": 0.9})
+    if TIER >= 11:  # Mythic: the rings glow too
+        GLOW["ring"] = 0.7
 if TIER == 9:
     GLOW.update({"gem": 0.8, "ribbon": 0.7})
 if TIER == 8:
@@ -268,11 +270,11 @@ def build(m):
     if TIER >= 10:  # wings: wide fins either side of the chest
         wings = m.part("Wings", (0, 3.5, 5), "Body")
         big = TIER >= 11
-        a, b = (-0.5, 1.5, 4.5), (4.5, 9.5 if big else 8.0, 10.5 if big else 8.5)
+        a, b = (-0.5, 1.5, 4.5), (3.0, 10.0 if big else 8.5, 14.0 if big else 11.5)
         on = lambda t: tuple(p + t * (q - p) for p, q in zip(a, b))  # noqa: E731
-        wings.beam(a, on(0.8), 3.4, 0.9, "wing", flat="z", mirror=True)
-        wings.beam(on(0.7), b, 3.0, 0.5, "tip", flat="z", mirror=True)  # the coloured end, its root inside the wing
-        wings.beam((0.5, 1.5, 3.5), (6.5, 8.5 if big else 7.0, 6.0), 2.6, 0.4, "wing", flat="z", mirror=True)
+        wings.beam(a, on(0.8), 5.2 if big else 4.4, 0.9, "wing", flat="z", mirror=True)
+        wings.beam(on(0.7), b, 4.6 if big else 3.8, 0.5, "tip", flat="z", mirror=True)  # the coloured end, its root inside the wing
+        wings.beam((0.5, 1.5, 3.5), (5.5, 9.0 if big else 7.5, 8.5 if big else 7.0), 3.6, 0.4, "wing", flat="z", mirror=True)
 
     # the tail
     for k, ((ax, az), (bx, bz), size) in enumerate(TAIL):

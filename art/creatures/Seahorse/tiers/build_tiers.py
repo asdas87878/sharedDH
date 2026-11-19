@@ -34,8 +34,8 @@ NOTES = {
     8: "gold crown, gems, velvet saddle",
     9: "yellow gold, violet halo eye",
     10: "glowing ribbon, wings, halo eye, crystals",
-    11: "two glows, floating crown, orbiting shards",
-    12: "dithered rainbow, white light, pearl stand",
+    11: "two glows, floating crown, shards",
+    12: "rainbow, white light, pearl stand",
 }
 
 args = sys.argv[1:]
@@ -84,14 +84,15 @@ def font(size, bold=True):
 big, label, small = font(34), font(24), font(17, False)
 
 
-def bloom(im, glow_hexes, radius=10, amount=0.5):
-    """Roblox's Neon blooms: pixels near a glowing colour spread a soft halo"""
+def bloom(im, glow_hexes, alpha, radius=10, amount=0.5):
+    """Roblox's Neon blooms: pixels near a glowing colour spread a soft halo (only on the model, never the backdrop)"""
     rgb = im.convert("RGB")
     mask = Image.new("L", im.size, 0)
     for hx in glow_hexes:
         c = tuple(int(hx[i:i + 2], 16) for i in (1, 3, 5))
         diff = ImageChops.difference(rgb, Image.new("RGB", im.size, c)).convert("L")
         mask = ImageChops.lighter(mask, diff.point(lambda v: 255 if v < 40 else 0))
+    mask = ImageChops.multiply(mask, alpha.point(lambda v: 255 if v > 200 else 0))
     glow = Image.composite(rgb, Image.new("RGB", im.size, (0, 0, 0)), mask).filter(ImageFilter.GaussianBlur(radius))
     glow = glow.point(lambda v: min(255, int(v * amount * 2.2)))
     return ImageChops.screen(rgb, glow)
@@ -105,7 +106,8 @@ def render(t):
     hexes = [model["PALETTE"][n] for n in model.get("GLOW", {}) if n in model["PALETTE"]]
     if model.get("VARIANT"):
         hexes.append(model.get("ACCENT", "#FFFFFF"))
-    out = bloom(back, hexes) if hexes else back.convert("RGB")
+    white = all(h.upper() == "#FFFFFF" for h in hexes)
+    out = bloom(back, hexes, im.split()[3], amount=0.3 if white else 0.5) if hexes else back.convert("RGB")
     return out, im.getbbox(), model
 
 
