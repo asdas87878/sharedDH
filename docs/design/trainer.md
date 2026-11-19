@@ -10,9 +10,9 @@ the player about every 0.5 s."
 
 ## What it is now
 - **The toy:** the game's own Seahorse (the kit's `Toy`, as before) on a short grey coil, 4.2 studs from the pad to its
-  body's underside, from the middle of that underside. The coil is 4.5 turns of chunky square wire (54 straight pieces,
+  body's underside, from the middle of that underside. The coil is 3.5 turns of chunky square wire, half a stud thick (42 straight pieces,
   each a little longer than its gap so the outer corners meet), fixed between two darker round plates. The pad is a
-  small round red slab, just wider than the coil (radius 2.05 against the coil's 1.8 outside), with a lighter top face.
+  small round red slab, just wider than the coil (radius 2.05 against the coil's 1.5 outside; 4.5 turns read as a stack of plates in the first still, so 3.5), with a lighter top face.
 - **The kit's old machine is gone in the game:** at the server's start `TrainService` takes away the square red pad's
   look (the part stays, unseen: the sign hangs from it), the yellow block, the post, the three coil discs and the plate
   under the seahorse, and sets the seahorse down to the coil's length. **Not yet in the kit:** `tools/map/hub_kit.py`
@@ -20,7 +20,7 @@ the player about every 0.5 s."
   hub rebuild in the place: left for Hugo's word.
 - **Getting on:** walk up to it (within 5.5 studs of the coil, flat) and you are seated; or jump on it (come down within
   3.6 studs of the coil, above the body's underside). After hopping off you must step away before a walk-up seats you
-  again, so you don't hop straight back on. Your own plot's toy only; with no plot, the nearest free one.
+  again (and off its top before coming down on it does), so you don't hop straight back on. Your own plot's toy only; with no plot, the nearest free one.
 - **Hop on:** the server welds you to the toy's body at the seat; every machine carries you there from where you stood
   in a 0.42 s hop (an arc 3.2 studs over the straight line, eased into the seat), and the spring gives and bounces back
   as you land.
@@ -31,7 +31,7 @@ the player about every 0.5 s."
   (or off the toy's side), and the spring springs up behind you.
 - **Training:** only a seated rider trains (Config.Train's rate and share, unchanged); the server counts it and every
   0.5 s tells the rider what they gained. On screen a "+n" with the HUD's own Oxygen picture (Kit.Textures.Oxygen)
-  springs up at a random spot round the player (mostly above, to either side), drifts up 80 px and fades out over
+  springs up at a random spot round the player (to either side, from their middle to a little over their head), drifts up 70 px and fades out over
   1.15 s. The number is built like the fish tags' rarity words (Kit.word: glow, a darker copy under it, the metal
   gradient, the ink edge, the shine line), in the HUD's aqua. Under 10 it shows one decimal ("+2.2"), above that the
   HUD's short numbers ("+1.2K").

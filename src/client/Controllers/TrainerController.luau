@@ -342,13 +342,13 @@ local function pop(amount: number)
 	local grow = Instance.new("UIScale")
 	grow.Scale = 0.35
 	grow.Parent = group
-	-- a random spot round the player, mostly above and to either side
+	-- a random spot round the player: to either side of them, from their middle to a little over their head
 	local p: Pop = {
 		Group = group,
 		Grow = grow,
-		X = at.X + (math.random() * 2 - 1) * 150 * scale,
-		Y = at.Y - (40 + math.random() * 110) * scale,
-		Rise = 80 * scale,
+		X = at.X + (if math.random() < 0.5 then -1 else 1) * (50 + math.random() * 120) * scale,
+		Y = at.Y + (math.random() * 2 - 1.3) * 60 * scale,
+		Rise = 70 * scale,
 		Tilt = (math.random() * 2 - 1) * 8,
 		Born = clock(),
 	}
