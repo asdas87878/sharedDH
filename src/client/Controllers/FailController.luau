@@ -85,6 +85,8 @@ type Body = {
 	Holds: { [string]: Hold },
 	HitAt: number,
 	MouthOff: boolean, -- the boxes round the mouth are off (it is being swallowed)
+	Recording: Take?, -- (Studio: this live run is being recorded)
+	Replay: boolean, -- (Studio: this one is a playback: no physics of ours)
 }
 
 -- one of the kraken's arms shooting out to a limb
@@ -139,6 +141,19 @@ type Fail = {
 
 local fails: { [Player]: Fail } = {}
 local bodies: { [Player]: Body } = {}
+
+-- Studio only, for the captures (tools/studio/fail_live_capture.py): Studio redraws a hidden window about once a
+-- second, so a live run can't be filmed. A live run is recorded instead (workspace FailRecord: every part of the loose
+-- body, each frame, in the fish's space as the fail began), and played back on the next one of that kind
+-- (FailReplay) at the held clocks (FailClock, DeathClock), the body posed from the recording.
+type Take = { Frames: { { T: number, Parts: { [string]: CFrame } } } }
+local takes: { [string]: Take } = {}
+type Last = { Kind: string, Base: CFrame }
+local lastOf: { [Player]: Last } = {} -- our own last fail or throw: its kind, and the frame its recording is in
+local replayed: { [Instance]: boolean } = {} -- joints switched off and parts anchored by the playback (to put back)
+local function studio(name: string): boolean
+	return RunService:IsStudio() and workspace:GetAttribute(name) == true
+end
 
 local TAU = math.pi * 2
 local rad = math.rad
@@ -843,6 +858,8 @@ local function beginBody(player: Player, fish: Model?, kind: string)
 		Holds = {},
 		HitAt = 0,
 		MouthOff = false,
+		Recording = nil,
+		Replay = false,
 	}
 	for _, d in character:GetDescendants() do
 		if d:IsA("BasePart") and d:FindFirstAncestorOfClass("Accessory") == nil then
@@ -862,6 +879,19 @@ local function beginBody(player: Player, fish: Model?, kind: string)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+	end
+	-- (Studio: the frame a recording is kept in: the fish's as the fail began, or as a plain throw left it)
+	local playing = fails[player]
+	if not playing then
+		local from = (fish and fish.PrimaryPart) or rootOf(character)
+		lastOf[player] = { Kind = kind, Base = if from then from.CFrame else CFrame.identity }
+	end
+	if studio("FailReplay") and takes[kind] then
+		b.Replay = true
+		return
+	elseif studio("FailRecord") then
+		b.Recording = { Frames = {} }
+		takes[kind] = b.Recording
 	end
 	local root = rootOf(character)
 	if root then
@@ -890,8 +920,18 @@ local function beginBody(player: Player, fish: Model?, kind: string)
 end
 
 local function stepBody(b: Body, dt: number)
-	if not b.Mine or dt <= 0 then
+	if not b.Mine or dt <= 0 or b.Replay then
 		return
+	end
+	local take = b.Recording
+	local last = lastOf[b.Player]
+	if take and last then
+		local frame = { T = os.clock() - b.Since, Parts = {} }
+		local inverse = last.Base:Inverse()
+		for _, p in b.Parts do
+			frame.Parts[p.Name] = inverse * p.CFrame
+		end
+		table.insert(take.Frames, frame)
 	end
 	local r = Config.Fail.Ragdoll
 	-- the water: it holds most of the weight up and slows everything (each assembly once)
@@ -1046,6 +1086,13 @@ local function localPart(size: Vector3, colour: Color3, material: Enum.Material)
 end
 
 local TENTACLE_SEGS = 14
+-- each octopus's arms in its own two colours (from its palette: art/creatures/<Name>/game/<Name>.mesh.json)
+local ARM_COLOURS: { [string]: { Color3 } } = {
+	Kraken = { Color3.fromHex("#63233A"), Color3.fromHex("#8E4F6C") },
+	Octopus = { Color3.fromHex("#E4572E"), Color3.fromHex("#F7CFA4") },
+	GiantSquid = { Color3.fromHex("#B2362F"), Color3.fromHex("#F2CDBD") },
+	AuroraJelly = { Color3.fromHex("#6D5FCB"), Color3.fromHex("#33D6D0") },
+}
 
 local function makeProps(f: Fail)
 	if f.Kind == "Gulp" then
@@ -1060,7 +1107,8 @@ local function makeProps(f: Fail)
 		table.insert(f.Props, ball)
 	elseif f.Kind == "Wrap" then
 		local kind = Config.FishById[f.Fish:GetAttribute("FishType") :: string]
-		local colour = (if kind then kind.Body else Color3.fromRGB(150, 60, 90)):Lerp(Color3.new(1, 1, 1), 0.12)
+		local colours = ARM_COLOURS[f.Fish:GetAttribute("Rig") :: string]
+			or { if kind then kind.Body else Color3.fromRGB(99, 35, 58), Color3.fromRGB(142, 79, 108) }
 		-- the rig's arm tips they shoot from (the last segment of each arm), else the underside
 		local tips: { BasePart } = {}
 		for _, j in f.Joints do
@@ -1071,8 +1119,9 @@ local function makeProps(f: Fail)
 		local targets = { "LArm", "RArm", "LLeg", "RLeg", "Torso", "Lower" }
 		for i, target in targets do
 			local segs: { BasePart } = {}
-			for _ = 1, TENTACLE_SEGS do
-				local seg = localPart(Vector3.one, colour, Enum.Material.SmoothPlastic)
+			for k = 1, TENTACLE_SEGS do
+				-- (segments of two shades, so it reads as jointed, the lighter one the underside's)
+				local seg = localPart(Vector3.one, colours[if k % 2 == 0 then 2 else 1], Enum.Material.SmoothPlastic)
 				seg.Shape = Enum.PartType.Cylinder
 				seg.Name = "Tentacle" .. i
 				seg.Transparency = 1
@@ -1337,6 +1386,7 @@ end
 
 -- Wild fish between the camera and what it looks at are made see-through (our own screen; LocalTransparencyModifier)
 local faded: { [BasePart]: boolean } = {}
+local fadedProps: { [any]: boolean } = {} -- (the props of them: Prop, below)
 local function unfade()
 	for d in faded do
 		if d.Parent then
@@ -1344,23 +1394,20 @@ local function unfade()
 		end
 	end
 	table.clear(faded)
+	table.clear(fadedProps)
 end
 
 -- (the map's props, each with its box, found again now and then: they can be rebuilt)
 type Prop = { Model: Instance, At: CFrame, Size: Vector3, Parts: { BasePart } }
 local propList: { Prop } = {}
-local propsAt = -math.huge
 
-local function propsNow(): { Prop }
-	if os.clock() - propsAt < 3 then
-		return propList
-	end
-	propsAt = os.clock()
-	table.clear(propList)
+-- (built in the background, a few at a time, and again now and then: GetBoundingBox on every prop at once is a hitch)
+local function readProps()
 	local blockout = workspace:FindFirstChild("ClaudeBlockout")
 	local lane = blockout and blockout:FindFirstChild("Lane")
 	local folder = lane and lane:FindFirstChild("Props")
-	for _, model in if folder then folder:GetChildren() else {} do
+	local list: { Prop } = {}
+	for i, model in if folder then folder:GetChildren() else {} do
 		if model:IsA("Model") then
 			local at, size = model:GetBoundingBox()
 			local parts: { BasePart } = {}
@@ -1369,9 +1416,16 @@ local function propsNow(): { Prop }
 					table.insert(parts, d)
 				end
 			end
-			table.insert(propList, { Model = model, At = at, Size = size, Parts = parts })
+			table.insert(list, { Model = model, At = at, Size = size, Parts = parts })
+		end
+		if i % 15 == 0 then
+			task.wait()
 		end
 	end
+	propList = list
+end
+
+local function propsNow(): { Prop }
 	return propList
 end
 
@@ -1423,7 +1477,11 @@ local function clearView(skip: Model?, from: Vector3, to: Vector3)
 		end
 	end
 	for _, prop in propsNow() do
-		fade(prop.Parts, between(prop.At.Position, prop.Size.Magnitude * 0.5 + 2))
+		local near = between(prop.At.Position, prop.Size.Magnitude * 0.5 + 2)
+		if near or fadedProps[prop] then
+			fade(prop.Parts, near)
+			fadedProps[prop] = if near or faded[prop.Parts[1]] then true else nil
+		end
 	end
 end
 
@@ -1576,6 +1634,9 @@ local function begin(player: Player, fish: Model, kind: string)
 	end
 	makeProps(f)
 	fails[player] = f
+	if f.Mine then
+		lastOf[player] = { Kind = kind, Base = from }
+	end
 	Fx.sound(def.Sound, fishRoot)
 end
 
@@ -1653,8 +1714,87 @@ local function beat(f: Fail, name: string, fishNow: CFrame, riderPos: Vector3)
 	end
 end
 
+-- (Studio) the playback: our own body posed from the recording at the held clocks, its joints off and its parts
+-- anchored meanwhile; put back as soon as it is past the recording or the playback is off
+local function unreplay()
+	for thing, was in replayed do
+		if thing.Parent then
+			if thing:IsA("BasePart") then
+				thing.Anchored = was
+			else
+				(thing :: any).Enabled = was
+			end
+		end
+	end
+	table.clear(replayed)
+end
+
+local function replayStep()
+	local player = State.Player
+	local last = lastOf[player]
+	local take = last and takes[last.Kind]
+	local character = player.Character
+	if not studio("FailReplay") or not last or not take or #take.Frames == 0 or not character then
+		unreplay()
+		return
+	end
+	local def = Config.Fail.Outcomes[last.Kind]
+	local state = player:GetAttribute("State")
+	local failClock, deathClock = workspace:GetAttribute("FailClock"), workspace:GetAttribute("DeathClock")
+	local tb: number? = nil
+	if state == "Failing" and type(failClock) == "number" and failClock >= 0 then
+		tb = failClock - def.Loose
+	elseif state == "Drowning" and type(deathClock) == "number" and deathClock >= 0 then
+		tb = deathClock + math.max(0, def.Time - def.Loose)
+	end
+	local frames = take.Frames
+	if not tb or tb < 0 or tb > frames[#frames].T then
+		unreplay()
+		return
+	end
+	-- off: every joint of the body and the ride's weld; anchored: its parts
+	local function off(thing: Instance)
+		if replayed[thing] == nil then
+			if thing:IsA("BasePart") then
+				replayed[thing] = thing.Anchored
+				thing.Anchored = true
+			else
+				replayed[thing] = (thing :: any).Enabled;
+				(thing :: any).Enabled = false
+			end
+		end
+	end
+	for _, d in character:GetDescendants() do
+		local joint = d:IsA("Motor6D") or d:IsA("AnimationConstraint") or d:IsA("BallSocketConstraint")
+		if joint or (d:IsA("BasePart") and d:FindFirstAncestorOfClass("Accessory") == nil) then
+			off(d)
+		end
+	end
+	local f = fails[player]
+	if f and f.Weld and f.Weld.Parent then
+		off(f.Weld)
+	end
+	local i = 1
+	while i < #frames and frames[i + 1].T < tb do
+		i += 1
+	end
+	local a, b = frames[i], frames[math.min(i + 1, #frames)]
+	local k = if b.T > a.T then math.clamp((tb - a.T) / (b.T - a.T), 0, 1) else 0
+	local base = if f then f.From else last.Base
+	for name, cf in a.Parts do
+		local part = character:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			local other = b.Parts[name] or cf
+			part.CFrame = base * cf:Lerp(other, k)
+		end
+	end
+end
+
 local function step(dt: number)
 	local clock = os.clock()
+	if RunService:IsStudio() then
+		replayStep()
+	end
 	-- the loose bodies first (the physics' own help), then the outcomes
 	for player, b in bodies do
 		local character = player.Character
@@ -1715,7 +1855,7 @@ local function step(dt: number)
 		end
 		local torso = limb(f.Character, "Torso")
 		local riderPos = if torso then torso.Position else (fishNow * f.Saddle).Position
-		if b and b.Mine then
+		if b and b.Mine and not b.Replay then
 			grabs(f, b, t, fishNow)
 		end
 		-- swallowed: out of sight, and the throat bulges
@@ -1826,6 +1966,12 @@ end
 function FailController.Start()
 	-- before the drown's step (DeathController, Camera - 3), so it takes the shot over on the same frame
 	RunService:BindToRenderStep("RideFail", Enum.RenderPriority.Camera.Value - 4, step)
+	task.spawn(function()
+		while true do
+			pcall(readProps)
+			task.wait(20)
+		end
+	end)
 	-- after the drown's (Camera - 3), before the camera's own: the shot kept out of walls, the view kept clear
 	RunService:BindToRenderStep("RideFailView", Enum.RenderPriority.Camera.Value - 2, viewStep)
 end

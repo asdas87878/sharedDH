@@ -1,7 +1,8 @@
-"""The fail outcomes at 0 Oxygen, filmed live from a Studio playtest (task f3): the ragdoll is real physics, so the
-game's clock can't be held frame by frame (tools/studio/fail_capture.py does that, for the scripted parts only). This
-takes pictures of the Studio window as fast as niri gives them (about 10 a second), timestamped, while the fail plays
-at its own speed, and makes a GIF with each frame shown for as long as it really lasted.
+"""The fail outcomes at 0 Oxygen from a Studio playtest (task f3). The ragdoll is real physics, and Studio redraws its
+window only about once a second while it is hidden on another workspace, so a live run can't be filmed. Instead the
+game records a live run of the fail (workspace FailRecord: FailController keeps every part of the loose body, each
+frame) and plays it back on a second run (FailReplay) with its clocks held (FailClock, DeathClock), one frame at a
+time, each shot after Studio has redrawn (about 2 s a frame).
     python tools/studio/fail_live_capture.py install | remove      (in Edit, before Play: fail_capture's server Script)
     python tools/studio/fail_live_capture.py gif <Fish> <Outcome> [suffix] [fps]
     python tools/studio/fail_live_capture.py sheet <name> <gif> ...
@@ -89,41 +90,76 @@ def save(frames, durations, dest, colours=128):
     print(dest)
 
 
-def gif(fish, outcome, suffix="3", fps=12):
+def gif(fish, outcome, suffix="3", fps=10):
+    """One live run of the fail, recorded by the game (FailRecord), then played back frame by frame (FailReplay) with
+    the clocks held, each frame shot after Studio has redrawn."""
     kept = clipboard()
     T = TIMES[outcome]
-    tail = 1.0 if outcome in TAKEN else 1.8 + 1.6
-    # (the game's own max Oxygen: a huge test max tames the fish at once and its CAUGHT banner covers the shot)
-    # (and endless air, so the fish waits for our fail: forceFail ignores the no-fail switches)
+    taken = outcome in TAKEN
+    rag = 1.8
+    # (the game's own max Oxygen: a huge test max tames the fish at once and its CAUGHT banner covers the shot; and
+    # endless air, so the fish waits for our fail: forceFail ignores the no-fail switches)
     fc.server("workspace:SetAttribute('TestMaxOxygen', nil) workspace:SetAttribute('SandboxEndlessAir', true) return 'ok'")
-    fc.setw(FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
+    # 1. the live run, recorded
+    fc.setw(FailRecord=True, FailReplay=False, FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
     print(fc.cmd("ride|" + fish))
     fc.wait_state({"Riding"})
     time.sleep(0.7)
-    # the fail is asked for half a second into the filming, so a moment of riding comes first
-    import threading
-
-    def go():
-        time.sleep(0.6)
-        print(fc.cmd("fail|" + outcome))
-
-    threading.Thread(target=go).start()
-    shots = film(0.6 + 0.3 + T + tail, fps, outcome)
-    print(f"{len(shots)} shots")
-    frames, durations = [], []
-    for k, (at, path) in enumerate(shots):
-        t = at - 0.6 - 0.25
-        label = f"{fish}: riding, Oxygen hits 0" if t < 0 else f"{fish}: {outcome}   {t:4.2f} s"
-        frames.append(frame(path, label))
-        nxt = shots[k + 1][0] if k + 1 < len(shots) else at + 1 / fps
-        durations.append(max(20, int(round((nxt - at) * 1000))))
-    fc.wait_state({"Dock", "Free", "Riding"}, timeout=40)
+    print("live:", fc.cmd("fail|" + outcome))
+    time.sleep(1)
+    fc.wait_state({"Dock"}, timeout=40)
+    fc.setw(FailRecord=False)
     time.sleep(1.5)
+    # 2. the playback
+    n_out = int(round(T * fps)) + 1 if T > 0 else 0
+    n_tail = int(round((0.8 if taken else rag + 1.6) * fps)) + 1
+    slow = max(15, (n_out + 6) * 2.2 / max(T, 0.1))
+    fc.setw(FailReplay=True, FailSlow=slow, FailClock=0, DeathClock=0)
+    print(fc.cmd("ride|" + fish))
+    fc.wait_state({"Riding"})
+    time.sleep(0.7)
+    frames = []
+    for i in range(2):
+        frames.append(label(fc.shot(OUT / f"{outcome}_ride{i}.png"), f"{fish}: riding, Oxygen hits 0"))
+    print("playback:", fc.cmd("fail|" + outcome))
+    for i in range(n_out):
+        t = i / fps
+        fc.setw(FailClock=t)
+        time.sleep(0.9)
+        frames.append(label(fc.shot(OUT / f"{outcome}_{i:03d}.png"), f"{fish}: {outcome}   {t:4.2f} s"))
+        print(f"\r{outcome} {i + 1}/{n_out}", end="", flush=True)
+    print()
+    if taken:
+        for i in range(1, n_tail):
+            t = T + i / fps
+            fc.setw(FailClock=t)
+            time.sleep(0.9)
+            frames.append(label(fc.shot(OUT / f"{outcome}_f{i:03d}.png"), f"{fish}: {outcome}   {t:4.2f} s"))
+    else:
+        if T > 0:
+            fc.setw(FailClock=T + 0.2)
+        fc.wait_state({"Drowning"}, timeout=max(60, slow * T + 20))
+        for i in range(n_tail):
+            t = i / fps
+            fc.setw(DeathClock=t)
+            time.sleep(0.9)
+            frames.append(label(fc.shot(OUT / f"{outcome}_d{i:03d}.png"), f"{fish}: {outcome}, thrown   +{T + t:4.2f} s"))
+            print(f"\rtail {i + 1}/{n_tail}", end="", flush=True)
+        print()
+    fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailReplay=False)
+    print(fc.cmd("home"))
+    fc.wait_state({"Dock"}, timeout=30)
     dest = ROOT / "docs/attachments" / f"fail-{outcome.lower()}-{suffix}.gif"
-    save(frames, durations, dest)
+    save(frames, [int(1000 / fps)] * len(frames), dest)
     if kept:
         subprocess.run(["wl-copy"], input=kept, text=True)
     return dest
+
+
+def label(im, text):
+    d = ImageDraw.Draw(im)
+    d.text((10, 8), text, fill="white", font=ImageFont.load_default(size=18), stroke_width=2, stroke_fill="black")
+    return im
 
 
 def sheet(name, gifs, cols=3, scale=0.62, step_ms=80):
