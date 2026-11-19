@@ -8,11 +8,18 @@
 -- character is ours, so everyone sees it); and every half second the server
 -- tells us the Oxygen we gained ("Gain"), shown as a "+n" with the HUD's Oxygen picture near us on screen.
 -- Only rides near the camera move. Numbers in RideStyles.Trainer.
+-- The levels (Hugo, 2026-11-19, task sh1): each plot's ride is its owner's level of seahorse (TrainService builds it
+-- from ReplicatedStorage.TrainerModels). When the server builds a ride again (its Build attribute), we look at it
+-- again; when that build is an upgrade (UpgradeAt), every machine plays it: the new seahorse springs up from the
+-- coil with a white flash and a burst of sparks. The rock moves each of the toy's parts from where it rests, so a
+-- ride built again mid-rock is never left out of place. A level 11 or 12 stand's shards turn round the coil. Our
+-- own plot's ride has a prompt (E, "Upgrade") that asks the server for the next level (Remotes.Trainer "Up").
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 local Kit = require(script.Parent.Parent.UI.Kit)
 
@@ -23,10 +30,17 @@ local LOOK_EVERY = 0.5
 local T = RideStyles.Trainer
 
 type Hop = { Weld: Weld, From: CFrame, To: CFrame, At: number }
+type Grow = { At: number, Flash: Highlight? }
 type Ride = {
 	Model: Model,
 	Body: BasePart,
-	Rest: CFrame,
+	Parts: { BasePart }, -- the toy's parts, and where each rests
+	Rests: { CFrame },
+	Sizes: { Vector3 },
+	Build: any,
+	Grow: Grow?,
+	Orbit: BasePart?,
+	OrbitRest: CFrame,
 	Base: CFrame,
 	Top: CFrame,
 	Side: Vector3,
@@ -44,6 +58,7 @@ type Ride = {
 }
 
 local rides: { Ride } = {}
+local grows: { [Model]: number } = {} -- the last upgrade played on each ride (its UpgradeAt)
 
 -- The clock everything here runs on. In Studio the workspace's "TrainerClock" (a number) holds it, so a capture can
 -- step it frame by frame (tools/studio/trainer_capture.py); otherwise os.clock().
@@ -65,6 +80,14 @@ local complete = false
 local lastRoot: { [BasePart]: CFrame } = {}
 
 local function gather()
+	-- (a ride not built again keeps its record: its parts may be mid-rock here, so where they are now is not where
+	-- they rest)
+	local kept: { [Model]: Ride } = {}
+	for _, ride in rides do
+		if ride.Body.Parent and ride.Model:GetAttribute("Build") == ride.Build then
+			kept[ride.Model] = ride
+		end
+	end
 	table.clear(rides)
 	complete = true
 	local blockout = workspace:FindFirstChild("ClaudeBlockout")
@@ -93,6 +116,11 @@ local function gather()
 			complete = false
 			continue
 		end
+		local old = kept[model]
+		if old then
+			table.insert(rides, old)
+			continue
+		end
 		local coil: { BasePart } = {}
 		local k = 1
 		while true do
@@ -108,10 +136,32 @@ local function gather()
 			lengths[i] = piece.Size.Z
 		end
 		local cap = spring:FindFirstChild("CapTop")
+		local parts, rests, sizes = {}, {}, {}
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				table.insert(parts, d)
+				table.insert(rests, d.CFrame)
+				table.insert(sizes, d.Size)
+			end
+		end
+		local count = model:GetAttribute("PartCount")
+		if type(count) == "number" and #parts < count then
+			-- (not all of a new level's parts have reached us yet)
+			complete = false
+			continue
+		end
+		local stand = plot:FindFirstChild("TrainerStand")
+		local orbit = stand and stand:FindFirstChild("Orbit")
 		table.insert(rides, {
 			Model = model,
 			Body = body,
-			Rest = model:GetPivot(),
+			Parts = parts,
+			Rests = rests,
+			Sizes = sizes,
+			Build = model:GetAttribute("Build"),
+			Grow = nil,
+			Orbit = if orbit and orbit:IsA("BasePart") then orbit else nil,
+			OrbitRest = if orbit and orbit:IsA("BasePart") then orbit.CFrame else CFrame.identity,
 			Base = base,
 			Top = top,
 			Side = base.RightVector,
@@ -230,8 +280,36 @@ local function hopStep(ride: Ride, now: number)
 	hop.Weld.C0 = CFrame.new(0, lift, 0) * hop.From:Lerp(hop.To, e)
 end
 
-local function place(ride: Ride, rock: CFrame)
-	ride.Model:PivotTo(rock * ride.Rest)
+-- (an overshoot, as Enum.EasingStyle.Back out)
+local function backOut(s: number): number
+	local c = 1.70158
+	local u = s - 1
+	return 1 + (c + 1) * u * u * u + c * u * u
+end
+
+local function place(ride: Ride, rock: CFrame, now: number)
+	-- a new level springs up from the coil's top: each part scaled about it
+	local grow = 1
+	local g = ride.Grow
+	if g then
+		local s = (now - g.At) / T.UpIn
+		if s >= 0 and s < 1 then
+			grow = 0.25 + 0.75 * backOut(s)
+		end
+	end
+	local scaled = math.abs(grow - 1) > 1e-3
+	for i, part in ride.Parts do
+		local rest = ride.Rests[i]
+		if scaled then
+			local rel = ride.Top:ToObjectSpace(rest)
+			rest = ride.Top * CFrame.new(rel.Position * grow) * rel.Rotation
+		end
+		part.CFrame = rock * rest
+		local size = if scaled then ride.Sizes[i] * grow else ride.Sizes[i]
+		if part.Size ~= size then
+			part.Size = size
+		end
+	end
 	local top = rock * ride.Top
 	for i, piece in RideStyles.coil(ride.Base, top) do
 		local part = ride.Coil[i]
@@ -245,6 +323,60 @@ local function place(ride: Ride, rock: CFrame)
 	end
 	if ride.CapTop then
 		ride.CapTop.CFrame = top * CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90))
+	end
+end
+
+-- An upgrade, played on every machine: the white flash and the sparks here, the spring up in place
+local function upgrade(ride: Ride, now: number)
+	local flash = Instance.new("Highlight")
+	flash.Name = "UpgradeFlash"
+	flash.FillColor = Color3.new(1, 1, 1)
+	flash.OutlineColor = Color3.new(1, 1, 1)
+	flash.FillTransparency = 0.1
+	flash.OutlineTransparency = 0.2
+	flash.DepthMode = Enum.HighlightDepthMode.Occluded
+	flash.Adornee = ride.Model
+	flash.Parent = ride.Model
+	ride.Grow = { At = now, Flash = flash }
+	local spot = Instance.new("Attachment")
+	spot.Name = "UpgradeSparks"
+	spot.WorldPosition = ride.Top.Position
+	spot.Parent = workspace.Terrain
+	local sparks = Instance.new("ParticleEmitter")
+	sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	sparks.Color = ColorSequence.new(Color3.fromRGB(255, 244, 170), Color3.fromRGB(120, 230, 255))
+	sparks.LightEmission = 1
+	sparks.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.4), NumberSequenceKeypoint.new(1, 0) })
+	sparks.Lifetime = NumberRange.new(0.5, 0.9)
+	sparks.Speed = NumberRange.new(14, 26)
+	sparks.SpreadAngle = Vector2.new(180, 180)
+	sparks.Drag = 3
+	sparks.Enabled = false
+	sparks.Parent = spot
+	sparks:Emit(T.UpSparks)
+	task.delay(1.5, function()
+		spot:Destroy()
+	end)
+	bounce(ride, T.Bounce)
+end
+
+local function flashStep(ride: Ride, now: number)
+	local g = ride.Grow
+	if not g then
+		return
+	end
+	local flash = g.Flash
+	-- (the flash outlasts the spring up: the upgrade is over when it has faded)
+	local f = math.clamp((now - g.At) / math.max(T.UpFlash, T.UpIn), 0, 1)
+	if flash then
+		flash.FillTransparency = 0.1 + 0.9 * f
+		flash.OutlineTransparency = 0.2 + 0.8 * f
+	end
+	if f >= 1 or now < g.At then
+		if flash then
+			flash:Destroy()
+		end
+		ride.Grow = nil
 	end
 end
 
@@ -274,6 +406,20 @@ local function step()
 			complete = false
 			continue
 		end
+		if ride.Model:GetAttribute("Build") ~= ride.Build or not ride.Body.Parent then
+			-- (built again: a new level, its parts new)
+			complete = false
+			lookedAt = -math.huge
+			continue
+		end
+		local at = ride.Model:GetAttribute("UpgradeAt")
+		if type(at) == "number" and grows[ride.Model] ~= at then
+			grows[ride.Model] = at
+			if workspace:GetServerTimeNow() - at < 2 then
+				upgrade(ride, now)
+			end
+		end
+		flashStep(ride, now)
 		local seated = ride.Model:GetAttribute("Rider") ~= nil
 		watchWelds(ride, now)
 		hopStep(ride, now)
@@ -287,13 +433,18 @@ local function step()
 		if (ride.Base.Position - eye).Magnitude > SEE then
 			continue
 		end
+		if ride.Orbit then
+			-- (the shards round the coil turn slowly)
+			local foot = ride.Base.Position
+			ride.Orbit.CFrame = CFrame.new(foot) * CFrame.Angles(0, now * 0.7, 0) * CFrame.new(-foot) * ride.OrbitRest
+		end
 		ride.Amp += ((if seated then 1 else 0) - ride.Amp) * math.min(1, dt * T.Ease)
 		local since = now - ride.BounceAt
 		local give = 0
 		if since < 3 then
 			give = ride.BounceBy * math.exp(-T.BounceDamp * since) * math.cos(since * T.BounceRate * math.pi * 2)
 		end
-		if ride.Amp > 0.002 or math.abs(give) > 0.002 then
+		if ride.Amp > 0.002 or math.abs(give) > 0.002 or ride.Grow then
 			ride.Phase = (ride.Phase + dt * T.Beat * math.pi * 2) % (math.pi * 2)
 			local swing = math.sin(ride.Phase)
 			local tilt = math.rad(T.Swing) * swing * ride.Amp
@@ -303,11 +454,11 @@ local function step()
 				* CFrame.new(foot)
 				* CFrame.fromAxisAngle(ride.Side, tilt)
 				* CFrame.new(-foot)
-			place(ride, rock)
+			place(ride, rock, now)
 			ride.Moved = true
 		elseif ride.Moved then
 			ride.Phase = 0
-			place(ride, CFrame.new())
+			place(ride, CFrame.new(), now)
 			ride.Moved = false
 		end
 	end
@@ -413,13 +564,6 @@ local function pop(amount: number)
 	table.insert(live, p)
 end
 
--- an overshoot, as Enum.EasingStyle.Back out
-local function backOut(s: number): number
-	local c = 1.70158
-	local u = s - 1
-	return 1 + (c + 1) * u * u * u + c * u * u
-end
-
 stepPops = function(now: number)
 	for i = #live, 1, -1 do
 		local p = live[i]
@@ -436,6 +580,46 @@ stepPops = function(now: number)
 		local f = math.clamp((age - POP_FADE) / (POP_LIFE - POP_FADE), 0, 1)
 		p.Group.GroupTransparency = f * f
 	end
+end
+
+-- A word in the middle of the screen, a little over the player: the new level's name (or why not), springing in and
+-- fading after a moment
+local function banner(text: string, colour: Color3)
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local scale = math.clamp(camera.ViewportSize.Y / 720, 0.75, 1.6)
+	local group = Instance.new("CanvasGroup")
+	group.Name = "TrainerBanner"
+	group.BackgroundTransparency = 1
+	group.AnchorPoint = Vector2.new(0.5, 0.5)
+	group.Position = UDim2.fromScale(0.5, 0.3)
+	local word = Kit.word(group, {
+		Text = text,
+		TextSize = math.floor(44 * scale),
+		Pal = Kit.palOf(colour),
+		Glow = true,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		ZIndex = 2,
+	})
+	group.Size = UDim2.fromOffset(word.wide + 24, word.high + 24)
+	word.root.Position = UDim2.fromScale(0.5, 0.5)
+	local grow = Instance.new("UIScale")
+	grow.Scale = 0.3
+	grow.Parent = group
+	group.Parent = popsGui()
+	local born = os.clock()
+	local link: RBXScriptConnection
+	link = RunService.RenderStepped:Connect(function()
+		local age = os.clock() - born
+		grow.Scale = 0.3 + 0.7 * backOut(math.min(1, age / 0.22))
+		group.GroupTransparency = math.clamp((age - 1.3) / 0.4, 0, 1)
+		if age > 1.7 then
+			link:Disconnect()
+			group:Destroy()
+		end
+	end)
 end
 
 -- ---------------------------------------------------------------- our own seat
@@ -515,6 +699,16 @@ local function listen()
 			end
 			hopOff = { From = root.Position, To = to, Away = away, At = clock() }
 			humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+		elseif what == "Up" and type(a) == "number" then
+			banner(string.format("LEVEL %d: %s!", a, string.upper(tostring(b))), Kit.Sun)
+		elseif what == "UpNo" then
+			local why = {
+				Coins = "NOT ENOUGH COINS",
+				Top = "THE TOP LEVEL",
+				Near = "GO TO YOUR SEAHORSE",
+				Plot = "NO PLOT YET",
+			}
+			banner(why[a] or "NOT NOW", Kit.Coral)
 		elseif what == "Gain" and type(a) == "number" then
 			lastGain = a
 			if not held() then
@@ -524,6 +718,64 @@ local function listen()
 	end)
 
 	UserInputService.JumpRequest:Connect(ask)
+
+	-- our own plot's upgrade: a prompt by the ride (E), saying the next level and its price
+	local prompt: ProximityPrompt? = nil
+	local function promptStep()
+		local own = player:GetAttribute("Plot")
+		local level = player:GetAttribute("TrainerLevel")
+		local blockout = workspace:FindFirstChild("ClaudeBlockout")
+		local dock = blockout and blockout:FindFirstChild("Dock")
+		local plots = dock and dock:FindFirstChild("Plots")
+		local plot = if plots and type(own) == "string" then plots:FindFirstChild(own) else nil
+		local spot = plot and plot:FindFirstChild("TrainerSpot")
+		if not (spot and spot:IsA("BasePart") and type(level) == "number") then
+			if prompt then
+				prompt.Enabled = false
+			end
+			return
+		end
+		local p = prompt
+		if not p or p.Parent ~= spot then
+			if p then
+				p:Destroy()
+			end
+			local made = Instance.new("ProximityPrompt")
+			made.Name = "TrainerUpgrade"
+			made.ActionText = "Upgrade"
+			made.KeyboardKeyCode = Enum.KeyCode.E
+			made.HoldDuration = 0
+			made.RequiresLineOfSight = false
+			made.MaxActivationDistance = Config.Train.UpgradeNear
+			made.UIOffset = Vector2.new(0, -40)
+			made.Triggered:Connect(function()
+				remote:FireServer("Up")
+			end)
+			made.Parent = spot
+			prompt = made
+			p = made
+		end
+		local prompted = p :: ProximityPrompt
+		local levels = Config.Train.Levels
+		if level >= #levels then
+			prompted.Enabled = false
+			return
+		end
+		local after = levels[level + 1]
+		prompted.ObjectText = string.format(
+			"Level %d: %s (%s)",
+			level + 1,
+			after.Name,
+			if Config.Train.Free == 1 then "free" else "$" .. Kit.short(after.Price)
+		)
+		prompted.Enabled = true
+	end
+	task.spawn(function()
+		while true do
+			promptStep()
+			task.wait(0.5)
+		end
+	end)
 	stepOwn = function(now: number, dt: number)
 		local humanoid = humanoidOf()
 		local root = rootOf()

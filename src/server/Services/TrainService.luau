@@ -15,11 +15,22 @@
 -- and you hop off. Only a seated rider trains, and every half second they are told what they gained ("Gain"), for the
 -- "+n" pops. The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
 -- "Gain", amount. The ride model carries Rider (the user id on it), SpringBase, SpringTop and Seat (CFrames at rest).
+-- The levels (Hugo, 2026-11-19, task sh1: the seahorse draft built): every player has a TrainerLevel, 1 to 12 (the
+-- player's attribute; ours, for the session, beside the tank's coins), and each plot's ride shows its owner's: its
+-- own seahorse and stand (ReplicatedStorage.TrainerModels.T<n>, art/creatures/Seahorse/tiers/install_tiers.py), the
+-- coil in that level's colours from the stand's top to the plate under the seahorse. A seated rider gains that
+-- level's Oxygen a second (Config.Train.Levels). The owner asks to go up a level by the ride ("Up"; the prompt is
+-- the client's): on the dock, within Train.UpgradeNear of its coil, for the level's price (free while Train.Free is
+-- 1); the ride is rebuilt at once (a rider stays seated on the new one) and the model's Build and UpgradeAt tell
+-- every machine to play the upgrade. Server "Up", level | "UpNo", reason. With no models installed the kit's toy
+-- stays as before and only the numbers change.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local AquariumService = require(script.Parent.AquariumService)
 local RideService = require(script.Parent.RideService)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 
@@ -130,6 +141,99 @@ local function label(spot: BasePart)
 	trainSign(spot, 30.5, true)
 end
 
+local function levelRow(n: number): { Name: string, Oxygen: number, Price: number }
+	local levels = Config.Train.Levels
+	return levels[math.clamp(n, 1, #levels)]
+end
+
+local function short(n: number): string
+	for _, step in { { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
+		if n >= step[1] then
+			local text = string.format("%.1f", n / step[1])
+			return (string.gsub(text, "%.0$", "")) .. step[2]
+		end
+	end
+	return tostring(math.floor(n))
+end
+
+-- The sign's level lines (the mock-up ui8-trainer-upgrade.jpg): under today's two lines, the ride's level and what it
+-- gives on a white bar, the next level and what that gives, and its price on an orange button (press E by the ride).
+-- The board grows to hold them, its foot kept where it was.
+local function levelSign(spot: BasePart, level: number)
+	local sign = spot:FindFirstChild("Sign")
+	local board = sign and sign:FindFirstChild("Board")
+	if not (sign and sign:IsA("BillboardGui") and board and board:IsA("Frame")) then
+		return
+	end
+	local tall = 11.6
+	if sign.Size.Y.Scale ~= tall then
+		sign.Size = UDim2.fromScale(17, tall)
+		sign.StudsOffsetWorldSpace = Vector3.new(0, 30.5 + (tall - 6.4) / 2, 0)
+		local scale = 6.4 / tall -- today's two lines keep their size, at the top
+		for _, line in board:GetChildren() do
+			if line:IsA("TextLabel") then
+				line.Position = UDim2.fromScale(line.Position.X.Scale, line.Position.Y.Scale * scale)
+				line.Size = UDim2.fromScale(line.Size.X.Scale, line.Size.Y.Scale * scale)
+			end
+		end
+	end
+	local function text(name: string, y: number, high: number, colour: Color3, back: Color3?): TextLabel
+		local found = board:FindFirstChild(name) :: TextLabel?
+		if not found then
+			local made = Instance.new("TextLabel")
+			made.Name = name
+			made.Position = UDim2.fromScale(0.06, y)
+			made.Size = UDim2.fromScale(0.88, high)
+			made.Font = Enum.Font.LuckiestGuy
+			made.TextScaled = true
+			made.ZIndex = 3
+			made.BorderSizePixel = 0
+			local stroke = Instance.new("UIStroke")
+			stroke.Thickness = 1.5
+			stroke.Color = SIGN_INK
+			stroke.LineJoinMode = Enum.LineJoinMode.Round
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+			stroke.Parent = made
+			if back then
+				local corner = Instance.new("UICorner")
+				corner.CornerRadius = UDim.new(0.25, 0)
+				corner.Parent = made
+				local pad = Instance.new("UIPadding")
+				pad.PaddingTop = UDim.new(0.14, 0)
+				pad.PaddingBottom = UDim.new(0.14, 0)
+				pad.Parent = made
+			end
+			made.Parent = board
+			found = made
+		end
+		local l = found :: TextLabel
+		l.TextColor3 = colour
+		l.BackgroundTransparency = if back then 0 else 1
+		if back then
+			l.BackgroundColor3 = back
+		end
+		return l
+	end
+	local now = levelRow(level)
+	local top = #Config.Train.Levels
+	text("Level", 0.42, 0.12, Color3.fromRGB(30, 110, 230), Color3.new(1, 1, 1)).Text =
+		string.format("LEVEL %d: %s: +%s A SECOND", level, string.upper(now.Name), short(now.Oxygen))
+	local nextLine = text("Next", 0.58, 0.1, Color3.new(1, 1, 1))
+	local price = text("Price", 0.73, 0.2, Color3.new(1, 1, 1), Color3.fromRGB(255, 150, 20))
+	price.Size = UDim2.fromScale(0.5, 0.2)
+	price.Position = UDim2.fromScale(0.25, 0.73)
+	if level >= top then
+		nextLine.Text = "THE TOP LEVEL"
+		price.Visible = false
+	else
+		local after = levelRow(level + 1)
+		nextLine.Text =
+			string.format("NEXT, LEVEL %d: %s: +%s A SECOND", level + 1, string.upper(after.Name), short(after.Oxygen))
+		price.Visible = true
+		price.Text = if Config.Train.Free == 1 then "FREE" else "$" .. short(after.Price)
+	end
+end
+
 -- One plot's ride, made over (see the top of the file)
 type Ride = {
 	Plot: Instance,
@@ -142,6 +246,10 @@ type Ride = {
 	Seat: CFrame, -- where a rider's root sits, at rest
 	Rider: Player?,
 	Weld: Weld?,
+	Level: number, -- the level it shows (0: the kit's toy, not yet made over)
+	Foot: Vector3, -- the middle of the floor under the coil
+	Ahead: Vector3, -- the way the seahorse faces (flat)
+	Build: number,
 }
 
 local function flat(v: Vector3): Vector3
@@ -172,8 +280,51 @@ end
 -- (a cylinder's round faces are along its X: this stands one on end)
 local ON_END = CFrame.Angles(0, 0, math.rad(90))
 
--- Takes the kit's pad, block, post, coils and plate away, sets the toy down to the coil's length over a small red
--- pad, and builds the coil between them
+-- The coil, between a base frame on the stand (its up along the coil) and a top frame under the toy, with the two
+-- round plates it is fixed to: in the kit toy's grey, or a level's own colours (RideStyles.CoilColours: every other
+-- half turn glows from level 7)
+local function buildSpring(plot: Instance, base: CFrame, top: CFrame, level: number)
+	local t = RideStyles.Trainer
+	local old = plot:FindFirstChild("TrainerSpring")
+	if old then
+		old:Destroy()
+	end
+	local colours = if level > 0 then RideStyles.CoilColours[level] else nil
+	local wire = if colours then Color3.fromHex(colours[1] :: string) else t.Colour
+	local glow = if colours and colours[2] then Color3.fromHex(colours[2] :: string) else nil
+	local caps = if colours then Color3.fromHex(colours[3] :: string) else t.CapColour
+	local spring = Instance.new("Model")
+	spring.Name = "TrainerSpring"
+	local capAcross = (t.Radius + t.Wire / 2 + 0.15) * 2
+	part(
+		"CapBottom",
+		Vector3.new(0.3, capAcross, capAcross),
+		base * CFrame.new(0, 0.15, 0) * ON_END,
+		caps,
+		spring,
+		true
+	)
+	part("CapTop", Vector3.new(0.4, capAcross, capAcross), top * CFrame.new(0, 0.1, 0) * ON_END, caps, spring, true)
+	local half = t.PerTurn / 2
+	for k, piece in RideStyles.coil(base, top) do
+		local lit = glow ~= nil and math.floor((k - 1) / half) % 2 == 1
+		local p = part(
+			"Coil" .. k,
+			Vector3.new(t.Wire, t.Wire, piece.Length),
+			piece.At,
+			if lit then glow :: Color3 else wire,
+			spring
+		)
+		if lit then
+			p.Material = Enum.Material.Neon
+		end
+	end
+	spring.Parent = plot
+end
+
+-- The first look at a plot's ride: takes the kit's pad, block, post, coils and plate away and notes where the coil
+-- stands and which way the toy faces; then the ride is built at level 1 (build). With no level models installed it
+-- is the kit's toy, set down to the coil's length over a small red pad, as before the levels.
 local function makeRide(plot: Instance, spot: BasePart): Ride?
 	local model = plot:FindFirstChild("TrainerRide")
 	local toy = model and model:FindFirstChild("Toy")
@@ -181,7 +332,6 @@ local function makeRide(plot: Instance, spot: BasePart): Ride?
 	if not (model and model:IsA("Model") and body and body:IsA("BasePart")) then
 		return nil
 	end
-	local t = RideStyles.Trainer
 	for _, child in plot:GetChildren() do
 		if
 			child:IsA("BasePart")
@@ -209,14 +359,33 @@ local function makeRide(plot: Instance, spot: BasePart): Ride?
 		ahead = flat(model:GetPivot().LookVector)
 	end
 	ahead = ahead.Unit
+	local ride: Ride = {
+		Plot = plot,
+		Name = plot.Name,
+		Model = model,
+		Body = body,
+		Spot = spot,
+		Axis = Vector3.new(body.Position.X, floor, body.Position.Z),
+		Bottom = 0,
+		Seat = CFrame.identity,
+		Rider = nil,
+		Weld = nil,
+		Level = 0,
+		Foot = Vector3.new(body.Position.X, floor, body.Position.Z),
+		Ahead = ahead,
+		Build = 0,
+	}
+	local t = RideStyles.Trainer
+	local templates = ReplicatedStorage:FindFirstChild("TrainerModels")
+	if templates and templates:FindFirstChild("T1") then
+		return ride
+	end
+	-- the kit's toy (no level models): the body's underside the coil's length over a small red pad
 	local padTop = floor + t.PadHigh
-	-- the body's underside the coil's length over the pad (the toy's parts are turned about y only)
 	local lift = padTop + t.Length - (body.Position.Y - body.Size.Y / 2)
 	model:PivotTo(model:GetPivot() + Vector3.new(0, lift, 0))
 	local axis = Vector3.new(body.Position.X, padTop, body.Position.Z)
 	local turn = CFrame.lookAt(Vector3.zero, ahead)
-	local bottom = body.Position.Y - body.Size.Y / 2
-
 	local pad = part(
 		"TrainerPad",
 		Vector3.new(t.PadHigh, t.PadRadius * 2, t.PadRadius * 2),
@@ -235,51 +404,117 @@ local function makeRide(plot: Instance, spot: BasePart): Ride?
 		plot,
 		true
 	)
-
-	local spring = Instance.new("Model")
-	spring.Name = "TrainerSpring"
 	local base = CFrame.new(axis) * turn
 	local top = CFrame.new(axis + Vector3.new(0, t.Length, 0)) * turn
-	local capAcross = (t.Radius + t.Wire / 2 + 0.15) * 2
-	part(
-		"CapBottom",
-		Vector3.new(0.3, capAcross, capAcross),
-		base * CFrame.new(0, 0.15, 0) * ON_END,
-		t.CapColour,
-		spring,
-		true
-	)
-	part(
-		"CapTop",
-		Vector3.new(0.4, capAcross, capAcross),
-		top * CFrame.new(0, 0.1, 0) * ON_END,
-		t.CapColour,
-		spring,
-		true
-	)
-	for k, piece in RideStyles.coil(base, top) do
-		part("Coil" .. k, Vector3.new(t.Wire, t.Wire, piece.Length), piece.At, t.Colour, spring)
-	end
-	spring.Parent = plot
-
+	buildSpring(plot, base, top, 0)
 	local at = body.Position + Vector3.new(0, t.Seat.Y, 0) + ahead * t.Seat.Z
-	local seat = CFrame.lookAt(at, at + ahead)
+	ride.Axis = axis
+	ride.Bottom = body.Position.Y - body.Size.Y / 2
+	ride.Seat = CFrame.lookAt(at, at + ahead)
 	model:SetAttribute("SpringBase", base)
 	model:SetAttribute("SpringTop", top)
-	model:SetAttribute("Seat", seat)
+	model:SetAttribute("Seat", ride.Seat)
 	model:SetAttribute("Rider", nil)
-	return {
-		Plot = plot,
-		Name = plot.Name,
-		Model = model,
-		Body = body,
-		Spot = spot,
-		Axis = axis,
-		Bottom = bottom,
-		Seat = seat,
-		Rider = nil,
-		Weld = nil,
-	}
+	return ride
+end
+
+-- Builds a ride at a level from its model (ReplicatedStorage.TrainerModels.T<level>): the seahorse (the model's Toy)
+-- in the ride's model, the stand on the floor (TrainerStand, with an unseen block to stand on, TrainerPad), the coil
+-- from the stand's top to the plate's underside, the seat from the saddle (SeatAt). A seated rider is welded to the new
+-- body. False when the level has no model (nothing changes).
+local function build(ride: Ride, level: number, upgrade: boolean): boolean
+	local templates = ReplicatedStorage:FindFirstChild("TrainerModels")
+	local template = templates and templates:FindFirstChild("T" .. level)
+	if not (template and template:IsA("Model")) then
+		return false
+	end
+	local t = RideStyles.Trainer
+	local k = t.Scale
+	local foot = template:GetAttribute("Foot") :: Vector3
+	local standTop = template:GetAttribute("StandTop") :: number
+	local plateBottom = template:GetAttribute("PlateBottom") :: number
+	local seatAt = template:GetAttribute("SeatAt") :: Vector3
+	local copy = template:Clone()
+	copy:ScaleTo(k)
+	-- the model's space to the world: its foot on the floor under the coil, its head (toward -Z) the way it faces
+	local place = CFrame.lookAt(ride.Foot, ride.Foot + ride.Ahead) * CFrame.new(-foot * k)
+	copy:PivotTo(place)
+	local toy = copy:FindFirstChild("Toy") :: Model
+	local stand = copy:FindFirstChild("Stand") :: Model
+	local body = toy:FindFirstChild("Body") :: BasePart
+	local plot = ride.Plot
+	local rider, weld = ride.Rider, ride.Weld
+	for _, name in { "TrainerStand", "TrainerPad", "TrainerPadTop" } do
+		local old = plot:FindFirstChild(name)
+		if old then
+			old:Destroy()
+		end
+	end
+	local oldToy = ride.Model:FindFirstChild("Toy")
+	if oldToy then
+		oldToy:Destroy() -- (and a rider's weld on its body with it)
+	end
+	toy.Parent = ride.Model
+	stand.Name = "TrainerStand"
+	stand.Parent = plot
+	copy:Destroy()
+	-- what you stand on: the stand's footprint, up to its top (the posts and crystals are only seen)
+	local standPart = stand:FindFirstChild("Stand")
+	local turn = CFrame.lookAt(Vector3.zero, ride.Ahead)
+	local high = (standTop - foot.Y) * k
+	if standPart and standPart:IsA("BasePart") then
+		local block = part(
+			"TrainerPad",
+			Vector3.new(standPart.Size.X, high, standPart.Size.Z * 0.9),
+			CFrame.new(Vector3.new(standPart.Position.X, ride.Foot.Y + high / 2, standPart.Position.Z)) * turn,
+			Color3.new(1, 1, 1),
+			plot
+		)
+		block.Transparency = 1
+		block.CanCollide = true
+		block.CastShadow = false
+	end
+	local axis = ride.Foot + Vector3.new(0, high, 0)
+	local base = CFrame.new(axis) * turn
+	local top = CFrame.new(ride.Foot + Vector3.new(0, (plateBottom - foot.Y) * k, 0)) * turn
+	buildSpring(plot, base, top, level)
+	local at = place * (seatAt * k) + Vector3.new(0, t.SeatLift, 0) - ride.Ahead * t.SeatBack
+	ride.Body = body
+	ride.Axis = axis
+	ride.Bottom = body.Position.Y - body.Size.Y / 2
+	ride.Seat = CFrame.lookAt(at, at + ride.Ahead)
+	ride.Level = level
+	ride.Build += 1
+	ride.Model:SetAttribute("SpringBase", base)
+	ride.Model:SetAttribute("SpringTop", top)
+	ride.Model:SetAttribute("Seat", ride.Seat)
+	ride.Model:SetAttribute("Level", level)
+	ride.Model:SetAttribute("Title", levelRow(level).Name)
+	if upgrade then
+		ride.Model:SetAttribute("UpgradeAt", workspace:GetServerTimeNow())
+	end
+	local count = 0
+	for _, d in ride.Model:GetDescendants() do
+		if d:IsA("BasePart") then
+			count += 1
+		end
+	end
+	ride.Model:SetAttribute("PartCount", count)
+	ride.Model:SetAttribute("Build", ride.Build)
+	levelSign(ride.Spot, level)
+	-- a rider stays on: welded to the new body at the new seat
+	if rider and weld then
+		local root = weld.Part1
+		local again = Instance.new("Weld")
+		again.Name = "TrainerWeld"
+		again.Part0 = body
+		again.Part1 = root
+		again.C0 = body.CFrame:ToObjectSpace(ride.Seat)
+		again:SetAttribute("Rider", rider.UserId)
+		again.Parent = body
+		ride.Weld = again
+	end
+	return true
 end
 
 -- The plots' rides, by the plot's name (none on a map without them)
@@ -323,11 +558,21 @@ local function findSpot(): BasePart?
 	return nil
 end
 
-local function gain(player: Player, dt: number): (boolean, number)
+-- Each player's trainer level, for the session (with the tank's coins, to be saved with them); the attribute
+-- TrainerLevel mirrors it
+local levels: { [Player]: number } = {}
+
+local function levelOf(player: Player): number
+	return levels[player] or 1
+end
+
+-- A level's Oxygen a second (Config.Train.Levels; Rate when there is no such table), and the share of max on top
+local function gain(player: Player, dt: number, level: number): (boolean, number)
 	local t = Config.Train
 	local max = player:GetAttribute("MaxOxygen")
 	local share = if type(max) == "number" then max * t.Share else 0
-	local amount = (t.Rate + share) * dt
+	local rate = if t.Levels then levelRow(level).Oxygen else t.Rate
+	local amount = (rate + share) * dt
 	return RideService.train(player, amount), amount
 end
 
@@ -367,7 +612,25 @@ function TrainService.Start()
 	if Config.Train.On <= 0 then
 		return
 	end
+	local function join(player: Player)
+		levels[player] = levels[player] or 1
+		player:SetAttribute("TrainerLevel", levels[player])
+	end
+	Players.PlayerAdded:Connect(join)
+	for _, player in Players:GetPlayers() do
+		join(player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		task.defer(function()
+			levels[player] = nil
+		end)
+	end)
 	local rides = plotRides()
+	for _, ride in rides do
+		if not build(ride, 1, false) then
+			levelSign(ride.Spot, 1)
+		end
+	end
 	if next(rides) == nil then
 		local spot = findSpot()
 		if not spot then
@@ -443,10 +706,109 @@ function TrainService.Start()
 		remote:FireClient(player, "On", ride.Model)
 	end
 
+	-- the level a plot's ride should show: its owner's (1 with no owner)
+	local function ownerOf(ride: Ride): Player?
+		for _, player in Players:GetPlayers() do
+			if player:GetAttribute("Plot") == ride.Name then
+				return player
+			end
+		end
+		return nil
+	end
+	local function show(ride: Ride, upgrade: boolean)
+		local owner = ownerOf(ride)
+		local want = if owner then levelOf(owner) else 1
+		if ride.Level ~= want and not build(ride, want, upgrade) then
+			-- (no level models: the kit's toy stays, and the sign says the level)
+			ride.Level = want
+			levelSign(ride.Spot, want)
+		end
+	end
+
+	local function upgrade(player: Player)
+		local own = player:GetAttribute("Plot")
+		local ride = if type(own) == "string" then rides[own] else nil
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not ride or not (root and root:IsA("BasePart")) then
+			remote:FireClient(player, "UpNo", "Plot")
+			return
+		end
+		if
+			RideService.stateOf(player) ~= "Dock"
+			or flat(ride.Axis - root.Position).Magnitude > Config.Train.UpgradeNear
+		then
+			remote:FireClient(player, "UpNo", "Near")
+			return
+		end
+		local level = levelOf(player)
+		if level >= #Config.Train.Levels then
+			remote:FireClient(player, "UpNo", "Top")
+			return
+		end
+		local price = levelRow(level + 1).Price
+		if Config.Train.Free ~= 1 and not AquariumService.spend(player, price) then
+			remote:FireClient(player, "UpNo", "Coins")
+			return
+		end
+		levels[player] = level + 1
+		player:SetAttribute("TrainerLevel", level + 1)
+		show(ride, true)
+		remote:FireClient(player, "Up", level + 1, levelRow(level + 1).Name)
+	end
+
 	remote.OnServerEvent:Connect(function(player, what)
 		local r = riders[player]
 		if what == "Off" and r and r.Ride then
 			off(player, r, "Asked")
+		elseif what == "Up" then
+			upgrade(player)
+		end
+	end)
+	-- (Studio only, for scripted tests and captures: ServerStorage.TrainerTest:Invoke(op, userId, a).
+	-- "level", n: the player's level set to n and their ride shown, played as an upgrade; "up": as the prompt asks,
+	-- without the distance; "info": where their ride's coil, seat and body are)
+	if RunService:IsStudio() then
+		local ask = Instance.new("BindableFunction")
+		ask.Name = "TrainerTest"
+		ask.OnInvoke = function(op: string, userId: number, a: any): any
+			local player = Players:GetPlayerByUserId(userId)
+			if not player then
+				return "no player"
+			end
+			local own = player:GetAttribute("Plot")
+			local ride = if type(own) == "string" then rides[own] else nil
+			if op == "level" and type(a) == "number" then
+				levels[player] = math.clamp(math.floor(a), 1, #Config.Train.Levels)
+				player:SetAttribute("TrainerLevel", levels[player])
+				if ride then
+					show(ride, true)
+				end
+			elseif op == "up" then
+				upgrade(player)
+			end
+			if not ride then
+				return "no ride"
+			end
+			return {
+				Plot = ride.Name,
+				Level = ride.Level,
+				Axis = ride.Axis,
+				Seat = ride.Seat,
+				Body = ride.Body.CFrame,
+				Bottom = ride.Bottom,
+				Rider = if ride.Rider then ride.Rider.Name else nil,
+			}
+		end
+		ask.Parent = game:GetService("ServerStorage")
+	end
+	-- who owns which plot changes as players come and go: each ride follows its owner's level
+	task.spawn(function()
+		while true do
+			for _, ride in rides do
+				show(ride, false)
+			end
+			task.wait(1)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

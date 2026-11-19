@@ -616,6 +616,29 @@ Config.Train = {
 	Radius = 10, -- studs from the spot's middle that count as on it
 	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
 	Ahead = 24, -- and this far toward the water
+	-- The trainer's 12 levels (Hugo, 2026-11-19, task sh1: the seahorse draft m1, built; docs/design/trainer.md).
+	-- Each plot's seahorse shows its owner's level (the player's TrainerLevel, 1 to 12, the server's), and riding it
+	-- gives that level's Oxygen a second in place of Rate. Name: the level's seahorse (the model's NAMES).
+	-- !! PLACEHOLDERS: every Oxygen and Price below is a stand-in until Hugo picks the economy draft (mission
+	-- 20e4833b task b1, docs/design/progression.md "D4"). Fixed whole numbers only (Hugo's rule: no share of max, no
+	-- decimals): b1's "Oxygen a tick" and "Level's price" columns drop straight in. Level 1's 4 is today's Rate. When
+	-- b1 lands, Share above goes to 0 (b1: "the pad's Train.Share goes"). Price is in coins, for the level itself.
+	Levels = {
+		{ Name = "Toy", Oxygen = 4, Price = 0 }, -- PLACEHOLDER numbers (b1)
+		{ Name = "Painted", Oxygen = 6, Price = 100 }, -- PLACEHOLDER
+		{ Name = "Saddled", Oxygen = 10, Price = 300 }, -- PLACEHOLDER
+		{ Name = "Racer", Oxygen = 15, Price = 1000 }, -- PLACEHOLDER
+		{ Name = "Iron", Oxygen = 25, Price = 3000 }, -- PLACEHOLDER
+		{ Name = "Spiked", Oxygen = 40, Price = 10000 }, -- PLACEHOLDER
+		{ Name = "Knight", Oxygen = 60, Price = 30000 }, -- PLACEHOLDER
+		{ Name = "Royal", Oxygen = 100, Price = 100000 }, -- PLACEHOLDER
+		{ Name = "Golden", Oxygen = 150, Price = 300000 }, -- PLACEHOLDER
+		{ Name = "Abyssal", Oxygen = 250, Price = 1000000 }, -- PLACEHOLDER
+		{ Name = "Starfire", Oxygen = 400, Price = 3000000 }, -- PLACEHOLDER
+		{ Name = "Prismatic", Oxygen = 600, Price = 10000000 }, -- PLACEHOLDER
+	} :: { { Name: string, Oxygen: number, Price: number } },
+	Free = 1, -- 1: every level costs nothing for now (Hugo, 2026-11-18: "let upgrades be free for now"); the price is still shown
+	UpgradeNear = 14, -- studs from the coil's axis (flat) inside which the owner can upgrade (the prompt's reach)
 }
 
 -- Taming (the dive, decided 2026-11-09: stay on a wild fish long enough and it is yours). Riding a fish you can hold

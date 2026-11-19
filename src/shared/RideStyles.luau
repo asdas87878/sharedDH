@@ -235,7 +235,35 @@ RideStyles.Trainer = {
 	OffReach = 8, -- studs it carries you away (the way you steer, or off the toy's side)
 	OffRise = 3.4, -- studs it rises over the straight line
 	Every = 0.5, -- seconds between the "+n" Oxygen pops
+	-- the 12 levels (Hugo, 2026-11-19, task sh1; models in ReplicatedStorage.TrainerModels.T1..T12, from
+	-- art/creatures/Seahorse/tiers): each level its own seahorse and stand, at the hub's own size for the toy. On a
+	-- level's model the coil runs from the stand's top to the plate's underside (StandTop, PlateBottom), so Length
+	-- above is only for the kit's old toy (no models installed); the coil keeps Radius, Wire and Turns, in the level's
+	-- own colours (CoilColours)
+	Scale = 0.85, -- the models' size in the hub (the kit's Toy is 0.85 too)
+	SeatLift = 1.75, -- studs the rider's root sits over the saddle's top (SeatAt): level 1 then seats as before
+	SeatBack = 0.9, -- and this far back from it, toward the tail
+	-- the upgrade: the new seahorse springs up from the coil in the old one's place, a white flash and a burst of sparks
+	UpIn = 0.45, -- seconds the new one takes to spring up (an overshoot)
+	UpFlash = 0.7, -- seconds the white flash takes to fade
+	UpSparks = 40, -- sparks in the burst
 }
+
+-- The coil's colours on each level (the draft's STANDS: coil, the glowing rings' colour or none, the plates')
+RideStyles.CoilColours = {
+	{ "#9AA2AE", nil, "#7A828E" },
+	{ "#B9C2CF", nil, "#8E97A4" },
+	{ "#C4CCD8", nil, "#98A0AC" },
+	{ "#D2DAE4", nil, "#A2AAB4" },
+	{ "#E3E9EF", nil, "#8E9BA8" },
+	{ "#E8EDF2", nil, "#7F8D9B" },
+	{ "#E8EDF2", "#3FE0D8", "#5A6A80" },
+	{ "#FFCF2E", "#FF4FD8", "#F4EEF8" },
+	{ "#FFDA3A", "#B25CFF", "#FFD23A" },
+	{ "#2A3B55", "#2FE6FF", "#17233A" },
+	{ "#3A2560", "#FF6A2A", "#24153C" },
+	{ "#3A3060", "#FFFFFF", "#2E2550" },
+} :: { { string? } }
 
 export type TrainerShape = typeof(RideStyles.Trainer)
 
