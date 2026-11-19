@@ -1427,6 +1427,11 @@ Then, after Hugo's last notes (the fish carries on, never through the floor, no 
 per outcome, the rider thrown off and the key moment: `fail-<outcome>-4a.png` and `-4b.png`, all eighteen in
 `fail-outcomes-4.png` (`fail_live_capture.py stills`). In some the small black avatar is hard to see (the Gulp pair,
 the Chomp's toss, the Pin).
+After the review, the rider kept in view: a light outline round a rider in a fail (drawn over what is in front, so
+they show inside the kraken's arms), the kraken's shot sized to the rider instead of a 90-stud giant (`Near`), the
+kraken holding you among its arms rather than inside it, the crawler pinning you under its jaws (its boxes off once it
+has you), stronger suction for the angler; and GIFs from the final code: `fail-wrap-5.gif`, `fail-gulp-5.gif`,
+`fail-pin-5.gif`.
 **How they were made** (`tools/studio/fail_live_capture.py`): Studio redraws its window only about once a second
 while it is hidden on another workspace, so a live run can't be filmed. The game records one live run of the fail
 (workspace `FailRecord`: FailController keeps every part of the loose body, each frame, in the fish's space) and plays
