@@ -425,7 +425,7 @@ end
 
 -- turns on you: it rears and tosses you off its back, comes round with its jaws wide, takes you, shakes and swallows
 OUTCOMES.Chomp = function(f, t)
-	local L, H = f.Length, f.Height
+	local H = f.Height
 	local base = carried(f, t, 2.2)
 	local torso = torsoOf(f)
 	local rig = still()
