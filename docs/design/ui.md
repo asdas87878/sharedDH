@@ -16,6 +16,34 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The catch screen: option 3 in the game, with Hugo's changes (2026-11-19, Hugo; NULLROOM task c1)
+Hugo picked option 3 (Big number) of the catch-UI sheet. **In the game, the default (`Kit.CatchLook` 3); run in Studio
+by script (the real `Banners.greatDive`, a stopped clock for the frames), not played by hand, not seen on a phone.**
+`UI/CatchShow.luau` (the screen), `UI/Kit.luau` (`Kit.word` takes `Edge`), `UI/Portrait.luau` (`Portrait.kindOf`).
+- **Words:** every word is a rarity word (`Kit.word`: thick dark edge, split gradient, shine line, glow) in Bangers,
+  angular and bold. GREAT DIVE! gold; the number gold and big; FISH CAUGHT! white; CONTINUE white.
+- **BEST!** a gold-over-red twelve-point burst right beside the title (the pair centred together), wobbling.
+- **The fish:** each on its own square rarity tile (the slots' colours, black outline, light rim, dark lip). A bust
+  (Dolphin, the sharks) is bigger than its tile and cut off at the tile's inner edge, so it fills it with no gap; a fish
+  shown whole (small, thin, flat: Clownfish, Tang, Lionfish, Manta) is centred with a little room. By
+  `Portrait.kindOf` (CatchShow's `FIT`), so it is decided per fish by its picture's kind.
+- **The rolling number** sits in a window that fades out at its top and bottom edges.
+- **METERS DEEP:** "312 METERS DEEP" on a black oval at 0.3 see-through, no edge, no gradient, in the land strip's
+  metres font (Luckiest Guy) in the land's colours.
+- **CONTINUE:** a green plate with a filled white arrow at its far right (a plain shape, no trail or shadow copy).
+- **A click or tap anywhere** (also Enter, Space, a gamepad's A): while it plays, it jumps to the end; the next closes.
+  Each press is taken as it comes, not at the next frame. Tested by script with the real clock: 12 presses in one frame
+  = a skip and a close, the other 10 do nothing; 10 presses 30 ms apart, the same; once closing, presses go through to
+  the game. With no click it closes 20 s after it settles (`CatchShow.Wait`).
+- **Backdrop:** black at 35% over the whole screen while it shows; the backdrop and the screen fade in (0.22 s) and out
+  (0.3 s) together.
+- **The catch goes in at once:** a tame puts the fish in the server's carried list and the slots straight away (as
+  before; checked in a playtest: tamed at 3 m, "1 CAUGHT" in the slot while still riding).
+- Seen: [the screen](../attachments/catch-ui-final.gif), [clicks while it plays](../attachments/catch-ui-skip.gif),
+  [a catch while riding](../attachments/catch-inventory.png). Captures: `tools/ui/catch_show/c1_capture.py` (after
+  `install` and `listen` in a playtest); `tools/ui/catch_show/sync_src.py` pushes the repo's code into Studio when its
+  Rojo link is down.
+
 ## The white piece draws back like a damage trail (2026-11-19, Hugo; NULLROOM task t1)
 Hugo: "the white should not just fade out but be drawn back with damage taken". **Built, three versions behind one
 switch, `Kit.RingLook.TickTrail`; captured in Studio by script, not played by hand.** `UI/Rings.luau`, `UI/Kit.luau`.

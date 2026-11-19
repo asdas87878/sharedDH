@@ -51,27 +51,29 @@ def set_attrs(**kw):
 
 
 def view_of(raw):
-    """The game view in a shot of Studio in a playtest: from (3, 141) to where the panels on its right begin (Studio
-    shows or hides its Explorer during a run, so the width is found in each shot: the first run of 40 columns that
-    are flat and pale)."""
-    import numpy as np
-    a = np.asarray(raw.convert("L"), dtype=np.float32)[300:1300]
-    mean, std = a.mean(axis=0), a.std(axis=0)
-    flat = (mean > 225) & (std < 8)
-    right = a.shape[1]
-    for x in range(800, a.shape[1] - 40):
-        if flat[x:x + 40].all():
+    """The game view in a shot of Studio in a playtest: from (3, 141) to where the panels on its right begin and the
+    command bar under it (Studio shows or hides its Explorer during a run, so the edges are found in each shot: the
+    first columns, and rows, that are flat and pale)."""
+    g = raw.convert("L")
+    q = 4
+    s = g.resize((g.width // q, g.height // q))
+    px = s.load()
+    W, H = s.size
+
+    def flat(vals):
+        return sum(1 for v in vals if v > 222) >= 0.9 * len(vals)
+
+    right = W
+    for x in range(800 // q, W - 10):
+        if all(flat([px[x + k, y] for y in range(300 // q, min(1300 // q, H))]) for k in range(10)):
             right = x
             break
-    # the bottom: the first pale flat row under the view
-    b = np.asarray(raw.convert("L"), dtype=np.float32)[:, 200:right - 200]
-    rm, rs = b.mean(axis=1), b.std(axis=1)
-    bottom = raw.height
-    for y in range(900, raw.height - 6):
-        if ((rm[y:y + 6] > 225) & (rs[y:y + 6] < 8)).all():
+    bottom = H
+    for y in range(900 // q, H - 2):
+        if all(flat([px[x, y + k] for x in range(200 // q, right - 200 // q)]) for k in range(2)):
             bottom = y
             break
-    return raw.crop((3, 141, right - 1, bottom))
+    return raw.crop((3, 141, right * q - 1, bottom * q))
 
 
 def vshot(name, wait=0.35):

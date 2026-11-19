@@ -3,6 +3,14 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-19 · The catch screen: option 3 built in, with Hugo's changes (NULLROOM task c1, Hugo's PC)
+**State:** in the game and the default (`Kit.CatchLook` 3); run in Studio by script, **not played by hand, not on a
+phone.** All in [UI](design/ui.md), "The catch screen". Files: `UI/CatchShow.luau` (look 3 rewritten, clicks, backdrop),
+`UI/Kit.luau` (`Kit.word` takes `Edge`), `UI/Portrait.luau` (`Portrait.kindOf`); captures `tools/ui/catch_show/c1_*`.
+- **Studio:** it was drawing white and its Rojo link was stale; restarted with `start-dev-session.sh` (place backed up
+  to `sharedDH-local/backups/`). Rojo still needs its Connect click: `tools/ui/catch_show/sync_src.py` pushed the repo's
+  code in instead. Left in Edit, playtest stopped, test scripts removed, the place not saved.
+
 ## 2026-11-18 · Option sheets: Oxygen tick sizes, the land strip, the end-of-dive catch (NULLROOM tasks s1-s3, Hugo's PC)
 **State:** new switches only; **every default is today's look**, so the game plays as before until Hugo picks. The sheets
 are Studio captures (s2, s3) or drawn in Python from the live look (s1); **none played by hand or seen on a phone.**
