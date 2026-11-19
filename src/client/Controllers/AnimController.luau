@@ -1273,6 +1273,9 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 	elseif state == "Reeling" then
 		local u, time = JumpController.reel()
 		return dash(t, u or 1, time)
+	elseif state == "Failing" then
+		-- a fish that has had enough (Config.Fail, FailController moves us about): clinging on, legs tight
+		return astride(t, 1.6, 0, 1, 0, 0, 0)
 	elseif state == "Drowning" then
 		local started = State.DeathStart[player]
 		return drowning(

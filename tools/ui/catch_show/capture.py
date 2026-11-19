@@ -23,7 +23,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 ATT = ROOT / "docs/attachments"
 PICS = Path.home() / "Pictures/ride-a-fish/sheets"
 RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
-VIEW = (3, 142, 1986, 1207)  # the game view inside the Studio window's screenshot (as the land strip's captures)
+VIEW = (3, 141, 3024, 1368)  # the game view inside the Studio window (layout of 2026-11-19, 3440 wide)
 BACK_NAME = "catch_back_s3.png"
 VERSIONS = Path.home() / ".var/app/org.vinegarhq.Vinegar/data/vinegar/versions"  # Studio (Vinegar)
 

@@ -11,8 +11,10 @@
 -- Sheet: docs/attachments/catch-ui-options-1.png (GIFs catch-ui-option-<n>.gif), by tools/ui/catch_show/capture.py.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Zones = require(ReplicatedStorage.Shared.Zones)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
 
@@ -23,6 +25,10 @@ export type Show = {
 	root: Frame,
 	length: number, -- seconds until it is gone
 	pose: (t: number) -> (),
+	-- the catch screen's own (look 3): when everything is in its place (a click before skips to it), and its close,
+	-- started at t, which gives back when it is gone
+	settled: number?,
+	leave: ((t: number) -> number)?,
 }
 
 local SHOWN = 7 -- the most fish drawn (Config.Tame.Carry is 7); the count still counts every one
@@ -662,30 +668,240 @@ local function stack(parent: Instance, metres: number, isBest: boolean, list: { 
 end
 
 ---------------------------------------------------------------------------------------------------------------------
--- 3 Big number
-local function bigNumber(parent: Instance, metres: number, isBest: boolean, list: { Item }): Show
+-- 3 The catch screen: Hugo's pick (task c1, 2026-11-19), built into the game with his changes. One big number rolls
+-- up a fish at a time behind turning rays, each fish bursts out of it to its own rarity tile on an arc; "GREAT DIVE!"
+-- with BEST! right beside it, "FISH CAUGHT!", the metres on a black oval, a CONTINUE button. Every word is a rarity
+-- word (Kit.word) in an angular font (Bangers) with a thick dark edge, a gradient, a shine line and a glow; the
+-- metres in the land strip's cartoon font. A see-through dark backdrop under it, and the backdrop and the screen fade
+-- in and out together. A click or tap anywhere skips to the end; the next closes (CatchShow.play).
+local SCREEN_FONT = Enum.Font.Bangers
+local BACKDROP = 0.45 -- how dark the backdrop gets (black at this share)
+local FADE_IN, FADE_OUT = 0.22, 0.3
+local TILE = 52 -- a fish's tile
+local TILE_STEP = 60
+local TILE_LINE = 2.5
+local TILE_BLACK = Color3.fromRGB(6, 8, 14)
+-- the rolling number's window fades out at its top and bottom edges
+local ROLL_FADE = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 1),
+	NumberSequenceKeypoint.new(0.2, 0),
+	NumberSequenceKeypoint.new(0.8, 0),
+	NumberSequenceKeypoint.new(1, 1),
+})
+local CUT = NumberSequence.new({ -- the arrow: the right half of a turned square
+	NumberSequenceKeypoint.new(0, 1),
+	NumberSequenceKeypoint.new(0.499, 1),
+	NumberSequenceKeypoint.new(0.5, 0),
+	NumberSequenceKeypoint.new(1, 0),
+})
+-- a word's letters and edges faded as one (a = 1 as built); each layer keeps its own see-through as built
+local bases: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
+local function fadeWord(w: Kit.Word, a: number)
+	for _, d in w.root:GetDescendants() do
+		if d:IsA("TextLabel") then
+			local base = bases[d] or d.TextTransparency
+			bases[d] = base
+			d.TextTransparency = 1 - (1 - base) * a
+		elseif d:IsA("UIStroke") then
+			local base = bases[d] or d.Transparency
+			bases[d] = base
+			d.Transparency = 1 - (1 - base) * a
+		end
+	end
+end
+
+-- a caught fish's tile colours, as the slots': its rarity's colour a little lighter at the top and darker at the foot;
+-- the top three their own gold, ember and rainbow, a little brighter
+local function tileFill(tier: string): (ColorSequence, number)
+	local entry = Config.Tiers[tier]
+	if BIG[tier] or not entry then
+		local colours, turn = Kit.tierFill(tier, Config.Tiers)
+		local points = {}
+		for _, point in colours.Keypoints do
+			table.insert(points, ColorSequenceKeypoint.new(point.Time, Kit.lighter(point.Value, 0.14)))
+		end
+		return ColorSequence.new(points), turn
+	end
+	local colour: Color3 = entry.Colour
+	return ColorSequence.new(Kit.lighter(colour, 0.08), Kit.darker(colour, 0.1)), 90
+end
+
+-- Where a fish's picture sits in its tile, by how it is shown (Portrait): a bust is bigger than the tile, its head
+-- in the middle and its neck and body running on past the right and bottom edges, cut off at the tile's inner edge so
+-- it fills the tile with no gap; a fish shown whole (small, thin, flat) is centred whole, with a little room round it
+local FIT: { [string]: { X: number, Y: number, Wide: number, High: number } } = {
+	Bust = { X = 0.6, Y = 0.56, Wide = 1.42, High = 1.32 },
+	Whole = { X = 0.5, Y = 0.5, Wide = 1.06, High = 1.06 },
+	Thin = { X = 0.5, Y = 0.5, Wide = 1.0, High = 1.08 },
+	Flat = { X = 0.5, Y = 0.52, Wide = 1.08, High = 1.08 },
+}
+
+-- A fish on its own rarity tile: square, a black outline, the slots' light rim and dark lip, the picture clipped at
+-- the tile's inner edge. The tile is sized by its holder; scale is its own grow
+type Tile = { frame: Frame, scale: UIScale, ring: Frame }
+local function fishTile(parent: Instance, item: Item, size: number, z: number): Tile
+	local frame, scale = holder(parent, UDim2.fromOffset(size, size), z)
+	local face: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = z,
+	}, frame)
+	local line = Kit.stroke(face, TILE_LINE, TILE_BLACK)
+	line.LineJoinMode = Enum.LineJoinMode.Miter
+	local fill = Kit.new("UIGradient", {}, face)
+	fill.Color, fill.Rotation = tileFill(item.Tier)
+	-- the light rim along the top and down the sides, the darker lip along the foot (as a caught slot's)
+	Kit.new("Frame", {
+		Size = UDim2.new(1, 0, 0, 2.5),
+		BackgroundColor3 = Kit.White,
+		BackgroundTransparency = 0.25,
+		BorderSizePixel = 0,
+		ZIndex = z + 1,
+	}, face)
+	for _, right in { false, true } do
+		local side = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(if right then 1 else 0, 0),
+			Position = UDim2.new(if right then 1 else 0, 0, 0, 2.5),
+			Size = UDim2.new(0, 2.5, 1, -5),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = z + 1,
+		}, face)
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.3),
+				NumberSequenceKeypoint.new(0.5, 0.58),
+				NumberSequenceKeypoint.new(1, 0.85),
+			}),
+		}, side)
+	end
+	Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 2.5),
+		BackgroundColor3 = TILE_BLACK,
+		BackgroundTransparency = 0.6,
+		BorderSizePixel = 0,
+		ZIndex = z + 1,
+	}, face)
+	-- the picture's window: clipped at the tile's inner edge (the outline stands outside it)
+	local clip: Frame = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		ZIndex = z + 2,
+	}, face)
+	local fit = FIT[Portrait.kindOf(item.Id) or "Whole"] or FIT.Whole
+	local picture = Portrait.new(clip, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(fit.X, fit.Y),
+		Size = UDim2.fromScale(fit.Wide, fit.High),
+		ZIndex = z + 2,
+	})
+	local pictured = picture.show(item.Id)
+	picture.Frame.Visible = pictured
+	if not pictured then
+		local kind = Config.FishById[item.Id]
+		Kit.word(clip, {
+			Text = if kind then string.sub(kind.Name, 1, 1) else "?",
+			TextSize = size * 0.55,
+			Font = SCREEN_FONT,
+			Edge = 0.08,
+			Position = UDim2.fromScale(0.5, 0.5),
+			ZIndex = z + 3,
+		})
+	end
+	-- a ring that bursts out of the tile as it lands (gold on a Legendary or rarer)
+	local ring: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = z - 1,
+	}, frame)
+	local ringLine = Kit.stroke(ring, 3, if BIG[item.Tier] then Kit.Sun else Kit.White)
+	ringLine.LineJoinMode = Enum.LineJoinMode.Miter
+	return { frame = frame, scale = scale, ring = ring }
+end
+
+-- A burst of points (BEST!): squares turned through one point, gold over red, each with the ink edge
+local function star(parent: Instance, size: number, z: number): Frame
+	local frame: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+	}, parent)
+	for layer = 1, 2 do
+		local share = if layer == 1 then 0.7 else 0.56
+		for _, angle in { 0, 30, 60 } do
+			local square = Kit.new("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromScale(share, share),
+				Rotation = angle,
+				BackgroundColor3 = if layer == 1 then Kit.Sun else Kit.Danger,
+				BorderSizePixel = 0,
+				ZIndex = z + layer - 1,
+			}, frame)
+			if layer == 1 then
+				Kit.stroke(square, 3, TILE_BLACK)
+			end
+		end
+	end
+	return frame
+end
+
+local function screen(parent: Instance, metres: number, isBest: boolean, list: { Item }): Show
 	local items, totals = drawn(list)
 	local n = #items
+	-- the whole screen: the backdrop (all of the screen and past its edges) and the screen itself, a group that fades
 	local root: Frame = Kit.new("Frame", {
 		Name = "CatchShow",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(440, 290),
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
-		ZIndex = 15,
+		ZIndex = 50,
 	}, parent)
-	local rootScale = Kit.new("UIScale", {}, root)
-	local CX, CY = 220, 116
+	local backdrop: Frame = Kit.new("Frame", {
+		Name = "Backdrop",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 600, 1, 600),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, root)
+	local W, H = 640, 490
+	local group: CanvasGroup = Kit.new("CanvasGroup", {
+		Name = "Screen",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(W, H),
+		BackgroundTransparency = 1,
+		GroupTransparency = 1,
+		ZIndex = 2,
+	}, root)
+	local groupScale = Kit.new("UIScale", {}, group)
+	local CX, CY = W / 2, 168
 
-	local rayBox, bars = rays(root, 320, 9, 15)
+	local rayBox, bars = rays(group, 380, 9, 2)
 	rayBox.Position = UDim2.fromOffset(CX, CY)
 	local glow: Frame = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset(CX, CY),
-		Size = UDim2.fromOffset(150, 150),
+		Size = UDim2.fromOffset(170, 170),
 		BackgroundColor3 = Kit.Sun,
 		BackgroundTransparency = 0.6,
-		ZIndex = 15,
-	}, root)
+		ZIndex = 2,
+	}, group)
 	Kit.corner(glow, 999)
 	Kit.new("UIGradient", {
 		Transparency = NumberSequence.new({
@@ -695,69 +911,182 @@ local function bigNumber(parent: Instance, metres: number, isBest: boolean, list
 		}),
 	}, glow)
 
-	local titleBox, titleScale = holder(root, UDim2.fromOffset(400, 40), 19)
-	titleBox.Position = UDim2.fromOffset(CX, 26)
+	-- the title, with BEST! right beside it; the two centred as one
+	local titleBox, titleScale = holder(group, UDim2.fromOffset(10, 10), 10)
 	titleBox.Rotation = -3
-	local title = words({ Size = UDim2.fromScale(1, 1), TextSize = 34, Text = "GREAT DIVE!", ZIndex = 20 }, titleBox, 3)
-	Kit.gradient(title.top, GOLD_TOP, GOLD_BOTTOM)
-	local best, bestScale = badge(root, "BEST!", 50, 23)
-	best.Position = UDim2.fromOffset(CX + 150, 16)
-	best.Visible = isBest
+	local title = Kit.word(titleBox, {
+		Text = "GREAT DIVE!",
+		TextSize = 54,
+		Font = SCREEN_FONT,
+		Pal = Kit.GoldPal,
+		Glow = true,
+		Edge = 0.1,
+		Position = UDim2.fromScale(0.5, 0.5),
+		ZIndex = 10,
+	})
+	titleBox.Size = UDim2.fromOffset(title.wide, title.high)
+	local BEST_SIZE = 66
+	local bestBox, bestScale = holder(group, UDim2.fromOffset(BEST_SIZE, BEST_SIZE), 16)
+	star(bestBox, BEST_SIZE, 16)
+	local bestWord = Kit.word(bestBox, {
+		Text = "BEST!",
+		TextSize = 24,
+		Font = SCREEN_FONT,
+		Pal = Kit.WhitePal,
+		Edge = 0.13,
+		Position = UDim2.fromScale(0.5, 0.52),
+		ZIndex = 20,
+	})
+	bestWord.root.Rotation = 12
+	bestBox.Visible = isBest
+	local pair = title.wide + (if isBest then BEST_SIZE * 0.95 else 0)
+	local TITLE_Y = 46
+	titleBox.Position = UDim2.fromOffset(CX - pair / 2 + title.wide / 2, TITLE_Y)
+	bestBox.Position = UDim2.fromOffset(CX - pair / 2 + title.wide + BEST_SIZE * 0.46, TITLE_Y - 10)
 
-	-- the number: two labels in a window, the old one rolling up out as the new one rolls in from below
-	local window: Frame = Kit.new("Frame", {
+	-- the number: two words in a window that fades out at its top and bottom, the old count rolling out downward as
+	-- the new one drops in from above
+	local ROLL = 150 -- the window's height, and how far a count rolls
+	local window: CanvasGroup = Kit.new("CanvasGroup", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset(CX, CY),
-		Size = UDim2.fromOffset(150, 96),
+		Size = UDim2.fromOffset(240, ROLL),
 		BackgroundTransparency = 1,
-		ClipsDescendants = true,
-		ZIndex = 20,
-	}, root)
+		ZIndex = 6,
+	}, group)
+	Kit.new("UIGradient", { Rotation = 90, Transparency = ROLL_FADE }, window)
 	local numScale = Kit.new("UIScale", {}, window)
-	local function digit(): Words
-		local w = words({ Size = UDim2.fromScale(1, 1), TextSize = 88, Text = "0", ZIndex = 22 }, window, 5)
-		Kit.gradient(w.top, Color3.fromRGB(255, 255, 230), Color3.fromRGB(255, 186, 40))
-		return w
+	local function digit(): Kit.Word
+		return Kit.word(window, {
+			Text = "0",
+			TextSize = 118,
+			Font = SCREEN_FONT,
+			Pal = Kit.GoldPal,
+			Glow = true,
+			Edge = 0.075,
+			Position = UDim2.fromScale(0.5, 0.5),
+			ZIndex = 6,
+		})
 	end
 	local now, before = digit(), digit()
-	local caughtBox, caughtScale = holder(root, UDim2.fromOffset(300, 30), 20)
-	caughtBox.Position = UDim2.fromOffset(CX, CY + 52)
-	local caught = words({
-		Size = UDim2.fromScale(1, 1),
-		TextSize = 22,
+	local caughtBox, caughtScale = holder(group, UDim2.fromOffset(10, 10), 12)
+	caughtBox.Position = UDim2.fromOffset(CX, CY + 80)
+	local caught = Kit.word(caughtBox, {
 		Text = if n > 0 then "FISH CAUGHT!" else "NO CATCH THIS TIME",
-		ZIndex = 21,
-	}, caughtBox, 2.5)
+		TextSize = 32,
+		Font = SCREEN_FONT,
+		Pal = Kit.WhitePal,
+		Glow = true,
+		Edge = 0.12,
+		Position = UDim2.fromScale(0.5, 0.5),
+		ZIndex = 12,
+	})
+	caughtBox.Size = UDim2.fromOffset(caught.wide, caught.high)
 
-	-- the fish: out of the number to an arc round its lower half
-	local tokens: { Token } = {}
+	-- the fish: out of the number to an arc under the words
+	local tiles: { Tile } = {}
 	local spots: { Vector2 } = {}
 	local times: { number } = {}
 	local STEP, FIRST = 0.3, 0.7
+	local ARC_Y = CY + 140
 	for i, item in items do
-		local tk = token(root, item, 42, true, 24, false)
-		tokens[i] = tk
-		-- a smile under the words: the middle lowest, the ends a little higher
+		tiles[i] = fishTile(group, item, TILE, 24)
 		local u = (i - (n + 1) / 2) / 3
-		spots[i] = Vector2.new(CX + (i - (n + 1) / 2) * 50, 222 - 18 * u * u)
+		spots[i] = Vector2.new(CX + (i - (n + 1) / 2) * TILE_STEP, ARC_Y - 14 * u * u)
 		times[i] = FIRST + (i - 1) * STEP + 0.24
 	end
 	local lastFish = if n > 0 then times[n] else FIRST
-	local pillBox, pillScale = holder(root, UDim2.fromOffset(160, 28), 18)
-	pillBox.Position = UDim2.fromOffset(CX, 266)
-	local metresPill = pill(pillBox, UDim2.fromScale(1, 1), nil, 18)
-	metresPill.Position = UDim2.fromScale(0.5, 0.5)
-	local metresText = Kit.text({ Size = UDim2.fromScale(1, 1), TextSize = 15, ZIndex = 19 }, metresPill)
+
+	-- the metres: a black see-through oval, no edge, the land strip's cartoon font in the land's colours
+	local land = 1
+	for i, zone in Zones.fallback() do
+		if metres >= zone.Metres then
+			land = i
+		end
+	end
+	local ovalBox, ovalScale = holder(group, UDim2.fromOffset(10, 44), 14)
+	local OVAL_Y = ARC_Y + 62
+	ovalBox.Position = UDim2.fromOffset(CX, OVAL_Y)
+	local oval: Frame = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.3,
+		BorderSizePixel = 0,
+		ZIndex = 14,
+	}, ovalBox)
+	Kit.corner(oval, 999)
+	local metresWord = Kit.word(ovalBox, {
+		Text = "0 METERS DEEP",
+		TextSize = 26,
+		Font = Kit.LandMetresFont,
+		Pal = Kit.palOf(Kit.Lands[math.clamp(land, 1, #Kit.Lands)]),
+		Position = UDim2.new(0.5, 0, 0.5, 1),
+		ZIndex = 15,
+	})
+	local function setMetres(text: string)
+		metresWord.set(text)
+		ovalBox.Size = UDim2.fromOffset(metresWord.wide + 34, 44)
+	end
+	-- (sized for the whole number from the start, so the oval never grows as it counts)
+	setMetres(math.floor(metres) .. " METERS DEEP")
+	local ovalWide = ovalBox.Size.X.Offset
+
+	-- CONTINUE, with a filled arrow at its far right
+	local buttonBox, buttonScale = holder(group, UDim2.fromOffset(200, 46), 18)
+	buttonBox.Position = UDim2.fromOffset(CX, OVAL_Y + 56)
+	local plate: Frame = Kit.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 18,
+	}, buttonBox)
+	local good = table.clone(Kit.Themes.Good)
+	good.Radius = Kit.Radius.Plate
+	Kit.dress(plate, good)
+	local go = Kit.word(buttonBox, {
+		Text = "CONTINUE",
+		TextSize = 28,
+		Font = SCREEN_FONT,
+		Pal = Kit.WhitePal,
+		Edge = 0.12,
+		Position = UDim2.new(0.5, -14, 0.5, 0),
+		ZIndex = 20,
+	})
+	local ARROW = 24
+	local arrow: Frame = Kit.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -ARROW * 0.62, 0.5, 0),
+		Size = UDim2.fromOffset(ARROW, ARROW),
+		Rotation = 45,
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = 24,
+	}, buttonBox)
+	Kit.new("UIGradient", { Rotation = -45, Transparency = CUT }, arrow)
+	local arrowDrop: Frame = arrow:Clone()
+	arrowDrop.BackgroundColor3 = Kit.darker(Kit.Themes.Good.Bottom, 0.45)
+	arrowDrop.Position = UDim2.new(1, -ARROW * 0.62, 0.5, 2.5)
+	arrowDrop.ZIndex = 23
+	arrowDrop.Parent = buttonBox
 
 	local metresAtT = lastFish + 0.32
-	local doneAt = metresAtT + 0.7
-	local leaveAt = doneAt + HOLD
-	local length = leaveAt + OUT
+	local buttonAt = metresAtT + 0.75
+	local settled = buttonAt + 0.35 -- everything in its place, every pop over
+	local leaveAt: number? = nil
 
 	local function pose(t: number)
+		-- the backdrop and the screen fade in, and out once it is closing
+		local a = quadOut(at(t, 0, FADE_IN))
+		if leaveAt then
+			a *= 1 - quadIn(at(t, leaveAt, FADE_OUT))
+		end
+		group.GroupTransparency = 1 - a
+		backdrop.BackgroundTransparency = 1 - BACKDROP * a
+		groupScale.Scale = 0.94
+			+ 0.06 * quadOut(at(t, 0, FADE_IN))
+			- (if leaveAt then 0.04 * quadIn(at(t, leaveAt, FADE_OUT)) else 0)
+		root.Visible = a > 0.001 or t < FADE_IN
 		-- rays open and turn the whole time; a gold flash on a Legendary or rarer
 		local rp = quadOut(at(t, 0, 0.45))
-		rayBox.Size = UDim2.fromOffset(320 * rp, 320 * rp)
+		rayBox.Size = UDim2.fromOffset(380 * rp, 380 * rp)
 		rayBox.Rotation = t * 18
 		local flash = 0
 		for i, when in times do
@@ -768,65 +1097,88 @@ local function bigNumber(parent: Instance, metres: number, isBest: boolean, list
 		for _, bar in bars do
 			bar.BackgroundColor3 = Kit.White:Lerp(Kit.Sun, flash)
 		end
-		glow.Size = UDim2.fromOffset(150 + 80 * flash, 150 + 80 * flash)
+		glow.Size = UDim2.fromOffset(170 + 90 * flash, 170 + 90 * flash)
 		glow.BackgroundTransparency = 1 - (0.4 + 0.5 * flash) * rp
 		-- the title stamps down from big
 		local tp = at(t, 0.05, 0.26)
-		titleScale.Scale = 2.2 - 1.2 * quadOut(tp) + 0.06 * bump(t, 0.31, 0.2)
-		title.fade(quadOut(tp))
+		titleScale.Scale = 1.7 - 0.7 * quadOut(tp) + 0.06 * bump(t, 0.31, 0.2)
+		fadeWord(title, quadOut(tp))
 		if isBest then
 			local bp = at(t, 0.4, 0.4)
 			bestScale.Scale = backOut(bp)
-			best.Rotation = -30 + 44 * quadOut(bp) + math.sin(math.max(t - 0.8, 0) * 5) * 4 * bp
+			bestBox.Rotation = -30 + 42 * quadOut(bp) + math.sin(math.max(t - 0.8, 0) * 5) * 4 * bp
 		end
 		-- the number rolls: the newest count drops in from above, the old one falls out below
 		local shown, last = countAt(times, totals, t)
-		local np = at(t, 0.3, 0.3)
-		numScale.Scale = backOut(np) + 0.28 * bump(t, last, 0.3)
-		local roll = if last >= 0 then quadOut(at(t, last, 0.16)) else 1
-		now.top.Text, now.under.Text = tostring(shown), tostring(shown)
+		numScale.Scale = backOut(at(t, 0.3, 0.3)) + 0.22 * bump(t, last, 0.3)
+		local roll = if last >= 0 then quadOut(at(t, last, 0.18)) else 1
 		local prev = 0
 		for i, when in times do
 			if when < last then
 				prev = totals[i]
 			end
 		end
-		before.top.Text, before.under.Text = tostring(prev), tostring(prev)
-		now.top.Position = UDim2.fromOffset(0, -96 * (1 - roll))
-		now.under.Position = UDim2.fromOffset(0, 5 - 96 * (1 - roll))
-		before.top.Position = UDim2.fromOffset(0, 96 * roll)
-		before.under.Position = UDim2.fromOffset(0, 5 + 96 * roll)
-		before.top.Visible, before.under.Visible = roll < 1, roll < 1
-		-- the fish burst out of the number and fly to their places, spinning
-		for i, tk in tokens do
-			local a = times[i] - 0.24
-			local p = at(t, a, 0.34)
-			tk.frame.Visible = t >= a
-			local from = Vector2.new(CX, CY)
-			local to = spots[i]
-			local k = backOut(p)
-			local spot = from:Lerp(to, k)
-			tk.frame.Position = UDim2.fromOffset(spot.X, spot.Y)
-			tk.frame.Rotation = 270 * (1 - quadOut(p))
-			tk.scale.Scale = 0.3 + 0.7 * quadOut(p) + 0.3 * bump(t, times[i], 0.3)
-			burst(tk, t, times[i], 0.45, if BIG[items[i].Tier] then 1.5 else 0.8)
+		now.set(tostring(shown))
+		before.set(tostring(prev))
+		now.root.Position = UDim2.new(0.5, 0, 0.5, -ROLL * (1 - roll))
+		before.root.Position = UDim2.new(0.5, 0, 0.5, ROLL * roll)
+		before.root.Visible = roll < 1
+		-- the fish burst out of the number and fly to their places
+		for i, tl in tiles do
+			local start = times[i] - 0.24
+			local p = at(t, start, 0.34)
+			tl.frame.Visible = t >= start
+			local spot = Vector2.new(CX, CY):Lerp(spots[i], backOut(p))
+			tl.frame.Position = UDim2.fromOffset(spot.X, spot.Y)
+			tl.scale.Scale = 0.3 + 0.7 * quadOut(p) + 0.25 * bump(t, times[i], 0.3)
+			local x = at(t, times[i], 0.45)
+			local live = t >= times[i] and x < 1
+			tl.ring.Visible = live
+			if live then
+				local s = 1 + quadOut(x) * (if BIG[items[i].Tier] then 1.2 else 0.6)
+				tl.ring.Size = UDim2.fromScale(s, s)
+				local line = tl.ring:FindFirstChildOfClass("UIStroke")
+				if line then
+					line.Transparency = quadIn(x)
+				end
+			end
 		end
 		-- "FISH CAUGHT!" stamps in once the count has finished
 		local cp = at(t, lastFish + 0.05, 0.24)
-		caughtScale.Scale = 1.8 - 0.8 * quadOut(cp)
-		caught.fade(quadOut(cp))
+		caughtScale.Scale = 1.6 - 0.6 * quadOut(cp)
+		fadeWord(caught, quadOut(cp))
+		-- the metres pop up and count
 		local mp = at(t, metresAtT, 0.3)
-		pillBox.Visible = t >= metresAtT
-		pillScale.Scale = backOut(mp) + 0.1 * bump(t, doneAt, 0.25)
-		pillBox.Position = UDim2.fromOffset(CX, 266 + 14 * (1 - quadOut(mp)))
-		fadeText(metresText, quadOut(mp))
-		metresText.Text = metresAt(metres, t, metresAtT, 0.7)
-		local o = at(t, leaveAt, OUT)
-		rootScale.Scale = 1 - backIn(o)
-		root.Visible = o < 1
+		ovalBox.Visible = t >= metresAtT
+		ovalScale.Scale = backOut(mp) + 0.08 * bump(t, metresAtT + 0.7, 0.25)
+		ovalBox.Position = UDim2.fromOffset(CX, OVAL_Y + 14 * (1 - quadOut(mp)))
+		metresWord.set(math.floor(math.floor(metres) * quadOut(at(t, metresAtT, 0.7)) + 0.5) .. " METERS DEEP")
+		ovalBox.Size = UDim2.fromOffset(ovalWide, 44)
+		-- CONTINUE pops up last
+		local gp = at(t, buttonAt, 0.3)
+		buttonBox.Visible = t >= buttonAt
+		buttonScale.Scale = backOut(gp)
+		local nudge = math.max(t - settled, 0)
+		local push = math.max(0, math.sin(nudge * 4)) * 3 * gp
+		arrow.Position = UDim2.new(1, -ARROW * 0.62 + push, 0.5, 0)
+		arrowDrop.Position = UDim2.new(1, -ARROW * 0.62 + push, 0.5, 2.5)
+		fadeWord(go, quadOut(gp))
 	end
 	pose(0)
-	return { root = root, length = length, pose = pose }
+	local self: Show = {
+		root = root,
+		length = math.huge, -- (up until a click closes it, or CatchShow.Wait runs out)
+		pose = pose,
+		settled = settled,
+		leave = nil,
+	}
+	self.leave = function(t: number): number
+		if not leaveAt then
+			leaveAt = t
+		end
+		return (leaveAt :: number) + FADE_OUT
+	end
+	return self
 end
 
 ---------------------------------------------------------------------------------------------------------------------
@@ -945,14 +1297,14 @@ end
 local BUILDERS: { [number]: (Instance, number, boolean, { Item }) -> Show } = {
 	[1] = cards,
 	[2] = stack,
-	[3] = bigNumber,
+	[3] = screen,
 	[4] = toast,
 }
 -- where each sits on the HUD: clear of the rider at the middle and of the land strip at the top
 local PLACES: { [number]: UDim2 } = {
 	[1] = UDim2.fromScale(0.5, 0.36),
 	[2] = UDim2.new(1, -24, 0.5, 0),
-	[3] = UDim2.fromScale(0.5, 0.36),
+	[3] = UDim2.fromScale(0.5, 0.5),
 	[4] = UDim2.new(0.5, 0, 0, 96),
 }
 
@@ -970,17 +1322,47 @@ function CatchShow.preview(parent: Instance, look: number, metres: number, isBes
 	return build(parent, metres, isBest, list or {})
 end
 
-local current: { show: Show, conn: RBXScriptConnection }? = nil
+-- The catch screen stays up until a click or tap closes it, or this many seconds after it has settled
+CatchShow.Wait = 20
+-- The clock it plays by (a capture script may stop it to shoot frames of the real thing)
+CatchShow.Clock = os.clock
+
+local current: { show: Show, conns: { RBXScriptConnection } }? = nil
+local pressNow: () -> () = function() end
+
+-- A click or tap on the catch screen, as the screen's own input takes it (also for test scripts)
+function CatchShow.press()
+	pressNow()
+end
 
 function CatchShow.stop()
 	if current then
-		current.conn:Disconnect()
+		for _, conn in current.conns do
+			conn:Disconnect()
+		end
 		current.show.root:Destroy()
 		current = nil
 	end
 end
 
--- Plays the look in the HUD (false: no such look, Banners plays its own)
+-- Whether the catch screen (or a look) is up
+function CatchShow.showing(): boolean
+	return current ~= nil
+end
+
+local PRESS: { [Enum.UserInputType]: boolean } = {
+	[Enum.UserInputType.MouseButton1] = true,
+	[Enum.UserInputType.Touch] = true,
+}
+local KEYS: { [Enum.KeyCode]: boolean } = {
+	[Enum.KeyCode.Return] = true,
+	[Enum.KeyCode.Space] = true,
+	[Enum.KeyCode.ButtonA] = true,
+}
+
+-- Plays the look in the HUD (false: no such look, Banners plays its own). The catch screen (look 3): a click or tap
+-- anywhere while it is still coming in skips to the end; the next one closes it. Each press is taken as it comes (not
+-- at the next frame), so two presses in one frame are a skip and a close, and presses once it is closing do nothing
 function CatchShow.play(parent: Instance, look: number, metres: number, isBest: boolean, list: { Item }?): boolean
 	local show = CatchShow.preview(parent, look, metres, isBest, list)
 	if not show then
@@ -988,18 +1370,76 @@ function CatchShow.play(parent: Instance, look: number, metres: number, isBest: 
 	end
 	CatchShow.stop()
 	show.root.Position = PLACES[look]
-	local start = os.clock()
-	local entry: { show: Show, conn: RBXScriptConnection }
-	entry = {
-		show = show,
-		conn = RunService.RenderStepped:Connect(function()
-			local t = os.clock() - start
+	local start = CatchShow.Clock()
+	local goneAt = show.length
+	local closing = false
+	local entry: { show: Show, conns: { RBXScriptConnection } }
+	local hit: TextButton? = nil
+	local function close(t: number)
+		closing = true
+		goneAt = (show.leave :: (number) -> number)(t)
+		-- (presses go on through to the game while it fades)
+		if hit then
+			hit.Visible = false
+		end
+	end
+	pressNow = function()
+		if current ~= entry or closing then
+			return
+		end
+		local t = CatchShow.Clock() - start
+		local settled = show.settled
+		if settled and t < settled then
+			start = CatchShow.Clock() - settled -- skip: everything at once in its place
+			show.pose(settled)
+		elseif show.leave then
+			close(t)
+		end
+	end
+	entry = { show = show, conns = {} }
+	if show.leave then
+		-- one button over the whole screen takes every press (nothing behind it gets them while the screen is up)
+		local button: TextButton = Kit.new("TextButton", {
+			Name = "Hit",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, 600, 1, 600),
+			BackgroundTransparency = 1,
+			Text = "",
+			AutoButtonColor = false,
+			ZIndex = 99,
+		}, show.root)
+		hit = button
+		table.insert(
+			entry.conns,
+			button.InputBegan:Connect(function(input: InputObject)
+				if PRESS[input.UserInputType] then
+					pressNow()
+				end
+			end)
+		)
+		table.insert(
+			entry.conns,
+			UserInputService.InputBegan:Connect(function(input: InputObject)
+				if KEYS[input.KeyCode] then
+					pressNow()
+				end
+			end)
+		)
+	end
+	table.insert(
+		entry.conns,
+		RunService.RenderStepped:Connect(function()
+			local t = CatchShow.Clock() - start
+			if not closing and show.leave and show.settled and t >= show.settled + CatchShow.Wait then
+				close(t)
+			end
 			show.pose(t)
-			if t >= show.length and current == entry then
+			if t >= goneAt and current == entry then
 				CatchShow.stop()
 			end
-		end),
-	}
+		end)
+	)
 	current = entry
 	return true
 end

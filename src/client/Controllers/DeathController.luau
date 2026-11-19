@@ -56,7 +56,8 @@ end
 -- The death a player is in: ours from our own Mode
 local function kindOf(player: Player): string?
 	if player == State.Player then
-		return if State.dying() then State.Mode else nil
+		-- (a fail's outcome, "Failing", is FailController's; only its drown after is ours)
+		return if State.Mode == "Drowning" then State.Mode else nil
 	end
 	local state = player:GetAttribute("State")
 	return if state == "Drowning" then state else nil

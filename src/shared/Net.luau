@@ -13,7 +13,8 @@
 --     back, `count` is the Frenzy's stacks or the boxes knocked loose: Config.Archetype) | "OxygenTick", lost, oxygen,
 --     every, kind (the meter dropped by `lost` to `oxygen` at once; the next tick in `every` seconds; kind "Tick" for
 --     the drain, Oxygen.Tick, or "Red" for the drop to the red zone's line on mounting a fish too strong, RedDrop)
---   Fx (server -> every client): "Land", player, fish, count (that rider's landings so far) | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
+--   Fx (server -> every client): "Land", player, fish, count (that rider's landings so far) | "Fail", player, fish, kind (out of Oxygen on a fish that does
+--     something first: Config.Fail's outcome, played by FailController) | "ThrowOff", player, fish (out of Oxygen: the fish bucks the
 --     player off) | "Eat", player, fish, where, stacks (that rider's Predator ate a wild fish there) | "Smash", player,
 --     fish, where, boxes (that rider's Breaker was paid for a prop)
 --   and for the sandbox's reset only: Ride "SandboxMount", fish (sit on this fish yourself) answered by Action

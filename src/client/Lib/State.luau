@@ -116,7 +116,8 @@ function State.tooStrong(fish: Model): boolean
 end
 
 function State.dying(): boolean
-	return State.Mode == "Drowning"
+	-- (and "Failing": held by a fish that has had enough, Config.Fail, FailController: no input, as a drown)
+	return State.Mode == "Drowning" or State.Mode == "Failing"
 end
 
 -- Underwater and in play (or dying there): the ride camera is live

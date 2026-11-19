@@ -24,6 +24,9 @@
 --   Free (in the water off a fish: diving in off the dock, or a lost landing) drains Oxygen.FreeDrain; at zero you drown,
 --   without the throw.
 --   Drowning takes no input and ends at the dock.
+--   Failing (Config.Fail, task e1): at 0 Oxygen on a fish (Rare and up) the rider is held on it a moment while it
+--   does its own thing (eats you, rolls you off, drags you down: Config.failOf); no input, no drain. Then it throws
+--   you into the drown, or (taken) it is the fail itself and ends at the dock.
 --   Angry mode (Config.Angry): while a rider's meter is in its red part (Oxygen.AngryAt), or on a fish too strong from
 --   the touch, the fish under them is angry. Decided here and written on the fish (its "Angry" and "AngryStyle"
 --   attributes, and the "AngryFish" tag): every client pulses it red, and the rider's own slows it in its style's way
@@ -43,6 +46,7 @@ local RunService = game:GetService("RunService")
 local AngryStyles = require(ReplicatedStorage.Shared.AngryStyles)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local FishService = require(script.Parent.FishService)
 local PropService = require(script.Parent.PropService)
@@ -231,6 +235,10 @@ local function setState(r: Rider, state: string)
 		FishService.unreserve(r.Grab, r.Player)
 		r.Grab = nil
 	end
+	if state ~= "Failing" then
+		r.Player:SetAttribute("FailKind", nil)
+		r.Player:SetAttribute("FailAt", nil)
+	end
 	if state ~= "Drowning" then
 		r.Player:SetAttribute("DeathAt", nil)
 		r.Player:SetAttribute("DeathThrown", nil)
@@ -260,7 +268,7 @@ local function setState(r: Rider, state: string)
 	-- (on a fish the rider's body is solid to nothing: the fish's own steering keeps both in open water)
 	local character = r.Player.Character
 	if character then
-		PropService.riding(character, state == "Riding")
+		PropService.riding(character, state == "Riding" or state == "Failing")
 	end
 end
 
@@ -473,32 +481,79 @@ local function noFail(r: Rider): boolean
 	return Config.Death.On == 0 or sandbox("NoFail", r)
 end
 
--- Out of Oxygen: on a fish it bucks and throws you off first (everyone's clients animate both), then you drown: the
--- fail (Config.Death), which fades out and ends at the dock with the dive's catch kept (toDock)
-local function drown(r: Rider)
-	local d = Config.Death
+-- Thrown off the fish into the drown (everyone's clients animate the buck and the throw)
+local function throwOff(r: Rider)
 	local w = r.Fish
-	if noFail(r) then
-		-- thrown off (or not) and left floating with a whole meter, to go on
-		if w then
-			local model = w.Model
-			dismount(r, "OutOfOxygen", true)
-			Net.Fx:FireAllClients("ThrowOff", r.Player, model)
-		end
-		r.Oxygen = r.Max
-		sendOxygen(r, true)
-		setState(r, "Free")
-		Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
+	if not w then
 		return
 	end
-	if w then
-		local model = w.Model
-		dismount(r, "OutOfOxygen", true)
-		Net.Fx:FireAllClients("ThrowOff", r.Player, model)
-		die(r, "Drowning", d.DrownTime, true)
-	else
-		die(r, "Drowning", d.DrownTime - d.Throw, false)
+	local model = w.Model
+	dismount(r, "OutOfOxygen", true)
+	Net.Fx:FireAllClients("ThrowOff", r.Player, model)
+end
+
+-- Out of Oxygen: on a fish it does what that fish does (Config.Fail: Config.failOf) and then, for most, throws you off;
+-- you drown: the fail (Config.Death), which fades out and ends at the dock with the dive's catch kept (toDock). Taken
+-- (eaten, dragged down, pinned) is the fail at once, without the drown. `forced`: the admin's fail, whatever the
+-- no-fail switches say. `kind`: an outcome to play instead of the fish's own (the admin's, for trying them).
+local function drown(r: Rider, forced: boolean?, kind: string?)
+	local d = Config.Death
+	local w = r.Fish
+	local soft = noFail(r) and not forced
+	if not w then
+		if soft then
+			r.Oxygen = r.Max
+			sendOxygen(r, true)
+			setState(r, "Free")
+			Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
+		else
+			die(r, "Drowning", d.DrownTime - d.Throw, false)
+		end
+		return
 	end
+	local f = Config.Fail
+	local name = if kind and f.Outcomes[kind] then kind else Config.failOf(w.Type, RideStyles.nameOf(w.Type.Id))
+	local outcome = f.Outcomes[name]
+	-- the end of it: off the fish into the drown, or (taken) at the dock; with no failing, left floating with a
+	-- whole meter, to go on
+	local function finish()
+		if soft then
+			if r.Fish then
+				throwOff(r)
+			end
+			r.Oxygen = r.Max
+			sendOxygen(r, true)
+			setState(r, "Free")
+			Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
+		elseif outcome.End == "Taken" then
+			-- (nothing: the fish keeps us, out of sight, until the dock, and toDock lets it go)
+			return
+		else
+			throwOff(r)
+			die(r, "Drowning", d.DrownTime, true)
+		end
+	end
+	if outcome.Time <= 0 then
+		finish()
+		return
+	end
+	-- held on the fish for the outcome: its kind and start first, so clients have them when the State changes
+	r.Player:SetAttribute("FailKind", name)
+	r.Player:SetAttribute("FailAt", now())
+	Net.Fx:FireAllClients("Fail", r.Player, w.Model, name)
+	if outcome.End == "Taken" and not soft then
+		-- the fail itself: the outcome, the fade, the black, then the dock (die's own timer)
+		die(r, "Failing", outcome.Time + f.TakenFade + f.TakenTail, false)
+		return
+	end
+	r.Token += 1
+	local token = r.Token
+	setState(r, "Failing")
+	task.delay(outcome.Time, function()
+		if r.Token == token and r.State == "Failing" and riders[r.Player] == r then
+			finish()
+		end
+	end)
 end
 
 -- The jump: off the fish (or from floating) into the hop. Never refused for Oxygen, and it costs none: however little
@@ -1517,21 +1572,17 @@ function RideService.setMax(player: Player, max: number)
 end
 
 -- a fail now, from the water, whatever the no-fail switches say (on a fish: thrown off first, as out of Oxygen)
-function RideService.forceFail(player: Player): boolean
+function RideService.forceFail(player: Player, kind: string?): boolean
 	local r = riders[player]
 	if not r or (r.State ~= "Riding" and r.State ~= "Free" and r.State ~= "Jumping") then
 		return false
 	end
-	local d = Config.Death
-	local w = r.Fish
-	if w then
-		local model = w.Model
-		dismount(r, "OutOfOxygen", true)
-		Net.Fx:FireAllClients("ThrowOff", r.Player, model)
-		die(r, "Drowning", d.DrownTime, true)
-	else
+	if r.State == "Jumping" then
+		local d = Config.Death
 		die(r, "Drowning", d.DrownTime - d.Throw, false)
+		return true
 	end
+	drown(r, true, kind)
 	return true
 end
 

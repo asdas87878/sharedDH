@@ -1550,6 +1550,99 @@ Config.Death = {
 	DrownTime = DROWN.Throw + DROWN.Struggle + DROWN.Weak + DROWN.Still + DROWN.Tail, -- less Throw when not thrown
 }
 
+-- What a fish does when the meter hits 0 under you (Hugo, 2026-11-19, task e1: "as soon as it hits 0 either getting
+-- eaten or thrown off. Be creative for fishes and what they would do. Give low-tier fishes just the throwing off").
+-- RideService picks the outcome (Config.failOf), holds the rider on the fish in the "Failing" state for its Time,
+-- then ends it: End "Throw" throws you off into the drown above (Config.Death), End "Taken" is the fail itself: you are
+-- gone (in a mouth, dragged down, pinned) and it fades to the fail screen and the dock. Every client plays it from the
+-- Fx "Fail" (Controllers/FailController): the fish's motion, the rider on it, the camera, and a sound hook (Sound: a
+-- name in Lib/Fx's placeholders; Hook: the name the partner's real animation and sound will go by). Stand-ins: the
+-- fish's root is moved and the rider slid on its saddle, nothing authored yet. Claude's first numbers, not judged in play.
+--   Throw  the low tiers' only one: the plain buck, at once (Time 0), you are flung up and back (Death.Throw)
+--   Chomp  turns on you: rears up, you tumble into its mouth, it snaps shut and shakes its head (the jaws close the screen)
+--   Gulp   an angler's lure flares and draws the eye, then the mouth opens under it and swallows you
+--   Wrap   arms close round you and it dives, dragging you down into the dark
+--   Roll   a giant rolls over with a heavy splash and bucks you off its back
+--   Flip   a ray flips over and you drop off its back
+--   Shell  a turtle tucks in and shakes you off its shell
+--   Coil   a serpent coils round itself, faster and faster, and flings you out
+--   Pin    a crawler dives to the floor and pins you under it
+Config.Fail = {
+	On = 1, -- 0: every fish throws you off at once (the old out of Oxygen)
+	-- these tiers only ever throw you off (Hugo: "give low-tier fishes just the throwing off")
+	LowTiers = { Common = true, Uncommon = true } :: { [string]: boolean },
+	-- stylua: ignore
+	Outcomes = {
+		--         seconds held     how it ends       on the fail screen         placeholder sound   for the real ones
+		Throw = { Time = 0,   End = "Throw", Text = "",              Sound = "Splash", Hook = "FailThrow" },
+		Chomp = { Time = 1.3, End = "Taken", Text = "EATEN!",        Sound = "Chomp",  Hook = "FailChomp" },
+		Gulp  = { Time = 1.5, End = "Taken", Text = "GULPED!",       Sound = "Chomp",  Hook = "FailGulp" },
+		Wrap  = { Time = 1.4, End = "Taken", Text = "DRAGGED DOWN!", Sound = "Rumble", Hook = "FailWrap" },
+		Roll  = { Time = 1.2, End = "Throw", Text = "",              Sound = "Splash", Hook = "FailRoll" },
+		Flip  = { Time = 0.9, End = "Throw", Text = "",              Sound = "Splash", Hook = "FailFlip" },
+		Shell = { Time = 1.1, End = "Throw", Text = "",              Sound = "Pop",    Hook = "FailShell" },
+		Coil  = { Time = 1.3, End = "Throw", Text = "",              Sound = "Rumble", Hook = "FailCoil" },
+		Pin   = { Time = 1.3, End = "Taken", Text = "PINNED!",       Sound = "Rumble", Hook = "FailPin" },
+	} :: { [string]: { Time: number, End: string, Text: string, Sound: string, Hook: string } },
+	-- "Taken": the fade to the fail screen after Time, then black for Tail before the dock
+	TakenFade = 0.7,
+	TakenTail = 0.2,
+	-- by creature first (Rare and up; a Common or Uncommon here is thrown off all the same)
+	-- stylua: ignore
+	ByCreature = {
+		-- the eaters: every Predator (by its archetype, below), and these with the teeth for it
+		MorayEel = "Chomp", HammerheadShark = "Chomp", Viperfish = "Chomp", GoblinShark = "Chomp", FrilledShark = "Chomp",
+		Dakosaurus = "Chomp", Helicoprion = "Chomp", Livyatan = "Chomp", Kronosaurus = "Chomp", MoltenMegalodon = "Chomp",
+		HalfboneMegalodon = "Chomp", BobbitWorm = "Chomp", Hellmaw = "Chomp",
+		-- the swallowers: a lure, or a mouth that takes things whole
+		Anglerfish = "Gulp", SkullAngler = "Gulp", InfernalAngler = "Gulp", GoliathGrouper = "Gulp", Xiphactinus = "Gulp",
+		-- arms
+		Kraken = "Wrap", Octopus = "Wrap", GiantSquid = "Wrap", AuroraJelly = "Wrap",
+		-- giants and whales
+		BlueWhale = "Roll", GalleonWhale = "Roll", VoidWhale = "Roll", PhantomWhale = "Roll", StellersSeaCow = "Roll",
+		Shonisaurus = "Roll", GiantSeaBass = "Roll", HumpheadWrasse = "Roll", Dolphin = "Roll", AbyssalWatcher = "Roll",
+		Elasmosaurus = "Roll", Swordfish = "Roll", LeopardShark = "Roll",
+		-- rays
+		MantaRay = "Flip", ElectricRay = "Flip", GraveRay = "Flip", CinderRay = "Flip",
+		-- shells
+		Archelon = "Shell", GraveTurtle = "Shell",
+		-- serpents
+		PearlSerpent = "Coil", KelpWyrm = "Coil", StormSerpent = "Coil", LanternLeviathan = "Coil", Basilosaurus = "Coil",
+		EmberSerpent = "Coil", WraithEel = "Coil", BrimstoneEel = "Coil", BoneLeviathan = "Coil", CoralDragon = "Coil",
+		-- crawlers
+		Anomalocaris = "Pin", GiantIsopod = "Pin", SeaScorpion = "Pin",
+	} :: { [string]: string },
+	-- then by archetype, then a giant (Angry.GiantLength) rolls, then by body type (Shared/RideStyles' names)
+	ByArchetype = { Predator = "Chomp" } :: { [string]: string },
+	ByStyle = { Snake = "Coil", Glider = "Flip", Crawler = "Pin", Jetter = "Wrap" } :: { [string]: string },
+	Default = "Throw",
+}
+
+-- The outcome for a fish (Config.Fail): its name. `style`: its body type's name (RideStyles.nameOf), if known.
+function Config.failOf(fish: FishType, style: string?): string
+	local f = Config.Fail
+	if f.On == 0 or f.LowTiers[fish.Tier] then
+		return "Throw"
+	end
+	local kind = f.ByCreature[fish.Id]
+	if not kind then
+		for name in string.gmatch(fish.Archetype or "", "[^,%s]+") do
+			kind = f.ByArchetype[name]
+			if kind then
+				break
+			end
+		end
+	end
+	if not kind and fish.Size.Z >= Config.Angry.GiantLength then
+		kind = "Roll"
+	end
+	if not kind and style then
+		kind = f.ByStyle[style]
+	end
+	kind = kind or f.Default
+	return if f.Outcomes[kind] then kind else "Throw"
+end
+
 -- The movement sandbox (Studio only; docs/sandbox.md): for play-testing the ride, the jump and the camera. The flags can
 -- be switched in its panel (N) while playing.
 -- The feel log (Studio only; the user, 2026-11-17: "How can we go about getting you to understand this the best").
