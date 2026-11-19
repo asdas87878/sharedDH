@@ -24,6 +24,13 @@
 --   Seen: the earning fish swim in the tank, small. The server puts each in its place, anchored, with the tag
 --   "TankFish" and the numbers of its lap; every client moves them round itself (AquariumController), so they cost no
 --   traffic. They are not in Workspace.Fish, so nothing can lock on to one, tag it or ride it.
+--   Holding a fish over the head (Hugo, 2026-11-20; docs/design/holding.md): Action "Hold", index, id holds the
+--   index-th fish the player carries (oldest first, which must still be `id`); index 0 puts it away. Only on the
+--   dock. The server builds the fish, small, and welds it over the player's head, so everyone sees it; every client
+--   lifts the arms (HoldController). The player's attributes: "HeldFish" (its id), "HeldSize", "HeldVariant",
+--   "HeldIndex" (its place in the hands now). Held means one of the fish in the hands, that very one: once it is not
+--   there any more (put in the tank, or gone any other way) it is put away. A new body (a respawn, a reset) puts it
+--   away. A dive keeps it held, unseen (AquariumService.heldOf: the next task rides it after the sub).
 -- For the session only: there are no saves yet.
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -67,6 +74,11 @@ local PANEL_SLACK = 12
 local plots: { Model } = {}
 local tanks: { [Player]: Tank } = {}
 local owners: { [Model]: Player } = {}
+
+-- The fish a player holds over their head: the very entry of their hands (RideService.carried), and its model while shown
+type Held = { Carry: RideService.Carry, Model: Model?, Body: Model? }
+local held: { [Player]: Held } = {}
+local heldFolder: Folder? = nil
 
 local function part(plot: Model, name: string): BasePart?
 	local found = plot:FindFirstChild(name)
@@ -270,6 +282,131 @@ local function tellHands(tank: Tank)
 	end
 end
 
+-- The held fish's model, built over the head of the player's body: small, its colour kept, every part welded and
+-- weightless and touching nothing, so the body carries it and its owner's machine moves it for everyone
+local function buildHeld(player: Player, h: Held): Model?
+	local c = Config.Hold
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head")
+	local kind = Config.FishById[h.Carry.Id]
+	if not character or not head or not head:IsA("BasePart") or not kind or not heldFolder then
+		return nil
+	end
+	local model = FishModel.build(kind)
+	CollectionService:RemoveTag(model, FishModel.Tag)
+	Variants.apply(model, h.Carry.Variant)
+	local own = kind.Size.Z * Config.sizeScale(h.Carry.Size, kind)
+	local shown = math.clamp(own * c.Share, c.Least, c.Most)
+	model:ScaleTo(model:GetScale() * shown / math.max(kind.Size.Z, 0.1))
+	local root = model.PrimaryPart
+	if not root then
+		model:Destroy()
+		return nil
+	end
+	for _, d in model:GetDescendants() do
+		if d:IsA("Constraint") or d:IsA("Trail") then
+			d:Destroy() -- (its movers and its wake)
+		elseif d:IsA("BasePart") then
+			d.Anchored = false
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+			d.Massless = true
+		end
+	end
+	-- the middle of its box over the middle of the head, its belly Above the head's top
+	model:PivotTo(CFrame.new())
+	local box, size = model:GetBoundingBox()
+	local centre = root.CFrame:PointToObjectSpace(box.Position)
+	local weld = Instance.new("Weld")
+	weld.Name = "HeldWeld"
+	weld.Part0 = head
+	weld.Part1 = root
+	weld.C0 = CFrame.new(0, head.Size.Y / 2 + c.Above + size.Y / 2, 0) * CFrame.Angles(0, math.rad(c.Turn), 0)
+	weld.C1 = CFrame.new(centre)
+	weld.Parent = root
+	model.Name = player.Name
+	model:SetAttribute("HeldBy", player.UserId)
+	model:SetAttribute("SizeTier", h.Carry.Size)
+	model:SetAttribute("Variant", h.Carry.Variant)
+	model.Parent = heldFolder
+	return model
+end
+
+local function dropHeldModel(h: Held)
+	if h.Model then
+		h.Model:Destroy()
+	end
+	h.Model = nil
+	h.Body = nil
+end
+
+local function putAway(player: Player)
+	local h = held[player]
+	if h then
+		dropHeldModel(h)
+		held[player] = nil
+	end
+	player:SetAttribute("HeldFish", nil)
+	player:SetAttribute("HeldSize", nil)
+	player:SetAttribute("HeldVariant", nil)
+	player:SetAttribute("HeldIndex", nil)
+end
+
+-- Is the held fish still in the hands, and shown only on the dock, over the body the player has now
+local function refreshHeld(player: Player)
+	local h = held[player]
+	if not h then
+		return
+	end
+	local index = table.find(RideService.carried(player), h.Carry)
+	if not index or Config.Hold.On == 0 then
+		putAway(player)
+		return
+	end
+	if player:GetAttribute("HeldIndex") ~= index then
+		player:SetAttribute("HeldIndex", index)
+	end
+	local onDock = RideService.stateOf(player) == "Dock"
+	if h.Model and (not onDock or h.Body ~= player.Character or not h.Model.Parent) then
+		dropHeldModel(h)
+	end
+	if onDock and not h.Model then
+		h.Model = buildHeld(player, h)
+		h.Body = if h.Model then player.Character else nil
+	end
+end
+
+-- Hold the index-th fish in the hands (it must still be `id`), or with index 0 put the held one away
+local function hold(player: Player, index: number, id: string)
+	if index == 0 then
+		putAway(player)
+		return
+	end
+	local c = RideService.carried(player)[index]
+	if not c or c.Id ~= id or not Config.FishById[id] then
+		Net.Ride:FireClient(player, "Denied", "Hold", "Gone")
+		return
+	end
+	local h = held[player]
+	if h and h.Carry == c then
+		return
+	end
+	putAway(player)
+	held[player] = { Carry = c, Model = nil, Body = nil }
+	player:SetAttribute("HeldFish", c.Id)
+	player:SetAttribute("HeldSize", c.Size)
+	player:SetAttribute("HeldVariant", c.Variant)
+	refreshHeld(player)
+end
+
+-- The fish a player holds (one of their hands' entries, the very table), or nil. Kept through a dive: the next
+-- task's ride after the sub reads it
+function AquariumService.heldOf(player: Player): RideService.Carry?
+	local h = held[player]
+	return if h then h.Carry else nil
+end
+
 local function equippedCount(tank: Tank): number
 	local n = 0
 	for _, f in tank.Fish do
@@ -366,6 +503,7 @@ local function place(tank: Tank, index: number, id: string): boolean
 	trim(tank)
 	changed(tank)
 	tellHands(tank)
+	refreshHeld(tank.Player) -- (put away at once if it was the held one)
 	Net.Ride:FireClient(tank.Player, "Deposited", 1, tank.Income - before, tank.Income, taken.Id)
 	return true
 end
@@ -538,6 +676,56 @@ function AquariumService.give(player: Player, coins: number, fish: { { string } 
 	changed(tank)
 end
 
+-- Holding works with or without a tank (the hands are RideService's)
+local function startHolding()
+	local folder = Instance.new("Folder")
+	folder.Name = "HeldFish"
+	folder.Parent = workspace
+	heldFolder = folder
+	local lastHold: { [Player]: number } = {}
+	Net.Action.OnServerEvent:Connect(function(player: Player, action: any, index: any, id: any)
+		if action ~= "Hold" or type(index) ~= "number" or index ~= index or index % 1 ~= 0 then
+			return
+		end
+		local now = os.clock()
+		if Config.Hold.On == 0 or now - (lastHold[player] or 0) < 0.15 then
+			return
+		end
+		lastHold[player] = now
+		if index ~= 0 and (type(id) ~= "string" or RideService.stateOf(player) ~= "Dock") then
+			Net.Ride:FireClient(player, "Denied", "Hold", "Far")
+			return
+		end
+		hold(player, index, if type(id) == "string" then id else "")
+	end)
+	local function watch(player: Player)
+		-- a new body (a respawn, a reset) puts it away
+		player.CharacterAdded:Connect(function()
+			putAway(player)
+		end)
+		player.CharacterRemoving:Connect(function()
+			putAway(player)
+		end)
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, player in Players:GetPlayers() do
+		watch(player)
+	end
+	Players.PlayerRemoving:Connect(function(player: Player)
+		putAway(player)
+		lastHold[player] = nil
+	end)
+	-- (looked at a few times a second, as the hands are: anything that took the fish out of them puts it away)
+	task.spawn(function()
+		while true do
+			task.wait(EVERY / 2)
+			for player in held do
+				refreshHeld(player)
+			end
+		end
+	end)
+end
+
 function AquariumService.Init()
 	if Config.Aquarium.On == 0 then
 		return
@@ -574,6 +762,7 @@ function AquariumService.Init()
 end
 
 function AquariumService.Start()
+	startHolding()
 	if #plots == 0 then
 		return
 	end

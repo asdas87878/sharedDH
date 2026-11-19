@@ -35,6 +35,10 @@ local Slots = {}
 local selectedEvent = Instance.new("BindableEvent")
 -- Fired with (the catch's place in the list, the catch) when the player clicks a caught slot
 Slots.Selected = selectedEvent.Event
+local pickedEvent = Instance.new("BindableEvent")
+-- Fired with (the catch's place in the list, the catch or nil) on every click of a slot, an empty one too (holding a
+-- fish over the head, AquariumController: the same slot again or an empty one puts it away)
+Slots.Picked = pickedEvent.Event
 
 export type Caught = { Id: string, Tier: string }
 
@@ -273,6 +277,7 @@ function Slots.build(parent: Instance)
 				showRings()
 				selectedEvent:Fire(at, item)
 			end
+			pickedEvent:Fire(at, item)
 		end)
 		-- no pale line inside an empty slot (the user: "it also shouldnt be present if you dont have a fish"); a caught
 		-- one has the rim above instead

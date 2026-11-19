@@ -787,6 +787,28 @@ Config.Dock = {
 	WalkSpeed = 28,
 }
 
+-- Holding a fish over your head in the hub (Hugo, 2026-11-20: "make the player be able to hold fishes over the head,
+-- when in the hub and only fish that are currently in inventory"; docs/design/holding.md). A click on a caught slot
+-- away from the tank holds that fish up like a trophy, both arms up, the fish lying across the top of the head; the
+-- same slot again, or an empty one, puts it away. The server checks it (AquariumService, Action "Hold") and builds
+-- the fish; every client poses the arms (HoldController).
+Config.Hold = {
+	On = 1, -- 0: no holding
+	-- the fish's length over the head: a share of its own length, kept between two lengths (a Tiny still shows, a
+	-- whale is still carryable)
+	Share = 0.3,
+	Least = 3.5,
+	Most = 8,
+	Above = 0.1, -- studs between the top of the head and the fish's belly
+	Turn = 90, -- degrees about the up axis: 90 lies it across the shoulders, head to the player's right
+	-- the arms (degrees, in the body's own directions): the shoulders lift the arm up past the head and out to the
+	-- side, the elbows bend the forearms in so the hands meet under the fish
+	Lift = 160,
+	Out = 30,
+	Elbow = 55,
+	Blend = 10, -- how quickly the arms go up and come down (higher is quicker)
+}
+
 Config.Ride = {
 	RampTime = 0.4, -- idle to ridden speed, easing out (1.2 until 2026-11-16: on a 2.5-second ride that was half the ride spent getting going; the wild herd swims at 0.7 of the land's pace now, so this is the kick of a landing)
 	Surge = 1.25, -- the burst on mount
