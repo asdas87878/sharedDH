@@ -1316,3 +1316,13 @@ rider clinging on. **Hooks for the partner's real animations and sounds:** the p
 `DeathClock` the drown, `FailSlow` stretches the server's waits. `tools/studio/fail_capture.py` uses them to shoot
 each outcome frame by frame in a real playtest (the fish's own swim and the camera's easing still move between frames,
 so it is a little smoother than the game's).
+
+**Seen in Studio (2026-11-19, captured from the real game, not played by hand):** one GIF per outcome in
+`docs/attachments/` (`fail-throw-clownfish`, `fail-chomp-mosasaurus`, `fail-gulp-anglerfish`, `fail-wrap-kraken`,
+`fail-roll-bluewhale`, `fail-coil-kelpwyrm`, `fail-pin-giantisopod`, `fail-flip-mantaray`, `fail-shell-archelon`) and
+all nine side by side in `fail-outcomes-1.gif` (copies in `~/Pictures/ride-a-fish/sheets/`). Each starts with a
+moment of riding, then the outcome frame by frame at 10 a second, then the throw or the fade. What reads: the
+Mosasaurus rearing and turning on the tossed rider with the jaws snapping the screen to a slit; the anglerfish's
+lure flaring before the gulp; the whale's roll showing its pale belly; the ray flipping; the serpent's spin.
+Weaker, to look at in play: the Kraken's own arms hide the six stand-in ones and the rider under it; the Isopod's
+slam is small (it doesn't drop far in the Shallows, the floor is close) and the rider ends hidden under it.
