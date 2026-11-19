@@ -1,5 +1,5 @@
 """Puts the seahorse trainer's 12 levels into the open Studio place, as the creatures' --local install does (no upload):
-each part is written as a mesh file into Studio's content folder (rbxasset://ridefish/SeahorseTrainer<n>/<Part>.mesh)
+each part is written as a mesh file into Studio's content folder (rbxasset://ridefish/Trainer<n>/<Part>.mesh)
 and ReplicatedStorage.TrainerModels.T<n> is a Model of MeshParts that show them, in two models:
   Toy    the seahorse and what rides with it (Body, Head, Fin, the tail T1..T6, Plate, Wings, Crown and their _Glow)
   Stand  what stays on the floor (Stand, Stand_Glow, Orbit)
@@ -32,6 +32,22 @@ U = 0.4
 STAND_PARTS = ("Stand", "Stand_Glow", "Orbit", "Orbit_Glow")
 
 
+def content_folder():
+    """STUDIO_CONTENT, else the content folder of the Studio that is running (the newest folder by date is not always
+    it: 2026-11-19 the files went to an older version's folder and Studio could not fetch them), else local_meshes'"""
+    if os.environ.get("STUDIO_CONTENT"):
+        return os.environ["STUDIO_CONTENT"]
+    try:
+        ps = subprocess.run(["ps", "-eo", "args"], capture_output=True, text=True).stdout
+        for line in ps.splitlines():
+            first = line.split(" ")[0]
+            if first.endswith("/RobloxStudioBeta.exe") and os.path.isdir(os.path.join(os.path.dirname(first), "content")):
+                return os.path.join(os.path.dirname(first), "content")
+    except OSError:
+        pass
+    return local_meshes.content_folder()
+
+
 def hexrgb(h):
     return tuple(int(h.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
 
@@ -49,7 +65,7 @@ def tier_rows(t, tiers):
     zlo = min(p["origin"][2] + v[2] for p in toy for v in p["positions"])
     zhi = max(p["origin"][2] + v[2] for p in toy for v in p["positions"])
     length = max(zhi - zlo, 0.01)
-    folder = os.path.join(local_meshes.content_folder(), local_meshes.FOLDER, f"SeahorseTrainer{t}")
+    folder = os.path.join(content_folder(), local_meshes.FOLDER, f"Trainer{t}")
     os.makedirs(folder, exist_ok=True)
     out = []
     for p in parts:
@@ -128,7 +144,7 @@ for _, tier in game:GetService("HttpService"):JSONDecode([==[__ROWS__]==]) do
 		stand.Parent = model
 		local byName = {}
 		for _, b in tier.parts do
-			local file = "rbxasset://__FOLDER__/SeahorseTrainer" .. tier.level .. "/" .. b.name .. ".mesh"
+			local file = "rbxasset://__FOLDER__/Trainer" .. tier.level .. "/" .. b.name .. ".mesh"
 			local p = AssetService:CreateMeshPartAsync(Content.fromUri(file), { CollisionFidelity = Enum.CollisionFidelity.Box })
 			assert((p.Size - v3(b.size)).Magnitude < 0.05, b.name .. " came in at the wrong size")
 			p.Name = b.name
@@ -191,7 +207,7 @@ def main():
     only = [int(v) for v in args[args.index("--only") + 1].split(",")] if "--only" in args else list(range(1, 13))
     tiers = json.load(open(os.path.join(HERE, "game", "tiers.json"), encoding="utf-8"))
     rows = [tier_rows(t, tiers) for t in only]
-    print("mesh files written to", os.path.join(local_meshes.content_folder(), local_meshes.FOLDER), flush=True)
+    print("mesh files written to", os.path.join(content_folder(), local_meshes.FOLDER), flush=True)
     if "--files-only" in args:
         return 0
     failed = 0
