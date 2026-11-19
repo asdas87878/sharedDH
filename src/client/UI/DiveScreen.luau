@@ -750,7 +750,7 @@ function DiveScreen.build(
 			local spot = spots[i]
 			local pos = spot
 			local scale = 1
-			local rot = 0
+			-- (never turned: a turned frame does not clip, so the fish would show past its border; Yua, x3)
 			tl.frame.Visible = s >= 0
 			if v.Plop == "slam" then
 				-- caught text 5's slam, small: from the camera, down onto its spot, rings back
@@ -763,11 +763,9 @@ function DiveScreen.build(
 					pos = Vector2.new(spot.X, spot.Y - 34 * hop(s - FALL))
 					scale = 1 + 0.12 * bump(t, lands[i], 0.14)
 				end
-				rot = -10 * (1 - at(t, starts[i], FALL + 0.2))
 			elseif v.Plop == "pop" then
 				-- out of nothing, overshoots and rings back
 				scale = settle(s * 0.9) * (1 + 0.1 * bump(t, lands[i], 0.2))
-				rot = 25 * (1 - quadOut(at(t, starts[i], 0.3)))
 			elseif v.Plop == "stamp" then
 				-- hovers big over its spot, lifts, stamps down
 				local HOVER = FALL * 0.55
@@ -783,7 +781,6 @@ function DiveScreen.build(
 				end
 			end
 			tl.frame.Position = P(pos.X, pos.Y)
-			tl.frame.Rotation = rot
 			tl.scale.Scale = math.max(scale, 0)
 			flashes[i].BackgroundTransparency = 1 - 0.85 * bump(t, lands[i], 0.22)
 			-- the ring bursting out of it as it lands (gold on a Legendary or rarer)

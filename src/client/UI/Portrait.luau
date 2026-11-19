@@ -13,9 +13,17 @@
 --     thin tall one (an angelfish: nearly side on, where its shape is).
 -- The light comes from over the viewer's shoulder onto the face. The black outline is the same creature drawn four more
 -- times in black behind it, a hair up-left, up-right, down-left and down-right: a window can't outline what it draws.
+--
+-- The partner's renders (task r1, Hugo 2026-11-19: "wasnt there other icons of the fishes that my partner made? check
+-- and replace if there is, just the renders though"): a fish with a render in UI.FishIcons (the Three-quarter view of
+-- its sheet, cut by tools/ui/fish_icons/cut.py) is shown by that picture instead of its model, in the same windows with
+-- the same black outline. Until the icon pages are uploaded (FishIcons.Pages) a live game keeps the model; Studio reads
+-- the local copies. In Studio the workspace's "FishIcons" attribute, "Model", shows the models again (to compare).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local FishIcons = require(script.Parent.FishIcons)
 local Kit = require(script.Parent.Kit)
 
 local Portrait = {}
@@ -57,6 +65,39 @@ local PLACE: { [string]: Place } = {
 }
 
 type View = { Kind: string, From: Vector3, Points: { Vector3 } }
+
+-- Where a render sits in its window, in shares of it (ScaleType Fit keeps its shape inside): a bust's front end fills
+-- the width, as the model busts run off the window's edge; a whole creature as the models' Whole
+local RENDER_PLACE = {
+	Bust = { Wide = 1, High = 0.88 },
+	Whole = { Wide = 0.94, High = 0.86 },
+}
+
+-- A fish's render picture: the page's image and the icon, or nil when it has none (or its page is not uploaded and
+-- this is not Studio)
+local function render(id: string): (string?, FishIcons.Icon?)
+	local icon = FishIcons.Icons[id]
+	if not icon then
+		return nil, nil
+	end
+	local studio = RunService:IsStudio()
+	if studio and workspace:GetAttribute("FishIcons") == "Model" then
+		return nil, nil
+	end
+	local page = FishIcons.Pages[icon.Page]
+	if page and page ~= "" then
+		return page, icon
+	end
+	if studio then
+		return FishIcons.Studio[icon.Page], icon
+	end
+	return nil, nil
+end
+
+-- Whether a fish is shown by its render (else by its model)
+function Portrait.rendered(id: string): boolean
+	return (render(id)) ~= nil
+end
 
 local masters: { [string]: Model } = {}
 local views: { [string]: View } = {}
@@ -274,8 +315,30 @@ function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 	local windows: { ViewportFrame } = {}
 	local cameras: { Camera } = {}
 	local offsets: { Vector2 } = {}
+	-- the render's copies, one beside each window (black ones for the outline), hidden while a model is shown
+	local arts: { Frame } = {}
+	local images: { ImageLabel } = {}
 	local function window(x: number, y: number, black: boolean)
 		table.insert(offsets, Vector2.new(x, y))
+		local art: Frame = Kit.new("Frame", {
+			Position = UDim2.fromOffset(x * thick, y * thick),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Visible = false,
+			ZIndex = if black then 1 else 2,
+		}, holder)
+		table.insert(arts, art)
+		table.insert(
+			images,
+			Kit.new("ImageLabel", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				BackgroundTransparency = 1,
+				ScaleType = Enum.ScaleType.Fit,
+				ImageColor3 = if black then Color3.new(0, 0, 0) else Kit.White,
+				ZIndex = if black then 1 else 2,
+			}, art)
+		)
 		local view: ViewportFrame = Kit.new("ViewportFrame", {
 			Position = UDim2.fromOffset(x * thick, y * thick),
 			Size = UDim2.fromScale(1, 1),
@@ -323,6 +386,7 @@ function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 		for i, view in windows do
 			local offset = offsets[i]
 			view.Position = UDim2.fromOffset(offset.X * step, offset.Y * step)
+			arts[i].Position = view.Position
 		end
 	end
 
@@ -337,7 +401,26 @@ function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 		end
 		table.clear(shown)
 		shownId = nil
+		for i, art in arts do
+			art.Visible = false
+			windows[i].Visible = true
+		end
 		if not id then
+			return true
+		end
+		local page, icon = render(id)
+		if page and icon then
+			settle()
+			local place = if icon.Bust then RENDER_PLACE.Bust else RENDER_PLACE.Whole
+			for i, image in images do
+				image.Image = page
+				image.ImageRectOffset = Vector2.new(icon.X, icon.Y)
+				image.ImageRectSize = Vector2.new(icon.W, icon.H)
+				image.Size = UDim2.fromScale(place.Wide, place.High)
+				arts[i].Visible = true
+				windows[i].Visible = false
+			end
+			shownId = id
 			return true
 		end
 		local source = master(id)

@@ -19,6 +19,7 @@ docs/attachments/fish-icons/contact.png (every icon on a mid grey, to check by e
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -37,8 +38,13 @@ PER_PAGE = PER_ROW * PER_ROW
 PAD = 4  # clear pixels round each cell's picture, so neighbours never bleed in
 LONG = 2.15  # wider than tall by this: shown by its front end
 BUST = 1.55  # a bust's width over its height
+WIDEST = 2.6  # a creature shown whole is cut to this width over its height (a ray's tail would leave it tiny)
 # a fish whose own sheet has another name (the base fish's newest sheet)
+# (a name, or a name and which panel: panels count left to right, then down; 0 is the top-left Three-quarter)
 SHEET = {
+    # no sheet of their own: their three-quarter views in the big-blocks pass (the models in the game)
+    "SergeantMajor": ("five-big-blocks", 0),
+    "Clownfish": ("five-big-blocks", 1),
     "Dunkleosteus": "dunkleosteus-legendary",
     "Hellmaw": "hellmaw-mythic",
     "BlueWhale": "bluewhale-old-one",
@@ -48,6 +54,7 @@ STALE = {
     "BlueWhale": "the sheet is the old Blue Whale; voxel.py was rebuilt 2026-11-12",
     "Dunkleosteus": "voxel.py edited 44 min after the sheet (2026-11-10)",
     "Hellmaw": "voxel.py edited after the Mythic sheet (2026-11-10)",
+    "SergeantMajor": "voxel.py edited after the big-blocks sheet (2026-11-10)",
 }
 
 
@@ -58,13 +65,21 @@ def fish_ids():
     return re.findall(r"^\t(\w+) = \{", block, re.M)
 
 
+def source(fish):
+    name = SHEET.get(fish, fish.lower())
+    name, index = name if isinstance(name, tuple) else (name, 0)
+    path = SHEETS / f"voxel-{name}.jpg"
+    return (path, index) if path.exists() else None
+
+
 def sheet_for(fish):
-    path = SHEETS / f"voxel-{SHEET.get(fish, fish.lower())}.jpg"
-    return path if path.exists() else None
+    found = source(fish)
+    return found[0] if found else None
 
 
-def panel(a):
-    """The Three-quarter panel's box and its cream: the cream area met first going down the sheet's left side."""
+def panel(a, index=0):
+    """A panel's box and its cream: the cream areas of the sheet, left to right then down; the first is met going down
+    the sheet's left side (the Three-quarter)."""
     h, w = a.shape[:2]
     x = int(w * 0.03)
     for y in range(int(h * 0.02), h // 2):
@@ -72,15 +87,17 @@ def panel(a):
         if px.min() > 235 and px[0] - px[2] > 4:  # cream, not the white page
             cream = a[y : y + 6, x : x + 6].reshape(-1, 3).mean(axis=0)
             near = np.abs(a - cream).max(axis=2) < 10
-            labels, _ = ndimage.label(near)
-            ys, xs = np.where(labels == labels[y, x])
-            return (ys.min(), ys.max() + 1, xs.min(), xs.max() + 1), cream
+            labels, n = ndimage.label(near)
+            boxes = [b for b in ndimage.find_objects(labels) if (b[0].stop - b[0].start) * (b[1].stop - b[1].start) > h * w * 0.03]
+            boxes.sort(key=lambda b: (round(b[0].start / 40), b[1].start))
+            b = boxes[index]
+            return (b[0].start, b[0].stop, b[1].start, b[1].stop), cream
     raise ValueError("no cream panel")
 
 
-def cut(path):
+def cut(path, index=0, long=True):
     a = np.asarray(Image.open(path).convert("RGB")).astype(np.float32)
-    (y0, y1, x0, x1), cream = panel(a)
+    (y0, y1, x0, x1), cream = panel(a, index)
     p = a[y0:y1, x0:x1]
     ph, pw = p.shape[:2]
     dist = np.abs(p - cream).max(axis=2)
@@ -115,12 +132,23 @@ def cut(path):
     t, b, l, r = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
     rgba = np.dstack([rgb, alpha * 255])[t:b, l:r]
     h, w = rgba.shape[:2]
-    bust = w > h * LONG
-    if bust:  # its front end: the head is at the panel's left
-        rgba = rgba[:, : int(h * BUST)]
+    bust = long and w > h * LONG
+    keep = int(h * BUST) if bust else int(h * WIDEST)
+    if w > keep:  # its front end (the head is at the panel's left): a bust, or a flat creature's long thin tail cut off
+        rgba = rgba[:, :keep]
         ys, _ = np.where(rgba[..., 3] > 0)
         rgba = rgba[ys.min() : ys.max() + 1]
     return rgba, bust
+
+
+def is_long(fish):
+    """Shown by its front end only when the model is long next to how big it looks from the side: flat wide creatures
+    (rays, turtles) stay whole, as the live portraits show them."""
+    meshes = list((ROOT / "art/creatures" / fish / "game").glob("*.mesh.json"))
+    if not meshes:
+        return True
+    x, y, z = json.loads(meshes[0].read_text())["size"]
+    return z > 14 and z > 2.3 * max(y, 0.7 * x)
 
 
 def shrink(rgba, size):
@@ -153,7 +181,7 @@ def main():
     contact = Image.new("RGB", (12 * 130, ((len(found) + 11) // 12) * 150), (120, 124, 132))
     draw = ImageDraw.Draw(contact)
     for i, fish in enumerate(found):
-        rgba, bust = cut(sheet_for(fish))
+        rgba, bust = cut(*source(fish), long=is_long(fish))
         icon = shrink(rgba, CELL)
         page, at = divmod(i, PER_PAGE)
         cy, cx = divmod(at, PER_ROW)
@@ -202,6 +230,9 @@ def main():
         lines.append(f"\t{f} = {{ Page = {p}, X = {x}, Y = {y}, W = {w}, H = {h}, Bust = {str(b).lower()} }},")
     lines += ["} :: { [string]: Icon }", "", "return FishIcons", ""]
     LUAU.write_text("\n".join(lines))
+    stylua = shutil.which("stylua") or str(Path.home() / ".rokit/bin/stylua")
+    if Path(stylua).exists():
+        subprocess.run([stylua, str(LUAU)], cwd=ROOT)
     print(f"{len(found)} icons on {len(pages)} pages; missing {missing}")
     if "--studio" in sys.argv:
         for version in VERSIONS.glob("version-*"):

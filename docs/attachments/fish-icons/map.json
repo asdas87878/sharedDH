@@ -11,11 +11,22 @@
    ],
    "bust": false
   },
+  "SergeantMajor": {
+   "sheet": "voxel-five-big-blocks.jpg",
+   "page": 1,
+   "rect": [
+    174,
+    14,
+    162,
+    141
+   ],
+   "bust": false
+  },
   "YellowTang": {
    "sheet": "voxel-yellowtang.jpg",
    "page": 1,
    "rect": [
-    174,
+    344,
     4,
     162,
     162
@@ -26,10 +37,21 @@
    "sheet": "voxel-butterflyfish.jpg",
    "page": 1,
    "rect": [
-    344,
+    514,
     26,
     162,
     118
+   ],
+   "bust": false
+  },
+  "Clownfish": {
+   "sheet": "voxel-five-big-blocks.jpg",
+   "page": 1,
+   "rect": [
+    684,
+    9,
+    162,
+    151
    ],
    "bust": false
   },
@@ -37,7 +59,7 @@
    "sheet": "voxel-boxfish.jpg",
    "page": 1,
    "rect": [
-    514,
+    854,
     19,
     162,
     131
@@ -48,8 +70,8 @@
    "sheet": "voxel-pufferfish.jpg",
    "page": 1,
    "rect": [
-    684,
-    22,
+    4,
+    192,
     162,
     126
    ],
@@ -59,51 +81,51 @@
    "sheet": "voxel-flyingfish.jpg",
    "page": 1,
    "rect": [
-    854,
-    41,
+    174,
+    220,
     162,
-    87
+    70
    ],
-   "bust": true
+   "bust": false
   },
   "Stingray": {
    "sheet": "voxel-stingray.jpg",
    "page": 1,
    "rect": [
-    4,
-    212,
+    344,
+    229,
     162,
-    85
+    51
    ],
-   "bust": true
+   "bust": false
   },
   "Cuttlefish": {
    "sheet": "voxel-cuttlefish.jpg",
    "page": 1,
    "rect": [
-    174,
-    203,
+    514,
+    223,
     162,
-    104
+    64
    ],
-   "bust": true
+   "bust": false
   },
   "SeaTurtle": {
    "sheet": "voxel-seaturtle.jpg",
    "page": 1,
    "rect": [
-    344,
-    204,
+    684,
+    224,
     162,
-    102
+    62
    ],
-   "bust": true
+   "bust": false
   },
   "Seahorse": {
    "sheet": "voxel-seahorse.jpg",
    "page": 1,
    "rect": [
-    532,
+    872,
     174,
     126,
     162
@@ -114,8 +136,8 @@
    "sheet": "voxel-reefshark.jpg",
    "page": 1,
    "rect": [
-    684,
-    204,
+    4,
+    374,
     162,
     102
    ],
@@ -125,18 +147,18 @@
    "sheet": "voxel-archelon.jpg",
    "page": 1,
    "rect": [
-    854,
-    204,
+    174,
+    391,
     162,
-    101
+    68
    ],
-   "bust": true
+   "bust": false
   },
   "PearlSerpent": {
    "sheet": "voxel-pearlserpent.jpg",
    "page": 1,
    "rect": [
-    4,
+    344,
     383,
     162,
     83
@@ -147,7 +169,7 @@
    "sheet": "voxel-parrotfish.jpg",
    "page": 1,
    "rect": [
-    174,
+    514,
     374,
     162,
     101
@@ -158,7 +180,7 @@
    "sheet": "voxel-angelfish.jpg",
    "page": 1,
    "rect": [
-    348,
+    688,
     344,
     153,
     162
@@ -169,7 +191,7 @@
    "sheet": "voxel-lionfish.jpg",
    "page": 1,
    "rect": [
-    514,
+    854,
     358,
     162,
     134
@@ -180,8 +202,8 @@
    "sheet": "voxel-morayeel.jpg",
    "page": 1,
    "rect": [
-    684,
-    376,
+    4,
+    546,
     162,
     98
    ],
@@ -191,8 +213,8 @@
    "sheet": "voxel-octopus.jpg",
    "page": 1,
    "rect": [
-    854,
-    384,
+    174,
+    554,
     162,
     82
    ],
@@ -202,7 +224,7 @@
    "sheet": "voxel-humpheadwrasse.jpg",
    "page": 1,
    "rect": [
-    4,
+    344,
     548,
     162,
     94
@@ -213,7 +235,7 @@
    "sheet": "voxel-dunkleosteus-legendary.jpg",
    "page": 1,
    "rect": [
-    174,
+    514,
     550,
     162,
     90
@@ -224,7 +246,7 @@
    "sheet": "voxel-coraldragon.jpg",
    "page": 1,
    "rect": [
-    344,
+    684,
     542,
     162,
     105
@@ -235,19 +257,19 @@
    "sheet": "voxel-sealion.jpg",
    "page": 1,
    "rect": [
-    514,
-    544,
+    854,
+    564,
     162,
-    102
+    62
    ],
-   "bust": true
+   "bust": false
   },
   "Garibaldi": {
    "sheet": "voxel-garibaldi.jpg",
    "page": 1,
    "rect": [
-    684,
-    537,
+    4,
+    707,
     162,
     116
    ],
@@ -257,8 +279,8 @@
    "sheet": "voxel-leopardshark.jpg",
    "page": 1,
    "rect": [
-    854,
-    544,
+    174,
+    714,
     162,
     101
    ],
@@ -268,7 +290,7 @@
    "sheet": "voxel-giantseabass.jpg",
    "page": 1,
    "rect": [
-    4,
+    344,
     718,
     162,
     93
@@ -279,7 +301,7 @@
    "sheet": "voxel-greatwhite.jpg",
    "page": 1,
    "rect": [
-    174,
+    514,
     720,
     162,
     89
@@ -290,7 +312,7 @@
    "sheet": "voxel-stellersseacow.jpg",
    "page": 1,
    "rect": [
-    344,
+    684,
     712,
     162,
     105
@@ -301,7 +323,7 @@
    "sheet": "voxel-dakosaurus.jpg",
    "page": 1,
    "rect": [
-    514,
+    854,
     724,
     162,
     82
@@ -312,8 +334,8 @@
    "sheet": "voxel-kelpwyrm.jpg",
    "page": 1,
    "rect": [
-    684,
-    717,
+    4,
+    887,
     162,
     95
    ],
@@ -323,8 +345,8 @@
    "sheet": "voxel-barracuda.jpg",
    "page": 1,
    "rect": [
-    854,
-    719,
+    174,
+    889,
     162,
     91
    ],
@@ -334,7 +356,7 @@
    "sheet": "voxel-hammerheadshark.jpg",
    "page": 1,
    "rect": [
-    4,
+    344,
     895,
     162,
     79
@@ -345,7 +367,7 @@
    "sheet": "voxel-sawfish.jpg",
    "page": 1,
    "rect": [
-    174,
+    514,
     904,
     162,
     62
@@ -356,18 +378,18 @@
    "sheet": "voxel-electricray.jpg",
    "page": 1,
    "rect": [
-    344,
-    892,
+    684,
+    904,
     162,
-    85
+    62
    ],
-   "bust": true
+   "bust": false
   },
   "GoliathGrouper": {
    "sheet": "voxel-goliathgrouper.jpg",
    "page": 1,
    "rect": [
-    514,
+    854,
     887,
     162,
     96
@@ -376,10 +398,10 @@
   },
   "Xiphactinus": {
    "sheet": "voxel-xiphactinus.jpg",
-   "page": 1,
+   "page": 2,
    "rect": [
-    684,
-    896,
+    4,
+    46,
     162,
     77
    ],
@@ -387,10 +409,10 @@
   },
   "GalleonWhale": {
    "sheet": "voxel-galleonwhale.jpg",
-   "page": 1,
+   "page": 2,
    "rect": [
-    854,
-    893,
+    174,
+    43,
     162,
     84
    ],
@@ -400,7 +422,7 @@
    "sheet": "voxel-swordfish.jpg",
    "page": 2,
    "rect": [
-    4,
+    344,
     32,
     162,
     105
@@ -411,7 +433,7 @@
    "sheet": "voxel-dolphin.jpg",
    "page": 2,
    "rect": [
-    174,
+    514,
     32,
     162,
     105
@@ -422,7 +444,7 @@
    "sheet": "voxel-orca.jpg",
    "page": 2,
    "rect": [
-    344,
+    684,
     42,
     162,
     86
@@ -433,19 +455,19 @@
    "sheet": "voxel-mantaray.jpg",
    "page": 2,
    "rect": [
-    514,
-    32,
+    854,
+    54,
     162,
-    105
+    62
    ],
-   "bust": true
+   "bust": false
   },
   "Helicoprion": {
    "sheet": "voxel-helicoprion.jpg",
    "page": 2,
    "rect": [
-    684,
-    31,
+    4,
+    201,
     162,
     107
    ],
@@ -455,8 +477,8 @@
    "sheet": "voxel-elasmosaurus.jpg",
    "page": 2,
    "rect": [
-    854,
-    51,
+    174,
+    221,
     162,
     67
    ],
@@ -466,7 +488,7 @@
    "sheet": "voxel-bluewhale-old-one.jpg",
    "page": 2,
    "rect": [
-    4,
+    344,
     211,
     162,
     87
@@ -477,7 +499,7 @@
    "sheet": "voxel-stormserpent.jpg",
    "page": 2,
    "rect": [
-    174,
+    514,
     218,
     162,
     74
@@ -488,7 +510,7 @@
    "sheet": "voxel-viperfish.jpg",
    "page": 2,
    "rect": [
-    344,
+    684,
     202,
     162,
     106
@@ -499,7 +521,7 @@
    "sheet": "voxel-giantsquid.jpg",
    "page": 2,
    "rect": [
-    514,
+    854,
     215,
     162,
     79
@@ -510,8 +532,8 @@
    "sheet": "voxel-goblinshark.jpg",
    "page": 2,
    "rect": [
-    684,
-    213,
+    4,
+    383,
     162,
     84
    ],
@@ -521,8 +543,8 @@
    "sheet": "voxel-liopleurodon.jpg",
    "page": 2,
    "rect": [
-    854,
-    203,
+    174,
+    373,
     162,
     104
    ],
@@ -532,7 +554,7 @@
    "sheet": "voxel-shonisaurus.jpg",
    "page": 2,
    "rect": [
-    4,
+    344,
     381,
     162,
     88
@@ -543,7 +565,7 @@
    "sheet": "voxel-lanternleviathan.jpg",
    "page": 2,
    "rect": [
-    174,
+    514,
     376,
     162,
     97
@@ -554,7 +576,7 @@
    "sheet": "voxel-aurorajelly.jpg",
    "page": 2,
    "rect": [
-    369,
+    709,
     344,
     112,
     162
@@ -565,7 +587,7 @@
    "sheet": "voxel-frilledshark.jpg",
    "page": 2,
    "rect": [
-    514,
+    854,
     382,
     162,
     86
@@ -576,8 +598,8 @@
    "sheet": "voxel-anglerfish.jpg",
    "page": 2,
    "rect": [
-    684,
-    353,
+    4,
+    523,
     162,
     144
    ],
@@ -587,8 +609,8 @@
    "sheet": "voxel-mosasaurus.jpg",
    "page": 2,
    "rect": [
-    854,
-    381,
+    174,
+    551,
     162,
     88
    ],
@@ -598,7 +620,7 @@
    "sheet": "voxel-livyatan.jpg",
    "page": 2,
    "rect": [
-    4,
+    344,
     545,
     162,
     99
@@ -609,7 +631,7 @@
    "sheet": "voxel-basilosaurus.jpg",
    "page": 2,
    "rect": [
-    174,
+    514,
     551,
     162,
     87
@@ -620,7 +642,7 @@
    "sheet": "voxel-kraken.jpg",
    "page": 2,
    "rect": [
-    344,
+    684,
     556,
     162,
     77
@@ -631,7 +653,7 @@
    "sheet": "voxel-voidwhale.jpg",
    "page": 2,
    "rect": [
-    514,
+    854,
     542,
     162,
     105
@@ -642,8 +664,8 @@
    "sheet": "voxel-seascorpion.jpg",
    "page": 2,
    "rect": [
-    684,
-    551,
+    4,
+    721,
     162,
     88
    ],
@@ -653,8 +675,8 @@
    "sheet": "voxel-giantisopod.jpg",
    "page": 2,
    "rect": [
-    854,
-    542,
+    174,
+    712,
     162,
     105
    ],
@@ -664,7 +686,7 @@
    "sheet": "voxel-megalodon.jpg",
    "page": 2,
    "rect": [
-    4,
+    344,
     713,
     162,
     104
@@ -675,18 +697,18 @@
    "sheet": "voxel-kronosaurus.jpg",
    "page": 2,
    "rect": [
-    174,
-    713,
+    514,
+    734,
     162,
-    103
+    62
    ],
-   "bust": true
+   "bust": false
   },
   "Anomalocaris": {
    "sheet": "voxel-anomalocaris.jpg",
    "page": 2,
    "rect": [
-    344,
+    684,
     724,
     162,
     82
@@ -697,7 +719,7 @@
    "sheet": "voxel-bobbitworm.jpg",
    "page": 2,
    "rect": [
-    514,
+    854,
     719,
     162,
     92
@@ -708,8 +730,8 @@
    "sheet": "voxel-moltenmegalodon.jpg",
    "page": 2,
    "rect": [
-    684,
-    711,
+    4,
+    881,
     162,
     107
    ],
@@ -719,8 +741,8 @@
    "sheet": "voxel-emberserpent.jpg",
    "page": 2,
    "rect": [
-    854,
-    717,
+    174,
+    887,
     162,
     96
    ],
@@ -730,7 +752,7 @@
    "sheet": "voxel-wraitheel.jpg",
    "page": 2,
    "rect": [
-    4,
+    344,
     892,
     162,
     86
@@ -741,18 +763,18 @@
    "sheet": "voxel-graveray.jpg",
    "page": 2,
    "rect": [
-    174,
-    882,
+    514,
+    904,
     162,
-    105
+    62
    ],
-   "bust": true
+   "bust": false
   },
   "SkullAngler": {
    "sheet": "voxel-skullangler.jpg",
    "page": 2,
    "rect": [
-    344,
+    684,
     874,
     162,
     121
@@ -763,19 +785,19 @@
    "sheet": "voxel-graveturtle.jpg",
    "page": 2,
    "rect": [
-    514,
-    884,
+    854,
+    900,
     162,
-    101
+    70
    ],
-   "bust": true
+   "bust": false
   },
   "BoneLeviathan": {
    "sheet": "voxel-boneleviathan.jpg",
-   "page": 2,
+   "page": 3,
    "rect": [
-    684,
-    884,
+    4,
+    34,
     162,
     102
    ],
@@ -783,10 +805,10 @@
   },
   "HalfboneMegalodon": {
    "sheet": "voxel-halfbonemegalodon.jpg",
-   "page": 2,
+   "page": 3,
    "rect": [
-    854,
-    881,
+    174,
+    31,
     162,
     108
    ],
@@ -796,7 +818,7 @@
    "sheet": "voxel-phantomwhale.jpg",
    "page": 3,
    "rect": [
-    4,
+    344,
     35,
     162,
     99
@@ -807,7 +829,7 @@
    "sheet": "voxel-hellfinshark.jpg",
    "page": 3,
    "rect": [
-    174,
+    514,
     39,
     162,
     92
@@ -818,7 +840,7 @@
    "sheet": "voxel-brimstoneeel.jpg",
    "page": 3,
    "rect": [
-    344,
+    684,
     38,
     162,
     93
@@ -829,19 +851,19 @@
    "sheet": "voxel-cinderray.jpg",
    "page": 3,
    "rect": [
-    514,
-    32,
+    854,
+    54,
     162,
-    105
+    62
    ],
-   "bust": true
+   "bust": false
   },
   "InfernalAngler": {
    "sheet": "voxel-infernalangler.jpg",
    "page": 3,
    "rect": [
-    684,
-    15,
+    4,
+    185,
     162,
     139
    ],
@@ -851,8 +873,8 @@
    "sheet": "voxel-hellmaw-mythic.jpg",
    "page": 3,
    "rect": [
-    854,
-    19,
+    174,
+    189,
     162,
     131
    ],
@@ -862,7 +884,7 @@
    "sheet": "voxel-abyssalwatcher.jpg",
    "page": 3,
    "rect": [
-    4,
+    344,
     203,
     162,
     104
@@ -873,7 +895,7 @@
    "sheet": "voxel-thedevourer.jpg",
    "page": 3,
    "rect": [
-    174,
+    514,
     199,
     162,
     112
@@ -882,8 +904,6 @@
   }
  },
  "missing": [
-  "SergeantMajor",
-  "Clownfish",
   "Fast",
   "Predator",
   "Frenzy",
@@ -894,7 +914,8 @@
  "stale": {
   "BlueWhale": "the sheet is the old Blue Whale; voxel.py was rebuilt 2026-11-12",
   "Dunkleosteus": "voxel.py edited 44 min after the sheet (2026-11-10)",
-  "Hellmaw": "voxel.py edited after the Mythic sheet (2026-11-10)"
+  "Hellmaw": "voxel.py edited after the Mythic sheet (2026-11-10)",
+  "SergeantMajor": "voxel.py edited after the big-blocks sheet (2026-11-10)"
  },
  "heroNotUsed": "art/creatures/*/renders/hero.png are the old faceted kit (2026-11-09), not the game's voxel models"
 }
