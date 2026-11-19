@@ -72,7 +72,8 @@ if export:
             bad += 1
         model = runpy.run_path(path)
         rows[str(t)] = {"name": model["NAMES"][t], "lights": [[n, list(at), c, rng, b] for n, at, c, rng, b in model["LIGHTS"]],
-                        "rainbow": model.get("VARIANT") == "rainbow", "keep": sorted(model.get("KEEP", []))}
+                        "rainbow": model.get("VARIANT") == "rainbow", "keep": sorted(model.get("KEEP", [])),
+                        "springAt": list(model["SPRING_AT"]), "coilOut": 1.225}  # RideStyles.Trainer Radius + Wire / 2
     if tiers == list(range(1, 13)):
         json.dump(rows, open(os.path.join(HERE, "game", "tiers.json"), "w"), indent=1)
     sys.exit(1 if bad else 0)

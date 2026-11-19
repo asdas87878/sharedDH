@@ -12,7 +12,7 @@
 -- from ReplicatedStorage.TrainerModels). When the server builds a ride again (its Build attribute), we look at it
 -- again; when that build is an upgrade (UpgradeAt), every machine plays it: the new seahorse springs up from the
 -- coil with a white flash and a burst of sparks. The rock moves each of the toy's parts from where it rests, so a
--- ride built again mid-rock is never left out of place. A level 11 or 12 stand's shards turn round the coil. Our
+-- ride built again mid-rock is never left out of place. Our
 -- own plot's ride has a prompt (E, "Upgrade") that asks the server for the next level (Remotes.Trainer "Up").
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -39,8 +39,6 @@ type Ride = {
 	Sizes: { Vector3 },
 	Build: any,
 	Grow: Grow?,
-	Orbit: BasePart?,
-	OrbitRest: CFrame,
 	Base: CFrame,
 	Top: CFrame,
 	Side: Vector3,
@@ -150,8 +148,6 @@ local function gather()
 			complete = false
 			continue
 		end
-		local stand = plot:FindFirstChild("TrainerStand")
-		local orbit = stand and stand:FindFirstChild("Orbit")
 		table.insert(rides, {
 			Model = model,
 			Body = body,
@@ -160,8 +156,6 @@ local function gather()
 			Sizes = sizes,
 			Build = model:GetAttribute("Build"),
 			Grow = nil,
-			Orbit = if orbit and orbit:IsA("BasePart") then orbit else nil,
-			OrbitRest = if orbit and orbit:IsA("BasePart") then orbit.CFrame else CFrame.identity,
 			Base = base,
 			Top = top,
 			Side = base.RightVector,
@@ -484,11 +478,6 @@ local function step()
 		end
 		if (ride.Base.Position - eye).Magnitude > SEE then
 			continue
-		end
-		if ride.Orbit then
-			-- (the shards round the coil turn slowly)
-			local foot = ride.Base.Position
-			ride.Orbit.CFrame = CFrame.new(foot) * CFrame.Angles(0, now * 0.7, 0) * CFrame.new(-foot) * ride.OrbitRest
 		end
 		ride.Amp += ((if seated then 1 else 0) - ride.Amp) * math.min(1, dt * T.Ease)
 		local since = now - ride.BounceAt

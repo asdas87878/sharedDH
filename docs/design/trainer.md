@@ -62,17 +62,24 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
   are placeholders** (marked so in Config): fixed whole numbers, waiting for Hugo's pick of the economy draft
   (mission 20e4833b task b1, [progression](progression.md) "D4"), whose columns drop straight in; then `Share` goes
   to 0. Level 1 gives 4, today's Rate, so nothing changes until someone upgrades.
-- **The stand and the coil, reconciled with the ride:** each level's model has two halves. The **Toy** (the
-  seahorse, its saddle, crown, wings, and the plate it stands on) rocks; the **Stand** (pad, base, posts, crystals,
-  the orbiting shards) stays on the floor. The draft's own coil is left out of the game's mesh: the game's coil
-  (`RideStyles.coil`, bending as it rocks) runs from the stand's top to the plate's underside, in that level's
-  colours (`RideStyles.CoilColours`: grey to chrome, gold on 8 and 9, dark with glowing half-turns from level 7). An
-  unseen block over the stand's footprint is what you stand on. The tail curl stands on the plate, as in the draft.
+- **No plate: seahorse, spring, ground** (Hugo, 2026-11-19, a change during sh1: "remove the platform/base plate
+  the seahorse stands on ... like a playground spring rider"). Each level's model has two halves: the **Toy** (the
+  seahorse, its saddle, crown and wings) rocks; the **Stand** (pad, base, posts, crystals, shards) stays on the floor.
+  The draft's coil and the plate on it are left out of the game's mesh. The game's coil (`RideStyles.coil`, bending
+  as it rocks) runs from the stand's top straight into the body's underside, `SpringLength` (5.2 studs), in that
+  level's colours (`RideStyles.CoilColours`: grey to chrome, gold on 8 and 9, dark with glowing half-turns from level
+  7). Where it meets the body (`SpringAt`, worked out by `install_tiers.py` from the mesh): a cube ahead of the
+  tail's curl, just under the highest point of the rounded belly within the coil's reach, so the coil's top turn and
+  its cap sink into the belly and touch it all round. The coil is a little slimmer than h1's (radius 1.0, wire 0.45,
+  was 1.25 and 0.5, on the kit's toy too) so it clears the tail's curl, and the curl clears the stand by about a stud
+  even at the bottom of a rock. The rock turns about the coil's foot on the stand's top; the welds, the seat and the
+  unseen block you stand on (the stand's footprint) are as before. The shards stand still, as drafted (they would
+  cut through the lowered tail if they turned).
 - **The seat** is each level's own (`SEAT` in the model: the saddle's top), with the rider's root 1.75 studs over it
   and 0.9 back (`SeatLift`, `SeatBack`: level 1 then seats as h1 did). Hop on, rock, hop off and the Rider weld are
   the same code on every level.
-- **Size:** the model at 0.85, as the kit's toy. With the draft's stand the seahorse stands about 3 studs higher
-  than the h1 toy did.
+- **Size:** the model at 0.85, as the kit's toy. On the draft's stand and a 5.2-stud coil the seahorse stands about
+  2 studs higher than the h1 toy did.
 - **Glow:** the glowing colours are their own parts in Neon (`_Glow`), level 7 on; small PointLights from the model's
   `LIGHTS` (stand and head). Level 9's gold is in the mesh; level 12's rainbow is put into the mesh by the creatures'
   rainbow rule (as a Rainbow fish), its stand and dark colours left as they are. Level 11 and 12's shards turn round
@@ -84,12 +91,12 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
 
 ### Building them again
 1. `python art/creatures/Seahorse/tiers/build_tiers.py --export` (Blender): each level with `GAME = True` (no
-   draft coil, the plate a part of its own) through `voxel_kit.py --export` into
+   draft coil, no plate) through `voxel_kit.py --export` into
    `art/creatures/Seahorse/tiers/game/T<n>/` (`SeahorseTrainer<n>.glb`, `.mesh.json`), and `game/tiers.json`.
 2. `python art/creatures/Seahorse/tiers/install_tiers.py runner` (Studio open, Edit): the mesh files and
    `ReplicatedStorage.TrainerModels`. After Studio updates itself: `--files-only` again. Save the place after.
-3. Stills: `python art/creatures/Seahorse/tiers/tier_stills.py install`, Play, then `sheet`, `rider`, `upgrade`;
-   `remove` after.
+3. Stills: `python art/creatures/Seahorse/tiers/tier_stills.py install`, Play, then `sheet`, `joints`, `rock`,
+   `rider`, `upgrade`; `remove` after.
 
 ## Where it lives
 - `src/shared/RideStyles.luau`: `RideStyles.Trainer` (every number above) and `RideStyles.coil` (the coil's pieces
@@ -106,6 +113,7 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
   `TrainService` `build` (a ride at a level), the "Up" request, the sign's level lines, and the Studio hook
   `ServerStorage.TrainerTest`; the ride model also carries Level, Title, Build, PartCount and UpgradeAt. Models:
   `art/creatures/Seahorse/tiers/` (trainer.py, build_tiers.py, install_tiers.py, tier_stills.py, game/).
+  `RideStyles.Trainer.SpringLength`; the model's attributes Foot, StandTop, SpringAt, SeatAt.
 
 ## Open
 - The levels' Oxygen and prices wait for Hugo's pick of the economy draft (b1); the sign has no Robux button yet.

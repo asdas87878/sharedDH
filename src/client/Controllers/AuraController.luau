@@ -126,6 +126,7 @@ local function emit(parent: Instance, props: { [string]: any }): ParticleEmitter
 	local e = Instance.new("ParticleEmitter")
 	e.LightInfluence = 0
 	e.LightEmission = 1
+	e.Brightness = 2.5
 	for k, v in props do
 		(e :: any)[k] = v
 	end
@@ -507,10 +508,10 @@ Build[6] = function(fx: Fx)
 	lightning(fx, {
 		bolts = 2,
 		segs = 6,
-		width = 0.18,
+		width = 0.24,
 		color = yellow,
 		every = 0.09,
-		duty = 0.45,
+		duty = 0.6,
 		jag = 0.55,
 		from = function(r: Random)
 			return Vector3.new(r:NextNumber(-1, 1), 6.7, r:NextNumber(-1, 1))
@@ -627,12 +628,13 @@ Build[9] = function(fx: Fx)
 			ColorSequenceKeypoint.new(0.4, hot),
 			ColorSequenceKeypoint.new(1, deep),
 		}),
-		Rate = 40,
+		Rate = 70,
 		Lifetime = NumberRange.new(0.6, 1),
 		Speed = NumberRange.new(3, 5),
 		SpreadAngle = Vector2.new(8, 8),
-		Size = seq({ { 0, 1 }, { 0.5, 0.8 }, { 1, 0 } }),
-		Transparency = seq({ { 0, 0.4 }, { 0.6, 0.6 }, { 1, 1 } }),
+		Size = seq({ { 0, 1.6 }, { 0.5, 1.2 }, { 1, 0 } }),
+		Transparency = seq({ { 0, 0.1 }, { 0.6, 0.35 }, { 1, 1 } }),
+		Brightness = 4,
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-60, 60),
 		Shape = Enum.ParticleEmitterShape.Disc,

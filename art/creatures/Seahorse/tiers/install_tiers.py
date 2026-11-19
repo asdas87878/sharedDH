@@ -1,12 +1,12 @@
 """Puts the seahorse trainer's 12 levels into the open Studio place, as the creatures' --local install does (no upload):
 each part is written as a mesh file into Studio's content folder (rbxasset://ridefish/Trainer<n>/<Part>.mesh)
 and ReplicatedStorage.TrainerModels.T<n> is a Model of MeshParts that show them, in two models:
-  Toy    the seahorse and what rides with it (Body, Head, Fin, the tail T1..T6, Plate, Wings, Crown and their _Glow)
+  Toy    the seahorse and what rides with it (Body, Head, Fin, the tail T1..T6, Wings, Crown and their _Glow)
   Stand  what stays on the floor (Stand, Stand_Glow, Orbit)
 The model's own space is the export's (studs, +Y up, the head toward -Z, the middle of the box at the origin; its
 WorldPivot is the origin). Attributes on T<n>, in that space: Level, Title (the level's name), Foot (the middle of the
-pad's underside, on the coil's axis), StandTop (y of the stand's top, where the coil starts), PlateBottom (y of the
-plate's underside, where it ends), SeatAt (the seat's top, from the model's SEAT). Body carries PivotOffset at its joint.
+pad's underside, on the stand's axis), StandTop (y of the stand's top, where the coil starts), SpringAt (where the
+coil meets the body's underside: no plate), SeatAt (the seat's top, from the model's SEAT). Body carries PivotOffset at its joint.
 Glowing parts are Neon. Level 12 (the rainbow) gets the creatures' rainbow rule in its vertex colours (as
 tools/creatures/local_meshes.py does for a Rainbow fish), the stand and the KEEP colours left as they are; level 9's
 gold is in the export already. PointLights from the model's LIGHTS.
@@ -16,6 +16,7 @@ usage: python art/creatures/Seahorse/tiers/install_tiers.py [runner|<studio_id>]
   --files-only again. A published game needs real uploads (asset ids) instead: not done without Hugo's word.
 """
 import json
+import math
 import os
 import subprocess
 import sys
@@ -46,6 +47,24 @@ def content_folder():
     except OSError:
         pass
     return local_meshes.content_folder()
+
+
+SCALE = 0.85  # RideStyles.Trainer.Scale
+
+
+def underside(tris, x, z):
+    """the lowest point of the triangles straight above or below (x, z), or None"""
+    hits = []
+    for a, b, c in tris:
+        d = (b[2] - c[2]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[2] - c[2])
+        if abs(d) < 1e-9:
+            continue
+        l1 = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2])) / d
+        l2 = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2])) / d
+        l3 = 1 - l1 - l2
+        if min(l1, l2, l3) >= -1e-6:
+            hits.append(l1 * a[1] + l2 * b[1] + l3 * c[1])
+    return min(hits) if hits else None
 
 
 def hexrgb(h):
@@ -95,8 +114,8 @@ def tier_rows(t, tiers):
         out.append({"name": p["name"], "centre": [p["origin"][i] + mid[i] for i in range(3)],
                     "size": [max(hi[i] - lo[i], 0.01) for i in range(3)], "glow": p["name"] in glow,
                     "stand": p["name"] in STAND_PARTS, "pivot": pivots.get(p["name"])})
-    # the stand's heights, from the model (trainer.py): pad z -27, base top -23 (-22 from level 4), plate z -14..-12;
-    # Stand's pivot is at z -20 and Plate's at -14 (cubes)
+    # the stand's heights, from the model (trainer.py): pad z -27, base top -23 (-22 from level 4); Stand's pivot is
+    # at z -20 (cubes)
     stand = pivots["Stand"]
     top = -22 if t >= 4 else -23
     body = pivots["Body"]  # Body's pivot is the kit's (0, 0, 3): so the kit's origin, in this space
@@ -105,6 +124,25 @@ def tier_rows(t, tiers):
     def at(x, y, z):  # the kit's (x head-ward, y right, z up) in cubes, to this space
         return [round(y * U + origin[0], 4), round(z * U + origin[1], 4), round(x * U + origin[2], 4)]
 
+    # where the coil meets the body (no plate: Hugo, 2026-11-19): under SPRING_AT, just under the highest point of
+    # the body's rounded underside within the coil's reach, so the coil's top and its cap sink into the belly and
+    # touch it all round (no gap, nothing floating)
+    sx, _, _ = row["springAt"]
+    centre = at(sx, 0, 0)
+    tris = []
+    for p in parts:
+        if p["name"].startswith("Body"):
+            pts = [[p["origin"][i] + v[i] for i in range(3)] for v in p["positions"]]
+            tris += [(pts[a], pts[b], pts[c]) for a, b, c in p["triangles"]]
+    reach = row["coilOut"] / SCALE  # the coil's outside radius, in this space
+    unders = []
+    for ring in (0.0, 0.5, 1.0):
+        for k in range(12):
+            a = math.radians(30 * k)
+            y = underside(tris, centre[0] + ring * reach * math.cos(a), centre[2] + ring * reach * math.sin(a))
+            if y is not None:
+                unders.append(y)
+    spring_at = [centre[0], round(max(unders) - 0.35 * U, 4), centre[2]]
     # (part, (x, y, z) cubes, colour, watts, radius): y not 0 is a pair, as the kit makes it. Roblox's PointLight: a
     # range from the watts, soft
     lights = []
@@ -114,7 +152,8 @@ def tier_rows(t, tiers):
     return {
         "level": t, "title": row["name"], "parts": out,
         "foot": [stand[0], round(stand[1] - 7 * U, 4), stand[2]],
-        "standTop": round(stand[1] + (top + 20) * U, 4), "plateBottom": pivots["Plate"][1],
+        "standTop": round(stand[1] + (top + 20) * U, 4), "springAt": spring_at,
+        "underLow": round(min(unders), 4),
         "seat": info["seat"], "lights": lights,
     }
 
@@ -181,7 +220,7 @@ for _, tier in game:GetService("HttpService"):JSONDecode([==[__ROWS__]==]) do
 		model:SetAttribute("Title", tier.title)
 		model:SetAttribute("Foot", v3(tier.foot))
 		model:SetAttribute("StandTop", tier.standTop)
-		model:SetAttribute("PlateBottom", tier.plateBottom)
+		model:SetAttribute("SpringAt", v3(tier.springAt))
 		model:SetAttribute("SeatAt", v3(tier.seat))
 		model:SetAttribute("Local", true)
 		local old = folder:FindFirstChild(model.Name)

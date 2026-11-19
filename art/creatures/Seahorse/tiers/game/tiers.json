@@ -8,7 +8,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "2": {
   "name": "Painted",
@@ -19,7 +25,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "3": {
   "name": "Saddled",
@@ -30,7 +42,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "4": {
   "name": "Racer",
@@ -41,7 +59,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "5": {
   "name": "Iron",
@@ -52,7 +76,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "6": {
   "name": "Spiked",
@@ -63,7 +93,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "7": {
   "name": "Knight",
@@ -86,7 +122,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "8": {
   "name": "Royal",
@@ -109,7 +151,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "9": {
   "name": "Golden",
@@ -132,7 +180,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "10": {
   "name": "Abyssal",
@@ -177,7 +231,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "11": {
   "name": "Starfire",
@@ -222,7 +282,13 @@
    "cream",
    "s_pad",
    "s_rim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  },
  "12": {
   "name": "Prismatic",
@@ -276,6 +342,12 @@
    "s_rim",
    "s_shard",
    "s_trim"
-  ]
+  ],
+  "springAt": [
+   -1,
+   0,
+   -3
+  ],
+  "coilOut": 1.225
  }
 }

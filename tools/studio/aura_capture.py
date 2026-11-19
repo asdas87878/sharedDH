@@ -98,7 +98,7 @@ RS:GetAttributeChangedSignal("A1Cmd"):Connect(function()
 			local rig = stage:FindFirstChild("A1Rig" .. i)
 			local p = rig.HumanoidRootPart.Position
 			local look = p + Vector3.new(0, 1, 0)
-			workspace:SetAttribute("A1Cam", CFrame.lookAt(p + Vector3.new(6.5, 3.5, -13.5), look))
+			workspace:SetAttribute("A1Cam", CFrame.lookAt(p + Vector3.new(4.6, 2.6, -9.6), look))
 			return "cam " .. i
 		elseif verb == "spawn" then
 			local i, style, at = string.match(arg, "(%d+),(%d+),([%d%.]+)")
@@ -124,6 +124,14 @@ local RunService = game:GetService("RunService")
 RunService:BindToRenderStep("A1Cam", Enum.RenderPriority.Camera.Value + 1, function()
 	local cam = workspace:GetAttribute("A1Cam")
 	local camera = workspace.CurrentCamera
+	local gui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+	if gui and typeof(cam) == "CFrame" then
+		for _, g in gui:GetChildren() do
+			if g:IsA("ScreenGui") then
+				g.Enabled = typeof(cam) ~= "CFrame"
+			end
+		end
+	end
 	if typeof(cam) == "CFrame" then
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = 70
@@ -211,8 +219,8 @@ def shot(path):
 def auras(which):
     for i in which:
         print(cmd(f"cam|{i}"))
-        clock(CLOCK[i])
-        time.sleep(1.2)
+        clock(None)  # real time, so trails and particles have moved
+        time.sleep(1.5)
         im = shot(OUT / f"raw_{i:02d}.png")
         im.save(OUT / f"aura_{i:02d}.png")
         print("aura", i)

@@ -3,6 +3,8 @@
     python art/creatures/Seahorse/tiers/tier_stills.py sheet              (in a playtest: each level on the player's plot)
     python art/creatures/Seahorse/tiers/tier_stills.py rider [level]      (in a playtest: seated on a level, 12 by default)
     python art/creatures/Seahorse/tiers/tier_stills.py upgrade            (in a playtest: frames of an upgrade, 11 to 12)
+    python art/creatures/Seahorse/tiers/tier_stills.py joints             (in a playtest: each level's spring joint, side on)
+    python art/creatures/Seahorse/tiers/tier_stills.py rock [level]       (in a playtest: ridden, five frames of the rock)
 How: the server's Studio hook ServerStorage.TrainerTest ("level", userId, n) sets the player's level, so their plot's
 ride is built at it (TrainService); "info" says where its coil and seat are. The camera is put at the ride's front
 right through the workspace attribute SH1Cam, which the LocalScript holds. Shots by studio-run.mjs shot (written after
@@ -31,6 +33,10 @@ NAMES = {1: "Toy", 2: "Painted", 3: "Saddled", 4: "Racer", 5: "Iron", 6: "Spiked
 
 CLIENT = r'''
 local RunService = game:GetService("RunService")
+-- (the workspace attribute SH1Off asks to get off, as a jump does)
+workspace:GetAttributeChangedSignal("SH1Off"):Connect(function()
+	game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Trainer"):FireServer("Off")
+end)
 RunService.RenderStepped:Connect(function()
 	local cam = workspace:GetAttribute("SH1Cam")
 	local camera = workspace.CurrentCamera
@@ -107,7 +113,7 @@ def ask(op, a=None, extra=""):
         raise SystemExit("TrainerTest: " + out)
 
 
-def camera(r, side=14.0, ahead=13.0, up=4.0, at=6.5):
+def camera(r, side=19.0, ahead=17.0, up=3.0, at=8.0):
     """the ride's front right, looking at the middle of the seahorse"""
     ax = r["axis"]
     lx, lz = r["look"]
@@ -206,6 +212,61 @@ def rider(level=12):
     server("workspace:SetAttribute('SH1Cam', nil) return 'ok'")
 
 
+def side_camera(r, far=10.0, up=0.6, at=5.2):
+    """from the ride's right side, level with where the coil meets the body (the stand's top + SpringLength)"""
+    ax = r["axis"]
+    lx, lz = r["look"]
+    rx, rz = -lz, lx
+    look = (ax[0], ax[1] + at - 1.2, ax[2])
+    eye = (look[0] + rx * far + lx * 2.0, look[1] + up, look[2] + rz * far + lz * 2.0)
+    server(f"workspace:SetAttribute('SH1Cam', CFrame.lookAt(Vector3.new({eye[0]}, {eye[1]}, {eye[2]}), "
+           f"Vector3.new({look[0]}, {look[1]}, {look[2]}))) return 'ok'")
+
+
+def joints():
+    """each level from the side, close on the spring: the stand, the coil and where it goes into the body"""
+    cells = []
+    for n in range(1, 13):
+        r = ask("level", n)
+        away(r)
+        side_camera(r)
+        time.sleep(2.2)
+        cells.append(label(shot(OUT / f"joint{n}.png", 560), f"{n}  {NAMES[n]}"))
+        print("joint", n, flush=True)
+    w, h = cells[0].size
+    gap = 8
+    out = Image.new("RGB", (6 * w + 7 * gap, 2 * h + 3 * gap + 64), (255, 255, 255))
+    d = ImageDraw.Draw(out)
+    d.text((14, 14), "No plate: the spring goes straight into the seahorse, every level (side view, the game)",
+           font=font(34), fill=(40, 40, 40))
+    for i, im in enumerate(cells):
+        out.paste(im, (gap + (i % 6) * (w + gap), 64 + gap + (i // 6) * (h + gap)))
+    keep(out, "seahorse-tiers-joint-1.png")
+    server("workspace:SetAttribute('SH1Cam', nil) return 'ok'")
+
+
+def rock(level=12):
+    """ridden, from the side: frames across one swing, the coil bending and still in the body"""
+    r = ask("level", level)
+    time.sleep(2.2)
+    ax = r["axis"]
+    lx, lz = r["look"]
+    server(f"local p = game:GetService('Players'):GetPlayers()[1] "
+           f"p.Character:PivotTo(CFrame.new({ax[0] - lz * 4}, {ax[1] + 3}, {ax[2] + lx * 4})) return 'ok'")
+    time.sleep(3.5)
+    r = ask("info")
+    print("rider:", r.get("rider"), flush=True)
+    side_camera(r, far=15, up=1.5, at=6.5)
+    time.sleep(1)
+    frames = [label(shot(OUT / f"rock{k}.png", 640), f"{level} {NAMES[level]}, ridden") for k in range(5)]
+    w, h = frames[0].size
+    out = Image.new("RGB", (len(frames) * (w + 6) + 6, h + 12), (255, 255, 255))
+    for i, im in enumerate(frames):
+        out.paste(im, (6 + i * (w + 6), 6))
+    keep(out, f"seahorse-tier{level}-rock-1.png")
+    server("workspace:SetAttribute('SH1Off', os.clock()) workspace:SetAttribute('SH1Cam', nil) return 'ok'")
+
+
 def upgrade():
     r = ask("level", 11)
     away(r)
@@ -235,3 +296,7 @@ if __name__ == "__main__":
         rider(int(sys.argv[2]) if len(sys.argv) > 2 else 12)
     elif what == "upgrade":
         upgrade()
+    elif what == "joints":
+        joints()
+    elif what == "rock":
+        rock(int(sys.argv[2]) if len(sys.argv) > 2 else 12)

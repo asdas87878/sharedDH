@@ -202,8 +202,8 @@ end
 RideStyles.Trainer = {
 	-- the spring
 	Length = 4.2, -- studs from the pad's top to the body's underside
-	Radius = 1.25, -- from the coil's axis to the middle of its wire
-	Wire = 0.5, -- the wire's square side: chunky
+	Radius = 1.0, -- from the coil's axis to the middle of its wire (1.25 until sh1: slimmer, so it clears the tail's curl)
+	Wire = 0.45, -- the wire's square side: chunky (0.5 until sh1)
 	Turns = 3.5,
 	PerTurn = 12, -- straight pieces a turn
 	Colour = Color3.fromRGB(176, 184, 198),
@@ -236,10 +236,12 @@ RideStyles.Trainer = {
 	OffRise = 3.4, -- studs it rises over the straight line
 	Every = 0.5, -- seconds between the "+n" Oxygen pops
 	-- the 12 levels (Hugo, 2026-11-19, task sh1; models in ReplicatedStorage.TrainerModels.T1..T12, from
-	-- art/creatures/Seahorse/tiers): each level its own seahorse and stand, at the hub's own size for the toy. On a
-	-- level's model the coil runs from the stand's top to the plate's underside (StandTop, PlateBottom), so Length
-	-- above is only for the kit's old toy (no models installed); the coil keeps Radius, Wire and Turns, in the level's
-	-- own colours (CoilColours)
+	-- art/creatures/Seahorse/tiers): each level its own seahorse and stand, at the hub's own size for the toy. No plate
+	-- (Hugo, 2026-11-19: seahorse, spring, ground, as a playground spring rider): the coil runs from the stand's top
+	-- straight into the body's underside (the model's SpringAt), SpringLength long, in the level's colours
+	-- (CoilColours); the stand stands under it. Length above is only for the kit's old toy (no models installed)
+	SpringLength = 5.2, -- studs from the stand's top to where the coil meets the body (the tail's curl clears the
+	-- stand by about a stud, and still does at the bottom of a rock)
 	Scale = 0.85, -- the models' size in the hub (the kit's Toy is 0.85 too)
 	SeatLift = 1.75, -- studs the rider's root sits over the saddle's top (SeatAt): level 1 then seats as before
 	SeatBack = 0.9, -- and this far back from it, toward the tail

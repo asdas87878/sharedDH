@@ -18,7 +18,7 @@
 -- The levels (Hugo, 2026-11-19, task sh1: the seahorse draft built): every player has a TrainerLevel, 1 to 12 (the
 -- player's attribute; ours, for the session, beside the tank's coins), and each plot's ride shows its owner's: its
 -- own seahorse and stand (ReplicatedStorage.TrainerModels.T<n>, art/creatures/Seahorse/tiers/install_tiers.py), the
--- coil in that level's colours from the stand's top to the plate under the seahorse. A seated rider gains that
+-- coil in that level's colours from the stand's top straight into the seahorse's body (no plate). A seated rider gains that
 -- level's Oxygen a second (Config.Train.Levels). The owner asks to go up a level by the ride ("Up"; the prompt is
 -- the client's): on the dock, within Train.UpgradeNear of its coil, for the level's price (free while Train.Free is
 -- 1); the ride is rebuilt at once (a rider stays seated on the new one) and the model's Build and UpgradeAt tell
@@ -147,10 +147,11 @@ local function levelRow(n: number): { Name: string, Oxygen: number, Price: numbe
 end
 
 local function short(n: number): string
-	for _, step in { { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
-		if n >= step[1] then
-			local text = string.format("%.1f", n / step[1])
-			return (string.gsub(text, "%.0$", "")) .. step[2]
+	local sizes, marks = { 1e12, 1e9, 1e6, 1e3 }, { "T", "B", "M", "K" }
+	for i, size in sizes do
+		if n >= size then
+			local text = string.format("%.1f", n / size)
+			return (string.gsub(text, "%.0$", "")) .. marks[i]
 		end
 	end
 	return tostring(math.floor(n))
@@ -420,7 +421,7 @@ end
 
 -- Builds a ride at a level from its model (ReplicatedStorage.TrainerModels.T<level>): the seahorse (the model's Toy)
 -- in the ride's model, the stand on the floor (TrainerStand, with an unseen block to stand on, TrainerPad), the coil
--- from the stand's top to the plate's underside, the seat from the saddle (SeatAt). A seated rider is welded to the new
+-- from the stand's top straight into the body's underside (no plate: SpringAt), the seat from the saddle (SeatAt). A seated rider is welded to the new
 -- body. False when the level has no model (nothing changes).
 local function build(ride: Ride, level: number, upgrade: boolean): boolean
 	local templates = ReplicatedStorage:FindFirstChild("TrainerModels")
@@ -432,16 +433,25 @@ local function build(ride: Ride, level: number, upgrade: boolean): boolean
 	local k = t.Scale
 	local foot = template:GetAttribute("Foot") :: Vector3
 	local standTop = template:GetAttribute("StandTop") :: number
-	local plateBottom = template:GetAttribute("PlateBottom") :: number
+	local springAt = template:GetAttribute("SpringAt") :: Vector3
 	local seatAt = template:GetAttribute("SeatAt") :: Vector3
 	local copy = template:Clone()
 	copy:ScaleTo(k)
-	-- the model's space to the world: its foot on the floor under the coil, its head (toward -Z) the way it faces
-	local place = CFrame.lookAt(ride.Foot, ride.Foot + ride.Ahead) * CFrame.new(-foot * k)
-	copy:PivotTo(place)
 	local toy = copy:FindFirstChild("Toy") :: Model
 	local stand = copy:FindFirstChild("Stand") :: Model
 	local body = toy:FindFirstChild("Body") :: BasePart
+	-- (after the scale the model's space is k times smaller about its origin: a point p of it is at p * k)
+	toy.WorldPivot = CFrame.identity
+	stand.WorldPivot = CFrame.identity
+	-- the stand on the floor, its axis on the coil's foot; the seahorse over it, the coil's length up, the point where
+	-- the coil meets its body on the axis; both facing the way the ride faces (the head toward the model's -Z)
+	local high = (standTop - foot.Y) * k
+	local axis = ride.Foot + Vector3.new(0, high, 0)
+	local meet = axis + Vector3.new(0, t.SpringLength, 0)
+	local standPlace = CFrame.lookAt(ride.Foot, ride.Foot + ride.Ahead) * CFrame.new(-foot * k)
+	local place = CFrame.lookAt(meet, meet + ride.Ahead) * CFrame.new(-springAt * k)
+	stand:PivotTo(standPlace)
+	toy:PivotTo(place)
 	local plot = ride.Plot
 	local rider, weld = ride.Rider, ride.Weld
 	for _, name in { "TrainerStand", "TrainerPad", "TrainerPadTop" } do
@@ -461,7 +471,6 @@ local function build(ride: Ride, level: number, upgrade: boolean): boolean
 	-- what you stand on: the stand's footprint, up to its top (the posts and crystals are only seen)
 	local standPart = stand:FindFirstChild("Stand")
 	local turn = CFrame.lookAt(Vector3.zero, ride.Ahead)
-	local high = (standTop - foot.Y) * k
 	if standPart and standPart:IsA("BasePart") then
 		local block = part(
 			"TrainerPad",
@@ -474,9 +483,8 @@ local function build(ride: Ride, level: number, upgrade: boolean): boolean
 		block.CanCollide = true
 		block.CastShadow = false
 	end
-	local axis = ride.Foot + Vector3.new(0, high, 0)
 	local base = CFrame.new(axis) * turn
-	local top = CFrame.new(ride.Foot + Vector3.new(0, (plateBottom - foot.Y) * k, 0)) * turn
+	local top = CFrame.new(meet) * turn
 	buildSpring(plot, base, top, level)
 	local at = place * (seatAt * k) + Vector3.new(0, t.SeatLift, 0) - ride.Ahead * t.SeatBack
 	ride.Body = body
@@ -591,7 +599,7 @@ local function standing(spot: BasePart)
 			if root and root:IsA("BasePart") then
 				local away = (root.Position - spot.Position) * Vector3.new(1, 0, 1)
 				if away.Magnitude <= Config.Train.Radius and math.abs(root.Position.Y - spot.Position.Y) < 12 then
-					on = gain(player, dt)
+					on = gain(player, dt, levelOf(player))
 				end
 			end
 			if training[player] ~= on then
@@ -834,7 +842,7 @@ function TrainService.Start()
 				if not alive or not docked or not ride.Weld or ride.Weld.Parent == nil or ride.Weld.Part1 ~= root then
 					off(player, r, "Lost")
 				else
-					local trained, amount = gain(player, dt)
+					local trained, amount = gain(player, dt, math.max(ride.Level, 1))
 					if trained then
 						r.Gained += amount
 					end
