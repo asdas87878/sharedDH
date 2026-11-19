@@ -640,7 +640,7 @@ OUTCOMES.Pin = function(f, t)
 		Fish = frame,
 		Rider = rider,
 		Rig = rig,
-		Focus = if torso then torso:Lerp(frame.Position, 0.4) else frame.Position,
+		Focus = if torso then torso:Lerp(frame.Position, 0.25) else frame.Position,
 	}
 end
 
@@ -1035,11 +1035,19 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 				b.MouthOff = true
 				-- in to its beak, among the roots of its arms
 				local spot = fishNow
-					* CFrame.new(f.Beak + Vector3.new(math.cos(i * 1.7) * 1.5, math.sin(i * 1.3) * 1.5, 2))
+					* CFrame.new(
+						f.Beak
+							+ Vector3.new(
+								math.cos(i * 1.7) * 1.5,
+								-f.Height * 0.3 + math.sin(i * 1.3) * 1.5,
+								f.Length * 0.2
+							)
+					)
 				local haul = ss(tent.Grab, tent.Grab + 1.0, t)
 				local part = limb(b.Character, tent.Target)
 				local from = if part then part.Position else spot.Position
-				hold(b, "Arm" .. i, tent.Target, from:Lerp(spot.Position, 0.4 + 0.6 * haul), 12 + 14 * haul, 900)
+				-- (held among its arms, below and behind the beak: in sight, not pulled inside its body)
+				hold(b, "Arm" .. i, tent.Target, from:Lerp(spot.Position, 0.4 + 0.45 * haul), 12 + 14 * haul, 900)
 			end
 		end
 	elseif kind == "Coil" then
@@ -1064,7 +1072,8 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 		-- slammed under its head and dragged along the floor by it, the legs trailing
 		if t >= 0.85 then
 			local floorY = f.FloorY or (f.From.Position.Y - 20)
-			local under = fishNow * CFrame.new(0, -H * 0.4, -L * 0.3)
+			-- (under its jaws, just ahead of the head, so you are seen pinned)
+			local under = fishNow * CFrame.new(0, -H * 0.4, -L * 0.55)
 			local at = Vector3.new(under.Position.X, math.max(floorY + 1.2, under.Position.Y), under.Position.Z)
 			hold(b, "Pin", "Torso", at, 14 + 14 * ss(0.85, 1.2, t), 700)
 			local feet = fishNow * CFrame.new(0, -H * 0.4, L * 0.05)
@@ -1294,13 +1303,13 @@ end
 -- the fish's own size). It never comes closer to the fish than its own length.
 local SHOTS: { [string]: { Side: number, Back: number, Up: number, Far: number, Ahead: number } } = {
 	Chomp = { Side = 1, Back = -0.15, Up = 0.2, Far = 0.8, Ahead = 0.3 }, -- side view
-	Gulp = { Side = 0.8, Back = -0.8, Up = 0.15, Far = 0.8, Ahead = 0.4 }, -- side, from ahead, the mouth and the lure
-	Wrap = { Side = 1, Back = 0.35, Up = 0.3, Far = 1.0, Ahead = 0.1 }, -- wide on the rider and the arms
+	Gulp = { Side = 1, Back = -0.55, Up = 0.2, Far = 0.6, Ahead = 0.4 }, -- side, from ahead, close on the mouth
+	Wrap = { Side = 1, Back = 0.3, Up = 0.25, Far = 0.75, Ahead = 0.1 }, -- on the rider and the arms
 	Roll = { Side = 1, Back = 0.25, Up = -0.5, Far = 1.2, Ahead = 0.3 }, -- low angle
 	Flip = { Side = 1, Back = 0.2, Up = -0.65, Far = 1.05, Ahead = 0.3 }, -- low, looking up at the belly
 	Shell = { Side = 0.8, Back = -0.6, Up = 0.55, Far = 1.0, Ahead = 0.1 }, -- three-quarter front, high
 	Coil = { Side = 1, Back = 0.3, Up = 0.6, Far = 1.45, Ahead = 0.2 }, -- wide and high
-	Pin = { Side = 0.75, Back = -0.35, Up = 0.9, Far = 1.0, Ahead = 0.4 }, -- high, looking down at the floor
+	Pin = { Side = 0.9, Back = -0.6, Up = 0.55, Far = 0.75, Ahead = 0.4 }, -- high three-quarter front, on the jaws
 }
 
 -- what the shot may pass through: fish, players, our own props, the map's props (they fade, PropController)
@@ -1863,6 +1872,39 @@ local function replayStep()
 	end
 end
 
+-- A thin light outline round a rider in a fail or loose (every machine; local): a small dark avatar against the
+-- water and a big fish otherwise disappears in the shot. Hidden with them once swallowed (the parts go unseen).
+local outlines: { [Player]: Highlight } = {}
+local function outlineStep()
+	for player, h in outlines do
+		if not (fails[player] or bodies[player]) or h.Adornee ~= player.Character or not h.Parent then
+			h:Destroy()
+			outlines[player] = nil
+		end
+	end
+	for _, list in { fails, bodies } :: { { [Player]: any } } do
+		for player in list do
+			local character = player.Character
+			if character and not outlines[player] then
+				local h = Instance.new("Highlight")
+				h.Name = "FailOutline"
+				h.Adornee = character
+				h.FillTransparency = 1
+				h.OutlineColor = Color3.fromRGB(255, 250, 235)
+				h.OutlineTransparency = 0.15
+				h.DepthMode = Enum.HighlightDepthMode.Occluded
+				h.Parent = character
+				outlines[player] = h
+			end
+		end
+	end
+	-- (swallowed: no outline either)
+	for player, h in outlines do
+		local f = fails[player]
+		h.Enabled = not (f and next(f.Hidden) ~= nil)
+	end
+end
+
 local function step(dt: number)
 	local clock = os.clock()
 	if RunService:IsStudio() then
@@ -1877,6 +1919,7 @@ local function step(dt: number)
 			stepBody(b, dt)
 		end
 	end
+	outlineStep()
 	for player, f in fails do
 		local state = player:GetAttribute("State")
 		local t = clock - f.Start
