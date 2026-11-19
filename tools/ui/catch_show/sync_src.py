@@ -88,7 +88,10 @@ def main():
         return
     for path, cls, src in changed:
         pl = "{" + ",".join(lua(x) for x in path) + "}"
-        code = FIND + f"local s = find({pl}, true, {lua(cls)}) s.Source = {lua(src)} return s:GetFullName()"
+        # (ScriptEditorService takes a source over Source's 200,000-character cap: Config is past it)
+        code = FIND + (f"local s = find({pl}, true, {lua(cls)}) local text = {lua(src)} "
+                       "game:GetService('ScriptEditorService'):UpdateSourceAsync(s, function() return text end) "
+                       "return s:GetFullName()")
         print(run(code).splitlines()[-1])
 
 

@@ -37,6 +37,10 @@ by script (the real `Banners.greatDive`, a stopped clock for the frames), not pl
   the game. With no click it closes 20 s after it settles (`CatchShow.Wait`).
 - **Backdrop:** black at 35% over the whole screen while it shows; the backdrop and the screen fade in (0.22 s) and out
   (0.3 s) together.
+- **On a phone:** the screen shrinks to fit between the land strip and the slots (it leaves 150 HUD units of height
+  and 40 of width round it; `FIT_ROOM`), never grows past its own size. Checked in a playtest at 844x390 and 667x340
+  (the HUD's scale 1, the strip's and slots' room marked): [both](../attachments/catch-ui-phone.png). Enter and Space
+  close it only when the game hasn't taken the key (typing in the chat box doesn't).
 - **The catch goes in at once:** a tame puts the fish in the server's carried list and the slots straight away (as
   before; checked in a playtest: tamed at 3 m, "1 CAUGHT" in the slot while still riding).
 - Seen: [the screen](../attachments/catch-ui-final.gif), [clicks while it plays](../attachments/catch-ui-skip.gif),
