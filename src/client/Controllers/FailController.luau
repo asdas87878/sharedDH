@@ -1576,7 +1576,11 @@ local function viewStep(dt: number)
 end
 
 local function letFishGo(f: Fail)
-	-- the fish goes back to its own swim (the server's dismount, or the coast)
+	-- the fish goes back to its own swim (the server's dismount, or the coast), leaving the way it came at its old
+	-- speed, so it never stops in place
+	if f.Driving and f.Mine and f.FishRoot.Parent then
+		f.FishRoot.AssemblyLinearVelocity = flat(f.From.LookVector) * math.max(f.Speed, 20) * 0.8
+	end
 	for _, c in f.Paused do
 		if c.Parent then
 			c.Enabled = true
@@ -1883,6 +1887,15 @@ local function step(dt: number)
 		local stepT = math.max(0, t - f.Last)
 		f.Last = t
 		local frame = OUTCOMES[f.Kind](f, math.min(t, def.Time + (if taken then def.Time else 0.3)))
+		-- (Hugo, 2026-11-19: after it the fish carries on the way it was going: whatever turn, roll or lunge it made
+		-- eases back onto its old heading over the outcome's last part, swimming on, never a U-turn or a stop; the
+		-- server then takes it back onto its line, FishService.release)
+		local home = ss(def.Time * 0.55, def.Time + (if taken then 0.6 else 0), t)
+		if home > 0 then
+			local heading = CFrame.lookAt(Vector3.zero, flat(f.From.LookVector))
+			local onward = flat(f.From.LookVector) * f.Speed * 0.5 * math.max(0, t - def.Time * 0.55) * home
+			frame.Fish = CFrame.new(frame.Fish.Position + onward) * frame.Fish.Rotation:Lerp(heading, home)
+		end
 		local weld = f.Weld
 		if weld and weld.Parent == nil then
 			weld = nil

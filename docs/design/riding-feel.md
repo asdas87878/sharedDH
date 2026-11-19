@@ -1405,6 +1405,10 @@ trailing.
 | Coil 1.9 s | wide and high | it spins round itself with you held on its coil, swinging out, then flings you |
 | Pin 2.4 s | high, looking down | it noses down and scrapes you off ahead, slams down on you and drags you along the floor |
 
+**After it, the fish carries on** (Hugo, 2026-11-19): whatever turn, roll or lunge it made eases back onto its old
+heading over the outcome's last part, swimming on; it leaves the way it came at about its old speed (no U-turn, no
+stop in place), and the server takes it back onto its line (FishService.release's hand-back).
+
 **The camera.** One move from wherever the view is to the outcome's shot in `Config.Fail.CameraTime` (1.1 s, eased
 in and out), then held; it only turns to follow what it looks at, eased. It never comes closer to the fish than about
 half its length. If the rider and the fish draw apart it backs off along its line to keep both in the shot; if a wall

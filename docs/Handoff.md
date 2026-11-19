@@ -16,6 +16,8 @@ phone, not with two players.** All in [riding feel](design/riding-feel.md), "The
   out of walls, fish and props in the way faded. Small hooks in `DeathController` (a loose body left to the physics,
   the shot held) and `AnimController` (`FailPose`, `settle`). `Config.Fail`: longer times, `Loose`, `Ragdoll`,
   `CameraTime`.
+- **After a fail the fish carries on** the way it was going (its turn eased back onto the old heading, leaving at its
+  old speed; the server's hand-back puts it on its line).
 - **Captures:** `fail-<outcome>-3.gif` and the sheet `fail-outcomes-3.gif`; tool `tools/studio/fail_live_capture.py`
   (Studio only switches `FailRecord`, `FailReplay`).
 
