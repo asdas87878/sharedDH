@@ -185,11 +185,56 @@ local function bounce(ride: Ride, by: number)
 	ride.BounceBy = by
 end
 
--- The seated legs, a little wider than Roblox's sit pose: each hip joint's C0 turned out about the torso's up (the
--- knees part) and its forward (the feet part), kept on the joint's own place; put back when the weld goes. Here on
--- every machine (a joint's C0 doesn't replicate). R15 ("LeftHip" in the upper leg) and R6 ("Left Hip" in the Torso).
-type Spread = { Motor: Motor6D, C0: CFrame }
+-- The seated legs, a little wider than Roblox's sit pose: each hip turned out about the torso's up (the knees part)
+-- and its forward (the feet part), kept on the joint's own place; put back when the weld goes. Here on every machine
+-- (none of it replicates). The hip is a Motor6D (its C0) or, on newer avatars, an AnimationConstraint (its torso-side
+-- attachment, Attachment0); "LeftHip" (R15) or "Left Hip" (R6). Held every frame: Roblox may set a rig's hips again
+-- (a seat, a rescale), so a hip found changed is taken as the new rest and turned out again.
+type Spread = { Get: () -> CFrame, Set: (CFrame) -> (), Alive: () -> boolean, Side: number, Rest: CFrame, Want: CFrame }
 local spreads: { [Weld]: { Spread } } = {}
+
+local function turnedOut(rest: CFrame, side: number): CFrame
+	-- (in the torso's space: a forward thigh turned about up goes out to its side; a hanging shin rolled about
+	-- forward goes out too)
+	local turn = CFrame.fromAxisAngle(Vector3.yAxis, -side * math.rad(T.LegSpread))
+		* CFrame.fromAxisAngle(Vector3.zAxis, side * math.rad(T.FootOut))
+	return CFrame.new(rest.Position) * turn * rest.Rotation
+end
+
+type Hip = { Get: () -> CFrame, Set: (CFrame) -> (), Alive: () -> boolean }
+
+local function hipOf(joint: Instance): Hip?
+	if joint:IsA("Motor6D") then
+		return {
+			Get = function()
+				return joint.C0
+			end,
+			Set = function(c: CFrame)
+				joint.C0 = c
+			end,
+			Alive = function()
+				return joint.Parent ~= nil
+			end,
+		}
+	elseif joint:IsA("AnimationConstraint") then
+		local at = joint.Attachment0
+		if not at then
+			return nil
+		end
+		return {
+			Get = function()
+				return at.CFrame
+			end,
+			Set = function(c: CFrame)
+				at.CFrame = c
+			end,
+			Alive = function()
+				return at.Parent ~= nil
+			end,
+		}
+	end
+	return nil
+end
 
 local function spreadLegs(weld: Weld)
 	local root = weld.Part1
@@ -198,38 +243,45 @@ local function spreadLegs(weld: Weld)
 		return
 	end
 	local done: { Spread } = {}
-	for _, motor in character:GetDescendants() do
-		if not motor:IsA("Motor6D") then
-			continue
-		end
-		local side = if motor.Name == "LeftHip" or motor.Name == "Left Hip"
+	for _, joint in character:GetDescendants() do
+		local side = if joint.Name == "LeftHip" or joint.Name == "Left Hip"
 			then -1
-			elseif motor.Name == "RightHip" or motor.Name == "Right Hip" then 1
+			elseif joint.Name == "RightHip" or joint.Name == "Right Hip" then 1
 			else 0
 		if side == 0 then
 			continue
 		end
-		local c0 = motor.C0
-		-- (in the torso's space: a forward thigh turned about up goes out to its side; a hanging shin rolled about
-		-- forward goes out too)
-		local turn = CFrame.fromAxisAngle(Vector3.yAxis, -side * math.rad(T.LegSpread))
-			* CFrame.fromAxisAngle(Vector3.zAxis, side * math.rad(T.FootOut))
-		motor.C0 = CFrame.new(c0.Position) * turn * c0.Rotation
-		table.insert(done, { Motor = motor, C0 = c0 })
+		local hip = hipOf(joint)
+		if not hip then
+			continue
+		end
+		local rest = hip.Get()
+		local want = turnedOut(rest, side)
+		table.insert(done, { Get = hip.Get, Set = hip.Set, Alive = hip.Alive, Side = side, Rest = rest, Want = want })
+		hip.Set(want)
 	end
 	if #done > 0 then
 		spreads[weld] = done
 	end
 end
 
-local function unspread()
+local function holdSpreads()
 	for weld, done in spreads do
-		if weld.Parent == nil or weld.Part1 == nil then
-			for _, s in done do
-				if s.Motor.Parent then
-					s.Motor.C0 = s.C0
-				end
+		local gone = weld.Parent == nil or weld.Part1 == nil
+		for _, s in done do
+			if not s.Alive() then
+				continue
 			end
+			if gone then
+				s.Set(s.Rest)
+			elseif not s.Get():FuzzyEq(s.Want, 1e-3) then
+				-- (near, not equal: a joint's frame read back isn't always the exact one set)
+				s.Rest = s.Get()
+				s.Want = turnedOut(s.Rest, s.Side)
+				s.Set(s.Want)
+			end
+		end
+		if gone then
 			spreads[weld] = nil
 		end
 	end
@@ -390,7 +442,7 @@ local function step()
 	lastNow = now
 	stepPops(now)
 	stepOwn(now, dt)
-	unspread()
+	holdSpreads()
 	if not complete and now - lookedAt >= LOOK_EVERY then
 		-- (the map's parts, and the server's making over of them, may arrive after we start)
 		lookedAt = now
