@@ -3,9 +3,9 @@
 -- and animation for GREAT DIVE when you respawn; the caught fish plop down one by one with the same animation, and a
 -- shiny number counts them). CatchShow look 5 (Kit.CatchLook); its variant is Kit.DiveLook (in Studio the
 -- workspace's "DiveLook" number):
---   1 Slam (default): the band slashes open from a hairline, GREAT DIVE! slams onto it from the camera; each fish
+--   1 Slam: the band slashes open from a hairline, GREAT DIVE! slams onto it from the camera; each fish
 --     slams down the same way (huge, squash, ring back) with a white flash and chips; the number shimmers gold
---   2 Drop: the band drops in from above and bounces; each fish drops and bounces; the number takes the rarity
+--   2 Drop (default, Hugo's pick 2026-11-19): the band drops in from above and bounces; each fish drops and bounces; the number takes the rarity
 --     colours of the fish that just landed
 --   3 Pop: the band unrolls from its left end; each fish pops out of nothing and overshoots with a ring; the number
 --     bursts (rays and chips) on every count

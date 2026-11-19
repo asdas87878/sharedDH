@@ -366,8 +366,9 @@ Kit.CatchLook = 5
 -- gold), 2 Drop (the band drops and bounces, the fish drop and bounce, the number in the rarity's colours), 3 Pop (the
 -- band unrolls, the fish pop and overshoot, the number bursts on each count), 4 Stamp (the band and each fish stamp
 -- down with dust, the number shimmers and bursts). Sheet docs/attachments/great-dive-options-1.png. In Studio the
--- workspace's "DiveLook" number overrides it.
-Kit.DiveLook = 1
+-- workspace's "DiveLook" number overrides it. Hugo picked 2 (Drop, 2026-11-19: "the number changes colour with
+-- rarity of fish, it looks the best").
+Kit.DiveLook = 2
 
 -- The words the moment a fish becomes yours (task t2; Hugo, 2026-11-19: "give me a selection for being caught ... make
 -- it more stylised like the rest of the text UI, and it should feel better"): 0 Banners' own tilted "TAMED!" plate (as
