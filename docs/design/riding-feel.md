@@ -1275,6 +1275,35 @@ The struggle stays synced: every red tick lands on a thrash within 40 ms (o3 mea
 because Studio's window is off-screen and one shot takes 2.6 s. A real frame of a red-zone ride:
 `red-zone-ticks-1-studio.png`. **Not played by hand.**
 
+## Ring B: shorter ticks, an even red zone, the thin rings first (task o1, 2026-11-19)
+
+Hugo picked trail B ([oxygen-trail-b.gif](../attachments/oxygen-trail-b.gif)) and asked for shorter ticks, 5 to 7
+ticks in the red zone, and the thin rings to empty before the big one. **Built and measured on the server in a Studio
+playtest (run by script, not played by hand).** `Config.Oxygen`, `UI/Rings.luau`, and a small part of `RideService`
+(the red part's ticks). Wren's t1 draw-back (`Kit.RingLook.TickTrail` 2) was already in and is unchanged.
+- **Shorter ticks:** `TickSize` 3 -> **5: 60 ticks a meter, 0.2 s floor** (was 30 and 0.35). Pieces are smaller and
+  come more often; the seconds on each fish are unchanged.
+- **The red zone, 6 even ticks in 2.5 s on every fish:** from the tick that takes the meter under the red line
+  (`AngryAt`, a third; a Tank's lower), what is left goes in `RedTicks` 6 equal pieces over `RedTime` 2.5 s
+  (`Config.redTicks`). **The seconds on a fish still hold:** the part above the line drains faster to make room
+  (`Config.drainFor`). On a very short fish the red part is at most `RedMost` 0.45 of it (a new player's Shallows
+  Common: 2.4 of 5.3 s). `RedTick` 0.5 -> 0.4 is now only used when `RedTime` is 0.
+- **A fish too strong:** `StrainTime` 1.5 -> **2.5 s**, ended the same way. The 2/3 break-off leaves exactly the red
+  line on a full meter (1/3), so it never eats into the red zone; what is left then goes in 6 even ticks.
+  Measured (max 600, a Dakosaurus): Break 380, then 6 ticks of 31.7, 0.417 s apart, empty 2.5 s after.
+- **The thin rings first:** the order was wrong. The big ring showed the whole meter and the one extra ring emptied at
+  the same time. Now the meter is **shared evenly between the rings** (`Config.ringsOf`: 1 ring up to `BarSize`
+  2000, 2 up to 4000, **a third only past 4000**, never more: `RingsMost` 3). The outermost empties first, then the
+  next, the big ring last, all ticking at the same pace. The second ring is a little thicker than the third (6 to 4).
+  At 3 rings the red zone is exactly the big ring.
+- **Measured** (max 4500, a Clownfish, the server's `OxygenTick`s): 37 ticks of 80 every 0.2 s for 7.5 s, then from
+  1475, 6 ticks of 245.8 every 0.417 s; empty at 9.5 s after the first tick (`secondsOn` 10 s).
+- Seen: [oxygen-trail-b-2.gif](../attachments/oxygen-trail-b-2.gif), made with the game's own `UI/Rings` on a slowed
+  clock with those ticks (`python tools/ui/oxygen_trail/ring_b2_capture.py live 0.12 <crop> 10` after
+  `trail_capture.py install` and `listen`; `ring_b2_capture.py ticklog` logs a real ride's ticks).
+- Open: with 3 rings each ring holds a third of the meter, so a tick there is 3 times the share of a ring that it is at
+  1 ring (at 4500 on a 10 s fish, about 5% of a ring every 0.2 s). Shorter would need a floor under 0.2 s.
+
 ## Out of Oxygen: eaten, rolled off, dragged down (task e1, 2026-11-19)
 
 Hugo: "the red zone should go down with the animation, still giving the player about 2-3 seconds on each fish, just

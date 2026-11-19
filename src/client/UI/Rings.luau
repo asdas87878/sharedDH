@@ -11,8 +11,9 @@
 -- the landing, bigger, and shakes while the whole meter empties in a quarter of a second, with "Too strong!" and what
 -- the fish needs under it. Words under the ring only for a state the ring can't show: floating, out of air, too strong.
 -- In ticks (Hugo, 2026-11-18, tasks h1 and o2): the meter steps down a piece at a time, every piece 1 / Oxygen.Ticks of
--- the max (o1), so on the big ring every tick is the same share of the circle whatever the max (a tenth; Oxygen.TickSize
--- picks more, task s1). The piece just lost
+-- the max (o1), so on a ring every tick is the same share of the circle (Oxygen.TickSize picks how many, task s1; a
+-- fish whose ticks would come faster than Oxygen.Tick takes bigger ones), and the red part ends in Oxygen.RedTicks
+-- even ones (RedTime, task o1 of 2026-11-19). The piece just lost
 -- stays WHITE behind what is left; when the next tick starts it breaks off (fades out, Kit.RingLook) and the new piece
 -- is white. The 2/3 break-off on a fish too strong comes as one tick: one big white piece, broken off by the next.
 -- Since t1 (Hugo, 2026-11-18) the white piece DRAWS BACK along the ring instead of fading, as a health bar's damage
