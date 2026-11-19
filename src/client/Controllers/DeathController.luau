@@ -217,7 +217,9 @@ local function step(dt: number)
 			deaths[player] = d
 		end
 		if d then
-			drownStep(player, d, clock - d.Start, dt)
+			-- (Studio only, for capturing it frame by frame: workspace's DeathClock, seconds into the drown)
+			local held = if RunService:IsStudio() then workspace:GetAttribute("DeathClock") else nil
+			drownStep(player, d, if type(held) == "number" and held >= 0 then held else clock - d.Start, dt)
 		end
 	end
 	for player, d in deaths do

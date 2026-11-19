@@ -512,6 +512,9 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 		return
 	end
 	local f = Config.Fail
+	-- (Studio only, for capturing it frame by frame: workspace's FailSlow makes every wait here that many times longer)
+	local slowed = if RunService:IsStudio() then workspace:GetAttribute("FailSlow") else nil
+	local slow = if type(slowed) == "number" and slowed > 1 then slowed else 1
 	local name = if kind and f.Outcomes[kind] then kind else Config.failOf(w.Type, RideStyles.nameOf(w.Type.Id))
 	local outcome = f.Outcomes[name]
 	-- the end of it: off the fish into the drown, or (taken) at the dock; with no failing, left floating with a
@@ -530,7 +533,7 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 			return
 		else
 			throwOff(r)
-			die(r, "Drowning", d.DrownTime, true)
+			die(r, "Drowning", d.DrownTime * slow, true)
 		end
 	end
 	if outcome.Time <= 0 then
@@ -543,13 +546,13 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 	Net.Fx:FireAllClients("Fail", r.Player, w.Model, name)
 	if outcome.End == "Taken" and not soft then
 		-- the fail itself: the outcome, the fade, the black, then the dock (die's own timer)
-		die(r, "Failing", outcome.Time + f.TakenFade + f.TakenTail, false)
+		die(r, "Failing", (outcome.Time + f.TakenFade + f.TakenTail) * slow, false)
 		return
 	end
 	r.Token += 1
 	local token = r.Token
 	setState(r, "Failing")
-	task.delay(outcome.Time, function()
+	task.delay(outcome.Time * slow, function()
 		if r.Token == token and r.State == "Failing" and riders[r.Player] == r then
 			finish()
 		end

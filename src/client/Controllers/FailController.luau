@@ -484,7 +484,10 @@ function FailController.stop(player: Player)
 		f.Jaws:Destroy()
 	end
 	if f.Mine and player:GetAttribute("State") ~= "Drowning" then
+		-- (the drown takes these over itself; the dock, or a fail with no failing, gets them back as they were)
 		State.DeathCam = nil
+		State.Darken = 0
+		State.Vignette = 0
 	end
 end
 
@@ -493,12 +496,17 @@ local function step(_dt: number)
 	for player, f in fails do
 		local state = player:GetAttribute("State")
 		local t = clock - f.Start
+		-- (Studio only, for capturing it frame by frame: workspace's FailClock, seconds into the outcome)
+		local held = if RunService:IsStudio() then workspace:GetAttribute("FailClock") else nil
+		if type(held) == "number" and held >= 0 then
+			t = held
+		end
 		local def = f.Def
 		local taken = def.End == "Taken"
 		-- over: the State has moved on (the drown, the dock), or it lost the fish or the character
 		if
 			player.Parent == nil
-			or (state ~= "Failing" and t > 0.3)
+			or (state ~= "Failing" and clock - f.Start > 0.3)
 			or f.Fish.Parent == nil
 			or player.Character ~= f.Character
 		then

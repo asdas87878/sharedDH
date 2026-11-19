@@ -1274,3 +1274,45 @@ The struggle stays synced: every red tick lands on a thrash within 40 ms (o3 mea
 `~/Pictures/ride-a-fish/red-zone-ticks-1.gif`. It replays the logged tick and thrash times on a drawn ring and fish,
 because Studio's window is off-screen and one shot takes 2.6 s. A real frame of a red-zone ride:
 `red-zone-ticks-1-studio.png`. **Not played by hand.**
+
+## Out of Oxygen: eaten, rolled off, dragged down (task e1, 2026-11-19)
+
+Hugo: "the red zone should go down with the animation, still giving the player about 2-3 seconds on each fish, just
+ticking down with the animation, and as soon as it hits 0 either getting eaten or thrown off. Be creative for fishes
+and what they would do. Give low-tier fishes just the throwing off." The red part's length and its ticks are the ring
+task's (t1, `Config.Oxygen.StrainTime`, `RedTick`); this is what happens at 0.
+
+- **Low tiers (Common, Uncommon): thrown off,** at once, as before: the buck and the fling up and back, then the drown.
+- **Rare and up: the fish does its own thing first,** about 1 to 1.5 s, with you held on it (the server's new state
+  `Failing`: no input, no drain). Then either the throw and the drown, or (taken) the fail itself: the fade, the fail
+  screen's words, the dock, the dive's catch kept as with any fail.
+
+| Outcome | Ends | Who (Config.Fail.ByCreature, then by archetype, size, body type) | What you see |
+|---|---|---|---|
+| Throw | throw | every Common and Uncommon; the default | the plain buck and fling |
+| Chomp | taken, "EATEN!" | every Predator, and the toothy ones: Moray, Hammerhead, Viperfish, Goblin and Frilled Shark, Dakosaurus, Helicoprion, Livyatan, Kronosaurus, the two other Megalodons, Bobbit Worm, Hellmaw | it rears, you are tossed up off its back, it turns round and its mouth meets you; snap: jaws with teeth close the screen, you are gone, it shakes its head and swims on |
+| Gulp | taken, "GULPED!" | the three anglers, Goliath Grouper, Xiphactinus | a lure flares in front of its head and the camera looks at it; you are drawn over the head and slide into the mouth; the jaws close |
+| Wrap | taken, "DRAGGED DOWN!" | Kraken, Octopus, Giant Squid, Aurora Jelly | six arms reach round you and tighten; it noses down and dives, dragging you into the dark (stops above the floor) |
+| Roll | throw | whales and giants (and any fish of `Angry.GiantLength`), Dolphin, Swordfish, Leopard Shark, Sea Cow... | it rolls right over, rising, with a big splash of bubbles and a heavy shake, then you are thrown |
+| Flip | throw | the rays | it noses up and flips belly-up; you drop off its underside, then the throw |
+| Shell | throw | Archelon, Grave Turtle | it stops, tucks its nose down and shakes the shell harder and harder; you bounce, then the throw |
+| Coil | throw | the serpents and long eels | it spins round itself faster and faster, rising; you swing out to its side and are flung |
+| Pin | taken, "PINNED!" | Anomalocaris, Giant Isopod, Sea Scorpion | it noses down to the floor and slams onto it with a burst of silt; you are scraped off and flat under its head |
+
+**How it is built.** `Config.Fail` (the table, the times, `LowTiers`, `ByCreature`, `ByArchetype`, `ByStyle`) and
+`Config.failOf(fish, style)`. `RideService.drown` picks the outcome, sets the player's `FailKind` and `FailAt`, tells
+every client (Fx `"Fail"`, player, fish, kind), holds the state `Failing` for the outcome's `Time`, then throws you off
+into the old drown, or for a taken one runs the fail's timer straight to the dock (`Time + TakenFade + TakenTail`).
+`RideService.forceFail(player, kind?)` (the admin's Fail) takes an outcome to try any of them on any fish. The client
+is the new `Controllers/FailController`: on the rider's machine (which owns the fish) it moves the fish's root along
+the outcome's path with its swim switched off, and gives the camera a side shot (`State.DeathCam`, as the drown); on
+every machine it slides the rider about on the saddle (the ride weld's C0, the same everywhere), hides them in a
+mouth, and makes the props (lure, arms) locally. Small hooks elsewhere: `State.dying()` counts `Failing` (no input),
+`DeathController` leaves `Failing` to FailController and holds the black after it, `AnimController` poses a `Failing`
+rider clinging on. **Hooks for the partner's real animations and sounds:** the player's `FailKind` attribute, and
+`Config.Fail.Outcomes[kind].Hook` ("FailChomp", ...) and `.Sound` (a placeholder from `Lib/Fx` for now).
+
+**Capturing it.** Studio-only switches on the workspace: `FailClock` holds the outcome at that second,
+`DeathClock` the drown, `FailSlow` stretches the server's waits. `tools/studio/fail_capture.py` uses them to shoot
+each outcome frame by frame in a real playtest (the fish's own swim and the camera's easing still move between frames,
+so it is a little smoother than the game's).
