@@ -359,7 +359,15 @@ Kit.LandPhoneScale = 1.25
 -- right, a badge counts), 3 Big number (one number rolls up, the fish burst out of it), 4 Toast (a compact pill under the
 -- strip that fills). Sheet docs/attachments/catch-ui-options-1.png. In Studio the workspace's "CatchLook" overrides it.
 -- Hugo picked 3 (task c1, 2026-11-19), built into the game with his changes: the catch screen (CatchShow, "3").
-Kit.CatchLook = 3
+-- Hugo (task gd1, 2026-11-19): GREAT DIVE rebuilt on caught text 5's banner, the fish plopping in one by one and a
+-- shiny number counting them: look 5 (DiveScreen), now the default.
+Kit.CatchLook = 5
+-- Its variant (DiveScreen): 1 Slam (the band slashes open, each fish slams down from the camera, the number shimmers
+-- gold), 2 Drop (the band drops and bounces, the fish drop and bounce, the number in the rarity's colours), 3 Pop (the
+-- band unrolls, the fish pop and overshoot, the number bursts on each count), 4 Stamp (the band and each fish stamp
+-- down with dust, the number shimmers and bursts). Sheet docs/attachments/great-dive-options-1.png. In Studio the
+-- workspace's "DiveLook" number overrides it.
+Kit.DiveLook = 1
 
 -- The words the moment a fish becomes yours (task t2; Hugo, 2026-11-19: "give me a selection for being caught ... make
 -- it more stylised like the rest of the text UI, and it should feel better"): 0 Banners' own tilted "TAMED!" plate (as

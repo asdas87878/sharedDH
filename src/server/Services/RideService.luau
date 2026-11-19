@@ -134,6 +134,7 @@ type Loose = {
 	Joints: { Instance }, -- the joints switched off
 	Made: { Instance }, -- what we made (the ball sockets and their attachments)
 	Collide: { [BasePart]: boolean }, -- each part's own CanCollide
+	Friction: { [BallSocketConstraint]: number }, -- an avatar's own ball sockets' friction, as it was
 	Neck: boolean, -- the Humanoid's RequiresNeck
 	Token: number,
 }
@@ -394,6 +395,11 @@ local function unragdoll(player: Player)
 			part.CanCollide = was
 		end
 	end
+	for socket, was in l.Friction do
+		if socket.Parent then
+			socket.MaxFrictionTorque = was
+		end
+	end
 	local humanoid = l.Character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.RequiresNeck = l.Neck
@@ -424,6 +430,7 @@ local function ragdoll(r: Rider, seconds: number?): boolean
 		Joints = {},
 		Made = {},
 		Collide = {},
+		Friction = {},
 		Neck = humanoid.RequiresNeck,
 		Token = looseToken,
 	}
@@ -463,8 +470,17 @@ local function ragdoll(r: Rider, seconds: number?): boolean
 			d.Enabled = false
 			table.insert(l.Joints, d)
 		elseif d:IsA("AnimationConstraint") and not ROOT_JOINTS[d.Name] and d.Enabled then
+			-- (an avatar with the newer joints already has a ball socket beside each, with its own limits: it takes
+			-- over as the joint is switched off, made a little stiffer; else one is made)
+			local own = d.Parent and d.Parent:FindFirstChild(d.Name .. "BallSocket")
 			local a0, a1 = d.Attachment0, d.Attachment1
-			if a0 and a1 and a1.Parent then
+			if own and own:IsA("BallSocketConstraint") then
+				l.Friction[own] = own.MaxFrictionTorque
+				own.MaxFrictionTorque = math.max(own.MaxFrictionTorque, friction)
+				own.Enabled = true
+				d.Enabled = false
+				table.insert(l.Joints, d)
+			elseif a0 and a1 and a1.Parent then
 				socket(d.Name, a0, a1, a1.Parent)
 				d.Enabled = false
 				table.insert(l.Joints, d)
@@ -505,6 +521,13 @@ local function letLoose(r: Rider, kind: string, seconds: number?)
 		r.Weld = nil
 	end
 	local fish = r.Fish
+	if fish then
+		-- (the fish was ours through the rider's weld: still ours to move for the rest of the outcome, or the server
+		-- takes it back and it jumps between the two)
+		pcall(function()
+			fish.Root:SetNetworkOwner(r.Player)
+		end)
+	end
 	if ragdoll(r, seconds) then
 		Net.Fx:FireAllClients("Ragdoll", r.Player, if fish then fish.Model else nil, kind)
 	end

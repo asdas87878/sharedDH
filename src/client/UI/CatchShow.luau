@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
+local DiveScreen = require(script.Parent.DiveScreen)
 
 local CatchShow = {}
 
@@ -1279,6 +1280,11 @@ local BUILDERS: { [number]: (Instance, number, boolean, { Item }) -> Show } = {
 	[2] = stack,
 	[3] = screen,
 	[4] = toast,
+	-- 5 GREAT DIVE on caught text 5's banner (task gd1), its variant Kit.DiveLook: DiveScreen, with this screen's tiles
+	[5] = function(parent: Instance, metres: number, isBest: boolean, list: { Item }): Show
+		local items, totals = drawn(list)
+		return DiveScreen.build(parent, metres, isBest, items, totals, { tile = fishTile, star = star })
+	end,
 }
 -- where each sits on the HUD: clear of the rider at the middle and of the land strip at the top
 local PLACES: { [number]: UDim2 } = {
@@ -1286,6 +1292,7 @@ local PLACES: { [number]: UDim2 } = {
 	[2] = UDim2.new(1, -24, 0.5, 0),
 	[3] = UDim2.fromScale(0.5, 0.5),
 	[4] = UDim2.new(0.5, 0, 0, 96),
+	[5] = UDim2.fromScale(0.5, 0.5),
 }
 
 -- where a look sits on the HUD

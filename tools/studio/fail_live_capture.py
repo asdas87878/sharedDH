@@ -93,10 +93,13 @@ def gif(fish, outcome, suffix="3", fps=12):
     kept = clipboard()
     T = TIMES[outcome]
     tail = 1.0 if outcome in TAKEN else 1.8 + 1.6
-    fc.setw(TestMaxOxygen=10000000, FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
+    # (the game's own max Oxygen: a huge test max tames the fish at once and its CAUGHT banner covers the shot)
+    # (and endless air, so the fish waits for our fail: forceFail ignores the no-fail switches)
+    fc.server("workspace:SetAttribute('TestMaxOxygen', nil) workspace:SetAttribute('SandboxEndlessAir', true) return 'ok'")
+    fc.setw(FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
     print(fc.cmd("ride|" + fish))
     fc.wait_state({"Riding"})
-    time.sleep(3)
+    time.sleep(1.5)
     # the fail is asked for half a second into the filming, so a moment of riding comes first
     import threading
 

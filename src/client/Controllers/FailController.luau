@@ -131,6 +131,9 @@ type Fail = {
 	Pose: Pose?, -- the rider's pose on the fish (AnimController.FailPose)
 	Last: number, -- the last t
 	Released: boolean, -- the coil has let go
+	Trails: { Trail }, -- the fish's wake, off while it does its thing
+	Snap: CFrame?, -- where a Chomp bit (it goes on from there)
+	Pull: number, -- studs the shot is backed off by to keep both in it
 }
 
 local fails: { [Player]: Fail } = {}
@@ -417,7 +420,10 @@ OUTCOMES.Chomp = function(f, t)
 	local frame = base * CFrame.new(0, rise, 0) * CFrame.Angles(0, turn, 0) * CFrame.Angles(rear, 0, 0)
 	-- round to face you and lunge, so the open mouth meets you as you come down
 	local lunge = ss(0.75, 1.25, t)
-	if torso and lunge > 0 then
+	if f.Snap and t >= 1.3 then
+		-- (from the bite on it goes from where it took you: you are in its mouth now, nothing to aim at)
+		frame = f.Snap :: CFrame
+	elseif torso and lunge > 0 then
 		local aim = torso - frame.Position
 		aim = if aim.Magnitude > 0.1 then aim.Unit else frame.LookVector
 		local mouthTo = torso - aim * L * 0.45
@@ -426,6 +432,7 @@ OUTCOMES.Chomp = function(f, t)
 		frame = CFrame.lookAt(at, at + look)
 	end
 	if t >= 1.3 then
+		f.Snap = f.Snap or frame
 		-- shut: it shakes its head and swims on
 		local after = t - 1.3
 		local shake = math.sin(after * 18) * rad(16) * math.exp(-after * 2.4)
@@ -440,7 +447,8 @@ OUTCOMES.Chomp = function(f, t)
 	-- the rider: braced and bounced up on the saddle until the toss
 	local seat = frame * f.Saddle
 	local rider = seat * CFrame.new(0, bump(0, 0.6, t) * 1.2, 0)
-	local focus = if torso then (torso + frame.Position) / 2 else frame.Position
+	local mouth = (frame * mouthOf(f)).Position
+	local focus = if torso then torso:Lerp(mouth, 0.45) else mouth
 	return { Fish = frame, Rider = rider, Rig = rig, Focus = focus }
 end
 
@@ -669,13 +677,13 @@ local function throwOf(kind: string, fish: CFrame?, fishVelocity: Vector3): (Vec
 	local carry = fishVelocity * 0.35
 	local v, spin = Vector3.zero, Vector3.zero
 	if kind == "Chomp" then
-		v = (up * 0.92 + back * 0.4).Unit * 46
+		v = (up * 0.92 + back * 0.4).Unit * 34
 		spin = right * 6
 	elseif kind == "Gulp" then
 		v = (up * 0.7 + flat(look) * 0.7).Unit * 24
 		spin = right * -3
 	elseif kind == "Wrap" then
-		v = (up * 0.65 + back * 0.75).Unit * 62
+		v = (up * 0.5 + back * 0.85).Unit * 40
 		spin = right * r.Spin
 	elseif kind == "Roll" then
 		v = (-right * 0.75 + up * 0.6).Unit * 58
@@ -1230,8 +1238,8 @@ local function shotFor(f: Fail, sideSign: number): Vector3
 	local anchor = f.From.Position + look * math.min(f.Speed / 2.5, 40) * s.Ahead
 	local dir = (right * sideSign * s.Side + -look * s.Back + Vector3.yAxis * s.Up)
 	dir = if dir.Magnitude > 0.01 then dir.Unit else right
-	local far = (f.Length * 0.85 + 26) * s.Far
-	far = math.max(far, f.Length + 10)
+	local far = (f.Length * 0.48 + 15) * s.Far
+	far = math.max(far, f.Length * 0.7 + 8)
 	local at = anchor + dir * far
 	-- not under the floor, and not behind a wall: brought in to the near side of it
 	if f.FloorY then
@@ -1298,6 +1306,52 @@ local function unhide(f: Fail)
 		end
 	end
 	table.clear(f.Hidden)
+end
+
+-- Wild fish between the camera and what it looks at are made see-through (our own screen; LocalTransparencyModifier)
+local faded: { [BasePart]: boolean } = {}
+local function clearView(f: Fail, from: Vector3, to: Vector3)
+	local folder = workspace:FindFirstChild("Fish")
+	if not folder then
+		return
+	end
+	local way = to - from
+	local span = way.Magnitude
+	if span < 1 then
+		return
+	end
+	local dir = way / span
+	for _, model in folder:GetChildren() do
+		local root = model:IsA("Model") and model.PrimaryPart
+		if not root or model == f.Fish then
+			continue
+		end
+		local rel = root.Position - from
+		local along = rel:Dot(dir)
+		local near = along > 0 and along < span - 2 and (rel - dir * along).Magnitude < root.Size.Magnitude * 0.6 + 6
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				local want = if near then 0.85 else 0
+				if want > 0 or faded[d] then
+					d.LocalTransparencyModifier = d.LocalTransparencyModifier
+						+ (want - d.LocalTransparencyModifier) * 0.25
+					faded[d] = if d.LocalTransparencyModifier > 0.01 then true else nil
+					if not faded[d] then
+						d.LocalTransparencyModifier = 0
+					end
+				end
+			end
+		end
+	end
+end
+
+local function unfade()
+	for d in faded do
+		if d.Parent then
+			d.LocalTransparencyModifier = 0
+		end
+	end
+	table.clear(faded)
 end
 
 local function letFishGo(f: Fail)
@@ -1367,7 +1421,16 @@ local function begin(player: Player, fish: Model, kind: string)
 		Pose = nil,
 		Last = 0,
 		Released = false,
+		Trails = {},
+		Snap = nil,
+		Pull = 0,
 	}
+	for _, d in fish:GetDescendants() do
+		if d:IsA("Trail") and d.Enabled then
+			d.Enabled = false
+			table.insert(f.Trails, d)
+		end
+	end
 	f.CamTo = shotFor(f, sideSign)
 	-- the spine's parts, nose to tail, for the swallow's bulge
 	local spine: { Joint } = {}
@@ -1407,6 +1470,14 @@ function FailController.stop(player: Player)
 	letFishGo(f)
 	unhide(f)
 	unposeRig(f)
+	for _, trail in f.Trails do
+		if trail.Parent then
+			trail.Enabled = true
+		end
+	end
+	if f.Mine then
+		unfade()
+	end
 	if f.Weld and f.Weld.Parent then
 		f.Weld.C0 = f.Saddle
 	end
@@ -1576,10 +1647,20 @@ local function step(dt: number)
 		end
 		local subject = frame.Focus or riderPos:Lerp(fishNow.Position, 0.5)
 		f.Focus = f.Focus:Lerp(subject, Ease.alpha(4, math.max(stepT, dt)))
+		-- the rider and the fish both kept in the shot: backed off along its line as they draw apart (smoothly)
+		local spread = (riderPos - fishNow.Position).Magnitude + f.Length * 0.5
+		local need = spread * 0.5 / math.tan(rad(workspace.CurrentCamera.FieldOfView / 2)) * 1.15
+		local away = at - f.Focus
+		if away.Magnitude > 0.1 then
+			f.Pull = Ease.lerp(f.Pull, math.max(0, need - away.Magnitude), Ease.alpha(2.5, math.max(stepT, dt)))
+			at += away.Unit * f.Pull
+		end
 		State.DeathCam = { Position = at, Focus = f.Focus }
 		local u = math.clamp(t / math.max(def.Time, 0.01), 0, 1)
 		State.Darken = 0.3 * u
-		State.Vignette = 0.45 * u
+		State.Vignette = 0.35 * u
+		-- wild fish that swim into the shot are see-through while they are in it
+		clearView(f, at, f.Focus)
 		if f.Kind == "Wrap" then
 			local shade = f.Shade or makeShade()
 			f.Shade = shade
