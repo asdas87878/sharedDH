@@ -3,7 +3,7 @@
 -- the floor), its length and width, and the depth where it starts.
 -- The server reads them from the map (any instance with a "DiveZones" attribute, else Workspace.ClaudeBlockout.Dive or
 -- Workspace.Map.Dive: one child per zone, "01_SHALLOWS" and so on, each holding a BasePart named "Floor"; a zone may set
--- "ZoneName") and falls back to grey-box 15's lands (tools/studio/greybox/00_start.luau). It publishes them to clients
+-- "ZoneName") and falls back to the lands below (FALLBACK). It publishes them to clients
 -- as JSON (Net.Folder's "Zones" attribute).
 -- The gauge (Hugo, 2026-11-19, "every stud is a meter"): metres are how far below the sea's surface you are, one a
 -- stud (Config.Depth, Config.metresAt). A land's Metres is the depth of the lane's floor where it starts, worked out
@@ -24,19 +24,20 @@ export type Zone = {
 
 local Zones = {}
 
--- Grey-box 15 (tools/studio/greybox/00_start.luau): each land's name, the floor's start (x, y, z) and end, its width
+-- The lands as the place's map has them (read from its markers on 2026-11-19; tools/studio/greybox/00_start.luau in the
+-- repo has older, slightly longer lands): each land's name, the floor's start (x, y, z) and end, its width
 -- stylua: ignore
 local FALLBACK: { { any } } = {
-	{ "SHALLOWS", 3000.0, -46.0, 0.0, 3009.5, -80.5, 984.0, 185.4 },
-	{ "CORAL REEF", 3008.3, -81.5, 1008.0, 2746.4, -189.3, 3449.5, 279.1 },
-	{ "KELP FOREST", 2754.4, -190.5, 3477.0, 2879.6, -321.6, 5896.4, 364.2 },
-	{ "SHIPWRECKS", 2879.6, -321.6, 5896.4, 2537.2, -495.9, 8332.6, 378.3 },
-	{ "OPEN BLUE", 2548.5, -497.6, 8357.4, 2283.3, -738.9, 10775.0, 448.3 },
-	{ "TWILIGHT", 2290.0, -740.9, 10798.8, 2822.4, -957.3, 13204.0, 513.3 },
-	{ "MIDNIGHT", 2821.2, -959.7, 13229.4, 3032.2, -1219.2, 15659.6, 559.8 },
-	{ "VENTS", 3042.3, -1221.9, 15684.2, 3329.8, -1564.0, 18112.2, 595.7 },
-	{ "BONE GRAVEYARD", 3313.4, -1566.9, 18135.9, 3166.9, -1873.7, 20619.8, 669.8 },
-	{ "THE UNDERWORLD", 3166.9, -1873.7, 20619.8, 3000.8, -2223.9, 23073.6, 765.7 },
+	{ "SHALLOWS", 2999.9, -46.0, 0.0, 3009.6, -80.5, 984.0, 188.5 },
+	{ "CORAL REEF", 2986.3, -90.5, 1211.6, 2768.4, -180.3, 3245.9, 279.1 },
+	{ "KELP FOREST", 2764.2, -200.7, 3665.6, 2869.8, -311.4, 5707.8, 364.2 },
+	{ "SHIPWRECKS", 2850.6, -336.4, 6103.0, 2566.2, -481.1, 8126.0, 378.3 },
+	{ "OPEN BLUE", 2526.9, -517.1, 8553.3, 2304.9, -719.4, 10579.1, 448.3 },
+	{ "TWILIGHT", 2335.7, -759.5, 11005.4, 2776.7, -938.7, 12997.4, 513.3 },
+	{ "MIDNIGHT", 2838.7, -981.0, 13430.1, 3014.7, -1197.9, 15458.9, 559.8 },
+	{ "VENTS", 3066.9, -1251.2, 15891.1, 3305.2, -1534.7, 17905.3, 595.7 },
+	{ "BONE GRAVEYARD", 3299.9, -1595.0, 18363.3, 3180.4, -1845.6, 20392.4, 669.8 },
+	{ "THE UNDERWORLD", 3152.3, -1904.6, 20835.2, 3015.4, -2193.0, 22858.2, 765.7 },
 }
 
 -- The depth of a zone's floor at its start (s = -1) or its end (s = 1)
@@ -96,7 +97,7 @@ end
 function Zones.discover(): { Zone }
 	local dive = findDive()
 	if not dive then
-		warn("[Zones] no dive markers in Workspace, using grey-box 15's lands")
+		warn("[Zones] no dive markers in Workspace, using the fallback lands")
 		return Zones.fallback()
 	end
 	local children = dive:GetChildren()
@@ -121,7 +122,7 @@ function Zones.discover(): { Zone }
 		end
 	end
 	if #list == 0 then
-		warn("[Zones] " .. dive:GetFullName() .. " has no zone floors, using grey-box 15's lands")
+		warn("[Zones] " .. dive:GetFullName() .. " has no zone floors, using the fallback lands")
 		return Zones.fallback()
 	end
 	-- make sure every frame's +Z points on down the lane

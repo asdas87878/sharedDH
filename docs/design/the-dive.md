@@ -29,21 +29,23 @@ grapple feel, with numbers: [riding feel](riding-feel.md). Oxygen is the riding 
   everywhere. A land's border is the depth of the lane's floor where it starts, worked out from the map's own markers
   (`Zones`), so a new map brings its own numbers. The number goes up and down a little as you ride higher or lower over
   the floor; your dive's deepest and your best only ever go up. One place in the code: `Config.Depth` and
-  `Config.metresAt`, used by `Zones.locate`. Grey-box 15's lands:
+  `Config.metresAt`, used by `Zones.locate`. The lands of the map in the place (read off its markers on 2026-11-19), and
+  how it looks in a ride: [meters-1.png](../attachments/meters-1.png) (the strip at 796 m in the Twilight, the catch
+  screen at 791 METERS DEEP):
 
 | Land | Before (real-ocean label) | Now (floor depth where it starts, 1 m a stud) |
 |---|---|---|
-| 1 Shallows | 0 m | 46 m (the dock and the lagoon read 0 to about 45) |
-| 2 Coral Reef | 10 m | 81 m |
-| 3 Kelp Forest | 40 m | 190 m |
-| 4 Shipwrecks | 80 m | 321 m |
-| 5 Open Blue | 150 m | 497 m |
-| 6 Twilight | 200 m | 740 m |
-| 7 Midnight | 1,000 m | 959 m |
-| 8 Vents | 2,000 m | 1,221 m |
-| 9 Bone Graveyard | 4,000 m | 1,566 m |
-| 10 The Underworld | 6,000 m | 1,873 m |
-| The end of the lane | 10,935 m (the Challenger Deep) | 2,223 m |
+| 1 Shallows | 0 m | 45 m (the dock and the lagoon read 0 to about 45) |
+| 2 Coral Reef | 10 m | 90 m |
+| 3 Kelp Forest | 40 m | 200 m |
+| 4 Shipwrecks | 80 m | 336 m |
+| 5 Open Blue | 150 m | 517 m |
+| 6 Twilight | 200 m | 759 m |
+| 7 Midnight | 1,000 m | 981 m |
+| 8 Vents | 2,000 m | 1,251 m |
+| 9 Bone Graveyard | 4,000 m | 1,594 m |
+| 10 The Underworld | 6,000 m | 1,904 m |
+| The end of the lane | 10,935 m (the Challenger Deep) | 2,192 m |
 
   Before, the gauge spread made-up real-ocean depths along the lane, so the first thousand studs read 0 to 10 m.
 

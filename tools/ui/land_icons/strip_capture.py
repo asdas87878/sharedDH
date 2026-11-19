@@ -64,7 +64,7 @@ if __name__ == "__main__":
         for n in (1, 2, 3):
             prev(Show=True, Back=0, Scale=3, Numbers=n, Reveal="Dive", Touch=False, Land=3, Along=0.5, Metres=245, **BEST)
             shot(f"num_N{n}")
-            prev(Land=10, Along=1, Metres=2223, BestLands=10, BestMetres=2223)
+            prev(Land=10, Along=1, Metres=2192, BestLands=10, BestMetres=2192)
             shot(f"num_N{n}_all")
     elif what == "reveal":
         for mode in ("Dive", "Best"):
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     elif what == "gif":
         prev(Show=True, Back=0, Scale=3, Numbers=int(sys.argv[2]) if len(sys.argv) > 2 else 2, Reveal="Dive", Touch=False, BestLands=4.4, BestMetres=400)
         # each land's floor depth where it starts, one metre a stud (2026-11-19), and the lane's end
-        metres = [46, 81, 190, 321, 497, 740, 959, 1221, 1566, 1873, 2223]
+        metres = [45, 90, 200, 336, 517, 759, 981, 1251, 1594, 1904, 2192]
         i = 0
         for k in range(0, 41):
             p = k / 4  # lands, 0 to 10

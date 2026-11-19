@@ -196,7 +196,7 @@ captures of the game's own code (`tools/ui/land_icons/l1_sheets.py`, client `l1_
   its size with a bounce, held to 1.5 s, then fading. 2 **Banner**: a chunky plate in the land's colours slides in from
   the left with "LAND 6 OF 10" and the name, 1.7 s. 3 **Fly**: the land's tile pops on the strip, flies to the centre
   growing to 96 px with its number, the name under it, then flies back. 4 **Subtitle**: one line under the strip,
-  "LAND 6 · TWILIGHT · 740 m" (the land's floor depth where it starts, one metre a stud since 2026-11-19), 2 s. 5 **Flash**: the screen flashes the land's colour and the depth punches in, the
+  "LAND 6 · TWILIGHT · 759 m" (the land's floor depth where it starts, one metre a stud since 2026-11-19), 2 s. 5 **Flash**: the screen flashes the land's colour and the depth punches in, the
   land under it. 0 is off, and then the old land banner (`Banners.land`) plays as before; with any intro on,
   HudController no longer plays the old banner (one guarded line). Both ask `LandStrip.introLook()` (Kit's, or the
   workspace attribute in Studio), so they never disagree. The intro sheet is shot underwater, on a ridden fish.
@@ -279,7 +279,7 @@ upload's id).
 
 **What it looks like:** [the sheet](../attachments/land-strip-A-options-1.png) (the numbers N1 to N3 at 3x and real
 size, Dive against Best, three frames of a real ride on a desktop, the phone width for each number style) and
-[a whole dive](../attachments/land-strip-A-1.gif) (0 to 10,935 m on the old real-ocean gauge, N2; since 2026-11-19 a whole dive reads 0 to about 2,223 m). All of it is a capture of the game's own code
+[a whole dive](../attachments/land-strip-A-1.gif) (0 to 10,935 m on the old real-ocean gauge, N2; since 2026-11-19 a whole dive reads 0 to about 2,192 m). All of it is a capture of the game's own code
 in a Studio playtest, not a mock-up. The phone frames are the strip at its real phone size (HUD scale 1, 298 of 844
 GUI px) over the game; Studio's window was not resized to a phone.
 
