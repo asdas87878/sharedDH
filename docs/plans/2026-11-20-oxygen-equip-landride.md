@@ -236,3 +236,8 @@ Coins/s may retain decimals; Hugo asked for whole oxygen, not a coin-currency re
 3. For handoff, implementation owners provide changed files, checks run, known failures, missing rig roles, and short visual evidence. Run repository formatting/lint on touched Luau and focused resolver/ownership/tick checks; do not claim lint replaces Studio input/physics tests.
 4. Astra reviews against every E1–E4 acceptance item: **pass, fail, or unverified**, with source/test evidence. Block completion on area-dependent oxygen, fractional trainer grants, E placing/upgrading, decorative-only cash action, merely held fish overriding equipped, missing body profiles, or duplicate mount/pose ownership. Balance remains explicitly provisional until Hugo chooses/plays it.
 5. Integrator owns consolidated Sessions/Handoff/design updates and Studio scheduling; this planning task owns only `docs/plans/`. This plan intentionally does not edit the other owners' notes/code or claim uploads, commits, publishing or new Studio results.
+
+## Hugo's corrections after E2/E3 (2026-11-20, binding; mission follow-up)
+
+- Tank (on `docs/attachments/e2-tank-click.png`): hovering the tank outlines the WHOLE tank; no "CLICK / PUT IN TANK" prompt and no click-to-add. Clicking the tank just opens the tank GUI.
+- Hotbar (on `docs/attachments/e3-hotbar-holding.png`): back to the original number of inventory slots (before E3), centred exactly where the original row was; the Q slot sits a little to the side of that row, not shifting it.

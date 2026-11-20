@@ -3,6 +3,26 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · The tank outlined under the mouse, a click opens its popup; the hotbar back to seven (NULLROOM task c1, Hugo's PC)
+**State:** in the game code; stylua and selene clean. Checked by a scripted Studio playtest,
+`python tools/studio/c1_tank_hotbar_check.py install|run|remove` (log `work/c1/check.log`): see the result line below.
+Not played by hand (no real mouse: the hover goes through `TankPanel.pretendMouse`, Studio only, the click through
+`TankPanel.click`, the same path a real click takes).
+- **The tank** (Hugo on `e2-tank-click.png`): pointing at your own tank within its reach outlines the **whole tank**
+  white, outline only (a Highlight round a nearly clear client-side copy of the tank's own parts: `UI/TankPanel`); a
+  click or tap opens the popup. **Gone:** the CLICK / PUT IN TANK control on the glass (`TankPrompt.attach`, its
+  `press`/`control`) and the CLICK YOUR TANK / WALK CLOSER! sign; a click never puts a fish in by itself. Fish go in
+  with the popup's PUT IN / PUT ALL IN, as before. The glass control's empty-handed RIDE A FISH moved into the popup
+  (a blue button in the left column, shown while fish swim in the tank). `AquariumController` no longer makes the
+  control; `UI/TankPrompt` keeps only the "in your tank!" line. Others' tanks: no outline, no click.
+- **The hotbar** (Hugo on `e3-hotbar-holding.png`): seven numbered slots again (keys 1 to 7; 8 and 9 do nothing), the
+  row's frame the size and place it had before e3, centred; the Q slot stands outside it, a double gap to the left,
+  so it never shifts the row. Its hint sits centred over it in up to two short lines (it was cut off at the left).
+- **Stale:** `tools/studio/e2_click_check.py` and `tank_panel_check.py` still look for the glass control and the sign;
+  `e3_equip_check.py` expects keys 1 to 9.
+- Shots: see the c1 entries in `docs/attachments/` (`c1-tank-*.png`, `c1-hotbar-*.png`, each `*-beside.png` with the
+  one it replaces).
+
 ## 2026-11-20 · Number keys, Q and the ride fish in the far-left slot (NULLROOM task e3, Hugo's PC)
 **State:** in the game code (most of it went in with the 10:55 vault sync, `41d371e`); checked by a scripted Studio
 playtest, `python tools/studio/e3_equip_check.py install|run|remove`: **41 of 41 pass** (log `work/e3/check.log`).

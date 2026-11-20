@@ -150,8 +150,10 @@ type LandRig = {
 	yaw: number,
 	turn: number, -- degrees a second, smoothed
 	length: number,
+	-- the core body's box (no limbs, no arms), for what a roll or a pitch sinks
 	width: number,
 	height: number,
+	long: number,
 	pace: number, -- its stride's pace for its size
 	studs: number, -- its hops' and heaves' size for its size
 	calm: number, -- its angles' share for its size
@@ -495,6 +497,7 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 		length = length,
 		width = size.X,
 		height = size.Y,
+		long = length,
 		pace = math.clamp((14 / length) ^ style.Slow, cfg.SlowMost, 1.4),
 		studs = math.clamp(length / 14, 0.5, 8) ^ cfg.Heavy,
 		calm = Ease.lerp(1, cfg.BigCalm, Ease.smoothstep(25, 90, length)),
@@ -649,6 +652,34 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 			lj.share = lj.k ^ grow / math.max(sums[lj.role], 1e-3)
 		end
 	end
+	-- the core body's box at rest, in the Root's space: every part but the limbs and the arms (and what is welded to them)
+	local root = model.PrimaryPart
+	if root then
+		local skip: { [string]: boolean } = {}
+		for part, lj in byName do
+			if lj.role == 3 or lj.role == 4 then
+				skip[part] = true
+			end
+		end
+		local lo, hi = Vector3.one * math.huge, -Vector3.one * math.huge
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d ~= root and not skip[(string.gsub(d.Name, "_Glow$", ""))] then
+				local cf = root.CFrame:ToObjectSpace(d.CFrame)
+				local half = d.Size / 2
+				for _, corner in { Vector3.new(1, 1, 1), Vector3.new(-1, -1, -1) } do
+					local at = cf.Position
+						+ corner * (cf.RightVector * half.X):Abs()
+						+ corner * (cf.UpVector * half.Y):Abs()
+						+ corner * (cf.LookVector * half.Z):Abs()
+					lo, hi = lo:Min(at), hi:Max(at)
+				end
+			end
+		end
+		if hi.X > lo.X then
+			local core = hi - lo
+			out.width, out.height, out.long = core.X, core.Y, core.Z
+		end
+	end
 	if isStudio and style.NoLimbs ~= 1 and out.limbs == 0 and not warnedLand[id] then
 		warnedLand[id] = true
 		warn(
@@ -782,11 +813,11 @@ local function landStep(
 			end
 			turnTo = CFrame.Angles(0, rad(lj.side * sweep), rad(lj.side * lift))
 		elseif role == 4 then
-			local open = (
-				s.ArmSpread
-				+ s.Arm * calm * stride(p, 1, s.ArmLag * lj.index + s.ArmSeg * lj.seg)
-				+ 0.5 * stir
-			) * s.ArmShare ^ lj.seg
+			local reach = s.Arm * calm * stride(p, 1, s.ArmLag * lj.index + s.ArmSeg * lj.seg)
+			if reach < 0 then
+				reach *= s.ArmDown -- (a trailing arm closes downward, into the floor)
+			end
+			local open = (s.ArmSpread + reach + 0.5 * stir) * s.ArmShare ^ lj.seg
 			turnTo = CFrame.fromAxisAngle(lj.axis, rad(open))
 		elseif role == 5 then
 			local open = s.Jaw * calm * math.max(0, stride(p, s.HopPer, s.JawPhase))

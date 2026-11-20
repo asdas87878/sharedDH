@@ -3,21 +3,26 @@
 -- from nearby, then get a little popup where you can equip the best fish instantly, unequip certain fishes and see how
 -- much money they produce and their rarities and special traits (like gold or colossal)").
 --   Opening it: a click (or a tap) on one's own tank, from no further than the plot's "PanelReach" studs (written by
---   AquariumService, so both sides use one number). Near enough, the tank's glass is outlined under the mouse and a
---   small sign over the tank says to click or tap it. It closes with its X, a second click on the tank, walking away or
---   leaving the dock.
+--   AquariumService, so both sides use one number). Near enough, the WHOLE tank (base, glass, frame, sign) is outlined
+--   white under the mouse, outline only (Hugo, 2026-11-20, task c1: "just outlines the full tank whenever you hover
+--   over it ... just open the gui when player clicks on it"): no sign over the tank, no prompt on its glass, and a click
+--   never puts a fish in by itself. A phone has no hover: a tap opens it. Only one's own tank: others' are neither
+--   outlined nor clickable. It closes with its X, a second click on the tank, walking away or leaving the dock.
 --   What it shows: every fish in the tank, the equipped ones (which earn and swim there, at most "TankEarning") and the
 --   stored ones, and what one carries; each as a card with its picture (UI.Portrait: the partner's renders), name,
 --   rarity, size (Tiny to Colossal), colour (Silver, Gold, Rainbow), archetype icons and coins a second. The coins are
 --   Config.incomeOf, the one function the server pays by too, so the economy draft's numbers show here as they land.
 --   What it asks (the server decides, AquariumService: Action "Tank", verb, ...): EQUIP BEST, EQUIP and UNEQUIP on a
---   card, PUT IN on a carried fish and PUT ALL IN. Refusals come back as Ride "TankDenied", reason.
+--   card, PUT IN on a carried fish and PUT ALL IN; and RIDE A FISH (task c1: what the glass's prompt did with empty
+--   hands, now here: Action "TankRide", "On", the tank's fish nearest us; TankRideService). Refusals come back as Ride
+--   "TankDenied", reason.
 --   The look (Hugo, 2026-11-20, task s3: "make placing down fishes UI cohesive with these styles"): the shop kit
 --   (UI.Shop, task s1), laid out as its sell list: the Kelp header with the tank's earnings, a "Sort by" column
 --   (Income, Rarity, Size: this screen's order only), the cards in a dark tray, each tinted in its rarity's colour
 --   with its name in that colour and its rate in green, and a footer with the totals, PUT ALL IN and EQUIP BEST.
 --   Buttons say what they do in the kit's colours: green EQUIP, blue UNEQUIP (an earning card is outlined light), gold
 --   PUT IN, grey FULL (the tank's earning places are all taken; pressing it still asks, and the server says why).
+local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -111,9 +116,18 @@ local cards: { [string]: Card } = {}
 local open = false
 local touch = false
 
-local hint: BillboardGui? = nil
-local farAt = -math.huge -- when a click on the tank came from too far away
+local rideButton: Shop.Button
+-- The hover outline (task c1): one Highlight round a client-only copy of the tank's own parts (the plot's parts that
+-- stand within the tank's footprint: not the pad, the trainer, the upgrade sign or the fish), nearly clear, under the
+-- camera. A Highlight outlines everything under its Adornee as one shape, and the tank's parts sit loose in the plot
+-- Model among the trainer's and the sign's, so the copy is what gives the tank alone one clean outline
 local outline: Highlight? = nil
+local shape: Model? = nil
+local shapeOf: BasePart? = nil -- the water the copy was made round
+local shapeDirty = true
+local shapeWatch: { RBXScriptConnection } = {}
+local OUTLINE_COLOUR = Kit.White -- (the slots' white ring, the kit's light lines)
+local FOOTPRINT = 6 -- studs past the water's sides that still count as the tank (its base, frame and sign)
 
 local function attr(name: string, default: any): any
 	local value = State.Player:GetAttribute(name)
@@ -612,10 +626,31 @@ local function layout()
 	end
 end
 
+-- Our tank's fish swimming in it now, the one nearest us (what RIDE A FISH gets us on)
+local function nearestTankFish(): Model?
+	local plot = ownPlot()
+	local shown = plot and plot:FindFirstChild("TankFish")
+	local _, root = State.character()
+	if Config.TankRide.On == 0 or not shown or not root then
+		return nil
+	end
+	local best, found = math.huge, nil
+	for _, m in shown:GetChildren() do
+		if m:IsA("Model") and m.PrimaryPart and CollectionService:HasTag(m, "TankFish") then
+			local d = (m.PrimaryPart.Position - root.Position).Magnitude
+			if d < best then
+				best, found = d, m
+			end
+		end
+	end
+	return found
+end
+
 local function show(on: boolean)
-	open = on and State.Mode == "Dock"
+	open = on and State.Mode == "Dock" and not State.Player:GetAttribute("TankRide")
 	if open then
 		refresh()
+		rideButton.Root.Visible = nearestTankFish() ~= nil
 	end
 	window.show(open)
 end
@@ -698,6 +733,23 @@ local function build()
 			TankPanel.sort(name)
 		end)
 	end
+	-- riding a fish in the tank (task c1: the glass's prompt did it with empty hands; it went with the prompt)
+	rideButton = Shop.button(side, {
+		Name = "Ride",
+		Text = "RIDE A FISH",
+		Kind = "Blue",
+		TextSize = 20,
+		Size = UDim2.new(1, 0, 0, 44),
+		LayoutOrder = 8,
+	})
+	rideButton.Root.Visible = false
+	rideButton.Root.Activated:Connect(function()
+		local fish = nearestTankFish()
+		if fish then
+			show(false)
+			Net.Action:FireServer("TankRide", "On", fish)
+		end
+	end)
 	note = Shop.text(side, {
 		Name = "Note",
 		Size = UDim2.new(1, -6, 0, 54),
@@ -858,66 +910,101 @@ local function build()
 	toastWord = Shop.text(toast, { Size = UDim2.fromScale(1, 1), TextSize = 21, ZIndex = 9 })
 end
 
--- The sign over our tank while we are near it with the popup shut (a small plate in the tank's Kelp, as the window's
--- header), and the glass outlined under the mouse in the same green
-local function keepHint(near: boolean, hovered: boolean)
-	local _, water = ownPlot()
-	if not water then
+-- The copy of our tank's parts the outline goes round (see `outline` above): made again when the tank's parts change
+-- (an upgrade, streaming), never for the fish swimming in it
+local function makeShape(plot: Model, water: BasePart)
+	if shape then
+		shape:Destroy()
+	end
+	for _, c in shapeWatch do
+		c:Disconnect()
+	end
+	table.clear(shapeWatch)
+	local model = Instance.new("Model")
+	model.Name = "TankOutlineShape"
+	local fishes = plot:FindFirstChild("TankFish")
+	local trainer = plot:FindFirstChild("TrainerRide")
+	local half = water.Size / 2
+	for _, d in plot:GetDescendants() do
+		if
+			d:IsA("BasePart")
+			and d.Name ~= "Pad"
+			and d.Transparency < 0.98
+			and not (fishes and d:IsDescendantOf(fishes))
+			and not (trainer and d:IsDescendantOf(trainer))
+		then
+			local at = water.CFrame:PointToObjectSpace(d.Position)
+			if math.abs(at.X) <= half.X + FOOTPRINT and math.abs(at.Z) <= half.Z + FOOTPRINT then
+				local was = d.Archivable
+				d.Archivable = true
+				local copy = d:Clone()
+				d.Archivable = was
+				if copy then
+					copy:ClearAllChildren()
+					copy.Anchored = true
+					copy.CanCollide = false
+					copy.CanQuery = false
+					copy.CanTouch = false
+					copy.CastShadow = false
+					-- (a Highlight draws nothing round a part that is wholly clear: this one is all but)
+					copy.Transparency = 0.99
+					copy.Parent = model
+				end
+			end
+		end
+	end
+	model.Parent = workspace.CurrentCamera
+	shape, shapeOf, shapeDirty = model, water, false
+	local function changed(d: Instance)
+		if d:IsA("BasePart") and not (fishes and d:IsDescendantOf(fishes)) then
+			shapeDirty = true
+		end
+	end
+	table.insert(shapeWatch, plot.DescendantAdded:Connect(changed))
+	table.insert(shapeWatch, plot.DescendantRemoving:Connect(changed))
+	if outline then
+		outline.Adornee = model
+	end
+end
+
+-- The whole tank outlined while the mouse is over it, near enough to open it, the popup shut (task c1)
+local function keepOutline(hovered: boolean)
+	local plot, water = ownPlot()
+	if not plot or not water then
+		if outline then
+			outline.Enabled = false
+		end
 		return
 	end
-	if not hint or hint.Adornee ~= water then
-		if hint then
-			hint:Destroy()
-		end
-		local b: BillboardGui = Kit.new("BillboardGui", {
-			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-			Name = "TankHint",
-			Adornee = water,
-			AlwaysOnTop = true,
-			LightInfluence = 0,
-			Size = UDim2.fromOffset(250, 44),
-			StudsOffsetWorldSpace = Vector3.new(0, water.Size.Y / 2 + 9, 0),
-			MaxDistance = 200,
-		}, State.Player:WaitForChild("PlayerGui"))
-		local plate: Frame = Kit.new("Frame", {
-			Name = "Plate",
-			Position = UDim2.fromOffset(3, 3),
-			Size = UDim2.new(1, -6, 1, -6),
-			BackgroundColor3 = Kit.White,
-			BorderSizePixel = 0,
-		}, b)
-		Kit.corner(plate, 6)
-		Kit.stroke(plate, 3, Shop.Edge)
-		Kit.new("UIGradient", {
-			Rotation = 90,
-			Color = Shop.halves(Kit.lighter(Shop.Heads.Kelp, 0.22), Shop.Heads.Kelp, 0.46),
-		}, plate)
-		Shop.pattern(plate, "Head", 26, 0.84)
-		Shop.gloss(plate, 0.66, 0.26)
-		Shop.text(plate, { Name = "Word", Size = UDim2.fromScale(1, 1), TextSize = 22, ZIndex = 3 })
-		hint = b
+	if hovered and (shapeDirty or shapeOf ~= water or not shape or not shape.Parent) then
+		makeShape(plot, water)
 	end
-	local h = hint :: BillboardGui
-	local far = os.clock() - farAt < 2
-	h.Enabled = (near or far) and not open
-	local w = h:FindFirstChild("Word", true)
-	if w and w:IsA("TextLabel") then
-		w.Text = if near then (if touch then "TAP YOUR TANK" else "CLICK YOUR TANK") else "WALK CLOSER!"
-	end
-	if not outline or outline.Adornee ~= water then
-		if outline then
-			outline:Destroy()
-		end
+	if not outline then
 		outline = Kit.new("Highlight", {
 			Name = "TankHover",
-			Adornee = water,
-			FillColor = Shop.Heads.Kelp,
-			FillTransparency = 0.88,
-			OutlineColor = Color3.fromRGB(200, 255, 150),
+			Adornee = shape,
+			FillTransparency = 1,
+			OutlineColor = OUTLINE_COLOUR,
+			OutlineTransparency = 0,
 			DepthMode = Enum.HighlightDepthMode.Occluded,
+			Enabled = false,
 		}, State.Player:WaitForChild("PlayerGui"))
 	end
-	(outline :: Highlight).Enabled = hovered and near and not open
+	(outline :: Highlight).Enabled = hovered and shape ~= nil
+end
+
+-- (Studio's tests: a mouse point on the whole viewport to use in place of the real mouse, nil for the mouse again)
+local testMouse: Vector2? = nil
+function TankPanel.pretendMouse(at: Vector2?)
+	if RunService:IsStudio() then
+		testMouse = at
+	end
+end
+
+-- (Studio's tests: whether the outline is on, and round how many of the tank's parts)
+function TankPanel.outlined(): (boolean, number)
+	local on = outline ~= nil and outline.Enabled and outline.Adornee ~= nil
+	return on, if shape then #shape:GetChildren() else 0
 end
 
 -- A press on the world (not on a button): a click if it neither moved far nor lasted long
@@ -946,7 +1033,7 @@ local function watchClicks()
 end
 
 -- A click or tap at a point on the screen (an input's Position): on our tank and near enough, the popup opens (or
--- shuts); too far, the sign over the tank says to come closer. Studio's tests call it too. True when it was on the tank
+-- shuts). Studio's tests call it too. True when it was on the tank
 function TankPanel.click(x: number, y: number): boolean
 	if State.Mode ~= "Dock" or not overTank(x, y) then
 		return false
@@ -954,8 +1041,6 @@ function TankPanel.click(x: number, y: number): boolean
 	local gap, reach = distance()
 	if gap <= reach then
 		show(not open)
-	elseif not open then
-		farAt = os.clock() -- (the sign over the tank says to come closer)
 	end
 	return true
 end
@@ -995,26 +1080,26 @@ function TankPanel.init()
 	end)
 	layout()
 	local lastLook = 0
-	local near, hovered = false, false
 	RunService.RenderStepped:Connect(function()
 		toast.Visible = os.clock() - toastAt < 2.2
-		if os.clock() - lastLook < 0.1 then
+		if os.clock() - lastLook < 0.05 then
 			return
 		end
 		lastLook = os.clock()
-		if State.Mode ~= "Dock" then
-			near, hovered = false, false
-		else
+		local hovered = false
+		if State.Mode == "Dock" and not State.Player:GetAttribute("TankRide") then
 			local gap, reach = distance()
-			near = gap <= reach
-			local mouse = UserInputService:GetMouseLocation()
-			hovered = near and not touch and overTank(mouse.X, mouse.Y, true)
+			local mouse = testMouse or UserInputService:GetMouseLocation()
+			hovered = gap <= reach and not open and (not touch or testMouse ~= nil) and overTank(mouse.X, mouse.Y, true)
 			-- walked away: it closes
 			if open and gap > reach + 8 then
 				show(false)
 			end
+			if open then
+				rideButton.Root.Visible = nearestTankFish() ~= nil
+			end
 		end
-		keepHint(near, hovered)
+		keepOutline(hovered)
 	end)
 end
 

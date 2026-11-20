@@ -21,11 +21,15 @@
 -- the slots as far apart as the reference's (a gap of an eighth of a slot between their outlines); and a slot grows a
 -- little under the mouse.
 -- The ride fish (task e3, Hugo 2026-11-20: "1 should be first inventory slot while q should be a completely seperate
--- slot"; docs/design/equip.md): a slot of its own at the far left, a little further from the others, with a small Q
--- key cap at its corner in the shop's button look (UI.Shop). It shows the equipped fish (the server's EquippedFish,
--- EquipController calls Slots.equipped), with the white ring while it is ridden on land and a small cross to unequip;
--- empty, it says how ("HOLD A FISH, THEN Q"). It is not one of the numbered slots: 1 is always the first catch. Each
--- numbered slot shows its key (1 to 9) on a keyboard; Slots.pick(n) is the key's press, the very path of a click.
+-- slot"; docs/design/equip.md): a slot of its own, with a small Q key cap at its corner in the shop's button look
+-- (UI.Shop). It shows the equipped fish (the server's EquippedFish, EquipController calls Slots.equipped), with the
+-- white ring while it is ridden on land and a small cross to unequip; empty, it says how ("HOLD A FISH, THEN Q", on
+-- two short lines over it). It is not one of the numbered slots: 1 is always the first catch. Each numbered slot
+-- shows its key (1 to 7) on a keyboard; Slots.pick(n) is the key's press, the very path of a click.
+-- The row as it was before e3 (Hugo, 2026-11-20, task c1: "remove the many slots to the base again + the q but make
+-- sure its all centered around the original slots, with the q slot just being a little to the side"): seven numbered
+-- slots, the row's frame the very size and place it had, centred; the Q slot stands outside that frame, to its left,
+-- APART gaps from slot 1, so it never moves the row.
 -- The row is hidden while the game has no taming (State.Caught is nil). The picture is the creature's own model drawn
 -- in a small window (UI.Portrait), which needs no upload; a creature with no model to draw yet shows its name alone.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -59,9 +63,11 @@ local BIG = 46
 -- the two outlines, which stand outside the faces
 local GAP = 8
 local BIG_GAP = 10
-local COUNT = 9 -- the numbered slots, keys 1 to 9 (the hands hold Tame.Carry: 7, so 8 and 9 stay empty for now)
-local APART = 2 -- the equipped slot's gap from slot 1, in gaps
+local COUNT = 7 -- the numbered slots, keys 1 to 7 (as before e3: the hands hold Tame.Carry, 7)
+local APART = 2 -- the equipped slot's gap from slot 1, in gaps (it stands outside the row's frame)
 local OUTLINE = 2
+local HINT_FOOT = 7 -- the Q slot's words' foot, from the row's top (level with the count's: -6 + its 13)
+local HINT_WIDE = 30 -- how much wider than a slot its words may run
 local RING = 2.3 -- the white ring's thickness
 local RING_GAP = 1.4 -- and its gap outside the black outline
 local HOVER = 1.06 -- how much a slot grows under the mouse: its picture's overhang and this stay inside the gap
@@ -365,16 +371,17 @@ end
 
 local touchNow = false
 
--- Where slot n's middle is from the row's left (0: the equipped slot)
+-- Where slot n's middle is from the row's left (0: the equipped slot, left of the row's frame)
 local function middleOf(n: number, size: number, gap: number): number
 	if n == 0 then
-		return size / 2
+		return -gap * APART - size / 2
 	end
-	return size + gap * APART + (n - 1) * (size + gap) + size / 2
+	return (n - 1) * (size + gap) + size / 2
 end
 
+-- The row's frame: the numbered slots only, as before e3 (so the Q slot never shifts it)
 local function rowWidth(size: number, gap: number): number
-	return (COUNT + 1) * size + (COUNT - 1) * gap + APART * gap
+	return COUNT * size + (COUNT - 1) * gap
 end
 
 -- What the equipped slot says above it, and its cap and cross
@@ -403,8 +410,8 @@ function Slots.build(parent: Instance)
 		Visible = false,
 	}, parent)
 	count = Kit.text({
-		-- (lifted clear of the pictures, which stand a little over the slots' tops; over slot 1, not the equipped one)
-		Position = UDim2.fromOffset(SIZE + GAP * APART, -6),
+		-- (lifted clear of the pictures, which stand a little over the slots' tops; over slot 1)
+		Position = UDim2.fromOffset(0, -6),
 		Size = UDim2.fromOffset(120, 13),
 		TextSize = 12,
 		Font = FONT,
@@ -429,7 +436,7 @@ function Slots.build(parent: Instance)
 		hit.Activated:Connect(function()
 			Slots.pick(i)
 		end)
-		-- its key, 1 to 9, at its top left (a keyboard only)
+		-- its key, 1 to 7, at its top left (a keyboard only)
 		keys[i] = Kit.text({
 			Name = "Key",
 			Position = UDim2.fromOffset(2, 1),
@@ -497,16 +504,19 @@ function Slots.build(parent: Instance)
 	cross.Activated:Connect(function()
 		rideEvent:Fire("Unequip")
 	end)
-	-- what it is, above it (right-aligned to its right edge, so the hint runs off to the left, away from the row)
+	-- what it is, just over it: centred on it, in two short lines when long, its foot level with "N CAUGHT"'s (it
+	-- was one long line running off to the left, and was cut off at the screen's edge)
 	local hint = Kit.text({
 		Name = "Hint",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromOffset(SIZE, -6),
-		Size = UDim2.fromOffset(160, 13),
-		TextSize = 11,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromOffset(middleOf(0, SIZE, GAP), HINT_FOOT),
+		Size = UDim2.fromOffset(SIZE + HINT_WIDE, 26),
+		TextSize = 9,
 		Font = FONT,
 		TextColor3 = Kit.Sun,
-		TextXAlignment = Enum.TextXAlignment.Right,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Bottom,
 	}, holder, 1.2)
 	ride = {
 		Panel = t.Panel,
@@ -537,12 +547,14 @@ function Slots.place(touch: boolean)
 		keys[i].Visible = not touch
 		keys[i].TextSize = if touch then 9 else 11
 	end
-	count.Position = UDim2.fromOffset(size + gap * APART, -6)
+	count.Position = UDim2.fromOffset(0, -6)
 	if ride then
 		ride.Panel.Frame.Size = UDim2.fromOffset(size, size)
 		ride.Panel.Frame.Position = UDim2.new(0, middleOf(0, size, gap), 1, -size / 2)
 		ride.Name.TextSize = if touch then 8.5 else 11
-		ride.Hint.Position = UDim2.fromOffset(size, -6)
+		ride.Hint.Position = UDim2.fromOffset(middleOf(0, size, gap), HINT_FOOT)
+		ride.Hint.Size = UDim2.fromOffset(size + HINT_WIDE, 26)
+		ride.Hint.TextSize = if touch then 9 else 11
 		local cap = if touch then 14 else 18
 		ride.Cap.Root.Size = UDim2.fromOffset(cap, cap)
 		ride.Cap.Label.TextSize = if touch then 10 else 12
@@ -551,7 +563,7 @@ function Slots.place(touch: boolean)
 	end
 end
 
--- A numbered slot pressed (a click, a tap, or its key 1 to 9: task e3): the very same path for each. Fires Picked
+-- A numbered slot pressed (a click, a tap, or its key 1 to 7: task e3): the very same path for each. Fires Picked
 -- (holding, AquariumController) with the catch at that place, or nil for an empty one; a caught one takes the ring
 function Slots.pick(n: number)
 	if n < 1 or n > COUNT or not holder or not holder.Visible then
@@ -589,7 +601,7 @@ function Slots.update(list: { Caught }?)
 		return
 	end
 	count.Text = if #list > 0 then #list .. " CAUGHT" else ""
-	-- (with more catches than numbered slots, the newest COUNT; with the hands' 7 and 9 slots, all of them from slot 1)
+	-- (with more catches than numbered slots, the newest COUNT; the hands hold Tame.Carry, 7: all of them from slot 1)
 	local first = math.max(#list - COUNT, 0)
 	current = list
 	firstShown = first

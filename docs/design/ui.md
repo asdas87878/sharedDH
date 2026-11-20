@@ -45,7 +45,7 @@ real phone.
   glass under the mouse is outlined in a light green with a faint green fill.
 - **A phone:** the window takes the whole height (its points scaled by the screen's height over 430, not 720), so a
   card's name is about 15 pt at 844 x 390; the cards' columns follow the width.
-- **Not changed:** the catch slots along the bottom (their white ring still marks which fish the prompt puts in).
+- **Not changed:** the catch slots along the bottom (their white ring still marks which fish the prompt puts in). (Since task c1, 2026-11-20, no prompt: fish go in from the tank's popup; the row is seven numbered slots with the Q slot beside it, [the ride fish](equip.md).)
 
 **Seen** (`tools/ui/shop_kit/s3_capture.py` with the client `tank_client.luau`):
 [beside the reference](../attachments/tank-vs-ref.jpg), [sorted by rarity, full, empty](../attachments/tank-states.jpg),

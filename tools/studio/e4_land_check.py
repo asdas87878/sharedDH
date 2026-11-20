@@ -259,12 +259,21 @@ workspace:GetAttributeChangedSignal("E4Do"):Connect(function()
 			task.wait(2.5)
 			local restLow, restA, restBent = {}, {}, {}
 			for _, m in models do
-				restLow[m] = lowest(m)
 				restA[m] = snap(m)
 			end
 			task.wait(0.6)
 			for _, m in models do
 				restBent[m] = apart(restA[m], snap(m))
+			end
+			-- (the floor line: standing, the stride's clock held, as the probe "low" takes it)
+			workspace:SetAttribute("LandMove", 0)
+			workspace:SetAttribute("LandClock", 0)
+			-- (the lowest over a whole idle stir, 0.6 a second: the fins stir down as well as up)
+			for _ = 1, 20 do
+				frames(6)
+				for _, m in models do
+					restLow[m] = math.min(restLow[m] or math.huge, lowest(m))
+				end
 			end
 			workspace:SetAttribute("LandMove", 1)
 			local samples = {}

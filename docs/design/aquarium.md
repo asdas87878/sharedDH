@@ -16,16 +16,18 @@ The code: `src/server/Services/AquariumService.luau`, `src/client/Controllers/Aq
 3. **You wake at your own tank.** With fish in hand, a dive that ends puts you on the floor just in front of your
    tank's glass, facing it, not at the dock's spawn. (Until 2026-11-20 there was a green pad there; Hugo had it
    taken out, task k1.)
-4. **You put them in, one at a time** (Hugo, 2026-11-18: "make the player actually be able to place down fishes in
-   aquarium once back"). Walk up to your tank's front glass (within 16 studs): a control on the glass, a green CLICK
-   cap (TAP on a phone) and "PUT IN TANK" with the fish's name, puts in the fish with the white ring in the slots (the
-   held one, or the newest) on **one click or tap**: no E, no hold (task e2, Hugo 2026-11-20; since 2026-11-20 on the
-   glass itself, the green pad is gone). A click or number key on a caught slot always *holds* that fish, at the tank
-   too: only this control, or the popup's PUT IN / PUT ALL IN, puts a fish in. With empty hands and fish in the tank
-   the same control says "RIDE A FISH". A refusal leaves the fish in your slots and says why on the control for a
-   moment (WALK CLOSER!, THAT FISH IS GONE). The view turns to the tank and a line rises over it: the fish's name and what it
-   adds a second. The server checks it: on the dock, at your own tank (on the plot, or near its water: the popup's
-   reach), and that slot still holds that fish.
+4. **You put them in, in the tank's popup** (Hugo, 2026-11-18: "make the player actually be able to place down
+   fishes in aquarium once back"; since 2026-11-20, task c1: "make sure that it just outlines the full tank whenever
+   you hover over it, remove the click to add and just open the gui when player clicks on it"). Point at your own
+   tank from within its reach (36 studs) and the **whole tank** is outlined white (base, glass, frame, sign; outline
+   only, no fill); a click (a tap on a phone, which has no hover) opens the popup below, where PUT IN puts one carried
+   fish in and PUT ALL IN all of them. There is no control on the glass and no sign over the tank any more, and a
+   click on the tank never puts a fish in by itself. A click or number key on a caught slot *holds* that fish (it
+   shows on top under IN YOUR HANDS). With fish in the tank the popup's RIDE A FISH (blue, in the left column) gets
+   you on the one nearest you (it was the glass control's empty-handed mode). Other players' tanks are neither
+   outlined nor clickable. The view turns to the tank and a line rises over it: the fish's name and what it adds a
+   second. The server checks it (Action `"Tank"`): on the dock, near your own tank, that fish still in your hands.
+   (Before c1: a CLICK / PUT IN TANK control on the glass, task e2, and before that an E prompt and a green pad.)
 5. **They swim there and earn.** Up to seven are *equipped*: they earn coins every second and swim in the tank.
    The coin row on the HUD shows itself. A new fish takes a free place; with seven equipped it is *stored* (up to
    60 in all) and earns nothing until you equip it (since 2026-11-19, the popup below; before that the best seven
@@ -74,16 +76,20 @@ Built 2026-11-19 (task p1). The code: `src/client/UI/TankPanel.luau`, the server
 Pictures: [desktop](../attachments/tank-popup-desktop.png), [desktop, scrolled, EQUIP BEST lit](../attachments/tank-popup-desktop-2.png),
 [phone](../attachments/tank-popup-phone.png).
 - **Opening it:** click (or tap) your own tank (its glass, water, rim or sign) from within 36 studs of the water
-  (`PANEL_REACH` in AquariumService, written on each plot as `PanelReach`). Near enough, a sign over the tank says
-  CLICK YOUR TANK (TAP on a phone) and the glass is outlined yellow under the mouse. From further away the sign says
-  WALK CLOSER!. It shuts with its X, a second click on the tank, walking 8 studs past the reach, or leaving the dock.
+  (`PANEL_REACH` in AquariumService, written on each plot as `PanelReach`). Near enough, the whole tank is outlined
+  white under the mouse (task c1: a Highlight, outline only, round a nearly clear client-side copy of the plot's parts
+  that stand within the tank's footprint, so the trainer, the upgrade sign, the pad and the swimming fish are left out;
+  the copy is made again when the tank's parts change). No sign over the tank (the old CLICK YOUR TANK / WALK CLOSER!
+  went with c1); from further away nothing outlines and a click does nothing. It shuts with its X, a second click on
+  the tank, walking 8 studs past the reach, or leaving the dock.
   (The click is tested against the tank's box, not a raycast: the map's glass, water and sign are CanQuery off.)
 - **What it shows:** the title, what the tank earns a second, and a card for every fish: IN YOUR HANDS (what you
   carry), EARNING n/7, STORED n. A card has the fish's picture (the partner's renders), its size word (Tiny to
   Colossal, in the tags' size colours), a SILVER, GOLD or RAINBOW chip (and the picture's backdrop in that colour),
   its archetype icons, its name, its rarity in the rarity's colour (the card's edge too), and its coins a second.
 - **What it does:** EQUIP BEST (gold while it would change something, else grey BEST EQUIPPED) equips the seven
-  best earners and stores the rest; each card's EQUIP or UNEQUIP; PUT IN on a carried fish and PUT ALL IN.
+  best earners and stores the rest; each card's EQUIP or UNEQUIP; PUT IN on a carried fish and PUT ALL IN; RIDE A
+  FISH (task c1, shown while fish swim in the tank: Action `"TankRide", "On"`, the one nearest you; the popup shuts).
   Equipping with seven already equipped is refused ("THE TANK IS FULL: UNEQUIP ONE FIRST").
 - **Coins a second** on a card are `Config.incomeOf(kind, size, colour)`, the same function the server pays by;
   the server works every fish's number out again on every change, so new numbers (the economy draft) reach fish

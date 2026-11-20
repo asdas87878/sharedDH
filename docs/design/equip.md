@@ -3,20 +3,24 @@
 Hugo, 2026-11-20: "not holding 1 and pressing q at the same time, 1 should be first inventory slot while q should be a
 completely seperate slot." Built by NULLROOM task e3, from the plan's E3
 ([plan](../plans/2026-11-20-oxygen-equip-landride.md)), on top of [holding](holding.md) (task f1) and the sub ride
-(task f2). The plan's option defaults are in use (D: carry 7, nine numbered slots; F: true size; G: Q equips and
+(task f2). The plan's option defaults are in use (D: carry 7, nine numbered slots, back to seven since task c1; F: true size; G: Q equips and
 mounts, a click toggles, a cross unequips, a respawn clears).
 
 ## Decided (built)
-- **Number keys 1 to 9** (and the keypad's) press the numbered slot: the same path as a click or tap. A caught slot
+- **Number keys 1 to 7** (and the keypad's; 8 and 9 do nothing: task c1 took the row back to seven) press the numbered slot: the same path as a click or tap. A caught slot
   holds that fish over the head; the held one's slot again, or an empty slot, puts it away. Only on the dock; not
   while typing in a box, not when the game took the key. 1 is always the first catch. Nothing goes into the tank from
   a number key.
 - **Q** is a press of its own, never a chord. With a fish held: that fish becomes the **ride fish** (equipped), its
   overhead copy goes and you ride it on land. With nothing held: Q gets you back on the equipped fish. With nothing
   equipped either: nothing (refused, "None").
-- **The equipped slot**, at the far left of the row, a double gap from slot 1: the ride fish's tile (rarity colours,
+- **The equipped slot**, just left of the row, a double gap from slot 1, outside the row's own frame: the row is the
+  seven numbered slots exactly as before e3 (same size, centred in the same place), and the Q slot never moves it
+  (Hugo, 2026-11-20, task c1: "remove the many slots to the base again + the q but make sure its all centered around
+  the original slots, with the q slot just being a little to the side"). The ride fish's tile (rarity colours,
   picture, name), a small green **Q key cap** (the shop's button look) over its top left corner and, when filled, a
-  red **X** over its top right. Above it: HOLD A FISH, THEN Q (empty; THEN TAP on a phone), CLICK TO RIDE (equipped,
+  red **X** over its top right. Just over it, centred on it in up to two short lines (c1: it was one long line
+  running off left and was cut at the screen's edge): HOLD A FISH, THEN Q (empty; THEN TAP on a phone), CLICK TO RIDE (equipped,
   on foot), RIDING (on it: the white ring too). A click or tap on it equips the held fish if one is held, else gets
   on or off; the X unequips. It is not a numbered slot and no number reaches it.
 - **One fish, not two:** the ride fish is a reference to one entry of the hands, never a copy and never extra room.
@@ -44,7 +48,7 @@ mounts, a click toggles, a cross unequips, a respawn clears).
 - **Player attributes:** `EquippedFish`, `EquippedSize`, `EquippedVariant`, `EquippedIndex` (its place in the hands
   now), `LandMounted`.
 - **Client:** `EquipController` (new): the keys, the slot's asks, the equipped slot from the attributes, the sit pose.
-  `UI/Slots`: nine numbered slots with their keys, the equipped slot, `Slots.pick(n)` (a key's press = a click),
+  `UI/Slots`: seven numbered slots with their keys (nine until c1), the equipped slot, `Slots.pick(n)` (a key's press = a click),
   `Slots.equipped(item, mounted)`, `Slots.Ride` ("Ride", "Unequip").
 - **Numbers:** `Config.Equip`: `On`, `LandSpeed`, `LandMost` (a cap on the land fish's length, 0 = none), `Again`.
 

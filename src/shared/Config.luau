@@ -1029,6 +1029,7 @@ Config.LandRide = {
 	Profiles = {
 		-- side to side onto each flank, a short hop as it rolls through upright, the tail flicking
 		Flop = {
+			LimbDown = 0.4,
 			Rate = 1.5,
 			Slow = 0.6,
 			Hop = 0.6,
@@ -1099,11 +1100,11 @@ Config.LandRide = {
 		-- the arms all plant and pull together and the mantle scoots ahead; the fins ripple along their edge
 		Squid = {
 			LimbDown = 0,
-			ArmDown = 0.1,
+			ArmDown = 0,
 			Rate = 1,
 			Hop = 0.3,
 			HopPhase = 0.05,
-			Pitch = -5,
+			Pitch = -2,
 			Surge = 0.6,
 			SurgePhase = 0.1,
 			Arm = 26,
@@ -1122,7 +1123,7 @@ Config.LandRide = {
 			Rate = 1.1,
 			HopPer = 2,
 			Heave = 0.08,
-			Roll = 4,
+			Roll = 1.5, -- (the wing tips are far out: a big roll would dip one into the floor)
 			Surge = 0.25,
 			SurgePer = 2,
 			LimbLift = 22,
@@ -1191,6 +1192,7 @@ Config.LandRide = {
 		},
 		-- the belly heaves up and settles, the flippers push together, the tail flexes up and down
 		Whale = {
+			LimbDown = 0.3,
 			Rate = 0.7,
 			Heave = 0.5,
 			Pitch = 4,
@@ -1288,7 +1290,7 @@ Config.LandRide = {
 		FlyingFish = { Body = "Flop", LimbLift = 45, LiftLag = 0, LimbDown = 0.3 }, -- the wings open on each hop
 		Angelfish = "Flop",
 		Parrotfish = "Flop",
-		Lionfish = { Body = "Flop", LimbLift = 25 },
+		Lionfish = { Body = "Flop", LimbLift = 25, LimbDown = 0, Roll = 20 }, -- (its big pectoral fans hang low)
 		Garibaldi = "Flop",
 		Viperfish = { Body = "Flop", Jaw = 14 },
 		HumpheadWrasse = { Body = "Flop", Roll = 20, Hop = 0.45, Rate = 1.2 },
