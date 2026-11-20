@@ -3,6 +3,23 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · No green pad; ride your tank's fish inside the tank (NULLROOM task k1, Hugo's PC)
+**State:** in the game code; checked in a Studio playtest by script (placing, getting on, 30 s of riding, getting off);
+**not seen by eye**: Studio's window is off-screen, its pictures frozen, so no gif. All in
+[the aquarium](design/aquarium.md), "Riding in the tank".
+- **The green pad is gone** (`CollectPad`, `CollectRim`): out of `tools/map/hub_kit.py`, the hub regenerated
+  (`hub.json`, `95`-`97_hub.luau`; only those 16 parts changed) and deleted from the open place (not saved).
+  The E prompt now sits on your tank's front glass (`AquariumController`); you wake with a catch on the floor in
+  front of the glass (`AquariumService.frontOf`). Every rule of placing is unchanged.
+- **Riding in the tank:** with empty hands the same prompt says "Ride a fish": you ride the fish nearest you round the
+  tank with the dive's steering, SPACE gets off. Owner-only. No Oxygen, fail, taming or catch (you stay `Dock`).
+  New `TankRideService` (server), `TankRideController` (client), `Config.TankRide`. `AnimController` poses a tank
+  rider astride; `RideController` leaves their PlatformStand alone.
+- For the shop-style restyle (mission 2362bee3, task s3): restyle the prompt on the glass (`PlaceFish`, on the
+  `TankFront` attachment in `TankWater`), there is no pad.
+- `tools/studio/hub_walk.luau` and `tools/studio/tank_panel_check.py` still name `CollectPad` (not mine to change);
+  they need the front spot instead.
+
 ## 2026-11-20 · Hold a fish from your hands over your head in the hub (NULLROOM task f1, Hugo's PC)
 **State:** in the game code; the server side checked in a Studio playtest by script; **not seen**: Studio's window had
 stopped painting (every capture the same old frame), so no pictures and the arm pose is untuned. All in

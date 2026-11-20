@@ -160,6 +160,12 @@ local function step(dt: number)
 	p = Vector3.new(math.clamp(p.X, -h.X, h.X), math.clamp(p.Y, -h.Y, h.Y), math.clamp(p.Z, -h.Z, h.Z))
 	r.At = r.Box:PointToWorldSpace(p)
 	r.Align.Position = r.At
+	-- (and its speed toward there, set as well: a still assembly sleeps, and a mover's new target alone does not
+	-- always wake it; seen in Studio, the fish sat 32 studs from its target)
+	local gap = r.At - r.Root.Position
+	local most = c.Speed * 3
+	local v = gap * 8
+	r.Root.AssemblyLinearVelocity = if v.Magnitude > most then v.Unit * most else v
 	-- (nose level when held at the surface or the sand)
 	local pitch = r.Pitch
 	if (p.Y >= h.Y and pitch > 0) or (p.Y <= -h.Y and pitch < 0) then

@@ -13,14 +13,16 @@ The code: `src/server/Services/AquariumService.luau`, `src/client/Controllers/Aq
 2. **The catch comes home in your hands.** What you tamed on a dive is still carried at the dock (it was only
    counted before), a failed dive's too. The seven slots stay filled until you put the fish in, and they stay with
    you through the next dive if you don't (you can carry seven).
-3. **You wake at your own tank.** With fish in hand, a dive that ends puts you on the pad in front of your tank,
-   not at the dock's spawn.
+3. **You wake at your own tank.** With fish in hand, a dive that ends puts you on the floor just in front of your
+   tank's glass, facing it, not at the dock's spawn. (Until 2026-11-20 there was a green pad there; Hugo had it
+   taken out, task k1.)
 4. **You put them in, one at a time** (Hugo, 2026-11-18: "make the player actually be able to place down fishes in
-   aquarium once back"). At your tank a prompt, "Put in tank" (hold E a quarter second, or tap it), puts in the fish
+   aquarium once back"). Walk up to your tank's front glass: a prompt on the glass, "Put in tank" (hold E a quarter
+   second, or tap it; since 2026-11-20 on the glass itself, the green pad is gone), puts in the fish
    with the white ring in the slots: the newest, or the one you clicked. While the prompt shows, a click on a caught
    slot puts that one in at once. The view turns to the tank and a line rises over it: the fish's name and what it
-   adds a second. The server checks it: on the dock, at your own tank (on the plot, or within 28 studs of its front
-   pad), and that slot still holds that fish.
+   adds a second. The server checks it: on the dock, at your own tank (on the plot, or near its water: the popup's
+   reach), and that slot still holds that fish.
 5. **They swim there and earn.** Up to seven are *equipped*: they earn coins every second and swim in the tank.
    The coin row on the HUD shows itself. A new fish takes a free place; with seven equipped it is *stored* (up to
    60 in all) and earns nothing until you equip it (since 2026-11-19, the popup below; before that the best seven
@@ -28,6 +30,41 @@ The code: `src/server/Services/AquariumService.luau`, `src/client/Controllers/Aq
 6. **The tank's popup** (Hugo, 2026-11-19: "you should be able to click on the plot from nearby, then get a little
    popup where you can equip the best fish instantly, unequip certain fishes and see how much money they produce
    and their rarities and special traits"). See below.
+7. **You can ride them, in the tank** (Hugo, 2026-11-20: "make fishes in the tank rideable (in the tank)"). See
+   "Riding in the tank" below.
+
+## Riding in the tank
+Practice, nothing at stake (task k1, `Config.TankRide`, `TankRideService`, `TankRideController`).
+- **Getting on:** with empty hands, the prompt on your tank's glass says "Ride a fish" and names the fish nearest you.
+  E puts you on it, inside the tank. Only **your own** tank's fish (owner-only: the server checks the plot is yours).
+- **Riding:** the dive's steering: always forward, A and D turn (the view turns with you), and the fish comes round to
+  where the camera looks, up and down too. 16 studs a second. Against the glass it slides along it; it can't leave
+  the water, through the glass, the sand or the surface: its middle stays half its length plus 1.5 studs inside.
+  The rider's machine moves it, and every player sees it (the server gives the rider its physics). The server pulls
+  it back if it is ever more than 6 studs out.
+- **Safe:** you stay on the dock as far as the game knows (state `Dock`): no Oxygen used, no fail or throw-off, no
+  taming, no catch, no coins. The fish stays in the tank and keeps earning.
+- **The fish while ridden:** out of its lap, and drawn at least 9 and at most 18 studs long (so there is a back to sit
+  on and it can still turn). Getting off puts it back in its lap at its own size.
+- **Getting off:** SPACE (a pad's A, the button on a phone; "SPACE TO GET OFF" shows at the bottom). You land on the
+  floor in front of the glass. A change to the tank while you ride (the popup's equip) also puts you off.
+- **Checked in a Studio playtest by script** (2026-11-20): a Yellow Tang put in by the prompt, then ridden 30 seconds
+  (looking four ways, holding A): it stayed inside every wall, the state stayed `Dock`, Oxygen 100, off in front of
+  the tank. The path: ![the ridden fish's path](../attachments/tank-ride-path.png)
+  **Not seen:** Studio's window is off-screen and its pictures are frozen, so no gif yet; the feel, the rider's pose
+  and the view are unplayed.
+
+| Number (`Config.TankRide`) | Now | What |
+|---|---|---|
+| `On` | 1 | 0: tank fish can't be ridden |
+| `Speed` | 16 | Studs a second, forward |
+| `Turn` | 110 | Degrees a second A and D turn |
+| `Follow` | 4 | How quickly the fish comes round to the camera's look |
+| `Level` | 14 | Degrees: the camera's usual look down counts as level |
+| `Climb` | 40 | Steepest climb or dive, degrees |
+| `Margin` | 1.5 | Studs kept from the glass, sand and surface |
+| `Least`, `Most` | 9, 18 | How long a ridden fish is drawn |
+| `Slack` | 6 | Studs out before the server pulls it back |
 
 ## The tank's popup
 Built 2026-11-19 (task p1). The code: `src/client/UI/TankPanel.luau`, the server's half in `AquariumService`.
@@ -125,7 +162,11 @@ In the user's Studio on grey-box 15, by script.
   `"PutAll"`; Ride `"TankDenied"`, reason. Player attributes `TankList` (JSON rows: key, id, size, variant, 1 if
   equipped), `TankEarning` (the most equipped), `Hands` (JSON rows: id, size, variant, as carried). `Tank` (the best
   12, for the sub's "Ride with") is as before. `AquariumService.tankOf` entries gained `Key` and `On`.
-- **The map's names it leans on:** `Dock.Plots.PlotN` with `TankWater`, `Pad`, `CollectPad`, `SignBoard`. A plot
+- **The map's names it leans on:** `Dock.Plots.PlotN` with `TankWater`, `Pad`, `SignBoard` (`CollectPad` went on
+  2026-11-20: the plot's front is the way from `TankWater` to `Pad`, `AquariumService.frontOf`). A plot
   gets an `Owner` attribute (the user id) and a `TankFish` folder while it is someone's.
-- **Tank fish** carry the tag `TankFish`. They are not in `Workspace.Fish`, so tags, the lock and the ride never
-  see them.
+- **Tank fish** carry the tag `TankFish`. They are not in `Workspace.Fish`, so tags, the lock and the dive's ride never
+  see them. A tank ride (2026-11-20): Action `"TankRide"`, `"On"`, fish | `"Off"`; Ride `"TankMounted"`, fish, box
+  CFrame, half size | `"TankDismounted"` | `"Denied"`, `"TankRide"`, `"Far"`/`"Empty"`. The rider's player attribute
+  `TankRide` is true (AnimController poses them astride); the ridden fish loses its `TankFish` tag and carries
+  `TankRider` (the user id).
