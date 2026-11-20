@@ -11,7 +11,7 @@ What they build:
                                     the name floating over it (a BillboardGui)
   Dock/Stations/Earners/Board       its SurfaceGui "Rows" holds Row1 ... Row5 (TextLabels) for the game to write on
   Dock/Gate                         the arch, its sign, the kelp
-  Dock/Plots/Plot1 ... Plot8        a Model each, with the parts the game reads by name: TankWater, Pad, CollectPad,
+  Dock/Plots/Plot1 ... Plot8        a Model each, with the parts the game reads by name: TankWater, Pad,
                                     SignBoard, TrainerSpot, UpgradeBoard and UpgradePost (the seahorse's upgrade sign);
                                     TrainerRide is a Model (the seahorse) whose PrimaryPart is the part named TrainerRide
   Dock/Landmark, Dock/Dressing

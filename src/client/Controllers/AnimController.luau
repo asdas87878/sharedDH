@@ -1545,6 +1545,10 @@ function AnimController.Start()
 				-- (through the pull-in, and while we sit waiting for the server's word on the landing: the dash)
 				state = if State.Mode == "Jumping" and JumpController.reel() then "Reeling" else State.Mode
 			end
+			-- riding a fish in a tank (TankRideService): on the dock, but astride
+			if state == "Dock" and player:GetAttribute("TankRide") then
+				state = "Riding"
+			end
 			if character and type(state) == "string" then
 				if state ~= "Dock" then
 					animateRider(player, character, state, dt, t)

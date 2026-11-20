@@ -11,7 +11,7 @@ drawn facing +z with its foot at y = 0 and then stood somewhere, turned. A part 
 {m: model path under Dock, n: name, p: centre, x/y: two of its axes, s: size, c: colour, f: 1 solid + 2 shadow} and
 may carry sh (Ball, Cylinder), mat (Neon), t (see-through), gui, bill, light, tex, tag.
 
-What the game code leans on is kept by name (docs/Sessions.md): Plots/PlotN with TankWater, Pad, CollectPad, SignBoard,
+What the game code leans on is kept by name (docs/Sessions.md): Plots/PlotN with TankWater, Pad, SignBoard,
 TrainerSpot, and TrainerRide (now a Model whose PrimaryPart is the part named TrainerRide)."""
 import json
 import math
@@ -605,7 +605,7 @@ def plot_old(out, index, cx, cz, turn_deg, hub):
     k.box(sx_, 7.6, d / 2 + 6, 14, 5, 1, colour, n="SignBoard", solid=False)
     k.box(sx_, 13, d / 2 + 6, 17.6, 1.2, 1.8, frame, solid=False)
     k.box(sx_, 14.2, d / 2 + 6, 6, 4, 1.2, colour, n="SignNumber", solid=False, gui={"face": "Both", "text": str(index), "colour": [255, 255, 255], "stroke": [30, 30, 50]})
-    k.box(-8, 0, d / 2 + 9, 8, 0.6, 8, (110, 210, 120), n="CollectPad", solid=False, shadow=False)
+    # (the collect pad went, task k1)
     # the trainer: a pad, a machine with a coin box, a spring, and the seahorse on top
     tx, tz = 20, d / 2 + 10
     k.box(tx, 0, tz, 12, 0.6, 12, (225, 70, 70), n="TrainerSpot", solid=False, shadow=False)
@@ -697,8 +697,7 @@ PLOT_COLOUR = (120, 200, 120)  # every tank green, as the user's copies of Plot 
 
 
 def plot(out, index, cx, cz, turn_deg, hub, level=1):
-    """a player's plot, simple (the user, 2026-11-16): a studded pad, the tank at its level (`tank`), the pad to
-    collect on, and the trainer: the game's own Seahorse on a spring, on a plate (the part TrainerRide). The plot's
+    """a player's plot, simple (the user, 2026-11-16): a studded pad, the tank at its level (`tank`), and the trainer: the game's own Seahorse on a spring, on a plate (the part TrainerRide). The plot's
     back is where it always was; it is TANK wide and deep, and its front comes forward into the hub"""
     w, d = TANK
     back = -hub["Plot"][1] / 2
@@ -711,8 +710,8 @@ def plot(out, index, cx, cz, turn_deg, hub, level=1):
     # stays, unseen. The pads in front stay on the floor)
     k.box(0, 0, back + (d + 24) / 2, w, 0.4, d + 24, colour, n="Pad", solid=False, shadow=False, t=1)
     tank(k.sub((0, -SUNK, back + d / 2)), level, colour, hub)
-    k.box(-12, 0, front + 10, 10, 0.5, 10, (70, 160, 90), n="CollectRim", solid=False, shadow=False)
-    k.box(-12, 0, front + 10, 8, 0.6, 8, (110, 210, 120), n="CollectPad", solid=False, shadow=False, tex="stud")
+    # (no green collect pad any more, Hugo, 2026-11-20, task k1: the tank's E prompt sits on its front glass and a
+    # player with a catch wakes on the floor in front of the tank, AquariumService.frontOf)
     tx, tz = 13, front + 11
     k.box(tx, 0, tz, 12, 0.6, 12, (225, 70, 70), n="TrainerSpot", solid=False, shadow=False, tex="stud")
     k.box(tx, 0.6, tz, 8, 1.4, 8, YELLOW, n="TrainerBase", tex="studs")

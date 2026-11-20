@@ -4,8 +4,8 @@
 -- they cost no traffic and the server does nothing each frame. Only tanks near the camera are moved, and no table is
 -- made in a frame. Moving the anchored Root moves the whole fish: its parts are joined to it.
 -- Putting a catch in (Hugo, 2026-11-18: "make the player actually be able to place down fishes in aquarium once
--- back"): what a dive caught stays in the slots until the player puts it in. At our own tank a prompt (hold E, or tap
--- it) puts the chosen slot's fish in (the white ring: the newest, or the one clicked); while the prompt shows, a click
+-- back"): what a dive caught stays in the slots until the player puts it in. At our own tank a prompt on its front glass
+-- (hold E, or tap it; task k1: no pad any more) puts the chosen slot's fish in (the white ring: the newest, or the one clicked); while the prompt shows, a click
 -- on a caught slot puts that fish in at once. The server checks it all (Action "Place", index, id: AquariumService).
 -- And the moment a fish goes in (Ride "Deposited"): the view turns to our tank, and a line rises over the tank saying what it adds a second. A
 -- stand-in for the real thing (a sound, the fish dropping in, the UI chat's own look).
@@ -58,7 +58,7 @@ local function ownWater(): BasePart?
 	return if water and water:IsA("BasePart") then water else nil
 end
 
--- A catch went into our tank: look at it (the tank stands behind the pad we wake on), and say what it earns
+-- A catch went into our tank: look at it (we stand in front of it), and say what it earns
 local function deposited(count: number, gained: number, id: string?)
 	local water = ownWater()
 	local character = Players.LocalPlayer.Character
@@ -117,9 +117,13 @@ local function deposited(count: number, gained: number, id: string?)
 	end)
 end
 
--- The prompt at our own tank: shown on the dock while we carry fish
+-- The prompt on our own tank's front glass (Hugo, 2026-11-20, task k1: the green pad is gone; the prompt was on it):
+-- on an attachment at the middle of the water's front face, low, so walking up to the glass shows it. While we carry
+-- fish it puts the chosen one in ("Put in tank"); with empty hands, and fish swimming in the tank, it puts us on the
+-- fish nearest us ("Ride a fish": Config.TankRide, TankRideService).
 local prompt: ProximityPrompt? = nil
 local promptShown = false
+local promptVerb = "" -- "Place" or "Ride": what the prompt does now
 
 local function place(index: number?, item: State.Caught?)
 	if not index or not item then
@@ -134,18 +138,65 @@ local function place(index: number?, item: State.Caught?)
 	end
 end
 
+-- Our tank's fish swimming in it now, the one nearest us
+local function nearestTankFish(water: BasePart): Model?
+	local plot = water.Parent
+	local shown = plot and plot:FindFirstChild("TankFish")
+	local _, root = State.character()
+	if not shown or not root then
+		return nil
+	end
+	local best, found = math.huge, nil
+	for _, m in shown:GetChildren() do
+		if m:IsA("Model") and m.PrimaryPart and CollectionService:HasTag(m, TAG) then
+			local d = (m.PrimaryPart.Position - root.Position).Magnitude
+			if d < best then
+				best, found = d, m
+			end
+		end
+	end
+	return found
+end
+
+-- The middle of the water's front face, a little over the sand: the plot's front is the way from the water to the
+-- plot's Pad, which reaches further forward than the tank (AquariumService.frontOf works it out the same way)
+local function frontSpot(water: BasePart): Vector3
+	local plot = water.Parent
+	local pad = plot and plot:FindFirstChild("Pad")
+	local way = if pad and pad:IsA("BasePart")
+		then (pad.Position - water.Position) * Vector3.new(1, 0, 1)
+		else Vector3.zero
+	if way.Magnitude < 1 then
+		way = water.CFrame.LookVector * Vector3.new(1, 0, 1)
+	end
+	local local_ = water.CFrame:VectorToObjectSpace(way.Unit)
+	local half = water.Size / 2
+	-- (onto the face it points through most)
+	local onX = math.abs(local_.X) * half.Z > math.abs(local_.Z) * half.X
+	local at = if onX
+		then Vector3.new(math.sign(local_.X) * (half.X + 0.3), 0, 0)
+		else Vector3.new(0, 0, math.sign(local_.Z) * (half.Z + 0.3))
+	return Vector3.new(at.X, -half.Y + math.min(4, half.Y), at.Z)
+end
+
 local function updatePrompt()
 	local water = ownWater()
-	local plot = water and water.Parent
-	local spot = plot and plot:FindFirstChild("CollectPad")
-	local at = if spot and spot:IsA("BasePart") then spot else water
-	if not at then
+	if not water then
 		if prompt then
 			prompt.Enabled = false
 		end
 		return
 	end
-	if not prompt or prompt.Parent ~= at then
+	local spot = water:FindFirstChild("TankFront")
+	if not spot then
+		local a = Instance.new("Attachment")
+		a.Name = "TankFront"
+		a.Parent = water
+		spot = a
+	end
+	local attachment = spot :: Attachment
+	attachment.Position = frontSpot(water)
+	if not prompt or prompt.Parent ~= attachment then
 		if prompt then
 			prompt:Destroy()
 		end
@@ -154,10 +205,14 @@ local function updatePrompt()
 		p.ActionText = "Put in tank"
 		p.KeyboardKeyCode = Enum.KeyCode.E
 		p.HoldDuration = 0.25
-		p.MaxActivationDistance = 22
+		p.MaxActivationDistance = 16
 		p.RequiresLineOfSight = false
 		p.Triggered:Connect(function()
-			place(Slots.chosen())
+			if promptVerb == "Place" then
+				place(Slots.chosen())
+			elseif promptVerb == "Ride" then
+				Net.Action:FireServer("TankRide", "On", nearestTankFish(water))
+			end
 		end)
 		p.PromptShown:Connect(function()
 			promptShown = true
@@ -165,18 +220,28 @@ local function updatePrompt()
 		p.PromptHidden:Connect(function()
 			promptShown = false
 		end)
-		p.Parent = at
+		p.Parent = attachment
 		prompt = p
 	end
 	local list = State.Caught
 	local carrying = list ~= nil and #list > 0
 	local p = prompt :: ProximityPrompt
-	p.Enabled = carrying and State.Mode == "Dock"
+	local onDock = State.Mode == "Dock" and not Players.LocalPlayer:GetAttribute("TankRide")
 	if carrying then
+		promptVerb = "Place"
 		local _, item = Slots.chosen()
 		local chosen = item or (list :: { State.Caught })[#(list :: { State.Caught })]
 		local kind = Config.FishById[chosen.Id]
+		p.ActionText = "Put in tank"
 		p.ObjectText = if kind then kind.Name else chosen.Id
+		p.Enabled = onDock
+	else
+		local fish = if Config.TankRide.On ~= 0 then nearestTankFish(water) else nil
+		promptVerb = if fish then "Ride" else ""
+		p.ActionText = "Ride a fish"
+		local kind = fish and Config.FishById[fish:GetAttribute("FishType") :: string]
+		p.ObjectText = if kind then kind.Name else ""
+		p.Enabled = onDock and fish ~= nil
 	end
 end
 

@@ -16,7 +16,7 @@ What it builds (the names the game code looks for are kept from blockout v4):
                                            over the surface: they keep swimmers and fish in the lane
     Dock                                   the hub: floor, walls, stalls, and DockSpawn (facing the start)
     Dock/Plots/Plot1 ... Plot8             a Model per player's plot: TankWater, TankBase, SignBoard, TrainerSpot,
-                                           TrainerRide, CollectPad, Pad
+                                           TrainerRide, Pad
   The pictures: the floor's tiles take art/map/textures.json's "floor" on top (squares and studs), every other piece of
   ground takes "stud" on top, and wall faces take "stud" on the side that faces the lane. With no ids in that file
   (nothing uploaded yet) the map is built plain.

@@ -733,6 +733,26 @@ Config.Aquarium = {
 	SeeFrom = 450, -- a client moves a tank's fish only when its camera is this near
 }
 
+-- Riding a fish in your own tank (Hugo, 2026-11-20, task k1: "make fishes in the tank rideable (in the tank)"):
+-- practice, nothing at stake. The tank's E prompt (with empty hands) puts you on the fish nearest you; you ride it
+-- round inside the water and SPACE gets you off, on the floor in front of the tank. No Oxygen, no fail, no taming,
+-- no catch: you stay on the dock as far as the game is concerned. Only the tank's owner rides its fish. The rider's
+-- machine moves the fish (TankRideController), kept inside the water; the server pulls it back if it is ever further
+-- out than Slack (TankRideService). The steering is the dive's: always forward, A and D turn (the view with you),
+-- and the fish follows the way the camera looks, up and down too.
+Config.TankRide = {
+	On = 1, -- 0: tank fish can't be ridden
+	Speed = 16, -- studs a second, forward
+	Turn = 110, -- degrees a second A and D turn
+	Follow = 4, -- how quickly the fish comes round to the way the camera looks
+	Level = 14, -- degrees: the camera's usual look down counts as level (Roblox's camera looks down a little)
+	Climb = 40, -- the steepest it climbs or dives, degrees
+	Margin = 1.5, -- studs kept between the fish and the glass, the sand and the surface
+	Least = 9, -- a ridden fish is shown at least this long (studs), so there is a back to sit on,
+	Most = 18, -- and at most this long, so it can still turn in the tank
+	Slack = 6, -- studs past the water's edge before the server pulls the fish back
+}
+
 -- Angry mode (Hugo, 2026-11-12: "make the fishes pulse red and go into angry mode ... different fishes should have
 -- different slowdowns ... when the bar turns red"; the reference's T-rex starts jumping and its bison rocks back and
 -- forth: each animal shows in its own way that it wants you off). While you ride with the meter in its red part

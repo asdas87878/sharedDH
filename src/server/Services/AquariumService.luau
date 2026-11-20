@@ -2,12 +2,12 @@
 -- The aquarium (the user, 2026-11-16: "catches are for depositing in your aquarium, in which they then earn money").
 -- The other half of the loop (docs/design/core-loop.md, docs/design/aquarium.md): what a dive catches goes into the
 -- player's own tank on the dock, and the best fish in it earn coins every second.
---   A plot each: the map's Dock.Plots.PlotN (TankWater, Pad, CollectPad, SignBoard). A player takes the first free one
+--   A plot each: the map's Dock.Plots.PlotN (TankWater, Pad, SignBoard). A player takes the first free one
 --   as they join and gives it up as they leave. With more players than plots, the rest have none: their catch is only
 --   counted, as before.
 --   Coming home: a player who is carrying fish wakes on the dock at their own tank (RideService.Home), not at the
---   dock's spawn. The catch stays in their hands (the slots) until they put it in: at their own tank a prompt puts the
---   chosen fish in, one at a time (Action "Place", index, id; AquariumController; RideService.takeCarried). A failed
+--   dock's spawn. The catch stays in their hands (the slots) until they put it in: at their own tank a prompt on the
+--   tank's front (E; there is no pad any more, task k1) puts the chosen fish in, one at a time (Action "Place", index, id; AquariumController; RideService.takeCarried). A failed
 --   dive keeps its catch the same way.
 --   Earning: each fish earns by what it takes to hold at home, its size and its colour (Config.incomeOf). Up to
 --   Aquarium.Earning of them are equipped and earn; the rest are kept (stored) and earn nothing. A new fish takes a free
@@ -23,7 +23,8 @@
 --   HUD's coin row shows itself when it is there), "Income" what the tank earns a second, "TankFish" how many it holds.
 --   Seen: the earning fish swim in the tank, small. The server puts each in its place, anchored, with the tag
 --   "TankFish" and the numbers of its lap; every client moves them round itself (AquariumController), so they cost no
---   traffic. They are not in Workspace.Fish, so nothing can lock on to one, tag it or ride it.
+--   traffic. They are not in Workspace.Fish, so nothing can lock on to one or tag it. Its owner can ride one inside the
+--   tank (Hugo, 2026-11-20, task k1: TankRideService, Config.TankRide).
 --   Holding a fish over the head (Hugo, 2026-11-20; docs/design/holding.md): Action "Hold", index, id holds the
 --   index-th fish the player carries (oldest first, which must still be `id`); index 0 puts it away. Only on the
 --   dock. The server builds the fish, small, and welds it over the player's head, so everyone sees it; every client
@@ -595,9 +596,34 @@ local function onPlot(plot: Model, at: Vector3): boolean
 		and offset.Y < 30
 end
 
--- Whether a player stands at their tank, near enough to put a fish in (on its plot, or by its front pad: the prompt's
--- reach and some slack for lag)
-local PLACE_REACH = 28
+-- The floor in front of a plot's tank, facing the tank (Hugo, 2026-11-20, task k1: the green collect pad is gone, so
+-- this is where a player wakes with a catch, where the tank's E prompt sits and where a tank ride lets them off). The
+-- plot's Pad (unseen, the area that counts as the plot) reaches further forward than the tank, so the way from the
+-- water's middle to the Pad's is the plot's front.
+local FRONT_AHEAD = 8 -- studs in front of the water's front face
+local function frontOf(plot: Model): (CFrame?, Vector3?)
+	local water = part(plot, "TankWater")
+	local pad = part(plot, "Pad")
+	if not water then
+		return nil, nil
+	end
+	local way = if pad then (pad.Position - water.Position) * Vector3.new(1, 0, 1) else Vector3.zero
+	if way.Magnitude < 1 then
+		way = water.CFrame.LookVector * Vector3.new(1, 0, 1)
+	end
+	way = way.Unit
+	-- (how far the water's front face is from its middle, that way)
+	local half = water.Size / 2
+	local face = math.abs(way:Dot(water.CFrame.RightVector)) * half.X
+		+ math.abs(way:Dot(water.CFrame.LookVector)) * half.Z
+	local floor = if pad then pad.Position.Y + pad.Size.Y / 2 else water.Position.Y - half.Y
+	local at = Vector3.new(water.Position.X, floor, water.Position.Z) + way * (face + FRONT_AHEAD)
+	local toward = Vector3.new(water.Position.X, floor, water.Position.Z)
+	return CFrame.lookAt(at, toward), way
+end
+
+-- Whether a player stands at their tank, near enough to put a fish in (on its plot, or near its water: the prompt on
+-- the tank's front and the popup, and some slack for lag)
 local function atTank(tank: Tank): boolean
 	local character = tank.Player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -607,11 +633,6 @@ local function atTank(tank: Tank): boolean
 	if onPlot(tank.Plot, root.Position) then
 		return true
 	end
-	local spot = part(tank.Plot, "CollectPad") or part(tank.Plot, "TankWater")
-	if spot ~= nil and (spot.Position - root.Position).Magnitude <= PLACE_REACH + spot.Size.Magnitude / 2 then
-		return true
-	end
-	-- (or near enough for the popup, which can put fish in too)
 	local water = part(tank.Plot, "TankWater")
 	if not water then
 		return false
@@ -629,14 +650,38 @@ local function home(player: Player): CFrame?
 	if not tank or Config.Aquarium.HomeAtTank == 0 or #RideService.carried(player) == 0 then
 		return nil
 	end
-	local spot = part(tank.Plot, "CollectPad")
-	local water = part(tank.Plot, "TankWater")
-	if not spot or not water then
-		return nil
+	local spot = frontOf(tank.Plot)
+	return if spot then spot + Vector3.new(0, 1, 0) else nil
+end
+
+-- For the tank ride (TankRideService): the player's plot, its fish in the water now, whether they stand at it, the
+-- floor in front of it, the fish put back in their laps, and the held fish put away
+function AquariumService.plotOf(player: Player): Model?
+	local tank = tanks[player]
+	return if tank then tank.Plot else nil
+end
+
+function AquariumService.shownOf(player: Player): Folder?
+	local tank = tanks[player]
+	return if tank then tank.Shown else nil
+end
+
+function AquariumService.atTank(player: Player): boolean
+	local tank = tanks[player]
+	return tank ~= nil and atTank(tank)
+end
+
+AquariumService.frontOf = frontOf
+
+function AquariumService.reshow(player: Player)
+	local tank = tanks[player]
+	if tank then
+		show(tank)
 	end
-	local at = spot.Position + Vector3.new(0, 1, 0)
-	local toward = Vector3.new(water.Position.X, at.Y, water.Position.Z)
-	return if (toward - at).Magnitude > 1 then CFrame.lookAt(at, toward) else CFrame.new(at)
+end
+
+AquariumService.putAway = function(player: Player)
+	putAway(player)
 end
 
 -- Studio and other services: what a player's tank holds (nil with no tank)

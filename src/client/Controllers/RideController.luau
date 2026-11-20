@@ -1181,7 +1181,8 @@ local function step(dt: number)
 			end
 		else
 			clearFloat()
-			if mode == "Dock" and humanoid.PlatformStand then
+			-- (riding a fish in our tank is on the dock too, sitting: TankRideController)
+			if mode == "Dock" and humanoid.PlatformStand and not State.Player:GetAttribute("TankRide") then
 				humanoid.PlatformStand = false
 			end
 			State.Speed = root.AssemblyLinearVelocity.Magnitude
