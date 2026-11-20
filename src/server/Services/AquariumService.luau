@@ -283,6 +283,31 @@ local function tellHands(tank: Tank)
 	end
 end
 
+-- How high above the head's middle its top is, with what is worn on it (a hat, hair: accessories joined to the head),
+-- at most Hold.HatMost above the head itself. So the fish lies on the hat, not through it
+local function headTop(character: Model, head: BasePart): number
+	local top = head.Size.Y / 2
+	for _, d in character:GetChildren() do
+		local handle = if d:IsA("Accessory") then d:FindFirstChild("Handle") else nil
+		local weld = handle and handle:FindFirstChildWhichIsA("JointInstance")
+		if handle and handle:IsA("BasePart") and weld and (weld.Part0 == head or weld.Part1 == head) then
+			local cf, size = handle.CFrame, handle.Size
+			for _, x in { -1, 1 } do
+				for _, y in { -1, 1 } do
+					for _, z in { -1, 1 } do
+						local corner = head.CFrame:PointToObjectSpace(cf * (Vector3.new(x, y, z) * size / 2))
+						-- (only what is over the head, not a scarf or a bag hanging down)
+						if math.abs(corner.X) < head.Size.X * 1.5 and math.abs(corner.Z) < head.Size.Z * 1.5 then
+							top = math.max(top, corner.Y)
+						end
+					end
+				end
+			end
+		end
+	end
+	return math.min(top, head.Size.Y / 2 + Config.Hold.HatMost)
+end
+
 -- The held fish's model, built over the head of the player's body: small, its colour kept, every part welded and
 -- weightless and touching nothing, so the body carries it and its owner's machine moves it for everyone
 local function buildHeld(player: Player, h: Held): Model?
@@ -323,7 +348,7 @@ local function buildHeld(player: Player, h: Held): Model?
 	weld.Name = "HeldWeld"
 	weld.Part0 = head
 	weld.Part1 = root
-	weld.C0 = CFrame.new(0, head.Size.Y / 2 + c.Above + size.Y / 2, 0) * CFrame.Angles(0, math.rad(c.Turn), 0)
+	weld.C0 = CFrame.new(0, headTop(character, head) + c.Above + size.Y / 2, 0) * CFrame.Angles(0, math.rad(c.Turn), 0)
 	weld.C1 = CFrame.new(centre)
 	weld.Parent = root
 	model.Name = player.Name

@@ -21,7 +21,7 @@ OUT = ROOT / "work/hold"
 OUT.mkdir(parents=True, exist_ok=True)
 ATTACH = ROOT / "docs/attachments"
 RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
-# the game view in the shot (2026-11-20, Studio window 2400 x 1280 with the Explorer docked right)
+# the game view in the shot (2026-11-20, in a playtest: the game view from the left edge, the Explorer right)
 OFFSET = (0, 125)
 VIEW = [1985, 1085]
 SHOT = (2400, 1280)
@@ -96,6 +96,21 @@ workspace:GetAttributeChangedSignal("HoldDo"):Connect(function()
 		Net.Action:FireServer("Hold", tonumber(a), b)
 		task.wait(0.6)
 		said = "denied=" .. denied .. " held=" .. tostring(player:GetAttribute("HeldFish"))
+	elseif verb == "probe" then
+		-- the hands and elbows against the head, in the body's own directions (x right, y up, z back), as THIS machine
+		-- poses them (the pose is not the server's)
+		local c = player.Character
+		local root = c and c:FindFirstChild("HumanoidRootPart")
+		local head = c and c:FindFirstChild("Head")
+		local parts = {}
+		for _, n in { "RightHand", "LeftHand", "RightLowerArm", "LeftLowerArm" } do
+			local x = c and c:FindFirstChild(n)
+			if x and root and head then
+				local o = root.CFrame:VectorToObjectSpace(x.Position - head.Position)
+				table.insert(parts, string.format("%s %.1f,%.1f,%.1f", n, o.X, o.Y, o.Z))
+			end
+		end
+		said = table.concat(parts, "  ")
 	end
 	report:FireServer(said .. " @" .. cmd)
 end)
@@ -106,22 +121,29 @@ local function stand()
 	end
 end
 workspace:GetAttributeChangedSignal("HoldStand"):Connect(stand)
-RunService.RenderStepped:Connect(function()
+-- The game's own camera follows the player from behind (its controllers win over a scripted one), so the camera is
+-- left alone, held close (the player's zoom limits), and the CHARACTER is turned: to face it ("front") or side on
+workspace:GetAttributeChangedSignal("HoldView"):Connect(function()
 	local view = workspace:GetAttribute("HoldView")
-	local camera = workspace.CurrentCamera
 	local character = player.Character
-	local head = character and character:FindFirstChild("Head")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if type(view) == "string" and view ~= "" and head and root then
-		camera.CameraType = Enum.CameraType.Scriptable
-		local look = root.CFrame
-		local dir = if view == "side" then look.RightVector else look.LookVector
-		local dist = tonumber(workspace:GetAttribute("HoldDist")) or 16
-		local aim = head.Position + Vector3.new(0, 1, 0)
-		camera.CFrame = CFrame.lookAt(aim + dir * dist + Vector3.new(0, 2.5, 0), aim)
-	elseif camera.CameraType == Enum.CameraType.Scriptable then
-		camera.CameraType = Enum.CameraType.Custom
+	if type(view) ~= "string" or view == "" or not root then
+		player.CameraMaxZoomDistance = 128
+		player.CameraMinZoomDistance = 0.5
+		return
 	end
+	local dist = tonumber(workspace:GetAttribute("HoldDist")) or 12
+	player.CameraMinZoomDistance = dist
+	player.CameraMaxZoomDistance = dist
+	local look = workspace.CurrentCamera.CFrame.LookVector * Vector3.new(1, 0, 1)
+	if look.Magnitude < 0.1 then
+		return
+	end
+	look = look.Unit
+	-- front: facing the camera; side: the camera on the player's right
+	local face = if view == "side" then Vector3.new(look.Z, 0, -look.X) else -look
+	local at = root.Position
+	character:PivotTo(CFrame.lookAt(at, at + face))
 end)
 '''
 
@@ -196,7 +218,7 @@ def setw(**kw):
     return server(code + "return 'ok'")
 
 
-def shot(path, box=(1100, 1000)):
+def shot(path, box=(760, 760)):
     path = Path(path)
     path.unlink(missing_ok=True)
     out = run(["shot", str(path)], timeout=60)
@@ -243,8 +265,11 @@ def check():
     img = shot(OUT / "raw_empty.png")
     img.save(ATTACH / "hold-empty-front.png")
     img.close()
+    note("arms empty-handed: " + do("probe"))
     note("HOLD 1 (Clownfish Tiny): " + do("hold|1|Clownfish"))
     note("  " + cmd("state"))
+    time.sleep(0.6)
+    note("  arms: " + do("probe"))
     pair("small")
     note("HOLD 2 (Reef Shark Colossal, gold): " + do("hold|2|ReefShark"))
     note("  " + cmd("state"))
@@ -254,6 +279,7 @@ def check():
     note("  " + cmd("state"))
     # the arms must come all the way down (HoldController hands the joints back): the same front and side views
     time.sleep(1.5)
+    note("  arms after putting away: " + do("probe"))
     pair("putaway")
     note("HOLD 3 (Pufferfish): " + do("hold|3|Pufferfish"))
     note("  " + cmd("state"))

@@ -819,13 +819,14 @@ Config.Hold = {
 	Share = 0.3,
 	Least = 3.5,
 	Most = 8,
-	Above = 0.1, -- studs between the top of the head and the fish's belly
+	Above = 0.1, -- studs between the top of the head (its hats and hair: what sits on the head) and the fish's belly
+	HatMost = 2.5, -- a hat counts only this far above the head itself, so a tall hat doesn't lift the fish away
 	Turn = 90, -- degrees about the up axis: 90 lies it across the shoulders, head to the player's right
 	-- the arms (degrees, in the body's own directions): the shoulders lift the arm up past the head and out to the
 	-- side, the elbows bend the forearms in so the hands meet under the fish
-	Lift = 160,
-	Out = 30,
-	Elbow = 55,
+	Lift = 175,
+	Out = 12,
+	Elbow = 5,
 	Blend = 10, -- how quickly the arms go up and come down (higher is quicker)
 }
 
