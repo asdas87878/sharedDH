@@ -13,7 +13,8 @@
 -- again; when that build is an upgrade (UpgradeAt), every machine plays it: the new seahorse springs up from the
 -- coil with a white flash and a burst of sparks. The rock moves each of the toy's parts from where it rests, so a
 -- ride built again mid-rock is never left out of place. Our
--- own plot's ride has a prompt (E, "Upgrade") that asks the server for the next level (Remotes.Trainer "Up").
+-- own plot's upgrade sign asks the server for the next level when its cash block is clicked (Remotes.Trainer "Up":
+-- UI.UpgradeSign, task e2); the answer is said here in a banner.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -766,63 +767,7 @@ local function listen()
 
 	UserInputService.JumpRequest:Connect(ask)
 
-	-- our own plot's upgrade: a prompt by the ride (E), saying the next level and its price
-	local prompt: ProximityPrompt? = nil
-	local function promptStep()
-		local own = player:GetAttribute("Plot")
-		local level = player:GetAttribute("TrainerLevel")
-		local blockout = workspace:FindFirstChild("ClaudeBlockout")
-		local dock = blockout and blockout:FindFirstChild("Dock")
-		local plots = dock and dock:FindFirstChild("Plots")
-		local plot = if plots and type(own) == "string" then plots:FindFirstChild(own) else nil
-		local spot = plot and plot:FindFirstChild("TrainerSpot")
-		if not (spot and spot:IsA("BasePart") and type(level) == "number") then
-			if prompt then
-				prompt.Enabled = false
-			end
-			return
-		end
-		local p = prompt
-		if not p or p.Parent ~= spot then
-			if p then
-				p:Destroy()
-			end
-			local made = Instance.new("ProximityPrompt")
-			made.Name = "TrainerUpgrade"
-			made.ActionText = "Upgrade"
-			made.KeyboardKeyCode = Enum.KeyCode.E
-			made.HoldDuration = 0
-			made.RequiresLineOfSight = false
-			made.MaxActivationDistance = Config.Train.UpgradeNear
-			made.UIOffset = Vector2.new(0, -40)
-			made.Triggered:Connect(function()
-				remote:FireServer("Up")
-			end)
-			made.Parent = spot
-			prompt = made
-			p = made
-		end
-		local prompted = p :: ProximityPrompt
-		local levels = Config.Train.Levels
-		if level >= #levels then
-			prompted.Enabled = false
-			return
-		end
-		local after = levels[level + 1]
-		prompted.ObjectText = string.format(
-			"Level %d: %s (%s)",
-			level + 1,
-			after.Name,
-			if Config.Train.Free == 1 then "free" else "$" .. Kit.short(after.Price)
-		)
-		prompted.Enabled = true
-	end
-	task.spawn(function()
-		while true do
-			promptStep()
-			task.wait(0.5)
-		end
-	end)
+	-- (upgrading is a click on the cash block of our own upgrade sign: UI.UpgradeSign, task e2; no E prompt)
 	stepOwn = function(now: number, dt: number)
 		local humanoid = humanoidOf()
 		local root = rootOf()

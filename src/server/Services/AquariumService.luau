@@ -7,7 +7,7 @@
 --   counted, as before.
 --   Coming home: a player who is carrying fish wakes on the dock at their own tank (RideService.Home), not at the
 --   dock's spawn. The catch stays in their hands (the slots) until they put it in: at their own tank a prompt on the
---   tank's front (E; there is no pad any more, task k1) puts the chosen fish in, one at a time (Action "Place", index, id; AquariumController; RideService.takeCarried). A failed
+--   tank's front (a click or tap, task e2; there is no pad any more, task k1) puts the chosen fish in, one at a time (Action "Place", index, id; AquariumController; RideService.takeCarried). A failed
 --   dive keeps its catch the same way.
 --   Earning: each fish earns by what it takes to hold at home, its size and its colour (Config.incomeOf). Up to
 --   Aquarium.Earning of them are equipped and earn; the rest are kept (stored) and earn nothing. A new fish takes a free
@@ -836,7 +836,7 @@ function AquariumService.Start()
 	if #plots == 0 then
 		return
 	end
-	-- the player puts a fish they carry into their tank (Action "Place", index, id: AquariumController's prompt). Only
+	-- the player puts a fish they carry into their tank (Action "Place", index, id: AquariumController's click control). Only
 	-- on the dock, at their own tank, a few a second at most
 	local lastPlace: { [Player]: number } = {}
 	Net.Action.OnServerEvent:Connect(function(player: Player, action: any, index: any, id: any)
@@ -853,7 +853,9 @@ function AquariumService.Start()
 			Net.Ride:FireClient(player, "Denied", "Place", "Far")
 			return
 		end
-		place(tank, index, id)
+		if not place(tank, index, id) then
+			Net.Ride:FireClient(player, "Denied", "Place", "Gone") -- (it stays in their hands: task e2)
+		end
 	end)
 	-- the popup's asks (Action "Tank", verb, a, b: Client.UI.TankPanel). Only on the dock, near one's own tank, ten a
 	-- second at most

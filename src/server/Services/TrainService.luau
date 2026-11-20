@@ -20,9 +20,9 @@
 -- player's attribute; ours, for the session, beside the tank's coins), and each plot's ride shows its owner's: its
 -- own seahorse and stand (ReplicatedStorage.TrainerModels.T<n>, art/creatures/Seahorse/tiers/install_tiers.py), the
 -- coil in that level's colours from the stand's top straight into the seahorse's body (no plate). A seated rider gains that
--- level's Oxygen a second (Config.Train.Levels). The owner asks to go up a level by the ride ("Up"; the prompt is
--- the client's): on the dock, within Train.UpgradeNear of its coil, for the level's price (free while Train.Free is
--- 1); the ride is rebuilt at once (a rider stays seated on the new one) and the model's Build and UpgradeAt tell
+-- level's Oxygen a second (Config.Train.Levels). The owner asks to go up a level by the ride ("Up"; a click on the
+-- cash block of their upgrade sign, UI.UpgradeSign, task e2): alive, on the dock, within Train.UpgradeNear of its
+-- coil, one ask in Train.UpAgain, for the level's price (free while Train.Free is 1); the ride is rebuilt at once (a rider stays seated on the new one) and the model's Build and UpgradeAt tell
 -- every machine to play the upgrade. Server "Up", level | "UpNo", reason. With no models installed the kit's toy
 -- stays as before and only the numbers change.
 local Players = game:GetService("Players")
@@ -716,13 +716,28 @@ function TrainService.Start()
 		end
 	end
 
+	local lastUp: { [Player]: number } = {}
+	Players.PlayerRemoving:Connect(function(player)
+		lastUp[player] = nil
+	end)
 	local function upgrade(player: Player)
+		-- (one ask at a time: a second within Train.UpAgain of the last is the same click, and buys nothing: task e2)
+		local now = os.clock()
+		if now - (lastUp[player] or -math.huge) < Config.Train.UpAgain then
+			return
+		end
+		lastUp[player] = now
 		local own = player:GetAttribute("Plot")
 		local ride = if type(own) == "string" then rides[own] else nil
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if not ride or not (root and root:IsA("BasePart")) then
 			remote:FireClient(player, "UpNo", "Plot")
+			return
+		end
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 then
+			remote:FireClient(player, "UpNo", "Dead")
 			return
 		end
 		if

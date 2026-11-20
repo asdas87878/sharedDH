@@ -742,7 +742,8 @@ Config.Train = {
 		{ Name = "Prismatic", Oxygen = 600, Price = 10000000 }, -- PLACEHOLDER
 	} :: { { Name: string, Oxygen: number, Price: number } },
 	Free = 1, -- 1: every level costs nothing for now (Hugo, 2026-11-18: "let upgrades be free for now"); the price is still shown
-	UpgradeNear = 14, -- studs from the coil's axis (flat) inside which the owner can upgrade (the prompt's reach)
+	UpgradeNear = 14, -- studs from the coil's axis (flat) inside which the owner can upgrade (a click on the sign)
+	UpAgain = 0.5, -- seconds after an upgrade ask in which another ask is ignored (a double click buys one level)
 	-- The next level's price in Robux, shown on the upgrade sign beside the cash price (task s2, after Ride a Dino's
 	-- "Upgrade Machine" sign). !! PLACEHOLDERS, shown only: there is no developer product yet (RobuxProduct 0), so
 	-- nothing can be bought with them. Index = the level bought; 0 or missing = no Robux block on the sign.

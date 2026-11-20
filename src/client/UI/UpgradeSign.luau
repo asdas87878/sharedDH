@@ -12,7 +12,12 @@
 -- At the top level: MAXED, the seahorse you have in gold, what it gives, and one gold MAX LEVEL block.
 -- Each plot's sign shows its owner's level (TrainerLevel, the server's; level 1 with no owner), so your own sign is
 -- your own level and changes the moment you upgrade (with a little pop). Looked at twice a second: eight plots, and
--- a property is written only when it changes. Upgrading is still the prompt by the ride (E: TrainerController).
+-- a property is written only when it changes.
+-- Upgrading is a click (or a tap) on the cash block of your own sign (task e2, Hugo 2026-11-20: no E): it asks the
+-- server for the next level (Remotes.Trainer "Up"), which checks and charges everything (TrainService: your plot, on
+-- the dock, within Train.UpgradeNear, not the top level, the price unless Train.Free is 1, one ask at a time). Here
+-- only: your own sign, not maxed, near enough (else the block says WALK CLOSER), and one ask at a time (the block says
+-- "..." until the server answers). Everyone else's sign, and the Robux block, do nothing when clicked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -24,6 +29,7 @@ local Shop = require(script.Parent.Shop)
 local UpgradeSign = {}
 
 local EVERY = 0.5
+local WAIT = 3 -- seconds an ask waits for the server's answer before the block is pressable again
 local GOLD = Color3.fromRGB(255, 214, 70)
 
 type Sign = {
@@ -38,16 +44,23 @@ type Sign = {
 	Icon: ImageLabel,
 	Cash: Frame,
 	CashText: TextLabel,
+	CashHit: TextButton, -- the cash block's press (live only on our own sign)
+	CashDip: UIScale,
 	Robux: Frame,
 	RobuxText: TextLabel,
 	Shown: string, -- what it says now, as one key: nothing is rewritten while this holds
 	Level: number,
+	Plot: Instance,
 }
 
 local signs: { [Instance]: Sign } = {} -- by plot
 
--- A flat block in the shop's button look (Shop.button's lit top half, dark edge and scale pattern), not pressable:
--- the sign is read, not clicked
+-- Our ask for the next level, while the server has not answered (one at a time: a double click buys one level)
+local pending: { At: number, Level: number }? = nil
+local saying: { Text: string, Until: number }? = nil -- a word on our own cash block for a moment (WALK CLOSER)
+
+-- A flat block in the shop's button look (Shop.button's lit top half, dark edge and scale pattern). The cash block
+-- gets a press over it (make); the Robux block never does
 local function block(parent: Instance, name: string, kind: string): (Frame, TextLabel, Frame)
 	local frame: Frame = Kit.new("Frame", {
 		Name = name,
@@ -115,6 +128,7 @@ local function make(plot: Instance, board: BasePart): Sign
 		Brightness = 1.15,
 		MaxDistance = s.Far,
 		ResetOnSpawn = false,
+		Active = true, -- (its cash block is pressed: task e2)
 		ClipsDescendants = true,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, Players.LocalPlayer:WaitForChild("PlayerGui"))
@@ -205,6 +219,17 @@ local function make(plot: Instance, board: BasePart): Sign
 	robux.Size = UDim2.new(1, -(pad + 2) * 2 - W * 0.6 - 14, 0, rowHigh)
 	robux.ZIndex = 2
 	robuxText.TextSize = 48
+	-- the cash block's press: an invisible button over it, inside its bounds only (the Robux block, apart, has none)
+	local cashDip: UIScale = Kit.new("UIScale", {}, cash)
+	local cashHit: TextButton = Kit.new("TextButton", {
+		Name = "Press",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false,
+		Active = true,
+		ZIndex = 10,
+	}, cash)
 	Kit.new("ImageLabel", {
 		Name = "Sign",
 		Size = UDim2.fromOffset(46, 46),
@@ -227,10 +252,13 @@ local function make(plot: Instance, board: BasePart): Sign
 		Icon = icon,
 		Cash = cash,
 		CashText = cashText,
+		CashHit = cashHit,
+		CashDip = cashDip,
 		Robux = robux,
 		RobuxText = robuxText,
 		Shown = "",
 		Level = 0,
+		Plot = plot,
 	}
 end
 
@@ -276,7 +304,9 @@ local function write(sign: Sign, level: number)
 	level = math.clamp(level, 1, top)
 	local free = t.Free == 1
 	local robux = (t.Robux or {})[level + 1] or 0
-	local key = string.format("%d/%s/%d", level, tostring(free), robux)
+	local own = sign.Plot.Name == Players.LocalPlayer:GetAttribute("Plot")
+	local word = if own and pending then "..." elseif own and saying then saying.Text else ""
+	local key = string.format("%d/%s/%d/%s", level, tostring(free), robux, word)
 	if sign.Shown == key then
 		return
 	end
@@ -301,7 +331,7 @@ local function write(sign: Sign, level: number)
 		sign.Stat.Text =
 			string.format("+%s > +%s Oxygen/s", Config.wholeNumber(now.Oxygen), Config.wholeNumber(after.Oxygen))
 		portrait(sign, level + 1)
-		sign.CashText.Text = if free then "FREE" else Shop.cash(after.Price)
+		sign.CashText.Text = if word ~= "" then word elseif free then "FREE" else Shop.cash(after.Price)
 		local wide = sign.Board.Size.X * t.Sign.PixelsPerStud
 		fill(sign.Cash, "Red")
 		if robux > 0 then
@@ -314,7 +344,7 @@ local function write(sign: Sign, level: number)
 		end
 	end
 	-- a level up: the board pops (not when it is first written)
-	if not first and level ~= sign.Level then
+	if not first and sign.Level ~= 0 and level ~= sign.Level then
 		sign.Pop.Scale = 1.12
 		TweenService
 			:Create(sign.Pop, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
@@ -323,7 +353,77 @@ local function write(sign: Sign, level: number)
 	sign.Level = level
 end
 
+local function remote(): RemoteEvent?
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	local r = remotes and remotes:FindFirstChild("Trainer")
+	return if r and r:IsA("RemoteEvent") then r else nil
+end
+
+-- Near enough to our own ride to upgrade: flat, from its TrainerSpot (the server measures from the coil's foot,
+-- the same place, with the same Train.UpgradeNear)
+local function nearOwn(plot: Instance): boolean
+	local spot = plot:FindFirstChild("TrainerSpot")
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not (spot and spot:IsA("BasePart") and root and root:IsA("BasePart")) then
+		return false
+	end
+	local gap = (spot.Position - root.Position) * Vector3.new(1, 0, 1)
+	return gap.Magnitude <= Config.Train.UpgradeNear
+end
+
+-- A click or tap on a sign's cash block: only our own sign asks, once, while nothing is pending
+local function press(sign: Sign)
+	local me = Players.LocalPlayer
+	if sign.Plot.Name ~= me:GetAttribute("Plot") or pending then
+		return
+	end
+	local level = me:GetAttribute("TrainerLevel")
+	local r = remote()
+	if type(level) ~= "number" or level >= #Config.Train.Levels or not r then
+		return
+	end
+	sign.CashDip.Scale = 0.94
+	task.delay(0.12, function()
+		sign.CashDip.Scale = 1
+	end)
+	if not nearOwn(sign.Plot) then
+		saying = { Text = "WALK CLOSER!", Until = os.clock() + 1.6 }
+	else
+		pending = { At = os.clock(), Level = level }
+		r:FireServer("Up")
+	end
+	write(sign, level)
+end
+
+-- The server's answer ("Up", level | "UpNo", why: TrainerController says it in a banner) ends our ask
+local listening: RemoteEvent? = nil
+local function listen()
+	local r = remote()
+	if not r or r == listening then
+		return
+	end
+	listening = r
+	r.OnClientEvent:Connect(function(what: string)
+		if what == "Up" or what == "UpNo" then
+			pending = nil
+		end
+	end)
+end
+
 local function look()
+	listen()
+	local now = os.clock()
+	local me = Players.LocalPlayer
+	if pending then
+		local level = me:GetAttribute("TrainerLevel")
+		if now - pending.At > WAIT or (type(level) == "number" and level ~= pending.Level) then
+			pending = nil
+		end
+	end
+	if saying and now > saying.Until then
+		saying = nil
+	end
 	local blockout = workspace:FindFirstChild("ClaudeBlockout")
 	local dock = blockout and blockout:FindFirstChild("Dock")
 	local plots = dock and dock:FindFirstChild("Plots")
@@ -345,10 +445,20 @@ local function look()
 				sign = nil
 			end
 			if not sign then
-				sign = make(plot, board)
-				signs[plot] = sign
+				local made = make(plot, board)
+				made.CashHit.Activated:Connect(function()
+					press(made)
+				end)
+				sign = made
+				signs[plot] = made
 			end
-			write(sign :: Sign, ownerLevel(plot))
+			local s = sign :: Sign
+			local live = plot.Name == me:GetAttribute("Plot") and ownerLevel(plot) < #Config.Train.Levels
+			if s.CashHit.Active ~= live then
+				s.CashHit.Active = live
+				s.CashHit.Selectable = live
+			end
+			write(s, ownerLevel(plot))
 		end
 	end
 end
@@ -363,6 +473,17 @@ function UpgradeSign.start()
 			task.wait(EVERY)
 		end
 	end)
+end
+
+-- (for Studio's tests: press our own sign's cash block as a click does; true when there was one)
+function UpgradeSign.press(): boolean
+	for _, sign in signs do
+		if sign.Plot.Name == Players.LocalPlayer:GetAttribute("Plot") then
+			press(sign)
+			return true
+		end
+	end
+	return false
 end
 
 -- (for captures: rewrite every sign now, e.g. after changing Config.Train.Free on this machine)
