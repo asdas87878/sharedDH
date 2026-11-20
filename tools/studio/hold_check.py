@@ -4,7 +4,8 @@
 How: the server Script puts two fish in the player's hands (RideService.giveCarried: a Tiny Clownfish and a Colossal
 Reef Shark) and stands them in the open on the dock. The LocalScript fires the same asks a slot's click does
 (Action "Hold", index, id; AquariumController) and holds the camera on the player, front or side. Each step reports
-back into ReplicatedStorage's "HoldClient". Raw shots go to work/hold/, the stills to docs/attachments/hold-*.png.
+back into ReplicatedStorage's "HoldClient". Raw shots go to work/hold/, the stills to docs/attachments/hold-*.png (empty, small, big,
+putaway: front and side).
 Needs Studio open with the studio-runner plugin and Rojo serving this repo.
 """
 import subprocess
@@ -251,6 +252,9 @@ def check():
     note("HOLD 2 with the wrong id: " + do("hold|2|Clownfish"))
     note("HOLD 0 (put away): " + do("hold|0|"))
     note("  " + cmd("state"))
+    # the arms must come all the way down (HoldController hands the joints back): the same front and side views
+    time.sleep(1.5)
+    pair("putaway")
     note("HOLD 3 (Pufferfish): " + do("hold|3|Pufferfish"))
     note("  " + cmd("state"))
     note("take hand 1 (Clownfish) out: held stays, its place moves: " + cmd("take|1"))
