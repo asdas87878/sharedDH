@@ -87,32 +87,28 @@ function State.character(): (Model?, BasePart?, Humanoid?)
 	return character, nil, nil
 end
 
--- How long a full meter would last on a fish where it swims now (for the HUD's lock plate and name tags): our max
--- Oxygen over what a fish of its rarity takes a second in the land it is in, the way the server counts it. nil when it
--- can't be told yet.
+-- How long a full meter would last on a fish (for the HUD's lock plate and name tags): by what THIS fish needs (its
+-- kind, size and colour: Config.requiredOfModel; task e1, never the land it swims in), the way the server counts it.
+-- nil when it can't be told yet.
 function State.secondsOn(fish: Model): number?
-	local root = fish.PrimaryPart
-	local tier = fish:GetAttribute("Tier")
+	local need = Config.requiredOfModel(fish)
 	local max = State.Player:GetAttribute("MaxOxygen")
-	if not root or type(tier) ~= "string" or type(max) ~= "number" then
+	if not need or type(max) ~= "number" then
 		return nil
 	end
-	local zone = Zones.locate(State.Zones, root.Position)
 	local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-	return Config.secondsOn(if zone then zone.Index else 1, tier, max, kind) -- (this fish's own: longer on a Tank)
+	return Config.secondsOn(need, max, kind) -- (this fish's own: longer on a Tank)
 end
 
--- Whether landing on that fish where it swims now would be landing on one too strong for us (Oxygen.StrainTime: the
--- meter empties at once and it throws us off). false when it can't be told yet.
+-- Whether landing on that fish would be landing on one too strong for us (Oxygen.StrainTime: the meter empties at
+-- once and it throws us off). false when it can't be told yet.
 function State.tooStrong(fish: Model): boolean
-	local root = fish.PrimaryPart
-	local tier = fish:GetAttribute("Tier")
+	local need = Config.requiredOfModel(fish)
 	local max = State.Player:GetAttribute("MaxOxygen")
-	if not root or type(tier) ~= "string" or type(max) ~= "number" then
+	if not need or type(max) ~= "number" then
 		return false
 	end
-	local zone = Zones.locate(State.Zones, root.Position)
-	return Config.strained(if zone then zone.Index else 1, tier, max)
+	return Config.strained(need, max)
 end
 
 function State.dying(): boolean

@@ -376,7 +376,7 @@ local function update(dt: number)
 		strained = State.Strained or (now - State.MountedAt < STRAIN_GUESS and State.tooStrong(fish))
 		if strained and not strainRide then
 			strainRide = true
-			strainNeeds = "needs " .. Kit.short(Config.required(math.max(land, 1), kind.Tier))
+			strainNeeds = "needs " .. Config.wholeNumber(Config.requiredOfModel(fish) or 0) -- (this fish's own: task e1)
 		elseif strainRide and not State.Strained and now - State.MountedAt > STRAIN_UNSAID then
 			-- our own guess, and the server never said so: it is not too strong
 			strainRide = false
@@ -389,7 +389,9 @@ local function update(dt: number)
 		drain = max / math.max(Config.Oxygen.StrainTime, 0.01)
 	elseif mode == "Riding" and kind then
 		local sent = State.Player:GetAttribute("Drain")
-		drain = if type(sent) == "number" and sent > 0 then sent else Config.drain(math.max(land, 1), kind.Tier)
+		drain = if type(sent) == "number" and sent > 0
+			then sent
+			else Config.drainFor((if fish then Config.requiredOfModel(fish) else nil) or 1, kind, max)
 	elseif mode == "Free" then
 		drain = Config.Oxygen.FreeDrain
 	end

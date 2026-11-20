@@ -48,7 +48,6 @@ local AngryStyles = require(ReplicatedStorage.Shared.AngryStyles)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
-local Zones = require(ReplicatedStorage.Shared.Zones)
 local FishService = require(script.Parent.FishService)
 local PropService = require(script.Parent.PropService)
 
@@ -311,14 +310,15 @@ local function sendOxygen(r: Rider, force: boolean?)
 		r.SentOxygen = r.Oxygen
 		r.SentAt = t
 		r.Player:SetAttribute("Oxygen", math.floor(r.Oxygen * 10 + 0.5) / 10)
-		r.Player:SetAttribute("MaxOxygen", math.floor(r.Max * 10 + 0.5) / 10)
+		-- (a whole number: training gives whole numbers only, task e1)
+		r.Player:SetAttribute("MaxOxygen", math.floor(r.Max + 0.5))
 	end
 end
 
--- The land a rider is in, for the drain (before the first land, the lagoon: the first)
-local function zoneOf(position: Vector3): number
-	local zone = Zones.locate(FishService.zones(), position)
-	return if zone then zone.Index else 1
+-- What this fish needs (task e1): its own whole number, by its kind, rarity, size and colour (Config.requiredOf),
+-- never by the land it is in. The tag, the strain, the drain, the tame and the tank's coins all read this one number.
+local function needOf(w: Wild): number
+	return Config.requiredOf(w.Type, w.SizeTier, w.Variant)
 end
 
 -- What the rider carries on this dive, told to their client
@@ -569,10 +569,9 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.BoostMost = 1
 	r.Frenzy = 0
 	r.AteAt = -math.huge
-	-- Too strong for us? Decided here, at the mount, by the land the fish is in: a landing is never refused, the meter
-	-- just empties at once (Oxygen.StrainTime). Riding a fish we can hold on into a deeper land only costs that land's
-	-- drain.
-	r.Strained = Config.strained(zoneOf(w.Root.Position), w.Type.Tier, r.Max) and not sandbox("EndlessAir", r)
+	-- Too strong for us? Decided here, at the mount, by what this fish needs (task e1: never by the land it is in): a
+	-- landing is never refused, the meter just empties at once (Oxygen.StrainTime).
+	r.Strained = Config.strained(needOf(w), r.Max) and not sandbox("EndlessAir", r)
 	r.Player:SetAttribute("Strained", if r.Strained then true else nil)
 	r.Tame = if r.Tamed[w] then 1 else 0
 	if landing then
@@ -1296,13 +1295,13 @@ local function checkSpeed(r: Rider, w: Wild)
 end
 
 -- Riding a fish we can hold makes it ours after Config.tameTime seconds on it (Tame.Time, longer for a fish that
--- needs more; one fish once a dive). `zone`: the land we are in.
-local function tame(r: Rider, w: Wild, dt: number, zone: number)
+-- needs more; one fish once a dive). `need`: what the fish needs (needOf).
+local function tame(r: Rider, w: Wild, dt: number, need: number)
 	local c = Config.Tame
 	if c.On == 0 or r.Strained then
 		return
 	end
-	local length = Config.tameTime(zone, w.Type.Tier, r.Max)
+	local length = Config.tameTime(need, r.Max)
 	if not r.Tamed[w] then
 		r.Tame += dt / length
 		-- (a frame's leeway: the tame counts frames, the ticks the clock, and at exactly what a fish needs both end
@@ -1369,17 +1368,18 @@ local function tick(r: Rider, dt: number)
 			dismount(r, "Lost")
 			setState(r, "Free")
 		else
-			-- the deeper the land, the more the fish takes a second: this is the progression
+			-- the more the fish needs, the more it takes a second: this is the progression (task e1: what THIS fish
+			-- needs, wherever it swims; it was the land we were in)
 			-- (told to the client when it changes, for the HUD's seconds left on this fish: the Drain attribute)
 			-- (and less on a Tank; 2026-11-18: in ticks, and by our max Oxygen too: Config.drainFor)
-			local zone = zoneOf(root.Position)
-			local rate = Config.drainFor(zone, w.Type, r.Max)
+			local need = needOf(w)
+			local rate = Config.drainFor(need, w.Type, r.Max)
 			local strained = r.Strained and o.StrainTime > 0
 			-- the red part in even ticks (Oxygen.RedTime): RedTicks pieces of what was left at the line
 			local redLine: number?, redSeconds: number? = nil, nil
 			if not strained and o.RedTime > 0 then
 				local line = Config.redLine(r.Max, w.Type) -- (a third of the big ring: task x2)
-				local seconds = Config.redSeconds(Config.secondsOn(zone, w.Type.Tier, r.Max, w.Type))
+				local seconds = Config.redSeconds(Config.secondsOn(need, r.Max, w.Type))
 				redLine, redSeconds = line, seconds
 				if r.Oxygen > line then
 					r.RedPiece = 0 -- (above it again: a landing's refill)
@@ -1400,7 +1400,7 @@ local function tick(r: Rider, dt: number)
 				r.Player:SetAttribute("Drain", rate)
 			end
 			-- (the tame first: a rider with exactly what the fish needs tames it as the last tick goes)
-			tame(r, w, dt, zone)
+			tame(r, w, dt, need)
 			if strained then
 				tickDrain(r, rate, dt, r.StrainPiece, r.StrainEvery)
 			elseif r.RedPiece > 0 then

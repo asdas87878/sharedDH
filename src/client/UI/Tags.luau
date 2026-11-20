@@ -32,6 +32,9 @@ local State = require(script.Parent.Parent.Lib.State)
 
 local Tags = {}
 
+-- (task e1: what a fish needs is shown whole, 2,925, never 2.9K)
+local whole = Config.wholeNumber
+
 local POOL = 10
 local REACH = 260 -- studs: fish further off get no tag
 local PERIOD = 0.25 -- seconds between looks at the herd
@@ -2401,15 +2404,7 @@ local function clearAlt(tag: Alt)
 	tag.Frame.Visible = false
 end
 
-local function updateAlt(
-	lk: Look,
-	camera: Camera,
-	zones: { Zones.Zone },
-	maxOxygen: number,
-	ridden: Model?,
-	locked: Model?,
-	hopping: boolean
-)
+local function updateAlt(lk: Look, camera: Camera, maxOxygen: number, ridden: Model?, locked: Model?, hopping: boolean)
 	look(camera, ridden, locked, lk.RareReach)
 	for _, tag in alts do
 		local fish = tag.Fish
@@ -2451,15 +2446,14 @@ local function updateAlt(
 		local root = fish and fish.PrimaryPart
 		if fish and root then
 			local isLocked = fish == locked
-			local zone = Zones.locate(zones, root.Position)
-			local land = if zone then zone.Index else 1
-			local needs = Config.required(land, tag.TierName)
+			-- what THIS fish needs (task e1: its kind, size and colour, never the land), as the server counts it
+			local needs = Config.requiredOfModel(fish) or 0
 			if needs ~= tag.Needs then
 				tag.Needs = needs
-				tag.Need.Text = Kit.short(needs)
+				tag.Need.Text = whole(needs)
 			end
-			local seconds = Config.secondsOn(land, tag.TierName, maxOxygen, tag.KindOf)
-			local state = if Config.strained(land, tag.TierName, maxOxygen) or seconds < Kit.HoldShort
+			local seconds = Config.secondsOn(needs, maxOxygen, tag.KindOf)
+			local state = if Config.strained(needs, maxOxygen) or seconds < Kit.HoldShort
 				then 3
 				elseif seconds >= Kit.HoldFine then 1
 				else 2
@@ -2646,7 +2640,7 @@ end
 -- hopping: whether the player is in the hop
 function Tags.update(
 	dt: number,
-	zones: { Zones.Zone },
+	_zones: { Zones.Zone }, -- (not read since task e1: what a fish needs is the same in every land)
 	maxOxygen: number,
 	ridden: Model?,
 	locked: Model?,
@@ -2694,7 +2688,7 @@ function Tags.update(
 		lk = Tags.Looks[built]
 	end
 	if lk then
-		updateAlt(lk, camera, zones, maxOxygen, ridden, locked, hopping)
+		updateAlt(lk, camera, maxOxygen, ridden, locked, hopping)
 		return
 	end
 	look(camera, ridden, locked)
@@ -2719,16 +2713,15 @@ function Tags.update(
 		local root = fish and fish.PrimaryPart
 		if fish and root then
 			local isLocked = fish == locked
-			-- what it needs, and how long a full meter would last on it, where it swims now: as the server counts
-			local zone = Zones.locate(zones, root.Position)
-			local land = if zone then zone.Index else 1
-			local needs = Config.required(land, tag.TierName)
+			-- what THIS fish needs (task e1: its kind, size and colour, never the land it swims in), and how long a
+			-- full meter would last on it: as the server counts
+			local needs = Config.requiredOfModel(fish) or 0
 			if needs ~= tag.Needs then
 				tag.Needs = needs
-				tag.Need.Text = Kit.short(needs)
+				tag.Need.Text = whole(needs)
 			end
-			local seconds = Config.secondsOn(land, tag.TierName, maxOxygen, tag.KindOf) -- (longer on a Tank)
-			local state = if Config.strained(land, tag.TierName, maxOxygen) or seconds < Kit.HoldShort
+			local seconds = Config.secondsOn(needs, maxOxygen, tag.KindOf) -- (longer on a Tank)
+			local state = if Config.strained(needs, maxOxygen) or seconds < Kit.HoldShort
 				then 3
 				elseif seconds >= Kit.HoldFine then 1
 				else 2

@@ -549,12 +549,9 @@ local function popsGui(): ScreenGui
 	return made
 end
 
+-- (task e1: the server gives whole Oxygen once a whole second; shown whole, grouped, never 1.2K)
 local function amountText(n: number): string
-	if n < 10 then
-		local text = string.format("%.1f", n)
-		return (string.gsub(text, "%.0$", ""))
-	end
-	return Kit.short(n)
+	return Config.wholeNumber(n)
 end
 
 local function pop(amount: number)

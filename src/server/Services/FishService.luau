@@ -21,8 +21,8 @@
 -- its species' size.
 -- (2026-11-13, the user: sizes are back, as the reference has them. Every spawned fish is one of six sizes,
 -- Config.SizeChance, rolled apart from its variant: its model, seat and body are its species' times Config.SizeScale,
--- its "Size" and "SizeTier" attributes say so. Size changes neither speed nor what a fish needs (Config.SizeWorth
--- is there for when it does). The herd's rules that go by a fish's length, Config.Herd and Config.Spawn, go by its own.)
+-- its "Size" and "SizeTier" attributes say so. Size does not change speed; since task e1 (2026-11-20) it changes
+-- what a fish needs (Config.SizeOxygen, Config.requiredOf). The herd's rules that go by a fish's length, Config.Herd and Config.Spawn, go by its own.)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")

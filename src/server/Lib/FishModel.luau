@@ -136,7 +136,8 @@ local function finish(model: Model, root: BasePart, fish: Config.FishType, top: 
 	model.Name = fish.Name
 	model:SetAttribute("FishType", fish.Id)
 	model:SetAttribute("Tier", fish.Tier)
-	model:SetAttribute("Required", fish.Required)
+	-- (no "Required" attribute since task e1: what a fish needs is its own, by its SizeTier and Variant too, set
+	-- after this; every machine works it out the same way, Config.requiredOfModel)
 	model:SetAttribute("Rider", 0)
 	model:SetAttribute("Reserved", 0)
 	CollectionService:AddTag(model, FishModel.Tag)

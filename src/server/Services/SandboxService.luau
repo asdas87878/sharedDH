@@ -15,7 +15,7 @@ local SandboxService = {}
 
 local FLAGS = { On = "Sandbox", NoFail = "SandboxNoFail", EndlessAir = "SandboxEndlessAir" }
 
--- "Jump.LaunchTime" = 0.9, or "ZoneDrain.3" = 14 for a list: only numbers that are already in Config
+-- "Jump.LaunchTime" = 0.9, or "RarityOxygen.Rare" = 3 for a table: only numbers that are already in Config
 local function tune(path: any, value: any)
 	if type(path) ~= "string" or type(value) ~= "number" or value ~= value then
 		return

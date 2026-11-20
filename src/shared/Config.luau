@@ -1,7 +1,7 @@
 --!strict
 -- Every tuning number for the dive, from docs/design/riding-feel.md (to tune in play). Going fish to fish is Movement
 -- v3.1: the hop and glide (the reference's, measured from the user's recordings: docs/reference/ride-a-dino.md) with
--- the lock-on, the window and the spring camera (Jump, Lock, Camera). Going deeper is paid for in Oxygen (ZoneDrain).
+-- the lock-on, the window and the spring camera (Jump, Lock, Camera). Stronger fish need more Oxygen (OxygenBase).
 -- Speeds in studs a second, times in seconds, angles in degrees.
 
 export type Tier = {
@@ -15,7 +15,7 @@ export type FishType = {
 	Tier: string,
 	Home: number, -- home zone index
 	Reach: number, -- how many zones past home it can still turn up in
-	Required: number, -- the max Oxygen that keeps up with it in its home land (Config.required): shown on its tag
+	Required: number, -- what a Normal plain one needs (Config.requiredOf); each fish its own, by its size and colour
 	IdleSpeed: number,
 	RiddenSpeed: number, -- this species, no variant: its own number in Config.FishStats (Config.refresh); one fish's own: Config.speedOf
 	Archetype: string, -- its passive archetypes (Config.FishStats): "" for none, more than one comma-separated ("Predator,Breaker")
@@ -335,9 +335,9 @@ Config.Variant = {
 -- every fish. The chances are the reference's own, from the same Index page: Tiny 15%, Normal 55%, Big 20%, Giant 7%,
 -- Huge 2.5%, Colossal 0.5% (a Rainbow Colossal: 1 in 50,000, as its Index says).
 -- The reference's size also raises what a dino needs (measured 2026-11-09: Tiny x0.8, Big x1.2, Giant x1.5), and no
--- doubt what it earns: Config.SizeWorth holds those numbers (Huge and Colossal were never seen there: 2 and 3 are
--- ours). Since 2026-11-16 SizeWorth is what a fish EARNS in a tank, times (Config.incomeOf). It does not change
--- what a fish needs: whether a bigger fish takes more Oxygen to hold is the user's to decide. How much BIGGER each size is can't be read off the reference: SizeScale is ours, to be
+-- doubt what it earns: since task e1 (2026-11-20) Config.SizeOxygen holds those numbers (Huge and Colossal were never
+-- seen there: 2 and 3 are ours) and a bigger fish NEEDS more (Config.requiredOf), and earns more with it. (From
+-- 2026-11-16 to e1 they were only what a fish earned, Config.SizeWorth, gone.) How much BIGGER each size is can't be read off the reference: SizeScale is ours, to be
 -- judged by eye.
 -- (Hugo's size roll of 2026-11-12, 0.8 to 1.4 on a curve and speed with it, was taken out the same day. Size does not
 -- change speed here: speed is the next thing to be set.)
@@ -384,7 +384,6 @@ Config.SizeGrow = {
 	Mythic = 1,
 	Secret = 1,
 } :: { [string]: number }
-Config.SizeWorth = { Tiny = 0.8, Normal = 1, Big = 1.2, Giant = 1.5, Huge = 2, Colossal = 3 } :: { [string]: number }
 -- The sizes' chances by rarity (the user, 2026-11-13, having seen every fish on the reference's odds: big sizes were
 -- "over prescribed" on the smaller animals and "should be rarer especially among common folk"; "the fish should tend
 -- to cluster around the smaller sizes, larger sizes being rarer but still occurring every now and then"). The chances
@@ -573,26 +572,118 @@ do -- the tick size switch (Oxygen.TickSize)
 	end
 end
 
--- The progression (Hugo, 2026-11-11): the deeper you are, the more Oxygen the fish under you takes a second. One number
--- a land, for a Common, by the land you are IN (not the fish's home); steep, so each land needs a clearly bigger max
--- Oxygen than the last. A hop is never refused for Oxygen and costs none: at almost nothing you can still go fish to
--- fish, and each landing gives Refill back.
--- The numbers (the tuning chat, 2026-11-11, from the user's "2 to 3 seconds on the first fish, the land is the main
--- cost"; docs/design/progression.md): the starting 100 lasts 2.5 s on a Shallows Common, and each land takes 2.5 to
--- 4 times the land before. The smaller steps (lands 3, 5 and 7) are where the land's commonest fish also goes up a
--- rarity, so what it takes to be at home in a land grows 4 to 8 times a land. Until then: 1, 4, 14, 48, 160, 500,
--- 1500, 4500, 13000, 36000.
-Config.ZoneDrain = { 40, 160, 480, 2000, 6000, 24000, 60000, 240000, 1000000, 4000000 }
+-- What a fish needs (Hugo, 2026-11-20, task e1; docs/plans/2026-11-20-oxygen-equip-landride.md, E1): ONE whole number
+-- for each fish, from what it is, never from where it is. A Clownfish needs the same in land 1 and land 2, a
+-- Legendary the same in land 6 and land 10: the land only decides which fish swim there. The number is
+--   ceil(OxygenBase[kind] x RarityOxygen[rarity] x SizeOxygen[size] x VariantOxygen[colour] x SpecialOxygen...)
+-- rounded once, at the end (Config.requiredOf). It is the number on the fish's tag, what it takes to hold it
+-- (Config.strained), what sets its seconds, its tame and its tank coins (Config.secondsOn, tameTime, incomeOf).
+-- (Until then: Config.ZoneDrain, one number a land by the land you were IN, times Config.RarityDrain; a fish needed
+-- 4 times more each land deeper. Both are gone.)
+-- The bases: one per kind, set by hand from the animal (Claude's first numbers, 2026-11-20, from the plan's samples:
+-- Clownfish 80, Yellow Tang 90, Seahorse 52, Reef Shark 120, Dunkleosteus 200, Blue Whale 600, Kraken 900). The
+-- rest were drafted on a ladder of about 1.5 times a land deeper (the deeper animals are the stronger ones), spread
+-- within a land by the animal's bulk, then written down here: change any one freely, nothing works them out again.
+-- No two kinds share a base, and no two kinds' Normal plain fish need the same (checked by
+-- tools/studio/oxygen_check.luau). PROVISIONAL until Hugo plays it.
+-- stylua: ignore
+Config.OxygenBase = {
+	-- land 1 (Shallows, where it lives; it needs the same anywhere)
+	Butterflyfish = 57, -- Common
+	BlueChromis = 61, -- Common
+	Boxfish = 65, -- Common
+	Pufferfish = 76, -- Common
+	Clownfish = 80, -- Common
+	SergeantMajor = 82, -- Common
+	YellowTang = 90, -- Common
+	Cuttlefish = 68, -- Uncommon
+	SeaTurtle = 81, -- Uncommon
+	Stingray = 83, -- Uncommon
+	FlyingFish = 91, -- Uncommon
+	Seahorse = 52, -- Rare
+	ReefShark = 120, -- Epic
+	Archelon = 130, -- Legendary
+	PearlSerpent = 105, -- Secret
+	-- land 2 (Coral Reef, where it lives; it needs the same anywhere)
+	Parrotfish = 100, -- Uncommon
+	Angelfish = 110, -- Uncommon
+	Lionfish = 115, -- Uncommon
+	MorayEel = 93, -- Rare
+	Octopus = 125, -- Rare
+	HumpheadWrasse = 135, -- Epic
+	Dunkleosteus = 200, -- Legendary
+	CoralDragon = 185, -- Secret
+	-- land 3 (Kelp Forest, where it lives; it needs the same anywhere)
+	Garibaldi = 140, -- Uncommon
+	SeaLion = 150, -- Uncommon
+	LeopardShark = 145, -- Rare
+	GiantSeaBass = 165, -- Rare
+	StellersSeaCow = 190, -- Epic
+	GreatWhite = 205, -- Epic
+	Dakosaurus = 195, -- Legendary
+	KelpWyrm = 210, -- Secret
+	-- land 4 (Shipwrecks, where it lives; it needs the same anywhere)
+	Barracuda = 255, -- Uncommon
+	Sawfish = 260, -- Rare
+	HammerheadShark = 270, -- Rare
+	ElectricRay = 240, -- Epic
+	GoliathGrouper = 310, -- Epic
+	Xiphactinus = 335, -- Legendary
+	GalleonWhale = 430, -- Secret
+	-- land 5 (Open Blue, where it lives; it needs the same anywhere)
+	Swordfish = 355, -- Rare
+	Dolphin = 385, -- Rare
+	MantaRay = 350, -- Epic
+	Orca = 435, -- Epic
+	Elasmosaurus = 420, -- Legendary
+	Helicoprion = 465, -- Legendary
+	BlueWhale = 600, -- Mythic
+	StormSerpent = 390, -- Secret
+	-- land 6 (Twilight, where it lives; it needs the same anywhere)
+	Viperfish = 490, -- Rare
+	GiantSquid = 485, -- Epic
+	GoblinShark = 495, -- Epic
+	Liopleurodon = 690, -- Legendary
+	Shonisaurus = 695, -- Legendary
+	LanternLeviathan = 610, -- Mythic
+	AuroraJelly = 860, -- Secret
+	-- land 7 (Midnight, where it lives; it needs the same anywhere)
+	FrilledShark = 545, -- Epic
+	Anglerfish = 940, -- Epic
+	Basilosaurus = 785, -- Legendary
+	Livyatan = 825, -- Legendary
+	Mosasaurus = 910, -- Legendary
+	Kraken = 900, -- Mythic
+	VoidWhale = 985, -- Secret
+	-- land 8 (Vents, where it lives; it needs the same anywhere)
+	SeaScorpion = 915, -- Epic
+	GiantIsopod = 1040, -- Epic
+	BobbitWorm = 1060, -- Legendary
+	Anomalocaris = 1280, -- Legendary
+	Kronosaurus = 1570, -- Legendary
+	Megalodon = 1800, -- Legendary
+	MoltenMegalodon = 1805, -- Mythic
+	EmberSerpent = 1440, -- Secret
+	-- land 9 (Bone Graveyard, where it lives; it needs the same anywhere)
+	WraithEel = 1260, -- Legendary
+	SkullAngler = 1900, -- Legendary
+	GraveTurtle = 2050, -- Legendary
+	GraveRay = 2210, -- Legendary
+	BoneLeviathan = 1980, -- Mythic
+	HalfboneMegalodon = 2480, -- Mythic
+	PhantomWhale = 2110, -- Secret
+	-- land 10 (Underworld, where it lives; it needs the same anywhere)
+	CinderRay = 2170, -- Legendary
+	BrimstoneEel = 2820, -- Legendary
+	HellfinShark = 2970, -- Legendary
+	InfernalAngler = 3080, -- Legendary
+	Hellmaw = 3180, -- Mythic
+	AbyssalWatcher = 3480, -- Mythic
+	TheDevourer = 3650, -- Secret
+} :: { [string]: number }
 
--- And by the rarity of the fish under you: how many times a Common's Oxygen it takes a second, in any land. One number
--- a rarity, so the curve can be gentle at the bottom and steep toward Legendary and Mythic (the user, 2026-11-11: the
--- land is the main cost, the rarity less so, but hard at the top). Until 2026-11-11 this was a straight line, 0.15 a
--- step (Oxygen.TierDrain: 1, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9).
--- The numbers (the tuning chat, 2026-11-11; docs/design/progression.md): a new player's 2.5 s on a Shallows Common is
--- 2 s on an Uncommon, 1 s on a Rare, half a second on an Epic and next to nothing on a Legendary. Rare to Legendary
--- follow the reference's required stamina in one zone (an Uncommon 50, a Rare 130, an Epic 230, a Legendary 752);
--- Mythic and Secret are guesses.
-Config.RarityDrain = {
+-- Times the base, by the fish's rarity (the old RarityDrain's numbers: gentle at the bottom, steep toward the top)
+Config.RarityOxygen = {
 	Common = 1,
 	Uncommon = 1.25,
 	Rare = 2.5,
@@ -602,17 +693,30 @@ Config.RarityDrain = {
 	Secret = 150,
 } :: { [string]: number }
 
+-- Times the base, by the fish's size (Config.SizeOrder; the reference's measured Tiny x0.8, Big x1.2, Giant x1.5)
+Config.SizeOxygen = { Tiny = 0.8, Normal = 1, Big = 1.2, Giant = 1.5, Huge = 2, Colossal = 3 } :: { [string]: number }
+
+-- Times the base, by its colour ("" plain)
+Config.VariantOxygen = { [""] = 1, Silver = 1.25, Gold = 1.5, Rainbow = 2 } :: { [string]: number }
+
+-- Specials that also change what a fish needs: an archetype id (Config.Archetype) -> times. Only ones listed here
+-- count; none yet (a Tank stays a longer ride, Archetype.Tank.Drain, never a smaller need).
+Config.SpecialOxygen = {} :: { [string]: number }
+
+-- What the grow of a fish's seconds and tame is counted from (Oxygen.Grow, Config.grow): the first fish's need, a
+-- Normal plain Clownfish's 80 (it was the Shallows Common's, 80 too).
+Config.GrowFrom = 80
+
 -- Training: the smallest thing that lets the progression be played (the tuning chat's proposal, docs/design/
 -- progression.md, "Not built yet"). Standing on the training spot in the hub adds to your max Oxygen every second. Kept
 -- for the session only: there are no saves yet. The spot is the map's part named TrainSpot when it has one; until then
 -- the server makes a stand-in pad beside the dock's spawn (Right and Ahead of it, in studs, the way the spawn faces).
 Config.Train = {
 	On = 1, -- 0: no training spot
-	Rate = 4, -- max Oxygen a second while you stand on it (the tuning chat's number: the Coral Reef in two minutes)
-	-- and this share of your max Oxygen a second on top (the tuning chat, 2026-11-12): each land costs 4 to 8 times the
-	-- last, so a steady rate alone stops being useful at the Shipwrecks (the Open Blue after 5 hours of standing). At
-	-- 0.004: the Kelp Forest after about 5 minutes, the Open Blue after 17, the last land after 49.
-	Share = 0.004,
+	Rate = 4, -- whole max Oxygen for each whole second on it, when there is no Levels table (below)
+	-- (Share, a share of your max Oxygen on top, went 2026-11-20, task e1: Hugo, "each upgrade gives one set whole
+	-- number of oxygen, no decimals". Training now gives whole numbers only, once for every whole second seated:
+	-- Config.trainTicks.)
 	Radius = 10, -- studs from the spot's middle that count as on it
 	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
 	Ahead = 24, -- and this far toward the water
@@ -622,7 +726,7 @@ Config.Train = {
 	-- !! PLACEHOLDERS: every Oxygen and Price below is a stand-in until Hugo picks the economy draft (mission
 	-- 20e4833b task b1, docs/design/progression.md "D4"). Fixed whole numbers only (Hugo's rule: no share of max, no
 	-- decimals): b1's "Oxygen a tick" and "Level's price" columns drop straight in. Level 1's 4 is today's Rate. When
-	-- b1 lands, Share above goes to 0 (b1: "the pad's Train.Share goes"). Price is in coins, for the level itself.
+	-- b1 lands. (Share went in task e1.) Oxygen is given once for every whole second seated. Price is in coins.
 	Levels = {
 		{ Name = "Toy", Oxygen = 4, Price = 0 }, -- PLACEHOLDER numbers (b1)
 		{ Name = "Painted", Oxygen = 6, Price = 100 }, -- PLACEHOLDER
@@ -714,13 +818,11 @@ Config.Aquarium = {
 	On = 1, -- 0: no aquariums: a catch is only counted at the dock, as before
 	Earning = 7, -- how many of a tank's fish earn at once: the best ones (the reference's pen: 7 active)
 	Hold = 60, -- the most fish a tank keeps; past it the poorest are let go
-	-- What a fish earns: coins a second for each Oxygen it needs at home (Config.required: its land and rarity), times
-	-- its size's worth (Config.SizeWorth) and its colour's. A Shallows Common needs 80: 2 coins a second, the
-	-- reference's first dino.
+	-- What a fish earns: coins a second for each Oxygen that fish needs (Config.requiredOf: its kind, rarity, size and
+	-- colour, never its land), with nothing more for size or colour on top (task e1, the plan's option C default; the
+	-- colour's own 1.5 / 3 / 10 went then: a Rainbow earns twice a plain one, as it needs twice). A Normal plain
+	-- Clownfish needs 80: 2 coins a second, the reference's first dino. PROVISIONAL.
 	PerRequired = 0.025,
-	Silver = 1.5,
-	Gold = 3,
-	Rainbow = 10,
 	Every = 1, -- seconds between payments
 	HomeAtTank = 1, -- 1: a player carrying fish wakes on the dock in front of their own tank; 0: at the dock's spawn
 	-- the earning fish, shown swimming in the tank: how many, and how long each is shown (a share of its own length,
@@ -896,7 +998,7 @@ Config.Ride = {
 -- With the window gone and no fish grabbed you have sunk: the short drown.
 Config.Jump = {
 	-- The window is the hop: the pop, the glide and the drop together. The same at every depth (Hugo, 2026-11-11):
-	-- going deeper is paid for in Oxygen (Config.ZoneDrain), never in a shorter window.
+	-- going deeper is paid for in Oxygen (the deeper fish need more: Config.OxygenBase), never in a shorter window.
 	-- (Hugo, 2026-11-12: "more airtime (just a little)". The glide is 0.2 s longer, FloatTime below, and the window
 	-- grew by the same, so the drop is as long as it was. Still one window for every land.)
 	-- (The user, 2026-11-16: "we need a bit more air time and be pushed further by the hop off the fish". 0.3 s more air:
@@ -2325,23 +2427,56 @@ end
 Config.Fish = {} :: { FishType }
 Config.FishById = {} :: { [string]: FishType }
 
--- Oxygen a second on a fish of this rarity, in land number `zone` (past the last land: the last land's)
-function Config.drain(zone: number, tier: string): number
-	local per = Config.ZoneDrain
-	local base = per[math.clamp(zone, 1, #per)]
-	return base * (Config.RarityDrain[tier] or 1)
+-- What one fish needs, a whole number (Config.OxygenBase, task e1): its kind's base x its rarity's, size's and
+-- colour's numbers x any listed special's (Config.SpecialOxygen; `special`: archetype ids, comma-separated, the
+-- kind's own when nil), rounded up once at the end. Never by land, depth or place. At least 1.
+local warnedBase: { [string]: boolean } = {}
+function Config.requiredOf(fish: FishType, sizeTier: string?, variant: string?, special: string?): number
+	local base = Config.OxygenBase[fish.Id]
+	if not base then
+		if not warnedBase[fish.Id] then
+			warnedBase[fish.Id] = true
+			warn("[Config] " .. fish.Id .. " has no Config.OxygenBase: it needs 1")
+		end
+		return 1
+	end
+	local need = base
+		* (Config.RarityOxygen[fish.Tier] or 1)
+		* (Config.SizeOxygen[sizeTier or "Normal"] or 1)
+		* (Config.VariantOxygen[variant or ""] or 1)
+	if next(Config.SpecialOxygen) ~= nil then
+		for _, id in string.split(special or fish.Archetype, ",") do
+			local times = Config.SpecialOxygen[id]
+			if times then
+				need *= times
+			end
+		end
+	end
+	-- (a hair under, so 80 x 1.5 = 120.00000001 is still 120)
+	return math.max(1, math.ceil(need - 1e-6))
 end
 
--- The max Oxygen that keeps up there: landing a hop every Oxygen.KeepUp seconds, the refills just pay for the drain
-function Config.required(zone: number, tier: string?): number
-	local o = Config.Oxygen
-	return math.ceil(Config.drain(zone, tier or "Common") * o.KeepUp / math.max(o.Refill, 0.01))
+-- What the fish model needs (its FishType, SizeTier and Variant attributes, as the server set them): the same number
+-- on every machine, wherever the fish swims. nil for a model that is not a fish.
+function Config.requiredOfModel(model: Instance): number?
+	local id = model:GetAttribute("FishType")
+	local fish = if type(id) == "string" then Config.FishById[id] else nil
+	if not fish then
+		return nil
+	end
+	local size = model:GetAttribute("SizeTier")
+	local variant = model:GetAttribute("Variant")
+	return Config.requiredOf(
+		fish,
+		if type(size) == "string" then size else "Normal",
+		if type(variant) == "string" then variant else ""
+	)
 end
 
--- Whether a fish of this rarity, in land number `zone`, is too strong for a rider with this max Oxygen: it needs more
--- than they have (Oxygen.StrainTime)
-function Config.strained(zone: number, tier: string, max: number): boolean
-	return Config.Oxygen.StrainTime > 0 and max < Config.required(zone, tier)
+-- Whether a fish that needs `required` is too strong for a rider with this max Oxygen: it needs more than they have
+-- (Oxygen.StrainTime)
+function Config.strained(required: number, max: number): boolean
+	return Config.Oxygen.StrainTime > 0 and max < required
 end
 
 -- Whether a meter at `oxygen` of `max` is in its low, red part (Oxygen.AngryAt): where the ring turns red and the fish
@@ -2377,16 +2512,6 @@ function Config.heat(oxygen: number, max: number, fish: FishType?): number
 	return math.clamp(1 - oxygen / from, 0, 1)
 end
 
--- The Oxygen a second THIS fish takes in a land: Config.drain for its rarity, and less on a Tank. What it takes to
--- hold a fish at all (Config.required, Config.strained: the number on its tag) is by rarity alone, Tank or not.
-function Config.drainOf(zone: number, fish: FishType): number
-	local rate = Config.drain(zone, fish.Tier)
-	if Config.hasArchetype(fish, "Tank") then
-		rate *= Config.Archetype.Tank.Drain
-	end
-	return rate
-end
-
 -- The burst on getting on this fish, and how long it lasts: Ride.Surge and Ride.SurgeTime, bigger and longer on a
 -- Fast one. (After a landing only a Fast fish plays it: see Config.Archetype.Fast.)
 function Config.surgeOf(fish: FishType?): (number, number)
@@ -2418,10 +2543,11 @@ function Config.hopOf(fish: FishType?): (number, number, number)
 	return 1, 1, 0
 end
 
--- How many times longer a fish that needs `required` is ridden (and tamed) than a Shallows Common: Oxygen.Grow
+-- How many times longer a fish that needs `required` is ridden (and tamed) than the first fish (Config.GrowFrom):
+-- Oxygen.Grow
 function Config.grow(required: number): number
 	local o = Config.Oxygen
-	local base = math.max(Config.required(1, "Common"), 1)
+	local base = math.max(Config.GrowFrom, 1)
 	return math.clamp((math.max(required, base) / base) ^ o.Grow, 1, math.max(o.GrowMost, 1))
 end
 
@@ -2435,17 +2561,17 @@ function Config.pastCap(max: number): number
 	return 1 + math.max(o.PastMost, 0) * (1 - o.Cap / max)
 end
 
--- Seconds a full meter lasts on a fish of this rarity in land `zone`, for a rider with this max Oxygen (2026-11-18:
+-- Seconds a full meter lasts on a fish that needs `required` (Config.requiredOf), for a rider with this max Oxygen (2026-11-18:
 -- the ticks; Oxygen.Ticks). KeepUp x grow(required) x a little more for more max (Oxygen.MaxShare, counted only up
 -- to Oxygen.Cap) x RideTime x pastCap(max); longer on a Tank.
 -- A fish too strong: StrainTime (from what is left after the break-off, Oxygen.BreakOff).
 -- (`fish`: with it, the seconds are this fish's own: longer on a Tank)
-function Config.secondsOn(zone: number, tier: string, max: number, fish: FishType?): number
-	if Config.strained(zone, tier, max) then
+function Config.secondsOn(required: number, max: number, fish: FishType?): number
+	if Config.strained(required, max) then
 		return Config.Oxygen.StrainTime
 	end
 	local o = Config.Oxygen
-	local required = math.max(Config.required(zone, tier), 1)
+	required = math.max(required, 1)
 	local counted = if o.Cap > 0 then math.min(max, o.Cap) else max
 	local more = math.clamp((math.max(counted, required) / required) ^ o.MaxShare, 1, math.max(o.MaxMost, 1))
 	local seconds = o.KeepUp * Config.grow(required) * more * math.max(o.RideTime, 0.01) * Config.pastCap(max)
@@ -2465,13 +2591,13 @@ function Config.redSeconds(seconds: number): number
 	return math.min(o.RedTime, math.max(o.RedMost, 0.05) * seconds)
 end
 
--- The Oxygen a second a rider with this max loses on this fish in land `zone` (what each tick takes, a second):
+-- The Oxygen a second a rider with this max loses on this fish, that needs `required` (what each tick takes, a second):
 -- the whole meter in Config.secondsOn. With Oxygen.RedTime on, this is the drain above the red line: the red part
 -- has its own even ticks (Config.redTicks, RideService), and the two together still last Config.secondsOn
-function Config.drainFor(zone: number, fish: FishType, max: number): number
-	local seconds = math.max(Config.secondsOn(zone, fish.Tier, max, fish), 0.01)
+function Config.drainFor(required: number, fish: FishType, max: number): number
+	local seconds = math.max(Config.secondsOn(required, max, fish), 0.01)
 	local red = Config.redSeconds(seconds)
-	if red <= 0 or Config.strained(zone, fish.Tier, max) then
+	if red <= 0 or Config.strained(required, max) then
 		return max / seconds
 	end
 	-- (above the red line: what is above it in what the red part leaves, Oxygen.RedTime)
@@ -2525,13 +2651,13 @@ function Config.strainTicks(max: number, left: number): (number, number)
 	return math.max(left, 0.001) / count, math.max(o.StrainTime, 0.01) / count
 end
 
--- Seconds on this fish to tame it (Config.Tame): Tame.Time, longer for a fish that needs more (Tame.Grow), and
+-- Seconds on a fish that needs `required` to tame it (Config.Tame): Tame.Time, longer for a fish that needs more (Tame.Grow), and
 -- Tame.CapSlow times that for a rider at or past Oxygen.Cap (`max`, when known)
-function Config.tameTime(zone: number, tier: string, max: number?): number
+function Config.tameTime(required: number, max: number?): number
 	local t = Config.Tame
 	local time = math.max(t.Time, 0.05)
 	if t.Grow ~= 0 then
-		time *= Config.grow(Config.required(zone, tier))
+		time *= Config.grow(required)
 	end
 	local cap = Config.Oxygen.Cap
 	if max and cap > 0 and max >= cap then
@@ -2759,16 +2885,27 @@ function Config.sizeScale(tier: string, fish: FishType?): number
 	return scale
 end
 
--- What a fish earns in a tank, coins a second (Config.Aquarium): by what it takes to hold at home, its size's worth
--- and its colour's
+-- What a fish earns in a tank, coins a second (Config.Aquarium): what that fish needs (Config.requiredOf: its size and
+-- colour are already in it, so they are not counted again) x PerRequired (task e1, the plan's option C default)
 function Config.incomeOf(fish: FishType, sizeTier: string, variant: string): number
-	local a = Config.Aquarium
-	local colour = if variant == "Rainbow"
-		then a.Rainbow
-		elseif variant == "Gold" then a.Gold
-		elseif variant == "Silver" then a.Silver
-		else 1
-	return Config.required(fish.Home, fish.Tier) * a.PerRequired * Config.sizeWorth(sizeTier) * colour
+	return Config.requiredOf(fish, sizeTier, variant) * Config.Aquarium.PerRequired
+end
+
+-- Training in whole seconds (task e1): `carry` seconds seated so far that have not made a whole one, `dt` more. Returns
+-- how many whole seconds that completes and the part of a second left over. A level gives its whole Oxygen once for
+-- each (Train.Levels), never a share of a frame, so the gain is the same at any frame rate.
+function Config.trainTicks(carry: number, dt: number): (number, number)
+	local t = math.max(carry, 0) + math.max(dt, 0)
+	local ticks = math.floor(t + 1e-9)
+	return ticks, math.max(t - ticks, 0)
+end
+
+-- A whole number with its thousands grouped: 2,925 (task e1: Oxygen is shown whole, never 2.9K)
+function Config.wholeNumber(value: number): string
+	local text = tostring(math.floor(math.abs(value) + 0.5))
+	local grouped = string.reverse((string.gsub(string.reverse(text), "(%d%d%d)", "%1,")))
+	grouped = string.gsub(grouped, "^,", "")
+	return if value <= -0.5 then "-" .. grouped else grouped
 end
 
 -- A number written short: 950, 1.2K, 34M (for signs made on the server; the HUD has its own, Kit.short)
@@ -2788,12 +2925,6 @@ end
 -- Whether a size is a grand one (Config.Grand)
 function Config.isGrand(tier: string): boolean
 	return tier == "Giant" or tier == "Huge" or tier == "Colossal"
-end
-
--- What a size needs and is worth, times (Config.SizeWorth)
-
-function Config.sizeWorth(tier: string): number
-	return Config.SizeWorth[tier] or 1
 end
 
 -- One fish's ridden speed: its species' own (Config.FishStats: RiddenSpeed), by its variant (x Speed.Gold or
@@ -2888,7 +3019,7 @@ for _, spec in FISH do
 		Tier = spec.Tier,
 		Home = spec.Home,
 		Reach = spec.Reach or 2,
-		Required = Config.required(spec.Home, spec.Tier),
+		Required = 0, -- (below: needs the kind's archetypes)
 		IdleSpeed = spec.IdleSpeed or speed * Config.Herd.SpeedShare,
 		RiddenSpeed = speed,
 		Archetype = if stat then stat.Archetype else "",
@@ -2938,7 +3069,7 @@ function Config.refresh()
 		fish.RiddenSpeed = if stat then stat.Speed else Config.Speed.Base
 		fish.Archetype = if stat then stat.Archetype else ""
 		fish.IdleSpeed = fish.RiddenSpeed * Config.Herd.SpeedShare
-		fish.Required = Config.required(fish.Home, fish.Tier)
+		fish.Required = Config.requiredOf(fish, "Normal", "") -- (a Normal plain one's; each fish's own: requiredOf)
 	end
 end
 

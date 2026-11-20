@@ -287,7 +287,7 @@ local function write(sign: Sign, level: number)
 		sign.Title.Text = "SEAHORSE MAXED!"
 		sign.Name.Text = string.format("LV %d %s", level, string.upper(now.Name))
 		sign.Name.TextColor3 = GOLD
-		sign.Stat.Text = string.format("+%s Oxygen/s", Kit.short(now.Oxygen))
+		sign.Stat.Text = string.format("+%s Oxygen/s", Config.wholeNumber(now.Oxygen)) -- (whole: task e1)
 		portrait(sign, level)
 		sign.Robux.Visible = false
 		sign.Cash.Size = UDim2.new(1, -36, 0, sign.Cash.Size.Y.Offset)
@@ -298,7 +298,8 @@ local function write(sign: Sign, level: number)
 		sign.Title.Text = "UPGRADE SEAHORSE"
 		sign.Name.Text = string.format("LV %d %s", level + 1, string.upper(after.Name))
 		sign.Name.TextColor3 = Shop.Money
-		sign.Stat.Text = string.format("+%s > +%s Oxygen/s", Kit.short(now.Oxygen), Kit.short(after.Oxygen))
+		sign.Stat.Text =
+			string.format("+%s > +%s Oxygen/s", Config.wholeNumber(now.Oxygen), Config.wholeNumber(after.Oxygen))
 		portrait(sign, level + 1)
 		sign.CashText.Text = if free then "FREE" else Shop.cash(after.Price)
 		local wide = sign.Board.Size.X * t.Sign.PixelsPerStud

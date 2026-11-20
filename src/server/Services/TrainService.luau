@@ -12,8 +12,9 @@
 -- start, and the seahorse goes on a real grey coil (RideStyles.Trainer, RideStyles.coil) from the middle of its body's
 -- underside down to a small round red pad. Walk up to it, or jump onto it, and you are seated on it (a weld to its
 -- body; every machine plays the hop up and rocks the toy, and the rider with it: TrainerController); jump or walk off
--- and you hop off. Only a seated rider trains, and every half second they are told what they gained ("Gain"), for the
--- "+n" pops. The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
+-- and you hop off. Only a seated rider trains: once for every whole second seated the level's whole Oxygen is added
+-- and they are told ("Gain", a whole number), for the "+n" pops (task e1: no decimals, no share of max; a part of a
+-- second is dropped on getting off, and starts again from nothing on an upgrade). The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
 -- "Gain", amount. The ride model carries Rider (the user id on it), SpringBase, SpringTop and Seat (CFrames at rest).
 -- The levels (Hugo, 2026-11-19, task sh1: the seahorse draft built): every player has a TrainerLevel, 1 to 12 (the
 -- player's attribute; ours, for the session, beside the tank's coins), and each plot's ride shows its owner's: its
@@ -546,21 +547,27 @@ local function levelOf(player: Player): number
 	return levels[player] or 1
 end
 
--- A level's Oxygen a second (Config.Train.Levels; Rate when there is no such table), and the share of max on top
-local function gain(player: Player, dt: number, level: number): (boolean, number)
+-- Training in whole seconds (task e1): `carry` is the part of a second already seated, `dt` more. Each whole second
+-- it completes gives the level's whole Oxygen (Config.Train.Levels; Rate when there is no such table), never a share
+-- of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
+local function gain(player: Player, carry: number, dt: number, level: number): (number, number)
 	local t = Config.Train
-	local max = player:GetAttribute("MaxOxygen")
-	local share = if type(max) == "number" then max * t.Share else 0
-	local rate = if t.Levels then levelRow(level).Oxygen else t.Rate
-	local amount = (rate + share) * dt
-	return RideService.train(player, amount), amount
+	local ticks, left = Config.trainTicks(carry, dt)
+	if ticks <= 0 then
+		return 0, left
+	end
+	local each = math.floor((if t.Levels then levelRow(level).Oxygen else t.Rate) + 0.5)
+	local amount = ticks * each
+	return if RideService.train(player, amount) then amount else 0, left
 end
 
 -- The old way, on a map with no plots: standing on the one spot is training
 local function standing(spot: BasePart)
 	local training: { [Player]: boolean } = {}
+	local carry: { [Player]: number } = {} -- (the part of a second on it so far: task e1)
 	Players.PlayerRemoving:Connect(function(player)
 		training[player] = nil
+		carry[player] = nil
 	end)
 	while true do
 		local dt = task.wait(EVERY)
@@ -571,8 +578,14 @@ local function standing(spot: BasePart)
 			if root and root:IsA("BasePart") then
 				local away = (root.Position - spot.Position) * Vector3.new(1, 0, 1)
 				if away.Magnitude <= Config.Train.Radius and math.abs(root.Position.Y - spot.Position.Y) < 12 then
-					on = gain(player, dt, levelOf(player))
+					on = RideService.stateOf(player) == "Dock"
 				end
+			end
+			if on then
+				local _, left = gain(player, carry[player] or 0, dt, levelOf(player))
+				carry[player] = left
+			else
+				carry[player] = 0 -- (off it: a part of a second is dropped)
 			end
 			if training[player] ~= on then
 				training[player] = on
@@ -584,7 +597,8 @@ end
 
 -- (Clear: we have walked away since our last ride, so a walk-up seats us again; Left: we have at least left its top,
 -- so coming down on it seats us)
-type Rider = { Ride: Ride?, OffAt: number, Clear: boolean, Left: boolean, Gained: number, ToldAt: number }
+-- (Carry: the part of a second seated that has not yet made a whole one, task e1)
+type Rider = { Ride: Ride?, OffAt: number, Clear: boolean, Left: boolean, Carry: number }
 
 local CHECK = 0.1 -- seconds between looks: a walk-up seats you this soon
 
@@ -626,7 +640,7 @@ function TrainService.Start()
 	local function riderOf(player: Player): Rider
 		local r = riders[player]
 		if not r then
-			r = { Ride = nil, OffAt = -math.huge, Clear = true, Left = true, Gained = 0, ToldAt = 0 }
+			r = { Ride = nil, OffAt = -math.huge, Clear = true, Left = true, Carry = 0 }
 			riders[player] = r
 		end
 		return r
@@ -644,6 +658,7 @@ function TrainService.Start()
 		ride.Rider = nil
 		ride.Model:SetAttribute("Rider", nil)
 		r.Ride = nil
+		r.Carry = 0 -- (getting off drops a part of a second: no catching up later)
 		r.OffAt = os.clock()
 		r.Clear = false
 		r.Left = false
@@ -678,8 +693,7 @@ function TrainService.Start()
 		ride.Rider = player
 		ride.Model:SetAttribute("Rider", player.UserId)
 		r.Ride = ride
-		r.Gained = 0
-		r.ToldAt = os.clock()
+		r.Carry = 0
 		player:SetAttribute("TrainerRide", ride.Name)
 		remote:FireClient(player, "On", ride.Model)
 	end
@@ -730,6 +744,12 @@ function TrainService.Start()
 		end
 		levels[player] = level + 1
 		player:SetAttribute("TrainerLevel", level + 1)
+		-- (the whole seconds before it were given at the old level as they came; the next whole second starts now, at
+		-- the new level: task e1)
+		local seated = riders[player]
+		if seated then
+			seated.Carry = 0
+		end
 		show(ride, true)
 		remote:FireClient(player, "Up", level + 1, levelRow(level + 1).Name)
 	end
@@ -811,19 +831,14 @@ function TrainService.Start()
 				if not alive or not docked or not ride.Weld or ride.Weld.Parent == nil or ride.Weld.Part1 ~= root then
 					off(player, r, "Lost")
 				else
-					local trained, amount = gain(player, dt, math.max(ride.Level, 1))
-					if trained then
-						r.Gained += amount
+					-- (seated on the dock is training; the Oxygen comes once a whole second: task e1)
+					local amount, left = gain(player, r.Carry, dt, math.max(ride.Level, 1))
+					r.Carry = left
+					if amount > 0 then
+						remote:FireClient(player, "Gain", amount)
 					end
-					if player:GetAttribute("Training") ~= trained then
-						player:SetAttribute("Training", trained)
-					end
-					if os.clock() - r.ToldAt >= t.Every then
-						r.ToldAt = os.clock()
-						if r.Gained > 0 then
-							remote:FireClient(player, "Gain", r.Gained)
-						end
-						r.Gained = 0
+					if player:GetAttribute("Training") ~= true then
+						player:SetAttribute("Training", true)
 					end
 				end
 			elseif alive and docked and root and root:IsA("BasePart") and humanoid then

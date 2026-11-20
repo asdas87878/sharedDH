@@ -141,7 +141,13 @@ local function ride(id, variant, max)
 		while os.clock() - t0 < 14 do
 			task.wait(0.1)
 			local f = State.Fish
-			if State.Mode == "Riding" and f and f:GetAttribute("FishType") == id and Config.variantOf(f) == variant and os.clock() - State.MountedAt < 1 then
+			if
+				State.Mode == "Riding"
+				and f
+				and f:GetAttribute("FishType") == id
+				and Config.variantOf(f) == variant
+				and os.clock() - State.MountedAt < 1
+			then
 				return f
 			end
 		end
@@ -247,7 +253,17 @@ local function eatPhase(fish, label, time, wantBites)
 	end
 	steerTo = nil
 	local after1, parked2 = ask:InvokeServer("count")
-	log("EAT %s: %d bites in %.1f s; fish in the water %d -> %d, parked %d -> %d; %s", label, bites, os.clock() - t0, before1, after1, parked1, parked2, ask:InvokeServer("attrs"))
+	log(
+		"EAT %s: %d bites in %.1f s; fish in the water %d -> %d, parked %d -> %d; %s",
+		label,
+		bites,
+		os.clock() - t0,
+		before1,
+		after1,
+		parked1,
+		parked2,
+		ask:InvokeServer("attrs")
+	)
 	return bites
 end
 
@@ -261,7 +277,16 @@ local function propPhase(fish, label)
 		return
 	end
 	local root = fish.PrimaryPart
-	log("PROP %s: heading for %s (%d boxes, %.0f x %.0f x %.0f) %.0f studs away", label, name, boxes, size.X, size.Y, size.Z, (at - root.Position).Magnitude)
+	log(
+		"PROP %s: heading for %s (%d boxes, %.0f x %.0f x %.0f) %.0f studs away",
+		label,
+		name,
+		boxes,
+		size.X,
+		size.Y,
+		size.Z,
+		(at - root.Position).Magnitude
+	)
 	steerTo = at
 	local t0 = os.clock()
 	local seen = #events
@@ -357,13 +382,13 @@ local function drainPhase(id, max)
 		slowed = speedNow()
 	end
 	log(
-		"DRAIN %s (%s, [%s]) max=%d: Drain attribute=%.1f a second (rarity alone would be %.1f); turned angry with %.0f%% of the meter left after %.1f s, style=%s, speed then %.1f of %.1f",
+		"DRAIN %s (%s, [%s]) max=%d: Drain attribute=%.1f a second (this fish needs %d); turned angry with %.0f%% of the meter left after %.1f s, style=%s, speed then %.1f of %.1f",
 		id,
 		kind.Tier,
 		kind.Archetype,
 		max,
 		drain or -1,
-		Config.drain(1, kind.Tier),
+		Config.requiredOfModel(fish) or -1,
 		(angryAt or -1) * 100,
 		os.clock() - t0 + 0.5,
 		tostring(fish:GetAttribute("AngryStyle")),
@@ -455,10 +480,22 @@ local function landPhase(id, max)
 				final,
 				final / ridden
 			)
-			log("LAND %s series every 0.25 s: %s; crashed=%s angry=%s", id, table.concat(series, " "), tostring(since(m0, "Crashed") ~= nil), tostring(State.Fish and State.Fish:GetAttribute("Angry")))
+			log(
+				"LAND %s series every 0.25 s: %s; crashed=%s angry=%s",
+				id,
+				table.concat(series, " "),
+				tostring(since(m0, "Crashed") ~= nil),
+				tostring(State.Fish and State.Fish:GetAttribute("Angry"))
+			)
 			return
 		else
-			log("LAND %s: attempt %d landed on %s, not the fish put ahead (mode %s)", id, attempt, State.Fish and State.Fish:GetAttribute("FishType") or "nothing", State.Mode)
+			log(
+				"LAND %s: attempt %d landed on %s, not the fish put ahead (mode %s)",
+				id,
+				attempt,
+				State.Fish and State.Fish:GetAttribute("FishType") or "nothing",
+				State.Mode
+			)
 		end
 	end
 end
@@ -532,7 +569,12 @@ local function steerPhase(id)
 	key = 0
 	local turned = math.deg(State.Heading - h0)
 	task.wait(0.5)
-	log("STEER %s: A held 1 s turned us %.0f degrees (the control pass measured 129), %.0f more after letting go", id, turned, math.deg(State.Heading - h0) - turned)
+	log(
+		"STEER %s: A held 1 s turned us %.0f degrees (the control pass measured 129), %.0f more after letting go",
+		id,
+		turned,
+		math.deg(State.Heading - h0) - turned
+	)
 end
 
 local function run(name, fn, ...)
@@ -544,7 +586,22 @@ end
 
 local PHASES = {}
 PHASES.speeds = function()
-	for _, row in { { "Clownfish", "" }, { "Clownfish", "Gold" }, { "Clownfish", "Rainbow" }, { "ReefShark", "" }, { "ReefShark", "Gold" }, { "HumpheadWrasse", "" }, { "Swordfish", "" }, { "Swordfish", "Rainbow" }, { "Dolphin", "" }, { "GiantSeaBass", "" }, { "Megalodon", "" }, { "Dunkleosteus", "" } } do
+	for _, row in
+		{
+			{ "Clownfish", "" },
+			{ "Clownfish", "Gold" },
+			{ "Clownfish", "Rainbow" },
+			{ "ReefShark", "" },
+			{ "ReefShark", "Gold" },
+			{ "HumpheadWrasse", "" },
+			{ "Swordfish", "" },
+			{ "Swordfish", "Rainbow" },
+			{ "Dolphin", "" },
+			{ "GiantSeaBass", "" },
+			{ "Megalodon", "" },
+			{ "Dunkleosteus", "" },
+		}
+	do
 		speedPhase(row[1], row[2], 10000000)
 	end
 end
@@ -571,7 +628,11 @@ PHASES.eat = function()
 			end
 		end
 		steerTo = nil
-		log("EAT Clownfish (plain): %d frames within 6 studs of another fish, bites=%s", touched, tostring(since(t0, "Boost") ~= nil))
+		log(
+			"EAT Clownfish (plain): %d frames within 6 studs of another fish, bites=%s",
+			touched,
+			tostring(since(t0, "Boost") ~= nil)
+		)
 	end
 end
 PHASES.frenzy = function()

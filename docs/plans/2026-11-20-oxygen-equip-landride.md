@@ -101,6 +101,8 @@ Do not leave a compatibility fallback accepting `(zone,tier)` in production: it 
 
 ### E3 — Number-key selection, Q equip and one ride slot
 
+**Hugo (2026-11-20), binding:** "not holding 1 and pressing q at the same time, 1 should be first inventory slot while q should be a completely seperate slot." Two separate key presses, never a chord: press 1 (or any number) → that inventory fish is held over the head; then press Q → it moves into the equipped slot. Key 1 is always the first inventory slot; the Q slot is its own slot outside the numbered row, never counted as slot 1 and never reached by a number key. No code may require a number key to be held down while Q is pressed.
+
 **Owners/dependencies:** inventory/equip owner defines identity/API first; E2 uses that selection path; E4 and SubService consume equippedOf. Reuse f1's overhead pose and ownership validation.
 
 **State contract:** “selected” is the UI highlight; “held” is a carried fish displayed overhead; “equipped” is the committed ride fish. A number/click changes selected/held only. Q while holding commits that **exact inventory entry**, clears its overhead display and mounts it in the hub on land. Q on a different held fish replaces the mount. The new far-left slot displays only the equipped fish and a small Q keycap, separated by a small gap from numbered slots. Empty: show a neutral fish silhouette/hint “Hold a fish, then Q”. Use Portrait/FishIcons fallback and the current square rarity/rim treatment; create Q using existing keycap/button styling, not a new icon upload or editing generated FishIcons.
