@@ -3,6 +3,27 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · Number keys, Q and the ride fish in the far-left slot (NULLROOM task e3, Hugo's PC)
+**State:** in the game code (most of it went in with the 10:55 vault sync, `41d371e`); checked by a scripted Studio
+playtest, `python tools/studio/e3_equip_check.py install|run|remove`: **41 of 41 pass** (log `work/e3/check.log`).
+Not played by hand, not with two players. All in [the ride fish](design/equip.md).
+- **Keys:** 1 to 9 (and the keypad) press the numbered slot, the same path as a click: hold that fish, the same again
+  or an empty slot puts it away. **Q**, a separate press: the held fish becomes the ride fish and you ride it on land.
+- **The row** (`UI/Slots`): nine numbered slots with their keys (the hands still carry 7), and at the far left the
+  equipped slot with a small Q key cap (shop button look), an X to unequip, and a word above it (HOLD A FISH, THEN Q /
+  CLICK TO RIDE / RIDING). A click on it: equip the held fish, else on or off.
+- **Server** (`RideService`): the ride fish is the very entry of the hands (`equippedOf`), actions `RideEquip`,
+  `RideMount`, `RideUnequip`; the land fish welded under the player (`Workspace.LandFish`), humanoid taller by its
+  depth, `Equip.LandSpeed` 32. It goes when the fish leaves the hands, on another hold, on the trainer or in a tank
+  ride, in the water; a respawn unequips. `AquariumService` gives `HeldOf`/`PutAway` to RideService and gets off the
+  land fish on a hold. `SubService` rides `equippedOf`, not `heldOf`: **a held fish alone no longer rides a dive.**
+- **Client:** `EquipController` (new): keys, the slot's asks, the sit pose (the avatar's own sit animation).
+  `Config.Equip` (new).
+- **Open:** a Colossal fish at true size is 27 studs tall and the camera ends up inside it (`Equip.LandMost` can cap
+  its look); the land fish passes through walls; land movement by body type is E4's.
+- Shots: `docs/attachments/e3-hotbar-empty.png`, `e3-hotbar-holding.png`, `e3-hotbar-equipped.png`,
+  `e3-land-puffer-side.png`, `e3-land-colossal-side.png`.
+
 ## 2026-11-20 · No E: the seahorse sign's cash block and the tank's control are clicks (NULLROOM task e2, Hugo's PC)
 **State:** in the game code (most of it went in with the 10:24 vault sync, `8f14da8`); checked by a scripted Studio
 playtest, `python tools/studio/e2_click_check.py install|run|stills|remove`: 22 of 22 pass (log `work/e2/check.log`).

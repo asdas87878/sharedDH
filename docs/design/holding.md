@@ -49,4 +49,5 @@ avatar (R15, a tall witch hat):
 
 ## Open
 - A two-player playtest (Studio's Test tab, 2 players) to see the fish and the arms on the other player's screen.
-- Number keys for the slots (a hotbar's 1 to 7) are not wired.
+- ~~Number keys for the slots~~: done by task e3 ([the ride fish](equip.md)): 1 to 9 press the numbered slot. Since
+  e3 a held fish is no longer what a dive rides: Q makes it the ride fish, and only that is ridden.

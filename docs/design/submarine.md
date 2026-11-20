@@ -93,8 +93,9 @@ stylised as the area text ... replace the area text with the arriving text in th
 
 **Built and run by script in Studio; not played by hand** ([the playtest](../playtests/2026-11-20-held-fish-sub.md),
 clip: [held-sub-ride.gif](../attachments/held-sub-ride.gif)).
-- **The held fish rides with you.** Hold a fish from your hands over your head on the dock ([holding](holding.md)) and
-  go into the water. With a sub and a land picked: after the run that fish swims up beside the sub and the kick puts
+- **The ride fish rides with you** (task f2 built it for the held fish; since task e3 it is the **equipped** fish:
+  hold a fish, press Q, [the ride fish](equip.md); a fish only held no longer counts). Equip a fish and go into the
+  water. With a sub and a land picked: after the run that fish swims up beside the sub and the kick puts
   you on it, riding (the drop-off (b) above). With no sub (NO SUB equipped, no land, or `Sub.On` 0): you are put
   straight on it where you go in, instead of the dive-in's hop. It is that very fish: its kind, size and colour, so
   its speed and archetypes too. It is yours, so riding it tames nothing new; it is held to the usual rule, so a fish
@@ -102,10 +103,10 @@ clip: [held-sub-ride.gif](../attachments/held-sub-ride.gif)).
   starting Oxygen).
 - **It is borrowed, never lost** (a reading, not confirmed by Hugo): it stays in your hands the whole dive, and the
   fish in the water is a copy made for the ride. A miss, a drown or the end of the dive takes nothing; back on the
-  dock it is still in your hands and still held over your head. Riding another fish leaves the copy to swim on in
+  dock it is still in your hands and still equipped. Riding another fish leaves the copy to swim on in
   the herd.
-- **Which fish:** the held one wins over the tank fish picked under RIDE WITH; with nothing held, the tank pick works
-  as before; with neither, the fling. Nothing held on a plain dive-in: the dive-in's hop as before.
+- **Which fish:** the equipped one wins over the tank fish picked under RIDE WITH; with nothing equipped, the tank pick
+  works as before; with neither, the fling. Nothing equipped on a plain dive-in: the dive-in's hop as before.
 - **Faster animations:** every phase about a fifth shorter: the approach 2.0 to 1.6 s, the pick-up 1.2 to 0.96, the
   arrival 0.8 to 0.64, the fling 1.0 to 0.8, the fish's swim-in 1.4 to 1.12, the kick 0.6 to 0.48.
 - **Faster runs, faster still when far:** the top speed is `Sub.Speed` (620) plus `Sub.SpeedPer` (0.17) for each
@@ -185,7 +186,7 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 | The fish at the drop point are kept in the water from the moment the sub sets off, and six more put just ahead of it | `FishService.keepFor`, `FishService.stockNear` |
 | The fling: an ordinary hop, launched at the sub's drop speed (`Config.hopFrom`, both sides) | `RideService.fling`; client `JumpController.fling` |
 | Your fish beside the sub, held for you, driven by your machine, then the kick onto it | `FishService.spawnFor`; `RideService.seatOn` |
-| Which fish: the held one (`AquariumService.heldOf`), else the tank pick, fixed as the trip is made; the plain dive-in onto the held fish | `SubService` (`rideWith`, `diveFish`); `RideService.DiveFish` |
+| Which fish: the equipped one (`RideService.equippedOf`, task e3), else the tank pick, fixed as the trip is made; the plain dive-in onto the equipped fish | `SubService` (`rideWith`, `diveFish`); `RideService.DiveFish` |
 | The run's plan: top speed by distance, kept between MinRide and MaxRide | `Shared/SubTrip.plan` |
 | The sub (placeholder parts), its motion, the rider's motion, the camera, the bubbles, banners | `src/client/Controllers/SubController.luau` |
 | The panel and the ticket | `src/client/UI/SubPanel.luau`; the SUB button in `HubButtons` |

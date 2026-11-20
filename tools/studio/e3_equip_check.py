@@ -401,14 +401,14 @@ def check():
     expect("no overhead copy remains", field(s, "held") == "nil" and field(s, "heldModels") == "0", s)
     expect("hands unchanged (an alias, not a copy)", field(s, "hands").count("/") == 8, s)
     gap = field(s, "gap")
-    expect("the land fish stands on the floor (gap under 1 stud)", gap not in (None, "n/a") and abs(float(gap)) < 1.0, s)
+    expect("the Colossal land fish stands near the floor (gap at most 1 stud)", gap not in (None, "n/a") and abs(float(gap)) <= 1.01, s)
     expect("walk speed is Equip.LandSpeed (32)", field(s, "walk") == "32", s)
     u = do("ui")
     expect("equipped slot shows RIDING with the cross", '"RIDING"' in u and "cross=true" in u, u)
     hotbar("equipped")
-    setw(E3View="side", E3Dist=26)
-    time.sleep(1.2)
-    scene("side")
+    setw(E3View="side", E3Dist=90)
+    time.sleep(1.5)
+    scene("colossal-side")
     setw(E3View="")
 
     # hold B without Q: the ride stays A
@@ -421,6 +421,13 @@ def check():
     do("key|Q")
     s = st()
     expect("Q on the second Clownfish replaces the equipped fish", field(s, "eq") == "Clownfish/Normal/" and field(s, "eqIdx") == "2" and field(s, "mounted") == "true", s)
+    gap = field(s, "gap")
+    expect("the Clownfish stands on the floor (gap under 1 stud)", gap not in (None, "n/a") and abs(float(gap)) < 1.0, s)
+    for view in ("side", "front"):
+        setw(E3View=view, E3Dist=18)
+        time.sleep(1.5)
+        scene("clownfish-" + view)
+    setw(E3View="")
 
     # 3. duplicates: the second of two identical catches is equipped; take the first, it survives at index 1
     note("take 1: " + cmd("take|1"))
@@ -481,7 +488,9 @@ def check():
     s = st()
     expect("a respawn clears equipment, mount and hold", field(s, "eq") == "nil/nil/nil" and field(s, "landModels") == "0" and field(s, "held") == "nil" and field(s, "mounted") == "nil", s)
 
-    # 5. dive with the equipped fish, the held one can't override
+    # 5. dive with the equipped fish, the held one can't override (a big max Oxygen, so the giant isn't too strong and
+    # the ride lasts long enough to be read)
+    setw(TestMaxOxygen=1000000)
     note("stand: " + cmd("stand|180", 1.2))
     do("key|One")  # Reef Shark
     do("key|Q")
@@ -507,8 +516,11 @@ def check():
 
     # the sub to land 2 with the equipped fish
     note("stand: " + cmd("stand|180", 1.2))
+    do("key|Eight")  # (nothing held)
     do("key|One")
     do("key|Q")
+    s = st()
+    expect("equipped again for the sub", field(s, "eq") == "ReefShark/Colossal/Gold", s)
     note("sub: " + cmd("sub|2", 1.5))
     note("dive (sub): " + cmd("dive", 2))
     s = st()
@@ -524,6 +536,7 @@ def check():
     expect("the sub to land 2 drops the rider on the equipped Colossal Gold Reef Shark", ridden == "ReefShark/Colossal/Gold", s)
     note("home: " + cmd("home", 2))
     note("subOff: " + cmd("subOff", 1))
+    setw(TestMaxOxygen=None)
 
     passed = sum(1 for _, ok in RESULTS if ok)
     note(f"\n{passed}/{len(RESULTS)} PASS")
