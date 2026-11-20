@@ -972,11 +972,12 @@ Config.LandRide = {
 	-- together; TailWave: waves along it, TailGrow: 1 more at the tip, 0 even), TailLift (+ up, on the hop's rhythm),
 	-- Head and HeadNod (the head chain, or the body when the head is the first part). Limbs (side fins, flippers,
 	-- wings, legs): Limb (sweep, + tip forward), LimbLift (+ up), LimbPress (held down against the floor), LimbPer a
-	-- stride, LiftLag (lift after sweep), SideLag (left after right: 0.5 alternate, 0 together), RearLag (back after
-	-- front), WaveLag (by place along the body, a crawler's leg wave), SegLag and SegShare (each segment further out
-	-- later and this much of the one before). Arms (tentacles, a jelly's skirt and arms): Arm (open/close, + out and
-	-- up), ArmSpread (held open), ArmLag (between arms), ArmSeg, ArmShare. Jaw (opens on the hop's rhythm), Other
-	-- (dorsal fins, crests: a lagging nod). NoLimbs: the roll and yaw times this on a rig without the limbs it wants.
+	-- stride, LiftLag (lift after sweep), LimbDown (how much of the down-stroke goes below rest), SideLag (left after
+	-- right: 0.5 alternate, 0 together), RearLag (back after front), WaveLag (by place along the body, a crawler's leg
+	-- wave), SegLag and SegShare (each segment further out later and this much of the one before). Arms (tentacles, a
+	-- jelly's skirt and arms): Arm (open/close, + out and up), ArmSpread (held open), ArmLag (between arms), ArmSeg,
+	-- ArmShare, ArmDown (as LimbDown). Jaw (opens on the hop's rhythm), Other (dorsal fins, crests: a lagging nod).
+	-- NoLimbs: the roll and yaw times this on a rig without the limbs it wants.
 	Base = {
 		Rate = 1, -- strides a second at full speed, for a 14-stud animal
 		Slow = 0.5, -- longer animals stride slower: x (14 / length) ^ Slow
@@ -1013,11 +1014,13 @@ Config.LandRide = {
 		WaveLag = 0,
 		SegLag = 0.1,
 		SegShare = 0.7,
+		LimbDown = 1, -- how much of a limb's down-stroke goes below where it rests (0: it only lifts, the floor stops it)
 		Arm = 0,
 		ArmSpread = 0,
 		ArmLag = 0.125,
 		ArmSeg = 0.1,
 		ArmShare = 0.8,
+		ArmDown = 1, -- how much of an arm's closing goes through (a trailing arm closes downward, into the floor)
 		Jaw = 0,
 		JawPhase = 0,
 		Other = 0,
@@ -1046,6 +1049,7 @@ Config.LandRide = {
 		},
 		-- the shell on the floor, pushed by the flippers in a diagonal stroke, a little roll
 		Turtle = {
+			LimbDown = 0.15,
 			Rate = 0.8,
 			Slow = 0.4,
 			HopPer = 2,
@@ -1077,6 +1081,7 @@ Config.LandRide = {
 		},
 		-- the arms reach and pull one after another round the ring; the mantle rocks forward between pulls
 		Tentacle = {
+			ArmDown = 0.15,
 			Rate = 0.9,
 			Slow = 0.4,
 			HopPer = 2,
@@ -1093,6 +1098,8 @@ Config.LandRide = {
 		},
 		-- the arms all plant and pull together and the mantle scoots ahead; the fins ripple along their edge
 		Squid = {
+			LimbDown = 0,
+			ArmDown = 0.1,
 			Rate = 1,
 			Hop = 0.3,
 			HopPhase = 0.05,
@@ -1111,6 +1118,7 @@ Config.LandRide = {
 		},
 		-- the wing edges press into the floor one side then the other, a wave out to the tips; the tail trails
 		Ray = {
+			LimbDown = 0,
 			Rate = 1.1,
 			HopPer = 2,
 			Heave = 0.08,
@@ -1142,6 +1150,7 @@ Config.LandRide = {
 		},
 		-- legs in a wave from the back to the front, one side half a step behind the other; the body low
 		Crawler = {
+			LimbDown = 0.3,
 			Rate = 1.6,
 			HopPer = 2,
 			Heave = 0.05,
@@ -1200,6 +1209,7 @@ Config.LandRide = {
 		},
 		-- flippers planted in opposed pairs, the torso sliding between them, the tail swinging, the head leading
 		Reptile = {
+			LimbDown = 0.3,
 			Rate = 1,
 			HopPer = 2,
 			Roll = 3,
@@ -1275,7 +1285,7 @@ Config.LandRide = {
 		YellowTang = "Flop",
 		Butterflyfish = "Flop",
 		Clownfish = "Flop",
-		FlyingFish = { Body = "Flop", LimbLift = 45, LiftLag = 0 }, -- the wings open on each hop
+		FlyingFish = { Body = "Flop", LimbLift = 45, LiftLag = 0, LimbDown = 0.3 }, -- the wings open on each hop
 		Angelfish = "Flop",
 		Parrotfish = "Flop",
 		Lionfish = { Body = "Flop", LimbLift = 25 },

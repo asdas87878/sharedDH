@@ -571,14 +571,24 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 				else
 					out.arms += 1
 					lj.index = out.arms
-					-- it opens outward and up, about the level line across its way out from what it hangs from
+					-- it opens outward and up, about the level line across the way it reaches (from its root to its next
+					-- segment; one hanging straight down, or with no segments, reaches out from what it hangs from)
 					local from = where[parentName] or Vector3.zero
-					local out2 = Vector3.new(x - from.X, 0, z - from.Z)
-					if out2.Magnitude < 0.05 then
-						out2 = Vector3.new(0, 0, 1)
+					local reach = Vector3.zero
+					for _, other in rig.Parts do
+						if other[2] == part then
+							reach = Vector3.new((other[3] :: number) - x, 0, (other[5] :: number) - z)
+							break
+						end
 					end
-					out2 = out2.Unit
-					lj.axis = Vector3.new(-out2.Z, 0, out2.X)
+					if reach.Magnitude < 0.3 then
+						reach = Vector3.new(x - from.X, 0, z - from.Z)
+					end
+					if reach.Magnitude < 0.05 then
+						reach = Vector3.new(0, 0, 1)
+					end
+					reach = reach.Unit
+					lj.axis = Vector3.new(-reach.Z, 0, reach.X)
 				end
 			end
 		elseif parent and parent.role == 3 then
@@ -675,7 +685,9 @@ local function landStep(
 	local speed, turn = 0, 0
 	if gap > 0 and gap < 0.3 then
 		speed = ((pos - L.at) * Vector3.new(1, 0, 1)).Magnitude / gap
-		turn = math.deg((yaw - L.yaw + math.pi) % TAU - math.pi) / gap
+		local turned = (yaw - L.yaw + math.pi) % TAU - math.pi
+		-- (more than a quarter turn in one frame is a teleport or a respawn, not a turn)
+		turn = if math.abs(turned) < math.pi / 2 then math.deg(turned) / gap else 0
 	end
 	L.at, L.yaw = pos, yaw
 	if speed > 300 then
@@ -722,7 +734,9 @@ local function landStep(
 		sway += 0.5 * calm * s.Head * stride(p, 1, s.HeadPhase)
 		nose += 0.5 * calm * s.HeadNod * stride(p, s.HopPer, s.HeadPhase)
 	end
-	roll += math.clamp(L.turn * cfg.TurnRoll, -cfg.TurnRollMax, cfg.TurnRollMax)
+	-- leaning into a turn: as it goes (not spun on the spot), and less for a wide, flat body (a turtle, a ray)
+	local flat = math.clamp(2 * L.height / math.max(L.width, 0.1), 0.2, 1)
+	roll += math.clamp(L.turn * cfg.TurnRoll, -cfg.TurnRollMax, cfg.TurnRollMax) * flat * (0.3 + 0.7 * amp)
 	-- at rest, a breath
 	up += L.studs * cfg.Idle * rest * (0.5 - 0.5 * math.cos(now * TAU * cfg.IdleRate + j.seed))
 	if cfg.Keep > 0 then
@@ -760,6 +774,9 @@ local function landStep(
 			local share = s.SegShare ^ lj.seg
 			local sweep = s.Limb * share * calm * stride(p, s.LimbPer, at)
 			local lift = s.LimbLift * share * calm * stride(p, s.LimbPer, at + s.LiftLag)
+			if lift < 0 then
+				lift *= s.LimbDown -- (the floor is under it)
+			end
 			if lj.seg == 0 then
 				lift += stir - s.LimbPress
 			end
