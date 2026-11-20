@@ -947,6 +947,469 @@ Config.Equip = {
 	Again = 0.15, -- seconds between two asks the server takes from one player
 }
 
+-- Riding the equipped fish on land (task e4, docs/design/land-motion.md): each body type moves in its own way, all of it
+-- seen only, on the creature's own joints (AnimController). The humanoid walks; the fish's Root never moves with it.
+-- A cycle is one stride; its parts are timed in fractions of a cycle (Phase, Lag: 0.25 is a quarter of a stride
+-- later). Sizes are for a 14-stud animal and grow with its length (Heavy); angles are degrees.
+Config.LandRide = {
+	On = 1, -- 0: the land fish is held still (and the rider sits as E3 left it)
+	Blend = 6, -- how quickly the motion comes and goes as the walk starts and stops (higher: quicker)
+	Full = 0.35, -- the whole motion from this share of the land speed up (Equip.LandSpeed)
+	Least = 0.4, -- the stride's pace at a crawl, as a share of its pace at full speed
+	Heavy = 0.85, -- hops and heaves grow with length / 14 to this power (a giant moves more studs, not as many times)
+	BigCalm = 0.6, -- a giant's angles at most this share (eased from 25 to 90 studs long): weight, not a scaled flop
+	SlowMost = 0.3, -- a giant's stride at least this share of a small one's
+	Keep = 1, -- a roll or a pitch lifts the body by what its low edge would sink (0: it may dip into the floor)
+	Idle = 0.06, -- at rest: a breath, studs up and down (x size)
+	IdleRate = 0.35, -- breaths a second
+	IdleFin = 6, -- and the fins and limbs stirring, degrees
+	TurnRoll = 0.12, -- leaning into a turn, degrees of roll for each degree a second of turning
+	TurnRollMax = 10, -- at most
+	TurnLead = 0.05, -- the head chain leads into a turn by this, the tail chain trails
+	-- The body types. Every field not given is the Base one. Body: Hop (studs, an arc each hop, HopPer a stride,
+	-- HopPhase), Heave (a smooth rise on the hop's rhythm), Pitch (nose up, on the hop's rhythm, PitchPhase), Roll,
+	-- Yaw (once a stride), Surge (a lunge forward, SurgePer a stride). The spine: Tail (yaw of the whole tail chain
+	-- together; TailWave: waves along it, TailGrow: 1 more at the tip, 0 even), TailLift (+ up, on the hop's rhythm),
+	-- Head and HeadNod (the head chain, or the body when the head is the first part). Limbs (side fins, flippers,
+	-- wings, legs): Limb (sweep, + tip forward), LimbLift (+ up), LimbPress (held down against the floor), LimbPer a
+	-- stride, LiftLag (lift after sweep), SideLag (left after right: 0.5 alternate, 0 together), RearLag (back after
+	-- front), WaveLag (by place along the body, a crawler's leg wave), SegLag and SegShare (each segment further out
+	-- later and this much of the one before). Arms (tentacles, a jelly's skirt and arms): Arm (open/close, + out and
+	-- up), ArmSpread (held open), ArmLag (between arms), ArmSeg, ArmShare. Jaw (opens on the hop's rhythm), Other
+	-- (dorsal fins, crests: a lagging nod). NoLimbs: the roll and yaw times this on a rig without the limbs it wants.
+	Base = {
+		Rate = 1, -- strides a second at full speed, for a 14-stud animal
+		Slow = 0.5, -- longer animals stride slower: x (14 / length) ^ Slow
+		Hop = 0,
+		HopPer = 1,
+		HopPhase = 0,
+		Heave = 0,
+		Pitch = 0,
+		PitchPhase = 0,
+		Roll = 0,
+		RollPhase = 0,
+		Yaw = 0,
+		YawPhase = 0,
+		Surge = 0,
+		SurgePer = 1,
+		SurgePhase = 0,
+		Tail = 0,
+		TailPhase = 0,
+		TailWave = 0,
+		TailGrow = 1,
+		TailLift = 0,
+		TailLiftPhase = 0,
+		Head = 0,
+		HeadNod = 0,
+		HeadPhase = 0,
+		Limb = 0,
+		LimbLift = 0,
+		LimbPress = 0,
+		LimbPer = 1,
+		LimbPhase = 0,
+		LiftLag = 0.25,
+		SideLag = 0.5,
+		RearLag = 0.5,
+		WaveLag = 0,
+		SegLag = 0.1,
+		SegShare = 0.7,
+		Arm = 0,
+		ArmSpread = 0,
+		ArmLag = 0.125,
+		ArmSeg = 0.1,
+		ArmShare = 0.8,
+		Jaw = 0,
+		JawPhase = 0,
+		Other = 0,
+		NoLimbs = 1,
+	},
+	Profiles = {
+		-- side to side onto each flank, a short hop as it rolls through upright, the tail flicking
+		Flop = {
+			Rate = 1.5,
+			Slow = 0.6,
+			Hop = 0.6,
+			HopPer = 2,
+			HopPhase = 0.25,
+			Pitch = 7,
+			PitchPhase = 0.25,
+			Roll = 30,
+			Tail = 55,
+			TailPhase = 0.1,
+			TailWave = 0.25,
+			LimbLift = 15,
+			LimbPer = 2,
+			SideLag = 0,
+			RearLag = 0,
+			Jaw = 8,
+			Other = 8,
+		},
+		-- the shell on the floor, pushed by the flippers in a diagonal stroke, a little roll
+		Turtle = {
+			Rate = 0.8,
+			Slow = 0.4,
+			HopPer = 2,
+			Pitch = 2,
+			PitchPhase = 0.25,
+			Roll = 4,
+			Surge = 0.25,
+			SurgePer = 2,
+			Limb = 32,
+			LimbLift = 18,
+			SegLag = 0.08,
+			Head = 6,
+			HeadNod = 6,
+			HeadPhase = 0.25,
+			Tail = 10,
+			Jaw = 4,
+		},
+		-- upright: the tail curls under, then kicks it up into a hop; the head and the fin follow late
+		Seahorse = {
+			Rate = 1.1,
+			Hop = 1.1,
+			Surge = 0.3,
+			Roll = 3,
+			TailLift = 35,
+			TailWave = 0.1,
+			HeadNod = 10,
+			HeadPhase = -0.15,
+			Other = 12,
+		},
+		-- the arms reach and pull one after another round the ring; the mantle rocks forward between pulls
+		Tentacle = {
+			Rate = 0.9,
+			Slow = 0.4,
+			HopPer = 2,
+			Heave = 0.2,
+			Pitch = 5,
+			PitchPhase = 0.25,
+			Roll = 3,
+			Surge = 0.3,
+			SurgePer = 2,
+			Arm = 22,
+			ArmSpread = 4,
+			ArmSeg = 0.12,
+			ArmShare = 0.9,
+		},
+		-- the arms all plant and pull together and the mantle scoots ahead; the fins ripple along their edge
+		Squid = {
+			Rate = 1,
+			Hop = 0.3,
+			HopPhase = 0.05,
+			Pitch = -5,
+			Surge = 0.6,
+			SurgePhase = 0.1,
+			Arm = 26,
+			ArmLag = 0.02,
+			ArmSeg = 0.15,
+			ArmShare = 0.9,
+			LimbLift = 20,
+			LimbPer = 2,
+			SideLag = 0,
+			RearLag = 0,
+			WaveLag = 0.6,
+		},
+		-- the wing edges press into the floor one side then the other, a wave out to the tips; the tail trails
+		Ray = {
+			Rate = 1.1,
+			HopPer = 2,
+			Heave = 0.08,
+			Roll = 4,
+			Surge = 0.25,
+			SurgePer = 2,
+			LimbLift = 22,
+			LimbPress = 6,
+			RearLag = 0,
+			SegLag = 0.12,
+			SegShare = 1,
+			Tail = 14,
+			TailWave = 0.4,
+			TailPhase = -0.2,
+			NoLimbs = 3,
+		},
+		-- an S-wave travelling down the body along the floor, the head leading
+		Slither = {
+			Rate = 0.9,
+			Tail = 110,
+			TailWave = 1.1,
+			TailGrow = 0.3,
+			Head = 10,
+			HeadPhase = 0.15,
+			Yaw = 4,
+			YawPhase = 0.3,
+			Limb = 10,
+			Jaw = 4,
+		},
+		-- legs in a wave from the back to the front, one side half a step behind the other; the body low
+		Crawler = {
+			Rate = 1.6,
+			HopPer = 2,
+			Heave = 0.05,
+			Roll = 2,
+			Surge = 0.1,
+			SurgePer = 2,
+			Limb = 24,
+			LimbLift = 16,
+			RearLag = 0,
+			WaveLag = 0.8,
+			Tail = 10,
+			TailLift = 6,
+			HeadNod = 4,
+			NoLimbs = 2,
+		},
+		-- a strong sweep of the tail shoves the chest forward in a low lunge each side; the fins brace
+		Shark = {
+			Rate = 1.2,
+			Slow = 0.6,
+			Hop = 0.2,
+			HopPer = 2,
+			HopPhase = 0.25,
+			Pitch = 4,
+			PitchPhase = 0.25,
+			Roll = 6,
+			Yaw = 8,
+			YawPhase = 0.5,
+			Surge = 0.5,
+			SurgePer = 2,
+			SurgePhase = 0.25,
+			Tail = 70,
+			TailWave = 0.5,
+			Limb = 8,
+			LimbPress = 10,
+			SideLag = 0,
+			Jaw = 10,
+			JawPhase = 0.25,
+		},
+		-- the belly heaves up and settles, the flippers push together, the tail flexes up and down
+		Whale = {
+			Rate = 0.7,
+			Heave = 0.5,
+			Pitch = 4,
+			PitchPhase = 0.25,
+			Roll = 2,
+			Surge = 0.3,
+			SurgePhase = 0.1,
+			TailLift = 24,
+			TailLiftPhase = -0.2,
+			TailWave = 0.4,
+			Limb = 28,
+			LimbLift = 10,
+			SideLag = 0,
+			RearLag = 0,
+			Jaw = 3,
+		},
+		-- flippers planted in opposed pairs, the torso sliding between them, the tail swinging, the head leading
+		Reptile = {
+			Rate = 1,
+			HopPer = 2,
+			Roll = 3,
+			Yaw = 4,
+			Surge = 0.25,
+			SurgePer = 2,
+			Limb = 34,
+			LimbLift = 14,
+			SegLag = 0.08,
+			Tail = 40,
+			TailWave = 0.6,
+			Head = 8,
+			HeadPhase = 0.2,
+			Jaw = 6,
+		},
+		-- rolling from side to side on stubby fins with small round hops; the lure and the crest lag behind
+		Bulbous = {
+			Rate = 1.5,
+			Hop = 0.3,
+			HopPer = 2,
+			HopPhase = 0.25,
+			Pitch = 4,
+			PitchPhase = 0.25,
+			Roll = 14,
+			LimbLift = 20,
+			LimbPress = 8,
+			RearLag = 0,
+			Tail = 25,
+			HeadNod = 10,
+			HeadPhase = -0.2,
+			Other = 10,
+			Arm = 10,
+			Jaw = 8,
+			NoLimbs = 1.4,
+		},
+		-- the bell squeezes, the skirt and the arms reach to the floor and pull it forward in short scoots
+		Jelly = {
+			Rate = 0.9,
+			Hop = 0.2,
+			Heave = 0.15,
+			Pitch = 4,
+			Surge = 0.5,
+			SurgePhase = 0.1,
+			Arm = 18,
+			ArmLag = 0,
+			ArmSeg = 0.1,
+			ArmShare = 0.9,
+		},
+		-- a low, heavy heave and a drag of the body, the tail hauled behind, the jaw working
+		Stomp = {
+			Rate = 0.55,
+			Slow = 0.3,
+			Heave = 0.45,
+			Pitch = 3,
+			PitchPhase = 0.25,
+			Roll = 3,
+			Yaw = 3,
+			Surge = 0.35,
+			SurgePhase = 0.1,
+			Tail = 16,
+			TailWave = 0.3,
+			TailPhase = -0.25,
+			Jaw = 10,
+			JawPhase = 0.25,
+		},
+	} :: { [string]: { [string]: number } },
+	-- Every kind's body type, once each (82; the plan's table, docs/plans/2026-11-20-oxygen-equip-landride.md, E4). A
+	-- table is the body type (Body) and the kind's own changes to it.
+	Kinds = {
+		-- Flop (18)
+		BlueChromis = "Flop",
+		SergeantMajor = "Flop",
+		YellowTang = "Flop",
+		Butterflyfish = "Flop",
+		Clownfish = "Flop",
+		FlyingFish = { Body = "Flop", LimbLift = 45, LiftLag = 0 }, -- the wings open on each hop
+		Angelfish = "Flop",
+		Parrotfish = "Flop",
+		Lionfish = { Body = "Flop", LimbLift = 25 },
+		Garibaldi = "Flop",
+		Viperfish = { Body = "Flop", Jaw = 14 },
+		HumpheadWrasse = { Body = "Flop", Roll = 20, Hop = 0.45, Rate = 1.2 },
+		GiantSeaBass = { Body = "Flop", Roll = 18, Hop = 0.4, Rate = 1.2 },
+		GoliathGrouper = { Body = "Flop", Roll = 16, Hop = 0.35, Rate = 1.1, Jaw = 10 },
+		Barracuda = { Body = "Flop", Roll = 22, Tail = 70, TailWave = 0.5 },
+		Swordfish = { Body = "Flop", Roll = 20, Hop = 0.45 },
+		Xiphactinus = { Body = "Flop", Roll = 18, Hop = 0.4, Rate = 1.1, Tail = 70, TailWave = 0.5 },
+		Dunkleosteus = { Body = "Flop", Roll = 14, Hop = 0.35, Rate = 1, Jaw = 16 }, -- armoured: a heavier, restrained flop
+		-- Turtle (3)
+		SeaTurtle = "Turtle",
+		Archelon = { Body = "Turtle", Rate = 0.65, SegShare = 0.85 },
+		GraveTurtle = { Body = "Turtle", Rate = 0.6, SegShare = 0.85 },
+		-- Seahorse (1)
+		Seahorse = "Seahorse",
+		-- Tentacle (2)
+		Octopus = "Tentacle",
+		Kraken = { Body = "Tentacle", Rate = 0.6, Arm = 16, Pitch = 4 },
+		-- Squid (2)
+		GiantSquid = "Squid",
+		Cuttlefish = { Body = "Squid", Arm = 18, Rate = 1.2 },
+		-- Ray (5)
+		Stingray = "Ray",
+		MantaRay = { Body = "Ray", Rate = 0.9 },
+		ElectricRay = "Ray", -- (no wings in its rig: its body shuffles and rolls instead)
+		CinderRay = "Ray",
+		GraveRay = { Body = "Ray", Rate = 0.9 },
+		-- Slither (12)
+		MorayEel = { Body = "Slither", Rate = 1.1 },
+		BrimstoneEel = "Slither",
+		WraithEel = "Slither",
+		PearlSerpent = "Slither",
+		StormSerpent = "Slither",
+		EmberSerpent = "Slither",
+		CoralDragon = { Body = "Slither", Limb = 18 },
+		LanternLeviathan = "Slither",
+		BoneLeviathan = "Slither",
+		KelpWyrm = "Slither",
+		Basilosaurus = { Body = "Slither", Tail = 80, TailWave = 0.8, Limb = 18 },
+		BobbitWorm = { Body = "Slither", Tail = 70, TailLift = 25, TailWave = 1.4 }, -- a ripple squeezing along the segments
+		-- Crawler (3)
+		SeaScorpion = { Body = "Crawler", Limb = 28 },
+		GiantIsopod = { Body = "Crawler", TailLift = 10, TailWave = 0.8, Limb = 30, LimbLift = 20 }, -- (antennae only)
+		Anomalocaris = { Body = "Crawler", WaveLag = 1.0, SegLag = 0.12 },
+		-- Shark (12)
+		ReefShark = "Shark",
+		LeopardShark = "Shark",
+		GreatWhite = { Body = "Shark", Rate = 1 },
+		HammerheadShark = "Shark",
+		Sawfish = "Shark",
+		Helicoprion = { Body = "Shark", Rate = 0.95 },
+		GoblinShark = { Body = "Shark", Jaw = 18 },
+		FrilledShark = { Body = "Shark", Tail = 90, TailWave = 1, TailGrow = 0.5 }, -- a longer travelling wave
+		Megalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
+		MoltenMegalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
+		HalfboneMegalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
+		HellfinShark = { Body = "Shark", Rate = 0.95 },
+		-- Whale (9)
+		Dolphin = { Body = "Whale", Rate = 1.3, Hop = 0.35, Heave = 0.4 },
+		Orca = { Body = "Whale", Rate = 1 },
+		BlueWhale = "Whale",
+		GalleonWhale = "Whale",
+		Livyatan = { Body = "Whale", Jaw = 6 },
+		Shonisaurus = { Body = "Whale", RearLag = 0.5 },
+		VoidWhale = "Whale",
+		PhantomWhale = "Whale",
+		StellersSeaCow = { Body = "Whale", Rate = 0.6 },
+		-- Reptile (6)
+		Mosasaurus = "Reptile",
+		Dakosaurus = "Reptile",
+		Elasmosaurus = { Body = "Reptile", Head = 24, HeadNod = 10 }, -- the long neck leads
+		Liopleurodon = "Reptile",
+		Kronosaurus = "Reptile",
+		SeaLion = {
+			Body = "Reptile",
+			Limb = 40,
+			SideLag = 0,
+			Heave = 0.35,
+			Pitch = 7,
+			PitchPhase = 0.25,
+			TailLift = 18,
+			Tail = 8,
+			Rate = 1.4,
+		},
+		-- Bulbous (7)
+		Boxfish = "Bulbous",
+		Pufferfish = { Body = "Bulbous", Roll = 16 },
+		Anglerfish = "Bulbous",
+		InfernalAngler = "Bulbous",
+		SkullAngler = "Bulbous",
+		AbyssalWatcher = { Body = "Bulbous", Rate = 1.1 },
+		Hellmaw = { Body = "Bulbous", Rate = 1, Hop = 0.55, Roll = 10, Jaw = 14 }, -- lands heavily
+		-- Jelly (1)
+		AuroraJelly = "Jelly",
+		-- Stomp (1)
+		TheDevourer = "Stomp",
+	} :: { [string]: any },
+}
+
+export type LandStyle = { [string]: number }
+local landStyles: { [string]: LandStyle } = {}
+local landNames: { [string]: string } = {}
+-- A kind's land motion: its body type's numbers with the kind's own changes on top (worked out once a kind), and
+-- the body type's name. A kind with none is a Flop, and says so.
+function Config.landStyleOf(id: string): (LandStyle, string)
+	local made = landStyles[id]
+	if made then
+		return made, landNames[id]
+	end
+	local entry = Config.LandRide.Kinds[id]
+	local name = if type(entry) == "string" then entry elseif type(entry) == "table" then entry.Body else nil
+	if type(name) ~= "string" or not Config.LandRide.Profiles[name] then
+		warn("[Config] " .. id .. " has no Config.LandRide.Kinds body type: it flops")
+		name = "Flop"
+	end
+	local out: LandStyle = table.clone(Config.LandRide.Base)
+	for key, value in Config.LandRide.Profiles[name :: string] do
+		out[key] = value
+	end
+	if type(entry) == "table" then
+		for key, value in entry do
+			if type(key) == "string" and type(value) == "number" then
+				out[key] = value
+			end
+		end
+	end
+	landStyles[id] = out
+	landNames[id] = name :: string
+	return out, name :: string
+end
+
 Config.Ride = {
 	RampTime = 0.4, -- idle to ridden speed, easing out (1.2 until 2026-11-16: on a 2.5-second ride that was half the ride spent getting going; the wild herd swims at 0.7 of the land's pace now, so this is the kick of a landing)
 	Surge = 1.25, -- the burst on mount
