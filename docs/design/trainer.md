@@ -8,6 +8,13 @@ the player about every 0.5 s."
 ![hop on, rock with the pops, hop off](../attachments/seahorse-trainer-1.gif)
 ![the coil and the pad](../attachments/seahorse-trainer-still.png)
 
+> **Task e1 (2026-11-20): whole numbers once a second.** A seated rider gets the level's whole Oxygen
+> (`Train.Levels`: 4, 6, 10 ... 600, placeholders) once for every whole second seated (`Config.trainTicks`), never a
+> share of max (`Train.Share` is gone) and never a share of a frame. A part of a second is dropped on getting off and
+> starts again at the new level on an upgrade. One "+n" pop a second (whole, `Config.wholeNumber`), and the upgrade
+> sign's "+4 > +6 Oxygen/s" is whole too. Live in a playtest: level 1, 100 to 160 in 15 s, +4 each second.
+> ![the seahorse at level 1](../attachments/e1-seahorse-level.jpg)
+
 ## What it is now
 - **The toy:** the game's own Seahorse (the kit's `Toy`, as before) on a short grey coil, 4.2 studs from the pad to its
   body's underside, from the middle of that underside. The coil is 3.5 turns of chunky square wire, half a stud thick (42 straight pieces,

@@ -5,7 +5,7 @@ usage:  python tools/balance/model.py                  the tables (plain text)
         python tools/balance/model.py --sim 40         also play 40 dives per rider through the herd (some minutes)
         python tools/balance/model.py --sim 40 --dives only the dives' tables
         python tools/balance/model.py --prices         only the trainer, aura and tank tables
-        python tools/balance/model.py --set Oxygen.StrainTime=0.25 --set ZoneDrain.3=640 --set ZoneMix.1.Rare=5
+        python tools/balance/model.py --set Oxygen.StrainTime=0.25 --set RarityOxygen.Rare=3 --set ZoneMix.1.Rare=5
                                                        try numbers without editing Config (any of the above with it)
         python tools/balance/model.py --max 3000       the "seconds on a fish" table for a player with this max
 
@@ -14,13 +14,14 @@ src/shared/Creatures/*.json (name, rarity, home land, size), and the lands' leng
 art/map/greybox/path.json (measured along the winding centreline, as the game does).
 
 THE RULES IT KNOWS (rewritten 2026-11-16 for the game as it is that day)
-  Oxygen      seconds on a fish = max Oxygen / (ZoneDrain[land] x RarityDrain[rarity]); a Tank drains 0.65 of that.
+  Oxygen      a fish needs its own whole number (OxygenBase x RarityOxygen x SizeOxygen x VariantOxygen, task e1);
+              a land's row is the median of the kinds that live there. A Tank drains 0.65 of that.
               A landing on another fish gives back Oxygen.Refill of max (1: the whole meter), on a red fish too.
-  The bar     a fish needs Config.required (KeepUp seconds on it, by the land you land on it in). With less it is
+  The bar     a fish needs Config.requiredOf (its own: kind, rarity, size, colour; never the land). With less it is
               too strong (red): the whole meter empties in Oxygen.StrainTime (1 s since 2026-11-16) and it can be
               hopped off (Jump.StrainLock). It is never tamed.
   Taming      Tame.Time seconds on a fish you hold makes it yours, up to Tame.Carry a dive.
-  The tank    the best Aquarium.Earning fish earn coins: required(home land, rarity) x PerRequired x size x colour.
+  The tank    the best Aquarium.Earning fish earn coins: what the fish needs x PerRequired (size and colour in it).
   Speed       every fish has its own ridden speed (Config.FishStats). A wild fish swims at a share of its LAND's
               pace (Config.LandPace x Herd.SpeedShare; plodders Pace.Plod, the fast ones Pace.Zoom; hunters at
               Pace.Hunt of their own speed, high over the herd).
@@ -132,9 +133,9 @@ def read_config():
     for group in ("Train", "Tame", "Aquarium"):
         body = block(src, rf"Config\.{group}\s*=", must=False)
         cfg[group] = numbers_in(body) if body is not None else {}
-    for group in ("RarityDrain", "SizeWorth", "SizeChance", "SizeLarge", "SizeSmall", "Variant", "BaseScale"):
+    for group in ("RarityOxygen", "SizeOxygen", "VariantOxygen", "OxygenBase", "SizeChance", "SizeLarge", "SizeSmall",
+                  "Variant", "BaseScale"):
         cfg[group] = pairs_in(block(src, rf"Config\.{group}\s*="))
-    cfg["ZoneDrain"] = list_in(block(src, r"Config\.ZoneDrain\s*="))
     cfg["LandPace"] = list_in(block(src, r"Config\.LandPace\s*="))
     cfg["ReachWeight"] = list_in(block(src, r"Config\.ReachWeight\s*="))
     cfg["ZoneMix"] = []
@@ -173,7 +174,7 @@ def apply_sets(cfg, sets):
     for item in sets:
         path, _, value = item.partition("=")
         keys, v = path.split("."), float(value)
-        if keys[0] in ("ZoneDrain", "LandPace", "ReachWeight") and len(keys) == 2:
+        if keys[0] in ("LandPace", "ReachWeight") and len(keys) == 2:
             cfg[keys[0]][int(keys[1]) - 1] = v
         elif keys[0] == "ZoneMix" and len(keys) == 3:
             cfg["ZoneMix"][int(keys[1]) - 1][keys[2]] = v
@@ -260,21 +261,34 @@ def tier_step(cfg, tier):
     return cfg["TierOrder"].index(tier) if tier in cfg["TierOrder"] else 0
 
 
+def need_of(cfg, fish, size="Normal", colour=""):
+    """Config.requiredOf (task e1): what one fish needs, by its kind, rarity, size and colour; never by land."""
+    need = (cfg["OxygenBase"].get(fish["Id"], 1) * cfg["RarityOxygen"].get(fish["Tier"], 1)
+            * cfg["SizeOxygen"].get(size, 1) * (cfg["VariantOxygen"].get(colour, 1) if colour else 1))
+    return max(1, math.ceil(need - 1e-6))
+
+
+def required(cfg, land, tier="Common"):
+    """A typical Normal plain fish of this rarity among the kinds that LIVE in land `land` (0-based): the median of
+    their own needs (Config.requiredOf). Since task e1 the land costs nothing itself: this is only the tables' way to
+    say what a land's own fish ask. A rarity the land has none of: the land's median base x that rarity."""
+    own = sorted(need_of(cfg, f) for f in cfg["Fish"] if f["Home"] == land + 1 and f["Tier"] == tier)
+    if own:
+        return own[len(own) // 2]
+    bases = sorted(cfg["OxygenBase"].get(f["Id"], 1) for f in cfg["Fish"] if f["Home"] == min(land + 1, 10))
+    base = bases[len(bases) // 2] if bases else 80
+    return max(1, math.ceil(base * cfg["RarityOxygen"].get(tier, 1) - 1e-6))
+
+
 def drain(cfg, land, tier):
-    """Config.drain: Oxygen a second on a fish of this rarity in land number `land` (0-based here)."""
-    per = cfg["ZoneDrain"]
-    return per[min(max(land, 0), len(per) - 1)] * cfg["RarityDrain"].get(tier, 1)
+    """Oxygen a second that `required` stands for (the old Config.drain's place): need x Refill / KeepUp."""
+    o = cfg["Oxygen"]
+    return required(cfg, land, tier) * max(o["Refill"], 0.01) / max(o["KeepUp"], 0.01)
 
 
 def drain_of(cfg, land, fish):
     """Config.drainOf: this fish's own drain: less on a Tank."""
     return drain(cfg, land, fish["Tier"]) * (cfg["Arch"]["Tank"].get("Drain", 1) if "Tank" in fish["Arch"] else 1)
-
-
-def required(cfg, land, tier="Common"):
-    """Config.required: the number on a fish's tag: the max Oxygen that gives KeepUp seconds on it."""
-    o = cfg["Oxygen"]
-    return math.ceil(drain(cfg, land, tier) * o["KeepUp"] / max(o["Refill"], 0.01))
 
 
 def holds(cfg, land, tier, max_oxygen):
@@ -385,8 +399,8 @@ def colour_odds(cfg):
 def worth_mean(cfg, tier):
     """What a fish of this rarity earns, times, on average, for its size and colour."""
     a = cfg["Aquarium"]
-    size = sum(p * cfg["SizeWorth"].get(name, 1) for name, p in size_odds(cfg, tier).items())
-    colour = sum(p * (a.get(name, 1) if name else 1) for name, p in colour_odds(cfg).items())
+    size = sum(p * cfg["SizeOxygen"].get(name, 1) for name, p in size_odds(cfg, tier).items())
+    colour = sum(p * (cfg["VariantOxygen"].get(name, 1) if name else 1) for name, p in colour_odds(cfg).items())
     return size * colour
 
 
@@ -397,8 +411,9 @@ def best_seven(cfg, tier, catches, rng, tries=400):
     keep = int(a.get("Earning", 7))
     total = 0.0
     for _ in range(tries):
-        worths = sorted((cfg["SizeWorth"].get(rng.choices(list(sizes), list(sizes.values()))[0], 1)
-                         * (a.get(c, 1) if (c := rng.choices(list(colours), list(colours.values()))[0]) else 1)
+        worths = sorted((cfg["SizeOxygen"].get(rng.choices(list(sizes), list(sizes.values()))[0], 1)
+                         * (cfg["VariantOxygen"].get(c, 1) if (c := rng.choices(list(colours), list(colours.values()))[0])
+                            else 1)
                          for _ in range(catches)), reverse=True)
         total += sum(worths[:keep]) / min(keep, catches)
     return total / tries
@@ -627,7 +642,7 @@ def tables(cfg, lane, out, your_max):
         return f"red, {strain:g}" if strained(cfg, z, t, m) else secs(m / drain(cfg, z, t))
 
     out.title(f"Seconds on a fish with {your_max:,.0f} max Oxygen" + (" (a new player)" if your_max == o["StartMax"] else ""),
-              f"Max Oxygen / (ZoneDrain x RarityDrain): how long a full meter lasts on a fish of that rarity, landed on in that "
+              f"Max Oxygen over what the land's own fish need (median, task e1): how long a full meter lasts on a fish of that rarity, landed on in that "
               f"land. A landing on another fish gives back {refill}. Blank: that rarity doesn't spawn there. {rule} The last "
               "column: the share of the land's fish this player can hold.")
     head = ["Land", "Oxygen a second (Common)"] + order + ["Fish they can hold"]
@@ -640,7 +655,7 @@ def tables(cfg, lane, out, your_max):
     out.table(["Land"] + order, [[name[z]] + [f"{big(required(cfg, z, t))} ({pct(held_share(cfg, mixes[z], z, required(cfg, z, t)))})"
                                              if t in mixes[z] else "" for t in order] for z in range(lands)])
 
-    cheapest = [min(mixes[z], key=lambda t: cfg["RarityDrain"].get(t, 1)) if mixes[z] else "Common" for z in range(lands)]
+    cheapest = [min(mixes[z], key=lambda t: cfg["RarityOxygen"].get(t, 1)) if mixes[z] else "Common" for z in range(lands)]
     out.title("What max Oxygen means, land by land", f"\"The door\": the max Oxygen that holds the land's cheapest fish, and the "
               f"share of its fish that is. \"Holds its commonest\": the number on the commonest fish's tag. \"At home\": {HOME:g} s "
               "on the commonest fish (a guess), and the share of the land's fish held then, and of the next land's. The last two: "
@@ -884,7 +899,7 @@ def econ_luck(cfg, tier, headroom, need_col):
         for _ in range(ECON_CATCHES):
             s = rng.choices(list(sizes), list(sizes.values()))[0]
             c = rng.choices(list(colours), list(colours.values()))[0]
-            sw = cfg["SizeWorth"].get(s, 1)
+            sw = cfg["SizeOxygen"].get(s, 1)
             if sw * (need_col.get(c, 1) if c else 1) <= room * 1.0001:
                 got.append(sw * (a.get(c, 1) if c else 1))
         got.sort(reverse=True)
@@ -1022,11 +1037,11 @@ def economy(cfg, lane, out, sit=SIT_SHARE, colour="A"):
 
     sizes = ["Tiny", "Normal", "Big", "Giant", "Huge", "Colossal"]
     out.title("D2. Size and colour: times the need and times the coins",
-              "Sizes: Config.SizeWorth as it is (0.8 to 3), now read for the need as well as the coins. Colours: the "
+              "Sizes: Config.SizeOxygen as it is (0.8 to 3), now read for the need as well as the coins. Colours: the "
               "coins are Aquarium.Silver/Gold/Rainbow as they are; the need is version A (the same numbers) or B "
               "(gentler). A Gold Big fish needs 1.2 x the colour's number. Chances: a Common's.")
     so, co = size_odds(cfg, "Common"), colour_odds(cfg)
-    rows = [[s, f"x{cfg['SizeWorth'].get(s, 1):g}", f"x{cfg['SizeWorth'].get(s, 1):g}", "", pct(so[s])] for s in sizes]
+    rows = [[s, f"x{cfg["SizeOxygen"].get(s, 1):g}", f"x{cfg["SizeOxygen"].get(s, 1):g}", "", pct(so[s])] for s in sizes]
     for c in ("Silver", "Gold", "Rainbow"):
         rows.append([c, f"x{COLOUR_NEED['A'][c]:g} (A) / x{COLOUR_NEED['B'][c]:g} (B)", f"x{a.get(c, 1):g}", "", f"1 in {1 / co[c]:.0f}"])
     out.table(["Size or colour", "Need, times", "Coins, times", "", "Chance"], rows)
@@ -1034,10 +1049,10 @@ def economy(cfg, lane, out, sit=SIT_SHARE, colour="A"):
     rows = []
     for label, z, t in ex:
         r = required(cfg, z, t)
-        rows.append([label] + [big(r * cfg["SizeWorth"][s]) for s in sizes]
+        rows.append([label] + [big(r * cfg["SizeOxygen"][s]) for s in sizes]
                     + [big(r * COLOUR_NEED["A"]["Gold"]), big(r * COLOUR_NEED["B"]["Gold"]),
-                       big(r * COLOUR_NEED["A"]["Rainbow"] * cfg["SizeWorth"]["Colossal"]),
-                       big(r * COLOUR_NEED["B"]["Rainbow"] * cfg["SizeWorth"]["Colossal"])])
+                       big(r * COLOUR_NEED["A"]["Rainbow"] * cfg["SizeOxygen"]["Colossal"]),
+                       big(r * COLOUR_NEED["B"]["Rainbow"] * cfg["SizeOxygen"]["Colossal"])])
     out.table(["Fish"] + sizes + ["Gold (A)", "Gold (B)", "Rainbow Colossal (A)", "Rainbow Colossal (B)"], rows)
     data["sizes"] = rows
 

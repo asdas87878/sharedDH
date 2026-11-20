@@ -3,6 +3,30 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · What a fish needs is its own; the seahorse gives whole Oxygen once a second (NULLROOM task e1, Hugo's PC)
+**State:** in the game code (part of it went in with the 10:13 vault sync, `3de0fb6`); checked by script in Studio
+Edit (`tools/studio/oxygen_check.luau`: 12 of 12 pass) and one scripted playtest (the trainer's gain, the tags);
+**not played by hand. Every number is provisional.** Plan E1: `docs/plans/2026-11-20-oxygen-equip-landride.md`
+(options A to G unpicked: the plan's defaults). All in [progression](design/progression.md), "What a fish needs is
+its own"; shots `docs/attachments/e1-tags.jpg`, `e1-seahorse-level.jpg`.
+- **One whole number per fish, never by land:** `Config.requiredOf(kind, size, colour)` = ceil(OxygenBase x
+  RarityOxygen x SizeOxygen x VariantOxygen x SpecialOxygen). `Config.OxygenBase` has all 82 kinds by hand (the plan's
+  samples kept). Clients use `Config.requiredOfModel` (FishType, SizeTier, Variant attributes); the server
+  `RideService`'s `needOf`. The tag, "too strong", the drain, the seconds, the tame and the tank's coins all read it.
+- **Changed signatures** (anyone calling them): `Config.strained(need, max)`, `secondsOn(need, max, kind?)`,
+  `drainFor(need, kind, max)`, `tameTime(need, max?)`; `incomeOf(kind, size, colour)` is the same call, now need x
+  0.025. **Gone:** `ZoneDrain`, `RarityDrain`, `Config.drain`, `drainOf`, `required(zone, tier)`, `SizeWorth`,
+  `sizeWorth`, `Aquarium.Silver/Gold/Rainbow`, `Train.Share`, the fish model's `Required` attribute.
+  `FishType.Required` is a Normal plain one's need.
+- **Training:** `TrainService` gives the level's whole Oxygen once a whole second seated (`Config.trainTicks`), drops a
+  part second on getting off, restarts it on an upgrade; one "Gain" a second. `MaxOxygen` is whole.
+- **Shown whole:** `Config.wholeNumber` (2,925) on tags, the HUD's "needs", the trainer's pops, the upgrade sign.
+- Also touched, outside e1's three files (no other worker was on them): `Lib/State`, `HudController`,
+  `SandboxController` (rows), `TrainerController` (pop text), `UI/UpgradeSign` (stat text), `TrainService`,
+  `FishModel`, `RideStyles` (`Trainer.Every` 1), `tools/balance/model.py`, `tools/playtest/archetypes/client.luau`.
+- Balance: the deeper kinds have bigger bases (about 1.5 times a land), so the climb is now the fish, not the land.
+  The balance model's play-through reaches land 10 in about 4 to 7.5 hours on the draft's paces. For Hugo to play.
+
 ## 2026-11-20 · The tank in the shop style: the popup, the prompt, the "in your tank" line (NULLROOM task s3, Hugo's PC)
 **State:** in the game code (most of it went in with the 08:00 vault sync, `1304283`); run by script in a Studio
 playtest with sample fish on the capturing client only; **not played by hand, not on a real phone**. All in

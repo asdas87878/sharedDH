@@ -153,12 +153,14 @@ It breaks props and comes out faster. The swordfish's cousin with the saw, the w
 
 ### Tank
 The calm giant. Turtles, whales, the sea cow, the fish that wait.
-- **Oxygen drains at 0.65 of the usual** for its rarity and land (`Drain`), so you sit on it a good half longer.
+- **Oxygen drains at 0.65 of the usual** for what the fish needs (`Drain`), so you sit on it a good half longer.
 - **Angry later:** the red part of the meter, where a fish slows and pulses, starts at 0.18 of the meter in place
   of 0.3 (`AngryAt` x0.6).
 - Its speed number is usually low for its rarity. That is the trade: slow, and the fish you rest on.
-- **As built:** what it takes to hold a fish at all (the number on its tag, and "too strong") is by rarity
-  alone, Tank or not; the Tank only drains slower once you hold it. The tag's "holds N s" and the ring's seconds
+- **As built:** what it takes to hold a fish at all (the number on its tag, and "too strong") is that fish's own
+  (since task e1, 2026-11-20: base x rarity x size x colour, never the land; `Config.requiredOf`), Tank or not; the
+  Tank only drains slower once you hold it. No archetype changes what a fish needs: `Config.SpecialOxygen`, the
+  list of the ones that would, is empty. The tag's "holds N s" and the ring's seconds
   are the Tank's own.
 - **Props:** since 2026-11-18 a Tank no longer breaks every prop. Like any fish it breaks the ones smaller than
   itself (below); most Tanks are big, so they still break a lot.

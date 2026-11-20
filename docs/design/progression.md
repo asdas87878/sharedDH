@@ -3,7 +3,8 @@
 > **Studies, 2026-11-16.** Four things to know before the next pass. The reference has no cap of seven on a run's catch. Its first machine gives +2 for 300 coins, and it has twelve levels. Its typical player sees about an hour in all, so lands 1 to 3 are the game. Its zones are open to anyone who hops, and that is its trailer. [Findings](../Findings.md), rank 1 and "What we had wrong".
 
 How long you can stay on a fish, how fast each fish is, how often each rarity turns up, and so how a player gets from
-the Shallows to the tenth land. **Start at "Today's rules": the rest is the record.** The economy draft of
+the Shallows to the tenth land. **Start at "What a fish needs is its own" (task e1): it replaces every land cost
+below. Then "Today's rules"; the rest is the record.** The economy draft of
 2026-11-19 (the seahorse in fixed levels, twelve auras, size and colour in the need) is the next section, for
 Hugo's pick; nothing in it is in the game. By the tuning chat
 ([Sessions](../Sessions.md)); fourth pass 2026-11-16, for the refinement; second pass 2026-11-11, after the
@@ -20,12 +21,175 @@ The tables come from a model that reads the game's own numbers, so they can be m
 python tools/balance/model.py              the tables
 python tools/balance/model.py --sim 8      and 8 dives per rider played through the herd
 python tools/balance/model.py --max 3000   the "seconds on a fish" table for a player with 3,000 max Oxygen
-python tools/balance/model.py --set Tiers.Common=54 --set RarityDrain.Legendary=10     try numbers without changing the game
+python tools/balance/model.py --set Tiers.Common=54 --set RarityOxygen.Legendary=10   try numbers without changing the game
 ```
 
 It reads [Config](../../src/shared/Config.luau), the creature files in `src/shared/Creatures` and the map's path
 (`art/map/greybox/path.json`). The dives are a model of the herd's rules, not a play test: they leave out steering,
 walls and other players. Where a number matters, it should be checked in play.
+
+## What a fish needs is its own (task e1, 2026-11-20): in the game
+
+**State:** in the game code; checked by script in Studio (`tools/studio/oxygen_check.luau`, 12 of 12 pass) and in
+one playtest by script; **not played by hand. Every number here is provisional** until Hugo plays it. Plan:
+[E1](../plans/2026-11-20-oxygen-equip-landride.md); Hugo's rules: "each upgrade gives one set whole number of oxygen,
+no decimals"; a fish's Oxygen never depends on the land it spawned in. Options A to G were not picked, so the plan's
+defaults are used.
+
+**The rule.** One whole number for each fish (`Config.requiredOf(kind, size, colour)`):
+
+    need = ceil(OxygenBase[kind] x RarityOxygen[rarity] x SizeOxygen[size] x VariantOxygen[colour] x SpecialOxygen...)
+
+rounded once, at the end. The land only decides which fish swim there. A Clownfish needs 80 in land 1 and in land 2;
+a Normal plain Hellfin Shark needs 44,550 in land 6 and in land 10. That one number is the tag ("Required: 675"), too
+strong or not (`Config.strained(need, max)`), the seconds on it and so the drain (`secondsOn`, `drainFor`), the tame
+(`tameTime`) and the tank's coins (`incomeOf` = need x 0.025, size and colour not counted again). Server
+(`RideService`, `needOf`) and every client (`Config.requiredOfModel`: the model's FishType, SizeTier and Variant) work
+it out the same way; the model's old `Required` attribute is gone.
+
+- **Bases** (`Config.OxygenBase`): one per kind, all 82, written by hand. The plan's samples are kept exactly
+  (Clownfish 80, Yellow Tang 90, Seahorse 52, Reef Shark 120, Dunkleosteus 200, Blue Whale 600, Kraken 900); the rest
+  were drafted on a ladder of about 1.5 times a land deeper (deeper animals are the stronger ones), spread within a
+  land by the animal's bulk, then written down. Change any one freely: nothing works them out again. No two kinds
+  share a base or a Normal plain need (two clashes were nudged: Cuttlefish 68, Barracuda 255).
+- **Rarity** (`RarityOxygen`, the old RarityDrain's numbers): Common 1, Uncommon 1.25, Rare 2.5, Epic 4.5,
+  Legendary 15, Mythic 50, Secret 150.
+- **Size** (`SizeOxygen`, the reference's measured Tiny 0.8, Big 1.2, Giant 1.5; ours Huge 2, Colossal 3): a bigger
+  fish now needs more, and earns more with it. **Colour** (`VariantOxygen`): Silver 1.25, Gold 1.5, Rainbow 2.
+- **Specials** (`SpecialOxygen`, archetype id to times): empty. A Tank stays a longer ride (`Archetype.Tank.Drain`),
+  never a smaller need.
+- **The grow** of a fish's seconds and tame counts from `Config.GrowFrom` 80 (a Normal plain Clownfish), not from
+  "the Shallows Common".
+- **Gone:** `Config.ZoneDrain` (a cost by the land you were IN, x4 a land), `RarityDrain`, `Config.drain`,
+  `drainOf`, `required(zone, tier)`, `SizeWorth`, the tank's own colour multipliers (`Aquarium.Silver/Gold/Rainbow`
+  1.5 / 3 / 10: a Rainbow now earns twice a plain one, as it needs twice), `Train.Share`. The sandbox panel has
+  SizeOxygen, VariantOxygen and RarityOxygen rows in place of ZoneDrain and RarityDrain.
+- **Shown whole:** tags, the "needs" line when a fish is too strong, the trainer's "+n" and the upgrade sign use
+  `Config.wholeNumber` (2,925, never 2.9K). Coins a second may keep decimals.
+- **The balance model** (`tools/balance/model.py`) reads the new tables; a land's row there is the median need of
+  the kinds that live in it. Its play-through on the draft's two paces reaches land 10 at 230 and 447 minutes and
+  land 10's Mythics at 335 and 668 (it was built on the old land costs: read it as a rough guide).
+
+**Training** (`TrainService`, `Config.trainTicks`): the level's whole Oxygen (`Train.Levels`, 4 to 600, placeholders)
+once for every whole second seated, never a share of a frame, so it is the same at any frame rate. A part of a second
+is dropped on getting off and starts again at the new level on an upgrade. One "Gain" (a whole number) and one "+n"
+pop per second. Checked: 12 levels x 3 frame timings x max 100 and 100,000, 10 s gives exactly 10 x the level's gain,
+0.9 s gives nothing; live in a playtest, level 1 took the max from 100 to 160 in 15 s, +4 each second.
+
+Samples (from `oxygen_check.luau`'s run, `work/e1/oxygen_check.txt`):
+
+| Fish | Land it lives in | Rarity | Base | Size / colour | Needs | Coins/s |
+|---|---:|---|---:|---|---:|---:|
+| Clownfish | 1 | Common | 80 | Normal / plain | 80 | 2 |
+| Clownfish | 1 | Common | 80 | Tiny / plain | 64 | 1.6 |
+| Clownfish | 1 | Common | 80 | Giant / Gold | 180 | 4.5 |
+| Clownfish | 1 | Common | 80 | Colossal / Rainbow | 480 | 12 |
+| YellowTang | 1 | Common | 90 | Normal / plain | 90 | 2.25 |
+| Seahorse | 1 | Rare | 52 | Normal / plain | 130 | 3.25 |
+| ReefShark | 1 | Epic | 120 | Normal / plain | 540 | 13.5 |
+| Dunkleosteus | 2 | Legendary | 200 | Normal / plain | 3,000 | 75 |
+| Dunkleosteus | 2 | Legendary | 200 | Big / Silver | 4,500 | 112.5 |
+| GreatWhite | 3 | Epic | 205 | Normal / plain | 923 | 23.075 |
+| Orca | 5 | Epic | 435 | Normal / plain | 1,958 | 48.95 |
+| BlueWhale | 5 | Mythic | 600 | Normal / plain | 30,000 | 750 |
+| Kraken | 7 | Mythic | 900 | Normal / plain | 45,000 | 1125 |
+| Megalodon | 8 | Legendary | 1800 | Normal / plain | 27,000 | 675 |
+| HellfinShark | 10 | Legendary | 2970 | Normal / plain | 44,550 | 1113.75 |
+| Hellmaw | 10 | Mythic | 3180 | Normal / plain | 159,000 | 3975 |
+| TheDevourer | 10 | Secret | 3650 | Colossal / Rainbow | 3,285,000 | 82125 |
+
+Shots: the tags in play (a Silver Reef Shark "Required: 675" in red against a max of 244; a Tiny Boxfish 52; a Big
+Clownfish 96), `docs/attachments/e1-tags.jpg`; the seahorse at level 1 ("+4 > +6 Oxygen/s", the "+4" pop, max 200),
+`docs/attachments/e1-seahorse-level.jpg`.
+
+<details><summary>Every kind (82): base, and what a Tiny plain, a Normal plain and a Colossal Rainbow one need</summary>
+
+| Land | Fish | Rarity | Base | Tiny plain | Normal plain | Colossal Rainbow | Coins/s (Normal plain) |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 1 | Butterflyfish | Common | 57 | 46 | 57 | 342 | 1.425 |
+| 1 | BlueChromis | Common | 61 | 49 | 61 | 366 | 1.525 |
+| 1 | Boxfish | Common | 65 | 52 | 65 | 390 | 1.625 |
+| 1 | Pufferfish | Common | 76 | 61 | 76 | 456 | 1.9 |
+| 1 | Clownfish | Common | 80 | 64 | 80 | 480 | 2 |
+| 1 | SergeantMajor | Common | 82 | 66 | 82 | 492 | 2.05 |
+| 1 | YellowTang | Common | 90 | 72 | 90 | 540 | 2.25 |
+| 1 | Cuttlefish | Uncommon | 68 | 68 | 85 | 510 | 2.125 |
+| 1 | SeaTurtle | Uncommon | 81 | 81 | 102 | 608 | 2.55 |
+| 1 | Stingray | Uncommon | 83 | 83 | 104 | 623 | 2.6 |
+| 1 | FlyingFish | Uncommon | 91 | 91 | 114 | 683 | 2.85 |
+| 1 | Seahorse | Rare | 52 | 104 | 130 | 780 | 3.25 |
+| 1 | ReefShark | Epic | 120 | 432 | 540 | 3,240 | 13.5 |
+| 1 | Archelon | Legendary | 130 | 1,560 | 1,950 | 11,700 | 48.75 |
+| 1 | PearlSerpent | Secret | 105 | 12,600 | 15,750 | 94,500 | 393.75 |
+| 2 | Parrotfish | Uncommon | 100 | 100 | 125 | 750 | 3.125 |
+| 2 | Angelfish | Uncommon | 110 | 110 | 138 | 825 | 3.45 |
+| 2 | Lionfish | Uncommon | 115 | 115 | 144 | 863 | 3.6 |
+| 2 | MorayEel | Rare | 93 | 186 | 233 | 1,395 | 5.825 |
+| 2 | Octopus | Rare | 125 | 250 | 313 | 1,875 | 7.825 |
+| 2 | HumpheadWrasse | Epic | 135 | 486 | 608 | 3,645 | 15.2 |
+| 2 | Dunkleosteus | Legendary | 200 | 2,400 | 3,000 | 18,000 | 75 |
+| 2 | CoralDragon | Secret | 185 | 22,200 | 27,750 | 166,500 | 693.75 |
+| 3 | Garibaldi | Uncommon | 140 | 140 | 175 | 1,050 | 4.375 |
+| 3 | SeaLion | Uncommon | 150 | 150 | 188 | 1,125 | 4.7 |
+| 3 | LeopardShark | Rare | 145 | 290 | 363 | 2,175 | 9.075 |
+| 3 | GiantSeaBass | Rare | 165 | 330 | 413 | 2,475 | 10.325 |
+| 3 | StellersSeaCow | Epic | 190 | 684 | 855 | 5,130 | 21.375 |
+| 3 | GreatWhite | Epic | 205 | 738 | 923 | 5,535 | 23.075 |
+| 3 | Dakosaurus | Legendary | 195 | 2,340 | 2,925 | 17,550 | 73.125 |
+| 3 | KelpWyrm | Secret | 210 | 25,200 | 31,500 | 189,000 | 787.5 |
+| 4 | Barracuda | Uncommon | 255 | 255 | 319 | 1,913 | 7.975 |
+| 4 | Sawfish | Rare | 260 | 520 | 650 | 3,900 | 16.25 |
+| 4 | HammerheadShark | Rare | 270 | 540 | 675 | 4,050 | 16.875 |
+| 4 | ElectricRay | Epic | 240 | 864 | 1,080 | 6,480 | 27 |
+| 4 | GoliathGrouper | Epic | 310 | 1,116 | 1,395 | 8,370 | 34.875 |
+| 4 | Xiphactinus | Legendary | 335 | 4,020 | 5,025 | 30,150 | 125.625 |
+| 4 | GalleonWhale | Secret | 430 | 51,600 | 64,500 | 387,000 | 1612.5 |
+| 5 | Swordfish | Rare | 355 | 710 | 888 | 5,325 | 22.2 |
+| 5 | Dolphin | Rare | 385 | 770 | 963 | 5,775 | 24.075 |
+| 5 | MantaRay | Epic | 350 | 1,260 | 1,575 | 9,450 | 39.375 |
+| 5 | Orca | Epic | 435 | 1,566 | 1,958 | 11,745 | 48.95 |
+| 5 | Elasmosaurus | Legendary | 420 | 5,040 | 6,300 | 37,800 | 157.5 |
+| 5 | Helicoprion | Legendary | 465 | 5,580 | 6,975 | 41,850 | 174.375 |
+| 5 | BlueWhale | Mythic | 600 | 24,000 | 30,000 | 180,000 | 750 |
+| 5 | StormSerpent | Secret | 390 | 46,800 | 58,500 | 351,000 | 1462.5 |
+| 6 | Viperfish | Rare | 490 | 980 | 1,225 | 7,350 | 30.625 |
+| 6 | GiantSquid | Epic | 485 | 1,746 | 2,183 | 13,095 | 54.575 |
+| 6 | GoblinShark | Epic | 495 | 1,782 | 2,228 | 13,365 | 55.7 |
+| 6 | Liopleurodon | Legendary | 690 | 8,280 | 10,350 | 62,100 | 258.75 |
+| 6 | Shonisaurus | Legendary | 695 | 8,340 | 10,425 | 62,550 | 260.625 |
+| 6 | LanternLeviathan | Mythic | 610 | 24,400 | 30,500 | 183,000 | 762.5 |
+| 6 | AuroraJelly | Secret | 860 | 103,200 | 129,000 | 774,000 | 3225 |
+| 7 | FrilledShark | Epic | 545 | 1,962 | 2,453 | 14,715 | 61.325 |
+| 7 | Anglerfish | Epic | 940 | 3,384 | 4,230 | 25,380 | 105.75 |
+| 7 | Basilosaurus | Legendary | 785 | 9,420 | 11,775 | 70,650 | 294.375 |
+| 7 | Livyatan | Legendary | 825 | 9,900 | 12,375 | 74,250 | 309.375 |
+| 7 | Mosasaurus | Legendary | 910 | 10,920 | 13,650 | 81,900 | 341.25 |
+| 7 | Kraken | Mythic | 900 | 36,000 | 45,000 | 270,000 | 1125 |
+| 7 | VoidWhale | Secret | 985 | 118,200 | 147,750 | 886,500 | 3693.75 |
+| 8 | SeaScorpion | Epic | 915 | 3,294 | 4,118 | 24,705 | 102.95 |
+| 8 | GiantIsopod | Epic | 1040 | 3,744 | 4,680 | 28,080 | 117 |
+| 8 | BobbitWorm | Legendary | 1060 | 12,720 | 15,900 | 95,400 | 397.5 |
+| 8 | Anomalocaris | Legendary | 1280 | 15,360 | 19,200 | 115,200 | 480 |
+| 8 | Kronosaurus | Legendary | 1570 | 18,840 | 23,550 | 141,300 | 588.75 |
+| 8 | Megalodon | Legendary | 1800 | 21,600 | 27,000 | 162,000 | 675 |
+| 8 | MoltenMegalodon | Mythic | 1805 | 72,200 | 90,250 | 541,500 | 2256.25 |
+| 8 | EmberSerpent | Secret | 1440 | 172,800 | 216,000 | 1,296,000 | 5400 |
+| 9 | WraithEel | Legendary | 1260 | 15,120 | 18,900 | 113,400 | 472.5 |
+| 9 | SkullAngler | Legendary | 1900 | 22,800 | 28,500 | 171,000 | 712.5 |
+| 9 | GraveTurtle | Legendary | 2050 | 24,600 | 30,750 | 184,500 | 768.75 |
+| 9 | GraveRay | Legendary | 2210 | 26,520 | 33,150 | 198,900 | 828.75 |
+| 9 | BoneLeviathan | Mythic | 1980 | 79,200 | 99,000 | 594,000 | 2475 |
+| 9 | HalfboneMegalodon | Mythic | 2480 | 99,200 | 124,000 | 744,000 | 3100 |
+| 9 | PhantomWhale | Secret | 2110 | 253,200 | 316,500 | 1,899,000 | 7912.5 |
+| 10 | CinderRay | Legendary | 2170 | 26,040 | 32,550 | 195,300 | 813.75 |
+| 10 | BrimstoneEel | Legendary | 2820 | 33,840 | 42,300 | 253,800 | 1057.5 |
+| 10 | HellfinShark | Legendary | 2970 | 35,640 | 44,550 | 267,300 | 1113.75 |
+| 10 | InfernalAngler | Legendary | 3080 | 36,960 | 46,200 | 277,200 | 1155 |
+| 10 | Hellmaw | Mythic | 3180 | 127,200 | 159,000 | 954,000 | 3975 |
+| 10 | AbyssalWatcher | Mythic | 3480 | 139,200 | 174,000 | 1,044,000 | 4350 |
+| 10 | TheDevourer | Secret | 3650 | 438,000 | 547,500 | 3,285,000 | 13687.5 |
+
+</details>
 
 ## The economy, draft 1 (2026-11-19): for Hugo's pick
 Hugo, 2026-11-19: *"seahorse oxygen generator, why does it go up in decimals? it should always give the same amount

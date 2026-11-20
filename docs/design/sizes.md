@@ -2,7 +2,16 @@
 
 Up: [creatures](creatures.md). The herd these fish swim in: [the herd](herd.md). Built 2026-11-13 on the user's word:
 more difference between the kinds' own sizes, and every fish in the reference's six sizes and four colours. The
-numbers are in `src/shared/Config.luau`: `BaseScale`, `SizeChance`, `SizeScale`, `SizeWorth`, `Variant`.
+numbers are in `src/shared/Config.luau`: `BaseScale`, `SizeChance`, `SizeScale`, `SizeOxygen`, `VariantOxygen`,
+`Variant`.
+
+> **Task e1 (2026-11-20): size and colour now change what a fish NEEDS.** A fish's Oxygen is its own whole number,
+> base x rarity x size x colour (`Config.requiredOf`), never by land: Tiny 0.8, Normal 1, Big 1.2, Giant 1.5, Huge 2,
+> Colossal 3 (`Config.SizeOxygen`, the old `SizeWorth`'s numbers, now gone); Silver 1.25, Gold 1.5, Rainbow 2
+> (`Config.VariantOxygen`). It earns need x 0.025, so the size and colour premium is in its coins once. A Colossal
+> Rainbow Clownfish needs 480; a Tiny plain one 64. Size still changes neither speed nor the herd's rules. The
+> modelled size (`SizeScale`) is never used for Oxygen: only the size's NAME (`SizeTier`). Details:
+> [progression](progression.md), "What a fish needs is its own".
 
 ## Basic fish made smaller, and kept from inflating (2026-11-17)
 The user: "we need an overall size reduction mainly for these common fish in these starter lands, basic fish

@@ -98,8 +98,15 @@ Pictures: [desktop](../attachments/tank-popup-desktop.png), [desktop, scrolled, 
   (`PanelPhone`), not a device.
 
 ## What a fish earns
-Coins a second = what it takes to hold at home (its land and rarity: the number on its tag there) x 0.025 x its
-size's worth x its colour's.
+**Since task e1 (2026-11-20):** coins a second = what that fish needs (its own whole number: kind, rarity, size and
+colour, never a land; `Config.requiredOf`) x 0.025 (`Aquarium.PerRequired`), nothing more for size or colour on top
+(the plan's option C default). A Normal plain Clownfish 2 a second, a Colossal Rainbow one 12, a Normal plain Kraken
+1,125. The colour's own 1.5 / 3 / 10 are gone (a Rainbow earns twice a plain one, as it needs twice). Fish already in
+a tank are counted again by the same rule (`AquariumService`'s `count`). Details: [progression](progression.md),
+"What a fish needs is its own".
+
+*Until then (the record):* coins a second = what it takes to hold at home (its land and rarity: the number on its tag
+there) x 0.025 x its size's worth x its colour's.
 
 | | Times |
 |---|---|
