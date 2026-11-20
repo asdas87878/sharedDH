@@ -3,6 +3,16 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · Sub titles: no intro, fast hand-offs on the run, NOW ARRIVING in the land title's look (NULLROOM task t1, Hugo's PC)
+**State:** in the game code; run by script in a Studio playtest (a trip to land 10 and one to land 2); **not played by
+hand**. All in [the submarine](design/submarine.md), "Titles on the run"; log `docs/attachments/sub-titles-t1-run.log`.
+- The "SUBMARINE" banner as the sub sets off is gone.
+- On a run, a land title still up when the next land's is due blends out in 0.18 s and the next comes 0.04 s after
+  (`Config.SubTitles`); only the newest land's title, never two at once. Swimming and riding unchanged.
+- NOW ARRIVING is the arrival land's title in the land titles' own look (`LandStrip.arriving`); that land's ordinary
+  title never shows on a sub trip (also for a trip to land 2). `UI/LandStrip.luau` (`subRun`, `subEnd`, `arriving`),
+  `SubController.luau`. Check: `python tools/studio/sub_titles_check.py install`, Play, `run`, `remove`.
+
 ## 2026-11-20 · The held fish rides after the sub; a faster sub, faster still to far lands (NULLROOM task f2, Hugo's PC)
 **State:** in the game code (the code went in with the 07:49 vault sync, `518438f`); run by script in a Studio
 playtest; **not played by hand**. All in [the submarine](design/submarine.md), "The held fish, and a faster sub";

@@ -1,0 +1,55 @@
+== setup 07:59:21
+home {"Tank":"[]","Near":false,"Fish":"","Tier":0,"Equip":0,"State":"Dock","Coins":0,"Dest":0}
+give {"Tank":"[]","Near":false,"Fish":"","Tier":0,"Equip":0,"State":"Dock","Coins":1000000000000,"Dest":0}
+== far: sub from the gate to land 10
+pick {"Tank":"[]","Near":false,"Fish":"","Tier":9,"Equip":9,"State":"Dock","Coins":1000000000000,"Dest":10}
+state Failing
+TRIP to land 10: ride 2.56 arrive 9.02 drop 9.66
+ +0.03  in land 1  (Dock)
+ +3.38  in land 2  (Carried)
+ +3.41  IN   LAND 2 / CORAL REEF
+ +4.04  in land 3  (Carried)
+ +4.07  HAND-OFF (fast out) LAND 2 / CORAL REEF
+ +4.25  GONE LAND 2 / CORAL REEF
+ +4.30  IN   LAND 3 / KELP FOREST
+ +4.64  in land 4  (Carried)
+ +4.68  HAND-OFF (fast out) LAND 3 / KELP FOREST
+ +4.86  GONE LAND 3 / KELP FOREST
+ +4.92  IN   LAND 4 / SHIPWRECKS
+ +5.22  in land 5  (Carried)
+ +5.25  HAND-OFF (fast out) LAND 4 / SHIPWRECKS
+ +5.41  GONE LAND 4 / SHIPWRECKS
+ +5.47  IN   LAND 5 / OPEN BLUE
+ +5.81  in land 6  (Carried)
+ +5.84  HAND-OFF (fast out) LAND 5 / OPEN BLUE
+ +6.00  GONE LAND 5 / OPEN BLUE
+ +6.09  IN   LAND 6 / TWILIGHT
+ +6.41  in land 7  (Carried)
+ +6.43  HAND-OFF (fast out) LAND 6 / TWILIGHT
+ +6.61  GONE LAND 6 / TWILIGHT
+ +6.65  IN   LAND 7 / MIDNIGHT
+ +7.00  in land 8  (Carried)
+ +7.02  HAND-OFF (fast out) LAND 7 / MIDNIGHT
+ +7.18  GONE LAND 7 / MIDNIGHT
+ +7.24  IN   LAND 8 / VENTS
+ +7.59  in land 9  (Carried)
+ +7.61  HAND-OFF (fast out) LAND 8 / VENTS
+ +7.77  GONE LAND 8 / VENTS
+ +7.84  IN   LAND 9 / BONE GRAVEYARD
+ +8.58  in land 10  (Carried)
+ +9.04  HAND-OFF (fast out) LAND 9 / BONE GRAVEYARD
+ +9.22  GONE LAND 9 / BONE GRAVEYARD
+ +9.27  IN   NOW ARRIVING / THE UNDERWORLD
++11.55  GONE NOW ARRIVING / THE UNDERWORLD
+most titles seen at once (under 0.9 transparency): 1
+home
+== short: sub from the gate to land 2
+pick {"Tank":"[]","Near":false,"Fish":"","Tier":9,"Equip":9,"State":"Dock","Coins":1000000000000,"Dest":2}
+state Drowning
+TRIP to land 2: ride 2.56 arrive 5.76 drop 6.40
+ +0.05  in land 1  (Carried)
+ +5.04  in land 2  (Carried)
+ +5.77  IN   NOW ARRIVING / CORAL REEF
+ +8.08  GONE NOW ARRIVING / CORAL REEF
+most titles seen at once (under 0.9 transparency): 1
+home

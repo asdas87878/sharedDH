@@ -37,7 +37,7 @@ local TankPanel = {}
 local PANEL_W, PANEL_H = 860, 540
 local SIDE = 168 -- the "Sort by" column
 local FOOT = 64 -- the footer bar
-local CARD_W, CARD_H = 150, 218
+local CARD_W, CARD_H = 144, 218
 local GAP = 10
 local CLICK_MOVE = 12 -- a press that moves further than this (pixels) is a camera drag, not a click
 local CLICK_TIME = 0.45
@@ -606,7 +606,7 @@ local function layout()
 	end
 	-- the tray's width: the window's, less its body's padding, the side column and the gap
 	local trayWide = w - (Shop.Pad + 2) * 2 - SIDE - 12
-	local columns = math.max(1, math.floor((trayWide - 26 + GAP) / (CARD_W + GAP)))
+	local columns = math.max(1, math.floor((trayWide - 40 + GAP) / (CARD_W + GAP)))
 	for _, s2 in sections do
 		s2.Layout.FillDirectionMaxCells = columns
 	end
@@ -870,6 +870,7 @@ local function keepHint(near: boolean, hovered: boolean)
 			hint:Destroy()
 		end
 		local b: BillboardGui = Kit.new("BillboardGui", {
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			Name = "TankHint",
 			Adornee = water,
 			AlwaysOnTop = true,

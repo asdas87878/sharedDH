@@ -63,10 +63,8 @@ local function camAtTank()
 	if w and root then
 		cam.CameraType = Enum.CameraType.Scriptable
 		local to = (Vector3.new(w.Position.X, root.Position.Y, w.Position.Z) - root.Position).Unit
-		cam.CFrame = CFrame.lookAt(
-			root.Position - to * 16 + Vector3.new(0, 7, 0),
-			root.Position + to * 10 + Vector3.new(0, 2, 0)
-		)
+		cam.CFrame =
+			CFrame.lookAt(root.Position - to * 5 + Vector3.new(0, 6, 0), root.Position + to * 14 + Vector3.new(0, 1, 0))
 	end
 end
 
@@ -100,6 +98,7 @@ workspace:GetAttributeChangedSignal("TankShot"):Connect(function()
 		camAtTank()
 	elseif shot == "deposit" then
 		camAtTank()
+		task.wait(1.6) -- (so the line is up, not yet fading, when the shot is taken)
 		local w = water()
 		if w then
 			local id = pick("Epic", 2)

@@ -46,6 +46,7 @@ function TankPrompt.attach(prompt: ProximityPrompt)
 	prompt.Style = Enum.ProximityPromptStyle.Custom
 	local player = Players.LocalPlayer
 	local gui: BillboardGui = Kit.new("BillboardGui", {
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Name = "TankPrompt",
 		Adornee = prompt.Parent,
 		AlwaysOnTop = true,
@@ -184,6 +185,7 @@ end
 function TankPrompt.deposited(water: BasePart, count: number, gained: number, id: string?)
 	local kind = if id then Config.FishById[id] else nil
 	local gui: BillboardGui = Kit.new("BillboardGui", {
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Name = "Deposited",
 		AlwaysOnTop = true,
 		LightInfluence = 0,

@@ -117,7 +117,7 @@ def sheet():
         im = get(n)
         if im:
             W, H = im.size
-            w.append(labelled(im.crop((W // 2 - 700, H // 2 - 420, W // 2 + 700, H // 2 + 380)), t, 480))
+            w.append(labelled(im.crop((W // 2 - 620, 60, W // 2 + 620, 640)), t, 420))
     if w:
         row(w, ATT / "tank-prompt.jpg")
     if get("phone"):
@@ -135,8 +135,8 @@ if __name__ == "__main__":
     elif cmd == "shot":
         args = sys.argv[2:]
         phone = None
-        if "phone" in args:
-            phone = tuple(int(v) for v in args[args.index("phone") + 1].split("x"))
+        if "phone" in args[2:]:
+            phone = tuple(int(v) for v in args[args.index("phone", 2) + 1].split("x"))
         shot(args[0], args[1], phone)
     elif cmd == "log":
         print(C.server("local v = game:GetService('ServerStorage'):FindFirstChild('ZZShopLog') return v and v.Value or 'none'"))
