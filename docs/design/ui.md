@@ -28,7 +28,7 @@ real phone.
   to N at once. The cards in a dark tray, in sections **In your hands** (gold), **Earning n/N** and **Stored**. At the
   foot a bar with **Earning: $X/s**, a pill **Earning 3/4** (red **Tank full 4/4** when full), **PUT ALL IN (n)**
   (gold, only while carrying) and **EQUIP BEST** (green while it would change something, else grey BEST EQUIPPED).
-- **A card** (150 x 218 points): tinted in its **rarity's colour** (lit at the top, deepening into the shop's slate;
+- **A card** (144 x 218 points; four to a row on a PC): tinted in its **rarity's colour** (lit at the top, deepening into the shop's slate;
   the Secret's near-black drawn pink), the scale pattern and gloss, the **name in the rarity's colour**, a small line
   with the rarity word and the size in its own hue, the fish's render in a dark well (gold or rainbow behind a Gold or
   Rainbow fish, the variant chip at its corner, the archetype icons at its foot), the rate **$12/s in the shop's

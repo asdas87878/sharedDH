@@ -78,6 +78,14 @@ def shot(state, name, phone=None):
     print("saved", OUT / f"tank-{name}.png", im.size)
 
 
+def box(im, phone=False):
+    """Our window in a shot (the game view): wider than s1's crop; the phone box's window sits low in the view."""
+    w, h = im.size
+    if phone:
+        return im.crop((w // 2 - 430, 330, w // 2 + 430, min(h, 745)))
+    return im.crop((w // 2 - 640, 140, w // 2 + 640, h))
+
+
 def labelled(im, title, h):
     im = im.resize((round(im.width * h / im.height), h), Image.LANCZOS)
     out = Image.new("RGB", (im.width, h + 44), (24, 26, 32))
@@ -107,13 +115,13 @@ def sheet():
     if get("list"):
         ref = Image.open(REFS["Kit"]).convert("RGB")
         row([labelled(ref, "Reference (style only)", 560),
-             labelled(S1.window_box(get("list")), "Ours: your tank (in the game)", 560)], ATT / "tank-vs-ref.jpg")
+             labelled(box(get("list")), "Ours: your tank (in the game)", 560)], ATT / "tank-vs-ref.jpg")
     pairs = [("rarity", "Sorted by rarity"), ("full", "Tank full: FULL buttons, the refusal"), ("empty", "No fish yet")]
-    ims = [labelled(S1.window_box(get(n)), t, 420) for n, t in pairs if get(n)]
+    ims = [labelled(box(get(n)), t, 420) for n, t in pairs if get(n)]
     if ims:
         row(ims, ATT / "tank-states.jpg")
     w = []
-    for n, t in (("prompt", "The tank's prompt and sign (E / TAP)"), ("deposit", "A fish goes in")):
+    for n, t in (("prompt", "The tank's prompt (E; TAP on a phone)"), ("deposit", "A fish goes in")):
         im = get(n)
         if im:
             W, H = im.size
@@ -121,7 +129,7 @@ def sheet():
     if w:
         row(w, ATT / "tank-prompt.jpg")
     if get("phone"):
-        row([labelled(S1.window_box(get("phone"), True), "Your tank on a phone (844x390)", 500)], ATT / "tank-phone.jpg")
+        row([labelled(box(get("phone"), True), "Your tank on a phone (844x390)", 500)], ATT / "tank-phone.jpg")
 
 
 if __name__ == "__main__":

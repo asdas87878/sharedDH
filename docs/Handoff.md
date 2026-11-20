@@ -3,6 +3,21 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · The tank in the shop style: the popup, the prompt, the "in your tank" line (NULLROOM task s3, Hugo's PC)
+**State:** in the game code (most of it went in with the 08:00 vault sync, `1304283`); run by script in a Studio
+playtest with sample fish on the capturing client only; **not played by hand, not on a real phone**. All in
+[UI](design/ui.md), "The tank in the shop style"; sheets `docs/attachments/tank-vs-ref.jpg`, `tank-states.jpg`,
+`tank-prompt.jpg`, `tank-phone.jpg`.
+- **The tank popup** (`UI/TankPanel.luau`) is rebuilt on task s1's shop kit after the sell list shot: the Kelp header
+  with the tank's $/s, a Sort by column (Income, Rarity, Size: display order only), cards tinted by rarity (name in the
+  rarity's colour, $/s in green, EQUIP green / UNEQUIP blue / PUT IN gold / FULL grey), a footer with the totals, a
+  red "Tank full" pill, PUT ALL IN and EQUIP BEST, and refusals as a red bar.
+- **The E prompt on the glass** is drawn by the new `UI/TankPrompt.luau` (a key cap that fills while held, TAP on a
+  phone, a Kelp plate with the fish's name in its rarity's colour), and so is the line as a fish goes in.
+  `AquariumController` only hands both to it.
+- **Unchanged:** every server action and rule of placing, equipping and tank riding.
+- Capture driver: `tools/ui/shop_kit/s3_capture.py` with `tank_client.luau`.
+
 ## 2026-11-20 · Sub titles: no intro, fast hand-offs on the run, NOW ARRIVING in the land title's look (NULLROOM task t1, Hugo's PC)
 **State:** in the game code; run by script in a Studio playtest (a trip to land 10 and one to land 2); **not played by
 hand**. All in [the submarine](design/submarine.md), "Titles on the run"; log `docs/attachments/sub-titles-t1-run.log`.
