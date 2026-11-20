@@ -10,6 +10,9 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
 local State = require(script.Parent.Parent.Lib.State)
 
@@ -82,6 +85,9 @@ export type Options = {
 
 local buildA: (parent: Instance, options: Options) -> any
 local active: any = nil -- style 1's strip, when it is the one in use
+-- A sub run (task t1, SubController): on while it runs; skip, the land it drops you in, whose own title never comes
+-- up (NOW ARRIVING is its title), kept after the drop until you are back on the dock
+local sub = { on = false, skip = 0 }
 
 local function setting(name: string, default: any): any
 	if RunService:IsStudio() then
@@ -782,7 +788,9 @@ local function plate(parent: Instance, props: { [string]: any }, p: Kit.Pal): Fr
 end
 
 -- metres: the land's border, the depth of its floor where it starts (Zones; one metre a stud below the surface)
-type IntroArgs = { land: number, name: string, metres: number, new: boolean }
+-- top: the small line over the name in place of "LAND 3" (the sub's "NOW ARRIVING", task t1); hold: seconds before
+-- it fades, in place of the look's own
+type IntroArgs = { land: number, name: string, metres: number, new: boolean, top: string?, hold: number? }
 
 local function canvas(parent: Instance, props: { [string]: any }): CanvasGroup
 	props.BackgroundTransparency = 1
@@ -811,7 +819,7 @@ local function fadeOut(group: CanvasGroup, after: number, time: number, extra: {
 end
 
 -- 1 Punch: the name big at the top centre, "LAND 3" over it, NEW LAND in gold the first time
-local function introPunch(layer: Instance, a: IntroArgs)
+local function introPunch(layer: Instance, a: IntroArgs): CanvasGroup
 	local p = palOfLand(a.land)
 	local glow = Kit.LandGlows[a.land] == true
 	local group = canvas(layer, {
@@ -832,7 +840,7 @@ local function introPunch(layer: Instance, a: IntroArgs)
 	})
 	local _ = name
 	Kit.word(group, {
-		Text = "LAND " .. a.land,
+		Text = a.top or ("LAND " .. a.land),
 		TextSize = 19,
 		Pal = p,
 		Glow = glow,
@@ -853,16 +861,18 @@ local function introPunch(layer: Instance, a: IntroArgs)
 	TweenService
 		:Create(scale, TweenInfo.new(pace(0.32), Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		:Play()
-	fadeOut(group, 1.5, 0.35)
-	task.delay(pace(1.5), function()
+	local hold = a.hold or 1.5
+	fadeOut(group, hold, 0.35)
+	task.delay(pace(hold), function()
 		if scale.Parent then
 			TweenService:Create(scale, TweenInfo.new(pace(0.35)), { Scale = 1.08 }):Play()
 		end
 	end)
+	return group
 end
 
 -- 2 Banner: a chunky plate in the land's colours slides in from the left
-local function introBanner(layer: Instance, a: IntroArgs)
+local function introBanner(layer: Instance, a: IntroArgs): CanvasGroup
 	local p = palOfLand(a.land)
 	local group = canvas(layer, {
 		Name = "IntroBanner",
@@ -879,7 +889,7 @@ local function introBanner(layer: Instance, a: IntroArgs)
 	}, p)
 	local _ = face
 	Kit.word(group, {
-		Text = (if a.new then "NEW!  " else "") .. "LAND " .. a.land .. " OF 10",
+		Text = a.top or ((if a.new then "NEW!  " else "") .. "LAND " .. a.land .. " OF 10"),
 		TextSize = 12,
 		Pal = if a.new then Kit.GoldPal else Kit.WhitePal,
 		Position = UDim2.new(0.5, 0, 0, 20),
@@ -898,11 +908,12 @@ local function introBanner(layer: Instance, a: IntroArgs)
 		TweenInfo.new(pace(0.34), Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 		{ Position = UDim2.fromOffset(14, 138) }
 	):Play()
-	fadeOut(group, 1.7, 0.3, { Position = UDim2.fromOffset(-320, 138) })
+	fadeOut(group, a.hold or 1.7, 0.3, { Position = UDim2.fromOffset(-320, 138) })
+	return group
 end
 
 -- 3 Fly: the strip's tile pops and flies to the centre, the name under it, then goes back
-local function introFly(layer: Instance, a: IntroArgs, from: Vector2, atlas: string)
+local function introFly(layer: Instance, a: IntroArgs, from: Vector2, atlas: string): CanvasGroup
 	local p = palOfLand(a.land)
 	local group = canvas(layer, {
 		Name = "IntroFly",
@@ -969,10 +980,11 @@ local function introFly(layer: Instance, a: IntroArgs, from: Vector2, atlas: str
 				:Play()
 		end
 	end)
+	return group
 end
 
 -- 4 Subtitle: one line under the strip
-local function introSubtitle(layer: Instance, a: IntroArgs, y: number)
+local function introSubtitle(layer: Instance, a: IntroArgs, y: number): CanvasGroup
 	local p = palOfLand(a.land)
 	local group = canvas(layer, {
 		Name = "IntroSubtitle",
@@ -999,10 +1011,11 @@ local function introSubtitle(layer: Instance, a: IntroArgs, y: number)
 		{ GroupTransparency = 0, Position = UDim2.new(0.5, 0, 0, y) }
 	):Play()
 	fadeOut(group, 2.0, 0.4)
+	return group
 end
 
 -- 5 Flash: the screen flashes the land's colour, the depth punches in with the name under it
-local function introFlash(layer: Instance, a: IntroArgs)
+local function introFlash(layer: Instance, a: IntroArgs): CanvasGroup
 	local p = palOfLand(a.land)
 	local flash = blob(layer, {
 		Name = "IntroFlash",
@@ -1047,6 +1060,7 @@ local function introFlash(layer: Instance, a: IntroArgs)
 		:Create(scale, TweenInfo.new(pace(0.26), Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		:Play()
 	fadeOut(group, 1.4, 0.35)
+	return group
 end
 
 buildA = function(parent: Instance, options: Options): any
@@ -1383,9 +1397,43 @@ buildA = function(parent: Instance, options: Options): any
 		end
 	end
 
-	local function intro(land: number, landName: string, metres: number, isNew: boolean)
+	-- The title on screen and whether it came up on a sub run (task t1): a title due while a run's title still shows
+	-- hands off, the old one blending out fast (Config.SubTitles) before the new one comes in; never two at once
+	local shown: CanvasGroup? = nil
+	local shownSub = false
+	local due = 0 -- counts every title asked for: only the newest of those waiting comes in
+	local clearAt = 0 -- os.clock() when the title blending out is gone
+
+	local function show(look: number, layer: Instance, args: IntroArgs): CanvasGroup
+		-- the sub's NOW ARRIVING has its own small line over the name, so it takes Punch's or Banner's layout
+		if args.top and look ~= 2 then
+			return introPunch(layer, args)
+		end
+		if look == 2 then
+			return introBanner(layer, args)
+		elseif look == 3 then
+			local tile = tiles[args.land].root
+			-- the tile's centre in the layer's own units (the HUD is scaled)
+			local layerGui = layer :: GuiObject
+			local k = if strip.AbsoluteSize.X > 0 then strip.AbsoluteSize.X / (A_WIDE * phoneScale) else 1
+			local at = (tile.AbsolutePosition + tile.AbsoluteSize / 2 - layerGui.AbsolutePosition) / k
+			return introFly(layer, args, at, options.Atlas)
+		elseif look == 4 then
+			local y = strip.Position.Y.Offset + RAIL_Y + 3 + under + 14
+			return introSubtitle(layer, args, y)
+		elseif look == 5 then
+			return introFlash(layer, args)
+		end
+		return introPunch(layer, args)
+	end
+
+	local function intro(land: number, landName: string, metres: number, isNew: boolean, top: string?, hold: number?)
+		-- the land a sub drops you in: NOW ARRIVING is its title, its own never comes up (task t1)
+		if top == nil and land == sub.skip then
+			return
+		end
 		local look = options.Intro or LandStrip.introLook()
-		if look == 0 or not strip.Parent then
+		if (look == 0 and top == nil) or not strip.Parent then
 			return
 		end
 		local layer = strip.Parent :: Instance
@@ -1393,23 +1441,41 @@ buildA = function(parent: Instance, options: Options): any
 		-- metre a stud, 2026-11-19); a capture with no zones keeps the number it was given
 		local zone = State.Zones[land]
 		local border = if zone then math.floor(zone.Metres) else metres
-		local args: IntroArgs = { land = land, name = landName, metres = border, new = isNew }
-		if look == 2 then
-			introBanner(layer, args)
-		elseif look == 3 then
-			local tile = tiles[land].root
-			-- the tile's centre in the layer's own units (the HUD is scaled)
-			local layerGui = layer :: GuiObject
-			local k = if strip.AbsoluteSize.X > 0 then strip.AbsoluteSize.X / (A_WIDE * phoneScale) else 1
-			local at = (tile.AbsolutePosition + tile.AbsoluteSize / 2 - layerGui.AbsolutePosition) / k
-			introFly(layer, args, at, options.Atlas)
-		elseif look == 4 then
-			local y = strip.Position.Y.Offset + RAIL_Y + 3 + under + 14
-			introSubtitle(layer, args, y)
-		elseif look == 5 then
-			introFlash(layer, args)
+		local args: IntroArgs = { land = land, name = landName, metres = border, new = isNew, top = top, hold = hold }
+		local onRun = sub.on or top ~= nil
+		due += 1
+		local mine = due
+		local old = shown
+		local function come()
+			if mine ~= due or not strip.Parent then
+				return -- a newer title was asked for meanwhile: that one comes in instead
+			end
+			local group = show(look, layer, args)
+			group:SetAttribute("Title", (top or ("LAND " .. land)) .. " / " .. string.upper(landName))
+			shown = group
+			shownSub = onRun
+		end
+		if (onRun or shownSub) and old and old.Parent then
+			-- the hand-off: the old title blends out fast, the new one right after it
+			local c = Config.SubTitles
+			shown = nil
+			old.Name ..= "Out"
+			local fade = TweenService:Create(
+				old,
+				TweenInfo.new(pace(c.Out), Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ GroupTransparency = 1 }
+			)
+			fade.Completed:Once(function()
+				old:Destroy()
+			end)
+			fade:Play()
+			clearAt = os.clock() + pace(c.Out + c.Gap)
+		end
+		local wait = clearAt - os.clock()
+		if wait > 0 then
+			task.delay(wait, come)
 		else
-			introPunch(layer, args)
+			come()
 		end
 	end
 	self.intro = intro
@@ -1468,6 +1534,9 @@ buildA = function(parent: Instance, options: Options): any
 			-- the intro: a land deeper than any yet this dive, not the one it starts in
 			if land < 1 then
 				seen = 0
+				if not sub.on then
+					sub.skip = 0
+				end
 			elseif seen == 0 or not built then
 				seen = land
 			elseif land > seen then
@@ -1524,6 +1593,32 @@ buildA = function(parent: Instance, options: Options): any
 	self.root = strip
 	self.place(false)
 	return self
+end
+
+-- A sub run begins (task t1): titles hand off fast until it ends, and the land it drops you in (`arrival`) gets
+-- NOW ARRIVING in place of its own title
+function LandStrip.subRun(arrival: number)
+	sub.on = true
+	sub.skip = arrival
+end
+
+-- The run is over (the drop). keep false: given up before the drop, so the arrival land's title is not held back
+function LandStrip.subEnd(keep: boolean)
+	sub.on = false
+	if not keep then
+		sub.skip = 0
+	end
+end
+
+-- NOW ARRIVING over the land's name, in the land title's own look (Kit.LandIntroLook; Punch's layout for the looks
+-- that have no small line), handing off from any title still up
+-- (false: no strip of style 1, so no land titles at all; the caller shows its own)
+function LandStrip.arriving(land: number, landName: string): boolean
+	if not active then
+		return false
+	end
+	active.intro(land, landName, 0, false, "NOW ARRIVING", Config.SubTitles.ArriveHold)
+	return true
 end
 
 -- For the option sheets and tests: another strip of style 1 under `parent`, with its own options (its locks its own)

@@ -2197,6 +2197,14 @@ Config.Sub = {
 	Distance = 30, -- the camera's distance behind the sub on the run, studs
 }
 
+-- The land titles on a sub run (task t1, Hugo 2026-11-20: "if title pops up, make sure that the old ones blends out
+-- quicker to fit in the next title directly after"; UI/LandStrip). Swimming and riding keep their titles as they were.
+Config.SubTitles = {
+	Out = 0.18, -- a title still up when the next land's is due blends out in this long, seconds
+	Gap = 0.04, -- and the next comes in this long after it is gone, seconds (only the newest land's: none queue up)
+	ArriveHold = 1.9, -- NOW ARRIVING (the arrival land's title, in place of its own) stays this long before it fades, seconds
+}
+
 -- Share of spawns by rarity per zone, from the roster's draft weights. A tier with no fish in a zone is skipped.
 Config.ZoneMix = {
 	{ Common = 74, Uncommon = 22, Rare = 3.2, Epic = 0.6, Legendary = 0.2 },

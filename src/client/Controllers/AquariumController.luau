@@ -8,18 +8,18 @@
 -- (hold E, or tap it; task k1: no pad any more) puts the chosen slot's fish in (the white ring: the newest, or the one clicked); while the prompt shows, a click
 -- on a caught slot puts that fish in at once. The server checks it all (Action "Place", index, id: AquariumService).
 -- And the moment a fish goes in (Ride "Deposited"): the view turns to our tank, and a line rises over the tank saying what it adds a second. A
--- stand-in for the real thing (a sound, the fish dropping in, the UI chat's own look).
+-- stand-in for the real thing (a sound, the fish dropping in); drawn in the shop kit's look (UI.TankPrompt, task s3).
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
 local Slots = require(script.Parent.Parent.UI.Slots)
 local TankPanel = require(script.Parent.Parent.UI.TankPanel)
+local TankPrompt = require(script.Parent.Parent.UI.TankPrompt)
 
 local AquariumController = {}
 
@@ -73,48 +73,8 @@ local function deposited(count: number, gained: number, id: string?)
 			camera.CFrame = CFrame.lookAt(root.Position - to.Unit * 26 + Vector3.new(0, 14, 0), water.Position)
 		end
 	end
-	local kind = if id then Config.FishById[id] else nil
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Deposited"
-	gui.AlwaysOnTop = true
-	gui.LightInfluence = 0
-	gui.Size = UDim2.fromOffset(420, 96)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, -water.Size.Y / 2 + 12, 0)
-	gui.Adornee = water
-	local function line(text: string, y: number, high: number, colour: Color3): TextLabel
-		local label = Instance.new("TextLabel")
-		label.BackgroundTransparency = 1
-		label.Position = UDim2.fromOffset(0, y)
-		label.Size = UDim2.new(1, 0, 0, high)
-		label.Font = Enum.Font.GothamBlack
-		label.TextSize = high - 6
-		label.TextColor3 = colour
-		label.TextStrokeColor3 = Color3.fromRGB(10, 20, 40)
-		label.TextStrokeTransparency = 0
-		label.Text = text
-		label.Parent = gui
-		return label
-	end
-	local top = line(
-		if kind and count == 1
-			then string.upper(kind.Name) .. " IN YOUR TANK"
-			else string.format("+%d IN YOUR TANK", count),
-		0,
-		46,
-		Color3.new(1, 1, 1)
-	)
-	local under = line("+$" .. Config.shortNumber(gained) .. " a second", 48, 40, Color3.fromRGB(255, 214, 64))
-	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-	local rise = TweenInfo.new(2.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	TweenService:Create(gui, rise, { StudsOffsetWorldSpace = gui.StudsOffsetWorldSpace + Vector3.new(0, 10, 0) }):Play()
-	task.delay(1.8, function()
-		local fade = TweenInfo.new(0.6)
-		for _, label in { top, under } do
-			TweenService:Create(label, fade, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-		end
-		task.wait(0.7)
-		gui:Destroy()
-	end)
+	-- (the line over the tank: UI.TankPrompt, in the shop kit's look)
+	TankPrompt.deposited(water, count, gained, id)
 end
 
 -- The prompt on our own tank's front glass (Hugo, 2026-11-20, task k1: the green pad is gone; the prompt was on it):
@@ -221,6 +181,8 @@ local function updatePrompt()
 			promptShown = false
 		end)
 		p.Parent = attachment
+		-- (drawn in the shop kit's look: UI.TankPrompt)
+		TankPrompt.attach(p)
 		prompt = p
 	end
 	local list = State.Caught

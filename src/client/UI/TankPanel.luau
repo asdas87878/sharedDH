@@ -12,8 +12,12 @@
 --   Config.incomeOf, the one function the server pays by too, so the economy draft's numbers show here as they land.
 --   What it asks (the server decides, AquariumService: Action "Tank", verb, ...): EQUIP BEST, EQUIP and UNEQUIP on a
 --   card, PUT IN on a carried fish and PUT ALL IN. Refusals come back as Ride "TankDenied", reason.
---   The look: the UI kit's plates (Kit.panel, Kit.dress, Kit.text), the Navy theme, a card's edge in its rarity's
---   colour. Phones get bigger points and fewer columns (Kit.touch).
+--   The look (Hugo, 2026-11-20, task s3: "make placing down fishes UI cohesive with these styles"): the shop kit
+--   (UI.Shop, task s1), laid out as its sell list: the Kelp header with the tank's earnings, a "Sort by" column
+--   (Income, Rarity, Size: this screen's order only), the cards in a dark tray, each tinted in its rarity's colour
+--   with its name in that colour and its rate in green, and a footer with the totals, PUT ALL IN and EQUIP BEST.
+--   Buttons say what they do in the kit's colours: green EQUIP, blue UNEQUIP (an earning card is outlined light), gold
+--   PUT IN, grey FULL (the tank's earning places are all taken; pressing it still asks, and the server says why).
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -25,15 +29,16 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
+local Shop = require(script.Parent.Shop)
 
 local TankPanel = {}
 
--- sizes in the panel's own points (a UIScale fits them to the screen)
-local PANEL_W, PANEL_H = 664, 470
-local CARD_W, CARD_H = 142, 196
-local GAP = 8
-local HEAD = 56 -- the title row
-local BAR = 46 -- the row of EQUIP BEST and PUT ALL IN
+-- sizes in the window's own points (it is scaled to the screen)
+local PANEL_W, PANEL_H = 860, 540
+local SIDE = 168 -- the "Sort by" column
+local FOOT = 64 -- the footer bar
+local CARD_W, CARD_H = 150, 218
+local GAP = 10
 local CLICK_MOVE = 12 -- a press that moves further than this (pixels) is a camera drag, not a click
 local CLICK_TIME = 0.45
 
@@ -58,40 +63,48 @@ local RAINBOW = ColorSequence.new({
 	ColorSequenceKeypoint.new(0.8, Color3.fromRGB(120, 190, 255)),
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 140, 255)),
 })
-local PICTURE_BACK = { Top = Color3.fromRGB(56, 120, 196), Bottom = Color3.fromRGB(20, 52, 104) }
+local TIER_RANK = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6, Secret = 7 }
+local SIZE_RANK: { [string]: number } = {}
+for i, name in Config.SizeOrder do
+	SIZE_RANK[name] = i
+end
+local SORTS = { "Income", "Rarity", "Size" }
 
 type Fish = { Key: string, Id: string, Size: string, Variant: string, On: boolean, Hand: number? }
 type Card = {
-	Frame: Frame,
-	Picture: Portrait.Portrait,
-	Back: UIGradient,
+	Root: Frame,
+	Fill: UIGradient,
 	Edge: UIStroke,
+	Ring: UIStroke,
 	Name: TextLabel,
-	Rarity: TextLabel,
-	SizeWord: TextLabel,
+	Info: TextLabel,
+	Back: Frame,
+	BackFill: UIGradient,
+	Picture: Portrait.Portrait,
 	VariantChip: Frame,
 	VariantWord: TextLabel,
 	VariantFill: UIGradient,
 	Icons: Frame,
-	Coins: TextLabel,
-	Button: TextButton,
-	ButtonLook: Kit.Dressed,
-	ButtonWord: TextLabel,
+	Rate: TextLabel,
+	Button: Shop.Button,
 	Fish: Fish,
 }
 
-local gui: ScreenGui
-local root: Frame
-local scale: UIScale
-local panel: Kit.Panel
+local window: Shop.Window
 local list: ScrollingFrame
-local titleIncome: TextLabel
-local bestButton: TextButton
-local bestLook: Kit.Dressed
-local bestWord: TextLabel
-local allButton: TextButton
-local allWord: TextLabel
-local toast: TextLabel
+local tray: Frame
+local headIncome: TextLabel
+local footIncome: TextLabel
+local countPill: Frame
+local countWord: TextLabel
+local bestButton: Shop.Button
+local allButton: Shop.Button
+local sortButtons: { [string]: Shop.Button } = {}
+local sortBy = "Income"
+local empty: TextLabel
+local note: TextLabel
+local toast: Frame
+local toastWord: TextLabel
 local toastAt = -math.huge
 local sections: { [string]: { Head: TextLabel, Grid: Frame, Layout: UIGridLayout } } = {}
 local cards: { [string]: Card } = {}
@@ -217,93 +230,116 @@ local function overTank(x: number, y: number, whole: boolean?): boolean
 end
 
 local function say(text: string)
-	toast.Text = text
+	toastWord.Text = text
 	toastAt = os.clock()
 end
 
-local function button(parent: Instance, theme: string, word: string, size: number): (TextButton, Kit.Dressed, TextLabel)
-	local b: TextButton = Kit.new("TextButton", { Text = "", AutoButtonColor = false }, parent)
-	local look = Kit.dress(b, Kit.Themes[theme])
-	local label = Kit.text({
-		Size = UDim2.fromScale(1, 1),
-		Text = word,
-		TextSize = size,
-		ZIndex = 3,
-	}, b)
-	b.MouseEnter:Connect(function()
-		b.BackgroundTransparency = 0.15
-	end)
-	b.MouseLeave:Connect(function()
-		b.BackgroundTransparency = 0
-	end)
-	return b, look, label
+-- A rarity's colour as the cards use it (the Secret's own colour is near black: on a dark card its words are drawn
+-- white and its tint pink)
+local function tierLook(tier: string): (Color3, Color3)
+	local entry = Config.Tiers[tier]
+	local colour = if entry then entry.Colour else Kit.White
+	if colour.R + colour.G + colour.B < 0.6 then
+		return Kit.White, Kit.Pink
+	end
+	return colour, colour
 end
 
-local function paint(look: Kit.Dressed, theme: string)
-	local style = Kit.Themes[theme]
-	look.paint(style.Top, style.Bottom)
+local function hex(c: Color3): string
+	return string.format("#%02X%02X%02X", math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255))
 end
 
 local function newCard(f: Fish): Card
-	local frame: Frame = Kit.new("Frame", {
+	local root: Frame = Kit.new("Frame", {
 		Name = "Card",
-		BackgroundColor3 = Kit.Navy,
-		BorderSizePixel = 0,
-	}, nil)
-	Kit.corner(frame, Kit.Radius.Plate)
-	Kit.gradient(frame, Color3.fromRGB(40, 78, 132), Color3.fromRGB(16, 34, 62))
-	local edge = Kit.stroke(frame, Kit.Outline.Bold, Kit.Ink)
-	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-	-- the picture, on a backdrop that turns gold or rainbow with the fish
-	local back: Frame = Kit.new("Frame", {
-		Name = "Back",
-		Position = UDim2.fromOffset(6, 6),
-		Size = UDim2.new(1, -12, 0, 84),
 		BackgroundColor3 = Kit.White,
 		BorderSizePixel = 0,
-	}, frame)
-	Kit.corner(back, Kit.Radius.Tile)
-	local backFill = Kit.gradient(back, PICTURE_BACK.Top, PICTURE_BACK.Bottom)
+	}, nil)
+	Kit.corner(root, 6)
+	local fill = Kit.new("UIGradient", { Rotation = 90 }, root)
+	local edge = Kit.stroke(root, 3, Shop.Edge)
+	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	Shop.pattern(root, "Head", 30, 0.9)
+	Shop.gloss(root, 0.72, 0.1)
+	-- the light border of an earning card (as the shop's chosen card)
+	local ring: UIStroke = Kit.new(
+		"UIStroke",
+		{
+			Name = "Earning",
+			Thickness = 0,
+			Color = Color3.fromRGB(236, 255, 230),
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		},
+		Kit.new("Frame", {
+			Name = "EarningRing",
+			Position = UDim2.fromOffset(-4, -4),
+			Size = UDim2.new(1, 8, 1, 8),
+			BackgroundTransparency = 1,
+			ZIndex = 1,
+		}, root)
+	)
+
+	local name = Shop.text(root, {
+		Name = "FishName",
+		Position = UDim2.fromOffset(8, 5),
+		Size = UDim2.new(1, -16, 0, 20),
+		TextSize = 18,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 4,
+	})
+	local info = Shop.text(root, {
+		Name = "Info",
+		Position = UDim2.fromOffset(8, 25),
+		Size = UDim2.new(1, -16, 0, 15),
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		RichText = true,
+		ZIndex = 4,
+	})
+
+	-- the picture, on a dark well that turns gold or rainbow with the fish
+	local back: Frame = Kit.new("Frame", {
+		Name = "Back",
+		Position = UDim2.fromOffset(7, 44),
+		Size = UDim2.new(1, -14, 0, 100),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+	}, root)
+	Kit.corner(back, 4)
+	Kit.stroke(back, 2, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local backFill = Kit.new("UIGradient", { Rotation = 90 }, back)
+	Shop.pattern(back, "Body", 30, 0.9)
 	local picture = Portrait.new(back, {
 		Position = UDim2.fromOffset(2, 4),
 		Size = UDim2.new(1, -4, 1, -8),
-		ZIndex = 2,
+		ZIndex = 3,
 	})
-	local sizeWord = Kit.text({
-		Name = "Size",
-		Position = UDim2.fromOffset(5, 2),
-		Size = UDim2.new(0.6, 0, 0, 16),
-		TextSize = 13,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Font = Enum.Font.GothamBlack,
-		ZIndex = 4,
-	}, back, 1.6)
 	local chip: Frame = Kit.new("Frame", {
 		Name = "Variant",
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -3, 0, 3),
-		Size = UDim2.fromOffset(58, 16),
+		Size = UDim2.fromOffset(60, 17),
 		BackgroundColor3 = Kit.White,
 		BorderSizePixel = 0,
-		ZIndex = 4,
-	}, back)
-	Kit.corner(chip, 999)
-	Kit.stroke(chip, Kit.Outline.Thin, Kit.Ink).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	local chipFill = Kit.new("UIGradient", {}, chip)
-	local chipWord = Kit.text({
-		Size = UDim2.fromScale(1, 1),
-		TextSize = 11,
-		Font = Enum.Font.GothamBlack,
 		ZIndex = 5,
-	}, chip, 1.4)
+	}, back)
+	Kit.corner(chip, 4)
+	Kit.stroke(chip, 2, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local chipFill = Kit.new("UIGradient", {}, chip)
+	local chipWord = Shop.text(chip, {
+		Size = UDim2.fromScale(1, 1),
+		TextSize = 12,
+		ZIndex = 6,
+	})
 	local icons: Frame = Kit.new("Frame", {
 		Name = "Icons",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 4, 1, -3),
 		Size = UDim2.new(1, -8, 0, 18),
 		BackgroundTransparency = 1,
-		ZIndex = 4,
+		ZIndex = 5,
 	}, back)
 	Kit.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
@@ -312,50 +348,45 @@ local function newCard(f: Fish): Card
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 	}, icons)
 
-	local name = Kit.text({
-		Name = "FishName",
-		Position = UDim2.fromOffset(6, 92),
-		Size = UDim2.new(1, -12, 0, 20),
-		TextSize = 16,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-	}, frame)
-	local rarity = Kit.text({
-		Name = "Rarity",
-		Position = UDim2.fromOffset(6, 112),
-		Size = UDim2.new(1, -12, 0, 16),
-		TextSize = 13,
-		Font = Enum.Font.GothamBlack,
-	}, frame, 1.6)
-	local coins = Kit.text({
-		Name = "Coins",
-		Position = UDim2.fromOffset(6, 130),
-		Size = UDim2.new(1, -12, 0, 22),
-		TextSize = 19,
-		TextColor3 = Kit.Cash,
-	}, frame)
-	local b, look, word = button(frame, "Good", "EQUIP", 15)
-	b.Position = UDim2.new(0, 8, 1, -38)
-	b.Size = UDim2.new(1, -16, 0, 30)
+	-- what it earns, in the shop's green, and the button
+	local rate = Shop.text(root, {
+		Name = "Rate",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 146),
+		Size = UDim2.new(1, -12, 0, 26),
+		TextSize = 25,
+		TextColor3 = Shop.Money,
+		ZIndex = 4,
+	})
+	local b = Shop.button(root, {
+		Name = "Do",
+		Text = "EQUIP",
+		TextSize = 18,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -7),
+		Size = UDim2.new(1, -14, 0, 36),
+	})
+	b.Root.ZIndex = 4
 
 	local card: Card = {
-		Frame = frame,
-		Picture = picture,
-		Back = backFill,
+		Root = root,
+		Fill = fill,
 		Edge = edge,
+		Ring = ring,
 		Name = name,
-		Rarity = rarity,
-		SizeWord = sizeWord,
+		Info = info,
+		Back = back,
+		BackFill = backFill,
+		Picture = picture,
 		VariantChip = chip,
 		VariantWord = chipWord,
 		VariantFill = chipFill,
 		Icons = icons,
-		Coins = coins,
+		Rate = rate,
 		Button = b,
-		ButtonLook = look,
-		ButtonWord = word,
 		Fish = f,
 	}
-	b.Activated:Connect(function()
+	b.Root.Activated:Connect(function()
 		local now = card.Fish
 		if now.Hand then
 			Net.Action:FireServer("Tank", "PutIn", now.Hand, now.Id)
@@ -372,67 +403,101 @@ local function fill(card: Card, f: Fish, full: boolean)
 	card.Fish = f
 	local kind = Config.FishById[f.Id]
 	card.Picture.show(f.Id)
-	card.Name.Text = string.upper(if kind then kind.Name else f.Id)
 	local tier = if kind then kind.Tier else "Common"
-	local entry = Config.Tiers[tier]
-	local colour = if entry then entry.Colour else Kit.White
-	-- (the Secret's own colour is near black: on a dark card it is drawn white, edged in pink)
-	local dark = colour.R + colour.G + colour.B < 0.6
-	card.Rarity.Text = string.upper(tier)
-	card.Rarity.TextColor3 = if dark then Kit.White else colour
-	card.Edge.Color = if dark then Kit.Pink else colour
-	card.Edge.Thickness = if f.On then Kit.Outline.Heavy else Kit.Outline.Bold
-	card.SizeWord.Text = string.upper(f.Size)
-	card.SizeWord.TextColor3 = SIZE_HUE[f.Size] or Kit.White
+	local words, tint = tierLook(tier)
+	card.Name.Text = if kind then kind.Name else f.Id
+	card.Name.TextColor3 = words
+	card.Info.Text = string.format(
+		'<font color="%s">%s</font>  <font color="%s">%s</font>',
+		hex(Kit.lighter(words, 0.25)),
+		string.upper(tier),
+		hex(SIZE_HUE[f.Size] or Kit.White),
+		string.upper(f.Size)
+	)
+	-- tinted in its rarity's colour: lit at the top, deepening into the shop's slate
+	card.Fill.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Shop.Body:Lerp(Kit.lighter(tint, 0.1), 0.62)),
+		ColorSequenceKeypoint.new(0.45, Shop.Body:Lerp(tint, 0.42)),
+		ColorSequenceKeypoint.new(1, Shop.Body:Lerp(tint, 0.16)),
+	})
+	card.Ring.Thickness = if f.On then 3 else 0
+	card.Edge.Color = if f.On then Kit.White else Shop.Edge
 	local look = VARIANT_LOOK[f.Variant]
 	card.VariantChip.Visible = look ~= nil
 	if look then
 		card.VariantWord.Text = look.Word
 		card.VariantFill.Rotation = if f.Variant == "Rainbow" then 0 else 90
 		card.VariantFill.Color = if f.Variant == "Rainbow" then RAINBOW else ColorSequence.new(look.Top, look.Bottom)
-		card.Back.Rotation = if f.Variant == "Rainbow" then 20 else 90
-		card.Back.Color = if f.Variant == "Rainbow"
+		card.BackFill.Rotation = if f.Variant == "Rainbow" then 20 else 90
+		card.BackFill.Color = if f.Variant == "Rainbow"
 			then RAINBOW
 			else ColorSequence.new(Kit.lighter(look.Top, 0.2), look.Bottom)
 	else
-		card.Back.Rotation = 90
-		card.Back.Color = ColorSequence.new(PICTURE_BACK.Top, PICTURE_BACK.Bottom)
+		card.BackFill.Rotation = 90
+		card.BackFill.Color = ColorSequence.new(Shop.BodyDeep:Lerp(tint, 0.18), Shop.BodyDeep)
 	end
 	Archetypes.icons(card.Icons, if kind then Archetypes.line(kind) else "", 18)
-	card.Coins.Text = "$" .. Config.shortNumber(incomeOf(f)) .. "/s"
+	card.Rate.Text = Shop.cash(incomeOf(f)) .. "/s"
 	if f.Hand then
-		card.ButtonWord.Text = "PUT IN"
-		paint(card.ButtonLook, "Grab")
+		card.Button.set("PUT IN", "Gold", true)
 	elseif f.On then
-		card.ButtonWord.Text = "UNEQUIP"
-		paint(card.ButtonLook, "Off")
+		card.Button.set("UNEQUIP", "Blue", true)
+	elseif full then
+		-- (still live: the server answers "Full" and the toast says to unequip one first)
+		card.Button.set("FULL", "Off", true)
 	else
-		card.ButtonWord.Text = "EQUIP"
-		paint(card.ButtonLook, if full then "Navy" else "Good")
+		card.Button.set("EQUIP", "Cash", true)
 	end
 end
 
 local function section(name: string, order: number)
-	local head = Kit.text({
+	local head = Shop.text(list, {
 		Name = name .. "Head",
-		Size = UDim2.new(1, -8, 0, 24),
-		TextSize = 18,
+		Size = UDim2.new(1, -8, 0, 26),
+		TextSize = 22,
 		TextXAlignment = Enum.TextXAlignment.Left,
+		RichText = true,
 		LayoutOrder = order,
-	}, list)
+		ZIndex = 3,
+	})
 	local grid: Frame = Kit.new("Frame", {
 		Name = name,
 		Size = UDim2.new(1, -8, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		LayoutOrder = order + 1,
+		ZIndex = 3,
 	}, list)
 	local layout = Kit.new("UIGridLayout", {
 		CellSize = UDim2.fromOffset(CARD_W, CARD_H),
 		CellPadding = UDim2.fromOffset(GAP, GAP),
 		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
 	}, grid)
 	sections[name] = { Head = head, Grid = grid, Layout = layout }
+end
+
+local function byIncome(a: Fish, b: Fish): boolean
+	local x, y = incomeOf(a), incomeOf(b)
+	return if x ~= y then x > y else a.Key < b.Key
+end
+
+-- The order the cards are shown in ("Sort by"): only this screen's; which fish earn is the server's
+local function order(a: Fish, b: Fish): boolean
+	if sortBy == "Rarity" then
+		local ka, kb = Config.FishById[a.Id], Config.FishById[b.Id]
+		local x = TIER_RANK[if ka then ka.Tier else "Common"] or 0
+		local y = TIER_RANK[if kb then kb.Tier else "Common"] or 0
+		if x ~= y then
+			return x > y
+		end
+	elseif sortBy == "Size" then
+		local x, y = SIZE_RANK[a.Size] or 0, SIZE_RANK[b.Size] or 0
+		if x ~= y then
+			return x > y
+		end
+	end
+	return byIncome(a, b)
 end
 
 local function refresh()
@@ -452,23 +517,28 @@ local function refresh()
 			table.insert(stored, f)
 		end
 	end
-	local byIncome = function(a: Fish, b: Fish): boolean
-		local x, y = incomeOf(a), incomeOf(b)
-		return if x ~= y then x > y else a.Key < b.Key
-	end
-	table.sort(equipped, byIncome)
-	table.sort(stored, byIncome)
 	local full = #equipped >= most
-	titleIncome.Text = "$" .. Config.shortNumber(income) .. "/s"
+	headIncome.Text = Shop.cash(income) .. "/s"
+	footIncome.Text = Shop.cash(income) .. "/s"
 
 	-- EQUIP BEST is bright while it would change something: a free place and a stored fish, or a stored fish that
 	-- earns more than the poorest equipped one
+	table.sort(equipped, byIncome)
+	table.sort(stored, byIncome)
 	local better = #stored > 0 and (not full or (#equipped > 0 and incomeOf(stored[1]) > incomeOf(equipped[#equipped])))
-	paint(bestLook, if better then "Gold" else "Off")
-	bestWord.Text = if better then "EQUIP BEST" else "BEST EQUIPPED"
-	allButton.Visible = #hands > 0
-	allWord.Text = "PUT ALL IN (" .. #hands .. ")"
+	bestButton.set(if better then "EQUIP BEST" else "BEST EQUIPPED", if better then "Cash" else "Off", true)
+	allButton.Root.Visible = #hands > 0
+	allButton.set("PUT ALL IN (" .. #hands .. ")", "Gold", true)
+	-- the count: how many earn of how many may; red when the tank is full
+	countWord.Text = (if full then "Tank full " else "Earning ") .. #equipped .. "/" .. most
+	local pill = countPill:FindFirstChildOfClass("UIGradient") :: UIGradient
+	local pair = if full then Shop.Kinds.Red else Shop.Kinds.Off
+	pill.Color = Shop.halves(Kit.darker(pair[1], 0.45), Kit.darker(pair[2], 0.5))
+	note.Text = "Only earning fish make coins. Up to " .. most .. " at once."
 
+	table.sort(equipped, order)
+	table.sort(stored, order)
+	table.sort(hands, order)
 	local seen: { [string]: boolean } = {}
 	local function lay(rows: { Fish }, where: string)
 		for i, f in rows do
@@ -479,8 +549,8 @@ local function refresh()
 				card = newCard(f)
 				cards[key] = card
 			end
-			card.Frame.LayoutOrder = i
-			card.Frame.Parent = sections[where].Grid
+			card.Root.LayoutOrder = i
+			card.Root.Parent = sections[where].Grid
 			fill(card, f, full)
 		end
 	end
@@ -489,67 +559,65 @@ local function refresh()
 	lay(stored, "Stored")
 	for key, card in cards do
 		if not seen[key] then
-			card.Frame:Destroy()
+			card.Root:Destroy()
 			cards[key] = nil
 		end
 	end
+	local gold = hex(Kit.Sun)
 	sections.Hands.Head.Visible = #hands > 0
 	sections.Hands.Grid.Visible = #hands > 0
-	sections.Hands.Head.Text = "IN YOUR HANDS  " .. #hands
-	sections.Earning.Head.Text = "EARNING  " .. #equipped .. "/" .. most
-	sections.Stored.Head.Text = "STORED  " .. #stored
-	sections.Stored.Head.Visible = true
-	if #fish == 0 and #hands == 0 then
-		sections.Earning.Head.Text = "NO FISH YET: CATCH SOME AND PUT THEM IN!"
-	end
+	sections.Hands.Head.Text = string.format('<font color="%s">In your hands</font>  %d', gold, #hands)
+	sections.Earning.Head.Visible = #equipped > 0
+	sections.Earning.Grid.Visible = #equipped > 0
+	sections.Earning.Head.Text = string.format("Earning  %d/%d", #equipped, most)
+	sections.Stored.Head.Visible = #stored > 0
+	sections.Stored.Grid.Visible = #stored > 0
+	sections.Stored.Head.Text = "Stored  " .. #stored
+	empty.Visible = #fish == 0 and #hands == 0
 end
 
--- The panel's size and its points for this screen; the columns follow the width
+-- The window's size and its points for this screen; the cards' columns follow the width. (Shop.window's own fit, made
+-- roomier on a phone: the window takes the whole height there, so the cards' words stay readable)
 local function layout()
 	local camera = workspace.CurrentCamera
-	if not camera then
+	if not camera or not window then
 		return
 	end
 	local view = camera.ViewportSize
 	touch = Kit.touch()
-	-- (Studio's phone still: the workspace's "PanelPhone", a phone's screen in pixels, lays the popup out for that
+	-- (Studio's phone still: the workspace's "PanelPhone", a phone's screen in pixels, lays the window out for that
 	-- screen in a box of its size in the middle of this one)
 	local phone = if RunService:IsStudio() then workspace:GetAttribute("PanelPhone") else nil
 	if typeof(phone) == "Vector2" then
 		view = phone
 		touch = true
 	end
-	-- a phone: bigger points, the panel near the whole screen
-	local s = math.clamp(view.Y / (if touch then 470 else 700), 0.6, 1.8)
-	scale.Scale = s
-	-- (as the HUD's root: from the top left, the screen's size over the scale, so the UIScale brings it back to the
-	-- screen; the phone's box sits in the middle of this screen)
-	root.Size = UDim2.fromScale(1 / s, 1 / s)
-	root.Position = UDim2.new()
+	local s = math.clamp(view.Y / (if touch then 430 else 720), 0.5, 1.4)
+	local w = math.min(PANEL_W, view.X / s - 24)
+	local h = math.min(PANEL_H, view.Y / s - 14)
+	window.Scale.Scale = s
+	window.Frame.Size = UDim2.fromOffset(w, h)
+	window.Root.Size = UDim2.fromScale(1 / s, 1 / s)
+	window.Root.Position = UDim2.new()
 	if typeof(phone) == "Vector2" then
 		local whole = camera.ViewportSize
-		root.Size = UDim2.fromOffset(view.X / s, view.Y / s)
-		root.Position = UDim2.fromOffset((whole.X - view.X) / 2, (whole.Y - view.Y) / 2)
+		window.Root.Size = UDim2.fromOffset(view.X / s, view.Y / s)
+		window.Root.Position = UDim2.fromOffset((whole.X - view.X) / 2, (whole.Y - view.Y) / 2)
 	end
-	local w = math.min(PANEL_W, view.X / s - 20)
-	local h = math.min(PANEL_H, view.Y / s - 16)
-	panel.Frame.Size = UDim2.fromOffset(w, h)
-	local columns = math.max(2, math.floor((w - 28 + GAP) / (CARD_W + GAP)))
-	list.Size = UDim2.new(1, -20, 1, -(HEAD + BAR + 22))
-	-- the cards from the left, as an inventory's are
+	-- the tray's width: the window's, less its body's padding, the side column and the gap
+	local trayWide = w - (Shop.Pad + 2) * 2 - SIDE - 12
+	local columns = math.max(1, math.floor((trayWide - 26 + GAP) / (CARD_W + GAP)))
 	for _, s2 in sections do
 		s2.Layout.FillDirectionMaxCells = columns
-		s2.Layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 	end
 end
 
 local function show(on: boolean)
 	open = on and State.Mode == "Dock"
-	panel.Frame.Visible = open
 	if open then
-		layout()
 		refresh()
 	end
+	window.show(open)
 end
 
 -- Studio's tests: open or close the popup as a click on the tank does
@@ -561,120 +629,237 @@ function TankPanel.isOpen(): boolean
 	return open
 end
 
+-- The cards' order ("Income", "Rarity" or "Size"): the Sort by buttons, and Studio's tests
+function TankPanel.sort(name: string)
+	sortBy = name
+	for other, b in sortButtons do
+		b.set(nil, if other == sortBy then "Cash" else "Off")
+	end
+	refresh()
+end
+
+-- A line in the toast (Studio's tests: the refusals' look)
+function TankPanel.notice(text: string)
+	say(text)
+end
+
 local function build()
-	gui = Kit.new("ScreenGui", {
+	window = Shop.window({
 		Name = "TankPanel",
-		ResetOnSpawn = false,
-		IgnoreGuiInset = true,
+		Parent = State.Player:WaitForChild("PlayerGui"),
+		Title = "Your Tank",
+		Icon = "Bubble",
+		Head = "Kelp",
+		Width = PANEL_W,
+		Height = PANEL_H,
 		DisplayOrder = 8,
-		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-	}, State.Player:WaitForChild("PlayerGui"))
-	root = Kit.new("Frame", {
-		Name = "Root",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-	}, gui)
-	scale = Kit.new("UIScale", {}, root)
-	-- (the root is the screen in points: its size is the screen over the scale)
-	-- (the root is the screen in points: its size is the screen over the scale; layout sets it)
-	panel = Kit.panel(root, {
-		Name = "Panel",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(PANEL_W, PANEL_H),
-		Visible = false,
-	}, Kit.Themes.Navy)
-	local face = panel.Face
+		OnClose = function()
+			show(false)
+		end,
+	})
+	window.fit = layout
+	local body = window.Body
 
-	local title = Kit.text({
-		Name = "Title",
-		Position = UDim2.fromOffset(16, 8),
-		Size = UDim2.new(0.5, -16, 0, 40),
-		Text = "YOUR TANK",
-		TextSize = 32,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 3,
-	}, face)
-	title.Font = Enum.Font.LuckiestGuy
-	titleIncome = Kit.text({
+	-- the tank's earnings in the header, before the X
+	local label, holder = Shop.money(window.Header, {
 		Name = "Income",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -66, 0, 10),
-		Size = UDim2.new(0.5, -70, 0, 38),
-		TextSize = 30,
-		TextColor3 = Kit.Cash,
-		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -(Shop.HeadHigh + 2), 0.5, 0),
+		Size = UDim2.fromOffset(300, 40),
+		TextSize = 34,
+		ZIndex = 4,
+	})
+	headIncome = label
+	holder.ZIndex = 4
+
+	-- the "Sort by" column
+	local side: Frame = Kit.new("Frame", {
+		Name = "Side",
+		Size = UDim2.new(0, SIDE, 1, -(FOOT + 12)),
+		BackgroundTransparency = 1,
 		ZIndex = 3,
-	}, face)
-	local close, _, _ = button(face, "Danger", "X", 24)
-	close.AnchorPoint = Vector2.new(1, 0)
-	close.Position = UDim2.new(1, -10, 0, 9)
-	close.Size = UDim2.fromOffset(44, 40)
-	close.Activated:Connect(function()
-		show(false)
-	end)
+	}, body)
+	Kit.new("UIListLayout", {
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	}, side)
+	Shop.text(side, { Size = UDim2.new(1, 0, 0, 28), TextSize = 26, Text = "Sort by:", LayoutOrder = 1, ZIndex = 3 })
+	for i, name in SORTS do
+		local b = Shop.sort(side, {
+			Name = "Sort" .. name,
+			Text = "  " .. name,
+			On = name == sortBy,
+			Size = UDim2.new(1, 0, 0, 44),
+			LayoutOrder = 1 + i,
+		})
+		sortButtons[name] = b
+		b.Root.Activated:Connect(function()
+			TankPanel.sort(name)
+		end)
+	end
+	note = Shop.text(side, {
+		Name = "Note",
+		Size = UDim2.new(1, -6, 0, 54),
+		TextSize = 14,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextColor3 = Color3.fromRGB(196, 204, 220),
+		LayoutOrder = 9,
+		ZIndex = 3,
+	})
 
-	local word: TextLabel
-	bestButton, bestLook, word = button(face, "Gold", "EQUIP BEST", 20)
-	bestWord = word
-	bestButton.Position = UDim2.fromOffset(12, HEAD)
-	bestButton.Size = UDim2.new(0.5, -18, 0, BAR - 6)
-	bestButton.Activated:Connect(function()
-		Net.Action:FireServer("Tank", "Best")
-	end)
-	local allLook
-	allButton, allLook, allWord = button(face, "Grab", "PUT ALL IN", 20)
-	allLook.paint(Kit.Themes.Grab.Top, Kit.Themes.Grab.Bottom)
-	allButton.AnchorPoint = Vector2.new(1, 0)
-	allButton.Position = UDim2.new(1, -12, 0, HEAD)
-	allButton.Size = UDim2.new(0.5, -18, 0, BAR - 6)
-	allButton.Activated:Connect(function()
-		Net.Action:FireServer("Tank", "PutAll")
-	end)
-
+	-- the cards' tray
+	tray = Shop.inset(body, {
+		Name = "Tray",
+		Position = UDim2.fromOffset(SIDE + 12, 0),
+		Size = UDim2.new(1, -(SIDE + 12), 1, -(FOOT + 12)),
+		ZIndex = 2,
+	})
 	list = Kit.new("ScrollingFrame", {
 		Name = "List",
-		Position = UDim2.fromOffset(10, HEAD + BAR + 6),
-		Size = UDim2.new(1, -20, 1, -(HEAD + BAR + 22)),
-		BackgroundColor3 = Kit.Deep,
-		BackgroundTransparency = 0.35,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 8,
-		ScrollBarImageColor3 = Kit.Aqua,
+		ScrollBarImageColor3 = Color3.fromRGB(150, 220, 120),
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
-		ZIndex = 2,
-	}, face)
-	Kit.corner(list, Kit.Radius.Tile)
+		ZIndex = 3,
+	}, tray)
 	Kit.new("UIListLayout", {
 		Padding = UDim.new(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	}, list)
 	Kit.new("UIPadding", {
-		PaddingTop = UDim.new(0, 6),
-		PaddingBottom = UDim.new(0, 10),
-		PaddingLeft = UDim.new(0, 4),
+		PaddingTop = UDim.new(0, 8),
+		PaddingBottom = UDim.new(0, 12),
+		PaddingLeft = UDim.new(0, 12),
 		PaddingRight = UDim.new(0, 12),
 	}, list)
 	section("Hands", 1)
 	section("Earning", 3)
 	section("Stored", 5)
+	empty = Shop.text(tray, {
+		Name = "Empty",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.new(1, -40, 0, 70),
+		TextSize = 26,
+		TextWrapped = true,
+		Text = "No fish yet!\nCatch some and put them in.",
+		Visible = false,
+		ZIndex = 4,
+	})
 
-	toast = Kit.text({
+	-- the footer: the totals, PUT ALL IN, EQUIP BEST
+	local foot = Shop.inset(body, {
+		Name = "Footer",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, FOOT),
+		ZIndex = 2,
+	})
+	local totals: Frame = Kit.new("Frame", {
+		Name = "Totals",
+		Position = UDim2.fromOffset(16, 0),
+		Size = UDim2.new(1, -420, 1, 0),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+	}, foot)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, totals)
+	Shop.text(totals, {
+		Size = UDim2.fromOffset(0, 34),
+		AutomaticSize = Enum.AutomaticSize.X,
+		TextSize = 28,
+		Text = "Earning:",
+		LayoutOrder = 1,
+		ZIndex = 3,
+	})
+	local fi, fh = Shop.money(totals, {
+		Name = "Total",
+		Size = UDim2.fromOffset(0, 36),
+		TextSize = 28,
+		Align = Enum.HorizontalAlignment.Left,
+		ZIndex = 3,
+	})
+	fh.AutomaticSize = Enum.AutomaticSize.X
+	fh.LayoutOrder = 2
+	footIncome = fi
+	countPill = Kit.new("Frame", {
+		Name = "Count",
+		Size = UDim2.fromOffset(0, 34),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		LayoutOrder = 3,
+		ZIndex = 3,
+	}, totals)
+	Kit.corner(countPill, 5)
+	Kit.stroke(countPill, 2, Shop.Edge)
+	Kit.new("UIGradient", { Rotation = 90 }, countPill)
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }, countPill)
+	countWord = Shop.text(countPill, {
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
+		TextSize = 19,
+		ZIndex = 4,
+	})
+	bestButton = Shop.button(foot, {
+		Name = "Best",
+		Text = "EQUIP BEST",
+		Kind = "Cash",
+		TextSize = 22,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		Size = UDim2.fromOffset(196, 46),
+	})
+	bestButton.Root.ZIndex = 4
+	bestButton.Root.Activated:Connect(function()
+		Net.Action:FireServer("Tank", "Best")
+	end)
+	allButton = Shop.button(foot, {
+		Name = "PutAll",
+		Text = "PUT ALL IN",
+		Kind = "Gold",
+		TextSize = 20,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -216, 0.5, 0),
+		Size = UDim2.fromOffset(190, 46),
+	})
+	allButton.Root.ZIndex = 4
+	allButton.Root.Activated:Connect(function()
+		Net.Action:FireServer("Tank", "PutAll")
+	end)
+
+	-- a refusal, over the tray's foot: the kit's red bar
+	toast = Kit.new("Frame", {
 		Name = "Toast",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.new(1, -40, 0, 30),
-		TextSize = 22,
-		TextColor3 = Kit.Sun,
+		Position = UDim2.new(0.5, (SIDE + 12) / 2, 1, -(FOOT + 22)),
+		Size = UDim2.fromOffset(470, 44),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
 		Visible = false,
-		ZIndex = 6,
-	}, face)
+		ZIndex = 8,
+	}, body)
+	Kit.corner(toast, 6)
+	Kit.stroke(toast, 3, Shop.Edge)
+	Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(Shop.Kinds.Red[1], Shop.Kinds.Red[2]) }, toast)
+	Shop.pattern(toast, "Head", 26, 0.88)
+	toastWord = Shop.text(toast, { Size = UDim2.fromScale(1, 1), TextSize = 21, ZIndex = 9 })
 end
 
--- The sign over our tank while we are near it with the popup shut, and the glass outlined under the mouse
+-- The sign over our tank while we are near it with the popup shut (a small plate in the tank's Kelp, as the window's
+-- header), and the glass outlined under the mouse in the same green
 local function keepHint(near: boolean, hovered: boolean)
 	local _, water = ownPlot()
 	if not water then
@@ -689,13 +874,26 @@ local function keepHint(near: boolean, hovered: boolean)
 			Adornee = water,
 			AlwaysOnTop = true,
 			LightInfluence = 0,
-			Size = UDim2.fromOffset(260, 40),
+			Size = UDim2.fromOffset(250, 44),
 			StudsOffsetWorldSpace = Vector3.new(0, water.Size.Y / 2 + 9, 0),
 			MaxDistance = 200,
-		}, gui)
-		local plate: Frame = Kit.new("Frame", { Size = UDim2.fromScale(1, 1) }, b)
-		Kit.dress(plate, Kit.Themes.Navy)
-		Kit.text({ Name = "Word", Size = UDim2.fromScale(1, 1), TextSize = 20, ZIndex = 3 }, plate)
+		}, State.Player:WaitForChild("PlayerGui"))
+		local plate: Frame = Kit.new("Frame", {
+			Name = "Plate",
+			Position = UDim2.fromOffset(3, 3),
+			Size = UDim2.new(1, -6, 1, -6),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+		}, b)
+		Kit.corner(plate, 6)
+		Kit.stroke(plate, 3, Shop.Edge)
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Color = Shop.halves(Kit.lighter(Shop.Heads.Kelp, 0.22), Shop.Heads.Kelp, 0.46),
+		}, plate)
+		Shop.pattern(plate, "Head", 26, 0.84)
+		Shop.gloss(plate, 0.66, 0.26)
+		Shop.text(plate, { Name = "Word", Size = UDim2.fromScale(1, 1), TextSize = 22, ZIndex = 3 })
 		hint = b
 	end
 	local h = hint :: BillboardGui
@@ -712,10 +910,11 @@ local function keepHint(near: boolean, hovered: boolean)
 		outline = Kit.new("Highlight", {
 			Name = "TankHover",
 			Adornee = water,
-			FillTransparency = 1,
-			OutlineColor = Kit.Sun,
+			FillColor = Shop.Heads.Kelp,
+			FillTransparency = 0.88,
+			OutlineColor = Color3.fromRGB(200, 255, 150),
 			DepthMode = Enum.HighlightDepthMode.Occluded,
-		}, gui)
+		}, State.Player:WaitForChild("PlayerGui"))
 	end
 	(outline :: Highlight).Enabled = hovered and near and not open
 end

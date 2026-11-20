@@ -7,8 +7,9 @@
 --     camera sits ahead and to the side, looking back at us and at it coming.
 --   Pickup: it rises under us; we are scooped up in a tumble and set on the seat behind its tower. A splash, a bump.
 --   Ride: it noses down and runs the herd's line at up to its trip's top speed (Shared/SubTrip.plan). The camera is behind it, wider with speed, with
---     speed lines and a rumble. A banner names the land.
---   Arrive: "NOW ARRIVING", at the drop speed; the camera swings out to the side.
+--     speed lines and a rumble. Each land crossed shows its title (UI/LandStrip), handing off fast (task t1).
+--   Arrive: "NOW ARRIVING" in the land title's look, in place of that land's own title, at the drop speed; the
+--     camera swings out to the side.
 --   Drop: on the server's word, flung forward into an ordinary hop (JumpController.fling), or, with our fish swum up
 --     beside the sub ("SubFish", driven here), kicked off in an arc onto its saddle; we tell the server ("SubLand").
 --   Then the sub peels away, up and to the side, and fades.
@@ -28,6 +29,7 @@ local Feel = require(script.Parent.Parent.Lib.Feel)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
+local LandStrip = require(script.Parent.Parent.UI.LandStrip)
 local SubPanel = require(script.Parent.Parent.UI.SubPanel)
 local JumpController = require(script.Parent.JumpController)
 
@@ -204,10 +206,15 @@ local function remove(player: Player)
 	if v and v == mine then
 		mine = nil
 		Shake.rumble("Sub", "Speed", 0)
+		-- given up before the drop: the land titles go back to normal, the arrival land's own included
+		if not v.Said.dropped then
+			LandStrip.subEnd(false)
+		end
 	end
 end
 
--- A banner over the middle of the screen, for a moment
+-- A banner over the middle of the screen, for a moment (NOW ARRIVING's own, only when there is no land strip to give
+-- it the land title's look)
 local function banner(top: string, big: string, colour: Color3, time: number)
 	local frame = Instance.new("Frame")
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -484,11 +491,19 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 	if t >= rideAt and once(v, "go") then
 		Feel.sound("Whoosh", 0.9, 0.55, 2.5)
 		Fx.burst(sub.Position - sub.LookVector * 14, 50, 0, 12)
-		banner("SUBMARINE", landName(trip.Land), Color3.fromRGB(255, 210, 60), 2.4)
+		-- (no banner here: Hugo, task t1, "let the intro text for submarines begone")
 	end
 	if t >= arriveAt and once(v, "arrive") then
-		banner("NOW ARRIVING", landName(trip.Land), Color3.fromRGB(120, 230, 255), 2.2)
+		-- the arrival land's title, in the land titles' look, handing off from the title still up
+		local zone = State.Zones[trip.Land]
+		if not LandStrip.arriving(trip.Land, if zone then zone.Name else ("Land " .. trip.Land)) then
+			banner("NOW ARRIVING", landName(trip.Land), Color3.fromRGB(120, 230, 255), 2.2)
+		end
 		Feel.sound("Swish", 0.6, 0.7, 0.6)
+	end
+	-- the drop: titles go back to their own pace (the arrival land's own title stays held back, LandStrip)
+	if t >= dropAt and once(v, "dropped") then
+		LandStrip.subEnd(true)
 	end
 	if t >= arriveAt and t < dropAt then
 		if trip.Fish then
@@ -596,6 +611,7 @@ local function watch(player: Player)
 		visuals[player] = v
 		if player == State.Player then
 			mine = v
+			LandStrip.subRun(trip.Land)
 			camPos, camFocus = workspace.CurrentCamera.CFrame.Position, nil
 			camKind = ""
 			camAnchor = Vector3.zero

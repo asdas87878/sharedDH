@@ -16,6 +16,41 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The tank in the shop style (2026-11-20, Hugo; NULLROOM task s3): in the game
+Hugo: "make placing down fishes UI cohesive with these styles" (the shop kit, below). Every piece of putting fish in
+the tank and choosing which earn is now drawn with `UI/Shop.luau`. **What any of it does is unchanged**: the same
+server actions (`Tank` Best / Equip / Unequip / PutIn / PutAll, `Place`, `TankRide`), the same reach, the same
+refusals. Run in Studio by script with sample fish on the capturing client only, not played by hand, not seen on a
+real phone.
+- **The popup (`UI/TankPanel.luau`)**, after the sell list shot: YOUR TANK on the **Kelp** header with the bubble icon
+  and what the tank earns ($X/s in green) before the red X. At the left a **Sort by** column: Income, Rarity, Size
+  (green = on; only this screen's order, never which fish earn), and a line saying only earning fish make coins, up
+  to N at once. The cards in a dark tray, in sections **In your hands** (gold), **Earning n/N** and **Stored**. At the
+  foot a bar with **Earning: $X/s**, a pill **Earning 3/4** (red **Tank full 4/4** when full), **PUT ALL IN (n)**
+  (gold, only while carrying) and **EQUIP BEST** (green while it would change something, else grey BEST EQUIPPED).
+- **A card** (150 x 218 points): tinted in its **rarity's colour** (lit at the top, deepening into the shop's slate;
+  the Secret's near-black drawn pink), the scale pattern and gloss, the **name in the rarity's colour**, a small line
+  with the rarity word and the size in its own hue, the fish's render in a dark well (gold or rainbow behind a Gold or
+  Rainbow fish, the variant chip at its corner, the archetype icons at its foot), the rate **$12/s in the shop's
+  green**, and one button: **EQUIP** green, **UNEQUIP** blue (an earning card has the kit's light border), **PUT IN**
+  gold, **FULL** grey when every earning place is taken (still pressable: the server answers and the toast says to
+  unequip one first).
+- **Refusals** come as a red kit bar over the tray's foot for two seconds. **No fish yet** is a line in the empty tray.
+- **The prompt on the glass (`UI/TankPrompt.luau`)**: the tank's ProximityPrompt is drawn by us (Style Custom): a pale
+  kit key cap (E; TAP on a phone, where pressing it presses the prompt) that fills green while held, beside a Kelp
+  plate with "Put in tank" or "Ride a fish" and the fish's name in its rarity's colour. It pops in.
+- **A fish goes in (the confirm)**: the line over the tank is a slate plate with a Kelp strip, "**Reef Shark** in your
+  tank!" (the name in its rarity's colour) and "+$12/s" in green with the cash sign; it rises and fades as before.
+- **The sign over the tank** (CLICK / TAP YOUR TANK, WALK CLOSER!) is a small Kelp plate like the header, and the
+  glass under the mouse is outlined in a light green with a faint green fill.
+- **A phone:** the window takes the whole height (its points scaled by the screen's height over 430, not 720), so a
+  card's name is about 15 pt at 844 x 390; the cards' columns follow the width.
+- **Not changed:** the catch slots along the bottom (their white ring still marks which fish the prompt puts in).
+
+**Seen** (`tools/ui/shop_kit/s3_capture.py` with the client `tank_client.luau`):
+[beside the reference](../attachments/tank-vs-ref.jpg), [sorted by rarity, full, empty](../attachments/tank-states.jpg),
+[the prompt and the confirm](../attachments/tank-prompt.jpg), [on a phone](../attachments/tank-phone.jpg).
+
 ## Shop style (2026-11-20, Hugo; NULLROOM task s1): the sub stand in the game, the rest ready
 Hugo: the buy screens should look like his three shots from another game in the genre (a sell list, an auras shop,
 a tier shop), "replicated as well as you can but more stylised and cohesive". We copy the **style** only, never its
@@ -59,8 +94,8 @@ phone.
   nothing opens it; the aura stand's owner calls `AuraShop.open(true)`. AURAS centred on the Lavender header, the
   twelve auras as cards in their own colour, "x1.5 Oxygen", the cash button grey "SOON" and a Robux button "SOON"
   (visual only: no product ids exist, none were made up). Your `Aura` shows EQUIPPED.
-- **The seahorse trainer's upgrade** is a prompt, not a screen (its sign is task s2); **the tank popup** is task s3,
-  which builds on this kit.
+- **The seahorse trainer's upgrade** is a prompt, not a screen (its sign is task s2); **the tank popup** is built on
+  this kit since task s3 (the section above).
 
 **Not uploaded.** The pictures are `art/ui/shop/` (`shop_body.png`, `shop_head.png`, `shop_icons.png`), drawn by
 `tools/ui/shop_kit/shop_art.py` (`--studio` copies them into Studio's content folder:

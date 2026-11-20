@@ -48,11 +48,12 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
 4. **The pick-up** (about 1 s): it rises under you, the camera swings out to the side, you are scooped up in a tumble
    (a tuck and a half-turn) and set on the seat behind the tower. A bump, a shake, the view kicks.
 5. **The run:** it noses down and goes. The view pulls back behind it and widens with speed, streaks of bubbles,
-   speed lines, a banner "SUBMARINE: Kelp Forest". It follows the herd's own line down the lane (the stream: the
+   speed lines. No banner as it sets off (Hugo, 2026-11-20: "let the intro text for submarines begone"). It follows the herd's own line down the lane (the stream: the
    middle of the open water, bent round the big things), well above the fish. 3.2 to 7 seconds whatever the land,
    its top speed growing with the distance (task f2, below: about 500 studs a second to land 2, 2,100 to land 5,
    4,250 to land 10), picking up over a fifth of the run and slowing over a quarter of it.
-6. **Arriving:** "NOW ARRIVING: Kelp Forest". It slows to the speed of a quick fish (90).
+6. **Arriving:** "NOW ARRIVING" over "KELP FOREST", in the land titles' own look (see "Titles on the run"). It
+   slows to the speed of a quick fish (90).
 7. **The drop-off**, one of two:
    - **(a) No fish picked:** the sub pitches its nose up and **flings you forward**. You leave at its speed into an
      ordinary hop (the pop, the glide, the drop, the lock and the hook), so you hook the nearest fish as in any hop.
@@ -66,6 +67,25 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
 8. **The sub peels away** up and to the side, and is gone.
 
 The player can't steer or hop while carried, and no Oxygen goes. The whole trip is decided by the server.
+
+### Titles on the run (task t1, Hugo 2026-11-20)
+Hugo: "let the intro text for submarines begone ... add a special rule for submarines, if title pops up, make sure
+that the old ones blends out quicker to fit in the next title directly after, now arriving text should be just as
+stylised as the area text ... replace the area text with the arriving text in these cases."
+- **No intro:** nothing comes up as the sub sets off.
+- **Each land crossed** shows its ordinary land title (`UI/LandStrip`'s intro, `Kit.LandIntroLook`, Punch by
+  default). On a run a title due while the last one still shows hands off: the old one blends out in
+  `Config.SubTitles.Out` (0.18 s), the new one comes in `Gap` (0.04 s) after it is gone. Never two at once, and
+  nothing queues: if lands go by faster than that, only the newest land's title comes in.
+- **NOW ARRIVING** is the arrival land's title, in the same look: the small line over the name says NOW ARRIVING
+  where it would say LAND 5, the name in the land's colours, the same pop in and fade (looks 1 and 2; the other looks
+  use Punch's layout for it). It stays `SubTitles.ArriveHold` (1.9 s) and hands off from any title still up.
+- **The arrival land's own title never shows** on a sub trip, even when the sub crosses into it before the slow-down
+  or you cross the border after the drop; also when it is the first land crossed (a trip to land 2). Held back until
+  you are back on the dock; a trip given up before the drop releases it.
+- Swimming and riding keep their titles exactly as before; only a title that came up on a run hands off to the next.
+- Checked by `tools/studio/sub_titles_check.py` (a run to land 10 and one to land 2, every title logged with its
+  time from the trip's start).
 
 ## The held fish, and a faster sub (task f2, Hugo 2026-11-20)
 > "jumping into the gameplay loop with the fish should let you ride it after submarine, make animation and
