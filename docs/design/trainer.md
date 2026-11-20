@@ -71,6 +71,10 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
   level-12 seahorse, its name in gold, "+600 Oxygen/s" and one gold MAX LEVEL block. Each sign shows its plot owner's
   level, so your own is yours; it changes (with a pop) the moment you upgrade. Upgrading is still E by the ride. The
   floating TRAIN sign keeps only its two lines (its level lines are gone: the board says them).
+  Board 10.8 by 6.48 studs, its layout 540 by 324 at 50 pixels a stud (title about 1.1 studs tall). Seen in Studio
+  beside the reference: [upgrade-sign-vs-ref.jpg](../attachments/upgrade-sign-vs-ref.jpg), MAX and the play camera
+  [upgrade-sign-max-play.jpg](../attachments/upgrade-sign-max-play.jpg), the play camera at phone size
+  [upgrade-sign-phone.jpg](../attachments/upgrade-sign-phone.jpg) (the title about 18 pt, the stat line about 10 pt).
 - **What a level gives:** riding it gains that level's Oxygen a second (`Config.Train.Levels[n].Oxygen`) in place of
   `Train.Rate`, plus the old share of max (`Train.Share`) until the economy is picked. **The Oxygen and the prices
   are placeholders** (marked so in Config): fixed whole numbers, waiting for Hugo's pick of the economy draft
