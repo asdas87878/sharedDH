@@ -83,7 +83,7 @@ local function standSign(player, away, plotName)
 	local plot = workspace.ClaudeBlockout.Dock.Plots:FindFirstChild(plotName or "") or plotOf(player)
 	local board, spot = plot.UpgradeBoard, plot.TrainerSpot
 	local face = board.CFrame.LookVector * Vector3.new(1, 0, 1)
-	local at = Vector3.new(spot.Position.X, spot.Position.Y + 3.5, spot.Position.Z) + face.Unit * (4 + away)
+	local at = Vector3.new(board.Position.X, spot.Position.Y + 3.5, board.Position.Z) + face.Unit * (6 + away)
 	put(player, CFrame.lookAt(at, Vector3.new(board.Position.X, at.Y, board.Position.Z)))
 	local eye = board.Position + face.Unit * 15 + Vector3.new(0, 0.5, 0)
 	workspace:SetAttribute("E2Cam", CFrame.lookAt(eye, board.Position))
@@ -118,6 +118,30 @@ RS:GetAttributeChangedSignal("E2Cmd"):Connect(function()
 		elseif verb == "level" then
 			game:GetService("ServerStorage").TrainerTest:Invoke("level", player.UserId, tonumber(a))
 			return "level " .. a
+		elseif verb == "still" then
+			-- for the pictures: the player beside (not in front of) the thing, the camera square on to it
+			local plot = plotOf(player)
+			if a == "sign" then
+				local board = plot.UpgradeBoard
+				local face = (board.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+				local side = board.CFrame.RightVector
+				local at = Vector3.new(board.Position.X, plot.TrainerSpot.Position.Y + 3.5, board.Position.Z) + face * 5 - side * 8
+				put(player, CFrame.lookAt(at, Vector3.new(board.Position.X, at.Y, board.Position.Z)))
+				local eye = board.Position + face * 12.5 - side * 2 + Vector3.new(0, 0.6, 0)
+				workspace:SetAttribute("E2Cam", CFrame.lookAt(eye, board.Position + Vector3.new(0, -1.2, 0)))
+			else
+				standTank(player, 0)
+				local water, pad = plot.TankWater, plot:FindFirstChild("Pad") or plot:FindFirstChild("CollectPad")
+				local out = Vector3.new(pad.Position.X - water.Position.X, 0, pad.Position.Z - water.Position.Z).Unit
+				local side = out:Cross(Vector3.yAxis)
+				-- (the control's attachment is the client's: the front glass worked out the same way, a little over the sand)
+				local half = math.max(water.Size.X, water.Size.Z) / 2
+				local front = water.Position + out * half
+				front = Vector3.new(front.X, water.Position.Y - water.Size.Y / 2 + 4, front.Z)
+				local eye = front + out * 20 + side * 9 + Vector3.new(0, 6, 0)
+				workspace:SetAttribute("E2Cam", CFrame.lookAt(eye, front + Vector3.new(0, 3, 0)))
+			end
+			return "still " .. a
 		elseif verb == "kill" then
 			player.Character.Humanoid.Health = 0
 			return "killed"
@@ -231,7 +255,7 @@ local function handle(cmd)
 		task.wait(1.2)
 		local plot = workspace.ClaudeBlockout.Dock.Plots:FindFirstChild(tostring(player:GetAttribute("Plot")))
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		local gap = if plot and root then ((plot.TrainerSpot.Position - root.Position) * Vector3.new(1, 0, 1)).Magnitude else -1
+		local gap = if plot and root then ((plot.UpgradeBoard.Position - root.Position) * Vector3.new(1, 0, 1)).Magnitude else -1
 		out = "texts=" .. table.concat(seen, ",") .. " mid=" .. mid .. " after=" .. cashText() .. string.format(" gap=%.1f", gap)
 	elseif verb == "other" then
 		local hit = UpgradeSign.press(a)
@@ -239,7 +263,7 @@ local function handle(cmd)
 		out = "pressed=" .. tostring(hit) .. " text=" .. cashText(player.PlayerGui:FindFirstChild("UpgradeSign_" .. a))
 	elseif verb == "rawup" then
 		-- the remote itself, `a` times at once (past the sign's own one-at-a-time)
-		for i = 1, tonumber(a) or 1 do
+		for i = 1, math.clamp(tonumber(a) or 1, 1, 5) do
 			RS.Remotes.Trainer:FireServer("Up")
 		end
 		task.wait(0.8)
@@ -435,6 +459,60 @@ def shot(path, box=None):
     return im.crop((cx - half, TOP, cx + half, SHOT[1]))
 
 
+def still(path):
+    """The game view alone (the Studio window's shot holds the view at its left, the panels at its right)."""
+    raw = OUT / ("raw_" + Path(path).name)
+    raw.unlink(missing_ok=True)
+    run(["shot", str(raw)], timeout=60)
+    size, end = -1, time.time() + 10
+    while time.time() < end:
+        now = raw.stat().st_size if raw.exists() else -1
+        if now > 0 and now == size:
+            break
+        size = now
+        time.sleep(0.15)
+    im = Image.open(raw).convert("RGB")
+    # (the view: from the left edge to the explorer's border, the toolbar's foot to the command bar)
+    w, h = im.size
+    right = next((x for x in range(w - 1, w // 2, -1) if im.getpixel((x, h // 2))[2] > 200 and im.getpixel((x, h // 2))[0] < 120), w)
+    # (the view's top: under Studio's ribbon and tabs, the first row from the top whose middle is not light grey)
+    top = next((y for y in range(10, h // 3) if sum(im.getpixel((right // 2, y))) < 600 and y > 100), 124)
+    im.crop((0, top, right, h - 4)).save(path)
+
+
+def stills():
+    """Pictures only, in a playtest after `run` (or alone): the tank's control, the sign free, paid and maxed."""
+    cmd("setup|" + json.dumps(HANDS), 2.5)
+    do("hold|0|", 1)
+    cmd("still|tank", 1.5)
+    time.sleep(1.2)
+    still(ATTACH / "e2-tank-click.png")
+    setw(HudTouch=True)
+    time.sleep(0.8)
+    still(OUT / "tank_phone.png")
+    setw(HudTouch=None)
+    cmd("level|3")
+    cmd("free|1")
+    do("free|1")
+    cmd("still|sign", 1.5)
+    time.sleep(1.2)
+    still(ATTACH / "e2-sign-free.png")
+    cmd("free|0")
+    do("free|0")
+    time.sleep(0.8)
+    still(ATTACH / "e2-sign-paid.png")
+    cmd("sign|30", 1.2)
+    do("sign|1|0", 0.2)
+    cmd("still|sign", 0.4)  # (back in view while it still says WALK CLOSER)
+    still(OUT / "sign_walk_closer.png")
+    cmd("free|1")
+    do("free|1")
+    cmd("level|12")
+    time.sleep(1.2)
+    still(OUT / "sign_max.png")
+    cmd("level|3")
+
+
 def check():
     log = []
     fails = []
@@ -563,7 +641,7 @@ def check():
     do("free|1")
 
     # 5. refusals: too far, another's sign, dead, maxed
-    cmd("sign|20", 1.2)
+    cmd("sign|30", 1.2)
     s0 = state()
     r = do("sign|1|0")
     s1 = state()
@@ -588,7 +666,7 @@ def check():
     time.sleep(0.6)
     cmd("kill", 0.3)
     s0 = state()
-    r = do("rawup")
+    r = do("rawup|1")
     s1 = state()
     note("  " + r)
     expect("dead: refused", "UpNo:Dead" in r and s1["level"] == s0["level"], r)
@@ -602,5 +680,7 @@ if __name__ == "__main__":
         print(install())
     elif what == "remove":
         print(install(remove=True))
+    elif what == "stills":
+        stills()
     else:
         check()

@@ -22,7 +22,7 @@
 -- coil in that level's colours from the stand's top straight into the seahorse's body (no plate). A seated rider gains that
 -- level's Oxygen a second (Config.Train.Levels). The owner asks to go up a level by the ride ("Up"; a click on the
 -- cash block of their upgrade sign, UI.UpgradeSign, task e2): alive, on the dock, within Train.UpgradeNear of its
--- coil, one ask in Train.UpAgain, for the level's price (free while Train.Free is 1); the ride is rebuilt at once (a rider stays seated on the new one) and the model's Build and UpgradeAt tell
+-- coil or Train.SignNear of the sign, one ask in Train.UpAgain, for the level's price (free while Train.Free is 1); the ride is rebuilt at once (a rider stays seated on the new one) and the model's Build and UpgradeAt tell
 -- every machine to play the upgrade. Server "Up", level | "UpNo", reason. With no models installed the kit's toy
 -- stays as before and only the numbers change.
 local Players = game:GetService("Players")
@@ -740,10 +740,15 @@ function TrainService.Start()
 			remote:FireClient(player, "UpNo", "Dead")
 			return
 		end
-		if
-			RideService.stateOf(player) ~= "Dock"
-			or flat(ride.Axis - root.Position).Magnitude > Config.Train.UpgradeNear
-		then
+		-- (near the ride, or in front of its upgrade sign: the sign's cash block is what is clicked)
+		local board = ride.Plot:FindFirstChild("UpgradeBoard")
+		local near = flat(ride.Axis - root.Position).Magnitude <= Config.Train.UpgradeNear
+			or (
+				board ~= nil
+				and board:IsA("BasePart")
+				and flat(board.Position - root.Position).Magnitude <= Config.Train.SignNear
+			)
+		if RideService.stateOf(player) ~= "Dock" or not near then
 			remote:FireClient(player, "UpNo", "Near")
 			return
 		end

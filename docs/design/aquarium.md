@@ -17,10 +17,13 @@ The code: `src/server/Services/AquariumService.luau`, `src/client/Controllers/Aq
    tank's glass, facing it, not at the dock's spawn. (Until 2026-11-20 there was a green pad there; Hugo had it
    taken out, task k1.)
 4. **You put them in, one at a time** (Hugo, 2026-11-18: "make the player actually be able to place down fishes in
-   aquarium once back"). Walk up to your tank's front glass: a prompt on the glass, "Put in tank" (hold E a quarter
-   second, or tap it; since 2026-11-20 on the glass itself, the green pad is gone), puts in the fish
-   with the white ring in the slots: the newest, or the one you clicked. While the prompt shows, a click on a caught
-   slot puts that one in at once. The view turns to the tank and a line rises over it: the fish's name and what it
+   aquarium once back"). Walk up to your tank's front glass (within 16 studs): a control on the glass, a green CLICK
+   cap (TAP on a phone) and "PUT IN TANK" with the fish's name, puts in the fish with the white ring in the slots (the
+   held one, or the newest) on **one click or tap**: no E, no hold (task e2, Hugo 2026-11-20; since 2026-11-20 on the
+   glass itself, the green pad is gone). A click or number key on a caught slot always *holds* that fish, at the tank
+   too: only this control, or the popup's PUT IN / PUT ALL IN, puts a fish in. With empty hands and fish in the tank
+   the same control says "RIDE A FISH". A refusal leaves the fish in your slots and says why on the control for a
+   moment (WALK CLOSER!, THAT FISH IS GONE). The view turns to the tank and a line rises over it: the fish's name and what it
    adds a second. The server checks it: on the dock, at your own tank (on the plot, or near its water: the popup's
    reach), and that slot still holds that fish.
 5. **They swim there and earn.** Up to seven are *equipped*: they earn coins every second and swim in the tank.

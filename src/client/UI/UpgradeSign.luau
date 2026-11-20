@@ -360,17 +360,21 @@ local function remote(): RemoteEvent?
 	return if r and r:IsA("RemoteEvent") then r else nil
 end
 
--- Near enough to our own ride to upgrade: flat, from its TrainerSpot (the server measures from the coil's foot,
--- the same place, with the same Train.UpgradeNear)
-local function nearOwn(plot: Instance): boolean
+-- Near enough to upgrade, flat: within Train.UpgradeNear of our ride (its TrainerSpot, where the server's coil foot
+-- is) or within Train.SignNear of the sign's board (standing in front of it to read it). TrainService checks the same.
+local function nearOwn(plot: Instance, board: BasePart): boolean
 	local spot = plot:FindFirstChild("TrainerSpot")
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not (spot and spot:IsA("BasePart") and root and root:IsA("BasePart")) then
+	if not (root and root:IsA("BasePart")) then
 		return false
 	end
-	local gap = (spot.Position - root.Position) * Vector3.new(1, 0, 1)
-	return gap.Magnitude <= Config.Train.UpgradeNear
+	local flat = Vector3.new(1, 0, 1)
+	local toBoard = ((board.Position - root.Position) * flat).Magnitude
+	local toRide = if spot and spot:IsA("BasePart")
+		then ((spot.Position - root.Position) * flat).Magnitude
+		else math.huge
+	return toRide <= Config.Train.UpgradeNear or toBoard <= Config.Train.SignNear
 end
 
 -- A click or tap on a sign's cash block: only our own sign asks, once, while nothing is pending
@@ -388,7 +392,7 @@ local function press(sign: Sign)
 	task.delay(0.12, function()
 		sign.CashDip.Scale = 1
 	end)
-	if not nearOwn(sign.Plot) then
+	if not nearOwn(sign.Plot, sign.Board) then
 		saying = { Text = "WALK CLOSER!", Until = os.clock() + 1.6 }
 	else
 		askedAt = os.clock()

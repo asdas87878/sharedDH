@@ -3,6 +3,25 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · No E: the seahorse sign's cash block and the tank's control are clicks (NULLROOM task e2, Hugo's PC)
+**State:** in the game code (most of it went in with the 10:24 vault sync, `8f14da8`); checked by a scripted Studio
+playtest, `python tools/studio/e2_click_check.py install|run|stills|remove`: 22 of 22 pass (log `work/e2/check.log`).
+Not played by hand; the presses go through the same functions the buttons' Activated runs (a real mouse click can't be
+made on this PC without taking the window).
+- **Gone:** the TrainerUpgrade E prompt (TrainerController) and the tank's PlaceFish E prompt with its hold bar
+  (AquariumController); no ProximityPrompt is left on the plots (the sub stand's E is another task's). The near-tank
+  "click a slot puts it in" is gone too: a slot click always holds.
+- **The sign** (`UI/UpgradeSign`): the cash block is a button on our own sign only, not maxed, near enough (else
+  WALK CLOSER!), one ask at a time ("..." till the answer). Robux block: no button. Server (`TrainService`): also
+  near the board (`Train.SignNear` 12), `Train.UpAgain` 0.5 s between asks, refuses a dead player ("Dead").
+- **The tank** (`UI/TankPrompt.attach(attachment, onPress)`): a CLICK/TAP cap and the PUT IN TANK / RIDE A FISH plate,
+  one button, shown within 16 studs of the glass; a refused Place now comes back as Ride "Denied", "Place", "Gone"
+  and is said on the control. The click doesn't open the tank popup.
+- **Checked:** free and paid upgrades (paid charged once on a double click), too few coins, too far, another's sign,
+  maxed, dead, two raw asks at once = one level; one click = one fish (the shown one), double click = one, phone TAP.
+  Not checked: the refusal text on the tank control, a narrow phone screen for the sign, two players.
+- Shots: `docs/attachments/e2-sign-free.png`, `e2-sign-paid.png`, `e2-tank-click.png`.
+
 ## 2026-11-20 · What a fish needs is its own; the seahorse gives whole Oxygen once a second (NULLROOM task e1, Hugo's PC)
 **State:** in the game code (part of it went in with the 10:13 vault sync, `3de0fb6`); checked by script in Studio
 Edit (`tools/studio/oxygen_check.luau`: 12 of 12 pass) and one scripted playtest (the trainer's gain, the tags);

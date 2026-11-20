@@ -59,9 +59,12 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
 - **Each plot shows its owner's level.** The player's `TrainerLevel` (1 to 12, the server's, for the session like
   the coins) picks which seahorse and stand the plot's ride is: `ReplicatedStorage.TrainerModels.T<n>`. A plot with no
   owner shows level 1.
-- **Going up a level:** stand by your own seahorse (within `Train.UpgradeNear`, 14 studs, seated or not) and press E
-  ("Upgrade", the prompt names the next level and its price). The server checks you are on the dock at your own ride,
-  takes the price (free while `Train.Free` is 1, as the subs are), and builds the new level at once. A seated rider
+- **Going up a level:** click (or tap) the red cash block on your own upgrade sign (task e2, Hugo 2026-11-20: no E
+  prompt). You must be within `Train.UpgradeNear` (14 studs) of your seahorse or `Train.SignNear` (12) of the sign,
+  else the block says WALK CLOSER! and nothing is sent; it says "..." until the server answers, and a press within
+  `Train.UpAgain` (0.5 s) of the last ask is the same click (the server ignores it too). Other players' signs and the
+  purple Robux block do nothing when clicked (no product yet). The server checks you are alive, on the dock at your
+  own ride, takes the price (free while `Train.Free` is 1, as the subs are), and builds the new level at once. A seated rider
   stays seated, welded to the new seahorse.
 - **The upgrade, on every machine:** the new seahorse springs up from the coil (a quarter size to full, with an
   overshoot, 0.45 s), a white flash fades off it (0.7 s), sparks burst from the top of the coil, and the spring bounces.
