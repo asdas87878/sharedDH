@@ -43,15 +43,15 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
    The shop closes as you walk away. A small ticket at the left edge says where the sub will take you.
 2. **You jump in.** With a destination picked, stepping off the dock is no longer the dive-in's auto-hop: you drop
    in with a splash and **swim** at the surface, breaststroking forward.
-3. **The sub swims in** from ahead and below (2 s), its light on you, a wake of bubbles, the view tipped to show it
+3. **The sub swims in** from ahead and below (1.6 s), its light on you, a wake of bubbles, the view tipped to show it
    coming.
-4. **The pick-up** (1.2 s): it rises under you, the camera swings out to the side, you are scooped up in a tumble
+4. **The pick-up** (about 1 s): it rises under you, the camera swings out to the side, you are scooped up in a tumble
    (a tuck and a half-turn) and set on the seat behind the tower. A bump, a shake, the view kicks.
 5. **The run:** it noses down and goes. The view pulls back behind it and widens with speed, streaks of bubbles,
    speed lines, a banner "SUBMARINE: Kelp Forest". It follows the herd's own line down the lane (the stream: the
-   middle of the open water, bent round the big things), well above the fish. 4 to 10 seconds whatever the land
-   (the reference's flight is about ten): 520 studs a second at least, faster for a far land (measured: 581 to land
-   3, 1,063 to land 5, 2,530 to land 10), picking up over 1.2 s and slowing over 1.6 s.
+   middle of the open water, bent round the big things), well above the fish. 3.2 to 7 seconds whatever the land,
+   its top speed growing with the distance (task f2, below: about 500 studs a second to land 2, 2,100 to land 5,
+   4,250 to land 10), picking up over a fifth of the run and slowing over a quarter of it.
 6. **Arriving:** "NOW ARRIVING: Kelp Forest". It slows to the speed of a quick fish (90).
 7. **The drop-off**, one of two:
    - **(a) No fish picked:** the sub pitches its nose up and **flings you forward**. You leave at its speed into an
@@ -59,12 +59,49 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
      It is the dive's first hop, so a miss leaves you floating rather than drowning (as the dive-in's). Six fish of
      the land's herd are put in the water just ahead of the drop point 2.5 s before you arrive (`Sub.Stock`): without
      them the first fling to land 5 found nothing in reach.
-   - **(b) A fish picked:** your fish **swims up beside the sub** (from behind, on the right, 1.4 s, matching its
-     speed), then the sub **kicks you off sideways** in an arc onto its saddle (0.6 s). You land as on any fish: the
+   - **(b) A fish held or picked:** your fish **swims up beside the sub** (from behind, on the right, 1.1 s, matching
+     its speed), then the sub **kicks you off sideways** in an arc onto its saddle (0.5 s). The fish you hold over
+     your head as you go in comes first (task f2, below); else the tank fish picked under RIDE WITH. You land as on any fish: the
      shake, the splash, the refill. From there you play normally.
 8. **The sub peels away** up and to the side, and is gone.
 
 The player can't steer or hop while carried, and no Oxygen goes. The whole trip is decided by the server.
+
+## The held fish, and a faster sub (task f2, Hugo 2026-11-20)
+> "jumping into the gameplay loop with the fish should let you ride it after submarine, make animation and
+> travelling slightly faster, make travelling faster the further away the destination too."
+
+**Built and run by script in Studio; not played by hand** ([the playtest](../playtests/2026-11-20-held-fish-sub.md),
+clip: [held-sub-ride.gif](../attachments/held-sub-ride.gif)).
+- **The held fish rides with you.** Hold a fish from your hands over your head on the dock ([holding](holding.md)) and
+  go into the water. With a sub and a land picked: after the run that fish swims up beside the sub and the kick puts
+  you on it, riding (the drop-off (b) above). With no sub (NO SUB equipped, no land, or `Sub.On` 0): you are put
+  straight on it where you go in, instead of the dive-in's hop. It is that very fish: its kind, size and colour, so
+  its speed and archetypes too. It is yours, so riding it tames nothing new; it is held to the usual rule, so a fish
+  too strong for your Oxygen breaks off the meter and turns angry as any would (seen: an Epic Reef Shark on the
+  starting Oxygen).
+- **It is borrowed, never lost** (a reading, not confirmed by Hugo): it stays in your hands the whole dive, and the
+  fish in the water is a copy made for the ride. A miss, a drown or the end of the dive takes nothing; back on the
+  dock it is still in your hands and still held over your head. Riding another fish leaves the copy to swim on in
+  the herd.
+- **Which fish:** the held one wins over the tank fish picked under RIDE WITH; with nothing held, the tank pick works
+  as before; with neither, the fling. Nothing held on a plain dive-in: the dive-in's hop as before.
+- **Faster animations:** every phase about a fifth shorter: the approach 2.0 to 1.6 s, the pick-up 1.2 to 0.96, the
+  arrival 0.8 to 0.64, the fling 1.0 to 0.8, the fish's swim-in 1.4 to 1.12, the kick 0.6 to 0.48.
+- **Faster runs, faster still when far:** the top speed is `Sub.Speed` (620) plus `Sub.SpeedPer` (0.17) for each
+  stud of the run; the run is then kept between `MinRide` 3.2 s and `MaxRide` 7 s. Speeding up takes `UpShare` (a
+  fifth) of the run and slowing `DownShare` (a quarter), so a far run's burst is as big as a near one's. The camera
+  widens with speed as before (`Fov` 18 up to `Speed`), and up to `FovFar` (10) more on the way to `FovFarAt`
+  (4,000 studs a second), so a far land's run looks faster too. The math is `Shared/SubTrip.plan`.
+
+Measured in Studio, 2026-11-20 (the run is the pick-up's end to "NOW ARRIVING"; "in to drop" is from the water to the
+drop). Before is the old plan on the same distances, matching the 2026-11-17 logs:
+
+| Land | Run distance | Before: run, top speed | Before: in to drop | After: run, top speed | After: in to drop |
+|---|---|---|---|---|---|
+| 2 Coral Reef | 1,294 studs | 4.0 s, 520 | 8.0 s | 3.2 s, 507 | 6.4 s |
+| 5 Open Blue | 8,822 studs | 10.0 s, 1,017 | 14.0 s | 5.3 s, 2,120 | 8.5 s |
+| 10 The Underworld | 21,365 studs | 10.0 s, 2,476 | 14.0 s | 6.5 s, 4,252 | 9.7 s |
 
 ## Readings, not confirmed
 - **The trigger** (reading, not confirmed). Hugo's words are "jump in the water start swimming while the submarine
@@ -128,6 +165,8 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 | The fish at the drop point are kept in the water from the moment the sub sets off, and six more put just ahead of it | `FishService.keepFor`, `FishService.stockNear` |
 | The fling: an ordinary hop, launched at the sub's drop speed (`Config.hopFrom`, both sides) | `RideService.fling`; client `JumpController.fling` |
 | Your fish beside the sub, held for you, driven by your machine, then the kick onto it | `FishService.spawnFor`; `RideService.seatOn` |
+| Which fish: the held one (`AquariumService.heldOf`), else the tank pick, fixed as the trip is made; the plain dive-in onto the held fish | `SubService` (`rideWith`, `diveFish`); `RideService.DiveFish` |
+| The run's plan: top speed by distance, kept between MinRide and MaxRide | `Shared/SubTrip.plan` |
 | The sub (placeholder parts), its motion, the rider's motion, the camera, the bubbles, banners | `src/client/Controllers/SubController.luau` |
 | The panel and the ticket | `src/client/UI/SubPanel.luau`; the SUB button in `HubButtons` |
 | The rider's poses while carried | `AnimController` ("Carried": a swim, a tuck, a crouch on the seat, the streamlined fling) |

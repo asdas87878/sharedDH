@@ -1,0 +1,112 @@
+== setup: hands [["ReefShark", "Big", "Gold"], ["Pufferfish", "Normal", ""]], a Small Clownfish in the tank
+[warn] ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+home {"Tank":"[]","Near":false,"Fish":"","Tier":0,"Equip":0,"State":"Dock","Coins":0,"Dest":0}
+give {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"","Tier":0,"Equip":0,"State":"Dock","Coins":1000000000000,"Dest":0}
+hands [ReefShark/Big/Gold,Pufferfish/Normal/]
+== timing: sub to land 2, nothing held (the fling)
+pick {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"","Tier":9,"Equip":9,"State":"Dock","Coins":1000000000000,"Dest":2}
+0.00 Dock nil
+PLAN land 2 fish=false approach 1.60 pickup 0.96 up 0.64 cruise 1.76 down 0.80 RUN 3.20 top 507 runDist 1294 arrive 0.64 drop 0.80 TOTAL_TO_DROP 6.40
+0.05 Carried Approach
+1.65 Carried Pickup
+2.58 Carried Ride
+5.82 Carried Arrive
+6.47 Jumping Drop
+7.23 Jumping nil
+10.02 Free nil
+RIDING none size=- variant=- tamed-new=nil state=Free held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=20
+home: state Dock held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== timing: sub to land 5, nothing held (the fling)
+pick {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"","Tier":9,"Equip":9,"State":"Dock","Coins":1000000000062.4642,"Dest":5}
+0.00 Dock nil
+PLAN land 5 fish=false approach 1.60 pickup 0.96 up 1.07 cruise 2.93 down 1.33 RUN 5.33 top 2120 runDist 8822 arrive 0.64 drop 0.80 TOTAL_TO_DROP 8.53
+0.05 Carried Approach
+1.65 Carried Pickup
+2.63 Carried Ride
+7.95 Carried Arrive
+8.60 Jumping Drop
+9.37 Jumping nil
+10.51 Riding nil
+RIDING HammerheadShark size=Normal variant= tamed-new=nil state=Riding held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=13.3
+home: state Dock held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== timing: sub to land 10, nothing held (the fling)
+pick {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"","Tier":9,"Equip":9,"State":"Dock","Coins":1000000000089.4915,"Dest":10}
+0.00 Dock nil
+PLAN land 10 fish=false approach 1.60 pickup 0.96 up 1.29 cruise 3.55 down 1.62 RUN 6.46 top 4252 runDist 21365 arrive 0.64 drop 0.80 TOTAL_TO_DROP 9.66
+0.08 Carried Approach
+1.67 Carried Pickup
+2.61 Carried Ride
+9.06 Carried Arrive
+9.72 Jumping Drop
+10.50 Jumping nil
+11.51 Riding nil
+RIDING Megalodon size=Normal variant= tamed-new=nil state=Riding held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=13.3
+home: state Dock held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== held Reef Shark (Big, Gold), sub to land 5, the tank's Clownfish picked too
+hold: denied= held=ReefShark @hold|1|ReefShark|1795157556.9893155
+pick {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"Clownfish|Small|","Tier":9,"Equip":9,"State":"Dock","Coins":1000000000123.1987,"Dest":5}
+state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+0.00 Dock nil
+PLAN land 5 fish=true approach 1.60 pickup 0.96 up 1.07 cruise 2.93 down 1.33 RUN 5.33 top 2120 runDist 8822 arrive 0.64 drop 0.48 TOTAL_TO_DROP 8.53
+0.07 Carried Approach
+1.67 Carried Pickup
+2.59 Carried Ride
+7.97 Carried Arrive
+8.60 Carried Drop
+9.03 Carried nil
+9.15 Riding nil
+RIDING ReefShark size=Big variant=Gold tamed-new=nil state=Riding held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=13.3
+-- home after the ride (as after a drown): the fish must still be in the hands, held again
+home: state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== plain dive-in (no sub equipped), holding the Reef Shark
+hold: denied= held=ReefShark @hold|1|ReefShark|1795157571.2371113
+equip {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"Clownfish|Small|","Tier":9,"Equip":0,"State":"Dock","Coins":1000000000150.0948,"Dest":0}
+state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+0.00 Dock nil
+0.08 Riding nil
+RIDING ReefShark size=Big variant=Gold tamed-new=nil state=Riding held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=13.3
+home: state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== plain dive-in, nothing held
+put away: denied= held=nil @hold|0||1795157576.1525226
+0.00 Dock nil
+0.07 Free nil
+0.25 Jumping nil
+1.10 Riding nil
+RIDING YellowTang size=Normal variant= tamed-new=0.775 state=Riding held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=65.6
+home: state Dock held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== setup: hands [["ReefShark", "Big", "Gold"], ["Pufferfish", "Normal", ""]], a Small Clownfish in the tank
+home {"Tank":"[]","Near":false,"Fish":"","Tier":0,"Equip":0,"State":"Dock","Coins":0,"Dest":0}
+give {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"","Tier":0,"Equip":0,"State":"Dock","Coins":1000000000000,"Dest":0}
+hands [ReefShark/Big/Gold,Pufferfish/Normal/]
+== held Reef Shark (Big, Gold), sub to land 5, the tank's Clownfish picked too
+hold: denied= held=ReefShark @hold|1|ReefShark|1795157672.831544
+pick {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"Clownfish|Small|","Tier":9,"Equip":9,"State":"Dock","Coins":1000000000002.0682,"Dest":5}
+state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+0.00 Dock nil
+PLAN land 5 fish=true approach 1.60 pickup 0.96 up 1.07 cruise 2.93 down 1.33 RUN 5.33 top 2120 runDist 8822 arrive 0.64 drop 0.48 TOTAL_TO_DROP 8.53
+0.05 Carried Approach
+1.63 Carried Pickup
+2.60 Carried Ride
+7.92 Carried Arrive
+8.60 Carried Drop
+9.03 Carried nil
+9.13 Riding nil
+RIDING ReefShark size=Big variant=Gold tamed-new=nil state=Riding held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=13.3
+-- home after the ride (as after a drown): the fish must still be in the hands, held again
+home: state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== plain dive-in (no sub equipped), holding the Reef Shark
+hold: denied= held=ReefShark @hold|1|ReefShark|1795157687.234114
+equip {"Tank":"[[\"Clownfish\",\"Small\",\"\"]]","Near":false,"Fish":"Clownfish|Small|","Tier":9,"Equip":0,"State":"Dock","Coins":1000000000031.1349,"Dest":0}
+state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+0.00 Dock nil
+0.06 Riding nil
+RIDING ReefShark size=Big variant=Gold tamed-new=nil state=Riding held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=13.3
+home: state Dock held=ReefShark hands=[ReefShark/Big/Gold,Pufferfish/Normal/]
+== plain dive-in, nothing held
+put away: denied= held=nil @hold|0||1795157693.364753
+0.00 Dock nil
+0.05 Free nil
+0.23 Jumping nil
+1.15 Riding nil
+RIDING FlyingFish size=Normal variant= tamed-new=0.75 state=Riding held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/] oxygen=64.4
+home: state Dock held=nil hands=[ReefShark/Big/Gold,Pufferfish/Normal/]

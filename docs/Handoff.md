@@ -3,6 +3,21 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · The held fish rides after the sub; a faster sub, faster still to far lands (NULLROOM task f2, Hugo's PC)
+**State:** in the game code (the code went in with the 07:49 vault sync, `518438f`); run by script in a Studio
+playtest; **not played by hand**. All in [the submarine](design/submarine.md), "The held fish, and a faster sub";
+playtest [2026-11-20-held-fish-sub](playtests/2026-11-20-held-fish-sub.md), clip `docs/attachments/held-sub-ride.gif`.
+- **The held fish (task f1's) rides with you:** after the sub run it swims up beside the sub and the kick seats you on
+  it; with no sub, you are seated on it as you go in, instead of the dive-in's hop. It is the same kind, size and
+  colour. It beats the tank's RIDE WITH pick. It's a copy: the hands keep the fish whatever happens.
+  `SubService` (`rideWith`, `diveFish`, `Sub.Ride`), `RideService.DiveFish` (a new hook, asked after `Diving`).
+- **Faster:** every sub phase about 20% shorter. The run's top speed is `Sub.Speed` 620 + `Sub.SpeedPer` 0.17 per
+  stud, kept between `MinRide` 3.2 s and `MaxRide` 7 s, with the speed-up and slow-down as shares of the run
+  (`UpShare`, `DownShare`). From the water to the drop: land 2 8.0 to 6.4 s, land 5 14.0 to 8.5, land 10 14.0 to 9.7.
+  The math is in `Shared/SubTrip.plan`; the camera widens up to `Sub.FovFar` more on fast runs (one line in
+  `SubController`).
+- New test driver `tools/studio/held_sub_check.py`.
+
 ## 2026-11-20 · No green pad; ride your tank's fish inside the tank (NULLROOM task k1, Hugo's PC)
 **State:** in the game code; checked in a Studio playtest by script (placing, getting on, 30 s of riding, getting off);
 **not seen by eye**: Studio's window is off-screen, its pictures frozen, so no gif. All in

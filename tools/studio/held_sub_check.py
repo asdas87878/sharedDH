@@ -1,6 +1,6 @@
 """The held fish rides after the sub (task f2, docs/design/submarine.md): checked and timed in a Studio playtest.
     python tools/studio/held_sub_check.py install | remove   (in Edit, before Play: a server Script and a LocalScript)
-    python tools/studio/held_sub_check.py run                (in a playtest: every check, the timing, the shots)
+    python tools/studio/held_sub_check.py run [timing] [held] [plain]   (in a playtest; each stage sets up again; the log is appended)
 How: the server Script puts fish in the player's hands (RideService.giveCarried) and one in their tank, buys every sub
 (ServerStorage.SubTest), and on each "dive" stands the player in the water past the start strip and logs the trip
 (its phases, its plan from the SubTrip attribute, the fish ridden, the hands after) into ReplicatedStorage's
@@ -160,6 +160,22 @@ workspace:GetAttributeChangedSignal("HSDo"):Connect(function()
 		Net.Action:FireServer("Hold", tonumber(a), b)
 		task.wait(0.6)
 		report:FireServer("denied=" .. denied .. " held=" .. tostring(player:GetAttribute("HeldFish")) .. " @" .. cmd)
+	elseif verb == "clean" then
+		-- (the shots only: the end-of-dive screen left up by the quick trips home is hidden, on this machine)
+		local n = 0
+		for _, d in player.PlayerGui:GetDescendants() do
+			if d:IsA("TextLabel") and (string.find(d.Text, "GREAT DIVE") or string.find(d.Text, "NO CATCH")) then
+				local top = d
+				while top.Parent and not top.Parent:IsA("ScreenGui") do
+					top = top.Parent
+				end
+				if top:IsA("GuiObject") then
+					top.Visible = false
+					n += 1
+				end
+			end
+		end
+		report:FireServer("hid " .. n)
 	end
 end)
 '''
@@ -253,6 +269,7 @@ def frames(name, seconds, stop):
 
 
 def dive_with_shots(name, seconds):
+    print("clean: " + do("clean", 0.5), flush=True)
     stop = threading.Event()
     th = threading.Thread(target=frames, args=(name, seconds, stop))
     th.start()
@@ -262,48 +279,54 @@ def dive_with_shots(name, seconds):
     return out
 
 
-def check():
+def check(stages):
     log = []
 
     def note(text):
         print(text, flush=True)
         log.append(text)
 
-    for p in OUT.glob("*.png"):
-        p.unlink()
     hands = [["ReefShark", "Big", "Gold"], ["Pufferfish", "Normal", ""]]
     note("== setup: hands " + json.dumps(hands) + ", a Small Clownfish in the tank")
     note(cmd("setup|" + json.dumps(hands)))
 
-    # 1. timing, the fling (nothing held, no tank fish picked)
-    for land in (2, 5, 10):
-        note(f"== timing: sub to land {land}, nothing held (the fling)")
-        note(cmd(f"pick|{land}|"))
-        note(cmd("dive"))
+    if "timing" in stages:
+        # 1. timing, the fling (nothing held, no tank fish picked)
+        for land in (2, 5, 10):
+            note(f"== timing: sub to land {land}, nothing held (the fling)")
+            note(cmd(f"pick|{land}|"))
+            note(cmd("dive"))
+            note(cmd("home"))
+
+    if "held" in stages:
+        # 2. the held fish after the sub; the tank's Clownfish is picked too, the held fish must win
+        for p in OUT.glob("sub_*.png"):
+            p.unlink()
+        note("== held Reef Shark (Big, Gold), sub to land 5, the tank's Clownfish picked too")
+        note("hold: " + do("hold|1|ReefShark"))
+        note(cmd("pick|5|Clownfish~Small~"))
+        note(cmd("state"))
+        note(dive_with_shots("sub", 16))
+        note("-- home after the ride (as after a drown): the fish must still be in the hands, held again")
         note(cmd("home"))
 
-    # 2. the held fish after the sub; the tank's Clownfish is picked too, the held fish must win
-    note("== held Reef Shark (Big, Gold), sub to land 5, the tank's Clownfish picked too")
-    note("hold: " + do("hold|1|ReefShark"))
-    note(cmd("pick|5|Clownfish~Small~"))
-    note(cmd("state"))
-    note(dive_with_shots("sub", 16))
-    note("-- home after the ride (as after a drown): the fish must still be in the hands, held again")
-    note(cmd("home"))
-
-    # 3. the plain dive-in, no sub equipped, with the held fish
-    note("== plain dive-in (no sub equipped), holding the Reef Shark")
-    note(cmd("equip|0"))
-    note(cmd("state"))
-    note(dive_with_shots("plain", 6))
-    note(cmd("home"))
-
-    # 4. the plain dive-in with nothing held: the dive-in's hop as before
-    note("== plain dive-in, nothing held")
-    note("put away: " + do("hold|0|"))
-    note(cmd("dive"))
-    note(cmd("home"))
-    (OUT / "check.log").write_text("\n".join(log) + "\n")
+    if "plain" in stages:
+        # 3. the plain dive-in, no sub equipped, with the held fish
+        for p in OUT.glob("plain_*.png"):
+            p.unlink()
+        note("== plain dive-in (no sub equipped), holding the Reef Shark")
+        note("hold: " + do("hold|1|ReefShark"))
+        note(cmd("equip|0"))
+        note(cmd("state"))
+        note(dive_with_shots("plain", 6))
+        note(cmd("home"))
+        # 4. the plain dive-in with nothing held: the dive-in's hop as before
+        note("== plain dive-in, nothing held")
+        note("put away: " + do("hold|0|"))
+        note(cmd("dive"))
+        note(cmd("home"))
+    with open(OUT / "check.log", "a") as f:
+        f.write("\n".join(log) + "\n")
 
 
 if __name__ == "__main__":
@@ -313,4 +336,4 @@ if __name__ == "__main__":
     elif what == "remove":
         print(install(remove=True))
     else:
-        check()
+        check(sys.argv[2:] or ["timing", "held", "plain"])
