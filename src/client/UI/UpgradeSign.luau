@@ -17,7 +17,7 @@
 -- server for the next level (Remotes.Trainer "Up"), which checks and charges everything (TrainService: your plot, on
 -- the dock, within Train.UpgradeNear, not the top level, the price unless Train.Free is 1, one ask at a time). Here
 -- only: your own sign, not maxed, near enough (else the block says WALK CLOSER), and one ask at a time (the block says
--- "..." until the server answers). Everyone else's sign, and the Robux block, do nothing when clicked.
+-- "..." until the server answers, and a press within Train.UpAgain of an ask is the same click). Everyone else's sign, and the Robux block, do nothing when clicked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -57,6 +57,7 @@ local signs: { [Instance]: Sign } = {} -- by plot
 
 -- Our ask for the next level, while the server has not answered (one at a time: a double click buys one level)
 local pending: { At: number, Level: number }? = nil
+local askedAt = -math.huge -- when we last asked (a press within Train.UpAgain of it is the same click)
 local saying: { Text: string, Until: number }? = nil -- a word on our own cash block for a moment (WALK CLOSER)
 
 -- A flat block in the shop's button look (Shop.button's lit top half, dark edge and scale pattern). The cash block
@@ -375,7 +376,7 @@ end
 -- A click or tap on a sign's cash block: only our own sign asks, once, while nothing is pending
 local function press(sign: Sign)
 	local me = Players.LocalPlayer
-	if sign.Plot.Name ~= me:GetAttribute("Plot") or pending then
+	if sign.Plot.Name ~= me:GetAttribute("Plot") or pending or os.clock() - askedAt < Config.Train.UpAgain then
 		return
 	end
 	local level = me:GetAttribute("TrainerLevel")
@@ -390,7 +391,8 @@ local function press(sign: Sign)
 	if not nearOwn(sign.Plot) then
 		saying = { Text = "WALK CLOSER!", Until = os.clock() + 1.6 }
 	else
-		pending = { At = os.clock(), Level = level }
+		askedAt = os.clock()
+		pending = { At = askedAt, Level = level }
 		r:FireServer("Up")
 	end
 	write(sign, level)
@@ -475,10 +477,11 @@ function UpgradeSign.start()
 	end)
 end
 
--- (for Studio's tests: press our own sign's cash block as a click does; true when there was one)
-function UpgradeSign.press(): boolean
+-- (for Studio's tests: press a sign's cash block as a click does, our own or the named plot's; true when there was one)
+function UpgradeSign.press(plotName: string?): boolean
+	local want = plotName or Players.LocalPlayer:GetAttribute("Plot")
 	for _, sign in signs do
-		if sign.Plot.Name == Players.LocalPlayer:GetAttribute("Plot") then
+		if sign.Plot.Name == want then
 			press(sign)
 			return true
 		end

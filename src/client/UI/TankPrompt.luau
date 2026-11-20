@@ -11,7 +11,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
@@ -43,9 +42,12 @@ local function plate(parent: Instance, colour: Color3, props: { [string]: any })
 	return frame
 end
 
+local current: Control? = nil -- the control drawn last (one tank a player: their own)
+
 export type Control = {
 	Gui: BillboardGui,
 	Button: TextButton, -- the whole control: one click or tap on it does the action
+	press: () -> boolean, -- what a click on it does (true when it did something: shown, not a repeat)
 	set: (shown: boolean, action: string, object: string) -> (),
 	refused: (why: string) -> (),
 	destroy: () -> (),
@@ -132,8 +134,7 @@ function TankPrompt.attach(at: Attachment, onPress: () -> ()): Control
 	local shown, actionText, objectText = false, "", ""
 	local saying: string? = nil -- a refusal, said for a moment over the action
 	local function draw()
-		local touch = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-		cap.set(if touch then "TAP" else "CLICK")
+		cap.set(if Kit.touch() then "TAP" else "CLICK")
 		action.Text = saying or actionText
 		action.TextColor3 = if saying then Kit.Coral else Kit.White
 		local kind = byName[objectText]
@@ -143,27 +144,34 @@ function TankPrompt.attach(at: Attachment, onPress: () -> ()): Control
 		action.Position = UDim2.fromOffset(10, if object.Visible then 4 else 16)
 	end
 	local last = 0
-	hit.Activated:Connect(function()
+	local function activate(): boolean
 		-- (one press, one action: a second within a moment is the same press)
 		local now = os.clock()
 		if not shown or now - last < 0.25 then
-			return
+			return false
 		end
 		last = now
 		pop.Scale = 1.12
 		TweenService:Create(pop, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 			:Play()
 		onPress()
-	end)
+		return true
+	end
+	hit.Activated:Connect(activate)
 	local self: Control = {
 		Gui = gui,
 		Button = hit,
+		press = activate,
 		set = nil :: any,
 		refused = nil :: any,
 		destroy = nil :: any,
 	}
+	local touch = Kit.touch()
 	function self.set(on: boolean, act: string, obj: string)
-		if act ~= actionText or obj ~= objectText then
+		-- (a phone's TAP or a mouse's CLICK: the last input decides, looked at each time the caller asks)
+		local nowTouch = Kit.touch()
+		if act ~= actionText or obj ~= objectText or nowTouch ~= touch then
+			touch = nowTouch
 			actionText, objectText = act, obj
 			draw()
 		end
@@ -192,10 +200,24 @@ function TankPrompt.attach(at: Attachment, onPress: () -> ()): Control
 	end
 	function self.destroy()
 		gui:Destroy()
+		if current == self then
+			current = nil
+		end
 	end
+	current = self
 	at.Destroying:Connect(self.destroy)
 	draw()
 	return self
+end
+
+-- (for Studio's tests: click our tank's control as a click does; false when it is hidden or the click a repeat)
+function TankPrompt.press(): boolean
+	return current ~= nil and current.press()
+end
+
+-- (for Studio's tests: the control, to read what it shows)
+function TankPrompt.control(): Control?
+	return current
 end
 
 function TankPrompt.deposited(water: BasePart, count: number, gained: number, id: string?)
