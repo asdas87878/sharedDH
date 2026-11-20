@@ -2166,20 +2166,23 @@ Config.Sub = {
 	Prices = { 2500, 25e3, 250e3, 2e6, 15e6, 150e6, 1e9, 8e9, 50e9 } :: { number }, -- tier 1 (to land 2) .. tier 9 (to land 10)
 	Free = 1, -- 1: every sub costs nothing for now (Hugo, 2026-11-18: "let upgrades be free for now"); the price is still shown
 	Near = 30, -- the stand's shop works within this many studs of its ring (Dock.Stations.Sub), studs
-	Approach = 2.0, -- seconds swimming at the surface while the sub swims in
-	Pickup = 1.2, -- the scoop onto its seat
-	Speed = 520, -- its top speed down the lane, studs a second
-	SpeedUp = 1.2, -- seconds to reach it
-	SlowDown = 1.6, -- seconds to slow from it to DropSpeed
-	MinRide = 4, -- the run takes at least this long (a slower top speed for a short trip)
-	MaxRide = 10, -- and at most this long: a far land is reached at a higher top speed (the reference's flight is about ten seconds, whatever the zone)
+	-- (task f2, Hugo 2026-11-20: "make animation and travelling slightly faster, make travelling faster the further
+	-- away the destination too". The phases are about a fifth shorter than the first go's, in brackets)
+	Approach = 1.6, -- seconds swimming at the surface while the sub swims in (2.0)
+	Pickup = 0.96, -- the scoop onto its seat (1.2)
+	Speed = 620, -- its top speed down the lane for a trip of no length, studs a second (520 before task f2: then the top for every land up to MaxRide)
+	SpeedPer = 0.17, -- and this much more a second for every stud of the trip: about 960 to land 2, 2,200 to land 5, 4,300 to land 10
+	UpShare = 0.2, -- the run's share spent picking up to the top speed (1.2 s whatever the run before task f2)
+	DownShare = 0.25, -- and slowing from it to DropSpeed (1.6 s before): shares, so a far land's faster run has as big a burst
+	MinRide = 3.2, -- the run takes at least this long, seconds (4): a short trip at a lower top speed
+	MaxRide = 7, -- and at most this long (10, the reference's flight): a far land past it is reached at a higher top speed still
 	Stock = 6, -- herd fish put in the water just ahead of the drop point before you arrive, so the fling always has fish to hook
 	StockAt = 2.5, -- seconds before the drop
-	Arrive = 0.8, -- seconds at DropSpeed with "NOW ARRIVING" before the drop
+	Arrive = 0.64, -- seconds at DropSpeed with "NOW ARRIVING" before the drop (0.8)
 	DropSpeed = 90, -- its speed as it lets you go: the fling's hop leaves at this (Config.hopFrom)
-	Drop = 1.0, -- the fling: the nose comes up and you are thrown; with a fish, its swim up beside the sub
-	FishIn = 1.4, -- your fish's swim up beside the sub, seconds (it begins during Arrive)
-	Kick = 0.6, -- the kick off the sub onto your fish, seconds
+	Drop = 0.8, -- the fling: the nose comes up and you are thrown (1.0)
+	FishIn = 1.12, -- your fish's swim up beside the sub, seconds (1.4; it begins before Arrive)
+	Kick = 0.48, -- the kick off the sub onto your fish, seconds (0.6)
 	Into = 150, -- you are dropped this far into the land, studs
 	Lift = 34, -- the sub runs this high over the floor, studs (kept under the surface)
 	Sample = 60, -- the path's points, this far apart, studs
@@ -2189,6 +2192,8 @@ Config.Sub = {
 	Late = 2.5, -- seconds past the drop with no word from the player's machine before the server lets them go itself
 	Shake = 1, -- the pick-up's and the kick's shakes, at this strength (0: none)
 	Fov = 18, -- the run's view, this much wider at full speed, degrees
+	FovFar = 10, -- and up to this much wider again the faster a far land's run goes, degrees,
+	FovFarAt = 4000, -- all of it at this speed, studs a second (none at Speed)
 	Distance = 30, -- the camera's distance behind the sub on the run, studs
 }
 

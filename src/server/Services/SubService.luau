@@ -16,6 +16,13 @@
 --     no fish: RideService.fling, and the player's machine is told ("SubDrop", "Fling") and flies the hop;
 --     a fish: it was made beside the sub FishIn seconds before (FishService.spawnFor, "SubFish"), driven there by the
 --     player's machine; we say "SubDrop", "Kick", and the machine kicks the rider onto it and says "SubLand".
+--   The fish ridden after the drop (task f2, Hugo 2026-11-20: "jumping into the gameplay loop with the fish should let
+--   you ride it after submarine"): the fish the player HOLDS over their head as they go in (AquariumService.heldOf,
+--   one of the fish in their hands), else the tank fish picked at the stand ("SubFish"), else none (the fling). Its
+--   kind, size and colour are fixed as the trip is made (Sub.Ride). It is borrowed, never taken: the hands (and the
+--   tank) keep it whatever happens, a ride, a miss or a drown, and riding it tames nothing new.
+--   The plain dive-in with a held fish (no sub equipped, no land picked, or Sub.On 0): RideService asks us
+--   (RideService.DiveFish) and the held fish is made where the player goes in, and they are put straight on it.
 --   If the player's machine says nothing for Sub.Late seconds, we let them go ourselves. A death, a reset or leaving
 --   in the middle gives the trip up and takes the fish away.
 local Players = game:GetService("Players")
@@ -37,6 +44,7 @@ type Sub = {
 	Equip: number,
 	Dest: number,
 	Fish: string,
+	Ride: RideService.Carry?, -- the fish this trip's drop-off rides (held or from the tank), fixed as the trip is made
 	Trip: SubTrip.Trip?,
 	Phase: string?,
 	Held: Wild?, -- the player's fish, made for the drop-off
@@ -85,6 +93,27 @@ local function tankFish(player: Player, key: string): (string?, string?, string?
 		end
 	end
 	return nil, nil, nil
+end
+
+-- The fish a dive rides: the one held over the head first, else the tank fish picked at the stand (nil: none)
+local function rideWith(player: Player, sub: Sub): RideService.Carry?
+	local h = AquariumService.heldOf(player)
+	if h and Config.FishById[h.Id] then
+		return { Id = h.Id, Size = h.Size, Variant = h.Variant }
+	end
+	local id, size, variant = tankFish(player, sub.Fish)
+	if id then
+		return { Id = id, Size = size or "Normal", Variant = variant or "" }
+	end
+	return nil
+end
+
+-- The lane's way at a place (along the herd's stream, flat)
+local function laneWay(at: Vector3): Vector3
+	local s = FishService.streamS(at)
+	local ahead = FishService.streamPoint(s + 60, 0, 0) - FishService.streamPoint(s, 0, 0)
+	ahead = Vector3.new(ahead.X, 0, ahead.Z)
+	return if ahead.Magnitude > 0.1 then ahead.Unit else Vector3.new(0, 0, -1)
 end
 
 local function deny(player: Player, reason: string)
@@ -176,6 +205,7 @@ local function finish(player: Player, sub: Sub)
 		FishService.discard(held)
 	end
 	sub.Held = nil
+	sub.Ride = nil
 	sub.Trip = nil
 	sub.Phase = nil
 	sub.Cued = false
@@ -196,11 +226,8 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 		return false
 	end
 	local entry = root.Position
-	local sEntry = FishService.streamS(entry)
 	local swim = Config.Oxygen.SwimSpeed * c.Approach
-	local ahead = FishService.streamPoint(sEntry + 60, 0, 0) - FishService.streamPoint(sEntry, 0, 0)
-	ahead = Vector3.new(ahead.X, 0, ahead.Z)
-	ahead = if ahead.Magnitude > 0.1 then ahead.Unit else Vector3.new(0, 0, -1)
+	local ahead = laneWay(entry)
 	local pickup = Vector3.new(entry.X, Config.Oxygen.SurfaceY - c.Under, entry.Z) + ahead * swim
 	local sDrop = math.min(first + c.Into, FishService.streamLength() - 50)
 	local sFrom = FishService.streamS(pickup) + 90
@@ -237,8 +264,10 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 		end
 		s = nextS
 	end
-	local trip = SubTrip.new(now(), sub.Dest, tankFish(player, sub.Fish) ~= nil, points, dropAt)
+	local ride = rideWith(player, sub)
+	local trip = SubTrip.new(now(), sub.Dest, ride ~= nil, points, dropAt)
 	sub.Trip = trip
+	sub.Ride = ride
 	sub.Phase = nil
 	sub.Cued = false
 	sub.Done = false
@@ -276,6 +305,29 @@ local function diving(player: Player): boolean
 		return false
 	end
 	return began
+end
+
+-- Asked by RideService as a player on the dock goes into the water and the sub doesn't take them: with a fish held
+-- over the head, that fish, made where they go in and kept for them (RideService puts them on it)
+local function diveFish(player: Player): FishService.Wild?
+	local sub = subs[player]
+	local h = AquariumService.heldOf(player)
+	if not sub or sub.Trip or not h then
+		return nil
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return nil
+	end
+	local way = laneWay(root.Position)
+	local at = root.Position + way * 4 - Vector3.yAxis * 3
+	local ok, w = pcall(FishService.spawnFor, h.Id, h.Variant, h.Size, at, way, player)
+	if not ok then
+		warn("[SubService] the held fish could not be made: " .. tostring(w))
+		return nil
+	end
+	return w
 end
 
 -- The kick's end: the player's machine has put them on their fish's saddle
@@ -319,18 +371,18 @@ local function step(player: Player, sub: Sub, trip: SubTrip.Trip)
 	end
 	-- the player's fish swims up beside the sub
 	if trip.Fish and not sub.Held and not sub.Cued and t >= dropAt - c.FishIn then
-		local id, size, variant = tankFish(player, sub.Fish)
+		local ride = sub.Ride
 		local d = SubTrip.distance(trip, t)
 		local way = SubTrip.way(trip, d)
 		local flat = Vector3.new(way.X, 0, way.Z)
 		local right = if flat.Magnitude > 0.1 then flat.Unit:Cross(Vector3.yAxis) else Vector3.xAxis
 		local at = SubTrip.at(trip, d) - way * 40 + right * c.FishSide
-		local w = if id then FishService.spawnFor(id, variant or "", size or "Normal", at, way, player) else nil
+		local w = if ride then FishService.spawnFor(ride.Id, ride.Variant, ride.Size, at, way, player) else nil
 		if w then
 			sub.Held = w
 			Net.Ride:FireClient(player, "SubFish", w.Model)
 		else
-			-- (gone from the tank meanwhile: the fling instead)
+			-- (it could not be made: the fling instead)
 			trip.Fish = false
 		end
 	end
@@ -367,6 +419,7 @@ local function join(player: Player)
 		Equip = 0,
 		Dest = 0,
 		Fish = "",
+		Ride = nil,
 		Trip = nil,
 		Phase = nil,
 		Held = nil,
@@ -433,6 +486,7 @@ end
 
 function SubService.Init()
 	RideService.Diving = diving
+	RideService.DiveFish = diveFish
 	Net.Action.OnServerEvent:Connect(function(player, action, a, b)
 		local sub = subs[player]
 		if not sub or type(action) ~= "string" then

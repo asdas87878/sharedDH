@@ -6,7 +6,7 @@
 --   Approach: we swim on just under the surface while the sub comes up from behind and below, its light on us. The
 --     camera sits ahead and to the side, looking back at us and at it coming.
 --   Pickup: it rises under us; we are scooped up in a tumble and set on the seat behind its tower. A splash, a bump.
---   Ride: it noses down and runs the herd's line at up to Sub.Speed. The camera is behind it, wider with speed, with
+--   Ride: it noses down and runs the herd's line at up to its trip's top speed (Shared/SubTrip.plan). The camera is behind it, wider with speed, with
 --     speed lines and a rumble. A banner names the land.
 --   Arrive: "NOW ARRIVING", at the drop speed; the camera swings out to the side.
 --   Drop: on the server's word, flung forward into an ordinary hop (JumpController.fling), or, with our fish swum up
@@ -381,7 +381,9 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		goal = sub.Position - way * (c.Distance + 8 * share) + UP * (10 - 3 * share)
 		focus = sub.Position + way * (25 + 20 * share)
 		rate = 7
-		wide = 70 + c.Fov * share
+		-- (and wider still on a far land's faster run: Sub.FovFar more at Sub.FovFarAt studs a second)
+		local far = math.clamp((speed - c.Speed) / math.max(c.FovFarAt - c.Speed, 1), 0, 1)
+		wide = 70 + c.Fov * share + c.FovFar * far
 	else
 		-- out to the side for the drop
 		local way = flat(sub.LookVector)

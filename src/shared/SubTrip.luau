@@ -33,31 +33,30 @@ export type Trip = {
 
 local SubTrip = {}
 
--- The run's speeds for a ride of `distance` studs: up to the top speed, cruising, down to the drop speed. A short trip
--- has a lower top speed and no cruise, and is never shorter than Sub.MinRide (it never blinks past).
+-- The run's speeds for a ride of `distance` studs: up to the top speed, cruising, down to the drop speed. The top
+-- speed grows with the distance (Sub.Speed + Sub.SpeedPer a stud: task f2, Hugo 2026-11-20, "make travelling faster
+-- the further away the destination"), so a far land's run is not much longer than a near one's; the run is then kept
+-- between Sub.MinRide and Sub.MaxRide seconds (the top speed worked out again from the time where it is). The
+-- speed-up and the slow-down are shares of the run (Sub.UpShare, Sub.DownShare), so a far run's burst is as big.
 function SubTrip.plan(distance: number): (number, number, number, number)
 	local c = Config.Sub
-	local up, down, drop = c.SpeedUp, c.SlowDown, c.DropSpeed
-	local top = c.Speed
-	local need = top * up / 2 + (top + drop) * down / 2
-	if distance >= need and up + down + (distance - need) / top >= c.MinRide then
-		local cruise = (distance - need) / top
-		if up + cruise + down > c.MaxRide then
-			-- a far land: faster, so the run is never longer than MaxRide
-			cruise = math.max(c.MaxRide - up - down, 0)
-			top = (distance - drop * down / 2) / (up / 2 + cruise + down / 2)
-		end
-		return up, cruise, down, top
+	local drop = c.DropSpeed
+	local a = math.clamp(c.UpShare, 0.05, 0.45)
+	local b = math.clamp(c.DownShare, 0.05, 0.45)
+	local d = math.max(distance, 0)
+	-- (distance = top * T * (1 - (a + b) / 2) + drop * b * T / 2)
+	local cover = 1 - (a + b) / 2
+	local top = c.Speed + c.SpeedPer * d
+	local time = d / math.max(top * cover + drop * b / 2, 1)
+	if time < c.MinRide or time > c.MaxRide then
+		time = math.clamp(time, c.MinRide, math.max(c.MaxRide, c.MinRide))
+		top = (d / time - drop * b / 2) / cover
 	end
-	-- no cruise: the speed-up and the slow-down share the ride's time, at least MinRide
-	local k = math.max(1, c.MinRide / math.max(up + down, 0.1))
-	up, down = up * k, down * k
-	top = math.min(c.Speed, (distance - drop * down / 2) / ((up + down) / 2))
 	if top <= drop then
 		-- (a trip too short for even that: straight at the drop speed)
-		return 0, math.max(distance, 0) / drop, 0, drop
+		return 0, d / drop, 0, drop
 	end
-	return up, 0, down, top
+	return a * time, (1 - a - b) * time, b * time, top
 end
 
 -- Seconds from the trip's start at which each phase begins: the pick-up, the run, the arrival, the drop, and the end

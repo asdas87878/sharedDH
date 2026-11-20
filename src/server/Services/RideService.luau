@@ -122,6 +122,9 @@ RideService.Home = nil :: ((player: Player) -> CFrame?)?
 -- Set by SubService: asked as a player on the dock goes into the water. true: the submarine takes them (state
 -- "Carried": no drain, no hop, no send-back, until SubService lets them go with RideService.fling, seatOn or letGo)
 RideService.Diving = nil :: ((player: Player) -> boolean)?
+-- Set by SubService: asked next, when the sub doesn't take them. A fish (the one held over the head, task f2): made
+-- where they go in and kept for them; they are put straight on it, as a landing, instead of the dive-in's hop
+RideService.DiveFish = nil :: ((player: Player) -> Wild?)?
 
 -- The sandbox's reset seats a rider only on a fish that has been in the Workspace this long, so the player's machine
 -- has the fish too (it is told to sit on it).
@@ -1338,7 +1341,23 @@ local function tick(r: Rider, dt: number)
 				setState(r, "Carried")
 				sendOxygen(r, true)
 			else
-				setState(r, "Free")
+				local w = if RideService.DiveFish then RideService.DiveFish(r.Player) else nil
+				local seated = false
+				if w then
+					-- their own fish: it is theirs already (nothing to tame), and the landing's refill
+					r.Token += 1
+					r.Oxygen = r.Max
+					r.Tamed[w] = true
+					r.JumpFrom = nil
+					r.JumpAt = os.clock() - 60
+					seated = mount(r, w, true)
+					if not seated then
+						FishService.discard(w)
+					end
+				end
+				if not seated then
+					setState(r, "Free")
+				end
 			end
 		end
 	elseif r.State == "Carried" then
