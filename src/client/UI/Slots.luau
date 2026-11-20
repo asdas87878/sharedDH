@@ -20,6 +20,12 @@
 -- Gotham Black with a thin outline; the fish lower and more in the middle, nearer its name, still over the top edge;
 -- the slots as far apart as the reference's (a gap of an eighth of a slot between their outlines); and a slot grows a
 -- little under the mouse.
+-- The ride fish (task e3, Hugo 2026-11-20: "1 should be first inventory slot while q should be a completely seperate
+-- slot"; docs/design/equip.md): a slot of its own at the far left, a little further from the others, with a small Q
+-- key cap at its corner in the shop's button look (UI.Shop). It shows the equipped fish (the server's EquippedFish,
+-- EquipController calls Slots.equipped), with the white ring while it is ridden on land and a small cross to unequip;
+-- empty, it says how ("HOLD A FISH, THEN Q"). It is not one of the numbered slots: 1 is always the first catch. Each
+-- numbered slot shows its key (1 to 9) on a keyboard; Slots.pick(n) is the key's press, the very path of a click.
 -- The row is hidden while the game has no taming (State.Caught is nil). The picture is the creature's own model drawn
 -- in a small window (UI.Portrait), which needs no upload; a creature with no model to draw yet shows its name alone.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -29,12 +35,17 @@ local TweenService = game:GetService("TweenService")
 
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
+local Shop = require(script.Parent.Shop)
 
 local Slots = {}
 
 local selectedEvent = Instance.new("BindableEvent")
 -- Fired with (the catch's place in the list, the catch) when the player clicks a caught slot
 Slots.Selected = selectedEvent.Event
+local rideEvent = Instance.new("BindableEvent")
+-- Fired with "Ride" (a click on the equipped slot: equip the held fish, else on or off it on land) or "Unequip" (its
+-- cross)
+Slots.Ride = rideEvent.Event
 local pickedEvent = Instance.new("BindableEvent")
 -- Fired with (the catch's place in the list, the catch or nil) on every click of a slot, an empty one too (holding a
 -- fish over the head, AquariumController: the same slot again or an empty one puts it away)
@@ -48,7 +59,8 @@ local BIG = 46
 -- the two outlines, which stand outside the faces
 local GAP = 8
 local BIG_GAP = 10
-local COUNT = 7
+local COUNT = 9 -- the numbered slots, keys 1 to 9 (the hands hold Tame.Carry: 7, so 8 and 9 stay empty for now)
+local APART = 2 -- the equipped slot's gap from slot 1, in gaps
 local OUTLINE = 2
 local RING = 2.3 -- the white ring's thickness
 local RING_GAP = 1.4 -- and its gap outside the black outline
@@ -66,6 +78,24 @@ local rims: { Frame } = {}
 local lips: { Frame } = {}
 local patterns: { UIGradient } = {}
 local rings: { Frame } = {}
+
+local keys: { TextLabel } = {}
+-- the equipped slot (task e3)
+type Ride = {
+	Panel: Kit.Panel,
+	Picture: Portrait.Portrait,
+	Name: TextLabel,
+	Rim: Frame,
+	Lip: Frame,
+	Pattern: UIGradient?,
+	Ring: Frame,
+	Cap: any, -- (a Shop.Button)
+	Cross: TextButton,
+	Hint: TextLabel,
+}
+local ride: Ride
+local rideItem: Caught? = nil
+local rideOn = false
 
 local current: { Caught } = {}
 local firstShown = 0 -- the list's place of the catch before the first slot
@@ -158,18 +188,223 @@ local function tileFill(tier: string): (ColorSequence, number)
 	return ColorSequence.new(Kit.lighter(colour, 0.08), Kit.darker(colour, 0.1)), 90
 end
 
+-- One slot of the row, its look and its parts (a numbered one, or the equipped one), its middle `x` from the row's left
+type Tile = {
+	Panel: Kit.Panel,
+	Rim: Frame,
+	Lip: Frame,
+	Pattern: UIGradient?,
+	Ring: Frame,
+	Hit: TextButton,
+	Picture: Portrait.Portrait,
+	Name: TextLabel,
+	Up: Tween,
+	Down: Tween,
+}
+local function makeTile(x: number): Tile
+	-- (held by its middle, so it grows from there under the mouse)
+	local slot = Kit.panel(holder, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, x, 1, -SIZE / 2),
+		Size = UDim2.fromOffset(SIZE, SIZE),
+	}, GLASS)
+	local look = slot.Look
+	look.Fill.Transparency = BODY
+	look.Outline.Color = BLACK
+	look.Outline.LineJoinMode = Enum.LineJoinMode.Miter -- (square corners: Kit's outlines are rounded)
+	Kit.new("UIGradient", { Transparency = EDGE, Rotation = 90 }, look.Outline)
+	local pattern: UIGradient? = nil
+	if look.Texture then
+		pattern = Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, look.Texture)
+	end
+	-- a caught fish's darker lip along the foot and its light rim inside the outline (shown when caught)
+	local lip = Kit.new("Frame", {
+		Name = "Lip",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, LIP),
+		BackgroundColor3 = BLACK,
+		BackgroundTransparency = LIP_FADE,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 1,
+	}, slot.Face)
+	local rim = Kit.new("Frame", {
+		Name = "Rim",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 1,
+	}, slot.Face)
+	Kit.new("Frame", { -- along the top, the whole width
+		Name = "Top",
+		Size = UDim2.new(1, 0, 0, RIM),
+		BackgroundColor3 = Kit.White,
+		BackgroundTransparency = RIM_TOP,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, rim)
+	for _, right in { false, true } do -- down each side, from under the top band to the darker foot
+		local side = Kit.new("Frame", {
+			Name = if right then "Right" else "Left",
+			AnchorPoint = Vector2.new(if right then 1 else 0, 0),
+			Position = UDim2.new(if right then 1 else 0, 0, 0, RIM),
+			Size = UDim2.new(0, RIM, 1, -(RIM + LIP)),
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = 1,
+		}, rim)
+		Kit.new("UIGradient", { Transparency = RIM_SIDES, Rotation = 90 }, side)
+	end
+	-- the white ring, square, a little outside the black outline; under the picture, which may stand over it
+	local out = OUTLINE + RING_GAP
+	local ring = Kit.new("Frame", {
+		Name = "Ring",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, out * 2, 1, out * 2),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 0,
+	}, slot.Frame)
+	local ringLine = Kit.stroke(ring, RING, Kit.White)
+	ringLine.LineJoinMode = Enum.LineJoinMode.Miter
+	-- a little bigger under the mouse, with the ring
+	local grow = Kit.new("UIScale", {}, slot.Frame)
+	local hit: TextButton = Kit.new("TextButton", {
+		Name = "Hit",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 5,
+	}, slot.Frame)
+	-- no pale line inside an empty slot (the user: "it also shouldnt be present if you dont have a fish"); a caught
+	-- one has the rim above instead
+	if look.Bevel then
+		look.Bevel.Enabled = false
+	end
+	Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, slot.Shadow)
+	local under = slot.Shadow:FindFirstChildOfClass("UIStroke")
+	if under then
+		under.LineJoinMode = Enum.LineJoinMode.Miter
+		Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, under)
+	end
+	local picture = Portrait.new(slot.Face, {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, WINDOW.Foot),
+		Size = UDim2.fromScale(WINDOW.Wide, WINDOW.High),
+		Aspect = Slots.Aspect,
+		Visible = false,
+		ZIndex = 2,
+	})
+	local name = Kit.text({
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -1),
+		Size = UDim2.fromOffset(SIZE + 8, 10),
+		TextSize = 8.5,
+		Font = FONT,
+		ZIndex = 3,
+	}, slot.Face, NAME_LINE)
+	return {
+		Panel = slot,
+		Rim = rim,
+		Lip = lip,
+		Pattern = pattern,
+		Ring = ring,
+		Hit = hit,
+		Picture = picture,
+		Name = name,
+		Up = TweenService:Create(grow, HOVER_INFO, { Scale = HOVER }),
+		Down = TweenService:Create(grow, HOVER_INFO, { Scale = 1 }),
+	}
+end
+
+-- A slot's look for a catch (its rarity's colours, its picture and its name cut short) or for none (the glass)
+local function paint(
+	slot: Kit.Panel,
+	rim: Frame,
+	lip: Frame,
+	pattern: UIGradient?,
+	picture: Portrait.Portrait,
+	name: TextLabel,
+	item: Caught?
+)
+	local fill = slot.Look.Fill
+	if item then
+		local kind = Config.FishById[item.Id]
+		slot.Face.BackgroundTransparency = 0
+		local colours, turn = tileFill(item.Tier)
+		fill.Color, fill.Rotation = colours, turn
+		fill.Transparency = if turn == 90 then CAUGHT else CAUGHT_EVEN
+		if pattern then
+			pattern.Transparency = PATTERN_CAUGHT
+		end
+		lip.Visible = true
+		rim.Visible = true
+		local words = if kind then kind.Name else item.Id
+		name.Text = if #words > 7 then string.sub(words, 1, 6) .. "." else words
+		slot.Look.Outline.Color = BLACK
+		picture.Frame.Visible = picture.show(item.Id)
+	else
+		slot.Face.BackgroundTransparency = GLASS.Fade or 0
+		fill.Color = ColorSequence.new(GLASS.Top, GLASS.Bottom)
+		fill.Rotation = 90
+		fill.Transparency = BODY
+		if pattern then
+			pattern.Transparency = BODY
+		end
+		lip.Visible = false
+		rim.Visible = false
+		name.Text = ""
+		slot.Look.Outline.Color = BLACK
+		picture.show(nil)
+		picture.Frame.Visible = false
+	end
+end
+
+local touchNow = false
+
+-- Where slot n's middle is from the row's left (0: the equipped slot)
+local function middleOf(n: number, size: number, gap: number): number
+	if n == 0 then
+		return size / 2
+	end
+	return size + gap * APART + (n - 1) * (size + gap) + size / 2
+end
+
+local function rowWidth(size: number, gap: number): number
+	return (COUNT + 1) * size + (COUNT - 1) * gap + APART * gap
+end
+
+-- What the equipped slot says above it, and its cap and cross
+local function drawRide()
+	if not ride then
+		return
+	end
+	local item = rideItem
+	paint(ride.Panel, ride.Rim, ride.Lip, ride.Pattern, ride.Picture, ride.Name, item)
+	ride.Ring.Visible = item ~= nil and rideOn
+	ride.Cross.Visible = item ~= nil
+	ride.Cap.Root.Visible = not touchNow
+	ride.Hint.Text = if item and rideOn
+		then "RIDING"
+		elseif item then (if touchNow then "TAP TO RIDE" else "CLICK TO RIDE")
+		else (if touchNow then "HOLD A FISH, THEN TAP" else "HOLD A FISH, THEN Q")
+end
+
 function Slots.build(parent: Instance)
 	holder = Kit.new("Frame", {
 		Name = "Slots",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(COUNT * SIZE + (COUNT - 1) * GAP, SIZE + 18),
+		Size = UDim2.fromOffset(rowWidth(SIZE, GAP), SIZE + 18),
 		BackgroundTransparency = 1,
 		Visible = false,
 	}, parent)
 	count = Kit.text({
-		-- (lifted clear of the pictures, which stand a little over the slots' tops)
-		Position = UDim2.fromOffset(0, -6),
+		-- (lifted clear of the pictures, which stand a little over the slots' tops; over slot 1, not the equipped one)
+		Position = UDim2.fromOffset(SIZE + GAP * APART, -6),
 		Size = UDim2.fromOffset(120, 13),
 		TextSize = 12,
 		Font = FONT,
@@ -177,150 +412,166 @@ function Slots.build(parent: Instance)
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}, holder, 1.2)
 	for i = 1, COUNT do
-		-- (held by its middle, so it grows from there under the mouse)
-		local slot = Kit.panel(holder, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0, (i - 1) * (SIZE + GAP) + SIZE / 2, 1, -SIZE / 2),
-			Size = UDim2.fromOffset(SIZE, SIZE),
-		}, GLASS)
-		local look = slot.Look
-		look.Fill.Transparency = BODY
-		look.Outline.Color = BLACK
-		look.Outline.LineJoinMode = Enum.LineJoinMode.Miter -- (square corners: Kit's outlines are rounded)
-		Kit.new("UIGradient", { Transparency = EDGE, Rotation = 90 }, look.Outline)
-		if look.Texture then
-			patterns[i] = Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, look.Texture)
-		end
-		-- a caught fish's darker lip along the foot and its light rim inside the outline (shown when caught)
-		lips[i] = Kit.new("Frame", {
-			Name = "Lip",
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.fromScale(0, 1),
-			Size = UDim2.new(1, 0, 0, LIP),
-			BackgroundColor3 = BLACK,
-			BackgroundTransparency = LIP_FADE,
-			BorderSizePixel = 0,
-			Visible = false,
-			ZIndex = 1,
-		}, slot.Face)
-		local rim = Kit.new("Frame", {
-			Name = "Rim",
-			Size = UDim2.fromScale(1, 1),
-			BackgroundTransparency = 1,
-			Visible = false,
-			ZIndex = 1,
-		}, slot.Face)
-		Kit.new("Frame", { -- along the top, the whole width
-			Name = "Top",
-			Size = UDim2.new(1, 0, 0, RIM),
-			BackgroundColor3 = Kit.White,
-			BackgroundTransparency = RIM_TOP,
-			BorderSizePixel = 0,
-			ZIndex = 1,
-		}, rim)
-		for _, right in { false, true } do -- down each side, from under the top band to the darker foot
-			local side = Kit.new("Frame", {
-				Name = if right then "Right" else "Left",
-				AnchorPoint = Vector2.new(if right then 1 else 0, 0),
-				Position = UDim2.new(if right then 1 else 0, 0, 0, RIM),
-				Size = UDim2.new(0, RIM, 1, -(RIM + LIP)),
-				BackgroundColor3 = Kit.White,
-				BorderSizePixel = 0,
-				ZIndex = 1,
-			}, rim)
-			Kit.new("UIGradient", { Transparency = RIM_SIDES, Rotation = 90 }, side)
-		end
-		rims[i] = rim
-		-- the white ring, square, a little outside the black outline; under the picture, which may stand over it
-		local out = OUTLINE + RING_GAP
-		local ring = Kit.new("Frame", {
-			Name = "Ring",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, out * 2, 1, out * 2),
-			BackgroundTransparency = 1,
-			Visible = false,
-			ZIndex = 0,
-		}, slot.Frame)
-		local ringLine = Kit.stroke(ring, RING, Kit.White)
-		ringLine.LineJoinMode = Enum.LineJoinMode.Miter
-		rings[i] = ring
-		-- a little bigger under the mouse, with the ring; a click chooses a caught slot
-		local grow = Kit.new("UIScale", {}, slot.Frame)
-		local up = TweenService:Create(grow, HOVER_INFO, { Scale = HOVER })
-		local down = TweenService:Create(grow, HOVER_INFO, { Scale = 1 })
-		local hit: TextButton = Kit.new("TextButton", {
-			Name = "Hit",
-			Size = UDim2.fromScale(1, 1),
-			BackgroundTransparency = 1,
-			Text = "",
-			AutoButtonColor = false,
-			ZIndex = 5,
-		}, slot.Frame)
+		local t = makeTile(middleOf(i, SIZE, GAP))
+		local hit = t.Hit
 		hit.MouseEnter:Connect(function()
 			hovered = i
-			up:Play()
+			t.Up:Play()
 			showRings()
 		end)
 		hit.MouseLeave:Connect(function()
 			if hovered == i then
 				hovered = nil
 			end
-			down:Play()
+			t.Down:Play()
 			showRings()
 		end)
 		hit.Activated:Connect(function()
-			local at = firstShown + i
-			local item = current[at]
-			if item then
-				selected = at
-				showRings()
-				selectedEvent:Fire(at, item)
-			end
-			pickedEvent:Fire(at, item)
+			Slots.pick(i)
 		end)
-		-- no pale line inside an empty slot (the user: "it also shouldnt be present if you dont have a fish"); a caught
-		-- one has the rim above instead
-		if look.Bevel then
-			look.Bevel.Enabled = false
-		end
-		Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, slot.Shadow)
-		local under = slot.Shadow:FindFirstChildOfClass("UIStroke")
-		if under then
-			under.LineJoinMode = Enum.LineJoinMode.Miter
-			Kit.new("UIGradient", { Transparency = BODY, Rotation = 90 }, under)
-		end
-		pictures[i] = Portrait.new(slot.Face, {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.fromScale(0.5, WINDOW.Foot),
-			Size = UDim2.fromScale(WINDOW.Wide, WINDOW.High),
-			Aspect = Slots.Aspect,
-			Visible = false,
-			ZIndex = 2,
-		})
-		names[i] = Kit.text({
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -1),
-			Size = UDim2.fromOffset(SIZE + 8, 10),
-			TextSize = 8.5,
+		-- its key, 1 to 9, at its top left (a keyboard only)
+		keys[i] = Kit.text({
+			Name = "Key",
+			Position = UDim2.fromOffset(2, 1),
+			Size = UDim2.fromOffset(10, 10),
+			Text = tostring(i),
+			TextSize = 9,
 			Font = FONT,
-			ZIndex = 3,
-		}, slot.Face, NAME_LINE)
-		slots[i] = slot
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			ZIndex = 4,
+		}, t.Panel.Face, NAME_LINE)
+		slots[i] = t.Panel
+		rims[i] = t.Rim
+		lips[i] = t.Lip
+		if t.Pattern then
+			patterns[i] = t.Pattern
+		end
+		rings[i] = t.Ring
+		pictures[i] = t.Picture
+		names[i] = t.Name
 	end
+	-- the equipped slot, at the far left (task e3)
+	local t = makeTile(middleOf(0, SIZE, GAP))
+	t.Panel.Frame.Name = "Equipped"
+	t.Hit.MouseEnter:Connect(function()
+		t.Up:Play()
+	end)
+	t.Hit.MouseLeave:Connect(function()
+		t.Down:Play()
+	end)
+	t.Hit.Activated:Connect(function()
+		rideEvent:Fire("Ride")
+	end)
+	-- the Q key cap: a small shop button (UI.Shop), over the slot's top left corner; pressing it is the slot's press
+	local cap = Shop.button(t.Panel.Frame, {
+		Name = "QKey",
+		Kind = "Cash",
+		Text = "Q",
+		TextSize = 11,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(1, 1),
+		Size = UDim2.fromOffset(16, 16),
+	})
+	cap.Edge.Thickness = 1.5
+	cap.Root.ZIndex = 6
+	cap.Root.Interactable = false
+	-- the cross that unequips, over the top right corner
+	local cross: TextButton = Kit.new("TextButton", {
+		Name = "Unequip",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -1, 0, 1),
+		Size = UDim2.fromOffset(14, 14),
+		BackgroundColor3 = Kit.Coral,
+		BorderSizePixel = 0,
+		AutoButtonColor = true,
+		Text = "X",
+		TextColor3 = Kit.White,
+		TextSize = 10,
+		Font = FONT,
+		Visible = false,
+		ZIndex = 7,
+	}, t.Panel.Frame)
+	Kit.corner(cross, 4)
+	Kit.stroke(cross, 1.5, BLACK).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	cross.Activated:Connect(function()
+		rideEvent:Fire("Unequip")
+	end)
+	-- what it is, above it (right-aligned to its right edge, so the hint runs off to the left, away from the row)
+	local hint = Kit.text({
+		Name = "Hint",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromOffset(SIZE, -6),
+		Size = UDim2.fromOffset(160, 13),
+		TextSize = 11,
+		Font = FONT,
+		TextColor3 = Kit.Sun,
+		TextXAlignment = Enum.TextXAlignment.Right,
+	}, holder, 1.2)
+	ride = {
+		Panel = t.Panel,
+		Picture = t.Picture,
+		Name = t.Name,
+		Rim = t.Rim,
+		Lip = t.Lip,
+		Pattern = t.Pattern,
+		Ring = t.Ring,
+		Cap = cap,
+		Cross = cross,
+		Hint = hint,
+	}
+	drawRide()
 end
 
 function Slots.place(touch: boolean)
+	touchNow = touch
 	local size = if touch then SIZE else BIG
 	local gap = if touch then GAP else BIG_GAP
-	holder.Size = UDim2.fromOffset(COUNT * size + (COUNT - 1) * gap, size + 18)
+	holder.Size = UDim2.fromOffset(rowWidth(size, gap), size + 18)
 	-- its bottom edge level with the stat rows' on a keyboard (StatRows.place)
 	holder.Position = UDim2.new(0.5, 0, 1, if touch then -10 else -14)
 	for i = 1, COUNT do
 		slots[i].Frame.Size = UDim2.fromOffset(size, size)
-		slots[i].Frame.Position = UDim2.new(0, (i - 1) * (size + gap) + size / 2, 1, -size / 2)
+		slots[i].Frame.Position = UDim2.new(0, middleOf(i, size, gap), 1, -size / 2)
 		names[i].TextSize = if touch then 8.5 else 11
+		keys[i].Visible = not touch
+		keys[i].TextSize = if touch then 9 else 11
 	end
+	count.Position = UDim2.fromOffset(size + gap * APART, -6)
+	if ride then
+		ride.Panel.Frame.Size = UDim2.fromOffset(size, size)
+		ride.Panel.Frame.Position = UDim2.new(0, middleOf(0, size, gap), 1, -size / 2)
+		ride.Name.TextSize = if touch then 8.5 else 11
+		ride.Hint.Position = UDim2.fromOffset(size, -6)
+		local cap = if touch then 14 else 18
+		ride.Cap.Root.Size = UDim2.fromOffset(cap, cap)
+		ride.Cap.Label.TextSize = if touch then 10 else 12
+		ride.Cross.Size = UDim2.fromOffset(cap - 2, cap - 2)
+		drawRide()
+	end
+end
+
+-- A numbered slot pressed (a click, a tap, or its key 1 to 9: task e3): the very same path for each. Fires Picked
+-- (holding, AquariumController) with the catch at that place, or nil for an empty one; a caught one takes the ring
+function Slots.pick(n: number)
+	if n < 1 or n > COUNT or not holder or not holder.Visible then
+		return
+	end
+	local at = firstShown + n
+	local item = current[at]
+	if item then
+		selected = at
+		showRings()
+		selectedEvent:Fire(at, item)
+	end
+	pickedEvent:Fire(at, item)
+end
+
+-- The equipped fish (nil: none), and whether it is ridden on land now (EquipController, from the server's attributes)
+function Slots.equipped(item: Caught?, mounted: boolean)
+	rideItem = item
+	rideOn = mounted
+	drawRide()
 end
 
 -- The chosen catch (the one with the white ring): its place in the list and the catch, or nil with none. What the
@@ -338,6 +589,7 @@ function Slots.update(list: { Caught }?)
 		return
 	end
 	count.Text = if #list > 0 then #list .. " CAUGHT" else ""
+	-- (with more catches than numbered slots, the newest COUNT; with the hands' 7 and 9 slots, all of them from slot 1)
 	local first = math.max(#list - COUNT, 0)
 	current = list
 	firstShown = first
@@ -349,40 +601,7 @@ function Slots.update(list: { Caught }?)
 	end
 	lastCount = #list
 	for i = 1, COUNT do
-		local item = list[first + i]
-		local slot = slots[i]
-		local fill = slot.Look.Fill
-		local picture = pictures[i]
-		if item then
-			local kind = Config.FishById[item.Id]
-			slot.Face.BackgroundTransparency = 0
-			local colours, turn = tileFill(item.Tier)
-			fill.Color, fill.Rotation = colours, turn
-			fill.Transparency = if turn == 90 then CAUGHT else CAUGHT_EVEN
-			if patterns[i] then
-				patterns[i].Transparency = PATTERN_CAUGHT
-			end
-			lips[i].Visible = true
-			rims[i].Visible = true
-			local name = if kind then kind.Name else item.Id
-			names[i].Text = if #name > 7 then string.sub(name, 1, 6) .. "." else name
-			slot.Look.Outline.Color = BLACK
-			picture.Frame.Visible = picture.show(item.Id)
-		else
-			slot.Face.BackgroundTransparency = GLASS.Fade or 0
-			fill.Color = ColorSequence.new(GLASS.Top, GLASS.Bottom)
-			fill.Rotation = 90
-			fill.Transparency = BODY
-			if patterns[i] then
-				patterns[i].Transparency = BODY
-			end
-			lips[i].Visible = false
-			rims[i].Visible = false
-			names[i].Text = ""
-			slot.Look.Outline.Color = BLACK
-			picture.show(nil)
-			picture.Frame.Visible = false
-		end
+		paint(slots[i], rims[i], lips[i], patterns[i], pictures[i], names[i], list[first + i])
 	end
 	showRings()
 end

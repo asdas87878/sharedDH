@@ -48,6 +48,8 @@ local AngryStyles = require(ReplicatedStorage.Shared.AngryStyles)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
+local Variants = require(ReplicatedStorage.Shared.Variants)
+local FishModel = require(script.Parent.Parent.Lib.FishModel)
 local FishService = require(script.Parent.FishService)
 local PropService = require(script.Parent.PropService)
 
@@ -110,7 +112,13 @@ type Rider = {
 	AteAt: number, -- os.clock() of its last bite,
 	Frenzy: number, -- and the Frenzy's stacks so far (0: none)
 	BreakReadyAt: number, -- before this a broken prop pays a Breaker nothing more (Breaker.Cooldown)
+	-- the ride fish (task e3, Config.Equip): one entry of Carried, that very table (not a copy, and not counted again)
+	Equipped: Carry?,
+	EquipAt: number, -- os.clock() of the last equip ask taken
+	Land: Land?, -- while riding it on land in the hub
 }
+-- The equipped fish under the rider on land: its model, welded under the root, and what the humanoid had before
+type Land = { Model: Model, Body: Model, Humanoid: Humanoid, Hip: number, Walk: number }
 
 local RideService = {}
 
@@ -124,6 +132,10 @@ RideService.Diving = nil :: ((player: Player) -> boolean)?
 -- Set by SubService: asked next, when the sub doesn't take them. A fish (the one held over the head, task f2): made
 -- where they go in and kept for them; they are put straight on it, as a landing, instead of the dive-in's hop
 RideService.DiveFish = nil :: ((player: Player) -> Wild?)?
+-- Set by AquariumService (the hold, task f1): the fish held over the head (one of Carried, the very table), and putting
+-- it away. Q equips the held fish (task e3)
+RideService.HeldOf = nil :: ((player: Player) -> Carry?)?
+RideService.PutAway = nil :: ((player: Player) -> ())?
 
 -- The sandbox's reset seats a rider only on a fish that has been in the Workspace this long, so the player's machine
 -- has the fish too (it is told to sit on it).
@@ -199,6 +211,159 @@ local function maxOxygen(): number
 	return Config.Oxygen.StartMax
 end
 
+-- The ride fish on land (task e3, Config.Equip; docs/design/equip.md). The equipped fish is built at its own size and
+-- colour, weightless and touching nothing, and welded under the player's root by its saddle, as on a dive's fish; the
+-- humanoid stands taller by the fish's depth below the saddle, so it walks on the floor and carries the rider. The
+-- humanoid still does the walking (E4, land movement by body type, moves the fish's own joints over it). In
+-- Workspace.LandFish, not Workspace.Fish: nothing locks on to it, tags it or tames it. Shown only on the dock.
+local landFolder: Folder? = nil
+local equipAsk: (r: Rider, action: string) -> ()
+
+local function landFolderOf(): Folder
+	if landFolder and landFolder.Parent then
+		return landFolder
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "LandFish"
+	folder.Parent = workspace
+	landFolder = folder
+	return folder
+end
+
+-- Off the land fish: its model goes and the humanoid is as it was (the equipped choice is kept)
+local function landOff(r: Rider)
+	local land = r.Land
+	if not land then
+		return
+	end
+	r.Land = nil
+	land.Model:Destroy()
+	if land.Humanoid.Parent and r.Player.Character == land.Body then
+		land.Humanoid.HipHeight = land.Hip
+		land.Humanoid.WalkSpeed = land.Walk
+	end
+	r.Player:SetAttribute("LandMounted", nil)
+end
+
+-- Seated somewhere else (the seahorse trainer, a tank ride) or dead: no land fish, no Q
+local function busy(r: Rider): boolean
+	local player = r.Player
+	if player:GetAttribute("TrainerRide") ~= nil or player:GetAttribute("TankRide") ~= nil then
+		return true
+	end
+	local _, humanoid = parts(player)
+	return humanoid == nil or humanoid.Sit
+end
+
+-- On the equipped fish, on land: only on the dock, with a body, not seated elsewhere
+local function landOn(r: Rider): boolean
+	local carry = r.Equipped
+	local root, humanoid = parts(r.Player)
+	local kind = carry and Config.FishById[carry.Id]
+	if r.Land or not carry or not kind or not root or not humanoid or r.State ~= "Dock" or busy(r) then
+		return r.Land ~= nil
+	end
+	-- (nothing over the head while riding: one pose at a time)
+	if RideService.PutAway then
+		RideService.PutAway(r.Player)
+	end
+	local model = FishModel.build(kind)
+	CollectionService:RemoveTag(model, FishModel.Tag)
+	Variants.apply(model, carry.Variant)
+	local scale = Config.sizeScale(carry.Size, kind)
+	local most = Config.Equip.LandMost
+	if most > 0 then
+		scale = math.min(scale, most / math.max(kind.Size.Z, 0.1))
+	end
+	model:ScaleTo(model:GetScale() * scale)
+	local fishRoot = model.PrimaryPart
+	local saddle = fishRoot and fishRoot:FindFirstChild("Saddle")
+	if not fishRoot or not saddle or not saddle:IsA("Attachment") then
+		model:Destroy()
+		return false
+	end
+	-- (the seat's own height above the back is not scaled, as FishService's resize)
+	saddle.Position -= Vector3.new(0, Config.Ride.SeatHeight * (scale - 1), 0)
+	for _, d in model:GetDescendants() do
+		if d:IsA("Constraint") or d:IsA("Trail") then
+			d:Destroy() -- (its movers and its wake)
+		elseif d:IsA("BasePart") then
+			d.Anchored = false
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+			d.Massless = true
+		end
+	end
+	-- how far its belly is under the saddle, upright: the humanoid's root stands that high
+	model:PivotTo(CFrame.new())
+	local box, size = model:GetBoundingBox()
+	local depth = saddle.WorldPosition.Y - (box.Position.Y - size.Y / 2)
+	local legs = if humanoid.RigType == Enum.HumanoidRigType.R6 then 2 else 0
+	local hip = math.max(humanoid.HipHeight, depth - root.Size.Y / 2 - legs)
+	local land: Land = {
+		Model = model,
+		Body = r.Player.Character :: Model,
+		Humanoid = humanoid,
+		Hip = humanoid.HipHeight,
+		Walk = humanoid.WalkSpeed,
+	}
+	-- facing the way the player faces, the saddle at the root
+	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	look = if look.Magnitude > 0.01 then look.Unit else Vector3.new(0, 0, -1)
+	local lift = Vector3.new(0, hip - humanoid.HipHeight, 0)
+	local seat = root.Position + lift
+	local want = CFrame.lookAt(seat, seat + look) * saddle.CFrame:Inverse() -- (the fish's root there)
+	model:PivotTo(want * (model:GetPivot():Inverse() * fishRoot.CFrame):Inverse())
+	local weld = Instance.new("Weld")
+	weld.Name = "LandWeld"
+	weld.Part0 = fishRoot
+	weld.Part1 = root
+	weld.C0 = saddle.CFrame
+	weld.Parent = fishRoot
+	model.Name = r.Player.Name
+	model:SetAttribute("LandRider", r.Player.UserId)
+	model:SetAttribute("FishType", carry.Id)
+	model:SetAttribute("SizeTier", carry.Size)
+	model:SetAttribute("Variant", carry.Variant)
+	model.Parent = landFolderOf()
+	root.CFrame += lift
+	humanoid.HipHeight = hip
+	humanoid.WalkSpeed = Config.Equip.LandSpeed
+	r.Land = land
+	r.Player:SetAttribute("LandMounted", true)
+	return true
+end
+
+-- What the player's machine is told of the ride fish: its kind, size, colour and its place in the hands now
+local function tellEquip(r: Rider)
+	local carry = r.Equipped
+	local index = if carry then table.find(r.Carried, carry) else nil
+	local player = r.Player
+	player:SetAttribute("EquippedFish", if carry and index then carry.Id else nil)
+	player:SetAttribute("EquippedSize", if carry and index then carry.Size else nil)
+	player:SetAttribute("EquippedVariant", if carry and index then carry.Variant else nil)
+	if player:GetAttribute("EquippedIndex") ~= index then
+		player:SetAttribute("EquippedIndex", index)
+	end
+end
+
+local function unequip(r: Rider)
+	landOff(r)
+	r.Equipped = nil
+	tellEquip(r)
+end
+
+-- After any change to the hands: the ride fish is still that very entry, at its new place, or it has gone (put in the
+-- tank, or any other way) and is unequipped
+local function checkEquip(r: Rider)
+	if r.Equipped and not table.find(r.Carried, r.Equipped) then
+		unequip(r)
+	elseif r.Equipped then
+		tellEquip(r)
+	end
+end
+
 -- Angry mode: the fish under a rider is marked angry, or calm again. Its attributes are how every client knows
 -- ("Angry": true; "AngryStyle": its style's name, for the animations to come), its tag is how they find it.
 local function setAngry(r: Rider, w: Wild?)
@@ -237,6 +402,10 @@ local function isAngry(r: Rider, w: Wild): boolean
 end
 
 local function setState(r: Rider, state: string)
+	if state ~= "Dock" then
+		-- (off the dock: the land fish goes, the equipped choice stays for the dive: task e3)
+		landOff(r)
+	end
 	if state ~= "Free" then
 		r.SurfacedAt = nil
 	end
@@ -324,6 +493,7 @@ end
 -- What the rider carries on this dive, told to their client
 local function sendCaught(r: Rider)
 	Net.Ride:FireClient(r.Player, "Caught", r.Caught)
+	checkEquip(r)
 end
 
 -- (`target`: the fish a refused grab or landing was for, so the client can tell an old refusal from one for the fish
@@ -905,7 +1075,7 @@ end
 
 -- The landing the client asks for, at the end of its pull-in: on the fish it was granted, free still, and the player
 -- at it (plus slack for lag)
-local function landOn(r: Rider, target: any)
+local function landing(r: Rider, target: any)
 	if r.State ~= "Jumping" then
 		return deny(r, "Land", "State")
 	end
@@ -1332,7 +1502,14 @@ local function tick(r: Rider, dt: number)
 	end
 	local o = Config.Oxygen
 	if r.State == "Dock" then
+		local land = r.Land
+		if land and (not land.Model.Parent or r.Player.Character ~= land.Body or busy(r)) then
+			-- (the land fish was lost, the body changed, or they sat down somewhere else: off it)
+			landOff(r)
+		end
 		if root.Position.Y < o.WaterY then
+			-- (into the water: the land fish goes before anything else owns the body)
+			landOff(r)
 			-- (the submarine, when one has been picked at the hub: docs/design/submarine.md)
 			if RideService.Diving and RideService.Diving(r.Player) then
 				r.Token += 1
@@ -1460,6 +1637,8 @@ end
 
 local function onCharacter(r: Rider, character: Model)
 	r.Token += 1
+	-- a new body (a respawn, a reset) unequips the ride fish, as it puts the held one away (task e3)
+	unequip(r)
 	looseOf[r.Player] = nil
 	-- a fish still marked as ours (the old character went without dying first) is let go
 	if r.Weld then
@@ -1553,6 +1732,9 @@ local function onPlayer(player: Player)
 		AteAt = -math.huge,
 		Frenzy = 0,
 		BreakReadyAt = 0,
+		Equipped = nil,
+		EquipAt = 0,
+		Land = nil,
 	}
 	riders[player] = r
 	sendOxygen(r, true)
@@ -1665,6 +1847,59 @@ function RideService.sandboxReset(
 	end)
 end
 
+-- The ride fish's asks (task e3; docs/design/equip.md), each only on the dock and not seated elsewhere:
+--   "RideEquip" (Q): the fish held over the head becomes the ride fish (that very entry of the hands) and is ridden on
+--     land; with nothing held, the equipped one is ridden again; with nothing equipped either, nothing.
+--   "RideMount" (a click on the equipped slot): on or off the equipped fish on land; it stays equipped.
+--   "RideUnequip" (the slot's little cross): no ride fish.
+-- Refused with Ride "Denied", "Equip", reason ("Dock", "Busy", "None", "Gone"), changing nothing.
+function equipAsk(r: Rider, action: string)
+	local t = os.clock()
+	if Config.Equip.On == 0 or t - r.EquipAt < Config.Equip.Again then
+		return
+	end
+	r.EquipAt = t
+	if action == "RideUnequip" then
+		unequip(r)
+		return
+	end
+	if r.State ~= "Dock" then
+		deny(r, "Equip", "Dock")
+		return
+	end
+	if busy(r) then
+		deny(r, "Equip", "Busy")
+		return
+	end
+	if action == "RideMount" then
+		if r.Land then
+			landOff(r)
+		elseif r.Equipped then
+			landOn(r)
+		else
+			deny(r, "Equip", "None")
+		end
+		return
+	end
+	local held = if RideService.HeldOf then RideService.HeldOf(r.Player) else nil
+	if held then
+		if not table.find(r.Carried, held) then
+			deny(r, "Equip", "Gone")
+			return
+		end
+		if r.Equipped ~= held then
+			landOff(r) -- (another fish: the old one's model goes)
+			r.Equipped = held
+		end
+		tellEquip(r)
+		landOn(r)
+	elseif r.Equipped then
+		landOn(r)
+	else
+		deny(r, "Equip", "None")
+	end
+end
+
 function RideService.Init()
 	Net.Action.OnServerEvent:Connect(function(player, action, target)
 		local r = riders[player]
@@ -1714,8 +1949,10 @@ function RideService.Init()
 					end
 				end
 			end
+		elseif action == "RideEquip" or action == "RideMount" or action == "RideUnequip" then
+			equipAsk(r, action)
 		elseif action == "Land" then
-			landOn(r, target)
+			landing(r, target)
 		elseif action == "Miss" then
 			if r.State == "Jumping" then
 				miss(r)
@@ -1732,6 +1969,9 @@ function RideService.Init()
 		end
 		if r and r.Grab then
 			FishService.unreserve(r.Grab, player)
+		end
+		if r then
+			landOff(r)
 		end
 		riders[player] = nil
 		looseOf[player] = nil
@@ -1895,6 +2135,22 @@ function RideService.giveCarried(player: Player, fish: Carry): boolean
 	table.insert(r.Carried, { Id = fish.Id, Size = fish.Size, Variant = fish.Variant })
 	sendCaught(r)
 	return true
+end
+
+-- The ride fish (task e3): the player's equipped entry of the hands (the very table: read it, never change it), or
+-- nil. What a dive in and the sub ride (SubService), copied as the dive leaves
+function RideService.equippedOf(player: Player): Carry?
+	local r = riders[player]
+	local carry = r and r.Equipped
+	return if r and carry and table.find(r.Carried, carry) then carry else nil
+end
+
+-- Off the land fish now, keeping it equipped (AquariumService: holding a fish over the head is a pose of its own)
+function RideService.landOff(player: Player)
+	local r = riders[player]
+	if r then
+		landOff(r)
+	end
 end
 
 function RideService.Start()

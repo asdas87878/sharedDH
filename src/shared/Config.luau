@@ -934,6 +934,19 @@ Config.Hold = {
 	Blend = 10, -- how quickly the arms go up and come down (higher is quicker)
 }
 
+-- The ride fish (task e3, Hugo 2026-11-20: "1 should be first inventory slot while q should be a completely seperate
+-- slot"; docs/design/equip.md). A number key (1 to 9) or a slot click holds that fish over the head; Q then equips it:
+-- it goes into the slot at the far left of the row, the player rides it on land in the hub, and it is the fish they
+-- ride after a dive in or the sub. Two separate presses, never a chord. RideService decides (Action "RideEquip",
+-- "RideMount", "RideUnequip"), the client is EquipController and UI.Slots.
+Config.Equip = {
+	On = 1, -- 0: no Q, no equipped slot (the sub's tank fish is still ridden)
+	LandSpeed = 32, -- the hub's walk speed while riding the equipped fish on land (studs a second; on foot: Dock.WalkSpeed)
+	-- the land fish's length at most (studs; 0: its own size, the plan's default: a Colossal whale is huge in the hub)
+	LandMost = 0,
+	Again = 0.15, -- seconds between two asks the server takes from one player
+}
+
 Config.Ride = {
 	RampTime = 0.4, -- idle to ridden speed, easing out (1.2 until 2026-11-16: on a 2.5-second ride that was half the ride spent getting going; the wild herd swims at 0.7 of the land's pace now, so this is the kick of a landing)
 	Surge = 1.25, -- the burst on mount

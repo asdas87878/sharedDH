@@ -31,7 +31,8 @@
 --   lifts the arms (HoldController). The player's attributes: "HeldFish" (its id), "HeldSize", "HeldVariant",
 --   "HeldIndex" (its place in the hands now). Held means one of the fish in the hands, that very one: once it is not
 --   there any more (put in the tank, or gone any other way) it is put away. A new body (a respawn, a reset) puts it
---   away. A dive keeps it held, unseen (AquariumService.heldOf: the next task rides it after the sub).
+--   away. A dive keeps it held, unseen. Holding is not riding (task e3): Q makes the held fish the ride fish
+--   (RideService.equippedOf), and only that is ridden on land, after a dive in and after the sub.
 -- For the session only: there are no saves yet.
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -419,6 +420,8 @@ local function hold(player: Player, index: number, id: string)
 		return
 	end
 	putAway(player)
+	-- (off the land fish to hold one up, task e3: the ride fish stays equipped until Q picks the held one)
+	RideService.landOff(player)
 	held[player] = { Carry = c, Model = nil, Body = nil }
 	player:SetAttribute("HeldFish", c.Id)
 	player:SetAttribute("HeldSize", c.Size)
@@ -752,6 +755,9 @@ local function startHolding()
 	folder.Name = "HeldFish"
 	folder.Parent = workspace
 	heldFolder = folder
+	-- Q equips the held fish (RideService, task e3)
+	RideService.HeldOf = AquariumService.heldOf
+	RideService.PutAway = putAway
 	local lastHold: { [Player]: number } = {}
 	Net.Action.OnServerEvent:Connect(function(player: Player, action: any, index: any, id: any)
 		if action ~= "Hold" or type(index) ~= "number" or index ~= index or index % 1 ~= 0 then

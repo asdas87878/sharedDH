@@ -17,12 +17,12 @@
 --     a fish: it was made beside the sub FishIn seconds before (FishService.spawnFor, "SubFish"), driven there by the
 --     player's machine; we say "SubDrop", "Kick", and the machine kicks the rider onto it and says "SubLand".
 --   The fish ridden after the drop (task f2, Hugo 2026-11-20: "jumping into the gameplay loop with the fish should let
---   you ride it after submarine"): the fish the player HOLDS over their head as they go in (AquariumService.heldOf,
---   one of the fish in their hands), else the tank fish picked at the stand ("SubFish"), else none (the fling). Its
+--   you ride it after submarine"): the fish the player has EQUIPPED (Q, task e3: RideService.equippedOf, one of
+--   the fish in their hands; holding it over the head alone no longer counts), else the tank fish picked at the stand ("SubFish"), else none (the fling). Its
 --   kind, size and colour are fixed as the trip is made (Sub.Ride). It is borrowed, never taken: the hands (and the
 --   tank) keep it whatever happens, a ride, a miss or a drown, and riding it tames nothing new.
---   The plain dive-in with a held fish (no sub equipped, no land picked, or Sub.On 0): RideService asks us
---   (RideService.DiveFish) and the held fish is made where the player goes in, and they are put straight on it.
+--   The plain dive-in with an equipped fish (no sub equipped, no land picked, or Sub.On 0): RideService asks us
+--   (RideService.DiveFish) and the equipped fish is made where the player goes in, and they are put straight on it.
 --   If the player's machine says nothing for Sub.Late seconds, we let them go ourselves. A death, a reset or leaving
 --   in the middle gives the trip up and takes the fish away.
 local Players = game:GetService("Players")
@@ -95,9 +95,10 @@ local function tankFish(player: Player, key: string): (string?, string?, string?
 	return nil, nil, nil
 end
 
--- The fish a dive rides: the one held over the head first, else the tank fish picked at the stand (nil: none)
+-- The fish a dive rides: the equipped one first (Q, task e3: never merely the one held over the head), else the tank
+-- fish picked at the stand (nil: none). A copy, made as the trip is made
 local function rideWith(player: Player, sub: Sub): RideService.Carry?
-	local h = AquariumService.heldOf(player)
+	local h = RideService.equippedOf(player)
 	if h and Config.FishById[h.Id] then
 		return { Id = h.Id, Size = h.Size, Variant = h.Variant }
 	end
@@ -307,11 +308,11 @@ local function diving(player: Player): boolean
 	return began
 end
 
--- Asked by RideService as a player on the dock goes into the water and the sub doesn't take them: with a fish held
--- over the head, that fish, made where they go in and kept for them (RideService puts them on it)
+-- Asked by RideService as a player on the dock goes into the water and the sub doesn't take them: with a fish
+-- equipped (Q, task e3), that fish, made where they go in and kept for them (RideService puts them on it)
 local function diveFish(player: Player): FishService.Wild?
 	local sub = subs[player]
-	local h = AquariumService.heldOf(player)
+	local h = RideService.equippedOf(player)
 	if not sub or sub.Trip or not h then
 		return nil
 	end
