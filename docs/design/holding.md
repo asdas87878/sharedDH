@@ -37,5 +37,8 @@ a respawn puts it away. **Not seen yet:** Studio's window had stopped painting (
 frame, on or off screen), so there are no pictures, and the arm pose numbers are untuned guesses.
 
 ## Open
+- **2026-11-20, review round 1:** the arms now come all the way down when the fish is put away (a joint the
+  Animator leaves alone blends from rest). Screenshots, pose tuning and a two-player test wait for a Studio restart
+  (its window stopped painting; the open place has unsaved changes, so Hugo saves first).
 - The pose and the fish's place over the head need a look in Studio (`Config.Hold`: `Lift`, `Out`, `Elbow`, `Above`).
 - Number keys for the slots (a hotbar's 1 to 7) are not wired.
