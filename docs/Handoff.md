@@ -3,6 +3,26 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-20 · The ride fish moves on land by its body type (NULLROOM task e4, Hugo's PC)
+**State:** in the game code (`AnimController`, `Config.LandRide`); stylua and selene clean. Checked by a scripted Studio
+playtest, `python tools/studio/e4_land_check.py install`, `studio-run.mjs play`, `... run`: **10 of 10 pass** (log
+`work/e4/check.log`); `... gifs` records the GIFs. Not played by hand, not with two players. All in
+[land motion](design/land-motion.md).
+- **What:** riding the equipped fish in the hub, each of 14 body types moves its own way on the creature's own joints:
+  fish flop side to side in little hops, turtles paddle with the shell low, the seahorse hops on its curled tail, the
+  octopus and kraken pull with their arms, squid scoot, rays ripple their wings, eels slither, crawlers wave their
+  legs, sharks lunge on a tail sweep, whales heave, marine reptiles crawl on opposed flippers, the bulbous ones
+  waddle-hop, the jelly scoots, the Devourer stomps and drags. All 82 kinds have one (`Config.LandRide.Kinds`).
+- **How:** procedural, written from rest each frame; the Root never moves (the humanoid walks), the body joint's
+  shift does the hops and lunges and the rider, locked to the seat, goes with them. The stride follows the real walk
+  speed and settles at rest; turns lean the body. The rider sits astride (not the avatar's sit animation any more).
+  Land fish are registered with the animator from `Workspace.LandFish`.
+- **For the partner:** `AnimController.LandHook(fish, style, phase, move)` takes a fish's joints for a frame (listed
+  in archetypes.md's animation hooks).
+- **Open:** how it reads at speed (judge by hand); giants at true size; steps and slopes (the movement's, not this).
+- GIFs: `docs/attachments/e4-land-a.gif` (flop, turtle ridden, seahorse, octopus), `-b` (squid, ray, eel, crawler),
+  `-c` (shark, whale, bulbous, reptile), `-d` (jelly, worm, Devourer).
+
 ## 2026-11-20 · The tank outlined under the mouse, a click opens its popup; the hotbar back to seven (NULLROOM task c1, Hugo's PC)
 **State:** in the game code; stylua and selene clean. Checked by a scripted Studio playtest,
 `python tools/studio/c1_tank_hotbar_check.py install|run|remove` (log `work/c1/check.log`): see the result line below.

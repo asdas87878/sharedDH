@@ -412,6 +412,7 @@ marked block in `RideController.drive`; set `ArchetypeFeel.Motion` to 0 when an 
 | A Fast fish's launch | `Net.Fx` `"Land", player, fish, count` on a fish whose `Archetype` has `Fast`; on the rider's own machine `State.Launched` fires as it takes off | none (speed only) |
 | A Leaper's big hop | the rider's `State` attribute goes to `Jumping` off a fish whose `Archetype` has `Leaper`; on the rider's own machine `State.Leapt` fires | none (the hop itself) |
 | A Tank | nothing happens; `Archetype` has `Tank` | none |
+| Riding the ride fish on land (task e4, [land motion](land-motion.md)) | the land fish in `Workspace.LandFish` (its `LandRider`, `FishType`); its body type `Config.LandRide.Kinds`; set `AnimController.LandHook(fish, style, phase, move)` and return true to take its joints that frame | procedural, by body type (`Config.LandRide`) |
 
 ## Open, after building
 - Nobody has played it by hand. The numbers are as designed; whether a bite every 2.5 s (1.2 s in a Frenzy)

@@ -3,6 +3,8 @@
 -- placeholder's tail beat, sway and fin flaps), faster the faster it swims, and the buck when it throws its rider off;
 -- and every rider's pose by their State (astride while riding, the pop, the strokes of the glide and the drop, the
 -- pull-in, treading water while floating, flailing, weakening and going limp as they drown), with a squash on landing.
+-- On land (task e4): the ride fish in Workspace.LandFish moves by its body type (Config.LandRide; the "On land" block
+-- below, docs/design/land-motion.md) and its rider sits astride, locked to its back.
 -- On top of a modelled creature's keyed cycle sit the layers of Config.Animation, all seen only: they turn or shift
 -- joints, never the Root, so the Saddle, the lock, the pull-in and the server's checks are untouched. First built
 -- 2026-11-11 (docs/design/animation-study.md), then worked over with the user in the Swim Lab preview and carried

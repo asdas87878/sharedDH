@@ -78,7 +78,7 @@ Studio playtest, Hugo's avatar): **41 of 41 pass**, log `work/e3/check.log`. The
 - Not played by hand; no two-player test (studio-runner starts one player). Not tested: a real key press through
   Roblox's input (the test calls the same function after the gate), a phone layout of the ten slots, walking the fish
   over steps and the dock's edge. The land fish passes through walls (it touches nothing); the humanoid does not.
-- The land fish doesn't move its body yet: land movement by body type is plan E4. The sit animation is Roblox's own
-  (the avatar's Animate script's).
+- The land fish moves its body by its body type, and the rider sits astride, locked to its back: [land motion](land-motion.md)
+  (task e4). Roblox's own sit animation (above) still plays underneath and shows only with `LandRide.On` 0.
 - TankPanel's EQUIP / EQUIP BEST is still the tank's earning choice, a different thing from the ride fish; its words
   are unchanged.

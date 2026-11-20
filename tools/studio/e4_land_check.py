@@ -24,8 +24,8 @@ OUT = ROOT / "work/e4"
 OUT.mkdir(parents=True, exist_ok=True)
 ATTACH = ROOT / "docs/attachments"
 RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
-CROP = (4, 142, 1984, 1205)  # the game view in the Studio window's shot (as fail_capture.py)
-WIDTH = 520
+CROP = (4, 190, 1984, 1205)  # the game view in the Studio window's shot (as fail_capture.py), below the top bar
+WIDTH = 480
 
 SERVER = r'''
 local RS = game:GetService("ReplicatedStorage")
@@ -130,7 +130,8 @@ RS:GetAttributeChangedSignal("E4Cmd"):Connect(function()
 			return "grid " .. #ids
 		elseif verb == "parade" then
 			-- a row nose to tail along +X from the spawn (spec: [[id, size, gap], ...]; "RIDER" = the player's own place)
-			local spawn = workspace.ClaudeBlockout.Dock.DockSpawn.Position
+			-- (on the open floor in front of the spawn, as the grid)
+			local spawn = workspace.ClaudeBlockout.Dock.DockSpawn.Position + Vector3.new(0, 0, -60)
 			local x = 0
 			local out = {}
 			for _, f in game:GetService("HttpService"):JSONDecode(arg) do
@@ -586,14 +587,14 @@ GROUPS = {
     "a": [["Clownfish", "Normal", 8], ["RIDER", 8], ["Seahorse", "Normal", 8], ["Octopus", "Normal", 8]],
     "b": [["GiantSquid", "Normal", 6], ["Stingray", "Normal", 6], ["MorayEel", "Normal", 6], ["SeaScorpion", "Normal", 6]],
     "c": [["ReefShark", "Normal", 6], ["Dolphin", "Normal", 6], ["Pufferfish", "Normal", 6], ["Mosasaurus", "Normal", 6]],
-    "d": [["AuroraJelly", "Normal", 6], ["BobbitWorm", "Normal", 6], ["Kraken", "Normal", 6], ["TheDevourer", "Normal", 6]],
+    "d": [["AuroraJelly", "Normal", 6], ["BobbitWorm", "Normal", 6], ["TheDevourer", "Normal", 6]],
 }
 RIDE = {"a": "SeaTurtle"}
 TITLES = {
     "a": "fish flop, turtle (ridden), seahorse, octopus",
     "b": "squid scoot, ray shuffle, eel slither, crawler",
     "c": "shark lunge, whale heave, bulbous waddle, reptile crawl",
-    "d": "jelly scoot, worm ripple, kraken, stomp-drag",
+    "d": "jelly scoot, worm ripple, stomp-drag",
 }
 
 
@@ -617,10 +618,12 @@ def gifs(which=None, frames=14, seconds=1.4):
         span = float(said.split(" ")[1])
         # the camera: off to the side and a little above the row's middle, far enough to hold it all
         mid = span / 2
-        dist = max(45, span * 0.95)
+        # (the parade is 60 studs in front of the spawn; the camera stays this side of the spawn, out of the hub's props)
+        dist = min(80, max(40, span * 0.55))
+        fov = 40 if span < 70 else 55
         server(
             "local s = workspace.ClaudeBlockout.Dock.DockSpawn.Position "
-            f"workspace:SetAttribute('E4Do', 'cam|' .. (s.X + {mid}) .. ',' .. (s.Y + {dist * 0.35}) .. ',' .. (s.Z + {dist}) .. ',' .. (s.X + {mid}) .. ',' .. (s.Y + 3) .. ',' .. s.Z .. ',40|' .. os.clock()) return 'ok'"
+            f"workspace:SetAttribute('E4Do', 'cam|' .. (s.X + {mid}) .. ',' .. (s.Y + {dist * 0.25}) .. ',' .. (s.Z - 60 + {dist}) .. ',' .. (s.X + {mid}) .. ',' .. (s.Y + 3) .. ',' .. (s.Z - 60) .. ',{fov}|' .. os.clock()) return 'ok'"
         )
         time.sleep(1.5)
         setw(LandMove=1)
