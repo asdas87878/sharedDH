@@ -21,9 +21,9 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
   they need the front spot instead.
 
 ## 2026-11-20 · Hold a fish from your hands over your head in the hub (NULLROOM task f1, Hugo's PC)
-**State:** in the game code; the server side checked in a Studio playtest by script; **not seen**: Studio's window had
-stopped painting (every capture the same old frame), so no pictures and the arm pose is untuned. All in
-[holding](design/holding.md).
+**State:** in the game code; checked and pictured in a Studio playtest by script (after a Studio restart: the place
+Hugo saved at 07:19 reopened, nothing missing); the pose tuned from the pictures; **not played by hand, not tried
+with two players.** Pictures: `docs/attachments/hold-sheet.png`. All in [holding](design/holding.md).
 - On the dock, a click on a caught slot (away from your own tank, where a click still puts it in) holds that fish over
   your head, arms up; the same slot again or an empty one puts it away. Everyone sees it.
 - `AquariumService`: Action `"Hold", index, id` (0 puts away), checked against the hands; the fish built small and
@@ -31,7 +31,8 @@ stopped painting (every capture the same old frame), so no pictures and the arm 
   once when that fish leaves the hands, on a respawn or reset; kept (unseen) through a dive:
   `AquariumService.heldOf(player)` for the next task.
 - `HoldController` (new): the arms-up pose for every holding player. `Slots.Picked` (new): every slot click, empty
-  ones too. `Config.Hold`: the numbers. Test driver `tools/studio/hold_check.py`.
+  ones too. `Config.Hold`: the numbers (the fish lies on a hat, `HatMost`). Test driver `tools/studio/hold_check.py`
+  (the camera stays the game's; it turns the character).
 
 ## 2026-11-19 · The seahorse trainer's 12 levels in the game, no plate (NULLROOM task sh1, Hugo's PC)
 **State:** in the game code, the 12 models installed **locally** in Hugo's Studio (not uploaded), checked in a Studio

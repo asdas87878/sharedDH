@@ -30,15 +30,23 @@ currently in inventory." Built by NULLROOM task f1. The next task (riding it aft
   between 3.5 and 8 studs), `Above`, `Turn`, `Lift`, `Out`, `Elbow`, `Blend`, and `On`.
 
 ## Checked
-`tools/studio/hold_check.py` (install, play, run, remove), 2026-11-20, in a Studio playtest by script: hold a Tiny
-Clownfish (3.5 studs long over the head), switch to a Colossal gold Reef Shark (8 studs), a wrong id is refused, 0 puts
-it away, taking another fish out of the hands keeps it held at its new place, taking the held one out puts it away,
-a respawn puts it away. **Not seen yet:** Studio's window had stopped painting (every capture returned the same old
-frame, on or off screen), so there are no pictures, and the arm pose numbers are untuned guesses.
+`tools/studio/hold_check.py` (install, play, run, remove), 2026-11-20, in a Studio playtest by script, on Hugo's own
+avatar (R15, a tall witch hat):
+- hold a Tiny Clownfish (3.5 studs long over the head), switch to a Colossal gold Reef Shark (8 studs), a wrong id is
+  refused, 0 puts it away, taking another fish out of the hands keeps it held at its new place, taking the held one
+  out puts it away, a respawn puts it away;
+- the hands, against the head's middle, as the player's own machine poses them: hanging 2.1 below; holding 0.6 above,
+  either side of the head (this avatar's arms reach no higher); put away, 2.1 below again (the arms come all the way
+  down);
+- pictures: ![](../attachments/hold-sheet.png) (empty hands; small fish front and side; big fish front and side; put
+  away front and side), each also on its own: `docs/attachments/hold-*.png`.
+- **Tuned from them:** `Lift` 175, `Out` 12, `Elbow` 5 (nearly straight arms: bent more, the hands only reach the
+  ears), and the fish lies on whatever sits on the head (a hat or hair, `HatMost` 2.5 above the head at most): on
+  the head alone it went through Hugo's hat.
+- **Not tested:** two players at once (studio-runner starts only a one-player playtest). The fish is the server's,
+  welded to the body, so it reaches every player as any part does; the pose is read from the player's attributes on
+  every machine, for every player.
 
 ## Open
-- **2026-11-20, review round 1:** the arms now come all the way down when the fish is put away (a joint the
-  Animator leaves alone blends from rest). Screenshots, pose tuning and a two-player test wait for a Studio restart
-  (its window stopped painting; the open place has unsaved changes, so Hugo saves first).
-- The pose and the fish's place over the head need a look in Studio (`Config.Hold`: `Lift`, `Out`, `Elbow`, `Above`).
+- A two-player playtest (Studio's Test tab, 2 players) to see the fish and the arms on the other player's screen.
 - Number keys for the slots (a hotbar's 1 to 7) are not wired.
