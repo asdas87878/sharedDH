@@ -644,7 +644,7 @@ local function refresh()
 	local pair = if full then Shop.Kinds.Red else Shop.Kinds.Off
 	pill.Color = Shop.halves(Kit.darker(pair[1], 0.45), Kit.darker(pair[2], 0.5))
 	local maxed = attr("PlotStage", 0) >= #Config.PlotUpgrades.Stages
-	note.Text = if maxed or Config.PlotUpgrades.On == 0 then "" else "Upgrade your tank to equip more"
+	note.Text = if full and not maxed and Config.PlotUpgrades.On ~= 0 then "Upgrade your tank to equip more" else "" -- (only when it matters)
 
 	table.sort(equipped, order)
 	table.sort(stored, order)

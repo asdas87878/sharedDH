@@ -138,7 +138,13 @@ a window open). A script can't hover or click: those need the user's hand.
 
 ## What was built (2026-11-22, this pass; the UI chat)
 All in `src/client/UI/` unless named; lint clean; checked in Studio by numbers (below). Hover and press were read by
-numbers with a scripted mouse; not played by hand.
+numbers with a scripted mouse; not played by hand. Three Studio passes (2026-11-22, all clean in the console):
+the stalls open and close on their rings (open peaks about 1.10, settled by about 0.8 s from stepping on, poll lag
+included), the hub button hovers to 1.05 with its shade and presses to 1.05 x 0.96, the dim reads 0.5, a sale's total
+only falls and its "+$N"s clear, the deposit line and "+$N/s!" chip read right, "TANK FULL!" shows and goes after 2 s,
+the "!" hops 12 px with a wobble (now timed by the clock, every 1.8 s), and in a dive the hop button dips to 0.88 on
+Space and its arrow turns in about 0.14 s. Not built: the cards leaving one by one, the tame ring. Not checked: a
+phone layout. The Shop's offers are placeholders (every Id 0).
 - **Motion:** `Anim.luau` as planned. Every dock window opens and closes through it; every `Shop.button` hovers and
   presses through it (the old 1 px dip is gone); the hub buttons grow under the mouse with a shade and press; the red
   "!" bounces; toasts pop in and shrink away; the tank's line pops in. Selling: a green "+$N" rises over the sell
@@ -160,7 +166,7 @@ numbers with a scripted mouse; not played by hand.
   and short ("UNEQUIP IT FIRST", "HANDS FULL"); the over-explaining notes cut ("Pick a Sub", "No fish yet").
 - **The dive HUD, motion only:** the hop button grows under the mouse and dips on every press (mouse, finger or key);
   its arrow turns over in 0.15 s between HOP and GRAB; "FIND A FISH!" pops in and out; the land strip (the live look,
-  style 1) slides to a new land in 0.25 s and the new land's tile pops. **Not done:** the tame ring. **Not run in a
+  style 1) pops the new land's tile (no slide: its rail and markers are placed from the same spots and would lag). **Not done:** the tame ring. **Not run in a
   dive:** these HUD motions were only linted, not seen.
 - **After the look check (Fable, 2026-11-22):** cards a step lighter than the body (`Shop.Card`, as the reference's
   mid-grey cards), the studs quieter on body and cards, the Off buttons a recessed grey (never louder than a live

@@ -85,7 +85,6 @@ export type Options = {
 }
 
 local buildA: (parent: Instance, options: Options) -> any
-local SLIDE = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) -- the strip moving to a new land
 local active: any = nil -- style 1's strip, when it is the one in use
 -- A sub run (task t1, SubController): on while it runs; skip, the land it drops you in, whose own title never comes
 -- up (NOW ARRIVING is its title), kept after the drop until you are back on the dock
@@ -1533,13 +1532,7 @@ buildA = function(parent: Instance, options: Options): any
 						Anim.punch(tile.root, 1.18) -- (UI review 1: the new land's tile pops as you reach it)
 					end
 				end
-				-- the strip slides to the new land (snaps on its first update)
-				local to = UDim2.fromOffset(centreOf(i, land), A_TILE / 2)
-				if built then
-					TweenService:Create(tile.root, SLIDE, { Position = to }):Play()
-				else
-					tile.root.Position = to
-				end
+				tile.root.Position = UDim2.fromOffset(centreOf(i, land), A_TILE / 2)
 			end
 			metresWord.paint(palOfLand(at), Kit.LandGlows[at] == true)
 			-- the intro: a land deeper than any yet this dive, not the one it starts in

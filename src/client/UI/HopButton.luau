@@ -141,8 +141,9 @@ function HopButton.build(parent: Instance, press: () -> ())
 	local function isKey(input: InputObject): boolean
 		return input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.ButtonA
 	end
-	UserInputService.InputBegan:Connect(function(input: InputObject, used: boolean)
-		if isKey(input) and not used and button.Visible then
+	-- (as InputController's: the key counts even when the game took it)
+	UserInputService.InputBegan:Connect(function(input: InputObject)
+		if isKey(input) and button.Visible then
 			TweenService:Create(scale, Anim.Down, { Scale = 0.88 }):Play()
 		end
 	end)

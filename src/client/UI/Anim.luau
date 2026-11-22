@@ -342,10 +342,11 @@ function Anim.bounce(mark: GuiObject, ringColour: Color3?)
 		running = true
 		task.spawn(function()
 			while mark.Parent and mark.Visible do
+				-- one bounce every Every seconds by the clock (a slow frame rate stretched waits counted in steps)
+				local due = os.clock() + Anim.Bounce.Every
 				once()
-				local waited = 0
-				while waited < Anim.Bounce.Every - 0.63 and mark.Visible do
-					waited += task.wait(0.1)
+				while os.clock() < due and mark.Visible do
+					task.wait(math.min(0.1, due - os.clock()))
 				end
 			end
 			mark.Size, mark.Position, mark.Rotation = size, place, 0
