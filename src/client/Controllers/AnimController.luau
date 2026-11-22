@@ -1008,6 +1008,7 @@ local function landStep(
 end
 
 -- What the land motion found in a land fish's rig (for checks, and for the review's list of missing joints)
+-- Test hook: only the Studio checks call this (tools/studio/e4_land_check.py, x1_fix_check.py).
 function AnimController.landInfo(model: Model): { [string]: any }?
 	local j = fishJoints[model]
 	local L = j and j.land

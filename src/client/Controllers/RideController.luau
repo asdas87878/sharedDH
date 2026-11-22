@@ -28,7 +28,8 @@
 -- server gave us for a bite or a smashed prop (RideController.boost: on top of the speed's curve, like a crash's
 -- slow-down), a Fast fish's launch as it recovers from the landing's slow-down, and the stand-in motion for a bite
 -- and a smash (one marked block in `drive`). Steering and the hop are untouched by all of it.
--- Every fish has its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant).
+-- Every fish has its own speed (Config.speedOf: its species' own number in Config.FishStats, spread round its home
+-- land's pace, times Speed.Ride, and its variant).
 -- The camera stays underwater once we have dived (Config.Camera.Submerge...), until the dock or a respawn.
 -- In this file, in order:
 --   Ride state: the steering, the speed's moments, the coasting fish, floating and the camera's springs

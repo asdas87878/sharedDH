@@ -753,6 +753,7 @@ function SellFish.sort(by: string)
 end
 
 -- A button's own press, for Studio's tests (a script can't click): "Card", its place in the grid | "All" | "Sell"
+-- Test hook: only the Studio checks call this (tools/studio/b2_shop_check.py).
 function SellFish.press(what: string, index: number?)
 	if not SellFish.isOpen() then
 		return

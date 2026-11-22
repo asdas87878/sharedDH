@@ -1303,6 +1303,7 @@ local PLACES: { [number]: UDim2 } = {
 }
 
 -- where a look sits on the HUD
+-- Test hook: only the Studio checks call this (tools/ui/catch_show/capture_client.luau).
 function CatchShow.placeOf(look: number): UDim2
 	return PLACES[look] or UDim2.fromScale(0.5, 0.36)
 end
@@ -1324,7 +1325,8 @@ CatchShow.Clock = os.clock
 local current: { show: Show, conns: { RBXScriptConnection } }? = nil
 local pressNow: () -> () = function() end
 
--- A click or tap on the catch screen, as the screen's own input takes it (also for test scripts)
+-- A click or tap on the catch screen, as the screen's own input takes it (pressNow; for test scripts)
+-- Test hook: only the Studio checks call this (tools/studio/hook_b3/client.luau, tools/ui/catch_show/c1_client.luau).
 function CatchShow.press()
 	pressNow()
 end
@@ -1340,6 +1342,7 @@ function CatchShow.stop()
 end
 
 -- Whether the catch screen (or a look) is up
+-- Test hook: only the Studio checks call this (tools/studio/hook_b3/client.luau, tools/ui/catch_show/c1_client.luau).
 function CatchShow.showing(): boolean
 	return current ~= nil
 end

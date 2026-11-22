@@ -13,8 +13,9 @@
 --   on every machine the fish's rig is posed through its own joints (FishModel's Rig_ Motor6Ds, from
 --   Shared/Creatures' pivots: the jaw on its hinge, the spine thrashing and curling, the fins flaring, an octopus's arms
 --   reaching and curling), the rider is slid about on the saddle before coming loose (the weld's C0), hidden once
---   swallowed, the throat bulges, and the outcome's props are made locally (the angler's lure, the kraken's shooting
---   arms, the dark arms closing in on the screen).
+--   swallowed, the throat bulges, and the outcome's props are made locally (the angler's lure, the screen dimming
+--   dark; the kraken wraps you in its own arms, not made ones, and the dark arms over the screen were taken out:
+--   Hugo, 2026-11-19).
 -- A "Throw" outcome ends in the throw and the drown (DeathController, which leaves a loose body to the physics until its
 -- joints are back); a "Taken" one is the fail itself and fades to the fail screen (State.Fade, FadeText).
 -- The words of a failed run are drawn here too (task b5: Kit.failWords, the Slam band; "The words" below): what the
@@ -1289,7 +1290,7 @@ local function makeProps(f: Fail)
 	end
 end
 
--- the dark closing in, with arms reaching over the screen (the kraken's)
+-- the dark closing in (the kraken's): the screen dims, nothing more
 -- (no arms over the screen now: Hugo, 2026-11-19, "remove the tentacles coming in from the screen"; only the dark)
 local function makeShade(): ScreenGui
 	local gui = Instance.new("ScreenGui")

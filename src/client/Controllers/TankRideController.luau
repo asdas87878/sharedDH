@@ -60,6 +60,7 @@ type Riding = {
 local riding: Riding? = nil
 local hint: ScreenGui? = nil
 
+-- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py).
 function TankRideController.riding(): boolean
 	return riding ~= nil
 end
@@ -687,6 +688,7 @@ end
 
 -- Studio's tests (tools/studio/b4_tank_ride_check.py): what the look is on and how full the ring is; a look and a
 -- held key given by hand
+-- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py).
 function TankRideController.aimed(): (Model?, number)
 	local fraction = if holding
 		then math.clamp((os.clock() - heldSince) / math.max(Config.TankRide.Hold, 0.05), 0, 1)
@@ -694,6 +696,7 @@ function TankRideController.aimed(): (Model?, number)
 	return aimed, fraction
 end
 
+-- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py).
 function TankRideController.pretend(look: Vector2?, hold: boolean?, push: number?)
 	pretendLook = look
 	pretendForward = push
@@ -706,10 +709,12 @@ function TankRideController.pretend(look: Vector2?, hold: boolean?, push: number
 	end
 end
 
+-- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py).
 function TankRideController.pressOff()
 	off(OFF_ACTION, Enum.UserInputState.Begin)
 end
 
+-- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py).
 function TankRideController.speeds(): { [Model]: number }
 	local out = {}
 	for model, s in swims do

@@ -8,7 +8,7 @@
 -- changes, and only what Kit.pulse is given is tweened.
 
 -- In this file, in order:
---   Colours, spacing and pictures: the HUD's colours, outline widths, corners and uploaded textures
+--   Colours and pictures: the HUD's colours, outline widths, corners and uploaded textures
 --   Plate styles and the Oxygen box: what a plate style holds, and which glass box the Oxygen row wears
 --   Ring looks: the options for the Oxygen and tame rings, and the one in use
 --   Glass boxes and themes: the see-through box options, and one plate theme for each purpose
@@ -29,7 +29,7 @@ local UserInputService = game:GetService("UserInputService")
 local Kit = {}
 
 ----------------------------------------------------------------------------------------------------------------------
--- Colours, spacing and pictures: the HUD's colours, outline widths, corners and uploaded textures
+-- Colours and pictures: the HUD's colours, outline widths, corners and uploaded textures
 
 Kit.Font = Enum.Font.FredokaOne
 Kit.Ink = Color3.fromRGB(16, 36, 63) -- every outline

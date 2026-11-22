@@ -1036,7 +1036,8 @@ function AquariumService.spend(player: Player, amount: number): boolean
 	return true
 end
 
--- Studio's tests only: coins and fish given straight to a tank
+-- Coins and fish given straight to a tank: for the owner's admin panel (AdminService, which works in a live game too)
+-- and Studio's tests (SubService's test "give")
 function AquariumService.give(player: Player, coins: number, fish: { { string } }?)
 	local tank = tanks[player]
 	if not tank then

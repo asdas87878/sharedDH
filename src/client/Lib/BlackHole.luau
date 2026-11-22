@@ -1,7 +1,7 @@
 --!strict
 -- A voxel black hole whose light bends by where the viewer stands (docs/design/cosmic.md, "The black hole in Roblox").
 -- Local only: every piece is a small Neon cube made on this client, nothing replicates, collides or casts a shadow.
--- Nothing requires this module yet. To try it, see tools/studio/black_hole_demo.luau.
+-- Controllers/BlackHoleDisplayController requires it. To try it on its own, see tools/studio/black_hole_demo.luau.
 --
 -- Roblox cannot bend light, so the cubes are MOVED to where bent light would show them. Each frame, for every cube that
 -- lies behind the hole as this camera sees it, the point-lens equation gives where its image appears: pushed outward

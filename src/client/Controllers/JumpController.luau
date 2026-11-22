@@ -8,7 +8,8 @@
 --   the drop: the speed runs out in a long gentle tail to a stop, and the more of it is gone the faster we fall.
 -- The speed is one curve with no knee and the fall is blended in along it (Config.hopSpeed, Config.hopSink; Hugo,
 -- 2026-11-13).
--- We always go forward, and A and D steer that exactly as they steer a fish (RideController.turn); nothing else moves us.
+-- We always go forward, and A and D steer that exactly as they steer a fish (RideController.steer); nothing else
+-- moves us.
 -- The whole hop is the window (Jump.Window seconds, shown by the HUD) to grab the next fish. The lock-on (Lib/Lock) holds
 -- the fish we are looking at, along the camera's aim, lenient, far fish as easy as near, sticky so it doesn't flicker,
 -- and only ever a fish inside the reach we have right now, which is by our speed across the water (Config.reachOf). A

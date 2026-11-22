@@ -274,6 +274,7 @@ local function check()
 	end
 end
 
+-- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py).
 function TankRideService.riding(player: Player): boolean
 	return rides[player] ~= nil
 end

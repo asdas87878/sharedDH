@@ -1914,17 +1914,8 @@ Config.Jump = {
 	FlightTime = 0, -- the longest a hop and its pull-in can last, for the server (worked out in Config.refresh)
 }
 
--- The lock-on. The aim is a thick ray along where the camera looks. Each free fish within Jump.GrabRange
--- gets an allowance: half of Cone, plus the angle AimRadius (and half its own length) covers at its distance, plus
--- FarAim by its distance. Inside its allowance it scores AngleWeight x (how far off the aim) + DistanceWeight x (its
--- distance as a share of the range); the lowest score wins.
--- Hugo, 2026-11-12: the fish you AIM at, far ones as easy to pick as near ones. So being far counts a third of what it
--- did, and a far fish, small on the screen, has a margin round it that counts as on it (FarAim).
--- The hook (HookController; the user, 2026-11-17: "we have the hook mechanic, you can hook onto the next fish, but
--- there's nothing actually doing that ... a harpoon gun or a grappling hook ... something that flails about in the air,
--- something that has very dynamic movements"). A small anchor on a rope in the rider's hand: whirled over the head on
--- a fish, whirled hard in the hop, thrown at the fish as the grab begins, pulled taut for the pull-in. A picture only:
--- nothing here changes the hop, the lock or the grab. Built from plain parts in code, nothing uploaded.
+-- How wild the fish you ride is: its fits and bucking, the rider's whip, and the camera's sway (not the herd's
+-- unridden "wild" fish, FishService).
 -- The wild ride (the user, 2026-11-17: "making the ride feel proper, like rodeo wild style, because ours is still
 -- feeling too tame, even though the speeds is technically correct, the actual feel isn't correct ... really feel
 -- more wild, untamed, and interesting, just in the way we manipulate the camera"). Until now a fish was wild for two
@@ -2056,6 +2047,11 @@ function Config.longOf(gap: number): number
 	return u * u * (3 - 2 * u) * math.min(l.Amount, 2)
 end
 
+-- The hook (HookController; the user, 2026-11-17: "we have the hook mechanic, you can hook onto the next fish, but
+-- there's nothing actually doing that ... a harpoon gun or a grappling hook ... something that flails about in the air,
+-- something that has very dynamic movements"). A small anchor on a rope in the rider's hand: whirled over the head on
+-- a fish, whirled hard in the hop, thrown at the fish as the grab begins, pulled taut for the pull-in. A picture only:
+-- nothing here changes the hop, the lock or the grab. Built from plain parts in code, nothing uploaded.
 Config.Hook = {
 	On = 1, -- 0: no hook at all
 	Ride = 1, -- 1: whirled lazily over the head while you ride; 0: put away on a fish, out only in the hop
@@ -2140,6 +2136,12 @@ Config.Lock = {
 	-- (Config.bodyOf) round its middle, turned as it swims: from you to the nearest point of that box (Config.bodyGap),
 	-- here and on the server. A 60-stud fish was 30 studs further than it looked, head or tail on.
 	WholeBody = 1, -- 1: to the nearest point of the body; 0: to its middle (until 2026-11-18)
+	-- The lock-on by the aim (Pick 1; Pick is 2 now). The aim is a thick ray along where the camera looks. Each
+	-- free fish within Jump.GrabRange gets an allowance: half of Cone, plus the angle AimRadius (and half its own
+	-- length) covers at its distance, plus FarAim by its distance. Inside its allowance it scores AngleWeight x (how
+	-- far off the aim) + DistanceWeight x (its distance as a share of the range); the lowest score wins.
+	-- Hugo, 2026-11-12: the fish you AIM at, far ones as easy to pick as near ones. So being far counts a third of
+	-- what it did, and a far fish, small on the screen, has a margin round it that counts as on it (FarAim).
 	Cone = 40, -- full angle round the aim that a far fish must be inside
 	AimRadius = 8, -- the aim ray's thickness, studs
 	MaxAngle = 80, -- no fish further off the aim than this, however near
@@ -3822,8 +3824,9 @@ function Config.isGrand(tier: string): boolean
 	return tier == "Giant" or tier == "Huge" or tier == "Colossal"
 end
 
--- One fish's ridden speed: its species' own (Config.FishStats: RiddenSpeed), by its variant (x Speed.Gold or
--- x Speed.Rainbow, the same for every fish)
+-- One fish's ridden speed: its species' own (Config.FishStats: RiddenSpeed), its distance from its home land's pace
+-- (Config.LandPace) stretched by Speed.Spread (never under half that pace), then x Speed.Ride for every fish, then by
+-- its variant (x Speed.Silver, Speed.Gold or Speed.Rainbow, the same for every fish)
 function Config.speedOf(fish: FishType, variant: string?): number
 	local s = Config.Speed
 	local speed = fish.RiddenSpeed

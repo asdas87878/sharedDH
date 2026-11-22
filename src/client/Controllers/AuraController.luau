@@ -1034,10 +1034,12 @@ end
 -- The dock's windows for Studio's tests (tools/studio/b2_shop_check.py): open one by name ("Auras", "Sell"; nil
 -- closes them), and which is up. What opens them in play is Controllers/StallController (UI review 1, 2026-11-22:
 -- Sell and Auras on their stalls' rings, the Shop button its own Shop).
+-- Test hook: only the Studio checks call this (tools/studio/b2_shop_check.py).
 function AuraController.shop(page: string?)
 	Shop.go(page)
 end
 
+-- Test hook: only the Studio checks call this (tools/studio/b2_shop_check.py).
 function AuraController.shopOpen(): string?
 	return if AuraShop.isOpen() then "Auras" elseif SellFish.isOpen() then "Sell" else nil
 end

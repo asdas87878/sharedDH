@@ -804,6 +804,7 @@ local function show(on: boolean)
 end
 
 -- Studio's tests: open or close the popup as a click on the tank does
+-- Test hook: only the Studio checks call this (tools/studio/b1_inventory_check.py, c1_tank_hotbar_check.py).
 function TankPanel.toggle(on: boolean)
 	show(on)
 end
@@ -822,6 +823,7 @@ function TankPanel.sort(name: string)
 end
 
 -- A line in the toast (Studio's tests: the refusals' look)
+-- Test hook: only the Studio checks call this (tools/ui/shop_kit/tank_client.luau).
 function TankPanel.notice(text: string)
 	say(text)
 end
@@ -1172,6 +1174,7 @@ end
 
 -- (Studio's tests: a mouse point on the whole viewport to use in place of the real mouse, nil for the mouse again)
 local testMouse: Vector2? = nil
+-- Test hook: only the Studio checks call this (tools/studio/b1_inventory_check.py, c1_tank_hotbar_check.py).
 function TankPanel.pretendMouse(at: Vector2?)
 	if RunService:IsStudio() then
 		testMouse = at
@@ -1179,6 +1182,7 @@ function TankPanel.pretendMouse(at: Vector2?)
 end
 
 -- (Studio's tests: whether the outline is on, and round how many of the tank's parts)
+-- Test hook: only the Studio checks call this (tools/studio/b1_inventory_check.py, c1_tank_hotbar_check.py).
 function TankPanel.outlined(): (boolean, number)
 	local on = outline ~= nil and outline.Visible and outline.Adornee ~= nil
 	return on, shapeParts

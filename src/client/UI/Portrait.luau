@@ -109,6 +109,7 @@ local Settings: Settings = {
 	LightColor = Color3.fromRGB(140, 136, 128),
 	Light = Vector3.new(0.55, -0.7, -0.45),
 }
+-- Test hook: only the Studio checks use this (tools/ui/portrait_sheet.luau).
 Portrait.Settings = Settings
 
 -- Which parts are the head: a creature has a bust only if it has a part named Head; these then count with it.
@@ -150,6 +151,7 @@ local masters: { [string]: Model } = {}
 local views: { [string]: View } = {}
 
 -- Forgets every kept creature, so the next pictures are posed and measured again (after Settings change)
+-- Test hook: only the Studio checks call this (tools/ui/portrait_sheet.luau).
 function Portrait.reset()
 	for _, model in masters do
 		model:Destroy()

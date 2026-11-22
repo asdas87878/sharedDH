@@ -1051,6 +1051,7 @@ function CaughtText.info(fishId: string, earns: number?, isNew: boolean?): Info?
 end
 
 -- A look built and posed at 0, not playing (nil: no such look). For captures and sheets
+-- Test hook: only the Studio checks call this (tools/ui/caught_text/client.luau).
 function CaughtText.preview(parent: Instance, look: number, info: Info): Show?
 	local build = BUILDERS[look]
 	if not build then

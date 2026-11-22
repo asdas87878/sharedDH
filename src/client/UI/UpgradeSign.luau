@@ -659,6 +659,7 @@ end
 
 -- (for Studio's tests: press a sign's cash block as a click does, our own or the named plot's, the seahorse's or with
 -- kind "Plot" the plot's; true when there was one)
+-- Test hook: only the Studio checks call this (tools/studio/b1_inventory_check.py, e2_click_check.py).
 function UpgradeSign.press(plotName: string?, kind: string?): boolean
 	local want = plotName or Players.LocalPlayer:GetAttribute("Plot")
 	for _, sign in signs do
@@ -671,6 +672,7 @@ function UpgradeSign.press(plotName: string?, kind: string?): boolean
 end
 
 -- (for captures: rewrite every sign now, e.g. after changing Config.Train.Free on this machine)
+-- Test hook: only the Studio checks call this (tools/studio/e2_click_check.py).
 function UpgradeSign.refresh()
 	for _, sign in signs do
 		sign.Shown = "-"

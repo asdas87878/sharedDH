@@ -1626,6 +1626,7 @@ function LandStrip.arriving(land: number, landName: string): boolean
 end
 
 -- For the option sheets and tests: another strip of style 1 under `parent`, with its own options (its locks its own)
+-- Test hook: only the Studio checks call this (tools/ui/land_icons/preview_client.luau, options_client.luau).
 function LandStrip.preview(parent: Instance, options: Options): any
 	return buildA(parent, options)
 end

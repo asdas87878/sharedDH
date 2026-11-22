@@ -309,6 +309,7 @@ function SubPanel.hint(text: string)
 end
 
 -- Studio's tests: open or close the shop as the prompt does
+-- Test hook: only the Studio checks call this (tools/studio/s2_subs_check.py, tools/ui/shop_kit/shop_client.luau).
 function SubPanel.toggle(on: boolean)
 	show(on)
 end

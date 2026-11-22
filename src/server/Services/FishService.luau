@@ -16,13 +16,13 @@
 -- it; once let go it stays with that client for Switch.HandBack seconds, coasting, so it doesn't hitch in front of them,
 -- then the server takes it back and it joins the herd from where it is.
 -- Every fish is its own (Hugo, 2026-11-12): now and then a variant (Config.Variant, Shared/Variants; the "Variant"
--- attribute), and its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant), which the herd, the
--- rider's client and the server's checks all use. There is no size roll for now (Hugo, the same day): every fish is
--- its species' size.
--- (2026-11-13, the user: sizes are back, as the reference has them. Every spawned fish is one of six sizes,
--- Config.SizeChance, rolled apart from its variant: its model, seat and body are its species' times Config.SizeScale,
--- its "Size" and "SizeTier" attributes say so. Size does not change speed; since task e1 (2026-11-20) it changes
--- what a fish needs (Config.SizeOxygen, Config.requiredOf). The herd's rules that go by a fish's length, Config.Herd and Config.Spawn, go by its own.)
+-- attribute), its own speed (Config.speedOf: its species' own number in Config.FishStats, spread round its home
+-- land's pace, times Speed.Ride, and its variant), which the herd, the rider's client and the server's checks all
+-- use, and its own size (Hugo had no size roll that day; the user brought sizes back on 2026-11-13, as the reference
+-- has them). Every spawned fish is one of six sizes, Config.SizeChance, rolled apart from its variant: its model, seat
+-- and body are its species' times Config.SizeScale, its "Size" and "SizeTier" attributes say so. Size does not change
+-- speed; since task e1 (2026-11-20) it changes what a fish needs (Config.SizeOxygen, Config.requiredOf). The herd's
+-- rules that go by a fish's length, Config.Herd and Config.Spawn, go by its own.
 
 -- In this file, in order:
 --   Setup: services, modules, the wild fish record and the state shared by everything below
@@ -1550,13 +1550,13 @@ function FishService.lanePoint(s: number): (Vector3, Vector3)
 	return Vector3.new(at.X, math.min(at.Y, Config.Oxygen.SurfaceY - 8), at.Z), along
 end
 
--- The nearest fish in the water a player could get on
 -- Fish round this place are kept in the Workspace (nil: none). One place at a time.
 function FishService.keepNear(place: Vector3?)
 	keptPlace = place
 	playersReadAt = -1
 end
 
+-- The nearest fish in the water a player could get on
 -- (`settled`: only a fish that has been in the Workspace this many seconds. One that has just come back is, for a
 -- moment, still somewhere else on the players' machines.)
 function FishService.nearest(position: Vector3, radius: number, player: Player, settled: number?): Wild?
@@ -1741,7 +1741,6 @@ function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Ve
 	return w
 end
 
--- After the sandbox changes how many fish there should be: the slices' shares again; the top-up does the rest
 -- The submarine (SubService; docs/design/submarine.md): the fish round the place a player is being carried to are kept
 -- in the water before they get there, as if they were there already (nil: no longer)
 function FishService.keepFor(player: Player, place: Vector3?)
@@ -1856,6 +1855,7 @@ function FishService.discard(w: Wild)
 	end
 end
 
+-- After the sandbox changes how many fish there should be: the slices' shares again; the top-up does the rest
 function FishService.restock()
 	local fresh = newSlices()
 	for i, slice in fresh do
