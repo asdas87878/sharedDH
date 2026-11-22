@@ -22,9 +22,13 @@ warnings); the Rojo build passes. Synced into the open place and played, not sav
   corrected; 23 test hooks carry a "Test hook" line naming the script that calls them.
 - **`d422ac6`:** `Main.server.luau` and `Main.client.luau` load each module and call each `Init` through `xpcall`. A
   module that fails is reported (`[Main]` in the output) and left out; the rest still start.
-- **Played:** boots clean, a scripted dive, `oxygen_check.luau` 12/12, `e4_land_check.py` 10/10.
-  `tank_panel_check.py` is out of date (it wants a `CollectPad` the plots no longer have). `b4_tank_ride_check.py`'s
-  hold E never fills, the same on the code before the tidy: not yet known whether the check or the game is at fault.
+- **Played:** boots clean, a scripted dive, `oxygen_check.luau` 12/12, `e4_land_check.py` 10/10. The guard tried
+  with broken throwaway modules on both sides: reported, left out, the rest start. The tank panel, Shop, Sell and
+  the Aura shop open with no error. `tank_panel_check.py` is out of date (it wants a `CollectPad` the plots no
+  longer have).
+- **`tools/studio/b4_tank_ride_check.py` fixed** (the check, not the game): its hold emptied the pretended look
+  for a frame, so the controller dropped the hold and the ring never filled. It passes the look with the hold now
+  and the whole tank ride passes.
 
 ## 2026-11-22 · UI review 1: studded dock windows, stalls on their rings, the Shop, deposit lines, motion (Ride a Fish UI, the user's PC)
 **State:** committed `df5c7d1`, `d7b00fc`, not pushed by this chat (the Obsidian plugin pushes). StyLua clean; selene 0

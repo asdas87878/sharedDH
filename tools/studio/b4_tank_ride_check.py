@@ -198,16 +198,21 @@ local function took()
 end
 -- the look kept on a fish (its screen point, every frame), a held key and a push, given to the controller's hooks
 local target, push, held, lookYaw, lookPitch = nil, nil, false, nil, nil
-RunService.RenderStepped:Connect(function()
+-- where the look is now (a hold passes it too: a hold given without it left the look empty until the next frame, and
+-- the controller, which looks first in a frame, dropped the hold)
+local function lookNow()
 	local camera = workspace.CurrentCamera
-	local point = nil
 	if typeof(target) == "Instance" and target.PrimaryPart then
 		local v = camera:WorldToViewportPoint(target.PrimaryPart.Position)
-		point = Vector2.new(v.X, v.Y)
+		return Vector2.new(v.X, v.Y)
 	elseif typeof(target) == "Vector2" then
-		point = target
+		return target
 	end
-	TankRide.pretend(point, nil, push)
+	return nil
+end
+RunService.RenderStepped:Connect(function()
+	local camera = workspace.CurrentCamera
+	TankRide.pretend(lookNow(), nil, push)
 	if lookYaw and TankRide.riding() then
 		-- the view turned as a mouse drag would: round its focus
 		local focus = camera.Focus.Position
@@ -269,7 +274,7 @@ workspace:GetAttributeChangedSignal("B4Do"):Connect(function()
 	elseif verb == "hold" then
 		-- E held for so long, then let go: what the ring showed on the way, and whether we got on
 		local t = tonumber(a) or 1
-		TankRide.pretend(nil, true, push)
+		TankRide.pretend(lookNow(), true, push)
 		local seen = {}
 		local began = os.clock()
 		while os.clock() - began < t do
@@ -277,14 +282,14 @@ workspace:GetAttributeChangedSignal("B4Do"):Connect(function()
 			table.insert(seen, string.format("%.2f", fraction))
 			task.wait(0.1)
 		end
-		TankRide.pretend(nil, false, push)
+		TankRide.pretend(lookNow(), false, push)
 		task.wait(0.6)
 		said = "ring=[" .. table.concat(seen, " ") .. "] riding=" .. tostring(TankRide.riding()) .. " " .. took()
 	elseif verb == "holdon" then
-		TankRide.pretend(nil, true, push)
+		TankRide.pretend(lookNow(), true, push)
 		said = "holding"
 	elseif verb == "holdoff" then
-		TankRide.pretend(nil, false, push)
+		TankRide.pretend(lookNow(), false, push)
 		said = "let go"
 	elseif verb == "push" then
 		push = tonumber(a)

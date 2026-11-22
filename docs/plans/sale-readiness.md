@@ -102,7 +102,8 @@ wrong, not by time.
 ### Stage 2: anyone can read it
 - **The safe batch: done 2026-11-22** (the dead code and the stray `--help/` folder out, `Net.luau`'s header up to
   date, the wrong comments fixed, both `Main` loops guarded, the test hooks marked). Checked by the build and lint,
-  then played in Studio: it boots clean and a scripted dive, the Oxygen check and the land-ride check pass.
+  then played in Studio: it boots clean; a scripted dive, the Oxygen check, the land-ride check and the tank-ride
+  check pass; the dock windows open; the guard reports a broken module and carries on.
 - **Take out the unpicked UI looks.** Needs a play test of each screen.
 - **Rename `ClaudeBlockout` and `UI/Shop`.** Needs a play test and the place renamed.
 - **Move the history out of the comments** into the design notes. No change to play; touches nearly every file, so it

@@ -149,15 +149,22 @@ On the user's word: "tidy as such, just make sure you dont break anything".
 **Played in Studio the same evening** (the user's word to stop the Play that was left running; `src/` synced into
 the place, not saved):
 - **It boots:** every service and controller starts, no `[Main]` line and no error from our scripts in four Plays.
+- **The guard in both `Main` scripts, tried with two throwaway modules on each side** (one that fails to load, one
+  whose `Init` fails): four `[Main]` lines, each with where it failed; neither module's `Start` ran; everything
+  else booted as before. The modules were taken out again.
+- **The dock windows opened by script:** the tank panel (5 fish in it), the Shop, Sell and the Aura shop. Each
+  opens, no error from our scripts. (These files lost the most unused code, so they were opened on purpose.)
 - **A dive by script:** on a Pufferfish, Oxygen 89 to 0, drowned, back on the dock at 100.
   `tools/studio/ride_log.luau` ran as it is.
 - **`tools/studio/oxygen_check.luau`:** 12 of 12 pass, 78 kinds, no Oxygen row missing.
 - **`tools/studio/e4_land_check.py`:** 10 of 10 pass.
 - **`tools/studio/tank_panel_check.py`: out of date.** It looks for a `CollectPad` part that the plots no longer have
   (the name is nowhere in `src/`), so it fails at its own setup.
-- **`tools/studio/b4_tank_ride_check.py`: its "hold E" step never fills** (ring 0.00, never riding), with no error.
-  Run again on the code from before the tidy (`82e4d38`), it fails the same way, so it is older than this work. Not
-  known yet whether the check is stale or the hold on a tank fish is broken: hold E on a fish in your tank to see.
+- **`tools/studio/b4_tank_ride_check.py`: passes after a fix to the check itself.** Its "hold E" step never filled
+  (the same on the code from before the tidy, `82e4d38`). The check was at fault, not the game: its hold emptied
+  the pretended look for a frame, the controller looked with the real mouse, found no fish and dropped the hold.
+  The check now passes the look with the hold. With that: the ring fills, the player mounts a Reef Shark in the
+  tank, swims every way, gets off, and a fish in someone else's tank is refused.
 - The three `.py` checks call Hugo's studio-runner; on this PC they ran through a wrapper that swaps in the direct
   Studio client. That wrapper is not in the repo.
 
