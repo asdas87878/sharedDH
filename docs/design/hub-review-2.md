@@ -11,8 +11,11 @@ tell me other things we could do for the water".
 
 ## What was read
 - **The hub as it stands:** every part in its box was read from the place on 2026-11-22
-  (`art/map/hub_study/dump_2026-11-22.csv`, by `tools/studio/hub_dump.luau`). **Nothing has been moved by hand since
-  2026-11-20** apart from the W32 shift: every model sits where the W32 rebuild put it.
+  (`art/map/hub_study/dump_2026-11-22.csv`, by `tools/studio/hub_dump.luau`). Compared part by part with the W32
+  build, **no hand moves were found** in the hub: the changes are from code (the collect pads gone, upgrade signs on
+  the tanks). If something was changed by hand, it is outside the hub's box or was put back; the user to say what.
+- **Also found:** `Workspace.FarView` is gone; its parts now sit in folders `Part1` to `Part4` (z 1295 to 10022).
+  `CosmicHollowDisplay` stands just outside the hub's right wall (x 3355, z -166).
 - **The reference:** our measured reading ([ride-a-dino-map](../reference/ride-a-dino-map.md), "The hub, measured",
   good to about 15%) and the frame of its pens (`research/ride-a-dino/map/H1.jpg`, private).
 
@@ -21,8 +24,8 @@ tell me other things we could do for the water".
 | | Ours | The reference | So |
 |---|---|---|---|
 | **Walk speed** | 28 (`Config.Dock.WalkSpeed`) | 28, measured | **Not the cause** |
-| **The hub** | 400 x 312; the open floor between the tank fronts alone is **216 x 180** | about **230 x 180, pens included** | **The main cause.** Our open floor is the size of their whole hub. Every walk is long: back tank to the strip 180 studs (6.4 s) against their 110 (4 s) |
-| **The pens** | 52 x 84 of water, **34 tall** (posts 34) | 50 x 60, **fence 4 high** | The footprint is close; the height is not. Eight 34-stud boxes make the hub read as a room of buildings |
+| **The hub** | 400 x 280 wall to wall (the floor part is 400 x 312, under the strip too); the open floor between the tank fronts alone is **216 x 180** | about **230 x 180** wall to wall, pens included | **The main cause.** Our open floor is the size of their whole hub. Every walk is long: back tank to the strip 180 studs (6.4 s) against their 110 (4 s) |
+| **The pens** | 52 x 84 of water, **34 tall** (posts 34) | about 50 x 60 (drawn from frames, not measured), **fence 4 high** | The footprint is close; the height is not. Eight 34-stud boxes make the hub read as a room of buildings |
 | **The studs** | one every **1.0** stud, on an 8-stud checker | one every **0.64**, no checker on the hub floor | Ours are 1.56 times bigger. At the same speed the ground slides past 1.56 times slower in studs, so running *looks* slower and the world bigger |
 | Camera | not measured | not measured | One capture framed like H1 would settle it |
 
@@ -42,8 +45,20 @@ gate, no roof, no glass. The user: posts "slightly offset with each other, sligh
 
 Drawn by `tools/map/pen_bench.py` and `tools/blender/hub_view.py` (Blender: no studs, a stand-in light; its see-through
 water is far more solid than Roblox's). Each pen is 50 x 60, the fence 4.4 high, posts 10 apart, each leaning up to 8
-degrees with its height off by up to 0.35; the rails run between the posts' own points, so they tilt with them. The pens
-share fences.
+degrees, off height by up to 0.35 and off the line by up to 0.45 in or out; the rails run between the posts' own
+points, so they tilt with them. The pens share fences.
+
+**The fish at game size** (`Aquarium.ShowShare` 1: a tank shows its fish at their real length, 12 to 50 studs here):
+
+![the same pens with seven fish each at game size](../attachments/hub-pens-game.png)
+
+**Crowded, as the reference's are.** A 50-stud Archelon is as long as the pen, and seven fish of 12 to 50 hide the
+fence. The reference's pens are crowded the same way (H1: a Brachiosaurus or a Baryonyx is as long as its pen and
+stands far over the 4-stud fence), so big creatures over a low fence is the genre's look, not a fault. What differs:
+theirs **stand on the sand**, side by side, each one's outline clear; ours float at mixed heights over each other and
+read as one heap. So in a pen, fish would sit low (just over the sand or the pool), spread along the pen, and the
+biggest at the back. If it is still too much: fewer on show per pen, or a slightly smaller `ShowShare`. Both are the
+fish-code chat's numbers.
 
 | | What it is | For | Against |
 |---|---|---|---|
@@ -52,16 +67,22 @@ share fences.
 | **P3 a sand pen** (right) | sand, one small pool in a corner; the fish swim in the air over the sand | The reference's own idea: creatures stand in their pen. Every fish reads | A fish out of water. Fine in this genre's look, but the user's call |
 
 **What the game code leans on** (`AquariumService`, `TankRideService`, `AquariumController`, `TankPanel`):
-- `TankWater` is the space the fish swim in and you ride in. It can stay as an unseen box over the pen, so nothing in
-  the game code changes. Fish are already drawn at their real size and pass through the glass today.
+To confirm with the fish-code chat before any of it goes in; as far as the map chat can see:
+- `TankWater` is the space the fish swim in and you ride in. It could stay as an unseen box over the pen, so the swim
+  and the ride would not change.
+- The pens as drawn have no `SignBoard`, `TrainerSpot` or `TankSurface`/rims, which the code looks for (`LIFTED`), and
+  the panel draws the whole tank's outline. Those parts need a place in a pen, or the code a way round them.
+- How many fish a pen shows, and at what share of their size (above).
 - `Post` and `TankWater` are stretched by the tank's level (`STRETCHED`). The fence posts are named `FencePost` so a level
   doesn't grow them. **Levels** become richer rather than taller: the fence wood, then painted, then stone; a gate arch;
-  more inside. That is a note for the game-code chat before any of it goes in.
+  more inside.
 
 ## 3. Layout, and where the eye goes
-**R** (right in the plans): ours at the reference's size, 260 x 208. Eight pens of 50 x 60 in a U, sharing fences:
-four along the back and two down each side, open toward the strip. Back pen to strip 108 (theirs 110), side pens 10 to 60,
-and an open floor of about 124 x 108.
+**R** (right in the plans, **a sketch**): 290 x 196 wall to wall, against ours 400 x 280 and theirs about 230 x 180.
+Eight pens of 50 x 60 in a U, sharing fences: four along the back and two down each side, open toward the strip. Every
+station and trainer pad is drawn in and fits, if tightly. Back pen to the strip 128 (ours 180, theirs about 110), the
+side pens 30 to 80, an open floor of about 126 x 114. Going right down to their 230 x 180 does not fit eight pens and
+all our stations; it would need fewer pens on show or the stations moved into the walls.
 
 For attention, following the reference:
 - **The spawn on the line from the pens to the strip**, facing the strip. The strip, the gap and the herd beyond it are
@@ -73,6 +94,7 @@ For attention, following the reference:
   the strip's two ends.
 
 **Cost:** the hub's walls come from the generator, so R is one full map reload, which also re-scatters some lane props.
+Before that, a hub-only try build (the generator's hub options) would show the walls at R's size without the reload.
 Pens, layout and size should be picked together and built in that one reload. The hand placing is read first and kept.
 
 **To confirm with the user:** CLAUDE.md's rule is "copy the loop and the feel, never its look, models or layout". The ask
@@ -83,7 +105,8 @@ The surface is four layers (`tools/map/water_look.luau`): white Glass on top (0.
 dark layer (0.78) and a deep blue (0.85). Together they let through about **18%**. The glass on top blocks the most.
 
 `tools/studio/water_see_buttons.luau` puts a row of buttons on the screen in Play (run it on the Client). Each button sets
-the four layers live, so you can switch between them while looking at the herd. Nothing is saved.
+the four layers live, so you can switch between them while looking at the herd. Nothing is saved. **Not run yet:** it
+needs the user in Play and Studio handed to the map chat (the UI chat has it now).
 
 | | Foam, Water, Dark, Deep | Lets through |
 |---|---|---|

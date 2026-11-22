@@ -13,6 +13,7 @@ fences, as the reference's are. Only for pictures: not in the game yet.
 usage: python tools/map/pen_bench.py      writes art/map/greybox/hub_pens.json (model Pens/Row) for
        HUB_JSON=hub_pens.json blender --background --python tools/blender/hub_view.py -- Pens/Row <out> <shot>..."""
 import json
+import math
 import os
 import random
 import sys
@@ -56,6 +57,10 @@ def along(k, a, b, gate=None):
         if gate and gate[0] < s < gate[1]:
             tops.append(None)
             continue
+        ox, oz = (b[1] - a[1]), -(b[0] - a[0])  # across the line
+        n_ = math.hypot(ox, oz) or 1.0
+        off = rng.uniform(-0.45, 0.45)
+        x, z = x + ox / n_ * off, z + oz / n_ * off
         tops.append((x, z, post(k, x, z)))
     for i in range(len(tops) - 1):
         p, q = tops[i], tops[i + 1]
@@ -80,10 +85,7 @@ def p1_pool(k, x0, x1, z0, z1):
     # the pool: its brim the plate's top, a dark bed under clear water
     k.box((x0 + x1) / 2, PLATE - 2.2, (z0 + z1) / 2, x1 - x0 - 8, 0.4, z1 - z0 - 8, POOL_BED, n="PoolBed")
     k.box((x0 + x1) / 2, PLATE - 2.0, (z0 + z1) / 2, x1 - x0 - 8, 1.7, z1 - z0 - 8, POOL, n="PoolWater", t=0.45)
-    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
-    k.fish("Archelon", cx - 6, PLATE + 4, cz - 4, 0.8, yaw=30)
-    k.fish("Barracuda", cx + 10, PLATE + 6, cz + 8, 1.2, yaw=-60)
-    k.fish("Clownfish", cx - 12, PLATE + 3, cz + 14, 0.9, yaw=90)
+    game_fish(k, x0, x1, z0, z1, 0.5)
 
 
 def p2_rail(k, x0, x1, z0, z1):
@@ -91,10 +93,7 @@ def p2_rail(k, x0, x1, z0, z1):
     top = PLATE + RAILS[1] + 0.4
     k.box((x0 + x1) / 2, PLATE, (z0 + z1) / 2, x1 - x0 - 1.4, top - PLATE, z1 - z0 - 1.4, POOL, n="PenWater", t=0.55)
     k.box((x0 + x1) / 2, top - 0.1, (z0 + z1) / 2, x1 - x0 - 1.2, 0.15, z1 - z0 - 1.2, WHITE, n="FoamLine", t=0.35)
-    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
-    k.fish("Archelon", cx + 4, PLATE + 3.5, cz - 6, 0.8, yaw=-30)
-    k.fish("Barracuda", cx - 10, PLATE + 4, cz + 6, 1.2, yaw=50)
-    k.fish("Clownfish", cx + 12, PLATE + 2.5, cz + 14, 0.9, yaw=-90)
+    game_fish(k, x0, x1, z0, z1, 0.5)
 
 
 def p3_sand(k, x0, x1, z0, z1):
@@ -103,10 +102,20 @@ def p3_sand(k, x0, x1, z0, z1):
     k.box(x1 - 8, PLATE, z0 + 7, 4, 3, 4, (150, 152, 166), n="Rock")
     k.box(x1 - 9, PLATE + 3, z0 + 6, 2.4, 6, 0.8, PINK, roll=8, n="Coral")
     k.box(x0 + 6, PLATE, z1 - 10, 1.2, 7, 1.2, KELP, roll=-6, n="Kelp")
-    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
-    k.fish("Archelon", cx - 2, PLATE + 7, cz, 0.8, yaw=15)
-    k.fish("Barracuda", cx + 9, PLATE + 9, cz + 10, 1.2, yaw=-70)
-    k.fish("Clownfish", cx - 12, PLATE + 5, cz + 12, 0.9, yaw=80)
+    game_fish(k, x0, x1, z0, z1, 4.0)
+
+
+GAME_FISH = [("Archelon", 50, 0.9), ("Barracuda", 30, 0.5), ("MantaRay", 24, 0.4), ("Dunkleosteus", 40, 0.6),
+             ("Clownfish", 12, 0.3), ("Angelfish", 16, 0.35), ("Boxfish", 14, 0.3)]  # name, length, height share
+GLB_LONG = {"Archelon": 20.7, "Barracuda": 9.0, "MantaRay": 11.2, "Dunkleosteus": 12.1, "Clownfish": 7.6, "Angelfish": 7.8, "Boxfish": 6.4}
+
+
+def game_fish(k, x0, x1, z0, z1, lift):
+    """seven fish at about the game's sizes (Aquarium.ShowShare 1: a tank's fish are drawn their real size)"""
+    spots = [(0.3, 0.35), (0.7, 0.3), (0.25, 0.75), (0.65, 0.7), (0.15, 0.15), (0.85, 0.85), (0.5, 0.55)]
+    for (name, long, high), (u, v) in zip(GAME_FISH, spots):
+        k.fish(name, x0 + (x1 - x0) * u, PLATE + lift + long * high * 0.5, z0 + (z1 - z0) * v, long / GLB_LONG[name],
+               yaw=rng.uniform(-180, 180))
 
 
 def build():
