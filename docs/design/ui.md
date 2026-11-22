@@ -2,6 +2,8 @@
 
 > **Studies, 2026-11-16.** The reference's first minutes are a script of about twenty lines, one on screen at a time. Its night timer is the reset clock, not decoration. A failure names its cure with both numbers. A tag at exactly your number still throws you, so ours can be the honest one. [Findings](../Findings.md), rank 1 point 5 and rank 2; the lesson line by line in [Ride a Dino](../reference/ride-a-dino-deep.md), "The first minutes".
 
+> **UI review 1, 2026-11-22 (the user's ask):** the dock's windows studded in one frame, the stalls open on their rings, the Shop its own screen, the deposit lines as the reference's, and motion everywhere (`UI/Anim.luau`). What was found, what was built and what is still proposed: [UI review 1](ui-review.md).
+
 The plan for the dive's HUD and the dock's screens. Written 2026-11-11 by the UI chat ([Sessions](../Sessions.md)).
 **Pass 3, the same day, is the current proposal:** the user picked look A for its simple build, with E's pattern, and
 asked for it to go nearer still to Ride a Dino's HUD. Pass 2 (five looks) and pass 1 are kept below.
@@ -1345,6 +1347,18 @@ sized and placed as a bust's shape is. The three are re-rendered and the ChatGPT
 ![](../attachments/ui29-squids-as-busts.jpg)
 
 The kraken, the octopus and the giant squid, with a shark and an eel for comparison.
+
+**Then, cut on the model, never by the picture's edge** (the user, same day: "the geometry should cut off on the model
+for the ss, the ss shouldnt crop the model. may need to cut the tentacles to fit"). A squid keeps two pieces of each
+arm and a ray one piece of its tail; the rest is left out of the model, and everything kept is fitted inside the
+picture, so nothing runs off its edge. Every fish was already that way.
+
+**Re-rendered in the new colours, 2026-11-22** (the user: "due to the new colours i added for the fish, could we do a
+re-render of the fish so i can feed it into chatgpt better"): all 79 from the live models, with the squids and rays
+fitted whole, and the ChatGPT folder (`research/fish_icons_chatgpt/`) and the sheets made again. Seen on the test sheet
+in Studio. Note: since the partner's renders came in (UI.FishIcons, task r1), Studio shows those in place of the
+models; `tools/ui/export_portraits.py` now sets the workspace's `FishIcons` attribute to `Model` while it exports, and
+puts it back.
 
 ## The short version
 - **Today's HUD says the wrong thing.** It shows a tank, "OXYGEN 68 / 100", at the bottom edge. With 2 to 3 seconds on a

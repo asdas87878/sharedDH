@@ -8,13 +8,16 @@
 -- The two pictures are the red basket and the blue book of the free icon pack the reference itself uses (gvesster's
 -- Free Icon Pack, the user's copy, 2026-11-17; art/ui/icons/CREDITS.md). Ours, not the reference's: the pattern is our
 -- stud tile until our own square tile is uploaded.
--- They show at the dock only. Neither opens anything yet: a press dips the button and fires Pressed.
+-- They show at the dock only. UI review 1 (2026-11-22): the reference's motion (UI.Anim): under the mouse a button
+-- grows about 5% and darkens about 12%, a press dips it to 0.96, and the "!" bounces every 1.8 s. Shop opens the Shop
+-- window (UI.ShopScreen); the Index fires Pressed and nothing listens yet.
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 
 local HubButtons = {}
 
 local pressed = Instance.new("BindableEvent")
--- Fired with "Shop" or "Index" when that button is pressed. Nothing listens yet: the panels are not built
+-- Fired with "Shop" or "Index" when that button is pressed
 HubButtons.Pressed = pressed.Event
 
 local WIDTH = 147
@@ -30,7 +33,7 @@ local WORD = 16.5
 local MARK = 23
 local ON_TOUCH = 0.85
 
-local BLACK = Color3.new(0, 0, 0)
+local BLACK = Kit.Edge -- the dock's one outline colour
 -- The slanted band: where it starts and ends along a line turned SLANT degrees, and how see-through it is
 local SLANT = 31
 local BAND = NumberSequence.new({
@@ -143,15 +146,9 @@ local function button(order: number, name: string, look: Look, picture: string):
 		ZIndex = 8,
 	}, plate)
 	Kit.stroke(word, 1.4, BLACK)
-	-- a press dips it; letting go, or sliding off, puts it back
-	local function rest()
-		face.Position = UDim2.fromOffset(EDGE, EDGE)
-	end
-	plate.MouseButton1Down:Connect(function()
-		face.Position = UDim2.fromOffset(EDGE, EDGE + 1)
-	end)
-	plate.MouseButton1Up:Connect(rest)
-	plate.MouseLeave:Connect(rest)
+	-- under the mouse it grows and darkens; a press dips it (the darkening over the face, under the picture and word)
+	local shade = block({ Name = "Shade", Size = UDim2.fromScale(1, 1), ZIndex = 6 }, face)
+	Anim.button(plate, { Grow = 1.05, Press = 0.96, Shade = shade, ShadeTo = 0.12 })
 	plate.Activated:Connect(function()
 		pressed:Fire(name)
 	end)
@@ -212,6 +209,7 @@ function HubButtons.build(parent: Instance)
 		ZIndex = 13,
 	}, disc)
 	Kit.stroke(bang, 1.2, BLACK)
+	Anim.bounce(mark)
 
 	-- looking in the Index is what takes its mark off
 	HubButtons.Pressed:Connect(function(name: string)

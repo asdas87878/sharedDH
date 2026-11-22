@@ -107,7 +107,7 @@ local function block(parent: Instance, name: string, kind: string): (Frame, Text
 	local pair = (Shop.Kinds :: any)[kind]
 	Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(pair[1], pair[2]) }, frame)
 	Kit.stroke(frame, 4, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	Shop.pattern(frame, "Head", 36, 0.88)
+	Shop.pattern(frame, "Head", 36)
 	Kit.new("Frame", {
 		Name = "Lip",
 		Position = UDim2.fromOffset(6, 4),
@@ -181,8 +181,7 @@ local function make(plot: Instance, board: BasePart, kind: string): Sign
 	Kit.corner(face, 14)
 	Kit.stroke(face, 6, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	Kit.gradient(face, Kit.lighter(Shop.Body, 0.08), Shop.BodyDeep)
-	Shop.pattern(face, "Body", 48, 0.9)
-	Shop.gloss(face, 0.82, 0.08)
+	Shop.pattern(face, "Body", 40)
 	local pop: UIScale = Kit.new("UIScale", {}, face)
 	local pad = 16
 	local title = Shop.text(face, {

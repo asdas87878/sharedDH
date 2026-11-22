@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 local State = require(script.Parent.Parent.Lib.State)
 
@@ -84,6 +85,7 @@ export type Options = {
 }
 
 local buildA: (parent: Instance, options: Options) -> any
+local SLIDE = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) -- the strip moving to a new land
 local active: any = nil -- style 1's strip, when it is the one in use
 -- A sub run (task t1, SubController): on while it runs; skip, the land it drops you in, whose own title never comes
 -- up (NOW ARRIVING is its title), kept after the drop until you are back on the dock
@@ -1527,8 +1529,17 @@ buildA = function(parent: Instance, options: Options): any
 					tile.outer.Visible = now
 					tile.root.ZIndex = if now then 10 else 2
 					reveal(i, tile.share)
+					if now and built then
+						Anim.punch(tile.root, 1.18) -- (UI review 1: the new land's tile pops as you reach it)
+					end
 				end
-				tile.root.Position = UDim2.fromOffset(centreOf(i, land), A_TILE / 2)
+				-- the strip slides to the new land (snaps on its first update)
+				local to = UDim2.fromOffset(centreOf(i, land), A_TILE / 2)
+				if built then
+					TweenService:Create(tile.root, SLIDE, { Position = to }):Play()
+				else
+					tile.root.Position = to
+				end
 			end
 			metresWord.paint(palOfLand(at), Kit.LandGlows[at] == true)
 			-- the intro: a land deeper than any yet this dive, not the one it starts in

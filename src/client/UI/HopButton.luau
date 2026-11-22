@@ -5,6 +5,12 @@
 -- or GRAB under the arrow. In the hop with a fish locked it is aqua (GRAB); with nothing to grab, grey. In the last
 -- second on a fish a red ring beats round it.
 -- It acts on the press, not the release: the hop is pressed every two or three seconds.
+-- Motion (UI review 1): it grows a little under the mouse and dips on every press, the mouse's, a finger's or the
+-- key's (UI.Anim's press); the arrow turns over in 0.15 s when it goes from HOP to GRAB and back.
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 
 local HopButton = {}
@@ -129,6 +135,22 @@ function HopButton.build(parent: Instance, press: () -> ())
 			press()
 		end
 	end)
+	Anim.button(button, { Grow = 1.06, Press = 0.88 })
+	-- the key presses it too, so it dips for the key as for the mouse
+	local scale = Anim.scaleOf(button)
+	local function isKey(input: InputObject): boolean
+		return input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.ButtonA
+	end
+	UserInputService.InputBegan:Connect(function(input: InputObject, used: boolean)
+		if isKey(input) and not used and button.Visible then
+			TweenService:Create(scale, Anim.Down, { Scale = 0.88 }):Play()
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if isKey(input) then
+			TweenService:Create(scale, Anim.Up, { Scale = 1 }):Play()
+		end
+	end)
 end
 
 function HopButton.place(onTouch: boolean)
@@ -159,7 +181,12 @@ function HopButton.update(mode: string, hot: boolean)
 	end
 	shownMode = mode
 	shownHot = hot
-	arrow.Rotation = if mode == "grab" then 180 else 0
+	local turn = if mode == "grab" then 180 else 0
+	if arrow.Rotation ~= turn then
+		TweenService:Create(arrow, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Rotation = turn,
+		}):Play()
+	end
 	word.Text = if mode == "grab" then "GRAB" else "HOP"
 	local theme = if mode == "grab" then Kit.Themes.Grab elseif mode == "off" then Kit.Themes.Off else Kit.Themes.Action
 	look.paint(theme.Top, theme.Bottom)

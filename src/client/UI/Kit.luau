@@ -25,6 +25,7 @@ Kit.Lime = Color3.fromRGB(124, 224, 75)
 Kit.Good = Color3.fromRGB(141, 240, 106)
 Kit.Pink = Color3.fromRGB(240, 96, 200)
 Kit.White = Color3.new(1, 1, 1)
+Kit.Edge = Color3.fromRGB(10, 12, 22) -- the dock's one outline: every window, card, button and hub plate
 
 -- The spacing every piece keeps to (gaps, paddings), the outline's widths and the corners
 Kit.Space = { Hair = 2, Small = 4, Medium = 8, Large = 12, Huge = 16 }

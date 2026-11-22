@@ -2,8 +2,8 @@
 -- The shop kit (NULLROOM task s1, Hugo 2026-11-19: the buy screens "replicated as well as you can but more stylised and
 -- cohesive" after his three reference shots; docs/design/ui.md, "Shop style"). Every buy or equip screen is built from
 -- these pieces, so they read as one family with the HUD's Kit (its ink, its font, its rarity colours):
---   Shop.window   a chunky header bar (its colour, a fish-scale pattern, a diagonal gloss, an icon, a big outlined
---                 title, the red square X) over a dark slate body with a fine bubble pattern; fits itself to the screen
+--   Shop.window   a grey border round a studded header strip (its colour, a dark ledge, an icon, a big outlined
+--                 title, the red square X) and a studded dark slate body; springs open, collapses shut; fits the screen
 --   Shop.inset    a darker well inside a body (a list's tray, a footer bar)
 --   Shop.button   a flat bright button: lighter top half, dark edge, outlined words; kinds Cash (green: you can pay),
 --                 Off (grey: you can't), Robux (orange-yellow), Blue, Lavender, Red; an optional cash or Robux sign
@@ -13,26 +13,26 @@
 --   Shop.carousel a sideways row of cards with big arrow buttons either side
 --   Shop.sort     a sort button (a down arrow and a word; green when on)
 --   Shop.money    "$1.4K" in the cash green, with or without the cash sign
---   Shop.tabs     the shop's pages as tabs on a window's top edge (task b2: the hub's Shop button opens one shop with
---                 the auras and the fish selling in it); Shop.page names a page's opener, Shop.go shows one page
--- Its pictures are drawn by code (tools/ui/shop_kit/shop_art.py, art/ui/shop/). Not uploaded: Studio reads them from
--- its own content folder; a live game uses Shop.Textures' ids once they are filled, and the stand-ins below until then.
+--   Shop.page     names a dock window's opener; Shop.go shows one and closes the others (one dock window at a time)
+-- UI review 1 (the user, 2026-11-22: "get more of a studded style"; docs/design/ui-review.md): the bubble dots and
+-- fish scales are studs now (Kit.Textures.Emboss, the reference's raised square, already uploaded), the window is the
+-- reference's frame (a grey border, a studded header with a dark ledge, a studded body), the gloss only where asked,
+-- and every open, close, press and hover goes through UI.Anim. The header icons are still drawn by code
+-- (tools/ui/shop_kit/shop_art.py, art/ui/shop/) and not uploaded: Studio reads them from its own content folder; a
+-- live game shows none until Shop.Textures.Icons is filled.
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 
 local Shop = {}
 
--- Upload ids for the pictures (empty until Hugo says yes to the upload)
+-- Upload id for the header icons (empty until the user says yes to the upload)
 Shop.Textures = {
-	Body = "", -- art/ui/shop/shop_body.png
-	Head = "", -- art/ui/shop/shop_head.png
 	Icons = "", -- art/ui/shop/shop_icons.png
 }
 local STUDIO = {
-	Body = "rbxasset://textures/ridefish/shop_body_s1.png",
-	Head = "rbxasset://textures/ridefish/shop_head_s1.png",
 	Icons = "rbxasset://textures/ridefish/shop_icons_s1b.png",
 }
 -- Roblox's own Robux sign, shipped with every client
@@ -46,8 +46,8 @@ local function picture(name: string): string
 	if RunService:IsStudio() then
 		return (STUDIO :: any)[name]
 	end
-	-- a live game before the upload: the water's picture for the patterns, no header icon
-	return if name == "Icons" then "" else Kit.Textures.Water
+	-- a live game before the upload: no header icon
+	return ""
 end
 
 -- The header icons, by their place in shop_icons.png
@@ -56,7 +56,19 @@ Shop.Icons = { Sub = 0, Shell = 1, Seahorse = 2, Bubble = 3, Arrow = 4 }
 -- The colours. The body is a cool slate, a little blue, so it sits under water with the HUD's navy
 Shop.Body = Color3.fromRGB(34, 40, 54)
 Shop.BodyDeep = Color3.fromRGB(22, 26, 36)
-Shop.Edge = Color3.fromRGB(10, 12, 22) -- every thick border
+Shop.Card = Color3.fromRGB(64, 70, 88) -- a fish card: clearly lighter than the body it sits on (the reference's)
+Shop.Edge = Kit.Edge -- every thick border, the dock's one outline colour
+Shop.Border = Color3.fromRGB(64, 70, 86) -- the window's grey frame round its header and body
+-- The corners, one set for the dock (the reference's are small)
+Shop.Round = { Window = 6, Head = 4, Button = 5, Card = 6, Inset = 5, Strip = 4 }
+-- The studs: one raised square a tile (Kit.Textures.Emboss), its size per surface in the window's points, and how
+-- faint (the picture is white and black at the reference's strength: 0 is that strength)
+Shop.Studs = {
+	Head = { Tile = 18, Fade = 0 },
+	Body = { Tile = 15, Fade = 0.35 }, -- quieter where pictures sit (look check, 2026-11-22)
+	Button = { Tile = 16, Fade = 0.1 },
+	Card = { Tile = 16, Fade = 0.3 },
+}
 Shop.Cream = Color3.fromRGB(252, 242, 218) -- a picture well
 Shop.Money = Color3.fromRGB(92, 236, 60) -- cash, a rate, a multiplier
 -- One colour a shop's header, each said once here (a shop picks one by name)
@@ -70,7 +82,7 @@ Shop.Heads = {
 -- The buttons' colours: { top half, bottom half }
 Shop.Kinds = {
 	Cash = { Color3.fromRGB(150, 250, 70), Color3.fromRGB(70, 206, 32) },
-	Off = { Color3.fromRGB(214, 218, 226), Color3.fromRGB(160, 166, 180) },
+	Off = { Color3.fromRGB(146, 152, 168), Color3.fromRGB(104, 110, 126) }, -- recessed: never louder than a live button
 	Robux = { Color3.fromRGB(255, 222, 60), Color3.fromRGB(255, 150, 28) },
 	Blue = { Color3.fromRGB(100, 216, 255), Color3.fromRGB(28, 150, 236) },
 	Lavender = { Color3.fromRGB(196, 190, 255), Color3.fromRGB(138, 128, 240) },
@@ -100,22 +112,25 @@ local function halves(top: Color3, bottom: Color3, split: number?): ColorSequenc
 end
 Shop.halves = halves
 
--- A tiled pattern over a face: "Body" (bubble dots) or "Head" (fish scales), white tinted by colour
-function Shop.pattern(face: Instance, which: string, tile: number, fade: number, colour: Color3?): ImageLabel
+-- The studs over a face: which is a surface in Shop.Studs ("Head", "Body", "Button", "Card"); tile overrides its
+-- size (a sign in the world, drawn in bigger points). The picture is white and black on clear, so it reads on any colour.
+function Shop.pattern(face: Instance, which: string, tile: number?): ImageLabel
+	local s = (Shop.Studs :: any)[which] or Shop.Studs.Body
+	local size: number = tile or s.Tile
 	return Kit.new("ImageLabel", {
-		Name = "Pattern",
+		Name = "Studs",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
-		Image = picture(which),
-		ImageColor3 = colour or Kit.White,
-		ImageTransparency = fade,
+		Image = Kit.Textures.Emboss,
+		ImageTransparency = s.Fade,
 		ScaleType = Enum.ScaleType.Tile,
-		TileSize = UDim2.fromOffset(tile, tile),
+		TileSize = UDim2.fromOffset(size, size),
 		ZIndex = 0,
 	}, face)
 end
 
--- The gloss: two pale diagonal streaks over a bar, as one gradient (it keeps to the bar's corners)
+-- The gloss: two pale diagonal streaks over a bar, as one gradient (it keeps to the bar's corners). Only the Shop's
+-- own window wears it (the reference's: only its Shop and Index headers shine).
 function Shop.gloss(face: Instance, at: number?, strength: number?): Frame
 	local x = at or 0.6
 	local pale = 1 - (strength or 0.22)
@@ -163,14 +178,14 @@ function Shop.text(parent: Instance, props: { [string]: any }): TextLabel
 	return Kit.text(props, parent, math.clamp(size * 0.13, 1.5, 4.5))
 end
 
--- A darker well inside a body (a tray, a footer bar): its own border and the bubble pattern
+-- A darker well inside a body (a tray, a footer bar): its own border and the studs
 function Shop.inset(parent: Instance, props: { [string]: any }): Frame
 	props.BackgroundColor3 = props.BackgroundColor3 or Shop.BodyDeep
 	props.BorderSizePixel = 0
 	local frame: Frame = Kit.new("Frame", props, parent)
-	Kit.corner(frame, 6)
+	Kit.corner(frame, Shop.Round.Inset)
 	Kit.stroke(frame, 3, Shop.Edge)
-	Shop.pattern(frame, "Body", 40, 0.93)
+	Shop.pattern(frame, "Body")
 	return frame
 end
 
@@ -185,7 +200,8 @@ export type Button = {
 }
 
 -- A flat bright button. props: Text, Kind (a name in Shop.Kinds), Size, Position, AnchorPoint, TextSize, Sign ("Cash"
--- or "Robux": the sign before the words), LayoutOrder, Name. Pressing it dips it; Activated fires only while live.
+-- or "Robux": the sign before the words), LayoutOrder, Name. A press squashes it (the reference's panel buttons: no
+-- hover, a dip to about 0.9 and back); Activated fires only while live.
 function Shop.button(parent: Instance, props: { [string]: any }): Button
 	local kind: string = props.Kind or "Cash"
 	local root: TextButton = Kit.new("TextButton", {
@@ -199,11 +215,11 @@ function Shop.button(parent: Instance, props: { [string]: any }): Button
 		AutoButtonColor = false,
 		Text = "",
 	}, parent)
-	Kit.corner(root, 5)
+	Kit.corner(root, Shop.Round.Button)
 	local fill = Kit.new("UIGradient", { Rotation = 90 }, root)
 	local edge = Kit.stroke(root, 3, Shop.Edge)
 	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	Shop.pattern(root, "Head", 26, 0.88)
+	Shop.pattern(root, "Button")
 	-- the inner light line along the top edge
 	Kit.new("Frame", {
 		Name = "Lip",
@@ -265,7 +281,6 @@ function Shop.button(parent: Instance, props: { [string]: any }): Button
 		LayoutOrder = 2,
 		ZIndex = 3,
 	})
-	local dip = Kit.new("UIScale", {}, root)
 	local self: Button = {
 		Root = root,
 		Label = label,
@@ -289,16 +304,13 @@ function Shop.button(parent: Instance, props: { [string]: any }): Button
 			root.Active = live
 		end
 	end
-	root.MouseButton1Down:Connect(function()
-		if self.Live then
-			dip.Scale = 0.94
-		end
-	end)
-	local function up()
-		dip.Scale = 1
-	end
-	root.MouseButton1Up:Connect(up)
-	root.MouseLeave:Connect(up)
+	Anim.button(root, {
+		Press = props.Press or 0.9,
+		Grow = props.Grow,
+		Live = function()
+			return self.Live
+		end,
+	})
 	self.set(nil, kind, self.Live)
 	return self
 end
@@ -314,17 +326,20 @@ export type Window = {
 	Scale: UIScale,
 	fit: () -> (),
 	show: (on: boolean) -> (),
+	isOpen: () -> boolean,
 }
 
--- A shop's window in its own ScreenGui. props: Name, Title, Icon (a name in Shop.Icons), Head (a name in Shop.Heads,
--- or a Color3), Centre (the title in the middle, as the auras' shot; else after the icon), Width, Height (points),
--- DisplayOrder, Parent (the PlayerGui). The X calls props.OnClose. It fits itself to the screen as TankPanel does:
--- a phone gets bigger points; in Studio the workspace's "PanelPhone" (a Vector2) lays it out for that phone.
+-- A dock window in its own ScreenGui, the reference's frame: a grey border round a studded header (its colour, a
+-- dark ledge at its foot, an icon, a big outlined title, the red square X) and a studded slate body. props: Name,
+-- Title, Icon (a name in Shop.Icons), Head (a name in Shop.Heads, or a Color3), Centre (the title in the middle),
+-- Width, Height (points), DisplayOrder, Parent (the PlayerGui), Gloss (the shine on the header: the Shop only), Dim
+-- (darken the world and the HUD behind it while open: the stalls' windows). The X calls props.OnClose. It springs
+-- open and collapses shut (UI.Anim). It fits itself to the screen as TankPanel does: a phone gets bigger points; in
+-- Studio the workspace's "PanelPhone" (a Vector2) lays it out for that phone.
 function Shop.window(props: { [string]: any }): Window
 	local wide: number = props.Width or 760
 	local high: number = props.Height or 480
-	-- (room kept above the window for its tabs, so they stay on a small screen)
-	local above: number = if props.Tabs then Shop.TabHigh else 0
+	local rim = 6 -- the grey border, in points (about 8 px on a 1080p screen)
 	local headColour: Color3 = if typeof(props.Head) == "Color3"
 		then props.Head
 		else (Shop.Heads :: any)[props.Head or "Sea"] or Shop.Heads.Sea
@@ -342,7 +357,7 @@ function Shop.window(props: { [string]: any }): Window
 	local holder: Frame = Kit.new("Frame", {
 		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, above / 2),
+		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(wide, high),
 		BackgroundTransparency = 1,
 	}, root)
@@ -354,60 +369,66 @@ function Shop.window(props: { [string]: any }): Window
 		BackgroundTransparency = 0.55,
 		BorderSizePixel = 0,
 	}, holder)
-	Kit.corner(shadow, 10)
+	Kit.corner(shadow, Shop.Round.Window)
+	-- the grey border: the window's whole face, the header and the body sit inside it
 	local frame: Frame = Kit.new("Frame", {
 		Name = "Face",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Shop.Body,
+		BackgroundColor3 = Shop.Border,
 		BorderSizePixel = 0,
 	}, holder)
-	Kit.corner(frame, 10)
-	Kit.stroke(frame, 4, Shop.Edge)
-	Kit.gradient(frame, Kit.lighter(Shop.Body, 0.04), Kit.darker(Shop.Body, 0.12))
-	Shop.pattern(frame, "Body", 44, 0.9)
+	Kit.corner(frame, Shop.Round.Window)
+	Kit.stroke(frame, 3, Shop.Edge)
+	Kit.gradient(frame, Kit.lighter(Shop.Border, 0.08), Kit.darker(Shop.Border, 0.1))
 
-	-- the header bar: its colour in two halves, scales, the gloss, a dark edge
+	-- the header strip: its colour lit at the top, the studs, a dark ledge at its foot, the edge
 	local header: Frame = Kit.new("Frame", {
 		Name = "Header",
-		Position = UDim2.fromOffset(6, 6),
-		Size = UDim2.new(1, -12, 0, Shop.HeadHigh),
+		Position = UDim2.fromOffset(rim, rim),
+		Size = UDim2.new(1, -rim * 2, 0, Shop.HeadHigh),
 		BackgroundColor3 = Kit.White,
 		BorderSizePixel = 0,
 		ZIndex = 2,
 	}, frame)
-	Kit.corner(header, 6)
+	Kit.corner(header, Shop.Round.Head)
 	Kit.new("UIGradient", {
 		Rotation = 90,
-		Color = halves(Kit.lighter(headColour, 0.22), headColour, 0.46),
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Kit.lighter(headColour, 0.2)),
+			ColorSequenceKeypoint.new(0.75, headColour),
+			ColorSequenceKeypoint.new(1, Kit.darker(headColour, 0.06)),
+		}),
 	}, header)
 	Kit.stroke(header, 3, Shop.Edge)
-	Shop.pattern(header, "Head", 34, 0.84)
-	Shop.gloss(header, 0.62, 0.3)
-	-- a darker line inside its bottom edge, so it sits on the body as a ledge
+	Shop.pattern(header, "Head")
+	if props.Gloss then
+		Shop.gloss(header, 0.62, 0.3)
+	end
 	Kit.new("Frame", {
 		Name = "Floor",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, 0, 0, 5),
-		BackgroundColor3 = Kit.darker(headColour, 0.35),
-		BackgroundTransparency = 0.25,
+		Size = UDim2.new(1, 0, 0, 6),
+		BackgroundColor3 = Kit.darker(headColour, 0.4),
 		BorderSizePixel = 0,
 		ZIndex = 1,
 	}, header)
 	local iconSize = Shop.HeadHigh - 10
-	if props.Icon then
+	if props.Icon and picture("Icons") ~= "" then
 		Shop.icon(header, props.Icon, iconSize, {
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 10, 0.5, 0),
+			Position = UDim2.new(0, 10, 0.5, -2),
 			Rotation = -8,
 			ZIndex = 4,
 		})
 	end
-	local centre = props.Centre == true
+	-- the title always in the middle (one rule for every window; an icon, when there is one, sits at the left and
+	-- never pushes it over: an icon missing from this machine left a gap before it)
+	local centre = true
 	local title = Shop.text(header, {
 		Name = "Title",
 		AnchorPoint = if centre then Vector2.new(0.5, 0.5) else Vector2.new(0, 0.5),
-		Position = if centre then UDim2.fromScale(0.5, 0.5) else UDim2.new(0, iconSize + 22, 0.5, 0),
+		Position = if centre then UDim2.new(0.5, 0, 0.5, -2) else UDim2.new(0, iconSize + 22, 0.5, -2),
 		Size = UDim2.new(1, -(iconSize * 2 + 60), 1, -8),
 		TextSize = 40,
 		TextXAlignment = if centre then Enum.TextXAlignment.Center else Enum.TextXAlignment.Left,
@@ -421,8 +442,8 @@ function Shop.window(props: { [string]: any }): Window
 		Text = "X",
 		TextSize = 34,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -7, 0.5, 0),
-		Size = UDim2.fromOffset(Shop.HeadHigh - 12, Shop.HeadHigh - 12),
+		Position = UDim2.new(1, -7, 0.5, -2),
+		Size = UDim2.fromOffset(Shop.HeadHigh - 14, Shop.HeadHigh - 14),
 	})
 	close.Root.ZIndex = 5
 	close.Root.Activated:Connect(function()
@@ -431,6 +452,21 @@ function Shop.window(props: { [string]: any }): Window
 		end
 	end)
 
+	-- the studded body under the header, inside the border
+	local top = rim + Shop.HeadHigh + rim
+	local inner: Frame = Kit.new("Frame", {
+		Name = "Inner",
+		Position = UDim2.fromOffset(rim, top),
+		Size = UDim2.new(1, -rim * 2, 1, -(top + rim)),
+		BackgroundColor3 = Shop.Body,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, frame)
+	Kit.corner(inner, Shop.Round.Head)
+	Kit.stroke(inner, 3, Shop.Edge)
+	Kit.gradient(inner, Kit.lighter(Shop.Body, 0.04), Kit.darker(Shop.Body, 0.12))
+	Shop.pattern(inner, "Body")
+	-- (the body keeps the room its pages were laid out for)
 	local body: Frame = Kit.new("Frame", {
 		Name = "Body",
 		Position = UDim2.fromOffset(Shop.Pad + 2, Shop.HeadHigh + 6 + Shop.Pad),
@@ -439,6 +475,7 @@ function Shop.window(props: { [string]: any }): Window
 		ZIndex = 2,
 	}, frame)
 
+	local open = false
 	local self: Window = {
 		Gui = gui,
 		Root = root,
@@ -450,6 +487,9 @@ function Shop.window(props: { [string]: any }): Window
 		Scale = scale,
 		fit = nil :: any,
 		show = nil :: any,
+		isOpen = function()
+			return open
+		end,
 	}
 	function self.fit()
 		local camera = workspace.CurrentCamera
@@ -465,7 +505,7 @@ function Shop.window(props: { [string]: any }): Window
 		end
 		-- as big as the screen lets, a phone's points bigger; never past the screen's edges
 		local s = math.clamp(view.Y / (if touch then 500 else 720), 0.5, 1.4)
-		s = math.min(s, view.Y / (high + above + 16), view.X / (wide + 24))
+		s = math.min(s, view.Y / (high + 16), view.X / (wide + 24))
 		scale.Scale = s
 		root.Size = UDim2.fromScale(1 / s, 1 / s)
 		root.Position = UDim2.new()
@@ -475,20 +515,29 @@ function Shop.window(props: { [string]: any }): Window
 			root.Position = UDim2.fromOffset((whole.X - view.X) / 2, (whole.Y - view.Y) / 2)
 		end
 	end
-	local pop = Kit.new("UIScale", {}, holder)
+	-- springs open; collapses shut and only then switches off (unless opened again meanwhile)
 	function self.show(on: boolean)
-		if on and not gui.Enabled then
-			self.fit()
-			-- a short pop in
-			pop.Scale = 0.86
-			TweenService
-				:Create(pop, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-				:Play()
+		if on == open then
+			return
 		end
-		gui.Enabled = on
+		open = on
+		if props.Dim then
+			Anim.dim(on)
+		end
+		if on then
+			self.fit()
+			gui.Enabled = true
+			Anim.open(holder)
+		else
+			Anim.close(holder, function()
+				if not open then
+					gui.Enabled = false
+				end
+			end)
+		end
 	end
 	local function refit()
-		if gui.Enabled then
+		if open then
 			self.fit()
 		end
 	end
@@ -502,16 +551,9 @@ function Shop.window(props: { [string]: any }): Window
 	return self
 end
 
--- The shop's pages (task b2): each a window of its own (UI.AuraShop, UI.SellFish) with the same tabs on its top edge.
--- A page gives its opener to Shop.page as it is required; Shop.go(name) shows that page and closes the others
--- (nil: closes them all); Shop.Page is the one showing. In the tabs' order.
-Shop.TabHigh = 38
-Shop.Pages = {
-	{ Name = "Auras", Word = "AURAS", Kind = "Lavender" },
-	{ Name = "Sell", Word = "SELL FISH", Kind = "Cash" },
-}
+-- The dock's windows: each gives its opener to Shop.page as it is required; Shop.go(name) shows that one and closes
+-- the others (nil: closes them all); Shop.Page is the one showing. One dock window at a time.
 Shop.Page = nil :: string?
-Shop.LastPage = "Auras"
 local openers: { [string]: (on: boolean) -> () } = {}
 
 function Shop.page(name: string, open: (on: boolean) -> ())
@@ -529,47 +571,8 @@ function Shop.go(name: string?)
 	end
 	Shop.Page = name
 	if name then
-		Shop.LastPage = name
 		openers[name](true)
 	end
-end
-
--- The tabs on a window's top edge (the window made with Tabs = true): this page's in its colour and standing a
--- little taller, the others grey; a press goes to that page.
-function Shop.tabs(window: Window, own: string): { [string]: Button }
-	local row: Frame = Kit.new("Frame", {
-		Name = "Tabs",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromOffset(16, 8),
-		Size = UDim2.new(1, -32, 0, Shop.TabHigh + 8),
-		BackgroundTransparency = 1,
-		ZIndex = 0,
-	}, window.Frame)
-	Kit.new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		VerticalAlignment = Enum.VerticalAlignment.Bottom,
-		Padding = UDim.new(0, 8),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, row)
-	local out: { [string]: Button } = {}
-	for i, page in Shop.Pages do
-		local mine = page.Name == own
-		local b = Shop.button(row, {
-			Name = page.Name,
-			Text = page.Word,
-			Kind = if mine then page.Kind else "Off",
-			TextSize = if mine then 22 else 19,
-			Size = UDim2.fromOffset(if mine then 176 else 160, if mine then Shop.TabHigh + 6 else Shop.TabHigh - 2),
-			LayoutOrder = i,
-		})
-		b.Root.Activated:Connect(function()
-			if not mine then
-				Shop.go(page.Name)
-			end
-		end)
-		out[page.Name] = b
-	end
-	return out
 end
 
 -- Money in the cash green: "$1.4K", the cash sign before it when asked. Returns the label (its Text to set) and the
@@ -626,7 +629,7 @@ export type Card = {
 
 -- A tall card tinted in its tier's colour. props: Size (points), Tint, Name (small, at the top), Line (bigger, rich
 -- text allowed), WellHigh, Stat (a strip under the well; rich text), StatHigh, SlotHigh (the buttons' room),
--- LayoutOrder. The card's colours: a lit top half, its colour under, a darker edge, the scale pattern.
+-- LayoutOrder. The card's colours: a lit top half, its colour under, a darker edge, the studs.
 function Shop.card(parent: Instance, props: { [string]: any }): Card
 	local size: UDim2 = props.Size or UDim2.fromOffset(196, 300)
 	local root: Frame = Kit.new("Frame", {
@@ -636,12 +639,11 @@ function Shop.card(parent: Instance, props: { [string]: any }): Card
 		BorderSizePixel = 0,
 		LayoutOrder = props.LayoutOrder or 0,
 	}, parent)
-	Kit.corner(root, 6)
+	Kit.corner(root, Shop.Round.Card)
 	local fill = Kit.new("UIGradient", { Rotation = 90 }, root)
 	local edge = Kit.stroke(root, 3, Shop.Edge)
 	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	Shop.pattern(root, "Head", 30, 0.86)
-	Shop.gloss(root, 0.7, 0.16)
+	Shop.pattern(root, "Card")
 	local list: Frame = Kit.new("Frame", {
 		Name = "Inside",
 		Position = UDim2.fromOffset(8, 6),
@@ -683,7 +685,6 @@ function Shop.card(parent: Instance, props: { [string]: any }): Card
 	Kit.corner(well, 4)
 	Kit.gradient(well, Shop.Cream, Color3.fromRGB(240, 222, 186))
 	Kit.stroke(well, 3, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	Shop.pattern(well, "Body", 30, 0.8, Color3.fromRGB(220, 196, 150))
 	local stat: TextLabel? = nil
 	if props.Stat then
 		local strip: Frame = Kit.new("Frame", {
@@ -764,13 +765,13 @@ function Shop.itemCard(parent: Instance, props: { [string]: any }): ItemCard
 	local root: Frame = Kit.new("Frame", {
 		Name = "Item",
 		Size = props.Size or UDim2.fromOffset(170, 186),
-		BackgroundColor3 = Color3.fromRGB(44, 50, 66),
+		BackgroundColor3 = Shop.Card,
 		BorderSizePixel = 0,
 		LayoutOrder = props.LayoutOrder or 0,
 	}, parent)
-	Kit.corner(root, 5)
+	Kit.corner(root, Shop.Round.Card)
 	Kit.stroke(root, 3, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	Shop.pattern(root, "Body", 34, 0.9)
+	Shop.pattern(root, "Card")
 	local name = Shop.text(root, {
 		Name = "Name",
 		Position = UDim2.fromOffset(8, 5),
@@ -807,7 +808,7 @@ function Shop.itemCard(parent: Instance, props: { [string]: any }): ItemCard
 		BorderSizePixel = 0,
 		ZIndex = 3,
 	}, root)
-	Kit.corner(strip, 4)
+	Kit.corner(strip, Shop.Round.Strip)
 	Kit.stroke(strip, 2, Shop.Edge)
 	local price = Shop.money(strip, {
 		Size = UDim2.fromScale(1, 1),
@@ -818,6 +819,31 @@ function Shop.itemCard(parent: Instance, props: { [string]: any }): ItemCard
 		ZIndex = 4,
 	})
 	return { Root = root, Name = name, Picture = pic, Rate = rate, Price = price }
+end
+
+-- A drawn tick: two white bars with the dark edge, filling its parent (a round mark's middle). Returns the holder.
+function Shop.check(parent: Instance, z: number): Frame
+	local holder: Frame = Kit.new("Frame", {
+		Name = "Check",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+	}, parent)
+	local function bar(x: number, y: number, long: number, turn: number)
+		local b: Frame = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(x, y),
+			Size = UDim2.fromScale(long, 0.17),
+			Rotation = turn,
+			BackgroundColor3 = Kit.White,
+			BorderSizePixel = 0,
+			ZIndex = z,
+		}, holder)
+		Kit.stroke(b, 1.5, Shop.Edge)
+	end
+	bar(0.36, 0.58, 0.32, 45)
+	bar(0.58, 0.48, 0.52, -50)
+	return holder
 end
 
 -- A fat white arrow: the atlas' arrow turned to its way (0 right, 90 down, 180 left), or, before the upload in a live

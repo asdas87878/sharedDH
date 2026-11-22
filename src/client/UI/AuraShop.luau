@@ -1,7 +1,8 @@
 --!strict
--- The shop's Auras page, in the shop kit (UI/Shop; NULLROOM task s1, after Hugo's auras reference; wired into the
--- shop in task b2, Hugo 2026-11-22: "integrate aura buying ui for the shop"). It opens as the shop's "Auras" page
--- (Shop.go("Auras"): the hub's Shop button, AuraController), with the shop's tabs on its top edge.
+-- The Auras window, in the shop kit (UI/Shop; NULLROOM task s1, after Hugo's auras reference; task b2, Hugo
+-- 2026-11-22: "integrate aura buying ui for the shop"). It opens when the player stands on the Auras stall's floor
+-- ring and closes when they walk off (UI review 1, the user 2026-11-22: "they should pop up when you stand on the
+-- stands corresponding to them in game"; Controllers/StallController), with the dim behind it.
 -- What it shows: the twelve auras (Shared/Auras.Tiers) as tall cards in a sideways row, each tinted in its aura's own
 -- colour: its name, "Lvl n", a picture of its colours in the cream well, "x2 Oxygen" with the multiplier in green, and
 -- one button: the cash price. (The Robux button is built but kept hidden: no product ids exist and none are made up,
@@ -22,7 +23,7 @@ local Shop = require(script.Parent.Shop)
 
 local AuraShop = {}
 
--- (the window is the Sell Fish page's size, so the shop's tabs and title stay put from page to page)
+-- (the window is the Sell Fish window's size, so the two stalls' windows match)
 local WIDE, HIGH = 860, 540
 local CARD_W, CARD_H = 196, 404
 
@@ -84,10 +85,10 @@ local function refresh()
 		row.Card.select(id == now)
 		local price = priceOf(id)
 		if id == now then
-			row.Cash.set("EQUIPPED", "Blue", false)
+			row.Cash.set("Equipped", "Blue", false)
 			row.Robux.Root.Visible = false
 		elseif id < now then
-			row.Cash.set("OWNED", "Off", false)
+			row.Cash.set("Owned", "Off", false)
 			row.Robux.Root.Visible = false
 		elseif price then
 			-- bought one after another: only the next one is live, and only with the coins for it
@@ -96,7 +97,7 @@ local function refresh()
 			row.Robux.Root.Visible = false
 		else
 			-- no prices yet: both dead (the economy draft decides them)
-			row.Cash.set("SOON", "Off", false)
+			row.Cash.set("Soon", "Off", false)
 			row.Robux.Root.Visible = false
 		end
 	end
@@ -111,13 +112,12 @@ local function build()
 		Head = "Lavender",
 		Width = WIDE,
 		Height = HIGH,
-		Tabs = true,
+		Dim = true,
 		OnClose = function()
 			Shop.go(nil)
 		end,
 	})
 	window = w
-	Shop.tabs(w, "Auras")
 	carousel = Shop.carousel(w.Body, {
 		Position = UDim2.fromOffset(-6, 0),
 		Size = UDim2.new(1, 12, 1, 0),
@@ -163,17 +163,17 @@ local function build()
 	end
 	State.Player:GetAttributeChangedSignal("Aura"):Connect(refresh)
 	State.Player:GetAttributeChangedSignal("Coins"):Connect(function()
-		if w.Gui.Enabled then
+		if w.isOpen() then
 			refresh()
 		end
 	end)
 end
 
 function AuraShop.isOpen(): boolean
-	return window ~= nil and window.Gui.Enabled
+	return window ~= nil and window.isOpen()
 end
 
--- Open or close the page. (Through Shop.go("Auras"), so the shop's other page closes.)
+-- Open or close the window. (Through Shop.go("Auras"), so another dock window closes.)
 function AuraShop.open(on: boolean)
 	if not window then
 		if not on then
@@ -182,7 +182,7 @@ function AuraShop.open(on: boolean)
 		build()
 	end
 	local w = window :: Shop.Window
-	local was = w.Gui.Enabled
+	local was = w.isOpen()
 	if on then
 		refresh()
 	end

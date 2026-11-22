@@ -1,10 +1,11 @@
 --!strict
 -- In the hop: the aim at the middle of the screen, with the window to grab a fish as a thin ring round it that
 -- empties. It goes red for the window's last part, and flashes red on a grab with no fish locked. With no fish locked
--- and the window running out it says so. No tenths to read: the window is a shape.
+-- and the window running out it says so (popping in and out, UI.Anim's toast). No tenths to read: the window is a shape.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 
 local Aim = {}
@@ -73,7 +74,7 @@ function Aim.update(now: number, left: number?, locked: boolean, refused: boolea
 	local lost = warn and not locked
 	if lost ~= shownFind then
 		shownFind = lost
-		find.Visible = lost
+		Anim.toast(find, lost)
 	end
 end
 

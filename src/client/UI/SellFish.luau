@@ -16,7 +16,8 @@
 --   first, so the places of those still to go don't move. The prices shown are Config.sellOf, the function the server
 --   pays by; nothing here sends a price.
 --   The pictures are UI.Portrait's (the partner's renders from UI.FishIcons, else the live model).
--- Opened as the shop's "Sell" page (Shop.go("Sell"): the hub's Shop button, AuraController).
+-- It opens when the player stands on the Sell stall's floor ring and closes when they walk off (UI review 1, the user
+-- 2026-11-22; Controllers/StallController), with the dim behind it.
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -24,6 +25,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
 local Shop = require(script.Parent.Shop)
@@ -79,6 +81,8 @@ local window: Shop.Window? = nil
 local list: ScrollingFrame
 local empty: TextLabel
 local total: TextLabel
+local foot: Frame
+local shownTotal = 0 -- the total's value as last set: a sale counts it down from there
 local sellButton: Shop.Button
 local allButton: Shop.Button
 local allDot: Frame
@@ -87,6 +91,7 @@ local toast: Frame
 local toastWord: TextLabel
 local toastFill: UIGradient
 local toastAt = -math.huge
+local toastShown = false
 
 local cards: { Card } = {}
 local fish: { Fish } = {}
@@ -173,18 +178,23 @@ local function say(text: string, good: boolean)
 	toastFill.Color = Shop.halves(pair[1], pair[2])
 	toastWord.Text = text
 	toastAt = os.clock()
+	if toastShown then
+		Anim.punch(toast, 1.08) -- a new line over one still up
+	end
 end
 
 -- The size and the colour as small words under the name: "BIG  GOLD"
 local function tagsOf(f: Fish): string
 	local words = {}
 	if f.Hand then
-		table.insert(words, string.format('<font color="%s">CARRIED</font>', hex(Color3.fromRGB(255, 232, 150))))
+		table.insert(words, string.format('<font color="%s">CARRIED</font>', hex(Kit.White)))
 	end
-	table.insert(
-		words,
-		string.format('<font color="%s">%s</font>', hex(SIZE_HUE[f.Size] or Kit.White), string.upper(f.Size))
-	)
+	if f.Size ~= "Normal" then -- (the usual size says nothing)
+		table.insert(
+			words,
+			string.format('<font color="%s">%s</font>', hex(SIZE_HUE[f.Size] or Kit.White), string.upper(f.Size))
+		)
+	end
 	if f.Variant == "Rainbow" then
 		local letters = {}
 		for i = 1, #"RAINBOW" do
@@ -216,7 +226,7 @@ local function pressCard(card: Card)
 		return
 	end
 	if f.On then
-		say("EQUIPPED IN YOUR TANK: UNEQUIP IT THERE FIRST", false)
+		say("UNEQUIP IT FIRST", false)
 		return
 	end
 	picked[f.Key] = if picked[f.Key] then nil else true
@@ -232,8 +242,8 @@ local function newCard(): Card
 	local tags = Shop.text(item.Root, {
 		Name = "Tags",
 		Position = UDim2.fromOffset(8, 25),
-		Size = UDim2.new(1, -16, 0, 13),
-		TextSize = 11,
+		Size = UDim2.new(1, -16, 0, 15),
+		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		RichText = true,
 		ZIndex = 4,
@@ -254,7 +264,7 @@ local function newCard(): Card
 	}, item.Root)
 	Kit.corner(tick, 999)
 	Kit.stroke(tick, 2.5, Shop.Edge)
-	Shop.text(tick, { Size = UDim2.fromScale(1, 1), TextSize = 17, Text = "✓", ZIndex = 7 })
+	Shop.check(tick, 7)
 	-- an equipped fish: dimmed, with the word across it
 	local veil: Frame = Kit.new("Frame", {
 		Name = "Equipped",
@@ -278,7 +288,7 @@ local function newCard(): Card
 	Kit.corner(band, 4)
 	Kit.stroke(band, 2.5, Shop.Edge)
 	Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(Shop.Kinds.Blue[1], Shop.Kinds.Blue[2]) }, band)
-	Shop.text(band, { Size = UDim2.fromScale(1, 1), TextSize = 16, Text = "EQUIPPED", ZIndex = 9 })
+	Shop.text(band, { Size = UDim2.fromScale(1, 1), TextSize = 16, Text = "Equipped", ZIndex = 9 })
 	local press: TextButton = Kit.new("TextButton", {
 		Name = "Press",
 		Size = UDim2.fromScale(1, 1),
@@ -376,24 +386,52 @@ function update()
 	end
 	empty.Visible = #fish == 0
 	local n, value, free = count()
-	total.Text = Shop.cash(value)
+	if value ~= shownTotal then
+		-- while selling, the total counts down as each fish goes; otherwise it is set at once
+		if selling then
+			Anim.count(total, shownTotal, value, Shop.cash, 0.35)
+		else
+			Anim.count(total, value, value, Shop.cash, 0)
+		end
+		shownTotal = value
+	end
 	local all = free > 0 and n == free
 	allButton.set(if all then "Select None" else "Select All", if all then "Cash" else "Off", free > 0)
 	allDot.BackgroundColor3 = if all then Shop.Kinds.Cash[2] else Shop.BodyDeep
-	local tick = allDot:FindFirstChildOfClass("TextLabel")
+	local tick = allDot:FindFirstChild("Check") :: Frame?
 	if tick then
 		tick.Visible = all
 	end
 	if selling then
 		sellButton.set("Selling...", "Off", false)
 	elseif os.clock() < sureUntil and n > 0 then
-		sellButton.set(string.format("SURE? (%d)", n), "Gold", true)
+		sellButton.set(string.format("Sure? (%d)", n), "Gold", true)
 	else
 		sellButton.set(string.format("Sell (%d)", n), if n > 0 then "Cash" else "Off", n > 0)
 	end
 	for name, b in sortButtons do
 		b.set(nil, if name == sortBy then "Cash" else "Off", true)
 	end
+end
+
+-- A green "+$N" pops over the sell button and drifts up, one per fish sold
+local function riseCash(coins: number)
+	local group: CanvasGroup = Kit.new("CanvasGroup", {
+		Name = "Rise",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(1, -134 + math.random(-24, 24), 1, -FOOT - 4),
+		Size = UDim2.fromOffset(220, 44),
+		BackgroundTransparency = 1,
+		ZIndex = 9, -- (in the body, over the tray: a sibling of the foot would tie with the tray)
+	}, foot.Parent)
+	Shop.text(group, {
+		Size = UDim2.fromScale(1, 1),
+		TextSize = 34,
+		TextColor3 = Shop.Money,
+		Text = "+" .. Shop.cash(coins),
+		ZIndex = 10,
+	})
+	Anim.rise(group, 46, 0.5)
 end
 
 -- Sell every picked fish, one ask after another (see the head note)
@@ -432,6 +470,8 @@ local function sellPicked()
 			if type(answer) == "number" then
 				sold += 1
 				coins += answer
+				riseCash(answer)
+				Anim.punch(sellButton.Root, 1.06)
 			end
 			local left = ASK_GAP - (os.clock() - asked)
 			if left > 0 then
@@ -445,7 +485,7 @@ local function sellPicked()
 		elseif sold > 0 then
 			say(string.format("SOLD %d OF %d FISH FOR %s", sold, #queue, Shop.cash(coins)), true)
 		else
-			say("COULDN'T SELL: STAND ON THE DOCK", false)
+			say("COULDN'T SELL", false)
 		end
 		update()
 	end)
@@ -494,12 +534,11 @@ local function build()
 		Head = "Kelp",
 		Width = WIDE,
 		Height = HIGH,
-		Tabs = true,
+		Dim = true,
 		OnClose = function()
 			Shop.go(nil)
 		end,
 	})
-	Shop.tabs(w, "Sell")
 	local body = w.Body
 
 	-- the left column
@@ -514,7 +553,7 @@ local function build()
 		Position = UDim2.fromOffset(0, 2),
 		Size = UDim2.new(1, 0, 0, 28),
 		TextSize = 24,
-		Text = "Sort By:",
+		Text = "Sort By",
 		ZIndex = 3,
 	})
 	for i, name in { "Value", "Rarity" } do
@@ -550,7 +589,7 @@ local function build()
 		TextSize = 18,
 	})
 	allButton.Root.ZIndex = 3
-	-- its round mark: empty, or green with a tick when every fish is picked
+	-- its square box: empty, or green with a tick when every fish is picked
 	allDot = Kit.new("Frame", {
 		Name = "Dot",
 		Size = UDim2.fromOffset(26, 26),
@@ -559,22 +598,10 @@ local function build()
 		LayoutOrder = 1,
 		ZIndex = 3,
 	}, allButton.Label.Parent)
-	Kit.corner(allDot, 999)
+	Kit.corner(allDot, 4)
 	Kit.stroke(allDot, 2.5, Shop.Edge)
-	Shop.text(allDot, { Size = UDim2.fromScale(1, 1), TextSize = 17, Text = "✓", Visible = false, ZIndex = 4 })
+	Shop.check(allDot, 4).Visible = false
 	allButton.Root.Activated:Connect(pressAll)
-	Shop.text(side, {
-		Name = "Note",
-		Position = UDim2.fromOffset(4, 222),
-		Size = UDim2.new(1, -8, 0, 96),
-		TextSize = 16,
-		TextWrapped = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		TextColor3 = Color3.fromRGB(214, 222, 236),
-		Text = "Fish equipped in your tank cannot be sold.",
-		ZIndex = 3,
-	})
 
 	-- the cards, in a dark tray
 	local tray = Shop.inset(body, {
@@ -617,7 +644,7 @@ local function build()
 		TextSize = 24,
 		TextWrapped = true,
 		TextColor3 = Color3.fromRGB(214, 222, 236),
-		Text = "No fish to sell yet. Dive in and catch some!",
+		Text = "No fish to sell",
 		Visible = false,
 		ZIndex = 4,
 	})
@@ -638,7 +665,7 @@ local function build()
 	toastWord = Shop.text(toast, { Size = UDim2.fromScale(1, 1), TextSize = 18, ZIndex = 13 })
 
 	-- the foot bar: the Total Value and Sell (n)
-	local foot = Shop.inset(body, {
+	foot = Shop.inset(body, {
 		Name = "Foot",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
@@ -680,7 +707,7 @@ local function build()
 
 	for _, name in { "TankList", "Hands" } do
 		State.Player:GetAttributeChangedSignal(name):Connect(function()
-			if w.Gui.Enabled then
+			if w.isOpen() then
 				update()
 			end
 		end)
@@ -696,13 +723,14 @@ local function build()
 		end
 	end)
 	RunService.Heartbeat:Connect(function()
-		if not w.Gui.Enabled then
+		if not w.isOpen() then
 			return
 		end
 		local now = os.clock()
 		local show = now - toastAt < 2.6
-		if toast.Visible ~= show then
-			toast.Visible = show
+		if toastShown ~= show then
+			toastShown = show
+			Anim.toast(toast, show)
 		end
 		-- SURE? runs out by itself
 		if sureUntil ~= 0 and now > sureUntil then
@@ -742,10 +770,10 @@ function SellFish.press(what: string, index: number?)
 end
 
 function SellFish.isOpen(): boolean
-	return window ~= nil and window.Gui.Enabled
+	return window ~= nil and window.isOpen()
 end
 
--- Open or close the page. (Through Shop.go("Sell"), so the shop's other page closes.)
+-- Open or close the window. (Through Shop.go("Sell"), so another dock window closes.)
 function SellFish.open(on: boolean)
 	if not window then
 		if not on then
@@ -754,7 +782,7 @@ function SellFish.open(on: boolean)
 		build()
 	end
 	local w = window :: Shop.Window
-	if on and not w.Gui.Enabled then
+	if on and not w.isOpen() then
 		table.clear(picked)
 		sureUntil = 0
 		toastAt = -math.huge

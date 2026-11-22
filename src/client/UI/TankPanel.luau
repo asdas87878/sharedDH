@@ -38,6 +38,8 @@ local Archetypes = require(ReplicatedStorage.Shared.Archetypes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
+local Anim = require(script.Parent.Anim)
+local DockNotes = require(script.Parent.DockNotes)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
 local Shop = require(script.Parent.Shop)
@@ -123,6 +125,7 @@ local toast: Frame
 local toastWord: TextLabel
 local toastFill: UIGradient
 local toastAt = -math.huge
+local toastShown = false
 local sections: { [string]: { Head: TextLabel, Grid: Frame, Layout: UIGridLayout } } = {}
 local cards: { [string]: Card } = {}
 local open = false
@@ -264,6 +267,9 @@ local function say(text: string, good: boolean?)
 	toastFill.Color = Shop.halves(pair[1], pair[2])
 	toastWord.Text = text
 	toastAt = os.clock()
+	if toastShown then
+		Anim.punch(toast, 1.08) -- a new line over one still up
+	end
 end
 
 -- What a fish sells for: the server's own function
@@ -293,12 +299,11 @@ local function newCard(f: Fish): Card
 		BackgroundColor3 = Kit.White,
 		BorderSizePixel = 0,
 	}, nil)
-	Kit.corner(root, 6)
+	Kit.corner(root, Shop.Round.Card)
 	local fill = Kit.new("UIGradient", { Rotation = 90 }, root)
 	local edge = Kit.stroke(root, 3, Shop.Edge)
 	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	Shop.pattern(root, "Head", 30, 0.9)
-	Shop.gloss(root, 0.72, 0.1)
+	Shop.pattern(root, "Card")
 	-- the light border of an earning card (as the shop's chosen card)
 	local ring: UIStroke = Kit.new(
 		"UIStroke",
@@ -348,7 +353,7 @@ local function newCard(f: Fish): Card
 	Kit.corner(back, 4)
 	Kit.stroke(back, 2, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	local backFill = Kit.new("UIGradient", { Rotation = 90 }, back)
-	Shop.pattern(back, "Body", 30, 0.9)
+	Shop.pattern(back, "Body")
 	local picture = Portrait.new(back, {
 		Position = UDim2.fromOffset(2, 4),
 		Size = UDim2.new(1, -4, 1, -8),
@@ -407,7 +412,7 @@ local function newCard(f: Fish): Card
 	})
 	local b = Shop.button(root, {
 		Name = "Do",
-		Text = "EQUIP",
+		Text = "Equip",
 		TextSize = 18,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -41),
@@ -417,7 +422,7 @@ local function newCard(f: Fish): Card
 	-- the two small ones under it: TAKE OUT (a tank fish back into the hands) and SELL (task b1)
 	local take = Shop.button(root, {
 		Name = "Take",
-		Text = "TAKE OUT",
+		Text = "Take Out",
 		Kind = "Lavender",
 		TextSize = 12,
 		AnchorPoint = Vector2.new(0, 1),
@@ -427,7 +432,7 @@ local function newCard(f: Fish): Card
 	take.Root.ZIndex = 4
 	local sell = Shop.button(root, {
 		Name = "Sell",
-		Text = "SELL",
+		Text = "Sell",
 		Kind = "Red",
 		TextSize = 13,
 		AnchorPoint = Vector2.new(1, 1),
@@ -479,11 +484,11 @@ local function newCard(f: Fish): Card
 		local now = card.Fish
 		if os.clock() > card.SureUntil then
 			card.SureUntil = os.clock() + SURE
-			sell.set("SURE?", "Gold", true)
+			sell.set("Sure?", "Gold", true)
 			return
 		end
 		card.SureUntil = 0
-		sell.set("SELL", "Red", true)
+		sell.set("Sell", "Red", true)
 		if now.Hand then
 			Net.Action:FireServer("Sell", "Hand", now.Hand, now.Id)
 		else
@@ -540,17 +545,17 @@ local function fill(card: Card, f: Fish, full: boolean)
 	card.Take.Root.Visible = f.Hand == nil
 	card.Sell.Root.Size = if f.Hand then UDim2.new(1, -14, 0, 28) else UDim2.new(0.44, -8, 0, 28)
 	if os.clock() > card.SureUntil then
-		card.Sell.set("SELL", "Red", true)
+		card.Sell.set("Sell", "Red", true)
 	end
 	if f.Hand then
-		card.Button.set("PUT IN", "Gold", true)
+		card.Button.set("Put In", "Gold", true)
 	elseif f.On then
-		card.Button.set("UNEQUIP", "Blue", true)
+		card.Button.set("Unequip", "Blue", true)
 	elseif full then
 		-- (still live: the server answers "Full" and the toast says to unequip one first)
-		card.Button.set("FULL", "Off", true)
+		card.Button.set("Full", "Off", true)
 	else
-		card.Button.set("EQUIP", "Cash", true)
+		card.Button.set("Equip", "Cash", true)
 	end
 end
 
@@ -630,19 +635,16 @@ local function refresh()
 	table.sort(equipped, byIncome)
 	table.sort(stored, byIncome)
 	local better = #stored > 0 and (not full or (#equipped > 0 and incomeOf(stored[1]) > incomeOf(equipped[#equipped])))
-	bestButton.set(if better then "EQUIP BEST" else "BEST EQUIPPED", if better then "Cash" else "Off", true)
+	bestButton.set(if better then "Equip Best" else "Best Equipped", if better then "Cash" else "Off", true)
 	allButton.Root.Visible = #hands > 0
-	allButton.set("PUT ALL IN (" .. #hands .. ")", "Gold", true)
+	allButton.set("Put All In (" .. #hands .. ")", "Gold", true)
 	-- the count: how many earn of how many may; red when the tank is full
 	countWord.Text = "Equipped " .. #equipped .. "/" .. most
 	local pill = countPill:FindFirstChildOfClass("UIGradient") :: UIGradient
 	local pair = if full then Shop.Kinds.Red else Shop.Kinds.Off
 	pill.Color = Shop.halves(Kit.darker(pair[1], 0.45), Kit.darker(pair[2], 0.5))
 	local maxed = attr("PlotStage", 0) >= #Config.PlotUpgrades.Stages
-	note.Text = "Only equipped fish earn: "
-		.. most
-		.. " at once."
-		.. (if maxed or Config.PlotUpgrades.On == 0 then "" else " Upgrade your tank for more.")
+	note.Text = if maxed or Config.PlotUpgrades.On == 0 then "" else "Upgrade your tank to equip more"
 
 	table.sort(equipped, order)
 	table.sort(stored, order)
@@ -674,13 +676,13 @@ local function refresh()
 	local gold = hex(Kit.Sun)
 	sections.Hands.Head.Visible = #hands > 0
 	sections.Hands.Grid.Visible = #hands > 0
-	sections.Hands.Head.Text = string.format('<font color="%s">In your hands</font>  %d', gold, #hands)
+	sections.Hands.Head.Text = string.format('<font color="%s">In Your Hands</font> (%d)', gold, #hands)
 	sections.Earning.Head.Visible = #equipped > 0
 	sections.Earning.Grid.Visible = #equipped > 0
-	sections.Earning.Head.Text = string.format("Equipped (earning)  %d/%d", #equipped, most)
+	sections.Earning.Head.Text = string.format("Earning (%d/%d)", #equipped, most)
 	sections.Stored.Head.Visible = #stored > 0
 	sections.Stored.Grid.Visible = #stored > 0
-	sections.Stored.Head.Text = "Stored  " .. #stored
+	sections.Stored.Head.Text = "Stored (" .. #stored .. ")"
 	empty.Visible = #fish == 0 and #hands == 0
 end
 
@@ -813,7 +815,7 @@ local function build()
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	}, side)
-	Shop.text(side, { Size = UDim2.new(1, 0, 0, 28), TextSize = 26, Text = "Sort by:", LayoutOrder = 1, ZIndex = 3 })
+	Shop.text(side, { Size = UDim2.new(1, 0, 0, 28), TextSize = 26, Text = "Sort By", LayoutOrder = 1, ZIndex = 3 })
 	for i, name in SORTS do
 		local b = Shop.sort(side, {
 			Name = "Sort" .. name,
@@ -830,7 +832,7 @@ local function build()
 	-- riding a fish in the tank (task c1: the glass's prompt did it with empty hands; it went with the prompt)
 	rideButton = Shop.button(side, {
 		Name = "Ride",
-		Text = "RIDE A FISH",
+		Text = "Ride a Fish",
 		Kind = "Blue",
 		TextSize = 20,
 		Size = UDim2.new(1, 0, 0, 44),
@@ -896,7 +898,7 @@ local function build()
 		Size = UDim2.new(1, -40, 0, 70),
 		TextSize = 26,
 		TextWrapped = true,
-		Text = "No fish yet!\nCatch some and put them in.",
+		Text = "No fish yet",
 		Visible = false,
 		ZIndex = 4,
 	})
@@ -961,7 +963,7 @@ local function build()
 	})
 	bestButton = Shop.button(foot, {
 		Name = "Best",
-		Text = "EQUIP BEST",
+		Text = "Equip Best",
 		Kind = "Cash",
 		TextSize = 22,
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -974,7 +976,7 @@ local function build()
 	end)
 	allButton = Shop.button(foot, {
 		Name = "PutAll",
-		Text = "PUT ALL IN",
+		Text = "Put All In",
 		Kind = "Gold",
 		TextSize = 20,
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -1001,7 +1003,7 @@ local function build()
 	Kit.stroke(toast, 3, Shop.Edge)
 	toastFill =
 		Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(Shop.Kinds.Red[1], Shop.Kinds.Red[2]) }, toast)
-	Shop.pattern(toast, "Head", 26, 0.88)
+	Shop.pattern(toast, "Button")
 	toastWord = Shop.text(toast, { Size = UDim2.fromScale(1, 1), TextSize = 19, ZIndex = 9 })
 end
 
@@ -1172,13 +1174,15 @@ function TankPanel.init()
 		State.Player:GetAttributeChangedSignal(name):Connect(refresh)
 	end
 	Net.Ride.OnClientEvent:Connect(function(kind: string, reason: any, coins: any)
-		if kind == "TankDenied" then
+		if kind == "TankDenied" and reason == "Full" then
+			-- (the reference's pen-full moment: a pill in the middle of the screen, UI.DockNotes)
+			DockNotes.full("Upgrade your tank to equip more")
+		elseif kind == "TankDenied" then
 			say(
-				if reason == "Full"
-					then "ALL PLACES TAKEN: UNEQUIP ONE OR UPGRADE YOUR TANK"
-					elseif reason == "Hands" then "YOUR HANDS ARE FULL: PUT A FISH IN FIRST"
-					elseif reason == "Far" then "TOO FAR FROM YOUR TANK"
-					elseif reason == "Equipped" then "UNEQUIP IT FIRST TO SELL IT"
+				if reason == "Hands"
+					then "HANDS FULL"
+					elseif reason == "Far" then "TOO FAR AWAY"
+					elseif reason == "Equipped" then "UNEQUIP IT FIRST"
 					else "THAT FISH IS GONE"
 			)
 		elseif kind == "Sold" and type(coins) == "number" then
@@ -1206,13 +1210,17 @@ function TankPanel.init()
 	layout()
 	local lastLook = 0
 	RunService.RenderStepped:Connect(function()
-		toast.Visible = os.clock() - toastAt < 2.2
+		local up = os.clock() - toastAt < 2.2
+		if up ~= toastShown then
+			toastShown = up
+			Anim.toast(toast, up)
+		end
 		-- (a SELL button left at SURE? goes back by itself)
 		if open then
 			for _, card in cards do
 				if card.SureUntil ~= 0 and os.clock() > card.SureUntil then
 					card.SureUntil = 0
-					card.Sell.set("SELL", "Red", true)
+					card.Sell.set("Sell", "Red", true)
 				end
 			end
 		end

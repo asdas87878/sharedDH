@@ -79,14 +79,14 @@ end
 
 local function fishName(key: string): string
 	if key == "" then
-		return "NONE: FLING ME"
+		return "NO FISH"
 	end
 	for _, f in tankFish() do
 		if f.Key == key then
 			return string.upper(f.Name)
 		end
 	end
-	return "NONE: FLING ME"
+	return "NO FISH"
 end
 
 local function landName(index: number): string
@@ -215,7 +215,7 @@ local function build()
 			Size = UDim2.fromOffset(CARD_W, CARD_H),
 			Tint = tint,
 			Title = name,
-			Line = if n == 0 then "The dive-in" else "Tier " .. n .. " \u{2022} Sub",
+			Line = if n == 0 then "The dive-in" else "Tier " .. n,
 			WellHigh = 112,
 			SlotHigh = 42,
 			LayoutOrder = n,
@@ -349,7 +349,7 @@ function SubPanel.init()
 		Size = UDim2.new(0.62, 0, 0, TOP - 6),
 		TextSize = 24,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = "Pick a sub, pick a land, jump in!",
+		Text = "Pick a Sub",
 		ZIndex = 3,
 	})
 	freeLabel = Shop.text(body, {
