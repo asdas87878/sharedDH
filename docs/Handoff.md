@@ -51,11 +51,13 @@ playtest, `python tools/studio/e4_land_check.py install`, `studio-run.mjs play`,
 
 ## 2026-11-20 · The tank outlined under the mouse, a click opens its popup; the hotbar back to seven (NULLROOM task c1, Hugo's PC)
 **State:** in the game code; stylua and selene clean. Checked by a scripted Studio playtest,
-`python tools/studio/c1_tank_hotbar_check.py install|run|remove` (log `work/c1/check.log`): see the result line below.
+`python tools/studio/c1_tank_hotbar_check.py install|run|remove` (log `work/c1/check.log`): **16 of 16 pass**
+(2026-11-22, with x1's Slots fit in the place).
 Not played by hand (no real mouse: the hover goes through `TankPanel.pretendMouse`, Studio only, the click through
 `TankPanel.click`, the same path a real click takes).
 - **The tank** (Hugo on `e2-tank-click.png`): pointing at your own tank within its reach outlines the **whole tank**
-  white, outline only (a Highlight round a nearly clear client-side copy of the tank's own parts: `UI/TankPanel`); a
+  white: its box's edges as lines (a SelectionBox on a clear client-side box the size of the tank's own parts,
+  `UI/TankPanel`; a Highlight was tried and dropped: it only outlines opaque parts, so a glass tank showed nothing); a
   click or tap opens the popup. **Gone:** the CLICK / PUT IN TANK control on the glass (`TankPrompt.attach`, its
   `press`/`control`) and the CLICK YOUR TANK / WALK CLOSER! sign; a click never puts a fish in by itself. Fish go in
   with the popup's PUT IN / PUT ALL IN, as before. The glass control's empty-handed RIDE A FISH moved into the popup

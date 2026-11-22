@@ -117,15 +117,18 @@ local open = false
 local touch = false
 
 local rideButton: Shop.Button
--- The hover outline (task c1): one Highlight round a client-only copy of the tank's own parts (the plot's parts that
--- stand within the tank's footprint: not the pad, the trainer, the upgrade sign or the fish), nearly clear, under the
--- camera. A Highlight outlines everything under its Adornee as one shape, and the tank's parts sit loose in the plot
--- Model among the trainer's and the sign's, so the copy is what gives the tank alone one clean outline
-local outline: Highlight? = nil
-local shape: Model? = nil
-local shapeOf: BasePart? = nil -- the water the copy was made round
+-- The hover outline (task c1): a white box round the whole tank, its edges drawn as lines (a SelectionBox on a clear
+-- part the size of the tank's own parts together: the plot's parts that stand within the tank's footprint, not the pad,
+-- the trainer, the upgrade sign or the fish), client-only, under the camera. (Not a Highlight: a Highlight outlines
+-- only opaque parts, so round a glass tank it traced the frame's bars, and round a clear stand-in nothing at all;
+-- tried in Studio, 2026-11-22, work/c1/hl_cmp.png)
+local outline: SelectionBox? = nil
+local shape: BasePart? = nil
+local shapeParts = 0 -- how many of the tank's parts the box was made round
+local shapeOf: BasePart? = nil -- the water the box was made round
 local shapeDirty = true
 local shapeWatch: { RBXScriptConnection } = {}
+local OUTLINE_THICK = 0.3 -- studs
 local OUTLINE_COLOUR = Kit.White -- (the slots' white ring, the kit's light lines)
 local FOOTPRINT = 6 -- studs past the water's sides that still count as the tank (its base, frame and sign)
 
@@ -910,21 +913,18 @@ local function build()
 	toastWord = Shop.text(toast, { Size = UDim2.fromScale(1, 1), TextSize = 21, ZIndex = 9 })
 end
 
--- The copy of our tank's parts the outline goes round (see `outline` above): made again when the tank's parts change
--- (an upgrade, streaming), never for the fish swimming in it
+-- The box the outline is drawn round (see `outline` above): the tank's parts' bounds, in the water's own axes; made
+-- again when the tank's parts change (an upgrade, streaming), never for the fish swimming in it
 local function makeShape(plot: Model, water: BasePart)
-	if shape then
-		shape:Destroy()
-	end
 	for _, c in shapeWatch do
 		c:Disconnect()
 	end
 	table.clear(shapeWatch)
-	local model = Instance.new("Model")
-	model.Name = "TankOutlineShape"
 	local fishes = plot:FindFirstChild("TankFish")
 	local trainer = plot:FindFirstChild("TrainerRide")
 	local half = water.Size / 2
+	local lo, hi = -half, half -- (the water itself at least)
+	local count = 0
 	for _, d in plot:GetDescendants() do
 		if
 			d:IsA("BasePart")
@@ -935,26 +935,44 @@ local function makeShape(plot: Model, water: BasePart)
 		then
 			local at = water.CFrame:PointToObjectSpace(d.Position)
 			if math.abs(at.X) <= half.X + FOOTPRINT and math.abs(at.Z) <= half.Z + FOOTPRINT then
-				local was = d.Archivable
-				d.Archivable = true
-				local copy = d:Clone()
-				d.Archivable = was
-				if copy then
-					copy:ClearAllChildren()
-					copy.Anchored = true
-					copy.CanCollide = false
-					copy.CanQuery = false
-					copy.CanTouch = false
-					copy.CastShadow = false
-					-- (a Highlight draws nothing round a part that is wholly clear: this one is all but)
-					copy.Transparency = 0.99
-					copy.Parent = model
+				count += 1
+				local cf = water.CFrame:ToObjectSpace(d.CFrame)
+				local s = d.Size / 2
+				for _, corner in
+					{
+						Vector3.new(-1, -1, -1),
+						Vector3.new(-1, -1, 1),
+						Vector3.new(-1, 1, -1),
+						Vector3.new(-1, 1, 1),
+						Vector3.new(1, -1, -1),
+						Vector3.new(1, -1, 1),
+						Vector3.new(1, 1, -1),
+						Vector3.new(1, 1, 1),
+					}
+				do
+					local p = cf:PointToWorldSpace(corner * s)
+					lo, hi = lo:Min(p), hi:Max(p)
 				end
 			end
 		end
 	end
-	model.Parent = workspace.CurrentCamera
-	shape, shapeOf, shapeDirty = model, water, false
+	local box = shape
+	if not box then
+		local made = Instance.new("Part")
+		made.Name = "TankOutlineBox"
+		made.Anchored = true
+		made.CanCollide = false
+		made.CanQuery = false
+		made.CanTouch = false
+		made.CastShadow = false
+		made.Transparency = 1
+		box = made
+	end
+	local b = box :: BasePart
+	b.Size = hi - lo
+	b.CFrame = water.CFrame * CFrame.new((lo + hi) / 2)
+	b.Parent = workspace.CurrentCamera
+	shape, shapeOf, shapeDirty, shapeParts = b, water, false, count
 	local function changed(d: Instance)
 		if d:IsA("BasePart") and not (fishes and d:IsDescendantOf(fishes)) then
 			shapeDirty = true
@@ -963,7 +981,7 @@ local function makeShape(plot: Model, water: BasePart)
 	table.insert(shapeWatch, plot.DescendantAdded:Connect(changed))
 	table.insert(shapeWatch, plot.DescendantRemoving:Connect(changed))
 	if outline then
-		outline.Adornee = model
+		outline.Adornee = b
 	end
 end
 
@@ -972,7 +990,7 @@ local function keepOutline(hovered: boolean)
 	local plot, water = ownPlot()
 	if not plot or not water then
 		if outline then
-			outline.Enabled = false
+			outline.Visible = false
 		end
 		return
 	end
@@ -980,17 +998,17 @@ local function keepOutline(hovered: boolean)
 		makeShape(plot, water)
 	end
 	if not outline then
-		outline = Kit.new("Highlight", {
+		outline = Kit.new("SelectionBox", {
 			Name = "TankHover",
 			Adornee = shape,
-			FillTransparency = 1,
-			OutlineColor = OUTLINE_COLOUR,
-			OutlineTransparency = 0,
-			DepthMode = Enum.HighlightDepthMode.Occluded,
-			Enabled = false,
+			Color3 = OUTLINE_COLOUR,
+			LineThickness = OUTLINE_THICK,
+			SurfaceTransparency = 1,
+			Transparency = 0,
+			Visible = false,
 		}, State.Player:WaitForChild("PlayerGui"))
 	end
-	(outline :: Highlight).Enabled = hovered and shape ~= nil
+	(outline :: SelectionBox).Visible = hovered and shape ~= nil
 end
 
 -- (Studio's tests: a mouse point on the whole viewport to use in place of the real mouse, nil for the mouse again)
@@ -1003,8 +1021,8 @@ end
 
 -- (Studio's tests: whether the outline is on, and round how many of the tank's parts)
 function TankPanel.outlined(): (boolean, number)
-	local on = outline ~= nil and outline.Enabled and outline.Adornee ~= nil
-	return on, if shape then #shape:GetChildren() else 0
+	local on = outline ~= nil and outline.Visible and outline.Adornee ~= nil
+	return on, shapeParts
 end
 
 -- A press on the world (not on a button): a click if it neither moved far nor lasted long

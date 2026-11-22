@@ -77,9 +77,10 @@ Pictures: [desktop](../attachments/tank-popup-desktop.png), [desktop, scrolled, 
 [phone](../attachments/tank-popup-phone.png).
 - **Opening it:** click (or tap) your own tank (its glass, water, rim or sign) from within 36 studs of the water
   (`PANEL_REACH` in AquariumService, written on each plot as `PanelReach`). Near enough, the whole tank is outlined
-  white under the mouse (task c1: a Highlight, outline only, round a nearly clear client-side copy of the plot's parts
-  that stand within the tank's footprint, so the trainer, the upgrade sign, the pad and the swimming fish are left out;
-  the copy is made again when the tank's parts change). No sign over the tank (the old CLICK YOUR TANK / WALK CLOSER!
+  white under the mouse (task c1: a SelectionBox, its edges as white lines 0.3 studs thick, on a clear client-side
+  box the size of the plot's parts that stand within the tank's footprint, so the trainer, the upgrade sign, the pad
+  and the swimming fish are left out; the box is made again when the tank's parts change. Not a Highlight: a Highlight
+  only outlines opaque parts, so round a glass tank it draws nothing useful; tried in Studio, 2026-11-22). No sign over the tank (the old CLICK YOUR TANK / WALK CLOSER!
   went with c1); from further away nothing outlines and a click does nothing. It shuts with its X, a second click on
   the tank, walking 8 studs past the reach, or leaving the dock.
   (The click is tested against the tank's box, not a raycast: the map's glass, water and sign are CanQuery off.)
