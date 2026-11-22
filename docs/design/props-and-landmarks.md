@@ -16,7 +16,7 @@ visible silhouette."
 and eight stretches of four YouTube videos covering Desert to Cosmic (Hahn, Koopekool, BemmyBlox, Blake; ids and times
 in the private notes). Frames and notes are private, in `research/ride-a-dino/props/` and
 `research/ride-a-dino/lands/` (`notes.md` there tags every claim with its video and time). **We take how it is built,
-never its look, models or layout.**
+never its look or models.**
 
 ## 1. How Ride a Dino builds a prop
 Seen close up in the ride clip (17.5 to 29.5 s) and the run (100 to 167 s).

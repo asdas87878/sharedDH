@@ -3,7 +3,7 @@
 Up: [Ride a Dino breakdown](ride-a-dino.md). Read 2026-11-10 by the map chat from all five of the user's recordings
 (`D:\program files for me\videos\`, 2026-11-09 and 2026-11-10: the 5-minute run, the 35-second ride, the side-on ride
 and two short clips), and then from a sixth, a flight over the first two lands (`2026-11-10 19-34-58.mkv`). The frames are private, in `research/ride-a-dino/map/` (gitignored; `grab.py` there pulls more).
-**We take how it is built, never its look, models or layout.** Sizes are judged by eye against the 5-stud player.
+**We take how it is built, never its look or models; the layout may be copied (the user, 2026-11-22).** Sizes are judged by eye against the 5-stud player.
 
 ## What it is, in one paragraph
 A chain of wide, rounded rooms joined by narrow necks, each neck with a line of flags. The ground rolls, and at a

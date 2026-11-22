@@ -104,7 +104,7 @@ step, a frame), and look at other people's builds.
 ## 2. The rules, by question
 
 ### 2.0 What the trending games look like, now seen
-For rules only. We never copy a game's models, its layout or its look. Sizes are by eye against the avatar.
+For rules only. We never copy a game's models or its look. Sizes are by eye against the avatar.
 
 | | Ride a Dino (the reference) | Throw an Egg | Pull an Egg | The egg-stealing game |
 |---|---|---|---|---|

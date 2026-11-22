@@ -18,7 +18,7 @@ Each surface was boxed by eye and measured by one tool (`research/ride-a-dino/co
 the box, so studs and edges don't skew it, with its CIE L* lightness from 0 to 100). There are 13 roles per land: sky,
 haze, far wall, wall top, wall face, floor near and far, prop main, accent and trunk, glow, dino and dino accent. The
 frames, boxed sheets, numbers and notes are private, in `research/ride-a-dino/colour/` (`notes_local.md`, `notes_yt.md`,
-`summary.csv`). We take the method and the values, never the models or layout.
+`summary.csv`). We take the method and the values, never the models.
 
 ## What they do
 1. **The floor carries the land's colour.** Floors are the most saturated big surface (0.6 to 0.7). In the early

@@ -104,8 +104,8 @@ For attention, following the reference:
 Before that, a hub-only try build (the generator's hub options) would show the walls at R's size without the reload.
 Pens, layout and size should be picked together and built in that one reload. The hand placing is read first and kept.
 
-**To confirm with the user:** CLAUDE.md's rule is "copy the loop and the feel, never its look, models or layout". The ask
-here is "as close to one-to-one". R copies the reference's sizes and the U, with our own models in it.
+**Answered (2026-11-22):** the old rule "never its look, models or layout" was not meant for the layout ("didnt mean to
+say never its layout": the user). The hub may follow the reference's sizes and U one to one, with our own models and look.
 
 ## 4. The water's see-through
 The surface is four layers (`tools/map/water_look.luau`): white Glass on top (0.35 see-through), then Neon blue (0.76), a

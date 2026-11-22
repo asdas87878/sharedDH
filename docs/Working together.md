@@ -17,15 +17,15 @@ Claude works from then on.
 - **Parallel sessions:** independent work in its own session, but only one session drives each PC's Studio at a time.
   Read the top of [Sessions](Sessions.md) at the start (its first 80 lines: the table, how the chats work, the newest
   notes): it says which chat has which files in hand. Keep your own row up to date.
-- **Tokens and speed** ([AI setup](AI%20setup.md), 2026-11-22): start chats in the `RideAFish` folder on Fable 5.2 at
-  `high`. Sessions, Handoff and Decisions are newest first and very long: read their tops and search the rest, never whole.
+- **Tokens and speed** ([AI setup](AI%20setup.md), 2026-11-22): start chats in the `RideAFish` folder on Opus 5.5 at
+  `high`, with Fable 5.2 as the advisor (Fable's weekly limit is the one that runs out; CLAUDE.md says when to consult it). Sessions, Handoff and Decisions are newest first and very long: read their tops and search the rest, never whole.
   Hand off to a fresh chat (`/handoff`) when a piece of work is done rather than keeping one chat for days.
 - **Never use computer use on the user's PC.** If access is missing, ask for a connector or an API.
 - **Image generation costs credits:** ask before spending any.
 - **Roblox uploads are permanent:** upload only what's chosen.
 - **Git:** commit or push only when asked (the Obsidian Git plugin's own syncing is fine). Every hand-made push gets an
   entry in [Handoff](Handoff.md) and a commit message that says what changed.
-- **The reference:** copy Ride a Dino's loop and feel, never its look, models or layout.
+- **The reference:** copy Ride a Dino's loop, feel and layout, never its look or models.
 
 ## Sharing the project (two people)
 The user and their partner share one Claude account and work from two PCs. The project is a private GitHub repo,

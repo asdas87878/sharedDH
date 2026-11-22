@@ -4,7 +4,7 @@ Small, specific tests of how the game looks, one note each, numbered. Each one e
 the picks go in [Decisions](../Decisions.md).
 
 **Inspiration (decided 2026-11-09):** Ride a Dino's broad style: chunky shapes, bright readable colour, cheap to make. Our own
-creatures, palette and world, never its models or layout.
+creatures, palette and world, never its models.
 
 | # | Workout | The question | State |
 |---|---|---|---|
@@ -19,3 +19,4 @@ creatures, palette and world, never its models or layout.
 | 9 | Kit pieces | Terraces, rocks, coral, kelp as reusable blocky pieces, cheap to place and to render | |
 | 10 | Effects | Bubbles, drifting specks, moving light on the floor, light shafts, glow | |
 | 11 | Interface | Creature tags, the ride and tame rings, the depth gauge | |
+| 12 | [Leviathans](12-leviathans.md) | Monster creatures in our kit, from the qualities of a reference the user sent: armour over flesh, a grin, a horn, claws, trailing scythe limbs | 2026-11-22: the Scythe Leviathan designed and being built; more body plans after the user has seen it |

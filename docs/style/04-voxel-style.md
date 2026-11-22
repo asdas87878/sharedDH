@@ -4,7 +4,7 @@
 creatures matched the reference game's voxel art style more closely? This is a test, not a decision: the faceted creatures of
 [workout 3](03-creature-set.md) stay as they are, and the two looks get compared side by side.
 
-**The line we keep:** match the voxel *kind* of style, never the reference's models or layout. Our own creatures, palette and
+**The line we keep:** match the voxel *kind* of style, never the reference's models. Our own creatures, palette and
 world, as the [creature method](creature-method.md) and [Decisions](../Decisions.md) say.
 
 ## What the reference's voxel look is

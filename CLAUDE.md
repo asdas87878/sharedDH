@@ -14,7 +14,7 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   PC, so anything both need goes in the vault. With Obsidian open, its Git plugin commits and pushes 5 minutes after edits
   stop (Claude's edits too) and pulls on open and every 5 minutes. Never commit secrets.
 - **The reference:** Ride a Dino, broken down in [docs/reference/ride-a-dino.md](docs/reference/ride-a-dino.md) from the user's
-  recording (frames in the gitignored `research/ride-a-dino/`). Copy the loop and the feel, never its look, models or layout.
+  recording (frames in the gitignored `research/ride-a-dino/`). Copy the loop, the feel and the layout, never its look or models (the layout allowed: the user, 2026-11-22).
 - **The studies (2026-11-16):** before design or look work read [docs/Findings.md](docs/Findings.md): one ranked page over four
   studies (the reference in depth, lighting, buildings, creators and trending games; evidence in `docs/reference/`), with what
   we had wrong. Its changes to the plan are proposals in [docs/Refinement.md](docs/Refinement.md) until the user says yes.
@@ -30,12 +30,17 @@ for it. Plan for co-op servers from the start: server-authoritative, per-player 
   - `map-build`: the map, the hub, props, water, blockouts (`tools/map/`, the Studio loader).
   - `studio-test`: before driving Studio (sync, play, scripted checks, captures, the traps).
   - `handoff`: ending a chat or passing work on (`/handoff`).
-- **Model and tokens:** Fable 5.2 at `high` effort is the project default (`.claude/settings.json`). Never read
+  - `look-check`: whenever a model, prop, map view or screen is ready to judge (one picture, one Fable consult, a rubric).
+- **Model and tokens:** Opus 5.5 at `high` does the work and Fable 5.2 is the advisor (`.claude/settings.json`), because
+  Fable's weekly limit is the one that runs out. **Consult the advisor at these points, and only these:** before you commit
+  to a plan for a piece of work; when a bug survives two fixes; before telling the user a piece is done; and for any call
+  on how something looks or feels (a creature, the map, the riding, the UI; for a look, follow `look-check`). Not for lookups, routine edits, running
+  scripts or Studio checks. The advisor reads the whole chat, so short chats keep each consult cheap. Never read
   [Sessions](docs/Sessions.md), [Handoff](docs/Handoff.md) or [Decisions](docs/Decisions.md) whole: they are newest first, so
   read the top (Sessions: its first 80 lines) and search the rest, or ask the `scout` helper. Helpers in `.claude/agents/`:
   `scout` (finds things, returns quotes), `studio-tester` (runs a Studio check, returns numbers), `fresh-eyes` (reviews a
   finished piece), `creature-builder` (builds one creature by the brief). Hand off to a fresh chat at the end of a piece of
   work rather than letting one chat run for days.
 - The look: numbered style workouts in `docs/style/` ([index](docs/style/Style%20workouts.md)), each with options for the user
-  to pick. Inspiration is Ride a Dino's broad style (chunky, bright, cheap), never its models or layout. Underwater lighting
+  to pick. Inspiration is Ride a Dino's broad style (chunky, bright, cheap), never its models. Underwater lighting
   uses classic fog with the Atmosphere taken out (`tools/studio/depth_look_test.luau`, findings in workout 1).

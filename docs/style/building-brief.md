@@ -62,7 +62,7 @@ to do that job.
 
 ## What the reference's buildings do
 Read off the private frames (`research/ride-a-dino/map/hubA.jpg`, `hubB.jpg`, `H1.jpg`, `A.jpg`, `full_12.png`).
-**For rules only. Never its models, its layout or its look.**
+**For rules only. Never its models or its look; its layout may be copied (the user, 2026-11-22).**
 
 - **Thick pieces.** A stall's posts and beams are about a third as thick as a player is wide, or more. Nothing is a
   thin stick. The frame reads as toy timber.
