@@ -182,5 +182,13 @@ phone layout. The Shop's offers are placeholders (every Id 0).
   as the Index, up on each arrival at the dock until the Shop is opened. Checked in Studio (pass 5: readback of every
   stud layer, mark up on arrival, no errors; `docs/attachments/ui-studs-fade.png`).
 
+- **The cards' stagger (the user, 2026-11-22: "Card stagger", first pick from the transitions study):** as the
+  Sell window or the Tank panel opens, its cards pop in one after another (`Anim.stagger`, numbers in
+  `Anim.Stagger`: 0.08 s in, 0.04 s apart, each from 0.4 to full with a little overshoot; only the first 12, all in
+  by about 0.6 s). Only on opening: a pick, a sale or a refresh doesn't replay it. Grids only: a grid scales a card
+  about its middle and leaves the rest put, while a list moves every card after it (measured in Studio), so the
+  Shop's list and the Aura and Sub carousels don't stagger. Checked in Studio (pass 6: scales sampled in order and
+  all ending at 1, close and reopen mid-stagger, a sale with the window open, a held card draws nothing).
+
 Still proposed (the user's or Hugo's call): the dive HUD's restyle and fonts; the inventory bar's suggestions above;
 the server's sell check near the stall (raised with the game-code chat); the Shop's real offers and prices.

@@ -609,6 +609,9 @@ local function order(a: Fish, b: Fish): boolean
 	return byIncome(a, b)
 end
 
+-- The cards as last laid out, top to bottom (the stagger's order)
+local laid: { GuiObject } = {}
+
 local function refresh()
 	if not open then
 		return
@@ -650,6 +653,7 @@ local function refresh()
 	table.sort(stored, order)
 	table.sort(hands, order)
 	local seen: { [string]: boolean } = {}
+	table.clear(laid)
 	local function lay(rows: { Fish }, where: string)
 		for i, f in rows do
 			local key = if f.Hand then f.Key else "T" .. f.Key
@@ -661,6 +665,7 @@ local function refresh()
 			end
 			card.Root.LayoutOrder = i
 			card.Root.Parent = sections[where].Grid
+			table.insert(laid, card.Root)
 			fill(card, f, full)
 		end
 	end
@@ -743,12 +748,17 @@ local function nearestTankFish(): Model?
 end
 
 local function show(on: boolean)
+	local opening = not window.isOpen()
 	open = on and State.Mode == "Dock" and not State.Player:GetAttribute("TankRide")
 	if open then
 		refresh()
 		rideButton.Root.Visible = nearestTankFish() ~= nil
 	end
 	window.show(open)
+	-- the cards pop in one after another as it opens (only then: a refresh doesn't replay it)
+	if open and opening then
+		Anim.stagger(laid)
+	end
 end
 
 -- Studio's tests: open or close the popup as a click on the tank does

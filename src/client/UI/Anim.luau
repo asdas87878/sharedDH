@@ -14,6 +14,7 @@
 --   Anim.count(label, ...)  a number runs to its new value, fast first
 --   Anim.rise(group, ...)   a pop in, a drift up and a fade out (a "+$250" over a sale)
 --   Anim.toast(gui, on)     a small plate or line pops in, and shrinks away
+--   Anim.stagger(cards)     a window's cards pop in one after another as it opens (grids only)
 --   Anim.dim(on)            the world and the HUD darken behind a stand's window (fades 0.2 s in, 0.17 s out)
 -- One rule: Anim owns the UIScale it puts on a thing ("Anim"), so don't give the same thing another UIScale. Every
 -- motion can be cut off by the next one on the same thing. Nothing runs when nothing moves.
@@ -37,6 +38,10 @@ Anim.DimTo = 0.5 -- how see-through the dark is at its darkest
 Anim.DimIn = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 Anim.DimOut = TweenInfo.new(0.17, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 Anim.Bounce = { Every = 1.8, Hop = 0.45, Wobble = 16 } -- seconds apart, the hop as a share of the mark's height, degrees
+-- The cards' stagger: the first starts Delay into the window's spring, the next Gap after (shrunk so the last of the
+-- first Most lands within Within), each popping from From to full
+Anim.Stagger = { Delay = 0.08, Gap = 0.04, Within = 0.35, Most = 12, From = 0.4 }
+Anim.CardIn = TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 -- The one UIScale Anim puts on a thing
 function Anim.scaleOf(gui: GuiObject): UIScale
@@ -251,6 +256,34 @@ function Anim.toast(gui: GuiObject, on: boolean)
 				gui.Visible = false
 				scale.Scale = 1
 			end
+		end)
+	end
+end
+
+-- A window's cards pop in one after another as it opens (the user, 2026-11-22: "Card stagger"; the transitions
+-- study, docs/reference/ui-motion-and-studs.md). cards: in the order they show. Only the first screenful staggers,
+-- and the gap shrinks so the last of them lands within Within; the rest are simply there. Only for cards in a
+-- UIGridLayout: a grid scales a cell about its middle and leaves the others put (measured in Studio, 2026-11-22),
+-- while a UIListLayout would move every card after it. A card is held at nothing only here, and each held card's
+-- pop is already on its way: a newer motion on it (a reopen) takes over and sets its own size.
+function Anim.stagger(cards: { GuiObject })
+	local s = Anim.Stagger
+	local n = math.min(#cards, s.Most)
+	local gap = if n > 1 then math.min(s.Gap, s.Within / (n - 1)) else 0
+	for i, card in cards do
+		local scale = Anim.scaleOf(card)
+		local turn = take(scale)
+		if i > n then
+			scale.Scale = 1
+			continue
+		end
+		scale.Scale = 0
+		task.delay(s.Delay + (i - 1) * gap, function()
+			if turns[scale] ~= turn then
+				return
+			end
+			scale.Scale = s.From
+			tween(scale, Anim.CardIn, { Scale = 1 })
 		end)
 	end
 end

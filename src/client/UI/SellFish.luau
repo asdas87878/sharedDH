@@ -782,13 +782,24 @@ function SellFish.open(on: boolean)
 		build()
 	end
 	local w = window :: Shop.Window
-	if on and not w.isOpen() then
+	local opening = on and not w.isOpen()
+	if opening then
 		table.clear(picked)
 		sureUntil = 0
 		toastAt = -math.huge
 		update()
 	end
 	w.show(on)
+	-- the cards pop in one after another as it opens (only then: a pick or a sale doesn't replay it)
+	if opening then
+		local shown = {}
+		for _, card in cards do
+			if card.Fish then
+				table.insert(shown, card.Item.Root :: GuiObject)
+			end
+		end
+		Anim.stagger(shown)
+	end
 end
 
 Shop.page("Sell", SellFish.open)
