@@ -276,12 +276,13 @@ It is a `RideService` change (a count of reds in a row and the shorter strain), 
 feel check by hand.
 
 **Built 2026-11-22 (the game-code chat):** `Oxygen.RedShrink` 0.7 (in the N panel), `Config.strainSeconds`, and
-`RideService`'s `RedRun`: counted at each mount on a fish too strong, set to 0 by a fish you can hold or the dock,
+`RideService`'s `RedRun`: counted at each mount on a fish too strong, set to 0 by a fish you can hold or the Dock state (any way home),
 kept through the hop and floating between. The landing's refill and the 2/3 break-off are unchanged: only the time the
 rest takes shrinks (with nothing back, the second red fish would empty at once). The client is told the seconds (the
 player's `StrainSeconds` attribute) for the shake and the ring's countdown. Checked in Studio with every fish red
 (`TestMaxOxygen` 5, endless air off, no fail on): ten red landings in a row gave 2.5, 1.75, 1.22, 0.86, 0.60, 0.42,
-0.29, 0.21, 0.14, 0.10 s; the eighth ran out before the hop; a fish held in between started the count again at 2.5.
+0.29, 0.21, 0.14, 0.10 s; the eighth ran out before the hop; after a sandbox reset and hops at the normal max, a red
+fish was back at 2.5.
 No errors. Not played by hand. In a published game the press comes a round trip late, so the red fish nobody gets off
 comes about the fifth or sixth, not the eighth. With endless air on no fish is too strong, so nothing shrinks.
 

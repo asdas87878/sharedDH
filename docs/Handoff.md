@@ -39,7 +39,8 @@ ten red landings in a row, the count reset by a fish held; no errors. **Not play
   in `Oxygen.StrainTime` x `Oxygen.RedShrink`^(n-1): 2.5, 1.75, 1.2, 0.86 ... s at 0.7, so by about the eighth nobody
   gets off. A fish you can hold, or the dock, starts it again. Try 0.5 or 0.8 in the N panel (Oxygen, RedShrink).
 - **Where:** `Config.strainSeconds`, `Config.strainTicks` (a third argument, the seconds), `RideService` (`RedRun`, the
-  player attribute `StrainSeconds`), `ShakeController` (the strain shake runs to that time). The refill and the
+  player attribute `StrainSeconds`, the count set to 0 by any Dock state), `ShakeController` and `HudController` (the
+  strain shake and the ring's countdown run to that time; the HUD line with the UI chat's yes). The refill and the
   break-off at a red landing are as they were.
 - [Progression](design/progression.md), "Red fish in a row".
 ## 2026-11-22 · The other PC's work since 2026-11-17, merged on top of yours (Obsidian chat integration, the user's PC)

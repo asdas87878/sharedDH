@@ -392,7 +392,9 @@ local function update(dt: number)
 	end
 	local drain = 0
 	if strained then
-		drain = max / math.max(Config.Oxygen.StrainTime, 0.01)
+		-- (this ride's own strain time, from the server: shorter for each red fish in a row, Oxygen.RedShrink)
+		local seconds = State.Player:GetAttribute("StrainSeconds")
+		drain = max / math.max(if type(seconds) == "number" then seconds else Config.Oxygen.StrainTime, 0.01)
 	elseif mode == "Riding" and kind then
 		local sent = State.Player:GetAttribute("Drain")
 		drain = if type(sent) == "number" and sent > 0

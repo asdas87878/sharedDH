@@ -73,7 +73,7 @@ type Rider = {
 	SentAt: number,
 	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
 	Strained: boolean, -- the fish under us is too strong for us (decided at the mount): the meter empties at once
-	RedRun: number, -- fish too strong for us landed on in a row (Oxygen.RedShrink): 0 after a fish we hold, or the dock
+	RedRun: number, -- fish too strong for us landed on in a row (Oxygen.RedShrink): 0 after a fish we hold, or at the Dock state
 	AngryFish: Wild?, -- the fish we have marked angry (its attributes and tag are ours to take off again)
 	AngryAt: number, -- os.clock() it turned angry
 	Tame: number, -- how far the fish under us is from being ours, 0 to 1 (Config.tameTime)
@@ -422,6 +422,9 @@ local function setState(r: Rider, state: string)
 	if state ~= "Dock" then
 		-- (off the dock: the land fish goes, the equipped choice stays for the dive: task e3)
 		landOff(r)
+	else
+		-- (the surface, by whichever way: the next red fish is a first one again, Oxygen.RedShrink)
+		r.RedRun = 0
 	end
 	if state ~= "Free" then
 		r.SurfacedAt = nil
@@ -893,8 +896,6 @@ local function toDock(r: Rider)
 	if r.Fish then
 		dismount(r, "Dock")
 	end
-	-- (the surface: the next red fish is a first one again, Oxygen.RedShrink)
-	r.RedRun = 0
 	-- (a ragdoll gets its joints back before the move home)
 	unragdoll(r.Player)
 	r.Token += 1
