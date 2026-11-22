@@ -295,19 +295,43 @@ Studs on the top of the rust red.
 - It must not look like the Giant Sea Bass: this one is WIDE with a round open mouth; that one is deep with a frown.
 
 ## As built
-**Stopped by the user on 2026-11-17 with 4 of the 15 built.** Nothing was exported or uploaded.
+**All fifteen built, 2026-11-18** (four on 2026-11-17, then stopped; the other eleven and second passes on the Pufferfish
+and Butterflyfish on the user's word "do everything"). Every one passes the gate. Nothing was exported or uploaded.
 
-![Old beside new](../attachments/voxel-remodels-old-new.jpg)
+![Old beside new, zones 1 and 2](../attachments/voxel-remodels-old-new-1.jpg)
+![Old beside new, zones 3 and 4](../attachments/voxel-remodels-old-new-2.jpg)
 
-| Creature | State | What is weak |
+| Creature | Size, triangles | What is weak (the builder's report, and Claude's look at the sheet) |
 |---|---|---|
-| Blue Chromis | built, passes the gate | the mouth is small in the 3/4 view |
-| Pufferfish | built, passes the gate | the eyes stick out as slabs; the lips are green and square |
-| Butterflyfish | built, passes the gate | the disc reads as a white box; no side fins |
-| Stingray | built, passes the gate | the hump reads as stacked slabs; single-block spots are small |
-| Cuttlefish | cut off part-way: a `voxel.py` exists, not checked, not finished | |
-| Sea Turtle, Moray Eel, Octopus | started and cut off before a file was written | |
-| The other seven | not started | |
+| Blue Chromis | | the mouth is small in the 3/4 view |
+| Pufferfish | 10.5 studs, 814 | second pass: round eyes facing the 3/4 view, a peach pout with buck teeth. The far eye is seen edge on |
+| Butterflyfish | 10.5 studs, 796 | second pass: the disc bulges like a lens in broad steps, swept side fins. The top edge stays flat for the seat; the pale fins are faint |
+| Stingray | | the hump reads as stacked slabs; single-block spots are small |
+| Cuttlefish | 13.2 studs, 980 | the side outline is still a flat bar; the shield shows from above |
+| Sea Turtle | 16.4 studs, 918 | the head is boxy; the rider's legs sink half a cube into the shell's step |
+| Moray Eel | 22.4 studs, 1,032 | a straight plank at rest, a shallow S in the swim |
+| Octopus | 17.6 studs, 1,754 | **the weakest:** the bulb reads as a tall red tower of steps, the webs hardly show, the suckers are small. It swims eyes first (the face hid otherwise) |
+| Sea Lion | 16.8 studs, 788 | angular cream boxes at the throat; the hind body a little segmented |
+| Giant Sea Bass | 20.7 studs, 1,992 | no belly fins (triangle cap); the spines merge into one block in the 3/4 view |
+| Leopard Shark | 18.8 studs, 1,128 | the saddles read like a zebra's from above; ivory and white hardly differ |
+| Steller's Sea Cow | 29.2 studs, 2,280 | the rear tapers in one-cube steps; the barnacles are specks; the fluke is thin in the 3/4 view |
+| Barracuda | 21.2 studs, 1,190 | the eye ring reads square; the fangs are small and pale |
+| Sawfish | 25.6 studs, 1,128 | the side fins hardly show; white teeth on a bone saw; the back fins read as stacked boxes |
+| Goliath Grouper | 24.3 studs, 2,086 | a long loaf from the side (the vacuum reads from the front and 3/4); thin belly fins; the hook on one side only |
 
-To carry on: one builder a creature, as "For the builder" says, four at a time. The Pufferfish and the Butterflyfish
-want a second pass first.
+## The user's picks (2026-11-18)
+
+The user found the old models better modelled, but the remodels better coloured. Their call:
+
+- **Remodels kept:** Sea Lion, Steller's Sea Cow, Goliath Grouper. They replace the old models at export.
+- **Old models in the new colours:** Blue Chromis, Stingray, Cuttlefish, Sea Turtle, Moray Eel, Octopus, Giant Sea Bass,
+  Leopard Shark, Barracuda, Sawfish. Only the palette changed, in each old `art/creatures/<Name>/voxel.py`, so the shapes are
+  the same. Each old colour kept its job and roughly its lightness: the Moray's paler spots are now sky blue, its fin
+  ridge navy, its belly and lip yellow. The Giant Sea Bass's belly is a mid lilac, so it stays only a little paler than the
+  body, as before. The script is in the session scratchpad (`recolour_old.py`); `git diff` shows every change.
+- **Left as they were:** Pufferfish and Butterflyfish (old model, old colours).
+
+![Recolours 1](../attachments/voxel-recolours-1.jpg)
+![Recolours 2](../attachments/voxel-recolours-2.jpg)
+
+Next, on the user's word: export and upload (permanent): the ten recoloured old models and the three kept remodels.

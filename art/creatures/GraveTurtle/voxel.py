@@ -19,7 +19,7 @@ import math
 
 NAME, ZONE, RARITY = "Grave Turtle", "ZONE 9 / BONE GRAVEYARD", "LEGENDARY"
 U = 0.45
-PALETTE = {"shell": "#6F8A7A", "rim": "#28363E", "skin": "#8FA391", "bone": "#EEE6CC", "hollow": "#18212E", "teal": "#58E6D2"}
+PALETTE = {"shell": "#C1DECC", "rim": "#28363E", "skin": "#8FA391", "bone": "#FFF9E7", "hollow": "#18212E", "teal": "#58E6D2"}
 SEAT = (1.5, 12, 1.85)
 GLOW = {"teal": 0.8}  # only the small cold light in the socket
 KEEP = ["hollow", "teal"]

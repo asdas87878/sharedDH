@@ -11,11 +11,18 @@
 --   THE RUMBLE of riding ("Ride"): a slow, loose sway from 25 studs a second, where the old tremble of speed only
 --     began at 78: no fish of the first lands ever reached it, so their rides had a still camera.
 --   THE ROLL: the view leans into a turn with the fish (State.CamRoll).
---   THE BEAT: each stroke of the tail is a faint knock.
--- Config.Wild.Amount scales all of it (0: the ride as it was before). Nothing is made per frame; a fit's shake is
--- one small table (Lib/Shake) and its bubbles are Fx's.
+--   THE BEAT: each stroke of the tail is a faint knock (with the stride off).
+--   THE STRIDE (Config.Stride; 2026-11-18): the fish goes in steps, left and right in turn (AnimController works
+--     them out and moves its body and the rider). The camera goes with them: it drops into each footfall and rises
+--     between, leans and moves over to each step's side, tips down at the footfall and is jolted by it, and a soft
+--     thump marks it. Under it the rumble is turned down (Stride.Rumble): noise was what made the ride feel shaken
+--     rather than carried.
+-- Config.Wild.Amount scales all of it but the stride (Config.Stride.Amount; 0: the ride as it was before). Nothing is
+-- made per frame; a fit's shake is one small table (Lib/Shake), its bubbles are Fx's, and the thumps are three
+-- sounds made once and played in turn.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
@@ -41,6 +48,33 @@ local PRESETS: { [string]: string } = {
 local roll = 0
 local pull = 0
 local lastBeat = 0
+local strideShown = 0 -- how much of the stride the camera shows now, eased (0 to 2)
+local lastStep = 0
+local thumps: { Sound } = {}
+local thumpNext = 0
+
+-- Counts for tests: footfalls felt so far on our own fish
+WildController.Steps = 0
+
+-- A footfall's thump: three sounds made once and played in turn, a little lower on one side than the other, as
+-- two feet sound (Config.Stride.Sound)
+local function thump(side: number, loud: number)
+	if #thumps == 0 then
+		for i = 1, 3 do
+			local sound = Instance.new("Sound")
+			sound.Name = "StrideThump"
+			sound.SoundId = "rbxasset://sounds/action_jump_land.mp3"
+			sound.Parent = SoundService
+			thumps[i] = sound
+		end
+	end
+	thumpNext = thumpNext % #thumps + 1
+	local sound = thumps[thumpNext]
+	sound.Volume = loud
+	sound.PlaybackSpeed = (if side > 0 then 0.6 else 0.66) * (0.97 + 0.06 * math.random())
+	sound.TimePosition = 0
+	sound:Play()
+end
 
 -- Counts for tests: fits so far on our own fish, and the last one's kind
 WildController.Stats = { Fits = 0, Last = "" }
@@ -90,20 +124,53 @@ local function step(dt: number)
 	-- left behind by a bolt, catching up
 	pull *= math.exp(-math.max(wd.PullEase, 0.1) * dt)
 	State.CamPull = if pull > 1e-3 then pull else 0
-	-- the rumble of riding, by speed, a little more as the fish works harder
+	-- The stride: the camera goes with the fish's steps (AnimController's State.Stride). How much shows is eased, so
+	-- it never starts or stops with a jump (a landing, a hop off, the dial turned)
+	local sd = Config.Stride
+	local st = State.Stride
+	local onFish = State.Mode == "Riding" and State.Fish ~= nil
+	local want = if onFish and sd.Amount > 0 then st.On else 0
+	strideShown = Ease.lerp(strideShown, want, Ease.alpha(8, dt))
+	local k = strideShown * st.Weight * Shake.amount() * Ease.smoothstep(10, 30, State.Speed)
+	if k > 1e-3 then
+		local h, x = st.Height, st.Across
+		-- (down into the footfall and up between; over to the step's side, moved and leaned the way the rider on the
+		-- rolling back is carried; tipped down at the footfall)
+		State.CamStep = CFrame.new(-sd.Sway * x * k, sd.Bob * h * k, 0)
+			* CFrame.Angles(math.rad(sd.Dip) * h * k, 0, math.rad(sd.Lean) * x * k)
+	else
+		State.CamStep = CFrame.identity
+	end
+	-- each footfall: the jolt and the thump
+	if st.Step ~= lastStep then
+		lastStep = st.Step
+		if k > 0.05 then
+			WildController.Steps += 1
+			-- (and where a test run from outside can read it, as WildFit)
+			workspace.CurrentCamera:SetAttribute("StrideSteps", WildController.Steps)
+			if sd.Kick > 0 then
+				State.KickVelocity += sd.Kick * k * TAU * Config.Jump.LandKickRate
+			end
+			if sd.Sound > 0 then
+				thump(if st.Step % 2 == 0 then 1 else -1, sd.Sound * math.min(k, 1.5))
+			end
+		end
+	end
+	-- the rumble of riding, by speed, a little more as the fish works harder; under the stride, much less of it
 	local share = 0
 	if riding then
 		share = Ease.smoothstep(wd.RumbleFrom, wd.RumbleFull, State.Speed)
 			* wd.Rumble
 			* amount
 			* (1 + 0.4 * math.clamp(State.RideEffort - 1, 0, 1.5))
+			* Ease.lerp(1, math.max(sd.Rumble, 0), math.min(strideShown, 1))
 	end
 	Shake.rumble("Ride", "Ride", share)
-	-- each stroke of the tail
+	-- each stroke of the tail (with the stride on, its footfalls are the knocks)
 	local beat = math.floor(State.RideBeat / TAU)
 	if beat ~= lastBeat then
 		lastBeat = beat
-		if riding and wd.BeatKick > 0 then
+		if riding and wd.BeatKick > 0 and sd.Amount <= 0 then
 			State.KickVelocity += wd.BeatKick * amount * TAU * Config.Jump.LandKickRate
 		end
 	end

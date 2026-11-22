@@ -17,7 +17,7 @@ import math
 
 NAME, ZONE, RARITY = "Elasmosaurus", "ZONE 5 / OPEN BLUE", "LEGENDARY"
 U = 0.45
-PALETTE = {"sea": "#1F8A7A", "belly": "#F0E4C4", "gold": "#E8A93C", "soft": "#F6CF7A", "black": "#1E2226", "tooth": "#FFFFFF",
+PALETTE = {"sea": "#007B6C", "belly": "#F0E4C4", "gold": "#E8A93C", "soft": "#F6CF7A", "black": "#1E2226", "tooth": "#FFFFFF",
            "mouth": "#6A2630", "gum": "#9A4F58"}
 SEAT = (11.5, 6, 7.5)
 GLOW = {"soft": 0.4}  # only the thin halo of the eye

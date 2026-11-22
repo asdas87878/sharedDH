@@ -99,13 +99,13 @@
   }
  ],
  "paletteCells": {
-  "body": "#655C54",
+  "body": "#574F47",
   "belly": "#93887B",
   "lip": "#E2D3B8",
   "spot": "#3D3632",
   "black": "#1E1F22",
-  "body-": "#514A43",
-  "body+": "#796F66",
+  "body-": "#463F39",
+  "body+": "#696058",
   "belly-": "#766D62",
   "belly+": "#ADA092",
   "lip-": "#B5A993",

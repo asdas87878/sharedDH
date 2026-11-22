@@ -16,6 +16,9 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "src", "shared", "Creatures")
+# Cut from the game (2026-11-19, the user, on the map chat's list: "cut what needs to be cut"; docs/design/fish-values.md):
+# their art stays in art/creatures, but they are not collected into the game
+CUT = {"Boxfish", "Butterflyfish", "BlueChromis", "FlyingFish"}
 
 
 def r(v, n=4):
@@ -70,7 +73,8 @@ def collect(path):
 
 
 if __name__ == "__main__":
-    rows = [collect(p) for p in sorted(glob.glob(os.path.join(ROOT, "art", "creatures", "*", "game", "*.mesh.json")))]
+    paths = sorted(glob.glob(os.path.join(ROOT, "art", "creatures", "*", "game", "*.mesh.json")))
+    rows = [collect(p) for p in paths if os.path.basename(os.path.dirname(os.path.dirname(p))) not in CUT]
     for folder, parts, moving, size in rows:
         print(f"{folder:18} {parts:3} parts, {moving:3} moving, {size:6} characters")
     print(len(rows), "creatures ->", os.path.relpath(OUT, ROOT))

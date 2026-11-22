@@ -108,13 +108,13 @@
   }
  ],
  "paletteCells": {
-  "back": "#7D8468",
+  "back": "#BAC2A4",
   "belly": "#ECE7D6",
   "black": "#1F2225",
   "mouth": "#6E2A30",
   "tooth": "#FFFFFF",
-  "back-": "#646A53",
-  "back+": "#949C7C",
+  "back-": "#959B83",
+  "back+": "#D8E1C0",
   "belly-": "#BDB9AB",
   "belly+": "#FFFFF8",
   "black-": "#191B1E",

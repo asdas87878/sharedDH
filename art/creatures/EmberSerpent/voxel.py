@@ -20,7 +20,7 @@ import math
 
 NAME, ZONE, RARITY = "Ember Serpent", "ZONE 8 / VENTS", "SECRET"
 U = 0.45
-PALETTE = {"plate": "#33343E", "crust": "#6B3F3A", "smoke": "#5B5764", "white": "#FFF1C4", "yellow": "#FFCC3A",
+PALETTE = {"plate": "#73747F", "crust": "#B4817B", "smoke": "#5B5764", "white": "#FFF1C4", "yellow": "#FFCC3A",
            "orange": "#FF8A1E", "blaze": "#EE4F1A", "red": "#C2261A", "deep": "#8C1612", "fang": "#FFD96A",
            "furnace": "#FF9A2A", "gum": "#2A1418", "black": "#17131A"}
 SEAT = (20.5, 10, 6.5)

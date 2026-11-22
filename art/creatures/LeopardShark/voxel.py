@@ -11,7 +11,7 @@ spots low on the flank between them. Everything else stays plain: sandy grey ove
 The rider sits behind the gills, in front of the back fin, legs in a slot either side."""
 NAME, ZONE, RARITY = "Leopard Shark", "ZONE 3 / KELP FOREST", "RARE"
 U = 0.4
-PALETTE = {"sand": "#A5A091", "belly": "#EEE9DB", "dark": "#473F3A", "black": "#22262B", "mouth": "#6A2A32"}
+PALETTE = {"sand": "#D1CCBC", "belly": "#EEE9DB", "dark": "#473F3A", "black": "#22262B", "mouth": "#6A2A32"}
 SEAT = (-7, 4, 3.6)
 FRAME, ORTHO = 1.55, 22.5
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["sand"]}]

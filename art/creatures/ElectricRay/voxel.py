@@ -13,7 +13,7 @@ Its idea: a live battery. A plain round disc of dusky blue-grey, and lightning c
 The rider sits on the ridge, legs in a shallow slot either side."""
 NAME, ZONE, RARITY = "Electric Ray", "ZONE 4 / SHIPWRECKS", "EPIC"
 U = 0.45
-PALETTE = {"back": "#5A6B82", "belly": "#E7E2D2", "spark": "#FFE838", "black": "#15181D", "mouth": "#3A4252"}
+PALETTE = {"back": "#34465B", "belly": "#E7E2D2", "spark": "#FFE838", "black": "#15181D", "mouth": "#3A4252"}
 SEAT = (-6, 4, 2.5)
 GLOW = {"spark": 0.9}  # the lightning, and nothing else
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["back"]}]

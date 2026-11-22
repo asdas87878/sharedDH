@@ -15,7 +15,7 @@ import math
 
 NAME, ZONE, RARITY = "Dunkleosteus", "ZONE 2 / CORAL REEF", "LEGENDARY"
 U = 0.54
-PALETTE = {"bone": "#C9B994", "body": "#56788A", "belly": "#B4C4C0", "blade": "#F1EAD6", "black": "#2B2B2E", "mouth": "#4A1F24",
+PALETTE = {"bone": "#3E5C8A", "body": "#56788A", "belly": "#B4C4C0", "blade": "#F1EAD6", "black": "#2B2B2E", "mouth": "#4A1F24",
            "amber": "#FFB23E", "soft": "#F2A93F", "iris": "#C98A2E"}
 SEAT = (-9, 7, 6.5)
 EYE = "halo"  # the eye (docs/style/05-rarity-look.md): "full", "ring", "halo", "slit", "gradient" or "matte"

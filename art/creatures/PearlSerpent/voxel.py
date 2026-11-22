@@ -18,7 +18,7 @@ import math
 
 NAME, ZONE, RARITY = "Pearl Serpent", "ZONE 1 / SHALLOWS", "SECRET"
 U = 0.45
-PALETTE = {"pearl": "#E9E4E1", "pink": "#F3B4C6", "blue": "#B2D5F0", "moon": "#FFE6F0", "black": "#2B2E3D", "rose": "#D98FA6"}
+PALETTE = {"pearl": "#6F6CD9", "pink": "#F3B4C6", "blue": "#B2D5F0", "moon": "#FFE6F0", "black": "#2B2E3D", "rose": "#D98FA6"}
 SHADE = 0.9  # the belly's tone stays pearl, not grey
 SEAT = (14.5, 5, 4.6)
 GLOW = {"moon": 0.6}  # the pearl in the brow, and the small one at the tail

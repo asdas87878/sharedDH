@@ -14,7 +14,7 @@ import math
 
 NAME, ZONE, RARITY = "Brimstone Eel", "ZONE 10 / THE UNDERWORLD", "LEGENDARY"
 U = 0.45
-PALETTE = {"char": "#44333F", "belly": "#8C727A", "cinder": "#7C2A36", "lava": "#FF8A1E", "blaze": "#F05E1A", "red": "#CC3418",
+PALETTE = {"char": "#897583", "belly": "#D8BCC4", "cinder": "#7C2A36", "lava": "#FF8A1E", "blaze": "#F05E1A", "red": "#CC3418",
            "tooth": "#FFC44A", "halo": "#FFB43A", "gum": "#3C1218", "mouth": "#5E161C", "black": "#1C161A"}
 SEAT = (5.5, 7, 5.5)
 GLOW = {"lava": 0.85, "blaze": 0.75, "red": 0.6, "tooth": 0.6, "halo": 0.5}

@@ -71,7 +71,10 @@ local yaw = 0 -- the way we are going: A and D turn it
 local roll = 0 -- banking into a turn
 local launchSpeed = 0
 local flatSpeed = 0 -- the speed we really have across the water this frame (walls and all): the hook's reach is by it
-local reach = 0 -- the hook's reach right now (Config.reachOf)
+local reach = 0 -- the hook's reach right now (Config.reachOf),
+local reachAhead = 0 -- and straight in front of us, where the camera looks (Config.aheadOf: further early in the hop)
+local hoverVel: Vector3? = nil -- the pace the glide hovers at (Jump.Hover): the locked fish's, eased when the lock moves
+local throwFrom = 0 -- the view's widening as the throw began (Jump.ThrowFov): kept, and eased out with the punch
 local touchedAt = -math.huge -- os.clock() our last pull-in ended on the saddle (the touch): Jump.Cooldown runs from it
 -- this hop off a Leaper (Config.hopOf; 1 and 0 off any other fish and from floating):
 local leapApex = 1 -- Jump.Apex, times,
@@ -100,6 +103,15 @@ local reelLow, reelLast = 0, 0 -- (the feel log's: our slowest in the pull-in's 
 local lockedSince = 0 -- os.clock() the lock last went to another fish (Jump.SlingSettle)
 local viewYaw: number? = nil -- the camera's yaw last frame, and until when we count as still choosing (Jump.SlingHoldTurn)
 local aimingUntil = 0
+-- for the lock's line (Lock.Pick 2): the view's yaw last frame and when it was last turned (Lock.SteerSeen), so the
+-- lock follows a turned view; the side A or D is held to (-1, 0, 1) and when it steps the lock again (Lock.StepEvery);
+-- and steering: a key held or the view turned in the last Lock.SteerKeep seconds (the hands-off pull-in waits)
+local steerYaw: number? = nil
+local viewTurnedAt = -math.huge
+local heldSide = 0
+local nextStepAt = 0
+local stepSide = 0
+local steering = false
 local queuedAt: number? = nil -- a hop pressed a moment too early, kept to be made as soon as we may (Jump.Buffer)
 local queueUntil = math.huge -- and until when (a press kept in the pull-in waits for the landing first)
 
@@ -235,7 +247,8 @@ local function placeRing(dt: number)
 	-- (the ring shows the reach we really have: it thins out as its fish nears the edge of it)
 	local _, me = State.character()
 	if me and flying and not reeling and not asked and j.RingEdge < 1 then
-		local share = (at - me.Position).Magnitude / math.max(reach, 1)
+		local share = Config.fishGap(fish, me.Position)
+			/ math.max(Lock.reachOf(fish, me.Position, reach, reachAhead, State.CamYaw), 1)
 		faint = Ease.lerp(faint, 0.85, Ease.smoothstep(j.RingEdge, 1, share))
 	end
 	for i, dash in dashes do
@@ -260,7 +273,14 @@ local function setGlow(fish: Model?)
 	glowLandedAt = nil
 end
 
--- The lock-on: the fish along the camera's aim (Lib/Lock), from where we are. It glows from the moment it is picked.
+-- The locked fish within the hook's reach toward it, from `at`: to its whole body, further straight ahead early in the
+-- hop (Jump.AheadReach), with the lock's leeway (Lock.slack)
+local function reachable(fish: Model, at: Vector3): boolean
+	return Config.fishGap(fish, at) <= Lock.reachOf(fish, at, reach, reachAhead, State.CamYaw) * Lock.slack()
+end
+
+-- The lock-on (Lib/Lock), from where we are: with Lock.Pick 2 the fish nearest the line we fly along (A and D steer
+-- it), with 1 the fish along the camera's aim. It glows from the moment it is picked.
 local function pick(from: Vector3)
 	local view = workspace.CurrentCamera.CFrame
 	local skip = if os.clock() < refusedUntil then refused else nil
@@ -269,7 +289,23 @@ local function pick(from: Vector3)
 	local j = Config.Jump
 	local wide = flying and (diving or (Config.Lock.LastChance > 0 and clock >= j.LaunchTime + j.FloatTime + leapTime))
 	local back = flying and clock >= Config.Lock.LeftBackAfter
-	local best = Lock.pick(from, view.Position, view.LookVector, locked, left, skip, reach, wide, back)
+	local looking = flying and os.clock() - viewTurnedAt < Config.Lock.SteerKeep
+	local best = Lock.pick(
+		from,
+		view.Position,
+		view.LookVector,
+		locked,
+		left,
+		skip,
+		reach,
+		wide,
+		back,
+		State.CamYaw,
+		looking,
+		if flying then stepSide else 0,
+		if flying then reachAhead else reach
+	)
+	stepSide = 0
 	if best ~= locked then
 		locked = best
 		lockedSince = os.clock()
@@ -278,9 +314,23 @@ local function pick(from: Vector3)
 	State.JumpTarget = locked
 end
 
+-- (a hop begins: A or D already held from riding steps nothing until it is let go and pressed again, Lock.StepEvery;
+-- and the hover's pace starts afresh)
+local function armSteps()
+	hoverVel = nil
+	local keyX = RideController.moveVector().X
+	heldSide = if keyX > 0.5 then 1 elseif keyX < -0.5 then -1 else 0
+	nextStepAt = math.huge
+	stepSide = 0
+end
+
 local function stop()
 	flying = false
 	viewYaw = nil
+	steerYaw = nil
+	steering = false
+	heldSide = 0
+	stepSide = 0
 	diving = false
 	flung = false
 	plunging = false
@@ -332,12 +382,22 @@ local function startReel(root: BasePart, how: string)
 		reelTime = math.max(j.ReelMin, math.min(j.ReelTime + away / math.max(j.GrabSpeed, 1), j.ReelMax))
 	end
 	reelHow = how
+	-- the throw (Jump.ThrowFov): the view keeps the widening it has (the slow-mo's hold) and punches a little wider,
+	-- both easing out as the pull-in narrows it; and a flick of a sound (Feel.ThrowSound)
+	throwFrom = math.max(State.FovPunch, 0)
+	if Config.Feel.ThrowSound > 0 then
+		Feel.sound("Swish", Config.Feel.ThrowSound, Config.Feel.ThrowPitch, 0.25)
+	end
 	-- (where we are and the speed we have now: the sling carries it on, dying away, so a press never brakes us)
 	reelStartPos = root.Position
 	reelVelocity = root.AssemblyLinearVelocity * math.clamp(j.SlingCarry, 0, 1.5)
 	reelFrom = root.CFrame
 	reelLow = root.AssemblyLinearVelocity.Magnitude
 	reelLast = reelLow
+	-- (how long a hook this is: Config.Long, the long shot and the rest of LongHookController. Not the dive's first
+	-- grab: the dive has its own camera and its own moment, Config.Dive)
+	State.ReelGap = away
+	State.ReelFar = if how == "dive" then 0 else Config.longOf(away)
 	FeelLog.event("reel", { How = how, Gap = away, Time = reelTime, Lock = locked, Speed = reelLow })
 	Feel.sound("Whoosh", Config.Feel.Whoosh, Config.Feel.WhooshPitch, reelTime)
 	-- the server checks the range from here and keeps the fish for us
@@ -352,11 +412,28 @@ local function request(fromQueue: boolean?): boolean
 		local _, root = State.character()
 		local now = os.clock()
 		if now - startedAt < j.Window + leapTime and clock >= j.MinFlight and not reeling and not asked and root then
-			if
-				locked
-				and saddleOf(locked)
-				and ((locked.PrimaryPart :: BasePart).Position - root.Position).Magnitude <= reach * Lock.slack()
-			then
+			local inReach = locked ~= nil and saddleOf(locked) ~= nil and reachable(locked, root.Position)
+			if not inReach and Config.Lock.PressAny > 0 then
+				-- (Lock.PressAny: nothing locked, or the locked fish out of reach: the press takes the fish nearest
+				-- our line anywhere in reach, the one we left last)
+				local any = Lock.any(
+					root.Position,
+					State.CamYaw,
+					reach,
+					left,
+					if now < refusedUntil then refused else nil,
+					reachAhead
+				)
+				if any and saddleOf(any) then
+					locked = any
+					lockedSince = now
+					setGlow(any)
+					State.JumpTarget = any
+					inReach = true
+					FeelLog.event("press", { Did = "any" })
+				end
+			end
+			if inReach then
 				FeelLog.event("press", { Did = "grab" })
 				startReel(root, "press")
 			else
@@ -443,6 +520,7 @@ local function request(fromQueue: boolean?): boolean
 	flatSpeed = launchSpeed
 	reach = Config.reachOf(flatSpeed, launchSpeed)
 	State.Reach = reach
+	reachAhead = reach * Config.aheadOf(0)
 	WallRide.reset(wall)
 	faced = yaw
 	autoAt = 0
@@ -458,6 +536,7 @@ local function request(fromQueue: boolean?): boolean
 	reeling = false
 	asked = false
 	flying = true
+	armSteps()
 	State.Heading = yaw
 	State.WindowLeft = j.Window + leapTime
 	State.JumpPhase = "Pop"
@@ -501,6 +580,7 @@ function JumpController.fling(heading: number): boolean
 	flatSpeed = launchSpeed
 	reach = math.max(Config.reachOf(flatSpeed, launchSpeed), Config.Dive.Reach)
 	State.Reach = reach
+	reachAhead = reach * Config.aheadOf(0)
 	WallRide.reset(wall)
 	faced = yaw
 	autoAt = 0
@@ -515,6 +595,7 @@ function JumpController.fling(heading: number): boolean
 	reeling = false
 	asked = false
 	flying = true
+	armSteps()
 	State.Heading = yaw
 	State.WindowLeft = j.Window + leapTime
 	State.JumpPhase = "Pop"
@@ -709,11 +790,15 @@ local function hop(dt: number)
 			-- our speed from where we put ourselves last frame (the physics moves the root a little in between)
 			local was = position
 			root.CFrame = body
-			-- the view narrows as it speeds up (the reference's zoom in), and dots are left behind us
-			State.FovPunch = j.ReelFov * u ^ j.ReelFovCurve
+			-- the view narrows as it speeds up (the reference's zoom in), and dots are left behind us; the throw's punch
+			-- (Jump.ThrowFov) eases out first
+			local sinceThrow = os.clock() - reelStartedAt
+			local throw = (throwFrom + j.ThrowFov)
+				* (1 - Ease.smoothstep(0, math.max(j.ThrowFovTime, 0.01), sinceThrow))
+			State.FovPunch = j.ReelFov * u ^ j.ReelFovCurve + throw
 			dropDot(at)
-			-- speed lines, more of them as it speeds up, and bubbles left behind us
-			Feel.rush(Config.Feel.ReelLines * u ^ 1.5)
+			-- speed lines, more of them as it speeds up (and more on a long hook: Config.Long), and bubbles left behind us
+			Feel.rush(Config.Feel.ReelLines * u ^ 1.5 * (1 + Config.Long.Lines * State.ReelFar))
 			Feel.trail(root, true)
 			root.AssemblyLinearVelocity = (body.Position - was) / math.max(dt, 1e-6)
 			root.AssemblyAngularVelocity = Vector3.zero
@@ -737,9 +822,23 @@ local function hop(dt: number)
 				})
 				State.Reeling = false
 				-- the landing, at once on our side: the view snaps wider and settles, the camera is knocked down and
-				-- springs back, and it is shaken, a little harder after a faster pull-in
-				State.FovPunch = j.LandFov
-				State.KickVelocity = j.LandKick * 2 * math.pi * j.LandKickRate
+				-- springs back, and it is shaken, a little harder after a faster pull-in. After a long hook (Config.Long)
+				-- all of it harder, and the camera holds still for a beat first (LongHookController): the shake starts as
+				-- that hold ends, so the hold doesn't eat its first jolt
+				local far = State.ReelFar
+				local long = Config.Long
+				if j.LandScale > 0 then
+					-- (Jump.LandScale: the picture shrinks to this share of its size in one frame, from the view as it
+					-- is, the reference's 0.80; the long shot's own narrowing is let go at the touch too)
+					local before = workspace.CurrentCamera.FieldOfView
+					local base = before - State.FovPunch - State.FovLong
+					local scale = math.clamp(j.LandScale ^ (1 + long.LandFov * far), 0.3, 1)
+					local after = 2 * math.deg(math.atan(math.tan(math.rad(before) / 2) / scale))
+					State.FovPunch = math.max(after - base, 0)
+				else
+					State.FovPunch = j.LandFov * (1 + long.LandFov * far)
+				end
+				State.KickVelocity = j.LandKick * (1 + long.Kick * far) * 2 * math.pi * j.LandKickRate
 				local pull = reelOffset.Magnitude / math.max(reelTime, 0.01)
 				local by = 1 + j.LandShakeBySpeed * (pull - j.LandShakeAt) / math.max(j.LandShakeAt, 1)
 				-- (its own shake, Config.Shake: a harder one after a faster pull-in, the heavy one on a giant. Jump.LandShake
@@ -749,14 +848,30 @@ local function hop(dt: number)
 				local heavy = landedOn ~= nil
 					and kind ~= nil
 					and Config.bodyOf(landedOn, kind).Z >= Config.Shake.GrandLength
-				Shake.play(if heavy then "LandBig" else "Land", j.LandShake / 0.9 * math.clamp(by, 0.5, 1.6))
+				local shakeName = if heavy then "LandBig" else "Land"
+				local shakeBy = j.LandShake / 0.9 * math.clamp(by, 0.5, 1.6) * (1 + long.Shake * far)
+				local hold = math.max(long.Hold, 0) * far
+				if hold > 0.005 then
+					State.CamHoldUntil = os.clock() + hold
+					task.delay(hold, function()
+						Shake.play(shakeName, shakeBy)
+					end)
+				else
+					Shake.play(shakeName, shakeBy)
+				end
 				-- and bubbles thrown out round the fish, with a splash
 				local f = Config.Feel
 				Feel.trail(root, false)
 				Feel.sound("Splash", f.Splash, 1.1, 0.6)
 				if f.SplashCount > 0 then
-					Fx.burst(saddle.Position, f.SplashCount, 0, f.SplashReach)
+					Fx.burst(
+						saddle.Position,
+						math.floor(f.SplashCount * (1 + long.Splash * far) + 0.5),
+						0,
+						f.SplashReach
+					)
 				end
+				State.Touched:Fire(reelOffset.Magnitude, far, reelLast)
 				Net.Action:FireServer("Land", locked)
 			end
 			return
@@ -776,6 +891,7 @@ local function hop(dt: number)
 	-- us. Substep the whole elapsed frame: dropping time makes low-FPS players fly and steer slower while their
 	-- window keeps running at wall-clock speed.
 	local was = position
+	local ownFlat = 0 -- the hop's own speed across the water this frame, hover or not: the hook's reach goes by it
 	local steps = math.max(1, math.ceil(dt / 0.05))
 	local h = dt / steps
 	for i = 1, steps do
@@ -789,6 +905,47 @@ local function hop(dt: number)
 		local pace = speedAt(math.max(0, t - h / 2))
 		local way, kept = WallRide.step(wall, position, (before + yaw) / 2, pace, 3, 1.5, h)
 		local velocity = way * (pace * kept)
+		ownFlat = pace * kept
+		-- Hover with the target (Jump.Hover): after the pop the glide eases to the locked fish's pace, so it keeps its
+		-- place before us, as the reference's rider floats at its dino's
+		local hover = if j.Hover > 0
+				and not diving
+				and not flung
+			then math.min(j.Hover, 1) * Ease.smoothstep(j.HoverFrom, j.HoverFrom + math.max(j.HoverEase, 0.01), t)
+			else 0
+		-- (not with the fish we just left, the fallback when nothing else is in reach: hovering with it kept us beside it,
+		-- where no other fish came into reach, and back onto it we went: no Oxygen. The glide flies on to find one)
+		local targetRoot = locked and locked ~= left and locked.PrimaryPart
+		if targetRoot then
+			local tv = targetRoot.AssemblyLinearVelocity
+			local flatTv = Vector3.new(tv.X, 0, tv.Z)
+			-- and closing in over it (Jump.HoverClose): toward a spot HoverGap seconds of its pace behind its saddle,
+			-- timed to arrive at the hook (SlingBy), never faster than HoverCloseMost over its pace, as the reference's
+			-- rider floats over its dino before the throw (feel review 3)
+			local want = flatTv
+			local seat = if j.HoverClose > 0 then saddleOf(locked) else nil
+			local fishPace = flatTv.Magnitude
+			if seat and fishPace > 1 then
+				local spot = seat.Position - flatTv / fishPace * math.max(fishPace * j.HoverGap, j.HoverGapMin)
+				local off = Vector3.new(spot.X - position.X, 0, spot.Z - position.Z)
+				local close = off / math.max(j.SlingBy - t, j.HoverCloseTime, 0.05)
+				-- (along our heading only, by HoverSide's share sideways: drifting sideways onto a fish moved the camera's
+				-- look line onto its neighbour, the lock swung there and back, and the hook waited for the glide's end)
+				local ahead = Vector3.new(-math.sin(yaw), 0, -math.cos(yaw))
+				local along = ahead * close:Dot(ahead)
+				close = along + (close - along) * math.clamp(j.HoverSide, 0, 1)
+				if close.Magnitude > j.HoverCloseMost then
+					close = close.Unit * j.HoverCloseMost
+				end
+				want = flatTv + close * math.min(j.HoverClose, 1)
+			end
+			hoverVel = if hoverVel then hoverVel:Lerp(want, Ease.alpha(j.HoverFollow, h)) else want
+		else
+			hoverVel = nil
+		end
+		if hover > 0 and hoverVel then
+			velocity = velocity:Lerp(hoverVel, hover)
+		end
 		local height = heightAt(t) + resumeHeight
 		if plungeDepth > 0 then
 			height -= plungeDepth * Ease.smoothstep(0, math.max(Config.Dive.PlungeTime, 0.05), t)
@@ -807,13 +964,34 @@ local function hop(dt: number)
 	State.Heading = yaw
 	State.Wall = WallRide.state(wall)
 	State.WallSide = if wall.Touch then (if wall.Lean >= 0 then 1 else -1) else 0
-	-- the hook's reach, by that speed: longest as we leave, shrinking as we slow to the stop
-	reach = Config.reachOf(flatSpeed, launchSpeed)
+	-- the hook's reach, by that speed: longest as we leave, shrinking as we slow to the stop (the hop's own speed, not
+	-- the hover's: the server counts it from the hop's curve)
+	reach = Config.reachOf(math.max(flatSpeed, ownFlat), launchSpeed)
 	if diving or flung then
 		-- (the dive's own hop reaches further: Config.Dive.Reach; and the submarine's fling)
 		reach = math.max(reach, Config.Dive.Reach)
 	end
 	State.Reach = reach
+	reachAhead = reach * Config.aheadOf(clock)
+	-- (for the lock's line: the view turned a moment ago, by its own yaw, State.CamYaw: the camera's shakes and kicks
+	-- turn the picture a little every frame, and are nobody looking round. And A or D: a press steps the lock to the
+	-- next fish that way, and holding steps it again every Lock.StepEvery)
+	local camNow = State.CamYaw
+	if steerYaw and dt > 0 then
+		local turned = math.abs(math.atan2(math.sin(camNow - steerYaw), math.cos(camNow - steerYaw)))
+		if math.deg(turned) / dt > Config.Lock.SteerSeen then
+			viewTurnedAt = os.clock()
+		end
+	end
+	steerYaw = camNow
+	local keyX = RideController.moveVector().X
+	local side = if keyX > 0.5 then 1 elseif keyX < -0.5 then -1 else 0
+	if side ~= 0 and (side ~= heldSide or os.clock() >= nextStepAt) then
+		stepSide = side
+		nextStepAt = os.clock() + Config.Lock.StepEvery
+	end
+	heldSide = side
+	steering = math.abs(keyX) > 0.1 or os.clock() - viewTurnedAt < Config.Lock.SteerKeep
 	pick(position)
 
 	-- upright off the fish for a moment, then lying flat, face down, swimming through the glide (as the reference's
@@ -840,7 +1018,7 @@ local function hop(dt: number)
 	local d = Config.Dive
 	if diving and d.AutoGrab > 0 and clock >= math.max(d.GrabAfter, j.MinFlight) and clock < window then
 		local targetRoot = locked and locked.PrimaryPart
-		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach * Lock.slack() then
+		if targetRoot and saddleOf(locked) and reachable(locked, position) then
 			diving = false
 			startReel(root, "dive")
 			return
@@ -856,11 +1034,15 @@ local function hop(dt: number)
 			aimingUntil = os.clock() + 0.2
 		end
 	end
+	-- (steering with A and D is choosing too, with the lock going by the line: Lock.Pick 2)
+	if Config.Lock.Pick >= 2 and j.SlingHoldTurn > 0 and steering then
+		aimingUntil = math.max(aimingUntil, os.clock() + 0.1)
+	end
 	viewYaw = yawNow
 	-- Sooner (Jump.EarlySling): from SlingAfter on, the locked fish pulls us in by itself as soon as it is within
 	-- SlingNear across the water (under us, whatever the height), or at SlingBy whatever the gap; either way only
-	-- once the lock has been on it for SlingSettle, and not while we are turning the view (still choosing). Never the fish we just left: that one only when the glide
-	-- ends, or by a press.
+	-- once the lock has been on it for SlingSettle, and not while we are turning the view (still choosing). The fish
+	-- we just left only from SlingBy. (Both at 1.7 s since 2026-11-18: the reference's airtime, measured.)
 	if
 		j.EarlySling > 0
 		and j.AutoGrab >= 2
@@ -869,17 +1051,18 @@ local function hop(dt: number)
 		and clock < dropAt
 		and os.clock() >= autoAt
 		and locked
-		and locked ~= left
+		and (locked ~= left or clock >= j.SlingBy)
 		and os.clock() - lockedSince >= j.SlingSettle
 		and os.clock() >= aimingUntil
 	then
+		-- (both measured to the fish's whole body, Lock.WholeBody; across the water: from where we are, at its height)
 		local targetRoot = locked.PrimaryPart
-		local off = if targetRoot then targetRoot.Position - position else Vector3.zero
+		local level = if targetRoot then Vector3.new(position.X, targetRoot.Position.Y, position.Z) else position
 		if
 			targetRoot
 			and saddleOf(locked)
-			and (Vector3.new(off.X, 0, off.Z).Magnitude <= j.SlingNear or clock >= j.SlingBy)
-			and off.Magnitude <= reach * Lock.slack()
+			and (Config.fishGap(locked, level) <= j.SlingNear or clock >= j.SlingBy)
+			and reachable(locked, position)
 		then
 			startReel(root, "early")
 			return
@@ -891,7 +1074,7 @@ local function hop(dt: number)
 	-- grabs sooner.
 	if j.AutoGrab >= 2 and clock >= dropAt and clock < window and os.clock() >= autoAt then
 		local targetRoot = locked and locked.PrimaryPart
-		if targetRoot and saddleOf(locked) and (targetRoot.Position - position).Magnitude <= reach * Lock.slack() then
+		if targetRoot and saddleOf(locked) and reachable(locked, position) then
 			startReel(root, "glide")
 			return
 		end

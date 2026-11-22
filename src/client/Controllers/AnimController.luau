@@ -116,6 +116,11 @@ type FishJoints = {
 	fitFor: number,
 	fitCount: number,
 	fitNext: number,
+	-- the stride (Config.Stride) this frame, for the rider's pose: the body's height through the step (strideHeight),
+	-- to which side (strideAcross), and how much of the stride shows (0 to 1, times Stride.Amount)
+	strideH: number,
+	strideX: number,
+	strideOn: number,
 	-- on land (task e4, Config.LandRide): the ride fish in Workspace.LandFish, nil for every fish in the water
 	land: LandRig?,
 }
@@ -184,6 +189,25 @@ local function shape(t: number, start: number, peak: number, hold: number, finis
 	local rise = math.clamp((t - start) / (peak - start), 0, 1)
 	local fall = math.clamp((t - peak - hold) / (finish - peak - hold), 0, 1)
 	return rise ^ 1.25 * (1 - fall) ^ 2
+end
+
+-- The stride (Config.Stride), `p` of the way from one footfall to the next. Its height: 0 at the footfall, 1 midway,
+-- less its average over a step, so the body rides as high as it did. With `sharp` 1 it is a bound's arc: it rises
+-- quickly out of the footfall and falls faster and faster into the next, where it stops dead, and that sudden stop is
+-- what is felt as a step. With 0 it is a round wave instead, with no footfall in it.
+local function strideHeight(p: number, sharp: number): number
+	local arc = 4 * p * (1 - p)
+	local round = 0.5 - 0.5 * math.cos(p * TAU)
+	return round + (arc - round) * sharp - (0.5 + sharp / 6)
+end
+
+-- And to the side: over onto the step's side after the footfall (the weight landing on it), swinging through the
+-- middle at the next footfall onto the other side. `side` is 1 or -1, turn about. With `hold` 0 a smooth swing; toward
+-- 1 it goes over quickly and stays (Ride a Dino's body shifts soon after each footfall and holds for most of the step)
+local function strideAcross(p: number, side: number, hold: number): number
+	local swing = math.sin(math.pi * p)
+	local k = 0.01 + 3 * math.clamp(hold, 0, 1)
+	return side * math.tanh(k * swing) / math.tanh(k)
 end
 
 local JOINTS = {
@@ -945,6 +969,9 @@ local function animateFish()
 							fitFor = 0,
 							fitCount = 0,
 							fitNext = math.huge,
+							strideH = 0,
+							strideX = 0,
+							strideOn = 0,
 							at = now,
 							turn = math.random(0, 2),
 						}
@@ -1301,14 +1328,37 @@ local function animateFish()
 								* (1 + (effort - 1) * a.EffortBeat)
 								* waveBeat
 						)
+						-- (ridden, each beat is a step of its stride: kept between a giant's stomp and a small fish's patter)
+						local sd = Config.Stride
+						if isRidden and sd.Amount > 0 and buck <= 0 then
+							rate = math.clamp(rate, sd.MinRate, math.max(sd.MinRate, sd.MaxRate))
+						end
 						j.rate = if j.rate > 0
 							then Ease.lerp(j.rate, rate, Ease.alpha(if buck > 0 then 12 else 4, dt))
 							else rate
 						j.phase += dt * TAU * j.rate
+						-- The stride (Config.Stride): ridden, each beat is one step, to the left and the right in turn, the
+						-- footfall where the beat begins. It comes in over the landing's first second, under its dip.
+						local steps = j.phase / TAU
+						local stepCount = math.floor(steps)
+						local strideOn, strideH, strideX = 0, 0, 0
+						if isRidden and sd.Amount > 0 then
+							strideOn = math.min(sd.Amount, 2) * Ease.smoothstep(0.15, 1, sinceLand)
+							local p = steps - stepCount
+							strideH = strideHeight(p, math.clamp(sd.Sharp, 0, 1))
+							strideX = strideAcross(p, if stepCount % 2 == 0 then 1 else -1, sd.Hold)
+						end
+						j.strideH, j.strideX, j.strideOn = strideH, strideX, strideOn
 						if model == State.Fish then
-							-- (for the drive's pulse of speed and the camera: Config.Wild)
+							-- (for the drive's pulse of speed and the camera: Config.Wild, Config.Stride)
 							State.RideBeat = j.phase
 							State.RideEffort = effort
+							local st = State.Stride
+							st.Step, st.Height, st.Across, st.On, st.Rate =
+								stepCount, strideH, strideX, strideOn, j.rate
+							-- (a bigger animal and a slower step land heavier)
+							st.Weight =
+								math.clamp((length / 14) ^ 0.35 * (2.2 / math.max(j.rate, 0.5)) ^ 0.4, 0.85, 1.5)
 						end
 						local u = (j.phase / TAU) % 1
 
@@ -1389,11 +1439,27 @@ local function animateFish()
 								* (if isRidden then 1 + (Config.Wild.Body - 1) * math.min(Config.Wild.Amount, 2) else 1)
 								* math.clamp(1.6 / math.max(j.rate, 0.1), 0.45, 1)
 								* Ease.lerp(0.45, 1, math.clamp((length - 10) / 25, 0, 1))
+								-- (under the stride only a share of it, Stride.Style: the steps are the rhythm)
+								* Ease.lerp(1, math.max(sd.Style, 0), math.min(strideOn, 1))
 							local s = math.sin(j.phase)
 							up += style.Heave * s * amount
 							nose += style.Nod * math.cos(j.phase) * amount
 							yaw += style.Sway * s * amount
 							roll += style.Rock * math.sin(j.phase + 1) * amount
+						end
+						if strideOn > 0 then
+							-- the steps: down into each footfall and up between, the nose dipping with it; over onto each step's
+							-- side, the nose swung that way. A bigger animal moves more, and each kind its own way (its style: a
+							-- dolphin heaves, an eel and a puffer rock and swing)
+							local size = math.clamp(length / 14, 0.7, 2) ^ 0.6
+							local heave = if style then style.Heave else 0.3
+							local nod = if style then style.Nod else 1
+							local sway = if style then style.Sway else 2
+							local rock = if style then style.Rock else 2
+							up += sd.Drop * size * (0.6 + heave) * strideH * strideOn
+							nose += sd.Nod * (0.6 + nod / 5) * strideH * strideOn
+							yaw += sd.Yaw * (0.5 + sway / 4) * strideX * strideOn
+							roll += sd.Roll * (0.6 + rock / 5) * strideX * strideOn
 						end
 						if bucked and buck > 0 then
 							-- the buck: nose up hard, down, up again, rolling
@@ -1657,6 +1723,9 @@ end
 -- `whipNose` and `whipRoll` are what the fish's back has just turned by quicker than a body follows, degrees: the
 -- hips are locked to the back (Animation.RiderLock), the chest and the head stay behind a moment and catch up
 -- (Config.Wild.Whip). With Config.Wild.Rodeo the right arm is up, swinging the hook's rope; the left holds on.
+-- `step` and `across` are the fish's stride now (Config.Stride: its height through the step, -0.5 at a footfall, and
+-- its side, -1 to 1, each times how much of the stride shows), `stepOn` how much shows: the rider gives with each
+-- footfall, the back rounding forward and the knees folding, and rises between; the chest leans against the roll.
 local function astride(
 	t: number,
 	pace: number,
@@ -1665,23 +1734,28 @@ local function astride(
 	thrown: number,
 	whipNose: number,
 	whipRoll: number,
-	still: boolean?
+	still: boolean?,
+	step: number?,
+	across: number?,
+	stepOn: number?
 ): Pose
 	local p = Config.Pose
 	local wd = Config.Wild
+	local sd = Config.Stride
 	-- (`still`: on land, a tame walk: no rodeo arm)
 	local wild = math.min(wd.Amount, 2)
 	local wn = math.clamp(whipNose * wd.Whip * wild, -35, 35)
 	local wr = math.clamp(whipRoll * wd.Whip * wild, -30, 30)
-	local bob = math.sin(t * 6) * 3
+	local give = (step or 0) * sd.Post
+	local bob = math.sin(t * 6) * 3 * (1 - math.clamp(stepOn or 0, 0, 1)) + 7 * give
 	local crouch = Ease.smoothstep(0.55, 1.3, pace) * (1 - brace)
 	local forward = p.RideCrouch * crouch + p.BraceLean * brace
-	local torso = 12 * (1 - crouch) * (1 - brace) + thrown - forward -- (+ is leaning back)
-	local side = p.RideLean * lean
+	local torso = 12 * (1 - crouch) * (1 - brace) + thrown - forward + 8 * give -- (+ is leaning back)
+	local side = p.RideLean * lean - 0.3 * sd.Roll * (across or 0) * sd.Post
 	local tremble = brace * math.sin(t * 38) * 2.5
 	local arm = 52 + bob + 0.8 * forward - 0.5 * thrown
 	local elbow = math.max(4, 30 + 25 * brace - thrown)
-	local knee = -85 - 10 * crouch - 15 * brace
+	local knee = -85 - 10 * crouch - 15 * brace + 12 * give
 	-- the rodeo arm: up over the head, going round (not while braced round the fish's back)
 	local rodeo = if wd.Rodeo > 0 and wild > 0 and not still then 1 - brace else 0
 	local swing = t * TAU * wd.RodeoRate
@@ -1744,7 +1818,11 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 			if fj then fj.brace else 0,
 			if fj then fj.thrown else 0,
 			if fj then fj.whipNose else 0,
-			if fj then fj.whipRoll else 0
+			if fj then fj.whipRoll else 0,
+			nil,
+			if fj then fj.strideH * fj.strideOn else 0,
+			if fj then fj.strideX * fj.strideOn else 0,
+			if fj then fj.strideOn else 0
 		)
 	elseif state == "Land" then
 		-- astride the ride fish on land (task e4): sat up, leaning a little forward as it goes and into its turns; the

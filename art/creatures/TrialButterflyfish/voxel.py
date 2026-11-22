@@ -4,8 +4,11 @@ butterflyfish.
 Its idea: the disc with the straw.
 - The body idea in numbers: about 29.5 cubes long. A tall thin disc, 22 cubes tall with its fins (0.75 of the length)
   and 7 wide at the middle (0.24): the back fin and the belly fin carry the disc's outline on, up to a peak near the
-  rear and then almost straight down to the stalk. In front of it a long thin tube snout, 5.6 cubes (a fifth of the
-  length) and 2 thick, tilted a little down. A small fan tail on a short stalk.
+  rear and then almost straight down to the stalk. The disc's side outline rises in broad steps to a flat top and falls
+  the same way behind it, and its section is a lens (the outer column stops three cubes short of the rim), so it
+  reads round, not as a box. In front of it a long thin tube snout, 5.6 cubes (a fifth of the length) and 2 thick,
+  tilted a little down. A small fan tail on a short stalk. Pale side fins low behind the gill, swept back along the
+  flank and bending out.
 - The face: the eye sits inside the first band, a dark pupil in a thin pale ring. The mouth is the dark end of the straw.
 - Pearl white, a little warmer and darker on the belly, from the chest to the belly fin.
 - The one mark: three upright copper bands, each 2 cubes wide, top to bottom: through the eye, at the middle, and at
@@ -16,12 +19,13 @@ NAME, ZONE, RARITY = "Butterflyfish (trial)", "ZONE 1 / SHALLOWS", "COMMON"
 U = 0.35
 PALETTE = {"white": "#F4F1E6", "belly": "#EEE2C6", "copper": "#E8892B", "black": "#17171C", "mouth": "#7A3B2A"}
 SHADE = 0.9
-SEAT = (-2.5, 9, 3.6)
+SEAT = (-2.0, 9, 2.6)
 FRAME, ORTHO = 1.2, 15.5
 SWIM = {"chain": ["Head", "Rear", "Stalk", "Tail"], "amplitudes": [5, 10, 18], "phaseStep": 0.9, "headCounter": 2}
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["white"]}]
 
 STEP = [(1, 1)]
+LENS = [(1, 3)]  # the disc's section: the outer column stops three cubes short of the rim, so the flank bulges like a lens
 BELLY = -3  # the warmer belly comes up to here, in one level line from the chest to the stalk
 BANDS = ((-9, -7), (-1, 1), (6, 8))  # the three copper bands, each two cubes wide
 
@@ -32,8 +36,6 @@ def slab(p, x0, x1, n, bot, top, steps=STEP):
     if steps:
         p.paint_sym(x0, x1, n, top - 1, top, "white+")
     p.paint_sym(x0, x1, n, bot, BELLY, "belly")
-    if steps:
-        p.paint_sym(x0, x1, n, bot, bot + 1, "belly-")
 
 
 def band(p, x0, x1, n, bot, top):
@@ -56,7 +58,8 @@ def build(m):
     head = m.part("Head", (1, 0, 0))
     slab(head, -10, -7, 1, -3, 2, ())  # the face: small and narrow, the eye on its side
     slab(head, -7, -5, 2, -6, 6)  # the shoulder
-    slab(head, -5, 1, 3, -9, 9)  # the disc's flat top: the fish is thickest here, and the rider sits on it
+    slab(head, -5, -3, 3, -8, 8, LENS)  # one broad step up to the flat top
+    slab(head, -3, 1, 3, -9, 9, LENS)  # the disc's flat top: the fish is thickest here, and the rider sits on it
     band(head, -9, -7, 1, -3, 2)
     band(head, -1, 1, 3, -9, 9)
 
@@ -84,15 +87,19 @@ def build(m):
     pupil = (1.2, 2.15, -0.3, 1.1)
     head.block(-8.65, pupil, -7.35, pupil, "black", mirror=True)
 
-    # no side fins: on the real fish they are clear as glass, and the flank stays plain
-    head.dent(-4, -2, 3, 6, 8, "white")  # the rider's leg slots
+    # the side fins: low behind the gill, lying back along the flank and bending a little out, a root blade and a
+    # smaller, thinner tip
+    head.beam((-4.7, 3.0, -1.4), (-1.5, 4.4, -2.0), 2.6, 0.5, "belly", mirror=True)
+    head.beam((-2.2, 4.0, -1.9), (0.8, 5.5, -2.7), 1.8, 0.3, "belly", mirror=True)
+    head.dent(-3, -1, 3, 2, 5, "white")  # the rider's leg slots
 
     # the rear of the disc: the flat top carries on for three cubes, then two lower, narrower slabs that the fins cover
     rear = m.part("Rear", (1, 0, 0), "Head")
-    slab(rear, 1, 4, 3, -9, 9)
-    slab(rear, 4, 7, 2, -7, 7)
+    slab(rear, 1, 3, 3, -9, 9, LENS)
+    slab(rear, 3, 5, 3, -8, 8, LENS)
+    slab(rear, 5, 7, 2, -7, 7, [(1, 2)])
     slab(rear, 7, 9, 1, -4, 4, ())
-    rear.sym(0, 1, 2, -7, 7, "white-")  # the sleeve into the head
+    rear.sym(0, 1, 2, -6, 6, "white-")  # the sleeve into the head
     band(rear, 6, 7, 2, -7, 7)
     band(rear, 7, 8, 1, -4, 4)
     # the back fin and the belly fin carry the disc's outline on, in three boxes each, every one smaller and thinner
@@ -114,7 +121,7 @@ def build(m):
 
     # the tail stalk: short
     stalk = m.part("Stalk", (9, 0, 0), "Rear")
-    slab(stalk, 9, 11, 1, -2, 2)
+    slab(stalk, 9, 11, 1, -2, 2, ())
     stalk.sym(8, 9, 0, -1, 1, "white-")
 
     # the tail: a root block and one small fan, with a thin copper edge

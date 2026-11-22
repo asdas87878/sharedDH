@@ -102,6 +102,7 @@ type Rider = {
 	FastAt: number, -- os.clock() the fish was last seen going fast enough to crash
 	-- the passive archetypes (Config.Archetype)
 	JumpExtra: number, -- seconds this hop's glide and window are longer by (off a Leaper; airtime by speed)
+	MountSpeed: number, -- how fast the fish was going as we mounted it (the first speed check allows it)
 	RideSpeed: number, -- how fast the fish under us is going, as WE see it move (its place from frame to frame, eased): a hop's numbers are from it
 	RideFrom: Vector3?, -- where that fish was last frame
 	JumpLaunch: number, -- this hop's speed as it left (Config.hopFrom, from the speed we saw the fish leave at): the hook's reach is counted from it
@@ -527,6 +528,79 @@ local function dismount(r: Rider, reason: string, handBack: boolean?)
 	Net.Ride:FireClient(r.Player, "Dismounted", reason)
 end
 
+-- How far the player is from a fish, allowing for the delay (Config.Net.Lag): the rider's machine saw the fish a
+-- moment late and we see the rider a moment late, so a fish going fast is ahead of where the rider was by its speed
+-- times both moments. The fish is put back along its own velocity by up to Lag (and the player's ping) and the player
+-- on along theirs by up to PlayerLag, and the nearest of those is the distance. Also the plain distance, for the log.
+local function nearness(r: Rider, w: Wild, root: BasePart): (number, number)
+	local n = Config.Net
+	local gap = w.Root.Position - root.Position
+	local plain = gap.Magnitude
+	local ping = 0
+	pcall(function()
+		ping = r.Player:GetNetworkPing()
+	end)
+	local lag = math.max(n.Lag, 0) + math.clamp(ping, 0, math.max(n.PingMost, 0))
+	if lag <= 0 then
+		return plain, plain
+	end
+	local fishVelocity = w.Root.AssemblyLinearVelocity
+	local ownVelocity = root.AssemblyLinearVelocity
+	local best = plain
+	for i = 1, 12 do
+		local t = lag * i / 12
+		best = math.min(best, (gap - fishVelocity * t - ownVelocity * math.min(t, n.PlayerLag)).Magnitude)
+	end
+	return best, plain
+end
+
+-- The same for the hook's reach, to the fish's whole body (Lock.WholeBody, Config.bodyGap: the box of its length,
+-- height and width round its middle, turned as it swims), not its middle: the client's lock and grab measure it so
+-- (the user, 2026-11-18: "so that large fish dont feel further than they are"). With the same allowance for the delay.
+local function reachNearness(r: Rider, w: Wild, root: BasePart): (number, number)
+	local n = Config.Net
+	local at = w.Root.CFrame
+	local plain = Config.bodyGap(at, w.Body, root.Position)
+	local ping = 0
+	pcall(function()
+		ping = r.Player:GetNetworkPing()
+	end)
+	local lag = math.max(n.Lag, 0) + math.clamp(ping, 0, math.max(n.PingMost, 0))
+	if lag <= 0 then
+		return plain, plain
+	end
+	local fishVelocity = w.Root.AssemblyLinearVelocity
+	local ownVelocity = root.AssemblyLinearVelocity
+	local best = plain
+	for i = 1, 12 do
+		local t = lag * i / 12
+		local fishThen = at - fishVelocity * t
+		best = math.min(best, Config.bodyGap(fishThen, w.Body, root.Position + ownVelocity * math.min(t, n.PlayerLag)))
+	end
+	return best, plain
+end
+
+-- (Studio only: each grab and landing judged, in the Output, to see what the delay costs)
+-- (`middle`: for a grab, how far the fish's middle was as seen: the reach used to be measured to it)
+local function judged(r: Rider, what: string, w: Wild, near: number, plain: number, reach: number, middle: number?)
+	if RunService:IsStudio() then
+		print(
+			string.format(
+				"[RideCheck] %s %s: %.1f studs (%.1f as seen%s), reach %.1f, fish %.0f studs a second, %.0f long: %s",
+				r.Player.Name,
+				what,
+				near,
+				plain,
+				if middle then string.format(", %.1f to its middle", middle) else "",
+				reach,
+				w.Root.AssemblyLinearVelocity.Magnitude,
+				w.Body.Z,
+				if near <= reach then "in" else "OUT"
+			)
+		)
+	end
+end
+
 -- The ragdoll (Config.Fail.Ragdoll; Hugo, 2026-11-19, task f3: "enable a real Roblox ragdoll (BallSocketConstraints
 -- replacing Motor6Ds on the character) with an impulse, colliding with the map, props and the fish"). The joints are
 -- the server's to change, so the swap is made here; the body stays the rider's own machine's to move (its network
@@ -716,7 +790,9 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	-- character, so the server leaves the character where it is: moving it here put it on the saddle as the SERVER
 	-- sees the fish, some 5 to 12 studs ahead of where the rider's machine sees it. Only a rider who is somehow far
 	-- from the saddle is moved, so the weld can't drag the fish to them.
-	if (root.Position - w.Saddle.WorldPosition).Magnitude > 30 then
+	-- (allowing for the delay, Net.Lag: on a fast fish the rider is seen well behind the saddle, and moving them put
+	-- them where the server has the fish, ahead of where their own machine has it)
+	if (nearness(r, w, root)) > 30 + w.Body.Z / 2 then
 		root.CFrame = w.Saddle.WorldCFrame
 	end
 	local weld = Instance.new("Weld")
@@ -732,6 +808,7 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	r.CheckFrom = w.Root.Position
 	-- (a wild fish is ours to move, so the speed it has now is true)
 	r.RideSpeed = w.Root.AssemblyLinearVelocity.Magnitude
+	r.MountSpeed = r.RideSpeed
 	r.RideFrom = w.Root.Position
 	r.Nosed = false
 	-- (a new fish: no burst carried over, and its first bite is a first bite)
@@ -1043,7 +1120,14 @@ local function grab(r: Rider, target: any)
 		-- (the dive's own hop reaches further: Config.Dive.Reach)
 		reach = math.max(reach, Config.Dive.Reach * Config.Net.RangeSlack)
 	end
-	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
+	-- (and straight in front further early in the hop, Jump.AheadReach: the client says which way is in front, by the
+	-- camera, which we can't see, so we allow it all round, from the same moment as the speed)
+	reach *= Config.aheadOf(math.max(0, elapsed - Config.Net.ReachLag))
+	-- (allowing for the delay, Net.Lag: a fish swimming away fast was refused here though the client had it in reach;
+	-- and to the fish's whole body, as the client's lock measures it)
+	local near, plain = reachNearness(r, w, root)
+	judged(r, "grab", w, near, plain, reach, (w.Root.Position - root.Position).Magnitude)
+	if not (near <= reach) then
 		return deny(r, "Grab", "Range", target)
 	end
 	-- Match the client's obstruction rule. Aim is local camera intent; range and solids are authoritative.
@@ -1093,9 +1177,13 @@ local function landing(r: Rider, target: any)
 		end
 		return deny(r, "Grab", "Target", target)
 	end
-	-- the server sees the player a moment late, and a pull-in arrives fast
+	-- the server sees the player a moment late, and a pull-in arrives fast (and the delay, Net.Lag: held on the saddle
+	-- of a fast fish as their machine saw it, the rider was further behind the fish than this the whole half second
+	-- of LandWait, and fell off the saddle when it ran out)
 	local reach = w.Body.Z / 2 + j.LandSlack * 2
-	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
+	local near, plain = nearness(r, w, root)
+	judged(r, "landing", w, near, plain, reach)
+	if not (near <= reach) then
 		-- Not seen at the fish yet. The rider's machine is holding them on the saddle and waiting for our word, and we
 		-- see them a moment late, most of all after a fast pull-in (its last tenth of a second covers most of the
 		-- distance): so the landing is given Jump.LandWait to be seen arriving before it is refused. Refusing it at
@@ -1110,7 +1198,7 @@ local function landing(r: Rider, target: any)
 					return
 				end
 				local here = parts(r.Player)
-				if here and (w.Root.Position - here.Position).Magnitude <= reach then
+				if here and (nearness(r, w, here)) <= reach then
 					if not mount(r, w, true) then
 						FishService.unreserve(w, r.Player)
 						r.Grab = nil
@@ -1455,6 +1543,10 @@ local function checkSpeed(r: Rider, w: Wild)
 			most *= r.BoostMost
 		end
 		local allowed = FishService.ridden(w) * most * Config.Ride.SpeedSlack + 10
+		-- (the first second after the mount: a wild fish caught going fast still has that speed while the rider's machine
+		-- eases it to its ridden pace; landing on one going 115 studs a second was flagged, 2026-11-18)
+		allowed = math.max(allowed, r.MountSpeed * Config.Ride.SpeedSlack + 10)
+		r.MountSpeed = 0
 		if (position - from).Magnitude > allowed and not r.Flagged then
 			r.Flagged = true
 			warn(string.format("[RideService] %s's fish moved too fast", r.Player.Name))
@@ -1722,6 +1814,7 @@ local function onPlayer(player: Player)
 		Nosed = false,
 		FastAt = 0,
 		JumpExtra = 0,
+		MountSpeed = 0,
 		RideSpeed = 0,
 		RideFrom = nil,
 		JumpLaunch = 0,

@@ -9,7 +9,7 @@ Its one idea is the head: a wide flat hammer, far wider than the body, with an e
 The rider sits in front of the dorsal, legs in a shallow slot either side."""
 NAME, ZONE, RARITY = "Hammerhead Shark", "ZONE 4 / SHIPWRECKS", "RARE"
 U = 0.4
-PALETTE = {"back": "#7D8468", "belly": "#ECE7D6", "black": "#1F2225", "mouth": "#6E2A30", "tooth": "#FFFFFF"}
+PALETTE = {"back": "#BAC2A4", "belly": "#ECE7D6", "black": "#1F2225", "mouth": "#6E2A30", "tooth": "#FFFFFF"}
 SEAT = (-6, 4, 4.6)
 FRAME, ORTHO = 2.15, 31.0
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["back"]}]

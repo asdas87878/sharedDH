@@ -16,6 +16,10 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [The map: how we build it](docs/design/map-method.md): the new direction (2026-11-10): walls in wavy steps, props that break, the descent.
 - [The map's structure](docs/design/map-structure.md): matching how the reference builds its walls, squares and studs, pass by pass on a bench in Studio.
 - [The map's feel](docs/design/map-feel.md): the lane as a canyon in the sea's floor, a look for each zone, lighting the dark lands.
+- [The map before the big push](docs/design/before-the-push.md): the small details and larger things Ride a Dino has that we don't (lip rows, first-layer trees, wall shelves, bunting, far silhouettes, puffs, day and night, events), and the order to build them before one push into the game (plan, 2026-11-19).
+- [Fish against their lands](docs/design/fish-values.md): how Ride a Dino's creatures sit in their land's value by rarity (measured), ours measured the same way, and every fish marked keep, recolour or cut (proposal, 2026-11-19).
+- [Colour](docs/design/colour.md): how Ride a Dino colours its ten lands (measured), where ours break its rules, and a palette for our lands that copies its values (proposal, 2026-11-19).
+- [Breakable props and the later lands' skyline](docs/design/props-and-landmarks.md): how Ride a Dino builds and breaks its props, three ways to rebuild ours (studs, colourways, brick size), and far landmarks seen from the hub (drafts, 2026-11-18).
 - [The moving water](docs/design/water.md): the tutorial's four-layer water with foam, drifting and breathing; shows in Play.
 - [Map state](docs/map-state.md): blockout v4 as it stood, and the stud tiles. Set aside.
 
@@ -23,12 +27,18 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Core loop](docs/design/core-loop.md): the cycle in one page.
 - [Archetypes and speed per fish](docs/design/archetypes.md): every creature's own speed and its passive archetypes (fast, predator, breaker and more), in one table.
 - [Riding feel](docs/design/riding-feel.md): the ride, the jump fish to fish and the herd, as built.
-- [The sling](docs/design/sling.md): getting from fish to fish: what was weak, the three fixes on switches, the feel log and the M key (built 2026-11-17).
-- [The wild ride](docs/design/wild-ride.md): the rider locked to the fish's back, fits while you ride, the rodeo pose, and the camera that goes with it (built 2026-11-17).
+- [The sling](docs/design/sling.md): getting from fish to fish: what was weak, the three fixes on switches, the feel log and the M key (built 2026-11-17); fast fish no longer refuse a hook or drop you off, and the hands-off hook comes when the reference's does, 1.7 s after the jump (2026-11-18).
+- [The long hook](docs/design/long-hook.md): a hook onto a far fish feels far and lands hard: the long shot (the camera), the rush and the thud, the word (built 2026-11-18).
+- [Feel review 3](docs/reviews/feel-review-3.md): the hook's speed against the reference's, 49 of its hooks read frame by frame: ours is about twice as fast (2026-11-19).
+- [Feel review 2](docs/reviews/feel-review-2.md): the hover, the landing snap, the throw's punch and the herd at 0.85, measured against review 1; then 20, 30 and 40 fish per 1,000 over 100 hops each (2026-11-19).
+- [Feel review 1](docs/reviews/feel-review-1.md): Ride a Dino's loop measured against ours, what makes theirs satisfying, where ours is weaker and stronger, what to change; to be run again (2026-11-19).
+- [The lock](docs/design/the-lock.md): the hook takes the fish in front of you, where the camera looks; A and D step it to the next fish that way; it reaches further straight ahead just after you launch; the reach counts the whole fish, head to tail; a press always grabs if a fish is in reach (built 2026-11-18).
+- [The wild ride](docs/design/wild-ride.md): the rider locked to the fish's back, fits while you ride, the rodeo pose, and the camera that goes with it (built 2026-11-17); the stride, the fish's steps left and right (2026-11-18).
 - [The hook](docs/design/hook.md): the anchor on a rope the rider whirls and throws to reach the next fish (built 2026-11-17).
 - [The dive-in, and the speed of the sea](docs/design/dive-in.md): a plan (2026-11-16) for the first seconds from the gate to the first fish, and for what speed should mean to the player.
 - [The dive](docs/design/the-dive.md): riding, jumping, taming, the zones going down.
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.
+- [The hub's layout](docs/design/hub-layout.md): the dive-in strip, the walls round it, the space behind the tanks (study, 2026-11-20).
 - [UI](docs/design/ui.md): what the player sees on screen: the dive's HUD and the dock's screens (proposed, with mock-ups).
 - [Creatures](docs/design/creatures.md): what's decided about the creatures, tags, sizes and mutations.
 - [Roster](docs/design/roster.md): the scale against Ride a Dino and three drafted progressions (76 creatures).
@@ -38,6 +48,8 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Workout 7: telling creatures apart](docs/style/07-shape-variety.md): shape, mouth, colour and mark; a trial on four sharks
 - [Workout 8: colour treatments](docs/style/08-colour-treatments.md): eight ways to add colour by rule, and a ladder by rarity; a trial
 - [Workout 9: fifteen early creatures remodelled](docs/style/09-early-remodels.md): the dull ones of the first four zones redesigned; 4 of 15 built, stopped
+- [Workout 10: the huge shark and five more](docs/style/10-sharks-round-2.md): six shark-chart trials and Megalodon V3
+- [Workout 11: the wow of rare creatures](docs/style/11-rare-wow-study.md): what Ride a Dino's rare dinos do (variants, full-strength hues, glow as shapes, a bright shell) and what ours lack
 - [Cosmic](docs/design/cosmic.md): a rarity above Mythic, proposed, and a book of effect, lighting and gimmick ideas; a draft
 - [Money and Robux](docs/design/money.md): income, upgrades, what's for sale.
 - [First version](docs/design/first-version.md): what ships first and what waits.

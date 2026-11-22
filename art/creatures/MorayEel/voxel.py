@@ -1,23 +1,24 @@
-"""The Moray Eel (zone 2's Rare: a green moray) for tools/blender/voxel_kit.py (docs/style/04-voxel-style.md).
-Its idea: a long green ribbon that swims like a snake behind a heavy, scowling head whose mouth never quite shuts.
+"""The Moray Eel (zone 2's Rare: a blue moray) for tools/blender/voxel_kit.py (docs/style/04-voxel-style.md).
+Its idea: a long blue ribbon that swims like a snake behind a heavy, scowling head whose mouth never quite shuts.
 - The body is eleven short slices, each on its own joint, bending side to side. From one slice to the next one thing
   changes by one cube. It is taller than it is wide, like the real animal, and ends in a thin dark tail blade.
-- One low fin ridge runs the whole back as a thin darker stripe (very low under the rider), and a second runs under the
+- One low fin ridge runs the whole back as a thin navy stripe (very low under the rider), and a second runs under the
   back half, so the tail reads as a ribbon.
-- The one pattern: paler mottled spots on the flanks and shoulders.
-- The head is wider than the neck. A sloping forehead, a snout of two blocks, a pale lip with a thin dark gum line set
+- The one pattern: paler sky-blue mottled spots on the flanks and shoulders.
+- The head is wider than the neck. A sloping forehead, a snout of two blocks, a yellow lip with a thin dark gum line set
   inside its edge, small pointed teeth and a longer pair in front. The lower jaw is its own part, drawn open; it gulps.
 - The eye is a small dark block under a darker brow that slants down and comes past it in front.
-The rider sits just behind the head, legs in a shallow slot either side."""
+The rider sits just behind the head, legs in a shallow slot either side.
+Colours (2026-11-18): the remodel's palette (art/creatures/TrialMorayEel), on this model unchanged."""
 import math
 
 NAME, ZONE, RARITY = "Moray Eel", "ZONE 2 / CORAL REEF", "RARE"
 U = 0.4
-PALETTE = {"green": "#6A9A3E", "belly": "#C2CF78", "fin": "#3A6238", "spot": "#B5D56A", "mouth": "#7A2E33", "gum": "#8C3F4A",
-           "tooth": "#FFFFFF", "black": "#22262B"}
+PALETTE = {"blue": "#1E6BF0", "yellow": "#FFD426", "navy": "#163F9E", "spot": "#8CC4FF", "mouth": "#5A1420", "gum": "#A8324A",
+           "tooth": "#FFFFFF", "black": "#14171C"}
 SEAT = (-10, 4, 2.6)
 FRAME, ORTHO, ORTHO_SWIM = 1.9, 26.0, 28.0
-TEXTURES = [{"tile": "stud", "on": "top", "colours": ["green"]}]
+TEXTURES = [{"tile": "stud", "on": "top", "colours": ["blue"]}]
 
 BODY_FROM = -16
 SKULL = (3, -3, 4)
@@ -61,25 +62,25 @@ def steps(n):
 
 def slab(p, x0, x1, n, bot, top):
     """a slice of body: one corner step top and bottom, a lighter top row, a pale belly"""
-    p.hull(x0, x1, n, bot, top, "green", steps(n), steps(n))
-    p.paint_sym(x0, x1, n, top - 1, top, "green+")
-    p.paint_sym(x0, x1, n, bot, bot + (2 if top - bot >= 5 else 1), "belly")
-    p.paint_sym(x0, x1, n, bot, bot + 1, "belly-")
+    p.hull(x0, x1, n, bot, top, "blue", steps(n), steps(n))
+    p.paint_sym(x0, x1, n, top - 1, top, "blue+")
+    p.paint_sym(x0, x1, n, bot, bot + (2 if top - bot >= 5 else 1), "yellow")
+    p.paint_sym(x0, x1, n, bot, bot + 1, "yellow-")
 
 
 def build(m):
     head = m.part("Head", (BODY_FROM, 0, 0))
     # the skull: wider than the neck, pale under the jaw line. Its lower front is cut away: the corner of the mouth
-    head.hull(-21, BODY_FROM, 3, -3, 4, "green", [(1, 1)], [(1, 1)])
-    head.paint_sym(-21, BODY_FROM, 3, 3, 4, "green+")
-    head.paint_sym(-21, BODY_FROM, 3, -3, -1, "belly")
-    head.paint_sym(-21, BODY_FROM, 3, -3, -2, "belly-")
+    head.hull(-21, BODY_FROM, 3, -3, 4, "blue", [(1, 1)], [(1, 1)])
+    head.paint_sym(-21, BODY_FROM, 3, 3, 4, "blue+")
+    head.paint_sym(-21, BODY_FROM, 3, -3, -1, "yellow")
+    head.paint_sym(-21, BODY_FROM, 3, -3, -2, "yellow-")
     head.carve(-21, -19, -4, 5, -3, -1)
     head.paint(-18, -16, 3, 4, 2, 3, "spot")
     head.paint(-19, -18, -3, -2, 2, 3, "spot")
     head.paint(-17, -16, -3, -2, 0, 1, "spot")
     # the forehead: one block sloping from the skull's top down onto the snout
-    head.beam((-19.4, 0, 2.9), (-23.0, 0, 2.2), 4.4, 1.6, "green", flat="z")
+    head.beam((-19.4, 0, 2.9), (-23.0, 0, 2.2), 4.4, 1.6, "blue", flat="z")
     # the snout: two blocks in a chain, each tilted a little nose-down, lower and narrower than the last. Each has a
     # pale lip plate underneath and a thin dark gum line set inside the lip's edge
     blocks = ((-19.3, -24.0, 1.085, 0.85, 5.4, 3.4, -19.1), (-23.4, -27.0, 0.5, 0.3, 3.2, 2.1, -24.2))
@@ -89,9 +90,9 @@ def build(m):
         return z0 + (z1 - z0) * (x - x0) / (x1 - x0) - thick / 2 - 0.6
 
     for k, (x0, x1, z0, z1, wide, thick, gum_from) in enumerate(blocks):
-        head.beam((x0, 0, z0), (x1, 0, z1), wide, thick, "green", flat="z")
+        head.beam((x0, 0, z0), (x1, 0, z1), wide, thick, "blue", flat="z")
         lip = thick / 2 + 0.3
-        head.beam((x0, 0, z0 - lip), (x1, 0, z1 - lip), wide - 0.5, 0.6, "belly", flat="z")
+        head.beam((x0, 0, z0 - lip), (x1, 0, z1 - lip), wide - 0.5, 0.6, "yellow", flat="z")
         head.beam((gum_from, 0, lip_bottom(k, gum_from) - 0.05), (x1 + 0.3, 0, lip_bottom(k, x1 + 0.3) - 0.05), wide - 1.1, 0.2, "gum",
                   flat="z")
     # the dark inside of the mouth: two blocks that stay behind the teeth, end inside the lips and reach down into the jaw
@@ -105,7 +106,7 @@ def build(m):
     # down to the front and comes past the eye there, so the eel scowls
     pupil = (3.2, 3.85, 0.4, 1.5)
     head.block(-20.8, pupil, -19.6, pupil, "black", mirror=True)
-    head.beam((-18.4, 3.35, 2.05), (-22.0, 3.35, 1.3), 1.0, 1.4, "green-", mirror=True)
+    head.beam((-18.4, 3.35, 2.05), (-22.0, 3.35, 1.3), 1.0, 1.4, "blue-", mirror=True)
 
     # the lower jaw, on its own joint and drawn open: two boxes in a chain, a gum line and teeth of its own
     jaw = m.part("Jaw", (-18.5, 0, -1.7), "Head")
@@ -117,12 +118,12 @@ def build(m):
         return z0 + slope * (x - x0) + thick / 2 * math.sqrt(1 + slope * slope)
 
     for k, (x0, x1, z0, z1, wide, thick, gum_from) in enumerate(jaws):
-        jaw.beam((x0, 0, z0), (x1, 0, z1), wide, thick, "belly", flat="z")
+        jaw.beam((x0, 0, z0), (x1, 0, z1), wide, thick, "yellow", flat="z")
         jaw.beam((gum_from, 0, jaw_top(k, gum_from) + 0.05), (x1 + 0.35, 0, jaw_top(k, x1 + 0.35) + 0.05), wide - (0.6, 1.0)[k], 0.2, "gum",
                  flat="z")
     for k, x in ((0, -20.85), (0, -21.75), (1, -23.5), (1, -24.5)):
         jaw.tooth(x, (1.7, 0.72)[k], jaw_top(k, x) + 0.05, 0.5, -0.6, "tooth")
-    jaw.beam((-19.4, 0, -3.42), (-24.4, 0, -4.28), 2.6, 0.6, "belly-", flat="z")  # a chin plate under it: the jaw has depth
+    jaw.beam((-19.4, 0, -3.42), (-24.4, 0, -4.28), 2.6, 0.6, "yellow-", flat="z")  # a chin plate under it: the jaw has depth
     jaw.tooth(-25.55, 0.55, jaw_top(1, -25.55) + 0.05, 0.55, -0.75, "tooth")
 
     # the body: eleven slices, each on its own joint
@@ -139,21 +140,21 @@ def build(m):
         fn, fbot, ftop = spans[i - 1][2:5] if i else SKULL
         small = min(n, fn)
         if small >= 2:
-            seg.sym(x0 - 1, x0, small - 1, max(bot, fbot) + 2, min(top, ftop) - 2, "green-")
+            seg.sym(x0 - 1, x0, small - 1, max(bot, fbot) + 2, min(top, ftop) - 2, "blue-")
         elif small == 1:
-            seg.sym(x0 - 1, x0, 0, max(bot, fbot) + 1, min(top, ftop) - 1, "green-")
+            seg.sym(x0 - 1, x0, 0, max(bot, fbot) + 1, min(top, ftop) - 1, "blue-")
         # the fin ridge: one thin dark stripe along the whole back, standing on each slice (very low under the rider)
         # and rising behind him). Its foot is sunk into the slice in a shallow V, so its ends stand on the slice's edge
         tall, mid = (0.3 if i <= SEAT_SLICE else 0.8), (x0 + x1) / 2
-        seg.prism([(x0, top), (mid, top - 0.15), (x1, top), (x1, top + tall), (x0, top + tall)], -0.3, 0.3, "fin")
+        seg.prism([(x0, top), (mid, top - 0.15), (x1, top), (x1, top + tall), (x0, top + tall)], -0.3, 0.3, "navy")
         if i >= 6:  # and under the tail half
-            seg.prism([(x0, bot), (mid, bot + 0.15), (x1, bot), (x1, bot - 0.7), (x0, bot - 0.7)], -0.3, 0.3, "fin")
+            seg.prism([(x0, bot), (mid, bot + 0.15), (x1, bot), (x1, bot - 0.7), (x0, bot - 0.7)], -0.3, 0.3, "navy")
         for dx, side, row, long in SPOTS[i]:
             seg.paint(x0 + dx, x0 + dx + long, side * n, side * n + 1, top - 2 - row, top - 1 - row, "spot")
     # the seat: behind the head, a shallow slot either side for the rider's legs
-    segs[SEAT_SLICE].dent(-11, -9, 2, 0, 2, "green-")
+    segs[SEAT_SLICE].dent(-11, -9, 2, 0, 2, "blue-")
 
     # the tail, on its own joint: a thin dark blade in two boxes, the second smaller and thinner: the fin wraps the tip
     tail = m.part("Tail", (end, 0, 0.5), f"S{len(SLICES)}")
-    tail.beam((end - 0.6, 0, 0.5), (end + 2.4, 0, 0.5), 2.6, 0.6, "fin")
-    tail.beam((end + 1.6, 0, 0.5), (end + 4.2, 0, 0.5), 1.5, 0.3, "fin")
+    tail.beam((end - 0.6, 0, 0.5), (end + 2.4, 0, 0.5), 2.6, 0.6, "navy")
+    tail.beam((end + 1.6, 0, 0.5), (end + 4.2, 0, 0.5), 1.5, 0.3, "navy")

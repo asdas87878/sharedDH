@@ -41,7 +41,9 @@ if BENCH:
     for old in os.listdir(OUT):
         os.remove(os.path.join(OUT, old))
 PER_FILE = 600
-FOLDERS = ["Surface", "Lane/Seabed", "Lane/Ground", "Lane/Walls", "Lane/Far", "Lane/Props", "Lane/Trim", "Dock", "Dock/Plots", "Lane/Barrier"]
+FOLDERS = ["Surface", "Lane/Seabed", "Lane/Ground", "Lane/Walls", "Lane/Far", "Lane/Props", "Lane/Trim", "Dock", "Dock/Plots", "Lane/Barrier", "Lane/Set"]
+# Lane/Set (2026-11-19): the later lands' set pieces (tools/map/setpieces.py): landmarks that never break, so not in
+# Lane/Props, which PropService breaks
 TEXTURES = {"stud": "", "floor": "", "tile": "", "tile2": ""}  # asset ids, once uploaded: "rbxassetid://..."
 if os.path.exists(os.path.join(ROOT, "art", "map", "textures.json")):
     TEXTURES.update(json.load(open(os.path.join(ROOT, "art", "map", "textures.json"))))
@@ -86,6 +88,9 @@ def where(p):
         return 8, n.split("_", 1)[0]
     if n.startswith("Hub") or k == "station" or n in ("DockSpawn", "StartStrip"):
         return 7, None
+    if k in ("set", "setglow", "setsmoke"):  # a set piece: one Model a piece, its bricks named Brick, Glow (Neon) or Smoke
+        head = n.split("_")
+        return 10, head[0] + "_" + head[1]
     if k == "prop":
         asset, number, _brick = n.rsplit("_", 2) if n.count("_") >= 2 else (n, "0", "")
         head = n.split("_")

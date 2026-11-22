@@ -12,7 +12,7 @@ import math
 
 NAME, ZONE, RARITY = "Cuttlefish", "ZONE 1 / SHALLOWS", "UNCOMMON"
 U = 0.4
-PALETTE = {"brown": "#8E5B3C", "cream": "#F3E6C8", "sand": "#DDB682", "black": "#231C1A"}
+PALETTE = {"brown": "#C18968", "cream": "#F3E6C8", "sand": "#FFEDD8", "black": "#231C1A"}
 SEAT = (3.5, 5, 5.5)
 FRAME, ORTHO = 1.3, 18.0
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["brown"]}]

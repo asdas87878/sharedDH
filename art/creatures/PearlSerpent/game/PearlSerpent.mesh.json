@@ -216,14 +216,14 @@
   }
  ],
  "paletteCells": {
-  "pearl": "#E9E4E1",
+  "pearl": "#6F6CD9",
   "pink": "#F3B4C6",
   "blue": "#B2D5F0",
   "moon": "#FFE6F0",
   "black": "#2B2E3D",
   "rose": "#D98FA6",
-  "pearl-": "#D2CDCA",
-  "pearl+": "#FFFFFF",
+  "pearl-": "#6461C3",
+  "pearl+": "#8481FB",
   "pink-": "#DBA2B2",
   "pink+": "#FFD2E6",
   "blue-": "#A0C0D8",

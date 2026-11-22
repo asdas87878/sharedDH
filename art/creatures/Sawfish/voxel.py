@@ -12,7 +12,7 @@ Its idea: the saw. A long flat snout, a quarter of the animal, edged on both sid
 The rider sits where the back is highest, behind the wings, legs in a slot either side."""
 NAME, ZONE, RARITY = "Sawfish", "ZONE 4 / SHIPWRECKS", "RARE"
 U = 0.4
-PALETTE = {"sand": "#B8996A", "pale": "#EFE7D2", "saw": "#C9B187", "tooth": "#FBF6E6", "black": "#2A2B2E"}
+PALETTE = {"sand": "#DAB989", "pale": "#EFE7D2", "saw": "#C9B187", "tooth": "#FBF6E6", "black": "#2A2B2E"}
 SEAT = (2, 4, 4.5)
 FRAME, ORTHO = 2.0, 28.0
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["sand"]}]

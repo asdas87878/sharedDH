@@ -1218,7 +1218,8 @@ Re-ordered by the second pass. The first five are where I would look first.
   only when a tame is truly safe for this rider, we skip their loudest late complaint.
   → [UI](../design/ui.md), [riding feel](../design/riding-feel.md)
 - **Their one complaint about the hop is ours to win.** They can't choose what the ring takes. Ours locks on to
-  the fish you look at. If that works on a phone thumb as well as on a mouse, it is a real improvement on the
+  the fish you look at. (2026-11-18: ours now picks by your flight as theirs does, on the user's word, without the
+  ring's edge; the mouse still steers it, through the way you fly: [the lock](../design/the-lock.md).) If that works on a phone thumb as well as on a mouse, it is a real improvement on the
   thing the user calls the best part. Worth testing on a phone before anything else in the hop.
   → [riding feel](../design/riding-feel.md) "The lock-on"
 - **Speed is a second stat they feel.** A fast mount is asked for by name and a slow one cursed. Ours has

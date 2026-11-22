@@ -19,7 +19,7 @@ import math
 
 NAME, ZONE, RARITY = "Xiphactinus", "ZONE 4 / SHIPWRECKS", "LEGENDARY"
 U = 0.45
-PALETTE = {"steel": "#4F6C8C", "silver": "#C9D2D6", "amber": "#E9A23B", "soft": "#F6CB6E", "black": "#1F2328",
+PALETTE = {"steel": "#1A3B58", "silver": "#C9D2D6", "amber": "#E9A23B", "soft": "#F6CB6E", "black": "#1F2328",
            "tooth": "#FFFFFF", "mouth": "#6A2630", "gum": "#8E4A54"}
 SEAT = (-7.5, 8, 5.5)
 GLOW = {"soft": 0.4}  # only the thin halo of the eye

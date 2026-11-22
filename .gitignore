@@ -22,3 +22,7 @@ art/creatures/*/renders/swim_*/
 # renders and checks the creature scripts make while a model is being built (tools/art/voxel_paths.py)
 /work/
 art/map/hub_looks/
+# the map chat's study variants: a 1-25 MB parts.json each, which its tools make again (2026-11-22: left out of the
+# shared repo, as art/map/hub_looks is; their renders, sheets and specs are kept)
+art/map/**/parts.json
+!art/map/greybox/parts.json

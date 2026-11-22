@@ -31,7 +31,7 @@ for _, d in root:GetDescendants() do
 end
 local spawn = root.Dock:FindFirstChild("DockSpawn")
 return string.format(
-	"greybox 15 in Studio: %d parts (expected 59004) and %d of the hub's models, %d solid; %s; %d Seabed boxes; %d asset models; %d plots; %d pictures; DockSpawn %s; Path %s; fallen-parts height %d",
+	"greybox 15 in Studio: %d parts (expected 104090) and %d of the hub's models, %d solid; %s; %d Seabed boxes; %d asset models; %d plots; %d pictures; DockSpawn %s; Path %s; fallen-parts height %d",
 	count - (root:GetAttribute("HubKitParts") or 0), root:GetAttribute("HubKitParts") or 0, solid, table.concat(lines, ", "), #seabed, #root.Lane.Props:GetChildren(), #root.Dock.Plots:GetChildren(), pictures, if spawn then "present" else "MISSING",
 	if root.Dive:GetAttribute("Path") then "present" else "MISSING", workspace.FallenPartsDestroyHeight
 )

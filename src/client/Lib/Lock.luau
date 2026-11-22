@@ -20,6 +20,22 @@
 -- Since 2026-11-12 (Hugo: a longer hook, the fish you AIM at, far fish as easy to pick as near ones): the range is 180,
 --   being far counts a third of what it did (DistanceWeight), and FarAim gives a fish a margin round it, growing with
 --   its distance, that counts as aimed at it: a fish at the full range is a few pixels long, and no harder to pick now.
+-- Since 2026-11-18 (the user: "when you hop off a dino it pretty much auto selects the one in front of you ... it also
+--   switches selection often times when you press a or d"), Lock.Pick 2, the line: everything above is Pick 1. The
+--   reference's ring lies under its rider and takes the dino nearest it, again and again with no hold (read off the
+--   user's recording: docs/reference/ride-a-dino.md). Ours: every free fish in reach is measured from the line the
+--   camera looks along (flat, through us), where it and we will be a moment on (LineLead): off to the side in studs,
+--   ahead counting LineAhead of that, behind LineBehind, height LineUp, less a share of half its length (LineBody). The
+--   nearest wins, and only fish in front of us count (FrontAngle, now and a moment on): one beside us, coming up from
+--   behind, is taken only when no fish in front is in reach, and one behind us never but in the last chance
+--   (FrontAside). No cone and no aiming. A or D steps the
+--   lock to the next fish in front that way (StepEvery while held); turning the view moves it at once
+--   (LineKeepSteer); otherwise the locked fish keeps it until another is LineKeep nearer, or LineChosen if it was
+--   stepped or turned onto. (The first build's line was the way we fly, which A and D turn up to 90 degrees off the
+--   view: the user, the same evening, "sometimes the a d function attatches to a fish thats basically behind the
+--   player or just coming up to its peripherals".)
+-- The reach is to the fish's whole body, not its middle (Lock.WholeBody, Config.fishGap; the user: "so that large
+--   fish dont feel further than they are"): the server measures it the same way.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -45,6 +61,14 @@ local lingering = false
 local lastFrom: Vector3? = nil
 local lastFromAt = 0
 local riderVelocity = Vector3.zero
+-- the line (Lock.Pick 2): the view was being turned at the last look (the caller says), and the fish stepped or
+-- turned onto, which keeps the lock harder (Lock.LineChosen)
+local lookingNow = false
+local chosen: Model? = nil
+-- a fish beside us goes after every fish in front, and the fish we just left after every other (a line score is in
+-- studs: no fish in reach scores either)
+local OUT_OF_FRONT = 1e3
+local LEFT_LAST = 1e4
 
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
@@ -86,7 +110,7 @@ local function score(
 	local root = model.PrimaryPart :: BasePart
 	local at = root.Position
 	local distance = (at - from).Magnitude
-	if distance > range then
+	if Config.fishGap(model, from) > range then
 		return nil
 	end
 	-- Not a fish under us or behind us (Lock.Ahead; 2026-11-17, the user: "it still locks onto ur current fish or
@@ -151,11 +175,88 @@ local function score(
 	return l.AngleWeight * angle / allowance + far + outside
 end
 
+-- Degrees round from the line (`dir` ahead, `right` its right) to a place: + to the right, 0 for one so near across
+-- the water (under us) that it has no side
+local function roundFrom(rel: Vector3, dir: Vector3, right: Vector3): number
+	local ahead, side = rel:Dot(dir), rel:Dot(right)
+	if ahead * ahead + side * side < 36 then
+		return 0
+	end
+	return math.deg(math.atan2(side, ahead))
+end
+
+-- How far the hook reaches toward a fish at `at` (Jump.AheadReach): `reach` off to the side and behind, up to `ahead`
+-- straight in front of us (`dir`, the camera's look, and `right`), less the further round it is
+local function reachToward(
+	at: Vector3,
+	from: Vector3,
+	reach: number,
+	ahead: number,
+	dir: Vector3,
+	right: Vector3
+): number
+	if ahead <= reach then
+		return reach
+	end
+	local j = Config.Jump
+	local round = math.abs(roundFrom(at - from, dir, right))
+	local u = math.clamp((round - j.AheadFull) / math.max(j.AheadNone - j.AheadFull, 1), 0, 1)
+	return reach + (ahead - reach) * (1 - u * u * (3 - 2 * u))
+end
+
+-- A fish's place against the line (Lock.Pick 2), in studs, lower being better, with how far round from the line it
+-- will be (degrees, + to the right) and where it is: 0 in front of us, 1 beside us, 2 behind; nil when it is out of
+-- reach. `dir`: the camera's look, flat. Where it and we will be LineLead seconds on, by both our speeds: off to the
+-- side counts in full, ahead LineAhead of that, behind LineBehind, above or below LineUp; a big fish is nearer by
+-- LineBody of half its length. In front: within FrontAngle of the line both now and then (`keep`, the locked fish:
+-- FrontKeep more, and never behind); beside: within FrontAside; `wide`, the last chance: everything is in front. In
+-- reach: `range` to the side, up to `ahead` straight in front (reachToward).
+local function lineScore(
+	model: Model,
+	from: Vector3,
+	dir: Vector3,
+	range: number,
+	ahead: number,
+	keep: boolean,
+	wide: boolean
+): (number?, number, number)
+	local l = Config.Lock
+	local root = model.PrimaryPart :: BasePart
+	local kind = Config.FishById[model:GetAttribute("FishType") :: string]
+	local body = if kind then Config.bodyOf(model, kind) else Vector3.one * (l.FallbackRadius * 2)
+	local right = Vector3.new(-dir.Z, 0, dir.X)
+	if Config.bodyGap(root.CFrame, body, from) > reachToward(root.Position, from, range, ahead, dir, right) then
+		return nil, 0, 2
+	end
+	local now = root.Position - from
+	local rel = now + (root.AssemblyLinearVelocity - riderVelocity) * l.LineLead
+	local fore = rel:Dot(dir)
+	local side = rel:Dot(right)
+	local along = if fore >= 0 then fore * l.LineAhead else -fore * l.LineBehind
+	local up = rel.Y * l.LineUp
+	local s = math.max(math.sqrt(side * side + along * along + up * up) - body.Z / 2 * l.LineBody, 0)
+	local round = roundFrom(rel, dir, right)
+	local most = math.max(math.abs(round), math.abs(roundFrom(now, dir, right)))
+	local place = if wide or most <= l.FrontAngle + (if keep then l.FrontKeep else 0)
+		then 0
+		elseif most <= l.FrontAside then 1
+		else 2
+	-- (the locked fish sliding back past us, as we fly over it, keeps the lock as one beside us: only a new lock may
+	-- never be behind. Dropping it there lost a hop in a test; any fish in front still takes the lock from it)
+	if keep and place == 2 then
+		place = 1
+	end
+	return s, round, place
+end
+
 -- The fish to lock: `from` is the rider, `eye` and `aim` the camera's place and look, `current` the fish locked now,
 -- `back`: the fish we just left may take the lock when nothing else can (Lock.LeftBack);
 -- `left` the fish we just left, `skip` one not to take at all (the server just refused it), `reach` how far the hook
 -- goes right now (nil: Jump.GrabRange, the most it ever does), `wide` the last chance (Lock.LastChance): take any
--- fish in reach, all round, the one nearest the aim first
+-- fish in reach, all round, the one nearest the aim first. With Lock.Pick 2: `aimYaw` is the camera's look (radians, as
+-- State.CamYaw; nil: Pick 1's way), `looking` that the view is being turned, `step` A or D this look (-1 left, 1 right,
+-- 0 or nil none): the lock goes to the next fish in front that way; `ahead` the hook's reach straight in front of us
+-- (Jump.AheadReach; nil: `reach` all round)
 function Lock.pick(
 	from: Vector3,
 	eye: Vector3,
@@ -165,12 +266,17 @@ function Lock.pick(
 	skip: Model?,
 	reach: number?,
 	wide: boolean?,
-	back: boolean?
+	back: boolean?,
+	aimYaw: number?,
+	looking: boolean?,
+	step: number?,
+	ahead: number?
 ): Model?
 	-- (the herd is gone over 20 times a second, not every frame: the lock holds for MinHold and SwitchTime anyway, and
 	-- each look reads three attributes a fish and casts a few rays)
 	local nowAt = os.clock()
-	if nowAt - pickedAt < PICK_EVERY and picked == current and picked ~= skip then
+	local stepping = step ~= nil and step ~= 0
+	if nowAt - pickedAt < PICK_EVERY and picked == current and picked ~= skip and not stepping then
 		if picked == nil or (picked.Parent ~= nil and State.isFreeFish(picked)) then
 			return picked
 		end
@@ -179,13 +285,29 @@ function Lock.pick(
 	if lastFrom and nowAt - lastFromAt > 0.01 and nowAt - lastFromAt < 0.5 then
 		riderVelocity = (from - lastFrom) / (nowAt - lastFromAt)
 	else
-		riderVelocity = Vector3.zero
+		-- (the first look of a hop: the body's own, still the fish's we leave; it was taken as standing still, so every
+		-- fish was judged a moment ahead of where it would be against us)
+		local _, me = State.character()
+		riderVelocity = if me then me.AssemblyLinearVelocity else Vector3.zero
 	end
 	lastFrom, lastFromAt = from, nowAt
 	pickedAt = nowAt
 	refreshSight()
 	local l = Config.Lock
 	local range = reach or Config.Jump.GrabRange
+	-- (the line, Lock.Pick 2: the camera's look, flat)
+	local byLine = l.Pick >= 2 and aimYaw ~= nil
+	local dir = if aimYaw then Vector3.new(-math.sin(aimYaw), 0, -math.cos(aimYaw)) else Vector3.zero
+	local right = Vector3.new(-dir.Z, 0, dir.X)
+	local reachAhead = if byLine then math.max(ahead or range, range) else range
+	-- (the hook's reach toward a fish: further straight ahead, Jump.AheadReach)
+	local function reachFor(model: Model): number
+		return reachToward((model.PrimaryPart :: BasePart).Position, from, range, reachAhead, dir, right)
+	end
+	lookingNow = looking == true
+	if current == nil then
+		chosen = nil
+	end
 	local folder = workspace:FindFirstChild("Fish")
 	if not folder then
 		return nil
@@ -194,14 +316,35 @@ function Lock.pick(
 	local bestScore = math.huge
 	local debugScores: { { Model: Model, Score: number } }? = if FeelLog.On then {} else nil
 	local currentScore: number? = nil
+	local currentRound = 0
+	-- (Lock.Pick 2, for a step: every fish in front this look, with how far round it is)
+	local steps: { { Model: Model, Round: number } } = {}
 	for _, model in folder:GetChildren() do
 		-- (the fish we just left is not taken at all until the last chance: Lock.LeftBan)
 		local banned = model == left and l.LeftBan > 0 and wide ~= true
 		if model:IsA("Model") and model ~= skip and not banned and State.isFreeFish(model) then
-			local s = score(model, from, eye, aim, range, model == current, wide == true)
+			local s: number?
+			if byLine then
+				local lineS, round, place =
+					lineScore(model, from, dir, range, reachAhead, model == current, wide == true)
+				-- (behind us: not taken, Lock.FrontAside)
+				s = if place >= 2 then nil else lineS
+				if s then
+					if place == 1 then
+						s += OUT_OF_FRONT
+					elseif stepping and model ~= left then
+						table.insert(steps, { Model = model, Round = round })
+					end
+					if model == current then
+						currentRound = round
+					end
+				end
+			else
+				s = score(model, from, eye, aim, range, model == current, wide == true)
+			end
 			if s then
 				if model == left then
-					s += l.LeftPenalty
+					s += if byLine then LEFT_LAST else l.LeftPenalty
 				end
 				if debugScores then
 					table.insert(debugScores, { Model = model, Score = s })
@@ -225,7 +368,7 @@ function Lock.pick(
 	-- that can be locked takes the lock from it at once, with none of the lock's stickiness.
 	if not best and back and left and left ~= skip and l.LeftBack > 0 and left.Parent and State.isFreeFish(left) then
 		local at = (left.PrimaryPart :: BasePart).Position
-		if (at - from).Magnitude <= range and inSight(from, at) then
+		if Config.fishGap(left, from) <= reachFor(left) and inSight(from, at) then
 			best = left
 		end
 	end
@@ -233,6 +376,28 @@ function Lock.pick(
 		Lock.Debug = { At = nowAt, Scores = debugScores }
 	end
 	local now = os.clock()
+	-- A or D (Lock.Pick 2): the next fish in front that way, the nearest round from the locked one (from the middle of
+	-- the view with none), at least StepGap further; with none that way the lock stays as it is
+	if byLine and stepping then
+		local fromRound = if current and currentScore then currentRound else 0
+		local side = if (step :: number) > 0 then 1 else -1
+		table.sort(steps, function(a, b)
+			return (a.Round - fromRound) * side < (b.Round - fromRound) * side
+		end)
+		for _, c in steps do
+			if c.Model ~= current and (c.Round - fromRound) * side >= l.StepGap then
+				if inSight(from, (c.Model.PrimaryPart :: BasePart).Position) then
+					challenger = nil
+					lingering = false
+					lockedAt = now
+					chosen = c.Model
+					heldFish, heldAt = c.Model, now
+					picked = c.Model
+					return c.Model
+				end
+			end
+		end
+	end
 	-- The leeway (Lock.Linger; the user, 2026-11-17: "if you lock onto a fish even if it goes outside of your
 	-- boundaries you keep locked onto it for a small window of time"). The locked fish that has just left the reach
 	-- or the aim keeps the lock for Linger seconds, while it is free and within LingerReach of the reach.
@@ -245,14 +410,24 @@ function Lock.pick(
 		and now - heldAt < l.Linger
 		and current ~= skip
 		and State.isFreeFish(current)
-		and ((current.PrimaryPart :: BasePart).Position - from).Magnitude <= range * l.LingerReach
+		and Config.fishGap(current, from) <= reachFor(current) * l.LingerReach
 	then
 		lingering = true
 		challenger = nil
 		picked = current
 		return current
 	end
-	if current and currentScore and best ~= current then
+	if byLine and current and currentScore and best ~= current then
+		-- the line's hold: the locked fish keeps the lock until another is LineKeep nearer the line, or LineChosen if
+		-- it was stepped or turned onto; while the view is being turned the nearest takes it at once (LineKeepSteer).
+		-- A locked fish that is no longer in front scores OUT_OF_FRONT more: any fish in front takes it from it.
+		local margin = if lookingNow then l.LineKeepSteer elseif current == chosen then l.LineChosen else l.LineKeep
+		if now - lockedAt < l.LineHold or bestScore > currentScore - margin then
+			challenger = nil
+			picked = current
+			return current
+		end
+	elseif current and currentScore and best ~= current then
 		if now - lockedAt < l.MinHold or bestScore > currentScore - l.Sticky then
 			challenger = nil
 			picked = current
@@ -271,9 +446,48 @@ function Lock.pick(
 	challenger = nil
 	if best ~= current then
 		lockedAt = now
+		-- (a fish the lock went to while the view was being turned is the one we chose)
+		chosen = if lookingNow then best else nil
 	end
 	picked = best
 	return best
+end
+
+-- The fish a press takes with no fish locked (Lock.PressAny): the one nearest the line (`aimYaw`, as Lock.pick's)
+-- anywhere in reach and in sight, one in front first, then one beside us, never one behind us, the fish we just left
+-- after every other; nil with none. The lock's own hold is left as it was. `ahead`: the reach straight in front of us.
+function Lock.any(from: Vector3, aimYaw: number, range: number, left: Model?, skip: Model?, ahead: number?): Model?
+	local folder = workspace:FindFirstChild("Fish")
+	if not folder then
+		return nil
+	end
+	refreshSight()
+	local dir = Vector3.new(-math.sin(aimYaw), 0, -math.cos(aimYaw))
+	local best: Model? = nil
+	local bestScore = math.huge
+	for _, model in folder:GetChildren() do
+		if model:IsA("Model") and model ~= skip and State.isFreeFish(model) then
+			local lineS, _, place = lineScore(model, from, dir, range, math.max(ahead or range, range), false, false)
+			if lineS and place < 2 then
+				local s = lineS + (if place == 1 then OUT_OF_FRONT else 0) + (if model == left then LEFT_LAST else 0)
+				if s < bestScore and inSight(from, (model.PrimaryPart :: BasePart).Position) then
+					best, bestScore = model, s
+				end
+			end
+		end
+	end
+	return best
+end
+
+-- How far the hook reaches toward a fish (Jump.AheadReach): `reach` to the side and behind, up to `ahead` straight in
+-- front of us, where the camera looks (`aimYaw`); with the lock's own Pick 1, `reach` all round
+function Lock.reachOf(model: Model, from: Vector3, reach: number, ahead: number, aimYaw: number): number
+	local root = model.PrimaryPart
+	if not root or Config.Lock.Pick < 2 then
+		return reach
+	end
+	local dir = Vector3.new(-math.sin(aimYaw), 0, -math.cos(aimYaw))
+	return reachToward(root.Position, from, reach, ahead, dir, Vector3.new(-dir.Z, 0, dir.X))
 end
 
 -- How much further than the hook's reach a grab may take the locked fish right now: Lock.LingerReach while the lock

@@ -26,7 +26,7 @@ else:
     parts = json.load(open(os.path.join(BOX, "parts.json")))["parts"]
     info = json.load(open(os.path.join(BOX, "path.json")))
     path = info["Path"]
-fades, fogs, waters = [], [], []
+fades, fogs, waters, slow_fades = [], [], [], []
 
 
 def lin(c):
@@ -53,11 +53,25 @@ def along(s):
 
 
 def material(colour, kind):
+    kind = {"setglow": "vglow", "setsmoke": "vsmoke", "set": "prop"}.get(kind, kind)  # stage 2's set pieces (greybox PROPS2)
     mat = bpy.data.materials.new(f"{kind}_{colour[0]}_{colour[1]}_{colour[2]}")
     mat.use_nodes = True
     nt = mat.node_tree
     nt.nodes.clear()
     n, link = nt.nodes, nt.links.new
+    if kind == "vsmoke":  # a set piece's smoke or bubbles (tools/map/setpieces.py): soft and see-through
+        surf = n.new("ShaderNodeEmission")
+        surf.inputs["Color"].default_value = lin(colour)
+        surf.inputs["Strength"].default_value = 0.9
+        clear = n.new("ShaderNodeBsdfTransparent")
+        see = n.new("ShaderNodeMixShader")
+        see.inputs[0].default_value = 0.55
+        link(clear.outputs[0], see.inputs[1])
+        link(surf.outputs[0], see.inputs[2])
+        out = n.new("ShaderNodeOutputMaterial")
+        link(see.outputs[0], out.inputs["Surface"])
+        mat.surface_render_method = "BLENDED"
+        return mat
     if kind == "glass":  # a tank's water: see-through, not part of the sea
         surf = n.new("ShaderNodeBsdfDiffuse")
         surf.inputs["Color"].default_value = lin(colour)
@@ -83,8 +97,13 @@ def material(colour, kind):
         link(see.outputs[0], out.inputs["Surface"])
         mat.surface_render_method = "BLENDED"
         return mat
-    surf = n.new("ShaderNodeBsdfDiffuse")
-    surf.inputs["Color"].default_value = lin(colour)
+    if kind == "vglow":  # the vista's lights (tools/map/vista.py): they glow and the haze takes them slower
+        surf = n.new("ShaderNodeEmission")
+        surf.inputs["Color"].default_value = lin(colour)
+        surf.inputs["Strength"].default_value = 1.6
+    else:
+        surf = n.new("ShaderNodeBsdfDiffuse")
+        surf.inputs["Color"].default_value = lin(colour)
     if kind in ("ground", "plain", "hub", "grass", "fill"):  # squares of two close shades on everything that is ground (the user: everywhere)
         geo = n.new("ShaderNodeNewGeometry")
         check = n.new("ShaderNodeTexChecker")
@@ -108,7 +127,7 @@ def material(colour, kind):
     link(fog.outputs[0], mix.inputs[2])
     out = n.new("ShaderNodeOutputMaterial")
     link(mix.outputs[0], out.inputs["Surface"])
-    fades.append(fade)
+    (slow_fades if kind == "vglow" else fades).append(fade)
     fogs.append(fog)
     return mat
 
@@ -121,7 +140,8 @@ for engine in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"):
         break
     except TypeError:
         continue
-scene.render.resolution_x, scene.render.resolution_y = 1280, 720
+scene.render.resolution_x, scene.render.resolution_y = (int(os.environ["RES"]), int(os.environ["RES"])) if os.environ.get("RES") else (1280, 720)
+scene.render.film_transparent = os.environ.get("TRANSPARENT") == "1"  # for the sky picture (tools/art/sky_vista.py)
 scene.render.image_settings.file_format = "PNG"
 scene.view_settings.view_transform = "Standard"
 scene.eevee.taa_render_samples = 32
@@ -169,7 +189,7 @@ for (kind, colour), boxes in groups.items():
     mesh.materials.append(material(colour, kind))
     obj = bpy.data.objects.new(kind, mesh)
     scene.collection.objects.link(obj)
-    if kind in ("water", "glass"):
+    if kind in ("water", "glass", "vsmoke", "setsmoke"):
         obj.visible_shadow = False
     if kind == "water":
         water_objects.append(obj)
@@ -213,6 +233,11 @@ else:
         return eye, target
     views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
         "hub": (Vector((0, 9, -166)), Vector((0, 4, 60)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
+        "spawn": (Vector((1, 7, -115)), Vector((0, 70, 600)), HAZE, 9000, SKY, 70, 0.8),  # the hub as it is now (2026-11-17), from DockSpawn
+        "vista": (Vector((1, 7, -115)), Vector((0, 120, 2000)), HAZE, 40000, SKY, 70, 0.8),  # the spawn, a far haze
+        "vista_back": (Vector((-60, 7, -290)), Vector((10, 200, 2000)), HAZE, 40000, SKY, 70, 0.8),
+        "skyft": (Vector((1, 7, -115)), Vector((1, 7, 2000)), (150, 205, 245), 30000, SKY, 90, 0.0),  # the sky face down the lane, level
+        "spawn_back": (Vector((-60, 7, -290)), Vector((20, 150, 1200)), HAZE, 9000, SKY, 70, 0.8),  # from the back row of tanks
         "hub_back": (Vector((0, 9, -40)), Vector((0, 8, -352)), HAZE, 6000, SKY, 70, 0.8),  # from the start, at the plots
         "hub_above": (Vector((-220, 270, -520)), Vector((10, -10, 20)), HAZE, 12000, SKY, 55, 0.25),
         "probe": (*lane_view(float(os.environ.get("PROBE_S", "950")), 0, float(os.environ.get("PROBE_UP", "50")), 60, -20, float(os.environ.get("PROBE_SIDE", "0")), float(os.environ.get("PROBE_LOOK", "-110"))), HAZE, 6000, SKY, 70, 0.0),
@@ -232,10 +257,18 @@ else:
     # one rider's view in each land, in a water colour for that land (lightened so the deep lands can be seen), and
     # the whole dive from high up
     WATERS = [(64, 200, 205), (40, 170, 200), (50, 140, 110), (35, 105, 120), (20, 85, 170), (40, 50, 130), (30, 36, 90), (70, 36, 40), (50, 60, 90), (80, 20, 30)]
+    if os.environ.get("FOGS"):  # each land's fog colour given (a palette trial, docs/design/colour.md)
+        WATERS = [tuple(c) for c in json.loads(os.environ["FOGS"])]
     for k, land in enumerate(info["Lands"]):
         if land["S0"] < info["BuiltTo"]:
             water = WATERS[min(k, len(WATERS) - 1)]
-            views[f"land{k + 1:02d}"] = (*clear_view(land["S0"] + 500, 30, 260, 14), water, 1500, tuple(min(255, c + 70) for c in water), 70, 0.0)
+            sky = tuple(min(255, c + 70) for c in water) if not os.environ.get("FOGS") else water  # with fogs given, the water overhead is the fog (the reference's Ocean)
+            views[f"land{k + 1:02d}"] = (*clear_view(land["S0"] + 500, 30, 260, 14), water, 1500, sky, 70, 0.0)
+    if os.environ.get("EXTRA_VIEWS"):  # named views given (tools/map/setpieces.py): "<kind><land number>", in that land's water
+        for vname, (eye, target) in json.load(open(os.environ["EXTRA_VIEWS"])).items():
+            water = WATERS[min(int(vname[-2:]) - 1, len(WATERS) - 1)]
+            sky = tuple(min(255, c + 70) for c in water) if not os.environ.get("FOGS") else water
+            views[vname] = (Vector(eye), Vector(target), water, 1500, sky, 70, 0.0)
     mid, _d = along(info["BuiltTo"] * 0.5)
     views["whole"] = (Vector((mid.x - 9000, 9000, mid.z - 2000)), Vector((mid.x, -1000, mid.z)), HAZE, 90000, SKY, 50, 0.0)
 os.makedirs(OUT, exist_ok=True)
@@ -244,6 +277,8 @@ for name, (eye, target, fog, far, sky, fov, solid) in views.items():
         continue
     for fade in fades:
         fade.inputs[1].default_value = far
+    for fade in slow_fades:
+        fade.inputs[1].default_value = far * 2.5
     for node in waters:
         node.inputs[0].default_value = solid
     for obj in water_objects:

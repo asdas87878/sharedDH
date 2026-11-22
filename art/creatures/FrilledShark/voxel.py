@@ -13,7 +13,7 @@ its trailing edge.
 The rider sits behind the collar, legs in a slot either side."""
 NAME, ZONE, RARITY = "Frilled Shark", "ZONE 7 / MIDNIGHT", "EPIC"
 U = 0.4
-PALETTE = {"hide": "#5E4A43", "belly": "#917B6E", "line": "#C4AE98", "frill": "#A2423E", "mouth": "#58222A", "gum": "#8A4048",
+PALETTE = {"hide": "#B69E96", "belly": "#917B6E", "line": "#C4AE98", "frill": "#A2423E", "mouth": "#58222A", "gum": "#8A4048",
            "tooth": "#F6F1E6", "black": "#1E2126"}
 SEAT = (-7.5, 4, 3.5)
 FRAME, ORTHO, ORTHO_SWIM = 2.05, 29.0, 31.0

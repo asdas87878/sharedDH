@@ -164,11 +164,15 @@ local WINDOW = { Wide = 1.1, High = 1.16, Foot = 0.97 }
 Slots.Aspect = WINDOW.Wide / WINDOW.High
 local HOVER_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
--- The white ring on the chosen catch and on a caught slot under the mouse
+-- The white ring on the chosen catch and on a caught slot under the mouse; the light rim and darker foot inside the
+-- outline on the chosen catch only (the user, 2026-11-18: "the outer highlight band should only be on the chosen one")
 local function showRings()
 	for i = 1, COUNT do
 		local at = firstShown + i
-		rings[i].Visible = current[at] ~= nil and (at == selected or i == hovered)
+		local caught = current[at] ~= nil
+		rings[i].Visible = caught and (at == selected or i == hovered)
+		rims[i].Visible = caught and at == selected
+		lips[i].Visible = caught and at == selected
 	end
 end
 
@@ -349,7 +353,8 @@ local function paint(
 		lip.Visible = true
 		rim.Visible = true
 		local words = if kind then kind.Name else item.Id
-		name.Text = if #words > 7 then string.sub(words, 1, 6) .. "." else words
+		-- cut short with a full stop, never after a space ("Great White": "Great.", not "Great .")
+		name.Text = if #words > 7 then (string.gsub(string.sub(words, 1, 6), "%s+$", "")) .. "." else words
 		slot.Look.Outline.Color = BLACK
 		picture.Frame.Visible = picture.show(item.Id)
 	else

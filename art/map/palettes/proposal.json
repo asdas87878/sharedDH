@@ -1,0 +1,152 @@
+{
+ "note": "Proposed 2026-11-19 from the Ride a Dino colour study (docs/design/colour.md). Each land copies the values of its nearest reference land, kept in our own hue where our land has one. floor: the ground and wall tops; face: wall sides; fog: the water's colour (what the distance fades to); props: main pair (light, dark) and accent; glow: the land's own light (from land 6). Not in the game. fog_halfway: the user's pick (2026-11-19, \"Halfway\"): each land's water hue as today at half its strength (at least 0.3; the dark ones, under L* 55, at three quarters and at least 0.5, as halved they went grey), its lightness half way between today's and the pale proposal's. 2026-11-19: the deep lands' fog lifted in lightness by mixing toward white (hue kept, a little softer) and Midnight's and the Underworld's floors a little lighter, after the value study (docs/design/colour.md, \"Value\").",
+ "lands": [
+  {
+   "name": "Shallows",
+   "ref": "Desert",
+   "floor": "#ded5a9",
+   "face": "#b89168",
+   "fog": "#c6e6de",
+   "props": [
+    "#f2a65a",
+    "#c4643a",
+    "#3f9a7c"
+   ],
+   "glow": null,
+   "fog_halfway": "#97e3e7"
+  },
+  {
+   "name": "Coral Reef",
+   "ref": "Jungle + Plains (a vivid floor, darker same-hue walls)",
+   "floor": "#ef8a9a",
+   "face": "#a65a6c",
+   "fog": "#bfe2f2",
+   "props": [
+    "#ffd27a",
+    "#2f9e9a",
+    "#7a5ad6"
+   ],
+   "glow": null,
+   "fog_halfway": "#8acfed"
+  },
+  {
+   "name": "Kelp Forest",
+   "ref": "Forest",
+   "floor": "#359d55",
+   "face": "#b2cbb8",
+   "fog": "#bfdcc8",
+   "props": [
+    "#7fc957",
+    "#292b1c",
+    "#e2c35a"
+   ],
+   "glow": null,
+   "fog_halfway": "#80d6ae"
+  },
+  {
+   "name": "Shipwrecks",
+   "ref": "Extinction",
+   "floor": "#88805c",
+   "face": "#abbb94",
+   "fog": "#bfcbb6",
+   "props": [
+    "#b89a6e",
+    "#1e2f2e",
+    "#e0b23c"
+   ],
+   "glow": null,
+   "fog_halfway": "#6db8c1"
+  },
+  {
+   "name": "Open Blue",
+   "ref": "Abyss Ocean (the fog is the sky)",
+   "floor": "#8fbfe0",
+   "face": "#2b7fc2",
+   "fog": "#3f8fd6",
+   "props": [
+    "#2e6aa0",
+    "#163a5e",
+    "#6ff0e0"
+   ],
+   "glow": "#a3f8ec",
+   "fog_halfway": "#80a1e3",
+   "fog_halfway_before_lift": "#4e7bd9"
+  },
+  {
+   "name": "Twilight",
+   "ref": "Snow (a pale floor, dark slate walls), moved to violet",
+   "floor": "#cbc8e8",
+   "face": "#55538f",
+   "fog": "#b1a8e2",
+   "props": [
+    "#dcd6f6",
+    "#7a74c6",
+    "#7cf2e6"
+   ],
+   "glow": "#a3f8ec",
+   "fog_halfway": "#b3abd7",
+   "fog_halfway_before_lift": "#8e81c4"
+  },
+  {
+   "name": "Midnight",
+   "ref": "Snow's values at night-blue, Cosmic's dark walls",
+   "floor": "#aeb8e2",
+   "face": "#25306e",
+   "fog": "#3c4a9a",
+   "props": [
+    "#3a4aa8",
+    "#141c4a",
+    "#64fffd"
+   ],
+   "glow": "#64fffd",
+   "fog_halfway": "#7378ae",
+   "fog_halfway_before_lift": "#434993",
+   "floor_before_lift": "#9aa6d2"
+  },
+  {
+   "name": "Vents",
+   "ref": "Volcano",
+   "floor": "#2a2128",
+   "face": "#953122",
+   "fog": "#8a3b2c",
+   "props": [
+    "#0c1218",
+    "#3a2a2e",
+    "#f9e40e"
+   ],
+   "glow": "#f9e40e",
+   "fog_halfway": "#9c5e4e"
+  },
+  {
+   "name": "Bone Graveyard",
+   "ref": "Extinction (a mid floor, light walls, white bones)",
+   "floor": "#8a8a66",
+   "face": "#b4c29c",
+   "fog": "#bccfba",
+   "props": [
+    "#f2ecdc",
+    "#9a9070",
+    "#7fe0b0"
+   ],
+   "glow": "#c8ffd8",
+   "fog_halfway": "#80bfb1"
+  },
+  {
+   "name": "The Underworld",
+   "ref": "Cosmic (it leads to the far view's purple end and the black hole)",
+   "floor": "#9a9ae6",
+   "face": "#220979",
+   "fog": "#2a138e",
+   "props": [
+    "#271b9f",
+    "#615fd6",
+    "#64fffd"
+   ],
+   "glow": "#64fffd",
+   "fog_halfway": "#705dc3",
+   "name_note": "cosmic indigo (the user, 2026-11-19: \"yes cosmic indigo\")",
+   "fog_halfway_before_lift": "#4b32b4",
+   "floor_before_lift": "#8181d6"
+  }
+ ]
+}

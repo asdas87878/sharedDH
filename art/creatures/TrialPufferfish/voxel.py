@@ -6,9 +6,11 @@ Its idea: the balloon. The ball IS the animal; everything else is too small for 
   3 long in front and behind, a face and a rump 3 long.
 - The fins are stubs: two small paddles on the sides set far back, a small back fin on the rump, a short tail fan on a
   stalk two cubes long.
-- The face: an eye on each front corner of the ball, filling the notch between the face and the shoulder, so it shows
-  from the front and from the side. A cream block half a cube proud, a 3 by 3 pupil on its outer front corner. Between
-  and below them a small pout: a raised square of lips, a dark opening, two big white buck teeth.
+- The face: an eye on each front corner of the ball, a round disc facing out along the 45-degree notch between the face
+  and the shoulder, so it shows from the front and from the side and faces the 3/4 view: a cream ring 5 across with cut
+  corners, half a cube proud, a 3 by 3 pupil standing out of it, a small cream glint. Between and below them a small round
+  pout: a ring of peach lips (the lower one pushed out), a dark opening set back inside, two big white buck teeth.
+  (Second pass, 2026-11-18: the first eyes were square cream slabs and the lips a green square.)
 - Lime green over cream. The line sits at the ball's middle and is scalloped: three broad green lobes along each side,
   cream points between them, in steps of two cubes.
 - The one mark: cream spines (small pyramids) in ordered rows over the green: five rows across the top, three down
@@ -18,7 +20,7 @@ import math
 
 NAME, ZONE, RARITY = "Pufferfish (trial)", "ZONE 1 / SHALLOWS", "COMMON"
 U = 0.35
-PALETTE = {"green": "#A4CE3A", "cream": "#FBF3DC", "white": "#FFFFFF", "black": "#23262B", "mouth": "#7A3B2E"}
+PALETTE = {"green": "#A4CE3A", "cream": "#FBF3DC", "white": "#FFFFFF", "black": "#23262B", "mouth": "#5E2A24", "lips": "#F4A48C"}
 SEAT = (-0.5, 12, 7.5)
 FRAME, ORTHO = 1.35, 21.0  # it is as wide as it is long: the top view needs the room
 SHADE = 0.9  # the made tones stay close: nothing is darkened to add interest
@@ -68,6 +70,24 @@ def column(p, outline, z0, z1, colour):
     p.solid(verts, faces, colour, mirror=True)
 
 
+def disc(p, centre, at, half, cut, back, front, colour):
+    """a round disc on the right front corner, facing forward and out at 45 degrees (and its mirror): a square `half` out
+    from its middle with its corners cut by `cut`, from `back` to `front` cubes along the way it faces. `at` moves its
+    middle along the corner (toward the tail) and up"""
+    r = math.sqrt(0.5)
+    face, along = (-r, r), (r, r)  # the way it faces; along the corner, toward the tail
+    cx, cy, cz = centre
+    cx, cy, cz = cx + along[0] * at[0], cy + along[1] * at[0], cz + at[1]
+    h, c = half, cut
+    shape = [(-h + c, -h), (h - c, -h), (h, -h + c), (h, h - c), (h - c, h), (-h + c, h), (-h, h - c), (-h, -h + c)]
+    if c == 0:
+        shape = [(-h, -h), (h, -h), (h, h), (-h, h)]
+    n = len(shape)
+    verts = [(cx + along[0] * a + face[0] * d, cy + along[1] * a + face[1] * d, cz + b) for d in (back, front) for a, b in shape]
+    faces = [tuple(range(n)), tuple(range(n, 2 * n))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
+    p.solid(verts, faces, colour, mirror=True)
+
+
 def build(m):
     body = m.part("Body", (0, 0, 0))
     # THE BALL: a plateau and two broad steps in every view
@@ -78,16 +98,23 @@ def build(m):
     slab(body, -12, -9, 7, -6, 7, [(2, 2)])  # the face: its top is level with the second shelf
     slab(body, 8, 11, 7, -6, 7, [(2, 2)])  # the rump
 
-    # THE FACE. The eyes: one on each front corner of the ball, in the notch between the face and the shoulder. A cream
-    # block half a cube proud of both, and a 3 by 3 pupil on its outer front corner, so it shows from the front and the side
-    # (the cream's back corner is cut, so its back is buried in the shoulder; the pupil is an L that wraps the cream's corner)
-    column(body, [(-12.5, 7.0), (-12.5, 11.0), (-9.3, 11.0), (-8.5, 10.3), (-8.5, 7.0)], 1.6, 6.0, "cream")
-    column(body, [(-12.8, 8.3), (-12.8, 11.3), (-9.8, 11.3), (-9.8, 10.5), (-12.0, 10.5), (-12.0, 8.3)], 2.3, 5.3, "black")
-    # the pout, between and below them: a raised square of lips, a dark opening, two big white buck teeth
-    lips, hole, tooth = (-2.8, 2.8, -3.8, 0.6), (-1.9, 1.9, -3.0, -0.4), (0.15, 1.5, -1.8, -0.1)
-    body.block(-13.3, lips, -11.5, lips, "green")
-    body.block(-13.6, hole, -11.8, hole, "mouth")
-    body.block(-13.9, tooth, -12.1, tooth, "white", mirror=True)
+    # THE FACE. The eyes: one on each front corner of the ball. The notch between the face and the shoulder runs at 45
+    # degrees, so each eye is a round disc facing out along that corner (forward and out), its back buried in the notch:
+    # a cream ring 5 across with its corners cut (round, not a slab), a 3 by 3 pupil standing proud of it, a cream glint
+    for shape, half, cut, back, front, colour, (a, b) in (
+        ("ring", 2.5, 1.0, -2.3, 0.5, "cream", (0.0, 0.0)),
+        ("pupil", 1.5, 0.45, 0.0, 0.85, "black", (-0.35, -0.1)),
+        ("glint", 0.45, 0.0, 0.5, 1.1, "cream", (-0.85, 0.7)),
+    ):
+        disc(body, (-10.5, 9.0, 4.0), (a, b), half, cut, back, front, colour)
+    # the pout, between and below them: a round ring of soft lips (upper, lower and two sides, the corners left open so it
+    # reads round), the lower lip pushed out furthest; a dark opening set back inside it; two big white buck teeth hanging
+    # from the upper lip
+    body.block(-13.3, (-2.0, 2.0, -0.7, 0.6), -11.5, (-2.0, 2.0, -0.7, 0.6), "lips")  # upper lip
+    body.block(-13.7, (-2.0, 2.0, -4.2, -2.8), -11.5, (-2.0, 2.0, -4.2, -2.8), "lips")  # lower lip
+    body.block(-13.0, (1.8, 3.1, -3.3, -0.2), -11.5, (1.8, 3.1, -3.3, -0.2), "lips", mirror=True)  # the sides
+    body.block(-12.7, (-2.1, 2.1, -3.0, -0.4), -11.6, (-2.1, 2.1, -3.0, -0.4), "mouth")  # the opening
+    body.block(-13.5, (0.15, 1.45, -2.1, -0.5), -12.4, (0.15, 1.45, -2.1, -0.5), "white", mirror=True)  # buck teeth
 
     # THE MARK: cream spines in ordered rows over the green, each row set half a step from the next. Five rows across the
     # top (the middle line, 3.25 and 6.5 out), three down each side (the two shelves and the flank). None on the seat.

@@ -15,7 +15,7 @@ import math
 
 NAME, ZONE, RARITY = "Galleon Whale", "ZONE 4 / SHIPWRECKS", "SECRET"
 U = 0.5
-PALETTE = {"hide": "#5F7669", "belly": "#CDD2BC", "wood": "#80603F", "trim": "#A9503F", "iron": "#30343B", "lamp": "#FFC45A",
+PALETTE = {"hide": "#1E3228", "belly": "#CDD2BC", "wood": "#372000", "trim": "#A9503F", "iron": "#30343B", "lamp": "#FFC45A",
            "crust": "#D9CFB4", "black": "#1E2024", "tooth": "#F4F0E2", "gum": "#9A4F58", "mouth": "#5E2A32"}
 SEAT = (-6.5, 12, 1.5)
 GLOW = {"lamp": 1.0}  # the stern lantern only

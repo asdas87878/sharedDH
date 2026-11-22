@@ -14,7 +14,7 @@ import math
 
 NAME, ZONE, RARITY = "Steller's Sea Cow", "ZONE 3 / KELP FOREST", "EPIC"
 U = 0.45
-PALETTE = {"hide": "#877B6E", "belly": "#CBBFA9", "bark": "#584E46", "black": "#22262B", "bristle": "#F0E8D2"}
+PALETTE = {"hide": "#594E42", "belly": "#CBBFA9", "bark": "#584E46", "black": "#22262B", "bristle": "#F0E8D2"}
 SEAT = (-4, 10, 5.5)
 FRAME, ORTHO = 2.6, 36.0
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["hide"]}]

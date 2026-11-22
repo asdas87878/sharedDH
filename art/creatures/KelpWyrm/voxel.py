@@ -19,7 +19,7 @@ import math
 
 NAME, ZONE, RARITY = "Kelp Wyrm", "ZONE 3 / KELP FOREST", "SECRET"
 U = 0.45
-PALETTE = {"olive": "#7C8732", "gold": "#E3B446", "kelp": "#2C5F3F", "amber": "#FFB13B", "black": "#1E2420"}
+PALETTE = {"olive": "#424D00", "gold": "#E3B446", "kelp": "#002711", "amber": "#FFB13B", "black": "#1E2420"}
 SEAT = (-6.5, 6, 5.5)
 GLOW = {"amber": 0.5}  # the gas bladders and the eyes: a soft light with a source
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["olive"]}]

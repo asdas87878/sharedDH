@@ -851,6 +851,11 @@ local function cameraStep(dt: number)
 		wasScripted = true
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
+	if os.clock() < State.CamHoldUntil then
+		-- the long hook's beat at the touch (Config.Long.Hold, LongHookController): the camera holds still, every
+		-- spring and the landing's snap, knock and shake waiting, and all of them go on from here as it ends
+		return
+	end
 	local c = Config.Camera
 	local mode = State.Mode
 	-- the camera always follows our own character (it sits on the saddle while riding), so a jump never cuts
@@ -928,7 +933,8 @@ local function cameraStep(dt: number)
 	-- (and left behind for a moment by a bolt: State.CamPull, WildController's)
 	local zoomGoal = (if mode == "Jumping" then Config.Jump.CameraZoom else 1) * (1 + State.CamPull)
 	zoomScale, zoomSpeed = Spring.number(zoomScale, zoomGoal, zoomSpeed, c.ZoomTime, dt)
-	local distance = zoom * zoomScale
+	-- (and the long shot's pull back as a long hook flies out: State.CamLong, eased by LongHookController itself)
+	local distance = zoom * zoomScale * (1 + State.CamLong)
 	local rotation = CFrame.fromOrientation(shownPitch, shownYaw, 0)
 	if State.SideCam then
 		-- the sandbox's side view: square on to the way we are headed, far enough to see a whole jump
@@ -938,6 +944,15 @@ local function cameraStep(dt: number)
 	local focusGoal = root.Position + Vector3.new(0, c.Height * c.FocusHeight, 0)
 	local focus: Vector3
 	focus, focusSpeed = Spring.vector(camFocus :: Vector3, focusGoal, focusSpeed, c.FocusTime, dt)
+	if mode == "Jumping" and c.ReelLeash > 0 then
+		-- in the hop, and most of all in a fast pull-in, the camera falls behind: never by more than Camera.ReelLeash,
+		-- a little more on a long hook (Config.Long.Leash), so we are never small in the distance at the touch
+		local leash = c.ReelLeash * (1 + Config.Long.Leash * State.ReelFar)
+		local behind = focus - focusGoal
+		if behind.Magnitude > leash then
+			focus = focusGoal + behind.Unit * leash
+		end
+	end
 	camFocus = focus
 	local lift = c.Height * c.ArmHeight
 	-- Under the surface, once we have dived (Camera.Submerge): where the arm would lift the camera past the line, it
@@ -1074,11 +1089,12 @@ local function cameraStep(dt: number)
 	end
 	-- and the shakes: every one running, added together (Lib/Shake)
 	local shake = Shake.update(dt)
-	-- (and the roll into a turn: State.CamRoll, WildController's)
+	-- (and the roll into a turn: State.CamRoll, and the fish's steps: State.CamStep, WildController's)
 	local view = CFrame.lookAt(position, position + rotation.LookVector)
 		* CFrame.new(0, kickAt, 0)
 		* shake
 		* CFrame.Angles(0, 0, State.CamRoll)
+		* State.CamStep
 	if submerged and view.Position.Y > ceiling then
 		-- whatever is left (the jolt, the shake, the side view, a camera that had nowhere lower to go): held under
 		view -= Vector3.new(0, view.Position.Y - ceiling, 0)
@@ -1092,7 +1108,8 @@ local function cameraStep(dt: number)
 	local fovGoal = c.Fov + c.SpeedFov * speedT
 	fovEased, fovSpeed = Spring.number(fovEased, fovGoal, fovSpeed, c.FovTime, dt)
 	-- the punch goes on top at once (the pull-in's zoom in, the landing's snap out), and runs down by itself
-	camera.FieldOfView = math.clamp(fovEased + State.FovPunch, 30, 120)
+	-- (and the long shot's widening and narrowing: State.FovLong, LongHookController's)
+	camera.FieldOfView = math.clamp(fovEased + State.FovPunch + State.FovLong, 30, 120)
 	local run = math.abs(j.LandFov) / math.max(j.LandFovTime, 0.01) * dt
 	State.FovPunch = if State.FovPunch > 0 then math.max(0, State.FovPunch - run) else math.min(0, State.FovPunch + run)
 end

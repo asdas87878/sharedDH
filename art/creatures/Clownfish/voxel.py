@@ -9,7 +9,7 @@ as the Sergeant Major.
 The rider sits in the orange gap between the first two bands, legs in a shallow slot either side."""
 NAME, ZONE, RARITY = "Clownfish", "ZONE 1 / SHALLOWS", "COMMON"
 U = 0.35
-PALETTE = {"orange": "#F5822A", "white": "#F7F1E6", "black": "#353534"}
+PALETTE = {"orange": "#FFAB73", "white": "#F7F1E6", "black": "#353534"}
 SEAT = (-0.5, 7, 5.6)
 SWIM = {"chain": ["Head", "S1", "S2", "S3", "S4", "Tail"], "amplitudes": [3, 6, 9, 12, 18], "phaseStep": 0.9, "headCounter": 2}
 PROUD = 0.3  # how far a band stands off the body, in cubes

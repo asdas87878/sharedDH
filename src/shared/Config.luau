@@ -81,11 +81,12 @@ Config.Speed = {
 -- a Blue Chromis 10 long, then Clownfish, Butterflyfish, Boxfish, Sergeant Major and Yellow Tang 13.5, a Pufferfish
 -- 15, a Flying Fish 16, a Cuttlefish 19, a Sea Turtle 25, a Stingray 27. The predators and the Legendaries keep
 -- their size: they are meant to look big. docs/design/sizes.md.)
+-- (Blue Chromis, Butterflyfish, Boxfish and Flying Fish were cut from the game 2026-11-19: docs/design/fish-values.md.)
 -- stylua: ignore
 Config.BaseScale = {
 	-- land 1: Shallows
-	BlueChromis = 1.0, Clownfish = 1.05, Butterflyfish = 1.15, SergeantMajor = 1.05, Boxfish = 1.35, YellowTang = 1.4, Pufferfish = 1.5,
-	FlyingFish = 1.3, Stingray = 1.15, Cuttlefish = 1.45, SeaTurtle = 1.75, Seahorse = 1.3, ReefShark = 2.1, Archelon = 1.7, PearlSerpent = 1.8,
+	Clownfish = 1.05, SergeantMajor = 1.05, YellowTang = 1.4, Pufferfish = 1.5,
+	Stingray = 1.15, Cuttlefish = 1.45, SeaTurtle = 1.75, Seahorse = 1.3, ReefShark = 2.1, Archelon = 1.7, PearlSerpent = 1.8,
 	-- land 2: Coral Reef
 	Angelfish = 1.1, Lionfish = 1.3, Parrotfish = 1.45, MorayEel = 1.5, Octopus = 1.45, HumpheadWrasse = 1.8, Dunkleosteus = 2, CoralDragon = 1.8,
 	-- land 3
@@ -120,14 +121,10 @@ export type FishStat = {
 -- stylua: ignore
 Config.FishStats = {
 	-- land 1: Shallows
-	BlueChromis = { Speed = 48, Archetype = "" }, -- Common: a small darting schooling fish: the quick Common, by its number only
 	SergeantMajor = { Speed = 46, Archetype = "" }, -- Common: a bold, busy damselfish: the plain first fish
 	YellowTang = { Speed = 45, Archetype = "" }, -- Common: a steady reef cruiser
-	Butterflyfish = { Speed = 44, Archetype = "" }, -- Common: an ordinary reef fish
 	Clownfish = { Speed = 43, Archetype = "" }, -- Common: stays by its anemone, a wobbly swimmer
-	Boxfish = { Speed = 40, Archetype = "" }, -- Common: a rigid box paddling with tiny fins
 	Pufferfish = { Speed = 40, Archetype = "" }, -- Common: round and slow: the slowest thing in the sea
-	FlyingFish = { Speed = 58, Archetype = "" }, -- Uncommon: built to burst out of the water: fast for an Uncommon, by its number only
 	Stingray = { Speed = 48, Archetype = "" }, -- Uncommon: glides low over the sand
 	Cuttlefish = { Speed = 47, Archetype = "" }, -- Uncommon: hovers on its skirt
 	SeaTurtle = { Speed = 44, Archetype = "" }, -- Uncommon: an unhurried glider: slow by its number, no trait
@@ -1599,27 +1596,45 @@ Config.Jump = {
 	-- saddle, so you landed slowing. With Sling it keeps your own speed and bends it onto the fish, closing fastest
 	-- at the touch, as the reference's does ("no slowing at the end ... then it stops dead on the dino").
 	Sling = 1, -- 1: the sling; 0: the pull-in as it was (ReelTime, GrabSpeed, ReelMax, ReelCurve)
-	SlingCurve = 2, -- the gap closes as time to this power: a creep, then faster and faster to the touch (the reference's two pull-ins fit 1.5 and 2.5)
-	SlingBase = 0.14, -- its time with no gap, seconds,
-	SlingSpeed = 170, -- and the gap over this, studs a second,
-	SlingMax = 0.5, -- never longer than this (the reference's: 0.33 s over its short gap, 0.47 s over its long one; the old pull-in took up to 0.7)
+	-- (feel review 3, 2026-11-19, the user: "Both A and B"; docs/reviews/feel-review-3.md. 49 of the reference's hooks read
+	-- off its distance counter frame by frame: a long pull, the dino ahead, takes 0.50 s and goes 1.95 times riding speed
+	-- on average, 2.68 at its peak; a short one, the dino near or under, 0.23 s. Ours went about 3.5 and 6 times: twice the
+	-- gap in less time, creeping then rushing. The "creep" read off the counter before was the end of the glide.)
+	SlingCurve = 1.3, -- the gap closes as time to this power: faster and faster to the touch (2 until 2026-11-19; the reference's speeds up evenly: 40% of the way in the first half, about 1.3)
+	SlingBase = 0.2, -- its time with no gap, seconds (0.14 until 2026-11-19),
+	SlingSpeed = 120, -- and the gap over this, studs a second: a fish beside you 0.25 s (the reference's short pull: 0.23), a reference-sized gap (Jump.HoverGap, about 35 studs) 0.5 s (170 until 2026-11-19)
+	SlingMax = 0.5, -- never longer than this: the reference's long pull, 0.50 s (0.33-0.57) over 32 measured (0.4 from 2026-11-18 to 2026-11-19, fitted to two of its pull-ins, 0.33 and 0.47 s; the old pull-in took up to 0.7). (0.5 until 2026-11-18, the user: land when the reference lands. With the hook at SlingBy 1.7 the landing came at 2.29 s, median, against its 2.08: most gaps took the whole 0.5 s, and more of them are long since the hook reaches further ahead)
 	SlingCarry = 1, -- the share of your own speed carried into it, dying away to nothing by the touch (0: it starts from a standstill)
 	-- Sooner (the same day): the hands-off pull-in waited for the glide to end, 2.1 s after the press off a common
 	-- fish and 2.4 off a fast one, where the reference's comes at 1.7. With EarlySling the locked fish pulls you in by
 	-- itself as soon as it is near enough, from SlingAfter on. The end of the glide is still the latest.
 	EarlySling = 1, -- 1: on; 0: only when the glide ends (AutoGrab 2), as before
-	SlingAfter = 0.7, -- not before this, seconds after the press (the pop must be seen)
+	-- The reference's airtime (2026-11-18, the user: "study the airtime in ride a dino and replicate it. when you jump
+	-- to when you auto hook the next fish"). Measured off the user's 35-second ride, eight hands-off hops: from the jump to
+	-- the landing 1.80 to 2.40 s (median 2.08), the pull-in 0.33 to 0.47 s of it, so its hook comes about 1.7 s after the
+	-- jump (median 1.68), and no hands-off hop landed sooner than 1.8 s (docs/reference/ride-a-dino.md, "Airtime, hands
+	-- off"). Ours hooked at 1.3 s (0.7 under you) and landed at 1.2 to 1.9 s. Now at 1.7 s, whatever the gap, the fish
+	-- you just left too: our pull-in is the reference's length, so the landing comes at 2.0 to 2.2 s.
+	SlingAfter = 1.7, -- (0.7 until 2026-11-18) not before this, seconds after the press
 	SlingNear = 30, -- the locked fish within this many studs ACROSS the water (height not counted: it is the fish under you, as the reference's ring takes the dino under it; a straight-line 38 never came true in a test, as the hop floats 20 to 30 studs over the herd), and within the hook's reach,
-	SlingBy = 1.3, -- and whatever the distance, by this many seconds after the press (the reference's comes at 1.7): in a test with the view left alone the lock held fish 50 to 90 studs ahead, which never came under you before the glide's end
-	SlingSettle = 0.2, -- either way, only once the lock has been on that fish this long (not one it has only just swung onto). Never the fish you just left: that one only when the glide ends, or by a press
+	SlingBy = 1.7, -- (1.3 until 2026-11-18) and whatever the distance, by this many seconds after the press (the reference's: 1.7, measured): in a test with the view left alone the lock held fish 50 to 90 studs ahead, which never came under you before the glide's end
+	SlingSettle = 0.2, -- either way, only once the lock has been on that fish this long (not one it has only just swung onto). The fish you just left only from SlingBy (until 2026-11-18: only when the glide ended, 2.2 s, or by a press)
 	SlingHoldTurn = 90, -- and not while you are turning the view faster than this, degrees a second: you are still choosing (0: never waits)
 	-- The camera through a landing, measured between every pair of frames of the side-on recording (four landings):
 	-- the picture grows through the pull-in, then in ONE frame shrinks to 0.79 to 0.81 of its size (the view snaps
 	-- wider), and comes back over 0.3 to 0.4 s; with it a short up-and-down jolt of 10 to 17 pixels in 720, gone in
 	-- about 0.13 s.
 	ReelFov = -10, -- the view narrows by this much as the pull-in speeds up (the zoom in)
+	-- The throw (feel review 1): at the reference's throw the picture widens to 0.944 of its size in one frame (19 of 21
+	-- hops); ours narrowed instead, as the slow-mo's wider hold was let go at once. Now whatever widening the view has
+	-- is kept, and it punches this much wider, both easing out as the pull-in narrows it.
+	ThrowFov = 5.5, -- degrees (0: none). (3.5 in the first test: the view widened only 1.7 degrees, median, against the reference's 0.944 of the picture, about 3.5, as the pull-in's narrowing comes in at once)
+	ThrowFovTime = 0.25, -- seconds the punch takes to ease out
 	ReelFovCurve = 1.5, -- how that narrowing comes in over the pull-in
-	LandFov = 12, -- then snaps this much wider than usual at the landing (0.8 of the picture's size at a 70 degree view)
+	LandFov = 12, -- then snaps this much wider than usual at the landing (0.8 of the picture's size at a 70 degree view); with LandScale it only sets how fast the snap settles
+	-- (feel review 1: the reference's picture shrinks to 0.80 of its size in one frame at the landing; ours jumped from
+	-- about 76 to 98 degrees, to 0.68, as the pull-in's narrowing was let go and the snap added on top of it)
+	LandScale = 0.8, -- the picture shrinks to this share of its size at the touch, from the view as it was (more on a long hook: Long.LandFov). 0: the fixed LandFov, as before
 	LandFovTime = 0.35, -- and settles back over this
 	LandKick = 0.45, -- the jolt: the camera is knocked down this many studs
 	LandKickRate = 12, -- and springs back, bouncing this many times a second
@@ -1645,6 +1660,40 @@ Config.Jump = {
 	GrabRange = 95, -- the reach while the hop has most of its speed (GrabFullShare), rider to fish: the longest there is. (105 for an hour of 2026-11-17, then the user: "needs more tolerance on how far it can hook onto now".) (150 until 2026-11-17, the user: "we need a lesser distance to grab onto the next fish when in the air".) 180 at every speed until 2026-11-13
 	GrabNear = 55, -- the reach with no speed at all: what is left when you have stopped (and the least there ever is). (45 for the same hour.) (60 until 2026-11-17, with GrabRange)
 	GrabFullShare = 0.75, -- the hop has its whole reach while it still has this share of the speed it left with, and less in proportion below that. The reach used to go by a fixed speed (GrabFullSpeed), so every change to how fast fish are, or to how much of their speed a hop keeps, changed the reach as well without anyone meaning it to: with fish 1.6 times faster, the hop keeping 0.8 of their speed and that fixed speed raised to 190, a hop off a 74 fish began with a reach of 70 studs, not the 105 written above, and ended at 45
+	-- Further in front (2026-11-18, the user: "you should still be able to hook further infront of you, especially if
+	-- youre just launched forward it feels too short distance"). Straight ahead of you, where the camera looks, the
+	-- hook reaches AheadReach times as far as it does to the side; from AheadFull degrees round it reaches less, and
+	-- from AheadNone (the lock's Lock.FrontAngle) no further than to the side. In time: all of it for the first AheadFor
+	-- seconds of a hop, easing back to none by AheadUntil (about when the glide ends and the pull-in begins by itself).
+	-- To the side, behind and late in the hop the reach is as it was (the user, the day before: "we need a lesser
+	-- distance to grab onto the next fish when in the air"). The server allows it all round: it can't see the camera.
+	AheadReach = 1.5, -- 1: no further in front than to the side
+	AheadFull = 20, -- degrees round from the camera's look with all of it,
+	AheadNone = 60, -- and with none
+	AheadFor = 0.9, -- seconds into a hop with all of it,
+	AheadUntil = 1.9, -- and with none from here
+	-- Hover with your target (feel review 1, the user: "Yes, go ahead"; step 3 of the sling's plan). The reference's rider
+	-- floats over its dino at the dino's pace (its distance counter: 72 m a second at the launch, 46 over the dino); ours
+	-- glided on at nine tenths of the launch, so fish slid back under us and the pull-in had to bend back. Now, after the
+	-- pop, the glide eases from its own speed to the locked fish's, so it keeps its place before us. With no fish locked,
+	-- or only the fish just left, the glide keeps its own speed. Not on the dive's or the fling's own hop. The hook's reach still goes by the hop's
+	-- own speed, as the server counts it.
+	Hover = 1, -- how much of the locked fish's pace the glide takes (0: off, the glide's own speed as before)
+	HoverFrom = 0.4, -- seconds after the press it starts (the pop is seen at full speed first),
+	HoverEase = 0.45, -- and takes this long to come in fully,
+	HoverFollow = 4, -- how quickly it follows the pace of a new fish when the lock moves (higher is quicker)
+	-- And closing in over it (feel review 3, 2026-11-19, the user: "Both A and B"): the reference throws at a dino about
+	-- half a second of riding ahead (30 m, 0.52 s, measured over 16 hooks), its rider floating over it; ours hovered at its
+	-- locked fish's pace and kept whatever gap it locked at, 69 studs (about a second of riding), so the pull-in crossed
+	-- twice the distance. Now the glide also closes on a spot HoverGap seconds of the fish's pace behind its saddle, timed
+	-- to arrive at the hook (SlingBy). The lock still reaches far fish: you glide toward them, then drop on. A press
+	-- before that still throws from where you are (a long hook).
+	HoverClose = 1, -- how much of that closing the glide takes (0: off, it keeps its gap as before)
+	HoverGap = 0.45, -- seconds of the fish's pace behind its saddle to arrive at (about 35 studs behind a land-1 Common)
+	HoverGapMin = 12, -- but never nearer than this, studs
+	HoverCloseMost = 45, -- and never closing faster than this, studs a second over the fish's pace (no lunge)
+	HoverCloseTime = 0.3, -- the least time left it plans by, seconds (so the last moments don't rush)
+	HoverSide = 0, -- the share of it sideways: 0 closes only along our heading (the reference's gap is along its track), the pull-in takes the rest. (Fully sideways in the first test: beside two fish the lock swung between them and 3 of 28 hooks waited for the glide's end)
 	GrabFullSpeed = 190, -- (only where the leaving speed isn't known) (120 until 2026-11-17: less bunching: every fish is 1.6 times faster now, so the hop's reach was nearly always at its longest; this puts it back to what it was for a fish of its kind); the speed across the water, studs a second, that gives the whole GrabRange (180 while the hop left at twice the fish's speed)
 	AckTime = 1, -- seconds to wait for the server's word on a landing before going back to the hop
 	RefusedTime = 0.6, -- a fish the server refused, or that was lost, can't be locked again for this long
@@ -1776,6 +1825,84 @@ Config.Wild = {
 	FitRush = 0.8, -- speed lines at a bolt (0 off)
 }
 
+-- The stride: a ridden fish goes in steps, left and right in turn, like an animal running (the user, 2026-11-18:
+-- "Ride a dino you feel the feet step from side to side in a rhymic manner, we need something more akin to that").
+-- Each stroke of the tail is one step. At the footfall the body is at its lowest; it rises and falls between, and shifts
+-- over onto each step's side soon after its footfall, holding there; the rider goes with it and gives at the knees.
+-- Measured from Ride a Dino 2026-11-18 (docs/reference/ride-a-dino.md, "The stride while riding"): 2.2 steps a second,
+-- the dino and rider bob about a stud in a smooth wave and shift about half a stud side to side, and the camera does
+-- not move with the steps at all. So the steps are seen in the fish and the rider; the camera here only takes a faint
+-- pulse of them (its numbers below; the first version, before the measuring, moved it about four times as much).
+-- Until then the ride's camera moved only by noise (Wild.Rumble), and the beat was one smooth wobble. Seen only: the
+-- Root, the Saddle and the server's checks are untouched (AnimController, WildController).
+Config.Stride = {
+	Amount = 1, -- all of it, times (0: off, the smooth beat and the loose sway as before; 2: twice as much)
+	-- the beat: one step each stroke of the tail
+	MinRate = 1.2, -- a ridden fish takes at least this many steps a second (a giant's slow, heavy stomp),
+	MaxRate = 3.2, -- and at most this many (a small fish's quick patter): its swim beat is kept in this band
+	Sharp = 0, -- how hard a footfall lands: 0 a round wave (the reference's), 1 a drop that stops dead (0.65 at first)
+	Hold = 0.6, -- the shift to a side: 0 a smooth swing; 1 over quickly after the footfall and held (the reference's is between)
+	-- the fish (a mid-sized one; a bigger one moves more, and each kind its own way: RideStyles)
+	Drop = 0.5, -- the body drops this far into each footfall and rises between, studs
+	Roll = 6, -- it rolls this far onto each step's side, degrees,
+	Yaw = 2.5, -- its nose swings this far to that side,
+	Nod = 3, -- and dips this far at the footfall
+	Style = 0.3, -- its kind's own heave, sway and rock (Animation.Body) still play under the steps, times
+	-- the camera: a faint pulse only (the reference's camera doesn't step; at first 0.45, 0.35, 1.6, 0.7, 0.06, 0.25)
+	Bob = 0.12, -- the view drops this far at each footfall and rises between, studs,
+	Sway = 0.06, -- moves this far to each step's side,
+	Lean = 0.4, -- leans this far with it, degrees,
+	Dip = 0.15, -- and tips down this far at the footfall
+	Kick = 0.02, -- and each footfall jolts it this far, springing back (Jump.LandKickRate)
+	Rumble = 0.1, -- the loose sway of riding (Wild.Rumble, noise: the reference has none) is kept this much under the steps
+	-- the rider
+	Post = 1, -- the rider gives at the knees and back with each footfall and rises between (0: sits still)
+	-- the sound
+	Sound = 0.2, -- a soft thump at each footfall, its loudness (0: none)
+}
+
+-- The long hook (2026-11-18; the user: "add an extra camera feature plus anything else to make hooking onto a far away
+-- fish feel really far away and satisfying"). A hook counts as long by the gap at the grab: none of this under From
+-- studs, all of it at Full and over, so an ordinary hop is as it was (LongHookController, JumpController).
+--   THE LONG SHOT (the camera): as the hook flies out it pulls back and widens, so the gap is seen; as the rider is
+--     hauled in it is left behind and the view narrows hard; at the touch it holds still for a beat, then snaps wide,
+--     knocked and shaken harder, and swoops in after the rider.
+--   The rope's rush rises as you are hauled in, a deep thud at the touch, a bigger splash, and a word for it.
+Config.Long = {
+	Amount = 1, -- all of it, times (0: off)
+	From = 55, -- a hook this long (studs, the gap at the grab) begins to count as long,
+	Full = 110, -- and is the longest from this
+	-- the long shot
+	Back = 0.3, -- the camera this share further back as the hook flies out,
+	Wide = 6, -- and the view this much wider, degrees,
+	Narrow = 0.4, -- then the pull-in's narrowing (Jump.ReelFov) this much deeper as it hauls you in (0.7 at first: with the snap
+	-- it threw the view from 70 to 104 degrees in one frame),
+	Hold = 0.07, -- the camera holds still this long at the touch, seconds (0: no hold),
+	LandFov = 0.2, -- and the landing's snap wider (Jump.LandFov) is this much bigger (0.5 at first),
+	Kick = 0.6, -- its knock (Jump.LandKick) this much harder,
+	Shake = 0.5, -- and its shake this much harder
+	Leash = 0.5, -- the camera may fall this much further behind in the pull-in (Camera.ReelLeash)
+	Lines = 1, -- speed lines through the pull-in, this much more
+	Splash = 1, -- the landing's bubbles, this many times more
+	-- the sound
+	Rush = 0.55, -- the rope's rush rising as you are hauled in, its loudness (0: none)
+	Thud = 0.7, -- a deep thud at the touch, its loudness (0: none)
+	-- the word, from this long (studs): the longest that fits is shown
+	Words = { { 70, "LONG HOOK!" }, { 95, "HUGE HOOK!" }, { 115, "MEGA HOOK!" } },
+	WordTime = 1.2, -- seconds it stays
+	Best = 1, -- 1: "BEST" under it when it is your longest hook this session
+}
+
+-- How long a hook of this gap counts as, 0 to 1 (Config.Long)
+function Config.longOf(gap: number): number
+	local l = Config.Long
+	if l.Amount <= 0 or gap <= l.From then
+		return 0
+	end
+	local u = math.clamp((gap - l.From) / math.max(l.Full - l.From, 1), 0, 1)
+	return u * u * (3 - 2 * u) * math.min(l.Amount, 2)
+end
+
 Config.Hook = {
 	On = 1, -- 0: no hook at all
 	Ride = 1, -- 1: whirled lazily over the head while you ride; 0: put away on a fish, out only in the hop
@@ -1813,7 +1940,7 @@ Config.Hook = {
 	SpinEase = 5, -- how quickly the whirl changes from one of these to the next (higher is quicker)
 	Swish = 0.1, -- a swish each turn in the hop, this loud (0 off)
 	-- the throw
-	ThrowShare = 0.4, -- the anchor flies to the fish in this share of the pull-in's time (the pull-in creeps at first: Jump.ReelCurve),
+	ThrowShare = 0.2, -- the anchor flies to the fish in this share of the pull-in's time (0.4 until 2026-11-19: the reference's rope is on its dino in 0.1 s, 3 frames, and its zip you see lasts 0.37 s; ours took 0.16 s of a 0.4 s pull, leaving 0.24 s),
 	ThrowMin = 0.05, -- never quicker than this, seconds,
 	ThrowMost = 0.28, -- nor slower than this
 	ThrowArc = 0.07, -- it rises this share of the way on its flight
@@ -1825,6 +1952,41 @@ Config.Hook = {
 }
 
 Config.Lock = {
+	-- How the lock picks (2026-11-18, the user: "when you hop off a dino it pretty much auto selects the one in front of
+	-- you for the most part. it also switches selection often times when you press a or d ... id like to find a way to
+	-- implement higher leniancy"). Read off the user's own recording of the reference (docs/reference/ride-a-dino.md,
+	-- "How the ring picks"): its ring lies under the rider and takes whichever dino is nearest it, picked again all
+	-- the time with no hold. Ours with Pick 2: the fish nearest the line the camera looks along, in front of you, from
+	-- anywhere in the hook's reach; A and D step it to the next fish that way.
+	-- The same evening, the user: "sometimes the a d function attatches to a fish thats basically behind the player or
+	-- just coming up to its peripherals instead of a fish in front or where the a d or camera is aiming". The first
+	-- build's line was the way you fly, and A and D turn you up to 90 degrees off the view (Ride.KeyAngle), so the
+	-- fish "ahead on your line" could be beside you or behind; and a fish steered onto was held. Now the line is the
+	-- camera's look, only fish in front count (FrontAngle), and a key steps across them.
+	Pick = 2, -- 2: by the camera's look, in front of you, A and D step it (the reference's auto pick); 1: along the camera's aim, with the rules from Cone to Lead below (until 2026-11-18)
+	LineAhead = 0.35, -- being ahead along the line counts this much against being off to its side (lower: a fish far ahead on the line beats a near one beside it; 1: a plain distance, the reference's ring)
+	LineBehind = 3, -- and being behind you this much (the user, 2026-11-17: "fish near the bottom of ur screen")
+	LineUp = 0.6, -- and being above or below you this much
+	LineLead = 0.4, -- judged where it and you will be this many seconds on, by both speeds: a fish you are overtaking falls back, and one coming past is taken where it will be
+	LineBody = 0.5, -- a fish counts as nearer by this share of half its length: a big fish is easier to pick
+	FrontAngle = 60, -- only fish in front of you count: within this many degrees of where the camera looks, from you, where it is now and where it will be (LineLead), so not one beside you or coming up from behind, nor one you are leaving behind,
+	FrontKeep = 20, -- and the locked fish may go this many degrees further round before it loses the lock.
+	FrontAside = 110, -- A fish further round than FrontAngle but within this is beside you: taken only when no fish in front is in reach. One further round still is behind you: never newly taken, but in the last chance (LastChance) and when it is the fish you just left (LeftBack); the fish already locked keeps the lock as it slides back past you, as one beside you. (Until the second build, any fish in reach was taken when none was in front: in a test the lock sat on fish behind for a third of the time)
+	LineKeep = 12, -- (8 in the first tests: two fish now and then swapped it back and forth with no key pressed) the locked fish keeps the lock until another is this many studs nearer the line (0: the reference: whichever is nearest, every look; its ring swapped two dinos side by side and back within a fifth of a second)
+	LineKeepSteer = 0, -- while you turn the view, so the lock follows it at once,
+	LineChosen = 200, -- and a fish A or D stepped to, or the view was turned onto, keeps the lock until another is this many studs nearer (200: until you step or turn the view again, or it leaves your reach or your front)
+	LineHold = 0.12, -- never sooner than this after the lock was taken, seconds (0.08 in the first tests)
+	StepEvery = 0.3, -- A or D: each press steps the lock to the next fish in front that way (the one nearest round from it), and holding steps again this often, seconds
+	StepGap = 3, -- a fish must be at least this many degrees further round that way to be the next one
+	SteerSeen = 25, -- the view counts as being turned while it turns faster than this, degrees a second,
+	SteerKeep = 0.25, -- and for this long after, seconds
+	PressAny = 1, -- 1: a press with no fish locked (or the locked one out of reach) takes the fish nearest the line anywhere in reach (one in front first), the one you left last; 0: it only flashes the reticle (until 2026-11-18)
+	-- The hook's reach is to the fish's whole body, not its middle (2026-11-18, the user: "it should be based on the
+	-- whole fish so that large fish dont feel further than they are ... the hitbox for grabbing to the fish in the code
+	-- should include the tail/the full length of the fish"). Its body is a box of its length, height and width
+	-- (Config.bodyOf) round its middle, turned as it swims: from you to the nearest point of that box (Config.bodyGap),
+	-- here and on the server. A 60-stud fish was 30 studs further than it looked, head or tail on.
+	WholeBody = 1, -- 1: to the nearest point of the body; 0: to its middle (until 2026-11-18)
 	Cone = 40, -- full angle round the aim that a far fish must be inside
 	AimRadius = 8, -- the aim ray's thickness, studs
 	MaxAngle = 80, -- no fish further off the aim than this, however near
@@ -1845,8 +2007,8 @@ Config.Lock = {
 	UpEase = 0.6, -- a fish above the aim counts as this much less off it ("needs to work better for ... ones that are more high up"); 1: up and down alike
 	DownHard = 1.8, -- and one below the aim as this much more off it
 	Lead = 0.2, -- seconds ahead a fish is aimed at, by its speed against yours ("needs to work better for fish that come by fast"); 0: where it is now
-	Linger = 0.45, -- seconds the locked fish keeps the lock after it has left the reach or the aim ("you keep locked onto it for a small window of time to provide slightly more leeway"); 0: it is dropped at once
-	LingerReach = 1.12, -- and in that time a grab may take it from this much further than the hook's reach (the server allows Net.RangeSlack)
+	Linger = 0.6, -- (0.45 until 2026-11-18: more leniency) seconds the locked fish keeps the lock after it has left the reach or the aim ("you keep locked onto it for a small window of time to provide slightly more leeway"); 0: it is dropped at once
+	LingerReach = 1.2, -- (1.12 until 2026-11-18) and in that time a grab may take it from this much further than the hook's reach (the server allows Net.RangeSlack)
 	-- so the lock doesn't flicker between two fish
 	-- 2026-11-11, the user after playing: the lock switched between too many fish too close together. Steadier now:
 	-- Sticky 0.2 to 0.35, MinHold 0.3 to 0.45, KeepCone 1.4 to 1.6, and the two new rows below.
@@ -1873,8 +2035,10 @@ Config.Lock = {
 Config.Herd = {
 	-- The herd's pace, as a share of the land's ride pace (Config.LandPace). 0.85 of each fish's own ridden speed until
 	-- 2026-11-16: slower now, so more of the herd goes past a rider and a landing takes the fish from this to its full
-	-- speed under you.
-	SpeedShare = 0.7,
+	-- speed under you. 0.85 again since 2026-11-19 (feel review 1, the user: "Yes, go ahead"): at 0.7 a rider was soon at
+	-- the front of the fish round them, and 9 to 48% of hops (by run) landed back on the fish just left, which gives no
+	-- Oxygen; at 0.85 one run's 48% came to 25%. The reference's herd swims at about 0.85 of riding speed (its counter).
+	SpeedShare = 0.85,
 	Ahead = 60, -- each fish heads for a point this far down the lane, at its own place across it and above the floor
 	RideHeight = 12, -- a ridden fish with no dive or climb held settles at this height above the floor: in the herd
 	RideHeightGain = 1.6, -- degrees of pitch for each stud it is off that height
@@ -2087,12 +2251,12 @@ Config.Wake = {
 -- Each kind's character (a kind not listed is "Cruise"). Claude's go, by what the animal is: the round and the
 -- armoured plod; the streamlined zoom; the small and the jet-propelled dart; and one or two great hunters a land hunt.
 -- (The first list had 19 hunters and 23 plodders: the deep lands are nearly all Legendaries, and a quarter of the whole
--- sea was hunting. A hunter is a thing to see, so there are 12 now, and 15 plodders.)
+-- sea was hunting. A hunter is a thing to see, so there are 12 now, and 14 plodders: 15 until the Boxfish's cut.)
 -- stylua: ignore
 Config.FishPace = {
 	-- land 1
-	BlueChromis = "Dart", Clownfish = "Dart", Cuttlefish = "Dart", Boxfish = "Plod", Pufferfish = "Plod", SeaTurtle = "Plod", Seahorse = "Plod",
-	Archelon = "Plod", FlyingFish = "Zoom", PearlSerpent = "Zoom", ReefShark = "Hunt",
+	Clownfish = "Dart", Cuttlefish = "Dart", Pufferfish = "Plod", SeaTurtle = "Plod", Seahorse = "Plod",
+	Archelon = "Plod", PearlSerpent = "Zoom", ReefShark = "Hunt",
 	-- land 2
 	MorayEel = "Dart", Octopus = "Dart", CoralDragon = "Zoom", Dunkleosteus = "Hunt",
 	-- land 3
@@ -2248,7 +2412,7 @@ Config.Props = {
 	-- on the prop as PropSize). Sizes as measured in Studio (2026-11-18, grey-box 15): floor tiles 3-5, stones 4-7,
 	-- sea grass 5-9, table coral 15-21, crates 21-35, anchors, bone pillars and fan corals 22-40, boulders, sea stacks,
 	-- pillar and brain corals and tube clusters 26-51, coral trees, anemones, reef walls, masts and kelp 37-91, skulls
-	-- and ribs 65-77, the hulls 80-91. Fish, at Normal size (times 0.7 Tiny to 3 Colossal): a Blue Chromis 6, a
+	-- and ribs 65-77, the hulls 80-91. Fish, at Normal size (times 0.7 Tiny to 3 Colossal): a
 	-- Clownfish 8, a Sawfish 17, a Reef Shark 23, a Great White 30, a Megalodon 52, a Blue Whale 59.
 	SmallSize = 12, -- a prop this size or smaller (grass, stones, tiles) breaks for any ridden fish, and slows it not at all
 	-- a bigger prop breaks for a fish bigger than it. How much of its speed it keeps: Slow when only just bigger,
@@ -2445,6 +2609,17 @@ Config.Admin = {
 Config.Net = {
 	RangeSlack = 1.3, -- the server allows this much more than the hook's reach (1.2 until 2026-11-17: the lock's leeway, Lock.LingerReach, lets a grab reach 1.12 times as far; it sees the player and the fish a moment apart; 1.1 until 2026-11-11: at the faster air speed a grab at the full 130 studs was refused in Studio)
 	ReachLag = 0.2, -- and it reads the hop's speed, for that reach, as it was this long before (the reach shrinks as the hop stalls, and the grab's word arrives late)
+	-- The delay between what the server sees and what the rider's machine saw, allowed for when it judges a grab or a
+	-- landing (2026-11-18; the user: "the player falls off a fish if they hook onto one thats swimming away super fast.
+	-- Often you get hook cancelled or the player falls of the fish even if they get onto it for half a second"). The
+	-- rider's machine sees a wild fish a moment late, and the server sees the rider a moment late, so a fish going fast
+	-- is ahead of where the rider was held to it by its speed times both moments: a grab was refused as out of range
+	-- and a landing as not at the fish (the rider sat on the saddle for the half second the server waits, then fell).
+	-- So the fish is put back along its own way by up to Lag seconds, and the rider on along theirs by up to
+	-- PlayerLag, and the nearest of those places is what is judged.
+	Lag = 0.5, -- seconds, and the player's own ping on top (at most PingMost more)
+	PlayerLag = 0.15,
+	PingMost = 0.5,
 }
 
 Config.Camera = {
@@ -2458,6 +2633,7 @@ Config.Camera = {
 	-- swim, the pull-in and the landing. Each number is about how long that spring takes to close a gap (critically
 	-- damped: no overshoot); higher is softer.
 	FocusTime = 0.12, -- following the rider
+	ReelLeash = 22, -- in the hop the camera falls behind us by at most this, studs (a pull-in arrives at up to 400 studs a second: a long hook's left the camera 90 studs behind at the touch, measured 2026-11-18); a long hook allows more (Long.Leash)
 	TurnTime = 0.07, -- turning and tilting (your own mouse look goes through it too, so keep it short)
 	ZoomTime = 0.3, -- moving in and out (riding to the hop and back, and coming back out from a wall)
 	FovTime = 0.2, -- the field of view following speed (the pull-in's zoom and the landing's snap sit on top, unsprung)
@@ -2547,6 +2723,13 @@ Config.Look = {
 	AirFogB = 255,
 	SkyTilt = 14, -- degrees the sky is tipped toward the lane (0: level). The user, 2026-11-17: the skybox "cuts off in a weird way in the distance ... bring that cloud down". The sky's clouds stop well above its own horizon, with a plain band under them; tipped, they sit down on the far land as you look out of the hub. Behind you they rise by as much, where the hub's wall hides it
 	Sky = 2, -- which sky of ReplicatedStorage.Skies, in name order: 1 the place's first sky, 2 the Anime Sky (0: whatever Sky is in Lighting)
+	-- The far view on low graphics (2026-11-19, the map chat's ask; the user: "Yes, ask them"). The later lands' far view
+	-- is real models (Workspace.FarView, 1,300 to 10,000 studs down the lane), and the lowest quality levels draw only
+	-- about 500 studs, so there it shows nothing. Then the sky's back face is the painted far view (the sky's
+	-- "SkyboxBkVista" attribute) and the models are hidden on this machine, so the two never show at once.
+	-- docs/design/props-and-landmarks.md, "The far view in the game".
+	VistaLowest = 3, -- a player who set graphics quality 1 to this gets the painted far view (0: never)
+	VistaTouch = 1, -- 1: on Automatic, a phone or tablet gets it too (the level Roblox picks can't be read by a game)
 }
 
 -- How creatures and riders move beyond the keyed swim. First built 2026-11-11 (docs/design/animation-study.md), then
@@ -2628,6 +2811,8 @@ Config.Feel = {
 	Whoosh = 0.5, -- how loud the pull-in's whoosh is (0 off),
 	WhooshPitch = 2.2, -- and how high
 	Swish = 0.35, -- the pop's swish
+	ThrowSound = 0.45, -- the throw's flick (feel review 1: a sound at the throw; a stand-in, the pop's swish, high and short),
+	ThrowPitch = 1.9, -- and how high
 	Splash = 0.55, -- the landing's splash
 	SplashCount = 26, -- bubbles thrown out flat round the fish at our own landing,
 	SplashReach = 9, -- this far, studs
@@ -3251,6 +3436,17 @@ end
 
 -- The hook's reach at a speed across the water (Jump.GrabNear, GrabRange, GrabFullSpeed): the client's lock and the
 -- server's check both ask this
+-- How many times its reach the hook has straight in front of you `t` seconds into a hop (Jump.AheadReach): from all of
+-- it to 1 between AheadFor and AheadUntil. The client and the server count it from their own clocks.
+function Config.aheadOf(t: number): number
+	local j = Config.Jump
+	if j.AheadReach <= 1 then
+		return 1
+	end
+	local u = math.clamp((t - j.AheadFor) / math.max(j.AheadUntil - j.AheadFor, 0.05), 0, 1)
+	return 1 + (j.AheadReach - 1) * (1 - u * u * (3 - 2 * u))
+end
+
 function Config.reachOf(speed: number?, launch: number?): number
 	local j = Config.Jump
 	local near = math.min(j.GrabNear, j.GrabRange)
@@ -3464,6 +3660,37 @@ end
 
 function Config.bodyOf(model: Instance, fish: FishType): Vector3
 	return fish.Size * Config.sizeOf(model)
+end
+
+-- How far a point is from a fish's body, for the hook's reach (Lock.WholeBody): the body is a box of `body` (width,
+-- height and length, Config.bodyOf) round the fish's middle `at`, turned as it is; 0 inside it. With WholeBody 0, the
+-- distance to the middle, as before. The client's lock and grab and the server's check all measure it this way.
+function Config.bodyGap(at: CFrame, body: Vector3, point: Vector3): number
+	if Config.Lock.WholeBody <= 0 then
+		return (point - at.Position).Magnitude
+	end
+	local own = at:PointToObjectSpace(point)
+	local half = body / 2
+	local near = Vector3.new(
+		math.clamp(own.X, -half.X, half.X),
+		math.clamp(own.Y, -half.Y, half.Y),
+		math.clamp(own.Z, -half.Z, half.Z)
+	)
+	return (own - near).Magnitude
+end
+
+-- The same for a fish model (its type from its "FishType" attribute; a fish whose type hasn't replicated yet is taken
+-- as a ball of Lock.FallbackRadius round its middle)
+function Config.fishGap(model: Model, point: Vector3): number
+	local root = model.PrimaryPart
+	if not root then
+		return math.huge
+	end
+	local kind = Config.FishById[model:GetAttribute("FishType") :: string]
+	if not kind then
+		return math.max((point - root.Position).Magnitude - Config.Lock.FallbackRadius, 0)
+	end
+	return Config.bodyGap(root.CFrame, Config.bodyOf(model, kind), point)
 end
 
 -- A fish's passive archetypes as a list ({} for none), and whether it has one (Config.Archetype's keys)

@@ -18,7 +18,7 @@ import math
 
 NAME, ZONE, RARITY = "Kronosaurus", "ZONE 8 / VENTS", "LEGENDARY"
 U = 0.5
-PALETTE = {"hide": "#3F482B", "belly": "#E9E0C8", "sulphur": "#D0A838", "tooth": "#FFFFFF", "mouth": "#5E222C", "gum": "#8A3F4A",
+PALETTE = {"hide": "#60694A", "belly": "#E9E0C8", "sulphur": "#D0A838", "tooth": "#FFFFFF", "mouth": "#5E222C", "gum": "#8A3F4A",
            "black": "#15181D", "halo": "#FFD36B", "scar": "#C6C3A2"}
 SEAT = (3, 10, 10.5)
 GLOW = {"halo": 0.4}  # only the thin halo of the eye

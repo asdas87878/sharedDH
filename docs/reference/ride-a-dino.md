@@ -76,6 +76,11 @@ second recording; "ahead" is how far the rider has gained on the herd's steady p
 - **Through the creep the rider is still moving at the herd's pace,** not hanging still.
 - The counter is in whole metres, so each reading is good to about a metre; two pull-ins only.
 
+> **Corrected 2026-11-19** ([feel review 3](../reviews/feel-review-3.md), 49 hooks read frame by frame): the "creep" above
+> was the end of the glide. Measured from the throw (the second press), the pull starts at once and speeds up evenly
+> (40% of the distance in the first half), with the rope on the dino in 0.1 s. A long pull (dino ahead) takes 0.50 s
+> (0.33-0.57) and goes 1.95 times riding speed on average, 2.68 at its peak; a short one (dino near or below) 0.23 s.
+
 **From the side** (the user's third recording, 2026-11-10, 30 s, the camera turned side-on):
 - **The shape of the flight:** a quick pop up, at full height about 0.3 s after the press; then a long, flat glide,
   hardly sinking; then the pull-in in a straight line down onto the dino. It is not an arc that rises and falls.
@@ -107,6 +112,84 @@ landing, and the dust the dinos kick up as they run.
 
 **Not readable from the recordings:** the outline round the glowing dino (too small on screen), whether the flight is
 pulled toward a dino or only steered, what the second press does exactly, and whether an untamed dino can be steered.
+
+### The stride while riding (measured 2026-11-18)
+Read from HahnHouseGaming's "I Went AFK to Tame a $1 BILLION Cosmic Dino!" (youtube.com/watch?v=djv1xyRz1C4), 5:07 to
+5:15, fetched at 30 frames a second and 1280 x 720 on the user's word (`tools/sources/yt.py frames`; the frames are in
+the research cache, not the repo). A big green two-legged dino, Legendary, ridden straight with the camera behind and
+above, through snow; two straight stretches between steers (5:09.0 to 5:11.1, 5:12.0 to 5:14.9). How: the dino's
+up-down and side-to-side on screen from strips of its picture, frame against frame, to a tenth of a pixel; the
+scenery's the same way from the walls at the upper left; then the repeat and its shape, each stretch folded on its
+own step.
+
+| What | Measured |
+|---|---|
+| Steps | one every 0.452 and 0.454 s: 2.2 a second, the same in both stretches |
+| The bob, dino and rider together | 8 to 9.4 pixels of 720 (about 1.25% of the screen); about a stud at the rider (about 10 pixels a stud there) |
+| Its shape | a smooth wave: lowest at each footfall, highest midway, round at both. No hard footfall |
+| Side to side | 5.7 pixels in both stretches (about half a stud), one way each step: over soon after the footfall, held for most of the step, back through the middle at the next |
+| The camera at the step rate | about 2 pixels, at the edge of what can be read: it does not step. Its slower moves are the steering |
+
+- So **the steps are seen in the dino and the rider, in a steady view.** That agrees with the earlier reading of the
+  side-on recording (no shake while riding).
+- **Not known:** other dinos and speeds (this is one dino at one speed), and the sound.
+- Our stride was matched to this: [the wild ride](../design/wild-ride.md), "The stride".
+
+### How the ring picks (read 2026-11-18)
+Read from the user's own 35-second ride of 2026-11-10 (the recording with nine jumps and one miss), frame by frame at
+30 a second, for the user's question: "when you hop off a dino it pretty much auto selects the one in front of you ...
+it also switches selection often times when you press a or d ... I dont know if thats intentional or a byproduct".
+
+| What | Seen |
+|---|---|
+| Where the ring lies | Round the dino it has picked, from the moment it picks it: it jumps from dino to dino. With no dino near, it lies on the ground under the rider (16.3 to 17.1 s, 29.4 to 30.5 s) |
+| How often it picks again | Every frame, with no hold. Two dinos side by side, a small Aurochs and a big Dilophosaurus, swapped it and back in a fifth of a second: the Aurochs until 6.57 s, the Dilophosaurus from 6.60 to 6.70 (4 frames), the Aurochs again from 6.73. No turn of the camera at that moment |
+| Its edge | A dino just outside the ring isn't taken: at 29.4 s the picked dino slid out of the ring by about its own width, the ring lay on empty ground beside it, and the rider came down there: a miss (30.8 s) |
+| The dino you left | Can be picked: the Dilophosaurus above is the one the rider had just left |
+
+- **So the switching is a byproduct** (inferred). The ring is a point under the rider, and the dino nearest it, inside
+  its edge, is picked again all the time. Steering moves the rider, so it moves the point: A and D change what is
+  under you. Nothing about the keys picks a dino.
+- **And "the one in front":** you fly on at about the herd's pace, so the dinos ahead come under you. (inferred)
+- **Not known:** whether it goes by distance alone, how hard A and D steer in the air, and the ring's exact size.
+- Ours is built on this, without the edge: [the lock](../design/the-lock.md).
+
+### Airtime, hands off (measured 2026-11-18)
+> **Corrected 2026-11-19:** these hops were not hands off. Read again in [feel review 1](../reviews/feel-review-1.md),
+> every landing in the user's recordings (50 that could be checked) comes 0.20 to 0.57 s after a **second press**: the
+> button shows its pressed look, and the four hops with no second press all missed (the rider falls about 2 s after the
+> jump). The second press throws the lasso ("Drop" in their lesson). So "the hook about 1.7 s after the jump" below is
+> when this player chose to press; players pressed from 0.4 s to 2.1 s. The jump and landing times stand.
+
+For the user's ask: "study the airtime in ride a dino and replicate it. when you jump to when you auto hook the next
+fish". Read off the user's 35-second ride of 2026-11-10, every frame at 30 a second.
+
+- **The jump and the landing:** the jump button shows an up arrow while you ride and a down arrow in the air, so its flips
+  mark the jump and the landing to the frame. They were found by matching the button's shape in every frame.
+- **The pull-in:** its fast part shows as the picture growing 2 to 9% a frame (the camera rushing in with the rider),
+  until the landing's snap wide. It was found by tracking the scenery from frame to frame, and checked by eye on one hop.
+
+| Hop | Jump | Landing | In the air | The pull-in's fast part from | Jump to it |
+|---|---|---|---|---|---|
+| 1 | 3.07 | 4.97 | 1.90 s | not read (the counter, read before: the whole pull-in 0.33 s) | (1.57 to its slow start) |
+| 2 | 5.20 | 7.47 | 2.27 s | 7.23 (by eye: the rider starts down at 7.27) | 2.03 s |
+| 3 | 7.70 | 9.77 | 2.07 s | 9.63 | 1.93 s |
+| 4 | 10.33 | 12.43 | 2.10 s | 12.33 | 2.00 s |
+| 5 | 13.97 | 15.77 | 1.80 s | 15.67 | 1.70 s |
+| 6 | 15.93 | 18.07 | 2.13 s | not read | |
+| 7 | 18.40 | 20.30 | 1.90 s | 20.10 | 1.70 s |
+| 8 | 21.93 | 24.33 | 2.40 s | 24.07 (the counter, read before: the whole pull-in 0.47 s) | 2.13 s (1.93 to its slow start) |
+| 9 | 25.70 | 27.13 | 1.43 s | 26.93 | 1.23 s |
+
+- **Hands off, hops 1 to 8:** in the air 1.80 to 2.40 s (median 2.08). The pull-in's fast part takes the last 0.10 to
+  0.27 s. With its slow start (the creep the distance counter showed: whole pull-ins of 0.33 and 0.47 s) the pull-in
+  begins about 0.4 s before the landing. **So the hook comes about 1.7 s after the jump** (1.4 to 2.0, median 1.68).
+- **No hands-off hop landed sooner than 1.8 s.** Hop 9, at 1.43 s, is probably a second press ("Drop").
+- **The other recordings agree:** the one hop of the desert run took 1.73 s. The side-on recording's 13 hops took 0.8 to
+  1.5 s but one (2.17 s): that run was pressed down early (Drop), most likely.
+- **Not known:** whether the hook waits for a dino to be under the ring or comes at a time; the spread (1.4 to 2.0)
+  fits either.
+- Ours matched to this: [the sling](../design/sling.md), "Airtime matched".
 
 ## The herd
 Read 2026-11-13 from the flight over the first two lands (frames a quarter second apart, from above) and the 35-second

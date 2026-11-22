@@ -9,8 +9,8 @@ Its idea: the shield. A broad flat oval with a yellow hem, a bunch of arms with 
 - Eight arms in a bunch, a quarter of the length, thick at the root, each in three blocks. The lower four hang a little,
   the upper outer pair rises like horns. Two thin feeding arms, a little longer, between them.
 - The eye: a pale block four and a half cubes across on the side of the head, and on it the pupil, a W: a dark bar with
-  both ends turned up.
-- Colour: violet over pink-cream, the line low and straight. The one mark: yellow for the skirt and the last block of
+  both ends turned up and out, and a small bump in the middle.
+- Colour: violet over pink-cream, the line low and straight; the arms violet. The one mark: yellow for the skirt and the last block of
   every arm.
 The rider sits on the flat of the mantle; the broad step either side is the leg room."""
 import math
@@ -28,7 +28,7 @@ TOP, BOTTOM = [(2, 2)], [(2, 1)]  # the mantle's corners: one broad step above, 
 # the mantle: (from, to, cubes out, bottom, top). One number changes from slice to slice
 SLICES = ((-4, -2, 6, -4, 5), (-2, 0, 7, -4, 5), (0, 6, 8, -4, 5), (6, 8, 7, -4, 5), (8, 10, 7, -4, 4), (10, 12, 6, -4, 4),
           (12, 14, 5, -4, 4), (14, 15, 5, -4, 3))
-FIN_Z = -2.5  # the skirt runs along the lowest full row of the flank, a cube and a bit of cream showing above it
+FIN_Z = -1.0  # the skirt runs along the colour line, so from the side it IS the line
 # the skirt: (flap, from, to, the body's cubes out there, height). Each run wraps one cube round the corner of a wider
 # slice, and neighbours sit a fifth of a cube apart in height, so no two lie in one plane. The last one also covers the
 # narrow end slice and meets the rear run
@@ -77,17 +77,19 @@ def build(m):
     # THE EYE: a pale block bulging from the side of the head, and the W standing out of it: a bar with both ends turned up
     ring = (6.0, 7.3, -1.7, 2.7)
     head.block(-8.8, ring, -4.2, ring, "cream", mirror=True)
-    bar = (7.1, 7.7, -0.5, 0.5)
-    head.block(-8.3, bar, -4.7, bar, "black", mirror=True)
-    for x, wide, tall in ((-8.3, 1.0, 1.8), (-6.9, 0.8, 1.0), (-5.7, 1.0, 1.8)):
-        stroke = (7.1, 7.7, 0.5, tall)
-        head.block(x, stroke, x + wide, stroke, "black", mirror=True)
+    # the pupil: a W. A dark bar low in the ring, its two ends turned up and out, a small bump in the middle
+    bar = (6.9, 7.5, -0.2, 0.7)
+    head.block(-7.9, bar, -5.1, bar, "black", mirror=True)
+    bump = (6.9, 7.5, 0.7, 1.2)
+    head.block(-6.85, bump, -6.15, bump, "black", mirror=True)
+    for x0, x1 in ((-7.45, -8.15), (-5.55, -4.85)):
+        head.beam((x0, 7.425, 0.1), (x1, 7.425, 2.3), 0.95, 0.65, "black", flat="y", mirror=True)
 
     # the arms: eight in a bunch, two rows of four. Thick at the root, three blocks each, the last one yellow
     arms = m.part("Arms", (-9, 0, 0), "Head")
-    sizes, colours, under = ((2.6, 2.2), (1.9, 1.6), (1.2, 1.0)), ("violet", "violet", "yellow"), ("cream", "cream", "yellow")
-    arm(arms, ((-8.4, 1.5, -1.2), (-11.6, 1.5, -1.9), (-14.2, 1.4, -2.7), (-16.2, 1.3, -3.3)), sizes, under)
-    arm(arms, ((-8.4, 4.4, -1.2), (-11.4, 4.8, -1.8), (-13.8, 5.3, -2.6), (-15.6, 5.7, -3.2)), sizes, under)
+    sizes, colours = ((2.6, 2.2), (1.9, 1.6), (1.2, 1.0)), ("violet", "violet", "yellow")
+    arm(arms, ((-8.4, 1.5, -1.2), (-11.6, 1.5, -1.9), (-14.2, 1.4, -2.7), (-16.2, 1.3, -3.3)), sizes, colours)
+    arm(arms, ((-8.4, 4.4, -1.2), (-11.4, 4.8, -1.8), (-13.8, 5.3, -2.6), (-15.6, 5.7, -3.2)), sizes, colours)
     arm(arms, ((-8.4, 1.5, 1.4), (-11.6, 1.5, 1.2), (-14.2, 1.4, 0.7), (-16.4, 1.3, 0.2)), sizes, colours)
     # the upper outer pair, raised like horns
     arm(arms, ((-8.4, 4.4, 1.5), (-11.2, 5.2, 2.8), (-13.0, 6.0, 5.2), (-13.8, 6.5, 7.6)), sizes, colours)

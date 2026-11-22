@@ -180,7 +180,7 @@
   }
  ],
  "paletteCells": {
-  "steel": "#4F6C8C",
+  "steel": "#1A3B58",
   "silver": "#C9D2D6",
   "amber": "#E9A23B",
   "soft": "#F6CB6E",
@@ -188,8 +188,8 @@
   "tooth": "#FFFFFF",
   "mouth": "#6A2630",
   "gum": "#8E4A54",
-  "steel-": "#3F5670",
-  "steel+": "#6081A5",
+  "steel-": "#152F46",
+  "steel+": "#254A6B",
   "silver-": "#A1A8AB",
   "silver+": "#E9F3F8",
   "amber-": "#BA822F",

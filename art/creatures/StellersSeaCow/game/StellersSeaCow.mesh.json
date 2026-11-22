@@ -171,13 +171,13 @@
   }
  ],
  "paletteCells": {
-  "hide": "#877B6E",
+  "hide": "#594E42",
   "belly": "#CBBFA9",
   "bark": "#584E46",
   "black": "#22262B",
   "bristle": "#F0E8D2",
-  "hide-": "#6C6258",
-  "hide+": "#9F9283",
+  "hide-": "#473E35",
+  "hide+": "#6C5F52",
   "belly-": "#A29987",
   "belly+": "#EBDEC5",
   "bark-": "#463E38",

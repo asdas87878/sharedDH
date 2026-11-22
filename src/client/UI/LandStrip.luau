@@ -405,7 +405,7 @@ local BREAK_TIME = 0.5
 -- same style as the icons we use for index, shop, cash, oxygen"): tools/ui/lock_icon/lock_art.py draws it and its
 -- break pieces in one atlas, art/ui/icons/lock_atlas.png. Not uploaded yet: until it is, Studio reads its own copy
 -- (lock_art.py --studio) and a live game keeps the drawn padlock. In Studio the workspace's "LandLockArt" overrides.
-local LOCK_ATLAS = "" -- the upload's id, once Hugo says to upload it
+local LOCK_ATLAS = "rbxassetid://99889688472050" -- (uploaded 2026-11-22 on the user's word, "Could we integrate that into the push too"; art/ui/icons/roblox.json)
 local LOCK_ATLAS_STUDIO = "rbxasset://textures/ridefish/lock_atlas_k1.png"
 -- each piece: its rect in the atlas (x, y, w, h in atlas pixels) and its box in the lock's square (x, y, w, h as
 -- fractions), as lock_art.py prints them

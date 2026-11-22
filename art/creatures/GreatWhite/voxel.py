@@ -17,7 +17,7 @@ Its idea: the heavyweight. A thick slate torpedo over a white belly, a blunt con
 The rider sits behind the gills, in front of the back fin, legs in a slot either side."""
 NAME, ZONE, RARITY = "Great White", "ZONE 3 / KELP FOREST", "EPIC"
 U = 0.45
-PALETTE = {"grey": "#62707C", "white": "#F2F0EA", "black": "#1F2226", "mouth": "#7A2E33", "tooth": "#FFFFFF", "gum": "#9A4F58"}
+PALETTE = {"grey": "#44525D", "white": "#F2F0EA", "black": "#1F2226", "mouth": "#7A2E33", "tooth": "#FFFFFF", "gum": "#9A4F58"}
 SEAT = (-4, 6, 6.6)
 FRAME, ORTHO = 2.2, 31.0
 TEXTURES = [{"tile": "stud", "on": "all", "colours": ["grey"]}]  # round studs on every face of the grey back

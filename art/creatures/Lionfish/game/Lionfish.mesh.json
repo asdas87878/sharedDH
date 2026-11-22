@@ -90,12 +90,12 @@
   }
  ],
  "paletteCells": {
-  "rust": "#A2452F",
+  "rust": "#C7654C",
   "cream": "#F3E6C8",
   "black": "#231F1E",
   "mouth": "#57211F",
-  "rust-": "#823726",
-  "rust+": "#BD553D",
+  "rust-": "#9F513D",
+  "rust+": "#E7795D",
   "cream-": "#C2B8A0",
   "cream+": "#FFFFE8",
   "black-": "#1C1918",

@@ -90,14 +90,14 @@
   }
  ],
  "paletteCells": {
-  "grey": "#62707C",
+  "grey": "#44525D",
   "white": "#F2F0EA",
   "black": "#1F2226",
   "mouth": "#7A2E33",
   "tooth": "#FFFFFF",
   "gum": "#9A4F58",
-  "grey-": "#4E5A63",
-  "grey+": "#768593",
+  "grey-": "#36424A",
+  "grey+": "#546470",
   "white-": "#C2C0BB",
   "white+": "#FFFFFF",
   "black-": "#191B1E",

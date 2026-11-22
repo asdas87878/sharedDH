@@ -333,9 +333,64 @@ one), a stand-in rider at the seat, seen from exactly where the riding camera si
 - **Still to do:** the cost while it rides along (a moving hole places every cube each frame: Medium was 12 ms in the
   earlier test, so a riding halo wants Tiny or Low, or the mesh disc plus a few hundred live arc cubes).
 
-**Others that could be made the same cheap way,** from models we have: Totality from the Manta Ray; Ringbearer from
-the Sea Turtle or Archelon; Keeper of the Light from an angler; Heartstar from the Bone Leviathan; Bottled Storm from
-the Aurora Jelly; Star Chart from a serpent's joints.
+### The Hollow, Cosmic: the fish that harbors it (second design, 2026-11-18)
+
+![The Hollow, Cosmic: side, top, and the riding view in the kit](../attachments/voxel-cosmichollow.jpg)
+
+The first design (a plain whale with an iron socket bolted on; 2026-11-17) was judged far too weak by the user. The
+second is built round the hole. `art/creatures/CosmicHollow` (Id `CosmicHollow`, named The Hollow):
+- **The crater:** a bowl torn in the back ahead of the seat, white-hot at the bottom, ember and raw magenta up its
+  walls, a swollen violet rim round it. The hole floats over it and its lower jet runs into the floor.
+- **The cradle:** eight bone ribs rise from the rim, leaning out and curling in at the tips like fingers holding a star,
+  an ember tip on each. Tall at the front and sides, low at the back, so the rider looks into the bowl.
+- **The pull:** five chunks of hide, torn loose, orbit over the crater (the `Drift` part turns once a swim).
+- **The eyes** are small black holes: a void pupil in an ember ring.
+- **The hide:** indigo over violet with a lavender belly; constellations on both flanks and on the head (white
+  plus-shaped stars, pale blue lines); a hot seam along the spine from the crater back under the rider; the fluke's
+  tips dissolve into loose stars (the `Dust` part).
+- 51.5 studs long in the kit, 2,896 triangles, 14 parts. Passes the gate.
+
+**In Studio, not uploaded:** the template `ReplicatedStorage.FishModels.CosmicHollow` shows mesh files written into
+Studio's own folder on this PC (`tools/creatures/install.py <studio> --local CosmicHollow`; the second design's files
+are under `ridefish/CosmicHollow_v2`, because Studio keeps a mesh file it has loaded until it restarts). It shows on this
+PC only and is not in the fish table, so it does not spawn. An upload (permanent) is the user's call.
+
+**The display:** `Workspace.CosmicHollowDisplay`, on a baseplate on the grass terrace just east of the hub (x 3355,
+z -160, height 105): the whale at 1.9x (98 studs), a stand-in rider on the seat, `RideCamera` (where the riding camera
+would be) and `BlackHoleAnchor`, an invisible part tagged `BlackHole` whose attributes set the hole (Scale 1.2, Voxel
+0.15, Quality Medium, Jets, AutoFeed 25). The hole is 6 studs ahead of the rider and 13 above the seat, its axis leaning
+20 degrees toward the camera and running down into the crater.
+- **In Play:** `Controllers/BlackHoleDisplayController` makes a live hole at every part tagged `BlackHole` (tested on the
+  first design: it shows, no errors).
+- **In Edit:** paste `tools/studio/black_hole_edit_preview.luau` into the command bar (again to take it away); its cubes
+  are not saved with the place. The riding view:
+  `workspace.CurrentCamera.CFrame = workspace.CosmicHollowDisplay.RideCamera.CFrame`.
+- **Not yet:** the hole riding along on a swimming Hollow (`Follow` the crater, Quality Tiny or Low), an upload.
+
+### Six more, built (2026-11-18)
+The six proposed here, each built round its set piece on the body of a model we have, which is not changed. All pass
+the gate. Not exported, not uploaded, not in the game. Each sheet shows the hero view, the top, and the riding camera.
+The set piece is ahead of the seat in every one, because the riding camera sees only about 4 studs behind the rider.
+
+| Cosmic | Folder | Built on | Size (studs) | Triangles | The set piece | What moves | Weak spots |
+|---|---|---|---|---|---|---|---|
+| **Totality** | `CosmicTotality` | Manta Ray | 31 × 35 × 20 | 3,184 | a black moon with a white-hot ring and a ragged corona (gold to orange), a diamond-ring bead; held up ahead of the rider by the two horns curling over its rim | the corona turns behind the moon; the moon rocks; wings flap | the moon is a little egg-shaped; the horns are plain columns; edge-on from above |
+| **Ringbearer** | `CosmicRingbearer` | Archelon | 36 × 44 × 27 | 5,789 | the shell is a banded planet (cream, ochre, rust, a storm spot, a hexagon at the pole round the seat); a tilted ring of ice plates and shards | the ring turns; a glowing moon (the light) and a dark moon orbit, once and twice a cycle | the hero view sees the ring nearly edge-on; the shards are small; the turtle's head is small; the dark moon may brush a wing |
+| **Keeper of the Light** | `CosmicLightkeeper` | Anglerfish | 51 × 20 × 39 (body about 33) | 3,426 | the lure is a lighthouse on a barnacled rock at the end of a crane-like boom: red and white bands, a gallery, a blazing lantern, a door with a porch lamp | two beams sweep once a swim; the boom nods, the tower stays upright; the jaw gulps | the body is the plain Anglerfish scaled up; the solid beams may cover the view up close; the tower's upper bands sit in shadow from the seat |
+| **Heartstar** | `CosmicHeartstar` | Bone Leviathan's plan | 53 × 18 × 20 | 3,196 | a sun with flame tongues caged by four pairs of bone ribs over a burnt, glowing pit; warm veins run from the cage along the flanks, fins and tail | the sun turns; the flares orbit the other way; the ribs open up to 7 degrees each beat | the near ribs hide part of the sun from the side; the head is boxy, more tuna than leviathan; the beat is smooth, not a double pulse |
+| **Bottled Storm** | `CosmicBottledStorm` | Aurora Jelly | 22 × 21 × 38 (tall) | 5,632 | a corked glass bottle in brass ribs, a storm bulging out of the shoulder in wedges with bolts and sparks; six lightning arms hang from a dark cloud under the base | the cloud underneath churns; the arms swing out of step; the cork rattles | **the weakest:** it reads as a squat jar or lantern, not a bottle; from the seat the storm barely shows and the rider hides the neck |
+| **Star Chart** | `CosmicStarChart` | Storm Serpent | 52 × 11 × 14 | 5,936 | a serpent drawn as a constellation: lines of stars along the spine and keel, star fins, an open jaw of stars, a white crown star with the light, deep indigo mist inside; a gold star at the seat | swims side to side; the lines stretch at the joints; loose stars turn behind the tail | from the seat the rearing head is seen end-on as a stack of stars; the mist reads as segments; no triangles to spare |
+
+![Totality](../attachments/voxel-cosmictotality.jpg)
+![Ringbearer](../attachments/voxel-cosmicringbearer.jpg)
+![Keeper of the Light](../attachments/voxel-cosmiclightkeeper.jpg)
+![Heartstar](../attachments/voxel-cosmicheartstar.jpg)
+![Bottled Storm](../attachments/voxel-cosmicbottledstorm.jpg)
+![Star Chart](../attachments/voxel-cosmicstarchart.jpg)
+
+**My read:** Totality, Heartstar and Ringbearer are the strongest from the seat. Keeper of the Light is charming but
+its body is plain. Bottled Storm wants a second pass: a tall, thin bottle with the rider behind the neck. Star Chart
+reads best from the side; from the seat it needs the head turned so its profile shows.
 
 ## What it would take
 - **The models:** the voxel kit can already make all of the bodies, the chambers, glowing faces and parts on joints.

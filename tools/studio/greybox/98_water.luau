@@ -108,16 +108,16 @@ local LOOK = {
 }
 -- each land's water: {s where it begins, water colour, see, tint, extra colour, shafts, specks' colour, thick, ceiling}
 local ZONES = {
-	{ 0, Color3.fromRGB(72, 224, 232), 1800, Color3.fromRGB(226, 255, 250), 0.1, 1, Color3.fromRGB(255, 255, 255), 0.45, Color3.fromRGB(170, 240, 255) },
-	{ 1000, Color3.fromRGB(40, 186, 250), 1800, Color3.fromRGB(222, 244, 255), 0.18, 0.9, Color3.fromRGB(255, 240, 250), 0.5, Color3.fromRGB(150, 226, 255) },
-	{ 3500, Color3.fromRGB(40, 206, 128), 1800, Color3.fromRGB(220, 255, 226), 0.2, 0.85, Color3.fromRGB(230, 255, 170), 0.55, Color3.fromRGB(160, 246, 190) },
-	{ 6000, Color3.fromRGB(24, 160, 176), 1800, Color3.fromRGB(214, 246, 244), 0.16, 0.7, Color3.fromRGB(255, 226, 170), 0.6, Color3.fromRGB(140, 228, 228) },
-	{ 8500, Color3.fromRGB(36, 104, 244), 1800, Color3.fromRGB(214, 228, 255), 0.14, 0.65, Color3.fromRGB(200, 230, 255), 0.55, Color3.fromRGB(130, 176, 255) },
-	{ 11000, Color3.fromRGB(104, 72, 232), 1800, Color3.fromRGB(228, 216, 255), 0.12, 0.55, Color3.fromRGB(150, 255, 240), 0.65, Color3.fromRGB(150, 112, 250) },
-	{ 13500, Color3.fromRGB(52, 62, 190), 1300, Color3.fromRGB(226, 228, 255), 0.06, 0.4, Color3.fromRGB(120, 240, 255), 1, Color3.fromRGB(86, 100, 240) },
-	{ 16000, Color3.fromRGB(206, 112, 88), 1800, Color3.fromRGB(255, 236, 226), -0.12, 0.5, Color3.fromRGB(255, 190, 90), 0.55, Color3.fromRGB(240, 120, 76) },
-	{ 18500, Color3.fromRGB(60, 176, 150), 1800, Color3.fromRGB(214, 255, 238), 0.1, 0.5, Color3.fromRGB(190, 255, 210), 0.7, Color3.fromRGB(110, 220, 184) },
-	{ 21000, Color3.fromRGB(186, 52, 104), 1200, Color3.fromRGB(255, 228, 236), -0.1, 0.45, Color3.fromRGB(255, 110, 90), 1, Color3.fromRGB(236, 80, 120) }
+	{ 0, Color3.fromRGB(151, 227, 231), 1800, Color3.fromRGB(226, 255, 250), 0.1, 1, Color3.fromRGB(255, 255, 255), 0.45, Color3.fromRGB(187, 236, 239) },
+	{ 1000, Color3.fromRGB(138, 207, 237), 1800, Color3.fromRGB(222, 244, 255), 0.18, 0.9, Color3.fromRGB(255, 240, 250), 0.5, Color3.fromRGB(178, 223, 243) },
+	{ 3500, Color3.fromRGB(128, 214, 174), 1800, Color3.fromRGB(220, 255, 226), 0.2, 0.85, Color3.fromRGB(230, 255, 170), 0.55, Color3.fromRGB(172, 228, 202) },
+	{ 6000, Color3.fromRGB(109, 184, 193), 1800, Color3.fromRGB(214, 246, 244), 0.16, 0.7, Color3.fromRGB(255, 226, 170), 0.6, Color3.fromRGB(160, 208, 214) },
+	{ 8500, Color3.fromRGB(128, 161, 227), 1800, Color3.fromRGB(214, 228, 255), 0.14, 0.65, Color3.fromRGB(200, 230, 255), 0.55, Color3.fromRGB(172, 193, 236) },
+	{ 11000, Color3.fromRGB(179, 171, 215), 1800, Color3.fromRGB(228, 216, 255), 0.12, 0.55, Color3.fromRGB(150, 255, 240), 0.65, Color3.fromRGB(205, 200, 229) },
+	{ 13500, Color3.fromRGB(115, 120, 174), 1300, Color3.fromRGB(226, 228, 255), 0.06, 0.4, Color3.fromRGB(120, 240, 255), 1, Color3.fromRGB(164, 167, 202) },
+	{ 16000, Color3.fromRGB(156, 94, 78), 1800, Color3.fromRGB(255, 236, 226), -0.12, 0.5, Color3.fromRGB(255, 190, 90), 0.55, Color3.fromRGB(190, 150, 139) },
+	{ 18500, Color3.fromRGB(128, 191, 177), 1800, Color3.fromRGB(214, 255, 238), 0.1, 0.5, Color3.fromRGB(190, 255, 210), 0.7, Color3.fromRGB(172, 213, 204) },
+	{ 21000, Color3.fromRGB(112, 93, 195), 1200, Color3.fromRGB(255, 228, 236), -0.1, 0.45, Color3.fromRGB(150, 240, 255), 1, Color3.fromRGB(162, 149, 216) }
 }
 -- the lane's line as the map was built: {x, z, s}, so the script knows which land the camera is in
 local LINE = {

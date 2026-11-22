@@ -15,7 +15,7 @@ import math
 
 NAME, ZONE, RARITY = "Lionfish", "ZONE 2 / CORAL REEF", "UNCOMMON"
 U = 0.4
-PALETTE = {"rust": "#A2452F", "cream": "#F3E6C8", "black": "#231F1E", "mouth": "#57211F"}
+PALETTE = {"rust": "#C7654C", "cream": "#F3E6C8", "black": "#231F1E", "mouth": "#57211F"}
 SEAT = (-2, 5, 2.5)
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["rust"]}]
 FRAME = 1.1

@@ -3,6 +3,43 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-22 · The other PC's work since 2026-11-17, merged on top of yours (Obsidian chat integration, the user's PC)
+**State:** merged on top of your `de938cd` (your 157 commits since our last push came in as a fast-forward; nothing of
+yours was replayed). StyLua clean; selene 0 errors (the three old warnings, and seven style hints in your
+`UI/Shop.luau` and `UI/UpgradeSign.luau`, left as you pushed them); `rojo build` passes. Run in Studio by script on the
+user's PC: a dive, a catch, hops, the slots and the land strip, no errors. **Not played by hand.**
+- **Where our work met yours** (both sides kept; worth a look):
+  - `UI/Portrait.luau`: the UI chat rebuilt the model pictures (two windows, a colour one and an ink one, with the
+    outline drawn eight ways and measured as a share of the picture's height). Your renders (`FishIcons`) and `Aspect`
+    are ported into it: a fish with a render shows it, outlined the same eight ways.
+  - `UI/Slots.luau`: your `paint`; the highlight band still shows on the chosen slot only (`showRings` runs after the
+    paint), and a name is never cut after a space.
+  - `AnimController.luau`: your land loop, with our stride (a ridden fish steps left and right) put back inside it.
+    `astride`'s arguments: your `still` stays 8th, then our `step`, `across`, `stepOn`.
+  - `RideService.luau`: our delay-aware reach and landing checks and the whole-fish reach sit beside your ragdoll,
+    ticks, needs and equip.
+- **Uploaded, on the user's word:** the land strip's G4 pictures (`Kit.LandAtlas`, rbxassetid://124258870686064) and
+  your padlock atlas (`LOCK_ATLAS`, rbxassetid://99889688472050); both in `art/ui/icons/roblox.json`, both seen loading
+  in Studio. Your fish icon pages (`FishIcons.Pages`) are **not** uploaded.
+- **Fish pictures, two directions to settle between you:** your task r1 shows the voxel renders as icons (they are from
+  before the recolour below); the UI chat reworked the model pictures and prepared ChatGPT-drawn icons
+  (`art/ui/fish_icons`, nothing generated yet). Worth agreeing on one before more work goes into either.
+- **The hook and the lock** (feel reviews 1 to 3, [docs/reviews](reviews/feel-review-3.md)): the lock takes fish in
+  front where the camera looks, A and D step it, the reach counts the whole fish and goes further straight ahead early;
+  the hook by itself at 1.7 s; a ridden fish's stride; the long hook (LONG, HUGE, MEGA HOOK); fast fish allowed for the
+  delay; the herd at 0.85; the landing snap and a punch at the throw; then the pull-in 0.5 s and even, with the glide
+  closing in over its fish first (`Config.Jump` Sling and Hover rows, in the N panel).
+- **Fish:** four Shallows fish are cut (Boxfish, Butterflyfish, Blue Chromis, Flying Fish): their modules are gone and
+  `tools/creatures/collect.py` skips them. The creature chat recoloured 30 fish so each land has one that blends in and
+  the rare ones stand out ([fish values](design/fish-values.md)); those exports are in `art/creatures`, **not in the game
+  yet** (the models need uploading and installing).
+- **The map:** the later lands' far view as real models (`Workspace.FarView`, in the place, not in git) and its
+  low-graphics fallback in `LookController` (the painted sky face on graphics 1 to 3, and phones on Automatic); each
+  land's water fog halfway, the Underworld indigo; the map chat's studies. Their regenerable `parts.json` variants are
+  left out of the repo (`.gitignore`); renders, sheets and specs are in.
+- **Tools:** `tools/studio/push_scripts.py` writes a source past 200,000 characters through ScriptEditorService, as yours
+  does (`Config` is past it); `tools/review/` (the feel review's scripts, with the reference's distance counter reader).
+
 ## 2026-11-20 · The ride fish moves on land by its body type (NULLROOM task e4, Hugo's PC)
 **State:** in the game code (`AnimController`, `Config.LandRide`); stylua and selene clean. Checked by a scripted Studio
 playtest, `python tools/studio/e4_land_check.py install`, `studio-run.mjs play`, `... run`: **10 of 10 pass** (log

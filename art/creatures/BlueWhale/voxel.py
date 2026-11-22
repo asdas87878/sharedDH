@@ -15,7 +15,7 @@ import math
 
 NAME, ZONE, RARITY = "Blue Whale", "ZONE 5 / OPEN BLUE", "MYTHIC"
 U = 0.7
-PALETTE = {"body": "#47708F", "throat": "#C4D3D9", "mouth": "#7A3B46", "baleen": "#E6DDC2", "black": "#24262B",
+PALETTE = {"body": "#3B6583", "throat": "#B8C6CC", "mouth": "#7A3B46", "baleen": "#E6DDC2", "black": "#24262B",
            "coral": "#E86F5C", "crust": "#D8CDB4", "weed": "#5F8F58", "lume": "#7FF0D8", "iron": "#3B3F46", "sponge": "#E2B84A",
            "wood": "#7A5A3C"}
 SEAT = (-15.8, 8.0, 1.5)

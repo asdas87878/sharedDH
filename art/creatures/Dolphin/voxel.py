@@ -15,7 +15,7 @@ import math
 
 NAME, ZONE, RARITY = "Dolphin", "ZONE 5 / OPEN BLUE", "RARE"
 U = 0.4
-PALETTE = {"grey": "#7E8FA0", "belly": "#EEF0EC", "line": "#B9C7D3", "dark": "#46525F", "black": "#22262B"}
+PALETTE = {"grey": "#94A5B7", "belly": "#EEF0EC", "line": "#B9C7D3", "dark": "#46525F", "black": "#22262B"}
 SEAT = (-5.5, 5, 3.6)
 FRAME, ORTHO = 1.45, 21.0
 TEXTURES = [{"tile": "stud", "on": "top", "colours": ["grey"]}]

@@ -325,7 +325,8 @@ Kit.LandReveal = "Best"
 -- look under it (tools/ui/land_icons/atlas.py). Not uploaded yet: until it is, the tiles are plain land colour. In
 -- Studio the workspace's "LandAtlas" string overrides it (rbxasset://textures/ridefish/land_atlas.png is a copy in
 -- Studio's own content folder, for tests without an upload).
-Kit.LandAtlas = ""
+-- (uploaded 2026-11-22, the user: "Could we integrate that into the push too": the G4 set, art/ui/icons/roblox.json)
+Kit.LandAtlas = "rbxassetid://124258870686064"
 -- In Studio, while LandAtlas is empty, the strip reads the local copy so the pictures show without an upload.
 Kit.LandAtlasStudio = "rbxasset://textures/ridefish/land_atlas_g4.png"
 -- A land not reached (Hugo, 2026-11-18: "make sure its actually a screenshot even when locked, just unsaturated and

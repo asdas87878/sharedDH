@@ -103,7 +103,7 @@ the biggest pools, so the start feels vast. The coolest creatures sit in the rar
 
 | Zone | Common | Uncommon | Rare | Epic | Legendary | Mythic | Secret |
 |---|---|---|---|---|---|---|---|
-| 1 Shallows | Sergeant Major, Yellow Tang, Clownfish, Blue Chromis, Butterflyfish, Boxfish, Pufferfish | Sea Turtle, Stingray, Cuttlefish, Flying Fish | Seahorse | Reef Shark | Archelon | | Pearl Serpent |
+| 1 Shallows | Sergeant Major, Yellow Tang, Clownfish, Pufferfish | Sea Turtle, Stingray, Cuttlefish | Seahorse | Reef Shark | Archelon | | Pearl Serpent |
 | 2 Coral Reef | | Parrotfish, Lionfish, Angelfish | Moray Eel, Octopus | Humphead Wrasse | Dunkleosteus | | Coral Dragon |
 | 3 Kelp Forest | | Garibaldi, Sea Lion | Leopard Shark, Giant Sea Bass | Great White, Steller's Sea Cow | Dakosaurus | | Kelp Wyrm |
 | 4 Shipwrecks | | Barracuda | Hammerhead, Sawfish | Goliath Grouper, Electric Ray | Xiphactinus | | Galleon Whale |
@@ -113,6 +113,9 @@ the biggest pools, so the start feels vast. The coolest creatures sit in the rar
 | 8 Vents | | | | Sea Scorpion, Giant Isopod | Anomalocaris, Kronosaurus, Megalodon | Molten Megalodon | Ember Serpent |
 | 9 Bone Graveyard | | | | | Grave Ray, Skull Angler, Wraith Eel, Grave Turtle | Halfbone Megalodon, Bone Leviathan | Phantom Whale |
 | 10 The Underworld | | | | | Brimstone Eel, Infernal Angler, Hellfin Shark, Cinder Ray | Hellmaw, Abyssal Watcher | The Devourer |
+
+(2026-11-19: Blue Chromis, Butterflyfish, Boxfish and Flying Fish were cut from the Shallows, so the counts below are
+from before it: [fish against their lands](fish-values.md).)
 
 **Counts:** 6 to 15 creatures at home in each zone, plus a Secret: 81 in all. By rarity: 7 Common, 10 Uncommon, 10 Rare,
 14 Epic, 22 Legendary, 8 Mythic, 10 Secret. Ride a Dino has "50+". With creatures ranging ahead, each zone shows more than its own.

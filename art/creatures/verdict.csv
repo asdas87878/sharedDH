@@ -1,0 +1,79 @@
+zone,land,tier,name,id,verdict,why,change,median_L,floor_L,gap_floor,hue_gap,main,glow
+1,Shallows,Common,Clownfish,Clownfish,keep,wears the land,,77.1,85.0,-7.9,26,#ffab73,False
+1,Shallows,Common,Pufferfish,Pufferfish,keep,wears the land,,83.9,85.0,-1.1,7,#e8b63a,False
+1,Shallows,Common,Sergeant Major,SergeantMajor,keep,wears the land,,75.9,85.0,-9.1,0,#dfd8c6,False
+1,Shallows,Common,Yellow Tang,YellowTang,keep,wears the land,,85.5,85.0,0.5,1,#f7d417,False
+1,Shallows,Uncommon,Cuttlefish,Cuttlefish,keep,close to the land,,71.4,85.0,-13.6,28,#c18968,False
+1,Shallows,Uncommon,Sea Turtle,SeaTurtle,keep,close to the land,,67.8,85.0,-17.1,40,#8db06a,False
+1,Shallows,Uncommon,Stingray,Stingray,keep,wears the land,,87.7,85.0,2.7,16,#b48e5e,False
+1,Shallows,Rare,Seahorse,Seahorse,keep,stands out by lightness,,64.0,85.0,-21.0,30,#f07a3e,False
+1,Shallows,Epic,Reef Shark,ReefShark,keep,stands out by lightness,,61.8,85.0,-23.2,0,#8c979e,False
+1,Shallows,Legendary,Archelon,Archelon,keep,"30 off the floor, glowing",,55.4,85.0,-29.6,171,#1d3059,True
+1,Shallows,Secret,Pearl Serpent,PearlSerpent,keep,"34 off the floor, glowing",,50.8,85.0,-34.2,168,#6f6cd9,True
+2,Coral Reef,Uncommon,Angelfish,Angelfish,keep,wears the land,,77.6,68.7,9.0,51,#f2b632,False
+2,Coral Reef,Uncommon,Lionfish,Lionfish,keep,close to the land,,54.0,68.7,-14.7,22,#c7654c,False
+2,Coral Reef,Uncommon,Parrotfish,Parrotfish,keep,wears the land,,67.7,68.7,-1.0,175,#1fb8ac,False
+2,Coral Reef,Rare,Moray Eel,MorayEel,keep,stands out by an opposite hue,,58.5,68.7,-10.1,101,#6a9a3e,False
+2,Coral Reef,Rare,Octopus,Octopus,keep,stands out by lightness,,45.0,68.7,-23.6,23,#c23a14,False
+2,Coral Reef,Epic,Humphead Wrasse,HumpheadWrasse,keep,stands out by an opposite hue,,60.0,68.7,-8.6,167,#2f9fa6,False
+2,Coral Reef,Legendary,Dunkleosteus,Dunkleosteus,keep,"30 off the floor, glowing",,39.2,68.7,-29.5,134,#3e5c8a,True
+2,Coral Reef,Secret,Coral Dragon,CoralDragon,keep,"33 off the floor, glowing",,36.0,68.7,-32.7,177,#00453e,True
+3,Kelp Forest,Uncommon,Garibaldi,Garibaldi,keep,wears the land,,66.0,57.6,8.4,114,#ff7a1c,False
+3,Kelp Forest,Uncommon,Sea Lion,SeaLion,keep,close to the land,,44.0,57.6,-13.6,113,#8b5e3c,False
+3,Kelp Forest,Rare,Giant Sea Bass,GiantSeaBass,keep,stands out by lightness,,34.1,57.6,-23.5,108,#574f47,False
+3,Kelp Forest,Rare,Leopard Shark,LeopardShark,keep,stands out by lightness,,82.0,57.6,24.5,0,#d1ccbc,False
+3,Kelp Forest,Epic,Great White,GreatWhite,keep,stands out by lightness,,34.1,57.6,-23.5,68,#44525d,False
+3,Kelp Forest,Epic,Steller's Sea Cow,StellersSeaCow,keep,stands out by lightness,,33.9,57.6,-23.7,107,#594e42,False
+3,Kelp Forest,Legendary,Dakosaurus,Dakosaurus,keep,"29 off the floor, glowing",,28.9,57.6,-28.7,17,#004f2f,True
+3,Kelp Forest,Secret,Kelp Wyrm,KelpWyrm,keep,"33 off the floor, glowing",,24.3,57.6,-33.3,8,#002711,True
+4,Shipwrecks,Uncommon,Barracuda,Barracuda,keep,wears the land,,61.3,53.4,7.8,160,#51697f,False
+4,Shipwrecks,Rare,Hammerhead Shark,HammerheadShark,keep,stands out by lightness,,77.1,53.4,23.7,27,#bac2a4,False
+4,Shipwrecks,Rare,Sawfish,Sawfish,keep,stands out by lightness,,76.9,53.4,23.5,14,#dab989,False
+4,Shipwrecks,Epic,Electric Ray,ElectricRay,keep,stands out by lightness,,29.1,53.4,-24.4,163,#34465b,True
+4,Shipwrecks,Epic,Goliath Grouper,GoliathGrouper,keep,stands out by lightness,,29.1,53.4,-24.3,170,#373897,False
+4,Shipwrecks,Legendary,Xiphactinus,Xiphactinus,keep,"30 off the floor, glowing",,23.8,53.4,-29.6,159,#1a3b58,True
+4,Shipwrecks,Secret,Galleon Whale,GalleonWhale,keep,"35 off the floor, glowing",,18.8,53.4,-34.6,101,#1e3228,True
+5,Open Blue,Rare,Dolphin,Dolphin,keep,its land's wearer: blends in,,67.0,75.1,-8.1,6,#94a5b7,False
+5,Open Blue,Rare,Swordfish,Swordfish,keep,stands out by lightness,,27.3,75.1,-47.8,16,#263f73,False
+5,Open Blue,Epic,Manta Ray,MantaRay,keep,stands out by lightness,,17.4,75.1,-57.8,12,#262b33,False
+5,Open Blue,Epic,Orca,Orca,keep,stands out by lightness,,13.3,75.1,-61.8,18,#1b2233,False
+5,Open Blue,Legendary,Elasmosaurus,Elasmosaurus,keep,"29 off the floor, glowing",,46.0,75.1,-29.2,32,#007b6c,True
+5,Open Blue,Legendary,Helicoprion,Helicoprion,keep,"32 off the floor, glowing",,42.7,75.1,-32.4,19,#1b6f78,True
+5,Open Blue,Mythic,Blue Whale,BlueWhale,keep,"34 off the floor, glowing",,41.0,75.1,-34.1,1,#3b6583,True
+5,Open Blue,Secret,Storm Serpent,StormSerpent,keep,"36 off the floor, glowing",,39.1,75.1,-36.1,16,#4c5c7e,True
+6,Twilight,Rare,Viperfish,Viperfish,keep,stands out by lightness,,19.9,81.7,-61.8,0,#262f4c,True
+6,Twilight,Epic,Giant Squid,GiantSquid,keep,stands out by lightness,,41.7,81.7,-40.0,0,#b2362f,False
+6,Twilight,Epic,Goblin Shark,GoblinShark,keep,its land's wearer: blends in,,73.8,81.7,-7.9,0,#e9a3aa,False
+6,Twilight,Legendary,Liopleurodon,Liopleurodon,keep,"60 off the floor, glowing",,21.7,81.7,-60.1,0,#28344c,True
+6,Twilight,Legendary,Shonisaurus,Shonisaurus,keep,"47 off the floor, glowing",,35.1,81.7,-46.7,0,#3e5470,True
+6,Twilight,Mythic,Lantern Leviathan,LanternLeviathan,keep,"65 off the floor, glowing",,17.2,81.7,-64.6,0,#33253b,True
+6,Twilight,Secret,Aurora Jelly,AuroraJelly,keep,"44 off the floor, glowing",,37.5,81.7,-44.3,0,#2d2b78,True
+7,Midnight,Epic,Anglerfish,Anglerfish,keep,stands out by lightness,,24.4,75.3,-50.9,52,#43354a,True
+7,Midnight,Epic,Frilled Shark,FrilledShark,keep,its land's wearer: blends in,,67.0,75.3,-8.3,147,#b69e96,False
+7,Midnight,Legendary,Basilosaurus,Basilosaurus,keep,"32 off the floor, glowing",,43.0,75.3,-32.3,12,#4c586a,True
+7,Midnight,Legendary,Livyatan,Livyatan,keep,"43 off the floor, glowing",,32.2,75.3,-43.1,8,#474c56,True
+7,Midnight,Legendary,Mosasaurus,Mosasaurus,keep,"45 off the floor, glowing",,30.2,75.3,-45.1,32,#2f4b56,True
+7,Midnight,Mythic,Kraken,Kraken,keep,"51 off the floor, glowing",,24.2,75.3,-51.1,110,#63233a,True
+7,Midnight,Secret,Void Whale,VoidWhale,keep,"68 off the floor, glowing",,7.6,75.3,-67.7,2,#0e1434,True
+8,Vents,Epic,Giant Isopod,GiantIsopod,keep,stands out by lightness,,73.6,14.0,59.6,0,#b9b1cb,True
+8,Vents,Epic,Sea Scorpion,SeaScorpion,keep,stands out by lightness,,53.3,14.0,39.3,68,#c6642e,False
+8,Vents,Legendary,Anomalocaris,Anomalocaris,keep,"48 off the floor, glowing",,61.8,14.0,47.7,76,#8a8ee0,True
+8,Vents,Legendary,Bobbit Worm,BobbitWorm,keep,"34 off the floor, glowing",,48.4,14.0,34.4,71,#e3c8b6,True
+8,Vents,Legendary,Kronosaurus,Kronosaurus,keep,"29 off the floor, glowing",,42.9,14.0,28.9,124,#60694a,True
+8,Vents,Legendary,Megalodon,Megalodon,keep,its land's wearer: blends in,,26.2,14.0,12.2,100,#343f4d,True
+8,Vents,Mythic,Molten Megalodon,MoltenMegalodon,keep,"34 off the floor, glowing",,47.9,14.0,33.8,0,#73707c,True
+8,Vents,Secret,Ember Serpent,EmberSerpent,keep,"35 off the floor, glowing",,49.1,14.0,35.1,0,#73747f,True
+9,Bone Graveyard,Legendary,Grave Ray,GraveRay,keep,its land's wearer: blends in,,67.4,56.6,10.8,0,#a3a59f,True
+9,Bone Graveyard,Legendary,Grave Turtle,GraveTurtle,keep,"29 off the floor, glowing",,86.0,56.6,29.4,0,#fff9e7,True
+9,Bone Graveyard,Legendary,Skull Angler,SkullAngler,keep,"25 off the floor, glowing",,31.3,56.6,-25.4,88,#3e4d45,True
+9,Bone Graveyard,Legendary,Wraith Eel,WraithEel,keep,"29 off the floor, glowing",,85.6,56.6,29.0,0,#e9e4d2,True
+9,Bone Graveyard,Mythic,Bone Leviathan,BoneLeviathan,keep,"30 off the floor, glowing",,86.9,56.6,30.3,17,#e4d9bc,True
+9,Bone Graveyard,Mythic,Halfbone Megalodon,HalfboneMegalodon,keep,split black front and bone back: stands out by eye though its median is near the floor,,64.4,56.6,7.8,154,#343f4d,True
+9,Bone Graveyard,Secret,Phantom Whale,PhantomWhale,keep,"34 off the floor, glowing",,90.9,56.6,34.3,140,#c4ebff,True
+10,The Underworld,Legendary,Brimstone Eel,BrimstoneEel,keep,its land's wearer: blends in,,58.6,66.3,-7.7,0,#897583,True
+10,The Underworld,Legendary,Cinder Ray,CinderRay,keep,"46 off the floor, glowing",,20.1,66.3,-46.2,56,#3a2c3b,True
+10,The Underworld,Legendary,Hellfin Shark,HellfinShark,keep,"42 off the floor, glowing",,23.8,66.3,-42.5,24,#3b3741,True
+10,The Underworld,Legendary,Infernal Angler,InfernalAngler,keep,"43 off the floor, glowing",,23.4,66.3,-42.9,75,#43333f,True
+10,The Underworld,Mythic,Abyssal Watcher,AbyssalWatcher,keep,"41 off the floor, glowing",,25.0,66.3,-41.2,32,#4b2f63,True
+10,The Underworld,Mythic,Hellmaw,Hellmaw,keep,"38 off the floor, glowing",,28.8,66.3,-37.5,0,#3a3438,True
+10,The Underworld,Secret,The Devourer,TheDevourer,keep,"43 off the floor, glowing",,23.0,66.3,-43.3,44,#43304a,True

@@ -18,7 +18,7 @@ import math
 
 NAME, ZONE, RARITY = "Giant Sea Bass", "ZONE 3 / KELP FOREST", "RARE"
 U = 0.45
-PALETTE = {"body": "#655C54", "belly": "#93887B", "lip": "#E2D3B8", "spot": "#3D3632", "black": "#1E1F22"}
+PALETTE = {"body": "#574F47", "belly": "#93887B", "lip": "#E2D3B8", "spot": "#3D3632", "black": "#1E1F22"}
 SEAT = (-6.5, 7, 5.5)
 FRAME, ORTHO = 1.7, 25.0
 TEXTURES = [{"tile": "stud", "on": "top+sides", "colours": ["body"]}]

@@ -1,4 +1,4 @@
-"""The Sea Turtle (zone 1's Uncommon: a green sea turtle) for tools/blender/voxel_kit.py (docs/style/04-voxel-style.md).
+"""The Sea Turtle (zone 1's Uncommon: a sea turtle with an amber shell) for tools/blender/voxel_kit.py (docs/style/04-voxel-style.md).
 Its idea: a calm, friendly turtle whose shell is five plain plates with pale seams drawn between its scutes.
 - The shell is five big blocks, front to back (the Archelon's way, made small): a wide flat plateau, one broad shoulder
   step, a wall, and a darker lip a cube proud all the way round. From the side the blocks make a low dome; from above
@@ -12,12 +12,13 @@ Its idea: a calm, friendly turtle whose shell is five plain plates with pale sea
   throat, a dark eye in a cream ring.
 - Long front flippers, each on a joint: an arm that goes out, a blade and a tip that sweep back, each smaller and
   thinner. Short back flippers, each on a joint. A short tail.
-The rider sits on the crown."""
+The rider sits on the crown.
+Colours (2026-11-18): the remodel's palette (art/creatures/TrialSeaTurtle), on this model unchanged."""
 import math
 
 NAME, ZONE, RARITY = "Sea Turtle", "ZONE 1 / SHALLOWS", "UNCOMMON"
 U = 0.4
-PALETTE = {"shell": "#6F8A3C", "seam": "#CDD494", "skin": "#8DB06A", "belly": "#F3E9C8", "black": "#1E2226"}
+PALETTE = {"shell": "#C9782E", "seam": "#F4EBCB", "skin": "#9CC46A", "belly": "#F4EBCB", "black": "#1E2226"}
 SEAT = (0, 5, 2.0)
 FRAME, ORTHO = 1.5, 19.0
 TEXTURES = [{"tile": "stud_square", "on": "all", "colours": ["shell"]}]

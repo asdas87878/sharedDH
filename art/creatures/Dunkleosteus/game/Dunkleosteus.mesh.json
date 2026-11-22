@@ -108,7 +108,7 @@
   }
  ],
  "paletteCells": {
-  "bone": "#C9B994",
+  "bone": "#3E5C8A",
   "body": "#56788A",
   "belly": "#B4C4C0",
   "blade": "#F1EAD6",
@@ -117,8 +117,8 @@
   "amber": "#FFB23E",
   "soft": "#F2A93F",
   "iris": "#C98A2E",
-  "bone-": "#A19476",
-  "bone+": "#E9D7AE",
+  "bone-": "#324A6E",
+  "bone+": "#4D6FA3",
   "body-": "#45606E",
   "body+": "#688EA3",
   "belly-": "#909D9A",

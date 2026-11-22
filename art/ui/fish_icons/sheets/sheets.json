@@ -1,0 +1,126 @@
+[
+ {
+  "Sheet": 1,
+  "Fish": [
+   "Clownfish",
+   "Pufferfish",
+   "SergeantMajor",
+   "YellowTang",
+   "Angelfish",
+   "Barracuda",
+   "Cuttlefish",
+   "Garibaldi",
+   "Lionfish"
+  ]
+ },
+ {
+  "Sheet": 2,
+  "Fish": [
+   "Parrotfish",
+   "SeaLion",
+   "SeaTurtle",
+   "Stingray",
+   "Dolphin",
+   "GiantSeaBass",
+   "HammerheadShark",
+   "LeopardShark",
+   "MorayEel"
+  ]
+ },
+ {
+  "Sheet": 3,
+  "Fish": [
+   "Octopus",
+   "Sawfish",
+   "Seahorse",
+   "Swordfish",
+   "Viperfish",
+   "Anglerfish",
+   "ElectricRay",
+   "FrilledShark",
+   "GiantIsopod"
+  ]
+ },
+ {
+  "Sheet": 4,
+  "Fish": [
+   "GiantSquid",
+   "GoblinShark",
+   "GoliathGrouper",
+   "GreatWhite",
+   "HumpheadWrasse",
+   "MantaRay",
+   "Orca",
+   "ReefShark",
+   "SeaScorpion"
+  ]
+ },
+ {
+  "Sheet": 5,
+  "Fish": [
+   "StellersSeaCow",
+   "Anomalocaris",
+   "Archelon",
+   "Basilosaurus",
+   "BobbitWorm",
+   "BrimstoneEel",
+   "CinderRay",
+   "Dakosaurus",
+   "Dunkleosteus"
+  ]
+ },
+ {
+  "Sheet": 6,
+  "Fish": [
+   "Elasmosaurus",
+   "GraveRay",
+   "GraveTurtle",
+   "Helicoprion",
+   "HellfinShark",
+   "InfernalAngler",
+   "Kronosaurus",
+   "Liopleurodon",
+   "Livyatan"
+  ]
+ },
+ {
+  "Sheet": 7,
+  "Fish": [
+   "Megalodon",
+   "Mosasaurus",
+   "Shonisaurus",
+   "SkullAngler",
+   "WraithEel",
+   "Xiphactinus",
+   "AbyssalWatcher",
+   "BlueWhale",
+   "BoneLeviathan"
+  ]
+ },
+ {
+  "Sheet": 8,
+  "Fish": [
+   "HalfboneMegalodon",
+   "Hellmaw",
+   "Kraken",
+   "LanternLeviathan",
+   "MoltenMegalodon",
+   "AuroraJelly",
+   "CoralDragon",
+   "CosmicHollow",
+   "EmberSerpent"
+  ]
+ },
+ {
+  "Sheet": 9,
+  "Fish": [
+   "GalleonWhale",
+   "KelpWyrm",
+   "PearlSerpent",
+   "PhantomWhale",
+   "StormSerpent",
+   "TheDevourer",
+   "VoidWhale"
+  ]
+ }
+]

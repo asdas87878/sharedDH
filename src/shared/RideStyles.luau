@@ -32,14 +32,11 @@ local MEMBERS: { [string]: { string } } = {
 	Darter = {
 		"SergeantMajor",
 		"Clownfish",
-		"BlueChromis",
-		"Butterflyfish",
 		"YellowTang",
 		"Angelfish",
 		"Garibaldi",
 		"Parrotfish",
 		"Lionfish",
-		"FlyingFish",
 		"Viperfish",
 	},
 	Cruiser = {
@@ -96,7 +93,7 @@ local MEMBERS: { [string]: { string } } = {
 	Glider = { "Stingray", "MantaRay", "ElectricRay", "CinderRay", "GraveRay" },
 	Paddler = { "SeaTurtle", "Archelon", "GraveTurtle", "Elasmosaurus", "Kronosaurus", "Liopleurodon" },
 	Jetter = { "Octopus", "Kraken", "GiantSquid", "Cuttlefish", "AuroraJelly" },
-	Bobber = { "Pufferfish", "Boxfish", "Seahorse", "Anglerfish", "InfernalAngler", "SkullAngler", "AbyssalWatcher" },
+	Bobber = { "Pufferfish", "Seahorse", "Anglerfish", "InfernalAngler", "SkullAngler", "AbyssalWatcher" },
 	Crawler = { "Anomalocaris", "GiantIsopod", "SeaScorpion" },
 }
 

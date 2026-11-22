@@ -407,7 +407,7 @@ One button. Space throws you off the fish at once (from floating too).
   glide leave of it. A bar and the seconds under the reticle show it; red and pulsing for the last 0.8 s.
 - **You always go forward. Only A and D steer,** at one rate (95 degrees a second) on a fish, in the hop and floating.
   W, S and the mouse never steer or change speed; a ridden fish keeps the herd's height by itself.
-- **The lock-on** (`Lib/Lock`, `Config.Lock`): the fish you look at glows yellow and gets a bracket on the screen. It is
+- **The lock-on** (`Lib/Lock`, `Config.Lock`; since 2026-11-18 it goes by the way you fly, [the lock](the-lock.md), and what follows is `Lock.Pick` 1): the fish you look at glows yellow and gets a bracket on the screen. It is
   a cone along where the camera looks, wider for near fish, nothing past 85 studs, sticky so it doesn't flicker; the
   fish you just left comes last. It shows faintly while you still ride. In the hop the mouse aims with no button held,
   and the view rests looking down on the herd (30 degrees) until you move it.

@@ -13,7 +13,7 @@ import math
 
 NAME, ZONE, RARITY = "Octopus", "ZONE 2 / CORAL REEF", "RARE"
 U = 0.45
-PALETTE = {"orange": "#E4572E", "pale": "#F7CFA4", "iris": "#F4D77E", "black": "#1E1A1C"}
+PALETTE = {"orange": "#C23A14", "pale": "#F7CFA4", "iris": "#F4D77E", "black": "#1E1A1C"}
 SEAT = (-15, 8, 6.5)
 FRAME, ORTHO, ORTHO_SWIM = 1.55, 22.0, 25.0
 TEXTURES = [{"tile": "stud", "on": "all", "colours": ["orange"], "parts": ["Mantle", "Head"]}]

@@ -21,7 +21,7 @@ import math
 
 NAME, ZONE, RARITY = "Coral Dragon", "ZONE 2 / CORAL REEF", "SECRET"
 U = 0.45
-PALETTE = {"cream": "#F2E2C4", "belly": "#FBF4E4", "pink": "#EE7F98", "orange": "#F39A4A", "teal": "#2FB3A6", "polyp": "#FFD3DC",
+PALETTE = {"cream": "#00453E", "belly": "#006053", "pink": "#EE7F98", "orange": "#F39A4A", "teal": "#2FB3A6", "polyp": "#FFD3DC",
            "black": "#2A2430", "mouth": "#7A2E3F", "gum": "#B5566A", "tooth": "#FFFFFF"}
 SEAT = (-6.5, 10, 5.5)
 GLOW = {"polyp": 0.6}  # the polyps at the ends of the antlers and of the tail's two lobes

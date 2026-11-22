@@ -126,16 +126,16 @@
   }
  ],
  "paletteCells": {
-  "brown": "#8E5B3C",
+  "brown": "#C18968",
   "cream": "#F3E6C8",
-  "sand": "#DDB682",
+  "sand": "#FFEDD8",
   "black": "#231C1A",
-  "brown-": "#724930",
-  "brown+": "#A76E4B",
+  "brown-": "#9A6E53",
+  "brown+": "#E0A17C",
   "cream-": "#C2B8A0",
   "cream+": "#FFFFE8",
-  "sand-": "#B19268",
-  "sand+": "#FFD49A",
+  "sand-": "#CCBEAD",
+  "sand+": "#FFFFFA",
   "black-": "#1C1615",
   "black+": "#2F2725"
  },

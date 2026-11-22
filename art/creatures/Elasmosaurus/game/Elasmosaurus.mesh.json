@@ -225,7 +225,7 @@
   }
  ],
  "paletteCells": {
-  "sea": "#1F8A7A",
+  "sea": "#007B6C",
   "belly": "#F0E4C4",
   "gold": "#E8A93C",
   "soft": "#F6CF7A",
@@ -233,8 +233,8 @@
   "tooth": "#FFFFFF",
   "mouth": "#6A2630",
   "gum": "#9A4F58",
-  "sea-": "#196E62",
-  "sea+": "#2BA391",
+  "sea-": "#006256",
+  "sea+": "#089281",
   "belly-": "#C0B69D",
   "belly+": "#FFFFE4",
   "gold-": "#BA8730",

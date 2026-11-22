@@ -135,13 +135,13 @@
   }
  ],
  "paletteCells": {
-  "grey": "#7E8FA0",
+  "grey": "#94A5B7",
   "belly": "#EEF0EC",
   "line": "#B9C7D3",
   "dark": "#46525F",
   "black": "#22262B",
-  "grey-": "#657280",
-  "grey+": "#95A8BB",
+  "grey-": "#768492",
+  "grey+": "#AEC1D5",
   "belly-": "#BEC0BD",
   "belly+": "#FFFFFF",
   "line-": "#949FA9",

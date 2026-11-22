@@ -18,7 +18,7 @@ import math
 
 NAME, ZONE, RARITY = "Phantom Whale", "ZONE 9 / BONE GRAVEYARD", "SECRET"
 U = 0.5
-PALETTE = {"ice": "#A6D2E8", "frost": "#E7F4F9", "ivory": "#F3E9CC", "teal": "#4FE6D0", "deep": "#1F5266"}
+PALETTE = {"ice": "#C4EBFF", "frost": "#F1FBFF", "ivory": "#F3E9CC", "teal": "#4FE6D0", "deep": "#1F5266"}
 SEAT = (-8, 11, 1.6)
 GLOW = {"teal": 0.6}  # the bar of light under the spine, and the eye
 LIGHTS = [("Chest", (-8.0, 0, -2.0), "#5FEBD8", 140, 1.0)]  # the cage is lit from inside

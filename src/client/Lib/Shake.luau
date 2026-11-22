@@ -117,6 +117,12 @@ function Shake.rumble(key: string, name: string, strength: number)
 	source.Want = math.max(strength, 0)
 end
 
+-- Every shake's strength now: Shake.Amount, and less on a phone (Shake.Touch). For moves of the camera made
+-- elsewhere that should answer the same dials (WildController's stride)
+function Shake.amount(): number
+	return scale()
+end
+
 -- How far the shakes moved the camera the last frame, studs (0: nothing running)
 function Shake.moving(): number
 	return moved

@@ -21,7 +21,7 @@ import math
 
 NAME, ZONE, RARITY = "Molten Megalodon", "ZONE 8 / VENTS", "MYTHIC"
 U = 0.5
-PALETTE = {"back": "#2D2B35", "ash": "#74665F", "rock": "#57525F", "black": "#14171B", "tooth": "#30282E", "gum": "#5A1B16",
+PALETTE = {"back": "#73707C", "ash": "#74665F", "rock": "#57525F", "black": "#14171B", "tooth": "#30282E", "gum": "#5A1B16",
            "throat": "#FFF2B8", "lava": "#FF9A22", "magma": "#F2561B", "ember": "#C42A1A"}
 SEAT = (-11, 14, 2.5)  # on the saddle plate
 GLOW = {"throat": 1.0, "lava": 0.85, "magma": 0.75, "ember": 0.65}  # the heat: strongest in the throat, weakest at the tail

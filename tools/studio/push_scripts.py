@@ -61,7 +61,15 @@ for _, item in items do
 			end
 		end
 	end
-	at.Source = item.source
+	if #item.source >= 200000 then
+		-- (Source can't be set past 200,000 characters; the script editor's service can: Config is past it since
+		-- 2026-11-19, as Hugo found, tools/ui/catch_show/sync_src.py)
+		game:GetService("ScriptEditorService"):UpdateSourceAsync(at, function()
+			return item.source
+		end)
+	else
+		at.Source = item.source
+	end
 	table.insert(out, table.concat(item.path, ".") .. " " .. #at.Source)
 end
 return table.concat(out, "; ")

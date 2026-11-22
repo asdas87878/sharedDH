@@ -13,7 +13,7 @@ import math
 
 NAME, ZONE, RARITY = "Goliath Grouper", "ZONE 4 / SHIPWRECKS", "EPIC"
 U = 0.45
-PALETTE = {"olive": "#857643", "belly": "#CDBB80", "blotch": "#54452A", "lip": "#B29C62", "mouth": "#5A262B", "black": "#1E1F22",
+PALETTE = {"olive": "#373897", "belly": "#CDBB80", "blotch": "#54452A", "lip": "#B29C62", "mouth": "#5A262B", "black": "#1E1F22",
            "cream": "#E9DDB0"}
 SEAT = (-7, 10, 8.6)
 FRAME, ORTHO = 2.0, 29.0

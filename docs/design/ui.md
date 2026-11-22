@@ -1089,6 +1089,235 @@ reference's caught slot and rebuilt; **run and seen in Studio on 2026-11-17** wi
 - **A phone** keeps its own smaller size (34) and gets a gap of 8. The grow does nothing on a phone (no mouse).
 - **Files:** `src/client/UI/Slots.luau`; one line in `src/client/UI/Portrait.luau` (a bust in the middle).
 
+### The fish pictures, reworked after the reference's (the user, 2026-11-18)
+"now id like you to do a rework of the icon renders for the fish icons. Some of them cut off and should be reduced to
+just a certain part. Study ride a dino and how they do it, we also need a slightly thicker outline and generally its
+more in the angle and what is shown of the fish and the quality of the lighting and the stuff in the render": in
+[Decisions](../Decisions.md).
+
+**State: in the code, and run and seen in Studio on 2026-11-18:** all 82 fish on the test sheet (Edit), and six in
+the catch slots in a play test on a desktop. Not seen: the catch banner and the end-of-dive tokens with the new
+pictures, a phone.
+
+![](../attachments/ui26-fish-pictures-before-after.jpg)
+
+In the slots (the newest, Megalodon, chosen):
+
+![](../attachments/ui26-fish-pictures-in-slots.jpg)
+
+**What the reference does**, read off the user's recording (its seven creatures: Pachycephalosaurus, Dodo, a bird,
+Ankylosaurus, Suzhousaurus, Brachiosaurus, Velociraptor): nearly every creature is a bust. The head is at the top,
+facing left and toward the viewer, a little from above; the neck and body run down behind it and out through the
+**bottom** of the picture, where the name covers the cut. Nothing is cut at the side. The outline is black, 2 pixels on
+a 65-pixel slot at 720p (3% of the slot). The light is bright and even: a lit face is the creature's own colour, a
+face in shade about two thirds of it. Private comparison: `research/ride-a-dino/ui/compare-fish-pictures.png`.
+
+| | Before | Now |
+|---|---|---|
+| A big fish (sharks, whales, eels, sea monsters) | Its head at the window's middle, the body running off the **right** edge | **A bust as the reference's:** tipped nose up 30 degrees, as if rising, so its head is at the top and its body runs down and out through the bottom, behind the name |
+| The angle | 42 degrees round from side on | **56 degrees**, more toward the face, a little from above |
+| How big | Sized by the head alone | Sized by the head and one and a half head lengths of body, filling the window, so the cut falls under the name |
+| Small, thin, flat ones | Whole | Whole, as before; a ray's or a turtle's tail no longer sets its size (it may run out of the picture) |
+| The outline | 1 pixel at 720p, four copies at the corners | **2 pixels at 720p** (3 at 1080p): 2.8% of the picture's height in whole pixels, **eight copies** round the creature, so slanted edges are as thick as level ones |
+| The light | Fixed in the world, so each kind of picture was lit differently; strong key, dim fill | **From over the viewer's left shoulder for every creature**, whichever way it is seen; more fill (200 grey) and a softer key, so colours stay bright and the shaded faces don't go dull |
+| What goes in the picture | Every part, invisible ones too | Only parts you can see set the size (an invisible part no longer pushes a fish small) |
+
+- **The squids, the octopus and the kraken** come out mantle up with their arms trailing down, which reads as a
+  squid. The kraken is dark red and still the hardest to read.
+- **Cost:** a picture is two windows now (the black one holds the eight outline copies), where it was five. The
+  copies are nine, where they were five: more held in memory, fewer windows drawn. **Not measured on a phone.**
+- **Test sheet:** `python tools/ui/portrait_sheet.py <studio_id> <all | names> [--before] [--try "Label={numbers}"]`
+  draws each fish as a caught slot shows it, the repo's code sent in with it (no sync needed), and a `--before` row
+  from the last commit. `off` takes it away.
+- **Files:** `src/client/UI/Portrait.luau` (`Portrait.Settings` holds every number; `Portrait.reset()`; the
+  optional `Outline` is now a share of the picture's height), `tools/ui/portrait_sheet.luau`, `tools/ui/portrait_sheet.py`.
+
+**The highlight band on the chosen slot only** (the user, same day: "the outer highlight band should only be on the
+chosen one, dont make it to anything for now"): the light rim and the darker foot inside the outline now show only
+on the chosen catch (the newest, or the one clicked), with its white ring. Other caught slots are plain. A click still
+does nothing but choose. In `src/client/UI/Slots.luau`.
+
+### The fish pictures: a study of the reference's, and what we still lack (the user, 2026-11-18)
+"doa study of ride a dino and how they do theirs and look for any remaining weaknesses. one id say is that some of
+the larger fish really should be cut off similar to how theirs is, so the megaladon is more visible or something like
+the kraken just has the head. things like this. But theres other differences i cant put my finger on, cover a broad
+range of areas for ui and ux decisions they make for colour, shadow, positioning and more areas and see what we are
+lacking": in [Decisions](../Decisions.md).
+
+**Where the reference shows a creature's picture** (read off the user's two recordings, every frame with one): the
+slot bar at the bottom, the "N SECURED" list over the stat rows at the left (the same pictures, smaller, four a row),
+and the "IT'S YOURS!" catch banner (the same picture, no frame of its own, at the banner's left end). There is one
+picture per creature, the same everywhere. Private study sheet: `research/ride-a-dino/ui/study-icons.jpg`.
+
+| Area | The reference | Ours before this pass | Now |
+|---|---|---|---|
+| **What is shown of a big creature** | Head and neck only, big: the head takes 50 to 65% of the slot's width, its top just under the slot's top edge, the neck running down out of the bottom under the name. Never the whole body | The whole fish, tipped up, with a small head. Two causes: the body piece behind the head is as wide as the fins on it, so the "head" being sized was as wide as the fish; and from where the camera stands the body runs away from it and shrinks, so it fitted | **Sized by the head's own pieces:** the head is 60% of the picture's width and half its height, high and a little left. The body runs out of the bottom-right, under the name |
+| **The kraken, the squids, the octopus** | (no such creature) | Head and arms, the mantle cut, upside down (a squid's front is its mantle) | **Its head:** the mantle and the eyes, tipped 60 degrees so the mantle leans back, and two pieces of each arm curling out under the name; the rest of the arms cut away |
+| **The cut** | The body is cut clean through, and the outline runs round the cut (seen on the catch banner); in a slot the cut is under the name | The window's edge | **The body ends at a joint:** a bust keeps the pieces up to one head length behind its head (S1, and S2 or S3 on an eel) and drops the rest, so it ends in a clean, outlined cut. A mesh can't be cut through in the game, but every creature is built of pieces |
+| **Where the head sits** | The same place in every slot, a little left of the middle, high | Wherever the whole fish's box put it | The head is what gets placed, so every bust's head is in the same place |
+| **A small creature** | Whole (the bird) | Whole | Whole, as before |
+| **Angle** | Front three quarters, facing left, a little from above | The same since the last pass | Unchanged |
+| **Outline** | Black, 2 pixels on a 65-pixel slot (3%), none along the cut at the bottom | The same since the last pass | Unchanged |
+| **Light** | A lit face in the creature's own colour, a side face about 85%, a shaded face about 60% | Measured the same: 100 / 85 / 62% | Unchanged. Their shade is a little more saturated (warmer) than ours, which only greys; small |
+| **Shadow** | No drop shadow under the creature or the slot; no glow | None | Unchanged |
+| **Size and mutation** | Every caught slot says its size (TINY, BIG, GIANT, HUGE) and mutation (SILVER, GOLDEN) in small heavy words at its top left, the mutation's above the size's; a mutated one gets a frame in its colour (silver, gold) round the black outline | **Nothing:** our fish have the same sizes (Tiny to Colossal) and variants (Silver, Gold, Rainbow), but the slots are only told which kind each catch is | Not done: see below |
+| **A mutated creature's picture** | Drawn in its mutation's colours | Always the plain colours | Not done (same reason) |
+| **Name** | White, heavy, about a quarter of the slot high, a thick dark outline, 7 letters and a full stop ("Pachyce.") | 6 letters and a full stop, and a stray space when the cut fell after a word ("Great .") | "Great." (the space fixed). The thinner outline stays, as the user asked on 2026-11-17 |
+| **Empty slots** | Just the black outline, see-through inside | The water glass, fading upward | Unchanged (the user's pick) |
+| **Under the mouse, and clicked** | Grows a little; a click chooses (white ring) | The same | Unchanged |
+| **The catch banner** | The bust with no frame, at the left end of a dark slanted bar; "IT'S YOURS!"; the size word in gold before the name ("TINY Pachycephalosaur") | The picture in a grey rim; the rarity before the name ("Common Butterflyfish") | Unchanged; the size word needs the same data as the slots' tags |
+
+**What is still lacking, in order of what it would add:**
+1. **The size and mutation tags, and the mutated picture.** The biggest gap left: in the reference a Golden or a Huge
+   catch is the moment the player sees in their bar. The fish already roll their sizes and variants; what is missing is
+   the server telling the client each catch's size and variant (today it sends only which kind). That is in the game
+   code (`src/server/Services/RideService.luau` sends the list, `src/client/Controllers/TameController.luau` reads it),
+   which is the game-code chat's. Once it arrives, the slots can show the words, the frame and the variant's colours
+   (`ReplicatedStorage.FishVariants.<Variant>.<Id>` or `Shared/Variants`).
+2. **The banner's size word** ("HUGE Megalodon"), from the same data.
+3. **Their shade's warmth:** a small colour tweak to try by eye (a warmer, lower fill light).
+
+**State: in the code, and run and seen in Studio on 2026-11-18:** all 82 fish on the test sheet (Edit), and seven
+in the catch slots in a play test on a desktop. Not seen: the catch banner and the end-of-dive tokens with these
+pictures, a phone.
+
+![](../attachments/ui27-fish-pictures-cut-before-after.jpg)
+
+Before these two passes (top) and now. In the slots:
+
+![](../attachments/ui27-fish-pictures-cut-in-slots.jpg)
+
+Private comparison with the reference: `research/ride-a-dino/ui/compare-fish-pictures-cut.png`.
+
+- **A creature installed facing the other way** (CosmicHollow's template has its head at the back) is turned round
+  by the picture when its head is clearly at the back end; it was drawn head down, from behind.
+- **The pectoral fins and the whales' flippers** stay on a bust: they are part of the front body piece (or attached
+  to it), so a shark keeps a fin trailing down, as a dinosaur's bust keeps its shoulder.
+- **Every number** is in `Portrait.Settings` (`Cut`, `ArmPieces`, `Places.Bust`, `Poses.Squid`...); the test sheet
+  tries others: `python tools/ui/portrait_sheet.py <studio_id> <names> --try "Label={Cut=0.6}"`.
+- **Files:** `src/client/UI/Portrait.luau`, `src/client/UI/Slots.luau` (the name fix), `tools/ui/portrait_sheet.luau`.
+
+### The fish pictures made even, and renders for drawn icons (the user, 2026-11-19)
+"im still thinking these are off, the crops are still too irregular in angularity, silhouette general size and
+plcaement. Could we adjust that to be better for some and then im thinking we could use the icons to chatgpt generate
+the icons from those": in [Decisions](../Decisions.md).
+
+**State: in the code, and seen in Studio on 2026-11-19** on the test sheet, all 83 fish. Not seen in a play test
+this time (only the sizing changed since the last one).
+
+| | Before | Now |
+|---|---|---|
+| **The angle** | A different one per kind: busts 56 degrees round from side on, whole fish 36, thin ones 22 | **One for all:** busts 50, whole fish 46, thin tall ones 30 (any more and they are seen edge on); all a little from above and tipped a little nose up |
+| **How big a bust is** | Sized by its head: a long-snouted or hammer-headed fish came out small, a big-headed one huge | **Sized by its whole shape after the cut:** every bust fills the picture the same, its cut end low at the right, under the name |
+| **Where** | Each wherever its head put it | Every bust centred the same way |
+
+The thin ones (the giant squid, the kelp wyrm) still read a little small; they are fine as starting points for drawn
+icons.
+
+**Renders for drawn icons.** The user's idea: an image model redraws our renders as icons, as the reference's look
+drawn rather than rendered. Every fish is now saved as a 380-pixel PNG on white (`art/ui/fish_icons/renders`), and
+nine to a 3 x 3 sheet in rarity order (`art/ui/fish_icons/sheets`, ten sheets), with the prompt and the steps in
+[the README](../../art/ui/fish_icons/README.md). Nothing has been generated: that costs credits and waits for the
+user's word. Tools: `tools/ui/export_portraits.py` (pages of pictures on screen, captured and cut up),
+`tools/ui/icon_sheets.py` (`make` the sheets; `cut` a generated sheet back into one see-through PNG per fish, with a
+check picture), `tools/ui/portrait_sheet.py --plain`.
+
+- **Files:** `src/client/UI/Portrait.luau` (`Settings.Measure = "Shape"`; `"Head"` sizes by the head as before).
+
+**Then, the squids' heads and a thinner outline** (the user, same day: "giant squid, octopus and kraken need to be
+more head focused with some face. Could we slightly shrink the black border too"). Seen in Studio on the test sheet;
+the renders and sheets made again with both.
+
+![](../attachments/ui28-squids-outline-before-after.jpg)
+
+- **A squid is stood up on its arms and seen from the front quarter where the arms come out,** so its eyes face the
+  viewer (from the side it was a tube with one small eye). The octopus and the kraken show their mantle whole, as
+  their head, with the eyes at its base and three pieces of each arm under the name. The giant squid's mantle is
+  too long and thin to read whole, so it shows its head close, the big eye in the middle and the mantle running out of
+  the top (`Settings.SquidBy = "Auto"`: the close head for a squid over 3.5 times longer than it is wide).
+- **Their faces stay weak in the models:** the octopus's and the kraken's eyes are small and dark. The image-model
+  prompt now asks for every creature's eyes to be clearly visible.
+- **The outline: 2.2% of the picture's height, from 2.8%,** so 2 pixels at both 720p and 1080p, where it was 2 and 3.
+
+### A large study of the reference's creature icons, before drawing ours (the user, 2026-11-19)
+"do higgsfield but trial some methods first to get it as close to ride a dinos dispersion as possible. do a large
+scale study of different animals in the inventory from clips to understand better": in [Decisions](../Decisions.md).
+
+**How:** every half second of the user's four recordings, each of the seven slots cut out, empty ones dropped,
+repeats matched, the sharpest copy of each kept (1,600 slot pictures; private: `research/ride-a-dino/ui/icons_all/`,
+sheet `icons_all.jpg`), plus the sell panel's larger icons and the dinosaurs seen close in the world.
+
+**What is there:** eight creatures in the inventories (Ankylosaurus, Brachiosaurus, Dodo, Pachycephalosaurus,
+Sauropelta, Suzhousaurus, a terror bird, Velociraptor), several in size and mutation versions, and a ninth in the sell
+panel (a sand mantis, shown whole).
+
+**What their icons do** (private comparisons: `study-icon-vs-model.jpg`, `study_sell.jpg`, `study-icons.jpg`):
+
+| Area | The reference's icons |
+|---|---|
+| **Drawn, not a straight render** | The Ankylosaurus in the world is a blocky voxel model; its icon's head is another shape, fatter and curled, its blocks softly rounded. The Velociraptor's icon is a clean faceted low-poly bust. So the icons are a separate, cleaner version of each creature: made from a render and redrawn, or modelled for the icon. Our plan (an image model redrawing our renders) matches that |
+| **One picture per creature** | The same picture in the slot bar, the "SECURED" list, the catch banner and the sell panel. A Silver or Golden one is the same picture: its mutation shows only as a word and a frame round the slot |
+| **What is shown** | Head and neck, or head and shoulders, the head 50 to 65% of the slot's width, its top 5 to 8% under the slot's top; the body runs out of the bottom under the name. A small creature (the bird, the mantis) whole. Never cut at the side |
+| **Angle** | Front three quarters, facing left, a little from above, the same for all |
+| **Shading** | Three clear tones (lit 100%, side about 85%, shade about 60%); the shade warmer and more saturated, not greyer; small crisp glossy highlights on top edges and spikes; no texture noise |
+| **Colour** | Saturated, a little brighter than the world model |
+| **Outline** | Dark, nearly black, about 3% of the slot (2 pixels at 720p), round the outer shape only; no inner lines |
+| **Shadow, glow, background** | None |
+
+**Where ours stands against that:** the framing, angle, outline and light levels now match. What a drawn icon would
+add is the clean, softly rounded shapes, the warmer saturated shade and the glossy highlights.
+
+**The trials (waiting: the user's Higgsfield account has 0 credits, free plan).** One mixed sheet
+(`art/ui/fish_icons/trials/trial_sheet.png`: Megalodon, Clownfish, Octopus, Moray eel, Manta ray, Angelfish,
+Elasmosaurus, Pufferfish, Great white) through five methods, each judged against the table above:
+
+| Method | Model, settings | Credits |
+|---|---|---|
+| A. The sheet, the prompt alone, a quick pass | GPT Image 2.6, medium, 1k | 0.5 |
+| B. The same, full quality | GPT Image 2.6, high, 2k | 2.75 |
+| C. One fish alone (Megalodon), full quality | GPT Image 2.6, high, 2k | 2.75 |
+| D. The sheet on another model | FLUX 3, 2k | 3 |
+| E. The sheet with the best result so far as a style reference | GPT Image 2.6, high, 2k | 2.75 |
+
+About 12 credits for the trials, then about 28 for the ten sheets by the chosen method (or about 230 for one fish at
+a time, if only that holds the look). The prompts are in [the README](../../art/ui/fish_icons/README.md).
+
+### The icons through ChatGPT: a folder and a two-step prompt (the user, 2026-11-19)
+"could you write me a prompt and attach the photos needed to edit and photos needed for reference for chatgpt so i can
+do a batch edit. Make it a two step prompt, it does 10 images of a few fish variety first before the whole thing": in
+[Decisions](../Decisions.md). (Higgsfield had no credits.)
+
+**State: the folder is made; nothing generated yet.** Private, as it holds the reference game's art:
+`research/fish_icons_chatgpt/` (git never commits `research/`). In it:
+- `PROMPTS.md`: the two steps word for word. Step 1: the style sheet first ("ready"), then ten fish of every shape
+  (a shark, a small fish, a thin fish, a ray, the octopus, an eel, a pufferfish, a long-necked one, a turtle, a
+  monster), one icon each, judged together before going on. Step 2: the other 73 in eight batches of ten.
+- `0_style_reference/style_reference.png`: six of the reference's icons, the words (SILVER, GIANT...) and price dots
+  taken off, for how things are drawn only. The prompt says not to copy their creatures.
+- `1_test/`, `2_batches/batch_01` to `08`: our renders at 1024 pixels; `3_results/`: where ChatGPT's icons are saved,
+  numbered as attached.
+
+**After:** `python tools/ui/icon_sheets.py align research/fish_icons_chatgpt/3_results` cuts the white away and moves
+and scales each icon so its shape sits exactly where its render's did (ChatGPT drifts), into `art/ui/fish_icons/drawn`
+with a check picture. Tried on shifted copies of the renders: all ten came back in place.
+
+**Then, the new colours** (the user, relayed by the map chat, same day: "update the icons according to the new
+models"): the 29 fish the creature chat recoloured are re-rendered from their new models, and the four fish cut from the
+game (Boxfish, Butterflyfish, Blue Chromis, Flying Fish) are out of the renders, the sheets and the ChatGPT folder:
+79 fish, ten in the test and 69 in seven batches. Remade with `python tools/ui/export_portraits.py <studio_id> --tile
+380`, `python tools/ui/chatgpt_pack.py` and `python tools/ui/icon_sheets.py make`. (The live pictures in the game take
+the new colours by themselves: they draw the models.)
+
+**Then, the squids cut like the busts** (the user, same day: "the octopi and kraken stuffs are cut off the wrong way,
+should be cut off liek the head"). They stood up on their arms, cut straight across (the giant squid's mantle ran
+out of the top). Now a squid is posed as a bust: tipped up 40 degrees (a fish's 26), seen from the same side as
+every fish, its mantle and eyes up at the left and its arms cut off at the bottom right; its mantle and head are
+sized and placed as a bust's shape is. The three are re-rendered and the ChatGPT folder and the sheets made again.
+
+![](../attachments/ui29-squids-as-busts.jpg)
+
+The kraken, the octopus and the giant squid, with a shark and an eel for comparison.
+
 ## The short version
 - **Today's HUD says the wrong thing.** It shows a tank, "OXYGEN 68 / 100", at the bottom edge. With 2 to 3 seconds on a
   fish, what a player needs is "how long do I have on this fish", next to the fish, and "which fish next".

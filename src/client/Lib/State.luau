@@ -43,6 +43,21 @@ local State = {
 	RideEffort = 1, -- how hard it is working (1: cruising)
 	CamRoll = 0, -- the view's roll, radians (WildController: into a turn)
 	CamPull = 0, -- the camera is this share further back (WildController: left behind by a bolt)
+	-- The stride (Config.Stride) of the fish under us, from AnimController each frame: its steps so far, how far up
+	-- its body is through this step (-0.5 at a footfall to 0.5 between, round; a little lower with Stride.Sharp), how
+	-- far to a side (-1 to 1),
+	-- how heavy its steps are (bigger and slower: more), and how much of the stride shows now (0 to 1)
+	Stride = { Step = 0, Height = 0, Across = 0, Weight = 1, Rate = 0, On = 0 },
+	CamStep = CFrame.identity, -- the camera's move with the stride, in its own space (WildController)
+	-- The long hook (Config.Long): the gap at this pull-in's grab and how long a hook that counts as (0 to 1;
+	-- JumpController), and what the long shot does to the camera now (LongHookController): this share further back,
+	-- this many degrees wider, and held still until this os.clock()
+	ReelGap = 0,
+	ReelFar = 0,
+	CamLong = 0,
+	FovLong = 0,
+	CamHoldUntil = 0,
+	Touched = Instance.new("BindableEvent"), -- fired at our own pull-in's touch: the gap, how long (0 to 1), the speed
 	JumpReadyAt = 0,
 	Zones = {} :: { Zones.Zone },
 	Squash = {} :: { [Model]: number }, -- character -> os.clock() of its last landing

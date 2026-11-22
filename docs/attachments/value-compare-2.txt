@@ -1,0 +1,10 @@
+Shallows vs desert (6 frames): median 78 vs 83; spread 31-94 vs 47-86; dark/mid/light 11%/24%/66% vs 4%/23%/73%
+Coral Reef vs jungle (3 frames): median 68 vs 75; spread 49-80 vs 32-81; dark/mid/light 7%/48%/44% vs 12%/25%/63%
+Kelp Forest vs forest (3 frames): median 65 vs 61; spread 53-79 vs 37-84; dark/mid/light 2%/64%/33% vs 9%/56%/35%
+Shipwrecks vs extinction (3 frames): median 56 vs 54; spread 52-70 vs 28-73; dark/mid/light 1%/73%/26% vs 15%/73%/12%
+Open Blue vs ocean (3 frames): median 66 vs 74; spread 50-76 vs 35-87; dark/mid/light 4%/51%/45% vs 10%/28%/62%
+Twilight vs snow (4 frames): median 72 vs 84; spread 58-84 vs 49-88; dark/mid/light 0%/27%/72% vs 4%/19%/77%
+Midnight vs snow (4 frames): median 52 vs 84; spread 44-71 vs 49-88; dark/mid/light 4%/78%/18% vs 4%/19%/77%
+Vents vs volcano (5 frames): median 24 vs 22; spread 15-46 vs 8-55; dark/mid/light 65%/34%/1% vs 64%/30%/6%
+Bone Graveyard vs extinction (3 frames): median 61 vs 54; spread 56-73 vs 28-73; dark/mid/light 0%/67%/33% vs 15%/73%/12%
+The Underworld vs cosmic (3 frames): median 48 vs 57; spread 39-62 vs 17-75; dark/mid/light 7%/93%/0% vs 24%/59%/17%

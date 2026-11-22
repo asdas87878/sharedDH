@@ -20,7 +20,7 @@ import math
 
 NAME, ZONE, RARITY = "Dakosaurus", "ZONE 3 / KELP FOREST", "LEGENDARY"
 U = 0.45
-PALETTE = {"hide": "#2E7350", "belly": "#EADFB8", "tooth": "#FFFFFF", "mouth": "#6A2630", "gum": "#9A4F58", "black": "#22262B",
+PALETTE = {"hide": "#004F2F", "belly": "#EADFB8", "tooth": "#FFFFFF", "mouth": "#6A2630", "gum": "#9A4F58", "black": "#22262B",
            "stripe": "#F2A23A", "soft": "#F6D27A"}
 SEAT = (0, 6, 6.5)
 GLOW = {"soft": 0.4}  # only the thin halo of the eye

@@ -38,7 +38,7 @@ Studio has almost no network delay, so what is felt there is how the hop is buil
 | Fix | What it does | Its switch (N panel, Jump) | Old way |
 |---|---|---|---|
 | **The sling** | Keeps your own speed into the pull-in and bends it onto the fish, closing faster and faster, fastest at the touch. 0.14 s plus the gap at 170 studs a second, at most 0.5 s | `Sling` 1 (`SlingCurve` 2, `SlingBase`, `SlingSpeed`, `SlingMax`, `SlingCarry`) | `Sling` 0 |
-| **Sooner, by itself** | From 0.7 s after the press the locked fish pulls you in once it is under you (30 studs across the water, any height), or at 1.3 s whatever the gap. Only once the lock has held it 0.2 s, never while you are turning the view (you are still choosing), never the fish you just left (that one still waits for the glide's end, or a press) | `EarlySling` 1 (`SlingAfter`, `SlingNear`, `SlingBy`, `SlingSettle`, `SlingHoldTurn`) | `EarlySling` 0 |
+| **Sooner, by itself** (since 2026-11-18 at 1.7 s, the reference's: "Airtime matched" below) | From 0.7 s after the press the locked fish pulls you in once it is under you (30 studs across the water, any height), or at 1.3 s whatever the gap. Only once the lock has held it 0.2 s, never while you are turning the view (you are still choosing), never the fish you just left (that one still waits for the glide's end, or a press) | `EarlySling` 1 (`SlingAfter`, `SlingNear`, `SlingBy`, `SlingSettle`, `SlingHoldTurn`) | `EarlySling` 0 |
 | **Flat airtime** | A faster fish's hop goes further, not longer | `AirSlow` 0, `AirFast` 0 | -0.5 and 0.5 |
 | **Kept presses** | A hop pressed in the last part of a pull-in (its second half, within 0.2 s of the touch), or between the touch and the moment you may hop, is kept and made the moment you may. Presses early in a pull-in are still the mash the guard is for | `Buffer` 0.2 | `Buffer` 0 |
 
@@ -75,12 +75,82 @@ The new run had five early slings and two that waited for the glide's end (only 
   slow", "mark 4: wrong fish"). If the Output is very long only its end can be read, so don't play for an hour first;
   while still in Play the whole log is on the player too (`FeelLog`, `FeelMarks`).
 
+## Fast fish: hooks refused and riders falling off (fixed 2026-11-18)
+The user: "the player falls off a fish if they hook onto one thats swimming away super fast. Often you get hook
+cancelled or the player falls of the fish even if they get onto it for half a second."
+
+**Why.** The server judges the grab and the landing by distance, but it sees things late. The rider's machine sees a
+wild fish a moment late, and the server sees the rider a moment late: a fish going fast is ahead of where the rider
+was held to it by its speed times both moments. And at the touch the server still sees the rider partway through the
+pull-in, whose last tenth of a second covers most of the distance.
+- **"Hook cancelled":** the grab was refused as out of range, though the rider's screen had the fish in reach.
+- **"Falls off after half a second":** at the touch the rider's machine holds them on the saddle and waits for the
+  server's word. The server gave the landing half a second (`Jump.LandWait`) to see them at the fish. With a fast fish
+  the gap never closed in that time, so it refused, and the rider dropped off the saddle.
+
+**The fix (`Config.Net.Lag`, `RideService` `nearness`).** Before judging, the server puts the fish back along its own
+way by up to half a second (and the player's ping), and the rider on along theirs by up to 0.15 s, and takes the
+nearest. The same in the grab, the landing, its half-second wait, and the mount's "move a far rider to the saddle"
+(which would have thrown a rider forward to where the server has the fish). And the server's speed check no longer
+flags the first second on a fish caught going fast (it still has that speed while the rider's machine eases it to its
+ridden pace).
+
+**Measured in Studio** (each judged distance is printed as a `[RideCheck]` line in the Output, Studio only):
+
+| | As the server saw it (the old rule) | With the delay allowed for |
+|---|---|---|
+| A grab onto a SergeantMajor going 115 studs a second | 129.8 studs, reach 123.5: **refused** (hook cancelled) | 73.9: granted |
+| Its landing | 93.1 studs, limit 46.7: **the half-second wait, then refused** | 12.0: mounted |
+| Landings onto fish at 119 and 121 studs a second | 65.9 and 79.6, limits 46.2 and 45.4: refused | 15.8 and 18.7: mounted |
+| Landings onto slow fish (33 to 48 studs a second) | 24 to 53 studs, one at 52.6 against 52.5 | 5 to 24 |
+| 34 hops over three runs | 1 grab and 7 landings over the old limits: the grab refused at once, the landings left to the half-second wait, which a fast fish fails | all landed but one, a press with no fish locked |
+
+Studio has almost no network delay: online, the old rule failed sooner and on slower fish.
+
+## Airtime matched to the reference (2026-11-18)
+> **Corrected 2026-11-19 ([feel review 1](../reviews/feel-review-1.md)):** the reference has no hands-off hook. Every
+> landing in the recordings follows a second press, the throw. The 1.7 s matched here is when one player chose to
+> press. Ours still hooks by itself at 1.7 s; whether to keep that, or move it later so the throw becomes the main way,
+> is the review's first question for the user.
+
+The user: "study the airtime in ride a dino and replicate it. when you jump to when you auto hook the next fish". Measured
+in [Ride a Dino](../reference/ride-a-dino.md), "Airtime, hands off": its hook comes about 1.7 s after the jump, and it
+lands 1.8 to 2.4 s after (median 2.08). Ours hooked by itself at 1.3 s (at 0.7 s if the fish was under you).
+
+- **Now the hands-off hook comes at 1.7 s, whatever the gap** (`SlingAfter` and `SlingBy`, both 1.7; they were 0.7 and
+  1.3). The fish you just left is taken then too, if it is the one locked; it waited for the glide's end before (2.2 s).
+- **The rest of the hop is as it was:** a press still grabs at once, the glide still ends at 2.2 s, and the pull-in is
+  as before (0.31 to 0.50 s; the reference's is 0.33 to 0.47).
+
+| Hands off, press to... | The reference | Ours before | Ours now (10 hops by script) |
+|---|---|---|---|
+| The hook | about 1.7 s (1.4 to 2.0) | 0.9 to 1.36 s; at the glide's end 2.2 to 2.5 off the fish just left | 1.72 to 1.82 s in 8; 1.92 and 2.16 when the lock had just moved to another fish (it waits 0.2 s to settle) |
+| The landing | 1.80 to 2.40 s (median 2.08) | 1.2 to 1.9 s; 2.7 to 3.0 at the glide's end | 2.15 to 2.70 s (median 2.29) |
+
+- **The landing matched too (the same night, the user: "Yes, match it").** With the hook on time, ours landed about 0.2 s
+  after the reference: our pull-in took the full 0.5 s on any gap over 61 studs, and more gaps are long now that the
+  hook reaches further ahead. So the pull-in is never longer than 0.4 s now (`SlingMax`, was 0.5): 0.34 to 0.40 s,
+  against the reference's 0.33 to 0.47. **The landing comes at about 2.1 s** (1.7 + 0.4), against its 2.08.
+  - In ten more hops by script every pull-in was 0.38 to 0.40 s. Studio ran at only 7 frames a second, so the landings
+    read 2.13 to 2.68 s: each frame is 0.14 s, and the hook waits for the first frame after 1.7 s. The landing time
+    needs checking at a normal frame rate.
+  - One of those ten missed: the server refused a late grab of a fish swimming away at 132 studs a second. At 7 frames a
+    second the rider's machine sees the fish more than half a second late, beyond what the server allows for
+    (`Net.Lag`). It is not expected at a normal frame rate.
+- **The first run of ten** (the hook at 1.7, the pull-in up to 0.5) was at 14 frames a second: each time good to about 0.07 s.
+- Not felt by anyone yet.
+
 ## Next, in order
 1. **You play with the switches and the M key.** Old against new is one click each.
 2. **The intent lock:** score each fish by where your hop and it will meet in the next second, the look as a
    nudge, in place of most of the 30 settings. Built against your marks.
+   **Built in part, 2026-11-18:** [the lock](the-lock.md) (by the line you fly along, a
+   moment ahead; the old settings stay for `Lock.Pick` 1).
 3. **Hover with your target:** after the pop, ease to the locked fish's pace so it sits still on screen and the sling
-   is short. Difficulty stays in the sea (spacing, fits, bolts), not in fighting the controls.
+   is short. Difficulty stays in the sea (spacing, fits, bolts), not in fighting the controls. **Built 2026-11-19**
+   (`Jump.Hover`; not with the fish you just left): [feel review 2](../reviews/feel-review-2.md). **Since 2026-11-19 it
+   also closes in** along your heading, to about half a second of the fish's pace behind it by the hook, and the
+   pull-in is 0.5 s and even (`HoverClose`, `SlingMax`, `SlingCurve`): [feel review 3](../reviews/feel-review-3.md).
 4. **The camera that sells it:** frame you and the target in the hover, lead into the fish in the sling.
 5. **Flow:** quick chains build faster launches, a wider view, a rising whoosh, a chain count.
 6. **Later, the optimisation pass:** land on your own machine at the touch instead of waiting for the server

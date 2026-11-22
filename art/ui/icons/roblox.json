@@ -30,5 +30,15 @@
     "uploaded": "2026-11-17",
     "from": "art/ui/icons_src/image-1794932267538.webp",
     "note": "the user's first O2 picture, in the game 2026-11-17 until the second replaced it"
+  },
+  "lock_atlas.png": {
+    "id": "rbxassetid://99889688472050",
+    "uploaded": "2026-11-22",
+    "from": "art/ui/icons/lock_atlas.png (Hugo's task k1, as LandStrip's LOCK_ATLAS)"
+  },
+  "land_atlas_g4.png": {
+    "id": "rbxassetid://124258870686064",
+    "uploaded": "2026-11-22",
+    "from": "docs/attachments/land-icons/land_atlas.png (the G4 set, as Kit.LandAtlas)"
   }
 }
