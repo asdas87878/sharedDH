@@ -63,11 +63,15 @@ Shop.Border = Color3.fromRGB(64, 70, 86) -- the window's grey frame round its he
 Shop.Round = { Window = 6, Head = 4, Button = 5, Card = 6, Inset = 5, Strip = 4 }
 -- The studs: one raised square a tile (Kit.Textures.Emboss), its size per surface in the window's points, and how
 -- faint (the picture is white and black at the reference's strength: 0 is that strength)
+-- Tail: how much fainter they get toward the foot (the user, 2026-11-22: "ours is just like very homogenous stud,
+-- stud, stud"; strongest at the top where the light falls, fading down, so a surface reads lit, not printed)
 Shop.Studs = {
-	Head = { Tile = 18, Fade = 0 },
-	Body = { Tile = 15, Fade = 0.35 }, -- quieter where pictures sit (look check, 2026-11-22)
-	Button = { Tile = 16, Fade = 0.1 },
-	Card = { Tile = 16, Fade = 0.3 },
+	Head = { Tile = 18, Fade = 0, Tail = 0.55 },
+	-- a body starts a little quieter than a header and is plain by its foot (look checks, 2026-11-22: at Fade 0.3 the
+	-- fade did not read on the dark body; the contrast between its ends is what shows)
+	Body = { Tile = 15, Fade = 0.12, Tail = 1 },
+	Button = { Tile = 16, Fade = 0.05, Tail = 0.6 },
+	Card = { Tile = 16, Fade = 0.25, Tail = 0.8 },
 }
 Shop.Cream = Color3.fromRGB(252, 242, 218) -- a picture well
 Shop.Money = Color3.fromRGB(92, 236, 60) -- cash, a rate, a multiplier
@@ -117,7 +121,7 @@ Shop.halves = halves
 function Shop.pattern(face: Instance, which: string, tile: number?): ImageLabel
 	local s = (Shop.Studs :: any)[which] or Shop.Studs.Body
 	local size: number = tile or s.Tile
-	return Kit.new("ImageLabel", {
+	local studs: ImageLabel = Kit.new("ImageLabel", {
 		Name = "Studs",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
@@ -127,6 +131,18 @@ function Shop.pattern(face: Instance, which: string, tile: number?): ImageLabel
 		TileSize = UDim2.fromOffset(size, size),
 		ZIndex = 0,
 	}, face)
+	-- the fade: full at the top, eased out toward the foot
+	if s.Tail and s.Tail > 0 then
+		Kit.new("UIGradient", {
+			Rotation = 90,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.35, s.Tail * 0.25),
+				NumberSequenceKeypoint.new(1, s.Tail),
+			}),
+		}, studs)
+	end
+	return studs
 end
 
 -- The gloss: two pale diagonal streaks over a bar, as one gradient (it keeps to the bar's corners). Only the Shop's

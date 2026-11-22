@@ -173,5 +173,14 @@ phone layout. The Shop's offers are placeholders (every Id 0).
   one), the Select All mark and the card tick square boxes, and the tag line one plain word or two (the usual size
   says nothing, so it is left out). The dark border stays: the reference's is dark.
 
+- **The studs' fade and the Shop's "!" (the user, 2026-11-22: "ours is just like very homogenous stud, stud, stud";
+  "Is it possible to do the bouncing exclamation point on the shop?"):** every stud surface fades from full at its top
+  to fainter at its foot (a UIGradient on the tile, `Shop.Studs` Tail; the hub buttons the same), so a surface reads
+  lit from above. A body starts at 0.12 and is plain by its foot; headers keep the most. The study
+  ([ui-motion-and-studs](../reference/ui-motion-and-studs.md)) found no big game that fades its studs (they turn them
+  down, or tint them with a colour gradient), so the fade is ours. The Shop button wears the same bouncing red "!"
+  as the Index, up on each arrival at the dock until the Shop is opened. Checked in Studio (pass 5: readback of every
+  stud layer, mark up on arrival, no errors; `docs/attachments/ui-studs-fade.png`).
+
 Still proposed (the user's or Hugo's call): the dive HUD's restyle and fonts; the inventory bar's suggestions above;
 the server's sell check near the stall (raised with the game-code chat); the Shop's real offers and prices.

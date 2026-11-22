@@ -61,6 +61,7 @@ local INDEX: Look = {
 local holder: Frame
 local size: UIScale
 local mark: Frame
+local shopMark: Frame
 local shown = false
 
 local function block(props: { [string]: any }, parent: Instance): Frame
@@ -94,7 +95,7 @@ local function button(order: number, name: string, look: Look, picture: string):
 	-- stud tile stands in, smaller and fainter
 	local emboss = Kit.Textures.Emboss ~= ""
 	face.ClipsDescendants = true
-	Kit.new("ImageLabel", {
+	local pattern: ImageLabel = Kit.new("ImageLabel", {
 		Name = "Pattern",
 		Position = if emboss then UDim2.fromOffset(-7.8, -2.7) else UDim2.fromOffset(0, 0),
 		Size = if emboss then UDim2.new(1, 7.8, 1, 2.7) else UDim2.fromScale(1, 1),
@@ -105,6 +106,15 @@ local function button(order: number, name: string, look: Look, picture: string):
 		TileSize = if emboss then UDim2.fromOffset(28, 28) else UDim2.fromOffset(15, 15),
 		ZIndex = 3,
 	}, face)
+	-- fading toward the foot, as the windows' studs (UI.Shop's Studs, Tail)
+	Kit.new("UIGradient", {
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.35, 0.14),
+			NumberSequenceKeypoint.new(1, 0.55),
+		}),
+	}, pattern)
 	local band = block({ Name = "Band", Size = UDim2.fromScale(1, 1), BackgroundColor3 = look.Band, ZIndex = 4 }, face)
 	Kit.new("UIGradient", { Transparency = BAND, Rotation = SLANT }, band)
 	block({
@@ -155,23 +165,9 @@ local function button(order: number, name: string, look: Look, picture: string):
 	return plate
 end
 
-function HubButtons.build(parent: Instance)
-	holder = Kit.new("Frame", {
-		Name = "HubButtons",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, LEFT, 0.5, DOWN),
-		Size = UDim2.fromOffset(WIDTH, HEIGHT * 2 + GAP),
-		BackgroundTransparency = 1,
-		Visible = false,
-	}, parent)
-	size = Kit.new("UIScale", {}, holder)
-	Kit.new("UIListLayout", { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder }, holder)
-	button(1, "Shop", SHOP, Kit.Textures.Shop)
-	local index = button(2, "Index", INDEX, Kit.Textures.Index)
-	shown = false
-
-	-- the red "!" on the Index's upper right corner: a dark edge, a white ring, a red disc
-	mark = block({
+-- A red "!" on a button's upper right corner: a dark edge, a white ring, a red disc; it bounces while it shows
+local function markOn(plate: Instance): Frame
+	local m = block({
 		Name = "Mark",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(1, -9, 0, -4.5),
@@ -179,15 +175,15 @@ function HubButtons.build(parent: Instance)
 		BackgroundColor3 = Color3.fromRGB(24, 12, 12),
 		Visible = false,
 		ZIndex = 10,
-	}, index)
-	Kit.corner(mark, 999)
+	}, plate)
+	Kit.corner(m, 999)
 	local ring = block({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, -2, 1, -2),
 		BackgroundColor3 = Kit.White,
 		ZIndex = 11,
-	}, mark)
+	}, m)
 	Kit.corner(ring, 999)
 	local disc = block({
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -209,12 +205,37 @@ function HubButtons.build(parent: Instance)
 		ZIndex = 13,
 	}, disc)
 	Kit.stroke(bang, 1.2, BLACK)
-	Anim.bounce(mark)
+	Anim.bounce(m)
+	return m
+end
 
-	-- looking in the Index is what takes its mark off
+function HubButtons.build(parent: Instance)
+	holder = Kit.new("Frame", {
+		Name = "HubButtons",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, LEFT, 0.5, DOWN),
+		Size = UDim2.fromOffset(WIDTH, HEIGHT * 2 + GAP),
+		BackgroundTransparency = 1,
+		Visible = false,
+	}, parent)
+	size = Kit.new("UIScale", {}, holder)
+	Kit.new("UIListLayout", { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder }, holder)
+	local shop = button(1, "Shop", SHOP, Kit.Textures.Shop)
+	local index = button(2, "Index", INDEX, Kit.Textures.Index)
+	shown = false
+
+	-- the red "!"s: the Index's when a new kind is in it, the Shop's from the start of each visit until it is opened
+	-- (the user, 2026-11-22: "Is it possible to do the bouncing exclamation point on the shop?")
+	mark = markOn(index)
+	shopMark = markOn(shop)
+	shopMark.Visible = true
+
+	-- looking in the Index, or the Shop, is what takes its mark off
 	HubButtons.Pressed:Connect(function(name: string)
 		if name == "Index" then
 			mark.Visible = false
+		elseif name == "Shop" then
+			shopMark.Visible = false
 		end
 	end)
 end
@@ -228,6 +249,10 @@ function HubButtons.update(docked: boolean)
 	if docked ~= shown then
 		shown = docked
 		holder.Visible = docked
+		-- each visit to the dock puts the Shop's "!" back up until the Shop is opened
+		if docked then
+			shopMark.Visible = true
+		end
 	end
 end
 
