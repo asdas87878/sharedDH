@@ -102,19 +102,6 @@ function State.character(): (Model?, BasePart?, Humanoid?)
 	return character, nil, nil
 end
 
--- How long a full meter would last on a fish (for the HUD's lock plate and name tags): by what THIS fish needs (its
--- kind, size and colour: Config.requiredOfModel; task e1, never the land it swims in), the way the server counts it.
--- nil when it can't be told yet.
-function State.secondsOn(fish: Model): number?
-	local need = Config.requiredOfModel(fish)
-	local max = State.Player:GetAttribute("MaxOxygen")
-	if not need or type(max) ~= "number" then
-		return nil
-	end
-	local kind = Config.FishById[fish:GetAttribute("FishType") :: string]
-	return Config.secondsOn(need, max, kind) -- (this fish's own: longer on a Tank)
-end
-
 -- Whether landing on that fish would be landing on one too strong for us (Oxygen.StrainTime: the meter empties at
 -- once and it throws us off). false when it can't be told yet.
 function State.tooStrong(fish: Model): boolean

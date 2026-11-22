@@ -8,7 +8,7 @@
 -- changes, and only what Kit.pulse is given is tweened.
 
 -- In this file, in order:
---   Colours, spacing and pictures: the HUD's colours, gaps, outline widths, corners and uploaded textures
+--   Colours, spacing and pictures: the HUD's colours, outline widths, corners and uploaded textures
 --   Plate styles and the Oxygen box: what a plate style holds, and which glass box the Oxygen row wears
 --   Ring looks: the options for the Oxygen and tame rings, and the one in use
 --   Glass boxes and themes: the see-through box options, and one plate theme for each purpose
@@ -16,7 +16,7 @@
 --   Basic builders: new instances, lighter and darker colours, corners, outlines, gradients and letters
 --   Rarity colours and styled words: rarity gradients, palettes and the fish tags' word style
 --   Plates: dressing a frame as a plate or a glass box, and a plate with its shadow
---   Patterns and signs: stripes, bubbles, grid paper, the warning pulse, and the bubble and coin signs
+--   Patterns and signs: stripes, grid paper, the warning pulse, and the bubble and coin signs
 --   Rings: the sweeping arc, the emptying ring, the thin extra ring and seconds as text
 --   Fail words: the slam band shown when a run fails
 --   Numbers and touch: big numbers in short, and whether this is a phone
@@ -29,7 +29,7 @@ local UserInputService = game:GetService("UserInputService")
 local Kit = {}
 
 ----------------------------------------------------------------------------------------------------------------------
--- Colours, spacing and pictures: the HUD's colours, gaps, outline widths, corners and uploaded textures
+-- Colours, spacing and pictures: the HUD's colours, outline widths, corners and uploaded textures
 
 Kit.Font = Enum.Font.FredokaOne
 Kit.Ink = Color3.fromRGB(16, 36, 63) -- every outline
@@ -39,14 +39,12 @@ Kit.Navy = Color3.fromRGB(24, 52, 92)
 Kit.Aqua = Color3.fromRGB(51, 214, 240)
 Kit.Sun = Color3.fromRGB(255, 210, 63)
 Kit.Coral = Color3.fromRGB(255, 90, 95)
-Kit.Lime = Color3.fromRGB(124, 224, 75)
 Kit.Good = Color3.fromRGB(141, 240, 106)
 Kit.Pink = Color3.fromRGB(240, 96, 200)
 Kit.White = Color3.new(1, 1, 1)
 Kit.Edge = Color3.fromRGB(10, 12, 22) -- the dock's one outline: every window, card, button and hub plate
 
--- The spacing every piece keeps to (gaps, paddings), the outline's widths and the corners
-Kit.Space = { Hair = 2, Small = 4, Medium = 8, Large = 12, Huge = 16 }
+-- The outline's widths and the corners
 Kit.Outline = { Hair = 1.2, Thin = 2, Bold = 3, Heavy = 4 }
 Kit.Radius = { Tile = 5, Plate = 9, Round = 999 }
 
@@ -503,14 +501,6 @@ function Kit.text(props: { [string]: any }, parent: Instance, outline: number?):
 	return label
 end
 
--- The one highlight a plain solid plate has: lit from above, a little darker toward its bottom edge
-function Kit.shade(plate: Instance)
-	Kit.new("UIGradient", {
-		Color = ColorSequence.new(Kit.White, Color3.fromRGB(214, 222, 236)),
-		Rotation = 90,
-	}, plate)
-end
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Rarity colours and styled words: rarity gradients, palettes and the fish tags' word style
 
@@ -749,12 +739,6 @@ local function boxOf(style: Style): Box?
 		return Kit.Boxes[Kit.OxygenBox]
 	end
 	return nil
-end
-
--- Whether the Oxygen box is the one that sits in the screen's corner (read when the rows are built and placed)
-function Kit.oxygenCorner(): boolean
-	local box = Kit.Boxes[Kit.OxygenBox]
-	return box ~= nil and box.Corner == true
 end
 
 -- The top-to-bottom fade of a corner box's fill (Kit.OxygenBoxFade), or nil for none
@@ -1022,7 +1006,7 @@ function Kit.panel(parent: Instance, props: { [string]: any }, style: Style): Pa
 end
 
 ----------------------------------------------------------------------------------------------------------------------
--- Patterns and signs: stripes, bubbles, grid paper, the warning pulse, and the bubble and coin signs
+-- Patterns and signs: stripes, grid paper, the warning pulse, and the bubble and coin signs
 
 -- Motion stripes: slanted pale bands over a plate, as one gradient (no picture, and it keeps to the plate's corners)
 function Kit.stripes(face: Instance, radius: number, fade: number?): Frame
@@ -1049,23 +1033,6 @@ function Kit.stripes(face: Instance, radius: number, fade: number?): Frame
 	Kit.corner(frame, radius)
 	Kit.new("UIGradient", { Transparency = NumberSequence.new(points), Rotation = -58 }, frame)
 	return frame
-end
-
--- A few bubbles as a plate's pattern: thin pale rings. spots: { x, y (0 to 1 across the plate), size } each
-function Kit.bubbles(face: Instance, spots: { { number } })
-	for _, spot in spots do
-		local ring = Kit.new("Frame", {
-			Name = "Bubble",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(spot[1], spot[2]),
-			Size = UDim2.fromOffset(spot[3], spot[3]),
-			BackgroundColor3 = Kit.White,
-			BackgroundTransparency = 0.86,
-			ZIndex = 0,
-		}, face)
-		Kit.corner(ring, 999)
-		Kit.stroke(ring, 1, Kit.White, 0.45)
-	end
 end
 
 -- A tool's squared paper: thin pale lines every cell points, over a plate up to wide by high

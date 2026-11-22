@@ -270,10 +270,6 @@ local function build()
 	window = w
 end
 
-function ShopScreen.isOpen(): boolean
-	return window ~= nil and (window :: Shop.Window).isOpen()
-end
-
 -- Open or close it. (Through Shop.go("Shop"), so another dock window closes.)
 function ShopScreen.open(on: boolean)
 	if not window then

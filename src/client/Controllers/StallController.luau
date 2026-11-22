@@ -72,11 +72,6 @@ local function look()
 	DockNotes.carrying(docked and caught ~= nil and #caught > 0 and Shop.Page == nil and not TankPanel.isOpen())
 end
 
--- Studio's tests: which window is up (nil: none)
-function StallController.open(): string?
-	return Shop.Page
-end
-
 function StallController.Start()
 	HubButtons.Pressed:Connect(function(name: string)
 		if name == "Shop" then

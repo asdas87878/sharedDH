@@ -2,18 +2,9 @@
 -- Small maths for movement and feel.
 local Ease = {}
 
-function Ease.clamp01(t: number): number
-	return math.clamp(t, 0, 1)
-end
-
 function Ease.outQuad(t: number): number
 	t = math.clamp(t, 0, 1)
 	return 1 - (1 - t) * (1 - t)
-end
-
-function Ease.inQuad(t: number): number
-	t = math.clamp(t, 0, 1)
-	return t * t
 end
 
 function Ease.inOutSine(t: number): number

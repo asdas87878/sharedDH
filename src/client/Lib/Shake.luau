@@ -80,18 +80,6 @@ function Shake.play(name: string, strength: number?, side: number?)
 	end
 end
 
--- One shake of a kind for something that happened at a place: full strength at the camera, none `radius` studs away
-function Shake.at(name: string, place: Vector3, radius: number, strength: number?)
-	local camera = workspace.CurrentCamera
-	if not camera then
-		return
-	end
-	local near = 1 - (camera.CFrame.Position - place).Magnitude / math.max(radius, 1)
-	if near > 0 then
-		Shake.play(name, (strength or 1) * near * near)
-	end
-end
-
 -- The old call (RideController.shake): thrown `size` studs either way, dying away over `time` seconds
 function Shake.jolt(size: number, time: number?)
 	if size > 0 then
@@ -126,12 +114,6 @@ end
 -- How far the shakes moved the camera the last frame, studs (0: nothing running)
 function Shake.moving(): number
 	return moved
-end
-
-function Shake.clear()
-	table.clear(sources)
-	table.clear(rumbles)
-	moved = 0
 end
 
 -- How much of a shake is left `t` seconds in (nil: it is over)

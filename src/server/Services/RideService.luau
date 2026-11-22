@@ -956,12 +956,11 @@ local function toDock(r: Rider)
 	sendOxygen(r, true)
 	setState(r, "Dock")
 	-- the dive's catch comes home (death or not, as the reference's). With a tank of their own the player still
-	-- carries it, until they put it in (AquariumService: RideService.deposited). With none it is counted here and the
+	-- carries it, until they put it in (AquariumService: RideService.takeCarried). With none it is counted here and the
 	-- hands are empty again.
 	if not (RideService.Keeps and RideService.Keeps(r.Player)) then
 		if #r.Caught > 0 then
 			r.Owned += #r.Caught
-			r.Player:SetAttribute("Owned", r.Owned)
 		end
 		table.clear(r.Caught)
 		table.clear(r.Carried)
@@ -2186,19 +2185,6 @@ function RideService.carried(player: Player): { Carry }
 	return if r then r.Carried else NOTHING
 end
 
--- that it has all gone into their tank: counted, and the hands are empty;
-function RideService.deposited(player: Player)
-	local r = riders[player]
-	if not r then
-		return
-	end
-	r.Owned += #r.Carried
-	r.Player:SetAttribute("Owned", r.Owned)
-	table.clear(r.Caught)
-	table.clear(r.Carried)
-	sendCaught(r)
-end
-
 -- and that one of them, the index-th carried (oldest first), has gone in: counted, and taken out of the hands. Gives
 -- that fish back, or nil when there is none at that place.
 function RideService.takeCarried(player: Player, index: number): Carry?
@@ -2209,7 +2195,6 @@ function RideService.takeCarried(player: Player, index: number): Carry?
 	local fish = table.remove(r.Carried, index)
 	table.remove(r.Caught, index)
 	r.Owned += 1
-	r.Player:SetAttribute("Owned", r.Owned)
 	sendCaught(r)
 	return fish
 end

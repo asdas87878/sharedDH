@@ -10,7 +10,6 @@
 --
 --   Variants.apply(model, variant)   dress any creature model (a fish, a tank's copy, a block stand-in); "" undoes it.
 --                                    On the server it reaches every player; FishService calls it at the spawn.
---   Variants.clear(model)            the same as apply(model, "")
 --   Variants.gold / rainbow / lit    the colour rules (tools/creatures/local_meshes.py bakes the same into meshes)
 --
 -- Two ways, by what the place has:
@@ -325,10 +324,6 @@ function Variants.apply(model: Model, variant: string)
 		end
 	end
 	sparkle(model, variant)
-end
-
-function Variants.clear(model: Model)
-	restore(model)
 end
 
 return Variants

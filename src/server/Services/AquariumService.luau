@@ -58,7 +58,7 @@
 --   The tank's fish: adding, trimming, placing, equipping, taking out and selling
 --   Upgrades and plots: buying the next stage, a player taking a plot, and leaving it
 --   Where a player stands: on a plot, in front of its tank, and the way home
---   For other services: the plot, the shown fish, coins, spending, selling and giving
+--   For other services: the plot, the shown fish, coins, spending and giving
 --   The holding remote: the Hold ask, which works with or without a tank
 --   Init and Start: the plots, the hooks into RideService, the tank asks, and the coin payout loop
 
@@ -954,7 +954,7 @@ local function home(player: Player): CFrame?
 end
 
 ----------------------------------------------------------------------------------------------------------------------
--- For other services: the plot, the shown fish, coins, spending, selling and giving
+-- For other services: the plot, the shown fish, coins, spending and giving
 
 -- For the tank ride (TankRideService): the player's plot, its fish in the water now, whether they stand at it, the
 -- floor in front of it, the fish put back in their laps, and the held fish put away
@@ -1018,22 +1018,6 @@ end
 function AquariumService.tankOf(player: Player): { Entry }?
 	local tank = tanks[player]
 	return if tank then tank.Fish else nil
-end
-
--- The plot's stage (0 with no tank), and how many of a player's fish may be equipped at once
-function AquariumService.stageOf(player: Player): number
-	local tank = tanks[player]
-	return if tank then tank.Stage else 0
-end
-
-function AquariumService.earningOf(player: Player): number
-	return Config.earningOf(AquariumService.stageOf(player))
-end
-
--- Selling for another service (a sell stall): as Action "Sell" does, without the remote. Returns why not, or nil
-function AquariumService.sell(player: Player, where: string, a: any, b: any): string?
-	local tank = tanks[player]
-	return if tank then sell(tank, where, a, b) else "Gone"
 end
 
 -- What a player has to spend (0 with no tank), and spending it: false, and nothing taken, when they haven't enough

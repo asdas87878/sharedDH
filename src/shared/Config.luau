@@ -633,9 +633,6 @@ end
 -- stylua: ignore
 Config.OxygenBase = {
 	-- land 1 (Shallows, where it lives; it needs the same anywhere)
-	Butterflyfish = 57, -- Common
-	BlueChromis = 61, -- Common
-	Boxfish = 65, -- Common
 	Pufferfish = 76, -- Common
 	Clownfish = 80, -- Common
 	SergeantMajor = 82, -- Common
@@ -643,7 +640,6 @@ Config.OxygenBase = {
 	Cuttlefish = 68, -- Uncommon
 	SeaTurtle = 81, -- Uncommon
 	Stingray = 83, -- Uncommon
-	FlyingFish = 91, -- Uncommon
 	Seahorse = 52, -- Rare
 	ReefShark = 120, -- Epic
 	Archelon = 130, -- Legendary
@@ -3034,7 +3030,6 @@ Config.Spawn = {
 	MaxTotal = 1100, -- (800 until 2026-11-16)
 	Slice = 120,
 	BoardSlice = 6, -- (5 for one test of 2026-11-17: the first room was empty before the dive); (2 until 2026-11-16: the first room held about four fish; the user: "fish spawn too far away initially". 8 for an hour, then "decrease the spawn rate a bit". docs/design/dive-in.md)
-	Wander = 80, -- a fish wanders this far either way along the lane from its home
 	TopUpEvery = 2,
 	PerTopUp = 14, -- (6 until 2026-11-16: the whole sea flows now, so each land's first stretches are making fish all the time)
 	-- The herd keeps to one layer above the lane's floor (2026-11-10, from 10 to 60): the reference's dinos are all on

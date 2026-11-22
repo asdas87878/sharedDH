@@ -136,8 +136,4 @@ Auras.Test = 0
 -- Auras further than this from the camera are not animated (their parts are hidden)
 Auras.DrawRange = 220
 
-function Auras.get(id: number): Tier?
-	return Auras.Tiers[id]
-end
-
 return Auras

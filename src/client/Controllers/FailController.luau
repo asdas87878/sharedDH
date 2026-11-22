@@ -1291,9 +1291,6 @@ end
 
 -- the dark closing in, with arms reaching over the screen (the kraken's)
 -- (no arms over the screen now: Hugo, 2026-11-19, "remove the tentacles coming in from the screen"; only the dark)
-local SHADE_ARMS = 0
-local SHADE_DOTS = 16
-
 local function makeShade(): ScreenGui
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "FailShade"
@@ -1307,65 +1304,14 @@ local function makeShade(): ScreenGui
 	dim.BackgroundTransparency = 1
 	dim.Size = UDim2.fromScale(1, 1)
 	dim.Parent = gui
-	for i = 1, SHADE_ARMS do
-		local arm = Instance.new("Folder")
-		arm.Name = "Arm" .. i
-		arm.Parent = gui
-		for k = 1, SHADE_DOTS do
-			local dot = Instance.new("Frame")
-			dot.Name = tostring(k)
-			dot.BorderSizePixel = 0
-			dot.BackgroundColor3 = Color3.fromRGB(22, 5, 30):Lerp(Color3.fromRGB(70, 18, 60), k / SHADE_DOTS * 0.5)
-			dot.AnchorPoint = Vector2.new(0.5, 0.5)
-			dot.SizeConstraint = Enum.SizeConstraint.RelativeYY
-			dot.BackgroundTransparency = 1
-			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0.5, 0)
-			corner.Parent = dot
-			dot.Parent = arm
-		end
-	end
 	gui.Parent = State.Player:WaitForChild("PlayerGui")
 	return gui
 end
 
 local function updateShade(gui: ScreenGui, t: number, from: number, to: number)
-	local camera = workspace.CurrentCamera
-	local aspect = camera.ViewportSize.X / math.max(camera.ViewportSize.Y, 1)
 	local dim = gui:FindFirstChild("Dim") :: Frame?
 	if dim then
 		dim.BackgroundTransparency = 1 - 0.35 * ss(from, to, t)
-	end
-	for i = 1, SHADE_ARMS do
-		local arm = gui:FindFirstChild("Arm" .. i)
-		if not arm then
-			continue
-		end
-		local start = from + (i - 1) * 0.12
-		local grow = Ease.outQuad(math.clamp((t - start) / 1.1, 0, 1))
-		-- from the edge (round the screen, never the middle of the top), curling in
-		local angle = (i - 0.5) / SHADE_ARMS * TAU + 0.4
-		local ex, ey = math.cos(angle), math.sin(angle)
-		local scale = 1 / math.max(math.abs(ex) / aspect, math.abs(ey)) -- (to the screen's edge, in screen heights)
-		local edge = Vector2.new(0.5 + ex * scale * 0.5 / aspect * 1.08, 0.5 + ey * scale * 0.5 * 1.08)
-		local inward = (Vector2.new(0.5, 0.5) - edge)
-		local perp = Vector2.new(-inward.Y, inward.X)
-		for k = 1, SHADE_DOTS do
-			local dot = arm:FindFirstChild(tostring(k)) :: Frame?
-			if not dot then
-				continue
-			end
-			local u = (k - 1) / (SHADE_DOTS - 1)
-			local inAt = u * grow * 0.62
-			local wave = math.sin(u * 6 - t * 2.6 + i) * 0.09 * u
-			-- the tip curls round
-			local curl = ss(0.7, 1, u) * grow
-			local p = edge + inward * inAt + perp * (wave + curl * 0.06 * math.sin(i))
-			dot.Position = UDim2.fromScale(p.X, p.Y)
-			local size = Ease.lerp(0.2, 0.035, u) * (0.6 + 0.4 * grow)
-			dot.Size = UDim2.fromScale(size, size)
-			dot.BackgroundTransparency = if inAt > 0.005 or u == 0 then 0.05 + 0.9 * (1 - grow) else 1
-		end
 	end
 end
 

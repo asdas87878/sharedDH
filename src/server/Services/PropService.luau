@@ -257,15 +257,6 @@ local function regenerate()
 	end
 end
 
--- How many props are broken now (for tests)
-function PropService.brokenCount(): number
-	local n = 0
-	for _ in broken do
-		n += 1
-	end
-	return n
-end
-
 -- The props folder (nil with no map), for rays that must tell a prop from the rest of the map
 function PropService.folder(): Instance?
 	return props()

@@ -146,11 +146,6 @@ local function render(id: string): (string?, FishIcons.Icon?)
 	return nil, nil
 end
 
--- Whether a fish is shown by its render (else by its model)
-function Portrait.rendered(id: string): boolean
-	return (render(id)) ~= nil
-end
-
 local masters: { [string]: Model } = {}
 local views: { [string]: View } = {}
 
@@ -453,15 +448,6 @@ local function master(id: string): Model?
 	views[id] = view
 	masters[id] = copy
 	return copy
-end
-
--- How a kind is shown: "Bust", "Whole", "Thin" or "Flat" (nil while it has no model to draw yet)
-function Portrait.kindOf(id: string): string?
-	if not master(id) then
-		return nil
-	end
-	local view = views[id]
-	return if view then view.Kind else nil
 end
 
 local OUTLINE_WAYS = 8

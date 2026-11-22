@@ -136,8 +136,6 @@ local zoneFrom: { number } = {}
 -- each land's first slice (newSlices)
 local zoneSlice: { [number]: number } = {}
 
-FishService.Tag = FishModel.Tag
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Lands, rolls and slices: a fish's variant and size, which kinds swim where, and the herd's slices
 
