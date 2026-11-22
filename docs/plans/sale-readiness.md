@@ -46,7 +46,7 @@ should we go about this fully"
 | **The 82 creature models belong to your Roblox account.** | Another account's Studio is refused them and shows block stand-ins. All 82 source files are in the repo, and the upload script exists, with your account id written into it. |
 | **Some models and pictures were never uploaded.** | The submarines, the trainer's seahorses, the Silver/Gold/Rainbow meshes, the fish icon pages, the window header icons, the archetype badges. They load from files on one PC. |
 | **The setup is not written down in one place.** | The order (code, map, light, sky, creatures, subs, trainer, pictures) exists only across script headers, design notes and Claude's skills. The Python packages are not listed anywhere. |
-| **GitHub is behind.** | 20 commits and three new creatures are only on this PC. |
+| **GitHub is behind.** | More than 20 commits and three new creatures are only on this PC. |
 
 ### B. It is not a finished product
 | Gap | Detail |
