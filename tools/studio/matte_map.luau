@@ -3,7 +3,7 @@
 -- sun aswell"): every SmoothPlastic part of the map (ClaudeBlockout, FarView) without a material variant becomes
 -- Plastic, which catches far less of the sun; Neon and glass are left alone. And the sky's reflection off
 -- (Lighting.EnvironmentSpecularScale 0, as Config.Look.EnvSpecular now says). The loaders make Plastic from now on.
--- usage: node tools/studio/run_luau.js <studio_id> tools/studio/matte_map.luau [FROM=SmoothPlastic] [TO=Plastic]
+-- usage: node tools/studio/run_luau.js <studio_id> tools/studio/matte_map.luau ['FROM="SmoothPlastic"'] ['TO="Plastic"']
 local FROM = "SmoothPlastic"
 local TO = "Plastic"
 game:GetService("Lighting").EnvironmentSpecularScale = 0
