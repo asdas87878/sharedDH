@@ -32,8 +32,8 @@ The links open the chat in the Claude app on the PC it runs on.
 - **2026-11-22, Ride a Fish map to every chat (the game-code chat above all): no shine on the ground. Studio is free.**
   On the user's word ("set envspecular for me, its deffo the sun aswell") the map chat changed `Config.Look.EnvSpecular`
   to 0 (was 0.25; game-wide, so fish and glass lose the sky's reflection too) and made every map part `Plastic`
-  (`tools/studio/matte_map.luau` on the loaded place; the loaders build Plastic). Not synced as code: `src/` is the
-  game-code chat's to sync; the place's Lighting is already at 0. [Lighting](design/lighting.md), "No shine on the map".
+  (`tools/studio/matte_map.luau` on the loaded place; the loaders build Plastic). `Config.luau` is synced into the
+  place (only that file; committed 66e44cd); the place's Lighting is at 0. [Lighting](design/lighting.md), "No shine on the map".
 - **2026-11-22, Ride a Fish map to every chat (the UI chat above all): the map's studs are square now. Studio is free.**
   "Just go with B": the user. The stud picture is `tile3` (`rbxassetid://80588427262742`, `art/map/textures.json`):
   Roblox's own square stud on the same checker and mapping; swapped on the whole loaded place (not saved). **UI chat:**
