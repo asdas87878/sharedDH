@@ -48,17 +48,22 @@ water is far more solid than Roblox's). Each pen is 50 x 60, the fence 4.4 high,
 degrees, off height by up to 0.35 and off the line by up to 0.45 in or out; the rails run between the posts' own
 points, so they tilt with them. The pens share fences.
 
-**The fish at game size** (`Aquarium.ShowShare` 1: a tank shows its fish at their real length, 12 to 50 studs here):
+The fence close up: every post leans its own way, stands a little in or out of the line, and the rails follow them.
 
-![the same pens with seven fish each at game size](../attachments/hub-pens-game.png)
+![the front fence of the middle pen, close](../attachments/hub-pens-fence.png)
 
-**Crowded, as the reference's are.** A 50-stud Archelon is as long as the pen, and seven fish of 12 to 50 hide the
-fence. The reference's pens are crowded the same way (H1: a Brachiosaurus or a Baryonyx is as long as its pen and
-stands far over the 4-stud fence), so big creatures over a low fence is the genre's look, not a fault. What differs:
-theirs **stand on the sand**, side by side, each one's outline clear; ours float at mixed heights over each other and
-read as one heap. So in a pen, fish would sit low (just over the sand or the pool), spread along the pen, and the
-biggest at the back. If it is still too much: fewer on show per pen, or a slightly smaller `ShowShare`. Both are the
-fish-code chat's numbers.
+**The fish at game size** (`Aquarium.ShowShare` 1: a tank shows its fish at their real length). The bench puts the
+game's fish in each pen at their game length (these seven: 12 to 50; the game allows up to 200, `Config.SizeLimit`),
+resting just over the floor, biggest first from the back fence, none overlapping, as many as fit:
+
+![the pens with the fish that fit, at game size](../attachments/hub-pens-game.png)
+
+**Four of seven fit in a 50 x 60 pen:** the Archelon (50 long, 36 wide with its flippers) and three small ones. The
+Dunkleosteus (40) and the Barracuda (30) have no room left. The big ones spill over the low fence; the reference's do
+the same (H1: a Brachiosaurus or a Baryonyx is as long as its pen and stands far over its fence), so that much is the
+genre's look. Theirs stand on the sand side by side, each outline clear, and that is how fish would have to sit in a pen
+too. A tank holding more than about four fish, or a fish over about 55 long, needs one of: fewer on show, a smaller
+`ShowShare` in the pen, or bigger pens (which works against a smaller hub). The game-code chat's numbers.
 
 | | What it is | For | Against |
 |---|---|---|---|
@@ -67,7 +72,7 @@ fish-code chat's numbers.
 | **P3 a sand pen** (right) | sand, one small pool in a corner; the fish swim in the air over the sand | The reference's own idea: creatures stand in their pen. Every fish reads | A fish out of water. Fine in this genre's look, but the user's call |
 
 **What the game code leans on** (`AquariumService`, `TankRideService`, `AquariumController`, `TankPanel`):
-To confirm with the fish-code chat before any of it goes in; as far as the map chat can see:
+To confirm with the game-code chat before any of it goes in; as far as the map chat can see:
 - `TankWater` is the space the fish swim in and you ride in. It could stay as an unseen box over the pen, so the swim
   and the ride would not change.
 - The pens as drawn have no `SignBoard`, `TrainerSpot` or `TankSurface`/rims, which the code looks for (`LIFTED`), and
@@ -79,10 +84,12 @@ To confirm with the fish-code chat before any of it goes in; as far as the map c
 
 ## 3. Layout, and where the eye goes
 **R** (right in the plans, **a sketch**): 290 x 196 wall to wall, against ours 400 x 280 and theirs about 230 x 180.
-Eight pens of 50 x 60 in a U, sharing fences: four along the back and two down each side, open toward the strip. Every
-station and trainer pad is drawn in and fits, if tightly. Back pen to the strip 128 (ours 180, theirs about 110), the
-side pens 30 to 80, an open floor of about 126 x 114. Going right down to their 230 x 180 does not fit eight pens and
-all our stations; it would need fewer pens on show or the stations moved into the walls.
+Eight pens of 50 x 60 sharing fences: four along the back facing the strip, two against each side wall with their gates
+on the inner face. Every station and trainer pad is drawn in and none overlap (`tools/map/hub_scale_plan.py` checks it),
+though it is tight: the Index and the Earners board sit in the front left corner, the Submarine in the front right.
+Back pen to the strip 128 (ours 180, theirs about 110), the side pens 5 to 60, an open floor of about 190 x 128. Going
+right down to their 230 x 180 does not fit eight pens and all our stations; it would need fewer pens or the stations
+set into the walls.
 
 For attention, following the reference:
 - **The spawn on the line from the pens to the strip**, facing the strip. The strip, the gap and the herd beyond it are

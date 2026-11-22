@@ -32,6 +32,7 @@ GRASS = (120, 200, 120)
 POOL = (110, 205, 235)
 POOL_BED = (60, 140, 190)
 rng = random.Random(7)
+FITS = []
 
 
 def post(k, x, z):
@@ -85,7 +86,7 @@ def p1_pool(k, x0, x1, z0, z1):
     # the pool: its brim the plate's top, a dark bed under clear water
     k.box((x0 + x1) / 2, PLATE - 2.2, (z0 + z1) / 2, x1 - x0 - 8, 0.4, z1 - z0 - 8, POOL_BED, n="PoolBed")
     k.box((x0 + x1) / 2, PLATE - 2.0, (z0 + z1) / 2, x1 - x0 - 8, 1.7, z1 - z0 - 8, POOL, n="PoolWater", t=0.45)
-    game_fish(k, x0, x1, z0, z1, 0.5)
+    FITS[:] = game_fish(k, x0, x1, z0, z1, 0.5)
 
 
 def p2_rail(k, x0, x1, z0, z1):
@@ -93,7 +94,7 @@ def p2_rail(k, x0, x1, z0, z1):
     top = PLATE + RAILS[1] + 0.4
     k.box((x0 + x1) / 2, PLATE, (z0 + z1) / 2, x1 - x0 - 1.4, top - PLATE, z1 - z0 - 1.4, POOL, n="PenWater", t=0.55)
     k.box((x0 + x1) / 2, top - 0.1, (z0 + z1) / 2, x1 - x0 - 1.2, 0.15, z1 - z0 - 1.2, WHITE, n="FoamLine", t=0.35)
-    game_fish(k, x0, x1, z0, z1, 0.5)
+    FITS[:] = game_fish(k, x0, x1, z0, z1, 0.5)
 
 
 def p3_sand(k, x0, x1, z0, z1):
@@ -102,20 +103,44 @@ def p3_sand(k, x0, x1, z0, z1):
     k.box(x1 - 8, PLATE, z0 + 7, 4, 3, 4, (150, 152, 166), n="Rock")
     k.box(x1 - 9, PLATE + 3, z0 + 6, 2.4, 6, 0.8, PINK, roll=8, n="Coral")
     k.box(x0 + 6, PLATE, z1 - 10, 1.2, 7, 1.2, KELP, roll=-6, n="Kelp")
-    game_fish(k, x0, x1, z0, z1, 4.0)
+    FITS[:] = game_fish(k, x0, x1, z0, z1, 1.0)
 
 
-GAME_FISH = [("Archelon", 50, 0.9), ("Barracuda", 30, 0.5), ("MantaRay", 24, 0.4), ("Dunkleosteus", 40, 0.6),
-             ("Clownfish", 12, 0.3), ("Angelfish", 16, 0.35), ("Boxfish", 14, 0.3)]  # name, length, height share
-GLB_LONG = {"Archelon": 20.7, "Barracuda": 9.0, "MantaRay": 11.2, "Dunkleosteus": 12.1, "Clownfish": 7.6, "Angelfish": 7.8, "Boxfish": 6.4}
+GAME_FISH = [("Archelon", 50), ("Dunkleosteus", 40), ("Barracuda", 30), ("MantaRay", 24), ("Angelfish", 16),
+             ("Boxfish", 14), ("Clownfish", 12)]  # name, length in the game (studs); biggest first
+# each model's box in its own file (width, height, length), from the glb: art/creatures/<Name>/game/<Name>.glb
+GLB = {"Archelon": (15.0, 8.4, 20.7), "Dunkleosteus": (12.1, 8.4, 12.1), "Barracuda": (3.4, 4.8, 9.0),
+       "MantaRay": (7.7, 3.1, 11.2), "Angelfish": (2.0, 10.2, 7.8), "Boxfish": (3.7, 3.5, 6.4), "Clownfish": (5.7, 7.6, 7.6)}
 
 
 def game_fish(k, x0, x1, z0, z1, lift):
-    """seven fish at about the game's sizes (Aquarium.ShowShare 1: a tank's fish are drawn their real size)"""
-    spots = [(0.3, 0.35), (0.7, 0.3), (0.25, 0.75), (0.65, 0.7), (0.15, 0.15), (0.85, 0.85), (0.5, 0.55)]
-    for (name, long, high), (u, v) in zip(GAME_FISH, spots):
-        k.fish(name, x0 + (x1 - x0) * u, PLATE + lift + long * high * 0.5, z0 + (z1 - z0) * v, long / GLB_LONG[name],
-               yaw=rng.uniform(-180, 180))
+    """the fish at their game length (Aquarium.ShowShare 1), resting just over the floor, biggest first from the back
+    fence (z0), none overlapping, as many as fit: a fish that has no room is left out. Returns the names placed"""
+    inset, gap, step = 1.5, 1.0, 1.0
+    taken, placed = [], []
+    for name, long in GAME_FISH:
+        w, h, l = GLB[name]
+        k_ = long / l
+        w, h = w * k_, h * k_
+        spot = None
+        z = z0 + inset
+        while spot is None and z <= z1 - inset:
+            x = x0 + inset
+            while spot is None and x <= x1 - inset:
+                for sx, sz, yaw in ((w, long, 0), (long, w, 90)):  # nose to the gate, or across
+                    if x + sx > x1 - inset or z + sz > z1 - inset:
+                        continue
+                    if all(x + sx + gap <= a or a2 + gap <= x or z + sz + gap <= c or c2 + gap <= z for a, a2, c, c2 in taken):
+                        spot = (x, z, sx, sz, yaw)
+                        break
+                x += step
+            z += step
+        if spot:
+            x, z, sx, sz, yaw = spot
+            taken.append((x, x + sx, z, z + sz))
+            k.fish(name, x + sx / 2, PLATE + lift + h / 2, z + sz / 2, k_, yaw=yaw)
+            placed.append(name)
+    return placed
 
 
 def build():
@@ -125,6 +150,7 @@ def build():
     z0, z1 = -D / 2, D / 2
     for (fill, a, b) in ((p1_pool, xs[0], xs[1]), (p2_rail, xs[1], xs[2]), (p3_sand, xs[2], xs[3])):
         fill(k, a, b, z0, z1)
+    print("fits in one pen:", ", ".join(FITS))
     # the fences: the back, the shared sides, each pen's front with its gate gap
     along(k, (xs[0], z0), (xs[3], z0))
     for x in xs:

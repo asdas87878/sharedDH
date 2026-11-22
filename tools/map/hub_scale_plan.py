@@ -92,15 +92,31 @@ ref = panel("The reference: about 230 x 180, pens 50 x 60, fence 4 high",
             "own pen to the strip 110 (4 s at 28) | stalls 17-25 off the strip | pens drawn, not measured",
             (-115, 115, -210, 0), ref_pens, (-48, 48, -30, 0), (0, -100), [((-75, -150), (-20, -30), "110")],
             None)
-# R: ours at about the reference's size with all eight pens and every station: 290 x 196
+# R: ours at about the reference's size with all eight pens and every station: 290 x 196. The back four face the
+# strip; the side pens stand against the side walls with their gates on the inner face, clear of the back row's corners
 r_pens = [(-100, -50, -220, -160), (-50, 0, -220, -160), (0, 50, -220, -160), (50, 100, -220, -160),
-          (-137, -77, -160, -110), (-137, -77, -110, -60), (77, 137, -160, -110), (77, 137, -110, -60)]
+          (-145, -95, -155, -95), (-145, -95, -95, -35), (95, 145, -155, -95), (95, 145, -95, -35)]
+r_things = (stations((-30, -62), (30, -62), (0, -122), (-71, -49), (70, -48), (-72, -36))
+            + trainers([(-75, -152), (-25, -152), (25, -152), (75, -152), (-87, -125), (-87, -65), (87, -125), (87, -65)]))
+
+
+def overlaps(pens, things):
+    """every pair of boxes that overlap (touching is fine): the pens, the stations and the pads"""
+    boxes = [("pen%d" % i, a, b, c, e) for i, (a, b, c, e) in enumerate(pens)]
+    boxes += [(t[4] or "box", t[0] - t[2] / 2, t[0] + t[2] / 2, t[1] - t[3] / 2, t[1] + t[3] / 2) for t in things]
+    bad = []
+    for i, p_ in enumerate(boxes):
+        for q in boxes[i + 1:]:
+            if p_[1] < q[2] and q[1] < p_[2] and p_[3] < q[4] and q[3] < p_[4]:
+                bad.append((p_[0], q[0]))
+    return bad
+
+
+assert not overlaps(r_pens, r_things), overlaps(r_pens, r_things)
 r = panel("R (a sketch): 290 x 196, eight pens 50 x 60, every station",
-          "back pen to the strip 128 | side pens 30 to 80 | the stalls on the way out",
+          "back pen to the strip 128 | side pens 5 to 60 | the stalls on the way out",
           (-145, 145, -228, 0), r_pens, (-48, 48, -32, 0), (0, -88), [((0, -160), (0, -32), "128")],
-          (-63, 63, -146, -32),
-          things=stations((-30, -62), (30, -62), (0, -122), (-95, -45), (112, -46), (72, -36))
-          + trainers([(-62, -152), (-12, -152), (38, -152), (88, -152), (-69, -122), (-69, -72), (69, -148), (69, -98)]))
+          (-95, 95, -160, -32), things=r_things)
 sheet = Image.new("RGB", (int(PANEL_W) * 3 + 20, int(PANEL_H)), (255, 255, 255))
 for i, im in enumerate((now, ref, r)):
     sheet.paste(im, (i * (int(PANEL_W) + 10), 0))
