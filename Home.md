@@ -4,6 +4,9 @@ Ride prehistoric sea creatures deeper and deeper. Tame them, show them off in yo
 further. A quick game in the Ride a Dino genre, going down instead of across. This page links everything. Pin it in Obsidian.
 
 ## Start here
+- [Code map](docs/Code%20map.md): a way into the game code for someone new: how it starts, who decides what, one dive through the files, every file in a line, every message (2026-11-22).
+- [Handing the game over](docs/plans/sale-readiness.md): what another team would be missing today and the stages to put it right, for a sale (2026-11-22; a plan).
+- [What to sort in the code](docs/reviews/code-organisation.md): the check of all of `src/`: unfinished pieces, unpicked options left in, dead code, comments, names (2026-11-22; nothing changed yet).
 - [AI setup](docs/AI%20setup.md): how the Claude chats run on Fable 5.2 with far fewer tokens: start chats in this folder, one piece of work per chat, `/handoff`, the helpers and skills (2026-11-22).
 - [The refinement](docs/Refinement.md): the plan to get every part of the game up to scratch (2026-11-16): where each part stands, ten streams of work, the order, and the questions for the user.
 - [What the studies found](docs/Findings.md): one page over the four studies of 2026-11-16, ranked: what to decide first, what to build next, what to test in Studio, what to keep in mind, and what we had wrong.

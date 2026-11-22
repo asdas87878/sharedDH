@@ -1,5 +1,8 @@
 --!strict
 -- The remotes, in ReplicatedStorage.Remotes. The server makes them; clients wait for them.
+-- (The list below is behind the code. Every message as the code has it, with who sends and who listens, is in
+-- docs/Code map.md, "Every message". Two more remotes sit in the same folder, made by their own services: Admin
+-- (AdminService) and Trainer (TrainService).)
 --   Action (client -> server): "Jump" (from Riding or Free: into the hop) | "Grab", fish (the locked fish: the server
 --     checks it and keeps it for us) | "CancelGrab" | "Land", fish (the pull-in onto the granted fish has ended) |
 --     "Miss" (the window ran out with no fish) | "Place", index, id (put the index-th fish we carry, of kind id, into
