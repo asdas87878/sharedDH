@@ -30,8 +30,10 @@ user's PC: a dive, a catch, hops, the slots and the land strip, no errors. **Not
   closing in over its fish first (`Config.Jump` Sling and Hover rows, in the N panel).
 - **Fish:** four Shallows fish are cut (Boxfish, Butterflyfish, Blue Chromis, Flying Fish): their modules are gone and
   `tools/creatures/collect.py` skips them. The creature chat recoloured 30 fish so each land has one that blends in and
-  the rare ones stand out ([fish values](design/fish-values.md)); those exports are in `art/creatures`, **not in the game
-  yet** (the models need uploading and installing).
+  the rare ones stand out ([fish values](design/fish-values.md)): 29 of them were uploaded and installed by the map chat on
+  2026-11-19 (`tools/creatures/recolour_log.json`, `assets.json`; the old ids in `assets_before_recolour.json`), and the
+  place's `FishModels` has every one on its new id (checked 2026-11-22). The Goblin Shark, Megalodon, Grave Ray and
+  Halfbone Megalodon kept their game colours. (Corrected 2026-11-22: this entry first said they were not uploaded.)
 - **The map:** the later lands' far view as real models (`Workspace.FarView`, in the place, not in git) and its
   low-graphics fallback in `LookController` (the painted sky face on graphics 1 to 3, and phones on Automatic); each
   land's water fog halfway, the Underworld indigo; the map chat's studies. Their regenerable `parts.json` variants are

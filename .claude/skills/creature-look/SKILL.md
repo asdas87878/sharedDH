@@ -77,7 +77,9 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   `<Name>.glb` (one object to a part, origin at its pivot, vertex colours, glowing faces split as `<Part>_Glow`; GLB, not FBX:
   FBX came back turned and scaled) and `<Name>.mesh.json` (parts, pivots, seat, glowParts, swimKeys as quaternions); the 33 built
   so far are listed in `docs/design/creature-queue.md`. All 33 were uploaded and installed by the game-code chat on 2026-11-10 (`tools/creatures/assets.json`); a changed creature
-  needs a new upload (permanent: batch changes and tell that chat). Studs and the variants are not in the game yet. A brow sits on the eye (overlaps its
+  needs a new upload (permanent: batch changes and tell that chat). The 29 recoloured for land contrast went up and were
+  installed on 2026-11-19 (`tools/creatures/recolour_log.json`, old ids in `assets_before_recolour.json`); to check the place,
+  compare each `ReplicatedStorage.FishModels.<Id>`'s `AssetId` attribute with `assets.json`. Studs and the variants are not in the game yet. A brow sits on the eye (overlaps its
   top, only a little proud of the pupil); light follows the model's own lines (a colour edge, a seam, a fin's edge), never
   a mark in the middle of a plain surface. An archetype is a loose guide and a shared vocabulary, never a template to copy:
   each creature is designed from its own real animal (the user). Taper one step at a time; more slices are for a smooth
