@@ -28,3 +28,5 @@ art/map/**/parts.json
 !art/map/greybox/parts.json
 # each PC's own Claude settings (the shared ones are .claude/settings.json)
 .claude/settings.local.json
+# the README's check build
+/build.rbxl

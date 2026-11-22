@@ -13,9 +13,9 @@ should we go about this fully"
 ## The blunt check first
 - **Today this sells as code and art, not as a game.** It has not launched, so it has no players, no retention and no
   revenue to show, and those are what a Roblox game is usually priced on.
-- **It also cannot be played by anyone but its two builders.** There is no saved place file in the repo, the scripts
-  that build the place need a file from another project on this PC, and the creature models are private to one Roblox
-  account.
+- **It also cannot be built by anyone but its two builders.** The place lives on Roblox under your account, not in
+  the repo; the scripts that build it need a file from another project on this PC; and the creature models are
+  private to one Roblox account.
 - **It is not a finished product.** Nothing is saved between sessions and nothing can be bought.
 - **So the first question is what the buyer is paying for,** because it decides how much of this plan is worth doing:
   - **The source as it is:** do stages 1 and 2 only. Small, low risk.
@@ -40,7 +40,7 @@ should we go about this fully"
 ### A. Nobody else can build it
 | Gap | Detail |
 |---|---|
-| **No place file is kept.** | Rojo carries the code only. The map, hub, water, models and light are built into a place by scripts. No `.rbxl` is in the repo. The place on this PC has unsaved work (the W32 hub); the last saved one in the notes is on Hugo's PC. |
+| **The place is not with the project.** | Rojo carries the code only. The map, hub, water, models and light are built into the place by scripts. The place is saved and published on Roblox as `rideafishfr` under your account (version 357, 2026-11-22, by the Sessions note); no `.rbxl` copy is in the repo, and the notes do not say whether Hugo or anyone else can open it. He keeps his own place file on his PC. |
 | **The Studio scripts reach outside the repo.** | Every one calls `C:\Users\blast\RpgGame\tools\studio\studio_mcp.py` (or Hugo's `~/Projects/studio-runner`). Neither is in the repo and neither has install steps. |
 | **Paths that only work on one PC.** | `C:\Users\blast\...`, `D:\ResearchCache`, `/home/hugo/...`, Blender's install folder, and Studio's own content folder. |
 | **The 82 creature models belong to your Roblox account.** | Another account's Studio is refused them and shows block stand-ins. All 82 source files are in the repo, and the upload script exists, with your account id written into it. |
@@ -64,7 +64,8 @@ should we go about this fully"
 - **One script error stops every script after it** (no guard in either `Main`).
 - **Phones are unmeasured,** and a lot runs every frame.
 - **Not ours:** the water picture, a cube mesh and the sky are other people's Creator Store assets (one "could be
-  taken down"); three HUD icons are from a free pack whose terms say it is "not to be resold"; the land pictures
+  taken down"); three HUD icons are from a free pack ("Free for commercial and non-commercial projects. Not to be resold,
+  edited and resold, or claimed as our own": the ban reads as on reselling the pack itself); the land pictures
   were made with an image generator. Check each against a sale, or replace them: they are few.
 
 ### D. Hard for a new person to read
@@ -77,7 +78,8 @@ Each stage leaves the project better whether or not the next one happens. Sized 
 wrong, not by time.
 
 ### Stage 0: stop losing work (now)
-- **Save the place** from Studio to a file, and copy it somewhere safe. This is the one thing that can be lost today.
+- **Download a copy of the place** from Studio to a file and keep it somewhere safe. Today the only full copy of the
+  built game is the one on Roblox, in one account.
 - **Push `main`** to GitHub, and commit or drop the untracked work (the three creatures, the handoff briefs).
 - **Tell Hugo,** and merge anything he has not pushed, before any tidy-up touches the comments or names.
 - Risk: none.

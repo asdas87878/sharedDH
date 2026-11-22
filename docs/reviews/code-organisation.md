@@ -50,17 +50,24 @@ still in the code, reachable only through Studio switches. A reader cannot tell 
 - **It needs a play test** (what the player sees must not change), and the user's word that the unpicked looks will not
   be wanted again. They stay in git history either way.
 
-## 3. Dead code (safe to delete)
-Each was checked by searching every call across `src/` and `tools/`.
+## 3. Dead code
+**Safe to delete:** no caller anywhere in `src/` or `tools/` (searched again for this list).
 - **Server:** `RideService.deposited`, the `Owned` attribute, `AquariumService.sell` and `earningOf`,
-  `PropService.brokenCount`, `FishService.Tag`; the old `Action "Place"` handler no client calls.
-- **Client:** `RideController.turn`, `State.secondsOn`, `Shake.at` and `Shake.clear`, `StallController.open`, a
-  switched-off block in `FailController` (the shade arms), and about a dozen unused exports in `Kit`, `Slots`,
-  `Portrait`, `StatRows` and `ShopScreen`.
-- **Shared:** `Config.archetypeOf`, five unread `AimHud` numbers, `Spawn.Wander`, Oxygen rows for four fish cut from
-  the game, `Ease.clamp01` and `inQuad`, `Auras.get`, `Variants.clear`.
+  `PropService.brokenCount`, `FishService.Tag`.
+- **Client:** `State.secondsOn`, `Shake.at` and `Shake.clear`, `StallController.open`, a switched-off block in
+  `FailController` (the shade arms), and about a dozen unused exports in `Kit`, `Slots`, `Portrait`, `StatRows` and
+  `ShopScreen`.
+- **Shared:** `Spawn.Wander`, Oxygen rows for four fish cut from the game, `Ease.clamp01` and `inQuad`, `Auras.get`,
+  `Variants.clear`.
 - **Repo:** a stray `--help/` folder at the root (81 files, 22 MB), made by a script run with `--help` taken as an
   output folder.
+
+**Unused by the game, but not free to delete:**
+- **The old `Action "Place"` handler:** no client sends it, but `tools/studio/e2_click_check.py` listens for it.
+  Remove both together.
+- **`Config.archetypeOf`:** only `tools/playtest/archetypes/client.luau` calls it.
+- **`RideController.turn`:** no caller, but it shares state with `steer`. Needs a play test.
+- **Five `AimHud` numbers** nothing reads: the sandbox panel still lists them, so its rows go too.
 
 ## 4. Comments
 - **Every file explains itself, at length.** That is the strength. `Config.luau` has three times as many characters
@@ -118,7 +125,7 @@ Renames need a play test and a word to everyone with open work; none is urgent.
 
 ## What I would do, in order
 Each is its own small piece of work; none is started.
-1. **The safe batch** (no change to play): delete the dead code of section 3 and the `--help/` folder, bring the
+1. **The safe batch** (no change to play): delete the safe list of section 3 and the `--help/` folder, bring the
    header of `Net.luau` up to date, fix the wrong comments, guard both `Main` loops, mark the test hooks.
 2. **Take out the unpicked looks** (section 2), with a play test of each screen.
 3. **The two renames that confuse most:** `ClaudeBlockout` and `UI/Shop`.
