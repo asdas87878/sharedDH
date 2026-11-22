@@ -6,7 +6,8 @@
 --   "OxygenTick"), the whole meter in Config.secondsOn: longer on a fish that needs more (by the land the rider is in
 --   and the fish's rarity, Config.required), a little longer with more max Oxygen (up to Oxygen.Cap, then only very
 --   marginally), and longer means the ticks further apart (Config.tickOf). A fish too strong for you breaks off
---   Oxygen.BreakOff of the meter at once as one piece and empties what is left in StrainTime. At
+--   Oxygen.BreakOff of the meter at once as one piece and empties what is left in StrainTime, less for each such
+--   fish landed on in a row (Oxygen.RedShrink, RedRun: the user's rule of 2026-11-22). At
 --   zero the fish throws you off and you drown (Drowning, DeathAt): the fail, which fades out and ends at the dock
 --   with the dive's catch kept. A hop is never refused for Oxygen and costs none, so at almost nothing you can still
 --   go fish to fish, and every landing refills.
@@ -72,6 +73,7 @@ type Rider = {
 	SentAt: number,
 	SentDrain: number, -- the Oxygen a second last told to the client (the Drain attribute): 0 off a fish
 	Strained: boolean, -- the fish under us is too strong for us (decided at the mount): the meter empties at once
+	RedRun: number, -- fish too strong for us landed on in a row (Oxygen.RedShrink): 0 after a fish we hold, or the dock
 	AngryFish: Wild?, -- the fish we have marked angry (its attributes and tag are ours to take off again)
 	AngryAt: number, -- os.clock() it turned angry
 	Tame: number, -- how far the fish under us is from being ours, 0 to 1 (Config.tameTime)
@@ -456,6 +458,7 @@ local function setState(r: Rider, state: string)
 		if r.Strained then
 			r.Strained = false
 			r.Player:SetAttribute("Strained", nil)
+			r.Player:SetAttribute("StrainSeconds", nil)
 		end
 		if r.SentTame ~= -1 then
 			r.SentTame = -1
@@ -835,6 +838,11 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	-- Too strong for us? Decided here, at the mount, by what this fish needs (task e1: never by the land it is in): a
 	-- landing is never refused, the meter just empties at once (Oxygen.StrainTime).
 	r.Strained = Config.strained(needOf(w), r.Max) and not sandbox("EndlessAir", r)
+	-- red fish in a row (the user, 2026-11-22, Oxygen.RedShrink): each one after the first empties the meter sooner;
+	-- a fish we can hold starts the count again. The client is told the seconds (StrainSeconds) before Strained.
+	r.RedRun = if r.Strained then r.RedRun + 1 else 0
+	local strainSeconds = Config.strainSeconds(r.RedRun)
+	r.Player:SetAttribute("StrainSeconds", if r.Strained then strainSeconds else nil)
 	r.Player:SetAttribute("Strained", if r.Strained then true else nil)
 	r.Tame = if r.Tamed[w] then 1 else 0
 	if landing then
@@ -860,12 +868,12 @@ local function mount(r: Rider, w: Wild, landing: boolean): boolean
 		if o.BreakOff > 0 and r.Oxygen > 0 then
 			local lost = r.Oxygen * math.clamp(o.BreakOff, 0, 1)
 			r.Oxygen -= lost
-			r.StrainPiece, r.StrainEvery = Config.strainTicks(r.Max, r.Oxygen)
+			r.StrainPiece, r.StrainEvery = Config.strainTicks(r.Max, r.Oxygen, strainSeconds)
 			-- (the gap told is the one to the first strain tick, so the struggle locks to it: until task r1 it was
 			-- StrainTime, and the struggle ran out of step with the strain's ticks)
 			Net.Ride:FireClient(r.Player, "OxygenTick", lost, r.Oxygen, r.StrainEvery, "Break")
 		end
-		r.StrainPiece, r.StrainEvery = Config.strainTicks(r.Max, r.Oxygen)
+		r.StrainPiece, r.StrainEvery = Config.strainTicks(r.Max, r.Oxygen, strainSeconds)
 		-- (the first of the rest a whole gap after the break-off)
 		r.TickAt = os.clock() + r.StrainEvery
 	end
@@ -885,6 +893,8 @@ local function toDock(r: Rider)
 	if r.Fish then
 		dismount(r, "Dock")
 	end
+	-- (the surface: the next red fish is a first one again, Oxygen.RedShrink)
+	r.RedRun = 0
 	-- (a ragdoll gets its joints back before the move home)
 	unragdoll(r.Player)
 	r.Token += 1
@@ -1834,6 +1844,7 @@ local function onPlayer(player: Player)
 		SentAt = 0,
 		SentDrain = 0,
 		Strained = false,
+		RedRun = 0,
 		AngryFish = nil,
 		AngryAt = 0,
 		Tame = 0,

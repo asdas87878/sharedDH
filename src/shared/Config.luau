@@ -449,6 +449,14 @@ Config.Oxygen = {
 	-- (Hugo, 2026-11-19, task o1 of mission 865072de: the red zone "5-7 ticks from entering it to 0", about 2-3 s:
 	-- 2.5, so what is left after the 2/3 break-off goes in RedTicks even ticks, as the red zone on any other fish)
 	StrainTime = 2.5,
+	-- Red fish in a row (the user, 2026-11-22: "if you jump back on its still red. The more you jump back on the less
+	-- and less time on the red you have. until its pretty much impossible to hop off in time"; docs/design/progression.md,
+	-- "Red fish in a row"): the nth fish too strong for you landed on in a row empties the meter in StrainTime x
+	-- RedShrink^(n-1) seconds (0.7: 2.5, 1.75, 1.2, 0.86, 0.6, 0.42, 0.29, 0.2 ...), with no floor but the code's
+	-- 0.05 (Config.strainSeconds), so past about the eighth it is under Jump.StrainLock and nobody gets off. A fish you
+	-- can hold, or the dock, starts the count again (RideService, RedRun). 1: every red fish StrainTime, as before.
+	-- Try 0.5 (sharper) or 0.8 (softer) in the sandbox. (With endless air on no fish is too strong, so it never shrinks.)
+	RedShrink = 0.7,
 	-- The low, red part of the meter (Hugo, 2026-11-12: "when the bar turns red"): this share of your max Oxygen and
 	-- under. One number for both sides: the ring turns red here (HudController, Rings) and the fish under you turns
 	-- angry here (Config.Angry, RideService).
@@ -3411,16 +3419,25 @@ end
 
 -- The ticks on a fish too strong, after the break-off: `left` Oxygen in StrainTime. With Oxygen.RedTime on, the red
 -- part's even ticks (Config.redTicks); else pieces as near 1 / Ticks of the max as the gap (at least Oxygen.Tick, and
--- RedTick) allows. Returns the piece and the gap.
-function Config.strainTicks(max: number, left: number): (number, number)
+-- RedTick) allows. Returns the piece and the gap. (`seconds`: the strain's own time, Config.strainSeconds; StrainTime
+-- when left out)
+function Config.strainTicks(max: number, left: number, seconds: number?): (number, number)
 	local o = Config.Oxygen
+	local time = seconds or o.StrainTime
 	if o.RedTime > 0 then
-		return Config.redTicks(left, o.StrainTime)
+		return Config.redTicks(left, time)
 	end
 	local least = math.max(o.Tick, o.RedTick, 0.01)
-	local most = math.max(1, math.floor(o.StrainTime / least + 1e-6))
+	local most = math.max(1, math.floor(time / least + 1e-6))
 	local count = math.clamp(math.floor(left / (math.max(max, 0.001) / math.max(o.Ticks, 1)) + 0.5), 1, most)
-	return math.max(left, 0.001) / count, math.max(o.StrainTime, 0.01) / count
+	return math.max(left, 0.001) / count, math.max(time, 0.01) / count
+end
+
+-- Seconds the meter lasts on the `run`th fish too strong for you landed on in a row (Oxygen.RedShrink): StrainTime x
+-- RedShrink^(run-1), never under 0.05 (only so nothing divides by zero)
+function Config.strainSeconds(run: number): number
+	local o = Config.Oxygen
+	return math.max(o.StrainTime * (o.RedShrink or 1) ^ math.max(run - 1, 0), 0.05)
 end
 
 -- Seconds on a fish that needs `required` to tame it (Config.Tame): Tame.Time, longer for a fish that needs more (Tame.Grow), and

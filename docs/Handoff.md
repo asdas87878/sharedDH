@@ -32,6 +32,16 @@ went in with the merge below; since then only tools and art changed.
 - **Checked:** on test sheets in Studio (Edit), all 79 fish; the slots in a play test on 2026-11-18. Not on a phone.
 - **Art:** `art/ui/fish_icons/renders` (79, the new colours) and `sheets`; `research/fish_icons_chatgpt/` (private).
 
+## 2026-11-22 · Red fish in a row (Ride a Fish game code, the user's PC)
+**State:** StyLua clean, selene 0 errors (the three old warnings), `rojo build` passes. Checked in Studio by script:
+ten red landings in a row, the count reset by a fish held; no errors. **Not played by hand.**
+- **The rule** (the user, through the tuning chat): each fish too strong for you landed on in a row empties the meter
+  in `Oxygen.StrainTime` x `Oxygen.RedShrink`^(n-1): 2.5, 1.75, 1.2, 0.86 ... s at 0.7, so by about the eighth nobody
+  gets off. A fish you can hold, or the dock, starts it again. Try 0.5 or 0.8 in the N panel (Oxygen, RedShrink).
+- **Where:** `Config.strainSeconds`, `Config.strainTicks` (a third argument, the seconds), `RideService` (`RedRun`, the
+  player attribute `StrainSeconds`), `ShakeController` (the strain shake runs to that time). The refill and the
+  break-off at a red landing are as they were.
+- [Progression](design/progression.md), "Red fish in a row".
 ## 2026-11-22 · The other PC's work since 2026-11-17, merged on top of yours (Obsidian chat integration, the user's PC)
 **State:** merged on top of your `de938cd` (your 157 commits since our last push came in as a fast-forward; nothing of
 yours was replayed), then with your three of 2026-11-22 (to `4497f17`) in a merge commit. StyLua clean; selene 0 errors (the three old warnings); `rojo build` passes. Run in Studio by script on the

@@ -200,6 +200,7 @@ local TUNABLES: { { any } } = {
 	{ "Oxygen", "Refill", 0.05 },
 	{ "Oxygen", "KeepUp", 0.25 },
 	{ "Oxygen", "StrainTime", 0.05 },
+	{ "Oxygen", "RedShrink", 0.05 },
 	{ "Tame", "On", 1 },
 	{ "Tame", "Time", 0.25 },
 	{ "Tame", "Carry", 1 },

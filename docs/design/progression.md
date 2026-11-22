@@ -4,9 +4,9 @@
 
 How long you can stay on a fish, how fast each fish is, how often each rarity turns up, and so how a player gets from
 the Shallows to the tenth land. **Start at "What a fish needs is its own" (task e1): it replaces every land cost
-below. Then "Today's rules"; the rest is the record.** The economy draft of
-2026-11-19 (the seahorse in fixed levels, twelve auras, size and colour in the need) is the next section, for
-Hugo's pick; nothing in it is in the game. By the tuning chat
+below. Then "Today's rules"; the rest is the record.** The economy's draft 2 (2026-11-22: Ride a Dino's
+progression, needs into the billions) is the next section, for the user's and Hugo's pick; it supersedes draft 1
+(2026-11-19). Nothing in either is in the game. By the tuning chat
 ([Sessions](../Sessions.md)); fourth pass 2026-11-16, for the refinement; second pass 2026-11-11, after the
 user's answer on how the Oxygen cost works; third pass 2026-11-12, after the user's answer on a fish that is too
 strong for you, and with taming built ([Decisions](../Decisions.md)).
@@ -191,7 +191,123 @@ Clownfish 96), `docs/attachments/e1-tags.jpg`; the seahorse at level 1 ("+4 > +6
 
 </details>
 
-## The economy, draft 1 (2026-11-19): for Hugo's pick
+## The economy, draft 2 (2026-11-22): Ride a Dino's progression, for the user and Hugo
+The user, 2026-11-22: *"We need to pretty much replicate ride a dinos progression ... The upper tier dinos in ride a
+dino are in the billions, possibly higher ... we need that huge cap whilst making the progression possible."* **A
+draft: no number in `Config` is changed.** It replaces draft 1 (below). The game's own needs today (task e1) top out
+at 3.3M, because e1's bases grow only about 1.5 times a land. Every reference number is from
+[the deep study](../reference/ride-a-dino-deep.md) (seen, said or fit, marked in the tables). The tables:
+[economy-draft-2-tables](../attachments/economy-draft-2-tables.md).
+
+```
+python tools/balance/rad_economy.py               the tables and a free player's play-through
+python tools/balance/rad_economy.py --no-index    the same player with no Index rewards
+python tools/balance/rad_economy.py --sit 0.25    a player who sits on the seahorse less
+python tools/balance/rad_economy.py --step 6      a gentler need ladder
+```
+
+### How it copies theirs
+- **Our Oxygen = their Stamina x 8.** Their first wild dino needs 10, our Clownfish 80. So their last zone's 700M to
+  1.6B is our land 10's 5B to 13B.
+- **Our coins = their dollars.** A fish still earns its need / 40 a second (`Aquarium.PerRequired` 0.025, unchanged):
+  our Clownfish earns $2 like their first earner. **Early on we earn less than they do:** at 15K to 50K max Oxygen the
+  played-through tank earns about $400 to $3.2K a second, where their user's account at 1.9K Stamina (x8: 15K)
+  earned $2.2K to $5K, so about 3 to 5 times under at that point. The pace below holds anyway, so **their price
+  ladders are our prices as they stand**, coin for dollar. Income rising with the need, as theirs does, is what
+  carries the money into the trillions and beyond.
+- **Their late Stamina comes from the Index, not the machine.** Their AFK players on the machine look to come to a
+  few hundred Stamina a second before Robux multipliers (inferred from two recordings), while their last zone needs a
+  billion; the free player who finished did it with "Claim All". So our Index (accepted 2026-11-16, not built) pays
+  Oxygen for each new kind and each finished land. Without it the same player reaches land 10 at 58 hours instead of
+  31.
+
+### The short of it
+1. **What a fish needs grows x7.3 a land** (theirs x5 to x8 a zone): each land's commonest fish 80, 588, 4,250, 35K,
+   230K, 1.7M, 12M, 89M, 645M, **4.65B**. Every kind's base is today's times its land's factor, rounded to two
+   figures and then nudged up until no two kinds need the same (e1's rule), so Hugo's order inside each land stays
+   (checked: no land's order changes, all 77 needs differ). The top: The Devourer 58.5B, a Colossal Rainbow one
+   **351B**.
+2. **The seahorse, 12 levels** (Hugo's names): +16, 40, 120, 290, 760, 1,900, 4,800, 12,000, 30K, 75K, 190K, 470K a
+   second (their +2, 5, 15, 36, 95 x 8, then x2.5). Prices theirs where seen: free, $15K, $250K, $4M, $80M, $2.5B,
+   $75B, $3T, then x20 to $500Qa.
+3. **Hugo's twelve auras, x1.5 to x12, at their prices:** $100, $5K, $75K, $1.5M, $30M, $750M, $20B, $500B, $12.5T,
+   $300T, $5Qa, $100Qa. **An aura multiplies the seahorse only**, as theirs multiplies the machine only. Hugo's
+   `Auras.luau` says "all Oxygen gained": if the aura multiplied the Index too, land 10 came at 7 hours.
+4. **The tank's five stages at their pen's prices:** $1M, $30M, $1B, $30B, $1T (500 to 5M today).
+5. **The Index:** a first catch pays 20% of the kind's need in Oxygen (at least 100) and 100 seconds of its coins; a
+   land's every kind caught pays half the land's commonest need and 600 seconds of its coins. **Both numbers are fit
+   to land the pace near their 30 hours, not seen:** their seen first-catch reward is about 10 to 12% of the need. A
+   land's set counts only the kinds that spawn there; the Secrets have no spawn share yet, so they are left out of
+   the sets (if they come into the mix later, they join their land's set).
+6. **The pace it gives a free player** (35% on the seahorse, a fish home every 25 s of diving; five seeds, which
+   agree within a few minutes):
+
+| Land | Needs | Reached | Theirs, for comparison |
+|---|---|---|---|
+| 3 Kelp Forest | 4,250 | 5 to 6 min | the lesson is 2.5 min, two purchases |
+| 5 Open Blue | 230K | 27 to 30 min | their typical player sees about an hour in all, and sticks at zones 5 to 7 |
+| 6 Twilight | 1.7M | 65 to 70 min | |
+| 7 Midnight | 12M | 2.4 to 2.6 h | "2 hours": 37M Stamina (x8: 300M), with some Robux |
+| 8 Vents | 89M | 5.0 h | |
+| 9 Bone Graveyard | 645M | 13.7 to 13.9 h | |
+| 10 The Underworld | 4.65B | 31.2 h | "30 hours", free: 971M (x8: 7.8B), just taming in the last zone |
+| its Mythics, Secrets | 15B to 351B | 45 h at 10B, 60 h at 14B, then weeks | their top pens are Robux players' |
+
+Bought on the way: an aura at 1 min, the second seahorse at 6, the first tank stage at 19, the x3 aura at 23; the
+seahorse's 8th level at 16 hours, the 9th at 36. Coins at 30 hours: $12T to $16T (theirs $20T).
+
+### Red fish in a row (the user's rule, 2026-11-22)
+*"if you jump back on its still red. The more you jump back on the less and less time on the red you have. until its
+pretty much impossible to hop off in time."* **Proposed:** the first red fish gives `Oxygen.StrainTime` (2.5 s) as
+today; each red fish after it in a row gives 0.7 times the one before: 2.5, 1.75, 1.2, 0.86, 0.6, 0.42, 0.29, 0.2,
+0.14, 0.1 s, with no floor, so past about the eighth it is under the hop's own lock (`Jump.StrainLock` 0.08 s) and
+nobody gets off. A fish you can hold, or the surface, starts the count again. Measured in the model
+(`python tools/balance/model.py --redchain 40`), a new player with 100 max Oxygen:
+
+| Red time, each after the first | Into land 2 | Land 3 or deeper | Longest run of reds |
+|---|---|---|---|
+| Today (2.5 s every time), Space held | 18% | 15% reach land 10 | 725 |
+| x0.75, floor 0.3 s, Space held | 20% | 2.5% reach land 10 | 736 (the floor is above the lock) |
+| **x0.7, no floor, at ease** | 62% | none | 5 |
+| **x0.7, no floor, Space held** | 20% | none | 11 |
+| x0.5, no floor, Space held | 32% | none | 6 |
+
+It is a `RideService` change (a count of reds in a row and the shorter strain), for the game-code chat; then a
+feel check by hand.
+
+**Built 2026-11-22 (the game-code chat):** `Oxygen.RedShrink` 0.7 (in the N panel), `Config.strainSeconds`, and
+`RideService`'s `RedRun`: counted at each mount on a fish too strong, set to 0 by a fish you can hold or the dock,
+kept through the hop and floating between. The landing's refill and the 2/3 break-off are unchanged: only the time the
+rest takes shrinks (with nothing back, the second red fish would empty at once). The client is told the seconds (the
+player's `StrainSeconds` attribute) for the shake and the ring's countdown. Checked in Studio with every fish red
+(`TestMaxOxygen` 5, endless air off, no fail on): ten red landings in a row gave 2.5, 1.75, 1.22, 0.86, 0.60, 0.42,
+0.29, 0.21, 0.14, 0.10 s; the eighth ran out before the hop; a fish held in between started the count again at 2.5.
+No errors. Not played by hand. In a published game the press comes a round trip late, so the red fish nobody gets off
+comes about the fifth or sixth, not the eighth. With endless air on no fish is too strong, so nothing shrinks.
+
+### What else it needs (not in the play-through)
+- **Selling and earning while away**, theirs: a fish sells for 200 seconds of what it earns (ours 60); away, half an
+  hour of the tank's coins a day (ours none). Proposed as theirs.
+- **Robux:** their late game is where Robux multipliers (x2 to x4096 on the machine) and Stamina packs sell. Our
+  shop's Oxygen multiplier should sit on the seahorse the same way.
+- **Numbers past a trillion:** the HUD needs Qa and Qi (prices reach $500Qa). Past 9 quadrillion a Luau number is no
+  longer exact to the coin, which only the prices reach; Oxygen tops at about 351B. A fish's tag shows its need in
+  whole figures (`Config.wholeNumber`), which won't fit 4,650,000,000: the tag needs the short form too.
+- **Every threshold set in Oxygen moves with it.** `Oxygen.Cap` (500K, past which a tame takes `Tame.CapSlow` 1.5
+  times longer) is passed inside the first hour. The ride's grow, (need / 80)^0.1, hits `GrowMost` 4 at about 84M,
+  so from land 8 on every fish rides and tames the same length: check that a fish still outlasts its tame at its
+  need, and re-run D5 below on these needs.
+
+### What the user and Hugo pick
+| | Choice | Draft 2 | Other way |
+|---|---|---|---|
+| 1 | The need ladder | x7.3 a land (land 10 at 4.65B, top 351B) | x6 (`--step 6`: land 10 at 810M, reached at 16 h; top 59B; the end comes sooner) |
+| 2 | Does an aura multiply the Index? | No (theirs) | Yes (Hugo's text): needs a much slower Index |
+| 3 | The Index pays Oxygen | 20% of a new kind's need, half a land's for a full land (fit) | it is the late game: without it, 58 h to land 10 |
+| 4 | The red rule | x0.7 a red fish in a row, no floor | x0.5 (sharper), x0.8 (softer) |
+| 5 | Prices | theirs, coin for dollar | |
+
+## The economy, draft 1 (2026-11-19): superseded by draft 2 (2026-11-22)
 Hugo, 2026-11-19: *"seahorse oxygen generator, why does it go up in decimals? it should always give the same amount
 then be upgradeable ... seahorse always same oxygen amount only going up on upgrades or multipliers."* The decimals
 come from `Train.Share`: the pad gives 4 a second **plus 0.4% of your max**, so the number on screen is never round
@@ -684,7 +800,7 @@ number on a tag), the table of what max Oxygen means, the taming table, and each
 | 6 | A fish too strong | Answered twice: 2026-11-12 (drains at once), 2026-11-16 (a second, and you can hop off) |
 | 7 | Which traits? | Built by Hugo as archetypes: Tank, Predator, Leaper, Fast, Breaker |
 | 8 | A full bag keeps the best seven? | In the plan (stream 2), not built. B needs it |
-| 9 | **New: should red fish chain without end?** Today a new player who holds Space reaches the tenth land in about four minutes, in 4 dives of 10. If not: a landing on a red fish gives no Oxygen back, and it is one fish at ease, about six holding Space | Open |
+| 9 | **New: should red fish chain without end?** Today a new player who holds Space reaches the tenth land in about four minutes, in 4 dives of 10. If not: a landing on a red fish gives no Oxygen back, and it is one fish at ease, about six holding Space | Settled 2026-11-22 (Decisions): red stays red, each red in a row gives less time (draft: x0.7, no floor) |
 
 ## The short version
 **As it stood on 2026-11-12. Superseded 2026-11-16** by "Today's rules" above: a land is no longer a wall, the first dive is longer, speeds are by fish, and reading the tags saves a catch, not a dive.

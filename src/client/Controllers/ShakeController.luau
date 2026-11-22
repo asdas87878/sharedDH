@@ -78,7 +78,10 @@ local function step()
 	-- a fish too strong for us: it grows as the meter empties
 	local strain = 0
 	if riding and State.Strained then
-		local through = math.clamp((now - State.MountedAt) / math.max(Config.Oxygen.StrainTime, 0.05), 0, 1)
+		-- (this fish's own strain time: shorter for each red fish in a row, Oxygen.RedShrink)
+		local seconds = State.Player:GetAttribute("StrainSeconds")
+		local time = if type(seconds) == "number" then seconds else Config.Oxygen.StrainTime
+		local through = math.clamp((now - State.MountedAt) / math.max(time, 0.05), 0, 1)
 		strain = s.StrainFrom + (1 - s.StrainFrom) * through
 	end
 	Shake.rumble("Strain", "Strain", strain)
