@@ -1041,7 +1041,7 @@ def economy(cfg, lane, out, sit=SIT_SHARE, colour="A"):
               "coins are Aquarium.Silver/Gold/Rainbow as they are; the need is version A (the same numbers) or B "
               "(gentler). A Gold Big fish needs 1.2 x the colour's number. Chances: a Common's.")
     so, co = size_odds(cfg, "Common"), colour_odds(cfg)
-    rows = [[s, f"x{cfg["SizeOxygen"].get(s, 1):g}", f"x{cfg["SizeOxygen"].get(s, 1):g}", "", pct(so[s])] for s in sizes]
+    rows = [[s, f"x{cfg['SizeOxygen'].get(s, 1):g}", f"x{cfg['SizeOxygen'].get(s, 1):g}", "", pct(so[s])] for s in sizes]
     for c in ("Silver", "Gold", "Rainbow"):
         rows.append([c, f"x{COLOUR_NEED['A'][c]:g} (A) / x{COLOUR_NEED['B'][c]:g} (B)", f"x{a.get(c, 1):g}", "", f"1 in {1 / co[c]:.0f}"])
     out.table(["Size or colour", "Need, times", "Coins, times", "", "Chance"], rows)
@@ -1374,7 +1374,10 @@ def dive(cfg, lane, rng, max_oxygen, sit=RIDE, react=REACT, green=False, tame=Fa
             v = kind["Speed"]
             cost = drain_of(cfg, z, kind)
             if red:
-                cost = max_oxygen / o["StrainTime"]
+                # Oxygen.RedShrink / RedFloor (model only, the user's rule of 2026-11-22): each red landing in a row
+                # gives RedShrink times the red time of the one before, never under RedFloor seconds
+                strain = o["StrainTime"] * o.get("RedShrink", 1) ** max(res["red_run"] - 1, 0)
+                cost = max_oxygen / max(strain, o.get("RedFloor", 0), 0.05)
             low = red or (not endless and oxygen <= max_oxygen * angry_at * (cfg["Arch"]["Tank"].get("AngryAt", 1) if "Tank" in kind["Arch"] else 1))
             angry_t = min(angry_t + dt, angry_in) if low else max(angry_t - dt, 0.0)
             heat = 1.0 if red else clamp(1 - oxygen / max(max_oxygen * angry_at, 1e-9))
@@ -1610,10 +1613,37 @@ def sim(cfg, lane, out, runs, seed):
                                                                        "Lasts (s), mean", "How it ended"], rows)
 
 
+def red_chain(cfg, lane, out, runs, seed, shrinks=(1.0, 0.75, 0.6, 0.5), floor=0.3):
+    """The user's red rule (2026-11-22): a landing back on a red fish stays red, and each one in a row gives less
+    time, RedShrink times the one before (never under RedFloor). How far a new player gets by chaining red fish."""
+    w = world(cfg, lane)
+    lands, o, j = w["lands"], cfg["Oxygen"], cfg["Jump"]
+    start = o["StartMax"]
+    mash = dict(sit=j.get("Cooldown", 0.08), react=0.0, mash=True)
+    out.title("Red fish in a row: each gives less time (Oxygen.RedShrink, model only)",
+              f"{start:g} max Oxygen, so every fish past the Shallows is red. The first red fish gives StrainTime "
+              f"{o['StrainTime']:g} s; each one after it in a row x RedShrink, never under {floor:g} s; a fish you hold "
+              f"ends the run of reds. The share of {runs} dives that got into each land, and the longest run of reds.")
+    rows = []
+    for k in shrinks:
+        c = dict(cfg, Oxygen=dict(o, RedShrink=k, RedFloor=floor))
+        times = ", ".join(f"{max(o['StrainTime'] * k ** i, floor):.2g}" for i in range(6))
+        for label, kw in (("at ease", dict()), ("Space held", mash)):
+            rng = random.Random(seed)
+            rs = [dive(c, lane, rng, start, **kw) for _ in range(runs)]
+            rows.append([f"x{k:g} ({times} s)", label]
+                        + [pct(sum(1 for r in rs if r["reached"] >= z) / len(rs)) or "0%" for z in range(1, lands)]
+                        + [n(sum(r["red"] for r in rs) / len(rs), 1), str(max(r["red_best"] for r in rs)),
+                           n(sum(r["seconds"] for r in rs) / len(rs)), ends_of(rs)])
+    out.table(["RedShrink (red seconds 1st to 6th)", "Rider"] + [f"Land {z + 1}" for z in range(1, lands)]
+              + ["Red landings", "Longest red run", "Lasts (s), mean", "How it ended"], rows)
+
+
 def main():
     global PLAN_MINUTES, HOME, RIDE, SIT_SHARE
     p = argparse.ArgumentParser(description="Ride a Fish balance model")
     p.add_argument("--md", action="store_true", help="markdown tables")
+    p.add_argument("--redchain", type=int, default=0, metavar="N", help="only the red-in-a-row table, N dives a line")
     p.add_argument("--sim", type=int, default=0, metavar="N", help="play N dives per rider through the herd")
     p.add_argument("--dives", action="store_true", help="with --sim: only the dives' tables")
     p.add_argument("--prices", action="store_true", help="only the trainer, aura and tank tables")
@@ -1639,6 +1669,9 @@ def main():
     out = Out(a.md)
     if a.set:
         print("With: " + ", ".join(a.set))
+    if a.redchain > 0:
+        red_chain(cfg, lane, out, a.redchain, a.seed)
+        return
     if a.economy:
         data = economy(cfg, lane, out, SIT_SHARE, a.colour)
         if a.sheet:

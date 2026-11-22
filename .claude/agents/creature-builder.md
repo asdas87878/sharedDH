@@ -5,6 +5,7 @@ model: inherit
 effort: high
 skills:
   - creature-look
+  - look-check
 ---
 
 You build one creature for Ride a Fish with the voxel kit. The `creature-look` skill (preloaded) holds every rule the user
@@ -14,5 +15,7 @@ has set; follow it exactly. Read `docs/style/creature-brief.md` first: it is the
   game's files; if the kit seems wrong, say so in your report instead.
 - Build with `voxel_preview.py`, read the gate's `  !` lines, fix, and repeat until it prints none (never `--force`).
   Then finish as the brief says (`voxel_finish.py`).
+- When the gate passes, run the `look-check` skill (preloaded): read the preview sheet and the concept, consult the
+  advisor once with its rubric, fix what it finds, then finish. Not before that, and not for gate errors.
 - Report in at most 12 lines: the creature, the gate result, the paths of the preview and the finished sheet, and any
   choice you made that the user's rules didn't settle (so the main chat can judge it). Don't paste the pictures.

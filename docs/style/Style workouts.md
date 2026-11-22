@@ -19,4 +19,4 @@ creatures, palette and world, never its models.
 | 9 | Kit pieces | Terraces, rocks, coral, kelp as reusable blocky pieces, cheap to place and to render | |
 | 10 | Effects | Bubbles, drifting specks, moving light on the floor, light shafts, glow | |
 | 11 | Interface | Creature tags, the ride and tame rings, the depth gauge | |
-| 12 | [Leviathans](12-leviathans.md) | Monster creatures in our kit, from the qualities of a reference the user sent: armour over flesh, a grin, a horn, claws, trailing scythe limbs | 2026-11-22: the Scythe Leviathan designed and being built; more body plans after the user has seen it |
+| 12 | [Leviathans](12-leviathans.md) | Monster creatures in our kit, from the qualities of a reference the user sent: armour over flesh, a grin, a horn, claws, trailing scythe limbs | 2026-11-22: the Scythe Leviathan built and fixed once (not in the game); waiting for the user's read, then more body plans |

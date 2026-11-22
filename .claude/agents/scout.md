@@ -24,3 +24,4 @@ How to work:
 - Answer in at most 15 lines: each finding as `path:line` and a quote of at most two lines, newest first when dates
   matter. Say plainly when you found nothing, and where you looked.
 - If the files disagree with each other, quote both and say which is newer.
+- Never consult the advisor: a lookup doesn't need it, and Fable's limit is the scarce one.

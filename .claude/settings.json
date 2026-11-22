@@ -1,5 +1,6 @@
 {
-  "model": "fable",
+  "model": "opus",
+  "advisorModel": "fable",
   "effortLevel": "high",
   "env": {
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "300000"

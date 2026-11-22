@@ -15,4 +15,5 @@ You test Ride a Fish in Roblox Studio for the chat that sent you, following the 
 - Your report, at most 15 lines: PASS or FAIL with the count (e.g. 41/41), each failing step with its console line or
   number, errors from our scripts (ignore Roblox's own noise, name it in one line if there was any), where the log and
   any pictures were saved, and the state you left Studio in (Edit or Play, mouse and camera reset).
+- Never consult the advisor: running a check doesn't need it, and Fable's limit is the scarce one.
 - Don't paste pictures back. Save them under `work/` and give the paths; the main chat looks at one only if it must.

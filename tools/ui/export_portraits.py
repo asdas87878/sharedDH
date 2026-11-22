@@ -71,6 +71,13 @@ def main():
             out = args[i]
         i += 1
     os.makedirs(out, exist_ok=True)
+    # draw the live models, not the partner's renders (UI.FishIcons, task r1): the workspace's "FishIcons" attribute
+    # set to "Model" for the export and put back after
+    luau(studio, """
+local was = workspace:GetAttribute("FishIcons")
+workspace:SetAttribute("PortraitExportWas", if was == nil then "none" else tostring(was))
+workspace:SetAttribute("FishIcons", "Model")
+return 1""")
     listing = luau(studio, """
 local names = {}
 for _, m in game:GetService("ReplicatedStorage").FishModels:GetChildren() do table.insert(names, m.Name) end
@@ -108,6 +115,11 @@ return string.format("%d,%d;", size.X, size.Y) .. table.concat(names, ",")""")
             saved.append(name)
         os.remove(jpeg)
         print("page from %s: %d saved" % (chunk[0], len(chunk)))
+    luau(studio, """
+local was = workspace:GetAttribute("PortraitExportWas")
+workspace:SetAttribute("FishIcons", if was == "none" or was == nil then nil else was)
+workspace:SetAttribute("PortraitExportWas", nil)
+return 1""")
     # every render in the folder on one contact sheet, named (not only this run's, when --only made a few)
     saved = sorted(n[:-4] for n in os.listdir(out) if n.endswith(".png"))
     per = 10

@@ -1,69 +1,78 @@
-# AI setup: Fable 5.2 quality, faster and with fewer tokens
+# AI setup: Fable 5.2 quality on a small share of Fable's limit
 
-Up: [Home](../Home.md). Set up 2026-11-22 at the user's request. How the Claude chats on Ride a Fish are configured so they
-run on the best model (Fable 5.2) but spend far fewer tokens and answer faster. Everything here is in the repo, so both PCs
-get it.
+Up: [Home](../Home.md). Set up 2026-11-22 at the user's request, changed the same day. **Fable 5.2's weekly limit is what runs
+out; Opus 5.5 barely moves the plan's limits.** So Opus 5.5 does the work and Fable 5.2 is its advisor, consulted only at
+the moments that decide quality. Everything here is in the repo, so both PCs get it.
+
+## The split
+- **Opus 5.5 at `high` effort does the work**: reading, editing, running scripts, Studio checks, the helpers.
+- **Fable 5.2 is the advisor** (`advisorModel` in `.claude/settings.json`). Claude Code lets the working model consult a
+  stronger one; the advisor reads the whole chat and answers. The rule in CLAUDE.md says when: **before committing to a
+  plan for a piece of work, when a bug survives two fixes, before telling the user a piece is done, and for any call on how
+  something looks or feels.** Never for lookups, routine edits, running scripts or Studio checks.
+- So a piece of work that takes a hundred steps uses Fable three to five times instead of a hundred. Fable still makes the
+  decisions that set quality: the plan, the hard bugs, the final check, the look.
+- **When a piece really needs Fable at every step** (a hard design problem, a look being worked out with the user): pick
+  Fable 5.2 in that chat's model menu for that piece, type `/advisor off` there, and switch back after.
 
 ## What was wasting tokens (measured 2026-11-22)
-- **The game-code chat ("Obsidian chat integration") had a 783k-token context** (78% of its window). A chat re-reads its
-  whole history on every step, so each step re-read about 780k tokens. It ran on Opus 5.5 at `max` effort, the setting
-  that thinks the longest.
-- **Every Ride a Fish chat was started in the FPS folder** (`C:\Users\blast\New folder`), so each one carried the FPS
-  game's instructions and memory (24k tokens) on every step, and didn't get this vault's CLAUDE.md on its own.
-- **The start-up reading was huge:** "read Sessions at the start" meant about 60k tokens (Sessions is 1,700 lines);
-  Handoff is about 86k and Decisions about 45k if read whole.
-- **CLAUDE.md was 7.6k tokens**, mostly rules for one area at a time (map, creatures, game code) that every chat carried.
+- **The game-code chat ("Obsidian chat integration") had a 783k-token context.** A chat re-reads its whole history on
+  every step, so each step re-read about 780k tokens; it ran at `max` effort, the setting that thinks the longest.
+- **Every Ride a Fish chat was started in the FPS folder** (`C:\Users\blast\New folder`), so each carried the FPS game's
+  instructions and memory (24k tokens) on every step.
+- **The start-up reading was huge:** "read Sessions at the start" meant about 60k tokens; Handoff is about 86k and
+  Decisions about 45k if read whole.
+- **CLAUDE.md was 7.6k tokens**, mostly rules for one area at a time.
 
-## What is set now
+These matter twice now: the advisor reads the whole chat on every consult, so a short chat makes each Fable consult cheap.
+
+## What is set
 | Piece | Where | What it does |
 |---|---|---|
-| Model and effort | `.claude/settings.json` | Fable 5.2 (`"model": "fable"`) at `high` effort for every chat started in this folder |
-| Compaction | same file | a chat sums itself up at 300k tokens instead of near 1M, so no step re-reads more than that |
-| Slim CLAUDE.md | `CLAUDE.md` | 1.4k tokens: the project, the rules, and pointers |
+| Worker, advisor, effort | `.claude/settings.json` | Opus 5.5 (`"model": "opus"`), Fable 5.2 advisor (`"advisorModel": "fable"`), `high` effort |
+| Compaction | same file | a chat sums itself up at 300k tokens instead of near 1M |
+| Slim CLAUDE.md | `CLAUDE.md` | 1.6k tokens: the project, the rules, when to consult Fable, pointers |
 | Area skills | `.claude/skills/` | `game-code`, `creature-look`, `map-build`: CLAUDE.md's area rules, word for word, loaded only by a chat doing that work |
-| Procedure skills | same | `studio-test` (driving Studio and its traps), `handoff` (`/handoff`: closes a chat into the vault, with a start message for the next) |
+| Procedure skills | same | `studio-test` (driving Studio and its traps), `handoff` (`/handoff`: closes a chat into the vault, with a start message for the next), `look-check` (below) |
+| The 3D advisor | `.claude/skills/look-check/` | how a model, prop, map view or screen gets Fable's eye in one consult: the chat reads one preview sheet and the concept (so the advisor sees them), then asks once with a fixed rubric (real animal at game distance, mass and proportions, the user's block language, joins, rarity and eyes, our own design; for props and views: reads at play distance, the land's colour, the map's rules) |
 | Helpers | `.claude/agents/` | `scout`, `studio-tester`, `fresh-eyes`, `creature-builder`, below |
 | Reading rule | [Working together](Working%20together.md), [Sessions](Sessions.md) | read the top of Sessions (80 lines), search Handoff and Decisions, never read them whole |
-| Memory | this PC's Claude memory for the `RideAFish` folder | the Ride a Fish memories copied over, so chats started here keep the user's preferences |
+| Memory | this PC's Claude memory for the `RideAFish` folder | the Ride a Fish memories copied over |
 
-**The helpers** all run on the same model as the chat (Fable 5.2), never a cheaper one. Their work stays out of the main
-chat; only their short report comes back:
-- `scout`: finds things in the vault and code and returns quotes with `file:line` (low effort: it only looks things up).
-- `studio-tester`: runs a Studio check (sync, play, scripted check, console, stop and reset) and returns pass/fail and
-  numbers, not console dumps or pictures.
-- `fresh-eyes`: reviews a finished piece against its design note and the decisions, instead of a whole second chat.
-- `creature-builder`: builds one creature by the brief until the gate passes; several can run at once for a batch.
+**The helpers** run on Opus 5.5 like the chat. Their work stays out of the main chat; only a short report comes back:
+- `scout`: finds things in the vault and code, returns quotes with `file:line`. Never consults Fable.
+- `studio-tester`: runs a Studio check, returns pass/fail and numbers. Never consults Fable.
+- `fresh-eyes`: reviews a finished piece; consults Fable once, with its draft findings.
+- `creature-builder`: builds one creature by the brief until the gate passes, then runs `look-check` (one Fable consult
+  on the preview sheet), fixes, then finishes.
 
-## Before and after, per step of a fresh chat (estimates from file sizes, about 3 characters a token)
-| | Before | Now |
+## Per step of a fresh chat (measured 2026-11-22 on the two new chats)
+| | Old game-code chat | New chat |
 |---|---|---|
-| Another project's instructions and memory | 24k | 0 |
-| This vault's CLAUDE.md and memory | 7.6k (read by hand) | 3.1k (loaded by itself) |
-| Start-up reading (Working together, Sessions) | 62k | 7k |
-| Area rules | 0 extra (all in CLAUDE.md) | 1.7k to 3.3k, only the area in use |
-| **Total project text carried on every step** | **about 94k** | **about 12k** |
-
-On top of that, compaction caps a long chat at 300k instead of letting it grow to 970k, and `high` effort thinks much less
-than `max`. Fable 5.2 at `high` is expected to match or beat Opus 5.5 at `max` on quality (newer models at lower effort
-usually match older ones at higher effort), but that is the one thing to watch in the first chats.
+| Model on every step | Opus 5.5 at max (Fable 5.2 when the limit allowed) | Opus 5.5 at high |
+| Fable on every step | yes, when on Fable | no: only at the consult points |
+| Context re-read per step | 783k | about 135k at the start, capped at 300k |
+| Another project's instructions and memory | 24k | 3k (Ride a Fish's own) |
 
 ## How to work with it
-- **Start every Ride a Fish chat in the `C:\Users\blast\RideAFish` folder**, and pick Fable 5.2 in the model menu if the
-  app doesn't already show it. Chats started in the FPS folder miss all of this.
-- **One piece of work per chat.** When it's done (or the chat passes about 250k tokens), say `/handoff`: the chat writes its
-  state into Sessions and Handoff and gives you a start message for the next chat. Archive the old chat after.
-- **Effort:** leave it at `high`. Raise it to `xhigh` for one hard bug, then back. `max` is for nothing day to day.
-- **Pictures cost the most per step after thinking:** numbers and scripted checks first, one picture when a look is being
-  judged.
+- **Start every Ride a Fish chat in the `C:\Users\blast\RideAFish` folder, and pick Opus 5.5 in the model menu.** The
+  desktop app uses its own model menu, not the folder's settings (checked 2026-11-22). File chats in the sidebar group
+  "Roblox – Ride a Fish". Chats started in the FPS folder miss all of this.
+- **Which chat** (sidebar group "Roblox – Ride a Fish"; the retired ones are titled "(old) ..." in "Roblox – Ride a Fish
+  (old)"): game code, playtests, Studio, Config, merging Hugo's work: "Ride a Fish game code". Creatures: "Ride a Fish
+  creatures". Map, hub, props, water: "Ride a Fish map". Screens and HUD: "Ride a Fish UI". Speeds, spawns, Oxygen,
+  prices: "Ride a Fish tuning". Something new: a new chat in this folder. Talk to the chat that owns the work directly,
+  not through another chat.
+- **One piece of work per chat.** When it's done (or the chat passes about 250k tokens), say `/handoff`: the chat writes
+  its state into Sessions and Handoff and gives you a start message for the next chat.
+- **Nothing to check by hand.** If Fable's weekly bar still fills too fast one week, tell any chat and the consult points
+  get narrowed.
+- **Pictures cost the most per step after thinking:** numbers and scripted checks first, one picture when a look is judged.
 
 ## Left out on purpose
-- **Cheaper models (Sonnet, Haiku).** The user's rule: never trade model quality for usage. Every helper inherits Fable 5.2.
-- **Fast mode.** It speeds a reply up to 2.5x, but on a subscription it runs only on paid usage credits at twice the price,
-  not inside the plan's limits.
-- **The advisor (a cheaper model that consults Fable).** Claude Code has it (`advisorModel`), but it puts a cheaper model in
-  charge of the work. Ask if you want it tried.
+- **Sonnet and Haiku.** The user's rule: never trade model quality for usage below Opus.
+- **Fast mode.** On a subscription it runs only on paid usage credits at twice the price.
 
 ## Hugo's PC
-These files come through the repo, so chats started in Hugo's clone get the same model, effort, skills and helpers. To
-change them on one PC only, put the override in `.claude/settings.local.json` (not shared). Claude's memory is per PC, so
-the memory copy above is on the user's PC only.
+These files come through the repo, so chats started in Hugo's clone get the same settings, skills and helpers. To change
+them on one PC only, put the override in `.claude/settings.local.json` (not shared). Claude's memory is per PC.

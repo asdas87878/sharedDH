@@ -206,3 +206,29 @@ The user picked "calm the busy three". The first trials are kept in `work/voxel/
 - The user's picks and fixes, then export and upload (permanent, on their word).
 - Prototype a Spectral variant on one creature.
 - The user will also send their own screenshots. The study will be checked against them.
+
+## Two builds from the user's pictures (2026-11-22)
+The user sent two pictures and asked for each as a model in our style, as accurate as possible, with its geometry understood.
+- **Claw Shark** (`art/creatures/TrialClawShark`, 2,312 triangles, 22 parts, 35 studs; [sheet](../attachments/voxel-trialclawshark.jpg),
+  [swim](../attachments/voxel-trialclawshark-swim.gif)). **A study only: the picture is another game's creature, so this model
+  must not go in the game as it is.** What it is made of: a shark head with an open grin and one horn; a short humped lobster
+  body under a helmet, a tall hood of two plates and overlapping back plates; two arms (shoulder plate, upper arm, forearm, gold ring, spiked gauntlet,
+  hand, three hooked talons); six flat ribbon legs on two joints each that rise, arch and come down to points.
+  How the dark and red colourway works there, and now here:
+  - one hue at full strength (red) for the flesh, and nothing else red;
+  - two darks beside it, not one: slate blue for hard plates, violet for limbs. They are close in value, apart in hue;
+  - the light comes from underneath: a lit yellow-green belly, orange undersides on the legs, a yellow eye. So the dark
+    top never goes flat;
+  - gold only as small work on the gauntlets, pink only on the horn, white only on teeth.
+  This is the dark core and bright shell rule above, turned over: bright core, dark shell.
+- **Whale Shark** (`art/creatures/TrialWhaleShark`, 3,260 triangles, 7 parts, 42 studs; [sheet](../attachments/voxel-trialwhaleshark.jpg)).
+  A real animal in a jade colourway, so it could be a game creature. A head wider than deep with the mouth across the
+  front, a big friendly eye, cream cheeks, an arched back over a deep cream belly, one flank ridge, the pattern as thin
+  pale lines every sixth cube with dots between, a darker rear third. Second pass (the user's pick, 2026-11-22): the
+  belly deepened and the taper behind it shortened (depth to length 0.28, from 0.23), pale studs on the side fins, and
+  a broader crescent tail with five bright fin rays that fan from its root. Weak: the triangle count is high for an Epic
+  (the dots cost most of it); the dorsal is still three plain boxes.
+- **Learned about the gate:** a piece needs one whole face inside another, so a ring round a limb fails (make the next
+  piece bigger and bury the ring in it), a fan must be one widening `block`, and a strip on a stepped body must sit on a
+  row that is full width in every slice. A rib laid across a fin fails the same way: make it a ray that starts inside the
+  thicker root block, and start rays apart so they never overlap.
