@@ -17,6 +17,8 @@
 --   arms, the dark arms closing in on the screen).
 -- A "Throw" outcome ends in the throw and the drown (DeathController, which leaves a loose body to the physics until its
 -- joints are back); a "Taken" one is the fail itself and fades to the fail screen (State.Fade, FadeText).
+-- The words of a failed run are drawn here too (task b5: Kit.failWords, the Slam band; "The words" below): what the
+-- deaths set in State.FadeText comes through Banners.miss and Kit.FailShow.
 -- Stand-ins for the partner's animations: the player's FailKind attribute and Config.Fail.Outcomes[kind].Hook name
 -- what plays; the sounds are placeholders from Lib/Fx.
 local Players = game:GetService("Players")
@@ -31,6 +33,7 @@ local Course = require(script.Parent.Parent.Lib.Course)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
+local Kit = require(script.Parent.Parent.UI.Kit)
 local AnimController = require(script.Parent.AnimController)
 
 local FailController = {}
@@ -1618,6 +1621,121 @@ local viewDir: Vector3? = nil
 local viewParamsNow: RaycastParams? = nil
 local viewParamsAt = -math.huge
 
+----------------------------------------------------------------------------------------------------------------------
+-- The words of a failed run (task b5; Hugo, 2026-11-22: "make text better and more stylised when failing a run"):
+-- the Slam band of Kit.failWords, over the black. The deaths still say what and when (State.FadeText, State.Fade:
+-- DeathController's "OUT OF BREATH!" and "MISSED THE FISH!", HudController's "TOO STRONG!", a taken outcome's own
+-- Text); HudController hands them to Banners.miss each frame, which hands them here (Kit.FailShow). Thrown off by an
+-- outcome, the plain run-out's words are that outcome's own (Config.Fail.Outcomes' Text: "THROWN OFF!", "ROLLED
+-- OFF!"). The band slams on as the black begins, whatever the black's own pace, and drops away as it lifts; the
+-- words are kept as they came up until then (the server's attributes are gone by the time we are home).
+-- Studio only, to look at any line without failing: workspace's "FailWords" (the words; "" or nil for none),
+-- "FailWordsSub" (false: no second line), "FailWordsAge" (seconds in, held: a still of the motion) and "FailWordsOut"
+-- (0 to 1 of the way out).
+local words: Kit.FailWords? = nil
+local wordsRaw = "" -- what the deaths last said
+local wordsAt = 0 -- os.clock() they came up
+local wordsPeak = 0 -- the most the black has been since
+local wordsHit = false -- the slam has landed (its thud, once)
+local wordsTest = "" -- (Studio: the line being looked at)
+local thrownBy: string? = nil -- our own last outcome or throw, for its words
+
+local function wordsBand(): Kit.FailWords
+	if words then
+		return words
+	end
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "RideFailWords"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.DisplayOrder = 40 -- over the black (RideHudFx) and the kraken's dark (FailShade)
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.Parent = State.Player:WaitForChild("PlayerGui")
+	local made = Kit.failWords(gui)
+	words = made
+	return made
+end
+
+-- what the screen says for the deaths' words
+local function wordsFor(raw: string): string
+	if raw == Config.Fail.Breath and State.Player:GetAttribute("DeathThrown") == true then
+		local def = Config.Fail.Outcomes[thrownBy or "Throw"]
+		if def and def.Text ~= "" then
+			return def.Text
+		end
+	end
+	return raw
+end
+
+local function wordsUp(text: string, sub: string)
+	wordsAt = os.clock()
+	wordsPeak = 0
+	wordsHit = false
+	wordsBand().show(text, sub)
+end
+
+local function wordsShow(raw: string, black: number)
+	if wordsTest ~= "" then
+		return
+	end
+	local band = words
+	if raw == "" then
+		if wordsRaw ~= "" then
+			wordsRaw = ""
+			thrownBy = nil
+			if band then
+				band.hide()
+			end
+		end
+		return
+	end
+	-- new words: at once while the fail plays; never once we are on the way home (they would change as they leave)
+	if raw ~= wordsRaw and (wordsRaw == "" or State.dying()) then
+		wordsRaw = raw
+		local caught = State.Caught
+		wordsUp(wordsFor(raw), if caught and #caught > 0 then Config.Fail.Safe else "")
+		band = words
+	end
+	if not band then
+		return
+	end
+	local age = os.clock() - wordsAt
+	wordsPeak = math.max(wordsPeak, black)
+	local out = if not State.dying() and wordsPeak > 0 then 1 - math.clamp(black / wordsPeak, 0, 1) else 0
+	if not wordsHit and age >= Kit.FailLook.SlamAt + Kit.FailLook.Slam then
+		wordsHit = true
+		Fx.sound("Chomp") -- (a low thud, the placeholder there is)
+		Shake.play("Crash", 0.4)
+	end
+	band.pose(age, out)
+end
+
+local function wordsStudio()
+	local asked = workspace:GetAttribute("FailWords")
+	local text = if type(asked) == "string" then asked else ""
+	if text ~= wordsTest then
+		wordsTest = text
+		wordsRaw = ""
+		if text == "" then
+			if words then
+				words.hide()
+			end
+			return
+		end
+		wordsUp(text, if workspace:GetAttribute("FailWordsSub") == false then "" else Config.Fail.Safe)
+	end
+	local band = words
+	if text == "" or not band then
+		return
+	end
+	local held = workspace:GetAttribute("FailWordsAge")
+	local out = workspace:GetAttribute("FailWordsOut")
+	band.pose(
+		if type(held) == "number" and held >= 0 then held else os.clock() - wordsAt,
+		if type(out) == "number" then out else 0
+	)
+end
+
 local function viewStep(dt: number)
 	local shot = State.DeathCam
 	if not shot then
@@ -2162,6 +2280,9 @@ function FailController.Init()
 		if typeof(player) ~= "Instance" or not player:IsA("Player") then
 			return
 		end
+		if player == State.Player and (kind == "Fail" or kind == "Ragdoll") and type(outcome) == "string" then
+			thrownBy = outcome -- (for the words, should it end in the drown)
+		end
 		if kind == "Fail" and typeof(fish) == "Instance" and type(outcome) == "string" then
 			begin(player, fish :: Model, outcome)
 		elseif kind == "Ragdoll" then
@@ -2173,6 +2294,8 @@ function FailController.Init()
 			)
 		end
 	end)
+	-- the words of a failed run are ours to show (Banners.miss hands them over)
+	Kit.FailShow = wordsShow
 	-- the rider's pose on the fish, for AnimController
 	AnimController.FailPose = function(player: Player)
 		local f = fails[player]
@@ -2195,6 +2318,9 @@ function FailController.Start()
 	RunService:BindToRenderStep("RideFail", Enum.RenderPriority.Camera.Value - 4, step)
 	-- after the drown's (Camera - 3), before the camera's own: the shot kept out of walls, the view kept clear
 	RunService:BindToRenderStep("RideFailView", Enum.RenderPriority.Camera.Value - 2, viewStep)
+	if RunService:IsStudio() then
+		RunService.RenderStepped:Connect(wordsStudio)
+	end
 end
 
 return FailController

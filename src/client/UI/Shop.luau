@@ -13,6 +13,8 @@
 --   Shop.carousel a sideways row of cards with big arrow buttons either side
 --   Shop.sort     a sort button (a down arrow and a word; green when on)
 --   Shop.money    "$1.4K" in the cash green, with or without the cash sign
+--   Shop.tabs     the shop's pages as tabs on a window's top edge (task b2: the hub's Shop button opens one shop with
+--                 the auras and the fish selling in it); Shop.page names a page's opener, Shop.go shows one page
 -- Its pictures are drawn by code (tools/ui/shop_kit/shop_art.py, art/ui/shop/). Not uploaded: Studio reads them from
 -- its own content folder; a live game uses Shop.Textures' ids once they are filled, and the stand-ins below until then.
 local RunService = game:GetService("RunService")
@@ -321,6 +323,8 @@ export type Window = {
 function Shop.window(props: { [string]: any }): Window
 	local wide: number = props.Width or 760
 	local high: number = props.Height or 480
+	-- (room kept above the window for its tabs, so they stay on a small screen)
+	local above: number = if props.Tabs then Shop.TabHigh else 0
 	local headColour: Color3 = if typeof(props.Head) == "Color3"
 		then props.Head
 		else (Shop.Heads :: any)[props.Head or "Sea"] or Shop.Heads.Sea
@@ -338,7 +342,7 @@ function Shop.window(props: { [string]: any }): Window
 	local holder: Frame = Kit.new("Frame", {
 		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, above / 2),
 		Size = UDim2.fromOffset(wide, high),
 		BackgroundTransparency = 1,
 	}, root)
@@ -461,7 +465,7 @@ function Shop.window(props: { [string]: any }): Window
 		end
 		-- as big as the screen lets, a phone's points bigger; never past the screen's edges
 		local s = math.clamp(view.Y / (if touch then 500 else 720), 0.5, 1.4)
-		s = math.min(s, view.Y / (high + 16), view.X / (wide + 24))
+		s = math.min(s, view.Y / (high + above + 16), view.X / (wide + 24))
 		scale.Scale = s
 		root.Size = UDim2.fromScale(1 / s, 1 / s)
 		root.Position = UDim2.new()
@@ -496,6 +500,76 @@ function Shop.window(props: { [string]: any }): Window
 		workspace:GetAttributeChangedSignal("PanelPhone"):Connect(refit)
 	end
 	return self
+end
+
+-- The shop's pages (task b2): each a window of its own (UI.AuraShop, UI.SellFish) with the same tabs on its top edge.
+-- A page gives its opener to Shop.page as it is required; Shop.go(name) shows that page and closes the others
+-- (nil: closes them all); Shop.Page is the one showing. In the tabs' order.
+Shop.TabHigh = 38
+Shop.Pages = {
+	{ Name = "Auras", Word = "AURAS", Kind = "Lavender" },
+	{ Name = "Sell", Word = "SELL FISH", Kind = "Cash" },
+}
+Shop.Page = nil :: string?
+Shop.LastPage = "Auras"
+local openers: { [string]: (on: boolean) -> () } = {}
+
+function Shop.page(name: string, open: (on: boolean) -> ())
+	openers[name] = open
+end
+
+function Shop.go(name: string?)
+	if name and not openers[name] then
+		return
+	end
+	for other, open in openers do
+		if other ~= name then
+			open(false)
+		end
+	end
+	Shop.Page = name
+	if name then
+		Shop.LastPage = name
+		openers[name](true)
+	end
+end
+
+-- The tabs on a window's top edge (the window made with Tabs = true): this page's in its colour and standing a
+-- little taller, the others grey; a press goes to that page.
+function Shop.tabs(window: Window, own: string): { [string]: Button }
+	local row: Frame = Kit.new("Frame", {
+		Name = "Tabs",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromOffset(16, 8),
+		Size = UDim2.new(1, -32, 0, Shop.TabHigh + 8),
+		BackgroundTransparency = 1,
+		ZIndex = 0,
+	}, window.Frame)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, row)
+	local out: { [string]: Button } = {}
+	for i, page in Shop.Pages do
+		local mine = page.Name == own
+		local b = Shop.button(row, {
+			Name = page.Name,
+			Text = page.Word,
+			Kind = if mine then page.Kind else "Off",
+			TextSize = if mine then 22 else 19,
+			Size = UDim2.fromOffset(if mine then 176 else 160, if mine then Shop.TabHigh + 6 else Shop.TabHigh - 2),
+			LayoutOrder = i,
+		})
+		b.Root.Activated:Connect(function()
+			if not mine then
+				Shop.go(page.Name)
+			end
+		end)
+		out[page.Name] = b
+	end
+	return out
 end
 
 -- Money in the cash green: "$1.4K", the cash sign before it when asked. Returns the label (its Text to set) and the

@@ -430,6 +430,8 @@ local function setState(r: Rider, state: string)
 	elseif state == "Riding" then
 		r.Rode = true
 	end
+	-- (the fast fish ease a little past a player in the hop: Config.Jump.FastEase)
+	FishService.setHopping(r.Player, state == "Jumping")
 	if state ~= "Jumping" and r.Grab then
 		-- the pull-in is over, one way or another: the fish it was granted is let go (nothing to do once we ride it)
 		FishService.unreserve(r.Grab, r.Player)
@@ -1057,6 +1059,9 @@ local function grab(r: Rider, target: any)
 		-- (the dive's own hop reaches further: Config.Dive.Reach)
 		reach = math.max(reach, Config.Dive.Reach * Config.Net.RangeSlack)
 	end
+	-- (a moving fish is further on for us than for the rider's machine, by its speed times the moment between the two:
+	-- Jump.LandLag, as at the landing. Measured, task b3: a 150 fish locked 81 studs off was 115 off here, and refused)
+	reach += w.Speed * math.max(Config.Jump.LandLag, 0)
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
 		return deny(r, "Grab", "Range", target)
 	end
@@ -1108,7 +1113,13 @@ local function landing(r: Rider, target: any)
 		return deny(r, "Grab", "Target", target)
 	end
 	-- the server sees the player a moment late, and a pull-in arrives fast
-	local reach = w.Body.Z / 2 + j.LandSlack * 2
+	-- (and it sees them BEHIND a moving fish by the fish's speed times that moment: their machine sits them on the
+	-- fish where it sees it, which is where the fish was a moment ago, and their place takes another moment to reach
+	-- us. Measured in Studio, task b3: 0.2 to 0.3 s in all, so a rider held on the saddle of a fish at 220 studs a
+	-- second was seen 55 to 65 studs behind it for as long as they sat there, never inside the 45 allowed, and the
+	-- landing was refused after LandWait: "it kicks you off". Jump.LandLag allows for it, by the fish's own speed
+	-- as we have it. The fish was granted inside the hook's reach already, so this lets no one land from further.)
+	local reach = w.Body.Z / 2 + j.LandSlack * 2 + w.Speed * math.max(j.LandLag, 0)
 	if not ((w.Root.Position - root.Position).Magnitude <= reach) then
 		-- Not seen at the fish yet. The rider's machine is holding them on the saddle and waiting for our word, and we
 		-- see them a moment late, most of all after a fast pull-in (its last tenth of a second covers most of the

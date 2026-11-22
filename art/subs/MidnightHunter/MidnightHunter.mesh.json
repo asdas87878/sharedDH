@@ -1,0 +1,49 @@
+{
+ "id": "MidnightHunter",
+ "name": "Midnight Hunter",
+ "tier": 7,
+ "units": "studs",
+ "triangles": 720,
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the nose)",
+  "right": "+X"
+ },
+ "origin": "the sub's middle (the game's pivot)",
+ "seatTop": [
+  0,
+  5.7,
+  5
+ ],
+ "parts": [
+  "Hull",
+  "Hull_Glow",
+  "Light",
+  "Prop",
+  "Prop_Glow",
+  "Seat"
+ ],
+ "glowParts": [
+  "Hull_Glow",
+  "Light",
+  "Prop_Glow"
+ ],
+ "spins": "Prop (about Z, its box centred on the hub)",
+ "colours": {
+  "hull": [
+   30,
+   40,
+   70
+  ],
+  "trim": [
+   10,
+   14,
+   24
+  ],
+  "light": [
+   60,
+   255,
+   230
+  ]
+ }
+}

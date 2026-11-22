@@ -2,8 +2,9 @@
 -- The little effects on land (Hugo, 2026-11-20, task v1; numbers in Config.GroundFx):
 --   the hop off the seahorse trainer: a puff of round bubbles and little gold diamonds from the seat (TrainerController
 --   calls GroundFxController.hopOff on every machine when a ride's rider leaves; the spring's boing is its bounce);
---   a landing on the ground: a flat cartoon ring, white with a dark outline, that runs out over the ground and thins
---   away, and a few round puffs rolling out with it, all bigger after a bigger drop. Every machine watches every
+--   a landing on the ground: a few round dust puffs rolling out over the ground, bigger and more after a bigger
+--   drop (the flat white ring with the dark outline that ran out with them is gone: Hugo, 2026-11-22, task b3; he
+--   keeps the dust). Every machine watches every
 --   character near its camera (where each root is, frame to frame, and the ground under it), so everyone sees
 --   everyone's. Nothing when the drop is under MinDrop (a curb, a stair), on the trainer, or under the sea.
 -- Local parts only, under the camera (nothing replicates or collides), taken from a pool and put back. They move on
@@ -17,7 +18,6 @@ local Kit = require(script.Parent.Parent.UI.Kit)
 
 local GroundFxController = {}
 
-local SEGMENTS = 20 -- straight pieces round a ring
 local AWAY = CFrame.new(0, -1e5, 0)
 local PUFF_COLOUR = Color3.fromRGB(246, 250, 255)
 local BUBBLE_COLOUR = Color3.fromRGB(190, 242, 255)
@@ -178,7 +178,7 @@ function GroundFxController.hopOff(at: Vector3)
 	end)
 end
 
--- ---------------------------------------------------------------- the landing ring
+-- ---------------------------------------------------------------- the landing dust
 local function basisOn(at: Vector3, normal: Vector3): CFrame
 	local up = if normal.Magnitude > 0.1 then normal.Unit else Vector3.yAxis
 	local side = up:Cross(Vector3.zAxis)
@@ -189,7 +189,7 @@ local function basisOn(at: Vector3, normal: Vector3): CFrame
 	return CFrame.fromMatrix(at, side, up)
 end
 
--- A ring on the ground at `at` (its face `normal`), sized by the drop (studs)
+-- Dust on the ground at `at` (its face `normal`), sized by the drop (studs). The name is from the ring it once drew
 function GroundFxController.ring(at: Vector3, normal: Vector3, drop: number)
 	local g = Config.GroundFx
 	if g.On ~= 1 then
@@ -199,19 +199,7 @@ function GroundFxController.ring(at: Vector3, normal: Vector3, drop: number)
 	local radius = g.Radius + (g.RadiusMax - g.Radius) * big
 	local base = basisOn(at, normal)
 	local bits: { Bit } = {}
-	local fills: { Part } = {}
-	local edges: { Part } = {}
-	for _ = 1, SEGMENTS do
-		local edge = take("Block")
-		edge.Color = Kit.Ink
-		table.insert(edges, edge)
-		table.insert(bits, { Part = edge, Shape = "Block" })
-		local fill = take("Block")
-		fill.Color = Kit.White
-		table.insert(fills, fill)
-		table.insert(bits, { Part = fill, Shape = "Block" })
-	end
-	-- the puffs: round, white, rolling out with the ring, popping up and shrinking away
+	-- the puffs: round, white, rolling out over the ground, popping up and shrinking away
 	type Puff = { Part: Part, Turn: number, Size: number, Reach: number }
 	local puffs: { Puff } = {}
 	local rng = Random.new()
@@ -228,28 +216,8 @@ function GroundFxController.ring(at: Vector3, normal: Vector3, drop: number)
 		})
 	end
 	local life = math.max(g.Time, 0.05)
-	local thick = 0.08
+	-- (the same length and pace as when the ring ran with them: Time is the ring's old life, the puffs a little longer)
 	start(life * 1.25, bits, function(t: number)
-		-- (the ring runs over the first 4 / 5, the puffs a little longer)
-		local s = math.min(t * 1.25, 1)
-		local r = radius * (0.25 + 0.75 * easeOut(s))
-		local band = math.max(g.Width * (1 - s) ^ 0.7, 0.02)
-		local fade = if s < 0.6 then 0 else (s - 0.6) / 0.4
-		local length = 2 * math.pi * r / SEGMENTS * 1.12
-		for i = 1, SEGMENTS do
-			local turn = CFrame.Angles(0, (i - 1) / SEGMENTS * math.pi * 2, 0)
-			local edge, fill = edges[i], fills[i]
-			if s >= 1 then
-				edge.Transparency, fill.Transparency = 1, 1
-				continue
-			end
-			edge.Size = Vector3.new(length + g.Edge * 2, thick, band + g.Edge * 2)
-			edge.CFrame = base * turn * CFrame.new(0, 0.05, -r)
-			edge.Transparency = fade
-			fill.Size = Vector3.new(length, thick, band)
-			fill.CFrame = base * turn * CFrame.new(0, 0.1, -r)
-			fill.Transparency = fade
-		end
 		local u = math.min(t * 1.05, 1)
 		for _, p in puffs do
 			local d = math.max(p.Size * popSize(u), 0.05)

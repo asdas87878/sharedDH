@@ -2,7 +2,8 @@
 -- The fish in the tanks on the dock swim (AquariumService puts each in its place, anchored, with the tag "TankFish"
 -- and the numbers of its lap: TankCentre, TankReach, TankPhase, TankPace). Each client moves them round itself, so
 -- they cost no traffic and the server does nothing each frame. Only tanks near the camera are moved, and no table is
--- made in a frame. Moving the anchored Root moves the whole fish: its parts are joined to it.
+-- made in a frame. Moving the anchored Root moves the whole fish: its parts are joined to it. Their joints' swim is
+-- TankRideController's (task b4).
 -- Putting a catch in (Hugo, 2026-11-18: "make the player actually be able to place down fishes in aquarium once
 -- back"): what a dive caught stays in the slots until the player puts it in. A click or number key on a caught slot
 -- holds it over the head; a click (a tap) on our own tank opens its popup (UI.TankPanel), where PUT IN and PUT ALL IN
@@ -45,6 +46,12 @@ local function add(model: Instance)
 		and type(phase) == "number"
 		and type(pace) == "number"
 	then
+		-- A tank's fish is its real size (task b4, Config.Aquarium.ShowShare 1), so one longer than its lap is wide
+		-- would whirl on the spot: it comes round slower instead, its nose going no faster than a small fish swims.
+		-- (TankRideService.lapOf works out the same lap: change both)
+		local kind = Config.FishById[tostring(model:GetAttribute("FishType"))]
+		local long = if kind then kind.Size.Z * Config.sizeScale(Config.sizeTierOf(model), kind) else 0
+		pace *= math.min(1, math.max((reach.X + reach.Z) / 2, 1) / math.max(long / 2, 1))
 		swimmers[model] = { root = root, centre = centre, reach = reach, phase = phase, pace = pace }
 	end
 end

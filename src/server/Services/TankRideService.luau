@@ -2,18 +2,21 @@
 -- Riding a fish in your own tank (Hugo, 2026-11-20, task k1: "make fishes in the tank rideable (in the tank)";
 -- Config.TankRide, docs/design/aquarium.md "Riding in the tank"). Practice with nothing at stake: the player stays
 -- "Dock" to RideService the whole time, so there is no Oxygen, no fail or throw-off, no taming and no catch.
---   Getting on: Action "TankRide", "On", fish (the tank's E prompt with empty hands: AquariumController). Only the
---   tank's owner, on the dock, at their own tank, onto one of the fish swimming in it now. The fish stops its lap (its
---   "TankFish" tag comes off, so no machine moves it round any more), is shown at least TankRide.Least long, is made
---   loose and given two movers (TankAlign, TankTurn), the rider is welded to its Saddle, and the rider's machine is
---   given the fish to move (its network owner), so everyone sees it go where the rider takes it. The rider is told
---   ("TankMounted", fish, box CFrame, box half size: the inside of the water the fish's middle must stay in) and the
---   player's "TankRide" attribute is true (every machine poses them astride: AnimController).
---   Riding: TankRideController moves the movers' targets, kept inside the box. Here, a few times a second, a fish
---   further out than TankRide.Slack is put back (so it can never leave the tank, whatever a machine says).
---   Getting off: Action "TankRide", "Off" (SPACE), or anything that ends it (the fish rebuilt by a change to the tank,
---   a new body, leaving the dock, leaving the game). The rider is put on the floor in front of the tank, facing it,
---   and the tank's fish are put back in their laps (AquariumService.reshow).
+-- Since task b4 (Hugo, 2026-11-22): got on by looking at a fish and holding E (TankRideController), ridden with full
+-- control, and the fish keeps its real size, so it is the RIDER (the fish's Saddle) who is kept in the water.
+--   Getting on: Action "TankRide", "On", fish. Only the tank's owner, on the dock, at their own tank, onto one of
+--   the fish swimming in THEIR tank now (a fish of another tank is refused: "NotYours"). The fish stops its lap where
+--   everyone sees it (its "TankFish" tag comes off, so no machine moves it round any more), is made loose and given
+--   two movers (TankAlign, TankTurn), the rider is welded to its Saddle, and the rider's machine is given the fish to
+--   move (its network owner), so everyone sees it go where the rider takes it. The rider is told ("TankMounted",
+--   fish, box CFrame, box half size: the inside of the water the Saddle must stay in) and the player's "TankRide"
+--   attribute is true (every machine poses them astride: AnimController).
+--   Riding: TankRideController moves the movers' targets, the Saddle kept inside the box. Here, a few times a
+--   second, a Saddle further out than TankRide.Slack is put back (so the rider never leaves the tank, whatever a
+--   machine says).
+--   Getting off: Action "TankRide", "Off" (E again), or anything that ends it (the fish rebuilt by a change to the
+--   tank, a new body, leaving the dock, leaving the game). The rider is put on the floor in front of the tank, facing
+--   it, and the tank's fish are put back in their laps (AquariumService.reshow).
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,8 +31,8 @@ type Ride = {
 	Fish: Model,
 	Root: BasePart,
 	Weld: Weld,
-	Box: CFrame, -- the middle of the space the fish's middle stays in,
-	Half: Vector3, -- and its half size
+	Saddle: Attachment,
+	Water: BasePart,
 	Gone: RBXScriptConnection,
 }
 
@@ -44,16 +47,37 @@ local function parts(player: Player): (BasePart?, Humanoid?)
 	return if root and root:IsA("BasePart") then root else nil, humanoid
 end
 
--- The space the fish's middle may be in: the water, less the margin and the fish's own reach (half its length
--- across, as it can face any way; half its height up and down)
-local function boxOf(water: BasePart, fish: Model): (CFrame, Vector3)
-	local c = Config.TankRide
-	local _, size = fish:GetBoundingBox()
-	local across = math.max(size.X, size.Z) / 2 + c.Margin
-	local up = size.Y / 2 + c.Margin
+-- The space the rider's seat may be in: the water, less the margin on every side
+local function boxOf(water: BasePart): (CFrame, Vector3)
+	local m = Config.TankRide.Margin
 	local half = water.Size / 2
 	return CFrame.new(water.Position) * water.CFrame.Rotation,
-		Vector3.new(math.max(half.X - across, 0.5), math.max(half.Y - up, 0.5), math.max(half.Z - across, 0.5))
+		Vector3.new(math.max(half.X - m, 0.5), math.max(half.Y - m, 0.5), math.max(half.Z - m, 0.5))
+end
+
+-- Where a tank's fish is in its lap now, and the way it goes: what every machine shows (AquariumController moves the
+-- anchored fish itself, by these same numbers and the server's clock; here its Root is still where it was built)
+local function lapOf(model: Model, root: BasePart): (Vector3, Vector3)
+	local centre, reach = model:GetAttribute("TankCentre"), model:GetAttribute("TankReach")
+	local phase, pace = model:GetAttribute("TankPhase"), model:GetAttribute("TankPace")
+	local look = root.CFrame.LookVector
+	if
+		typeof(centre) ~= "Vector3"
+		or typeof(reach) ~= "Vector3"
+		or type(phase) ~= "number"
+		or type(pace) ~= "number"
+	then
+		return root.Position, look
+	end
+	local kind = Config.FishById[tostring(model:GetAttribute("FishType"))]
+	local long = if kind then kind.Size.Z * Config.sizeScale(Config.sizeTierOf(model), kind) else 0
+	pace *= math.min(1, math.max((reach.X + reach.Z) / 2, 1) / math.max(long / 2, 1))
+	local now = workspace:GetServerTimeNow()
+	local angle = phase + now * pace
+	local cos, sin = math.cos(angle), math.sin(angle)
+	local at = centre + Vector3.new(cos * reach.X, math.sin(now * 0.6 + phase) * reach.Y, sin * reach.Z)
+	local way = Vector3.new(-sin * reach.X, 0, cos * reach.Z) * (if pace < 0 then -1 else 1)
+	return at, if way.Magnitude > 0.01 then way.Unit else look
 end
 
 local function clampInto(box: CFrame, half: Vector3, at: Vector3): Vector3
@@ -120,20 +144,25 @@ local function start(player: Player, fish: any)
 		Net.Ride:FireClient(player, "Denied", "TankRide", "Far")
 		return
 	end
-	-- only one of the fish in our own tank now (anything else sent: the one nearest us)
 	local root, humanoid = parts(player)
 	local character = player.Character
 	if not root or not humanoid or not character then
 		return
 	end
+	-- only one of the fish in our OWN tank now: a fish of another tank is refused; nothing sent (the popup's RIDE A
+	-- FISH): the one nearest us
 	local model: Model? = nil
-	if typeof(fish) == "Instance" and fish:IsA("Model") and fish.Parent == shown then
+	if typeof(fish) == "Instance" then
+		if not fish:IsA("Model") or fish.Parent ~= shown or not CollectionService:HasTag(fish, AquariumService.Tag) then
+			Net.Ride:FireClient(player, "Denied", "TankRide", "NotYours")
+			return
+		end
 		model = fish
 	else
 		local best = math.huge
 		for _, m in shown:GetChildren() do
 			if m:IsA("Model") and m.PrimaryPart then
-				local d = (m.PrimaryPart.Position - root.Position).Magnitude
+				local d = (lapOf(m, m.PrimaryPart) - root.Position).Magnitude
 				if d < best then
 					best, model = d, m
 				end
@@ -155,32 +184,26 @@ local function start(player: Player, fish: any)
 		return
 	end
 	AquariumService.putAway(player) -- (no fish held over the head while riding one)
-	-- out of its lap: no machine moves it round any more
+	-- out of its lap, where every machine shows it now: no machine moves it round any more. It keeps its size
+	local at, look = lapOf(model, fishRoot)
 	CollectionService:RemoveTag(model, AquariumService.Tag)
 	model:SetAttribute("TankRider", player.UserId)
-	-- big enough to sit on, small enough to turn in the tank
-	local _, size = model:GetBoundingBox()
-	local long = math.max(size.X, size.Y, size.Z)
-	local want = math.clamp(long, c.Least, c.Most)
-	if math.abs(want - long) > 0.1 and long > 0.1 then
-		model:ScaleTo(model:GetScale() * want / long)
-	end
-	local box, half = boxOf(water, model)
-	-- level, where it swims now (inside the box), facing the way it was going
-	local look = fishRoot.CFrame.LookVector * Vector3.new(1, 0, 1)
-	if look.Magnitude < 0.1 then
-		look = Vector3.new(0, 0, -1)
-	end
-	local at = clampInto(box, half, fishRoot.Position)
-	fishRoot.CFrame = CFrame.lookAt(at, at + look.Unit)
+	local box, half = boxOf(water)
+	-- level, facing the way it was going, and moved so the seat is in the water
+	fishRoot.CFrame = CFrame.lookAt(at, at + look)
+	local seat = saddle.WorldPosition
+	fishRoot.CFrame += clampInto(box, half, seat) - seat
+	at = center.WorldPosition
 	fishRoot.Anchored = false
+	-- (limited, as the wild fish's movers are: a weld joined to an unlimited mover now and then threw the pair far;
+	-- more for a heavy Root, so a giant is held up and comes round too)
+	local heavy = math.max(fishRoot.AssemblyMass / 40, 1)
 	local align = Instance.new("AlignPosition")
 	align.Name = "TankAlign"
 	align.Mode = Enum.PositionAlignmentMode.OneAttachment
 	align.Attachment0 = center
 	align.Position = at
-	-- (limited, as the wild fish's movers are: a weld joined to an unlimited mover now and then threw the pair far)
-	align.MaxForce = 1e5
+	align.MaxForce = 1e5 * heavy
 	align.MaxVelocity = c.Speed * 4
 	align.Responsiveness = 30
 	align.Parent = fishRoot
@@ -188,7 +211,7 @@ local function start(player: Player, fish: any)
 	turn.Name = "TankTurn"
 	turn.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	turn.Attachment0 = center
-	turn.MaxTorque = 4e5
+	turn.MaxTorque = 4e5 * heavy
 	turn.MaxAngularVelocity = 8
 	turn.Responsiveness = 20
 	turn.CFrame = fishRoot.CFrame.Rotation
@@ -210,8 +233,8 @@ local function start(player: Player, fish: any)
 		Fish = model,
 		Root = fishRoot,
 		Weld = weld,
-		Box = box,
-		Half = half,
+		Saddle = saddle,
+		Water = water,
 		Gone = model.AncestryChanged:Connect(function()
 			if not model:IsDescendantOf(workspace) then
 				-- (rebuilt by a change to the tank: the new ones are already in their laps)
@@ -239,11 +262,12 @@ local function check()
 		then
 			finish(player, true)
 		else
-			local p = ride.Box:PointToObjectSpace(ride.Root.Position)
-			local h = ride.Half
+			-- (the water as it is now: a plot stage bought makes it taller)
+			local box, h = boxOf(ride.Water)
+			local seat = ride.Saddle.WorldPosition
+			local p = box:PointToObjectSpace(seat)
 			if math.abs(p.X) > h.X + slack or math.abs(p.Y) > h.Y + slack or math.abs(p.Z) > h.Z + slack then
-				local at = clampInto(ride.Box, h, ride.Root.Position)
-				ride.Root.CFrame = CFrame.new(at) * ride.Root.CFrame.Rotation
+				ride.Root.CFrame += clampInto(box, h, seat) - seat
 				ride.Root.AssemblyLinearVelocity = Vector3.zero
 			end
 		end

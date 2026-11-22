@@ -1,37 +1,192 @@
 --!strict
--- The submarines you can buy at the stand (Hugo, 2026-11-18: "add placeholder models for upgrades"): one a tier, tier N
--- carries you to land N + 1 (Config.Sub.Prices). Placeholders only, plain parts with a floating name, each tier a new
--- colour and one more piece than the last, so an upgrade reads at a glance. The partner's models replace `build`.
---   SubModels.List[n]   { Name, Hull, Trim, Light }
+-- The submarines you can buy at the stand: one a tier, tier N carries you to land N + 1 (Config.Sub.Prices).
+-- Since 2026-11-22 each is its own voxel model (docs/design/sub-models.md: tools/blender/sub_stages.py builds them,
+-- tools/subs/install.py puts them in the place as ReplicatedStorage.SubMeshes.<Id>, one MeshPart to a part: Hull,
+-- Hull_Glow, Seat, Prop, Prop_Glow, Light). A place without a tier's template gets the old placeholder of plain parts
+-- (Hugo, 2026-11-18), each tier a new colour and one more piece than the last.
+--   SubModels.List[n]   { Id, Name, Hull, Trim, Light }   (the colours are baked into the meshes: keep TIERS in
+--     tools/blender/sub_stages.py alike)
 --   SubModels.build(n)  the model, its parts, its propeller and the wake's emitter. It faces -Z, its middle at the
 --     origin; the seat is the same on every tier (SubController's SEAT), so the ride doesn't change with the look.
+--     Parts named "Prop" and "Prop_Glow" spin about their own Z (SubController).
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local SubModels = {}
 
-export type Style = { Name: string, Hull: Color3, Trim: Color3, Light: Color3 }
+export type Style = { Id: string, Name: string, Hull: Color3, Trim: Color3, Light: Color3 }
+
+SubModels.Templates = "SubMeshes"
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
 
 SubModels.List = {
-	{ Name = "Bathtub", Hull = rgb(255, 196, 38), Trim = rgb(40, 54, 78), Light = rgb(120, 220, 255) },
-	{ Name = "Reef Runner", Hull = rgb(255, 128, 40), Trim = rgb(60, 40, 30), Light = rgb(255, 240, 160) },
-	{ Name = "Kelp Cruiser", Hull = rgb(70, 200, 90), Trim = rgb(24, 70, 40), Light = rgb(200, 255, 140) },
-	{ Name = "Wreck Diver", Hull = rgb(176, 96, 52), Trim = rgb(54, 44, 40), Light = rgb(255, 200, 120) },
-	{ Name = "Blue Streak", Hull = rgb(40, 140, 255), Trim = rgb(230, 240, 255), Light = rgb(140, 255, 255) },
-	{ Name = "Twilight Ray", Hull = rgb(150, 80, 230), Trim = rgb(40, 24, 70), Light = rgb(255, 140, 255) },
-	{ Name = "Midnight Hunter", Hull = rgb(30, 40, 70), Trim = rgb(10, 14, 24), Light = rgb(60, 255, 230) },
-	{ Name = "Vent Crawler", Hull = rgb(220, 50, 40), Trim = rgb(30, 20, 20), Light = rgb(255, 170, 40) },
-	{ Name = "Abyss King", Hull = rgb(255, 214, 70), Trim = rgb(20, 16, 30), Light = rgb(255, 80, 120) },
+	{ Id = "Bathtub", Name = "Bathtub", Hull = rgb(255, 196, 38), Trim = rgb(40, 54, 78), Light = rgb(120, 220, 255) },
+	{
+		Id = "ReefRunner",
+		Name = "Reef Runner",
+		Hull = rgb(255, 128, 40),
+		Trim = rgb(60, 40, 30),
+		Light = rgb(255, 240, 160),
+	},
+	{
+		Id = "KelpCruiser",
+		Name = "Kelp Cruiser",
+		Hull = rgb(70, 200, 90),
+		Trim = rgb(24, 70, 40),
+		Light = rgb(200, 255, 140),
+	},
+	{
+		Id = "WreckDiver",
+		Name = "Wreck Diver",
+		Hull = rgb(176, 96, 52),
+		Trim = rgb(54, 44, 40),
+		Light = rgb(255, 200, 120),
+	},
+	{
+		Id = "BlueStreak",
+		Name = "Blue Streak",
+		Hull = rgb(40, 140, 255),
+		Trim = rgb(230, 240, 255),
+		Light = rgb(140, 255, 255),
+	},
+	{
+		Id = "TwilightRay",
+		Name = "Twilight Ray",
+		Hull = rgb(150, 80, 230),
+		Trim = rgb(40, 24, 70),
+		Light = rgb(255, 140, 255),
+	},
+	{
+		Id = "MidnightHunter",
+		Name = "Midnight Hunter",
+		Hull = rgb(30, 40, 70),
+		Trim = rgb(10, 14, 24),
+		Light = rgb(60, 255, 230),
+	},
+	{
+		Id = "VentCrawler",
+		Name = "Vent Crawler",
+		Hull = rgb(220, 50, 40),
+		Trim = rgb(30, 20, 20),
+		Light = rgb(255, 170, 40),
+	},
+	{
+		Id = "AbyssKing",
+		Name = "Abyss King",
+		Hull = rgb(255, 214, 70),
+		Trim = rgb(20, 16, 30),
+		Light = rgb(255, 80, 120),
+	},
 } :: { Style }
 
 function SubModels.style(tier: number): Style
 	return SubModels.List[math.clamp(math.floor(tier), 1, #SubModels.List)]
 end
 
--- Every part is anchored and touches nothing; the whole model is moved by PivotTo (or part by part, SubController)
+-- What every sub carries, model or placeholder: the lamp's beam, the hull's glow, the name over the tower (`over`: from
+-- `tower`'s middle to 12.5 studs over the sub's middle) and the wake's bubbles on the propeller
+local function dress(
+	s: Style,
+	hull: BasePart,
+	tower: BasePart,
+	over: Vector3,
+	prop: BasePart,
+	lamp: BasePart
+): ParticleEmitter
+	local beam = Instance.new("SpotLight")
+	beam.Face = Enum.NormalId.Front
+	beam.Range = 60
+	beam.Angle = 50
+	beam.Brightness = 4
+	beam.Color = Color3.fromRGB(255, 244, 200)
+	beam.Parent = lamp
+	local glow = Instance.new("PointLight")
+	glow.Range = 22
+	glow.Brightness = 1.5
+	glow.Color = s.Light
+	glow.Parent = hull
+	-- the label: the sub's name over its tower
+	local sign = Instance.new("BillboardGui")
+	sign.Name = "Label"
+	sign.Size = UDim2.fromScale(14, 3)
+	sign.StudsOffsetWorldSpace = over
+	sign.MaxDistance = 140
+	sign.LightInfluence = 0
+	sign.Parent = tower
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Size = UDim2.fromScale(1, 1)
+	text.Font = Enum.Font.LuckiestGuy
+	text.TextScaled = true
+	text.Text = string.upper(s.Name)
+	text.TextColor3 = s.Hull
+	text.TextStrokeColor3 = Color3.fromRGB(16, 36, 63)
+	text.TextStrokeTransparency = 0
+	text.Parent = sign
+	local bubbles = Instance.new("ParticleEmitter")
+	bubbles.Name = "Wake"
+	bubbles.Color = ColorSequence.new(Color3.new(1, 1, 1))
+	bubbles.LightEmission = 0.4
+	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1.4) })
+	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	bubbles.Lifetime = NumberRange.new(0.8, 1.6)
+	bubbles.Speed = NumberRange.new(4, 10)
+	bubbles.SpreadAngle = Vector2.new(35, 35)
+	bubbles.Acceleration = Vector3.new(0, 6, 0)
+	bubbles.Rate = 0
+	bubbles.EmissionDirection = Enum.NormalId.Back
+	bubbles.Parent = prop
+	return bubbles
+end
+
+-- The tier's own model, from the place's template (built at the origin, facing -Z), or nil when the place has none
+local function fromTemplate(s: Style, n: number): (Model?, { BasePart }, BasePart?, ParticleEmitter?)
+	local folder = ReplicatedStorage:FindFirstChild(SubModels.Templates)
+	local template = folder and folder:FindFirstChild(s.Id)
+	if not (template and template:IsA("Model")) then
+		return nil, {}, nil, nil
+	end
+	local model = template:Clone()
+	local hull, prop, lamp = model:FindFirstChild("Hull"), model:FindFirstChild("Prop"), model:FindFirstChild("Light")
+	if
+		not (hull and hull:IsA("BasePart") and prop and prop:IsA("BasePart") and lamp and lamp:IsA("BasePart"))
+		or not model:FindFirstChild("Seat")
+	then
+		model:Destroy()
+		return nil, {}, nil, nil
+	end
+	model.Name = "Submarine"
+	model:SetAttribute("Tier", n)
+	local parts: { BasePart } = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+			d.CastShadow = false
+			if d.Name == "Light" or string.match(d.Name, "_Glow$") then
+				d.Material = Enum.Material.Neon
+			end
+			table.insert(parts, d)
+		end
+	end
+	model.PrimaryPart = hull
+	local bubbles = dress(s, hull, hull, Vector3.new(0, 12.5, -2) - hull.Position, prop, lamp)
+	return model, parts, prop, bubbles
+end
+
+-- Every part is anchored and touches nothing; the whole model is moved part by part (SubController)
 function SubModels.build(tier: number): (Model, { BasePart }, BasePart, ParticleEmitter)
 	local s = SubModels.style(tier)
+	do
+		local made, madeParts, madeProp, madeBubbles = fromTemplate(s, math.clamp(math.floor(tier), 1, #SubModels.List))
+		if made and madeProp and madeBubbles then
+			return made, madeParts, madeProp, madeBubbles
+		end
+	end
 	local n = math.clamp(math.floor(tier), 1, #SubModels.List)
 	local HULL, TRIM, GLASS = s.Hull, s.Trim, s.Light
 	local model = Instance.new("Model")
@@ -156,49 +311,7 @@ function SubModels.build(tier: number): (Model, { BasePart }, BasePart, Particle
 		Color3.fromRGB(255, 250, 210),
 		Enum.Material.Neon
 	)
-	local beam = Instance.new("SpotLight")
-	beam.Face = Enum.NormalId.Front
-	beam.Range = 60
-	beam.Angle = 50
-	beam.Brightness = 4
-	beam.Color = Color3.fromRGB(255, 244, 200)
-	beam.Parent = lamp
-	local glow = Instance.new("PointLight")
-	glow.Range = 22
-	glow.Brightness = 1.5
-	glow.Color = s.Light
-	glow.Parent = hull
-	-- the label: the sub's name over its tower
-	local sign = Instance.new("BillboardGui")
-	sign.Name = "Label"
-	sign.Size = UDim2.fromScale(14, 3)
-	sign.StudsOffsetWorldSpace = Vector3.new(0, 6, 0)
-	sign.MaxDistance = 140
-	sign.LightInfluence = 0
-	sign.Parent = tower
-	local text = Instance.new("TextLabel")
-	text.BackgroundTransparency = 1
-	text.Size = UDim2.fromScale(1, 1)
-	text.Font = Enum.Font.LuckiestGuy
-	text.TextScaled = true
-	text.Text = string.upper(s.Name)
-	text.TextColor3 = HULL
-	text.TextStrokeColor3 = Color3.fromRGB(16, 36, 63)
-	text.TextStrokeTransparency = 0
-	text.Parent = sign
-	local bubbles = Instance.new("ParticleEmitter")
-	bubbles.Name = "Wake"
-	bubbles.Color = ColorSequence.new(Color3.new(1, 1, 1))
-	bubbles.LightEmission = 0.4
-	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1.4) })
-	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
-	bubbles.Lifetime = NumberRange.new(0.8, 1.6)
-	bubbles.Speed = NumberRange.new(4, 10)
-	bubbles.SpreadAngle = Vector2.new(35, 35)
-	bubbles.Acceleration = Vector3.new(0, 6, 0)
-	bubbles.Rate = 0
-	bubbles.EmissionDirection = Enum.NormalId.Back
-	bubbles.Parent = prop
+	local bubbles = dress(s, hull, tower, Vector3.new(0, 6, 0), prop, lamp)
 	model.WorldPivot = CFrame.identity
 	return model, parts, prop, bubbles
 end

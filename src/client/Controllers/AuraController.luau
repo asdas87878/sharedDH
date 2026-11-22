@@ -21,6 +21,12 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Auras = require(game:GetService("ReplicatedStorage").Shared.Auras)
+local State = require(script.Parent.Parent.Lib.State)
+local HubButtons = require(script.Parent.Parent.UI.HubButtons)
+local Shop = require(script.Parent.Parent.UI.Shop)
+-- (the shop's two pages: each names itself to UI.Shop as it is required)
+local AuraShop = require(script.Parent.Parent.UI.AuraShop)
+local SellFish = require(script.Parent.Parent.UI.SellFish)
 
 local AuraController = {}
 
@@ -1027,7 +1033,27 @@ function AuraController.Init()
 	root.Parent = workspace
 end
 
+-- The shop (task b2): the hub's Shop button opens it at the page last looked at (the auras first), and closes it
+-- again; leaving the dock closes it. Its pages are UI.AuraShop and UI.SellFish, with tabs between them (UI.Shop).
+function AuraController.shop(page: string?)
+	Shop.go(page)
+end
+
+function AuraController.shopOpen(): string?
+	return if AuraShop.isOpen() then "Auras" elseif SellFish.isOpen() then "Sell" else nil
+end
+
 function AuraController.Start()
+	HubButtons.Pressed:Connect(function(name: string)
+		if name == "Shop" then
+			Shop.go(if AuraController.shopOpen() then nil else Shop.LastPage)
+		end
+	end)
+	State.ModeChanged.Event:Connect(function(mode: string)
+		if mode ~= "Dock" then
+			Shop.go(nil)
+		end
+	end)
 	for _, p in Players:GetPlayers() do
 		watchPlayer(p)
 	end

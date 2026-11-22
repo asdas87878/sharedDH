@@ -86,6 +86,7 @@ export type Wild = {
 	SentAt: number, -- os.clock() its Swim and Turn were last written,
 	SentDir: Vector3, -- and the way and the speed written then: they replicate to every client, so they are
 	SentSpeed: number, -- written only when they have changed enough to see
+	Eased: number, -- the share of its speed it swims at for a hopping player's sake (1; Config.Jump.FastEase: easeFor)
 	Swift: number, -- how much faster than its kind it is ridden (1; Config.Pace.FastRide for a fish born fast, BoltRide for a bolt)
 	Swim: LinearVelocity,
 	Turn: AlignOrientation,
@@ -749,6 +750,7 @@ local function make(
 		Pace = pace or Config.paceOf(fishType),
 		Own = (own or 1) * (1 + rng:NextNumber(-1, 1) * Config.Pace.Own) * (Config.SizePace[tier] or 1),
 		Swift = swift or 1,
+		Eased = 1,
 		Land = landPace(home),
 		Gait = 0,
 		Lead = 0,
@@ -1354,6 +1356,36 @@ local function giveWay()
 	end
 end
 
+-- The players in the hop now (RideService says: FishService.setHopping), for the fast fish's little slow-down
+local hopping: { [Player]: boolean } = {}
+function FishService.setHopping(player: Player, on: boolean)
+	hopping[player] = if on then true else nil
+end
+
+-- The share of its speed a fast fish swims at for a hopping player's sake (Config.Jump.FastEase; Hugo, 2026-11-22,
+-- task b3: "make the fastest fish slow down just a tiny bit while they swim past/near a hopping player so the hook
+-- lands"): only a fish wanting more than FastEaseOver studs a second, and only while it is kept for a hop's pull-in
+-- (Reserved) or within FastEaseNear of a player in the hop. Everything else: 1.
+local function easeFor(w: Wild, speed: number, position: Vector3): number
+	local j = Config.Jump
+	if j.FastEase >= 1 or speed <= j.FastEaseOver then
+		return 1
+	end
+	local near = w.Reserved ~= nil
+	if not near then
+		for player in hopping do
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			if root and root:IsA("BasePart") and (root.Position - position).Magnitude <= j.FastEaseNear then
+				near = true
+				break
+			end
+		end
+	end
+	-- (never under FastEaseOver by it: a fish just over the line is hardly touched)
+	return if near then math.max(j.FastEase, j.FastEaseOver / speed) else 1
+end
+
 local function steer(w: Wild, dt: number)
 	local h = Config.Herd
 	local position = w.Root.Position
@@ -1364,6 +1396,13 @@ local function steer(w: Wild, dt: number)
 	local ease = math.max(Config.Pace.Ease, 0.1) * dt
 	w.Gait += math.clamp(paceShare(w, now, position) - w.Gait, -ease, ease)
 	local speed = w.Land * w.Gait
+	-- (a little slower past a hopping player, a fast fish only: come to and gone over about a quarter second)
+	local eased = easeFor(w, speed, position)
+	if w.Eased ~= eased then
+		local step = math.max(Config.Jump.FastEaseRate, 0.1) * dt
+		w.Eased += math.clamp(eased - w.Eased, -step, step)
+	end
+	speed *= w.Eased
 	if w.Rise ~= w.RiseWant then
 		-- (a hunter stoops fast and climbs slow; a darter's little lift comes and goes gently)
 		local step = (
@@ -1857,6 +1896,7 @@ function FishService.Start()
 	Players.PlayerRemoving:Connect(function(player)
 		visitAt[player] = nil
 		keptFor[player] = nil
+		hopping[player] = nil
 	end)
 	while true do
 		task.wait(Config.Spawn.TopUpEvery)

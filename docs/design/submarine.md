@@ -165,6 +165,7 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
 - Other players riding along (a bus), and seeing the trip on the land strip.
 
 ## Open
+- (2026-11-22) The nine subs are voxel models, one a tier: [sub models](sub-models.md). Before that:
 - (2026-11-18) The nine subs are placeholders (`Shared/SubModels`: the same hull in a new colour with one more
   piece a tier, its name floating over the tower). Only the look changes with the tier; speed and the trip are the
   same for all. Buying is free while `Config.Sub.Free` is 1; the prices still show.

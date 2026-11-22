@@ -1,0 +1,47 @@
+{
+ "id": "WreckDiver",
+ "name": "Wreck Diver",
+ "tier": 4,
+ "units": "studs",
+ "triangles": 626,
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the nose)",
+  "right": "+X"
+ },
+ "origin": "the sub's middle (the game's pivot)",
+ "seatTop": [
+  0,
+  5.7,
+  5
+ ],
+ "parts": [
+  "Hull",
+  "Hull_Glow",
+  "Light",
+  "Prop",
+  "Seat"
+ ],
+ "glowParts": [
+  "Hull_Glow",
+  "Light"
+ ],
+ "spins": "Prop (about Z, its box centred on the hub)",
+ "colours": {
+  "hull": [
+   176,
+   96,
+   52
+  ],
+  "trim": [
+   54,
+   44,
+   40
+  ],
+  "light": [
+   255,
+   200,
+   120
+  ]
+ }
+}
