@@ -61,7 +61,6 @@ should we go about this fully"
 - **The ridden fish is moved by the player's machine;** the server notes a speed breach and does nothing. Money and
   taming are safe; distance is not.
 - **No rate limit** on the ride and submarine messages.
-- **One script error stops every script after it** (no guard in either `Main`).
 - **Phones are unmeasured,** and a lot runs every frame.
 - **Not ours:** the water picture, a cube mesh and the sky are other people's Creator Store assets (one "could be
   taken down"); three HUD icons are from a free pack ("Free for commercial and non-commercial projects. Not to be resold,
@@ -99,8 +98,9 @@ wrong, not by time.
 - Risk: low. No game code changes except asset ids. The upload is the long part.
 
 ### Stage 2: anyone can read it
-- **The safe batch:** delete the dead code and the stray `--help/` folder, bring `Net.luau`'s header up to date, fix
-  the wrong comments, guard both `Main` loops, mark the test hooks. No change to play.
+- **The safe batch: done 2026-11-22** (the dead code and the stray `--help/` folder out, `Net.luau`'s header up to
+  date, the wrong comments fixed, both `Main` loops guarded, the test hooks marked). Checked by the build and lint;
+  the play check in Studio is still to run.
 - **Take out the unpicked UI looks.** Needs a play test of each screen.
 - **Rename `ClaudeBlockout` and `UI/Shop`.** Needs a play test and the place renamed.
 - **Move the history out of the comments** into the design notes. No change to play; touches nearly every file, so it
@@ -145,3 +145,6 @@ wrong, not by time.
 - A [code map](../Code%20map.md) and a root `README.md`.
 - Contents lists and section markers in the twelve largest code files (comment lines only; build and lint unchanged).
 - The [check of what to sort](../reviews/code-organisation.md) and the five audits behind it.
+- The safe tidy batch (four commits, listed under "Done" in the check). Not yet played in Studio.
+- **What the buyer is paying for is settled** (the user, 2026-11-22: "they are paying for the game as it is now. they
+  will probably polish a few things"): the source as it is, so stages 0 to 2 and the package (stage 5).

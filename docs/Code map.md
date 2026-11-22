@@ -15,7 +15,8 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
   scripts in `tools/` ([handing the game over](plans/sale-readiness.md), "From an empty place to the game").
 - **How it starts.** `Main.server.luau` loads every module in `Services/`; `Main.client.luau` loads every module in
   `Controllers/`. Each calls `Init` on all of them (set up, no waiting), then `Start` on each in its own thread. A new
-  module dropped in either folder runs by itself.
+  module dropped in either folder runs by itself. A module that fails to load, or whose `Init` fails, is reported in
+  the output with `[Main]` and left out; the rest carry on.
 - **The server decides, the client shows.** Oxygen, taming, coins, what you own and how a ride ends are all worked out
   on the server. The client steers the fish it rides (the server hands it the fish's network ownership) and draws
   everything.
@@ -174,7 +175,8 @@ at its end, and is required from `StallController`.
 | `Look`, `Ease` | Putting the lighting numbers on; small maths. |
 
 ## Every message
-The header of `Net.luau` is behind the code; this table is the list as read from the code on 2026-11-22.
+The header of `Net.luau` carries the same list (brought up to date 2026-11-22); this table adds who sends and who
+listens.
 
 | Remote | Message | From | To |
 |---|---|---|---|

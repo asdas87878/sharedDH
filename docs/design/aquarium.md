@@ -89,8 +89,8 @@ only asks; it never sends a price or a count.
 | Action `"Sell"`, `"Tank"`, key or `"Hand"`, index, id | on the dock, the fish yours (the index-th carried must still be `id`) | Ride `"Sold"`, id, coins or `"TankDenied"`, `"Far"` / `"Gone"` |
 | Action `"Plot"`, `"Up"` | your plot, alive, on the dock, not riding in the tank, within `SignNear` of `PlotBoard`, not the top stage, the coins; one ask in `UpAgain` 0.5 s | Ride `"PlotUp"`, stage or `"PlotNo"`, `"Near"` / `"Top"` / `"Coins"` / `"Dead"` / `"Busy"` |
 
-Player attributes: `PlotStage` (0 to 5), `TankEarning` (how many may be equipped). For other services:
-`AquariumService.stageOf(player)`, `earningOf(player)`, `sell(player, where, a, b)`.
+Player attributes: `PlotStage` (0 to 5), `TankEarning` (how many may be equipped). (`AquariumService.stageOf`, `earningOf` and
+`sell` were taken out 2026-11-22: nothing called them.)
 
 **Checked by script in a Studio playtest** (2026-11-22; `python tools/studio/b1_inventory_check.py install`, Play,
 `... run`, `... shots`, `... remove`; log `work/b1/check.log`): **44 of 44 pass.**

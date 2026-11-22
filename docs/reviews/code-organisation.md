@@ -2,7 +2,8 @@
 
 A check of all of `src/` (97 files, about 50,000 lines) for what should be organised before another team takes it
 over. Read 2026-11-22 by five helpers, one per area; their full lists, with file and line for every item, are in
-[code-audit](code-audit/server.md). **Nothing here has been changed:** this is the list to pick from.
+[code-audit](code-audit/server.md) (their line numbers are as of commit `06cc484`). **The safe batch was done the
+same day, on the user's word:** see "Done" at the end. Everything else is still the list to pick from.
 
 Up: [Home](../../Home.md). Related: [Code map](../Code%20map.md), [handing the game over](../plans/sale-readiness.md).
 
@@ -51,32 +52,36 @@ still in the code, reachable only through Studio switches. A reader cannot tell 
   be wanted again. They stay in git history either way.
 
 ## 3. Dead code
-**Safe to delete:** no caller anywhere in `src/` or `tools/` (searched again for this list).
-- **Server:** `RideService.deposited`, the `Owned` attribute, `AquariumService.sell` and `earningOf`,
+**Taken out 2026-11-22** (commit `8a427ce`, 222 lines, no code added; each had no caller in `src/` or `tools/`):
+- **Server:** `RideService.deposited`, the `Owned` attribute, `AquariumService.sell`, `earningOf` and `stageOf`,
   `PropService.brokenCount`, `FishService.Tag`.
-- **Client:** `State.secondsOn`, `Shake.at` and `Shake.clear`, `StallController.open`, a switched-off block in
-  `FailController` (the shade arms), and about a dozen unused exports in `Kit`, `Slots`, `Portrait`, `StatRows` and
-  `ShopScreen`.
-- **Shared:** `Spawn.Wander`, Oxygen rows for four fish cut from the game, `Ease.clamp01` and `inQuad`, `Auras.get`,
+- **Client:** `State.secondsOn`, `Shake.at` and `Shake.clear`, `StallController.open`, the fail screen's switched-off
+  arms, `ShopScreen.isOpen`, `Slots.chosen`, `Kit.shade`, `oxygenCorner`, `bubbles`, `Lime` and `Space`,
+  `Portrait.rendered` and `kindOf`.
+- **Shared:** `Spawn.Wander`, the Oxygen rows of four fish cut from the game, `Ease.clamp01` and `inQuad`, `Auras.get`,
   `Variants.clear`.
-- **Repo:** a stray `--help/` folder at the root (81 files, 22 MB), made by a script run with `--help` taken as an
-  output folder.
+- **Repo:** the stray `--help/` folder (commit `ce30041`).
 
-**Unused by the game, but not free to delete:**
+**Still there, unused by the game, not free to delete:**
 - **The old `Action "Place"` handler:** no client sends it, but `tools/studio/e2_click_check.py` listens for it.
   Remove both together.
 - **`Config.archetypeOf`:** only `tools/playtest/archetypes/client.luau` calls it.
 - **`RideController.turn`:** no caller, but it shares state with `steer`. Needs a play test.
 - **Five `AimHud` numbers** nothing reads: the sandbox panel still lists them, so its rows go too.
+- **`Slots.Selected` and `StatRows.Pressed`:** events that live code fires and nothing listens to. Wire them or
+  remove them with the lines that fire them.
+- **`r.Owned` in `RideService`:** a count nothing reads now that the attribute is gone.
+- **The four cut fish** (Butterflyfish, BlueChromis, Boxfish, FlyingFish) still have rows in `Config.LandRide.Kinds`
+  and `UI/FishIcons`, models in `art/creatures`, and are used as test data by a few old scripts in `tools/`.
 
 ## 4. Comments
 - **Every file explains itself, at length.** That is the strength. `Config.luau` has three times as many characters
   of comment as of code.
 - **About a third of it is history:** who asked, on what date, the old value, a quote, a task id ("task e4", "grade
   issue 7") that points at notes a buyer will not have. 277 comments in `src/` name the partner, 172 "the user".
-- **A few are wrong now:** the header of `Net.luau` misses about 20 messages and lists one nobody sends; the comment
-  above `Config.Wild` describes the lock; `speedOf`'s comment leaves out two multipliers; two comments in
-  `FishService` sit above the wrong function.
+- **A few were wrong, corrected 2026-11-22** (commit `5dd24f5`, comment lines only): the header of `Net.luau` now
+  lists every message as the code sends it; the comment above `Config.Wild`, `speedOf`'s, two in `FishService` that
+  sat above the wrong function, and a handful more.
 - **Suggested:** one pass that moves the history into the design notes (the comments already link them) and leaves a
   plain line per number. Safe for the game, but it touches nearly every line of `Config`, so it has to be done when
   nobody else is tuning, and it will clash with any unmerged work of Hugo's.
@@ -109,25 +114,42 @@ Renames need a play test and a word to everyone with open work; none is urgent.
   `Config`'s tables live, by reference) for the least gain now that the files have a way in.
 
 ## 7. Sturdiness (small, worth doing)
-- **One error stops everything.** Neither `Main` guards its loop, so a failing `Init` in one module stops every module
-  after it. A `pcall` with a warning fixes it.
+- **One error no longer stops everything** (2026-11-22, commit `d422ac6`): both `Main` scripts report a module that
+  fails to load or whose `Init` fails (`[Main]` in the output) and carry on with the rest.
 - **`SubController.Init` waits** for the PlayerGui, against the rule that `Init` never waits.
 - **The admin panel works in a live game** for the place's owner (coins, fish, max Oxygen). Correctly locked to the
   owner; the new owner should know it is there and set `Config.Admin`.
 - **The fish you ride is moved by your own machine.** The server checks its speed once a second but only notes a
   breach; it never corrects. Taming and money cannot be cheated this way; distance can.
 - **No general rate limit** on the ride and submarine messages (the tank and sell ones have one).
-- **Test hooks used only by the scripted checks** (`pretend`, `press`, `landInfo`...) sit among the live functions,
-  unmarked.
+- **Test hooks used only by the scripted checks** (`pretend`, `press`, `landInfo`...) sit among the live functions.
+  Each now carries a "Test hook" comment naming the script that calls it (23 of them).
 - **Phones:** a lot runs every frame (the fail camera's raycasts, `AnimController` moving every fish within 450
   studs, three places that walk a model's parts each frame). Nothing has been measured on a phone.
 - **Text:** every word the player reads is hard-coded English, often joined from pieces; a few sizes are fixed pixels.
 
 ## What I would do, in order
-Each is its own small piece of work; none is started.
-1. **The safe batch** (no change to play): delete the safe list of section 3 and the `--help/` folder, bring the
-   header of `Net.luau` up to date, fix the wrong comments, guard both `Main` loops, mark the test hooks.
+Each is its own small piece of work.
+1. **The safe batch: done 2026-11-22** (see below).
 2. **Take out the unpicked looks** (section 2), with a play test of each screen.
 3. **The two renames that confuse most:** `ClaudeBlockout` and `UI/Shop`.
 4. **The history out of the comments,** once Hugo's work is merged and nobody is tuning.
 5. **Leave the splits** (section 6) to the new team.
+
+## Done (2026-11-22)
+On the user's word: "tidy as such, just make sure you dont break anything".
+
+| Commit | What | How it was checked |
+|---|---|---|
+| `ce30041` | The stray `--help/` folder removed (81 working files of `tools/art/rarity_ladder.py`). | Nothing refers to the path; the files stay in git history. |
+| `8a427ce` | The dead code of section 3 (222 lines out, none added). | Every name searched again across `src/` and `tools/` after the change: 0 uses. StyLua, selene (0 errors, the 3 old warnings) and the Rojo build pass. |
+| `5dd24f5` | Comments only: the `Net.luau` header, the wrong comments, the test-hook marks. | The diff holds no code line. |
+| `d422ac6` | Both `Main` scripts guard loading and `Init`. | StyLua, selene and the Rojo build. |
+
+**Not yet played in Studio.** Studio was in Play (left running) the whole time and was not touched. The check still to
+run: sync `src/`, press Play, read the output for `[Main]`, "attempt to call a nil value" and "not a valid member",
+then run `tools/studio/b4_tank_ride_check.py`, `e4_land_check.py` and `tank_panel_check.py`.
+
+**A few design notes still name what was removed:** `docs/design/camera-shake.md` (`Shake.at`),
+`docs/design/progression.md` and `docs/design/ui.md` (`State.secondsOn`, `Portrait.kindOf`),
+`docs/design/ui-review.md` (`Kit.Lime`).
