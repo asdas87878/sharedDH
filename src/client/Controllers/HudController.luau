@@ -49,6 +49,9 @@ local HudController = {}
 -- than in proportion, so a desktop gets a smaller HUD against its screen than a phone does
 local SCALE_HEIGHT = 560
 local SCALE_MAX = 2.2
+-- the narrowest the HUD may be laid out on, in its own units: a tall phone held upright scales by its height to a HUD
+-- narrower than its hotbar, so its width caps the scale too (grade issue 4)
+local SCALE_WIDTH = 420
 local SHOULDER = Vector3.new(0, 1, 0) -- from the rider's middle to where the rings are level with
 -- The server's word that a fish is too strong takes a moment to come; for this long after a landing the HUD judges it
 -- itself, by the same rule (State.tooStrong), so the ring is red from the first frame
@@ -219,8 +222,11 @@ end
 local function layout()
 	local camera = workspace.CurrentCamera
 	local height = if camera then camera.ViewportSize.Y else SCALE_HEIGHT
-	local wanted = math.clamp(height / SCALE_HEIGHT, 1, SCALE_MAX)
+	local width = if camera then camera.ViewportSize.X else SCALE_WIDTH * 2
+	local wanted = math.clamp(math.min(height / SCALE_HEIGHT, width / SCALE_WIDTH), 1, SCALE_MAX)
 	local onTouch = Kit.touch()
+	-- (the hotbar fits itself to the width, which can change without the scale: grade issue 4)
+	Slots.fit(width / wanted)
 	if wanted == hudScale and onTouch == touch then
 		return
 	end

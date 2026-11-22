@@ -75,7 +75,7 @@ local function block(parent: Instance, name: string, kind: string): (Frame, Text
 	Shop.pattern(frame, "Head", 36, 0.88)
 	Kit.new("Frame", {
 		Name = "Lip",
-		Position = UDim2.new(0, 6, 0, 4),
+		Position = UDim2.fromOffset(6, 4),
 		Size = UDim2.new(1, -12, 0, 3),
 		BackgroundColor3 = Kit.White,
 		BackgroundTransparency = 0.45,
@@ -98,7 +98,7 @@ local function block(parent: Instance, name: string, kind: string): (Frame, Text
 	local label = Shop.text(words, {
 		Name = "Label",
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.fromScale(0, 1),
 		TextSize = 60,
 		LayoutOrder = 2,
 		ZIndex = 3,

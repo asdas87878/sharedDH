@@ -712,6 +712,34 @@ AquariumService.putAway = function(player: Player)
 	putAway(player)
 end
 
+-- Config was tuned live (the sandbox panel): every tank's fish are counted again, so a stocked tank pays by the new
+-- numbers from its next payout, not only after its next change (grade issue 3). The fish in the water are only rebuilt
+-- when which ones earn changed
+function AquariumService.retune()
+	for _, tank in tanks do
+		local before = tank.Income
+		local earning: { [Entry]: boolean } = {}
+		for _, f in tank.Fish do
+			earning[f] = f.On
+		end
+		count(tank)
+		local moved = false
+		for _, f in tank.Fish do
+			if earning[f] ~= f.On then
+				moved = true
+				break
+			end
+		end
+		tell(tank)
+		if moved then
+			show(tank)
+		end
+		if moved or tank.Income ~= before then
+			sign(tank.Plot, tank)
+		end
+	end
+end
+
 -- Studio and other services: what a player's tank holds (nil with no tank)
 function AquariumService.tankOf(player: Player): { Entry }?
 	local tank = tanks[player]
@@ -770,6 +798,12 @@ local function startHolding()
 		lastHold[player] = now
 		if index ~= 0 and (type(id) ~= "string" or RideService.stateOf(player) ~= "Dock") then
 			Net.Ride:FireClient(player, "Denied", "Hold", "Far")
+			return
+		end
+		-- (seated on the seahorse trainer or riding a fish in the tank: those own the body's pose, so no fish goes up
+		-- over the head; get off first: grade issue 6)
+		if index ~= 0 and (player:GetAttribute("TrainerRide") ~= nil or player:GetAttribute("TankRide") ~= nil) then
+			Net.Ride:FireClient(player, "Denied", "Hold", "Seated")
 			return
 		end
 		hold(player, index, if type(id) == "string" then id else "")

@@ -118,7 +118,16 @@ type Rider = {
 	Land: Land?, -- while riding it on land in the hub
 }
 -- The equipped fish under the rider on land: its model, welded under the root, and what the humanoid had before
-type Land = { Model: Model, Body: Model, Humanoid: Humanoid, Hip: number, Walk: number }
+-- (Good, GoodAt: where the rider last stood when their pace was checked and found fair, and when: grade issue 7)
+type Land = {
+	Model: Model,
+	Body: Model,
+	Humanoid: Humanoid,
+	Hip: number,
+	Walk: number,
+	Good: Vector3,
+	GoodAt: number,
+}
 
 local RideService = {}
 
@@ -307,6 +316,8 @@ local function landOn(r: Rider): boolean
 		Humanoid = humanoid,
 		Hip = humanoid.HipHeight,
 		Walk = humanoid.WalkSpeed,
+		Good = root.Position,
+		GoodAt = os.clock(),
 	}
 	-- facing the way the player faces, the saddle at the root
 	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
@@ -323,11 +334,14 @@ local function landOn(r: Rider): boolean
 	weld.Parent = fishRoot
 	model.Name = r.Player.Name
 	model:SetAttribute("LandRider", r.Player.UserId)
+	-- (the moment it was mounted, on the server's clock: every machine's stride starts from it, grade issue 10)
+	model:SetAttribute("LandEpoch", workspace:GetServerTimeNow())
 	model:SetAttribute("FishType", carry.Id)
 	model:SetAttribute("SizeTier", carry.Size)
 	model:SetAttribute("Variant", carry.Variant)
 	model.Parent = landFolderOf()
 	root.CFrame += lift
+	land.Good = root.Position
 	humanoid.HipHeight = hip
 	humanoid.WalkSpeed = Config.Equip.LandSpeed
 	r.Land = land
@@ -1506,6 +1520,23 @@ local function tick(r: Rider, dt: number)
 		if land and (not land.Model.Parent or r.Player.Character ~= land.Body or busy(r)) then
 			-- (the land fish was lost, the body changed, or they sat down somewhere else: off it)
 			landOff(r)
+		elseif land then
+			-- (the walker is the player's own machine: on the land fish it may cover the ground at Equip.LandSpeed, with
+			-- room for lag, and no faster; past that it is put back where it last stood fairly: grade issue 7. A fall
+			-- is not counted, only the ground covered)
+			local e = Config.Equip
+			local checked = os.clock()
+			local span = checked - land.GoodAt
+			if span >= e.CheckEvery then
+				local moved = ((root.Position - land.Good) * Vector3.new(1, 0, 1)).Magnitude
+				if moved > e.LandSpeed * e.PaceRoom * span + e.PaceSlack then
+					root.AssemblyLinearVelocity = Vector3.zero
+					root.CFrame = CFrame.new(land.Good) * root.CFrame.Rotation
+				else
+					land.Good = root.Position
+				end
+				land.GoodAt = checked
+			end
 		end
 		if root.Position.Y < o.WaterY then
 			-- (into the water: the land fish goes before anything else owns the body)

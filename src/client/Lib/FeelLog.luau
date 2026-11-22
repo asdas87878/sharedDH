@@ -10,6 +10,11 @@ local FeelLog = {}
 export type Event = { At: number, Kind: string, Info: { [string]: any }? }
 
 FeelLog.On = false
+-- While the feel log asks for a number (its numbered tags over the fish), the number keys are its alone: the hotbar
+-- leaves them (EquipController). TakenInput is the last key press it answered, so whichever handler hears a press first,
+-- the other one knows (grade issue 5)
+FeelLog.TakesNumbers = false
+FeelLog.TakenInput = nil :: InputObject?
 -- fired with (kind, info, os.clock()) for every event: the controller's hop lines listen
 FeelLog.Fired = Instance.new("BindableEvent")
 

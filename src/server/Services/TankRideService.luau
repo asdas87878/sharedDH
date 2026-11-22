@@ -220,6 +220,7 @@ local function start(player: Player, fish: any)
 		end),
 	}
 	rides[player] = ride
+	AquariumService.putAway(player) -- (no fish over the head while astride one: grade issue 6)
 	player:SetAttribute("TankRide", true)
 	Net.Ride:FireClient(player, "TankMounted", model, box, half)
 end

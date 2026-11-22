@@ -3,6 +3,32 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-22 · Fixes from the E1–E4 grade (NULLROOM task x1, Hugo's PC)
+**State:** in the game code; stylua clean, selene 0 errors and 3 old warnings (7 of the 10 old ones fixed). Checked by
+a scripted Studio playtest, `python tools/studio/x1_fix_check.py install`, `studio-run.mjs play`, `... run`,
+`... remove`: **20 of 20 pass** (log `work/x1/check.log`); E1's `tools/studio/oxygen_check.luau` still 12 of 12
+(`work/x1/oxygen_check.txt`). Not played by hand, not with two players. Issue numbers are
+[the grade](plans/2026-11-20-grade.md)'s.
+- **1** The Oxygen row shows the whole number (2,925; 3,285,000), shrinking to fit its bar (`UI/StatRows`).
+- **2** Training time is settled at the moment of an upgrade (at the old level), of asking off and of dying, and
+  counted from the moment of sitting; the old pad counts from the first look it sees you (`TrainService`, `settle`).
+- **3** A live retune (the sandbox panel) recounts every stocked tank's income (`AquariumService.retune`).
+- **4** On a narrow phone the hotbar (Q slot, its words, slot 7) stays on screen: the row moves right just enough and
+  shrinks only below about 355 wide (`Slots.fit`); the HUD's scale is capped by the width too (`HudController`).
+- **5** While the feel log's number pick is up the number keys are its alone (`EquipController.input`, `FeelLog.TakesNumbers`).
+- **6** No hold while seated on the trainer or a tank ride ("Seated"), and seating puts a held fish away; on a land
+  or tank fish the hold's arms let go at once; no avatar sit track under the land motion.
+- **7** The land fish tilts to the floor's slope and lifts off steps (`AnimController` `groundFit`,
+  `LandRide.GroundTilt` / `GroundLift` / `GroundBlend` / `GroundEvery`); the server puts a rider back who covers the
+  ground faster than `Equip.LandSpeed` allows (`Equip.CheckEvery`, `PaceRoom`, `PaceSlack`).
+- **8** On a big land fish the camera stays outside it (`Equip.CameraFrom`, `CameraMost`); option F (a size cap) is still
+  Hugo's.
+- **9** A rider stays locked to their land fish on the frames it isn't moved (far away): read in the code, not checked.
+- **10** The land stride starts from the server's mount time (`LandEpoch`) and is put back on that clock at every
+  stop: not compared on two clients.
+- **Left for Hugo / others:** 11 (a land-to-swim blend, or accept the cut), 18 (EQUIP vs EARN labels), options A–G;
+  12–16 are proof and tool work (E4 recordings, the stale e2/e3 suites, two-player runs, the balance model).
+
 ## 2026-11-20 · The ride fish moves on land by its body type (NULLROOM task e4, Hugo's PC)
 **State:** in the game code (`AnimController`, `Config.LandRide`); stylua and selene clean. Checked by a scripted Studio
 playtest, `python tools/studio/e4_land_check.py install`, `studio-run.mjs play`, `... run`: **10 of 10 pass** (log

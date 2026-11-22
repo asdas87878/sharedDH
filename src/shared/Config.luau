@@ -945,6 +945,15 @@ Config.Equip = {
 	-- the land fish's length at most (studs; 0: its own size, the plan's default: a Colossal whale is huge in the hub)
 	LandMost = 0,
 	Again = 0.15, -- seconds between two asks the server takes from one player
+	-- the server's check of the pace on the land fish (grade issue 7): every CheckEvery seconds the ground covered may
+	-- be LandSpeed x PaceRoom a second plus PaceSlack studs; more, and the rider is put back where they last stood
+	CheckEvery = 1,
+	PaceRoom = 1.5,
+	PaceSlack = 12,
+	-- the camera on a big land fish (grade issue 8, EquipController): no closer than this x the fish's largest side,
+	-- and that never more than CameraMost studs
+	CameraFrom = 0.9,
+	CameraMost = 250,
 }
 
 -- Riding the equipped fish on land (task e4, docs/design/land-motion.md): each body type moves in its own way, all of it
@@ -965,6 +974,13 @@ Config.LandRide = {
 	IdleFin = 6, -- and the fins and limbs stirring, degrees
 	TurnRoll = 0.12, -- leaning into a turn, degrees of roll for each degree a second of turning
 	TurnRollMax = 10, -- at most
+	-- The floor under it (grade issue 7, AnimController's groundFit): tilted to the floor's slope from nose to tail, at
+	-- most GroundTilt degrees; lifted when its nose, middle or tail would sink into a step, at most GroundLift x its
+	-- height; eased (GroundBlend, higher: quicker); the floor looked at every GroundEvery seconds. 0, 0: no fitting
+	GroundTilt = 18,
+	GroundLift = 0.6,
+	GroundBlend = 8,
+	GroundEvery = 0.1,
 	TurnLead = 0.05, -- the head chain leads into a turn by this, the tail chain trails
 	-- The body types. Every field not given is the Base one. Body: Hop (studs, an arc each hop, HopPer a stride,
 	-- HopPhase), Heave (a smooth rise on the hop's rhythm), Pitch (nose up, on the hop's rhythm, PitchPhase), Roll,

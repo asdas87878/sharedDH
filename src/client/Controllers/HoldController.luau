@@ -87,9 +87,21 @@ function HoldController.Start()
 		for _, player in Players:GetPlayers() do
 			local character = player.Character
 			if character then
-				local holding = player:GetAttribute("HeldFish") ~= nil and player:GetAttribute("State") == "Dock"
+				-- (one writer per joint, grade issue 6: astride the land fish or a tank's fish, AnimController has the
+				-- arms, so the hold lets go at once instead of fading over its pose; on the trainer it has none)
+				local owned = player:GetAttribute("TankRide") ~= nil
+					or player:GetAttribute("TrainerRide") ~= nil
+					or (player:GetAttribute("LandMounted") == true and Config.LandRide.On ~= 0)
+				local holding = not owned
+					and player:GetAttribute("HeldFish") ~= nil
+					and player:GetAttribute("State") == "Dock"
 				local a = arms[character]
-				if holding or (a and a.weight > 0) then
+				if owned and a and a.weight > 0 then
+					a.weight = 0
+					for key in a.motors do
+						a.wrote[key] = nil -- (not written back to rest: the owner writes them this frame)
+					end
+				elseif holding or (a and a.weight > 0) then
 					a = armsOf(character)
 					a.weight += ((if holding then 1 else 0) - a.weight) * blend
 					if not holding and a.weight < 0.01 then

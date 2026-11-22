@@ -8,14 +8,15 @@
 --   goes into the slot at the far left and is ridden on land. With nothing held, Q rides the equipped one again.
 --   The equipped slot: a click or tap is Q while a fish is held, else on or off the ride fish on land ("RideMount");
 --   its cross unequips ("RideUnequip").
---   While on the land fish, the player's own body sits (the avatar's own sit animation, looped over the walk); its
---   body moves with the humanoid. Land movement by body type is E4's.
+--   While on the land fish, AnimController poses the rider astride (task e4; the avatar's own sit animation only
+--   with Config.LandRide.On 0), and a big fish holds the camera back outside its body (grade issue 8).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local FeelLog = require(script.Parent.Parent.Lib.FeelLog)
 local State = require(script.Parent.Parent.Lib.State)
 local Slots = require(script.Parent.Parent.UI.Slots)
 
@@ -78,7 +79,8 @@ end
 -- priority, on our own body (the Animator sends it to everyone)
 local sitting: AnimationTrack? = nil
 local function pose()
-	local on = player:GetAttribute("LandMounted") == true
+	-- (with the land motion on, AnimController has the whole body: no sit track under it, grade issue 6)
+	local on = player:GetAttribute("LandMounted") == true and Config.LandRide.On == 0
 	if on and not sitting then
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -103,13 +105,61 @@ local function pose()
 	end
 end
 
-function EquipController.Start()
-	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-		if processed or UserInputService:GetFocusedTextBox() then
+-- A key press as Roblox gives it: not one the game took, nor typing in a box, nor a number the feel log's pick has
+-- (while its numbered tags are up the number keys are its alone, so one press never answers both: grade issue 5).
+-- Returns whether the press went on to EquipController.press (the scripted check reads that)
+function EquipController.input(input: InputObject, processed: boolean): boolean
+	if processed or UserInputService:GetFocusedTextBox() then
+		return false
+	end
+	if (FeelLog.TakesNumbers or FeelLog.TakenInput == input) and NUMBERS[input.KeyCode] then
+		return false
+	end
+	EquipController.press(input.KeyCode)
+	return true
+end
+
+-- The camera on a big land fish (grade issue 8; Hugo's choice F, the size on land, is still open, so the fish keeps its
+-- true size): the camera may not come in closer than the fish is big (Equip.CameraFrom x its largest side), so it
+-- stays outside a giant's body instead of inside it. The fish itself never blocks the view (it takes no rays). Off the
+-- fish, the player's own zoom limits come back
+local zoomWas: { number }? = nil
+local zoomToken = 0
+local function camera()
+	zoomToken += 1
+	local token = zoomToken
+	local on = player:GetAttribute("LandMounted") == true
+	if not on then
+		if zoomWas then
+			player.CameraMinZoomDistance = zoomWas[1]
+			player.CameraMaxZoomDistance = zoomWas[2]
+			zoomWas = nil
+		end
+		return
+	end
+	task.spawn(function()
+		local folder = workspace:WaitForChild("LandFish", 5)
+		local model = folder and folder:WaitForChild(player.Name, 5)
+		if token ~= zoomToken or not model or not model:IsA("Model") then
 			return
 		end
-		EquipController.press(input.KeyCode)
+		local e = Config.Equip
+		local size = model:GetExtentsSize()
+		local least = math.max(size.X, size.Y, size.Z) * e.CameraFrom
+		if least <= (if zoomWas then zoomWas[1] else player.CameraMinZoomDistance) then
+			return -- (a small fish: the player's own zoom is fine)
+		end
+		if not zoomWas then
+			zoomWas = { player.CameraMinZoomDistance, player.CameraMaxZoomDistance }
+		end
+		least = math.min(least, e.CameraMost)
+		player.CameraMaxZoomDistance = math.max((zoomWas :: { number })[2], least + 20)
+		player.CameraMinZoomDistance = least
 	end)
+end
+
+function EquipController.Start()
+	UserInputService.InputBegan:Connect(EquipController.input)
 	Slots.Ride:Connect(function(what: string)
 		if Config.Equip.On == 0 then
 			return
@@ -126,12 +176,15 @@ function EquipController.Start()
 		player:GetAttributeChangedSignal(name):Connect(show)
 	end
 	player:GetAttributeChangedSignal("LandMounted"):Connect(pose)
+	player:GetAttributeChangedSignal("LandMounted"):Connect(camera)
 	player.CharacterAdded:Connect(function()
 		sitting = nil
 		pose()
+		camera()
 	end)
 	show()
 	pose()
+	camera()
 end
 
 return EquipController

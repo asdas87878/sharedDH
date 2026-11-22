@@ -205,7 +205,7 @@ function Shop.button(parent: Instance, props: { [string]: any }): Button
 	-- the inner light line along the top edge
 	Kit.new("Frame", {
 		Name = "Lip",
-		Position = UDim2.new(0, 4, 0, 3),
+		Position = UDim2.fromOffset(4, 3),
 		Size = UDim2.new(1, -8, 0, 2),
 		BackgroundColor3 = Kit.White,
 		BackgroundTransparency = 0.45,
@@ -257,7 +257,7 @@ function Shop.button(parent: Instance, props: { [string]: any }): Button
 	local label = Shop.text(holder, {
 		Name = "Label",
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.fromScale(0, 1),
 		TextSize = size,
 		Text = props.Text or "",
 		LayoutOrder = 2,
@@ -383,7 +383,7 @@ function Shop.window(props: { [string]: any }): Window
 	Kit.new("Frame", {
 		Name = "Floor",
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 1, 0),
+		Position = UDim2.fromScale(0, 1),
 		Size = UDim2.new(1, 0, 0, 5),
 		BackgroundColor3 = Kit.darker(headColour, 0.35),
 		BackgroundTransparency = 0.25,
@@ -529,7 +529,7 @@ function Shop.money(parent: Instance, props: { [string]: any }): (TextLabel, Fra
 	end
 	local label = Shop.text(holder, {
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.fromScale(0, 1),
 		TextSize = size,
 		TextColor3 = props.Colour or Shop.Money,
 		Text = props.Text or "",
@@ -854,7 +854,7 @@ function Shop.carousel(parent: Instance, props: { [string]: any }): Carousel
 			Kind = props.Kind or "Lavender",
 			Text = "",
 			AnchorPoint = Vector2.new(if side < 0 then 0 else 1, 0.5),
-			Position = UDim2.new(if side < 0 then 0 else 1, 0, 0.45, 0),
+			Position = UDim2.fromScale(if side < 0 then 0 else 1, 0.45),
 			Size = UDim2.fromOffset(arrowWide, 64),
 		})
 		b.Root.ZIndex = 6
