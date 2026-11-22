@@ -36,6 +36,18 @@
 -- Set in PreSimulation, after the Animator, so the poses win: every joint of the avatar is written each frame (those a
 -- pose doesn't name are held at rest), and our own character's animation tracks are stopped as they start while we are
 -- in the water, so Roblox's Animate script never shows through. No tables are made per frame for the fish.
+-- In this file, in order:
+--   Fish data: the hooks for other files, what is kept for each fish, and the landing reactions' table
+--   Motion curves: a reaction's rise and fall, and the stride's height and sway
+--   Joint lookup: the rider's posed joints, and which of a creature's joints bend in a turn
+--   Which fish to move: watching the fish folders, and skipping fish that are far or out of view
+--   The rider's seat: the part of the fish they sit on, and how they follow it
+--   Land rig: the ride fish in the hub, and its joints sorted by role
+--   Land motion: the floor under a land fish, and its stride each frame
+--   Fish each frame: every fish's swim, landing reaction, fits, wave, stride and body shift
+--   Rider poses: the drown, the swim strokes, astride, the dash, and the pose for each state
+--   Posing a rider: finding their joints and writing the pose each frame
+--   Setup: the landing news, and the per-frame loop over the fish and the players
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -49,6 +61,9 @@ local JumpController = require(script.Parent.JumpController)
 local RideController = require(script.Parent.RideController)
 
 local AnimController = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fish data: the hooks for other files, what is kept for each fish, and the landing reactions' table
 
 -- A fail's own pose for a rider still on the fish (FailController sets it: the hold, the bounce, the brace for a hit).
 -- nil, or nothing for this player: the plain clinging on.
@@ -193,6 +208,9 @@ local rad = math.rad
 local MOUNT_REACH = 40
 local JOLTS = { startle = 2.4, buck = 1.5, thrash = 2.2, bolt = 2.8, wobble = 1.4, shudder = 0.9, barrel = 1.6 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Motion curves: a reaction's rise and fall, and the stride's height and sway
+
 -- A reaction through time: 0 until `start`, up to 1 at `peak` (quickly, from the first moment: the user wanted no
 -- wait and no jolt), held for `hold`, and down to 0 at `finish`, dropping fast and leaving a thin tail
 local function shape(t: number, start: number, peak: number, hold: number, finish: number): number
@@ -219,6 +237,9 @@ local function strideAcross(p: number, side: number, hold: number): number
 	local k = 0.01 + 3 * math.clamp(hold, 0, 1)
 	return side * math.tanh(k * swing) / math.tanh(k)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Joint lookup: the rider's posed joints, and which of a creature's joints bend in a turn
 
 local JOINTS = {
 	"Root",
@@ -319,6 +340,9 @@ local function spineOf(id: string, rig: Creatures.Rig): { [string]: number }
 	return out
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Which fish to move: watching the fish folders, and skipping fish that are far or out of view
+
 -- The fish to animate: kept from each folder's ChildAdded and ChildRemoved, not read from it every frame. The wild and
 -- ridden fish are in Workspace.Fish; the ride fish on land (task e4) in Workspace.LandFish, registered here too.
 type Watch = { name: string, land: boolean, folder: Instance?, seen: { [Model]: boolean } }
@@ -370,6 +394,9 @@ local function due(model: Model, j: FishJoints?, offset: Vector3, away: number, 
 	end
 	return true
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- The rider's seat: the part of the fish they sit on, and how they follow it
 
 -- The part of a modelled creature the rider sits on, and the joints from the Root out to it (Animation.RiderLock).
 -- Worked out once a fish: the part whose box is nearest the point just under the Saddle, as the creature stands at
@@ -481,6 +508,9 @@ local function seat(
 		j.mount = nil
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Land rig: the ride fish in the hub, and its joints sorted by role
 
 -- ── On land (task e4, Config.LandRide, docs/design/land-motion.md) ─────────────────────────────────────────────────
 -- The equipped fish ridden in the hub (RideService welds it under the rider; the humanoid walks). Each body type moves
@@ -743,6 +773,9 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 	return out
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Land motion: the floor under a land fish, and its stride each frame
+
 -- What the floor does under a land fish (grade issue 7). The humanoid walks the ground and the fish hangs from it, so
 -- on a slope, a step or a ledge's edge its nose or tail would sink into the floor or hang in the air: three rays (under
 -- the nose, the middle and the tail; never the fish, the riders or the held fish) give the floor's slope, which the body
@@ -995,6 +1028,9 @@ function AnimController.landInfo(model: Model): { [string]: any }?
 		shift = j.shift,
 	}
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fish each frame: every fish's swim, landing reaction, fits, wave, stride and body shift
 
 local function animateFish()
 	table.clear(ridden)
@@ -1673,6 +1709,9 @@ local function animateFish()
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Rider poses: the drown, the swim strokes, astride, the dash, and the pose for each state
+
 -- Drowning by its phases (DeathController's timings): the throw, struggling, weaker, still
 local function drowning(since: number, thrown: boolean, struggle: number, t: number): { [string]: CFrame }
 	local c = Config.Death
@@ -2021,6 +2060,9 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 	return {}
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Posing a rider: finding their joints and writing the pose each frame
+
 -- A character's joints, found once: the ones the poses name (by their R15 names; an R6 avatar's by its own), each with
 -- the turn of its own it must be carried into, and every other joint of the avatar, to be held at rest
 local function jointsOf(character: Model): RiderJoints
@@ -2194,6 +2236,9 @@ function AnimController.settle(character: Model)
 		end
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Setup: the landing news, and the per-frame loop over the fish and the players
 
 function AnimController.Start()
 	-- a rider landed on a fish (every client hears it): that fish dips and kicks

@@ -28,6 +28,21 @@
 --   "Hand", index, id; the card says what it sells for, Config.sellOf; the first press asks SURE?, the second sells;
 --   the server answers Ride "Sold", id, coins). How many may be equipped is the server's "TankEarning", which grows
 --   only with the plot's stage (the plot's sign, UI.UpgradeSign).
+
+-- In this file, in order:
+--   Sizes and colours: the window's measures, the size and variant colours and the sort orders
+--   Types and state: what a card holds and what the open window keeps
+--   Reading the player: the tank and hands lists from the player's attributes, and what a fish earns
+--   Finding the tank: our plot, how far we stand from it, and whether a screen point is over it
+--   Small helpers: the toast line, sale prices, rarity colours and colour codes
+--   Cards: building one fish card with its buttons, and filling it in for a fish
+--   The list: the sections, the sort order, and laying out every card
+--   Fitting the screen: the window's size and the number of card columns for this screen
+--   Opening and closing: the fish to ride, showing the window, and the calls other modules use
+--   Building the window: the header, the sort column, the tray, the footer and the toast
+--   The hover outline: the white box drawn round the tank under the mouse, and its test hooks
+--   Clicks and start-up: telling a click from a camera drag, and wiring everything up at start
+
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -45,6 +60,9 @@ local Portrait = require(script.Parent.Portrait)
 local Shop = require(script.Parent.Shop)
 
 local TankPanel = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Sizes and colours: the window's measures, the size and variant colours and the sort orders
 
 -- sizes in the window's own points (it is scaled to the screen)
 local PANEL_W, PANEL_H = 860, 540
@@ -83,6 +101,9 @@ for i, name in Config.SizeOrder do
 	SIZE_RANK[name] = i
 end
 local SORTS = { "Income", "Rarity", "Size" }
+
+----------------------------------------------------------------------------------------------------------------------
+-- Types and state: what a card holds and what the open window keeps
 
 type Fish = { Key: string, Id: string, Size: string, Variant: string, On: boolean, Hand: number? }
 type Card = {
@@ -147,6 +168,9 @@ local OUTLINE_THICK = 0.3 -- studs
 local OUTLINE_COLOUR = Kit.White -- (the slots' white ring, the kit's light lines)
 local FOOTPRINT = 6 -- studs past the water's sides that still count as the tank (its base, frame and sign)
 
+----------------------------------------------------------------------------------------------------------------------
+-- Reading the player: the tank and hands lists from the player's attributes, and what a fish earns
+
 local function attr(name: string, default: any): any
 	local value = State.Player:GetAttribute(name)
 	return if value == nil then default else value
@@ -197,6 +221,9 @@ local function handRows(): { Fish }
 	end
 	return out
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Finding the tank: our plot, how far we stand from it, and whether a screen point is over it
 
 -- Our own plot, and its tank's water (nil: no tank, or not streamed in)
 local function ownPlot(): (Model?, BasePart?)
@@ -261,6 +288,9 @@ local function overTank(x: number, y: number, whole: boolean?): boolean
 	return near <= far and far > 0 and near < 600
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Small helpers: the toast line, sale prices, rarity colours and colour codes
+
 -- A line over the tray's foot for a moment: a refusal in the kit's red, or with `good` a gain in its green
 local function say(text: string, good: boolean?)
 	local pair = if good then Shop.Kinds.Cash else Shop.Kinds.Red
@@ -292,6 +322,9 @@ end
 local function hex(c: Color3): string
 	return string.format("#%02X%02X%02X", math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255))
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Cards: building one fish card with its buttons, and filling it in for a fish
 
 local function newCard(f: Fish): Card
 	local root: Frame = Kit.new("Frame", {
@@ -559,6 +592,9 @@ local function fill(card: Card, f: Fish, full: boolean)
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The list: the sections, the sort order, and laying out every card
+
 local function section(name: string, order: number)
 	local head = Shop.text(list, {
 		Name = name .. "Head",
@@ -691,6 +727,9 @@ local function refresh()
 	empty.Visible = #fish == 0 and #hands == 0
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Fitting the screen: the window's size and the number of card columns for this screen
+
 -- The window's size and its points for this screen; the cards' columns follow the width. (Shop.window's own fit, made
 -- roomier on a phone: the window takes the whole height there, so the cards' words stay readable)
 local function layout()
@@ -726,6 +765,9 @@ local function layout()
 		s2.Layout.FillDirectionMaxCells = columns
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Opening and closing: the fish to ride, showing the window, and the calls other modules use
 
 -- Our tank's fish swimming in it now, the one nearest us (what RIDE A FISH gets us on)
 local function nearestTankFish(): Model?
@@ -783,6 +825,9 @@ end
 function TankPanel.notice(text: string)
 	say(text)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Building the window: the header, the sort column, the tray, the footer and the toast
 
 local function build()
 	window = Shop.window({
@@ -1017,6 +1062,9 @@ local function build()
 	toastWord = Shop.text(toast, { Size = UDim2.fromScale(1, 1), TextSize = 19, ZIndex = 9 })
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The hover outline: the white box drawn round the tank under the mouse, and its test hooks
+
 -- The box the outline is drawn round (see `outline` above): the tank's parts' bounds, in the water's own axes; made
 -- again when the tank's parts change (an upgrade, streaming), never for the fish swimming in it
 local function makeShape(plot: Model, water: BasePart)
@@ -1135,6 +1183,9 @@ function TankPanel.outlined(): (boolean, number)
 	local on = outline ~= nil and outline.Visible and outline.Adornee ~= nil
 	return on, shapeParts
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Clicks and start-up: telling a click from a camera drag, and wiring everything up at start
 
 -- A press on the world (not on a button): a click if it neither moved far nor lasted long
 local function watchClicks()

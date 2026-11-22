@@ -12,6 +12,15 @@
 --   The arc trace: a dot every 0.04 s of the flight, left in the water until the next jump (off until switched on in the panel).
 --   After each jump, its numbers: time in the air, height, distance, the speed it came down at.
 -- The switches (no fail, endless air) are the server's (SandboxService); the rest is local.
+-- In this file, in order:
+--   Try-out fish: the list of fish that F rides in turn
+--   Tunable numbers: every Config number the panel shows, with the step its - and + buttons take
+--   Panel state: the colours, the panel's parts, the arc trace's dots and the flight being measured
+--   UI helpers: making the panel's parts, and reading, setting and listing the numbers
+--   Switches: the panel's on and off buttons, and what each one reads and sets
+--   Building the panel: the tag, the switches, the copy and reset buttons, and one row per number
+--   Arc trace and flight numbers: the dots left in the water and the stats after each jump
+--   Setup: Studio only; the keys N, V, R and F
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -22,6 +31,9 @@ local State = require(script.Parent.Parent.Lib.State)
 local Kit = require(script.Parent.Parent.UI.Kit)
 
 local SandboxController = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Try-out fish: the list of fish that F rides in turn
 
 -- F: the fish to try, in turn (fish id, variant): one of each passive archetype, a combo, a plain Common, the variants
 local TRY_OUT: { { string } } = {
@@ -38,6 +50,9 @@ local TRY_OUT: { { string } } = {
 	{ "Clownfish", "Rainbow" },
 }
 local tryOut = 0
+
+----------------------------------------------------------------------------------------------------------------------
+-- Tunable numbers: every Config number the panel shows, with the step its - and + buttons take
 
 -- group, key, step
 local TUNABLES: { { any } } = {
@@ -835,6 +850,9 @@ local TUNABLES: { { any } } = {
 	{ "MixUnderworld", "Mythic", 0.5 },
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Panel state: the colours, the panel's parts, the arc trace's dots and the flight being measured
+
 type Row = { Path: string, Group: string, Key: string, Step: number, Start: number, Box: TextBox }
 
 local FONT = Enum.Font.GothamMedium
@@ -865,6 +883,9 @@ local flightFrom = Vector3.zero
 local flightAt = 0
 local flightTop = 0
 local flightSpeed = 0
+
+----------------------------------------------------------------------------------------------------------------------
+-- UI helpers: making the panel's parts, and reading, setting and listing the numbers
 
 local function new(class: string, props: { [string]: any }, parent: Instance?): any
 	local object = Instance.new(class :: any)
@@ -923,6 +944,9 @@ local function changes(): string
 	end
 	return if #lines > 0 then table.concat(lines, "\n") else "no numbers changed"
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Switches: the panel's on and off buttons, and what each one reads and sets
 
 -- the switches: name -> read, write
 local FLAGS: { { any } } = {
@@ -995,6 +1019,9 @@ local function showFlags()
 		then "SANDBOX    N numbers    V side view    R back to the start"
 		else "sandbox off    N to open its panel"
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Building the panel: the tag, the switches, the copy and reset buttons, and one row per number
 
 local function build()
 	local gui = new("ScreenGui", {
@@ -1210,6 +1237,9 @@ local function build()
 	showFlags()
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Arc trace and flight numbers: the dots left in the water and the stats after each jump
+
 local function buildTrace()
 	traceFolder = Instance.new("Folder")
 	traceFolder.Name = "SandboxTrace"
@@ -1278,6 +1308,9 @@ local function step()
 		)
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Setup: Studio only; the keys N, V, R and F
 
 function SandboxController.Start()
 	if not RunService:IsStudio() then

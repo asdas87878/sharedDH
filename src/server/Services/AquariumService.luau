@@ -48,6 +48,23 @@
 --   away. A dive keeps it held, unseen. Holding is not riding (task e3): Q makes the held fish the ride fish
 --   (RideService.equippedOf), and only that is ridden on land, after a dive in and after the sub.
 -- For the session only: there are no saves yet.
+
+-- In this file, in order:
+--   Setup: services, modules, the tank and held-fish records, and a plot part finder
+--   Signs: the plot's sign, its face and the upgrade board on it
+--   The tank's height: remembering the map's tank and raising it for each stage
+--   Shown fish and attributes: the tank's fish in the water, and what the player's attributes say
+--   Holding over the head: building the held fish, dropping it, putting it away and holding another
+--   The tank's fish: adding, trimming, placing, equipping, taking out and selling
+--   Upgrades and plots: buying the next stage, a player taking a plot, and leaving it
+--   Where a player stands: on a plot, in front of its tank, and the way home
+--   For other services: the plot, the shown fish, coins, spending, selling and giving
+--   The holding remote: the Hold ask, which works with or without a tank
+--   Init and Start: the plots, the hooks into RideService, the tank asks, and the coin payout loop
+
+----------------------------------------------------------------------------------------------------------------------
+-- Setup: services, modules, the tank and held-fish records, and a plot part finder
+
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -101,6 +118,9 @@ local function part(plot: Model, name: string): BasePart?
 	local found = plot:FindFirstChild(name)
 	return if found and found:IsA("BasePart") then found else nil
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Signs: the plot's sign, its face and the upgrade board on it
 
 -- The plot's sign, in the hub's sign style (the user's pick of 2026-11-16, "B": the gate's sign; docs/design/ui.md):
 -- a blue board, a white band across its top with the owner's name in blue, and under it what the tank earns in white
@@ -245,6 +265,9 @@ local function plotSign(plot: Model, way: Vector3)
 	piece("PlotBoard", Vector3.new(s.Wide, s.High, s.Thick), at + Vector3.new(0, s.Foot + s.High / 2, 0), BOARD_EDGE)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The tank's height: remembering the map's tank and raising it for each stage
+
 -- The tank's height (task b1): a stage makes it taller. The map's tank is upright boxes: its water and corner posts
 -- are stretched upward from where they stand, and what sits on top (the water's surface, the rim, the owner's sign)
 -- is lifted by as much; the base, the sand and the reef stay. Each part's own place and size are kept from the
@@ -311,6 +334,9 @@ local function heighten(plot: Model, stage: number, grown: boolean, after: (() -
 		end
 	end)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Shown fish and attributes: the tank's fish in the water, and what the player's attributes say
 
 -- The tank's earning fish, put in the water for everyone to see: small, anchored, each with the numbers of its lap
 local function show(tank: Tank)
@@ -413,6 +439,9 @@ local function tellHands(tank: Tank)
 		tank.Player:SetAttribute("Hands", json)
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Holding over the head: building the held fish, dropping it, putting it away and holding another
 
 -- How high above the head's middle its top is, with what is worn on it (a hat, hair: accessories joined to the head),
 -- at most Hold.HatMost above the head itself. So the fish lies on the hat, not through it
@@ -565,6 +594,9 @@ function AquariumService.heldOf(player: Player): RideService.Carry?
 	local h = held[player]
 	return if h then h.Carry else nil
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- The tank's fish: adding, trimming, placing, equipping, taking out and selling
 
 local function equippedCount(tank: Tank): number
 	local n = 0
@@ -759,6 +791,9 @@ local function sell(tank: Tank, where: string, a: any, b: any): string?
 	return nil
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Upgrades and plots: buying the next stage, a player taking a plot, and leaving it
+
 -- The next stage of the plot, bought at its sign (task b1). Returns why not, or nil when bought
 local function upgrade(tank: Tank): string?
 	local p = Config.PlotUpgrades
@@ -844,6 +879,9 @@ local function leave(player: Player)
 	sign(tank.Plot, nil)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Where a player stands: on a plot, in front of its tank, and the way home
+
 -- Whether a place is on a plot (over its pad, near the ground)
 local function onPlot(plot: Model, at: Vector3): boolean
 	local pad = part(plot, "Pad")
@@ -914,6 +952,9 @@ local function home(player: Player): CFrame?
 	local spot = frontOf(tank.Plot)
 	return if spot then spot + Vector3.new(0, 1, 0) else nil
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- For other services: the plot, the shown fish, coins, spending, selling and giving
 
 -- For the tank ride (TankRideService): the player's plot, its fish in the water now, whether they stand at it, the
 -- floor in front of it, the fish put back in their laps, and the held fish put away
@@ -1026,6 +1067,9 @@ function AquariumService.give(player: Player, coins: number, fish: { { string } 
 	changed(tank)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The holding remote: the Hold ask, which works with or without a tank
+
 -- Holding works with or without a tank (the hands are RideService's)
 local function startHolding()
 	local folder = Instance.new("Folder")
@@ -1084,6 +1128,9 @@ local function startHolding()
 		end
 	end)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Init and Start: the plots, the hooks into RideService, the tank asks, and the coin payout loop
 
 function AquariumService.Init()
 	if Config.Aquarium.On == 0 then

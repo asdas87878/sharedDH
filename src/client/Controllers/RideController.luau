@@ -30,6 +30,18 @@
 -- and a smash (one marked block in `drive`). Steering and the hop are untouched by all of it.
 -- Every fish has its own speed (Config.speedOf: its species' own number in Config.FishStats, and its variant).
 -- The camera stays underwater once we have dived (Config.Camera.Submerge...), until the dock or a respawn.
+-- In this file, in order:
+--   Ride state: the steering, the speed's moments, the coasting fish, floating and the camera's springs
+--   Steering: the move keys, A and D, and the way we go on a fish, in the hop and floating
+--   Hooks for other controllers: the ridden speed, shakes, the stun and the lean
+--   Float forces: the push and turn that hold us up while off a fish
+--   Mounting: taking over the fish the server gave us
+--   Speed moments: the landing slow-down, angry mode, bursts and a Fast fish's launch
+--   Driving the fish: each frame's speed, height, wild ride, wall ride and turn
+--   Leaving a fish: the coast, the leave, the rejoin and floating
+--   The camera: where it looks from, kept under the surface and out of walls
+--   Dock view and the frame step: facing the water, then everything run in order each frame
+--   Setup: the server's state, its messages and the look input
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -47,6 +59,9 @@ local State = require(script.Parent.Parent.Lib.State)
 local WallRide = require(script.Parent.Parent.Lib.WallRide)
 
 local RideController = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Ride state: the steering, the speed's moments, the coasting fish, floating and the camera's springs
 
 local controls: any = nil
 local camera = workspace.CurrentCamera
@@ -132,6 +147,9 @@ local heldHow, heldOver, heldAt = 0, 0, 0 -- which line holds it (1 the ceiling,
 local lineFrom, lineAt = 0, 0 -- where the ceiling or the floor set off from, and when
 local floorLine = 0 -- the lowest the camera may be then (it comes up to its line from where the camera was)
 local ceiling = 0 -- the highest the camera may be now (it comes down to the surface's line from where the camera was)
+
+----------------------------------------------------------------------------------------------------------------------
+-- Steering: the move keys, A and D, and the way we go on a fish, in the hop and floating
 
 -- The move stick or keys: X is right, Z is back (W is -Z)
 function RideController.moveVector(): Vector3
@@ -258,6 +276,9 @@ function RideController.look(toYaw: number, toPitch: number, hop: boolean?)
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Hooks for other controllers: the ridden speed, shakes, the stun and the lean
+
 -- This fish's own ridden speed now (its species, rarity, home land and variant; read live, so the sandbox's panel shows)
 local function riddenSpeed(): number
 	local fish = State.Fish
@@ -295,6 +316,9 @@ end
 function RideController.lean(): number
 	return math.clamp(steerRate / math.rad(math.max(Config.Ride.YawRate, 1)), -1, 1)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Float forces: the push and turn that hold us up while off a fish
 
 local function clearFloat()
 	if floatVelocity then
@@ -337,6 +361,9 @@ local function ensureFloat(root: BasePart)
 	floatVelocity = v
 	floatTurn = t
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Mounting: taking over the fish the server gave us
 
 -- the yaw and pitch of a look vector, for CFrame.fromOrientation(pitch, yaw, 0)
 local function anglesOf(look: Vector3): (number, number)
@@ -401,6 +428,9 @@ local function onMounted(fish: Model, landing: boolean?)
 	Course.begin()
 	State.setMode("Riding")
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Speed moments: the landing slow-down, angry mode, bursts and a Fast fish's launch
 
 -- A startled fish's speed, `t` seconds after the landing: it never stops. It comes down to StartleSlow of its ridden
 -- speed at the touch (a fish that was slower than that, a wild one at the herd's pace, comes up to it), stays there for
@@ -494,6 +524,9 @@ local function launchShare(kind: Config.FishType, t: number): number
 	local down = Ease.smoothstep(surgeTime * 0.6, surgeTime * 1.4, t - r.StartleRecover)
 	return 1 + (surge - 1) * up * (1 - down)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Driving the fish: each frame's speed, height, wild ride, wall ride and turn
 
 local function drive(dt: number)
 	local fish = State.Fish
@@ -687,6 +720,9 @@ end
 
 RideController.mounted = onMounted
 
+----------------------------------------------------------------------------------------------------------------------
+-- Leaving a fish: the coast, the leave, the rejoin and floating
+
 -- Leaving a fish (a jump, the throw-off): it carries on along its heading, slowing to idle
 function RideController.coast(fish: Model?)
 	local root = fish and fish.PrimaryPart
@@ -791,6 +827,9 @@ local function float(root: BasePart, dt: number)
 	t.CFrame = heading
 	State.Speed = root.AssemblyLinearVelocity.Magnitude
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- The camera: where it looks from, kept under the surface and out of walls
 
 -- The camera takes up from wherever the view is now (entering the water, after the drowning's shot): the springs start
 -- there, at rest, so it never jumps
@@ -1114,6 +1153,9 @@ local function cameraStep(dt: number)
 	State.FovPunch = if State.FovPunch > 0 then math.max(0, State.FovPunch - run) else math.min(0, State.FovPunch + run)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Dock view and the frame step: facing the water, then everything run in order each frame
+
 -- On the dock Roblox's own camera is used, and it keeps looking the way it did before the server stood us on the dock's
 -- spawn: a new player looked at the hub with the water behind them, face to face with their own character (seen
 -- 2026-11-11 on grey-box 9). So each time we are put on the dock, the view is brought round behind the character,
@@ -1212,6 +1254,9 @@ local function step(dt: number)
 	coast()
 	cameraStep(dt)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Setup: the server's state, its messages and the look input
 
 -- The server's State, where our own prediction doesn't already cover it
 local function fromServerState()

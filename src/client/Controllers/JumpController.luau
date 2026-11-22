@@ -29,6 +29,18 @@
 -- The slow-mo look (Jump.Slow*; Hugo, 2026-11-14: "feel like youre moving fast but in like a slowmo mode"): while most
 -- of the leaving speed is there the view is held wider, the colours drained a little, the contrast up, and a low,
 -- stretched whoosh plays as we leave. On our screen only: the hop's speed and the game's clock are untouched.
+-- In this file, in order:
+--   Hop state: what one hop keeps while it flies, the pull-in, the trail, the ring and the glows
+--   Small helpers: where the saddle is and which way a look points
+--   Trail and ring: the dots left behind the pull-in and the dashed ring round the locked fish
+--   Lock-on: the glow, the reach test and picking the fish a grab would take
+--   Stop and pull-in start: ending a hop, and beginning the pull onto the locked fish
+--   The press: Space leaves a fish into the hop, or grabs the locked fish during it
+--   Submarine fling: a hop that starts from the sub's seat
+--   Hop curve: the hop's height and speed over time, and back to the hop after a lost grab
+--   Hop each frame: the pull-in, the flight, steering, the lock and the hands-off grabs
+--   Slow-mo and the frame step: the hop's screen look, then everything run in order each frame
+--   Setup: the reused parts, the server's answers and the dive-in from the dock
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -47,6 +59,9 @@ local WallRide = require(script.Parent.Parent.Lib.WallRide)
 local RideController = require(script.Parent.RideController)
 
 local JumpController = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Hop state: what one hop keeps while it flies, the pull-in, the trail, the ring and the glows
 
 local WHITE = Color3.new(1, 1, 1)
 local DASHES = 16
@@ -144,6 +159,9 @@ local landGlow: Highlight
 local landOutlineAt: number? = nil
 local glowLandedAt: number? = nil -- os.clock() of the landing, while the glow fades off the fish
 
+----------------------------------------------------------------------------------------------------------------------
+-- Small helpers: where the saddle is and which way a look points
+
 -- Where we sit on a fish: nil once it has gone (put away by the server, or destroyed)
 local function saddleOf(fish: Model?): CFrame?
 	local root = fish and fish.Parent and fish.PrimaryPart
@@ -157,6 +175,9 @@ end
 local function yawOf(look: Vector3): number
 	return math.atan2(-look.X, -look.Z)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Trail and ring: the dots left behind the pull-in and the dashed ring round the locked fish
 
 local function dropDot(at: Vector3)
 	local t = os.clock()
@@ -261,6 +282,9 @@ local function placeRing(dt: number)
 	showRing(true)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Lock-on: the glow, the reach test and picking the fish a grab would take
+
 local function setGlow(fish: Model?)
 	if glow.Adornee ~= fish then
 		glow.Adornee = fish
@@ -323,6 +347,9 @@ local function armSteps()
 	nextStepAt = math.huge
 	stepSide = 0
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Stop and pull-in start: ending a hop, and beginning the pull onto the locked fish
 
 local function stop()
 	flying = false
@@ -403,6 +430,9 @@ local function startReel(root: BasePart, how: string)
 	-- the server checks the range from here and keeps the fish for us
 	Net.Action:FireServer("Grab", locked)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- The press: Space leaves a fish into the hop, or grabs the locked fish during it
 
 -- Space: off the fish (or from floating) into the hop. In the hop: onto the locked fish; with none, nothing.
 -- (`fromQueue`: the press was kept a moment, Jump.Buffer, and is made now: the mash guard has nothing to say about it)
@@ -564,6 +594,9 @@ local function request(fromQueue: boolean?): boolean
 	return true
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Submarine fling: a hop that starts from the sub's seat
+
 -- The submarine's fling (docs/design/submarine.md): off its seat at its drop speed into an ordinary hop, the way
 -- `heading` faces, with the pop's punch made bigger. The server began the hop itself (RideService.fling, from the
 -- carried state), with the same numbers (Config.hopFrom of Sub.DropSpeed): nothing is sent.
@@ -610,6 +643,9 @@ function JumpController.fling(heading: number): boolean
 	return true
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Hop curve: the hop's height and speed over time, and back to the hop after a lost grab
+
 -- The hop's height at its clock: up through the pop, the last of the rise through the glide, and all the while less
 -- what we have fallen, which is by the speed lost (Config.hopSink: Jump.FallSpeed, SinkCurve): next to nothing while
 -- we are fast, a fall once the speed has nearly gone. One curve: nothing is switched on
@@ -654,6 +690,9 @@ local function resumeSwim(root: BasePart)
 	State.JumpTarget = nil
 	setGlow(nil)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Hop each frame: the pull-in, the flight, steering, the lock and the hands-off grabs
 
 local function hop(dt: number)
 	-- the outline staying on the fish we landed on, then leaving it
@@ -1094,6 +1133,9 @@ local function hop(dt: number)
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Slow-mo and the frame step: the hop's screen look, then everything run in order each frame
+
 -- The slow-mo look (Jump.Slow*): by the share of the leaving speed still there, in over the leaving, out at the
 -- pull-in, the landing, or with the speed gone. Only our screen: a ColorCorrection under the camera and the view's width.
 local function slowMo(dt: number)
@@ -1150,6 +1192,9 @@ local function step(dt: number)
 	placeRing(dt)
 	Feel.step(dt)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Setup: the reused parts, the server's answers and the dive-in from the dock
 
 function JumpController.Init()
 	Actions.jump = request

@@ -20,6 +20,21 @@
 --   a far fish's tag is only the bubble and the number, at a size that still reads (the whole tag shrunk with
 --   distance was too small to read);
 --   a near fish whose whole tag has no room shows just the bubble and the number, before it is left out.
+
+-- In this file, in order:
+--   Sizes and timing: how many tags, how far and how often, and the stacked tag's measures and state
+--   The stacked tag: the older tag, drawn only when Kit.FishTags is 0
+--   Placing and picking: keeping a tag on screen and clear of the aim, and choosing which fish get one
+--   The options: the tag looks Kit.FishTags picks from (this one's marker is the line of = signs)
+--   Shared measures and parts: tag shapes, line heights, and the pieces each kind of tag is made of
+--   Rarity word styles: the designed looks for the rarity's word, and which one each rarity takes
+--   Size chips and stickers: how a fish's size is shown on the tag
+--   The three-line tag: building the live tag (look 7) and writing a fish into it
+--   Moving words: the shine, shimmer and glow on the rarer words, each frame
+--   Tags for the looks: building, filling, sizing and placing a tag of looks 1 to 7
+--   Each look at the herd: which fish get a tag, what they need, and room on the screen
+--   Choosing and starting: which look is drawn, building the pool, and the calls the HUD makes
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
@@ -34,6 +49,9 @@ local Tags = {}
 
 -- (task e1: what a fish needs is shown whole, 2,925, never 2.9K)
 local whole = Config.wholeNumber
+
+----------------------------------------------------------------------------------------------------------------------
+-- Sizes and timing: how many tags, how far and how often, and the stacked tag's measures and state
 
 local POOL = 10
 local REACH = 260 -- studs: fish further off get no tag
@@ -111,6 +129,9 @@ local NEED = { Kit.Good, Kit.Sun, Color3.fromRGB(255, 100, 104) }
 local RANK = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6, Secret = 7 }
 local RARE = 4
 local SHINY = 5
+
+----------------------------------------------------------------------------------------------------------------------
+-- The stacked tag: the older tag, drawn only when Kit.FishTags is 0
 
 local function make(parent: Instance): Tag
 	local root: Frame = Kit.new("Frame", {
@@ -334,6 +355,9 @@ local function clash(tag: Tag, before: number): boolean
 	end
 	return false
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Placing and picking: keeping a tag on screen and clear of the aim, and choosing which fish get one
 
 -- Where the locked fish's tag goes: over the fish, but kept on the screen. A locked fish can be under the rider or
 -- behind the camera (the fish just left can be grabbed again), and its tag was then off the screen: the hop button
@@ -636,6 +660,9 @@ Tags.Looks = {
 	},
 } :: { Look }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Shared measures and parts: tag shapes, line heights, and the pieces each kind of tag is made of
+
 local WHOLE, NAME, MARK = 1, 2, 3
 local WIDE = 340 -- the frame of a tag in the options: wide enough for the longest name and its icons
 local CHIP_HIGH = 19
@@ -787,6 +814,9 @@ type Alt = {
 
 local alts: { Alt } = {}
 local altOrder: { Alt } = table.create(POOL)
+
+----------------------------------------------------------------------------------------------------------------------
+-- Rarity word styles: the designed looks for the rarity's word, and which one each rarity takes
 
 -- The rarity's word grows with the rarity, as the reference's does: the lower ones their colour with the dark edge,
 -- from Rare a glow of their colour round the letters, from Legendary bigger, two stars and a shimmer (the gradient
@@ -1117,6 +1147,9 @@ end
 local wordPicks, wordKey = wordChoice()
 local sizeAt = sizeChoice()
 
+----------------------------------------------------------------------------------------------------------------------
+-- Size chips and stickers: how a fish's size is shown on the tag
+
 -- The size chip (Hugo, 2026-11-14: "put size and icons below rarity, make the sizes cooler too"; Handoff, task
 -- r4). Gotham Black like the rarity's word, but smaller and on a pill, so it never out-shouts it. Each size has its
 -- colour, cool to hot as it grows (Tiny a pale steel, Big mint, Giant sky, Huge amber, Colossal a hot red), and the
@@ -1237,6 +1270,9 @@ local function lineSeq(t: number, at: number, half: number): NumberSequence
 end
 local DROPS = 3
 local PLATE_X, PLATE_Y = 8, 3
+
+----------------------------------------------------------------------------------------------------------------------
+-- The three-line tag: building the live tag (look 7) and writing a fish into it
 
 local function makeStack(parent: Instance): Alt
 	local root: Frame = Kit.new("Frame", {
@@ -1920,6 +1956,9 @@ local function putStack(st: StackParts, rare: number, tier: string, line: string
 		+ (if chip and icons > 0 then ROW_GAP else 0)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Moving words: the shine, shimmer and glow on the rarer words, each frame
+
 -- The animation of a word: r1's shimmer for Legendary and up (the gradient swings, the glow breathes, the stars turn,
 -- the Secret's rainbow goes round), or a designed style's own (its shine sweeps across now and then, its rainbow
 -- turns, its glow breathes). Per frame, on the tags drawn only
@@ -2018,6 +2057,9 @@ local function shimmer(tag: Alt, st: StackParts, t: number)
 	end
 	st.GlowEdge.Transparency = (WORD_GLOW[tag.Rare] or { 0, 0.5 })[2] + math.sin(phase * 1.3) * 0.12
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Tags for the looks: building, filling, sizing and placing a tag of looks 1 to 7
 
 local function makeAlt(parent: Instance, lk: Look): Alt
 	if lk.Stack then
@@ -2404,6 +2446,9 @@ local function clearAlt(tag: Alt)
 	tag.Frame.Visible = false
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Each look at the herd: which fish get a tag, what they need, and room on the screen
+
 local function updateAlt(lk: Look, camera: Camera, maxOxygen: number, ridden: Model?, locked: Model?, hopping: boolean)
 	look(camera, ridden, locked, lk.RareReach)
 	for _, tag in alts do
@@ -2567,6 +2612,9 @@ local function updateAlt(lk: Look, camera: Camera, maxOxygen: number, ridden: Mo
 	end
 	followAlt(camera)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Choosing and starting: which look is drawn, building the pool, and the calls the HUD makes
 
 -- Which tags are drawn: Kit.FishTags, or in Studio the workspace's "FishTags" (to try them in a playtest)
 local function chosen(): number

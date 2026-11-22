@@ -6,12 +6,30 @@
 -- already uploaded for the map (Kit.Textures); nothing new is uploaded.
 -- Rules for phones: nothing here is made per frame, text never changes size, a label's text is only set when it
 -- changes, and only what Kit.pulse is given is tweened.
+
+-- In this file, in order:
+--   Colours, spacing and pictures: the HUD's colours, gaps, outline widths, corners and uploaded textures
+--   Plate styles and the Oxygen box: what a plate style holds, and which glass box the Oxygen row wears
+--   Ring looks: the options for the Oxygen and tame rings, and the one in use
+--   Glass boxes and themes: the see-through box options, and one plate theme for each purpose
+--   Lands and look switches: land colours, and which option each screen shows
+--   Basic builders: new instances, lighter and darker colours, corners, outlines, gradients and letters
+--   Rarity colours and styled words: rarity gradients, palettes and the fish tags' word style
+--   Plates: dressing a frame as a plate or a glass box, and a plate with its shadow
+--   Patterns and signs: stripes, bubbles, grid paper, the warning pulse, and the bubble and coin signs
+--   Rings: the sweeping arc, the emptying ring, the thin extra ring and seconds as text
+--   Fail words: the slam band shown when a run fails
+--   Numbers and touch: big numbers in short, and whether this is a phone
+
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Kit = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Colours, spacing and pictures: the HUD's colours, gaps, outline widths, corners and uploaded textures
 
 Kit.Font = Enum.Font.FredokaOne
 Kit.Ink = Color3.fromRGB(16, 36, 63) -- every outline
@@ -51,6 +69,9 @@ Kit.Textures = {
 -- The colour of money beside the cash: the reference's pale green
 Kit.Cash = Color3.fromRGB(170, 255, 127)
 
+----------------------------------------------------------------------------------------------------------------------
+-- Plate styles and the Oxygen box: what a plate style holds, and which glass box the Oxygen row wears
+
 export type Style = {
 	Top: Color3, -- the fill, top to bottom
 	Bottom: Color3,
@@ -79,6 +100,9 @@ Kit.OxygenBox = 5
 Kit.OxygenBoxFade = "A"
 -- how see-through the fill is at each end of the fade, on top of the box's own Fade (0 as the box is, 1 clear)
 Kit.FadeEnds = { Strong = 0, Clear = 1 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- Ring looks: the options for the Oxygen and tame rings, and the one in use
 
 -- The Oxygen ring and the tame ring beside the rider (Hugo, 2026-11-18, task h1; docs/design/ui.md, "The Oxygen ring
 -- in ticks, the red zone and the extra rings"):
@@ -188,6 +212,9 @@ do
 	Kit.RingLook.ExtraGap = style.ExtraGap or Kit.RingLook.ExtraGap
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Glass boxes and themes: the see-through box options, and one plate theme for each purpose
+
 export type Box = {
 	Name: string,
 	Fade: number, -- how see-through the body is (0 solid, 1 clear)
@@ -293,6 +320,9 @@ Kit.Themes = {
 	-- a key of the keyboard
 	Key = { Top = Color3.new(1, 1, 1), Bottom = Color3.fromRGB(206, 216, 232), Radius = 7 },
 } :: { [string]: Style }
+
+----------------------------------------------------------------------------------------------------------------------
+-- Lands and look switches: land colours, and which option each screen shows
 
 -- One colour a land, the map's own (tools/map/greybox.py, GROUND), and a short name for the strip's small tiles
 Kit.Lands = {
@@ -420,6 +450,9 @@ Kit.RarityWords = {
 Kit.HoldFine = 2
 Kit.HoldShort = 0.5
 
+----------------------------------------------------------------------------------------------------------------------
+-- Basic builders: new instances, lighter and darker colours, corners, outlines, gradients and letters
+
 function Kit.new(class: string, props: { [string]: any }, parent: Instance?): any
 	local object = Instance.new(class :: any)
 	for key, value in props do
@@ -477,6 +510,9 @@ function Kit.shade(plate: Instance)
 		Rotation = 90,
 	}, plate)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Rarity colours and styled words: rarity gradients, palettes and the fish tags' word style
 
 local GOLD = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 250, 190)),
@@ -683,6 +719,9 @@ function Kit.word(parent: Instance, props: { [string]: any }): Word
 	self.paint(props.Pal or Kit.WhitePal, props.Glow)
 	return self
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Plates: dressing a frame as a plate or a glass box, and a plate with its shadow
 
 export type Dressed = {
 	Fill: UIGradient,
@@ -982,6 +1021,9 @@ function Kit.panel(parent: Instance, props: { [string]: any }, style: Style): Pa
 	return { Frame = holder, Face = face, Shadow = shadow, Look = Kit.dress(face, style) }
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Patterns and signs: stripes, bubbles, grid paper, the warning pulse, and the bubble and coin signs
+
 -- Motion stripes: slanted pale bands over a plate, as one gradient (no picture, and it keeps to the plate's corners)
 function Kit.stripes(face: Instance, radius: number, fade: number?): Frame
 	local clear = 1
@@ -1132,6 +1174,9 @@ function Kit.coin(parent: Instance, size: number): Frame
 	Kit.stroke(rim, math.max(1, size * 0.09), Color3.fromRGB(240, 168, 24))
 	return coin
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Rings: the sweeping arc, the emptying ring, the thin extra ring and seconds as text
 
 export type Sweep = {
 	Frame: Frame,
@@ -1534,6 +1579,9 @@ function Kit.seconds(value: number): string
 	return ""
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Fail words: the slam band shown when a run fails
+
 -- The words of a failed run (task b5; Hugo, 2026-11-22: "make text better and more stylised when failing a run. Out of
 -- breath type text needs a rework"): look 1 of docs/attachments/fail-text-options-2026-11-22.png, the Slam band, the
 -- family of GREAT DIVE and CAUGHT so a fail reads as the opposite of a win. Bangers in hard red metal on a tilted dark
@@ -1782,6 +1830,9 @@ end
 
 -- Who shows the words of a failed run (FailController sets it; Banners.miss hands them over when it is set)
 Kit.FailShow = nil :: ((text: string, fade: number) -> ())?
+
+----------------------------------------------------------------------------------------------------------------------
+-- Numbers and touch: big numbers in short, and whether this is a phone
 
 local UNITS = { "K", "M", "B", "T" }
 

@@ -4,6 +4,30 @@
 -- the lock-on, the window and the spring camera (Jump, Lock, Camera). Stronger fish need more Oxygen (OxygenBase).
 -- Speeds in studs a second, times in seconds, angles in degrees.
 
+-- In this file, in order:
+--   Rarities and fish stats: TierOrder, Tiers, Speed, BaseScale, FishStats: rarities, each kind's speed and size
+--   Archetypes and variants: Archetype, ArchetypeFeel, Variant: the passive powers, how they show, colour odds
+--   Sizes: SizeOrder, SizeChance, SizeScale, SizeLimit, Grand, SizeGrow, SizeLarge, SizeSmall: the size rolls
+--   The depth gauge: Depth: the metres shown for a point under water
+--   Oxygen: Oxygen, OxygenBase, RarityOxygen, SizeOxygen, VariantOxygen, SpecialOxygen, GrowFrom: meter, fish needs
+--   Training, land effects and taming: Train, GroundFx, Tame: the training spot, landing puffs, taming a fish
+--   The aquarium and plot: Aquarium, PlotUpgrades, TankRide: the tank and its income, plot upgrades, tank rides
+--   Angry mode: Angry, AngryTier: the ridden fish slows and pulses red when the meter runs low
+--   On foot and land riding: Dock, Hold, Equip, LandRide: the hub on foot, holding a fish, riding it on land
+--   Riding: Ride: a ridden fish's speed-up, steering, banking, seat height and startle
+--   The jump, hook and lock: Jump, Wild, Stride, Long, Hook, Lock: the hop, the stride, the hook and the lock-on
+--   The herd, shakes and wakes: Herd, Pace, SizePace, LandPace, Layer, Shake, Wake, FishPace: wild fish, trails
+--   Crashes, walls, props and landings: Crash, Wall, Props, Switch, Burst: bumps, the wall ride, breaking props
+--   Drowning and failing: Death, Fail: running out of Oxygen, the drown, and what each fish does at zero
+--   The sandbox and admin: FeelLog, Sandbox, Admin: the Studio test tools and the playtest admin panel
+--   Server leeway: Net: how much lag and reach the server allows when it judges a grab or a landing
+--   The camera, look and animation: Camera, Look, Animation, Pose, Feel, AimHud: view, light, motion, the reticle
+--   Spawning and the dive-in: Spawn, Dive: where wild fish are made, and stepping off the dock into the sea
+--   The submarine: Sub, SubTitles: the bought ride to deeper lands, its prices, and the land titles on the way
+--   Spawn mix and the roster list: ZoneMix, ReachWeight, Fish, FishById: rarity odds per land, every fish kind
+--   Helper functions: no tables; the sums worked out from the tables above, the roster build and Config.refresh
+--   (metresAt, landStyleOf, longOf and failOf sit beside their own tables, not with the helper functions.)
+
 export type Tier = {
 	Idle: number, -- (not used since the herd: a wild fish swims at Herd.SpeedShare of its ridden speed)
 	Colour: Color3, -- the tier's colour on markers
@@ -36,6 +60,9 @@ local function rgb(r: number, g: number, b: number): Color3
 end
 
 local Config = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Rarities and fish stats: the rarities and each fish kind's own speed, size and archetypes
 
 Config.TierOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 
@@ -210,6 +237,9 @@ Config.FishStats = {
 	TheDevourer = { Speed = 128, Archetype = "Predator,Frenzy" }, -- Secret: the end of the list: the one that chains bites down there, so it is not also the fastest (was 150)
 } :: { [string]: FishStat }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Archetypes and variants: the passive archetypes, how each one shows, and the odds of a coloured fish
+
 -- The passive archetypes (Hugo, 2026-11-12; docs/design/archetypes.md). All passive: no button, they just happen
 -- while you ride. None takes away steering or the hop. Built 2026-11-12: the server decides the eat, the prop reward,
 -- the drain and the hop's longer window (RideService); the rider's client plays the speed (RideController), the hop
@@ -326,6 +356,9 @@ Config.Variant = {
 	Rainbow = 1 / 250,
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Sizes: the six sizes, their odds by rarity, and how much each one grows a fish
+
 -- Sizes (2026-11-13, the user: the reference's six, on every fish, with its odds). A spawned fish is one of six sizes:
 -- its "SizeTier" attribute, and "Size", the number its species' size is times (Config.sizeOf, Config.bodyOf: the
 -- model, the seat, the lock, the tag and the herd all read that). Rolled apart from the variant, so there are 24 of
@@ -408,6 +441,9 @@ Config.SizeSmall = {
 	Secret = 1,
 } :: { [string]: number }
 
+----------------------------------------------------------------------------------------------------------------------
+-- The depth gauge: how deep a point reads, in metres
+
 -- The depth gauge (Hugo, 2026-11-19: "every stud is a meter"): the metres on the land strip, the catch screen, the
 -- land intros and your best are how far below the sea's surface you are, one metre a stud. A land's border is the
 -- depth of the lane's floor where it starts (Zones). Until 2026-11-19 the gauge showed real-ocean depths spread along
@@ -421,6 +457,9 @@ Config.Depth = {
 function Config.metresAt(y: number): number
 	return math.max(0, (Config.Depth.SurfaceY - y) * Config.Depth.MetresPerStud)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Oxygen: the riding meter, the strain, and what each fish needs
 
 -- Oxygen is the riding meter, and it is what the design notes call stamina (Decisions, 2026-11-09 and 2026-11-11).
 Config.Oxygen = {
@@ -712,6 +751,9 @@ Config.SpecialOxygen = {} :: { [string]: number }
 -- Normal plain Clownfish's 80 (it was the Shallows Common's, 80 too).
 Config.GrowFrom = 80
 
+----------------------------------------------------------------------------------------------------------------------
+-- Training, land effects and taming: the training spot, the little effects on land, and taming a wild fish
+
 -- Training: the smallest thing that lets the progression be played (the tuning chat's proposal, docs/design/
 -- progression.md, "Not built yet"). Standing on the training spot in the hub adds to your max Oxygen every second. Kept
 -- for the session only: there are no saves yet. The spot is the map's part named TrainSpot when it has one; until then
@@ -818,6 +860,9 @@ Config.Tame = {
 	CapSlow = 1.5,
 	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- The aquarium and plot: the player's tank, its income and selling, plot upgrades, and riding in the tank
 
 -- The aquarium (the user, 2026-11-16: "catches are for depositing in your aquarium, in which they then earn money").
 -- AquariumService; docs/design/aquarium.md. Every number here is Claude's first go.
@@ -926,6 +971,9 @@ Config.TankRide = {
 	Swim = 1, -- 1: the tank's fish swim with the sea's keyed swim (their joints move); 0: stiff, as before b4
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Angry mode: the ridden fish's red pulse and slow-down near the end of the meter
+
 -- Angry mode (Hugo, 2026-11-12: "make the fishes pulse red and go into angry mode ... different fishes should have
 -- different slowdowns ... when the bar turns red"; the reference's T-rex starts jumping and its bison rocks back and
 -- forth: each animal shows in its own way that it wants you off). While you ride with the meter in its red part
@@ -973,6 +1021,9 @@ Config.AngryTier = {
 	Mythic = 1.24,
 	Secret = 1.3,
 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- On foot and land riding: the hub on foot, holding and equipping a fish, and each body type's motion on land
 
 -- On foot in the hub. The reference's players run at about 28 studs a second there (one measurement off its frames, good
 -- to about a fifth; Roblox's own speed is 16), which is why its walk to the start is short. The user, 2026-11-10: match it.
@@ -1507,6 +1558,9 @@ function Config.landStyleOf(id: string): (LandStyle, string)
 	return out, name :: string
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Riding: a ridden fish's speed, steering and seat
+
 Config.Ride = {
 	RampTime = 0.4, -- idle to ridden speed, easing out (1.2 until 2026-11-16: on a 2.5-second ride that was half the ride spent getting going; the wild herd swims at 0.7 of the land's pace now, so this is the kick of a landing)
 	Surge = 1.25, -- the burst on mount
@@ -1564,6 +1618,9 @@ Config.Ride = {
 	StartleHold = 0.12, -- seconds it stays that slow (0.4 until 2026-11-12; 0.3 until 2026-11-16: with no dip there is nothing to hold, and the view's kick and the speed lines that come when it is over now come with the landing)
 	StartleRecover = 0.6, -- then it eases back to its ridden speed over this long (0.8 until 2026-11-12)
 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- The jump, hook and lock: the hop between fish, the stride, the long hook, the hook and the lock-on
 
 -- Going fish to fish, Movement v3.1 (2026-11-11; docs/design/riding-feel.md). The hop is the reference's, as built on
 -- 2026-11-10: Space throws you off the fish, up and forward, faster than you rode (the pop); then you glide, flat at
@@ -2130,6 +2187,9 @@ Config.Lock = {
 	Preview = 0, -- 1: the lock shows (a fainter glow) while you ride or float, so you see what you could reach; 0: only after leaving
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- The herd, shakes and wakes: how wild fish swim and keep pace, camera shakes, and the trails fish leave
+
 -- Wild fish swim as a herd: all the same way, down the lane, at this share of the speed they are ridden at (the
 -- reference: riding about 55 m a second, the herd about 46, measured off its distance counter)
 Config.Herd = {
@@ -2377,6 +2437,9 @@ Config.FishPace = {
 	InfernalAngler = "Plod", BrimstoneEel = "Dart", Hellmaw = "Zoom", HellfinShark = "Hunt", TheDevourer = "Hunt",
 } :: { [string]: string }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Crashes, walls, props and landings: bumps, the wall ride, breakable props, handing a fish back, landing bubbles
+
 -- Running a ridden fish into something solid (a wall, a step's face, a rock): it never kills (Hugo, 2026-11-11). You
 -- lose speed and some Oxygen. The server decides it: a ray along the fish's nose, counted once as the nose comes up
 -- against the thing (staying pressed against it costs nothing more).
@@ -2537,6 +2600,9 @@ Config.Burst = {
 	Reach = 4, -- studs the bubbles fly out
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Drowning and failing: running out of Oxygen, the drown and the fade home, and what a fish does at zero
+
 -- Out of Oxygen (and a jump that comes down on nothing, until there is a revive): no input, ends at the dock.
 -- Failing (Hugo, 2026-11-18: "add failing that fades out and sends you back to the start, with all the animals
 -- collected"): the drown fades to black, you wake at the dock (at your own tank with fish in hand), and every fish
@@ -2678,6 +2744,9 @@ function Config.failOf(fish: FishType, style: string?): string
 	return if f.Outcomes[kind] then kind else "Throw"
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The sandbox and admin: the Studio test tools (the feel log and the sandbox) and the admin panel
+
 -- The movement sandbox (Studio only; docs/sandbox.md): for play-testing the ride, the jump and the camera. The flags can
 -- be switched in its panel (N) while playing.
 -- The feel log (Studio only; the user, 2026-11-17: "How can we go about getting you to understand this the best").
@@ -2711,6 +2780,9 @@ Config.Admin = {
 	Coins = { 1000, 100000 } :: { number }, -- the coin buttons
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Server leeway: the lag and reach the server allows when it judges a grab or a landing
+
 Config.Net = {
 	RangeSlack = 1.3, -- the server allows this much more than the hook's reach (1.2 until 2026-11-17: the lock's leeway, Lock.LingerReach, lets a grab reach 1.12 times as far; it sees the player and the fish a moment apart; 1.1 until 2026-11-11: at the faster air speed a grab at the full 130 studs was refused in Studio)
 	ReachLag = 0.2, -- and it reads the hop's speed, for that reach, as it was this long before (the reach shrinks as the hop stalls, and the grab's word arrives late)
@@ -2726,6 +2798,9 @@ Config.Net = {
 	PlayerLag = 0.15,
 	PingMost = 0.5,
 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- The camera, look and animation: the camera, the light, creature and rider motion, the juice, the aim reticle
 
 Config.Camera = {
 	Fov = 70,
@@ -2933,6 +3008,9 @@ Config.AimHud = {
 	PulseScale = 0.12, -- warning pulse grows the timer by this fraction
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- Spawning and the dive-in: where and how many wild fish are made, and the first hop off the dock
+
 Config.Spawn = {
 	-- Round 2 spreads fish evenly along the lane's path: cut into Slice-stud slices, every slice keeps at least one fish
 	-- (the dive board's keeps BoardSlice), and new fish go into the emptiest slice. The spec's 8 per 1,000 would make
@@ -3040,6 +3118,9 @@ Config.Dive = {
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
 }
 
+----------------------------------------------------------------------------------------------------------------------
+-- The submarine: the bought ride to deeper lands, its prices, and the land titles on the way
+
 -- The submarine (Hugo, 2026-11-17: "you should jump in the water start swimming while the submarine swims in and
 -- picks you up, then swims really fast to your destination"; docs/design/submarine.md). Bought tier by tier at the hub:
 -- tier N carries you to land N + 1 or any land before it. Every number is a first go, unplayed; the prices are guesses.
@@ -3086,6 +3167,9 @@ Config.SubTitles = {
 	Gap = 0.04, -- and the next comes in this long after it is gone, seconds (only the newest land's: none queue up)
 	ArriveHold = 1.9, -- NOW ARRIVING (the arrival land's title, in place of its own) stays this long before it fades, seconds
 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- Spawn mix and the roster list: rarity shares per land, and the list that builds every fish kind
 
 -- Share of spawns by rarity per zone, from the roster's draft weights. A tier with no fish in a zone is skipped.
 Config.ZoneMix = {
@@ -3206,6 +3290,9 @@ end
 
 Config.Fish = {} :: { FishType }
 Config.FishById = {} :: { [string]: FishType }
+
+----------------------------------------------------------------------------------------------------------------------
+-- Helper functions: the sums worked out from the tables above, the roster build, and Config.refresh
 
 -- What one fish needs, a whole number (Config.OxygenBase, task e1): its kind's base x its rarity's, size's and
 -- colour's numbers x any listed special's (Config.SpecialOxygen; `special`: archetype ids, comma-separated, the

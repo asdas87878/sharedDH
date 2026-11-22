@@ -23,6 +23,24 @@
 -- Config.SizeChance, rolled apart from its variant: its model, seat and body are its species' times Config.SizeScale,
 -- its "Size" and "SizeTier" attributes say so. Size does not change speed; since task e1 (2026-11-20) it changes
 -- what a fish needs (Config.SizeOxygen, Config.requiredOf). The herd's rules that go by a fish's length, Config.Herd and Config.Spawn, go by its own.)
+
+-- In this file, in order:
+--   Setup: services, modules, the wild fish record and the state shared by everything below
+--   Lands, rolls and slices: a fish's variant and size, which kinds swim where, and the herd's slices
+--   A fish's place in the stream: its room, dodge, layer and lift, and where the players are
+--   Pace: how high a fish may swim, the land's pace, and each fish's share of it
+--   Making fish: parking them out of sight, building one, choosing its place and waking it
+--   Keeping the stock topped up: counting fish per slice, finding empty water, wrapping fish round
+--   Stats and claiming: the stock's numbers, reserving a fish, giving it a rider and letting it go
+--   Every frame: passing, easing and steering each fish down its line
+--   Questions other services ask: the lane's edge, the nearest fish, prey, and eating a fish
+--   The visit: now and then sending a hunter to a player who has none in sight
+--   Fish on request: test fish, the sub's fish, stream lookups, and restocking after a change
+--   Init and Start: the folders, the lane survey, the stream, the per-frame steering and the top-up loop
+
+----------------------------------------------------------------------------------------------------------------------
+-- Setup: services, modules, the wild fish record and the state shared by everything below
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -119,6 +137,9 @@ local zoneFrom: { number } = {}
 local zoneSlice: { [number]: number } = {}
 
 FishService.Tag = FishModel.Tag
+
+----------------------------------------------------------------------------------------------------------------------
+-- Lands, rolls and slices: a fish's variant and size, which kinds swim where, and the herd's slices
 
 function FishService.zones(): { Zones.Zone }
 	return zones
@@ -348,6 +369,9 @@ local function sliceAt(s: number): number?
 	return nil
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- A fish's place in the stream: its room, dodge, layer and lift, and where the players are
+
 -- The room a fish with this body wants round it in the herd
 local function spaceOf(body: Vector3): number
 	return Config.Spawn.Space + body.Z * Config.Spawn.SpaceByLength
@@ -501,6 +525,9 @@ local function nearestPlayer(position: Vector3): number
 	end
 	return best
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Pace: how high a fish may swim, the land's pace, and each fish's share of it
 
 -- The highest a fish's middle may be: under the surface by half its height and a little
 local function ceilingFor(body: Vector3): number
@@ -668,6 +695,9 @@ local function paceShare(w: Wild, now: number, position: Vector3): number
 	end
 	return share * w.Own
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Making fish: parking them out of sight, building one, choosing its place and waking it
 
 local function park(w: Wild, parked: boolean)
 	if w.Parked == parked then
@@ -959,6 +989,9 @@ local function wake(w: Wild, at: Vector3)
 	park(w, false)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Keeping the stock topped up: counting fish per slice, finding empty water, wrapping fish round
+
 -- Free fish per slice (parked ones count; ridden, reserved and coasting ones don't), and every fish in all
 local function count(): ({ [number]: number }, number)
 	local per = {}
@@ -1211,6 +1244,9 @@ local function topUp(limit: number, anywhere: boolean?)
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Stats and claiming: the stock's numbers, reserving a fish, giving it a rider and letting it go
+
 -- The stock's numbers, for measuring it (the notes' tables come from here): how many fish, how many made, taken away
 -- and woken since the server started, how long the last top-up took, and every free fish's place.
 function FishService.stats(): { [string]: any }
@@ -1318,6 +1354,9 @@ function FishService.release(w: Wild, handBack: number?)
 		takeBack(w)
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Every frame: passing, easing and steering each fish down its line
 
 -- Passing (Herd.Give*): fish swim at their own speeds, so one catches another up on the same line. Each pair that is
 -- about to overlap gives way, half each, to the side each is already on, by how much they would overlap and how near
@@ -1494,6 +1533,9 @@ local function steer(w: Wild, dt: number)
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Questions other services ask: the lane's edge, the nearest fish, prey, and eating a fish
+
 -- How far inside the lane's edge a place is, studs across (negative: beyond it). For telling the lane's own walls
 -- from what stands in it (RideService.checkCrash: the edge is a wall ride, Config.Wall)
 function FishService.inside(position: Vector3): number
@@ -1578,6 +1620,9 @@ end
 function FishService.eat(w: Wild)
 	w.Model:Destroy()
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- The visit: now and then sending a hunter to a player who has none in sight
 
 -- The visit (Config.Pace.Visit*): a player in the water who has no hunter in sight is now and then sent one, from
 -- behind and above. Looked at with every top-up.
@@ -1673,6 +1718,9 @@ local function visit(player: Player, now: number)
 	park(w, false)
 	visitAt[player] = now + rng:NextNumber(p.VisitEveryMin, math.max(p.VisitEveryMin, p.VisitEveryMax))
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fish on request: test fish, the sub's fish, stream lookups, and restocking after a change
 
 -- Studio only (the sandbox's "Ride": a chosen fish to try): a fish of this kind and variant put in the water at a
 -- place, swimming `dir`. nil for a kind there is none of. Its size is Normal, or the workspace's "TestSize".
@@ -1818,6 +1866,9 @@ function FishService.restock()
 		end
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Init and Start: the folders, the lane survey, the stream, the per-frame steering and the top-up loop
 
 function FishService.Init()
 	folder = Instance.new("Folder")

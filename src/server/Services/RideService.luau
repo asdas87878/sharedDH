@@ -39,6 +39,24 @@
 --   fish's bigger burst is allowed by the speed check (Config.surgeOf). The rider's client is told of a burst
 --   ("Boost"), every client of the bite or the smash (Fx "Eat", "Smash"), and the fish carries "Bite", "Smash" and
 --   "Frenzy" attributes for the animations to come.
+
+-- In this file, in order:
+--   Setup: services, modules, the rider record, the hooks other services fill in, and small helpers
+--   The ride fish on land: building, welding, equipping and unequipping the fish a player walks on
+--   Rider state and messages: angry mode, state changes, Oxygen and catch updates, refusals, reach checks
+--   The ragdoll: swapping a thrown rider's joints for loose ones and putting them back
+--   Mounting, going home and failing: getting on a fish, back to the dock, drowning and being thrown off
+--   The hop: jumping off, missing, grabbing a fish in the air and landing on it
+--   Oxygen, eating and crashes: the drain, the red part, archetype rewards, bites and hitting the map
+--   Every frame: the speed check, taming, and each rider's tick by state
+--   Players and characters: setting up a rider when a player joins or gets a new body
+--   Sandbox and admin reset: where a reset puts a player, and putting them there
+--   Remotes: the ride fish's asks, then Init with the Action handler and players leaving
+--   For other services, and Start: carried fish, seating, sending home, max Oxygen, forced fails
+
+----------------------------------------------------------------------------------------------------------------------
+-- Setup: services, modules, the rider record, the hooks other services fill in, and small helpers
+
 local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
@@ -223,6 +241,9 @@ local function maxOxygen(): number
 	return Config.Oxygen.StartMax
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The ride fish on land: building, welding, equipping and unequipping the fish a player walks on
+
 -- The ride fish on land (task e3, Config.Equip; docs/design/equip.md). The equipped fish is built at its own size and
 -- colour, weightless and touching nothing, and welded under the player's root by its saddle, as on a dive's fish; the
 -- humanoid stands taller by the fish's depth below the saddle, so it walks on the floor and carries the rider. The
@@ -380,6 +401,9 @@ local function checkEquip(r: Rider)
 		tellEquip(r)
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Rider state and messages: angry mode, state changes, Oxygen and catch updates, refusals, reach checks
 
 -- Angry mode: the fish under a rider is marked angry, or calm again. Its attributes are how every client knows
 -- ("Angry": true; "AngryStyle": its style's name, for the animations to come), its tag is how they find it.
@@ -623,6 +647,9 @@ local function judged(r: Rider, what: string, w: Wild, near: number, plain: numb
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The ragdoll: swapping a thrown rider's joints for loose ones and putting them back
+
 -- The ragdoll (Config.Fail.Ragdoll; Hugo, 2026-11-19, task f3: "enable a real Roblox ragdoll (BallSocketConstraints
 -- replacing Motor6Ds on the character) with an impulse, colliding with the map, props and the fish"). The joints are
 -- the server's to change, so the swap is made here; the body stays the rider's own machine's to move (its network
@@ -801,6 +828,9 @@ local function letLoose(r: Rider, kind: string, seconds: number?)
 		Net.Fx:FireAllClients("Ragdoll", r.Player, if fish then fish.Model else nil, kind)
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Mounting, going home and failing: getting on a fish, back to the dock, drowning and being thrown off
 
 local function mount(r: Rider, w: Wild, landing: boolean): boolean
 	local root, humanoid = parts(r.Player)
@@ -1069,6 +1099,9 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 	end)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- The hop: jumping off, missing, grabbing a fish in the air and landing on it
+
 -- The jump: off the fish (or from floating) into the hop. Never refused for Oxygen, and it costs none: however little
 -- is left you can still go fish to fish (Hugo, 2026-11-11).
 local function jump(r: Rider)
@@ -1263,6 +1296,9 @@ local function landing(r: Rider, target: any)
 		deny(r, "Grab", "Target", target)
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Oxygen, eating and crashes: the drain, the red part, archetype rewards, bites and hitting the map
 
 local function drain(r: Rider, amount: number)
 	if sandbox("EndlessAir", r) then
@@ -1562,6 +1598,9 @@ local function checkCrash(r: Rider, w: Wild)
 	r.Nosed = nosed
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Every frame: the speed check, taming, and each rider's tick by state
+
 -- A light check on the client driving its fish: flag one moving far faster than its surge speed
 local function checkSpeed(r: Rider, w: Wild)
 	local t = os.clock()
@@ -1783,6 +1822,9 @@ local function tick(r: Rider, dt: number)
 	sendOxygen(r)
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Players and characters: setting up a rider when a player joins or gets a new body
+
 local function onCharacter(r: Rider, character: Model)
 	r.Token += 1
 	-- a new body (a respawn, a reset) unequips the ride fish, as it puts the held one away (task e3)
@@ -1897,6 +1939,9 @@ local function onPlayer(player: Player)
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Sandbox and admin reset: where a reset puts a player, and putting them there
+
 -- Where the sandbox's reset puts a player: the lane's start (Sandbox.StartS), or the first place past it with room
 -- above the herd for a whole jump; and the way down the lane there
 function RideService.sandboxStart(): (Vector3, Vector3)
@@ -1996,6 +2041,9 @@ function RideService.sandboxReset(
 		end
 	end)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Remotes: the ride fish's asks, then Init with the Action handler and players leaving
 
 -- The ride fish's asks (task e3; docs/design/equip.md), each only on the dock and not seated elsewhere:
 --   "RideEquip" (Q): the fish held over the head becomes the ride fish (that very entry of the hands) and is ridden on
@@ -2127,6 +2175,9 @@ function RideService.Init()
 		looseOf[player] = nil
 	end)
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- For other services, and Start: carried fish, seating, sending home, max Oxygen, forced fails
 
 -- The aquarium (AquariumService): what a player carries, each fish with its size and colour (not to be changed);
 local NOTHING: { Carry } = {}

@@ -20,6 +20,19 @@
 -- and every open, close, press and hover goes through UI.Anim. The header icons are still drawn by code
 -- (tools/ui/shop_kit/shop_art.py, art/ui/shop/) and not uploaded: Studio reads them from its own content folder; a
 -- live game shows none until Shop.Textures.Icons is filled.
+
+-- In this file, in order:
+--   Pictures: the header icon atlas and the Robux sign
+--   Colours and sizes: the body, header and button colours, the corners and the studs
+--   Small pieces: money as text, two-tone fills, studs, gloss, header icons, words and dark wells
+--   Buttons: the flat bright button every dock window uses
+--   Windows: the dock window frame, how it opens and closes and fits the screen
+--   Pages: which dock window is open, one at a time
+--   Money labels: an amount in the cash green with the cash sign
+--   Cards: the tall card tinted by tier and the list card used to sell fish
+--   Ticks and arrows: the drawn tick, the fat arrow and the sort button
+--   Carousel: a sideways row of cards with arrow buttons at each side
+
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
@@ -27,6 +40,9 @@ local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 
 local Shop = {}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Pictures: the header icon atlas and the Robux sign
 
 -- Upload id for the header icons (empty until the user says yes to the upload)
 Shop.Textures = {
@@ -52,6 +68,9 @@ end
 
 -- The header icons, by their place in shop_icons.png
 Shop.Icons = { Sub = 0, Shell = 1, Seahorse = 2, Bubble = 3, Arrow = 4 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- Colours and sizes: the body, header and button colours, the corners and the studs
 
 -- The colours. The body is a cool slate, a little blue, so it sits under water with the HUD's navy
 Shop.Body = Color3.fromRGB(34, 40, 54)
@@ -98,6 +117,9 @@ Shop.Kinds = {
 -- Sizes, in the window's own points
 Shop.HeadHigh = 64
 Shop.Pad = 10
+
+----------------------------------------------------------------------------------------------------------------------
+-- Small pieces: money as text, two-tone fills, studs, gloss, header icons, words and dark wells
 
 -- A number as money: $950, $5K, $1.4B
 function Shop.cash(value: number): string
@@ -204,6 +226,9 @@ function Shop.inset(parent: Instance, props: { [string]: any }): Frame
 	Shop.pattern(frame, "Body")
 	return frame
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Buttons: the flat bright button every dock window uses
 
 export type Button = {
 	Root: TextButton,
@@ -330,6 +355,9 @@ function Shop.button(parent: Instance, props: { [string]: any }): Button
 	self.set(nil, kind, self.Live)
 	return self
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Windows: the dock window frame, how it opens and closes and fits the screen
 
 export type Window = {
 	Gui: ScreenGui,
@@ -567,6 +595,9 @@ function Shop.window(props: { [string]: any }): Window
 	return self
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Pages: which dock window is open, one at a time
+
 -- The dock's windows: each gives its opener to Shop.page as it is required; Shop.go(name) shows that one and closes
 -- the others (nil: closes them all); Shop.Page is the one showing. One dock window at a time.
 Shop.Page = nil :: string?
@@ -590,6 +621,9 @@ function Shop.go(name: string?)
 		openers[name](true)
 	end
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Money labels: an amount in the cash green with the cash sign
 
 -- Money in the cash green: "$1.4K", the cash sign before it when asked. Returns the label (its Text to set) and the
 -- holder (to place).
@@ -631,6 +665,9 @@ function Shop.money(parent: Instance, props: { [string]: any }): (TextLabel, Fra
 	})
 	return label, holder
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Cards: the tall card tinted by tier and the list card used to sell fish
 
 export type Card = {
 	Root: Frame,
@@ -837,6 +874,9 @@ function Shop.itemCard(parent: Instance, props: { [string]: any }): ItemCard
 	return { Root = root, Name = name, Picture = pic, Rate = rate, Price = price }
 end
 
+----------------------------------------------------------------------------------------------------------------------
+-- Ticks and arrows: the drawn tick, the fat arrow and the sort button
+
 -- A drawn tick: two white bars with the dark edge, filling its parent (a round mark's middle). Returns the holder.
 function Shop.check(parent: Instance, z: number): Frame
 	local holder: Frame = Kit.new("Frame", {
@@ -913,6 +953,9 @@ function Shop.sort(parent: Instance, props: { [string]: any }): Button
 	Shop.arrow(b.Root, 90, 30, UDim2.new(0, 24, 0.5, 0), 4)
 	return b
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Carousel: a sideways row of cards with arrow buttons at each side
 
 export type Carousel = {
 	Root: Frame,
