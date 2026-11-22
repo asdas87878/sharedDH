@@ -1,6 +1,6 @@
 ---
 name: fresh-eyes
-description: Reviews a finished piece of Ride a Fish work with fresh eyes against its design note, the user's decisions and the project's rules, and reports only real problems, ranked. Use it when a piece is done and before telling the user, in place of starting a whole second chat to check it. Give it what was done, the files or diff, and the design note it follows.
+description: "Reviews a finished piece of Ride a Fish work with fresh eyes against its design note, the user's decisions and the project's rules, and reports only real problems, ranked. Use it when a piece is done and before telling the user, in place of starting a whole second chat to check it. Give it what was done, the files or diff, and the design note it follows."
 tools: Read, Grep, Glob, Bash
 model: inherit
 effort: high

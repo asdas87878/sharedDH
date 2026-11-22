@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Finds things in the Ride a Fish vault and code and returns short quotes with file:line, so the big notes never enter the main chat. Use it for "what did we decide about X", "where is Y set", "which chat has Z in hand", "what did the last push change", or any lookup in Sessions, Handoff, Decisions, docs/design or src. It reports what the files say; it does not judge or decide.
+description: "Finds things in the Ride a Fish vault and code and returns short quotes with file:line, so the big notes never enter the main chat. Use it for \"what did we decide about X\", \"where is Y set\", \"which chat has Z in hand\", \"what did the last push change\", or any lookup in Sessions, Handoff, Decisions, docs/design or src. It reports what the files say; it does not judge or decide."
 tools: Read, Grep, Glob
 model: inherit
 effort: low

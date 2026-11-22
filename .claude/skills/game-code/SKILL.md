@@ -1,6 +1,6 @@
 ---
 name: game-code
-description: Ride a Fish's game code: RideService, FishService and the herd, JumpController and the hop, the aquarium, props, angry mode, archetypes, sizes and variants, Config.luau (every number) and the movement sandbox. Load it before reading, changing, reviewing or testing anything in src/, or tuning a number.
+description: "Ride a Fish's game code: RideService, FishService and the herd, JumpController and the hop, the aquarium, props, angry mode, archetypes, sizes and variants, Config.luau (every number) and the movement sandbox. Load it before reading, changing, reviewing or testing anything in src/, or tuning a number."
 ---
 
 # The game code (what is built and where)

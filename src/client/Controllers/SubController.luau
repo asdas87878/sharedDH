@@ -13,8 +13,9 @@
 --   Drop: on the server's word, flung forward into an ordinary hop (JumpController.fling), or, with our fish swum up
 --     beside the sub ("SubFish", driven here), kicked off in an arc onto its saddle; we tell the server ("SubLand").
 --   Then the sub peels away, up and to the side, and fades.
--- Placeholders only: the sub is plain parts (Shared/SubModels, the tier the player has equipped) and the motion is by code (the *Pose functions); the partner's
--- model and animations replace them (the note's "Animation hooks").
+-- The sub is the model of the tier the player has equipped (Shared/SubModels: since 2026-11-22 a voxel model a tier
+-- from the place's templates, else the old placeholder of plain parts); the motion is still by code (the *Pose
+-- functions) until the partner's animations (the note's "Animation hooks").
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -173,7 +174,9 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 		Said = {},
 		RiderLast = nil,
 	}
-	(v :: any).Offsets = offsets
+	local more = v :: any
+	more.Offsets = offsets
+	more.HullRest = hull.CFrame -- the hull part against the sub's middle (a model is built at the origin)
 	return v
 end
 
@@ -181,13 +184,14 @@ local function place(v: Visual, cf: CFrame, speed: number, dt: number)
 	local offsets = (v :: any).Offsets :: { [BasePart]: CFrame }
 	v.Spin += dt * (4 + speed * 0.12)
 	local spun = CFrame.Angles(0, 0, v.Spin)
-	-- the hull's own turn (a cylinder lies along X)
+	-- the hull part's own place and turn in the sub (the placeholder's is a cylinder lying along X; a model's hull
+	-- is a mesh whose middle isn't the sub's)
 	local hull = v.Model.PrimaryPart :: BasePart
-	local hullFrame = cf * CFrame.Angles(0, math.rad(90), 0)
+	local hullFrame = cf * ((v :: any).HullRest :: CFrame)
 	for p, offset in offsets do
 		if p == hull then
 			p.CFrame = hullFrame
-		elseif p == v.Prop then
+		elseif p == v.Prop or p.Name == "Prop_Glow" then
 			p.CFrame = hullFrame * offset * spun
 		else
 			p.CFrame = hullFrame * offset

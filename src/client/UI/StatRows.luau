@@ -11,6 +11,9 @@
 -- (the player's "Coins"), and the Oxygen row then sits where it was.
 -- On a phone the rows sit at the top left, clear of Roblox's stick.
 -- This replaces the glass box in the corner (Kit.OxygenBox, Hugo 2026-11-14): Kit still holds it, nothing here uses it.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
 
 local StatRows = {}
@@ -237,6 +240,11 @@ function StatRows.build(parent: Instance)
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 	}, holder)
 	air = row(1, "Oxygen", Kit.bubble, Kit.White)
+	-- Oxygen is shown whole and grouped (2,925; 3,285,000), never 2.9K (grade issue 1): a long number shrinks to fit
+	-- the bar instead of running past it into the plus button
+	air.Text.TextScaled = true
+	air.Text.TextWrapped = false
+	Kit.new("UITextSizeConstraint", { MaxTextSize = TEXT, MinTextSize = 10 }, air.Text)
 	money = row(2, "Coins", Kit.coin, COINS)
 	money.Frame.Visible = false
 	shownOxygen = -1
@@ -268,7 +276,7 @@ function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: bo
 	local whole = if spent then 0 else math.floor(oxygen + 0.5)
 	if whole ~= shownOxygen then
 		shownOxygen = whole
-		air.Text.Text = Kit.short(whole)
+		air.Text.Text = Config.wholeNumber(whole)
 	end
 	local red = low or spent
 	if red ~= shownLow then

@@ -5,8 +5,7 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-22 · The other PC's work since 2026-11-17, merged on top of yours (Obsidian chat integration, the user's PC)
 **State:** merged on top of your `de938cd` (your 157 commits since our last push came in as a fast-forward; nothing of
-yours was replayed). StyLua clean; selene 0 errors (the three old warnings, and seven style hints in your
-`UI/Shop.luau` and `UI/UpgradeSign.luau`, left as you pushed them); `rojo build` passes. Run in Studio by script on the
+yours was replayed), then with your three of 2026-11-22 (to `4497f17`) in a merge commit. StyLua clean; selene 0 errors (the three old warnings); `rojo build` passes. Run in Studio by script on the
 user's PC: a dive, a catch, hops, the slots and the land strip, no errors. **Not played by hand.**
 - **Where our work met yours** (both sides kept; worth a look):
   - `UI/Portrait.luau`: the UI chat rebuilt the model pictures (two windows, a colour one and an ink one, with the
@@ -39,6 +38,31 @@ user's PC: a dive, a catch, hops, the slots and the land strip, no errors. **Not
   left out of the repo (`.gitignore`); renders, sheets and specs are in.
 - **Tools:** `tools/studio/push_scripts.py` writes a source past 200,000 characters through ScriptEditorService, as yours
   does (`Config` is past it); `tools/review/` (the feel review's scripts, with the reference's distance counter reader).
+## 2026-11-22 · Fixes from the E1–E4 grade (NULLROOM task x1, Hugo's PC)
+**State:** in the game code; stylua clean, selene 0 errors and 3 old warnings (7 of the 10 old ones fixed). Checked by
+a scripted Studio playtest, `python tools/studio/x1_fix_check.py install`, `studio-run.mjs play`, `... run`,
+`... remove`: **20 of 20 pass** (log `work/x1/check.log`); E1's `tools/studio/oxygen_check.luau` still 12 of 12
+(`work/x1/oxygen_check.txt`). Not played by hand, not with two players. Issue numbers are
+[the grade](plans/2026-11-20-grade.md)'s.
+- **1** The Oxygen row shows the whole number (2,925; 3,285,000), shrinking to fit its bar (`UI/StatRows`).
+- **2** Training time is settled at the moment of an upgrade (at the old level), of asking off and of dying, and
+  counted from the moment of sitting; the old pad counts from the first look it sees you (`TrainService`, `settle`).
+- **3** A live retune (the sandbox panel) recounts every stocked tank's income (`AquariumService.retune`).
+- **4** On a narrow phone the hotbar (Q slot, its words, slot 7) stays on screen: the row moves right just enough and
+  shrinks only below about 355 wide (`Slots.fit`); the HUD's scale is capped by the width too (`HudController`).
+- **5** While the feel log's number pick is up the number keys are its alone (`EquipController.input`, `FeelLog.TakesNumbers`).
+- **6** No hold while seated on the trainer or a tank ride ("Seated"), and seating puts a held fish away; on a land
+  or tank fish the hold's arms let go at once; no avatar sit track under the land motion.
+- **7** The land fish tilts to the floor's slope and lifts off steps (`AnimController` `groundFit`,
+  `LandRide.GroundTilt` / `GroundLift` / `GroundBlend` / `GroundEvery`); the server puts a rider back who covers the
+  ground faster than `Equip.LandSpeed` allows (`Equip.CheckEvery`, `PaceRoom`, `PaceSlack`).
+- **8** On a big land fish the camera stays outside it (`Equip.CameraFrom`, `CameraMost`); option F (a size cap) is still
+  Hugo's.
+- **9** A rider stays locked to their land fish on the frames it isn't moved (far away): read in the code, not checked.
+- **10** The land stride starts from the server's mount time (`LandEpoch`) and is put back on that clock at every
+  stop: not compared on two clients.
+- **Left for Hugo / others:** 11 (a land-to-swim blend, or accept the cut), 18 (EQUIP vs EARN labels), options A–G;
+  12–16 are proof and tool work (E4 recordings, the stale e2/e3 suites, two-player runs, the balance model).
 
 ## 2026-11-20 · The ride fish moves on land by its body type (NULLROOM task e4, Hugo's PC)
 **State:** in the game code (`AnimController`, `Config.LandRide`); stylua and selene clean. Checked by a scripted Studio
@@ -62,11 +86,13 @@ playtest, `python tools/studio/e4_land_check.py install`, `studio-run.mjs play`,
 
 ## 2026-11-20 · The tank outlined under the mouse, a click opens its popup; the hotbar back to seven (NULLROOM task c1, Hugo's PC)
 **State:** in the game code; stylua and selene clean. Checked by a scripted Studio playtest,
-`python tools/studio/c1_tank_hotbar_check.py install|run|remove` (log `work/c1/check.log`): see the result line below.
+`python tools/studio/c1_tank_hotbar_check.py install|run|remove` (log `work/c1/check.log`): **16 of 16 pass**
+(2026-11-22, with x1's Slots fit in the place).
 Not played by hand (no real mouse: the hover goes through `TankPanel.pretendMouse`, Studio only, the click through
 `TankPanel.click`, the same path a real click takes).
 - **The tank** (Hugo on `e2-tank-click.png`): pointing at your own tank within its reach outlines the **whole tank**
-  white, outline only (a Highlight round a nearly clear client-side copy of the tank's own parts: `UI/TankPanel`); a
+  white: its box's edges as lines (a SelectionBox on a clear client-side box the size of the tank's own parts,
+  `UI/TankPanel`; a Highlight was tried and dropped: it only outlines opaque parts, so a glass tank showed nothing); a
   click or tap opens the popup. **Gone:** the CLICK / PUT IN TANK control on the glass (`TankPrompt.attach`, its
   `press`/`control`) and the CLICK YOUR TANK / WALK CLOSER! sign; a click never puts a fish in by itself. Fish go in
   with the popup's PUT IN / PUT ALL IN, as before. The glass control's empty-handed RIDE A FISH moved into the popup

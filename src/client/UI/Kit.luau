@@ -7,6 +7,7 @@
 -- Rules for phones: nothing here is made per frame, text never changes size, a label's text is only set when it
 -- changes, and only what Kit.pulse is given is tweened.
 local RunService = game:GetService("RunService")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -1531,6 +1532,255 @@ function Kit.seconds(value: number): string
 	end
 	return ""
 end
+
+-- The words of a failed run (task b5; Hugo, 2026-11-22: "make text better and more stylised when failing a run. Out of
+-- breath type text needs a rework"): look 1 of docs/attachments/fail-text-options-2026-11-22.png, the Slam band, the
+-- family of GREAT DIVE and CAUGHT so a fail reads as the opposite of a win. Bangers in hard red metal on a tilted dark
+-- streak with red edges, always red, a small second line under it. Its motion: the streak slashes open from a
+-- hairline, the words slam on from the camera and ring (a squash, a white flash, a judder), the second line pops in;
+-- it drops away as the black lifts. No pictures, nothing uploaded. Who shows it and what it says: FailController.
+Kit.FailLook = {
+	Font = Enum.Font.Bangers,
+	Size = 76, -- the words, and the second line's
+	Sub = 26,
+	Tilt = -4, -- degrees
+	Wide = 580, -- the streak: at least this wide, or the words and Pad
+	Pad = 190,
+	High = 92,
+	Open = 0.16, -- seconds the streak takes to slash open
+	SlamAt = 0.08, -- the words start in after this long,
+	Slam = 0.2, -- take this long to land,
+	From = 2.6, -- and come from this many times their size
+	Ring = 0.1, -- the ring on landing: how far the words squash and bounce, of their size,
+	RingRate = 5.5, -- how many times a second,
+	RingFade = 9, -- and how fast it dies away
+	Judder = 2.2, -- degrees the band judders on landing
+	Flash = 0.2, -- seconds the white flash on the letters lasts
+	SubAt = 0.5, -- the second line pops in after this long,
+	SubPop = 0.22, -- over this long
+	Drop = 90, -- on the way out it falls this far (of a 640-high screen) and turns this much more
+	DropTurn = -5,
+	FitWide = 0.94, -- never wider than this much of the screen,
+	FitHigh = 640, -- full size on a screen this high,
+	Most = 1.5, -- and never more than this many times it
+}
+
+export type FailWords = {
+	Root: Frame,
+	show: (text: string, sub: string) -> (), -- new words: the motion starts again from pose(0, 0)
+	pose: (age: number, out: number) -> (), -- seconds since they came up; 0 to 1 of the way out
+	hide: () -> (),
+}
+
+local FAIL_LINE = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 1),
+	NumberSequenceKeypoint.new(0.25, 0),
+	NumberSequenceKeypoint.new(0.75, 0),
+	NumberSequenceKeypoint.new(1, 1),
+})
+
+local function outBack(u: number): number
+	local c = 1.70158
+	return 1 + (c + 1) * (u - 1) ^ 3 + c * (u - 1) ^ 2
+end
+
+function Kit.failWords(parent: Instance): FailWords
+	local look = Kit.FailLook
+	local dark = Color3.fromRGB(20, 2, 10)
+	local root: Frame = Kit.new("Frame", {
+		Name = "FailWords",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+	}, parent)
+	local tilt: Frame = Kit.new("Frame", {
+		Name = "Band",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, -8),
+		Size = UDim2.fromOffset(look.Wide, 150),
+		BackgroundTransparency = 1,
+		Rotation = look.Tilt,
+	}, root)
+	local fit: UIScale = Kit.new("UIScale", {}, tilt)
+	local streak: Frame = Kit.new("Frame", {
+		Name = "Streak",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.fromOffset(look.Wide, look.High),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+	}, tilt)
+	local streakFill: UIGradient = Kit.new("UIGradient", {
+		Color = ColorSequence.new(Color3.fromRGB(96, 8, 30), Color3.fromRGB(18, 4, 14)),
+	}, streak)
+	local edges: { Frame } = {}
+	for _, y in { 0, 1 } do
+		local edge: Frame = Kit.new("Frame", {
+			AnchorPoint = Vector2.new(0, y),
+			Position = UDim2.fromScale(0, y),
+			Size = UDim2.new(1, 0, 0, 4),
+			BackgroundColor3 = Color3.fromRGB(255, 86, 86),
+			BorderSizePixel = 0,
+			ZIndex = 2,
+		}, streak)
+		Kit.new("UIGradient", { Transparency = FAIL_LINE }, edge)
+		table.insert(edges, edge)
+	end
+	-- the words: their shadow, the metal letters, and a white copy for the flash, slammed on as one
+	local slam: Frame = Kit.new("Frame", {
+		Name = "Words",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromOffset(look.Wide, 120),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+	}, tilt)
+	local slamScale: UIScale = Kit.new("UIScale", {}, slam)
+	local function letters(props: { [string]: any }, into: Instance): TextLabel
+		props.BackgroundTransparency = 1
+		props.AnchorPoint = Vector2.new(0.5, 0.5)
+		props.Size = UDim2.fromScale(1, 1)
+		props.Font = look.Font
+		props.Text = ""
+		return Kit.new("TextLabel", props, into)
+	end
+	local shadow = letters({
+		Position = UDim2.new(0.5, 0, 0.5, 7),
+		TextSize = look.Size,
+		TextColor3 = Color3.fromRGB(60, 4, 20),
+		ZIndex = 3,
+	}, slam)
+	local shadowLine = Kit.stroke(shadow, 5, dark)
+	local main = letters({
+		Position = UDim2.fromScale(0.5, 0.5),
+		TextSize = look.Size,
+		TextColor3 = Kit.White,
+		ZIndex = 4,
+	}, slam)
+	Kit.new("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 232, 200)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 150, 120)),
+			ColorSequenceKeypoint.new(0.54, Color3.fromRGB(250, 64, 70)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 14, 44)),
+		}),
+	}, main)
+	local mainLine = Kit.stroke(main, 5, dark)
+	local flash = letters({
+		Position = UDim2.fromScale(0.5, 0.5),
+		TextSize = look.Size,
+		TextColor3 = Kit.White,
+		TextTransparency = 1,
+		ZIndex = 5,
+	}, slam)
+	local sub = letters({
+		Position = UDim2.fromScale(0.5, 0.9),
+		TextSize = look.Sub,
+		TextColor3 = Color3.fromRGB(255, 226, 150),
+		ZIndex = 6,
+	}, tilt)
+	sub.Size = UDim2.fromOffset(look.Wide, 40)
+	local subLine = Kit.stroke(sub, 3, dark)
+	local subScale: UIScale = Kit.new("UIScale", {}, sub)
+
+	local wide = look.Wide
+	local settled = false
+	local lastOut = -1
+	local function refit()
+		local screen = root.AbsoluteSize
+		if screen.X > 0 and screen.Y > 0 then
+			fit.Scale = math.min(screen.X * look.FitWide / wide, screen.Y / look.FitHigh, look.Most)
+		end
+	end
+	root:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
+
+	local function fade(out: number)
+		if out == lastOut then
+			return
+		end
+		lastOut = out
+		local faint = 0.12 + 0.88 * out
+		streakFill.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.22, faint),
+			NumberSequenceKeypoint.new(0.78, faint),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		for _, edge in edges do
+			edge.BackgroundTransparency = out
+		end
+		shadow.TextTransparency = out
+		shadowLine.Transparency = out
+		mainLine.Transparency = out
+		sub.TextTransparency = out
+		subLine.Transparency = out
+	end
+
+	local function pose(age: number, out: number)
+		out = math.clamp(out, 0, 1)
+		local landed = age - look.SlamAt - look.Slam -- seconds since the words landed
+		if settled and out == lastOut then
+			return
+		end
+		-- the streak slashes open from a hairline
+		local open = math.clamp(age / look.Open, 0, 1)
+		streak.Size = UDim2.fromOffset(
+			wide * (0.25 + 0.75 * (1 - (1 - open) ^ 3)),
+			math.max(2, look.High * (0.03 + 0.97 * outBack(open)))
+		)
+		-- the words come from the camera, faster and faster, and land
+		local u = math.clamp((age - look.SlamAt) / look.Slam, 0, 1)
+		local ring, judder, bright = 0, 0, 1
+		if landed > 0 then
+			local dying = math.exp(-landed * look.RingFade)
+			ring = -look.Ring * dying * math.sin(landed * math.pi * 2 * look.RingRate)
+			judder = dying * math.sin(landed * 70) * look.Judder
+			bright = 0.1 + 0.9 * math.clamp(landed / look.Flash, 0, 1)
+		end
+		slamScale.Scale = look.From + (1 - look.From) * u ^ 3 + ring
+		slam.Visible = u > 0
+		main.TextTransparency = math.max(1 - math.clamp(u / 0.35, 0, 1), out)
+		flash.TextTransparency = math.max(bright, out)
+		-- the second line pops in
+		local v = math.clamp((age - look.SubAt) / look.SubPop, 0, 1)
+		sub.Visible = v > 0 and sub.Text ~= ""
+		subScale.Scale = math.max(0.01, outBack(v))
+		-- and on the way out the whole band drops away, turning
+		local eased = out * out
+		tilt.Position = UDim2.new(0.5, 0, 0.5, -8 + look.Drop * fit.Scale * eased)
+		tilt.Rotation = look.Tilt + judder + look.DropTurn * eased
+		fade(out)
+		settled = out == 0 and v >= 1 and landed > 6 / look.RingFade
+	end
+
+	local function show(text: string, subText: string)
+		shadow.Text, main.Text, flash.Text = text, text, text
+		sub.Text = subText
+		-- (measured, not read off the label: its TextBounds are in the band's own scale)
+		local bounds = TextService:GetTextSize(text, look.Size, look.Font, Vector2.new(4000, 400))
+		wide = math.max(look.Wide, bounds.X + look.Pad)
+		tilt.Size = UDim2.fromOffset(wide, 150)
+		slam.Size = UDim2.fromOffset(wide, 120)
+		refit()
+		settled = false
+		lastOut = -1
+		root.Visible = true
+		pose(0, 0)
+	end
+
+	return {
+		Root = root,
+		show = show,
+		pose = pose,
+		hide = function()
+			root.Visible = false
+		end,
+	}
+end
+
+-- Who shows the words of a failed run (FailController sets it; Banners.miss hands them over when it is set)
+Kit.FailShow = nil :: ((text: string, fade: number) -> ())?
 
 local UNITS = { "K", "M", "B", "T" }
 

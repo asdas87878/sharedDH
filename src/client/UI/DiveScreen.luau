@@ -14,7 +14,7 @@
 -- Kept from the catch screen (CatchShow look 3): every word a rarity word (Kit.word) in Bangers, the see-through
 -- backdrop fading in and out with the screen, METERS DEEP on a black oval in the land's colours, BEST! (the red
 -- medallion) on the end of the title, a click anywhere skips to the end and the next closes (CatchShow.play does the
--- presses). The fish tiles are CatchShow's own (passed in as `tile`), so their look stays in one place.
+-- presses; left alone it closes the same way 2 seconds after it has settled: Banners' GREAT_STAY, task b3). The fish tiles are CatchShow's own (passed in as `tile`), so their look stays in one place.
 -- Like the other looks, it is a pose of the time since it began (pose(t)): the game plays it frame by frame, a capture
 -- stops it at any moment. Sheet: docs/attachments/great-dive-options-1.png, by tools/ui/catch_show/gd1_capture.py.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

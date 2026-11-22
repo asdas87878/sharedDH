@@ -375,6 +375,11 @@ local function paint(
 end
 
 local touchNow = false
+local fitScale: UIScale? = nil
+local screenWide = math.huge -- the HUD's width in its own units (HudController: Slots.fit)
+local EDGE_PHONE = 8 -- the least room left between the hotbar and the screen's edges on a phone
+local EDGE_KEYS = 176 -- and on a keyboard at the left, where the stat rows stand level with it (StatRows)
+local FIT_LEAST = 0.8 -- the smallest the hotbar is shrunk to fit (34 studs a slot become 27 at the very narrowest)
 
 -- Where slot n's middle is from the row's left (0: the equipped slot, left of the row's frame)
 local function middleOf(n: number, size: number, gap: number): number
@@ -536,6 +541,40 @@ function Slots.build(parent: Instance)
 		Hint = hint,
 	}
 	drawRide()
+	fitScale = Kit.new("UIScale", { Name = "Fit" }, holder)
+end
+
+-- Keeps the whole hotbar on the screen (grade issue 4): the numbered row stays centred while the Q slot and its words
+-- at its left fit; when they don't, the row moves right just enough, and only when even that won't do, the whole
+-- hotbar shrinks a little (never under FIT_LEAST)
+local function fitRow(size: number, gap: number)
+	if not holder or not fitScale then
+		return
+	end
+	local ring = OUTLINE + RING_GAP
+	local half = rowWidth(size, gap) / 2
+	local left = half + gap * APART + size + math.max(ring, HINT_WIDE / 2)
+	local right = half + ring
+	local edgeLeft = if touchNow then EDGE_PHONE else EDGE_KEYS
+	local edgeRight = EDGE_PHONE
+	local wide = screenWide
+	local f = 1
+	local room = wide - edgeLeft - edgeRight
+	if room < left + right then
+		f = math.max(room / (left + right), FIT_LEAST)
+	end
+	local shift = math.max(0, left * f - (wide / 2 - edgeLeft))
+	fitScale.Scale = f
+	holder.Position = UDim2.new(0.5, shift, 1, if touchNow then -10 else -14)
+end
+
+function Slots.fit(wide: number)
+	if wide ~= screenWide then
+		screenWide = wide
+		local size = if touchNow then SIZE else BIG
+		local gap = if touchNow then GAP else BIG_GAP
+		fitRow(size, gap)
+	end
 end
 
 function Slots.place(touch: boolean)
@@ -566,6 +605,7 @@ function Slots.place(touch: boolean)
 		ride.Cross.Size = UDim2.fromOffset(cap - 2, cap - 2)
 		drawRide()
 	end
+	fitRow(size, gap)
 end
 
 -- A numbered slot pressed (a click, a tap, or its key 1 to 7: task e3): the very same path for each. Fires Picked

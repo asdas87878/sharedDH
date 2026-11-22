@@ -109,6 +109,34 @@ then it falls back to the water picture for both patterns, shows no header icons
 buttons, list cards, a footer with a total and a Robux and a grey sell button; there is no sell screen in the game).
 The shots were taken with `Config.Sub.Free` set to 0 on the capturing client only, to show the price colours.
 
+
+### The shop: Auras and Sell Fish (2026-11-22, Hugo; NULLROOM task b2)
+Hugo: "integrate both aura shop ui and selling dinos ui (as in reference pic 1) in this same style as before".
+- **Opening it:** the hub's Shop button opens one shop with two pages, each a window of the kit with the same two
+  tabs on its top edge (AURAS, SELL FISH). It opens at the page last looked at (the auras first); the button again,
+  the X or leaving the dock closes it. `UI/Shop.luau` (`Shop.page`, `Shop.go`, `Shop.tabs`), wired in
+  `AuraController`.
+- **Sell Fish** (`UI/SellFish.luau`), laid out after the reference's sell window: Sort By (Value, Rarity), Select
+  All, the note that equipped fish cannot be sold, a scrolling grid of cards (name in its rarity's colour, size and
+  colour as small words, the fish's picture, coins a second, what it sells for), and a foot bar with the Total Value
+  and Sell (n). It lists the tank (the inventory) and what is carried. A press picks a card; Sell (n) asks SURE?
+  once, then asks the server for each fish in turn (b1's Action "Sell"). Fish equipped in the tank are shown last,
+  dimmed and marked EQUIPPED, and can't be picked.
+- **Auras** (`UI/AuraShop.luau`): the twelve cards as before, now in the shop, in a window of the Sell Fish
+  page's size with the title at the left, so the tabs and the title stay put from page to page; one button a card
+  (the Robux button is hidden until products exist). The worn aura reads EQUIPPED, the
+  ones under it OWNED. **Buying is not on:** auras have no prices and the server has no aura purchase, so every
+  price reads SOON. The window is ready for it: a tier with a `Price` in `Shared/Auras` shows it and a press asks
+  the server Action "AuraBuy", tier.
+- **Checked** by `tools/studio/b2_shop_check.py` in a Studio playtest (17 of 17; log `work/b2/check.log`). Pictures:
+  [the Sell Fish page](../attachments/b2-sell.png), [two picked](../attachments/b2-sell-picked.png),
+  [all picked](../attachments/b2-sell-all.png), [equipped fish](../attachments/b2-sell-equipped.png),
+  [the Auras page](../attachments/b2-auras.png), [an aura worn](../attachments/b2-auras-worn.png).
+- **The server refuses an equipped fish too** (`AquariumService`'s `sell`: Ride "TankDenied", "Equipped"), so
+  the tank popup's SELL on an equipped card now answers "UNEQUIP IT FIRST TO SELL IT".
+- **Open:** the Shop button's
+  own click was not pressed by the test (a script can't click); not seen on a phone.
+
 ## The fish pictures are the partner's renders (2026-11-19, Hugo; NULLROOM task r1): in Studio, not uploaded
 Hugo: "wasnt there other icons of the fishes that my partner made? check and replace if there is, just the renders
 though". Every fish picture that goes through `UI/Portrait.luau` (the inventory slots, the catch screen's tiles, the

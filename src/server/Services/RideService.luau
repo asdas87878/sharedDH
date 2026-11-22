@@ -119,7 +119,16 @@ type Rider = {
 	Land: Land?, -- while riding it on land in the hub
 }
 -- The equipped fish under the rider on land: its model, welded under the root, and what the humanoid had before
-type Land = { Model: Model, Body: Model, Humanoid: Humanoid, Hip: number, Walk: number }
+-- (Good, GoodAt: where the rider last stood when their pace was checked and found fair, and when: grade issue 7)
+type Land = {
+	Model: Model,
+	Body: Model,
+	Humanoid: Humanoid,
+	Hip: number,
+	Walk: number,
+	Good: Vector3,
+	GoodAt: number,
+}
 
 local RideService = {}
 
@@ -308,6 +317,8 @@ local function landOn(r: Rider): boolean
 		Humanoid = humanoid,
 		Hip = humanoid.HipHeight,
 		Walk = humanoid.WalkSpeed,
+		Good = root.Position,
+		GoodAt = os.clock(),
 	}
 	-- facing the way the player faces, the saddle at the root
 	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
@@ -324,11 +335,14 @@ local function landOn(r: Rider): boolean
 	weld.Parent = fishRoot
 	model.Name = r.Player.Name
 	model:SetAttribute("LandRider", r.Player.UserId)
+	-- (the moment it was mounted, on the server's clock: every machine's stride starts from it, grade issue 10)
+	model:SetAttribute("LandEpoch", workspace:GetServerTimeNow())
 	model:SetAttribute("FishType", carry.Id)
 	model:SetAttribute("SizeTier", carry.Size)
 	model:SetAttribute("Variant", carry.Variant)
 	model.Parent = landFolderOf()
 	root.CFrame += lift
+	land.Good = root.Position
 	humanoid.HipHeight = hip
 	humanoid.WalkSpeed = Config.Equip.LandSpeed
 	r.Land = land
@@ -417,6 +431,8 @@ local function setState(r: Rider, state: string)
 	elseif state == "Riding" then
 		r.Rode = true
 	end
+	-- (the fast fish ease a little past a player in the hop: Config.Jump.FastEase)
+	FishService.setHopping(r.Player, state == "Jumping")
 	if state ~= "Jumping" and r.Grab then
 		-- the pull-in is over, one way or another: the fish it was granted is let go (nothing to do once we ride it)
 		FishService.unreserve(r.Grab, r.Player)
@@ -1123,8 +1139,13 @@ local function grab(r: Rider, target: any)
 	-- (and straight in front further early in the hop, Jump.AheadReach: the client says which way is in front, by the
 	-- camera, which we can't see, so we allow it all round, from the same moment as the speed)
 	reach *= Config.aheadOf(math.max(0, elapsed - Config.Net.ReachLag))
+	-- (a moving fish is further on for us than for the rider's machine, by its speed times the moment between the two:
+	-- Jump.LandLag, as at the landing. Measured, task b3: a 150 fish locked 81 studs off was 115 off here, and refused)
+	reach += w.Speed * math.max(Config.Jump.LandLag, 0)
 	-- (allowing for the delay, Net.Lag: a fish swimming away fast was refused here though the client had it in reach;
-	-- and to the fish's whole body, as the client's lock measures it)
+	-- and to the fish's whole body, as the client's lock measures it. The two PCs fixed the same refusals apart, this
+	-- rewind on 2026-11-18 and LandLag above on 2026-11-22; both are kept, so the allowance is generous. To choose one:
+	-- docs/Handoff.md, 2026-11-22)
 	local near, plain = reachNearness(r, w, root)
 	judged(r, "grab", w, near, plain, reach, (w.Root.Position - root.Position).Magnitude)
 	if not (near <= reach) then
@@ -1180,7 +1201,14 @@ local function landing(r: Rider, target: any)
 	-- the server sees the player a moment late, and a pull-in arrives fast (and the delay, Net.Lag: held on the saddle
 	-- of a fast fish as their machine saw it, the rider was further behind the fish than this the whole half second
 	-- of LandWait, and fell off the saddle when it ran out)
-	local reach = w.Body.Z / 2 + j.LandSlack * 2
+	-- (and it sees them BEHIND a moving fish by the fish's speed times that moment: their machine sits them on the
+	-- fish where it sees it, which is where the fish was a moment ago, and their place takes another moment to reach
+	-- us. Measured in Studio, task b3: 0.2 to 0.3 s in all, so a rider held on the saddle of a fish at 220 studs a
+	-- second was seen 55 to 65 studs behind it for as long as they sat there, never inside the 45 allowed, and the
+	-- landing was refused after LandWait: "it kicks you off". Jump.LandLag allows for it, by the fish's own speed
+	-- as we have it. The fish was granted inside the hook's reach already, so this lets no one land from further.)
+	-- (Both fixes are kept, as at the grab: the nearness rewind and LandLag.)
+	local reach = w.Body.Z / 2 + j.LandSlack * 2 + w.Speed * math.max(j.LandLag, 0)
 	local near, plain = nearness(r, w, root)
 	judged(r, "landing", w, near, plain, reach)
 	if not (near <= reach) then
@@ -1598,6 +1626,23 @@ local function tick(r: Rider, dt: number)
 		if land and (not land.Model.Parent or r.Player.Character ~= land.Body or busy(r)) then
 			-- (the land fish was lost, the body changed, or they sat down somewhere else: off it)
 			landOff(r)
+		elseif land then
+			-- (the walker is the player's own machine: on the land fish it may cover the ground at Equip.LandSpeed, with
+			-- room for lag, and no faster; past that it is put back where it last stood fairly: grade issue 7. A fall
+			-- is not counted, only the ground covered)
+			local e = Config.Equip
+			local checked = os.clock()
+			local span = checked - land.GoodAt
+			if span >= e.CheckEvery then
+				local moved = ((root.Position - land.Good) * Vector3.new(1, 0, 1)).Magnitude
+				if moved > e.LandSpeed * e.PaceRoom * span + e.PaceSlack then
+					root.AssemblyLinearVelocity = Vector3.zero
+					root.CFrame = CFrame.new(land.Good) * root.CFrame.Rotation
+				else
+					land.Good = root.Position
+				end
+				land.GoodAt = checked
+			end
 		end
 		if root.Position.Y < o.WaterY then
 			-- (into the water: the land fish goes before anything else owns the body)

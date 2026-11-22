@@ -10,8 +10,22 @@
 --   tank's front (a click or tap, task e2; there is no pad any more, task k1) puts the chosen fish in, one at a time (Action "Place", index, id; AquariumController; RideService.takeCarried). A failed
 --   dive keeps its catch the same way.
 --   Earning: each fish earns by what it takes to hold at home, its size and its colour (Config.incomeOf). Up to
---   Aquarium.Earning of them are equipped and earn; the rest are kept (stored) and earn nothing. A new fish takes a free
---   place if there is one, else it is stored.
+--   Config.earningOf(the plot's stage) of them are equipped and earn; the rest are kept (stored) and earn nothing. A
+--   new fish takes a free place if there is one (Aquarium.AutoEquip), else it is stored.
+--   The inventory (Hugo, 2026-11-22, task b1): the tank is the player's whole inventory and has no limit
+--   (Aquarium.Hold 0). A fish is put in (deposited) and taken out into the hands again ("TakeOut", key: refused
+--   "Hands" when the seven slots are full); depositing is not equipping. Any fish can be sold, from the tank or the
+--   hands, for Config.sellOf coins: Action "Sell", "Tank", key | "Hand", index, id, anywhere on the dock (so a sell
+--   stall can ask too); answered with Ride "Sold", id, coins, or "TankDenied", "Gone" or
+--   "Equipped" (a fish equipped in the tank is never sold: it must be unequipped first; task b2).
+--   Plot upgrades (the same task; Config.PlotUpgrades): a sign in the seahorse sign's style stands in front of the
+--   far-left end of the tank's front (the parts PlotBoard and PlotPost, made here when the map has none; written on
+--   by Client.UI.UpgradeSign). A click on its cash block asks Action "Plot", "Up": the owner, alive, on the dock,
+--   within PlotUpgrades.SignNear of the board, not at the top stage, for the stage's price. Each stage lets
+--   PlotUpgrades.Slots more fish be equipped and makes the tank PlotUpgrades.Taller studs taller (its water and posts
+--   stretched, its rim, surface and sign lifted; put back as the owner leaves). Answered with Ride "PlotUp", stage
+--   or "PlotNo", why ("Near", "Top", "Coins", "Dead", "Busy"). The player's "PlotStage" attribute is the stage and
+--   "TankEarning" how many may be equipped.
 --   The tank's popup (Hugo, 2026-11-19: "you should be able to click on the plot from nearby, then get a little popup
 --   where you can equip the best fish instantly, unequip certain fishes and see how much money they produce"):
 --   Client.UI.TankPanel. Its asks are Action "Tank", verb, a, b: "Best" (equip the best Earning, the rest stored),
@@ -58,7 +72,8 @@ type Tank = {
 	Plot: Model,
 	Fish: { Entry }, -- everything in the tank, the best earner first
 	Coins: number,
-	Income: number, -- coins a second: the equipped ones (at most Aquarium.Earning)
+	Income: number, -- coins a second: the equipped ones (at most Config.earningOf(Stage))
+	Stage: number, -- the plot's stage, 0 to #PlotUpgrades.Stages (how many may be equipped, how tall the tank is)
 	Made: number, -- fish keys handed out so far
 	Hands: string, -- the "Hands" attribute last written
 	Shown: Folder?,
@@ -183,6 +198,120 @@ local function sign(plot: Model, tank: Tank?)
 	end
 end
 
+-- The plot's upgrade sign (task b1): the seahorse sign's board and post (TrainService.upgradeSign's parts, under
+-- other names), in front of the far-left end of the tank's front as one faces the tank, its face toward the hub.
+-- A map that already has a PlotBoard keeps its own.
+local BOARD_EDGE = Color3.fromRGB(10, 12, 22) -- (the writing's border colour: Shop.Edge)
+local BOARD_POST = Color3.fromRGB(28, 32, 46)
+
+local function plotSign(plot: Model, way: Vector3)
+	local water = part(plot, "TankWater")
+	local pad = part(plot, "Pad")
+	if plot:FindFirstChild("PlotBoard") or not water or Config.PlotUpgrades.On == 0 then
+		return
+	end
+	local s = Config.PlotUpgrades.Sign
+	local left = way:Cross(Vector3.yAxis).Unit -- (the left of someone facing the tank)
+	local half = water.Size / 2
+	local face = math.abs(way:Dot(water.CFrame.RightVector)) * half.X
+		+ math.abs(way:Dot(water.CFrame.LookVector)) * half.Z
+	local wide = math.abs(left:Dot(water.CFrame.RightVector)) * half.X
+		+ math.abs(left:Dot(water.CFrame.LookVector)) * half.Z
+	local floor = if pad then pad.Position.Y + pad.Size.Y / 2 else water.Position.Y - half.Y
+	local at = Vector3.new(water.Position.X, floor, water.Position.Z)
+		+ way * (face + s.Ahead)
+		+ left * (wide - s.Inset - s.Wide / 2)
+	local function piece(name: string, size: Vector3, middle: Vector3, colour: Color3)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = CFrame.lookAt(middle, middle + way)
+		p.Anchored = true
+		p.CanCollide = true
+		p.CanTouch = false
+		p.Material = Enum.Material.SmoothPlastic
+		p.Color = colour
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = plot
+	end
+	local postHigh = s.Foot + s.High / 2
+	piece(
+		"PlotPost",
+		Vector3.new(s.Post, postHigh, s.Post),
+		at + Vector3.new(0, postHigh / 2, 0) - way * (s.Thick / 2 + s.Post / 2),
+		BOARD_POST
+	)
+	piece("PlotBoard", Vector3.new(s.Wide, s.High, s.Thick), at + Vector3.new(0, s.Foot + s.High / 2, 0), BOARD_EDGE)
+end
+
+-- The tank's height (task b1): a stage makes it taller. The map's tank is upright boxes: its water and corner posts
+-- are stretched upward from where they stand, and what sits on top (the water's surface, the rim, the owner's sign)
+-- is lifted by as much; the base, the sand and the reef stay. Each part's own place and size are kept from the
+-- start, so any height is counted from the map's, never from the last one.
+local STRETCHED = { TankWater = true, Post = true }
+local LIFTED = { TankSurface = true, RimSide = true, RimEnd = true, SignBack = true, SignBoard = true }
+type Piece = { Part: BasePart, At: CFrame, Size: Vector3, Stretch: boolean }
+local pieces: { [Model]: { Piece } } = {}
+local raisedBy: { [Model]: number } = {}
+local growing: { [Model]: number } = {} -- (a count: only the newest grow of a plot runs on)
+
+local function remember(plot: Model)
+	local list: { Piece } = {}
+	for _, d in plot:GetChildren() do
+		if d:IsA("BasePart") and (STRETCHED[d.Name] or LIFTED[d.Name]) then
+			table.insert(list, { Part = d, At = d.CFrame, Size = d.Size, Stretch = STRETCHED[d.Name] == true })
+		end
+	end
+	pieces[plot] = list
+	raisedBy[plot] = 0
+end
+
+local function raise(plot: Model, extra: number)
+	for _, piece in pieces[plot] or {} do
+		if piece.Part.Parent then
+			if piece.Stretch then
+				piece.Part.Size = piece.Size + Vector3.new(0, extra, 0)
+				piece.Part.CFrame = piece.At + Vector3.new(0, extra / 2, 0)
+			else
+				piece.Part.CFrame = piece.At + Vector3.new(0, extra, 0)
+			end
+		end
+	end
+	raisedBy[plot] = extra
+	plot:SetAttribute("Raised", extra)
+end
+
+-- The tank's height for a stage, at once or grown over PlotUpgrades.Grow seconds; `after` runs when it is there
+local function heighten(plot: Model, stage: number, grown: boolean, after: (() -> ())?)
+	local to = Config.PlotUpgrades.Taller * stage
+	local token = (growing[plot] or 0) + 1
+	growing[plot] = token
+	local time = Config.PlotUpgrades.Grow
+	if not grown or time <= 0 then
+		raise(plot, to)
+		if after then
+			after()
+		end
+		return
+	end
+	local from = raisedBy[plot] or 0
+	task.spawn(function()
+		local began = os.clock()
+		while growing[plot] == token do
+			local t = math.min((os.clock() - began) / time, 1)
+			raise(plot, from + (to - from) * (1 - (1 - t) ^ 3)) -- (quick, then easing in)
+			if t >= 1 then
+				if after then
+					after()
+				end
+				return
+			end
+			task.wait()
+		end
+	end)
+end
+
 -- The tank's earning fish, put in the water for everyone to see: small, anchored, each with the numbers of its lap
 local function show(tank: Tank)
 	local a = Config.Aquarium
@@ -268,7 +397,8 @@ local function tell(tank: Tank)
 		table.insert(all, row)
 	end
 	tank.Player:SetAttribute("TankList", HttpService:JSONEncode(all))
-	tank.Player:SetAttribute("TankEarning", Config.Aquarium.Earning)
+	tank.Player:SetAttribute("TankEarning", Config.earningOf(tank.Stage))
+	tank.Player:SetAttribute("PlotStage", tank.Stage)
 end
 
 -- What a player carries, for the popup ("Hands": id, size, variant, oldest first), written only when it changed
@@ -460,7 +590,7 @@ local function count(tank: Tank)
 		return x.Key < y.Key
 	end)
 	local income = 0
-	local most = Config.Aquarium.Earning
+	local most = Config.earningOf(tank.Stage)
 	local on = 0
 	for _, f in tank.Fish do
 		if f.On then
@@ -488,17 +618,19 @@ local function add(tank: Tank, id: string, size: string, variant: string): Entry
 		Size = size,
 		Variant = variant,
 		Income = Config.incomeOf(kind, size, variant),
-		On = equippedCount(tank) < Config.Aquarium.Earning,
+		On = Config.Aquarium.AutoEquip ~= 0 and equippedCount(tank) < Config.earningOf(tank.Stage),
 	}
 	table.insert(tank.Fish, entry)
 	return entry
 end
 
--- (a tank is not endless: past Aquarium.Hold the poorest stored fish are let go; equipped ones are kept)
+-- (the inventory has no limit: Aquarium.Hold 0, Hugo 2026-11-22. With a Hold above 0 the poorest stored fish past it
+-- are let go; equipped ones are kept)
 local function trim(tank: Tank)
 	count(tank)
+	local most = Config.Aquarium.Hold
 	local i = #tank.Fish
-	while #tank.Fish > Config.Aquarium.Hold and i >= 1 do
+	while most > 0 and #tank.Fish > most and i >= 1 do
 		if not tank.Fish[i].On then
 			table.remove(tank.Fish, i)
 		end
@@ -540,7 +672,7 @@ end
 -- The popup's asks (Action "Tank"). Each returns nil when done, or why not
 local function equipBest(tank: Tank): string?
 	count(tank)
-	local most = Config.Aquarium.Earning
+	local most = Config.earningOf(tank.Stage)
 	for i, f in tank.Fish do
 		f.On = i <= most
 	end
@@ -562,11 +694,110 @@ local function equip(tank: Tank, key: string, on: boolean): string?
 	if not entry then
 		return "Gone"
 	end
-	if on and not entry.On and equippedCount(tank) >= Config.Aquarium.Earning then
+	if on and not entry.On and equippedCount(tank) >= Config.earningOf(tank.Stage) then
 		return "Full"
 	end
 	entry.On = on
 	changed(tank)
+	return nil
+end
+
+-- A fish out of the tank and back into the hands (task b1), equipped or stored: refused while the hands are full
+local function takeOut(tank: Tank, key: string): string?
+	local entry = find(tank, key)
+	local index = if entry then table.find(tank.Fish, entry) else nil
+	if not entry or not index then
+		return "Gone"
+	end
+	if
+		#RideService.carried(tank.Player) >= Config.Tame.Carry
+		or not RideService.giveCarried(tank.Player, { Id = entry.Id, Size = entry.Size, Variant = entry.Variant })
+	then
+		return "Hands"
+	end
+	table.remove(tank.Fish, index)
+	changed(tank)
+	tellHands(tank)
+	return nil
+end
+
+-- A fish sold (task b1): out of the tank, or out of the hands (the index-th carried, which must still be `id`), for
+-- Config.sellOf coins. Returns why not, or nil and tells the player what it paid
+local function sell(tank: Tank, where: string, a: any, b: any): string?
+	local id: string, size: string, variant: string
+	if where == "Tank" and type(a) == "string" then
+		local entry = find(tank, a)
+		local index = if entry then table.find(tank.Fish, entry) else nil
+		if not entry or not index then
+			return "Gone"
+		end
+		if entry.On then
+			return "Equipped" -- (an equipped fish is not for sale: unequip it first; task b2)
+		end
+		table.remove(tank.Fish, index)
+		id, size, variant = entry.Id, entry.Size, entry.Variant
+	elseif where == "Hand" and type(a) == "number" and type(b) == "string" then
+		local c = RideService.carried(tank.Player)[a]
+		if not c or c.Id ~= b then
+			return "Gone"
+		end
+		local taken = RideService.takeCarried(tank.Player, a)
+		if not taken then
+			return "Gone"
+		end
+		id, size, variant = taken.Id, taken.Size, taken.Variant
+	else
+		return "Gone"
+	end
+	local kind = Config.FishById[id]
+	local coins = if kind then Config.sellOf(kind, size, variant) else 0
+	tank.Coins += coins
+	changed(tank)
+	tellHands(tank)
+	refreshHeld(tank.Player) -- (put away at once if it was the held one)
+	Net.Ride:FireClient(tank.Player, "Sold", id, coins)
+	return nil
+end
+
+-- The next stage of the plot, bought at its sign (task b1). Returns why not, or nil when bought
+local function upgrade(tank: Tank): string?
+	local p = Config.PlotUpgrades
+	local player = tank.Player
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not root or not root:IsA("BasePart") or not humanoid or humanoid.Health <= 0 then
+		return "Dead"
+	end
+	if player:GetAttribute("TankRide") ~= nil then
+		return "Busy" -- (riding a fish in the tank that would grow round them: get off first)
+	end
+	local board = part(tank.Plot, "PlotBoard")
+	local gap = if board then ((board.Position - root.Position) * Vector3.new(1, 0, 1)).Magnitude else math.huge
+	if RideService.stateOf(player) ~= "Dock" or gap > p.SignNear then
+		return "Near"
+	end
+	if tank.Stage >= #p.Stages then
+		return "Top"
+	end
+	local price = p.Stages[tank.Stage + 1].Price
+	if p.Free ~= 1 then
+		if price ~= price or price < 0 or tank.Coins < price then
+			return "Coins"
+		end
+		tank.Coins -= price
+	end
+	tank.Stage += 1
+	-- (the numbers and the sign at once; the fish are laid out again in the taller water when it has grown)
+	count(tank)
+	tell(tank)
+	sign(tank.Plot, tank)
+	heighten(tank.Plot, tank.Stage, true, function()
+		if tanks[player] == tank then
+			show(tank)
+		end
+	end)
+	Net.Ride:FireClient(player, "PlotUp", tank.Stage)
 	return nil
 end
 
@@ -582,6 +813,7 @@ local function join(player: Player)
 				Fish = {},
 				Coins = 0,
 				Income = 0,
+				Stage = 0,
 				Made = 0,
 				Hands = "",
 				Shown = nil,
@@ -608,6 +840,7 @@ local function leave(player: Player)
 		tank.Shown:Destroy()
 	end
 	tank.Plot:SetAttribute("Owner", nil)
+	heighten(tank.Plot, 0, false) -- (the next owner starts with the map's tank)
 	sign(tank.Plot, nil)
 end
 
@@ -712,10 +945,54 @@ AquariumService.putAway = function(player: Player)
 	putAway(player)
 end
 
+-- Config was tuned live (the sandbox panel): every tank's fish are counted again, so a stocked tank pays by the new
+-- numbers from its next payout, not only after its next change (grade issue 3). The fish in the water are only rebuilt
+-- when which ones earn changed
+function AquariumService.retune()
+	for _, tank in tanks do
+		local before = tank.Income
+		local earning: { [Entry]: boolean } = {}
+		for _, f in tank.Fish do
+			earning[f] = f.On
+		end
+		count(tank)
+		local moved = false
+		for _, f in tank.Fish do
+			if earning[f] ~= f.On then
+				moved = true
+				break
+			end
+		end
+		tell(tank)
+		if moved then
+			show(tank)
+		end
+		if moved or tank.Income ~= before then
+			sign(tank.Plot, tank)
+		end
+	end
+end
+
 -- Studio and other services: what a player's tank holds (nil with no tank)
 function AquariumService.tankOf(player: Player): { Entry }?
 	local tank = tanks[player]
 	return if tank then tank.Fish else nil
+end
+
+-- The plot's stage (0 with no tank), and how many of a player's fish may be equipped at once
+function AquariumService.stageOf(player: Player): number
+	local tank = tanks[player]
+	return if tank then tank.Stage else 0
+end
+
+function AquariumService.earningOf(player: Player): number
+	return Config.earningOf(AquariumService.stageOf(player))
+end
+
+-- Selling for another service (a sell stall): as Action "Sell" does, without the remote. Returns why not, or nil
+function AquariumService.sell(player: Player, where: string, a: any, b: any): string?
+	local tank = tanks[player]
+	return if tank then sell(tank, where, a, b) else "Gone"
 end
 
 -- What a player has to spend (0 with no tank), and spending it: false, and nothing taken, when they haven't enough
@@ -770,6 +1047,12 @@ local function startHolding()
 		lastHold[player] = now
 		if index ~= 0 and (type(id) ~= "string" or RideService.stateOf(player) ~= "Dock") then
 			Net.Ride:FireClient(player, "Denied", "Hold", "Far")
+			return
+		end
+		-- (seated on the seahorse trainer or riding a fish in the tank: those own the body's pose, so no fish goes up
+		-- over the head; get off first: grade issue 6)
+		if index ~= 0 and (player:GetAttribute("TrainerRide") ~= nil or player:GetAttribute("TankRide") ~= nil) then
+			Net.Ride:FireClient(player, "Denied", "Hold", "Seated")
 			return
 		end
 		hold(player, index, if type(id) == "string" then id else "")
@@ -830,6 +1113,11 @@ function AquariumService.Init()
 	end)
 	for _, plot in plots do
 		sign(plot, nil)
+		remember(plot)
+		local _, way = frontOf(plot)
+		if way then
+			plotSign(plot, way)
+		end
 	end
 	RideService.Keeps = function(player: Player): boolean
 		return tanks[player] ~= nil
@@ -889,6 +1177,8 @@ function AquariumService.Start()
 			if not place(tank, a, b) then
 				why = "Gone"
 			end
+		elseif verb == "TakeOut" and type(a) == "string" then
+			why = takeOut(tank, a)
 		elseif verb == "PutAll" then
 			-- the newest first, so each index still names the fish it did
 			for i = #RideService.carried(player), 1, -1 do
@@ -902,9 +1192,46 @@ function AquariumService.Start()
 			Net.Ride:FireClient(player, "TankDenied", why)
 		end
 	end)
+	-- selling (Action "Sell", "Tank", key | "Hand", index, id): anywhere on the dock, ten a second at most
+	local lastSell: { [Player]: number } = {}
+	Net.Action.OnServerEvent:Connect(function(player: Player, action: any, where: any, a: any, b: any)
+		if action ~= "Sell" or type(where) ~= "string" then
+			return
+		end
+		local tank = tanks[player]
+		local now = os.clock()
+		if not tank or now - (lastSell[player] or 0) < 0.1 then
+			return
+		end
+		lastSell[player] = now
+		local why = if RideService.stateOf(player) ~= "Dock" then "Far" else sell(tank, where, a, b)
+		if why then
+			Net.Ride:FireClient(player, "TankDenied", why)
+		end
+	end)
+	-- the plot's next stage (Action "Plot", "Up": the cash block of the plot's sign, Client.UI.UpgradeSign); one ask in
+	-- PlotUpgrades.UpAgain, so a double click buys one stage
+	local lastUp: { [Player]: number } = {}
+	Net.Action.OnServerEvent:Connect(function(player: Player, action: any, verb: any)
+		if action ~= "Plot" or verb ~= "Up" or Config.PlotUpgrades.On == 0 then
+			return
+		end
+		local tank = tanks[player]
+		local now = os.clock()
+		if not tank or now - (lastUp[player] or -math.huge) < Config.PlotUpgrades.UpAgain then
+			return
+		end
+		lastUp[player] = now
+		local why = upgrade(tank)
+		if why then
+			Net.Ride:FireClient(player, "PlotNo", why)
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		lastPlace[player] = nil
 		lastAsk[player] = nil
+		lastSell[player] = nil
+		lastUp[player] = nil
 	end)
 	Players.PlayerAdded:Connect(join)
 	Players.PlayerRemoving:Connect(leave)

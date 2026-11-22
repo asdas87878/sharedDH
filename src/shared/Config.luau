@@ -813,10 +813,18 @@ Config.Tame = {
 
 -- The aquarium (the user, 2026-11-16: "catches are for depositing in your aquarium, in which they then earn money").
 -- AquariumService; docs/design/aquarium.md. Every number here is Claude's first go.
+-- Since 2026-11-22 (Hugo, task b1): the tank is the player's whole inventory and has NO limit; a fish is put in
+-- (deposited) and taken out again through the tank's popup, and any fish, in the tank or in the hands, can be sold.
+-- Depositing is not equipping: only EQUIPPED fish earn and swim in the tank, and how many may be equipped is Earning
+-- plus what the plot's stage adds (Config.PlotUpgrades, Config.earningOf): nothing else changes it.
 Config.Aquarium = {
 	On = 1, -- 0: no aquariums: a catch is only counted at the dock, as before
-	Earning = 7, -- how many of a tank's fish earn at once: the best ones (the reference's pen: 7 active)
-	Hold = 60, -- the most fish a tank keeps; past it the poorest are let go
+	Earning = 7, -- how many of a tank's fish may be equipped (earn) on a plot not yet upgraded (the reference's pen: 7)
+	Hold = 0, -- the most fish a tank keeps, the poorest stored ones let go past it; 0: no limit (Hugo: unlimited)
+	AutoEquip = 1, -- 1: a fish put in takes a free earning place by itself; 0: it is always stored until equipped by hand
+	-- What a fish sells for: this many seconds of what it would earn (Config.sellOf), at least 1 coin. PROPOSED (b1):
+	-- a Normal plain Clownfish 120 coins, a Normal plain Kraken 67,500.
+	SellSeconds = 60,
 	-- What a fish earns: coins a second for each Oxygen that fish needs (Config.requiredOf: its kind, rarity, size and
 	-- colour, never its land), with nothing more for size or colour on top (task e1, the plan's option C default; the
 	-- colour's own 1.5 / 3 / 10 went then: a Rainbow earns twice a plain one, as it needs twice). A Normal plain
@@ -824,34 +832,90 @@ Config.Aquarium = {
 	PerRequired = 0.025,
 	Every = 1, -- seconds between payments
 	HomeAtTank = 1, -- 1: a player carrying fish wakes on the dock in front of their own tank; 0: at the dock's spawn
-	-- the earning fish, shown swimming in the tank: how many, and how long each is shown (a share of its own length,
-	-- between two lengths, so a Tiny shows and a Colossal fits)
-	Show = 7,
-	ShowShare = 0.7,
-	ShowLeast = 7,
-	ShowMost = 28,
+	-- the earning fish, shown swimming in the tank: how many at most (every equipped one of a fully upgraded plot:
+	-- 7 + 5 x 2), and how long each is shown (a share of its own length, between two lengths). Since task b4 (Hugo,
+	-- 2026-11-22: "fishes are too small in the tank, make sure they retain their original size even if they clip
+	-- through") a tank's fish is its real size, its kind's BaseScale and its rolled size in, as in the sea: a big
+	-- one goes through the glass. (It was 0.7 of its length, between 7 and 28 studs.)
+	Show = 17,
+	ShowShare = 1,
+	ShowLeast = 0,
+	ShowMost = 1000,
 	SwimPace = 5, -- studs a second round its lap
 	SeeFrom = 450, -- a client moves a tank's fish only when its camera is this near
 }
 
+-- Plot upgrades (Hugo, 2026-11-22, task b1): a second sign, in the seahorse sign's own style (UI.UpgradeSign), stands
+-- in front of the far-left end of each tank's front and sells the plot's stages. A plot starts at stage 0; each stage
+-- bought makes the tank Taller studs taller and lets Slots more fish be equipped (earn) at once. The inventory itself
+-- has no limit at any stage. AquariumService decides and charges (Action "Plot", "Up"); the player's "PlotStage"
+-- attribute is the stage. For the session only: no saves yet.
+-- !! PROPOSED numbers (b1), Hugo's to change: the prices are coins, times ten a stage, the first within the first
+-- few dives (seven Shallows fish earn about 15 to 20 a second, and a spare Clownfish sells for 120).
+Config.PlotUpgrades = {
+	On = 1, -- 0: no plot upgrades, no sign
+	Slots = 2, -- more fish equipped at once, for each stage
+	Taller = 3, -- studs the tank's water, posts and rim rise, for each stage (the water is 14 to 20 high at stage 0, by plot)
+	Grow = 0.6, -- seconds the tank takes to grow when a stage is bought
+	Stages = {
+		{ Price = 500 }, -- stage 1: 9 equipped
+		{ Price = 5000 }, -- 2: 11
+		{ Price = 50000 }, -- 3: 13
+		{ Price = 500000 }, -- 4: 15
+		{ Price = 5000000 }, -- 5: 17
+	} :: { { Price: number } },
+	Free = 0, -- 1: every stage costs nothing (for trying it; the price is still shown)
+	-- The stage's price in Robux, shown on the sign beside the cash price exactly as the seahorse's sign shows its
+	-- own (Train.Robux). !! PLACEHOLDERS, shown only: there is no developer product, nothing can be bought with them.
+	-- Index = the stage bought; 0 or missing = no Robux block on the sign.
+	Robux = { 29, 59, 99, 199, 399 } :: { number },
+	SignNear = 14, -- studs from the sign's board (flat) inside which its owner can buy (a click on the cash block)
+	UpAgain = 0.5, -- seconds after an ask in which another is ignored (a double click buys one stage)
+	-- The sign: the seahorse sign's board and post (Train.Sign's sizes), standing in front of the far-left end of the
+	-- tank's front as you face the tank. AquariumService puts the parts PlotBoard and PlotPost there when the map has
+	-- none. Inset: the board's left edge in from the tank's left corner; Ahead: its face in front of the tank's front.
+	Sign = {
+		Inset = 0.6,
+		Ahead = 7,
+		Wide = 10.8,
+		High = 6.48,
+		Foot = 2.4,
+		Post = 0.9,
+		Thick = 0.5,
+		PixelsPerStud = 50,
+		Far = 160,
+	},
+}
+
 -- Riding a fish in your own tank (Hugo, 2026-11-20, task k1: "make fishes in the tank rideable (in the tank)"):
--- practice, nothing at stake. The tank's E prompt (with empty hands) puts you on the fish nearest you; you ride it
--- round inside the water and SPACE gets you off, on the floor in front of the tank. No Oxygen, no fail, no taming,
--- no catch: you stay on the dock as far as the game is concerned. Only the tank's owner rides its fish. The rider's
--- machine moves the fish (TankRideController), kept inside the water; the server pulls it back if it is ever further
--- out than Slack (TankRideService). The steering is the dive's: always forward, A and D turn (the view with you),
--- and the fish follows the way the camera looks, up and down too.
+-- practice, nothing at stake. No Oxygen, no fail, no taming, no catch: you stay on the dock as far as the game is
+-- concerned. Only the tank's owner rides its fish. The rider's machine moves the fish (TankRideController); the
+-- server pulls it back if the rider is ever further out of the water than Slack (TankRideService).
+-- Since task b4 (Hugo, 2026-11-22: "make player be able to swim on the fish in the aquarium without oxygen limit
+-- while being in full control. This should be done by holding E for a little second while looking at desired
+-- fish"): look at a fish in your tank and hold E for Hold seconds (a ring fills on it) to get on; E again gets off.
+-- Full control: W swims forward, S backs, nothing held floats on the spot; A and D turn (the view with you) and the
+-- fish follows the way the camera looks, up and down too. The fish keeps its real size, so it is the RIDER who is
+-- kept inside the water: a big fish goes through the glass, the sand and the surface. The tank's fish, ridden or
+-- not, swim with the sea's own keyed swim.
 Config.TankRide = {
 	On = 1, -- 0: tank fish can't be ridden
-	Speed = 16, -- studs a second, forward
+	Hold = 0.5, -- seconds E is held on the fish looked at to get on
+	Aim = 3, -- studs: how near the look (the mouse, or the middle of the screen) must pass a fish's body to pick it
+	Reach = 44, -- studs from the tank's water within which its fish can be picked (the server: 48)
+	Speed = 16, -- studs a second, forward (W, or the stick)
+	Back = 0.5, -- backing (S): this share of Speed
+	Ease = 5, -- how quickly it comes up to speed and stops (a higher number: sooner)
 	Turn = 110, -- degrees a second A and D turn
 	Follow = 4, -- how quickly the fish comes round to the way the camera looks
 	Level = 14, -- degrees: the camera's usual look down counts as level (Roblox's camera looks down a little)
 	Climb = 40, -- the steepest it climbs or dives, degrees
-	Margin = 1.5, -- studs kept between the fish and the glass, the sand and the surface
-	Least = 9, -- a ridden fish is shown at least this long (studs), so there is a back to sit on,
-	Most = 18, -- and at most this long, so it can still turn in the tank
-	Slack = 6, -- studs past the water's edge before the server pulls the fish back
+	Margin = 1.5, -- studs kept between the rider's seat and the glass, the sand and the surface
+	Slack = 6, -- studs past that before the server pulls the fish back
+	View = 1.1, -- the camera stays at least this share of the fish's length away (so it is outside a giant),
+	ViewMost = 90, -- but never further than this (studs)
+	Bob = 0.3, -- studs the fish rises and sinks while it floats on the spot (none at full speed)
+	Swim = 1, -- 1: the tank's fish swim with the sea's keyed swim (their joints move); 0: stiff, as before b4
 }
 
 -- Angry mode (Hugo, 2026-11-12: "make the fishes pulse red and go into angry mode ... different fishes should have
@@ -942,6 +1006,15 @@ Config.Equip = {
 	-- the land fish's length at most (studs; 0: its own size, the plan's default: a Colossal whale is huge in the hub)
 	LandMost = 0,
 	Again = 0.15, -- seconds between two asks the server takes from one player
+	-- the server's check of the pace on the land fish (grade issue 7): every CheckEvery seconds the ground covered may
+	-- be LandSpeed x PaceRoom a second plus PaceSlack studs; more, and the rider is put back where they last stood
+	CheckEvery = 1,
+	PaceRoom = 1.5,
+	PaceSlack = 12,
+	-- the camera on a big land fish (grade issue 8, EquipController): no closer than this x the fish's largest side,
+	-- and that never more than CameraMost studs
+	CameraFrom = 0.9,
+	CameraMost = 250,
 }
 
 -- Riding the equipped fish on land (task e4, docs/design/land-motion.md): each body type moves in its own way, all of it
@@ -962,6 +1035,13 @@ Config.LandRide = {
 	IdleFin = 6, -- and the fins and limbs stirring, degrees
 	TurnRoll = 0.12, -- leaning into a turn, degrees of roll for each degree a second of turning
 	TurnRollMax = 10, -- at most
+	-- The floor under it (grade issue 7, AnimController's groundFit): tilted to the floor's slope from nose to tail, at
+	-- most GroundTilt degrees; lifted when its nose, middle or tail would sink into a step, at most GroundLift x its
+	-- height; eased (GroundBlend, higher: quicker); the floor looked at every GroundEvery seconds. 0, 0: no fitting
+	GroundTilt = 18,
+	GroundLift = 0.6,
+	GroundBlend = 8,
+	GroundEvery = 0.1,
 	TurnLead = 0.05, -- the head chain leads into a turn by this, the tail chain trails
 	-- The body types. Every field not given is the Base one. Body: Hop (studs, an arc each hop, HopPer a stride,
 	-- HopPhase), Heave (a smooth rise on the hop's rhythm), Pitch (nose up, on the hop's rhythm, PitchPhase), Roll,
@@ -1710,6 +1790,18 @@ Config.Jump = {
 	Buffer = 0.2, -- seconds (0: dropped, as before)
 	Slack = 0.6, -- the server waits this long past the window and the pull-in for the landing (lag)
 	LandSlack = 20, -- allows the landing this many studs wider; never widens GrabRange (it sees the player a moment late)
+	-- The fast fish that threw you off (Hugo, 2026-11-22, task b3: "when you hop onto a fish that is too fast and passes
+	-- you too quickly, it kicks you off"). The cause, measured (tools/studio/hook_b3): the server believed a landing only
+	-- within half the fish's length + 2 x LandSlack of the fish (45 studs for a small one), but it sees the rider behind
+	-- a moving fish by the fish's speed x 0.2 to 0.3 s (in Studio; more with a real connection), for as long as they
+	-- sit on it. So no fish over about 180 studs a second could be landed on at all (the deep lands' fast ones swim
+	-- 220 to 280): the rider was held on the saddle for LandWait, refused, and dropped back into the hop. 0 of 8 landed
+	-- at 220 and 280. LandLag is the fix; the slow-down below is the small help Hugo asked for on top.
+	LandLag = 0.4, -- seconds: the landing is believed this much further from the fish, times the fish's speed, and the grab's range check reaches that much further too (0: as before)
+	FastEase = 0.92, -- a fast wild fish swims at this share of its speed while it is within FastEaseNear of a player in the hop, or kept for a hop's pull-in (1: never slowed). Small on purpose: it is not what makes the hook land
+	FastEaseOver = 150, -- only a fish wanting more than this, studs a second (land 1's fastest swim about 105: untouched), and never slowed to under it
+	FastEaseNear = 110, -- studs from the hopping player (the hook's longest reach is GrabRange, 95)
+	FastEaseRate = 0.35, -- how fast that share comes and goes, a second (the whole of it in about a quarter second)
 	-- (Hugo, 2026-11-11: the camera felt forced. The view is no longer tilted for you in the hop: it stays where you
 	-- have it. Camera.AirRest 1 gives the tilt to CameraPitch back, for as long as you don't move the view.)
 	CameraPitch = -30, -- with Camera.AirRest on: where the view rests in the hop, looking down on the herd
@@ -2479,6 +2571,11 @@ Config.Death = {
 --   Pin    a crawler dives to the floor and pins you under it
 Config.Fail = {
 	On = 1, -- 0: every fish throws you off at once (the old out of Oxygen)
+	-- the words on the fail screen (task b5, the Slam band: Kit.failWords, FailController): the plain run-out's, and the
+	-- small line under any of them when the dive's catch comes home with you. An outcome's own are its Text below; a
+	-- "Throw" ending shows its Text in place of Breath
+	Breath = "OUT OF BREATH!",
+	Safe = "YOUR CATCH IS SAFE",
 	-- these tiers only ever throw you off (Hugo: "give low-tier fishes just the throwing off")
 	LowTiers = { Common = true, Uncommon = true } :: { [string]: boolean },
 	-- (task f3, 2026-11-19: longer, so each reads in full; Loose: seconds in that the rider comes off the fish, a real
@@ -2486,14 +2583,14 @@ Config.Fail = {
 	-- stylua: ignore
 	Outcomes = {
 		--         seconds held  loose          how it ends       on the fail screen         placeholder sound   for the real ones
-		Throw = { Time = 0,   Loose = 0,    End = "Throw", Text = "",              Sound = "Splash", Hook = "FailThrow" },
+		Throw = { Time = 0,   Loose = 0,    End = "Throw", Text = "THROWN OFF!",   Sound = "Splash", Hook = "FailThrow" },
 		Chomp = { Time = 2.3, Loose = 0.35, End = "Taken", Text = "EATEN!",        Sound = "Chomp",  Hook = "FailChomp" },
 		Gulp  = { Time = 2.5, Loose = 0.95, End = "Taken", Text = "GULPED!",       Sound = "Chomp",  Hook = "FailGulp" },
 		Wrap  = { Time = 3.0, Loose = 0.25, End = "Taken", Text = "DRAGGED DOWN!", Sound = "Rumble", Hook = "FailWrap" },
-		Roll  = { Time = 1.7, Loose = 0.6,  End = "Throw", Text = "",              Sound = "Splash", Hook = "FailRoll" },
-		Flip  = { Time = 1.5, Loose = 0.6,  End = "Throw", Text = "",              Sound = "Splash", Hook = "FailFlip" },
-		Shell = { Time = 1.6, Loose = 1.05, End = "Throw", Text = "",              Sound = "Pop",    Hook = "FailShell" },
-		Coil  = { Time = 1.9, Loose = 0.2,  End = "Throw", Text = "",              Sound = "Rumble", Hook = "FailCoil" },
+		Roll  = { Time = 1.7, Loose = 0.6,  End = "Throw", Text = "ROLLED OFF!",   Sound = "Splash", Hook = "FailRoll" },
+		Flip  = { Time = 1.5, Loose = 0.6,  End = "Throw", Text = "FLIPPED OFF!",  Sound = "Splash", Hook = "FailFlip" },
+		Shell = { Time = 1.6, Loose = 1.05, End = "Throw", Text = "SHAKEN OFF!",   Sound = "Pop",    Hook = "FailShell" },
+		Coil  = { Time = 1.9, Loose = 0.2,  End = "Throw", Text = "FLUNG OFF!",    Sound = "Rumble", Hook = "FailCoil" },
 		Pin   = { Time = 2.4, Loose = 0.45, End = "Taken", Text = "PINNED!",       Sound = "Rumble", Hook = "FailPin" },
 	} :: { [string]: { Time: number, Loose: number, End: string, Text: string, Sound: string, Hook: string } },
 	-- The rider comes off as a real Roblox ragdoll (Hugo, 2026-11-19: "THROW the player FURTHER, and make him RAGDOLL
@@ -3575,6 +3672,19 @@ end
 -- colour are already in it, so they are not counted again) x PerRequired (task e1, the plan's option C default)
 function Config.incomeOf(fish: FishType, sizeTier: string, variant: string): number
 	return Config.requiredOf(fish, sizeTier, variant) * Config.Aquarium.PerRequired
+end
+
+-- What a fish sells for, whole coins (Aquarium.SellSeconds of what it earns, at least 1): the server pays by this
+-- and the popup shows it
+function Config.sellOf(fish: FishType, sizeTier: string, variant: string): number
+	return math.max(1, math.floor(Config.incomeOf(fish, sizeTier, variant) * Config.Aquarium.SellSeconds + 0.5))
+end
+
+-- How many fish a plot at this stage may have equipped (earning) at once (Config.PlotUpgrades)
+function Config.earningOf(stage: number?): number
+	local p = Config.PlotUpgrades
+	local s = if p.On == 0 then 0 else math.clamp(math.floor(stage or 0), 0, #p.Stages)
+	return Config.Aquarium.Earning + p.Slots * s
 end
 
 -- Training in whole seconds (task e1): `carry` seconds seated so far that have not made a whole one, `dt` more. Returns

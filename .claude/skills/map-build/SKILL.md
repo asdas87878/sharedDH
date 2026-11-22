@@ -1,6 +1,6 @@
 ---
 name: map-build
-description: Ride a Fish's map: the grey-box generator (tools/map/greybox.py), the Studio loader, walls, floors, squares and studs, props, the hub, the water, the far view, and the user's rules for all of them. Load it before any map, hub, prop, water or blockout work, and before reviewing or answering questions about how the map is built.
+description: "Ride a Fish's map: the grey-box generator (tools/map/greybox.py), the Studio loader, walls, floors, squares and studs, props, the hub, the water, the far view, and the user's rules for all of them. Load it before any map, hub, prop, water or blockout work, and before reviewing or answering questions about how the map is built."
 ---
 
 # The map (rules and tools)

@@ -26,3 +26,5 @@ art/map/hub_looks/
 # shared repo, as art/map/hub_looks is; their renders, sheets and specs are kept)
 art/map/**/parts.json
 !art/map/greybox/parts.json
+# each PC's own Claude settings (the shared ones are .claude/settings.json)
+.claude/settings.local.json

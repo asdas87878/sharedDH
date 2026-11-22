@@ -1,0 +1,47 @@
+{
+ "id": "KelpCruiser",
+ "name": "Kelp Cruiser",
+ "tier": 3,
+ "units": "studs",
+ "triangles": 616,
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the nose)",
+  "right": "+X"
+ },
+ "origin": "the sub's middle (the game's pivot)",
+ "seatTop": [
+  0,
+  5.7,
+  5
+ ],
+ "parts": [
+  "Hull",
+  "Hull_Glow",
+  "Light",
+  "Prop",
+  "Seat"
+ ],
+ "glowParts": [
+  "Hull_Glow",
+  "Light"
+ ],
+ "spins": "Prop (about Z, its box centred on the hub)",
+ "colours": {
+  "hull": [
+   70,
+   200,
+   90
+  ],
+  "trim": [
+   24,
+   70,
+   40
+  ],
+  "light": [
+   200,
+   255,
+   140
+  ]
+ }
+}

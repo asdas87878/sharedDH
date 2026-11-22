@@ -61,6 +61,10 @@ RS:GetAttributeChangedSignal("C1Cmd"):Connect(function()
 			end
 			player.Character:PivotTo(spot + Vector3.new(0, 3, 0))
 			return "front of " .. plot.Name
+		elseif verb == "spawn" then
+			local spawn = workspace.ClaudeBlockout.Dock.DockSpawn
+			player.Character:PivotTo(CFrame.new(spawn.Position + Vector3.new(0, 4, 0)) * CFrame.Angles(0, math.rad(180), 0))
+			return "at spawn"
 		elseif verb == "state" then
 			local list = player:GetAttribute("TankList") or "[]"
 			return string.format("state=%s hands=%d tank=%d held=%s eq=%s",
@@ -128,7 +132,7 @@ workspace:GetAttributeChangedSignal("C1Do"):Connect(function()
 		if w and root then
 			local way = (root.Position - w.Position) * Vector3.new(1, 0, 1)
 			camera.CameraType = Enum.CameraType.Scriptable
-			camera.CFrame = CFrame.lookAt(root.Position + way.Unit * 30 + Vector3.new(0, 14, 0), w.Position)
+			camera.CFrame = CFrame.lookAt(root.Position + way.Unit * 55 + Vector3.new(0, 26, 0), w.Position)
 			said = "cam set"
 		end
 	elseif verb == "free" then
@@ -143,7 +147,7 @@ workspace:GetAttributeChangedSignal("C1Do"):Connect(function()
 		local on, parts = TankPanel.outlined()
 		local hl = player.PlayerGui:FindFirstChild("TankHover")
 		said = string.format("outlined=%s parts=%d fill=%s colour=%s", tostring(on), parts,
-			tostring(hl and hl.FillTransparency), tostring(hl and hl.OutlineColor))
+			tostring(hl and hl.SurfaceTransparency), tostring(hl and hl.Color3))
 	elseif verb == "off" then
 		TankPanel.pretendMouse(Vector2.new(20, camera.ViewportSize.Y / 2))
 		task.wait(0.4)
@@ -176,6 +180,15 @@ workspace:GetAttributeChangedSignal("C1Do"):Connect(function()
 		local hit = TankPanel.click(s.X, s.Y)
 		task.wait(0.6)
 		said = string.format("hit=%s open=%s", tostring(hit), tostring(TankPanel.isOpen()))
+	elseif verb == "putin" then
+		-- the popup's PUT IN on the first carried fish (its card's button sends just this)
+		local Net = require(RS.Shared.Net)
+		local hands = game:GetService("HttpService"):JSONDecode(player:GetAttribute("Hands") or "[]")
+		if hands[1] then
+			Net.Action:FireServer("Tank", "PutIn", 1, hands[1][1])
+		end
+		task.wait(1.5)
+		said = "put in " .. tostring(hands[1] and hands[1][1])
 	elseif verb == "close" then
 		TankPanel.toggle(false)
 		said = "open=" .. tostring(TankPanel.isOpen())
@@ -193,6 +206,15 @@ workspace:GetAttributeChangedSignal("C1Do"):Connect(function()
 		said = "key " .. a
 	elseif verb == "ui" then
 		said = hotbar()
+	elseif verb == "log" then
+		-- the client's errors and warnings so far (a client error never reaches the server's log)
+		local out = {}
+		for _, e in game:GetService("LogService"):GetLogHistory() do
+			if e.messageType == Enum.MessageType.MessageError or e.messageType == Enum.MessageType.MessageWarning then
+				table.insert(out, (string.gsub(e.message, "%s+", " ")))
+			end
+		end
+		said = "view=" .. tostring(workspace.CurrentCamera.ViewportSize) .. " caught=" .. tostring(#(require(Client.Lib.State).Caught or {})) .. " log: " .. table.concat(out, " || ", math.max(1, #out - 12))
 	elseif verb == "phone" then
 		Slots.place(a == "on")
 		task.wait(0.2)
@@ -328,11 +350,13 @@ def check():
 
     # --- the hotbar
     note("clear: " + cmd("clear"))
-    note("front: " + cmd("front", 1.2))
+    note("spawn: " + cmd("spawn", 1.2))
     u = do("ui")
     note("ui: " + u)
     expect("seven numbered slots, keys 1-7", kv(u, "numbered") == "7" and kv(u, "keys") == "1234567", u)
-    expect("the row is the pre-e3 width (7 x 46 + 6 x 10 = 382) and centred", kv(u, "rowW") == "382" and abs(float(kv(u, "rowMidOff"))) <= 1, u)
+    # (the HUD is scaled to the screen: widths are compared with the slot's own, 7 x 46 + 6 x 10 = 382 points)
+    expect("the row is centred on the screen", abs(float(kv(u, "rowMidOff"))) <= 1, u)
+    desk_w = int(kv(u, "rowW"))
     expect("the Q slot stands left of the row, outside it", int(kv(u, "eqRight")) < int(kv(u, "rowLeft")), u)
     expect("the Q slot's hint fits and is on screen", kv(u, "hintFits") == "true" and int(kv(u, "hintLeft")) >= 0, u)
     hotbar("empty")
@@ -351,8 +375,8 @@ def check():
     hotbar("equipped")
     u = do("phone|on")
     note("phone: " + u)
-    expect("phone: row 7 x 34 + 6 x 8 = 286, centred; Q left of it; hint fits",
-           kv(u, "rowW") == "286" and abs(float(kv(u, "rowMidOff"))) <= 1 and int(kv(u, "eqRight")) < int(kv(u, "rowLeft")) and kv(u, "hintFits") == "true", u)
+    expect("phone: row 286 points wide against the keyboard's 382 (as before e3), centred; Q left of it; hint fits",
+           abs(int(kv(u, "rowW")) / desk_w - 286 / 382) < 0.01 and abs(float(kv(u, "rowMidOff"))) <= 1 and int(kv(u, "eqRight")) < int(kv(u, "rowLeft")) and kv(u, "hintFits") == "true", u)
     hotbar("phone")
     do("phone|off")
     do("key|Q", 2.0)  # (off the land fish again)
@@ -372,6 +396,11 @@ def check():
     note("hover: " + h)
     expect("hovered: the whole tank outlined, no fill", kv(h, "outlined") == "true" and int(kv(h, "parts")) > 5 and kv(h, "fill") == "1", h)
     scene("tank-hover")
+    note("putin: " + do("putin", 2.5))
+    s = cmd("state")
+    expect("the popup's PUT IN puts a carried fish in (server)", kv(s, "tank") == "1" and kv(s, "hands") == "2", s)
+    note("front: " + cmd("front", 1.2))
+    do("cam")
     s0 = cmd("state")
     c = do("click", 1.6)
     s1 = cmd("state")
@@ -400,7 +429,9 @@ def check():
 
 if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "run"
-    if what == "install":
+    if what == "log":
+        print(do("log", 2.0))
+    elif what == "install":
         print(install())
     elif what == "remove":
         print(install(remove=True))

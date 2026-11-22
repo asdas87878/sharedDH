@@ -14,6 +14,11 @@ the player about every 0.5 s."
 > starts again at the new level on an upgrade. One "+n" pop a second (whole, `Config.wholeNumber`), and the upgrade
 > sign's "+4 > +6 Oxygen/s" is whole too. Live in a playtest: level 1, 100 to 160 in 15 s, +4 each second.
 > ![the seahorse at level 1](../attachments/e1-seahorse-level.jpg)
+>
+> **The edges (2026-11-22, grade issue 2):** the seated time is counted from the moment of sitting (never from the look
+> before), and settled up to the very moment of an upgrade (at the old level), of asking to get off and of dying
+> (TrainService `settle`, `Rider.Since`); only then is the part of a second dropped. Lost to the water or a broken seat,
+> it is counted to the last look (0.1 s). The old stand-in pad counts from the first look it sees you on it.
 
 ## What it is now
 - **The toy:** the game's own Seahorse (the kit's `Toy`, as before) on a short grey coil, 4.2 studs from the pad to its

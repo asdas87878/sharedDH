@@ -1,6 +1,6 @@
 ---
 name: creature-builder
-description: Builds or fixes one Ride a Fish creature in the voxel kit, following the creature brief and the user's building rules, and runs the gate until it passes. Use it for batch builds (one builder per creature, several at once) or a single model fix, while the main chat keeps the art direction and judges the results. Give it the creature, its roster line or concept, and anything the user said about it.
+description: "Builds or fixes one Ride a Fish creature in the voxel kit, following the creature brief and the user's building rules, and runs the gate until it passes. Use it for batch builds (one builder per creature, several at once) or a single model fix, while the main chat keeps the art direction and judges the results. Give it the creature, its roster line or concept, and anything the user said about it."
 model: inherit
 effort: high
 skills:

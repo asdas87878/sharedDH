@@ -1,6 +1,6 @@
 ---
 name: studio-tester
-description: Runs a Ride a Fish check in Roblox Studio for the main chat (sync the code, play, run a scripted check or a log script, read the console, stop and reset) and reports back pass/fail, numbers and errors in a few lines, keeping console dumps and captures out of the main chat. Use it after a code change that needs a play test, when the main chat holds Studio. Give it the studio id, what changed, and what to check.
+description: "Runs a Ride a Fish check in Roblox Studio for the main chat (sync the code, play, run a scripted check or a log script, read the console, stop and reset) and reports back pass/fail, numbers and errors in a few lines, keeping console dumps and captures out of the main chat. Use it after a code change that needs a play test, when the main chat holds Studio. Give it the studio id, what changed, and what to check."
 model: inherit
 effort: medium
 skills:

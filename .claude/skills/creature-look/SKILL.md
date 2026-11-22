@@ -1,6 +1,6 @@
 ---
 name: creature-look
-description: Ride a Fish's creatures: the voxel kit and the older plan kits, the user's rules for building, joining, scale, anatomy, rarity looks, eyes, studs, textures and variants, batch building, and the export into the game. Load it before designing, building, fixing, reviewing or exporting any creature in art/creatures, or answering how one is made.
+description: "Ride a Fish's creatures: the voxel kit and the older plan kits, the user's rules for building, joining, scale, anatomy, rarity looks, eyes, studs, textures and variants, batch building, and the export into the game. Load it before designing, building, fixing, reviewing or exporting any creature in art/creatures, or answering how one is made."
 ---
 
 # Creatures (rules and tools)

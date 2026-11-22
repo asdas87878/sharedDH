@@ -164,6 +164,16 @@ type LandRig = {
 	pace: number, -- its stride's pace for its size
 	studs: number, -- its hops' and heaves' size for its size
 	calm: number, -- its angles' share for its size
+	-- the ground under it (grade issue 7): the core body's belly and its nose and tail ends in the Root's space, the
+	-- tilt and lift the floor asks for, and those eased
+	belly: number,
+	noseZ: number,
+	tailZ: number,
+	groundNoseWant: number,
+	groundUpWant: number,
+	groundNose: number,
+	groundUp: number,
+	groundAt: number, -- os.clock() of its last look at the floor
 }
 local fishJoints: { [Model]: FishJoints } = setmetatable({}, { __mode = "k" }) :: any
 local landedOn: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- fish -> os.clock() a rider landed on it
@@ -515,7 +525,7 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 		arms = 0,
 		heads = 0,
 		tails = 0,
-		phase = 0,
+		phase = 0, -- (set from the shared clock below)
 		move = 0,
 		at = if model.PrimaryPart then model.PrimaryPart.Position else Vector3.zero,
 		yaw = 0,
@@ -527,7 +537,20 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 		pace = math.clamp((14 / length) ^ style.Slow, cfg.SlowMost, 1.4),
 		studs = math.clamp(length / 14, 0.5, 8) ^ cfg.Heavy,
 		calm = Ease.lerp(1, cfg.BigCalm, Ease.smoothstep(25, 90, length)),
+		belly = -size.Y / 2,
+		noseZ = -length / 2,
+		tailZ = length / 2,
+		groundNoseWant = 0,
+		groundUpWant = 0,
+		groundNose = 0,
+		groundUp = 0,
+		groundAt = -math.huge,
 	}
+	-- a fish first seen mid-walk starts on the shared clock, not at 0 (grade issue 10; landStep)
+	local epoch = model:GetAttribute("LandEpoch")
+	if type(epoch) == "number" then
+		out.phase = (workspace:GetServerTimeNow() - epoch) * TAU * style.Rate * out.pace
+	end
 	local function add(motor: Motor6D?, role: number): LandJoint?
 		if not motor then
 			return nil
@@ -704,6 +727,7 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 		if hi.X > lo.X then
 			local core = hi - lo
 			out.width, out.height, out.long = core.X, core.Y, core.Z
+			out.belly, out.noseZ, out.tailZ = lo.Y, lo.Z, hi.Z
 		end
 	end
 	if isStudio and style.NoLimbs ~= 1 and out.limbs == 0 and not warnedLand[id] then
@@ -717,6 +741,78 @@ local function landRigOf(model: Model, rig: Creatures.Rig?, id: string, j: FishJ
 		)
 	end
 	return out
+end
+
+-- What the floor does under a land fish (grade issue 7). The humanoid walks the ground and the fish hangs from it, so
+-- on a slope, a step or a ledge's edge its nose or tail would sink into the floor or hang in the air: three rays (under
+-- the nose, the middle and the tail; never the fish, the riders or the held fish) give the floor's slope, which the body
+-- tilts to (at most Config.LandRide.GroundTilt degrees), and how far the lowest point would sink, which it is lifted by
+-- (at most GroundLift x its height, so a wall is not climbed). Both are eased (GroundBlend), so a step is a blend, not
+-- a jolt. A ray that finds nothing (past a ledge's edge, over the water) leaves that end as it is.
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Exclude
+groundParams.RespectCanCollide = true
+local groundSkipAt = -math.huge
+local function groundSkip()
+	local now = os.clock()
+	if now - groundSkipAt < 1 then
+		return
+	end
+	groundSkipAt = now
+	local skip: { Instance } = {}
+	for _, name in { "LandFish", "HeldFish", "Fish" } do
+		local folder = workspace:FindFirstChild(name)
+		if folder then
+			table.insert(skip, folder)
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(skip, other.Character)
+		end
+	end
+	groundParams.FilterDescendantsInstances = skip
+end
+
+local function groundFit(L: LandRig, root: BasePart, dt: number, now: number): (number, number)
+	local cfg = Config.LandRide
+	if cfg.GroundTilt <= 0 and cfg.GroundLift <= 0 then
+		return 0, 0
+	end
+	-- (looked at a few times a second; eased every frame)
+	if now - L.groundAt >= cfg.GroundEvery then
+		L.groundAt = now
+		groundSkip()
+		local cf = root.CFrame
+		local reach = L.height * 2 + L.length * 0.5 + 10
+		local function floorAt(z: number): number?
+			local from = cf:PointToWorldSpace(Vector3.new(0, L.height, z))
+			local hit = workspace:Raycast(from, Vector3.new(0, -reach, 0), groundParams)
+			return if hit then hit.Position.Y else nil
+		end
+		local front, middle, back = floorAt(L.noseZ), floorAt(0), floorAt(L.tailZ)
+		local tilt, lift = 0, 0
+		local span = L.tailZ - L.noseZ
+		if front and back and span > 0.5 then
+			-- (nose up when the floor ahead is higher)
+			tilt = math.clamp(math.deg(math.atan2(front - back, span)), -cfg.GroundTilt, cfg.GroundTilt)
+		end
+		-- the belly's ends after that tilt, against the floor under them
+		local belly = cf:PointToWorldSpace(Vector3.new(0, L.belly, 0)).Y
+		local t = math.rad(tilt)
+		for _, at in { { front, L.noseZ }, { middle, 0 }, { back, L.tailZ } } do
+			local floor: number?, z: number = at[1], at[2] :: number
+			if floor then
+				lift = math.max(lift, floor - (belly - z * math.sin(t)))
+			end
+		end
+		L.groundNoseWant = tilt
+		L.groundUpWant = math.clamp(lift, 0, cfg.GroundLift * L.height)
+	end
+	local a = Ease.alpha(cfg.GroundBlend, dt)
+	L.groundNose = Ease.lerp(L.groundNose, L.groundNoseWant, a)
+	L.groundUp = Ease.lerp(L.groundUp, L.groundUpWant, a)
+	return L.groundNose, L.groundUp
 end
 
 -- A land fish's frame: its stride from how fast its rider walks, then every joint from rest, then the body's shift
@@ -735,6 +831,13 @@ local function landStep(
 	local L = j.land :: LandRig
 	local s = L.style
 	local cfg = Config.LandRide
+	-- the stride's shared clock (grade issue 10): from the server's mount time, so every machine that sees this fish
+	-- stands it in the same phase; the walk's own pace then runs it on, and each time it comes to rest (where the stride
+	-- doesn't show) it is set back on the shared clock, so two machines never drift apart for longer than one walk
+	local epoch = model:GetAttribute("LandEpoch")
+	local shared = if type(epoch) == "number"
+		then (workspace:GetServerTimeNow() - epoch) * TAU * s.Rate * L.pace
+		else nil
 	-- its own speed and turn, from where it was (not the physics': it is weightless, welded to the walker)
 	local pos = root.Position
 	local look = root.CFrame.LookVector
@@ -763,6 +866,8 @@ local function landStep(
 		L.phase = clock * TAU * rate
 	elseif amp > 0.001 then
 		L.phase += dt * TAU * rate * Ease.lerp(cfg.Least, 1, move)
+	elseif shared then
+		L.phase = shared
 	end
 	local p = L.phase
 	local isRidden = L.rider ~= 0
@@ -805,6 +910,11 @@ local function landStep(
 			L.length / 2 * math.sin(q) - half * (1 - math.cos(q))
 		))
 	end
+
+	-- the floor under it: tilted to its slope, lifted off a step (grade issue 7)
+	local floorTilt, floorLift = groundFit(L, root, dt, now)
+	nose += floorTilt
+	up += floorLift
 
 	-- every joint from rest
 	local lead = math.clamp(L.turn * cfg.TurnLead, -15, 15)
@@ -908,6 +1018,14 @@ local function animateFish()
 		local isLand = watched.land
 		for model in watched.seen do
 			local root = model.PrimaryPart
+			if isLand and root then
+				-- (its rider is locked to it every frame, also the frames its joints are not moved: they sit on the
+				-- shift it was last given, grade issue 9)
+				local riderId = model:GetAttribute("LandRider")
+				if type(riderId) == "number" and fishJoints[model] then
+					ridden[riderId] = model
+				end
+			end
 			if root then
 				local offset = root.Position - cameraAt
 				local away = offset.Magnitude

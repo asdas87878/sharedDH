@@ -55,6 +55,16 @@ checks. After a refused or lost pull-in, `RehookGuard` prevents an automatic ret
 immediate. A server rejection for an obstacle is still a rejection, and repeated manual presses can ask for another
 fish before any confirmed mount. Those retries must be distinguished from the reproduced after-landing bug.
 
+**Fast fish that threw you off (2026-11-22, task b3).** The landing was believed only within half the fish's length
++ 2 x `LandSlack` of the fish (45 studs for a small one). The server sees a rider behind a moving fish by the fish's
+speed x 0.2 to 0.3 s (Studio; more on a real connection) for as long as they sit on it, so no fish over about 180
+studs a second could be landed on: held on the saddle for `LandWait`, refused, dropped back into the hop. Measured
+with `tools/studio/hook_b3` in land 10: 0 of 8 landed on fish at 220 and 280 before. `Jump.LandLag` (0.4 s) now adds
+the fish's speed x that to the landing's distance and to the grab's range check; after it, all 12 hops with a grab
+on a 202 to 258 fish landed and stayed. On top, a wild fish wanting over `FastEaseOver` (150) swims at `FastEase`
+(0.92) of its speed while within `FastEaseNear` (110 studs) of a player in the hop or kept for a pull-in
+(`FishService.easeFor`; `RideService` tells it who is hopping). Not played by hand.
+
 ### The wall ride
 
 The boundary was already two layers: the map has invisible solid barrier panels, and `Lib/Course` enforces the lane

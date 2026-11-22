@@ -1,6 +1,6 @@
 ---
 name: studio-test
-description: How to drive Roblox Studio for Ride a Fish without wasting time or tokens - taking Studio, syncing src/ into the place, playing, running a scripted check, reading the console, captures, stopping and resetting, and the traps that cost hours before. Load it before any Studio work, and the studio-tester helper preloads it.
+description: "How to drive Roblox Studio for Ride a Fish without wasting time or tokens - taking Studio, syncing src/ into the place, playing, running a scripted check, reading the console, captures, stopping and resetting, and the traps that cost hours before. Load it before any Studio work, and the studio-tester helper preloads it."
 ---
 
 # Driving Studio for Ride a Fish

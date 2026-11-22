@@ -565,12 +565,17 @@ end
 local function standing(spot: BasePart)
 	local training: { [Player]: boolean } = {}
 	local carry: { [Player]: number } = {} -- (the part of a second on it so far: task e1)
+	-- (when the time on it was last counted: a player first seen on it counts from that look, never from the look
+	-- before, when they were not on it yet: grade issue 2)
+	local since: { [Player]: number } = {}
 	Players.PlayerRemoving:Connect(function(player)
 		training[player] = nil
 		carry[player] = nil
+		since[player] = nil
 	end)
 	while true do
-		local dt = task.wait(EVERY)
+		task.wait(EVERY)
+		local now = os.clock()
 		for _, player in Players:GetPlayers() do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -582,10 +587,17 @@ local function standing(spot: BasePart)
 				end
 			end
 			if on then
-				local _, left = gain(player, carry[player] or 0, dt, levelOf(player))
-				carry[player] = left
+				local from = since[player]
+				if from then
+					local _, left = gain(player, carry[player] or 0, now - from, levelOf(player))
+					carry[player] = left
+				else
+					carry[player] = 0
+				end
+				since[player] = now
 			else
 				carry[player] = 0 -- (off it: a part of a second is dropped)
+				since[player] = nil
 			end
 			if training[player] ~= on then
 				training[player] = on
@@ -597,8 +609,18 @@ end
 
 -- (Clear: we have walked away since our last ride, so a walk-up seats us again; Left: we have at least left its top,
 -- so coming down on it seats us)
--- (Carry: the part of a second seated that has not yet made a whole one, task e1)
-type Rider = { Ride: Ride?, OffAt: number, Clear: boolean, Left: boolean, Carry: number }
+-- (Carry: the part of a second seated that has not yet made a whole one, task e1; Since: when the seated time was last
+-- counted, so an upgrade or a getting-off between two looks settles the time up to that moment: grade issue 2;
+-- Died: the seated humanoid's death, which settles and gets off at once)
+type Rider = {
+	Ride: Ride?,
+	OffAt: number,
+	Clear: boolean,
+	Left: boolean,
+	Carry: number,
+	Since: number,
+	Died: RBXScriptConnection?,
+}
 
 local CHECK = 0.1 -- seconds between looks: a walk-up seats you this soon
 
@@ -640,16 +662,42 @@ function TrainService.Start()
 	local function riderOf(player: Player): Rider
 		local r = riders[player]
 		if not r then
-			r = { Ride = nil, OffAt = -math.huge, Clear = true, Left = true, Carry = 0 }
+			r = { Ride = nil, OffAt = -math.huge, Clear = true, Left = true, Carry = 0, Since = os.clock() }
 			riders[player] = r
 		end
 		return r
+	end
+
+	-- Counts the seated time since the last count, at the ride's level, up to now: whole seconds are given, the part
+	-- of a second is kept in Carry (grade issue 2: an upgrade or getting off between two looks settles first)
+	local function settle(player: Player, r: Rider)
+		local ride = r.Ride
+		local now = os.clock()
+		local elapsed = now - r.Since
+		r.Since = now
+		if not ride or elapsed <= 0 then
+			return
+		end
+		local amount, left = gain(player, r.Carry, elapsed, math.max(ride.Level, 1))
+		r.Carry = left
+		if amount > 0 and player.Parent then
+			remote:FireClient(player, "Gain", amount)
+		end
 	end
 
 	local function off(player: Player, r: Rider, reason: string)
 		local ride = r.Ride
 		if not ride then
 			return
+		end
+		-- (asked, or died: the seat was fair up to now; lost to the water or a broken weld, it is counted only to the
+		-- last look, since when exactly it stopped is not known)
+		if reason == "Asked" or reason == "Died" then
+			settle(player, r)
+		end
+		if r.Died then
+			r.Died:Disconnect()
+			r.Died = nil
 		end
 		if ride.Weld then
 			ride.Weld:Destroy()
@@ -693,7 +741,17 @@ function TrainService.Start()
 		ride.Rider = player
 		ride.Model:SetAttribute("Rider", player.UserId)
 		r.Ride = ride
+		AquariumService.putAway(player) -- (no fish over the head while seated: grade issue 6)
 		r.Carry = 0
+		r.Since = os.clock() -- (the seat counts from now, never from the look before: grade issue 2)
+		if r.Died then
+			r.Died:Disconnect()
+		end
+		r.Died = humanoid.Died:Connect(function()
+			if r.Ride == ride then
+				off(player, r, "Died")
+			end
+		end)
 		player:SetAttribute("TrainerRide", ride.Name)
 		remote:FireClient(player, "On", ride.Model)
 	end
@@ -762,14 +820,15 @@ function TrainService.Start()
 			remote:FireClient(player, "UpNo", "Coins")
 			return
 		end
-		levels[player] = level + 1
-		player:SetAttribute("TrainerLevel", level + 1)
-		-- (the whole seconds before it were given at the old level as they came; the next whole second starts now, at
-		-- the new level: task e1)
+		-- (the seated time up to this moment is counted at the old level first, then the next whole second starts now,
+		-- at the new level: task e1, grade issue 2)
 		local seated = riders[player]
-		if seated then
+		if seated and seated.Ride then
+			settle(player, seated)
 			seated.Carry = 0
 		end
+		levels[player] = level + 1
+		player:SetAttribute("TrainerLevel", level + 1)
 		show(ride, true)
 		remote:FireClient(player, "Up", level + 1, levelRow(level + 1).Name)
 	end
@@ -838,7 +897,7 @@ function TrainService.Start()
 
 	local t = RideStyles.Trainer
 	while true do
-		local dt = task.wait(CHECK)
+		task.wait(CHECK)
 		for _, player in Players:GetPlayers() do
 			local r = riderOf(player)
 			local character = player.Character
@@ -852,11 +911,7 @@ function TrainService.Start()
 					off(player, r, "Lost")
 				else
 					-- (seated on the dock is training; the Oxygen comes once a whole second: task e1)
-					local amount, left = gain(player, r.Carry, dt, math.max(ride.Level, 1))
-					r.Carry = left
-					if amount > 0 then
-						remote:FireClient(player, "Gain", amount)
-					end
+					settle(player, r)
 					if player:GetAttribute("Training") ~= true then
 						player:SetAttribute("Training", true)
 					end

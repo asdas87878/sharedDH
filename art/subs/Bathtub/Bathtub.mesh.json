@@ -1,0 +1,47 @@
+{
+ "id": "Bathtub",
+ "name": "Bathtub",
+ "tier": 1,
+ "units": "studs",
+ "triangles": 502,
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the nose)",
+  "right": "+X"
+ },
+ "origin": "the sub's middle (the game's pivot)",
+ "seatTop": [
+  0,
+  5.7,
+  5
+ ],
+ "parts": [
+  "Hull",
+  "Hull_Glow",
+  "Light",
+  "Prop",
+  "Seat"
+ ],
+ "glowParts": [
+  "Hull_Glow",
+  "Light"
+ ],
+ "spins": "Prop (about Z, its box centred on the hub)",
+ "colours": {
+  "hull": [
+   255,
+   196,
+   38
+  ],
+  "trim": [
+   40,
+   54,
+   78
+  ],
+  "light": [
+   120,
+   220,
+   255
+  ]
+ }
+}

@@ -20,14 +20,22 @@ its tail, and something fitting for every other body). Built by NULLROOM task e4
 - **Size:** a longer animal strides slower (`Slow`) and hops more studs but not more times (`Heavy`); a giant's angles
   are calmer (`BigCalm`). The same land speed for all.
 - **The floor:** a roll or a pitch lifts the body by what its core (no limbs, no arms) would sink (`Keep`). Limbs and
-  arms that would dig in on the down-stroke only lift (`LimbDown`, `ArmDown`). Checked: nothing sinks more than 12% of
-  its height (0.6 studs at least) through a stride.
+  arms that would dig in on the down-stroke only lift (`LimbDown`, `ArmDown`). Checked on the flat dock only: no part
+  sank more than the check's tolerance, 12% of its height (0.6 studs at least) through a stride; that is a loose bound,
+  not "nothing sinks" (grade issue 13).
+- **The ground under it** (2026-11-22, grade issue 7, `groundFit`): three rays (under the nose, the middle and the
+  tail; never fish, riders or held fish) a few times a second; the body tilts to the floor's slope (at most
+  `LandRide.GroundTilt` 18 degrees) and lifts when an end would sink into a step (at most `GroundLift` 0.6 x its
+  height), both eased (`GroundBlend`). Past a ledge's edge a ray finds nothing and that end is left as it is.
 - **The rider:** astride (the same pose as underwater, no rodeo arm), leaning forward a little with speed and into
   turns; the hops come through the seat and the whiplash. This replaces e3's stand-in (the avatar's sit animation),
-  which still plays underneath and shows only if `LandRide.On` is 0.
+  which since 2026-11-22 plays only if `LandRide.On` is 0 (grade issue 6: one pose writer).
 - **Two players:** every machine animates every land fish in `Workspace.LandFish` (registered with the animator next
-  to `Workspace.Fish`), from the replicated walk, so all see the same body type and broadly the same cadence. Far or
-  behind-the-camera land fish are moved less often, as wild fish are; your own is always moved.
+  to `Workspace.Fish`), from the replicated walk. The stride's phase starts from the server's mount time
+  (`LandEpoch` on the model) and is set back on that shared clock whenever the fish stands still, so two machines
+  agree at every stop and on a fish first seen mid-walk; while walking each runs it on from its own view of the walk
+  (grade issue 10; not yet compared on two clients). Far or behind-the-camera land fish are moved less often, as wild
+  fish are; your own is always moved. A rider stays locked to their fish on the frames it is not moved (grade issue 9).
 
 ## The body types (82 kinds, each once: `Config.LandRide.Kinds`)
 A joint's role is worked out once a fish from its rig: the head chain and the tail chain (the spine), limbs (the
@@ -73,7 +81,7 @@ segments and waves the antennae. A future crab needs an entry in `Kinds` (a kind
 ## Checked
 `python tools/studio/e4_land_check.py install`, `studio-run.mjs play`, `... run` (log `work/e4/check.log`): 10 of 10.
 Every one of the 82 kinds built as a land fish and set up with its own body type; every one moves through a stride;
-standing, each settles to the idle stir; nothing sinks into the floor; Q rides the Sea Turtle, animated as ours; the
+standing, each settles to the idle stir; nothing sinks past the 12% tolerance above; Q rides the Sea Turtle, animated as ours; the
 rider's torso rises and falls with the body; walking at 32 drives the stride (0.96), stopping settles it to 0.
 `... gifs` records `docs/attachments/e4-land-a.gif` to `-d.gif` (frozen clock, one stride, real speed).
 

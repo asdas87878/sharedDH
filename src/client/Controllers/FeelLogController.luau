@@ -360,6 +360,7 @@ end
 
 local function hideNumbers()
 	pickUntil = 0
+	FeelLog.TakesNumbers = false
 	for k, tag in tags do
 		tag.Enabled = false
 		tag.Adornee = nil
@@ -408,6 +409,7 @@ local function showNumbers(now: number)
 		end
 	end
 	pickUntil = now + math.max(Config.FeelLog.PickTime, 1)
+	FeelLog.TakesNumbers = true
 end
 
 local function mark()
@@ -543,6 +545,7 @@ function FeelLogController.Start()
 		elseif pickUntil > 0 then
 			local choice = NUMBERS[input.KeyCode]
 			if choice then
+				FeelLog.TakenInput = input
 				picked(choice)
 			end
 		end

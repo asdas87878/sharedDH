@@ -50,7 +50,24 @@ mounts, a click toggles, a cross unequips, a respawn clears).
 - **Client:** `EquipController` (new): the keys, the slot's asks, the equipped slot from the attributes, the sit pose.
   `UI/Slots`: seven numbered slots with their keys (nine until c1), the equipped slot, `Slots.pick(n)` (a key's press = a click),
   `Slots.equipped(item, mounted)`, `Slots.Ride` ("Ride", "Unequip").
-- **Numbers:** `Config.Equip`: `On`, `LandSpeed`, `LandMost` (a cap on the land fish's length, 0 = none), `Again`.
+- **Numbers:** `Config.Equip`: `On`, `LandSpeed`, `LandMost` (a cap on the land fish's length, 0 = none), `Again`;
+  since 2026-11-22 (the grade's fixes) `CheckEvery`, `PaceRoom`, `PaceSlack` and `CameraFrom`, `CameraMost` (below).
+- **The server checks the pace** (grade issue 7): on the land fish, every `CheckEvery` (1) s the ground covered may be
+  `LandSpeed` x `PaceRoom` (1.5) a second plus `PaceSlack` (12) studs; more (a teleport from the player's machine),
+  and the rider is put back where they last stood fairly. A fall is not counted. There is no hub boundary check beyond
+  the water, where the land fish goes.
+- **The camera on a big fish** (grade issue 8): while on the land fish the camera may come no closer than `CameraFrom`
+  (0.9) x the fish's largest side (at most `CameraMost` 250 studs), so it stays outside a giant; off the fish the
+  player's own zoom limits come back. Option F (a size cap, `LandMost`) is still Hugo's to pick; this makes the default
+  (true size) usable.
+- **One pose at a time** (grade issue 6): no hold while seated on the trainer or a tank ride (refused "Seated"), and
+  seating puts a held fish away; on the land fish or a tank fish the hold's arms let go at once (HoldController); the
+  avatar's sit animation plays only with `LandRide.On` 0.
+- **Keys** (grade issue 5): `EquipController.input` is the gate; while the feel log's number pick is up (Studio only)
+  the number keys are its alone (`FeelLog.TakesNumbers`, `TakenInput`).
+- **Phones** (grade issue 4): the seven slots stay centred while the Q slot and its words fit; on a narrow screen the
+  row moves right just enough, and below about 355 HUD units wide the whole hotbar shrinks (to 0.8 at least; a slot is
+  29 at 320 wide). The HUD scale is capped by the width too (`SCALE_WIDTH` 420), so an upright phone does not scale up.
 
 ## Checked
 `python tools/studio/e3_equip_check.py install`, `studio-run.mjs play`, `... run`, `... remove` (2026-11-20, scripted
@@ -72,9 +89,9 @@ Studio playtest, Hugo's avatar): **41 of 41 pass**, log `work/e3/check.log`. The
   ![](../attachments/e3-land-colossal-side.png) (the camera inside a Colossal shark: see Open).
 
 ## Open
-- **A giant fills the hub:** at its true size (option F's default) a Colossal Reef Shark stands the rider 27 studs up
-  and the camera ends inside the fish. `Equip.LandMost` caps the land fish's length (looks only; what it needs and is
-  worth don't change) if Hugo wants that.
+- **A giant fills the hub:** at its true size (option F's default) a Colossal Reef Shark stands the rider 27 studs up.
+  Since 2026-11-22 the camera is held back outside it (above); `Equip.LandMost` still caps the land fish's length
+  (looks only; what it needs and is worth don't change) if Hugo wants that.
 - Not played by hand; no two-player test (studio-runner starts one player). Not tested: a real key press through
   Roblox's input (the test calls the same function after the gate), a phone layout of the ten slots, walking the fish
   over steps and the dock's edge. The land fish passes through walls (it touches nothing); the humanoid does not.

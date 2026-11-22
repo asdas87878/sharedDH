@@ -49,7 +49,8 @@ local function look()
 end
 
 function HubSigns.start()
-	-- the seahorse's upgrade sign on its post, beside every plot's ride (UpgradeSign)
+	-- the seahorse's upgrade sign on its post, beside every plot's ride, and the plot's own sign in front of the
+	-- far-left end of its tank (task b1): both are UpgradeSign's
 	UpgradeSign.start()
 	task.spawn(function()
 		while true do

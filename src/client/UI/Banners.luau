@@ -86,6 +86,10 @@ local CATCH_WORDS: { [string]: string } = {
 	Mythic = "INCREDIBLE CATCH!",
 	Secret = "INCREDIBLE CATCH!",
 }
+-- The end of a dive goes away by itself this long after everything on it is in its place (Hugo, 2026-11-22, task b3:
+-- "after 2 seconds it fades out by itself, in exactly the same way it does when clicked"). CatchShow.play closes it
+-- then through the same close a click takes; it was 20 seconds (CatchShow.Wait). A click still skips and closes.
+local GREAT_STAY = 2
 local TOKENS = 7 -- the most fish shown at the end of a dive (Config.Tame.Carry is 7)
 local SLIDE = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local LEAVE = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -541,6 +545,12 @@ end
 
 -- The words of a miss, as the deaths set them (State.FadeText), fading in with the black
 function Banners.miss(text: string, alpha: number)
+	-- (task b5: FailController's Slam band shows them when it is there; what follows is the old plain streak)
+	local show = Kit.FailShow
+	if show then
+		show(text, alpha)
+		return
+	end
 	if text ~= shownMiss then
 		shownMiss = text
 		miss.Text = text
@@ -558,6 +568,7 @@ function Banners.greatDive(metres: number, isBest: boolean, list: { { Id: string
 	local run = greatRun
 	-- one of the animated looks (Kit.CatchLook), when one is chosen
 	local look = CatchShow.look()
+	CatchShow.Wait = GREAT_STAY
 	if look ~= 0 and hudRoot and CatchShow.play(hudRoot, look, metres, isBest, list) then
 		great.Visible = false
 		return
@@ -592,7 +603,7 @@ function Banners.greatDive(metres: number, isBest: boolean, list: { { Id: string
 	great.Position = GREAT_FROM
 	great.Visible = true
 	TweenService:Create(great, SLIDE, { Position = GREAT_AT }):Play()
-	task.delay(3.4, function()
+	task.delay(0.6 + GREAT_STAY, function() -- (the old plain banner: its count-up takes about 0.6 s)
 		if run ~= greatRun then
 			return
 		end

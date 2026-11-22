@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local AquariumService = require(script.Parent.AquariumService)
 local FishService = require(script.Parent.FishService)
 local RideService = require(script.Parent.RideService)
 
@@ -28,6 +29,7 @@ local function tune(path: any, value: any)
 	end
 	tableOf[key] = value
 	Config.refresh()
+	AquariumService.retune() -- (the tanks already stocked earn by the new numbers: grade issue 3)
 	if group == "Spawn" then
 		FishService.restock()
 	elseif path == "Oxygen.StartMax" then

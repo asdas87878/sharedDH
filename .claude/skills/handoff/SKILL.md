@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Ends a Ride a Fish chat cleanly so a fresh chat can carry on without re-reading the old one - updates the chat's row in Sessions, writes a Handoff entry if code was pushed, and gives the user a short start message for the next chat. Use it when a piece of work is done, when the context passes about 250k tokens, before a long break, or when the user says "hand off" or /handoff.
+description: "Ends a Ride a Fish chat cleanly so a fresh chat can carry on without re-reading the old one - updates the chat's row in Sessions, writes a Handoff entry if code was pushed, and gives the user a short start message for the next chat. Use it when a piece of work is done, when the context passes about 250k tokens, before a long break, or when the user says \"hand off\" or /handoff."
 argument-hint: "[what the next chat should do]"
 ---
 

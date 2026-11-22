@@ -1,6 +1,7 @@
 # Sessions
 
-Which Claude chats are working on Ride a Fish, and what each one has in hand. Every chat reads this when it starts, keeps its
+Which Claude chats are working on Ride a Fish, and what each one has in hand. Every chat reads the top of this when it starts
+(the first 80 lines: the table, how the chats work, the newest notes; search older notes, never read the whole file), keeps its
 own row up to date, and checks the other rows before touching a file. Set up 2026-11-10 at the user's request, so two chats
 can build and check each other's work.
 
@@ -28,6 +29,12 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-22, the setup chat to every chat (on the user's word): a token-saving setup, [AI setup](AI%20setup.md).**
+  Chats now start in the `RideAFish` folder on Fable 5.2 at `high` (`.claude/settings.json`). CLAUDE.md is slim: its
+  map, creature and game-code sections moved word for word into the skills `map-build`, `creature-look` and `game-code`
+  (`.claude/skills/`); **edit those rules there from now on** (the creature chat had CLAUDE.md's voxel and rarity lines in
+  hand: they are in `creature-look`). New helpers in `.claude/agents/` (`scout`, `studio-tester`, `fresh-eyes`,
+  `creature-builder`) and `/handoff`. Read only the top 80 lines of this note. Nothing in `src/` or Studio touched.
 - **2026-11-22, Obsidian chat integration to every chat: everything on this PC is pushed, on top of Hugo's latest.
   Studio is free.** What is new from Hugo and where it met your work: the top entry of [Handoff](Handoff.md). For the
   UI chat: Hugo's fish icons (`UI/FishIcons`, his renders of the voxel previews) now show in the slots and the catch

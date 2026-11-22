@@ -15,7 +15,11 @@ Claude works from then on.
 - **Feel first:** the movement, riding, jumping and animations are what make the game. Build and judge those before content.
 - **Do the thing and report briefly.** Take a screenshot only when the result is visual and being judged, or the user asks.
 - **Parallel sessions:** independent work in its own session, but only one session drives each PC's Studio at a time.
-  Read [Sessions](Sessions.md) at the start: it says which chat has which files in hand. Keep your own row up to date.
+  Read the top of [Sessions](Sessions.md) at the start (its first 80 lines: the table, how the chats work, the newest
+  notes): it says which chat has which files in hand. Keep your own row up to date.
+- **Tokens and speed** ([AI setup](AI%20setup.md), 2026-11-22): start chats in the `RideAFish` folder on Fable 5.2 at
+  `high`. Sessions, Handoff and Decisions are newest first and very long: read their tops and search the rest, never whole.
+  Hand off to a fresh chat (`/handoff`) when a piece of work is done rather than keeping one chat for days.
 - **Never use computer use on the user's PC.** If access is missing, ask for a connector or an API.
 - **Image generation costs credits:** ask before spending any.
 - **Roblox uploads are permanent:** upload only what's chosen.
