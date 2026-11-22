@@ -3,6 +3,35 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-22 · UI review 1: studded dock windows, stalls on their rings, the Shop, deposit lines, motion (Ride a Fish UI, the user's PC)
+**State:** committed `df5c7d1`, `d7b00fc`, not pushed by this chat (the Obsidian plugin pushes). StyLua clean; selene 0
+errors (the three old warnings). Synced into the open place, not saved.
+- **New:** `UI/Anim.luau` (every open, close, hover, press, bounce, punch, count, rise, toast, the stall dim),
+  `Controllers/StallController.luau` (Sell and Auras on their rings; the hub Shop button toggles the Shop; leaving the
+  dock closes all), `UI/ShopScreen.luau` + `Shared/Products.luau` (offers Soon until ids exist), `UI/DockNotes.luau`
+  ("GO TO YOUR TANK TO DEPOSIT", "TANK FULL!").
+- **Changed:** `UI/Shop.luau` (one studded frame, `Shop.go` one window at a time, tabs gone), SellFish, AuraShop,
+  TankPanel, TankPrompt, HubButtons, UpgradeSign, SubPanel (words, studs, motion), HopButton, Aim, LandStrip (motion
+  only), `Kit.Edge`; `AuraController` opens nothing now.
+- **Checked:** three Studio passes by script with real mouse and key input: no console errors from our scripts; numbers
+  in [UI review 1](design/ui-review.md), "What was built". Pictures: `docs/attachments/ui-review-1-*.png`.
+- **Not done:** the tame ring's motion, cards leaving one by one, a phone check, the Shop's real offers.
+
+## 2026-11-22 · Fish pictures: cut on the model, re-rendered in the new colours (Ride a Fish UI, the user's PC)
+**State:** not pushed by this chat (no commits). `src/client/UI/Portrait.luau` and `Slots.luau` as they are on disk
+went in with the merge below; since then only tools and art changed.
+- **`UI/Portrait.luau`** (on the user's word, 2026-11-18 to 19; numbers in `Portrait.Settings`): one angle for every
+  kind; a bust sized by its whole kept shape; a bust drops the body pieces behind its neck, a squid keeps two pieces
+  of each arm, a ray one of its tail, and everything kept fits inside the picture (nothing is cut by the edge); the
+  squids posed as busts; outline 2.2% of the picture; a creature installed backwards (CosmicHollow) turned round.
+- **`UI/Slots.luau`:** the highlight band on the chosen slot only; a name never cut after a space.
+- **Tools:** `tools/ui/export_portraits.py` (every fish as a PNG, from the live models: it sets the workspace's
+  `FishIcons` attribute to `Model` while it runs, so Hugo's renders don't stand in), `tools/ui/chatgpt_pack.py` (the
+  ChatGPT folder), `tools/ui/icon_sheets.py` (`make` sheets; `align` puts ChatGPT's icons back in each render's place),
+  `tools/ui/portrait_sheet.py` (test sheets, `--before`, `--try`, `--plain`).
+- **Checked:** on test sheets in Studio (Edit), all 79 fish; the slots in a play test on 2026-11-18. Not on a phone.
+- **Art:** `art/ui/fish_icons/renders` (79, the new colours) and `sheets`; `research/fish_icons_chatgpt/` (private).
+
 ## 2026-11-22 · The other PC's work since 2026-11-17, merged on top of yours (Obsidian chat integration, the user's PC)
 **State:** merged on top of your `de938cd` (your 157 commits since our last push came in as a fast-forward; nothing of
 yours was replayed), then with your three of 2026-11-22 (to `4497f17`) in a merge commit. StyLua clean; selene 0 errors (the three old warnings); `rojo build` passes. Run in Studio by script on the
