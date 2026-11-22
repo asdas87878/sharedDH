@@ -32,7 +32,8 @@
 --     AquariumService: "Deposited", count, gained, income, id (that many fish went into our tank: the coins a second
 --       gained, what the tank earns now, and the fish's id) | "Sold", id, coins | "TankDenied", why | "PlotUp", stage |
 --       "PlotNo", why ("Near", "Top", "Coins", "Dead", "Busy") | "Denied", "Hold", why
---     TankRideService: "TankMounted", model, box, half | "TankDismounted"
+--     TankRideService: "TankMounted", model, box, half | "TankDismounted" | "Denied", "TankRide", why ("Empty",
+--       "Far", "NotYours")
 --     SubService: "SubFish", fish (our fish, beside the sub: drive it there) | "SubDrop", "Fling" or "Kick", fish |
 --       "SubDenied", reason ("Coins", "Dock", "Land", "Top") | "SubBought", tier
 --   Fx (server -> every client, all from RideService): "Land", player, fish, count (that rider's landings so far) |

@@ -17,7 +17,8 @@ should we go about this fully"
   the repo; the scripts that build it need a file from another project on this PC; and the creature models are
   private to one Roblox account.
 - **It is not a finished product.** Nothing is saved between sessions and nothing can be bought.
-- **So the first question is what the buyer is paying for,** because it decides how much of this plan is worth doing:
+- **So the first question was what the buyer is paying for,** because it decides how much of this plan is worth doing.
+  **Settled 2026-11-22: the game as it is now** ("they will probably polish a few things"), so the first of these:
   - **The source as it is:** do stages 1 and 2 only. Small, low risk.
   - **A game ready to launch:** stages 1 to 4. Stage 3 (saving and purchases) is the large one.
   - **A launched game with numbers:** stages 1 to 4, then a launch, then sell. The most work, and the only version with
@@ -79,7 +80,8 @@ wrong, not by time.
 ### Stage 0: stop losing work (now)
 - **Download a copy of the place** from Studio to a file and keep it somewhere safe. Today the only full copy of the
   built game is the one on Roblox, in one account.
-- **Push `main`** to GitHub, and commit or drop the untracked work (the three creatures, the handoff briefs).
+- **Push `main`** to GitHub (done 2026-11-22: the vault's auto-sync pushed everything, the three creatures and the
+  handoff briefs included).
 - **Tell Hugo,** and merge anything he has not pushed, before any tidy-up touches the comments or names.
 - Risk: none.
 
@@ -136,7 +138,7 @@ wrong, not by time.
 
 ## What I would do
 - **Stage 0 today,** whatever else is decided.
-- **Ask the buyer the first question** before spending on anything past stage 2.
+- **The buyer's answer is in** (the game as it is now), so nothing past stage 2 except the package.
 - **Stages 1 and 2 next:** they are cheap, they are needed for any kind of sale, and they are just as useful if you
   keep the game.
 - **Stage 3 only against a price** that pays for it, or if you decide to launch it yourselves first.

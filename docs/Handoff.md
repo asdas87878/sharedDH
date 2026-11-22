@@ -3,6 +3,29 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-22 · The code tidied for a sale: dead code out, comments, guards in both Main (Ride a Fish game code, the user's PC)
+**State:** pushed by the Obsidian plugin's sync (23:03 and after). StyLua clean; selene 0 errors (the three old
+warnings); the Rojo build passes. Synced into the open place and played, not saved. **Pull before editing `src/`.**
+- **Why:** the user is selling the game as it is ("tidy as such, just make sure you dont break anything"). The plan is
+  [handing the game over](plans/sale-readiness.md); the list this came from is
+  [what to sort in the code](reviews/code-organisation.md) (section 3 and "Done").
+- **`45588bf`:** an "In this file, in order" list and section markers in the twelve largest files, a contents list in
+  `Config` (comment lines only). New notes: [Code map](Code%20map.md), a root `README.md`.
+- **`ce30041`:** the stray `--help/` folder at the root is gone.
+- **`8a427ce`, dead code (222 lines, nothing added):** `RideService.deposited`, the player's `Owned` attribute,
+  `AquariumService.sell`, `earningOf` and `stageOf`, `PropService.brokenCount`, `FishService.Tag`, `State.secondsOn`,
+  `Shake.at` and `clear`, `StallController.open`, the fail shade's arms, `ShopScreen.isOpen`, `Slots.chosen`,
+  `Kit.shade`, `oxygenCorner`, `bubbles`, `Lime` and `Space`, `Portrait.rendered` and `kindOf`, `Spawn.Wander`, the
+  `OxygenBase` rows of the four cut fish, `Ease.clamp01` and `inQuad`, `Auras.get`, `Variants.clear`. If your unpushed
+  work calls one of these, it will not find it.
+- **`5dd24f5`, comments only:** the header of `Net.luau` lists every message as the code sends it; wrong comments
+  corrected; 23 test hooks carry a "Test hook" line naming the script that calls them.
+- **`d422ac6`:** `Main.server.luau` and `Main.client.luau` load each module and call each `Init` through `xpcall`. A
+  module that fails is reported (`[Main]` in the output) and left out; the rest still start.
+- **Played:** boots clean, a scripted dive, `oxygen_check.luau` 12/12, `e4_land_check.py` 10/10.
+  `tank_panel_check.py` is out of date (it wants a `CollectPad` the plots no longer have). `b4_tank_ride_check.py`'s
+  hold E never fills, the same on the code before the tidy: not yet known whether the check or the game is at fault.
+
 ## 2026-11-22 · UI review 1: studded dock windows, stalls on their rings, the Shop, deposit lines, motion (Ride a Fish UI, the user's PC)
 **State:** committed `df5c7d1`, `d7b00fc`, not pushed by this chat (the Obsidian plugin pushes). StyLua clean; selene 0
 errors (the three old warnings). Synced into the open place, not saved.
