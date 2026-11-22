@@ -144,11 +144,22 @@ On the user's word: "tidy as such, just make sure you dont break anything".
 | `ce30041` | The stray `--help/` folder removed (81 working files of `tools/art/rarity_ladder.py`). | Nothing refers to the path; the files stay in git history. |
 | `8a427ce` | The dead code of section 3 (222 lines out, none added). | Every name searched again across `src/` and `tools/` after the change: 0 uses. StyLua, selene (0 errors, the 3 old warnings) and the Rojo build pass. |
 | `5dd24f5` | Comments only: the `Net.luau` header, the wrong comments, the test-hook marks. | The diff holds no code line. |
-| `d422ac6` | Both `Main` scripts guard loading and `Init`. | StyLua, selene and the Rojo build. |
+| `d422ac6` | Both `Main` scripts guard loading and `Init`. | StyLua, selene and the Rojo build; then the Play below. |
 
-**Not yet played in Studio.** Studio was in Play (left running) the whole time and was not touched. The check still to
-run: sync `src/`, press Play, read the output for `[Main]`, "attempt to call a nil value" and "not a valid member",
-then run `tools/studio/b4_tank_ride_check.py`, `e4_land_check.py` and `tank_panel_check.py`.
+**Played in Studio the same evening** (the user's word to stop the Play that was left running; `src/` synced into
+the place, not saved):
+- **It boots:** every service and controller starts, no `[Main]` line and no error from our scripts in four Plays.
+- **A dive by script:** on a Pufferfish, Oxygen 89 to 0, drowned, back on the dock at 100.
+  `tools/studio/ride_log.luau` ran as it is.
+- **`tools/studio/oxygen_check.luau`:** 12 of 12 pass, 78 kinds, no Oxygen row missing.
+- **`tools/studio/e4_land_check.py`:** 10 of 10 pass.
+- **`tools/studio/tank_panel_check.py`: out of date.** It looks for a `CollectPad` part that the plots no longer have
+  (the name is nowhere in `src/`), so it fails at its own setup.
+- **`tools/studio/b4_tank_ride_check.py`: its "hold E" step never fills** (ring 0.00, never riding), with no error.
+  Run again on the code from before the tidy (`82e4d38`), it fails the same way, so it is older than this work. Not
+  known yet whether the check is stale or the hold on a tank fish is broken: hold E on a fish in your tank to see.
+- The three `.py` checks call Hugo's studio-runner; on this PC they ran through a wrapper that swaps in the direct
+  Studio client. That wrapper is not in the repo.
 
 **A few design notes still name what was removed:** `docs/design/camera-shake.md` (`Shake.at`),
 `docs/design/progression.md` and `docs/design/ui.md` (`State.secondsOn`, `Portrait.kindOf`),

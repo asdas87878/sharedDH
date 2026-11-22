@@ -46,7 +46,7 @@ should we go about this fully"
 | **The 82 creature models belong to your Roblox account.** | Another account's Studio is refused them and shows block stand-ins. All 82 source files are in the repo, and the upload script exists, with your account id written into it. |
 | **Some models and pictures were never uploaded.** | The submarines, the trainer's seahorses, the Silver/Gold/Rainbow meshes, the fish icon pages, the window header icons, the archetype badges. They load from files on one PC. |
 | **The setup is not written down in one place.** | The order (code, map, light, sky, creatures, subs, trainer, pictures) exists only across script headers, design notes and Claude's skills. The Python packages are not listed anywhere. |
-| **GitHub is behind.** | More than 20 commits and three new creatures are only on this PC. |
+| **GitHub was behind.** | Level again since 2026-11-22 23:03, when the vault's auto-sync pushed everything. |
 
 ### B. It is not a finished product
 | Gap | Detail |
@@ -99,8 +99,8 @@ wrong, not by time.
 
 ### Stage 2: anyone can read it
 - **The safe batch: done 2026-11-22** (the dead code and the stray `--help/` folder out, `Net.luau`'s header up to
-  date, the wrong comments fixed, both `Main` loops guarded, the test hooks marked). Checked by the build and lint;
-  the play check in Studio is still to run.
+  date, the wrong comments fixed, both `Main` loops guarded, the test hooks marked). Checked by the build and lint,
+  then played in Studio: it boots clean and a scripted dive, the Oxygen check and the land-ride check pass.
 - **Take out the unpicked UI looks.** Needs a play test of each screen.
 - **Rename `ClaudeBlockout` and `UI/Shop`.** Needs a play test and the place renamed.
 - **Move the history out of the comments** into the design notes. No change to play; touches nearly every file, so it
@@ -145,6 +145,6 @@ wrong, not by time.
 - A [code map](../Code%20map.md) and a root `README.md`.
 - Contents lists and section markers in the twelve largest code files (comment lines only; build and lint unchanged).
 - The [check of what to sort](../reviews/code-organisation.md) and the five audits behind it.
-- The safe tidy batch (four commits, listed under "Done" in the check). Not yet played in Studio.
+- The safe tidy batch (four commits, listed under "Done" in the check), played in Studio the same evening.
 - **What the buyer is paying for is settled** (the user, 2026-11-22: "they are paying for the game as it is now. they
   will probably polish a few things"): the source as it is, so stages 0 to 2 and the package (stage 5).
