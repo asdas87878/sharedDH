@@ -1,5 +1,6 @@
 # Map: start here
 Handed over 2026-11-22 by "Ride a Fish map". You are the map chat: `tools/map/`, `art/map/`, the hub and the far view. Load `map-build` (the rules), and `studio-test` before Studio.
+- **Saved 2026-11-22 (version 357, the user: "Yes, save it"):** the W32 hub, square studs and the matte map (Plastic, EnvSpecular 0) are in the saved place.
 - **Done 2026-11-22: square studs** (`tile3`, Roblox's own stud in our picture; [map-structure](../design/map-structure.md), "Square studs"), swapped on the loaded place by `tools/studio/swap_stud_picture.luau`; a full reload gives the same (the loaders read `tile3`). The `greybox_bench`/`hub_bench` files are old benches still on `tile2`.
 - **Done 2026-11-22 by the new map chat:** W32 is built and in Studio ([hub-layout](../design/hub-layout.md), "Picked: W32"); the place is not saved unless the user says so. Next: whatever the user picks; the seven parked art steps are the standing list.
 - (Was next:) wait for the user's pick in [hub-layout](../design/hub-layout.md), "The water nearer": W32 (water 16 nearer, strip 32 deep, my pick) or W24; plus 15 studs behind the back tanks (wall back 8, tanks unmoved). Then build it.
