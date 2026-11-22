@@ -48,7 +48,7 @@ for _, r in HttpService:JSONDecode([==[[[5,10,0,9085138,3,2891.39,-915.75,12848.
 	local p = Instance.new("Part")
 	p.Name = NAMES[r[2] + 1]
 	p.Anchored = true
-	p.Material = if NAMES[r[2] + 1] == "Glow" then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	p.Material = if NAMES[r[2] + 1] == "Glow" then Enum.Material.Neon else Enum.Material.Plastic -- Plastic, not SmoothPlastic: no sun shine (the user, 2026-11-22)
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Color = Color3.fromRGB(bit32.rshift(r[4], 16), bit32.band(bit32.rshift(r[4], 8), 255), bit32.band(r[4], 255))

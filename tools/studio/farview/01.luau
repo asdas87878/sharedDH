@@ -18,7 +18,7 @@ for _, r in rows do
 	p.CanQuery = false
 	p.CanTouch = false
 	p.CastShadow = false
-	p.Material = if r[16] == 1 then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	p.Material = if r[16] == 1 then Enum.Material.Neon else Enum.Material.Plastic -- Plastic, not SmoothPlastic: no sun shine (2026-11-22)
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Size = Vector3.new(r[4], r[5], r[6])

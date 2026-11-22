@@ -6,6 +6,9 @@ The look of the light, from the tutorial video the user sent on 2026-11-11 (a 50
 likes its vibrant look. Built the same day by the game-code chat ([Sessions](../Sessions.md)). **Not seen by anyone
 yet:** Studio's window wasn't being drawn when it went in, so it was checked by its numbers in play, not by eye.
 
+## No shine on the map (2026-11-22)
+The user: "get rid of the reflection coming off the ground. it reflects slightly", then "set envspecular for me, its deffo the sun aswell". So `EnvSpecular` 0 (was 0.25: no sky in shiny things, game-wide, creatures and glass too), and the map's parts are Roblox's `Plastic`, not `SmoothPlastic` (far less sun highlight; no grain seen under the stud picture). The map chat did both (`tools/studio/matte_map.luau` on the loaded place; the loaders build Plastic).
+
 ## The air above the water (2026-11-17)
 The user: "could we add the fog from ride a dino to an extent. The one that appears from the hub, ours will be
 different for in hub and in water cuz we have water fog now we need like base fog as to obscure the far

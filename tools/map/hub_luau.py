@@ -276,7 +276,7 @@ for _, r in HttpService:JSONDecode([==[{ROWS}]==]) do
 	local p = Instance.new("Part")
 	p.Name = r.n
 	p.Anchored = true
-	p.Material = if r.mat == "Neon" then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	p.Material = if r.mat == "Neon" then Enum.Material.Neon else Enum.Material.Plastic -- Plastic, not SmoothPlastic: no sun shine (2026-11-22)
 	if r.mat == "Stud" then -- the stud picture as a material of our own: on every face, no sliding. Tried 2026-11-16:
 		-- the map's picture is see-through shading to lay over a colour, and a material shows it as black, so this
 		-- way needs a new, solid picture uploaded first

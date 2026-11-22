@@ -324,6 +324,8 @@ roblox stud textures and apply them more evenly. Make sure they flow and follow 
 ![Now (rings) above, B below](../../art/style/map_tiles/roblox/_tile3_preview.jpg)
 ![Stretch 0.76, 1, 1.28 on the wall colour: rings above, B below](../../art/style/map_tiles/roblox/_tile3_stretch.jpg)
 
+**Matte (2026-11-22):** every map part is `Plastic`, not `SmoothPlastic`, and `EnvSpecular` is 0, so the ground no longer shines ([Lighting](lighting.md), "No shine on the map"). On a loaded place: `tools/studio/matte_map.luau`.
+
 **Loading the map:** `python tools/studio/load_greybox.py <studio_id>` now runs the loader's files in number order
 and waits, trying again every ten seconds, whenever Studio isn't in Edit mode. Before, pressing Play during a load
 left half a map in the place (the user met this: "the whole map is in there, it's just not all there").
