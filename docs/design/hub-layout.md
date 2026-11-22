@@ -80,6 +80,15 @@ size and every walk keeps its length; the lane doesn't move. The arch stays over
 **My pick: W32.** The strip is two-thirds as long as now and reads as a band in front of the water. W24 puts almost all
 of it under the arch.
 
+**Picked: W32** (the user, 2026-11-22: "Do the old chat's pick"), with the 15 behind the back tanks. In the generator:
+`FRONT` -32, `HUB_BACK` -312, `PLOT_GAP` 15 for the back row only (`SIDE_GAP` 7 keeps the side tanks where they were),
+and `HUB_SHIFT` 16 added to every number the user placed by hand (the side tanks, SELL, AURAS, FUSE, the spawn, the
+back palms; what stands by the front wall follows `FRONT` by itself). The place had nothing moved or added by hand
+since the last build (read 2026-11-22 before the reload; the Dock backed up as `ServerStorage.DockBackup_2026-11-22`).
+- **A side effect:** the walls' pieces are marched from the middle of the hub's back, so the longer ring slides every
+  lane wall piece a few studs along the same line, and about 40% of the lane's props come out re-scattered by the same
+  rules. The lane's shape, floors and set pieces are unchanged; the far view is its own parts and unaffected.
+
 **What it means in the place:**
 - The hub's walls and floor are rebuilt (the map reload).
 - Every hub model you placed moves by the same amount toward the water: one move of the whole Dock, with nothing

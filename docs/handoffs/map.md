@@ -1,0 +1,22 @@
+# Map: start here
+Handed over 2026-11-22 by "Ride a Fish map". You are the map chat: `tools/map/`, `art/map/`, the hub and the far view. Load `map-build` (the rules), and `studio-test` before Studio.
+- **Done 2026-11-22: square studs** (`tile3`, Roblox's own stud in our picture; [map-structure](../design/map-structure.md), "Square studs"), swapped on the loaded place by `tools/studio/swap_stud_picture.luau`; a full reload gives the same (the loaders read `tile3`). The `greybox_bench`/`hub_bench` files are old benches still on `tile2`.
+- **Done 2026-11-22 by the new map chat:** W32 is built and in Studio ([hub-layout](../design/hub-layout.md), "Picked: W32"); the place is not saved unless the user says so. Next: whatever the user picks; the seven parked art steps are the standing list.
+- (Was next:) wait for the user's pick in [hub-layout](../design/hub-layout.md), "The water nearer": W32 (water 16 nearer, strip 32 deep, my pick) or W24; plus 15 studs behind the back tanks (wall back 8, tanks unmoved). Then build it.
+- **Building it:** set the numbers in `greybox.py` (the `HUB_TRY` names: `FRONT`, `HUB_BACK`, `PLOT_GAP`). Move every hub model (`Dock`, not `Dock.Gate`) toward the water by the same amount. Read the hub's hand placing from the place first (`tools/map/hub_kit.py`, `spots`; memory: keep it). Then the full reload, `PROPS2=1 python tools/map/greybox.py`, `hub_kit.py`, `greybox_luau.py`, `tools/studio/load_greybox.py <id>` (~40 min), then `tools/map/prop_groups_luau.py` and run its files.
+- **Trial builds:** `tools/map/hub_options.py` (always with `GREYBOX_OUT` into `art/map/hub_study/`, never the live `art/map/greybox`); plans by `tools/map/hub_plan.py`, from `art/map/hub_study/dump.csv` (read from Studio).
+- **Read first:** top 80 lines of [Sessions](../Sessions.md); [hub-layout](../design/hub-layout.md); [props-and-landmarks](../design/props-and-landmarks.md), "The far view in the game"; top rows of [Decisions](../Decisions.md).
+- **In the place (not in git):**
+  - `Workspace.FarView`: the far view as real models at their real place, 3,334 parts, Persistent. Rebuild: `TRUE=1 python tools/map/farview.py`, then `tools/studio/farview/*.luau` in order.
+  - The painted sky face 104255330374077, as the attribute `SkyboxBkVista` on both Skies. The game-code chat's `LookController` shows it at low graphics.
+  - The props' `Group`/`Studs` attributes. The hub backup `ServerStorage.DockBackup_2026-11-19`.
+  - Saved by the user since? Check before any reload. Studio is held by the game-code chat for the user's playtest (Sessions): ask it first.
+- **Waiting on the user:**
+  - The hub pick above.
+  - The herd notes (with the game-code chat).
+  - The lands' sizes ("later", Decisions 2026-11-18).
+  - The seven parked art steps (memory `ride-a-fish-map-parked-steps`; `design/map-structure.md`, "Parked"): bring them up when the user asks what's next.
+- **Not in the vault yet:**
+  - Roblox fog hides parts but draws them past its end as flat fog-coloured shapes against the unfogged sky. That's why FarView reads as a silhouette.
+  - A shrunk copy inside the fog sat in the play space and was undone (memory `roblox-forced-perspective-vista`).
+  - The direct client `RpgGame/tools/studio/studio_mcp.py` gets long outputs out of Studio in pages, as `hub_options`' dump did.

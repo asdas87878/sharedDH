@@ -14,7 +14,7 @@ local function folderAt(path)
 	end
 	return at
 end
-local TILE = "rbxassetid://124244361010023" -- the one picture: squares of 8 with round studs, 16 studs to a tile; "" builds without it
+local TILE = "rbxassetid://80588427262742" -- the one picture: squares of 8 with round studs, 16 studs to a tile; "" builds without it
 -- su, sv: studs to a tile along the face's U and V (0: 16); ou, ov: how far the picture is slid along each
 local function picture(part, face, su, sv, ou, ov)
 	if TILE ~= "" then

@@ -6,7 +6,11 @@ Each option is a trial build of the map generator with HUB_TRY numbers (tools/ma
 art/map/hub_study/<option>/, then a plan from above: the generator's walls, floor and strip, with the hub's models as
 they stand in the place now (art/map/hub_study/dump.csv, read from Studio) drawn on top, unmoved.
 
-usage: python tools/map/hub_options.py [option ...]     (default: all) -> art/map/hub_study/plan_<option>.png + sheet"""
+usage: python tools/map/hub_options.py [option ...]     (default: all) -> art/map/hub_study/plan_<option>.png + sheet
+
+Built before W32 went in (2026-11-22): its numbers are offsets from the hub as it was then (FRONT -48, HUB_BACK -320),
+and dump.csv is that place. W32 is now the generator's own default, so a new study needs its options and SHIFT
+rewritten from the current numbers and a fresh dump."""
 import json
 import math
 import os

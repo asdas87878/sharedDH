@@ -938,11 +938,13 @@ def build(hub, feet=None):
     out, feet = [], {} if feet is None else feet
     focus = (0.0, -150.0)  # the stations look at where a player stands when they arrive
     front, half, gate_half, gate_turn = hub["Front"], hub["Half"], hub["Gate"], hub["GateTurn"]
+    shift = hub.get("Shift", 0.0)  # W32 (2026-11-22): the user's placing, moved this far toward the water with the hub.
+    # What stands by `front` moved with it already; the numbers the user placed by hand get it added
     spots = {  # each station: where it stands (x, z) and which way it faces. One line to move one
         # (2026-11-17: SELL and AURAS face each other either side of the spawn and FUSE stands behind it, facing the
         # start: the user's own placing in Studio. The INDEX went to the front corner on the left, facing the gate, as
         # its old place was outside the smaller hub's wall)
-        "Sell": (-35.10, -112.71, 90.0), "Auras": (43.55, -112.70, -90.0), "Fuse": (4.73, -154.77, 0.0),
+        "Sell": (-35.10, -112.71 + shift, 90.0), "Auras": (43.55, -112.70 + shift, -90.0), "Fuse": (4.73, -154.77 + shift, 0.0),
         "Index": (-(half - 34), front - 16, 90.0),
         # (the sub stand: 12 studs to its right and 8 back as seen from its front, Hugo 2026-11-18)
         "Sub": (gate_half + gate_turn + 20, front - 13, 180.0),
@@ -969,7 +971,8 @@ def build(hub, feet=None):
     for sx in (-1, 1):
         buoy(k.sub((sx * (gate_half + 5), FLOOR_Y, front - 3)), RED if sx < 0 else (90, 200, 120))
         palm(k.sub((sx * (gate_half + 14), FLOOR_Y, front - 12), yaw=90 - sx * 90), r)
-        palm(k.sub((sx * (half - 34), FLOOR_Y, back + 52), yaw=sx * 40), r, 1.35)
+        palm(k.sub((sx * (half - 34), FLOOR_Y, -268.0 + shift), yaw=sx * 40), r, 1.35)  # (52 in front of the back wall
+        # until W32 moved the hub 16 and the wall 8 back: they move with the hub, not the wall)
     return out
 
 

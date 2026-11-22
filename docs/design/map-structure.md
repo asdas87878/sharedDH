@@ -302,6 +302,28 @@ studs, and the green stays green.
 
 ![The old picture above, the new below](../../art/style/map_tiles/roblox/_tile2_preview.jpg)
 
+**Square studs (2026-11-22): B picked and in.** The user: "Just go with B". `tile3` uploaded
+(`rbxassetid://80588427262742`, `art/map/textures.json`), the loaders read it (`greybox_luau.py`, `hub_luau.py`), and
+the loaded place swapped in one pass with `tools/studio/swap_stud_picture.luau` (54,630 pictures; no reload).
+The study as it stood before the pick: the user: "could we change that to square studs ... use the
+roblox stud textures and apply them more evenly. Make sure they flow and follow as they have been". Two ways:
+- **A, Roblox's own Studs surface** (`SurfaceType.Studs` on every face, the picture off). True engine studs, but one
+  to a stud counted from each part's own corner, so they can't follow the per-piece mapping across joints and curves,
+  and the checker goes too unless a squares-only picture is uploaded. Bench: `work/map/stud_bench.luau`
+  (`Workspace.StudBench`, a real stretch of the hub corner and the gate lifted 400 up); not run yet (Studio in Play).
+- **B, the same picture with Roblox's stud drawn in** (`tile3`, `tools/art/map_tile3.py`, not uploaded): each ring
+  swapped for the engine's own square stud, read from `studs.dds` in the Studio install (64 px to a stud, the same
+  size as ours), on the same checker. Laid by the same numbers, so it flows exactly as now. One upload and an id swap
+  in `textures.json`; `tile2` is the only stud picture the map uses (walls, ground, props, the hub models' `Studs`
+  Textures in `hub_luau.py`); the UI kit (`src/client/UI/Kit.luau`) also uses it, the game-code chat's call.
+- **"More evenly": neither changes it.** Each piece's tile is stretched to fit it (StudsPerTile U over V, parts.json:
+  69% of faces within 5% of even, 83% within 15%, 5% at 0.76 or less and 5% at 1.28 or more), and a stretched square
+  reads as a rectangle about as plainly as a ring reads as an oval. Making it even means piece lengths cut to whole
+  studs in `greybox.py`, a separate change.
+
+![Now (rings) above, B below](../../art/style/map_tiles/roblox/_tile3_preview.jpg)
+![Stretch 0.76, 1, 1.28 on the wall colour: rings above, B below](../../art/style/map_tiles/roblox/_tile3_stretch.jpg)
+
 **Loading the map:** `python tools/studio/load_greybox.py <studio_id>` now runs the loader's files in number order
 and waits, trying again every ten seconds, whenever Studio isn't in Edit mode. Before, pressing Play during a load
 left half a map in the place (the user met this: "the whole map is in there, it's just not all there").

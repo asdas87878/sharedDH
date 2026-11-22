@@ -574,7 +574,14 @@ def lane_colours(at):
     return land
 
 
-HUB_HALF, HUB_BACK, CORNER, FRONT = 200.0, -320.0, 32.0, -48.0  # 400 wide and 272 from the back wall to the front
+HUB_HALF, HUB_BACK, CORNER, FRONT = 200.0, -312.0, 32.0, -32.0  # 400 wide and 280 from the back wall to the front
+# wall's face. W32 (the user, 2026-11-22, "Do the old chat's pick"; docs/design/hub-layout.md, "The water nearer"): the
+# water comes 16 nearer the hub, so the cut through the front wall and the strip in it are 32 deep (48 before), and the
+# whole hub with everything the user placed in it moves 16 toward the water (HUB_SHIFT); the back wall then went 8
+# further back for room behind the back tanks (15 there, 7 before). Before W32: -320 and -48, 272 from back to front.
+HUB_SHIFT = 16.0  # how far the hub's hand-placed models (all but the arch, which stays at the water's edge) moved toward
+# the water on 2026-11-22: their numbers below and in hub_kit.py are the user's placing plus this
+# Until 2026-11-22 the next lines read: 400 wide and 272 from the back wall to the front
 # wall's face. Until 2026-11-17 it was 480 by 320. The user then placed the tanks and stalls by hand and asked: the
 # space behind the back row "should be reduced and the gap should be almost closed", and "a base scale reduction of
 # the hub, by about 15-20% to be more akin to ride a dino". So the walls stand 7 studs behind the tanks, round the
@@ -1691,14 +1698,15 @@ PLOT_COLOURS = [(240, 110, 130), (255, 170, 70), (250, 215, 90), (120, 200, 120)
 
 # The reference's pens stand in a U: a row along the far side from the start and a row down each side, sharing fences,
 # open toward the start. Ours the same: four along the back, two down each side beginning where the back row's pads end.
-# Since 2026-11-17 they stand where the user placed them by hand in Studio: the back row side by side 7 studs in front
+# Since 2026-11-17 they stand where the user placed them by hand in Studio: the back row side by side 7 studs in front (15 since W32, 2026-11-22)
 # of the back wall, two down each side, the left pair a little nearer the start than the right. The side rows are
 # moved in with the walls, 7 studs from them too. A plot's middle is 27 in front of its tank's back (hub_kit.plot).
-PLOT_GAP = float(HUB_TRY.get("PLOT_GAP", 7.0))  # from a tank's back to the wall's face
+PLOT_GAP = float(HUB_TRY.get("PLOT_GAP", 15.0))  # from a back tank's back to the back wall's face (7 until 2026-11-22)
+SIDE_GAP = 7.0  # from a side tank's back to its side wall's face: unchanged by W32
 plots = [(1, -83.41, HUB_BACK + PLOT_GAP + 27.0, 0), (2, -25.47, HUB_BACK + PLOT_GAP + 27.0, 0),
          (3, 32.03, HUB_BACK + PLOT_GAP + 27.0, 0), (4, 91.43, HUB_BACK + PLOT_GAP + 27.0, 0),
-         (5, -(HUB_HALF - PLOT_GAP - 27.0), -168.99, 90), (6, -(HUB_HALF - PLOT_GAP - 27.0), -105.45, 90),
-         (7, HUB_HALF - PLOT_GAP - 27.0, -178.33, -90), (8, HUB_HALF - PLOT_GAP - 27.0, -114.79, -90)]
+         (5, -(HUB_HALF - SIDE_GAP - 27.0), -168.99 + HUB_SHIFT, 90), (6, -(HUB_HALF - SIDE_GAP - 27.0), -105.45 + HUB_SHIFT, 90),
+         (7, HUB_HALF - SIDE_GAP - 27.0, -178.33 + HUB_SHIFT, -90), (8, HUB_HALF - SIDE_GAP - 27.0, -114.79 + HUB_SHIFT, -90)]
 # The hub's models (the tanks and their trainers, the stations, the gate's arch, the landmark, the small things) are
 # tools/map/hub_kit.py's: richer than a plain box (round things, glows, words), so they go to their own file, hub.json,
 # and into Studio by tools/map/hub_luau.py. Only the numbers they stand on are given from here.
@@ -1706,14 +1714,14 @@ import hub_kit  # noqa: E402
 
 hub_in = {"Half": HUB_HALF, "Back": HUB_BACK, "Front": FRONT, "Gate": GATE, "GateTurn": GATE_TURN, "FrontTurn": FRONT_TURN,
           "StartDepth": START_DEPTH, "Look": HUB_LOOK, "Plot": PLOT, "PlotColours": PLOT_COLOURS, "Plots": sorted(plots),
-          "GateLedge": HUB_LEDGE_GATE}
+          "GateLedge": HUB_LEDGE_GATE, "Shift": HUB_SHIFT}
 os.makedirs(OUT, exist_ok=True)
 json.dump(hub_in, open(os.path.join(OUT, "hub_in.json"), "w"), indent=1)
 hub_parts = hub_kit.build(hub_in)
 json.dump({"parts": hub_parts}, open(os.path.join(OUT, "hub.json"), "w"))
-add("DockSpawn", "trim", (1.0, 1.0, -115.2), (14, 1, 14), (255, 255, 255), t=1.0)  # where the user put it (2026-11-17), between
-# the two stalls, 67 studs in from the start; see-through, as the user hid it under the floor
-add("Figure", "figure", (10, 3.5, -128), (2, 5, 1), (90, 170, 230))
+add("DockSpawn", "trim", (1.0, 1.0, -115.2 + HUB_SHIFT), (14, 1, 14), (255, 255, 255), t=1.0)  # where the user put it (2026-11-17), between
+# the two stalls, 67 studs in from the start (moved with the hub since); see-through, as the user hid it under the floor
+add("Figure", "figure", (10, 3.5, -128 + HUB_SHIFT), (2, 5, 1), (90, 170, 230))
 
 SEA = 2000.0  # the sea's surface, in tiles this big, over the hub and the whole lane
 sea = set()

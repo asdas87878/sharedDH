@@ -233,7 +233,7 @@ else:
         return eye, target
     views = {  # name: (eye, target, fog colour, fog distance, sky colour, field of view, how solid the water looks)
         "hub": (Vector((0, 9, -166)), Vector((0, 4, 60)), HAZE, 6000, SKY, 70, 0.8),  # from the spawn, at the start
-        "spawn": (Vector((1, 7, -115)), Vector((0, 70, 600)), HAZE, 9000, SKY, 70, 0.8),  # the hub as it is now (2026-11-17), from DockSpawn
+        "spawn": (Vector((1, 7, -99)), Vector((0, 70, 600)), HAZE, 9000, SKY, 70, 0.8),  # the hub from DockSpawn (W32, 2026-11-22; -115 before)
         "vista": (Vector((1, 7, -115)), Vector((0, 120, 2000)), HAZE, 40000, SKY, 70, 0.8),  # the spawn, a far haze
         "vista_back": (Vector((-60, 7, -290)), Vector((10, 200, 2000)), HAZE, 40000, SKY, 70, 0.8),
         "skyft": (Vector((1, 7, -115)), Vector((1, 7, 2000)), (150, 205, 245), 30000, SKY, 90, 0.0),  # the sky face down the lane, level
