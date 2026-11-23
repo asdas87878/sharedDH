@@ -2,7 +2,8 @@
 
 Options only: nothing here is in the game. The picked one goes into tools/blender/sub_stages.py's tail() later.
 
-    python tools/blender/sub_props_options.py all [work folder]        everything below, in order (about 15 minutes)
+    python tools/blender/sub_props_options.py all [work folder]        everything below, in order (12 to 14 minutes)
+    blender --background --python tools/blender/sub_props_options.py -- gate <tier> <out folder>     no pictures
     blender --background --python tools/blender/sub_props_options.py -- stills <tier> <out folder> [--only 0,2]
     blender --background --python tools/blender/sub_props_options.py -- frames <tier> <out folder> [--first N]
     blender --background --python tools/blender/sub_props_options.py -- encode <frames folder> <out.mp4>
@@ -174,7 +175,8 @@ def blender_part():
                 th = np.arctan2(z, y)
                 red, green, blue = crop[..., 0], crop[..., 1], crop[..., 2]
                 mark = (red > 0.55) & (green < 0.72 * red) & (blue < 0.72 * red)
-                bright = (red > 0.72) & (green > 0.70) & (blue > 0.62)
+                # the blades' own white only: the blur disc hazes the dark disc up to 0.81, a lit blade is over 0.94
+                bright = (red > 0.88) & (green > 0.86) & (blue > 0.78)
                 ring = (r > t["lo"]) & (r < t["hi"])
                 if t["marked"]:
                     m = mark & ring
@@ -199,17 +201,26 @@ def blender_part():
                 steps.append(((got[f] - got[f - 1] + gap / 2) % gap) - gap / 2)  # the turn as the eye takes it
                 drawn.append(want[f] - want[f - 1])
             off = max(abs(s - d) for s, d in zip(steps, drawn)) if steps else None
+            # how far the blade seen ever is from where it was turned to, the steps added up: a frame that aliased
+            # would leave it a whole gap out for good. A step alone can be out with nothing wrong (the screw's
+            # coloured flight is a spiral on a cone seen from one side, so its middle doesn't travel evenly).
+            drift, run = 0.0, 0.0
+            for a, b in zip(steps, drawn):
+                run += a - b
+                drift = max(drift, abs(run))
             back = sum(1 for s in steps if s < -0.5)
             still = sum(1 for s in steps if abs(s) < 0.5)
             row = {"lost": lost, "backwards": back, "still": still, "seen_least": min(steps), "seen_most": max(steps),
-                   "drawn_least": min(drawn), "drawn_most": max(drawn), "furthest_from_drawn": off, "judged": t["judged"]}
+                   "drawn_least": min(drawn), "drawn_most": max(drawn), "furthest_from_drawn": off, "drift": drift, "judged": t["judged"]}
             report["tiles"][t["key"]] = row
-            bad = t["judged"] and (back or still or lost > n // 20 or off is None or off > 6.0)
+            row["steps_seen"] = [round(v, 1) for v in steps]
+            row["steps_drawn"] = [round(v, 1) for v in drawn]
+            bad = t["judged"] and (back or still or lost > n // 20 or off is None or drift > min(30.0, gap / 4))
             ok = ok and not bad
             print("props: %-14s seen %6.1f to %6.1f deg a frame (drawn %6.1f to %6.1f); backwards on %3d frames, still on "
-                  "%3d, unread %3d; furthest from drawn %.1f%s" % (
+                  "%3d, unread %3d; one step furthest from drawn %.1f, the blade never more than %.1f from its place%s" % (
                       t["key"], row["seen_least"], row["seen_most"], row["drawn_least"], row["drawn_most"], back, still,
-                      lost, off or -1, "" if t["judged"] else "   (today's rule: shown as proof, not judged)"))
+                      lost, off or -1, drift, "" if t["judged"] else "   (today's rule: shown as proof, not judged)"))
             if bad:
                 print("  ! %s does not read as one steady turn" % t["key"])
         report["ok"] = ok
@@ -481,6 +492,27 @@ def blender_part():
     scene.render.film_transparent = True
     scene.render.image_settings.color_mode = "RGBA"
 
+    if mode == "gate":
+        # no pictures: every option through the gate on this tier, the colour its one blade gets, and whatever of the
+        # sub stands in the space the options turn in (behind the dark disc, inside the ring; boxes compared, so a
+        # near miss is named too)
+        inside = TAIL["ring"] - 0.6
+        deep = 0.0
+        for i in range(5):
+            row = gate(i, option(i))
+            deep = max(deep, row["behind"])
+        near = []
+        for pc in BODY_PIECES:
+            vs = [v.co for v in pc["bm"].verts]
+            lo = [min(v[a] for v in vs) for a in range(3)]
+            hi = [max(v[a] for v in vs) for a in range(3)]
+            if hi[0] > FACE and lo[0] < DISC + deep and lo[1] < inside and hi[1] > -inside and lo[2] < az + inside and hi[2] > az - inside:
+                reach = min(math.hypot(v.y, v.z - az) for v in vs if v.x > FACE) if any(v.x > FACE for v in vs) else -1
+                near.append("%s %s (x %.2f to %.2f, nearest corner %.2f from the hub's line)" % (pc["part"], pc["colour"], lo[0], hi[0], reach))
+        print("props: tier %d: the coloured blade is %s (blades %s, glow %s); ring's inside %.2f; the deepest option ends %.2f "
+              "behind the disc; of the sub in that space: %s" % (tier, MARK, TAIL["blades"], TAIL["glow"], inside, deep,
+                                                                 "; ".join(near) or "nothing"))
+        return
     if mode == "stills":
         only = [int(v) for v in flag("--only", "0,1,2,3,4").split(",")]
         # a blocky rider on the seat, as sub_stages draws one (root 1.7 over the seat's top)
@@ -795,7 +827,7 @@ def sheet(src, out):
         o = stats[1]["options"][i]
         d.text((PAD + 46 + bw, y + 18), NAMES[i] if i else "TODAY'S PROPELLER", font=font(62), fill=INK)
         tri = o["triangles"]["Prop"]
-        line = "%s  /  %d triangles%s  /  reaches %.1f of the ring's %.1f studs" % (
+        line = "%s  /  %d triangles%s  /  reaches %.1f of the ring's %.1f studs (tier 1)" % (
             ABOUT[i], tri, "" if i == 0 else " (%d more than today)" % (tri - now), o["reach"], 3.7)
         d.text((PAD + 48 + bw, y + 90), line, font=font(29), fill=SOFT)
         if i == 2:
@@ -812,7 +844,7 @@ def sheet(src, out):
                 if view == "ride":
                     kf = lay(im, x + 8, yy + 52, w - 16, h - 16, grow=1.07)
                     share = stats[n]["options"][i]["ride_share"]
-                    d.text((x + w - 14, yy + 44 + h - 12), "in the game the propeller is %d%% of the screen's height" % round(100 * share),
+                    d.text((x + w - 14, yy + 44 + h - 12), "%d%% of the screen's height in the game" % round(100 * share),
                            font=font(25), fill=SOFT, anchor="rd")
                 else:
                     lay(im, x, yy + 44, w, h)
