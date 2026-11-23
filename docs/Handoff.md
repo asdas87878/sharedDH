@@ -11,7 +11,10 @@ The user: "save it, but also the ui on the signs are now gone. AND hugo added a 
   running version's `content` folder (it looks for Linux paths by itself). All 12 levels build; level 1 and 12 ridden or read.
 - **Local meshes only:** the saved place now names `rbxasset://ridefish/Trainer<n>/` files. Where they are missing (a Studio update,
   another PC without them, a published game) the seahorse is unseen, and the kit's toy no longer stands in. Run `--files-only` after a Studio
-  update; a published game needs them uploaded (the user's or Hugo's word). Same for `ReplicatedStorage.SubMeshes` (Hugo's subs): not here.
+  update; a published game needs them uploaded (the user's or Hugo's word).
+- **Hugo's nine toy subs too** (the user: "Yes, the subs too"; version 403): `tools/subs/install.py <studio_id>`, `STUDIO_CONTENT` set the
+  same way; local meshes as well. In Play all nine build from their meshes and the Abyss King made a whole trip (pick-up to drop, by
+  numbers); not looked at (Studio was not drawing). The place's studio id is 3b999aa2 since it was reopened.
 - **The map:** the trainer stands 9 ahead of the fence (6 put every level's tail in the rail), the kit's toy 0.85 again (`hub_kit.py`,
   loaders 95 to 97; moved in the open place without a reload).
 - **`Config`** (the game-code chat's): both upgrade signs' `Far` 160 to 420, the stations' own: from a side pen the pens across the hub
