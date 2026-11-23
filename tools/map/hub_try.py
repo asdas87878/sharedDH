@@ -3,7 +3,7 @@ side of the map. Nothing under Workspace.ClaudeBlockout is touched, and the game
 
   Workspace.HubTryS     the hub's floor, strip, walls and the first of the lane, as the generator builds them at S's size
                         (tools/map/hub_s.py), without props, water or barriers
-  Workspace.HubTryPens  S's eight pens (one style, mixed stages), the stations at their present size, the trainer pads;
+  Workspace.HubTryPens  S's eight pens (one style, mixed stages), the stations and trainer pads at the reference's size (plan.FIT);
                         and, beside the walls, the pen at all six stages in a row (tools/map/pen_levels.py)
 
 usage: python tools/map/hub_s.py && python tools/map/hub_try.py [style B or E; A and C are drawn only at stages 0, 2 and 5]
@@ -122,19 +122,30 @@ def pens(out):
 def stations(out):
     hub = json.load(open(os.path.join(ROOT, "art", "map", "greybox", "hub.json")))
     for tx, tz, tw, _td, label, colour in plan.s_things:
-        if tw == 12 and not label:
-            Kit(out, "S/Pads", (tx, hub_kit.FLOOR_Y, tz)).box(0, 0, 0, 12, 0.6, 12, colour, n="Pad", solid=False, shadow=False)
+        if tw == plan.PAD_SIZE and not label:
+            Kit(out, "S/Pads", (tx, hub_kit.FLOOR_Y, tz)).box(0, 0, 0, tw, 0.5, tw, colour, n="Pad", solid=False, shadow=False)
             continue
         name = label or "Earners"
         mine = [p for p in hub["parts"] if p["m"] == "Stations/" + name or p["m"].startswith("Stations/" + name + "/")]
         body = [p for p in mine if "s" in p and not p.get("bill")]
         cx = (min(p["p"][0] for p in body) + max(p["p"][0] for p in body)) / 2
         cz = (min(p["p"][2] for p in body) + max(p["p"][2] for p in body)) / 2
+        fit = plan.FIT[name]
         for p in mine:
             p = {a: b for a, b in p.items() if a != "circle"}  # its floor ring is tagged, and the game reads the tag
             if p.get("tex") == "ripple":
                 del p["tex"]
-            out.append(dict(p, m="S/" + name, p=[p["p"][0] - cx + tx, p["p"][1], p["p"][2] - cz + tz]))
+            ax = [p.get("x", (1, 0, 0)), p.get("y", (0, 1, 0))]
+            ax.append([ax[0][1] * ax[1][2] - ax[0][2] * ax[1][1], ax[0][2] * ax[1][0] - ax[0][0] * ax[1][2], ax[0][0] * ax[1][1] - ax[0][1] * ax[1][0]])
+            size = [p["s"][i] * math.sqrt(sum((fit[j] * ax[i][j]) ** 2 for j in range(3))) for i in range(3)] if "s" in p else None
+            if p["n"] == "Ring":
+                size = [plan.RING, p["s"][1], plan.RING]
+            if size:
+                p["s"] = [round(v, 3) for v in size]
+            if p.get("bill"):
+                p["bill"] = dict(p["bill"], size=[v * 0.45 for v in p["bill"]["size"]])  # theirs is about a stall wide
+            at = [p["p"][0] - cx, p["p"][1] - hub_kit.FLOOR_Y, p["p"][2] - cz]
+            out.append(dict(p, m="S/" + name, p=[at[0] * fit[0] + tx, at[1] * fit[1] + hub_kit.FLOOR_Y, at[2] * fit[2] + tz]))
 
 
 def rows(out):

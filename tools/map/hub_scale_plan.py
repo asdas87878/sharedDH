@@ -132,9 +132,17 @@ s_pens = [(-100, -50, -212 + SZ, -152 + SZ), (-50, 0, -212 + SZ, -152 + SZ), (0,
 s_gates = [(x, z + SZ, dx, dz) for x, z, dx, dz in
            [(-57.5, -152, 0, 1), (-25, -152, 0, 1), (25, -152, 0, 1), (57.5, -152, 0, 1),
             (-65, -122, 1, 0), (-65, -72, 1, 0), (65, -122, -1, 0), (65, -72, -1, 0)]]
-s_things = [(-26, -60, 29, 20, "Sell", RED), (26, -60, 29, 20, "Auras", PURPLE), (22, -118 + SZ, 29, 41, "Fuse", BLUE),
-            (-27, -108 + SZ, 47, 18, "Index", GOLD), (54, -48, 20, 29, "Sub", TEAL), (-59, -46, 8, 26, "", GREY)]
-s_things += trainers([(x, z + SZ) for x, z in [(-45, -146), (-8, -146), (8, -146), (45, -146), (-58, -104), (-58, -87), (58, -104), (58, -87)]])
+# what stands on the floor is at the reference's size too (2026-11-23, the user: "the hub size still aint matched up"):
+# theirs measured from run 6.0 s, 21 s and 39 s (ground.py): a stall 8.5 by 6.3 (posts) and about 9 high, its ring 11.5,
+# the fuse machine 19 wide, a trainer's pad 5. Ours were 20 by 11 by 12.6, 16, 28.6 and 12. FIT scales a station in its
+# own axes; the lighthouse and the earners board have nothing to measure against (theirs is a button and a wall board)
+FIT = {"Sell": (0.64, 0.7, 0.5), "Auras": (0.64, 0.7, 0.5), "Sub": (0.5, 0.7, 0.64), "Fuse": (0.66, 0.66, 0.66),
+       "Index": (0.5, 0.5, 0.5), "Earners": (0.6, 0.6, 0.6)}
+PAD_SIZE, RING = 6, 11.5
+s_things = [(-18, -54, 19, 12, "Sell", RED), (18, -54, 19, 12, "Auras", PURPLE), (16, -112, 19, 27, "Fuse", BLUE),
+            (-20, -112, 24, 9, "Index", GOLD), (54, -48, 12, 19, "Sub", TEAL), (-55, -40, 16, 5, "", GREY)]
+s_things += [(x, z + SZ, PAD_SIZE, PAD_SIZE, "", PAD) for x, z in
+             [(-45, -147), (-12, -147), (12, -147), (45, -147), (-60, -106), (-60, -84), (60, -106), (60, -84)]]
 S_TRY = {"HUB_HALF": 118, "HUB_BACK": -225, "CORNER": 12, "FRONT_TURN": 8, "GATE_TURN": 17}
 assert not check("S", (-118, 118, -225, 0), (-48, 48, -32, 0), s_pens, s_things, s_gates)
 r = panel("S (a sketch): 236 x 193, eight pens 50 x 60",

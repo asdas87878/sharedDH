@@ -27,6 +27,7 @@ tell me other things we could do for the water".
 | **The hub** | 400 x 280 wall to wall (the floor part is 400 x 312, under the strip too); the open floor between the tank fronts alone is **216 x 180** | about **230 x 180** wall to wall, pens included | **The main cause.** Our open floor is the size of their whole hub. Every walk is long: back tank to the strip 180 studs (6.4 s) against their 110 (4 s) |
 | **The pens** | 52 x 84 of water, **34 tall** (posts 34) | about 50 x 60 (drawn from frames, not measured), **fence 4 high** | The footprint is close; the height is not. Eight 34-stud boxes make the hub read as a room of buildings |
 | **The studs** | one every **1.0** stud, on an 8-stud checker | one every **0.64**, no checker on the hub floor | Ours are 1.56 times bigger. At the same speed the ground slides past 1.56 times slower in studs, so running *looks* slower and the world bigger |
+| **What stands on the floor** (2026-11-23) | stalls 20 x 11 and 12.6 high, rings 16, the fuse machine 28.6 wide, trainer pads 12, floating names 30 wide | stalls **8.5 x 6.3** (posts) and about 9 high, rings **11.5**, fuse **19**, pads **5**, names about a stall wide (run 6.0, 21 and 39 s, `ground.py`, good to about 15%) | **Ours are 1.5 to 2.4 times theirs.** The first S try had the walls at their size with our stations at full size, so it still read wrong (the user: "the hub size still aint matched up") |
 | Camera | not measured | not measured | One capture framed like H1 would settle it |
 
 ![ours, the reference, and S, all at one scale](../attachments/hub-scale-plans.png)
@@ -130,14 +131,17 @@ longer than a 50 x 60 pen. `Taller` (3) and `Slots` (2) are Hugo's numbers: **12
 The pictures show the **layered best case**, squeezed where the height doesn't reach, not the game's laps.
 
 **Against it, honestly:** the 34-high tanks were the second cause of the hub feeling like a room of buildings, and a stage-5
-pen is 74. In S they stand at the back and sides, so nothing tall is on the line from the spawn to the strip. S from
-inside, with mixed stages (Blender: no studs, water more solid than Roblox's; left, from the strip to the pens; right, from
-the back pens to the strip), with E:
+pen is 74. In S they stand at the back and sides, so nothing tall is on the line from the spawn to the strip. **Since the
+same day the try's stations and pads are at the reference's measured size too** (`hub_scale_plan.FIT`; the lighthouse, half, and
+the earners board, 0.6, are guesses: theirs are a button and a wall board). Not scaled: the gate boards (ours 12.8 wide,
+theirs about 4), the floor's studs, the fish. S from
+inside, with mixed stages (Blender: no studs, water more solid than Roblox's; both from the strip to
+the pens), with E:
 
 ![S from inside, with pens of mixed stages](../attachments/hub-s-inside.png)
 
 **In Studio:** `tools/map/hub_try.py` writes the try (`Workspace.HubTryS` and `HubTryPens`, at x 14000, with E's
-six stages in a row beside it, at x 14900). It touches nothing under `ClaudeBlockout` and refuses to run in Play. **Loaded 2026-11-23** (771 shell parts, 1,365 pieces; none under a rim's name; nothing tagged;
+six stages in a row beside it, at x 14900). It touches nothing under `ClaudeBlockout` and refuses to run in Play. **The smaller stations are written, not loaded:** the UI chat has Studio. The first version was **loaded 2026-11-23** (771 shell parts, 1,365 pieces; none under a rim's name; nothing tagged;
 not saved). Not looked at there yet by the map chat (Studio's window was covered, so captures came out blank). **To judge there:** whether the
 water, at Roblox's 0.9, still reads as a tank with no rim round it. It has no spawn: in Play a one-off move of the character
 there comes first, then a check that the game leaves them there at 28.
@@ -177,7 +181,7 @@ smallest of the sizes tried that clears them: 238 x 184, 236 x 188 and 236 x 191
 For attention, following the reference:
 - **The spawn on the line from the pens to the strip**, facing the strip. The strip, the gap and the herd beyond it are
   straight ahead and fill the middle of the first view.
-- **Sell and Auras flank that line**, 18 from the strip (theirs 17 to 25); our stalls are 29 wide, so their middles are 52 apart (theirs 30). Every walk out passes them.
+- **Sell and Auras flank that line**, 16 from the strip (theirs 17 to 25); at their size the stalls' middles are 36 apart (theirs 30 to 38). Every walk out passes them.
 - **Nothing tall between the spawn and the gap.** The tanks' 34-stud height is what blocks the view today. Low pens give
   the whole hub one sightline, and from every pen front the herd shows through the gap.
 - The Fuse machine and the Index a little further back, the Earners board and the Submarine at the strip's two ends.
