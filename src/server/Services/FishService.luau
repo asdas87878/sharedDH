@@ -1734,6 +1734,7 @@ function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Ve
 		return nil
 	end
 	local home = (Stream.project(stream, at))
+	local testSize = workspace:GetAttribute("TestSize")
 	local w = make(
 		fishType,
 		if variant == "Silver" or variant == "Gold" or variant == "Rainbow" then variant else "",
@@ -1741,7 +1742,11 @@ function FishService.spawnTest(id: string, variant: string, at: Vector3, dir: Ve
 		at,
 		dir,
 		Lane.zoneAt(lane, Stream.laneS(stream, home)),
-		sliceAt(home)
+		sliceAt(home),
+		nil,
+		nil,
+		nil,
+		if type(testSize) == "string" and Config.SizeScale[testSize] then testSize else nil
 	)
 	park(w, false)
 	return w

@@ -183,6 +183,23 @@ RS:GetAttributeChangedSignal("FECmd"):Connect(function()
 		if verb == "ride" then
 			-- ride|Fish|case (Fish "": none, free in the water)
 			local at, along = placeOf(if b ~= "" then b else "deep")
+			-- (a test max, when one is set, raised over the fish's need: the Bobbit Worm needs 60 000 000 and the
+			-- Megalodon 102 000 000, over the 10 000 000 set; a guess at why neither was eaten in the first pass, not
+			-- proven. None set (fail_capture's endless air): left alone)
+			local kind = Config.FishById[a]
+			local max = tonumber(workspace:GetAttribute("TestMaxOxygen"))
+			if kind and max then
+				local size = workspace:GetAttribute("TestSize")
+				local need = Config.requiredOf(kind, if type(size) == "string" then size else "Normal", "")
+				if need * 2 > max then
+					workspace:SetAttribute("TestMaxOxygen", need * 2)
+				end
+			end
+			-- (the place streamed in to the player's machine first: likely why a first ride at a place took seconds to
+			-- seat while the fish swam on, not proven)
+			pcall(function()
+				player:RequestStreamAroundAsync(at, 5)
+			end)
 			RideService.sandboxReset(player, nil, if a ~= "" then a else nil, nil, { At = at, Along = along })
 			return string.format("ride %s %s at %.0f %.0f %.0f", a, b, at.X, at.Y, at.Z)
 		elseif verb == "lip" then
@@ -892,6 +909,11 @@ def eat_metrics(frames, meta, fish):
     beat = 1.27 if fail.get("Kind") == "Chomp" else 1.6
     hit = next((f for f in failing if f["u"] is not None and f["u"] >= beat), None)
     out["inMouthAtBite"] = hit["inMouth"] if hit else None
+    # seen out of the mouth: frames still drawn, from the bite to the hide, with the body outside the mouth's room
+    # and the way down the throat (the swallow's turn and shake swinging the head off it)
+    out["seenOutside"] = sum(
+        1 for f in failing if f["u"] is not None and f["u"] >= beat and not f["hidden"] and f["inMouth"] == 0
+    )
     # the mouth against the offline table (an independent truth: the painted mouth on the exported model)
     rule, paint, normal = truth(fish)
     mouth = fail.get("MouthLocal")
@@ -901,6 +923,7 @@ def eat_metrics(frames, meta, fish):
         out["mouthVsPaint"] = round(math.dist(scaled, paint) / normal, 3) if paint else None
     checks = {
         "bite": out["biteFar"] is not None and out["biteFar"] <= BITE_NEAR,
+        # (the old bar, kept: near the throat's target as it is hidden; inMouthHide and seenOutside say where it was)
         "hide": out["hideFar"] is not None and out["hideFar"] <= HIDE_NEAR,
         "inMouthBite": out["inMouthAtBite"] != 0,
         "inMouthHide": out["inMouthAtHide"] != 0,
@@ -910,6 +933,7 @@ def eat_metrics(frames, meta, fish):
         "camJump": out["camJump"][0] <= CAM_JUMP,
         "walls": out["wallFrames"] <= WALL_FRAMES,
         "hiddenOutside": out["hiddenOutside"] <= HIDDEN_OUTSIDE,
+        "seenOutside": out["seenOutside"] <= HIDDEN_OUTSIDE,
         "errors": len(out["errors"]) <= ERRORS,
     }
     if out.get("mouthVsRule") is not None:
@@ -1168,7 +1192,8 @@ def drown(case, kind="Throw", fish=""):
     if case not in ("deep", "surface", "lip", "miss", "nofail"):
         raise SystemExit("drown CASE: deep, surface, lip, miss, nofail")
     fish = fish or thrower()
-    setw(TestMaxOxygen=None if case == "nofail" else 10000000)
+    # (nofail too: its own small max is set once it rides, `nofail|1|2`; with none here it never got to ride)
+    setw(TestMaxOxygen=10000000)
     lip_at = None
     if case == "lip":
         said = cmd("lip", 0.6)
@@ -1178,6 +1203,15 @@ def drown(case, kind="Throw", fish=""):
             raise SystemExit("no lip: " + said)
     place = {"deep": "deep", "lip": "lip"}.get(case, "surface")
     try:
+        if case != "miss":
+            # (a ride there first, not recorded: the first ride at a place waited seconds for the seat while the fish
+            # swam on, and its fail came some 300 studs downstream of the case's place; the second did not)
+            print("warm-up:", cmd(f"ride|{fish}|{place}", 1.0))
+            try:
+                wait_state({"Riding"}, 30)
+            except SystemExit as e:
+                print("  warm-up:", e)
+            print("  home:", home())
         for tag, on in (("on", True), ("off", False)):
             name = f"drown_{case}_{kind}_{tag}"
             ok, fps = ready(on, name)

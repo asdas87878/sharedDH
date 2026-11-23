@@ -251,7 +251,8 @@ def window(kind, on):
     if kind in ("Chomp", "Gulp"):
         grab = (config_num(r"ChompGrab = ([\d.]+)", 0.95) if on else 1.12) if kind == "Chomp" else 1.0
         gone = 1.62 if kind == "Chomp" else 1.78
-        a, b = grab - 0.1, gone + 0.15
+        # (with the dials the hide may wait up to Fail.HideLate for the body to be in the mouth)
+        a, b = grab - 0.1, gone + 0.15 + (config_num(r"HideLate = ([\d.]+)", 0.25) if on else 0)
     else:
         a, b = 0.0, config_num(kind + r"\s*= \{ Time = ([\d.]+)", 1.5)
     main = [a + (b - a) * i / (FRAMES - 1) for i in range(FRAMES)]
@@ -288,8 +289,9 @@ def one(fish, on):
         # 1. a live run of the fail at full speed, recorded by the game (FailRecord: FailController keeps every part of
         # the loose body, each frame): at 10 s or more a frame the loose body's physics would run on between frames
         # (as fail_live_capture.py; endless air, not a huge test max, which tames the fish and its banner covers it)
-        E.setw(TestMaxOxygen=None, SandboxEndlessAir=True, CatchLook=0, FailRecord=True, FailReplay=False, FailSlow=1,
-               FailClock=-1, DeathClock=-1)
+        # (Sandbox too: RideService's endless air needs it on as well, in this playtest's workspace only)
+        E.setw(TestMaxOxygen=None, Sandbox=True, SandboxEndlessAir=True, CatchLook=0, FailRecord=True,
+               FailReplay=False, FailSlow=1, FailClock=-1, DeathClock=-1)
         print(E.cmd(f"ride|{fish}|deep", 1.0))
         E.wait_state({"Riding"}, 30)
         tier = E.cmd("tier", 0.3).split(" ")

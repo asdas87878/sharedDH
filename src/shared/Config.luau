@@ -2775,6 +2775,12 @@ Config.Fail = {
 	ArriveLead = 0.12,
 	ArriveRate = 0.15,
 	ArriveEase = 12,
+	-- the swallow's hide waits for the body to be in the mouth or down the throat, at most HideLate seconds of the
+	-- outcome (inside the server's time: the swallow + ArriveWait + this is under the Chomp's and the Gulp's Time),
+	-- and once out of sight it is held there at HidePull (Responsiveness), so the fish's turn away does not leave it
+	-- (a Chomp's jaws hold at HidePull from the bite on, so its head shake does not swing the body out of the mouth)
+	HideLate = 0.25,
+	HidePull = 80,
 	ChompGrab = 0.95, -- seconds into a Chomp its jaws' pull begins (1.12 before; Gulp's suction stays at 1.0)
 	ChompGrabFrom = 8, -- and how quickly it pulls at first (Responsiveness), growing to the old 22 by 1.12
 	ClearAround = 2, -- the fish's solid boxes this near the way from its mouth to its throat (studs past their own size) go off too

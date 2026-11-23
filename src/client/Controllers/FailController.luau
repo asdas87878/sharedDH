@@ -1407,12 +1407,28 @@ local function stepBody(b: Body, dt: number)
 end
 
 ----------------------------------------------------------------------------------------------------------------------
+-- Whether `at` is inside the mouth's room or anywhere along the way down the throat (nil: no room known, the mouth
+-- not from the model)
+local function inMouthOf(f: Fail, fishNow: CFrame, at: Vector3): boolean?
+	local room = f.MouthRoom
+	if not room then
+		return nil
+	end
+	local p = (fishNow * mouthOf(f)):PointToObjectSpace(at)
+	local deep = f.Length * (if f.Kind == "Gulp" then 0.3 else 0.25)
+	return math.abs(p.X) <= room.X * 0.5 + 1
+		and math.abs(p.Y) <= room.Y * 0.5 + 1
+		and p.Z >= -room.Z * 0.5 - 1
+		and p.Z <= deep + 1
+end
+
 -- The fish's grabs, by outcome (our own machine: AlignPositions on the loose body)
 
 -- (Fail.Arrive) where the fish's clock may wait for the body: just before the bite and just before you are gone (the
--- hide: 1.62 for a Chomp, 1.78 for a Gulp, less 0.02), made once and not every frame
+-- hide: 1.62 for a Chomp, 1.78 for a Gulp, less 0.02), made once and not every frame (a Gulp's bite, 1.6, less 0.02
+-- too: its suction runs down the throat from 1.45, so at 1.52 the body could be near and still 3 studs off at the bite)
 local WAIT_CHOMP = { 1.2, 1.6 }
-local WAIT_GULP = { 1.52, 1.76 }
+local WAIT_GULP = { 1.58, 1.76 }
 
 local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 	local L, H = f.Length, f.Height
@@ -1428,6 +1444,10 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 			local pull = 22 + 20 * deep
 			if arrive and t < 1.12 then
 				pull = Ease.lerp(Config.Fail.ChompGrabFrom, 22, ss(from, 1.12, t))
+			elseif arrive and t >= 1.3 then
+				-- (from the bite on, held hard: the head's shake and the way down the throat swung it 7 studs out
+				-- of the mouth at 22 to 32, still to be seen)
+				pull = Config.Fail.HidePull
 			end
 			hold(b, "Mouth", "Torso", mouthTarget(f, fishNow, t), pull, 1400)
 		end
@@ -1436,7 +1456,11 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 		if t >= 1.0 then
 			b.MouthOff = true
 			f.GrabAt = f.GrabAt or t
-			hold(b, "Mouth", "Torso", mouthTarget(f, fishNow, t), 14 + 36 * ss(1.0, 1.45, t), 2200)
+			local pull = 14 + 36 * ss(1.0, 1.45, t)
+			if f.Dials.Arrive and next(f.Hidden) ~= nil then
+				pull = Config.Fail.HidePull
+			end
+			hold(b, "Mouth", "Torso", mouthTarget(f, fishNow, t), pull, 2200)
 		end
 	elseif kind == "Wrap" then
 		-- each arm, once it has hold, hauls its limb in under the body, with weight and lag
@@ -2175,17 +2199,7 @@ function FailController.probe(player: Player): { [string]: any }?
 	local mouth = fishNow * mouthOf(f)
 	local torso = limb(f.Character, "Torso")
 	local target = mouthTarget(f, fishNow, f.U)
-	local inMouth: boolean? = nil
-	if torso and f.MouthRoom then
-		-- inside the mouth's room, or anywhere along the way down the throat
-		local p = mouth:PointToObjectSpace(torso.Position)
-		local room = f.MouthRoom :: Vector3
-		local deep = f.Length * (if f.Kind == "Gulp" then 0.3 else 0.25)
-		inMouth = math.abs(p.X) <= room.X * 0.5 + 1
-			and math.abs(p.Y) <= room.Y * 0.5 + 1
-			and p.Z >= -room.Z * 0.5 - 1
-			and p.Z <= deep + 1
-	end
+	local inMouth: boolean? = if torso then inMouthOf(f, fishNow, torso.Position) else nil
 	return {
 		Kind = f.Kind,
 		T = f.Last,
@@ -2529,7 +2543,12 @@ local function step(dt: number)
 		end
 		-- swallowed: out of sight, and the throat bulges
 		if mouthy then
-			if u >= gone and next(f.Hidden) == nil then
+			-- (Fail.Arrive: not until the body is in the mouth or down the throat, at most Fail.HideLate later)
+			local ready = u >= gone
+			if ready and f.Dials.Arrive and torso and u < gone + Config.Fail.HideLate then
+				ready = inMouthOf(f, fishNow, torso.Position) ~= false
+			end
+			if ready and next(f.Hidden) == nil then
 				f.HideAt = t
 				f.HideFar = if torso then (torso.Position - mouthTarget(f, fishNow, u)).Magnitude else nil
 				hide(f)

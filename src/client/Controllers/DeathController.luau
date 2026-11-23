@@ -52,6 +52,10 @@ type Death = {
 	Shift: Vector3,
 	TopFrom: number,
 	Under: boolean,
+	-- (Death.UnderWater) the loose body's root as last seen, and its speed from frame to frame: the takeover goes on
+	-- from there (its AssemblyLinearVelocity spikes as the joints come back: carried, it threw the body down a step)
+	Seen: Vector3?,
+	SeenSpeed: Vector3,
 }
 
 local deaths: { [Player]: Death } = {}
@@ -128,6 +132,8 @@ local function begin(player: Player, kind: string): Death?
 			Shift = Vector3.zero,
 			TopFrom = root.Position.Y,
 			Under = Underwater.on(),
+			Seen = nil,
+			SeenSpeed = Vector3.zero,
 		}
 	if ragdolled then
 		-- a loose body is followed, from the side the shot already is, no further than 26 studs (one push in, eased
@@ -237,6 +243,12 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		}
 		State.Vignette = 0
 		State.Darken = 0.35 * Ease.smoothstep(throwT, total, t)
+		if d.Under then
+			if d.Seen and dt > 0 then
+				d.SeenSpeed = (root.Position - d.Seen) / dt
+			end
+			d.Seen = root.Position
+		end
 		return
 	end
 	if d.Loose and not d.Settle then
@@ -249,11 +261,18 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		d.Look = flat(root.CFrame.LookVector)
 		d.SettleAt = t
 		d.Carry = if d.Under then root.AssemblyLinearVelocity else Vector3.zero
-		d.TopFrom = root.Position.Y
+		if d.Under and d.Seen then
+			-- (Death.UnderWater) taken over one frame on from where it was last seen, at the speed it was seen going
+			-- (not where the joints' coming back put it this frame, nor at the speed they gave it)
+			d.Carry = d.SeenSpeed
+			d.At = CFrame.new(d.Seen :: Vector3 + d.SeenSpeed * dt) * root.CFrame.Rotation
+		end
+		d.TopFrom = d.At.Position.Y
 	end
 	local since = t - d.SettleAt
-	if d.Under then
-		-- the body's own speed carried on, dying away (no stop dead as the joints come back)
+	if d.Under and since > 0 then
+		-- the body's own speed carried on, dying away (no stop dead as the joints come back; from the frame after the
+		-- takeover: its own frame's step is in d.At already)
 		d.Carried += d.Carry * dt
 		d.Carry *= math.exp(-c.Carry * dt)
 	end
