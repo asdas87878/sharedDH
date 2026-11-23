@@ -990,7 +990,7 @@ def pen(out, index, box, g):
     pl.pen_e(k, -w / 2, w / 2, 0, fish=False)
     pl.W, pl.D, pl.GATE_AT = keep
     front = d / 2
-    tx, tz = side * 20, front + 6
+    tx, tz = side * 20, front + 9  # (6 put a level's tail in the fence)
     k.box(tx, 0, tz, 6, 0.5, 6, (225, 70, 70), n="TrainerSpot", solid=False, shadow=False, tex="stud")
     k.box(tx, 0.5, tz, 4, 1.5, 4, YELLOW, n="TrainerBase", tex="studs")
     k.box(tx, 2, tz, 1.6, 3.2, 1.6, INK, n="TrainerSpring", solid=False, shadow=False)
@@ -998,7 +998,7 @@ def pen(out, index, box, g):
         k.disc(tx, 2.2 + j, tz, 3.6, 0.6, (176, 182, 196), n="SpringCoil", solid=False, shadow=False)
     ride = k.sub((tx, 5, tz), model=name + "/TrainerRide", solid=False)
     ride.box(0, 0, 0, 4, 0.8, 6, PLOT_COLOUR, n="TrainerRide", tex="stud")
-    ride.fish("Seahorse", 0, 0.6 + 14.2 * 0.6 / 2, 0, 0.6, n="Toy")
+    ride.fish("Seahorse", 0, 0.6 + 14.2 * 0.85 / 2, 0, 0.85, n="Toy")  # RideStyles.Trainer.Scale
     s, z = SIGN, front + 4
     for word, x in (("Upgrade", side * 11.4), ("Plot", -side * 11.4)):  # between the gate and the fence's end, clear of both
         k.box(x, 0, z - s["Thick"] / 2 - s["Post"] / 2, s["Post"], s["Foot"] + s["High"] / 2, s["Post"], SIGN_POST, yaw=180, n=word + "Post")

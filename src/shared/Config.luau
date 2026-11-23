@@ -812,7 +812,7 @@ Config.Train = {
 		Post = 0.9, -- the post's thickness
 		Thick = 0.5, -- the board's
 		PixelsPerStud = 50, -- the layout is 540 by 324 of these pixels: fewer a stud, bigger letters (Wide and High with it)
-		Far = 160, -- studs: not drawn past this
+		Far = 420, -- studs: not drawn past this (the stations' names' own, so no board in the hub is ever a blank one)
 	},
 }
 
@@ -937,7 +937,7 @@ Config.PlotUpgrades = {
 		Post = 0.9,
 		Thick = 0.5,
 		PixelsPerStud = 50,
-		Far = 160,
+		Far = 420,
 	},
 }
 

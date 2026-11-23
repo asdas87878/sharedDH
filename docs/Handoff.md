@@ -3,15 +3,28 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-23 · Hugo's seahorses on the user's PC, off the fence; the pens' boards drawn across the hub; saved (Ride a Fish map)
+The user: "save it, but also the ui on the signs are now gone. AND hugo added a coil and new seahorses which have been removed."
+**State:** saved to Roblox, version 402. Checked in Play by numbers and one picture ([the hub](attachments/hub-seahorses-2026-11-23.jpg)).
+- **The seahorses were not in this place:** no `ReplicatedStorage.TrainerModels`, and Studio's content folder on this PC had no trainer
+  files, so every plot fell back to the kit's toy. Installed with `install_tiers.py <studio_id>` and `STUDIO_CONTENT` set to the
+  running version's `content` folder (it looks for Linux paths by itself). All 12 levels build; level 1 and 12 ridden or read.
+- **Local meshes only:** the saved place now names `rbxasset://ridefish/Trainer<n>/` files. Where they are missing (a Studio update,
+  another PC without them, a published game) the seahorse is unseen, and the kit's toy no longer stands in. Run `--files-only` after a Studio
+  update; a published game needs them uploaded (the user's or Hugo's word). Same for `ReplicatedStorage.SubMeshes` (Hugo's subs): not here.
+- **The map:** the trainer stands 9 ahead of the fence (6 put every level's tail in the rail), the kit's toy 0.85 again (`hub_kit.py`,
+  loaders 95 to 97; moved in the open place without a reload).
+- **`Config`** (the game-code chat's): both upgrade signs' `Far` 160 to 420, the stations' own: from a side pen the pens across the hub
+  (162 and more) were blank boards. The boards write themselves in Play only, in Edit they are blank, as before.
+
 ## 2026-11-23 · The new hub (S) in the whole map, and the three code changes its pens need (Ride a Fish map, the user's PC)
-**State:** StyLua clean, selene 0 errors. In the user's open place, **not saved**; the partner's place has the old hub until the
+**State:** StyLua clean, selene 0 errors. Saved, version 402 (a Team Create place; see the entry below for what went in with it); another place of the partner's has the old hub until the
 map is loaded there (`tools/studio/load_greybox.py`, about 25 minutes). The code works with either hub.
 - **The map** (`2881171`): hub 344 x 212, eight open pens 47 x 62 that grow. All of it, how it was checked and the way back:
   [hub-review-2](design/hub-review-2.md), "Live". Generate with `PROPS2=1`.
 - **The code:** `Config.PlotUpgrades.Taller` 3 to 12; `AquariumService.remember` leaves `SignBoard` out where a plot has no `SignBack`;
   `TrainService.label` 30.5 to 22 (on the old hub's tall tanks this sign would lie across the tank's own sign again).
-- **Not checked:** the seahorse's higher levels under the lower sign (the level models are not on this PC; from the model files the
-  tallest stands 17.9 and the sign starts at 19.5), and stages 3 to 5 in Play.
+- **Not checked:** stages 3 to 5 in Play. (The seahorse's 12 levels under the lower sign: checked the same day, above.)
 
 ## 2026-11-22 · The code tidied for a sale: dead code out, comments, guards in both Main (Ride a Fish game code, the user's PC)
 **State:** pushed by the Obsidian plugin's sync (23:03 and after). StyLua clean; selene 0 errors (the three old
