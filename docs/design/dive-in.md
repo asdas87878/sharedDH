@@ -516,7 +516,7 @@ the DIVE IN arch (the edge is found by a ray at run time, so a raised stand plac
 
 | Piece | What it does | Where |
 |---|---|---|
-| The trigger | On the dock, moving at the open water (a ray down ahead of you finds none of the floor), within 40 degrees of the dock's facing. Not while riding a fish on land or in a tank | `Controllers/DiveController` |
+| The trigger | On the dock, moving at the open water (a ray down ahead of you finds none of the floor), up to 75 degrees off the dock's facing (`Dive.LeapRefuse`; the heading is turned to within 40, `Dive.LeapCone`). Not while riding a fish on land or in a tank | `Controllers/DiveController` |
 | The leap | A short crouch on the lip, then an arc: 11 studs up, 24 out, 0.85 s in the air, in head-first at 67 degrees and 72 studs a second, carrying on to 16 under | `Dive.LeapHigh`, `LeapFar`, `LeapTime`, `LeapDepth`, `LeapSink` |
 | Into the plunge | The server's rule is unchanged (under -4 on the dock is in the water). The existing hop takes over with the leap's heading. With a fish equipped the server seats you at the water and the leap lets go; with a sub picked it lets go to the sub | `JumpController`, `RideController` (seams) |
 | The pose | Crouch, a slight arch on the rise, arms overhead and legs together at the top, an arrow at the water; a tuck with `Dive.Flip` 1. Other players are posed on each machine from the diver's tilt (nothing new is sent) | `AnimController` (`leapPose`) |

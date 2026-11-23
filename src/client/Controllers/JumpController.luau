@@ -1320,6 +1320,10 @@ function JumpController.Init()
 		-- (Not told by depth: we have sunk 30 studs by the time the server's word is here.)
 		if mode == "Free" and old == "Dock" and Config.Dive.AutoHop > 0 then
 			task.delay(math.max(Config.Dive.HopDelay, 0), function()
+				-- (the leap's splash is this dive's alone: read and cleared before any way out, so it never lasts
+				-- to the next drop-in)
+				local splashed = State.LeapSplashed
+				State.LeapSplashed = false
 				local _, root = State.character()
 				if State.Mode ~= "Free" or flying or not root then
 					return
@@ -1338,8 +1342,6 @@ function JumpController.Init()
 				-- the water already)
 				State.Heading = State.LeapHeading or yawOf(look)
 				State.LeapHeading = nil
-				local splashed = State.LeapSplashed
-				State.LeapSplashed = false
 				if request() then
 					diving = true
 					-- the plunge (Config.Dive): a splash where we went in, the view kicked wider and turned down the

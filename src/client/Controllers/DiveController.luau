@@ -68,6 +68,20 @@ local function rays(): RaycastParams
 	end
 	return rayParams
 end
+-- the ground under our own feet: only our own character left out (another player we stand on is ground)
+local ownParams = RaycastParams.new()
+ownParams.FilterType = Enum.RaycastFilterType.Exclude
+ownParams.RespectCanCollide = true
+ownParams.IgnoreWater = true
+local function ownRays(): RaycastParams
+	local skip: { Instance } = { camera }
+	local character = State.Player.Character
+	if character then
+		table.insert(skip, character)
+	end
+	ownParams.FilterDescendantsInstances = skip
+	return ownParams
+end
 
 -- the camera's: as the riding camera's (the lane's props are left out: fish break them and swim through)
 local cameraParams = RaycastParams.new()
@@ -79,13 +93,14 @@ local function surfaceY(): number
 	return Config.Depth.SurfaceY
 end
 
--- The top of what we could stand on under `from`, down to the water (nil: open water under it)
-local function groundUnder(from: Vector3): number?
+-- The top of what we could stand on under `from`, down to the water (nil: open water under it). `own`: under our own
+-- feet (other characters count as ground there)
+local function groundUnder(from: Vector3, own: boolean?): number?
 	local drop = from.Y - surfaceY()
 	if drop <= 0 then
 		return nil
 	end
-	local hit = workspace:Raycast(from, Vector3.new(0, -(drop + 0.05), 0), rays())
+	local hit = workspace:Raycast(from, Vector3.new(0, -(drop + 0.05), 0), if own then ownRays() else rays())
 	return if hit then hit.Position.Y else nil
 end
 
@@ -234,8 +249,11 @@ local function cameraKeys(p: Plan): { Key }
 		table.insert(keys, { t = t, at = at, slope = Vector3.zero })
 	end
 	add(0, p.camFrom.Position)
+	-- (the key times always rise: off a high ledge the top comes early, and the keys either side are kept off it)
+	local gap = 0.05
 	local low = p.takeoff + p.right * (p.side * d.LeapCamSide) - p.heading * d.LeapCamBack
-	add(p.crouch + 0.28 * p.air, Vector3.new(low.X, p.ground + d.LeapCamLow, low.Z))
+	local lowAt = math.min(p.crouch + 0.28 * p.air, math.max(p.tTop - gap, p.tTop * 0.5))
+	add(lowAt, Vector3.new(low.X, p.ground + d.LeapCamLow, low.Z))
 	add(
 		p.tTop,
 		arcAt(p, p.top)
@@ -244,7 +262,8 @@ local function cameraKeys(p: Plan): { Key }
 			+ UP * d.LeapCamCraneUp
 	)
 	local high = p.entry - p.heading * d.LeapCamHighBack + p.right * (p.side * 3)
-	add(p.crouch + 0.85 * p.air, Vector3.new(high.X, p.surface + d.LeapCamHigh, high.Z))
+	local highAt = math.max(p.crouch + 0.85 * p.air, math.min(p.tTop + gap, (p.tTop + p.tFollow) / 2))
+	add(highAt, Vector3.new(high.X, p.surface + d.LeapCamHigh, high.Z))
 	local overAt = p.tEntry + d.LeapCamOver
 	if d.LeapCamOver > 0 and overAt > keys[#keys].t + 0.05 and overAt < p.tFollow - 0.05 then
 		local over = p.entry - p.heading * d.LeapCamFollow + p.right * (p.side * 3)
@@ -407,6 +426,7 @@ local splashId: number? = nil
 local ownSplashAt = -math.huge
 local armed = true -- a dive may begin: not again until we have stood on something
 local broken = false -- an error: off until the next join, with one warning
+local splashBroken = false -- (the splashes' own step failed too, once broken: no more tries)
 -- the camera
 local filming = false
 local handAt: number? = nil -- the hand-over to the riding camera began
@@ -423,7 +443,6 @@ local reach, camY = 1, math.huge
 -- where the film takes the diver to be: the root, but a cut in it (put on a fish's saddle) is eased across
 local diverLast: Vector3? = nil
 local diverOffset = Vector3.zero
-local mouseLocked = false
 -- the log (test hook): `live` is the riding camera's view that frame (nil: none yet), `blend` how far the hand-over to
 -- it has gone (0 to 1)
 type Frame = {
@@ -466,7 +485,6 @@ end
 -- The pose's phase
 
 local seen: { [Player]: { at: number, phase: number?, tuck: number } } = {}
-local leaptAt: { [Player]: number } = {}
 local otherParams = RaycastParams.new()
 otherParams.FilterType = Enum.RaycastFilterType.Exclude
 otherParams.RespectCanCollide = true
@@ -478,14 +496,8 @@ local function otherPhase(player: Player): (number?, number)
 	if not character or not root or not root:IsA("BasePart") then
 		return nil, 0
 	end
-	local state = player:GetAttribute("State")
-	local now = os.clock()
-	if state ~= "Dock" then
-		-- just in the water after a leap: held in the dive's last pose a moment longer, as our own is
-		local last = leaptAt[player]
-		if last and now - last < 0.8 and (state == "Free" or state == "Jumping") then
-			return 3, 0
-		end
+	-- (only asked while they are on the dock: AnimController poses anyone else's leap by Dock alone)
+	if player:GetAttribute("State") ~= "Dock" then
 		return nil, 0
 	end
 	if player:GetAttribute("TankRide") or player:GetAttribute("LandMounted") == true then
@@ -509,7 +521,6 @@ local function otherPhase(player: Player): (number?, number)
 	if workspace:Raycast(root.Position, Vector3.new(0, -5, 0), otherParams) then
 		return nil, 0
 	end
-	leaptAt[player] = now
 	if root.Position.Y < surfaceY() - 0.5 then
 		return 2.5, 0
 	elseif tilt < -15 and tilt > -170 then
@@ -567,10 +578,6 @@ local function releaseCamera(why: string)
 	end
 	filming = false
 	orbit = false
-	if mouseLocked then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		mouseLocked = false
-	end
 	if not State.inWater() then
 		-- back on the dock (or the dive let go before the water): the ordinary camera takes up from this view
 		camera.CameraType = Enum.CameraType.Custom
@@ -691,7 +698,7 @@ local function tryStart(force: boolean?)
 	end
 	local d = Config.Dive
 	local out = (dock.LookVector * FLAT).Unit
-	local under = groundUnder(position)
+	local under = groundUnder(position, true)
 	if under then
 		armed = true
 	end
@@ -787,6 +794,10 @@ end
 
 local function bodyFrame(dt: number)
 	local d = Config.Dive
+	-- (the dive's hop reads the water's moment within a second; one it never read is not left for the next drop-in)
+	if State.LeapSplashed and os.clock() - ownSplashAt > 2 then
+		State.LeapSplashed = false
+	end
 	local p = plan
 	if not p then
 		if d.Leap > 0 then
@@ -872,7 +883,9 @@ local function bodyFrame(dt: number)
 		elseif not heldAt and mode == "Dock" and t > p.tEntry + math.max(d.LeapHold, 0.1) then
 			-- under the water and the server never said so: let go
 			releaseBody("timeout")
-		elseif not heldAt and mode ~= "Dock" and mode ~= "Free" then
+		elseif not heldAt and (carryFrom or (mode ~= "Dock" and mode ~= "Free")) then
+			-- (and once the hop had begun, its end before the turn was, at once or sent home, lets go too: never back
+			-- to the dive's own path)
 			releaseBody(mode)
 		else
 			local frame = frameAt(p, t)
@@ -1238,7 +1251,7 @@ function DiveController.start(): boolean
 	if plan then
 		releaseAll("restart")
 	end
-	broken = false
+	broken, splashBroken = false, false
 	armed = true
 	tryStart(true)
 	return plan ~= nil
@@ -1265,7 +1278,7 @@ function DiveController.hold(t: number?, leaveCamera: boolean?): boolean
 	if plan then
 		releaseAll("restart")
 	end
-	broken = false
+	broken, splashBroken = false, false
 	local character, root = State.character()
 	local start, floor, out = lipStart()
 	if not character or not root or not start then
@@ -1351,7 +1364,6 @@ function DiveController.Start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		seen[player] = nil
-		leaptAt[player] = nil
 		task.defer(function()
 			everyone = Players:GetPlayers()
 		end)
@@ -1390,7 +1402,18 @@ function DiveController.Start()
 		end
 	end)
 	RunService:BindToRenderStep("DiveBody", Enum.RenderPriority.Camera.Value - 4, function(dt: number)
-		guarded("the body's step", bodyFrame, dt)
+		if broken then
+			-- (the leap is off, but the splashes on screen as it broke still play out and go)
+			if not splashBroken then
+				local ok, problem = pcall(Splash.step)
+				if not ok then
+					splashBroken = true
+					warn(`[DiveController] the splashes' step failed: {problem}`)
+				end
+			end
+		else
+			guarded("the body's step", bodyFrame, dt)
+		end
 	end)
 	RunService:BindToRenderStep("DiveCamera", Enum.RenderPriority.Camera.Value + 2, function(dt: number)
 		if plan then
