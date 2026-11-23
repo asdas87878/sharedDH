@@ -580,7 +580,9 @@ def check():
     shot(OUT / "raw_tank_phone.png").save(OUT / "tank_phone.png")
     setw(HudTouch=None)
 
-    # 3. the sign, free
+    # 3. the sign, free (Train.Free is 0 in Config since 2026-11-23: made free here, as stills() does)
+    cmd("free|1")
+    do("free|1")
     note("at the sign: " + cmd("sign|0", 1.2))
     time.sleep(0.8)
     r = do("geom")
@@ -626,8 +628,8 @@ def check():
     note("  " + r)
     expect("paid, too few coins: refused, no level, no coins taken", s1["level"] == s0["level"] and s1["coins"] >= s0["coins"]
            and "UpNo:Coins" in r, f"{s0['coins']}->{s1['coins']} {r}")
-    price = 300  # (Train.Levels[3].Price)
-    cmd("coins|1000")
+    price = 250000  # (Train.Levels[3].Price)
+    cmd("coins|1000000")  # (enough for level 3, not for 3 and 4: a double charge would show)
     time.sleep(0.6)
     s0 = state()
     r = do("sign|2|0.05")

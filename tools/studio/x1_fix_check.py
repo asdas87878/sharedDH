@@ -4,7 +4,7 @@
     python tools/studio/x1_fix_check.py run                (in the playtest; log work/x1/check.log)
     python tools/studio/x1_fix_check.py shot <name>         (a still of the game view, work/x1/<name>.png)
 Each check names the grade issue it covers:
-  1  the Oxygen row shows 2,925 and 3,285,000 whole, and the number fits its bar
+  1  the Oxygen row shows 31,500 and 351,000,000,000 whole, and the number fits its bar
   2  seahorse trainer: whole seconds settled at an upgrade between two looks, at getting off, at death; never counted
      from before the seat (exact expected Oxygen from the server's own timings)
   3  a stocked tank's Income follows a live retune (sandbox Tune of Aquarium.PerRequired) without a new fish
@@ -105,6 +105,7 @@ local function cmd(verb, a, b, c)
 	elseif verb == "trial" then
 		-- seated a+ seconds at level 1, an upgrade, b seconds at level 2, then getting off (c: "asked" or "died")
 		trainer("level", 1)
+		AquariumService.give(p, Config.Train.Levels[2].Price) -- (the upgrade is paid since Train.Free 0)
 		task.wait(0.6)
 		local before = p:GetAttribute("MaxOxygen")
 		local seated, why = seat()
@@ -490,7 +491,8 @@ def check():
 
     # 1: the Oxygen row, whole and fitting
     start = int(float(cmd("max")))
-    for want in (2925, 3285000):
+    # (Config.requiredOf: a Normal plain Dakosaurus, 2100 x Legendary 15; a Colossal Rainbow TheDevourer, 390M x Secret 150 x 3 x 2)
+    for want in (31500, 351000000000):
         cmd("train", str(want - int(float(cmd("max")))))
         s = do("stat")
         ok(f"1 Oxygen row {want:,}", field(s, "text") == f"{want:,}" and field(s, "fits") == "true", s)

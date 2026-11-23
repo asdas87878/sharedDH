@@ -396,7 +396,7 @@ def check():
     def state():
         return cmd("state")
 
-    prices = [500, 5000, 50000, 500000, 5000000]
+    prices = [1000000, 30000000, 1000000000, 30000000000, 1000000000000]  # (Config.PlotUpgrades.Stages' Price)
 
     # --- the start: stage 0, the sign in its place
     note("clear: " + cmd("clear"))
@@ -415,9 +415,9 @@ def check():
     note("sign: " + cmd("sign", 1.5))
     t = do("signtext")
     note("signtext: " + t)
-    expect("the sign offers stage 1: UPGRADE TANK, STAGE 1/5, 7 > 9, $500",
+    expect("the sign offers stage 1: UPGRADE TANK, STAGE 1/5, 7 > 9, $1M",
            kv(t, "title") == "UPGRADE_TANK" and kv(t, "name") == "STAGE_1/5" and kv(t, "stat") == "7_>_9_Earning_fish"
-           and kv(t, "cash") == "$500", t)
+           and kv(t, "cash") == "$1M", t)  # (Shop.cash: "$" .. Kit.short(prices[0]))
     expect("the sign's writing is the seahorse sign's size", kv(t, "size") == kv(t, "seahorseSize"), t)
     do("cam|sign")
     scene("sign-stage0")
@@ -431,24 +431,24 @@ def check():
     r = do("press")
     s = state()
     expect("no coins: the sign's click is refused (Coins) and says so", "PlotNo:Coins" in r and kv(s, "stage") == "0", r + " / " + s)
-    cmd("give|" + json.dumps([499, []]))
+    cmd("give|" + json.dumps([prices[0] - 1, []]))
     r = do("press")
     s = state()
-    expect("499 coins: still refused, nothing taken", "PlotNo:Coins" in r and kv(s, "stage") == "0" and num(s, "coins") == 499, r + " / " + s)
+    expect(f"{prices[0] - 1} coins: still refused, nothing taken", "PlotNo:Coins" in r and kv(s, "stage") == "0" and num(s, "coins") == prices[0] - 1, r + " / " + s)
     cmd("give|" + json.dumps([1, []]))
     note("spawn: " + cmd("spawn", 1.5))
     r = fire("Plot", "Up")
     s = state()
-    expect("500 coins but away from the sign: refused (Near), nothing taken", "PlotNo:Near" in r and kv(s, "stage") == "0" and num(s, "coins") == 500, r + " / " + s)
+    expect(f"{prices[0]} coins but away from the sign: refused (Near), nothing taken", "PlotNo:Near" in r and kv(s, "stage") == "0" and num(s, "coins") == prices[0], r + " / " + s)
     note("sign: " + cmd("sign", 1.5))
     r = do("press", 3.0)
     s = state()
-    expect("stage 1 bought at the sign for exactly 500", "PlotUp:1" in r and kv(s, "stage") == "1" and num(s, "coins") == 0, r + " / " + s)
+    expect(f"stage 1 bought at the sign for exactly {prices[0]}", "PlotUp:1" in r and kv(s, "stage") == "1" and num(s, "coins") == 0, r + " / " + s)
     expect("stage 1: 9 may be equipped, the tank 3 studs taller from the same floor",
            kv(s, "most") == "9" and abs(num(s, "waterH") - h0 - 3) < 0.01 and abs(num(s, "rimY") - rim0 - 3) < 0.01
            and abs(num(s, "signY") - sign0 - 3) < 0.01 and abs(num(s, "waterBottom") - bottom0) < 0.01, s)
     t = do("signtext")
-    expect("the sign now offers stage 2: 9 > 11, $5K", kv(t, "name") == "STAGE_2/5" and kv(t, "stat") == "9_>_11_Earning_fish", t)
+    expect("the sign now offers stage 2: 9 > 11, $30M", kv(t, "name") == "STAGE_2/5" and kv(t, "stat") == "9_>_11_Earning_fish", t)
     do("cam|sign")
     scene("sign-stage1")
 
@@ -555,7 +555,7 @@ def check():
         s = state()
         expect(f"stage {stage}: one more is refused (Full)", "TankDenied:Full" in r and kv(s, "on") == str(7 + 2 * stage), r + " / " + s)
         note("sign: " + cmd("sign", 1.2))
-    cmd("give|" + json.dumps([10000000, []]))
+    cmd("give|" + json.dumps([prices[-1] * 2, []]))  # (rich enough: refused for Top, not Coins)
     before = num(state(), "coins")
     r = fire("Plot", "Up")
     s = state()
@@ -595,7 +595,7 @@ def check():
 
 def shots():
     """the stills with nobody standing in the way: the sign at stage 0, 1 and 5, the tank at each, the popup's cards"""
-    prices = [500, 5000, 50000, 500000, 5000000]
+    prices = [1000000, 30000000, 1000000000, 30000000000, 1000000000000]  # (Config.PlotUpgrades.Stages' Price)
     fish = [["Clownfish", "Normal", ""], ["ReefShark", "Normal", ""], ["YellowTang", "Big", "Gold"],
             ["Pufferfish", "Big", ""], ["SeaTurtle", "Giant", ""], ["Stingray", "Big", "Silver"],
             ["Octopus", "Normal", ""], ["Seahorse", "Normal", "Rainbow"], ["BlueChromis", "Normal", ""]]
