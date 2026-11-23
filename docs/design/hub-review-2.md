@@ -24,8 +24,8 @@ tell me other things we could do for the water".
 | | Ours | The reference | So |
 |---|---|---|---|
 | **Walk speed** | 28 (`Config.Dock.WalkSpeed`) | 28, measured | **Not the cause** |
-| **The hub** | 400 x 280 wall to wall (the floor part is 400 x 312, under the strip too); the open floor between the tank fronts alone is **216 x 180** | about **275 x 186** wall to wall, pens included (measured again 2026-11-23; first read as 230 x 180); open floor **174 x 126** | **The main cause.** Our open floor is 1.8 times theirs. Every walk is long: back tank to the strip 180 studs (6.4 s) against their 110 (4 s) |
-| **The pens** | 52 x 84 of water, **34 tall** (posts 34) | about 50 x 60 (drawn from frames, not measured), **fence 4 high** | The footprint is close; the height is not. Eight 34-stud boxes make the hub read as a room of buildings |
+| **The hub** | 400 x 280 wall to wall (the floor part is 400 x 312, under the strip too); the open floor between the tank fronts alone is **216 x 180** | about **350 x 195** wall to wall, the grass behind the pens included (measured again 2026-11-23; first read as 230 x 180, then 275 x 186); open floor **174 x 126** | **The main cause.** Our open floor is 1.8 times theirs. Every walk is long: back tank to the strip 180 studs (6.4 s) against their 110 (4 s) |
+| **The pens** | 52 x 84 of water, **34 tall** (posts 34) | about 41 x 57 to 60 (measured 2026-11-23), 2 to 3 of grass between, **fence 4 high** | Theirs are narrower and shallower, and the height is far off. Eight 34-stud boxes make the hub read as a room of buildings |
 | **The studs** | one every **1.0** stud, on an 8-stud checker | one every **0.64**, no checker on the hub floor | Ours are 1.56 times bigger. At the same speed the ground slides past 1.56 times slower in studs, so running *looks* slower and the world bigger |
 | **What stands on the floor** (2026-11-23) | stalls 18 x 9 (posts) and 12.6 high, rings 16, the fuse machine 28.6 wide, trainer pads 12, floating names 30 wide | stalls **8.5 x 6.3** (posts) and about 9 high, rings **11.5**, fuse **19**, pads **5**, names about a stall wide (run 6.0, 21 and 39 s, `ground.py`, good to about 15%) | **Ours are 1.4 to 2.4 times theirs.** The first S try had the walls at their size with our stations at full size, proposed, in the try only; what the user meant by "the hub size still aint matched up" was the pens' places: section 3 |
 | Camera | not measured | not measured | One capture framed like H1 would settle it |
@@ -163,19 +163,27 @@ To confirm with the game-code chat before any of it goes in; as far as the map c
   doesn't grow them. (Taller after all, the user, 2026-11-23: above.)
 
 ## 3. Layout, and where the eye goes
-**S, second drawing** (2026-11-23; right in the plans; **a try, not the live hub**): **280 x 193**, open floor **174 x 130**.
-The user, of the first (236 x 193, open floor 130 x 130): "the placement of the aquariums looks like the hub too small". They
-were right and the first reading was not: it took the reference's 230 for wall to wall with the pens inside. Measured against
-their start strip in two recordings (`ground.py`, run 6.0 s and fly 29.8 s): their side pens' fences stand 85 to 92 from the
-middle (two far points 105 and 112; ours had stood at 65), their back pens' 124 to 128 from the strip, their stalls about 22
-to 25 each side of the middle and 27 to 30 off the strip, their fuse machine about 66 off it. So about 174 by 126 of open
-floor, and about 275 by 186 wall to wall with pens 50 and 60 deep (good to 15%; how many pens they have is drawn).
-Ours: eight pens of 50 x 60, four along the back and two down each side, green corners between them as theirs. Back gates to
-the strip 130 to 133 (4.6 s at 28; ours now 180), side gates 107 and 56. Checked by `hub_scale_plan.py` (nothing overlaps, 8
-clear studs before each gate) and `hub_s.py` (clears all 284 wall pieces). Loaded in Studio at x 14000, not saved; stations and
-pads at their size; every gate's sign board and the floor's studs still ours:
+**S, third drawing** (2026-11-23; right in the plans; **a try, not the live hub**): **344 x 212**, open floor **174 x 130**.
+The user's three corrections, each right and each a misreading of mine:
+- **The second drawing had no grass behind the pens** ("it doesnt have any space between aquariums and the walls behind"):
+  3 studs. Theirs, from above a back pen (full 12 s, `ground.py`): the wall 7 to 12 behind the back pens, 19 to 26 behind the
+  side ones, and beside the last back pen an open corner 65 to 86 wide, the most of it. Ours: 21, 25, and corners 83 wide.
+  The back one is more than theirs because a tank hides what is behind it and a fence does not.
+- **The pens touched, and were too wide** ("theres space between the pens, they might be slightly to wide"). Theirs, from the
+  frames under 25 studs away: 41 wide (gate 11, a 14.5 fence each side), and 2.3 to 3.2 of grass between, each pen with its
+  own fence. The 50 was read off a pen 70 studs away. Ours: 42 over the plate, 4 of grass between plates, 60 deep.
+- **The first drawing's side pens stood 65 from the middle** ("the placement of the aquariums looks like the hub too small"):
+  theirs stand 85 to 92, as ours since (87).
 
-![S, the second drawing, in Studio, from the strip](../attachments/hub-s-studio.jpg)
+Theirs is then about **350 x 195** wall to wall (good to 15%; the walls rough, and how many pens they have is drawn). Back gates
+to the strip 130 to 132 (4.6 s at 28; ours now 180), side gates 95 and 57. Checked by `hub_scale_plan.py` (nothing overlaps, 8
+clear studs before each gate) and `hub_s.py` (clears all 324 wall pieces). Loaded in Studio at x 14000, not saved. **What the
+narrower pen costs:** the tank inside is 36.8 wide, not 46.8, so fish lie closer and the manta joins the Archelon as too wide
+for the floor (they swim, and tails pass through the glass); "Pens that grow" above was worked out at 50 wide. Every gate's
+sign board and the floor's studs are still ours, and where side pens stand along the wall is a middle way: one frame puts them
+nearer the strip, one nearer the back pens.
+
+![S, the third drawing, in Studio: from above, a corner, from the strip, and the gap between two side pens](../attachments/hub-s-studio.jpg)
 
 *(Earlier corrections, all of the first drawing. R, 290 x 196, is dropped: it was said that 230 x 180 does not fit eight pens, without
 drawing it; R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a

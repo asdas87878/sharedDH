@@ -104,7 +104,7 @@ def shell_rows():
 def pens(out):
     for i, ((x0, x1, z0, z1), (gx, gz, dx, dz)) in enumerate(zip(plan.s_pens, plan.s_gates)):
         cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
-        # the pen's own frame: its gate on +z. A side pen is 60 wide along the wall and 50 deep
+        # the pen's own frame: its gate on +z. A side pen's width runs along the wall
         yaw = 0 if dz else (90 if dx > 0 else -90)
         pl.W, pl.D = (x1 - x0, z1 - z0) if dz else (z1 - z0, x1 - x0)
         k = Kit(out, "S/Pen%d" % (i + 1), (cx, hub_kit.FLOOR_Y, cz), yaw)
@@ -149,10 +149,12 @@ def stations(out):
 
 
 def rows(out):
+    pl.W, half = float(plan.PW), plan.PW / 2
     for stage in range(6):  # the pick, stage 0 to 5 in a row
-        k = Kit(out, "Rows/E%d" % stage, (ROWS_AT + (stage - 2.5) * 56, hub_kit.FLOOR_Y, -165))
-        pl.pb.plate(k, -25, 25, -30, 30, SAND)
-        pl.pen_e(k, -25, 25, stage)
+        k = Kit(out, "Rows/E%d" % stage, (ROWS_AT + (stage - 2.5) * 48, hub_kit.FLOOR_Y, -165))
+        pl.pb.plate(k, -half, half, -30, 30, SAND)
+        pl.pen_e(k, -half, half, stage)
+    pl.W = 50.0
 
 
 def main():

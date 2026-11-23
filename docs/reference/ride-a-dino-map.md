@@ -98,12 +98,14 @@ ground.py` (private). Figures are good to about 15%; far-off points less.
 | The floor's studs | | one every 0.64 studs |
 
 - **(Third reading, 2026-11-23, against the start strip, two recordings:** side pens' fences 85 to 92 from the middle, back
-  pens' 124 to 128 from the strip, so the open floor is about 174 by 126 and the hub about **275 by 186** with the pens. The 230
-  below was too narrow. A stall 8.5 by 6.3 between posts, its ring 11.5, the fuse machine 19 wide, a trainer's pad 5.)
+  pens' 124 to 128 from the strip, so the open floor is about 174 by 126 and the hub about 275 by 186 with the pens. The 230
+  below was too narrow. **Fourth reading, the same day, with the grass behind the pens: about 350 by 195.** A pen is 41 wide
+  (gate 11) and 57 to 60 deep, 2 to 3 of grass between two; the wall stands 7 to 12 behind the back pens and 19 to 26
+  behind the side ones, and the corner beside the last back pen is open grass 65 to 86 wide: full 12 s, 21 s, run 39 s. A stall 8.5 by 6.3 between posts, its ring 11.5, the fuse machine 19 wide, a trainer's pad 5.)
 - **So their hub is about 230 by 180, and a player crosses it in 4 seconds because they run at 28.** At Roblox's own
   16 the same hub would take 7.
-- **Pens stand side by side, sharing fences,** in a row along the side facing the start, and carry on round the
-  corner. There is no walk between them.
+- **Pens stand side by side, each with its own fence and 2 to 3 studs of grass between** (read as sharing fences until
+  2026-11-23), in a row along the side facing the start, and carry on round the corner.
 - **In front of each pen:** the owner's black sign, and the rocking toy (the upgrade machine) on a red pad, on the
   open floor. A pen has a wooden ramp at one front corner.
 - **Everything else stands loose on the open floor** between the pens and the start: sell and auras nearest the
