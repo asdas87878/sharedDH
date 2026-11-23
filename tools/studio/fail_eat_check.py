@@ -1059,9 +1059,17 @@ def eat_one(fish, on, name, size=None, mins=None, rows=None):
     print(" ", cmd(f"eatsmall|{1 if on else 'kept'}"))
     setw(TestSize=size)
     print(" ", cmd(f"ride|{fish}|deep", 1.0))
-    wait_state({"Riding"}, 30)
-    setw(TestSize=None)
-    tier = cmd("tier", 0.3)
+    # (one call each for "riding yet?" and "record, fail": through the direct client a call is 2-5 s and the ride on a
+    # fish lasts about 9 s whatever TestMaxOxygen is, so the separate calls lost the race and the fail found State Dock)
+    tier = last_line(server(
+        "local RS = game:GetService('ReplicatedStorage') local p = game:GetService('Players'):GetPlayers()[1] "
+        "local t = os.clock() while p:GetAttribute('State') ~= 'Riding' and os.clock() - t < 30 do task.wait(0.05) end "
+        "workspace:SetAttribute('TestSize', nil) "
+        f"RS:SetAttribute('FECmd', 'tier|{time.time()}') task.wait(0.3) "
+        "return (if p:GetAttribute('State') == 'Riding' then '' else 'NOTRIDING ') .. tostring(RS:GetAttribute('FESaid'))"
+    ))
+    if tier.startswith("NOTRIDING"):
+        raise SystemExit(f"state never Riding: {tier}")
     print("  on:", tier)
     if size and tier.split(" ")[1:2] != [size]:
         print(f"{name}: NOT TESTED (asked for {size}, the fish is {tier})")
@@ -1071,9 +1079,11 @@ def eat_one(fish, on, name, size=None, mins=None, rows=None):
     length = row["L"] * row["scales"][size or "Normal"] if row else None
     least = (mins or {}).get(fish)
     expect_throw = bool(on and least and length is not None and length < least)
-    time.sleep(1.0)
-    do("rec|10", 0.2)
-    said = cmd("fail|", 0.3)
+    said = last_line(server(
+        "local RS = game:GetService('ReplicatedStorage') task.wait(0.5) "
+        f"workspace:SetAttribute('FEDo', 'rec|10|{time.time()}') task.wait(0.25) "
+        f"RS:SetAttribute('FECmd', 'fail||{time.time()}') task.wait(0.3) return RS:GetAttribute('FESaid')"
+    ))
     print(" ", said)
     time.sleep(6)
     frames, meta = pull()
@@ -1135,7 +1145,16 @@ def eat(fishes):
             fish, _, size = spec.partition("@")
             size = size or None
             for tag, on in (("on1", True), ("on2", True), ("off", False)):
-                r = eat_one(fish, on, f"eat_{fish}{'_' + size if size else ''}_{tag}", size, mins, table)
+                name = f"eat_{fish}{'_' + size if size else ''}_{tag}"
+                try:
+                    r = eat_one(fish, on, name, size, mins, table)
+                except SystemExit as e:
+                    # (a fish that could not be mounted, e.g. the 30 s wait for Riding: said, and the list goes on)
+                    if isinstance(e.code, int):
+                        raise
+                    print(f"{name}: NOT RUN ({e})")
+                    setw(TestSize=None)
+                    r = {"name": name, "fish": fish, "verdict": f"NOT RUN ({e})"}
                 if r is None:
                     return
                 rows.append(r)
@@ -1170,8 +1189,18 @@ def drown(case, kind="Throw", fish=""):
                 print(" ", cmd("miss", 0.6))
             else:
                 print(" ", cmd(f"ride|{fish}|{place}", 1.0))
-                wait_state({"Riding"}, 30)
-                do("rec|12" if case != "nofail" else "rec|9", 0.2)
+                # (riding yet, record, fail: one call, as eat_one: call by call through the direct client the fish
+                # had swum hundreds of studs off the case's place before the fail)
+                both = last_line(server(
+                    "local RS = game:GetService('ReplicatedStorage') local p = game:GetService('Players'):GetPlayers()[1] "
+                    "local t = os.clock() while p:GetAttribute('State') ~= 'Riding' and os.clock() - t < 30 do task.wait(0.05) end "
+                    "if p:GetAttribute('State') ~= 'Riding' then return 'NOTRIDING' end "
+                    f"workspace:SetAttribute('FEDo', '{'rec|12' if case != 'nofail' else 'rec|9'}|{time.time()}') task.wait(0.25) "
+                    + ("return 'rec'" if case == "nofail" else
+                       f"RS:SetAttribute('FECmd', 'fail|{kind}|{time.time()}') task.wait(0.3) return RS:GetAttribute('FESaid')")
+                ))
+                if both == "NOTRIDING":
+                    raise SystemExit("state never Riding")
                 if case == "nofail":
                     print(" ", cmd("nofail|1|2", 0.3))
                     # (the meter runs out, the soft path throws and floats; put back at once so it does not go round)
@@ -1181,7 +1210,7 @@ def drown(case, kind="Throw", fish=""):
                     finally:
                         print(" ", cmd("nofail|0", 0.3))
                 else:
-                    print(" ", cmd(f"fail|{kind}", 0.3))
+                    print(" ", both)
             time.sleep(4)
             frames, meta = pull()
             if case == "nofail":
