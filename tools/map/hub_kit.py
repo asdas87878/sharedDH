@@ -12,7 +12,8 @@ drawn facing +z with its foot at y = 0 and then stood somewhere, turned. A part 
 may carry sh (Ball, Cylinder), mat (Neon), t (see-through), gui, bill, light, tex, tag.
 
 What the game code leans on is kept by name (docs/Sessions.md): Plots/PlotN with TankWater, Pad, SignBoard,
-TrainerSpot, and TrainerRide (now a Model whose PrimaryPart is the part named TrainerRide)."""
+TrainerSpot, and TrainerRide (a Model whose PrimaryPart is the part named TrainerRide, with a Toy holding Body and
+Head). Since 2026-11-23 the trainer's parts are unseen marks only (`trainer_marks`): the kit draws no machine."""
 import json
 import math
 import os
@@ -696,8 +697,37 @@ SUNK = 1.6  # how far the tank stands sunk into the floor (the user's, 2026-11-1
 PLOT_COLOUR = (120, 200, 120)  # every tank green, as the user's copies of Plot 4 are (None: each plot its own colour)
 
 
+# The trainer (docs/design/trainer.md). The game builds it: Hugo's seahorse of the owner's level on a coil that runs
+# straight into its body, on that level's stand (TrainService, from ReplicatedStorage.TrainerModels), and
+# tools/studio/trainer_models.py shows level 1 in Edit. So the kit draws NOTHING of it (Hugo, 2026-11-23: the old
+# machine, the red pad, the yellow block, the post, the three coil discs, the plate and the game's own Seahorse on it,
+# came back in Edit and wherever the level models were missing). It leaves only unseen marks, named and placed as
+# TrainService.makeRide has always read them, so a map from this kit and an older one both work with the same code:
+#   TrainerSpot        the trainer's place on the floor (the TRAIN sign hangs from it; its +z is toward the hub)
+#   TrainerRide        a Model; its PrimaryPart (the part TrainerRide) is where the old plate was
+#   TrainerRide/Toy    Body: the coil's axis is under its middle; Head: ahead of it, the way the seahorse faces
+# Body and Head are the box and the place of the old toy's (the game's Seahorse at 0.85, measured in the place
+# 2026-11-23), so every level stands exactly where it stood, and a place without the level models still gets a seat
+# over a coil (TrainService's stand-in, which reads Body's box).
+TOY_BODY = (3.26, 6.87, 6.8)  # the old toy's Body: across, tall, long
+TOY_BODY_AT = (7.3, -0.66)  # its middle: over the ride's origin, and toward the pen from the spot's middle
+TOY_HEAD_AT = (10.97, 3.02)  # the old toy's Head, the same way: toward the hub
+
+
+def trainer_marks(k, name, tx, tz, spot=(6, 0.5)):
+    """the trainer's unseen marks at (tx, tz) of a plot's kit `k` (see above): no part of it is drawn"""
+    k.box(tx, 0, tz, spot[0], spot[1], spot[0], (225, 70, 70), n="TrainerSpot", solid=False, shadow=False, t=1)
+    ride = k.sub((tx, 5, tz), model=name + "/TrainerRide", solid=False)
+    ride.box(0, 0, 0, 4, 0.8, 6, PLOT_COLOUR, n="TrainerRide", shadow=False, t=1)
+    toy = ride.sub(model=name + "/TrainerRide/Toy")
+    w, h, d = TOY_BODY
+    toy.box(0, TOY_BODY_AT[0] - h / 2, TOY_BODY_AT[1], w, h, d, WHITE, n="Body", shadow=False, t=1)
+    toy.box(0, TOY_HEAD_AT[0] - 1, TOY_HEAD_AT[1], 2, 2, 2, WHITE, n="Head", shadow=False, t=1)
+
+
 def plot(out, index, cx, cz, turn_deg, hub, level=1):
-    """a player's plot, simple (the user, 2026-11-16): a studded pad, the tank at its level (`tank`), and the trainer: the game's own Seahorse on a spring, on a plate (the part TrainerRide). The plot's
+    """a player's plot, simple (the user, 2026-11-16): a studded pad, the tank at its level (`tank`), and the
+    trainer's marks (`trainer_marks`: the game builds the seahorse). The plot's
     back is where it always was; it is TANK wide and deep, and its front comes forward into the hub"""
     w, d = TANK
     back = -hub["Plot"][1] / 2
@@ -713,14 +743,7 @@ def plot(out, index, cx, cz, turn_deg, hub, level=1):
     # (no green collect pad any more, Hugo, 2026-11-20, task k1: the tank's E prompt sits on its front glass and a
     # player with a catch wakes on the floor in front of the tank, AquariumService.frontOf)
     tx, tz = 13, front + 11
-    k.box(tx, 0, tz, 12, 0.6, 12, (225, 70, 70), n="TrainerSpot", solid=False, shadow=False, tex="stud")
-    k.box(tx, 0.6, tz, 8, 1.4, 8, YELLOW, n="TrainerBase", tex="studs")
-    k.box(tx, 2, tz, 1.6, 3.2, 1.6, INK, n="TrainerSpring", solid=False, shadow=False)
-    for j in range(3):
-        k.disc(tx, 2.2 + j, tz, 4.2, 0.6, (176, 182, 196), n="SpringCoil", solid=False, shadow=False)
-    ride = k.sub((tx, 5, tz), model=name + "/TrainerRide", solid=False)
-    ride.box(0, 0, 0, 6, 0.8, 8, tuple(colour), n="TrainerRide", tex="stud")
-    ride.fish("Seahorse", 0, 0.6 + 14.2 * 0.85 / 2, 0, 0.85, n="Toy")
+    trainer_marks(k, name, tx, tz, (12, 0.6))
     upgrade_sign(k, tx, tz)
     return k
 
@@ -970,7 +993,7 @@ def pen_side(g):
 
 def pen(out, index, box, g):
     """a player's plot since 2026-11-23: the pen that grows (pen_levels E, the user's pick) at stage 0; the game makes it
-    taller. In front, on one side of the gate (pen_side) the trainer with its sign, on the other the plot's own sign.
+    taller. In front, on one side of the gate (pen_side) the trainer's place with its sign, on the other the plot's own sign.
     Named and nested as the game reads a plot: all of it lies straight in PlotN"""
     import pen_levels as pl  # (it imports this file)
 
@@ -991,14 +1014,7 @@ def pen(out, index, box, g):
     pl.W, pl.D, pl.GATE_AT = keep
     front = d / 2
     tx, tz = side * 20, front + 9  # (6 put a level's tail in the fence)
-    k.box(tx, 0, tz, 6, 0.5, 6, (225, 70, 70), n="TrainerSpot", solid=False, shadow=False, tex="stud")
-    k.box(tx, 0.5, tz, 4, 1.5, 4, YELLOW, n="TrainerBase", tex="studs")
-    k.box(tx, 2, tz, 1.6, 3.2, 1.6, INK, n="TrainerSpring", solid=False, shadow=False)
-    for j in range(3):
-        k.disc(tx, 2.2 + j, tz, 3.6, 0.6, (176, 182, 196), n="SpringCoil", solid=False, shadow=False)
-    ride = k.sub((tx, 5, tz), model=name + "/TrainerRide", solid=False)
-    ride.box(0, 0, 0, 4, 0.8, 6, PLOT_COLOUR, n="TrainerRide", tex="stud")
-    ride.fish("Seahorse", 0, 0.6 + 14.2 * 0.85 / 2, 0, 0.85, n="Toy")  # RideStyles.Trainer.Scale
+    trainer_marks(k, name, tx, tz)  # (unseen: the game builds Hugo's seahorse here, and trainer_models.py in Edit)
     s, z = SIGN, front + 4
     for word, x in (("Upgrade", side * 11.4), ("Plot", -side * 11.4)):  # between the gate and the fence's end, clear of both
         k.box(x, 0, z - s["Thick"] / 2 - s["Post"] / 2, s["Post"], s["Foot"] + s["High"] / 2, s["Post"], SIGN_POST, yaw=180, n=word + "Post")

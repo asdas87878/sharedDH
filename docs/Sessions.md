@@ -31,6 +31,12 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-23, NULLROOM worker m2 (Hugo's PC) to the map chat and the game-code chat: the trainer's old machine is out of the kit.**
+  `hub_kit.py` builds unseen marks only (`trainer_marks`); loaders 95 to 97 and `hub.json` regenerated (917 rows, 949 before);
+  `load_greybox.py <id> greybox hub` is new (the hub's files, then `trainer_models.py`, then the contract) and every load ends with the
+  trainer step. `TrainService` and `TrainerController` changed (two warnings, the Edit preview taken away, a stuck upgrade flash fixed):
+  **pull before editing them.** What to run on the partner's PC: [Handoff](Handoff.md), top entry. For the map chat: the `map-build`
+  skill's hub lines (the count "65 over", no `hub` mode, the old machine in the contract) are yours to bring up to date.
 - **2026-11-23, NULLROOM worker m1 (Hugo's PC) to every chat: Hugo's own place has the new hub and map, with the hand placing.**
   It already held the map (loaded by the sync at 16:10); the Fuse's move and the Index's deletion are put in, the two dive files
   pulled at 19:25 pushed in by script (Rojo's plugin is not connected there). Played by script, no errors. In Edit, **not saved until

@@ -3,6 +3,60 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-23 · The seahorse trainer stays: the old toy machine is out of the map, the 12 levels install themselves (NULLROOM worker m2, Hugo's PC)
+Hugo: his 12 coil seahorses everywhere, the old toy machine gone for good.
+**State:** in the repo by the sync on Hugo's PC, nothing pushed by hand. StyLua clean, selene 0 errors (the three old warnings), the Rojo
+build passes. In Hugo's open place and played by script (all good, below); **his place is not saved: Hugo presses Ctrl+S.**
+**Nothing is uploaded to Roblox:** the meshes are still local files on each PC (Hugo's word is needed for an upload).
+
+**On the partner's PC, to get it (about two minutes, Studio open on the place, in Edit):**
+1. Pull (the Obsidian plugin does). Put `src/` in: Rojo connected, or `python tools/studio/sync_src.py <studio_id>` (two files changed:
+   `TrainService`, `TrainerController`).
+2. `python tools/studio/load_greybox.py <studio_id> greybox hub`
+   The hub's files only (94 to 97, seconds; hand placing in the hub is kept), then the trainer step, then the hub's contract. Expect:
+   - `917 in all` from the hub's last file (949 before: the old machine is out, 32 rows fewer);
+   - `Studio's content folder: C:\...\Versions\version-xxxx\content (the running Studio's)`: **read this line.** The folder search
+     is tried on Hugo's PC only (Linux). If it says NOT FOUND, or names a version that is not the running Studio's, run the trainer step
+     by itself with the folder named (the `content` folder next to the running `RobloxStudioBeta.exe`):
+     `set STUDIO_CONTENT=C:\Users\<you>\AppData\Local\Roblox\Versions\version-xxxx\content` then
+     `python tools/studio/trainer_models.py <studio_id>` (a folder it cannot find is a failure with a `!!!` block, never "all there");
+   - `trainer models: all 12 levels are in the place and their mesh files are on this PC` (after `installing: ...` when something was missing);
+   - `trainer preview: level 1 on 8 plots`: Hugo's level-1 seahorse now stands on every pen in Edit;
+   - `CONTRACT:` with no BAD line (Hugo's own place says "no station Index": he deleted it by hand).
+   A block of `!!!` lines means the trainer is not whole; it says what to run.
+3. Save the place (the models are in the place file). Play: every pen shows Hugo's seahorse on its coil; the Output has no line in
+   capitals from `[TrainService]` or `[Trainer]`.
+- **After Studio updates itself** the mesh files are gone from the new version's folder (the seahorses go unseen, and the client now says
+  so in the Output): `python tools/studio/trainer_models.py <studio_id>` again. `--check` only reports.
+- **A whole map load** (`python tools/studio/load_greybox.py <studio_id>`) ends with the same trainer step now.
+
+**What changed and why** (all of it: [the trainer](design/trainer.md), "Staying in the place"):
+- **Why the old one came back:** not the code (read the whole history since `516b0fe`: nothing had gone back). The kit built the old
+  machine on every load, so it stood in Edit and was swapped only at Play; a place without `TrainerModels` fell back to the kit's toy
+  without a word; missing mesh files left the seahorse unseen without a word.
+- **`tools/map/hub_kit.py`** (`trainer_marks`), `art/map/greybox/hub.json`, loaders 95 to 97: each plot keeps only unseen marks where the
+  machine stood (`TrainerSpot`, `TrainerRide` with its plate, `Toy` with `Body` and `Head`): the same names the game and
+  `hub_contract.luau` read, so old and new maps both work and the partner's placing (9 ahead of the fence) is kept. Measured in Play:
+  every plot's coil and seat within 0.001 studs of where they stood. `94_hub.luau` is unchanged.
+- **`tools/studio/trainer_models.py`** (new): checks T1 to T12 and every mesh file, installs what is missing with `install_tiers.py`,
+  shows level 1 in Edit (`tools/studio/trainer_edit.luau`, new: one locked model `TrainerStand` a plot, marked `EditPreview`; the game
+  takes it away at its start). **`tools/studio/load_greybox.py`** calls it, and has the new `hub` mode.
+- **`TrainService`:** takes the Edit preview away, and warns once, in capitals, when a level's model is missing.
+  **`TrainerController`:** warns once when a level-1 mesh file does not load; and a fix: an upgrade's white flash stayed on the seahorse for
+  good when its level changed again before the flash had faded (0.7 s; an upgrade is let through every 0.5 s).
+- **`tools/studio/trainer_check.py`** (new; drives Hugo's PC through studio-runner, not the connector): `install`, Play, `run`, stop,
+  `remove`. All good on 2026-11-23: 8 plots Hugo's level 1 from its meshes, walk-up seats, +16 Oxygen a second, off stops it, the sign's
+  own upgrade request builds level 2 for 15,000 coins, level 1 keeps at least 1.19 studs from the fence on all eight pens, all 12 levels
+  build and keep at least 1.46 on the player's own pen (levels 2 to 12 were measured on that one pen), level 12 trains at +470,000. Also tried: the models taken out (one warning, the stand-in still works) and a mesh file hidden (the client names it).
+- **To know:** the place's part count (`99_check`) reads 432 more with the Edit preview in (54 a plot). The closest thing to a seahorse is
+  its own upgrade sign: level 11 and 12's wing tips pass 0.45 studs from the board at the back of a rock on a landing (clear, a matter of
+  look only; a stud more room would be a change to the sign's place in `hub_kit.py`, not made). The client's warning looks at level 1's
+  mesh files only. Both load paths were run on Hugo's place (the whole-load one with no-op files, so the trainer step at its end is tried,
+  a real 25-minute load with it is not). `hub_kit.py --old` (the before pictures) still draws the old
+  machine. The `map-build` skill still says the count runs 65 over and names no `hub` mode: the map chat's to update.
+- **Hugo's place:** hub applied with the `hub` mode (Fuse still moved, Index still deleted), preview in, helpers removed, mouse and
+  camera reset, not saved.
+
 ## 2026-11-23 · Hugo's place checked against the new map; the hand placing put in; not saved yet (NULLROOM worker m1, Hugo's PC)
 **State:** nothing pushed by hand, no file in the repo changed but this note and Sessions. Hugo's place
 (`~/Documents/RideAFish/ride-a-fish-map.rbxl`, a file, not the Team Create place) is open in Studio, in Edit, **not saved: Hugo presses Ctrl+S**.

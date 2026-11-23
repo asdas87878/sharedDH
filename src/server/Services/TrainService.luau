@@ -5,6 +5,10 @@
 -- are no saves yet.
 -- Where (since 2026-11-16, with the hub's models): on your own plot, at its toy ride. Every plot has a `TrainerSpot`
 -- with a `TrainerRide` on it (the seahorse). A player with no plot (more players than plots) may use any free plot's.
+-- What the map gives (tools/map/hub_kit.py `trainer_marks`, since 2026-11-23): unseen marks only, TrainerSpot, the
+-- TrainerRide model with its PrimaryPart, and in it Toy with Body (the coil's axis is under its middle) and Head (the
+-- way the seahorse faces). A map from the older kit has the old machine drawn there instead, with the game's own
+-- Seahorse as Toy: read the same way and taken away the same way, so both maps work.
 -- Only a map with no such plots gets the old stand-in: the map's part named TrainSpot under the hub, or a pad made once
 -- beside the dock's spawn, where standing is training. The player's "Training" attribute is true while they are
 -- gaining, for the HUD and the ride.
@@ -23,8 +27,12 @@
 -- level's Oxygen a second (Config.Train.Levels). The owner asks to go up a level by the ride ("Up"; a click on the
 -- cash block of their upgrade sign, UI.UpgradeSign, task e2): alive, on the dock, within Train.UpgradeNear of its
 -- coil or Train.SignNear of the sign, one ask in Train.UpAgain, for the level's price (free while Train.Free is 1); the ride is rebuilt at once (a rider stays seated on the new one) and the model's Build and UpgradeAt tell
--- every machine to play the upgrade. Server "Up", level | "UpNo", reason. With no models installed the kit's toy
--- stays as before and only the numbers change.
+-- every machine to play the upgrade. Server "Up", level | "UpNo", reason.
+-- The level models are in the place, not in the repo (ReplicatedStorage.TrainerModels, local mesh files): where any
+-- is missing the server says so once, loudly (missingModels), and that plot gets a stand-in: a small red pad and a
+-- coil with a seat over it and no seahorse (on a map from the older kit, the kit's own toy on it), so training and
+-- the upgrade's numbers still work. `python tools/studio/trainer_models.py <studio_id>` puts them in and, in Edit,
+-- shows level 1 on every plot (a Model marked EditPreview, taken away here before the ride is built).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -279,10 +287,17 @@ local function buildSpring(plot: Instance, base: CFrame, top: CFrame, level: num
 	spring.Parent = plot
 end
 
--- The first look at a plot's ride: takes the kit's pad, block, post, coils and plate away and notes where the coil
--- stands and which way the toy faces; then the ride is built at level 1 (build). With no level models installed it
--- is the kit's toy, set down to the coil's length over a small red pad, as before the levels.
+-- The first look at a plot's ride: takes away what stands there before the game's own (Edit's level-1 preview; on a
+-- map from the older kit its pad's look, block, post, coils and plate) and notes where the coil stands and which way
+-- the toy faces; then the ride is built at level 1 (build). With no level models installed it is the map's Toy (unseen
+-- marks, or the older kit's toy), set down to the coil's length over a small red pad, as before the levels.
 local function makeRide(plot: Instance, spot: BasePart): Ride?
+	-- (what tools/studio/trainer_models.py shows in Edit: ours is built in its place)
+	for _, child in plot:GetChildren() do
+		if child:GetAttribute("EditPreview") == true then
+			child:Destroy()
+		end
+	end
 	local model = plot:FindFirstChild("TrainerRide")
 	local toy = model and model:FindFirstChild("Toy")
 	local body = toy and toy:FindFirstChild("Body")
@@ -351,7 +366,7 @@ local function makeRide(plot: Instance, spot: BasePart): Ride?
 	if templates and templates:FindFirstChild("T1") then
 		return ride
 	end
-	-- the kit's toy (no level models): the body's underside the coil's length over a small red pad
+	-- the map's Toy (no level models): the body's underside the coil's length over a small red pad
 	local padTop = floor + t.PadHigh
 	local lift = padTop + t.Length - (body.Position.Y - body.Size.Y / 2)
 	model:PivotTo(model:GetPivot() + Vector3.new(0, lift, 0))
@@ -492,6 +507,19 @@ local function build(ride: Ride, level: number, upgrade: boolean): boolean
 		ride.Weld = again
 	end
 	return true
+end
+
+-- The level models this place lacks ("" when it has all of them): ReplicatedStorage.TrainerModels.T1 ... T<levels>
+local function missingModels(): string
+	local templates = ReplicatedStorage:FindFirstChild("TrainerModels")
+	local lost = {}
+	for level = 1, #Config.Train.Levels do
+		local template = templates and templates:FindFirstChild("T" .. level)
+		if not (template and template:IsA("Model")) then
+			table.insert(lost, "T" .. level)
+		end
+	end
+	return table.concat(lost, ", ")
 end
 
 -- The plots' rides, by the plot's name (none on a map without them)
@@ -641,6 +669,16 @@ function TrainService.Start()
 	local rides = plotRides()
 	for _, ride in rides do
 		build(ride, 1, false)
+	end
+	-- (said once, here: a place without Hugo's seahorses showed the kit's old toy at every level and nobody was told)
+	local lost = missingModels()
+	if next(rides) ~= nil and lost ~= "" then
+		warn(
+			"[TrainService] !!! THE SEAHORSE TRAINER'S LEVEL MODELS ARE MISSING FROM THIS PLACE: ReplicatedStorage.TrainerModels has no "
+				.. lost
+				.. ". Those levels show a bare coil (or the old kit's toy) in place of Hugo's seahorse. With Studio in Edit run: "
+				.. "python tools/studio/trainer_models.py <studio_id>   then save the place (docs/design/trainer.md)."
+		)
 	end
 	if next(rides) == nil then
 		local spot = findSpot()
