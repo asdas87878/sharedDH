@@ -102,6 +102,7 @@ RunService.RenderStepped:Connect(function(dt)
 		local d = (angle - w.angle + math.pi) % (2 * math.pi) - math.pi
 		w.turned += math.abs(d)
 		w.time += dt
+		if math.abs(d) < 0.02 then w.still += 1 end -- a frame on which the propeller did not turn
 	end
 	w.angle = angle
 	local glow = found:FindFirstChild("Prop_Glow")
@@ -111,16 +112,17 @@ RunService.RenderStepped:Connect(function(dt)
 	local wake = prop:FindFirstChild("Wake")
 	if wake then
 		w.wakeMin, w.wakeMax = math.min(w.wakeMin, wake.Rate), math.max(w.wakeMax, wake.Rate)
-		w.wakeOn = wake.Enabled
 	end
+	-- the frames on which each of these was wrong (0: right on every frame of the run)
+	if not (wake and wake.Enabled and wake.Parent == prop) then w.wakeOff += 1 end
 	local beam = lamp:FindFirstChildOfClass("SpotLight")
-	w.beam = beam ~= nil and beam.Enabled and lamp.Material == Enum.Material.Neon and lamp.Transparency < 0.5
-	w.beamDot = lamp.CFrame.LookVector:Dot(sub.LookVector)
+	if not (beam and beam.Enabled and lamp.Material == Enum.Material.Neon and lamp.Transparency < 0.5) then w.beamOff += 1 end
+	w.beamDot = math.min(w.beamDot, lamp.CFrame.LookVector:Dot(sub.LookVector))
 	w.lampAhead = -sub:PointToObjectSpace(lamp.Position).Z
 	local sign = found:FindFirstChild("Label", true)
-	w.sign = sign ~= nil and sign.Enabled
+	if not (sign and sign.Enabled) then w.signOff += 1 end
 	local move = root.AssemblyLinearVelocity
-	if move.Magnitude > 1 then w.nose = sub.LookVector:Dot(move.Unit) end
+	if move.Magnitude > 1 then w.nose = math.min(w.nose, sub.LookVector:Dot(move.Unit)) end
 	w.speed = math.max(w.speed, move.Magnitude)
 end)
 workspace:GetAttributeChangedSignal("T3Do"):Connect(function()
@@ -171,7 +173,8 @@ workspace:GetAttributeChangedSignal("T3Do"):Connect(function()
 			return "unlined"
 		elseif verb == "watch" then
 			watch = { n = 0, riderMax = 0, seatMax = 0, propMax = 0, glowMax = 0, axisMin = 1, turned = 0, time = 0,
-				wakeMin = math.huge, wakeMax = 0, speed = 0 }
+				still = 0, wakeMin = math.huge, wakeMax = 0, wakeOff = 0, beamOff = 0, signOff = 0, beamDot = 1, nose = 1,
+				speed = 0 }
 			return "watching"
 		elseif verb == "read" then
 			local w = watch
@@ -179,10 +182,10 @@ workspace:GetAttributeChangedSignal("T3Do"):Connect(function()
 			if w.bad then return "BAD " .. w.bad end
 			if w.n == 0 then return "frames=0" end
 			return string.format(
-				"frames=%d tier=%s hullMesh=%s rider=%.2f,%.2f,%.2f riderOff=%.2f seatOff=%.2f propOff=%.3f glowOff=%.3f propAxis=%.3f spin=%.1frad/s wake=%.0f..%.0f wakeOn=%s beam=%s beamDot=%.2f lampAhead=%.1f sign=%s nose=%.2f topSpeed=%.0f",
+				"frames=%d tier=%s hullMesh=%s rider=%.2f,%.2f,%.2f riderOffMax=%.2f seatOffMax=%.2f propOffMax=%.3f glowOffMax=%.3f propAxisMin=%.3f propStillFrames=%d wake=%.0f..%.0f wakeOffFrames=%d beamOffFrames=%d beamDotMin=%.2f lampAhead=%.1f signOffFrames=%d noseMin=%.2f topSpeed=%.0f",
 				w.n, tostring(w.tier), tostring(w.mesh), w.rider.X, w.rider.Y, w.rider.Z, w.riderMax, w.seatMax, w.propMax,
-				w.glowMax, w.axisMin, if w.time > 0 then w.turned / w.time else 0, w.wakeMin, w.wakeMax, tostring(w.wakeOn),
-				tostring(w.beam), w.beamDot or 0, w.lampAhead or 0, tostring(w.sign), w.nose or 0, w.speed)
+				w.glowMax, w.axisMin, w.still, w.wakeMin, w.wakeMax, w.wakeOff, w.beamOff, w.beamDot, w.lampAhead or 0,
+				w.signOff, w.nose, w.speed)
 		end
 		return "?"
 	end)
@@ -299,6 +302,7 @@ def ride(tier):
 
 
 def checks(tiers):
+    global STILLS
     time.sleep(6)
     if not tiers:
         note("made:\n" + do("made", 3))
@@ -309,7 +313,6 @@ def checks(tiers):
         time.sleep(2)
         lineup = shot("lineup")
         if list(Image.open(before).getdata()) == list(Image.open(lineup).getdata()):
-            global STILLS
             STILLS = False
             note("  ! Studio's window is frozen (off the screen or covered): no stills this run")
         else:
@@ -330,6 +333,16 @@ def checks(tiers):
             Image.open(shop).save(ATTACH / "subs-toy-game-shop.png")
             note(f"shot: {ATTACH / 'subs-toy-game-shop.png'}")
         note(s2.do("shop|off", 1))
+    else:
+        # a run of chosen tiers: the same guard, by a turn of the camera
+        before = shot("before")
+        note(do("line|1", 2))
+        time.sleep(1)
+        after = shot("after")
+        note(do("unline", 1))
+        if list(Image.open(before).getdata()) == list(Image.open(after).getdata()):
+            STILLS = False
+            note("  ! Studio's window is frozen (off the screen or covered): no stills this run")
     stills = {}
     for tier in tiers or range(1, 10):
         stills[tier] = ride(tier)
