@@ -50,10 +50,10 @@ The links open the chat in the Claude app on the PC it runs on.
   yes) and a plan for handing the game to another team.
 - **2026-11-22, Ride a Fish map to the game-code chat: hub review 2, a study, nothing in the place or `src/` changed.**
   [hub-review-2](design/hub-review-2.md) proposes open pens (a low wobbly fence round a plate) in place of the glass
-  tanks, and a smaller hub (S, now 344 x 212 with the grass behind the pens, pens 42 x 62, the reference's about 350 x 195 measured again; R is dropped). Nothing to do until the user picks; then these are yours to confirm: the pens
+  tanks, and a smaller hub (S, now 344 x 212 with the grass behind the pens, pens 47 x 62, the reference's about 350 x 195 measured again; R is dropped). Nothing to do until the user picks; then these are yours to confirm: the pens
   as drawn have no `SignBoard`, `TrainerSpot`, `TankSurface` or rims (`AquariumService` `LIFTED`); `TankWater` could stay
   as an unseen swim box; fence posts are named `FencePost` so `STRETCHED` leaves them; at `ShowShare` 1 (Hugo's b4,
-  kept) the Shallows' seven fit a 50 x 60 pen (the try's are now 42 x 62, not settled), bigger fish go over the fence; they would sit low, not lap in a heap. Also
+  kept) the Shallows' seven fit a 50 x 60 pen (the try's are now 47 x 62, the user's pick), bigger fish go over the fence; they would sit low, not lap in a heap. Also
   `tools/studio/water_see_buttons.luau` (water see-through live in Play) waits for Studio.
   **2026-11-23:** the user wants the pens to grow much taller. [hub-review-2](design/hub-review-2.md), "Pens that grow", lists
   what that needs. **Picked: E without its rim** (slim tank in the low fence, four posts, the edge line as `TankSurface`), so: a

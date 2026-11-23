@@ -2,7 +2,7 @@
 wrong, whether it's in the actual scale of the hub or the texture, or it's just the walk speed"). Three plans:
 ours as it stands (read from the place: art/map/hub_study/dump_2026-11-22.csv), the reference's (measured from our
 frames: docs/reference/ride-a-dino-map.md, "The hub, measured", good to about 15%), and S, ours at the reference's
-own size (the open floor 174 by 130; theirs is about 174 by 126) with eight pens (42 by 62 plate to plate, a little apart, in a U), checked: see
+own size (the open floor 174 by 130; theirs is about 174 by 126) with eight pens (47 by 62 plate to plate, a little apart, in a U), checked: see
 check() and tools/map/hub_s.py (the walls). Schematic: walls as a line, pens as boxes.
 
 usage: python tools/map/hub_scale_plan.py [out.png]"""
@@ -135,7 +135,7 @@ def check(name, hub, strip, pens, things, gates):
 # a far one, and the pens stand apart, each with its own fence, 2.3 to 3.2 of grass between (full 21 s, run 39 s)
 SZ = -10.0
 SIDE, BEHIND = 87, (25, 21)
-PW, APART = 40, 6  # a pen's plate and posts stand 1 outside its box: 42 wide and 4 of grass between, as seen
+PW, APART = 45, 6  # plate and posts stand 1 outside the box: 47 wide (the user's pick, 2026-11-23; theirs 41) and 4 of grass between
 HALF, BACK = SIDE + 60 + BEHIND[0], -(222 + BEHIND[1] + 1)
 STEP = PW + APART
 BACK_AT, SIDE_AT = [-1.5 * STEP, -0.5 * STEP, 0.5 * STEP, 1.5 * STEP], [-96 - STEP / 2, -96 + STEP / 2]  # the pens' middles
@@ -155,7 +155,7 @@ s_things += [(x - math.copysign(14, x), -146 + SZ, PAD_SIZE, PAD_SIZE, "", PAD) 
 s_things += [(x, z + 14, PAD_SIZE, PAD_SIZE, "", PAD) for x in (-SIDE + 6, SIDE - 6) for z in SIDE_AT]
 S_TRY = {"HUB_HALF": HALF, "HUB_BACK": BACK, "CORNER": 32, "FRONT_TURN": 8, "GATE_TURN": 17}
 assert not check("S", (-HALF, HALF, BACK, 0), (-48, 48, -32, 0), s_pens, s_things, s_gates)
-r = panel(f"S (a sketch): {2 * HALF} x {-32 - BACK}, eight pens 42 x 62",
+r = panel(f"S (a sketch): {2 * HALF} x {-32 - BACK}, eight pens 47 x 62",
           "back gates to the strip 130 (4.6 s at 28) | the open floor and the stalls where theirs are",
           (-HALF, HALF, BACK, 0), s_pens, (-48, 48, -32, 0), (0, -88), [((-23, -162), (-23, -32), "130")],
           (-SIDE, SIDE, -162, -32), things=s_things)
