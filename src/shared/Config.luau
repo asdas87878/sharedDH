@@ -571,7 +571,10 @@ Config.Oxygen = {
 		{ Ticks = 80, Tick = 0.2 },
 		{ Ticks = 100, Tick = 0.2 },
 	} :: { { Ticks: number, Tick: number } },
-	Grow = 0.1,
+	-- (0.1 until 2026-11-23: 0.035 keeps the seconds on a Common to Rare fish, and its tame, within about 6% of what they
+	-- were on the economy draft 2's far bigger needs. The rarer ones are shorter than they were, land 1's too: Epics by
+	-- up to 12%, Legendaries 19%, Mythics 20%, Secrets 16% to 29%)
+	Grow = 0.035,
 	GrowMost = 4,
 	MaxShare = 0.25, -- twice what the fish needs: 1.19 times the seconds; ten times: 1.78
 	MaxMost = 2,
@@ -583,7 +586,9 @@ Config.Oxygen = {
 	-- 1 + PastMost x (1 - Cap / max) (Config.pastCap): +2.5% at 1M, +4.5% at 5M, never +5%. Taming at or past the
 	-- cap takes Tame.CapSlow times longer. Your max itself is not capped: what a fish needs (its tag, Strained) is
 	-- still against the whole of it.
-	Cap = 500000,
+	-- (500,000 until 2026-11-23: 50 billion sits at the same place on the economy draft 2's needs, about 11 times land
+	-- 10's middle Legendary)
+	Cap = 50000000000,
 	PastMost = 0.05,
 	FreeSeconds = 25, -- floating off a fish empties the meter in at most this long (and FreeDrain a second at least)
 	-- Mounting a fish too strong for you (it needs more than your max; Hugo, 2026-11-18, task o1: "when hopping on a
@@ -628,6 +633,8 @@ end
 -- Clownfish 80, Yellow Tang 90, Seahorse 52, Reef Shark 120, Dunkleosteus 200, Blue Whale 600, Kraken 900). The
 -- rest were drafted on a ladder of about 1.5 times a land deeper (the deeper animals are the stronger ones), spread
 -- within a land by the animal's bulk, then written down here: change any one freely, nothing works them out again.
+-- Since 2026-11-23 (the user: "Yes, as drafted"; docs/design/progression.md, the economy draft 2): about 7.3 times a
+-- land, Ride a Dino's climb. Each base is e1's times its land's factor (tools/balance/rad_economy.py); land 1 as it was.
 -- No two kinds share a base, and no two kinds' Normal plain fish need the same (checked by
 -- tools/studio/oxygen_check.luau). PROVISIONAL until Hugo plays it.
 -- stylua: ignore
@@ -645,81 +652,81 @@ Config.OxygenBase = {
 	Archelon = 130, -- Legendary
 	PearlSerpent = 105, -- Secret
 	-- land 2 (Coral Reef, where it lives; it needs the same anywhere)
-	Parrotfish = 100, -- Uncommon
-	Angelfish = 110, -- Uncommon
-	Lionfish = 115, -- Uncommon
-	MorayEel = 93, -- Rare
-	Octopus = 125, -- Rare
-	HumpheadWrasse = 135, -- Epic
-	Dunkleosteus = 200, -- Legendary
-	CoralDragon = 185, -- Secret
+	Parrotfish = 420, -- Uncommon
+	Angelfish = 470, -- Uncommon
+	Lionfish = 490, -- Uncommon
+	MorayEel = 390, -- Rare
+	Octopus = 530, -- Rare
+	HumpheadWrasse = 570, -- Epic
+	Dunkleosteus = 850, -- Legendary
+	CoralDragon = 780, -- Secret
 	-- land 3 (Kelp Forest, where it lives; it needs the same anywhere)
-	Garibaldi = 140, -- Uncommon
-	SeaLion = 150, -- Uncommon
-	LeopardShark = 145, -- Rare
-	GiantSeaBass = 165, -- Rare
-	StellersSeaCow = 190, -- Epic
-	GreatWhite = 205, -- Epic
-	Dakosaurus = 195, -- Legendary
-	KelpWyrm = 210, -- Secret
+	Garibaldi = 1400, -- Uncommon
+	SeaLion = 1600, -- Uncommon
+	LeopardShark = 1500, -- Rare
+	GiantSeaBass = 1700, -- Rare
+	StellersSeaCow = 2000, -- Epic
+	GreatWhite = 2200, -- Epic
+	Dakosaurus = 2100, -- Legendary
+	KelpWyrm = 2300, -- Secret
 	-- land 4 (Shipwrecks, where it lives; it needs the same anywhere)
-	Barracuda = 255, -- Uncommon
-	Sawfish = 260, -- Rare
-	HammerheadShark = 270, -- Rare
-	ElectricRay = 240, -- Epic
-	GoliathGrouper = 310, -- Epic
-	Xiphactinus = 335, -- Legendary
-	GalleonWhale = 430, -- Secret
+	Barracuda = 12000, -- Uncommon
+	Sawfish = 13000, -- Rare
+	HammerheadShark = 14000, -- Rare
+	ElectricRay = 11000, -- Epic
+	GoliathGrouper = 15000, -- Epic
+	Xiphactinus = 16000, -- Legendary
+	GalleonWhale = 20000, -- Secret
 	-- land 5 (Open Blue, where it lives; it needs the same anywhere)
-	Swordfish = 355, -- Rare
-	Dolphin = 385, -- Rare
-	MantaRay = 350, -- Epic
-	Orca = 435, -- Epic
-	Elasmosaurus = 420, -- Legendary
-	Helicoprion = 465, -- Legendary
-	BlueWhale = 600, -- Mythic
-	StormSerpent = 390, -- Secret
+	Swordfish = 42000, -- Rare
+	Dolphin = 45000, -- Rare
+	MantaRay = 41000, -- Epic
+	Orca = 50000, -- Epic
+	Elasmosaurus = 49000, -- Legendary
+	Helicoprion = 54000, -- Legendary
+	BlueWhale = 70000, -- Mythic
+	StormSerpent = 46000, -- Secret
 	-- land 6 (Twilight, where it lives; it needs the same anywhere)
-	Viperfish = 490, -- Rare
-	GiantSquid = 485, -- Epic
-	GoblinShark = 495, -- Epic
-	Liopleurodon = 690, -- Legendary
-	Shonisaurus = 695, -- Legendary
-	LanternLeviathan = 610, -- Mythic
-	AuroraJelly = 860, -- Secret
+	Viperfish = 370000, -- Rare
+	GiantSquid = 360000, -- Epic
+	GoblinShark = 380000, -- Epic
+	Liopleurodon = 510000, -- Legendary
+	Shonisaurus = 520000, -- Legendary
+	LanternLeviathan = 450000, -- Mythic
+	AuroraJelly = 640000, -- Secret
 	-- land 7 (Midnight, where it lives; it needs the same anywhere)
-	FrilledShark = 545, -- Epic
-	Anglerfish = 940, -- Epic
-	Basilosaurus = 785, -- Legendary
-	Livyatan = 825, -- Legendary
-	Mosasaurus = 910, -- Legendary
-	Kraken = 900, -- Mythic
-	VoidWhale = 985, -- Secret
+	FrilledShark = 530000, -- Epic
+	Anglerfish = 920000, -- Epic
+	Basilosaurus = 770000, -- Legendary
+	Livyatan = 810000, -- Legendary
+	Mosasaurus = 890000, -- Legendary
+	Kraken = 880000, -- Mythic
+	VoidWhale = 960000, -- Secret
 	-- land 8 (Vents, where it lives; it needs the same anywhere)
-	SeaScorpion = 915, -- Epic
-	GiantIsopod = 1040, -- Epic
-	BobbitWorm = 1060, -- Legendary
-	Anomalocaris = 1280, -- Legendary
-	Kronosaurus = 1570, -- Legendary
-	Megalodon = 1800, -- Legendary
-	MoltenMegalodon = 1805, -- Mythic
-	EmberSerpent = 1440, -- Secret
+	SeaScorpion = 3400000, -- Epic
+	GiantIsopod = 3900000, -- Epic
+	BobbitWorm = 4000000, -- Legendary
+	Anomalocaris = 4800000, -- Legendary
+	Kronosaurus = 5900000, -- Legendary
+	Megalodon = 6800000, -- Legendary
+	MoltenMegalodon = 6900000, -- Mythic
+	EmberSerpent = 5400000, -- Secret
 	-- land 9 (Bone Graveyard, where it lives; it needs the same anywhere)
-	WraithEel = 1260, -- Legendary
-	SkullAngler = 1900, -- Legendary
-	GraveTurtle = 2050, -- Legendary
-	GraveRay = 2210, -- Legendary
-	BoneLeviathan = 1980, -- Mythic
-	HalfboneMegalodon = 2480, -- Mythic
-	PhantomWhale = 2110, -- Secret
+	WraithEel = 26000000, -- Legendary
+	SkullAngler = 40000000, -- Legendary
+	GraveTurtle = 43000000, -- Legendary
+	GraveRay = 46000000, -- Legendary
+	BoneLeviathan = 42000000, -- Mythic
+	HalfboneMegalodon = 52000000, -- Mythic
+	PhantomWhale = 44000000, -- Secret
 	-- land 10 (Underworld, where it lives; it needs the same anywhere)
-	CinderRay = 2170, -- Legendary
-	BrimstoneEel = 2820, -- Legendary
-	HellfinShark = 2970, -- Legendary
-	InfernalAngler = 3080, -- Legendary
-	Hellmaw = 3180, -- Mythic
-	AbyssalWatcher = 3480, -- Mythic
-	TheDevourer = 3650, -- Secret
+	CinderRay = 230000000, -- Legendary
+	BrimstoneEel = 300000000, -- Legendary
+	HellfinShark = 310000000, -- Legendary
+	InfernalAngler = 330000000, -- Legendary
+	Hellmaw = 340000000, -- Mythic
+	AbyssalWatcher = 370000000, -- Mythic
+	TheDevourer = 390000000, -- Secret
 } :: { [string]: number }
 
 -- Times the base, by the fish's rarity (the old RarityDrain's numbers: gentle at the bottom, steep toward the top)
@@ -766,25 +773,24 @@ Config.Train = {
 	-- The trainer's 12 levels (Hugo, 2026-11-19, task sh1: the seahorse draft m1, built; docs/design/trainer.md).
 	-- Each plot's seahorse shows its owner's level (the player's TrainerLevel, 1 to 12, the server's), and riding it
 	-- gives that level's Oxygen a second in place of Rate. Name: the level's seahorse (the model's NAMES).
-	-- !! PLACEHOLDERS: every Oxygen and Price below is a stand-in until Hugo picks the economy draft (mission
-	-- 20e4833b task b1, docs/design/progression.md "D4"). Fixed whole numbers only (Hugo's rule: no share of max, no
-	-- decimals): b1's "Oxygen a tick" and "Level's price" columns drop straight in. Level 1's 4 is today's Rate. When
-	-- b1 lands. (Share went in task e1.) Oxygen is given once for every whole second seated. Price is in coins.
+	-- The economy draft 2's numbers (the user, 2026-11-23: "Yes, as drafted"; docs/design/progression.md): the
+	-- reference's machine x 8, then x 2.5 a level; its prices, coin for dollar. Fixed whole numbers only (Hugo's rule: no
+	-- share of max, no decimals): Oxygen is given once for every whole second seated. Price is in coins.
 	Levels = {
-		{ Name = "Toy", Oxygen = 4, Price = 0 }, -- PLACEHOLDER numbers (b1)
-		{ Name = "Painted", Oxygen = 6, Price = 100 }, -- PLACEHOLDER
-		{ Name = "Saddled", Oxygen = 10, Price = 300 }, -- PLACEHOLDER
-		{ Name = "Racer", Oxygen = 15, Price = 1000 }, -- PLACEHOLDER
-		{ Name = "Iron", Oxygen = 25, Price = 3000 }, -- PLACEHOLDER
-		{ Name = "Spiked", Oxygen = 40, Price = 10000 }, -- PLACEHOLDER
-		{ Name = "Knight", Oxygen = 60, Price = 30000 }, -- PLACEHOLDER
-		{ Name = "Royal", Oxygen = 100, Price = 100000 }, -- PLACEHOLDER
-		{ Name = "Golden", Oxygen = 150, Price = 300000 }, -- PLACEHOLDER
-		{ Name = "Abyssal", Oxygen = 250, Price = 1000000 }, -- PLACEHOLDER
-		{ Name = "Starfire", Oxygen = 400, Price = 3000000 }, -- PLACEHOLDER
-		{ Name = "Prismatic", Oxygen = 600, Price = 10000000 }, -- PLACEHOLDER
+		{ Name = "Toy", Oxygen = 16, Price = 0 },
+		{ Name = "Painted", Oxygen = 40, Price = 15000 },
+		{ Name = "Saddled", Oxygen = 120, Price = 250000 },
+		{ Name = "Racer", Oxygen = 290, Price = 4000000 },
+		{ Name = "Iron", Oxygen = 760, Price = 80000000 },
+		{ Name = "Spiked", Oxygen = 1900, Price = 2500000000 },
+		{ Name = "Knight", Oxygen = 4800, Price = 75000000000 },
+		{ Name = "Royal", Oxygen = 12000, Price = 3000000000000 },
+		{ Name = "Golden", Oxygen = 30000, Price = 60000000000000 },
+		{ Name = "Abyssal", Oxygen = 75000, Price = 1200000000000000 },
+		{ Name = "Starfire", Oxygen = 190000, Price = 25000000000000000 },
+		{ Name = "Prismatic", Oxygen = 470000, Price = 500000000000000000 },
 	} :: { { Name: string, Oxygen: number, Price: number } },
-	Free = 1, -- 1: every level costs nothing for now (Hugo, 2026-11-18: "let upgrades be free for now"); the price is still shown
+	Free = 0, -- 1: every level costs nothing (it was 1 from 2026-11-18, Hugo: "let upgrades be free for now"; 0 since 2026-11-23, the user: "Yes, charge")
 	UpgradeNear = 14, -- studs from the coil's axis (flat) inside which the owner can upgrade (a click on the sign)
 	SignNear = 12, -- or studs from the upgrade sign's board (flat): standing in front of it to click it (task e2)
 	UpAgain = 0.5, -- seconds after an upgrade ask in which another ask is ignored (a double click buys one level)
@@ -899,19 +905,18 @@ Config.Aquarium = {
 -- bought makes the tank Taller studs taller and lets Slots more fish be equipped (earn) at once. The inventory itself
 -- has no limit at any stage. AquariumService decides and charges (Action "Plot", "Up"); the player's "PlotStage"
 -- attribute is the stage. For the session only: no saves yet.
--- !! PROPOSED numbers (b1), Hugo's to change: the prices are coins, times ten a stage, the first within the first
--- few dives (seven Shallows fish earn about 15 to 20 a second, and a spare Clownfish sells for 120).
+-- The prices are coins, the reference's pen upgrades (the economy draft 2; the user, 2026-11-23: "Yes, as drafted").
 Config.PlotUpgrades = {
 	On = 1, -- 0: no plot upgrades, no sign
 	Slots = 2, -- more fish equipped at once, for each stage
 	Taller = 3, -- studs the tank's water, posts and rim rise, for each stage (the water is 14 to 20 high at stage 0, by plot)
 	Grow = 0.6, -- seconds the tank takes to grow when a stage is bought
 	Stages = {
-		{ Price = 500 }, -- stage 1: 9 equipped
-		{ Price = 5000 }, -- 2: 11
-		{ Price = 50000 }, -- 3: 13
-		{ Price = 500000 }, -- 4: 15
-		{ Price = 5000000 }, -- 5: 17
+		{ Price = 1000000 }, -- stage 1: 9 equipped
+		{ Price = 30000000 }, -- 2: 11
+		{ Price = 1000000000 }, -- 3: 13
+		{ Price = 30000000000 }, -- 4: 15
+		{ Price = 1000000000000 }, -- 5: 17
 	} :: { { Price: number } },
 	Free = 0, -- 1: every stage costs nothing (for trying it; the price is still shown)
 	-- The stage's price in Robux, shown on the sign beside the cash price exactly as the seahorse's sign shows its

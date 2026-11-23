@@ -193,8 +193,14 @@ Clownfish 96), `docs/attachments/e1-tags.jpg`; the seahorse at level 1 ("+4 > +6
 
 ## The economy, draft 2 (2026-11-22): Ride a Dino's progression, for the user and Hugo
 The user, 2026-11-22: *"We need to pretty much replicate ride a dinos progression ... The upper tier dinos in ride a
-dino are in the billions, possibly higher ... we need that huge cap whilst making the progression possible."* **A
-draft: no number in `Config` is changed.** It replaces draft 1 (below). The game's own needs today (task e1) top out
+dino are in the billions, possibly higher ... we need that huge cap whilst making the progression possible."* **In
+`Config` since 2026-11-23** (the user: "Yes, as drafted"): the needs, the seahorse's twelve levels, the plot's five
+prices, and `Oxygen.Grow` 0.1 to 0.035 and `Oxygen.Cap` 500K to 50B so the seconds on a fish and the tame stay about
+as they were. **Not yet:** aura prices and buying (the server has none), the Index, selling at 200 s, earning while
+away. The seahorse's levels
+cost their coins since 2026-11-23 (`Train.Free` 0; the user: "Yes, charge"). Run on `Config`
+as written: the full design reaches land 10 in 31.2 h (five seeds); **without the auras and the Index, paying for
+the seahorse, 199 h** (land 5 at 67 min, 7 at 8 h). It replaces draft 1 (below). Before it (task e1) the needs topped out
 at 3.3M, because e1's bases grow only about 1.5 times a land. Every reference number is from
 [the deep study](../reference/ride-a-dino-deep.md) (seen, said or fit, marked in the tables). The tables:
 [economy-draft-2-tables](../attachments/economy-draft-2-tables.md).
@@ -210,9 +216,10 @@ python tools/balance/rad_economy.py --step 6      a gentler need ladder
 - **Our Oxygen = their Stamina x 8.** Their first wild dino needs 10, our Clownfish 80. So their last zone's 700M to
   1.6B is our land 10's 5B to 13B.
 - **Our coins = their dollars.** A fish still earns its need / 40 a second (`Aquarium.PerRequired` 0.025, unchanged):
-  our Clownfish earns $2 like their first earner. **Early on we earn less than they do:** at 15K to 50K max Oxygen the
-  played-through tank earns about $400 to $3.2K a second, where their user's account at 1.9K Stamina (x8: 15K)
-  earned $2.2K to $5K, so about 3 to 5 times under at that point. The pace below holds anyway, so **their price
+  our Clownfish earns $2 like their first earner. **Early on we earn less than they do:** when the played-through player
+  passes 15K max Oxygen (about 10 minutes in) the tank earns $560 to $715 a second (five seeds, measured 2026-11-23),
+  where their user's account at 1.9K Stamina (x8: 15K) earned $2.2K to $5K: 3 to 9 times under. The pace below is run
+  with our own lower earnings, so **their price
   ladders are our prices as they stand**, coin for dollar. Income rising with the need, as theirs does, is what
   carries the money into the trillions and beyond.
 - **Their late Stamina comes from the Index, not the machine.** Their AFK players on the machine look to come to a
@@ -222,10 +229,10 @@ python tools/balance/rad_economy.py --step 6      a gentler need ladder
   31.
 
 ### The short of it
-1. **What a fish needs grows x7.3 a land** (theirs x5 to x8 a zone): each land's commonest fish 80, 588, 4,250, 35K,
-   230K, 1.7M, 12M, 89M, 645M, **4.65B**. Every kind's base is today's times its land's factor, rounded to two
+1. **What a fish needs grows x7.3 a land** (theirs x5 to x8 a zone): each land's commonest fish 82, 588, 4,250, 35K,
+   225K, 1.7M, 12M, 89M, 645M, **4.65B**. Every kind's base is today's times its land's factor, rounded to two
    figures and then nudged up until no two kinds need the same (e1's rule), so Hugo's order inside each land stays
-   (checked: no land's order changes, all 77 needs differ). The top: The Devourer 58.5B, a Colossal Rainbow one
+   (checked: no land's order changes, all 78 needs and bases differ; land 1 is left as it was, so the Clownfish still needs 80). The top: The Devourer 58.5B, a Colossal Rainbow one
    **351B**.
 2. **The seahorse, 12 levels** (Hugo's names): +16, 40, 120, 290, 760, 1,900, 4,800, 12,000, 30K, 75K, 190K, 470K a
    second (their +2, 5, 15, 36, 95 x 8, then x2.5). Prices theirs where seen: free, $15K, $250K, $4M, $80M, $2.5B,
@@ -247,10 +254,10 @@ python tools/balance/rad_economy.py --step 6      a gentler need ladder
 | 3 Kelp Forest | 4,250 | 5 to 6 min | the lesson is 2.5 min, two purchases |
 | 5 Open Blue | 230K | 27 to 30 min | their typical player sees about an hour in all, and sticks at zones 5 to 7 |
 | 6 Twilight | 1.7M | 65 to 70 min | |
-| 7 Midnight | 12M | 2.4 to 2.6 h | "2 hours": 37M Stamina (x8: 300M), with some Robux |
+| 7 Midnight | 12M | 2.4 to 2.6 h | "2 hours": 37M Stamina (x8: 300M), with some Robux; **ours has 6.8M at 2 h, about 44 times less** (no Robux in ours) |
 | 8 Vents | 89M | 5.0 h | |
 | 9 Bone Graveyard | 645M | 13.7 to 13.9 h | |
-| 10 The Underworld | 4.65B | 31.2 h | "30 hours", free: 971M (x8: 7.8B), just taming in the last zone |
+| 10 The Underworld | 4.65B | 31.2 h | "30 hours", free: 971M (x8: 7.8B), just taming in the last zone; ours has 4.4B at 30 h, a little over half |
 | its Mythics, Secrets | 15B to 351B | 45 h at 10B, 60 h at 14B, then weeks | their top pens are Robux players' |
 
 Bought on the way: an aura at 1 min, the second seahorse at 6, the first tank stage at 19, the x3 aura at 23; the
@@ -291,13 +298,20 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
   hour of the tank's coins a day (ours none). Proposed as theirs.
 - **Robux:** their late game is where Robux multipliers (x2 to x4096 on the machine) and Stamina packs sell. Our
   shop's Oxygen multiplier should sit on the seahorse the same way.
-- **Numbers past a trillion:** the HUD needs Qa and Qi (prices reach $500Qa). Past 9 quadrillion a Luau number is no
-  longer exact to the coin, which only the prices reach; Oxygen tops at about 351B. A fish's tag shows its need in
-  whole figures (`Config.wholeNumber`), which won't fit 4,650,000,000: the tag needs the short form too.
-- **Every threshold set in Oxygen moves with it.** `Oxygen.Cap` (500K, past which a tame takes `Tame.CapSlow` 1.5
-  times longer) is passed inside the first hour. The ride's grow, (need / 80)^0.1, hits `GrowMost` 4 at about 84M,
-  so from land 8 on every fish rides and tames the same length: check that a fish still outlasts its tame at its
-  need, and re-run D5 below on these needs.
+- **Numbers past a trillion:** cash labels read Qa and Qi since `a72c1ff` (the UI chat, 2026-11-23). Full Oxygen
+  figures fit everywhere by measured text width; the Oxygen row and the seahorse sign shrink to do it. Not seen on
+  screen yet. Past 9 quadrillion a Luau number is no longer exact to the coin, which only the prices reach.
+- **The thresholds set in Oxygen, moved 2026-11-23:** `Oxygen.Cap` (500K would have been passed inside the first
+  hour, making every tame 1.5 times slower) is 50B; `Oxygen.Grow` 0.1 (which would have hit `GrowMost` 4 at land 8)
+  is 0.035: Common to Rare fish last within about 6% of before, the rarer ones less, land 1's too (Epics up to 12%,
+  Legendaries 19%, Mythics 20%, Secrets 16% to 29% shorter; found by the game-code chat, 2026-11-23). Open: give
+  the rarer ones their length back (`Config.grow` on the need divided by its land's factor). D5 below is not re-run.
+- **The x7.3 step is between each land's most usual rarity, not within one rarity.** Where the usual rarity changes
+  the same rarity steps less: Legendaries x1.6 from land 6 to 7, x2.5 from 2 to 3, x3.4 from 4 to 5.
+- **The top of the seahorse is out of reach.** Full design, modelled to 1,500 h: level 10 at 101 h, 11 at 587 h, 12
+  not reached. 17 of the best spawning fish (Colossal Rainbow) earn $47B a second, so $500Qa is 123 days of earning.
+- **The admin panel** (Hugo's) can't give enough Oxygen or coins to test the new numbers; the game-code chat is
+  putting it to the user.
 
 ### What the user and Hugo pick
 | | Choice | Draft 2 | Other way |

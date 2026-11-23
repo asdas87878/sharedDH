@@ -20,6 +20,7 @@ in the tables below):
   - Nothing here is in Config. It reads the fish (kinds, rarity, home land, spawn mix) from the game and the model.
 """
 import argparse
+import json
 import math
 import os
 import random
@@ -77,29 +78,30 @@ WORK = 0.3  # a land can be worked once this share of its spawns can be held
 
 
 def scaled(cfg, step):
-    """cfg with OxygenBase scaled land by land so each land's commonest Normal plain fish (the median kind) needs
-    FIRST x step^(land-1). The within-land spread (Hugo's hand bases) is kept."""
+    """cfg with OxygenBase scaled land by land from task e1's bases (frozen in e1_bases.json, so running this again
+    once Config holds draft 2 gives the same numbers) so each land's commonest Normal plain fish (the median kind)
+    needs FIRST x step^(land-1). Land 1 is left as it was (Config.GrowFrom and the $2 Clownfish rest on its 80). The
+    within-land spread (Hugo's hand bases) is kept."""
     lane = M.read_lane()
-    w = M.world(cfg, lane)
-    c = dict(cfg, OxygenBase=dict(cfg["OxygenBase"]))
-    scale = {}
-    for z in range(w["lands"]):
-        want = FIRST * step ** z
-        now = M.required(cfg, z, w["usual"][z])
-        scale[z + 1] = want / now
-    # bases rounded to two figures, then nudged up a step at a time until no two kinds need the same (e1's rule:
-    # every kind its own need), smallest first so Hugo's order inside a land holds
-    used = set()
-    for f in sorted(cfg["Fish"], key=lambda f: cfg["OxygenBase"].get(f["Id"], 1) * scale[f["Home"]]):
-        b = cfg["OxygenBase"].get(f["Id"], 1) * scale[f["Home"]]
-        unit = 10 ** max(math.floor(math.log10(max(b, 1))) - 1, 0)
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "e1_bases.json")) as f:
+        e1 = json.load(f)
+    old = dict(cfg, OxygenBase=e1)
+    w = M.world(old, lane)
+    c = dict(cfg, OxygenBase=dict(e1))
+    scale = {z + 1: (FIRST * step ** z / M.required(old, z, w["usual"][z]) if z else 1) for z in range(w["lands"])}
+    # bases rounded to two figures (land 1 not at all), then nudged up a step at a time until no two kinds share a
+    # base or a need (e1's rule), smallest first so Hugo's order inside a land holds
+    needs, bases = set(), set()
+    for f in sorted(cfg["Fish"], key=lambda f: e1[f["Id"]] * scale[f["Home"]]):
+        b = e1[f["Id"]] * scale[f["Home"]]
+        unit = 1 if f["Home"] == 1 else 10 ** max(math.floor(math.log10(b)) - 1, 0)
         b = max(round(b / unit) * unit, 1)
         c["OxygenBase"][f["Id"]] = float(b)
-        while f["Reach"] >= 0 and M.need_of(c, f) in used:
+        while b in bases or M.need_of(c, f) in needs:
             b += unit
             c["OxygenBase"][f["Id"]] = float(b)
-        if f["Reach"] >= 0:
-            used.add(M.need_of(c, f))
+        bases.add(b)
+        needs.add(M.need_of(c, f))
     return c, w, lane, scale
 
 
