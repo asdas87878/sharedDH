@@ -3,7 +3,7 @@ Hugo's PC (studio-runner). The bug: back on the dock the Shop and Index buttons,
 came up bright while the screen was still black, because the HUD's screen was drawn over the black. The black now has
 a screen of its own over the HUD (HudController's BLACK_ORDER).
     python tools/studio/hud_black_check.py install | remove   (in Edit, before Play: the server and client helpers)
-    python tools/studio/hud_black_check.py run [chomp] [breath] [clean]   (in a playtest; all three by default)
+    python tools/studio/hud_black_check.py run [chomp] [breath] [throw] [clean]   (in a playtest; all four by default)
     python tools/studio/hud_black_check.py restore             (in a playtest: clears every switch a run set; `run`
                                                                 does it by itself in a `finally`, `remove` too)
     python tools/studio/hud_black_check.py log                 (the client's errors and warnings so far)
@@ -220,7 +220,12 @@ def home(name, frames, before=False):
         frames.append(still(f"{name}_2b_before", "the same moment as it was BEFORE the fix (black under the HUD)"))
         fc.setw(M3Order=None)
     fc.setw(M3Fade=0.5)
-    frames.append(still(f"{name}_3_half", "the black half lifted (held)"))
+    half = still(f"{name}_3_half", "the black half lifted (held)")
+    if "black 0.50" in LOG[-1].replace("fade", "black"):
+        frames.append(half)
+    else:
+        # (a fail we were sent home from by hand, its drown still running on the client, keeps the black whole)
+        print("no half-lifted still: the black did not take the set value")
     fc.setw(M3Hold=None)
     time.sleep(0.5)
     frames.append(still(f"{name}_4_lifted", "the black gone: the end of the dive"))
@@ -229,26 +234,38 @@ def home(name, frames, before=False):
 
 
 def fail(fish, outcome, name, text, before=False):
-    """Rides `fish` and fails it as `outcome` (None: before it is seated, the plain run-out, DeathController's black;
-    a taken outcome's black is FailController's), with the black held once we are home."""
+    """Rides `fish` and fails it as `outcome`, with the black held once we are home. A taken outcome's black is
+    FailController's; a thrown one's and the plain run-out's (None: failed before it is seated) are DeathController's.
+    The plain run-out plays on real time, with no still of the drown itself: the server ends it on its own clock, and
+    a held clock would bring us home with the black part-way or the words never set."""
     T = b5.TIMES.get(outcome or "", 0)
+    taken = outcome in b5.fc_taken()
     frames = []
-    fc.setw(TestMaxOxygen=10000000, FailSlow=60, FailClock=0, DeathClock=0, M3Hold=1e6)
+    fc.setw(TestMaxOxygen=10000000, FailSlow=1 if outcome is None else 60 if T == 0 or taken else 20,
+            FailClock=-1 if outcome is None else 0, DeathClock=-1 if outcome is None else 0, M3Hold=1e6)
     print(fc.cmd("ride|" + fish))
     if outcome is None:
-        # (the drown's last moment at once: the server ends it on its own clock, about 3 s)
-        fc.setw(DeathClock=2.9 - 0.1)
         print(fc.cmd("fail|"))
-        frames.append(still(f"{name}_1_black", f"{text}: the black whole"))
     else:
         fc.wait_state({"Riding"})
         time.sleep(3)
         print(fc.cmd("fail|" + outcome))
-        fc.setw(FailClock=T + 0.3)
+        if taken:
+            clock, coming, whole = "FailClock", T + 0.3, T + 0.75
+        else:
+            if T > 0:
+                fc.setw(FailClock=T + 0.2)
+            fc.wait_state({"Drowning"}, timeout=90)
+            # (the drown's own clock: a ragdoll's flight, then 2.9 s; the black is its last 1.35 s)
+            clock, coming, whole = "DeathClock", b5.RAG + 2.9 - 0.9, b5.RAG + 2.9 - 0.25
+        fc.setw(**{clock: coming})
         frames.append(still(f"{name}_0_coming", f"{text}: the black coming in"))
-        fc.setw(FailClock=T + 0.75)
-        frames.append(still(f"{name}_1_black", f"{text}: the black whole"))
-        fc.setw(FailClock=-1, FailSlow=1)
+        fc.setw(**{clock: whole})
+        frames.append(still(f"{name}_1_black", f"{text}: the black nearly whole" if not taken else f"{text}: the black whole"))
+        # (the clocks let go first, so the fail runs out to its end, the black whole, before the server takes us home)
+        fc.setw(FailClock=-1, DeathClock=-1)
+        time.sleep(0.8)
+        fc.setw(FailSlow=1)
         print(fc.cmd("home"))
     home(name, frames, before)
     return frames
@@ -273,6 +290,7 @@ def clean(name="clean"):
 RUNS = {
     "chomp": lambda: fail("ReefShark", "Chomp", "chomp", "Chomp (Reef Shark), EATEN!", before=True),
     "breath": lambda: fail("Clownfish", None, "breath", "Out of Oxygen, OUT OF BREATH!"),
+    "throw": lambda: fail("Clownfish", "Throw", "throw", "Throw (Clownfish), THROWN OFF!"),
     "clean": clean,
 }
 

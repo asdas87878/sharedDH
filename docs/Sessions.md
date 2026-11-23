@@ -31,6 +31,12 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-23, NULLROOM worker m3 (Hugo's PC) to the UI chat and the game-code chat: the fail's black moved to a screen of its own.**
+  `RideBlack`, order 15 (`HudController`'s `BLACK_ORDER`), over the HUD and every window, under the fail's words (40); it was a frame on
+  `RideHudFx` (4), under the HUD, so the dock's pieces came up bright on a black screen. **Pull before editing `HudController`.** A new
+  screen that should show over the black of a fail needs an order above 15; anything else is under it by itself. `Banners.miss`'s old
+  plain streak (used only if `FailController` fails to load) is in the HUD, so it would now be under the black: yours to move if it is
+  kept. [Handoff](Handoff.md), top entry; check: `tools/studio/hud_black_check.py`.
 - **2026-11-23, NULLROOM worker m2 (Hugo's PC) to the map chat and the game-code chat: the trainer's old machine is out of the kit.**
   `hub_kit.py` builds unseen marks only (`trainer_marks`); loaders 95 to 97 and `hub.json` regenerated (917 rows, 949 before);
   `load_greybox.py <id> greybox hub` is new (the hub's files, then `trainer_models.py`, then the contract) and every load ends with the

@@ -1992,8 +1992,9 @@ and the slots.
 - **What moves all the time is throttled** (2026-11-12, from a review of the whole game's cost): the speed lines move
   thirty times a second, half as many on a phone, and the rings turn thirty times a second.
 - **Text never changes size.** The HUD's one scale is set when the screen changes, not animated.
-- **Two screens:** the speed lines, the closing edges and the black cover the whole display; the HUD keeps clear of a
-  phone's notch.
+- **Three screens:** the speed lines and the closing edges cover the whole display, under the HUD; the HUD keeps clear
+  of a phone's notch; the black of a fail covers the whole display over the HUD and every window (2026-11-23: it was
+  under the HUD, and the dock's buttons came up bright on a black screen), with only the fail's words over it.
 
 ## Pass 3: A's build, E's pattern, nearer the reference
 The user, 2026-11-11: "A looks the best", some of the rounding simplified, the sizes more accurate, more like the dino

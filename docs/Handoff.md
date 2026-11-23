@@ -3,6 +3,26 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-23 · The fail's black is over the HUD, so nothing comes up bright on a black screen (NULLROOM worker m3, Hugo's PC)
+The bug: home from a fail, the Shop and Index buttons, the plus buttons and "GO TO YOUR TANK TO DEPOSIT" came up at full
+brightness, and the Oxygen row, the land strip and the slots stayed bright, while the screen was still black (the 1.3 s the black holds and lifts at the dock).
+**Cause:** the black was a frame on `RideHudFx` (order 4), and the HUD's screen `RideHud` (5) and the dock's screens (6 to 8) are
+drawn over that. The dock's pieces switch on the moment the server puts us home.
+**Fix:** the black has a screen of its own, `RideBlack`, at order 15 (`HudController`'s `BLACK_ORDER`): over the HUD and every
+window, under the kraken's dark (39) and the fail's words (40), and under Studio's own panels (20, 21). Nothing else changed: the
+words, the black's timing and the end-of-dive screen run as before (it still waits for the black to be gone).
+**What you will see that is new:** during a fail the HUD dims with the black and is gone when the black is whole, where it used to
+stay bright on it. The bubble words are untouched and alone on the black. Hugo has not seen this yet.
+**State:** in the repo by the sync on Hugo's PC, nothing pushed by hand. Two files: `src/client/Controllers/HudController.luau`
+(the screen) and `FailController.luau` (one comment). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes.
+**Played by script in Hugo's place** (Rojo connected there now), no client error: Chomp (a taken fail, FailController's black), out of
+breath and Throw (DeathController's black), and a clean dive. Stills: [Chomp, with the same moment as it was before](attachments/hud-black-chomp-2026-11-23.jpg),
+[out of breath](attachments/hud-black-breath-2026-11-23.jpg), [Throw](attachments/hud-black-throw-2026-11-23.jpg),
+[a clean dive](attachments/hud-black-clean-2026-11-23.jpg). Not played by hand; not tried on a phone.
+**To check again:** `python tools/studio/hud_black_check.py install`, Play, `... run`, stop, `... remove` (it holds the black at the
+dock so a still can catch it, and clears its switches in a `finally`).
+**On the partner's PC:** pull; with Rojo connected nothing else, else `python tools/studio/sync_src.py <studio_id>`.
+
 ## 2026-11-23 · The seahorse trainer stays: the old toy machine is out of the map, the 12 levels install themselves (NULLROOM worker m2, Hugo's PC)
 Hugo: his 12 coil seahorses everywhere, the old toy machine gone for good.
 **State:** in the repo by the sync on Hugo's PC, nothing pushed by hand. StyLua clean, selene 0 errors (the three old warnings), the Rojo
