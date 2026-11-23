@@ -198,8 +198,10 @@ dino are in the billions, possibly higher ... we need that huge cap whilst makin
 prices, and `Oxygen.Grow` 0.1 to 0.035 and `Oxygen.Cap` 500K to 50B so the seconds on a fish and the tame stay about
 as they were. **Not yet:** aura prices and buying (the server has none), the Index, selling at 200 s, earning while
 away. The seahorse's levels
-cost their coins since 2026-11-23 (`Train.Free` 0; the user: "Yes, charge"). Run on `Config`
-as written: the full design reaches land 10 in 31.2 h (five seeds); **without the auras and the Index, paying for
+cost their coins since 2026-11-23 (`Train.Free` 0; the user: "Yes, charge"). **Checked in Studio by script 2026-11-23** (the game-code chat; not
+played by hand): levels 2 and 3 and the plot stages charge their price once and refuse a short purse; at exactly its
+need a Sea Scorpion (land 8) lasts 7.92 s (paper 7.65) and tames in 3.02 s (3.06), a Cinder Ray (land 10) 9.03 s
+(9.25) and 3.65 s (3.70). Modelled on `Config` as written: the full design reaches land 10 in 31.2 h (five seeds); **without the auras and the Index, paying for
 the seahorse, 199 h** (land 5 at 67 min, 7 at 8 h). It replaces draft 1 (below). Before it (task e1) the needs topped out
 at 3.3M, because e1's bases grow only about 1.5 times a land. Every reference number is from
 [the deep study](../reference/ride-a-dino-deep.md) (seen, said or fit, marked in the tables). The tables:
@@ -299,8 +301,10 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
 - **Robux:** their late game is where Robux multipliers (x2 to x4096 on the machine) and Stamina packs sell. Our
   shop's Oxygen multiplier should sit on the seahorse the same way.
 - **Numbers past a trillion:** cash labels read Qa and Qi since `a72c1ff` (the UI chat, 2026-11-23). Full Oxygen
-  figures fit everywhere by measured text width; the Oxygen row and the seahorse sign shrink to do it. Not seen on
-  screen yet. Past 9 quadrillion a Luau number is no longer exact to the coin, which only the prices reach.
+  figures fit by measured text width, the Oxygen row and the seahorse sign shrinking to do it, **except the player's
+  own Oxygen row (`UI/StatRows`, bottom left) at 351,000,000,000**: in Studio 153 px of text in a 126 px box (the
+  game-code chat, 2026-11-23). The UI chat took out the line that stopped it shrinking (`TextWrapped` false); a
+  test label in Edit then fits (116 of 126), not played since. Past 9 quadrillion a Luau number is no longer exact to the coin, which only the prices reach.
 - **The thresholds set in Oxygen, moved 2026-11-23:** `Oxygen.Cap` (500K would have been passed inside the first
   hour, making every tame 1.5 times slower) is 50B; `Oxygen.Grow` 0.1 (which would have hit `GrowMost` 4 at land 8)
   is 0.035: Common to Rare fish last within about 6% of before, the rarer ones less, land 1's too (Epics up to 12%,
