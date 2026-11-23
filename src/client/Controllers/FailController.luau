@@ -1679,7 +1679,38 @@ local function wordsShow(raw: string, black: number)
 end
 
 local wordsScreen: Vector2? = nil -- (Studio: the pretended screen)
+
+-- (Studio) a pretended screen: the words fit themselves to their Root's size, so a phone's is a box of that size,
+-- outlined. Taken off again the moment the attribute goes, whatever is showing
+local function wordsPretend()
+	local box = workspace:GetAttribute("FailWordsScreen")
+	local screen = if typeof(box) == "Vector2" and box.X > 0 and box.Y > 0 then box else nil
+	if screen == wordsScreen or (screen and not words) then
+		return
+	end
+	wordsScreen = screen
+	local band = words
+	if not band then
+		return
+	end
+	local root = band.Root
+	local edge = root:FindFirstChild("Pretend")
+	if screen and not edge then
+		local line = Instance.new("UIStroke")
+		line.Name = "Pretend"
+		line.Thickness = 2
+		line.Color = Color3.new(1, 1, 1)
+		line.Parent = root
+	elseif edge and not screen then
+		edge:Destroy()
+	end
+	root.AnchorPoint = if screen then Vector2.new(0.5, 0.5) else Vector2.zero
+	root.Position = if screen then UDim2.fromScale(0.5, 0.5) else UDim2.new()
+	root.Size = if screen then UDim2.fromOffset(screen.X, screen.Y) else UDim2.fromScale(1, 1)
+end
+
 local function wordsStudio()
+	wordsPretend()
 	local asked = workspace:GetAttribute("FailWords")
 	local text = if type(asked) == "string" then asked else ""
 	if text ~= wordsTest then
@@ -1692,30 +1723,11 @@ local function wordsStudio()
 			return
 		end
 		wordsUp(text, if workspace:GetAttribute("FailWordsSub") == false then "" else Config.Fail.Safe)
+		wordsPretend()
 	end
 	local band = words
 	if text == "" or not band then
 		return
-	end
-	-- a pretended screen: the words fit themselves to their Root's size, so a phone's is that size of box, outlined
-	local box = workspace:GetAttribute("FailWordsScreen")
-	local screen = if typeof(box) == "Vector2" and box.X > 0 and box.Y > 0 then box else nil
-	if screen ~= wordsScreen then
-		wordsScreen = screen
-		local root = band.Root
-		local edge = root:FindFirstChild("Pretend")
-		if screen and not edge then
-			local line = Instance.new("UIStroke")
-			line.Name = "Pretend"
-			line.Thickness = 2
-			line.Color = Color3.new(1, 1, 1)
-			line.Parent = root
-		elseif edge and not screen then
-			edge:Destroy()
-		end
-		root.AnchorPoint = if screen then Vector2.new(0.5, 0.5) else Vector2.zero
-		root.Position = if screen then UDim2.fromScale(0.5, 0.5) else UDim2.new()
-		root.Size = if screen then UDim2.fromOffset(screen.X, screen.Y) else UDim2.fromScale(1, 1)
 	end
 	local held = workspace:GetAttribute("FailWordsAge")
 	local out = workspace:GetAttribute("FailWordsOut")
