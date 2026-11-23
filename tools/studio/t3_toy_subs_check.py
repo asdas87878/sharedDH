@@ -218,8 +218,13 @@ def do(c, wait=1.4):
     )
 
 
+STILLS = True  # off once the window's pictures are found frozen
+
+
 def shot(name):
     """one still of the game view, into work/t3 (the runner's `shot` returns before the file is written)"""
+    if not STILLS:
+        return None
     full = OUT / (name + "-full.png")
     full.unlink(missing_ok=True)
     out = s2.run(["shot", str(full)], timeout=60)
@@ -284,7 +289,7 @@ def ride(tier):
             time.sleep(0.5)
             still = shot(f"ride-{tier}")
             break
-    if not still:
+    if not still and STILLS:
         note("  NO RIDE: " + st)
     time.sleep(6)
     note("  ride: " + do("read", 0.5))
@@ -297,23 +302,33 @@ def checks(tiers):
     time.sleep(6)
     if not tiers:
         note("made:\n" + do("made", 3))
+        # Studio's window off the screen or covered gives the same old picture every time: the camera is moved
+        # between two stills, and if they come out alike no still is kept (the numbers still run)
+        before = shot("before")
         note(do("line|0", 3))
         time.sleep(2)
         lineup = shot("lineup")
-        Image.open(lineup).save(ATTACH / "subs-toy-game-lineup.png")
-        note(f"shot: {ATTACH / 'subs-toy-game-lineup.png'}")
+        if list(Image.open(before).getdata()) == list(Image.open(lineup).getdata()):
+            global STILLS
+            STILLS = False
+            note("  ! Studio's window is frozen (off the screen or covered): no stills this run")
+        else:
+            Image.open(lineup).save(ATTACH / "subs-toy-game-lineup.png")
+            note(f"shot: {ATTACH / 'subs-toy-game-lineup.png'}")
         closes = []
         for n in range(1, 10):
             note(do(f"line|{n}", 2))
             time.sleep(1)
             closes.append(shot(f"close-{n}"))
         note(do("unline", 1))
-        labels = [f"{n} {NAMES[n - 1]}" for n in range(1, 10)]
-        note("sheet: %s" % sheet(closes, labels, ATTACH / "subs-toy-game-close.png"))
+        if STILLS:
+            labels = [f"{n} {NAMES[n - 1]}" for n in range(1, 10)]
+            note("sheet: %s" % sheet(closes, labels, ATTACH / "subs-toy-game-close.png"))
         note(s2.do("shop|on", 2.5))
         shop = shot("shop")
-        Image.open(shop).save(ATTACH / "subs-toy-game-shop.png")
-        note(f"shot: {ATTACH / 'subs-toy-game-shop.png'}")
+        if shop:
+            Image.open(shop).save(ATTACH / "subs-toy-game-shop.png")
+            note(f"shot: {ATTACH / 'subs-toy-game-shop.png'}")
         note(s2.do("shop|off", 1))
     stills = {}
     for tier in tiers or range(1, 10):

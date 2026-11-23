@@ -165,7 +165,9 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
 - Other players riding along (a bus), and seeing the trip on the land strip.
 
 ## Open
-- (2026-11-22) The nine subs are voxel models, one a tier: [sub models](sub-models.md). Before that:
+- (2026-11-23) The nine subs are toy models, one a tier, in the style Hugo picked (A, the chunky toy):
+  [sub models](sub-models.md). Ridden by script on all nine tiers, not by hand. The voxel models of 2026-11-22 were
+  a fallback and are out of the game. Before that:
 - (2026-11-18) The nine subs are placeholders (`Shared/SubModels`: the same hull in a new colour with one more
   piece a tier, its name floating over the tower). Only the look changes with the tier; speed and the trip are the
   same for all. Buying is free while `Config.Sub.Free` is 1; the prices still show.
@@ -174,7 +176,8 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
 - The panel and the ticket are placeholders, not the UI chat's style; the N panel doesn't list `Sub` yet.
 - On a phone: not tried. F opens the panel on a keyboard; the SUB button works by touch.
 - The prices, once the pace is set (progression's question 4).
-- The partner's animations for the pick-up and the drop-off, and the sub's model (hooks below).
+- The partner's animations for the pick-up and the drop-off (hooks below). The sub's models are made
+  ([sub models](sub-models.md)); they are not uploaded.
 
 ## Built (2026-11-17)
 Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
@@ -207,4 +210,5 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 The placeholder motion is one function per phase in `SubController` (`approachPose`, `pickupPose`, `ridePose`,
 `dropPose`, `kickPose`), each a CFrame for the rider against the sub's seat by a share 0 to 1 of the phase. The
 rider's limbs are `AnimController`'s "Carried" pose, chosen by `SubPhase`. An uploaded animation replaces the pose and
-keeps the CFrame path; the sub's model replaces `buildSub` (it needs parts named `Seat`, `Light` and `Prop`).
+keeps the CFrame path. The sub's model comes from `Shared/SubModels.build` (a template needs parts named `Hull`,
+`Seat`, `Light` and `Prop`).
