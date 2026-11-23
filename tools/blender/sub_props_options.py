@@ -50,10 +50,11 @@ RULE = {
     "StepShare": 0.25,  # the most it turns in one frame, as a share of the gap between two blades
     "StepMost": 30.0,  # and never more than this, degrees
     "BlurFrom": 150.0,  # the blur disc starts to show at this speed, studs a second
-    "BlurFull": 700.0,  # and is fullest from this speed
+    "BlurFull": 450.0,  # and is fullest from this speed
     "BlurMost": 0.2,  # how solid it gets (Transparency 1 - this)
 }
 TOP = 4315.0  # the fastest trip's top speed (to land 10), studs a second
+LOW_TOP = 464.0  # the top speed of the trip to land 2 (docs/design/sub-models.md): the only trip tier 1's sub makes
 
 
 def step_most(blades):
@@ -723,6 +724,10 @@ def overlay(src, out):
     d = ImageDraw.Draw(static)
     d.text((24, 12), "PROPELLER OPTIONS, TIER %d" % truth["tier"], font=f_title, fill=WHITE)
     d.text((24, 56), "one frame here is one frame of the game at %d a second; nothing is smeared" % truth["fps"], font=f_small, fill=SOFT)
+    d.text((24, 84), "tier %d's own trip tops out at %d studs a second: see the mark" % (truth["tier"], LOW_TOP),
+           font=f_small, fill=WARN)
+    mark = next((i for i, v in enumerate(truth["speed"]) if v >= LOW_TOP), None)
+    longest = d.textlength("88.8 turns a second, 498\u00b0 a frame", font=f_small)  # the widest caption a tile gets
     plaque = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     pd = ImageDraw.Draw(plaque)
     for t in truth["tiles"]:
@@ -737,7 +742,7 @@ def overlay(src, out):
         pd.text((x + 16 + bw // 2, y + 37), badge, font=f_name, fill=(12, 30, 54), anchor="mm")
         pd.text((x + 28 + bw, y + 16), name, font=f_name, fill=WHITE)
         pd.text((x + 28 + bw, y + 58), rule, font=f_small, fill=GOOD if t["new_rule"] else WARN)
-        pd.rounded_rectangle((x + 8, y + TH - 44, x + 372, y + TH - 8), 10, fill=(12, 30, 54, 215))
+        pd.rounded_rectangle((x + 8, y + TH - 44, x + 30 + int(longest), y + TH - 8), 10, fill=(12, 30, 54, 215))
     names = sorted(n for n in os.listdir(src) if n.startswith("raw") and n.endswith(".png"))
     for name in names:
         f = int(name[3:7]) - 1
@@ -745,12 +750,17 @@ def overlay(src, out):
         frame = static.copy()
         d = ImageDraw.Draw(frame)
         v = truth["speed"][f]
-        phase = "AT THE DOCK" if v <= 0 else ("TOP SPEED" if v >= TOP - 1 else "PICKING UP SPEED")
+        phase = ("AT THE DOCK" if v <= 0 else "TOP SPEED OF THE LAND 10 TRIP" if v >= TOP - 1 else
+                 "PICKING UP SPEED" if v < LOW_TOP else "FASTER THAN TIER %d EVER GOES" % truth["tier"])
         bx0, bx1, by = 960, W - 330, 34
         d.rounded_rectangle((bx0, by, bx1, by + 22), 11, fill=(40, 70, 104))
         u = f / (truth["frames"] - 1)
         d.rounded_rectangle((bx0, by, bx0 + max(22, int((bx1 - bx0) * u)), by + 22), 11, fill=WHITE)
-        d.text((bx0, by + 32), phase, font=f_small, fill=SOFT)
+        d.text((bx0, by + 32), phase, font=f_small, fill=SOFT if v < LOW_TOP else WARN)
+        if mark is not None:
+            mx = bx0 + int((bx1 - bx0) * mark / (truth["frames"] - 1))
+            d.rectangle((mx - 2, by - 8, mx + 2, by + 30), fill=WARN)
+            d.text((mx + 10, by - 30), "%d: tier %d's top" % (LOW_TOP, truth["tier"]), font=f_small, fill=WARN)
         d.text((W - 24, 8), "%d" % round(v), font=f_num, fill=WHITE, anchor="ra")
         d.text((W - 24, 62), "studs a second", font=f_small, fill=SOFT, anchor="ra")
         lines = []

@@ -33,11 +33,24 @@ It does turn: `SubController.place` turns `Prop` and `Prop_Glow` by `dt * (4 + s
   | 490 | 10.0 | 60 | 120 | stands still |
   | 4,315 (the fastest trip's top) | 83.0 | 498 | 997 | 8.3 gaps a frame: flicker |
 
-  The run is the only part of a trip where the camera is behind the sub (`cameraFor`), and on the run the speed is
-  over 228 from a third of a second in (the slowest trip gets to 464 in 0.64 seconds). On a phone at 30 frames a
-  second the limit is 98 studs a second. So for almost all the time the propeller faces the camera, it is past the
-  point where a six-armed wheel can be seen to turn. The third playtest of task t3 measured the same thing from the
-  other side: frames where the angle read the same were whole turns ([sub models](sub-models.md)).
+  The camera is behind the sub in three parts of a trip (`SubController.cameraFor`): on the run (30 to 38 studs
+  behind, 10 to 7 up), on the arrival and the drop (30 behind, 6.4 to the side, 9 up, at 90 studs a second), and at
+  the end of the pick-up, when it comes round to 18 studs behind the rider (the wheel then turns 4 degrees a frame).
+  How much of the run, the arrival and the drop together the wheel is past half a gap, by `SubTrip.plan`:
+
+  | Trip | Run + arrival + drop | Past half a gap at 60 a second | At 30 a second (limit 98) | Left where it can read |
+  |---|---|---|---|---|
+  | Land 2 (the slowest: top 464, run 3.2 s) | 4.64 s | 2.59 s, 56% | 3.05 s, 66% | 2.05 s at 60, 1.59 s at 30 |
+  | Land 10 (the fastest: top 4,315, run 6.5 s) | 7.92 s | 6.36 s, 80% | 6.45 s, 81% | 1.56 s at 60, 1.47 s at 30 |
+
+  (With the fling's 0.8 seconds as the drop; with the kick onto a fish, 0.48 seconds, the shares are 60% and 84%
+  at 60 a second.) The run is over 228 from 0.31 seconds in on the land 2 trip and from 0.07 on the land 10 trip, and
+  comes back under it 0.30 and 0.05 seconds before the run's end, while slowing. **So for 56% to 80% of the time the
+  camera is behind the moving sub, a six-armed wheel cannot be seen to turn; that is all of the fast part of every
+  run.** In the rest (the run's first and last moments, then 1.1 to 1.4 seconds of arrival and drop at 14 degrees a frame)
+  the numbers say it can read at 60 frames a second; at 30 the arrival's 28 degrees a frame is just under half a
+  gap, so barely. Why it is not noticed there either is a guess, below. The third playtest of task t3 measured the
+  strobing from the other side: frames where the angle read the same were whole turns ([sub models](sub-models.md)).
 - **The shop's cards never turn it.** `UI/SubPanel` builds each sub into its card's picture and never touches `Prop`
   again. `place` is called only for a trip.
 - **No sub stands at the dock.** `SubModels.build` has two callers, the trip and the shop's cards. Outside a trip the
@@ -49,6 +62,14 @@ It does turn: `SubController.place` turns `Prop` and `Prop_Glow` by `dt * (4 + s
 
 **Guesses, not checked:**
 
+- **Why the turn is not noticed in the 1.5 to 2 seconds where it can read.** By the numbers it turns readably on
+  the arrival and the drop (2.4 turns a second, seen from 30 studs behind and a little to the side). Likely
+  reasons, none looked at: that is when "NOW ARRIVING" and the fling or the kick take the eye; six flat look-alike
+  arms in one colour show a turn weakly; the wake's bubbles (next line). It may also simply turn there and not have
+  been looked at.
+- **Whether the propeller is in the picture at the end of the pick-up.** The camera ends 18 studs behind the rider
+  and 9 up, looking at the rider; by the kit's sizes the propeller is then close under the camera and may be below
+  the picture's bottom edge. Worked from the numbers, not seen.
 - The wake's bubbles may cover it on the run: their emitter sits on the propeller, sends up to 260 a second backwards
   toward the camera, each 0.5 to 1.4 studs. Not seen; it needs a look in the game.
 - Where Hugo was looking when he said it (a card in the shop, or a trip) is not known. Both fail, for different reasons.
@@ -115,7 +136,7 @@ blur = BlurMost * smoothstep(BlurFrom, BlurFull, speed)       the disc's Transpa
 | `Idle` | 4 radians a second (0.64 turns a second) | today's own number at no speed: a calm turn |
 | `PerSpeed` | 0.04 (today 0.12) | 1.2 turns a second at the drop's 90; the cap is reached at 370 to 690 studs a second, so the spin-up is seen |
 | `StepMost` | a quarter of the gap between two blades, and at most 30 degrees | under half a gap it can't read backwards; a quarter leaves the direction plain |
-| `BlurFrom`, `BlurFull` | 150 and 700 studs a second | starts as the turn nears its cap, full where every trip's run is |
+| `BlurFrom`, `BlurFull` | 150 and 450 studs a second | starts once the sub is well under way, and is full by 450 so that even the slowest trip (land 2, top 464) gets the whole disc at its top. 700 was tried first: the land 2 trip then only reached 0.12, which is hard to tell from no disc |
 | `BlurMost` | 0.2 (Transparency 0.8) | hazes the dark disc to a mid grey without hiding the blades. Tried at top speed on tier 1: at 0.35 the disc goes pale grey and white blades nearly vanish into it; at 0.12 it is hard to tell from no disc; 0.2 is between |
 
 The cap is on the turn in one frame, not in one second, so a phone at 30 frames a second can't alias either: there
@@ -132,11 +153,16 @@ the wheel turns half as fast at the top, and still reads.
 - **At the dock.** The shop's cards need their own turn at `Idle`: `UI/SubPanel` would turn each card's `Prop` and
   `Prop_Glow` about their own Z while the shop is open (nine cards, 13 parts in all). On a trip the pick-up
   already turns it at 0.66 turns a second.
+- **On tier 1's own trip** (land 2, the only one that sub makes, top 464) the turn tops out at 21.5 degrees a
+  frame, 3.6 turns a second: the paddles, the scimitars and the screw stay under their caps there, the fan and
+  today's six arms reach theirs (18 and 15). A trip to land 10 holds every wheel at its cap for nearly the whole run.
 - **The blur disc.** A thin flat disc in the blades' colour, as wide as the blades reach, sitting low in the blades
   just behind the backing plate, so the blades and the coloured blade stay sharp in front of it and the dark disc
   behind them hazes over. It does not turn. A disc in front of the blades was tried first and dropped: it washed the
   coloured blade out, which is the thing that shows the turn. Only what Roblox can do without an uploaded picture:
-  one flat colour, one Transparency.
+  one flat colour, one Transparency. **So it is not soft:** at full strength it reads in the clip as a flat grey
+  plate with a hard edge behind the blades, more than as a blur. A soft edge would need a second, wider and fainter
+  disc (one more part) or an uploaded picture; neither is drawn.
 - **Where it would go** (none of it done): `Config.Sub` for the numbers; `SubController.place` for the step;
   `Shared/SubModels` for the disc, made by code beside the beam and the wake; `UI/SubPanel` for the cards' turn;
   `tools/blender/sub_stages.py` `tail()` for the picked blades, then the nine exports and the install.
@@ -159,6 +185,13 @@ Tier 1. Six tiles: today's propeller by today's rule (the proof), then today's p
 proposed rule. One frame of the clip is one frame of the game at 60 a second, with nothing smeared, as nothing is in
 the game. The speed stands at 0 for a second, rises for four (each second about 4.6 times faster, so the slow end is
 not over in a blink), and holds 4,315 for the last.
+
+**The clip's fast half is not something tier 1 ever shows.** Tier 1's sub only goes to land 2, where the top speed
+is 464; the clip takes the same tier 1 tail on to 4,315, the land 10 trip's top, to show how each wheel holds up
+at any sub's speed. The clip marks the 464 point on its bar (3.5 seconds in) and says so from there on. At that
+mark tier 1's real trip is at its most: the turn at 21.5 degrees a frame and the blur disc just full (0.2). What
+comes after the mark is what tier 9 would show on a long trip, drawn on tier 1's colours; tier 9's own purple
+blades with the disc behind them have not been drawn.
 
 The script reads the encoded clip back frame by frame and measures, in each tile, where the blades are: the coloured
 blade's middle on the options, the six arms' pattern on today's wheel. "Seen" is the turn from one frame to the next
