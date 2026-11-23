@@ -9,6 +9,7 @@ make sure nobody is playing in it.
     python tools/studio/m4_subs_shots.py shop <tag>         (the shop's cards, PC and phone: read-out and stills)
     python tools/studio/m4_subs_shots.py rides [tier ...]   (a real trip a tier, a still in the game's own view)
     python tools/studio/m4_subs_shots.py probes [tier ...]  (the name sign on a trip, watched frame by frame)
+    python tools/studio/m4_subs_shots.py numbers [tier ...] (the same read-out with no still, when Studio is not redrawing)
     python tools/studio/m4_subs_shots.py sheets             (the sheets in docs/attachments, from the stills)
     python tools/studio/m4_subs_shots.py remove             (in Edit, after the stop)
 It rides on s2_subs_check's server door and t3_toy_subs_check's client (the trip's numbers) and adds its own
@@ -18,7 +19,6 @@ differ from the one before it, or the run stops. Log: work/m4/shots.log; stills 
 import json
 import math
 import re
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -441,28 +441,23 @@ def view():
 
 
 def raw(name):
-    """one picture of Studio's whole window, cut from the screen with grim.
+    """one picture of Studio's whole window (the runner's `shot` returns before the file is written).
 
-    Not the runner's `shot` (niri's screenshot-window): on Hugo's PC, 2026-11-23, that kept returning one old picture of
-    the Edit view while the screen showed the running game. So the window has to be wholly on the screen, with nothing
-    over it; this fails, rather than hand back a picture of something else, when it is not."""
-    wins = json.loads(subprocess.run(["niri", "msg", "--json", "windows"], capture_output=True, text=True).stdout)
-    win = next((w for w in wins if "ride-a-fish" in (w.get("title") or "").lower() or "RideAFish" in (w.get("title") or "")), None)
-    if not win:
-        raise SystemExit("no shot: Studio's window is not in niri's list")
-    lay = win["layout"]
-    x = int(lay["tile_pos_in_workspace_view"][0] + lay["window_offset_in_tile"][0])
-    y = int(lay["tile_pos_in_workspace_view"][1] + lay["window_offset_in_tile"][1])
-    w, h = lay["window_size"]
-    outs = json.loads(subprocess.run(["niri", "msg", "--json", "outputs"], capture_output=True, text=True).stdout)
-    out = next(iter(outs.values()))["logical"]
-    if x < 0 or y < 0 or x + w > out["width"] or y + h > out["height"]:
-        raise SystemExit("no shot: Studio's window is not wholly on the screen (at %d, %d, %d x %d)" % (x, y, w, h))
+    It is the window's own picture, whole and at full size wherever the window stands, on screen or off. When Studio
+    stops redrawing its window (Hugo's PC, 2026-11-23, evening) this returns the last picture it drew: the gate below
+    is what tells."""
     full = OUT / (name + "-full.png")
     full.unlink(missing_ok=True)
-    got = subprocess.run(["grim", "-g", "%d,%d %dx%d" % (x, y, w, h), str(full)], capture_output=True, text=True)
-    if got.returncode != 0 or not full.exists():
-        raise SystemExit("no shot: " + got.stderr)
+    out = s2.run(["shot", str(full)], timeout=60)
+    size, end = -1, time.time() + 12
+    while time.time() < end:
+        now = full.stat().st_size if full.exists() else -1
+        if now > 0 and now == size:
+            break
+        size = now
+        time.sleep(0.15)
+    else:
+        raise SystemExit("no shot: " + out)
     return full
 
 
@@ -592,7 +587,7 @@ def shop(tag, old=False):
     save_log()
 
 
-def trip(tier, probe=None):
+def trip(tier, probe=None, picture=True):
     """a real trip on one tier to its own land; a still about 1.3 s into the Ride, in the game's own view.
     `probe` ("plain", "top", "far"): the name sign is watched frame by frame, a pink ball rides over its place.
     (Until 2026-11-23 a second trip was pictured from a test camera at the sub's side, work/m4/close-*.png. Hugo saw
@@ -615,7 +610,8 @@ def trip(tier, probe=None):
                 # (the shortest Ride is 3.2 s: the phase is read again just before the still, not after it)
                 time.sleep(0.7)
                 st = s2.cmd("st", 0.1)
-                still = shot(f"{kind}-{tier}", tries=1, least=0.02)
+                # (`numbers` takes no still: the frame-by-frame read-out needs no picture of Studio's window)
+                still = shot(f"{kind}-{tier}", tries=1, least=0.02) if picture else True
                 if probe:
                     st += " / after the still: " + do("probe|now", 0.1)
                 break
@@ -727,6 +723,11 @@ if __name__ == "__main__":
     elif what == "shop":
         # shop before: the cards from the old camera spot; shop after (or any other tag): as the game has them
         shop(rest[0], old=rest[0] == "before")
+    elif what == "numbers":
+        # numbers [tier ...]: one probed trip a tier, no still: what the sign and the model do frame by frame
+        for tier in [int(a) for a in rest if a.isdigit()] or list(range(1, 10)):
+            trip(tier, probe="plain", picture=False)
+        save_log()
     elif what == "probes":
         # probes [tier ...]: the name sign on a trip, as the game has it, always on top, and with no far limit
         for tier in [int(a) for a in rest if a.isdigit()] or [2, 6]:
