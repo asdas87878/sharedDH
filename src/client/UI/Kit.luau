@@ -1962,6 +1962,24 @@ function Kit.short(value: number): string
 	return text .. UNITS[unit]
 end
 
+-- A big number in short with four figures, never rounded up, for one that is compared with another: 3.285M, 351B
+function Kit.precise(value: number): string
+	if value < 1000 then
+		return tostring(math.floor(value))
+	end
+	local unit = 0
+	while value >= 1000 and unit < #UNITS do
+		value /= 1000
+		unit += 1
+	end
+	local places = if value >= 100 then 1 elseif value >= 10 then 2 else 3
+	local ten = 10 ^ places
+	local text = string.format("%." .. places .. "f", math.floor(value * ten + 1e-6) / ten)
+	text = string.gsub(text, "0+$", "")
+	text = string.gsub(text, "%.$", "")
+	return text .. UNITS[unit]
+end
+
 -- Whether the player is on a touch screen with no keyboard: the phone layout
 -- In Studio the workspace's "HudTouch" (true or false) forces the answer, to see the phone layout without a phone.
 function Kit.touch(): boolean

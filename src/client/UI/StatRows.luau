@@ -14,13 +14,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 
 local StatRows = {}
 
 local pressed = Instance.new("BindableEvent")
--- Fired with "Oxygen" or "Coins" when that row's plus button is pressed. Nothing listens yet: what a plus opens is
--- not decided
+-- Fired with "Oxygen" or "Coins" when that row's plus button is pressed: it opens the Shop at what is sold of that
+-- (StallController; the user, 2026-11-23: "the plus buttons should open up a tab like in ride a dino wherein you can
+-- purchase more cash with robux")
 StatRows.Pressed = pressed.Event
 
 local HEIGHT = 40
@@ -36,6 +38,7 @@ local TEXT_AT = 41
 local TEXT_LINE = 1.5
 local PLUS = 27
 local PLUS_AT = 129.5
+local WHOLE = 1000000 -- Oxygen from here on is shown short with four figures (3.285M): whole, it would not fit the bar
 local WIDTH = PLUS_AT + PLUS
 local ON_TOUCH = 0.85 -- the rows' size on a phone, where they share the top left with Roblox's own buttons
 
@@ -120,11 +123,10 @@ end
 
 -- The green plus button past a bar's end: a black edge, a pale rim, a brighter face, a darker lip along the foot
 local function plus(parent: Instance, name: string): TextButton
-	local at = UDim2.new(0, PLUS_AT, 0.5, 0)
 	local button: TextButton = Kit.new("TextButton", {
 		Name = "Plus",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = at,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, PLUS_AT + PLUS / 2, 0.5, 0),
 		Size = UDim2.fromOffset(PLUS, PLUS),
 		BackgroundColor3 = BLACK,
 		BorderSizePixel = 0,
@@ -160,15 +162,10 @@ local function plus(parent: Instance, name: string): TextButton
 	arm(button, 10.5, 3.5, false)
 	arm(button, 3.5, 10.5, true)
 	arm(button, 10.5, 3.5, true)
-	-- a press dips it; letting go, or sliding off, puts it back
-	local function rest()
-		button.Position = at
-	end
-	button.MouseButton1Down:Connect(function()
-		button.Position = at + UDim2.fromOffset(0, 1)
-	end)
-	button.MouseButton1Up:Connect(rest)
-	button.MouseLeave:Connect(rest)
+	-- under the mouse it grows and darkens, a press dips it (the darkening over the green, under the white plus); more
+	-- than the hub's buttons, which are five times as long
+	local shade = block({ Name = "Shade", Size = UDim2.fromScale(1, 1), ZIndex = 6 }, rim)
+	Anim.button(button, { Grow = 1.12, Press = 0.88, Shade = shade, ShadeTo = 0.14 })
 	button.Activated:Connect(function()
 		pressed:Fire(name)
 	end)
@@ -240,10 +237,6 @@ function StatRows.build(parent: Instance)
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 	}, holder)
 	air = row(1, "Oxygen", Kit.bubble, Kit.White)
-	-- Oxygen is shown whole and grouped (2,925; 3,285,000), never 2.9K (grade issue 1): a long number shrinks to fit
-	-- the bar instead of running past it into the plus button (TextWrapped stays on: off, it does not shrink to the width)
-	air.Text.TextScaled = true
-	Kit.new("UITextSizeConstraint", { MaxTextSize = TEXT, MinTextSize = 10 }, air.Text)
 	money = row(2, "Coins", Kit.coin, COINS)
 	money.Frame.Visible = false
 	shownOxygen = -1
@@ -275,7 +268,9 @@ function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: bo
 	local whole = if spent then 0 else math.floor(oxygen + 0.5)
 	if whole ~= shownOxygen then
 		shownOxygen = whole
-		air.Text.Text = Config.wholeNumber(whole)
+		-- one size with the coins' (the user, 2026-11-23: "the oxygen number is the same or similar size to the cash
+		-- number"): whole and grouped (2,925; never 2.9K, grade issue 1) while that fits the bar, then 3.285M
+		air.Text.Text = if whole < WHOLE then Config.wholeNumber(whole) else Kit.precise(whole)
 	end
 	local red = low or spent
 	if red ~= shownLow then

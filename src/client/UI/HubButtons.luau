@@ -262,6 +262,11 @@ function HubButtons.update(docked: boolean)
 	end
 end
 
+-- The Shop was opened another way (a stat row's plus button): its red "!" goes, as when its own button opens it
+function HubButtons.shopSeen()
+	shopMark.Visible = false
+end
+
 -- Something new is in the Index (a kind caught for the first time): its red "!" goes up until the Index is pressed
 function HubButtons.mark(on: boolean)
 	mark.Visible = on

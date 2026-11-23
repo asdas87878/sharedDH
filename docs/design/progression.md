@@ -65,7 +65,8 @@ it out the same way; the model's old `Required` attribute is gone.
   1.5 / 3 / 10: a Rainbow now earns twice a plain one, as it needs twice), `Train.Share`. The sandbox panel has
   SizeOxygen, VariantOxygen and RarityOxygen rows in place of ZoneDrain and RarityDrain.
 - **Shown whole:** tags, the "needs" line when a fish is too strong, the trainer's "+n" and the upgrade sign use
-  `Config.wholeNumber` (2,925, never 2.9K). Coins a second may keep decimals.
+  `Config.wholeNumber` (2,925, never 2.9K). Coins a second may keep decimals. The HUD's own Oxygen row is whole to
+  999,999, then four figures (3.285M), so it keeps the coins' size (the user, 2026-11-23).
 - **The balance model** (`tools/balance/model.py`) reads the new tables; a land's row there is the median need of
   the kinds that live in it. Its play-through on the draft's two paces reaches land 10 at 230 and 447 minutes and
   land 10's Mythics at 335 and 668 (it was built on the old land costs: read it as a rough guide).

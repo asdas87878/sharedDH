@@ -9,6 +9,7 @@
 --   Look: the card's colours, a name in Products.Looks
 --   Picture: a name in UI.Kit's Textures, or nil for the card's big word (Big)
 -- The sections run in this order down the Shop, the reference's (featured, packs, passes, then the boosts by size).
+-- "Oxygen" and "Cash" are what the stat rows' plus buttons open (StallController finds them by these titles).
 local Products = {}
 
 export type Offer = {
@@ -23,7 +24,8 @@ export type Offer = {
 	Line: string?, -- one short line under the name: what it does, only what is true
 }
 
-export type Section = { Title: string, Wide: boolean, Offers: { Offer } }
+-- Colour: its title's (white without)
+export type Section = { Title: string, Wide: boolean, Colour: Color3?, Offers: { Offer } }
 
 -- The card colours: { top, bottom } of the gradient, vivid as the reference's
 Products.Looks = {
@@ -102,6 +104,7 @@ Products.Sections = {
 	{
 		Title = "Oxygen",
 		Wide = false,
+		Colour = Color3.fromRGB(96, 224, 255),
 		Offers = {
 			{
 				Key = "Oxygen1",
@@ -135,6 +138,7 @@ Products.Sections = {
 	{
 		Title = "Cash",
 		Wide = false,
+		Colour = Color3.fromRGB(120, 255, 96),
 		Offers = {
 			{
 				Key = "Cash1",
