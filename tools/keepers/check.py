@@ -4,6 +4,7 @@ game's own sums (tools/keepers/keepers.py):
   - no piece of a keeper or of a prop stands inside a piece of its stand (the keeper at rest, and at every mix of
     its look's two ends, its bob's two ends and its action), and no prop inside the keeper;
   - no prop is on the floor ring, or nearer it than a player needs to stand on it;
+  - no prop of a stall stands inside a piece of the rest of the hub, and each has a floor under it;
   - nothing reaches the floating name;
   - the part counts.
 The Fuse machine is checked where the place has it (moved by hand by (-19.4, 0, 11.8)), which changes nothing: every
@@ -51,10 +52,18 @@ def sunk(a, b):
     return least
 
 
+def on_floor(spot, floor, hub_in):
+    """whether `spot` is over the hub's floor: one level slab, its top at 0.5, from the hub's back to its front and
+    Half to each side (art/map/greybox/hub_in.json, tools/map/hub_kit.py), kept 4 studs in from its edges"""
+    return (abs(spot[0]) <= hub_in["Half"] - 4 and hub_in["Back"] + 4 <= spot[2] <= hub_in["Front"] - 4
+            and abs(floor - 0.5) <= 0.08)
+
+
 def main():
     data = K.read()
     look = data["Look"]
     hub = json.load(open(K.HUB))
+    hub_in = json.load(open(os.path.join(os.path.dirname(K.HUB), "hub_in.json")))
     faults, total = [], 0
     for k in data["List"]:
         parts = K.station(k["Station"], hub, SHIFT.get(k["Station"], (0.0, 0.0, 0.0)))
@@ -65,6 +74,8 @@ def main():
         title = next(p for p in parts if p["n"] == "Title")
         floor = space[1][3]
         solid = [(p["n"], (K.part_matrix(p), p["s"])) for p in parts if p.get("t") != 1]
+        others = [(p["m"] + "/" + p["n"], (K.part_matrix(p), p["s"])) for p in hub["parts"]
+                  if p["m"] != "Stations/" + k["Station"] and p.get("t") != 1]
         # it faces its ring
         to_ring = [ring["p"][i] - kspace[i][3] for i in range(3)]
         ahead = dot([kspace[r][2] for r in range(3)], to_ring) / math.hypot(to_ring[0], to_ring[2])
@@ -112,6 +123,18 @@ def main():
                 faults.append(f"{k['Id']}: prop {i + 1} ({row[0]} {row[10]}) is {near:.2f} from the ring's edge")
             if min(c[1] for c in cs) < floor - 0.02:
                 faults.append(f"{k['Id']}: prop {i + 1} ({row[0]} {row[10]}) is under the floor")
+        # the rest of the hub: no prop inside a piece of anything else, and a floor under each (not the Fuse
+        # machine's: it was moved by hand, and its props stand on its own base)
+        if k["Station"] not in SHIFT:
+            for i, b in enumerate(props):
+                row = k["Props"][i]
+                for name, other in others:
+                    deep = sunk((b["m"], b["size"]), other)
+                    if deep > DEEP:
+                        faults.append(f"{k['Id']}: prop {i + 1} ({row[0]} {row[10]}) is {deep:.2f} into the hub's {name}")
+                mid = [b["m"][r][3] for r in range(3)]
+                if not on_floor(mid, floor, hub_in):
+                    faults.append(f"{k['Id']}: prop {i + 1} ({row[0]} {row[10]}) has no floor under it")
         ktop = max(c[1] for b in rest for c in K.corners(b["m"], b["size"]))
         name_low = title["p"][1] - title["bill"]["size"][1] / 2
         if max(top, ktop) > name_low - 1:

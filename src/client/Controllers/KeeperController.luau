@@ -404,7 +404,7 @@ function KeeperController.Start()
 	made.Name = FOLDER
 	made.Parent = workspace
 	folder = made
-	look()
+	since = Look.Every -- the stands are looked at on the first frame
 	RunService.RenderStepped:Connect(step)
 end
 
