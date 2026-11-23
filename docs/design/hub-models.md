@@ -305,6 +305,41 @@ The user: "change the stalls so they are more simplistic, more alike to ride a d
 - **Run:** standing on SELL's circle its middle went from 0.8 see-through to 0.35, and back on stepping off.
 - **Not done:** not on a phone; the place not saved.
 
+## The keepers behind the stands (2026-11-23)
+The user: "Add specialised characters behind every stand ... a looping idle animation where they stand while bobbing
+up and down a little smoothly then doing something for a second, they should also follow the player when the player
+gets close ... add small same styled fitting props around the stands". Built in code, **not run in Studio yet**: the
+pictures are Blender views of the same numbers the game reads.
+
+![the four keepers: front, three-quarter, and as a player sees them](../attachments/hub-keepers-1.png)
+
+- **Who:** Sell has a fishmonger (low sou'wester, beard, red neckerchief, the catch on his palm; he flaps its tail).
+  Auras has a mystic (a jellyfish bell for a hat, a glowing pearl that lifts and turns). The sub has a diver (brass
+  helmet and collar, a chest gauge, a wrench; he knocks on his helmet). Fuse has a tinkerer (goggles, an octopus on
+  the head, a glowing flask) who stands on the machine's base. Ours, not the reference game's pilot, wizard or cowboy.
+- **What a player can see of a stall keeper is a low window.** The awning's lip hides everything above about 4.5
+  studs over the floor from the play camera (12.5 studs back, 20 degrees down): 4.77 from the ring's far edge, 4.65
+  from its middle, 4.44 at the counter. The counter top is at 2.93. So the three stall keepers are short and their
+  hat, face, held thing and action all sit between 2.95 and 4.45. `tools/keepers/check.py` fails if any of it goes
+  above the sightline, at rest or anywhere in the action. Rows 3 to 6 of the picture are drawn from those cameras.
+- **How:** `src/shared/Keepers.luau` holds the tables (parts, joints, the bob, the sway, the action, the props) and
+  the sums; `src/client/Controllers/KeeperController.luau` builds them on each player's own machine from plain parts
+  and moves them. Nothing is in the place, nothing is uploaded, nothing can be bumped, touched or hit by a ray. A
+  keeper is placed by measuring its stand as it is in the place (the ring and the counter top, or the Fuse machine's
+  core), so a stand moved by hand takes its keeper with it.
+- **The look:** head and upper body turn to the nearest player's head inside 20 studs (kept to 25), eased by a
+  spring, held to 70 degrees to a side (14 the body, 56 the head), 22 up and 16 down; back to the idle when the
+  player leaves or goes round behind.
+- **Cost:** 230 plain parts for all four stands (keepers 153, props 77), 139 of them moving. One small light. Draw
+  calls are an estimate, not measured: about 15 to 25 with all four in view. Left still past 150 studs from the
+  camera, taken out past 420.
+- **To check and draw it again:** `python3 tools/keepers/check.py` (clearances, the sightline, the props against
+  the hub kit), `python3 tools/keepers/sheet.py` (the picture), `python3 tools/keepers/sums_check.py` (the Luau
+  sums against the Python ones; needs lune, which is not in `rokit.toml`).
+- **Not done:** never run in Studio. To check there: the Fuse keeper first (it is measured from a machine that was
+  moved by hand), the props against anything placed by hand near the stands (the check only knows the hub kit),
+  whether the bob reads at play distance, the real draw calls, and the stands streaming in late.
+
 ## What moved, and why
 The hub's size, layout and colours are questions waiting for the user, so nothing of those changed. Three things
 shifted a little so the bigger models fit:

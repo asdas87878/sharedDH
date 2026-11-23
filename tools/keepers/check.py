@@ -4,6 +4,8 @@ game's own sums (tools/keepers/keepers.py):
   - no piece of a keeper or of a prop stands inside a piece of its stand (the keeper at rest, and at every mix of
     its look's two ends, its bob's two ends and its action), and no prop inside the keeper;
   - no prop is on the floor ring, or nearer it than a player needs to stand on it;
+  - a stall's awning cuts nothing off the keeper's head, hat, arms or held thing as a player's camera sees them
+    (stood on the ring's middle, its far edge and its near edge; the camera in keepers.py), idle and in the action;
   - no prop of a stall stands inside a piece of the rest of the hub, and each has a floor under it;
   - nothing reaches the floating name;
   - the part counts.
@@ -59,6 +61,35 @@ def on_floor(spot, floor, hub_in):
             and abs(floor - 0.5) <= 0.08)
 
 
+def body(b):
+    """a keeper's or a prop's part as the box it is tested as: a ball as a box three quarters its size (its own box
+    would count the empty corners round it)"""
+    return (b["m"], [v * 0.75 for v in b["size"]] if b.get("shape") == "Ball" else b["size"])
+
+
+def spots(b, eye, front):
+    """the points of a part that have to be seen: a box's corners, a ball's six ends and the top of its outline as
+    `eye` sees it. front: only those on its half nearest the eye"""
+    m, size = b["m"], b["size"]
+    mid = [m[r][3] for r in range(3)]
+    if b.get("shape") == "Ball":
+        r = size[0] / 2
+        out = [[mid[0] + r * d[0], mid[1] + r * d[1], mid[2] + r * d[2]] for d in
+               ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))]
+        to = [eye[i] - mid[i] for i in range(3)]
+        flat = math.hypot(to[0], to[2])
+        far = math.hypot(flat, to[1])
+        # up and across the line of sight: the highest point of the ball's outline
+        out.append([mid[0] + r * (-to[1] / far) * (to[0] / flat), mid[1] + r * flat / far,
+                    mid[2] + r * (-to[1] / far) * (to[2] / flat)])
+    else:
+        out = K.corners(m, size)
+    if front:
+        near = sorted(out, key=lambda c: sum((c[i] - eye[i]) ** 2 for i in range(3)))
+        out = near[:len(near) // 2] if b.get("shape") != "Ball" else [near[0], out[-1]]
+    return out
+
+
 def main():
     data = K.read()
     look = data["Look"]
@@ -98,11 +129,38 @@ def main():
             for i, b in enumerate(K.keeper_boxes(data, k, kspace, scale, **how)):
                 row = k["Parts"][i]
                 for name, other in solid:
-                    deep = sunk((b["m"], b["size"]), other)
+                    deep = sunk(body(b), other)
                     if deep > DEEP and deep > worst.get((name, tag), (0,))[0]:
                         worst[(name, tag)] = (deep, f"part {i + 1} ({row[0]} {row[1]} {row[11]})")
         for (name, tag), (deep, which) in sorted(worst.items()):
             faults.append(f"{k['Id']}: {which} is {deep:.2f} into the stand's {name} ({tag})")
+        # what a player sees: nothing of the head, the hat, the arms or what is held is cut off by the stand (the
+        # awning's lip, a post), at the top of the bob and through the action. From the ring's middle and its far
+        # edge every point of them; from its edge nearest the counter, where the camera looks steepest under the
+        # awning, the half of each part that faces the player. A point the keeper's own parts hide is not counted
+        if k["Stand"] == "CounterTop":
+            solids = K.solids_of(parts)
+            cut = {}
+            for where, name in ((0, "the ring's middle"), (1, "the ring's far edge"), (-1, "the ring's near edge")):
+                eye, _at = K.play_camera(space, parts, where)
+                for t in (None, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8):
+                    how = {"sway_t": k["Bob"][1] / 4}
+                    if t is not None:
+                        how["action_t"] = t
+                    boxes = K.keeper_boxes(data, k, kspace, scale, **how)
+                    own = [(str(i), b["m"], body(b)[1]) for i, b in enumerate(boxes)]
+                    for i, b in enumerate(boxes):
+                        row = k["Parts"][i]
+                        if row[0] in ("Root", "Body"):
+                            continue
+                        rest_of = own[:i] + own[i + 1:]
+                        for spot in spots(b, eye, where == -1):
+                            by = K.hidden_by(eye, spot, solids)
+                            if by and by != "Counter" and by != "CounterTop" and not K.hidden_by(eye, spot, rest_of):
+                                cut[(i, name)] = (by, "idle" if t is None else f"action {t:.1f}", row)
+            for (i, name), (by, when, row) in sorted(cut.items()):
+                faults.append(f"{k['Id']}: part {i + 1} ({row[0]} {row[1]} {row[11]}) is cut off by the stand's {by} "
+                              f"from {name} ({when})")
         props = K.prop_boxes(data, k, space, scale)
         rest = K.keeper_boxes(data, k, kspace, scale)
         top = floor

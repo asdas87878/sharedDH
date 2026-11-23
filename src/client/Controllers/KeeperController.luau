@@ -16,8 +16,12 @@
 --     when the player leaves (Look.Far) or goes round behind (Look.RearOut). A keeper never leaves its counter.
 --   The stands are looked at once a second: a keeper is made when its stand is there (it may stream in late, piece
 --     by piece), made again when the stand's measure changes, and taken away with the stand.
---   Cost: 222 plain parts for all four (131 of them move, with one BulkMoveTo a keeper a frame). Past Look.Animate
---     from the camera a keeper is left still, past Look.Hide it is taken out of the world.
+--   Cost: 230 plain parts for all four stands (keepers 33, 41, 35 and 44, their props 24, 22, 16 and 15), 139 of
+--     them moving, with one BulkMoveTo a keeper a frame; one small light (the mystic's pearl), no shadows. Draw
+--     calls, an ESTIMATE that is not measured yet: about 15 to 25 with all four in view, 4 to 7 at one stand (the
+--     hub's 1,106 plain parts measured 62, docs/design/hub-models.md; on top of plain plastic come the 10 neon
+--     parts, the 4 see-through jars and the 5 stud pictures). Past Look.Animate from the camera a keeper is left
+--     still, past Look.Hide it is taken out of the world.
 --   Off: SHOW false here.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -241,6 +241,11 @@ def stand_lift(parts, space, scale, keeper, look):
     return best
 
 
+def read_pivot(keeper, joint):
+    """where a joint turns, keeper space, bind pose"""
+    return next(list(j[2:5]) for j in keeper["Joints"] if j[0] == joint)
+
+
 def corners(m, size):
     return [point(m, [sx * size[0] / 2, sy * size[1] / 2, sz * size[2] / 2]) for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]
 
@@ -284,3 +289,53 @@ if __name__ == "__main__":
     d = read()
     for k in d["List"]:
         print(k["Id"], k["Station"], len(k["Parts"]), "parts,", len(k["Props"]), "props,", len(k["Joints"]), "joints")
+
+
+# ---------------------------------------------------------------- what a player sees of a stand
+CAMERA = {"zoom": 12.5, "tilt": 20.0, "head": 4.5, "fov": 70.0}  # the play camera: studs behind the player's head,
+# degrees it looks down, the head over the floor, its field of view top to bottom (Roblox's own)
+
+
+def play_camera(space, parts, where, side=0.0):
+    """the camera of a player stood on the stand's ring, facing the stand: (eye, at) in the world. where: -1 the
+    ring's edge nearest the counter, 0 its middle, 1 its far edge; side: -1 to 1 across the ring"""
+    ring = next(p for p in parts if p["n"] == "Ring")
+    inv_z = [space[r][2] for r in range(3)]
+    d = [ring["p"][i] - space[i][3] for i in range(3)]
+    ahead = sum(d[i] * inv_z[i] for i in range(3))
+    inv_x = [space[r][0] for r in range(3)]
+    across = sum(d[i] * inv_x[i] for i in range(3))
+    half = ring["s"][0] / 2
+    x, z = across + side * half, ahead + where * half
+    tilt = math.radians(CAMERA["tilt"])
+    at = [x, CAMERA["head"], z]
+    eye = [x, CAMERA["head"] + CAMERA["zoom"] * math.sin(tilt), z + CAMERA["zoom"] * math.cos(tilt)]
+    return point(space, eye), point(space, at)
+
+
+def hidden_by(eye, spot, solids):
+    """the name of the first of `solids` ([(name, matrix, size)]) that stands between `eye` and `spot`, or None"""
+    for name, m, size in solids:
+        o = [eye[i] - m[i][3] for i in range(3)]
+        d = [spot[i] - eye[i] for i in range(3)]
+        lo, hi = 0.0, 0.999
+        for a in range(3):
+            oa = sum(o[i] * m[i][a] for i in range(3))
+            da = sum(d[i] * m[i][a] for i in range(3))
+            h = size[a] / 2
+            if abs(da) < 1e-9:
+                if abs(oa) > h:
+                    lo, hi = 1.0, 0.0
+                    break
+                continue
+            t0, t1 = (-h - oa) / da, (h - oa) / da
+            lo, hi = max(lo, min(t0, t1)), min(hi, max(t0, t1))
+            if lo > hi:
+                break
+        if lo <= hi:
+            return name
+    return None
+
+
+def solids_of(parts):
+    return [(p["n"], part_matrix(p), p["s"]) for p in parts if p.get("t") != 1]
