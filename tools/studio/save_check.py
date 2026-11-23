@@ -264,6 +264,16 @@ local o = now() o.R = r o.Before = before return o""")
         j = data(HEAD + "return now()")
         if j["State"] == "Dock":
             break
+    # the real packs, as Products has them; then the top ones six times more (Oxygen past 50B)
+    packs = [(g, int(n.replace("_", ""))) for g, n in re.findall(r'Gives = "(\w+)",\s*Amount = ([\d_]+)', open("src/shared/Products.luau", encoding="utf-8").read())]
+    for _ in range(6):
+        packs += [max(x for x in packs if x[0] == g) for g in ("Coins", "Oxygen")]
+    before = data(HEAD + "return now()")
+    after = data(HEAD + "local no = 0 for i, x in H:JSONDecode([==[%s]==]) do if buy(x[1], x[2], 'p' .. i) ~= 'PurchaseGranted' then no += 1 end end local o = now() o.No = no return o" % json.dumps(packs))
+    coins, oxygen = (sum(n for g, n in packs if g == k) for k in ("Coins", "Oxygen"))
+    check("the %d real packs, all given and kept to the last one" % len(packs), after["No"] == 0 and near(after["Coins"], before["Coins"] + coins)
+          and near(after["KeptCoins"], after["Coins"]) and near(after["KeptOxygen"], before["KeptOxygen"] + oxygen) and near(after["Max"], before["Max"] + oxygen)
+          and after["Receipts"] == before["Receipts"] + len(packs), (after["No"], after["Coins"], after["KeptOxygen"], after["Max"], after["Receipts"]))
     # a fish in the hands (the owner's panel gives it): kept, and back stored in the tank
     lua(admin % '"Fish", "Clownfish", "Normal", ""', "Client")
     time.sleep(2)
@@ -271,6 +281,7 @@ local o = now() o.R = r o.Before = before return o""")
     check("a fish in the hands is kept", j["Hands"] == 1, (j["Hands"], j["Fish"]))
     k = data(HEAD + "local r = S.TestSave:Invoke(p, 'reopen') task.wait(2.5) local o = now() o.R = r return o")
     check("closed and opened again: what was kept is given back (twice what there was)", k["R"] is True and near(k["Coins"], 2 * j["Coins"]) and near(k["KeptOxygen"], 2 * j["KeptOxygen"]), (j["Coins"], k["Coins"], j["KeptOxygen"], k["KeptOxygen"]))
+    check("every part is on again", all(k.get("Saved" + x) for x in ("Tank", "Oxygen", "Trainer", "Sub", "Best")))
     check("the carried fish comes back in the tank, once", k["Fish"] == 2 * j["Fish"] + j["Hands"] and k["Hands"] == j["Hands"], (j["Fish"], k["Fish"], k["Hands"]))
     check("trainer, subs, receipts as they were", k["KeptTrainer"] == j["KeptTrainer"] and k["KeptSub"] == j["KeptSub"] and k["Receipts"] == j["Receipts"], (k["KeptTrainer"], k["KeptSub"], k["Receipts"]))
     m = data(HEAD + "local r = buy('Coins', 1000, 'r1') local o = now() o.R = r return o")

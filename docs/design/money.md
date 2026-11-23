@@ -27,10 +27,12 @@
   the six amounts (the tuning chat is drafting them).
 - **Carried fish are kept (2026-11-23, this chat with the game-code chat).** They are saved with the tank and come back
   stored in it. A catch comes home on a death too, so leaving mid-dive gains nothing. Built in `SaveParts`.
-- **The pretend-purchase check passed, 15 of 15 (2026-11-23; `tools/studio/save_check.py`, made-up receipts, ProfileStore's
+- **The pretend-purchase check passed, 17 of 17 (2026-11-23; `tools/studio/save_check.py`, made-up receipts, ProfileStore's
   stand-in store, one player).** Coins and Oxygen given once and kept with their receipt; the same receipt, or two at
   once, gives nothing more; no amount or an unknown gift is left unprocessed; Oxygen in the water waits for the dock and
-  is saved at once; closed and opened again everything comes back, carried fish stored in the tank. *Not checked:* Roblox's
+  is saved at once; closed and opened again everything comes back, carried fish stored in the tank. All twelve packs at
+  their real amounts, the top ones seven times (70B Oxygen, $527T): given, kept and given back to the last one. *The Shop's
+  new rows, measured:* all fit, and the plus buttons land on Oxygen and Cash (Oxygen at 844x390 too). *Not checked:* Roblox's
   real store (needs the game's Studio API access), leaving and joining for real, a second server, a real prompt.
 - **The packs are fixed amounts, with bulk deals that are very good for mid and late players (the user, 2026-11-23: "fixed
   amounts, bundle deals are just very good for mid-late game players still tho", then "bulk deals i mean").** So the
