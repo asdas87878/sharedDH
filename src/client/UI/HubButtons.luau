@@ -81,6 +81,7 @@ local function button(order: number, name: string, look: Look, picture: string):
 	}, holder)
 	Kit.corner(plate, 1)
 	local face = block({
+		Name = "Face",
 		Position = UDim2.fromOffset(EDGE, EDGE),
 		Size = UDim2.new(1, -EDGE * 2, 1, -EDGE * 2),
 		BackgroundColor3 = Kit.White,
@@ -229,6 +230,11 @@ function HubButtons.build(parent: Instance)
 	mark = markOn(index)
 	shopMark = markOn(shop)
 	shopMark.Visible = true
+
+	-- the Shop's shine, once its "!" is down (one call for the eye at a time)
+	Anim.shine(shop:FindFirstChild("Face") :: GuiObject, 0, function()
+		return not shopMark.Visible
+	end)
 
 	-- looking in the Index, or the Shop, is what takes its mark off
 	HubButtons.Pressed:Connect(function(name: string)

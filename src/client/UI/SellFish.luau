@@ -701,6 +701,8 @@ local function build()
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -9, 0.5, 0),
 		Size = UDim2.fromOffset(250, FOOT - 16),
+		Live = false,
+		Shine = true,
 	})
 	sellButton.Root.ZIndex = 3
 	sellButton.Root.Activated:Connect(pressSell)

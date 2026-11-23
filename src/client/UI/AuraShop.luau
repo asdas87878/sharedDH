@@ -144,6 +144,8 @@ local function build()
 			Size = UDim2.new(1, 0, 0, 44),
 			TextSize = 26,
 			LayoutOrder = 1,
+			Live = false,
+			Shine = true, -- (live only as the next aura with the coins for it: refresh)
 		})
 		local robux = Shop.button(c.Slot, {
 			Name = "Robux",

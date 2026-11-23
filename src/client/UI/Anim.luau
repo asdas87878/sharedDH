@@ -3,8 +3,9 @@
 -- which bounces up and down, on click animations correct, on hover animations correct"). Every screen opens, closes,
 -- presses, hovers and pops the same way, with the reference's timings read frame by frame off the user's recording
 -- (docs/design/ui-review.md, "Motion"):
---   Anim.open(gui)          a window springs out of its centre: about 30% at first sight, 110% at 0.2 s, 98.5% at
---                           0.47 s, settled by 0.6 s
+--   Anim.open(gui)          a window springs out of its centre: 70% at first sight, about 104% at 0.14 s, settled by
+--                           0.36 s (the user, 2026-11-23: "a bit less elastic and slightly more responsive"; near the
+--                           reference's Shop, 75% to 105% in about 0.3 s, where its stall panels spring from 30%)
 --   Anim.close(gui, done)   it swells to about 108% and collapses to nothing in 0.27 s; done() after (not if it was
 --                           opened again meanwhile)
 --   Anim.button(b, opts)    hover (grow, and a shade over the face) and press (a dip, back with a little spring)
@@ -15,9 +16,11 @@
 --   Anim.rise(group, ...)   a pop in, a drift up and a fade out (a "+$250" over a sale)
 --   Anim.toast(gui, on)     a small plate or line pops in, and shrinks away
 --   Anim.stagger(cards)     a window's cards pop in one after another as it opens (grids only)
---   Anim.dim(on)            the world and the HUD darken behind a stand's window (fades 0.2 s in, 0.17 s out)
+--   Anim.shine(face, ...)   a streak of light crosses a button that takes or gives money, while pressing it works
+--   Anim.dim(on)            the world and the HUD darken behind a stand's window (fades 0.14 s in, 0.17 s out)
 -- One rule: Anim owns the UIScale it puts on a thing ("Anim"), so don't give the same thing another UIScale. Every
 -- motion can be cut off by the next one on the same thing. Nothing runs when nothing moves.
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -26,7 +29,7 @@ local UserInputService = game:GetService("UserInputService")
 local Anim = {}
 
 -- The numbers, all here
-Anim.Open = { From = 0.3, Freq = 11.6, Decay = 7.2, Time = 0.7 } -- the spring: 1 - (1 - From) e^(-Decay t) cos(Freq t)
+Anim.Open = { From = 0.7, Freq = 18, Decay = 13, Time = 0.36 } -- the spring: 1 - (1 - From) e^(-Decay t) cos(Freq t)
 Anim.Close = TweenInfo.new(0.27, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 Anim.Down = TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 Anim.Up = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -35,13 +38,17 @@ Anim.Punch = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out
 Anim.ToastIn = TweenInfo.new(0.17, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 Anim.ToastOut = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 Anim.DimTo = 0.5 -- how see-through the dark is at its darkest
-Anim.DimIn = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+Anim.DimIn = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 Anim.DimOut = TweenInfo.new(0.17, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 Anim.Bounce = { Every = 1.8, Hop = 0.45, Wobble = 16 } -- seconds apart, the hop as a share of the mark's height, degrees
 -- The cards' stagger: the first starts Delay into the window's spring, the next Gap after (shrunk so the last of the
 -- first Most lands within Within), each popping from From to full
-Anim.Stagger = { Delay = 0.08, Gap = 0.04, Within = 0.35, Most = 12, From = 0.4 }
-Anim.CardIn = TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+Anim.Stagger = { Delay = 0.03, Gap = 0.025, Within = 0.18, Most = 12, From = 0.6 }
+Anim.CardIn = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+-- The shine: seconds from lighting up to the first sweep, between sweeps, and a sweep's own; how often we look at
+-- whether a button is lit; the streak's lean in degrees and how see-through it is
+Anim.Shine = { First = 0.5, Every = 4, Time = 0.7, Look = 0.2, Lean = 20, Clear = 0.5 }
 
 -- The one UIScale Anim puts on a thing
 function Anim.scaleOf(gui: GuiObject): UIScale
@@ -81,7 +88,9 @@ end
 local function spring(scale: UIScale, from: number)
 	local turn = take(scale)
 	local o = Anim.Open
-	local start = os.clock()
+	-- the clock starts after the first frame it is drawn on, so a long one (a window just built) can't swallow the motion
+	local start: number? = nil
+	local drawn = false
 	scale.Scale = from
 	local link: RBXScriptConnection
 	link = RunService.RenderStepped:Connect(function()
@@ -89,7 +98,13 @@ local function spring(scale: UIScale, from: number)
 			link:Disconnect()
 			return
 		end
-		local t = os.clock() - start
+		if not drawn then
+			drawn = true
+			return
+		end
+		local began = start or os.clock()
+		start = began
+		local t = os.clock() - began
 		if t >= o.Time then
 			scale.Scale = 1
 			link:Disconnect()
@@ -284,6 +299,104 @@ function Anim.stagger(cards: { GuiObject })
 			end
 			scale.Scale = s.From
 			tween(scale, Anim.CardIn, { Scale = 1 })
+		end)
+	end
+end
+
+-- The shine (the user, 2026-11-23: "build the shine sweep"): a streak of light crosses a face now and then while `on`
+-- says yes and the face is on screen. Only for the buttons that take or give money, one to a window, so a shine always
+-- means "pressing this works now". The streak lies under the words (ZIndex 1) and draws nothing between sweeps. One
+-- slow look runs all of them, so a button refreshed many times a second never restarts its sweep. Off with Roblox's
+-- Reduce Motion.
+type Shining = { Face: GuiObject, On: () -> boolean, Streak: Frame, Slide: UIGradient, Due: number? }
+local shining: { Shining } = {}
+
+-- Is it drawn: itself and everything above it visible, its gui on
+local function drawnNow(gui: Instance): boolean
+	local at: Instance? = gui
+	while at do
+		if at:IsA("GuiObject") and not at.Visible then
+			return false
+		elseif at:IsA("LayerCollector") then
+			return at.Enabled
+		end
+		at = at.Parent
+	end
+	return false
+end
+
+-- True while a streak is crossing: then we look every frame, so one whose button goes dead is gone by the next
+local function lookShines(): boolean
+	local s = Anim.Shine
+	local now = os.clock()
+	local crossing = false
+	for i = #shining, 1, -1 do
+		local one = shining[i]
+		if not one.Face:IsDescendantOf(game) then
+			table.remove(shining, i)
+		elseif GuiService.ReducedMotionEnabled or not drawnNow(one.Face) or not one.On() then
+			one.Due = nil
+			one.Streak.Visible = false
+		elseif not one.Due then
+			one.Due = now + s.First
+		elseif now >= one.Due then
+			one.Due = now + s.Every
+			take(one.Slide)
+			one.Slide.Offset = Vector2.new(-1, 0)
+			one.Streak.Visible = true
+			local t = tween(
+				one.Slide,
+				TweenInfo.new(s.Time, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+				{ Offset = Vector2.new(1, 0) }
+			)
+			t.Completed:Connect(function(state)
+				if state == Enum.PlaybackState.Completed then
+					one.Streak.Visible = false
+				end
+			end)
+		end
+		crossing = crossing or one.Streak.Visible
+	end
+	return crossing
+end
+
+function Anim.shine(face: GuiObject, radius: number, on: () -> boolean)
+	local s = Anim.Shine
+	local streak = Instance.new("Frame")
+	streak.Name = "Shine"
+	streak.Size = UDim2.fromScale(1, 1)
+	streak.BackgroundColor3 = Color3.new(1, 1, 1)
+	streak.BorderSizePixel = 0
+	streak.Visible = false
+	streak.ZIndex = 1
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = streak
+	-- two hard-edged streaks, a wide and a thin, as the Shop header's gloss
+	local thin = s.Clear + (1 - s.Clear) * 0.4
+	local slide = Instance.new("UIGradient")
+	slide.Rotation = s.Lean
+	slide.Offset = Vector2.new(-1, 0)
+	slide.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.42, 1),
+		NumberSequenceKeypoint.new(0.43, s.Clear),
+		NumberSequenceKeypoint.new(0.53, s.Clear),
+		NumberSequenceKeypoint.new(0.54, 1),
+		NumberSequenceKeypoint.new(0.57, 1),
+		NumberSequenceKeypoint.new(0.575, thin),
+		NumberSequenceKeypoint.new(0.6, thin),
+		NumberSequenceKeypoint.new(0.605, 1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	slide.Parent = streak
+	streak.Parent = face
+	table.insert(shining, { Face = face, On = on, Streak = streak, Slide = slide, Due = nil })
+	if #shining == 1 then
+		task.spawn(function()
+			while #shining > 0 do
+				task.wait(if lookShines() then 0 else s.Look)
+			end
 		end)
 	end
 end

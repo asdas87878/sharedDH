@@ -241,7 +241,8 @@ export type Button = {
 }
 
 -- A flat bright button. props: Text, Kind (a name in Shop.Kinds), Size, Position, AnchorPoint, TextSize, Sign ("Cash"
--- or "Robux": the sign before the words), LayoutOrder, Name. A press squashes it (the reference's panel buttons: no
+-- or "Robux": the sign before the words), LayoutOrder, Name, Shine (the window's one money button: true, or a question
+-- asked besides Live; UI.Anim's shine). A press squashes it (the reference's panel buttons: no
 -- hover, a dip to about 0.9 and back); Activated fires only while live.
 function Shop.button(parent: Instance, props: { [string]: any }): Button
 	local kind: string = props.Kind or "Cash"
@@ -352,6 +353,12 @@ function Shop.button(parent: Instance, props: { [string]: any }): Button
 			return self.Live
 		end,
 	})
+	if props.Shine then
+		local also: (() -> boolean)? = if type(props.Shine) == "function" then props.Shine else nil
+		Anim.shine(root, Shop.Round.Button, function()
+			return self.Live and (also == nil or also())
+		end)
+	end
 	self.set(nil, kind, self.Live)
 	return self
 end

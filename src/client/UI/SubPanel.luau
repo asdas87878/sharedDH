@@ -235,6 +235,10 @@ local function build()
 			Kind = "Cash",
 			Size = UDim2.new(1, 0, 0, 42),
 			TextSize = 26,
+			-- (only the sub you can buy now, not an EQUIP)
+			Shine = function()
+				return n >= 1 and n > attr("SubTier", 0)
+			end,
 		})
 		b.Root.Activated:Connect(function()
 			if not b.Live then

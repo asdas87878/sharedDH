@@ -114,6 +114,7 @@ local function buy(card: GuiObject, offer: Products.Offer, props: { [string]: an
 	props.Sign = if onSale then "Robux" else nil
 	props.Text = if onSale then tostring(offer.Price) else "Soon"
 	props.Live = onSale
+	props.Shine = onSale and offer.Key == "Featured" -- (one to a window)
 	local b = Shop.button(card, props)
 	b.Root.ZIndex = 5
 	b.Root.Activated:Connect(function()

@@ -35,6 +35,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 local Shop = require(script.Parent.Shop)
 
@@ -521,6 +522,21 @@ local function nearOwn(sign: Sign): boolean
 	return toRide <= Config.Train.UpgradeNear or toBoard <= Config.Train.SignNear
 end
 
+-- Would a press on this sign's cash block buy: our own, not at its top, the coins for it, near enough, nothing pending
+local function canUp(sign: Sign): boolean
+	local me = Players.LocalPlayer
+	local level = me:GetAttribute(KINDS[sign.Kind].Level)
+	if sign.Plot.Name ~= me:GetAttribute("Plot") or type(level) ~= "number" or level >= topOf(sign.Kind) then
+		return false
+	end
+	local plot = sign.Kind == "Plot"
+	local after: any = if plot then Config.PlotUpgrades.Stages[level + 1] else Config.Train.Levels[level + 1]
+	local free = (if plot then Config.PlotUpgrades.Free else Config.Train.Free) == 1
+	local coins = me:GetAttribute("Coins")
+	local paid = free or (after ~= nil and type(coins) == "number" and coins >= after.Price)
+	return paid and not asks[sign.Kind].Pending and nearOwn(sign)
+end
+
 local function remote(): RemoteEvent?
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	local r = remotes and remotes:FindFirstChild("Trainer")
@@ -628,6 +644,9 @@ local function look()
 					made.Level = -1
 					made.CashHit.Activated:Connect(function()
 						press(made)
+					end)
+					Anim.shine(made.Cash, 8, function()
+						return canUp(made)
 					end)
 					sign = made
 					signs[board] = made
