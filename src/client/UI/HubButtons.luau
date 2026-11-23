@@ -10,9 +10,19 @@
 -- stud tile until our own square tile is uploaded.
 -- They show at the dock only. UI review 1 (2026-11-22): the reference's motion (UI.Anim): under the mouse a button
 -- grows about 5% and darkens about 12%, a press dips it to 0.96, and the "!" bounces every 1.8 s. Shop opens the Shop
--- window (UI.ShopScreen); the Index fires Pressed and nothing listens yet.
+-- window (UI.ShopScreen: Controllers.StallController listens).
+-- The Index (Hugo, 2026-11-23; NULLROOM task h2): its button opens the Index window and closes it again
+-- (UI.IndexPanel, through Shop.go: one dock window at a time), and its "!" is up for as long as the Index holds a
+-- reward to claim: the server's count, the player's "IndexClaims" attribute (IndexService). With the Index switched
+-- off (Config.Index.On 0) the button opens nothing and the "!" is the hint it was: up on a first catch, down on a press.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 local Anim = require(script.Parent.Anim)
+local IndexPanel = require(script.Parent.IndexPanel)
 local Kit = require(script.Parent.Kit)
+local Shop = require(script.Parent.Shop)
 
 local HubButtons = {}
 
@@ -63,6 +73,20 @@ local size: UIScale
 local mark: Frame
 local shopMark: Frame
 local shown = false
+local hint = false -- the Index switched off: something new was caught and the button has not been pressed since
+
+-- The Index's "!", by the one rule: while a reward waits in it (the server's count); the Index off, the old hint
+local function showMark()
+	if not mark then
+		return
+	end
+	if Config.Index.On ~= 0 then
+		local waiting = Players.LocalPlayer:GetAttribute("IndexClaims")
+		mark.Visible = type(waiting) == "number" and waiting > 0
+	else
+		mark.Visible = hint
+	end
+end
 
 local function block(props: { [string]: any }, parent: Instance): Frame
 	props.BorderSizePixel = 0
@@ -236,14 +260,21 @@ function HubButtons.build(parent: Instance)
 		return not shopMark.Visible and Anim.Windows == 0
 	end)
 
-	-- looking in the Index, or the Shop, is what takes its mark off
+	-- opening the Shop is what takes its mark off; the Index's follows what waits in it (showMark). A press on the
+	-- Index opens its window, or closes it when it is the one open
 	HubButtons.Pressed:Connect(function(name: string)
 		if name == "Index" then
-			mark.Visible = false
+			hint = false
+			showMark()
+			if Config.Index.On ~= 0 then
+				Shop.go(if Shop.Page == "Index" then nil else "Index")
+			end
 		elseif name == "Shop" then
 			shopMark.Visible = false
 		end
 	end)
+	Players.LocalPlayer:GetAttributeChangedSignal("IndexClaims"):Connect(showMark)
+	showMark()
 end
 
 function HubButtons.place(touch: boolean)
@@ -262,9 +293,17 @@ function HubButtons.update(docked: boolean)
 	end
 end
 
--- Something new is in the Index (a kind caught for the first time): its red "!" goes up until the Index is pressed
+-- Something new is in the Index (a kind caught for the first time). With the Index on this changes nothing by
+-- itself: the "!" goes up when the server has counted the new kind's reward (a moment later) and stays until it is
+-- claimed. With the Index off it is the hint: up until the button is pressed.
 function HubButtons.mark(on: boolean)
-	mark.Visible = on
+	hint = on
+	showMark()
+end
+
+-- Whether the Index window is open (for Studio's checks)
+function HubButtons.indexOpen(): boolean
+	return IndexPanel.isOpen()
 end
 
 return HubButtons
