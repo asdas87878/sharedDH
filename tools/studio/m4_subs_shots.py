@@ -18,6 +18,7 @@ differ from the one before it, or the run stops. Log: work/m4/shots.log; stills 
 import json
 import math
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -440,19 +441,28 @@ def view():
 
 
 def raw(name):
-    """one picture of Studio's whole window (the runner's `shot` returns before the file is written)"""
+    """one picture of Studio's whole window, cut from the screen with grim.
+
+    Not the runner's `shot` (niri's screenshot-window): on Hugo's PC, 2026-11-23, that kept returning one old picture of
+    the Edit view while the screen showed the running game. So the window has to be wholly on the screen, with nothing
+    over it; this fails, rather than hand back a picture of something else, when it is not."""
+    wins = json.loads(subprocess.run(["niri", "msg", "--json", "windows"], capture_output=True, text=True).stdout)
+    win = next((w for w in wins if "ride-a-fish" in (w.get("title") or "").lower() or "RideAFish" in (w.get("title") or "")), None)
+    if not win:
+        raise SystemExit("no shot: Studio's window is not in niri's list")
+    lay = win["layout"]
+    x = int(lay["tile_pos_in_workspace_view"][0] + lay["window_offset_in_tile"][0])
+    y = int(lay["tile_pos_in_workspace_view"][1] + lay["window_offset_in_tile"][1])
+    w, h = lay["window_size"]
+    outs = json.loads(subprocess.run(["niri", "msg", "--json", "outputs"], capture_output=True, text=True).stdout)
+    out = next(iter(outs.values()))["logical"]
+    if x < 0 or y < 0 or x + w > out["width"] or y + h > out["height"]:
+        raise SystemExit("no shot: Studio's window is not wholly on the screen (at %d, %d, %d x %d)" % (x, y, w, h))
     full = OUT / (name + "-full.png")
     full.unlink(missing_ok=True)
-    out = s2.run(["shot", str(full)], timeout=60)
-    size, end = -1, time.time() + 12
-    while time.time() < end:
-        now = full.stat().st_size if full.exists() else -1
-        if now > 0 and now == size:
-            break
-        size = now
-        time.sleep(0.15)
-    else:
-        raise SystemExit("no shot: " + out)
+    got = subprocess.run(["grim", "-g", "%d,%d %dx%d" % (x, y, w, h), str(full)], capture_output=True, text=True)
+    if got.returncode != 0 or not full.exists():
+        raise SystemExit("no shot: " + got.stderr)
     return full
 
 

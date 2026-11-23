@@ -49,7 +49,7 @@ RULE = {
     "StepMost": 30.0,  # and never more than this, degrees
     "BlurFrom": 150.0,  # the blur disc starts to show at this speed, studs a second
     "BlurFull": 700.0,  # and is fullest from this speed
-    "BlurMost": 0.5,  # how solid it gets (Transparency 1 - this)
+    "BlurMost": 0.35,  # how solid it gets (Transparency 1 - this)
 }
 TOP = 4315.0  # the fastest trip's top speed (to land 10), studs a second
 
@@ -569,7 +569,10 @@ def blender_part():
     blur = bpy.data.materials.new("Blur")
     blur.use_nodes = True
     shader = blur.node_tree.nodes.get("Principled BSDF")
-    shader.inputs["Base Color"].default_value = rgba(PALETTE[TAIL["blades"]])
+    # unlit, so that its share of the picture is exactly the number in RULE (a lit white disc came out far more solid)
+    shader.inputs["Base Color"].default_value = (0, 0, 0, 1)
+    shader.inputs["Emission Color"].default_value = rgba(PALETTE[TAIL["blades"]])
+    shader.inputs["Emission Strength"].default_value = 1.0
     shader.inputs["Roughness"].default_value = 1.0
     if "Specular IOR Level" in shader.inputs:
         shader.inputs["Specular IOR Level"].default_value = 0.0
