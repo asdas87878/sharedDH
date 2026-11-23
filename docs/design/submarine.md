@@ -43,17 +43,20 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
    The shop closes as you walk away. A small ticket at the left edge says where the sub will take you.
 2. **You jump in.** With a destination picked, stepping off the dock is no longer the dive-in's auto-hop: you drop
    in with a splash and **swim** at the surface, breaststroking forward.
-3. **The sub swims in** from ahead and below (1.6 s), its light on you, a wake of bubbles, the view tipped to show it
-   coming.
-4. **The pick-up** (about 1 s): it rises under you, the camera swings out to the side, you are scooped up in a tumble
-   (a tuck and a half-turn) and set on the seat behind the tower. A bump, a shake, the view kicks.
-5. **The run:** it noses down and goes. The view pulls back behind it and widens with speed, streaks of bubbles,
-   speed lines. No banner as it sets off (Hugo, 2026-11-20: "let the intro text for submarines begone"). It follows the herd's own line down the lane (the stream: the
+3. **The sub swims in** from behind and below (1.6 s), its light on you, a wake of bubbles. The camera is behind
+   you on your own line, close at first and drawing back as you swim on, and tips down so the sub shows as it comes
+   in under you (see "The camera is always behind").
+4. **The pick-up** (about 1 s): it rises under you, the camera stays behind you and draws back, you are scooped up in
+   a tumble (a tuck and a half-turn) and set on the seat behind the tower. A bump, a shake, the view kicks.
+5. **The run:** it noses down and goes. The view, already behind, pulls further back behind the sub and widens with
+   speed, streaks of bubbles, speed lines. No banner as it sets off (Hugo, 2026-11-20: "let the intro text for submarines begone"). It follows the herd's own line down the lane (the stream: the
    middle of the open water, bent round the big things), well above the fish. 3.2 to 7 seconds whatever the land,
    its top speed growing with the distance (task f2, below: about 500 studs a second to land 2, 2,100 to land 5,
    4,250 to land 10), picking up over a fifth of the run and slowing over a quarter of it.
 6. **Arriving:** "NOW ARRIVING" over "KELP FOREST", in the land titles' own look (see "Titles on the run"). It
-   slows to the speed of a quick fish (90).
+   slows to the speed of a quick fish (90). The camera stays behind the sub through the drop-off, a little further
+   back (36 studs, not 30) when your fish swims up beside it, so the fish is in the picture without the camera going
+   to its side.
 7. **The drop-off**, one of two:
    - **(a) No fish picked:** the sub pitches its nose up and **flings you forward**. You leave at its speed into an
      ordinary hop (the pop, the glide, the drop, the lock and the hook), so you hook the nearest fish as in any hop.
@@ -67,6 +70,27 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
 8. **The sub peels away** up and to the side, and is gone.
 
 The player can't steer or hop while carried, and no Oxygen goes. The whole trip is decided by the server.
+
+### The camera is always behind (Hugo, 2026-11-23)
+Hugo, after seeing a side view of the sub in a dev session: "what is this new camera perspective for the submarine? i
+saw it playing in dev sesh, make sure it doesnt implement the camera on the side ever". Read as a rule for every
+phase of the trip (the boss's reading, mission "submarine camera always behind"):
+- **Behind, on the middle line, in every phase:** behind you on your own line while you swim and are scooped up,
+  behind the sub on its line for the run, the arrival and the drop-off. Nothing in the camera's place or in where it
+  looks goes to the side (`SubController.cameraFor`).
+- **No swing round:** a camera that starts in front and comes round to behind passes the side on the way, so it
+  starts behind too. Before this the approach sat ahead of you and 5 studs to the side looking back, the pick-up
+  swung round through up to 9 studs to the side, and the arrival stood 6.4 studs to the fish's side and looked
+  8 studs that way.
+- **What that costs:** from behind you no longer watch the sub come from far off. It comes in under the camera and
+  rises into the bottom of the picture in about the last third of a second of the swim, then is in view for the
+  whole scoop.
+- **The fish at the drop-off** is 16 studs to the right of the sub. From 36 studs behind it sits about 23 degrees off
+  the middle of the picture: well inside a wide screen (53 degrees each way) and a tablet (45), at the very edge of
+  a phone held upright (23).
+- **Written 2026-11-23 in a worktree, not seen in Studio** (Studio was in use by another mission). The numbers above
+  are worked out from the code's paths, not measured in play. To look at before it merges: the first second, where
+  the dock and the gate are just behind you and the camera may be pulled in close.
 
 ### Titles on the run (task t1, Hugo 2026-11-20)
 Hugo: "let the intro text for submarines begone ... add a special rule for submarines, if title pops up, make sure
@@ -172,7 +196,9 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
   piece a tier, its name floating over the tower). Only the look changes with the tier; speed and the trip are the
   same for all. Buying is free while `Config.Sub.Free` is 1; the prices still show.
 - Hugo's word on the readings above, and a play by hand: is it satisfying? (Measured only by script.)
-- At the pick-up the gate's posts stand close and the camera is pulled in against one for a moment.
+- At the pick-up the gate's posts stand close and the camera is pulled in against one for a moment. (Seen
+  2026-11-17 with the old camera, ahead and to the side. Not looked at again with the camera behind, 2026-11-23:
+  it is now in line with the lane, between the posts, but the dock is behind it.)
 - The panel and the ticket are placeholders, not the UI chat's style; the N panel doesn't list `Sub` yet.
 - On a phone: not tried. F opens the panel on a keyboard; the SUB button works by touch.
 - The prices, once the pace is set (progression's question 4).

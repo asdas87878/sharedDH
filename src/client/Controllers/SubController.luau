@@ -4,15 +4,18 @@
 -- moves it by the clock, so it costs no traffic. For our own trip we also move ourselves (the server has us "Carried":
 -- our machine owns the character) and the camera:
 --   Approach: we swim on just under the surface while the sub comes up from behind and below, its light on us. The
---     camera sits ahead and to the side, looking back at us and at it coming.
+--     camera sits behind us on our own line, tipping down as the sub comes in under us.
 --   Pickup: it rises under us; we are scooped up in a tumble and set on the seat behind its tower. A splash, a bump.
+--     The camera stays behind us and draws back to where the run's view begins.
 --   Ride: it noses down and runs the herd's line at up to its trip's top speed (Shared/SubTrip.plan). The camera is behind it, wider with speed, with
 --     speed lines and a rumble. Each land crossed shows its title (UI/LandStrip), handing off fast (task t1).
 --   Arrive: "NOW ARRIVING" in the land title's look, in place of that land's own title, at the drop speed; the
---     camera swings out to the side.
+--     camera stays behind the sub, a little further back when our fish swims up beside it.
 --   Drop: on the server's word, flung forward into an ordinary hop (JumpController.fling), or, with our fish swum up
 --     beside the sub ("SubFish", driven here), kicked off in an arc onto its saddle; we tell the server ("SubLand").
 --   Then the sub peels away, up and to the side, and fades.
+-- The camera is behind in every phase, on the middle line of what it follows, and never at the side or on its way
+-- round one (Hugo, 2026-11-23: "make sure it doesnt implement the camera on the side ever").
 -- The sub is the model of the tier the player has equipped (Shared/SubModels: a model a tier from the place's
 -- templates, since 2026-11-23 in the toy style, else the old placeholder of plain parts); the motion is still by code
 -- (the *Pose functions) until the partner's animations (the note's "Animation hooks").
@@ -359,31 +362,34 @@ local function riderAt(v: Visual, sub: CFrame, t: number): CFrame?
 	return seat
 end
 
--- The camera on our own trip
+-- The camera on our own trip: behind in every phase, on the middle line of what it follows (us, then the sub), and
+-- looking down that line. No part of `goal` or `focus` goes to the side, and no phase swings round from the front:
+-- Hugo, 2026-11-23, "make sure it doesnt implement the camera on the side ever".
 local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, t: number, dt: number)
 	local camera = workspace.CurrentCamera
 	local trip = v.Trip
 	local c = Config.Sub
 	local pickupAt, rideAt, arriveAt = SubTrip.times(trip)
 	local way0 = flat(SubTrip.way(trip, 30, 30))
-	local right = way0:Cross(UP)
+	-- how far under us the sub is: the view tips down by a share of it, so the sub shows as it comes in under us
+	-- (only its depth: its place behind us and off to one side never turns the view)
+	local under = math.max(0, rider.Y - sub.Position.Y)
 	local goal: Vector3
 	local focus: Vector3
 	local rate = 4
 	local wide = 70
 	if t < pickupAt then
-		-- ahead and to the side, looking back at us and at it coming
-		-- (the gate's posts stand close on both sides: the camera keeps in line with the lane)
-		goal = rider + way0 * 15 + right * 5 + UP * 1
-		focus = rider:Lerp(sub.Position, 0.35)
+		-- behind us on our own line, close at first (the dock and the gate's posts are just behind where we went in),
+		-- drawing back as we swim on; tipping down to the sub as it comes
+		-- (looking at a point ahead of us, so the view stays down the lane even pulled right in against a wall)
+		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
+		goal = rider - way0 * (10 + 8 * u) + UP * 1
+		focus = rider + way0 * 12 - UP * (0.4 * under * Ease.smoothstep(0.3, 1, u))
 	elseif t < rideAt then
-		-- round behind, to see us thrown onto the seat
+		-- still behind, to see us thrown onto the seat: back and up to where the run's view begins, levelling out
 		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
-		goal = rider
-			+ way0 * (15 - 33 * Ease.smoothstep(0, 1, u))
-			+ right * (5 + 4 * math.sin(u * math.pi))
-			+ UP * (1 + 8 * u)
-		focus = rider
+		goal = rider - way0 * (18 + 6 * u) + UP * (1 + 8 * u)
+		focus = rider + way0 * 12 - UP * (0.4 * under * (1 - u))
 		rate = 5
 	elseif t < arriveAt then
 		-- behind it, wider with speed
@@ -396,11 +402,11 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		local far = math.clamp((speed - c.Speed) / math.max(c.FovFarAt - c.Speed, 1), 0, 1)
 		wide = 70 + c.Fov * share + c.FovFar * far
 	else
-		-- out to the side for the drop
+		-- still behind it for the drop, looking straight down its way. Our fish swims up Sub.FishSide beside it: the
+		-- camera keeps it in view by standing a little further back, not by moving or turning to that side
 		local way = flat(sub.LookVector)
-		local side = way:Cross(UP)
-		goal = sub.Position + side * (c.FishSide * 0.4) - way * 30 + UP * 9
-		focus = sub.Position + way * 10 + side * (if trip.Fish then c.FishSide * 0.5 else 0)
+		goal = sub.Position - way * (30 + (if trip.Fish then 6 else 0)) + UP * 9
+		focus = sub.Position + way * 10
 		rate = 4
 		wide = 74
 	end
