@@ -25,6 +25,34 @@
   amount as the card's name and Roblox's own price, and asks for the prompt only once the player's save is in.
 - **Wanted from the user:** the six developer products made on Roblox (their ids; their prices are read from Roblox), and
   the six amounts (the tuning chat is drafting them).
+- **Pack amounts, the tuning chat's draft (2026-11-23; proposed, not agreed; Hugo hasn't picked on draft 2 either).**
+  They grow with the player, in steps: by the deepest land whose commonest fish their max Oxygen can hold. Oxygen S / M /
+  L is 0.25 / 0.5 / 1.5 times that land's need; Cash is 1 / 3 / 8 hours of what the modelled tank earns on arriving.
+
+  | Land held | Oxygen S / M / L | Cash S / M / L |
+  |---|---|---|
+  | Robux (a guess) | 79 / 149 / 399 | 49 / 129 / 299 |
+  | 1 to 3 | 8,800 / 17,500 / 52,000 | 500K / 1.5M / 4M |
+  | 4 | 8,800 / 17,500 / 52,000 | 5M / 15M / 40M |
+  | 5 | 56,000 / 110,000 / 340,000 | 63M / 190M / 500M |
+  | 6 | 430,000 / 860,000 / 2.6M | 700M / 2.1B / 5.6B |
+  | 7 | 3.1M / 6.1M / 18M | 6.6B / 20B / 53B |
+  | 8 | 22M / 44M / 130M | 55B / 165B / 440B |
+  | 9 | 160M / 320M / 970M | 660B / 2T / 5.3T |
+  | 10 | 1.2B / 2.3B / 7B | 5.9T / 18T / 47T |
+  | 34B Oxygen | 8.5B / 17B / 51B | 30T / 90T / 235T (a fit) |
+  | 250B Oxygen | 63B / 125B / 375B | 150T / 450T / 1.2Qa (a fit) |
+
+  - *Modelled, not played, with auras and the Index (neither is built):* minutes to the next land with no pack, then
+    Oxygen S / M / L, then Cash S / M / L: land 4: 14; 14 / 12 / 6; 9 / 6 / 6. Land 6: 81; 74 / 64 / 46; 73 / 60 / 41.
+    Land 7: 150; 133 / 117 / 60; 147 / 136 / 136. Land 8: 520; 488 / 447 / 300; 504 / 493 / 478. Land 9: 1,054;
+    954 / 860 / 456; 1,028 / 986 / 952. The set was not run on the game as it is now, where the lands take far longer.
+  - *Cash is weak from land 7* (2 to 10% of the time): late Oxygen comes from the Index, not coins. *A bigger L is
+    dangerous:* 3 times the need took land 9 from 17.6 h to 22 minutes. The tuning chat would fix the amounts only once
+    auras and the Index are decided. Whether an aura multiplies a bought pack is Hugo's (draft 2: no; his Auras text:
+    "all Oxygen gained").
+  - *How it would be built:* the six products stay six; the server works the amount out from the player's max Oxygen as it
+    gives (the max only rises in play, so never less than the card showed). Today's code gives one fixed `Amount` an offer.
 - **Not run in Studio yet** (2026-11-23: another chat had it); StyLua, selene and the Rojo build pass.
 
 ## What breaking even takes
