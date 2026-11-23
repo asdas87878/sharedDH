@@ -192,7 +192,7 @@ nearer the strip, one nearer the back pens.
 **Saved since (version 402).** The trainers stand 9 ahead of the fence, Hugo's level models are in
 ([picture](../attachments/hub-seahorses-2026-11-23.jpg); the rest in [Handoff](../Handoff.md)).
 "thats good, add the map back in now", "w the new hub": the user. The whole map was generated again at S's numbers and loaded
-in place of the old one at x 3000, about 25 minutes. **Not saved.** The try at x 14000 is taken away.
+in place of the old one at x 3000, about 25 minutes. The try at x 14000 is taken away.
 
 ![the live hub: from above, a corner, from the spawn to the gate, and back from the strip](../attachments/hub-live-2026-11-23.jpg)
 
