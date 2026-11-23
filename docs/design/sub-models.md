@@ -123,8 +123,11 @@ a playtest runs, even with Studio's window off the screen (about one new picture
 ## Seen in the game (2026-11-23, task m4)
 
 Stills from playtests on Hugo's PC, taken by script (`tools/studio/m4_subs_shots.py`, log `work/m4/shots.log`) and
-looked at one sheet at a time. Every still had to differ from the one before it, so none is a frozen picture. **Not
-played by hand.**
+looked at one sheet at a time. None is a frozen picture: each stand and shop still had to differ from the one before
+it, and each trip still did (0.52 to 0.94 of the view changed). **Not played by hand.** In the log, the last shop
+read-outs and stills (21:32) are tagged "before" but are the fixed cards (the switch back to the old camera spot was
+not in that playtest's copy of the script); those stills are now `work/m4/shop-after-*.png`. The two "before"
+pictures on the shop sheet are cuts kept from the first playtest, on the old code, PC size only.
 
 ![the nine over the stand](../attachments/m4-subs-stand.jpg)
 
