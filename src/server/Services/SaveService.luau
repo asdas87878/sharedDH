@@ -3,20 +3,24 @@
 -- has is kept in a profile of ProfileStore's (Lib/ProfileStore, MadStudioRoblox, Apache-2.0: docs/licenses): one server
 -- at a time holds it, saved every five minutes, as they leave and as the server closes.
 --   Parts: what is kept, one for each service that has something to keep, given in Lib/SaveParts (which has the switch):
---     SaveService.part(name, dump, restore)
+--     SaveService.part(name, dump, restore, ready?)
 --       dump(player)            what to keep, a fresh plain table, number or text; nil while the service doesn't have them
 --                               (not joined yet, gone, or no plot): what was kept before is then left as it is
 --       restore(player, kept)   called once, when the profile and the service are both ready, if anything was kept; it
---                               ADDS to what the player has made in the moments before
---     Neither may yield. A restore that fails is not tried again, and that part is not written over this session.
---   A snapshot takes every part that is on together, or none of them, so coins and what they bought can't part.
+--                               ADDS to what the player has made in the moments before; an error: it could not be
+--       ready(player)           false: not now, look again (nothing is given back and nothing written meanwhile)
+--     None may yield.
+--   A snapshot takes every part that is on together, or none of them, so coins and what they bought can't part. One is
+--   taken every half second, so a service that has let a leaving player go costs at most that.
 --   With no parts given, nothing here does anything.
---   A profile that can't be had (another server has it, or Roblox's store is down): the player is sent off to join
---   again, as ProfileStore's own guide has it. They are never let play on a save that would be lost or written over.
+--   A profile that can't be had (another server has it, or Roblox's store is down) or can't be given back: the player is
+--   sent off to join again, as ProfileStore's own guide has it, and what was kept stays as it was. They are never let
+--   play on a save that would be lost or written over.
 --   In Studio: ProfileStore's stand-in store, in memory, gone at Stop, unless the workspace's "SaveReal" attribute is
 --   set before Play (then Roblox's own, if the game's settings let Studio reach it).
 --   The player's attribute "Saved" is true once their profile is in.
--- Receipts (PurchaseService) are kept in the profile's Receipts, oldest first.
+-- Receipts (PurchaseService) are kept in the profile's Receipts, oldest first. One goes in with the first snapshot after
+-- what it gave, never without it.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -28,23 +32,34 @@ local SaveService = {}
 local STORE = "Players1"
 local EVERY = 0.5 -- seconds between snapshots
 local VERSION = 1
+local KEEP = 200 -- receipts remembered in a profile
 
-type Part = { Dump: (player: Player) -> any?, Restore: (player: Player, kept: any) -> () }
+type Part = {
+	Dump: (player: Player) -> any?,
+	Restore: (player: Player, kept: any) -> (),
+	Ready: ((player: Player) -> boolean)?,
+}
 type Save = {
 	Player: Player,
 	Profile: any,
 	On: { [string]: boolean }, -- the parts that are given back, and so may be written
-	Failed: { [string]: boolean }, -- and the ones that could not be: left as they were kept
+	Pending: { string }, -- receipts given but in no snapshot yet
 }
 
 local parts: { [string]: Part } = {}
 local order: { string } = {}
 local saves: { [Player]: Save } = {}
 local store: any = nil
+local reopened: { [Player]: boolean } = {}
 
-function SaveService.part(name: string, dump: (player: Player) -> any?, restore: (player: Player, kept: any) -> ())
+function SaveService.part(
+	name: string,
+	dump: (player: Player) -> any?,
+	restore: (player: Player, kept: any) -> (),
+	ready: ((player: Player) -> boolean)?
+)
 	assert(not parts[name], "two parts called " .. name)
-	parts[name] = { Dump = dump, Restore = restore }
+	parts[name] = { Dump = dump, Restore = restore, Ready = ready }
 	table.insert(order, name)
 end
 
@@ -84,19 +99,38 @@ local function take(save: Save): boolean
 		end
 		now[name] = dump
 	end
+	local data = save.Profile.Data
 	for name, dump in now do
-		save.Profile.Data.Parts[name] = dump
+		data.Parts[name] = dump
+	end
+	for _, id in save.Pending do
+		table.insert(data.Receipts, id)
+	end
+	table.clear(save.Pending)
+	while #data.Receipts > KEEP do
+		table.remove(data.Receipts, 1)
 	end
 	return true
 end
 
--- Each part that is not on yet goes on as its service has the player, what was kept given back to it first
-local function settle(save: Save)
+-- The profile let go as it was kept, and the player sent off
+local function refuse(save: Save, why: string)
+	if saves[save.Player] == save then
+		saves[save.Player] = nil
+	end
+	save.Player:SetAttribute("Saved", nil)
+	save.Profile:EndSession()
+	save.Player:Kick(why)
+end
+
+-- Each part that is not on yet goes on as its service has the player, what was kept given back to it first. False: it
+-- could not be, and the player is off.
+local function settle(save: Save): boolean
 	for _, name in order do
-		if save.On[name] or save.Failed[name] then
+		local part = parts[name]
+		if save.On[name] or (part.Ready and not part.Ready(save.Player)) then
 			continue
 		end
-		local part = parts[name]
 		local ok, has = pcall(part.Dump, save.Player)
 		if not ok or has == nil then
 			continue
@@ -105,13 +139,14 @@ local function settle(save: Save)
 		if kept ~= nil then
 			local done, problem = pcall(part.Restore, save.Player, kept)
 			if not done then
-				save.Failed[name] = true
 				warn(`[SaveService] {name} of {save.Player.Name} could not be given back, left as kept: {problem}`)
-				continue
+				refuse(save, "Your save could not be given back. It is kept as it was: please join again.")
+				return false
 			end
 		end
 		save.On[name] = true
 	end
+	return true
 end
 
 local function join(player: Player)
@@ -141,7 +176,7 @@ local function join(player: Player)
 	end
 	profile:AddUserId(player.UserId)
 	profile:Reconcile()
-	local save: Save = { Player = player, Profile = profile, On = {}, Failed = {} }
+	local save: Save = { Player = player, Profile = profile, On = {}, Pending = {} }
 	saves[player] = save
 	profile.OnSave:Connect(function()
 		if saves[player] == save then
@@ -155,8 +190,9 @@ local function join(player: Player)
 			player:Kick("Your save was opened somewhere else. Please join again.")
 		end
 	end)
-	settle(save)
-	player:SetAttribute("Saved", true)
+	if settle(save) then
+		player:SetAttribute("Saved", true)
+	end
 end
 
 local function leave(player: Player)
@@ -186,13 +222,29 @@ function SaveService.take(player: Player): boolean
 	return save ~= nil and take(save)
 end
 
+-- For PurchaseService: whether a receipt has been given (in the profile, or about to be), and one just given, to go
+-- into the profile with the snapshot that has the gift (now, unless a service can't be read: then with the next)
+function SaveService.hasReceipt(player: Player, id: string): boolean
+	local save = saves[player]
+	return save ~= nil and (table.find(save.Profile.Data.Receipts, id) ~= nil or table.find(save.Pending, id) ~= nil)
+end
+
+function SaveService.gave(player: Player, id: string)
+	local save = saves[player]
+	if save then
+		table.insert(save.Pending, id)
+		take(save)
+	end
+end
+
 -- Studio's checks: the profile closed and opened again, as by leaving and coming back. The services still have the
--- player, so what is given back adds to what they hold (twice what they had: it was kept).
+-- player, so what is given back adds to what they hold (twice what they had: it was kept). Once a Play, for that.
 function SaveService.reopen(player: Player): boolean
 	local save = saves[player]
-	if not RunService:IsStudio() or not save then
+	if not RunService:IsStudio() or not save or reopened[player] then
 		return false
 	end
+	reopened[player] = true
 	leave(player)
 	local from = os.clock()
 	while save.Profile:IsActive() and os.clock() - from < 10 do
@@ -225,9 +277,10 @@ function SaveService.Start()
 	end
 	while true do
 		task.wait(EVERY)
-		for _, save in saves do
-			settle(save)
-			take(save)
+		for _, save in table.clone(saves) do
+			if settle(save) then
+				take(save)
+			end
 		end
 	end
 end

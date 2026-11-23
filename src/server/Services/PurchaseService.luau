@@ -1,7 +1,7 @@
 --!strict
 -- What a Robux purchase gives (the user, 2026-11-23). Roblox calls the one ProcessReceipt here for each bought product;
 -- what it gives is Shared/Products' own line for it (Gives, Amount): the client only ever asks Roblox for the prompt.
---   Each receipt is given once: its PurchaseId goes into the player's profile (SaveService) in the same moment as what
+--   Each receipt is given once: its PurchaseId goes into the player's profile (SaveService) in the same snapshot as what
 --   it gave, and Roblox is told "granted" only when that profile is seen saved. Every other ending (the player gone, no
 --   profile, no wallet yet, the store down) is "not yet": Roblox asks again, here or when they next join.
 --   Coins need a tank of their own (the wallet): without one nothing is given until they have one.
@@ -22,7 +22,6 @@ local SaveService = require(script.Parent.SaveService)
 
 local PurchaseService = {}
 
-local KEEP = 200 -- receipts remembered in a profile
 local WAIT_PROFILE = 20 -- seconds a receipt waits for the player's profile
 local WAIT_SAVE = 40 -- and for the save after it
 
@@ -48,6 +47,11 @@ local busy: { [string]: boolean } = {} -- receipts being handled (Roblox can ask
 local NOT_YET = Enum.ProductPurchaseDecision.NotProcessedYet
 local GRANTED = Enum.ProductPurchaseDecision.PurchaseGranted
 
+-- Whether Roblox's store is seen to have the receipt
+local function saved(profile: any, id: string): boolean
+	return table.find(profile.LastSavedData.Receipts or {}, id) ~= nil
+end
+
 local function handle(player: Player, offer: Products.Offer, id: string): Enum.ProductPurchaseDecision
 	local gives = if offer.Gives then GIVES[offer.Gives] else nil
 	local amount = offer.Amount
@@ -67,30 +71,27 @@ local function handle(player: Player, offer: Products.Offer, id: string): Enum.P
 	if not profile or not SaveService.isOn(player, gives.Part) then
 		return NOT_YET
 	end
-	local receipts = profile.Data.Receipts
-	if not table.find(receipts, id) then
+	if not SaveService.hasReceipt(player, id) then
 		-- (no yield from here to the end of the block: the gift, its receipt and the snapshot are one moment)
 		if not SaveService.take(player) or not gives.Give(player, amount) then
 			return NOT_YET
 		end
-		table.insert(receipts, id)
-		while #receipts > KEEP do
-			table.remove(receipts, 1)
-		end
-		SaveService.take(player)
+		SaveService.gave(player, id)
 		remote:FireClient(player, "Got", offer.Key, amount)
 	end
-	if not table.find(profile.LastSavedData.Receipts, id) and profile:IsActive() then
-		profile:Save()
-	end
+	local asked = false
 	from = os.clock()
-	while not table.find(profile.LastSavedData.Receipts, id) and os.clock() - from < WAIT_SAVE do
+	while not saved(profile, id) and os.clock() - from < WAIT_SAVE do
+		if not asked and profile:IsActive() and table.find(profile.Data.Receipts, id) then
+			asked = true
+			profile:Save()
+		end
 		if not profile:IsActive() and os.clock() - from > 10 then
 			break
 		end
 		task.wait(0.2)
 	end
-	return if table.find(profile.LastSavedData.Receipts, id) then GRANTED else NOT_YET
+	return if saved(profile, id) then GRANTED else NOT_YET
 end
 
 local function receipt(player: Player?, offer: Products.Offer?, id: string): Enum.ProductPurchaseDecision
