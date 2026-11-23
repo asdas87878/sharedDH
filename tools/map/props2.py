@@ -810,6 +810,8 @@ for _land, _pals in PALETTES.items():
         _p["Soft"] = _toward(_m, _p["Main"][2], _lstar(_m) + 8)
         _p["Deep"] = _to_l(_m, max(10.0, _lstar(_m) - 13))
         _p["PopSoft"] = tuple(int(_v + (255 - _v) * 0.45) for _v in _p["Pop"])
+        if _land >= EARLY:  # the deep lands keep their light and dark halves, snow on the pines and all
+            _p["Soft"], _p["Deep"], _p["PopSoft"] = _p["Main"][2], _p["Main"][0], _p["Main"][2]
 
 
 def bricks(name, seed=0, land=0, way=None, tint=None):

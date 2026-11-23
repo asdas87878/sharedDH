@@ -232,12 +232,13 @@ change it to look a bit less random."
 3. **Some colours belonged to no family.** One blue-grey stone in every land; a pink coral on the Reef's pink floor; a
    second, red accent in Kelp and the Wrecks.
 
-**The rules now** (no new hues; the deep lands 5 to 10 are unchanged):
+**The rules now** (no new hues; the deep lands 5 to 10 keep their colours and their
+light and dark halves, but for some 200 bricks at the border):
 - **Colour by place, not by dice** (`tint_at`, `greybox.py`): each room has a leading colourway. About one patch in
   five, some 150 studs long on one side, is a guest; everything in a patch wears the patch's colour, and one
   big prop in ten strays. The Shallows lead with orange and have gold as the guest (pink only in the last two rooms, on
   the way to the Reef); the Reef's rooms take turns, teal, violet, raspberry.
-- **Tone by form** (`props2.py`): bodies wear the main colour, one step up (`Soft`, 8 L*) and one step down (`Deep`,
+- **Tone by form** (`props2.py`, lands 1 to 4): bodies wear the main colour, one step up (`Soft`, 8 L*) and one step down (`Deep`,
   13 L*). Dark is for stems, seams and bands only, light for tips and tops only. In lands 1 to 4 the dark is L* 34 and
   the light L* 84 (the others keep 26 and 87).
 - **Stone comes from the land's wall face:** sand in the Shallows, rose in the Reef, pale green-grey in Kelp, olive-grey
@@ -254,7 +255,7 @@ change it to look a bit less random."
 | hues within 90 studs, before | 4.5 | 5.8 | 4.1 | 2.8 |
 | after | 3.4 | 3.8 | 3.4 | 2.4 |
 
-Nothing moved: 0 of 104,211 boxes differ in shape or place, and the paths are the same; 21,879 bricks in 3,788 models
+Nothing moved: 0 of 104,211 boxes differ in shape or place, and the paths are the same; 17,875 bricks
 changed colour. It goes on the loaded place without a reload, so hand placing is kept:
 `tools/map/prop_recolour_luau.py <old parts.json> <new parts.json>` writes `tools/studio/prop_recolour/`, and the same with
 the two files the other way round puts the old colours back. A model somebody painted by hand is left alone and named.
