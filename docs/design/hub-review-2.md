@@ -14,7 +14,7 @@ tell me other things we could do for the water".
   (`art/map/hub_study/dump_2026-11-22.csv`, by `tools/studio/hub_dump.luau`). Compared part by part with the W32
   build, **no hand moves were found** in the hub: the changes are from code (the collect pads gone, upgrade signs on
   the tanks). If something was changed by hand, it is outside the hub's box or was put back; the user to say what.
-- **Also found:** `Workspace.FarView` is gone; its parts now sit in folders `Part1` to `Part4` (z 1295 to 10022).
+- **Also found** (read while Play was running; to confirm in Edit): `Workspace.FarView` is gone, which `LookController` looks for by name; its parts now sit in folders `Part1` to `Part4` (z 1295 to 10022).
   `CosmicHollowDisplay` stands just outside the hub's right wall (x 3355, z -166).
 - **The reference:** our measured reading ([ride-a-dino-map](../reference/ride-a-dino-map.md), "The hub, measured",
   good to about 15%) and the frame of its pens (`research/ride-a-dino/map/H1.jpg`, private).
@@ -29,7 +29,7 @@ tell me other things we could do for the water".
 | **The studs** | one every **1.0** stud, on an 8-stud checker | one every **0.64**, no checker on the hub floor | Ours are 1.56 times bigger. At the same speed the ground slides past 1.56 times slower in studs, so running *looks* slower and the world bigger |
 | Camera | not measured | not measured | One capture framed like H1 would settle it |
 
-![ours, the reference, and R, all at one scale](../attachments/hub-scale-plans.png)
+![ours, the reference, and S, all at one scale](../attachments/hub-scale-plans.png)
 
 **Reading:** the size of the hub and the height of the tanks are most of it, and the big studs add to it.
 
@@ -52,18 +52,24 @@ The fence close up: every post leans its own way, stands a little in or out of t
 
 ![the front fence of the middle pen, close](../attachments/hub-pens-fence.png)
 
-**The fish at game size** (`Aquarium.ShowShare` 1: a tank shows its fish at their real length). The bench puts the
-game's fish in each pen at their game length (these seven: 12 to 50; the game allows up to 200, `Config.SizeLimit`),
-resting just over the floor, biggest first from the back fence, none overlapping, as many as fit:
+**The fish at their real size** (`BaseScale` times each model's true box; a Normal one, no bigger size roll), resting
+just over the floor, none overlapping, by a simple packing (`pen_bench.py` prints it):
 
-![the pens with the fish that fit, at game size](../attachments/hub-pens-game.png)
+![the pens with the Shallows' seven at their real size](../attachments/hub-pens-game.png)
 
-**Four of seven fit in a 50 x 60 pen:** the Archelon (50 long, 36 wide with its flippers) and three small ones. The
-Dunkleosteus (40) and the Barracuda (30) have no room left. The big ones spill over the low fence; the reference's do
-the same (H1: a Brachiosaurus or a Baryonyx is as long as its pen and stands far over its fence), so that much is the
-genre's look. Theirs stand on the sand side by side, each outline clear, and that is how fish would have to sit in a pen
-too. A tank holding more than about four fish, or a fish over about 55 long, needs one of: fewer on show, a smaller
-`ShowShare` in the pen, or bigger pens (which works against a smaller hub). The game-code chat's numbers.
+| Seven fish (a plot's first stage) | In a 50 x 60 pen | In today's 52 x 84 tank |
+|---|---|---|
+| the Shallows' seven (11 to 27 long) | **7** | 7 |
+| a middle seven (Archelon 51 long and 56 across, Manta 46 and 50, Dunkleosteus 52, Orca 56) | **2** | 3 |
+| a late seven (Blue Whale 101, Kraken 91, Megalodon 80) | **1** | 1 |
+
+So a pen at the reference's size holds a starter's fish easily, and later ones go over the fence, about as they go through
+the glass today. **Real size is Hugo's choice** (task b4, 2026-11-22: "make sure they retain their original size even if
+they clip through"), so showing them smaller would undo that: not proposed here. A fully upgraded plot shows 17.
+
+*(Corrected 2026-11-23. The earlier figure, "four of seven fit", was wrong: the models were measured without their nodes'
+moves, the Archelon came out about 1.4 times too big, one length was typed in by hand, and the Boxfish is no longer in the
+game.)*
 
 | | What it is | For | Against |
 |---|---|---|---|
@@ -83,13 +89,17 @@ To confirm with the game-code chat before any of it goes in; as far as the map c
   more inside.
 
 ## 3. Layout, and where the eye goes
-**R** (right in the plans, **a sketch**): 290 x 196 wall to wall, against ours 400 x 280 and theirs about 230 x 180.
-Eight pens of 50 x 60 sharing fences: four along the back facing the strip, two against each side wall with their gates
-on the inner face. Every station and trainer pad is drawn in and none overlap (`tools/map/hub_scale_plan.py` checks it),
-though it is tight: the Index and the Earners board sit in the front left corner, the Submarine in the front right.
-Back pen to the strip 128 (ours 180, theirs about 110), the side pens 5 to 60, an open floor of about 190 x 128. Going
-right down to their 230 x 180 does not fit eight pens and all our stations; it would need fewer pens or the stations
-set into the walls.
+**S** (right in the plans, **a sketch**): the reference's own size, 230 x 180. Eight pens of 50 x 60 sharing fences: four
+along the back, two down each side. The side pens run 50 into the hub and 60 along the wall, so 15 studs of each back
+corner pen's front stay open and its gate goes there. Open floor 130 x 120 (ours now 216 x 180). The back gates to the
+strip are 120 (4.3 s at 28; theirs about 110, ours now 180), the side gates 92 and 43, in straight lines.
+`tools/map/hub_scale_plan.py` checks it and stops if it fails: nothing overlaps, all inside the hub and off the strip,
+8 clear studs in front of every gate. Every station is drawn at its present footprint. **Not drawn:** the plots' sign
+boards and upgrade signs, and the arch. It is full: the Submarine, Index and Fuse would be the first to shrink.
+
+*(Corrected 2026-11-23: R, 290 x 196, is dropped. It was said that 230 x 180 does not fit eight pens, without drawing it;
+it does. R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a
+trainer pad stood in front of every one of its gates.)*
 
 For attention, following the reference:
 - **The spawn on the line from the pens to the strip**, facing the strip. The strip, the gap and the herd beyond it are
@@ -100,8 +110,8 @@ For attention, following the reference:
 - The Fuse machine a little further back, the Earners board on the wall beside the gap, the Index and the Submarine at
   the strip's two ends.
 
-**Cost:** the hub's walls come from the generator, so R is one full map reload, which also re-scatters some lane props.
-Before that, a hub-only try build (the generator's hub options) would show the walls at R's size without the reload.
+**Cost:** the hub's walls come from the generator, so S is one full map reload, which also re-scatters some lane props.
+Before that, a hub-only try build (the generator's hub options) would show the walls at S's size without the reload.
 Pens, layout and size should be picked together and built in that one reload. The hand placing is read first and kept.
 
 **Answered (2026-11-22):** the old rule "never its look, models or layout" was not meant for the layout ("didnt mean to

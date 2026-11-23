@@ -106,22 +106,32 @@ def p3_sand(k, x0, x1, z0, z1):
     FITS[:] = game_fish(k, x0, x1, z0, z1, 1.0)
 
 
-GAME_FISH = [("Archelon", 50), ("Dunkleosteus", 40), ("Barracuda", 30), ("MantaRay", 24), ("Angelfish", 16),
-             ("Boxfish", 14), ("Clownfish", 12)]  # name, length in the game (studs); biggest first
-# each model's box in its own file (width, height, length), from the glb: art/creatures/<Name>/game/<Name>.glb
-GLB = {"Archelon": (15.0, 8.4, 20.7), "Dunkleosteus": (12.1, 8.4, 12.1), "Barracuda": (3.4, 4.8, 9.0),
-       "MantaRay": (7.7, 3.1, 11.2), "Angelfish": (2.0, 10.2, 7.8), "Boxfish": (3.7, 3.5, 6.4), "Clownfish": (5.7, 7.6, 7.6)}
+# each model's true box (across, high, along; studs, the glb with its nodes' moves applied, as hub_view.py prints it)
+# and the game's own scale (src/shared/Config.luau, BaseScale): a Normal one's size in the sea and, at ShowShare 1, in
+# its tank. Sea Turtle 25 long and Stingray 27 match Config's own comment. A bigger size roll is bigger still
+FISH = {"Clownfish": ((5.7, 7.6, 10.1), 1.05), "SergeantMajor": ((6.3, 8.5, 12.7), 1.05), "YellowTang": ((2.8, 7.8, 9.8), 1.4),
+        "Pufferfish": ((9.0, 6.0, 10.0), 1.5), "Cuttlefish": ((6.2, 3.2, 13.0), 1.45), "SeaTurtle": ((15.8, 3.2, 14.3), 1.75),
+        "Stingray": ((16.0, 2.1, 23.4), 1.15), "ReefShark": ((9.8, 7.6, 17.3), 2.1), "Archelon": ((32.9, 8.4, 29.9), 1.7),
+        "Dunkleosteus": ((12.1, 8.5, 26.2), 2.0), "Barracuda": ((3.4, 4.8, 20.4), 1.4), "MantaRay": ((24.0, 2.8, 21.7), 2.1),
+        "Orca": ((12.6, 11.4, 29.2), 1.9), "BlueWhale": ((20.1, 21.3, 46.0), 2.2), "Kraken": ((23.6, 21.3, 47.8), 1.9),
+        "Megalodon": ((26.9, 18.6, 42.0), 1.9)}
+SETS = {"the Shallows' seven": ["SeaTurtle", "Stingray", "Cuttlefish", "Pufferfish", "YellowTang", "SergeantMajor", "Clownfish"],
+        "a middle seven": ["Archelon", "MantaRay", "Dunkleosteus", "Orca", "ReefShark", "Barracuda", "SeaTurtle"],
+        "a late seven": ["BlueWhale", "Kraken", "Megalodon", "Archelon", "Orca", "Dunkleosteus", "MantaRay"]}
 
 
-def game_fish(k, x0, x1, z0, z1, lift):
+def sized(name):
+    (w, h, l), k_ = FISH[name]
+    return w * k_, h * k_, l * k_, k_
+
+
+def game_fish(k, x0, x1, z0, z1, lift, names=SETS["the Shallows' seven"]):
     """the fish at their game length (Aquarium.ShowShare 1), resting just over the floor, biggest first from the back
     fence (z0), none overlapping, as many as fit: a fish that has no room is left out. Returns the names placed"""
     inset, gap, step = 1.5, 1.0, 1.0
     taken, placed = [], []
-    for name, long in GAME_FISH:
-        w, h, l = GLB[name]
-        k_ = long / l
-        w, h = w * k_, h * k_
+    for name in sorted(names, key=lambda n: -sized(n)[0] * sized(n)[2]):
+        w, h, long, k_ = sized(name)
         spot = None
         z = z0 + inset
         while spot is None and z <= z1 - inset:
@@ -138,7 +148,8 @@ def game_fish(k, x0, x1, z0, z1, lift):
         if spot:
             x, z, sx, sz, yaw = spot
             taken.append((x, x + sx, z, z + sz))
-            k.fish(name, x + sx / 2, PLATE + lift + h / 2, z + sz / 2, k_, yaw=yaw)
+            if k:
+                k.fish(name, x + sx / 2, PLATE + lift + h / 2, z + sz / 2, k_, yaw=yaw)
             placed.append(name)
     return placed
 
@@ -150,7 +161,12 @@ def build():
     z0, z1 = -D / 2, D / 2
     for (fill, a, b) in ((p1_pool, xs[0], xs[1]), (p2_rail, xs[1], xs[2]), (p3_sand, xs[2], xs[3])):
         fill(k, a, b, z0, z1)
-    print("fits in one pen:", ", ".join(FITS))
+    for label, names in SETS.items():
+        for w, d in ((W, D), (52, 84)):
+            fits = game_fish(None, 0, w, 0, d, 0, names)
+            print(label, "in %g x %g:" % (w, d), len(fits), "of", len(names), fits)
+    for n in sorted(FISH, key=lambda n: sized(n)[2]):
+        print("  %-14s %.1f across, %.1f long, %.1f high" % (n, sized(n)[0], sized(n)[2], sized(n)[1]))
     # the fences: the back, the shared sides, each pen's front with its gate gap
     along(k, (xs[0], z0), (xs[3], z0))
     for x in xs:

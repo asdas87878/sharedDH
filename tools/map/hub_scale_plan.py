@@ -1,10 +1,11 @@
 """The hub's scale against the reference's, from above, all at one scale (2026-11-22, the user: "the scale feels
 wrong, whether it's in the actual scale of the hub or the texture, or it's just the walk speed"). Three plans:
 ours as it stands (read from the place: art/map/hub_study/dump_2026-11-22.csv), the reference's (measured from our
-frames: docs/reference/ride-a-dino-map.md, "The hub, measured", good to about 15%), and R, ours at the reference's
-size with its pens (50 by 60, sharing fences, in a U). Schematic: walls as a line, pens as boxes.
+frames: docs/reference/ride-a-dino-map.md, "The hub, measured", good to about 15%), and S, ours at the reference's
+own size (230 by 180) with eight pens (50 by 60, sharing fences, in a U), checked: see check(). Schematic: walls as a line, pens as boxes.
 
 usage: python tools/map/hub_scale_plan.py [out.png]"""
+import math
 import os
 import sys
 
@@ -92,31 +93,49 @@ ref = panel("The reference: about 230 x 180, pens 50 x 60, fence 4 high",
             "own pen to the strip 110 (4 s at 28) | stalls 17-25 off the strip | pens drawn, not measured",
             (-115, 115, -210, 0), ref_pens, (-48, 48, -30, 0), (0, -100), [((-75, -150), (-20, -30), "110")],
             None)
-# R: ours at about the reference's size with all eight pens and every station: 290 x 196. The back four face the
-# strip; the side pens stand against the side walls with their gates on the inner face, clear of the back row's corners
-r_pens = [(-100, -50, -220, -160), (-50, 0, -220, -160), (0, 50, -220, -160), (50, 100, -220, -160),
-          (-145, -95, -155, -95), (-145, -95, -95, -35), (95, 145, -155, -95), (95, 145, -95, -35)]
-r_things = (stations((-30, -62), (30, -62), (0, -122), (-71, -49), (70, -48), (-72, -36))
-            + trainers([(-75, -152), (-25, -152), (25, -152), (75, -152), (-87, -125), (-87, -65), (87, -125), (87, -65)]))
+GATE, REACH = 12, 8  # a gate's width, and the clear floor wanted in front of it
 
 
-def overlaps(pens, things):
-    """every pair of boxes that overlap (touching is fine): the pens, the stations and the pads"""
-    boxes = [("pen%d" % i, a, b, c, e) for i, (a, b, c, e) in enumerate(pens)]
-    boxes += [(t[4] or "box", t[0] - t[2] / 2, t[0] + t[2] / 2, t[1] - t[3] / 2, t[1] + t[3] / 2) for t in things]
-    bad = []
-    for i, p_ in enumerate(boxes):
-        for q in boxes[i + 1:]:
-            if p_[1] < q[2] and q[1] < p_[2] and p_[3] < q[4] and q[3] < p_[4]:
-                bad.append((p_[0], q[0]))
+def check(name, hub, strip, pens, things, gates):
+    """what a sketch must keep: nothing overlaps, all of it inside the hub and off the strip, every gate with REACH studs
+    of clear floor in front. gates: (x, z, dx, dz) the gate's middle and the way out of the pen. Returns each gate's
+    straight line to the strip's inner edge"""
+    boxes = [("pen%d" % (i + 1), a, b, c, e) for i, (a, b, c, e) in enumerate(pens)]
+    boxes += [("%s@%g,%g" % (t[4] or "pad/board", t[0], t[1]), t[0] - t[2] / 2, t[0] + t[2] / 2, t[1] - t[3] / 2, t[1] + t[3] / 2) for t in things]
+
+    def hit(p_, q):
+        return p_[1] < q[2] and q[1] < p_[2] and p_[3] < q[4] and q[3] < p_[4]
+
+    bad = [(p_[0], q[0]) for i, p_ in enumerate(boxes) for q in boxes[i + 1:] if hit(p_, q)]
+    sbox = ("strip",) + tuple(strip)
+    bad += [(p_[0], "strip") for p_ in boxes if hit(p_, sbox)]
+    bad += [(p_[0], "outside") for p_ in boxes if p_[1] < hub[0] or p_[2] > hub[1] or p_[3] < hub[2] or p_[4] > strip[2]]
+    walks = []
+    for i, (x, z, dx, dz) in enumerate(gates):
+        ax, az = x + dx * REACH / 2, z + dz * REACH / 2
+        hx, hz = (REACH / 2, GATE / 2) if dx else (GATE / 2, REACH / 2)
+        lane = ("gate%d" % (i + 1), ax - hx, ax + hx, az - hz, az + hz)
+        bad += [(lane[0], q[0]) for q in boxes if hit(lane, q)]
+        walks.append(round(math.hypot(max(abs(x) - strip[1], 0), strip[2] - z)))
+    print(name, "gates to the strip", walks, "BAD " + str(bad) if bad else "ok")
     return bad
 
 
-assert not overlaps(r_pens, r_things), overlaps(r_pens, r_things)
-r = panel("R (a sketch): 290 x 196, eight pens 50 x 60, every station",
-          "back pen to the strip 128 | side pens 5 to 60 | the stalls on the way out",
-          (-145, 145, -228, 0), r_pens, (-48, 48, -32, 0), (0, -88), [((0, -160), (0, -32), "128")],
-          (-95, 95, -160, -32), things=r_things)
+# S: the reference's own size, 230 wide and 180 from the strip's inner edge (z -32) to the back wall (z -212). Four pens
+# on the back; two down each side, 50 into the hub and 60 along the wall, which leaves 15 studs of each back corner
+# pen's front open: its gate is there
+s_pens = [(-100, -50, -212, -152), (-50, 0, -212, -152), (0, 50, -212, -152), (50, 100, -212, -152),
+          (-115, -65, -152, -92), (-115, -65, -92, -32), (65, 115, -152, -92), (65, 115, -92, -32)]
+s_gates = [(-57.5, -152, 0, 1), (-25, -152, 0, 1), (25, -152, 0, 1), (57.5, -152, 0, 1),
+           (-65, -122, 1, 0), (-65, -72, 1, 0), (65, -122, -1, 0), (65, -72, -1, 0)]
+s_things = [(-26, -60, 29, 20, "Sell", RED), (26, -60, 29, 20, "Auras", PURPLE), (22, -118, 29, 41, "Fuse", BLUE),
+            (-27, -108, 47, 18, "Index", GOLD), (55, -47, 20, 29, "Sub", TEAL), (-60, -46, 8, 26, "", GREY)]
+s_things += trainers([(-45, -146), (-8, -146), (8, -146), (45, -146), (-58, -104), (-58, -87), (58, -104), (58, -87)])
+assert not check("S", (-115, 115, -212, 0), (-48, 48, -32, 0), s_pens, s_things, s_gates)
+r = panel("S (a sketch): their size, 230 x 180, eight pens 50 x 60",
+          "back gates to the strip 120 (4.3 s) | side gates 92 and 43 | no sign boards drawn",
+          (-115, 115, -212, 0), s_pens, (-48, 48, -32, 0), (0, -88), [((-25, -152), (-25, -32), "120")],
+          (-65, 65, -152, -32), things=s_things)
 sheet = Image.new("RGB", (int(PANEL_W) * 3 + 20, int(PANEL_H)), (255, 255, 255))
 for i, im in enumerate((now, ref, r)):
     sheet.paste(im, (i * (int(PANEL_W) + 10), 0))
