@@ -125,7 +125,9 @@ def pen_a(k, x0, x1, stage):
                 k.box(cx, y - 1.2, s * (D / 2 - 1.5), W, 1.2, 3, WOOD, n="Deck")
                 k.box(cx + s * (W / 2 - 1.5), y - 1.2, 0, 3, 1.2, D - 6, WOOD, n="Deck")
         water(k, x0 + 1, x1 - 1, y, y + step, z0 + 1, z1 - 1)
+        pb.POST_EVERY = 25.0 if i else 10.0  # the upper fences: half the pieces
         ring(k, stage, x0, x1, z0, z1, y, gate=i == 0, top=i == n - 1)
+    pb.POST_EVERY = 10.0
     top = PLATE + HIGH[stage] + (n - 1) * 1.2
     for x in (x0, x1):
         for z in (z0, z1):

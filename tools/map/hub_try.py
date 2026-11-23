@@ -23,7 +23,7 @@ from hub_kit import Kit, SAND  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "tools", "studio", "hub_try")
-X = 9000.0  # the live map stands at 3000
+X = 14000.0  # the live map stands at 3000, the old bench (MapBench) at 9000
 STYLE = (sys.argv[1:] or ["A"])[0]
 STAGE = [2, 0, 5, 2, 0, 5, 2, 0]  # what each pen's owner has bought: a mixed server
 ROWS_AT = 900.0  # the rows of styles, this far to the side of S's middle

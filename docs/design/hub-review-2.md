@@ -87,7 +87,7 @@ the fish at their real size; `tools/map/pen_levels.py`):
 
 | | What it is | For | Against |
 |---|---|---|---|
-| **A storeys** (the pick) | a pen on a pen: each storey a deck with its own crooked fence. The decks are frames, open in the middle | The most fence feel, and an upgrade plainly adds a floor. The water works as one column, so nothing has to fit between floors | Needs new code: a storey has to appear, not stretch |
+| **A storeys** (the map chat's suggestion; the user's pick, after Studio) | a pen on a pen: each storey a deck with its own crooked fence. The decks are frames, open in the middle | The most fence feel, and an upgrade plainly adds a floor. The water works as one column, so nothing has to fit between floors | Needs new code: a storey has to appear, not stretch |
 | **B the fence climbs** | one column of water; crooked posts and rails climb it | The fewest new parts for that look | The rails cross the fish. Partly new code (rails have to be added as it grows) |
 | **C steps** | storeys that step in | The strongest shape | Holds the fewest: 7 of 11 and 7 of 14 in the picture. New code |
 | **E tank in a pen** | today's slim tank inside the low fence; only the tank grows | The least new code: posts and water stretch and rims lift already | The least fence feel once it is tall |
@@ -96,20 +96,27 @@ A fifth (D, a sand yard in front and a tower behind) is cut: at 38 deep the towe
 
 **Trim by stage:** bare wood, then cream rails, then a gold top rail. Small, as the old five levels were meant.
 
-**How high it has to be** (`tools/map/pen_crowd.py`). Laid out in layers with none touching, in a 50 x 60 pen:
+**How high it has to be** (`tools/map/pen_crowd.py`). The place's tanks all have water 32 high at stage 0 (the user's
+copies of Plot 4: the dump of 2026-11-22; `Config`'s comment says 14 to 20), so today is 32, 38 and 47 high at stages 0, 2
+and 5, on 52 x 84. How many others each fish is inside, on average, by the game's own laps (`AquariumService.show`), and
+the height it takes to lie them all clear in layers:
 
-| | Height to lie clear | Now (14 + 3 a stage) | Drawn (14 + 12 a stage) |
-|---|---|---|---|
-| stage 0, the Shallows' seven | 12 | 14 | 14 |
-| stage 2, eleven middle fish | 63 | 20 | 38 |
-| stage 5, seventeen late, without the three giants | 105 | 29 | 74 |
+| | Lies clear at | Today | Drawn (14 + 12 a stage) | 104 high |
+|---|---|---|---|---|
+| stage 0, the Shallows' seven | 12 | 1.3 (32 high) | **3.8** (14 high) | |
+| stage 2, eleven middle fish | 63 | 6.0 to 4.8 (32 to 38) | 5.1 (38 high) | 1.3 |
+| stage 5, fourteen late (no giants) | 105 | 7.1 (47 high) | 4.9 (74 high) | 2.7 |
+| stage 5, seventeen late, with the giants | never | 10.9 | 7.6 | 4.7 |
 
-By the game's own laps (`AquariumService.show`), how many other fish each one is inside, on average: stage 2, **8.7 at 20
-high, 5.1 at 38**; stage 5, **14.7 at 29 high, 7.6 at 74**, 4.8 at 100. So 12 a stage about halves the crowding; about 18 a
-stage (104 at the top) is what it takes to lie the late ones clear, and then only if each fish keeps to its own layer.
-Two things height can't fix: the Blue Whale (101 long), the Kraken (91) and the Megalodon (80) are longer than any 50 x 60
-pen, and each fish's height is today a fixed share of the water, so two big ones can still meet. `Taller` (3) and `Slots`
-(2) are Hugo's numbers: **12 is a proposal**. All the sizes are Normal; bigger rolls need more.
+So against today the drawn heights are **worse at stage 0, level at 2, and about a third better at 5**. The pens are smaller on the
+ground, so height first has to make up for that. A low start gives the fence feel; a tall start gives room: the user's
+call. **The bigger lever is the laps:** every fish circles the middle (a lap's reach is cut by the fish's length, and only
+its height differs), so even the Shallows' seven, who lie clear in 12 studs, meet 3.8 others at 14 high. If each fish kept
+to its own layer and its own part of the floor, the drawn heights would nearly do. That is game code, proposed to that
+chat with the heights. Two things height can't fix: the Blue Whale (101 long), the Kraken (91) and the Megalodon (80) are
+longer than a 50 x 60 pen. `Taller` (3) and `Slots` (2) are Hugo's numbers: **12 is a proposal**. All sizes are Normal.
+
+The pictures show the **layered best case**, squeezed where the height doesn't reach, not the game's laps.
 
 **Against it, honestly:** the 34-high tanks were the second cause of the hub feeling like a room of buildings, and a stage-5
 pen is 74. In S they stand at the back and sides, so nothing tall is on the line from the spawn to the strip. S from
@@ -118,13 +125,13 @@ the spawn to the strip):
 
 ![S from inside, with pens of mixed stages](../attachments/hub-s-inside.png)
 
-**In Studio:** `tools/map/hub_try.py` writes the try (`Workspace.HubTryS` and `HubTryPens`, at x 9000, with rows of the four
-styles beside it). It touches nothing under `ClaudeBlockout` and refuses to run in Play. Not loaded yet.
+**In Studio:** `tools/map/hub_try.py` writes the try (`Workspace.HubTryS` and `HubTryPens`, at x 14000, with rows of the four
+styles beside it). It touches nothing under `ClaudeBlockout` and refuses to run in Play. **Written, not run:** Studio was in Play. It has no spawn: in Play a one-off move of the character
+there comes first, then a check that the game leaves them there at 28.
 
 **To confirm with the game-code chat** before any of it: A and C need a storey added per stage; B its rails; E a bigger
 `Taller`. In all of them the gate's `SignBoard` would rise with the tank (`LIFTED`) and the foam line (`FoamLine`) would
-not, so both need another name; the trim by stage is new code. The notes give the water as 14 high at stage 0, but the
-tanks read from Play were 34 to the top: to be read in Edit. `TankWater` stays one box in A, B and E (A's storeys are drawn as separate blocks; one box over them all would do).
+not, so both need another name; the trim by stage is new code. `TankWater` stays one box in A, B and E (A's storeys are drawn as separate blocks; one box over them all would do).
 
 **What the game code leans on** (`AquariumService`, `TankRideService`, `AquariumController`, `TankPanel`):
 To confirm with the game-code chat before any of it goes in; as far as the map chat can see:

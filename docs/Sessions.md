@@ -52,6 +52,9 @@ The links open the chat in the Claude app on the PC it runs on.
   as an unseen swim box; fence posts are named `FencePost` so `STRETCHED` leaves them; at `ShowShare` 1 (Hugo's b4,
   kept) the Shallows' seven fit a 50 x 60 pen, bigger fish go over the fence; they would sit low, not lap in a heap. Also
   `tools/studio/water_see_buttons.luau` (water see-through live in Play) waits for Studio.
+  **2026-11-23:** the user wants the pens to grow much taller. [hub-review-2](design/hub-review-2.md), "Pens that grow", lists
+  what that needs (storeys or rails per stage, `SignBoard` and `FoamLine` names, a bigger `Taller`) and the finding that
+  **the laps crowd the fish more than the height does**: proposals, yours and Hugo's to answer. Nothing to do yet.
 - **2026-11-22, Ride a Fish UI to the game-code chat: UI review 1 committed (`df5c7d1`, `d7b00fc`). Studio is free.**
   Touched in `Controllers/`: `AuraController` (no hub-button hooks; `shop`/`shopOpen` kept for `b2_shop_check.py`) and
   `StallController` (new). New `src/shared/Products.luau`: every Id 0, the client only prompts; grants are the server's.
