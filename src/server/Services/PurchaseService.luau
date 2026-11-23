@@ -37,7 +37,7 @@ local GIVES: { [string]: { Part: string, Give: (player: Player, amount: number) 
 	Oxygen = {
 		Part = "Oxygen",
 		Give = function(player, amount)
-			return RideService.grant(player, amount) == true
+			return RideService.grantOxygen(player, amount) == true
 		end,
 	},
 }

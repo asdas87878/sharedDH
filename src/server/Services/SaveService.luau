@@ -2,9 +2,9 @@
 -- Saving (the user, 2026-11-23: cash and Oxygen go on sale for Robux, so what is bought has to be kept). What a player
 -- has is kept in a profile of ProfileStore's (Lib/ProfileStore, MadStudioRoblox, Apache-2.0: docs/licenses): one server
 -- at a time holds it, saved every five minutes, as they leave and as the server closes.
---   Parts: each service that has something to keep gives it here in its Init:
+--   Parts: what is kept, one for each service that has something to keep, given in Lib/SaveParts (which has the switch):
 --     SaveService.part(name, dump, restore)
---       dump(player)            what to keep, plain tables, numbers and text; nil while the service doesn't have them
+--       dump(player)            what to keep, a fresh plain table, number or text; nil while the service doesn't have them
 --                               (not joined yet, gone, or no plot): what was kept before is then left as it is
 --       restore(player, kept)   called once, when the profile and the service are both ready, if anything was kept; it
 --                               ADDS to what the player has made in the moments before
@@ -21,6 +21,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local ProfileStore = require(script.Parent.Parent.Lib.ProfileStore) :: any
+local SaveParts = require(script.Parent.Parent.Lib.SaveParts)
 
 local SaveService = {}
 
@@ -200,6 +201,10 @@ function SaveService.reopen(player: Player): boolean
 	player:SetAttribute("Saved", nil)
 	join(player)
 	return saves[player] ~= nil
+end
+
+function SaveService.Init()
+	SaveParts.join(SaveService.part)
 end
 
 function SaveService.Start()

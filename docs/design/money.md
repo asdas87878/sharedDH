@@ -12,12 +12,15 @@
 
 ## Selling (started 2026-11-23)
 - **Saving:** `SaveService`, on ProfileStore (`src/server/Lib/ProfileStore`, commit 45c9847, kept as it came: outside
-  StyLua and selene; its licence in `docs/licenses/`). Each service gives what it keeps (`SaveService.part`); all of it
-  is taken together or none. **No service is joined yet, so it does nothing:** it needs the tank (coins, stage, fish),
-  the trained Oxygen, the trainer's level and the subs, or what was bought with a pack would be gone on leaving.
+  StyLua and selene; its licence in `docs/licenses/`). What is kept is `Lib/SaveParts`: the tank (coins, stage, fish), the trained Oxygen,
+  the trainer's level, the subs and the best depth, all taken together or none, with a version from the first save.
+  **Its switch (`ON` there) is off**, and without every function it needs in the services it joins nothing.
+  The game-code chat writes those functions (2026-11-23, its word), reviews the two services, and they are played with
+  Roblox's real store before the switch goes on.
 - **The payout:** `PurchaseService`, the one `ProcessReceipt`. A receipt is given once and Roblox is told so only when
-  the profile is seen saved. It needs `AquariumService.give` to say true when given, and a `RideService.grant` that
-  works off the dock (asked of the game-code chat).
+  the profile is seen saved. Coins by `AquariumService.give`, Oxygen by `RideService.grantOxygen` (theirs to write).
+  **Proposed, not agreed: Oxygen bought in the water raises the max at once and doesn't refill the meter**, so it can't
+  buy a way out of a fail.
 - **On sale** is an offer in `Products` with an `Id`, `Gives` and `Amount` (`Products.onSale`). The Shop then shows the
   amount as the card's name and Roblox's own price, and asks for the prompt only once the player's save is in.
 - **Wanted from the user:** the six developer products made on Roblox (their ids; their prices are read from Roblox), and
