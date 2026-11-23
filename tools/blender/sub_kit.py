@@ -15,7 +15,9 @@ Prop, Light, plus a style's own); Seat, Light and Prop are the names SubControll
 one a colour; glowing ones are named *_Glow. Renders: hero, side, front, top (transparent) and ride (with a rider).
 --export writes <folder>/Sub_<style>.glb in Roblox's axes (+Y up, nose to -Z), 1 unit = 1 stud.
 --frame <k> stands the hero and side cameras where tools/blender/sub_stages.py stands them for a tier whose stats.json
-says "frame": k, so the two can be laid side by side at one scale (sub_stages.py compare); --px <k> scales the renders."""
+says "frame": k, so the two can be laid side by side at one scale (sub_stages.py compare); --px <k> scales the renders.
+(The side view is 1000 px for 46 x k studs in both; sub_stages.py makes a tier's taller when a tall add-on needs it,
+which leaves the scale alone. This model fits the 480 px at every k from 1 up.)"""
 import math
 import os
 import sys

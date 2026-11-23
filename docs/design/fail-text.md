@@ -53,8 +53,19 @@ See "What is built".
   full size, letters about 43 points. The phone is a pretended screen of its size in Studio, not a real phone; the
   game is played sideways (`ScreenOrientation` LandscapeSensor), so the upright phone is only a worst case. Real
   fails shot with the clocks held: thrown (THROWN OFF!), eaten (EATEN!), shaken off (SHAKEN OFF!), out of breath.
-  **Not done:** the motion was judged from held frames, not watched at speed; the pops were not heard; the way out
-  was seen through `FailWordsOut`, not at the end of a real fail. Hugo's to play once.
+  **One clean dive at the game's own speed** (2026-11-23, a playtest with no helper and no test switch: out of
+  breath on a fish too strong): TOO STRONG! in the pink letters over the black, then the dock and the end-of-dive
+  screen (GREAT DIVE!, look 5, Drop), which goes by itself:
+  ![A clean dive: the bubble words, then GREAT DIVE](../attachments/fail-bubble-clean-dive.png)
+  **Not done:** the motion was judged from stills (held frames, and that dive at about a frame a second, so the
+  letters' pops on the way out fell between two frames), not watched at speed; the pops were not heard. Hugo's to
+  play once.
+- **The captures clean up after themselves** (2026-11-23). A real-fail capture holds the playtest's `CatchLook` at 0
+  (the old plain GREAT DIVE banner), `TestMaxOxygen`, `FailSlow`, `FailClock` and `DeathClock`; left on, as they were
+  until now, every later dive of that playtest showed the plain banner (Hugo saw it). `fail_capture.py`,
+  `fail_live_capture.py`, `b5_fail_text_check.py` and `fail_bubble_check.py` now clear them in a `finally`, a killed
+  run too, and `python tools/studio/fail_capture.py restore` does it by hand. The switches live on the playtest's
+  workspace only: Stop takes them with it, and nothing of them is in the place.
 
 ### Before it: the Slam band (b5, 2026-11-22, replaced)
 Bangers in red metal on a tilted dark streak, always red, slammed on from the camera with a thud and a shake.

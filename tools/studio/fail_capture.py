@@ -110,17 +110,18 @@ HELD = ("CatchLook", "TestMaxOxygen", "FailSlow", "FailClock", "DeathClock")
 
 
 def playing():
-    """Whether a playtest's server is there to take a job (asking one that is not waits 30 s)."""
+    """Whether a playtest's server is there to take a job (asking one that is not waits 30 s). None: could not tell."""
     try:
         return json.loads(run(["status"], timeout=20)).get("connected", {}).get("server", 0) > 0
     except Exception:
-        return False
+        return None
 
 
 def restore(*more):
     """Clears the capture's switches (and `more`) off the playtest's workspace: the game as it is played."""
-    if not playing():
+    if playing() is False:
         return "no playtest (its workspace went with it)"
+    # (also when the status could not be read: better a 30 s wait for nothing than a switch left on)
     return setw(**{k: None for k in HELD + more})
 
 

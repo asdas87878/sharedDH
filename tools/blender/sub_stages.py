@@ -967,7 +967,7 @@ def toy3():  # the Kelp Cruiser: longer, three ports, leaf wings, a V of leaf fi
     band(9.2, 10.6, "accent")  # a yellow tail flash
     cabin()
     saddle()
-    portholes((-13.3, -5.6, 1.6))
+    portholes((-13.3, -5.6, 1.6), z=1.6)  # (over the leaf wings, which would cover the middle one's foot)
     leaf = [(-11.0, 4.6), (-9.6, 9.0), (-6.5, 11.4), (-3.6, 9.6), (-3.0, 4.6)]
     plate("Hull", leaf, 1.8, "trim", plane="xy", at=-1.2, r=(-8, 0, 0), c=(-7, 4.6, -1.2), both=True)
     plate("Hull", [(-7.5, 4.6), (-7.1, 10.8), (-6.0, 10.8), (-6.2, 4.6)], 2.2, "accent", plane="xy", at=-1.2, r=(-8, 0, 0),
@@ -1504,7 +1504,7 @@ for _ in range(16):  # and it stands back until all of the sub is in the picture
     look_from(back, (mid + 44 * far, -17 * far, 21 * far), (mid - 3, 0, 3.0))
     bpy.context.view_layer.update()
     spots = [world_to_camera_view(scene, back, p) for p in drawn]
-    if STYLE == "voxel" or (min(min(q.x, q.y) for q in spots) > 0.03 and max(max(q.x, q.y) for q in spots) < 0.97):
+    if min(min(q.x, q.y) for q in spots) > 0.03 and max(max(q.x, q.y) for q in spots) < 0.97:
         break
     far *= 1.04
 render(back, "back.png", 1000, 700)
