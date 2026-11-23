@@ -31,8 +31,38 @@ local NONE_TINT = Color3.fromRGB(96, 120, 150) -- the NO SUB card
 -- sizes in the window's points (Shop.window fits them to the screen)
 local WIDE, HIGH = 800, 520
 local CARD_W, CARD_H = 188, 300
+local CARD_PAD = 16 -- a card's own inset, both sides together (Shop.card)
+local WELL_HIGH = 112 -- the picture's box on a card
 local TOP = 34 -- the tagline row
 local FOOT = 62 -- the footer bar
+
+-- A sub's picture on its card. Every sub is seen from the same side (three-quarters from the front, SHOT_FROM
+-- looking at SHOT_AT), from that far or further, so a small sub stays smaller than a big one; the camera is moved
+-- sideways until the model sits in the middle of the box, and back until the whole of it is inside SHOT_FILL of the
+-- box (the long tiers, 5 to 9, were cut off at the box's edge from one fixed spot: task m4, 2026-11-23).
+local SHOT_FROM = Vector3.new(-44, 18, -36)
+local SHOT_AT = Vector3.new(0, 2, 0)
+local SHOT_FOV = 30
+local SHOT_FILL = 0.9
+local SHOT_LOOK = (SHOT_AT - SHOT_FROM).Unit
+local SHOT_FAR = (SHOT_AT - SHOT_FROM).Magnitude
+-- Where the camera stands for each model of Shared/SubModels, worked out from the model's own points (a part's box
+-- is all the game can see of a mesh, and a box's corners stand well outside a rounded hull). Written by
+-- `python tools/subs/card_fit.py --write`; `--check` says when a rebuilt model no longer matches. A model without a
+-- row, and the placeholder of plain parts, are framed by their parts' boxes (shotBy).
+-- SHOTS: begin
+local SHOTS: { [string]: Vector3 } = {
+	Bathtub = Vector3.new(-42.86, 17.13, -36.89),
+	ReefRunner = Vector3.new(-41.23, 18.76, -38.16),
+	KelpCruiser = Vector3.new(-42.19, 18.83, -36.95),
+	WreckDiver = Vector3.new(-42.11, 18.48, -37.21),
+	BlueStreak = Vector3.new(-41.68, 17.86, -38.01),
+	TwilightRay = Vector3.new(-45.62, 17.26, -38.69),
+	MidnightHunter = Vector3.new(-41.60, 17.57, -38.24),
+	VentCrawler = Vector3.new(-39.94, 15.36, -41.25),
+	AbyssKing = Vector3.new(-45.65, 19.25, -47.46),
+}
+-- SHOTS: end
 
 local gui: ScreenGui -- the ticket and the hint
 local window: Shop.Window
@@ -149,6 +179,42 @@ local function refresh()
 	end
 end
 
+-- Where the camera stands to frame these parts (built at the origin) by their boxes' corners: the same rule as
+-- tools/subs/card_fit.py, which has the models' real points
+local function shotBy(parts: { BasePart }): Vector3
+	local right = SHOT_LOOK:Cross(Vector3.yAxis).Unit
+	local up = right:Cross(SHOT_LOOK)
+	local halfY = math.tan(math.rad(SHOT_FOV / 2)) * SHOT_FILL
+	local halfX = halfY * (CARD_W - CARD_PAD) / WELL_HIGH
+	-- every corner in the camera's own axes (across, up, away)
+	local corners: { Vector3 } = {}
+	for _, p in parts do
+		local half = p.Size / 2
+		for i = 0, 7 do
+			local corner = Vector3.new(
+				if i % 2 == 0 then -half.X else half.X,
+				if i // 2 % 2 == 0 then -half.Y else half.Y,
+				if i // 4 == 0 then -half.Z else half.Z
+			)
+			local world = p.CFrame:PointToWorldSpace(corner)
+			table.insert(corners, Vector3.new(world:Dot(right), world:Dot(up), world:Dot(SHOT_LOOK)))
+		end
+	end
+	local across, over, far = 0, 0, SHOT_FAR
+	for _ = 1, 12 do
+		local x0, x1, y0, y1 = math.huge, -math.huge, math.huge, -math.huge
+		for _, c in corners do
+			local depth = math.max(c.Z + far, 0.1)
+			local x, y = (c.X - across) / depth, (c.Y - over) / depth
+			x0, x1, y0, y1 = math.min(x0, x), math.max(x1, x), math.min(y0, y), math.max(y1, y)
+		end
+		across += (x0 + x1) / 2 * far
+		over += (y0 + y1) / 2 * far
+		far = math.max(SHOT_FAR, far * math.max((x1 - x0) / 2 / halfX, (y1 - y0) / 2 / halfY))
+	end
+	return right * across + up * over - SHOT_LOOK * far
+end
+
 -- One sub's picture: its model in a viewport, three-quarters from the front, on the card's cream well
 local function picture(parent: Instance, n: number)
 	local view = Instance.new("ViewportFrame")
@@ -160,15 +226,17 @@ local function picture(parent: Instance, n: number)
 	view.LightDirection = Vector3.new(-1, -1, -0.5)
 	view.ZIndex = 4
 	view.Parent = parent
-	local model = SubModels.build(n)
+	local model, parts = SubModels.build(n)
 	local sign = model:FindFirstChild("Label", true)
 	if sign then
 		sign:Destroy()
 	end
 	model.Parent = view
+	local hull = model.PrimaryPart
+	local eye = if hull and hull:IsA("MeshPart") then SHOTS[SubModels.style(n).Id] else nil
 	local cam = Instance.new("Camera")
-	cam.FieldOfView = 30
-	cam.CFrame = CFrame.lookAt(Vector3.new(-44, 18, -36), Vector3.new(0, 2, 0))
+	cam.FieldOfView = SHOT_FOV
+	cam.CFrame = CFrame.lookAlong(eye or shotBy(parts), SHOT_LOOK)
 	cam.Parent = view
 	view.CurrentCamera = cam
 end
@@ -216,7 +284,7 @@ local function build()
 			Tint = tint,
 			Title = name,
 			Line = if n == 0 then "The dive-in" else "Tier " .. n,
-			WellHigh = 112,
+			WellHigh = WELL_HIGH,
 			SlotHigh = 42,
 			LayoutOrder = n,
 		})
