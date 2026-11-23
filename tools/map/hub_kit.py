@@ -930,7 +930,7 @@ def gate(out, model):
 # Ours: sea grass, our own pale stones with a pebble or two, and now and then a few sea pinks on stalks. The pieces stand 2
 # to 4 studs behind the lip and have height, because they are seen from 24 studs below
 LEDGE_GRASS = ((150, 215, 70), (108, 178, 60))
-LEDGE_STONE = ((214, 219, 200), (190, 199, 176))
+LEDGE_STONE = ((246, 242, 226), (222, 221, 200))  # paler and warmer than the wall, or they sink into it
 LEDGE_PINK = (230, 190, 218)
 LEDGE_KINDS = ("grass", "stones", "grass", "pinks", "grass", "stones", "grass", "grass", "stones", "pinks")
 LEDGE_EVERY = 25.0
@@ -938,29 +938,29 @@ LEDGE_EVERY = 25.0
 
 def ledge_grass(k, r, deep):
     for j in range(r.choice((2, 2, 3))):
-        k.beam((-1.3 + j * 1.5 + r.uniform(-0.3, 0.3), -0.2, r.uniform(-0.7, 0.7)), 1.1, r.uniform(4.0, 5.5) if j else r.uniform(6.5, 9.0), 1.1,
+        k.beam((-1.8 + j * 2.0 + r.uniform(-0.4, 0.4), -0.2, r.uniform(-0.7, 0.7)), 1.5, r.uniform(5.0, 7.0) if j else r.uniform(9.0, 12.5), 1.5,
                LEDGE_GRASS[j % 2], roll=r.uniform(-11, 11), pitch=r.uniform(-5, 5), solid=False)
 
 
 def ledge_stones(k, r, deep):
     """a big block, a smaller one leaning beside it, sometimes a third on top, and pebbles"""
-    s = 4.6 if deep < 12 else r.uniform(6.0, 7.5)
+    s = 5.4 if deep < 12 else r.uniform(7.0, 9.0)
     k.box(0, -0.2, 0, s, s * r.uniform(0.9, 1.1), s, LEDGE_STONE[0], yaw=r.uniform(-14, 14), tex="stud", solid=False)
     e = r.choice((-1, 1))
     k.box(e * s * 0.86, -0.2, -s * 0.1, s * 0.62, s * 0.6, s * 0.62, LEDGE_STONE[1], yaw=r.uniform(-25, 25), tex="stud", solid=False)
     if r.random() < 0.6:
         k.box(-e * s * 0.1, s * 0.86, s * 0.06, s * 0.6, s * 0.55, s * 0.6, LEDGE_STONE[1], yaw=r.uniform(10, 35), tex="stud", solid=False)
     for j in range(r.randint(1, 2)):
-        p = r.uniform(1.1, 1.7)
+        p = r.uniform(1.4, 2.1)
         k.box(-e * (s * 0.75 + j * 1.9), -0.1, r.uniform(-0.8, 0.8), p, p, p, LEDGE_STONE[j % 2], yaw=r.uniform(0, 45), solid=False)
 
 
 def ledge_pinks(k, r, deep):
     for j in range(3):
-        x, z, h = -1.7 + j * 1.7, r.uniform(-0.6, 0.6), (3.2, 4.6, 2.6)[j]
-        t = k.beam((x, -0.2, z), 0.5, h, 0.5, LEDGE_GRASS[1], roll=r.uniform(-8, 8), solid=False)
-        k.box(t[0], t[1] - 0.4, t[2], 1.7, 1.1, 1.7, LEDGE_PINK, yaw=r.uniform(0, 45), solid=False)
-        k.box(t[0], t[1] + 0.6, t[2], 0.7, 0.4, 0.7, (255, 246, 232), solid=False)
+        x, z, h = -2.5 + j * 2.5, r.uniform(-0.6, 0.6), (4.6, 6.6, 3.6)[j]
+        t = k.beam((x, -0.2, z), 0.7, h, 0.7, LEDGE_GRASS[1], roll=r.uniform(-8, 8), solid=False)
+        k.box(t[0], t[1] - 0.5, t[2], 2.5, 1.6, 2.5, LEDGE_PINK, yaw=r.uniform(0, 45), solid=False)
+        k.box(t[0], t[1] + 1.0, t[2], 1.0, 0.6, 1.0, (255, 246, 232), solid=False)
 
 
 def ledge_litter(out, hub):
@@ -975,10 +975,10 @@ def ledge_litter(out, hub):
             long = math.dist((ax, az), (bx, bz))
             while walked <= due < walked + long:
                 t, deep = (due - walked) / long, piece["Deep"]
-                due += LEDGE_EVERY * r.uniform(0.6, 1.4)
+                due += LEDGE_EVERY * r.choice((0.45, 0.7, 1.0, 1.4, 1.7))
                 kind = LEDGE_KINDS[n % len(LEDGE_KINDS)]
                 n += 1
-                back = {"grass": r.uniform(2.0, 3.2), "pinks": r.uniform(2.0, 3.0), "stones": 3.8 if deep < 12 else r.uniform(4.5, 6.5)}[kind]
+                back = {"grass": r.uniform(2.0, 3.2), "pinks": r.uniform(2.0, 3.0), "stones": 4.0 if deep < 12 else r.uniform(5.5, 7.0)}[kind]
                 t = min(max(t, 0.22), 0.78)  # (off the joints, where a step or a corner may be)
                 x, z = ax + (bx - ax) * t + ox * back, az + (bz - az) * t + oz * back
                 if any(math.hypot(p["p"][0] - x, p["p"][2] - z) < math.hypot(p["s"][0], p["s"][2]) / 2 + 6 for p in tall):
