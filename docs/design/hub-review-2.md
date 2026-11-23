@@ -89,8 +89,8 @@ the fish at their real size; `tools/map/pen_levels.py`):
 |---|---|---|---|
 | **A storeys** (the pick) | a pen on a pen: each storey a deck with its own crooked fence. The decks are frames, open in the middle | The most fence feel, and an upgrade plainly adds a floor. The water works as one column, so nothing has to fit between floors | Needs new code: a storey has to appear, not stretch |
 | **B the fence climbs** | one column of water; crooked posts and rails climb it | The fewest new parts for that look | The rails cross the fish. Partly new code (rails have to be added as it grows) |
-| **C steps** | storeys that step in | The strongest shape | Holds the fewest: 9 of 11 and 7 of 14 in the picture. New code |
-| **E tank in a pen** | today's slim tank inside the low fence; only the tank grows | Works with today's code: posts and water stretch, rims lift. Only `Taller` changes | The least fence feel once it is tall |
+| **C steps** | storeys that step in | The strongest shape | Holds the fewest: 7 of 11 and 7 of 14 in the picture. New code |
+| **E tank in a pen** | today's slim tank inside the low fence; only the tank grows | The least new code: posts and water stretch and rims lift already | The least fence feel once it is tall |
 
 A fifth (D, a sand yard in front and a tower behind) is cut: at 38 deep the tower holds none of the big fish at any height.
 
@@ -121,8 +121,10 @@ the spawn to the strip):
 **In Studio:** `tools/map/hub_try.py` writes the try (`Workspace.HubTryS` and `HubTryPens`, at x 9000, with rows of the four
 styles beside it). It touches nothing under `ClaudeBlockout` and refuses to run in Play. Not loaded yet.
 
-**To confirm with the game-code chat** before any of it: A and C need a storey added per stage; B its rails; E only
-`Taller`. `TankWater` stays one box in A, B and E (A's storeys are drawn as separate blocks; one box over them all would do).
+**To confirm with the game-code chat** before any of it: A and C need a storey added per stage; B its rails; E a bigger
+`Taller`. In all of them the gate's `SignBoard` would rise with the tank (`LIFTED`) and the foam line (`FoamLine`) would
+not, so both need another name; the trim by stage is new code. The notes give the water as 14 high at stage 0, but the
+tanks read from Play were 34 to the top: to be read in Edit. `TankWater` stays one box in A, B and E (A's storeys are drawn as separate blocks; one box over them all would do).
 
 **What the game code leans on** (`AquariumService`, `TankRideService`, `AquariumController`, `TankPanel`):
 To confirm with the game-code chat before any of it goes in; as far as the map chat can see:
