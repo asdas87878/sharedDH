@@ -427,6 +427,9 @@ function Anim.dim(on: boolean)
 	tween(frame, if on then Anim.DimIn else Anim.DimOut, { BackgroundTransparency = if on then Anim.DimTo else 1 })
 end
 
+-- How many windows are open (UI.Shop's windows keep it), for a shine under them to wait
+Anim.Windows = 0
+
 -- The red "!": bounces while it is visible (a squash, a stretched hop with a wobble, a landing squash, a ring that
 -- grows and fades). The mark keeps its own Size and Position between bounces; its insides should be sized by scale.
 function Anim.bounce(mark: GuiObject, ringColour: Color3?)

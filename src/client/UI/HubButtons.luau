@@ -231,9 +231,9 @@ function HubButtons.build(parent: Instance)
 	shopMark = markOn(shop)
 	shopMark.Visible = true
 
-	-- the Shop's shine, once its "!" is down (one call for the eye at a time)
+	-- the Shop's shine, once its "!" is down and no window is open over it (one call for the eye at a time)
 	Anim.shine(shop:FindFirstChild("Face") :: GuiObject, 0, function()
-		return not shopMark.Visible
+		return not shopMark.Visible and Anim.Windows == 0
 	end)
 
 	-- looking in the Index, or the Shop, is what takes its mark off

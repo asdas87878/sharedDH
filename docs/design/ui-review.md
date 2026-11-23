@@ -197,11 +197,11 @@ phone layout. The Shop's offers are placeholders (every Id 0).
   overrides the reference's stand-panel spring. Closing is unchanged. The spring waits for the first frame drawn, so a
   first build can't swallow it. The shine (`Anim.shine`, `Anim.Shine`): two thin streaks cross a button in 0.7 s,
   0.5 s after it lights and every 4 s, only on a button that takes or gives money AND works now: Sell with fish
-  picked, the Sub's next Buy, an Aura's price (none priced yet), the hub's Shop button once its "!" is down, your own
+  picked, the Sub's next Buy, an Aura's price (none priced yet), the hub's Shop button once its "!" is down and no window is open, your own
   plot and seahorse signs when affordable and near. Nothing in the Shop window shines until an offer is on sale. Off
   with Roblox's Reduce Motion. Checked in Studio (2026-11-23: open curve, stagger, when each button shines and
   doesn't, `docs/attachments/ui-shine.png` mid-sweep; the streak's end when its button goes dead was 0.15 s late, now
-  next frame, checked in Edit). Not tested: a sub that can't be paid for (the place has `Sub.Free` = 1), another
+  next frame, and the Shop button's wait under an open window, both checked in Edit only). Not tested: a sub that can't be paid for (the place has `Sub.Free` = 1), another
   player's plot. Studio ran at 15 to 48 fps and nobody has played it by hand.
 
 Still proposed (the user's or Hugo's call): the dive HUD's restyle and fonts; the inventory bar's suggestions above;

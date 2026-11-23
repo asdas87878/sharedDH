@@ -572,6 +572,7 @@ function Shop.window(props: { [string]: any }): Window
 			return
 		end
 		open = on
+		Anim.Windows += if on then 1 else -1
 		if props.Dim then
 			Anim.dim(on)
 		end
