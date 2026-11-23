@@ -1,10 +1,11 @@
 --!strict
 -- What the Shop sells for Robux (UI review 1, the user, 2026-11-22: the Shop is its own screen, laid out as the
 -- reference's: one scrolling list of offers in sections). NONE IS ON SALE YET: no developer product or game pass has
--- been made, and none is made up here, so every Id is 0 and the Shop shows SOON on each. To put one on sale: make the
--- product or pass on the Roblox site, write its id and its Robux price here, and give the server its grant (a
--- MarketplaceService.ProcessReceipt for products, a pass check for passes). The client only asks Roblox for the
--- prompt; what a purchase gives is the server's alone.
+-- been made, and none is made up here, so every Id is 0 and the Shop shows SOON on each. To put a Cash or Oxygen pack on
+-- sale: make the developer product on the Roblox site and write its Id and its Amount here (Products.onSale). Its price
+-- is read from Roblox, so it is never other than what is charged. The server gives it (PurchaseService, kept by
+-- SaveService); the client only asks Roblox for the prompt. The passes and the other offers have no grant yet.
+--   Gives: what the server gives for it, "Coins" or "Oxygen" (max Oxygen, for good); Amount: how much, a whole number
 --   Kind: "Product" (bought again and again) or "Pass" (bought once, kept)
 --   Look: the card's colours, a name in Products.Looks
 --   Picture: a name in UI.Kit's Textures, or nil for the card's big word (Big)
@@ -17,7 +18,9 @@ export type Offer = {
 	Name: string,
 	Kind: string,
 	Id: number,
-	Price: number, -- Robux, shown once Id is set
+	Price: number, -- Robux, shown until Roblox has told the product's own price
+	Gives: string?, -- "Coins" or "Oxygen"
+	Amount: number?, -- how much of it
 	Look: string,
 	Picture: string?,
 	Big: string?,
@@ -110,6 +113,7 @@ Products.Sections = {
 				Key = "Oxygen1",
 				Name = "Small Tank",
 				Kind = "Product",
+				Gives = "Oxygen",
 				Id = 0,
 				Price = 0,
 				Look = "Sea",
@@ -119,6 +123,7 @@ Products.Sections = {
 				Key = "Oxygen2",
 				Name = "Big Tank",
 				Kind = "Product",
+				Gives = "Oxygen",
 				Id = 0,
 				Price = 0,
 				Look = "Sea",
@@ -128,6 +133,7 @@ Products.Sections = {
 				Key = "Oxygen3",
 				Name = "Huge Tank",
 				Kind = "Product",
+				Gives = "Oxygen",
 				Id = 0,
 				Price = 0,
 				Look = "Sea",
@@ -144,6 +150,7 @@ Products.Sections = {
 				Key = "Cash1",
 				Name = "Pile of Cash",
 				Kind = "Product",
+				Gives = "Coins",
 				Id = 0,
 				Price = 0,
 				Look = "Lime",
@@ -153,6 +160,7 @@ Products.Sections = {
 				Key = "Cash2",
 				Name = "Bag of Cash",
 				Kind = "Product",
+				Gives = "Coins",
 				Id = 0,
 				Price = 0,
 				Look = "Lime",
@@ -162,6 +170,7 @@ Products.Sections = {
 				Key = "Cash3",
 				Name = "Vault of Cash",
 				Kind = "Product",
+				Gives = "Coins",
 				Id = 0,
 				Price = 0,
 				Look = "Lime",
@@ -170,5 +179,23 @@ Products.Sections = {
 		},
 	},
 } :: { Section }
+
+-- Whether an offer can be bought: it has a product, and the server has something to give for it
+function Products.onSale(offer: Offer): boolean
+	local amount = offer.Amount
+	return offer.Id > 0 and offer.Kind == "Product" and offer.Gives ~= nil and amount ~= nil and amount > 0
+end
+
+-- The offer a Roblox product is (the server's: a receipt's ProductId)
+function Products.byId(id: number): Offer?
+	for _, section in Products.Sections do
+		for _, offer in section.Offers do
+			if id > 0 and offer.Id == id then
+				return offer
+			end
+		end
+	end
+	return nil
+end
 
 return Products

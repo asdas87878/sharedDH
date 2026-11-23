@@ -4,9 +4,10 @@
 -- (Controllers/StallController); no dim behind it, as the reference's. Laid out as the reference's: the shop kit's
 -- window with a sky header and its gloss, one list scrolling down, the sections' titles, and the offers as bright
 -- cards on a vivid gradient with a sunburst behind their picture: the wide ones one to a row, the boosts three to a
--- row. The offers are Shared/Products (every Id 0 for now): each card's button reads SOON and asks nothing until its
--- Id is set; then it shows the Robux price and asks Roblox for the purchase prompt. What a purchase gives is the
--- server's (Products' own note): nothing here grants anything.
+-- row. The offers are Shared/Products (every Id 0 for now): each card's button reads SOON and asks nothing until the
+-- offer is on sale (Products.onSale); then it shows Roblox's own price and asks Roblox for the purchase prompt, once
+-- the player's save is in (their "Saved" attribute), and the card says how much it gives. What a purchase gives is the
+-- server's (PurchaseService): nothing here grants anything.
 -- ShopScreen.goTo("Cash") opens it at that section: what the stat rows' plus buttons do (Controllers/StallController).
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -119,9 +120,9 @@ local function picture(card: GuiObject, offer: Products.Offer, at: UDim2, size: 
 	return nil
 end
 
--- The buy button: SOON until the offer has an id, then its price in Robux and the purchase prompt
+-- The buy button: SOON until the offer is on sale, then its price in Robux and the purchase prompt
 local function buy(card: GuiObject, offer: Products.Offer, props: { [string]: any }): Shop.Button
-	local onSale = offer.Id > 0
+	local onSale = Products.onSale(offer)
 	props.Name = "Buy"
 	props.Kind = if onSale then "Robux" else "Off"
 	props.Sign = if onSale then "Robux" else nil
@@ -130,15 +131,29 @@ local function buy(card: GuiObject, offer: Products.Offer, props: { [string]: an
 	props.Shine = onSale and offer.Key == "Featured" -- (one to a window)
 	local b = Shop.button(card, props)
 	b.Root.ZIndex = 5
+	if not onSale then
+		return b
+	end
+	-- (the price Roblox will charge this player, in place of ours)
+	task.spawn(function()
+		local ok, info = pcall(function()
+			return MarketplaceService:GetProductInfo(offer.Id, Enum.InfoType.Product)
+		end)
+		local price = if ok and info then info.PriceInRobux else nil
+		if type(price) == "number" then
+			b.set(tostring(price))
+		end
+	end)
 	b.Root.Activated:Connect(function()
-		if offer.Id <= 0 then
+		-- (nothing is asked for that the server could not give yet: no save in, or coins with no wallet)
+		local player = State.Player
+		if player:GetAttribute("Saved") ~= true then
 			return
 		end
-		if offer.Kind == "Pass" then
-			MarketplaceService:PromptGamePassPurchase(State.Player, offer.Id)
-		else
-			MarketplaceService:PromptProductPurchase(State.Player, offer.Id)
+		if offer.Gives == "Coins" and player:GetAttribute("Coins") == nil then
+			return
 		end
+		MarketplaceService:PromptProductPurchase(player, offer.Id)
 	end)
 	return b
 end
@@ -187,6 +202,15 @@ local function wideCard(parent: Instance, offer: Products.Offer, high: number, o
 	})
 end
 
+-- What a boost card is called: its name until it is on sale, then what it gives ("+$24K", "+150K")
+local function called(offer: Products.Offer): string
+	local amount = offer.Amount
+	if not amount or not Products.onSale(offer) then
+		return offer.Name
+	end
+	return (if offer.Gives == "Coins" then "+$" else "+") .. Kit.short(amount)
+end
+
 -- A boost card, three to a row: the picture on its sunburst at the top, the name, the button along the foot
 local function smallCard(parent: Instance, offer: Products.Offer, order: number): GuiObject?
 	local card = face(parent, offer, UDim2.new(1 / 3, -GAP * 2 / 3, 1, 0), order)
@@ -198,7 +222,7 @@ local function smallCard(parent: Instance, offer: Products.Offer, order: number)
 		Position = UDim2.new(0.5, 0, 1, -62),
 		Size = UDim2.new(1, -12, 0, 28),
 		TextSize = 25,
-		Text = offer.Name,
+		Text = called(offer),
 		ZIndex = 4,
 	})
 	buy(card, offer, {

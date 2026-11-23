@@ -8,6 +8,22 @@
   more on adverts. "A very big expense for us ... quite a big risk." So the game keeps its money in mind from the
   start, and **the aim is to break even on the spending.**
 
+- **Cash and Oxygen go on sale for Robux now, with saving (the user, 2026-11-23: "yes.").** See "Selling".
+
+## Selling (started 2026-11-23)
+- **Saving:** `SaveService`, on ProfileStore (`src/server/Lib/ProfileStore`, commit 45c9847, kept as it came: outside
+  StyLua and selene; its licence in `docs/licenses/`). Each service gives what it keeps (`SaveService.part`); all of it
+  is taken together or none. **No service is joined yet, so it does nothing:** it needs the tank (coins, stage, fish),
+  the trained Oxygen, the trainer's level and the subs, or what was bought with a pack would be gone on leaving.
+- **The payout:** `PurchaseService`, the one `ProcessReceipt`. A receipt is given once and Roblox is told so only when
+  the profile is seen saved. It needs `AquariumService.give` to say true when given, and a `RideService.grant` that
+  works off the dock (asked of the game-code chat).
+- **On sale** is an offer in `Products` with an `Id`, `Gives` and `Amount` (`Products.onSale`). The Shop then shows the
+  amount as the card's name and Roblox's own price, and asks for the prompt only once the player's save is in.
+- **Wanted from the user:** the six developer products made on Roblox (their ids; their prices are read from Roblox), and
+  the six amounts (the tuning chat is drafting them).
+- **Not run in Studio yet** (2026-11-23: another chat had it); StyLua, selene and the Rojo build pass.
+
 ## What breaking even takes
 Worked out 2026-11-16 from Roblox's own pages (read that day). The 30% is from memory; check it.
 
