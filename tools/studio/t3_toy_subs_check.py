@@ -102,7 +102,15 @@ RunService.RenderStepped:Connect(function(dt)
 		local d = (angle - w.angle + math.pi) % (2 * math.pi) - math.pi
 		w.turned += math.abs(d)
 		w.time += dt
-		if math.abs(d) < 0.02 then w.still += 1 end -- a frame on which the propeller did not turn
+		if math.abs(d) < 0.02 then
+			-- a frame on which the propeller's angle read the same. SubController turns it by dt * (4 + 0.12 * speed):
+			-- when that is a whole turn (or two) the propeller did turn, and only reads the same
+			w.still += 1
+			local step = dt * (4 + root.AssemblyLinearVelocity.Magnitude * 0.12)
+			local turns = math.floor(step / (2 * math.pi) + 0.5)
+			if turns >= 1 and math.abs(step - turns * 2 * math.pi) < 0.35 then w.whole += 1 end
+			w.stillStep = math.min(w.stillStep, step)
+		end
 	end
 	w.angle = angle
 	local glow = found:FindFirstChild("Prop_Glow")
@@ -173,7 +181,7 @@ workspace:GetAttributeChangedSignal("T3Do"):Connect(function()
 			return "unlined"
 		elseif verb == "watch" then
 			watch = { n = 0, riderMax = 0, seatMax = 0, propMax = 0, glowMax = 0, axisMin = 1, turned = 0, time = 0,
-				still = 0, wakeMin = math.huge, wakeMax = 0, wakeOff = 0, beamOff = 0, signOff = 0, beamDot = 1, nose = 1,
+				still = 0, whole = 0, stillStep = math.huge, wakeMin = math.huge, wakeMax = 0, wakeOff = 0, beamOff = 0, signOff = 0, beamDot = 1, nose = 1,
 				speed = 0 }
 			return "watching"
 		elseif verb == "read" then
@@ -182,9 +190,9 @@ workspace:GetAttributeChangedSignal("T3Do"):Connect(function()
 			if w.bad then return "BAD " .. w.bad end
 			if w.n == 0 then return "frames=0" end
 			return string.format(
-				"frames=%d tier=%s hullMesh=%s rider=%.2f,%.2f,%.2f riderOffMax=%.2f seatOffMax=%.2f propOffMax=%.3f glowOffMax=%.3f propAxisMin=%.3f propStillFrames=%d wake=%.0f..%.0f wakeOffFrames=%d beamOffFrames=%d beamDotMin=%.2f lampAhead=%.1f signOffFrames=%d noseMin=%.2f topSpeed=%.0f",
+				"frames=%d tier=%s hullMesh=%s rider=%.2f,%.2f,%.2f riderOffMax=%.2f seatOffMax=%.2f propOffMax=%.3f glowOffMax=%.3f propAxisMin=%.3f propStillFrames=%d wholeTurnFrames=%d stillStepMin=%.2f wake=%.0f..%.0f wakeOffFrames=%d beamOffFrames=%d beamDotMin=%.2f lampAhead=%.1f signOffFrames=%d noseMin=%.2f topSpeed=%.0f",
 				w.n, tostring(w.tier), tostring(w.mesh), w.rider.X, w.rider.Y, w.rider.Z, w.riderMax, w.seatMax, w.propMax,
-				w.glowMax, w.axisMin, w.still, w.wakeMin, w.wakeMax, w.wakeOff, w.beamOff, w.beamDot, w.lampAhead or 0,
+				w.glowMax, w.axisMin, w.still, w.whole, if w.still > 0 then w.stillStep else 0, w.wakeMin, w.wakeMax, w.wakeOff, w.beamOff, w.beamDot, w.lampAhead or 0,
 				w.signOff, w.nose, w.speed)
 		end
 		return "?"
@@ -312,7 +320,7 @@ def checks(tiers):
         note(do("line|0", 3))
         time.sleep(2)
         lineup = shot("lineup")
-        if list(Image.open(before).getdata()) == list(Image.open(lineup).getdata()):
+        if Image.open(before).tobytes() == Image.open(lineup).tobytes():
             STILLS = False
             note("  ! Studio's window is frozen (off the screen or covered): no stills this run")
         else:
@@ -340,7 +348,7 @@ def checks(tiers):
         time.sleep(1)
         after = shot("after")
         note(do("unline", 1))
-        if list(Image.open(before).getdata()) == list(Image.open(after).getdata()):
+        if Image.open(before).tobytes() == Image.open(after).tobytes():
             STILLS = False
             note("  ! Studio's window is frozen (off the screen or covered): no stills this run")
     stills = {}

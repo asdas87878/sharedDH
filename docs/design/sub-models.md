@@ -66,38 +66,61 @@ are printed as `  !` lines and stop the build. All nine pass.
 
 ## Checked in the game (2026-11-23, task t3)
 
-One playtest on Hugo's PC, by script (`tools/studio/t3_toy_subs_check.py`, log `work/t3/check.log`). **Not played by
-hand, and not seen by eye:** see "Pictures" below.
+Three playtests on Hugo's PC, by script (`tools/studio/t3_toy_subs_check.py`, log `work/t3/check.log`): all nine
+tiers twice, then tiers 5 to 9 once more for the propeller. **Not played by hand, and not seen by eye:** see
+"Pictures" below. The numbers here are the second playtest's, with the third's where it was worse.
 
 - **Every tier builds from its template.** All nine come out as MeshParts (5 parts on tiers 1 to 5, 6 on tiers 6 to
   9), with 2 or 3 Neon parts, the lamp's beam on and the wake's emitter on the propeller.
-- **A real trip on every tier,** tier N to land N + 1, read on every frame of the run (190 to 366 frames a trip):
+- **A real trip on every tier,** tier N to land N + 1. The check reads our own sub on every frame of the run (192 to
+  369 frames a trip) and keeps the worst value, or counts the frames that were wrong:
 
 | What | Result on all nine |
 |---|---|
-| The rider | at the seat's place (0, 7.4, 5 from the sub's middle), 0.00 studs off on every frame; that is 1.7 studs over the seat's top |
-| The seat | where the model has it, 0.00 studs off |
-| The propeller | turns on every frame, about the sub's long axis; its middle stays on the hub (0.003 studs off at most), and so does the glowing hub of tiers 6 to 9 |
-| The wake | on, 18 to 260 bubbles a second, rising with speed |
-| The lamp | Neon, its beam on and pointing along the nose, 10.4 (tier 7) to 20.2 (tier 9) studs ahead of the middle |
-| The name sign | on, its lower edge 0.6 studs over the model's top |
-| The nose | points the way the sub goes (0.93 to 1.00) |
+| The rider | at the seat's place (0, 7.4, 5 from the sub's middle); the furthest off on any frame was 0.00 studs. That is 1.7 studs over the seat's top |
+| The seat | where the model has it; the furthest off on any frame was 0.00 studs |
+| The propeller's place | its middle stays on the hub (0.005 studs off at most on any frame), and so does the glowing hub of tiers 6 to 9 (0.002); it stays turned about the sub's long axis on every frame |
+| The propeller's turn | its angle changed on every frame on tiers 1 to 4 and 8. On tiers 5, 6, 7 and 9 it read the same on a few frames of about 350 (at most 2, 6, 7 and 1): whole turns in one frame wherever the check could tell, see below |
+| The wake | its emitter on, on the propeller, on every frame; its rate went from 11 to 260 bubbles a second over a trip (`SubController` sets it from the speed) |
+| The lamp | Neon with its beam on, on every frame; the beam points along the nose (1.00 at worst); it sits 10.4 (tier 7) to 20.2 (tier 9) studs ahead of the middle (read at the trip's end) |
+| The name sign | on, on every frame; its lower edge 0.6 studs over the model's top (read once, as the model is built) |
+| The nose | points the way the sub goes: 0.89 at worst (tier 8), 0.97 to 1.00 on the others |
 
-- **Top speeds on the trips:** 465 studs a second to land 2, 4,331 to land 10.
+- **The propeller's same-angle frames are whole turns, not stops (third playtest).** The check compares the angle
+  on one frame with the last. `SubController` turns the propeller by 4 + 0.12 x speed radians a second, which at about
+  3,100 studs a second is one whole turn a frame at 60 frames a second, and a whole turn reads as no turn. On the
+  third playtest the check worked out that turn on each same-angle frame: all 14 of them (6 on tier 6, 7 on tier 7,
+  1 on tier 9) were 6.21 to 6.28 radians, one whole turn. The second playtest's (2, 6 and 4 on tiers 5, 6 and 7)
+  were counted before the check could tell, so those are likely the same, not confirmed. Seen by eye, a propeller
+  at those speeds may look still or seem to turn backwards; `SubController` turned the placeholder and the voxel set
+  the same way.
+- **Top speeds on the trips:** 464 studs a second to land 2, 4,315 to land 10.
 - **The shop's cards cut off the big tiers (by the card camera's numbers, not seen).** `UI/SubPanel` pictures every
-  sub from one fixed spot, in a box about 1.5 times as wide as it is tall. Tier 9's nose would need a box 2.4 times
-  as wide, tier 8's 1.8; both also fill the box's whole height. Tier 5 is at the edge. The voxel set was cut too
-  (tier 9 needed 2.05), so this is older than the toy set, but worse now. `SubPanel` is the UI chat's file: not
-  changed here.
+  sub from one fixed spot, in a box 188 wide less its padding and 112 high: 1.5 to 1.7 times as wide as it is tall.
+  How wide a box each tier's far end needs, as a multiple of its height: tier 9, 2.41; tier 8, 1.79; tier 5, 1.55;
+  tier 6, 1.54; tier 7, 1.49; tiers 1 to 4, 1.10 to 1.36. So tiers 8 and 9 are cut off at one side, and tiers 5, 6
+  and 7 are at the edge. Tiers 8 and 9 also fill the box's whole height (1.00 and 1.02 of it). The voxel set was
+  cut too (tier 9 needed 2.05), so this is older than the toy set, but worse now. `SubPanel` is the UI chat's file:
+  not changed here.
 - **Not checked:** whether the rider's body passes through the back rest, the wind-up key or a fin, and whether the
   blades cut the guard ring when seen. These need eyes.
 
 ### Pictures
 
-None yet. On 2026-11-23 Studio's window sat off the edge of Hugo's screen, and there its pictures freeze: every
-still the check took showed the same Edit view from before the playtest. The engine's own screenshot
-(`CaptureService`) can't be saved to a file from a script. With Studio's window on the screen, `run` takes the
-line-up by the stand, each tier close, the shop, and a still of every tier's trip, and lays them out as
+None yet. On 2026-11-23 every still the check took came out as one and the same picture: Studio in Edit, from before
+the playtest. **Why is likely, not confirmed:** Studio's window sat off the left edge of Hugo's screen.
+
+- **For it:** playtest stills were live at 04:41; the window was last focused at 04:51; every still from 04:54 on
+  was frozen. The same freeze with the window off the screen is in [Handoff](../Handoff.md) (2026-11-20). The
+  monitor was on and the screen was not locked.
+- **Not tested:** the window was never put back on the screen. It was moved 12 pixels for a few seconds, which
+  showed a strip about 10 pixels wide, and that changed nothing.
+- **Also tried:** in Edit, turning the camera did not change the still either. A screencast of the window alone,
+  held open for 15 seconds, got one frame: the window is not drawing at all, off the screen or for another reason.
+  The engine's own screenshot (`CaptureService`) can't be saved to a file from a script.
+
+The check now turns the camera between two stills and keeps none if they come out alike. With live stills, `run`
+takes the line-up by the stand, each tier close, the shop, and a still of every tier's trip, and lays them out as
 `docs/attachments/subs-toy-game-lineup.png`, `-close.png`, `-shop.png` and `-rides.png`.
 
 ## Build
