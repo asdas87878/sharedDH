@@ -18,7 +18,7 @@
 --   Hugo, 2026-11-19).
 -- A "Throw" outcome ends in the throw and the drown (DeathController, which leaves a loose body to the physics until its
 -- joints are back); a "Taken" one is the fail itself and fades to the fail screen (State.Fade, FadeText).
--- The words of a failed run are drawn here too (task b5: Kit.failWords, the Slam band; "The words" below): what the
+-- The words of a failed run are drawn here too (Kit.failWords, the Bubble letters; "The words" below): what the
 -- deaths set in State.FadeText comes through Banners.miss and Kit.FailShow.
 -- Stand-ins for the partner's animations: the player's FailKind attribute and Config.Fail.Outcomes[kind].Hook name
 -- what plays; the sounds are placeholders from Lib/Fx.
@@ -1569,21 +1569,24 @@ local viewParamsNow: RaycastParams? = nil
 local viewParamsAt = -math.huge
 
 ----------------------------------------------------------------------------------------------------------------------
--- The words of a failed run (task b5; Hugo, 2026-11-22: "make text better and more stylised when failing a run"):
--- the Slam band of Kit.failWords, over the black. The deaths still say what and when (State.FadeText, State.Fade:
--- DeathController's "OUT OF BREATH!" and "MISSED THE FISH!", HudController's "TOO STRONG!", a taken outcome's own
--- Text); HudController hands them to Banners.miss each frame, which hands them here (Kit.FailShow). Thrown off by an
--- outcome, the plain run-out's words are that outcome's own (Config.Fail.Outcomes' Text: "THROWN OFF!", "ROLLED
--- OFF!"). The band slams on as the black begins, whatever the black's own pace, and drops away as it lifts; the
--- words are kept as they came up until then (the server's attributes are gone by the time we are home).
+-- The words of a failed run (Hugo, 2026-11-22: "make text better and more stylised when failing a run", and of the
+-- sheet: "Use the bubble text option"): the Bubble letters of Kit.failWords, over the black, each line in its own
+-- colour (Config.failColours). The deaths still say what and when (State.FadeText, State.Fade: DeathController's
+-- "OUT OF BREATH!" and "MISSED THE FISH!", HudController's "TOO STRONG!", a taken outcome's own Text); HudController
+-- hands them to Banners.miss each frame, which hands them here (Kit.FailShow). Thrown off by an outcome, the plain
+-- run-out's words are that outcome's own (Config.Fail.Outcomes' Text: "THROWN OFF!", "ROLLED OFF!"). The letters pop
+-- up as the black begins, whatever the black's own pace, and float up and pop as it lifts, all gone before it is;
+-- the words are kept as they came up until then (the server's attributes are gone by the time we are home).
 -- Studio only, to look at any line without failing: workspace's "FailWords" (the words; "" or nil for none),
--- "FailWordsSub" (false: no second line), "FailWordsAge" (seconds in, held: a still of the motion) and "FailWordsOut"
--- (0 to 1 of the way out).
+-- "FailWordsSub" (false: no second line), "FailWordsAge" (seconds in, held: a still of the motion), "FailWordsOut"
+-- (0 to 1 of the way out) and "FailWordsScreen" (a Vector2: the words drawn as on a screen of that size, outlined,
+-- for a phone's).
 local words: Kit.FailWords? = nil
 local wordsRaw = "" -- what the deaths last said
 local wordsAt = 0 -- os.clock() they came up
 local wordsPeak = 0 -- the most the black has been since
-local wordsHit = false -- the slam has landed (its thud, once)
+local wordsUpIn = 0 -- seconds the letters take to all be up
+local wordsPops = 0 -- the pops heard so far (coming up, then going)
 local wordsTest = "" -- (Studio: the line being looked at)
 local thrownBy: string? = nil -- our own last outcome or throw, for its words
 
@@ -1617,8 +1620,30 @@ end
 local function wordsUp(text: string, sub: string)
 	wordsAt = os.clock()
 	wordsPeak = 0
-	wordsHit = false
-	wordsBand().show(text, sub)
+	wordsPops = 0
+	local colour, deep = Config.failColours(text)
+	wordsUpIn = wordsBand().show(text, sub, colour, deep)
+end
+
+-- The letters' pops, heard (the placeholder there is, pitched about): three as the word comes up, two as it goes
+local POPS_IN = { 0.1, 0.55, 1 } -- of the time the letters take to all be up
+local POPS_OUT = { 0.35, 0.65 } -- of the way out
+local function wordsPop(age: number, out: number)
+	local due = 0
+	for _, share in POPS_IN do
+		due += if age >= wordsUpIn * share then 1 else 0
+	end
+	for _, share in POPS_OUT do
+		due += if out >= share then 1 else 0
+	end
+	if due > wordsPops then
+		wordsPops = due
+		local sound = Fx.sound("Pop")
+		if sound then
+			sound.PlaybackSpeed *= 0.85 + 0.12 * due
+			sound.Volume *= if out > 0 then 0.6 else 1
+		end
+	end
 end
 
 local function wordsShow(raw: string, black: number)
@@ -1649,14 +1674,11 @@ local function wordsShow(raw: string, black: number)
 	local age = os.clock() - wordsAt
 	wordsPeak = math.max(wordsPeak, black)
 	local out = if not State.dying() and wordsPeak > 0 then 1 - math.clamp(black / wordsPeak, 0, 1) else 0
-	if not wordsHit and age >= Kit.FailLook.SlamAt + Kit.FailLook.Slam then
-		wordsHit = true
-		Fx.sound("Chomp") -- (a low thud, the placeholder there is)
-		Shake.play("Crash", 0.4)
-	end
+	wordsPop(age, out)
 	band.pose(age, out)
 end
 
+local wordsScreen: Vector2? = nil -- (Studio: the pretended screen)
 local function wordsStudio()
 	local asked = workspace:GetAttribute("FailWords")
 	local text = if type(asked) == "string" then asked else ""
@@ -1674,6 +1696,26 @@ local function wordsStudio()
 	local band = words
 	if text == "" or not band then
 		return
+	end
+	-- a pretended screen: the words fit themselves to their Root's size, so a phone's is that size of box, outlined
+	local box = workspace:GetAttribute("FailWordsScreen")
+	local screen = if typeof(box) == "Vector2" and box.X > 0 and box.Y > 0 then box else nil
+	if screen ~= wordsScreen then
+		wordsScreen = screen
+		local root = band.Root
+		local edge = root:FindFirstChild("Pretend")
+		if screen and not edge then
+			local line = Instance.new("UIStroke")
+			line.Name = "Pretend"
+			line.Thickness = 2
+			line.Color = Color3.new(1, 1, 1)
+			line.Parent = root
+		elseif edge and not screen then
+			edge:Destroy()
+		end
+		root.AnchorPoint = if screen then Vector2.new(0.5, 0.5) else Vector2.zero
+		root.Position = if screen then UDim2.fromScale(0.5, 0.5) else UDim2.new()
+		root.Size = if screen then UDim2.fromOffset(screen.X, screen.Y) else UDim2.fromScale(1, 1)
 	end
 	local held = workspace:GetAttribute("FailWordsAge")
 	local out = workspace:GetAttribute("FailWordsOut")

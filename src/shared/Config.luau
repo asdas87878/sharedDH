@@ -2643,11 +2643,32 @@ Config.Death = {
 --   Pin    a crawler dives to the floor and pins you under it
 Config.Fail = {
 	On = 1, -- 0: every fish throws you off at once (the old out of Oxygen)
-	-- the words on the fail screen (task b5, the Slam band: Kit.failWords, FailController): the plain run-out's, and the
+	-- the words on the fail screen (the Bubble letters: Kit.failWords, FailController): the plain run-out's, and the
 	-- small line under any of them when the dive's catch comes home with you. An outcome's own are its Text below; a
 	-- "Throw" ending shows its Text in place of Breath
 	Breath = "OUT OF BREATH!",
 	Safe = "YOUR CATCH IS SAFE",
+	-- the colour of each line's letters and the deep one its outline and shadow are made from (Hugo's pick, 2026-11-22:
+	-- "Use the bubble text option", a colour an outcome, the sheet's own). Breath: the plain run-out; the outcomes by
+	-- name; Config.failColours gives them for the words on screen
+	Colours = {
+		Breath = { Color3.fromRGB(72, 204, 255), Color3.fromRGB(18, 96, 208) },
+		Throw = { Color3.fromRGB(255, 170, 60), Color3.fromRGB(214, 82, 16) },
+		Chomp = { Color3.fromRGB(255, 86, 86), Color3.fromRGB(150, 14, 34) },
+		Gulp = { Color3.fromRGB(206, 120, 255), Color3.fromRGB(98, 30, 170) },
+		Wrap = { Color3.fromRGB(132, 120, 255), Color3.fromRGB(44, 30, 140) },
+		Roll = { Color3.fromRGB(70, 220, 200), Color3.fromRGB(10, 120, 130) },
+		Flip = { Color3.fromRGB(110, 190, 255), Color3.fromRGB(30, 90, 190) },
+		Shell = { Color3.fromRGB(120, 226, 96), Color3.fromRGB(24, 122, 52) },
+		Coil = { Color3.fromRGB(232, 232, 70), Color3.fromRGB(150, 140, 10) },
+		Pin = { Color3.fromRGB(255, 140, 96), Color3.fromRGB(150, 50, 20) },
+	} :: { [string]: { Color3 } },
+	-- and of the two lines that are no outcome, by their words (DeathController's and HudController's; they were not
+	-- on the sheet: pink and silver are Claude's). Any other words take Breath's
+	WordColours = {
+		["MISSED THE FISH!"] = { Color3.fromRGB(226, 234, 255), Color3.fromRGB(84, 100, 168) },
+		["TOO STRONG!"] = { Color3.fromRGB(255, 104, 176), Color3.fromRGB(168, 16, 96) },
+	} :: { [string]: { Color3 } },
 	-- these tiers only ever throw you off (Hugo: "give low-tier fishes just the throwing off")
 	LowTiers = { Common = true, Uncommon = true } :: { [string]: boolean },
 	-- (task f3, 2026-11-19: longer, so each reads in full; Loose: seconds in that the rider comes off the fish, a real
@@ -2716,6 +2737,23 @@ Config.Fail = {
 	ByStyle = { Snake = "Coil", Glider = "Flip", Crawler = "Pin", Jetter = "Wrap" } :: { [string]: string },
 	Default = "Throw",
 }
+
+-- The colours of a fail line's bubble letters (Config.Fail.Colours), by the words on screen: the letters' own, and
+-- the deep one their outline and shadow are made from
+function Config.failColours(text: string): (Color3, Color3)
+	local f = Config.Fail
+	local pair = f.WordColours[text]
+	if not pair and text ~= f.Breath then
+		for kind, def in f.Outcomes do
+			if def.Text == text then
+				pair = f.Colours[kind]
+				break
+			end
+		end
+	end
+	pair = pair or f.Colours.Breath
+	return pair[1], pair[2]
+end
 
 -- The outcome for a fish (Config.Fail): its name. `style`: its body type's name (RideStyles.nameOf), if known.
 function Config.failOf(fish: FishType, style: string?): string

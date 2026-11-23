@@ -545,7 +545,7 @@ end
 
 -- The words of a miss, as the deaths set them (State.FadeText), fading in with the black
 function Banners.miss(text: string, alpha: number)
-	-- (task b5: FailController's Slam band shows them when it is there; what follows is the old plain streak)
+	-- (FailController's Bubble letters show them when they are there; what follows is the old plain streak)
 	local show = Kit.FailShow
 	if show then
 		show(text, alpha)

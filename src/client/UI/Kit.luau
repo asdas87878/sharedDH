@@ -18,7 +18,7 @@
 --   Plates: dressing a frame as a plate or a glass box, and a plate with its shadow
 --   Patterns and signs: stripes, grid paper, the warning pulse, and the bubble and coin signs
 --   Rings: the sweeping arc, the emptying ring, the thin extra ring and seconds as text
---   Fail words: the slam band shown when a run fails
+--   Fail words: the bubble letters shown when a run fails
 --   Numbers and touch: big numbers in short, and whether this is a phone
 
 local RunService = game:GetService("RunService")
@@ -1547,35 +1547,51 @@ function Kit.seconds(value: number): string
 end
 
 ----------------------------------------------------------------------------------------------------------------------
--- Fail words: the slam band shown when a run fails
+-- Fail words: the bubble letters shown when a run fails
 
--- The words of a failed run (task b5; Hugo, 2026-11-22: "make text better and more stylised when failing a run. Out of
--- breath type text needs a rework"): look 1 of docs/attachments/fail-text-options-2026-11-22.png, the Slam band, the
--- family of GREAT DIVE and CAUGHT so a fail reads as the opposite of a win. Bangers in hard red metal on a tilted dark
--- streak with red edges, always red, a small second line under it. Its motion: the streak slashes open from a
--- hairline, the words slam on from the camera and ring (a squash, a white flash, a judder), the second line pops in;
--- it drops away as the black lifts. No pictures, nothing uploaded. Who shows it and what it says: FailController.
+-- The words of a failed run (Hugo, 2026-11-22: "make text better and more stylised when failing a run. Out of breath
+-- type text needs a rework", and of the sheet docs/attachments/fail-text-options-2026-11-22.png: "Use the bubble text
+-- option"): look 2 of that sheet, the Bubble letters. Every letter is its own fat FredokaOne letter in the outcome's
+-- colour (white at its top going to the colour, with an outline and a shadow of the colour's dark), each a little up
+-- or down of the next and a little turned, with bubbles round the word. Its motion: the letters pop up one by one from
+-- below and bob from then on, the bubbles blow up round them, a small second line pops in under the word; on the way
+-- out each letter floats up, swells and pops, one after another, leaving a ring for a moment.
+-- (Task b5 built look 1, the Slam band, before the pick reached it; this took its place.)
+-- All of it is worked out from two numbers, the seconds since the words came up and how far out they are, so a held
+-- clock gives a still. No pictures, nothing uploaded. Who shows it, what it says and in which colour: FailController
+-- and Config.Fail.
 Kit.FailLook = {
-	Font = Enum.Font.Bangers,
-	Size = 76, -- the words, and the second line's
-	Sub = 26,
-	Tilt = -4, -- degrees
-	Wide = 580, -- the streak: at least this wide, or the words and Pad
-	Pad = 190,
-	High = 92,
-	Open = 0.16, -- seconds the streak takes to slash open
-	SlamAt = 0.08, -- the words start in after this long,
-	Slam = 0.2, -- take this long to land,
-	From = 2.6, -- and come from this many times their size
-	Ring = 0.1, -- the ring on landing: how far the words squash and bounce, of their size,
-	RingRate = 5.5, -- how many times a second,
-	RingFade = 9, -- and how fast it dies away
-	Judder = 2.2, -- degrees the band judders on landing
-	Flash = 0.2, -- seconds the white flash on the letters lasts
-	SubAt = 0.5, -- the second line pops in after this long,
-	SubPop = 0.22, -- over this long
-	Drop = 90, -- on the way out it falls this far (of a 640-high screen) and turns this much more
-	DropTurn = -5,
+	Font = Enum.Font.FredokaOne,
+	Size = 70, -- the letters, and the second line's
+	Sub = 25,
+	Gap = 3, -- between two letters,
+	Space = 0.34, -- and a space, of the letters' size
+	Line = 6, -- the outline's thickness, and how far down the shadow sits
+	Shadow = 7,
+	Step = 9, -- each letter is up or down of the line by as much as this,
+	Turn = 7, -- and turned by as much as this, degrees
+	Stagger = 0.055, -- seconds from one letter popping up to the next,
+	Within = 0.6, -- but the last one starts within this long, however long the words
+	Pop = 0.26, -- seconds a letter takes to pop up,
+	PopFrom = 34, -- from this far below
+	Bob = 5, -- then it bobs this far up and down,
+	BobRate = 3.2, -- this fast (radians a second),
+	Sway = 2.5, -- turning this many degrees either way,
+	SwayRate = 2.1,
+	BubbleAt = 0.12, -- the bubbles blow up from this long in, one every BubbleStep,
+	BubbleStep = 0.05,
+	BubblePop = 0.22, -- each over this long,
+	BubbleBob = 6, -- and they drift this far about
+	SubAfter = 0.2, -- the second line pops in this long after the last letter starts,
+	SubPop = 0.24, -- over this long,
+	SubDown = 66, -- this far under the middle of the word
+	OutFrom = 0.25, -- on the way out the letters pop from here
+	OutTo = 0.8, -- to here (0 to 1 of the way out: all gone before the black is),
+	Float = 70, -- each having floated up this far
+	Swell = 0.22, -- and swollen by this much of its size;
+	Burst = 0.16, -- the ring where one popped lasts this much of the way out
+	Margin = 95, -- room for the bubbles at each end of the word
+	High = 230, -- the height it all fits in
 	FitWide = 0.94, -- never wider than this much of the screen,
 	FitHigh = 640, -- full size on a screen this high,
 	Most = 1.5, -- and never more than this many times it
@@ -1583,126 +1599,170 @@ Kit.FailLook = {
 
 export type FailWords = {
 	Root: Frame,
-	show: (text: string, sub: string) -> (), -- new words: the motion starts again from pose(0, 0)
+	-- new words in these colours (the letters' own, and the deep one their outline and shadow are made from): the
+	-- motion starts again from pose(0, 0). Gives the seconds until the last letter is up
+	show: (text: string, sub: string, colour: Color3, deep: Color3) -> number,
 	pose: (age: number, out: number) -> (), -- seconds since they came up; 0 to 1 of the way out
 	hide: () -> (),
 }
 
-local FAIL_LINE = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 1),
-	NumberSequenceKeypoint.new(0.25, 0),
-	NumberSequenceKeypoint.new(0.75, 0),
-	NumberSequenceKeypoint.new(1, 1),
-})
+type FailLetter = {
+	Holder: Frame,
+	Scale: UIScale,
+	Shadow: TextLabel,
+	ShadowLine: UIStroke,
+	Face: TextLabel,
+	FaceLine: UIStroke,
+	Fill: UIGradient,
+	Ring: Frame,
+	RingLine: UIStroke,
+	X: number, -- its middle, from the middle of the word
+	Wide: number,
+	Y: number, -- its own step up or down, and turn
+	Turn: number,
+	Phase: number,
+	Born: number, -- seconds in it pops up
+	PopAt: number, -- how far out it pops
+	Scaled: number, -- its UIScale's last number (written only when it changes)
+}
+
+type FailBubble = { Frame: Frame, Line: UIStroke, Glint: Frame, X: number, Y: number, Size: number }
 
 local function outBack(u: number): number
 	local c = 1.70158
 	return 1 + (c + 1) * (u - 1) ^ 3 + c * (u - 1) ^ 2
 end
 
+-- a number from 0 to 1 that is always the same for the same `i` (which letter pops first, never the same two runs
+-- of a clock apart)
+local function scatter(i: number): number
+	return (math.sin(i * 12.9898) * 43758.5453) % 1
+end
+
 function Kit.failWords(parent: Instance): FailWords
 	local look = Kit.FailLook
-	local dark = Color3.fromRGB(20, 2, 10)
 	local root: Frame = Kit.new("Frame", {
 		Name = "FailWords",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		Visible = false,
 	}, parent)
-	local tilt: Frame = Kit.new("Frame", {
-		Name = "Band",
+	local band: Frame = Kit.new("Frame", {
+		Name = "Word",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.5, -8),
-		Size = UDim2.fromOffset(look.Wide, 150),
+		Size = UDim2.fromOffset(600, look.High),
 		BackgroundTransparency = 1,
-		Rotation = look.Tilt,
 	}, root)
-	local fit: UIScale = Kit.new("UIScale", {}, tilt)
-	local streak: Frame = Kit.new("Frame", {
-		Name = "Streak",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.46),
-		Size = UDim2.fromOffset(look.Wide, look.High),
-		BackgroundColor3 = Kit.White,
-		BorderSizePixel = 0,
-	}, tilt)
-	local streakFill: UIGradient = Kit.new("UIGradient", {
-		Color = ColorSequence.new(Color3.fromRGB(96, 8, 30), Color3.fromRGB(18, 4, 14)),
-	}, streak)
-	local edges: { Frame } = {}
-	for _, y in { 0, 1 } do
-		local edge: Frame = Kit.new("Frame", {
-			AnchorPoint = Vector2.new(0, y),
-			Position = UDim2.fromScale(0, y),
-			Size = UDim2.new(1, 0, 0, 4),
-			BackgroundColor3 = Color3.fromRGB(255, 86, 86),
+	local fit: UIScale = Kit.new("UIScale", {}, band)
+
+	-- the letters: made as they are first needed, kept for the next words
+	local letters: { FailLetter } = {}
+	local count = 0
+	local function letter(i: number): FailLetter
+		local had = letters[i]
+		if had then
+			return had
+		end
+		local holder: Frame = Kit.new("Frame", {
+			Name = "Letter",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Visible = false,
+			ZIndex = 4,
+		}, band)
+		local function layer(down: number, z: number): TextLabel
+			return Kit.new("TextLabel", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, down),
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				Font = look.Font,
+				TextSize = look.Size,
+				TextColor3 = Kit.White,
+				Text = "",
+				ZIndex = z,
+			}, holder)
+		end
+		local shadow = layer(look.Shadow, 1)
+		local face = layer(0, 2)
+		-- the ring it leaves when it pops (not in the holder: that is hidden by then)
+		local ring: Frame = Kit.new("Frame", {
+			Name = "Pop",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Visible = false,
+			ZIndex = 6,
+		}, band)
+		Kit.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }, ring)
+		local made: FailLetter = {
+			Holder = holder,
+			Scale = Kit.new("UIScale", {}, holder),
+			Shadow = shadow,
+			ShadowLine = Kit.stroke(shadow, look.Line, Kit.Ink),
+			Face = face,
+			FaceLine = Kit.stroke(face, look.Line, Kit.Ink),
+			Fill = Kit.new("UIGradient", { Rotation = 90 }, face),
+			Ring = ring,
+			RingLine = Kit.stroke(ring, 3, Kit.White),
+			X = 0,
+			Wide = 0,
+			Y = 0,
+			Turn = 0,
+			Phase = 0,
+			Born = 0,
+			PopAt = 1,
+			Scaled = 1,
+		}
+		letters[i] = made
+		return made
+	end
+
+	-- the bubbles round the word: a pale ring with a glint
+	local bubbles: { FailBubble } = {}
+	for i = 1, 7 do
+		local frame: Frame = Kit.new("Frame", {
+			Name = "Bubble",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Color3.fromRGB(190, 236, 255),
+			BackgroundTransparency = 0.78,
 			BorderSizePixel = 0,
+			Visible = false,
 			ZIndex = 2,
-		}, streak)
-		Kit.new("UIGradient", { Transparency = FAIL_LINE }, edge)
-		table.insert(edges, edge)
+		}, band)
+		Kit.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }, frame)
+		local glint: Frame = Kit.new("Frame", {
+			Position = UDim2.fromScale(0.2, 0.16),
+			Size = UDim2.fromScale(0.26, 0.26),
+			BackgroundColor3 = Kit.White,
+			BackgroundTransparency = 0.1,
+			BorderSizePixel = 0,
+			ZIndex = 3,
+		}, frame)
+		Kit.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }, glint)
+		bubbles[i] =
+			{ Frame = frame, Line = Kit.stroke(frame, 2, Kit.White, 0.15), Glint = glint, X = 0, Y = 0, Size = 0 }
 	end
-	-- the words: their shadow, the metal letters, and a white copy for the flash, slammed on as one
-	local slam: Frame = Kit.new("Frame", {
-		Name = "Words",
+
+	-- the second line: one small label, in the word's own colours
+	local sub: TextLabel = Kit.new("TextLabel", {
+		Name = "Sub",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromOffset(look.Wide, 120),
+		Size = UDim2.fromOffset(600, 40),
 		BackgroundTransparency = 1,
-		ZIndex = 3,
-	}, tilt)
-	local slamScale: UIScale = Kit.new("UIScale", {}, slam)
-	local function letters(props: { [string]: any }, into: Instance): TextLabel
-		props.BackgroundTransparency = 1
-		props.AnchorPoint = Vector2.new(0.5, 0.5)
-		props.Size = UDim2.fromScale(1, 1)
-		props.Font = look.Font
-		props.Text = ""
-		return Kit.new("TextLabel", props, into)
-	end
-	local shadow = letters({
-		Position = UDim2.new(0.5, 0, 0.5, 7),
-		TextSize = look.Size,
-		TextColor3 = Color3.fromRGB(60, 4, 20),
-		ZIndex = 3,
-	}, slam)
-	local shadowLine = Kit.stroke(shadow, 5, dark)
-	local main = letters({
-		Position = UDim2.fromScale(0.5, 0.5),
-		TextSize = look.Size,
-		TextColor3 = Kit.White,
-		ZIndex = 4,
-	}, slam)
-	Kit.new("UIGradient", {
-		Rotation = 90,
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 232, 200)),
-			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 150, 120)),
-			ColorSequenceKeypoint.new(0.54, Color3.fromRGB(250, 64, 70)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 14, 44)),
-		}),
-	}, main)
-	local mainLine = Kit.stroke(main, 5, dark)
-	local flash = letters({
-		Position = UDim2.fromScale(0.5, 0.5),
-		TextSize = look.Size,
-		TextColor3 = Kit.White,
-		TextTransparency = 1,
-		ZIndex = 5,
-	}, slam)
-	local sub = letters({
-		Position = UDim2.fromScale(0.5, 0.9),
+		Font = look.Font,
 		TextSize = look.Sub,
-		TextColor3 = Color3.fromRGB(255, 226, 150),
-		ZIndex = 6,
-	}, tilt)
-	sub.Size = UDim2.fromOffset(look.Wide, 40)
-	local subLine = Kit.stroke(sub, 3, dark)
+		TextColor3 = Kit.White,
+		Text = "",
+		Visible = false,
+		ZIndex = 7,
+	}, band)
+	local subLine = Kit.stroke(sub, 4, Kit.Ink)
+	local subFill: UIGradient = Kit.new("UIGradient", { Rotation = 90 }, sub)
 	local subScale: UIScale = Kit.new("UIScale", {}, sub)
 
-	local wide = look.Wide
-	local settled = false
-	local lastOut = -1
+	local wide = 600 -- the word and the bubbles' room, before the fit
+	local lastUp = 0 -- seconds in the last letter starts
 	local function refit()
 		local screen = root.AbsoluteSize
 		if screen.X > 0 and screen.Y > 0 then
@@ -1711,78 +1771,162 @@ function Kit.failWords(parent: Instance): FailWords
 	end
 	root:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 
-	local function fade(out: number)
-		if out == lastOut then
-			return
-		end
-		lastOut = out
-		local faint = 0.12 + 0.88 * out
-		streakFill.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.22, faint),
-			NumberSequenceKeypoint.new(0.78, faint),
-			NumberSequenceKeypoint.new(1, 1),
-		})
-		for _, edge in edges do
-			edge.BackgroundTransparency = out
-		end
-		shadow.TextTransparency = out
-		shadowLine.Transparency = out
-		mainLine.Transparency = out
-		sub.TextTransparency = out
-		subLine.Transparency = out
-	end
-
 	local function pose(age: number, out: number)
 		out = math.clamp(out, 0, 1)
-		local landed = age - look.SlamAt - look.Slam -- seconds since the words landed
-		if settled and out == lastOut then
-			return
+		for i = 1, count do
+			local l = letters[i]
+			local t = age - l.Born
+			if t <= 0 then
+				l.Holder.Visible = false
+				l.Ring.Visible = false
+				continue
+			end
+			-- popping up from below, a little past its size and back; bobbing and swaying from then on
+			local u = math.clamp(t / look.Pop, 0, 1)
+			local scale = if u < 1 then math.max(0.05, outBack(u)) else 1
+			local y = l.Y + (1 - u) ^ 3 * look.PopFrom + math.sin(age * look.BobRate + l.Phase) * look.Bob * u
+			local turn = l.Turn + math.sin(age * look.SwayRate + l.Phase * 1.4) * look.Sway * u
+			local popped = false
+			if out > 0 then
+				-- on the way out: floating up faster and faster, swelling, and gone at its own moment
+				local v = out / l.PopAt
+				popped = v >= 1
+				local risen = math.min(v, 1) ^ 2
+				y -= look.Float * risen
+				scale *= 1 + look.Swell * risen
+				local burst = (out - l.PopAt) / look.Burst
+				if popped and burst < 1 then
+					local across = (l.Wide + 26) * (0.7 + 0.7 * burst)
+					l.Ring.Position = UDim2.new(0.5, l.X, 0.5, y)
+					l.Ring.Size = UDim2.fromOffset(across, across)
+					l.RingLine.Transparency = 0.1 + 0.9 * burst
+					l.Ring.Visible = true
+				else
+					l.Ring.Visible = false
+				end
+			else
+				l.Ring.Visible = false
+			end
+			l.Holder.Visible = not popped
+			if not popped then
+				l.Holder.Position = UDim2.new(0.5, l.X, 0.5, y)
+				l.Holder.Rotation = turn
+				if scale ~= l.Scaled then
+					l.Scaled = scale
+					l.Scale.Scale = scale
+				end
+			end
 		end
-		-- the streak slashes open from a hairline
-		local open = math.clamp(age / look.Open, 0, 1)
-		streak.Size = UDim2.fromOffset(
-			wide * (0.25 + 0.75 * (1 - (1 - open) ^ 3)),
-			math.max(2, look.High * (0.03 + 0.97 * outBack(open)))
-		)
-		-- the words come from the camera, faster and faster, and land
-		local u = math.clamp((age - look.SlamAt) / look.Slam, 0, 1)
-		local ring, judder, bright = 0, 0, 1
-		if landed > 0 then
-			local dying = math.exp(-landed * look.RingFade)
-			ring = -look.Ring * dying * math.sin(landed * math.pi * 2 * look.RingRate)
-			judder = dying * math.sin(landed * 70) * look.Judder
-			bright = 0.1 + 0.9 * math.clamp(landed / look.Flash, 0, 1)
+		for i, b in bubbles do
+			local t = age - look.BubbleAt - (i - 1) * look.BubbleStep
+			local popAt = look.OutFrom * 0.5 + (look.OutTo - look.OutFrom * 0.5) * scatter(i + 40)
+			if t <= 0 or out >= popAt then
+				b.Frame.Visible = false
+				continue
+			end
+			local u = math.clamp(t / look.BubblePop, 0, 1)
+			local across = b.Size * (if u < 1 then math.max(0.05, outBack(u)) else 1)
+			local risen = (out / popAt) ^ 2
+			b.Frame.Size = UDim2.fromOffset(across, across)
+			b.Frame.Position = UDim2.new(
+				0.5,
+				b.X + math.sin(age * 0.9 + i * 1.3) * look.BubbleBob * 0.5,
+				0.5,
+				b.Y + math.sin(age * 1.4 + i * 2.1) * look.BubbleBob - look.Float * 1.3 * risen
+			)
+			b.Frame.Visible = true
 		end
-		slamScale.Scale = look.From + (1 - look.From) * u ^ 3 + ring
-		slam.Visible = u > 0
-		main.TextTransparency = math.max(1 - math.clamp(u / 0.35, 0, 1), out)
-		flash.TextTransparency = math.max(bright, out)
-		-- the second line pops in
-		local v = math.clamp((age - look.SubAt) / look.SubPop, 0, 1)
-		sub.Visible = v > 0 and sub.Text ~= ""
-		subScale.Scale = math.max(0.01, outBack(v))
-		-- and on the way out the whole band drops away, turning
-		local eased = out * out
-		tilt.Position = UDim2.new(0.5, 0, 0.5, -8 + look.Drop * fit.Scale * eased)
-		tilt.Rotation = look.Tilt + judder + look.DropTurn * eased
-		fade(out)
-		settled = out == 0 and v >= 1 and landed > 6 / look.RingFade
+		-- the second line pops in under the word, bobs a little, and drifts up and fades on the way out
+		local v = math.clamp((age - lastUp - look.SubAfter) / look.SubPop, 0, 1)
+		local gone = math.clamp(out / 0.45, 0, 1)
+		sub.Visible = v > 0 and gone < 1 and sub.Text ~= ""
+		if sub.Visible then
+			subScale.Scale = if v < 1 then math.max(0.05, outBack(v)) else 1
+			sub.Position = UDim2.new(0.5, 0, 0.5, look.SubDown + math.sin(age * 2.2) * 2 - look.Float * 0.4 * out)
+			sub.TextTransparency = gone
+			subLine.Transparency = gone
+		end
 	end
 
-	local function show(text: string, subText: string)
-		shadow.Text, main.Text, flash.Text = text, text, text
+	local function show(text: string, subText: string, colour: Color3, deep: Color3): number
+		local line = Kit.darker(deep, 0.72)
+		local under = Kit.darker(deep, 0.55)
+		local fill = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Kit.White),
+			ColorSequenceKeypoint.new(0.45, Kit.lighter(colour, 0.55)),
+			ColorSequenceKeypoint.new(1, colour),
+		})
+		-- each letter's width, and the word's (measured, not read off the labels: those are in the word's own scale)
+		local widths: { number } = {}
+		local total = 0
+		local inked = 0
+		for i = 1, #text do
+			local ch = string.sub(text, i, i)
+			local w = if ch == " "
+				then look.Size * look.Space
+				else TextService:GetTextSize(ch, look.Size, look.Font, Vector2.new(400, 400)).X + look.Gap
+			widths[i] = w
+			total += w
+			inked += if ch == " " then 0 else 1
+		end
+		local stagger = math.min(look.Stagger, look.Within / math.max(inked - 1, 1))
+		local x = -total / 2
+		count = 0
+		for i = 1, #text do
+			local ch = string.sub(text, i, i)
+			local w = widths[i]
+			if ch ~= " " then
+				count += 1
+				local l = letter(count)
+				l.Shadow.Text, l.Face.Text = ch, ch
+				l.Shadow.TextColor3 = under
+				l.ShadowLine.Color, l.FaceLine.Color = line, line
+				l.Fill.Color = fill
+				l.Holder.Size = UDim2.fromOffset(w + 30, look.Size + 30)
+				l.X = x + w / 2
+				l.Wide = w
+				l.Y = math.sin(i * 1.7) * look.Step
+				l.Turn = math.sin(i * 2.3 + 1) * look.Turn
+				l.Phase = i * 1.7
+				l.Born = (count - 1) * stagger
+				l.PopAt = look.OutFrom + (look.OutTo - look.OutFrom) * scatter(i)
+				l.Holder.Visible = false
+				l.Ring.Visible = false
+			end
+			x += w
+		end
+		for i = count + 1, #letters do
+			letters[i].Holder.Visible = false
+			letters[i].Ring.Visible = false
+		end
+		lastUp = math.max(count - 1, 0) * stagger
+		-- the bubbles' places round the word (the sheet's), and their sizes
+		local half = total / 2
+		local spots = {
+			{ -half - 46, 10, 34 },
+			{ -half - 18, -44, 18 },
+			{ half + 40, -26, 40 },
+			{ half + 14, 38, 16 },
+			{ half + 74, 22, 14 },
+			{ -half * 0.3, -70, 14 },
+			{ half * 0.45, -76, 22 },
+		}
+		for i, b in bubbles do
+			local spot = spots[i]
+			b.X, b.Y, b.Size = spot[1], spot[2], spot[3]
+			b.Line.Thickness = math.max(1.5, spot[3] * 0.09)
+			b.Frame.Visible = false
+		end
 		sub.Text = subText
-		-- (measured, not read off the label: its TextBounds are in the band's own scale)
-		local bounds = TextService:GetTextSize(text, look.Size, look.Font, Vector2.new(4000, 400))
-		wide = math.max(look.Wide, bounds.X + look.Pad)
-		tilt.Size = UDim2.fromOffset(wide, 150)
-		slam.Size = UDim2.fromOffset(wide, 120)
+		subLine.Color = line
+		subFill.Color = ColorSequence.new(Kit.White, Kit.lighter(colour, 0.6))
+		sub.Visible = false
+		wide = total + look.Margin * 2
+		band.Size = UDim2.fromOffset(wide, look.High)
 		refit()
-		settled = false
-		lastOut = -1
 		root.Visible = true
 		pose(0, 0)
+		return lastUp + look.Pop
 	end
 
 	return {
