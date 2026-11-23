@@ -107,6 +107,7 @@ local function covered(cam, at, sub, pts)
 end
 local between, over, rideFor = {}, {}, 0
 local snapSaid = "none"
+local lastUp = "?"
 local function probeStep(dt)
 	if player:GetAttribute("SubPhase") ~= "Ride" then return end
 	local found = ourSub()
@@ -125,6 +126,7 @@ local function probeStep(dt)
 	local tier = found:GetAttribute("Tier")
 	local t = folder and folder:FindFirstChild(SubModels.style(tier).Id)
 	local cover, meant, eye = -1, world, Vector3.zero
+	lastUp = SubModels.style(tier).SignUp or 0
 	if t and POINTS[tier] then
 		local sub = hull.CFrame * t.Hull.CFrame:Inverse()
 		-- where it is meant: the same offset, turned with the sub (over the tower however the sub dips and banks)
@@ -133,10 +135,13 @@ local function probeStep(dt)
 		eye = sub:PointToObjectSpace(cam.CFrame.Position)
 	end
 	-- a pink ball 3 studs over where the sign is meant, a green one 3 studs over where the engine draws it
-	marker = marker or ball(Color3.fromRGB(255, 0, 200))
-	marker2 = marker2 or ball(Color3.fromRGB(0, 255, 60))
-	marker.Position = meant + Vector3.new(0, 3, 0)
-	marker2.Position = world + Vector3.new(0, 3, 0)
+	-- ("quiet": no balls, for a still that is the record of how the game looks)
+	if probeSet ~= "quiet" then
+		marker = marker or ball(Color3.fromRGB(255, 0, 200))
+		marker2 = marker2 or ball(Color3.fromRGB(0, 255, 60))
+		marker.Position = meant + Vector3.new(0, 3, 0)
+		marker2.Position = world + Vector3.new(0, 3, 0)
+	end
 	local speed = if lastPos then (hull.Position - lastPos).Magnitude / math.max(dt, 1e-4) else 0
 	lastPos = hull.Position
 	local sp, on = cam:WorldToViewportPoint(world)
@@ -154,8 +159,14 @@ local function probeStep(dt)
 		end
 	end
 	-- and what the screen's own layer (the HUD, drawn over every sign in the world) shows at those three points
-	local guiHits = 0
+	local guiHits, lettersOver = 0, 0
 	local pg = player:FindFirstChildOfClass("PlayerGui")
+	-- the sign's own box on the screen (it faces the camera: 14 x 3 studs about `world`)
+	local up = cam.CFrame.UpVector
+	local c1 = cam:WorldToScreenPoint(world - right * 7 + up * 1.5)
+	local c2 = cam:WorldToScreenPoint(world + right * 7 - up * 1.5)
+	local sx0, sx1 = math.min(c1.X, c2.X), math.max(c1.X, c2.X)
+	local sy0, sy1 = math.min(c1.Y, c2.Y), math.max(c1.Y, c2.Y)
 	if pg then
 		local seen = {}
 		for _, point in { world, world - right * 5, world + right * 5 } do
@@ -165,6 +176,17 @@ local function probeStep(dt)
 				local key = nil
 				if g:IsA("TextLabel") and g.Text ~= "" and g.TextTransparency < 0.9 then
 					key = "gui." .. g.Name .. ":" .. string.gsub(string.sub(g.Text, 1, 16), "%s", "_")
+					-- its letters, not its box: TextBounds placed by the label's alignment; counted while the text
+					-- is more than half there. The share of the sign's box they lie over
+					if g.TextTransparency < 0.5 and not seen[key] then
+						local ax = if g.TextXAlignment == Enum.TextXAlignment.Left then 0 elseif g.TextXAlignment == Enum.TextXAlignment.Right then 1 else 0.5
+						local ay = if g.TextYAlignment == Enum.TextYAlignment.Top then 0 elseif g.TextYAlignment == Enum.TextYAlignment.Bottom then 1 else 0.5
+						local tx0 = g.AbsolutePosition.X + (g.AbsoluteSize.X - g.TextBounds.X) * ax
+						local ty0 = g.AbsolutePosition.Y + (g.AbsoluteSize.Y - g.TextBounds.Y) * ay
+						local w = math.max(0, math.min(sx1, tx0 + g.TextBounds.X) - math.max(sx0, tx0))
+						local h = math.max(0, math.min(sy1, ty0 + g.TextBounds.Y) - math.max(sy0, ty0))
+						lettersOver = math.max(lettersOver, w * h / math.max((sx1 - sx0) * (sy1 - sy0), 1))
+					end
 				elseif g:IsA("ImageLabel") and g.Image ~= "" and g.ImageTransparency < 0.9 then
 					key = "gui." .. g.Name .. ":image"
 				elseif g.BackgroundTransparency < 0.9 then
@@ -181,13 +203,20 @@ local function probeStep(dt)
 	rideFor += dt
 	table.insert(probeRows, { dt, speed, (cam.CFrame.Position - world).Magnitude, if sign.Enabled then 1 else 0, if on then 1 else 0, sp.X, sp.Y,
 		(meant - world).Magnitude, cover, rideFor, eye.X, eye.Y, eye.Z,
-		math.deg(math.asin(math.clamp(hull.CFrame.LookVector.Y, -1, 1))), count, guiHits })
+		math.deg(math.asin(math.clamp(hull.CFrame.LookVector.Y, -1, 1))), count, guiHits, lettersOver })
 end
 workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 	local cmd = tostring(workspace:GetAttribute("M4Do") or "")
 	local words = string.split(cmd, "|")
 	local verb = words[1]
 	local ok, said = pcall(function()
+		if verb == "signup" then
+			-- signup|<tier>|<studs>: this client's copy of a tier's SignUp, for the next trip's model (a test only)
+			local row = SubModels.style(tonumber(words[2]))
+			local was = row.SignUp or 0
+			row.SignUp = tonumber(words[3])
+			return string.format("signup tier=%s was=%s now=%s", words[2], tostring(was), tostring(row.SignUp))
+		end
 		if verb == "snap" then
 			-- can the engine's own screenshot be read back as pixels? (a try: Studio's window was not redrawing)
 			if words[2] == "read" then return "snap " .. snapSaid end
@@ -395,8 +424,8 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 			elseif words[2] == "now" then
 				local r = probeRows[#probeRows]
 				if not r then return "probe now: no frames" end
-				return string.format("probe now frame=%d dt=%.4f speed=%.0f camToSign=%.1f enabled=%d onScreen=%d screen=%.0f,%.0f", #probeRows,
-					r[1], r[2], r[3], r[4], r[5], r[6], r[7])
+				return string.format("probe now frame=%d dt=%.4f speed=%.0f camToSign=%.1f enabled=%d onScreen=%d screen=%.0f,%.0f modelUpSign=%.2f hudBoxes=%d titleLettersOver=%.2f", #probeRows,
+					r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[9], r[16], r[17])
 			else
 				pcall(function() RunService:UnbindFromRenderStep("M4Probe") end)
 				if marker then marker:Destroy() marker = nil end
@@ -436,16 +465,19 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 				local list = {}
 				for i = 1, math.min(#names, 8) do table.insert(list, names[i][1] .. "=" .. names[i][2]) end
 				local hud, hudNames, hudList = 0, {}, {}
+				local letters, lettersMost = 0, 0
 				for _, r in probeRows do
 					if r[16] > 0 then hud += 1 end
+					if r[17] > 0.1 then letters += 1 end
+					lettersMost = math.max(lettersMost, r[17])
 				end
 				for key, frames in over do table.insert(hudNames, { key, frames }) end
 				table.sort(hudNames, function(x, y) return x[2] > y[2] end)
 				for i = 1, math.min(#hudNames, 8) do table.insert(hudList, hudNames[i][1] .. "=" .. hudNames[i][2]) end
 				local view = workspace.CurrentCamera.ViewportSize
-				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d offBy=%.2f/%.2f cover=%.2f/%.2f steadyMax=%.2f coveredShare=%.2f eye=%.1f,%.1f,%.1f pitch=%.0f..%.0f betweenMost=%d between=[%s] hudOverShare=%.2f hud=[%s] view=%dx%d",
+				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d offBy=%.2f/%.2f cover=%.2f/%.2f steadyMax=%.2f coveredShare=%.2f eye=%.1f,%.1f,%.1f pitch=%.0f..%.0f betweenMost=%d between=[%s] hudOverShare=%.2f lettersOverShare=%.2f lettersOverMost=%.2f signUp=%s hud=[%s] view=%dx%d",
 					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w1, w2, k1, k2, ks, hid / n, ex, ey, ez, p0, p2, bn,
-					table.concat(list, " "), hud / n, table.concat(hudList, " "), view.X, view.Y)
+					table.concat(list, " "), hud / n, letters / n, lettersMost, tostring(lastUp), table.concat(hudList, " "), view.X, view.Y)
 			end
 		end
 		return "?"
@@ -688,11 +720,11 @@ def trip(tier, probe=None, picture=True):
     kind = "ride"
     if probe:
         kind = f"probe-{probe}-{kind}"
+    watch = probe or "quiet"  # a plain riding still is watched too, with no balls in the picture
     for attempt in range(2):
         note(f"tier {tier} to land {land} ({kind}): " + s2.cmd(f"sub|{tier},{land}", 1.5))
         note("  " + t3.do("watch", 0.4))
-        if probe:
-            note("  " + do("probe|on|" + ("" if probe == "plain" else probe), 0.4))
+        note("  " + do("probe|on|" + ("" if watch == "plain" else watch), 0.4))
         note("  dive: " + s2.cmd("dive", 0.3))
         still, st = None, ""
         end = time.time() + 30
@@ -704,14 +736,12 @@ def trip(tier, probe=None, picture=True):
                 st = s2.cmd("st", 0.1)
                 # (`numbers` takes no still: the frame-by-frame read-out needs no picture of Studio's window)
                 still = shot(f"{kind}-{tier}", tries=1, least=0.02) if picture else True
-                if probe:
-                    st += " / after the still: " + do("probe|now", 0.1)
+                st += " / after the still: " + do("probe|now", 0.1)
                 break
         note("  just before the still: " + st)
         time.sleep(6)
         note("  numbers: " + t3.do("read", 0.5))
-        if probe:
-            note("  " + do("probe|read", 0.5))
+        note("  " + do("probe|read", 0.5))
         note("  home: " + s2.cmd("home", 3))
         time.sleep(1.5)
         if still and "phase=Ride" in st:
@@ -766,10 +796,15 @@ def window_crop(path, size, out, pad=14):
     return out
 
 
-def sheets():
-    """the record pictures in docs/attachments, from the stills in work/m4"""
+def sheets(only=None):
+    """the record pictures in docs/attachments, from the stills in work/m4 (`sheets ride`: the riding sheet alone)"""
     made = []
     labels = [f"{n} {NAMES[n - 1]}" for n in range(1, 10)]
+    if only == "ride":
+        made.append(sheet([OUT / f"ride-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-ride.jpg", width=760,
+                          title="On a trip, the game's own view (task m4)"))
+        print("\n".join(str(m) for m in made))
+        return
     made.append(sheet([OUT / f"stand-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-stand.jpg", width=760,
                       crop=(0.16, 0.0, 0.86, 1.0), title="The nine toy subs over the stand, in the game (task m4)"))
     if all((OUT / f"close-{n}.png").exists() for n in range(1, 10)):
@@ -817,8 +852,17 @@ if __name__ == "__main__":
         shop(rest[0], old=rest[0] == "before")
     elif what == "numbers":
         # numbers [tier ...]: one probed trip a tier, no still: what the sign and the model do frame by frame
+        # numbers 5 up=4.7: tier 5's trip with its SignUp set to 4.7 on this client, put back after
+        ups = [float(a[3:]) for a in rest if a.startswith("up=")]
         for tier in [int(a) for a in rest if a.isdigit()] or list(range(1, 10)):
+            was = None
+            if ups:
+                said = do(f"signup|{tier}|{ups[0]}", 0.4)
+                note("  " + said)
+                was = re.search(r"was=([\d.]+)", said)
             trip(tier, probe="plain", picture=False)
+            if was:
+                note("  " + do(f"signup|{tier}|{was.group(1)}", 0.4))
         save_log()
     elif what == "probes":
         # probes [tier ...]: the name sign on a trip, as the game has it, always on top, and with no far limit
@@ -827,7 +871,7 @@ if __name__ == "__main__":
                 trip(tier, variant)
         save_log()
     elif what == "sheets":
-        sheets()
+        sheets(only=rest[0] if rest else None)
     elif what == "rides":
         rides([int(a) for a in rest if a.isdigit()])
     elif what == "do":
