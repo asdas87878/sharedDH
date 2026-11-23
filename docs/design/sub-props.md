@@ -91,6 +91,10 @@ Two things to know when picking:
 
 - **Option 2's four blades line up with the tail's four fins** four times a turn on tiers 1, 2, 4, 8 and 9. The
   coloured blade still shows the turn.
+- **The screw is the weakest read from straight behind,** which is the game's view: there it is a two-colour swirl
+  more than a screw, because one of its two flights is the coloured one. It reads as a screw from three-quarter rear.
+- **The backing plate of options 1 and 3 shows a little in Blender:** a thin lighter rim inside the ring in the
+  three-quarter views of tiers 6 and 9. Not seen from straight behind.
 - **Options 1 to 4 stand further out behind the ring** than today's bars (1.9 to 3.4 studs behind the dark disc,
   against 0.85), because a twisted blade has depth. The screw stands out most. On tiers 6 to 9 the glowing ball
   sits on the end of the hub, about a stud further still (the screw ends 4.3 studs behind the disc there, 5.0 on
@@ -112,7 +116,7 @@ blur = BlurMost * smoothstep(BlurFrom, BlurFull, speed)       the disc's Transpa
 | `PerSpeed` | 0.04 (today 0.12) | 1.2 turns a second at the drop's 90; the cap is reached at 370 to 690 studs a second, so the spin-up is seen |
 | `StepMost` | a quarter of the gap between two blades, and at most 30 degrees | under half a gap it can't read backwards; a quarter leaves the direction plain |
 | `BlurFrom`, `BlurFull` | 150 and 700 studs a second | starts as the turn nears its cap, full where every trip's run is |
-| `BlurMost` | 0.35 (Transparency 0.65) | hazes the dark disc without hiding the blades; in the clip the dark disc goes to a light grey, so white blades stand out less at the top and the coloured blade carries the turn |
+| `BlurMost` | 0.2 (Transparency 0.8) | hazes the dark disc to a mid grey without hiding the blades. Tried at top speed on tier 1: at 0.35 the disc goes pale grey and white blades nearly vanish into it; at 0.12 it is hard to tell from no disc; 0.2 is between |
 
 The cap is on the turn in one frame, not in one second, so a phone at 30 frames a second can't alias either: there
 the wheel turns half as fast at the top, and still reads.
@@ -170,7 +174,8 @@ as the eye takes it (the shortest way round to the next look-alike position).
 | 4, screw | 3.8 to 30 | 2.4 to 44.8 | 0 | 0 | 24.5 |
 
 - Every tile was read on all 359 steps (none unread). A tile passes with no step backwards, none still, and the blade
-  never more than 30 degrees from where it was turned to.
+  never further from where it was turned to than 30 degrees on the four options (their one coloured blade is what
+  is followed) and 15 on today's wheel (a quarter of the gap between its six look-alike arms).
 - **Today's rule strobes, measured:** from the moment the speed rises the six arms are seen going backwards on 68
   frames and standing on 2, while turning up to 498 degrees a frame.
 - **The screw's steps are uneven to look at:** drawn at an even 30 degrees a frame at the top, its coloured flight is
@@ -182,14 +187,15 @@ as the eye takes it (the shortest way round to the next look-alike position).
   every frame.
 - The first version of this check failed on two tiles, both the measuring and not the turn: the blur disc's haze
   counted as blade on today's wheel (the white limit was too low), and the screw was held to an even step it cannot
-  show from this side. Both are fixed in the script and said here so the pass is not taken for more than it is.
+  show from this side. Both are fixed in the script and said here so the pass is not taken for more than it is: the
+  screw's limit (the blade's place, not each step) was chosen after seeing its numbers.
 
 ## Not tested in the game
 
 Studio was not opened for this task (another task had it). So:
 
-- No option has been exported, installed or seen in Roblox. How the twisted blades shade there, and whether the
-  backing plate shows against the dark disc, is not known.
+- No option has been exported, installed or seen in Roblox. How the twisted blades shade there, and how much the
+  backing plate shows against the dark disc there, is not known.
 - **The turn's direction is read from the code, not seen.** `place` turns the part about its own +Z, the install
   puts each part at its box's middle with no turn of its own, and the tail is at +Z, so seen from behind it should
   turn anticlockwise. If it turns the other way in the game, the blades need mirroring (`TURN` in the script).

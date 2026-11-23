@@ -3,9 +3,10 @@
 Options only: nothing here is in the game. The picked one goes into tools/blender/sub_stages.py's tail() later.
 
     python tools/blender/sub_props_options.py all [work folder]        everything below, in order (12 to 14 minutes)
+    python tools/blender/sub_props_options.py clip [work folder]       the clip and its check alone (about 10 minutes)
     blender --background --python tools/blender/sub_props_options.py -- gate <tier> <out folder>     no pictures
     blender --background --python tools/blender/sub_props_options.py -- stills <tier> <out folder> [--only 0,2]
-    blender --background --python tools/blender/sub_props_options.py -- frames <tier> <out folder> [--first N]
+    blender --background --python tools/blender/sub_props_options.py -- frames <tier> <out folder> [--range 0,360] [--blur 0.2]
     blender --background --python tools/blender/sub_props_options.py -- encode <frames folder> <out.mp4>
     blender --background --python tools/blender/sub_props_options.py -- decode <clip.mp4> <out folder> [--check angles.json]
     python tools/blender/sub_props_options.py sheet <stills folder> <out.png>
@@ -50,7 +51,7 @@ RULE = {
     "StepMost": 30.0,  # and never more than this, degrees
     "BlurFrom": 150.0,  # the blur disc starts to show at this speed, studs a second
     "BlurFull": 700.0,  # and is fullest from this speed
-    "BlurMost": 0.35,  # how solid it gets (Transparency 1 - this)
+    "BlurMost": 0.2,  # how solid it gets (Transparency 1 - this)
 }
 TOP = 4315.0  # the fastest trip's top speed (to land 10), studs a second
 
@@ -582,6 +583,7 @@ def blender_part():
     DY, DZ, YAW, PITCH = 16.0, 13.0, math.radians(24), math.radians(13)
     total = FPS * 6
     lo, hi = (int(v) for v in flag("--range", "0,%d" % total).split(","))
+    RULE["BlurMost"] = float(flag("--blur", RULE["BlurMost"]))  # to try another strength of the blur disc
     cut = tx - 6.5
     body = meshes(BODY_PIECES, cut=cut)
     for ob in body:
@@ -873,8 +875,8 @@ def strips(src, out):
     print("props: strips in", out)
 
 
-def run_all(work):
-    """everything, in order; stops at the first step that fails"""
+def run_all(work, stills=True):
+    """everything, in order; stops at the first step that fails (stills=False: the clip alone)"""
     me = os.path.abspath(__file__)
     blender = os.environ.get("BLENDER", "blender")
     att = os.path.join(ROOT, "docs", "attachments")
@@ -893,8 +895,9 @@ def run_all(work):
                 sys.exit("failed: " + " ".join(j[3:]))
 
     b = [blender, "--background", "--python", me, "--"]
-    go([b + ["stills", str(n), os.path.join(work, "t%d" % n)] for n in (1, 6, 9)])
-    sheet(work, sheet_png)
+    if stills:
+        go([b + ["stills", str(n), os.path.join(work, "t%d" % n)] for n in (1, 6, 9)])
+        sheet(work, sheet_png)
     raw = os.path.join(work, "raw")
     total = FPS * 6
     go([b + ["frames", "1", raw, "--range", "%d,%d" % (a, a + total // 4)] for a in range(0, total, total // 4)])
@@ -915,8 +918,8 @@ if __name__ == "__main__" and len(sys.argv) > 1 and "--" not in sys.argv:
         sheet(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == "strips":
         strips(sys.argv[2], sys.argv[3])
-    elif sys.argv[1] == "all":
-        run_all(sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "work", "sub_props"))
+    elif sys.argv[1] in ("all", "clip"):
+        run_all(sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "work", "sub_props"), stills=sys.argv[1] == "all")
     else:
         sys.exit(__doc__)
     sys.exit(0)

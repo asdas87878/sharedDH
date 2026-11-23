@@ -122,11 +122,19 @@ local function dress(
 	glow.Brightness = 1.5
 	glow.Color = s.Light
 	glow.Parent = hull
-	-- the label: the sub's name over its tower
+	-- the label: the sub's name over its tower. Its place is an Attachment on the sub, so it turns, dips and banks
+	-- with it and the run's camera, which follows the sub, always sees the name over the same spot.
+	-- (Not StudsOffsetWorldSpace: that offset keeps to the world's axes whichever way the part is turned, so on a sub
+	-- that dips and banks the name leaned off its tower, 5 to 11 studs on most frames of a trip and up to 14, and a
+	-- piece it should clear came in front of it. Measured 2026-11-23, tools/studio/m4_subs_shots.py numbers.)
+	local signAt = Instance.new("Attachment")
+	signAt.Name = "LabelAt"
+	signAt.Position = tower.CFrame:VectorToObjectSpace(over)
+	signAt.Parent = tower
 	local sign = Instance.new("BillboardGui")
 	sign.Name = "Label"
 	sign.Size = UDim2.fromScale(14, SIGN_TALL)
-	sign.StudsOffsetWorldSpace = over
+	sign.Adornee = signAt
 	sign.MaxDistance = 140
 	sign.LightInfluence = 0
 	sign.Parent = tower

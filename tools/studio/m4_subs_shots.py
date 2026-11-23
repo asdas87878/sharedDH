@@ -105,6 +105,7 @@ local function covered(cam, at, sub, pts)
 	end
 	return worst
 end
+local between, over, rideFor = {}, {}, 0
 local function probeStep(dt)
 	if player:GetAttribute("SubPhase") ~= "Ride" then return end
 	local found = ourSub()
@@ -114,28 +115,72 @@ local function probeStep(dt)
 	if probeSet == "top" then sign.AlwaysOnTop = true end
 	if probeSet == "far" then sign.MaxDistance = 100000 end
 	local cam = workspace.CurrentCamera
-	local at = hull.CFrame:PointToWorldSpace(sign.StudsOffsetWorldSpace)
-	local world = hull.Position + sign.StudsOffsetWorldSpace
-	-- a pink ball 3 studs over the sign's middle if the offset turns with the hull, a green one if it does not
-	marker = marker or ball(Color3.fromRGB(255, 0, 200))
-	marker2 = marker2 or ball(Color3.fromRGB(0, 255, 60))
-	marker.Position = hull.CFrame:PointToWorldSpace(sign.StudsOffsetWorldSpace + Vector3.new(0, 3, 0))
-	marker2.Position = world + Vector3.new(0, 3, 0)
+	-- where the engine draws the sign: StudsOffsetWorldSpace keeps to the world's axes (the engine reference, "relative
+	-- to the global axes"), counted from the Adornee (an Attachment's place) or, with none, from the part it is in
+	local ad = sign.Adornee
+	local base = if ad and ad:IsA("Attachment") then ad.WorldPosition else hull.Position
+	local world = base + sign.StudsOffsetWorldSpace
 	local folder = RS:FindFirstChild(SubModels.Templates)
 	local tier = found:GetAttribute("Tier")
 	local t = folder and folder:FindFirstChild(SubModels.style(tier).Id)
-	local coverA, coverB = -1, -1
+	local cover, meant, eye = -1, world, Vector3.zero
 	if t and POINTS[tier] then
 		local sub = hull.CFrame * t.Hull.CFrame:Inverse()
-		coverA = covered(cam, at, sub, POINTS[tier])
-		coverB = covered(cam, world, sub, POINTS[tier])
+		-- where it is meant: the same offset, turned with the sub (over the tower however the sub dips and banks)
+		meant = base + sub:VectorToWorldSpace(sign.StudsOffsetWorldSpace)
+		cover = covered(cam, world, sub, POINTS[tier])
+		eye = sub:PointToObjectSpace(cam.CFrame.Position)
 	end
+	-- a pink ball 3 studs over where the sign is meant, a green one 3 studs over where the engine draws it
+	marker = marker or ball(Color3.fromRGB(255, 0, 200))
+	marker2 = marker2 or ball(Color3.fromRGB(0, 255, 60))
+	marker.Position = meant + Vector3.new(0, 3, 0)
+	marker2.Position = world + Vector3.new(0, 3, 0)
 	local speed = if lastPos then (hull.Position - lastPos).Magnitude / math.max(dt, 1e-4) else 0
 	lastPos = hull.Position
-	local sp, on = cam:WorldToViewportPoint(at)
-	local back = cam.CFrame:PointToObjectSpace(hull.Position)
-	table.insert(probeRows, { dt, speed, (cam.CFrame.Position - at).Magnitude, if sign.Enabled then 1 else 0, if on then 1 else 0, sp.X, sp.Y,
-		(at - world).Magnitude, coverA, coverB, -back.Z, back.Y, math.deg(math.asin(math.clamp(hull.CFrame.LookVector.Y, -1, 1))) })
+	local sp, on = cam:WorldToViewportPoint(world)
+	-- what else stands between the camera and the sign's middle and its two ends (any part, see-through or not)
+	local right = cam.CFrame.RightVector
+	local ok, parts = pcall(function()
+		return cam:GetPartsObscuringTarget({ world, world - right * 6, world + right * 6 }, { marker, marker2 })
+	end)
+	local count = 0
+	if ok then
+		for _, part in parts do
+			count += 1
+			local key = string.format("%s%s(%.1f)", if part:IsDescendantOf(found) then "sub." else "", part.Name, part.Transparency)
+			between[key] = (between[key] or 0) + 1
+		end
+	end
+	-- and what the screen's own layer (the HUD, drawn over every sign in the world) shows at those three points
+	local guiHits = 0
+	local pg = player:FindFirstChildOfClass("PlayerGui")
+	if pg then
+		local seen = {}
+		for _, point in { world, world - right * 5, world + right * 5 } do
+			local at2 = cam:WorldToScreenPoint(point)
+			local okGui, hits = pcall(function() return pg:GetGuiObjectsAtPosition(math.round(at2.X), math.round(at2.Y)) end)
+			for _, g in if okGui then hits else {} do
+				local key = nil
+				if g:IsA("TextLabel") and g.Text ~= "" and g.TextTransparency < 0.9 then
+					key = "gui." .. g.Name .. ":" .. string.gsub(string.sub(g.Text, 1, 16), "%s", "_")
+				elseif g:IsA("ImageLabel") and g.Image ~= "" and g.ImageTransparency < 0.9 then
+					key = "gui." .. g.Name .. ":image"
+				elseif g.BackgroundTransparency < 0.9 then
+					key = "gui." .. g.Name .. ":fill"
+				end
+				if key and not seen[key] then
+					seen[key] = true
+					guiHits += 1
+					over[key] = (over[key] or 0) + 1
+				end
+			end
+		end
+	end
+	rideFor += dt
+	table.insert(probeRows, { dt, speed, (cam.CFrame.Position - world).Magnitude, if sign.Enabled then 1 else 0, if on then 1 else 0, sp.X, sp.Y,
+		(meant - world).Magnitude, cover, rideFor, eye.X, eye.Y, eye.Z,
+		math.deg(math.asin(math.clamp(hull.CFrame.LookVector.Y, -1, 1))), count, guiHits })
 end
 workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 	local cmd = tostring(workspace:GetAttribute("M4Do") or "")
@@ -159,7 +204,9 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 				low = math.min(low, p.Position.Y - p.Size.Y / 2)
 			end
 			local sign = model:FindFirstChild("Label", true)
-			local signLow = sign.Parent.Position.Y + sign.StudsOffsetWorldSpace.Y - sign.Size.Y.Scale / 2
+			local signAt = sign.Adornee
+			local signFrom = if signAt and signAt:IsA("Attachment") then signAt.WorldPosition.Y else sign.Parent.Position.Y
+			local signLow = signFrom + sign.StudsOffsetWorldSpace.Y - sign.Size.Y.Scale / 2
 			local text = sign:FindFirstChildOfClass("TextLabel").Text
 			-- words: tier, the sub's turn, where it floats, where the camera stands, what it looks at (all from the stand), fov
 			local function v(i)
@@ -318,6 +365,7 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 			-- (no MaxDistance) or "" (as the game has it)
 			if words[2] == "on" then
 				probeRows = {}
+				between, over, rideFor = {}, {}, 0
 				probeSet = words[3] or ""
 				lastPos = nil
 				pcall(function() RunService:UnbindFromRenderStep("M4Probe") end)
@@ -334,26 +382,49 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 				if marker2 then marker2:Destroy() marker2 = nil end
 				local n = #probeRows
 				if n == 0 then return "probe read: no frames" end
-				local function col(i)
+				-- least, middle and most of one column, over the frames at least `from` seconds into the Ride
+				local function col(i, from)
 					local c = {}
-					for _, r in probeRows do table.insert(c, r[i]) end
+					for _, r in probeRows do
+						if r[10] >= (from or 0) then table.insert(c, r[i]) end
+					end
 					table.sort(c)
-					return c[1], c[math.ceil(n / 2)], c[n]
+					if #c == 0 then return 0, 0, 0 end
+					return c[1], c[math.ceil(#c / 2)], c[#c]
 				end
 				local d0, d1, d2 = col(1)
 				local s0, s1, s2 = col(2)
 				local c0, c1, c2 = col(3)
 				local e0 = col(4)
 				local o0, _, o2 = col(5)
-				local _, _, w2 = col(8)
-				local _, _, ca = col(9)
-				local _, _, cb = col(10)
-				local b0, b1, b2 = col(11)
-				local h0, h1, h2 = col(12)
-				local p0, _, p2 = col(13)
+				local _, w1, w2 = col(8)
+				local _, k1, k2 = col(9)
+				local _, _, ks = col(9, 1)
+				local _, ex = col(11, 1)
+				local _, ey = col(12, 1)
+				local _, ez = col(13, 1)
+				local p0, _, p2 = col(14)
+				local _, _, bn = col(15)
+				local hid = 0
+				for _, r in probeRows do
+					if r[9] > 0.25 then hid += 1 end
+				end
+				local names = {}
+				for key, frames in between do table.insert(names, { key, frames }) end
+				table.sort(names, function(x, y) return x[2] > y[2] end)
+				local list = {}
+				for i = 1, math.min(#names, 8) do table.insert(list, names[i][1] .. "=" .. names[i][2]) end
+				local hud, hudNames, hudList = 0, {}, {}
+				for _, r in probeRows do
+					if r[16] > 0 then hud += 1 end
+				end
+				for key, frames in over do table.insert(hudNames, { key, frames }) end
+				table.sort(hudNames, function(x, y) return x[2] > y[2] end)
+				for i = 1, math.min(#hudNames, 8) do table.insert(hudList, hudNames[i][1] .. "=" .. hudNames[i][2]) end
 				local view = workspace.CurrentCamera.ViewportSize
-				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d worldVsObject=%.2f coverMaxIfTurns=%.2f coverMaxIfNot=%.2f camBehind=%.1f/%.1f/%.1f hullBelowCam=%.1f/%.1f/%.1f pitch=%.0f..%.0f view=%dx%d",
-					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w2, ca, cb, b0, b1, b2, -h2, -h1, -h0, p0, p2, view.X, view.Y)
+				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d offBy=%.2f/%.2f cover=%.2f/%.2f steadyMax=%.2f coveredShare=%.2f eye=%.1f,%.1f,%.1f pitch=%.0f..%.0f betweenMost=%d between=[%s] hudOverShare=%.2f hud=[%s] view=%dx%d",
+					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w1, w2, k1, k2, ks, hid / n, ex, ey, ez, p0, p2, bn,
+					table.concat(list, " "), hud / n, table.concat(hudList, " "), view.X, view.Y)
 			end
 		end
 		return "?"
