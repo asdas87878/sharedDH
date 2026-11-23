@@ -148,7 +148,7 @@ local function now()
 	local t = l and l.Data.Parts
 	return { Coins = p:GetAttribute("Coins"), Max = p:GetAttribute("MaxOxygen"), Oxygen = p:GetAttribute("Oxygen"), State = p:GetAttribute("State"),
 		KeptCoins = t and t.Tank and t.Tank.Coins, KeptOxygen = t and t.Oxygen, KeptTrainer = t and t.Trainer, KeptSub = t and t.Sub and t.Sub.Tier,
-		Fish = t and t.Tank and #t.Tank.Fish, Receipts = l and #l.Data.Receipts, SavedReceipts = l and l.Saved.Receipts and #l.Saved.Receipts,
+		Fish = t and t.Tank and #t.Tank.Fish, Hands = t and t.Tank and (if t.Tank.Hands then #t.Tank.Hands else 0), Receipts = l and #l.Data.Receipts, SavedReceipts = l and l.Saved.Receipts and #l.Saved.Receipts,
 		SavedTank = p:GetAttribute("SavedTank"), SavedOxygen = p:GetAttribute("SavedOxygen"), SavedTrainer = p:GetAttribute("SavedTrainer"),
 		SavedSub = p:GetAttribute("SavedSub"), SavedBest = p:GetAttribute("SavedBest") }
 end
@@ -264,8 +264,14 @@ local o = now() o.R = r o.Before = before return o""")
         j = data(HEAD + "return now()")
         if j["State"] == "Dock":
             break
+    # a fish in the hands (the owner's panel gives it): kept, and back stored in the tank
+    lua("""game:GetService("ReplicatedStorage"):FindFirstChild("Admin", true):FireServer("Fish", "Clownfish", "Normal", "")""", "Client")
+    time.sleep(2)
+    j = data(HEAD + "return now()")
+    check("a fish in the hands is kept", j["Hands"] == 1, (j["Hands"], j["Fish"]))
     k = data(HEAD + "local r = S.TestSave:Invoke(p, 'reopen') task.wait(2.5) local o = now() o.R = r return o")
     check("closed and opened again: what was kept is given back (twice what there was)", k["R"] is True and near(k["Coins"], 2 * j["Coins"]) and near(k["KeptOxygen"], 2 * j["KeptOxygen"]), (j["Coins"], k["Coins"], j["KeptOxygen"], k["KeptOxygen"]))
+    check("the carried fish comes back in the tank, once", k["Fish"] == 2 * j["Fish"] + j["Hands"] and k["Hands"] == j["Hands"], (j["Fish"], k["Fish"], k["Hands"]))
     check("trainer, subs, receipts as they were", k["KeptTrainer"] == j["KeptTrainer"] and k["KeptSub"] == j["KeptSub"] and k["Receipts"] == j["Receipts"], (k["KeptTrainer"], k["KeptSub"], k["Receipts"]))
     m = data(HEAD + "local r = buy('Coins', 1000, 'r1') local o = now() o.R = r return o")
     check("the first receipt gives nothing after coming back", m["R"] == "PurchaseGranted" and near(m["Coins"], k["Coins"]), (m["Coins"], m["R"]))

@@ -2,7 +2,9 @@
 -- What saving keeps of a player, and the services' own functions it uses for it (SaveService's parts; the user,
 -- 2026-11-23). The services know nothing of saving: they only say what a player has and take it back.
 --   Tank     the coins, the plot's stage and the tank's fish (AquariumService.dump, restore). A saved fish of a kind,
---            size or colour the game no longer has is set aside and kept, and given back if it comes back
+--            size or colour the game no longer has is set aside and kept, and given back if it comes back. The fish they
+--            carry (RideService.carried: just caught, or taken out of the tank) are kept too, and come back stored in the
+--            tank: a catch comes home whatever happens to the rider, so leaving with it is no different
 --   Oxygen   the trained Oxygen, on top of what everyone starts with (RideService.trainedOxygen, setTrainedOxygen);
 --            given back on the dock only: a max that jumps in the water would turn the ridden fish angry
 --   Trainer  the seahorse's level (TrainService.levelOf, setLevel)
@@ -44,7 +46,7 @@ end
 
 local function restoreTank(player: Player, kept: any)
 	local fish, odd = {}, {}
-	for _, list in { kept.Fish, kept.Aside or {} } do
+	for _, list in { kept.Fish, kept.Hands or {}, kept.Aside or {} } do
 		for _, f in list do
 			table.insert(if known(f) then fish else odd, f)
 		end
@@ -62,7 +64,7 @@ end
 -- The functions it needs, as service and name: not there, nothing is joined
 local NEEDS = {
 	{ "AquariumService", AquariumService, { "dump", "restore", "give" } },
-	{ "RideService", RideService, { "trainedOxygen", "setTrainedOxygen", "grantOxygen" } },
+	{ "RideService", RideService, { "trainedOxygen", "setTrainedOxygen", "grantOxygen", "carried" } },
 	{ "TrainService", TrainService, { "levelOf", "setLevel" } },
 	{ "SubService", SubService, { "tierOf", "equipOf", "setSub" } },
 } :: { { any } }
@@ -89,8 +91,18 @@ function SaveParts.join(part: Join)
 	end
 	part("Tank", function(player)
 		local tank = AquariumService.dump(player)
+		if not tank or RideService.trainedOxygen(player) == nil then
+			return nil -- (let go by RideService, not joined in it yet: what they carry is not known, not nothing)
+		end
+		local hands = {}
+		for _, f in RideService.carried(player) do
+			table.insert(hands, { Id = f.Id, Size = f.Size, Variant = f.Variant, On = false })
+		end
+		if #hands > 0 then
+			tank.Hands = hands
+		end
 		local odd = aside[player]
-		if tank and odd then
+		if odd then
 			tank.Aside = table.clone(odd)
 		end
 		return tank

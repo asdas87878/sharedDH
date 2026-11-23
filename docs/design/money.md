@@ -25,6 +25,8 @@
   amount as the card's name and Roblox's own price, and asks for the prompt only once the player's save is in.
 - **Wanted from the user:** the six developer products made on Roblox (their ids; their prices are read from Roblox), and
   the six amounts (the tuning chat is drafting them).
+- **Carried fish are kept (2026-11-23, this chat with the game-code chat).** They are saved with the tank and come back
+  stored in it. A catch comes home on a death too, so leaving mid-dive gains nothing. Built in `SaveParts`, not run yet.
 - **The packs are fixed amounts, with bulk deals that are very good for mid and late players (the user, 2026-11-23: "fixed
   amounts, bundle deals are just very good for mid-late game players still tho", then "bulk deals i mean").** So the
   bigger the pack, the far better its rate. The amounts are open; a fixed draft is asked of the tuning chat.
