@@ -496,12 +496,33 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 			return "let go"
 		elseif verb == "equip" then
 			local Equip = require(Client.Controllers:WaitForChild("EquipController"))
+			-- 1 holds the slot's fish, Q makes the held fish the ride fish (EquipController: two presses, no chord)
 			Equip.press(Enum.KeyCode.One)
-			task.wait(0.5)
-			return "equipped; LandMounted=" .. tostring(player:GetAttribute("LandMounted"))
+			task.wait(0.4)
+			Equip.press(Enum.KeyCode.Q)
+			task.wait(0.6)
+			return "equipped=" .. tostring(player:GetAttribute("EquippedFish")) .. "; LandMounted="
+				.. tostring(player:GetAttribute("LandMounted"))
+		elseif verb == "status" then
+			-- after a dive: is everything given back?
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local fx = camera:FindFirstChild("RideFx")
+			local stats = Splash.stats()
+			return Http:JSONEncode({ mode = State.Mode, leaping = State.Leaping, camera = camera.CameraType.Name,
+				platformStand = humanoid and humanoid.PlatformStand, humanoid = humanoid and humanoid:GetState().Name,
+				attr = player:GetAttribute("State"), rideFx = fx and #fx:GetChildren() or -1, splash = stats })
 		elseif verb == "leap" then
 			Config.Dive.Leap = tonumber(a) or 0
 			return "client Leap=" .. tostring(Config.Dive.Leap)
+		elseif verb == "set" then
+			-- any Config.Dive number on this machine, for a look (set|Flip|1); put it back yourself
+			if Config.Dive[a] == nil or not tonumber(b) then
+				return "no Config.Dive." .. tostring(a)
+			end
+			local was = Config.Dive[a]
+			Config.Dive[a] = tonumber(b)
+			return "client Config.Dive." .. a .. "=" .. tostring(Config.Dive[a]) .. " (was " .. tostring(was) .. ")"
 		end
 		return "?"
 	end)

@@ -40,6 +40,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [The wild ride](docs/design/wild-ride.md): the rider locked to the fish's back, fits while you ride, the rodeo pose, and the camera that goes with it (built 2026-11-17); the stride, the fish's steps left and right (2026-11-18).
 - [The hook](docs/design/hook.md): the anchor on a rope the rider whirls and throws to reach the next fish (built 2026-11-17).
 - [The dive-in, and the speed of the sea](docs/design/dive-in.md): a plan (2026-11-16) for the first seconds from the gate to the first fish, and for what speed should mean to the player.
+- [The first minutes](docs/design/first-minutes.md): how Ride a Dino teaches a new player, second by second, and what ours should show: where to go, the deposit, the seahorse (study and proposal, 2026-11-23).
 - [The dive](docs/design/the-dive.md): riding, jumping, taming, the zones going down.
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.
 - [The hub's layout](docs/design/hub-layout.md): the dive-in strip, the walls round it, the space behind the tanks (study, 2026-11-20).
