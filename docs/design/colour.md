@@ -269,7 +269,7 @@ changed colour. It goes on the loaded place without a reload, so hand placing is
 the two files the other way round puts the old colours back. A model somebody painted by hand is left alone and named.
 
 The place's prop bricks were counted against the build afterwards: all 54,665 colours match, no model left alone.
-The place is not saved yet.
+Saved on the user's word, version 433.
 
 **Offered, not done:** taking the proposal's own prop colours whole (`proposal.json`, the props pair). It is a bigger change of look.
 

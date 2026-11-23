@@ -4,7 +4,7 @@ What each push changed, so whoever pulls next knows where things stand. Newest f
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-23 · The early lands' prop colours, and litter on the hub's first ledge (Ride a Fish map, the user's PC)
-**State:** committed, not pushed by hand (the sync carries it); in the Team Create place (3b999aa2), **not saved unless the user said so since**. Nothing moved or reloaded.
+**State:** committed, not pushed by hand (the sync carries it); in the Team Create place (3b999aa2), **saved on the user's word (version 433)**. Nothing moved or reloaded.
 - **Colours:** the props of lands 1 to 4 (18,005 bricks): colourway by place, tone by form, stone from the walls. Why and
   the numbers: [colour](design/colour.md), "A bit less random".
 - **The ledge:** 136 bricks, `Dock/Dressing/Ledge` ([hub review 2](design/hub-review-2.md), "The first ledge's litter").
