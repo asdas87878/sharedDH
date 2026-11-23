@@ -33,3 +33,6 @@ art/map/**/parts.json
 
 # hub_s.py trial builds (made again by the script)
 art/map/hub_study/S_*/
+art/map/greybox/hub_pens_?.json
+art/map/greybox/hub_try*.json
+tools/studio/hub_try/

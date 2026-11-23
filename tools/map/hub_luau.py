@@ -33,7 +33,7 @@ RIPPLE = "rbxassetid://6126332496"  # the water's picture, from the pack the mov
 BENCH = bool(os.environ.get("HUB_BENCH"))
 if BENCH and len(sys.argv) < 2:
     OUT = os.path.join(ROOT, "tools", "studio", "hub_bench")
-hub = json.load(open(os.path.join(BOX, "hub_bench.json" if BENCH else "hub.json")))
+hub = json.load(open(os.path.join(BOX, (os.environ.get("HUB_BENCH_JSON") or "hub_bench.json") if BENCH else "hub.json")))
 parts, feet = hub["parts"], hub.get("feet", {})
 for p in parts:
     p["p"] = [round(p["p"][i] + ORIGIN[i], 2) for i in range(3)]
