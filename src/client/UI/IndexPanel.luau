@@ -37,8 +37,8 @@ local GAP = 8
 local TAB_HIGH = 46
 local TAB_GAP = 6
 local SIDE = 228 -- the chosen kind's column, at the right
-local LAND_HIGH = 52 -- the land's set bar
-local FOOT_HIGH = 46 -- the found bar and CLAIM ALL
+local LAND_HIGH = 50 -- the land's set bar
+local FOOT_HIGH = 44 -- the found bar and CLAIM ALL
 local ALL_WIDE = 162 -- CLAIM ALL
 local COLUMNS = 5
 local CARD_W, CARD_H = 113, 108
@@ -391,7 +391,7 @@ local function newCard(fish: Config.FishType, order: number): Card
 	local picture = Portrait.new(root, {
 		Name = "Picture",
 		Position = UDim2.fromOffset(8, 5),
-		Size = UDim2.new(1, -16, 0, 56),
+		Size = UDim2.new(1, -16, 0, 52),
 		Outline = if have then nil else 0, -- (a dark shape needs no outline: one copy of a live model, not nine)
 		ZIndex = 5,
 	})
@@ -405,9 +405,9 @@ local function newCard(fish: Config.FishType, order: number): Card
 	end
 	Shop.text(root, {
 		Name = "Name",
-		Position = UDim2.fromOffset(4, 61),
-		Size = UDim2.new(1, -8, 0, 30),
-		TextSize = 13,
+		Position = UDim2.fromOffset(4, 57),
+		Size = UDim2.new(1, -8, 0, 32),
+		TextSize = 14,
 		TextWrapped = true,
 		Text = if have then fish.Name else "???",
 		ZIndex = 6,
@@ -418,7 +418,7 @@ local function newCard(fish: Config.FishType, order: number): Card
 		Size = UDim2.new(1, -8, 0, 14),
 		BackgroundTransparency = 1,
 		Font = Kit.Font,
-		TextSize = 11,
+		TextSize = 12,
 		Text = string.upper(fish.Tier),
 		TextColor3 = if have then Kit.darker(colour, 0.7) else Kit.White,
 		ZIndex = 6,
@@ -699,7 +699,7 @@ local function build()
 	})
 	landWord = Shop.text(landBox, {
 		Name = "Land",
-		Position = UDim2.fromOffset(12, 6),
+		Position = UDim2.fromOffset(12, 5),
 		Size = UDim2.fromOffset(222, 20),
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -707,7 +707,7 @@ local function build()
 	})
 	local _, setLand = bar(landBox, {
 		Name = "Bar",
-		Position = UDim2.fromOffset(12, 30),
+		Position = UDim2.fromOffset(12, 29),
 		Size = UDim2.fromOffset(222, 14),
 		ZIndex = 3,
 	}, GOLD)

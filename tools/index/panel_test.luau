@@ -512,6 +512,40 @@ print(
 )
 dump("5_phone")
 
+----------------------------------------------------------------------------------------------------------------------
+print("every land, everything caught (the biggest numbers and the longest names)")
+gui.camera.ViewportSize = Vector2.new(1920, 1080)
+gui.input.TouchEnabled = false
+gui.input.KeyboardEnabled = true
+gui.input.Last = Enum.UserInputType.MouseMovement
+press(indexButton)
+press(indexButton)
+local most, mostLand = 0, 1
+for land = 1, Config.indexLands() do
+	local kinds = Config.indexKinds(land)
+	if #kinds > most then
+		most, mostLand = #kinds, land
+	end
+	for _, fish in kinds do
+		catch(fish.Id)
+	end
+end
+tick()
+local every = true
+for land = 1, Config.indexLands() do
+	press(find(lands, "Land" .. land))
+	every = every and cardCount() == #Config.indexKinds(land)
+	if land == mostLand then
+		dump("6_most")
+	end
+end
+ok("every land's tab shows its own kinds", every)
+ok("all found", foot:FindFirstChild("Count").Text == `{total} of {total} found`, foot:FindFirstChild("Count").Text)
+print(`        the land with the most kinds: {mostLand}, {most}`)
+dump("7_under")
+press(all)
+ok("CLAIM ALL pays everything left, once", player:GetAttribute("IndexClaims") == 0 and words(all) == "Claim All (0)")
+
 for _, line in world.warnings do
 	print("  warning: " .. line)
 end

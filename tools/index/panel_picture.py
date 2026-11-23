@@ -11,6 +11,8 @@ uploaded, they are the live models), and the open spring and the shines do not s
     rojo build -o /tmp/idx/place.rbxl
     lune run tools/index/panel_test.luau /tmp/idx/place.rbxl /tmp/idx/dump
     python tools/index/panel_picture.py /tmp/idx/dump docs/attachments
+
+One picture a state: docs/attachments/index-panel-offline-<state>.jpg.
 """
 import html
 import json
@@ -280,7 +282,11 @@ div{{box-sizing:border-box}}
                     "--allow-file-access-from-files", f"--force-device-scale-factor={dpr}",
                     f"--window-size={wide},{high}", f"--screenshot={png}", file.as_uri()],
                    check=True, capture_output=True, timeout=120)
-    return png
+    # (kept as a JPEG: a fifth of the size in the vault)
+    jpg = png.with_suffix(".jpg")
+    Image.open(png).convert("RGB").save(jpg, quality=90)
+    png.unlink()
+    return jpg
 
 
 def main():
