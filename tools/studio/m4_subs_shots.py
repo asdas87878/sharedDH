@@ -15,6 +15,7 @@ differ from the one before it, or the run stops. Log: work/m4/shots.log; stills 
 """
 import json
 import math
+import re
 import sys
 import time
 from pathlib import Path
@@ -85,6 +86,38 @@ local function closeCam()
 	cam.CFrame = CFrame.lookAt(sub:PointToWorldSpace(rcamEye), sub:PointToWorldSpace(rcamAt), sub.UpVector)
 	cam.FieldOfView = rcamFov
 	setting = false
+end
+local RunService = game:GetService("RunService")
+local probeRows, probeSet, marker, lastPos = {}, "", nil, nil
+local function probeStep(dt)
+	if player:GetAttribute("SubPhase") ~= "Ride" then return end
+	local found = ourSub()
+	local hull = found and found.PrimaryPart
+	local sign = found and found:FindFirstChild("Label", true)
+	if not (hull and sign) then return end
+	if probeSet == "top" then sign.AlwaysOnTop = true end
+	if probeSet == "far" then sign.MaxDistance = 100000 end
+	local cam = workspace.CurrentCamera
+	local at = hull.CFrame:PointToWorldSpace(sign.StudsOffsetWorldSpace)
+	local world = hull.Position + sign.StudsOffsetWorldSpace
+	if not marker then
+		marker = Instance.new("Part")
+		marker.Name = "M4Marker"
+		marker.Shape = Enum.PartType.Ball
+		marker.Size = Vector3.one * 1.6
+		marker.Material = Enum.Material.Neon
+		marker.Color = Color3.fromRGB(255, 0, 200)
+		marker.Anchored = true
+		marker.CanCollide = false
+		marker.CanQuery = false
+		marker.Parent = workspace
+	end
+	marker.Position = hull.CFrame:PointToWorldSpace(sign.StudsOffsetWorldSpace + Vector3.new(0, 3, 0))
+	local speed = if lastPos then (hull.Position - lastPos).Magnitude / math.max(dt, 1e-4) else 0
+	lastPos = hull.Position
+	local sp, on = cam:WorldToViewportPoint(at)
+	table.insert(probeRows, { dt, speed, (cam.CFrame.Position - at).Magnitude, if sign.Enabled then 1 else 0, if on then 1 else 0, sp.X, sp.Y,
+		(at - world).Magnitude })
 end
 workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 	local cmd = tostring(workspace:GetAttribute("M4Do") or "")
@@ -223,6 +256,63 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 					tostring(mesh), off))
 			end
 			return table.concat(out, "\n")
+		elseif verb == "oldcam" then
+			-- the cards' pictures from where the camera stood before task m4 (one spot for all nine), and back
+			local list = listOf(shopGui())
+			local count = 0
+			for n = 1, 9 do
+				local card = list:FindFirstChild("Sub" .. n)
+				local frame = card and card:FindFirstChildWhichIsA("ViewportFrame", true)
+				local cam = frame and frame.CurrentCamera
+				if cam then
+					if words[2] == "on" then
+						if not cam:GetAttribute("M4Was") then cam:SetAttribute("M4Was", cam.CFrame) end
+						cam.CFrame = CFrame.lookAt(Vector3.new(-44, 18, -36), Vector3.new(0, 2, 0))
+					elseif cam:GetAttribute("M4Was") then
+						cam.CFrame = cam:GetAttribute("M4Was")
+						cam:SetAttribute("M4Was", nil)
+					end
+					count += 1
+				end
+			end
+			return "oldcam " .. tostring(words[2]) .. " cards=" .. count
+		elseif verb == "probe" then
+			-- the name sign on a trip, frame by frame after the game's own step: is it on, how far, where on the screen;
+			-- a pink ball rides 3 studs over where the sign's middle should be. words[3]: "top" (AlwaysOnTop), "far"
+			-- (no MaxDistance) or "" (as the game has it)
+			if words[2] == "on" then
+				probeRows = {}
+				probeSet = words[3] or ""
+				lastPos = nil
+				pcall(function() RunService:UnbindFromRenderStep("M4Probe") end)
+				RunService:BindToRenderStep("M4Probe", Enum.RenderPriority.Camera.Value + 6, probeStep)
+				return "probe on " .. probeSet
+			elseif words[2] == "now" then
+				local r = probeRows[#probeRows]
+				if not r then return "probe now: no frames" end
+				return string.format("probe now frame=%d dt=%.4f speed=%.0f camToSign=%.1f enabled=%d onScreen=%d screen=%.0f,%.0f", #probeRows,
+					r[1], r[2], r[3], r[4], r[5], r[6], r[7])
+			else
+				pcall(function() RunService:UnbindFromRenderStep("M4Probe") end)
+				if marker then marker:Destroy() marker = nil end
+				local n = #probeRows
+				if n == 0 then return "probe read: no frames" end
+				local function col(i)
+					local c = {}
+					for _, r in probeRows do table.insert(c, r[i]) end
+					table.sort(c)
+					return c[1], c[math.ceil(n / 2)], c[n]
+				end
+				local d0, d1, d2 = col(1)
+				local s0, s1, s2 = col(2)
+				local c0, c1, c2 = col(3)
+				local e0 = col(4)
+				local o0, _, o2 = col(5)
+				local _, _, w2 = col(8)
+				local view = workspace.CurrentCamera.ViewportSize
+				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d worldVsObject=%.2f view=%dx%d",
+					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w2, view.X, view.Y)
+			end
 		elseif verb == "rcam" then
 			if rcam then rcam:Disconnect() rcam = nil end
 			if words[2] == "on" then
@@ -407,8 +497,9 @@ def closes(tiers, close=None):
     save_log()
 
 
-def shop(tag):
-    """the stand's shop: the cards' read-out and stills, at PC size and at a phone's"""
+def shop(tag, old=False):
+    """the stand's shop: the cards' read-out and stills, at PC size and at a phone's (`old`: from the one spot the
+    cards' camera stood at before task m4)"""
     note("equip: " + s2.cmd("sub|5,6", 1.5))
     note(do("near", 1.5))
     for size, phone in (("pc", None), ("phone", PHONE)):
@@ -418,7 +509,13 @@ def shop(tag):
         if "enabled=true" not in said:
             save_log()
             raise SystemExit("the shop did not open")
-        note(f"cards, {size}, {tag}:\n" + do("cards", 1.5))
+        if old:
+            note(do("oldcam|on", 1))
+        cards = do("cards", 1.5)
+        note(f"cards, {size}, {tag}:\n" + cards)
+        box = re.search(r"window=(\d+)x(\d+) at (-?\d+),(-?\d+)", cards)
+        if box:
+            (OUT / f"window-{size}.json").write_text(json.dumps([int(v) for v in box.groups()]))
         for first in (0, 3, 6, 9):
             said = do(f"scroll|{first}", 1)
             note(said)
@@ -427,20 +524,27 @@ def shop(tag):
                 raise SystemExit("the shop closed itself")
             time.sleep(1.4)
             shot(f"shop-{tag}-{size}-{first}")
+        if old:
+            note(do("oldcam|off", 1))
         note(do("shop|off", 1.5))
     note(do("phone|off", 1))
     note("home: " + s2.cmd("home", 2))
     save_log()
 
 
-def trip(tier, close):
-    """a real trip on one tier to its own land; a still about 1.3 s into the Ride (the game's own view, or ours)"""
+def trip(tier, close, probe=None):
+    """a real trip on one tier to its own land; a still about 1.3 s into the Ride (the game's own view, or ours).
+    `probe` ("plain", "top", "far"): the name sign is watched frame by frame, a pink ball rides over its place"""
     land = tier + 1
     kind = "close" if close else "ride"
+    if probe:
+        kind = f"probe-{probe}-{kind}"
     for attempt in range(2):
         note(f"tier {tier} to land {land} ({kind}): " + s2.cmd(f"sub|{tier},{land}", 1.5))
         note("  " + do("rcam|on" if close else "rcam|off", 0.5))
         note("  " + t3.do("watch", 0.4))
+        if probe:
+            note("  " + do("probe|on|" + ("" if probe == "plain" else probe), 0.4))
         note("  dive: " + s2.cmd("dive", 0.3))
         still, st = None, ""
         end = time.time() + 30
@@ -451,10 +555,14 @@ def trip(tier, close):
                 time.sleep(0.7)
                 st = s2.cmd("st", 0.1)
                 still = shot(f"{kind}-{tier}", tries=1, least=0.0)
+                if probe:
+                    st += " / after the still: " + do("probe|now", 0.1)
                 break
         note("  just before the still: " + st)
         time.sleep(6)
         note("  numbers: " + t3.do("read", 0.5))
+        if probe:
+            note("  " + do("probe|read", 0.5))
         note("  " + do("rcam|off", 0.5))
         note("  home: " + s2.cmd("home", 3))
         time.sleep(1.5)
@@ -502,6 +610,40 @@ def sheet(paths, labels, out, cols=3, width=880, crop=None, title=None):
     return out
 
 
+def window_crop(path, size, out, pad=14):
+    """a shop still cut to the shop's window (the read-out's box; the top bar's 58 points are not in it)"""
+    w, h, x, y = json.loads((OUT / f"window-{size}.json").read_text())
+    im = Image.open(path).convert("RGB")
+    box = (max(0, x - pad), max(0, y + 58 - pad), min(im.width, x + w + pad), min(im.height, y + 58 + h + pad))
+    im.crop(box).save(out)
+    return out
+
+
+def sheets():
+    """the record pictures in docs/attachments, from the stills in work/m4"""
+    made = []
+    labels = [f"{n} {NAMES[n - 1]}" for n in range(1, 10)]
+    made.append(sheet([OUT / f"stand-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-stand.png", width=760,
+                      crop=(0.16, 0.0, 0.86, 1.0), title="The nine toy subs over the stand, in the game (task m4)"))
+    made.append(sheet([OUT / f"close-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-seat.png", width=760,
+                      title="On a trip, seen close: the rider on the seat, the propeller in its ring (task m4)"))
+    made.append(sheet([OUT / f"ride-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-ride.png", width=760,
+                      title="On a trip, the game's own view (task m4)"))
+    tiles, names = [], []
+    for size, word in (("pc", "PC"), ("phone", "Phone 844x390")):
+        for first, which in ((6, "tiers 6 to 9"), (9, "tiers 7 to 9, the list's end")):
+            for tag, when in (("before", "BEFORE"), ("after", "AFTER")):
+                src = OUT / f"shop-{tag}-{size}-{first}.png"
+                tiles.append(window_crop(src, size, OUT / f"shopcut-{tag}-{size}-{first}.png"))
+                names.append(f"{word}, {when}: {which}")
+    made.append(sheet(tiles, names, ATTACH / "m4-sub-shop.png", cols=2, width=900,
+                      title="The sub shop's cards: one camera spot for all (before), a spot a model (after)"))
+    for p in made:
+        im = Image.open(p)
+        im.resize((1500, round(im.height * 1500 / im.width)), Image.LANCZOS).save(OUT / (Path(p).stem + "-s.jpg"), quality=82)
+        print(p)
+
+
 if __name__ == "__main__":
     what = sys.argv[1]
     rest = sys.argv[2:]
@@ -516,7 +658,16 @@ if __name__ == "__main__":
         cut = rest.index("--") if "--" in rest else len(rest)
         closes([int(a) for a in rest[:cut]], [float(a) for a in rest[cut + 1:]] or None)
     elif what == "shop":
-        shop(rest[0])
+        # shop before: the cards from the old camera spot; shop after (or any other tag): as the game has them
+        shop(rest[0], old=rest[0] == "before")
+    elif what == "probes":
+        # probes [tier ...]: the name sign on a trip, as the game has it, always on top, and with no far limit
+        for tier in [int(a) for a in rest if a.isdigit()] or [2, 6]:
+            for variant in ("plain", "top", "far"):
+                trip(tier, False, variant)
+        save_log()
+    elif what == "sheets":
+        sheets()
     elif what == "rides":
         kinds = tuple(a for a in rest if not a.isdigit()) or ("ride", "close")
         rides([int(a) for a in rest if a.isdigit()], kinds)

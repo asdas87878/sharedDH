@@ -20,7 +20,11 @@ SubModels.Templates = "SubMeshes"
 
 -- The name sign over a sub: how tall it is, and how far its lower edge stays over a model's tallest piece (studs)
 local SIGN_TALL = 3
-local SIGN_GAP = 0.6
+-- (0.6 until task m4: seen in the game, a snorkel, a kelp leaf, a periscope, a fin and the crown ran into the letters)
+local SIGN_GAP = 2
+-- a hull darker than this (Color3's own 0 to 1, by eye's weights) gives a name nobody can read on the sign's dark
+-- outline: Midnight Hunter's navy. Its name is written in its light's colour instead
+local SIGN_DARK = 0.25
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -126,7 +130,8 @@ local function dress(
 	text.Font = Enum.Font.LuckiestGuy
 	text.TextScaled = true
 	text.Text = string.upper(s.Name)
-	text.TextColor3 = s.Hull
+	local bright = 0.2126 * s.Hull.R + 0.7152 * s.Hull.G + 0.0722 * s.Hull.B
+	text.TextColor3 = if bright < SIGN_DARK then s.Light else s.Hull
 	text.TextStrokeColor3 = Color3.fromRGB(16, 36, 63)
 	text.TextStrokeTransparency = 0
 	text.Parent = sign
