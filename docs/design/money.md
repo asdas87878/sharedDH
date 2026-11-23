@@ -19,8 +19,8 @@
   Roblox's real store before the switch goes on.
 - **The payout:** `PurchaseService`, the one `ProcessReceipt`. A receipt is given once and Roblox is told so only when
   the profile is seen saved. Coins by `AquariumService.give`, Oxygen by `RideService.grantOxygen` (theirs to write).
-  **Oxygen bought in the water raises the max at once and doesn't refill the meter (the user, 2026-11-23: "Yes, no
-  refill")**, so it can't buy a way out of a fail.
+  **Oxygen that arrives in the water waits for the dock (the user, 2026-11-23: "At the dock"), with no refill ("Yes, no
+  refill")**: it is saved at once (`Banked` in RideService) and joins the max there. A max raised mid-dive would put the meter in the red.
 - **On sale** is an offer in `Products` with an `Id`, `Gives` and `Amount` (`Products.onSale`). The Shop then shows the
   amount as the card's name and Roblox's own price, and asks for the prompt only once the player's save is in.
 - **Wanted from the user:** the six developer products made on Roblox (their ids; their prices are read from Roblox), and
