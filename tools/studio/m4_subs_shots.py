@@ -108,14 +108,45 @@ end
 local between, over, rideFor = {}, {}, 0
 local snapSaid = "none"
 local lastUp = "?"
+-- the probe's set is words joined by "+": top, far, quiet (no balls), nowater (the water script's drawings out for the
+-- trip), nounder (only its nine sheets overhead out), notitle (a screen that lays a text over the name is put off)
+local function has(word) return string.find("+" .. probeSet .. "+", "+" .. word .. "+", 1, true) ~= nil end
+local outParts, outGuis, sheet = {}, {}, nil
+local function waterOut()
+	local layers = workspace:FindFirstChild("WaterLayers", true)
+	sheet = layers and layers:FindFirstChild("Under") or sheet
+	if not layers then return "no WaterLayers" end
+	local n = 0
+	if has("nowater") then
+		table.insert(outParts, { layers, layers.Parent })
+		layers.Parent = nil
+		n = 1
+	elseif has("nounder") then
+		for _, c in layers:GetChildren() do
+			if c.Name == "Under" then
+				table.insert(outParts, { c, layers })
+				c.Parent = nil
+				n += 1
+			end
+		end
+	end
+	return "out=" .. n
+end
+local function putBack()
+	for _, item in outParts do item[1].Parent = item[2] end
+	for _, g in outGuis do g.Enabled = true end
+	local n = #outParts + #outGuis
+	outParts, outGuis = {}, {}
+	return n
+end
 local function probeStep(dt)
 	if player:GetAttribute("SubPhase") ~= "Ride" then return end
 	local found = ourSub()
 	local hull = found and found.PrimaryPart
 	local sign = found and found:FindFirstChild("Label", true)
 	if not (hull and sign) then return end
-	if probeSet == "top" then sign.AlwaysOnTop = true end
-	if probeSet == "far" then sign.MaxDistance = 100000 end
+	if has("top") then sign.AlwaysOnTop = true end
+	if has("far") then sign.MaxDistance = 100000 end
 	local cam = workspace.CurrentCamera
 	-- where the engine draws the sign: StudsOffsetWorldSpace keeps to the world's axes (the engine reference, "relative
 	-- to the global axes"), counted from the Adornee (an Attachment's place) or, with none, from the part it is in
@@ -136,7 +167,7 @@ local function probeStep(dt)
 	end
 	-- a pink ball 3 studs over where the sign is meant, a green one 3 studs over where the engine draws it
 	-- ("quiet": no balls, for a still that is the record of how the game looks)
-	if probeSet ~= "quiet" then
+	if not has("quiet") then
 		marker = marker or ball(Color3.fromRGB(255, 0, 200))
 		marker2 = marker2 or ball(Color3.fromRGB(0, 255, 60))
 		marker.Position = meant + Vector3.new(0, 3, 0)
@@ -176,6 +207,13 @@ local function probeStep(dt)
 				local key = nil
 				if g:IsA("TextLabel") and g.Text ~= "" and g.TextTransparency < 0.9 then
 					key = "gui." .. g.Name .. ":" .. string.gsub(string.sub(g.Text, 1, 16), "%s", "_")
+					if has("notitle") then
+						local screen = g:FindFirstAncestorWhichIsA("LayerCollector")
+						if screen and screen.Enabled then
+							screen.Enabled = false
+							table.insert(outGuis, screen)
+						end
+					end
 					-- its letters, not its box: TextBounds placed by the label's alignment; counted while the text
 					-- is more than half there. The share of the sign's box they lie over
 					if g.TextTransparency < 0.5 and not seen[key] then
@@ -203,7 +241,8 @@ local function probeStep(dt)
 	rideFor += dt
 	table.insert(probeRows, { dt, speed, (cam.CFrame.Position - world).Magnitude, if sign.Enabled then 1 else 0, if on then 1 else 0, sp.X, sp.Y,
 		(meant - world).Magnitude, cover, rideFor, eye.X, eye.Y, eye.Z,
-		math.deg(math.asin(math.clamp(hull.CFrame.LookVector.Y, -1, 1))), count, guiHits, lettersOver })
+		math.deg(math.asin(math.clamp(hull.CFrame.LookVector.Y, -1, 1))), count, guiHits, lettersOver,
+		world.Y, cam.CFrame.Position.Y, if sheet then sheet.Position.Y else 1e9, if sheet then sheet.Transparency else -1 })
 end
 workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 	local cmd = tostring(workspace:GetAttribute("M4Do") or "")
@@ -418,9 +457,10 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 				between, over, rideFor = {}, {}, 0
 				probeSet = words[3] or ""
 				lastPos = nil
+				local said = waterOut()
 				pcall(function() RunService:UnbindFromRenderStep("M4Probe") end)
 				RunService:BindToRenderStep("M4Probe", Enum.RenderPriority.Camera.Value + 6, probeStep)
-				return "probe on " .. probeSet
+				return "probe on " .. probeSet .. " " .. said
 			elseif words[2] == "now" then
 				local r = probeRows[#probeRows]
 				if not r then return "probe now: no frames" end
@@ -428,6 +468,7 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 					r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[9], r[16], r[17])
 			else
 				pcall(function() RunService:UnbindFromRenderStep("M4Probe") end)
+				local back = putBack()
 				if marker then marker:Destroy() marker = nil end
 				if marker2 then marker2:Destroy() marker2 = nil end
 				local n = #probeRows
@@ -475,9 +516,20 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 				table.sort(hudNames, function(x, y) return x[2] > y[2] end)
 				for i = 1, math.min(#hudNames, 8) do table.insert(hudList, hudNames[i][1] .. "=" .. hudNames[i][2]) end
 				local view = workspace.CurrentCamera.ViewportSize
+				local y0, _, y2 = col(18)
+				local q0, _, q2 = col(19)
+				local h0, _, h2 = col(20)
+				local t0, _, t2 = col(21)
+				local above, camAbove = 0, 0
+				for _, r in probeRows do
+					if r[18] > r[20] then above += 1 end
+					if r[19] > r[20] then camAbove += 1 end
+				end
+				local heights = string.format(" signY=%.0f..%.0f camY=%.0f..%.0f sheetY=%.0f..%.0f sheetSee=%.2f..%.2f signAboveSheet=%.2f camAboveSheet=%.2f putBack=%d",
+					y0, y2, q0, q2, h0, h2, t0, t2, above / n, camAbove / n, back)
 				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d offBy=%.2f/%.2f cover=%.2f/%.2f steadyMax=%.2f coveredShare=%.2f eye=%.1f,%.1f,%.1f pitch=%.0f..%.0f betweenMost=%d between=[%s] hudOverShare=%.2f lettersOverShare=%.2f lettersOverMost=%.2f signUp=%s hud=[%s] view=%dx%d",
 					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w1, w2, k1, k2, ks, hid / n, ex, ey, ez, p0, p2, bn,
-					table.concat(list, " "), hud / n, letters / n, lettersMost, tostring(lastUp), table.concat(hudList, " "), view.X, view.Y)
+					table.concat(list, " "), hud / n, letters / n, lettersMost, tostring(lastUp), table.concat(hudList, " "), view.X, view.Y) .. heights
 			end
 		end
 		return "?"
@@ -866,8 +918,10 @@ if __name__ == "__main__":
         save_log()
     elif what == "probes":
         # probes [tier ...]: the name sign on a trip, as the game has it, always on top, and with no far limit
+        # probes 5 2 sets=nowater+notitle,nounder: those sets instead (words joined by +, see the client's `has`)
+        sets = [a[5:].split(",") for a in rest if a.startswith("sets=")]
         for tier in [int(a) for a in rest if a.isdigit()] or [2, 6]:
-            for variant in ("plain", "top", "far"):
+            for variant in (sets[0] if sets else ("plain", "top", "far")):
                 trip(tier, variant)
         save_log()
     elif what == "sheets":
