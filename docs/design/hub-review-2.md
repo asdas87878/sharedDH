@@ -104,11 +104,10 @@ trainer pad stood in front of every one of its gates.)*
 For attention, following the reference:
 - **The spawn on the line from the pens to the strip**, facing the strip. The strip, the gap and the herd beyond it are
   straight ahead and fill the middle of the first view.
-- **Sell and Auras flank that line**, 17 to 25 from the strip and 30 apart, as theirs. Every walk out passes them.
+- **Sell and Auras flank that line**, 18 from the strip (theirs 17 to 25); our stalls are 29 wide, so their middles are 52 apart (theirs 30). Every walk out passes them.
 - **Nothing tall between the spawn and the gap.** The tanks' 34-stud height is what blocks the view today. Low pens give
   the whole hub one sightline, and from every pen front the herd shows through the gap.
-- The Fuse machine a little further back, the Earners board on the wall beside the gap, the Index and the Submarine at
-  the strip's two ends.
+- The Fuse machine and the Index a little further back, the Earners board and the Submarine at the strip's two ends.
 
 **Cost:** the hub's walls come from the generator, so S is one full map reload, which also re-scatters some lane props.
 Before that, a hub-only try build (the generator's hub options) would show the walls at S's size without the reload.
