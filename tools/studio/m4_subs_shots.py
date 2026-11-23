@@ -106,6 +106,7 @@ local function covered(cam, at, sub, pts)
 	return worst
 end
 local between, over, rideFor = {}, {}, 0
+local snapSaid = "none"
 local function probeStep(dt)
 	if player:GetAttribute("SubPhase") ~= "Ride" then return end
 	local found = ourSub()
@@ -187,6 +188,26 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 	local words = string.split(cmd, "|")
 	local verb = words[1]
 	local ok, said = pcall(function()
+		if verb == "snap" then
+			-- can the engine's own screenshot be read back as pixels? (a try: Studio's window was not redrawing)
+			if words[2] == "read" then return "snap " .. snapSaid end
+			snapSaid = "asked"
+			game:GetService("CaptureService"):CaptureScreenshot(function(id)
+				local ok2, why = pcall(function()
+					local img = game:GetService("AssetService"):CreateEditableImageAsync(Content.fromUri(id))
+					local size = img.Size
+					local pix = img:ReadPixelsBuffer(Vector2.zero, size)
+					local n, pink = size.X * size.Y, 0
+					for i = 0, n - 1, 97 do
+						local r, g, b = buffer.readu8(pix, i * 4), buffer.readu8(pix, i * 4 + 1), buffer.readu8(pix, i * 4 + 2)
+						if r > 200 and g < 60 and b > 200 then pink += 1 end
+					end
+					snapSaid = string.format("ok id=%s size=%dx%d pinkShare=%.3f", tostring(id), size.X, size.Y, pink / math.ceil(n / 97))
+				end)
+				if not ok2 then snapSaid = "failed id=" .. tostring(id) .. " why=" .. tostring(why) end
+			end)
+			return "snap asked"
+		end
 		if verb == "ping" then
 			return "pong mode=" .. tostring(State.Mode)
 		elseif verb == "close" then

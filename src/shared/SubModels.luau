@@ -64,7 +64,7 @@ SubModels.List = {
 		Hull = rgb(40, 140, 255),
 		Trim = rgb(230, 240, 255),
 		Light = rgb(140, 255, 255),
-		SignUp = 4.7, -- the tail fin, seen from the run camera, reaches 3.7 studs over where the sign would start
+		SignUp = 5.7, -- the tail fin: 4.7 by sign_fit (the sub level), 1 more for the dips of a real trip (measured)
 	},
 	{
 		Id = "TwilightRay",
@@ -122,19 +122,15 @@ local function dress(
 	glow.Brightness = 1.5
 	glow.Color = s.Light
 	glow.Parent = hull
-	-- the label: the sub's name over its tower. Its place is an Attachment on the sub, so it turns, dips and banks
-	-- with it and the run's camera, which follows the sub, always sees the name over the same spot.
-	-- (Not StudsOffsetWorldSpace: that offset keeps to the world's axes whichever way the part is turned, so on a sub
-	-- that dips and banks the name leaned off its tower, 5 to 11 studs on most frames of a trip and up to 14, and a
-	-- piece it should clear came in front of it. Measured 2026-11-23, tools/studio/m4_subs_shots.py numbers.)
-	local signAt = Instance.new("Attachment")
-	signAt.Name = "LabelAt"
-	signAt.Position = tower.CFrame:VectorToObjectSpace(over)
-	signAt.Parent = tower
+	-- the label: the sub's name over its tower. StudsOffsetWorldSpace keeps to the world's axes whichever way the part
+	-- is turned, and that is wanted: the name stays straight over the sub while it dips and banks, so in the run's
+	-- picture it stays the topmost thing. (Tried 2026-11-23: the place as an Attachment, turning with the sub. On a
+	-- real trip the tail then came in front of the name on up to 39% of the frames, against none this way but for
+	-- Blue Streak's fin: tools/studio/m4_subs_shots.py numbers.)
 	local sign = Instance.new("BillboardGui")
 	sign.Name = "Label"
 	sign.Size = UDim2.fromScale(14, SIGN_TALL)
-	sign.Adornee = signAt
+	sign.StudsOffsetWorldSpace = over
 	sign.MaxDistance = 140
 	sign.LightInfluence = 0
 	sign.Parent = tower
