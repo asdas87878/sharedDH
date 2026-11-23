@@ -167,19 +167,19 @@ To confirm with the game-code chat before any of it goes in; as far as the map c
 The user's three corrections, each right and each a misreading of mine:
 - **The second drawing had no grass behind the pens** ("it doesnt have any space between aquariums and the walls behind"):
   3 studs. Theirs, from above a back pen (full 12 s, `ground.py`): the wall 7 to 12 behind the back pens, 19 to 26 behind the
-  side ones, and beside the last back pen an open corner 65 to 86 wide, the most of it. Ours: 21, 25, and corners 83 wide.
+  side ones, and beside the last back pen an open corner 65 to 86 wide, the most of it. Ours: 21, 25, and corners 83 wide. (Their back wall is rough: one frame, and that it is a back pen is read, not proved.)
   The back one is more than theirs because a tank hides what is behind it and a fence does not.
 - **The pens touched, and were too wide** ("theres space between the pens, they might be slightly to wide"). Theirs, from the
   frames under 25 studs away: 41 wide (gate 11, a 14.5 fence each side), and 2.3 to 3.2 of grass between, each pen with its
-  own fence. The 50 was read off a pen 70 studs away. Ours: 42 over the plate, 4 of grass between plates, 60 deep.
+  own fence. The 50 was read off a pen 70 studs away. Ours: 42 x 62 over the plate (40 x 60 inside it), 4 of grass between plates.
 - **The first drawing's side pens stood 65 from the middle** ("the placement of the aquariums looks like the hub too small"):
   theirs stand 85 to 92, as ours since (87).
 
 Theirs is then about **350 x 195** wall to wall (good to 15%; the walls rough, and how many pens they have is drawn). Back gates
 to the strip 130 to 132 (4.6 s at 28; ours now 180), side gates 95 and 57. Checked by `hub_scale_plan.py` (nothing overlaps, 8
 clear studs before each gate) and `hub_s.py` (clears all 324 wall pieces). Loaded in Studio at x 14000, not saved. **What the
-narrower pen costs:** the tank inside is 36.8 wide, not 46.8, so fish lie closer and the manta joins the Archelon as too wide
-for the floor (they swim, and tails pass through the glass); "Pens that grow" above was worked out at 50 wide. Every gate's
+narrower pen costs:** the tank inside is 36.8 wide, not 46.8, so fish lie closer (at stage 5 six layers need 118 of
+height, where 46.8 needed 92 and the water is 73) and the manta joins the Archelon as too wide for the floor (they swim, and tails pass through the glass). Open: 42, or a width in between (the corners leave room); "Pens that grow" above was worked out at 50 wide. Every gate's
 sign board and the floor's studs are still ours, and where side pens stand along the wall is a middle way: one frame puts them
 nearer the strip, one nearer the back pens.
 
