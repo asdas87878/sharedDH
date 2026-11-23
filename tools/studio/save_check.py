@@ -233,14 +233,13 @@ local o = now() o.A = got[1] or "?" o.B = got[2] or "?" return o""")
     g = data(HEAD + "local r = buy('Oxygen', 5000, 'r3') local o = now() o.R = r return o")
     check("Oxygen on the dock: max and meter up", g["R"] == "PurchaseGranted" and near(g["Max"], f["Max"] + 5000) and near(g["Oxygen"], g["Max"]), (f["Max"], g["Max"], g["Oxygen"], g["State"]))
 
-    # into the water: the character is the player's own machine's, so it is moved from there
-    print("  into the water:", lua("""
-local p = game:GetService("Players").LocalPlayer
-local dock = game:GetService("ReplicatedStorage"):FindFirstChild("Net", true):GetAttribute("Dock")
-local cf = dock + dock.LookVector * 70
-p.Character:PivotTo(CFrame.new(cf.X, -12, cf.Z))
-task.wait(0.6)
-return tostring(p:GetAttribute("State"))""", "Client")[:80])
+    # into the water: the owner's panel sends them to land 1, and later fails the dive
+    admin = 'game:GetService("ReplicatedStorage"):FindFirstChild("Admin", true):FireServer(%s)'
+    lua(admin % '"Land", 1', "Client")
+    for _ in range(10):
+        time.sleep(0.5)
+        if data(HEAD + "return now()")["State"] != "Dock":
+            break
     h = data(HEAD + """
 local before = now()
 local r = buy('Oxygen', 7000, 'r4')
@@ -252,6 +251,7 @@ local o = now() o.R = r o.Before = before return o""")
         check("Oxygen in the water: the max waits", h["R"] == "PurchaseGranted" and near(h["Max"], b["Max"]) and h["Oxygen"] <= b["Oxygen"] + 0.6, (b["State"], h["State"], b["Max"], h["Max"], b["Oxygen"], h["Oxygen"]))
         check("and is saved at once", near(h["KeptOxygen"], b["KeptOxygen"] + 7000), (b["KeptOxygen"], h["KeptOxygen"]))
         i = h
+        lua(admin % '"Fail"', "Client")
         for _ in range(20):
             if i["State"] == "Dock":
                 break
@@ -265,7 +265,7 @@ local o = now() o.R = r o.Before = before return o""")
         if j["State"] == "Dock":
             break
     # a fish in the hands (the owner's panel gives it): kept, and back stored in the tank
-    lua("""game:GetService("ReplicatedStorage"):FindFirstChild("Admin", true):FireServer("Fish", "Clownfish", "Normal", "")""", "Client")
+    lua(admin % '"Fish", "Clownfish", "Normal", ""', "Client")
     time.sleep(2)
     j = data(HEAD + "return now()")
     check("a fish in the hands is kept", j["Hands"] == 1, (j["Hands"], j["Fish"]))
