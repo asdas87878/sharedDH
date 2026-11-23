@@ -6,7 +6,7 @@ side of the map. Nothing under Workspace.ClaudeBlockout is touched, and the game
   Workspace.HubTryPens  S's eight pens (one style, mixed stages), the stations at their present size, the trainer pads;
                         and, beside the walls, the pen at all six stages in a row (tools/map/pen_levels.py)
 
-usage: python tools/map/hub_s.py && python tools/map/hub_try.py [style A, B, C or E]
+usage: python tools/map/hub_s.py && python tools/map/hub_try.py [style B or E; A and C are drawn only at stages 0, 2 and 5]
        for f in tools/studio/hub_try/*.luau; do node tools/studio/run_luau.js <studio_id> "$f"; done
 To take it away again: delete the two folders."""
 import json
