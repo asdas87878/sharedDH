@@ -91,7 +91,7 @@ ground.py` (private). Figures are good to about 15%; far-off points less.
 | **How fast a player runs in the hub** | the same two toys seen a second apart | **28 a second** (Roblox's own is 16) |
 | The walk from the player's own pen to the start strip | 4 seconds, twice | **110** |
 | From the corner of the start strip to the nearest pen | one frame | 40 |
-| The stalls you use most (sell, auras) | from beside the strip | 17 to 25 from the strip, 30 apart |
+| The stalls you use most (sell, auras) | from beside the strip | about 27 to 30 from the strip, 44 to 50 apart (2026-11-23; first read 17 to 25 and 30) |
 | The start strip | from its middle to the airline stall at its end | 90 to 100 wide |
 | A pen | from inside one, on its sand | **50 wide, 60 or more deep**; fence 4 high |
 | The hub along the strip | from its middle to the far wall | 100 to 130 each way: 200 to 260 in all |

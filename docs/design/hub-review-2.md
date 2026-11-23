@@ -27,7 +27,7 @@ tell me other things we could do for the water".
 | **The hub** | 400 x 280 wall to wall (the floor part is 400 x 312, under the strip too); the open floor between the tank fronts alone is **216 x 180** | about **275 x 186** wall to wall, pens included (measured again 2026-11-23; first read as 230 x 180); open floor **174 x 126** | **The main cause.** Our open floor is 1.8 times theirs. Every walk is long: back tank to the strip 180 studs (6.4 s) against their 110 (4 s) |
 | **The pens** | 52 x 84 of water, **34 tall** (posts 34) | about 50 x 60 (drawn from frames, not measured), **fence 4 high** | The footprint is close; the height is not. Eight 34-stud boxes make the hub read as a room of buildings |
 | **The studs** | one every **1.0** stud, on an 8-stud checker | one every **0.64**, no checker on the hub floor | Ours are 1.56 times bigger. At the same speed the ground slides past 1.56 times slower in studs, so running *looks* slower and the world bigger |
-| **What stands on the floor** (2026-11-23) | stalls 18 x 9 (posts) and 12.6 high, rings 16, the fuse machine 28.6 wide, trainer pads 12, floating names 30 wide | stalls **8.5 x 6.3** (posts) and about 9 high, rings **11.5**, fuse **19**, pads **5**, names about a stall wide (run 6.0, 21 and 39 s, `ground.py`, good to about 15%) | **Ours are 1.4 to 2.4 times theirs.** The first S try had the walls at their size with our stations at full size, which may be what the user saw ("the hub size still aint matched up"; asked) |
+| **What stands on the floor** (2026-11-23) | stalls 18 x 9 (posts) and 12.6 high, rings 16, the fuse machine 28.6 wide, trainer pads 12, floating names 30 wide | stalls **8.5 x 6.3** (posts) and about 9 high, rings **11.5**, fuse **19**, pads **5**, names about a stall wide (run 6.0, 21 and 39 s, `ground.py`, good to about 15%) | **Ours are 1.4 to 2.4 times theirs.** The first S try had the walls at their size with our stations at full size, proposed, in the try only; what the user meant by "the hub size still aint matched up" was the pens' places: section 3 |
 | Camera | not measured | not measured | One capture framed like H1 would settle it |
 
 ![ours, the reference, and S, all at one scale](../attachments/hub-scale-plans.png)
@@ -135,10 +135,10 @@ pen is 74. In S they stand at the back and sides, so nothing tall is on the line
 same day the try's stations and pads are at the reference's measured size too** (`hub_scale_plan.FIT`; the lighthouse, half, and
 the earners board, 0.6, are guesses: theirs are a button and a wall board). Not scaled: the gate boards (ours 12.8 wide,
 theirs about 4), the floor's studs, the fish. S from
-inside, with mixed stages (Blender: no studs, water more solid than Roblox's; both from the strip to
+inside, with mixed stages (Studio, from the strip to
 the pens), with E:
 
-![S from inside, with pens of mixed stages](../attachments/hub-s-inside.png)
+![S from inside, with pens of mixed stages](../attachments/hub-s-studio.jpg)
 
 **In Studio:** `tools/map/hub_try.py` writes the try (`Workspace.HubTryS` and `HubTryPens`, at x 14000, with E's
 six stages in a row beside it, at x 14900). It touches nothing under `ClaudeBlockout` and refuses to run in Play. **Loaded 2026-11-23**, and again that day, wider and with the smaller stations (803 shell parts, 1,359 pieces; not
@@ -186,7 +186,7 @@ smallest of the sizes tried that clears them: 238 x 184, 236 x 188 and 236 x 191
 For attention, following the reference:
 - **The spawn on the line from the pens to the strip**, facing the strip. The strip, the gap and the herd beyond it are
   straight ahead and fill the middle of the first view.
-- **Sell and Auras flank that line**, 16 from the strip (theirs 17 to 25); at their size the stalls' middles are 36 apart (theirs 30 to 38). Every walk out passes them.
+- **Sell and Auras flank that line**, 27 off the strip and 46 apart (theirs about 27 to 30, and 44 to 50). Every walk out passes them.
 - **Nothing tall between the spawn and the gap.** The tanks' 34-stud height is what blocks the view today. Low pens give
   the whole hub one sightline, and from every pen front the herd shows through the gap.
 - The Fuse machine and the Index a little further back, the Earners board and the Submarine at the strip's two ends.
