@@ -14,8 +14,9 @@ What they build:
   Dock/Plots/Plot1 ... Plot8        a Model each, with the parts the game reads by name: TankWater, Pad,
                                     SignBoard, TrainerSpot, UpgradeBoard and UpgradePost (the seahorse's upgrade sign);
                                     TrainerRide is a Model (the seahorse) whose PrimaryPart is the part named TrainerRide
-  Dock/Landmark, Dock/Dressing
+  Dock/Landmark, Dock/Dressing (Dressing/Ledge: what lies on the hub wall first ledge)
   Dock/HubLife                      a small client script: the water on the tanks and pools moves
+HUB_ONLY=Dressing/Ledge writes just that model, to tools/studio/hub_only.luau.
 The first file clears what the last run made (and the blockout's stalls and flags, if this map still has them)."""
 import json
 import os
@@ -570,6 +571,33 @@ end)
 ]==]
 life.Parent = dock
 '''
+
+ONLY = os.environ.get("HUB_ONLY")  # e.g. Dressing/Ledge: one model by itself, in one file, and nothing else in the hub touched
+if ONLY:
+    rows = [p for p in parts if p["m"] == ONLY]
+    assert rows, "no part of the hub is in " + ONLY
+    path = os.path.join(ROOT, "tools", "studio", "hub_only.luau")
+    clear = '''do -- only this model is cleared (and its parts taken off the count)
+	local at = dock
+	for name in string.gmatch("{ONLY}", "[^/]+") do
+		at = at and at:FindFirstChild(name)
+	end
+	if at then
+		local n = 0
+		for _, c in at:GetDescendants() do
+			n += if c:IsA("BasePart") then 1 else 0
+		end
+		root:SetAttribute("HubKitParts", (root:GetAttribute("HubKitParts") or 0) - n)
+		at:Destroy()
+	end
+end
+'''.replace("{ONLY}", ONLY)
+    text = HEAD.replace("{K}", "1").replace("{N}", "1") + clear
+    text += BUILD.replace("{ROWS}", json.dumps(rows, separators=(",", ":"))).replace("{RIPPLE}", RIPPLE).replace("{TILE}", TILE).replace("{BENCH}", "false")
+    text += f'return string.format("{ONLY}: %d parts made, %d in the hub", made, root:GetAttribute("HubKitParts"))\n'
+    open(path, "w", encoding="utf-8", newline="\n").write(text)
+    print(len(rows), "parts of", ONLY, "in", path)
+    sys.exit()
 
 os.makedirs(OUT, exist_ok=True)
 SUFFIX = "_bench.luau" if BENCH else "_hub.luau"

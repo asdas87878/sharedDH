@@ -34,17 +34,22 @@ def tone(pal, slot, k):
 
 
 # ---------------------------------------------------------------- the palettes: three colourways a land
-STONE = [(124, 130, 150), (150, 156, 174)]
+# 2026-11-23, "a bit less random" (docs/design/colour.md): a land's stone is of its wall face's family (it was one
+# blue-grey everywhere), one accent a land, and the Reef's pink 20 of lightness off its pink floor. Which colourway stands
+# where is greybox.py's `tint_at`: a room has one it leads with
+SAND_STONE = [(168, 132, 94), (190, 156, 116)]
+ROSE_STONE = [(184, 143, 160), (203, 166, 180)]
+SHELL = (255, 246, 232)
 PALETTES = {
     0: [  # Shallows: warm corals on sand; caps the sand, pops white
-        {"Main": [(214, 110, 60), (246, 146, 82), (255, 194, 126)], "Stone": STONE, "Cap": (242, 214, 128), "Pop": (255, 250, 236)},
-        {"Main": [(214, 168, 40), (246, 204, 74), (255, 232, 140)], "Stone": STONE, "Cap": (242, 214, 128), "Pop": (255, 250, 236)},
-        {"Main": [(206, 92, 120), (240, 128, 150), (255, 182, 196)], "Stone": STONE, "Cap": (242, 214, 128), "Pop": (255, 250, 236)},
+        {"Main": [(214, 110, 60), (246, 146, 82), (255, 194, 126)], "Stone": SAND_STONE, "Cap": (242, 214, 128), "Pop": (255, 250, 236)},
+        {"Main": [(214, 168, 40), (238, 186, 66), (255, 232, 140)], "Stone": SAND_STONE, "Cap": (242, 214, 128), "Pop": (255, 250, 236)},
+        {"Main": [(206, 92, 120), (240, 128, 150), (255, 182, 196)], "Stone": SAND_STONE, "Cap": (242, 214, 128), "Pop": (255, 250, 236)},
     ],
     1: [  # Coral Reef: pink, teal and violet corals; caps seafoam, pops yellow
-        {"Main": [(200, 84, 120), (240, 122, 150), (255, 172, 190)], "Stone": STONE, "Cap": (130, 214, 190), "Pop": (255, 236, 120)},
-        {"Main": [(36, 140, 150), (62, 186, 186), (140, 230, 214)], "Stone": STONE, "Cap": (248, 222, 192), "Pop": (255, 150, 90)},
-        {"Main": [(120, 80, 190), (156, 116, 226), (200, 170, 250)], "Stone": STONE, "Cap": (130, 214, 190), "Pop": (255, 236, 120)},
+        {"Main": [(150, 40, 90), (196, 68, 124), (255, 172, 190)], "Stone": ROSE_STONE, "Cap": (130, 214, 190), "Pop": (255, 210, 122)},
+        {"Main": [(36, 140, 150), (47, 158, 154), (140, 230, 214)], "Stone": ROSE_STONE, "Cap": (248, 222, 192), "Pop": (255, 210, 122)},
+        {"Main": [(120, 80, 190), (156, 116, 226), (200, 170, 250)], "Stone": ROSE_STONE, "Cap": (130, 214, 190), "Pop": (255, 210, 122)},
     ],
 }
 
@@ -61,12 +66,15 @@ def pillar_coral(k, r, pal):
         foot, w = (x, 0, z), 8.5 - j * 0.4
         n = max(2, round(h / 8))
         for i in range(n):
-            foot = k.beam(foot, w * (1 - 0.05 * i), h / n, w * (1 - 0.05 * i), tone(pal, "Main", 0 if i == 0 else 1), pitch=r.uniform(-3, 3), roll=r.uniform(-3, 3))  # only the foot dark: the darkest tone is an accent
+            foot = k.beam(foot, w * (1 - 0.05 * i), h / n, w * (1 - 0.05 * i), tone(pal, "Deep" if i == 0 else "Main", 1), pitch=r.uniform(-3, 3), roll=r.uniform(-3, 3))
         k.box(foot[0], foot[1] - 0.5, foot[2], w + 2, 2.5, w + 2, tone(pal, "Main", 2))
 
 
 def sea_stack(k, r, pal):
     d2.rock_stack(k, r, pal)
+
+
+BLADE = ((("Main", 1), ("Main", 1), ("Main", 1), ("Soft", 0)), (("Main", 1), ("Main", 1), ("Soft", 0), ("Main", 2)))
 
 
 def fan_coral(k, r, pal):
@@ -78,7 +86,7 @@ def fan_coral(k, r, pal):
         k.group = f"blade{j}"
         foot = (0, 5, 0)
         for i in range(4):
-            foot = k.beam(foot, 5 + i * 1.6, 7, 2.4, tone(pal, "Main", min(2, i // 2 + (j % 2))), roll=roll * (1 + 0.06 * i))
+            foot = k.beam(foot, 5 + i * 1.6, 7, 2.4, tone(pal, *BLADE[j % 2][i]), roll=roll * (1 + 0.06 * i))
 
 
 def brain_coral(k, r, pal):
@@ -91,19 +99,19 @@ def brain_coral(k, r, pal):
             for b in range(n):
                 if n == 4 and a in (0, 3) and b in (0, 3):
                     continue  # the corners off: a rounder dome
-                k.box(a * size - off, y, b * size - off, size, h, size, tone(pal, "Main", 1 if (a + b) % 2 else 2), yaw=r.uniform(-4, 4))
+                k.box(a * size - off, y, b * size - off, size, h, size, tone(pal, "Main" if i == 3 or (a + b) % 2 else "Soft", 2 if i == 3 else 1), yaw=r.uniform(-4, 4))
         y += h
 
 
 def giant_clam(k, r, pal):
     """two shells of ribbed slabs, the top one lifted open, and a pearl"""
-    dark, main = tone(pal, "Main", 0), tone(pal, "Main", 1)
+    deep, main, soft = pal["Deep"], tone(pal, "Main", 1), pal["Soft"]
     k.group = "lower"
     for i in range(5):
-        k.box(-12 + i * 6, 0, 0, 5.6, 7 if i % 2 else 8, 18, dark if i % 2 else main)
+        k.box(-12 + i * 6, 0, 0, 5.6, 7 if i % 2 else 8, 18, deep if i % 2 else main)
     k.group = "upper"
     for i in range(5):
-        k.beam((-12 + i * 6, 6, -8), 5.6, 16, 3, dark if i % 2 == 0 else main, pitch=-28)
+        k.beam((-12 + i * 6, 6, -8), 5.6, 16, 3, soft if i % 2 == 0 else main, pitch=-28)
     k.group = "pearl"
     k.box(0, 7, 2, 6, 6, 6, pal["Pop"])
 
@@ -136,7 +144,7 @@ def tube_cluster(k, r, pal):
         n, w = max(2, round(h / 8)), r.uniform(6.5, 8)
         y = 0.0
         for i in range(n):
-            k.box(x, y, z, w, h / n, w, tone(pal, "Main", 0 if i == 0 else (1 if i < n - 1 else 2)), yaw=r.uniform(0, 30))
+            k.box(x, y, z, w, h / n, w, tone(pal, "Deep" if i == 0 else ("Main" if i < n - 1 else "Soft"), 1), yaw=r.uniform(0, 30))
             y += h / n
         k.box(x, y, z, w - 3, 0.6, w - 3, (40, 44, 60), n="Mouth", studs=False)
 
@@ -168,7 +176,7 @@ def table_coral(k, r, pal):
             for a in range(2):
                 for b in range(2):
                     x, z = qx * (3.5 + a * 7), qz * (3.5 + b * 7)
-                    k.box(x, tip[1], z, 7, 3.5, 7, tone(pal, "Main", 1 if (a + b) % 2 else 2))
+                    k.box(x, tip[1], z, 7, 3.5, 7, tone(pal, "Main" if (a + b) % 2 else "Soft", 1))
                     if a == 1 or b == 1:
                         k.box(x * 1.06, tip[1] - 3, z * 1.06, 5.5, 3, 5.5, tone(pal, "Main", 1))
 
@@ -177,7 +185,7 @@ def table_coral(k, r, pal):
 def shells(k, r, pal):
     k.group = "dressing"
     for i in range(r.randint(2, 3)):
-        k.box(r.uniform(-3, 3), 0, r.uniform(-3, 3), 2.2, 1.0, 1.8, pal["Pop"] if i == 0 else tone(pal, "Main", 2), yaw=r.uniform(0, 90))
+        k.box(r.uniform(-3, 3), 0, r.uniform(-3, 3), 2.2, 1.0, 1.8, pal.get("Shell", pal["Pop"]) if i == 0 else tone(pal, "Main", 2), yaw=r.uniform(0, 90))
 
 
 def pebbles(k, r, pal):
@@ -200,7 +208,7 @@ def starfish(k, r, pal):
 def grass_tuft(k, r, pal):
     k.group = "dressing"
     for x, z, h in ((-1.2, 0, 5), (0, 0.8, 7), (1.3, -0.4, 4)):
-        k.beam((x, 0, z), 1.0, h, 1.0, (84, 168, 92) if h < 6 else (110, 190, 110), roll=r.uniform(-10, 10), studs=False)
+        k.beam((x, 0, z), 1.0, h, 1.0, (63, 154, 124) if h < 6 else (98, 178, 144), roll=r.uniform(-10, 10), studs=False)
 
 
 def crumbs(k, r, pal):
@@ -208,7 +216,7 @@ def crumbs(k, r, pal):
     k.group = "dressing"
     for i in range(r.randint(3, 6)):
         s = r.uniform(0.7, 1.3)
-        k.box(r.uniform(-8, 8), 0, r.uniform(-8, 8), s, s, s, tone(pal, "Main", r.randint(0, 2)) if i % 3 else tone(pal, "Stone", 0), yaw=r.uniform(0, 90))
+        k.box(r.uniform(-8, 8), 0, r.uniform(-8, 8), s, s, s, (pal["Deep"], tone(pal, "Main", 1), pal["Soft"])[r.randint(0, 2)] if i % 3 else tone(pal, "Stone", 0), yaw=r.uniform(0, 90))
 
 
 ASSETS = {  # name: (builder, size class, what it is)
@@ -244,10 +252,10 @@ for _p in PALETTES[0]:
 for _p in PALETTES[1]:
     _p["Cap"] = _h("#ef8a9a")
 PALETTES.update({
-    2: [_pal("#3f7a2c", "#7fc957", "#b8e88a", ("#4a5240", "#6e7a5c"), "#359d55", "#e2c35a"),  # Kelp Forest: Forest's values
-        _pal("#2f6a3a", "#5aa860", "#a6dc8c", ("#4a5240", "#6e7a5c"), "#359d55", "#d44740")],
-    3: [_pal("#6e5636", "#b89a6e", "#e0c89c", ("#1e2f2e", "#45514a"), "#88805c", "#e0b23c"),  # Shipwrecks: Extinction's
-        _pal("#5a4a3a", "#9a8064", "#cbb08a", ("#1e2f2e", "#45514a"), "#88805c", "#d44740")],
+    2: [_pal("#3f7a2c", "#7fc957", "#b8e88a", ("#88aaa0", "#9dbcb0"), "#359d55", "#e2c35a"),  # Kelp Forest: Forest's values
+        _pal("#2f6a3a", "#5aa860", "#a6dc8c", ("#88aaa0", "#9dbcb0"), "#359d55", "#e2c35a")],
+    3: [_pal("#6e5636", "#b89a6e", "#e0c89c", ("#94a283", "#a9b697"), "#88805c", "#e0b23c"),  # Shipwrecks: Extinction's
+        _pal("#5a4a3a", "#9a8064", "#cbb08a", ("#94a283", "#a9b697"), "#88805c", "#e0b23c")],
     4: [_pal("#163a5e", "#2e6aa0", "#6fa8d8", ("#1d4551", "#327a88"), "#8fbfe0", "#6ff0e0", "#a3f8ec"),  # Open Blue: Ocean's
         _pal("#1d4551", "#327a88", "#7ac0c8", ("#163a5e", "#2e6aa0"), "#8fbfe0", "#ffd27a", "#a3f8ec")],
     5: [_pal("#55538f", "#9a94da", "#dcd6f6", ("#55538f", "#7a74c6"), "#cbc8e8", "#7cf2e6", "#a3f8ec"),  # Twilight: Snow's, violet
@@ -278,7 +286,7 @@ def kelp_stalk(k, r, pal, height=None, x=0.0, z=0.0, g="stalk"):
         foot = k.beam(foot, 4.6 - i * 0.15, h / n, 4.6 - i * 0.15, tone(pal, "Main", 0), pitch=r.uniform(-6, 6), roll=r.uniform(-6, 6), studs=False)
         if i:
             k.group = f"{g}_blade{i}"
-            k.beam((foot[0], foot[1] - 2, foot[2]), 6.5, 12, 2.2, tone(pal, "Main", 1 if i % 2 else 2), roll=side * r.uniform(52, 70), yaw=r.uniform(-30, 30))
+            k.beam((foot[0], foot[1] - 2, foot[2]), 6.5, 12, 2.2, tone(pal, "Main" if i % 2 else "Soft", 1), roll=side * r.uniform(52, 70), yaw=r.uniform(-30, 30))
             side = -side
     k.group = g
     k.box(foot[0], foot[1] - 1, foot[2], 6, 4, 6, tone(pal, "Main", 2))
@@ -320,7 +328,7 @@ def sea_bush(k, r, pal):
         off = (n - 1) * s / 2
         for a in range(n):
             for b in range(n):
-                k.box(a * s - off, y, b * s - off, s, 5, s, tone(pal, "Main", 1 if (a + b + i) % 2 else 2), yaw=r.uniform(-10, 10))
+                k.box(a * s - off, y, b * s - off, s, 5, s, tone(pal, "Main" if (a + b + i) % 2 else "Soft", 1), yaw=r.uniform(-10, 10))
 
 
 def lip_grass(k, r, pal):  # the lip-row piece: a sea-grass tuft in the land's green
@@ -330,24 +338,29 @@ def lip_grass(k, r, pal):  # the lip-row piece: a sea-grass tuft in the land's g
 
 
 # ---------------------------------------------------------------- Shipwrecks
+def iron(pal, k):
+    """the wrecks' iron, which is not the land's stone"""
+    return tone(pal, "Iron" if "Iron" in pal else "Stone", k)
+
+
 def crate_stack(k, r, pal):
     """crates stacked off centre, each crate its own chunk, a dark band round some"""
     spots = [(0, 0, 0), (9, 0, 2), (-8, 0, -3), (4, 0, -10), (3, 8.5, 0), (-4, 8.5, -4), (1, 17, -2)]
     for j, (x, y, z) in enumerate(spots[: r.randint(5, 7)]):
         k.group = f"crate{j}"
-        c = tone(pal, "Main", 1 if j % 2 else 2)
+        c = tone(pal, "Main", 2) if j == 4 else tone(pal, "Main" if j % 2 else "Soft", 1)  # one pale crate a pile
         yaw = r.uniform(-15, 15)
         k.box(x, y, z, 8.5, 8.5, 8.5, c, yaw=yaw)
         if j % 3 == 0:
-            k.box(x, y + 3.6, z, 8.9, 1.2, 8.9, tone(pal, "Stone", 0), yaw=yaw, studs=False)
+            k.box(x, y + 3.6, z, 8.9, 1.2, 8.9, iron(pal, 0), yaw=yaw, studs=False)
 
 
 def barrel_pile(k, r, pal):
     for j, (x, y, z) in enumerate(((0, 0, 0), (7, 0, 1), (3.5, 8, 0.5), (-6, 0, -4))):
         k.group = f"barrel{j}"
-        k.box(x, y, z, 6, 8, 6, tone(pal, "Main", 0), yaw=r.uniform(0, 45))
+        k.box(x, y, z, 6, 8, 6, pal["Deep"], yaw=r.uniform(0, 45))
         for yy in (1.5, 5.5):
-            k.box(x, y + yy, z, 6.4, 1, 6.4, tone(pal, "Stone", 1), yaw=r.uniform(0, 45), studs=False)
+            k.box(x, y + yy, z, 6.4, 1, 6.4, iron(pal, 0), yaw=r.uniform(0, 45), studs=False)
 
 
 def broken_mast(k, r, pal):  # the land's tall piece
@@ -357,9 +370,9 @@ def broken_mast(k, r, pal):  # the land's tall piece
     tip = (0, 5, 0)
     for i in range(6):
         k.group = f"mast{i // 2}"
-        tip = k.beam(tip, 5, 10, 5, tone(pal, "Main", 1 if i % 2 else 0), roll=lean, studs=False)
+        tip = k.beam(tip, 5, 10, 5, tone(pal, "Deep" if i < 2 else ("Main" if i < 5 else "Soft"), 1), roll=lean, studs=False)
     k.group = "yard"
-    k.beam((tip[0] + 12, tip[1] - 14, tip[2]), 3, 26, 3, tone(pal, "Main", 0), roll=lean + 90, studs=False)
+    k.beam((tip[0] + 12, tip[1] - 14, tip[2]), 3, 26, 3, pal["Deep"], roll=lean + 90, studs=False)
 
 
 def hull_ribs(k, r, pal):
@@ -373,7 +386,7 @@ def hull_ribs(k, r, pal):
                 continue
             k.group = f"rib{j}{side}"
             t = k.beam((side * 3, 3, z), 3.5, 12, 3.5, tone(pal, "Main", 1), roll=-side * 55, studs=False)
-            k.beam((t[0], t[1] - 1, t[2]), 3.2, 14 - abs(j - 2) * 2, 3.2, tone(pal, "Main", 2), roll=-side * 8, studs=False)
+            k.beam((t[0], t[1] - 1, t[2]), 3.2, 14 - abs(j - 2) * 2, 3.2, pal["Soft"], roll=-side * 8, studs=False)
 
 
 def anchor2(k, r, pal):
@@ -381,22 +394,22 @@ def anchor2(k, r, pal):
     k.group = "shank"
     tip = (0, 0, 0)
     for i in range(4):
-        tip = k.beam(tip, 4, 8, 4, tone(pal, "Stone", 0), roll=lean, studs=False)
+        tip = k.beam(tip, 4, 8, 4, iron(pal, 0), roll=lean, studs=False)
     k.group = "ring"
-    k.box(tip[0], tip[1], tip[2], 7, 7, 2.5, tone(pal, "Stone", 1), studs=False)
+    k.box(tip[0], tip[1], tip[2], 7, 7, 2.5, iron(pal, 1), studs=False)
     for side in (-1, 1):
         k.group = f"fluke{side}"
-        t = k.beam((0, 1, 0), 4, 10, 4, tone(pal, "Stone", 0), roll=lean - side * 60, studs=False)
-        k.box(t[0], t[1] - 2, t[2], 6, 4, 4, tone(pal, "Stone", 1), studs=False)
+        t = k.beam((0, 1, 0), 4, 10, 4, iron(pal, 0), roll=lean - side * 60, studs=False)
+        k.box(t[0], t[1] - 2, t[2], 6, 4, 4, iron(pal, 1), studs=False)
 
 
 def lip_crate(k, r, pal):  # the lip-row piece: a small crate or a coil of rope
     k.group = "dressing"
     if r.random() < 0.6:
-        k.box(0, 0, 0, 3.5, 3.5, 3.5, tone(pal, "Main", r.randint(1, 2)), yaw=r.uniform(0, 45))
+        k.box(0, 0, 0, 3.5, 3.5, 3.5, (tone(pal, "Main", 1), pal["Soft"])[r.randint(1, 2) - 1], yaw=r.uniform(0, 45))
     else:
         for i in range(3):
-            k.box(0, i * 0.8, 0, 3.6 - i * 0.6, 0.8, 3.6 - i * 0.6, tone(pal, "Main", 2), yaw=i * 20, studs=False)
+            k.box(0, i * 0.8, 0, 3.6 - i * 0.6, 0.8, 3.6 - i * 0.6, pal["Soft"], yaw=i * 20, studs=False)
 
 
 def coins(k, r, pal):  # dressing: a scatter of gold coins (the land's accent)
@@ -683,12 +696,12 @@ def crystal_spire(k, r, pal):  # the land's tall piece
 
 # ---------------------------------------------------------------- small things every land shares
 def clump(k, r, pal):
-    """flowers in a clump, never one alone (the reference's rule): 3 to 8 crosses of tiles in the land's accent and its
-    light tone"""
+    """flowers in a clump, never one alone (the reference's rule): 3 to 8 crosses of tiles in the land's accent and a paler
+    one of it"""
     k.group = "dressing"
     for i in range(r.randint(3, 6)):  # each flower a cross of two crossed tiles (two bricks: 2026-11-19, five each made 32,000)
         x, z = r.uniform(-5, 5), r.uniform(-5, 5)
-        c = pal["Pop"] if i % 3 else tone(pal, "Main", 2)
+        c = pal["Pop"] if i % 3 else pal["PopSoft"]
         k.box(x, 0, z, 3.0, 0.4, 1.0, c, studs=False)
         k.box(x, 0, z, 1.0, 0.45, 3.0, c, studs=False)
 
@@ -761,22 +774,52 @@ def _to_l(c, target, toward_white=False):
     return t
 
 
+# 2026-11-23 (docs/design/colour.md, "A bit less random"): the reference's L* 16 to 28 was read ON SCREEN. Through our
+# water an authored 26 came out black on every shaded side, so the first four lands' dark is 34 and their light 84. And a
+# dark is a stem, a seam or a band, a light a tip or a top: bodies are Main, with Soft (8 of lightness up) and Deep (13 down)
+# beside it where a builder used to put the light or the dark half and half
+for _p in PALETTES[3]:
+    _p["Iron"] = [_h("#46555a"), _h("#5f6f73")]
+for _land in range(4):
+    for _p in PALETTES[_land]:
+        _p["Shell"] = SHELL
+EARLY = 4  # the lands the 2026-11-23 values are for
 VALUE_DARK, VALUE_LIGHT = 26.0, 87.0
+
+
+def _toward(a, b, target):
+    """`a` moved toward `b` until it is `target` light (the orange's soft is a yellower orange, not a paler one)"""
+    for _i in range(1, 41):
+        t = tuple(int(a[_c] + (b[_c] - a[_c]) * _i / 40) for _c in range(3))
+        if _lstar(t) >= target:
+            return t
+    return tuple(b)
+
+
+VALUE_DARK_EARLY, VALUE_LIGHT_EARLY = 34.0, 84.0
 for _land, _pals in PALETTES.items():
+    _dark, _light = (VALUE_DARK_EARLY, VALUE_LIGHT_EARLY) if _land < EARLY else (VALUE_DARK, VALUE_LIGHT)
     for _p in _pals:
-        if _lstar(_p["Main"][0]) > VALUE_DARK:
-            _p["Main"][0] = _to_l(_p["Main"][0], VALUE_DARK)
-        if _lstar(_p["Main"][2]) < VALUE_LIGHT:
-            _p["Main"][2] = _to_l(_p["Main"][2], VALUE_LIGHT, toward_white=True)
-        if _lstar(_p["Stone"][0]) > VALUE_DARK + 6:
-            _p["Stone"][0] = _to_l(_p["Stone"][0], VALUE_DARK + 6)
+        if _lstar(_p["Main"][0]) > _dark:
+            _p["Main"][0] = _to_l(_p["Main"][0], _dark)
+        if _lstar(_p["Main"][2]) < _light:
+            _p["Main"][2] = _to_l(_p["Main"][2], _light, toward_white=True)
+        if _lstar(_p["Stone"][0]) > _dark + 6 and _land >= EARLY:  # (an early land's stone is its wall's, pale)
+            _p["Stone"][0] = _to_l(_p["Stone"][0], _dark + 6)
+        _m = _p["Main"][1]
+        _p["Soft"] = _toward(_m, _p["Main"][2], _lstar(_m) + 8)
+        _p["Deep"] = _to_l(_m, max(10.0, _lstar(_m) - 13))
+        _p["PopSoft"] = tuple(int(_v + (255 - _v) * 0.45) for _v in _p["Pop"])
 
 
-def bricks(name, seed=0, land=0, way=None):
-    """an asset's bricks, foot first: [(name, centre, size, colour, axes, studs, group)]; `way` picks the colourway"""
+def bricks(name, seed=0, land=0, way=None, tint=None):
+    """an asset's bricks, foot first: [(name, centre, size, colour, axes, studs, group)]; `way` picks the colourway.
+    `tint` picks it too, after the dice are thrown: the shapes stay the same whichever colours they wear"""
     r = random.Random(seed * 131 + len(name))
     pals = PALETTES[land]
     pal = pals[way if way is not None else r.randrange(len(pals))]
+    if tint is not None:
+        pal = pals[tint % len(pals)]
     k = Kit()
     ASSETS[name][0](k, r, pal)
     return k.b
