@@ -25,7 +25,10 @@
   amount as the card's name and Roblox's own price, and asks for the prompt only once the player's save is in.
 - **Wanted from the user:** the six developer products made on Roblox (their ids; their prices are read from Roblox), and
   the six amounts (the tuning chat is drafting them).
-- **Pack amounts, the tuning chat's draft (2026-11-23; proposed, not agreed; Hugo hasn't picked on draft 2 either).**
+- **The packs are fixed amounts, with bulk deals that are very good for mid and late players (the user, 2026-11-23: "fixed
+  amounts, bundle deals are just very good for mid-late game players still tho", then "bulk deals i mean").** So the
+  bigger the pack, the far better its rate. The amounts are open; a fixed draft is asked of the tuning chat.
+- **Not picked: the tuning chat's first draft (2026-11-23), kept for its measurements.**
   They grow with the player, in steps: by the deepest land whose commonest fish their max Oxygen can hold. Oxygen S / M /
   L is 0.25 / 0.5 / 1.5 times that land's need; Cash is 1 / 3 / 8 hours of what the modelled tank earns on arriving.
 
@@ -51,8 +54,7 @@
     dangerous:* 3 times the need took land 9 from 17.6 h to 22 minutes. The tuning chat would fix the amounts only once
     auras and the Index are decided. Whether an aura multiplies a bought pack is Hugo's (draft 2: no; his Auras text:
     "all Oxygen gained").
-  - *How it would be built:* the six products stay six; the server works the amount out from the player's max Oxygen as it
-    gives (the max only rises in play, so never less than the card showed). Today's code gives one fixed `Amount` an offer.
+  - *The build:* fixed amounts are what the code has (one `Amount` an offer).
 - **Not run in Studio yet** (2026-11-23: another chat had it); StyLua, selene and the Rojo build pass.
 
 ## What breaking even takes
