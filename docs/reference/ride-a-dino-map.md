@@ -97,6 +97,9 @@ ground.py` (private). Figures are good to about 15%; far-off points less.
 | The hub along the strip | from its middle to the far wall | 100 to 130 each way: 200 to 260 in all |
 | The floor's studs | | one every 0.64 studs |
 
+- **(Third reading, 2026-11-23, against the start strip, two recordings:** side pens' fences 85 to 92 from the middle, back
+  pens' 124 to 128 from the strip, so the open floor is about 174 by 126 and the hub about **275 by 186** with the pens. The 230
+  below was too narrow. A stall 8.5 by 6.3 between posts, its ring 11.5, the fuse machine 19 wide, a trainer's pad 5.)
 - **So their hub is about 230 by 180, and a player crosses it in 4 seconds because they run at 28.** At Roblox's own
   16 the same hub would take 7.
 - **Pens stand side by side, sharing fences,** in a row along the side facing the start, and carry on round the
