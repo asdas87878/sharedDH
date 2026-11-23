@@ -216,12 +216,13 @@ local function bar(parent: Instance, props: { [string]: any }, pair: { Color3 })
 	}, track)
 	Kit.corner(fill, 999)
 	Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(pair[1], pair[2]) }, fill)
+	-- (never thinner than its own round ends: from the bar's height at the first bit to the whole track at 1)
+	local least: number = props.Size.Y.Offset
 	return track,
 		function(share: number)
 			local s = math.clamp(share, 0, 1)
 			fill.Visible = s > 0
-			-- (never thinner than its own round ends)
-			fill.Size = UDim2.fromScale(s, 1)
+			fill.Size = UDim2.new(s, (1 - s) * least, 1, 0)
 		end
 end
 
@@ -316,7 +317,7 @@ local toastWord: TextLabel
 local toastTurn = 0
 
 local function say(text: string, good: boolean)
-	if not window then
+	if not window or not window.isOpen() then
 		return
 	end
 	local pair = if good then Shop.Kinds.Cash else Shop.Kinds.Red
@@ -468,7 +469,8 @@ local function showLand(land: number)
 	list.CanvasPosition = Vector2.zero
 end
 
--- Everything on the window, from the Index as it stands
+-- Everything on the window, from the Index as it stands. Called while the window is open and as it opens, never
+-- for a closed one: it builds the shown land's cards again when a kind in it has been found since.
 function paint()
 	if not window then
 		return
@@ -700,7 +702,7 @@ local function build()
 	landWord = Shop.text(landBox, {
 		Name = "Land",
 		Position = UDim2.fromOffset(12, 5),
-		Size = UDim2.fromOffset(222, 20),
+		Size = UDim2.fromOffset(212, 20),
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 3,
@@ -708,14 +710,14 @@ local function build()
 	local _, setLand = bar(landBox, {
 		Name = "Bar",
 		Position = UDim2.fromOffset(12, 29),
-		Size = UDim2.fromOffset(222, 14),
+		Size = UDim2.fromOffset(212, 14),
 		ZIndex = 3,
 	}, GOLD)
 	setLandBar = setLand
 	landCount = Shop.text(landBox, {
 		Name = "Count",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 238, 0.5, 0),
+		Position = UDim2.new(0, 230, 0.5, 0),
 		Size = UDim2.fromOffset(78, 30),
 		TextSize = 20,
 		TextColor3 = GOLD[1],
@@ -724,7 +726,7 @@ local function build()
 	local _, landO = chip(landBox, {
 		Name = "Oxygen",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 320, 0.5, 0),
+		Position = UDim2.new(0, 314, 0.5, 0),
 		Size = UDim2.fromOffset(80, 32),
 		TextSize = 14,
 		ZIndex = 3,
@@ -733,7 +735,7 @@ local function build()
 	local _, landC = chip(landBox, {
 		Name = "Coins",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 404, 0.5, 0),
+		Position = UDim2.new(0, 402, 0.5, 0),
 		Size = UDim2.fromOffset(80, 32),
 		TextSize = 14,
 		ZIndex = 3,
@@ -810,7 +812,7 @@ local function build()
 	well = Kit.new("Frame", {
 		Name = "Well",
 		Position = UDim2.fromOffset(10, 10),
-		Size = UDim2.new(1, -20, 0, 104),
+		Size = UDim2.new(1, -20, 0, 100),
 		BackgroundColor3 = DARK_CARD,
 		BorderSizePixel = 0,
 		ZIndex = 3,
@@ -835,15 +837,15 @@ local function build()
 	})
 	nameWord = Shop.text(side, {
 		Name = "Name",
-		Position = UDim2.fromOffset(8, 118),
-		Size = UDim2.new(1, -16, 0, 44),
+		Position = UDim2.fromOffset(8, 113),
+		Size = UDim2.new(1, -16, 0, 38),
 		TextSize = 20,
 		TextWrapped = true,
 		ZIndex = 3,
 	})
 	tierWord = Shop.text(side, {
 		Name = "Tier",
-		Position = UDim2.fromOffset(8, 162),
+		Position = UDim2.fromOffset(8, 151),
 		Size = UDim2.new(1, -16, 0, 18),
 		TextSize = 15,
 		ZIndex = 3,
@@ -851,7 +853,7 @@ local function build()
 	tierFill = Kit.new("UIGradient", {}, tierWord)
 	rateWord = Shop.text(side, {
 		Name = "Rate",
-		Position = UDim2.fromOffset(8, 182),
+		Position = UDim2.fromOffset(8, 171),
 		Size = UDim2.new(1, -16, 0, 24),
 		TextSize = 20,
 		TextColor3 = Shop.Money,
@@ -860,7 +862,7 @@ local function build()
 	local looks: Frame = Kit.new("Frame", {
 		Name = "Variants",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 209),
+		Position = UDim2.new(0.5, 0, 0, 198),
 		Size = UDim2.new(1, -40, 0, 24),
 		BackgroundColor3 = Shop.BodyDeep,
 		BorderSizePixel = 0,
@@ -871,7 +873,7 @@ local function build()
 	looksWord = Shop.text(looks, { Size = UDim2.fromScale(1, 1), TextSize = 14, TextColor3 = PALE, ZIndex = 4 })
 	Kit.new("Frame", {
 		Name = "Line",
-		Position = UDim2.fromOffset(10, 241),
+		Position = UDim2.fromOffset(10, 229),
 		Size = UDim2.new(1, -20, 0, 3),
 		BackgroundColor3 = Shop.Edge,
 		BackgroundTransparency = 0.35,
@@ -880,7 +882,7 @@ local function build()
 	}, side)
 	Shop.text(side, {
 		Name = "Reward",
-		Position = UDim2.fromOffset(8, 247),
+		Position = UDim2.fromOffset(8, 234),
 		Size = UDim2.new(1, -16, 0, 18),
 		TextSize = 14,
 		TextColor3 = PALE,
@@ -889,16 +891,16 @@ local function build()
 	})
 	local _, kindO = chip(side, {
 		Name = "Oxygen",
-		Position = UDim2.fromOffset(10, 268),
-		Size = UDim2.new(0.5, -13, 0, 34),
+		Position = UDim2.fromOffset(10, 256),
+		Size = UDim2.new(0.5, -15, 0, 34),
 		ZIndex = 3,
 	}, Kit.Textures.Oxygen, Kit.White)
 	kindOxygen = kindO
 	local _, kindC = chip(side, {
 		Name = "Coins",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -10, 0, 268),
-		Size = UDim2.new(0.5, -13, 0, 34),
+		Position = UDim2.new(1, -10, 0, 256),
+		Size = UDim2.new(0.5, -15, 0, 34),
 		ZIndex = 3,
 	}, Kit.Textures.Cash, Shop.Money)
 	kindCoins = kindC
@@ -1000,7 +1002,11 @@ Shop.page("Index", IndexPanel.open)
 Net.Index.OnClientEvent:Connect(function(what: any, a: any, b: any, c: any)
 	if what == "State" and type(a) == "table" and type(b) == "table" and type(c) == "table" then
 		found, claimedKinds, claimedLands = a, b, c
-		paint()
+		-- (only while it is open: a catch out on a dive must not build a land's pictures behind a closed window;
+		-- opening paints it, IndexPanel.open)
+		if IndexPanel.isOpen() then
+			paint()
+		end
 		changed:Fire()
 	elseif what == "Paid" and type(a) == "number" and type(b) == "number" then
 		local words = { oxygenText(a) .. " Oxygen" }

@@ -142,8 +142,9 @@ local Anim = {
 }
 world.stubs[CLIENT .. "UI.Anim"] = Anim
 -- A fish's picture: a frame with one colour layer at ZIndex 2 over one black one at 1, as UI.Portrait's. "fish:<id>"
--- is for the picture tool. NoPicture has none (a creature with no model yet).
-local noPicture = { Stingray = true }
+-- is for the picture tool. NoPicture has none (a creature with no model yet): only in a plain run, to check the "?"
+-- that stands in for it. A run that writes the trees out for the pictures gives every kind its picture, as the game.
+local noPicture: { [string]: boolean } = if dumpTo then {} else { Stingray = true }
 world.stubs[CLIENT .. "UI.Portrait"] = {
 	new = function(parent: any, props: { [string]: any })
 		local outline = props.Outline
@@ -308,7 +309,7 @@ local shade = find(unfound, "Picture"):GetChildren()[2].ImageColor3
 ok("its picture is a dark shape", shade.R < 0.1 and shade.G < 0.1 and shade.B < 0.2, tostring(shade))
 ok("with no outline", not find(unfound, "Picture"):GetChildren()[1].Visible)
 ok("and no reward's mark", not unfound:FindFirstChild("Waiting").Visible)
-if list:FindFirstChild("Stingray") then
+if noPicture.Stingray and list:FindFirstChild("Stingray") then
 	ok("a kind with no picture shows a ?", find(list, "Stingray", "Picture"):FindFirstChildOfClass("TextLabel") ~= nil)
 end
 
@@ -466,6 +467,43 @@ press(indexButton)
 ok("and it closes the other", not other and IndexPanel.isOpen())
 Shop.go(nil)
 ok("leaving the dock (Shop.go(nil)) closes it", not IndexPanel.isOpen())
+
+----------------------------------------------------------------------------------------------------------------------
+print("a catch while the window is closed")
+press(indexButton)
+press(find(lands, "Land3"))
+local kelp = Config.indexKinds(3)
+local kelpCard = list:FindFirstChild(kelp[1].Id)
+ok("the Kelp's cards are up, none caught", kelpCard ~= nil and kelpCard:FindFirstChild("Name").Text == "???")
+press(indexButton)
+ok("closed", not IndexPanel.isOpen())
+catch(kelp[1].Id)
+tick()
+ok("the catch is counted", player:GetAttribute("IndexClaims") == 1 and IndexPanel.waiting() == 1 and indexMark.Visible)
+ok(
+	"but nothing is built behind the closed window",
+	rawequal(list:FindFirstChild(kelp[1].Id), kelpCard) and kelpCard.Parent == list and cardCount() == #kelp
+)
+ok("the old card still says ???", kelpCard:FindFirstChild("Name").Text == "???")
+press(indexButton)
+ok("opening paints it", list:FindFirstChild(kelp[1].Id):FindFirstChild("Name").Text == kelp[1].Name)
+ok("with new cards", not rawequal(list:FindFirstChild(kelp[1].Id), kelpCard) and kelpCard.Parent == nil)
+ok("and the caught kind chosen, to claim", side:FindFirstChild("Name").Text == kelp[1].Name and claim.Active)
+press(claim)
+press(find(lands, "Land1"))
+press(indexButton)
+ok("claimed, and closed again", player:GetAttribute("IndexClaims") == 0 and not IndexPanel.isOpen())
+
+----------------------------------------------------------------------------------------------------------------------
+print("the bars")
+local foundFill = find(foot, "Bar", "Fill")
+local landFill = find(landBox, "Bar", "Fill")
+ok(
+	"a bar's fill is never thinner than the bar is tall",
+	foundFill.Size.X.Offset + foundFill.Size.X.Scale * 100 >= find(foot, "Bar").Size.Y.Offset
+		and landFill.Size.X.Offset + landFill.Size.X.Scale * 100 >= find(landBox, "Bar").Size.Y.Offset,
+	tostring(foundFill.Size)
+)
 
 ----------------------------------------------------------------------------------------------------------------------
 print("on a phone (844 x 390)")
