@@ -220,9 +220,8 @@ phone layout. The Shop's offers are placeholders (every Id 0).
     to 351B and $12.5M all drawn at 22; under the mouse 1.12, pressed 0.986 (1.12 x 0.88), back to 1.0; the coins' plus
     lands with the Cash row whole in the window, the first time, after a close, and at a phone's 844x390; the Oxygen's
     with the Shop open runs up to its title. No errors of ours.
-  - *Not done: the selling.* Every offer reads Soon. It needs the products made on Roblox (their ids and prices into
-    `Shared/Products`), the server's grant (`ProcessReceipt`), and saving: coins are not kept between visits, so a
-    bought pack would be gone on leaving. No amounts are written on the packs; the reference's grow with the account.
+  - *The selling: half done (2026-11-23, the user's "yes.").* Saving, the payout and the buy buttons are written, every
+    offer still reads Soon, nothing is saved yet: [Money](money.md), "Selling".
 
 Still proposed (the user's or Hugo's call): the dive HUD's restyle and fonts; the inventory bar's suggestions above;
 the server's sell check near the stall (raised with the game-code chat); the Shop's real offers and prices.
