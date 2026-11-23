@@ -48,10 +48,10 @@ def water(k, x0, x1, y0, y1, z0, z1):
     cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
     k.box(cx, y0, cz, x1 - x0, y1 - y0, z1 - z0, CLEAR, n="TankWater", t=0.9, solid=False, shadow=False)
     # a pale line round the top: where the water ends
-    for s, x in ((1, x0), (-1, x1)):
-        k.box(x + s * 0.6, y1 - 0.2, cz, 1.2, 0.25, z1 - z0, FOAM, n="TankSurface", t=0.25, solid=False, shadow=False)
+    for s, x in ((1, x0), (-1, x1)):  # (a tenth inside the water's faces: flush, the two flickered)
+        k.box(x + s * 0.7, y1 - 0.2, cz, 1.2, 0.25, z1 - z0 - 0.2, FOAM, n="TankSurface", t=0.25, solid=False, shadow=False)
     for s, z in ((1, z0), (-1, z1)):
-        k.box(cx, y1 - 0.2, z + s * 0.6, x1 - x0 - 2.4, 0.25, 1.2, FOAM, n="TankSurface", t=0.25, solid=False, shadow=False)
+        k.box(cx, y1 - 0.2, z + s * 0.7, x1 - x0 - 2.6, 0.25, 1.2, FOAM, n="TankSurface", t=0.25, solid=False, shadow=False)
 
 
 def ring(k, stage, x0, x1, z0, z1, y=PLATE, gate=True, top=False):
@@ -184,7 +184,7 @@ def pen_c(k, x0, x1, stage):
     sign(k, stage, cx, z1 + 0.2)
 
 
-def pen_e(k, x0, x1, stage):
+def pen_e(k, x0, x1, stage, fish=True):
     z0, z1, cx = -D / 2, D / 2, (x0 + x1) / 2
     top = PLATE + HIGH[stage]
     g = 1.6  # the glass stands just inside the fence
@@ -194,11 +194,12 @@ def pen_e(k, x0, x1, stage):
         rails = [p for p in k.out[before:] if p["n"] == "FenceRail"]
         for p in rails[1::2]:  # (pen_bench.along lays each pair lower, then upper)
             p["c"] = list(GOLD)
-    water(k, x0 + g, x1 - g, PLATE, top, z0 + g, z1 - g)
+    water(k, x0 + g, x1 - g, PLATE + 0.08, top, z0 + g, z1 - g)
     for x in (x0 + g, x1 - g):
         for z in (z0 + g, z1 - g):
             k.box(x, PLATE, z, 1.6, top - PLATE + 0.3, 1.6, FRAME_C[stage], n="Post")
-    shoal(k, stage, W - 2 * g, D - 2 * g, cx, 0, PLATE + 0.6, top)
+    if fish:  # (the game's own pens have none: theirs are the player's)
+        shoal(k, stage, W - 2 * g, D - 2 * g, cx, 0, PLATE + 0.6, top)
     sign(k, stage, cx, z1 + 0.2)
 
 

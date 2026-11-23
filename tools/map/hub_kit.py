@@ -930,49 +930,114 @@ NEW_PLOTS = {i: 4 for i in range(1, 9)}  # plot: the level its tank is shown at,
 SHEET = "--levels" in sys.argv  # all the levels in a row, into hub_levels.json, for tools/blender/hub_view.py
 
 
-def facing(x, z, toward):
-    return math.degrees(math.atan2(toward[0] - x, toward[1] - z))
+def placed(out, raw, foot, spot, fit, ring_across):
+    """a station as the kit draws it (`raw`, drawn round 0, 0), made `fit` times its size along x, y and z and stood with the
+    middle of its body on `spot`. Its ring is `ring_across` across. Returns its foot (FEET)"""
+    body = [p for p in raw if "s" in p and not p.get("bill")]
+    cx = (min(p["p"][0] for p in body) + max(p["p"][0] for p in body)) / 2
+    cz = (min(p["p"][2] for p in body) + max(p["p"][2] for p in body)) / 2
+
+    def at(v):
+        return [round((v[0] - cx) * fit[0] + spot[0], 2), round((v[1] - FLOOR_Y) * fit[1] + FLOOR_Y, 2), round((v[2] - cz) * fit[2] + spot[1], 2)]
+
+    for p in raw:
+        p = dict(p, p=at(p["p"]))
+        if "s" in p:
+            ax = [p["x"], p["y"], cross(p["x"], p["y"])]
+            p["s"] = [round(max(0.05, p["s"][i] * math.sqrt(sum((fit[j] * ax[i][j]) ** 2 for j in range(3)))), 3) for i in range(3)]
+            if p["n"] == "Ring":
+                p["s"] = [ring_across, p["s"][1], ring_across]
+        if "k" in p:
+            p["k"] = round(p["k"] * min(fit), 4)
+        if p.get("bill"):
+            p["bill"] = dict(p["bill"], size=[v * 0.45 for v in p["bill"]["size"]])  # theirs is about a stall wide
+        out.append(p)
+    return [at(foot[0]), foot[1], foot[2]]
+
+
+PAD_AHEAD = 16.0  # how far a plot's unseen Pad reaches in front of its pen (24 before; more would meet the corner pens')
+RAW = []  # the stations as drawn, before they are sized: the gate looks for faults there
+
+
+def pen_side(g):
+    """+1: the trainer stands on the kit's +x side of the gate (the right as one faces the pen); chosen so that it lies
+    toward the hub's middle (a back pen) or toward the start (a side pen), as drawn in the plan"""
+    gx, _gz, dx, dz = g
+    if dz:
+        return -1 if gx > 0 else 1
+    return -1 if dx > 0 else 1
+
+
+def pen(out, index, box, g):
+    """a player's plot since 2026-11-23: the pen that grows (pen_levels E, the user's pick) at stage 0; the game makes it
+    taller. In front, on one side of the gate (pen_side) the trainer with its sign, on the other the plot's own sign.
+    Named and nested as the game reads a plot: all of it lies straight in PlotN"""
+    import pen_levels as pl  # (it imports this file)
+
+    x0, x1, z0, z1 = box
+    gx, gz, dx, dz = g
+    side = pen_side(g)
+    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+    name = f"Plots/Plot{index}"
+    keep = pl.W, pl.D, pl.GATE_AT
+    pl.W, pl.D = (x1 - x0, z1 - z0) if dz else (z1 - z0, x1 - x0)
+    w, d = pl.W, pl.D
+    k = Kit(out, name, (cx, FLOOR_Y, cz), 0 if dz else (90 if dx > 0 else -90))
+    along = k._dir((1, 0, 0))
+    pl.GATE_AT = (gx - cx) * along[0] + (gz - cz) * along[2]
+    k.box(0, 0, PAD_AHEAD / 2, w, 0.4, d + PAD_AHEAD, SAND, n="Pad", solid=False, shadow=False, t=1)
+    pl.pb.plate(k, -w / 2, w / 2, -d / 2, d / 2, SAND)
+    pl.pen_e(k, -w / 2, w / 2, 0, fish=False)
+    pl.W, pl.D, pl.GATE_AT = keep
+    front = d / 2
+    tx, tz = side * 20, front + 6
+    k.box(tx, 0, tz, 6, 0.5, 6, (225, 70, 70), n="TrainerSpot", solid=False, shadow=False, tex="stud")
+    k.box(tx, 0.5, tz, 4, 1.5, 4, YELLOW, n="TrainerBase", tex="studs")
+    k.box(tx, 2, tz, 1.6, 3.2, 1.6, INK, n="TrainerSpring", solid=False, shadow=False)
+    for j in range(3):
+        k.disc(tx, 2.2 + j, tz, 3.6, 0.6, (176, 182, 196), n="SpringCoil", solid=False, shadow=False)
+    ride = k.sub((tx, 5, tz), model=name + "/TrainerRide", solid=False)
+    ride.box(0, 0, 0, 4, 0.8, 6, PLOT_COLOUR, n="TrainerRide", tex="stud")
+    ride.fish("Seahorse", 0, 0.6 + 14.2 * 0.6 / 2, 0, 0.6, n="Toy")
+    s, z = SIGN, front + 4
+    for word, x in (("Upgrade", side * 11.4), ("Plot", -side * 11.4)):  # between the gate and the fence's end, clear of both
+        k.box(x, 0, z - s["Thick"] / 2 - s["Post"] / 2, s["Post"], s["Foot"] + s["High"] / 2, s["Post"], SIGN_POST, yaw=180, n=word + "Post")
+        k.box(x, s["Foot"], z, s["Wide"], s["High"], s["Thick"], SIGN_EDGE, yaw=180, n=word + "Board", shadow=False)
+    return k
 
 
 def build(hub, feet=None):
+    """the whole hub, at S's places and sizes (hub_scale_plan.py: the reference's own, measured; the user, 2026-11-23:
+    "thats good, add the map back in now", "w the new hub"). To move a thing, change it there"""
+    import hub_scale_plan as plan
+
     out, feet = [], {} if feet is None else feet
-    focus = (0.0, -150.0)  # the stations look at where a player stands when they arrive
-    front, half, gate_half, gate_turn = hub["Front"], hub["Half"], hub["Gate"], hub["GateTurn"]
-    shift = hub.get("Shift", 0.0)  # W32 (2026-11-22): the user's placing, moved this far toward the water with the hub.
-    # What stands by `front` moved with it already; the numbers the user placed by hand get it added
-    spots = {  # each station: where it stands (x, z) and which way it faces. One line to move one
-        # (2026-11-17: SELL and AURAS face each other either side of the spawn and FUSE stands behind it, facing the
-        # start: the user's own placing in Studio. The INDEX went to the front corner on the left, facing the gate, as
-        # its old place was outside the smaller hub's wall)
-        "Sell": (-35.10, -112.71 + shift, 90.0), "Auras": (43.55, -112.70 + shift, -90.0), "Fuse": (4.73, -154.77 + shift, 0.0),
-        "Index": (-(half - 34), front - 16, 90.0),
-        # (the sub stand: 12 studs to its right and 8 back as seen from its front, Hugo 2026-11-18)
-        "Sub": (gate_half + gate_turn + 20, front - 13, 180.0),
-        "Earners": (-(gate_half + gate_turn + 20), front - 0.9, 180.0),
-    }
-    shops = (("Sell", sell_old), ("Auras", auras), ("Sub", sub)) if OLD else (("Sell", sell), ("Auras", auras_stall), ("Sub", sub_stall))
-    for name, make in shops + (("Fuse", fuse), ("Index", index), ("Earners", earners)):
-        x, z, yaw = spots[name]
-        k = Kit(out, "Stations/" + name, (x, FLOOR_Y, z), facing(x, z, focus) if yaw is None else yaw)
+    if plan.S_TRY["HUB_HALF"] != hub["Half"] or plan.S_TRY["HUB_BACK"] != hub["Back"]:
+        print("  (a trial hub: the models still stand where S has them)")
+    front, gate_half = hub["Front"], hub["Gate"]
+    makes = {"Sell": (sell, 90.0), "Auras": (auras_stall, -90.0), "Sub": (sub_stall, 180.0), "Fuse": (fuse, 0.0),
+             "Index": (index, 90.0), "Earners": (earners, 180.0)}
+    del RAW[:]
+    for tx, tz, tw, _td, label, _colour in plan.s_things:
+        name = label or ("" if tw == plan.PAD_SIZE else "Earners")
+        if not name:
+            continue  # a trainer's pad: the pen brings its own
+        make, yaw = makes.pop(name)
+        raw = []
+        k = Kit(raw, "Stations/" + name, (0.0, FLOOR_Y, 0.0), yaw)
         make(k)
-        feet["Stations/" + name] = k.foot()
+        RAW.extend(raw)
+        feet["Stations/" + name] = placed(out, raw, k.foot(), (tx, tz), plan.FIT[name], plan.RING)
+    assert not makes, makes
     arch(Kit(out, "Gate", (0, 0, 0)), hub)
-    for index_, cx, cz, turn_deg in hub["Plots"]:
-        if index_ in NEW_PLOTS and not OLD:
-            plot(out, index_, cx, cz, turn_deg, hub, NEW_PLOTS[index_])
-        else:
-            plot_old(out, index_, cx, cz, turn_deg, hub)
-        feet[f"Plots/Plot{index_}"] = Kit(out, "", (cx, FLOOR_Y, cz), turn_deg).foot()
-    back = hub["Back"]
-    # (the landmark, its lamps and its stepping stones went on 2026-11-17: the user deleted the landmark, and FUSE now
-    # stands in the middle. The flags' poles and the far lamps would have stood in the tanks of the smaller hub)
+    for i, (box, g) in enumerate(zip(plan.s_pens, plan.s_gates)):
+        feet[f"Plots/Plot{i + 1}"] = pen(out, i + 1, box, g).foot()
     k = Kit(out, "Dressing")
     r = random.Random(12)
     for sx in (-1, 1):
         buoy(k.sub((sx * (gate_half + 5), FLOOR_Y, front - 3)), RED if sx < 0 else (90, 200, 120))
-        palm(k.sub((sx * (gate_half + 14), FLOOR_Y, front - 12), yaw=90 - sx * 90), r)
-        palm(k.sub((sx * (half - 34), FLOOR_Y, -268.0 + shift), yaw=sx * 40), r, 1.35)  # (52 in front of the back wall
-        # until W32 moved the hub 16 and the wall 8 back: they move with the hub, not the wall)
+        # (the gate's palms would stand in the earners board and the sub stand: gone. The back ones stand in the open corners)
+        palm(k.sub((sx * 137, FLOOR_Y, -208.0), yaw=sx * 40), r, 1.35)
     return out
 
 
@@ -995,7 +1060,7 @@ def main():
     faults = []
     if not OLD:
         for model in ["Stations/Sell", "Stations/Auras", "Stations/Sub"] + [f"Plots/Plot{i}" for i in sorted(NEW_PLOTS)]:
-            faults += gate(out, model)
+            faults += gate(RAW if model.startswith("Stations/") else out, model)
     if faults:
         print("\n".join(faults))
         print(f"hub kit: {len(faults)} faults: nothing written")
