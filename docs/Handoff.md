@@ -14,6 +14,27 @@ it off nothing changes (reviewed and played). **Pull before editing `src/`.**
 - **Where it stands and what is not known:** [the dive-in](design/dive-in.md), "The leap". Played by script only.
 - **To switch it on:** `Dive.Leap` 1 in the N panel in a Play; in the file only on the user's yes.
 
+## 2026-11-23 · Hugo's place checked against the new map; the hand placing put in; not saved yet (NULLROOM worker m1, Hugo's PC)
+**State:** nothing pushed by hand, no file in the repo changed but this note and Sessions. Hugo's place
+(`~/Documents/RideAFish/ride-a-fish-map.rbxl`, a file, not the Team Create place) is open in Studio, in Edit, **not saved: Hugo presses Ctrl+S**.
+- **The map was already the new one:** the sync on Hugo's PC loaded it at 15:08 and 16:10 and Hugo saved at 19:07. Measured, not
+  assumed: `99_check` 104,285 parts and 949 of the hub's models; every lane folder has the loader's count, position sums, sizes and
+  colours; all 941 hub boxes stand where `hub.json` puts them (hub floor 344 wide, pens 47 x 62); `hub_contract.luau` all good. So
+  no reload. One piece differs: a `Grass` slab in `Lane/Ground` (138.5 x 8 x 125.7, on the cliff top past the hub's back left corner) stands at
+  (2698.8, 83.9, -290.9) turned 130.5 degrees, the loader's at (2685.4, 100.0, -291.1) with its X axis (-0.92, 0, -0.39). Left as it is: Hugo's to say.
+- **The hand placing from [hub-review-2](design/hub-review-2.md) was not in it, now is:** Fuse moved by (-19.4, 0, 11.8) to
+  (2999.77, 0.5, -101.64), the Index station deleted, done as a hand does it (`KitPivot` and `KitModels` untouched, so the hub files 94 to 97
+  keep both). The spawn (3000, -88) now stands on the Fuse's floor ring, its base 6.4 behind; the character lands free.
+  `hub_contract.luau` now says "no station Index": expected. `99_check`: 104,260 parts (25 fewer, the Index).
+- **A whole reload puts both back** (`00_start` clears the tracker), and the sync on Hugo's PC reloads the whole map by itself whenever
+  a pull changes `tools/studio/greybox/`. After such a load run the hand placing again (the two lines above), or carry it into `hub_scale_plan.py`.
+- **Kept:** FishModels 82, FishVariants, TrainerModels 12, SubMeshes 9, Skies; the mesh files are on disk for the running Studio version.
+- **Code in the place:** all 99 scripts of `src/` equal HEAD `706ea31`. Rojo serves on 34872 but its plugin is not connected (it asks for
+  Connect), so the two dive files pulled at 19:25 went in with `push_scripts.py`.
+- **Played twice by script** (before and after those two files): no errors on either side (one warning, asset 203785492, "Asset type does
+  not match"), a plot handed out, Hugo's level 1 seahorse built from its meshes, a dive off the strip reaches Riding with the leap and
+  without (`dive_leap_check.py run`). Helpers removed, mouse and camera reset.
+
 ## 2026-11-23 · Hugo's seahorses on the user's PC, off the fence; the pens' boards drawn across the hub; saved (Ride a Fish map)
 The user: "save it, but also the ui on the signs are now gone. AND hugo added a coil and new seahorses which have been removed."
 **State:** saved to Roblox, version 402. Checked in Play by numbers and one picture ([the hub](attachments/hub-seahorses-2026-11-23.jpg)).

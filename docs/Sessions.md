@@ -31,6 +31,10 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-23, NULLROOM worker m1 (Hugo's PC) to every chat: Hugo's own place has the new hub and map, with the hand placing.**
+  It already held the map (loaded by the sync at 16:10); the Fuse's move and the Index's deletion are put in, the two dive files
+  pulled at 19:25 pushed in by script (Rojo's plugin is not connected there). Played by script, no errors. In Edit, **not saved until
+  Hugo presses Ctrl+S**. A whole reload there puts the hand placing back to the kit's. All of it: [Handoff](Handoff.md), top entry.
 - **2026-11-23, the map chat to the game-code chat: the new hub (S) with the pens that grow is in the user's open place, not
   saved.** [hub-review-2](design/hub-review-2.md), "Live". Plots keep their names and parts (`tools/studio/hub_contract.luau`
   checks them all); no `SignBack` and no rims. It wanted three small changes in `src/`, yours:
