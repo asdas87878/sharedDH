@@ -75,31 +75,34 @@ def one(fish, outcome, name, text):
     T = TIMES.get(outcome or "", 0)
     slow = 60 if T == 0 or taken else 20  # (a held throw-off waits T x slow before the drown)
     fc.setw(TestMaxOxygen=10000000, FailSlow=slow, FailClock=0, DeathClock=0, CatchLook=0)
-    print(fc.cmd("ride|" + fish))
-    if outcome is None:
-        print(fc.cmd("fail|"))
-    else:
-        fc.wait_state({"Riding"})
-        time.sleep(3)
-        print(fc.cmd("fail|" + outcome))
-    frames = []
-    if taken:
-        for k, dt in enumerate((0.3, 0.75)):
-            fc.setw(FailClock=T + dt)
-            frames.append(shot(f"{name}_{k}", f"{text}   (fail clock {T + dt:.2f} s)"))
-    else:
-        if T > 0:
-            fc.setw(FailClock=T + 0.2)
-        fc.wait_state({"Drowning"}, timeout=90)
-        # the drown's own clock (DeathController): 2.9 s not thrown; thrown, a ragdoll's flight (RAG) and then 2.9 s.
-        # The black is its last 1.35 s, and the words are set until 0.15 s before the end
-        total = 2.9 if outcome is None else RAG + 2.9
-        for k, back in enumerate((0.9, 0.25)):
-            fc.setw(DeathClock=total - back)
-            frames.append(shot(f"{name}_{k}", f"{text}   (drown clock {total - back:.2f} s)"))
-    fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1)
-    print(fc.cmd("home"))
-    time.sleep(4)
+    try:
+        print(fc.cmd("ride|" + fish))
+        if outcome is None:
+            print(fc.cmd("fail|"))
+        else:
+            fc.wait_state({"Riding"})
+            time.sleep(3)
+            print(fc.cmd("fail|" + outcome))
+        frames = []
+        if taken:
+            for k, dt in enumerate((0.3, 0.75)):
+                fc.setw(FailClock=T + dt)
+                frames.append(shot(f"{name}_{k}", f"{text}   (fail clock {T + dt:.2f} s)"))
+        else:
+            if T > 0:
+                fc.setw(FailClock=T + 0.2)
+            fc.wait_state({"Drowning"}, timeout=90)
+            # the drown's own clock (DeathController): 2.9 s not thrown; thrown, a ragdoll's flight (RAG) and then 2.9 s.
+            # The black is its last 1.35 s, and the words are set until 0.15 s before the end
+            total = 2.9 if outcome is None else RAG + 2.9
+            for k, back in enumerate((0.9, 0.25)):
+                fc.setw(DeathClock=total - back)
+                frames.append(shot(f"{name}_{k}", f"{text}   (drown clock {total - back:.2f} s)"))
+        fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1)
+        print(fc.cmd("home"))
+        time.sleep(4)
+    finally:
+        print("restore:", fc.restore())  # (CatchLook 0 left on was the plain GREAT DIVE banner for the rest of the playtest)
     return frames
 
 

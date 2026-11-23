@@ -29,7 +29,7 @@ See "What is built".
   FLUNG OFF! yellow, PINNED! coral. The two lines that were not on the sheet got Claude's: MISSED THE FISH! silver,
   TOO STRONG! pink (`Config.Fail.WordColours`). `Config.failColours` gives a line's pair by its words.
 - **Motion:** the letters pop up one by one from below (one every 0.055 s, the last within 0.6 s, each a little past
-  its size and back), with three soft pops heard; the bubbles blow up round them; the second line pops in 0.2 s
+  its size and back), with three soft pops played; the bubbles blow up round them; the second line pops in 0.2 s
   after the last letter. From then on every letter bobs and sways on its own beat and the bubbles drift. As the black
   lifts at the dock the letters float up, swell and pop one after another, each leaving a ring for a moment, all gone
   before the black is; two quieter pops. No camera shake and no thud (the Slam band's are gone with it).
@@ -47,9 +47,14 @@ See "What is built".
   no second line), `FailWordsAge` (seconds in, held), `FailWordsOut` (0 to 1 of the way out), and new
   `FailWordsScreen` (a Vector2: the words drawn as on a screen of that size, in a white outline, for a phone's).
 - **Checked** in a Studio playtest with `python tools/studio/fail_bubble_check.py probe | motion | lines | phone |
-  fails`: all twelve lines on five screen sizes stay inside the screen (the longest, MISSED THE FISH!, on a phone held
-  sideways, 844 x 390, is drawn at 0.61 of full size, letters about 43 points); the phone is a pretended screen of
-  its size in Studio, not a real phone. The game is played sideways, so the upright phone is only a worst case.
+  fails`. By numbers, every line stays inside the screen on four pretended screens (844 x 390, 667 x 375, 390 x 844,
+  1024 x 768; of the 60 rows the first 16, Studio's own view and four of the first phone's, were not read, the lines
+  picture covers that view). The longest, MISSED THE FISH!, on a phone held sideways (844 x 390) is drawn at 0.61 of
+  full size, letters about 43 points. The phone is a pretended screen of its size in Studio, not a real phone; the
+  game is played sideways (`ScreenOrientation` LandscapeSensor), so the upright phone is only a worst case. Real
+  fails shot with the clocks held: thrown (THROWN OFF!), eaten (EATEN!), shaken off (SHAKEN OFF!), out of breath.
+  **Not done:** the motion was judged from held frames, not watched at speed; the pops were not heard; the way out
+  was seen through `FailWordsOut`, not at the end of a real fail. Hugo's to play once.
 
 ### Before it: the Slam band (b5, 2026-11-22, replaced)
 Bangers in red metal on a tilted dark streak, always red, slammed on from the camera with a thud and a shake.

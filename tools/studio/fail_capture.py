@@ -2,6 +2,7 @@
     python tools/studio/fail_capture.py install | remove          (in Edit, before Play: a server Script that takes commands)
     python tools/studio/fail_capture.py gif <Fish> <Outcome> [fps]   (in a playtest: ride that fish, fail, capture)
     python tools/studio/fail_capture.py sheet <name> <gif> ...        (several GIFs side by side, in a grid)
+    python tools/studio/fail_capture.py restore                       (in a playtest: clears every switch a capture set)
 How: the game's own Studio-only switches hold the clocks (workspace FailClock for FailController, DeathClock for the drown,
 FailSlow for the server's waits), so each frame is set, then shot (studio-run.mjs shot, about 1 s each). The fish's own
 swim and the camera's easing still run on real time between frames, so the motion is the outcome's, slightly smoothed.
@@ -10,6 +11,7 @@ Needs Studio open with the studio-runner plugin and Rojo serving this repo.
 """
 import json
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -65,6 +67,8 @@ def run(args, timeout=120):
 
 
 def lua(v):
+    if v is None:
+        return "nil"
     if isinstance(v, bool):
         return "true" if v else "false"
     if isinstance(v, (int, float)):
@@ -97,6 +101,35 @@ def setw(**kw):
     for k, v in kw.items():
         code += f"workspace:SetAttribute({lua(k)}, {lua(v)}) "
     return server(code + "return 'ok'")
+
+
+# What a capture holds on the playtest's workspace. Left set, they change every later dive of that playtest: CatchLook 0
+# is the old plain GREAT DIVE banner, TestMaxOxygen endless breath, the clocks a frozen fail (Hugo saw the plain banner,
+# 2026-11-23). So every capture clears them in a `finally`, and a killed run (SIGTERM, SIGHUP, Ctrl+C) still gets there.
+HELD = ("CatchLook", "TestMaxOxygen", "FailSlow", "FailClock", "DeathClock")
+
+
+def playing():
+    """Whether a playtest's server is there to take a job (asking one that is not waits 30 s)."""
+    try:
+        return json.loads(run(["status"], timeout=20)).get("connected", {}).get("server", 0) > 0
+    except Exception:
+        return False
+
+
+def restore(*more):
+    """Clears the capture's switches (and `more`) off the playtest's workspace: the game as it is played."""
+    if not playing():
+        return "no playtest (its workspace went with it)"
+    return setw(**{k: None for k in HELD + more})
+
+
+def _killed(sig, _frame):
+    raise SystemExit(128 + sig)
+
+
+for _sig in (signal.SIGTERM, signal.SIGHUP):
+    signal.signal(_sig, _killed)
 
 
 def cmd(c):
@@ -167,38 +200,41 @@ def gif(fish, outcome, fps=12):
     slow = max(2, (n_out + 4) * 1.3 / max(T, 0.1)) if T > 0 else 60
     # (CatchLook 0: the dock's plain banner, which goes by itself, not the catch screen that waits for a press)
     setw(TestMaxOxygen=10000000, FailSlow=slow, FailClock=0, DeathClock=0, CatchLook=0)
-    print(cmd("ride|" + fish))
-    wait_state({"Riding"})
-    time.sleep(3)
-    frames = []
-    # a moment of riding first (the clocks only hold the fail)
-    for i in range(2):
-        frames.append(label(shot(OUT / f"{outcome}_ride{i}.png"), f"{fish}: riding, Oxygen hits 0"))
-    print(cmd("fail|" + outcome))
-    for i in range(n_out):
-        t = i / fps
-        setw(FailClock=t)
-        time.sleep(0.1)
-        frames.append(label(shot(OUT / f"{outcome}_{i:03d}.png"), f"{fish}: {outcome}   t {t:4.2f} s"))
-        print(f"\r{outcome} {i + 1}/{n_out}", end="", flush=True)
-    print()
-    if taken:
-        for i in range(1, n_tail):
-            t = T + i / fps
+    try:
+        print(cmd("ride|" + fish))
+        wait_state({"Riding"})
+        time.sleep(3)
+        frames = []
+        # a moment of riding first (the clocks only hold the fail)
+        for i in range(2):
+            frames.append(label(shot(OUT / f"{outcome}_ride{i}.png"), f"{fish}: riding, Oxygen hits 0"))
+        print(cmd("fail|" + outcome))
+        for i in range(n_out):
+            t = i / fps
             setw(FailClock=t)
             time.sleep(0.1)
-            frames.append(label(shot(OUT / f"{outcome}_f{i:03d}.png"), f"{fish}: {outcome}   t {t:4.2f} s"))
-    else:
-        if T > 0:
-            setw(FailClock=T + 0.2)
-        wait_state({"Drowning"}, timeout=max(40, slow * T + 10))
-        for i in range(n_tail):
-            t = i / fps
-            setw(DeathClock=t)
-            time.sleep(0.1)
-            frames.append(label(shot(OUT / f"{outcome}_d{i:03d}.png"), f"{fish}: {outcome}, thrown off   +{t:4.2f} s"))
-    setw(FailClock=-1, DeathClock=-1, FailSlow=1)
-    print(cmd("home"))
+            frames.append(label(shot(OUT / f"{outcome}_{i:03d}.png"), f"{fish}: {outcome}   t {t:4.2f} s"))
+            print(f"\r{outcome} {i + 1}/{n_out}", end="", flush=True)
+        print()
+        if taken:
+            for i in range(1, n_tail):
+                t = T + i / fps
+                setw(FailClock=t)
+                time.sleep(0.1)
+                frames.append(label(shot(OUT / f"{outcome}_f{i:03d}.png"), f"{fish}: {outcome}   t {t:4.2f} s"))
+        else:
+            if T > 0:
+                setw(FailClock=T + 0.2)
+            wait_state({"Drowning"}, timeout=max(40, slow * T + 10))
+            for i in range(n_tail):
+                t = i / fps
+                setw(DeathClock=t)
+                time.sleep(0.1)
+                frames.append(label(shot(OUT / f"{outcome}_d{i:03d}.png"), f"{fish}: {outcome}, thrown off   +{t:4.2f} s"))
+        setw(FailClock=-1, DeathClock=-1, FailSlow=1)
+        print(cmd("home"))
+    finally:
+        print("restore:", restore())
     dest = ROOT / "docs/attachments" / f"fail-{outcome.lower()}-{fish.lower()}.gif"
     save(frames, dest, fps)
     return dest
@@ -236,6 +272,8 @@ if __name__ == "__main__":
         print(install())
     elif a[0] == "remove":
         print(install(True))
+    elif a[0] == "restore":
+        print(restore("FailRecord", "FailReplay", "SandboxEndlessAir"))
     elif a[0] == "gif":
         gif(a[1], a[2], int(a[3]) if len(a) > 3 else 12)
     elif a[0] == "sheet":

@@ -1,12 +1,14 @@
 """The fail text as Bubble letters (Hugo's pick, 2026-11-22; Kit.failWords and FailController's "The words"): numbers
 and stills from a Studio playtest on Hugo's PC (studio-runner).
     python tools/studio/fail_bubble_check.py install | remove   (in Edit, before Play: the server and client helpers)
-    python tools/studio/fail_bubble_check.py probe              (in a playtest: every line on four screen sizes, by numbers)
+    python tools/studio/fail_bubble_check.py probe              (in a playtest: every line on Studio's own view and four pretended screens, by numbers)
     python tools/studio/fail_bubble_check.py motion             (the motion, held frame by frame)
     python tools/studio/fail_bubble_check.py lines              (every line, settled)
     python tools/studio/fail_bubble_check.py phone              (the long lines on pretended phone screens)
     python tools/studio/fail_bubble_check.py fails [name ...]   (real fails: breath, throw, chomp, shell)
     python tools/studio/fail_bubble_check.py log                (the client's errors and warnings so far)
+    python tools/studio/fail_bubble_check.py restore            (in a playtest: clears every switch a run set; every
+                                                                 command does it by itself at its end, `remove` too)
 How: the motion, the lines and the phone use FailController's Studio switches (workspace FailWords, FailWordsAge,
 FailWordsOut, FailWordsSub, FailWordsScreen); the real fails ride a fish and fail it with the game's clocks held, as
 b5_fail_text_check.py did for the Slam band. The runner cannot run code in the playtest's client, so a LocalScript put
@@ -30,8 +32,8 @@ OUT.mkdir(parents=True, exist_ok=True)
 DOCS = ROOT / "docs/attachments"
 b5.OUT = OUT
 fc.WIDTH = 900
-# the game view inside the Studio window's shot, as Studio is laid out now (2400 x 1280, the Terrain Editor and the
-# Toolbox docked at the left); set by `view` below when the shot's size or the layout differs
+# the game view inside the Studio window's shot is fail_capture's CROP (a playtest's layout, 2400 x 1280); if Studio is
+# laid out differently, write "left top right bottom" of the view in a full shot to work/t1/view.txt
 VIEW = OUT / "view.txt"
 if VIEW.exists():
     fc.CROP = tuple(int(v) for v in VIEW.read_text().split())
@@ -149,17 +151,30 @@ def shot(name, text, crop=None):
     return fc.label(im, text)
 
 
+WORDS = ("FailWords", "FailWordsSub", "FailWordsAge", "FailWordsOut", "FailWordsScreen", "T1Probe")
+
+
+def clear():
+    """Every switch this check or the fails' capture set, off the playtest's workspace (also after a failed or killed
+    run: each command ends here in a `finally`). Left on, they change the rest of that playtest: b5.one's CatchLook 0
+    was the old plain GREAT DIVE banner on every later dive (Hugo saw it, 2026-11-23)."""
+    print("restore:", fc.restore(*WORDS))
+
+
 def probe():
     said(clear=True)
     n = 0
-    for w, h, _ in [(0, 0, "")] + SCREENS:
-        for i, line in enumerate(LINES):
-            n += 1
-            fc.setw(FailWordsScreen=f"@Vector2.new({w}, {h})", FailWordsAge=2.4, FailWordsOut=0, FailWordsSub=True,
-                    FailWords=line)
-            fc.setw(T1Probe=f"{n} {line}")
-            time.sleep(0.6)
-    fc.setw(FailWords="", FailWordsAge=-1, FailWordsScreen="@nil")
+    try:
+        for w, h, _ in [(0, 0, "")] + SCREENS:
+            for i, line in enumerate(LINES):
+                n += 1
+                fc.setw(FailWordsScreen=f"@Vector2.new({w}, {h})", FailWordsAge=2.4, FailWordsOut=0, FailWordsSub=True,
+                        FailWords=line)
+                fc.setw(T1Probe=f"{n} {line}")
+                time.sleep(0.6)
+        fc.setw(FailWords="", FailWordsAge=-1, FailWordsScreen="@nil")
+    finally:
+        clear()
     time.sleep(0.5)
     print(said())
 
@@ -174,21 +189,27 @@ def motion():
              (3.1, 0.65, "65%: most gone"), (3.1, 0.8, "80%: the last one pops")]
     fc.setw(FailWords="", FailWordsSub=True, FailWordsScreen="@nil")
     time.sleep(0.5)
-    for i, (age, out, text) in enumerate(steps):
-        fc.setw(FailWordsAge=age, FailWordsOut=out, FailWords="OUT OF BREATH!")
-        frames.append(shot(f"motion_{i}", text, (0, 0.27, 1, 0.73)))
-    fc.setw(FailWords="", FailWordsAge=-1, FailWordsOut=0)
+    try:
+        for i, (age, out, text) in enumerate(steps):
+            fc.setw(FailWordsAge=age, FailWordsOut=out, FailWords="OUT OF BREATH!")
+            frames.append(shot(f"motion_{i}", text, (0, 0.27, 1, 0.73)))
+        fc.setw(FailWords="", FailWordsAge=-1, FailWordsOut=0)
+    finally:
+        clear()
     b5.grid(frames, DOCS / "fail-bubble-motion.png", 3)
 
 
 def lines():
     frames = []
     fc.setw(FailWordsScreen="@nil")
-    for i, line in enumerate(LINES):
-        fc.setw(FailWordsAge=2.4, FailWordsOut=0, FailWordsSub=i % 2 == 0, FailWords=line)
-        frames.append(shot(f"line_{i}", line + ("" if i % 2 == 0 else "   (no catch on the dive: no second line)"),
-                           (0, 0.27, 1, 0.73)))
-    fc.setw(FailWords="", FailWordsAge=-1, FailWordsSub=True)
+    try:
+        for i, line in enumerate(LINES):
+            fc.setw(FailWordsAge=2.4, FailWordsOut=0, FailWordsSub=i % 2 == 0, FailWords=line)
+            frames.append(shot(f"line_{i}", line + ("" if i % 2 == 0 else "   (no catch on the dive: no second line)"),
+                               (0, 0.27, 1, 0.73)))
+        fc.setw(FailWords="", FailWordsAge=-1, FailWordsSub=True)
+    finally:
+        clear()
     b5.grid(frames, DOCS / "fail-bubble-lines.png", 3)
 
 
@@ -198,18 +219,21 @@ def phone():
     frames = []
     full = fc.CROP[2] - fc.CROP[0], fc.CROP[3] - fc.CROP[1]
     keep, fc.WIDTH = fc.WIDTH, full[0]  # (no shrinking: the box's own pixels)
-    for w, h, name in SCREENS[:3]:
-        for line in LONG[:2]:
-            fc.setw(FailWordsScreen=f"@Vector2.new({w}, {h})", FailWordsAge=2.4, FailWordsOut=0, FailWordsSub=True,
-                    FailWords=line)
-            time.sleep(2.6)
-            im = fc.shot(OUT / f"phone_{w}_{len(frames)}.png")
-            x, y = (im.size[0] - w) // 2, (im.size[1] - h) // 2
-            cell = Image.new("RGB", (w + 16, h + 40), (16, 18, 26))
-            cell.paste(im.crop((x - 3, y - 3, x + w + 3, y + h + 3)), (5, 31))
-            frames.append(fc.label(cell, f"{name}, {w} x {h}"))
-    fc.WIDTH = keep
-    fc.setw(FailWords="", FailWordsAge=-1, FailWordsScreen="@nil")
+    try:
+        for w, h, name in SCREENS[:3]:
+            for line in LONG[:2]:
+                fc.setw(FailWordsScreen=f"@Vector2.new({w}, {h})", FailWordsAge=2.4, FailWordsOut=0, FailWordsSub=True,
+                        FailWords=line)
+                time.sleep(2.6)
+                im = fc.shot(OUT / f"phone_{w}_{len(frames)}.png")
+                x, y = (im.size[0] - w) // 2, (im.size[1] - h) // 2
+                cell = Image.new("RGB", (w + 16, h + 40), (16, 18, 26))
+                cell.paste(im.crop((x - 3, y - 3, x + w + 3, y + h + 3)), (5, 31))
+                frames.append(fc.label(cell, f"{name}, {w} x {h}"))
+        fc.WIDTH = keep
+        fc.setw(FailWords="", FailWordsAge=-1, FailWordsScreen="@nil")
+    finally:
+        clear()
     # the four sideways ones down the left, the two upright ones beside them
     canvas = Image.new("RGB", (880 + 2 * 420, 4 * 440), (16, 18, 26))
     for i, f in enumerate(frames[:4]):
@@ -226,14 +250,17 @@ def fails(only=None):
             ("SeaTurtle", "Shell", "shell", "Shell (Sea Turtle): SHAKEN OFF!"),
             ("Clownfish", None, "breath", "Out of Oxygen off a fish: OUT OF BREATH!")]
     frames = []
-    for fish, outcome, name, text in runs:
-        if only and name not in only:
-            continue
-        got = b5.one(fish, outcome, name, text)
-        if outcome is None:
-            got = got[:1]  # (not thrown, the server ends the drown on its own clock: by a second shot we are home)
-        frames += got
-        b5.grid(got, OUT / f"fails-{name}.png", 2)
+    try:
+        for fish, outcome, name, text in runs:
+            if only and name not in only:
+                continue
+            got = b5.one(fish, outcome, name, text)
+            if outcome is None:
+                got = got[:1]  # (not thrown, the server ends the drown on its own clock: by a second shot we are home)
+            frames += got
+            b5.grid(got, OUT / f"fails-{name}.png", 2)
+    finally:
+        clear()
     if not only:
         b5.grid(frames, DOCS / "fail-bubble-fails.png", 2)
 
@@ -247,7 +274,10 @@ if __name__ == "__main__":
     if what == "install":
         install()
     elif what == "remove":
+        clear()
         install(remove=True)
+    elif what == "restore":
+        clear()
     elif what == "probe":
         probe()
     elif what == "motion":

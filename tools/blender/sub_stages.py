@@ -8,8 +8,9 @@
 Two styles, by --style:
   toy    (the default) option A of docs/design/sub-models.md, "Chunky toy", the user's pick of 2026-11-22 ("for
          submarine [use] the toy version"): fat rounded forms with few sides, smooth shaded, thick rims round the
-         glass, a guard ring round the propeller and a wind-up key on the back, both in the tier's accent colour (red
-         on tier 1); add-ons are toy parts. Tier 1 is the approved model of tools/blender/sub_kit.py, piece for piece.
+         glass, a red guard ring round the propeller on every tier (RING) and a wind-up key on the back in the tier's
+         accent colour; add-ons are toy parts. Tier 1 is the approved model of tools/blender/sub_kit.py, piece for
+         piece.
   voxel  option D, built first as a fallback (mission 7c14c23d): few big boxes on a one-stud grid, each a body part; a
          slope is a whole block turned; colour touches sit a third of a cube proud. Its exports are kept in
          art/subs/voxel/<Id>/ (write them again with --style voxel --export art/subs/voxel).
@@ -26,6 +27,8 @@ no third piece covers the spot.
 --export <folder> writes <folder>/<Id>/<Id>.glb as the creatures' are (one object to a part, vertex colours as plain
 sRGB numbers, no materials, Roblox's axes: +Y up, the nose to -Z, 1 unit = 1 stud) and <Id>.mesh.json.
 Renders: hero, side and back (the riding side), transparent, with a blocky rider for size; --px 2 doubles their size.
+The side view is always 1000 px for 46 x frame studs, and grows taller for a tall add-on; the back view stands back
+until all of the sub is in it. The sheets print a line starting "  !" for any view that touches its picture's edge.
 The voxel style's stud tile on faces that look up is in the render only."""
 import json
 import math
@@ -65,8 +68,14 @@ def sheets(mode, args):
         sheet.paste(im, at, im)
         return k
 
+    cut_off = []
+
     def view(folder, name):
-        return Image.open(os.path.join(folder, name)).convert("RGBA")
+        im = Image.open(os.path.join(folder, name)).convert("RGBA")
+        box = im.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
+        if box and (box[0] == 0 or box[1] == 0 or box[2] == im.width or box[3] == im.height):
+            cut_off.append("  ! %s is cut off at its edge" % os.path.join(folder, name))
+        return im
 
     if mode == "sheet":
         src, out = args[0], args[1]
@@ -126,14 +135,17 @@ def sheets(mode, args):
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     sheet.save(out)
     print("sheet:", out, sheet.size)
+    for line in cut_off:
+        print(line)
+    return 1 if cut_off else 0
 
 
 if len(sys.argv) > 2 and sys.argv[1] in ("sheet", "compare"):
-    sheets(sys.argv[1], sys.argv[2:])
-    sys.exit(0)
+    sys.exit(sheets(sys.argv[1], sys.argv[2:]))
 
 import bmesh  # noqa: E402
 import bpy  # noqa: E402
+from bpy_extras.object_utils import world_to_camera_view  # noqa: E402
 from mathutils import Euler, Matrix, Vector  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1 :]
@@ -153,13 +165,15 @@ TIERS = [
     ("ReefRunner", "Reef Runner", (255, 128, 40), (60, 40, 30), (255, 240, 160), (122, 75, 46), (244, 241, 230), 1.0),
     ("KelpCruiser", "Kelp Cruiser", (70, 200, 90), (24, 70, 40), (200, 255, 140), (122, 75, 46), (255, 214, 70), 1.08),
     ("WreckDiver", "Wreck Diver", (176, 96, 52), (54, 44, 40), (255, 200, 120), (92, 62, 44), (232, 190, 60), 1.1),
-    ("BlueStreak", "Blue Streak", (40, 140, 255), (230, 240, 255), (140, 255, 255), (30, 50, 90), (255, 70, 60), 1.2),
+    ("BlueStreak", "Blue Streak", (40, 140, 255), (230, 240, 255), (140, 255, 255), (30, 50, 90), (232, 80, 58), 1.2),
     ("TwilightRay", "Twilight Ray", (150, 80, 230), (40, 24, 70), (255, 140, 255), (40, 24, 70), (255, 200, 90), 1.4),
     ("MidnightHunter", "Midnight Hunter", (30, 40, 70), (10, 14, 24), (60, 255, 230), (22, 28, 46), (240, 240, 235), 1.3),
     ("VentCrawler", "Vent Crawler", (220, 50, 40), (30, 20, 20), (255, 170, 40), (30, 20, 20), (90, 84, 88), 1.3),
     ("AbyssKing", "Abyss King", (255, 214, 70), (20, 16, 30), (255, 80, 120), (20, 16, 30), (150, 70, 220), 1.45),
 ]
 ID, NAME, HULL, TRIM, LIGHT, SEATC, ACCENT, FRAME = TIERS[TIER - 1]
+# the toy style's guard ring is red on every tier (style A as picked); a lighter red where the hull itself is red
+RING = (255, 118, 96) if ID == "VentCrawler" else (232, 80, 58)
 
 
 def tone(c, lift=0.0, shade=1.0):
@@ -170,7 +184,7 @@ dark_trim = sum(TRIM) < 200
 PALETTE = {
     "hull": HULL, "hull+": tone(HULL, 0.28), "hull-": tone(HULL, 0, 0.8),
     "trim": TRIM, "trim+": tone(TRIM, 0.2 if dark_trim else 0.5), "trim-": tone(TRIM, 0, 0.8),
-    "glass": LIGHT, "glow": LIGHT, "lamp": (255, 250, 210), "seat": SEATC, "accent": ACCENT,
+    "glass": LIGHT, "glow": LIGHT, "lamp": (255, 250, 210), "seat": SEATC, "accent": ACCENT, "ring": RING,
     "white": (244, 241, 230), "tooth": (250, 246, 232),
 }
 GLOW = {"glass": 1.6, "glow": 2.4, "lamp": 4.0}
@@ -826,12 +840,30 @@ def saddle():
 
 
 def portholes(xs, z=0.6, y=None, r=1.9):
-    """glass in a thick rim on each flank"""
+    """glass in a thick rim on each flank. y: flat on at that distance, as the approved model's; else laid on the skin
+    and tilted with it, the rim standing proud all round and its back sunk all round, so that where the body tapers
+    no side of the ring is buried and none floats"""
     for x in xs:
-        out = y if y is not None else skin(x, z) - 0.06
+        if y is not None:
+            for s in SIDES:
+                cyl("Hull", (x, s * y, z), r, 0.9, "trim", axis="y", n=10)
+                cyl("Hull", (x, s * (y + 0.35), z), r - 0.6, 0.5, "glass", axis="y", n=10)
+            continue
+        c = Vector((x, skin(x, z), z))
+        n = Vector((-(skin(x + r, z) - skin(x - r, z)) / (2 * r), 1.0, -(skin(x, z + r) - skin(x, z - r)) / (2 * r))).normalized()
+        u = Vector((1, 0, 0)).cross(n).normalized()
+        w = n.cross(u)
+        gaps = []  # how far the ring's plane stands off the skin, at twelve spots round its edge
+        for i in range(12):
+            q = c + (u * math.cos(i * math.pi / 6) + w * math.sin(i * math.pi / 6)) * r
+            gaps.append((q.y - skin(q.x, q.z)) * n.y)
+        front, back = max(0.39, 0.25 - min(gaps)), 0.5 + max(0.0, max(gaps))
+        print("sub stages: port at %.1f: leans %.0f deg, the skin %.2f to %.2f under its plane, rim %.2f out, %.2f in" % (
+            x, math.degrees(math.acos(n.y)), min(gaps), max(gaps), front, back))
         for s in SIDES:
-            cyl("Hull", (x, s * out, z), r, 0.9, "trim", axis="y", n=10)
-            cyl("Hull", (x, s * (out + 0.35), z), r - 0.6, 0.5, "glass", axis="y", n=10)
+            cs, ns = Vector((c.x, s * c.y, c.z)), Vector((n.x, s * n.y, n.z))
+            rod("Hull", cs - ns * back, cs + ns * front, r, "trim", n=10)
+            rod("Hull", cs + ns * (front - 0.35), cs + ns * (front + 0.15), r - 0.6, "glass", n=10)
 
 
 def stubs(x=-7.0, hw=5.6, z=-1.2, size=(4.2, 4.6, 1.3), tip="accent", colour="trim", cut=1.0):
@@ -842,7 +874,7 @@ def stubs(x=-7.0, hw=5.6, z=-1.2, size=(4.2, 4.6, 1.3), tip="accent", colour="tr
 
 
 def tail(tx=16.6, az=0.7, ring=4.3, cross=(11.5, 12.5), blades="white", hub="trim+", glow=False, tips=None):
-    """four fat paddles, the guard ring and the three-bar propeller in it. The propeller's pieces are all even about
+    """four fat paddles, the red guard ring and the three-bar propeller in it. The propeller's pieces are all even about
     the hub, so its box is centred on it and it spins true. The dark disc stands 0.15 proud of the ring (the approved
     model's 0.05 would flicker) and the blades a tenth clear of it."""
     if cross:
@@ -853,7 +885,7 @@ def tail(tx=16.6, az=0.7, ring=4.3, cross=(11.5, 12.5), blades="white", hub="tri
                 slab("Hull", (tx - 3.2, 0, az - 0.2 + s * (cross[0] / 2 - 0.3)), (2.8, 1.5, 1.2), tips)
                 slab("Hull", (tx - 3.2, s * (cross[1] / 2 - 0.3), az - 0.2), (2.8, 1.2, 1.5), tips)
     k = ring / 4.3
-    cyl("Hull", (tx, 0, az), ring, 1.6, "accent", axis="x", n=12, smooth=False)
+    cyl("Hull", (tx, 0, az), ring, 1.6, "ring", axis="x", n=12, smooth=False)
     cyl("Hull", (tx, 0, az), ring - 0.6, 1.9, "trim", axis="x", n=12, smooth=False)
     cyl("Prop", (tx + 0.9, 0, az), 1.2 * k, 1.8, hub, axis="x", n=8, r2=0.6 * k, smooth=False)
     for a in (0, 60, 120):
@@ -1144,29 +1176,33 @@ def toy9():  # the Abyss King: the biggest: a glowing crown, a trident ram, pods
         cyl("Hull", (7.2, s * 11.6, -1.8), 1.5, 2.0, "trim", axis="x", n=10, r2=0.6)
     for x in (-7, -1, 5):
         cone((x, 0, -6.0), (x + 1.5, 0, -9.3), 0.95, "trim+")
-    cone((12.9, 0, 4.2), (13.8, 0, 7.4), 0.9, "trim")  # the crest: three spikes stepping up toward the tail
-    cone((14.5, 0, 3.9), (15.7, 0, 9.0), 1.05, "trim")
-    cone((16.9, 0, 6.6), (18.5, 0, 10.8), 0.95, "trim")
+    cone((12.0, 0, 4.4), (12.3, 0, 7.0), 0.85, "trim")  # the crest: three spikes stepping up toward the tail, all of
+    cone((13.1, 0, 4.2), (13.6, 0, 8.6), 0.95, "trim")  # them clear of the top paddle and its violet tip
+    cone((14.2, 0, 3.9), (14.8, 0, 10.4), 0.95, "trim")
     tail(tx=20.4, ring=5.0, cross=(13.5, 15.0), blades="accent", glow=True, tips="accent")
     headlamp(x=-20.2, z=-3.2)
-    windup(x=11.4, z=5.4)
+    windup(x=9.9, z=5.4)
 
 
 def toy_check():
-    """faces of two pieces that face the same way, overlap and lie under 0.05 apart, where no third piece covers them"""
+    """a piece that is open or inside out; and faces of two pieces that face the same way, overlap and lie under 0.05
+    apart, where no third piece covers them"""
     import numpy as np
     from mathutils.bvhtree import BVHTree
 
-    faces, trees = [], []
+    faces, trees, found = [], [], []
     for k, pc in enumerate(PIECES):
         pc["bm"].normal_update()
+        # Roblox draws a face from its front only: every piece must be shut and face outward
+        if any(len(e.link_faces) != 2 for e in pc["bm"].edges) or pc["bm"].calc_volume(signed=True) <= 0:
+            c = sum((v.co for v in pc["bm"].verts), Vector()) / len(pc["bm"].verts)
+            found.append("  ! %s (%s) near (%.1f, %.1f, %.1f) is open or inside out" % (pc["part"], pc["colour"], c.x, c.y, c.z))
         trees.append(BVHTree.FromBMesh(pc["bm"]))
         for f in pc["bm"].faces:
             faces.append((k, [v.co.copy() for v in f.verts], f.normal.copy(), f.calc_center_median()))
     normals = np.array([f[2] for f in faces])
     centres = np.array([f[3] for f in faces])
     apart = np.abs(normals @ centres.T - np.sum(normals * centres, axis=1)[:, None])
-    found = []
     for i, j in np.argwhere((normals @ normals.T > 0.9995) & (apart < 0.05)):
         (pi, vi, ni, _), (pj, vj, _, _) = faces[i], faces[j]
         a, z = PIECES[pi], PIECES[pj]
@@ -1448,11 +1484,27 @@ mid = (min(xs) + max(xs)) / 2
 hero = camera("Hero", lens=75)
 look_from(hero, (mid - 62 * FRAME, -70 * FRAME, 30 * FRAME), (mid + 0.5, 0, 1.5))
 render(hero, "hero.png", 1200, 820)
+# the side view: 1000 px across 46 x FRAME studs whatever the tier (sub_kit's --frame side view is the same, so the two
+# lie side by side at one scale); it grows taller, about the sub's own middle, when a tall add-on would leave its top
+drawn = [ob.matrix_world @ v.co for ob in scene.objects if ob.type == "MESH" for v in ob.data.vertices]
+z_lo, z_hi = min(p.z for p in drawn) - 1.2, max(p.z for p in drawn) + 1.2
 side = camera("Side", ortho=46 * FRAME)
-look_from(side, (mid, -200, 2), (mid, 0, 2))
-render(side, "side.png", 1000, 480)
+if z_lo >= 2 - 0.24 * 46 * FRAME and z_hi <= 2 + 0.24 * 46 * FRAME:
+    side_z, side_h = 2.0, 480
+else:
+    side_z, side_h = (z_lo + z_hi) / 2, min(1000, 2 * math.ceil((z_hi - z_lo) * 500 / (46 * FRAME)))
+look_from(side, (mid, -200, side_z), (mid, 0, side_z))
+render(side, "side.png", 1000, max(480, side_h))
 look_from(sun, (4, -5, 12), (0, 0, 0))
 back = camera("Back", lens=40)
 far = FRAME * (1.2 if STYLE == "toy" else 1.0)  # the toy's guard ring is wider than the voxel tail
-look_from(back, (mid + 44 * far, -17 * far, 21 * far), (mid - 3, 0, 3.0))
+scene.camera = back
+scene.render.resolution_x, scene.render.resolution_y = 1000, 700
+for _ in range(16):  # and it stands back until all of the sub is in the picture
+    look_from(back, (mid + 44 * far, -17 * far, 21 * far), (mid - 3, 0, 3.0))
+    bpy.context.view_layer.update()
+    spots = [world_to_camera_view(scene, back, p) for p in drawn]
+    if STYLE == "voxel" or (min(min(q.x, q.y) for q in spots) > 0.03 and max(max(q.x, q.y) for q in spots) < 0.97):
+        break
+    far *= 1.04
 render(back, "back.png", 1000, 700)

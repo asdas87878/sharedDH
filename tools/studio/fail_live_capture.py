@@ -62,53 +62,56 @@ def gif(fish, outcome, suffix="3", fps=10):
     fc.server("workspace:SetAttribute('TestMaxOxygen', nil) workspace:SetAttribute('SandboxEndlessAir', true) return 'ok'")
     # 1. the live run, recorded
     fc.setw(FailRecord=True, FailReplay=False, FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
-    print(fc.cmd("ride|" + fish))
-    fc.wait_state({"Riding"})
-    time.sleep(0.3)
-    print("live:", fc.cmd("fail|" + outcome))
-    time.sleep(1)
-    fc.wait_state({"Dock"}, timeout=40)
-    fc.setw(FailRecord=False)
-    time.sleep(1.5)
-    # 2. the playback
-    n_out = int(round(T * fps)) + 1 if T > 0 else 0
-    n_tail = int(round((0.8 if taken else rag + 1.6) * fps)) + 1
-    # (each frame takes about 2.5 s: the server's waits stretched well past the whole capture)
-    slow = max(60, (n_out + n_tail + 6) * 3 / max(T, 0.1))
-    fc.setw(FailReplay=True, FailSlow=slow, FailClock=0, DeathClock=0)
-    print(fc.cmd("ride|" + fish))
-    fc.wait_state({"Riding"})
-    time.sleep(0.3)
-    frames = []
-    # (no riding frames first: the time they take lets the fish be tamed, and its CAUGHT banner covers the shot)
-    print("playback:", fc.cmd("fail|" + outcome))
-    for i in range(n_out):
-        t = i / fps
-        fc.setw(FailClock=t)
-        time.sleep(0.9)
-        frames.append(label(big_shot(OUT / f"{outcome}_{i:03d}.png", 960), f"{fish}: {outcome}   {t:4.2f} s"))
-        print(f"\r{outcome} {i + 1}/{n_out}", end="", flush=True)
-    print()
-    if taken:
-        for i in range(1, n_tail):
-            t = T + i / fps
+    try:
+        print(fc.cmd("ride|" + fish))
+        fc.wait_state({"Riding"})
+        time.sleep(0.3)
+        print("live:", fc.cmd("fail|" + outcome))
+        time.sleep(1)
+        fc.wait_state({"Dock"}, timeout=40)
+        fc.setw(FailRecord=False)
+        time.sleep(1.5)
+        # 2. the playback
+        n_out = int(round(T * fps)) + 1 if T > 0 else 0
+        n_tail = int(round((0.8 if taken else rag + 1.6) * fps)) + 1
+        # (each frame takes about 2.5 s: the server's waits stretched well past the whole capture)
+        slow = max(60, (n_out + n_tail + 6) * 3 / max(T, 0.1))
+        fc.setw(FailReplay=True, FailSlow=slow, FailClock=0, DeathClock=0)
+        print(fc.cmd("ride|" + fish))
+        fc.wait_state({"Riding"})
+        time.sleep(0.3)
+        frames = []
+        # (no riding frames first: the time they take lets the fish be tamed, and its CAUGHT banner covers the shot)
+        print("playback:", fc.cmd("fail|" + outcome))
+        for i in range(n_out):
+            t = i / fps
             fc.setw(FailClock=t)
             time.sleep(0.9)
-            frames.append(label(big_shot(OUT / f"{outcome}_f{i:03d}.png", 960), f"{fish}: {outcome}   {t:4.2f} s"))
-    else:
-        if T > 0:
-            fc.setw(FailClock=T + 0.2)
-        fc.wait_state({"Drowning"}, timeout=max(60, slow * T + 20))
-        for i in range(n_tail):
-            t = i / fps
-            fc.setw(DeathClock=t)
-            time.sleep(0.9)
-            frames.append(label(big_shot(OUT / f"{outcome}_d{i:03d}.png", 960), f"{fish}: {outcome}, thrown   +{T + t:4.2f} s"))
-            print(f"\rtail {i + 1}/{n_tail}", end="", flush=True)
+            frames.append(label(big_shot(OUT / f"{outcome}_{i:03d}.png", 960), f"{fish}: {outcome}   {t:4.2f} s"))
+            print(f"\r{outcome} {i + 1}/{n_out}", end="", flush=True)
         print()
-    fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailReplay=False)
-    print(fc.cmd("home"))
-    fc.wait_state({"Dock"}, timeout=30)
+        if taken:
+            for i in range(1, n_tail):
+                t = T + i / fps
+                fc.setw(FailClock=t)
+                time.sleep(0.9)
+                frames.append(label(big_shot(OUT / f"{outcome}_f{i:03d}.png", 960), f"{fish}: {outcome}   {t:4.2f} s"))
+        else:
+            if T > 0:
+                fc.setw(FailClock=T + 0.2)
+            fc.wait_state({"Drowning"}, timeout=max(60, slow * T + 20))
+            for i in range(n_tail):
+                t = i / fps
+                fc.setw(DeathClock=t)
+                time.sleep(0.9)
+                frames.append(label(big_shot(OUT / f"{outcome}_d{i:03d}.png", 960), f"{fish}: {outcome}, thrown   +{T + t:4.2f} s"))
+                print(f"\rtail {i + 1}/{n_tail}", end="", flush=True)
+            print()
+        fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailReplay=False)
+        print(fc.cmd("home"))
+        fc.wait_state({"Dock"}, timeout=30)
+    finally:
+        print("restore:", fc.restore("FailRecord", "FailReplay", "SandboxEndlessAir"))
     dest = ROOT / "docs/attachments" / f"fail-{outcome.lower()}-{suffix}.gif"
     save(frames, [int(1000 / fps)] * len(frames), dest)
     if kept:
@@ -152,43 +155,46 @@ def stills(fish, outcome, suffix="4"):
     T = TIMES[outcome]
     fc.server("workspace:SetAttribute('TestMaxOxygen', nil) workspace:SetAttribute('SandboxEndlessAir', true) return 'ok'")
     fc.setw(FailRecord=True, FailReplay=False, FailSlow=1, FailClock=-1, DeathClock=-1, CatchLook=0)
-    print(fc.cmd("ride|" + fish))
-    fc.wait_state({"Riding"})
-    time.sleep(0.3)
-    print("live:", fc.cmd("fail|" + outcome))
-    time.sleep(1)
-    fc.wait_state({"Dock"}, timeout=40)
-    fc.setw(FailRecord=False)
-    time.sleep(1.5)
-    fc.setw(FailReplay=True, FailSlow=30, FailClock=0, DeathClock=0)
-    print(fc.cmd("ride|" + fish))
-    fc.wait_state({"Riding"})
-    time.sleep(0.3)
-    print("playback:", fc.cmd("fail|" + outcome))
-    out = []
-    for k, (clock, t, words) in zip("ab", STILLS[outcome]):
-        if clock == "f":
-            fc.setw(FailClock=t)
-        else:
-            if T > 0:
-                fc.setw(FailClock=T + 0.2)
-            fc.wait_state({"Drowning"}, timeout=max(60, 30 * T + 20))
-            fc.setw(DeathClock=t)
-        time.sleep(1.6)
-        im = big_shot(OUT / f"{outcome}_still_{k}.png")
-        when = t if clock == "f" else T + t
-        d = ImageDraw.Draw(im)
-        d.text((16, 12), f"{fish}: {outcome}, {words}  ({when:.2f} s)", fill="white",
-               font=ImageFont.load_default(size=30), stroke_width=3, stroke_fill="black")
-        dest = ROOT / "docs/attachments" / f"fail-{outcome.lower()}-{suffix}{k}.png"
-        im.save(dest)
-        SHEETS.mkdir(parents=True, exist_ok=True)
-        shutil.copy(dest, SHEETS / dest.name)
-        out.append(dest)
-        print(dest)
-    fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailReplay=False)
-    print(fc.cmd("home"))
-    fc.wait_state({"Dock"}, timeout=30)
+    try:
+        print(fc.cmd("ride|" + fish))
+        fc.wait_state({"Riding"})
+        time.sleep(0.3)
+        print("live:", fc.cmd("fail|" + outcome))
+        time.sleep(1)
+        fc.wait_state({"Dock"}, timeout=40)
+        fc.setw(FailRecord=False)
+        time.sleep(1.5)
+        fc.setw(FailReplay=True, FailSlow=30, FailClock=0, DeathClock=0)
+        print(fc.cmd("ride|" + fish))
+        fc.wait_state({"Riding"})
+        time.sleep(0.3)
+        print("playback:", fc.cmd("fail|" + outcome))
+        out = []
+        for k, (clock, t, words) in zip("ab", STILLS[outcome]):
+            if clock == "f":
+                fc.setw(FailClock=t)
+            else:
+                if T > 0:
+                    fc.setw(FailClock=T + 0.2)
+                fc.wait_state({"Drowning"}, timeout=max(60, 30 * T + 20))
+                fc.setw(DeathClock=t)
+            time.sleep(1.6)
+            im = big_shot(OUT / f"{outcome}_still_{k}.png")
+            when = t if clock == "f" else T + t
+            d = ImageDraw.Draw(im)
+            d.text((16, 12), f"{fish}: {outcome}, {words}  ({when:.2f} s)", fill="white",
+                   font=ImageFont.load_default(size=30), stroke_width=3, stroke_fill="black")
+            dest = ROOT / "docs/attachments" / f"fail-{outcome.lower()}-{suffix}{k}.png"
+            im.save(dest)
+            SHEETS.mkdir(parents=True, exist_ok=True)
+            shutil.copy(dest, SHEETS / dest.name)
+            out.append(dest)
+            print(dest)
+        fc.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailReplay=False)
+        print(fc.cmd("home"))
+        fc.wait_state({"Dock"}, timeout=30)
+    finally:
+        print("restore:", fc.restore("FailRecord", "FailReplay", "SandboxEndlessAir"))
     if kept:
         subprocess.run(["wl-copy"], input=kept, text=True)
     return out
