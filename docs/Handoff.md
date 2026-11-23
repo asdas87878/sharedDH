@@ -3,6 +3,51 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-24 · The four pieces below pushed; one full scripted play passes; a one-command check for it (NULLROOM worker m5, Hugo's PC)
+**State:** pushed by hand, `main` equal to `origin/main` (`git rev-list --left-right --count HEAD...origin/main`: 0 0). The partner
+has pushed nothing since `706ea31` (pulled 19:25 on 2026-11-23): nothing to merge, no conflict, no map file changed, so no map load.
+The four pieces under this entry (m1 to m4) were already in the repo by the sync on Hugo's PC (its last commit `a21893f`, 00:46);
+this push adds `tools/studio/full_check.py` and these notes. No file of `src/` changed in it. StyLua clean, selene 0 errors (the
+three old warnings), the Rojo build passes.
+**Hugo's place against the repo, both ways and by content** (`python tools/studio/full_check.py place`): 179 scripts in the place.
+The 99 script files of `src/` are there with the same bytes and nothing else stands under the three Rojo folders but the 78 creature
+data modules, which return what their `src/shared/Creatures/*.json` hold (compared by contents; m1 had matched them by name). The
+map's two own scripts (`Surface.WaterLook`, `Dock.HubLife`) equal what loaders 98 and 97 install. No `ZZ` helper, no switch left on
+the workspace, ReplicatedStorage or ServerStorage, in Edit, the mouse free, the camera Fixed. The hand placing is still in (Fuse
+22.71 studs from the kit's place, no Index: `hub_contract.luau` says only "no station Index"); `99_check` 104,628 parts, 917 of the
+hub's models (432 parts are the eight Edit previews of the seahorse).
+**One scripted play, no clock held and no look switch set, all good on its first run** (00:54, `work/full_check/run.log` on Hugo's PC):
+- **Boot:** Plot2 handed out, on the dock; all 8 pens show the level 1 seahorse from its meshes, no old machine, no Edit preview.
+- **Seahorse:** walking up seats you; 100 to 180 Oxygen in 5.2 s (5 ticks of 16); getting off stops it.
+- **Sub trip:** sub 1 to land 2 through `SubService`'s test door, in by walking off the dock's lip: Carried, the phases Approach,
+  Pickup, Ride, Arrive, Drop, then let go into the hop and onto a fish (Riding, at Z 1,751 in land 2). Sent home off it: no
+  black, GREAT DIVE up a tenth of a second later.
+- **Dive:** off the lip with no sub (`Dive.Leap` 0, as shipped): Dock, Free, Jumping, Riding.
+- **Fail:** forced from that fish as out of Oxygen (`RideService.forceFail`), on real time: Drowning, "OUT OF BREATH!", the black
+  whole with `RideBlack` at order 15 over `RideHud` at 5, home with the black still whole, the black gone 1.31 s after home
+  (`Config.Death`: 1.3), and GREAT DIVE only then. This is m3's fix on the real 1.3 s, which its own check had held.
+- **No errors** on the server or the client from boot on. Two warnings each side, all the known asset one (203785492).
+**Not covered by it:** the fails that take the rider (Chomp and the like: m3's held run has them), the kraken's Wrap, the leap off
+the dock (`Dive.Leap` 1), the shop windows, the tank, anything by hand or on a phone.
+**New, `tools/studio/full_check.py`** (Hugo's PC, through studio-runner): `place` (the compare above), `install`, `run`, `remove`,
+and `all`, which does the lot: place, install, Play, run, stop, remove, mouse and camera back, place again; exit code 1 on a miss.
+About two and a half minutes. Run `all` after a merge that touches `src/`, before the push.
+**On the partner's PC, to get all four pieces** (Studio open on the place, in Edit):
+1. Pull (the Obsidian plugin does).
+2. The code: with Rojo connected nothing; else `python tools/studio/sync_src.py <studio_id>`.
+3. The seahorse and the hub: `python tools/studio/load_greybox.py <studio_id> greybox hub` (seconds; hand placing in the hub is
+   kept). Read the lines it prints against the list in the m2 entry below ("On the partner's PC"), the content folder line above all.
+4. Only if a sub shows as plain boxes (Studio updated itself since the subs were installed): `tools/subs/install.py <studio_id>`.
+5. Save the place. Play: Hugo's seahorse stands on every pen; a fail goes black with only its words on it, then the dock and the HUD
+   come up together.
+Nothing else to run: m3 (the black over the HUD) and m4 (the sub shop's cards, Blue Streak's sign) are code only.
+**Open, Hugo's to say** (asked by m1 to m4, none answered yet): the HUD dimming with the black during a fail, yes or no; how a sub's
+name should show under water (the water's drawing hides it); whether the land title may lie over that name; a lift for Twilight Ray's
+sign; the turned grass slab past the hub's back left corner; uploading the 12 seahorse models (a published game shows none until then).
+**Not merged, each waits for its own task:** `sub-camera-behind` (c2), `hub-keepers`, `index-panel` and `sub-stand-ring` (h4),
+`auras-draft-3`, `aura-icon-options`, `sub-creature-options`.
+**Hugo's place file:** see the line on the save in [Sessions](Sessions.md), written after this push.
+
 ## 2026-11-23 · The toy subs seen in the game; the shop's cards show every sub whole; the name sign raised (NULLROOM worker m4, Hugo's PC)
 **Seen:** all nine toy subs build from their meshes in Hugo's place and carry their names
 ([over the stand](attachments/m4-subs-stand.jpg)); on a trip the rider sits on the seat and the propeller is in its ring

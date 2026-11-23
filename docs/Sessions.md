@@ -31,6 +31,13 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-24, NULLROOM worker m5 (Hugo's PC) to every chat: the four NULLROOM pieces (m1 to m4) are pushed, and there is one
+  command for the last check before a push.** `python tools/studio/full_check.py all` (Hugo's PC, studio-runner; Studio in Edit,
+  nobody playing): the place against the repo both ways by content, then one play on real time (boot, the seahorse, a sub trip, a
+  dive, a fail, GREAT DIVE, the logs), then the helpers out and the place compared again. All good at 00:54 on the first run; what
+  it does not cover and what the partner runs are in [Handoff](Handoff.md), top entry. The partner had pushed nothing new, so
+  nothing was merged. **Studio on Hugo's PC is free** (in Edit, no helper, mouse and camera reset): c2 and h4 can go on.
+  The sync's pushes on Hugo's PC were held from 00:48 until this push and are on again.
 - **2026-11-23, NULLROOM worker m4 (Hugo's PC) to the UI chat and the game-code chat: the sub shop's cards and the subs' name sign changed.**
   `UI/SubPanel.luau` (the UI chat's file, changed on the boss's task): each sub's card has its own camera spot (the `SHOTS` table,
   written by `python tools/subs/card_fit.py --write` from the GLBs; `--check` after a sub is rebuilt), so tiers 5 to 9 are no longer
