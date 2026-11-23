@@ -512,7 +512,7 @@ need nice camera angles, a splash and stuff. leave sound fx for now. We will nee
 natural and dynamic." There is no dive stand in the place or the generator: "stand" was read as the strip's lip under
 the DIVE IN arch (the edge is found by a ray at run time, so a raised stand placed by hand would work too).
 
-**State: built, behind `Config.Dive.Leap` (0 in the file). Played by script, not by hand, not seen with two players. Waiting for the user's playtest.**
+**State: on for everyone (`Config.Dive.Leap` 1 in the file) since 2026-11-23, on the user's word ("switch that on for everyone"). Played by script, not seen with two players.**
 
 | Piece | What it does | Where |
 |---|---|---|
@@ -542,11 +542,34 @@ the DIVE IN arch (the edge is found by a ray at run time, so a raised stand plac
 - **Not the leap's:** a sub dive with no fish equipped ends in Drowning 2.5 s into the ride with the dial off too.
 - **Slow networks:** if the server's word that you are in the water takes over 1.2 s (`Dive.LeapHold`) the leap lets
   go under water and the plain hop follows with its own splash.
-- **The dial:** `Dive.Leap` is 0 in the file until the user has played it and says yes (the vault's sync pushes the
-  file to the partner and the build being sold). In the N panel it can be switched on in any Play.
+- **The dial:** `Dive.Leap` 1 in the file (the user, 2026-11-23). 0 in the file or in the N panel puts the plain drop back.
 - **To check it:** `python tools/studio/dive_leap_check.py` (install, then `run`, `run fish`, `run sub`, `run look`,
   and `hold <moment> own|director` for stills; logs in `work/dive_leap/`). `remove` takes the check out of the place: do it before any publish.
 - **To try the flip:** `Dive.Flip` 1 in the N panel.
+
+### The leap on a fish (2026-11-23)
+
+The user: "add an animation for if you are on a fish and you dive into the water you should have a slightly different
+but similar dive animation because we dont have that coded". **Written, off (`Config.Dive.LeapMounted` 0), played once
+by script at 15 fps; not played by hand.**
+
+- **What it does.** A rider on a land fish who goes over the strip's lip leaps with the fish: the fish takes off nose up
+  (about 29 degrees), arcs, and goes in nose down at about 37 degrees (a diver alone goes in at 67), with the same
+  camera film and splash as the plain leap, scaled by the fish's length (height and distance by the square root, the
+  camera further back for a long fish). A fish too big for the space ahead (the box test fails) drops in as before.
+- **How.** All on the rider's machine, in `DiveController` (`makePlan` takes the fish; `fishClear`, `landFishOf`):
+  the server still swaps the land fish for the dive fish under `WaterY` exactly as before, and the leap absorbs the swap.
+  Losing the fish mid-leap (the slot's cross sends `RideUnequip` with no dock gate) ends the leap and hands the camera
+  back at once.
+- **Played (one run, a small fish, Studio at 15 fps, so indicative):** no errors; the swap moved the fish 0.34 studs
+  and its nose 0.7 degrees, never a frame with no fish; the land pace check never put the rider back; lip to riding
+  1.63 s against 0.62 s with the dial off (the leap adds about a second, the plain leap about 0.55 s); taking the fish
+  off mid-leap gave the camera back in 0.09 s.
+- **Not known:** a large and a small-sized fish (`dive_leap_check.py run mounted ID:Size`), real frame times, how it
+  looks (three stills in `work/dive_leap/m_*.png`, unjudged), two players.
+- **The plain leap, owed since it went on:** the Neon splash was seen in a still (`work/dive_leap/dir3_splash.png`):
+  it reads as a white burst now, not a grey lump, but the glow blows the crown's shape out; unjudged by the user. Its
+  frame times at a real frame rate are still not measured (Studio's window was covered, 15 fps).
 
 ## Part 2: swimming speeds and the feel of speed
 

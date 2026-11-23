@@ -6,7 +6,8 @@ Written 2026-11-23 by a side chat of the game-code chat. The user: "come up with
 introductary visuals which show the player where to go, how to deposit fish etc... study ride a dino intensley to find out the
 strategy to go about doing this."
 
-**A study and a proposal. Nothing here is built, nothing was run in Studio.** Tags: *seen* (in a frame), *said*, *inferred*, *unknown*.
+**A study and a proposal; the four picks in section 6 are settled (the user, 2026-11-23: "Yes, all four"). The smallest set is
+built, off ([Built](#built-2026-11-23)).** Tags: *seen* (in a frame), *said*, *inferred*, *unknown*.
 
 ## The short of it
 - **Ride a Dino never explains anything. It points.** One line of words, one place on the ground or one button, until the player
@@ -223,7 +224,39 @@ accepted economy draft ([progression](progression.md), "draft 2") has the refere
 whether to build it). Turning it on at the draft's price is the one piece that gives this game a first purchase, and changes no agreed number. One Clownfish earns
 100 coins in 50 seconds, three fish in about 17, so it arrives while they sit on the seahorse (33 seconds at 2 to 6 a second is 66 to 200 coins).
 
+### Built (2026-11-23)
+On the user's "yes, game code is busy right now but if you can do both at same time then yes". **It is off: `Config.Lesson.On` = 0,
+and then the server hooks nothing and the client builds nothing** (played that way, a whole dive and fail: no errors, none of it there). `On` = 1 turns
+it on for everyone. In Studio the workspace's `LessonTest` attribute, set before Play, turns it on whatever `On` says.
+- **The server** (`Services/LessonService`): each player's step, `Dive`, `First`, `Hop`, `Run`, `Deposit`, `Train`, `Reef`, in the
+  player's `Lesson` attribute (none: over). `LessonHold` is on while the first-fish rule is.
+- **The first fish:** one they can hold, Normal and plain. Any other is refused, and the lock skips it. Its meter waits for the tame,
+  there is no hop off it, and nobody drowns before it: at 0 they come home. With none in reach, two are put ahead down the stream.
+  The rule lets go after 60 s in the water, or 8 s on one fish with no tame.
+- **The screen** (`Controllers/LessonController`, `UI/LessonLine`, `UI/LessonPointer`): one line under the land strip, the goal bar,
+  a bobbing marker with the metres and a trail on the dock, the plate and arrow by the hop button (after the first tame, and again
+  at the first red ring), the tank's caption ("CLICK YOUR TANK" when near), the arrow on PUT ALL IN. All of it stands aside for
+  the fail's words, the catch screen and any window. The fish sold instead of put in: "DIVE IN! Catch another fish".
+- **The end:** after the deposit "Your fish earn every second!", then the seahorse and the bar to 613 Oxygen (a Lionfish). At 613 the
+  Coral Reef line (the bar stays "613 / 613 Oxygen" with its tick, in place of step 9's words); the lesson is over with the first Coral Reef fish made theirs (a fish of `GoalLand`).
+- **"You keep your fish!" is not one of our lines:** the fail words already say "YOUR CATCH IS SAFE" (`Config.Fail.Safe`).
+- **The steps counted** differ from the list above: "first purchase" and "second day" are not in (there is nothing to buy yet, and the
+  second day is in Roblox's own retention), "reached the Coral Reef" counts the first fish tamed there, "first dive ended" counts only a dive
+  with a tame. Fix the list before it goes live: the numbers can't be changed after.
+- **Saves:** nothing of the lesson is kept yet. Fish given back to a tank before any tame end it (not a new player). When the saves
+  go on, give `SaveService` a "Lesson" part, so a returning player with an empty tank doesn't get it again.
+
+**Checked in Studio by script** (`tools/studio/lesson_check.py`): the whole run from the first line to the lesson's end; the first fish held
+through a press every frame, tamed about 2 s after the landing every time; the hop plate and both its layouts (keyboard and
+Studio's pretend touch); "Too strong!" under water and once home after the catch screen; sold fish; a window hiding the line; off, with a dive (its first fish was too strong and threw the player off in 2.5 s: what
+the rule is for). The lesson's end was reached with a tame put in by the script, not by swimming to the Reef.
+**Not checked:** played by hand; a real phone; **the look of the marker and trail in the world** (Studio wasn't drawing the
+world; places checked by numbers, no picture since the last changes, no look-check); two players at once; the red-ring repeat of the hop prompt; the rule's two time limits;
+the real funnel (it prints in Studio).
+
 ## 6. The user's picks
+**Settled 2026-11-23: A on all four** (asked "Go with the recommended option on all four picks?", the user: "Yes, all four"; [Decisions](../Decisions.md)).
+
 | # | Question | A | B | Recommended |
 |---|---|---|---|---|
 | 1 | How the first dive ends | **A: runs its course** (about 15 s, the first failure) and brings them home with the catch | B: home by itself after the second tame, as the reference | **A.** It is what our game already does, it shows the cure early, and it needs nothing new. B is gentler; it costs a scripted end |

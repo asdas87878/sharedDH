@@ -3,6 +3,7 @@
 -- 2026-11-22: "if we have a deposit fish UI, make sure its formatted liek ride a dino"):
 --   DockNotes.carrying(on)   "GO TO YOUR TANK TO DEPOSIT" low in the middle while this player carries a catch on the
 --                            dock and no window is up (Controllers/StallController asks every look)
+--   DockNotes.words(text)    what that line says instead (LessonController; nil: its own words)
 --   DockNotes.full(line)     a pink "TANK FULL!" pill and one short line under it, popping in (0.17 s), gone after 2 s
 -- (The line over the tank as a fish goes in is UI.TankPrompt's.)
 local Players = game:GetService("Players")
@@ -13,6 +14,7 @@ local Shop = require(script.Parent.Shop)
 
 local DockNotes = {}
 
+local CARRY = "GO TO YOUR TANK TO DEPOSIT"
 local CARRY_AT = 0.686 -- the reference's: the line's middle, down the screen
 local FULL_AT = 0.6
 local FULL_STAY = 2
@@ -23,6 +25,7 @@ local full: Frame
 local fullLine: TextLabel
 local fullAt = -math.huge
 local carryOn = false
+local carryWords = CARRY
 
 local function build()
 	local g: ScreenGui = Kit.new("ScreenGui", {
@@ -51,7 +54,7 @@ local function build()
 		Position = UDim2.fromScale(0.5, CARRY_AT),
 		Size = UDim2.fromOffset(700, 40),
 		TextSize = 30,
-		Text = "GO TO YOUR TANK TO DEPOSIT",
+		Text = carryWords,
 		Visible = false,
 	})
 	full = Kit.new("Frame", {
@@ -100,6 +103,20 @@ function DockNotes.carrying(on: boolean)
 		build()
 	end
 	Anim.toast(carry, on)
+end
+
+function DockNotes.words(text: string?)
+	local words = text or CARRY
+	if words == carryWords then
+		return
+	end
+	carryWords = words
+	if gui then
+		carry.Text = words
+		if carryOn then
+			Anim.punch(carry, 1.12)
+		end
+	end
 end
 
 function DockNotes.full(line: string)

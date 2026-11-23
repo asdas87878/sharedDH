@@ -300,7 +300,11 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
 - **Selling and earning while away**, theirs: a fish sells for 200 seconds of what it earns (ours 60); away, half an
   hour of the tank's coins a day (ours none). Proposed as theirs.
 - **Robux:** their late game is where Robux multipliers (x2 to x4096 on the machine) and Stamina packs sell. Our
-  shop's Oxygen multiplier should sit on the seahorse the same way.
+  shop's Oxygen multiplier should sit on the seahorse the same way. **The packs are fixed amounts fitted to these
+  needs and prices** (Oxygen 50K to 10B, Cash $1M to $75T, all shown to everyone: the user, 2026-11-23, "Yes, show
+  all"; `Shared/Products`, [Money](money.md)). So a change to a land's needs, a seahorse or an aura price has to be
+  checked against them: the Oxygen packs hold lands 4, 5, 6, 7, 9 and 10 for a new player, and $75T is the price of
+  Royal, Ember and Golden less what a land 9 player has.
 - **Numbers past a trillion:** cash labels read Qa and Qi since `a72c1ff` (the UI chat, 2026-11-23). Full Oxygen
   figures fit by measured text width, the Oxygen row and the seahorse sign shrinking to do it, **except the player's
   own Oxygen row (`UI/StatRows`, bottom left) at 351,000,000,000**: in Studio 153 px of text in a 126 px box (the

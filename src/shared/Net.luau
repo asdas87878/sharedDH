@@ -12,7 +12,8 @@
 --     the tank (AquariumService): "Hold", index, id (hold that carried fish over the head; 0: put it down) |
 --       "Tank", "PutIn", hand, id | "Tank", "TakeOut" or "Equip" or "Unequip", key | "Tank", "Best" |
 --       "Tank", "PutAll" | "Sell", "Hand", hand, id | "Sell", "Tank", key | "Plot", "Up" (our plot's next stage)
---     riding a fish inside our tank (TankRideService): "TankRide", "On", fish | "TankRide", "Off"
+--     riding a fish inside our tank (TankRideService): "TankRide", "On", fish | "TankRide", "Off" | "TankRide", "Out"
+--       (ride it out through the gate: Config.TankRide.Out)
 --     the submarine (SubService, docs/design/submarine.md): "SubBuy" (the next tier) | "SubEquip", n | "SubPick", land,
 --       fishKey (where to go, 0: no sub; the tank fish to ride with, "id|size|variant" or "") | "SubLand", fish (the
 --       kick has put us on our fish)
@@ -32,8 +33,9 @@
 --     AquariumService: "Deposited", count, gained, income, id (that many fish went into our tank: the coins a second
 --       gained, what the tank earns now, and the fish's id) | "Sold", id, coins | "TankDenied", why | "PlotUp", stage |
 --       "PlotNo", why ("Near", "Top", "Coins", "Dead", "Busy") | "Denied", "Hold", why
---     TankRideService: "TankMounted", model, box, half | "TankDismounted" | "Denied", "TankRide", why ("Empty",
---       "Far", "NotYours")
+--     TankRideService: "TankMounted", model, box, half, gate, out (the floor just outside the gate and the way out,
+--       or nil) | "TankDismounted" (and "Out": ridden out) | "Denied", "TankRide", why ("Empty", "Far", "NotYours";
+--       riding out: "Off", "Gone", "Hands", "Equip", "Dock", "Again", "Dead", "Busy")
 --     SubService: "SubFish", fish (our fish, beside the sub: drive it there) | "SubDrop", "Fling" or "Kick", fish |
 --       "SubDenied", reason ("Coins", "Dock", "Land", "Top") | "SubBought", tier
 --   Fx (server -> every client, all from RideService): "Land", player, fish, count (that rider's landings so far) |

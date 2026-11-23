@@ -485,6 +485,39 @@ function SubService.unlockAll(player: Player)
 	Net.Ride:FireClient(player, "SubBought", top)
 end
 
+-- For saving (src/server/Lib/SaveParts.luau, the UI chat's saving, part "Sub"): the subs bought (the tier, 0: none)
+-- and the one equipped (0: none). nil while we don't have the player (not joined yet, or gone), never a default 0.
+-- Neither yields.
+function SubService.tierOf(player: Player): number?
+	local sub = subs[player]
+	return if sub then sub.Tier else nil
+end
+
+function SubService.equipOf(player: Player): number?
+	local sub = subs[player]
+	return if sub then sub.Equip else nil
+end
+
+-- For saving (SaveParts, part "Sub", which only calls it with a higher tier): the subs bought up to `tier` (a whole tier
+-- that exists, clamped to 0 .. #Sub.Prices) and `equipped` equipped (clamped to 0 .. tier; not a number: the one
+-- equipped now), its furthest land picked as equipping does, no coins taken; the attributes the stand and the HUD read
+-- are told at once, without the "bought" banner. A trip under way is not touched (it has its land already). False for
+-- a player we don't have or a tier that is not a number. Doesn't yield.
+function SubService.setSub(player: Player, tier: number, equipped: number?): boolean
+	local sub = subs[player]
+	if not sub or type(tier) ~= "number" or tier ~= tier then
+		return false
+	end
+	local top = math.clamp(math.floor(tier), 0, #Config.Sub.Prices)
+	local on = if type(equipped) == "number" and equipped == equipped then math.floor(equipped) else sub.Equip
+	on = math.clamp(on, 0, top)
+	sub.Tier = top
+	sub.Equip = on
+	sub.Dest = if on == 0 then 0 else on + 1
+	tell(player, sub)
+	return true
+end
+
 function SubService.Init()
 	RideService.Diving = diving
 	RideService.DiveFish = diveFish

@@ -1,4 +1,12 @@
 """The fail outcomes at 0 Oxygen (task e1, Config.Fail): GIFs from the real game in a Studio playtest, frame by frame.
+    python tools/studio/fail_capture.py FISH [--dials 0|1]          (the one command, from Edit with no playtest running:
+        installs fail_eat_check.py's scripts, plays, refuses under 40 fps, rides FISH and fails it live (the outcome its
+        own, as Config.failOf picks it), recorded by the game (FailRecord); then the same fish at the same size again,
+        played back (FailReplay) and shot held frame by frame from the grab to the hide (about 30 frames, a few before
+        the grab), ONE capture at a time; then puts every switch back, stops, removes the scripts.
+        --dials 1: Fail.MouthFromModel, Arrive, Smooth, Death.UnderWater on and Fail.EatSmall 1, as fail_eat_check.py
+        switches them; 0 (default): as the file has them. GIF (480 wide): work/fail_eat/capture_<FISH>_dials<0|1>.gif,
+        frames in work/fail_eat/capture_frames/. A capture is about 10 s a frame through the direct client.)
     python tools/studio/fail_capture.py install | remove          (in Edit, before Play: a server Script that takes commands)
     python tools/studio/fail_capture.py gif <Fish> <Outcome> [fps]   (in a playtest: ride that fish, fail, capture)
     python tools/studio/fail_capture.py sheet <name> <gif> ...        (several GIFs side by side, in a grid)
@@ -7,18 +15,19 @@ How: the game's own Studio-only switches hold the clocks (workspace FailClock fo
 FailSlow for the server's waits), so each frame is set, then shot (studio-run.mjs shot, about 1 s each). The fish's own
 swim and the camera's easing still run on real time between frames, so the motion is the outcome's, slightly smoothed.
 Frames go to work/fail_capture/, GIFs to docs/attachments/fail-<outcome>-<fish>.gif and ~/Pictures/ride-a-fish/sheets/.
-Needs Studio open with the studio-runner plugin and Rojo serving this repo.
+Needs Studio open and Rojo serving this repo: through the studio-runner plugin where it is installed, else through the
+direct client (RpgGame/tools/studio/studio_mcp.py; fail_eat_check.py holds both ways).
 """
-import json
 import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+import fail_eat_check as E  # (the transport, both ways, and the check's own server and client verbs)
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "work/fail_capture"
@@ -77,7 +86,7 @@ def lua(v):
 
 
 def server(code):
-    return run(["--ctx", "server", "--code", code])
+    return E.server(code)
 
 
 def install(remove=False):
@@ -91,9 +100,7 @@ s.Source = {lua(SERVER)}
 s.Parent = sss
 return "installed"
 """
-    with tempfile.NamedTemporaryFile("w", suffix=".luau", delete=False) as f:
-        f.write(job)
-    return run([f.name])
+    return E.edit(job)
 
 
 def setw(**kw):
@@ -111,10 +118,7 @@ HELD = ("CatchLook", "TestMaxOxygen", "FailSlow", "FailClock", "DeathClock")
 
 def playing():
     """Whether a playtest's server is there to take a job (asking one that is not waits 30 s). None: could not tell."""
-    try:
-        return json.loads(run(["status"], timeout=20)).get("connected", {}).get("server", 0) > 0
-    except Exception:
-        return None
+    return E.playing()
 
 
 def restore(*more):
@@ -129,7 +133,7 @@ def _killed(sig, _frame):
     raise SystemExit(128 + sig)
 
 
-for _sig in (signal.SIGTERM, signal.SIGHUP):
+for _sig in (signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM)):
     signal.signal(_sig, _killed)
 
 
@@ -155,24 +159,16 @@ def wait_state(want, timeout=30):
     raise SystemExit(f"state stayed {s}, wanted {want}")
 
 
-def shot(path):
+def shot(path, width=WIDTH):
     # (the shot is written after studio-run returns: an old file at the path was read as the new frame, so it is
     # removed first and the new one waited for until its size holds)
-    path = Path(path)
-    path.unlink(missing_ok=True)
-    out = run(["shot", str(path)], timeout=60)
-    size, end = -1, time.time() + 10
-    while time.time() < end:
-        now = path.stat().st_size if path.exists() else -1
-        if now > 0 and now == size:
-            break
-        size = now
-        time.sleep(0.15)
-    else:
-        raise SystemExit("no shot: " + out)
-    im = Image.open(path).convert("RGB")
-    c = im.crop(CROP)
-    return c.resize((WIDTH, round(c.height * WIDTH / c.width)), Image.LANCZOS)
+    got = E.capture(path)
+    if not got:
+        raise SystemExit("no shot")
+    im = Image.open(got).convert("RGB")
+    # (studio-run's shot is the whole window; the direct client's capture is the game view alone)
+    c = im if E.DIRECT else im.crop(CROP)
+    return c.resize((width, round(c.height * width / c.width)), Image.LANCZOS)
 
 
 def label(im, text):
@@ -241,6 +237,128 @@ def gif(fish, outcome, fps=12):
     return dest
 
 
+# ---- the one command: fail_capture.py FISH [--dials 1] ---------------------------------------------------------------
+FRAMES = 30  # frames from just before the grab to just after the hide (and LEAD before)
+LEAD = 3
+SMALL = 480  # the GIF's width
+# each held outcome's seconds (Config.Fail.Outcomes' Time)
+OUTCOMES = {"Chomp": 2.3, "Gulp": 2.5, "Wrap": 3.0, "Roll": 1.7, "Flip": 1.5, "Shell": 1.6, "Coil": 1.9, "Pin": 2.4}
+
+
+def window(kind, on):
+    """The seconds of the outcome to shoot: (lead times, main times). An eater from just before its grab to just after
+    the hide (FailController's grabs and `gone`); any other outcome over its whole Time."""
+    if kind in ("Chomp", "Gulp"):
+        grab = (config_num(r"ChompGrab = ([\d.]+)", 0.95) if on else 1.12) if kind == "Chomp" else 1.0
+        gone = 1.62 if kind == "Chomp" else 1.78
+        a, b = grab - 0.1, gone + 0.15
+    else:
+        a, b = 0.0, config_num(kind + r"\s*= \{ Time = ([\d.]+)", 1.5)
+    main = [a + (b - a) * i / (FRAMES - 1) for i in range(FRAMES)]
+    lead = [a * i / LEAD for i in range(LEAD)] if a > 0 else []
+    return lead, main
+
+
+def one(fish, on):
+    """The one command (see the top): refused unless Studio's Edit answers with no playtest running, and under 40 fps"""
+    if E.editing() is not True:
+        raise SystemExit("refused: Studio's Edit place does not answer (Studio open, this place loaded, the MCP on?)")
+    if E.playing() is not False:
+        raise SystemExit("refused: a playtest is running (or its state could not be read): stop it, then run again")
+    E.MIN_FPS = 40  # (not lowered here: a capture under 40 fps is not the game's motion)
+    tag = f"{fish}_dials{1 if on else 0}"
+    folder = E.OUT / "capture_frames"
+    folder.mkdir(parents=True, exist_ok=True)
+    print("install:", E.install())
+    started = False
+    frames, times = [], []
+    try:
+        print("play:", E.play(True))
+        started = True
+        end = time.time() + 90
+        while "true" not in E.last_line(E.server("return tostring(game:GetService('ReplicatedStorage'):GetAttribute('FEReady'))")):
+            if time.time() > end:
+                raise SystemExit("the playtest's server Script never came up")
+            time.sleep(1)
+        print("home:", E.home())
+        ok, fps = E.fps_ok()
+        if not ok:
+            return None
+        print(f"fps {fps} | dials", E.dials(on), "|", E.cmd(f"eatsmall|{1 if on else 'kept'}"))
+        # 1. a live run of the fail at full speed, recorded by the game (FailRecord: FailController keeps every part of
+        # the loose body, each frame): at 10 s or more a frame the loose body's physics would run on between frames
+        # (as fail_live_capture.py; endless air, not a huge test max, which tames the fish and its banner covers it)
+        E.setw(TestMaxOxygen=None, SandboxEndlessAir=True, CatchLook=0, FailRecord=True, FailReplay=False, FailSlow=1,
+               FailClock=-1, DeathClock=-1)
+        print(E.cmd(f"ride|{fish}|deep", 1.0))
+        E.wait_state({"Riding"}, 30)
+        tier = E.cmd("tier", 0.3).split(" ")
+        time.sleep(1.0)
+        said = E.cmd("fail|", 0.3)
+        kind = said.split(" ")[-1]
+        print("live:", said, "| on", " ".join(tier))
+        if not said.startswith("fail true") or kind not in OUTCOMES:
+            print("no fail to capture (the plain throw is over at once; anything else: the server said so above)")
+            return None
+        E.wait_state({"Dock"}, 60)
+        E.setw(FailRecord=False)
+        time.sleep(1.5)
+        # 2. the playback: the same fish at the same size, failed again, the body posed from the recording at the held
+        # clocks (FailReplay), the server's waits stretched past the whole capture (RideService reads FailSlow once,
+        # as the fail begins; about 10 to 20 s a frame through the direct client)
+        lead, main = window(kind, on)
+        slow = max(2, ((len(lead) + len(main)) * 25 + 120) / max(OUTCOMES[kind], 0.5))
+        E.setw(FailReplay=True, FailSlow=slow, FailClock=0, DeathClock=0,
+               TestSize=tier[1] if len(tier) > 1 and tier[1] != "nil" else None)
+        print(E.cmd(f"ride|{fish}|deep", 1.0))
+        E.wait_state({"Riding"}, 30)
+        E.setw(TestSize=None)
+        time.sleep(0.3)
+        said = E.cmd(f"fail|{kind}", 0.3)
+        print("playback:", said)
+        if not said.startswith("fail true"):
+            return None
+        for i, t in enumerate(lead + main):
+            E.setw(FailClock=t)
+            time.sleep(0.2)
+            got = E.capture(folder / f"{tag}_{i:03d}.png")
+            if not got:
+                raise SystemExit(f"no capture at frame {i}")
+            im = Image.open(got).convert("RGB")
+            im = im.resize((SMALL, round(im.height * SMALL / im.width)), Image.LANCZOS)
+            frames.append(label(im, f"{fish}: {kind}  dials {1 if on else 0}   t {t:4.2f} s"))
+            times.append(t)
+            print(f"\r{i + 1}/{len(lead) + len(main)}", end="", flush=True)
+        print()
+    finally:
+        if started:
+            for what, job in (("clocks", lambda: E.setw(FailClock=-1, DeathClock=-1, FailSlow=1, FailRecord=None,
+                                                        FailReplay=None, SandboxEndlessAir=None)),
+                              ("restore", E.restore), ("home", E.home), ("stop", lambda: E.play(False))):
+                try:
+                    print(f"{what}:", job())
+                except BaseException as e:  # (each step tried: a switch left on changes every later dive)
+                    print(f"{what} failed:", e)
+        print("remove:", E.install(True))
+    if not frames:
+        return None
+    # each frame shown about four times slower than it happens (the lead frames a little longer)
+    durations = [max(60, min(400, round((b - a) * 4000))) for a, b in zip(times, times[1:])] + [1200]
+    pal = [f.quantize(colors=128, method=Image.MEDIANCUT, dither=Image.NONE) for f in frames]
+    dest = E.OUT / f"capture_{tag}.gif"
+    pal[0].save(dest, save_all=True, append_images=pal[1:], duration=durations, loop=0, optimize=True)
+    print(dest)
+    return dest
+
+
+def config_num(pattern, default):
+    """A number out of src/shared/Config.luau (the first match of `pattern`'s group), or `default`"""
+    import re
+
+    m = re.search(pattern, (E.ROOT / "src/shared/Config.luau").read_text(encoding="utf-8"))
+    return float(m.group(1)) if m else default
+
+
 def sheet(name, gifs, cols=3, scale=0.62):
     seqs = []
     for g in gifs:
@@ -269,7 +387,16 @@ def sheet(name, gifs, cols=3, scale=0.62):
 
 if __name__ == "__main__":
     a = sys.argv[1:]
-    if a[0] == "install":
+    if not a:
+        raise SystemExit(__doc__)
+    if a[0] not in ("install", "remove", "restore", "gif", "sheet"):
+        on = False
+        if "--dials" in a:
+            i = a.index("--dials")
+            on = a[i + 1] not in ("0", "off")
+            del a[i : i + 2]
+        one(a[0], on)
+    elif a[0] == "install":
         print(install())
     elif a[0] == "remove":
         print(install(True))

@@ -14,6 +14,12 @@
 --   kept inside the box (the water, less a margin): a big fish goes through the glass, we never do. Roblox's own
 --   camera is kept (we are on the dock), held far enough back to be outside a giant.
 --   Getting off: E again (X, the OFF button): Action "TankRide", "Off".
+--   Riding out (the user, 2026-11-23; TankRide.Out, 0 in the file: written, not played): swum against the water's
+--   front face inside the gate's span (OutGate either side of its middle), outward (at OutPush of Speed or more), for
+--   OutHold seconds without a break, we ask once: Action "TankRide", "Out" (again only after OutAgain). The server
+--   checks it all; yes is "TankDismounted", "Out" (we let go as on any getting off, and the land ride takes over),
+--   no is "Denied", "TankRide", why and the ride goes on. The gate comes with "TankMounted" (the floor just outside
+--   it, and the way out).
 --   The swim: every tank's fish near the camera, in its lap or ridden, moves its joints through the sea's own keyed
 --   swim (AnimController's base cycle, the beat by its speed and length; a stand-in's tail beat, sway and fin flaps).
 --   AnimController itself only animates Workspace.Fish and LandFish, so a tank's fish swam stiff until now.
@@ -55,6 +61,10 @@ type Riding = {
 	Pitch: number,
 	Speed: number,
 	Zoom: { number }?, -- our own zoom limits, to give back
+	Gate: Vector3?, -- riding out: the floor just outside the gate (its middle, along the front),
+	Out: Vector3?, -- and the way out of the pen (level)
+	OutSince: number?, -- since when we have been pushing at the gate, without a break
+	OutAsked: number, -- when we last asked to ride out
 }
 
 local riding: Riding? = nil
@@ -566,7 +576,7 @@ local function stop()
 	end
 end
 
-local function mounted(fish: Model, box: CFrame, half: Vector3)
+local function mounted(fish: Model, box: CFrame, half: Vector3, gate: Vector3?, out: Vector3?)
 	local root = fish.PrimaryPart
 	local align = root and root:WaitForChild("TankAlign", 3)
 	local turn = root and root:WaitForChild("TankTurn", 3)
@@ -608,6 +618,10 @@ local function mounted(fish: Model, box: CFrame, half: Vector3)
 		Pitch = 0,
 		Speed = 0,
 		Zoom = zoom,
+		Gate = gate,
+		Out = if out and out.Magnitude > 0.01 then (out * Vector3.new(1, 0, 1)).Unit else nil,
+		OutSince = nil,
+		OutAsked = -math.huge,
 	}
 	tracked[fish] = true
 	markOn(nil, 0)
@@ -628,6 +642,34 @@ local function mounted(fish: Model, box: CFrame, half: Vector3)
 		local look = root.CFrame.LookVector
 		local focus = root.CFrame:PointToWorldSpace(seat)
 		camera.CFrame = CFrame.lookAt(focus - look * back + Vector3.new(0, back * 0.4, 0), focus)
+	end
+end
+
+-- Riding out (TankRide.Out): the seat held back by the water's front face (we wanted it further out than it was kept),
+-- in the gate's span, swimming outward, for OutHold seconds: ask once. A bump, a slide along the glass or a push
+-- outside the gate starts the count again
+local function pushOut(r: Riding, wanted: Vector3, kept: Vector3, ahead: Vector3)
+	local c = Config.TankRide
+	local gate, out = r.Gate, r.Out
+	if c.Out == 0 or not gate or not out then
+		r.OutSince = nil
+		return
+	end
+	local across = out:Cross(Vector3.yAxis)
+	local pushing = (wanted - kept):Dot(out) > 0.001
+		and (ahead * r.Speed):Dot(out) >= c.Speed * c.OutPush
+		and math.abs((kept - gate):Dot(across)) <= c.OutGate
+	if not pushing then
+		r.OutSince = nil
+		return
+	end
+	local now = os.clock()
+	local since = r.OutSince or now
+	r.OutSince = since
+	if now - since >= c.OutHold and now - r.OutAsked >= c.OutAgain then
+		r.OutAsked = now
+		r.OutSince = nil
+		Net.Action:FireServer("TankRide", "Out")
 	end
 end
 
@@ -667,7 +709,9 @@ local function step(dt: number)
 	local p = r.Box:PointToObjectSpace(seat)
 	local h = r.Half
 	p = Vector3.new(math.clamp(p.X, -h.X, h.X), math.clamp(p.Y, -h.Y, h.Y), math.clamp(p.Z, -h.Z, h.Z))
-	r.At = r.Box:PointToWorldSpace(p) - way:VectorToWorldSpace(r.Seat)
+	local kept = r.Box:PointToWorldSpace(p)
+	r.At = kept - way:VectorToWorldSpace(r.Seat)
+	pushOut(r, seat, kept, way.LookVector)
 	-- floating: it rises and sinks a little, less the faster it goes
 	local still = 1 - math.clamp(math.abs(r.Speed) / math.max(c.Speed, 1), 0, 1)
 	local target = r.At + Vector3.new(0, math.sin(os.clock() * 1.7) * c.Bob * still, 0)
@@ -714,6 +758,20 @@ function TankRideController.pressOff()
 	off(OFF_ACTION, Enum.UserInputState.Begin)
 end
 
+-- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py, verb "out"): our seat put at a
+-- world point (kept in the box; nil: left where it is); and how long we have been pushing at the gate (-1: not riding)
+function TankRideController.pretendSeat(at: Vector3?): number
+	local r = riding
+	if not r then
+		return -1
+	end
+	if at then
+		local way = CFrame.Angles(0, r.Yaw, 0) * CFrame.Angles(r.Pitch, 0, 0)
+		r.At = at - way:VectorToWorldSpace(r.Seat)
+	end
+	return if r.OutSince then os.clock() - r.OutSince else 0
+end
+
 -- Test hook: only the Studio checks call this (tools/studio/b4_tank_ride_check.py).
 function TankRideController.speeds(): { [Model]: number }
 	local out = {}
@@ -736,7 +794,7 @@ function TankRideController.Start()
 			end
 		end
 	end)
-	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, b: any, c: any)
+	Net.Ride.OnClientEvent:Connect(function(kind: string, a: any, b: any, c: any, d: any, e: any)
 		if
 			kind == "TankMounted"
 			and typeof(a) == "Instance"
@@ -744,7 +802,7 @@ function TankRideController.Start()
 			and typeof(b) == "CFrame"
 			and typeof(c) == "Vector3"
 		then
-			mounted(a, b, c)
+			mounted(a, b, c, if typeof(d) == "Vector3" then d else nil, if typeof(e) == "Vector3" then e else nil)
 		elseif kind == "TankDismounted" then
 			stop()
 		end

@@ -34,6 +34,7 @@ local Course = require(script.Parent.Parent.Lib.Course)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
+local Underwater = require(script.Parent.Parent.Lib.Underwater)
 local Kit = require(script.Parent.Parent.UI.Kit)
 local AnimController = require(script.Parent.AnimController)
 
@@ -78,7 +79,7 @@ type Frame = { Fish: CFrame, Rider: CFrame?, Rig: Rig, Focus: Vector3? }
 
 -- the loose body (a ragdoll): on every machine for the looks, on our own for the physics
 type Collider = { Part: Part, Of: BasePart, Was: Vector3, On: boolean, Mouth: boolean }
-type Hold = { Attachment: Attachment, Align: AlignPosition, Part: BasePart }
+type Hold = { Attachment: Attachment, Align: AlignPosition, Part: BasePart, Mass: number }
 type Body = {
 	Player: Player,
 	Character: Model,
@@ -147,6 +148,23 @@ type Fail = {
 	Pull: number, -- studs the shot is backed off by to keep both in it
 	Beak: Vector3, -- an octopus's beak, in the fish's space (among the roots of its arms)
 	FishAt: Vector3?, -- where we last put the fish (its next move is kept in open water from there)
+	-- the mouth found on the model (Fail.MouthFromModel; nil: the old guess off the box), in the fish's space, and
+	-- the open mouth's room round it (for the checks); the angler's lure: its part and the bulb on it
+	Mouth: CFrame?,
+	MouthRoom: Vector3?,
+	Lure: { Part: BasePart, Bulb: CFrame, Rest: CFrame }?,
+	-- (Fail.Arrive) the seconds the outcome's own clock has waited for the body (the bite and the swallow), slowed;
+	-- the outcome's clock is the real one less Wait
+	Wait: number,
+	Rate: number, -- (Fail.Arrive) the fish's clock's pace now (1: real time)
+	U: number, -- the outcome's clock this frame
+	-- (for the checks) when the pull began, the bite and the swallow came, and how far the body was from the mouth then
+	GrabAt: number?,
+	BiteAt: number?,
+	BiteFar: number?,
+	HideAt: number?,
+	HideFar: number?,
+	Dials: { Mouth: boolean, Arrive: boolean, Smooth: boolean }, -- Config.Fail's, read as it began
 }
 
 local fails: { [Player]: Fail } = {}
@@ -598,9 +616,129 @@ end
 
 local OUTCOMES: { [string]: (f: Fail, t: number) -> Frame } = {}
 
--- the mouth's place on the fish, in the fish's space
+-- the mouth's place on the fish, in the fish's space (found on the model, or the old guess off its box)
 local function mouthOf(f: Fail): CFrame
-	return CFrame.new(0, -f.Height * 0.05, -f.Length * 0.47)
+	return f.Mouth or CFrame.new(0, -f.Height * 0.05, -f.Length * 0.47)
+end
+
+-- the mouth's pull at `u` seconds into the outcome: the mouth, then on down the throat (world)
+local function mouthTarget(f: Fail, fishNow: CFrame, u: number): Vector3
+	local deep = if f.Kind == "Gulp" then f.Length * 0.3 * ss(1.45, 1.8, u) else f.Length * 0.25 * ss(1.3, 1.7, u)
+	return (fishNow * mouthOf(f) * CFrame.new(0, 0, deep)).Position
+end
+
+-- (Fail.MouthFromModel) The mouth and the lure on the fish's own model (tools/studio/fail_mouth_table.py does the
+-- same on the exported meshes, and measures it against the painted mouth). Each part's place at rest, in the root's
+-- space, is its joints' offsets (FishModel's Rig_ motors, as they were before we posed them) from the root down; its
+-- box is its own size (both already at the fish's size). With jaw parts (named *Jaw*): their box's middle across and
+-- along, a quarter down from its top for a lower jaw (up from its bottom for an upper one), its middle for jaws at the
+-- sides (a worm's pincers: their reach past the Head's front left out); with none, the Head part's box: 0.3 up from
+-- its bottom, 0.4 back from its front; with neither, nil. A fish in Fail.MouthAt: there instead. The lure: its bulb,
+-- on the Lure part's end away from its hinge, 0.35 of the way in.
+local function mouthFromModel(f: Fail): (CFrame?, Vector3?, { Part: BasePart, Bulb: CFrame, Rest: CFrame }?)
+	local byName: { [string]: Joint } = {}
+	for _, j in f.Joints do
+		byName[j.Name] = j
+	end
+	local rests: { [string]: CFrame } = {}
+	local function restOf(name: string, depth: number): CFrame
+		if name == "" or depth > 40 then
+			return CFrame.identity
+		end
+		local known = rests[name]
+		if known then
+			return known
+		end
+		local j = byName[name]
+		if not j then
+			return CFrame.identity
+		end
+		local rest = restOf(j.Parent, depth + 1) * j.C0 * j.Motor.C1:Inverse()
+		rests[name] = rest
+		return rest
+	end
+	local function boxOf(j: Joint): (Vector3, Vector3)
+		local cf = restOf(j.Name, 0)
+		local half = j.Part.Size / 2
+		local lo, hi = Vector3.one * math.huge, -Vector3.one * math.huge
+		for _, sx in { -1, 1 } do
+			for _, sy in { -1, 1 } do
+				for _, sz in { -1, 1 } do
+					local p = cf * Vector3.new(half.X * sx, half.Y * sy, half.Z * sz)
+					lo, hi = lo:Min(p), hi:Max(p)
+				end
+			end
+		end
+		return lo, hi
+	end
+	local id = f.Fish:GetAttribute("Rig")
+	local rig = if type(id) == "string" then Creatures.get(id) else nil
+	local centre = if rig then 0.05 * rig.Size[1] + 0.05 else 0.05
+	local k = if rig then f.Length / math.max(rig.Size[3], 0.01) else 1
+	local mouth: CFrame? = nil
+	local room: Vector3? = nil
+	local lo, hi = Vector3.one * math.huge, -Vector3.one * math.huge
+	local jaws, side, open, hinge = 0, true, 1, Vector3.zero
+	for _, j in f.Joints do
+		if j.Kind == "jaw" then
+			local a, b = boxOf(j)
+			lo, hi = lo:Min(a), hi:Max(b)
+			jaws += 1
+			side = side and math.abs(j.Pivot.X) / k > centre
+			if jaws == 1 then
+				open = j.Open
+				-- (its hinge: the motor's own pivot, in the root's space)
+				hinge = (restOf(j.Name, 0) * j.Motor.C1).Position
+			end
+		end
+	end
+	if jaws > 0 then
+		local mid = (lo + hi) / 2
+		local h = hi.Y - lo.Y
+		local y = if side then mid.Y elseif open >= 0 then hi.Y - 0.25 * h else lo.Y + 0.25 * h
+		local z = mid.Z
+		if side and byName.Head then
+			-- (pincers close in front of the mouth: their reach past the head's front is not the mouth)
+			local front = (boxOf(byName.Head)).Z
+			if lo.Z < front and front < hi.Z then
+				z = (front + hi.Z) / 2
+			end
+		end
+		mouth = CFrame.new(mid.X, y, z)
+		-- the open mouth's room: the jaw's width and length, and the gap its top front corner opens at 58 degrees
+		local corner = Vector3.new(0, if open >= 0 then hi.Y else lo.Y, lo.Z)
+		local r = Vector2.new(corner.Y - hinge.Y, corner.Z - hinge.Z).Magnitude
+		room = Vector3.new(hi.X - lo.X, math.max(2 * r * math.sin(rad(29)), 0.5), hi.Z - lo.Z)
+	elseif byName.Head then
+		local a, b = boxOf(byName.Head)
+		local size = b - a
+		mouth = CFrame.new((a.X + b.X) / 2, a.Y + 0.3 * size.Y, a.Z + 0.4 * size.Z)
+		-- (nothing opens: the room is the mouth's own share of the head)
+		room = Vector3.new(size.X * 0.6, size.Y * 0.3, size.Z * 0.4)
+	end
+	-- (a model the rule cannot read: its mouth put by hand, Fail.MouthAt, as shares of its box)
+	local at = if rig and type(id) == "string" then Config.Fail.MouthAt[id] else nil
+	if rig and at then
+		mouth = CFrame.new(at[1] * rig.Size[1] * k, at[2] * rig.Size[2] * k, at[3] * rig.Size[3] * k)
+	end
+	local lure = nil
+	for _, j in f.Joints do
+		if string.find(j.Name, "Lure") and not string.find(j.Name, "_Glow") then
+			-- the hinge in the part's own space is its motor's C1; the bulb is at the far end of its longest reach
+			local pivot = j.Motor.C1.Position
+			local half = j.Part.Size / 2
+			local axis = Vector3.new(-math.sign(pivot.X) * half.X, 0, 0)
+			if math.abs(pivot.Y) >= math.abs(pivot.X) and math.abs(pivot.Y) >= math.abs(pivot.Z) then
+				axis = Vector3.new(0, -math.sign(pivot.Y) * half.Y, 0)
+			elseif math.abs(pivot.Z) >= math.abs(pivot.X) then
+				axis = Vector3.new(0, 0, -math.sign(pivot.Z) * half.Z)
+			end
+			local bulb = CFrame.new(axis * 0.65)
+			lure = { Part = j.Part, Bulb = bulb, Rest = restOf(j.Name, 0) * bulb }
+			break
+		end
+	end
+	return mouth, room, lure
 end
 
 -- turns on you: it rears and tosses you off its back, comes round with its jaws wide, takes you, shakes and swallows
@@ -613,6 +751,14 @@ OUTCOMES.Chomp = function(f, t)
 	local rear = bump(0, 0.9, t) * rad(28)
 	local turn = math.pi * inOut((t - 0.35) / 0.7)
 	local rise = ss(0.2, 1.0, t) * H * 0.6
+	local smooth = f.Dials.Smooth
+	if smooth then
+		-- (Fail.Smooth: the turn eased gently, slower for a long fish; the rise kept under the surface)
+		local fs = Config.Fail
+		local stretch = math.clamp(f.Length / math.max(fs.TurnLength, 1), 1, math.max(fs.TurnStretch, 1))
+		turn = math.pi * ss(0.35, 0.35 + 0.7 * stretch, t)
+		rise = math.min(rise, math.max(0, Config.Depth.SurfaceY - H * 0.5 - base.Position.Y))
+	end
 	local frame = base * CFrame.new(0, rise, 0) * CFrame.Angles(0, turn, 0) * CFrame.Angles(rear, 0, 0)
 	-- round to face you and lunge, so the open mouth meets you as you come down
 	local lunge = ss(0.75, 1.25, t)
@@ -634,7 +780,14 @@ OUTCOMES.Chomp = function(f, t)
 		-- shut: it shakes its head and swims on
 		local after = t - 1.3
 		local shake = math.sin(after * 18) * rad(16) * math.exp(-after * 2.4)
-		frame = frame + frame.LookVector * travel(f, after, 1.5) * 0.15
+		local on = travel(f, after, 1.5) * 0.15
+		if smooth then
+			-- (eased in: from the frame it bit they began at full speed, the head flung round at near 300 degrees a
+			-- second and the body off at its swim's speed)
+			shake *= ss(0, Config.Fail.ShakeIn, after)
+			on *= ss(0, Config.Fail.OnIn, after)
+		end
+		frame = frame + frame.LookVector * on
 		frame = frame * CFrame.Angles(0, shake, shake * 0.4)
 	end
 	rig.Thrash = 0.15 + 0.35 * bump(0, 1.0, t) + 0.5 * bump(1.2, 2.3, t)
@@ -652,6 +805,10 @@ end
 
 -- the lure flares and draws the eye; you lean to it, it bucks you up over its head and the wide mouth takes you in
 local function lurePlace(fish: CFrame, f: Fail): CFrame
+	-- (on the model's own lure where it has one: Fail.MouthFromModel)
+	if f.Lure then
+		return fish * f.Lure.Rest
+	end
 	return fish * CFrame.new(0, f.Height * 0.62 + 1.5, -f.Length * 0.64)
 end
 
@@ -662,7 +819,11 @@ OUTCOMES.Gulp = function(f, t)
 	local tilt = rad(10) * ss(0, 0.8, t) + rad(22) * bump(0.8, 1.8, t) - rad(10) * bump(1.6, 2.5, t)
 	local frame = base * CFrame.new(0, hover, 0) * CFrame.Angles(tilt, 0, 0)
 	if t > 1.7 then
-		frame = frame + frame.LookVector * travel(f, t - 1.7, 1.2) * 0.12
+		local on = travel(f, t - 1.7, 1.2) * 0.12
+		if f.Dials.Smooth then
+			on *= ss(0, Config.Fail.OnIn, t - 1.7) -- (eased in, Fail.Smooth: it began at full speed)
+		end
+		frame = frame + frame.LookVector * on
 	end
 	local rig = still()
 	rig.Jaw = ss(0.6, 1.05, t) * (1 - ss(1.55, 1.7, t)) + 0.1 * bump(1.75, 2.4, t)
@@ -912,6 +1073,25 @@ local function makeColliders(b: Body)
 		return
 	end
 	local mouthy = b.Kind == "Chomp" or b.Kind == "Gulp"
+	-- (Fail.Arrive) the way in, mouth to throat in the fish's space: a box near it goes off with the mouth's, or the
+	-- body is held outside against a fin or the neck
+	local f = fails[b.Player]
+	local way: { Vector3 }? = nil
+	local root = fish.PrimaryPart
+	if mouthy and f and f.Dials.Arrive and root then
+		local mouth = mouthOf(f).Position
+		way = { mouth, mouth + Vector3.new(0, 0, f.Length * (if b.Kind == "Gulp" then 0.3 else 0.25)) }
+	end
+	local function nearWay(d: BasePart): boolean
+		if not way or not root then
+			return false
+		end
+		local p = root.CFrame:PointToObjectSpace(d.Position)
+		local a, c = way[1], way[2]
+		local along = math.clamp((p - a):Dot(c - a) / math.max((c - a):Dot(c - a), 1e-3), 0, 1)
+		local gap = (p - (a + (c - a) * along)).Magnitude - d.Size.Magnitude * 0.41
+		return gap < Config.Fail.ClearAround
+	end
 	for _, d in fish:GetDescendants() do
 		if d:IsA("BasePart") and d ~= fish.PrimaryPart and d.Transparency < 1 then
 			local size = d.Size * 0.82
@@ -941,7 +1121,14 @@ local function makeColliders(b: Body)
 				Mouth = b.Kind == "Wrap"
 					or b.Kind == "Pin"
 					or (
-						mouthy and (string.find(name, "Jaw") ~= nil or name == "Head" or name == "Body" or name == "S1")
+						mouthy
+						and (
+							string.find(name, "Jaw") ~= nil
+							or name == "Head"
+							or name == "Body"
+							or name == "S1"
+							or nearWay(d)
+						)
 					),
 			})
 		end
@@ -991,8 +1178,15 @@ local function hold(b: Body, key: string, partName: string, at: Vector3, pull: n
 		align.MaxForce = math.max(mass, 1) * (force or r.PullForce)
 		align.Position = at
 		align.Parent = part
-		h = { Attachment = a, Align = align, Part = part }
+		h = { Attachment = a, Align = align, Part = part, Mass = math.max(mass, 1) }
 		b.Holds[key] = h
+	elseif Config.Fail.Arrive ~= 0 then
+		-- (Fail.Arrive: its strength follows every call, so a pull that ramps (the Chomp's from ChompGrabFrom to 22
+		-- and on deeper, the Gulp's suction, the Pin's) really ramps; at 0, as before: kept as it was made)
+		local r = Config.Fail.Ragdoll
+		local held = h :: Hold
+		held.Align.Responsiveness = pull or r.Pull
+		held.Align.MaxForce = held.Mass * (force or r.PullForce)
 	end
 	-- (a grab never pulls into the floor or through a wall: its place kept in open water from the part it holds)
 	(h :: Hold).Align.Position = Course.clearMove((h :: Hold).Part.Position, at, 1.5)
@@ -1094,6 +1288,8 @@ local function beginBody(player: Player, fish: Model?, kind: string)
 		if fishRoot then fishRoot.CFrame else nil,
 		if fishRoot then fishRoot.AssemblyLinearVelocity else Vector3.zero
 	)
+	-- (Death.UnderWater: near the surface it goes back more than up)
+	velocity = Underwater.shapeThrow(velocity, if root then root.Position else nil)
 	for _, p in b.Parts do
 		p.AssemblyLinearVelocity = velocity
 		p.AssemblyAngularVelocity = spin
@@ -1122,15 +1318,39 @@ local function stepBody(b: Body, dt: number)
 	-- the water: it holds most of the weight up and slows everything (each assembly once)
 	local lift = workspace.Gravity * r.Float * dt
 	local keep = math.exp(-r.Drag * dt)
+	local under = Config.Death.UnderWater ~= 0
 	for _, p in b.Parts do
 		if p.AssemblyRootPart == p then
-			local v = p.AssemblyLinearVelocity * keep + Vector3.new(0, lift, 0)
+			local v
+			local spin = p.AssemblyAngularVelocity * keep
+			if under then
+				-- (Death.UnderWater: only under the surface, less near the top, and a soft ceiling just over it)
+				local d = Config.Death
+				local y = p.Position.Y
+				local wet = math.clamp((Config.Depth.SurfaceY - y) / math.max(d.WetBand, 0.05) + 0.5, 0, 1)
+				local held =
+					Ease.lerp(d.TopHold, 1, math.clamp((Config.Oxygen.SurfaceY - y) / math.max(d.TopBand, 0.1), 0, 1))
+				v = p.AssemblyLinearVelocity * Ease.lerp(1, keep, wet) + Vector3.new(0, lift * held * wet, 0)
+				local most = math.sqrt(2 * d.BreachBrake * math.max(0, Config.Depth.SurfaceY + d.Breach - y))
+				if v.Y > most then
+					v = Vector3.new(v.X, most, v.Z)
+				end
+				spin = p.AssemblyAngularVelocity * Ease.lerp(1, keep, wet)
+			else
+				v = p.AssemblyLinearVelocity * keep + Vector3.new(0, lift, 0)
+			end
 			if v.Magnitude > 140 then
 				v = v.Unit * 140
 			end
 			p.AssemblyLinearVelocity = v
-			p.AssemblyAngularVelocity = p.AssemblyAngularVelocity * keep
+			p.AssemblyAngularVelocity = spin
 		end
+	end
+	-- (Death.UnderWater) never onto the strip: a body over ground that stands above the water is moved out to open
+	-- water, and one heading onto it is stopped short
+	local main = limb(b.Character, "Torso")
+	if under and main then
+		Underwater.strip(b.Parts, main)
 	end
 	-- never left under the lane's floor
 	local torso = limb(b.Character, "Torso")
@@ -1189,24 +1409,34 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- The fish's grabs, by outcome (our own machine: AlignPositions on the loose body)
 
+-- (Fail.Arrive) where the fish's clock may wait for the body: just before the bite and just before you are gone (the
+-- hide: 1.62 for a Chomp, 1.78 for a Gulp, less 0.02), made once and not every frame
+local WAIT_CHOMP = { 1.2, 1.6 }
+local WAIT_GULP = { 1.52, 1.76 }
+
 local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 	local L, H = f.Length, f.Height
 	local kind = f.Kind
 	if kind == "Chomp" then
-		-- the jaws take you: pulled into the mouth, then deeper
-		if t >= 1.12 then
+		-- the jaws take you: pulled into the mouth, then deeper (Fail.Arrive: from a little earlier, gently at first)
+		local arrive = f.Dials.Arrive
+		local from = if arrive then Config.Fail.ChompGrab else 1.12
+		if t >= from then
 			b.MouthOff = true
+			f.GrabAt = f.GrabAt or t
 			local deep = ss(1.3, 1.7, t)
-			local at = (fishNow * mouthOf(f) * CFrame.new(0, 0, L * 0.25 * deep)).Position
-			hold(b, "Mouth", "Torso", at, 22 + 20 * deep, 1400)
+			local pull = 22 + 20 * deep
+			if arrive and t < 1.12 then
+				pull = Ease.lerp(Config.Fail.ChompGrabFrom, 22, ss(from, 1.12, t))
+			end
+			hold(b, "Mouth", "Torso", mouthTarget(f, fishNow, t), pull, 1400)
 		end
 	elseif kind == "Gulp" then
 		-- the suction: drawn in, slow and then all at once
 		if t >= 1.0 then
 			b.MouthOff = true
-			local deep = ss(1.45, 1.8, t)
-			local at = (fishNow * mouthOf(f) * CFrame.new(0, 0, L * 0.3 * deep)).Position
-			hold(b, "Mouth", "Torso", at, 14 + 36 * ss(1.0, 1.45, t), 2200)
+			f.GrabAt = f.GrabAt or t
+			hold(b, "Mouth", "Torso", mouthTarget(f, fishNow, t), 14 + 36 * ss(1.0, 1.45, t), 2200)
 		end
 	elseif kind == "Wrap" then
 		-- each arm, once it has hold, hauls its limb in under the body, with weight and lag
@@ -1230,7 +1460,7 @@ local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
 			local torso = limb(b.Character, "Torso")
 			if torso then
 				local away = flat(torso.Position - fishNow.Position)
-				local fling = away * 75 + Vector3.new(0, 22, 0)
+				local fling = Underwater.shapeThrow(away * 75 + Vector3.new(0, 22, 0), torso.Position)
 				for _, p in b.Parts do
 					p.AssemblyLinearVelocity = fling
 					p.AssemblyAngularVelocity = fishNow.UpVector * 9
@@ -1869,7 +2099,21 @@ local function begin(player: Player, fish: Model, kind: string)
 		Snap = nil,
 		Pull = 0,
 		Beak = Vector3.new(0, -body.Y * 0.2, 0),
+		Mouth = nil,
+		MouthRoom = nil,
+		Lure = nil,
+		Wait = 0,
+		Rate = 1,
+		U = 0,
+		Dials = {
+			Mouth = Config.Fail.MouthFromModel ~= 0,
+			Arrive = Config.Fail.Arrive ~= 0,
+			Smooth = Config.Fail.Smooth ~= 0,
+		},
 	}
+	if f.Dials.Mouth then
+		f.Mouth, f.MouthRoom, f.Lure = mouthFromModel(f)
+	end
 	f.Chains = readChains(f.Joints)
 	local roots, sum = 0, Vector3.zero
 	for _, j in f.Joints do
@@ -1918,6 +2162,54 @@ local function begin(player: Player, fish: Model, kind: string)
 		lastOf[player] = { Kind = kind, Base = from }
 	end
 	Fx.sound(def.Sound, fishRoot)
+end
+
+-- Test hook: only the Studio checks call this (tools/studio/fail_eat_check.py). The fail playing for `player` now, as
+-- plain values (nil: none): its clocks, where its mouth is and how far the body is from it, and its dials.
+function FailController.probe(player: Player): { [string]: any }?
+	local f = fails[player]
+	if not f then
+		return nil
+	end
+	local fishNow = f.FishRoot.CFrame
+	local mouth = fishNow * mouthOf(f)
+	local torso = limb(f.Character, "Torso")
+	local target = mouthTarget(f, fishNow, f.U)
+	local inMouth: boolean? = nil
+	if torso and f.MouthRoom then
+		-- inside the mouth's room, or anywhere along the way down the throat
+		local p = mouth:PointToObjectSpace(torso.Position)
+		local room = f.MouthRoom :: Vector3
+		local deep = f.Length * (if f.Kind == "Gulp" then 0.3 else 0.25)
+		inMouth = math.abs(p.X) <= room.X * 0.5 + 1
+			and math.abs(p.Y) <= room.Y * 0.5 + 1
+			and p.Z >= -room.Z * 0.5 - 1
+			and p.Z <= deep + 1
+	end
+	return {
+		Kind = f.Kind,
+		T = f.Last,
+		U = f.U,
+		Wait = f.Wait,
+		Mouth = mouth.Position,
+		MouthLocal = mouthOf(f).Position,
+		Room = f.MouthRoom,
+		Target = target,
+		Torso = if torso then torso.Position else nil,
+		Far = if torso then (torso.Position - target).Magnitude else nil,
+		InMouth = inMouth,
+		Hidden = next(f.Hidden) ~= nil,
+		GrabAt = f.GrabAt,
+		BiteAt = f.BiteAt,
+		BiteFar = f.BiteFar,
+		HideAt = f.HideAt,
+		HideFar = f.HideFar,
+		FishRoot = fishNow.Position,
+		FishLook = fishNow.LookVector,
+		Length = f.Length,
+		Mouthed = f.Mouth ~= nil,
+		Dials = { Mouth = f.Dials.Mouth, Arrive = f.Dials.Arrive, Smooth = f.Dials.Smooth },
+	}
 end
 
 function FailController.stop(player: Player)
@@ -2150,14 +2442,46 @@ local function step(dt: number)
 		end
 		local stepT = math.max(0, t - f.Last)
 		f.Last = t
-		local frame = OUTCOMES[f.Kind](f, math.min(t, def.Time + (if taken then def.Time else 0.3)))
+		-- (Fail.Arrive) the fish's clock slows, a little, just before the bite and again just before you are gone, while
+		-- the body is not yet at its mouth (slowed, never stopped: eased down and back up). One clock `u` (t less the
+		-- wait) runs the fish, the jaws, the grabs, the beats and the hide, so they stay together; the shot, the dark
+		-- and the fade keep the real time, and the wait in all is at most Fail.ArriveWait, so the server's time for the
+		-- fail still holds (never while FailClock is held)
+		local fs = Config.Fail
+		local mouthy = f.Kind == "Chomp" or f.Kind == "Gulp"
+		local gone = if f.Kind == "Chomp" then 1.62 else 1.78
+		local torsoNow = limb(f.Character, "Torso")
+		local want = 1
+		if f.Dials.Arrive and mouthy and torsoNow and not (type(held) == "number" and held >= 0) then
+			local was = t - f.Wait
+			for _, point in if f.Kind == "Chomp" then WAIT_CHOMP else WAIT_GULP do
+				if was >= point - fs.ArriveLead and was < point then
+					local far = (torsoNow.Position - mouthTarget(f, f.FishRoot.CFrame, point)).Magnitude
+					if far > fs.ArriveNear then
+						-- (back up to pace over the wait's last third, so it never ends at once)
+						local left = math.clamp((fs.ArriveWait - f.Wait) / math.max(fs.ArriveWait * 0.3, 0.01), 0, 1)
+						want = Ease.lerp(1, fs.ArriveRate, left)
+					end
+				end
+			end
+		end
+		if want < 1 or f.Rate < 1 then
+			f.Rate = Ease.lerp(f.Rate, want, Ease.alpha(fs.ArriveEase, stepT))
+			if f.Rate > 0.999 then
+				f.Rate = 1
+			end
+			f.Wait = math.min(f.Wait + stepT * (1 - f.Rate), fs.ArriveWait)
+		end
+		local u = t - f.Wait
+		f.U = u
+		local frame = OUTCOMES[f.Kind](f, math.min(u, def.Time + (if taken then def.Time else 0.3)))
 		-- (Hugo, 2026-11-19: after it the fish carries on the way it was going: whatever turn, roll or lunge it made
 		-- eases back onto its old heading over the outcome's last part, swimming on, never a U-turn or a stop; the
 		-- server then takes it back onto its line, FishService.release)
-		local home = ss(def.Time * 0.55, def.Time + (if taken then 0.6 else 0), t)
+		local home = ss(def.Time * 0.55, def.Time + (if taken then 0.6 else 0), u)
 		if home > 0 then
 			local heading = CFrame.lookAt(Vector3.zero, flat(f.From.LookVector))
-			local onward = flat(f.From.LookVector) * f.Speed * 0.5 * math.max(0, t - def.Time * 0.55) * home
+			local onward = flat(f.From.LookVector) * f.Speed * 0.5 * math.max(0, u - def.Time * 0.55) * home
 			frame.Fish = CFrame.new(frame.Fish.Position + onward) * frame.Fish.Rotation:Lerp(heading, home)
 		end
 		local weld = f.Weld
@@ -2167,7 +2491,7 @@ local function step(dt: number)
 		end
 		-- the fish: ours to move through the outcome (it holds us, then lets go: the server's throwOff)
 		if f.Driving and f.Mine then
-			if t < def.Time + (if taken then def.Time else 0.05) then
+			if u < def.Time + (if taken then def.Time else 0.05) then
 				-- (never into the floor or through a wall: each frame's move kept in open water, Course.clearMove, so
 				-- the rider on its back never goes in either)
 				local from = f.FishAt or f.From.Position
@@ -2182,7 +2506,7 @@ local function step(dt: number)
 		end
 		local fishNow = f.FishRoot.CFrame
 		-- its own parts (every machine)
-		armsStep(f, t)
+		armsStep(f, u)
 		poseRig(f, frame.Rig, t)
 		-- the rider, still on the saddle (everyone works out the same), then loose
 		local b = bodies[player]
@@ -2194,30 +2518,33 @@ local function step(dt: number)
 				riderAt = CFrame.new(Course.clearMove(seat, riderAt.Position, 2.5)) * riderAt.Rotation
 			end
 			weld.C0 = if riderAt then fishNow:Inverse() * riderAt else f.Saddle
-			f.Pose = riderPose(f, t)
+			f.Pose = riderPose(f, u)
 		else
 			f.Pose = nil
 		end
 		local torso = limb(f.Character, "Torso")
 		local riderPos = if torso then torso.Position else (fishNow * f.Saddle).Position
 		if b and b.Mine and not b.Replay then
-			grabs(f, b, t, fishNow)
+			grabs(f, b, u, fishNow)
 		end
 		-- swallowed: out of sight, and the throat bulges
-		if f.Kind == "Chomp" or f.Kind == "Gulp" then
-			local gone = if f.Kind == "Chomp" then 1.62 else 1.78
-			if t >= gone and next(f.Hidden) == nil then
+		if mouthy then
+			if u >= gone and next(f.Hidden) == nil then
+				f.HideAt = t
+				f.HideFar = if torso then (torso.Position - mouthTarget(f, fishNow, u)).Magnitude else nil
 				hide(f)
 			end
-			bulge(f, t, gone + 0.05, gone + 0.7)
+			bulge(f, u, gone + 0.05, gone + 0.7)
 		end
 		-- props
 		if f.Kind == "Gulp" then
 			local ball = f.Props[1] :: BasePart?
 			if ball then
-				local glow = ss(0, 0.6, t) * (1 - ss(1.5, 1.9, t))
+				local glow = ss(0, 0.6, u) * (1 - ss(1.5, 1.9, u))
 				local pulse = 0.75 + 0.25 * math.sin(t * 10)
-				ball.CFrame = lurePlace(fishNow, f)
+				-- (on the lure part as it is drawn, swaying with its swim; else where it would be)
+				local lure = f.Lure
+				ball.CFrame = if lure and lure.Part.Parent then lure.Part.CFrame * lure.Bulb else lurePlace(fishNow, f)
 				ball.Transparency = 1 - math.max(0.1, glow)
 				local light = ball:FindFirstChildOfClass("PointLight")
 				if light then
@@ -2227,10 +2554,14 @@ local function step(dt: number)
 		end
 		local beats: { { At: number, Name: string } } = BEATS[f.Kind] or {}
 		for _, m in beats do
-			if t >= m.At and t - stepT < m.At + 0.5 and not f.Beats[m.Name] then
+			if u >= m.At and u - stepT < m.At + 0.5 and not f.Beats[m.Name] then
 				f.Beats[m.Name] = true
+				if m.Name == "bite" then
+					f.BiteAt = t
+					f.BiteFar = if torso then (torso.Position - mouthTarget(f, fishNow, u)).Magnitude else nil
+				end
 				beat(f, m.Name, fishNow, riderPos)
-			elseif t >= m.At then
+			elseif u >= m.At then
 				f.Beats[m.Name] = true
 			end
 		end
@@ -2261,9 +2592,9 @@ local function step(dt: number)
 		end
 		-- (walls and what is in the way: viewStep, after the drown's own step)
 		State.DeathCam = { Position = at, Focus = f.Focus }
-		local u = math.clamp(t / math.max(def.Time, 0.01), 0, 1)
-		State.Darken = 0.15 * u
-		State.Vignette = 0.3 * u
+		local dim = math.clamp(t / math.max(def.Time, 0.01), 0, 1)
+		State.Darken = 0.15 * dim
+		State.Vignette = 0.3 * dim
 		if f.Kind == "Wrap" then
 			local shade = f.Shade or makeShade()
 			f.Shade = shade

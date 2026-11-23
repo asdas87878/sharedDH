@@ -84,6 +84,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `Services/SubService` | The submarine: buying, picking a land, carrying a diver down and dropping them on a fish. |
 | `Services/TankRideService` | Riding one of your own fish round your tank. |
 | `Services/PropService` | The props that break: which boxes are out, and putting a prop back when nobody is near. |
+| `Services/LessonService` | A new player's first minutes ([the note](design/first-minutes.md)): the step they are on, the first-fish rule, the steps counted. Nothing with `Config.Lesson.On` 0. |
 | `Services/BestService` | Each player's furthest depth this session. |
 | `Services/AdminService` | The admin panel's server side (the place's owner, and anyone in Studio). |
 | `Services/SandboxService` | The movement sandbox's server side. Studio only. |
@@ -123,6 +124,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `AuraController` | Every player's aura and the spawn-in. A draft: drawn, not sold. |
 | `GroundFxController` | Small effects on land. |
 | **The screen and the light** | |
+| `LessonController` | What the first minutes' step shows: the line and goal bar (`UI/LessonLine`), the marker and trail (`UI/LessonPointer`), the hop plate, the arrows. Nothing with `Config.Lesson.On` 0. |
 | `HudController` | Builds the dive's and the dock's HUD from the `UI/` pieces and feeds them each frame. |
 | `LookController` | Keeps the lighting at `Config.Look`. |
 | `BlackHoleDisplayController` | Puts a live black hole on any part tagged `BlackHole`. |

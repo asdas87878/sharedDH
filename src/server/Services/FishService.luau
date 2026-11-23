@@ -1559,7 +1559,13 @@ end
 -- The nearest fish in the water a player could get on
 -- (`settled`: only a fish that has been in the Workspace this many seconds. One that has just come back is, for a
 -- moment, still somewhere else on the players' machines.)
-function FishService.nearest(position: Vector3, radius: number, player: Player, settled: number?): Wild?
+function FishService.nearest(
+	position: Vector3,
+	radius: number,
+	player: Player,
+	settled: number?,
+	test: ((w: Wild) -> boolean)?
+): Wild?
 	local best: Wild? = nil
 	local bestDistance = radius
 	local since = os.clock() - (settled or 0)
@@ -1569,7 +1575,7 @@ function FishService.nearest(position: Vector3, radius: number, player: Player, 
 			or (w.UnparkedAt <= since and not w.CoastToken and (not w.ReleasedAt or w.ReleasedAt <= since - 2))
 		if not w.Parked and calm and FishService.isFree(w, player) then
 			local distance = (w.Root.Position - position).Magnitude
-			if distance < bestDistance then
+			if distance < bestDistance and (test == nil or test(w)) then
 				best = w
 				bestDistance = distance
 			end
@@ -1846,6 +1852,19 @@ function FishService.stockNear(s: number, from: number, to: number, count: numbe
 			park(w, false)
 		end
 	end
+end
+
+-- One fish of this kind, Normal and plain, put in the water with the herd: `s` along the stream, `share` of the way
+-- across its band (-1 to 1), `lift` over the floor. From then on it is any fish of the herd (the top-up may thin it out
+-- where nobody sees). LessonService: a first fish the player can hold
+function FishService.put(fishType: Config.FishType, s: number, share: number, lift: number): Wild
+	local at = math.clamp(s, 0, stream.Length)
+	local point = Stream.point(stream, at, share * Stream.width(stream, at) / 2, lift)
+	point = Vector3.new(point.X, math.min(point.Y, Config.Oxygen.SurfaceY - fishType.Size.Y / 2 - 4), point.Z)
+	local zone = Lane.zoneAt(lane, Stream.laneS(stream, at))
+	local w = make(fishType, "", at, point, Stream.along(stream, at), zone, sliceAt(at))
+	park(w, false)
+	return w
 end
 
 -- That fish, given back to the herd (the drop went wrong) or taken out of the water (the trip was given up)

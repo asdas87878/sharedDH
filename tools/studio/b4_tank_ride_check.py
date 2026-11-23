@@ -4,15 +4,22 @@ pictured in a playtest.
     node ~/Projects/studio-runner/studio-run.mjs play
     python tools/studio/b4_tank_ride_check.py run                (in the playtest: the checks; log work/b4/check.log)
     python tools/studio/b4_tank_ride_check.py shots              (in a fresh playtest: the stills)
+    python tools/studio/b4_tank_ride_check.py out                (in a fresh playtest: riding a fish out through the
+                                                                  gate, Config.TankRide.Out; switched on in the playtest
+                                                                  only, on the server and the client, and off again at
+                                                                  the end; pass bars in out(); log work/b4/out.log)
 How: the server Script fills the tank (AquariumService.give), stands the player in front of it and reports the
 server's side (state, Oxygen, the shown fish and their sizes, where the ridden fish's Saddle is in the water). The
 LocalScript gives TankRideController a look (the screen point of a chosen fish, every frame) and a held key through
 its own test hooks (pretend, pressOff), so the hold, the ring and the ask go the real way; it reads what the look is
 on, the ring, the joints' turns, and keeps the server's answers.
 Log: work/b4/check.log; shots docs/attachments/b4-*.png.
-Needs Studio open with the studio-runner plugin and this repo's code in the place.
+Needs Studio open with the studio-runner plugin and this repo's code in the place. Without studio-runner on this PC
+(~/Projects/studio-runner), the asks go through the direct client instead (C:/Users/blast/RpgGame/tools/studio/
+studio_mcp.py, the Studio in STUDIO_ID), and Play is started and stopped with `play` / `stop`; `shots` needs studio-runner.
 """
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -26,6 +33,9 @@ OUT = ROOT / "work/b4"
 OUT.mkdir(parents=True, exist_ok=True)
 ATTACH = ROOT / "docs/attachments"
 RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
+MCP = "C:/Users/blast/RpgGame/tools/studio/studio_mcp.py"  # (the direct client: when studio-runner is not on this PC)
+STUDIO_ID = os.environ.get("STUDIO_ID", "3b999aa2-7b9c-4390-8231-1c7119b5cc57")
+DIRECT = not Path(RUN).exists()
 OFFSET = (0, 125)  # the game view in the shot (as c1_tank_hotbar_check.py)
 VIEW = [1985, 1085]
 
@@ -135,6 +145,64 @@ RS:GetAttributeChangedSignal("B4Cmd"):Connect(function()
 			copy.Parent = folder
 			folder.Parent = other
 			return "decoy in " .. other.Name
+		elseif verb == "dial" then
+			-- riding out on or off (this playtest only: the file keeps 0)
+			Config.TankRide.Out = tonumber(arg) or 0
+			return "server Out=" .. tostring(Config.TankRide.Out)
+		elseif verb == "fill" then
+			-- the hands filled to Tame.Carry with Tiny Clownfish
+			while #RideService.carried(player) < Config.Tame.Carry do
+				if not RideService.giveCarried(player, { Id = "Clownfish", Size = "Tiny", Variant = "Normal" }) then
+					break
+				end
+			end
+			return "hands=" .. #RideService.carried(player)
+		elseif verb == "empty" then
+			-- the hands emptied down to n
+			local keep = tonumber(arg) or 0
+			while #RideService.carried(player) > keep do
+				RideService.takeCarried(player, #RideService.carried(player))
+			end
+			return "hands=" .. #RideService.carried(player)
+		elseif verb == "outstate" then
+			-- everything the riding out checks read, as JSON
+			local shown = AquariumService.shownOf(player)
+			local fish = shown and ridden(shown)
+			local character = player.Character
+			local root = character.HumanoidRootPart
+			local humanoid = character.Humanoid
+			local pad = plot:FindFirstChild("Pad")
+			local _, way = AquariumService.frontOf(plot)
+			local half = water.Size / 2
+			local face = math.abs(way:Dot(water.CFrame.RightVector)) * half.X + math.abs(way:Dot(water.CFrame.LookVector)) * half.Z
+			local rel = (root.Position - water.Position) * Vector3.new(1, 0, 1)
+			local land = workspace:FindFirstChild("LandFish") and workspace.LandFish:FindFirstChild(player.Name)
+			local belly = nil
+			if land and pad then
+				local box, size = land:GetBoundingBox()
+				belly = (box.Position.Y - size.Y / 2) - (pad.Position.Y + pad.Size.Y / 2)
+			end
+			local tank = AquariumService.tankOf(player) or {}
+			return Http:JSONEncode({
+				state = RideService.stateOf(player),
+				riding = TankRideService.riding(player),
+				tankRide = player:GetAttribute("TankRide") ~= nil,
+				tank = #tank,
+				hands = #RideService.carried(player),
+				income = player:GetAttribute("Income"),
+				ridden = fish and { fish:GetAttribute("FishType"), fish:GetAttribute("SizeTier"), fish:GetAttribute("Variant") } or false,
+				equipped = { player:GetAttribute("EquippedFish") or false, player:GetAttribute("EquippedSize") or false,
+					player:GetAttribute("EquippedVariant") or false },
+				equippedIndex = player:GetAttribute("EquippedIndex") or false,
+				mounted = player:GetAttribute("LandMounted") == true,
+				land = land and { land:GetAttribute("FishType"), land:GetAttribute("SizeTier"), land:GetAttribute("Variant") } or false,
+				pastFace = rel:Dot(way) - face, -- studs past the water's front face (the fence stands at 1.6)
+				across = rel:Dot(way:Cross(Vector3.yAxis)), -- studs off the gate's middle, along the front
+				facing = root.CFrame.LookVector:Dot(way),
+				belly = belly or false,
+				floor = humanoid.FloorMaterial.Name,
+				platform = humanoid.PlatformStand,
+			})
 		elseif verb == "undecoy" then
 			for _, d in workspace:GetDescendants() do
 				if d.Name == "B4Decoy" then
@@ -325,6 +393,35 @@ workspace:GetAttributeChangedSignal("B4Do"):Connect(function()
 				count, now, math.abs(now - (before[m] or 0)), rates[m] or -1))
 		end
 		said = table.concat(out, " ; ")
+	elseif verb == "dial" then
+		Config.TankRide.Out = tonumber(a) or 0
+		said = "client Out=" .. tostring(Config.TankRide.Out)
+	elseif verb == "togate" then
+		-- our seat put just inside the water's front face ("inset,aside": studs in from it, studs off the gate's
+		-- middle along the front), half way up; the view facing out, level
+		local inset, aside = string.match(a, "([^,]+),?([^,]*)")
+		inset, aside = tonumber(inset) or 3, tonumber(aside) or 0
+		local half = water.Size / 2
+		local face = math.abs(way:Dot(water.CFrame.RightVector)) * half.X + math.abs(way:Dot(water.CFrame.LookVector)) * half.Z
+		local t = TankRide.pretendSeat(water.Position + way * (face - inset) + left * aside)
+		lookYaw, lookPitch = math.atan2(-way.X, -way.Z), math.rad(-Config.TankRide.Level)
+		said = string.format("to gate in %.1f aside %.1f pushing=%.2f", inset, aside, t)
+	elseif verb == "bump" then
+		-- pushed for t seconds, timed here (two asks from outside would add their own delay)
+		push = 1
+		task.wait(tonumber(a) or 0.25)
+		push = 0
+		said = "bumped " .. tostring(a)
+	elseif verb == "pushing" then
+		-- how long the push at the gate has lasted (-1: not riding)
+		said = string.format("pushing=%.2f riding=%s", TankRide.pretendSeat(nil), tostring(TankRide.riding())) .. " " .. took()
+	elseif verb == "twice" then
+		-- two asks to ride out, past the 0.3 s the server takes between asks
+		Net.Action:FireServer("TankRide", "Out")
+		task.wait(0.4)
+		Net.Action:FireServer("TankRide", "Out")
+		task.wait(0.8)
+		said = "riding=" .. tostring(TankRide.riding()) .. " " .. took()
 	elseif verb == "holdset" then
 		Config.TankRide.Hold = tonumber(a) or 0.5
 		said = "hold " .. tostring(Config.TankRide.Hold)
@@ -360,7 +457,21 @@ def lua(v):
     return "[==[" + str(v) + "]==]"
 
 
+def call(tool, args, timeout=120):
+    """One tool of the direct client (as tools/studio/lesson_check.py)"""
+    path = OUT / "_args.json"
+    path.write_text(json.dumps({"studio_id": STUDIO_ID, **args}), encoding="utf-8")
+    r = subprocess.run([sys.executable, MCP, "call", tool, "@" + str(path), str(timeout)],
+                       capture_output=True, text=True, encoding="utf-8")
+    for line in r.stdout.splitlines():
+        if line.startswith('{"content"'):
+            return "\n".join(c.get("text", "") for c in json.loads(line)["content"])
+    return "ERR " + r.stdout[-800:] + r.stderr[-400:]
+
+
 def server(code):
+    if DIRECT:
+        return call("execute_luau", {"datamodel_type": "Server", "code": code})
     return run(["--ctx", "server", "--code", code])
 
 
@@ -386,6 +497,8 @@ c.Source = {lua(CLIENT)}
 c.Parent = sps
 return "installed"
 """
+    if DIRECT:
+        return call("execute_luau", {"datamodel_type": "Edit", "code": job})
     with tempfile.NamedTemporaryFile("w", suffix=".luau", delete=False) as f:
         f.write(job)
     return run([f.name])
@@ -486,10 +599,168 @@ def shots():
     print(cmd("state"))
 
 
+OUT_FISH = [
+    ["YellowTang", "Normal", "Normal"],
+    ["ReefShark", "Normal", "Gold"],
+    ["SeaTurtle", "Big", "Normal"],
+]
+
+
+def out():
+    """Riding a fish out through the gate (Config.TankRide.Out, docs/design/equip.md "Riding out of the tank"), in a
+    fresh playtest. The dial is switched on here, on the server and the client, and off again at the end; the place and
+    the file keep 0. Pass bars: every expect() below; all must pass."""
+    log, results = [], []
+
+    def note(text):
+        print(text, flush=True)
+        log.append(text)
+
+    def expect(name, ok, detail=""):
+        results.append(bool(ok))
+        note(("PASS " if ok else "FAIL ") + name + (("  [" + str(detail) + "]") if detail != "" else ""))
+
+    def state(wait=0.8):
+        raw = cmd("outstate", wait)
+        try:
+            return json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
+        except ValueError:
+            note("outstate unreadable: " + raw)
+            return {}
+
+    def same(a, b, keys=("tank", "hands", "riding", "tankRide", "mounted", "state")):
+        return bool(a) and all(a.get(k) == b.get(k) for k in keys)
+
+    def ask():
+        # one Out, as the client sends it; the server takes one TankRide ask per 0.3 s, so each is spaced past that
+        return do("fire|" + json.dumps(["TankRide", "Out"]), 1.4)
+
+    try:
+        note("give: " + cmd("give|" + json.dumps(OUT_FISH), 1.5))
+        note("front: " + cmd("front", 1.5))
+        note(do("dial|1", 0.6) + " " + cmd("dial|1"))
+
+        # no tank ride: an ask does nothing at all
+        s0 = state()
+        note("before: " + json.dumps(s0))
+        if not s0:
+            raise SystemExit("the server's state can't be read: is the playtest running with the check installed?")
+        r = ask()
+        expect("no tank ride: an Out changes nothing and says nothing", same(s0, state()) and "answers=[]" in r, r)
+
+        # on a fish of the tank
+        note("look 1: " + do("look|1"))
+        r = do("hold|0.9", 3.0)
+        s_on = state()
+        kind = s_on.get("ridden")
+        note("riding: " + json.dumps(s_on))
+        expect("on a fish of the tank (tank ride, state Dock)", s_on.get("riding") and s_on.get("state") == "Dock" and kind, r)
+
+        # hands full: refused "Hands", the ride goes on, nothing moves
+        note("fill: " + cmd("fill"))
+        s_full = state()
+        r = ask()
+        expect("hands full: refused Hands; tank, hands and the ride unchanged",
+               "Denied:TankRide:Hands" in r and same(s_full, state()) and s_full.get("riding"), r)
+        note("empty: " + cmd("empty|0"))
+
+        # the dial at 0 on the server: refused "Off"
+        note(cmd("dial|0"))
+        s_off = state()
+        r = ask()
+        expect("server dial 0: refused Off, unchanged", "Denied:TankRide:Off" in r and same(s_off, state()) and s_off.get("riding"), r)
+        note(cmd("dial|1"))
+
+        # the dial at 0 on the client: a full push at the gate sends nothing
+        note(do("dial|0", 0.6))
+        note(do("togate|0.5,0", 1.6))
+        do("push|1", 2.0)
+        r = do("pushing", 0.6)
+        do("push|0", 0.8)
+        expect("client dial 0: two seconds pushing at the gate asks nothing",
+               same(s_off, state()) and "pushing=0.00" in r and "TankDismounted" not in r, r)
+        note(do("dial|1", 0.6))
+
+        # a bump: pushed at the gate for 0.25 s only
+        note(do("togate|0.5,0", 1.6))
+        note(do("bump|0.25", 1.8))
+        r = do("pushing", 0.6)
+        expect("a bump at the gate (0.25 s) does nothing", same(s_off, state()) and "TankDismounted" not in r, r)
+
+        # beside the gate: pushed at the front face 10 studs off its middle (OutGate is 6), two seconds
+        note(do("togate|0.5,10", 1.6))
+        do("push|1", 2.0)
+        r = do("pushing", 0.6)
+        do("push|0", 0.8)
+        expect("pushing beside the gate (10 studs off its middle) does nothing",
+               same(s_off, state()) and "pushing=0.00" in r and "TankDismounted" not in r, r)
+
+        # the real thing: pushed at the gate for two seconds
+        before = state()
+        note(do("togate|0.5,0", 1.6))
+        do("push|1", 2.4)
+        r = do("pushing", 0.6)
+        do("push|0", 0.4)
+        note("pushed: " + r)
+        time.sleep(1.5)
+        after = state(1.0)
+        note("after: " + json.dumps(after))
+        expect("the client asked and was let go (TankDismounted Out)", "TankDismounted:Out" in r and "riding=false" in r, r)
+        expect("tank one fewer", after.get("tank") == before.get("tank", 0) - 1, f"{before.get('tank')} -> {after.get('tank')}")
+        expect("hands one more", after.get("hands") == before.get("hands", 0) + 1, f"{before.get('hands')} -> {after.get('hands')}")
+        expect("the income dropped (the ridden fish was an earning one)",
+               (after.get("income") or 0) < (before.get("income") or 0), f"{before.get('income')} -> {after.get('income')}")
+        expect("no tank ride left (server, attribute, PlatformStand)",
+               not after.get("riding") and not after.get("tankRide") and not after.get("platform"))
+        expect("riding on land (state Dock, LandMounted)", after.get("state") == "Dock" and after.get("mounted"))
+        expect("the land fish is the ridden one: kind, size, colour", kind and after.get("land") == kind, f"{kind} / {after.get('land')}")
+        expect("it is the equipped ride fish, the newest in the hands",
+               kind and after.get("equipped") == kind and after.get("equippedIndex") == after.get("hands"),
+               f"{after.get('equipped')} at {after.get('equippedIndex')} of {after.get('hands')}")
+        expect("outside the fence: 3.6 studs or more past the water's front (the fence is at 1.6)",
+               (after.get("pastFace") or 0) >= 3.6, after.get("pastFace"))
+        expect("in front of the gate: within 6 studs of its middle", abs(after.get("across") or 99) <= 6, after.get("across"))
+        expect("facing out", (after.get("facing") or 0) > 0.9, after.get("facing"))
+        belly = after.get("belly")
+        expect("on the ground: the land fish's belly within 1.5 studs of the plot's floor",
+               isinstance(belly, (int, float)) and not isinstance(belly, bool) and abs(belly) <= 1.5,
+               f"belly {belly} (floor as the server sees it: {after.get('floor')})")
+        note("hud: " + do("hud"))
+
+        # a second Out for the same ride: nothing
+        r = ask()
+        expect("a second Out after riding out does nothing", same(after, state()) and "answers=[]" in r, r)
+
+        # a double ask from a fresh ride acts once
+        note("front: " + cmd("front", 1.5))
+        note("look 1: " + do("look|1"))
+        r = do("hold|0.9", 3.0)
+        s7 = state()
+        expect("on a fish of the tank again", s7.get("riding"), r)
+        time.sleep(0.5)
+        r = do("twice", 2.0)
+        time.sleep(1.0)
+        s8 = state(1.0)
+        note("twice: " + r + " " + json.dumps(s8))
+        expect("two asks 0.4 s apart: out once (tank -1, hands +1, on land)",
+               s8.get("tank") == s7.get("tank", 0) - 1 and s8.get("hands") == s7.get("hands", 0) + 1
+               and s8.get("mounted") and not s8.get("riding") and r.count("TankDismounted:Out") == 1, r)
+    finally:
+        note(do("dial|0", 0.6) + " " + cmd("dial|0"))
+        note(f"{sum(results)}/{len(results)} PASS")
+        (OUT / "out.log").write_text("\n".join(log) + "\n")
+
+
 def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "run"
     if what == "shots":
         shots()
+        return
+    if what == "out":
+        out()
+        return
+    if what in ("play", "stop"):
+        print(call("start_stop_play", {"is_start": what == "play"}) if DIRECT else run([what]))
         return
     if what == "install":
         print(install())

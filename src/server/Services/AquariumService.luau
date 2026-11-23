@@ -94,7 +94,10 @@ type Tank = {
 	Made: number, -- fish keys handed out so far
 	Hands: string, -- the "Hands" attribute last written
 	Shown: Folder?,
+	Keys: { [Model]: string }, -- each shown fish's entry Key (server only: a shown model carries none)
+	Dumped: { DumpedFish }?, -- the Fish list dump() last handed to the save, kept while the fish are the same
 }
+type DumpedFish = { Id: string, Size: string, Variant: string, On: boolean }
 
 local AquariumService = {}
 
@@ -350,6 +353,7 @@ local function show(tank: Tank)
 		tank.Shown:Destroy()
 		tank.Shown = nil
 	end
+	table.clear(tank.Keys)
 	local water = part(tank.Plot, "TankWater")
 	local equipped = {}
 	for _, entry in tank.Fish do
@@ -399,6 +403,7 @@ local function show(tank: Tank)
 				model:SetAttribute("Variant", entry.Variant)
 				model:PivotTo(CFrame.new(water.Position.X + rx, y, water.Position.Z))
 				CollectionService:AddTag(model, AquariumService.Tag)
+				tank.Keys[model] = entry.Key
 				model.Parent = folder
 			else
 				model:Destroy()
@@ -857,6 +862,7 @@ local function join(player: Player)
 				Made = 0,
 				Hands = "",
 				Shown = nil,
+				Keys = {},
 			}
 			owners[plot] = player
 			tanks[player] = tank
@@ -991,6 +997,37 @@ AquariumService.putAway = function(player: Player)
 	putAway(player)
 end
 
+-- Riding a fish out of the tank (Config.TankRide.Out; TankRideService): the entry Key of one of the player's shown
+-- fish (kept here when the fish were shown, never read from the model or the client), or nil
+function AquariumService.keyOfShown(player: Player, model: Model): string?
+	local tank = tanks[player]
+	return if tank then tank.Keys[model] else nil
+end
+
+-- why that entry could not be taken out into the hands now (the very rules takeOut keeps: "Gone", "Hands"), or nil.
+-- Changes nothing
+function AquariumService.outRefusal(player: Player, key: string): string?
+	local tank = tanks[player]
+	if not tank or not find(tank, key) then
+		return "Gone"
+	end
+	if #RideService.carried(player) >= Config.Tame.Carry then
+		return "Hands"
+	end
+	return nil
+end
+
+-- and take it out, by takeOut itself (equipped or stored, the income, the attributes, the fish in the water and the
+-- sign as after any change): the new entry of the hands, or nil with nothing changed
+function AquariumService.takeOutKey(player: Player, key: string): RideService.Carry?
+	local tank = tanks[player]
+	if not tank or takeOut(tank, key) ~= nil then
+		return nil
+	end
+	local carried = RideService.carried(player)
+	return carried[#carried]
+end
+
 -- Config was tuned live (the sandbox panel): every tank's fish are counted again, so a stocked tank pays by the new
 -- numbers from its next payout, not only after its next change (grade issue 3). The fish in the water are only rebuilt
 -- when which ones earn changed
@@ -1041,20 +1078,146 @@ function AquariumService.spend(player: Player, amount: number): boolean
 	return true
 end
 
--- Coins and fish given straight to a tank: for the owner's admin panel (AdminService, which works in a live game too)
--- and Studio's tests (SubService's test "give")
-function AquariumService.give(player: Player, coins: number, fish: { { string } }?)
+-- Coins and fish given straight to a tank: for the owner's admin panel (AdminService, which works in a live game too),
+-- Studio's tests (SubService's test "give") and a bought pack (PurchaseService, the UI chat's Robux purchases).
+-- Returns true when given; false, and nothing given, for a player with no plot or coins that are not a number
+-- (NaN, endless). Doesn't yield.
+function AquariumService.give(player: Player, coins: number, fish: { { string } }?): boolean
 	local tank = tanks[player]
-	if not tank then
-		return
+	if not tank or type(coins) ~= "number" or coins ~= coins or math.abs(coins) == math.huge then
+		return false
 	end
 	tank.Coins += coins
 	local list: { { string } } = fish or {}
+	if #list == 0 then
+		-- coins only (a bought pack, the admin panel's coins): the fish are as they were, so the shown fish are not
+		-- rebuilt, which would end a tank ride under the buyer
+		tell(tank)
+		return true
+	end
 	for _, f in list do
 		add(tank, f[1], f[2] or "Normal", f[3] or "")
 	end
 	trim(tank)
 	changed(tank)
+	return true
+end
+
+-- (a number that can be stored: not NaN, not endless)
+local function finite(n: number): boolean
+	return n == n and math.abs(n) ~= math.huge
+end
+
+-- For saving (src/server/Lib/SaveParts.luau, the UI chat's saving, part "Tank"): what the tank holds now, as a FRESH
+-- outer table of plain values, { Coins, Stage, Fish = { { Id, Size, Variant, On } } } (no keys: a restore makes its
+-- own). The Fish list is the SAME table as last time while the tank's fish have not changed, and a new one when they
+-- have: the caller must never change it or its rows.
+-- nil while the player has no tank (not joined yet, gone, or no plot), never a default, so a save is never written over
+-- by an empty tank; nil too if the coins are not a number (the last good save is kept). Doesn't yield.
+function AquariumService.dump(player: Player): { [string]: any }?
+	local tank = tanks[player]
+	if not tank or not finite(tank.Coins) then
+		return nil
+	end
+	-- the Fish list is made again only when the tank's fish differ from the last one handed out (compared row by row
+	-- here, so it can never be stale whatever changed them); the save calls this for every player twice a second
+	local fish = tank.Dumped
+	local same = fish ~= nil and #fish == #tank.Fish
+	if fish and same then
+		for i, f in tank.Fish do
+			local row = fish[i]
+			if row.Id ~= f.Id or row.Size ~= f.Size or row.Variant ~= f.Variant or row.On ~= f.On then
+				same = false
+				break
+			end
+		end
+	end
+	if not fish or not same then
+		local made: { DumpedFish } = {}
+		for _, f in tank.Fish do
+			table.insert(made, { Id = f.Id, Size = f.Size, Variant = f.Variant, On = f.On })
+		end
+		tank.Dumped = made
+		fish = made
+	end
+	return { Coins = math.max(tank.Coins, 0), Stage = tank.Stage, Fish = fish }
+end
+
+-- For saving (SaveParts, part "Tank"): a dump given back when the profile comes in, which may be seconds after the plot
+-- was handed out, a payout or a catch. It ADDS: the saved coins and fish on top of what the tank has now, and the
+-- higher of the two stages. All of it or nothing: the whole table is checked first (types, coins finite, every fish a
+-- known kind, size and colour, a list and not a map), and false leaves the tank exactly as it was. No fish is let go:
+-- one equipped in the save is equipped again while there is room (Config.earningOf), the poorest past that stored, as
+-- count() does; and if Aquarium.Hold is above 0 and they would not all fit, nothing is given back (false, so the save
+-- is kept as it was). Then the tank's numbers, attributes, fish in the water and sign, as after a change. Doesn't yield.
+local RESTORE_MOST = 100000 -- fish in one saved tank past which the table is taken as broken
+function AquariumService.restore(player: Player, data: any): boolean
+	local tank = tanks[player]
+	local function refuse(why: string): boolean
+		warn(`[AquariumService] the saved tank of {player.Name} was not given back: {why}`)
+		return false
+	end
+	if not tank then
+		return false
+	end
+	if type(data) ~= "table" then
+		return refuse("not a table")
+	end
+	local coins, stage, list = data.Coins, data.Stage, data.Fish
+	if type(coins) ~= "number" or not finite(coins) or type(stage) ~= "number" or not finite(stage) then
+		return refuse("coins or stage not a number")
+	end
+	if type(list) ~= "table" then
+		return refuse("no fish list")
+	end
+	local n = 0
+	for _ in list do
+		n += 1
+	end
+	if n ~= #list or n > RESTORE_MOST then
+		return refuse("the fish are not a list")
+	end
+	for i = 1, n do
+		local f = list[i]
+		if
+			type(f) ~= "table"
+			or type(f.Id) ~= "string"
+			or not Config.FishById[f.Id]
+			or type(f.Size) ~= "string"
+			or Config.SizeScale[f.Size] == nil
+			or type(f.Variant) ~= "string"
+			or Config.VariantOxygen[f.Variant] == nil
+			or type(f.On) ~= "boolean"
+		then
+			return refuse(`fish {i} is not one the tank knows ({tostring(type(f) == "table" and f.Id)})`)
+		end
+	end
+	local room = Config.Aquarium.Hold
+	if room > 0 and #tank.Fish + n > room then
+		return refuse(`{#tank.Fish} + {n} fish would not fit (Aquarium.Hold {room})`)
+	end
+	local total = tank.Coins + math.max(coins, 0)
+	if not finite(total) then
+		return refuse("the coins would be endless")
+	end
+	-- (checked: from here on nothing can fail)
+	tank.Coins = total
+	for i = 1, n do
+		local f = list[i]
+		local entry = add(tank, f.Id, f.Size, f.Variant)
+		if entry then
+			entry.On = f.On
+		end
+	end
+	local to = math.clamp(math.floor(stage), 0, #Config.PlotUpgrades.Stages)
+	if to > tank.Stage then
+		tank.Stage = to
+		if Config.PlotUpgrades.On ~= 0 then
+			heighten(tank.Plot, to, false) -- (before the fish are shown: their laps are laid out in the water's size)
+		end
+	end
+	changed(tank)
+	return true
 end
 
 ----------------------------------------------------------------------------------------------------------------------

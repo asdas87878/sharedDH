@@ -44,6 +44,13 @@ local FeelLog = require(script.Parent.FeelLog)
 local State = require(script.Parent.State)
 
 local Lock = {}
+
+-- Set by LessonController while a player's first fish is still to come: the fish the lock may take (nil: any)
+Lock.Allow = nil :: ((model: Model) -> boolean)?
+
+local function takable(model: Model): boolean
+	return State.isFreeFish(model) and (Lock.Allow == nil or Lock.Allow(model))
+end
 -- (the feel log's: every fish the last look scored, and its score, lower being better; only while it is on)
 Lock.Debug = nil :: { At: number, Scores: { { Model: Model, Score: number } } }?
 
@@ -277,7 +284,7 @@ function Lock.pick(
 	local nowAt = os.clock()
 	local stepping = step ~= nil and step ~= 0
 	if nowAt - pickedAt < PICK_EVERY and picked == current and picked ~= skip and not stepping then
-		if picked == nil or (picked.Parent ~= nil and State.isFreeFish(picked)) then
+		if picked == nil or (picked.Parent ~= nil and takable(picked)) then
 			return picked
 		end
 	end
@@ -322,7 +329,7 @@ function Lock.pick(
 	for _, model in folder:GetChildren() do
 		-- (the fish we just left is not taken at all until the last chance: Lock.LeftBan)
 		local banned = model == left and l.LeftBan > 0 and wide ~= true
-		if model:IsA("Model") and model ~= skip and not banned and State.isFreeFish(model) then
+		if model:IsA("Model") and model ~= skip and not banned and takable(model) then
 			local s: number?
 			if byLine then
 				local lineS, round, place =
@@ -366,7 +373,7 @@ function Lock.pick(
 	-- the previous fish"). With no other fish to lock, the one we left takes the lock, wherever it is round us, if
 	-- it is in reach and in sight (`back`: the hop is past its first moment). It is never scored, so any other fish
 	-- that can be locked takes the lock from it at once, with none of the lock's stickiness.
-	if not best and back and left and left ~= skip and l.LeftBack > 0 and left.Parent and State.isFreeFish(left) then
+	if not best and back and left and left ~= skip and l.LeftBack > 0 and left.Parent and takable(left) then
 		local at = (left.PrimaryPart :: BasePart).Position
 		if Config.fishGap(left, from) <= reachFor(left) and inSight(from, at) then
 			best = left
@@ -409,7 +416,7 @@ function Lock.pick(
 		and current == heldFish
 		and now - heldAt < l.Linger
 		and current ~= skip
-		and State.isFreeFish(current)
+		and takable(current)
 		and Config.fishGap(current, from) <= reachFor(current) * l.LingerReach
 	then
 		lingering = true
@@ -466,7 +473,7 @@ function Lock.any(from: Vector3, aimYaw: number, range: number, left: Model?, sk
 	local best: Model? = nil
 	local bestScore = math.huge
 	for _, model in folder:GetChildren() do
-		if model:IsA("Model") and model ~= skip and State.isFreeFish(model) then
+		if model:IsA("Model") and model ~= skip and takable(model) then
 			local lineS, _, place = lineScore(model, from, dir, range, math.max(ahead or range, range), false, false)
 			if lineS and place < 2 then
 				local s = lineS + (if place == 1 then OUT_OF_FRONT else 0) + (if model == left then LEFT_LAST else 0)

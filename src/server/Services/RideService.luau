@@ -107,6 +107,7 @@ type Rider = {
 	Carried: { Carry }, -- the same fish, each with its size and colour (what the aquarium needs to know)
 	Owned: number, -- creatures brought home this session
 	Trained: number, -- max Oxygen gained on the training spot this session (TrainService), on top of the start
+	Banked: number, -- Oxygen bought off the dock: it joins Trained (and the max) on reaching the dock (grantOxygen)
 	Landings: number, -- landings so far this session: sent with each "Land", so every client picks the same reaction
 	SandboxRetries: number, -- times the sandbox's reset has been done again by itself after a seat that went wrong
 	SandboxSeat: FishService.Wild?, -- the fish the sandbox's reset is seating us on (kept for us until we say we sit)
@@ -166,6 +167,11 @@ RideService.DiveFish = nil :: ((player: Player) -> Wild?)?
 -- it away. Q equips the held fish (task e3)
 RideService.HeldOf = nil :: ((player: Player) -> Carry?)?
 RideService.PutAway = nil :: ((player: Player) -> ())?
+-- Set by LessonService (docs/design/first-minutes.md; only with Config.Lesson.On): whether this player is still to make
+-- their first fish theirs (it must be one they can hold, its meter doesn't run and they can't hop off it); and told of
+-- each tame
+RideService.FirstFish = nil :: ((player: Player) -> boolean)?
+RideService.OnTamed = nil :: ((player: Player, w: Wild) -> ())?
 
 -- The sandbox's reset seats a rider only on a fish that has been in the Workspace this long, so the player's machine
 -- has the fish too (it is told to sit on it).
@@ -188,6 +194,11 @@ local dockSpawn: BasePart? = nil
 
 local function now(): number
 	return workspace:GetServerTimeNow()
+end
+
+-- The first-fish rule is on for this rider (RideService.FirstFish)
+local function firstFish(r: Rider): boolean
+	return RideService.FirstFish ~= nil and RideService.FirstFish(r.Player)
 end
 
 -- The movement sandbox's switches (Studio only; SandboxService sets the attributes), or the same switch from the admin
@@ -239,6 +250,16 @@ local function maxOxygen(): number
 		end
 	end
 	return Config.Oxygen.StartMax
+end
+
+-- Oxygen bought in the water (Banked, grantOxygen) joins the training and the max, for a rider who is reaching the
+-- dock: the caller fills the meter and tells the HUD, as it does anyway
+local function unbank(r: Rider)
+	if r.Banked > 0 then
+		r.Trained += r.Banked
+		r.Banked = 0
+		r.Max = maxOxygen() + r.Trained
+	end
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -952,6 +973,7 @@ local function toDock(r: Rider)
 		end
 		root.AssemblyLinearVelocity = Vector3.zero
 	end
+	unbank(r)
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
 	setState(r, "Dock")
@@ -1025,7 +1047,9 @@ local function drown(r: Rider, forced: boolean?, kind: string?)
 	-- (Studio only, for capturing it frame by frame: workspace's FailSlow makes every wait here that many times longer)
 	local slowed = if RunService:IsStudio() then workspace:GetAttribute("FailSlow") else nil
 	local slow = if type(slowed) == "number" and slowed > 1 then slowed else 1
-	local name = if kind and f.Outcomes[kind] then kind else Config.failOf(w.Type, RideStyles.nameOf(w.Type.Id))
+	local name = if kind and f.Outcomes[kind]
+		then kind
+		else Config.failOf(w.Type, RideStyles.nameOf(w.Type.Id), w.Body.Z)
 	local outcome = f.Outcomes[name]
 	local rag = f.Ragdoll
 	local ragdolls = rag.On ~= 0 and not soft
@@ -1110,8 +1134,12 @@ local function jump(r: Rider)
 	if os.clock() < r.JumpReadyAt then
 		return deny(r, "Jump", "Cooldown")
 	end
+	local first = firstFish(r)
+	if first and r.State == "Riding" then
+		return deny(r, "Jump", "First") -- (the client has no hop then: LessonController)
+	end
 	r.JumpFrom = r.Fish
-	r.DiveHop = r.Fish == nil and not r.Rode
+	r.DiveHop = r.Fish == nil and (not r.Rode or first)
 	-- The hop's numbers, as the client flies them (Config.hopFrom): off a Leaper the glide and the window are longer,
 	-- and both go by the speed the fish had as we left it, as the server sees it (airtime by speed). The hook's reach
 	-- is counted from these and our own clock (grab), never from what the client says: so the speed is held to what
@@ -1163,6 +1191,10 @@ local function grab(r: Rider, target: any)
 	local w = FishService.get(if typeof(target) == "Instance" then target else nil)
 	if not root or not w or not FishService.isFree(w, r.Player) then
 		return deny(r, "Grab", "Target", target)
+	end
+	-- (a player's first fish is one they can hold: RideService.FirstFish)
+	if firstFish(r) and not Config.firstFish(w.Type, w.SizeTier, w.Variant, r.Max) then
+		return deny(r, "Grab", "First", target)
 	end
 	local elapsed = os.clock() - r.JumpAt
 	if r.Grab or elapsed > j.Window + r.JumpExtra + j.Slack then
@@ -1648,6 +1680,9 @@ local function tame(r: Rider, w: Wild, dt: number, need: number)
 		if r.Tame >= 0.98 then
 			r.Tame = 1
 			r.Tamed[w] = true
+			if RideService.OnTamed then
+				task.defer(RideService.OnTamed, r.Player, w)
+			end
 			if #r.Caught < c.Carry then
 				table.insert(r.Caught, w.Type.Id)
 				table.insert(r.Carried, { Id = w.Type.Id, Size = w.SizeTier, Variant = w.Variant })
@@ -1738,6 +1773,7 @@ local function tick(r: Rider, dt: number)
 			local need = needOf(w)
 			local rate = Config.drainFor(need, w.Type, r.Max)
 			local strained = r.Strained and o.StrainTime > 0
+			local first = not strained and firstFish(r) -- (asked before the tame, which ends it)
 			-- the red part in even ticks (Oxygen.RedTime): RedTicks pieces of what was left at the line
 			local redLine: number?, redSeconds: number? = nil, nil
 			if not strained and o.RedTime > 0 then
@@ -1764,7 +1800,9 @@ local function tick(r: Rider, dt: number)
 			end
 			-- (the tame first: a rider with exactly what the fish needs tames it as the last tick goes)
 			tame(r, w, dt, need)
-			if strained then
+			if first then
+				r.TickAt = -1 -- (the first fish of all: its meter waits for the tame)
+			elseif strained then
 				tickDrain(r, rate, dt, r.StrainPiece, r.StrainEvery)
 			elseif r.RedPiece > 0 then
 				tickDrain(r, rate, dt, r.RedPiece, r.RedEvery)
@@ -1797,7 +1835,9 @@ local function tick(r: Rider, dt: number)
 		end
 	elseif r.State == "Free" then
 		tickDrain(r, Config.freeDrain(r.Max), dt)
-		if r.Oxygen <= 0 then
+		if r.Oxygen <= 0 and firstFish(r) then
+			toDock(r) -- (nobody drowns before their first fish)
+		elseif r.Oxygen <= 0 then
 			drown(r)
 		else
 			local flat = if dockSpawn then (root.Position - dockSpawn.Position) * Vector3.new(1, 0, 1) else nil
@@ -1840,6 +1880,7 @@ local function onCharacter(r: Rider, character: Model)
 	r.Fish = nil
 	r.Weld = nil
 	r.JumpFrom = nil
+	unbank(r)
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
 	setState(r, "Dock")
@@ -1871,6 +1912,7 @@ local function onPlayer(player: Player)
 		Oxygen = maxOxygen(),
 		Max = maxOxygen(),
 		Trained = 0,
+		Banked = 0,
 		Landings = 0,
 		SandboxRetries = 0,
 		SandboxSeat = nil,
@@ -2257,7 +2299,8 @@ function RideService.stateOf(player: Player): string?
 end
 
 -- Training (TrainService): a player standing on the dock gains max Oxygen. Returns whether it was given (only on the
--- dock: not in the water, on a fish or drowning). Kept for the session; there are no saves yet.
+-- dock: not in the water, on a fish or drowning). Kept for the session; saved by the save's "Oxygen" part
+-- (trainedOxygen, below) once saving is switched on.
 function RideService.train(player: Player, amount: number): boolean
 	local r = riders[player]
 	if not r or r.State ~= "Dock" or amount <= 0 then
@@ -2293,6 +2336,71 @@ function RideService.setMax(player: Player, max: number)
 	r.Max = max
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
+end
+
+-- The max Oxygen again from the training (saving and bought Oxygen, below): on the dock the meter follows it, as after
+-- training (and anything banked in the water joins it); anywhere else the meter is left as it is, only kept under the
+-- max
+local function retrain(r: Rider)
+	if r.State == "Dock" then
+		unbank(r)
+	end
+	r.Max = maxOxygen() + r.Trained
+	r.Oxygen = math.min(r.Oxygen, r.Max)
+	if r.State == "Dock" then
+		r.Oxygen = r.Max
+	end
+	sendOxygen(r, true)
+end
+
+-- For saving (src/server/Lib/SaveParts.luau, the UI chat's saving, part "Oxygen"): the trained Oxygen, on top of what
+-- everyone starts with, 0 or more, WITH any Oxygen bought in the water and not yet in the max (Banked), so a bought
+-- pack is saved the moment it is given. nil while we don't have the player (not joined yet, or gone), never a default,
+-- and nil if it is not a number (the last good save is kept). Doesn't yield.
+function RideService.trainedOxygen(player: Player): number?
+	local r = riders[player]
+	local all = if r then r.Trained + r.Banked else 0
+	if not r or all ~= all or math.abs(all) == math.huge then
+		return nil
+	end
+	return math.max(all, 0)
+end
+
+-- For saving (SaveParts, part "Oxygen", which adds the kept amount to trainedOxygen itself): the trained Oxygen set to
+-- `n`, never under 0 (the start training grows from) and not capped, as training is not (Oxygen.Cap is where the
+-- ticks stop quickening, not a limit on the max), the HUD told at once (the meter full on the dock, as after
+-- training; left as it is in the water). False for a player we don't have, a NaN or an endless number.
+-- Doesn't yield.
+function RideService.setTrainedOxygen(player: Player, n: number): boolean
+	local r = riders[player]
+	if not r or type(n) ~= "number" or n ~= n or math.abs(n) == math.huge then
+		return false
+	end
+	-- (`n` is the whole of it, as trainedOxygen gives it: what is banked in the water stays banked)
+	r.Trained = math.max(n - r.Banked, 0)
+	retrain(r)
+	return true
+end
+
+-- For bought Oxygen (PurchaseService, the UI chat's Robux purchases; it lives in the save's "Oxygen" part): `amount`
+-- more trained Oxygen, given in any state (train() is only on the dock). On the dock the max goes up at once and the
+-- meter follows it, as after training. Off the dock it is BANKED: counted by trainedOxygen at once (so it is saved),
+-- and it joins the max when the rider next reaches the dock (the user, 2026-11-23: "At the dock"). Nothing changes
+-- mid-dive, because the red line, the ticks and the drain are shares of the max: a max raised under a half-empty meter
+-- put it in the red and ended the ride sooner. Not capped, as training is not. False for a player we don't have, or
+-- an amount that is not a number above 0. Doesn't yield.
+function RideService.grantOxygen(player: Player, amount: number): boolean
+	local r = riders[player]
+	if not r or type(amount) ~= "number" or amount ~= amount or amount <= 0 or amount == math.huge then
+		return false
+	end
+	if r.State == "Dock" then
+		r.Trained += amount
+		retrain(r)
+	else
+		r.Banked += amount
+	end
+	return true
 end
 
 -- a fail now, from the water, whatever the no-fail switches say (on a fish: thrown off first, as out of Oxygen)
@@ -2337,6 +2445,47 @@ function RideService.landOff(player: Player)
 	if r then
 		landOff(r)
 	end
+end
+
+-- Riding a fish out of the tank (Config.TankRide.Out; TankRideService): why the land ride could not start now, by the
+-- rules Q keeps ("Equip" off, "Dock", "Again" inside Equip.Again of the last ask, "Hands" full, "Dead", "Busy" on the
+-- trainer or seated), or nil. The tank ride itself is not counted: it is ended first. Changes nothing
+function RideService.outRefusal(player: Player): string?
+	local r = riders[player]
+	local root, humanoid = parts(player)
+	if not r or not root or not humanoid then
+		return "Dead"
+	end
+	if Config.Equip.On == 0 then
+		return "Equip"
+	end
+	if r.State ~= "Dock" then
+		return "Dock"
+	end
+	if os.clock() - r.EquipAt < Config.Equip.Again then
+		return "Again"
+	end
+	if #r.Caught >= Config.Tame.Carry or #r.Carried >= Config.Tame.Carry then
+		return "Hands"
+	end
+	if player:GetAttribute("TrainerRide") ~= nil or humanoid.Sit then
+		return "Busy"
+	end
+	return nil
+end
+
+-- and on it: `carry` (the very entry of the hands just taken out of the tank) becomes the ride fish and is ridden on
+-- land, as Q does with a held fish. true when on it
+function RideService.rideOut(player: Player, carry: Carry): boolean
+	local r = riders[player]
+	if not r or not table.find(r.Carried, carry) then
+		return false
+	end
+	r.EquipAt = os.clock()
+	landOff(r) -- (landOn starts from on foot)
+	r.Equipped = carry
+	tellEquip(r)
+	return landOn(r)
 end
 
 function RideService.Start()

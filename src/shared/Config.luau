@@ -875,6 +875,9 @@ Config.Tame = {
 Config.Aquarium = {
 	On = 1, -- 0: no aquariums: a catch is only counted at the dock, as before
 	Earning = 7, -- how many of a tank's fish may be equipped (earn) on a plot not yet upgraded (the reference's pen: 7)
+	-- WARNING once saving is on: a saved tank holding more than a Hold above 0 is not given back at all
+	-- (AquariumService.restore refuses rather than let fish go) and SaveService then sends that player off on every
+	-- join. Raise it freely; lower it, or set it from 0, only with a plan for the tanks already saved.
 	Hold = 0, -- the most fish a tank keeps, the poorest stored ones let go past it; 0: no limit (Hugo: unlimited)
 	AutoEquip = 1, -- 1: a fish put in takes a free earning place by itself; 0: it is always stored until equipped by hand
 	-- What a fish sells for: this many seconds of what it would earn (Config.sellOf), at least 1 coin. PROPOSED (b1):
@@ -970,6 +973,15 @@ Config.TankRide = {
 	ViewMost = 90, -- but never further than this (studs)
 	Bob = 0.3, -- studs the fish rises and sinks while it floats on the spot (none at full speed)
 	Swim = 1, -- 1: the tank's fish swim with the sea's keyed swim (their joints move); 0: stiff, as before b4
+	-- Riding out through the gate (the user, 2026-11-23: "you should be able to ride a fish out of your tank as if you
+	-- took it out"; docs/design/equip.md, "Riding out of the tank"): pushed against the water's front face in the
+	-- gate's span, outward, for OutHold seconds, the fish is taken out of the tank into the hands, made the ride fish
+	-- and ridden on land from just outside the gate. WRITTEN, NOT PLAYED: 0 in the file until it has been.
+	Out = 0, -- 1: riding out is on; 0: the client never asks and the server refuses (nothing else changes)
+	OutHold = 0.6, -- seconds the push against the gate must last (a bump does nothing)
+	OutGate = 6, -- studs either side of the gate's middle, along the front, that count as the gate (it is 12 wide)
+	OutPush = 0.5, -- the share of Speed the fish must be swimming outward to count as pushing
+	OutAgain = 1, -- seconds after an ask before the client may ask again (a refused or lost ask)
 }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -2627,6 +2639,39 @@ Config.Death = {
 	Still = DROWN.Still, -- still and sinking, the last bubble
 	DrownFade = 1.2, -- the fade to black, ending with the drown
 	DrownTime = DROWN.Throw + DROWN.Struggle + DROWN.Weak + DROWN.Still + DROWN.Tail, -- less Throw when not thrown
+	-- Never drowning above the water (the user, 2026-11-23: "make sure theres no errors where the player floats above
+	-- the water"; tools/studio/fail_eat_check.py drown). Client only: the loose body (FailController) and the drown
+	-- after it (DeathController). 0: as before (the water held the body up in the air too, and the drown went on
+	-- from wherever it lay, above the surface or on the strip)
+	UnderWater = 0, -- 0 in the file until its play check passes (tools/studio/fail_eat_check.py sets it in the place)
+	-- the loose body: the water holds it up and slows it only under the surface (Depth.SurfaceY), full gravity above
+	-- it; it may break the surface by this many studs at most (a soft ceiling: its rise braked to stop there)
+	Breach = 2,
+	BreachBrake = 120, -- studs a second each second the rise is braked by on the way to that ceiling
+	-- near the top the water holds it up less, so it is under Oxygen.SurfaceY by the time its joints are back: the
+	-- hold (Fail.Ragdoll.Float) falls to this share of itself at Oxygen.SurfaceY, from TopBand studs under it
+	TopHold = 0.5,
+	TopBand = 6,
+	-- a throw this near the surface (studs under Depth.SurfaceY) goes less up and more back: at the surface it
+	-- leaves flat, down by ThrowDown of its speed
+	ThrowShape = 25,
+	ThrowDown = 0.15,
+	-- the drown under the water: its body's root kept this many studs under Oxygen.SurfaceY (so the head is under it
+	-- too), eased there over SinkIn seconds from where the joints came back (never a snap)
+	UnderBy = 3.5,
+	SinkIn = 0.6,
+	-- the hand-over from the loose body to the drown: the drown waits for the joints to be back (the "Ragdoll"
+	-- attribute gone) at most this many seconds before it moves the body, carries the body's own speed on, dying
+	-- away at this rate a second, and turns it upright over Upright seconds
+	HandWait = 0.5,
+	Carry = 3,
+	Upright = 1,
+	-- the strip: a body over ground that stands above the water (the dock) is moved out to open water at this many
+	-- studs a second, and a body heading for it within StripLook seconds is stopped short of it
+	StripOut = 14,
+	StripLook = 0.5,
+	StripDepth = 6, -- a body more than this many studs under Depth.SurfaceY is never near the strip (no looking)
+	WetBand = 1, -- studs over which the water's hold and drag fade out at the surface (centred half a stud over it)
 }
 
 -- What a fish does when the meter hits 0 under you (Hugo, 2026-11-19, task e1: "as soon as it hits 0 either getting
@@ -2712,6 +2757,54 @@ Config.Fail = {
 	-- "Taken": the fade to the fail screen after Time, then black for Tail before the dock
 	TakenFade = 0.7,
 	TakenTail = 0.2,
+	-- Eaten for real (the user, 2026-11-23: "make sure theres no un-natural movements and the player ends up in the
+	-- right position to get eaten"; offline table tools/studio/fail_mouth_table.py, the check fail_eat_check.py).
+	-- Client only (FailController), three dials, each 0: as before.
+	-- The mouth (and an angler's lure) found on the fish's own model, from its jaw parts (or its head's, with none)
+	-- at rest, in its root's space and at its size; 0: the old guess off its box (0, -0.05 H, -0.47 L), up to 10 studs
+	-- inside a big shark's skull
+	MouthFromModel = 0, -- 0 in the file until its play check passes (tools/studio/fail_eat_check.py sets it in the place)
+	-- The body taken into the mouth by the jaws' pull (never moved there by hand): the pull starts earlier, the fish's
+	-- other solid boxes near the way in go off with the mouth's, and the bite and the swallow wait (a little) for the
+	-- body to be there
+	Arrive = 0, -- 0 in the file until its play check passes (tools/studio/fail_eat_check.py sets it in the place)
+	ArriveNear = 1.5, -- studs from the mouth the body's middle must be at the bite (and from the throat, swallowed)
+	ArriveWait = 0.35, -- the most seconds the bite and the swallow wait for it, all told
+	-- (the wait is the fish's clock slowed, never stopped: from ArriveLead seconds before the bite or the swallow it
+	-- eases down to ArriveRate of its pace, at ArriveEase a second, and back up as the wait runs out or the body is there)
+	ArriveLead = 0.12,
+	ArriveRate = 0.15,
+	ArriveEase = 12,
+	ChompGrab = 0.95, -- seconds into a Chomp its jaws' pull begins (1.12 before; Gulp's suction stays at 1.0)
+	ChompGrabFrom = 8, -- and how quickly it pulls at first (Responsiveness), growing to the old 22 by 1.12
+	ClearAround = 2, -- the fish's solid boxes this near the way from its mouth to its throat (studs past their own size) go off too
+	-- The fish's own moves smoothed: the turn round to you eased in and out gently and, for a fish longer than
+	-- TurnLength studs, slower (up to TurnStretch times as long: its nose swept round at hundreds of studs a
+	-- second); its rise kept under the surface; and after the bite the head shake and the swim on eased in over
+	-- these seconds (they began at full speed on the frame it bit)
+	Smooth = 0, -- 0 in the file until its play check passes (tools/studio/fail_eat_check.py sets it in the place)
+	TurnLength = 40,
+	TurnStretch = 1.5,
+	ShakeIn = 0.15,
+	OnIn = 0.4,
+	-- (with MouthFromModel) The mouth of a fish whose model the rule cannot read, put by hand: in its root's space, as
+	-- shares of its box (width, height, length), from the painted mouth (tools/studio/fail_mouth_table.py)
+	-- stylua: ignore
+	MouthAt = {
+		TheDevourer = { 0, -0.038, -0.269 }, -- horns hang from its lower jaw inside the Jaw part: the jaw's box ran 11 units down, the mouth 5 studs low
+		Helicoprion = { 0, -0.235, -0.386 }, -- no jaw part, and the tooth whorl under the Head part stretches the head's box down: 2.9 studs low and back
+		Livyatan = { 0, -0.33, -0.39 }, -- a long thin lower jaw hinged far back, its teeth along the front half: the jaw's middle was 2.8 studs behind
+	} :: { [string]: { number } },
+	-- An eater too small to take the rider throws them off instead (Config.failOf): a Chomp or Gulp fish of a kind in
+	-- EatMin shorter than its row, studs of its own length at its size. 0: off, every eater eats.
+	EatSmall = 0, -- 0 until the play check passes (tools/studio/fail_eat_check.py sets it in the place)
+	-- (only kinds whose jaw cannot take a rider head first at a size they come in, from
+	-- tools/studio/fail_mouth_table.py: the length at which the jaw opens 1 stud and is 2 wide, up to the half stud;
+	-- none for the jawless heads, whose room is a guess)
+	-- stylua: ignore
+	EatMin = {
+		MorayEel = 24, -- its jaw is 1.9 wide on a Tiny (22.8 long); 2 wide from 23.6
+	} :: { [string]: number },
 	-- by creature first (Rare and up; a Common or Uncommon here is thrown off all the same)
 	-- stylua: ignore
 	ByCreature = {
@@ -2761,7 +2854,8 @@ function Config.failColours(text: string): (Color3, Color3)
 end
 
 -- The outcome for a fish (Config.Fail): its name. `style`: its body type's name (RideStyles.nameOf), if known.
-function Config.failOf(fish: FishType, style: string?): string
+-- `length`: the fish's own length at its size, studs (nil: its kind's, at Normal), for Fail.EatMin.
+function Config.failOf(fish: FishType, style: string?, length: number?): string
 	local f = Config.Fail
 	if f.On == 0 or f.LowTiers[fish.Tier] then
 		return "Throw"
@@ -2782,6 +2876,11 @@ function Config.failOf(fish: FishType, style: string?): string
 		kind = f.ByStyle[style]
 	end
 	kind = kind or f.Default
+	-- (too small to take you: it throws you off, Fail.EatSmall and EatMin)
+	local least = f.EatMin[fish.Id]
+	if (kind == "Chomp" or kind == "Gulp") and f.EatSmall ~= 0 and least and (length or fish.Size.Z) < least then
+		kind = "Throw"
+	end
 	return if f.Outcomes[kind] then kind else "Throw"
 end
 
@@ -2820,6 +2919,51 @@ Config.Admin = {
 	Maxes = { 200, 500, 2000, 4500, 8000 } :: { number }, -- the max Oxygen buttons (past 2000: the extra thin rings)
 	Coins = { 1000, 100000 } :: { number }, -- the coin buttons
 }
+
+----------------------------------------------------------------------------------------------------------------------
+-- The first minutes: the lesson a new player is taken through once (docs/design/first-minutes.md)
+
+-- LessonService (the server keeps the step, the player's "Lesson" attribute) and LessonController (the line, the
+-- pointer). The user's yes to the smallest set, 2026-11-23; not played. No saves yet: it is every join's. Off in the
+-- movement sandbox. In Studio the workspace's "LessonTest" attribute, true before Play, switches it on whatever these say.
+Config.Lesson = {
+	On = 0, -- 1: on; 0: nothing of it runs (the server hooks nothing, the client builds nothing)
+	-- the first fish: one the player can hold, Normal and plain, that can't be left or lost until it is theirs
+	HoldMost = 60, -- the rule lets go after this long in the water without one, seconds (then a dive is any dive),
+	RideMost = 8, -- or this long on one fish with no tame
+	PutCount = 2, -- this many are put ahead as they go in, when none is in reach (0: never)
+	PutAhead = 45, -- this far down the stream from them, studs,
+	PutGap = 16, -- and the next one this much further
+	PutShare = 0.12, -- this far to one side and the other of the band's middle (a share of its half)
+	PutLift = 16, -- and this high over the floor, studs
+	InReachFrom = 12, -- one counts as in reach from this far down the stream from them, studs,
+	InReachTo = 80, -- to this far (the dive's hop reaches Dive.Reach),
+	InReachWide = 90, -- and within this far of them, studs
+	PutEvery = 2.5, -- looked at again this often while they float or hop with none yet, seconds
+	PutMost = 12, -- and never more than this many for one player
+	-- the goal after the first deposit
+	Goal = "Lionfish", -- train until this fish could be held: its Oxygen is the goal line's number
+	GoalLand = 2, -- then make one of this land's own fish theirs, and the lesson is over
+	GoalName = "Coral Reef", -- that land, as the line says it
+	-- what is shown (LessonController)
+	PointerOff = 14, -- the marker and the trail go when this near the place, studs
+	EarnTime = 4, -- "Your fish earn every second!" stays this long, seconds
+	StrainTime = 4, -- and "Too strong!" this long
+	ReefTime = 5, -- the Reef's line stays this long into a dive, seconds
+	BarTime = 3, -- and the goal bar, ticked, this long
+	Count = 1, -- 1: each step reached is counted with Roblox's onboarding funnel (in Studio: printed)
+}
+
+-- Whether a fish may be a player's first (RideService, and the client's lock): Normal, plain, and one they can hold
+function Config.firstFish(fish: any, sizeTier: string?, variant: string?, max: number): boolean
+	return (sizeTier or "Normal") == "Normal" and (variant or "") == "" and max >= Config.requiredOf(fish, "Normal", "")
+end
+
+-- The Oxygen the lesson trains to
+function Config.lessonGoal(): number
+	local fish = Config.FishById[Config.Lesson.Goal]
+	return if fish then Config.requiredOf(fish, "Normal", "") else 0
+end
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Server leeway: the lag and reach the server allows when it judges a grab or a landing
@@ -3159,8 +3303,8 @@ Config.Dive = {
 	-- sure it looks good and natural and dynamic"). Running off the start strip's lip is a dive: a crouch, a high arc out
 	-- over the water turning head first, a splash, and in, while the camera swings round to watch it, and then the
 	-- dive's hop above takes over under the water. DiveController (on our own screen; the others see the arc, the pose and
-	-- the splash). Every number is Claude's first go: unmeasured and unplayed.
-	Leap = 0, -- 1: running off the lip is the dive; 0: you drop in as before (nothing of the leap runs)
+	-- the splash). Claude's numbers, measured by script (tools/studio/dive_leap_check.py), switched on by the user.
+	Leap = 1, -- 1: running off the lip is the dive; 0: you drop in as before (nothing of the leap runs). On for everyone on the user's word, 2026-11-23
 	LeapCam = 1, -- 1: the camera films the dive; 0: the view is left as it is
 	Flip = 0, -- 1: a forward somersault in the air, tucked
 	LeapAhead = 2.5, -- the water is looked for this far ahead of you as you run, studs
@@ -3207,6 +3351,21 @@ Config.Dive = {
 	LeapSplashMost = 4, -- at most this many splashes at once
 	LeapSplashFar = 300, -- none further from the camera than this, studs
 	LeapSplashNear = 8, -- a splash's blocks fade out nearer the camera than this, studs (gone at a third of it): the view never goes white inside one
+	-- the leap on the ride fish (2026-11-23, the user: "if you are on a fish and you dive into the water you should have
+	-- a slightly different but similar dive animation"). Riding the equipped fish on land (Equip), running off the lip is
+	-- the fish's own dive: a lower, longer arc, nose up, over and nosing in, the rider tucked down on its back, the
+	-- camera further back. A bigger fish leaps higher, further and slower, and splashes bigger. Claude's numbers, not
+	-- yet played; a fish that would hit anything on the way drops in as before
+	LeapMounted = 0, -- 1: on the ride fish, running off the lip is its dive; 0: it drops in as before (nothing of it runs). 0 in the file until its play check passes
+	LeapMountedHigh = 4, -- the arc's top over where it left, studs (for a fish LeapMountedSize long),
+	LeapMountedFar = 34, -- where it meets the water, studs out,
+	LeapMountedTime = 1.1, -- and from leaving the edge to the water, seconds
+	LeapMountedSize = 12, -- a fish this long (studs) leaps as above; the high and the far go as the square root of its length over this, the time as its 0.35th power,
+	LeapMountedLeast = 0.75, -- that share never under this,
+	LeapMountedMost = 2, -- nor over this (and the pace never over the server's land pace check, Equip.PaceRoom)
+	LeapMountedCam = 1.25, -- the camera's distances (its moves and the chase) times this, times that share to the 0.7th power
+	LeapMountedThrough = 0.6, -- the camera stays over the water behind the splash this long after the fish goes in, seconds (the server swaps the land fish for the water fish meanwhile)
+	LeapMountedLevel = 10, -- under the water the fish levels to this many degrees nose down (the water fish is level)
 	FirstDockWait = 20, -- seconds floating at the surface by the dock before a player who has not ridden yet this dive is put back on it (Oxygen.DockWait once they have)
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
 }

@@ -21,6 +21,7 @@ local Course = require(script.Parent.Parent.Lib.Course)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
+local Underwater = require(script.Parent.Parent.Lib.Underwater)
 
 local DeathController = {}
 
@@ -43,6 +44,14 @@ type Death = {
 	-- throw is the physics', not ours), and the body's turn as it got its joints back, eased out of
 	Loose: number?,
 	Settle: CFrame?,
+	-- (Death.UnderWater) when the drown took the body over (seconds in), the speed it carried on, the way it has been
+	-- moved out off the strip, and the height it was eased down from
+	SettleAt: number,
+	Carry: Vector3,
+	Carried: Vector3,
+	Shift: Vector3,
+	TopFrom: number,
+	Under: boolean,
 }
 
 local deaths: { [Player]: Death } = {}
@@ -113,6 +122,12 @@ local function begin(player: Player, kind: string): Death?
 			Settle = nil,
 			CamOffset = Vector3.zero,
 			CamAt = nil,
+			SettleAt = 0,
+			Carry = Vector3.zero,
+			Carried = Vector3.zero,
+			Shift = Vector3.zero,
+			TopFrom = root.Position.Y,
+			Under = Underwater.on(),
 		}
 	if ragdolled then
 		-- a loose body is followed, from the side the shot already is, no further than 26 studs (one push in, eased
@@ -201,7 +216,13 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		State.Fade = 1
 		return
 	end
-	if d.Loose and tt < 0 then
+	-- (Death.UnderWater: the body still loose, its joints not back yet, a moment longer: never moved by us while the
+	-- physics still has it)
+	local loose = d.Loose ~= nil and tt < 0
+	if d.Loose and d.Under and not d.Settle and not loose then
+		loose = d.Character:GetAttribute("Ragdoll") ~= nil and tt < c.HandWait
+	end
+	if loose then
 		-- flying loose: the physics has the body (FailController); only the shot follows it
 		-- held where it is, turning to follow the body, so the throw is seen to go; drawn after it only when far
 		local at = d.CamAt or (root.Position + d.CamOffset)
@@ -226,6 +247,15 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		d.Settle = root.CFrame.Rotation
 		d.Back = Vector3.zero
 		d.Look = flat(root.CFrame.LookVector)
+		d.SettleAt = t
+		d.Carry = if d.Under then root.AssemblyLinearVelocity else Vector3.zero
+		d.TopFrom = root.Position.Y
+	end
+	local since = t - d.SettleAt
+	if d.Under then
+		-- the body's own speed carried on, dying away (no stop dead as the joints come back)
+		d.Carried += d.Carry * dt
+		d.Carry *= math.exp(-c.Carry * dt)
 	end
 	local start = d.At.Position
 	local thrownTo = start
@@ -247,12 +277,35 @@ local function drownStep(player: Player, d: Death, t: number, dt: number)
 		local speed = Ease.lerp(0.5, 1.4, weak) + 0.8 * limp
 		d.Sink += speed * dt
 		local bob = math.sin(tt * 6) * 0.35 * (1 - weak)
+		if d.Under then
+			bob *= Ease.smoothstep(0, math.max(c.Upright, 0.05), since)
+		end
 		local position = thrownTo + Vector3.new(0, bob - d.Sink, 0)
 		local sway = math.sin(tt * 4) * math.rad(10) * (1 - weak)
 		frame = CFrame.lookAt(position, position + face) * CFrame.Angles(math.rad(20) + limp * math.rad(30), 0, sway)
 		if d.Settle then
-			frame = CFrame.new(frame.Position) * d.Settle:Lerp(frame.Rotation, Ease.smoothstep(0, 0.6, tt))
+			-- (Death.UnderWater: turned upright from the moment it was taken over, not from the throw's planned end)
+			local turn = if d.Under
+				then Ease.smoothstep(0, math.max(c.Upright, 0.05), since)
+				else Ease.smoothstep(0, 0.6, tt)
+			frame = CFrame.new(frame.Position) * d.Settle:Lerp(frame.Rotation, turn)
 		end
+	end
+	if d.Under then
+		-- (Death.UnderWater) under the water: the carried speed, moved out off the strip, and kept Death.UnderBy under
+		-- Oxygen.SurfaceY, eased down there from where it was over Death.SinkIn (never a snap)
+		local position = frame.Position + d.Carried
+		local out = Underwater.outward()
+		if out and Underwater.groundAbove(position + d.Shift) and position.Y > Config.Depth.SurfaceY - c.StripDepth then
+			d.Shift += out * c.StripOut * dt
+		end
+		position += d.Shift
+		local top = Underwater.top()
+		local cap = Ease.lerp(math.max(d.TopFrom, top), top, Ease.smoothstep(0, math.max(c.SinkIn, 0.05), since))
+		if position.Y > cap then
+			position = Vector3.new(position.X, cap, position.Z)
+		end
+		frame = CFrame.new(position) * frame.Rotation
 	end
 	-- (never into the floor or through a wall: the throw and the sink kept in open water, and the sinking stops on
 	-- the floor, the body lying there)
@@ -325,6 +378,27 @@ local function step(dt: number)
 	darken.Brightness = -0.28 * dark
 	darken.Contrast = 0.2 * dark
 	darken.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(140, 165, 205), dark)
+end
+
+-- Test hook: only the Studio checks call this (tools/studio/fail_eat_check.py). The drown playing for `player` now, as
+-- plain values (nil: none): whether the drown has taken the body over yet, when, and the height it is kept under.
+function DeathController.probe(player: Player): { [string]: any }?
+	local d = deaths[player]
+	if not d then
+		return nil
+	end
+	return {
+		Kind = d.Kind,
+		Thrown = d.Thrown,
+		Loose = d.Loose,
+		Settled = d.Settle ~= nil,
+		SettleAt = d.SettleAt,
+		TopFrom = d.TopFrom,
+		Top = Underwater.top(),
+		Shift = d.Shift,
+		Under = d.Under,
+		Ragdoll = d.Character:GetAttribute("Ragdoll") ~= nil,
+	}
 end
 
 function DeathController.Init()
