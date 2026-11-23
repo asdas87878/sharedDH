@@ -81,7 +81,9 @@ game.)*
 **Picked: E without the rim** (the user, 2026-11-23: "lets go for E but without the barrier on the top, similar to to the top
 of C. E progression with the lacking geomtry on the top of C"). The low crooked fence stays; the slim tank inside it grows;
 on top nothing but the four post ends, 0.3 over the water, and the thin pale line at the water's edge. All six stages (water
-14, 26, 38, 50, 62, 74 high; 7, 9, 11, 13, 15 and 14 fish, the last without the three giants). **Still proposals:** the
+14, 26, 38, 50, 62, 74 high; 7, 9, 10, 12, 14 and 12 fish in the picture). The glass stands inside the fence, so its floor is
+46.8 x 56.8 and the Archelon no longer lies inside it (one is left out at stages 2, 3 and 4, two at 5; the three giants fit no
+pen). Stages 2 to 5 are squeezed: their layers need 50, 55, 89 and 92 high against 37, 49, 61 and 73. **Still proposals:** the
 heights, and the colours by stage (posts wood, wood, cream, cream, white, white; the fence's rails wood, then cream; its
 upper rail gold at the last):
 

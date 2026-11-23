@@ -38,7 +38,7 @@ CREAM = (244, 236, 214)
 # the fence and the posts get a little finer with the stage: bare wood, then cream, then white with a gold upper rail
 POST_C = {0: WOOD_D, 1: WOOD_D, 2: WOOD_D, 3: WOOD_D, 4: (112, 80, 46), 5: (112, 80, 46)}
 RAIL_C = {0: WOOD, 1: WOOD, 2: CREAM, 3: CREAM, 4: CREAM, 5: CREAM}
-TOP_C = {0: WOOD, 2: CREAM, 5: GOLD}
+TOP_C = {0: WOOD, 1: WOOD, 2: CREAM, 3: CREAM, 4: CREAM, 5: GOLD}
 FRAME_C = {0: WOOD_D, 1: WOOD, 2: CREAM, 3: CREAM, 4: WHITE, 5: WHITE}  # E's tank posts
 GATE_AT = 0.0  # how far the gate stands off the middle of the front (the back pens in S)
 rng = random.Random(11)
