@@ -1945,7 +1945,7 @@ Kit.FailShow = nil :: ((text: string, fade: number) -> ())?
 ----------------------------------------------------------------------------------------------------------------------
 -- Numbers and touch: big numbers in short, and whether this is a phone
 
-local UNITS = { "K", "M", "B", "T" }
+local UNITS = { "K", "M", "B", "T", "Qa", "Qi" } -- (as Config.shortNumber; prices reach $500Qa)
 
 -- A big number in short: 950, 1.9K, 12.5K, 2.3M
 function Kit.short(value: number): string
