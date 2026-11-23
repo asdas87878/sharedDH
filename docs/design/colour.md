@@ -237,11 +237,13 @@ light and dark halves, but for some 200 bricks at the border):
 - **Colour by place, not by dice** (`tint_at`, `greybox.py`): each room has a leading colourway. About one patch in
   five, some 150 studs long on one side, is a guest; everything in a patch wears the patch's colour, and one
   big prop in ten strays. The Shallows lead with orange and have gold as the guest (pink only in the last two rooms, on
-  the way to the Reef); the Reef's rooms take turns, teal, violet, raspberry.
+  the way to the Reef); the Reef's rooms take turns, teal and violet, with raspberry only a guest: at L* 49 it sinks into
+  the Reef's pink wall (L* 48).
 - **Tone by form** (`props2.py`, lands 1 to 4): bodies wear the main colour, one step up (`Soft`, 8 L*) and one step down (`Deep`,
   13 L*). Dark is for stems, seams and bands only, light for tips and tops only. In lands 1 to 4 the dark is L* 34 and
   the light L* 84 (the others keep 26 and 87).
-- **Stone comes from the land's wall face:** sand in the Shallows, rose in the Reef, pale green-grey in Kelp, olive-grey
+- **Stone comes from the land's wall face:** sand a step under the wall (L* 63) in the
+  Shallows, rose in the Reef, pale green-grey in Kelp, olive-grey
   in the Wrecks, and it isn't pushed dark.
 - **One accent per land:** gold-cream in the Reef, yellow in Kelp, brass in the Wrecks; anchors and bands are iron.
 - **The Reef's pink is raspberry**, at least 20 L* off its floor; its teal is the proposal's.
@@ -250,15 +252,24 @@ light and dark halves, but for some 200 bricks at the border):
 |---|---|---|---|---|
 | dark / light share of the props, before | 35 / 44 | 21 / 32 | 42 / 22 | 45 / 24 |
 | after | 4 / 17 | 9 / 6 | 20 / 17 | 24 / 4 |
-| litter in the colour of the prop beside it, before | 43% | 21% | 48% | 88% |
-| after | 99% | 47% | 66% | 99% |
+| litter in the hue of the prop beside it, before | 43% | 21% | 48% | 88% |
+| after, by hue | 96% | 47% | 66% | 99% |
+| after, by colourway (from the generator) | 91% | 84% | 90% | 90% |
 | hues within 90 studs, before | 4.5 | 5.8 | 4.1 | 2.8 |
-| after | 3.4 | 3.8 | 3.4 | 2.4 |
+| after | 3.5 | 3.9 | 3.4 | 2.2 |
 
-Nothing moved: 0 of 104,211 boxes differ in shape or place, and the paths are the same; 17,875 bricks
+The hue measure reads low in the Reef and Kelp, where one colourway holds several hues (a cream shell, two greens); the
+colourway count is the rule itself, and what is left is at the edges of patches.
+
+![Before (left) and after (right), in Play](../attachments/map-prop-colours.jpg)
+
+Nothing moved: 0 of 104,211 boxes differ in shape or place, and the paths are the same; 18,005 bricks in 2,755 models
 changed colour. It goes on the loaded place without a reload, so hand placing is kept:
 `tools/map/prop_recolour_luau.py <old parts.json> <new parts.json>` writes `tools/studio/prop_recolour/`, and the same with
 the two files the other way round puts the old colours back. A model somebody painted by hand is left alone and named.
+
+The place's prop bricks were counted against the build afterwards: all 54,665 colours match, no model left alone.
+The place is not saved yet.
 
 **Offered, not done:** taking the proposal's own prop colours whole (`proposal.json`, the props pair). It is a bigger change of look.
 

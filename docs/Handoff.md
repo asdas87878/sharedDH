@@ -3,6 +3,15 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-23 · The early lands' prop colours, and litter on the hub's first ledge (Ride a Fish map, the user's PC)
+**State:** committed, not pushed by hand (the sync carries it); in the Team Create place (3b999aa2), **not saved unless the user said so since**. Nothing moved or reloaded.
+- **Colours:** the props of lands 1 to 4 (18,005 bricks): colourway by place, tone by form, stone from the walls. Why and
+  the numbers: [colour](design/colour.md), "A bit less random".
+- **The ledge:** 136 bricks, `Dock/Dressing/Ledge` ([hub review 2](design/hub-review-2.md), "The first ledge's litter").
+- **Hugo's place needs both,** in Edit: the 11 files of `tools/studio/prop_recolour/` and `tools/studio/hub_only.luau`
+  (`node tools/studio/run_luau.js <id> <file>`). Each file says what it painted; "left alone" should be 0. Or wait for the save.
+- **To put the colours back:** `tools/map/prop_recolour_luau.py <new parts.json> <old parts.json>` (the old one is in git, `db2b0cc`).
+
 ## 2026-11-23 · The dive leap, behind a dial that is off (Ride a Fish game code, the user's PC)
 The user: "make a sick dive animation for when the player jumps into the water initially from the dive stand."
 **State:** in the vault's sync commits (no hand-made push). StyLua clean, selene 0 errors. `Config.Dive.Leap` is 0: with

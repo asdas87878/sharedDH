@@ -1391,8 +1391,8 @@ def tint_at(at, right, land, seed, big=False):
     k_ = max([i_ for i_, room in enumerate(mine) if room["s0"] <= at], default=0)
     if land == 0:  # orange; gold as the guest, the Reef's pink only on the way to it
         lead, guest = 0, 2 if k_ >= len(mine) - 2 and len(mine) > 2 else 1
-    elif land == 1:  # teal, violet, raspberry, room by room
-        lead, guest = (1, 2, 0)[k_ % 3], (2, 0, 1)[k_ % 3]
+    elif land == 1:  # teal and violet, room about; raspberry only as a guest: it is as dark as the Reef's pink wall (L* 49, 48)
+        lead, guest = (1, 2)[k_ % 2], (0, 1)[k_ % 2]
     else:
         lead, guest = 0, 1
     tr = random.Random(land * 1009 + int(at // 150) * 31 + (1 if right else 0) * 7 + 5)

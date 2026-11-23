@@ -277,6 +277,18 @@ Ranked by what they add for what they cost:
 - Not advised: Roblox's own terrain water. It refracts and has waves, but it can't take our layered look and costs more on
   phones.
 
+## The first ledge's litter (2026-11-23)
+The user: "id like for you to add some of the littered objects on the first inset of the wall/cliff in the hub. Like in
+ride a dino." Theirs: lime blades one or two at a time and big pale cubes piled off centre, with most of the ledge empty.
+Ours (`ledge_litter` in `tools/map/hub_kit.py`): tall sea grass, piles of pale stone with a pebble or two, and a few sea
+pinks on stalks (our own shapes), at uneven gaps of about 25 studs, 2 to 7 studs behind the lip. 136 bricks, one model
+(`Dock/Dressing/Ledge`), none solid. The first try was too small and even from the hub's middle, and its stones too near
+the wall's colour: now a third bigger, warmer and paler. Every piece stands on the ledge (ray, y 24) and touches nothing;
+the Fuse's move and the Index's deletion were kept, because only this model was added:
+`HUB_ONLY=Dressing/Ledge python tools/map/hub_luau.py`, then run `tools/studio/hub_only.luau`.
+
+![Before (left) and after (right)](../attachments/hub-ledge-litter.jpg)
+
 ## Also open
 - **The map's material:** the user found SmoothPlastic better than Plastic in play ("Feels better, is better ... we'll
   touch more on that later"). The saved place is still Plastic. Switching it back is `tools/studio/matte_map.luau` with

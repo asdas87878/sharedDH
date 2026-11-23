@@ -37,7 +37,7 @@ def tone(pal, slot, k):
 # 2026-11-23, "a bit less random" (docs/design/colour.md): a land's stone is of its wall face's family (it was one
 # blue-grey everywhere), one accent a land, and the Reef's pink 20 of lightness off its pink floor. Which colourway stands
 # where is greybox.py's `tint_at`: a room has one it leads with
-SAND_STONE = [(168, 132, 94), (190, 156, 116)]
+SAND_STONE = [(142, 106, 72), (164, 127, 90)]  # a step under the sand wall (L* 63), or a stack sinks into it
 ROSE_STONE = [(184, 143, 160), (203, 166, 180)]
 SHELL = (255, 246, 232)
 PALETTES = {

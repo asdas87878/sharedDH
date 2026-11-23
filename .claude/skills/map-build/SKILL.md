@@ -45,3 +45,9 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   `greybox_luau.py`, `hub_luau.py`, then `load_greybox.py <id>` (25 minutes, in the background; read the user's hand placing first).
   The hub's models alone: `hub_kit.py`, `hub_luau.py`, `tools/studio/greybox/9[4-7]_hub.luau` (seconds). Then
   `tools/studio/hub_contract.luau` (everything the game reads on the dock). The place's part count runs 65 over "expected": always has.
+- **Prop colours, lands 1 to 4 (2026-11-23, `docs/design/colour.md`, "A bit less random"):** the colourway is by place
+  (`tint_at` in `greybox.py`: a room's lead, a guest patch, never a dice roll per thing; pass its `tint` to `place2`), tone by
+  form (`Main` with `Soft` and `Deep` for bodies, dark only for stems and seams, light only for tips and tops), stone from the
+  land's wall. The deep lands keep their old tones. Build with `PALETTE=art/map/palettes/proposal.json PROPS2=1`. **Recolour the loaded
+  place, never reload for a colour:** `tools/map/prop_recolour_luau.py <old> <new>` (by each brick's position; it skips what a
+  person painted). One hub model alone: `HUB_ONLY=Dressing/Ledge python tools/map/hub_luau.py` then `tools/studio/hub_only.luau`.
