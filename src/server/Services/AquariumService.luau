@@ -270,8 +270,9 @@ end
 
 -- The tank's height (task b1): a stage makes it taller. The map's tank is upright boxes: its water and corner posts
 -- are stretched upward from where they stand, and what sits on top (the water's surface, the rim, the owner's sign)
--- is lifted by as much; the base, the sand and the reef stay. Each part's own place and size are kept from the
--- start, so any height is counted from the map's, never from the last one.
+-- is lifted by as much; the base, the sand and the reef stay. A sign with a SignBack stands on the tank's top and goes
+-- up with it; one without (the pens' gate board, 2026-11-23) stands on its own posts and stays. Each part's own place
+-- and size are kept from the start, so any height is counted from the map's, never from the last one.
 local STRETCHED = { TankWater = true, Post = true }
 local LIFTED = { TankSurface = true, RimSide = true, RimEnd = true, SignBack = true, SignBoard = true }
 type Piece = { Part: BasePart, At: CFrame, Size: Vector3, Stretch: boolean }
@@ -281,7 +282,11 @@ local growing: { [Model]: number } = {} -- (a count: only the newest grow of a p
 
 local function remember(plot: Model)
 	local list: { Piece } = {}
+	local onTank = plot:FindFirstChild("SignBack") ~= nil
 	for _, d in plot:GetChildren() do
+		if d.Name == "SignBoard" and not onTank then
+			continue
+		end
 		if d:IsA("BasePart") and (STRETCHED[d.Name] or LIFTED[d.Name]) then
 			table.insert(list, { Part = d, At = d.CFrame, Size = d.Size, Stretch = STRETCHED[d.Name] == true })
 		end

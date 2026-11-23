@@ -131,16 +131,13 @@ local function standIn(dock: CFrame): BasePart
 	return pad
 end
 
--- A sign over a plot's ride. The ride stands in front of the right end of its tank's sign (SignBoard: 4 studs tall,
--- its top 26 studs up), and at 21 studs the trainer's board lay across that sign's end as seen from the front of
--- the plot, cutting off its words. Its foot is now above the tank sign's top, and the ride is nearer the viewer than
--- the tank's sign, so from the front the two are clear of each other at any distance: the tank's sign, and the
--- trainer's above its end.
+-- A sign over a plot's ride: its foot is 19.5 studs up, clear of the tallest seahorse (17.9). (30.5 before the
+-- pens of 2026-11-23: it had to clear the old tank's own sign, whose top stood 26 up; the pens' is on the gate, 10 up.)
 local function label(spot: BasePart)
 	if spot:FindFirstChild("Sign") then
 		return
 	end
-	trainSign(spot, 30.5, true)
+	trainSign(spot, 22, true)
 end
 
 local function levelRow(n: number): { Name: string, Oxygen: number, Price: number }

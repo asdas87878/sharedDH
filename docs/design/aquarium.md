@@ -63,7 +63,7 @@ limited number can be equipped at once, changeable only by plot upgrades. Built 
   Robux price on the purple block (shown only, as on the seahorse's sign: placeholders, nothing can be bought with
   Robux). A click or tap on the cash block of **your own** sign, from within 14 studs (`PlotUpgrades.SignNear`), buys
   the next stage. At the top: TANK MAXED!, STAGE 5/5 in gold, MAX STAGE.
-- **A stage** lets 2 more fish be equipped (`Slots`) and makes the tank 3 studs taller (`Taller`; the water is 14
+- **A stage** lets 2 more fish be equipped (`Slots`) and makes the tank 12 studs taller (`Taller`, 3 before 2026-11-23; the table's last column is the old 3; the water is 14
   high at the start on the first plot, so 29 at stage 5; the plots' tanks are not all one height), growing over 0.6 seconds. The water and the corner posts stretch upward from
   the same floor; the rim, the water's surface and the owner's sign are lifted; the base, sand and reef stay. The
   tank goes back to the map's height when its owner leaves. The hover outline and the click box follow the taller tank.
@@ -280,7 +280,7 @@ In the user's Studio on grey-box 15, by script.
 | `Show`, `ShowShare`, `ShowLeast`, `ShowMost` | 17, 1, 0, 1000 | The fish shown in the tank, and how long each is drawn: real size since b4 (it was 0.7, 7, 28) |
 | `SwimPace`, `SeeFrom` | 5, 450 | How fast they lap, and from how far a client moves them |
 
-`Config.PlotUpgrades`: `On` 1, `Slots` 2, `Taller` 3, `Grow` 0.6, `Stages` (the five prices above), `Free` 0 (1:
+`Config.PlotUpgrades`: `On` 1, `Slots` 2, `Taller` 12 (3 before 2026-11-23), `Grow` 0.6, `Stages` (the five prices above), `Free` 0 (1:
 every stage costs nothing, for trying it), `Robux` 29, 59, 99, 199, 399 (shown only), `SignNear` 14, `UpAgain` 0.5,
 `Sign` (the board: `Inset` 0.6 from the tank's left corner, `Ahead` 7 in front of its front, and the seahorse
 board's own sizes).

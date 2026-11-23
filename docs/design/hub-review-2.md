@@ -202,16 +202,17 @@ in place of the old one at x 3000, about 25 minutes. **Not saved.** The try at x
   floor under them, at two lane sets far out; those sets are the same pieces as before by the offline comparison, but the old map's
   figure was not kept; the game's own survey found the floor at all 2,941 places). In Play: spawn, a plot handed out,
   trainers built, five fish put in the tank, a stage bought (the water rose 3), a walk from the spawn out of the gate
-  (3.4 s) into a dive and a hooked fish, no errors. **By script, not played by hand.** Not tried in Play: standing on the stalls' rings
-  (Sell, Auras, the sub) and riding a trainer (the user took Studio back first). The code reads each ring and `TrainerSpot` where it
-  stands and at its own size, and the rings are smaller than before (11.5).
+  (3.4 s) into a dive and a hooked fish, no errors. **By script, not played by hand.** Then, in a second Play: the Sell and Auras rings open and
+  close their windows, the sub's ring shows its prompt and counts as near, the seahorse seats you, gives Oxygen and lets you off.
 - **What moved in the lane:** its walls by 0.04 in the middle and under 4.4 for nine in ten, floors the same, about 40% of the props.
 - **Gone:** the gate's two palms (the earners board and the sub stand are there now). The back two stand in the open corners.
 - **Way back:** close without saving; or git `f135a1a`'s `tools/studio/greybox/` loaded again; the old dock is
   `ServerStorage.DockBackup_2026-11-23` (scripts off, tags off; delete it when the hub is settled).
-- **Waiting on the game code (3 small changes, not made):** `Config.PlotUpgrades.Taller` 3 to 12; the gate's `SignBoard` not
-  lifted on a plot with no `SignBack` (until then it floats up 3 a stage off its posts); the trainer's TRAIN sign at 21 in place
-  of 30.5 (it hangs high over the low pens).
+- **The game code, done the same day** ("Yes, make them": the user): `Config.PlotUpgrades.Taller` 3 to 12; the gate's `SignBoard` stays
+  on its posts (`AquariumService.remember` leaves it out where a plot has no `SignBack`); the TRAIN sign at 22 in place of 30.5
+  (21 was planned: the tallest seahorse, level 12, stands 17.9 and the sign's foot is 3.2 under its middle). In Play: stage 2 is 37.9 of
+  water, its edge line and posts with it, the board still at 9, five fish spread from 9 to 30 up.
+- **The user's hand placing after the load (2026-11-23):** Fuse moved by (-19.4, 0, 11.8), the Index station deleted. Kept; don't reset.
 
 *(Earlier corrections, all of the first drawing. R, 290 x 196, is dropped: it was said that 230 x 180 does not fit eight pens, without
 drawing it; R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a

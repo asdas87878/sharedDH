@@ -3,6 +3,16 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-23 · The new hub (S) in the whole map, and the three code changes its pens need (Ride a Fish map, the user's PC)
+**State:** StyLua clean, selene 0 errors. In the user's open place, **not saved**; the partner's place has the old hub until the
+map is loaded there (`tools/studio/load_greybox.py`, about 25 minutes). The code works with either hub.
+- **The map** (`2881171`): hub 344 x 212, eight open pens 47 x 62 that grow. All of it, how it was checked and the way back:
+  [hub-review-2](design/hub-review-2.md), "Live". Generate with `PROPS2=1`.
+- **The code:** `Config.PlotUpgrades.Taller` 3 to 12; `AquariumService.remember` leaves `SignBoard` out where a plot has no `SignBack`;
+  `TrainService.label` 30.5 to 22 (on the old hub's tall tanks this sign would lie across the tank's own sign again).
+- **Not checked:** the seahorse's higher levels under the lower sign (the level models are not on this PC; from the model files the
+  tallest stands 17.9 and the sign starts at 19.5), and stages 3 to 5 in Play.
+
 ## 2026-11-22 · The code tidied for a sale: dead code out, comments, guards in both Main (Ride a Fish game code, the user's PC)
 **State:** pushed by the Obsidian plugin's sync (23:03 and after). StyLua clean; selene 0 errors (the three old
 warnings); the Rojo build passes. Synced into the open place and played, not saved. **Pull before editing `src/`.**
