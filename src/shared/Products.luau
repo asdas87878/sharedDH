@@ -186,6 +186,9 @@ function Products.onSale(offer: Offer): boolean
 	return offer.Id > 0 and offer.Kind == "Product" and offer.Gives ~= nil and amount ~= nil and amount > 0
 end
 
+-- The part of the save each thing given is kept in (SaveService; the player's attribute "Saved" .. part says it is on)
+Products.Part = { Coins = "Tank", Oxygen = "Oxygen" } :: { [string]: string }
+
 -- The offer a Roblox product is (the server's: a receipt's ProductId)
 function Products.byId(id: number): Offer?
 	for _, section in Products.Sections do

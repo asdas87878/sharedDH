@@ -6,7 +6,7 @@
 -- cards on a vivid gradient with a sunburst behind their picture: the wide ones one to a row, the boosts three to a
 -- row. The offers are Shared/Products (every Id 0 for now): each card's button reads SOON and asks nothing until the
 -- offer is on sale (Products.onSale); then it shows Roblox's own price and asks Roblox for the purchase prompt, once
--- the player's save is in (their "Saved" attribute), and the card says how much it gives. What a purchase gives is the
+-- the player's save is in (their "Saved..." attributes), and the card says how much it gives. What a purchase gives is the
 -- server's (PurchaseService): nothing here grants anything.
 -- ShopScreen.goTo("Cash") opens it at that section: what the stat rows' plus buttons do (Controllers/StallController).
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -145,12 +145,10 @@ local function buy(card: GuiObject, offer: Products.Offer, props: { [string]: an
 		end
 	end)
 	b.Root.Activated:Connect(function()
-		-- (nothing is asked for that the server could not give yet: no save in, or coins with no wallet)
+		-- (nothing is asked for that the server could not give and keep yet: its part of the save is not on)
 		local player = State.Player
-		if player:GetAttribute("Saved") ~= true then
-			return
-		end
-		if offer.Gives == "Coins" and player:GetAttribute("Coins") == nil then
+		local part = Products.Part[offer.Gives or ""]
+		if not part or player:GetAttribute("Saved" .. part) ~= true then
 			return
 		end
 		MarketplaceService:PromptProductPurchase(player, offer.Id)

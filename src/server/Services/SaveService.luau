@@ -4,7 +4,7 @@
 -- at a time holds it, saved every five minutes, as they leave and as the server closes.
 --   Parts: what is kept, one for each service that has something to keep, given in Lib/SaveParts (which has the switch):
 --     SaveService.part(name, dump, restore, ready?)
---       dump(player)            what to keep, a fresh plain table, number or text; nil while the service doesn't have them
+--       dump(player)            what to keep, a plain table nobody changes after, number or text; nil while the service doesn't have them
 --                               (not joined yet, gone, or no plot): what was kept before is then left as it is
 --       restore(player, kept)   called once, when the profile and the service are both ready, if anything was kept; it
 --                               ADDS to what the player has made in the moments before; an error: it could not be
@@ -18,7 +18,7 @@
 --   play on a save that would be lost or written over.
 --   In Studio: ProfileStore's stand-in store, in memory, gone at Stop, unless the workspace's "SaveReal" attribute is
 --   set before Play (then Roblox's own, if the game's settings let Studio reach it).
---   The player's attribute "Saved" is true once their profile is in.
+--   The player's attribute "Saved" .. name ("SavedTank") is true while that part is on: what is bought into it is kept.
 -- Receipts (PurchaseService) are kept in the profile's Receipts, oldest first. One goes in with the first snapshot after
 -- what it gave, never without it.
 local Players = game:GetService("Players")
@@ -33,6 +33,7 @@ local STORE = "Players1"
 local EVERY = 0.5 -- seconds between snapshots
 local VERSION = 1
 local KEEP = 200 -- receipts remembered in a profile
+local WAIT = 120 -- seconds a profile is waited for (a store that is down; ProfileStore has no limit of its own with a Cancel)
 
 type Part = {
 	Dump: (player: Player) -> any?,
@@ -63,17 +64,23 @@ function SaveService.part(
 	table.insert(order, name)
 end
 
--- Whether a value can be stored: no number that is not one, or endless (Roblox's store refuses the whole save)
+-- Whether a value can be stored: no number that is not one, or endless (Roblox's store refuses the whole save). A
+-- table found sound is not looked through again (nobody changes one after giving it).
+local checked: { [any]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local function sound(value: any): boolean
 	local kind = type(value)
 	if kind == "number" then
 		return value == value and math.abs(value) < math.huge
 	elseif kind == "table" then
+		if checked[value] then
+			return true
+		end
 		for _, v in value do
 			if not sound(v) then
 				return false
 			end
 		end
+		checked[value] = true
 		return true
 	end
 	return kind == "string" or kind == "boolean"
@@ -113,12 +120,18 @@ local function take(save: Save): boolean
 	return true
 end
 
+local function unmark(player: Player)
+	for _, name in order do
+		player:SetAttribute("Saved" .. name, nil)
+	end
+end
+
 -- The profile let go as it was kept, and the player sent off
 local function refuse(save: Save, why: string)
 	if saves[save.Player] == save then
 		saves[save.Player] = nil
 	end
-	save.Player:SetAttribute("Saved", nil)
+	unmark(save.Player)
 	save.Profile:EndSession()
 	save.Player:Kick(why)
 end
@@ -145,6 +158,7 @@ local function settle(save: Save): boolean
 			end
 		end
 		save.On[name] = true
+		save.Player:SetAttribute("Saved" .. name, true)
 	end
 	return true
 end
@@ -153,9 +167,10 @@ local function join(player: Player)
 	if saves[player] then
 		return
 	end
+	local from = os.clock()
 	local profile = store:StartSessionAsync(tostring(player.UserId), {
 		Cancel = function()
-			return player.Parent ~= Players
+			return player.Parent ~= Players or os.clock() - from > WAIT
 		end,
 	})
 	if not profile then
@@ -164,18 +179,25 @@ local function join(player: Player)
 		end
 		return
 	end
-	if profile.Data.Version > VERSION then
+	if player.Parent ~= Players then
+		profile:EndSession()
+		return
+	end
+	profile:Reconcile()
+	local data = profile.Data
+	if type(data.Version) ~= "number" or type(data.Parts) ~= "table" or type(data.Receipts) ~= "table" then
+		warn(`[SaveService] the save of {player.Name} is not in a shape the game knows: left as it is`)
+		profile:EndSession()
+		player:Kick("Your save could not be read. It is kept as it was: please join again.")
+		return
+	end
+	if data.Version > VERSION then
 		-- (kept by a newer game than this server's: an older one never writes it)
 		profile:EndSession()
 		player:Kick("The game was just updated. Please join again.")
 		return
 	end
-	if player.Parent ~= Players then
-		profile:EndSession()
-		return
-	end
 	profile:AddUserId(player.UserId)
-	profile:Reconcile()
 	local save: Save = { Player = player, Profile = profile, On = {}, Pending = {} }
 	saves[player] = save
 	profile.OnSave:Connect(function()
@@ -186,13 +208,11 @@ local function join(player: Player)
 	profile.OnSessionEnd:Connect(function()
 		if saves[player] == save then
 			saves[player] = nil
-			player:SetAttribute("Saved", nil)
+			unmark(player)
 			player:Kick("Your save was opened somewhere else. Please join again.")
 		end
 	end)
-	if settle(save) then
-		player:SetAttribute("Saved", true)
-	end
+	settle(save)
 end
 
 local function leave(player: Player)
@@ -250,7 +270,7 @@ function SaveService.reopen(player: Player): boolean
 	while save.Profile:IsActive() and os.clock() - from < 10 do
 		task.wait(0.1)
 	end
-	player:SetAttribute("Saved", nil)
+	unmark(player)
 	join(player)
 	return saves[player] ~= nil
 end
@@ -278,8 +298,14 @@ function SaveService.Start()
 	while true do
 		task.wait(EVERY)
 		for _, save in table.clone(saves) do
-			if settle(save) then
-				take(save)
+			-- (one player's fault is not the others')
+			local ok, problem = pcall(function()
+				if settle(save) then
+					take(save)
+				end
+			end)
+			if not ok then
+				warn(`[SaveService] {save.Player.Name} was passed over: {problem}`)
 			end
 		end
 	end

@@ -25,20 +25,14 @@ local PurchaseService = {}
 local WAIT_PROFILE = 20 -- seconds a receipt waits for the player's profile
 local WAIT_SAVE = 40 -- and for the save after it
 
--- What an offer gives -> the save's part it lives in, and the giving of it (true when given; never yields)
-local GIVES: { [string]: { Part: string, Give: (player: Player, amount: number) -> boolean } } = {
-	Coins = {
-		Part = "Tank",
-		Give = function(player, amount)
-			return AquariumService.give(player, amount) == true
-		end,
-	},
-	Oxygen = {
-		Part = "Oxygen",
-		Give = function(player, amount)
-			return RideService.grantOxygen(player, amount) == true
-		end,
-	},
+-- What an offer gives -> the giving of it (true when given; never yields). Where it is kept: Products.Part
+local GIVES: { [string]: (player: Player, amount: number) -> boolean } = {
+	Coins = function(player, amount)
+		return AquariumService.give(player, amount) == true
+	end,
+	Oxygen = function(player, amount)
+		return RideService.grantOxygen(player, amount) == true
+	end,
 }
 
 local remote: RemoteEvent
@@ -53,27 +47,28 @@ local function saved(profile: any, id: string): boolean
 end
 
 local function handle(player: Player, offer: Products.Offer, id: string): Enum.ProductPurchaseDecision
-	local gives = if offer.Gives then GIVES[offer.Gives] else nil
+	local give = GIVES[offer.Gives or ""]
+	local part = Products.Part[offer.Gives or ""]
 	local amount = offer.Amount
-	if not gives or not amount or amount <= 0 then
+	if not give or not part or not amount or amount <= 0 then
 		warn(`[PurchaseService] {offer.Key} was bought but says nothing to give`)
 		return NOT_YET
 	end
 	local from = os.clock()
 	local profile = SaveService.profileOf(player)
-	while (not profile or not SaveService.isOn(player, gives.Part)) and os.clock() - from < WAIT_PROFILE do
+	while (not profile or not SaveService.isOn(player, part)) and os.clock() - from < WAIT_PROFILE do
 		task.wait(0.25)
 		if player.Parent ~= Players then
 			return NOT_YET
 		end
 		profile = SaveService.profileOf(player)
 	end
-	if not profile or not SaveService.isOn(player, gives.Part) then
+	if not profile or not SaveService.isOn(player, part) then
 		return NOT_YET
 	end
 	if not SaveService.hasReceipt(player, id) then
 		-- (no yield from here to the end of the block: the gift, its receipt and the snapshot are one moment)
-		if not SaveService.take(player) or not gives.Give(player, amount) then
+		if not SaveService.take(player) or not give(player, amount) then
 			return NOT_YET
 		end
 		SaveService.gave(player, id)
