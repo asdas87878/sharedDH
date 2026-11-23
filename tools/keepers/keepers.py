@@ -1,0 +1,286 @@
+"""The shopkeepers' tables, read from the game's own file (src/shared/Keepers.luau, between its two marks), and the same
+sums the game does with them (Controllers/KeeperController): where a stand's space is, how a keeper is posed, where its
+props stand. For the design sheet (tools/keepers/sheet.py, drawn by tools/blender/keeper_view.py) and for the checks
+(tools/keepers/check.py). Plain Python, no Blender, no numpy.
+
+Roblox's own frame everywhere: y up, a matrix is 4 rows of 4, a point is a column."""
+import json
+import math
+import os
+import re
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+LUAU = os.path.join(ROOT, "src", "shared", "Keepers.luau")
+HUB = os.path.join(ROOT, "art", "map", "greybox", "hub.json")
+
+
+# ---------------------------------------------------------------- reading the Luau tables
+def _tokens(text):
+    text = re.sub(r"--[^\n]*", "", text)
+    for m in re.finditer(r'"((?:[^"\\]|\\.)*)"|(-?\d+\.?\d*(?:e-?\d+)?)|([A-Za-z_][A-Za-z_0-9.]*)|([{}=,;])', text):
+        if m.group(1) is not None:
+            yield ("s", m.group(1))
+        elif m.group(2) is not None:
+            yield ("n", float(m.group(2)) if re.search(r"[.e]", m.group(2)) else int(m.group(2)))
+        elif m.group(3) is not None:
+            yield ("i", m.group(3))
+        else:
+            yield ("p", m.group(4))
+
+
+def _value(toks, i):
+    kind, v = toks[i]
+    if kind == "p" and v == "{":
+        rows, named = [], {}
+        i += 1
+        while toks[i] != ("p", "}"):
+            if toks[i][0] == "i" and toks[i + 1] == ("p", "="):
+                named[toks[i][1]], i = _value(toks, i + 2)
+            else:
+                item, i = _value(toks, i)
+                rows.append(item)
+            if toks[i][0] == "p" and toks[i][1] in ",;":
+                i += 1
+        assert not (rows and named), "a table with both a list and names: keep them apart"
+        return (named if named else rows), i + 1
+    if kind == "i":
+        return {"true": True, "false": False, "nil": None}[v], i + 1
+    return v, i + 1
+
+
+def read(path=LUAU):
+    """{"Look": ..., "Colours": ..., "List": [...]}: every `Keepers.X = {...}` between the marks"""
+    text = open(path, encoding="utf-8").read()
+    block = text[text.index("--<<DATA"):text.index("-->>DATA")]
+    toks = list(_tokens(block))
+    out, i = {}, 0
+    while i < len(toks):
+        kind, v = toks[i]
+        assert kind == "i" and v.startswith("Keepers.") and toks[i + 1] == ("p", "="), toks[i:i + 3]
+        out[v[len("Keepers."):]], i = _value(toks, i + 2)
+    return out
+
+
+# ---------------------------------------------------------------- small matrix sums
+def mul(a, b):
+    return [[sum(a[r][k] * b[k][c] for k in range(4)) for c in range(4)] for r in range(4)]
+
+
+def ident():
+    return [[1.0 if r == c else 0.0 for c in range(4)] for r in range(4)]
+
+
+def move(x, y, z):
+    m = ident()
+    m[0][3], m[1][3], m[2][3] = x, y, z
+    return m
+
+
+def angles(rx, ry, rz):
+    """CFrame.Angles(rx, ry, rz), in degrees: about x, then y, then z, each in the turned frame"""
+    out = ident()
+    for axis, deg in ((0, rx), (1, ry), (2, rz)):
+        c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+        m = ident()
+        a, b = [(1, 2), (2, 0), (0, 1)][axis]
+        m[a][a], m[a][b], m[b][a], m[b][b] = c, -s, s, c
+        out = mul(out, m)
+    return out
+
+
+def point(m, v):
+    return [m[r][0] * v[0] + m[r][1] * v[1] + m[r][2] * v[2] + m[r][3] for r in range(3)]
+
+
+def from_axes(pos, x, y, z):
+    """CFrame.fromMatrix(pos, x, y, z)"""
+    m = ident()
+    for r in range(3):
+        m[r][0], m[r][1], m[r][2], m[r][3] = x[r], y[r], z[r], pos[r]
+    return m
+
+
+def cross(a, b):
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+
+
+# ---------------------------------------------------------------- the engine's sums (keep alike: KeeperController)
+def ease(k):
+    return k * k * (3 - 2 * k)
+
+
+def track_at(track, t):
+    """a track's six numbers at t (0 to 1): rest at both ends, eased between its keys"""
+    keys = [[0.0] * 7] + [list(k) + [0.0] * (7 - len(k)) for k in track[1:]] + [[1.0] + [0.0] * 6]
+    for a, b in zip(keys, keys[1:]):
+        if t <= b[0]:
+            k = ease((t - a[0]) / (b[0] - a[0])) if b[0] > a[0] else 1.0
+            return [a[i] + (b[i] - a[i]) * k for i in range(1, 7)]
+    return [0.0] * 6
+
+
+def look_split(look, yaw, pitch):
+    """the whole turn towards a player (degrees; yaw to the keeper's own left is positive x) -> body yaw, head yaw,
+    head pitch, each held to its most"""
+    yaw = max(-(look["Body"] + look["Head"]), min(look["Body"] + look["Head"], yaw))
+    body = max(-look["Body"], min(look["Body"], yaw * look["BodyShare"]))
+    head = max(-look["Head"], min(look["Head"], yaw - body))
+    return body, head, max(-look["Up"], min(look["Down"], pitch))
+
+
+def aim(look, local):
+    """the turn that points a head at `local` (a point in the keeper's space, measured from the head's joint): yaw and
+    pitch in degrees. Looking up is a NEGATIVE pitch (a turn about x takes z towards -y)"""
+    flat = math.hypot(local[0], local[2])
+    return math.degrees(math.atan2(local[0], local[2])), -math.degrees(math.atan2(local[1], flat))
+
+
+def pose(keeper, action_t=None, yaw=0.0, pitch=0.0, sway_t=None, look=None, scale=1.0):
+    """every part of a keeper in its own space: [(row, matrix)]. action_t: 0 to 1 through its action (None: not in
+    it); yaw, pitch: the look (needs `look`, Keepers.Look); sway_t: seconds into the idle (None: none of it)"""
+    anim = {}
+
+    def add(joint, six):
+        cur = anim.setdefault(joint, [0.0] * 6)
+        for i in range(6):
+            cur[i] += six[i]
+
+    if sway_t is not None:
+        amp, seconds = keeper["Bob"]
+        add("Body", [0, 0, 0, 0, amp * math.sin(2 * math.pi * sway_t / seconds), 0])
+        for joint, seconds, phase, *six in keeper["Sway"]:
+            k = math.sin(2 * math.pi * (sway_t / seconds + phase))
+            add(joint, [v * k for v in six])
+    if action_t is not None:
+        for track in keeper["Action"]["Tracks"]:
+            add(track[0], track_at(track, action_t))
+    looks = {}
+    if look and (yaw or pitch):
+        body, head, tip = look_split(look, yaw, pitch)
+        looks["Body"] = angles(0, body, 0)
+        looks["Head"] = mul(angles(0, head, 0), angles(tip, 0, 0))
+    pivots = {"Root": (0.0, 0.0, 0.0)}
+    world = {"Root": ident()}
+    for name, parent, x, y, z, rx, ry, rz in keeper["Joints"]:
+        px, py, pz = pivots[parent]
+        a = anim.get(name, [0.0] * 6)
+        m = mul(world[parent], move((x - px) * scale, (y - py) * scale, (z - pz) * scale))
+        m = mul(m, angles(rx, ry, rz))
+        if name in looks:
+            m = mul(m, looks[name])
+        m = mul(mul(m, move(a[3] * scale, a[4] * scale, a[5] * scale)), angles(a[0], a[1], a[2]))
+        pivots[name], world[name] = (x, y, z), m
+    out = []
+    for row in keeper["Parts"]:
+        joint, _shape, _sx, _sy, _sz, x, y, z, rx, ry, rz = row[:11]
+        px, py, pz = pivots[joint]
+        out.append((row, mul(mul(world[joint], move((x - px) * scale, (y - py) * scale, (z - pz) * scale)), angles(rx, ry, rz))))
+    return out
+
+
+# ---------------------------------------------------------------- the stands, from the hub's own file
+def station(name, hub=None, shift=(0.0, 0.0, 0.0)):
+    """a station's parts as the hub kit draws them (hub.json), each moved by `shift` (the Fuse machine was moved by
+    hand in the place)"""
+    hub = hub or json.load(open(HUB))
+    out = []
+    for p in hub["parts"]:
+        if p["m"] == "Stations/" + name:
+            out.append(dict(p, p=[p["p"][i] + shift[i] for i in range(3)]))
+    return out
+
+
+def part_matrix(p):
+    x, y = p["x"], p["y"]
+    return from_axes(p["p"], x, y, cross(x, y))
+
+
+def stand_space(parts, stand, look):
+    """the stand's space as KeeperController reads it from the live parts: (matrix, scale). From the Ring and the
+    part named `stand` ("CounterTop" or "Core")"""
+    ring = next(p for p in parts if p["n"] == "Ring")
+    anchor = next(p for p in parts if p["n"] == stand)
+    floor = ring["p"][1] - ring["s"][1] / 2
+    f = [ring["p"][0] - anchor["p"][0], 0.0, ring["p"][2] - anchor["p"][2]]
+    far = math.hypot(f[0], f[2])
+    f = [f[0] / far, 0.0, f[2] / far]
+    up = [0.0, 1.0, 0.0]
+    x = cross(up, f)
+    if stand == "CounterTop":
+        ax = [anchor["x"], anchor["y"], cross(anchor["x"], anchor["y"])]
+        top = anchor["p"][1] + sum(abs(ax[i][1]) * anchor["s"][i] for i in range(3)) / 2
+        scale = (top - floor) / look["CounterTall"]
+    else:
+        scale = far / look["CoreAhead"]
+    scale = max(look["Least"], min(look["Most"], scale))
+    return from_axes([anchor["p"][0], floor, anchor["p"][2]], x, up, f), scale
+
+
+def keeper_space(space, scale, keeper, lift=0.0):
+    return mul(space, move(keeper["At"][0] * scale, lift, keeper["At"][1] * scale))
+
+
+def stand_lift(parts, space, scale, keeper, look):
+    """how far over the floor the keeper's feet are: the top of the highest solid piece of the station under its spot
+    and within Look.Reach of the floor (KeeperController does the same sum on the live parts). 0 on a stall's floor; the Fuse
+    machine's keeper stands on its base"""
+    floor = space[1][3]
+    spot = point(space, [keeper["At"][0] * scale, 0, keeper["At"][1] * scale])
+    best = 0.0
+    for p in parts:
+        if not p.get("f", 0) & 1 or p.get("t") == 1:
+            continue
+        ax = [p["x"], p["y"], cross(p["x"], p["y"])]
+        d = [spot[i] - p["p"][i] for i in range(3)]
+        if abs(ax[1][1]) < 0.99:
+            continue  # a leaning piece: none is solid where a keeper stands
+        if all(abs(sum(d[i] * ax[a][i] for i in (0, 2))) <= p["s"][a] / 2 for a in (0, 2)):
+            top = p["p"][1] + p["s"][1] / 2 - floor
+            if best < top <= look["Reach"] * scale:
+                best = top
+    return best
+
+
+def corners(m, size):
+    return [point(m, [sx * size[0] / 2, sy * size[1] / 2, sz * size[2] / 2]) for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]
+
+
+# ---------------------------------------------------------------- a scene for the Blender view
+def box(shape, size, m, colour, opts=None):
+    opts = opts or {}
+    return {"shape": shape, "size": list(size), "m": m, "colour": list(colour), "see": opts.get("See", 0.0),
+            "neon": opts.get("Mat") == "Neon", "stud": bool(opts.get("Stud"))}
+
+
+def keeper_boxes(data, keeper, space, scale=1.0, **how):
+    out = []
+    for row, m in pose(keeper, look=data["Look"], scale=scale, **how):
+        opts = row[12] if len(row) > 12 else None
+        out.append(box(row[1], [v * scale for v in row[2:5]], mul(space, m), data["Colours"][row[11]], opts))
+    return out
+
+
+def prop_boxes(data, keeper, space, scale=1.0):
+    out = []
+    for row in keeper["Props"]:
+        shape, sx, sy, sz, x, y, z, rx, ry, rz, colour = row[:11]
+        opts = row[11] if len(row) > 11 else None
+        m = mul(mul(space, move(x * scale, y * scale, z * scale)), angles(rx, ry, rz))
+        out.append(box(shape, [sx * scale, sy * scale, sz * scale], m, data["Colours"][colour], opts))
+    return out
+
+
+def station_boxes(parts):
+    out = []
+    for p in parts:
+        if p.get("t") == 1:
+            continue
+        out.append({"shape": p.get("sh") or "Block", "size": p["s"], "m": part_matrix(p), "colour": p["c"], "see": p.get("t", 0.0),
+                    "neon": p.get("mat") == "Neon", "stud": bool(p.get("tex"))})
+    return out
+
+
+if __name__ == "__main__":
+    d = read()
+    for k in d["List"]:
+        print(k["Id"], k["Station"], len(k["Parts"]), "parts,", len(k["Props"]), "props,", len(k["Joints"]), "joints")
