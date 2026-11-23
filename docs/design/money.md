@@ -28,6 +28,36 @@
 - **The packs are fixed amounts, with bulk deals that are very good for mid and late players (the user, 2026-11-23: "fixed
   amounts, bundle deals are just very good for mid-late game players still tho", then "bulk deals i mean").** So the
   bigger the pack, the far better its rate. The amounts are open; a fixed draft is asked of the tuning chat.
+- **The fixed ladder, the tuning chat's draft 2 (2026-11-23; proposed, not agreed).** Modelled, not played: medians of 5
+  seeds, one pack, once. FULL: with auras and the Index (neither built, the Index's payouts a fit); OFF: the same model
+  without them, the nearest to the game now. Which land a fresh account holds at once is the same in both. Robux prices
+  are a guess beside theirs (59 to 2,249; 45 to 720).
+
+  | Robux | Oxygen | rate | for a player holding | time to the next land, FULL; OFF | a fresh account holds at once (free, FULL; OFF) | land 10 at (free 31.3; 199.5 h) |
+  |---|---|---|---|---|---|---|
+  | 59 | 50K | x1 | 3 to 4 | 14 to 9 min; 39 to 30 | land 4 (15; 28 min) | 31.1; 199.1 h |
+  | 149 | 500K | x4 | 5 | 40 to 18 min; 112 to 76 | land 5 (28; 67 min) | 30.5; 198.3 |
+  | 349 | 5M | x17 | 6 | 82 to 9 min; 5.1 to 2.7 h | land 6 (69 min; 3 h) | 29.4; 195.0 |
+  | 699 | 60M | x101 | 7 | 150 to 2 min; 15.1 to 3.4 h | land 7 (2.5; 8.1 h) | 26.2; 184.1 |
+  | 1,199 | 800M | x787 | 8, 9 | land 8: 8.7 h to 0; 48.6 h to 0. Land 9: 17.6 to 9.4 h; 127.6 to 100.4 | land 9 (13.7; 71.9 h) | 14.0; 130.0 |
+  | 2,249 | 10B | x5,250 | 9, 10 | land 9: 17.6 h to 0; 127.6 h to 0. Land 10 to 20B: 38.4 h to 42 min; 219 to 91 h | land 10 (31.3; 199.5 h) | at once |
+
+  | Robux | Cash | rate | for a player holding | time to the next land, FULL; OFF | a fresh account: land 7 / land 10, FULL; OFF (free 152 min / 31.3 h; 8.1 / 199.5 h) |
+  |---|---|---|---|---|---|
+  | 49 | $1M | x1 | 3 | 10 to 4 min; 18 to 12 | 142 min / 31.1 h; 7.9 / 199.3 h |
+  | 99 | $25M | x12 | 4 | 14 to 7 min; 39 to 31 | 125 min / 30.9; 7.6 / 199.0 |
+  | 199 | $1B | x246 | 5 | 40 to 17 min; 112 to 93 | 94 min / 30.4; 6.7 / 198.1 |
+  | 399 | $50B | x6,100 | 6 | 82 to 32 min; 5.1 to 4.4 h | 36 min / 29.0; 5.1 / 194.9 |
+  | 699 | $2T | x140K | 7 | 150 to 58 min; 15.1 to 12.6 h | 15 min / 25.3; 2.0 / 184.8 |
+  | 1,299 | $75T | x2.8M | 8, 9 | land 8: 8.7 to 2.8 h; 48.6 to 14.7 h. Land 9: 17.6 to 6.1 h; 127.6 to 106 h | 7 min / 10.0 h; 20 min / 123 h |
+
+  - *Plainly:* the last three Oxygen packs each skip a whole land for the player they are for, and 10B bought in the first
+    minute skips the whole climb (it holds 91% of land 10's plain spawns; two hold all). The reference's do too.
+  - *At land 10 no cash pack here is very good* ($75T: 38.4 to 35.2 h; 219 to 215). $10Qa would be, but puts a fresh account in
+    land 10 at 2.2 h (49 h OFF): left out, Oxygen is the land 10 pack.
+  - *Other choices:* theirs x8 (1.2M, 8M, 80M, 400M, 4B, 8B: top rate x175, far stronger small packs). Its proposal: 800M
+    from land 7, $75T from land 8, 10B from land 9 only, the amounts still fixed; the server gives any receipt it gets.
+  - *Past 50B of max Oxygen tames take 1.5 times longer* (`Tame.CapSlow`): from the fifth top pack.
 - **Not picked: the tuning chat's first draft (2026-11-23), kept for its measurements.**
   They grow with the player, in steps: by the deepest land whose commonest fish their max Oxygen can hold. Oxygen S / M /
   L is 0.25 / 0.5 / 1.5 times that land's need; Cash is 1 / 3 / 8 hours of what the modelled tank earns on arriving.
@@ -50,7 +80,8 @@
     Oxygen S / M / L, then Cash S / M / L: land 4: 14; 14 / 12 / 6; 9 / 6 / 6. Land 6: 81; 74 / 64 / 46; 73 / 60 / 41.
     Land 7: 150; 133 / 117 / 60; 147 / 136 / 136. Land 8: 520; 488 / 447 / 300; 504 / 493 / 478. Land 9: 1,054;
     954 / 860 / 456; 1,028 / 986 / 952. The set was not run on the game as it is now, where the lands take far longer.
-  - *Cash is weak from land 7* (2 to 10% of the time): late Oxygen comes from the Index, not coins. *A bigger L is
+  - *Wrong, corrected by the tuning chat the same day: "cash is weak from land 7" (2 to 10% of the time).* Its test stopped
+    just short of the next seahorse level. Cash works in rungs: $75T takes land 9 from 17.6 to 6.1 h. *A bigger L is
     dangerous:* 3 times the need took land 9 from 17.6 h to 22 minutes. The tuning chat would fix the amounts only once
     auras and the Index are decided. Whether an aura multiplies a bought pack is Hugo's (draft 2: no; his Auras text:
     "all Oxygen gained").
