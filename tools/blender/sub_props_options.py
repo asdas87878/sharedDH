@@ -49,7 +49,7 @@ RULE = {
     "StepMost": 30.0,  # and never more than this, degrees
     "BlurFrom": 150.0,  # the blur disc starts to show at this speed, studs a second
     "BlurFull": 700.0,  # and is fullest from this speed
-    "BlurMost": 0.45,  # how solid it gets (Transparency 1 - this)
+    "BlurMost": 0.5,  # how solid it gets (Transparency 1 - this)
 }
 TOP = 4315.0  # the fastest trip's top speed (to land 10), studs a second
 
@@ -596,10 +596,11 @@ def blender_part():
             ob.location = HUB + off
         disc = None
         if new_rule:
-            far = max(v.co.x for p in pieces if p["part"] == "Prop" and p["colour"] != TAIL["hub"] for v in p["bm"].verts)
+            # the blur disc: thin, the blades' colour, low in the blades (just behind the backing plate), so the
+            # blades and the one coloured blade stay sharp in front of it and the dark disc behind them hazes over
             bm = bmesh.new()
             bmesh.ops.create_cone(bm, cap_ends=True, segments=24, radius1=stats["reach"] + 0.05, radius2=stats["reach"] + 0.05,
-                                  depth=far + 0.06 - FACE, matrix=Matrix.Translation(((FACE + far + 0.06) / 2 - tx, 0, 0)) @ S["rot"]((0, 90, 0)))
+                                  depth=0.04, matrix=Matrix.Translation((FACE + 0.16 - tx, 0, 0)) @ S["rot"]((0, 90, 0)))
             me = bpy.data.meshes.new("Blur")
             bm.to_mesh(me)
             bm.free()
@@ -610,14 +611,16 @@ def blender_part():
         bpy.context.view_layer.update()
         spot = world_to_camera_view(scene, cam, HUB + off)
         sx, sy = spot.x * W, (1 - spot.y) * H
+        mid = world_to_camera_view(scene, cam, HUB + off + EX * (FACE - tx + 0.9 * k))  # the hub at the blades' middle
+        mx, my = mid.x * W, (1 - mid.y) * H
         box = [int(round(sx - TW / 2)), int(round(sy - TH / 2 - 8))]
         wheels.append((key, i, new_rule, made, disc))
         truth["tiles"].append({
             "key": key, "option": i, "name": NAMES[i], "about": ABOUT[i], "new_rule": new_rule, "blades": BLADES[i],
             "triangles": sum(stats["triangles"].values()), "crop": box, "at": [col * TW, HEAD + row * TH],
-            "hub": [int(round(col * TW + sx - box[0])), int(round(HEAD + row * TH + sy - box[1]))],
+            "hub": [int(round(col * TW + mx - box[0])), int(round(HEAD + row * TH + my - box[1]))],
             "plane": [[right.y * PXS, right.z * PXS], [up.y * PXS, up.z * PXS]], "reach_px": stats["reach"] * PXS,
-            "lo": 1.7 * k, "hi": 3.0 * k, "marked": i > 0, "judged": new_rule, "step_most": step_most(BLADES[i])})
+            "lo": 1.5 * k, "hi": 2.6 * k, "marked": i > 0, "judged": new_rule, "step_most": step_most(BLADES[i])})
         truth["angles"][key] = []
     angle = {key: 0.0 for key, *_ in TILES}
     alphas = []
@@ -807,7 +810,7 @@ def sheet(src, out):
                     kf = lay(im, x + 8, yy + 52, w - 16, h - 16, grow=1.07)
                     share = stats[n]["options"][i]["ride_share"]
                     d.text((x + w - 14, yy + 44 + h - 12), "in the game the propeller is %d%% of the screen's height" % round(100 * share),
-                           font=font(20), fill=SOFT, anchor="rd")
+                           font=font(25), fill=SOFT, anchor="rd")
                 else:
                     lay(im, x, yy + 44, w, h)
                 d.rounded_rectangle((x + 12, yy + 56, x + 12 + 30 + int(d.textlength("TIER %d  %s" % (n, stats[n]["name"].upper()), font=font(24))), yy + 96), 10, fill=INK)
@@ -878,7 +881,7 @@ if __name__ == "__main__" and len(sys.argv) > 1 and "--" not in sys.argv:
     elif sys.argv[1] == "strips":
         strips(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == "all":
-        run_all(sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "work", "p1"))
+        run_all(sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "work", "sub_props"))
     else:
         sys.exit(__doc__)
     sys.exit(0)

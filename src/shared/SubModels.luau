@@ -14,7 +14,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SubModels = {}
 
-export type Style = { Id: string, Name: string, Hull: Color3, Trim: Color3, Light: Color3 }
+-- SignUp: extra studs for the name sign, for a model with a tall piece far behind the sign (see SIGN_GAP)
+export type Style = { Id: string, Name: string, Hull: Color3, Trim: Color3, Light: Color3, SignUp: number? }
 
 SubModels.Templates = "SubMeshes"
 
@@ -22,6 +23,10 @@ SubModels.Templates = "SubMeshes"
 local SIGN_TALL = 3
 -- (0.6 until task m4: seen in the game, a snorkel, a kelp leaf, a periscope, a fin and the crown ran into the letters)
 local SIGN_GAP = 2
+-- That is enough for a piece under the sign. A tall piece far BEHIND the sign stands between it and the run's camera
+-- (behind and above the sub), so in the picture it reaches higher than its own height: Blue Streak's tail fin, 20
+-- studs back, covered the middle of its name. Such a model has `SignUp` in its row, from
+-- `python tools/subs/sign_fit.py` (run its --check after a model is rebuilt or the run camera moves).
 -- a hull darker than this (Color3's own 0 to 1, by eye's weights) gives a name nobody can read on the sign's dark
 -- outline: Midnight Hunter's navy. Its name is written in its light's colour instead
 local SIGN_DARK = 0.25
@@ -59,6 +64,7 @@ SubModels.List = {
 		Hull = rgb(40, 140, 255),
 		Trim = rgb(230, 240, 255),
 		Light = rgb(140, 255, 255),
+		SignUp = 4.7, -- the tail fin, seen from the run camera, reaches 3.7 studs over where the sign would start
 	},
 	{
 		Id = "TwilightRay",
@@ -190,7 +196,7 @@ local function fromTemplate(s: Style, n: number): (Model?, { BasePart }, BasePar
 	for _, p in parts do
 		top = math.max(top, p.Position.Y + p.Size.Y / 2)
 	end
-	local signY = math.max(12.5, top + SIGN_GAP + SIGN_TALL / 2)
+	local signY = math.max(12.5, top + SIGN_GAP + SIGN_TALL / 2) + (s.SignUp or 0)
 	local bubbles = dress(s, hull, hull, Vector3.new(0, signY, -2) - hull.Position, prop, lamp)
 	return model, parts, prop, bubbles
 end

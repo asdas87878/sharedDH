@@ -72,7 +72,38 @@ local function ourSub()
 	return nil
 end
 local RunService = game:GetService("RunService")
-local probeRows, probeSet, marker, lastPos = {}, "", nil, nil
+local probeRows, probeSet, marker, marker2, lastPos = {}, "", nil, nil, nil
+local function ball(colour)
+	local m = Instance.new("Part")
+	m.Name = "M4Marker"
+	m.Shape = Enum.PartType.Ball
+	m.Size = Vector3.one * 1.6
+	m.Material = Enum.Material.Neon
+	m.Color = colour
+	m.Anchored = true
+	m.CanCollide = false
+	m.CanQuery = false
+	m.Parent = workspace
+	return m
+end
+-- how far up into the sign's box (14 x 3 studs, facing the camera, its middle at `at`) the model's own points reach,
+-- seen from the camera: 0 when nothing nearer than the sign stands in front of it, 3 when a piece crosses all of it
+local function covered(cam, at, sub, pts)
+	local s = cam.CFrame:PointToObjectSpace(at)
+	local worst = 0
+	if s.Z >= 0 then return 0 end
+	for i = 1, #pts, 3 do
+		local p = cam.CFrame:PointToObjectSpace(sub:PointToWorldSpace(Vector3.new(pts[i], pts[i + 1], pts[i + 2])))
+		if p.Z < 0 and p.Z > s.Z + 0.5 then
+			local k = s.Z / p.Z
+			local x, y = p.X * k, p.Y * k
+			if math.abs(x - s.X) <= 7 and y > s.Y - 1.5 then
+				worst = math.max(worst, math.min(y - (s.Y - 1.5), 3))
+			end
+		end
+	end
+	return worst
+end
 local function probeStep(dt)
 	if player:GetAttribute("SubPhase") ~= "Ride" then return end
 	local found = ourSub()
@@ -84,24 +115,26 @@ local function probeStep(dt)
 	local cam = workspace.CurrentCamera
 	local at = hull.CFrame:PointToWorldSpace(sign.StudsOffsetWorldSpace)
 	local world = hull.Position + sign.StudsOffsetWorldSpace
-	if not marker then
-		marker = Instance.new("Part")
-		marker.Name = "M4Marker"
-		marker.Shape = Enum.PartType.Ball
-		marker.Size = Vector3.one * 1.6
-		marker.Material = Enum.Material.Neon
-		marker.Color = Color3.fromRGB(255, 0, 200)
-		marker.Anchored = true
-		marker.CanCollide = false
-		marker.CanQuery = false
-		marker.Parent = workspace
-	end
+	-- a pink ball 3 studs over the sign's middle if the offset turns with the hull, a green one if it does not
+	marker = marker or ball(Color3.fromRGB(255, 0, 200))
+	marker2 = marker2 or ball(Color3.fromRGB(0, 255, 60))
 	marker.Position = hull.CFrame:PointToWorldSpace(sign.StudsOffsetWorldSpace + Vector3.new(0, 3, 0))
+	marker2.Position = world + Vector3.new(0, 3, 0)
+	local folder = RS:FindFirstChild(SubModels.Templates)
+	local tier = found:GetAttribute("Tier")
+	local t = folder and folder:FindFirstChild(SubModels.style(tier).Id)
+	local coverA, coverB = -1, -1
+	if t and POINTS[tier] then
+		local sub = hull.CFrame * t.Hull.CFrame:Inverse()
+		coverA = covered(cam, at, sub, POINTS[tier])
+		coverB = covered(cam, world, sub, POINTS[tier])
+	end
 	local speed = if lastPos then (hull.Position - lastPos).Magnitude / math.max(dt, 1e-4) else 0
 	lastPos = hull.Position
 	local sp, on = cam:WorldToViewportPoint(at)
+	local back = cam.CFrame:PointToObjectSpace(hull.Position)
 	table.insert(probeRows, { dt, speed, (cam.CFrame.Position - at).Magnitude, if sign.Enabled then 1 else 0, if on then 1 else 0, sp.X, sp.Y,
-		(at - world).Magnitude })
+		(at - world).Magnitude, coverA, coverB, -back.Z, back.Y, math.deg(math.asin(math.clamp(hull.CFrame.LookVector.Y, -1, 1))) })
 end
 workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 	local cmd = tostring(workspace:GetAttribute("M4Do") or "")
@@ -142,6 +175,24 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 			cam.FieldOfView = tonumber(words[13])
 			return string.format("close %d sign=%q hullMesh=%s parts=%d top=%.1f low=%.1f signLow=%.1f gap=%.1f", n, text,
 				tostring(model.PrimaryPart:IsA("MeshPart")), #parts, top, low, signLow, signLow - top)
+		elseif verb == "flash" then
+			-- the whole game view in one colour for a moment: the gate finds the view in the window's picture by it
+			local old = player.PlayerGui:FindFirstChild("M4Flash")
+			if old then old:Destroy() end
+			if words[2] == "on" then
+				local g = Instance.new("ScreenGui")
+				g.Name = "M4Flash"
+				g.IgnoreGuiInset = true
+				g.DisplayOrder = 10000
+				local f = Instance.new("Frame")
+				f.Size = UDim2.fromScale(1, 1)
+				f.BorderSizePixel = 0
+				f.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
+				f.Parent = g
+				g.Parent = player.PlayerGui
+			end
+			local v = workspace.CurrentCamera.ViewportSize
+			return string.format("flash %s view=%dx%d", tostring(words[2]), v.X, v.Y)
 		elseif verb == "unclose" then
 			if line then line:Destroy() line = nil end
 			workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
@@ -279,6 +330,7 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 			else
 				pcall(function() RunService:UnbindFromRenderStep("M4Probe") end)
 				if marker then marker:Destroy() marker = nil end
+				if marker2 then marker2:Destroy() marker2 = nil end
 				local n = #probeRows
 				if n == 0 then return "probe read: no frames" end
 				local function col(i)
@@ -293,9 +345,14 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 				local e0 = col(4)
 				local o0, _, o2 = col(5)
 				local _, _, w2 = col(8)
+				local _, _, ca = col(9)
+				local _, _, cb = col(10)
+				local b0, b1, b2 = col(11)
+				local h0, h1, h2 = col(12)
+				local p0, _, p2 = col(13)
 				local view = workspace.CurrentCamera.ViewportSize
-				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d worldVsObject=%.2f view=%dx%d",
-					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w2, view.X, view.Y)
+				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d worldVsObject=%.2f coverMaxIfTurns=%.2f coverMaxIfNot=%.2f camBehind=%.1f/%.1f/%.1f hullBelowCam=%.1f/%.1f/%.1f pitch=%.0f..%.0f view=%dx%d",
+					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w2, ca, cb, b0, b1, b2, -h2, -h1, -h0, p0, p2, view.X, view.Y)
 			end
 		end
 		return "?"
@@ -436,10 +493,30 @@ def gate():
             break
         time.sleep(1)
     note("client: " + said)
-    full = raw("gate")
-    im = Image.open(full).convert("RGB")
-    note(f"window picture {im.size}")
-    im.save(OUT / "gate-window.png")
+    # where the game view is in the window's picture: the client paints it one colour, and that box is looked for
+    # (Studio's panels move it: a view.json from another day cuts the stills wrong)
+    said = do("flash|on", 1.2)
+    note(said)
+    box = None
+    for _ in range(6):
+        time.sleep(1.2)
+        full = raw("gate")
+        im = Image.open(full).convert("RGB")
+        r, g, b = im.split()
+        mask = ImageChops.multiply(ImageChops.multiply(r.point(lambda v: 255 if v > 230 else 0),
+                                                       g.point(lambda v: 255 if v < 40 else 0)),
+                                   b.point(lambda v: 255 if v > 230 else 0))
+        box = mask.getbbox()
+        if box and (box[2] - box[0]) > 400 and (box[3] - box[1]) > 300:
+            break
+        box = None
+    note(do("flash|off", 0.8))
+    if not box:
+        save_log()
+        raise SystemExit("FROZEN: the game view never showed the gate's colour (Studio's window is not redrawing)")
+    VIEW_FILE.write_text(json.dumps(list(box)))
+    note(f"window picture {im.size}, the game view in it {box}")
+    time.sleep(1.2)
     LAST.unlink(missing_ok=True)
     a = shot("gate-a")
     note(do("close|1|" + "|".join(str(v) for v in CLOSE), 2.5))
@@ -528,7 +605,7 @@ def trip(tier, probe=None):
                 # (the shortest Ride is 3.2 s: the phase is read again just before the still, not after it)
                 time.sleep(0.7)
                 st = s2.cmd("st", 0.1)
-                still = shot(f"{kind}-{tier}", tries=1, least=0.0)
+                still = shot(f"{kind}-{tier}", tries=1, least=0.02)
                 if probe:
                     st += " / after the still: " + do("probe|now", 0.1)
                 break
