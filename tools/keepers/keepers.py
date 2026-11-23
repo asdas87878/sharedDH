@@ -384,6 +384,83 @@ def shows(data, keeper, kspace, scale, eye, at, **how):
     return bob, best[0], best[1], best[2]
 
 
+def under(keeper, joint, top):
+    """whether `joint` is `top` or hangs from it (top may be a start of a name: "Arm" is both arms)"""
+    parent = {j[0]: j[1] for j in keeper["Joints"]}
+    while joint and joint != "Root":
+        if joint.startswith(top):
+            return True
+        joint = parent.get(joint)
+    return False
+
+
+SOFT = ("Tent", "Octo")  # joints on a head that are soft, hanging things: a hand may brush through them
+
+
+def arms(keeper):
+    """the numbers of a keeper's parts that are an arm, a hand or what a hand holds"""
+    return [i for i, row in enumerate(keeper["Parts"]) if under(keeper, row[0], "Arm")]
+
+
+def hands(keeper):
+    """the same without the sleeves: the hands, the cuffs and what is held. The sleeve is the first part on each
+    arm's own joint (Keepers.luau lists an arm as a sleeve, then the cuff and the hand)"""
+    sleeves = set()
+    for joint in {row[0] for row in keeper["Parts"] if row[0].startswith("Arm")}:
+        sleeves.add(next(i for i, row in enumerate(keeper["Parts"]) if row[0] == joint))
+    return [i for i in arms(keeper) if i not in sleeves]
+
+
+def heads(keeper, soft=False):
+    """the numbers of its parts that are the head and what is fixed on it (a hat, a helmet, goggles); soft: those
+    that hang from it instead (tentacles, the octopus)"""
+    return [i for i, row in enumerate(keeper["Parts"]) if under(keeper, row[0], "Head") and row[0].startswith(SOFT) == soft]
+
+
+def acting(keeper):
+    """the numbers of the arm, hand and held parts its action moves: those on a joint the action has a track for,
+    or hanging from one"""
+    tracks = [t[0] for t in keeper["Action"]["Tracks"] if under(keeper, t[0], "Arm")]
+    return [i for i in hands(keeper) if any(under(keeper, keeper["Parts"][i][0], t) for t in tracks)]  # no sleeves
+
+
+def acting_times(keeper):
+    """the keys of the action's tracks for its arms and what they hold (not its start or its end)"""
+    out = set()
+    for track in keeper["Action"]["Tracks"]:
+        if under(keeper, track[0], "Arm"):
+            out.update(round(key[0], 3) for key in track[1:] if 0 < key[0] < 1)
+    return sorted(out)
+
+
+def seen_share(eye, boxes, group, others):
+    """the share of what faces `eye` of the parts numbered `group` (of `boxes`) that it can see: a 3 by 3 of points
+    on every face turned to it, each seen unless one of `others` ([(name, matrix, size)]) or a part of the keeper
+    outside the group stands in the way. A ball counts as a box three quarters its size"""
+    def sized(b):
+        return [v * 0.75 for v in b["size"]] if b.get("shape") == "Ball" else b["size"]
+
+    block = list(others) + [(str(i), b["m"], sized(b)) for i, b in enumerate(boxes) if i not in group]
+    seen = total = 0
+    for i in group:
+        m, size = boxes[i]["m"], sized(boxes[i])
+        mid = [m[r][3] for r in range(3)]
+        for a in range(3):
+            axis = [m[r][a] for r in range(3)]
+            for sign in (-1, 1):
+                face = [mid[r] + sign * axis[r] * (size[a] / 2 + 0.01) for r in range(3)]
+                if sum(sign * axis[r] * (eye[r] - face[r]) for r in range(3)) <= 0:
+                    continue
+                b1, b2 = [x for x in range(3) if x != a]
+                for u in (-0.6, 0.0, 0.6):
+                    for v in (-0.6, 0.0, 0.6):
+                        spot = [face[r] + u * m[r][b1] * size[b1] / 2 + v * m[r][b2] * size[b2] / 2 for r in range(3)]
+                        total += 1
+                        if not hidden_by(eye, spot, block):
+                            seen += 1
+    return seen / total if total else 1.0
+
+
 def hidden_by(eye, spot, solids):
     """the name of the first of `solids` ([(name, matrix, size)]) that stands between `eye` and `spot`, or None"""
     for name, m, size in solids:

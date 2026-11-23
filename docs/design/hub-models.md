@@ -316,8 +316,8 @@ pictures are Blender views of the same numbers the game reads.
 - **Who:** Sell has a fishmonger (sou'wester pulled down to the brows, beard, red neckerchief, the catch on his
   palm; he holds it out over the counter and it thrashes). Auras has a mystic (a jellyfish bell for a hat, a glowing
   pearl that floats across from one hand to the other and back). The sub has a diver (brass helmet and collar, a
-  chest gauge, a wrench he slaps twice into his other palm). Fuse has a tinkerer (goggles he pushes up, an octopus
-  on the head, a glowing flask) who stands on the machine's base. Ours, not the reference game's pilot, wizard or
+  chest gauge, a wrench he raps twice on the counter). Fuse has a tinkerer (goggles, an octopus on the head, a
+  glowing flask he tosses up and catches) who stands on the machine's base. Ours, not the reference game's pilot, wizard or
   cowboy.
 - **What a player can see of a stall keeper is a low window.** The awning's lip hides everything above about 4.5
   studs over the floor from the play camera (12.5 studs back, 20 degrees down): 4.77 from the ring's far edge, 4.66
@@ -325,9 +325,14 @@ pictures are Blender views of the same numbers the game reads.
   stall keepers are short, their hats are flat, and hat, face, held thing and action all sit in that window. The
   actions go sideways and forward, not up. `tools/keepers/check.py` fails if any of it goes behind the stall, with
   the keeper looking ahead or at the player, at rest and at every key moment of the action; and if an action
-  carries nothing at least 30 pixels across a 1920 x 1080 screen seen from the ring's middle (they measure 40, 106,
-  81 and 58; the bob is 8 to 19). At the counter itself only the half of each part that faces the player is
+  carries nothing at least 30 pixels across a 1920 x 1080 screen seen from the ring's middle (they measure 39, 104,
+  61 and 55; the bob is 8 to 17). At the counter itself only the half of each part that faces the player is
   counted: the back of a hat's top is behind the lip from there. Rows 3 to 6 of the picture are those cameras.
+- **No action reaches for the head.** The head turns up to 70 degrees to the player and the body only 14, so a
+  hand sent to the goggles or the helmet ends up inside the head (the first tinkerer and diver did). The check now
+  tries every keeper against itself at the looks the ring gives: no hand, cuff or held thing inside the head, a
+  hat, a helmet or goggles, and at least 60% of the acting hand and what it holds seen from the play camera (it is
+  74% to 100%). A sleeve under a turning chin and a hand through a hanging tentacle are only listed, not failed.
 - **How:** `src/shared/Keepers.luau` holds the tables (parts, joints, the bob, the sway, the action, the props) and
   the sums; `src/client/Controllers/KeeperController.luau` builds them on each player's own machine from plain parts
   and moves them. Nothing is in the place, nothing is uploaded, nothing can be bumped, touched or hit by a ray. A

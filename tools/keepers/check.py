@@ -23,6 +23,7 @@ import keepers as K  # noqa: E402
 
 DEEP = 0.06  # studs two boxes may sink into each other before it counts (a hand on a counter, a jar on a base)
 RING_CLEAR = 1.0  # studs kept free round the ring's edge
+FAIR = 0.6  # the share of the acting hand and what it holds a player has to be able to see during the action
 SHOWS = 30  # pixels of a 1920 x 1080 screen an action has to carry something, seen from the ring's middle
 SHIFT = {"Fuse": (-19.4, 0.0, 11.8)}
 
@@ -96,7 +97,7 @@ def main():
     look = data["Look"]
     hub = json.load(open(K.HUB))
     hub_in = json.load(open(os.path.join(os.path.dirname(K.HUB), "hub_in.json")))
-    faults, total, seen = [], 0, {}
+    faults, total, seen, notes = [], 0, {}, []
     for k in data["List"]:
         parts = K.station(k["Station"], hub, SHIFT.get(k["Station"], (0.0, 0.0, 0.0)))
         space, scale = K.stand_space(parts, k["Stand"], look)
@@ -179,6 +180,60 @@ def main():
         if far < SHOWS or far < 2 * bob:
             faults.append(f"{k['Id']}: its action carries nothing further than {far:.0f} px on the screen from the ring's "
                           f"middle (the bob is {bob:.0f}, at least {max(SHOWS, 2 * bob):.0f} wanted)")
+        # the keeper against itself, at the looks the ring gives (its middle, its near and far edges, and across each
+        # from side to side) and looking ahead, idle and through the action: no hand, cuff or held thing inside the
+        # head or what is fixed on it (a hat, a helmet, goggles). The head turns much further than the body, so a
+        # hand that reaches for the head does not follow it. Sleeves, and the soft things that hang from a head
+        # (tentacles), are only noted: a blocky sleeve under a turning chin is the style's
+        ring_looks = [("looking ahead", 0.0, 0.0)]
+        for where, name in ((0, "the ring's middle"), (1, "its far edge"), (-1, "its near edge")):
+            for side in (0.0, K.ASIDE, -K.ASIDE, 1.0, -1.0):
+                _eye, at = K.play_camera(space, parts, where, side)
+                ring_looks.append((f"looking at {name}, side {side:+.2f}",) + K.look_at(k, kspace, scale, look, at))
+        hand, arm, hard, soft_parts = set(K.hands(k)), K.arms(k), set(K.heads(k)), K.heads(k, True)
+        inside, brushes = {}, {}
+        for tag, yaw, pitch in ring_looks:
+            for t in [None] + K.action_times(k):
+                how = {"yaw": yaw, "pitch": pitch, "sway_t": k["Bob"][1] / 4}
+                if t is not None:
+                    how["action_t"] = t
+                boxes = K.keeper_boxes(data, k, kspace, scale, **how)
+                for i in arm:
+                    for j in list(hard) + soft_parts:
+                        deep = sunk(body(boxes[i]), body(boxes[j]))
+                        into = inside if i in hand and j in hard else brushes
+                        if deep > DEEP and deep > into.get(i, (0,))[0]:
+                            into[i] = (deep, j, ("idle" if t is None else f"action {t:.2f}") + ", " + tag)
+        for i, (deep, j, when) in sorted(inside.items()):
+            a, b = k["Parts"][i], k["Parts"][j]
+            faults.append(f"{k['Id']}: part {i + 1} ({a[0]} {a[1]} {a[11]}) is {deep:.2f} into its own part {j + 1} "
+                          f"({b[0]} {b[1]} {b[11]}) ({when})")
+        for i, (deep, j, when) in sorted(brushes.items()):
+            a, b = k["Parts"][i], k["Parts"][j]
+            notes.append(f"{k['Id']}: part {i + 1} ({a[0]} {a[11]}) goes {deep:.2f} into part {j + 1} ({b[0]} {b[11]}) ({when})")
+        # and the arm, hand and held thing the action moves can be seen while it does: from the play camera of a
+        # player on the ring's middle, its near and its far edge, on its middle line and a step to each side, with the
+        # keeper looking at them, at least FAIR of what faces the camera is not behind the keeper's own head and
+        # body, the stand or a prop, at every key of the action
+        group = K.acting(k)
+        if group:
+            block = [s for s in K.solids_of(parts)] + [(f"prop {i}", b["m"], b["size"]) for i, b in enumerate(K.prop_boxes(data, k, space, scale))]
+            least = (1.0, "")
+            for where, name in ((0, "the ring's middle"), (1, "its far edge"), (-1, "its near edge")):
+                for side in (0.0, K.ASIDE, -K.ASIDE):
+                    eye, at = K.play_camera(space, parts, where, side)
+                    yaw, pitch = K.look_at(k, kspace, scale, look, at)
+                    for t in K.acting_times(k):
+                        boxes = K.keeper_boxes(data, k, kspace, scale, yaw=yaw, pitch=pitch, sway_t=k["Bob"][1] / 4, action_t=t)
+                        share = K.seen_share(eye, boxes, group, block)
+                        if share < least[0]:
+                            least = (share, f"action {t:.2f}, from {name}, side {side:+.2f}")
+            seen[k["Id"]] += f"; of the acting hand and what it holds at least {least[0] * 100:.0f}% is seen ({least[1]})"
+            if least[0] < FAIR:
+                faults.append(f"{k['Id']}: only {least[0] * 100:.0f}% of the acting hand and what it holds can be seen "
+                              f"({least[1]}), {FAIR * 100:.0f}% wanted")
+        else:
+            faults.append(f"{k['Id']}: its action moves no arm, hand or held thing")
         props = K.prop_boxes(data, k, space, scale)
         rest = K.keeper_boxes(data, k, kspace, scale)
         top = floor
@@ -228,6 +283,10 @@ def main():
     for name, line in seen.items():
         print(f"  {name:<11}{line}")
     print(f"all four: {total} parts")
+    if notes:
+        print("noted, not faults (a sleeve or a hand through a turning head's edge or a hanging tentacle):")
+        for line in notes:
+            print("  . " + line)
     for f in faults:
         print("  !", f)
     print("no fault" if not faults else f"{len(faults)} faults")

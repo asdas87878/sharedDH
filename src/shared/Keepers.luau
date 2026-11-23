@@ -247,7 +247,7 @@ Keepers.List = {
 			Time = 1.4,
 			Every = { 4.5, 8 },
 			Tracks = {
-				{ "ArmR", { 0.22, -1, 24, 0, 0, 0, 0 }, { 0.72, -1, 24, 0, 0, 0, 0 } },
+				{ "ArmR", { 0.22, -1, 24, 0, 0, 0, 0.25 }, { 0.72, -1, 24, 0, 0, 0, 0.25 } },
 				{
 					"Item",
 					{ 0.22, 0, 0, 0, 0, 0, 0 },
@@ -313,8 +313,8 @@ Keepers.List = {
 			{ "TentL", "Head", 0.86, 4, 0.3, 0, 0, 0 },
 			{ "TentR", "Head", -0.86, 4, 0.3, 0, 0, 0 },
 			{ "ArmL", "Body", 1.26, 3.2, 0, -8, -6, 0 },
-			{ "ArmR", "Body", -1.26, 3.2, 0, -8, 18, 0 },
-			{ "Pearl", "ArmL", 1.26, 3.74, 1.42, 8, 6, 0 },
+			{ "ArmR", "Body", -1.26, 3.2, 0, -8, 8, 0 },
+			{ "Pearl", "ArmL", 1.3, 3.74, 1.5, 8, 6, 0 },
 		},
 		Parts = {
 			-- the robe to the floor, a shell hem
@@ -368,17 +368,17 @@ Keepers.List = {
 				0.56,
 				0.56,
 				0.56,
-				1.26,
+				1.3,
 				3.74,
-				1.42,
+				1.5,
 				0,
 				0,
 				0,
 				"PearlGlow",
 				{ Mat = "Neon", Light = { 9, 1.1 } },
 			},
-			{ "Pearl", "Block", 0.13, 0.13, 0.13, 1.76, 3.82, 1.42, 0, 0, 0, "AuraCyan", { Mat = "Neon" } },
-			{ "Pearl", "Block", 0.13, 0.13, 0.13, 0.76, 3.66, 1.42, 0, 0, 0, "AuraPink", { Mat = "Neon" } },
+			{ "Pearl", "Block", 0.13, 0.13, 0.13, 1.72, 3.62, 1.5, 0, 0, 0, "AuraCyan", { Mat = "Neon" } },
+			{ "Pearl", "Block", 0.13, 0.13, 0.13, 0.88, 3.66, 1.5, 0, 0, 0, "AuraPink", { Mat = "Neon" } },
 		},
 		Bob = { 0.1, 2.8 },
 		Sway = {
@@ -389,20 +389,20 @@ Keepers.List = {
 			{ "Pearl", 2.1, 0.25, 0, 0, 0, 0, 0.05, 0 },
 			{ "Pearl", 7, 0, 0, 180, 0, 0, 0, 0 },
 		},
-		-- the pearl floats across from her one hand to the other, turning, hangs there and floats back; her eyes
-		-- follow it
+		-- the pearl floats out over the counter and across from her one hand to the other, turning, hangs there and
+		-- floats back; her head follows it. It goes round in front of her face, clear of it at every look
 		Action = {
 			Time = 1.5,
 			Every = { 5, 9 },
 			Tracks = {
-				{ "ArmR", { 0.3, -4, -14, 0, 0, 0, 0 }, { 0.75, -4, -14, 0, 0, 0, 0 } },
+				{ "ArmR", { 0.3, -4, -6, 0, 0, 0, 0 }, { 0.75, -4, -6, 0, 0, 0, 0 } },
 				{
 					"Pearl",
-					{ 0.1, 0, 40, 0, 0, 0.1, 0 },
-					{ 0.32, 0, 180, 0, -1.2, -0.14, 0.25 },
-					{ 0.5, 0, 320, 0, -2.4, 0.08, 0 },
-					{ 0.64, 0, 420, 0, -2.4, 0.08, 0 },
-					{ 0.84, 0, 600, 0, -1.2, -0.14, 0.25 },
+					{ 0.1, 0, 40, 0, 0, 0.1, 0.2 },
+					{ 0.32, 0, 180, 0, -1.2, -0.14, 0.5 },
+					{ 0.5, 0, 320, 0, -2.4, 0.08, 0.1 },
+					{ 0.64, 0, 420, 0, -2.4, 0.08, 0.1 },
+					{ 0.84, 0, 600, 0, -1.2, -0.14, 0.5 },
 					{ 1, 0, 720, 0, 0, 0, 0 },
 				},
 				{
@@ -507,23 +507,20 @@ Keepers.List = {
 			{ "Needle", 1.7, 0, 0, 0, 38, 0, 0, 0 },
 			{ "ArmR", 3, 0.3, 1.5, 0, 0, 0, 0, 0 },
 		},
-		-- brings both hands together and slaps the wrench twice into his other palm, looking down at it (the wrench
-		-- is turned back to face the customer as the arm swings in)
+		-- raps the wrench twice on the counter in front of him, looking down at it: low and forward, so no hand or
+		-- wrench comes near the helmet or its window whichever way the head is turned
 		Action = {
-			Time = 1.3,
+			Time = 1.2,
 			Every = { 5, 8.5 },
 			Tracks = {
-				{ "ArmR", { 0.22, -4, 36, 0, 0, 0, 0 }, { 0.78, -4, 36, 0, 0, 0, 0 } },
-				{ "ArmL", { 0.22, -4, -20, 0, 0, 0, 0 }, { 0.78, -4, -20, 0, 0, 0, 0 } },
 				{
 					"Item",
-					{ 0.22, 0, -36, -35, 0, 0, 0 },
-					{ 0.36, 0, -36, -72, 0, 0, 0 },
-					{ 0.5, 0, -36, -40, 0, 0, 0 },
-					{ 0.64, 0, -36, -72, 0, 0, 0 },
-					{ 0.78, 0, -36, -35, 0, 0, 0 },
+					{ 0.3, 106, 0, 0, 0, 0, 0 },
+					{ 0.44, 64, 0, 0, 0, 0, 0 },
+					{ 0.58, 106, 0, 0, 0, 0, 0 },
+					{ 0.78, 24, 0, 0, 0, 0, 0 },
 				},
-				{ "Head", { 0.25, 8, -6, 0, 0, 0, 0 }, { 0.75, 8, -6, 0, 0, 0, 0 } },
+				{ "Head", { 0.3, 10, -10, 0, 0, 0, 0 }, { 0.7, 10, -10, 0, 0, 0, 0 } },
 			},
 		},
 		Props = {
@@ -625,21 +622,30 @@ Keepers.List = {
 			{ "TentR", 2.2, 0.6, 0, 0, -6, 0, 0, 0 },
 			{ "Item", 2.2, 0.5, 0, 0, 6, 0, 0, 0 },
 		},
-		-- pushes the goggles up and settles them again
+		-- tosses the flask up, where it turns over once, and catches it; he and the octopus on his head watch it go.
+		-- Nothing in it reaches for the head: the head turns up to 70 degrees to the ring and an arm cannot follow it
 		Action = {
 			Time = 1.2,
 			Every = { 4.5, 8 },
 			Tracks = {
-				{ "ArmL", { 0.3, -56, -24, 0, 0, 0, 0 }, { 0.72, -56, -24, 0, 0, 0, 0 } },
 				{
-					"Goggles",
-					{ 0.3, 0, 0, 0, 0, 0, 0 },
-					{ 0.45, -12, 0, 0, 0, 0.16, 0 },
-					{ 0.58, 0, 0, 0, 0, 0, 0 },
-					{ 0.68, -6, 0, 0, 0, 0.08, 0 },
-					{ 0.78, 0, 0, 0, 0, 0, 0 },
+					"ArmR",
+					{ 0.15, 6, 0, 0, 0, 0, 0 },
+					{ 0.3, -8, 0, 0, 0, 0, 0 },
+					{ 0.6, 0, 0, 0, 0, 0, 0 },
+					{ 0.86, 5, 0, 0, 0, 0, 0 },
 				},
-				{ "Head", { 0.35, 0, 0, 6, 0, 0, 0 }, { 0.72, 0, 0, 6, 0, 0, 0 } },
+				{
+					"Item",
+					{ 0.15, 0, 0, 0, 0, -0.08, 0 },
+					{ 0.5, 0, 0, 180, 0, 1.2, 0 },
+					{ 0.86, 0, 0, 360, 0, -0.06, 0 },
+					{ 1, 0, 0, 360, 0, 0, 0 },
+				},
+				{ "Head", { 0.3, -6, -8, 0, 0, 0, 0 }, { 0.7, -6, -8, 0, 0, 0, 0 } },
+				{ "Octo", { 0.5, 0, -14, 0, 0, 0.1, 0 } },
+				{ "TentL", { 0.5, 0, 0, -22, 0, 0, 0 } },
+				{ "TentR", { 0.5, 0, 0, 22, 0, 0, 0 } },
 			},
 		},
 		Props = {
