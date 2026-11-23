@@ -30,3 +30,6 @@ art/map/**/parts.json
 .claude/settings.local.json
 # the README's check build
 /build.rbxl
+
+# hub_s.py trial builds (made again by the script)
+art/map/hub_study/S_*/

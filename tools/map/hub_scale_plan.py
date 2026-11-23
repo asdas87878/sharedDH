@@ -2,7 +2,8 @@
 wrong, whether it's in the actual scale of the hub or the texture, or it's just the walk speed"). Three plans:
 ours as it stands (read from the place: art/map/hub_study/dump_2026-11-22.csv), the reference's (measured from our
 frames: docs/reference/ride-a-dino-map.md, "The hub, measured", good to about 15%), and S, ours at the reference's
-own size (230 by 180) with eight pens (50 by 60, sharing fences, in a U), checked: see check(). Schematic: walls as a line, pens as boxes.
+own size (236 by 193; theirs is about 230 by 180) with eight pens (50 by 60, sharing fences, in a U), checked: see
+check() and tools/map/hub_s.py (the walls). Schematic: walls as a line, pens as boxes.
 
 usage: python tools/map/hub_scale_plan.py [out.png]"""
 import math
@@ -12,7 +13,7 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "docs", "attachments", "hub-scale-plans.png")
+OUT = sys.argv[1] if __name__ == "__main__" and len(sys.argv) > 1 else os.path.join(ROOT, "docs", "attachments", "hub-scale-plans.png")
 PX = 1.5  # pixels a stud
 PANEL_W, PANEL_H = 460 * PX, 410 * PX
 FLOOR, WALL, PEN, WATER, STRIP, OPEN, INK = (92, 160, 80), (40, 60, 40), (236, 222, 172), (150, 205, 225), (240, 230, 200), (255, 255, 255), (20, 24, 36)
@@ -121,24 +122,29 @@ def check(name, hub, strip, pens, things, gates):
     return bad
 
 
-# S: the reference's own size, 230 wide and 180 from the strip's inner edge (z -32) to the back wall (z -212). Four pens
-# on the back; two down each side, 50 into the hub and 60 along the wall, which leaves 15 studs of each back corner
-# pen's front open: its gate is there
-s_pens = [(-100, -50, -212, -152), (-50, 0, -212, -152), (0, 50, -212, -152), (50, 100, -212, -152),
-          (-115, -65, -152, -92), (-115, -65, -92, -32), (65, 115, -152, -92), (65, 115, -92, -32)]
-s_gates = [(-57.5, -152, 0, 1), (-25, -152, 0, 1), (25, -152, 0, 1), (57.5, -152, 0, 1),
-           (-65, -122, 1, 0), (-65, -72, 1, 0), (65, -122, -1, 0), (65, -72, -1, 0)]
-s_things = [(-26, -60, 29, 20, "Sell", RED), (26, -60, 29, 20, "Auras", PURPLE), (22, -118, 29, 41, "Fuse", BLUE),
-            (-27, -108, 47, 18, "Index", GOLD), (55, -47, 20, 29, "Sub", TEAL), (-60, -46, 8, 26, "", GREY)]
-s_things += trainers([(-45, -146), (-8, -146), (8, -146), (45, -146), (-58, -104), (-58, -87), (58, -104), (58, -87)])
-assert not check("S", (-115, 115, -212, 0), (-48, 48, -32, 0), s_pens, s_things, s_gates)
-r = panel("S (a sketch): their size, 230 x 180, eight pens 50 x 60",
-          "back gates to the strip 120 (4.3 s) | side gates 92 and 43 | no sign boards drawn",
-          (-115, 115, -212, 0), s_pens, (-48, 48, -32, 0), (0, -88), [((-25, -152), (-25, -32), "120")],
-          (-65, 65, -152, -32), things=s_things)
+# S: about the reference's own size, 236 by 193 from the strip's inner edge (z -32) to the back wall (z -225): theirs is
+# 230 by 180, good to 15%. At 230 by 180 exactly the pens run into the round corners of the walls the generator builds
+# (tools/map/hub_s.py checks that). Four pens on the back; two down each side, 50 into the hub and 60 along the wall,
+# which leaves 15 studs of each back corner pen's front open: its gate is there
+SZ = -10.0
+s_pens = [(-100, -50, -212 + SZ, -152 + SZ), (-50, 0, -212 + SZ, -152 + SZ), (0, 50, -212 + SZ, -152 + SZ), (50, 100, -212 + SZ, -152 + SZ),
+          (-115, -65, -152 + SZ, -92 + SZ), (-115, -65, -92 + SZ, -32 + SZ), (65, 115, -152 + SZ, -92 + SZ), (65, 115, -92 + SZ, -32 + SZ)]
+s_gates = [(x, z + SZ, dx, dz) for x, z, dx, dz in
+           [(-57.5, -152, 0, 1), (-25, -152, 0, 1), (25, -152, 0, 1), (57.5, -152, 0, 1),
+            (-65, -122, 1, 0), (-65, -72, 1, 0), (65, -122, -1, 0), (65, -72, -1, 0)]]
+s_things = [(-26, -60, 29, 20, "Sell", RED), (26, -60, 29, 20, "Auras", PURPLE), (22, -118 + SZ, 29, 41, "Fuse", BLUE),
+            (-27, -108 + SZ, 47, 18, "Index", GOLD), (54, -48, 20, 29, "Sub", TEAL), (-59, -46, 8, 26, "", GREY)]
+s_things += trainers([(x, z + SZ) for x, z in [(-45, -146), (-8, -146), (8, -146), (45, -146), (-58, -104), (-58, -87), (58, -104), (58, -87)]])
+S_TRY = {"HUB_HALF": 118, "HUB_BACK": -225, "CORNER": 12, "FRONT_TURN": 8, "GATE_TURN": 17}
+assert not check("S", (-118, 118, -225, 0), (-48, 48, -32, 0), s_pens, s_things, s_gates)
+r = panel("S (a sketch): 236 x 193, eight pens 50 x 60",
+          "back gates to the strip 130 (4.6 s) | side gates 101 and 53 | clears the built walls",
+          (-118, 118, -225, 0), s_pens, (-48, 48, -32, 0), (0, -88), [((-25, -162), (-25, -32), "130")],
+          (-65, 65, -162, -32), things=s_things)
 sheet = Image.new("RGB", (int(PANEL_W) * 3 + 20, int(PANEL_H)), (255, 255, 255))
 for i, im in enumerate((now, ref, r)):
     sheet.paste(im, (i * (int(PANEL_W) + 10), 0))
-os.makedirs(os.path.dirname(OUT), exist_ok=True)
-sheet.save(OUT)
-print(OUT)
+if __name__ == "__main__":
+    os.makedirs(os.path.dirname(os.path.abspath(OUT)), exist_ok=True)
+    sheet.save(OUT)
+    print(OUT)

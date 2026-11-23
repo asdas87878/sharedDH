@@ -89,17 +89,20 @@ To confirm with the game-code chat before any of it goes in; as far as the map c
   more inside.
 
 ## 3. Layout, and where the eye goes
-**S** (right in the plans, **a sketch**): the reference's own size, 230 x 180. Eight pens of 50 x 60 sharing fences: four
-along the back, two down each side. The side pens run 50 into the hub and 60 along the wall, so 15 studs of each back
-corner pen's front stay open and its gate goes there. Open floor 130 x 120 (ours now 216 x 180). The back gates to the
-strip are 120 (4.3 s at 28; theirs about 110, ours now 180), the side gates 92 and 43, in straight lines.
-`tools/map/hub_scale_plan.py` checks it and stops if it fails: nothing overlaps, all inside the hub and off the strip,
-8 clear studs in front of every gate. Every station is drawn at its present footprint. **Not drawn:** the plots' sign
-boards and upgrade signs, and the arch. It is full: the Submarine, Index and Fuse would be the first to shrink.
+**S** (right in the plans, **a sketch**): about the reference's own size, **236 x 193** (theirs is 230 x 180, good to 15%).
+Eight pens of 50 x 60 sharing fences: four along the back, two down each side. The side pens run 50 into the hub and 60
+along the wall, so 15 studs of each back corner pen's front stay open and its gate goes there. Open floor 130 x 130 (ours
+now 216 x 180). The back gates to the strip are 130 (4.6 s at 28; theirs about 110, ours now 180), the side gates 101 and
+53, in straight lines. Checked twice: `tools/map/hub_scale_plan.py` (nothing overlaps, all inside the hub and off the
+strip, 8 clear studs in front of every gate) and `tools/map/hub_s.py` (the generator really builds the walls, and no pen,
+station or pad touches any of the 258 wall pieces). Every station is drawn at its present footprint. **Not drawn:** the
+plots' sign boards and upgrade signs, and the arch. It is full: the Submarine, Index and Fuse would be the first to shrink.
 
-*(Corrected 2026-11-23: R, 290 x 196, is dropped. It was said that 230 x 180 does not fit eight pens, without drawing it;
-it does. R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a
-trainer pad stood in front of every one of its gates.)*
+*(Corrected 2026-11-23, twice. R, 290 x 196, is dropped: it was said that 230 x 180 does not fit eight pens, without
+drawing it; R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a
+trainer pad stood in front of every one of its gates. Then S at 230 x 180 exactly was said to pass, but that check took
+the hub for a rectangle: in the generator's round corners the pens ran up to 15 studs into the walls. 236 x 193 is the
+smallest of the sizes tried that clears them: 238 x 184, 236 x 188 and 236 x 191 did not.)*
 
 For attention, following the reference:
 - **The spawn on the line from the pens to the strip**, facing the strip. The strip, the gap and the herd beyond it are
