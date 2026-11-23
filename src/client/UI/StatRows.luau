@@ -241,9 +241,8 @@ function StatRows.build(parent: Instance)
 	}, holder)
 	air = row(1, "Oxygen", Kit.bubble, Kit.White)
 	-- Oxygen is shown whole and grouped (2,925; 3,285,000), never 2.9K (grade issue 1): a long number shrinks to fit
-	-- the bar instead of running past it into the plus button
+	-- the bar instead of running past it into the plus button (TextWrapped stays on: off, it does not shrink to the width)
 	air.Text.TextScaled = true
-	air.Text.TextWrapped = false
 	Kit.new("UITextSizeConstraint", { MaxTextSize = TEXT, MinTextSize = 10 }, air.Text)
 	money = row(2, "Coins", Kit.coin, COINS)
 	money.Frame.Visible = false
