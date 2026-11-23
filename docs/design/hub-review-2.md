@@ -7,7 +7,7 @@ feel that is a staple of the genre", "analyze my current hub ... see how we can 
 one-to-one and to maximize player attention", and "experiment with a few variants of the water in its transparency ...
 tell me other things we could do for the water".
 
-**A study. Nothing in the place has changed.**
+**A study, then built: S with the pens that grow is the live hub since 2026-11-23 ("Live", under 3).**
 
 ## What was read
 - **The hub as it stands:** every part in its box was read from the place on 2026-11-22
@@ -163,7 +163,7 @@ To confirm with the game-code chat before any of it goes in; as far as the map c
   doesn't grow them. (Taller after all, the user, 2026-11-23: above.)
 
 ## 3. Layout, and where the eye goes
-**S, third drawing** (2026-11-23; right in the plans; **a try, not the live hub**): **344 x 212**, open floor **174 x 130**.
+**S, third drawing** (2026-11-23; right in the plans; **the live hub, below**): **344 x 212**, open floor **174 x 130**.
 The user's three corrections, each right and each a misreading of mine:
 - **The second drawing had no grass behind the pens** ("it doesnt have any space between aquariums and the walls behind"):
   3 studs. Theirs, from above a back pen (full 12 s, `ground.py`): the wall 7 to 12 behind the back pens, 19 to 26 behind the
@@ -187,6 +187,29 @@ nearer the strip, one nearer the back pens.
 
 ![S, the third drawing, in Studio: from above, a corner, from the strip, and the gap between two side pens](../attachments/hub-s-studio.jpg)
 
+### Live (2026-11-23)
+"thats good, add the map back in now", "w the new hub": the user. The whole map was generated again at S's numbers and loaded
+in place of the old one at x 3000, about 25 minutes. **Not saved.** The try at x 14000 is taken away.
+
+![the live hub: from above, a corner, from the spawn to the gate, and back from the strip](../attachments/hub-live-2026-11-23.jpg)
+
+- **Where it lives:** `greybox.py` (`HUB_HALF` 172, `HUB_BACK` -244, `CORNER` 32, `FRONT` -32, `GATE_TURN` 17,
+  `FRONT_TURN` 8; pens and gates from `hub_scale_plan.py` `s_pens`, `s_gates`), `hub_kit.py` (`build`, `pen`, `placed`: stations
+  at `s_things`, sized by `FIT`, rings 11.5) and `pen_levels.py` (`pen_e` at stage 0, no fish). To move a thing: `hub_scale_plan.py`.
+- **Run the generator with `PROPS2=1`**; without it the map comes out with 58,972 parts instead of about 104,000.
+- **Checked:** loader 181 files, 0 problems, nothing moved by hand before it; `tools/studio/hub_contract.luau` (everything the
+  game reads on the dock): all good, sealed all round but the gate; the herd's stream finds its way (5 of 4,895 places
+  have no floor under them, at two lane sets far out, which did not change). In Play: spawn, a plot handed out,
+  trainers built, five fish put in the tank, a stage bought (the water rose 3), a walk from the spawn out of the gate
+  (3.4 s) into a dive and a hooked fish, no errors. **By script, not played by hand.**
+- **What moved in the lane:** its walls by 0.04 in the middle and under 4.4 for nine in ten, floors the same, about 40% of the props.
+- **Gone:** the gate's two palms (the earners board and the sub stand are there now). The back two stand in the open corners.
+- **Way back:** close without saving; or git `f135a1a`'s `tools/studio/greybox/` loaded again; the old dock is
+  `ServerStorage.DockBackup_2026-11-23` (scripts off, tags off; delete it when the hub is settled).
+- **Waiting on the game code (3 small changes, not made):** `Config.PlotUpgrades.Taller` 3 to 12; the gate's `SignBoard` not
+  lifted on a plot with no `SignBack` (until then it floats up 3 a stage off its posts); the trainer's TRAIN sign at 21 in place
+  of 30.5 (it hangs high over the low pens).
+
 *(Earlier corrections, all of the first drawing. R, 290 x 196, is dropped: it was said that 230 x 180 does not fit eight pens, without
 drawing it; R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a
 trainer pad stood in front of every one of its gates. Then S at 230 x 180 exactly was said to pass, but that check took
@@ -201,7 +224,7 @@ For attention, following the reference:
   the whole hub one sightline, and from every pen front the herd shows through the gap.
 - The Fuse machine and the Index a little further back, the Earners board and the Submarine at the strip's two ends.
 
-**Cost:** the hub's walls come from the generator, so S is one full map reload, which also re-scatters some lane props.
+**Cost (paid 2026-11-23):** the hub's walls come from the generator, so S is one full map reload, which also re-scatters some lane props.
 Before that, a hub-only try build (the generator's hub options) would show the walls at S's size without the reload.
 Pens, layout and size should be picked together and built in that one reload. The hand placing is read first and kept.
 

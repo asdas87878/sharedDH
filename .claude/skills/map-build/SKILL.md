@@ -39,3 +39,9 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   [docs/map-state.md](docs/map-state.md); tiles `tools/art/map_tiles.py` (borrows `creature_tiles.py`'s greys; `--test`
   lays out the test picture), test scene `tools/blender/map_stud_test.py`. No Lune on the user's PC yet: `map_plot.py
   <zones.json> <out> --top-from <old.png>` redraws the side view without a build.
+- **The hub since 2026-11-23: S, 344 x 212, eight pens 47 x 62 that grow** ([hub-review-2](../../../docs/design/hub-review-2.md), "Live";
+  replaces the 480 by 320 hub and the glass aquariums named above). Places and sizes: `tools/map/hub_scale_plan.py`; models: `hub_kit.py`,
+  `pen_levels.py`. **Always generate with `PROPS2=1`.** The chain: `PROPS2=1 python tools/map/greybox.py`, `hub_kit.py`,
+  `greybox_luau.py`, `hub_luau.py`, then `load_greybox.py <id>` (25 minutes, in the background; read the user's hand placing first).
+  The hub's models alone: `hub_kit.py`, `hub_luau.py`, `tools/studio/greybox/9[4-7]_hub.luau` (seconds). Then
+  `tools/studio/hub_contract.luau` (everything the game reads on the dock). The place's part count runs 65 over "expected": always has.

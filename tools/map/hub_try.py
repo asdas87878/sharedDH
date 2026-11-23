@@ -1,4 +1,5 @@
-"""The hub-only try of S in Studio (2026-11-23, the user: "Yeah, I should try that"): a shell to look round in, far to one
+"""RETIRED 2026-11-23: S is the live hub now, and hub.json's stations are already at its sizes (this would size them twice).
+The hub-only try of S in Studio (2026-11-23, the user: "Yeah, I should try that"): a shell to look round in, far to one
 side of the map. Nothing under Workspace.ClaudeBlockout is touched, and the game reads nothing here.
 
   Workspace.HubTryS     the hub's floor, strip, walls and the first of the lane, as the generator builds them at S's size
@@ -20,6 +21,8 @@ import hub_kit  # noqa: E402
 import hub_scale_plan as plan  # noqa: E402
 import pen_levels as pl  # noqa: E402
 from hub_kit import Kit, SAND  # noqa: E402
+
+sys.exit("hub_try.py is retired: S is the live hub (docs/design/hub-review-2.md, Live)")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "tools", "studio", "hub_try")
