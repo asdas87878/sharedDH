@@ -212,6 +212,8 @@ in place of the old one at x 3000, about 25 minutes. **Not saved.** The try at x
   on its posts (`AquariumService.remember` leaves it out where a plot has no `SignBack`); the TRAIN sign at 22 in place of 30.5
   (21 was planned: the tallest seahorse, level 12, stands 17.9 and the sign's foot is 3.2 under its middle). In Play: stage 2 is 37.9 of
   water, its edge line and posts with it, the board still at 9, five fish spread from 9 to 30 up.
+  ![a pen at stage 2 in Play](../attachments/pen-stage2-live.jpg) (The blank boards are the capture's: they are drawn once the player's own
+  camera has looked at them, seen in a later capture.)
 - **The user's hand placing after the load (2026-11-23):** Fuse moved by (-19.4, 0, 11.8), the Index station deleted. Kept; don't reset.
 
 *(Earlier corrections, all of the first drawing. R, 290 x 196, is dropped: it was said that 230 x 180 does not fit eight pens, without
