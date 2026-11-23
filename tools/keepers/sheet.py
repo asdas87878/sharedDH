@@ -50,27 +50,6 @@ def shot(scene, name, eye, at, fov, w=SIZE, h=SIZE):
     return {"scene": scene, "eye": eye, "at": at, "fov": fov, "w": w, "h": h, "out": os.path.join(WORK, name + ".png")}
 
 
-SCREEN = (1920, 1080)
-SIDE = 0.42  # how far to one side of the ring's middle line the player stands in the play views (a share of its half)
-PEAK = 0.5  # the moment of the action the play views show
-
-
-def on_screen(eye, at, spot):
-    """where `spot` is on the screen of a camera at `eye` looking at `at`: pixels from its top left"""
-    f = [at[i] - eye[i] for i in range(3)]
-    n = sum(v * v for v in f) ** 0.5
-    f = [v / n for v in f]
-    r = K.cross(f, [0.0, 1.0, 0.0])
-    n = sum(v * v for v in r) ** 0.5
-    r = [v / n for v in r]
-    u = K.cross(r, f)
-    d = [spot[i] - eye[i] for i in range(3)]
-    deep = sum(d[i] * f[i] for i in range(3))
-    focal = SCREEN[1] / 2 / math.tan(math.radians(K.CAMERA["fov"]) / 2)
-    return (SCREEN[0] / 2 + focal * sum(d[i] * r[i] for i in range(3)) / deep,
-            SCREEN[1] / 2 - focal * sum(d[i] * u[i] for i in range(3)) / deep)
-
-
 def player(space, parts, where, side):
     """a plain grey figure where the player stands (two legs, a body, a head: 5 studs), facing the stand"""
     _eye, at = K.play_camera(space, parts, where, side)
@@ -127,21 +106,30 @@ def main():
         scenes[kid + "Stand"] = {"boxes": alone + K.prop_boxes(data, k, space, scale) + K.station_boxes(parts), "ground": GRASS, "floor": floor}
         if not poses:
             tall = max(c[1] for b in alone for c in K.corners(b["m"], b["size"])) - kspace[1][3]
-            back = max(1.0, tall / 5.9)  # a taller keeper is seen from further off, so its hat is in the picture
-            shots.append(shot(kid, kid + "_front", kat([0, tall / 2 + 0.4, 11.5 * back]), kat([0, tall / 2 + 0.2, 0]), 34))
-            shots.append(shot(kid, kid + "_three", kat([7.2 * back, tall / 2 + 1.7, 8.6 * back]), kat([0, tall / 2 + 0.1, 0]), 34))
+            across = [sum((c[i] - kspace[i][3]) * kspace[i][0] for i in range(3)) for b in alone for c in K.corners(b["m"], b["size"])]
+            mid, wide = (max(across) + min(across)) / 2, (max(across) - min(across)) / 2
+            # a taller or a wider keeper is seen from further off, and the view is centred on all of it, so its hat
+            # and what it holds are in the picture
+            back = max(1.0, tall / 5.9, (wide + 0.5) / 3.0)
+            shots.append(shot(kid, kid + "_front", kat([mid, tall / 2 + 0.4, 11.5 * back]), kat([mid, tall / 2 + 0.2, 0]), 34))
+            shots.append(shot(kid, kid + "_three", kat([7.2 * back, tall / 2 + 1.7, 8.6 * back]), kat([mid / 2, tall / 2 + 0.1, 0]), 34))
             # as a player sees it: the play camera itself (keepers.py: CAMERA), a whole 1920 x 1080 screen of which the
             # sheet shows the cut round the keeper at its true size. The player (the grey figure) stands a step to
-            # one side of the ring's middle line, as their own character would otherwise cover the keeper
+            # one side of the ring's middle line, as their own character would otherwise cover the keeper, and the
+            # keeper is looking at them, as it does in play. The action is shown at the moment it carries something
+            # furthest on the screen
             head = K.point(kspace, [0, K.read_pivot(k, "Head")[1] * scale + 0.3, 0.3])
             for where, wtag in ((0, "mid"), (-1, "near")):
-                eye, at = K.play_camera(space, parts, where, SIDE)
-                for how, htag in (({"sway_t": k["Bob"][1] / 4}, "idle"), ({"sway_t": k["Bob"][1] / 4, "action_t": PEAK}, "act")):
+                eye, at = K.play_camera(space, parts, where, K.ASIDE)
+                yaw, pitch = K.look_at(k, kspace, scale, look, at)
+                held = {"yaw": yaw, "pitch": pitch, "sway_t": k["Bob"][1] / 4}
+                peak = K.shows(data, k, kspace, scale, eye, at, yaw=yaw, pitch=pitch)[2]
+                for how, htag in ((held, "idle"), (dict(held, action_t=peak), "act")):
                     name = f"{kid}_{wtag}_{htag}"
                     scenes[name] = {"boxes": K.keeper_boxes(data, k, kspace, scale, **how) + K.prop_boxes(data, k, space, scale)
-                                    + K.station_boxes(parts) + player(space, parts, where, SIDE), "ground": GRASS, "floor": floor}
-                    shots.append(shot(name, name, eye, at, K.CAMERA["fov"], SCREEN[0], SCREEN[1]))
-                    cuts[name] = on_screen(eye, at, head)
+                                    + K.station_boxes(parts) + player(space, parts, where, K.ASIDE), "ground": GRASS, "floor": floor}
+                    shots.append(shot(name, name, eye, at, K.CAMERA["fov"], K.SCREEN[0], K.SCREEN[1]))
+                    cuts[name] = K.on_screen(eye, at, head)
             for r, tag in enumerate(("_front", "_three", "_mid_idle", "_mid_act", "_near_idle", "_near_act")):
                 rows[r].append(kid + tag)
         else:
@@ -157,8 +145,8 @@ def main():
     for name, (px, py) in cuts.items():  # the cut round the keeper, at the screen's own size
         path = os.path.join(WORK, name + ".png")
         screen = Image.open(path)
-        left = min(max(0, int(px - SIZE / 2)), SCREEN[0] - SIZE)
-        top = min(max(0, int(py - SIZE * 0.42)), SCREEN[1] - SIZE)
+        left = min(max(0, int(px - SIZE / 2)), K.SCREEN[0] - SIZE)
+        top = min(max(0, int(py - SIZE * 0.42)), K.SCREEN[1] - SIZE)
         screen.crop((left, top, left + SIZE, top + SIZE)).save(path)
     titles = [NAMES[k["Station"]] + ": " + k["Id"] for k in keepers]
     if poses:
@@ -169,8 +157,8 @@ def main():
                            "in play:\nthe ring's\nmiddle, the\naction's peak", "in play:\nat the counter\n(the ring's\nnear edge), idle",
                            "in play:\nat the counter,\nthe action's\npeak"],
             OUT if not only else os.path.join(WORK, "try.png"),
-            "Drawn in Blender from src/shared/Keepers.luau and the hub kit's stalls: no studs, a stand-in light. In play: the game's camera "
-            "(12.5 studs behind the player's head, 20 degrees down, 70 degrees of view), a cut of a 1920 x 1080 screen at its true size.")
+            "Drawn in Blender from src/shared/Keepers.luau and the hub kit's stalls (no studs, a stand-in light). In play: the game's "
+            "camera (12.5 studs back, 20 degrees down), a 1920 x 1080 screen at true size, the keeper looking at the player (grey).")
 
 
 if __name__ == "__main__":

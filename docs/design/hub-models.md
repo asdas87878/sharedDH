@@ -313,23 +313,30 @@ pictures are Blender views of the same numbers the game reads.
 
 ![the four keepers: front, three-quarter, and as a player sees them](../attachments/hub-keepers-1.png)
 
-- **Who:** Sell has a fishmonger (low sou'wester, beard, red neckerchief, the catch on his palm; he flaps its tail).
-  Auras has a mystic (a jellyfish bell for a hat, a glowing pearl that lifts and turns). The sub has a diver (brass
-  helmet and collar, a chest gauge, a wrench; he knocks on his helmet). Fuse has a tinkerer (goggles, an octopus on
-  the head, a glowing flask) who stands on the machine's base. Ours, not the reference game's pilot, wizard or cowboy.
+- **Who:** Sell has a fishmonger (sou'wester pulled down to the brows, beard, red neckerchief, the catch on his
+  palm; he holds it out over the counter and it thrashes). Auras has a mystic (a jellyfish bell for a hat, a glowing
+  pearl that floats across from one hand to the other and back). The sub has a diver (brass helmet and collar, a
+  chest gauge, a wrench he slaps twice into his other palm). Fuse has a tinkerer (goggles he pushes up, an octopus
+  on the head, a glowing flask) who stands on the machine's base. Ours, not the reference game's pilot, wizard or
+  cowboy.
 - **What a player can see of a stall keeper is a low window.** The awning's lip hides everything above about 4.5
-  studs over the floor from the play camera (12.5 studs back, 20 degrees down): 4.77 from the ring's far edge, 4.65
-  from its middle, 4.44 at the counter. The counter top is at 2.93. So the three stall keepers are short and their
-  hat, face, held thing and action all sit between 2.95 and 4.45. `tools/keepers/check.py` fails if any of it goes
-  above the sightline, at rest or anywhere in the action. Rows 3 to 6 of the picture are drawn from those cameras.
+  studs over the floor from the play camera (12.5 studs back, 20 degrees down): 4.77 from the ring's far edge, 4.66
+  from its middle, 4.45 at the counter, measured where the keeper stands. The counter top is at 2.93. So the three
+  stall keepers are short, their hats are flat, and hat, face, held thing and action all sit in that window. The
+  actions go sideways and forward, not up. `tools/keepers/check.py` fails if any of it goes behind the stall, with
+  the keeper looking ahead or at the player, at rest and at every key moment of the action; and if an action
+  carries nothing at least 30 pixels across a 1920 x 1080 screen seen from the ring's middle (they measure 40, 106,
+  81 and 58; the bob is 8 to 19). At the counter itself only the half of each part that faces the player is
+  counted: the back of a hat's top is behind the lip from there. Rows 3 to 6 of the picture are those cameras.
 - **How:** `src/shared/Keepers.luau` holds the tables (parts, joints, the bob, the sway, the action, the props) and
   the sums; `src/client/Controllers/KeeperController.luau` builds them on each player's own machine from plain parts
   and moves them. Nothing is in the place, nothing is uploaded, nothing can be bumped, touched or hit by a ray. A
   keeper is placed by measuring its stand as it is in the place (the ring and the counter top, or the Fuse machine's
   core), so a stand moved by hand takes its keeper with it.
-- **The look:** head and upper body turn to the nearest player's head inside 20 studs (kept to 25), eased by a
-  spring, held to 70 degrees to a side (14 the body, 56 the head), 22 up and 16 down; back to the idle when the
-  player leaves or goes round behind.
+- **The look:** head and upper body turn to the nearest player's head inside 22 studs (kept to 27), eased by a
+  spring, held to 70 degrees to a side (14 the body, 56 the head), 6 up and 16 down; back to the idle when the
+  player leaves or goes round behind. The head tips up so little because a hat that tips back goes up behind the
+  awning's lip; the camera looks down on the keeper anyway.
 - **Cost:** 230 plain parts for all four stands (keepers 153, props 77), 139 of them moving. One small light. Draw
   calls are an estimate, not measured: about 15 to 25 with all four in view. Left still past 150 studs from the
   camera, taken out past 420.

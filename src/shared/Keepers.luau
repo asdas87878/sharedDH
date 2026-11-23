@@ -93,15 +93,16 @@ local Keepers = ({} :: any) :: Module
 --<<DATA
 -- The engine's numbers, the same for every keeper
 Keepers.Look = {
-	Near = 20, -- a player this near (studs, from the keeper's head) is looked at: the far edge of a stand's ring
-	Far = 25, -- and is let go of past this
+	Near = 22, -- a player this near (studs, from the keeper's head) is looked at: every edge of a stand's ring
+	Far = 27, -- and is let go of past this
 	Switch = 3, -- another player has to be this much nearer than the one looked at to be looked at instead
 	RearIn = 105, -- degrees off straight ahead: a player further round than this, behind the keeper, is not picked up
 	RearOut = 125, -- and one being looked at is let go of past this (the stalls have no back wall)
 	Body = 14, -- the most the upper body turns at the waist, degrees
 	BodyShare = 0.25, -- the share of the turn the body takes; the head takes the rest
 	Head = 56, -- the most the head turns on the body
-	Up = 22, -- the most the head tips up
+	Up = 6, -- the most the head tips up: little, as a hat that tips back goes up behind the awning's lip for a player
+	-- at the counter (tools/keepers/check.py), and the camera looks down on the keeper anyway
 	Down = 16, -- and down
 	Time = 0.32, -- seconds the turn takes to catch up (eased in and out)
 	Animate = 150, -- studs from the camera within which a keeper moves
@@ -216,9 +217,9 @@ Keepers.List = {
 			{ "Head", "Block", 0.18, 0.2, 0.08, -0.34, 3.87, 0.96, 0, 0, 0, "Eye" },
 			{ "Head", "Block", 0.44, 0.12, 0.12, 0.34, 4.02, 0.98, 0, 0, -9, "White" },
 			{ "Head", "Block", 0.44, 0.12, 0.12, -0.34, 4.02, 0.98, 0, 0, 9, "White" },
-			-- the sou'wester, worn low: a wide brim longer at the back, a low crown
-			{ "Head", "Block", 2.04, 0.14, 2.1, 0, 4.15, 0.12, -6, 0, 0, "OilskinDark" },
-			{ "Head", "Block", 1.5, 0.24, 1.3, 0, 4.25, 0.4, 0, 0, 0, "Oilskin" },
+			-- the sou'wester, pulled down to the brows: a wide brim, a low crown
+			{ "Head", "Block", 2.04, 0.12, 1.8, 0, 4.07, 0.26, 0, 0, 0, "OilskinDark" },
+			{ "Head", "Block", 1.5, 0.12, 1.1, 0, 4.15, 0.45, 0, 0, 0, "Oilskin" },
 			-- the arms: a sleeve and a hand each
 			{ "ArmL", "Block", 0.5, 0.5, 1.3, 1.26, 3.2, 0.55, 0, 0, 0, "Oilskin" },
 			{ "ArmL", "Block", 0.5, 0.5, 0.45, 1.26, 3.2, 1.42, 0, 0, 0, "Skin" },
@@ -241,24 +242,33 @@ Keepers.List = {
 			{ "ArmR", 2.4, 0.3, 1.5, 0, 0, 0, 0, 0 },
 			{ "Tail", 1.1, 0, 0, 0, 9, 0, 0, 0 },
 		},
-		-- shows the catch off: lifts it a little, and its tail flaps hard
+		-- holds the catch out over the counter to the customer, where it thrashes in his hand; he looks at it
 		Action = {
-			Time = 1.2,
+			Time = 1.4,
 			Every = { 4.5, 8 },
 			Tracks = {
-				{ "ArmR", { 0.25, -5, 0, 0, 0, 0, 0 }, { 0.8, -5, 0, 0, 0, 0, 0 } },
+				{ "ArmR", { 0.22, -1, 24, 0, 0, 0, 0 }, { 0.72, -1, 24, 0, 0, 0, 0 } },
+				{
+					"Item",
+					{ 0.22, 0, 0, 0, 0, 0, 0 },
+					{ 0.32, 0, 0, 14, 0, 0, 0 },
+					{ 0.42, 0, 0, -3, 0, 0, 0 },
+					{ 0.52, 0, 0, 14, 0, 0, 0 },
+					{ 0.62, 0, 0, -3, 0, 0, 0 },
+					{ 0.72, 0, 0, 8, 0, 0, 0 },
+					{ 0.86, 0, 0, 0, 0, 0, 0 },
+				},
 				{
 					"Tail",
-					{ 0.25, 0, 0, 16, 0, 0, 0 },
-					{ 0.34, 0, 0, -18, 0, 0, 0 },
-					{ 0.43, 0, 0, 16, 0, 0, 0 },
-					{ 0.52, 0, 0, -18, 0, 0, 0 },
-					{ 0.61, 0, 0, 16, 0, 0, 0 },
-					{ 0.7, 0, 0, -18, 0, 0, 0 },
-					{ 0.8, 0, 0, 0, 0, 0, 0 },
+					{ 0.22, 0, 0, 0, 0, 0, 0 },
+					{ 0.32, 0, 0, 16, 0, 0, 0 },
+					{ 0.42, 0, 0, -12, 0, 0, 0 },
+					{ 0.52, 0, 0, 16, 0, 0, 0 },
+					{ 0.62, 0, 0, -12, 0, 0, 0 },
+					{ 0.72, 0, 0, 12, 0, 0, 0 },
+					{ 0.86, 0, 0, 0, 0, 0, 0 },
 				},
-				{ "Item", { 0.3, 0, 0, 6, 0, 0, 0 }, { 0.52, 0, 0, -6, 0, 0, 0 }, { 0.75, 0, 0, 4, 0, 0, 0 } },
-				{ "Head", { 0.3, 0, -16, 4, 0, 0, 0 }, { 0.75, 0, -16, 4, 0, 0, 0 } },
+				{ "Head", { 0.22, 0, -12, 3, 0, 0, 0 }, { 0.72, 0, -12, 3, 0, 0, 0 } },
 			},
 		},
 		Props = {
@@ -325,12 +335,12 @@ Keepers.List = {
 			{ "Head", "Block", 0.24, 0.12, 0.06, 0.52, 3.54, 0.96, 0, 0, 0, "Jelly" },
 			{ "Head", "Block", 0.24, 0.12, 0.06, -0.52, 3.54, 0.96, 0, 0, 0, "Jelly" },
 			-- the jellyfish bell, worn low like a hood: a wide rim, a dome, pale spots, a frill over the brow
-			{ "Head", "Block", 1.96, 0.3, 1.86, 0, 4.04, 0.3, 0, 0, 0, "Jelly" },
-			{ "Head", "Block", 1.56, 0.2, 1.4, 0, 4.21, 0.38, 0, 0, 0, "Jelly" },
-			{ "Head", "Block", 0.34, 0.03, 0.34, 0.3, 4.32, 0.76, 0, 0, 0, "JellyLight" },
-			{ "Head", "Block", 0.34, 0.03, 0.34, -0.3, 4.32, 0.76, 0, 0, 0, "JellyLight" },
-			{ "Head", "Block", 0.34, 0.03, 0.3, 0.3, 4.32, 0.4, 0, 0, 0, "JellyLight" },
-			{ "Head", "Block", 0.34, 0.03, 0.3, -0.3, 4.32, 0.4, 0, 0, 0, "JellyLight" },
+			{ "Head", "Block", 1.96, 0.24, 1.7, 0, 4, 0.38, 0, 0, 0, "Jelly" },
+			{ "Head", "Block", 1.56, 0.1, 1.2, 0, 4.17, 0.46, 0, 0, 0, "Jelly" },
+			{ "Head", "Block", 0.34, 0.03, 0.26, 0.3, 4.225, 0.8, 0, 0, 0, "JellyLight" },
+			{ "Head", "Block", 0.34, 0.03, 0.26, -0.3, 4.225, 0.8, 0, 0, 0, "JellyLight" },
+			{ "Head", "Block", 0.34, 0.03, 0.26, 0.3, 4.225, 0.46, 0, 0, 0, "JellyLight" },
+			{ "Head", "Block", 0.34, 0.03, 0.26, -0.3, 4.225, 0.46, 0, 0, 0, "JellyLight" },
 			{ "Head", "Block", 0.4, 0.14, 0.08, 0.42, 4.06, 1.24, 0, 0, 0, "JellyLight" },
 			{ "Head", "Block", 0.4, 0.14, 0.08, -0.42, 4.06, 1.24, 0, 0, 0, "JellyLight" },
 			{ "Head", "Block", 0.34, 0.14, 0.14, 0, 3.88, 1.2, 0, 0, 0, "JellyLight" },
@@ -379,19 +389,29 @@ Keepers.List = {
 			{ "Pearl", 2.1, 0.25, 0, 0, 0, 0, 0.05, 0 },
 			{ "Pearl", 7, 0, 0, 180, 0, 0, 0, 0 },
 		},
-		-- the pearl rises off her hand and turns once, her other hand drawn to it
+		-- the pearl floats across from her one hand to the other, turning, hangs there and floats back; her eyes
+		-- follow it
 		Action = {
-			Time = 1.3,
+			Time = 1.5,
 			Every = { 5, 9 },
 			Tracks = {
-				{ "ArmR", { 0.35, -6, 10, 0, 0, 0, 0 }, { 0.72, -6, 10, 0, 0, 0, 0 } },
+				{ "ArmR", { 0.3, -4, -14, 0, 0, 0, 0 }, { 0.75, -4, -14, 0, 0, 0, 0 } },
 				{
 					"Pearl",
-					{ 0.38, 0, 150, 0, 0, 0.24, 0 },
-					{ 0.72, 0, 330, 0, 0, 0.24, 0 },
-					{ 1, 0, 360, 0, 0, 0, 0 },
+					{ 0.1, 0, 40, 0, 0, 0.1, 0 },
+					{ 0.32, 0, 180, 0, -1.2, -0.14, 0.25 },
+					{ 0.5, 0, 320, 0, -2.4, 0.08, 0 },
+					{ 0.64, 0, 420, 0, -2.4, 0.08, 0 },
+					{ 0.84, 0, 600, 0, -1.2, -0.14, 0.25 },
+					{ 1, 0, 720, 0, 0, 0, 0 },
 				},
-				{ "Head", { 0.38, 0, 10, 0, 0, 0, 0 }, { 0.72, 0, 10, 0, 0, 0, 0 } },
+				{
+					"Head",
+					{ 0.32, 0, -8, 0, 0, 0, 0 },
+					{ 0.5, 0, -16, 0, 0, 0, 0 },
+					{ 0.64, 0, -16, 0, 0, 0, 0 },
+					{ 0.84, 0, -6, 0, 0, 0, 0 },
+				},
 			},
 		},
 		Props = {
@@ -459,14 +479,14 @@ Keepers.List = {
 			{ "Body", "Cylinder", 0.2, 0.4, 0.4, 0, 3.15, -0.88, 0, 0, 90, "Iron" },
 			-- the helmet, sat in the corselet: a brass ball, a face window with two eyes in it, a window each
 			-- side, a crest over the top
-			{ "Head", "Ball", 1.4, 1.4, 1.4, 0, 3.62, 0.25, 0, 0, 0, "Brass" },
+			{ "Head", "Ball", 1.28, 1.28, 1.28, 0, 3.62, 0.25, 0, 0, 0, "Brass" },
 			{ "Head", "Cylinder", 0.26, 0.94, 0.94, 0, 3.64, 0.81, 0, 90, 0, "BrassDark" },
 			{ "Head", "Cylinder", 0.28, 0.7, 0.7, 0, 3.64, 0.83, 0, 90, 0, "Porthole" },
 			{ "Head", "Block", 0.16, 0.2, 0.06, 0.16, 3.67, 0.98, 0, 0, 0, "White" },
 			{ "Head", "Block", 0.16, 0.2, 0.06, -0.16, 3.67, 0.98, 0, 0, 0, "White" },
-			{ "Head", "Cylinder", 1.5, 0.5, 0.5, 0, 3.66, 0.25, 0, 0, 0, "BrassDark" },
-			{ "Head", "Cylinder", 1.54, 0.3, 0.3, 0, 3.66, 0.25, 0, 0, 0, "Porthole" },
-			{ "Head", "Block", 0.3, 0.1, 0.8, 0, 4.27, 0.35, 0, 0, 0, "BrassDark" },
+			{ "Head", "Cylinder", 1.38, 0.5, 0.5, 0, 3.66, 0.25, 0, 0, 0, "BrassDark" },
+			{ "Head", "Cylinder", 1.42, 0.3, 0.3, 0, 3.66, 0.25, 0, 0, 0, "Porthole" },
+			{ "Head", "Block", 0.3, 0.08, 0.5, 0, 4.22, 0.45, 0, 0, 0, "BrassDark" },
 			-- the arms: a sleeve, a brass cuff, a glove
 			{ "ArmL", "Block", 0.5, 0.5, 1.2, 1.26, 3.2, 0.5, 0, 0, 0, "Canvas" },
 			{ "ArmL", "Block", 0.64, 0.64, 0.18, 1.26, 3.2, 1.14, 0, 0, 0, "Brass" },
@@ -487,28 +507,23 @@ Keepers.List = {
 			{ "Needle", 1.7, 0, 0, 0, 38, 0, 0, 0 },
 			{ "ArmR", 3, 0.3, 1.5, 0, 0, 0, 0, 0 },
 		},
-		-- brings the wrench across and knocks twice on the helmet
+		-- brings both hands together and slaps the wrench twice into his other palm, looking down at it (the wrench
+		-- is turned back to face the customer as the arm swings in)
 		Action = {
-			Time = 1.1,
+			Time = 1.3,
 			Every = { 5, 8.5 },
 			Tracks = {
-				{ "ArmR", { 0.25, 0, 24, 0, 0, 0, 0 }, { 0.8, 0, 24, 0, 0, 0, 0 } },
+				{ "ArmR", { 0.22, -4, 36, 0, 0, 0, 0 }, { 0.78, -4, 36, 0, 0, 0, 0 } },
+				{ "ArmL", { 0.22, -4, -20, 0, 0, 0, 0 }, { 0.78, -4, -20, 0, 0, 0, 0 } },
 				{
 					"Item",
-					{ 0.25, -26, 0, 0, 0, 0, 0 },
-					{ 0.38, -50, 0, 0, 0, 0, 0 },
-					{ 0.5, -28, 0, 0, 0, 0, 0 },
-					{ 0.62, -50, 0, 0, 0, 0, 0 },
-					{ 0.74, -28, 0, 0, 0, 0, 0 },
-					{ 0.82, -26, 0, 0, 0, 0, 0 },
+					{ 0.22, 0, -36, -35, 0, 0, 0 },
+					{ 0.36, 0, -36, -72, 0, 0, 0 },
+					{ 0.5, 0, -36, -40, 0, 0, 0 },
+					{ 0.64, 0, -36, -72, 0, 0, 0 },
+					{ 0.78, 0, -36, -35, 0, 0, 0 },
 				},
-				{
-					"Head",
-					{ 0.38, 0, 0, 5, 0, 0, 0 },
-					{ 0.5, 0, 0, 0, 0, 0, 0 },
-					{ 0.62, 0, 0, 5, 0, 0, 0 },
-					{ 0.74, 0, 0, 0, 0, 0, 0 },
-				},
+				{ "Head", { 0.25, 8, -6, 0, 0, 0, 0 }, { 0.75, 8, -6, 0, 0, 0, 0 } },
 			},
 		},
 		Props = {

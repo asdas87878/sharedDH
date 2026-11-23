@@ -23,6 +23,7 @@ import keepers as K  # noqa: E402
 
 DEEP = 0.06  # studs two boxes may sink into each other before it counts (a hand on a counter, a jar on a base)
 RING_CLEAR = 1.0  # studs kept free round the ring's edge
+SHOWS = 30  # pixels of a 1920 x 1080 screen an action has to carry something, seen from the ring's middle
 SHIFT = {"Fuse": (-19.4, 0.0, 11.8)}
 
 
@@ -95,7 +96,7 @@ def main():
     look = data["Look"]
     hub = json.load(open(K.HUB))
     hub_in = json.load(open(os.path.join(os.path.dirname(K.HUB), "hub_in.json")))
-    faults, total = [], 0
+    faults, total, seen = [], 0, {}
     for k in data["List"]:
         parts = K.station(k["Station"], hub, SHIFT.get(k["Station"], (0.0, 0.0, 0.0)))
         space, scale = K.stand_space(parts, k["Stand"], look)
@@ -135,32 +136,49 @@ def main():
         for (name, tag), (deep, which) in sorted(worst.items()):
             faults.append(f"{k['Id']}: {which} is {deep:.2f} into the stand's {name} ({tag})")
         # what a player sees: nothing of the head, the hat, the arms or what is held is cut off by the stand (the
-        # awning's lip, a post), at the top of the bob and through the action. From the ring's middle and its far
-        # edge every point of them; from its edge nearest the counter, where the camera looks steepest under the
-        # awning, the half of each part that faces the player. A point the keeper's own parts hide is not counted
+        # awning's lip, a post), at the top of the bob and at every moment of the action worth looking at. The
+        # keeper is tried looking straight ahead (it has not turned yet) and looking at the player whose camera it
+        # is (head turned and tipped up at them: at the counter that is near the most it tips), with the player on
+        # the ring's middle line and a step to each side of it. From the ring's middle and its far edge every point
+        # counts; from its edge nearest the counter, where the camera looks steepest under the awning, the half of
+        # each part that faces the player. A point the keeper's own parts hide is not counted
         if k["Stand"] == "CounterTop":
-            solids = K.solids_of(parts)
+            solids = [s for s in K.solids_of(parts) if s[0] not in ("Counter", "CounterTop")]
             cut = {}
             for where, name in ((0, "the ring's middle"), (1, "the ring's far edge"), (-1, "the ring's near edge")):
-                eye, _at = K.play_camera(space, parts, where)
-                for t in (None, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8):
-                    how = {"sway_t": k["Bob"][1] / 4}
-                    if t is not None:
-                        how["action_t"] = t
-                    boxes = K.keeper_boxes(data, k, kspace, scale, **how)
-                    own = [(str(i), b["m"], body(b)[1]) for i, b in enumerate(boxes)]
-                    for i, b in enumerate(boxes):
-                        row = k["Parts"][i]
-                        if row[0] in ("Root", "Body"):
+                for side in (0.0, K.ASIDE, -K.ASIDE):
+                    eye, at = K.play_camera(space, parts, where, side)
+                    yaw, pitch = K.look_at(k, kspace, scale, look, at)
+                    for turned, held in (("looking at the player", {"yaw": yaw, "pitch": pitch}), ("looking ahead", {})):
+                        if not held and side:
                             continue
-                        rest_of = own[:i] + own[i + 1:]
-                        for spot in spots(b, eye, where == -1):
-                            by = K.hidden_by(eye, spot, solids)
-                            if by and by != "Counter" and by != "CounterTop" and not K.hidden_by(eye, spot, rest_of):
-                                cut[(i, name)] = (by, "idle" if t is None else f"action {t:.1f}", row)
+                        for t in [None] + K.action_times(k):
+                            how = dict(held, sway_t=k["Bob"][1] / 4)
+                            if t is not None:
+                                how["action_t"] = t
+                            boxes = K.keeper_boxes(data, k, kspace, scale, **how)
+                            own = [(str(i), b["m"], body(b)[1]) for i, b in enumerate(boxes)]
+                            for i, b in enumerate(boxes):
+                                row = k["Parts"][i]
+                                if row[0] in ("Root", "Body"):
+                                    continue
+                                for spot in spots(b, eye, where == -1):
+                                    by = K.hidden_by(eye, spot, solids)
+                                    if by and not K.hidden_by(eye, spot, own[:i] + own[i + 1:]):
+                                        when = "idle" if t is None else f"action {t:.2f}"
+                                        cut.setdefault((i, name), (by, f"{when}, {turned}, side {side:+.2f}", row))
             for (i, name), (by, when, row) in sorted(cut.items()):
                 faults.append(f"{k['Id']}: part {i + 1} ({row[0]} {row[1]} {row[11]}) is cut off by the stand's {by} "
                               f"from {name} ({when})")
+        # the action has to show: seen from the ring's middle by a player a step to the side, with the keeper looking
+        # at them, it carries something at least SHOWS pixels of a 1920 x 1080 screen, and twice as far as the bob
+        eye, at = K.play_camera(space, parts, 0, K.ASIDE)
+        yaw, pitch = K.look_at(k, kspace, scale, look, at)
+        bob, far, when, joint = K.shows(data, k, kspace, scale, eye, at, yaw=yaw, pitch=pitch)
+        seen[k["Id"]] = f"bob {bob:.0f} px, action {far:.0f} px (the {joint} at {when:.2f})"
+        if far < SHOWS or far < 2 * bob:
+            faults.append(f"{k['Id']}: its action carries nothing further than {far:.0f} px on the screen from the ring's "
+                          f"middle (the bob is {bob:.0f}, at least {max(SHOWS, 2 * bob):.0f} wanted)")
         props = K.prop_boxes(data, k, space, scale)
         rest = K.keeper_boxes(data, k, kspace, scale)
         top = floor
@@ -206,6 +224,9 @@ def main():
         print(f"{k['Id']:<11}{k['Station']:<6} scale {scale:.2f}  feet {lift:.2f} over the floor  keeper {len(k['Parts'])} parts "
               f"({moving} move), top {ktop - floor:.2f}  props {len(k['Props'])}, top {top - floor:.2f}  "
               f"neon {glow}, see-through {see}, lights {lit}, stud pictures {stud}")
+    print("on the screen, from the ring's middle:")
+    for name, line in seen.items():
+        print(f"  {name:<11}{line}")
     print(f"all four: {total} parts")
     for f in faults:
         print("  !", f)

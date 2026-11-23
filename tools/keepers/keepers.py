@@ -313,6 +313,77 @@ def play_camera(space, parts, where, side=0.0):
     return point(space, eye), point(space, at)
 
 
+SCREEN = (1920, 1080)  # the screen the play views are drawn and measured on
+ASIDE = 0.42  # where the player stands in the play views: this share of the ring's half to one side of its middle line
+# (from dead ahead their own character covers the keeper)
+
+
+def on_screen(eye, at, spot):
+    """where `spot` is on the screen of a camera at `eye` looking at `at`: pixels from its top left"""
+    f = [at[i] - eye[i] for i in range(3)]
+    n = sum(v * v for v in f) ** 0.5
+    f = [v / n for v in f]
+    r = cross(f, [0.0, 1.0, 0.0])
+    n = sum(v * v for v in r) ** 0.5
+    r = [v / n for v in r]
+    u = cross(r, f)
+    d = [spot[i] - eye[i] for i in range(3)]
+    deep = sum(d[i] * f[i] for i in range(3))
+    focal = SCREEN[1] / 2 / math.tan(math.radians(CAMERA["fov"]) / 2)
+    return (SCREEN[0] / 2 + focal * sum(d[i] * r[i] for i in range(3)) / deep,
+            SCREEN[1] / 2 - focal * sum(d[i] * u[i] for i in range(3)) / deep)
+
+
+def look_at(keeper, kspace, scale, look, spot):
+    """the look a keeper gives a player whose head is at `spot` (the world), as KeeperController sums it: (yaw, pitch)
+    in degrees, from the head's joint at rest, held to the most a keeper turns. (0, 0) for a player out of
+    Look.Near or round behind it (Look.RearIn)"""
+    d = [spot[i] - kspace[i][3] for i in range(3)]
+    local = [sum(d[i] * kspace[i][a] for i in range(3)) for a in range(3)]
+    neck = read_pivot(keeper, "Head")
+    local = [local[i] - neck[i] * scale for i in range(3)]
+    far = math.sqrt(sum(v * v for v in local))
+    if far > look["Near"] or abs(math.degrees(math.atan2(local[0], local[2]))) > look["RearIn"]:
+        return 0.0, 0.0
+    yaw, pitch = aim(look, local)
+    most = look["Body"] + look["Head"]
+    return max(-most, min(most, yaw)), max(-look["Up"], min(look["Down"], pitch))
+
+
+def action_times(keeper):
+    """the moments of a keeper's action worth looking at: every key of every track, half way between each two, and
+    an even row of them besides"""
+    out = {round(0.1 * i, 3) for i in range(1, 10)}
+    for track in keeper["Action"]["Tracks"]:
+        keys = [0.0] + [key[0] for key in track[1:]] + [1.0]
+        for a, b in zip(keys, keys[1:]):
+            out.add(round(b, 3))
+            out.add(round((a + b) / 2, 3))
+    return sorted(t for t in out if 0 < t < 1)
+
+
+def shows(data, keeper, kspace, scale, eye, at, **how):
+    """how much of a keeper's idle and action a camera sees, in pixels of the 1920 x 1080 screen: (the bob top to
+    bottom, the furthest any corner of a part is carried by the action from where the idle has it, the moment of the
+    action that is, the joint of that part). how: the look it holds meanwhile"""
+    amp_t = keeper["Bob"][1] / 4
+
+    def at_time(**more):
+        boxes = keeper_boxes(data, keeper, kspace, scale, **dict(how, **more))
+        return [[on_screen(eye, at, c) for c in corners(b["m"], b["size"])] for b in boxes]
+
+    up, down = at_time(sway_t=amp_t), at_time(sway_t=3 * amp_t)
+    bob = max(math.dist(a, b) for pa, pb in zip(up, down) for a, b in zip(pa, pb))
+    best = (0.0, None, None)
+    for t in action_times(keeper):
+        now = at_time(sway_t=amp_t, action_t=t)
+        for i, (pa, pb) in enumerate(zip(up, now)):
+            far = max(math.dist(a, b) for a, b in zip(pa, pb))
+            if far > best[0]:
+                best = (far, t, keeper["Parts"][i][0])
+    return bob, best[0], best[1], best[2]
+
+
 def hidden_by(eye, spot, solids):
     """the name of the first of `solids` ([(name, matrix, size)]) that stands between `eye` and `spot`, or None"""
     for name, m, size in solids:
