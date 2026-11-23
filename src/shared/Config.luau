@@ -3154,6 +3154,53 @@ Config.Dive = {
 	Fov = 9, -- the view kicks this much wider, degrees
 	Camera = 1, -- 1: the view turns to look the way you are going, down the lane, and tips down at the fish below; 0: it stays where you had it
 	CameraPitch = -34, -- how far down it tips, degrees (a hop rests at Jump.CameraPitch, -30; riding at Camera.RestPitch, -12)
+	-- The leap (2026-11-23, the user: "make a sick dive animation for when the player jumps into the water initially
+	-- from the dive stand. We need nice camera angles, a splash and stuff. leave sound fx for now. We will need to make
+	-- sure it looks good and natural and dynamic"). Running off the start strip's lip is a dive: a crouch, a high arc out
+	-- over the water turning head first, a splash, and in, while the camera swings round to watch it, and then the
+	-- dive's hop above takes over under the water. DiveController (on our own screen; the others see the arc, the pose and
+	-- the splash). Every number is Claude's first go: unmeasured and unplayed.
+	Leap = 0, -- 1: running off the lip is the dive; 0: you drop in as before (nothing of the leap runs)
+	LeapCam = 1, -- 1: the camera films the dive; 0: the view is left as it is
+	Flip = 0, -- 1: a forward somersault in the air, tucked
+	LeapAhead = 2.5, -- the water is looked for this far ahead of you as you run, studs
+	LeapMinSpeed = 8, -- running toward the water at least this fast starts it, studs a second (slower: it starts as you go over the edge)
+	LeapCone = 40, -- the dive goes out within this many degrees of straight out from the dock, whichever way you ran,
+	LeapRefuse = 75, -- but running more than this far off straight out (along the edge) is no dive: you drop in as before
+	LeapCrouch = 0.1, -- the crouch at the edge, seconds (none when you are over the water already)
+	LeapHigh = 11, -- the arc's top over where you left, studs
+	LeapFar = 24, -- and where it meets the water, studs out
+	LeapTime = 0.85, -- from leaving the edge to the water, seconds
+	LeapDepth = 16, -- on in a straight line, easing to a stop this far under the surface, studs (never nearer the seabed than 8)
+	LeapSink = 0.45, -- over this long, seconds
+	LeapHold = 1.2, -- in the water this long and the hop above has not begun (still on the dock to the server): the dive lets go, seconds
+	LeapBlend = 0.45, -- as the hop takes over, the body turns from the dive's angle to the hop's over this long, seconds
+	LeapLean = 12, -- leaning forward this much in the crouch, degrees
+	-- the camera's moves (the side it goes to is the side it is on already)
+	LeapCamSide = 10, -- first low beside the edge, this far to the side, studs,
+	LeapCamBack = 7, -- this far back from the edge,
+	LeapCamLow = 1.2, -- this high over the floor, looking up as you take off
+	LeapCamCraneSide = 8, -- then craning up and over with you: at the top this far to the side,
+	LeapCamCraneBack = 7, -- this far behind,
+	LeapCamCraneUp = 5, -- and this far over you
+	LeapCamHighBack = 13, -- then high behind where you go in: this far back from it,
+	LeapCamHigh = 9, -- this high over the water, looking down at the splash
+	LeapCamThrough = 0.3, -- then through the surface after you: under it this long after you, seconds
+	LeapCamFollow = 9, -- following this far behind you down your line, studs
+	LeapCamHandBack = 0.5, -- and handing over to the riding camera over this long, seconds
+	LeapCamWide = 12, -- the view widens by this much at the top, degrees
+	LeapCamBank = 4, -- and banks this much through it, degrees
+	LeapCamLead = 0.12, -- it looks where you will be this far ahead, seconds
+	LeapLookOff = 40, -- the mouse or stick moved this much (pixels; a stick counts 400 a second pushed right over) gives the view back at once
+	-- the splash (every screen, for anyone going in fast)
+	LeapCrown = 16, -- blocks thrown up in a crown (0: none)
+	LeapCrownHigh = 9, -- this high, studs (by how fast they went in)
+	LeapColumn = 14, -- the column thrown up in the middle, studs (0: none)
+	LeapRing = 14, -- the foam ring spreads this far out from where they went in, studs (0: none)
+	LeapSplashFrom = 20, -- going in faster than this makes a splash, studs a second,
+	LeapSplashFull = 60, -- the whole splash at this fast
+	LeapSplashMost = 4, -- at most this many splashes at once
+	LeapSplashFar = 300, -- none further from the camera than this, studs
 	FirstDockWait = 20, -- seconds floating at the surface by the dock before a player who has not ridden yet this dive is put back on it (Oxygen.DockWait once they have)
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
 }

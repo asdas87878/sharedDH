@@ -79,6 +79,12 @@ local State = {
 	Launched = Instance.new("BindableEvent"), -- the Fast fish we landed on takes off
 	Leapt = Instance.new("BindableEvent"), -- we hopped off a Leaper: the big hop
 	Strained = false, -- the fish under us is too strong for us: the meter is emptying at once
+	-- The leap off the dock (Config.Dive.Leap, DiveController): true while it moves our body (RideController leaves the
+	-- humanoid and the floating alone meanwhile), the way it went (a yaw, for the dive's hop to carry on along; nil
+	-- outside one), and whether it already made the splash and its shake (the dive's hop then makes none of its own)
+	Leaping = false,
+	LeapHeading = nil :: number?,
+	LeapSplashed = false,
 }
 
 function State.setMode(mode: string)
