@@ -304,8 +304,9 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
 - **The thresholds set in Oxygen, moved 2026-11-23:** `Oxygen.Cap` (500K would have been passed inside the first
   hour, making every tame 1.5 times slower) is 50B; `Oxygen.Grow` 0.1 (which would have hit `GrowMost` 4 at land 8)
   is 0.035: Common to Rare fish last within about 6% of before, the rarer ones less, land 1's too (Epics up to 12%,
-  Legendaries 19%, Mythics 20%, Secrets 16% to 29% shorter; found by the game-code chat, 2026-11-23). Open: give
-  the rarer ones their length back (`Config.grow` on the need divided by its land's factor). D5 below is not re-run.
+  Legendaries 19%, Mythics 20%, Secrets 16% to 29% shorter; found by the game-code chat, 2026-11-23). Kept
+  so for now (the user, 2026-11-23: "keep as is for now"); if it comes back, the way is `Config.grow` on the need
+  divided by its land's factor. D5 below is not re-run.
 - **The x7.3 step is between each land's most usual rarity, not within one rarity.** Where the usual rarity changes
   the same rarity steps less: Legendaries x1.6 from land 6 to 7, x2.5 from 2 to 3, x3.4 from 4 to 5.
 - **The top of the seahorse is out of reach.** Full design, modelled to 1,500 h: level 10 at 101 h, 11 at 587 h, 12
