@@ -375,12 +375,12 @@ ok("the hub button's mark is down", not indexMark.Visible)
 press(claim)
 IndexPanel.press("Claim")
 ok("a second press pays nothing", oxygen == firstOxygen and coins == firstCoins)
+dump("2_claimed")
 for _, fn in later do
 	fn()
 end
 table.clear(later)
 ok("the toast goes", not toast.Visible)
-dump("2_claimed")
 
 ----------------------------------------------------------------------------------------------------------------------
 print("another land")

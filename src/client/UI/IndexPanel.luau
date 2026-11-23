@@ -385,7 +385,7 @@ local function newCard(fish: Config.FishType, order: number): Card
 		}, root)
 		Kit.corner(inner, Shop.Round.Card - 1)
 		local line = Kit.stroke(inner, 2, Kit.White)
-		local colours, turn = Kit.tierFill(fish.Tier, Config.Tiers)
+		local colours, turn = fillOf(fish.Tier)
 		Kit.new("UIGradient", { Color = colours, Rotation = turn }, line)
 	end
 	local picture = Portrait.new(root, {
@@ -420,7 +420,7 @@ local function newCard(fish: Config.FishType, order: number): Card
 		Font = Kit.Font,
 		TextSize = 11,
 		Text = string.upper(fish.Tier),
-		TextColor3 = if have then Kit.darker(colour, 0.62) else Kit.White,
+		TextColor3 = if have then Kit.darker(colour, 0.7) else Kit.White,
 		ZIndex = 6,
 	}, root)
 	if not have then
@@ -490,7 +490,9 @@ function paint()
 		tab.Waiting.Visible = owedIn(land) > 0
 	end
 	for _, card in cards do
-		card.Edge.Color = if card.Fish.Id == chosen then Kit.White else Shop.Edge
+		local on = card.Fish.Id == chosen
+		card.Edge.Color = if on then Kit.White else Shop.Edge
+		card.Edge.Thickness = if on then 4 else 3
 		card.Waiting.Visible = owedKind(card.Fish.Id)
 	end
 
@@ -698,32 +700,32 @@ local function build()
 	landWord = Shop.text(landBox, {
 		Name = "Land",
 		Position = UDim2.fromOffset(12, 6),
-		Size = UDim2.fromOffset(270, 20),
+		Size = UDim2.fromOffset(222, 20),
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 3,
 	})
 	local _, setLand = bar(landBox, {
 		Name = "Bar",
-		Position = UDim2.fromOffset(12, 31),
-		Size = UDim2.fromOffset(270, 14),
+		Position = UDim2.fromOffset(12, 30),
+		Size = UDim2.fromOffset(222, 14),
 		ZIndex = 3,
 	}, GOLD)
 	setLandBar = setLand
 	landCount = Shop.text(landBox, {
 		Name = "Count",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 288, 0.5, 0),
-		Size = UDim2.fromOffset(66, 30),
-		TextSize = 22,
+		Position = UDim2.new(0, 238, 0.5, 0),
+		Size = UDim2.fromOffset(78, 30),
+		TextSize = 20,
 		TextColor3 = GOLD[1],
 		ZIndex = 3,
 	})
 	local _, landO = chip(landBox, {
 		Name = "Oxygen",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 358, 0.5, 0),
-		Size = UDim2.fromOffset(72, 32),
+		Position = UDim2.new(0, 320, 0.5, 0),
+		Size = UDim2.fromOffset(80, 32),
 		TextSize = 14,
 		ZIndex = 3,
 	}, Kit.Textures.Oxygen, Kit.White)
@@ -731,8 +733,8 @@ local function build()
 	local _, landC = chip(landBox, {
 		Name = "Coins",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 434, 0.5, 0),
-		Size = UDim2.fromOffset(72, 32),
+		Position = UDim2.new(0, 404, 0.5, 0),
+		Size = UDim2.fromOffset(80, 32),
 		TextSize = 14,
 		ZIndex = 3,
 	}, Kit.Textures.Cash, Shop.Money)
@@ -744,7 +746,7 @@ local function build()
 		TextSize = 20,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -8, 0.5, 0),
-		Size = UDim2.fromOffset(98, 40),
+		Size = UDim2.fromOffset(112, 40),
 	})
 	landButton.Root.ZIndex = 3
 	landButton.Root.Activated:Connect(pressLand)
