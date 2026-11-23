@@ -1,4 +1,5 @@
-"""Find Roblox games of about 1,000 to 5,000 players that look likely to last, for asking their owners about a sale.
+"""Find Roblox games of 1,000 players and up that look likely to last, for asking their owners if they would sell to a
+buyer (the user finds games for someone else and is paid a commission; 2026-11-23).
 
 It only reads public figures and writes a shortlist. It sends nothing to anybody, joins nothing and signs in nowhere:
 the person opens the links and writes to the owners themselves.
@@ -12,7 +13,7 @@ Where the figures come from (both without an account, one request at a time thro
     only the best of a first cut are looked at closely. Its terms: do not pass its data on in bulk; link its pages.
 
 usage (from the project folder):
-  python tools/sources/gamefinder.py find [--low 1000] [--high 5000] [--look 40] [--top 20] [--min-age 120]
+  python tools/sources/gamefinder.py find [--low 1000] [--high 20000] [--look 40] [--top 30] [--min-age 120]
         writes work/gamefinder/shortlist-<date>.md (not in the repo) and prints the same table
   python tools/sources/gamefinder.py check <universe id> [...]
         the lasting score of any game, with its parts
@@ -33,7 +34,7 @@ EXPLORE = "https://apis.roblox.com/explore-api/v1/get-sorts?sessionId=1"
 GAMES = "https://games.roblox.com/v1/games"
 GROUPS = "https://groups.roblox.com/v1/groups/"
 ROTERMINAL = "https://roterminal.co/api/v1/games/"
-ROBLOX_GAP, ROTERMINAL_GAP = 1.0, 2.5  # seconds between requests, PC-wide (RoTerminal allows 30 a minute)
+ROBLOX_GAP, ROTERMINAL_GAP = 2.0, 2.5  # seconds between requests, PC-wide (RoTerminal allows 30 a minute)
 HOUR = 3600
 MISSED = []  # sites that did not answer in this run: the shortlist says so, rather than passing off gaps as facts
 KEEP_BACK = 2  # RoTerminal calls left unspent each day
@@ -89,8 +90,11 @@ def calls_left():
     return state.get("left", 50) if time.time() < state.get("reset", 0) else 50
 
 
-# A game looked at is kept four days, so the next day's run with a larger --look reaches games not seen yet.
-def roterminal(path, max_age=4 * 24 * HOUR):
+DETAIL_AGE = 4 * 24 * HOUR
+
+
+# A game looked at is kept four days, so each day's run goes on down the list to games not seen yet.
+def roterminal(path, max_age=DETAIL_AGE):
     if calls_left() <= KEEP_BACK and common.cached(KIND, common.key(ROTERMINAL + path) + ".json", max_age) is None:
         return None
     body = read(ROTERMINAL + path, "roterminal", ROTERMINAL_GAP, max_age)
@@ -247,22 +251,27 @@ def owner_of(page, detail):
     return (group.get("owner") or {}).get("username"), link
 
 
-MESSAGE = """Hi, are you the owner of {name}? {why}I'm looking to take over or help
-run one Roblox game, and would like to know if either would interest you:
-1) I run updates for a share of what they add, and you keep the game; or
-2) you sell the game: a written agreement, payment held by an escrow service, and Roblox's own ownership transfer.
-I never need your password or your account. If you're under 18 a parent or guardian would have to agree and sign.
+MESSAGE = """Hi, are you the owner of {name}, or could you point me to whoever is? {why}I find Roblox games for a buyer
+who wants to buy one outright, and I'd get a commission if a sale goes through. Would you consider selling?
+If you would: a rough price and what it earns in a month is enough to start, and I'd put you in touch with the buyer.
+Any sale would be by written agreement, with payment through an escrow service and Roblox's own ownership transfer.
+I'll never ask for your password or account. If you're under 18, a parent or guardian would have to agree and sign.
 If not, no problem, and I won't ask again."""
 
 NOTES = """
 ## Before you write to anyone
+- **Have the buyer's terms in writing first:** your commission, when it is paid and by whom, that it is still owed if
+  he deals with an owner you brought him directly, his budget, the kinds of game he wants, and that he can pay.
+- **Know who the buyer is.** It is your name on the message. Never handle the money yourself, for either side.
 - **Write to one owner at a time, by hand, and change the words.** Copied messages sent to many people are spam under
   Discord's rules. Use the game's ticket or contact channel where it has one, and never post offers in its chat.
 - **Look at the game yourself first.** The scores read figures only; the IP warning only matches words.
-- **Ask for, over a screen share or from the Creator Dashboard:** 90 days of Robux earned, D1 and D7 retention, where
-  players come from, advert spending, who made the code and art (with written rights), and any warnings from Roblox.
-- **Pay nothing outside escrow**, and take the game only by Roblox's ownership transfer into your group.
+- **What the buyer will want to see,** by screen share or from the Creator Dashboard: 90 days of Robux earned, D1 and
+  D7 retention, where players come from, advert spending, who made the code and art (with written rights), and any
+  warnings from Roblox.
 - **Read Roblox's current Terms on selling a game first.** They changed on 1 November 2026.
+- **This file names the owners.** Give the buyer single games once terms are agreed, not this list: RoTerminal's terms
+  also bar passing its data on in bulk.
 
 ## How the score is made
 Out of 100, from RoTerminal's figures: age 25 (full at two years), this week against last 25 (30% down is none),
@@ -291,7 +300,12 @@ def find(args):
     rows.sort(key=lambda p: -first_cut(p, chart.get(p["id"], {}).get("charts", {})))
 
     looked, kept, lost = 0, [], {"outside the band on a 7-day average": 0, "too new (RoTerminal's date)": 0, "falling over 35% a week": 0, "a big studio's": 0}
-    for page in rows[: args.look]:
+    fresh = 0
+    for page in rows:
+        if common.cached(KIND, common.key(ROTERMINAL + str(page["id"])) + ".json", DETAIL_AGE) is None:
+            if fresh >= args.look:
+                continue
+            fresh += 1
         detail = roterminal(str(page["id"]))
         if not detail:
             continue
@@ -311,7 +325,7 @@ def find(args):
             score, parts = lasting(detail)
             kept.append((score, parts, page, detail, chart.get(page["id"], {}).get("charts", {})))
     kept.sort(key=lambda row: -row[0])
-    counts.append(("looked at closely (RoTerminal's daily limit)", looked))
+    counts.append(("looked at closely so far (RoTerminal's daily limit; the rest on later days)", looked))
     counts += [("- dropped: " + why, n) for why, n in lost.items() if n]
     counts.append(("left, best %d shown" % args.top, len(kept)))
 
@@ -364,10 +378,10 @@ def main():
     sub = parser.add_subparsers(dest="what", required=True)
     f = sub.add_parser("find")
     f.add_argument("--low", type=int, default=1000)
-    f.add_argument("--high", type=int, default=5000)
-    f.add_argument("--look", type=int, default=40, help="games looked at closely, one RoTerminal call each")
+    f.add_argument("--high", type=int, default=20000)
+    f.add_argument("--look", type=int, default=40, help="games not seen in the last four days to look at closely, one RoTerminal call each")
     f.add_argument("--pages", type=int, default=0, help="pages of RoTerminal's screen added to Roblox's charts, one call each (mostly games under two months old)")
-    f.add_argument("--top", type=int, default=20)
+    f.add_argument("--top", type=int, default=30)
     f.add_argument("--min-age", type=int, default=120)
     f.set_defaults(run=find)
     c = sub.add_parser("check")

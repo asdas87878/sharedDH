@@ -872,6 +872,13 @@ local function lightFloor(): number
 	return c.WaterTop - c.LightLayer
 end
 
+-- The line the camera is held under once dived (under the surface and under the lit sheet): DiveController hands its
+-- film over to this camera only once this camera's view is under it
+function RideController.waterLine(): number
+	local c = Config.Camera
+	return math.min(c.WaterTop - c.SurfaceMargin, lightFloor() - c.LightMargin)
+end
+
 local function cameraStep(dt: number)
 	local character, root = State.character()
 	if not State.inWater() or not character or not root then
@@ -1200,8 +1207,11 @@ local function step(dt: number)
 		if mode == "Dock" then
 			faceWater()
 		elseif mode == "Free" then
-			-- floating carries on the way we were going; off the dock, the way the camera looks
-			yaw = if lastMode == "Dock" then (anglesOf(camera.CFrame.LookVector)) else State.Heading
+			-- floating carries on the way we were going; off the dock, the way the camera looks (or after the leap
+			-- off it, DiveController, the way the leap went)
+			yaw = if lastMode == "Dock"
+				then (State.LeapHeading or (anglesOf(camera.CFrame.LookVector)))
+				else State.Heading
 			State.Heading = yaw
 		elseif mode == "Jumping" then
 			airAt = os.clock()
@@ -1234,15 +1244,22 @@ local function step(dt: number)
 						Net.Action:FireServer("SandboxSit", seating)
 					end
 				end
-			elseif mode == "Free" then
+			elseif mode == "Free" and not State.Leaping then
+				-- (not while the leap off the dock still moves us, DiveController: the dive's hop takes over from it)
 				float(root, dt)
 			else
 				clearFloat()
 			end
 		else
 			clearFloat()
-			-- (riding a fish in our tank is on the dock too, sitting: TankRideController)
-			if mode == "Dock" and humanoid.PlatformStand and not State.Player:GetAttribute("TankRide") then
+			-- (riding a fish in our tank is on the dock too, sitting: TankRideController; and the leap off the dock moves
+			-- us itself, DiveController)
+			if
+				mode == "Dock"
+				and humanoid.PlatformStand
+				and not State.Player:GetAttribute("TankRide")
+				and not State.Leaping
+			then
 				humanoid.PlatformStand = false
 			end
 			State.Speed = root.AssemblyLinearVelocity.Magnitude

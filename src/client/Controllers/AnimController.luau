@@ -45,7 +45,7 @@
 --   Land rig: the ride fish in the hub, and its joints sorted by role
 --   Land motion: the floor under a land fish, and its stride each frame
 --   Fish each frame: every fish's swim, landing reaction, fits, wave, stride and body shift
---   Rider poses: the drown, the swim strokes, astride, the dash, and the pose for each state
+--   Rider poses: the drown, the swim strokes, astride, the dash, the leap off the dock, and the pose for each state
 --   Posing a rider: finding their joints and writing the pose each frame
 --   Setup: the landing news, and the per-frame loop over the fish and the players
 local Players = game:GetService("Players")
@@ -1823,6 +1823,51 @@ local function tucked(): Pose
 	}
 end
 
+-- The leap off the dock (Config.Dive.Leap, DiveController) by its phase: 0 standing, to the crouch (arms swung back,
+-- curled into the knees), the push at 1, arms thrown up and legs long, a swan (arms out wide, back arched) through
+-- the top, the arrow (arms together overhead, legs together) as it goes in at 2, and on to `streamlined` exactly by
+-- 3. Each joint's two angles run between the keys on their own (a turn run as a whole between two far-apart turns
+-- can swing the short way round, through the body). The joints, in order: LeftShoulder x z, RightShoulder x z,
+-- LeftElbow x, RightElbow x, LeftHip x z, RightHip x z, LeftKnee x, RightKnee x, Waist x, Neck x
+local LEAP_KEYS: { { number } } = {
+	{ 0, 0, -4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0.7, -45, -8, -45, 8, 15, 15, 60, -6, 60, 6, -90, -90, -18, 18 },
+	{ 1.0, 60, -10, 60, 10, 10, 10, 20, -4, 20, 4, -30, -30, -5, 15 },
+	{ 1.25, 165, -18, 165, 18, 4, 4, -12, -3, -12, 3, -4, -4, 12, 25 },
+	{ 1.5, 35, -85, 35, 85, 6, 6, -10, -2, -10, 2, -3, -3, 16, 30 },
+	{ 1.68, 40, -80, 40, 80, 6, 6, -8, -2, -8, 2, -3, -3, 14, 28 },
+	{ 1.9, 172, -6, 172, 6, 4, 4, -8, -3, -8, 3, -6, -6, 4, 8 },
+	{ 3.0, 172, -6, 172, 6, 4, 4, -8, -3, -8, 3, -6, -6, 4, 30 }, -- (streamlined's own, flutter 0)
+}
+local function leapPose(phase: number, tuck: number): Pose
+	local at = LEAP_KEYS[#LEAP_KEYS]
+	local v: { number } = table.clone(at)
+	for i = 1, #LEAP_KEYS - 1 do
+		local a, b = LEAP_KEYS[i], LEAP_KEYS[i + 1]
+		if phase <= b[1] then
+			local w = Ease.smoothstep(a[1], b[1], phase)
+			for k = 2, #a do
+				v[k] = a[k] + (b[k] - a[k]) * w
+			end
+			break
+		end
+	end
+	local pose: Pose = {
+		LeftShoulder = rot(v[2], 0, v[3]),
+		RightShoulder = rot(v[4], 0, v[5]),
+		LeftElbow = rot(v[6], 0, 0),
+		RightElbow = rot(v[7], 0, 0),
+		LeftHip = rot(v[8], 0, v[9]),
+		RightHip = rot(v[10], 0, v[11]),
+		LeftKnee = rot(v[12], 0, 0),
+		RightKnee = rot(v[13], 0, 0),
+		Waist = rot(v[14], 0, 0),
+		Neck = rot(v[15], 0, 0),
+	}
+	-- the somersault (Config.Dive.Flip): tucked into a ball through it
+	return if tuck > 0 then blend(pose, tucked(), tuck) else pose
+end
+
 -- A front crawl, the body flat (the hop's own tilt lays it down): each arm reaches ahead, pulls down under the body
 -- and back, and comes forward again over the top with the elbow bent, one half a stroke behind the other; the body
 -- rolls to each stroke; the legs kick in turn. `phase` is the stroke's, `kicks` the kick's, both in radians.
@@ -2019,6 +2064,13 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 		end
 		j.phase += dt * TAU * p.CrawlRate
 		return crawl(j.phase, t * TAU * p.CrawlKick, phase == "Drop")
+	elseif state == "Leap" then
+		local phase, tuck = nil, 0
+		local leapOf = State.LeapPose
+		if leapOf then
+			phase, tuck = leapOf(player)
+		end
+		return leapPose(phase or 3, tuck)
 	elseif state == "Reeling" then
 		local u, time = JumpController.reel()
 		return dash(t, u or 1, time)
@@ -2205,7 +2257,7 @@ local function stopTracks(character: Model)
 		if not hooked[animator] then
 			hooked[animator] = true
 			animator.AnimationPlayed:Connect(function(track)
-				if State.inWater() then
+				if State.inWater() or State.Leaping then
 					track:Stop(0)
 				end
 			end)
@@ -2217,6 +2269,7 @@ local function stopTracks(character: Model)
 end
 
 local lastStop = 0
+local wasLeaping = false
 
 -- A ragdoll got its joints back (Config.Fail.Ragdoll): each posed joint's ease starts from where the loose body has it,
 -- so the drown's pose is eased into, not snapped to
@@ -2308,6 +2361,12 @@ function AnimController.Start()
 			if state == "Dock" and player:GetAttribute("LandMounted") == true and Config.LandRide.On ~= 0 then
 				state = "Land"
 			end
+			-- the leap off the dock (Config.Dive.Leap, DiveController): ours by its own clock, anyone else's by the
+			-- tilt of their body
+			local leapOf = State.LeapPose
+			if leapOf and (state == "Dock" or player == State.Player) and leapOf(player) then
+				state = "Leap"
+			end
 			if character and type(state) == "string" then
 				if state ~= "Dock" then
 					animateRider(player, character, state, dt, t)
@@ -2321,7 +2380,12 @@ function AnimController.Start()
 			end
 		end
 		local character = State.Player.Character
-		if character and State.inWater() and t - lastStop > 0.25 then
+		if State.Leaping ~= wasLeaping then
+			-- (a leap has begun: the tracks stop now, not at the next look)
+			wasLeaping = State.Leaping
+			lastStop = -math.huge
+		end
+		if character and (State.inWater() or State.Leaping) and t - lastStop > 0.25 then
 			lastStop = t
 			stopTracks(character)
 		end

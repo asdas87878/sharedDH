@@ -1334,7 +1334,12 @@ function JumpController.Init()
 				-- the way we were going as we stepped off; standing still, the way the camera looks
 				local going = root.AssemblyLinearVelocity * Vector3.new(1, 0, 1)
 				local look = if going.Magnitude > 4 then going else workspace.CurrentCamera.CFrame.LookVector
-				State.Heading = yawOf(look)
+				-- (after the leap off the dock, DiveController: on the way the leap went, and its splash was made at
+				-- the water already)
+				State.Heading = State.LeapHeading or yawOf(look)
+				State.LeapHeading = nil
+				local splashed = State.LeapSplashed
+				State.LeapSplashed = false
 				if request() then
 					diving = true
 					-- the plunge (Config.Dive): a splash where we went in, the view kicked wider and turned down the
@@ -1345,7 +1350,7 @@ function JumpController.Init()
 					leapApex = 0
 					topY = baseY
 					plungeDepth = math.max(d.Plunge, 0)
-					if d.Splash > 0 then
+					if d.Splash > 0 and not splashed then
 						Fx.burst(
 							Vector3.new(root.Position.X, Config.Oxygen.SurfaceY - 1, root.Position.Z),
 							d.Splash,
@@ -1354,13 +1359,15 @@ function JumpController.Init()
 						)
 						Fx.burst(root.Position, math.ceil(d.Splash / 2), 0, d.SplashReach / 2)
 					end
-					if d.SplashSound > 0 then
+					if d.SplashSound > 0 and not splashed then
 						Feel.sound("Splash", d.SplashSound, 0.85, 0.9)
 					end
-					if d.Shake > 0 then
+					if d.Shake > 0 and not splashed then
 						Shake.play("Land", d.Shake)
 					end
-					State.FovPunch = math.max(State.FovPunch, d.Fov)
+					if not splashed then
+						State.FovPunch = math.max(State.FovPunch, d.Fov)
+					end
 					if d.Camera > 0 then
 						RideController.look(State.Heading, math.rad(d.CameraPitch), true)
 					end

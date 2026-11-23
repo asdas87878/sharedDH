@@ -48,7 +48,10 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 1. **Join.** `RideService` makes the rider's record and puts them on the dock (state `Dock`). `AquariumService` gives
    them the first free plot, a tank and 0 coins.
 2. **Into the water.** The server sees the character drop below the water line and sets `State` to `Free`.
-   `RideController` copies that into `State.Mode`; `JumpController` starts the dive-in hop.
+   `RideController` copies that into `State.Mode`; `JumpController` starts the dive-in hop. With `Config.Dive.Leap` on
+   (it ships 0), running off the start strip's lip first plays the leap (`DiveController`, client only): the crouch,
+   the arc, a camera film, the splash (`Lib/Splash`), then under the surface it hands the body to that same hop and the
+   camera back to `RideController`. The server is not told; it sees the body go under as before.
 3. **The hop.** Each frame `JumpController` moves the rider along the hop's curve; `Lib/Course` and `Lib/WallRide` keep
    them out of walls; `Lib/Lock` picks the fish a press would take, and the HUD rings it.
 4. **The press.** `InputController` calls `Actions.jump`, which is `JumpController`'s. It sends `Action "Grab", fish`.
@@ -94,6 +97,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | **Riding and the hop** | |
 | `RideController` | Steers the fish we ride, the float between fish, the camera, getting on and off. |
 | `JumpController` | The hop: the lock-on, the grab, the pull-in, landing and missing. |
+| `DiveController` | The leap off the dock into the water (`Config.Dive.Leap`, off at 0): the arc, the pose's clock, the camera film, the splash on every screen. Checked by `tools/studio/dive_leap_check.py`. |
 | `InputController` | The one jump button for keyboard, pad and touch. |
 | `HookController` | The rope from hand to fish. |
 | `LongHookController` | The extra camera, sound and word when the hook reaches far. |
@@ -129,7 +133,8 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 
 `src/client/Lib` holds what several controllers share: `State` (what the player is doing), `Actions` (the jump, so
 input need not know who jumps), `Course` (staying out of walls), `WallRide`, `Lock` (which fish a grab takes), `Shake`
-and `Spring` (the camera), `Feel` and `Fx` (speed lines, bubbles, sounds), `FeelLog`, `BlackHole`.
+and `Spring` (the camera), `Feel` and `Fx` (speed lines, bubbles, sounds), `Splash` (the leap's white water),
+`FeelLog`, `BlackHole`.
 
 ## The screen (`src/client/UI`)
 | File | What it draws |
