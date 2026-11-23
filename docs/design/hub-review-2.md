@@ -198,10 +198,13 @@ in place of the old one at x 3000, about 25 minutes. **Not saved.** The try at x
   at `s_things`, sized by `FIT`, rings 11.5) and `pen_levels.py` (`pen_e` at stage 0, no fish). To move a thing: `hub_scale_plan.py`.
 - **Run the generator with `PROPS2=1`**; without it the map comes out with 58,972 parts instead of about 104,000.
 - **Checked:** loader 181 files, 0 problems, nothing moved by hand before it; `tools/studio/hub_contract.luau` (everything the
-  game reads on the dock): all good, sealed all round but the gate; the herd's stream finds its way (5 of 4,895 places
-  have no floor under them, at two lane sets far out, which did not change). In Play: spawn, a plot handed out,
+  game reads on the dock): all good, sealed all round but the gate; the herd's stream finds its way (5 of 4,895 places have no
+  floor under them, at two lane sets far out; those sets are the same pieces as before by the offline comparison, but the old map's
+  figure was not kept; the game's own survey found the floor at all 2,941 places). In Play: spawn, a plot handed out,
   trainers built, five fish put in the tank, a stage bought (the water rose 3), a walk from the spawn out of the gate
-  (3.4 s) into a dive and a hooked fish, no errors. **By script, not played by hand.**
+  (3.4 s) into a dive and a hooked fish, no errors. **By script, not played by hand.** Not tried in Play: standing on the stalls' rings
+  (Sell, Auras, the sub) and riding a trainer (the user took Studio back first). The code reads each ring and `TrainerSpot` where it
+  stands and at its own size, and the rings are smaller than before (11.5).
 - **What moved in the lane:** its walls by 0.04 in the middle and under 4.4 for nine in ten, floors the same, about 40% of the props.
 - **Gone:** the gate's two palms (the earners board and the sub stand are there now). The back two stand in the open corners.
 - **Way back:** close without saving; or git `f135a1a`'s `tools/studio/greybox/` loaded again; the old dock is

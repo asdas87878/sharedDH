@@ -5,6 +5,8 @@ Written 2026-11-20 by the map chat. The user: "need to focus on making the hub m
 study of how we can make the dive in platform on the floor better placed and subsequently the walls around it.
 Additionally, we will need more space between the back aquariums and the walls behind it. not too much".
 
+> **The hub described here was replaced on 2026-11-23** by S ([hub-review-2](hub-review-2.md), "Live"): 344 x 212, open pens.
+
 **A study. Nothing in the place has changed.** Options A to C are trial builds only.
 
 ## How it was studied
