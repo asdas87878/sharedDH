@@ -1,9 +1,10 @@
 --!strict
 -- The submarines you can buy at the stand: one a tier, tier N carries you to land N + 1 (Config.Sub.Prices).
--- Since 2026-11-22 each is its own voxel model (docs/design/sub-models.md: tools/blender/sub_stages.py builds them,
--- tools/subs/install.py puts them in the place as ReplicatedStorage.SubMeshes.<Id>, one MeshPart to a part: Hull,
--- Hull_Glow, Seat, Prop, Prop_Glow, Light). A place without a tier's template gets the old placeholder of plain parts
--- (Hugo, 2026-11-18), each tier a new colour and one more piece than the last.
+-- Each is its own model, since 2026-11-23 in the chunky toy style Hugo picked (docs/design/sub-models.md:
+-- tools/blender/sub_stages.py builds them, tools/subs/install.py puts them in the place as
+-- ReplicatedStorage.SubMeshes.<Id>, one MeshPart to a part: Hull, Hull_Glow, Seat, Prop, Prop_Glow, Light). A place
+-- without a tier's template gets the old placeholder of plain parts (Hugo, 2026-11-18), each tier a new colour and one
+-- more piece than the last.
 --   SubModels.List[n]   { Id, Name, Hull, Trim, Light }   (the colours are baked into the meshes: keep TIERS in
 --     tools/blender/sub_stages.py alike)
 --   SubModels.build(n)  the model, its parts, its propeller and the wake's emitter. It faces -Z, its middle at the
@@ -16,6 +17,10 @@ local SubModels = {}
 export type Style = { Id: string, Name: string, Hull: Color3, Trim: Color3, Light: Color3 }
 
 SubModels.Templates = "SubMeshes"
+
+-- The name sign over a sub: how tall it is, and how far its lower edge stays over a model's tallest piece (studs)
+local SIGN_TALL = 3
+local SIGN_GAP = 0.6
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -86,7 +91,7 @@ function SubModels.style(tier: number): Style
 end
 
 -- What every sub carries, model or placeholder: the lamp's beam, the hull's glow, the name over the tower (`over`: from
--- `tower`'s middle to 12.5 studs over the sub's middle) and the wake's bubbles on the propeller
+-- `tower`'s middle to where the name's middle goes) and the wake's bubbles on the propeller
 local function dress(
 	s: Style,
 	hull: BasePart,
@@ -110,7 +115,7 @@ local function dress(
 	-- the label: the sub's name over its tower
 	local sign = Instance.new("BillboardGui")
 	sign.Name = "Label"
-	sign.Size = UDim2.fromScale(14, 3)
+	sign.Size = UDim2.fromScale(14, SIGN_TALL)
 	sign.StudsOffsetWorldSpace = over
 	sign.MaxDistance = 140
 	sign.LightInfluence = 0
@@ -174,7 +179,14 @@ local function fromTemplate(s: Style, n: number): (Model?, { BasePart }, BasePar
 		end
 	end
 	model.PrimaryPart = hull
-	local bubbles = dress(s, hull, hull, Vector3.new(0, 12.5, -2) - hull.Position, prop, lamp)
+	-- the name clears the tier's tallest piece (a snorkel, a periscope, a fin, a crown): the sign is SIGN_TALL studs
+	-- tall, and its lower edge stays SIGN_GAP over the model's top, never lower than the placeholder's 12.5
+	local top = -math.huge
+	for _, p in parts do
+		top = math.max(top, p.Position.Y + p.Size.Y / 2)
+	end
+	local signY = math.max(12.5, top + SIGN_GAP + SIGN_TALL / 2)
+	local bubbles = dress(s, hull, hull, Vector3.new(0, signY, -2) - hull.Position, prop, lamp)
 	return model, parts, prop, bubbles
 end
 

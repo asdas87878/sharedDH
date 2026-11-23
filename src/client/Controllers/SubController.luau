@@ -13,9 +13,9 @@
 --   Drop: on the server's word, flung forward into an ordinary hop (JumpController.fling), or, with our fish swum up
 --     beside the sub ("SubFish", driven here), kicked off in an arc onto its saddle; we tell the server ("SubLand").
 --   Then the sub peels away, up and to the side, and fades.
--- The sub is the model of the tier the player has equipped (Shared/SubModels: since 2026-11-22 a voxel model a tier
--- from the place's templates, else the old placeholder of plain parts); the motion is still by code (the *Pose
--- functions) until the partner's animations (the note's "Animation hooks").
+-- The sub is the model of the tier the player has equipped (Shared/SubModels: a model a tier from the place's
+-- templates, since 2026-11-23 in the toy style, else the old placeholder of plain parts); the motion is still by code
+-- (the *Pose functions) until the partner's animations (the note's "Animation hooks").
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
