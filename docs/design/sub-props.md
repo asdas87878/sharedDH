@@ -171,7 +171,7 @@ as the eye takes it (the shortest way round to the next look-alike position).
 | 1, fat paddles | 3.8 to 30 | 3.7 to 30.5 | 0 | 0 | 1.5 |
 | 2, scimitars | 3.8 to 22.5 | 3.4 to 23.5 | 0 | 0 | 4.1 |
 | 3, toy fan | 3.8 to 18 | 3.6 to 18.8 | 0 | 0 | 2.5 |
-| 4, screw | 3.8 to 30 | 2.4 to 44.8 | 0 | 0 | 24.5 |
+| 4, screw | 3.8 to 30 | 2.4 to 44.6 | 0 | 0 | 24.5 |
 
 - Every tile was read on all 359 steps (none unread). A tile passes with no step backwards, none still, and the blade
   never further from where it was turned to than 30 degrees on the four options (their one coloured blade is what
