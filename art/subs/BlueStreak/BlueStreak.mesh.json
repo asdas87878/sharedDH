@@ -1,0 +1,48 @@
+{
+ "id": "BlueStreak",
+ "name": "Blue Streak",
+ "tier": 5,
+ "style": "toy",
+ "units": "studs",
+ "triangles": 2104,
+ "axes": {
+  "up": "+Y",
+  "forward": "-Z (the nose)",
+  "right": "+X"
+ },
+ "origin": "the sub's middle (the game's pivot)",
+ "seatTop": [
+  0,
+  5.7,
+  5
+ ],
+ "parts": [
+  "Hull",
+  "Hull_Glow",
+  "Light",
+  "Prop",
+  "Seat"
+ ],
+ "glowParts": [
+  "Hull_Glow",
+  "Light"
+ ],
+ "spins": "Prop (about Z, its box centred on the hub)",
+ "colours": {
+  "hull": [
+   40,
+   140,
+   255
+  ],
+  "trim": [
+   230,
+   240,
+   255
+  ],
+  "light": [
+   140,
+   255,
+   255
+  ]
+ }
+}

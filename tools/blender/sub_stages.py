@@ -834,11 +834,11 @@ def portholes(xs, z=0.6, y=None, r=1.9):
             cyl("Hull", (x, s * (out + 0.35), z), r - 0.6, 0.5, "glass", axis="y", n=10)
 
 
-def stubs(x=-7.0, hw=5.6, z=-1.2, size=(4.2, 4.6, 1.3), tip="accent", colour="trim"):
-    """stubby wings, fat as a bar of soap, with a coloured end"""
+def stubs(x=-7.0, hw=5.6, z=-1.2, size=(4.2, 4.6, 1.3), tip="accent", colour="trim", cut=1.0):
+    """stubby wings, fat as a bar of soap, with a coloured end (cut: how much shorter the end is than the wing)"""
     for s in SIDES:
         slab("Hull", (x, s * (hw + 1.8), z), size, colour, r=(s * -8, 0, s * -10))
-        slab("Hull", (x - 0.2, s * (hw + 1.7 + size[1] / 2), z - 0.3), (size[0] - 1.0, 1.0, size[2] + 0.4), tip, r=(s * -8, 0, s * -10))
+        slab("Hull", (x - 0.2, s * (hw + 1.7 + size[1] / 2), z - 0.3), (size[0] - cut, 1.0, size[2] + 0.4), tip, r=(s * -8, 0, s * -10))
 
 
 def tail(tx=16.6, az=0.7, ring=4.3, cross=(11.5, 12.5), blades="white", hub="trim+", glow=False, tips=None):
@@ -917,7 +917,7 @@ def toy2():  # the Reef Runner: the tub with a bumper bar, a white band, a snork
     saddle()
     portholes((-11.5, 0.5), y=5.35)
     stubs()
-    stubs(x=8.6, hw=4.6, z=0.3, size=(2.8, 3.6, 1.1))
+    stubs(x=8.6, hw=4.6, z=0.3, size=(2.8, 3.6, 1.1), cut=1.5)
     tail()
     headlamp()
     windup()
@@ -937,21 +937,22 @@ def toy3():  # the Kelp Cruiser: longer, three ports, leaf wings, a V of leaf fi
     saddle()
     portholes((-13.3, -5.6, 1.6))
     leaf = [(-11.0, 4.6), (-9.6, 9.0), (-6.5, 11.4), (-3.6, 9.6), (-3.0, 4.6)]
-    plate("Hull", leaf, 1.3, "trim", plane="xy", at=-1.2, r=(-8, 0, 0), c=(-7, 4.6, -1.2), both=True)
-    plate("Hull", [(-7.5, 4.6), (-7.1, 10.8), (-6.0, 10.8), (-6.2, 4.6)], 1.7, "accent", plane="xy", at=-1.2, r=(-8, 0, 0),
+    plate("Hull", leaf, 1.8, "trim", plane="xy", at=-1.2, r=(-8, 0, 0), c=(-7, 4.6, -1.2), both=True)
+    plate("Hull", [(-7.5, 4.6), (-7.1, 10.8), (-6.0, 10.8), (-6.2, 4.6)], 2.2, "accent", plane="xy", at=-1.2, r=(-8, 0, 0),
           c=(-7, 4.6, -1.2), both=True)  # the leaf's rib
     fin = [(13.0, 2.0), (14.0, 7.0), (16.0, 10.6), (17.6, 10.0), (17.4, 5.8), (16.2, 2.0)]
     for s in SIDES:
-        plate("Hull", fin, 1.2, "trim", plane="xz", r=(s * -30, 0, 0), c=(15, 0, 2.0))
-        plate("Hull", [(14.5, 2.0), (16.1, 9.6), (17.0, 9.4), (15.8, 2.0)], 1.6, "accent", plane="xz", r=(s * -30, 0, 0), c=(15, 0, 2.0))
+        plate("Hull", fin, 1.8, "trim", plane="xz", r=(s * -30, 0, 0), c=(15, 0, 2.0))
+        plate("Hull", [(14.5, 2.0), (16.1, 9.6), (17.0, 9.4), (15.8, 2.0)], 2.2, "accent", plane="xz", r=(s * -30, 0, 0), c=(15, 0, 2.0))
     slab("Hull", (14.9, 0, -2.3), (3.4, 1.1, 4.8), "trim")  # a keel fin
     tail(tx=18.1, cross=None)
     headlamp(x=-18.1)
     windup(x=12.4, z=5.0)
-    plate("Hull", [(-3.2, 11.0), (-3.9, 13.2), (-2.6, 15.0), (-1.3, 13.4), (-1.6, 11.0)], 0.8, "trim+", plane="xz", r=(0, 0, 25),
-          c=(-2.5, 0, 11))
-    plate("Hull", [(-1.8, 11.0), (-2.0, 12.4), (-0.9, 13.6), (-0.1, 12.4), (-0.6, 11.0)], 0.8, "trim+", plane="xz", r=(0, 0, -30),
-          c=(-1.0, 0, 11))
+    for x, lean, k in ((-3.4, -28, 1.0), (-0.8, 32, 0.8)):  # kelp on the cap: two fronds leaning apart, ribbed as the wings
+        frond = [(x - 1.1 * k, 10.9), (x - 1.9 * k, 10.9 + 2.6 * k), (x, 10.9 + 5.4 * k), (x + 1.9 * k, 10.9 + 2.6 * k), (x + 1.1 * k, 10.9)]
+        plate("Hull", frond, 1.5, "trim", plane="xz", r=(0, lean, 0), c=(x, 0, 10.9))
+        plate("Hull", [(x - 0.3 * k, 11.3), (x - 0.4 * k, 10.9 + 4.5 * k), (x + 0.4 * k, 10.9 + 4.5 * k), (x + 0.3 * k, 11.3)], 1.95, "accent",
+              plane="xz", r=(0, lean, 0), c=(x, 0, 10.9))
 
 
 def toy4():  # the Wreck Diver: a boxy salvage boat: ballast tanks, a periscope, a crane and hook, patches, twin lamps
@@ -978,10 +979,10 @@ def toy4():  # the Wreck Diver: a boxy salvage boat: ballast tanks, a periscope,
     cyl("Hull", (-11.6, 0, 6.5), 0.7, 3.8, "trim", axis="z", n=8)  # the crane: a post, an arm, a line, a weight and a hook
     ball("Hull", (-11.6, 0, 8.5), 1.0, "trim", u=8, v=6)
     rod("Hull", (-11.6, 0, 8.5), (-18.6, 0, 10.4), 0.55, "accent", n=6, smooth=False)
-    rod("Hull", (-18.4, 0, 10.4), (-18.4, 0, 7.2), 0.18, "trim", n=5, smooth=False)
-    ball("Hull", (-18.4, 0, 6.9), 0.7, "accent", u=8, v=6)
-    for a, z in (((-18.4, 0, 6.6), (-18.4, 0, 5.3)), ((-18.4, 0, 5.4), (-17.5, 0, 4.8)), ((-17.6, 0, 4.8), (-16.9, 0, 5.6))):
-        rod("Hull", a, z, 0.24, "trim+", n=5, smooth=False)
+    rod("Hull", (-18.2, 0, 10.4), (-18.2, 0, 7.4), 0.45, "trim", n=6, smooth=False)
+    ball("Hull", (-18.2, 0, 6.9), 1.0, "accent", u=8, v=6)
+    for a, z in (((-18.2, 0, 6.4), (-18.2, 0, 4.6)), ((-18.2, 0, 4.8), (-16.9, 0, 3.9)), ((-17.1, 0, 3.9), (-16.0, 0, 5.2))):
+        rod("Hull", a, z, 0.5, "trim+", n=6, smooth=False)
     for s in SIDES:
         headlamp(x=-15.2, z=-4.0, r=1.3, y=s * 1.9)
     tail()
@@ -989,9 +990,9 @@ def toy4():  # the Wreck Diver: a boxy salvage boat: ballast tanks, a periscope,
 
 
 def toy5():  # the Blue Streak: a rocket: long and low, a red nose, swept wings, pods, a tall swept fin
-    body([(-24.0, 0.5, 0.5, -1.0), (-21.5, 1.9, 1.7, -0.7), (-17, 3.6, 3.2, -0.2), (-11, 4.8, 4.4, 0.5), (-6, 5.1, 4.7, 0.6),
+    body([(-23.6, 1.1, 1.0, -1.0), (-22.6, 2.2, 1.9, -0.8), (-17, 3.6, 3.2, -0.2), (-11, 4.8, 4.4, 0.5), (-6, 5.1, 4.7, 0.6),
           (5, 5.1, 4.7, 0.6), (11, 4.5, 4.2, 0.7), (16, 3.0, 2.9, 0.7), (19.0, 1.5, 1.5, 0.7)])
-    band(-24.0, -20.6, "accent", proud=0.2)
+    band(-23.6, -20.4, "accent", proud=0.2)
     band(-8.6, -7.2)
     band(4.6, 6.0)
     stripe(-6.6, 4.0, -1, "accent", share=0.4)
@@ -999,17 +1000,17 @@ def toy5():  # the Blue Streak: a rocket: long and low, a red nose, swept wings,
     saddle()
     portholes((-12.4, 0.2), z=1.0, r=1.7)
     wing = [(-9.5, 4.0), (-2.0, 12.5), (1.5, 12.5), (-1.0, 4.0)]
-    plate("Hull", wing, 1.2, "trim", plane="xy", at=-1.0, r=(-6, 0, 0), c=(-5, 4, -1), both=True)
-    plate("Hull", [(-2.7, 11.7), (-2.0, 13.1), (1.7, 13.1), (1.4, 11.7)], 1.6, "accent", plane="xy", at=-1.0, r=(-6, 0, 0),
+    plate("Hull", wing, 2.0, "trim", plane="xy", at=-1.0, r=(-6, 0, 0), c=(-5, 4, -1), both=True)
+    plate("Hull", [(-2.7, 11.7), (-2.0, 13.1), (1.7, 13.1), (1.4, 11.7)], 2.5, "accent", plane="xy", at=-1.0, r=(-6, 0, 0),
           c=(-5, 4, -1), both=True)
     for s in SIDES:  # a pod under each wing, a light at its nose
-        capsule((-2.4, s * 8.4, -2.7), 1.3, 5.0, "hull")
-        ball("Hull", (-5.6, s * 8.4, -2.7), 0.85, "glow", u=8, v=4)
-        cyl("Hull", (0.9, s * 8.4, -2.7), 1.45, 1.2, "accent", axis="x", n=10)
-    plate("Hull", [(12.0, 3.0), (17.0, 11.8), (19.4, 11.8), (17.6, 3.0)], 1.2, "trim")  # the tall swept fin
-    plate("Hull", [(16.5, 10.6), (17.1, 12.1), (19.7, 12.1), (19.3, 10.6)], 1.6, "accent")
-    plate("Hull", [(14.5, 1.5), (18.3, 7.5), (20.0, 7.5), (18.2, 1.5)], 1.1, "trim", plane="xy", at=0.7, both=True)
-    plate("Hull", [(14.5, -1.0), (17.4, -5.2), (18.6, -5.2), (18.0, -1.0)], 1.1, "trim")
+        capsule((-2.4, s * 8.4, -3.1), 1.3, 5.0, "hull")
+        ball("Hull", (-5.6, s * 8.4, -3.1), 0.85, "glow", u=8, v=4)
+        cyl("Hull", (0.9, s * 8.4, -3.1), 1.45, 1.2, "accent", axis="x", n=10)
+    plate("Hull", [(12.0, 3.0), (16.4, 11.4), (19.4, 11.4), (17.6, 3.0)], 1.9, "trim")  # the tall swept fin
+    plate("Hull", [(15.8, 10.2), (16.4, 11.8), (19.7, 11.8), (19.3, 10.2)], 2.4, "accent")
+    plate("Hull", [(14.5, 1.5), (17.8, 7.3), (20.0, 7.3), (18.2, 1.5)], 1.7, "trim", plane="xy", at=0.7, both=True)
+    plate("Hull", [(14.5, -1.0), (16.8, -5.0), (18.6, -5.0), (18.0, -1.0)], 1.7, "trim")
     tail(tx=19.4, cross=None, hub="accent")
     headlamp(x=-17.6, z=-2.5, r=1.4)
     windup(x=10.8, z=5.2)
@@ -1038,16 +1039,16 @@ def toy6():  # the Twilight Ray: a manta: wide rounded wings with a line of ligh
         rod("Hull", (-17.0, s * 3.0, -1.2), (-22.8, s * 3.9, -2.7), 1.1, "trim", r2=0.5)  # a horn each side of the nose
     slab("Hull", (14.4, 0, 0.5), (3.6, 1.1, 11.5), "trim")
     slab("Hull", (14.4, 0, 0.5), (3.6, 9.0, 1.1), "trim")
-    rod("Hull", (13.2, 0, 5.7), (28.5, 0, 7.6), 0.8, "trim", r2=0.2, n=6)  # the tail spike, from the fin's top
+    rod("Hull", (13.2, 0, 5.9), (28.0, 0, 7.8), 1.1, "trim", r2=0.4, n=8)  # the tail spike, from the fin's top
     tail(tx=17.6, cross=None, blades="accent", glow=True)
     headlamp(x=-18.6, z=-2.3, r=1.4)
     windup(x=10.6, z=5.4)
 
 
 def toy7():  # the Midnight Hunter: a shark: a jaw with teeth, slit eyes, gills, a dorsal fin on the cap, claws
-    body([(-23.0, 0.9, 0.7, 0.6), (-21.5, 2.4, 1.6, 0.5), (-17, 4.0, 2.9, 0.6), (-11, 5.3, 4.4, 0.5), (-6, 5.6, 4.9, 0.4),
+    body([(-22.8, 1.4, 1.0, 0.6), (-21.8, 2.6, 1.7, 0.5), (-17, 4.0, 2.9, 0.6), (-11, 5.3, 4.4, 0.5), (-6, 5.6, 4.9, 0.4),
           (5, 5.6, 4.9, 0.4), (11, 4.8, 4.4, 0.5), (16, 3.0, 2.9, 0.7), (19.0, 1.5, 1.5, 0.7)])
-    jaw = [(-20.5, 1.4, 0.6, -3.5), (-18.5, 2.8, 0.9, -4.1), (-14.5, 3.9, 1.2, -4.7), (-10.5, 4.2, 1.5, -4.0)]
+    jaw = [(-20.7, 1.2, 0.5, -3.5), (-20.2, 1.9, 0.8, -3.6), (-18.5, 2.8, 0.9, -4.1), (-14.5, 3.9, 1.2, -4.7), (-10.5, 4.2, 1.5, -4.0)]
     loft("Hull", jaw, 8, "trim+", phase=math.pi / 8)
     for x in (-20.2, -18.4, -16.6, -14.8):  # teeth down from the snout
         hw, hh, zc = at(x)
@@ -1065,14 +1066,14 @@ def toy7():  # the Midnight Hunter: a shark: a jaw with teeth, slit eyes, gills,
         band(x, x + 0.6, "trim", proud=0.2)
     band(4.4, 6.0, "trim+")
     cabin(cap="trim+", hatch=None)
-    plate("Hull", [(-4.6, 10.3), (-1.2, 14.8), (0.4, 15.0), (1.0, 13.8), (0.6, 10.3)], 1.1, "hull-")  # the dorsal fin
+    plate("Hull", [(-4.6, 10.3), (-1.6, 14.4), (0.4, 14.8), (1.2, 13.4), (0.8, 10.3)], 1.9, "hull-")  # the dorsal fin
     saddle()
     line(-4.0, 10.0, -1.4, "glow", r=0.32)
-    plate("Hull", [(-9.0, 4.2), (-3.0, 11.5), (-0.8, 11.0), (-3.2, 4.2)], 1.2, "hull-", plane="xy", at=-2.2, r=(-16, 0, 0),
+    plate("Hull", [(-9.0, 4.2), (-4.0, 11.0), (-0.6, 11.0), (-2.6, 4.2)], 2.0, "hull-", plane="xy", at=-2.2, r=(-16, 0, 0),
           c=(-6, 4.2, -2.2), both=True)
-    plate("Hull", [(12.6, 2.0), (16.6, 10.8), (18.6, 11.6), (18.2, 7.6), (16.8, 2.0)], 1.2, "hull-")  # the tail's lobes
-    plate("Hull", [(13.0, -0.6), (17.0, -5.4), (18.3, -5.6), (17.4, -0.6)], 1.2, "hull-")
-    plate("Hull", [(14.2, 1.5), (17.6, 6.6), (18.5, 6.4), (17.6, 1.5)], 1.1, "trim+", plane="xy", at=0.7, both=True)
+    plate("Hull", [(12.6, 2.0), (16.0, 10.6), (18.6, 11.2), (18.2, 7.6), (16.8, 2.0)], 1.9, "hull-")  # the tail's lobes
+    plate("Hull", [(13.0, -0.6), (16.4, -5.2), (18.3, -5.4), (17.4, -0.6)], 1.9, "hull-")
+    plate("Hull", [(14.2, 1.5), (16.8, 6.4), (18.5, 6.4), (17.6, 1.5)], 1.7, "trim+", plane="xy", at=0.7, both=True)
     for s in SIDES:  # claws under the chest
         rod("Hull", (-8.5, s * 3.2, -3.8), (-12.6, s * 4.4, -6.4), 0.7, "trim+", n=6)
         rod("Hull", (-12.6, s * 4.4, -6.4), (-15.4, s * 4.1, -5.2), 0.6, "tooth", r2=0.15, n=6)
@@ -1085,8 +1086,9 @@ def toy8():  # the Vent Crawler: armour hoops over glowing seams, vent stacks, p
     body([(-17.5, 2.0, 1.9, -0.4), (-16.6, 3.8, 3.5, -0.2), (-14, 5.3, 4.9, 0), (-9.5, 5.9, 5.3, 0), (5, 5.9, 5.3, 0),
           (10, 5.1, 4.7, 0.2), (14, 3.4, 3.2, 0.5), (16.2, 1.6, 1.6, 0.7)])
     band(-17.5, -14.8, "trim", proud=0.2)
-    for x in (-9.0, -4.2, 0.6):
-        band(x, x + 4.0, "accent", proud=0.4)
+    for x in (-9.0, -4.2, 0.6):  # armour: three plates a flank, each over three of the body's sides; the top stays red
+        for k in (-1, 0, 1):
+            stripe(x, x + 4.0, k, "accent", thick=0.9, share=1.03)
     for x in (-9.8, -5.0, -0.2, 4.6):
         band(x, x + 0.8, "glow", proud=0.15)
     band(10.9, 11.5, "glow", proud=0.15)
@@ -1106,7 +1108,7 @@ def toy8():  # the Vent Crawler: armour hoops over glowing seams, vent stacks, p
     for x in (-6, 0, 6):
         cone((x, 0, -4.7), (x + 1.4, 0, -7.9), 0.9, "trim")
     cone((12.8, 0, 3.4), (14.6, 0, 7.4), 0.85, "trim")
-    tail(blades="accent", glow=True)
+    tail(glow=True)
     headlamp()
     windup(x=11.5, z=5.3)
 
@@ -1128,13 +1130,13 @@ def toy9():  # the Abyss King: the biggest: a glowing crown, a trident ram, pods
     saddle()
     portholes((-14.6, -5.2, 1.6), z=0.6)
     line(-8.4, 5.2, -2.8, "glow", r=0.35)
-    rod("Hull", (-22.6, 0, -1.1), (-27.0, 0, -1.6), 0.8, "trim+")  # the trident: a shaft, a bar, three prongs with lit ends
-    rod("Hull", (-27.0, -3.0, -1.6), (-27.0, 3.0, -1.6), 0.65, "trim+")
+    rod("Hull", (-22.6, 0, -1.1), (-27.0, 0, -1.6), 0.95, "trim+")  # the trident: a shaft, a bar, three prongs with lit ends
+    rod("Hull", (-27.0, -3.0, -1.6), (-27.0, 3.0, -1.6), 0.8, "trim+")
     for y, x1 in ((0, -32.6), (-3.0, -31.2), (3.0, -31.2)):
-        rod("Hull", (-27.0, y, -1.6), (x1, y * 1.08, -1.6 + (x1 + 27) * 0.11), 0.65, "trim+", r2=0.2)
-        ball("Hull", (x1 - 0.1, y * 1.08, -1.6 + (x1 + 27) * 0.11), 0.5, "glow", u=6, v=4)
+        rod("Hull", (-27.0, y, -1.6), (x1, y * 1.08, -1.6 + (x1 + 27) * 0.11), 0.8, "trim+", r2=0.3)
+        ball("Hull", (x1 - 0.1, y * 1.08, -1.6 + (x1 + 27) * 0.11), 0.6, "glow", u=6, v=4)
     wing = [(-7.0, 5.6), (-1.0, 11.2), (5.0, 11.2), (4.0, 5.6)]
-    plate("Hull", wing, 1.2, "trim", plane="xy", at=-1.8, both=True)
+    plate("Hull", wing, 2.0, "trim", plane="xy", at=-1.8, both=True)
     for s in SIDES:  # a pod at each wing's end
         capsule((2.0, s * 11.6, -1.8), 1.8, 8.0, "hull")
         ball("Hull", (-3.1, s * 11.6, -1.8), 1.15, "glow", u=8, v=4)
@@ -1142,7 +1144,9 @@ def toy9():  # the Abyss King: the biggest: a glowing crown, a trident ram, pods
         cyl("Hull", (7.2, s * 11.6, -1.8), 1.5, 2.0, "trim", axis="x", n=10, r2=0.6)
     for x in (-7, -1, 5):
         cone((x, 0, -6.0), (x + 1.5, 0, -9.3), 0.95, "trim+")
-    cone((14.0, 0, 3.9), (15.3, 0, 8.6), 1.0, "trim")  # the crest
+    cone((12.9, 0, 4.2), (13.8, 0, 7.4), 0.9, "trim")  # the crest: three spikes stepping up toward the tail
+    cone((14.5, 0, 3.9), (15.7, 0, 9.0), 1.05, "trim")
+    cone((16.9, 0, 6.6), (18.5, 0, 10.8), 0.95, "trim")
     tail(tx=20.4, ring=5.0, cross=(13.5, 15.0), blades="accent", glow=True, tips="accent")
     headlamp(x=-20.2, z=-3.2)
     windup(x=11.4, z=5.4)
@@ -1449,5 +1453,6 @@ look_from(side, (mid, -200, 2), (mid, 0, 2))
 render(side, "side.png", 1000, 480)
 look_from(sun, (4, -5, 12), (0, 0, 0))
 back = camera("Back", lens=40)
-look_from(back, (mid + 44 * FRAME, -17 * FRAME, 21 * FRAME), (mid - 3, 0, 3.0))
+far = FRAME * (1.2 if STYLE == "toy" else 1.0)  # the toy's guard ring is wider than the voxel tail
+look_from(back, (mid + 44 * far, -17 * far, 21 * far), (mid - 3, 0, 3.0))
 render(back, "back.png", 1000, 700)

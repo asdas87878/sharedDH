@@ -202,7 +202,7 @@ def phone():
         for line in LONG[:2]:
             fc.setw(FailWordsScreen=f"@Vector2.new({w}, {h})", FailWordsAge=2.4, FailWordsOut=0, FailWordsSub=True,
                     FailWords=line)
-            time.sleep(1.6)
+            time.sleep(2.6)
             im = fc.shot(OUT / f"phone_{w}_{len(frames)}.png")
             x, y = (im.size[0] - w) // 2, (im.size[1] - h) // 2
             cell = Image.new("RGB", (w + 16, h + 40), (16, 18, 26))

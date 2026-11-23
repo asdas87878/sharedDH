@@ -1,6 +1,6 @@
 """The submarine in several styles, for the user to pick one (docs/design/sub-models.md).
 
-    blender --background --python tools/blender/sub_kit.py -- <A|B|C|D> <out folder> [--export <folder>]
+    blender --background --python tools/blender/sub_kit.py -- <A|B|C|D> <out folder> [--export <folder>] [--frame 1.4] [--px 2]
 
 Every option is the SAME sub, tier 1 "The Bathtub" (Shared/SubModels: yellow hull, navy trim, cyan glass), on the
 placeholder's own measures, so the ride doesn't change with the look: about 36 studs long and 10 across, the tower in
@@ -13,7 +13,9 @@ wings by the nose, a cross of fins and a propeller at the tail, a lamp under the
 Here: X runs nose (-X) to tail, Z is up. One mesh object to a part (Hull, Tower, Window, Ports, Seat, Bar, Wings, Fins,
 Prop, Light, plus a style's own); Seat, Light and Prop are the names SubController needs. Colours are plain materials,
 one a colour; glowing ones are named *_Glow. Renders: hero, side, front, top (transparent) and ride (with a rider).
---export writes <folder>/Sub_<style>.glb in Roblox's axes (+Y up, nose to -Z), 1 unit = 1 stud."""
+--export writes <folder>/Sub_<style>.glb in Roblox's axes (+Y up, nose to -Z), 1 unit = 1 stud.
+--frame <k> stands the hero and side cameras where tools/blender/sub_stages.py stands them for a tier whose stats.json
+says "frame": k, so the two can be laid side by side at one scale (sub_stages.py compare); --px <k> scales the renders."""
 import math
 import os
 import sys
@@ -25,6 +27,8 @@ from mathutils import Euler, Matrix, Vector
 argv = sys.argv[sys.argv.index("--") + 1 :]
 STYLE, OUT = argv[0].upper(), argv[1]
 EXPORT = argv[argv.index("--export") + 1] if "--export" in argv else None
+FRAME = float(argv[argv.index("--frame") + 1]) if "--frame" in argv else None
+PX = float(argv[argv.index("--px") + 1]) if "--px" in argv else 1.0
 HERE = os.path.dirname(os.path.abspath(__file__))
 STUD = os.path.join(HERE, "..", "..", "art", "style", "tiles", "stud.png")
 
@@ -507,6 +511,7 @@ def camera(name, ortho=None, lens=50):
 def render(cam, name, w, h):
     scene.camera = cam
     scene.render.resolution_x, scene.render.resolution_y = w, h
+    scene.render.resolution_percentage = int(100 * PX)
     scene.render.filepath = os.path.join(OUT, name)
     bpy.ops.render.render(write_still=True)
 
@@ -527,11 +532,11 @@ scene.render.film_transparent = True
 scene.render.image_settings.color_mode = "RGBA"
 
 hero = camera("Hero", lens=75)
-look_from(hero, (-62, -70, 30), (0.5, 0, 1.5))
+look_from(hero, (-62 * (FRAME or 1), -70 * (FRAME or 1), 30 * (FRAME or 1)), (0.5, 0, 1.5))
 render(hero, "hero.png", 1200, 820)
-side = camera("Side", ortho=44)
-look_from(side, (0, -90, 2), (0, 0, 2))
-render(side, "side.png", 1000, 520)
+side = camera("Side", ortho=46 * FRAME if FRAME else 44)
+look_from(side, (0, -200 if FRAME else -90, 2), (0, 0, 2))
+render(side, "side.png", 1000, 480 if FRAME else 520)
 front = camera("Front", lens=85)
 look_from(front, (-95, 0, 12), (0, 0, 2))
 look_from(sun, (-10, -1.5, 8), (0, 0, 0))
