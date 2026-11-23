@@ -19,10 +19,13 @@
 --   In Studio: ProfileStore's stand-in store, in memory, gone at Stop, unless the workspace's "SaveReal" attribute is
 --   set before Play (then Roblox's own, if the game's settings let Studio reach it).
 --   The player's attribute "Saved" .. name ("SavedTank") is true while that part is on: what is bought into it is kept.
+-- Studio's checks (tools/studio/save_check.py): ServerStorage.TestSave (a BindableFunction), Invoke(player, "look") answers
+-- with the profile's data and what of it was last saved, "reopen" with whether it was. It is not there in a live game.
 -- Receipts (PurchaseService) are kept in the profile's Receipts, oldest first. One goes in with the first snapshot after
 -- what it gave, never without it.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 
 local ProfileStore = require(script.Parent.Parent.Lib.ProfileStore) :: any
 local SaveParts = require(script.Parent.Parent.Lib.SaveParts)
@@ -286,6 +289,18 @@ function SaveService.Start()
 	store = ProfileStore.New(STORE, { Version = VERSION, Parts = {}, Receipts = {} })
 	if RunService:IsStudio() and workspace:GetAttribute("SaveReal") ~= true then
 		store = store.Mock
+	end
+	if RunService:IsStudio() then
+		local test = Instance.new("BindableFunction")
+		test.Name = "TestSave"
+		test.OnInvoke = function(player: Player, what: string)
+			if what == "reopen" then
+				return SaveService.reopen(player)
+			end
+			local save = saves[player]
+			return if save then { Data = save.Profile.Data, Saved = save.Profile.LastSavedData } else nil
+		end
+		test.Parent = ServerStorage
 	end
 	ProfileStore.OnError:Connect(function(message: string, _: string, key: string)
 		warn(`[SaveService] {key}: {message}`)
