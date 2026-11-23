@@ -4,7 +4,7 @@ side of the map. Nothing under Workspace.ClaudeBlockout is touched, and the game
   Workspace.HubTryS     the hub's floor, strip, walls and the first of the lane, as the generator builds them at S's size
                         (tools/map/hub_s.py), without props, water or barriers
   Workspace.HubTryPens  S's eight pens (one style, mixed stages), the stations at their present size, the trainer pads;
-                        and, beside the walls, the growing pens in rows (tools/map/pen_levels.py)
+                        and, beside the walls, the pen at all six stages in a row (tools/map/pen_levels.py)
 
 usage: python tools/map/hub_s.py && python tools/map/hub_try.py [style A, B, C or E]
        for f in tools/studio/hub_try/*.luau; do node tools/studio/run_luau.js <studio_id> "$f"; done
@@ -24,8 +24,8 @@ from hub_kit import Kit, SAND  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "tools", "studio", "hub_try")
 X = 14000.0  # the live map stands at 3000, the old bench (MapBench) at 9000
-STYLE = (sys.argv[1:] or ["A"])[0]
-STAGE = [2, 0, 5, 2, 0, 5, 2, 0]  # what each pen's owner has bought: a mixed server
+STYLE = (sys.argv[1:] or ["E"])[0]  # the user's pick, 2026-11-23
+STAGE = [2, 0, 5, 3, 0, 4, 1, 0]  # what each pen's owner has bought: a mixed server
 ROWS_AT = 900.0  # the rows of styles, this far to the side of S's middle
 TILE = json.load(open(os.path.join(ROOT, "art", "map", "textures.json"))).get("tile3", "")
 
@@ -138,11 +138,10 @@ def stations(out):
 
 
 def rows(out):
-    for j, letter in enumerate(pl.PENS):
-        for i, stage in enumerate(pl.STAGES):
-            k = Kit(out, "Rows/%s%d" % (letter, stage), (ROWS_AT + (i - 1) * 56, hub_kit.FLOOR_Y, -330 + j * 110))
-            pl.pb.plate(k, -25, 25, -30, 30, SAND)
-            pl.PENS[letter](k, -25, 25, stage)
+    for stage in range(6):  # the pick, stage 0 to 5 in a row
+        k = Kit(out, "Rows/E%d" % stage, (ROWS_AT + (stage - 2.5) * 56, hub_kit.FLOOR_Y, -165))
+        pl.pb.plate(k, -25, 25, -30, 30, SAND)
+        pl.pen_e(k, -25, 25, stage)
 
 
 def main():
@@ -160,7 +159,7 @@ def main():
     pens(out)
     stations(out)
     rows(out)
-    json.dump({"parts": out, "feet": {}, "floor": [ROWS_AT, 0, -165, 260, 520]}, open(os.path.join(hub_kit.BOX, "hub_try.json"), "w"))
+    json.dump({"parts": out, "feet": {}, "floor": [ROWS_AT, 0, -120, 400, 260]}, open(os.path.join(hub_kit.BOX, "hub_try.json"), "w"))
     # for a picture without Studio: HUB_JSON=hub_try_view.json hub_view.py -- S <out> <shot>
     shell = [{"m": "S/Shell", "n": r["n"], "p": [r["p"][0] - X, r["p"][1], r["p"][2]], "x": r["x"], "y": r["y"], "s": r["s"], "c": r["c"], "f": 3} for r in rs if r["n"] != "HubFloor"]
     view = {"parts": out + shell, "feet": {"S": [[0, 0, 0], [1, 0, 0], [0, 1, 0]]}}

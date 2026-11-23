@@ -9,7 +9,9 @@ Shallows' seven, stage 2 with eleven middle fish, stage 5 with fourteen late one
   B  tall fence   one undivided column of water; the fence itself climbs it, post on post, a crooked pair of rails a storey
   C  steps        storeys that step in a little, a fence round every step
   D  (cut: a sand yard in front and a tower behind it; its 38-deep tower holds none of the big fish at any height)
-  E  tank in pen  the slim tank of today standing inside the low fence; only the tank grows
+  E  tank in pen  the slim tank of today standing inside the low fence; only the tank grows. THE PICK (the user,
+                  2026-11-23: "lets go for E but without the barrier on the top, similar to to the top of C"): no rim and no
+                  stripe, four posts that end just over the water and the foam line
 
 Built of few pieces, skinny, nothing on top. Only pictures and the Studio bench: not in the game.
 usage: python tools/map/pen_levels.py      writes art/map/greybox/hub_pens_<letter>.json (model Pens/<letter>)"""
@@ -28,14 +30,16 @@ W, D, PLATE = pb.W, pb.D, pb.PLATE
 HIGH = {0: 14, 1: 26, 2: 38, 3: 50, 4: 62, 5: 74}
 STAGES = (0, 2, 5)
 LATE_FIT = [n for n in pen_crowd.LATE if n not in ("BlueWhale", "Kraken", "Megalodon")]
-FISH_AT = {0: pen_crowd.START, 2: pen_crowd.MID, 5: LATE_FIT}
+FISH_AT = {0: pen_crowd.START, 1: pen_crowd.START + ["ReefShark", "Barracuda"], 2: pen_crowd.MID, 3: pen_crowd.MID + ["Orca", "ReefShark"],
+           4: pen_crowd.MID + ["Orca", "Orca", "Dunkleosteus", "ReefShark"], 5: LATE_FIT}
 CLEAR = (196, 236, 246)  # the game's own water (hub_kit.tank)
 FOAM = (235, 250, 252)
 CREAM = (244, 236, 214)
-# the fence gets a little finer with the stage: bare wood, then cream rails, then a gold top rail
-POST_C = {0: WOOD_D, 2: WOOD_D, 5: (112, 80, 46)}
-RAIL_C = {0: WOOD, 2: CREAM, 5: CREAM}
+# the fence and the posts get a little finer with the stage: bare wood, then cream, then white with a gold upper rail
+POST_C = {0: WOOD_D, 1: WOOD_D, 2: WOOD_D, 3: WOOD_D, 4: (112, 80, 46), 5: (112, 80, 46)}
+RAIL_C = {0: WOOD, 1: WOOD, 2: CREAM, 3: CREAM, 4: CREAM, 5: CREAM}
 TOP_C = {0: WOOD, 2: CREAM, 5: GOLD}
+FRAME_C = {0: WOOD_D, 1: WOOD, 2: CREAM, 3: CREAM, 4: WHITE, 5: WHITE}  # E's tank posts
 GATE_AT = 0.0  # how far the gate stands off the middle of the front (the back pens in S)
 rng = random.Random(11)
 
@@ -45,9 +49,9 @@ def water(k, x0, x1, y0, y1, z0, z1):
     k.box(cx, y0, cz, x1 - x0, y1 - y0, z1 - z0, CLEAR, n="TankWater", t=0.9, solid=False, shadow=False)
     # a pale line round the top: where the water ends
     for s, x in ((1, x0), (-1, x1)):
-        k.box(x + s * 0.6, y1 - 0.2, cz, 1.2, 0.25, z1 - z0, FOAM, n="FoamLine", t=0.25, solid=False, shadow=False)
+        k.box(x + s * 0.6, y1 - 0.2, cz, 1.2, 0.25, z1 - z0, FOAM, n="TankSurface", t=0.25, solid=False, shadow=False)
     for s, z in ((1, z0), (-1, z1)):
-        k.box(cx, y1 - 0.2, z + s * 0.6, x1 - x0 - 2.4, 0.25, 1.2, FOAM, n="FoamLine", t=0.25, solid=False, shadow=False)
+        k.box(cx, y1 - 0.2, z + s * 0.6, x1 - x0 - 2.4, 0.25, 1.2, FOAM, n="TankSurface", t=0.25, solid=False, shadow=False)
 
 
 def ring(k, stage, x0, x1, z0, z1, y=PLATE, gate=True, top=False):
@@ -184,17 +188,16 @@ def pen_e(k, x0, x1, stage):
     z0, z1, cx = -D / 2, D / 2, (x0 + x1) / 2
     top = PLATE + HIGH[stage]
     g = 1.6  # the glass stands just inside the fence
+    before = len(k.out)
     ring(k, stage, x0, x1, z0, z1)
+    if stage == 5:  # the last stage's one bit of gold, at eye height: the fence's upper rail
+        rails = [p for p in k.out[before:] if p["n"] == "FenceRail"]
+        for p in rails[1::2]:  # (pen_bench.along lays each pair lower, then upper)
+            p["c"] = list(GOLD)
     water(k, x0 + g, x1 - g, PLATE, top, z0 + g, z1 - g)
-    frame = {0: WOOD_D, 2: CREAM, 5: WHITE}[stage]
     for x in (x0 + g, x1 - g):
         for z in (z0 + g, z1 - g):
-            k.box(x, PLATE, z, 1.6, top - PLATE + 0.8, 1.6, frame, n="Post")
-            if stage == 5:
-                k.box(x, top - 1.6, z, 1.9, 0.6, 1.9, GOLD, n="PostStripe", solid=False)
-        k.box(x, top - 1, 0, 1.2, 1.4, D - 2 * g - 1.4, frame, n="RimSide")
-    for z in (z0 + g, z1 - g):
-        k.box(cx, top - 1, z, W - 2 * g - 1.4, 1.4, 1.2, frame, n="RimEnd")
+            k.box(x, PLATE, z, 1.6, top - PLATE + 0.3, 1.6, FRAME_C[stage], n="Post")
     shoal(k, stage, W - 2 * g, D - 2 * g, cx, 0, PLATE + 0.6, top)
     sign(k, stage, cx, z1 + 0.2)
 
@@ -206,8 +209,9 @@ def build(letter, gap=6.0):
     out = []
     k = Kit(out, "Pens/" + letter, (0, hub_kit.FLOOR_Y, 0))
     print(letter)
-    for i, stage in enumerate(STAGES):
-        cx = (i - 1) * (W + gap)
+    stages = range(6) if letter == "E" else STAGES
+    for i, stage in enumerate(stages):
+        cx = (i - (len(stages) - 1) / 2) * (W + gap)
         pb.plate(k, cx - W / 2, cx + W / 2, -D / 2, D / 2, SAND)
         PENS[letter](k, cx - W / 2, cx + W / 2, stage)
     return out, k.foot()

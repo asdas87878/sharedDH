@@ -78,6 +78,17 @@ game.)*
 | **P3 a sand pen** (right) | sand, one small pool in a corner; the fish swim in the air over the sand | The reference's own idea: creatures stand in their pen. Every fish reads | A fish out of water. Fine in this genre's look, but the user's call |
 
 ### Pens that grow: the fence and the aquarium merged (2026-11-23)
+**Picked: E without the rim** (the user, 2026-11-23: "lets go for E but without the barrier on the top, similar to to the top
+of C. E progression with the lacking geomtry on the top of C"). The low crooked fence stays; the slim tank inside it grows;
+on top nothing but the four post ends, 0.3 over the water, and the thin pale line at the water's edge. All six stages (water
+14, 26, 38, 50, 62, 74 high; 7, 9, 11, 13, 15 and 14 fish, the last without the three giants). **Still proposals:** the
+heights, and the colours by stage (posts wood, wood, cream, cream, white, white; the fence's rails wood, then cream; its
+upper rail gold at the last):
+
+![E without the rim, stages 0 to 5](../attachments/hub-pen-e.png)
+
+The four it was picked from:
+
 The user: "we need a way to like merge these with like an aquarium style and the fence style, so that I want the player to
 be able to upgrade their aquarium so it gets taller, like much taller, so it can house more fish and so it isn't as
 crowded". Four ways, each on the 50 x 60 plate with the low crooked fence, at stage 0, 2 and 5 (water 14, 38 and 74 high;
@@ -87,14 +98,12 @@ the fish at their real size; `tools/map/pen_levels.py`):
 
 | | What it is | For | Against |
 |---|---|---|---|
-| **A storeys** (the map chat's suggestion; the user's pick, after Studio) | a pen on a pen: each storey a deck with its own crooked fence. The decks are frames, open in the middle | The most fence feel, and an upgrade plainly adds a floor. The water works as one column, so nothing has to fit between floors | Needs new code: a storey has to appear, not stretch |
+| **A storeys** | a pen on a pen: each storey a deck with its own crooked fence. The decks are frames, open in the middle | The most fence feel, and an upgrade plainly adds a floor. The water works as one column, so nothing has to fit between floors | Needs new code: a storey has to appear, not stretch |
 | **B the fence climbs** | one column of water; crooked posts and rails climb it | The fewest new parts for that look | The rails cross the fish. Partly new code (rails have to be added as it grows) |
 | **C steps** | storeys that step in | The strongest shape | Holds the fewest: 7 of 11 and 7 of 14 in the picture. New code |
-| **E tank in a pen** | today's slim tank inside the low fence; only the tank grows | The least new code: posts and water stretch and rims lift already | The least fence feel once it is tall |
+| **E tank in a pen** (the pick, less its rim) | today's slim tank inside the low fence; only the tank grows | The least new code: posts and water stretch already, and there is no rim | The least fence feel once it is tall |
 
 A fifth (D, a sand yard in front and a tower behind) is cut: at 38 deep the tower holds none of the big fish at any height.
-
-**Trim by stage:** bare wood, then cream rails, then a gold top rail. Small, as the old five levels were meant.
 
 **How high it has to be** (`tools/map/pen_crowd.py`). The place's tanks all have water 32 high at stage 0 (the user's
 copies of Plot 4: the dump of 2026-11-22; `Config`'s comment says 14 to 20), so today is 32, 38 and 47 high at stages 0, 2
@@ -121,17 +130,21 @@ The pictures show the **layered best case**, squeezed where the height doesn't r
 **Against it, honestly:** the 34-high tanks were the second cause of the hub feeling like a room of buildings, and a stage-5
 pen is 74. In S they stand at the back and sides, so nothing tall is on the line from the spawn to the strip. S from
 inside, with mixed stages (Blender: no studs, water more solid than Roblox's; left, from the strip to the pens; right, from
-the spawn to the strip):
+the back pens to the strip), with E:
 
 ![S from inside, with pens of mixed stages](../attachments/hub-s-inside.png)
 
-**In Studio:** `tools/map/hub_try.py` writes the try (`Workspace.HubTryS` and `HubTryPens`, at x 14000, with rows of the four
-styles beside it). It touches nothing under `ClaudeBlockout` and refuses to run in Play. **Written, not run:** Studio was in Play. It has no spawn: in Play a one-off move of the character
+**In Studio:** `tools/map/hub_try.py` writes the try (`Workspace.HubTryS` and `HubTryPens`, at x 14000, with E's
+six stages in a row beside it, at x 14900). It touches nothing under `ClaudeBlockout` and refuses to run in Play. **Loaded 2026-11-23** (771 shell parts, 1,365 pieces; none under a rim's name; nothing tagged;
+not saved). Not looked at there yet by the map chat (Studio's window was covered, so captures came out blank). **To judge there:** whether the
+water, at Roblox's 0.9, still reads as a tank with no rim round it. It has no spawn: in Play a one-off move of the character
 there comes first, then a check that the game leaves them there at 28.
 
-**To confirm with the game-code chat** before any of it: A and C need a storey added per stage; B its rails; E a bigger
-`Taller`. In all of them the gate's `SignBoard` would rise with the tank (`LIFTED`) and the foam line (`FoamLine`) would
-not, so both need another name; the trim by stage is new code. `TankWater` stays one box in A, B and E (A's storeys are drawn as separate blocks; one box over them all would do).
+**To confirm with the game-code chat** before any of it: E needs a bigger
+`Taller`; `Post` and `TankWater` stretch already, and the water's edge line is named `TankSurface`, so it lifts already; no rims are
+needed (check nothing expects `RimSide` / `RimEnd`). The gate's `SignBoard` would rise with the tank (`LIFTED`), so it needs
+another name there; the colours by stage are new code. `TankWater` stays one box. (The styles not picked needed more: a storey
+added per stage in A and C, the rails in B.)
 
 **What the game code leans on** (`AquariumService`, `TankRideService`, `AquariumController`, `TankPanel`):
 To confirm with the game-code chat before any of it goes in; as far as the map chat can see:
