@@ -120,7 +120,7 @@ def main():
         poses = []
         for turn, yaw in (("ahead", 0.0), ("left", most), ("right", -most)):
             for bob, sway in (("bob up", k["Bob"][1] / 4), ("bob down", k["Bob"][1] * 3 / 4)):
-                for t in (None, 0.2, 0.35, 0.5, 0.65, 0.8):
+                for t in [None] + K.action_times(k):
                     how = {"yaw": yaw, "sway_t": sway}
                     if t is not None:
                         how["action_t"] = t
@@ -266,7 +266,11 @@ def main():
                 mid = [b["m"][r][3] for r in range(3)]
                 if not on_floor(mid, floor, hub_in):
                     faults.append(f"{k['Id']}: prop {i + 1} ({row[0]} {row[10]}) has no floor under it")
+        # its top: at rest, and at the top of the bob through the whole action (a thing thrown up counts)
         ktop = max(c[1] for b in rest for c in K.corners(b["m"], b["size"]))
+        for t in K.action_times(k):
+            for b in K.keeper_boxes(data, k, kspace, scale, sway_t=k["Bob"][1] / 4, action_t=t):
+                ktop = max(ktop, max(c[1] for c in K.corners(b["m"], b["size"])))
         name_low = title["p"][1] - title["bill"]["size"][1] / 2
         if max(top, ktop) > name_low - 1:
             faults.append(f"{k['Id']}: reaches {max(top, ktop) - floor:.1f}, the name's lower edge is at {name_low - floor:.1f}")
@@ -277,7 +281,7 @@ def main():
         moving = sum(1 for r in k["Parts"] if r[0] != "Root")
         total += len(k["Parts"]) + len(k["Props"])
         print(f"{k['Id']:<11}{k['Station']:<6} scale {scale:.2f}  feet {lift:.2f} over the floor  keeper {len(k['Parts'])} parts "
-              f"({moving} move), top {ktop - floor:.2f}  props {len(k['Props'])}, top {top - floor:.2f}  "
+              f"({moving} move), reaches {ktop - floor:.2f} in its action  props {len(k['Props'])}, top {top - floor:.2f}  "
               f"neon {glow}, see-through {see}, lights {lit}, stud pictures {stud}")
     print("on the screen, from the ring's middle:")
     for name, line in seen.items():

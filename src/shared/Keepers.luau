@@ -390,7 +390,7 @@ Keepers.List = {
 			{ "Pearl", 7, 0, 0, 180, 0, 0, 0, 0 },
 		},
 		-- the pearl floats out over the counter and across from her one hand to the other, turning, hangs there and
-		-- floats back; her head follows it. It goes round in front of her face, clear of it at every look
+		-- floats back; her head follows it. On the way it dips to her chin, so it covers little of her face
 		Action = {
 			Time = 1.5,
 			Every = { 5, 9 },
@@ -399,10 +399,10 @@ Keepers.List = {
 				{
 					"Pearl",
 					{ 0.1, 0, 40, 0, 0, 0.1, 0.2 },
-					{ 0.32, 0, 180, 0, -1.2, -0.14, 0.5 },
+					{ 0.32, 0, 180, 0, -1.2, -0.45, 0.5 },
 					{ 0.5, 0, 320, 0, -2.4, 0.08, 0.1 },
 					{ 0.64, 0, 420, 0, -2.4, 0.08, 0.1 },
-					{ 0.84, 0, 600, 0, -1.2, -0.14, 0.5 },
+					{ 0.84, 0, 600, 0, -1.2, -0.45, 0.5 },
 					{ 1, 0, 720, 0, 0, 0, 0 },
 				},
 				{
@@ -622,7 +622,8 @@ Keepers.List = {
 			{ "TentR", 2.2, 0.6, 0, 0, -6, 0, 0, 0 },
 			{ "Item", 2.2, 0.5, 0, 0, 6, 0, 0, 0 },
 		},
-		-- tosses the flask up, where it turns over once, and catches it; he and the octopus on his head watch it go.
+		-- tosses the flask straight up, where it tips a little, and catches it; he and the octopus on his head watch
+		-- it go. It does not turn over: the Item joint turns about the hand, so a full turn would swing it through the glove.
 		-- Nothing in it reaches for the head: the head turns up to 70 degrees to the ring and an arm cannot follow it
 		Action = {
 			Time = 1.2,
@@ -638,9 +639,8 @@ Keepers.List = {
 				{
 					"Item",
 					{ 0.15, 0, 0, 0, 0, -0.08, 0 },
-					{ 0.5, 0, 0, 180, 0, 1.2, 0 },
-					{ 0.86, 0, 0, 360, 0, -0.06, 0 },
-					{ 1, 0, 0, 360, 0, 0, 0 },
+					{ 0.5, 0, 0, 16, 0.2, 1.35, 0 },
+					{ 0.86, 0, 0, 0, 0, -0.06, 0 },
 				},
 				{ "Head", { 0.3, -6, -8, 0, 0, 0, 0 }, { 0.7, -6, -8, 0, 0, 0, 0 } },
 				{ "Octo", { 0.5, 0, -14, 0, 0, 0.1, 0 } },

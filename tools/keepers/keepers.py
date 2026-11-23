@@ -394,7 +394,7 @@ def under(keeper, joint, top):
     return False
 
 
-SOFT = ("Tent", "Octo")  # joints on a head that are soft, hanging things: a hand may brush through them
+SOFT = ("Tent",)  # joints on a head that are soft, hanging things: a hand may brush through them
 
 
 def arms(keeper):
@@ -413,7 +413,7 @@ def hands(keeper):
 
 def heads(keeper, soft=False):
     """the numbers of its parts that are the head and what is fixed on it (a hat, a helmet, goggles); soft: those
-    that hang from it instead (tentacles, the octopus)"""
+    that hang from it instead (tentacles)"""
     return [i for i, row in enumerate(keeper["Parts"]) if under(keeper, row[0], "Head") and row[0].startswith(SOFT) == soft]
 
 

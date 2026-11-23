@@ -326,13 +326,18 @@ pictures are Blender views of the same numbers the game reads.
   actions go sideways and forward, not up. `tools/keepers/check.py` fails if any of it goes behind the stall, with
   the keeper looking ahead or at the player, at rest and at every key moment of the action; and if an action
   carries nothing at least 30 pixels across a 1920 x 1080 screen seen from the ring's middle (they measure 39, 104,
-  61 and 55; the bob is 8 to 17). At the counter itself only the half of each part that faces the player is
+  61 and 54; the bob is 8 to 17). At the counter itself only the half of each part that faces the player is
   counted: the back of a hat's top is behind the lip from there. Rows 3 to 6 of the picture are those cameras.
 - **No action reaches for the head.** The head turns up to 70 degrees to the player and the body only 14, so a
   hand sent to the goggles or the helmet ends up inside the head (the first tinkerer and diver did). The check now
   tries every keeper against itself at the looks the ring gives: no hand, cuff or held thing inside the head, a
   hat, a helmet or goggles, and at least 60% of the acting hand and what it holds seen from the play camera (it is
   74% to 100%). A sleeve under a turning chin and a hand through a hanging tentacle are only listed, not failed.
+  The tinkerer's flask goes straight up 1.35 studs and tips a little; it does not turn over, because a held thing
+  turns about the hand and a full turn swung it through the glove. The mystic's pearl dips to her chin on its way
+  across: with her arms it hides at most about a quarter of her face's front, for a moment (it was a third). The
+  stand clearance is now tried at every key of every action, and a keeper's top is taken through its action (the
+  flask at its highest is 8.3 over the floor, well under the name).
 - **How:** `src/shared/Keepers.luau` holds the tables (parts, joints, the bob, the sway, the action, the props) and
   the sums; `src/client/Controllers/KeeperController.luau` builds them on each player's own machine from plain parts
   and moves them. Nothing is in the place, nothing is uploaded, nothing can be bumped, touched or hit by a ray. A
