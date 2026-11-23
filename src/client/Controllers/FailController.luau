@@ -1598,7 +1598,7 @@ local function wordsBand(): Kit.FailWords
 	gui.Name = "RideFailWords"
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = 40 -- over the black (RideHudFx) and the kraken's dark (FailShade)
+	gui.DisplayOrder = 40 -- over the black (RideBlack, HudController's BLACK_ORDER) and the kraken's dark (FailShade)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = State.Player:WaitForChild("PlayerGui")
 	local made = Kit.failWords(gui)
