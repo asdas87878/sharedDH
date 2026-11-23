@@ -8,9 +8,11 @@ make sure nobody is playing in it.
     python tools/studio/m4_subs_shots.py closes [tier ...]  (each over the stand, with its sign)
     python tools/studio/m4_subs_shots.py shop <tag>         (the shop's cards, PC and phone: read-out and stills)
     python tools/studio/m4_subs_shots.py rides [tier ...]   (a real trip a tier, a still in the game's own view)
-    python tools/studio/m4_subs_shots.py probes [tier ...]  (the name sign on a trip, watched frame by frame)
-    python tools/studio/m4_subs_shots.py numbers [tier ...] (the same read-out with no still, when Studio is not redrawing)
-    python tools/studio/m4_subs_shots.py sheets             (the sheets in docs/attachments, from the stills)
+    python tools/studio/m4_subs_shots.py probes [tier ...] [sets=a,b]   (test stills of the name sign on a trip: as the
+                                                            game has it, always on top, with no far limit; or the sets
+                                                            given, words joined by +: top far quiet nowater nounder notitle)
+    python tools/studio/m4_subs_shots.py numbers [tier ...] [up=N]  (the read-out with no still; up=N: that SignUp, this client only)
+    python tools/studio/m4_subs_shots.py sheets [ride]      (the sheets in docs/attachments, from the stills)
     python tools/studio/m4_subs_shots.py remove             (in Edit, after the stop)
 It rides on s2_subs_check's server door and t3_toy_subs_check's client (the trip's numbers) and adds its own
 LocalScript. Studio's window may be hidden (it redraws about once a second then, or not at all): every still must
@@ -848,14 +850,33 @@ def window_crop(path, size, out, pad=14):
     return out
 
 
+def ride_sheets():
+    """the riding sheet (the game as it is) and, when its stills exist, the sheet of the tests on why the name is missing"""
+    labels = [f"{n} {NAMES[n - 1]}" for n in range(1, 10)]
+    made = [sheet([OUT / f"ride-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-ride.jpg", width=760,
+                  title="On a trip, the game's own view, 2026-11-24. The water's drawing hides most names (sub-models.md)")]
+    tests = [("ride-2", "2, as the game is: no name"),
+             ("probe-quiet+top-ride-2", "2, TEST: the name set always on top"),
+             ("probe-quiet+nounder+notitle-ride-2", "2, TEST: the water's nine overhead sheets out, HUD off"),
+             ("probe-quiet+nowater+notitle-ride-2", "2, TEST: all the water's drawing out, HUD off"),
+             ("ride-5", "5, as the game is: only REAK shows (a cliff behind it)"),
+             ("probe-quiet+nowater+notitle-ride-5", "5, TEST: all the water's drawing out, HUD off")]
+    if all((OUT / f"{name}.png").exists() for name, _ in tests):
+        made.append(sheet([OUT / f"{name}.png" for name, _ in tests], [label for _, label in tests],
+                          ATTACH / "m4-subs-name-cause.jpg", cols=2, width=1000, crop=(0.2, 0.0, 0.8, 0.62),
+                          title="Why a sub's name is missing on a trip: tests in the game, 2026-11-24 (task m4)"))
+    return made
+
+
 def sheets(only=None):
-    """the record pictures in docs/attachments, from the stills in work/m4 (`sheets ride`: the riding sheet alone)"""
+    """the record pictures in docs/attachments, from the stills in work/m4 (`sheets ride`: the riding sheets alone)"""
     made = []
     labels = [f"{n} {NAMES[n - 1]}" for n in range(1, 10)]
     if only == "ride":
-        made.append(sheet([OUT / f"ride-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-ride.jpg", width=760,
-                          title="On a trip, the game's own view (task m4)"))
-        print("\n".join(str(m) for m in made))
+        for p in ride_sheets():
+            im = Image.open(p)
+            im.resize((1500, round(im.height * 1500 / im.width)), Image.LANCZOS).save(OUT / (Path(p).stem + "-s.jpg"), quality=82)
+            print(p)
         return
     made.append(sheet([OUT / f"stand-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-stand.jpg", width=760,
                       crop=(0.16, 0.0, 0.86, 1.0), title="The nine toy subs over the stand, in the game (task m4)"))
@@ -863,8 +884,7 @@ def sheets(only=None):
         # (stills of 2026-11-23 from the test camera that is gone: kept as the record of the rider on the seat)
         made.append(sheet([OUT / f"close-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-seat.jpg", width=760,
                           title="On a trip, from a TEST camera (not the game's): the rider on the seat (task m4)"))
-    made.append(sheet([OUT / f"ride-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-ride.jpg", width=760,
-                      title="On a trip, the game's own view (task m4)"))
+    made += ride_sheets()
     # the shop: the cards before the fix (two cuts kept from the first playtest, old code: work/m4/shop-old-pc-*.jpg,
     # the window at 94,41 in them) beside the same cards after it, then the list's end at PC size and on a phone
     tiles, names = [], []

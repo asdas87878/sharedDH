@@ -18,32 +18,34 @@ the 2 studs were not enough for Blue Streak in the riding view. Its tail fin sta
 camera, and covered the middle of its name on [the riding sheet](attachments/m4-subs-ride.jpg); the first report did not say so.
 Blue Streak's row now has `SignUp = 5.7` (extra studs for its sign); the other eight are as they were.
 `python tools/subs/sign_fit.py --check` works it out from the models and the run camera (4.7), and a measured trip added 1.
-On a trip with 5.7 nothing of the model stands in front of the name from the first second on (one trip; it wants a second).
-**Measured, not yet seen:** from about 21:40 Studio's window stopped redrawing, so the riding sheet still shows the old sign.
+On ten trips with 5.7 nothing of the model stands in front of the name from the first second on; in the first second the fin
+still crossed it on five of them (0.05 to 2.14 studs up the 3-stud sign, 1% of the frames at most). At its old height it covered
+the name on 54% of the frames. The lift has two side effects: the name now sits where the HUD's land title is (the title's
+letters over it on 71 to 78% of the frames; 1% on the one trip at the old height), and at the start of a dive it stands a stud above the surface.
 **Tier 6 is left as it is and still clips for a moment:** Twilight Ray's tail reached 2.8 studs up its 3-stud sign on 2% of a
-trip's frames (about a tenth of a second, one bend; two trips of three). `sign_fit.py` passes it with 1.4 studs of room: that
+trip's frames (about a tenth of a second, one bend; four trips of five). `sign_fit.py` passes it with 1.4 studs of room: that
 check is a floor for the sub level, not a promise for a trip. The review asked to keep the other eight; `SignUp` of about 3 in
 its row would do it.
 **State:** in the repo by the sync on Hugo's PC, nothing pushed by hand; in Hugo's place by Rojo (99 of 99 scripts the same as the
 repo). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes. Nothing saved, nothing uploaded.
-**The name on a trip, measured** (`python tools/studio/m4_subs_shots.py numbers`, one trip a tier, `work/m4/numbers-final.txt`):
-the sign is on, in range and on the screen on every frame and no part stands in front of it, so none of those is why it was missing
-on some stills. **The cause is not found.** Measured on the way: the HUD's land title ("CORAL REEF", "KELP FOREST" ...) has its
-label box over the name's place on 27 to 81% of a trip's frames on tiers 2 to 5 (the box, not the letters; tier 5's 81% is with
-its sign lifted). It is not the reason on the old stills: one shows empty water under the title where the name should be.
-`m4_subs_shots.py probes` takes the picture that tells, once Studio redraws. The sign keeps to the world's up while the
-sub dips and banks (it leans 5 to 11 studs off the tower): tried turning it with the sub, which put the tail in front of the name
-on up to 39% of the frames, and put it back.
-**Not done:** the riding sheet on the code as it is now (Studio's window), and with it: `numbers 5` and `6` again, tier 5 once
-at its old height (did the lift put its name under the titles?), the title's letters against the sign's box. Not played by hand;
-no real phone.
+**Why the name is missing on a trip (found 2026-11-24, after Studio was restarted at 00:03):** the water's own drawing
+(`tools/map/water_look.luau`, in the place as `Surface.WaterLook`: four see-through layers and, from below, nine sheets overhead)
+is drawn over the name wherever it is behind it on the screen, though the name is nearer. A name shows only where land is behind
+it. Tested on tiers 2 and 5 in the game ([the test sheet](attachments/m4-subs-name-cause.jpg)): set always on top the name shows;
+with the water's drawing out it shows whole; with only the nine sheets out it shows washed out. Why the engine does that was not
+looked into. **Not fixed: it is a look call for Hugo** (the name always on top, which then shows through fins, cliffs and other
+subs; or the water's drawing; or leave it). The [riding sheet](attachments/m4-subs-ride.jpg) was retaken on the code as it is:
+no name on tiers 1 to 4 and 7, whole on 6 and 8, part of it on 5 and 9. Separately, the HUD's land title has its letters over the
+name's place on 26% (tier 2) to 78% (tier 5) of a trip's frames. The earlier "no part stands in front of it" was a bad test: it
+never listed the water's layers. The sign keeps to the world's up while the sub dips and banks (it leans 5 to 11 studs off the
+tower): tried turning it with the sub, which put the tail in front of the name on up to 39% of the frames, and put it back.
+**Not done:** the fix for the hidden name (above); not played by hand; no real phone. Rojo was not connected after Studio's
+restart: the place was checked against the repo by hand (99 of 99 scripts the same).
 **The test camera:** the close views came from a camera at the sub's side that only the script used. Hugo saw it and does not
 want a side camera on the submarine, ever. It is in no `src/` file and out of the place; the script no longer has it.
 **To check again:** `python tools/subs/card_fit.py --check`, `python tools/subs/sign_fit.py --check`; in Studio
-`python tools/studio/m4_subs_shots.py install`, Play, `gate` (stops with FROZEN while the window is not redrawing), `closes`,
-`shop after`, `rides`, `probes 5 2`, `numbers`, stop, `remove`, then `sheets`.
-**On the partner's PC:** pull; with Rojo connected nothing else, else `python tools/studio/sync_src.py <studio_id>`. The toy
-meshes are local files on Hugo's PC only, so there the shop shows the placeholder subs.
+`python tools/studio/m4_subs_shots.py install`, Play, `gate` (stops with FROZEN if the window is not redrawing), `closes`,
+`shop after`, `rides`, `probes 5 2 sets=plain,quiet+top,quiet+nowater+notitle`, `numbers`, stop, `remove`, then `sheets`.
 
 ## 2026-11-23 · The fail's black is over the HUD, so nothing comes up bright on a black screen (NULLROOM worker m3, Hugo's PC)
 The bug: home from a fail, the Shop and Index buttons, the plus buttons and "GO TO YOUR TANK TO DEPOSIT" came up at full
