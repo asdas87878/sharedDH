@@ -10,6 +10,13 @@ name. This reads the models' own points from art/subs/<Id>/<Id>.glb and, for the
 speed (SubController.cameraFor, the Ride branch: behind by Config.Sub.Distance + 8 x share, up by 10 - 3 x share, the
 sub level), works out how high each point stands where the sign is. A tier that needs it gets `SignUp` in
 SubModels.List: extra studs for its sign. Run it after a model is rebuilt or the run camera changes.
+
+What it leaves out: this is the sub level and the camera at rest behind it. On a real trip the sub dips and banks and
+the camera eases after it. Measured 2026-11-23 (tools/studio/m4_subs_shots.py numbers, one trip a tier): the camera
+sits where this has it (0, 7, 38 studs from the sub's middle, in the sub's own frame, the middle frame of a trip), but
+Blue Streak's fin reached up to 0.95 studs into the sign with the 1.0 of room this asks for, so its SignUp has 1 more.
+The name sign keeps to the world's up, not the sub's (StudsOffsetWorldSpace): it leans 5 to 11 studs off the tower on
+most frames of a trip. That is on purpose, see SubModels.dress.
 """
 import glob
 import json

@@ -13,15 +13,35 @@ without the meshes is framed by its boxes, `shotBy`). Tiers 5 to 9 were cut off 
 picture at PC size and at 844 x 390 ([before and after](attachments/m4-sub-shop.jpg)). The table is written from the GLBs by
 `python tools/subs/card_fit.py --write`; **run `--check` after a sub is rebuilt.**
 **Changed, `src/shared/SubModels.luau`:** `SIGN_GAP` 0.6 to 2 (tall pieces ran into the letters), and a name on a dark hull is
-written in the tier's light colour (`SIGN_DARK`; only Midnight Hunter).
+written in the tier's light colour (`SIGN_DARK`; only Midnight Hunter). **Corrected the same evening (the review, round 1):**
+the 2 studs were not enough for Blue Streak in the riding view. Its tail fin stands 20 studs behind the sign, nearer the run's
+camera, and covered the middle of its name on [the riding sheet](attachments/m4-subs-ride.jpg); the first report did not say so.
+Blue Streak's row now has `SignUp = 5.7` (extra studs for its sign); the other eight are as they were.
+`python tools/subs/sign_fit.py --check` works it out from the models and the run camera (4.7), and a measured trip added 1.
+On a trip with 5.7 nothing of the model stands in front of the name from the first second on (one trip; it wants a second).
+**Measured, not yet seen:** from about 21:40 Studio's window stopped redrawing, so the riding sheet still shows the old sign.
+**Tier 6 is left as it is and still clips for a moment:** Twilight Ray's tail reached 2.8 studs up its 3-stud sign on 2% of a
+trip's frames (about a tenth of a second, one bend; two trips of three). `sign_fit.py` passes it with 1.4 studs of room: that
+check is a floor for the sub level, not a promise for a trip. The review asked to keep the other eight; `SignUp` of about 3 in
+its row would do it.
 **State:** in the repo by the sync on Hugo's PC, nothing pushed by hand; in Hugo's place by Rojo (99 of 99 scripts the same as the
 repo). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes. Nothing saved, nothing uploaded.
-**Not done:** on a trip the name sign shows on some subs and not on others (older than the toy set; cause not found; a probe is
-written, `m4_subs_shots.py probes`, and not run). Not played by hand; no real phone. The trips were seen before the sign was raised.
+**The name on a trip, measured** (`python tools/studio/m4_subs_shots.py numbers`, one trip a tier, `work/m4/numbers-final.txt`):
+the sign is on, in range and on the screen on every frame and no part stands in front of it, so none of those is why it was missing
+on some stills. **The cause is not found.** Measured on the way: the HUD's land title ("CORAL REEF", "KELP FOREST" ...) has its
+label box over the name's place on 27 to 81% of a trip's frames on tiers 2 to 5 (the box, not the letters; tier 5's 81% is with
+its sign lifted). It is not the reason on the old stills: one shows empty water under the title where the name should be.
+`m4_subs_shots.py probes` takes the picture that tells, once Studio redraws. The sign keeps to the world's up while the
+sub dips and banks (it leans 5 to 11 studs off the tower): tried turning it with the sub, which put the tail in front of the name
+on up to 39% of the frames, and put it back.
+**Not done:** the riding sheet on the code as it is now (Studio's window), and with it: `numbers 5` and `6` again, tier 5 once
+at its old height (did the lift put its name under the titles?), the title's letters against the sign's box. Not played by hand;
+no real phone.
 **The test camera:** the close views came from a camera at the sub's side that only the script used. Hugo saw it and does not
 want a side camera on the submarine, ever. It is in no `src/` file and out of the place; the script no longer has it.
-**To check again:** `python tools/subs/card_fit.py --check`; in Studio `python tools/studio/m4_subs_shots.py install`, Play,
-`gate`, `closes`, `shop after`, stop, `remove`.
+**To check again:** `python tools/subs/card_fit.py --check`, `python tools/subs/sign_fit.py --check`; in Studio
+`python tools/studio/m4_subs_shots.py install`, Play, `gate` (stops with FROZEN while the window is not redrawing), `closes`,
+`shop after`, `rides`, `probes 5 2`, `numbers`, stop, `remove`, then `sheets`.
 **On the partner's PC:** pull; with Rojo connected nothing else, else `python tools/studio/sync_src.py <studio_id>`. The toy
 meshes are local files on Hugo's PC only, so there the shop shows the placeholder subs.
 

@@ -6,7 +6,8 @@ I approve you can do it for all of the stages."
 
 **State (2026-11-23, tasks t2 and t3): Hugo picked style A, the chunky toy. All nine tiers are built in it and are in
 the game on Hugo's PC. Task m4 (same day) saw them in the game for the first time, fixed the shop's cards and the
-name sign: "Seen in the game" below.** The voxel set (style D) built on 2026-11-22 was a fallback, taken before Hugo had named a
+name sign (tier 5's fin covered its name in the riding view: lifted, measured on a trip, not yet seen in a picture):
+"Seen in the game" below.** The voxel set (style D) built on 2026-11-22 was a fallback, taken before Hugo had named a
 letter; it is kept in `art/subs/voxel/` and is no longer in the game. Nothing is uploaded (see "In the game").
 
 ![the nine toy subs](../attachments/subs-toy-all-stages.png)
@@ -57,6 +58,27 @@ are printed as `  !` lines and stop the build. All nine pass.
   snorkel, the kelp, the periscope, the dorsal fin, the crown). `SubModels` puts the sign's lower edge 2 studs over
   the model's tallest piece (`SIGN_GAP`), never lower than before. It was 0.6 studs until task m4: seen in the game
   from the dock, the snorkel, the kelp, the periscope, the fin and the crown still ran into the letters.
+- **Blue Streak's sign stands 5.7 studs higher still (`SignUp` in its row, task m4).** The 2 studs are counted from
+  the model's top, but the run's camera looks from behind and above, and Blue Streak's tail fin stands 20 studs
+  behind the sign: nearer the camera, so in the riding view it reached 3.7 studs over the sign's lower edge and
+  covered the middle of the name (the reviewer saw it on `m4-subs-ride.jpg`; the first report missed it).
+  `python tools/subs/sign_fit.py` works out, from the models' own points and the run camera, how high each model
+  reaches where the sign is: 4.7 studs of lift leave Blue Streak 1 stud of room with the sub level. On a real trip
+  the sub dips and banks, and the fin still reached 0.95 studs into the sign on 2% of the frames, so it has 1 more.
+  Measured on a trip with 5.7: nothing of the model in front of the name from the first second on (once 0.28 studs,
+  in the first second). That is one trip; the same code gave tier 6 nothing on one trip and 2.8 studs on another, so
+  it wants a second. The other eight are as they were. **Not seen in a picture yet** ("Seen in the game").
+- **The sign keeps to the world's up, not the sub's, and that is wanted.** `StudsOffsetWorldSpace` is "relative to
+  the global axes" (Roblox's reference), so while the sub dips and banks on a trip the name stays straight over the
+  hull's middle and leans off the tower: 5 to 11 studs on most frames, up to 14. Tried the other way (the sign's
+  place as an Attachment, turning with the sub): the tail then came in front of the name on up to 39% of a trip's
+  frames (tier 9; 24% on tier 8, 16% on tier 2). This way it is 2% at most (tier 6's tail, below, and tier 5's fin
+  before its lift). Put back.
+- **Twilight Ray's tail still crosses its name for a moment, and is left as it is.** On two of three trips its tail
+  (28 studs behind the sign) reached 2.8 and 3.0 studs up the 3-stud sign, on 2% of the frames: about 6 frames, a
+  tenth of a second, in one bend. `sign_fit.py` passes tier 6 with 1.4 studs of room, so its check is a floor for the
+  sub level, not a promise for a trip. Not lifted, because the review asked to keep the other eight as they are; a
+  `SignUp` of about 3 in its row would do it.
 - **Midnight Hunter's name is written in its light's colour (task m4).** Every name is in its hull's colour on a navy
   outline, and tier 7's hull is navy: nobody could read it. A hull darker than `SIGN_DARK` gets its `Light` colour
   instead (only tier 7, cyan).
@@ -132,7 +154,8 @@ pictures on the shop sheet are cuts kept from the first playtest, on the old cod
 ![the nine over the stand](../attachments/m4-subs-stand.jpg)
 
 - **All nine build from their meshes and carry the right name.** Each floats over the sub stand, nose to the camera,
-  the screens hidden. This sheet is the code as it is now (the sign 2 studs up, tier 7's name in cyan).
+  the screens hidden. This sheet has the sign 2 studs up and tier 7's name in cyan; it was taken before Blue
+  Streak's sign got its extra 5.7 studs, so on tier 5 the name now stands higher than the sheet shows.
 - **On a trip** (tier N to land N + 1, a still about a second into the run):
   [the game's own view](../attachments/m4-subs-ride.jpg), and
   [a close view from a test camera](../attachments/m4-subs-seat.jpg). On all nine the rider sits on the seat behind
@@ -140,7 +163,9 @@ pictures on the shop sheet are cuts kept from the first playtest, on the old cod
   or a fin touches the rider can't be told from them. The
   numbers of the t3 check were read again on the same trips, on the new map: the rider and the seat 0.00 studs off,
   the propeller 0.004 at most, the wake, the beam and the sign on, on every frame (`work/m4/rides-run2.txt`). These
-  trips ran before the sign was raised; nothing else differs.
+  trips ran before the sign was raised; nothing else differs. **So the riding sheet is the old sign: on tier 5 the
+  fin covers the middle of "BLUE STREAK" there.** It has to be taken again on the code as it is now, and could not
+  be: from about 21:40 Studio's window stopped redrawing (see "Pictures" below).
 - **The close view is a test camera, never the game's.** It stood to one side of the sub, only while the script's
   own trips ran. Hugo saw it in a playtest and said (2026-11-23): "what is this new camera perspective for the
   submarine? ... make sure it doesnt implement the camera on the side ever". It is in no file under `src/`, it is out
@@ -164,14 +189,50 @@ pictures on the shop sheet are cuts kept from the first playtest, on the old cod
     `python tools/subs/card_fit.py` reads the models' own points from `art/subs/<Id>/<Id>.glb`; `--write` puts the rows
     into `SubPanel.luau`, `--check` fails if they are stale or a model is cut. **Run it after a sub is rebuilt.** A
     place without the meshes (the placeholder) is framed in the game by its boxes (`shotBy`): written, not seen.
-- **Open: on a trip the name sign shows on some stills and not on others.** In the game's own view it is there on
-  tiers 5, 8 and 9 and missing on 1 to 4, 6 and 7; from the test camera it was there on 1, 3, 5, 8 and 9. The t3
-  check reads the sign as on, on every frame. The placeholder's old picture (`s1-sub-ride.png`) has no sign either,
-  so it is older than the toy set. **Cause not found.** Two guesses, neither tested: the sign is drawn a frame late
-  and the sub moves 8 to 70 studs a frame (but where the sign shows, it sits in its right place), or its 140-stud
-  limit (`MaxDistance`) cuts it. The script has a probe for
-  it (`m4_subs_shots.py probes`: the sign watched frame by frame, a ball where it should be, with and without the
-  limit); it was not run, because the playtest then running was Hugo's own.
+- **The name on a trip, measured (one trip a tier on the code as it is now, 60 frames a second;
+  `work/m4/numbers-final.txt`).** `python tools/studio/m4_subs_shots.py numbers` watches the sign on every frame
+  of the run, where the engine draws it:
+  - **Ruled out** as the reason the name was missing on the stills of tiers 1 to 4, 6 and 7: the sign is on, on
+    every frame; it is 24 to 48 studs from the camera (its limit is 140); its place is on the screen on every frame;
+    no part stands between the camera and it (but an unseen `SeaTile` on tier 5, see-through); the camera sits
+    where the sum has it (0, 7, 38 studs from the sub's middle in the sub's own frame).
+  - **The model in front of the name:** nothing on tiers 1 to 5 and 8 and 9 from the first second on. Tier 6 (Twilight
+    Ray): its tail crosses the sign on 2% of the frames (about 6 frames, one bend). Tier 7: 0.15 studs at most.
+  - **Measured, and not yet a finding: the HUD's land title and the name share a place on the screen.** The big
+    "CORAL REEF", "KELP FOREST", "SHIPWRECKS", "OPEN BLUE" at the top middle is drawn over every sign in the world.
+    The title's label box lay over the name's middle or its ends on 27% of the frames on tier 2, 72% on tier 3, 70%
+    on tier 4, 81% on tier 5, 16% on tier 7 and 4% or less on tiers 1, 6, 8 and 9. That is the label's box, not its
+    letters, and a title counts until it is nine tenths faded, so it says how often they can meet, not how often
+    the name is hidden. Tier 5's 81% is with its sign lifted; whether the lift made it worse was not measured.
+
+    | Tier | Studs a second | The model up the sign, most (studs) | Frames with over 0.25 covered | The sign off the tower, middle / most (studs) | A title's box over the name |
+    |---|---|---|---|---|---|
+    | 1 | 454 | 0.00 | 0% | 4.8 / 9.1 | 0% |
+    | 2 | 1,230 | 0.00 | 0% | 6.0 / 9.6 | 27% |
+    | 3 | 1,633 | 0.00 | 0% | 8.5 / 10.8 | 72% |
+    | 4 | 2,083 | 0.00 | 0% | 5.6 / 10.2 | 70% |
+    | 5 | 2,502 | 0.28 (0.00 from 1 s on) | 0% | 7.9 / 12.3 | 81% |
+    | 6 | 2,947 | 2.80 | 2% | 11.1 / 13.1 | 4% |
+    | 7 | 3,333 | 0.15 | 0% | 8.0 / 10.6 | 16% |
+    | 8 | 3,797 | 0.00 | 0% | 7.0 / 10.2 | 0% |
+    | 9 | 4,205 | 0.00 | 0% | 9.7 / 14.3 | 4% |
+
+  - **Why the name was missing on those stills: not found.** On the old still of tier 2 (`work/m4/ride-2.png`) the
+    title covers only the upper part of where the name should be, and the water under it is empty: there the name
+    was not drawn at all, so the title is not the reason. One guess is left, and only a picture can test it: the
+    sign is drawn a frame behind the sub, which moves 8 to 70 studs a frame. `m4_subs_shots.py probes` takes that
+    picture (a pink ball where the sign is meant, a green one where the engine has it, and the sign set
+    always-on-top and with no far limit); it needs Studio's window to redraw.
+  - **To do in the playtest that retakes the stills:** `numbers 5` again (and 6); tier 5 once at its old height, to
+    see whether the lift put its name under the titles; the title's letters (`TextBounds`) against the sign's box,
+    not the label's box; and for each riding still, whether a title lay over the name at that moment.
+- **Pictures: Studio's window stopped redrawing (2026-11-23, from about 21:40).** A bright part put in front of the
+  Edit camera never shows in the window's own picture, in Edit or in a playtest, while the game runs on and answers.
+  Moving the window on screen, giving it focus, fullscreen and back, and a new playtest did not wake it (the game ran
+  at 15 frames a second before those and at 60 after; which of them did that is not known). The engine's own screenshot can't be read back by a
+  script ("cannot currently create editable image from temporary texture id"). The script's gate catches it
+  (`FROZEN`), so no stale picture got onto a sheet. Hugo has to click into Studio or restart it; then `gate`,
+  `rides`, `probes 5 2` and `sheets` retake the riding sheet.
 - **Not checked:** a real phone; a trip by hand; the trip's pick-up, arrival and drop by eye; the stills are one
   moment of each trip, so a blade crossing the ring later in a trip would not show.
 
@@ -188,16 +249,24 @@ pictures on the shop sheet are cuts kept from the first playtest, on the old cod
 - `python tools/studio/t3_toy_subs_check.py install | run | remove` is the playtest check of all nine and the stills
   (`run` in a playtest; `install` and `remove` in Edit).
 - `python tools/subs/card_fit.py [--write | --check]` works out the shop cards' camera spots from the GLBs.
-- `python tools/studio/m4_subs_shots.py install | gate | closes | shop <tag> | rides | probes | sheets | remove`
-  takes the stills and lays out the sheets (its top says how). It sends the player on trips and takes the camera:
-  make sure nobody is playing in the playtest first.
+- `python tools/subs/sign_fit.py [--check]` works out, a tier, how high the model reaches where the name sign is,
+  seen from the run's camera; `--check` fails if a name is covered or has less than a stud of room. **Run it after a
+  sub is rebuilt or the run camera moves**, and give a tier that fails `SignUp` in `SubModels.List`.
+- `python tools/studio/m4_subs_shots.py install | gate | closes | shop <tag> | rides | probes | numbers | sheets |
+  remove` takes the stills and lays out the sheets (its top says how). `numbers` needs no picture: one trip a tier,
+  the sign, the model and the HUD read on every frame. It sends the player on trips and takes the camera: make sure
+  nobody is playing in the playtest first.
 
 ## Open (the user)
 
 - Notes on single subs, from the sheet above.
 - A ride by hand on a few tiers: the rider on the seat, the propeller in its ring, the name over the tall pieces.
-- The name sign that comes and goes on a trip ("Seen in the game"): find the cause, or decide the name isn't needed
-  while riding.
+- The riding sheet on the code as it is now, once Studio's window redraws; with it, why the name is missing on
+  some stills ("Seen in the game": not found), and whether the HUD's land title really hides the name on a trip
+  (its box and the name's share a place on the screen on most of a trip on tiers 2 to 5; letters not measured).
+  If it does: hide the land titles while riding a sub, hide the rider's own name, or leave it. The HUD is not this
+  note's code.
+- Twilight Ray's tail crossing its name for a tenth of a second in a bend: leave it, or give tier 6 a `SignUp`.
 - Whether the studs go on in the game (with the creatures').
 - Uploading the nine models for a published game (permanent: on the user's word, from the PC that can).
 

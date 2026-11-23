@@ -26,7 +26,9 @@ local SIGN_GAP = 2
 -- That is enough for a piece under the sign. A tall piece far BEHIND the sign stands between it and the run's camera
 -- (behind and above the sub), so in the picture it reaches higher than its own height: Blue Streak's tail fin, 20
 -- studs back, covered the middle of its name. Such a model has `SignUp` in its row, from
--- `python tools/subs/sign_fit.py` (run its --check after a model is rebuilt or the run camera moves).
+-- `python tools/subs/sign_fit.py` (run its --check after a model is rebuilt or the run camera moves). That sum has
+-- the sub level. On a real trip it dips and banks and the camera eases after it, which brought the fin about 1 stud
+-- further up the sign: `python tools/studio/m4_subs_shots.py numbers`, in a playtest, measures the trip itself.
 -- a hull darker than this (Color3's own 0 to 1, by eye's weights) gives a name nobody can read on the sign's dark
 -- outline: Midnight Hunter's navy. Its name is written in its light's colour instead
 local SIGN_DARK = 0.25
@@ -125,8 +127,9 @@ local function dress(
 	-- the label: the sub's name over its tower. StudsOffsetWorldSpace keeps to the world's axes whichever way the part
 	-- is turned, and that is wanted: the name stays straight over the sub while it dips and banks, so in the run's
 	-- picture it stays the topmost thing. (Tried 2026-11-23: the place as an Attachment, turning with the sub. On a
-	-- real trip the tail then came in front of the name on up to 39% of the frames, against none this way but for
-	-- Blue Streak's fin: tools/studio/m4_subs_shots.py numbers.)
+	-- real trip the tail then came in front of the name on up to 39% of the frames (tier 9; 24% on tier 8). This way
+	-- it is 2% at most: Twilight Ray's tail in one bend, and Blue Streak's fin before its SignUp.
+	-- tools/studio/m4_subs_shots.py numbers.)
 	local sign = Instance.new("BillboardGui")
 	sign.Name = "Label"
 	sign.Size = UDim2.fromScale(14, SIGN_TALL)

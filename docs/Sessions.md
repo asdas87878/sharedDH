@@ -35,8 +35,15 @@ The links open the chat in the Claude app on the PC it runs on.
   `UI/SubPanel.luau` (the UI chat's file, changed on the boss's task): each sub's card has its own camera spot (the `SHOTS` table,
   written by `python tools/subs/card_fit.py --write` from the GLBs; `--check` after a sub is rebuilt), so tiers 5 to 9 are no longer
   cut off, at PC size and at a phone's. `Shared/SubModels.luau`: the name sign sits 2 studs over the tallest piece (0.6 before) and
-  Midnight Hunter's name is cyan, not navy on navy. **Pull before editing those two.** Open, not mine to fix: on a trip the name sign
-  shows on some subs and not on others, cause not found ([sub models](design/sub-models.md), "Seen in the game").
+  Midnight Hunter's name is cyan, not navy on navy. **Pull before editing those two.** Later the same evening (the review):
+  Blue Streak's row has `SignUp = 5.7`, because its tail fin covered its name in the riding view (`python tools/subs/sign_fit.py
+  --check` after a sub is rebuilt or the run camera moves). Tier 6's tail still crosses its name for a tenth of a second in one
+  bend; left. **For whoever has the HUD, measured and not yet a finding: on a sub trip the land title's label box ("CORAL
+  REEF" ...) lies over the place of the sub's name on 27 to 81% of the frames on tiers 2 to 5** (the box, not the letters; the
+  table is in [sub models](design/sub-models.md), "Seen in the game"). Why the name is missing on some riding stills is still
+  not found. **Studio on Hugo's
+  PC: its window stopped redrawing about 21:40**, so stills come out as one old picture (`m4_subs_shots.py gate` says FROZEN);
+  it needs a click from Hugo or a restart. The riding sheet is still the old sign until then.
   **Hugo, 2026-11-23, on the submarine's camera: "make sure it doesnt implement the camera on the side ever"** (he saw my test camera
   in a playtest; it was never in `src/`). The boss reads this as a rule for every phase of the trip (`SubController.cameraFor`:
   the approach, the pick-up and the arrival stand to one side today); that change is not made, the boss hands it out.
