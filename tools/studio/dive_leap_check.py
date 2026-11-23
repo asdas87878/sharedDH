@@ -5,9 +5,16 @@
                                                                log work/dive_leap/check.log)
     python tools/studio/dive_leap_check.py run fish [ID]      (the same, with a fish equipped before each run: the
                                                                seated ride, so lip to Riding is measured)
+    python tools/studio/dive_leap_check.py run sub [LAND]     (the same with a sub trip picked (land 2 by default),
+                                                               recorded up to 30 s, to Riding + 3 or Drowning + 2:
+                                                               the lowest point and the modes, Leap 1 and Leap 0)
+    python tools/studio/dive_leap_check.py run look [T]       (Leap 1 only, the mouse pretended to look round at dive
+                                                               time T (1.1 by default): when the film let the view
+                                                               go, and how smoothly)
     python tools/studio/dive_leap_check.py hold T [own|director] [NAME]
                                                               (the whole dive held at dive time T, seconds, or at a
-                                                               moment: crouch, takeoff, top, entry, splash, under;
+                                                               moment: crouch, takeoff, rise, top, entry, splash,
+                                                               under;
                                                                begun at the lip; "own": the dive's own camera, "director": a fixed
                                                                camera beside the arc; NAME: also a shot,
                                                                work/dive_leap/NAME.png)
@@ -25,8 +32,14 @@ hop), both put back by letgo.
 Reported, per run: where the dive began and how fast, seconds in the air, the top above the starting root and above the
 lip's floor, the entry point, angle (degrees below level) and speed, the depth when the hop began, the seconds from
 crossing the lip to the water, to the hop and to Riding (and the same with Leap 0: what the leap costs), the biggest
-camera jump between two frames (studs and degrees) and when, the frames the camera was inside a part, out of sight of
-the diver (a wall or floor between), or under the dock's floor, the splash parts run, the mode changes, and errors.
+camera jump between two frames (studs and degrees) and when, the longest run of frames it stood still while the
+diver moved, the frames the camera was inside a part, out of sight of the diver (a wall or floor between), under the
+dock's floor, or in the water's lit layers (between its top and the riding camera's line), how far off the middle of
+the view the diver got while the film was the view, the nearest splash block to the camera and the most of the view
+one filled, the underwater look (Lighting's fog, the Atmosphere) as the camera went under and after, the splash parts
+run, the mode changes, the lowest point, and errors. Each frame (frames_NAME.txt) also has the riding camera's view as
+the film read it and the hand-over's blend, the fog, and the nearest splash block / its cover. DiveController's log is
+emptied before each run.
 Needs Studio open with the studio-runner plugin and this repo's code in the place.
 """
 import json
@@ -89,6 +102,20 @@ RS:GetAttributeChangedSignal("DLCmd"):Connect(function()
 			local id = if arg ~= "" then arg else (Config.Fish[1] and Config.Fish[1].Id)
 			RideService.giveCarried(player, { Id = id, Size = "Normal", Variant = "" })
 			return "hands " .. #RideService.carried(player) .. " (" .. tostring(id) .. ")"
+		elseif verb == "sub" then
+			-- a sub trip to land `arg` (0: none) picked for the next dive: coins, every sub bought, the land picked
+			local test = game:GetService("ServerStorage"):WaitForChild("SubTest", 5)
+			if not test then
+				return "no SubTest (not Studio?)"
+			end
+			local land = tonumber(arg) or 0
+			if land > 0 then
+				test:Invoke("give", player.UserId, 1e12, {})
+				for _ = 1, 9 do
+					test:Invoke("buy", player.UserId)
+				end
+			end
+			return "sub " .. tostring(test:Invoke("pick", player.UserId, land, ""))
 		elseif verb == "state" then
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 			return string.format("state=%s attr=%s y=%s land=%s equipped=%s hands=%d", tostring(RideService.stateOf(player)),
@@ -111,7 +138,9 @@ local LogService = game:GetService("LogService")
 local player = Players.LocalPlayer
 local Client = player:WaitForChild("PlayerScripts"):WaitForChild("Client")
 local Dive = require(Client:WaitForChild("Controllers"):WaitForChild("DiveController"))
+local Ride = require(Client.Controllers:WaitForChild("RideController"))
 local Splash = require(Client:WaitForChild("Lib"):WaitForChild("Splash"))
+local Lighting = game:GetService("Lighting")
 local State = require(Client.Lib:WaitForChild("State"))
 local Config = require(RS:WaitForChild("Shared"):WaitForChild("Config"))
 local Net = require(RS.Shared:WaitForChild("Net"))
@@ -222,11 +251,56 @@ local function eventsOf(log)
 	return out
 end
 
--- One run: stood a run-up behind the lip, walked off it, recorded until riding (or the time is up)
+-- The splash's blocks seen from the camera: the nearest one showing (its distance from the eye, less its half size),
+-- and the most of the view any one in front fills (its angular size over the view's half height, times how opaque)
+local function splashSeen()
+	local folder = camera:FindFirstChild("LeapSplash")
+	if not folder then
+		return math.huge, 0
+	end
+	local eye = camera.CFrame.Position
+	local look = camera.CFrame.LookVector
+	local half = math.tan(math.rad(camera.FieldOfView) / 2)
+	local nearest, cover = math.huge, 0
+	for _, part in folder:GetChildren() do
+		if part:IsA("BasePart") and part.Transparency < 0.98 then
+			local d = part.Position - eye
+			local r = part.Size.Magnitude / 2
+			nearest = math.min(nearest, math.max(d.Magnitude - r, 0))
+			local along = d:Dot(look)
+			if along > 0.05 then
+				local side = (d - look * along).Magnitude
+				if side < r + along * half then
+					cover = math.max(cover, math.min(r / (along * half), 1) * (1 - part.Transparency))
+				end
+			elseif d.Magnitude < r then
+				cover = math.max(cover, 1 - part.Transparency)
+			end
+		end
+	end
+	return nearest, cover
+end
+
+local function lookNow()
+	return {
+		fogStart = math.floor(Lighting.FogStart + 0.5),
+		fogEnd = math.floor(Lighting.FogEnd + 0.5),
+		fogColor = tostring(Lighting.FogColor),
+		atmosphere = Lighting:FindFirstChildOfClass("Atmosphere") ~= nil,
+	}
+end
+
+-- One run: stood a run-up behind the lip, walked off it, recorded until riding (or the time is up). `lookAt`: at this
+-- dive time the mouse is pretended to look round (DiveController.pretendLook), nil for none. `seconds`: the longest it
+-- records. `sub`: a sub trip is picked (it ends on Riding + 3 or Drowning + 2, not on Carried)
 local lastFrames = {}
-local function walk(leap, runup)
+local function walk(leap, runup, lookAt, seconds, sub)
 	table.clear(errors)
 	Config.Dive.Leap = leap
+	seconds = seconds or 14
+	if Dive.clearLog then
+		Dive.clearLog()
+	end
 	local lipAt, floor, out = lip()
 	if not lipAt then
 		return { error = "no lip found (no Dock attribute, or no ground out from the spawn)" }
@@ -256,8 +330,19 @@ local function walk(leap, runup)
 	local frames = {}
 	local modes = {}
 	local lastMode = State.Mode
-	local lipT, waterT, jumpT, rideT, carriedT, leapT = nil, nil, nil, nil, nil, nil
-	local maxY = -math.huge
+	local lipT, waterT, jumpT, rideT, carriedT, leapT, drownT = nil, nil, nil, nil, nil, nil, nil
+	local maxY, lowY = -math.huge, math.huge
+	local prevPos = nil
+	local stillRun, stillMost, stillAt = 0, 0, nil
+	local bandFrames, bandFilmFrames, bandFirst, bandLast = 0, 0, nil, nil
+	local nearMin, nearAt, coverMost, coverAt = math.huge, nil, 0, nil
+	local frameX, frameY, frameYAt, framed = 0, 0, nil, 0
+	local backUnder, backUnderAt = math.huge, nil -- the camera's least distance from the diver, both under water, filming
+	local fogs = {}
+	local underSince = nil
+	local looked = nil
+	local line = Ride.waterLine()
+	local top = Config.Camera.WaterTop
 	local maxParts = 0
 	local plan = nil
 	local prevCam = nil
@@ -274,6 +359,7 @@ local function walk(leap, runup)
 		local pos = r.Position
 		local cam = camera.CFrame
 		maxY = math.max(maxY, pos.Y)
+		lowY = math.min(lowY, pos.Y)
 		if not lipT and (pos - lipAt):Dot(out) > 0 then
 			lipT = now
 		end
@@ -293,6 +379,9 @@ local function walk(leap, runup)
 		if not carriedT and State.Mode == "Carried" then
 			carriedT = now
 		end
+		if not drownT and State.Mode == "Drowning" then
+			drownT = now
+		end
 		if not leapT and State.Leaping then
 			leapT = now
 		end
@@ -300,8 +389,21 @@ local function walk(leap, runup)
 		if log.plan then
 			plan = log.plan
 		end
+		-- the mouse pretended to look round at dive time lookAt
+		if lookAt and leapT and not looked and now - leapT >= lookAt and log.filming then
+			Dive.pretendLook(Vector2.new(60, 0))
+			looked = now - leapT
+		end
 		local stats = Splash.stats()
 		maxParts = math.max(maxParts, stats.parts)
+		local last = log.frames and log.frames[#log.frames]
+		local liveText = ""
+		if log.filming and last and last.live then
+			liveText = string.format(" live=(%.1f,%.1f,%.1f) blend=%.2f", last.live.X, last.live.Y, last.live.Z, last.blend)
+		elseif log.filming and last then
+			liveText = string.format(" blend=%.2f", last.blend)
+		end
+		local nearest, cover = splashSeen()
 		-- the camera: from the dive's start on, while it moves
 		if leapT or (leap <= 0 and lipT) then
 			camFrames += 1
@@ -313,8 +415,63 @@ local function walk(leap, runup)
 					jumpStuds, jumpAtT, jumpMode = d, now, State.Mode
 				end
 				jumpDeg = math.max(jumpDeg, deg)
+				-- still while the diver moves away
+				if d < 0.05 and prevPos and (pos - prevPos).Magnitude > 0.3 then
+					stillRun += 1
+					if stillRun > stillMost then
+						stillMost, stillAt = stillRun, now
+					end
+				else
+					stillRun = 0
+				end
 			end
 			prevCam = cam
+			-- in the water's lit layers (between the surface and the riding camera's line)
+			if cam.Position.Y < top and cam.Position.Y > line then
+				bandFrames += 1
+				bandFirst = bandFirst or now
+				bandLast = now
+				if log.filming then
+					bandFilmFrames += 1
+				end
+			end
+			if nearest < nearMin then
+				nearMin, nearAt = nearest, now
+			end
+			if cover > coverMost then
+				coverMost, coverAt = cover, now
+			end
+			-- where the diver is in the view while the film is the view
+			if log.filming and last and last.blend < 0.5 then
+				local vp = camera:WorldToViewportPoint(pos + UP * 0.6)
+				local size = camera.ViewportSize
+				local x, y = vp.X / size.X * 2 - 1, vp.Y / size.Y * 2 - 1
+				if vp.Z > 0 then
+					framed += 1
+					frameX = math.max(frameX, math.abs(x))
+					if math.abs(y) > frameY then
+						frameY, frameYAt = math.abs(y), now
+					end
+				end
+				if cam.Position.Y < top and pos.Y < top and (cam.Position - pos).Magnitude < backUnder then
+					backUnder, backUnderAt = (cam.Position - pos).Magnitude, now
+				end
+			end
+			-- the underwater look as the camera goes under, and on
+			if cam.Position.Y < top then
+				underSince = underSince or now
+				for _, after in { 0, 0.25, 1 } do
+					local key = string.format("%.2f", after)
+					if not fogs[key] and now - underSince >= after then
+						local l = lookNow()
+						l.camY = math.floor(cam.Position.Y * 10 + 0.5) / 10
+						l.at = math.floor(now * 100 + 0.5) / 100
+						fogs[key] = l
+					end
+				end
+			elseif not fogs.above then
+				fogs.above = lookNow()
+			end
 			local p = params()
 			local head = pos + UP * 1.5
 			local sight = workspace:Raycast(head, cam.Position - head, p)
@@ -338,13 +495,18 @@ local function walk(leap, runup)
 				end
 			end
 		end
-		if #frames < 1200 then
-			table.insert(frames, string.format("%.3f %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) fov=%.1f leaping=%s",
+		if #frames < 2400 then
+			table.insert(frames, string.format(
+				"%.3f %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) fov=%.1f leaping=%s%s fog=%d-%d atm=%s splash=%s",
 				now, State.Mode, pos.X, pos.Y, pos.Z, cam.Position.X, cam.Position.Y, cam.Position.Z,
-				camera.FieldOfView, tostring(State.Leaping)))
+				camera.FieldOfView, tostring(State.Leaping), liveText, math.floor(Lighting.FogStart), math.floor(Lighting.FogEnd),
+				tostring(Lighting:FindFirstChildOfClass("Atmosphere") ~= nil),
+				if nearest < math.huge then string.format("%.1f/%.2f", nearest, cover) else "-"))
 		end
+		prevPos = pos
 		humanoid:Move(if State.Mode == "Dock" and not State.Leaping then out else Vector3.zero)
-		if now > 14 or (rideT and now > rideT + 3) or (carriedT and now > carriedT + 3) then
+		if now > seconds or (rideT and now > rideT + 3) or (drownT and now > drownT + 2)
+			or (not sub and carriedT and now > carriedT + 3) then
 			done = true
 		end
 	end)
@@ -366,7 +528,39 @@ local function walk(leap, runup)
 	rec.lipToHop = since(jumpT)
 	rec.lipToRiding = since(rideT)
 	rec.lipToCarried = since(carriedT)
+	rec.lipToDrowning = since(drownT)
+	rec.lowestY = math.floor(lowY * 10 + 0.5) / 10
 	rec.leapBegan = leapT ~= nil
+	rec.lookPretendedAt = looked and math.floor(looked * 1000 + 0.5) / 1000
+	local function r2(v)
+		return v and math.floor(v * 100 + 0.5) / 100
+	end
+	rec.framing = {
+		-- the diver's root (0.6 up) in the view while the film was the view: -1 to 1 from the middle (1/3: the
+		-- middle third's edge)
+		frames = framed,
+		mostAcross = r2(frameX),
+		mostUpDown = r2(frameY),
+		upDownAt = r2(frameYAt),
+		-- the least camera-to-diver distance with both under water (the bar: 10 studs or more)
+		leastBackUnder = if backUnder < math.huge then r2(backUnder) else nil,
+		leastBackAt = r2(backUnderAt),
+	}
+	rec.layers = {
+		-- frames the camera spent between the water's top and the riding camera's line (the lit layers)
+		frames = bandFrames,
+		whileFilming = bandFilmFrames,
+		from = r2(bandFirst),
+		to = r2(bandLast),
+		line = r2(line),
+	}
+	rec.splashNear = {
+		nearest = if nearMin < math.huge then r2(nearMin) else nil,
+		at = r2(nearAt),
+		mostCover = r2(coverMost),
+		coverAt = r2(coverAt),
+	}
+	rec.look = fogs
 	rec.trigger = ev.start
 	rec.top = ev.top
 	rec.entry = ev.entry
@@ -390,6 +584,9 @@ local function walk(leap, runup)
 		firstOutOfSight = firstBlocked,
 		insidePartFrames = inside,
 		underDockFloorFrames = underFloor,
+		-- the longest run of frames it stood still (under 0.05 studs) while the diver moved over 0.3
+		stillWhileDiverMoved = stillMost,
+		stillAt = stillAt and string.format("%.2f", stillAt),
 	}
 	rec.splash = { played = after.played - before.played, mostParts = maxParts, runningAtEnd = after.running }
 	rec.modes = modes
@@ -430,12 +627,13 @@ end
 local keptAutoHop = nil
 workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 	local cmd = tostring(workspace:GetAttribute("DLDo") or "")
-	local verb, a, b = string.match(cmd, "^(%w+)|?([^|]*)|?([^|]*)")
+	local verb, a, b, c, e, f = string.match(cmd, "^(%w+)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)")
 	local ok, said = pcall(function()
 		if verb == "walk" then
+			-- walk|leap|runup|lookAt|seconds|sub (empty: none)
 			report:FireServer("running")
 			task.spawn(function()
-				local ok2, rec = pcall(walk, tonumber(a) or 1, tonumber(b) or 16)
+				local ok2, rec = pcall(walk, tonumber(a) or 1, tonumber(b) or 16, tonumber(c), tonumber(e), f == "1")
 				if not ok2 then
 					controls(true)
 					rec = { error = tostring(rec) }
@@ -463,7 +661,7 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 			else
 				directorOn(false)
 			end
-			-- a time, or a moment by name (from the plan: crouch, takeoff, top, entry, splash, under)
+			-- a time, or a moment by name (from the plan: crouch, takeoff, rise, top, entry, splash, under)
 			local t = tonumber(a)
 			if not t then
 				Dive.hold(0, view == "director")
@@ -476,6 +674,8 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 				t = ({
 					crouch = crouch * 0.6,
 					takeoff = crouch + 0.04,
+					-- (the low look up from beside the lip: the camera's first key)
+					rise = crouch + 0.28 * (p.tEntry - crouch),
 					top = p.tTop,
 					entry = p.tEntry - 0.02,
 					splash = p.tEntry + 0.15,
@@ -632,11 +832,14 @@ def home():
     return cmd("state", 0.3)
 
 
-def walk(leap, runup=16, name="leap", fish=None):
+def walk(leap, runup=16, name="leap", fish=None, look=None, seconds=14, sub=None):
     """One run off the lip; the record, and the frames saved to work/dive_leap/frames_NAME.txt. `fish`: a fish id
-    ("" for the first kind) to have equipped first (the seated ride as we go under)"""
+    ("" for the first kind) to have equipped first (the seated ride as we go under). `look`: the dive time to pretend
+    the mouse looks round at. `sub`: a land to pick a sub trip to"""
     say(cmd(f"leap|{leap}"))
     say("before:", home())
+    if sub is not None:
+        say("sub:", cmd(f"sub|{sub}", 2.0))
     if fish is not None:
         s = cmd("state", 0.3)
         if "equipped=true" not in s:
@@ -645,8 +848,8 @@ def walk(leap, runup=16, name="leap", fish=None):
             say("equip:", do("equip", 1.2))
             say("now:", cmd("state", 0.3))
     time.sleep(1.0)
-    do(f"walk|{leap}|{runup}", 0.5)
-    end = time.time() + 40
+    do(f"walk|{leap}|{runup}|{'' if look is None else look}|{seconds}|{'1' if sub is not None else ''}", 0.5)
+    end = time.time() + seconds + 26
     text = ""
     while time.time() < end:
         time.sleep(1.5)
@@ -659,7 +862,8 @@ def walk(leap, runup=16, name="leap", fish=None):
     except ValueError:
         say(f"{name}: no record:", text[:400])
         return {}
-    frames = do("frames|3", 1.0)
+    # (the runner's answer is cut at about 20,000 characters: a long run is sampled more thinly)
+    frames = do(f"frames|{3 if seconds <= 14 else 8}", 1.0)
     (OUT / f"frames_{name}.txt").write_text(frames + "\n")
     (OUT / f"run_{name}.json").write_text(json.dumps(rec, indent=1))
     return rec
@@ -681,18 +885,25 @@ def summary(name, rec):
     say(f"  entry: at={e.get('pos')} angle={e.get('angle')} deg below level, speed={e.get('speed')}")
     say(f"  hop began at depth={(rec.get('hop') or {}).get('depth')}; body let go: {rec.get('release')}")
     say(f"  lip to water={rec.get('lipToWater')} s, to hop={rec.get('lipToHop')} s, to Riding={rec.get('lipToRiding')} s,"
-        f" to Carried={rec.get('lipToCarried')} s")
+        f" to Carried={rec.get('lipToCarried')} s, to Drowning={rec.get('lipToDrowning')} s; lowest y={rec.get('lowestY')}")
     c = rec.get("camera") or {}
     say(f"  camera: biggest jump {c.get('biggestJumpStuds')} studs at {c.get('jumpAt')}, biggest turn"
-        f" {c.get('biggestTurnDegrees')} deg; out of sight {c.get('outOfSightFrames')}/{c.get('frames')} frames"
+        f" {c.get('biggestTurnDegrees')} deg; still while the diver moved {c.get('stillWhileDiverMoved')} frames"
+        f" (at {c.get('stillAt')}); out of sight {c.get('outOfSightFrames')}/{c.get('frames')} frames"
         f" (first: {c.get('firstOutOfSight')}), inside a part {c.get('insidePartFrames')}, under the dock floor"
-        f" {c.get('underDockFloorFrames')}; handover={rec.get('handover')} let go={rec.get('cameraLetGo')}")
+        f" {c.get('underDockFloorFrames')}")
+    say(f"  hand-over: began={rec.get('handover')} let go={rec.get('cameraLetGo')} took={rec.get('took')}"
+        f" look pretended at={rec.get('lookPretendedAt')}")
+    say(f"  framing (diver off the middle, 1/3 = the middle third's edge): {rec.get('framing')}")
+    say(f"  in the lit layers: {rec.get('layers')}")
+    say(f"  splash near the camera: {rec.get('splashNear')}")
+    say(f"  underwater look: {rec.get('look')}")
     say(f"  splash: {rec.get('splash')}")
     say(f"  modes: {rec.get('modes')}")
     say(f"  broken={rec.get('broken')} landMounted={rec.get('landMounted')} errors={rec.get('errors')}")
 
 
-HOLDS = ["crouch", "takeoff", "top", "entry", "splash", "under"]
+HOLDS = ["crouch", "takeoff", "rise", "top", "entry", "splash", "under"]
 
 
 def hold(t, view="own", name=None):
@@ -743,8 +954,32 @@ def main():
     if what == "letgo":
         letgo()
         return
+    kind = sys.argv[2] if len(sys.argv) > 2 else ""
+    if kind == "look":
+        # the mouse taking the view back: Leap 1 only
+        at = float(sys.argv[3]) if len(sys.argv) > 3 else 1.1
+        rec = walk(1, 16, "look", look=at)
+        summary("look", rec)
+        say(cmd("leap|0"))
+        do("leap|0", 0.4)
+        say("after:", home())
+        (OUT / "check_look.log").write_text("\n".join(LOG) + "\n")
+        return
+    if kind == "sub":
+        # a sub trip from the dive, Leap 1 then Leap 0 (the baseline), each recorded to Riding or Drowning
+        land = sys.argv[3] if len(sys.argv) > 3 else "2"
+        on = walk(1, 16, "leap_sub", seconds=30, sub=land)
+        summary("leap_sub", on)
+        off = walk(0, 16, "noleap_sub", seconds=30, sub=land)
+        summary("noleap_sub", off)
+        say("unsub:", cmd("sub|0", 1.0))
+        say(cmd("leap|0"))
+        do("leap|0", 0.4)
+        say("after:", home())
+        (OUT / "check_sub.log").write_text("\n".join(LOG) + "\n")
+        return
     # run: the leap, then Leap 0 (the cost), each from the same run-up
-    fish = (sys.argv[3] if len(sys.argv) > 3 else "") if len(sys.argv) > 2 and sys.argv[2] == "fish" else None
+    fish = (sys.argv[3] if len(sys.argv) > 3 else "") if kind == "fish" else None
     tag = "_fish" if fish is not None else ""
     on = walk(1, 16, "leap" + tag, fish)
     summary("leap" + tag, on)

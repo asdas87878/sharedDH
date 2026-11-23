@@ -215,15 +215,18 @@ local function phaseAt(p: Plan, t: number): number
 	return 2 + math.clamp((t - p.tEntry) / math.max(p.sink, 0.01), 0, 1)
 end
 
--- The camera under the water, following down the line: from behind and a little over, never above the riding
--- camera's line. `diver`: where the body is (the plan's, or the live root once the body is let go)
+-- The camera under the water, following: straight back from the diver the way they went (not up their line, which
+-- held it 4 to 6 studs off and put it through the surface inside the splash) and a little over, never above the riding
+-- camera's line. `diver`: where the body is (the root)
 local function chaseAt(p: Plan, diver: Vector3): Vector3
-	local at = diver - p.line * Config.Dive.LeapCamFollow + UP * 1.5
+	local d = Config.Dive
+	local at = diver - p.heading * d.LeapCamFollow + UP * d.LeapCamFollowUp
 	return Vector3.new(at.X, math.min(at.Y, p.waterLine - 1), at.Z)
 end
 
 -- The camera's keys, each at a dive time: the view as it began; low beside the edge looking up; craned up and over
--- through the top; high behind where they go in; through the surface after them
+-- through the top; high behind where they go in; just over the water behind the splash; through the surface after
+-- them (quickly: between the surface and the riding camera's line it is inside the water's lit layers, all white)
 local function cameraKeys(p: Plan): { Key }
 	local d = Config.Dive
 	local keys: { Key } = {}
@@ -242,6 +245,11 @@ local function cameraKeys(p: Plan): { Key }
 	)
 	local high = p.entry - p.heading * d.LeapCamHighBack + p.right * (p.side * 3)
 	add(p.crouch + 0.85 * p.air, Vector3.new(high.X, p.surface + d.LeapCamHigh, high.Z))
+	local overAt = p.tEntry + d.LeapCamOver
+	if d.LeapCamOver > 0 and overAt > keys[#keys].t + 0.05 and overAt < p.tFollow - 0.05 then
+		local over = p.entry - p.heading * d.LeapCamFollow + p.right * (p.side * 3)
+		add(overAt, Vector3.new(over.X, p.surface + d.LeapCamOverHigh, over.Z))
+	end
 	add(p.tFollow, chaseAt(p, posAt(p, p.tFollow)))
 	-- the slopes (a curve through the keys by time): still at the first, the chase's own pace at the last
 	for i = 2, #keys - 1 do
@@ -412,10 +420,25 @@ local lookMoved = 0
 local turnBy = Vector2.zero -- the look input since the last frame, radians
 local stick = Vector2.zero
 local reach, camY = 1, math.huge
-local diverEased: Vector3? = nil
+-- where the film takes the diver to be: the root, but a cut in it (put on a fish's saddle) is eased across
+local diverLast: Vector3? = nil
+local diverOffset = Vector3.zero
 local mouseLocked = false
--- the log (test hook)
-type Frame = { t: number, pos: Vector3, tilt: number, state: string, cam: Vector3, fov: number, body: boolean }
+-- the log (test hook): `live` is the riding camera's view that frame (nil: none yet), `blend` how far the hand-over to
+-- it has gone (0 to 1)
+type Frame = {
+	t: number,
+	pos: Vector3,
+	tilt: number,
+	state: string,
+	cam: Vector3,
+	fov: number,
+	body: boolean,
+	live: Vector3?,
+	blend: number,
+}
+local liveSeen: Vector3? = nil
+local blendSeen = 0
 local frames: { Frame } = {}
 local events: { { [string]: any } } = {}
 local lastFrameT = -1
@@ -573,7 +596,6 @@ local function releaseBody(why: string)
 		-- back to the humanoid as it was (in the water RideController holds it out of the way itself)
 		humanoid.PlatformStand = false
 	end
-	diverEased = if root then root.Position else lastWritten
 	posing = why == "hop" and posing
 	popHold = posing
 	event("release", { why = why, depth = if root then surfaceY() - root.Position.Y else 0 })
@@ -615,7 +637,7 @@ local function begin(p: Plan, character: Model, held: number?, leaveCamera: bool
 	handAt, took, orbit, orbitFrom = nil, false, false, nil
 	lookMoved, turnBy = 0, Vector2.zero
 	reach, camY = 1, math.huge
-	diverEased = nil
+	diverLast, diverOffset = nil, Vector3.zero
 	State.Leaping = true
 	State.LeapHeading = p.yaw
 	State.LeapSplashed = false
@@ -894,16 +916,39 @@ local function filmAt(p: Plan, t: number, diver: Vector3, planned: Vector3): (CF
 		local drift = chaseAt(p, diver) - chaseAt(p, planned)
 		at = curveAt(p, t) + drift * smooth(p.keys[4].t, p.tFollow, t)
 	end
-	local velocity = velocityAt(p, math.min(t, p.tEntry + p.sink))
-	if velocity.Magnitude > 90 then
-		velocity = velocity.Unit * 90
+	-- (the look ahead is held to LeapCamLeadMost studs: at 72 studs a second into the water it was 9 studs ahead, and
+	-- put the diver at the top edge of the view)
+	local lead = velocityAt(p, math.min(t, p.tEntry + p.sink)) * d.LeapCamLead
+	local most = math.max(d.LeapCamLeadMost, 0)
+	if lead.Magnitude > most then
+		lead = if most > 0 then lead.Unit * most else Vector3.zero
 	end
-	local focus = diver + UP * 0.6 + velocity * d.LeapCamLead
-	local toward = focus - at
+	local centre = diver + UP * 0.6
+	local toward = centre + lead - at
 	local look = if toward.Magnitude > 0.05 then toward.Unit else p.camFrom.LookVector
 	if t < 0.25 then
 		look = p.camFrom.LookVector:Lerp(look, smooth(0, 0.25, t))
 		look = if look.Magnitude > 0.01 then look.Unit else p.camFrom.LookVector
+	end
+	local peak = Config.Camera.Fov + d.LeapCamWide
+	local fov = if t < p.tTop
+		then lerp(p.camFov, peak, smooth(0, p.tTop, t))
+		else lerp(peak, Config.Camera.Fov, smooth(p.tTop, p.tFollow, t))
+	fov += State.FovPunch + State.FovLong
+	-- the diver kept within the middle LeapCamKeep of the view (by height): turned toward them as far as that needs
+	local toDiver = centre - at
+	local keep = math.clamp(d.LeapCamKeep, 0.05, 1)
+	if toDiver.Magnitude > 0.5 and keep < 1 then
+		local limit = math.atan(math.tan(math.rad(fov) / 2) * keep)
+		local aim = toDiver.Unit
+		local off = math.acos(math.clamp(look:Dot(aim), -1, 1))
+		if off > limit then
+			-- (a turn about the axis between the two, by the part of the angle over the limit)
+			local axis = look:Cross(aim)
+			if axis.Magnitude > 1e-4 then
+				look = CFrame.fromAxisAngle(axis.Unit, off - limit) * look
+			end
+		end
 	end
 	if math.abs(look.Y) > 0.995 then
 		look = (look + p.heading * 0.1).Unit
@@ -911,11 +956,7 @@ local function filmAt(p: Plan, t: number, diver: Vector3, planned: Vector3): (CF
 	local k1, k3 = p.keys[2].t, p.keys[4].t
 	local bank = math.rad(d.LeapCamBank) * p.side * math.sin(math.pi * math.clamp((t - k1) / (k3 - k1), 0, 1))
 	local view = CFrame.lookAt(at, at + look) * CFrame.Angles(0, 0, bank)
-	local peak = Config.Camera.Fov + d.LeapCamWide
-	local fov = if t < p.tTop
-		then lerp(p.camFov, peak, smooth(0, p.tTop, t))
-		else lerp(peak, Config.Camera.Fov, smooth(p.tTop, p.tFollow, t))
-	return view, fov + State.FovPunch + State.FovLong
+	return view, fov
 end
 
 local function cameraFrame(dt: number)
@@ -936,13 +977,21 @@ local function cameraFrame(dt: number)
 		if State.DeathCam or State.Mode == "Carried" then
 			releaseCamera("taken")
 		else
-			-- where the diver is: the plan's while it moves the body, the real one (eased) once let go
+			-- where the diver is: the root itself, whoever moves it (the dive, the hop as it carries on, the riding
+			-- step). Filming the plan's point instead held the camera still while the hop moved the body on, and then cut
+			-- 30 studs to the root as the hop let go (2026-11-23, the tester: 6 of 8 dives). A cut in the root itself
+			-- (put on the fish's saddle) is eased across, never followed at once.
 			local planned = posAt(p, t)
 			local diver = planned
-			if not body and not heldAt then
-				local eased = (diverEased or root.Position):Lerp(root.Position, Ease.alpha(10, dt))
-				diverEased = eased
-				diver = eased
+			if not heldAt then
+				local here = root.Position
+				local was = diverLast
+				if was and (here - was).Magnitude > 6 then
+					diverOffset += was - here
+				end
+				diverLast = here
+				diverOffset *= 1 - Ease.alpha(8, dt)
+				diver = here + diverOffset
 			end
 			local view, fov = filmAt(p, t, diver, planned)
 			-- the player took the view on the dock: it follows us round, turned by them, from where the film was
@@ -976,7 +1025,10 @@ local function cameraFrame(dt: number)
 			-- and theirs is the clock: nothing is run on twice)
 			view *= Shake.update(if State.inWater() then 0 else dt)
 			-- the hand-over: once under the water and the riding camera's view is under its line too (or the player
-			-- took the view, or there will be no hop to wait for)
+			-- took the view, or there will be no hop to wait for). (When that is varies by about 0.6 s: the riding
+			-- camera takes up our view as the server says Free, and its own height then lands within a stud of its
+			-- line, under it at once or ridden down by its ceiling over Camera.SurfaceTime. Following the root, the
+			-- film no longer shows the wait.)
 			if live and not handAt and not heldAt then
 				local ready = took
 					or (
@@ -993,12 +1045,15 @@ local function cameraFrame(dt: number)
 				end
 			end
 			local handed = false
+			blendSeen = 0
 			if handAt and live then
 				local w = smooth(0, if took then handTime * 0.6 else handTime, now - handAt)
 				view = view:Lerp(live, w)
 				fov = lerp(fov, liveFov, w)
 				handed = w >= 1
+				blendSeen = w
 			end
+			liveSeen = if live then live.Position else nil
 			camera.CameraType = Enum.CameraType.Scriptable
 			camera.CFrame = view
 			camera.FieldOfView = fov
@@ -1027,6 +1082,8 @@ local function cameraFrame(dt: number)
 			cam = camera.CFrame.Position,
 			fov = camera.FieldOfView,
 			body = body,
+			live = if filming then liveSeen else nil,
+			blend = if filming then blendSeen else 1,
 		})
 	end
 	-- over: the body, the pose and the camera all let go
@@ -1229,8 +1286,9 @@ function DiveController.hold(t: number?, leaveCamera: boolean?): boolean
 end
 
 -- Test hook: only the Studio checks call this (tools/studio/dive_leap_check.py). The last dive's log: a frame each
--- render frame (dive time, root, tilt, our mode, camera, view width, whether the dive moved the body) and its
--- moments (start, top, entry, hop, release, handover, camera), with the plan's numbers and the splashes'.
+-- render frame (dive time, root, tilt, our mode, camera, view width, whether the dive moved the body, the riding
+-- camera's view that frame as the film read it and how far the hand-over had gone, 1 once the film is not the view)
+-- and its moments (start, top, entry, hop, release, handover, camera, took), with the plan's numbers and the splashes'.
 function DiveController.log(): { [string]: any }
 	local p = plan
 	return {
@@ -1257,6 +1315,26 @@ function DiveController.log(): { [string]: any }
 			}
 			else nil,
 	}
+end
+
+-- Test hook: only the Studio checks call this (tools/studio/dive_leap_check.py). Empties the last dive's log (not a
+-- running dive's), so a run without a dive does not report the one before.
+function DiveController.clearLog()
+	if not plan then
+		table.clear(frames)
+		table.clear(events)
+		lastFrameT = -1
+	end
+end
+
+-- Test hook: only the Studio checks call this (tools/studio/dive_leap_check.py). As if the player moved the mouse
+-- (looking round) by `moved` pixels while the film runs: what InputChanged adds up.
+function DiveController.pretendLook(moved: Vector2)
+	if not filming or heldAt then
+		return
+	end
+	lookMoved += moved.Magnitude
+	turnBy += Vector2.new(-moved.X, -moved.Y) * Config.Camera.MouseSensitivity
 end
 
 ----------------------------------------------------------------------------------------------------------------------

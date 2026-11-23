@@ -506,6 +506,36 @@ and never a fish under or behind you.
   as meant.
 - **Not tested:** the lock flipping between the old fish and one at the edge of reach. That is for a played hop.
 
+### The leap (2026-11-23)
+The user: "make a sick dive animation for when the player jumps into the water initially from the dive stand. We
+need nice camera angles, a splash and stuff. leave sound fx for now. We will need to make sure it looks good and
+natural and dynamic." There is no dive stand in the place or the generator: "stand" was read as the strip's lip under
+the DIVE IN arch (the edge is found by a ray at run time, so a raised stand placed by hand would work too).
+
+**State: built, behind `Config.Dive.Leap` (0 in the file). Played by script, not by hand, not seen with two players.**
+
+| Piece | What it does | Where |
+|---|---|---|
+| The trigger | On the dock, moving at the open water (a ray down ahead of you finds none of the floor), within 40 degrees of the dock's facing. Not while riding a fish on land or in a tank | `Controllers/DiveController` |
+| The leap | A short crouch on the lip, then an arc: 11 studs up, 24 out, 0.85 s in the air, in head-first at 67 degrees and 72 studs a second, carrying on to 16 under | `Dive.LeapHigh`, `LeapFar`, `LeapTime`, `LeapDepth`, `LeapSink` |
+| Into the plunge | The server's rule is unchanged (under -4 on the dock is in the water). The existing hop takes over with the leap's heading. With a fish equipped the server seats you at the water and the leap lets go; with a sub picked it lets go to the sub | `JumpController`, `RideController` (seams) |
+| The pose | Crouch, a slight arch on the rise, arms overhead and legs together at the top, an arrow at the water; a tuck with `Dive.Flip` 1. Other players are posed on each machine from the diver's tilt (nothing new is sent) | `AnimController` (`leapPose`) |
+| The camera | One move, no cuts: low beside the lip looking up, over the top with the diver, across the surface behind the entry, then following the diver into the hop's view. Moving the mouse takes the view back. `Dive.LeapCam` 0 leaves the view alone | `DiveController` (`filmAt`, `cameraFrame`) |
+| The splash | A crown of big cubes, a squat mound, two foam rings on the surface; drawn on every machine for any character that goes through the surface fast. No new sound | `Lib/Splash` |
+
+- **The first Play (eight dives by script):** no error from our scripts; with the dial off the walk-off is as before;
+  everything is handed back (camera, Humanoid, state). It adds 0.35 to 0.7 seconds from the lip to the hop.
+- **Two faults found in it, fixed in the code and not yet run again:** the camera froze under water for half a second
+  and then jumped 30 studs (it was following the planned path, which had ended, not the diver); the player's view
+  went white as the camera crossed the surface through the splash.
+- **One round of look fixes after the first stills, not yet seen:** bigger, fewer cubes and a mound in place of a
+  thin column; the pose at the top (it was a flat spread plank); the diver kept in the middle of the frame and the
+  camera 12 studs back under water.
+- **Not known:** the submarine dive ended in a drowning in the one run made, with no run at `Leap` 0 to compare.
+- **To check it:** `python tools/studio/dive_leap_check.py` (install, then `run`, `run fish`, `run sub`, `run look`,
+  and `hold <moment> own|director` for stills; logs in `work/dive_leap/`).
+- **To try the flip:** `Dive.Flip` 1 in the N panel.
+
 ## Part 2: swimming speeds and the feel of speed
 
 ### Four different speeds

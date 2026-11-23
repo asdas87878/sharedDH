@@ -5,10 +5,14 @@
 --     shadow), taken and put back;
 --   one splash's pieces, each a pure function of the splash's age (where it went in, the way it was going, how hard,
 --     and its seed say all of it, so a held moment is the same every time):
---       the crown: cubes thrown up and out in a ring, more of them forward, spinning, falling back and shrinking;
---       the column: a short spout of stretched cubes in the middle, gone in 0.4 s;
---       the foam: a ring of flat slabs on the water spreading out and fading, and a second, slower one;
+--       the crown: big cubes (1.5 to 3 studs) thrown up and out in a wide ring, more of them forward, tumbling,
+--         falling back and shrinking into the water;
+--       the mound: three wide stacked cubes in the middle that heave up and drop back, gone in 0.55 s;
+--       the foam: a ring of flat white slabs standing clear over the water's top, spreading out and fading, and a
+--         second, slower one;
+--     and any of them near the camera fades out (Config.Dive.LeapSplashNear): the view never goes white inside one;
 --   play / hold / release / step / stats.
+-- (A thin 14 stud column with 16 small cubes round it until 2026-11-23: it read as a stick with specks.)
 -- The bubbles under the water are Lib/Fx's bursts (Config.Dive.Splash), made by whoever plays this.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -22,7 +26,9 @@ local WHITE = Color3.fromRGB(255, 255, 255)
 local AQUA = Color3.fromRGB(206, 242, 250)
 local FOAM = Color3.fromRGB(236, 250, 255)
 local GRAVITY = 90 -- the crown's, studs a second a second (heavier than the world's: it reads as quick and snappy)
-local COLUMN_TIME = 0.4
+local MOUND_TIME = 0.55
+local MOUND_RISE = 0.3 -- the share of that it heaves up over, then drops
+local MOUND_WIDTH = { 5.5, 4.2, 2.8 } -- its three cubes, bottom to top, studs across at the full splash
 local RING_TIME = { 1.0, 1.4 } -- the first foam ring's life, and the slower second one's
 local RING_SLABS = 14
 local LAST = 1.5 -- a splash is over by then, seconds, whatever its numbers
@@ -83,14 +89,14 @@ end
 
 type Piece = {
 	part: Part,
-	kind: string, -- "Crown", "Column", "Ring"
+	kind: string, -- "Crown", "Mound", "Ring"
 	-- the crown's: out along `dir` at `out` studs a second, up at `up`, this big, spinning at `spin` (radians a second)
 	dir: Vector3,
 	out: number,
 	up: number,
 	size: number,
 	spin: Vector3,
-	-- the column's segment (1 to 4) and the ring's (which ring, which slab)
+	-- the mound's cube (1 to 3, from the bottom) and the ring's (which ring, which slab)
 	index: number,
 	ring: number,
 }
@@ -105,7 +111,7 @@ type Shot = {
 	held: number?, -- held at this age (the test hook), or nil
 	pieces: { Piece },
 	-- the sizes, worked out once
-	column: number,
+	mound: number,
 	rings: { number },
 }
 
@@ -123,15 +129,16 @@ local function crownPieces(shot: Shot, random: Random)
 		local a = even - 0.5 * math.sin(even)
 		local forward = math.cos(a)
 		local dir = shot.way * forward + shot.side * math.sin(a)
-		local high = math.max(d.LeapCrownHigh, 0) * random:NextNumber(0.65, 1.3) * (0.35 + 0.65 * power)
+		local high = math.max(d.LeapCrownHigh, 0) * random:NextNumber(0.7, 1.25) * (0.35 + 0.65 * power)
 		table.insert(shot.pieces, {
 			part = take(),
 			kind = "Crown",
 			dir = dir,
-			out = random:NextNumber(6, 12) * (1 + 0.5 * forward) * (0.5 + 0.5 * power),
+			out = random:NextNumber(9, 15) * (1 + 0.4 * forward) * (0.5 + 0.5 * power),
 			up = math.sqrt(2 * GRAVITY * high),
-			size = random:NextNumber(0.8, 1.6) * (0.7 + 0.3 * power),
-			spin = Vector3.new(random:NextNumber(-9, 9), random:NextNumber(-6, 6), random:NextNumber(-9, 9)),
+			size = random:NextNumber(1.5, 3) * (0.75 + 0.25 * power),
+			-- (big blocks tumble slower than small ones)
+			spin = Vector3.new(random:NextNumber(-5, 5), random:NextNumber(-4, 4), random:NextNumber(-5, 5)),
 			index = i,
 			ring = 0,
 		})
@@ -153,21 +160,21 @@ local function play(at: Vector3, way: Vector3, power: number, seed: number): Sho
 		started = os.clock(),
 		held = nil,
 		pieces = {},
-		column = math.max(d.LeapColumn, 0) * (0.5 + 0.5 * math.clamp(power, 0, 1)),
+		mound = math.max(d.LeapColumn, 0) * (0.5 + 0.5 * math.clamp(power, 0, 1)),
 		rings = {},
 	}
 	local random = Random.new(seed)
 	crownPieces(shot, random)
-	if shot.column > 0 then
-		for k = 1, 4 do
+	if shot.mound > 0 then
+		for k = 1, #MOUND_WIDTH do
 			table.insert(shot.pieces, {
 				part = take(),
-				kind = "Column",
+				kind = "Mound",
 				dir = w,
 				out = 0,
 				up = 0,
-				size = 1.9 - 0.3 * k,
-				spin = Vector3.new(0, random:NextNumber(-3, 3), 0),
+				size = MOUND_WIDTH[k] * (0.6 + 0.4 * shot.power),
+				spin = Vector3.new(0, 0.45 * k + random:NextNumber(-0.2, 0.2), 0),
 				index = k,
 				ring = 0,
 			})
@@ -195,7 +202,8 @@ local function play(at: Vector3, way: Vector3, power: number, seed: number): Sho
 	for _, piece in shot.pieces do
 		local part = piece.part
 		part.Color = if piece.kind == "Ring"
-			then FOAM
+			then WHITE
+			elseif piece.kind == "Mound" and piece.index == 1 then FOAM
 			elseif piece.kind == "Crown" and piece.index % 3 == 0 then AQUA
 			else WHITE
 		part.Transparency = 1
@@ -204,10 +212,12 @@ local function play(at: Vector3, way: Vector3, power: number, seed: number): Sho
 	return shot
 end
 
--- Where each piece is at `age` seconds: nothing but the shot and the age go in
+-- Where each piece is at `age` seconds: nothing but the shot and the age go in (and the camera, for the fade near it)
 local function draw(shot: Shot, age: number)
 	local at = shot.at
 	local up = Vector3.yAxis
+	local eye = workspace.CurrentCamera.CFrame.Position
+	local near = math.max(Config.Dive.LeapSplashNear, 0)
 	for _, piece in shot.pieces do
 		local part = piece.part
 		local shown = false
@@ -217,31 +227,28 @@ local function draw(shot: Shot, age: number)
 				local height = piece.up * age - 0.5 * GRAVITY * age * age
 				local shrink = 1 - Ease.smoothstep(landing * 0.5, landing, age)
 				local size = piece.size * math.max(shrink, 0.05)
-				local position = at + piece.dir * (1.2 + piece.out * age) + up * (height + 0.3)
+				local position = at + piece.dir * (1.5 + piece.out * age) + up * (height + 0.5)
 				part.Size = Vector3.one * size
 				part.CFrame = CFrame.new(position)
 					* CFrame.Angles(piece.spin.X * age, piece.spin.Y * age, piece.spin.Z * age)
-				part.Transparency = 0.05 + 0.5 * Ease.smoothstep(landing * 0.7, landing, age)
+				part.Transparency = 0.5 * Ease.smoothstep(landing * 0.75, landing, age)
 				shown = true
 			end
-		elseif piece.kind == "Column" then
-			if age < COLUMN_TIME and shot.column > 0 then
-				-- up fast, held a moment, and down into itself
-				local u = age / COLUMN_TIME
-				local extent = shot.column * math.sin(math.pi * u) ^ 0.6
-				local segment = extent / 4
-				if segment > 0.05 then
-					local width = piece.size * (1 - 0.45 * u) * (0.6 + 0.4 * shot.power)
-					local centre = segment * (piece.index - 0.5)
-					-- (leaning a little the way they went)
-					local lean = CFrame.fromMatrix(Vector3.zero, shot.side, up, -shot.way)
-						* CFrame.Angles(math.rad(-10), 0, 0)
-					part.Size = Vector3.new(width, segment * 1.15, width)
-					part.CFrame = CFrame.new(at)
-						* lean
-						* CFrame.new(0, centre, 0)
-						* CFrame.Angles(0, piece.spin.Y * age, 0)
-					part.Transparency = 0.05 + 0.6 * Ease.smoothstep(0.6, 1, u)
+		elseif piece.kind == "Mound" then
+			if age < MOUND_TIME and shot.mound > 0 then
+				-- heaved up fast, then dropping back as if it were thrown, spreading as it goes
+				local u = age / MOUND_TIME
+				local lift = if u < MOUND_RISE
+					then Ease.outQuad(u / MOUND_RISE)
+					else 1 - ((u - MOUND_RISE) / (1 - MOUND_RISE)) ^ 2
+				local layer = shot.mound * lift / #MOUND_WIDTH
+				if layer > 0.05 then
+					local width = piece.size * (1 + 0.35 * u)
+					-- (stacked from a little under the surface, each cube turned a little more than the one under it)
+					local centre = layer * (piece.index - 0.5) - 0.3
+					part.Size = Vector3.new(width, math.max(layer * 1.15, 0.2), width)
+					part.CFrame = CFrame.new(at + up * centre) * CFrame.Angles(0, piece.spin.Y, 0)
+					part.Transparency = 0.6 * Ease.smoothstep(0.7, 1, u)
 					shown = true
 				end
 			end
@@ -254,13 +261,23 @@ local function draw(shot: Shot, age: number)
 				local radius = from + (widest - from) * Ease.outQuad(u)
 				local a = (piece.index - 1 + (if piece.ring == 2 then 0.5 else 0)) / RING_SLABS * math.pi * 2
 				local across = 2 * math.pi * radius / RING_SLABS * 1.08
-				local thick = (if piece.ring == 1 then 1.2 else 0.9) * (1 - 0.4 * u)
-				part.Size = Vector3.new(across, 0.25, thick)
-				part.CFrame = CFrame.new(at + Vector3.new(0, 0.12 + 0.02 * piece.ring, 0))
+				local thick = (if piece.ring == 1 then 1.6 else 1.2) * (1 - 0.4 * u)
+				-- (standing clear over the water's top: its glass layer is near white itself, and a ring laid in it
+				-- was lost)
+				part.Size = Vector3.new(across, 0.3, thick)
+				part.CFrame = CFrame.new(at + Vector3.new(0, 0.4 + 0.06 * piece.ring, 0))
 					* CFrame.Angles(0, a, 0)
 					* CFrame.new(0, 0, -radius)
-				part.Transparency = 0.15 + 0.85 * Ease.smoothstep(0.35, 1, u)
+				part.Transparency = Ease.smoothstep(0.45, 1, u)
 				shown = true
+			end
+		end
+		if shown and near > 0 and part.Transparency < 1 then
+			-- near the camera: faded out, gone at a third of LeapSplashNear
+			local gap = (part.Position - eye).Magnitude - part.Size.Magnitude / 2
+			local fade = 1 - Ease.smoothstep(near / 3, near, gap)
+			if fade > 0 then
+				part.Transparency += (1 - part.Transparency) * fade
 			end
 		end
 		if not shown and part.Transparency < 1 then

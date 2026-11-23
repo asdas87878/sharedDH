@@ -1824,18 +1824,20 @@ local function tucked(): Pose
 end
 
 -- The leap off the dock (Config.Dive.Leap, DiveController) by its phase: 0 standing, to the crouch (arms swung back,
--- curled into the knees), the push at 1, arms thrown up and legs long, a swan (arms out wide, back arched) through
--- the top, the arrow (arms together overhead, legs together) as it goes in at 2, and on to `streamlined` exactly by
--- 3. Each joint's two angles run between the keys on their own (a turn run as a whole between two far-apart turns
--- can swing the short way round, through the body). The joints, in order: LeftShoulder x z, RightShoulder x z,
--- LeftElbow x, RightElbow x, LeftHip x z, RightHip x z, LeftKnee x, RightKnee x, Waist x, Neck x
+-- curled into the knees), the push at 1, arms thrown up overhead and legs long and together with the back a little
+-- arched on the way up (1.2), a slight pike at the top (about 1.46: arms overhead together, legs together, bent a
+-- little at the hips and waist, head in), the arrow (arms together overhead, legs together, straight) from 1.7 as it
+-- turns head first and goes in at 2, and on to `streamlined` exactly by 3. (A swan, arms out wide in a flat plank
+-- through the top, until 2026-11-23.) Each joint's two angles run between the keys on their own (a turn run as a whole
+-- between two far-apart turns can swing the short way round, through the body). The joints, in order: LeftShoulder x
+-- z, RightShoulder x z, LeftElbow x, RightElbow x, LeftHip x z, RightHip x z, LeftKnee x, RightKnee x, Waist x, Neck x
 local LEAP_KEYS: { { number } } = {
 	{ 0, 0, -4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ 0.7, -45, -8, -45, 8, 15, 15, 60, -6, 60, 6, -90, -90, -18, 18 },
 	{ 1.0, 60, -10, 60, 10, 10, 10, 20, -4, 20, 4, -30, -30, -5, 15 },
-	{ 1.25, 165, -18, 165, 18, 4, 4, -12, -3, -12, 3, -4, -4, 12, 25 },
-	{ 1.5, 35, -85, 35, 85, 6, 6, -10, -2, -10, 2, -3, -3, 16, 30 },
-	{ 1.68, 40, -80, 40, 80, 6, 6, -8, -2, -8, 2, -3, -3, 14, 28 },
+	{ 1.2, 150, -12, 150, 12, 6, 6, -8, -2, -8, 2, -4, -4, 10, 22 },
+	{ 1.46, 168, -6, 168, 6, 4, 4, 18, 0, 18, 0, -2, -2, -14, -4 },
+	{ 1.7, 172, -5, 172, 5, 3, 3, -4, -1, -4, 1, -4, -4, 2, 6 },
 	{ 1.9, 172, -6, 172, 6, 4, 4, -8, -3, -8, 3, -6, -6, 4, 8 },
 	{ 3.0, 172, -6, 172, 6, 4, 4, -8, -3, -8, 3, -6, -6, 4, 30 }, -- (streamlined's own, flutter 0)
 }
