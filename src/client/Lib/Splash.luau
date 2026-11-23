@@ -2,14 +2,15 @@
 -- The leap's splash (2026-11-23; Config.Dive.Leap, DiveController plays it): blocks of white water, with no assets.
 -- In this file, in order:
 --   the pool: local anchored parts under the camera (nothing replicates, collides, is hit by a ray or casts a
---     shadow), taken and put back;
+--     shadow), Neon so a block reads white from every side, lit or shaded (SmoothPlastic went grey-blue on its
+--     shaded side), made ahead (Splash.prewarm) and taken and put back, never re-parented;
 --   one splash's pieces, each a pure function of the splash's age (where it went in, the way it was going, how hard,
 --     and its seed say all of it, so a held moment is the same every time):
---       the crown: big cubes (1.5 to 3 studs) thrown up and out in a wide ring, more of them forward, tumbling,
---         falling back and shrinking into the water;
+--       the crown: big cubes (1.5 to 3 studs) thrown up and out in a wide ring round the hole, more of them
+--         forward, open by 0.15 s and at its widest at CROWN_OPEN, tumbling, falling back and shrinking into the water;
 --       the mound: three wide stacked cubes in the middle that heave up and drop back, gone in 0.55 s;
---       the foam: a ring of flat white slabs standing clear over the water's top, spreading out and fading, and a
---         second, slower one;
+--       the foam: a ring of flat white slabs standing clear over the water's top, from RING_FROM out, spreading and
+--         fading, and a second, slower one;
 --     and any of them near the camera fades out (Config.Dive.LeapSplashNear): the view never goes white inside one;
 --   play / hold / release / step / stats.
 -- (A thin 14 stud column with 16 small cubes round it until 2026-11-23: it read as a stick with specks.)
@@ -30,6 +31,8 @@ local MOUND_TIME = 0.55
 local MOUND_RISE = 0.3 -- the share of that it heaves up over, then drops
 local MOUND_WIDTH = { 5.5, 4.2, 2.8 } -- its three cubes, bottom to top, studs across at the full splash
 local RING_TIME = { 1.0, 1.4 } -- the first foam ring's life, and the slower second one's
+local RING_FROM = { 4, 1 } -- their radius as they begin, studs (the first shows at once, round the mound)
+local CROWN_OPEN = 0.3 -- the crown's blocks are thrown out to their widest by then, seconds (then fall straight)
 local RING_SLABS = 14
 local LAST = 1.5 -- a splash is over by then, seconds, whatever its numbers
 
@@ -53,24 +56,42 @@ end
 local free: { Part } = {}
 local inUse = 0
 
+local function make(): Part
+	local made = Instance.new("Part")
+	made.Anchored = true
+	made.CanCollide = false
+	made.CanQuery = false
+	made.CanTouch = false
+	made.CastShadow = false
+	made.Material = Enum.Material.Neon
+	made.TopSurface = Enum.SurfaceType.Smooth
+	made.BottomSurface = Enum.SurfaceType.Smooth
+	made.Transparency = 1
+	made.CFrame = AWAY
+	made.Parent = holder()
+	return made
+end
+
 local function take(): Part
 	local p = table.remove(free)
 	if not p or not p.Parent then
-		local made = Instance.new("Part")
-		made.Anchored = true
-		made.CanCollide = false
-		made.CanQuery = false
-		made.CanTouch = false
-		made.CastShadow = false
-		made.Material = Enum.Material.SmoothPlastic
-		made.TopSurface = Enum.SurfaceType.Smooth
-		made.BottomSurface = Enum.SurfaceType.Smooth
-		made.CFrame = AWAY
-		made.Parent = holder()
-		p = made
+		p = make()
 	end
 	inUse += 1
 	return p :: Part
+end
+
+-- Parts made ahead (DiveController, once the leap is on), `step` more a call: true once the pool holds enough for
+-- Config.Dive.LeapSplashMost whole splashes
+function Splash.prewarm(step: number): boolean
+	local d = Config.Dive
+	local most = (math.max(d.LeapCrown, 0) + #MOUND_WIDTH + 2 * RING_SLABS) * math.max(d.LeapSplashMost, 1)
+	local made = 0
+	while #free + inUse < most and made < step do
+		table.insert(free, make())
+		made += 1
+	end
+	return #free + inUse >= most
 end
 
 local function give(part: Part)
@@ -134,7 +155,8 @@ local function crownPieces(shot: Shot, random: Random)
 			part = take(),
 			kind = "Crown",
 			dir = dir,
-			out = random:NextNumber(9, 15) * (1 + 0.4 * forward) * (0.5 + 0.5 * power),
+			-- (how far out it is thrown, studs, by CROWN_OPEN)
+			out = random:NextNumber(6, 10) * (1 + 0.4 * forward) * (0.5 + 0.5 * power),
 			up = math.sqrt(2 * GRAVITY * high),
 			size = random:NextNumber(1.5, 3) * (0.75 + 0.25 * power),
 			-- (big blocks tumble slower than small ones)
@@ -227,7 +249,9 @@ local function draw(shot: Shot, age: number)
 				local height = piece.up * age - 0.5 * GRAVITY * age * age
 				local shrink = 1 - Ease.smoothstep(landing * 0.5, landing, age)
 				local size = piece.size * math.max(shrink, 0.05)
-				local position = at + piece.dir * (1.5 + piece.out * age) + up * (height + 0.5)
+				local position = at
+					+ piece.dir * (2.5 + piece.out * Ease.outQuad(math.min(age / CROWN_OPEN, 1)))
+					+ up * (height + 0.5)
 				part.Size = Vector3.one * size
 				part.CFrame = CFrame.new(position)
 					* CFrame.Angles(piece.spin.X * age, piece.spin.Y * age, piece.spin.Z * age)
@@ -257,15 +281,15 @@ local function draw(shot: Shot, age: number)
 			local widest = shot.rings[piece.ring]
 			if age < life and widest then
 				local u = age / life
-				local from = if piece.ring == 1 then 2 else 1
+				local from = RING_FROM[piece.ring]
 				local radius = from + (widest - from) * Ease.outQuad(u)
 				local a = (piece.index - 1 + (if piece.ring == 2 then 0.5 else 0)) / RING_SLABS * math.pi * 2
 				local across = 2 * math.pi * radius / RING_SLABS * 1.08
 				local thick = (if piece.ring == 1 then 1.6 else 1.2) * (1 - 0.4 * u)
 				-- (standing clear over the water's top: its glass layer is near white itself, and a ring laid in it
 				-- was lost)
-				part.Size = Vector3.new(across, 0.3, thick)
-				part.CFrame = CFrame.new(at + Vector3.new(0, 0.4 + 0.06 * piece.ring, 0))
+				part.Size = Vector3.new(across, 0.5, thick)
+				part.CFrame = CFrame.new(at + Vector3.new(0, 0.5 + 0.06 * piece.ring, 0))
 					* CFrame.Angles(0, a, 0)
 					* CFrame.new(0, 0, -radius)
 				part.Transparency = Ease.smoothstep(0.45, 1, u)

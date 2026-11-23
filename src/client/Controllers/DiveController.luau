@@ -426,6 +426,7 @@ local splashId: number? = nil
 local ownSplashAt = -math.huge
 local armed = true -- a dive may begin: not again until we have stood on something
 local broken = false -- an error: off until the next join, with one warning
+local warmed = false -- (the splash's pool and the bubbles' emitters made ahead)
 local splashBroken = false -- (the splashes' own step failed too, once broken: no more tries)
 -- the camera
 local filming = false
@@ -561,7 +562,7 @@ local function watch(dt: number)
 					local at = Vector3.new(root.Position.X, surface, root.Position.Z)
 					Splash.play(at, root.AssemblyLinearVelocity, powerOf(speed), player.UserId)
 					if d.Splash > 0 then
-						Fx.burst(at - UP, math.ceil(d.Splash * (if mine then 1 else 0.5)), 0, d.SplashReach)
+						Fx.burstKept(at - UP, math.ceil(d.Splash * (if mine then 1 else 0.5)), d.SplashReach)
 					end
 				end
 			end
@@ -776,8 +777,8 @@ local function enterWater(p: Plan)
 		angle = -pathAngle(p, 1),
 	})
 	if d.Splash > 0 then
-		Fx.burst(at - UP, d.Splash, 0, d.SplashReach)
-		Fx.burst(p.entry + p.line * 3, math.ceil(d.Splash / 2), 0, d.SplashReach / 2)
+		Fx.burstKept(at - UP, d.Splash, d.SplashReach)
+		Fx.burstKept(p.entry + p.line * 3, math.ceil(d.Splash / 2), d.SplashReach / 2)
 	end
 	if d.SplashSound > 0 then
 		Feel.sound("Splash", d.SplashSound, 0.85, 0.9)
@@ -797,6 +798,14 @@ local function bodyFrame(dt: number)
 	-- (the dive's hop reads the water's moment within a second; one it never read is not left for the next drop-in)
 	if State.LeapSplashed and os.clock() - ownSplashAt > 2 then
 		State.LeapSplashed = false
+	end
+	if d.Leap > 0 and not warmed then
+		-- the splash's parts and the bubbles' emitters made ahead, a few a frame, once the leap is on: no dive makes
+		-- or puts away an Instance (the first dive made them all at once)
+		warmed = Splash.prewarm(24)
+		if warmed then
+			Fx.prewarmBursts()
+		end
 	end
 	local p = plan
 	if not p then
@@ -1073,7 +1082,7 @@ local function cameraFrame(dt: number)
 			-- through the surface: a few bubbles by the lens
 			local y = view.Position.Y
 			if camY > p.surface and y <= p.surface and not heldAt then
-				Fx.burst(view.Position + view.LookVector * 1.5, 14, 0, 2.5)
+				Fx.burstKept(view.Position + view.LookVector * 1.5, 14, 2.5)
 			end
 			camY = y
 			if handed then

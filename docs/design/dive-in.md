@@ -512,7 +512,7 @@ need nice camera angles, a splash and stuff. leave sound fx for now. We will nee
 natural and dynamic." There is no dive stand in the place or the generator: "stand" was read as the strip's lip under
 the DIVE IN arch (the edge is found by a ray at run time, so a raised stand placed by hand would work too).
 
-**State: built, behind `Config.Dive.Leap` (0 in the file). Played by script, not by hand, not seen with two players.**
+**State: built, behind `Config.Dive.Leap` (0 in the file). Played by script, not by hand, not seen with two players. Waiting for the user's playtest.**
 
 | Piece | What it does | Where |
 |---|---|---|
@@ -523,17 +523,29 @@ the DIVE IN arch (the edge is found by a ray at run time, so a raised stand plac
 | The camera | One move, no cuts: low beside the lip looking up, over the top with the diver, across the surface behind the entry, then following the diver into the hop's view. Moving the mouse takes the view back. `Dive.LeapCam` 0 leaves the view alone | `DiveController` (`filmAt`, `cameraFrame`) |
 | The splash | A crown of big cubes, a squat mound, two foam rings on the surface; drawn on every machine for any character that goes through the surface fast. No new sound | `Lib/Splash` |
 
-- **The first Play (eight dives by script):** no error from our scripts; with the dial off the walk-off is as before;
-  everything is handed back (camera, Humanoid, state). It adds 0.35 to 0.7 seconds from the lip to the hop.
-- **Two faults found in it, fixed in the code and not yet run again:** the camera froze under water for half a second
-  and then jumped 30 studs (it was following the planned path, which had ended, not the diver); the player's view
-  went white as the camera crossed the surface through the splash.
-- **One round of look fixes after the first stills, not yet seen:** bigger, fewer cubes and a mound in place of a
-  thin column; the pose at the top (it was a flat spread plank); the diver kept in the middle of the frame and the
-  camera 12 studs back under water.
-- **Not known:** the submarine dive ended in a drowning in the one run made, with no run at `Leap` 0 to compare.
+- **Played by script three times (2026-11-23), never by hand, never with two players.** No error from our scripts in
+  any Play. With the dial off the walk-off is as before (in the water 0.55 s after the lip, riding at 1.8 s). With it
+  on: every leap begins, 0.85 s in the air, one splash, the hop takes over 1.25 to 1.33 s after the lip (about half a
+  second later than a plain drop), and everything is handed back after each dive (camera, Humanoid, state, splash).
+  With a fish equipped the leap lets go at the water as the server seats you; with a sub picked it lets go to the sub.
+- **The first Play's two faults are gone:** the camera no longer stops under water and jumps (0 frames still while
+  the diver moves, 8 dives), and the view no longer goes white at the splash (the camera crosses the surface 12 studs
+  behind the entry; the splash's blocks fade near the camera).
+- **A code review's six small faults are fixed** (the body pulled back to the dive's path if the server sent you home
+  during the hand-over; splashes frozen after an error; the "already splashed" flag outliving its dive; a leap from
+  standing on another player's head; camera keys out of order off a high ledge; dead code). Played once since, at a
+  throttled 15 frames a second (Studio's window was covered): they work, the frame numbers from that Play do not count.
+- **Not seen yet:** the splash as it is now (white Neon blocks, a crown that opens to its widest at 0.3 s, a thicker
+  first ring): the stills before it showed a grey lump from the side. Whether Neon white glows is not known.
+- **Not known:** whether the leap adds a slow frame at the hop (round 2 showed one of about 30 ms in every dive and
+  one of about 100 ms in two; the splash pool and the bubbles are now made ahead, not measured since).
+- **Not the leap's:** a sub dive with no fish equipped ends in Drowning 2.5 s into the ride with the dial off too.
+- **Slow networks:** if the server's word that you are in the water takes over 1.2 s (`Dive.LeapHold`) the leap lets
+  go under water and the plain hop follows with its own splash.
+- **The dial:** `Dive.Leap` is 0 in the file until the user has played it and says yes (the vault's sync pushes the
+  file to the partner and the build being sold). In the N panel it can be switched on in any Play.
 - **To check it:** `python tools/studio/dive_leap_check.py` (install, then `run`, `run fish`, `run sub`, `run look`,
-  and `hold <moment> own|director` for stills; logs in `work/dive_leap/`).
+  and `hold <moment> own|director` for stills; logs in `work/dive_leap/`). `remove` takes the check out of the place: do it before any publish.
 - **To try the flip:** `Dive.Flip` 1 in the N panel.
 
 ## Part 2: swimming speeds and the feel of speed

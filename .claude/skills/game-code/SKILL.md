@@ -31,3 +31,8 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   fall comes in along it (`FallSpeed`, `SinkCurve`); the hook's reach is by speed (`Jump.GrabNear` to `GrabRange`), counted the same by the server; the wait between fish is
   `Jump.Cooldown` 0.08 s from the touch ([docs/playtests/2026-11-13-hop-air-reach.md](docs/playtests/2026-11-13-hop-air-reach.md), not played by hand). What each push changed is in
   [Handoff](docs/Handoff.md); who has which files, [Sessions](docs/Sessions.md).
+- **The dive leap (the user, 2026-11-23; `Config.Dive.Leap`, 0 in the file until the user has played it):** running off
+  the strip's lip at the open water becomes a leap with its own camera move and a splash, client only
+  (`Controllers/DiveController`, `Lib/Splash`, the pose in `AnimController`); the server's rule for being in the water
+  is unchanged and the existing hop takes over with the leap's heading (`State.LeapHeading`, `LeapSplashed`). State,
+  what is not known and the check (`tools/studio/dive_leap_check.py`): [the dive-in](docs/design/dive-in.md), "The leap".

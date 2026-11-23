@@ -14,7 +14,7 @@
     python tools/studio/dive_leap_check.py hold T [own|director] [NAME]
                                                               (the whole dive held at dive time T, seconds, or at a
                                                                moment: crouch, takeoff, rise, top, entry, splash,
-                                                               under;
+                                                               splash2 (entry + 0.3), under;
                                                                begun at the lip; "own": the dive's own camera, "director": a fixed
                                                                camera beside the arc; NAME: also a shot,
                                                                work/dive_leap/NAME.png)
@@ -350,13 +350,25 @@ local function walk(leap, runup, lookAt, seconds, sub)
 	local blocked, inside, underFloor, camFrames = 0, 0, 0, 0
 	local firstBlocked = nil
 	local done = false
-	RunService:BindToRenderStep("ZZDiveLeapRecord", Enum.RenderPriority.Camera.Value + 20, function()
+	-- the frame times: each frame's own, and the worst from the root going under to 1.5 s after (Leap 1 and 0 alike)
+	local inT = nil
+	local worstDt, worstAt, worstMode, windowDts = 0, nil, nil, {}
+	RunService:BindToRenderStep("ZZDiveLeapRecord", Enum.RenderPriority.Camera.Value + 20, function(dt: number)
 		local now = os.clock() - started
 		local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		if not r then
 			return
 		end
 		local pos = r.Position
+		if not inT and pos.Y < Config.Camera.WaterTop then
+			inT = now
+		end
+		if inT and now - inT <= 1.5 then
+			table.insert(windowDts, dt)
+			if dt > worstDt then
+				worstDt, worstAt, worstMode = dt, now - inT, State.Mode
+			end
+		end
 		local cam = camera.CFrame
 		maxY = math.max(maxY, pos.Y)
 		lowY = math.min(lowY, pos.Y)
@@ -497,9 +509,9 @@ local function walk(leap, runup, lookAt, seconds, sub)
 		end
 		if #frames < 2400 then
 			table.insert(frames, string.format(
-				"%.3f %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) fov=%.1f leaping=%s%s fog=%d-%d atm=%s splash=%s",
-				now, State.Mode, pos.X, pos.Y, pos.Z, cam.Position.X, cam.Position.Y, cam.Position.Z,
-				camera.FieldOfView, tostring(State.Leaping), liveText, math.floor(Lighting.FogStart), math.floor(Lighting.FogEnd),
+				"%.3f dt=%.1fms %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) fov=%.1f leaping=%s ls=%s%s fog=%d-%d atm=%s splash=%s",
+				now, dt * 1000, State.Mode, pos.X, pos.Y, pos.Z, cam.Position.X, cam.Position.Y, cam.Position.Z,
+				camera.FieldOfView, tostring(State.Leaping), tostring(State.LeapSplashed), liveText, math.floor(Lighting.FogStart), math.floor(Lighting.FogEnd),
 				tostring(Lighting:FindFirstChildOfClass("Atmosphere") ~= nil),
 				if nearest < math.huge then string.format("%.1f/%.2f", nearest, cover) else "-"))
 		end
@@ -530,6 +542,18 @@ local function walk(leap, runup, lookAt, seconds, sub)
 	rec.lipToCarried = since(carriedT)
 	rec.lipToDrowning = since(drownT)
 	rec.lowestY = math.floor(lowY * 10 + 0.5) / 10
+	table.sort(windowDts)
+	rec.frameTime = {
+		-- from the root going under to 1.5 s after: the worst single frame (ms, seconds after going under, the mode)
+		-- and the median
+		worstMs = math.floor(worstDt * 10000 + 0.5) / 10,
+		worstAfterIn = worstAt and math.floor(worstAt * 1000 + 0.5) / 1000,
+		worstMode = worstMode,
+		medianMs = if #windowDts > 0
+			then math.floor(windowDts[math.ceil(#windowDts / 2)] * 10000 + 0.5) / 10
+			else nil,
+		frames = #windowDts,
+	}
 	rec.leapBegan = leapT ~= nil
 	rec.lookPretendedAt = looked and math.floor(looked * 1000 + 0.5) / 1000
 	local function r2(v)
@@ -661,7 +685,7 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 			else
 				directorOn(false)
 			end
-			-- a time, or a moment by name (from the plan: crouch, takeoff, rise, top, entry, splash, under)
+			-- a time, or a moment by name (from the plan: crouch, takeoff, rise, top, entry, splash, splash2, under)
 			local t = tonumber(a)
 			if not t then
 				Dive.hold(0, view == "director")
@@ -679,6 +703,7 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 					top = p.tTop,
 					entry = p.tEntry - 0.02,
 					splash = p.tEntry + 0.15,
+					splash2 = p.tEntry + 0.3,
 					under = p.tEntry + 0.5,
 				})[a] or 0
 			end
@@ -709,7 +734,8 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			local fx = camera:FindFirstChild("RideFx")
 			local stats = Splash.stats()
-			return Http:JSONEncode({ mode = State.Mode, leaping = State.Leaping, camera = camera.CameraType.Name,
+			return Http:JSONEncode({ mode = State.Mode, leaping = State.Leaping, leapSplashed = State.LeapSplashed,
+				camera = camera.CameraType.Name,
 				platformStand = humanoid and humanoid.PlatformStand, humanoid = humanoid and humanoid:GetState().Name,
 				attr = player:GetAttribute("State"), rideFx = fx and #fx:GetChildren() or -1, splash = stats })
 		elseif verb == "leap" then
@@ -897,13 +923,14 @@ def summary(name, rec):
     say(f"  framing (diver off the middle, 1/3 = the middle third's edge): {rec.get('framing')}")
     say(f"  in the lit layers: {rec.get('layers')}")
     say(f"  splash near the camera: {rec.get('splashNear')}")
+    say(f"  frame time, under to +1.5 s: {rec.get('frameTime')}")
     say(f"  underwater look: {rec.get('look')}")
     say(f"  splash: {rec.get('splash')}")
     say(f"  modes: {rec.get('modes')}")
     say(f"  broken={rec.get('broken')} landMounted={rec.get('landMounted')} errors={rec.get('errors')}")
 
 
-HOLDS = ["crouch", "takeoff", "rise", "top", "entry", "splash", "under"]
+HOLDS = ["crouch", "takeoff", "rise", "top", "entry", "splash", "splash2", "under"]
 
 
 def hold(t, view="own", name=None):

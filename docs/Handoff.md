@@ -3,6 +3,17 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-23 · The dive leap, behind a dial that is off (Ride a Fish game code, the user's PC)
+The user: "make a sick dive animation for when the player jumps into the water initially from the dive stand."
+**State:** in the vault's sync commits (no hand-made push). StyLua clean, selene 0 errors. `Config.Dive.Leap` is 0: with
+it off nothing changes (reviewed and played). **Pull before editing `src/`.**
+- **New:** `Controllers/DiveController` (the trigger, the arc, the camera, the splash watcher), `Lib/Splash`, the `Leap…`
+  dials in `Config.Dive`, `tools/studio/dive_leap_check.py`. Seams in `RideController`, `JumpController`,
+  `AnimController` (the leap pose), `Lib/State`, `Lib/Fx` (`burstKept`), `SandboxController` (N panel rows).
+- **Nothing on the server changed.** The rule for being in the water is as it was.
+- **Where it stands and what is not known:** [the dive-in](design/dive-in.md), "The leap". Played by script only.
+- **To switch it on:** `Dive.Leap` 1 in the N panel in a Play; in the file only on the user's yes.
+
 ## 2026-11-23 · Hugo's seahorses on the user's PC, off the fence; the pens' boards drawn across the hub; saved (Ride a Fish map)
 The user: "save it, but also the ui on the signs are now gone. AND hugo added a coil and new seahorses which have been removed."
 **State:** saved to Roblox, version 402. Checked in Play by numbers and one picture ([the hub](attachments/hub-seahorses-2026-11-23.jpg)).
