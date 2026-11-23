@@ -9,7 +9,7 @@ rule into the game. Everything below was made and checked in Blender. Studio was
 
 ![the propeller options](../attachments/sub-props-options-2026-11-23.png)
 
-The clip, 6 seconds, the turn rising from the dock to the fastest trip's top speed:
+The clip, 6 seconds, the turn rising from the dock to the fastest trip's top speed (tier 1 itself stops at the 464 mark):
 [sub-props-options-spin-2026-11-23.mp4](../attachments/sub-props-options-spin-2026-11-23.mp4)
 
 ![the clip](../attachments/sub-props-options-spin-2026-11-23.mp4)
@@ -57,8 +57,11 @@ It does turn: `SubController.place` turns `Prop` and `Prop_Glow` by `dt * (4 + s
   only subs to look at are the cards', which stand still.
 - **Flat bars give nothing to follow.** No twist, one thickness, one colour: every arm is the same as the next, and
   the wheel looks the same face on at any angle within its 60 degrees.
-- **It is big enough to see.** By the riding camera's numbers at full speed (38 studs behind, 7 up, 88 degrees high)
-  the ring's dark disc is 18% of the screen's height on tier 1 and 26% on tier 9. So size is not the reason.
+- **It is big enough to see.** By the riding camera's numbers (`cameraFor`: the distance, the height and the
+  width of view all change with the speed) the ring's dark disc on the run is never under 15% of the screen's
+  height. At 620 studs a second (38 studs behind, 7 up, 88 degrees high: the view the sheet draws) it is 18% on
+  tier 1, 19% on tier 6 and 26% on tier 9. At tier 1's own top of 464 (36 behind, 7.8 up, 83.5 degrees) it is
+  21%; at the land 10 trip's top (98 degrees high) tier 9's is 22%. So size is not the reason.
 
 **Guesses, not checked:**
 
@@ -190,8 +193,9 @@ not over in a blink), and holds 4,315 for the last.
 is 464; the clip takes the same tier 1 tail on to 4,315, the land 10 trip's top, to show how each wheel holds up
 at any sub's speed. The clip marks the 464 point on its bar (3.5 seconds in) and says so from there on. At that
 mark tier 1's real trip is at its most: the turn at 21.5 degrees a frame and the blur disc just full (0.2). What
-comes after the mark is what tier 9 would show on a long trip, drawn on tier 1's colours; tier 9's own purple
-blades with the disc behind them have not been drawn.
+comes after the mark is what faster subs show, drawn on tier 1's colours: tiers 2 to 9 go past 464 on their
+longer trips, and only tier 9, on the trip to land 10, reaches 4,315. Tier 9's own purple blades with the disc
+behind them have not been drawn.
 
 The script reads the encoded clip back frame by frame and measures, in each tile, where the blades are: the coloured
 blade's middle on the options, the six arms' pattern on today's wheel. "Seen" is the turn from one frame to the next

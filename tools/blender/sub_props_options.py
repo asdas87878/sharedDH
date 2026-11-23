@@ -547,7 +547,7 @@ def blender_part():
         look_from(behind, (tx + 80, 0, az), (tx, 0, az))
         rear = camera("Rear", ortho=2.7 * ring)
         look_from(rear, (tx + 66, -50, az + 30), (tx + 0.4, -0.5, az - 0.2))
-        # the riding camera at the run's full speed (SubController.cameraFor, Config.Sub): Distance 30 + 8 behind the
+        # the riding camera on the run at Sub.Speed, 620 studs a second (SubController.cameraFor, Config.Sub): Distance 30 + 8 behind the
         # sub's middle, 10 - 3 over it, looking 25 + 20 ahead of it, 70 + Fov 18 degrees high
         ride = camera("Ride")
         ride.data.sensor_fit = "VERTICAL"
@@ -796,7 +796,7 @@ def sheet(src, out):
     PAD, COL = 24, 688
     W = PAD + 3 * (COL + PAD)
     ROWS = (("behind", "STRAIGHT BEHIND", COL), ("rear", "THREE-QUARTER REAR", COL),
-            ("ride", "FROM THE RIDING CAMERA at top speed (38 studs behind, 7 up, 88\u00b0), cut to the sub", 500))
+            ("ride", "FROM THE RIDING CAMERA at 620 studs a second (38 studs behind, 7 up, 88\u00b0), cut to the sub", 500))
     BLOCK = 150 + sum(h + 52 for _, _, h in ROWS) + 20
     HEAD = 430
     sheet_ = Image.new("RGB", (W, HEAD + 5 * (BLOCK + PAD)), CREAM)
@@ -856,7 +856,7 @@ def sheet(src, out):
                 if view == "ride":
                     kf = lay(im, x + 8, yy + 52, w - 16, h - 16, grow=1.07)
                     share = stats[n]["options"][i]["ride_share"]
-                    d.text((x + w - 14, yy + 44 + h - 12), "%d%% of the screen's height in the game" % round(100 * share),
+                    d.text((x + w - 14, yy + 44 + h - 12), "%d%% of the screen's height at 620" % round(100 * share),
                            font=font(25), fill=SOFT, anchor="rd")
                 else:
                     lay(im, x, yy + 44, w, h)
