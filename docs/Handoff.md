@@ -3,6 +3,28 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-23 · The toy subs seen in the game; the shop's cards show every sub whole; the name sign raised (NULLROOM worker m4, Hugo's PC)
+**Seen:** all nine toy subs build from their meshes in Hugo's place and carry their names
+([over the stand](attachments/m4-subs-stand.jpg)); on a trip the rider sits on the seat and the propeller is in its ring
+([the game's view](attachments/m4-subs-ride.jpg), [a test camera's](attachments/m4-subs-seat.jpg)). All of it:
+[sub models](design/sub-models.md), "Seen in the game".
+**Changed, `src/client/UI/SubPanel.luau`:** each card pictures its sub from its own camera spot (the `SHOTS` table; a place
+without the meshes is framed by its boxes, `shotBy`). Tiers 5 to 9 were cut off or at the edge; now all nine are inside 0.9 of the
+picture at PC size and at 844 x 390 ([before and after](attachments/m4-sub-shop.jpg)). The table is written from the GLBs by
+`python tools/subs/card_fit.py --write`; **run `--check` after a sub is rebuilt.**
+**Changed, `src/shared/SubModels.luau`:** `SIGN_GAP` 0.6 to 2 (tall pieces ran into the letters), and a name on a dark hull is
+written in the tier's light colour (`SIGN_DARK`; only Midnight Hunter).
+**State:** in the repo by the sync on Hugo's PC, nothing pushed by hand; in Hugo's place by Rojo (99 of 99 scripts the same as the
+repo). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes. Nothing saved, nothing uploaded.
+**Not done:** on a trip the name sign shows on some subs and not on others (older than the toy set; cause not found; a probe is
+written, `m4_subs_shots.py probes`, and not run). Not played by hand; no real phone. The trips were seen before the sign was raised.
+**The test camera:** the close views came from a camera at the sub's side that only the script used. Hugo saw it and does not
+want a side camera on the submarine, ever. It is in no `src/` file and out of the place; the script no longer has it.
+**To check again:** `python tools/subs/card_fit.py --check`; in Studio `python tools/studio/m4_subs_shots.py install`, Play,
+`gate`, `closes`, `shop after`, stop, `remove`.
+**On the partner's PC:** pull; with Rojo connected nothing else, else `python tools/studio/sync_src.py <studio_id>`. The toy
+meshes are local files on Hugo's PC only, so there the shop shows the placeholder subs.
+
 ## 2026-11-23 · The fail's black is over the HUD, so nothing comes up bright on a black screen (NULLROOM worker m3, Hugo's PC)
 The bug: home from a fail, the Shop and Index buttons, the plus buttons and "GO TO YOUR TANK TO DEPOSIT" came up at full
 brightness, and the Oxygen row, the land strip and the slots stayed bright, while the screen was still black (the 1.3 s the black holds and lifts at the dock).

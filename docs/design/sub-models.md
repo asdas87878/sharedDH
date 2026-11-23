@@ -5,7 +5,8 @@ place, all in different styles but showing the same model (sub level), try copyi
 I approve you can do it for all of the stages."
 
 **State (2026-11-23, tasks t2 and t3): Hugo picked style A, the chunky toy. All nine tiers are built in it and are in
-the game on Hugo's PC.** The voxel set (style D) built on 2026-11-22 was a fallback, taken before Hugo had named a
+the game on Hugo's PC. Task m4 (same day) saw them in the game for the first time, fixed the shop's cards and the
+name sign: "Seen in the game" below.** The voxel set (style D) built on 2026-11-22 was a fallback, taken before Hugo had named a
 letter; it is kept in `art/subs/voxel/` and is no longer in the game. Nothing is uploaded (see "In the game").
 
 ![the nine toy subs](../attachments/subs-toy-all-stages.png)
@@ -53,8 +54,12 @@ are printed as `  !` lines and stop the build. All nine pass.
   a model's isn't) and spins `Prop` and `Prop_Glow`.
 - **The name sign clears each model's top (2026-11-23).** The sign is 3 studs tall and used to sit at 12.5 studs over
   the middle on every tier, its lower edge at 11. Every toy tier is taller than that (11.2 to 15.7 studs: the cap, the
-  snorkel, the kelp, the periscope, the dorsal fin, the crown). `SubModels` now puts the sign's lower edge 0.6 studs
-  over the model's tallest piece (`SIGN_GAP`), never lower than before.
+  snorkel, the kelp, the periscope, the dorsal fin, the crown). `SubModels` puts the sign's lower edge 2 studs over
+  the model's tallest piece (`SIGN_GAP`), never lower than before. It was 0.6 studs until task m4: seen in the game
+  from the dock, the snorkel, the kelp, the periscope, the fin and the crown still ran into the letters.
+- **Midnight Hunter's name is written in its light's colour (task m4).** Every name is in its hull's colour on a navy
+  outline, and tier 7's hull is navy: nobody could read it. A hull darker than `SIGN_DARK` gets its `Light` colour
+  instead (only tier 7, cyan).
 - **Nothing is uploaded.** Hugo's PC can't upload (no Open Cloud key, Studio's connector hangs under Wine: the same
   as for the creatures), so the templates are local mesh files, as the creatures' `install.py --local`:
   `rbxasset://ridefish/submarines/<Id>/<Part>.mesh` in Studio's content folder. They show only on this PC and are gone
@@ -100,34 +105,72 @@ tiers twice, then tiers 5 to 9 once more for the propeller. **Not played by hand
   confirmed. Seen by eye, a propeller at those speeds may look still or seem to turn backwards; `SubController`
   turned the placeholder and the voxel set the same way.
 - **Top speeds on the trips:** 464 studs a second to land 2, 4,315 to land 10.
-- **The shop's cards cut off the big tiers (by the card camera's numbers, not seen).** `UI/SubPanel` pictures every
+- **The shop's cards cut off the big tiers (by the card camera's numbers, not seen). Fixed in task m4, see "Seen in
+  the game".** What t3 found: `UI/SubPanel` pictures every
   sub from one fixed spot, in a box 188 wide less its padding and 112 high: 1.5 to 1.7 times as wide as it is tall.
   How wide a box each tier's far end needs, as a multiple of its height: tier 9, 2.41; tier 8, 1.79; tier 5, 1.55;
   tier 6, 1.54; tier 7, 1.49; tiers 1 to 4, 1.10 to 1.36. So tiers 8 and 9 are cut off at one side, and tiers 5, 6
   and 7 are at the edge. Tiers 8 and 9 also fill the box's whole height (1.00 and 1.02 of it). The voxel set was
-  cut too (tier 9 needed 2.05), so this is older than the toy set, but worse now. `SubPanel` is the UI chat's file:
-  not changed here.
-- **Not checked:** whether the rider's body passes through the back rest, the wind-up key or a fin, and whether the
-  blades cut the guard ring when seen. These need eyes.
+  cut too (tier 9 needed 2.05), so this is older than the toy set, but worse now.
+- **Not checked here:** whether the rider's body passes through the back rest, the wind-up key or a fin, and whether
+  the blades cut the guard ring when seen. Task m4 looked: see below.
 
 ### Pictures
 
-None yet. On 2026-11-23 every still the check took came out as one and the same picture: Studio in Edit, from before
-the playtest. **Why is likely, not confirmed:** Studio's window sat off the left edge of Hugo's screen.
+t3 got none: every still came out as one frozen picture of Studio in Edit. Task m4 found that stills are live while
+a playtest runs, even with Studio's window off the screen (about one new picture a second), and took them: below.
 
-- **For it:** playtest stills were live at 04:41; the window was last focused at 04:51; every still from 04:54 on
-  was frozen. The same freeze with the window off the screen is in [Handoff](../Handoff.md) (2026-11-20). The
-  monitor was on and the screen was not locked.
-- **Not tested:** the window was never put back on the screen. It was moved 12 pixels for a few seconds, which
-  showed a strip about 10 pixels wide, and that changed nothing.
-- **Also tried:** in Edit, turning the camera did not change the still either. A screencast of the window alone,
-  held open for 15 seconds, got one frame. That fits a window that is not drawing while it is off the screen, but
-  the screencast helper was new and had trouble of its own, so it does not show it.
-  The engine's own screenshot (`CaptureService`) can't be saved to a file from a script.
+## Seen in the game (2026-11-23, task m4)
 
-The check now turns the camera between two stills and keeps none if they come out alike. With live stills, `run`
-takes the line-up by the stand, each tier close, the shop, and a still of every tier's trip, and lays them out as
-`docs/attachments/subs-toy-game-lineup.png`, `-close.png`, `-shop.png` and `-rides.png`.
+Stills from playtests on Hugo's PC, taken by script (`tools/studio/m4_subs_shots.py`, log `work/m4/shots.log`) and
+looked at one sheet at a time. Every still had to differ from the one before it, so none is a frozen picture. **Not
+played by hand.**
+
+![the nine over the stand](../attachments/m4-subs-stand.jpg)
+
+- **All nine build from their meshes and carry the right name.** Each floats over the sub stand, nose to the camera,
+  the screens hidden. This sheet is the code as it is now (the sign 2 studs up, tier 7's name in cyan).
+- **On a trip** (tier N to land N + 1, a still about a second into the run):
+  [the game's own view](../attachments/m4-subs-ride.jpg), and
+  [a close view from a test camera](../attachments/m4-subs-seat.jpg). On all nine the rider sits on the seat behind
+  the tower and the propeller is inside its ring. The rider is small in these views: whether the back rest, the key
+  or a fin touches the rider can't be told from them. The
+  numbers of the t3 check were read again on the same trips, on the new map: the rider and the seat 0.00 studs off,
+  the propeller 0.004 at most, the wake, the beam and the sign on, on every frame (`work/m4/rides-run2.txt`). These
+  trips ran before the sign was raised; nothing else differs.
+- **The close view is a test camera, never the game's.** It stood to one side of the sub, only while the script's
+  own trips ran. Hugo saw it in a playtest and said (2026-11-23): "what is this new camera perspective for the
+  submarine? ... make sure it doesnt implement the camera on the side ever". It is in no file under `src/`, it is out
+  of the place, and it is taken out of the script.
+- **The shop's cards show every sub whole now**, at PC size and at a phone's (844 x 390, by the shop's `PanelPhone`
+  test hook, not a real phone):
+
+![the shop's cards before and after](../attachments/m4-sub-shop.jpg)
+
+  - Before, `SubPanel` pictured every sub from one spot. By the models' own points the big tiers reached past the
+    picture's edge: tier 5 to 1.01 of its half width, tier 8 to 1.17 (and 1.00 of its height), tier 9 to 1.57. The
+    two "before" pictures are the old code in the game: tier 5's nose and tier 8's claws are at the edge or past it.
+  - Now each model has its own camera spot (`SubPanel`'s `SHOTS` table). The view's direction is the same for all;
+    the camera moves sideways until the model sits in the middle of the picture, and back until the whole of it is
+    inside 0.9 of the picture, never nearer than the old camera stood. Seven tiers keep their size and are only
+    centred; tier 6 is a little smaller (62 studs off, was 59) and tier 9 smaller (69).
+  - Read in the game after the fix, PC and phone alike: every tier inside, the furthest reach 0.66 (tier 1) to 0.90
+    (tiers 6 and 9) of the picture's half.
+  - **Why a table and not a sum in the game:** the game knows only a mesh part's box, and a box's corners stand well
+    outside a rounded hull: framing by them shows the subs 16 to 45% smaller than they need be.
+    `python tools/subs/card_fit.py` reads the models' own points from `art/subs/<Id>/<Id>.glb`; `--write` puts the rows
+    into `SubPanel.luau`, `--check` fails if they are stale or a model is cut. **Run it after a sub is rebuilt.** A
+    place without the meshes (the placeholder) is framed in the game by its boxes (`shotBy`): written, not seen.
+- **Open: on a trip the name sign shows on some stills and not on others.** In the game's own view it is there on
+  tiers 5, 8 and 9 and missing on 1 to 4, 6 and 7; from the test camera it was there on 1, 3, 5, 8 and 9. The t3
+  check reads the sign as on, on every frame. The placeholder's old picture (`s1-sub-ride.png`) has no sign either,
+  so it is older than the toy set. **Cause not found.** Two guesses, neither tested: the sign is drawn a frame late
+  and the sub moves 8 to 70 studs a frame (but where the sign shows, it sits in its right place), or its 140-stud
+  limit (`MaxDistance`) cuts it. The script has a probe for
+  it (`m4_subs_shots.py probes`: the sign watched frame by frame, a ball where it should be, with and without the
+  limit); it was not run, because the playtest then running was Hugo's own.
+- **Not checked:** a real phone; a trip by hand; the trip's pick-up, arrival and drop by eye; the stills are one
+  moment of each trip, so a blade crossing the ring later in a trip would not show.
 
 ## Build
 
@@ -141,11 +184,17 @@ takes the line-up by the stand, each tier close, the shop, and a still of every 
 - `python tools/studio/s2_subs_check.py push` puts `SubModels` and `SubController` into the open place (Edit).
 - `python tools/studio/t3_toy_subs_check.py install | run | remove` is the playtest check of all nine and the stills
   (`run` in a playtest; `install` and `remove` in Edit).
+- `python tools/subs/card_fit.py [--write | --check]` works out the shop cards' camera spots from the GLBs.
+- `python tools/studio/m4_subs_shots.py install | gate | closes | shop <tag> | rides | probes | sheets | remove`
+  takes the stills and lays out the sheets (its top says how). It sends the player on trips and takes the camera:
+  make sure nobody is playing in the playtest first.
 
 ## Open (the user)
 
 - Notes on single subs, from the sheet above.
 - A ride by hand on a few tiers: the rider on the seat, the propeller in its ring, the name over the tall pieces.
+- The name sign that comes and goes on a trip ("Seen in the game"): find the cause, or decide the name isn't needed
+  while riding.
 - Whether the studs go on in the game (with the creatures').
 - Uploading the nine models for a published game (permanent: on the user's word, from the PC that can).
 

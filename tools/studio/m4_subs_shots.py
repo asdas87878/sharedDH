@@ -1,12 +1,14 @@
 """The nine toy subs seen in the game (task m4): each over the stand with its name sign, each on a real trip (the
-game's own riding view and a close one of the rider on the seat), and the stand's shop at PC and phone size, with a
-read-out of how each card's picture frames its model.
+game's own riding view), and the stand's shop at PC and phone size, with a read-out of how each card's picture frames
+its model. IT TAKES THE CAMERA AND SENDS THE PLAYER ON TRIPS: run it only in a playtest you started yourself, and
+make sure nobody is playing in it.
     python tools/studio/m4_subs_shots.py install            (in Edit, before Play)
     node ~/Projects/studio-runner/studio-run.mjs play
     python tools/studio/m4_subs_shots.py gate               (in the playtest: are the stills live?)
     python tools/studio/m4_subs_shots.py closes [tier ...]  (each over the stand, with its sign)
     python tools/studio/m4_subs_shots.py shop <tag>         (the shop's cards, PC and phone: read-out and stills)
-    python tools/studio/m4_subs_shots.py rides [tier ...]   (a real trip a tier, twice: the game's view, a close one)
+    python tools/studio/m4_subs_shots.py rides [tier ...]   (a real trip a tier, a still in the game's own view)
+    python tools/studio/m4_subs_shots.py probes [tier ...]  (the name sign on a trip, watched frame by frame)
     python tools/studio/m4_subs_shots.py sheets             (the sheets in docs/attachments, from the stills)
     python tools/studio/m4_subs_shots.py remove             (in Edit, after the stop)
 It rides on s2_subs_check's server door and t3_toy_subs_check's client (the trip's numbers) and adds its own
@@ -63,29 +65,11 @@ local function scaleOf(gui)
 	local sc = gui.Root:FindFirstChildOfClass("UIScale")
 	return sc and sc.Scale or 1
 end
--- the close riding camera: ours wins whenever the game moves the camera
-local rcam = nil
-local rcamEye, rcamAt, rcamFov = Vector3.new(-30, 20, 54), Vector3.new(0, 6, -4), 55
-local setting = false
 local function ourSub()
 	for _, m in workspace.CurrentCamera:GetChildren() do
 		if m.Name == "Submarine" and m:GetAttribute("For") == player.UserId then return m end
 	end
 	return nil
-end
-local function closeCam()
-	if setting or player:GetAttribute("SubPhase") ~= "Ride" then return end
-	local found = ourSub()
-	local hull = found and found.PrimaryPart
-	local folder = RS:FindFirstChild(SubModels.Templates)
-	local t = found and folder and folder:FindFirstChild(SubModels.style(found:GetAttribute("Tier")).Id)
-	if not (hull and t) then return end
-	local sub = hull.CFrame * t.Hull.CFrame:Inverse()
-	setting = true
-	local cam = workspace.CurrentCamera
-	cam.CFrame = CFrame.lookAt(sub:PointToWorldSpace(rcamEye), sub:PointToWorldSpace(rcamAt), sub.UpVector)
-	cam.FieldOfView = rcamFov
-	setting = false
 end
 local RunService = game:GetService("RunService")
 local probeRows, probeSet, marker, lastPos = {}, "", nil, nil
@@ -313,17 +297,6 @@ workspace:GetAttributeChangedSignal("M4Do"):Connect(function()
 				return string.format("probe read set=%q frames=%d dt=%.4f/%.4f/%.4f speed=%.0f/%.0f/%.0f camToSign=%.1f/%.1f/%.1f enabledMin=%d onScreen=%d..%d worldVsObject=%.2f view=%dx%d",
 					probeSet, n, d0, d1, d2, s0, s1, s2, c0, c1, c2, e0, o0, o2, w2, view.X, view.Y)
 			end
-		elseif verb == "rcam" then
-			if rcam then rcam:Disconnect() rcam = nil end
-			if words[2] == "on" then
-				if tonumber(words[9]) then
-					rcamEye = Vector3.new(tonumber(words[3]), tonumber(words[4]), tonumber(words[5]))
-					rcamAt = Vector3.new(tonumber(words[6]), tonumber(words[7]), tonumber(words[8]))
-					rcamFov = tonumber(words[9])
-				end
-				rcam = workspace.CurrentCamera:GetPropertyChangedSignal("CFrame"):Connect(closeCam)
-			end
-			return "rcam " .. tostring(words[2])
 		end
 		return "?"
 	end)
@@ -532,16 +505,17 @@ def shop(tag, old=False):
     save_log()
 
 
-def trip(tier, close, probe=None):
-    """a real trip on one tier to its own land; a still about 1.3 s into the Ride (the game's own view, or ours).
-    `probe` ("plain", "top", "far"): the name sign is watched frame by frame, a pink ball rides over its place"""
+def trip(tier, probe=None):
+    """a real trip on one tier to its own land; a still about 1.3 s into the Ride, in the game's own view.
+    `probe` ("plain", "top", "far"): the name sign is watched frame by frame, a pink ball rides over its place.
+    (Until 2026-11-23 a second trip was pictured from a test camera at the sub's side, work/m4/close-*.png. Hugo saw
+    it in a playtest: "make sure it doesnt implement the camera on the side ever". It is gone from here; don't add one.)"""
     land = tier + 1
-    kind = "close" if close else "ride"
+    kind = "ride"
     if probe:
         kind = f"probe-{probe}-{kind}"
     for attempt in range(2):
         note(f"tier {tier} to land {land} ({kind}): " + s2.cmd(f"sub|{tier},{land}", 1.5))
-        note("  " + do("rcam|on" if close else "rcam|off", 0.5))
         note("  " + t3.do("watch", 0.4))
         if probe:
             note("  " + do("probe|on|" + ("" if probe == "plain" else probe), 0.4))
@@ -563,7 +537,6 @@ def trip(tier, close, probe=None):
         note("  numbers: " + t3.do("read", 0.5))
         if probe:
             note("  " + do("probe|read", 0.5))
-        note("  " + do("rcam|off", 0.5))
         note("  home: " + s2.cmd("home", 3))
         time.sleep(1.5)
         if still and "phase=Ride" in st:
@@ -572,10 +545,9 @@ def trip(tier, close, probe=None):
     return None
 
 
-def rides(tiers, kinds=("ride", "close")):
+def rides(tiers):
     for tier in tiers or range(1, 10):
-        for kind in kinds:
-            trip(tier, kind == "close")
+        trip(tier)
     save_log()
 
 
@@ -606,7 +578,7 @@ def sheet(paths, labels, out, cols=3, width=880, crop=None, title=None):
         x, y = (i % cols) * width, head + (i // cols) * (h + 44)
         d.text((x + 12, y + 5), labels[i], font=font(30), fill=(255, 255, 255))
         page.paste(t, (x, y + 44))
-    page.save(out)
+    page.save(out, quality=88)
     return out
 
 
@@ -623,21 +595,29 @@ def sheets():
     """the record pictures in docs/attachments, from the stills in work/m4"""
     made = []
     labels = [f"{n} {NAMES[n - 1]}" for n in range(1, 10)]
-    made.append(sheet([OUT / f"stand-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-stand.png", width=760,
+    made.append(sheet([OUT / f"stand-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-stand.jpg", width=760,
                       crop=(0.16, 0.0, 0.86, 1.0), title="The nine toy subs over the stand, in the game (task m4)"))
-    made.append(sheet([OUT / f"close-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-seat.png", width=760,
-                      title="On a trip, seen close: the rider on the seat, the propeller in its ring (task m4)"))
-    made.append(sheet([OUT / f"ride-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-ride.png", width=760,
+    if all((OUT / f"close-{n}.png").exists() for n in range(1, 10)):
+        # (stills of 2026-11-23 from the test camera that is gone: kept as the record of the rider on the seat)
+        made.append(sheet([OUT / f"close-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-seat.jpg", width=760,
+                          title="On a trip, from a TEST camera (not the game's): the rider on the seat (task m4)"))
+    made.append(sheet([OUT / f"ride-{n}.png" for n in range(1, 10)], labels, ATTACH / "m4-subs-ride.jpg", width=760,
                       title="On a trip, the game's own view (task m4)"))
+    # the shop: the cards before the fix (two cuts kept from the first playtest, old code: work/m4/shop-old-pc-*.jpg,
+    # the window at 94,41 in them) beside the same cards after it, then the list's end at PC size and on a phone
     tiles, names = [], []
-    for size, word in (("pc", "PC"), ("phone", "Phone 844x390")):
-        for first, which in ((6, "tiers 6 to 9"), (9, "tiers 7 to 9, the list's end")):
-            for tag, when in (("before", "BEFORE"), ("after", "AFTER")):
-                src = OUT / f"shop-{tag}-{size}-{first}.png"
-                tiles.append(window_crop(src, size, OUT / f"shopcut-{tag}-{size}-{first}.png"))
-                names.append(f"{word}, {when}: {which}")
-    made.append(sheet(tiles, names, ATTACH / "m4-sub-shop.png", cols=2, width=900,
-                      title="The sub shop's cards: one camera spot for all (before), a spot a model (after)"))
+    for first, which in ((3, "tiers 3 to 6"), (6, "tiers 6 to 9")):
+        old = Image.open(OUT / f"shop-old-pc-{first}.jpg").convert("RGB")
+        w, h, _, _ = json.loads((OUT / "window-pc.json").read_text())
+        cut = OUT / f"shopcut-old-pc-{first}.png"
+        old.crop((94 - 14, 41 - 14, min(old.width, 94 + w + 14), min(old.height, 41 + h + 14))).save(cut)
+        tiles += [cut, window_crop(OUT / f"shop-after-pc-{first}.png", "pc", OUT / f"shopcut-after-pc-{first}.png")]
+        names += [f"PC, BEFORE: {which}", f"PC, AFTER: {which}"]
+    tiles += [window_crop(OUT / "shop-after-pc-9.png", "pc", OUT / "shopcut-after-pc-9.png"),
+              window_crop(OUT / "shop-after-phone-9.png", "phone", OUT / "shopcut-after-phone-9.png")]
+    names += ["PC, AFTER: the list's end, tiers 7 to 9", "Phone (844x390), AFTER: the list's end"]
+    made.append(sheet(tiles, names, ATTACH / "m4-sub-shop.jpg", cols=2, width=900,
+                      title="The sub shop's cards in the game, before and after the fix (task m4)"))
     for p in made:
         im = Image.open(p)
         im.resize((1500, round(im.height * 1500 / im.width)), Image.LANCZOS).save(OUT / (Path(p).stem + "-s.jpg"), quality=82)
@@ -664,12 +644,11 @@ if __name__ == "__main__":
         # probes [tier ...]: the name sign on a trip, as the game has it, always on top, and with no far limit
         for tier in [int(a) for a in rest if a.isdigit()] or [2, 6]:
             for variant in ("plain", "top", "far"):
-                trip(tier, False, variant)
+                trip(tier, variant)
         save_log()
     elif what == "sheets":
         sheets()
     elif what == "rides":
-        kinds = tuple(a for a in rest if not a.isdigit()) or ("ride", "close")
-        rides([int(a) for a in rest if a.isdigit()], kinds)
+        rides([int(a) for a in rest if a.isdigit()])
     elif what == "do":
         print(do(rest[0], float(rest[1]) if len(rest) > 1 else 1.4))

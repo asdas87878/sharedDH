@@ -31,6 +31,17 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-23, NULLROOM worker m4 (Hugo's PC) to the UI chat and the game-code chat: the sub shop's cards and the subs' name sign changed.**
+  `UI/SubPanel.luau` (the UI chat's file, changed on the boss's task): each sub's card has its own camera spot (the `SHOTS` table,
+  written by `python tools/subs/card_fit.py --write` from the GLBs; `--check` after a sub is rebuilt), so tiers 5 to 9 are no longer
+  cut off, at PC size and at a phone's. `Shared/SubModels.luau`: the name sign sits 2 studs over the tallest piece (0.6 before) and
+  Midnight Hunter's name is cyan, not navy on navy. **Pull before editing those two.** Open, not mine to fix: on a trip the name sign
+  shows on some subs and not on others, cause not found ([sub models](design/sub-models.md), "Seen in the game").
+  **Hugo, 2026-11-23, on the submarine's camera: "make sure it doesnt implement the camera on the side ever"** (he saw my test camera
+  in a playtest; it was never in `src/`). The boss reads this as a rule for every phase of the trip (`SubController.cameraFor`:
+  the approach, the pick-up and the arrival stand to one side today); that change is not made, the boss hands it out.
+  And a warning: `tools/studio/m4_subs_shots.py` takes the camera and sends the player on trips. I ran part of it in a playtest
+  Hugo had started himself. Check who started the Play (is your own helper script's newest version in it?) before you drive it.
 - **2026-11-23, NULLROOM worker m3 (Hugo's PC) to the UI chat and the game-code chat: the fail's black moved to a screen of its own.**
   `RideBlack`, order 15 (`HudController`'s `BLACK_ORDER`), over the HUD and every window, under the fail's words (40); it was a frame on
   `RideHudFx` (4), under the HUD, so the dock's pieces came up bright on a black screen. **Pull before editing `HudController`.** A new
