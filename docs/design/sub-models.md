@@ -72,8 +72,11 @@ tiers twice, then tiers 5 to 9 once more for the propeller. **Not played by hand
 
 - **Every tier builds from its template.** All nine come out as MeshParts (5 parts on tiers 1 to 5, 6 on tiers 6 to
   9), with 2 or 3 Neon parts, the lamp's beam on and the wake's emitter on the propeller.
-- **A real trip on every tier,** tier N to land N + 1. The check reads our own sub on every frame of the run (192 to
-  369 frames a trip) and keeps the worst value, or counts the frames that were wrong:
+- **A real trip on every tier,** tier N to land N + 1. The check reads our own sub on every frame of the Ride phase
+  that it samples (192 to 369 frames a trip) and keeps the worst value, or counts the frames that were wrong. The
+  pick-up, the arrival and the drop are not read. It stops reading about 6 seconds into the Ride: that is the whole
+  Ride on the short trips (3.2 seconds on tier 1), but the longest take 7 seconds (`Config.Sub.MaxRide`), so on tiers
+  8 and 9, and maybe 6 and 7, up to the last second of the slowing was not read:
 
 | What | Result on all nine |
 |---|---|
@@ -89,11 +92,13 @@ tiers twice, then tiers 5 to 9 once more for the propeller. **Not played by hand
 - **The propeller's same-angle frames are whole turns, not stops (third playtest).** The check compares the angle
   on one frame with the last. `SubController` turns the propeller by 4 + 0.12 x speed radians a second, which at about
   3,100 studs a second is one whole turn a frame at 60 frames a second, and a whole turn reads as no turn. On the
-  third playtest the check worked out that turn on each same-angle frame: all 14 of them (6 on tier 6, 7 on tier 7,
-  1 on tier 9) were 6.21 to 6.28 radians, one whole turn. The second playtest's (2, 6 and 4 on tiers 5, 6 and 7)
-  were counted before the check could tell, so those are likely the same, not confirmed. Seen by eye, a propeller
-  at those speeds may look still or seem to turn backwards; `SubController` turned the placeholder and the voxel set
-  the same way.
+  third playtest the check worked that turn out itself on each same-angle frame, from the rider's speed and the
+  frame's length (it is not read from `SubController`), and counted the frames where it came within 0.35 radians of
+  a whole number of turns: all 14 did (6 of 6 on tier 6, 7 of 7 on tier 7, 1 of 1 on tier 9). The smallest such
+  turn on each tier was 6.23, 6.21 and 6.28 radians, one whole turn (6.28). The second playtest's same-angle frames
+  (2, 6 and 4 on tiers 5, 6 and 7) were counted before the check could tell, so those are likely the same, not
+  confirmed. Seen by eye, a propeller at those speeds may look still or seem to turn backwards; `SubController`
+  turned the placeholder and the voxel set the same way.
 - **Top speeds on the trips:** 464 studs a second to land 2, 4,315 to land 10.
 - **The shop's cards cut off the big tiers (by the card camera's numbers, not seen).** `UI/SubPanel` pictures every
   sub from one fixed spot, in a box 188 wide less its padding and 112 high: 1.5 to 1.7 times as wide as it is tall.
@@ -116,7 +121,8 @@ the playtest. **Why is likely, not confirmed:** Studio's window sat off the left
 - **Not tested:** the window was never put back on the screen. It was moved 12 pixels for a few seconds, which
   showed a strip about 10 pixels wide, and that changed nothing.
 - **Also tried:** in Edit, turning the camera did not change the still either. A screencast of the window alone,
-  held open for 15 seconds, got one frame: the window is not drawing at all, off the screen or for another reason.
+  held open for 15 seconds, got one frame. That fits a window that is not drawing while it is off the screen, but
+  the screencast helper was new and had trouble of its own, so it does not show it.
   The engine's own screenshot (`CaptureService`) can't be saved to a file from a script.
 
 The check now turns the camera between two stills and keeps none if they come out alike. With live stills, `run`

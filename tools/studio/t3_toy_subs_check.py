@@ -287,7 +287,8 @@ def note(text):
 
 
 def ride(tier):
-    """a real trip on one tier, to its own land: the numbers of every frame of the run, and one still of it"""
+    """a real trip on one tier, to its own land: the numbers of the Ride phase's frames up to the read (about 6 s
+    in: the whole Ride on a short trip, not the last second of a 7 s one), and one still of it"""
     land = tier + 1
     note(f"tier {tier} to land {land}: " + s2.cmd(f"sub|{tier},{land}", 1.5))
     note("  " + do("watch", 0.4))
