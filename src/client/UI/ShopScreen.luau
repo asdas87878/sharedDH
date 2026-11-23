@@ -200,10 +200,10 @@ local function wideCard(parent: Instance, offer: Products.Offer, high: number, o
 	})
 end
 
--- What a boost card is called: its name until it is on sale, then what it gives ("+$24K", "+150K")
+-- What a boost card is called: what it gives ("+$25M", "+500K"), or its name while that is not set
 local function called(offer: Products.Offer): string
 	local amount = offer.Amount
-	if not amount or not Products.onSale(offer) then
+	if not amount then
 		return offer.Name
 	end
 	return (if offer.Gives == "Coins" then "+$" else "+") .. Kit.short(amount)
@@ -295,18 +295,21 @@ local function build()
 				wideCard(list, offer, high, slot(high), featured)
 			end
 		else
-			local row: Frame = Kit.new("Frame", {
-				Name = "Row" .. s,
-				Size = UDim2.new(1, 0, 0, SMALL_HIGH),
-				BackgroundTransparency = 1,
-				LayoutOrder = slot(SMALL_HIGH),
-			}, list)
-			Kit.new("UIListLayout", {
-				FillDirection = Enum.FillDirection.Horizontal,
-				Padding = UDim.new(0, GAP),
-				SortOrder = Enum.SortOrder.LayoutOrder,
-			}, row)
+			local row: Frame
 			for i, offer in section.Offers do
+				if i % 3 == 1 then
+					row = Kit.new("Frame", {
+						Name = `Row{s}_{i}`,
+						Size = UDim2.new(1, 0, 0, SMALL_HIGH),
+						BackgroundTransparency = 1,
+						LayoutOrder = slot(SMALL_HIGH),
+					}, list)
+					Kit.new("UIListLayout", {
+						FillDirection = Enum.FillDirection.Horizontal,
+						Padding = UDim.new(0, GAP),
+						SortOrder = Enum.SortOrder.LayoutOrder,
+					}, row)
+				end
 				local one = smallCard(row, offer, i)
 				if one then
 					table.insert(drawn, one)

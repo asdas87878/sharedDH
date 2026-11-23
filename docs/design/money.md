@@ -30,7 +30,9 @@
 - **The packs are fixed amounts, with bulk deals that are very good for mid and late players (the user, 2026-11-23: "fixed
   amounts, bundle deals are just very good for mid-late game players still tho", then "bulk deals i mean").** So the
   bigger the pack, the far better its rate. The amounts are open; a fixed draft is asked of the tuning chat.
-- **The fixed ladder, the tuning chat's draft 2 (2026-11-23; proposed, not agreed).** Modelled, not played: medians of 5
+- **The fixed ladder is agreed, every pack shown to everyone, none locked (the user, 2026-11-23: "Yes, show all").** The
+  twelve packs are in `Products` with these amounts and prices, each Soon until its product id is written there.
+- **Its table: the tuning chat's draft 2 (2026-11-23).** Modelled, not played: medians of 5
   seeds, one pack, once. FULL: with auras and the Index (neither built, the Index's payouts a fit); OFF: the same model
   without them, the nearest to the game now. Which land a fresh account holds at once is the same in both. Robux prices
   are a guess beside theirs (59 to 2,249; 45 to 720).
