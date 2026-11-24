@@ -24,6 +24,7 @@
 --   The camera, look and animation: Camera, Look, Animation, Pose, Feel, AimHud: view, light, motion, the reticle
 --   Spawning and the dive-in: Spawn, Dive: where wild fish are made, and stepping off the dock into the sea
 --   The submarine: Sub, SubTitles: the bought ride to deeper lands, its prices, and the land titles on the way
+--   The Index: Index: what a new kind and a finished land pay, and how the server watches for catches (DRAFT)
 --   Spawn mix and the roster list: ZoneMix, ReachWeight, Fish, FishById: rarity odds per land, every fish kind
 --   Helper functions: no tables; the sums worked out from the tables above, the roster build and Config.refresh
 --   (metresAt, landStyleOf, longOf and failOf sit beside their own tables, not with the helper functions.)
@@ -3262,6 +3263,34 @@ Config.SubTitles = {
 }
 
 ----------------------------------------------------------------------------------------------------------------------
+-- The Index: what a new kind and a finished land pay, and how the server watches for catches
+
+-- The Index (Hugo, 2026-11-23: "Import index system"; NULLROOM task h2; IndexService, UI/IndexPanel). Every kind a
+-- player has caught, land by land, with a reward to claim for each new kind and for each land's whole set.
+-- EVERY NUMBER HERE IS A DRAFT: the economy draft 2's (docs/design/progression.md, "The short of it", 5; the same
+-- numbers as tools/balance/rad_economy.py's INDEX_ constants), fit to its pace and not played. Hugo has not said yes.
+-- The sums are Config.indexFirst and Config.indexLand below; a land's set is Config.indexSet (the kinds that live
+-- there and spawn: no Secret, as no land's mix has one, and no kind kept out of the herd).
+Config.Index = {
+	On = 1, -- 0: no Index: nothing is marked found and no claim is paid
+	FirstOxygen = 0.2, -- DRAFT. A kind caught for the first time: this share of what a Normal plain one needs, in max Oxygen,
+	FirstLeast = 100, -- DRAFT. and at least this much (a new player's whole start),
+	FirstCoinSeconds = 100, -- DRAFT. and this many seconds of what a Normal plain one earns in a tank, in coins
+	SetOxygen = 0.5, -- DRAFT. A land's every kind caught: this share of what the land's commonest fish needs (Config.indexGoal), in max Oxygen,
+	SetCoinSeconds = 600, -- DRAFT. and this many seconds of what that fish earns, in coins
+	-- OPEN (progression.md, "What the user and Hugo pick", 2): does an aura multiply the Index's Oxygen? 0: NO, the
+	-- draft's answer and the reference's (an aura multiplies the seahorse only). 1: the Oxygen of every claim is
+	-- multiplied by the player's aura (Shared/Auras, their "Aura" attribute); the draft then needs a much slower Index.
+	AuraMult = 0,
+	-- OPEN: the Secrets cannot be caught yet (no land's mix has one), so the count of kinds found can not be filled
+	-- while they are shown. 1: they are shown, dark, as something to come (the reference's way); 0: they are left out
+	-- of the Index until they spawn.
+	Secrets = 1,
+	Watch = 0.25, -- seconds between the server's looks at what each player carries and keeps (how a catch is seen)
+	AskGap = 0.2, -- the least seconds between two asks from one player; a faster one is dropped
+}
+
+----------------------------------------------------------------------------------------------------------------------
 -- Spawn mix and the roster list: rarity shares per land, and the list that builds every fish kind
 
 -- Share of spawns by rarity per zone, from the roster's draft weights. A tier with no fish in a zone is skipped.
@@ -3882,6 +3911,145 @@ function Config.earningOf(stage: number?): number
 	local p = Config.PlotUpgrades
 	local s = if p.On == 0 then 0 else math.clamp(math.floor(stage or 0), 0, #p.Stages)
 	return Config.Aquarium.Earning + p.Slots * s
+end
+
+-- The Index (Config.Index). Whether a kind is in the Index at all: not one kept out of the herd (Reach under 0: it
+-- is not in the game yet), and a Secret only while Index.Secrets is on
+function Config.inIndex(fish: FishType): boolean
+	return fish.Reach >= 0 and (fish.Tier ~= "Secret" or Config.Index.Secrets ~= 0)
+end
+
+-- Every kind of the Index that lives in a land, in the Index's order: by rarity, then by what a Normal plain one
+-- needs, then by name. Only Config.inIndexSet ones count toward the land's set.
+function Config.indexKinds(land: number): { FishType }
+	local kinds: { FishType } = {}
+	for _, fish in Config.Fish do
+		if fish.Home == land and Config.inIndex(fish) then
+			table.insert(kinds, fish)
+		end
+	end
+	local order = Config.TierOrder
+	table.sort(kinds, function(a: FishType, b: FishType): boolean
+		local ta, tb = table.find(order, a.Tier) or 0, table.find(order, b.Tier) or 0
+		if ta ~= tb then
+			return ta < tb
+		end
+		local na, nb = Config.requiredOf(a, "Normal", ""), Config.requiredOf(b, "Normal", "")
+		if na ~= nb then
+			return na < nb
+		end
+		return a.Id < b.Id
+	end)
+	return kinds
+end
+
+-- Whether a kind counts toward its land's set: it spawns somewhere (Reach 0 or more) and is no Secret (no land's mix
+-- has one; if they come into the mix, take this line out and they join their land's set)
+function Config.inIndexSet(fish: FishType): boolean
+	return fish.Reach >= 0 and fish.Tier ~= "Secret"
+end
+
+-- A land's set: the kinds to catch for its reward, in the Index's order
+function Config.indexSet(land: number): { FishType }
+	local set: { FishType } = {}
+	for _, fish in Config.indexKinds(land) do
+		if Config.inIndexSet(fish) then
+			table.insert(set, fish)
+		end
+	end
+	return set
+end
+
+-- How many lands the Index has: the furthest land any kind lives in
+function Config.indexLands(): number
+	local lands = 0
+	for _, fish in Config.Fish do
+		lands = math.max(lands, fish.Home)
+	end
+	return lands
+end
+
+-- What a land's commonest fish needs, as tools/balance/model.py counts it (`commonest`, `required`): the rarity with
+-- the biggest share of the land's spawns (of the rarities that have a fish there; a tie goes to the lower one), and
+-- of the land's own kinds of that rarity, the middle one's need (a Normal plain one). A land with no kind of that
+-- rarity: the middle one of all its kinds. 0 for a land with no kinds.
+function Config.indexGoal(land: number): number
+	local mix = Config.ZoneMix[land] or {}
+	local usual: string? = nil
+	local most = 0
+	for _, tier in Config.TierOrder do
+		local share = mix[tier]
+		if share and share > most then
+			-- (only a rarity the land's spawner has a fish for: FishService's pool)
+			for _, fish in Config.Fish do
+				local away = land - fish.Home
+				if
+					fish.Tier == tier
+					and away >= 0
+					and away <= fish.Reach
+					and (Config.ReachWeight[away + 1] or 0) > 0
+				then
+					usual, most = tier, share
+					break
+				end
+			end
+		end
+	end
+	local own: { number } = {}
+	local all: { number } = {}
+	for _, fish in Config.Fish do
+		if fish.Home == land then
+			local need = Config.requiredOf(fish, "Normal", "")
+			table.insert(all, need)
+			if fish.Tier == usual then
+				table.insert(own, need)
+			end
+		end
+	end
+	local needs = if #own > 0 then own else all
+	if #needs == 0 then
+		return 0
+	end
+	table.sort(needs)
+	return needs[#needs // 2 + 1]
+end
+
+-- What a kind's first catch pays: max Oxygen (a whole number) and coins (whole)
+function Config.indexFirst(fish: FishType): (number, number)
+	local c = Config.Index
+	local need = Config.requiredOf(fish, "Normal", "")
+	local oxygen = math.max(c.FirstLeast, math.floor(need * c.FirstOxygen + 0.5))
+	local coins = math.floor(Config.incomeOf(fish, "Normal", "") * c.FirstCoinSeconds + 0.5)
+	return oxygen, coins
+end
+
+-- What a land's whole set pays: max Oxygen (a whole number) and coins (whole)
+function Config.indexLand(land: number): (number, number)
+	local c = Config.Index
+	local goal = Config.indexGoal(land)
+	local oxygen = math.floor(goal * c.SetOxygen + 0.5)
+	local coins = math.floor(goal * Config.Aquarium.PerRequired * c.SetCoinSeconds + 0.5)
+	return oxygen, coins
+end
+
+-- How many kinds the Index has, all lands together
+function Config.indexCount(): number
+	local count = 0
+	for _, fish in Config.Fish do
+		if Config.inIndex(fish) then
+			count += 1
+		end
+	end
+	return count
+end
+
+-- How many looks a kind has: every size in every colour (plain and Config.Variant's)
+function Config.indexLooks(): number
+	local colours = 1
+	for _ in Config.Variant do
+		colours += 1
+	end
+	return #Config.SizeOrder * colours
 end
 
 -- Training in whole seconds (task e1): `carry` seconds seated so far that have not made a whole one, `dt` more. Returns
