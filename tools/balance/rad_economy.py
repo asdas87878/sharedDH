@@ -68,6 +68,7 @@ INDEX_LEAST = 100  # and at least this (our start)
 INDEX_COIN_SECONDS = 100  # coins: this many seconds of what the kind earns
 INDEX_SET = 0.5  # a land's every kind caught: this many times the land's commonest need, in Oxygen
 INDEX_SET_COIN_SECONDS = 600  # and this many seconds of that fish's earnings, in coins
+# (draft 2's two. The play takes the game's own, Config.Index, where it has them: 5 and 2500 since 2026-11-24)
 INDEX_AURA = False  # theirs: an aura multiplies the machine only ("It does not multiply the Stamina you have")
 
 # The player (guesses, the reference's habits)
@@ -106,7 +107,7 @@ def scaled(cfg, step):
 
 
 def income(cfg, fish, size="Normal", colour=""):
-    return M.need_of(cfg, fish, size, colour) * cfg["Aquarium"]["PerRequired"]
+    return M.need_of(cfg, fish, size, colour) * cfg["Aquarium"]["PerRequired"] * cfg["VariantIncome"].get(colour, 1)
 
 
 def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0):
@@ -122,6 +123,9 @@ def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0):
     home = {z: [f for f in cfg["Fish"] if f["Home"] == z + 1 and f["Reach"] >= 0 and f["Tier"] != "Secret"]
             for z in range(lands)}
     goal = [M.required(cfg, z, w["usual"][z]) for z in range(lands)]
+    set_oxygen = cfg["Index"].get("SetOxygen", INDEX_SET)
+    set_seconds = cfg["Index"].get("SetCoinSeconds", INDEX_SET_COIN_SECONDS)
+    subs, tier = cfg["SubPrices"], 0  # bought once the land it goes to is held (it is a cost here; the dives assume it)
     mx, coins, t = float(cfg["Oxygen"]["StartMax"]), 0.0, 0.0
     level, aura, stage = 0, 0, 0  # seahorse level index (0 = Toy, owned; free), auras owned, stages owned
     owned_level = 0
@@ -160,9 +164,9 @@ def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0):
                     hz = f["Home"] - 1
                     if hz not in sets_done and all(k["Id"] in caught for k in home[hz]):
                         sets_done.add(hz)
-                        mx += INDEX_SET * goal[hz] * (mult if INDEX_AURA else 1)
-                        from_index += INDEX_SET * goal[hz] * (mult if INDEX_AURA else 1)
-                        coins += goal[hz] * cfg["Aquarium"]["PerRequired"] * INDEX_SET_COIN_SECONDS
+                        mx += set_oxygen * goal[hz] * (mult if INDEX_AURA else 1)
+                        from_index += set_oxygen * goal[hz] * (mult if INDEX_AURA else 1)
+                        coins += goal[hz] * cfg["Aquarium"]["PerRequired"] * set_seconds
         # buy the cheapest next thing
         while True:
             opts = []
@@ -172,6 +176,8 @@ def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0):
                 opts.append((AURAS[aura][2], "aura"))
             if stage < len(STAGES):
                 opts.append((STAGES[stage], "stage"))
+            if tier < min(len(subs), lands - 1) and mx >= goal[tier + 1]:
+                opts.append((subs[tier], "sub"))
             if not opts:
                 break
             price, what = min(opts)
@@ -184,6 +190,9 @@ def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0):
             elif what == "aura":
                 aura += 1
                 bought.append((t, f"aura {AURAS[aura - 1][0]} x{AURAS[aura - 1][1]:g}"))
+            elif what == "sub":
+                tier += 1
+                bought.append((t, f"sub {tier}"))
             else:
                 stage += 1
                 bought.append((t, f"tank stage {stage}"))
