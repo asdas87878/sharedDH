@@ -278,9 +278,10 @@ function World.open(placePath: string, boxesPath: string)
 	end
 	world.State = State
 	stub(client .. "Lib.State", State)
+	world.waterLine = -9.95 -- (as the Studio runs' logs have it: tools/studio/dive_leap_check.py)
 	stub(client .. "Controllers.RideController", {
 		waterLine = function()
-			return -9.95 -- (as the Studio runs' logs have it: tools/studio/dive_leap_check.py)
+			return world.waterLine
 		end,
 	})
 	world.anim = {}

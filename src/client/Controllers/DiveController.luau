@@ -176,7 +176,11 @@ type Plan = {
 	tNose: number?, -- a long fish's nose meets the water here, well before its middle does: a splash of its own
 	noseAt: Vector3,
 	lifts: { number }, -- the camera's rise over the fish's back (liftAt), every LIFT_STEP seconds
-	aloft: boolean, -- a big fish: the camera stays over the water and hands over from there (it has no room under it)
+	clear: boolean, -- a big fish: before the water the camera is not pulled in to what is between (the gate's arch, for a moment)
+	clearTo: number, -- until then, seconds (0: never)
+	aloft: boolean, -- the camera cannot follow it under (the fish, the dock or the bed in the way): it stays over the water and hands over from there
+	whyAloft: string?, -- what is in the way of following it under, first behind it and then beside it
+	beside: number, -- under the water the camera follows this far to its side (a fish too big to see past from behind), studs
 }
 
 -- The ride fish under us, as the leap sees it: its box (and the rider's head over it) in the root's own space as it
@@ -326,6 +330,9 @@ local function chaseAt(p: Plan, diver: Vector3): Vector3
 		local up = d.LeapCamOverHigh * p.camScale + 0.8 * lost
 		return Vector3.new(at.X, p.surface + up, at.Z) + p.right * (p.side * 3 * p.camScale)
 	end
+	if p.beside ~= 0 then
+		at += p.right * (p.side * p.beside)
+	end
 	return Vector3.new(at.X, math.min(at.Y, p.waterLine - 1), at.Z)
 end
 
@@ -414,57 +421,211 @@ local function curveAt(p: Plan, t: number): Vector3
 	return keys[#keys].at
 end
 
--- The film's camera kept out of the fish: raised over its back while it is over it or under it (its box as it is tipped
--- then, let go over LeapMountedRoom studs out from its sides and ends). Worked out ahead for the whole film: at each
--- moment the most it needs a little before or after, eased, so it is a rise and never a step
+-- (a big fish's camera is not pulled in to what is between until this long after its nose is in, seconds: the last of
+-- the gate goes by)
+local CLEAR_LATE = 0.15
+
+-- The film's camera kept out of the fish and clear of what is between it and the rider (the gate's arch): raised or
+-- lowered off its keys, worked out ahead for the whole film (liftAt), eased, so it is a rise and never a step
 local LIFT_STEP = 1 / 30
 local LIFT_AHEAD = 8 -- steps
-local function liftsOf(p: Plan): { number }
+local LIFT_GRID = 1 / 20 -- the search's own steps
+local LIFT_DOWN, LIFT_UP = 12, 26 -- how many of its sizes down and up it looks
+
+-- Where the film's camera is at t without a lift, where the rider is, the least lift that keeps it out of the fish (its
+-- box as it is tipped then; all of it when right over or under it, none from `room` studs out from its sides and
+-- ends), and that for the search: less than none if it may come down (-math.huge: as far as it likes)
+local function unlifted(p: Plan, t: number, room: number): (Vector3, Vector3, number, number)
+	local pose = frameAt(p, t)
+	local at = if t >= p.tFollow then chaseAt(p, pose.Position) else curveAt(p, t)
+	local here = pose:PointToObjectSpace(at)
+	local away = math.max(math.abs(here.X) - p.wide, -p.nose - here.Z, here.Z - p.tail)
+	local short = (p.over + 2 - here.Y) / math.max(pose.UpVector.Y, 0.5)
+	-- (under the water no more than it must: there is the riding camera's line to be under)
+	local wide = if t > p.tEntry then math.min(room, 3) else room
+	local least = (1 - smooth(1, 1 + wide, away)) * math.max(short, 0)
+	return at, pose.Position + UP * 0.6, least, if away < 3 then short else -math.huge
+end
+
+-- `from` at each step: the most a little before and after, then the mean of that
+local function eased(from: { number }): { number }
+	local most: { number } = {}
+	for i = 1, #from do
+		local top = 0
+		for k = math.max(i - LIFT_AHEAD, 1), math.min(i + LIFT_AHEAD, #from) do
+			top = math.max(top, from[k])
+		end
+		most[i] = top
+	end
+	local out: { number } = {}
+	for i = 1, #from do
+		local sum, n = 0, 0
+		for k = math.max(i - LIFT_AHEAD, 1), math.min(i + LIFT_AHEAD, #from) do
+			sum += most[k]
+			n += 1
+		end
+		out[i] = sum / n
+	end
+	return out
+end
+
+-- How many of the film's steps have something between the rider and the camera with these lifts
+local function blockedBy(p: Plan, lifts: { number }, room: number, params: RaycastParams): number
+	local count = 0
+	for i = 4, #lifts do
+		local t = (i - 1) * LIFT_STEP
+		if t <= p.tFollow then
+			local at, anchor = unlifted(p, t, room)
+			local up = lifts[i] * smooth(0, 0.3, t)
+			if workspace:Raycast(anchor, at + UP * up - anchor, params) then
+				count += 1
+			end
+		end
+	end
+	return count
+end
+
+-- The lifts (up or down) that leave the least between the rider and the camera: the cheapest way through a grid of
+-- them over time, a blocked step dear, a lift and its speed cheap, out of the fish always
+local function searched(p: Plan, room: number, params: RaycastParams): { number }
+	local size = math.clamp(p.camScale, 2, 6)
+	local counts = LIFT_DOWN + LIFT_UP + 1
+	local steps = math.ceil((p.tFollow + 1) / LIFT_GRID) + 1
+	local need: { number } = {}
+	for i = 1, steps do
+		local _, _, _, free = unlifted(p, (i - 1) * LIFT_GRID, room)
+		need[i] = free
+	end
+	local cost: { number } = table.create(counts, math.huge)
+	cost[LIFT_DOWN + 1] = 0
+	local cameFrom: { { number } } = {}
+	for i = 2, steps do
+		local t = (i - 1) * LIFT_GRID
+		local at, anchor = unlifted(p, t, room)
+		local ramp = smooth(0, 0.3, t)
+		local least = -math.huge
+		for k = math.max(i - 2, 1), math.min(i + 2, steps) do
+			least = math.max(least, need[k])
+		end
+		local looked = t <= p.tFollow
+		-- (never through the dock's floor, nor into the water before the fish is)
+		local lowest = if t < p.tEntry then p.surface + 2 else -math.huge
+		if t < p.tEntry and (at - p.takeoff):Dot(p.heading) < p.edge + 1 then
+			lowest = math.max(lowest, p.ground + 2)
+		end
+		-- (a ray at every other lift, and between two that differ)
+		local hits: { boolean } = table.create(counts, false)
+		if looked then
+			local function look(n: number)
+				local up = (n - LIFT_DOWN - 1) * size * ramp
+				hits[n] = workspace:Raycast(anchor, at + UP * up - anchor, params) ~= nil
+			end
+			for n = 1, counts, 2 do
+				look(n)
+			end
+			for n = 2, counts - 1, 2 do
+				if hits[n - 1] == hits[n + 1] then
+					hits[n] = hits[n - 1]
+				else
+					look(n)
+				end
+			end
+		end
+		local nextCost: { number } = table.create(counts, math.huge)
+		local from: { number } = table.create(counts, LIFT_DOWN + 1)
+		for n = 1, counts do
+			local lift = (n - LIFT_DOWN - 1) * size
+			local here = 0.3 * math.abs(lift) / size
+			if hits[n] then
+				here += 60
+			elseif (n > 1 and hits[n - 1]) or (n < counts and hits[n + 1]) then
+				here += 12
+			end
+			if lift * ramp < least - 0.5 and lift < least then
+				here += 40 + 4 * (least - lift * ramp)
+			end
+			if lift < 0 and at.Y + lift * ramp < lowest then
+				here += 200
+			end
+			if lift < 0 and t > p.tEntry then
+				here += 200 -- (after the water its keys are as low as they should be)
+			end
+			for m = math.max(n - 6, 1), math.min(n + 6, counts) do
+				local c = cost[m] + here + 0.47 * (n - m) * (n - m)
+				if c < nextCost[n] then
+					nextCost[n], from[n] = c, m
+				end
+			end
+		end
+		cost = nextCost
+		cameFrom[i] = from
+	end
+	local n = 1
+	for m = 1, counts do
+		if cost[m] < cost[n] then
+			n = m
+		end
+	end
+	local grid: { number } = {}
+	for i = steps, 1, -1 do
+		grid[i] = (n - LIFT_DOWN - 1) * size
+		if i > 1 then
+			n = cameFrom[i][n]
+		end
+	end
+	-- (on the film's own steps, the corners rounded)
+	local raw: { number } = {}
+	for i = 0, math.ceil((p.tFollow + 1) / LIFT_STEP) do
+		local at = math.clamp(i * LIFT_STEP / LIFT_GRID, 0, steps - 1)
+		local k = math.floor(at)
+		raw[i + 1] = lerp(grid[k + 1], grid[math.min(k + 2, steps)], at - k)
+	end
+	for _ = 1, 2 do
+		local out: { number } = {}
+		for i = 1, #raw do
+			local sum, count = 0, 0
+			for k = math.max(i - 2, 1), math.min(i + 2, #raw) do
+				sum += raw[k]
+				count += 1
+			end
+			out[i] = sum / count
+		end
+		raw = out
+	end
+	return raw
+end
+
+-- The lifts that only keep it out of the fish
+local function plainLifts(p: Plan): { number }
 	if not p.mounted then
 		return {}
 	end
 	local room = math.max(Config.Dive.LeapMountedRoom, 1) * math.clamp(p.camScale / 2, 0.5, 3)
-	local params = rays()
 	local raw: { number } = {}
 	for i = 0, math.ceil((p.tFollow + 1) / LIFT_STEP) do
 		local t = i * LIFT_STEP
-		local pose = frameAt(p, t)
-		local at = if t >= p.tFollow then chaseAt(p, pose.Position) else curveAt(p, t)
-		local here = pose:PointToObjectSpace(at)
-		local away = math.max(math.abs(here.X) - p.wide, -p.nose - here.Z, here.Z - p.tail)
-		local short = math.max(p.over + 2 - here.Y, 0)
-		local lift = (1 - smooth(1, 1 + room, away)) * short / math.max(pose.UpVector.Y, 0.5)
-		-- (and over the gate's arch, or anything else between it and the fish, if a rise up to 100 clears it)
-		if t > 0.1 and t < p.tEntry then
-			local anchor = pose.Position + UP * 0.6
-			for more = 0, 100, 10 do
-				if not workspace:Raycast(anchor, at + UP * (lift + more) - anchor, params) then
-					lift += more
-					break
-				end
-			end
+		local _, _, least = unlifted(p, t, room)
+		table.insert(raw, least * smooth(0, 0.25, t))
+	end
+	return eased(raw)
+end
+
+-- Those, or if the rider is hidden with them the searched ones (if they hide the rider less)
+local function clearedLifts(p: Plan): { number }
+	local lifts = p.lifts
+	if #lifts == 0 then
+		return lifts
+	end
+	local room = math.max(Config.Dive.LeapMountedRoom, 1) * math.clamp(p.camScale / 2, 0.5, 3)
+	local params = rays()
+	local count = blockedBy(p, lifts, room, params)
+	if count > 0 then
+		local other = searched(p, room, params)
+		if blockedBy(p, other, room, params) < count then
+			return other
 		end
-		table.insert(raw, lift * smooth(0, 0.25, t))
 	end
-	local function around(from: { number }, i: number, f: (number, number) -> number): number
-		local out = 0
-		for k = math.max(i - LIFT_AHEAD, 1), math.min(i + LIFT_AHEAD, #from) do
-			out = f(out, from[k])
-		end
-		return out
-	end
-	local most: { number } = {}
-	for i = 1, #raw do
-		most[i] = around(raw, i, math.max)
-	end
-	local out: { number } = {}
-	for i = 1, #raw do
-		local n = math.min(i + LIFT_AHEAD, #raw) - math.max(i - LIFT_AHEAD, 1) + 1
-		out[i] = around(most, i, function(x, y)
-			return x + y
-		end) / n
-	end
-	return out
+	return lifts
 end
 
 local function liftAt(p: Plan, t: number): number
@@ -476,6 +637,76 @@ local function liftAt(p: Plan, t: number): number
 	local i = math.floor(at)
 	-- (nothing yet as it begins: the view is the player's own)
 	return lerp(p.lifts[i + 1], p.lifts[math.min(i + 2, n)], at - i) * smooth(0, 0.3, t)
+end
+
+-- Whether the camera can follow the fish under the water (the player's beat, through the surface after them): from the
+-- water to the end of the hand-over nothing between it and the rider, never in the fish, and under the riding camera's
+-- line by the chase
+local function underFits(p: Plan, look: boolean): string?
+	local d = Config.Dive
+	local params = rays()
+	local t = p.tEntry
+	local last = p.tFollow + d.LeapCamHandBack
+	while t <= last do
+		local pose = frameAt(p, t)
+		local at = (if t >= p.tFollow then chaseAt(p, pose.Position) else curveAt(p, t)) + UP * liftAt(p, t)
+		local here = pose:PointToObjectSpace(at)
+		if
+			math.abs(here.X) < p.wide
+			and here.Y < p.over
+			and here.Y > -p.depth
+			and here.Z > -p.nose
+			and here.Z < p.tail
+		then
+			return "it is in the fish"
+		end
+		local anchor = pose.Position + UP * 0.6
+		local hit = if look then workspace:Raycast(anchor, at - anchor, params) else nil
+		if hit and t >= p.clearTo then
+			return `{hit.Instance.Name} in the way`
+		end
+		if t >= p.tFollow + 0.3 and at.Y > p.waterLine + 1 then -- (still under the lit sheet: Camera.LightMargin)
+			return `its back is in the way ({math.floor(at.Y - p.waterLine)} over the line)`
+		end
+		t += LIFT_STEP
+	end
+	return nil
+end
+
+-- The film's keys and lifts, made for how it follows under the water (p.aloft, p.beside): what is in the way of that, if
+-- anything (asked without a ray first)
+local function filmed(p: Plan): string?
+	p.keys = cameraKeys(p)
+	p.lifts = plainLifts(p)
+	if not p.mounted then
+		return nil
+	end
+	local why = if p.aloft then nil else underFits(p, false)
+	if why then
+		return why
+	end
+	p.lifts = clearedLifts(p)
+	return if p.aloft then nil else underFits(p, true)
+end
+
+-- The whole film: under the water behind the fish, as a diver's; or beside it; or, where neither can be, over the water
+local function placeCamera(p: Plan)
+	p.beside, p.aloft, p.whyAloft = 0, false, nil
+	local behind = filmed(p)
+	if not behind then
+		return
+	end
+	local beside: string? = nil
+	for _, way in { 1, -1 } do
+		p.beside = (p.wide * 1.1 + 10) * way
+		beside = filmed(p)
+		if not beside then
+			return
+		end
+	end
+	p.beside, p.aloft = 0, true
+	p.whyAloft = `behind it: {behind}; beside it: {beside}`
+	filmed(p)
 end
 
 -- Whether the fish's box (and the rider over it) meets anything new along the arc: swept from pose to pose, and looked
@@ -713,7 +944,11 @@ local function makePlan(
 				tUnder = crouchTime + air,
 				tNose = nil,
 				noseAt = entry,
+				clear = false,
+				clearTo = 0,
 				aloft = false,
+				whyAloft = nil,
+				beside = 0,
 				lifts = {},
 			}
 			if fish then
@@ -725,7 +960,8 @@ local function makePlan(
 					math.max(d.LeapMountedCam, 0.5) * math.min(scale, 2) ^ 0.7,
 					d.LeapMountedFrame * big / math.max(crane, 1)
 				)
-				p.aloft = p.camScale >= d.LeapMountedAloft
+				p.clear = p.camScale >= d.LeapMountedAloft
+				p.clearTo = if p.clear then p.tEntry + CLEAR_LATE else 0
 				if fish.tail > 1 then
 					p.mostDown = math.deg(math.asin(math.clamp(d.LeapMountedTail / fish.tail, 0.1, 1)))
 				end
@@ -761,13 +997,22 @@ local function makePlan(
 				-- the camera's side: the side it is on already, unless the low spot beside the edge is in a wall
 				local onRight = (camFrom.Position - start):Dot(right)
 				p.side = if onRight < 0 then -1 else 1
+				local settled = false
+				if fish then
+					-- (a fish's camera is further out: to the middle of the strip, away from the gate's pillar and the cove's
+					-- wall, unless the view is well round on the other side of it already)
+					local aside = if dock then (start - dock.Position):Dot(right) else 0
+					local back = (camFrom.Position - start).Magnitude
+					if math.abs(aside) > 6 and math.abs(onRight) < 0.35 * back then
+						p.side, settled = if aside > 0 then -1 else 1, true
+					end
+				end
 				local low = takeoff + offset(p, d.LeapCamSide, d.LeapCamBack)
 				low = Vector3.new(low.X, ground + d.LeapCamLow * p.camScale, low.Z)
-				if workspace:Raycast(takeoff + UP * 2, low - (takeoff + UP * 2), params) then
+				if not settled and workspace:Raycast(takeoff + UP * 2, low - (takeoff + UP * 2), params) then
 					p.side = -p.side
 				end
-				p.keys = cameraKeys(p)
-				p.lifts = liftsOf(p)
+				placeCamera(p)
 				return p
 			end
 		end
@@ -1769,7 +2014,7 @@ local function cameraFrame(dt: number)
 			-- (from the rider, on a fish: its middle may be in the seabed)
 			local anchor = diver + UP * (if p.mounted then 0.6 else p.centreUp)
 			local arm = view.Position - anchor
-			local through = p.aloft and t < p.tEntry
+			local through = t < p.clearTo
 			local hit = if arm.Magnitude > 0.1 and not through
 				then workspace:Raycast(anchor, arm, cameraParams)
 				else nil
@@ -2071,8 +2316,7 @@ function DiveController.hold(t: number?, leaveCamera: boolean?): boolean
 	-- (the same side every time)
 	if p.side ~= 1 then
 		p.side = 1
-		p.keys = cameraKeys(p)
-		p.lifts = liftsOf(p)
+		placeCamera(p)
 	end
 	begin(p, character, t, leaveCamera)
 	return true
@@ -2114,6 +2358,8 @@ function DiveController.log(): { [string]: any }
 				entryTilt = p.entryTilt,
 				tUnder = p.tUnder,
 				tNose = p.tNose,
+				clear = p.clear,
+				clearTo = p.clearTo,
 				aloft = p.aloft,
 				edge = p.edge,
 				passed = table.clone(whyNot), -- why each arc before this one was passed over

@@ -4,7 +4,7 @@ Offline sums on the game's own code and the map generator's boxes (how: [The lea
 
 ## By size
 
-| Size | Dived before | Dive now | On the arc as asked (1) | A smaller arc (2, 3) | The forced arc (5) | Tail still back of the lip at the swap | Longest until under water, s |
+| Size | Dived before | Dive now | On the arc as asked (1) | A smaller arc (2, 3) | Only the rider's path tested (5) | Tail still back of the lip at the swap | Longest until under water, s |
 |---|---|---|---|---|---|---|---|
 | Tiny | 45 of 78 | 78 of 78 | 78 | 0 | 0 | 0 (most 0 studs) | 2.67 |
 | Normal | 32 of 78 | 78 of 78 | 77 | 0 | 1 | 0 (most 0 studs) | 3.11 |
@@ -15,9 +15,68 @@ Offline sums on the game's own code and the map generator's boxes (how: [The lea
 
 All sizes: 141 of 468 dived before, 468 of 468 now. Why the others did not (the first reason on the first arc): its tail comes down over the dock 192; its box is in the dock floor (the run-up, not a thing in the way) 132; its box meets the gate 3.
 
+## The camera, by size
+
+The player's beat is the camera going through the surface after the diver. It is kept wherever it fits: behind the fish, or else beside it. The gate: how many of the 78 have something (always the gate) between the camera and the rider before the water (and for the 0.15 s after it that a big one's is not pulled in), counted whether or not the camera is pulled in to it, at 30 frames a second from 0.1 s on. From 3 times the diver's distances up (`Config.Dive.LeapMountedAloft`) the camera is not pulled in to it, as that was a jump.
+
+| Size | Goes under after the fish | of them beside it | Stays over the water | The gate between: fish | frames in all | longest run, frames | Not pulled in to it |
+|---|---|---|---|---|---|---|---|
+| Tiny | 78 of 78 | 0 | 0 | 0 | 0 | 0 | 25 |
+| Normal | 78 of 78 | 0 | 0 | 3 | 13 | 3 | 45 |
+| Big | 78 of 78 | 1 | 0 | 7 | 20 | 4 | 51 |
+| Giant | 73 of 78 | 4 | 5 | 16 | 60 | 5 | 60 |
+| Huge | 67 of 78 | 8 | 11 | 25 | 89 | 5 | 66 |
+| Colossal | 61 of 78 | 14 | 17 | 30 | 117 | 7 | 69 |
+
+All: 435 of 468 go under after the fish, 33 do not; the gate is between in 81 of 468, 299 frames. In the water nothing is between in any, and the camera is inside no fish's box.
+
+## The ones that stay over the water
+
+What is in the way of following the fish under. Behind it: its back is over the riding camera's line by that many studs when the chase begins (the camera can't be under the surface without being in the fish). Beside it: what stands between, tried on both sides (Grass and Wall: the cove's own walls, as the fish fills the opening; Gate/Brick: the arch).
+
+| Fish | Size | Long / wide | Behind it | Beside it |
+|---|---|---|---|---|
+| AbyssalWatcher | Huge | 169 / 94 | its back is in the way (1 over the line) | Grass in the way |
+| AbyssalWatcher | Colossal | 173 / 96 | its back is in the way (6 over the line) | Grass in the way |
+| BlueWhale | Giant | 182 / 79 | its back is in the way (35 over the line) | Grass in the way |
+| BlueWhale | Huge | 200 / 87 | its back is in the way (38 over the line) | Grass in the way |
+| BlueWhale | Colossal | 200 / 87 | its back is in the way (38 over the line) | Grass in the way |
+| CoralDragon | Colossal | 200 / 80 | its back is in the way (35 over the line) | Grass in the way |
+| Dunkleosteus | Colossal | 157 / 73 | its back is in the way (11 over the line) | Grass in the way |
+| GalleonWhale | Huge | 196 / 76 | its back is in the way (33 over the line) | Grass in the way |
+| GalleonWhale | Colossal | 200 / 78 | its back is in the way (34 over the line) | Grass in the way |
+| HalfboneMegalodon | Giant | 148 / 96 | its back is in the way (27 over the line) | Grass in the way |
+| HalfboneMegalodon | Huge | 148 / 96 | its back is in the way (27 over the line) | Grass in the way |
+| HalfboneMegalodon | Colossal | 148 / 96 | its back is in the way (27 over the line) | Grass in the way |
+| Helicoprion | Colossal | 167 / 71 | its back is in the way (31 over the line) | Wall in the way |
+| HellfinShark | Colossal | 177 / 88 | its back is in the way (34 over the line) | Grass in the way |
+| Hellmaw | Huge | 136 / 78 | its back is in the way (36 over the line) | Grass in the way |
+| Hellmaw | Colossal | 168 / 96 | its back is in the way (44 over the line) | Grass in the way |
+| Kraken | Giant | 163 / 81 | its back is in the way (24 over the line) | Grass in the way |
+| Kraken | Huge | 194 / 96 | its back is in the way (28 over the line) | Grass in the way |
+| Kraken | Colossal | 194 / 96 | its back is in the way (28 over the line) | Grass in the way |
+| Megalodon | Giant | 143 / 92 | its back is in the way (13 over the line) | Grass in the way |
+| Megalodon | Huge | 150 / 96 | its back is in the way (26 over the line) | Grass in the way |
+| Megalodon | Colossal | 150 / 96 | its back is in the way (26 over the line) | Grass in the way |
+| MoltenMegalodon | Giant | 150 / 96 | its back is in the way (21 over the line) | Grass in the way |
+| MoltenMegalodon | Huge | 150 / 96 | its back is in the way (21 over the line) | Grass in the way |
+| MoltenMegalodon | Colossal | 150 / 96 | its back is in the way (21 over the line) | Grass in the way |
+| Mosasaurus | Colossal | 200 / 79 | its back is in the way (12 over the line) | Grass in the way |
+| PhantomWhale | Huge | 200 / 83 | its back is in the way (7 over the line) | Grass in the way |
+| PhantomWhale | Colossal | 200 / 83 | its back is in the way (7 over the line) | Grass in the way |
+| Shonisaurus | Colossal | 200 / 78 | its back is in the way (7 over the line) | Grass in the way |
+| TheDevourer | Huge | 200 / 82 | its back is in the way (18 over the line) | Grass in the way |
+| TheDevourer | Colossal | 200 / 82 | its back is in the way (18 over the line) | Grass in the way |
+| VoidWhale | Huge | 200 / 86 | its back is in the way (18 over the line) | Grass in the way |
+| VoidWhale | Colossal | 200 / 86 | its back is in the way (18 over the line) | Grass in the way |
+
+## Where the gate is between
+
+Frames of 30 a second, from 0.1 s to the water: AuroraJelly Normal 7 of 56, BlueWhale Normal 3 of 65, TheDevourer Normal 3 of 73, AbyssalWatcher Big 3 of 65, BlueWhale Big 4 of 65, HalfboneMegalodon Big 1 of 65, Kraken Big 3 of 65, MoltenMegalodon Big 1 of 65, TheDevourer Big 4 of 65, VoidWhale Big 4 of 59, AbyssalWatcher Giant 3 of 73, BlueWhale Giant 5 of 73, EmberSerpent Giant 5 of 59, GalleonWhale Giant 4 of 65, HalfboneMegalodon Giant 3 of 65, Hellmaw Giant 3 of 65, InfernalAngler Giant 2 of 70, Kraken Giant 5 of 73, Kronosaurus Giant 4 of 73, Livyatan Giant 4 of 73, Megalodon Giant 3 of 65, MoltenMegalodon Giant 3 of 65, Mosasaurus Giant 4 of 65, PhantomWhale Giant 4 of 65, Shonisaurus Giant 4 of 73, VoidWhale Giant 4 of 65, Anomalocaris Huge 3 of 73, Basilosaurus Huge 5 of 73, BlueWhale Huge 4 of 73, CoralDragon Huge 4 of 65, Dunkleosteus Huge 4 of 65, Elasmosaurus Huge 3 of 65, EmberSerpent Huge 4 of 65, GalleonWhale Huge 4 of 73, HalfboneMegalodon Huge 3 of 65, Helicoprion Huge 3 of 65, HellfinShark Huge 3 of 65, Hellmaw Huge 3 of 73, InfernalAngler Huge 5 of 73, Kraken Huge 2 of 73, Kronosaurus Huge 3 of 73, Liopleurodon Huge 4 of 73, Livyatan Huge 4 of 59, Megalodon Huge 3 of 65, MoltenMegalodon Huge 3 of 65, Mosasaurus Huge 4 of 59, Orca Huge 3 of 65, PhantomWhale Huge 4 of 65, Shonisaurus Huge 4 of 65, VoidWhale Huge 4 of 65, Xiphactinus Huge 3 of 65, Anomalocaris Colossal 3 of 65, BlueWhale Colossal 4 of 73, CoralDragon Colossal 3 of 73, Dakosaurus Colossal 5 of 59, Dunkleosteus Colossal 5 of 65, Elasmosaurus Colossal 4 of 65, EmberSerpent Colossal 4 of 65, GalleonWhale Colossal 7 of 73, GoliathGrouper Colossal 6 of 65, GreatWhite Colossal 4 of 65, HalfboneMegalodon Colossal 3 of 65, Helicoprion Colossal 4 of 73, HellfinShark Colossal 4 of 73, Hellmaw Colossal 4 of 73, KelpWyrm Colossal 4 of 65, Kraken Colossal 2 of 73, Kronosaurus Colossal 3 of 73, Liopleurodon Colossal 4 of 65, Livyatan Colossal 3 of 65, Megalodon Colossal 3 of 65, MoltenMegalodon Colossal 3 of 65, Mosasaurus Colossal 3 of 65, Orca Colossal 4 of 65, PearlSerpent Colossal 4 of 65, PhantomWhale Colossal 4 of 65, Shonisaurus Colossal 4 of 65, SkullAngler Colossal 5 of 73, StellersSeaCow Colossal 4 of 65, VoidWhale Colossal 4 of 65, Xiphactinus Colossal 3 of 65.
+
 ## By fish
 
-Before: the sizes that dived. Now: the arc each size takes, Tiny to Colossal (1: as asked; 2 and 3: lower, shorter; 5: the arc only the rider's own path is tested on, so a tail or fin may pass through the dock's end or the gate). Tail: how much of its length is still back of the lip, in the dock, as the server swaps it (Colossal). Floor: how deep its box cuts the dock floor on the way out (Colossal; a box is bigger than the fish).
+Before: the sizes that dived. Now: the arc each size takes, Tiny to Colossal (1: as asked; 2 and 3: lower, shorter; 5: the first of the three arcs only the rider's own path is tested on, so a tail or fin may pass through the dock's end or the gate; no fish needs a later one). Tail: how much of its length is still back of the lip, in the dock, as the server swaps it (Colossal). Floor: how deep its box cuts the dock floor on the way out (Colossal; a box is bigger than the fish).
 
 | Fish | Length Normal / Colossal | Dived before | Now | Under water after, s (Normal / Colossal) | Tail, studs | Floor, studs |
 |---|---|---|---|---|---|---|

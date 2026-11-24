@@ -9,11 +9,12 @@
 --   3 the steps: walked at the line and through the real body and camera steps, with the server's swap under WaterY:
 --     begun at the line, nothing broken, let go to the ride, no jump of the body or the view;
 --   4 the fish's own motion: its joints as the land hook writes them, a frame at a time;
---   5 with a sub's trip: "Carried" under WaterY lets everything go on that frame.
+--   5 with a sub's trip: "Carried" under WaterY lets everything go on that frame;
+--   6 the film again from four places off the middle of the lip.
 -- usage: python3 tools/dive/lip_boxes.py . /tmp/lip.json
 --        rojo build -o /tmp/place.rbxl
---        lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json [out.json] [parts, 12345] [paths.json]
---        (part 2 is the long one, ten to fifteen minutes; "1345" is half a minute. paths.json: what tools/dive/dive_picture.py draws)
+--        lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json [out.json] [parts, 123456] [paths.json]
+--        (part 2 is the long one; "1345" is a minute and a half, "6" five more. paths.json: what tools/dive/dive_picture.py draws)
 -- It prints FAIL lines and a count at the end, and exits 1 on any.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -26,7 +27,8 @@ local world = World.open(process.args[1], process.args[2])
 local Config, Dive = world.Config, world.Dive
 local FLOOR, OUT = 0.5, V3.new(0, 0, 1)
 local PACE = Config.Equip.LandSpeed
-local PARTS = process.args[4] or "12345" -- (which of the five to run)
+local PARTS = process.args[4] or "123456" -- (which of the six to run)
+local ARCH_RUN = 8 -- (the longest anything may stand between before the water, frames of 30 a second)
 local fails = 0
 local function fail(text: string)
 	fails += 1
@@ -72,29 +74,49 @@ local function planAt(f: any, x: number, heading: any, speed: number, crouch: bo
 	return Dive.planOf(start, FLOOR, heading, speed, crouch, cam, 70, { low = f.low, high = f.high })
 end
 
+local WATER_LINE = world.waterLine
 local function film(f: any, p: any, sums: any): Row
 	local tips = tipsOf(f)
-	local row: Row =
-		{ outAt = {}, rider = 0, fish = 0, fishAt = 0, inBox = 0, pulled = 1, wall = 0, frames = 0, out = 0 }
-	local t = 0.3
-	while t <= p.tFollow do
+	local row: Row = {
+		outAt = {},
+		rider = 0,
+		fish = 0,
+		fishAt = 0,
+		inBox = 0,
+		pulled = 1,
+		wall = 0,
+		frames = 0,
+		out = 0,
+		arch = 0, -- frames up to the water (and while it is not pulled in: p.clearTo) with something between, pulled in or not
+		air = 0,
+		archRun = 0,
+		archTimes = {},
+		blocked = 0, -- frames after it with something between (through the hand-over: the camera is pulled in)
+		after = 0,
+		walls = {},
+		lowest = math.huge, -- how low the camera goes, studs over the surface
+	}
+	local t, run = 0.1, 0
+	while t <= p.tFollow + Config.Dive.LeapCamHandBack do
 		local at = sums.frameAt(t)
 		local view, fov = sums.viewAt(t)
-		local ry, rx = seen(view, fov, at.Position + V3.new(0, 1, 0))
-		row.rider = math.max(row.rider, ry, rx)
-		row.frames += 1
-		if t < p.tEntry then
-			local worst = 0
-			for _, c in tips do
-				local cy, cx = seen(view, fov, at * c)
-				worst = math.max(worst, cy, cx)
-			end
-			if worst > 1 then
-				row.out += 1
-				table.insert(row.outAt, t)
-			end
-			if worst > row.fish then
-				row.fish, row.fishAt = worst, t
+		if t >= 0.3 and t <= p.tFollow then
+			local ry, rx = seen(view, fov, at.Position + V3.new(0, 1, 0))
+			row.rider = math.max(row.rider, ry, rx)
+			row.frames += 1
+			if t < p.tEntry then
+				local worst = 0
+				for _, c in tips do
+					local cy, cx = seen(view, fov, at * c)
+					worst = math.max(worst, cy, cx)
+				end
+				if worst > 1 then
+					row.out += 1
+					table.insert(row.outAt, t)
+				end
+				if worst > row.fish then
+					row.fish, row.fishAt = worst, t
+				end
 			end
 		end
 		-- the camera in the fish's box
@@ -110,19 +132,35 @@ local function film(f: any, p: any, sums: any): Row
 			row.inBox += 1
 			row.inBoxAt = row.inBoxAt or t
 		end
-		-- walls between it and the fish (the camera step pulls it in to them)
+		-- what is between it and the rider (the camera step pulls it in to them; a big fish's, not before the water)
 		local anchor = at.Position + V3.new(0, 0.6, 0)
-		local arm = view.Position - anchor
-		local hit, part = world.cast(anchor, arm, 0)
-		if hit and not (p.aloft and t < p.tEntry) then
+		local hit, part = world.cast(anchor, view.Position - anchor, 0)
+		if hit then
+			row.walls[part.Name] = (row.walls[part.Name] or 0) + 1
+		end
+		if t < math.max(p.tEntry, p.clearTo) then
+			row.air += 1
+			run = if hit then run + 1 else 0
+			row.archRun = math.max(row.archRun, run)
+			if hit then
+				row.arch += 1
+				row.archAt = row.archAt or t
+				table.insert(row.archTimes, t)
+			end
+		else
+			row.after += 1
+			row.lowest = math.min(row.lowest, view.Y - p.surface)
+			if hit then
+				row.blocked += 1
+			end
+		end
+		if hit and t >= p.clearTo then
 			row.wall += 1
-			local n = part.Name
-			row.walls = row.walls or {}
-			row.walls[n] = (row.walls[n] or 0) + 1
 			row.pulled = math.min(row.pulled, hit)
 		end
 		t += 1 / 30
 	end
+	row.beat = row.lowest + p.surface <= WATER_LINE + 0.5 -- it goes through the surface after them
 	return row
 end
 
@@ -188,7 +226,8 @@ for _, kind in Config.Fish do
 			row.endY = last.Y
 			row.under = p.tUnder
 			row.high, row.far, row.air = p.a * p.a / (4 * p.c), p.far, p.air
-			row.camScale, row.aloft = p.camScale, p.aloft
+			row.camScale, row.aloft, row.clear = p.camScale, p.aloft, p.clear
+			row.whyAloft, row.beside = p.whyAloft, p.beside
 			row.pace = p.far / p.air
 			row.cut = floorCut(f, p, sums)
 			row.back, row.deep = dockAtSwap(f, p, sums)
@@ -273,6 +312,91 @@ for _, r in results do
 end
 for key, w in worst do
 	print(`   most {key}: {math.floor(w[1] * 100) / 100} ({w[2]})`)
+end
+-- the film by size: whether it goes under the water after the fish (the beat), and what stands between it and the rider
+-- before the water, counted whether or not the camera is pulled in to it (Dive.LeapMountedAloft: a big fish's is not)
+do
+	local over: { string } = {}
+	local all = { arch = 0, frames = 0, over = 0, beat = 0 }
+	for _, tier in Config.SizeOrder do
+		local n, beat, arch, frames, longest, after, pulled = 0, 0, 0, 0, 0, 0, 0
+		for _, r in results do
+			if r.tier == tier and r.film then
+				n += 1
+				beat += if r.film.beat then 1 else 0
+				arch += if r.film.arch > 0 then 1 else 0
+				frames += r.film.arch
+				longest = math.max(longest, r.film.archRun)
+				after += if r.film.blocked > 0 then 1 else 0
+				pulled += if r.film.wall > 0 then 1 else 0
+				if r.film.beat == r.aloft then
+					fail(`{r.kind} {tier}: aloft {r.aloft}, but the camera goes under: {r.film.beat}`)
+				end
+				if r.aloft then
+					table.insert(over, `{r.kind} {tier} ({math.floor(r.length)} long)`)
+				end
+				if r.film.archRun > ARCH_RUN then
+					fail(
+						`{r.kind} {tier}: something between the camera and the rider for {r.film.archRun} frames on end`
+					)
+				end
+			end
+		end
+		all.arch += arch
+		all.frames += frames
+		all.beat += beat
+		print(
+			`   {tier}: under after the fish {beat} of {n}; something between before the water (the gate) {arch} of {n}, {frames} frames of 30 a second, longest {longest}; between after it {after}; pulled in {pulled}`
+		)
+	end
+	print(
+		`   the whole: under after the fish {all.beat}; something between before the water {all.arch}, {all.frames} frames`
+	)
+	print(`   over the water to the end: {table.concat(over, ", ")}`)
+	-- (what it was when this was written, with a little room: more is a change to look at)
+	if all.beat < 430 then
+		fail(`the camera goes under after only {all.beat} of the fish`)
+	end
+	if all.arch > 90 or all.frames > 330 then
+		fail(`something between the camera and the rider before the water: {all.arch} plans, {all.frames} frames`)
+	end
+end
+
+--------------------------------------------------------------------------------------------------------------------- 6
+-- the film again off the middle of the lip: the same counts, from four more places
+if string.find(PARTS, "6") then
+	for _, x in { -44, -30, 30, 44 } do
+		local n, beat, arch, frames, longest = 0, 0, 0, 0, 0
+		for _, kind in Config.Fish do
+			for _, tier in Config.SizeOrder do
+				local f = World.landFish(world, kind, tier)
+				local p, _, sums = planAt(f, x, OUT, PACE, true)
+				if p then
+					n += 1
+					local r = film(f, p, sums)
+					beat += if r.beat then 1 else 0
+					arch += if r.arch > 0 then 1 else 0
+					frames += r.arch
+					longest = math.max(longest, r.archRun)
+					if r.archRun > ARCH_RUN then
+						fail(`{kind.Id} {tier} at x {x}: something between for {r.archRun} frames on end`)
+					end
+					if r.inBox > 0 then
+						fail(`{kind.Id} {tier} at x {x}: the camera is inside the fish's box`)
+					end
+					if r.rider > 1 then
+						fail(`{kind.Id} {tier} at x {x}: the rider goes out of the view ({r.rider})`)
+					end
+				end
+			end
+		end
+		print(
+			`6 at x {x}: {n} dive; under after the fish {beat}; something between before the water {arch}, {frames} frames, longest {longest}`
+		)
+		if arch > 90 or beat < 460 then
+			fail(`at x {x}: under after the fish {beat}, something between {arch}`)
+		end
+	end
 end
 
 --------------------------------------------------------------------------------------------------------------------- 3
@@ -434,6 +558,106 @@ print(
 for _, key in { "body's step in a frame, studs", "view's step in a frame, studs", "view's turn in a frame, degrees" } do
 	print(`   most {key}: {math.floor(worst[key][1] * 100) / 100} ({worst[key][2]})`)
 end
+
+-- the line, walked at every way there is, on foot and on a fish: straight out, at a slant, along the edge on the strip,
+-- along it and off it, slowly off it, and away. `dives`: whether it must dive, `over`: begun past the edge (gone off it)
+local function walk(way: number, speed: number, z: number, kind: any?, back: boolean?): Row
+	local mount = kind or Config.Fish[1]
+	local f = World.landFish(world, mount, "Normal")
+	local stand = FLOOR + (if kind then f.height else 3)
+	local to = CF.fromAxisAngle(V3.new(0, 1, 0), math.rad(-way)) * OUT * (if back then -1 else 1)
+	local root = World.mount(world, mount, f, V3.new(-12, stand, z))
+	if not kind then
+		world.me.attributes.LandMounted = nil
+		world.me.humanoid.HipHeight = 2
+	end
+	world.clock += 10
+	camera.CFrame = CF.lookAt(root.Position + (if kind then camBack(f) else V3.new(0, 6, -17)), root.Position)
+	camera.FieldOfView = 70
+	local row: Row = { events = {} }
+	local fall, swapAt = 0, nil :: number?
+	for _ = 1, 60 * 6 do
+		world.clock += 1 / 60
+		if not row.began then
+			local at = root.Position + to * (speed / 60)
+			if at.Z > 0 then
+				fall += 196.2 / 60
+				at -= V3.new(0, fall / 60, 0)
+			end
+			root.CFrame = CF.lookAt(at, at + to)
+			root.AssemblyLinearVelocity = to * speed - V3.new(0, fall, 0)
+			if at.Y < -8 then
+				break -- (dropped in)
+			end
+		end
+		world.steps.DiveBody(1 / 60)
+		world.steps.DiveCamera(1 / 60)
+		local log = Dive.log()
+		if log.active and not row.began then
+			row.began, row.y, row.plan = root.Position.Z, root.Position.Y, log.plan
+			local went = (log.plan.entry - log.plan.start) * V3.new(1, 0, 1)
+			row.slant = math.deg(math.acos(math.clamp(went.Unit:Dot(OUT), -1, 1)))
+		end
+		if row.began and not log.active then
+			row.over = true
+			break
+		end
+		if log.active and not swapAt and root.Position.Y < Config.Oxygen.WaterY then
+			swapAt = world.clock + 0.1
+		end
+		if swapAt and world.clock >= swapAt and world.State.Mode == "Dock" then
+			world.me.attributes.LandMounted = false
+			world.me.attributes.State = "Riding"
+			world.State.Mode = "Riding"
+			world.land = nil
+		end
+	end
+	row.broken = Dive.log().broken
+	Dive.hold(nil)
+	return row
+end
+local WALKS: { { any } } = {
+	-- (what, degrees off straight out, studs/s, from z, dives, begun over the edge)
+	{ "straight out", 0, 16, -20, true, false },
+	{ "at a slant of 45", 45, 16, -20, true, false },
+	{ "at a slant of 55", 55, 16, -20, true, false },
+	{ "at a slant of 60, at the line already", 60, 32, -1, true, false },
+	{ "at a slant of 70, too slow straight out on the strip", 70, 16, -2, true, true },
+	{ "along the edge, on the strip", 90, 16, -1, false, false },
+	{ "along the edge and off it", 88, 16, -0.6, true, true },
+	{ "slowly off the edge (6 a second)", 0, 6, -2, true, true },
+	{ "away from the edge", 0, 16, -1, false, false, true },
+}
+local walked, walks = 0, 0
+for _, kindId in { false, "GreatWhite" } do
+	local mount = if kindId then Config.FishById[kindId] else nil
+	local who = if mount then "on a GreatWhite" else "on foot"
+	for _, w in WALKS do
+		walks += 1
+		local r = walk(w[2], w[3], w[4], mount, w[7])
+		local past = r.began ~= nil and r.began > 0
+		local right = (r.began ~= nil) == w[5] and not r.broken and (not w[5] or (past == w[6] and r.over == true))
+		if right then
+			walked += 1
+		else
+			fail(
+				`{who}, {w[1]}: dives {r.began ~= nil} (should: {w[5]}), begun at z {r.began}, ended {r.over}, {r.broken}, {table.concat(
+					Dive.log().whyNot,
+					" | "
+				)}`
+			)
+		end
+		print(
+			`   {who}, {w[1]}: `
+				.. (
+					if r.began
+						then string.format("dives from z %.1f, %.0f degrees off straight out", r.began, r.slant)
+						else "no dive"
+				)
+		)
+	end
+end
+print(`3 the line: {walked} of {walks} walkers as they should`)
 
 --------------------------------------------------------------------------------------------------------------------- 4
 local still, popped, mostTurn = 0, 0, 0

@@ -516,7 +516,7 @@ the DIVE IN arch (the edge is found by a ray at run time, so a raised stand plac
 
 | Piece | What it does | Where |
 |---|---|---|
-| The trigger | On the dock, moving at the open water (a ray down ahead of you finds none of the floor), up to 75 degrees off the dock's facing (`Dive.LeapRefuse`; the heading is turned to within 40, `Dive.LeapCone`). Not while riding a fish on land or in a tank | `Controllers/DiveController` |
+| The trigger | On the dock, on foot or on a fish (not in a tank), one line (branch `fish-dive`, 2026-11-24; before it was a ray ahead along the way you ran): the root comes within `Dive.LeapAhead` 2.5 studs straight in from the lip, running out at `Dive.LeapMinSpeed` 8 studs a second or more straight out and within 75 degrees of it (`Dive.LeapRefuse`). Run along the lip, or away, and nothing happens on the strip. **Gone off the edge already (along it, slowly, or jumping) you dive from there, whichever way you ran**: before, past 75 degrees off you dropped in. The heading is turned to within 40 degrees of straight out (`Dive.LeapCone`), and straight out if that way is blocked | `Controllers/DiveController` |
 | The leap | A short crouch on the lip, then an arc: 11 studs up, 24 out, 0.85 s in the air, in head-first at 67 degrees and 72 studs a second, carrying on to 16 under | `Dive.LeapHigh`, `LeapFar`, `LeapTime`, `LeapDepth`, `LeapSink` |
 | Into the plunge | The server's rule is unchanged (under -4 on the dock is in the water). The existing hop takes over with the leap's heading. With a fish equipped the server seats you at the water and the leap lets go; with a sub picked it lets go to the sub | `JumpController`, `RideController` (seams) |
 | The pose | Crouch, a slight arch on the rise, arms overhead and legs together at the top, an arrow at the water; a tuck with `Dive.Flip` 1. Other players are posed on each machine from the diver's tilt (nothing new is sent) | `AnimController` (`leapPose`) |
@@ -561,39 +561,75 @@ change, not judged by eye.** The partner's first version is extended, not replac
   places along the lip, three ways of running, two paces, and gone over the edge already: 18720 of 18720. The table,
   fish by fish: [dive-in-fish](dive-in-fish.md). Side view: [three fish](../attachments/fish-dive-side.png), from the
   game's own sums. (There are 78 kinds, not 82: four were cut 2026-11-19.)
-- **The line.** One line `Config.Dive.LeapAhead` in from the lip, straight out from the dock, the same for a rider and a
-  walker: the check begins both at the same 2.4 studs inside the lip. Over the edge already, the fish always dives.
+- **The line, and a change to the plain leap on foot.** One line `Config.Dive.LeapAhead` (2.5) in from the lip, straight out from
+  the dock, the same for a rider and a walker: the check begins both at the same 2.4 studs inside the lip. **On foot this
+  differs from what is live (2026-11-24):** (1) the line asks for 8 studs a second straight out, where before 8 any way did
+  (a walk at 16 a second more than 60 degrees off, up to the old 75, no longer dives from the strip, only from over the
+  edge); (2) over the edge the 75 degrees no longer apply, so running along the lip and off it dives where it dropped in;
+  (3) a way that is blocked is tried again straight out. The walkers, on foot and on a Great White alike (18 of 18):
+
+  | Walked | Before | Now |
+  |---|---|---|
+  | Straight out, or 45 or 55 degrees off | dives | dives from 2.4 in (2.5 at 45) |
+  | 60 degrees off, at a run of 32 | dives | dives from the line |
+  | 70 degrees off at 16 a second | dives from the strip | dives from over the edge |
+  | Along the lip, on the strip; away from it | no dive | no dive |
+  | Along the lip and off it (88 degrees) | drops in | **dives** from over the edge |
+  | Slowly off it (6 a second) | dives from over the edge | dives from over the edge |
+
+  (Before is read from main's code, not run.)
 - **Why fish did not dive before.** The old test refused any arc where the fish's box met the dock floor it was standing
   on (132), or where its tail came down over the floor (192), or the gate (3). Now the floor and what it already stands in
-  do not count, five arcs are tried (as asked, lower, shorter), and the last one tests only the rider's own path, so a fish
-  on the lip never falls back to the drop-in. 64 of the 468 take that last arc: a tail or fin may pass through a thing.
-- **Camera.** The player's keys, placed on the fish's middle and further back for a long fish, up over its back and the
-  gate arch, never in it, never over the dock's back. For a fish too big to leave room under the water the camera stays
-  over the water and hands over from there. The rider is never further than 0.69 from the view's middle (1 is the edge).
+  do not count, and eight arcs are tried: four with the fish's whole box (as asked, then lower, then shorter), three with
+  only the rider's own path, the last with only that it comes down in open water. 386 of the 468 take the first, 18 the
+  second or third, 64 the fifth (the first on the rider's path: a tail or fin may pass through a thing), and none a later one.
+- **Camera.** The player's keys, placed on the fish's middle and further back for a long fish, and through the surface after
+  it, as the diver's: **435 of 468 dives keep that beat**. It follows behind the fish, or, if the fish is
+  too long to see past, beside it; where neither has room the camera stays over the water and hands over from there. **33
+  dives stay over** (none under 136 studs long: BlueWhale, HalfboneMegalodon, Megalodon, MoltenMegalodon, Kraken at Giant and
+  up, and 12 other kinds at Huge or Colossal; every one with its reason in [dive-in-fish](dive-in-fish.md)). Behind, the
+  fish's back is over the riding camera's line, so a camera low enough to be under the water would be in the fish; beside,
+  the cove's walls stand between. That is the middle of the lip; **from 30 and 44 studs either side of it all 468 keep the
+  beat**. There, and wherever the rider is over 6 studs off the middle, the camera goes to the middle's side, away from the
+  nearer pillar, unless the player's view is well round on the other side already (a fish's only; the diver's is as it was).
+  Before that rule the gate was between in 281 of 468 dives from 30 studs to one side and 75 from the other; it is 75 (about
+  280 frames) on both now.
+- **The gate's arch, counted honestly.** From 3 times the diver's distances up (`Config.Dive.LeapMountedAloft`, 316 of the
+  468) the camera is not pulled in to what is between it and the rider before the water (0.15 s after it at most): pulling
+  in was a jump of up to 196 studs. So the gate's beam or pillars do hide the rider for those frames, and the check
+  counts them whether exempt or not: **81 of 468 dives, 299 frames of 30 a second, at most 7 frames on end** (Tiny 0, Normal
+  3, Big 7, Giant 16, Huge 25, Colossal 30; it was 180 dives and 902 frames, by the same count, before the film was planned
+  round the gate). What is left is mostly the biggest fish, whose own view at the start is already behind the beam, and 2 to
+  5 frames of a beam sweeping by. Nothing is between once it is in the water, and no camera is pulled in or inside the fish.
+  The film's rises are worked out by a search for the dives whose rider the gate hides: 131 rays for the middle dive,
+  over 400 for 187 of the 468, 5309 for the worst (BlueWhale), all in the one frame the dive begins. **Not timed in Studio.**
+  The rider is never further than 0.80 from the view's middle (1 is the edge; AuroraJelly Huge).
 - **The fish's own motion.** Its swim, not a tilt: the land hook (`AnimController.LandHook`) writes the fish's own keyed
-  swim and fins (RideStyles) through the dive, a short fish's tail bends, a long one's back arches. All 78 kinds' joints move.
+  swim and fins (RideStyles) through the dive: its tail lifts as it goes in, and a short one (under 45 studs) arches its back
+  over the top. A long one's back does not bend. All 78 kinds' joints move.
 - **The swap.** The fish is level and heading straight out by then, so the camera has nothing to turn for. Whether the fish
-  jumps is not settled: `SubService.diveFish` makes the water fish with its root, not its saddle, at the rider, which is 5 to
-  72 studs off by the sums (a prediction: where it is spawned, before `RideService.mount`'s weld joins its saddle to the
-  rider). The one Studio run (a small fish, 2026-11-23) saw 0.34 studs, so the weld may hide it; nothing was played since.
-  d2 (branch `fish-sub`) has diveFish place it by its saddle, at most 1.9 studs off by the sums: uncommitted in their
-  working tree when read, not on this branch, and the no-cut claim rests on it. `run mounted-all` measures it.
-- **With a sub trip picked (d2).** The hand-over point is the first frame `State.Mode` is "Carried": that frame the dive
-  lets everything go (body, pose, camera). `DiveController.handOver()` gives the last frame's position, velocity, yaw, view
-  and field of view, so the trip can start from where the film was. Proposed to d2 by message, no reply yet; their branch
-  agrees as far as read: `SubService.begin` makes the escort fish with its saddle where the rider's root is. Root y is
-  about -7 then, 31 to 36 studs a second.
+  jumps is not settled: on this branch `SubService.diveFish` still makes the water fish with its root, not its saddle, at the
+  rider, which is 5 to 72 studs off by the sums (a prediction: where it is spawned, before `RideService.mount`'s weld joins
+  its saddle to the rider). d2's branch `fish-sub` (committed, 0287e35 and c5c38ca) places it by its saddle, at most 1.9 studs
+  off by the sums; the two branches merge cleanly, and the no-cut claim rests on theirs. The one Studio run (a small fish,
+  2026-11-23) saw 0.34 studs; nothing was played since. `run mounted-all` measures it.
+- **With a sub trip picked (d2).** Agreed, and written on their side too ([submarine](submarine.md), "The hand-over with the
+  dive", commit c5c38ca on `fish-sub`): on the first frame `State.Mode` is "Carried" the dive lets everything go (body, pose,
+  camera), and from that frame they are `SubController`'s; the trip eases the fish from where the dive had it.
+  `DiveController.handOver()` gives the last frame's position, velocity, yaw, view and field of view. Root y is about -7 then,
+  31 to 36 studs a second. Run offline here only against a stand-in for the trip, not their code.
 - **Cost.** Until the rider is under the water line: 1.4 to 2.2 s for fish under 30 studs, about 2.5 s for a Great White, 3.4 s for
   the biggest. Half a second of that is the longer leap for fish over 48 studs (`LeapMountedMost`,
   4 to 8, 2026-11-24).
 - **Known weak spots.** A long fish's tail is still back of the lip, inside the dock, as it sinks: 47 of 468 (none at
   Tiny or Normal, 12 of them over a tenth of their length; a Blue Whale Huge or Colossal by 40 studs). A box cuts the
   floor on the way out by 10 to 53 studs for AuroraJelly (a box far bigger than the jelly), TheDevourer and AbyssalWatcher
-  at their big sizes. A fish bigger than the gate's arch goes through its beam, as it already does on land. Only 4 fish (Blue Whale
-  Giant, Huge, Colossal and Hellmaw Colossal) have an end out of the view more than 15% of the frames.
+  at their big sizes. A fish bigger than the gate's arch goes through its beam, as it already does on land. 7 dives have an
+  end of the fish out of the view more than 15% of the frames (Anglerfish Colossal, BlueWhale Tiny and Giant, Hellmaw Normal
+  and Colossal, SkullAngler Giant and Huge; 23% at most).
 - **To check it offline:** `python3 tools/dive/lip_boxes.py . /tmp/lip.json`, `rojo build -o /tmp/place.rbxl`,
-  `lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json` (exits 1 on any FAIL; parts 1, 3, 4, 5 in half a
-  minute with a fourth argument of `1345`). It reads the map GENERATOR's boxes, not the saved place.
+  `lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json` (exits 1 on any FAIL; parts 1, 3, 4, 5 in a minute
+  and a half with a fourth argument of `1345`, part 6 films it off the middle in three more, part 2 is the long one). It reads the map GENERATOR's boxes, not the saved place.
 - **To check it in Studio:** `python tools/studio/dive_leap_check.py install`, Play, then `run mounted-all` (a small, a
   middling, the biggest and the worst-shaped fish, one PASS or FAIL line each, log `work/dive_leap/check_mounted_all.log`),
   `run mounted ID:Size` for one, `remove` before any publish. Until d2's
