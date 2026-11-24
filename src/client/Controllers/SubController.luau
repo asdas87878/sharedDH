@@ -39,6 +39,7 @@ local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
 local LandStrip = require(script.Parent.Parent.UI.LandStrip)
 local SubPanel = require(script.Parent.Parent.UI.SubPanel)
+local DiveController = require(script.Parent.DiveController)
 local JumpController = require(script.Parent.JumpController)
 
 local SubController = {}
@@ -586,17 +587,24 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		-- went down through the hub's floor and the gate's posts)
 		local first = camKind == "" or not camPos or not camFocus
 		if first and e then
-			-- (on a fish's back the dive's film has us behind it already, under the water and on our line: on from there, no cut)
-			local from = camera.CFrame
+			-- (on a fish's back the dive's film has us behind it already, or beside a big one, under the water: on from its
+			-- last view and width, no cut. Its own word for them: letting go, it gave the camera back to Roblox's own,
+			-- which has put it somewhere else by now)
+			local hand = DiveController.handOver()
+			local said = if hand and hand.mounted and os.clock() - hand.at < 0.5 then hand else nil
+			local from = if said then said.view else camera.CFrame
 			local back = rider - from.Position
 			local level = Vector3.new(back.X, 0, back.Z)
 			if
 				from.Position.Y < Config.Oxygen.SurfaceY
 				and back:Dot(way0) > 5
-				and back.Magnitude < 60 + e.Half.Z
-				and (level - way0 * level:Dot(way0)).Magnitude < 4
-				and from.LookVector:Dot(way0) > 0.85
+				and back.Magnitude < 100 + e.Half.Z
+				and (level - way0 * level:Dot(way0)).Magnitude < 60 + e.Half.X
+				and from.LookVector:Dot(way0) > 0.3
 			then
+				if said then
+					fov = said.fov
+				end
 				camPos = from.Position - anchor
 				camFocus = from.Position + from.LookVector * (back:Dot(way0) + 12) - anchor
 				first = false

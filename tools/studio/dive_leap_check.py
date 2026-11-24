@@ -414,6 +414,13 @@ local function walk(leap, runup, lookAt, seconds, sub, mounted, unequipAt)
 		end
 		task.wait(1.0)
 	end
+	-- the player's view behind them, as someone running at the water has it (each run left it turned some other way)
+	if not lookAt then
+		local eye = workspace.CurrentCamera
+		local back = (eye.CFrame.Position - eye.Focus.Position).Magnitude
+		eye.CFrame = CFrame.lookAt(root.Position - out * back * 0.95 + UP * back * 0.3, root.Position)
+		task.wait(0.3)
+	end
 	local before = Splash.stats()
 	local started = os.clock()
 	local rec = {
@@ -443,7 +450,7 @@ local function walk(leap, runup, lookAt, seconds, sub, mounted, unequipAt)
 	local maxParts = 0
 	local plan = nil
 	local prevCam = nil
-	local jumpStuds, jumpDeg, jumpAtT, jumpMode = 0, 0, nil, nil
+	local jumpStuds, jumpDeg, jumpDegT, jumpAtT, jumpMode = 0, 0, nil, nil, nil
 	local blocked, inside, underFloor, camFrames = 0, 0, 0, 0
 	local firstBlocked = nil
 	local done = false
@@ -569,7 +576,9 @@ local function walk(leap, runup, lookAt, seconds, sub, mounted, unequipAt)
 				if d > jumpStuds then
 					jumpStuds, jumpAtT, jumpMode = d, now, State.Mode
 				end
-				jumpDeg = math.max(jumpDeg, deg)
+				if deg > jumpDeg then
+					jumpDeg, jumpDegT = deg, now
+				end
 				-- still while the diver moves away
 				if d < 0.05 and prevPos and (pos - prevPos).Magnitude > 0.3 then
 					stillRun += 1
@@ -663,8 +672,9 @@ local function walk(leap, runup, lookAt, seconds, sub, mounted, unequipAt)
 		end
 		if #frames < 2400 then
 			table.insert(frames, string.format(
-				"%.3f dt=%.1fms %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) fov=%.1f leaping=%s ls=%s%s fog=%d-%d atm=%s splash=%s",
+				"%.3f dt=%.1fms %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) look=(%.2f,%.2f,%.2f) fov=%.1f leaping=%s ls=%s%s fog=%d-%d atm=%s splash=%s",
 				now, dt * 1000, State.Mode, pos.X, pos.Y, pos.Z, cam.Position.X, cam.Position.Y, cam.Position.Z,
+				cam.LookVector.X, cam.LookVector.Y, cam.LookVector.Z,
 				camera.FieldOfView, tostring(State.Leaping), tostring(State.LeapSplashed), liveText, math.floor(Lighting.FogStart), math.floor(Lighting.FogEnd),
 				tostring(Lighting:FindFirstChildOfClass("Atmosphere") ~= nil),
 				if nearest < math.huge then string.format("%.1f/%.2f", nearest, cover) else "-"))
@@ -757,6 +767,7 @@ local function walk(leap, runup, lookAt, seconds, sub, mounted, unequipAt)
 		frames = camFrames,
 		biggestJumpStuds = math.floor(jumpStuds * 100 + 0.5) / 100,
 		biggestTurnDegrees = math.floor(jumpDeg * 10 + 0.5) / 10,
+		biggestTurnAt = jumpDegT and math.floor(jumpDegT * 100 + 0.5) / 100,
 		jumpAt = jumpAtT and string.format("%.2f %s", jumpAtT, tostring(jumpMode)),
 		outOfSightFrames = blocked,
 		firstOutOfSight = firstBlocked,
@@ -1252,7 +1263,7 @@ def summary(name, rec):
         f" to Carried={rec.get('lipToCarried')} s, to Drowning={rec.get('lipToDrowning')} s; lowest y={rec.get('lowestY')}")
     c = rec.get("camera") or {}
     say(f"  camera: biggest jump {c.get('biggestJumpStuds')} studs at {c.get('jumpAt')}, biggest turn"
-        f" {c.get('biggestTurnDegrees')} deg; still while the diver moved {c.get('stillWhileDiverMoved')} frames"
+        f" {c.get('biggestTurnDegrees')} deg at {c.get('biggestTurnAt')}; still while the diver moved {c.get('stillWhileDiverMoved')} frames"
         f" (at {c.get('stillAt')}); out of sight {c.get('outOfSightFrames')}/{c.get('frames')} frames"
         f" (first: {c.get('firstOutOfSight')}), inside a part {c.get('insidePartFrames')}, under the dock floor"
         f" {c.get('underDockFloorFrames')}")

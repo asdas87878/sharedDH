@@ -1099,6 +1099,9 @@ Config.Equip = {
 	-- and that never more than CameraMost studs
 	CameraFrom = 0.9,
 	CameraMost = 250,
+	-- a rider this high on the ride fish (the humanoid's HipHeight, studs) goes through the lip's gate: its beam (54 to 69
+	-- over the floor) stopped a Colossal Blue Whale's rider short of the lip (Lib/RiderGate); 0: it stops them, as before
+	GateFrom = 48,
 }
 
 -- Riding the equipped fish on land (task e4, docs/design/land-motion.md): each body type moves in its own way, all of it

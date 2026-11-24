@@ -34,6 +34,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 local Feel = require(script.Parent.Parent.Lib.Feel)
 local Fx = require(script.Parent.Parent.Lib.Fx)
+local RiderGate = require(script.Parent.Parent.Lib.RiderGate)
 local Shake = require(script.Parent.Parent.Lib.Shake)
 local Splash = require(script.Parent.Parent.Lib.Splash)
 local State = require(script.Parent.Parent.Lib.State)
@@ -1685,6 +1686,7 @@ local function tryStart(force: boolean?)
 			fish = fishFrom(Vector3.new(-2, -below, -6), Vector3.new(2, 1, 6))
 		end
 	end
+	RiderGate.through(false) -- (the plan counts the gate; opened again next frame if there is no dive)
 	local ground = under or (position.Y - (if fish then fish.depth else 3))
 	local function planAlong(to: Vector3): Plan?
 		local facing = yawOf(root.CFrame.LookVector)
@@ -1751,6 +1753,10 @@ local function bodyFrame(dt: number)
 		end
 	end
 	local p = plan
+	do
+		local _, riderRoot, rider = State.character()
+		RiderGate.through(p == nil and rider ~= nil and RiderGate.tall(rider), riderRoot)
+	end
 	if not p then
 		if d.Leap > 0 then
 			watch(dt)
