@@ -6,13 +6,19 @@
 --   wall      the fish's box against the lane's sides, from the hop on (an estimate: the lane's width round its middle,
 --             not the built terraces; Studio measures the real one)
 --   gate      how far out of the gate its tail is as the rider hops
---   camera    the fish's box against the line from the camera to the rider's seat
+--   camera    the fish's box against the line from the camera (as cameraFor eases it) to the rider's seat, from the run on
+--   inside    seconds the camera is inside its box on the way out and in the hop (you are on its back)
+--   view      the share of it in the picture and not behind the sub or the rider, over the weave (27 points of its box, the
+--             sub as cells: escort_hulls.py); plain: the share of the weave with a third of it or more; sideView: view, at
+--             either side
 --   frame     the share of the weave its middle is in a 16:9 picture
 --   water     its box against the floor and the surface at its middle (a fish taller than the water can't clear both)
 --   turn      the most its heading changes in a frame, degrees; pace: the most it moves in the sub's frame, studs a second
+--   jump      the most a frame's move differs from the frame's before, studs; start: the pace it sets off at
 --   home      how far it is from its place as the kick begins
 -- and then the server's rules (who gets an escort; the fish given up, unequipped, the player gone: never left, never two).
--- usage: rojo build -o /tmp/place.rbxl && lune run tools/subs/escort_check.luau <the repo> /tmp/place.rbxl [csv out] [which]
+-- usage: rojo build -o /tmp/place.rbxl && lune run tools/subs/escort_check.luau <the repo> /tmp/place.rbxl [csv out] [which] [cells]
+-- (`cells`: what python3 tools/subs/escort_hulls.py <path> wrote; without it nothing is hidden by the sub)
 -- (`which`: one fish's Id, or a part of them all as "3/16"; all of them in one go take over ten minutes)
 -- (Lune 0.11: ~/.rokit/tool-storage/lune-org/lune/0.11.1/lune on Hugo's PC)
 local fs = require("@lune/fs")
@@ -454,7 +460,113 @@ local function pointGap(cf, half, p)
 	return d.Magnitude
 end
 
+-- The subs as cells (escort_hulls.py), and whether one is in the way of the straight line from a to b
+local hullCells = nil
+if process.args[5] then
+	local data = serde.decode("json", fs.readFile(process.args[5]))
+	hullCells = { Cell = data.Cell }
+	for tier, list in data.Subs do
+		local set = {}
+		for _, key in list do
+			local x, y, z = string.match(key, "(-?%d+),(-?%d+),(-?%d+)")
+			set[(tonumber(x) + 128) * 65536 + (tonumber(y) + 128) * 256 + tonumber(z) + 128] = true
+		end
+		hullCells[tier] = set
+	end
+end
+local function hidden(tier, sub, a, b)
+	local set, cell = hullCells[tier], hullCells.Cell
+	local p, q = sub:PointToObjectSpace(a) / cell, sub:PointToObjectSpace(b) / cell
+	local px, py, pz = p.X, p.Y, p.Z
+	local dx, dy, dz = q.X - px, q.Y - py, q.Z - pz
+	local long = math.sqrt(dx * dx + dy * dy + dz * dz)
+	-- (only the stretch of it abreast of the sub, 36 studs either way of its middle)
+	local u0, u1 = 0, 1
+	if math.abs(dz) > 1e-6 then
+		local e, f = (-36 / cell - pz) / dz, (36 / cell - pz) / dz
+		u0, u1 = math.max(0, math.min(e, f)), math.min(1, math.max(e, f))
+	end
+	local n = math.ceil((u1 - u0) * long / 0.7)
+	for i = 0, n do
+		local u = u0 + (u1 - u0) * i / math.max(n, 1)
+		local x, y, z = math.floor(px + dx * u), math.floor(py + dy * u), math.floor(pz + dz * u)
+		if set[(x + 128) * 65536 + (y + 128) * 256 + z + 128] then
+			return true
+		end
+	end
+	return false
+end
+
 local FPS = 60
+local alpha = world.require(world.find("ReplicatedStorage.Shared.Ease")).alpha
+local smooth = world.require(world.find("ReplicatedStorage.Shared.Ease")).smoothstep
+-- The rider as SubController.riderAt has them, and the camera as its cameraFor has it, easing and all (but the pull-in
+-- off the walls); if either changes, change this
+local function riderOf(trip, t, sub, fish, mem)
+	local pickupAt, rideAt = SubTrip.times(trip)
+	local seat = sub * SubTrip.Seat
+	if t >= rideAt then
+		return seat.Position
+	end
+	local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
+	local saddle = fish * CF.new(trip.Escort.Saddle)
+	if u <= c.EscortHopFrom then
+		return saddle.Position
+	end
+	mem.from = mem.from or saddle
+	local k = smooth(c.EscortHopFrom, c.EscortHopTo, u)
+	return mem.from.Position:Lerp(seat.Position, k) + UP * (c.EscortHopUp * math.sin(k * math.pi))
+end
+local function flat(v)
+	local f = V3.new(v.X, 0, v.Z)
+	return if f.Magnitude > 0.01 then f.Unit else V3.new(0, 0, -1)
+end
+local function cameraOf(trip, t, sub, speed, rider, mem)
+	local pickupAt, rideAt, arriveAt = SubTrip.times(trip)
+	local way0 = flat(SubTrip.way(trip, 30, 30))
+	local under = math.max(0, rider.Y - sub.Position.Y)
+	local goal, focus, rate, wide = nil, nil, 4, 70
+	if t < pickupAt then
+		rate = 6.4 / math.max(trip.Approach, 0.1)
+		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
+		goal = rider - way0 * (10 + 8 * u) + UP * 3
+		focus = rider + way0 * 12 - UP * (0.4 * under * smooth(0.3, 1, u))
+	elseif t < rideAt then
+		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
+		goal = rider - way0 * (18 + 6 * u) + UP * (3 + 6 * u)
+		focus = rider + way0 * 12 - UP * (0.4 * under * (1 - u))
+		rate = 4.8 / math.max(trip.Pickup, 0.1)
+	elseif t < arriveAt then
+		local way = sub.LookVector
+		local share = math.clamp(speed / math.max(c.Speed, 1), 0, 1)
+		goal = sub.Position - way * (c.Distance + 8 * share) + UP * (10 - 3 * share)
+		focus = sub.Position + way * (25 + 20 * share)
+		rate = 7
+		wide = 70 + c.Fov * share + c.FovFar * math.clamp((speed - c.Speed) / math.max(c.FovFarAt - c.Speed, 1), 0, 1)
+	else
+		local way = flat(sub.LookVector)
+		goal = sub.Position - way * 36 + UP * 9
+		focus = sub.Position + way * 10
+		wide = 74
+	end
+	local anchor = if t < rideAt then rider else sub.Position
+	local kind = if t < rideAt then "rider" else "sub"
+	if mem.kind ~= kind then
+		local first = not mem.kind
+		mem.pos = if first then goal - anchor else mem.anchor + mem.pos - anchor
+		mem.focus = if first then focus - anchor else mem.anchor + mem.focus - anchor
+		mem.fov = mem.fov or 70
+		mem.kind = kind
+	end
+	mem.anchor = anchor
+	mem.pos = mem.pos:Lerp(goal - anchor, alpha(rate, 1 / FPS))
+	mem.focus = mem.focus:Lerp(focus - anchor, alpha(rate * 1.4, 1 / FPS))
+	mem.fov += (wide - mem.fov) * alpha(3, 1 / FPS)
+	local at, look = anchor + mem.pos, anchor + mem.focus
+	at = V3.new(at.X, math.min(at.Y, Config.Oxygen.SurfaceY - 7), at.Z)
+	return at, look, mem.fov
+end
+
 local function measure(trip, tier, kind)
 	local e = trip.Escort
 	local pickupAt, rideAt, arriveAt, dropAt, endAt = SubTrip.times(trip)
@@ -462,12 +574,15 @@ local function measure(trip, tier, kind)
 	local hullHalf = V3.new(hull[1], (hull[2] + hull[3]) / 2, (hull[4] + hull[5]) / 2)
 	local hullAt = CF.new(0, (hull[2] - hull[3]) / 2, (hull[5] - hull[4]) / 2)
 	local out = { hull = math.huge, hullAt = 0, hullIn = math.huge, wall = math.huge, wallAt = 0, gate = 0, camera = math.huge, cameraAt = 0,
-		frame = 0, turn = 0, turnAt = 0, pace = 0, home = 0, left = 0, right = 0, floor = math.huge, roof = math.huge, loop = e.Loop, turns = e.Turns,
+		frame = 0, turn = 0, turnAt = 0, pace = 0, home = 0, left = 0, right = 0, floor = math.huge, roof = math.huge, loop = (if e.Right then 1 else 0) + (if e.Left then 2 else 0), turns = e.Turns,
+		inside = 0, start = 0, jump = 0, view = 0, plain = 0, sideView = 0, sx0 = 1, sx1 = -1,
 		ride = arriveAt - rideAt }
 	local a, b = SubTrip.escortTimes(trip, e.Half)
 	local seen, of = 0, 0
-	local wasRel, wasLook = nil, nil
+	local wasRel, wasLook, wasPos, wasSeen = nil, nil, nil, nil
 	local near = nil
+	local mem = {}
+	local views, sides, sideSum, plain = 0, 0, 0, 0
 	for k = 0, math.floor((dropAt + c.Kick) * FPS) do
 		local t = k / FPS
 		local sub, speed = SubTrip.sub(trip, t)
@@ -504,20 +619,14 @@ local function measure(trip, tier, kind)
 		if math.abs(t - (pickupAt + c.EscortHopFrom * trip.Pickup)) < 0.5 / FPS then
 			out.gate = fish.Position.Z - e.Half.Z - rows[1][4]
 		end
-		-- the camera: behind the sub on its line, as cameraFor has it, looking at a point ahead of it
-		if t >= rideAt + 0.3 then
-			local way = sub.LookVector
-			local share = math.clamp(speed / c.Speed, 0, 1)
-			local cam, look, fov
-			if t < arriveAt then
-				cam = sub.Position - way * (c.Distance + 8 * share) + UP * (10 - 3 * share)
-				look = sub.Position + way * (25 + 20 * share)
-				fov = 70 + c.Fov * share + c.FovFar * math.clamp((speed - c.Speed) / (c.FovFarAt - c.Speed), 0, 1)
-			else
-				cam = sub.Position - way * 36 + UP * 9
-				look = sub.Position + way * 10
-				fov = 74
-			end
+		-- the camera, from the first frame: on the fish's back it must be out of its body, and from the hop on the fish off
+		-- the line from it to the rider's seat
+		local rider = riderOf(trip, t, sub, fish, mem)
+		local cam, look, fov = cameraOf(trip, t, sub, speed, rider, mem)
+		if t < rideAt and pointGap(fish, e.Half, cam) <= 0 then
+			out.inside += 1 / FPS
+		end
+		if t >= rideAt then
 			local seat = (sub * SubTrip.Seat).Position
 			for i = 0, 8 do
 				local g = pointGap(fish, e.Half, cam:Lerp(seat, i / 8))
@@ -525,13 +634,40 @@ local function measure(trip, tier, kind)
 					out.camera, out.cameraAt = g, t
 				end
 			end
-			if t >= a and t <= b then
-				local v = CF.lookAt(cam, look):PointToObjectSpace(fish.Position)
-				local tall = math.tan(math.rad(fov / 2))
-				of += 1
-				if v.Z < 0 and math.abs(v.Y / v.Z) < tall and math.abs(v.X / v.Z) < tall * 16 / 9 then
-					seen += 1
+		end
+		if t >= a and t <= b and k % 4 == 0 then
+			-- in the weave: how much of it is in the picture and not behind the sub or the rider (27 points of its box)
+			local eye = CF.lookAt(cam, look)
+			local tall = math.tan(math.rad(fov / 2))
+			local function inPicture(p)
+				local v = eye:PointToObjectSpace(p)
+				return v.Z < 0 and math.abs(v.Y / v.Z) < tall and math.abs(v.X / v.Z) < tall * 16 / 9, v
+			end
+			local clear = 0
+			for x = -1, 1 do
+				for y = -1, 1 do
+					for z = -1, 1 do
+						local p = (fish * CF.new(e.Half.X * x * 0.8, e.Half.Y * y * 0.8, e.Half.Z * z * 0.8)).Position
+						if inPicture(p) and not (hullCells and hidden(tier, sub, cam, p)) then
+							clear += 1 / 27
+						end
+					end
 				end
+			end
+			of += 1
+			local inside, v = inPicture(fish.Position)
+			if inside then
+				seen += 1
+			end
+			views += clear
+			if clear >= 1 / 3 then
+				plain += 1
+			end
+			local sx = v.X / math.max(-v.Z, 1) / (tall * 16 / 9)
+			out.sx0, out.sx1 = math.min(out.sx0, sx), math.max(out.sx1, sx)
+			if math.min(math.abs(o.X - e.Low), math.abs(o.X - e.High)) < 6 then
+				sides += 1
+				sideSum += clear
 			end
 		end
 		if t >= rideAt then
@@ -546,22 +682,39 @@ local function measure(trip, tier, kind)
 			if t >= rideAt - 0.2 then
 				out.pace = math.max(out.pace, p)
 			end
+			-- (a jump: its place off where it was going, in the sub's frame, or in the world before the run)
+			if wasSeen then
+				local step = if t < rideAt then fish.Position - wasPos else o - wasRel
+				if (t < rideAt or t > rideAt + 1.5 / FPS) and t < dropAt then
+					out.jump = math.max(out.jump, (step - wasSeen).Magnitude)
+				end
+				wasSeen = step
+			else
+				out.start = (fish.Position - wasPos).Magnitude * FPS
+				wasSeen = fish.Position - wasPos
+			end
+			if math.abs(t - rideAt) < 1.5 / FPS then
+				wasSeen = o - wasRel
+			end
 			local turn = math.deg(math.acos(math.clamp(look:Dot(wasLook), -1, 1)))
 			-- (not the frame the run begins: the sub's own nose goes onto the path, an old step of the trip)
 			if turn > out.turn and t < dropAt and (t < rideAt or t > rideAt + 1.5 / FPS) then
 				out.turn, out.turnAt = turn, t
 			end
 		end
-		wasRel, wasLook = o, look
+		wasRel, wasLook, wasPos = o, look, fish.Position
 		if math.abs(t - dropAt) < 0.5 / FPS then
 			out.home = (o - V3.new(e.Side, o.Y, math.clamp(e.Half.Z - 12, 0, c.EscortKickLead))).Magnitude
 		end
 	end
 	out.frame = if of > 0 then seen / of else 1
+	out.view = if of > 0 then views / of else 1
+	out.plain = if of > 0 then plain / of else 1
+	out.sideView = if sides > 0 then sideSum / sides else 1
 	return out
 end
 
-local csv = { "kind,size,tier,land,long,wide,high,loop,turns,ride,hullIn,hull,hullAt,wall,wallAt,gate,camera,cameraAt,frame,turn,turnAt,pace,home,left,right,floor,roof" }
+local csv = { "kind,size,tier,land,long,wide,high,loop,turns,ride,hullIn,hull,hullAt,wall,wallAt,gate,camera,cameraAt,frame,turn,turnAt,pace,home,left,right,floor,roof,inside,start,jump,view,plain,sideView,sx0,sx1,outX" }
 local worst = {}
 local function note(key, value, label, low)
 	local w = worst[key]
@@ -570,16 +723,25 @@ local function note(key, value, label, low)
 	end
 end
 local function lists()
-	return { hull = {}, wall = {}, gate = {}, camera = {}, frame = {}, turn = {}, home = {}, water = {} }
+	return { hull = {}, wall = {}, gate = {}, camera = {}, frame = {}, turn = {}, home = {}, water = {}, jump = {}, plain = {} }
 end
-local bad, big = lists(), lists()
+local bad, big, ends = lists(), lists(), lists()
 local trips = 0
 local only = process.args[4]
 local part, of = string.match(only or "", "^(%d+)/(%d+)$")
 local turn = 0
+-- (from the middle of the lip, and with three of the subs from near either end of it, the gate's 96 wide)
+local LIP = 30
 for tier = 1, 9 do
 	for _, land in if tier == 9 then { 10, 5, 2 } elseif tier == 1 then { 2 } else { tier + 1 } do
+		local entries = {}
 		for _, kind in kinds do
+			for _, x in if tier == 1 or tier == 6 or (tier == 9 and land == 10) then { 0, -LIP, LIP } else { 0 } do
+				table.insert(entries, { kind, x })
+			end
+		end
+		for _, entry2 in entries do
+			local kind, outX = entry2[1], entry2[2]
 			if part then
 				turn += 1
 				if turn % tonumber(of) ~= tonumber(part) - 1 then
@@ -590,7 +752,7 @@ for tier = 1, 9 do
 			end
 			-- (a long fish's leap goes further out: 35 to 70 studs)
 			local outZ = rows[1][4] + math.clamp(34 * math.sqrt(math.clamp(kind.Body.Z / 12, 0.75, 2)), 30, 70)
-			local took, trip = dive(tier, land, kind, true, 0, outZ)
+			local took, trip = dive(tier, land, kind, true, outX, outZ)
 			if not took or not trip or not trip.Escort then
 				ok(string.format("%s %s tier %d land %d gets its escort", kind.Id, kind.Size, tier, land), false)
 				home()
@@ -599,12 +761,13 @@ for tier = 1, 9 do
 			trips += 1
 			local m = measure(trip, tier, kind)
 			local label = string.format("%s %s, sub %d to land %d", kind.Id, kind.Size, tier, land)
-			table.insert(csv, string.format("%s,%s,%d,%d,%.0f,%.0f,%.0f,%s,%d,%.1f,%.1f,%.1f,%.2f,%.1f,%.2f,%.0f,%.1f,%.2f,%.2f,%.1f,%.2f,%.0f,%.2f,%.0f,%.0f,%.0f,%.0f",
+			table.insert(csv, string.format("%s,%s,%d,%d,%.0f,%.0f,%.0f,%s,%d,%.1f,%.1f,%.1f,%.2f,%.1f,%.2f,%.0f,%.1f,%.2f,%.2f,%.1f,%.2f,%.0f,%.2f,%.0f,%.0f,%.0f,%.0f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d",
 				kind.Id, kind.Size, tier, land, kind.Body.Z, kind.Body.X, kind.Body.Y, tostring(m.loop), m.turns, m.ride, m.hullIn, m.hull, m.hullAt, m.wall, m.wallAt,
-				m.gate, m.camera, m.cameraAt, m.frame, m.turn, m.turnAt, m.pace, m.home, m.left, m.right, m.floor, m.roof))
+				m.gate, m.camera, m.cameraAt, m.frame, m.turn, m.turnAt, m.pace, m.home, m.left, m.right, m.floor, m.roof,
+					m.inside, m.start, m.jump, m.view, m.plain, m.sideView, m.sx0, m.sx1, outX))
 			-- (a Normal fish must clear everything. The Colossal are up to 200 long, 96 wide and 147 tall in a gate 96 wide
 			-- with 46 of water: what they can't clear is listed, not failed)
-			local list = if kind.Size == "Normal" then bad else big
+			local list = if kind.Size ~= "Normal" then big elseif outX == 0 then bad else ends
 			for key, isBad in
 				{
 					hull = math.min(m.hull, m.hullIn) < 0,
@@ -613,6 +776,8 @@ for tier = 1, 9 do
 					camera = m.camera < 5,
 					frame = m.frame < 0.95,
 					turn = m.turn > 15,
+					jump = m.jump > 3,
+					plain = hullCells ~= nil and m.plain < 0.5,
 					home = m.home > 0.5,
 					water = m.floor < 0 or m.roof < 0,
 				}
@@ -646,24 +811,26 @@ local NAMES = {
 	frame = "in the picture all the weave",
 	turn = "never turns over 15 degrees in a frame",
 	home = "in its place for the kick",
+	jump = "never jumps (a frame's move within 3 studs of the frame's before)",
 }
 for key, name in NAMES do
 	local list = bad[key]
-	ok(
-		string.format("Normal: %s (%d of %d not)", name, #list, trips // 2),
-		#list == 0,
-		table.concat(list, "; ", 1, math.min(3, #list))
-	)
+	ok(string.format("Normal: %s (%d not)", name, #list), #list == 0, table.concat(list, "; ", 1, math.min(3, #list)))
 end
-print(string.format("  Normal, taller than the water somewhere on the run: %d (as on a plain dive)", #bad.water))
-for key, name in NAMES do
-	print(string.format("  Colossal, not %s: %d of %d", name, #big[key], trips // 2))
-end
-print(string.format("  Colossal, taller than the water somewhere on the run: %d", #big.water))
+ok(
+	string.format("Normal, from the lip's ends: clear of the hull, no jumps (%d not)", #ends.hull + #ends.jump),
+	#ends.hull + #ends.jump == 0,
+	table.concat(ends.hull, "; ")
+)
 ok(
 	"Colossal: in the picture, in its place for the kick, off the camera's line, out of the gate, no jumps",
-	#big.frame + #big.home + #big.camera + #big.gate + #big.turn == 0
+	#big.frame + #big.home + #big.camera + #big.gate + #big.jump == 0
 )
+-- (not failed, and not met: read these with the passes)
+print(string.format("  EXCEPTION Colossal, into the hull's box: %d, the nearest %.1f", #big.hull, worst.hull[1]))
+print(string.format("  EXCEPTION into the lane's sides: Normal from the lip's ends %d, Colossal %d", #ends.wall, #big.wall))
+print(string.format("  EXCEPTION taller than the water: Normal %d, Colossal %d", #bad.water + #ends.water, #big.water))
+print(string.format("  EXCEPTION Normal, a third of it in view for less than half the weave: %d", #bad.plain + #ends.plain))
 if process.args[3] then
 	fs.writeFile(process.args[3], table.concat(csv, "\n") .. "\n")
 end
@@ -749,7 +916,7 @@ ok("no word from the machine: seated on it anyway, nothing left over", seated ==
 ok("the round trip of the JSON keeps the escort", (function()
 	local a2 = trip.Escort
 	local again = SubTrip.decode(SubTrip.encode(trip)).Escort
-	return again and (again.Half - a2.Half).Magnitude < 0.01 and again.Turns == a2.Turns and again.Loop == a2.Loop and math.abs(again.Low - a2.Low) < 0.01
+	return again and (again.Half - a2.Half).Magnitude < 0.01 and again.Turns == a2.Turns and again.Right == a2.Right and again.Left == a2.Left and math.abs(again.Low - a2.Low) < 0.01
 end)())
 
 for _, when in { 0.4, 1.5, 4 } do

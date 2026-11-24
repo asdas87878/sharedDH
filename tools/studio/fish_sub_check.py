@@ -20,8 +20,8 @@ Passes when, on each ridden trip:
   (the one the kick is cued with), the fish of the hands unchanged in number;
   the land fish gone and the water one in its pose at most 3 frames apart;
   the fish where the trip has it (SubTrip.escort) within half a stud from the hop on;
-  in the picture in nine tenths of the weave's frames, and seen both left and right of the view's middle (a fish too
-  wide for the lane's left side only sweeps to the middle: printed, not failed, for anything over Normal);
+  in the picture in nine tenths of the weave's frames, and seen left and right of the view's middle (on a side its plan
+  has the room for);
   the camera's own limits (sub_camera_check's) from the Ride to the Drop.
 Printed for a person to judge: what built map the fish's box (four fifths of it) touches, by part name (the offline check
 knows only the lane's width, not the terraces), and the pictures in docs/attachments/fishsub-*.jpg.
@@ -106,18 +106,38 @@ SERVER_VERBS = r'''
 			end
 			return string.format("hands=%d fish=%d parked=%d state=%s trip=%s equipped=%s", #RideService.carried(player), n, held,
 				tostring(RideService.stateOf(player)), tostring(player:GetAttribute("SubTrip") ~= nil), tostring(player:GetAttribute("EquippedFish")))
-		elseif verb == "die" then
-			player.Character.Humanoid.Health = 0
-			return "died"
-		elseif verb == "reset" then
-			player:LoadCharacter()
-			return "reset"
+		elseif verb == "giveat" then -- how ("die", "reset"), seconds into the next trip: armed before the walk
+			local how, after = string.match(arg, "(%w+),([%d%.]+)")
+			task.spawn(function()
+				local until_ = os.clock() + 20
+				while os.clock() < until_ and not player:GetAttribute("SubTrip") do
+					task.wait()
+				end
+				local json = player:GetAttribute("SubTrip")
+				if not json then return end
+				local start = game:GetService("HttpService"):JSONDecode(json).S
+				while workspace:GetServerTimeNow() - start < tonumber(after) do
+					task.wait()
+				end
+				workspace:SetAttribute("SCGave", string.format("%s at %.2f s", how, workspace:GetServerTimeNow() - start))
+				if how == "die" then
+					player.Character.Humanoid.Health = 0
+				else
+					player:LoadCharacter()
+				end
+			end)
+			return "armed"
+		elseif verb == "gave" then
+			local said = workspace:GetAttribute("SCGave")
+			workspace:SetAttribute("SCGave", nil)
+			return tostring(said)
 '''
 
 CLIENT_VERBS = r'''
-		elseif verb == "unequip" then
-			Net.Action:FireServer("RideUnequip")
-			return "unequipped"
+		elseif verb == "unequip" then -- so many seconds into the next trip: armed before the walk
+			unequipAt = tonumber(words[2]) or 0
+			report:FireServer("data", "gave", "not yet")
+			return "armed"
 		elseif verb == "esc" then
 			local e = escRec
 			if not e then return "no escort record" end
@@ -135,6 +155,7 @@ escGui.Position = UDim2.fromOffset(0, 12)
 escGui.BackgroundColor3 = Color3.new(0, 0, 0)
 escGui.Parent = gui
 escRec = nil
+unequipAt = nil
 local escFor = nil
 local escModel = nil
 local function escStep()
@@ -168,6 +189,11 @@ local function escStep()
 	end
 	local trip = r.trip
 	local t = if trip then workspace:GetServerTimeNow() - trip.Start else -1
+	if unequipAt and t >= unequipAt and trip and not r.done then
+		unequipAt = nil
+		Net.Action:FireServer("RideUnequip")
+		report:FireServer("data", "gave", string.format("unequip at %.2f s", t))
+	end
 	local err, ox, oy, oz, on, sx, seen = -1, 0, 0, 0, -1, 0, 1
 	local moment = "None"
 	local fishRoot = mine and mine.PrimaryPart
@@ -176,14 +202,23 @@ local function escStep()
 		want, o = SubTrip.escort(trip, t)
 	end
 	if fishRoot and want then
-		err = (fishRoot.Position - want.Position).Magnitude
+		-- (against the sub as it was put this frame: by the clock read now, a millisecond is 4 studs at full speed)
+		local _, placed = ourSub()
+		local planned = SubTrip.sub(trip, t)
+		err = if placed
+			then (placed:PointToObjectSpace(fishRoot.Position) - planned:PointToObjectSpace(want.Position)).Magnitude
+			else 0
+		e.low, e.high, e.right, e.left = trip.Escort.Low, trip.Escort.High, trip.Escort.Right, trip.Escort.Left
 		ox, oy, oz = o.X, o.Y, o.Z
 		on, sx = screen(workspace.CurrentCamera, fishRoot.Position)
 		seen = fishRoot.LocalTransparencyModifier
 		local pickupAt, rideAt, arriveAt, dropAt = SubTrip.times(trip)
 		local a, b = SubTrip.escortTimes(trip, trip.Escort.Half)
+		local low, high = trip.Escort.Low, trip.Escort.High
 		if t >= pickupAt and t < rideAt then moment = "Hop"
-		elseif t >= a and t <= b then moment = if sx < 0.4 then "Left" elseif sx > 0.6 then "Right" else "None"
+		elseif t >= a and t <= b then moment = if o.X < low + 0.15 * (high - low) then "Left"
+				elseif o.X > high - 0.15 * (high - low) then "Right"
+				else "None"
 		elseif t > b and t < dropAt then moment = "Return"
 		elseif t >= dropAt then moment = "Kick" end
 		if t >= pickupAt and t <= dropAt + 0.3 then
@@ -218,7 +253,7 @@ moments = "{ " + ", ".join("%s = { %d, %d, %d }" % (k, *v) for k, v in MOMENTS.i
 sc.SERVER = patch(sc.SERVER, '\t\telseif verb == "home" then', SERVER_VERBS.lstrip("\n"), "the server's verbs")
 sc.CLIENT = patch(sc.CLIENT, '\t\telseif verb == "state" then', CLIENT_VERBS.lstrip("\n"), "the client's verbs")
 sc.CLIENT = patch(sc.CLIENT, "local function v3(v)", CLIENT_STEP.replace("__MOMENTS__", moments), "the fish's step")
-sc.CLIENT = patch(sc.CLIENT, "local rec = nil -- the trip being written down", "local escRec = nil\n", "the fish's record")
+sc.CLIENT = patch(sc.CLIENT, "local rec = nil -- the trip being written down", "local escRec, unequipAt = nil, nil\n", "the fish's record")
 
 
 def hands():
@@ -231,8 +266,9 @@ def hands():
     return out, said
 
 
-def go(tier, land, fish, size, label):
-    """the fish given and mounted, the record begun, the player walked off the lip; True once the trip has begun"""
+def go(tier, land, fish, size, label, side=0, arm=None):
+    """the fish given and mounted, the record begun, the player walked off the lip (`side` studs right of its middle);
+    True once the trip has begun. `arm`: run just before the walk"""
     for _ in range(2):
         said = sc.cmd(f"ride|{tier},{land},{fish or '-'},{size}", 2.5)
         if not fish or "on=true" in said:
@@ -240,7 +276,9 @@ def go(tier, land, fish, size, label):
         time.sleep(2)
     sc.note(f"[{label}] tier {tier} to land {land}, {fish or 'no fish'} {size}: {said}")
     sc.do(f"rec|{label}", 0.4)
-    said = sc.do("walk|12|0", 5.0)
+    if arm:
+        sc.note("  " + arm())
+    said = sc.do(f"walk|12|{side}", 5.0)
     sc.note("  " + said)
     return "trip=true" in said
 
@@ -251,11 +289,11 @@ def home():
     return said
 
 
-def trip(tier, land, fish, size="Normal", label=None):
+def trip(tier, land, fish, size="Normal", label=None, side=0):
     fish = "" if fish == "-" else fish
     ridden = bool(fish) and size != "foot"
-    label = label or f"{tier}-{land}-{fish or 'none'}-{size}"
-    if not go(tier, land, fish, size, label):
+    label = label or f"{tier}-{land}-{fish or 'none'}-{size}" + (f"-{side}" if side else "")
+    if not go(tier, land, fish, size, label, side):
         sc.note("  ! no trip began")
         home()
         sc.save_log()
@@ -302,8 +340,10 @@ def trip(tier, land, fish, size="Normal", label=None):
             seen = sum(r[7] for r in weave) / max(len(weave), 1)
             ok("in the picture nine tenths of the weave", seen >= 0.9, f"{seen:.2f}")
             left, right = min((r[8] for r in weave), default=0.5), max((r[8] for r in weave), default=0.5)
-            both = left < 0.47 and right > 0.53
-            ok("left and right of the middle", both or size != "Normal", f"{left:.2f} to {right:.2f} of the view")
+            # (only to a side it has the room to go to: its plan says how far)
+            both = (left < 0.47 or esc.get("low", 0) > -8) and (right > 0.53 or esc.get("high", 0) < 8)
+            ok("left and right of the middle", both, f"{left:.2f} to {right:.2f} of the view; planned {esc.get('low', 0):.0f} to "
+               f"{esc.get('high', 0):.0f} studs, beside it left {esc.get('left')} right {esc.get('right')}")
         touched = sorted(esc["touched"].items(), key=lambda kv: -kv[1])[:6] if esc["touched"] else []
         sc.note("  map in the fish's box (frames, part): " + (", ".join(f"{n} {p}" for p, n in touched) or "none"))
     if esc.get("error"):
@@ -315,23 +355,22 @@ def trip(tier, land, fish, size="Normal", label=None):
 
 def giveup(how, seconds, tier=9, land=5, fish="GreatWhite"):
     label = f"giveup-{how}-{seconds}"
-    if not go(tier, land, fish, "Normal", label):
-        sc.note("  ! no trip began")
-        home()
-        return False
-    began = time.time()
-    time.sleep(max(float(seconds) - 1.0, 0))  # (the walk's answer takes about a second to come back)
+    # (armed before the walk and given up by the trip's own clock: the walk's answer comes back seconds into it)
     if how == "unequip":
-        sc.note("  " + sc.do("unequip", 0.2))
+        arm = lambda: sc.do(f"unequip|{seconds}", 0.3)  # noqa: E731
     else:
-        sc.note("  " + sc.cmd(how, 0.2))
-    time.sleep(2.0)
+        arm = lambda: sc.cmd(f"giveat|{how},{seconds}", 0.3)  # noqa: E731
+    if not go(tier, land, fish, "Normal", label, 0, arm):
+        sc.note("  ! no trip seen by the walk's end (a death or a reset that early ends it: read on)")
+    time.sleep(max(float(seconds) - 2.0, 0) + 1.5)
     mid, said = hands()
-    sc.note(f"  2 s after, {time.time() - began:.1f} s in: {said}")
+    sc.note(f"  after it: {said}")
+    gave = sc.value("gave") if how == "unequip" else sc.cmd("gave", 0.3)
+    sc.note(f"  given up: {gave}")
     time.sleep(10)
     last, said = hands()
     sc.note("  at the end: " + said)
-    good = mid.get("fish") == "0" and last.get("parked") == "0" and last.get("hands") == "1"
+    good = " at " in str(gave) and mid.get("fish") == "0" and last.get("parked") == "0" and last.get("hands") == "1"
     good = good and last.get("trip") == "false"
     sc.note(f"  {'ok  ' if good else 'FAIL'}  the copy gone, the hands' one fish still there, the trip over")
     home()
@@ -386,6 +425,8 @@ def everything():
     got = []
     for tier, land, fish, size in TRIPS:
         got.append((f"{fish} {size} {tier}>{land}", trip(tier, land, fish, size)))
+    for side in (-28, 28):
+        got.append((f"GreatWhite 6>7 from {side} along the lip", trip(6, 7, "GreatWhite", "Normal", None, side)))
     got.append(("no fish", trip(4, 5, "-", "Normal")))
     got.append(("on foot", trip(4, 5, "GreatWhite", "foot")))
     for how in ("unequip", "die", "reset"):

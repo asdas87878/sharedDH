@@ -342,13 +342,14 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 	end
 	-- (with a fish beside it the sub keeps as far to the left as that takes, from a way before the drop)
 	-- and so at the start, until the fish is ahead of it)
-	local aside, early, open = 0, 0, sFrom
+	local aside, early, open, ease = 0, 0, sFrom, 600
 	if held then
 		local need = side + half.X + c.EscortGap
 		local hull = SubTrip.Hulls[math.clamp(sub.Equip, 1, #SubTrip.Hulls)][1]
 		local left, right = FishService.streamRoom(sDrop)
 		aside = math.clamp(need - right, 0, math.max(left - hull - c.EscortGap, 0))
-		open = sPick + math.min(c.EscortOpen, (sDrop - sPick) * 0.4)
+		open = sPick + math.min(c.EscortOpen, (sDrop - sPick) * 0.15)
+		ease = math.min(600, (sDrop - sPick) * 0.35)
 		left, right = math.huge, math.huge
 		for on = sPick + 100, open, 40 do
 			local l, r = FishService.streamRoom(on)
@@ -356,7 +357,7 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 		end
 		early = math.clamp(math.min(off, right - need), math.min(off, hull + c.EscortGap - left), off)
 	end
-	local roomLeft, roomRight = math.huge, math.huge
+	local rooms: { { number } } = {} -- (with a fish: how far along each is, and the open water left and right there)
 	local points = { pickup }
 	local dropAt = 0
 	local length = 0
@@ -369,7 +370,7 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 			-- to the right of the stream: as far as the pick-up is, easing onto the stream's own line (no bend while the
 			-- fish is beside it), and `aside` to the left for the drop
 			local over = Ease.lerp(off, early, Ease.smoothstep(sPick + 100, sPick + 500, on))
-					* (1 - Ease.smoothstep(open, open + 600, on))
+					* (1 - Ease.smoothstep(open, open + ease, on))
 				- aside * Ease.smoothstep(sDrop - 900, sDrop - 200, on)
 			if over ~= 0 then
 				local ahead2 = FishService.streamPoint(on + 30, 0, 0) - FishService.streamPoint(on - 30, 0, 0)
@@ -378,11 +379,8 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 					p += level.Unit:Cross(Vector3.yAxis) * over
 				end
 			end
-			if on > open and on < sDrop - 100 then
-				local left, right = FishService.streamRoom(on)
-				roomLeft = math.min(roomLeft, left + over)
-				roomRight = math.min(roomRight, right - over)
-			end
+			local left, right = FishService.streamRoom(on)
+			table.insert(rooms, { length + (p - points[#points]).Magnitude, left + over, right - over })
 		end
 		length += (p - points[#points]).Magnitude
 		table.insert(points, p)
@@ -401,6 +399,17 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 	end
 	local trip = SubTrip.new(now(), sub.Dest, ride ~= nil, points, dropAt)
 	if held then
+		-- (the least of it over the stretch the fish weaves along, on the left only where it goes left)
+		local roomLeft, roomRight = math.huge, math.huge
+		local from, to, leftFrom, leftTo = SubTrip.escortSpan(trip, half)
+		for _, room in rooms do
+			if room[1] > from - c.Sample and room[1] < to + c.Sample then
+				roomRight = math.min(roomRight, room[3])
+			end
+			if room[1] > leftFrom - c.Sample and room[1] < leftTo + c.Sample then
+				roomLeft = math.min(roomLeft, room[2])
+			end
+		end
 		SubTrip.escorted(trip, sub.Equip, half, saddleAt, held.Root.Position, ahead, roomLeft, roomRight)
 	end
 	sub.Trip = trip
