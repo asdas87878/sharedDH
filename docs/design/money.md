@@ -39,6 +39,8 @@
   bigger the pack, the far better its rate. The amounts are open; a fixed draft is asked of the tuning chat.
 - **The fixed ladder is agreed, every pack shown to everyone, none locked (the user, 2026-11-23: "Yes, show all").** The
   twelve packs are in `Products` with these amounts and prices, each Soon until its product id is written there.
+- **The Shop was laid out again after the fast food chains' menus (the user's ask, 2026-11-23):** what changed, why and what is
+  left out on purpose: [fast food menus](../reference/fast-food-menus.md).
 - **Its table: the tuning chat's draft 2 (2026-11-23).** Modelled, not played: medians of 5
   seeds, one pack, once. FULL: with auras and the Index (neither built, the Index's payouts a fit); OFF: the same model
   without them, the nearest to the game now. Which land a fresh account holds at once is the same in both. Robux prices

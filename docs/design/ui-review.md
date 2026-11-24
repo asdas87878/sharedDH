@@ -223,5 +223,9 @@ phone layout. The Shop's offers are placeholders (every Id 0).
   - *The selling: half done (2026-11-23, the user's "yes.").* Saving, the payout and the buy buttons are written, every
     offer still reads Soon, nothing is saved yet: [Money](money.md), "Selling".
 
+- **The Shop, after the fast food menus (the user, 2026-11-23: "go through the store we have and maybe slightly alter it if
+  needed"):** a rail of five picture buttons, Featured a real pack for this player, piles by size, a line saying what each
+  pack does, FOR YOU and BEST VALUE. The study, the changes, the checks: [fast food menus](../reference/fast-food-menus.md).
+
 Still proposed (the user's or Hugo's call): the dive HUD's restyle and fonts; the inventory bar's suggestions above;
 the server's sell check near the stall (raised with the game-code chat); the Shop's real offers and prices.

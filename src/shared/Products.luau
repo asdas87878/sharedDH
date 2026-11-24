@@ -12,6 +12,8 @@
 --   Look: the card's colours, a name in Products.Looks
 --   Picture: a name in UI.Kit's Textures, or nil for the card's big word (Big)
 -- The sections run in this order down the Shop, the reference's (featured, packs, passes, then the boosts by size).
+-- Featured has no offers of its own: it shows the one Oxygen pack that fits the player now (Pick; UI.ShopScreen says by
+-- what rule).
 -- "Oxygen" and "Cash" are what the stat rows' plus buttons open (StallController finds them by these titles).
 local Products = {}
 
@@ -29,8 +31,16 @@ export type Offer = {
 	Line: string?, -- one short line under the name: what it does, only what is true
 }
 
--- Colour: its title's (white without)
-export type Section = { Title: string, Wide: boolean, Colour: Color3?, Offers: { Offer } }
+-- Colour: its title's (white without). Rail: its picture on the Shop's rail, a Kit texture or a big word.
+-- Pick: the section whose pack for this player it shows
+export type Section = {
+	Title: string,
+	Wide: boolean,
+	Colour: Color3?,
+	Rail: string,
+	Pick: string?,
+	Offers: { Offer },
+}
 
 -- The card colours: { top, bottom } of the gradient, vivid as the reference's
 Products.Looks = {
@@ -46,21 +56,15 @@ Products.Sections = {
 	{
 		Title = "Featured",
 		Wide = true,
-		Offers = {
-			{
-				Key = "Featured",
-				Name = "Featured",
-				Kind = "Product",
-				Id = 0,
-				Price = 0,
-				Look = "Gold",
-				Picture = "Shop",
-			},
-		},
+		Colour = Color3.fromRGB(255, 214, 72),
+		Rail = "★",
+		Pick = "Oxygen",
+		Offers = {},
 	},
 	{
 		Title = "Packs",
 		Wide = true,
+		Rail = "Shop",
 		Offers = {
 			{
 				Key = "Starter",
@@ -85,6 +89,7 @@ Products.Sections = {
 	{
 		Title = "Passes",
 		Wide = true,
+		Rail = "x2",
 		Offers = {
 			{
 				Key = "DoubleOxygen",
@@ -109,6 +114,7 @@ Products.Sections = {
 	{
 		Title = "Oxygen",
 		Wide = false,
+		Rail = "Oxygen",
 		Colour = Color3.fromRGB(96, 224, 255),
 		Offers = {
 			{
@@ -182,6 +188,7 @@ Products.Sections = {
 	{
 		Title = "Cash",
 		Wide = false,
+		Rail = "Cash",
 		Colour = Color3.fromRGB(120, 255, 96),
 		Offers = {
 			{

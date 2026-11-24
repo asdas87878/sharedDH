@@ -73,6 +73,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 ## The studies (2026-11-16)
 Start with [what the studies found](docs/Findings.md). The evidence:
 - [Lighting](docs/reference/look-lighting.md): how stylised Roblox games are lit, with numbers and 15 tests for Studio.
+- [Fast food menus](docs/reference/fast-food-menus.md): how the big chains lay out a menu and make choosing easy, and what our Shop took from it.
 - [Buildings and props](docs/reference/look-assets.md): how stud-style games build hubs, plots and stalls, our brief checked, 17 tests.
 - [Creators and trending games](docs/reference/creators-and-trending.md): who to learn from, who to skip, what the trending games share.
 - [Roblox videos](docs/reference/roblox-videos.md) and [repos](docs/reference/roblox-repos.md): the earlier surveys.
