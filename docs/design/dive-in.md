@@ -628,7 +628,8 @@ change, not judged by eye.** The partner's first version is extended, not replac
   at their big sizes. A fish bigger than the gate's arch goes through its beam, as it already does on land. 6 dives have an
   end of the fish out of the view more than 15% of the frames (Anglerfish Colossal, BlueWhale Tiny and Giant, Hellmaw Normal,
   SkullAngler Giant and Huge; 23% at most);
-  the worst end is 46 view-halves out for a moment (Basilosaurus Colossal, at 2.1 s: its tail, as the camera comes round it).
+  one end is furthest out, 46 half-views from the middle, for a moment in the air (Basilosaurus Colossal, 2.1 s; it was 39,
+  StormSerpent Colossal, before the camera followed from beside).
 - **To check it offline:** `python3 tools/dive/lip_boxes.py . /tmp/lip.json`, `rojo build -o /tmp/place.rbxl`,
   `lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json` (exits 1 on any FAIL; parts 1, 3, 4, 5 in a minute
   and a half with a fourth argument of `1345`, part 6 films it off the middle in three more, part 2 is the long one). It reads the map GENERATOR's boxes, not the saved place.
