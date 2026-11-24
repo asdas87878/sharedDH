@@ -18,7 +18,7 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
   tank left free; the sub bought twice; the phone's small buttons; WALK CLOSER!.
 - **UI chat, your files changed:** `Banners`, `CatchShow`, `CaughtText`, `DockNotes`, `HubButtons`, `IndexPanel`, `Kit`, `Slots`, `StatRows`,
   `SubPanel`, `TankPanel`, `TankPrompt`, `UpgradeSign`. CatchShow's button is `ShowHit` now (was `Hit`).
-- **Tuning chat:** `tools/balance/model.py` doesn't know `VariantIncome`.
+- **Tuning chat:** re-ran `SetOxygen` 5 with its model (now reading `VariantIncome`, `Index` and `Sub.Prices`): needs, sub prices and packs stand; land 10 comes earlier, 105 -> 67 h without auras ([progression](design/progression.md)).
 - **Still open for launch:** saving is off, and the Index is not in SaveParts.
 
 ## 2026-11-24 · The fixes after the play passes (game code, the user's PC)
