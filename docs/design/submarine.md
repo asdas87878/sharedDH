@@ -107,7 +107,7 @@ phase of the trip (the boss's reading, mission "submarine camera always behind")
   - The hand-over to the hop and to the saddle: under 1 degree of turn and 2.4 studs of move in a frame, as before.
   - The run is the old code and lags the sub's nose in a bend: 8 degrees to land 2, 17 to 21 degrees for 7 or 8
     frames to land 10 (4,267 studs a second; the old camera reads the same there), 15 to 16 for a moment after going
-    in at the very end of the dock's lip.
+    in at the very end of the dock's lip (the old camera: 16, and up to 24 in the shake).
 
 ### Titles on the run (task t1, Hugo 2026-11-20)
 Hugo: "let the intro text for submarines begone ... add a special rule for submarines, if title pops up, make sure

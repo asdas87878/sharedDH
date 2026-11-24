@@ -23,8 +23,8 @@ from the game's own camera; logs in `work/subcam/`, not in the repo), calm frame
 |---|---|---|---|
 | Swim (Approach) | 0.00 to 0.02 studs (5.0) | under 0.1 degrees (161.6: in front) | 10 to 17 studs (15 ahead) |
 | Pick-up | 0.00 to 0.02 (8.4) | under 0.1 (161.6, swinging round) | 14 to 20 |
-| Run, land 2 | 5.3 (5.1) | 8.4 (8.0) | 19 to 37 |
-| Run, land 10 | 13.2 (13.3) | 21.0 (21.1) | 20 to 38 |
+| Run, land 2 | 5.1, 5.3 in the shake (5.1) | 8.1, 8.4 in the shake (8.0) | 19 to 37 |
+| Run, land 10 | 10.8, 13.2 in the shake (9.7, 13.3) | 16.9, 21.0 in the shake (15.1, 21.1) | 20 to 38 |
 | Arrival | 2.3 (6.3) | 4.0 (11.7) | 30 to 36 |
 | Drop-off (with a fish) | 1.4 (6.4) | 2.2 (12.0) | 36 |
 - Trips: sub 1 to land 2 and sub 9 to land 10, each with and without a fish, and two from the very ends of the dock's lip; walked
@@ -40,7 +40,9 @@ from the game's own camera; logs in `work/subcam/`, not in the repo), calm frame
   350 degrees a second on those bends and the eased camera does not follow it.
 - **Gone in at the very end of the lip** (5 studs from the lane's wall): the wall holds the camera 8 to 11 studs behind you for
   the whole swim and 4.5 at the seat ([still](attachments/subcam-behind-lip-end-pickup.jpg)); the run then reads 15.0 to 15.7
-  degrees for a moment, and one shaken pick-up frame 6.2 to 6.5 (limit 6). Never to the side, close.
+  degrees for a moment (three trips), and one shaken pick-up frame 6.2 to 6.5 (limit 6) on two of the three. Never to the
+  side, close. Old code, the same entry, two trips: the run reads 16.0 degrees calm and 18.8 and 23.8 in the shake, so the
+  run was over there before this change too.
 **The check's lines were moved twice after the first runs, and one count added** (said in the script): the pick-up is
 read against your own line (the line the camera follows), not the sub's nose, which is 6.9 degrees off the lane on the
 pick-up's first frame; after the sub lets go the camera is read against the way the sub was going, not the way you travel,
