@@ -395,12 +395,10 @@ local function dive(tier, land, kind, mounted, outX, outZ)
 	SubService.setSub(player, 9, tier)
 	-- (the land: the furthest of that sub's, or nearer by its pick)
 	equipped = if kind then { Id = kind.Id, Size = kind.Size, Variant = "" } else nil
-	attrs.LandMounted = mounted or nil
 	entry = V3.new(X0 + outX, -5, outZ)
 	beat(1 / 60)
 	actions.fire(player, "SubPick", land, "")
-	attrs.LandMounted = nil
-	local took = RideService.Diving(player)
+	local took = RideService.Diving(player, mounted == true)
 	if took then
 		state = "Carried"
 	end
@@ -575,14 +573,14 @@ local function measure(trip, tier, kind)
 	local hull = SubTrip.Hulls[tier]
 	local hullHalf = V3.new(hull[1], (hull[2] + hull[3]) / 2, (hull[4] + hull[5]) / 2)
 	local hullAt = CF.new(0, (hull[2] - hull[3]) / 2, (hull[5] - hull[4]) / 2)
-	local out = { hull = math.huge, hullAt = 0, hullIn = math.huge, wall = math.huge, wallAt = 0, gate = 0, camera = math.huge, cameraAt = 0,
+	local out = { hull = math.huge, hullAt = 0, hullIn = math.huge, wall = math.huge, wallAt = 0, wallIn = math.huge, subIn = math.huge, subRun = math.huge, gate = 0, camera = math.huge, cameraAt = 0,
 		frame = 0, turn = 0, turnAt = 0, pace = 0, home = 0, left = 0, right = 0, floor = math.huge, roof = math.huge, loop = (if e.Right then 1 else 0) + (if e.Left then 2 else 0), turns = e.Turns,
 		inside = 0, start = 0, jump = 0, view = 0, plain = 0, sideView = 0, sx0 = 1, sx1 = -1,
 		ride = arriveAt - rideAt }
 	local a, b = SubTrip.escortTimes(trip, e.Half)
 	local seen, of = 0, 0
 	local wasRel, wasLook, wasPos, wasSeen = nil, nil, nil, nil
-	local near = nil
+	local near, nearSub = nil, nil
 	local mem = {}
 	local views, sides, sideSum, plain = 0, 0, 0, 0
 	for k = 0, math.floor((dropAt + c.Kick) * FPS) do
@@ -596,28 +594,52 @@ local function measure(trip, tier, kind)
 			out.hull, out.hullAt = gap, t
 		end
 		-- the walls: the box's reach to either side of the lane at its middle and its two ends
-		if t >= pickupAt then
-			for _, z in { -e.Half.Z, 0, e.Half.Z } do
-				local p = (fish * CF.new(0, 0, z)).Position
-				near = streamS(p, if near and t > rideAt then near else nil)
-				if t <= rideAt then
-					near = nil
-				end
-				local s = near or streamS(p)
-				local base = streamPoint(s, 0, 0)
-				local right = wayAt(s):Cross(UP)
-				local x = (p - base):Dot(right)
-				local l, r = roomAt(s)
-				local g = math.min(l + x, r - x) - e.Half.X
-				if s > 1 and g < out.wall then
+		if t <= rideAt then
+			near = nil
+		end
+		for _, z in { -e.Half.Z, 0, e.Half.Z } do
+			local p = (fish * CF.new(0, 0, z)).Position
+			local s = streamS(p, near)
+			if t > rideAt then
+				near = s
+			end
+			local base = streamPoint(s, 0, 0)
+			local right = wayAt(s):Cross(UP)
+			local x = (p - base):Dot(right)
+			local l, r = roomAt(s)
+			local g = math.min(l + x, r - x) - e.Half.X
+			if s > 1 then
+				if t < pickupAt then
+					out.wallIn = math.min(out.wallIn, g)
+				elseif g < out.wall then
 					out.wall, out.wallAt = g, t
 				end
-				if z == 0 and t >= rideAt then
-					out.floor = math.min(out.floor, p.Y - e.Half.Y - streamPoint(s, 0, -1e4).Y)
-					out.roof = math.min(out.roof, Config.Oxygen.SurfaceY - p.Y - e.Half.Y)
-				end
+			end
+			if z == 0 and t >= rideAt then
+				out.floor = math.min(out.floor, p.Y - e.Half.Y - streamPoint(s, 0, -1e4).Y)
+				out.roof = math.min(out.roof, Config.Oxygen.SurfaceY - p.Y - e.Half.Y)
 			end
 		end
+		-- the sub's own four corners against the same sides (behind the gate, the gate's own width)
+		local sAt = nil
+		for _, corner in { { -1, -hull[4] }, { 1, -hull[4] }, { -1, hull[5] }, { 1, hull[5] } } do
+			local p = (sub * CF.new(corner[1] * hull[1], 0, corner[2])).Position
+			local g
+			if t <= rideAt and p.Z < rows[1][4] then
+				g = rows[1][5] / 2 - math.abs(p.X - X0)
+			else
+				sAt = streamS(p, if t > rideAt then sAt or nearSub else nil)
+				local x = (p - streamPoint(sAt, 0, 0)):Dot(wayAt(sAt):Cross(UP))
+				local l, r = roomAt(sAt)
+				g = math.min(l + x, r - x)
+			end
+			if t < rideAt then
+				out.subIn = math.min(out.subIn, g)
+			else
+				out.subRun = math.min(out.subRun, g)
+			end
+		end
+		nearSub = sAt or nearSub
 		if math.abs(t - (pickupAt + c.EscortHopFrom * trip.Pickup)) < 0.5 / FPS then
 			out.gate = fish.Position.Z - e.Half.Z - rows[1][4]
 		end
@@ -679,14 +701,15 @@ local function measure(trip, tier, kind)
 		-- moving smoothly: its place and heading in the sub's own level frame
 		local level = CF.lookAt(sub.Position, sub.Position + V3.new(sub.LookVector.X, 0, sub.LookVector.Z))
 		local look = if t < rideAt then fish.LookVector else level:VectorToObjectSpace(fish.LookVector)
+		local rel = level:PointToObjectSpace(fish.Position)
 		if wasRel and t > 0 then
-			local p = (o - wasRel).Magnitude * FPS
+			local p = (rel - wasRel).Magnitude * FPS
 			if t >= rideAt - 0.2 then
 				out.pace = math.max(out.pace, p)
 			end
 			-- (a jump: its place off where it was going, in the sub's frame, or in the world before the run)
 			if wasSeen then
-				local step = if t < rideAt then fish.Position - wasPos else o - wasRel
+				local step = if t < rideAt then fish.Position - wasPos else rel - wasRel
 				if (t < rideAt or t > rideAt + 1.5 / FPS) and t < dropAt then
 					out.jump = math.max(out.jump, (step - wasSeen).Magnitude)
 				end
@@ -696,7 +719,7 @@ local function measure(trip, tier, kind)
 				wasSeen = fish.Position - wasPos
 			end
 			if math.abs(t - rideAt) < 1.5 / FPS then
-				wasSeen = o - wasRel
+				wasSeen = rel - wasRel
 			end
 			local turn = math.deg(math.acos(math.clamp(look:Dot(wasLook), -1, 1)))
 			-- (not the frame the run begins: the sub's own nose goes onto the path, an old step of the trip)
@@ -704,9 +727,10 @@ local function measure(trip, tier, kind)
 				out.turn, out.turnAt = turn, t
 			end
 		end
-		wasRel, wasLook, wasPos = o, look, fish.Position
+		wasRel, wasLook, wasPos = rel, look, fish.Position
 		if math.abs(t - dropAt) < 0.5 / FPS then
-			out.home = (o - V3.new(e.Side, o.Y, math.clamp(e.Half.Z - 12, 0, c.EscortKickLead))).Magnitude
+			-- (where it really is, in the sub's level frame)
+			out.home = (V3.new(rel.X, 0, -rel.Z) - V3.new(e.Side, 0, math.clamp(e.Half.Z - 12, 0, c.EscortKickLead))).Magnitude
 		end
 	end
 	out.frame = if of > 0 then seen / of else 1
@@ -716,7 +740,7 @@ local function measure(trip, tier, kind)
 	return out
 end
 
-local csv = { "kind,size,tier,land,long,wide,high,loop,turns,ride,hullIn,hull,hullAt,wall,wallAt,gate,camera,cameraAt,frame,turn,turnAt,pace,home,left,right,floor,roof,inside,start,jump,view,plain,sideView,sx0,sx1,outX" }
+local csv = { "kind,size,tier,land,long,wide,high,loop,turns,ride,hullIn,hull,hullAt,wall,wallAt,gate,camera,cameraAt,frame,turn,turnAt,pace,home,left,right,floor,roof,inside,start,jump,view,plain,sideView,sx0,sx1,outX,wallIn,subIn,subRun" }
 local worst = {}
 local function note(key, value, label, low)
 	local w = worst[key]
@@ -725,9 +749,20 @@ local function note(key, value, label, low)
 	end
 end
 local function lists()
-	return { hull = {}, wall = {}, gate = {}, camera = {}, frame = {}, turn = {}, home = {}, water = {}, jump = {}, plain = {} }
+	return { hull = {}, hullIn = {}, wall = {}, gate = {}, camera = {}, frame = {}, turn = {}, home = {}, water = {}, jump = {}, plain = {}, sub = {}, inside = {} }
+end
+-- The least of the lane over the stretch of a trip (its width), and of the water's depth
+local function least(from, to)
+	local width, deep = math.huge, math.huge
+	for s = from, to, 24 do
+		local l, r = roomAt(s)
+		width = math.min(width, l + r)
+		deep = math.min(deep, Config.Oxygen.SurfaceY - streamPoint(s, 0, -1e4).Y)
+	end
+	return width, deep
 end
 local bad, big, ends = lists(), lists(), lists()
+local listed, cantKinds = {}, {} -- what can't fit: trips, and kinds
 local trips = 0
 local only = process.args[4]
 local part, of = string.match(only or "", "^(%d+)/(%d+)$")
@@ -763,17 +798,25 @@ for tier = 1, 9 do
 			trips += 1
 			local m = measure(trip, tier, kind)
 			local label = string.format("%s %s, sub %d to land %d", kind.Id, kind.Size, tier, land)
-			table.insert(csv, string.format("%s,%s,%d,%d,%.0f,%.0f,%.0f,%s,%d,%.1f,%.1f,%.1f,%.2f,%.1f,%.2f,%.0f,%.1f,%.2f,%.2f,%.1f,%.2f,%.0f,%.2f,%.0f,%.0f,%.0f,%.0f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d",
+			table.insert(csv, string.format("%s,%s,%d,%d,%.0f,%.0f,%.0f,%s,%d,%.1f,%.1f,%.1f,%.2f,%.1f,%.2f,%.0f,%.1f,%.2f,%.2f,%.1f,%.2f,%.0f,%.2f,%.0f,%.0f,%.0f,%.0f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.1f,%.1f,%.1f",
 				kind.Id, kind.Size, tier, land, kind.Body.Z, kind.Body.X, kind.Body.Y, tostring(m.loop), m.turns, m.ride, m.hullIn, m.hull, m.hullAt, m.wall, m.wallAt,
 				m.gate, m.camera, m.cameraAt, m.frame, m.turn, m.turnAt, m.pace, m.home, m.left, m.right, m.floor, m.roof,
-					m.inside, m.start, m.jump, m.view, m.plain, m.sideView, m.sx0, m.sx1, outX))
-			-- (a Normal fish must clear everything. The Colossal are up to 200 long, 96 wide and 147 tall in a gate 96 wide
-			-- with 46 of water: what they can't clear is listed, not failed)
+					m.inside, m.start, m.jump, m.view, m.plain, m.sideView, m.sx0, m.sx1, outX, m.wallIn, m.subIn, m.subRun))
+			-- What can't fit is listed, not failed: a fish and its sub wider, side by side with the gaps, than the lane at its
+			-- narrowest there (the walls); a fish taller than the water less 4 (the floor and the surface); one with no room
+			-- beside the hull on either side (how much of it shows); a Colossal's body round the camera (it is see-through)
+			local width, deep = least(entry.Z, streamS(SubTrip.at(trip, SubTrip.dropDistance(trip))))
+			local e = trip.Escort
+			local tooWide = e.Side + e.Half.X + e.Wide + 2 * c.EscortGap > width
+			local tooTall = kind.Body.Y > deep - 4
+			local noRoom = not e.Right and not e.Left
 			local list = if kind.Size ~= "Normal" then big elseif outX == 0 then bad else ends
 			for key, isBad in
 				{
-					hull = math.min(m.hull, m.hullIn) < 0,
+					hull = m.hull < 0,
+					hullIn = m.hullIn < 0,
 					wall = m.wall < 0,
+					sub = m.subIn < 0,
 					gate = m.gate < 0,
 					camera = m.camera < 5,
 					frame = m.frame < 0.95,
@@ -782,10 +825,22 @@ for tier = 1, 9 do
 					plain = hullCells ~= nil and m.plain < 0.5,
 					home = m.home > 0.5,
 					water = m.floor < 0 or m.roof < 0,
+					inside = m.inside > 0.5,
 				}
 			do
 				if isBad then
-					table.insert(list[key], label)
+					local cannot = (key == "wall" and tooWide)
+						or (key == "water" and tooTall)
+						or (key == "plain" and noRoom)
+						or (key == "inside" and kind.Size ~= "Normal")
+					if cannot then
+						listed[key] = listed[key] or {}
+						table.insert(listed[key], label)
+						cantKinds[key] = cantKinds[key] or {}
+						cantKinds[key][kind.Id .. " " .. kind.Size] = true
+					else
+						table.insert(list[key], label)
+					end
 				end
 			end
 			note("hull", m.hull, label, true)
@@ -806,33 +861,42 @@ for key, w in worst do
 	print(string.format("  worst %-7s %8.2f  %s", key, w[1], w[2]))
 end
 local NAMES = {
-	hull = "clear of the hull all the way",
-	wall = "clear of the lane's sides",
+	hull = "the fish clear of the hull, the run",
+	hullIn = "the fish clear of the hull, the way out",
+	wall = "the fish clear of the lane's sides",
+	sub = "the sub inside the gate and the lane until the run",
 	gate = "out of the gate by the hop",
 	camera = "five studs or more off the camera's line",
 	frame = "in the picture all the weave",
 	turn = "never turns over 12 degrees in a frame",
 	home = "in its place for the kick",
 	jump = "never jumps (a frame's move within 3 studs of the frame's before)",
+	plain = "a third of it in view for half the weave or more",
+	water = "clear of the floor and the surface",
+	inside = "the camera out of its body (half a second of it at most) on the way out",
 }
-for key, name in NAMES do
-	local list = bad[key]
-	ok(string.format("Normal: %s (%d not)", name, #list), #list == 0, table.concat(list, "; ", 1, math.min(3, #list)))
+for _, group in { { "Normal, middle of the lip", bad }, { "Normal, the lip's ends", ends }, { "Colossal", big } } do
+	for key, name in NAMES do
+		local list = group[2][key]
+		-- (a Colossal's walls and water past what can't fit are the listed limits below: the reviewer, 2026-11-24)
+		if group[2] == big and (key == "wall" or key == "water") then
+			continue
+		end
+		ok(string.format("%s: %s (%d not)", group[1], name, #list), #list == 0, table.concat(list, "; ", 1, math.min(3, #list)))
+	end
 end
-ok(
-	string.format("Normal, from the lip's ends: clear of the hull, no jumps (%d not)", #ends.hull + #ends.jump),
-	#ends.hull + #ends.jump == 0,
-	table.concat(ends.hull, "; ")
-)
-ok(
-	"Colossal: in the picture, in its place for the kick, off the camera's line, out of the gate, no jumps",
-	#big.frame + #big.home + #big.camera + #big.gate + #big.jump == 0
-)
 -- (not failed, and not met: read these with the passes)
-print(string.format("  EXCEPTION Colossal, into the hull's box: %d, the nearest %.1f", #big.hull, worst.hull[1]))
-print(string.format("  EXCEPTION into the lane's sides: Normal from the lip's ends %d, Colossal %d", #ends.wall, #big.wall))
-print(string.format("  EXCEPTION taller than the water: Normal %d, Colossal %d", #bad.water + #ends.water, #big.water))
-print(string.format("  EXCEPTION Normal, a third of it in view for less than half the weave: %d", #bad.plain + #ends.plain))
+for _, key in { "wall", "water" } do
+	print(string.format("  LIMIT Colossal, %s: %d trips not", NAMES[key], #big[key]))
+end
+for key, list in listed do
+	local names = {}
+	for name in cantKinds[key] do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	print(string.format("  CANNOT FIT %s: %d trips, %d kinds: %s", NAMES[key], #list, #names, table.concat(names, ", ")))
+end
 if process.args[3] then
 	fs.writeFile(process.args[3], table.concat(csv, "\n") .. "\n")
 end
@@ -935,6 +999,43 @@ for _, when in { 0.4, 1.5, 4 } do
 		return drop + 0.1
 	end)
 	ok("  and is gone, never replaced, the fling instead", #spawned == 1 and alive() == 0 and flung == 1 and seated == 0)
+end
+
+-- (the trip written again as the fish is given up: every machine knows it is the fling)
+for _, when in { 0.4, 1.5, 4 } do
+	fresh()
+	dive(4, 5, clown, true, 0, OUT)
+	local before = SubTrip.decode(attrs.SubTrip)
+	run(function()
+		return when
+	end)
+	equipped = nil
+	beat(1 / 60)
+	local after = SubTrip.decode(attrs.SubTrip)
+	ok(string.format("unequipped at %.1f s: the trip says so, the same start, a fling's drop", when),
+		before.Fish and not after.Fish and after.Start == before.Start and after.DropTime == c.Drop and after.Escort ~= nil)
+end
+
+-- (in the kick's own window: after the drop is said, before the machine says it has landed)
+for _, late in { 0.1, 0.3, 1 } do
+	fresh()
+	_, trip = dive(4, 5, clown, true, 0, OUT)
+	run(function(tr)
+		local _, _, _, drop = SubTrip.times(tr)
+		return drop + late
+	end)
+	local cuedKick = told[#told][1] == "SubDrop" and told[#told][2] == "Kick"
+	local model = told[#told][3]
+	equipped = nil
+	beat(1 / 60)
+	ok(string.format("unequipped %.1f s into the kick: flung at once, and told", late),
+		cuedKick and flung == 1 and seated == 0 and state == "Jumping" and told[#told][2] == "Fling")
+	actions.fire(player, "SubLand", model)
+	run(function(tr)
+		local _, _, _, drop = SubTrip.times(tr)
+		return drop + 4.5
+	end)
+	ok("  a late word from the machine changes nothing, the copy gone", flung == 1 and seated == 0 and alive() == 0)
 end
 
 fresh()

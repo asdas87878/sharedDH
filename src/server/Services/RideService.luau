@@ -160,7 +160,8 @@ RideService.Keeps = nil :: ((player: Player) -> boolean)?
 RideService.Home = nil :: ((player: Player) -> CFrame?)?
 -- Set by SubService: asked as a player on the dock goes into the water. true: the submarine takes them (state
 -- "Carried": no drain, no hop, no send-back, until SubService lets them go with RideService.fling, seatOn or letGo)
-RideService.Diving = nil :: ((player: Player) -> boolean)?
+-- `mounted`: they were on their ride fish on land as they did (it has just been taken off land)
+RideService.Diving = nil :: ((player: Player, mounted: boolean) -> boolean)?
 -- Set by SubService: asked next, when the sub doesn't take them. A fish (the one held over the head, task f2): made
 -- where they go in and kept for them; they are put straight on it, as a landing, instead of the dive-in's hop
 RideService.DiveFish = nil :: ((player: Player) -> Wild?)?
@@ -1744,9 +1745,10 @@ local function tick(r: Rider, dt: number)
 		end
 		if root.Position.Y < o.WaterY then
 			-- (into the water: the land fish goes before anything else owns the body)
+			local mounted = r.Land ~= nil
 			landOff(r)
 			-- (the submarine, when one has been picked at the hub: docs/design/submarine.md)
-			if RideService.Diving and RideService.Diving(r.Player) then
+			if RideService.Diving and RideService.Diving(r.Player, mounted) then
 				r.Token += 1
 				r.Oxygen = r.Max
 				setState(r, "Carried")

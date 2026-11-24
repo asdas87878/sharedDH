@@ -60,6 +60,7 @@ type Visual = {
 	Entry: CFrame?, -- where we were as it began
 	Cue: string?, -- the server's word at the drop: "Fling" or "Kick"
 	CuedAt: number,
+	Kicking: boolean, -- the kick was under way when that word came (the fish given up in the middle of it)
 	Fish: Model?, -- our fish, beside the sub
 	FishFrom: Vector3?,
 	FishGot: number,
@@ -70,6 +71,8 @@ type Visual = {
 	LookAt: number, -- os.clock() the fish was last looked for
 	Carry: CFrame?, -- our own trip: where the fish really was as it began, against where the trip has it (eased away)
 	HopFrom: CFrame?, -- where we left the saddle
+	Thin: number, -- our own trip: how see-through the fish is on our screen (the camera is in its body)
+	ThinParts: { Instance }, -- the parts of it that takes
 	Lost: CFrame?, -- where we were as the fish was given up under us,
 	LostAt: number, -- and when, seconds into the trip
 }
@@ -128,6 +131,7 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 		Entry = nil,
 		Cue = nil,
 		CuedAt = 0,
+		Kicking = false,
 		Fish = nil,
 		FishFrom = nil,
 		FishGot = 0,
@@ -137,6 +141,8 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 		LookAt = 0,
 		Carry = nil,
 		HopFrom = nil,
+		Thin = 0,
+		ThinParts = {},
 		Lost = nil,
 		LostAt = 0,
 	}
@@ -361,6 +367,44 @@ local function escort(v: Visual, t: number)
 	root.CFrame = cf
 	-- (its swim beats to this, AnimController: not to the sub's thousands of studs a second)
 	root.AssemblyLinearVelocity = cf.LookVector * Config.Sub.EscortPace
+end
+
+-- Our own fish see-through on our screen while the camera is in its body (a fish taller than the water under the camera's
+-- own ceiling, or the camera pulled in off the gate), and back as the camera comes out of it: on the way out to the sub
+-- only, all of it back by the run
+local function thin(v: Visual, t: number, dt: number)
+	local e = v.Trip.Escort
+	local fish = v.Fish
+	local root = fish and fish.PrimaryPart
+	if not e or not fish or not root or fish:GetAttribute("SubLeave") ~= nil then
+		return
+	end
+	local _, rideAt = SubTrip.times(v.Trip)
+	local want = 0
+	if t < rideAt + 0.5 then
+		local o = root.CFrame:PointToObjectSpace(workspace.CurrentCamera.CFrame.Position)
+		local room = Config.Sub.EscortThinRoom
+		if math.abs(o.X) < e.Half.X + room and math.abs(o.Y) < e.Half.Y + room and math.abs(o.Z) < e.Half.Z + room then
+			want = Config.Sub.EscortThin
+		end
+	end
+	if want == 0 and v.Thin == 0 then
+		return
+	end
+	if #v.ThinParts == 0 then
+		for _, d in fish:GetDescendants() do
+			if d:IsA("BasePart") or d:IsA("Decal") then
+				table.insert(v.ThinParts, d)
+			end
+		end
+	end
+	v.Thin += (want - v.Thin) * Ease.alpha(14, dt)
+	if want == 0 and v.Thin < 0.02 then
+		v.Thin = 0
+	end
+	for _, d in v.ThinParts do
+		(d :: any).LocalTransparencyModifier = v.Thin
+	end
 end
 
 -- A fish's own movers, kept in step with where we put it
@@ -697,7 +741,8 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 	-- the fling: as soon as the server says
 	if v.Cue == "Fling" then
 		if State.Mode == "Carried" and once(v, "fling") then
-			local seat = (sub * SEAT).Position
+			-- (off the seat; given up in the middle of the kick, from where we are in its arc)
+			local seat = if v.Kicking then root.Position else (sub * SEAT).Position
 			root.CFrame = CFrame.lookAt(seat, seat + flat(sub.LookVector))
 			root.AssemblyLinearVelocity = flat(sub.LookVector) * speed
 			JumpController.fling(yawOf(flat(sub.LookVector)))
@@ -725,6 +770,7 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 		end
 	end
 	cameraFor(v, sub, speed, root.Position, t, dt)
+	thin(v, t, dt)
 end
 
 local function step(dt: number)
@@ -778,6 +824,9 @@ local function watch(player: Player)
 			return
 		end
 		if had and had.Trip.Start == trip.Start then
+			-- (the trip we have, written again: the fish was given up on the way, so the drop-off is the fling)
+			had.Trip.Fish = trip.Fish
+			had.Trip.DropTime = trip.DropTime
 			return
 		end
 		remove(player)
@@ -811,6 +860,7 @@ function SubController.Init()
 			v.FishFrom = if a.PrimaryPart then a.PrimaryPart.Position else nil
 			v.FishGot = os.clock()
 		elseif kind == "SubDrop" and v then
+			v.Kicking = v.Cue == "Kick"
 			v.Cue = a
 			v.CuedAt = os.clock()
 			if a == "Kick" and typeof(b) == "Instance" and b:IsA("Model") then
