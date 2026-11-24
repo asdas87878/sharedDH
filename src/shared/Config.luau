@@ -3275,7 +3275,7 @@ Config.Sub = {
 	-- (the bubble's picture is a soft ring a little over half as wide as the size given: 2 draws a ring 1.1 across)
 	WakeSize = 2, -- a bubble just behind the screw, studs (each a quarter bigger or smaller, by chance)
 	WakeSizeEnd = 0.6, -- shrinking to this at the trail's end, the end nearer the camera (tier 9's passes close under it)
-	WakeSee = 0.15, -- how see-through a new bubble is (0: solid); it fades out along the trail
+	WakeSee = 0.15, -- how see-through a bubble is at its clearest, just behind the screw (0: solid); it comes in faint and fades out along the trail
 	WakeBright = 3.5, -- the bubbles' brightness (the aura shop's bubbles: 3.5; the picture itself is faint)
 	WakeRise = 3, -- they rise a little as they go, studs a second squared
 }

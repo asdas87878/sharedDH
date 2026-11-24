@@ -117,8 +117,11 @@ are `WakeMost`, `WakeSize` and `WakeBright`.
 **Outside this task's own files, each a small change the trail needed:** `SubController.place` set the rate with its
 own numbers (0.6, 8, 260); it now reads `Config.Sub`'s and stops at the fade. `tools/studio/t3_toy_subs_check.py`
 looked for the emitter on the propeller; it now looks on the hull's `WakeAt`. `tools/subs/stand_sub_check.luau`'s
-made-up Config got the `Wake` numbers. They are one commit of their own, so they can be taken back alone: the trail
-then still works in the game, at the old 8 to 260 a second, and those two checks would need the lines again.
+made-up Config got the `Wake` numbers. They are one commit of their own (039996a), but it belongs with the trail:
+without it the rate is the old 8 to 260 a second, about 100 rings in the 10 studs (nearly four times what the
+numbers above were worked out for), the bubbles go on after the sub has faded, and those two checks fail.
+- **"More with speed" shows only under 256 studs a second:** the pick-up, the first moment of a run and the drop.
+  Every run's fast part is at the most, 70 a second, so all trips look alike at speed.
 
 ![the propeller options](../attachments/sub-props-options-2026-11-23.png)
 
