@@ -274,6 +274,8 @@ local aimed: Model? = nil -- the fish of our tank the look is on
 local bound = false
 local holding: Model? = nil
 local heldSince = 0
+local heldOn = 0 -- when the look was last on the held fish
+local HOLD_SLIP = 0.4 -- seconds the look may be off the held fish (it swims on past) before the hold is dropped
 local askedAt = -math.huge
 local mark: Mark? = nil
 local aimAt = 0
@@ -434,6 +436,7 @@ local function onKey(_name: string, state: Enum.UserInputState): Enum.ContextAct
 		if aimed and not riding then
 			holding = aimed
 			heldSince = os.clock()
+			heldOn = heldSince
 			return Enum.ContextActionResult.Sink
 		end
 	else
@@ -473,8 +476,15 @@ local function aim()
 		aimAt = now
 		aimed = lookedAt()
 	end
-	if holding and holding ~= aimed then
-		holding = nil
+	local held = holding
+	if held then
+		if aimed == held then
+			heldOn = now
+		elseif can and held.Parent and now - heldOn < HOLD_SLIP then
+			aimed = held
+		else
+			holding = nil
+		end
 	end
 	bind(aimed ~= nil)
 	local fraction = 0

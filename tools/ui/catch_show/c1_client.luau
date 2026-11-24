@@ -39,7 +39,7 @@ local function state(): string
 	local root = player.PlayerGui:FindFirstChild("RideHud")
 	local screen = root and root:FindFirstChild("CatchShow", true)
 	local group = screen and screen:FindFirstChild("Screen")
-	local hit = screen and screen:FindFirstChild("Hit")
+	local hit = screen and screen:FindFirstChild("ShowHit")
 	local back = screen and screen:FindFirstChild("Backdrop")
 	return string.format(
 		"showing=%s back=%s group=%s hit=%s",

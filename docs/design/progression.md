@@ -305,6 +305,16 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
   all"; `Shared/Products`, [Money](money.md)). So a change to a land's needs, a seahorse or an aura price has to be
   checked against them: the Oxygen packs hold lands 4, 5, 6, 7, 9 and 10 for a new player, and $75T is the price of
   Royal, Ember and Golden less what a land 9 player has.
+- **Submarine prices** (the user, 2026-11-24, to the game-code chat: "Price subs with the tuning chat, they should be
+  fairly pricey"; numbers the two chats', not picked by the user one by one): $75K, $500K, $5M, $50M, $500M, $5B, $75B,
+  $1T, $15T, tiers 1 to 9. Modelled (`work/hunt/v3.py` with auras added, cash spent on the cheapest thing first): each
+  costs 23 to 41 min of income when its land opens (tiers 1 to 6), 45 to 90 min at tier 7, 70 to 115 at 8, 130 to 175 at 9; the
+  game-code chat's first draft ($25M at tier 4 to $75B at 9) was down to 1 to 3 min from tier 6. Theirs (Jurassic
+  Airlines: Desert $25M, Snow $1B, Extinction $50T, seen or said) cost hours to days of our income, so not copied.
+- **Colours rarer, paying more** (the user, 2026-11-24: "Colours should be rarer and pay more. Especially rainbows"):
+  Silver 1 in 20, Gold 1 in 100, Rainbow 1 in 600, an income-only x1.2, x2, x6 on top (game-code's numbers).
+  Modelled: lands come within about 5% of the same times with the Index's set reward as it is, and up to 13% later
+  (land 8) with it ten times larger; income within about 13% for the first hour, x1.2 to 1.8 at 10 to 20 h. A Rainbow earns x12 for x2 the need, more than the next land's plain fish (x7.3).
 - **Numbers past a trillion:** cash labels read Qa and Qi since `a72c1ff` (the UI chat, 2026-11-23). Full Oxygen
   figures fit by measured text width, the Oxygen row and the seahorse sign shrinking to do it, **except the player's
   own Oxygen row (`UI/StatRows`, bottom left) at 351,000,000,000**: in Studio 153 px of text in a 126 px box (the

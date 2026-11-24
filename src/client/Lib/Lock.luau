@@ -242,6 +242,10 @@ local function lineScore(
 	local along = if fore >= 0 then fore * l.LineAhead else -fore * l.LineBehind
 	local up = rel.Y * l.LineUp
 	local s = math.max(math.sqrt(side * side + along * along + up * up) - body.Z / 2 * l.LineBody, 0)
+	-- (one too strong for us counts as further off: 2026-11-24, half the hops of a new player were onto one)
+	if l.StrongAside > 0 and State.tooStrong(model) then
+		s += l.StrongAside
+	end
 	local round = roundFrom(rel, dir, right)
 	local most = math.max(math.abs(round), math.abs(roundFrom(now, dir, right)))
 	local place = if wide or most <= l.FrontAngle + (if keep then l.FrontKeep else 0)

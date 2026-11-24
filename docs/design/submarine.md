@@ -41,7 +41,7 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
    the stall, on your own screen only (`SubStandController`; checked in Studio by
    `python tools/studio/h4_hub_check.py run rings sub`). The shop lists nine subs, one a tier
    (Bathtub, Reef Runner, Kelp Cruiser, Wreck Diver, Blue Streak, Twilight Ray, Midnight Hunter, Vent Crawler, Abyss
-   King), each with its picture, the land it reaches and its price. You buy them in order (free for now), and
+   King), each with its picture, the land it reaches and its price. You buy them in order (priced since 2026-11-24), and
    **equip** one; the equipped sub is the one that comes for you, and it reaches its own land or any before it.
    "NO SUB" is the ordinary dive-in. Under the list, GO TO picks the land and RIDE WITH a fish from your tank.
    The shop closes as you walk away. A small ticket at the left edge says where the sub will take you.
@@ -192,12 +192,14 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
   dive is the dive-in as it is today. F at the dock opens the panel; it doesn't launch.
 - **The tiers** (reading, not confirmed). One tier per land after the first. **Tier N takes you to land N + 1, and to
   any land before it.** Each tier needs the one before (an upgrade, as Hugo's "upgrade tier increasing the distance").
-- **The prices** (guesses to tune). Set by [progression](progression.md)'s twice-as-fast plan: a tier costs about the
+- **The prices** (the user, 2026-11-24: "Price subs with the tuning chat, they should be fairly pricey"): $75K, $500K,
+  $5M, $50M, $500M, $5B, $75B, $1T, $15T, tiers 1 to 9 (`Config.Sub.Prices`, `Sub.Free` 0): 23 to 41 min of income each
+  for tiers 1 to 6, more after ([progression](progression.md)). *Until then, guesses, and free:* set by [progression](progression.md)'s twice-as-fast plan: a tier costs about the
   trainer level for the land before it, so you buy the sub to a land once you are at home a land short of it. It
   skips a ride you can almost make yourself. That is cheaper, relative to income, than the reference's, whose
   flights cost far more than a sitting earns.
 
-| Tier | Takes you to | Price (guess) |
+| Tier | Takes you to | Price (the old guess) |
 |---|---|---|
 | 1 | 2 Coral Reef | 2,500 |
 | 2 | 3 Kelp Forest | 25,000 |
@@ -231,7 +233,7 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
   a fallback and are out of the game. Before that:
 - (2026-11-18) The nine subs are placeholders (`Shared/SubModels`: the same hull in a new colour with one more
   piece a tier, its name floating over the tower). Only the look changes with the tier; speed and the trip are the
-  same for all. Buying is free while `Config.Sub.Free` is 1; the prices still show.
+  same for all. Buying was free until 2026-11-24 (`Config.Sub.Free` 1).
 - Hugo's word on the readings above, and a play by hand: is it satisfying? (Measured only by script.)
 - (2026-11-24, measured with the camera behind) **The dock is behind the camera at the pick-up.** You are thrown
   back toward the dock onto the seat while the camera draws back, so the dock's wall pulls it in from 20 to 14 studs

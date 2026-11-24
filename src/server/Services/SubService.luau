@@ -143,9 +143,13 @@ local function atStand(player: Player): boolean
 	return Vector3.new(gap.X, 0, gap.Z).Magnitude <= Config.Sub.Near
 end
 
-local function buy(player: Player, sub: Sub, checked: boolean?)
+-- (tier: the sub the player pressed; a second press that arrives once it is theirs buys nothing)
+local function buy(player: Player, sub: Sub, tier: any, checked: boolean?)
 	local c = Config.Sub
 	local next = sub.Tier + 1
+	if tier ~= nil and tier ~= next then
+		return
+	end
 	local price = c.Prices[next]
 	if not price or next + 1 > lands() then
 		return deny(player, "Top")
@@ -447,7 +451,7 @@ local function test(op: string, userId: number, a: any, b: any): any
 	elseif op == "home" then
 		RideService.sendHome(player)
 	elseif op == "buy" then
-		buy(player, sub, true)
+		buy(player, sub, nil, true)
 	elseif op == "equip" then
 		equip(player, sub, a, true)
 	elseif op == "pick" then
@@ -526,7 +530,7 @@ function SubService.Init()
 			return
 		end
 		if action == "SubBuy" then
-			buy(player, sub)
+			buy(player, sub, a)
 		elseif action == "SubEquip" then
 			equip(player, sub, a)
 		elseif action == "SubPick" then
