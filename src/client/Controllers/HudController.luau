@@ -100,6 +100,8 @@ local endlessAir = false
 local diveMetres = 0
 local diveLands = 0
 local diveCaught = 0
+local diveFrom = 0 -- how many were already carried as the dive began
+local stripLand, stripAlong, stripMetres, stripName = 0, 0, 0, "The dock" -- what the land strip shows
 local diveList: { State.Caught }? = nil -- the dive's catch at its longest (the server empties it at the dock)
 -- the kinds caught since joining: a first catch of a kind says NEW! (until saves exist it is "new this session")
 local kindsCaught: { [string]: boolean } = {}
@@ -356,14 +358,12 @@ local function update(dt: number)
 		diveMetres = metres
 		diveLands = zone.Index - 1 + along
 	end
-	LandStrip.update(
-		land,
-		if zone then zone.Name else "The dock",
-		along,
-		if zone then metres else 0,
-		bestLands,
-		bestMetres
-	)
+	-- (a hop leaves the fish backward a moment: the depth and the marker stay where they were, never going back)
+	if mode ~= "Jumping" or metres >= stripMetres then
+		stripLand, stripAlong, stripMetres = land, along, if zone then metres else 0
+		stripName = if zone then zone.Name else "The dock"
+	end
+	LandStrip.update(stripLand, stripName, stripAlong, stripMetres, bestLands, bestMetres)
 	-- a land deeper than any yet this dive: its name comes up (not the land the dive starts in)
 	if inWater and zone then
 		if landSeen == 0 then
@@ -534,9 +534,10 @@ local function update(dt: number)
 		caughtCount = count
 		Slots.update(caught)
 		-- (the most carried this dive, for the words at its end: the server empties the list as it puts us on the dock)
-		if caught and count >= diveCaught then
+		-- (what was already carried as the dive began isn't this dive's)
+		if caught and count >= diveCaught and count > diveFrom then
 			diveCaught = count
-			diveList = caught -- (TameController makes a new list each change, so this one is ours to keep)
+			diveList = table.move(caught, diveFrom + 1, count, 1, {})
 		end
 	end
 
@@ -586,8 +587,8 @@ function HudController.Start()
 	State.ModeChanged.Event:Connect(function(mode: string, old: string)
 		if mode == "Dock" and old ~= "Dock" then
 			if diveMetres >= 1 then
-				local isBest = diveMetres > bestMetres
-				if isBest then
+				local isBest = diveMetres > bestMetres and bestMetres > 0 -- (the first dive of all is no record)
+				if diveMetres > bestMetres then
 					bestMetres = diveMetres
 					bestLands = diveLands
 				end
@@ -600,6 +601,8 @@ function HudController.Start()
 			diveLands = 0
 			diveCaught = 0
 			diveList = nil
+		elseif old == "Dock" and mode ~= "Dock" then
+			diveFrom = if State.Caught then #State.Caught else 0
 		end
 	end)
 	-- a tame: the banner, with what this very fish earns in a tank (its size and colour count: the fish under us

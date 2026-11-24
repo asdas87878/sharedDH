@@ -9,6 +9,7 @@
 -- Every word and piece comes in by its own move; nothing is a plain switch-on. Each look is a pose of the time since it
 -- began (pose(t)), so the game plays it frame by frame and a sheet can stop it at any moment (preview).
 -- Sheet: docs/attachments/catch-ui-options-1.png (GIFs catch-ui-option-<n>.gif), by tools/ui/catch_show/capture.py.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -1357,6 +1358,14 @@ local KEYS: { [Enum.KeyCode]: boolean } = {
 	[Enum.KeyCode.ButtonA] = true,
 }
 
+local MOVE_AFTER = 0.8 -- seconds the screen is up before moving closes it
+
+local function moving(): boolean
+	local character = Players.LocalPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return humanoid ~= nil and humanoid.MoveDirection.Magnitude > 0.2
+end
+
 -- Plays the look in the HUD (false: no such look, Banners plays its own). The catch screen (look 3): a click or tap
 -- anywhere while it is still coming in skips to the end; the next one closes it. Each press is taken as it comes (not
 -- at the next frame), so two presses in one frame are a skip and a close, and presses once it is closing do nothing
@@ -1429,6 +1438,10 @@ function CatchShow.play(parent: Instance, look: number, metres: number, isBest: 
 		entry.conns,
 		RunService.RenderStepped:Connect(function()
 			local t = CatchShow.Clock() - start
+			-- (walking off closes it too, once it has been up a moment: the player is never held by it, 2026-11-24)
+			if not closing and show.leave and t >= MOVE_AFTER and moving() then
+				close(t)
+			end
 			if not closing and show.leave and show.settled and t >= show.settled + CatchShow.Wait then
 				close(t)
 			end

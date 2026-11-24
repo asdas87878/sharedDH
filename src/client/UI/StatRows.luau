@@ -262,10 +262,11 @@ function StatRows.place(touch: boolean)
 end
 
 -- oxygen: your max Oxygen; coins: nil until the game has them; spent: drowning with none left; low: the last second
--- on a fish; docked: at the dock, where the plus buttons show. The row is the most you can carry, which a drowning
--- player read as what they had left ("100"), so for that moment it is a 0. Low or spent, the bar is red and beats
+-- on a fish; docked: at the dock, where the plus buttons show. The row is the most you can carry (the reference's own), so it
+-- never changes in a dive: the 0 it flipped to while drowning read as the stat being lost (the play passes,
+-- 2026-11-24). Low or spent, the bar is red and beats
 function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: boolean, docked: boolean)
-	local whole = if spent then 0 else math.floor(oxygen + 0.5)
+	local whole = math.floor(oxygen + 0.5)
 	if whole ~= shownOxygen then
 		shownOxygen = whole
 		-- one size with the coins' (the user, 2026-11-23: "the oxygen number is the same or similar size to the cash

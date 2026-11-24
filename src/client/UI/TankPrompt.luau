@@ -74,7 +74,7 @@ function TankPrompt.deposited(water: BasePart, count: number, gained: number, id
 	Shop.text(chip, {
 		Size = UDim2.fromScale(1, 1),
 		TextSize = 28,
-		Text = "+" .. Shop.cash(gained) .. "/s!",
+		Text = "+" .. Kit.rate(gained) .. "!",
 		ZIndex = 4,
 	})
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")

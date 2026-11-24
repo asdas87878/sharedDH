@@ -190,7 +190,7 @@ local function sign(plot: Model, tank: Tank?)
 	local owner = if tank then tank.Player.DisplayName else ""
 	local text = if not tank
 		then "FREE TANK"
-		elseif tank.Income > 0 then string.format("$%s a second", Config.shortNumber(tank.Income))
+		elseif tank.Income > 0 then "$" .. Config.rate(tank.Income) .. "/s"
 		else "no fish yet"
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 		local name = "Sign" .. face.Name

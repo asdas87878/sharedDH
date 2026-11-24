@@ -51,6 +51,16 @@ local function heatOf(fish: Model): number
 	return 1
 end
 
+-- A fish's wake (FishModel's white streak) off while it is angry: the red drew over it too, a flat pink wedge behind
+-- the fish (2026-11-24)
+local function wake(fish: Instance, on: boolean)
+	local root = fish:IsA("Model") and fish.PrimaryPart
+	local trail = root and root:FindFirstChild("Wake")
+	if trail and trail:IsA("Trail") then
+		trail.Enabled = on
+	end
+end
+
 local function begin(fish: Instance)
 	if not fish:IsA("Model") or pulses[fish] then
 		return
@@ -68,11 +78,13 @@ local function begin(fish: Instance)
 	glow.OutlineTransparency = 1
 	glow.Adornee = fish
 	glow.Enabled = true
+	wake(fish, false)
 	pulses[fish] = { Glow = glow, Shown = 0, Phase = 0, Rate = Config.Angry.PulseSlow }
 	count += 1
 end
 
 local function finish(fish: Model, p: Pulse)
+	wake(fish, true)
 	pulses[fish] = nil
 	count -= 1
 	p.Glow.Enabled = false

@@ -1362,7 +1362,7 @@ function JumpController.Init()
 						Fx.burst(root.Position, math.ceil(d.Splash / 2), 0, d.SplashReach / 2)
 					end
 					if d.SplashSound > 0 and not splashed then
-						Feel.sound("Splash", d.SplashSound, 0.85, 0.9)
+						Feel.sound("Splash", d.SplashSound, 0.95, 2)
 					end
 					if d.Shake > 0 and not splashed then
 						Shake.play("Land", d.Shake)

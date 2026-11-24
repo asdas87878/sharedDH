@@ -407,6 +407,7 @@ local function drawRide()
 	ride.Hint.Text = if item and rideOn
 		then "RIDING"
 		elseif item then (if touchNow then "TAP TO RIDE" else "CLICK TO RIDE")
+		elseif lastCount == 0 then "" -- (nothing to hold yet: nothing to say, 2026-11-24)
 		else (if touchNow then "HOLD A FISH, THEN TAP" else "HOLD A FISH, THEN Q")
 end
 
@@ -650,6 +651,7 @@ function Slots.update(list: { Caught }?)
 		selected = if #list > 0 then #list else nil
 	end
 	lastCount = #list
+	drawRide()
 	for i = 1, COUNT do
 		paint(slots[i], rims[i], lips[i], patterns[i], pictures[i], names[i], list[first + i])
 	end

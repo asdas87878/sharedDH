@@ -2624,11 +2624,14 @@ Config.Burst = {
 -- collected"): the drown fades to black, you wake at the dock (at your own tank with fish in hand), and every fish
 -- tamed on the dive is kept, as if you had swum home (RideService toDock; AquariumService puts them in the tank).
 -- The drown is shorter than before (Struggle 2.5, DrownFade 0.7 until 2026-11-18), so the fade is what you see.
-local DROWN = { Throw = 0.8, Struggle = 1.4, MissStruggle = 0.6, Weak = 0.9, Still = 0.6, Tail = 0.2 }
+-- Shorter again 2026-11-24 (the play passes: about 11 s from out of air to moving again; the user: "Fix the others";
+-- until then Struggle 1.4, MissStruggle 0.6, Weak 0.9, Still 0.6, Tail 0.2, HoldBlack 0.5, FadeIn 0.8, DrownFade 1.2,
+-- Fail.Ragdoll.Time 1.8).
+local DROWN = { Throw = 0.8, Struggle = 0.7, MissStruggle = 0.4, Weak = 0.4, Still = 0.35, Tail = 0.1 }
 Config.Death = {
 	On = 1, -- 0: no failing anywhere: out of Oxygen throws you off and leaves you floating with a full meter (the sandbox's NoFail does this in Studio)
-	HoldBlack = 0.5, -- seconds the black holds at the dock before it lifts, so the move home isn't seen
-	FadeIn = 0.8, -- seconds the black takes to lift
+	HoldBlack = 0.25, -- seconds the black holds at the dock before it lifts, so the move home isn't seen
+	FadeIn = 0.5, -- seconds the black takes to lift
 	-- a jump that sank: the sinking was the struggle, so the drown that follows is short
 	MissStruggle = DROWN.MissStruggle,
 	MissTime = DROWN.MissStruggle + DROWN.Weak + DROWN.Still + DROWN.Tail,
@@ -2638,7 +2641,7 @@ Config.Death = {
 	Struggle = DROWN.Struggle, -- flailing, a steady stream of bubbles
 	Weak = DROWN.Weak, -- the bubbles thin out
 	Still = DROWN.Still, -- still and sinking, the last bubble
-	DrownFade = 1.2, -- the fade to black, ending with the drown
+	DrownFade = 0.7, -- the fade to black, ending with the drown
 	DrownTime = DROWN.Throw + DROWN.Struggle + DROWN.Weak + DROWN.Still + DROWN.Tail, -- less Throw when not thrown
 	-- Never drowning above the water (the user, 2026-11-23: "make sure theres no errors where the player floats above
 	-- the water"; tools/studio/fail_eat_check.py drown). Client only: the loose body (FailController) and the drown
@@ -2743,7 +2746,7 @@ Config.Fail = {
 	-- with the map, the props and the fish. After a throw it flies Time seconds, then gets its joints back for the drown.
 	Ragdoll = {
 		On = 1, -- 0: no ragdoll (the old scripted throw)
-		Time = 1.8, -- seconds loose before the drown's struggle (an outcome that ends in the throw)
+		Time = 1.3, -- seconds loose before the drown's struggle (an outcome that ends in the throw)
 		Throw = 80, -- studs a second the plain throw leaves at (the old one went 8 studs in all)
 		Spin = 7, -- radians a second it tumbles as it leaves
 		Float = 0.8, -- share of gravity the water holds up
@@ -2934,7 +2937,7 @@ Config.Admin = {
 -- user's yes to the smallest set, 2026-11-23; tried by hand, then cut down. No saves yet: it is every join's. Off in the
 -- movement sandbox. In Studio the workspace's "LessonTest" attribute, true before Play, switches it on whatever these say.
 Config.Lesson = {
-	On = 0, -- 1: on; 0: nothing of it runs (the server hooks nothing, the client builds nothing)
+	On = 1, -- 1: on (since 2026-11-24: a new player had nothing telling them what to do); 0: nothing of it runs (the server hooks nothing, the client builds nothing)
 	-- the first fish: one the player can hold, Normal and plain, that can't be left or lost until it is theirs
 	HoldMost = 60, -- the rule lets go after this long in the water without one, seconds (then a dive is any dive),
 	RideMost = 8, -- or this long on one fish with no tame
@@ -2964,6 +2967,49 @@ function Config.lessonGoal(): number
 	local fish = Config.FishById[Config.Lesson.Goal]
 	return if fish then Config.requiredOf(fish, "Normal", "") else 0
 end
+
+----------------------------------------------------------------------------------------------------------------------
+-- The fish that leaps past the gate, seen from the hub (HubLeapController)
+
+Config.HubLeap = {
+	On = 1, -- 0: none
+	Kinds = { "Orca", "Dolphin", "MantaRay", "Megalodon" } :: { string }, -- one after another (ReplicatedStorage.FishModels)
+	First = 2, -- seconds after joining
+	Every = 9, -- and between two, while on the dock
+	Time = 2.6, -- seconds one is up
+	Length = 44, -- studs long, whatever its kind
+	Out = 70, -- studs out from the start strip,
+	Across = 100, -- this far from one side to the other,
+	Away = 20, -- and this much further off as it goes
+	High = 34, -- studs over the surface at its highest
+	Under = 14, -- studs under it at each end
+	Roll = 18, -- degrees it leans at its highest
+	Splash = 1, -- the splash's size (Lib/Splash)
+}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Sound (SoundController): ids from Roblox's own licensed catalogue, so nothing is uploaded; swap any id freely.
+-- Picked by name and length only: nobody has listened to them yet (2026-11-24).
+
+Config.Sounds = {
+	On = 1, -- 0: no music, no sea, no moments (the older Fx sounds stay)
+	Music = 1844399056, -- "Beach Party" (APM): steel drums, 91 s, looped. Others that load: 1843265752 "Caribbean Party", 1844398749 "Carnival In Trinidad"
+	MusicVolume = 0.2,
+	MusicUnder = 0.55, -- the music's loudness in the water, as a share,
+	CutHigh = -24, -- and its highs and mids cut there, dB
+	CutMid = -6,
+	Sea = 9126201551, -- waves (Pro Sound Effects), on the hub
+	SeaVolume = 0.08,
+	Under = 9112889917, -- "Underwater Ambience 1" (Pro Sound Effects), in the water
+	UnderVolume = 0.35,
+	Ease = 3, -- how quickly one becomes the other (a second)
+	Moments = {
+		Hop = { Id = 9113604979, Volume = 0.35, Speed = 1.1, Length = 3 }, -- bubbles rushing by
+		Catch = { Id = 9116394876, Volume = 0.6, Speed = 1, Length = 4 }, -- a soft chime
+		Deposit = { Id = 9113728049, Volume = 0.45, Speed = 1, Length = 3 }, -- a cash register
+		Click = { Id = 17208204604, Volume = 0.3, Speed = 1, Length = 2 }, -- Roblox's own bubble
+	} :: { [string]: { Id: number, Volume: number, Speed: number, Length: number } },
+}
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Server leeway: the lag and reach the server allows when it judges a grab or a landing
@@ -4242,6 +4288,15 @@ function Config.shortNumber(value: number): string
 		then string.format("%d", math.floor(value + 0.5))
 		else string.format("%.1f", value)
 	return text .. units[unit]
+end
+
+-- What is earned a second, one way everywhere ("2", "1.9", "12.5", "340", "1.2K"): a tenth under 100, never a ".0"
+function Config.rate(value: number): string
+	local tenth = math.floor(value * 10 + 0.5) / 10
+	if tenth < 100 and tenth ~= math.floor(tenth) then
+		return string.format("%.1f", tenth)
+	end
+	return Config.shortNumber(math.floor(value + 0.5))
 end
 
 -- Whether a size is a grand one (Config.Grand)

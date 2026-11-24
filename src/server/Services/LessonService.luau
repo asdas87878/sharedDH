@@ -62,7 +62,6 @@ local FUNNEL = {
 local LessonService = {}
 
 local records: { [Player]: Record } = {}
-local rng = Random.new()
 local easy: { Config.FishType } = {} -- the first land's fish a new player holds, with no archetype to surprise them
 
 local function testing(): boolean
@@ -143,6 +142,7 @@ local function ensureFish(player: Player, r: Record)
 		return ahead >= l.InReachFrom and ahead <= l.InReachTo
 	end)
 	local put = 0
+	local first = math.abs(player.UserId)
 	if not there then
 		for i = 1, l.PutCount do
 			if r.Put >= l.PutMost then
@@ -151,7 +151,8 @@ local function ensureFish(player: Player, r: Record)
 			r.Put += 1
 			put += 1
 			local side = if i % 2 == 1 then 1 else -1
-			local kind = easy[rng:NextInteger(1, #easy)]
+			-- (one kind after another, so a first dive's two catches aren't the same fish: 2026-11-24)
+			local kind = easy[(first + r.Put) % #easy + 1]
 			FishService.put(kind, s + l.PutAhead + (i - 1) * l.PutGap, side * l.PutShare, l.PutLift)
 		end
 	end

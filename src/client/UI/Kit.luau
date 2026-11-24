@@ -21,10 +21,13 @@
 --   Fail words: the bubble letters shown when a run fails
 --   Numbers and touch: big numbers in short, and whether this is a phone
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local Kit = {}
 
@@ -1946,6 +1949,11 @@ Kit.FailShow = nil :: ((text: string, fade: number) -> ())?
 -- Numbers and touch: big numbers in short, and whether this is a phone
 
 local UNITS = { "K", "M", "B", "T", "Qa", "Qi" } -- (as Config.shortNumber; prices reach $500Qa)
+
+-- What is earned a second, written one way everywhere: "$1.9/s", "$340/s" (Config.rate)
+function Kit.rate(value: number): string
+	return "$" .. Config.rate(value) .. "/s"
+end
 
 -- A big number in short: 950, 1.9K, 12.5K, 2.3M
 function Kit.short(value: number): string

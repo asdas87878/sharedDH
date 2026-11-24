@@ -19,7 +19,7 @@ local SOUNDS: { [string]: SoundSpec } = {
 	-- (it was "action_falling.mp3" until 2026-11-16: Roblox ships only the .ogg, so a smash and a prop's debris were silent)
 	Rumble = { Id = "rbxasset://sounds/action_falling.ogg", Speed = 0.25, Volume = 0.9 },
 	Chomp = { Id = "rbxasset://sounds/action_jump_land.mp3", Speed = 0.45, Volume = 1 },
-	Splash = { Id = "rbxasset://sounds/impact_water.mp3", Speed = 0.8, Volume = 0.5 },
+	Splash = { Id = "rbxassetid://9120585530", Speed = 0.9, Volume = 0.5 }, -- (Pro Sound Effects, as Feel's: 2026-11-24)
 }
 
 -- A placeholder sound, at a part (3D) or flat (no part)

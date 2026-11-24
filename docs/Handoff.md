@@ -3,6 +3,20 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-24 · The fixes after the play passes (game code, the user's PC)
+**State:** committed on top of the merge of Hugo's (`d3de002`), not pushed by hand. In the open Studio (synced, not saved).
+Played by script: numbers and the UI only, **Studio was not drawing 3D, and nobody has heard the sounds**.
+- **Now on (tuning, first minutes):** `Config.Lesson.On` 1. `Config.Fail.DROWN`, `HoldBlack`, `FadeIn`, `DrownFade`, `Ragdoll.Time`
+  shorter (out of air to the dock 2.8 s; the old values in their comments). New: `Config.Sounds` (`SoundController`: music, sea,
+  underwater, hop, catch, deposit, click), `Config.HubLeap` (`HubLeapController`: a 44-stud fish leaps past the gate every 9 s),
+  `Config.rate`. Off switches: `Lesson.On`, `HubLeap.On`, the Sounds volumes.
+- **UI chat, your files changed:** `Banners`, `CatchShow`, `CaughtText`, `DiveScreen`, `HubSigns`, `IndexPanel`, `Kit` (`Kit.rate`,
+  "$x/s" everywhere), `SellFish`, `Shop` (`arrow` drawn until the atlas is uploaded: the Studio file is gone after an update),
+  `Slots`, `StatRows`, `SubPanel`, `TankPanel`, `TankPrompt`.
+- **Map chat:** in the open place the Fuse stall stands 18 studs back (pivot z -119.6): its ring lay on the spawn. `hub_kit.py` is
+  not changed.
+- **For whoever has the Index:** its finds and claims are not in SaveParts.
+
 ## 2026-11-23 · Eaten and drown fixes, the leap on a fish, riding out of the tank, bought Oxygen at the dock (game code, the user's PC)
 **State:** in the working tree, carried by the vault sync; in the open place (3b999aa2), unsaved by me. **Everything new
 is off in the file** except the two marked live.

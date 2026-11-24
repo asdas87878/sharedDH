@@ -364,7 +364,8 @@ function DiveScreen.build(
 	}, body)
 	local titleScale = Kit.new("UIScale", {}, titleBox)
 	local title = Kit.word(titleBox, {
-		Text = "GREAT DIVE!",
+		-- (a dive that brought nothing and went no deeper isn't called great: 2026-11-24)
+		Text = if isBest or n > 0 then "GREAT DIVE!" else "NICE TRY!",
 		TextSize = 66,
 		Font = FONT,
 		Pal = Kit.GoldPal,
