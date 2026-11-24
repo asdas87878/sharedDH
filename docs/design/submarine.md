@@ -136,10 +136,13 @@ come back once you arrive". **Built on branch `fish-sub`; checked offline (below
   else changes: on foot (with or without a fish equipped), and with a tank fish picked at the stand, it is the swim, the
   scoop, and the fish swimming up at the end or the fling, as before.
 - **The way out** (`Sub.Approach`, 1.2 s as before). The fish dives in under you ([the dive-in](dive-in.md) has it up to
-  there) and carries you out; the sub comes up from behind on the **left** of it and level beside it (it comes from the
+  there) and carries you out; the sub comes in dead straight through the gate, behind the
+  fish's tail until the fish has drawn aside (`EscortAside`), then up level on the **left** of it (it comes from the
   right and below for a swimmer). Nobody is thrown about, so there is no swim.
   The camera goes on from the dive's own view when that is behind you, under the water and on your line, and stays behind
-  the fish's tail and over its back (`EscortBack`). It sets off at `EscortStart` (45), about the pace the dive hands over.
+  the fish's tail and over its back (`EscortBack`, 130 studs behind you at most). While it is inside the body all the same
+  the rider sees the fish see-through (`EscortThin` 0.8; on that screen only). It sets off at `EscortStart` (45), about the
+  pace the dive hands over.
 - **The hop** (`Sub.Pickup`, 0.75 s as before: 1.95 s in all). You push off the saddle, the fish dips under you, and you
   arc across onto the sub's seat.
 - **The weave.** The fish swings out beside the hull and goes from its right to its left and back, once on most runs and
@@ -150,6 +153,8 @@ come back once you arrive". **Built on branch `fish-sub`; checked offline (below
 - **The return.** It is out to the right, then falls back beside the sub, settled `EscortSettle` before the drop, and
   the old kick puts you on it. The sub peels off to the left after (to the right before), so it doesn't cross the fish.
 - **The sub stays level while the fish is beside it** (the start and the kick); it banks in the run's bends as before.
+- **The fish is held to the sub's own line** for the whole trip (its place is across, up and ahead of the sub, and it
+  faces the way the sub does), so a bend never swings it into the hull and it never jumps.
 - **One fish, all the way:** the same copy from the water's surface to the kick (kind, size, colour), never hidden and
   never made again. Every number is in `Config.Sub` (`Escort…`); `Escort` 0 puts the old trip back.
 
@@ -160,58 +165,72 @@ How it works:
   "NOW ARRIVING" it lets go of the anchor and gives the fish to the rider's machine; from there the kick, `"SubLand"` and
   `RideService.seatOn` are the old ones. **There is no new message from the client**, so nothing new to trust.
 - The plan is made from the fish's own box, the hull's (`SubTrip.Hulls`) and the open water either side of the line
-  (`FishService.streamRoom`). The pick-up is put left of where the fish goes in, so the fish swims straight out; the run
-  keeps that line for its start (`EscortOpen`, at most 0.15 of it), and moves over before the drop so both fit. The room
-  either side is the least over the whole stretch the weave goes over.
+  (`FishService.streamRoom`). The pick-up is put left of where the fish goes in, so the fish swims straight out; the line
+  is held to the gate's and the lane's sides with the fish beside it (`EscortGate` 45), is straight past the gate, drifts
+  to the left there if the lane's first neck needs it (`DRIFT`, `NECK` in SubService), and moves over before the drop so
+  both fit. The room either side is measured along the line the sub really takes, for the stretch the weave goes over.
 - **Given up cleanly.** Every step the server looks whether the very entry of the hands that went in is still the
   equipped one. If not (unequipped, put in the tank), the copy swims off and fades on every machine (`SubLeave`), is taken
-  away, and the drop-off is the fling. Died, reset, left the game, or a trip that can't be made: the copy is taken away.
+  away, and the drop-off is the fling; the trip sent to the machines is rewritten too, so the rider's screen no longer says
+  "Back on your fish!" or waits for a kick, and one given up in the kick itself is flung from where the rider is in the arc.
+  Died, reset, left the game, or a trip that can't be made: the copy is taken away.
   The fish of the hands is never touched, so it can't be lost or doubled.
 - **The hand-over with the dive:** on the first frame of `State.Mode` "Carried", `DiveController` lets go of the body, the
   pose and the camera; from that frame they are `SubController`'s. The trip eases the fish from where the dive had it.
   The plain dive onto the ride fish (`SubService.diveFish`) now makes that fish with its saddle at the rider, not 4 ahead
-  and 3 under (asked for by the dive's chat).
+  and 3 under (asked for by the dive's chat). RideService says whether they were riding (`Diving(player, mounted)`), as a
+  fact, not from a 0.1 s window after the land fish went.
 
 Readings, not confirmed by Hugo:
 - **Equipped but on foot** is not this: you would be watching a fish you never rode swim out of nowhere. It stays as it was.
-- **Where a side has no room the weave is ahead of the nose,** not beside: 169 of 858 Normal trips have room on neither
-  side, 133 on the left only.
+- **Where a side has no room the weave is ahead of the nose,** not beside: 180 of 858 Normal trips have room on neither
+  side, 140 on the left only.
 - **The return is to the right-hand side,** where the kick has always been.
 
 Checked without Studio (`tools/subs/escort_check.luau`, the real code on the grey-box's lane, with the real camera sums:
 all 78 kinds in `Config.Fish`, Normal and Colossal, with each of the nine subs, plus subs 1, 6 and 9 from both ends of the
 lip (30 studs out): 2,652 trips, 60 frames a second, the fish as boxes and the sub as the models' own cells for what it
-hides; `tools/subs/escort_hulls.py` for the hulls). The last run was before origin/main's d7c958b was merged
-(it touches no code this uses). **One check failed** (GraveTurtle, below). The script prints the Colossal misses as known exceptions,
-not as failures: **the hull clearance asked for at `Size.Max` is not met.**
+hides; `tools/subs/escort_hulls.py` for the hulls). The last run is after the review's ten fixes (2026-11-24), on
+d7c958b. The check **fails** on a hull contact at every size and on a wall contact for Normal. **All Normal trips pass but
+for what can't fit; Colossal has one check failing on 4 trips** (below). What can't fit is printed as `CANNOT FIT`, and the Colossal walls
+that a fish of that size could have missed as `LIMIT`: neither counts as a failure.
 
 | | Normal, middle of the lip (858) | Normal, the lip's ends (468) | Colossal, middle (858; up to 200 long, 96 wide, 147 tall) | Colossal, the lip's ends (468) |
 |---|---|---|---|---|
-| Hull in the run, nearest | 0.9 studs clear | 1.3 clear | **78 trips (30 kinds) into it, 6.5 at most** | **75 trips, 8.2 at most** |
-| Hull on the way out | 1.3 clear | **1 trip in by 0.2: GraveTurtle, sub 6 to land 7 (the failed check)** | 1.2 clear | **7 trips, 2.8 at most** |
-| Lane's sides (its width, not the built terraces) | 0.5 clear | **24 trips, 17.6 at most**, soon after the hop | **143 trips, 28.6 at most** | **232 trips, 28.6 at most** |
-| Trips through the floor / the surface | 44 / 14 | 24 / 6 | 363 / 236 | 198 / 128 |
-| Tail out of the gate at the hop | by 52 or more | 52 | 21 | 21 |
-| Nearest to the camera's line to you | 9.7 studs | 7.8 | 9.0 | 10.6 |
-| Camera inside the fish's box on the way out | 0.23 s at most | 0.23 s | 1.63 s | 1.63 s |
+| Hull in the run, nearest | 1.5 studs clear | 1.2 clear | 1.9 clear | 1.9 clear |
+| Hull on the way out | 4.3 clear | 4.3 clear | 4.6 clear | 4.6 clear |
+| Lane's sides from the hop on (its width, not the built terraces) | 3.0 clear | 2.9 clear | **347 trips, 46.7 at most** | **208 trips, 46.7 at most** |
+| Lane's sides on the way out | 6.8 clear | 60 trips past them by 9.0 at most, where they dived in that far out (none goes further) | **365 trips, 56.1 at most** | **294 trips, 56.1 at most** |
+| The sub in the gate / the lane, nearest side | 3.5 / 3.4 clear | 3.5 / 3.4 | 0.7 / 3.1 | 0.7 / 3.5 |
+| Trips through the floor / the surface, by half a stud or more | 22 / 22 (AuroraJelly by 7 at most, TheDevourer by 2: taller than the water) | 12 / 12 (the same) | **286 / 278** | **156 / 152** |
+| Tail out of the gate at the hop | by 51 | 51 | 20 | 20 |
+| Nearest to the camera's line to you | 9.5 studs | 9.0 | 12.1 | 13.7 |
+| Camera inside the fish's box on the way out | 0.22 s at most | 0.22 s | 1.63 s; over 0.5 s on 55 trips, see-through then | 1.63 s; 30 trips |
 | In a 16:9 picture in the weave | always | always | always | always |
-| Share of the weave with a third of it or more showing past the sub and you (average part showing) | 92% (80%) | 90% (76%) | 89% (64%) | 89% (62%) |
-| Trips where that share is under half | 22 (19 of them sub 9 to land 2) | 0 | 53 | 0 |
-| Most turn in one frame, degrees | 10.3 | 10.3 | 13.8 | 13.8 |
-| Most a frame's move differs from the last, studs | 1.4 | 1.2 | 1.4 | 1.5 |
-| In its place for the kick | always | always | always | always |
-| Trips that sweep more than 8 studs left of the middle | 836 | 437 | 661 | 343 |
+| Share of the weave with a third of it or more showing past the sub and you (average part showing) | 92% (79%) | 90% (76%) | 87% (61%) | 88% (61%) |
+| Trips where that share is under half | 35 (all sub 9 to lands 2 or 5, no room on either side) | 0 | 76 | 17 (4 of the Colossal's 93 have room on a side: the failed check) |
+| Most turn in one frame, degrees (the check fails over 12) | 10.3 | 10.3 | 10.6 | 10.7 |
+| Most a frame's move differs from the last, studs | 1.5 | 1.5 | 1.3 | 1.5 |
+| Off its place at the kick, studs | 0.4 | 0.2 | 0.4 | 0.2 |
+| Trips that sweep more than 8 studs left of the middle | 835 | 453 | 529 | 342 |
 
-The weave first stayed ahead of the nose; the sub hid too much of it, so it was moved beside the hull. The check's turn limit
-was loosened on the way: 8, 10, 15, and now 12 degrees a frame (Normal only).
+Listed limits, all Colossal:
+- **Walls** (from the hop on): 555 trips, 39 kinds: 337 are wider than the lane at its narrowest, 218 are not
+  and still go through (listed as `LIMIT`). **Floor and surface:** 508 trips, 30 kinds (none fits the
+  water it swims in; 447 trips by half a stud or more). BlueWhale at Normal size is through both by less than half a stud, on all 17.
+- **The camera in the body over a second** (1.63 s at most): BlueWhale, Hellmaw, Kraken, Mosasaurus and StormSerpent, 85
+  trips. The fish is see-through for it.
+- **The one failed check:** LanternLeviathan (3 of its 17 trips) and WraithEel (1 of its 17), sub 9 to land 10, have a
+  third of themselves in view for 0.48 to 0.49 of the weave; the check asks for half. Not chased further: outside the review's bar.
 
-To run it (about 8 minutes; each part prints its own result, and the csvs are one line a trip):
+To run it (about 12 minutes; each part prints its own result, and the csvs are one line a trip). `lune` and `rojo` are not
+on the PATH on every PC, so these are the whole paths (Rokit's own store):
 
 ```
-rojo build -o /tmp/place.rbxl
+~/.rokit/tool-storage/rojo-rbx/rojo/7.7.0/rojo build -o /tmp/place.rbxl
 python3 tools/subs/escort_hulls.py /tmp/cells.json
-for i in $(seq 1 11); do lune run tools/subs/escort_check.luau . /tmp/place.rbxl /tmp/p_$i.csv $i/11 /tmp/cells.json > /tmp/p_$i.txt & done; wait
-grep -hE "FAIL|passed|EXCEPTION" /tmp/p_*.txt
+for i in $(seq 1 11); do ~/.rokit/tool-storage/lune-org/lune/0.11.1/lune run tools/subs/escort_check.luau . /tmp/place.rbxl /tmp/p_$i.csv $i/11 /tmp/cells.json > /tmp/p_$i.txt & done; wait
+grep -hE "FAIL|passed|LIMIT|CANNOT" /tmp/p_*.txt
 ```
 
 So **a giant still goes through the walls, the floor or the surface** where the water is smaller than it is, as it does on
