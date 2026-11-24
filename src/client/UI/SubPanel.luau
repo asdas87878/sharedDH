@@ -66,6 +66,10 @@ local SHOTS: { [string]: Vector3 } = {
 -- SHOTS: end
 
 local gui: ScreenGui -- the ticket and the hint
+-- the cards' propellers, turned while the window is open: { the card's picture, the parts, each part's own place }
+type Spinner = { View: ViewportFrame, Parts: { BasePart }, Rest: { CFrame } }
+local spinners: { Spinner } = {}
+local spin = 0
 local window: Shop.Window? = nil -- (nil until init)
 local carousel: Shop.Carousel
 local ticket: TextLabel
@@ -243,6 +247,31 @@ local function picture(parent: Instance, n: number)
 	cam.CFrame = CFrame.lookAlong(eye or shotBy(parts), SHOT_LOOK)
 	cam.Parent = view
 	view.CurrentCamera = cam
+	local s: Spinner = { View = view, Parts = {}, Rest = {} }
+	for _, p in parts do
+		if p.Name == "Prop" or p.Name == "Prop_Glow" then
+			table.insert(s.Parts, p)
+			table.insert(s.Rest, p.CFrame)
+		end
+	end
+	table.insert(spinners, s)
+end
+
+-- Every propeller in view turned about its own Z, as on a trip at no speed
+local function turnProps(dt: number)
+	spin = (spin + dt * Config.Sub.PropIdle) % (2 * math.pi)
+	local spun = CFrame.Angles(0, 0, spin)
+	local list = carousel.List
+	local from = list.AbsolutePosition.X
+	local to = from + list.AbsoluteSize.X
+	for _, s in spinners do
+		local x = s.View.AbsolutePosition.X
+		if x < to and x + s.View.AbsoluteSize.X > from then
+			for i, p in s.Parts do
+				p.CFrame = s.Rest[i] * spun
+			end
+		end
+	end
 end
 
 -- The land a card reaches, in a dark box of the card's colour (the reference's zone box)
@@ -517,8 +546,11 @@ function SubPanel.init()
 		docked = mode == "Dock"
 		ticket.Visible = docked and ticketOn
 	end)
-	RunService.RenderStepped:Connect(function()
+	RunService.RenderStepped:Connect(function(dt: number)
 		hintLabel.Visible = os.clock() - hintAt < 2.2
+		if window and window.isOpen() then
+			turnProps(dt)
+		end
 	end)
 	refresh()
 end

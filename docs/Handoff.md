@@ -69,6 +69,20 @@ user said "switch that on for everyone" (with it at 0 nothing changes: reviewed 
 - **Nothing on the server changed.** The rule for being in the water is as it was.
 - **Where it stands and what is not known:** [the dive-in](design/dive-in.md), "The leap". Played by script only.
 - **To switch it off:** `Dive.Leap` 0 in `Config.Dive`, or in the N panel in a Play.
+
+## 2026-11-24 · The three picks: the sub's name sign D, the fish-rider aura pictures, the screw propeller (NULLROOM Boss, Hugo's PC)
+**State: pushed by hand at Hugo's "merge push and pull all changes"; NOT run in Studio.** Branch `picks-screw-text-icons`
+(`839794e`, `c5ce982`, `86be301`), a plain fast-forward on `8c8d008`. The Rojo build passes, selene 0 errors (the three old
+warnings), StyLua clean. Neither `full_check.py all` nor `picks_check.py` was run: a playtest had been open in Studio since about
+05:35 and was left alone. Run both next (how: the head of `tools/studio/picks_check.py`), and look at the sign's scaled edge and at
+the water hiding names.
+- The sub's floating name is D; the propeller on all nine subs is the screw, with its turn rule and blur disc, and the shop cards
+  turn theirs ([sub propellers](design/sub-props.md), [sub models](design/sub-models.md)).
+- The aura shop's cards show twelve fish-rider pictures ([UI](design/ui.md)). **Not uploaded to Roblox**: only Studio on Hugo's PC
+  has them; anywhere else the cards keep the old bubble picture.
+- Place file not saved. To take it out: revert `86be301`, `c5ce982` and `839794e`, newest first (untried).
+- Not in this push, waiting on Hugo: the flame aura and the old aura drafts, the six icon options, the creature subs for tiers 8 and 9.
+
 ## 2026-11-24 · The hub: stalls open by standing on their ring, a little sub over the Sub stall, the Index, four shopkeepers (NULLROOM worker h4, Hugo's PC)
 **State: in the game, pushed by hand.** Three branches merged one at a time onto `6467c31`, each with `--no-ff`: `sub-stand-ring`
 (h1, `d41f35a`), `index-panel` (h2, `52e021d`), `hub-keepers` (h3, `519745f`); then this commit (the Studio check, the stills, the

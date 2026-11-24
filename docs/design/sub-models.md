@@ -25,15 +25,15 @@ whose hull is red) and a wind-up key on the back in the tier's accent colour. Th
 
 | Tier | Sub | What sets it apart | Triangles | Across x tall x long |
 |---|---|---|---|---|
-| 1 | Bathtub | the approved model: the tub, two ports a side, stubby wings | 1,288 | 21.0 x 16.6 x 36.7 |
-| 2 | Reef Runner | the tub with a bumper bar, a white band, a snorkel, back wings | 1,716 | 21.0 x 20.2 x 38.5 |
-| 3 | Kelp Cruiser | longer, three ports, leaf wings, a V of leaf fins for a tail, kelp on the cap | 1,616 | 22.9 x 21.0 x 39.7 |
-| 4 | Wreck Diver | boxy salvage boat: ballast tanks, a periscope, a crane and hook, patches, twin lamps | 2,492 | 16.6 x 21.1 x 37.6 |
-| 5 | Blue Streak | a rocket: long and low, a red nose, swept wings, pods, a tall swept fin | 2,104 | 26.4 x 16.8 x 45.0 |
-| 6 | Twilight Ray | a manta: wide rounded wings with a line of light, horns, a long tail spike | 1,824 | 41.4 x 16.5 x 51.0 |
-| 7 | Midnight Hunter | a shark: a jaw with teeth, slit eyes, gills, a dorsal fin on the cap, claws | 1,868 | 22.0 x 21.8 x 45.0 |
-| 8 | Vent Crawler | armour hoops over glowing seams, vent stacks, pincers, belly spikes | 2,400 | 17.7 x 19.2 x 44.6 |
-| 9 | Abyss King | the biggest: a glowing crown, a trident ram, pods on wings, a crest, spikes | 3,028 | 27.3 x 23.4 x 56.6 |
+| 1 | Bathtub | the approved model: the tub, two ports a side, stubby wings | 1,356 | 21.0 x 16.6 x 36.7 |
+| 2 | Reef Runner | the tub with a bumper bar, a white band, a snorkel, back wings | 1,784 | 21.0 x 20.2 x 38.5 |
+| 3 | Kelp Cruiser | longer, three ports, leaf wings, a V of leaf fins for a tail, kelp on the cap | 1,684 | 22.9 x 21.0 x 39.7 |
+| 4 | Wreck Diver | boxy salvage boat: ballast tanks, a periscope, a crane and hook, patches, twin lamps | 2,560 | 16.6 x 21.1 x 37.6 |
+| 5 | Blue Streak | a rocket: long and low, a red nose, swept wings, pods, a tall swept fin | 2,172 | 26.4 x 16.8 x 45.0 |
+| 6 | Twilight Ray | a manta: wide rounded wings with a line of light, horns, a long tail spike | 1,892 | 41.4 x 16.5 x 51.0 |
+| 7 | Midnight Hunter | a shark: a jaw with teeth, slit eyes, gills, a dorsal fin on the cap, claws | 1,936 | 22.0 x 21.8 x 45.0 |
+| 8 | Vent Crawler | armour hoops over glowing seams, vent stacks, pincers, belly spikes | 2,468 | 17.7 x 19.2 x 44.6 |
+| 9 | Abyss King | the biggest: a glowing crown, a trident ram, pods on wings, a crest, spikes | 3,096 | 27.3 x 23.4 x 56.6 |
 
 The sizes are the models' boxes in studs, as they came into Studio.
 
@@ -54,6 +54,14 @@ are printed as `  !` lines and stop the build. All nine pass.
   both go through `build`, so both show the models.
 - `SubController` places the hull part by its own rest frame (the placeholder's hull was a cylinder turned a quarter;
   a model's isn't) and spins `Prop` and `Prop_Glow`.
+- **The propeller is the screw (2026-11-24, the user's pick):** [sub propellers](sub-props.md), "The screw, as built".
+  The triangle counts above are with it (68 more a sub).
+- **The name sign's look is D, "today's font, dressed" (2026-11-24, the user's pick):** the name in the same font as
+  before, in its own colour shaded from lighter at the top to darker at the bottom (`SIGN_SHIFT` 0.144 each way), a dark
+  edge of 0.085 of the letters' height all round (`SIGN_EDGE`) and a hard dark copy 0.1 of a letter below it
+  (`SIGN_DROP`). No glow. The edge grows and shrinks with the letters. The sign's size and place are unchanged. Three
+  labels on one billboard in `SubModels` (`signWord`); the placeholder has the same sign. **It does not change that the
+  water's drawing covers most names on a trip** ("The name on a trip", below): that is still the user's call.
 - **The name sign clears each model's top (2026-11-23).** The sign is 3 studs tall and used to sit at 12.5 studs over
   the middle on every tier, its lower edge at 11. Every toy tier is taller than that (11.2 to 15.7 studs: the cap, the
   snorkel, the kelp, the periscope, the dorsal fin, the crown). `SubModels` puts the sign's lower edge 2 studs over

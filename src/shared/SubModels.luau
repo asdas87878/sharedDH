@@ -9,13 +9,25 @@
 --     tools/blender/sub_stages.py alike)
 --   SubModels.build(n)  the model, its parts, its propeller and the wake's emitter. It faces -Z, its middle at the
 --     origin; the seat is the same on every tier (SubController's SEAT), so the ride doesn't change with the look.
---     Parts named "Prop" and "Prop_Glow" spin about their own Z (SubController).
+--     Parts named "Prop" and "Prop_Glow" spin about their own Z (SubController). The part named "Blur" is the blur
+--     disc in the blades (made here by code, not in the mesh): it doesn't turn, and it is unseen until the sub is fast
+--     (SubController). Not "..._Glow", or it would be Neon.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 local SubModels = {}
 
 -- SignUp: extra studs for the name sign, for a model with a tall piece far behind the sign (see SIGN_GAP)
-export type Style = { Id: string, Name: string, Hull: Color3, Trim: Color3, Light: Color3, SignUp: number? }
+-- Blade: the propeller's own colour (the blur disc's), where it isn't white (sub_stages.py's `blades`)
+export type Style = {
+	Id: string,
+	Name: string,
+	Hull: Color3,
+	Trim: Color3,
+	Light: Color3,
+	SignUp: number?,
+	Blade: Color3?,
+}
 
 SubModels.Templates = "SubMeshes"
 
@@ -32,6 +44,21 @@ local SIGN_GAP = 2
 -- a hull darker than this (Color3's own 0 to 1, by eye's weights) gives a name nobody can read on the sign's dark
 -- outline: Midnight Hunter's navy. Its name is written in its light's colour instead
 local SIGN_DARK = 0.25
+-- The name's look: option D of docs/attachments/sub-name-text-options-1.png, "today's font, dressed" (Hugo, 2026-11-24:
+-- "use text D"): Luckiest Guy in the land title's metal shading, a thick ink edge and a darker copy a step down, and
+-- no glow. Every measure is a share of the letters, the edge too: an edge that stays 3 pixels thick closes the gaps
+-- between the letters when the sign is far off (the sheet's "far away" row). So a label is exactly as tall as its line.
+local SIGN_WIDE = 14
+local SIGN_FONT = Enum.Font.LuckiestGuy
+local SIGN_EDGE = 0.085 -- the ink edge
+local SIGN_DROP = 0.1 -- how far down the darker copy stands
+local SIGN_SHIFT = 0.144 -- the shading is moved up this far: Luckiest Guy's letters sit high in their line
+local SIGN_INK = Color3.fromRGB(16, 36, 63)
+
+-- The blur disc (docs/design/sub-props.md, "The blur disc"): in studs behind the propeller box's front end, and the
+-- blades' reach against half the box's width (a turned screw reaches further than its box's side)
+local BLUR_BACK, BLUR_REACH, BLUR_THICK = 1.11, 1.18, 0.04
+local BLADE_WHITE = Color3.fromRGB(244, 241, 230)
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -74,6 +101,7 @@ SubModels.List = {
 		Hull = rgb(150, 80, 230),
 		Trim = rgb(40, 24, 70),
 		Light = rgb(255, 140, 255),
+		Blade = rgb(255, 200, 90),
 	},
 	{
 		Id = "MidnightHunter",
@@ -81,6 +109,7 @@ SubModels.List = {
 		Hull = rgb(30, 40, 70),
 		Trim = rgb(10, 14, 24),
 		Light = rgb(60, 255, 230),
+		Blade = rgb(240, 240, 235),
 	},
 	{
 		Id = "VentCrawler",
@@ -95,11 +124,80 @@ SubModels.List = {
 		Hull = rgb(255, 214, 70),
 		Trim = rgb(20, 16, 30),
 		Light = rgb(255, 80, 120),
+		Blade = rgb(150, 70, 220),
 	},
 } :: { Style }
 
 function SubModels.style(tier: number): Style
 	return SubModels.List[math.clamp(math.floor(tier), 1, #SubModels.List)]
+end
+
+-- A name sign's four tones and its fill from one colour: the land title's (UI/Kit's palOf and wordFill, which only a
+-- client can read: keep them alike)
+local function signTones(colour: Color3): (ColorSequence, Color3)
+	local white, black = Color3.new(1, 1, 1), Color3.new(0, 0, 0)
+	local h, s, v = colour:ToHSV()
+	local full = Color3.fromHSV(h, math.min(1, s * 1.35 + 0.08), math.max(v, 0.9))
+	local light, mid = full:Lerp(white, 0.66), full:Lerp(white, 0.2)
+	local dark = Color3.fromHSV(h, math.min(1, s * 1.35 + 0.15), math.max(v, 0.9) * 0.66)
+	local deep = Color3.fromHSV(h, math.min(1, s * 1.2 + 0.2), 0.3)
+	local fill = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, light:Lerp(white, 0.5)),
+		ColorSequenceKeypoint.new(0.48, light:Lerp(mid, 0.35)),
+		ColorSequenceKeypoint.new(0.52, mid),
+		ColorSequenceKeypoint.new(1, mid:Lerp(dark, 0.55)),
+	})
+	return fill, deep:Lerp(black, 0.2)
+end
+
+-- The name's letters on its sign, back to front: the darker copy a step down, the shaded word with its ink edge, the
+-- thin shine across its upper part
+local function signWord(sign: BillboardGui, name: string, colour: Color3)
+	local word = string.upper(name)
+	-- the line as tall as the sign, or less where the word is too wide for it
+	local wide = TextService:GetTextSize(word, 100, SIGN_FONT, Vector2.new(5000, 200)).X / 100
+	local tall = math.min(SIGN_TALL, SIGN_WIDE / math.max(wide, 0.1))
+	local fill, under = signTones(colour)
+	local function layer(at: number, name_: string, down: number, edge: boolean): TextLabel
+		local text = Instance.new("TextLabel")
+		text.Name = name_
+		text.BackgroundTransparency = 1
+		text.AnchorPoint = Vector2.new(0.5, 0.5)
+		text.Position = UDim2.fromScale(0.5, 0.5 + down * tall / SIGN_TALL)
+		-- (a little wider than the letters, so it is the line's height that sets their size)
+		text.Size = UDim2.fromScale(1.1, tall / SIGN_TALL)
+		text.Font = SIGN_FONT
+		text.TextScaled = true
+		text.TextColor3 = Color3.new(1, 1, 1)
+		text.Text = word
+		text.ZIndex = at
+		if edge then
+			local ink = Instance.new("UIStroke")
+			ink.StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize
+			ink.Thickness = SIGN_EDGE
+			ink.Color = SIGN_INK
+			ink.LineJoinMode = Enum.LineJoinMode.Round
+			ink.Parent = text
+		end
+		text.Parent = sign
+		return text
+	end
+	local function shade(text: TextLabel): UIGradient
+		local g = Instance.new("UIGradient")
+		g.Rotation = 90
+		g.Offset = Vector2.new(0, -SIGN_SHIFT)
+		g.Parent = text
+		return g
+	end
+	shade(layer(2, "Word", 0, true)).Color = fill
+	layer(1, "Drop", SIGN_DROP, true).TextColor3 = under
+	shade(layer(3, "Shine", 0, false)).Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.25, 1),
+		NumberSequenceKeypoint.new(0.3, 0.15),
+		NumberSequenceKeypoint.new(0.35, 1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
 end
 
 -- What every sub carries, model or placeholder: the lamp's beam, the hull's glow, the name over the tower (`over`: from
@@ -132,22 +230,14 @@ local function dress(
 	-- tools/studio/m4_subs_shots.py numbers.)
 	local sign = Instance.new("BillboardGui")
 	sign.Name = "Label"
-	sign.Size = UDim2.fromScale(14, SIGN_TALL)
+	sign.Size = UDim2.fromScale(SIGN_WIDE, SIGN_TALL)
+	sign.ClipsDescendants = false
 	sign.StudsOffsetWorldSpace = over
 	sign.MaxDistance = 140
 	sign.LightInfluence = 0
 	sign.Parent = tower
-	local text = Instance.new("TextLabel")
-	text.BackgroundTransparency = 1
-	text.Size = UDim2.fromScale(1, 1)
-	text.Font = Enum.Font.LuckiestGuy
-	text.TextScaled = true
-	text.Text = string.upper(s.Name)
 	local bright = 0.2126 * s.Hull.R + 0.7152 * s.Hull.G + 0.0722 * s.Hull.B
-	text.TextColor3 = if bright < SIGN_DARK then s.Light else s.Hull
-	text.TextStrokeColor3 = Color3.fromRGB(16, 36, 63)
-	text.TextStrokeTransparency = 0
-	text.Parent = sign
+	signWord(sign, s.Name, if bright < SIGN_DARK then s.Light else s.Hull)
 	local bubbles = Instance.new("ParticleEmitter")
 	bubbles.Name = "Wake"
 	bubbles.Color = ColorSequence.new(Color3.new(1, 1, 1))
@@ -197,6 +287,25 @@ local function fromTemplate(s: Style, n: number): (Model?, { BasePart }, BasePar
 		end
 	end
 	model.PrimaryPart = hull
+	-- the blur disc, low in the blades (a cylinder's axis is its X: turned to lie along the hub)
+	local blur = Instance.new("Part")
+	blur.Name = "Blur"
+	blur.Shape = Enum.PartType.Cylinder
+	local across = math.max(prop.Size.X, prop.Size.Y) * BLUR_REACH
+	blur.Size = Vector3.new(BLUR_THICK, across, across)
+	blur.CFrame = prop.CFrame * CFrame.new(0, 0, BLUR_BACK - prop.Size.Z / 2) * CFrame.Angles(0, math.rad(90), 0)
+	blur.Color = s.Blade or BLADE_WHITE
+	blur.Material = Enum.Material.SmoothPlastic
+	blur.Transparency = 1
+	blur.Anchored = true
+	blur.CanCollide = false
+	blur.CanQuery = false
+	blur.CanTouch = false
+	blur.CastShadow = false
+	blur.TopSurface = Enum.SurfaceType.Smooth
+	blur.BottomSurface = Enum.SurfaceType.Smooth
+	blur.Parent = model
+	table.insert(parts, blur)
 	-- the name clears the tier's tallest piece (a snorkel, a periscope, a fin, a crown): the sign is SIGN_TALL studs
 	-- tall, and its lower edge stays SIGN_GAP over the model's top, never lower than the placeholder's 12.5
 	local top = -math.huge

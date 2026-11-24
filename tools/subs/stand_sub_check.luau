@@ -143,6 +143,12 @@ local replicated = {
 }
 local services = {
 	ReplicatedStorage = replicated,
+	-- (the name sign's letters, measured: any width does here, the sign is taken off the stand's sub)
+	TextService = {
+		GetTextSize = function(_, text, size)
+			return roblox.Vector2.new(#text * size * 0.55, size)
+		end,
+	},
 	RunService = { RenderStepped = {
 		Connect = function(_, f)
 			stepped = f
@@ -184,6 +190,7 @@ local env = {
 	NumberSequenceKeypoint = roblox.NumberSequenceKeypoint,
 	NumberRange = roblox.NumberRange,
 	ColorSequence = roblox.ColorSequence,
+	ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 	os = { clock = function()
 		return now
 	end },

@@ -3,7 +3,7 @@
     python tools/studio/s2_subs_check.py push                (in Edit: SubModels and SubController into the open place)
     python tools/studio/t3_toy_subs_check.py install         (in Edit, before Play)
     node ~/Projects/studio-runner/studio-run.mjs play
-    python tools/studio/t3_toy_subs_check.py run [tier ...]  (in the playtest: the numbers and the stills)
+    python tools/studio/t3_toy_subs_check.py run [numbers] [tier ...]  (in the playtest: the numbers and the stills; numbers: no stills, no test camera)
     python tools/studio/t3_toy_subs_check.py remove          (in Edit, after the stop; `run` can't: it is in the playtest)
 It rides on s2_subs_check's server door (buy, equip, pick, dive, home) and adds its own LocalScript, which builds the
 nine with the game's own SubModels.build and, on a trip, reads our own sub every frame of the Ride phase: the rider
@@ -34,6 +34,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local report = RS:WaitForChild("ZZS2Report")
 local SubModels = require(RS:WaitForChild("Shared"):WaitForChild("SubModels"))
+local Config = require(RS:WaitForChild("Shared"):WaitForChild("Config"))
 local line = nil
 local function stand()
 	local dock = workspace:FindFirstChild("Dock", true)
@@ -104,12 +105,26 @@ RunService.RenderStepped:Connect(function(dt)
 	if w.angle then
 		local d = (angle - w.angle + math.pi) % (2 * math.pi) - math.pi
 		w.turned += math.abs(d)
+		-- the turn on one frame, its way (+: as +Z turns it) and the most of it, degrees
+		w.stepMost = math.max(w.stepMost, math.deg(d))
+		if d < 0 then w.back += 1 end
+		-- the blur disc against the rule, at the speed it was set from (the planned one: the root's is a frame off)
+		local disc = found:FindFirstChild("Blur")
+		if disc then
+			w.blurMin, w.blurMax = math.min(w.blurMin, disc.Transparency), math.max(w.blurMax, disc.Transparency)
+			local hub = sub:ToObjectSpace(disc.CFrame)
+			w.blurHub = math.max(w.blurHub, (Vector2.new(hub.X, hub.Y) - Vector2.new(t.Prop.Position.X, t.Prop.Position.Y)).Magnitude)
+			w.blurAxis = math.min(w.blurAxis, math.abs(hub.RightVector.Z))
+		else
+			w.noBlur += 1
+		end
 		w.time += dt
 		if math.abs(d) < 0.02 then
-			-- a frame on which the propeller's angle read the same. SubController turns it by dt * (4 + 0.12 * speed):
-			-- when that is a whole turn (or two) the propeller did turn, and only reads the same
+			-- a frame on which the propeller's angle read the same. SubController turns it by the rule below (since
+			-- 2026-11-24 never over PropStepMost in a frame, so it should not happen)
 			w.still += 1
-			local step = dt * (4 + root.AssemblyLinearVelocity.Magnitude * 0.12)
+			local c = Config.Sub
+			local step = math.min(dt * (c.PropIdle + root.AssemblyLinearVelocity.Magnitude * c.PropPerSpeed), math.rad(c.PropStepMost))
 			local turns = math.floor(step / (2 * math.pi) + 0.5)
 			if turns >= 1 and math.abs(step - turns * 2 * math.pi) < 0.35 then w.whole += 1 end
 			w.stillStep = math.min(w.stillStep, step)
@@ -184,7 +199,7 @@ workspace:GetAttributeChangedSignal("T3Do"):Connect(function()
 			return "unlined"
 		elseif verb == "watch" then
 			watch = { n = 0, riderMax = 0, seatMax = 0, propMax = 0, glowMax = 0, axisMin = 1, turned = 0, time = 0,
-				still = 0, whole = 0, stillStep = math.huge, wakeMin = math.huge, wakeMax = 0, wakeOff = 0, beamOff = 0, signOff = 0, beamDot = 1, nose = 1,
+				still = 0, whole = 0, stepMost = -math.huge, back = 0, blurMin = math.huge, blurMax = -math.huge, blurHub = 0, blurAxis = 1, noBlur = 0, stillStep = math.huge, wakeMin = math.huge, wakeMax = 0, wakeOff = 0, beamOff = 0, signOff = 0, beamDot = 1, nose = 1,
 				speed = 0 }
 			return "watching"
 		elseif verb == "read" then
@@ -193,10 +208,10 @@ workspace:GetAttributeChangedSignal("T3Do"):Connect(function()
 			if w.bad then return "BAD " .. w.bad end
 			if w.n == 0 then return "frames=0" end
 			return string.format(
-				"frames=%d tier=%s hullMesh=%s rider=%.2f,%.2f,%.2f riderOffMax=%.2f seatOffMax=%.2f propOffMax=%.3f glowOffMax=%.3f propAxisMin=%.3f propStillFrames=%d wholeTurnFrames=%d stillStepMin=%.2f wake=%.0f..%.0f wakeOffFrames=%d beamOffFrames=%d beamDotMin=%.2f lampAhead=%.1f signOffFrames=%d noseMin=%.2f topSpeed=%.0f",
+				"frames=%d tier=%s hullMesh=%s rider=%.2f,%.2f,%.2f riderOffMax=%.2f seatOffMax=%.2f propOffMax=%.3f glowOffMax=%.3f propAxisMin=%.3f propStillFrames=%d wholeTurnFrames=%d stillStepMin=%.2f wake=%.0f..%.0f wakeOffFrames=%d beamOffFrames=%d beamDotMin=%.2f lampAhead=%.1f signOffFrames=%d noseMin=%.2f topSpeed=%.0f stepMostDeg=%.1f backFrames=%d blur=%.2f..%.2f blurOffHub=%.3f blurAxisMin=%.3f noBlurFrames=%d",
 				w.n, tostring(w.tier), tostring(w.mesh), w.rider.X, w.rider.Y, w.rider.Z, w.riderMax, w.seatMax, w.propMax,
 				w.glowMax, w.axisMin, w.still, w.whole, if w.still > 0 then w.stillStep else 0, w.wakeMin, w.wakeMax, w.wakeOff, w.beamOff, w.beamDot, w.lampAhead or 0,
-				w.signOff, w.nose, w.speed)
+				w.signOff, w.nose, w.speed, w.stepMost, w.back, w.blurMin, w.blurMax, w.blurHub, w.blurAxis, w.noBlur)
 		end
 		return "?"
 	end)
@@ -232,6 +247,7 @@ def do(c, wait=1.4):
     )
 
 
+NUMBERS = False  # `run numbers [tier ...]`: no stills and no test camera (the user's rule: never a camera at the sub's side)
 STILLS = True  # off once the window's pictures are found frozen
 
 
@@ -316,7 +332,10 @@ def ride(tier):
 def checks(tiers):
     global STILLS
     time.sleep(6)
-    if not tiers:
+    if NUMBERS:
+        STILLS = False
+        note("made:\n" + do("made", 3))
+    elif not tiers:
         note("made:\n" + do("made", 3))
         # Studio's window off the screen or covered gives the same old picture every time: the camera is moved
         # between two stills, and if they come out alike no still is kept (the numbers still run)
@@ -373,4 +392,5 @@ if __name__ == "__main__":
     elif what == "remove":
         print(install(True))
     elif what == "run":
-        checks([int(a) for a in sys.argv[2:]])
+        NUMBERS = "numbers" in sys.argv[2:]
+        checks([int(a) for a in sys.argv[2:] if a != "numbers"])

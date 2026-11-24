@@ -155,6 +155,14 @@ Hugo: "integrate both aura shop ui and selling dinos ui (as in reference pic 1) 
   and Sell (n). It lists the tank (the inventory) and what is carried. A press picks a card; Sell (n) asks SURE?
   once, then asks the server for each fish in turn (b1's Action "Sell"). Fish equipped in the tank are shown last,
   dimmed and marked EQUIPPED, and can't be picked.
+- **The aura cards' pictures (2026-11-24, the user's pick: E, the fish rider):** each card shows its own picture, a
+  rider on a fish in that tier's flame, in the stage colours of the flame draft 4, the flame a little taller each tier.
+  Three are the picked sheet's own; nine were made the same way ([README](../../art/ui/auras/README.md),
+  [all twelve](../attachments/aura-icons-2026-11-24.png)). One atlas, 1024 x 768. **Not uploaded:** only Studio on
+  Hugo's PC has it; anywhere else the card keeps the old bubble picture, until `ICONS` in `UI/AuraShop.luau` has its id.
+  **The card names are still draft 2's** (`Shared/Auras`), so a few names and tints don't match their picture's flame:
+  tier 2, "Foam", is light blue with a coral flame; tier 10, "Phantom", is green with a magenta one. Not renamed: the
+  flame aura isn't approved. Buying stays off.
 - **Auras** (`UI/AuraShop.luau`): the twelve cards as before, now in the shop, in a window of the Sell Fish
   page's size with the title at the left, so the tabs and the title stay put from page to page; one button a card
   (the Robux button is hidden until products exist). The worn aura reads EQUIPPED, the

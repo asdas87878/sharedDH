@@ -3,9 +3,24 @@
 Back to [sub models](sub-models.md) and [the submarine](submarine.md). Hugo, 2026-11-23, about the toy submarines: "make
 the blades on the back better, again give me a better preview and animate them to actually spin."
 
-**State (2026-11-23, task p1): options only. Nothing here is in the game and no default is picked.** Hugo picks from
-the sheet and the clip; a later mission builds the pick into `tools/blender/sub_stages.py` (`tail()`) and the turn
-rule into the game. Everything below was made and checked in Blender. Studio was not opened.
+**State (2026-11-24): option 4, the screw, is picked and built on all nine subs.** "use text D, fish rider, screw for
+submarine propeller and implement": the user. What was built is the next section. Everything after it is the options
+as they were made on 2026-11-23 (task p1, in Blender); "today" in it is the old wheel of bars.
+
+## The screw, as built (2026-11-24)
+
+- **The models:** `tools/blender/sub_stages.py` (`screw`, `flight`, `odd_colour`; `PROP = "bars"` brings the old wheel
+  back). All nine tiers re-exported, 68 triangles more each; the gate finds 0 faults on each, the other parts' points
+  are unchanged, and the propeller's box is 0.000 studs off the hub on every tier. The flights reach further back than
+  the bars did: the part ends 2.5 studs further out behind the ring on tier 1 (20.95 against 18.4).
+- **Which way it turns, by sum:** each flight's angle falls 205 degrees toward the tail (`work/picks/hand.py`, read from
+  the exported points), and the game turns the part about +Z, so the water is pushed backwards. Not mirrored.
+- **The turn:** 4 + 0.04 x speed radians a second and never over 30 degrees in one frame (`Config.Sub.PropIdle`,
+  `PropPerSpeed`, `PropStepMost`). It was 4 + 0.12 x speed with no limit, which strobed (below).
+- **The blur disc:** a thin white disc behind the flights, made in code (`SubModels`, a part named `Blur`), unseen up to
+  150 studs a second and 20% there from 450 (`PropBlurFrom`, `PropBlurFull`, `PropBlurMost`). The placeholder has none.
+- **The cards in the shop turn theirs** at the resting 4 radians a second, the cards in view only, while the window is
+  open (`UI/SubPanel`). The little sub over the stall turned already (`SubStandController`).
 
 ![the propeller options](../attachments/sub-props-options-2026-11-23.png)
 
