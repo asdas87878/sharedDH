@@ -45,3 +45,15 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   `TankRideService.out`, `RideService.rideOut`; [equip](docs/design/equip.md)). A dial goes to 1 in the file only after its
   check has run at a real frame rate. **Bought Oxygen off the dock is banked** (`RideService.grantOxygen`, `Banked`) and
   joins the max at the dock: never raise the max mid-dive, the red line and the drain are shares of it.
+- **The hub's new pieces (2026-11-24; NULLROOM h1 to h4):** the stalls open on their floor rings, the sub stand too
+  (`StallController`: Sell, Auras, Sub; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
+  copy of the equipped sub turns over the sub stand, on the player's own machine (`SubStandController`); **the Index**
+  is `IndexService` (the server sees a catch in `RideService.carried` and `AquariumService.tankOf` every
+  `Config.Index.Watch`; claims on the dock only, paid once; attributes `IndexFound`, `IndexClaims`; remote `Net.Index`)
+  with `UI/IndexPanel` and the Index button in `UI/HubButtons`; every `Config.Index` number is a DRAFT; **the
+  keepers** behind the stands are data in `Shared/Keepers` built and moved by `KeeperController` on each player's own
+  machine (plain parts in `workspace.Keepers`, no collision, no query). Design: [UI](docs/design/ui.md) (top
+  section), [hub models](docs/design/hub-models.md) ("The keepers behind the stands"),
+  [submarine](docs/design/submarine.md). One Studio check for all of it:
+  `python tools/studio/h4_hub_check.py` (install, play, `run`, `stills`; its head says how). Offline:
+  `tools/index/*.luau`, `tools/subs/stand_sub_check.luau`, `tools/keepers/check.py` (lune and python).

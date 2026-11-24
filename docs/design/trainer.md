@@ -25,11 +25,13 @@ the player about every 0.5 s."
   body's underside, from the middle of that underside. The coil is 3.5 turns of chunky square wire, half a stud thick (42 straight pieces,
   each a little longer than its gap so the outer corners meet), fixed between two darker round plates. The pad is a
   small round red slab, just wider than the coil (radius 2.05 against the coil's 1.5 outside; 4.5 turns read as a stack of plates in the first still, so 3.5), with a lighter top face.
-- **The kit's old machine is gone in the game:** at the server's start `TrainService` takes away the square red pad's
-  look (the part stays, unseen: the sign hangs from it), the yellow block, the post, the three coil discs and the plate
-  under the seahorse, and sets the seahorse down to the coil's length. **Not yet in the kit:** `tools/map/hub_kit.py`
-  still builds the old machine, so in Edit (and after a hub rebuild) it is there until Play. Changing the kit means a
-  hub rebuild in the place: left for Hugo's word.
+- **The kit draws nothing of the trainer (2026-11-23, task m2).** `tools/map/hub_kit.py` (`trainer_marks`) puts only
+  unseen marks in each plot, where the old machine stood: `TrainerSpot` (the floor and the place), and the model
+  `TrainerRide` with its plate and a `Toy` of two boxes, `Body` and `Head` (where the coil stands and which way the
+  seahorse faces). The yellow block, the post, the three coil discs, the old kit seahorse and the square red pad are
+  out of the map, so nothing of them can show in Edit, at Play or after a hub rebuild. `TrainService` reads the same
+  three names as before, so an older map (the old machine still drawn) and the new one give rides in the same place:
+  measured, every plot's coil and seat within 0.001 studs of where they stood. More under "Staying in the place".
 - **The floor under the ride** is the highest seen surface of the plot under its coil (a plot's Pad can cover the
   trainer's corner, 0.4 studs over the hub's floor, and buried the levels' thin pads), not the kit spot's underside.
 - **Getting on:** walk up to it (within 5.5 studs of the coil, flat) and you are seated; or jump on it (come down within
@@ -117,21 +119,78 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
   `LIGHTS` (stand and head). Level 9's gold is in the mesh; level 12's rainbow is put into the mesh by the creatures'
   rainbow rule (as a Rainbow fish), its stand and dark colours left as they are. Level 11 and 12's shards turn round
   the coil.
-- **Local only, not uploaded:** the meshes are files in Studio's content folder on Hugo's PC
-  (`rbxasset://ridefish/SeahorseTrainer<n>/`), as the creatures' `--local` install. A published game needs them
-  uploaded (Hugo's OK first). Without the models the game falls back to the kit's toy at every level (only the
-  numbers and the sign change).
+- **Local only, not uploaded:** the meshes are files in Studio's content folder, one set per PC and per Studio
+  version (`rbxasset://ridefish/Trainer<n>/`), as the creatures' `--local` install; the 12 models are in the place
+  file (`ReplicatedStorage.TrainerModels`). A published game needs them uploaded (Hugo's OK first). Without the
+  models the game shows a bare coil and pad at every level and says so loudly; without the files the seahorses are
+  unseen and the client says so ("Staying in the place").
 
 ### Building them again
 1. `python art/creatures/Seahorse/tiers/build_tiers.py --export` (Blender): each level with `GAME = True` (no
    draft coil, no plate) through `voxel_kit.py --export` into
    `art/creatures/Seahorse/tiers/game/T<n>/` (`SeahorseTrainer<n>.glb`, `.mesh.json`), and `game/tiers.json`.
 2. `python art/creatures/Seahorse/tiers/install_tiers.py runner` (Studio open, Edit): the mesh files and
-   `ReplicatedStorage.TrainerModels`. After Studio updates itself: `--files-only` again. Save the place after.
+   `ReplicatedStorage.TrainerModels`, always, from the exports. Save the place after. (To put in only what is
+   missing, on any PC: `python tools/studio/trainer_models.py <studio_id>`, below.)
 3. Stills: `python art/creatures/Seahorse/tiers/tier_stills.py install`, Play, then `sheet`, `joints`, `rock`,
    `rider`, `upgrade`; `remove` after.
 
+## Staying in the place (2026-11-23, task m2)
+Hugo: the old toy machine kept coming back. Read from the code's history since 516b0fe: nothing in the code had
+gone back; the old one returned four ways, each closed now.
+
+| How the old one came back | What stops it |
+|---|---|
+| The kit built the old machine on every hub or map load: there in Edit, swapped only at Play | the kit builds unseen marks only (above) |
+| A place without `ReplicatedStorage.TrainerModels` (a fresh place, the partner's, one not saved after the install): the game fell back to the kit's toy and said nothing | every map load checks and installs them; the server warns once at start |
+| The mesh files missing (another PC, or Studio updated itself): the seahorse unseen, nothing said | every map load checks and writes them; the client warns once |
+| Nothing of the trainer in Edit | the level-1 seahorse is shown on every plot in Edit |
+
+- **One command, any PC:** `python tools/studio/trainer_models.py <studio_id>` (Hugo's PC: `runner`), Studio open in
+  Edit. It finds the running Studio's content folder (Windows, macOS, Linux under Vinegar; else the newest installed;
+  `STUDIO_CONTENT=<...\Versions\version-xxxx\content>` names it by hand) and prints it; asks the place which of
+  T1 to T12 it has and whether each mesh file is on this PC; installs what is missing with `install_tiers.py` (the
+  12 models when the place lacks any, only the files when only files are missing); then shows level 1 on every plot.
+  `--check` only reports (exit code 1 when something is missing). A content folder it cannot find is a failure too,
+  never "all there". Nothing is uploaded. **After an install save the
+  place (Ctrl+S); after Studio updates itself run it again.**
+- **It runs by itself** at the end of `python tools/studio/load_greybox.py <studio_id>` (a whole load) and of
+  `python tools/studio/load_greybox.py <studio_id> greybox hub` (new: the hub's files only, seconds, keeps hand
+  placing; then the trainer step and the hub's contract). Both ways were run on Hugo's place, the hub mode twice (the
+  second over the preview already there: the place unchanged). When it cannot make the trainer whole it prints a block of
+  `!!!` lines saying what to run.
+- **In Edit:** `tools/studio/trainer_edit.luau` puts one model, `TrainerStand`, in each plot: the level-1 seahorse, its
+  stand and coil, where the game will build them (it copies `TrainService`'s placing; a playtest compares the two:
+  0.001 studs). It is marked `EditPreview`, its parts are locked (a click takes the plot), and the game takes it away
+  at its start and builds its own. It is a picture: to move a trainer, move its plot or change the kit. It adds 54
+  parts a plot (432 in the hub) to the place's part count; `99_check` counts them.
+- **In the game, when something is missing:** the server warns once, in capitals, naming the missing levels and the
+  command (`TrainService.Start`); the client warns once when a level-1 mesh file does not load
+  (`TrainerController.checkMeshes`; level 1's files only: the levels are installed together). Both tried in a playtest: the models taken out (one warning; the stand-in pad
+  and coil still seat, train and upgrade), and one mesh file hidden (the client's warning names it).
+- **The check:** `python tools/studio/trainer_check.py install`, Play, `run [baseline.json]`, stop, `remove`
+  (Hugo's PC: it drives studio-runner; `places > baseline.json` in a playtest writes a baseline of where the rides stand). It checks
+  every plot shows Hugo's level 1 from its meshes with nothing of the old machine and no Edit preview left; walking
+  up seats; Oxygen comes once a second at the level's number; getting off stops it; an upgrade by the sign's own
+  request builds level 2 and takes its price; each of the 12 levels builds and no point of its meshes comes within a
+  quarter stud of the fence, a post, the sign or a neighbour, at rest, at both ends of the rock and under a landing;
+  no flash is left; level 12 trains; level 1 is measured on all eight pens (they are mirrored and turned), levels 2
+  to 12 on the player's own. 2026-11-23: all good. Least gaps: the fence 1.19 studs (level 1, Plot5; 1.19 to 1.87
+  over the eight pens), 1.46 to 1.54 for the 12 levels on Plot2; **the upgrade sign's board 0.45 studs from level 11 and 12's wing tips at the back of a rock on a landing**
+  (0.78 on a plain rock): clear, but the closest thing on the plot. Measured at the pen's first stage, and without
+  the upgrade's spring-up (0.45 s, a small overshoot in size).
+- **Fixed on the way:** an upgrade's white flash stayed on the seahorse for good when its level changed again before
+  the flash had faded (0.7 s; `Train.UpAgain` lets an upgrade through every 0.5 s). The record that faded it was
+  dropped on the rebuild; it now takes its flash with it.
+
+![in Edit: level 1 on every pen](../attachments/trainer-edit-pen-2026-11-23.jpg)
+![in Play: level 1](../attachments/trainer-play-level1-2026-11-23.jpg)
+![in Play: level 12](../attachments/trainer-play-level12-2026-11-23.jpg)
+
 ## Where it lives
+- Staying in the place: `tools/map/hub_kit.py` `trainer_marks`; `tools/studio/trainer_models.py`,
+  `trainer_edit.luau`, `trainer_check.py`; `tools/studio/load_greybox.py` (`trainer()`, the `hub` mode).
+
 - `src/shared/RideStyles.luau`: `RideStyles.Trainer` (every number above) and `RideStyles.coil` (the coil's pieces
   between a base frame and a top frame; the server builds with it, every machine bends with it).
 - `src/server/Services/TrainService.luau`: the makeover, seating and unseating (the weld `TrainerWeld` on the toy's
@@ -151,9 +210,11 @@ Saddled, Racer, Iron, Spiked, Knight, Royal, Golden, Abyssal, Starfire, Prismati
 ## Open
 - The levels' Oxygen and prices wait for Hugo's pick of the economy draft (b1); the sign's Robux prices are placeholders, with no product behind them.
 - The level is kept for the session only (no saves yet), like the coins.
-- The 12 models are local to Hugo's PC until uploaded (needs Hugo's OK).
+- The 12 models' meshes are local files on each PC until uploaded (needs Hugo's OK): a published game shows no
+  seahorse without that. `trainer_models.py`'s folder search is tried on Hugo's PC only (Linux, Vinegar); on Windows
+  and macOS it is untried, so the first run there should be read (it prints the folder it uses).
+- `hub_kit.py --old` (the before-pictures builder, `plot_old`) still draws the old machine: it is not the map.
 - Judged on captures only, not played by hand: the upgrade's look, the seat on each level, the higher stand.
 - Judged on captures only, not played by hand: the seat's place on the seahorse (`Seat`), the rock's size and pace,
   and the pop's size are first guesses.
-- The kit (`hub_kit.py`) still draws the old machine (above).
 - The rider sits with Roblox's own sit pose; a riding pose of our own waits for the partner's animations.

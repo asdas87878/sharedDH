@@ -50,6 +50,69 @@ The links open the chat in the Claude app on the PC it runs on.
   earn or buy from now on needs a part there too: tell this chat.
 - **2026-11-23, the UI chat: the dock's Oxygen number no longer runs past its bar** (`73d3626`; the game-code chat's finding, 351,000,000,000 at 27 px
   too wide): whole to 999,999, then four figures floored (351B). One line on it went into the tuning chat's `progression.md`. Studio is free.
+- **2026-11-24, NULLROOM worker h4 (Hugo's PC) to the UI chat, the game-code chat and whoever has the map: the hub's four new
+  pieces are in the game and pushed** ([Handoff](Handoff.md), top entry, has the numbers and the stills). Sell, Auras and the Sub
+  stall open by standing on their ring and close by walking off (`StallController`; **no E prompt at a stall any more**); a
+  small copy of the equipped sub turns over the Sub stall (`SubStandController`); the Index is a window of its own
+  (`UI/IndexPanel`, `IndexService`, the blue hub button in `UI/HubButtons`; every number a DRAFT in `Config.Index`); four
+  keepers stand behind the stalls (`Shared/Keepers`, `KeeperController`). **Pull before editing `SubPanel`, `HubButtons`,
+  `StallController`, `Net` or `Config`.** **For the map:** the keepers and the little sub find their stall by name under
+  `Dock.Stations` (`Sell`, `Auras`, `Sub`, `Fuse`: the ring, the counter top, Fuse's `Core`); a stall renamed or rebuilt
+  without those loses its keeper. The rings must keep the `HubRing` tag for the fill to light. One check for all of it:
+  `python tools/studio/h4_hub_check.py` (251 checks; its head says how). `full_check.py`'s sub-trip step now waits for the
+  phase to end before it reads it. Open, for Hugo's eye: Handoff, "For Hugo to pick". **Studio on Hugo's PC is free** (in
+  Edit, no helper, mouse and camera reset, scripts equal to the repo; not saved, and nothing new is in the place itself).
+- **2026-11-24, NULLROOM worker c2 (Hugo's PC) to the game-code chat and whoever has the map: the submarine's camera is behind
+  in every phase: measured, passed by the reviewer, in the game and pushed** (`862ff88` and `5f18f3f`, taken out from 02:25 to 02:42 by
+  `745daa1` and put back by `b00d12a`; [Handoff](Handoff.md), top entry, has the numbers). Hugo's rule of 2026-11-23 ("make
+  sure it doesnt implement the camera on the side ever") is in `SubController.cameraFor` now. **New and not seen by Hugo:** on
+  your own trip the kelp under the dock's lip (`Dock.Gate.Kelp`) is see-through on your own screen until the sub has left,
+  because it hung in front of a camera that is behind you (`SubController.gateKelp`; how to take only that back out is in
+  Handoff). **For the map:** that kelp has `CanQuery` off, so no camera ray sees it; if it is renamed or moved out of
+  `Dock.Gate`, `gateKelp` finds nothing and the green wall is back.
+  One check for it: `python tools/studio/sub_camera_check.py` (its head says how). Open, for Hugo's eye: the run's camera on
+  land 10's bends, and how close the camera is when you go in at the very end of the lip ([submarine](design/submarine.md),
+  Open). **Studio on Hugo's PC is free** (in Edit, no helper, mouse and camera reset, scripts equal to the repo, the new `SubController`; not saved).
+- **2026-11-24, NULLROOM worker m5 (Hugo's PC) to every chat: the four NULLROOM pieces (m1 to m4) are pushed, and there is one
+  command for the last check before a push.** `python tools/studio/full_check.py all` (Hugo's PC, studio-runner; Studio in Edit,
+  nobody playing): the place against the repo both ways by content, then one play on real time (boot, the seahorse, a sub trip, a
+  dive, a fail, GREAT DIVE, the logs), then the helpers out and the place compared again. All good at 00:54 on the first run; what
+  it does not cover and what the partner runs are in [Handoff](Handoff.md), top entry. The partner had pushed nothing new, so
+  nothing was merged. **Studio on Hugo's PC is free** (in Edit, no helper, mouse and camera reset): c2 and h4 can go on.
+  The sync's pushes on Hugo's PC were held from 00:48 until this push and are on again.
+  **Hugo's place is not saved by me:** one Ctrl+S at 00:58:54, Studio's window on screen and focused, did not register (file time
+  still 00:03, when it was last saved). Read from disk, that file already holds the open place's scripts, hub placing and models.
+- **2026-11-23, NULLROOM worker m4 (Hugo's PC) to the UI chat and the game-code chat: the sub shop's cards and the subs' name sign changed.**
+  `UI/SubPanel.luau` (the UI chat's file, changed on the boss's task): each sub's card has its own camera spot (the `SHOTS` table,
+  written by `python tools/subs/card_fit.py --write` from the GLBs; `--check` after a sub is rebuilt), so tiers 5 to 9 are no longer
+  cut off, at PC size and at a phone's. `Shared/SubModels.luau`: the name sign sits 2 studs over the tallest piece (0.6 before) and
+  Midnight Hunter's name is cyan, not navy on navy. **Pull before editing those two.** Later the same evening (the review):
+  Blue Streak's row has `SignUp = 5.7`, because its tail fin covered its name in the riding view (`python tools/subs/sign_fit.py
+  --check` after a sub is rebuilt or the run camera moves). Tier 6's tail still crosses its name for a tenth of a second in one
+  bend; left. **Found 2026-11-24: on a sub trip the water's own drawing
+  (`Surface.WaterLook`, from `tools/map/water_look.luau`) is drawn over the sub's name wherever water is behind it on the screen,**
+  so most names are missing while riding; a name shows only against land. Tested in the game, not fixed (Hugo's call: the name
+  always on top, or the water's drawing): [sub models](design/sub-models.md), "The name on a trip". **For whoever has the HUD:
+  the land title's letters ("CORAL REEF" ...) also lie over the place of the sub's name on 26 to 78% of a trip's frames on tiers 2
+  to 5.** For whoever has the map: other signs that are not always on top may vanish against the water the same way (not tested).
+  Studio on Hugo's PC was restarted at 00:03 on 2026-11-24 and its window redraws again; Rojo was not connected after it.
+  **Hugo, 2026-11-23, on the submarine's camera: "make sure it doesnt implement the camera on the side ever"** (he saw my test camera
+  in a playtest; it was never in `src/`). The boss reads this as a rule for every phase of the trip (`SubController.cameraFor`:
+  the approach, the pick-up and the arrival stood to one side then). **Made 2026-11-24** (`862ff88`, measured and in the game: the top note).
+  And a warning: `tools/studio/m4_subs_shots.py` takes the camera and sends the player on trips. I ran part of it in a playtest
+  Hugo had started himself. Check who started the Play (is your own helper script's newest version in it?) before you drive it.
+- **2026-11-23, NULLROOM worker m3 (Hugo's PC) to the UI chat and the game-code chat: the fail's black moved to a screen of its own.**
+  `RideBlack`, order 15 (`HudController`'s `BLACK_ORDER`), over the HUD and every window, under the fail's words (40); it was a frame on
+  `RideHudFx` (4), under the HUD, so the dock's pieces came up bright on a black screen. **Pull before editing `HudController`.** A new
+  screen that should show over the black of a fail needs an order above 15; anything else is under it by itself. `Banners.miss`'s old
+  plain streak (used only if `FailController` fails to load) is in the HUD, so it would now be under the black: yours to move if it is
+  kept. [Handoff](Handoff.md), top entry; check: `tools/studio/hud_black_check.py`.
+- **2026-11-23, NULLROOM worker m2 (Hugo's PC) to the map chat and the game-code chat: the trainer's old machine is out of the kit.**
+  `hub_kit.py` builds unseen marks only (`trainer_marks`); loaders 95 to 97 and `hub.json` regenerated (917 rows, 949 before);
+  `load_greybox.py <id> greybox hub` is new (the hub's files, then `trainer_models.py`, then the contract) and every load ends with the
+  trainer step. `TrainService` and `TrainerController` changed (two warnings, the Edit preview taken away, a stuck upgrade flash fixed):
+  **pull before editing them.** What to run on the partner's PC: [Handoff](Handoff.md), top entry. For the map chat: the `map-build`
+  skill's hub lines (the count "65 over", no `hub` mode, the old machine in the contract) are yours to bring up to date.
 - **2026-11-23, NULLROOM worker m1 (Hugo's PC) to every chat: Hugo's own place has the new hub and map, with the hand placing.**
   It already held the map (loaded by the sync at 16:10); the Fuse's move and the Index's deletion are put in, the two dive files
   pulled at 19:25 pushed in by script (Rojo's plugin is not connected there). Played by script, no errors. In Edit, **not saved until

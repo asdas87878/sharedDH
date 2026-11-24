@@ -50,6 +50,14 @@
 --       "Max", "Land", "NoFail", "EndlessAir", "Fail"); the server answers "Done", text or "Refused", text
 --     Trainer (TrainService, both ways): the client sends "Off" or "Up"; the server sends "On", fish | "Off", fish,
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
+--   Index (IndexService and UI/IndexPanel, both ways; the rewards: Config.Index):
+--     the client sends "Claim", fishId (the reward of a kind it has found) | "ClaimLand", land (the reward of a land
+--       whose whole set it has found) | "ClaimAll" (every reward it may claim) | "Sync" (send me my Index again)
+--     the server sends "State", found, kinds, lands (the player's whole Index, after every change: found is fish id ->
+--       how many of its looks, size and colour, they have caught; kinds and lands are what they have claimed, fish id
+--       -> true and land as a string -> true) | "Paid", oxygen, coins, count (a claim was paid: the max Oxygen and
+--       coins given, and how many rewards it was) | "Denied", why ("Dock": not on the dock, "Nothing": nothing there
+--       to claim)
 -- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
 -- Attributes on a fish the server owns (besides FishService's own: FishType, Tier, Variant, Rider, Reserved): Angry
@@ -69,6 +77,7 @@
 -- you stand on the training spot and your max Oxygen is growing), Strained (true while you ride a fish too strong for
 -- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being
 -- yours; nil off a fish, on one too strong, or with taming off),
+-- IndexFound (how many kinds they have caught) and IndexClaims (how many Index rewards wait to be claimed): IndexService,
 -- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
@@ -87,7 +96,7 @@ if RunService:IsServer() then
 		folder.Name = "Remotes"
 		folder.Parent = ReplicatedStorage
 	end
-	for _, name in { "Action", "Ride", "Fx", "Sandbox" } do
+	for _, name in { "Action", "Ride", "Fx", "Sandbox", "Index" } do
 		if not folder:FindFirstChild(name) then
 			local remote = Instance.new("RemoteEvent")
 			remote.Name = name
@@ -103,5 +112,6 @@ Net.Action = folder:WaitForChild("Action") :: RemoteEvent
 Net.Ride = folder:WaitForChild("Ride") :: RemoteEvent
 Net.Fx = folder:WaitForChild("Fx") :: RemoteEvent
 Net.Sandbox = folder:WaitForChild("Sandbox") :: RemoteEvent
+Net.Index = folder:WaitForChild("Index") :: RemoteEvent
 
 return Net

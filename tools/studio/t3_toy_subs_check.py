@@ -56,7 +56,10 @@ local function made(n)
 		if p.Material == Enum.Material.Neon then neon += 1 end
 	end
 	local sign = model:FindFirstChild("Label", true)
-	local signLow = sign.Parent.Position.Y + sign.StudsOffsetWorldSpace.Y - sign.Size.Y.Scale / 2
+	-- (since 2026-11-23 the sign's place is an Attachment on the hull, SubModels.dress: its height is read from there)
+	local signAt = sign.Adornee
+	local signFrom = if signAt and signAt:IsA("Attachment") then signAt.WorldPosition.Y else sign.Parent.Position.Y
+	local signLow = signFrom + sign.StudsOffsetWorldSpace.Y - sign.Size.Y.Scale / 2
 	local beam = lamp:FindFirstChildOfClass("SpotLight")
 	local text = string.format(
 		"%d:%s hullMesh=%s parts=%d mesh=%d neon=%d top=%.1f signLow=%.1f gap=%.1f seatTopBox=%.1f lampZ=%.1f beam=%s wakeOn=%s propGlow=%s",

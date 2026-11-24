@@ -55,6 +55,305 @@ user said "switch that on for everyone" (with it at 0 nothing changes: reviewed 
 - **Nothing on the server changed.** The rule for being in the water is as it was.
 - **Where it stands and what is not known:** [the dive-in](design/dive-in.md), "The leap". Played by script only.
 - **To switch it off:** `Dive.Leap` 0 in `Config.Dive`, or in the N panel in a Play.
+## 2026-11-24 · The hub: stalls open by standing on their ring, a little sub over the Sub stall, the Index, four shopkeepers (NULLROOM worker h4, Hugo's PC)
+**State: in the game, pushed by hand.** Three branches merged one at a time onto `6467c31`, each with `--no-ff`: `sub-stand-ring`
+(h1, `d41f35a`), `index-panel` (h2, `52e021d`), `hub-keepers` (h3, `519745f`); then this commit (the Studio check, the stills, the
+notes). No conflict in `src/`. `SubPanel` keeps the card cameras of 2026-11-23 (`SHOTS`), and `SubController` is main's file byte
+for byte (the behind-only camera). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes, the offline
+tests of the three branches pass. Hugo's place has the merged `src/` (put in by `tools/ui/catch_show/sync_src.py`, Rojo was not
+connected; `full_check.py place`: 104 of 104 script files the same bytes), no helper left, **not saved**: the open place runs the new game, the file on disk still holds the scripts of its last save
+(nothing else is new in the place: the keepers, the little sub and the Index are built by code at run time). So: Ctrl+S in
+Studio, or after the next opening `python tools/ui/catch_show/sync_src.py` (or Rojo) before Play. Nothing uploaded to Roblox.
+**To take a piece back out:** `git revert -m 1 519745f` (the keepers), `git revert -m 1 52e021d` (the Index), `git revert -m 1
+d41f35a` (the rings and the little sub). None of the three was tried.
+**What changed for the player:**
+- **Sell, Auras and the Sub stall open when you stand on their ring and close when you walk off** ([submarine](design/submarine.md),
+  step 1; [UI](design/ui.md), top section). No E prompt anywhere near them. The X shuts the window until you step off and on
+  again. `StallController` does it (it looks every 0.05 s); the server still checks you are near (`Config.Sub.Near` 30).
+- **A small copy of your equipped submarine floats and turns over the Sub stall** (the Bathtub when you have none):
+  `SubStandController`, on each player's own machine. It swaps within a quarter of a second of equipping another.
+- **The Index** (the blue hub button): every kind by land, dark until caught, a first-catch reward to claim for each kind, a set
+  reward for each whole land, CLAIM ALL, a "!" on the button while something waits. A kind counts as found once you carry one (tamed on a dive)
+  or have one in your tank; the server looks, nothing is taken on the client's word. Claims are taken on the dock only and paid once, by the server (`IndexService`). **Every number is a
+  DRAFT** (`Config.Index`).
+- **Four shopkeepers** behind the stalls (fishmonger at Sell, sea mystic at Auras, deep-sea diver at the Sub stall, octopus
+  tinkerer at Fuse): they bob, do a small action every few seconds, and turn head and shoulders to the nearest player inside 22
+  studs, back to straight past 27. Built on each player's machine from `Shared/Keepers` (230 parts, 139 moving, one light), with
+  the stalls' props ([hub models](design/hub-models.md), the keepers' section).
+**Measured in Studio** by `python tools/studio/h4_hub_check.py` (its head says how; Hugo's PC, studio-runner, my own playtests,
+the real walk at 28 studs a second, real time): **251 checks, none missed**, on one fresh playtest. Then `python
+tools/studio/full_check.py all`: all good (24 steps; see the last point below).
+| | |
+|---|---|
+| Rings (edge 5.75 studs from the middle) | open 3.76 to 4.41 from the middle (the walk covers up to 2.4 studs between two looks), close 9.45 to 9.63 (2.5 past the edge, plus that step); X keeps shut until off and on; the Shop button closes a stall's window; no prompt within reach; the ring's fill goes from 0.8 to 0.35 see-through while you stand on it; buying and equipping from the ring's far edge is accepted |
+| The little sub (all nine) | the sub's own meshes; 2.5 studs over the stall's roof and 4.9 to 7.0 under the stall's name; turns inside a circle of 4.0; bobs 0.35; 19.9 degrees a second, the propeller 4.97 radians a second; no name sign, no light, nothing you can touch; equip swaps it within 0.25 s |
+| The Index | 77 kinds, 10 lands; the button, the X, the Shop button and leaving the dock all close it; a fish put in the hand by the test door and a fish tamed on a real ride both mark their kind; Barracuda's CLAIM: +3,000 Oxygen and +$37.5K, once; land 4's set: +17,500 Oxygen and +$525K, once; CLAIM ALL: +85,000 Oxygen for 6 kinds, once; the "!" comes and goes; a claim sent from off the dock is refused (the line "Stand on the dock to claim", red) and pays nothing; the Shallows (11 kinds) scrolls, two-row lands do not |
+| The keepers | bob 0.10 to 0.11 studs; the action moves the hand 1.1 to 2.6 studs; the head is on the player to within 2 degrees, 0.5 to 0.65 s after they come inside 22 studs, no step over 2 degrees in a frame, about 105 degrees a second at the fastest; follows you across; straight again past 27 studs; the tinkerer stands on the machine's base, 1.3 studs over the floor |
+| Props | 2.6 to 4.9 studs clear of the rings, 6.0 to 16.5 under the names, 7.0 to 9.6 off the walking lines; none sunk into any of the hub's 450 visible parts; the little sub is 6.9 studs over the diver's head |
+| Phone (844 x 390) | the Index, Sub, Sell and Auras windows are whole on the screen and their words fit; the smallest words are 9 px (the Index's tier line), 10 to 12 in the others |
+**Stills** (the game's own player camera, turned only; never a camera at the submarine's side): each stall with its keeper and
+props [Sell](attachments/hub-h4-stand-sell.jpg), [Auras](attachments/hub-h4-stand-auras.jpg), [Sub](attachments/hub-h4-stand-sub.jpg),
+[Fuse](attachments/hub-h4-stand-fuse.jpg); each keeper looking at the player [Sell](attachments/hub-h4-keeper-sell.jpg)
+([cut](attachments/hub-h4-keeper-sell-close.jpg)), [Auras](attachments/hub-h4-keeper-auras.jpg)
+([cut](attachments/hub-h4-keeper-auras-close.jpg)), [Sub](attachments/hub-h4-keeper-sub.jpg)
+([cut](attachments/hub-h4-keeper-sub-close.jpg)), [Fuse](attachments/hub-h4-keeper-fuse.jpg)
+([cut](attachments/hub-h4-keeper-fuse-close.jpg)); the little sub, [the Bathtub](attachments/hub-h4-little-sub.jpg)
+([cut](attachments/hub-h4-little-sub-close.jpg)) and [tier 5](attachments/hub-h4-little-sub-tier5.jpg)
+([cut](attachments/hub-h4-little-sub-tier5-close.jpg)); the Index, [grid](attachments/hub-h4-index-grid.jpg),
+[detail](attachments/hub-h4-index-detail.jpg), [at a phone's size](attachments/hub-h4-index-phone.jpg).
+**For Hugo to pick** (each is one number or one word in `Config`, nothing waits on them):
+- Which sub floats over the stall: now the one you have equipped, the Bathtub if none (h1).
+- Does an aura multiply the Index's Oxygen? `Config.Index.AuraMult` 0 = no (now). Are Secrets shown dark in the Index?
+  `Config.Index.Secrets` 1 = yes (now). A player with no tank gets the Oxygen only (h2). All the Index's rewards are DRAFT.
+- The keepers under the awnings at play distance: the three at the stalls are small and in the awning's shade, and from the
+  usual camera your own avatar covers the counter while you stand on the ring ([Sell](attachments/hub-h4-keeper-sell-close.jpg),
+  [Sub](attachments/hub-h4-keeper-sub-close.jpg)); the tinkerer at Fuse reads well (h3's models; nothing rebuilt by me).
+- The little sub is small beside the seahorse sign next to it, and tier 5 is pale against the grey wall behind
+  ([cut](attachments/hub-h4-little-sub-tier5-close.jpg); h1's piece, `SubStandController`).
+- The Index's smallest words are 9 px on a phone.
+**Not measured:**
+- Real draw calls with the keepers in (h3's number is an estimate), and stalls that stream in late (`KeeperController` looks for its stalls again on a timer;
+  not tried with streaming on a slow link).
+- Real mouse clicks and touches: the X and the hub buttons were pressed as their own listeners do.
+- The three older scripts that open the sub shop (`tools/studio/s2_subs_check.py`, `tools/studio/m4_subs_shots.py`,
+  `tools/ui/shop_kit/shop_client.luau`) were not run; the door they use (`SubPanel.toggle`) was, and opens and closes the shop.
+- `tools/studio/e2_click_check.py`, line 223, still lets prompts under `Stations` pass, from when the stalls had E prompts. Left.
+**One change to `full_check.py`:** its sub-trip step read the phases as soon as the sub let go, 0.8 s (`Config.Sub.Drop`) before
+the phase ends, so it failed whenever its read fell inside that time (my first run: "Approach Pickup Ride Arrive Drop", no
+end; the trip itself was right). It now reads on until the phase has ended (up to 5 s). Second run: all good.
+**The partner:** had pushed nothing new when this went up (`git rev-list --left-right --count main...origin/main`: 0 0 before
+and after). Pull, then `rojo serve` or `python tools/ui/catch_show/sync_src.py` for the new code.
+
+## 2026-11-24 · The submarine's camera is behind in every phase; the gate's kelp see-through on a trip (NULLROOM worker c2, Hugo's PC)
+**State: in the game, pushed by hand.** `862ff88` (the camera, written by worker c1) and `5f18f3f` (the gate's kelp, found while
+measuring) were measured in Studio, taken back out by `745daa1` at 02:25 while nobody had passed them, and put back by
+`b00d12a` at 02:42 (a plain revert of `745daa1`) once the reviewer passed both: `SubController.luau` is the measured file byte for
+byte (`git diff 5f18f3f -- src` is empty), so it was not measured again. Only that file changed in `src/`. StyLua clean, selene 0
+errors (the three old warnings), the Rojo build passes; Hugo's place has the same `SubController` (put in by
+`tools/ui/catch_show/sync_src.py`, Rojo was not connected), no helper left, **not saved**.
+**To take only the kelp change back out** (the camera stays behind; the green wall in the pick-up is back):
+`git show 5f18f3f -- src/client/Controllers/SubController.luau | git apply -R --index`, then commit (tried in a throwaway
+worktree; it gives `862ff88`'s file). A plain `git revert 5f18f3f` stops on a conflict in the design note. To take the whole
+camera back out: `git revert b00d12a`.
+**What changed for the player** ([submarine](design/submarine.md), "The camera is always behind"; Hugo, 2026-11-23: "make sure it
+doesnt implement the camera on the side ever"):
+- The swim and the pick-up: the camera is behind you on your own line (10 to 18 studs back, then to 24), not ahead and to the
+  side looking back. The arrival and the drop-off: behind the sub on its line, 30 studs, 36 when your fish swims up beside it.
+  The run, the easing, the pull-in and the hand-over to the hop and the saddle are as they were.
+- **New, not seen by Hugo:** on your own trip the kelp curtain under the dock's lip is see-through on your own screen from the
+  first frame until one second into the run (`SubController.gateKelp`). With the camera behind you the kelp hung in front of it
+  for half the pick-up ([before](attachments/subcam-kelp-before-fix-pickup.jpg), [after](attachments/subcam-behind-fish-2-pickup.jpg)).
+  To take only this back, see above.
+**Measured** by `python tools/studio/sub_camera_check.py` (Hugo's PC, studio-runner; my own playtests; every frame of each trip
+from the game's own camera; logs in `work/subcam/`, not in the repo), calm frames, the old camera in brackets:
+| | sideways off the line | off straight behind | behind |
+|---|---|---|---|
+| Swim (Approach) | 0.00 to 0.02 studs, 0.1 in the shake (5.0) | 0.1 degrees, 0.6 in the shake (161.6: in front) | 10 to 17 studs (15 ahead) |
+| Pick-up | 0.00 to 0.02, 0.6 in the shake, 0.7 at the lip's end (8.4) | 0.1, 2.1 in the shake; 6.5 at the lip's end (161.6, swinging round) | 14 to 20 |
+| Run, land 2 | 5.1, 5.3 in the shake (5.1) | 8.1, 8.4 in the shake (8.0) | 19 to 37 |
+| Run, land 10 | 10.8, 13.2 in the shake (9.7, 13.3) | 16.9, 21.0 in the shake (15.1, 21.1) | 20 to 38 |
+| Arrival | 2.3 (6.3) | 4.0 (11.7) | 30 to 36 |
+| Drop-off (with a fish) | 1.4 (6.4) | 2.2 (12.0) | 36 |
+- Trips: sub 1 to land 2 and sub 9 to land 10, each with and without a fish, and two from the very ends of the dock's lip; walked
+  off the lip, real time. Every measured fish trip was cued Kick and ended Riding on the fish; every other was flung into the hop and ended Riding.
+- The hand-over (the three frames before and eight after the sub lets go): under 1 degree of turn in a frame on the old camera and the new, and at most
+  2.4 studs of move against the rider (3.1 on the old).
+- The kelp, after `5f18f3f`: between the camera and the rider on 27 pick-up and 6 to 12 run frames, solid on none; solid again
+  from 3.55 s; the numbers above unchanged.
+- The shake moves the camera up to 0.6 studs off the line in the pick-up (the same shake as before).
+**Over the check's own limits, left as they are (the reviewer: they do not break "never at the side"; Hugo's call):**
+- **The run on land 10** swings 17 to 21 degrees off the sub's nose for 7 or 8 frames of about 375 (limit written before the
+  runs: 15). Old code: the old camera reads -21.07 degrees at the same instant the new reads -21.01. The nose turns at up to
+  350 degrees a second on those bends and the eased camera does not follow it.
+- **Gone in at the very end of the lip** (5 studs from the lane's wall): the wall holds the camera 8 to 11 studs behind you for
+  the whole swim and 4.5 at the seat ([still](attachments/subcam-behind-lip-end-pickup.jpg)); the run then reads 15.0 to 15.7
+  degrees for a moment (three trips), and one shaken pick-up frame 6.2 to 6.5 (limit 6) on two of the three. Never to the
+  side, close. Old code, the same entry, two trips: the run reads 16.0 degrees calm and 18.8 and 23.8 in the shake, so the
+  run was over there before this change too.
+**The check's lines were moved twice after the first runs, and one count added** (said in the script): the pick-up is
+read against your own line (the line the camera follows), not the sub's nose, which is 6.9 degrees off the lane on the
+pick-up's first frame; after the sub lets go the camera is read against the way the sub was going, not the way you travel,
+which the hop's hook bends by 50 degrees; and the one or two frames before the sub's camera has the view (the dock's own
+camera, old code too) are counted, not judged.
+**What the stills and the counts do not show well:** in `subcam-behind-fish-2-pickup.jpg` you are almost invisible through
+the water's surface (the check's "rider in view" only says you are on screen, not that you can be made out); in
+`subcam-behind-fish-1-approach.jpg` the name over your head covers you; your fish is in the picture on 68 to 72% of the
+arrival's frames (the old camera: 73%), and on all of the drop-off's.
+**Not done, not looked at:** a play by hand; a phone; other players' trips seen from the dock; the leap off the dock
+(`Dive.Leap` 1). The dock still pulls the camera in at the pick-up (20 to 14 studs, one step of 2 studs): open in the note.
+**Stills** (the game's own camera, one a phase): `docs/attachments/subcam-behind-nofish-1-approach.jpg` to `-4-arrive.jpg` (a
+flung trip's drop is two frames, so none), `subcam-behind-fish-1-approach.jpg` to `-5-drop.jpg`, `subcam-behind-lip-end-*.jpg`.
+**On the partner's PC:** pull; with Rojo connected nothing more, else `python tools/studio/sync_src.py <studio_id>`. No map
+file changed, no load needed. `sub_camera_check.py` runs through Hugo's studio-runner only.
+
+## 2026-11-24 · The four pieces below pushed; one full scripted play passes; a one-command check for it (NULLROOM worker m5, Hugo's PC)
+**State:** pushed by hand, `main` equal to `origin/main` (`git rev-list --left-right --count HEAD...origin/main`: 0 0). The partner
+has pushed nothing since `706ea31` (pulled 19:25 on 2026-11-23): nothing to merge, no conflict, no map file changed, so no map load.
+The four pieces under this entry (m1 to m4) were already in the repo by the sync on Hugo's PC (its last commit `a21893f`, 00:46);
+this push adds `tools/studio/full_check.py` and these notes. No file of `src/` changed in it. StyLua clean, selene 0 errors (the
+three old warnings), the Rojo build passes.
+**Hugo's place against the repo, both ways and by content** (`python tools/studio/full_check.py place`): 179 scripts in the place.
+The 99 script files of `src/` are there with the same bytes and nothing else stands under the three Rojo folders but the 78 creature
+data modules, which return what their `src/shared/Creatures/*.json` hold (compared by contents; m1 had matched them by name). The
+map's two own scripts (`Surface.WaterLook`, `Dock.HubLife`) equal what loaders 98 and 97 install. No `ZZ` helper, no switch left on
+the workspace, ReplicatedStorage or ServerStorage, in Edit, the mouse free, the camera Fixed. The hand placing is still in (Fuse
+22.71 studs from the kit's place, no Index: `hub_contract.luau` says only "no station Index"); `99_check` 104,628 parts, 917 of the
+hub's models (432 parts are the eight Edit previews of the seahorse).
+**One scripted play, no clock held and no look switch set, all good on its first run** (00:54, `work/full_check/run.log` on Hugo's PC):
+- **Boot:** Plot2 handed out, on the dock; all 8 pens show the level 1 seahorse from its meshes, no old machine, no Edit preview.
+- **Seahorse:** walking up seats you; 100 to 180 Oxygen in 5.2 s (5 ticks of 16); getting off stops it.
+- **Sub trip:** sub 1 to land 2 through `SubService`'s test door, in by walking off the dock's lip: Carried, the phases Approach,
+  Pickup, Ride, Arrive, Drop, then let go into the hop and onto a fish (Riding, at Z 1,751 in land 2). Sent home off it: no
+  black, GREAT DIVE up a tenth of a second later.
+- **Dive:** off the lip with no sub (`Dive.Leap` 0, as shipped): Dock, Free, Jumping, Riding.
+- **Fail:** forced from that fish as out of Oxygen (`RideService.forceFail`), on real time: Drowning, "OUT OF BREATH!", the black
+  whole with `RideBlack` at order 15 over `RideHud` at 5, home with the black still whole, the black gone 1.31 s after home
+  (`Config.Death`: 1.3), and GREAT DIVE only then. This is m3's fix on the real 1.3 s, which its own check had held.
+- **No errors** on the server or the client from boot on. Two warnings each side, all the known asset one (203785492).
+**Not covered by it:** the fails that take the rider (Chomp and the like: m3's held run has them), the kraken's Wrap, the leap off
+the dock (`Dive.Leap` 1), the shop windows, the tank, anything by hand or on a phone.
+**New, `tools/studio/full_check.py`** (Hugo's PC, through studio-runner): `place` (the compare above), `install`, `run`, `remove`,
+and `all`, which does the lot: place, install, Play, run, stop, remove, mouse and camera back, place again; exit code 1 on a miss.
+About two and a half minutes. Run `all` after a merge that touches `src/`, before the push.
+**On the partner's PC, to get all four pieces** (Studio open on the place, in Edit):
+1. Pull (the Obsidian plugin does).
+2. The code: with Rojo connected nothing; else `python tools/studio/sync_src.py <studio_id>`.
+3. The seahorse and the hub: `python tools/studio/load_greybox.py <studio_id> greybox hub` (seconds; hand placing in the hub is
+   kept). Read the lines it prints against the list in the m2 entry below ("On the partner's PC"), the content folder line above all.
+4. Only if a sub shows as plain boxes (Studio updated itself since the subs were installed): `tools/subs/install.py <studio_id>`.
+5. Save the place. Play: Hugo's seahorse stands on every pen; a fail goes black with only its words on it, then the dock and the HUD
+   come up together.
+Nothing else to run: m3 (the black over the HUD) and m4 (the sub shop's cards, Blue Streak's sign) are code only.
+**Open, Hugo's to say** (asked by m1 to m4, none answered yet): the HUD dimming with the black during a fail, yes or no; how a sub's
+name should show under water (the water's drawing hides it); whether the land title may lie over that name; a lift for Twilight Ray's
+sign; the turned grass slab past the hub's back left corner; uploading the 12 seahorse models (a published game shows none until then).
+**Not merged, each waits for its own task:** `sub-camera-behind` (c2), `hub-keepers`, `index-panel` and `sub-stand-ring` (h4),
+`auras-draft-3`, `aura-icon-options`, `sub-creature-options`.
+**Hugo's place file** (`~/Documents/RideAFish/ride-a-fish-map.rbxl`): last saved at 00:03 on 2026-11-24 (at Studio's restart), backed
+up at 00:58 (`~/Projects/sharedDH-local/backups/ride-a-fish-map.2026-11-24-0058-before-m5-save.rbxl`, same hash). One Ctrl+S was
+sent at 00:58:54 with Studio's window on screen and focused (read back before the key): **it did not register**, the file's time is
+unchanged and no dialog opened. Not tried again; Hugo presses it. The file as it is on disk, read without Studio (lune,
+`work/m5/disk_read.luau`), already holds the same 179 scripts as the open place (same bytes), the same part counts (105,546 in the
+Workspace, 4,302 in ReplicatedStorage), the five stations with Fuse in its moved place, the 8 Edit previews, the 12 trainer levels
+and the 9 subs, and no helper. Not compared: every property of every part.
+
+## 2026-11-23 · The toy subs seen in the game; the shop's cards show every sub whole; the name sign raised (NULLROOM worker m4, Hugo's PC)
+**Seen:** all nine toy subs build from their meshes in Hugo's place and carry their names
+([over the stand](attachments/m4-subs-stand.jpg)); on a trip the rider sits on the seat and the propeller is in its ring
+([the game's view](attachments/m4-subs-ride.jpg), [a test camera's](attachments/m4-subs-seat.jpg)). All of it:
+[sub models](design/sub-models.md), "Seen in the game".
+**Changed, `src/client/UI/SubPanel.luau`:** each card pictures its sub from its own camera spot (the `SHOTS` table; a place
+without the meshes is framed by its boxes, `shotBy`). Tiers 5 to 9 were cut off or at the edge; now all nine are inside 0.9 of the
+picture at PC size and at 844 x 390 ([before and after](attachments/m4-sub-shop.jpg)). The table is written from the GLBs by
+`python tools/subs/card_fit.py --write`; **run `--check` after a sub is rebuilt.**
+**Changed, `src/shared/SubModels.luau`:** `SIGN_GAP` 0.6 to 2 (tall pieces ran into the letters), and a name on a dark hull is
+written in the tier's light colour (`SIGN_DARK`; only Midnight Hunter). **Corrected the same evening (the review, round 1):**
+the 2 studs were not enough for Blue Streak in the riding view. Its tail fin stands 20 studs behind the sign, nearer the run's
+camera, and covered the middle of its name on [the riding sheet](attachments/m4-subs-ride.jpg); the first report did not say so.
+Blue Streak's row now has `SignUp = 5.7` (extra studs for its sign); the other eight are as they were.
+`python tools/subs/sign_fit.py --check` works it out from the models and the run camera (4.7), and a measured trip added 1.
+On ten trips with 5.7 nothing of the model stands in front of the name from the first second on; in the first second the fin
+still crossed it on five of them (0.05 to 2.14 studs up the 3-stud sign, 1% of the frames at most). At its old height it covered
+the name on 54% of the frames. The lift has two side effects: the name now sits where the HUD's land title is (the title's
+letters over it on 71 to 78% of the frames; 1% on the one trip at the old height), and at the start of a dive it stands a stud above the surface.
+**Tier 6 is left as it is and still clips for a moment:** Twilight Ray's tail reached 2.8 studs up its 3-stud sign on 2% of a
+trip's frames (about a tenth of a second, one bend; four trips of five). `sign_fit.py` passes it with 1.4 studs of room: that
+check is a floor for the sub level, not a promise for a trip. The review asked to keep the other eight; `SignUp` of about 3 in
+its row would do it.
+**State:** in the repo by the sync on Hugo's PC, nothing pushed by hand; in Hugo's place by Rojo (99 of 99 scripts the same as the
+repo). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes. Nothing saved, nothing uploaded.
+**Why the name is missing on a trip (found 2026-11-24, after Studio was restarted at 00:03):** the water's own drawing
+(`tools/map/water_look.luau`, in the place as `Surface.WaterLook`: four see-through layers and, from below, nine sheets overhead)
+is drawn over the name wherever it is behind it on the screen, though the name is nearer. A name shows only where land is behind
+it. Tested on tiers 2 and 5 in the game ([the test sheet](attachments/m4-subs-name-cause.jpg)): set always on top the name shows;
+with the water's drawing out it shows whole; with only the nine sheets out it shows washed out. Why the engine does that was not
+looked into. **Not fixed: it is a look call for Hugo** (the name always on top, which then shows through fins, cliffs and other
+subs; or the water's drawing; or leave it). The [riding sheet](attachments/m4-subs-ride.jpg) was retaken on the code as it is:
+no name on tiers 1 to 4 and 7, whole on 6 and 8, part of it on 5 and 9. Separately, the HUD's land title has its letters over the
+name's place on 26% (tier 2) to 78% (tier 5) of a trip's frames. The earlier "no part stands in front of it" was a bad test: it
+never listed the water's layers. The sign keeps to the world's up while the sub dips and banks (it leans 5 to 11 studs off the
+tower): tried turning it with the sub, which put the tail in front of the name on up to 39% of the frames, and put it back.
+**Not done:** the fix for the hidden name (above); not played by hand; no real phone. Rojo was not connected after Studio's
+restart: the place was checked against the repo by hand (99 of 99 scripts the same).
+**The test camera:** the close views came from a camera at the sub's side that only the script used. Hugo saw it and does not
+want a side camera on the submarine, ever. It is in no `src/` file and out of the place; the script no longer has it.
+**To check again:** `python tools/subs/card_fit.py --check`, `python tools/subs/sign_fit.py --check`; in Studio
+`python tools/studio/m4_subs_shots.py install`, Play, `gate` (stops with FROZEN if the window is not redrawing), `closes`,
+`shop after`, `rides`, `probes 5 2 sets=plain,quiet+top,quiet+nowater+notitle`, `numbers`, stop, `remove`, then `sheets`.
+
+## 2026-11-23 · The fail's black is over the HUD, so nothing comes up bright on a black screen (NULLROOM worker m3, Hugo's PC)
+The bug: home from a fail, the Shop and Index buttons, the plus buttons and "GO TO YOUR TANK TO DEPOSIT" came up at full
+brightness, and the Oxygen row, the land strip and the slots stayed bright, while the screen was still black (the 1.3 s the black holds and lifts at the dock).
+**Cause:** the black was a frame on `RideHudFx` (order 4), and the HUD's screen `RideHud` (5) and the dock's screens (6 to 8) are
+drawn over that. The dock's pieces switch on the moment the server puts us home.
+**Fix:** the black has a screen of its own, `RideBlack`, at order 15 (`HudController`'s `BLACK_ORDER`): over the HUD and every
+window, under the kraken's dark (39) and the fail's words (40), and under Studio's own panels (20, 21). Nothing else changed: the
+words, the black's timing and the end-of-dive screen run as before (it still waits for the black to be gone).
+**What you will see that is new:** during a fail the HUD dims with the black and is gone when the black is whole, where it used to
+stay bright on it. The bubble words are untouched and alone on the black. Hugo has not seen this yet.
+**State:** in the repo by the sync on Hugo's PC, nothing pushed by hand. Two files: `src/client/Controllers/HudController.luau`
+(the screen) and `FailController.luau` (one comment). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes.
+**Played by script in Hugo's place** (Rojo connected there now), no client error: Chomp (a taken fail, FailController's black), out of
+breath and Throw (DeathController's black), and a clean dive. Stills: [Chomp, with the same moment as it was before](attachments/hud-black-chomp-2026-11-23.jpg),
+[out of breath](attachments/hud-black-breath-2026-11-23.jpg), [Throw](attachments/hud-black-throw-2026-11-23.jpg),
+[a clean dive](attachments/hud-black-clean-2026-11-23.jpg). Not played by hand; not tried on a phone.
+**To check again:** `python tools/studio/hud_black_check.py install`, Play, `... run`, stop, `... remove` (it holds the black at the
+dock so a still can catch it, and clears its switches in a `finally`).
+**On the partner's PC:** pull; with Rojo connected nothing else, else `python tools/studio/sync_src.py <studio_id>`.
+
+## 2026-11-23 · The seahorse trainer stays: the old toy machine is out of the map, the 12 levels install themselves (NULLROOM worker m2, Hugo's PC)
+Hugo: his 12 coil seahorses everywhere, the old toy machine gone for good.
+**State:** in the repo by the sync on Hugo's PC, nothing pushed by hand. StyLua clean, selene 0 errors (the three old warnings), the Rojo
+build passes. In Hugo's open place and played by script (all good, below); **his place is not saved: Hugo presses Ctrl+S.**
+**Nothing is uploaded to Roblox:** the meshes are still local files on each PC (Hugo's word is needed for an upload).
+
+**On the partner's PC, to get it (about two minutes, Studio open on the place, in Edit):**
+1. Pull (the Obsidian plugin does). Put `src/` in: Rojo connected, or `python tools/studio/sync_src.py <studio_id>` (two files changed:
+   `TrainService`, `TrainerController`).
+2. `python tools/studio/load_greybox.py <studio_id> greybox hub`
+   The hub's files only (94 to 97, seconds; hand placing in the hub is kept), then the trainer step, then the hub's contract. Expect:
+   - `917 in all` from the hub's last file (949 before: the old machine is out, 32 rows fewer);
+   - `Studio's content folder: C:\...\Versions\version-xxxx\content (the running Studio's)`: **read this line.** The folder search
+     is tried on Hugo's PC only (Linux). If it says NOT FOUND, or names a version that is not the running Studio's, run the trainer step
+     by itself with the folder named (the `content` folder next to the running `RobloxStudioBeta.exe`):
+     `set STUDIO_CONTENT=C:\Users\<you>\AppData\Local\Roblox\Versions\version-xxxx\content` then
+     `python tools/studio/trainer_models.py <studio_id>` (a folder it cannot find is a failure with a `!!!` block, never "all there");
+   - `trainer models: all 12 levels are in the place and their mesh files are on this PC` (after `installing: ...` when something was missing);
+   - `trainer preview: level 1 on 8 plots`: Hugo's level-1 seahorse now stands on every pen in Edit;
+   - `CONTRACT:` with no BAD line (Hugo's own place says "no station Index": he deleted it by hand).
+   A block of `!!!` lines means the trainer is not whole; it says what to run.
+3. Save the place (the models are in the place file). Play: every pen shows Hugo's seahorse on its coil; the Output has no line in
+   capitals from `[TrainService]` or `[Trainer]`.
+- **After Studio updates itself** the mesh files are gone from the new version's folder (the seahorses go unseen, and the client now says
+  so in the Output): `python tools/studio/trainer_models.py <studio_id>` again. `--check` only reports.
+- **A whole map load** (`python tools/studio/load_greybox.py <studio_id>`) ends with the same trainer step now.
+
+**What changed and why** (all of it: [the trainer](design/trainer.md), "Staying in the place"):
+- **Why the old one came back:** not the code (read the whole history since `516b0fe`: nothing had gone back). The kit built the old
+  machine on every load, so it stood in Edit and was swapped only at Play; a place without `TrainerModels` fell back to the kit's toy
+  without a word; missing mesh files left the seahorse unseen without a word.
+- **`tools/map/hub_kit.py`** (`trainer_marks`), `art/map/greybox/hub.json`, loaders 95 to 97: each plot keeps only unseen marks where the
+  machine stood (`TrainerSpot`, `TrainerRide` with its plate, `Toy` with `Body` and `Head`): the same names the game and
+  `hub_contract.luau` read, so old and new maps both work and the partner's placing (9 ahead of the fence) is kept. Measured in Play:
+  every plot's coil and seat within 0.001 studs of where they stood. `94_hub.luau` is unchanged.
+- **`tools/studio/trainer_models.py`** (new): checks T1 to T12 and every mesh file, installs what is missing with `install_tiers.py`,
+  shows level 1 in Edit (`tools/studio/trainer_edit.luau`, new: one locked model `TrainerStand` a plot, marked `EditPreview`; the game
+  takes it away at its start). **`tools/studio/load_greybox.py`** calls it, and has the new `hub` mode.
+- **`TrainService`:** takes the Edit preview away, and warns once, in capitals, when a level's model is missing.
+  **`TrainerController`:** warns once when a level-1 mesh file does not load; and a fix: an upgrade's white flash stayed on the seahorse for
+  good when its level changed again before the flash had faded (0.7 s; an upgrade is let through every 0.5 s).
+- **`tools/studio/trainer_check.py`** (new; drives Hugo's PC through studio-runner, not the connector): `install`, Play, `run`, stop,
+  `remove`. All good on 2026-11-23: 8 plots Hugo's level 1 from its meshes, walk-up seats, +16 Oxygen a second, off stops it, the sign's
+  own upgrade request builds level 2 for 15,000 coins, level 1 keeps at least 1.19 studs from the fence on all eight pens, all 12 levels
+  build and keep at least 1.46 on the player's own pen (levels 2 to 12 were measured on that one pen), level 12 trains at +470,000. Also tried: the models taken out (one warning, the stand-in still works) and a mesh file hidden (the client names it).
+- **To know:** the place's part count (`99_check`) reads 432 more with the Edit preview in (54 a plot). The closest thing to a seahorse is
+  its own upgrade sign: level 11 and 12's wing tips pass 0.45 studs from the board at the back of a rock on a landing (clear, a matter of
+  look only; a stud more room would be a change to the sign's place in `hub_kit.py`, not made). The client's warning looks at level 1's
+  mesh files only. Both load paths were run on Hugo's place (the whole-load one with no-op files, so the trainer step at its end is tried,
+  a real 25-minute load with it is not). `hub_kit.py --old` (the before pictures) still draws the old
+  machine. The `map-build` skill still says the count runs 65 over and names no `hub` mode: the map chat's to update.
+- **Hugo's place:** hub applied with the `hub` mode (Fuse still moved, Index still deleted), preview in, helpers removed, mouse and
+  camera reset, not saved.
 
 ## 2026-11-23 · Hugo's place checked against the new map; the hand placing put in; not saved yet (NULLROOM worker m1, Hugo's PC)
 **State:** nothing pushed by hand, no file in the repo changed but this note and Sessions. Hugo's place

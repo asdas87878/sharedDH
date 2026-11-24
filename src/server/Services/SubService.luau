@@ -227,9 +227,8 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 		return false
 	end
 	local entry = root.Position
-	local swim = Config.Oxygen.SwimSpeed * c.Approach
 	local ahead = laneWay(entry)
-	local pickup = Vector3.new(entry.X, Config.Oxygen.SurfaceY - c.Under, entry.Z) + ahead * swim
+	local pickup = Vector3.new(entry.X, Config.Oxygen.SurfaceY - c.Under, entry.Z) + ahead * c.SwimOut
 	local sDrop = math.min(first + c.Into, FishService.streamLength() - 50)
 	local sFrom = FishService.streamS(pickup) + 90
 	if sDrop <= sFrom + 200 then

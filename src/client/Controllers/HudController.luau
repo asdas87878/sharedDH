@@ -15,8 +15,9 @@
 -- the fish throws you off, unless you hop on first) is told four ways: the red plate on its tag before the hop; the ring red, bigger
 -- and shaking from the landing, with "Too strong!" and what the fish needs under it; the same words under the empty
 -- ring while you drown; and "TOO STRONG!" as the last words in place of "OUT OF AIR!".
--- Under them, on a screen of their own that covers the whole display: the speed lines, the edges closing in as you
--- drown, and the drowning's black (State.Vignette, State.Fade: DeathController's).
+-- Under them, on a screen of their own that covers the whole display: the speed lines and the edges closing in as
+-- you drown (State.Vignette). Over them and every window, on a third screen: the black of a death (State.Fade: the
+-- deaths'), so the HUD goes out and comes back with it (BLACK_ORDER).
 -- For phones: nothing is made per frame, a label's text is set only when it changes, and text never changes size.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -62,6 +63,12 @@ local STRAIN_UNSAID = 0.6 -- still riding this long after the landing with no wo
 local LINES = 28
 local LINES_ON_TOUCH = 14
 local LINES_PERIOD = 1 / 30
+-- The black of a death is drawn over the HUD and the dock's windows (the highest of them is 8: the Shop, the tank's
+-- panel), under the kraken's dark (39) and the words of the fail (40: FailController), and under Studio's own panels
+-- (20, 21). It was under the HUD, on RideHudFx: back on the dock the Shop and Index buttons, the plus buttons and the
+-- full Oxygen came up bright on a screen still black (2026-11-23). Now whatever the HUD or the dock shows is under
+-- the black until it lifts.
+local BLACK_ORDER = 15
 
 local root: Frame
 local scale: UIScale
@@ -185,13 +192,20 @@ local function build()
 		Kit.new("Frame", { Name = "Tags", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 5 }, fx)
 	Tags.build(tagLayer)
 
-	-- the drowning's black
+	-- the black of a death: over the HUD and the windows (BLACK_ORDER)
+	local over = Kit.new("ScreenGui", {
+		Name = "RideBlack",
+		ResetOnSpawn = false,
+		ScreenInsets = Enum.ScreenInsets.None,
+		DisplayOrder = BLACK_ORDER,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	}, playerGui)
 	fade = Kit.new("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 1,
-		ZIndex = 10,
-	}, fx)
+		BorderSizePixel = 0,
+	}, over)
 
 	-- the HUD itself, kept clear of a phone's notch
 	local gui = Kit.new("ScreenGui", {

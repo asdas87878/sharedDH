@@ -15,6 +15,7 @@
 -- ride built again mid-rock is never left out of place. Our
 -- own plot's upgrade sign asks the server for the next level when its cash block is clicked (Remotes.Trainer "Up":
 -- UI.UpgradeSign, task e2); the answer is said here in a banner.
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -87,6 +88,10 @@ local function gather()
 	for _, ride in rides do
 		if ride.Body.Parent and ride.Model:GetAttribute("Build") == ride.Build then
 			kept[ride.Model] = ride
+		elseif ride.Grow and ride.Grow.Flash then
+			-- (built again before its flash had faded: its record goes here, and nothing else would take the
+			-- flash off the model, which stays through every level. It stayed white for good: 2026-11-23)
+			ride.Grow.Flash:Destroy()
 		end
 	end
 	table.clear(rides)
@@ -379,6 +384,9 @@ end
 
 -- An upgrade, played on every machine: the white flash and the sparks here, the spring up in place
 local function upgrade(ride: Ride, now: number)
+	if ride.Grow and ride.Grow.Flash then
+		ride.Grow.Flash:Destroy()
+	end
 	local flash = Instance.new("Highlight")
 	flash.Name = "UpgradeFlash"
 	flash.FillColor = Color3.new(1, 1, 1)
@@ -808,9 +816,48 @@ local function listen()
 	end
 end
 
+-- The levels' meshes are local files for now (rbxasset://ridefish/Trainer<n>/, Studio's content folder on each PC:
+-- docs/design/trainer.md, "Local only"). Where the files are not there (another PC, a Studio that updated itself, a
+-- published game) the seahorse is simply unseen and nothing says why. So once, at the start, level 1's meshes are
+-- asked for and a miss is said in the output (2026-11-23).
+local function checkMeshes()
+	local templates = ReplicatedStorage:WaitForChild("TrainerModels", 10)
+	local first = templates and templates:WaitForChild("T1", 10)
+	if not first then
+		return -- (no models at all: the server has said so, TrainService)
+	end
+	local meshes: { Instance } = {}
+	for _, d in first:GetDescendants() do
+		if d:IsA("MeshPart") then
+			table.insert(meshes, d)
+		end
+	end
+	local failed: { string } = {}
+	local ok = pcall(function()
+		ContentProvider:PreloadAsync(meshes, function(id: string, status: Enum.AssetFetchStatus)
+			if status == Enum.AssetFetchStatus.Failure then
+				table.insert(failed, id)
+			end
+		end)
+	end)
+	if ok and #failed > 0 then
+		warn(
+			string.format(
+				"[Trainer] !!! THE SEAHORSE TRAINER'S MESH FILES ARE NOT ON THIS MACHINE: %d of level 1's %d did not load (%s). "
+					.. "The seahorses will be unseen. They are local files in Studio's content folder: with Studio in Edit run "
+					.. "python tools/studio/trainer_models.py <studio_id>   (docs/design/trainer.md; a published game needs them uploaded).",
+				#failed,
+				#meshes,
+				failed[1]
+			)
+		)
+	end
+end
+
 function TrainerController.Start()
 	RunService.Heartbeat:Connect(step)
 	task.spawn(listen)
+	task.spawn(checkMeshes)
 end
 
 return TrainerController

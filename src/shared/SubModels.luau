@@ -14,13 +14,24 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SubModels = {}
 
-export type Style = { Id: string, Name: string, Hull: Color3, Trim: Color3, Light: Color3 }
+-- SignUp: extra studs for the name sign, for a model with a tall piece far behind the sign (see SIGN_GAP)
+export type Style = { Id: string, Name: string, Hull: Color3, Trim: Color3, Light: Color3, SignUp: number? }
 
 SubModels.Templates = "SubMeshes"
 
 -- The name sign over a sub: how tall it is, and how far its lower edge stays over a model's tallest piece (studs)
 local SIGN_TALL = 3
-local SIGN_GAP = 0.6
+-- (0.6 until task m4: seen in the game, a snorkel, a kelp leaf, a periscope, a fin and the crown ran into the letters)
+local SIGN_GAP = 2
+-- That is enough for a piece under the sign. A tall piece far BEHIND the sign stands between it and the run's camera
+-- (behind and above the sub), so in the picture it reaches higher than its own height: Blue Streak's tail fin, 20
+-- studs back, covered the middle of its name. Such a model has `SignUp` in its row, from
+-- `python tools/subs/sign_fit.py` (run its --check after a model is rebuilt or the run camera moves). That sum has
+-- the sub level. On a real trip it dips and banks and the camera eases after it, which brought the fin about 1 stud
+-- further up the sign: `python tools/studio/m4_subs_shots.py numbers`, in a playtest, measures the trip itself.
+-- a hull darker than this (Color3's own 0 to 1, by eye's weights) gives a name nobody can read on the sign's dark
+-- outline: Midnight Hunter's navy. Its name is written in its light's colour instead
+local SIGN_DARK = 0.25
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -55,6 +66,7 @@ SubModels.List = {
 		Hull = rgb(40, 140, 255),
 		Trim = rgb(230, 240, 255),
 		Light = rgb(140, 255, 255),
+		SignUp = 5.7, -- the tail fin: 4.7 by sign_fit (the sub level), 1 more for the dips of a real trip (measured)
 	},
 	{
 		Id = "TwilightRay",
@@ -112,7 +124,12 @@ local function dress(
 	glow.Brightness = 1.5
 	glow.Color = s.Light
 	glow.Parent = hull
-	-- the label: the sub's name over its tower
+	-- the label: the sub's name over its tower. StudsOffsetWorldSpace keeps to the world's axes whichever way the part
+	-- is turned, and that is wanted: the name stays straight over the sub while it dips and banks, so in the run's
+	-- picture it stays the topmost thing. (Tried 2026-11-23: the place as an Attachment, turning with the sub. On a
+	-- real trip the tail then came in front of the name on up to 39% of the frames (tier 9; 24% on tier 8). This way
+	-- it is 2% at most: Twilight Ray's tail in one bend, and Blue Streak's fin before its SignUp.
+	-- tools/studio/m4_subs_shots.py numbers.)
 	local sign = Instance.new("BillboardGui")
 	sign.Name = "Label"
 	sign.Size = UDim2.fromScale(14, SIGN_TALL)
@@ -126,7 +143,8 @@ local function dress(
 	text.Font = Enum.Font.LuckiestGuy
 	text.TextScaled = true
 	text.Text = string.upper(s.Name)
-	text.TextColor3 = s.Hull
+	local bright = 0.2126 * s.Hull.R + 0.7152 * s.Hull.G + 0.0722 * s.Hull.B
+	text.TextColor3 = if bright < SIGN_DARK then s.Light else s.Hull
 	text.TextStrokeColor3 = Color3.fromRGB(16, 36, 63)
 	text.TextStrokeTransparency = 0
 	text.Parent = sign
@@ -185,7 +203,7 @@ local function fromTemplate(s: Style, n: number): (Model?, { BasePart }, BasePar
 	for _, p in parts do
 		top = math.max(top, p.Position.Y + p.Size.Y / 2)
 	end
-	local signY = math.max(12.5, top + SIGN_GAP + SIGN_TALL / 2)
+	local signY = math.max(12.5, top + SIGN_GAP + SIGN_TALL / 2) + (s.SignUp or 0)
 	local bubbles = dress(s, hull, hull, Vector3.new(0, signY, -2) - hull.Position, prop, lamp)
 	return model, parts, prop, bubbles
 end

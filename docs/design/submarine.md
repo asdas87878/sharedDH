@@ -35,7 +35,11 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
 
 ## How ours goes, beat by beat
 1. **At the sub stand** (2026-11-18, Hugo: "remove the sub button, make the player able to buy the subs there and
-   equip them"): walk up to the SUBMARINE stall and press its prompt (E). The shop lists nine subs, one a tier
+   equip them"): walk onto the SUBMARINE stall's circle on the floor and the shop opens; walk off and it closes
+   (2026-11-24, the same way as Sell and Auras: `StallController`, no E prompt any more; the X shuts it until you
+   step off and on again). A small copy of your equipped sub (the Bathtub when you have none) floats and turns over
+   the stall, on your own screen only (`SubStandController`; checked in Studio by
+   `python tools/studio/h4_hub_check.py run rings sub`). The shop lists nine subs, one a tier
    (Bathtub, Reef Runner, Kelp Cruiser, Wreck Diver, Blue Streak, Twilight Ray, Midnight Hunter, Vent Crawler, Abyss
    King), each with its picture, the land it reaches and its price. You buy them in order (free for now), and
    **equip** one; the equipped sub is the one that comes for you, and it reaches its own land or any before it.
@@ -43,17 +47,20 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
    The shop closes as you walk away. A small ticket at the left edge says where the sub will take you.
 2. **You jump in.** With a destination picked, stepping off the dock is no longer the dive-in's auto-hop: you drop
    in with a splash and **swim** at the surface, breaststroking forward.
-3. **The sub swims in** from ahead and below (1.6 s), its light on you, a wake of bubbles, the view tipped to show it
-   coming.
-4. **The pick-up** (about 1 s): it rises under you, the camera swings out to the side, you are scooped up in a tumble
-   (a tuck and a half-turn) and set on the seat behind the tower. A bump, a shake, the view kicks.
-5. **The run:** it noses down and goes. The view pulls back behind it and widens with speed, streaks of bubbles,
-   speed lines. No banner as it sets off (Hugo, 2026-11-20: "let the intro text for submarines begone"). It follows the herd's own line down the lane (the stream: the
+3. **The sub swims in** from behind and below (1.2 s; 1.6 until 2026-11-24), its light on you, a wake of bubbles. The camera is behind
+   you on your own line, close at first and drawing back as you swim on, and tips down so the sub shows as it comes
+   in under you (see "The camera is always behind").
+4. **The pick-up** (0.75 s; 0.96 until 2026-11-24): it rises under you, the camera stays behind you and draws back, you are scooped up in
+   a tumble (a tuck and a half-turn) and set on the seat behind the tower. A bump, a shake, the view kicks.
+5. **The run:** it noses down and goes. The view, already behind, pulls further back behind the sub and widens with
+   speed, streaks of bubbles, speed lines. No banner as it sets off (Hugo, 2026-11-20: "let the intro text for submarines begone"). It follows the herd's own line down the lane (the stream: the
    middle of the open water, bent round the big things), well above the fish. 3.2 to 7 seconds whatever the land,
    its top speed growing with the distance (task f2, below: about 500 studs a second to land 2, 2,100 to land 5,
    4,250 to land 10), picking up over a fifth of the run and slowing over a quarter of it.
 6. **Arriving:** "NOW ARRIVING" over "KELP FOREST", in the land titles' own look (see "Titles on the run"). It
-   slows to the speed of a quick fish (90).
+   slows to the speed of a quick fish (90). The camera stays behind the sub through the drop-off, a little further
+   back (36 studs, not 30) when your fish swims up beside it, so the fish is in the picture without the camera going
+   to its side.
 7. **The drop-off**, one of two:
    - **(a) No fish picked:** the sub pitches its nose up and **flings you forward**. You leave at its speed into an
      ordinary hop (the pop, the glide, the drop, the lock and the hook), so you hook the nearest fish as in any hop.
@@ -67,6 +74,60 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
 8. **The sub peels away** up and to the side, and is gone.
 
 The player can't steer or hop while carried, and no Oxygen goes. The whole trip is decided by the server.
+
+### The camera is always behind (Hugo, 2026-11-23)
+**In the game since 2026-11-24** (`862ff88`, `5f18f3f`; measured in Studio, passed by the mission's reviewer; Hugo has
+not played it yet).
+
+Hugo, after seeing a side view of the sub in a dev session: "what is this new camera perspective for the submarine? i
+saw it playing in dev sesh, make sure it doesnt implement the camera on the side ever". Read as a rule for every
+phase of the trip (the boss's reading, mission "submarine camera always behind"):
+- **Behind, on the middle line, in every phase:** behind you on your own line while you swim and are scooped up,
+  behind the sub on its line for the run, the arrival and the drop-off. Nothing in the camera's place or in where it
+  looks goes to the side (`SubController.cameraFor`).
+- **No swing round:** a camera that starts in front and comes round to behind passes the side on the way, so it
+  starts behind too. Before this the approach sat ahead of you and 5 studs to the side looking back, the pick-up
+  swung round through up to 9 studs to the side, and the arrival stood 6.4 studs to the fish's side and looked
+  8 studs that way.
+- **What that costs:** from behind you no longer watch the sub come from far off. It comes in under the camera and
+  rises into the bottom of the picture in about the last third of a second of the swim, then is in view for the
+  whole scoop.
+- **The fish at the drop-off** is 16 studs to the right of the sub. From 36 studs behind it sits about 23 degrees off
+  the middle of the picture: well inside a wide screen (53 degrees each way) and a tablet (45), at the very edge of
+  a phone held upright (23).
+- **The gate's kelp goes see-through for you while the camera is behind it** (2026-11-24, added when the camera was
+  measured; Hugo has not seen or picked this). The kelp curtain under the dock's lip (`Dock.Gate.Kelp`) hangs between
+  a camera behind you and you from about half way through the pick-up until the sub has left: the first stills were a
+  wall of green ([before](../attachments/subcam-kelp-before-fix-pickup.jpg)). The camera's pull-in cannot keep out of
+  it, because the kelp is not something a ray can hit (`CanQuery` off). So on your own trip the 25 plates under the
+  water are see-through on your own screen from the trip's first frame until one second into the run, then back
+  (`SubController.gateKelp`; nobody else's screen changes). The camera looks away from the dock, so the kelp going
+  and coming back is not in the picture ([after](../attachments/subcam-behind-fish-2-pickup.jpg)). To undo it alone:
+  `git show 5f18f3f -- src/client/Controllers/SubController.luau | git apply -R --index`, then commit (a plain revert of that commit conflicts in this note). Another way would be to keep the camera in front of the curtain (closer to you for the
+  whole pick-up); not tried.
+- **Measured in Studio 2026-11-24** (`python tools/studio/sub_camera_check.py`, every frame of scripted trips; stills
+  `docs/attachments/subcam-behind-*.jpg`), on calm frames, old camera in brackets:
+  - Swim and pick-up: 0.00 to 0.02 studs off your line and under 0.1 degrees off straight behind (5.0 to 8.4 studs,
+    161 degrees: in front). The shake moves it up to 0.6 studs.
+  - Arrival and drop-off: at most 2.3 studs and 4.0 degrees off the sub's line, from the lane's bend (6.4 studs,
+    12 degrees). Behind in every frame, 30 studs, 36 with a fish.
+  - The hand-over to the hop and to the saddle: under 1 degree of turn and 2.4 studs of move in a frame, as before.
+  - The run is the old code and lags the sub's nose in a bend: 8 degrees to land 2, 17 to 21 degrees for 7 or 8
+    frames to land 10 (4,267 studs a second; the old camera reads the same there), 15 to 16 for a moment after going
+    in at the very end of the dock's lip (the old camera: 16, and up to 24 in the shake).
+
+### Getting on is quicker (Hugo, 2026-11-24)
+Hugo: "i liked how there was a little camera movement on the intro of the submarine when jumped into the water, make
+it a little shorter and speed it up.(just the animation getting onto it (at most 2-3 secs)".
+- **Getting on takes 1.95 s, was 2.56** (`Sub.Approach` 1.2, was 1.6; `Sub.Pickup` 0.75, was 0.96). The swim is as far
+  as before (`Sub.SwimOut`, 12.8 studs, was the swim speed x Approach), so it is the same move, played quicker.
+- **The camera's move is kept:** its easing in these two phases goes by their lengths (`cameraFor`), so it draws back
+  and tips as far as before. The seat's shake goes with the landing, not a fixed 0.15 s before the run.
+- **Reading, not confirmed:** the camera movement meant is the one in the game now (behind you, drawing back, tipping
+  down to the sub), not the old one that started in front and swung round, which his rule of 2026-11-23 rules out.
+  (The game open in Hugo's Studio when he asked held the new one: read from its scripts.)
+- Type check and lint pass; **not run in Studio yet** (Hugo was in a playtest).
+- Nothing after the sub sets off is changed.
 
 ### Titles on the run (task t1, Hugo 2026-11-20)
 Hugo: "let the intro text for submarines begone ... add a special rule for submarines, if title pops up, make sure
@@ -172,7 +233,17 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
   piece a tier, its name floating over the tower). Only the look changes with the tier; speed and the trip are the
   same for all. Buying is free while `Config.Sub.Free` is 1; the prices still show.
 - Hugo's word on the readings above, and a play by hand: is it satisfying? (Measured only by script.)
-- At the pick-up the gate's posts stand close and the camera is pulled in against one for a moment.
+- (2026-11-24, measured with the camera behind) **The dock is behind the camera at the pick-up.** You are thrown
+  back toward the dock onto the seat while the camera draws back, so the dock's wall pulls it in from 20 to 14 studs
+  behind you over the last half second (one step of 2 studs in a frame), still on your line. Gone in at the very end
+  of the lip (5 studs from the lane's wall) it is held 8 to 11 studs behind you for the whole swim and 4.5 at the
+  seat ([still](../attachments/subcam-behind-lip-end-pickup.jpg)): close, never to the side. The flag posts were
+  never within 4 studs of it (the bunting between them was, on two frames of one trip). For Hugo's eye; nothing changed for it.
+- (2026-11-24) The sub's own hull turns 6.9 degrees in one frame as the pick-up begins (it swims in from one side and
+  is on the lane a frame later). Seen in the numbers, not looked at.
+- (2026-11-24) The run's camera swings up to 21 degrees off the sub's nose on land 10's bends (the nose turns at up to
+  350 degrees a second there). Old code, not part of "never at the side" as built; Hugo's call whether it should
+  follow the nose more tightly.
 - The panel and the ticket are placeholders, not the UI chat's style; the N panel doesn't list `Sub` yet.
 - On a phone: not tried. F opens the panel on a keyboard; the SUB button works by touch.
 - The prices, once the pace is set (progression's question 4).
