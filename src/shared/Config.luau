@@ -351,10 +351,13 @@ Config.ArchetypeFeel = {
 -- sizes, 24 in all. The chances are the reference's own, worked out from the Index's "1 in N" under each of the 24
 -- (the user's screenshot of the Bronto's): every one of them is a size's chance times a colour's, with Silver 1 in 12,
 -- Golden 1 in 50 and Rainbow 1 in 250. Hugo's Gold 0.03 and Rainbow 0.008 until then; there was no Silver.)
+-- (2026-11-24, the user: "Colours should be rarer and pay more, yes. Especially rainbows": 1 in 20, 100 and 600, were
+-- the 1 in 12, 50 and 250; in the first five minutes a Gold was in reach of three players in four, a Rainbow of one in
+-- four, now of one in two and one in ten. What they pay: Config.VariantIncome)
 Config.Variant = {
-	Silver = 1 / 12,
-	Gold = 1 / 50,
-	Rainbow = 1 / 250,
+	Silver = 1 / 20,
+	Gold = 1 / 100,
+	Rainbow = 1 / 600,
 }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -747,6 +750,10 @@ Config.SizeOxygen = { Tiny = 0.8, Normal = 1, Big = 1.2, Giant = 1.5, Huge = 2, 
 -- Times the base, by its colour ("" plain)
 Config.VariantOxygen = { [""] = 1, Silver = 1.25, Gold = 1.5, Rainbow = 2 } :: { [string]: number }
 
+-- Times what it earns and sells for, by its colour, over what its need already brings ("rarer and pay more ...
+-- especially rainbows", the user, 2026-11-24; agreed with the tuning chat): a Rainbow earns 12 times a plain one (2 x 6)
+Config.VariantIncome = { [""] = 1, Silver = 1.2, Gold = 2, Rainbow = 6 } :: { [string]: number }
+
 -- Specials that also change what a fish needs: an archetype id (Config.Archetype) -> times. Only ones listed here
 -- count; none yet (a Tank stays a longer ride, Archetype.Tank.Drain, never a smaller need).
 Config.SpecialOxygen = {} :: { [string]: number }
@@ -861,7 +868,11 @@ Config.Tame = {
 	-- Oxygen is at or past Oxygen.Cap tames this many times slower (Claude's number; with RideTime 2.5 a fish held at
 	-- its need still lasts 5 / 3 of the tame)
 	CapSlow = 1.5,
-	Carry = 7, -- the most you carry on one dive (the reference's seven slots); a tame past that is not kept
+	-- the most fish carried at once (the user, 2026-11-24: "the inventory should harbor up to 100 fish. It shouldn't be
+	-- capped at just the inventory bar"; it was the bar's seven); a tame past that is not kept. The bar shows the best
+	-- of them (Config.finer, UI.Slots)
+	Carry = 100,
+	CloseFrom = 0.7, -- leaving a fish this far tamed says "SO CLOSE!" with how far (2026-11-24; 1: never)
 }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -885,8 +896,8 @@ Config.Aquarium = {
 	-- a Normal plain Clownfish 120 coins, a Normal plain Kraken 67,500.
 	SellSeconds = 60,
 	-- What a fish earns: coins a second for each Oxygen that fish needs (Config.requiredOf: its kind, rarity, size and
-	-- colour, never its land), with nothing more for size or colour on top (task e1, the plan's option C default; the
-	-- colour's own 1.5 / 3 / 10 went then: a Rainbow earns twice a plain one, as it needs twice). A Normal plain
+	-- colour, never its land), with nothing more for size on top (task e1, the plan's option C default; the colour's own
+	-- 1.5 / 3 / 10 went then, and 1.2 / 2 / 6 came in 2026-11-24: Config.VariantIncome). A Normal plain
 	-- Clownfish needs 80: 2 coins a second, the reference's first dino. PROVISIONAL.
 	PerRequired = 0.025,
 	Every = 1, -- seconds between payments
@@ -2139,6 +2150,7 @@ Config.Lock = {
 	FrontAngle = 60, -- only fish in front of you count: within this many degrees of where the camera looks, from you, where it is now and where it will be (LineLead), so not one beside you or coming up from behind, nor one you are leaving behind,
 	FrontKeep = 20, -- and the locked fish may go this many degrees further round before it loses the lock.
 	FrontAside = 110, -- A fish further round than FrontAngle but within this is beside you: taken only when no fish in front is in reach. One further round still is behind you: never newly taken, but in the last chance (LastChance) and when it is the fish you just left (LeftBack); the fish already locked keeps the lock as it slides back past you, as one beside you. (Until the second build, any fish in reach was taken when none was in front: in a test the lock sat on fish behind for a third of the time)
+	StrongAside = 15, -- a fish too strong for you counts this many studs further off the line, so one you can hold wins a close call (0: no matter; A and D step to either all the same)
 	LineKeep = 12, -- (8 in the first tests: two fish now and then swapped it back and forth with no key pressed) the locked fish keeps the lock until another is this many studs nearer the line (0: the reference: whichever is nearest, every look; its ring swapped two dinos side by side and back within a fifth of a second)
 	LineKeepSteer = 0, -- while you turn the view, so the lock follows it at once,
 	LineChosen = 200, -- and a fish A or D stepped to, or the view was turned onto, keeps the lock until another is this many studs nearer (200: until you step or turn the view again, or it leaves your reach or your front)
@@ -2984,7 +2996,8 @@ Config.HubLeap = {
 	High = 34, -- studs over the surface at its highest
 	Under = 14, -- studs under it at each end
 	Roll = 18, -- degrees it leans at its highest
-	Splash = 1, -- the splash's size (Lib/Splash)
+	Splash = 2.2, -- the splash's size (Lib/Splash; 1 until 2026-11-24: a 44 stud fish's)
+	Volume = 0.25, -- its sound's (0: none)
 }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -2994,7 +3007,7 @@ Config.HubLeap = {
 Config.Sounds = {
 	On = 1, -- 0: no music, no sea, no moments (the older Fx sounds stay)
 	Music = 1844399056, -- "Beach Party" (APM): steel drums, 91 s, looped. Others that load: 1843265752 "Caribbean Party", 1844398749 "Carnival In Trinidad"
-	MusicVolume = 0.2,
+	MusicVolume = 0.15, -- (0.2 until 2026-11-24, heard at half that: a SoundGroup's own Volume is 0.5 until it is set)
 	MusicUnder = 0.55, -- the music's loudness in the water, as a share,
 	CutHigh = -24, -- and its highs and mids cut there, dB
 	CutMid = -6,
@@ -3003,11 +3016,20 @@ Config.Sounds = {
 	Under = 9112889917, -- "Underwater Ambience 1" (Pro Sound Effects), in the water
 	UnderVolume = 0.35,
 	Ease = 3, -- how quickly one becomes the other (a second)
+	CatchStep = 1, -- semitones the catch's chime rises by, a rarity, and for each catch more in the dive (0: one pitch)
+	CatchRun = 7, -- and no more than this many for the dive's
 	Moments = {
 		Hop = { Id = 9113604979, Volume = 0.35, Speed = 1.1, Length = 3 }, -- bubbles rushing by
 		Catch = { Id = 9116394876, Volume = 0.6, Speed = 1, Length = 4 }, -- a soft chime
 		Deposit = { Id = 9113728049, Volume = 0.45, Speed = 1, Length = 3 }, -- a cash register
 		Click = { Id = 17208204604, Volume = 0.3, Speed = 1, Length = 2 }, -- Roblox's own bubble
+		-- (2026-11-24: the same four sounds at other speeds, so nothing new is loaded)
+		Up = { Id = 9116394876, Volume = 0.7, Speed = 0.84, Length = 5 }, -- a level, a stage or a sub bought: the chime, lower
+		Sold = { Id = 9113728049, Volume = 0.45, Speed = 1.12, Length = 3 },
+		Claim = { Id = 9116394876, Volume = 0.6, Speed = 1.35, Length = 4 }, -- an Index reward
+		No = { Id = 17208204604, Volume = 0.4, Speed = 0.5, Length = 2 }, -- refused
+		Low = { Id = 17208204604, Volume = 0.5, Speed = 0.7, Length = 2 }, -- the air is nearly out
+		Close = { Id = 17208204604, Volume = 0.4, Speed = 0.62, Length = 2 }, -- left a fish nearly tamed
 	} :: { [string]: { Id: number, Volume: number, Speed: number, Length: number } },
 }
 
@@ -3424,8 +3446,10 @@ Config.Dive = {
 -- tier N carries you to land N + 1 or any land before it. Every number is a first go, unplayed; the prices are guesses.
 Config.Sub = {
 	On = 1, -- 0: no sub; stepping off the dock is always the dive-in
-	Prices = { 2500, 25e3, 250e3, 2e6, 15e6, 150e6, 1e9, 8e9, 50e9 } :: { number }, -- tier 1 (to land 2) .. tier 9 (to land 10)
-	Free = 1, -- 1: every sub costs nothing for now (Hugo, 2026-11-18: "let upgrades be free for now"); the price is still shown
+	-- tier 1 (to land 2) .. tier 9 (to land 10). The user, 2026-11-24: "Price subs with the tuning chat, they should be
+	-- fairly pricey": the tuning chat's, 23 to 41 min of income each for tiers 1 to 6 (docs/design/progression.md)
+	Prices = { 75e3, 500e3, 5e6, 50e6, 500e6, 5e9, 75e9, 1e12, 15e12 } :: { number },
+	Free = 0, -- 1: every sub costs nothing (Hugo, 2026-11-18: "let upgrades be free for now", until 2026-11-24)
 	Near = 30, -- the stand's shop works within this many studs of its ring (Dock.Stations.Sub), studs
 	-- (task f2, Hugo 2026-11-20: "make animation and travelling slightly faster, make travelling faster the further
 	-- away the destination too". The phases are about a fifth shorter than the first go's, in brackets)
@@ -3490,8 +3514,8 @@ Config.Index = {
 	FirstOxygen = 0.2, -- DRAFT. A kind caught for the first time: this share of what a Normal plain one needs, in max Oxygen,
 	FirstLeast = 100, -- DRAFT. and at least this much (a new player's whole start),
 	FirstCoinSeconds = 100, -- DRAFT. and this many seconds of what a Normal plain one earns in a tank, in coins
-	SetOxygen = 0.5, -- DRAFT. A land's every kind caught: this share of what the land's commonest fish needs (Config.indexGoal), in max Oxygen,
-	SetCoinSeconds = 600, -- DRAFT. and this many seconds of what that fish earns, in coins
+	SetOxygen = 5, -- DRAFT (0.5 until 2026-11-24: a whole land's set paid less than one of its rares). A land's every kind caught: this share of what the land's commonest fish needs (Config.indexGoal), in max Oxygen,
+	SetCoinSeconds = 2500, -- DRAFT (600 until then). and this many seconds of what that fish earns, in coins
 	-- OPEN (progression.md, "What the user and Hugo pick", 2): does an aura multiply the Index's Oxygen? 0: NO, the
 	-- draft's answer and the reference's (an aura multiplies the seahorse only). 1: the Oxygen of every claim is
 	-- multiplied by the player's aura (Shared/Auras, their "Aura" attribute); the draft then needs a much slower Index.
@@ -4111,13 +4135,60 @@ end
 -- What a fish earns in a tank, coins a second (Config.Aquarium): what that fish needs (Config.requiredOf: its size and
 -- colour are already in it, so they are not counted again) x PerRequired (task e1, the plan's option C default)
 function Config.incomeOf(fish: FishType, sizeTier: string, variant: string): number
-	return Config.requiredOf(fish, sizeTier, variant) * Config.Aquarium.PerRequired
+	return Config.requiredOf(fish, sizeTier, variant)
+		* Config.Aquarium.PerRequired
+		* (Config.VariantIncome[variant or ""] or 1)
 end
 
 -- What a fish sells for, whole coins (Aquarium.SellSeconds of what it earns, at least 1): the server pays by this
 -- and the popup shows it
 function Config.sellOf(fish: FishType, sizeTier: string, variant: string): number
 	return math.max(1, math.floor(Config.incomeOf(fish, sizeTier, variant) * Config.Aquarium.SellSeconds + 0.5))
+end
+
+-- Is this carried fish better than that one: its rarity, then what it earns (what the bar shows first: the user,
+-- 2026-11-24: "a legendary, it should replace a common in the bar, and that logic should follow through")
+export type Kept = { Id: string, Size: string?, Variant: string? }
+function Config.finer(a: Kept, b: Kept): boolean
+	local ka, kb = Config.FishById[a.Id], Config.FishById[b.Id]
+	if not ka or not kb then
+		return ka ~= nil and kb == nil
+	end
+	local ta, tb = table.find(Config.TierOrder, ka.Tier) or 0, table.find(Config.TierOrder, kb.Tier) or 0
+	if ta ~= tb then
+		return ta > tb
+	end
+	return Config.incomeOf(ka, a.Size or "Normal", a.Variant or "")
+		> Config.incomeOf(kb, b.Size or "Normal", b.Variant or "")
+end
+
+-- A catch the game makes a fuss of (a longer plate, a harder shake, a second chime): Legendary and up, a Rainbow, or a
+-- Colossal
+function Config.greatCatch(id: string, size: string?, variant: string?): boolean
+	local kind = Config.FishById[id]
+	local tier = if kind then table.find(Config.TierOrder, kind.Tier) or 0 else 0
+	local from = table.find(Config.TierOrder, "Legendary") or math.huge
+	return tier >= from or variant == "Rainbow" or size == "Colossal"
+end
+
+-- The places of the best `most` in a list, best first (of two as good, the one caught first: it keeps its slot)
+function Config.finest(list: { any }, most: number): { number }
+	local order: { number } = {}
+	for i = 1, #list do
+		order[i] = i
+	end
+	table.sort(order, function(x, y)
+		if Config.finer(list[x], list[y]) then
+			return true
+		elseif Config.finer(list[y], list[x]) then
+			return false
+		end
+		return x < y
+	end)
+	for i = #order, most + 1, -1 do
+		order[i] = nil
+	end
+	return order
 end
 
 -- How many fish a plot at this stage may have equipped (earning) at once (Config.PlotUpgrades)

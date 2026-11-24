@@ -27,7 +27,7 @@ local Shop = require(script.Parent.Shop)
 local HubButtons = {}
 
 local pressed = Instance.new("BindableEvent")
--- Fired with "Shop" or "Index" when that button is pressed
+-- Fired with "Shop", "Index" or "Sound" when that button is pressed
 HubButtons.Pressed = pressed.Event
 
 local WIDTH = 147
@@ -73,6 +73,7 @@ local size: UIScale
 local mark: Frame
 local shopMark: Frame
 local shown = false
+local soundWord: TextLabel
 local hint = false -- the Index switched off: something new was caught and the button has not been pressed since
 
 -- The Index's "!", by the one rule: while a reward waits in it (the server's count); the Index off, the old hint
@@ -249,6 +250,32 @@ function HubButtons.build(parent: Instance)
 	local index = button(2, "Index", INDEX, Kit.Textures.Index)
 	shown = false
 
+	-- under them, small: all the sound off, and on again (SoundController; 2026-11-24: there was no way to turn it off)
+	local sound: TextButton = Kit.new("TextButton", {
+		Name = "Sound",
+		Size = UDim2.fromOffset(96, 34),
+		BackgroundColor3 = BLACK,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = "",
+		LayoutOrder = 3,
+	}, holder)
+	Kit.corner(sound, 1)
+	soundWord = Kit.new("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Font = Kit.Font,
+		Text = "SOUND ON",
+		TextSize = 14,
+		TextColor3 = Kit.White,
+	}, sound)
+	Kit.stroke(soundWord, 1.2, BLACK)
+	Anim.button(sound, { Grow = 1.05, Press = 0.92 })
+	sound.Activated:Connect(function()
+		pressed:Fire("Sound")
+	end)
+
 	-- the red "!"s: the Index's when a new kind is in it, the Shop's from the start of each visit until it is opened
 	-- (the user, 2026-11-22: "Is it possible to do the bouncing exclamation point on the shop?")
 	mark = markOn(index)
@@ -275,6 +302,10 @@ function HubButtons.build(parent: Instance)
 	end)
 	Players.LocalPlayer:GetAttributeChangedSignal("IndexClaims"):Connect(showMark)
 	showMark()
+end
+
+function HubButtons.sound(on: boolean)
+	soundWord.Text = if on then "SOUND ON" else "SOUND OFF"
 end
 
 function HubButtons.place(touch: boolean)

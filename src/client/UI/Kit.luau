@@ -526,6 +526,16 @@ local RAINBOW = ColorSequence.new({
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 140, 255)),
 })
 
+-- A fish's colour (Silver, Gold, Rainbow) as a gradient; nil for a plain one
+local VARIANTS: { [string]: ColorSequence } = {
+	Silver = ColorSequence.new(Color3.fromRGB(240, 246, 255), Color3.fromRGB(150, 168, 192)),
+	Gold = GOLD,
+	Rainbow = RAINBOW,
+}
+function Kit.variantFill(variant: string?): ColorSequence?
+	return VARIANTS[variant or ""]
+end
+
 -- A rarity's own colours, as a gradient and which way it runs (90: top to bottom). The lower rarities are their colour,
 -- lighter at the top; a Legendary is gold, a Mythic an ember, and a Secret the rainbow, side to side
 -- (docs/style/05-rarity-look.md: gold and the rainbow are the top of the ladder)

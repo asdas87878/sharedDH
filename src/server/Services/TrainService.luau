@@ -1004,7 +1004,8 @@ function TrainService.Start()
 					local best = math.huge
 					for _, other in rides do
 						local far = flat(other.Axis - root.Position).Magnitude
-						if far < best and (other.Rider == nil or other.Rider == player) then
+						local theirs = other.Plot:GetAttribute("Owner") ~= nil
+						if far < best and not theirs and (other.Rider == nil or other.Rider == player) then
 							best, here = far, other
 						end
 					end

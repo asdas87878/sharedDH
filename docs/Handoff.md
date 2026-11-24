@@ -3,6 +3,24 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-24 · The second hunt's fixes and the user's picks (game code, the user's PC)
+**State:** committed, not pushed by hand. In the open Studio (synced, not saved). Played by script, no errors: numbers and the UI only,
+**Studio was not drawing 3D, nobody has heard the sounds, no phone**.
+- **The user's picks:** carry 100 with the best seven in the bar (`Tame.Carry`, `Config.finer`; Hands rows now `{id, size, variant, key}`);
+  subs priced (`Sub.Prices`, `Sub.Free` 0); colours rarer and paying more (`Config.Variant`, `VariantIncome`). Decisions has them.
+- **The reward loop:** income shown as you deposit and on the HUD, STORED / EQUIP BEST with what it would add instead of +$0/s, the
+  catch plate names its size, colour and Index reward, SO CLOSE! (`Tame.CloseFrom`), a next-goal line on the dock (new
+  `GoalController`), TANK STAGE n!, green signs when affordable and NEED $x when not, sounds for buying, selling and refusals, a
+  SOUND button, haptics, coloured slots (`Kit.variantFill`), `Index.SetOxygen` 5 and `SetCoinSeconds` 2500, the lock passes over fish
+  too strong for you in a close call (`Lock.StrongAside`).
+- **Errors:** a copy of your own fish left in the water could be tamed (attribute `Own`); a reset kept the dive's tamed list; Grab and
+  Land 20 a second at most; the hub's leaping fish waited for the dock; the sticks; the tank ride's hold; a ninth player gets the next
+  tank left free; the sub bought twice; the phone's small buttons; WALK CLOSER!.
+- **UI chat, your files changed:** `Banners`, `CatchShow`, `CaughtText`, `DockNotes`, `HubButtons`, `IndexPanel`, `Kit`, `Slots`, `StatRows`,
+  `SubPanel`, `TankPanel`, `TankPrompt`, `UpgradeSign`. CatchShow's button is `ShowHit` now (was `Hit`).
+- **Tuning chat:** `tools/balance/model.py` doesn't know `VariantIncome`.
+- **Still open for launch:** saving is off, and the Index is not in SaveParts.
+
 ## 2026-11-24 · The fixes after the play passes (game code, the user's PC)
 **State:** committed on top of the merge of Hugo's (`d3de002`), not pushed by hand. In the open Studio (synced, not saved).
 Played by script: numbers and the UI only, **Studio was not drawing 3D, and nobody has heard the sounds**.

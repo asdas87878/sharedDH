@@ -7,6 +7,8 @@
 --   DockNotes.lesson(text)   the line whether or not they carry anything, with these words (LessonController; nil: not).
 --                            Words between stars are yellow (our "go here / press this"), in either.
 --   DockNotes.full(line)     a pink "TANK FULL!" pill and one short line under it, popping in (0.17 s), gone after 2 s
+--   DockNotes.note(word, line, good)   the same with other words: green (good) or pink
+--   DockNotes.goal(text)     a smaller line under the caption's place (Controllers/GoalController; nil: none)
 -- (The line over the tank as a fish goes in is UI.TankPrompt's.)
 local Players = game:GetService("Players")
 
@@ -20,11 +22,19 @@ local CARRY = "GO TO YOUR TANK TO DEPOSIT"
 local CARRY_AT = 0.686 -- the reference's: the line's middle, down the screen
 local FULL_AT = 0.6
 local FULL_STAY = 2
+local GOAL_AT = 0.755
+local PINK = { Color3.fromRGB(255, 120, 190), Color3.fromRGB(226, 52, 140) }
+local GREEN = { Color3.fromRGB(150, 236, 92), Color3.fromRGB(44, 174, 62) }
 
 local gui: ScreenGui? = nil
 local carry: TextLabel
 local full: Frame
 local fullLine: TextLabel
+local fullPill: Frame
+local fullWord: TextLabel
+local fullFill: UIGradient
+local goal: TextLabel
+local goalText: string? = nil
 local fullAt = -math.huge
 local carryOn = false
 local carryWords = CARRY
@@ -62,6 +72,16 @@ local function build()
 		RichText = true,
 		Visible = false,
 	})
+	goal = Shop.text(root, {
+		Name = "Goal",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, GOAL_AT),
+		Size = UDim2.fromOffset(700, 28),
+		TextSize = 21,
+		Text = "",
+		RichText = true,
+		Visible = false,
+	})
 	full = Kit.new("Frame", {
 		Name = "Full",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -80,11 +100,9 @@ local function build()
 	}, full)
 	Kit.corner(pill, 999)
 	Kit.stroke(pill, 3, Shop.Edge)
-	Kit.new("UIGradient", {
-		Rotation = 90,
-		Color = Shop.halves(Color3.fromRGB(255, 120, 190), Color3.fromRGB(226, 52, 140)),
-	}, pill)
-	Shop.text(pill, { Size = UDim2.fromScale(1, 1), TextSize = 32, Text = "TANK FULL!", ZIndex = 2 })
+	fullFill = Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(PINK[1], PINK[2]) }, pill)
+	fullPill = pill
+	fullWord = Shop.text(pill, { Size = UDim2.fromScale(1, 1), TextSize = 32, Text = "TANK FULL!", ZIndex = 2 })
 	fullLine = Shop.text(full, {
 		Name = "Line",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -147,10 +165,38 @@ function DockNotes.words(text: string?)
 	refresh()
 end
 
-function DockNotes.full(line: string)
+function DockNotes.goal(text: string?)
+	if text == goalText then
+		return
+	end
 	if not gui then
 		build()
 	end
+	local was = goalText
+	goalText = text
+	if text then
+		goal.Text = string.gsub(text, "%*(.-)%*", `<font color="#{Kit.Sun:ToHex()}">%1</font>`)
+	end
+	if (was == nil) ~= (text == nil) then
+		if text and goal.Visible then
+			Anim.scaleOf(goal).Scale = 0.6 -- (as the caption: still on its way out)
+		end
+		Anim.toast(goal, text ~= nil)
+	end
+end
+
+function DockNotes.full(line: string)
+	DockNotes.note("TANK FULL!", line, false)
+end
+
+function DockNotes.note(word: string, line: string, good: boolean)
+	if not gui then
+		build()
+	end
+	local tones = if good then GREEN else PINK
+	fullFill.Color = Shop.halves(tones[1], tones[2])
+	fullWord.Text = word
+	fullPill.Size = UDim2.fromOffset(math.max(250, 60 + #word * 20), 50)
 	fullLine.Text = line
 	fullAt = os.clock()
 	if full.Visible then

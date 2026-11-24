@@ -22,7 +22,19 @@ local Shake = require(script.Parent.Parent.Lib.Shake)
 
 local CaughtText = {}
 
-export type Info = { Id: string, Name: string, Tier: string, Earns: number?, New: boolean? }
+-- (Word: in place of "CAUGHT!", a colour's or a size's own; Great: Config.greatCatch, the plate stays longer; Bonus: the
+-- max Oxygen its first catch pays at the Index; Note: in place of what it earns)
+export type Info = {
+	Id: string,
+	Name: string,
+	Tier: string,
+	Earns: number?,
+	New: boolean?,
+	Word: string?,
+	Great: boolean?,
+	Bonus: number?,
+	Note: string?,
+}
 export type Show = {
 	root: Frame,
 	length: number, -- seconds until it is gone
@@ -242,8 +254,17 @@ local function nameRow(parent: Instance, info: Info, z: number, pos: UDim2, anch
 	return row
 end
 
--- What the fish earns a second in a tank: the cash icon and the sum on a dark pill (nil earns: the pill is hidden)
-local function chip(parent: Instance, earns: number?, z: number, pos: UDim2): Frame
+-- What the fish earns a second in a tank: the cash icon and the sum on a dark pill (nil earns: the pill is hidden).
+-- `words`, with `icon` (nil: none) and `tone`: those in its place
+local function chip(
+	parent: Instance,
+	earns: number?,
+	z: number,
+	pos: UDim2,
+	words: string?,
+	icon: string?,
+	tone: Color3?
+): Frame
 	local pill: Frame = Kit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = pos,
@@ -251,12 +272,13 @@ local function chip(parent: Instance, earns: number?, z: number, pos: UDim2): Fr
 		Size = P(0, 20),
 		BackgroundColor3 = Kit.Deep,
 		BackgroundTransparency = 0.2,
-		Visible = earns ~= nil,
+		Visible = earns ~= nil or words ~= nil,
 		ZIndex = z,
 	}, parent)
 	Kit.corner(pill, 999)
 	Kit.stroke(pill, 2, Kit.Ink)
-	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 9) }, pill)
+	local bare = words ~= nil and icon == nil
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, if bare then 9 else 4), PaddingRight = UDim.new(0, 9) }, pill)
 	Kit.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -266,7 +288,8 @@ local function chip(parent: Instance, earns: number?, z: number, pos: UDim2): Fr
 	Kit.new("ImageLabel", {
 		Size = P(17, 17),
 		BackgroundTransparency = 1,
-		Image = Kit.Textures.Cash,
+		Image = if words then icon or "" else Kit.Textures.Cash,
+		Visible = not bare,
 		ScaleType = Enum.ScaleType.Fit,
 		LayoutOrder = 1,
 		ZIndex = z + 1,
@@ -275,8 +298,8 @@ local function chip(parent: Instance, earns: number?, z: number, pos: UDim2): Fr
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = P(0, 20),
 		TextSize = 12.5,
-		TextColor3 = Kit.Cash,
-		Text = "+" .. Kit.rate(earns or 0),
+		TextColor3 = tone or Kit.Cash,
+		Text = words or ("+" .. Kit.rate(earns or 0)),
 		LayoutOrder = 2,
 		ZIndex = z + 1,
 	}, pill)
@@ -738,10 +761,25 @@ local function banner(parent: Instance, info: Info): Show
 	local disc = token(body, info, 84, 34, P(PX + 34, PY + PH / 2 - 4))
 	local discScale = scaler(disc)
 	local wx = PX + 76 + (PW - 76) / 2
-	local w = word(body, "CAUGHT!", 36, SHARP, pal, big, 36, P(wx, PY + 24))
+	local said = info.Word or "CAUGHT!"
+	local w = word(body, said, if #said > 8 then 26 else 36, SHARP, pal, big or info.Great == true, 36, P(wx, PY + 24))
 	local wScale = scaler(w.root)
-	local pill = chip(body, info.Earns, 36, P(wx, PY + PH - 14))
+	local pill = chip(body, info.Earns, 36, P(wx, PY + PH - 14), info.Note, nil, Kit.White)
 	local pillScale = scaler(pill)
+	local bonus: Frame? = nil
+	local bonusScale: UIScale? = nil
+	if info.Bonus then
+		local made = chip(
+			body,
+			nil,
+			36,
+			P(PX + 104, PY + PH + 46),
+			"+" .. Config.wholeNumber(info.Bonus) .. " MAX: CLAIM IN INDEX",
+			Kit.Textures.Oxygen,
+			Kit.Sun
+		)
+		bonus, bonusScale = made, scaler(made)
+	end
 	local row = nameRow(body, info, 34, P(PX + 8, PY + PH + 20), 0)
 	local new = badge(body, "NEW!", 44, 40)
 	new.Position = P(PX + PW + 2, PY) -- Hugo, 2026-11-19: "slightly to the right and down, just a touch"
@@ -749,7 +787,7 @@ local function banner(parent: Instance, info: Info): Show
 	local newScale = scaler(new)
 	local shine = specks(fx, if big then 14 else 8, 33, { Kit.White, pal.Light }, 39)
 	local fade = fader(body, { fx })
-	local L = 2.4
+	local L = if info.Great then 3.4 else 2.4
 	local E = L - 0.32
 	local pose = function(t: number)
 		-- in from the left, past its place and back; out the same way after a little pull the other way (the wind-up)
@@ -770,8 +808,12 @@ local function banner(parent: Instance, info: Info): Show
 		w.root.Position = P(wx, PY + 24 - 30 * (1 - quadIn(at(t, 0.06, 0.1))))
 		wScale.Scale = if wt < 0.1 then lerp(1.5, 0.88, quadIn(wt / 0.1)) else 0.88 + 0.12 * settle(wt - 0.1)
 		-- the earnings, the name under it, the badge
-		pill.Visible = info.Earns ~= nil and t >= 0.28
+		pill.Visible = (info.Earns ~= nil or info.Note ~= nil) and t >= 0.28
 		pillScale.Scale = settle(t - 0.28)
+		if bonus and bonusScale then
+			bonus.Visible = t >= 0.55
+			bonusScale.Scale = settle(t - 0.55)
+		end
 		local rx = at(t, 0.18, 0.3)
 		row.Visible = rx > 0
 		row.Position = P(PX + 8 - 50 * (1 - backOut(rx)), PY + PH + 20)
@@ -1042,12 +1084,48 @@ function CaughtText.placeOf(look: number): UDim2
 end
 
 -- The info a look shows, from the fish's id (nil: no such fish)
-function CaughtText.info(fishId: string, earns: number?, isNew: boolean?): Info?
+-- (size and variant: in its name as on the tags, "BIG Gold Clownfish", and the best of the two is the plate's word)
+local WORDS: { { string } } = {
+	{ "Rainbow", "RAINBOW!" },
+	{ "Colossal", "COLOSSAL!" },
+	{ "Gold", "GOLD!" },
+	{ "Huge", "HUGE!" },
+	{ "Giant", "GIANT!" },
+	{ "Silver", "SILVER!" },
+}
+function CaughtText.info(fishId: string, earns: number?, isNew: boolean?, size: string?, variant: string?): Info?
 	local kind = Config.FishById[fishId]
 	if not kind then
 		return nil
 	end
-	return { Id = fishId, Name = kind.Name, Tier = kind.Tier, Earns = earns, New = isNew }
+	local name = kind.Name
+	if variant and variant ~= "" then
+		name = variant .. " " .. name
+	end
+	if size and size ~= "Normal" then
+		name = string.upper(size) .. " " .. name
+	end
+	local said: string? = nil
+	for _, pair in WORDS do
+		if pair[1] == variant or pair[1] == size then
+			said = pair[2]
+			break
+		end
+	end
+	local bonus: number? = nil
+	if isNew and Config.Index.On ~= 0 and Config.inIndex(kind) then
+		bonus = (Config.indexFirst(kind))
+	end
+	return {
+		Id = fishId,
+		Name = name,
+		Tier = kind.Tier,
+		Earns = earns,
+		New = isNew,
+		Word = said,
+		Great = Config.greatCatch(fishId, size, variant),
+		Bonus = bonus,
+	}
 end
 
 -- A look built and posed at 0, not playing (nil: no such look). For captures and sheets

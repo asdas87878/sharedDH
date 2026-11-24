@@ -24,7 +24,7 @@
 --   PUT IN, grey FULL (the tank's earning places are all taken; pressing it still asks, and the server says why).
 --   The inventory (Hugo, 2026-11-22, task b1): the tank holds any number of fish, and every card has two small
 --   buttons under its main one: TAKE OUT (a tank fish back into the hands: Action "Tank", "TakeOut", key; refused
---   "Hands" with the seven slots full) and SELL (any fish, in the tank or the hands: Action "Sell", "Tank", key |
+--   "Hands" with Tame.Carry carried) and SELL (any fish, in the tank or the hands: Action "Sell", "Tank", key |
 --   "Hand", index, id; the card says what it sells for, Config.sellOf; the first press asks SURE?, the second sells;
 --   the server answers Ride "Sold", id, coins). How many may be equipped is the server's "TankEarning", which grows
 --   only with the plot's stage (the plot's sign, UI.UpgradeSign).
@@ -70,6 +70,7 @@ local SIDE = 168 -- the "Sort by" column
 local SORT_FROM = 4 -- its buttons show with this many fish or more
 local FOOT = 64 -- the footer bar
 local CARD_W, CARD_H = 144, 264
+local SMALL, SMALL_TOUCH = 28, 42 -- a card's two small buttons' height, and on a phone (the card is that much taller)
 local GAP = 10
 local CLICK_MOVE = 12 -- a press that moves further than this (pixels) is a camera drag, not a click
 local CLICK_TIME = 0.45
@@ -579,7 +580,10 @@ local function fill(card: Card, f: Fish, full: boolean)
 	end
 	card.Fish = f
 	card.Take.Root.Visible = f.Hand == nil
-	card.Sell.Root.Size = if f.Hand then UDim2.new(1, -14, 0, 28) else UDim2.new(0.44, -8, 0, 28)
+	local small = if touch then SMALL_TOUCH else SMALL
+	card.Button.Root.Position = UDim2.new(0.5, 0, 1, -13 - small)
+	card.Take.Root.Size = UDim2.new(0.56, -10, 0, small)
+	card.Sell.Root.Size = if f.Hand then UDim2.new(1, -14, 0, small) else UDim2.new(0.44, -8, 0, small)
 	if os.clock() > card.SureUntil then
 		card.Sell.set("Sell", "Red", true)
 	end
@@ -771,6 +775,7 @@ local function layout()
 	local columns = math.max(1, math.floor((trayWide - 40 + GAP) / (CARD_W + GAP)))
 	for _, s2 in sections do
 		s2.Layout.FillDirectionMaxCells = columns
+		s2.Layout.CellSize = UDim2.fromOffset(CARD_W, CARD_H + if touch then SMALL_TOUCH - SMALL else 0)
 	end
 end
 
@@ -1054,12 +1059,19 @@ local function build()
 		putAllAt = os.clock()
 		Net.Action:FireServer("Tank", "PutAll")
 	end)
-	-- all in: the window goes, so the fish and what they earn are what is seen (2026-11-24; a refusal leaves it up)
-	Net.Ride.OnClientEvent:Connect(function(what: string)
-		if what == "Deposited" and open and os.clock() - putAllAt < 2 then
-			putAllAt = 0
+	-- all in: the window goes, so the fish and what they earn are what is seen (2026-11-24; a refusal leaves it up).
+	-- Not when Equip Best would earn more: it stays, and that button jumps
+	Net.Ride.OnClientEvent:Connect(function(what: string, _n: any, _gained: any, _income: any, _id: any, more: any)
+		if what ~= "Deposited" or not open then
+			return
+		end
+		if type(more) == "number" and more > 0 then
+			Anim.punch(bestButton.Root, 1.18)
+			say("PRESS EQUIP BEST: +" .. Kit.rate(more), true)
+		elseif os.clock() - putAllAt < 2 then
 			show(false)
 		end
+		putAllAt = 0
 	end)
 
 	-- a refusal, over the tray's foot: the kit's red bar
@@ -1242,6 +1254,8 @@ function TankPanel.click(x: number, y: number): boolean
 	local gap, reach = distance()
 	if gap <= reach then
 		show(not open)
+	elseif gap <= reach + 60 then
+		DockNotes.note("WALK CLOSER!", "Your tank opens beside it", false)
 	end
 	return true
 end
@@ -1262,7 +1276,7 @@ function TankPanel.init()
 		elseif kind == "TankDenied" then
 			say(
 				if reason == "Hands"
-					then "HANDS FULL"
+					then "YOU CARRY " .. Config.Tame.Carry .. " ALREADY"
 					elseif reason == "Far" then "TOO FAR AWAY"
 					elseif reason == "Equipped" then "UNEQUIP IT FIRST"
 					else "THAT FISH IS GONE"
@@ -1287,6 +1301,7 @@ function TankPanel.init()
 	UserInputService.LastInputTypeChanged:Connect(function()
 		if Kit.touch() ~= touch then
 			layout()
+			refresh()
 		end
 	end)
 	layout()

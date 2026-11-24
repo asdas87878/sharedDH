@@ -12,12 +12,14 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 
 local Feel = {}
 
-local LINES = 30
+-- (half on a phone: each is a faded frame over the whole screen)
+local LINES = if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then 14 else 30
 local SHUFFLE = 0.045 -- seconds between two sets of lines
 local WHITE = Color3.new(1, 1, 1)
 

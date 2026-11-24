@@ -130,6 +130,9 @@ kept up all the way down, by rule. What follows is the second go.
   until the creature chat writes its rules and bakes it, as Gold and Rainbow were. Its speed is x1.05 for now, under
   Gold's 1.1 and Rainbow's 1.2.
 - **Gold and Rainbow's chances changed** to the reference's: 1 in 50 and 1 in 250 (Hugo's were 3% and 0.8%).
+- **2026-11-24, the user: "Colours should be rarer and pay more, yes. Especially rainbows":** Silver 1 in 20, Gold 1 in
+  100, Rainbow 1 in 600, and they earn x1.2, x2 and x6 on top of what their need brings (`Config.VariantIncome`); the
+  need itself is as it was.
 - **Size is looks only** (the user): not speed (that is next) and not the Oxygen a fish needs. `Config.SizeWorth`
   holds the reference's numbers for that (0.8, 1, 1.2, 1.5, and our 2 and 3), but nothing reads it.
 - **The herd goes by a fish's own length:** the room it wants, how high it swims, whether it goes straight through

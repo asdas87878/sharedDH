@@ -346,7 +346,7 @@ local function build()
 				return
 			end
 			if n >= 1 and n > attr("SubTier", 0) then
-				Net.Action:FireServer("SubBuy")
+				Net.Action:FireServer("SubBuy", n)
 			else
 				Net.Action:FireServer("SubEquip", n)
 			end

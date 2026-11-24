@@ -883,6 +883,7 @@ local function cameraStep(dt: number)
 	local character, root = State.character()
 	if not State.inWater() or not character or not root then
 		submerged = false
+		stick = Vector2.zero -- (let go of on the dock, it was still pushed at the next dive)
 		if wasScripted then
 			camera.CameraType = Enum.CameraType.Custom
 			camera.FieldOfView = Config.Camera.Fov
