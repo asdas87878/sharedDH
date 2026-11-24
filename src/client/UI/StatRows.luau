@@ -92,6 +92,9 @@ local shownOxygen = -1
 local shownLow = false
 local shownCoins = -1
 local shownDocked = false
+local shownIncome = -1
+local income: TextLabel -- what the tank earns a second, past the coins' bar (2026-11-24: money came in and nothing said so)
+local PUNCH = 2 -- seconds of income a gain of coins must be over, for the row to jump
 
 local function block(props: { [string]: any }, parent: Instance): Frame
 	props.BorderSizePixel = 0
@@ -166,8 +169,25 @@ local function plus(parent: Instance, name: string): TextButton
 	-- than the hub's buttons, which are five times as long
 	local shade = block({ Name = "Shade", Size = UDim2.fromScale(1, 1), ZIndex = 6 }, rim)
 	Anim.button(button, { Grow = 1.12, Press = 0.88, Shade = shade, ShadeTo = 0.14 })
-	button.Activated:Connect(function()
+	local function press()
 		pressed:Fire(name)
+	end
+	button.Activated:Connect(press)
+	-- a fingertip's room round it, unseen, under it
+	local room: TextButton = Kit.new("TextButton", {
+		Name = "Room",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = button.Position,
+		Size = UDim2.fromOffset(PLUS + 22, PLUS + 8),
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+		Visible = false,
+		ZIndex = 2,
+	}, parent)
+	room.Activated:Connect(press)
+	button:GetPropertyChangedSignal("Visible"):Connect(function()
+		room.Visible = button.Visible
 	end)
 	return button
 end
@@ -239,6 +259,21 @@ function StatRows.build(parent: Instance)
 	air = row(1, "Oxygen", Kit.bubble, Kit.White)
 	money = row(2, "Coins", Kit.coin, COINS)
 	money.Frame.Visible = false
+	income = Kit.new("TextLabel", {
+		Name = "Income",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, WIDTH + 6, 0.5, 0),
+		Size = UDim2.fromOffset(110, HEIGHT),
+		BackgroundTransparency = 1,
+		Font = Kit.Font,
+		Text = "",
+		TextSize = 16,
+		TextColor3 = COINS,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 4,
+	}, money.Frame)
+	Kit.stroke(income, TEXT_LINE, BLACK)
+	shownIncome = -1
 	shownOxygen = -1
 	shownLow = false
 	shownCoins = -1
@@ -265,7 +300,9 @@ end
 -- on a fish; docked: at the dock, where the plus buttons show. The row is the most you can carry (the reference's own), so it
 -- never changes in a dive: the 0 it flipped to while drowning read as the stat being lost (the play passes,
 -- 2026-11-24). Low or spent, the bar is red and beats
-function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: boolean, docked: boolean)
+-- earns: what the tank earns a second (0 or nil: not shown). A gain of more than PUNCH seconds of it (a sale, a reward)
+-- makes the number jump
+function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: boolean, docked: boolean, earns: number?)
 	local whole = math.floor(oxygen + 0.5)
 	if whole ~= shownOxygen then
 		shownOxygen = whole
@@ -287,7 +324,18 @@ function StatRows.update(oxygen: number, coins: number?, spent: boolean, low: bo
 		air.Text.TextColor3 = if red then WARN else air.Colour
 	end
 	local count = if coins then math.floor(coins) else -1
+	local rate = earns or 0
+	if rate ~= shownIncome then
+		income.Text = if rate > 0 then "+" .. Kit.rate(rate) else ""
+		if shownIncome >= 0 and rate > shownIncome then
+			Anim.punch(income, 1.35)
+		end
+		shownIncome = rate
+	end
 	if count ~= shownCoins then
+		if shownCoins >= 0 and count - shownCoins > math.max(rate * PUNCH, 1) then
+			Anim.punch(money.Text, 1.3)
+		end
 		shownCoins = count
 		money.Frame.Visible = coins ~= nil
 		if coins then

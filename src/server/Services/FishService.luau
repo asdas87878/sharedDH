@@ -1817,6 +1817,9 @@ function FishService.spawnFor(
 	)
 	park(w, false)
 	w.Model:SetAttribute("SubFor", player.UserId)
+	-- (a copy of a fish that is already someone's, for as long as it swims: nobody tames it, RideService.tame. Left in the
+	-- water it was a second one for whoever rode it next; 2026-11-24)
+	w.Model:SetAttribute("Own", player.UserId)
 	FishService.reserve(w, player)
 	-- (not steered by the herd while this is set: the player's machine moves it beside the sub)
 	w.CoastToken = {}

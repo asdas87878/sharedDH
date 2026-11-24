@@ -73,7 +73,8 @@ local FishService = require(script.Parent.FishService)
 local PropService = require(script.Parent.PropService)
 
 type Wild = FishService.Wild
-export type Carry = { Id: string, Size: string, Variant: string }
+-- (Key: which fish it is, so the bar can keep its slot)
+export type Carry = { Id: string, Size: string, Variant: string, Key: number? }
 type Rider = {
 	Player: Player,
 	State: string,
@@ -560,8 +561,20 @@ end
 
 -- What the rider carries on this dive, told to their client
 local function sendCaught(r: Rider)
-	Net.Ride:FireClient(r.Player, "Caught", r.Caught)
+	local rows = {}
+	for i, fish in r.Carried do
+		rows[i] = { fish.Id, fish.Size, fish.Variant, fish.Key or 0 } :: { any }
+	end
+	Net.Ride:FireClient(r.Player, "Caught", rows)
 	checkEquip(r)
+end
+
+-- A fish into the hands, the newest (Key tells it from every other). sendCaught tells the player
+local carryKey = 0
+local function carryIn(r: Rider, id: string, size: string, variant: string)
+	carryKey += 1
+	table.insert(r.Caught, id)
+	table.insert(r.Carried, { Id = id, Size = size, Variant = variant, Key = carryKey })
 end
 
 -- (`target`: the fish a refused grab or landing was for, so the client can tell an old refusal from one for the fish
@@ -1669,7 +1682,7 @@ end
 -- needs more; one fish once a dive). `need`: what the fish needs (needOf).
 local function tame(r: Rider, w: Wild, dt: number, need: number)
 	local c = Config.Tame
-	if c.On == 0 or r.Strained then
+	if c.On == 0 or r.Strained or w.Model:GetAttribute("Own") ~= nil then
 		return
 	end
 	local length = Config.tameTime(need, r.Max)
@@ -1684,10 +1697,11 @@ local function tame(r: Rider, w: Wild, dt: number, need: number)
 				task.defer(RideService.OnTamed, r.Player, w)
 			end
 			if #r.Caught < c.Carry then
-				table.insert(r.Caught, w.Type.Id)
-				table.insert(r.Carried, { Id = w.Type.Id, Size = w.SizeTier, Variant = w.Variant })
+				carryIn(r, w.Type.Id, w.SizeTier, w.Variant)
 				sendCaught(r)
-				Net.Ride:FireClient(r.Player, "Tamed", w.Model, w.Type.Id)
+				Net.Ride:FireClient(r.Player, "Tamed", w.Model, w.Type.Id, w.SizeTier, w.Variant)
+			else
+				deny(r, "Tame", "Full", w.Model)
 			end
 		end
 	end
@@ -1880,6 +1894,7 @@ local function onCharacter(r: Rider, character: Model)
 	r.Fish = nil
 	r.Weld = nil
 	r.JumpFrom = nil
+	table.clear(r.Tamed) -- (as a death does: a reset kept them, and those fish could not be tamed again)
 	unbank(r)
 	r.Oxygen = r.Max
 	sendOxygen(r, true)
@@ -2139,10 +2154,31 @@ function equipAsk(r: Rider, action: string)
 	end
 end
 
+-- A hook or a landing is looked at no more than twenty times a second a player, each on its own (a script sending
+-- thousands had the server search the herd for every one)
+local ASK_GAP = 0.05
+local askedAt: { [string]: { [Player]: number } } = {
+	Grab = setmetatable({}, { __mode = "k" }) :: any,
+	Land = setmetatable({}, { __mode = "k" }) :: any,
+}
+
+local function tooSoon(player: Player, action: string): boolean
+	local at = askedAt[action]
+	if not at then
+		return false
+	end
+	local clock = os.clock()
+	if clock - (at[player] or -math.huge) < ASK_GAP then
+		return true
+	end
+	at[player] = clock
+	return false
+end
+
 function RideService.Init()
 	Net.Action.OnServerEvent:Connect(function(player, action, target)
 		local r = riders[player]
-		if not r or type(action) ~= "string" then
+		if not r or type(action) ~= "string" or tooSoon(player, action) then
 			return
 		end
 		if action == "Jump" then
@@ -2228,8 +2264,8 @@ function RideService.carried(player: Player): { Carry }
 end
 
 -- and that one of them, the index-th carried (oldest first), has gone in: counted, and taken out of the hands. Gives
--- that fish back, or nil when there is none at that place.
-function RideService.takeCarried(player: Player, index: number): Carry?
+-- that fish back, or nil when there is none at that place. (`quiet`: not told yet; many at once, then tellCarried)
+function RideService.takeCarried(player: Player, index: number, quiet: boolean?): Carry?
 	local r = riders[player]
 	if not r or index ~= index or index < 1 or index > #r.Carried or index % 1 ~= 0 then
 		return nil
@@ -2237,8 +2273,17 @@ function RideService.takeCarried(player: Player, index: number): Carry?
 	local fish = table.remove(r.Carried, index)
 	table.remove(r.Caught, index)
 	r.Owned += 1
-	sendCaught(r)
+	if not quiet then
+		sendCaught(r)
+	end
 	return fish
+end
+
+function RideService.tellCarried(player: Player)
+	local r = riders[player]
+	if r then
+		sendCaught(r)
+	end
 end
 
 -- The submarine's drop-off (SubService; docs/design/submarine.md). Each only from "Carried".
@@ -2425,8 +2470,7 @@ function RideService.giveCarried(player: Player, fish: Carry): boolean
 	if not r or #r.Caught >= Config.Tame.Carry then
 		return false
 	end
-	table.insert(r.Caught, fish.Id)
-	table.insert(r.Carried, { Id = fish.Id, Size = fish.Size, Variant = fish.Variant })
+	carryIn(r, fish.Id, fish.Size, fish.Variant)
 	sendCaught(r)
 	return true
 end

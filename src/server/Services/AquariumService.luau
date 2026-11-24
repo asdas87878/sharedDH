@@ -95,6 +95,7 @@ type Tank = {
 	Hands: string, -- the "Hands" attribute last written
 	Shown: Folder?,
 	Keys: { [Model]: string }, -- each shown fish's entry Key (server only: a shown model carries none)
+	ShownAs: string?, -- which fish those are (shownAs): the water is only laid out again when that changes
 	Dumped: { DumpedFish }?, -- the Fish list dump() last handed to the save, kept while the fish are the same
 }
 type DumpedFish = { Id: string, Size: string, Variant: string, On: boolean }
@@ -347,8 +348,19 @@ end
 -- Shown fish and attributes: the tank's fish in the water, and what the player's attributes say
 
 -- The tank's earning fish, put in the water for everyone to see: small, anchored, each with the numbers of its lap
+local function shownAs(tank: Tank): string
+	local keys = {}
+	for _, entry in tank.Fish do
+		if entry.On then
+			table.insert(keys, entry.Key)
+		end
+	end
+	return table.concat(keys, ",")
+end
+
 local function show(tank: Tank)
 	local a = Config.Aquarium
+	tank.ShownAs = shownAs(tank)
 	if tank.Shown then
 		tank.Shown:Destroy()
 		tank.Shown = nil
@@ -681,34 +693,81 @@ local function trim(tank: Tank)
 end
 
 -- Everything that follows a change to the tank: the numbers, the attributes, the fish in the water and the sign
+-- (a fish that only goes into the store, or out of it, leaves the water as it is)
 local function changed(tank: Tank)
 	count(tank)
 	tell(tank)
-	show(tank)
+	if tank.ShownAs ~= shownAs(tank) then
+		show(tank)
+	end
 	sign(tank.Plot, tank)
 end
 
 -- One fish from the player's hands goes into their tank: the index-th they carry (oldest first), which must still be
 -- the kind their machine saw there (`id`), so a list that changed under the click puts nothing in
-local function place(tank: Tank, index: number, id: string): boolean
+-- (nothing is told yet: placed tells it, once for however many)
+local function putIn(tank: Tank, index: number, id: string, quiet: boolean?): RideService.Carry?
 	local carried = RideService.carried(tank.Player)
 	local c = carried[index]
 	if not c or c.Id ~= id or not Config.FishById[id] then
-		return false
+		return nil
 	end
-	local taken = RideService.takeCarried(tank.Player, index)
-	local kind = taken and Config.FishById[taken.Id]
-	if not taken or not kind then
-		return false
+	local taken = RideService.takeCarried(tank.Player, index, quiet)
+	if not taken then
+		return nil
 	end
-	local before = tank.Income
 	add(tank, taken.Id, taken.Size, taken.Variant)
 	trim(tank)
+	return taken
+end
+
+-- How many more coins a second Equip Best would bring now (the fish are the best earner first once counted)
+local function couldEarn(tank: Tank): number
+	local best = 0
+	for i = 1, math.min(#tank.Fish, Config.earningOf(tank.Stage)) do
+		best += tank.Fish[i].Income
+	end
+	return math.max(best - tank.Income, 0)
+end
+
+-- and the telling: Ride "Deposited", how many, the coins a second they brought, the tank's now, the kind (one fish;
+-- of many, the best), and what Equip Best would bring on top (a stored fish that earns more than an equipped one)
+local function placed(tank: Tank, n: number, before: number, id: string)
 	changed(tank)
 	tellHands(tank)
 	refreshHeld(tank.Player) -- (put away at once if it was the held one)
-	Net.Ride:FireClient(tank.Player, "Deposited", 1, tank.Income - before, tank.Income, taken.Id)
+	Net.Ride:FireClient(tank.Player, "Deposited", n, tank.Income - before, tank.Income, id, couldEarn(tank))
+end
+
+local function place(tank: Tank, index: number, id: string): boolean
+	local before = tank.Income
+	local taken = putIn(tank, index, id)
+	if not taken then
+		return false
+	end
+	placed(tank, 1, before, taken.Id)
 	return true
+end
+
+-- Everything carried, at once: one telling, one look at the water
+local function placeAll(tank: Tank)
+	local before, n = tank.Income, 0
+	local best: RideService.Carry? = nil
+	-- (the newest first, so each index still names the fish it did)
+	for i = #RideService.carried(tank.Player), 1, -1 do
+		local c = RideService.carried(tank.Player)[i]
+		local taken = if c then putIn(tank, i, c.Id, true) else nil
+		if taken then
+			n += 1
+			if not best or Config.finer(taken, best) then
+				best = taken
+			end
+		end
+	end
+	if best then
+		RideService.tellCarried(tank.Player)
+		placed(tank, n, before, best.Id)
+	end
 end
 
 -- The popup's asks (Action "Tank"). Each returns nil when done, or why not
@@ -833,8 +892,23 @@ local function upgrade(tank: Tank): string?
 		tank.Coins -= price
 	end
 	tank.Stage += 1
-	-- (the numbers and the sign at once; the fish are laid out again in the taller water when it has grown)
+	-- the new places are taken by the best of the store at once (2026-11-24: a stage bought for a million changed
+	-- nothing until Equip Best was found), where a fish put in takes a free place by itself
 	count(tank)
+	local before = tank.Income
+	if Config.Aquarium.AutoEquip ~= 0 then
+		local free = Config.earningOf(tank.Stage) - equippedCount(tank)
+		for _, f in tank.Fish do
+			if free <= 0 then
+				break
+			elseif not f.On then
+				f.On = true
+				free -= 1
+			end
+		end
+		count(tank)
+	end
+	-- (the numbers and the sign at once; the fish are laid out again in the taller water when it has grown)
 	tell(tank)
 	sign(tank.Plot, tank)
 	heighten(tank.Plot, tank.Stage, true, function()
@@ -842,7 +916,7 @@ local function upgrade(tank: Tank): string?
 			show(tank)
 		end
 	end)
-	Net.Ride:FireClient(player, "PlotUp", tank.Stage)
+	Net.Ride:FireClient(player, "PlotUp", tank.Stage, tank.Income - before)
 	return nil
 end
 
@@ -873,6 +947,7 @@ local function join(player: Player)
 			return
 		end
 	end
+	Net.Ride:FireClient(player, "NoPlot") -- (every tank is someone's: the next one left free is theirs)
 end
 
 local function leave(player: Player)
@@ -888,6 +963,13 @@ local function leave(player: Player)
 	tank.Plot:SetAttribute("Owner", nil)
 	heighten(tank.Plot, 0, false) -- (the next owner starts with the map's tank)
 	sign(tank.Plot, nil)
+	-- someone who came when every tank was taken has this one
+	for _, other in Players:GetPlayers() do
+		if other ~= player and not tanks[other] then
+			join(other)
+			break
+		end
+	end
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -1380,13 +1462,7 @@ function AquariumService.Start()
 		elseif verb == "TakeOut" and type(a) == "string" then
 			why = takeOut(tank, a)
 		elseif verb == "PutAll" then
-			-- the newest first, so each index still names the fish it did
-			for i = #RideService.carried(player), 1, -1 do
-				local c = RideService.carried(player)[i]
-				if c then
-					place(tank, i, c.Id)
-				end
-			end
+			placeAll(tank)
 		end
 		if why then
 			Net.Ride:FireClient(player, "TankDenied", why)

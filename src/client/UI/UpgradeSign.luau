@@ -384,6 +384,18 @@ local function ownerLevel(plot: Instance, kind: string): number
 	return k.First
 end
 
+-- The cash block's words, at a size they fit
+local function cashSays(sign: Sign, text: string, most: number)
+	sign.CashText.Text = text
+	sign.CashText.TextSize = if #text > 11 then 34 elseif #text > 8 then 44 else most
+end
+
+-- Are there coins for this: our own sign's block is green then (2026-11-24), red while there are not
+local function reaches(own: boolean, free: boolean, price: number): boolean
+	local coins = Players.LocalPlayer:GetAttribute("Coins")
+	return own and (free or (type(coins) == "number" and coins >= price))
+end
+
 -- The plot's sign (task b1): the same blocks, the plot's stages
 local function writePlot(sign: Sign, stage: number)
 	local p = Config.PlotUpgrades
@@ -394,7 +406,9 @@ local function writePlot(sign: Sign, stage: number)
 	local own = sign.Plot.Name == Players.LocalPlayer:GetAttribute("Plot")
 	local ask = asks.Plot
 	local word = if own and ask.Pending then "..." elseif own and ask.Saying then ask.Saying.Text else ""
-	local key = string.format("%d/%s/%d/%s", stage, tostring(free), robux, word)
+	local after = p.Stages[stage + 1]
+	local green = after ~= nil and reaches(own, free, after.Price)
+	local key = string.format("%d/%s/%d/%s/%s", stage, tostring(free), robux, word, tostring(green))
 	if sign.Shown == key then
 		return
 	end
@@ -417,9 +431,8 @@ local function writePlot(sign: Sign, stage: number)
 		sign.Name.TextColor3 = Shop.Money
 		sign.Stat.Text = string.format("%d > %d Earning fish", Config.earningOf(stage), Config.earningOf(stage + 1))
 		tankPortrait(sign, stage + 1)
-		sign.CashText.Text = if word ~= "" then word elseif free then "FREE" else Shop.cash(p.Stages[stage + 1].Price)
-		sign.CashText.TextSize = if #sign.CashText.Text > 11 then 34 elseif #sign.CashText.Text > 8 then 44 else 60
-		fill(sign.Cash, "Red")
+		cashSays(sign, if word ~= "" then word elseif free then "FREE" else Shop.cash(after.Price), 60)
+		fill(sign.Cash, if green then "Cash" else "Red")
 		if robux > 0 then
 			sign.Robux.Visible = true
 			sign.RobuxText.Text = Kit.short(robux)
@@ -453,7 +466,9 @@ local function write(sign: Sign, level: number)
 	local robux = (t.Robux or {})[level + 1] or 0
 	local own = sign.Plot.Name == Players.LocalPlayer:GetAttribute("Plot")
 	local word = if own and pending then "..." elseif own and saying then saying.Text else ""
-	local key = string.format("%d/%s/%d/%s", level, tostring(free), robux, word)
+	local after = levels[level + 1]
+	local green = after ~= nil and reaches(own, free, after.Price)
+	local key = string.format("%d/%s/%d/%s/%s", level, tostring(free), robux, word, tostring(green))
 	if sign.Shown == key then
 		return
 	end
@@ -471,16 +486,15 @@ local function write(sign: Sign, level: number)
 		fill(sign.Cash, "Gold")
 		sign.CashText.Text = "MAX LEVEL"
 	else
-		local after = levels[level + 1]
 		sign.Title.Text = "UPGRADE SEAHORSE"
 		sign.Name.Text = string.format("LV %d %s", level + 1, string.upper(after.Name))
 		sign.Name.TextColor3 = Shop.Money
 		sign.Stat.Text =
 			string.format("+%s > +%s Oxygen/s", Config.wholeNumber(now.Oxygen), Config.wholeNumber(after.Oxygen))
 		portrait(sign, level + 1)
-		sign.CashText.Text = if word ~= "" then word elseif free then "FREE" else Shop.cash(after.Price)
+		cashSays(sign, if word ~= "" then word elseif free then "FREE" else Shop.cash(after.Price), 60)
 		local wide = sign.Board.Size.X * t.Sign.PixelsPerStud
-		fill(sign.Cash, "Red")
+		fill(sign.Cash, if green then "Cash" else "Red")
 		if robux > 0 then
 			sign.Robux.Visible = true
 			sign.RobuxText.Text = Kit.short(robux)
@@ -581,6 +595,17 @@ local PLOT_NO = {
 	Top = "MAX STAGE",
 	Busy = "GET OFF FIRST!",
 }
+-- How many coins short ("NEED $1.2K")
+local function needs(kind: string): string?
+	local me = Players.LocalPlayer
+	local level, coins = me:GetAttribute(KINDS[kind].Level), me:GetAttribute("Coins")
+	if type(level) ~= "number" or type(coins) ~= "number" then
+		return nil
+	end
+	local after: any = if kind == "Plot" then Config.PlotUpgrades.Stages[level + 1] else Config.Train.Levels[level + 1]
+	return if after and after.Price > coins then "NEED " .. Shop.cash(math.ceil(after.Price - coins)) else nil
+end
+
 local listening: RemoteEvent? = nil
 local listeningPlot = false
 local function listen()
@@ -591,7 +616,8 @@ local function listen()
 				asks.Plot.Pending = nil
 			elseif what == "PlotNo" then
 				asks.Plot.Pending = nil
-				asks.Plot.Saying = { Text = PLOT_NO[tostring(why)] or "NOT NOW", Until = os.clock() + 1.8 }
+				local text: string? = if why == "Coins" then needs("Plot") else nil
+				asks.Plot.Saying = { Text = text or PLOT_NO[tostring(why)] or "NOT NOW", Until = os.clock() + 1.8 }
 			end
 		end)
 	end
@@ -600,9 +626,13 @@ local function listen()
 		return
 	end
 	listening = r
-	r.OnClientEvent:Connect(function(what: string)
+	r.OnClientEvent:Connect(function(what: string, why: any)
 		if what == "Up" or what == "UpNo" then
 			asks.Seahorse.Pending = nil
+		end
+		local text = if what == "UpNo" and why == "Coins" then needs("Seahorse") else nil
+		if text then
+			asks.Seahorse.Saying = { Text = text, Until = os.clock() + 1.8 }
 		end
 	end)
 end

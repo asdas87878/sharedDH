@@ -16,6 +16,8 @@ local State = require(script.Parent.Parent.Lib.State)
 
 local ShakeController = {}
 
+local haptic: any = nil -- the catch's buzz (phones and pads; made at the first)
+
 local LOOK_EVERY = 1 / 6
 
 -- what a fish is to the shakes: 0 nothing, else how hard its passing shakes (kept: a model's attributes don't change)
@@ -101,8 +103,22 @@ local function step()
 end
 
 function ShakeController.Start()
-	State.Tamed.Event:Connect(function()
-		Shake.play("Tame")
+	-- the tame: harder for a great catch, and a buzz in the hand where there is one
+	State.Tamed.Event:Connect(function(id: string, size: any, variant: any)
+		local great = Config.greatCatch(id, size, variant)
+		Shake.play("Tame", if great then 1.6 else 1)
+		pcall(function()
+			local buzz = haptic
+			if not buzz then
+				local made: any = Instance.new("HapticEffect" :: any)
+				made.Parent = workspace
+				haptic, buzz = made, made
+			end
+			buzz.Type = if great
+				then Enum.HapticEffectType.GameplayExplosion
+				else Enum.HapticEffectType.GameplayCollision
+			buzz:Play()
+		end)
 	end)
 	RunService.Heartbeat:Connect(step)
 end
