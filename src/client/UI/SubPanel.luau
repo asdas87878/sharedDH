@@ -1,11 +1,13 @@
 --!strict
 -- The submarine shop at the stand (docs/design/submarine.md; Hugo, 2026-11-18: "remove the sub button, make the
--- player able to buy the subs there and equip them"). Walking up to the stand (Dock.Stations.Sub) shows a prompt on
--- its ring; pressing it opens the shop: every sub (Shared/SubModels, one a tier) with its picture, the land it reaches
--- and its price (the next one green when you can pay, free while Config.Sub.Free is 1; later ones grey), EQUIP or
--- EQUIPPED; "NO SUB" for
+-- player able to buy the subs there and equip them"). Standing on the stand's ring (Dock.Stations.Sub) opens the shop
+-- and walking off it closes it, as at the other stalls (Hugo, 2026-11-23: "you dont have to hold e but you should just
+-- be able to stand on the circle for the ui to pop up, closing when walking off it"; Controllers/StallController does
+-- the looking, this is the dock window "Sub" of Shop.go): every sub (Shared/SubModels, one a tier) with its picture,
+-- the land it reaches and its price (the next one green when you can pay, free while Config.Sub.Free is 1; later ones
+-- grey), EQUIP or EQUIPPED; "NO SUB" for
 -- the ordinary dive-in. Under the list, GO TO cycles the lands the equipped sub reaches, and RIDE WITH a fish from your
--- tank to be dropped onto (or none: you are flung into a hop). It closes as you walk away. At the left edge a ticket
+-- tank to be dropped onto (or none: you are flung into a hop). At the left edge a ticket
 -- says where the sub will take you when you next jump in. The server decides everything (SubService: Action
 -- "SubBuy", "SubEquip", n, "SubPick", land, fishKey, each only at the stand); this only shows the player's SubTier,
 -- SubEquip, SubDest, SubFish, Coins and Tank attributes. The look is the shop kit (UI/Shop, task s1): a carousel of
@@ -65,19 +67,17 @@ local SHOTS: { [string]: Vector3 } = {
 -- SHOTS: end
 
 local gui: ScreenGui -- the ticket and the hint
-local window: Shop.Window
+local window: Shop.Window? = nil -- (nil until init)
 local carousel: Shop.Carousel
 local ticket: TextLabel
 local coinsLabel: TextLabel
 local freeLabel: TextLabel
 local fishButton: Shop.Button
 local goButton: Shop.Button
-local prompt: ProximityPrompt? = nil
 type Row = { Card: Shop.Card, Zone: TextLabel, Button: Shop.Button }
 local shopRows: { [number]: Row } = {} -- 0: no sub
 local hintLabel: TextLabel
 local hintAt = -math.huge
-local open = false
 
 local function attr(name: string, default: any): any
 	local value = State.Player:GetAttribute(name)
@@ -328,10 +328,15 @@ local function build()
 	end
 end
 
-local function show(on: boolean)
-	open = on and State.Mode == "Dock"
-	window.show(open)
-	if open then
+-- Open or close the window. (Through Shop.go("Sub"), so another dock window closes.)
+function SubPanel.open(on: boolean)
+	local w = window
+	if not w then
+		return
+	end
+	local opening = on and not w.isOpen()
+	w.show(on)
+	if opening then
 		refresh()
 		-- the equipped sub in view
 		task.defer(function()
@@ -340,50 +345,20 @@ local function show(on: boolean)
 	end
 end
 
--- The stand's ring (nil: not in the place, or not streamed in yet)
-local function standRing(): BasePart?
-	local blockout = workspace:FindFirstChild("ClaudeBlockout")
-	local dock = blockout and blockout:FindFirstChild("Dock")
-	local stations = dock and dock:FindFirstChild("Stations")
-	local stand = stations and stations:FindFirstChild("Sub")
-	local ring = stand and (stand:FindFirstChild("Ring") or (stand:IsA("Model") and stand.PrimaryPart))
-	return if ring and ring:IsA("BasePart") then ring else nil
-end
-
--- The prompt on the stand's ring, made once it is there (and again if the stand is rebuilt)
-local function keepPrompt()
-	local ring = standRing()
-	if not ring or (prompt and prompt.Parent == ring) then
-		return
-	end
-	if prompt then
-		prompt:Destroy()
-	end
-	local p = Instance.new("ProximityPrompt")
-	p.Name = "SubShop"
-	p.ActionText = "Submarines"
-	p.ObjectText = "Sub shop"
-	p.KeyboardKeyCode = Enum.KeyCode.E
-	p.HoldDuration = 0
-	p.MaxActivationDistance = 16
-	p.RequiresLineOfSight = false
-	p.Triggered:Connect(function()
-		show(not open)
-	end)
-	p.Parent = ring
-	prompt = p
-end
-
 -- A line of help at the foot of the screen while it is asked for (called every frame it should show)
 function SubPanel.hint(text: string)
 	hintLabel.Text = text
 	hintAt = os.clock()
 end
 
--- Studio's tests: open or close the shop as the prompt does
+-- Studio's tests: open or close the shop as standing on the ring does (on the dock only)
 -- Test hook: only the Studio checks call this (tools/studio/s2_subs_check.py, tools/ui/shop_kit/shop_client.luau).
 function SubPanel.toggle(on: boolean)
-	show(on)
+	if on and State.Mode == "Dock" then
+		Shop.go("Sub")
+	elseif not on and Shop.Page == "Sub" then
+		Shop.go(nil)
+	end
 end
 
 function SubPanel.init()
@@ -402,7 +377,7 @@ function SubPanel.init()
 		TextColor3 = YELLOW,
 	})
 
-	window = Shop.window({
+	local made = Shop.window({
 		Name = "SubShop",
 		Parent = State.Player:WaitForChild("PlayerGui"),
 		Title = "SUBMARINES",
@@ -412,10 +387,11 @@ function SubPanel.init()
 		Height = HIGH,
 		DisplayOrder = 7,
 		OnClose = function()
-			show(false)
+			Shop.go(nil)
 		end,
 	})
-	local body = window.Body
+	window = made
+	local body = made.Body
 	-- the tagline at the left, your coins at the right in green
 	Shop.text(body, {
 		Name = "Tagline",
@@ -535,34 +511,13 @@ function SubPanel.init()
 	end)
 	State.ModeChanged.Event:Connect(function(mode: string)
 		ticket.Visible = mode == "Dock"
-		if prompt then
-			prompt.Enabled = mode == "Dock"
-		end
-		if mode ~= "Dock" then
-			show(false)
-		end
 	end)
-	local lastLook = 0
 	RunService.RenderStepped:Connect(function()
 		hintLabel.Visible = os.clock() - hintAt < 2.2
-		if os.clock() - lastLook > 1 then
-			lastLook = os.clock()
-			keepPrompt()
-		end
-		-- walked away from the stand: the shop closes
-		if open then
-			local ring = standRing()
-			local character = State.Player.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart")
-			if ring and root and root:IsA("BasePart") then
-				local gap = root.Position - ring.Position
-				if Vector3.new(gap.X, 0, gap.Z).Magnitude > Config.Sub.Near then
-					show(false)
-				end
-			end
-		end
 	end)
 	refresh()
 end
+
+Shop.page("Sub", SubPanel.open)
 
 return SubPanel
