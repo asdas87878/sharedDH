@@ -44,7 +44,8 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
    King), each with its picture, the land it reaches and its price. You buy them in order (priced since 2026-11-24), and
    **equip** one; the equipped sub is the one that comes for you, and it reaches its own land or any before it.
    "NO SUB" is the ordinary dive-in. Under the list, GO TO picks the land and RIDE WITH a fish from your tank.
-   The shop closes as you walk away. A small ticket at the left edge says where the sub will take you.
+   The shop closes as you walk away. (A small ticket at the left edge said where the sub would take you until
+   2026-11-24; Hugo took it out. GO TO in the panel says it now.)
 2. **You jump in.** With a destination picked, stepping off the dock is no longer the dive-in's auto-hop: you drop
    in with a splash and **swim** at the surface, breaststroking forward.
 3. **The sub swims in** from behind and below (1.2 s; 1.6 until 2026-11-24), its light on you, a wake of bubbles. The camera is behind
@@ -358,7 +359,7 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
 - (2026-11-24) The run's camera swings up to 21 degrees off the sub's nose on land 10's bends (the nose turns at up to
   350 degrees a second there). Old code, not part of "never at the side" as built; Hugo's call whether it should
   follow the nose more tightly.
-- The panel and the ticket are placeholders, not the UI chat's style; the N panel doesn't list `Sub` yet.
+- The panel is a placeholder, not the UI chat's style; the N panel doesn't list `Sub` yet.
 - On a phone: not tried. F opens the panel on a keyboard; the SUB button works by touch.
 - The prices, once the pace is set (progression's question 4).
 - The partner's animations for the pick-up and the drop-off (hooks below). The sub's models are made
@@ -379,7 +380,7 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 | Which fish: the equipped one (`RideService.equippedOf`, task e3), else the tank pick, fixed as the trip is made; the plain dive-in onto the equipped fish | `SubService` (`rideWith`, `diveFish`); `RideService.DiveFish` |
 | The run's plan: top speed by distance, kept between MinRide and MaxRide | `Shared/SubTrip.plan` |
 | The sub (placeholder parts), its motion, the rider's motion, the camera, the bubbles, banners | `src/client/Controllers/SubController.luau` |
-| The panel and the ticket | `src/client/UI/SubPanel.luau`; the SUB button in `HubButtons` |
+| The panel | `src/client/UI/SubPanel.luau`; the SUB button in `HubButtons` |
 | The rider's poses while carried | `AnimController` ("Carried": a swim, a tuck, a crouch on the seat, the streamlined fling) |
 
 ### What the server says (attributes)
