@@ -1165,9 +1165,12 @@ def analyse(meta, rows):
 
 def report(folder=""):
     ok = True
-    for path in sorted((OUT / folder).glob("*.txt")):
-        if path.name == "token.txt":
-            continue
+    logs = [p for p in sorted((OUT / folder).glob("*.txt")) if p.name != "token.txt"]
+    if not logs:
+        # no logs is not a pass: the folder is a name under work/subcam, not a path
+        print(f"NO LOGS in {OUT / folder}")
+        return False
+    for path in logs:
         text = path.read_text().splitlines()
         result = analyse(json.loads(text[0]), text[1:])
         print(result["text"])
