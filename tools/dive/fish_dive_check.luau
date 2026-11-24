@@ -13,7 +13,7 @@
 -- usage: python3 tools/dive/lip_boxes.py . /tmp/lip.json
 --        rojo build -o /tmp/place.rbxl
 --        lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json [out.json] [parts, 12345] [paths.json]
---        (part 2 is the long one, many minutes; "1345" is half a minute. paths.json: what tools/dive/dive_picture.py draws)
+--        (part 2 is the long one, ten to fifteen minutes; "1345" is half a minute. paths.json: what tools/dive/dive_picture.py draws)
 -- It prints FAIL lines and a count at the end, and exits 1 on any.
 local fs = require("@lune/fs")
 local process = require("@lune/process")

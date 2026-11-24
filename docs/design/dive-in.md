@@ -557,7 +557,8 @@ change, not judged by eye.** The partner's first version is extended, not replac
 
 - **What it does.** A rider on a land fish who runs over the line at the lip dives with the fish: it takes off nose up,
   arcs, goes in nose down, and is level by the time the server swaps it for the water fish. Same camera keys and splash as
-  the plain leap, scaled by the fish's length. All 78 kinds at all six sizes dive (468 of 468; 141 did before). The table,
+  the plain leap, scaled by the fish's length. All 78 kinds at all six sizes dive (468 of 468; 141 did before). And from five
+  places along the lip, three ways of running, two paces, and gone over the edge already: 18720 of 18720. The table,
   fish by fish: [dive-in-fish](dive-in-fish.md). Side view: [three fish](../attachments/fish-dive-side.png), from the
   game's own sums. (There are 78 kinds, not 82: four were cut 2026-11-19.)
 - **The line.** One line `Config.Dive.LeapAhead` in from the lip, straight out from the dock, the same for a rider and a
