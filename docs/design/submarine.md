@@ -129,6 +129,75 @@ it a little shorter and speed it up.(just the animation getting onto it (at most
 - Type check and lint pass; **not run in Studio yet** (Hugo was in a playtest).
 - Nothing after the sub sets off is changed.
 
+### From the fish onto the sub (Hugo, 2026-11-24)
+Hugo: "you should also hop from fish to submarine while seeing the fish swim off next to you looping left and right then
+come back once you arrive". **Built on branch `fish-sub`; checked offline (below); not run in Studio yet and not played.**
+- **Who:** a player who goes into the water riding their [ride fish](equip.md) with a sub and a land picked. Nothing
+  else changes: on foot (with or without a fish equipped), and with a tank fish picked at the stand, it is the swim, the
+  scoop, and the fish swimming up at the end or the fling, as before.
+- **The way out** (`Sub.Approach`, 1.2 s as before). The fish dives in under you ([the dive-in](dive-in.md) has it up to
+  there) and carries you out; the sub comes up from behind on the **left** of it and level beside it (it comes from the
+  right and below for a swimmer). Nobody is thrown about, so there is no swim.
+- **The hop** (`Sub.Pickup`, 0.75 s as before: 1.95 s in all). You push off the saddle, the fish dips under you, and you
+  arc across onto the sub's seat.
+- **The weave.** The fish pulls out ahead of the nose and sweeps from the right to the left and back, once on runs to
+  lands 2 to 4 and once or twice further down (a longer fish takes longer over each), turning its nose and banking into
+  each turn and swimming on its own tail beat. Small ones that fit between the keel and the floor go **round** the hull
+  instead: under it and, where there is water over it, back over it. The camera is the rule's: behind, on the middle line.
+- **The return.** It is out to the right, then falls back beside the sub, settled `EscortSettle` before the drop, and
+  the old kick puts you on it. The sub peels off to the left after (to the right before), so it doesn't cross the fish.
+- **The sub stays level while the fish is beside it** (the start and the kick); it banks in the run's bends as before.
+- **One fish, all the way:** the same copy from the water's surface to the kick (kind, size, colour), never hidden and
+  never made again. Every number is in `Config.Sub` (`Escort…`); `Escort` 0 puts the old trip back.
+
+How it works:
+- The server makes the copy as the trip is made (`SubService.escortFor`) and anchors it. Where it is at any moment is a
+  pure sum of the trip (`SubTrip.escort(trip, t)`), so **every machine places it for itself each frame, with no physics
+  and no traffic**: other players see the same weave. The server moves its own copy only once, to the drop point. At
+  "NOW ARRIVING" it lets go of the anchor and gives the fish to the rider's machine; from there the kick, `"SubLand"` and
+  `RideService.seatOn` are the old ones. **There is no new message from the client**, so nothing new to trust.
+- The plan is made from the fish's own box, the hull's (`SubTrip.Hulls`) and the open water either side of the line
+  (`FishService.streamRoom`). The pick-up is put left of where the fish goes in, so the fish swims straight out; the run
+  keeps that line until the fish is ahead (`EscortOpen`), and moves over before the drop so both fit.
+- **Given up cleanly.** Every step the server looks whether the very entry of the hands that went in is still the
+  equipped one. If not (unequipped, put in the tank), the copy swims off and fades on every machine (`SubLeave`), is taken
+  away, and the drop-off is the fling. Died, reset, left the game, or a trip that can't be made: the copy is taken away.
+  The fish of the hands is never touched, so it can't be lost or doubled.
+- **The hand-over with the dive:** on the first frame of `State.Mode` "Carried", `DiveController` lets go of the body, the
+  pose and the camera; from that frame they are `SubController`'s. The trip eases the fish from where the dive had it.
+  The plain dive onto the ride fish (`SubService.diveFish`) now makes that fish with its saddle at the rider, not 4 ahead
+  and 3 under (asked for by the dive's chat).
+
+Readings, not confirmed by Hugo:
+- **Equipped but on foot** is not this: you would be watching a fish you never rode swim out of nowhere. It stays as it was.
+- **The weave is mostly ahead of the sub's nose,** not level with it: the camera is behind, so a fish beside the hull
+  would be at the picture's edge or out of it.
+- **The return is to the right-hand side,** where the kick has always been.
+
+Checked without Studio (`tools/subs/escort_check.luau`, the real code on the grey-box's lane: all 78 kinds in `Config.Fish`,
+Normal and Colossal, with each of the nine subs, 1,716 trips, 60 frames a second, boxes not meshes;
+`tools/subs/escort_hulls.py` for the hulls):
+
+| | Normal (858 trips) | Colossal (858 trips; up to 200 long, 96 wide, 147 tall) |
+|---|---|---|
+| To the hull, nearest | 1.1 studs clear | 56 trips graze it, 4.1 studs at most |
+| To the lane's sides (its width, not the built terraces) | 0.5 studs clear | 154 trips are in them, 32 at most: the gate is 96 wide |
+| Floor and surface | 46 trips (the tallest six or so kinds) poke out | 365 trips: the water by the gate is 46 deep |
+| Tail out of the gate at the hop | by 52 studs or more | by 21 or more |
+| Nearest to the camera's line to you | 11.6 studs | 11.8 studs |
+| In a 16:9 picture during the weave | always | always |
+| Most turn in one frame | 10 degrees | 14 degrees |
+| In its place for the kick | always | always |
+| Sweeps left of the middle | 825 trips | 376: a big one only goes from the right to the middle and back |
+
+So **a giant still goes through the walls, the floor or the surface** where the water is smaller than it is, as it does on
+a plain dive. Nothing in this trip can shrink it without swapping the fish.
+
+Not checked, for the Studio run (`tools/studio/fish_sub_check.py`, written and not run; it has the pictures in it too):
+how it looks; the frames between the land fish going and the water one showing; the real terraces; other players' view
+(the fish waits under their copy of the rider until the hop, which lags as it always has); a phone held upright, whose
+picture is too narrow for a wide sweep.
+
 ### Titles on the run (task t1, Hugo 2026-11-20)
 Hugo: "let the intro text for submarines begone ... add a special rule for submarines, if title pops up, make sure
 that the old ones blends out quicker to fit in the next title directly after, now arriving text should be just as
@@ -242,7 +311,7 @@ drop). Before is the old plan on the same distances, matching the 2026-11-17 log
   seat ([still](../attachments/subcam-behind-lip-end-pickup.jpg)): close, never to the side. The flag posts were
   never within 4 studs of it (the bunting between them was, on two frames of one trip). For Hugo's eye; nothing changed for it.
 - (2026-11-24) The sub's own hull turns 6.9 degrees in one frame as the pick-up begins (it swims in from one side and
-  is on the lane a frame later). Seen in the numbers, not looked at.
+  is on the lane a frame later). Seen in the numbers, not looked at. (Coming up beside a ride fish it is straight by then.)
 - (2026-11-24) The run's camera swings up to 21 degrees off the sub's nose on land 10's bends (the nose turns at up to
   350 degrees a second there). Old code, not part of "never at the side" as built; Hugo's call whether it should
   follow the nose more tightly.
@@ -263,6 +332,7 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 | The fish at the drop point are kept in the water from the moment the sub sets off, and six more put just ahead of it | `FishService.keepFor`, `FishService.stockNear` |
 | The fling: an ordinary hop, launched at the sub's drop speed (`Config.hopFrom`, both sides) | `RideService.fling`; client `JumpController.fling` |
 | Your fish beside the sub, held for you, driven by your machine, then the kick onto it | `FishService.spawnFor`; `RideService.seatOn` |
+| The ride fish that swims with the sub (2026-11-24): its plan and its place at any moment, the same on every machine; made, watched and let go of by the server; placed and swum each frame | `Shared/SubTrip` (`escorted`, `escort`); `SubService` (`escortFor`, `looseEscort`, `dropEscort`); `SubController` (`escort`, `escortAt`, `leaving`) |
 | Which fish: the equipped one (`RideService.equippedOf`, task e3), else the tank pick, fixed as the trip is made; the plain dive-in onto the equipped fish | `SubService` (`rideWith`, `diveFish`); `RideService.DiveFish` |
 | The run's plan: top speed by distance, kept between MinRide and MaxRide | `Shared/SubTrip.plan` |
 | The sub (placeholder parts), its motion, the rider's motion, the camera, the bubbles, banners | `src/client/Controllers/SubController.luau` |
@@ -271,9 +341,12 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 
 ### What the server says (attributes)
 - On the player: `SubTier` (0 to 9), `SubDest` (0: none, else the land), `SubFish` (the index of the tank fish to ride
-  with, 0: none), `SubPhase` ("Approach", "Pickup", "Ride", "Arrive", "Drop", nil off the sub), `SubTrip` (JSON: the
-  trip's start in server time, its phases' lengths, its path, the drop speed, the land and whether a fish comes).
+  with, 0: none), `SubPhase` ("Approach", or "Saddle" when
+  your ride fish carries you out, "Pickup", "Ride", "Arrive", "Drop", nil off the sub), `SubTrip` (JSON: the
+  trip's start in server time, its phases' lengths, its path, the drop speed, the land, whether a fish comes, and
+  `E`, 21 numbers, the plan of a fish that swims with it).
   `Tank` (JSON list of the tank's fish: id, size, colour) is set by `AquariumService` for the panel.
+- On that fish: `SubFor` (the player's id, as on any drop-off fish) and `SubLeave` (given up: it swims off and fades).
 - Studio's tests: `ServerStorage.SubTest:Invoke(op, userId, ...)` ("give", "home", "buy", "pick"), used by
   `docs/playtests/submarine/drive.luau`.
 - Remotes: Action `"SubBuy"`, `"SubPick", land, fishIndex`, `"SubLand", fish` (the kick has put us on our fish);
