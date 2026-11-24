@@ -27,7 +27,6 @@ local Shop = require(script.Parent.Shop)
 local SubPanel = {}
 
 local YELLOW = Color3.fromRGB(255, 196, 38)
-local GREY = Color3.fromRGB(150, 160, 175)
 local NONE_TINT = Color3.fromRGB(96, 120, 150) -- the NO SUB card
 
 -- sizes in the window's points (Shop.window fits them to the screen)
@@ -138,6 +137,8 @@ local function reachable(): { number }
 	return out
 end
 
+local docked, ticketOn = true, false -- the ticket shows on the dock, with a trip set
+
 local function refresh()
 	local tier = attr("SubTier", 0)
 	local equipped = attr("SubEquip", 0)
@@ -149,8 +150,11 @@ local function refresh()
 	freeLabel.Visible = free
 	fishButton.set("RIDE WITH: " .. fishName(fish))
 	local going = equipped >= 1 and dest >= 2
-	ticket.Text = if going then "SUB > " .. landName(dest) else "SUB: OFF"
-	ticket.TextColor3 = if going then YELLOW else GREY
+	-- (only while a trip is set: "SUB: OFF" was a dead word on every new player's screen, 2026-11-24)
+	ticketOn = going
+	ticket.Visible = docked and going
+	ticket.Text = if going then "SUB > " .. landName(dest) else ""
+	ticket.TextColor3 = YELLOW
 	goButton.set(
 		if going then "GO TO: " .. dest .. " " .. landName(dest) else "GO TO: NO SUB",
 		if equipped >= 1 then "Blue" else "Off"
@@ -177,8 +181,8 @@ local function refresh()
 			local can = free or coins >= price
 			row.Button.set(if free then "FREE" else cost, if can then "Cash" else "Off", can)
 		else
-			-- further on: its price, grey (buy the ones before it first)
-			row.Button.set(cost, "Off", false)
+			-- further on: its price, grey (buy the ones before it first); while subs are free it says why, not a price
+			row.Button.set(if free then "LOCKED" else cost, "Off", false)
 		end
 	end
 end
@@ -539,7 +543,8 @@ function SubPanel.init()
 		end
 	end)
 	State.ModeChanged.Event:Connect(function(mode: string)
-		ticket.Visible = mode == "Dock"
+		docked = mode == "Dock"
+		ticket.Visible = docked and ticketOn
 	end)
 	RunService.RenderStepped:Connect(function(dt: number)
 		hintLabel.Visible = os.clock() - hintAt < 2.2

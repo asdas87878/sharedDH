@@ -8,17 +8,30 @@
     python tools/studio/dive_leap_check.py run sub [LAND]     (the same with a sub trip picked (land 2 by default),
                                                                recorded up to 30 s, to Riding + 3 or Drowning + 2:
                                                                the lowest point and the modes, Leap 1 and Leap 0)
+    python tools/studio/dive_leap_check.py run mounted [ID[:Size]]  (Size: Tiny..Colossal, e.g. MorayEel:Huge;
+                                                               Config.Dive.LeapMounted switched on for it and put back;
+                                                               on the ride fish on land, Config.Dive.LeapMounted: the
+                                                               fish's own leap, then Leap 0; whether it began, the swap
+                                                               of the land fish for the water fish (position and nose
+                                                               jumps), lip to Riding, a put-back by the pace check, the
+                                                               camera per second, the frame times, what is handed back)
+    python tools/studio/dive_leap_check.py run mounted-unequip [ID] [T]  (on the ride fish, taken off T s (0.4)
+                                                               into the leap: PASS if the camera is back with the
+                                                               player within 0.5 s and no error)
     python tools/studio/dive_leap_check.py run look [T]       (Leap 1 only, the mouse pretended to look round at dive
                                                                time T (1.1 by default): when the film let the view
                                                                go, and how smoothly)
     python tools/studio/dive_leap_check.py hold T [own|director] [NAME]
                                                               (the whole dive held at dive time T, seconds, or at a
                                                                moment: crouch, takeoff, rise, top, entry, splash,
-                                                               under;
+                                                               splash2 (entry + 0.3), under;
                                                                begun at the lip; "own": the dive's own camera, "director": a fixed
                                                                camera beside the arc; NAME: also a shot,
                                                                work/dive_leap/NAME.png)
-    python tools/studio/dive_leap_check.py holds [own|director]  (held at each of those moments: shots)
+                                                              (hold T own|director mounted [NAME]: on the ride fish;
+                                                               held under WaterY (-4) the server takes the land fish:
+                                                               splash2 and under show the rider without it)
+    python tools/studio/dive_leap_check.py holds [own|director] [mounted]  (held at each of those moments: shots)
     python tools/studio/dive_leap_check.py letgo              (lets a hold go and sends the player home)
 How: Config.Dive.Leap is switched on at runtime on both machines (the place's Config is left as it ships, 0). The
 server Script sends the player home (RideService.sendHome) before each run. The LocalScript finds the strip's lip itself
@@ -99,9 +112,16 @@ RS:GetAttributeChangedSignal("DLCmd"):Connect(function()
 			return "unstubbed"
 		elseif verb == "fish" then
 			-- a fish in hand (the client equips it): the sub's hook seats it as we go under
-			local id = if arg ~= "" then arg else (Config.Fish[1] and Config.Fish[1].Id)
-			RideService.giveCarried(player, { Id = id, Size = "Normal", Variant = "" })
-			return "hands " .. #RideService.carried(player) .. " (" .. tostring(id) .. ")"
+			-- (fish|ID or fish|ID:Size: Tiny, Normal, Big, Giant, Huge, Colossal)
+			local kind, size = string.match(arg, "^([^:]*):?(.*)$")
+			local id = if kind and kind ~= "" then kind else (Config.Fish[1] and Config.Fish[1].Id)
+			size = if size and Config.SizeOxygen[size] then size else "Normal"
+			if not Config.FishById[id] then
+				return "no fish " .. tostring(id)
+			end
+			local given = RideService.giveCarried(player, { Id = id, Size = size, Variant = "" })
+			return "hands " .. #RideService.carried(player) .. " (" .. tostring(id) .. " " .. size
+				.. (if given then ")" else ", not given: hands full)")
 		elseif verb == "sub" then
 			-- a sub trip to land `arg` (0: none) picked for the next dive: coins, every sub bought, the land picked
 			local test = game:GetService("ServerStorage"):WaitForChild("SubTest", 5)
@@ -290,11 +310,71 @@ local function lookNow()
 	}
 end
 
+-- The ride fish on land (RideService's land fish, workspace.LandFish) and the water fish we ride (workspace.Fish), ours
+local function ownIn(folderName, attribute)
+	local folder = workspace:FindFirstChild(folderName)
+	if not folder then
+		return nil
+	end
+	for _, m in folder:GetChildren() do
+		if m:IsA("Model") and m:GetAttribute(attribute) == player.UserId then
+			return m
+		end
+	end
+	return nil
+end
+local function landFish()
+	return ownIn("LandFish", "LandRider")
+end
+local function waterFish()
+	return ownIn("Fish", "Rider")
+end
+-- a fish's pose: its pivot, its saddle, its nose's angle above level and its yaw, degrees
+local function fishPose(model)
+	local pivot = model:GetPivot()
+	local root = model.PrimaryPart
+	local saddle = root and root:FindFirstChild("Saddle")
+	local look = pivot.LookVector
+	return {
+		pos = pivot.Position,
+		saddle = if saddle and saddle:IsA("Attachment") then saddle.WorldPosition else pivot.Position,
+		pitch = math.deg(math.asin(math.clamp(look.Y, -1, 1))),
+		yaw = math.deg(math.atan2(-look.X, -look.Z)),
+	}
+end
+-- on (or off) the ride fish on land: RideMount turns it over; true once it is as asked
+local function mountedNow(on)
+	if (player:GetAttribute("LandMounted") == true) == on then
+		return true
+	end
+	Net.Action:FireServer("RideMount")
+	local stop = os.clock() + 3
+	while os.clock() < stop do
+		task.wait(0.1)
+		if (player:GetAttribute("LandMounted") == true) == on then
+			return true
+		end
+	end
+	return false
+end
+
+-- after a dive: is everything given back?
+local function statusNow()
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local fx = camera:FindFirstChild("RideFx")
+	return { mode = State.Mode, leaping = State.Leaping, leapSplashed = State.LeapSplashed,
+		camera = camera.CameraType.Name, fov = math.floor(camera.FieldOfView * 10 + 0.5) / 10,
+		platformStand = humanoid and humanoid.PlatformStand, humanoid = humanoid and humanoid:GetState().Name,
+		attr = player:GetAttribute("State"), landMounted = player:GetAttribute("LandMounted"),
+		rideFx = fx and #fx:GetChildren() or -1, splash = Splash.stats(), diveActive = Dive.log().active }
+end
+
 -- One run: stood a run-up behind the lip, walked off it, recorded until riding (or the time is up). `lookAt`: at this
 -- dive time the mouse is pretended to look round (DiveController.pretendLook), nil for none. `seconds`: the longest it
 -- records. `sub`: a sub trip is picked (it ends on Riding + 3 or Drowning + 2, not on Carried)
 local lastFrames = {}
-local function walk(leap, runup, lookAt, seconds, sub)
+local function walk(leap, runup, lookAt, seconds, sub, mounted, unequipAt)
 	table.clear(errors)
 	Config.Dive.Leap = leap
 	seconds = seconds or 14
@@ -311,6 +391,10 @@ local function walk(leap, runup, lookAt, seconds, sub)
 	if not root or not humanoid then
 		return { error = "no character" }
 	end
+	if mounted and not mountedNow(false) then
+		-- (off the ride fish before the stand is moved to: the server's pace check would put a mounted body back)
+		return { error = "could not get off the ride fish" }
+	end
 	local height = if humanoid.RigType == Enum.HumanoidRigType.R15 then humanoid.HipHeight + root.Size.Y / 2 else 3
 	local stand = lipAt - out * runup + UP * (height + 0.2)
 	controls(false)
@@ -318,6 +402,13 @@ local function walk(leap, runup, lookAt, seconds, sub)
 	character:PivotTo(CFrame.lookAt(stand, stand + out))
 	root.AssemblyLinearVelocity = Vector3.zero
 	task.wait(1.0)
+	if mounted then
+		if not mountedNow(true) then
+			controls(true)
+			return { error = "could not get on the ride fish (none equipped?)" }
+		end
+		task.wait(1.0)
+	end
 	local before = Splash.stats()
 	local started = os.clock()
 	local rec = {
@@ -326,6 +417,7 @@ local function walk(leap, runup, lookAt, seconds, sub)
 		runup = runup,
 		modeAtStart = State.Mode,
 		attrAtStart = player:GetAttribute("State"),
+		mountedAtStart = player:GetAttribute("LandMounted") == true,
 	}
 	local frames = {}
 	local modes = {}
@@ -350,13 +442,61 @@ local function walk(leap, runup, lookAt, seconds, sub)
 	local blocked, inside, underFloor, camFrames = 0, 0, 0, 0
 	local firstBlocked = nil
 	local done = false
-	RunService:BindToRenderStep("ZZDiveLeapRecord", Enum.RenderPriority.Camera.Value + 20, function()
+	-- the frame times: each frame's own, and the worst from the root going under to 1.5 s after (Leap 1 and 0 alike)
+	local inT = nil
+	local worstDt, worstAt, worstMode, windowDts = 0, nil, nil, {}
+	-- on the ride fish: the land fish's last pose, the water fish's first, when each went and came, the weld, a put-back
+	local landLast, landGoneT, waterFirst, weldT, riderAtWater, putBack = nil, nil, nil, nil, nil, nil
+	-- the camera per second (dt-normalised): how fast it moved, and how fast its offset from the diver changed
+	local camRates = {}
+	local prevOffset = nil
+	-- the ride fish taken off in the air (the equip slot's cross, RideUnequip): when, and when the camera was back
+	local unequipT, cameraBackT, cameraBackStuds = nil, nil, nil
+	RunService:BindToRenderStep("ZZDiveLeapRecord", Enum.RenderPriority.Camera.Value + 20, function(dt: number)
 		local now = os.clock() - started
 		local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		if not r then
 			return
 		end
 		local pos = r.Position
+		if not inT and pos.Y < Config.Camera.WaterTop then
+			inT = now
+		end
+		if mounted then
+			local lf = landFish()
+			if lf then
+				landLast = fishPose(lf)
+				landLast.t = now
+				landLast.rider = pos
+			elseif landLast and not landGoneT then
+				landGoneT = now
+			end
+			if not waterFirst and landLast then
+				local wf = waterFish()
+				if wf then
+					waterFirst = fishPose(wf)
+					waterFirst.t = now
+					riderAtWater = pos
+				end
+			end
+			if not weldT then
+				for _, joint in r:GetJoints() do
+					if joint.Name == "RideWeld" then
+						weldT = now
+					end
+				end
+			end
+			-- (put back by the server's pace check: a jump of the body on the dock)
+			if prevPos and not putBack and (pos - prevPos).Magnitude > 15 and State.Mode == "Dock" then
+				putBack = { t = now, studs = (pos - prevPos).Magnitude, landMounted = player:GetAttribute("LandMounted") }
+			end
+		end
+		if inT and now - inT <= 1.5 then
+			table.insert(windowDts, dt)
+			if dt > worstDt then
+				worstDt, worstAt, worstMode = dt, now - inT, State.Mode
+			end
+		end
 		local cam = camera.CFrame
 		maxY = math.max(maxY, pos.Y)
 		lowY = math.min(lowY, pos.Y)
@@ -394,6 +534,16 @@ local function walk(leap, runup, lookAt, seconds, sub)
 			Dive.pretendLook(Vector2.new(60, 0))
 			looked = now - leapT
 		end
+		if unequipAt and leapT and not unequipT and now - leapT >= unequipAt then
+			Net.Action:FireServer("RideUnequip")
+			unequipT = now
+		end
+		if unequipT and not cameraBackT and camera.CameraType ~= Enum.CameraType.Scriptable then
+			local studs = (camera.CFrame.Position - pos).Magnitude
+			if studs < 40 then
+				cameraBackT, cameraBackStuds = now, studs
+			end
+		end
 		local stats = Splash.stats()
 		maxParts = math.max(maxParts, stats.parts)
 		local last = log.frames and log.frames[#log.frames]
@@ -425,6 +575,17 @@ local function walk(leap, runup, lookAt, seconds, sub)
 					stillRun = 0
 				end
 			end
+			if prevCam and dt > 0 and #camRates < 1200 then
+				local offset = cam.Position - pos
+				table.insert(camRates, {
+					t = now,
+					dt = dt,
+					speed = (cam.Position - prevCam.Position).Magnitude / dt,
+					change = if prevOffset then (offset - prevOffset).Magnitude / dt else 0,
+					mode = State.Mode,
+				})
+			end
+			prevOffset = cam.Position - pos
 			prevCam = cam
 			-- in the water's lit layers (between the surface and the riding camera's line)
 			if cam.Position.Y < top and cam.Position.Y > line then
@@ -497,9 +658,9 @@ local function walk(leap, runup, lookAt, seconds, sub)
 		end
 		if #frames < 2400 then
 			table.insert(frames, string.format(
-				"%.3f %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) fov=%.1f leaping=%s%s fog=%d-%d atm=%s splash=%s",
-				now, State.Mode, pos.X, pos.Y, pos.Z, cam.Position.X, cam.Position.Y, cam.Position.Z,
-				camera.FieldOfView, tostring(State.Leaping), liveText, math.floor(Lighting.FogStart), math.floor(Lighting.FogEnd),
+				"%.3f dt=%.1fms %s pos=(%.1f,%.1f,%.1f) cam=(%.1f,%.1f,%.1f) fov=%.1f leaping=%s ls=%s%s fog=%d-%d atm=%s splash=%s",
+				now, dt * 1000, State.Mode, pos.X, pos.Y, pos.Z, cam.Position.X, cam.Position.Y, cam.Position.Z,
+				camera.FieldOfView, tostring(State.Leaping), tostring(State.LeapSplashed), liveText, math.floor(Lighting.FogStart), math.floor(Lighting.FogEnd),
 				tostring(Lighting:FindFirstChildOfClass("Atmosphere") ~= nil),
 				if nearest < math.huge then string.format("%.1f/%.2f", nearest, cover) else "-"))
 		end
@@ -530,6 +691,18 @@ local function walk(leap, runup, lookAt, seconds, sub)
 	rec.lipToCarried = since(carriedT)
 	rec.lipToDrowning = since(drownT)
 	rec.lowestY = math.floor(lowY * 10 + 0.5) / 10
+	table.sort(windowDts)
+	rec.frameTime = {
+		-- from the root going under to 1.5 s after: the worst single frame (ms, seconds after going under, the mode)
+		-- and the median
+		worstMs = math.floor(worstDt * 10000 + 0.5) / 10,
+		worstAfterIn = worstAt and math.floor(worstAt * 1000 + 0.5) / 1000,
+		worstMode = worstMode,
+		medianMs = if #windowDts > 0
+			then math.floor(windowDts[math.ceil(#windowDts / 2)] * 10000 + 0.5) / 10
+			else nil,
+		frames = #windowDts,
+	}
 	rec.leapBegan = leapT ~= nil
 	rec.lookPretendedAt = looked and math.floor(looked * 1000 + 0.5) / 1000
 	local function r2(v)
@@ -593,6 +766,69 @@ local function walk(leap, runup, lookAt, seconds, sub)
 	rec.broken = log.broken
 	rec.landMounted = player:GetAttribute("LandMounted")
 	rec.errors = table.clone(errors)
+	-- the camera per second: the fastest it moved and the fastest its offset from the diver changed (a cut the film did
+	-- not ease shows in the second), each with when and the mode; and round the swap onto the water fish
+	local fast, fastAt, change, changeAt = 0, nil, 0, nil
+	local swapT = weldT or (waterFirst and waterFirst.t) or landGoneT
+	local nearSwap, nearSwapAt = 0, nil
+	for _, c in camRates do
+		if c.speed > fast then
+			fast, fastAt = c.speed, string.format("%.2f %s dt=%.1fms", c.t, c.mode, c.dt * 1000)
+		end
+		if c.change > change then
+			change, changeAt = c.change, string.format("%.2f %s dt=%.1fms", c.t, c.mode, c.dt * 1000)
+		end
+		if swapT and c.t >= swapT - 0.15 and c.t <= swapT + 0.5 and c.change > nearSwap then
+			nearSwap, nearSwapAt = c.change, string.format("%.2f %s", c.t, c.mode)
+		end
+	end
+	rec.cameraRate = {
+		fastestStudsPerSecond = r2(fast),
+		fastestAt = fastAt,
+		offsetChangeMost = r2(change),
+		offsetChangeAt = changeAt,
+		offsetChangeNearSwap = r2(nearSwap),
+		nearSwapAt = nearSwapAt,
+		frames = #camRates,
+	}
+	if mounted then
+		local m = {
+			began = leapT ~= nil and plan ~= nil and plan.mounted == true,
+			landGone = since(landGoneT),
+			waterFishSeen = since(waterFirst and waterFirst.t),
+			weld = since(weldT),
+			fishlessSeconds = if landGoneT and waterFirst then r2(waterFirst.t - landGoneT) else nil,
+			landLast = clean(landLast),
+			waterFirst = clean(waterFirst),
+			putBack = clean(putBack),
+			cuts = {},
+		}
+		if landLast and waterFirst then
+			m.swapPivotStuds = r2((waterFirst.pos - landLast.pos).Magnitude)
+			m.swapSaddleStuds = r2((waterFirst.saddle - landLast.saddle).Magnitude)
+			m.swapNoseDegrees = r2(waterFirst.pitch - landLast.pitch)
+			m.swapYawDegrees = r2(((waterFirst.yaw - landLast.yaw + 180) % 360) - 180)
+			m.riderToWaterSaddle = r2((waterFirst.saddle - riderAtWater).Magnitude)
+		end
+		for _, e in log.events or {} do
+			if e.kind == "cut" then
+				table.insert(m.cuts, clean(e))
+			elseif e.kind == "release" then
+				-- (why the body was let go: "riding" is the clean one; "moved" or "fish lost" mean the plan broke)
+				m.release = clean(e)
+			end
+		end
+		rec.mounted = m
+	end
+	rec.handedBack = statusNow()
+	if unequipAt then
+		rec.unequip = {
+			firedAt = if unequipT and leapT then r2(unequipT - leapT) else nil,
+			cameraBackSeconds = if cameraBackT and unequipT then r2(cameraBackT - unequipT) else nil,
+			cameraBackStuds = r2(cameraBackStuds),
+			release = clean(rec.mounted and rec.mounted.release),
+		}
+	end
 	return rec
 end
 
@@ -625,15 +861,60 @@ local function directorOn(on)
 end
 
 local keptAutoHop = nil
+-- Config.Dive.LeapMounted as the file has it: the mounted cases switch it on here and put it back after (and when the
+-- check is removed: install(True) clears DLDo)
+local fileLeapMounted = Config.Dive.LeapMounted
+local function mountedDial(on)
+	Config.Dive.LeapMounted = if on then 1 else fileLeapMounted
+end
+local SLOT_KEYS = {
+	Enum.KeyCode.One,
+	Enum.KeyCode.Two,
+	Enum.KeyCode.Three,
+	Enum.KeyCode.Four,
+	Enum.KeyCode.Five,
+	Enum.KeyCode.Six,
+	Enum.KeyCode.Seven,
+	Enum.KeyCode.Eight,
+	Enum.KeyCode.Nine,
+}
 workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
+	if workspace:GetAttribute("DLDo") == nil then
+		-- removed: what was changed on this machine put back
+		mountedDial(false)
+		if keptAutoHop ~= nil then
+			Config.Dive.AutoHop = keptAutoHop
+			keptAutoHop = nil
+		end
+		return
+	end
 	local cmd = tostring(workspace:GetAttribute("DLDo") or "")
-	local verb, a, b, c, e, f = string.match(cmd, "^(%w+)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)")
+	local verb, a, b, c, e, f, g =
+		string.match(cmd, "^(%w+)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)")
 	local ok, said = pcall(function()
 		if verb == "walk" then
-			-- walk|leap|runup|lookAt|seconds|sub (empty: none)
+			-- walk|leap|runup|lookAt|seconds|sub|mounted (empty: none)
 			report:FireServer("running")
+			local onFish = g == "1" or string.sub(g, 1, 1) == "u"
+			if onFish then
+				mountedDial(true)
+			end
 			task.spawn(function()
-				local ok2, rec = pcall(walk, tonumber(a) or 1, tonumber(b) or 16, tonumber(c), tonumber(e), f == "1")
+				local ok2, rec =
+					-- (g: "1" on the ride fish; "uT" on it and taken off T s into the leap)
+					pcall(
+						walk,
+						tonumber(a) or 1,
+						tonumber(b) or 16,
+						tonumber(c),
+						tonumber(e),
+						f == "1",
+						g == "1" or string.sub(g, 1, 1) == "u",
+						if string.sub(g, 1, 1) == "u" then tonumber(string.sub(g, 2)) else nil
+					)
+				if onFish then
+					mountedDial(false)
+				end
 				if not ok2 then
 					controls(true)
 					rec = { error = tostring(rec) }
@@ -656,12 +937,43 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 			Config.Dive.AutoHop = 0
 			Config.Dive.Leap = 1
 			local view = if b ~= "" then b else "own"
+			-- (on for a mounted hold until letgo; a plain hold has the file's value)
+			mountedDial(c == "1")
+			if c == "1" then
+				-- on the ride fish, mounted at the lip (the server's pace check puts back a body moved far from
+				-- where it was mounted): off it, stood by the lip, on it again. Stood there at once, before getting off,
+				-- so a last hold's body cannot fall under WaterY (the server would swap the fish and RideMount fail)
+				Dive.hold(nil)
+				local lipAt, _, out = lip()
+				local character = player.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+				if not lipAt or not root or not humanoid then
+					return "no lip or no character"
+				end
+				local height = if humanoid.RigType == Enum.HumanoidRigType.R15
+					then humanoid.HipHeight + root.Size.Y / 2
+					else 3
+				local stand = lipAt - out * 3 + UP * (height + 0.2)
+				character:PivotTo(CFrame.lookAt(stand, stand + out))
+				root.AssemblyLinearVelocity = Vector3.zero
+				if not mountedNow(false) then
+					return "could not get off the ride fish"
+				end
+				character:PivotTo(CFrame.lookAt(stand, stand + out))
+				root.AssemblyLinearVelocity = Vector3.zero
+				task.wait(0.5)
+				if not mountedNow(true) then
+					return "could not get on the ride fish (none equipped?)"
+				end
+				task.wait(0.8)
+			end
 			if view == "director" then
 				directorOn(true)
 			else
 				directorOn(false)
 			end
-			-- a time, or a moment by name (from the plan: crouch, takeoff, rise, top, entry, splash, under)
+			-- a time, or a moment by name (from the plan: crouch, takeoff, rise, top, entry, splash, splash2, under)
 			local t = tonumber(a)
 			if not t then
 				Dive.hold(0, view == "director")
@@ -679,16 +991,22 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 					top = p.tTop,
 					entry = p.tEntry - 0.02,
 					splash = p.tEntry + 0.15,
+					splash2 = p.tEntry + 0.3,
 					under = p.tEntry + 0.5,
 				})[a] or 0
 			end
 			local held = Dive.hold(t, view == "director")
 			local log = Dive.log()
+			local heldRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 			return Http:JSONEncode({ held = held, t = t, name = a, view = view, plan = clean(log.plan),
-				splash = log.splash, mode = State.Mode, events = eventsOf(log) })
+				splash = log.splash, mode = State.Mode, events = eventsOf(log),
+				landMounted = player:GetAttribute("LandMounted"),
+				-- (held under the server's WaterY the land fish is taken away, as in a real dive)
+				underWaterY = heldRoot ~= nil and heldRoot.Position.Y < Config.Oxygen.WaterY })
 		elseif verb == "letgo" then
 			Dive.hold(nil)
 			directorOn(false)
+			mountedDial(false)
 			if keptAutoHop ~= nil then
 				Config.Dive.AutoHop = keptAutoHop
 				keptAutoHop = nil
@@ -703,15 +1021,36 @@ workspace:GetAttributeChangedSignal("DLDo"):Connect(function()
 			task.wait(0.6)
 			return "equipped=" .. tostring(player:GetAttribute("EquippedFish")) .. "; LandMounted="
 				.. tostring(player:GetAttribute("LandMounted"))
+		elseif verb == "pick" then
+			-- the ride fish of kind a and size b (given first: `cmd fish|ID:Size`): off the one ridden, then each slot
+			-- held and made the ride fish until it is that one
+			local Equip = require(Client.Controllers:WaitForChild("EquipController"))
+			local size = if b ~= "" then b else "Normal"
+			local function isIt()
+				return player:GetAttribute("EquippedFish") == a and (player:GetAttribute("EquippedSize") or "Normal") == size
+			end
+			if isIt() then
+				return "picked (already); LandMounted=" .. tostring(player:GetAttribute("LandMounted"))
+			end
+			for slot = 0, #SLOT_KEYS do
+				if player:GetAttribute("EquippedFish") ~= nil then
+					Net.Action:FireServer("RideUnequip")
+					task.wait(0.6)
+				end
+				if slot > 0 then
+					Equip.press(SLOT_KEYS[slot])
+					task.wait(0.4)
+					Equip.press(Enum.KeyCode.Q)
+					task.wait(0.7)
+					if isIt() then
+						return "picked slot " .. slot .. "; LandMounted=" .. tostring(player:GetAttribute("LandMounted"))
+					end
+				end
+			end
+			return "no " .. a .. " " .. size .. " found in the slots (give it first: cmd fish|" .. a .. ":" .. size .. ")"
 		elseif verb == "status" then
 			-- after a dive: is everything given back?
-			local character = player.Character
-			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-			local fx = camera:FindFirstChild("RideFx")
-			local stats = Splash.stats()
-			return Http:JSONEncode({ mode = State.Mode, leaping = State.Leaping, camera = camera.CameraType.Name,
-				platformStand = humanoid and humanoid.PlatformStand, humanoid = humanoid and humanoid:GetState().Name,
-				attr = player:GetAttribute("State"), rideFx = fx and #fx:GetChildren() or -1, splash = stats })
+			return Http:JSONEncode(statusNow())
 		elseif verb == "leap" then
 			Config.Dive.Leap = tonumber(a) or 0
 			return "client Leap=" .. tostring(Config.Dive.Leap)
@@ -832,23 +1171,43 @@ def home():
     return cmd("state", 0.3)
 
 
-def walk(leap, runup=16, name="leap", fish=None, look=None, seconds=14, sub=None):
+def equip_fish(fish):
+    """A fish equipped (given first if the hands are empty): `fish` its id, "" for the first kind. `ID:Size` (or a
+    bare ID) gives that kind at that size (Normal) and rides it, whatever was ridden: a small and a large fish"""
+    if fish:
+        kind, _, size = fish.partition(":")
+        size = size or "Normal"
+        say("fish:", cmd(f"fish|{kind}:{size}", 1.0))
+        said = do(f"pick|{kind}|{size}", 2.0)
+        end = time.time() + 25
+        while not said and time.time() < end:
+            time.sleep(1.0)
+            said = client_now()
+        say("pick:", said)
+        say("now:", cmd("state", 0.3))
+        return
+    s = cmd("state", 0.3)
+    if "equipped=true" not in s:
+        if "hands=0" in s:
+            say("fish:", cmd("fish|" + fish, 1.0))
+        say("equip:", do("equip", 1.2))
+        say("now:", cmd("state", 0.3))
+
+
+def walk(leap, runup=16, name="leap", fish=None, look=None, seconds=14, sub=None, mounted=False, unequip=None):
     """One run off the lip; the record, and the frames saved to work/dive_leap/frames_NAME.txt. `fish`: a fish id
     ("" for the first kind) to have equipped first (the seated ride as we go under). `look`: the dive time to pretend
-    the mouse looks round at. `sub`: a land to pick a sub trip to"""
+    the mouse looks round at. `sub`: a land to pick a sub trip to. `mounted`: riding that fish on land (the client gets
+    off it, stands at the run-up and gets on again, so the server's pace check sees no jump)"""
     say(cmd(f"leap|{leap}"))
     say("before:", home())
     if sub is not None:
         say("sub:", cmd(f"sub|{sub}", 2.0))
     if fish is not None:
-        s = cmd("state", 0.3)
-        if "equipped=true" not in s:
-            if "hands=0" in s:
-                say("fish:", cmd("fish|" + fish, 1.0))
-            say("equip:", do("equip", 1.2))
-            say("now:", cmd("state", 0.3))
+        equip_fish(fish)
     time.sleep(1.0)
-    do(f"walk|{leap}|{runup}|{'' if look is None else look}|{seconds}|{'1' if sub is not None else ''}", 0.5)
+    do(f"walk|{leap}|{runup}|{'' if look is None else look}|{seconds}|{'1' if sub is not None else ''}"
+       f"|{('u' + str(unequip)) if unequip is not None else ('1' if mounted else '')}", 0.5)
     end = time.time() + seconds + 26
     text = ""
     while time.time() < end:
@@ -897,18 +1256,40 @@ def summary(name, rec):
     say(f"  framing (diver off the middle, 1/3 = the middle third's edge): {rec.get('framing')}")
     say(f"  in the lit layers: {rec.get('layers')}")
     say(f"  splash near the camera: {rec.get('splashNear')}")
+    say(f"  frame time, under to +1.5 s: {rec.get('frameTime')}")
     say(f"  underwater look: {rec.get('look')}")
     say(f"  splash: {rec.get('splash')}")
     say(f"  modes: {rec.get('modes')}")
+    say(f"  camera per second (dt-normalised): {rec.get('cameraRate')}")
+    m = rec.get("mounted")
+    if m is not None:
+        say(f"  ON THE RIDE FISH: mounted at start={rec.get('mountedAtStart')} mounted leap began={m.get('began')}"
+            f" (plan: {rec.get('plan')})")
+        say(f"    swap (land fish's last pose -> water fish's first): pivot {m.get('swapPivotStuds')} studs, saddle"
+            f" {m.get('swapSaddleStuds')} studs, nose {m.get('swapNoseDegrees')} deg, yaw {m.get('swapYawDegrees')} deg;"
+            f" rider to the water fish's saddle {m.get('riderToWaterSaddle')} studs")
+        say(f"    from the lip: land fish gone {m.get('landGone')} s, water fish seen {m.get('waterFishSeen')} s,"
+            f" weld {m.get('weld')} s; no fish shown for {m.get('fishlessSeconds')} s")
+        say(f"    land fish's last: {m.get('landLast')}")
+        say(f"    water fish's first: {m.get('waterFirst')}")
+        say(f"    put back by the pace check: {m.get('putBack')}; body let go: {m.get('release')};"
+            f" the film's cuts eased: {m.get('cuts')}")
+    say(f"  handed back: {rec.get('handedBack')}")
     say(f"  broken={rec.get('broken')} landMounted={rec.get('landMounted')} errors={rec.get('errors')}")
 
 
-HOLDS = ["crouch", "takeoff", "rise", "top", "entry", "splash", "under"]
+HOLDS = ["crouch", "takeoff", "rise", "top", "entry", "splash", "splash2", "under"]
+# on the ride fish the server takes the land fish away once the held body is under its WaterY (-4): splash2 and under
+# show the rider without it. These are the moments that keep it (splash only for a fish whose root is still over -4)
+HOLDS_MOUNTED = ["crouch", "takeoff", "rise", "top", "entry", "splash"]
 
 
-def hold(t, view="own", name=None):
+def hold(t, view="own", name=None, mounted=False):
     say("stub:", cmd("stub"))
-    said = do(f"hold|{t}|{view}", 1.2)
+    if mounted:
+        equip_fish("")
+    # (mounted: off, stood at the lip, on again, then held: up to ~7.5 s before the answer)
+    said = do(f"hold|{t}|{view}|{'1' if mounted else '0'}", 8.5 if mounted else 1.2)
     say(f"hold {t} {view}:", said)
     if name:
         say("shot:", shot(name))
@@ -937,19 +1318,29 @@ def main():
     if what == "hold":
         t = sys.argv[2] if len(sys.argv) > 2 else "top"
         view = sys.argv[3] if len(sys.argv) > 3 else "own"
-        name = sys.argv[4] if len(sys.argv) > 4 else None
+        rest = sys.argv[4:]
+        mounted = bool(rest) and rest[0] == "mounted"
+        if mounted:
+            rest = rest[1:]
+        name = rest[0] if rest else None
         say(cmd("leap|1"))
         say("before:", home())
-        hold(t, view, name)
+        hold(t, view, name, mounted)
         return
     if what == "holds":
         view = sys.argv[2] if len(sys.argv) > 2 else "own"
+        mounted = len(sys.argv) > 3 and sys.argv[3] == "mounted"
         say(cmd("leap|1"))
         say("before:", home())
-        for name in HOLDS:
-            hold(name, view, f"hold_{view}_{name}")
+        tag = "_mounted" if mounted else ""
+        for name in HOLDS_MOUNTED if mounted else HOLDS:
+            if mounted:
+                # (each from the dock again: a hold past entry can leave the rider in the water, where RideMount fails)
+                say(do("letgo", 0.6))
+                say("before:", home())
+            hold(name, view, f"hold_{view}{tag}_{name}", mounted)
         letgo()
-        (OUT / f"holds_{view}.log").write_text("\n".join(LOG) + "\n")
+        (OUT / f"holds_{view}{tag}.log").write_text("\n".join(LOG) + "\n")
         return
     if what == "letgo":
         letgo()
@@ -977,6 +1368,40 @@ def main():
         do("leap|0", 0.4)
         say("after:", home())
         (OUT / "check_sub.log").write_text("\n".join(LOG) + "\n")
+        return
+    if kind == "mounted-unequip":
+        # the ride fish taken off in the air (RideUnequip, the equip slot's cross): the leap must end at once, the
+        # camera back with the player within 0.5 s, no error
+        fish = sys.argv[3] if len(sys.argv) > 3 else ""
+        at = float(sys.argv[4]) if len(sys.argv) > 4 else 0.4
+        rec = walk(1, 16, "leap_mounted_unequip", fish, seconds=8, mounted=True, unequip=at)
+        summary("leap_mounted_unequip", rec)
+        u = rec.get("unequip") or {}
+        back = u.get("cameraBackSeconds")
+        ok = (rec.get("mounted") or {}).get("began") and back is not None and back <= 0.5 and not rec.get("errors")
+        say(f"unequip {u.get('firedAt')} s into the leap: camera back after {back} s"
+            f" ({u.get('cameraBackStuds')} studs away), release {u.get('release')}, errors {rec.get('errors')}")
+        say("PASS" if ok else "FAIL")
+        say(cmd("leap|0"))
+        do("leap|0", 0.4)
+        say("after:", home())
+        (OUT / "check_mounted_unequip.log").write_text("\n".join(LOG) + "\n")
+        return
+    if kind == "mounted":
+        # on the ride fish on land (Config.Dive.LeapMounted): its leap, then Leap 0 (it walks off the edge as before)
+        fish = sys.argv[3] if len(sys.argv) > 3 else ""
+        on = walk(1, 16, "leap_mounted", fish, mounted=True)
+        summary("leap_mounted", on)
+        off = walk(0, 16, "noleap_mounted", fish, mounted=True)
+        summary("noleap_mounted", off)
+        if on.get("lipToRiding") is not None and off.get("lipToRiding") is not None:
+            say(f"cost: the mounted leap adds {round(on['lipToRiding'] - off['lipToRiding'], 2)} s from the lip to Riding")
+        else:
+            say(f"lip to Riding: leap {on.get('lipToRiding')} s, Leap 0 {off.get('lipToRiding')} s")
+        say(cmd("leap|0"))
+        do("leap|0", 0.4)
+        say("after:", home())
+        (OUT / "check_mounted.log").write_text("\n".join(LOG) + "\n")
         return
     # run: the leap, then Leap 0 (the cost), each from the same run-up
     fish = (sys.argv[3] if len(sys.argv) > 3 else "") if kind == "fish" else None

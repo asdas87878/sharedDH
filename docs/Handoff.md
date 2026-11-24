@@ -3,6 +3,73 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-24 · The fixes after the play passes (game code, the user's PC)
+**State:** committed on top of the merge of Hugo's (`d3de002`), not pushed by hand. In the open Studio (synced, not saved).
+Played by script: numbers and the UI only, **Studio was not drawing 3D, and nobody has heard the sounds**.
+- **Now on (tuning, first minutes):** `Config.Lesson.On` 1. `Config.Fail.DROWN`, `HoldBlack`, `FadeIn`, `DrownFade`, `Ragdoll.Time`
+  shorter (out of air to the dock 2.8 s; the old values in their comments). New: `Config.Sounds` (`SoundController`: music, sea,
+  underwater, hop, catch, deposit, click), `Config.HubLeap` (`HubLeapController`: a 44-stud fish leaps past the gate every 9 s),
+  `Config.rate`. Off switches: `Lesson.On`, `HubLeap.On`, the Sounds volumes.
+- **UI chat, your files changed:** `Banners`, `CatchShow`, `CaughtText`, `DiveScreen`, `HubSigns`, `IndexPanel`, `Kit` (`Kit.rate`,
+  "$x/s" everywhere), `SellFish`, `Shop` (`arrow` drawn until the atlas is uploaded: the Studio file is gone after an update),
+  `Slots`, `StatRows`, `SubPanel`, `TankPanel`, `TankPrompt`.
+- **Map chat:** in the open place the Fuse stall stands 18 studs back (pivot z -119.6): its ring lay on the spawn. `hub_kit.py` is
+  not changed.
+- **For whoever has the Index:** its finds and claims are not in SaveParts.
+
+## 2026-11-23 · Eaten and drown fixes, the leap on a fish, riding out of the tank, bought Oxygen at the dock (game code, the user's PC)
+**State:** in the working tree, carried by the vault sync; in the open place (3b999aa2), unsaved by me. **Everything new
+is off in the file** except the two marked live.
+- **Live:** `AquariumService.give` with coins only no longer rebuilds the shown fish; **Oxygen bought off the dock is
+  banked** and joins the max at the dock (`RideService.grantOxygen`, `Banked`; the user: "At the dock",
+  [Decisions](Decisions.md)); `trainedOxygen` counts it at once. `AquariumService.dump` keeps its Fish list while the
+  fish are the same.
+- **Off, written, not played** (Studio ran at 15 fps, window covered): the eaten and drown fixes (`Fail.MouthFromModel`,
+  `Arrive`, `Smooth`, `EatSmall`; `Death.UnderWater`): [riding feel](design/riding-feel.md), last section.
+- **Off, played once by script at 15 fps:** the leap on a fish (`Dive.LeapMounted`): [the dive-in](design/dive-in.md),
+  "The leap on a fish"; riding a fish out of the tank through the gate (`TankRide.Out`, check 22 of 22):
+  [equip](design/equip.md).
+- **Checks:** `tools/studio/fail_eat_check.py`, `fail_capture.py`, `fail_mouth_table.py`, `dive_leap_check.py`
+  (`run mounted ID:Size`, `run mounted-unequip`), `b4_tank_ride_check.py out`. On this PC they drive Studio through
+  `RpgGame/tools/studio/studio_mcp.py`; on Hugo's through studio-runner.
+- **Next:** with Studio's window visible, run the fail and drown checks and the dive's frame times, two GIFs for a look,
+  then set the passing dials to 1.
+
+## 2026-11-23 · The early lands' prop colours, and litter on the hub's first ledge (Ride a Fish map, the user's PC)
+**State:** committed, not pushed by hand (the sync carries it); in the Team Create place (3b999aa2), **saved on the user's word (version 433)**. Nothing moved or reloaded.
+- **Colours:** the props of lands 1 to 4 (18,005 bricks): colourway by place, tone by form, stone from the walls. Why and
+  the numbers: [colour](design/colour.md), "A bit less random".
+- **The ledge:** 136 bricks, `Dock/Dressing/Ledge` ([hub review 2](design/hub-review-2.md), "The first ledge's litter").
+- **Hugo's place needs both,** in Edit: the 11 files of `tools/studio/prop_recolour/` and `tools/studio/hub_only.luau`
+  (`node tools/studio/run_luau.js <id> <file>`). Each file says what it painted; "left alone" should be 0. Or wait for the save.
+- **To put the colours back:** `tools/map/prop_recolour_luau.py <new parts.json> <old parts.json>` (the old one is in git, `db2b0cc`).
+
+## 2026-11-24 · The first minutes, polished, still off (the first-minutes side chat, the user's PC)
+After the user's try by hand. In the vault's sync commits; in the open place (3b999aa2), not saved. `Config.Lesson.On` is 0;
+that place's `LessonTest` is on.
+- **`UI/LessonLine` is gone** (delete it from any place that has it), `UI/LessonPrompt` is new; `LessonController`,
+  `LessonPointer`, `LessonService`, `Config.Lesson`, `UI/DockNotes` (`lesson`), `StallController` changed. What was cut, kept,
+  checked and not: [first minutes](design/first-minutes.md), "Built".
+
+## 2026-11-23 · The first minutes, built and off (the first-minutes side chat, the user's PC)
+A new player's line, pointer, first-fish rule, deposit arrows, goal bar and counted steps. **Off: `Config.Lesson.On` 0.**
+In the vault's sync commits (no hand-made push). StyLua and selene clean on its files, Rojo builds.
+- **New:** `Services/LessonService`, `Controllers/LessonController`, `UI/LessonLine`, `UI/LessonPointer`, `Config.Lesson`,
+  `Config.firstFish`, `Config.lessonGoal`, `tools/studio/lesson_check.py`. **Seams:** `RideService` (`FirstFish`, `OnTamed`),
+  `FishService` (`nearest`'s test, `put`), `Lib/Lock` (`Allow`), `UI/HopButton` (`hold`), `UI/DockNotes` (`words`).
+- What it does, what was checked and what wasn't: [first minutes](design/first-minutes.md), "Built".
+
+## 2026-11-23 · The dive leap, on for everyone (Ride a Fish game code, the user's PC)
+The user: "make a sick dive animation for when the player jumps into the water initially from the dive stand."
+**State:** in the vault's sync commits (no hand-made push). StyLua clean, selene 0 errors. `Config.Dive.Leap` is 1 since the
+user said "switch that on for everyone" (with it at 0 nothing changes: reviewed and played). **Pull before editing `src/`.**
+- **New:** `Controllers/DiveController` (the trigger, the arc, the camera, the splash watcher), `Lib/Splash`, the `Leap…`
+  dials in `Config.Dive`, `tools/studio/dive_leap_check.py`. Seams in `RideController`, `JumpController`,
+  `AnimController` (the leap pose), `Lib/State`, `Lib/Fx` (`burstKept`), `SandboxController` (N panel rows).
+- **Nothing on the server changed.** The rule for being in the water is as it was.
+- **Where it stands and what is not known:** [the dive-in](design/dive-in.md), "The leap". Played by script only.
+- **To switch it off:** `Dive.Leap` 0 in `Config.Dive`, or in the N panel in a Play.
+
 ## 2026-11-24 · The three picks: the sub's name sign D, the fish-rider aura pictures, the screw propeller (NULLROOM Boss, Hugo's PC)
 **State: pushed by hand at Hugo's "merge push and pull all changes"; NOT run in Studio.** Branch `picks-screw-text-icons`
 (`839794e`, `c5ce982`, `86be301`), a plain fast-forward on `8c8d008`. The Rojo build passes, selene 0 errors (the three old

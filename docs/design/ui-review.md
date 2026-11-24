@@ -204,5 +204,28 @@ phone layout. The Shop's offers are placeholders (every Id 0).
   next frame, and the Shop button's wait under an open window, both checked in Edit only). Not tested: a sub that can't be paid for (the place has `Sub.Free` = 1), another
   player's plot. Studio ran at 15 to 48 fps and nobody has played it by hand.
 
+- **The plus buttons and the two numbers (the user, 2026-11-23: "make sure ... the oxygen number is the same or
+  similar size to the cash number. Also the plus buttons should open up a tab like in ride a dino wherein you can
+  purchase more cash with robux. The on hover, on click animations for the plus signs also aren't present"):**
+  - *The numbers:* both rows at 22, nothing shrinks. Oxygen is whole to 999,999 (71 of the 88 points the bar has;
+    3,285,000 would need 91), then `Kit.precise`: four figures, never rounded up (3.285M, 351B), so it can still be
+    held against a fish's need.
+  - *The plus:* under the mouse it grows 12% and darkens, a press dips it to 0.88 (`Anim.button`; more than the hub
+    buttons' 5%, which is about 1 point on a button this small).
+  - *What it opens:* the Shop at that section (`ShopScreen.goTo`; the coins' plus at Cash, the Oxygen's at Oxygen); with
+    the Shop open it runs there. The section's pictures pop in turn. The sections' titles are in the middle, Oxygen's
+    and Cash's in their own colour, as the reference's STAMINA and MONEY (SSundee's video, 0:20). What the reference's
+    plus itself opens is not on any footage we have.
+  - *Checked in Studio by script with the real mouse (2026-11-23, two passes; not played by hand, no touch screen):* 100
+    to 351B and $12.5M all drawn at 22; under the mouse 1.12, pressed 0.986 (1.12 x 0.88), back to 1.0; the coins' plus
+    lands with the Cash row whole in the window, the first time, after a close, and at a phone's 844x390; the Oxygen's
+    with the Shop open runs up to its title. No errors of ours.
+  - *The selling: half done (2026-11-23, the user's "yes.").* Saving, the payout and the buy buttons are written, every
+    offer still reads Soon, nothing is saved yet: [Money](money.md), "Selling".
+
+- **The Shop, after the fast food menus (the user, 2026-11-23: "go through the store we have and maybe slightly alter it if
+  needed"):** a rail of five picture buttons, Featured a real pack for this player, piles by size, a line saying what each
+  pack does, FOR YOU and BEST VALUE. The study, the changes, the checks: [fast food menus](../reference/fast-food-menus.md).
+
 Still proposed (the user's or Hugo's call): the dive HUD's restyle and fonts; the inventory bar's suggestions above;
 the server's sell check near the stall (raised with the game-code chat); the Shop's real offers and prices.

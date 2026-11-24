@@ -26,6 +26,7 @@ local cap: Frame
 local shownMode = ""
 local shownHot = false
 local touch = false
+local held = false
 
 -- the half of the head's square that shows: the corner that points up, down to the line between its two side corners
 local HEAD = NumberSequence.new({
@@ -173,10 +174,15 @@ function HopButton.hide()
 	button.Visible = false
 end
 
+-- Kept off the screen while nothing can be pressed for (LessonController: a new player's first fish)
+function HopButton.hold(on: boolean)
+	held = on
+end
+
 -- mode: "hop" (on a fish or floating), "grab" (in the hop with a fish locked), "off" (nothing to press for)
 -- hot: the last second on a fish
 function HopButton.update(mode: string, hot: boolean)
-	button.Visible = true
+	button.Visible = not held
 	if mode == shownMode and hot == shownHot then
 		return
 	end

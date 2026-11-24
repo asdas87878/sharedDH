@@ -19,7 +19,7 @@ local SOUNDS: { [string]: SoundSpec } = {
 	-- (it was "action_falling.mp3" until 2026-11-16: Roblox ships only the .ogg, so a smash and a prop's debris were silent)
 	Rumble = { Id = "rbxasset://sounds/action_falling.ogg", Speed = 0.25, Volume = 0.9 },
 	Chomp = { Id = "rbxasset://sounds/action_jump_land.mp3", Speed = 0.45, Volume = 1 },
-	Splash = { Id = "rbxasset://sounds/impact_water.mp3", Speed = 0.8, Volume = 0.5 },
+	Splash = { Id = "rbxassetid://9120585530", Speed = 0.9, Volume = 0.5 }, -- (Pro Sound Effects, as Feel's: 2026-11-24)
 }
 
 -- A placeholder sound, at a part (3D) or flat (no part)
@@ -111,6 +111,41 @@ function Fx.burst(position: Vector3, amount: number, time: number?, reach: numbe
 	local p = anchoredPart(Vector3.one, CFrame.new(position), Color3.new(1, 1, 1))
 	p.Transparency = 1
 	burstFrom(p, amount, time, reach)
+end
+
+-- The same burst from emitters made once and moved, not made and destroyed each time (the leap's, DiveController:
+-- nothing made or put away mid-dive). Emitted bubbles stay where they were let out as the part moves on.
+local KEPT = 8
+local kept: { { part: Part, emitter: ParticleEmitter } } = {}
+local keptNext = 0
+local function keptSlot(i: number): { part: Part, emitter: ParticleEmitter }
+	local slot = kept[i]
+	if not slot or not slot.part.Parent then
+		local part = anchoredPart(Vector3.one, CFrame.new(0, -1e5, 0), Color3.new(1, 1, 1))
+		part.Transparency = 1
+		local emitter = bubbleEmitter(part)
+		emitter.Drag = 3
+		emitter.Acceleration = Vector3.new(0, 7, 0)
+		slot = { part = part, emitter = emitter }
+		kept[i] = slot
+	end
+	return slot
+end
+
+-- Makes the kept emitters ahead
+function Fx.prewarmBursts()
+	for i = 1, KEPT do
+		keptSlot(i)
+	end
+end
+
+function Fx.burstKept(position: Vector3, amount: number, reach: number?)
+	keptNext = keptNext % KEPT + 1
+	local slot = keptSlot(keptNext)
+	slot.part.CFrame = CFrame.new(position)
+	local speed = (reach or 3) * 3 -- (with drag 3, as Fx.burst's)
+	slot.emitter.Speed = NumberRange.new(speed * 0.7, speed * 1.2)
+	slot.emitter:Emit(amount)
 end
 
 -- Bubbles from a character's mouth; the caller sets Rate (and emits the last one). Nil without a head.

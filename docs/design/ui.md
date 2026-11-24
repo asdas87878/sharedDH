@@ -808,8 +808,8 @@ Everything was measured off that picture, where a row is 80 pixels tall, and mat
 | The plus button | A green square 68% of the row, past the bar's end: black edge, pale rim, bright face going darker, a darker lip, a white plus with a black outline | None | Recreated from frames, at its size and place |
 
 - **The plus buttons show at the dock only,** as the reference's show at its hub and not on a ride.
-- **They do nothing yet.** A press dips the button and fires `StatRows.Pressed` with "Oxygen" or "Coins"; nothing
-  listens. What a plus opens is for the user to say (asked).
+- **They open the Shop at what they sell (2026-11-23, the user):** `StatRows.Pressed` ("Oxygen" or "Coins") goes to
+  `ShopScreen.goTo` ("Oxygen" or "Cash"): [UI review](ui-review.md), "The plus buttons".
 - **Still ours:** the bubble and the coin for signs, and pale gold for the coins' number (the reference's cash is pale
   green).
 - **Where it is not exact:** at this screen size our lines draw a pixel thinner than the reference's in places,

@@ -293,6 +293,11 @@ function HubButtons.update(docked: boolean)
 	end
 end
 
+-- The Shop was opened another way (a stat row's plus button): its red "!" goes, as when its own button opens it
+function HubButtons.shopSeen()
+	shopMark.Visible = false
+end
+
 -- Something new is in the Index (a kind caught for the first time). With the Index on this changes nothing by
 -- itself: the "!" goes up when the server has counted the new kind's reward (a moment later) and stays until it is
 -- claimed. With the Index off it is the hint: up until the button is pressed.

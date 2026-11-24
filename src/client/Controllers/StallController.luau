@@ -8,7 +8,8 @@
 --   the circle for the ui to pop up, closing when walking off it"). The edge to leave is a little wider than the one
 --   to come in, so standing on the line doesn't flicker. Closing one with its X keeps it shut until the player steps
 --   off and on again.
---   The hub's Shop button opens the Shop (UI.ShopScreen), and closes it again.
+--   The hub's Shop button opens the Shop (UI.ShopScreen), and closes it again. A stat row's plus button opens it at what
+--   is sold of that row: the coins' at Cash, the Oxygen's at Oxygen (the user, 2026-11-23).
 --   Leaving the dock closes them all. One dock window at a time (UI.Shop.go).
 --   While this player carries a catch on the dock and no window is up, "GO TO YOUR TANK TO DEPOSIT" (UI.DockNotes).
 -- Only the screen: nothing here is trusted by the server (it sells, and will sell auras, by its own checks; a sub is
@@ -17,18 +18,21 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local State = require(script.Parent.Parent.Lib.State)
+local CatchShow = require(script.Parent.Parent.UI.CatchShow)
 local DockNotes = require(script.Parent.Parent.UI.DockNotes)
 local HubButtons = require(script.Parent.Parent.UI.HubButtons)
 local Shop = require(script.Parent.Parent.UI.Shop)
+local ShopScreen = require(script.Parent.Parent.UI.ShopScreen)
+local StatRows = require(script.Parent.Parent.UI.StatRows)
 local TankPanel = require(script.Parent.Parent.UI.TankPanel)
 require(script.Parent.Parent.UI.AuraShop) -- (each window gives Shop its opener as it is required)
 require(script.Parent.Parent.UI.SellFish)
-require(script.Parent.Parent.UI.ShopScreen)
 require(script.Parent.Parent.UI.SubPanel)
 
 local StallController = {}
 
 local STALLS = { "Sell", "Auras", "Sub" } -- a stall's name under Dock/Stations is its window's name in Shop.go
+local SOLD = { Oxygen = "Oxygen", Coins = "Cash" } :: { [string]: string } -- a stat row's section in the Shop
 local OUT = 2.5 -- studs past the ring's edge before walking off closes the window
 local HIGH = 14 -- how far above or below the ring still counts (as HubLife's)
 local EVERY = 0.05 -- seconds between looks
@@ -73,7 +77,10 @@ local function look()
 		end
 	end
 	local caught = State.Caught
-	DockNotes.carrying(docked and caught ~= nil and #caught > 0 and Shop.Page == nil and not TankPanel.isOpen())
+	-- (the end of a dive has the screen first: the black, the fail's words, the catch)
+	local ending = State.FadeText ~= "" or State.Fade > 0.02 or CatchShow.showing()
+	local carries = caught ~= nil and #caught > 0
+	DockNotes.carrying(docked and carries and Shop.Page == nil and not TankPanel.isOpen() and not ending)
 end
 
 function StallController.Start()
@@ -81,6 +88,10 @@ function StallController.Start()
 		if name == "Shop" then
 			Shop.go(if Shop.Page == "Shop" then nil else "Shop")
 		end
+	end)
+	StatRows.Pressed:Connect(function(name: string)
+		HubButtons.shopSeen()
+		ShopScreen.goTo(SOLD[name])
 	end)
 	State.ModeChanged.Event:Connect(function(mode: string)
 		if mode ~= "Dock" then

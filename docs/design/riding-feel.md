@@ -1465,3 +1465,42 @@ the fish before coming loose is `AnimController.FailPose`.
 **Open, to judge in play:** the throws' speeds and the water's hold (`Config.Fail.Ragdoll`) are first numbers; the
 sandbox's NoFail still throws you off the old way (no ragdoll); a ragdoll on a phone is untested; other players see
 the body by replication (only the rider's machine runs its physics), which was not tried with two players.
+
+## Eaten in the right place, and drowning under the water (2026-11-23)
+
+The user: "go through and fix all the animations in which you get eaten by fix. make sure theres no un-natural movements
+and the player ends up in the right position to get eaten. if its a lesser fish and you just drown, make sure theres no
+errors where the player floats above the water". **Written, every dial 0 in the file, reviewed by reading; not played:**
+the scripted check needs a real frame rate and Studio's window was covered (15 fps) on the one pass so far.
+
+What was wrong, found by reading the code:
+
+- **The mouth was guessed from the fish's box** (`0.47` of its length ahead, a little under the middle): up to 19 studs
+  from the painted mouth (The Devourer), about 10 on the megalodons. `tools/studio/fail_mouth_table.py` measures every
+  eater at all six sizes (`work/fail_eat/mouth_table.txt`).
+- **The body was grabbed 0.15 s before the bite and hidden at a fixed time,** wherever it was.
+- **The fish snapped** at 1.3 s and in its half-turn.
+- **Floating:** the loose body was lifted everywhere, thrown up at 50 studs a second, and the drown carried on from
+  wherever the body had got to, above the water included.
+
+The fixes, each behind its own dial (`Config.Fail`, `Config.Death`):
+
+| Dial | What it does |
+|---|---|
+| `Fail.MouthFromModel` | The mouth point from the model's own jaw and head parts; three odd models by hand in `Fail.MouthAt` (The Devourer, Helicoprion, Livyatan). Every eater within 1.5 studs of its painted mouth |
+| `Fail.Arrive` | The pull toward the mouth starts earlier (Chomp from 0.95 s) and strengthens through the fail; the fish's own clock waits, at most 0.35 s, while the body is more than 1.5 studs from the mouth; the boxes round the mouth are off so the body can reach it. The rider is still the real ragdoll (Hugo's ask): it is pulled, never written |
+| `Fail.Smooth` | The snaps eased (the turn, the shake coming in, the swim-on) |
+| `Fail.EatSmall` | An eater whose jaw cannot take a rider at its size throws them off instead: per kind, `Fail.EatMin` (only a Tiny Moray Eel). Decided on the server in `Config.failOf` |
+| `Death.UnderWater` | The loose body's lift, drag and ceiling keep it under the surface; the throw is flatter near the surface; the drown waits for the joints, carries the speed, stays upright from the takeover and holds the body 3.5 under; nothing happens over the strip (`Lib/Underwater`) |
+
+Known and left:
+
+- **Seven eaters have no jaw part** (Orca, Hellfin Shark, Helicoprion, Reef Shark, Great White, Hammerhead Shark,
+  Frilled Shark): the mouth never opens, the rider vanishes into a closed snout while the fish shakes its head. The
+  models' gap (the creatures chat's), not the code's.
+- **Other players** may see the bite up to 0.35 s out of step with the fish with `Arrive` on (each machine runs its own
+  waiting clock). Cosmetic.
+- **The check:** `python tools/studio/fail_eat_check.py install | status | eat [FISH[@Size] ...] | drown
+  deep|surface|lip|miss|nofail | remove` (refuses under 40 fps; `--min-fps N` forces an INDICATIVE run);
+  `fail_capture.py FISH --dials 1` makes one GIF. The pass bars in the script are not calibrated yet. Remove the check
+  scripts before any publish.

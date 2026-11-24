@@ -148,6 +148,8 @@ tank, make sure they retain their original size even if they clip through".
   taming, no catch, no coins. The fish stays in the tank and keeps earning.
 - **The fish while ridden:** out of its lap from where everyone saw it (the server works out the lap's place), at its
   own size. Getting off puts it back in its lap.
+- **Riding out** (2026-11-23, written, not played, `TankRide.Out` 0): pushing at the gate takes the fish out of
+  the tank and onto land: [equip](equip.md), "Riding out of the tank".
 - **Getting off:** E again (a pad's X, the OFF button on a phone; "E TO GET OFF" shows at the bottom). You land on
   the floor in front of the glass. A change to the tank while you ride (the popup's equip) also puts you off.
 - **Checked in a Studio playtest by script** (2026-11-22, `tools/studio/b4_tank_ride_check.py`, log

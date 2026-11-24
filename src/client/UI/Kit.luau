@@ -21,10 +21,13 @@
 --   Fail words: the bubble letters shown when a run fails
 --   Numbers and touch: big numbers in short, and whether this is a phone
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local Kit = {}
 
@@ -1947,6 +1950,11 @@ Kit.FailShow = nil :: ((text: string, fade: number) -> ())?
 
 local UNITS = { "K", "M", "B", "T", "Qa", "Qi" } -- (as Config.shortNumber; prices reach $500Qa)
 
+-- What is earned a second, written one way everywhere: "$1.9/s", "$340/s" (Config.rate)
+function Kit.rate(value: number): string
+	return "$" .. Config.rate(value) .. "/s"
+end
+
 -- A big number in short: 950, 1.9K, 12.5K, 2.3M
 function Kit.short(value: number): string
 	if value < 1000 then
@@ -1959,6 +1967,24 @@ function Kit.short(value: number): string
 	end
 	local text = if value >= 100 then string.format("%d", math.floor(value)) else string.format("%.1f", value)
 	text = (string.gsub(text, "%.0$", ""))
+	return text .. UNITS[unit]
+end
+
+-- A big number in short with four figures, never rounded up, for one that is compared with another: 3.285M, 351B
+function Kit.precise(value: number): string
+	if value < 1000 then
+		return tostring(math.floor(value))
+	end
+	local unit = 0
+	while value >= 1000 and unit < #UNITS do
+		value /= 1000
+		unit += 1
+	end
+	local places = if value >= 100 then 1 elseif value >= 10 then 2 else 3
+	local ten = 10 ^ places
+	local text = string.format("%." .. places .. "f", math.floor(value * ten + 1e-6) / ten)
+	text = string.gsub(text, "0+$", "")
+	text = string.gsub(text, "%.$", "")
 	return text .. UNITS[unit]
 end
 

@@ -30,12 +30,32 @@ mounts, a click toggles, a cross unequips, a respawn clears).
   animation), and you walk at `Equip.LandSpeed` (32; on foot 28). The humanoid does the walking; the fish is
   weightless, touches nothing and is welded to you by its saddle, so everyone sees it. Holding another fish gets you
   off it (one pose at a time); the equipped choice stays until Q picks the held one. Seated on the seahorse trainer or
-  in a tank ride: off it, and no getting on (refused, "Busy").
+  in a tank ride: off it, and no getting on (refused, "Busy"); since 2026-11-23 a tank ride can be ridden out
+  through the gate onto land, behind a dial that is off (below, "Riding out of the tank").
 - **The dive:** the land fish goes before the water has you. The **equipped** fish is the one you ride after the dive
   in and after the sub (a copy made as you go in); a fish only held no longer counts. No ride fish: the dive in is the
   ordinary one, and the sub falls back to the tank fish picked at its stand, then the fling. The ride fish stays
   equipped through the dive, a ride, a fail and the trip home.
 - **A new body** (respawn, reset) unequips, as it puts the held fish away. For the session only: no saves yet.
+
+## Riding out of the tank (2026-11-23; written, not played)
+The user: "you should be able to ride a fish out of your tank as if you took it out". Behind the dial
+`Config.TankRide.Out`, **0 in the file** (off: the client never asks, the server refuses, nothing else changes).
+- **How:** in a [tank ride](aquarium.md), swim against the water's front face inside the gate's span (`OutGate` 6
+  studs either side of its middle), outward (at least `OutPush` 0.5 of the tank speed), for `OutHold` 0.6 s without a
+  break. A bump, a slide along the glass or a push beside the gate does nothing. The client then asks once
+  (Action `"TankRide", "Out"`, nothing else sent; again only after `OutAgain` 1 s).
+- **The server checks everything first** and on any refusal the tank ride goes on as it was (Ride `"Denied",
+  "TankRide"`, why): `"Off"` (the dial), `"Gone"` (the fish's entry is no longer in the tank), `"Hands"` (seven
+  carried), `"Equip"` (`Equip.On` 0), `"Dock"`, `"Again"` (inside `Equip.Again` of the last ride-fish ask), `"Dead"`,
+  `"Busy"` (the trainer, seated), `"Empty"` (no plot). With no tank ride it does nothing.
+- **Then, in one step:** the tank ride ends without the trip to the front, the entry is taken out of the tank by
+  `"TakeOut"`'s own code (equipped or stored; the income, the sign and the fish in the water follow), it becomes the
+  ride fish as Q makes it, the rider stands on the floor just outside the gate facing out (`frontOf`'s spot, 8 studs
+  past the water's front, 6.4 past the fence), and is on it on land. Tank one fewer, hands one more.
+- **What is not as "taking it out" would be:** the fish ridden in the tank is always an earning one, so the income
+  drops and nothing takes its place (as `TakeOut` today); it replaces whatever was equipped as the ride fish.
+- Check: `python tools/studio/b4_tank_ride_check.py out` (the dial switched on in the playtest only). Not run yet.
 
 ## How it works
 - **Server** (`RideService`): `Rider.Equipped` (the very entry of `Carried`), `Rider.Land` (the land fish).

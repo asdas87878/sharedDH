@@ -1381,12 +1381,33 @@ def colour_run(at, x, seed):
     return hash((int(at // 150), x > 0)) % 3
 
 
-def place2(name, base, scale, turn_deg, land, seed, way=None, aspect=None, broken=False):
+def tint_at(at, right, land, seed, big=False):
+    """the colourway a thing wears in the first lands (2026-11-23, docs/design/colour.md, "A bit less random"). A room has one
+    it leads with and a guest; a patch of about 150 studs on one side is all of one of them: the hero, its companions, the
+    dressing round it and the lip above it. One big thing in ten strays. The later lands keep their own dice: None"""
+    if land >= props2.EARLY:
+        return None
+    mine = [room for room in rooms if room["land"] == land]
+    k_ = max([i_ for i_, room in enumerate(mine) if room["s0"] <= at], default=0)
+    if land == 0:  # orange; gold as the guest, the Reef's pink only on the way to it
+        lead, guest = 0, 2 if k_ >= len(mine) - 2 and len(mine) > 2 else 1
+    elif land == 1:  # teal and violet, room about; raspberry only as a guest: it is as dark as the Reef's pink wall (L* 49, 48)
+        lead, guest = (1, 2)[k_ % 2], (0, 1)[k_ % 2]
+    else:
+        lead, guest = 0, 1
+    tr = random.Random(land * 1009 + int(at // 150) * 31 + (1 if right else 0) * 7 + 5)
+    t = guest if tr.random() < 0.22 else lead
+    if big and random.Random(seed * 13 + 11).random() < 0.1:
+        t = guest if t == lead else lead
+    return t
+
+
+def place2(name, base, scale, turn_deg, land, seed, way=None, aspect=None, broken=False, tint=None):
     """a rebuilt prop: each brick a part, with its break group ("g") and whether it is studded ("st"); the small
     dressing never collides. `aspect` stretches it taller and thinner (over 1) or shorter and wider (under 1), so one
     kind comes in several shapes; `broken` lays it as its chunks lying at its foot, as if a herd had been through"""
     ways = len(props2.PALETTES[land])
-    bs = props2.bricks(name, seed, land, way % ways if way is not None else None)
+    bs = props2.bricks(name, seed, land, way % ways if way is not None else None, tint)
     if broken:
         import prop_drafts2
         _air, lying = prop_drafts2.frames(bs, seed)
@@ -1445,9 +1466,10 @@ def spread2(room, li, stop, placed, big_world):
                 continue
             here = across(at, x)
             way = colour_run(at, x, count["prop"])
-            place2(hero, here, scale, prng.uniform(0, 360), li, count["prop"], way=way, aspect=prng.choice((0.75, 0.9, 1.0, 1.0, 1.15, 1.3)))
+            tint = tint_at(at, x > 0, li, count["prop"], big=True)  # the whole group wears its hero's
+            place2(hero, here, scale, prng.uniform(0, 360), li, count["prop"], way=way, aspect=prng.choice((0.75, 0.9, 1.0, 1.0, 1.15, 1.3)), tint=tint)
             if prng.random() < 0.15:  # now and then one already broken beside it, its chunks lying (the herds came through)
-                place2(prng.choice(big + mid), across(at + radius + 12, x * 0.9), scale * 0.8, prng.uniform(0, 360), li, count["prop"], way=way, broken=True)
+                place2(prng.choice(big + mid), across(at + radius + 12, x * 0.9), scale * 0.8, prng.uniform(0, 360), li, count["prop"], way=way, broken=True, tint=tint)
             placed.append((at, x, radius))
             big_world.append([round(here[0], 1), round(here[2], 1), round(radius, 1)])
             count["big"] += 1
@@ -1458,20 +1480,20 @@ def spread2(room, li, stop, placed, big_world):
                 name = prng.choice(mid + big)
                 sc = prng.uniform(0.6, 0.85)
                 place2(name, across(cs, cx), sc, prng.uniform(0, 360), li, count["prop"], way=way if prng.random() < 0.7 else None,
-                       aspect=prng.choice((0.8, 1.0, 1.2)))
+                       aspect=prng.choice((0.8, 1.0, 1.2)), tint=tint)
                 big_world.append([round(across(cs, cx)[0], 1), round(across(cs, cx)[2], 1), round(radius2(name, sc, count["prop"], li), 1)])
             for _d in range(prng.randint(4, 7)):  # a ring of dressing round the group
                 a, dd = prng.uniform(0, math.tau), prng.uniform(radius + 6, radius + 34)
                 ds, dx = at + math.cos(a) * dd, x + math.sin(a) * dd
                 dx = max(-half(-1, ds) + 6, min(half(1, ds) - 6, dx))
-                place2(prng.choice(dress), across(ds, dx), prng.uniform(1.0, 1.6), prng.uniform(0, 360), li, count["prop"])
+                place2(prng.choice(dress), across(ds, dx), prng.uniform(1.0, 1.6), prng.uniform(0, 360), li, count["prop"], tint=tint)
             side = -side if prng.random() < 0.75 else side  # mostly alternating sides, now and then two on one side
             break
     if li > 0 and prng.random() < 0.45:  # now and then a small thing in the middle: the herd's road stays open
         at = prng.uniform(room["s0"] + 60, stop - 60)
         x = prng.uniform(-0.2, 0.2) * width(at) / 2
         name = prng.choice(mid)
-        place2(name, across(at, x), prng.uniform(0.7, 0.9), prng.uniform(0, 360), li, count["prop"])
+        place2(name, across(at, x), prng.uniform(0.7, 0.9), prng.uniform(0, 360), li, count["prop"], tint=tint_at(at, x > 0, li, count["prop"]))
         placed.append((at, x, radius2(name, 0.8, count["prop"], li)))
     prng = random.Random(8800 + room["seed"])
     for _ in range(int(length / 55)):  # dressing in patches everywhere, more toward the walls
@@ -1481,7 +1503,7 @@ def spread2(room, li, stop, placed, big_world):
         for _ in range(prng.randint(1, 3)):
             s2, x2 = at + prng.uniform(-10, 10), x + prng.uniform(-10, 10)
             x2 = max(-half(-1, s2) + 6, min(half(1, s2) - 6, x2))
-            place2(prng.choice(dress), across(s2, x2), prng.uniform(1.0, 1.7), prng.uniform(0, 360), li, count["prop"])
+            place2(prng.choice(dress), across(s2, x2), prng.uniform(1.0, 1.7), prng.uniform(0, 360), li, count["prop"], tint=tint_at(at, sd > 0, li, count["prop"]))
 
 
 def place_set(bs, base, yaw_deg, scale=1.0):
@@ -1638,7 +1660,7 @@ if PROPS2:
             if 0.0 <= t <= 1.0 and drng.random() > 0.08:  # now and then one missing
                 q = (fa[0] + (fb[0] - fa[0]) * t + o[0] * drng.uniform(1.5, 3.5), y_top, fa[1] + (fb[1] - fa[1]) * t + o[2] * drng.uniform(1.5, 3.5))
                 name = props2.LIP[li] if drng.random() > 0.12 else drng.choice(props2.DRESSING[li])  # and now and then another small thing
-                place2(name, q, drng.uniform(0.9, 1.5), drng.uniform(0, 360), li, count["prop"])
+                place2(name, q, drng.uniform(0.9, 1.5), drng.uniform(0, 360), li, count["prop"], tint=tint_at(at, side > 0, li, count["prop"]))
                 count["lip"] += 1
         # the first layer's tall things, smaller higher up; the treads between stay bare
         if deep >= 14:
@@ -1649,7 +1671,7 @@ if PROPS2:
                 name = props2.TALL[li] if j == 0 else drng.choice([n for n in props2.LANDS[li] if props2.ASSETS[n][1] != "small"])
                 sc = drng.uniform(0.75, 0.95) if j == 0 else drng.uniform(0.45, 0.6)
                 q = ((fa[0] + fb[0]) / 2 + o[0] * deep * 0.55, y_top, (fa[1] + fb[1]) / 2 + o[2] * deep * 0.55)
-                place2(name, q, sc, drng.uniform(0, 360), li, count["prop"])
+                place2(name, q, sc, drng.uniform(0, 360), li, count["prop"], tint=tint_at(at, side > 0, li, count["prop"], big=True))
                 count["tall"] += 1
         # shelves on the face: short slabs of the cap's colour, staggered, never in line (2 or 3 a stretch)
         lower = floor_y(at) if j == 0 else tier_top_at(side, j - 1, at)
@@ -1674,7 +1696,7 @@ if PROPS2:
             break
         li = min(land_at(at), 9)
         x = side_ * (half(side_, at) - 22.0)
-        place2(props2.TALL[li], across(at, x), 1.0, drng.uniform(0, 360), li, count["prop"])
+        place2(props2.TALL[li], across(at, x), 1.0, drng.uniform(0, 360), li, count["prop"], tint=tint_at(at, side_ > 0, li, count["prop"]))
         count["mouth"] += 1
         side_ = -side_
     print("stage 2: %(lip)d lip pieces, %(tall)d tall pieces on the terraces, %(shelf)d shelves, %(mouth)d mouth markers, %(set)d set pieces" % count)
@@ -1715,7 +1737,9 @@ import hub_kit  # noqa: E402
 
 hub_in = {"Half": HUB_HALF, "Back": HUB_BACK, "Front": FRONT, "Gate": GATE, "GateTurn": GATE_TURN, "FrontTurn": FRONT_TURN,
           "StartDepth": START_DEPTH, "Look": HUB_LOOK, "Plot": PLOT, "PlotColours": PLOT_COLOURS, "Plots": sorted(plots),
-          "GateLedge": HUB_LEDGE_GATE, "Shift": HUB_SHIFT}
+          "GateLedge": HUB_LEDGE_GATE, "Shift": HUB_SHIFT,
+          "Ledge": [{"Side": w[0], "A": w[2], "B": w[3], "Out": [w[4][0], w[4][2]], "Top": w[5] + GRASS, "Deep": w[7], "S": w[6]}
+                    for w in wall_pieces if w[1] == 0 and w[6] < -48.0]}  # the first terrace, for what lies on it
 os.makedirs(OUT, exist_ok=True)
 json.dump(hub_in, open(os.path.join(OUT, "hub_in.json"), "w"), indent=1)
 hub_parts = hub_kit.build(hub_in)

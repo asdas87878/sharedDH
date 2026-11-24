@@ -65,7 +65,8 @@ it out the same way; the model's old `Required` attribute is gone.
   1.5 / 3 / 10: a Rainbow now earns twice a plain one, as it needs twice), `Train.Share`. The sandbox panel has
   SizeOxygen, VariantOxygen and RarityOxygen rows in place of ZoneDrain and RarityDrain.
 - **Shown whole:** tags, the "needs" line when a fish is too strong, the trainer's "+n" and the upgrade sign use
-  `Config.wholeNumber` (2,925, never 2.9K). Coins a second may keep decimals.
+  `Config.wholeNumber` (2,925, never 2.9K). Coins a second may keep decimals. The HUD's own Oxygen row is whole to
+  999,999, then four figures (3.285M), so it keeps the coins' size (the user, 2026-11-23).
 - **The balance model** (`tools/balance/model.py`) reads the new tables; a land's row there is the median need of
   the kinds that live in it. Its play-through on the draft's two paces reaches land 10 at 230 and 447 minutes and
   land 10's Mythics at 335 and 668 (it was built on the old land costs: read it as a rough guide).
@@ -299,7 +300,11 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
 - **Selling and earning while away**, theirs: a fish sells for 200 seconds of what it earns (ours 60); away, half an
   hour of the tank's coins a day (ours none). Proposed as theirs.
 - **Robux:** their late game is where Robux multipliers (x2 to x4096 on the machine) and Stamina packs sell. Our
-  shop's Oxygen multiplier should sit on the seahorse the same way.
+  shop's Oxygen multiplier should sit on the seahorse the same way. **The packs are fixed amounts fitted to these
+  needs and prices** (Oxygen 50K to 10B, Cash $1M to $75T, all shown to everyone: the user, 2026-11-23, "Yes, show
+  all"; `Shared/Products`, [Money](money.md)). So a change to a land's needs, a seahorse or an aura price has to be
+  checked against them: the Oxygen packs hold lands 4, 5, 6, 7, 9 and 10 for a new player, and $75T is the price of
+  Royal, Ember and Golden less what a land 9 player has.
 - **Numbers past a trillion:** cash labels read Qa and Qi since `a72c1ff` (the UI chat, 2026-11-23). Full Oxygen
   figures fit by measured text width, the Oxygen row and the seahorse sign shrinking to do it, **except the player's
   own Oxygen row (`UI/StatRows`, bottom left) at 351,000,000,000**: in Studio 153 px of text in a 126 px box (the

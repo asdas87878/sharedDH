@@ -67,6 +67,7 @@ local TankPanel = {}
 -- sizes in the window's own points (it is scaled to the screen)
 local PANEL_W, PANEL_H = 860, 540
 local SIDE = 168 -- the "Sort by" column
+local SORT_FROM = 4 -- its buttons show with this many fish or more
 local FOOT = 64 -- the footer bar
 local CARD_W, CARD_H = 144, 264
 local GAP = 10
@@ -150,6 +151,8 @@ local toastShown = false
 local sections: { [string]: { Head: TextLabel, Grid: Frame, Layout: UIGridLayout } } = {}
 local cards: { [string]: Card } = {}
 local open = false
+local sortTitle: TextLabel -- the "Sort By" over its buttons
+local putAllAt = 0 -- when PUT ALL IN was last pressed
 local touch = false
 
 local rideButton: Shop.Button
@@ -568,7 +571,7 @@ local function fill(card: Card, f: Fish, full: boolean)
 		card.BackFill.Color = ColorSequence.new(Shop.BodyDeep:Lerp(tint, 0.18), Shop.BodyDeep)
 	end
 	Archetypes.icons(card.Icons, if kind then Archetypes.line(kind) else "", 18)
-	card.Rate.Text = Shop.cash(incomeOf(f)) .. "/s"
+	card.Rate.Text = Kit.rate(incomeOf(f))
 	card.Worth.Text = "Sells for " .. Shop.cash(sellOf(f))
 	-- (a card is used again for another fish as the list moves: its SURE? is that fish's no longer)
 	if card.Fish.Key ~= f.Key or card.Fish.Id ~= f.Id then
@@ -666,8 +669,8 @@ local function refresh()
 		end
 	end
 	local full = #equipped >= most
-	headIncome.Text = Shop.cash(income) .. "/s"
-	footIncome.Text = Shop.cash(income) .. "/s"
+	headIncome.Text = Kit.rate(income)
+	footIncome.Text = Kit.rate(income)
 
 	-- EQUIP BEST is bright while it would change something: a free place and a stored fish, or a stored fish that
 	-- earns more than the poorest equipped one
@@ -675,6 +678,11 @@ local function refresh()
 	table.sort(stored, byIncome)
 	local better = #stored > 0 and (not full or (#equipped > 0 and incomeOf(stored[1]) > incomeOf(equipped[#equipped])))
 	bestButton.set(if better then "Equip Best" else "Best Equipped", if better then "Cash" else "Off", true)
+	-- (nothing to put in an order until there are a few)
+	for _, name in SORTS do
+		sortButtons[name].Root.Visible = #fish >= SORT_FROM
+	end
+	sortTitle.Visible = #fish >= SORT_FROM
 	allButton.Root.Visible = #hands > 0
 	allButton.set("Put All In (" .. #hands .. ")", "Gold", true)
 	-- the count: how many earn of how many may; red when the tank is full
@@ -872,7 +880,8 @@ local function build()
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	}, side)
-	Shop.text(side, { Size = UDim2.new(1, 0, 0, 28), TextSize = 26, Text = "Sort By", LayoutOrder = 1, ZIndex = 3 })
+	sortTitle =
+		Shop.text(side, { Size = UDim2.new(1, 0, 0, 28), TextSize = 26, Text = "Sort By", LayoutOrder = 1, ZIndex = 3 })
 	for i, name in SORTS do
 		local b = Shop.sort(side, {
 			Name = "Sort" .. name,
@@ -1042,7 +1051,15 @@ local function build()
 	})
 	allButton.Root.ZIndex = 4
 	allButton.Root.Activated:Connect(function()
+		putAllAt = os.clock()
 		Net.Action:FireServer("Tank", "PutAll")
+	end)
+	-- all in: the window goes, so the fish and what they earn are what is seen (2026-11-24; a refusal leaves it up)
+	Net.Ride.OnClientEvent:Connect(function(what: string)
+		if what == "Deposited" and open and os.clock() - putAllAt < 2 then
+			putAllAt = 0
+			show(false)
+		end
 	end)
 
 	-- a refusal, over the tray's foot: the kit's red bar

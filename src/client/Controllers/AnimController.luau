@@ -807,13 +807,29 @@ local function groundSkip()
 	groundParams.FilterDescendantsInstances = skip
 end
 
-local function groundFit(L: LandRig, root: BasePart, dt: number, now: number): (number, number)
+-- Whether a land fish's rider is in the leap off the dock on it (Config.Dive.LeapMounted, DiveController)
+local function riderLeaping(rider: number): boolean
+	local leapOf = State.LeapPose
+	if rider == 0 or not leapOf then
+		return false
+	end
+	local player = Players:GetPlayerByUserId(rider)
+	if not player then
+		return false
+	end
+	local phase, _, mounted = leapOf(player)
+	return phase ~= nil and mounted
+end
+
+local function groundFit(L: LandRig, root: BasePart, dt: number, now: number, off: boolean?): (number, number)
 	local cfg = Config.LandRide
 	if cfg.GroundTilt <= 0 and cfg.GroundLift <= 0 then
 		return 0, 0
 	end
-	-- (looked at a few times a second; eased every frame)
-	if now - L.groundAt >= cfg.GroundEvery then
+	-- (looked at a few times a second; eased every frame. `off`: in the air, its rider's leap off the dock: no floor)
+	if off then
+		L.groundNoseWant, L.groundUpWant = 0, 0
+	elseif now - L.groundAt >= cfg.GroundEvery then
 		L.groundAt = now
 		groundSkip()
 		local cf = root.CFrame
@@ -888,7 +904,9 @@ local function landStep(
 	end
 	L.turn = Ease.lerp(L.turn, math.clamp(turn, -720, 720), Ease.alpha(8, dt))
 	local want = if held then held else math.clamp(speed / math.max(Config.Equip.LandSpeed, 1), 0, 1)
-	if cfg.On == 0 then
+	-- (its rider leaping off the dock on it, Config.Dive.LeapMounted: no stride in the air, no floor under it)
+	local leaping = riderLeaping(L.rider)
+	if cfg.On == 0 or (leaping and not held) then
 		want = 0
 	end
 	L.move = if held then held else Ease.lerp(L.move, want, Ease.alpha(cfg.Blend, dt))
@@ -945,7 +963,7 @@ local function landStep(
 	end
 
 	-- the floor under it: tilted to its slope, lifted off a step (grade issue 7)
-	local floorTilt, floorLift = groundFit(L, root, dt, now)
+	local floorTilt, floorLift = groundFit(L, root, dt, now, leaping)
 	nose += floorTilt
 	up += floorLift
 
@@ -1870,6 +1888,49 @@ local function leapPose(phase: number, tuck: number): Pose
 	return if tuck > 0 then blend(pose, tucked(), tuck) else pose
 end
 
+-- The leap on the ride fish (Config.Dive.LeapMounted, DiveController) by the same phase: the rider stays seated
+-- astride it as on land (the fish dives, not the rider), crouching forward over its back as it gathers (0.7), sat
+-- back a little with the left hand holding on and the right arm thrown up as it springs off nose up (1.15), the arm
+-- still up over the top (1.5), then tucked down flat against its back, both hands holding, head up, as it noses in
+-- (1.8 on, and so under the water). The keys, in order: LeftShoulder x z, RightShoulder x z, LeftElbow x, RightElbow
+-- x, the hips x, the knees x, Waist x, Neck x
+local LEAP_LAND_KEYS: { { number } } = {
+	{ 0, 52, 10, 52, -10, 30, 30, 72, -88, 4, -3 },
+	{ 0.7, 30, 12, 30, -12, 45, 45, 76, -98, -18, 18 },
+	{ 1.15, 45, 12, 155, 25, 40, 15, 70, -80, 6, 4 },
+	{ 1.5, 50, 10, 140, 22, 40, 20, 72, -88, -12, 12 },
+	{ 1.8, 70, 14, 70, -14, 50, 50, 78, -100, -32, 30 },
+	{ 3.0, 70, 14, 70, -14, 50, 50, 78, -100, -32, 30 },
+}
+local function leapLandPose(phase: number, t: number): Pose
+	local v: { number } = table.clone(LEAP_LAND_KEYS[#LEAP_LAND_KEYS])
+	for i = 1, #LEAP_LAND_KEYS - 1 do
+		local a, b = LEAP_LAND_KEYS[i], LEAP_LAND_KEYS[i + 1]
+		if phase <= b[1] then
+			local w = Ease.smoothstep(a[1], b[1], phase)
+			for k = 2, #a do
+				v[k] = a[k] + (b[k] - a[k]) * w
+			end
+			break
+		end
+	end
+	-- (the raised arm waves a little while it is up)
+	local up = Ease.smoothstep(1, 1.15, phase) * (1 - Ease.smoothstep(1.5, 1.8, phase))
+	local wave = 7 * up * math.sin(t * 9)
+	return {
+		LeftShoulder = rot(v[2], 0, v[3]),
+		RightShoulder = rot(v[4] + wave, 0, v[5]),
+		LeftElbow = rot(v[6], 0, 0),
+		RightElbow = rot(v[7], 0, 0),
+		LeftHip = rot(v[8], 0, -30),
+		RightHip = rot(v[8], 0, 30),
+		LeftKnee = rot(v[9], 0, 0),
+		RightKnee = rot(v[9], 0, 0),
+		Waist = rot(v[10], 0, 0),
+		Neck = rot(v[11], 0, 0),
+	}
+end
+
 -- A front crawl, the body flat (the hop's own tilt lays it down): each arm reaches ahead, pulls down under the body
 -- and back, and comes forward again over the top with the elbow bent, one half a stroke behind the other; the body
 -- rolls to each stroke; the legs kick in turn. `phase` is the stroke's, `kicks` the kick's, both in radians.
@@ -2073,6 +2134,14 @@ local function pose(j: RiderJoints, state: string, t: number, dt: number, player
 			phase, tuck = leapOf(player)
 		end
 		return leapPose(phase or 3, tuck)
+	elseif state == "LeapLand" then
+		-- the leap on the ride fish: seated on it as on land (the mount's shift below keeps us on its back)
+		local phase = nil
+		local leapOf = State.LeapPose
+		if leapOf then
+			phase = leapOf(player)
+		end
+		return leapLandPose(phase or 3, t)
 	elseif state == "Reeling" then
 		local u, time = JumpController.reel()
 		return dash(t, u or 1, time)
@@ -2191,7 +2260,7 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 	-- on a fish, the rider goes with its body: the eased shift the fish worked out this frame (the wave, the landing's
 	-- dip, the rearing, a buck), about the fish's Root, so they stay on the back without being shaken
 	local mount: CFrame? = nil
-	if state == "Riding" or state == "Land" then
+	if state == "Riding" or state == "Land" or state == "LeapLand" then
 		local fish = ridden[player.UserId]
 		local fj = if fish then fishJoints[fish] else nil
 		local fishRoot = fish and fish.PrimaryPart
@@ -2210,7 +2279,7 @@ local function animateRider(player: Player, character: Model, state: string, dt:
 			and (
 				(fishRoot.Position - seated.Position).Magnitude < MOUNT_REACH
 				-- (the land fish is welded to us: its Root can be further off on a giant)
-				or (state == "Land" and fj.land ~= nil and fj.land.rider == player.UserId)
+				or ((state == "Land" or state == "LeapLand") and fj.land ~= nil and fj.land.rider == player.UserId)
 			)
 		then
 			-- (in the joint's own directions already: it is taken about the joint as it stands)
@@ -2364,10 +2433,13 @@ function AnimController.Start()
 				state = "Land"
 			end
 			-- the leap off the dock (Config.Dive.Leap, DiveController): ours by its own clock, anyone else's by the
-			-- tilt of their body
+			-- tilt of their body; on the ride fish (LeapMounted), seated on it
 			local leapOf = State.LeapPose
-			if leapOf and (state == "Dock" or player == State.Player) and leapOf(player) then
-				state = "Leap"
+			if leapOf and (state == "Dock" or state == "Land" or player == State.Player) then
+				local phase, _, mounted = leapOf(player)
+				if phase then
+					state = if mounted then "LeapLand" else "Leap"
+				end
 			end
 			if character and type(state) == "string" then
 				if state ~= "Dock" then

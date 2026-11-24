@@ -913,7 +913,8 @@ end
 -- A fat white arrow: the atlas' arrow turned to its way (0 right, 90 down, 180 left), or, before the upload in a live
 -- game, one drawn of two frames (a turned square for the head, a bar for the tail)
 function Shop.arrow(parent: Instance, turn: number, size: number, at: UDim2, z: number): GuiObject
-	if picture("Icons") ~= "" then
+	-- (only the uploaded atlas: the Studio stand-in file goes missing with every Studio update, and left a blank button)
+	if Shop.Textures.Icons ~= "" then
 		return Shop.icon(parent, "Arrow", size, {
 			Name = "Arrow",
 			AnchorPoint = Vector2.new(0.5, 0.5),

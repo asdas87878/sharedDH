@@ -31,6 +31,20 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   fall comes in along it (`FallSpeed`, `SinkCurve`); the hook's reach is by speed (`Jump.GrabNear` to `GrabRange`), counted the same by the server; the wait between fish is
   `Jump.Cooldown` 0.08 s from the touch ([docs/playtests/2026-11-13-hop-air-reach.md](docs/playtests/2026-11-13-hop-air-reach.md), not played by hand). What each push changed is in
   [Handoff](docs/Handoff.md); who has which files, [Sessions](docs/Sessions.md).
+- **The dive leap (the user, 2026-11-23; `Config.Dive.Leap`, 1 in the file on the user's word the same day):** running off
+  the strip's lip at the open water becomes a leap with its own camera move and a splash, client only
+  (`Controllers/DiveController`, `Lib/Splash`, the pose in `AnimController`); the server's rule for being in the water
+  is unchanged and the existing hop takes over with the leap's heading (`State.LeapHeading`, `LeapSplashed`). State,
+  what is not known and the check (`tools/studio/dive_leap_check.py`): [the dive-in](docs/design/dive-in.md), "The leap".
+- **The first minutes (2026-11-23; off: `Config.Lesson.On` 0):** `LessonService` (the player's `Lesson` step, the first-fish rule, the steps counted), `LessonController` with `UI/LessonPrompt` and `UI/LessonPointer`; hooks `RideService.FirstFish` and `OnTamed`, `Lock.Allow`, `HopButton.hold`, `DockNotes.words` and `lesson`, `FishService.put`. What is built and not checked: [first-minutes](docs/design/first-minutes.md), "Built"; check with `tools/studio/lesson_check.py` (`LessonTest` before Play).
+- **Fails, the leap on a fish, riding out of the tank (2026-11-23), all OFF until played:** the eaten and drown fixes
+  (`Config.Fail.MouthFromModel`, `Arrive`, `Smooth`, `EatSmall` with `EatMin`, `MouthAt`; `Config.Death.UnderWater`;
+  `FailController`, `DeathController`, `Lib/Underwater`; [riding feel](docs/design/riding-feel.md), last section; check
+  `tools/studio/fail_eat_check.py`, which refuses under 40 fps); the leap on a land fish (`Config.Dive.LeapMounted`,
+  `DiveController`; [the dive-in](docs/design/dive-in.md)); riding a tank fish out through the gate (`Config.TankRide.Out`,
+  `TankRideService.out`, `RideService.rideOut`; [equip](docs/design/equip.md)). A dial goes to 1 in the file only after its
+  check has run at a real frame rate. **Bought Oxygen off the dock is banked** (`RideService.grantOxygen`, `Banked`) and
+  joins the max at the dock: never raise the max mid-dive, the red line and the drain are shares of it.
 - **The hub's new pieces (2026-11-24; NULLROOM h1 to h4):** the stalls open on their floor rings, the sub stand too
   (`StallController`: Sell, Auras, Sub; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
   copy of the equipped sub turns over the sub stand, on the player's own machine (`SubStandController`); **the Index**

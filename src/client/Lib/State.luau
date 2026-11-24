@@ -86,8 +86,9 @@ local State = {
 	LeapHeading = nil :: number?,
 	LeapSplashed = false,
 	-- and the leap's pose for a player (AnimController asks; DiveController fills it at Init, so a DiveController that
-	-- failed to load leaves it nil and every other pose as it was): its phase and tuck, nil when not leaping
-	LeapPose = nil :: ((Player) -> (number?, number))?,
+	-- failed to load leaves it nil and every other pose as it was): its phase and tuck, nil when not leaping, and
+	-- whether it is the leap on the ride fish (Config.Dive.LeapMounted: seated on it)
+	LeapPose = nil :: ((Player) -> (number?, number, boolean))?,
 }
 
 function State.setMode(mode: string)

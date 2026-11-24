@@ -271,13 +271,12 @@ local function chip(parent: Instance, earns: number?, z: number, pos: UDim2): Fr
 		LayoutOrder = 1,
 		ZIndex = z + 1,
 	}, pill)
-	local sum = if earns then (if earns < 100 then string.format("%.1f", earns) else Kit.short(earns)) else "0"
 	Kit.text({
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = P(0, 20),
 		TextSize = 12.5,
 		TextColor3 = Kit.Cash,
-		Text = "+$" .. sum .. " a second",
+		Text = "+" .. Kit.rate(earns or 0),
 		LayoutOrder = 2,
 		ZIndex = z + 1,
 	}, pill)
@@ -750,7 +749,7 @@ local function banner(parent: Instance, info: Info): Show
 	local newScale = scaler(new)
 	local shine = specks(fx, if big then 14 else 8, 33, { Kit.White, pal.Light }, 39)
 	local fade = fader(body, { fx })
-	local L = 2.9
+	local L = 2.4
 	local E = L - 0.32
 	local pose = function(t: number)
 		-- in from the left, past its place and back; out the same way after a little pull the other way (the wind-up)
@@ -761,22 +760,23 @@ local function banner(parent: Instance, info: Info): Show
 		body.Position = P(off, 0)
 		spin.Rotation = t * 22
 		-- the portrait pops out of the plate, turning, and sparkles
-		discScale.Scale = settle(t - 0.16) * (1 + 0.04 * math.sin((t - 0.16) * 5) * at(t, 0.7, 0.3))
-		disc.Rotation = -30 * (1 - settle(t - 0.16)) + 5
-		specksPose(shine, t, 0.2, PX + 34, PY + PH / 2 - 4, 70, 20, 1, 1, 1, 34)
+		-- (all of it comes in with the plate: for a quarter of a second the plate was an empty grey box, 2026-11-24)
+		discScale.Scale = settle(t - 0.04) * (1 + 0.04 * math.sin((t - 0.04) * 5) * at(t, 0.7, 0.3))
+		disc.Rotation = -30 * (1 - settle(t - 0.04)) + 5
+		specksPose(shine, t, 0.1, PX + 34, PY + PH / 2 - 4, 70, 20, 1, 1, 1, 34)
 		-- the word drops in from above, too big, lands and rings
-		local wt = t - 0.24
+		local wt = t - 0.06
 		w.root.Visible = wt >= 0
-		w.root.Position = P(wx, PY + 24 - 30 * (1 - quadIn(at(t, 0.24, 0.1))))
+		w.root.Position = P(wx, PY + 24 - 30 * (1 - quadIn(at(t, 0.06, 0.1))))
 		wScale.Scale = if wt < 0.1 then lerp(1.5, 0.88, quadIn(wt / 0.1)) else 0.88 + 0.12 * settle(wt - 0.1)
 		-- the earnings, the name under it, the badge
-		pill.Visible = info.Earns ~= nil and t >= 0.46
-		pillScale.Scale = settle(t - 0.46)
-		local rx = at(t, 0.36, 0.3)
+		pill.Visible = info.Earns ~= nil and t >= 0.28
+		pillScale.Scale = settle(t - 0.28)
+		local rx = at(t, 0.18, 0.3)
 		row.Visible = rx > 0
 		row.Position = P(PX + 8 - 50 * (1 - backOut(rx)), PY + PH + 20)
-		newScale.Scale = settle(t - 0.56)
-		new.Rotation = 12 - 80 * (1 - settle(t - 0.56))
+		newScale.Scale = settle(t - 0.38)
+		new.Rotation = 12 - 80 * (1 - settle(t - 0.38))
 		fade(1 - 0.5 * e2)
 		for _, d in shine do
 			d.f.Visible = d.f.Visible and e2 == 0

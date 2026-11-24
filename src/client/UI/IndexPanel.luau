@@ -515,7 +515,7 @@ function paint()
 		nameWord.Text = if have then fish.Name else "???"
 		tierWord.Text = string.upper(fish.Tier)
 		Kit.tierColours(tierWord, tierFill, fish.Tier, Config.Tiers)
-		rateWord.Text = if have then Shop.cash(Config.incomeOf(fish, "Normal", "")) .. "/s" else "Not found yet"
+		rateWord.Text = if have then Kit.rate(Config.incomeOf(fish, "Normal", "")) else "Not found yet"
 		rateWord.TextColor3 = if have then Shop.Money else PALE
 		looksWord.Text = `Variants {found[fish.Id] or 0} / {Config.indexLooks()}`
 		local oxygen, coins = Config.indexFirst(fish)

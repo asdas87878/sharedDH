@@ -252,11 +252,13 @@ function Anim.rise(group: CanvasGroup, lift: number?, stay: number?)
 	end)
 end
 
--- A plate or a line that comes and goes: pops in, shrinks away (and then is hidden)
+-- A plate or a line that comes and goes: pops in, shrinks away (and then is hidden). One asked for while it is on its
+-- way out (even in the same frame, still at full size) is shown again: `leaving` is the turn of its shrinking.
+local leaving: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
 function Anim.toast(gui: GuiObject, on: boolean)
 	local scale = Anim.scaleOf(gui)
 	if on then
-		if gui.Visible and turns[scale] and scale.Scale >= 0.99 then
+		if gui.Visible and turns[scale] and leaving[scale] ~= turns[scale] and scale.Scale >= 0.99 then
 			return
 		end
 		take(scale)
@@ -265,6 +267,7 @@ function Anim.toast(gui: GuiObject, on: boolean)
 		tween(scale, Anim.ToastIn, { Scale = 1 })
 	elseif gui.Visible then
 		local turn = take(scale)
+		leaving[scale] = turn
 		local t = tween(scale, Anim.ToastOut, { Scale = 0 })
 		t.Completed:Connect(function(state)
 			if state == Enum.PlaybackState.Completed and turns[scale] == turn then

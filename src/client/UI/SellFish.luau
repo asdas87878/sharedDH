@@ -330,7 +330,7 @@ local function fillCard(card: Card, f: Fish, order: number)
 	card.Item.Name.Text = if kind then kind.Name else f.Id
 	card.Item.Name.TextColor3 = colour
 	card.Tags.Text = tagsOf(f)
-	card.Item.Rate.Text = Shop.cash(if kind then Config.incomeOf(kind, f.Size, f.Variant) else 0) .. "/s"
+	card.Item.Rate.Text = Kit.rate(if kind then Config.incomeOf(kind, f.Size, f.Variant) else 0)
 	card.Item.Price.Text = Shop.cash(f.Value)
 	local on = picked[f.Key] == true
 	card.Tick.Visible = on
@@ -407,7 +407,11 @@ function update()
 	elseif os.clock() < sureUntil and n > 0 then
 		sellButton.set(string.format("Sure? (%d)", n), "Gold", true)
 	else
-		sellButton.set(string.format("Sell (%d)", n), if n > 0 then "Cash" else "Off", n > 0)
+		sellButton.set(
+			if n > 0 then string.format("Sell (%d)", n) else "Pick a fish",
+			if n > 0 then "Cash" else "Off",
+			n > 0
+		)
 	end
 	for name, b in sortButtons do
 		b.set(nil, if name == sortBy then "Cash" else "Off", true)

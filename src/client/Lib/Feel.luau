@@ -3,8 +3,8 @@
 --   speed lines: thin white streaks round the edge of the screen, pointing at its middle, reshuffled many times a
 --     second. Feel.rush(amount) shows them at that strength; they die away by themselves (Feel.LinesFade);
 --   the bubble trail left behind our own character through the pop's extra speed and the pull-in;
---   the sounds: the pop's swish, the pull-in's whoosh, the landing's splash (the client's own built-in sounds, pitched;
---     no uploaded assets);
+--   the sounds: the pop's swish, the pull-in's whoosh, the landing's splash (the client's own built-in sounds, pitched, and
+--     Roblox's licensed catalogue; no uploaded assets);
 -- Feel.step runs once a frame (JumpController's render step). Everything is made once and reused, but the sounds,
 -- which are one Sound each.
 local Debris = game:GetService("Debris")
@@ -30,7 +30,7 @@ local shown = false
 local SOUNDS: { [string]: string } = {
 	Whoosh = "rbxasset://sounds/action_falling.ogg",
 	Swish = "rbxasset://sounds/action_swim.mp3",
-	Splash = "rbxasset://sounds/impact_water.mp3",
+	Splash = "rbxassetid://9120585530", -- a big splash, in (Pro Sound Effects, Roblox's own catalogue; the client's thin one until 2026-11-24)
 }
 
 local trail: ParticleEmitter? = nil

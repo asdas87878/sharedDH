@@ -69,7 +69,7 @@ def rock_stack(k, r, pal):
                 k.group = f"tier{i}" + ("" if n_side < 3 else ("L" if a < n_side / 2 else "R"))  # a wide tier breaks in two
                 hh = h * r.uniform(0.8, 1.15)
                 k.box(a * size - off + r.uniform(-1, 1), y, b * size - off + r.uniform(-1, 1), size * r.uniform(0.92, 1.02), hh, size * r.uniform(0.92, 1.02),
-                      tone(pal, "Stone", 0 if i < 4 else 1), yaw=r.uniform(-9, 9))
+                      tone(pal, "Stone", 0 if i < 2 else 1), yaw=r.uniform(-9, 9))
                 if r.random() < 0.35 or i == 4:
                     k.box(a * size - off, y + hh, b * size - off, size * 0.8, 2, size * 0.8, pal["Cap"], yaw=r.uniform(-9, 9))
         y += h
@@ -91,7 +91,7 @@ def pagoda(k, r, pal):
         for a in range(n_side):
             for b in range(n_side):
                 p = props.turn((a * size - off, 0, b * size - off), yaw=yaw)
-                k.box(p[0] + dx, y, p[2] + dz, size, h * r.uniform(0.9, 1.1), size, tone(pal, "Main", 1 if (a + b + i) % 2 else 2), yaw=yaw)
+                k.box(p[0] + dx, y, p[2] + dz, size, h * r.uniform(0.9, 1.1), size, tone(pal, "Main" if "Soft" not in pal or i == 4 or (a + b + i) % 2 else "Soft", 2 if i == 4 else 1), yaw=yaw)
                 edge = a in (0, n_side - 1) or b in (0, n_side - 1)
                 if n_side >= 3 and edge and (a + b) % 2 == 0:  # the fringe
                     k.box(p[0] * 1.08 + dx, y - h * 0.7, p[2] * 1.08 + dz, size * 0.8, h * 0.8, size * 0.8, tone(pal, "Main", 1), yaw=yaw)

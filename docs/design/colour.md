@@ -216,6 +216,63 @@ first, because they change how everything else reads.
 - **The rest is lighting's work,** in Studio: deeper shadows and the puffs behind swimming fish.
 - **Midnight** stays darker than the Snow it copies on purpose: it is the "midnight" land.
 
+## A bit less random: the early lands' props (2026-11-23)
+The user: "some of the misc objects especially in the earlier biomes have some colours placed in ways which dont feel
+right ... counter in the old map chats research of values and colours to not stray too far from what we wanted but still
+change it to look a bit less random."
+
+**What was wrong (measured on the loaded map's props, lands 1 to 4):**
+1. **The colour of each small thing was a dice roll.** Big corals, and the stones, shells, starfish and crumbs at their
+   feet, each rolled their own of the land's colourways. Of the litter lying beside a big prop, only 43% in the
+   Shallows, 21% in the Reef and 48% in Kelp wore that prop's colour, and 4 to 6 different hues met within 90 studs.
+2. **The darkest and the lightest tone were used as body colours.** They are for accents (a stem, a seam, a tip). They
+   covered 35% dark and 44% light of the prop area in the Shallows, 21/32 in the Reef, 42/22 in Kelp and 45/24 in the
+   Wrecks. So one prop read as three unrelated colours. Our water darkens the darks further: the
+   reference's dark was measured on screen, after its own light, and ours was written in as that number.
+3. **Some colours belonged to no family.** One blue-grey stone in every land; a pink coral on the Reef's pink floor; a
+   second, red accent in Kelp and the Wrecks.
+
+**The rules now** (no new hues; the deep lands 5 to 10 keep their colours and their
+light and dark halves, but for some 200 bricks at the border):
+- **Colour by place, not by dice** (`tint_at`, `greybox.py`): each room has a leading colourway. About one patch in
+  five, some 150 studs long on one side, is a guest; everything in a patch wears the patch's colour, and one
+  big prop in ten strays. The Shallows lead with orange and have gold as the guest (pink only in the last two rooms, on
+  the way to the Reef); the Reef's rooms take turns, teal and violet, with raspberry only a guest: at L* 49 it sinks into
+  the Reef's pink wall (L* 48).
+- **Tone by form** (`props2.py`, lands 1 to 4): bodies wear the main colour, one step up (`Soft`, 8 L*) and one step down (`Deep`,
+  13 L*). Dark is for stems, seams and bands only, light for tips and tops only. In lands 1 to 4 the dark is L* 34 and
+  the light L* 84 (the others keep 26 and 87).
+- **Stone comes from the land's wall face:** sand a step under the wall (L* 63) in the
+  Shallows, rose in the Reef, pale green-grey in Kelp, olive-grey
+  in the Wrecks, and it isn't pushed dark.
+- **One accent per land:** gold-cream in the Reef, yellow in Kelp, brass in the Wrecks; anchors and bands are iron.
+- **The Reef's pink is raspberry**, at least 20 L* off its floor; its teal is the proposal's.
+
+| | Shallows | Reef | Kelp | Wrecks |
+|---|---|---|---|---|
+| dark / light share of the props, before | 35 / 44 | 21 / 32 | 42 / 22 | 45 / 24 |
+| after | 4 / 17 | 9 / 6 | 20 / 17 | 24 / 4 |
+| litter in the hue of the prop beside it, before | 43% | 21% | 48% | 88% |
+| after, by hue | 96% | 47% | 66% | 99% |
+| after, by colourway (from the generator) | 91% | 84% | 90% | 90% |
+| hues within 90 studs, before | 4.5 | 5.8 | 4.1 | 2.8 |
+| after | 3.5 | 3.9 | 3.4 | 2.2 |
+
+The hue measure reads low in the Reef and Kelp, where one colourway holds several hues (a cream shell, two greens); the
+colourway count is the rule itself, and what is left is at the edges of patches.
+
+![Before (left) and after (right), in Play](../attachments/map-prop-colours.jpg)
+
+Nothing moved: 0 of 104,211 boxes differ in shape or place, and the paths are the same; 18,005 bricks in 2,755 models
+changed colour. It goes on the loaded place without a reload, so hand placing is kept:
+`tools/map/prop_recolour_luau.py <old parts.json> <new parts.json>` writes `tools/studio/prop_recolour/`, and the same with
+the two files the other way round puts the old colours back. A model somebody painted by hand is left alone and named.
+
+The place's prop bricks were counted against the build afterwards: all 54,665 colours match, no model left alone.
+Saved on the user's word, version 433.
+
+**Offered, not done:** taking the proposal's own prop colours whole (`proposal.json`, the props pair). It is a bigger change of look.
+
 ## For the creatures later
 Their rule is lightness first: a creature reads when it is at least about 20 L* off the floor, or when it is a
 different hue on a green floor. With floors that swing from land to land, a land's creatures should lean the other way

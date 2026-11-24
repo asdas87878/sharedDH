@@ -151,7 +151,18 @@ type Plan = {
 	tEntry: number,
 	tTop: number,
 	tFollow: number,
+	-- on the ride fish (Config.Dive.LeapMounted): the fish's own dive. For a diver: false, 1, 1, 0.9, 0.6, 0
+	mounted: boolean,
+	scale: number, -- the fish's length over LeapMountedSize, held to LeapMountedLeast..Most
+	camScale: number, -- the camera's distances times this
+	dip: number, -- the crouch sinks this far, studs
+	centreUp: number, -- the camera looks at the root plus this, up
+	level: number, -- under the water the fish levels to this tilt, degrees
 }
+
+-- The ride fish under us, as the leap sees it: its box (and the rider's head over it) in the root's own space as it
+-- stood, its length and how far its lowest point is under the root
+type Fish = { rel: CFrame, size: Vector3, length: number, depth: number }
 
 -- The arc at u (0 at the takeoff, 1 at the surface)
 local function arcAt(p: Plan, u: number): Vector3
@@ -169,7 +180,7 @@ local function posAt(p: Plan, t: number): Vector3
 		-- the crouch: on a step or two to the edge, sinking into the knees and coming back up as the push begins
 		local u = t / p.crouch
 		local dip = if u < 0.7 then smooth(0, 0.7, u) else 1 - smooth(0.7, 1, u)
-		return p.start:Lerp(p.takeoff, u) - UP * (0.9 * dip)
+		return p.start:Lerp(p.takeoff, u) - UP * (p.dip * dip)
 	elseif t < p.tEntry then
 		return arcAt(p, (t - p.crouch) / p.air)
 	end
@@ -186,6 +197,15 @@ end
 local function tiltAt(p: Plan, t: number): number
 	if t < p.crouch then
 		return p.lean * smooth(0, p.crouch, t)
+	elseif p.mounted then
+		-- the fish: its nose along the arc (up off the edge, over, down into the water), a moment behind it, from
+		-- level at the push; under the water it levels out (the water fish it is swapped for is level)
+		if t < p.tEntry then
+			local u = (t - p.crouch) / p.air
+			local lag = 0.05 * (1 - smooth(0.55, 1, u))
+			return lerp(p.lean, pathAngle(p, u - lag), smooth(0, 0.3, u))
+		end
+		return lerp(p.entryTilt, p.level, smooth(0, math.max(p.sink, 0.01), t - p.tEntry))
 	elseif t < p.tEntry then
 		local u = (t - p.crouch) / p.air
 		-- along the arc, a moment behind it (face down just after the top), and on it exactly at the water
@@ -235,7 +255,7 @@ end
 -- camera's line. `diver`: where the body is (the root)
 local function chaseAt(p: Plan, diver: Vector3): Vector3
 	local d = Config.Dive
-	local at = diver - p.heading * d.LeapCamFollow + UP * d.LeapCamFollowUp
+	local at = diver - p.heading * (d.LeapCamFollow * p.camScale) + UP * (d.LeapCamFollowUp * p.camScale)
 	return Vector3.new(at.X, math.min(at.Y, p.waterLine - 1), at.Z)
 end
 
@@ -244,6 +264,7 @@ end
 -- them (quickly: between the surface and the riding camera's line it is inside the water's lit layers, all white)
 local function cameraKeys(p: Plan): { Key }
 	local d = Config.Dive
+	local k = p.camScale -- (1 for a diver; further back for a big fish)
 	local keys: { Key } = {}
 	local function add(t: number, at: Vector3)
 		table.insert(keys, { t = t, at = at, slope = Vector3.zero })
@@ -251,23 +272,23 @@ local function cameraKeys(p: Plan): { Key }
 	add(0, p.camFrom.Position)
 	-- (the key times always rise: off a high ledge the top comes early, and the keys either side are kept off it)
 	local gap = 0.05
-	local low = p.takeoff + p.right * (p.side * d.LeapCamSide) - p.heading * d.LeapCamBack
+	local low = p.takeoff + p.right * (p.side * d.LeapCamSide * k) - p.heading * (d.LeapCamBack * k)
 	local lowAt = math.min(p.crouch + 0.28 * p.air, math.max(p.tTop - gap, p.tTop * 0.5))
 	add(lowAt, Vector3.new(low.X, p.ground + d.LeapCamLow, low.Z))
 	add(
 		p.tTop,
 		arcAt(p, p.top)
-			+ p.right * (p.side * d.LeapCamCraneSide)
-			- p.heading * d.LeapCamCraneBack
-			+ UP * d.LeapCamCraneUp
+			+ p.right * (p.side * d.LeapCamCraneSide * k)
+			- p.heading * (d.LeapCamCraneBack * k)
+			+ UP * (d.LeapCamCraneUp * k)
 	)
-	local high = p.entry - p.heading * d.LeapCamHighBack + p.right * (p.side * 3)
+	local high = p.entry - p.heading * (d.LeapCamHighBack * k) + p.right * (p.side * 3 * k)
 	local highAt = math.max(p.crouch + 0.85 * p.air, math.min(p.tTop + gap, (p.tTop + p.tFollow) / 2))
-	add(highAt, Vector3.new(high.X, p.surface + d.LeapCamHigh, high.Z))
+	add(highAt, Vector3.new(high.X, p.surface + d.LeapCamHigh * k, high.Z))
 	local overAt = p.tEntry + d.LeapCamOver
 	if d.LeapCamOver > 0 and overAt > keys[#keys].t + 0.05 and overAt < p.tFollow - 0.05 then
-		local over = p.entry - p.heading * d.LeapCamFollow + p.right * (p.side * 3)
-		add(overAt, Vector3.new(over.X, p.surface + d.LeapCamOverHigh, over.Z))
+		local over = p.entry - p.heading * (d.LeapCamFollow * k) + p.right * (p.side * 3 * k)
+		add(overAt, Vector3.new(over.X, p.surface + d.LeapCamOverHigh * k, over.Z))
 	end
 	add(p.tFollow, chaseAt(p, posAt(p, p.tFollow)))
 	-- the slopes (a curve through the keys by time): still at the first, the chase's own pace at the last
@@ -300,8 +321,34 @@ local function curveAt(p: Plan, t: number): Vector3
 	return keys[#keys].at
 end
 
+-- Whether the fish's box (and the rider over it) meets anything along the arc: swept from pose to pose, and looked for
+-- at each pose too (a sweep does not see what it begins inside). Not the water, nor any character
+local overlap = OverlapParams.new()
+overlap.FilterType = Enum.RaycastFilterType.Exclude
+overlap.RespectCanCollide = true
+local function fishClear(p: Plan, fish: Fish, params: RaycastParams): boolean
+	local size = fish.size * 0.85
+	local skip = table.clone(params.FilterDescendantsInstances)
+	table.insert(skip, workspace.Terrain) -- (its water: the sweeps see the terrain's ground)
+	overlap.FilterDescendantsInstances = skip
+	local last = frameAt(p, p.crouch) * fish.rel
+	for i = 1, 10 do
+		local at = frameAt(p, p.crouch + p.air * i / 10) * fish.rel
+		local move = at.Position - last.Position
+		if move.Magnitude > 0.01 and workspace:Blockcast(last, size, move, params) then
+			return false
+		end
+		if i < 10 and #workspace:GetPartBoundsInBox(at, size, overlap) > 0 then
+			return false
+		end
+		last = at
+	end
+	return true
+end
+
 -- One dive from `start` (the root), facing `fromYaw`, out along `heading` (flat, length 1) at `speed`, with a crouch
--- or not. Nil when the arc would meet anything, or come down anywhere but open water.
+-- or not. Nil when the arc would meet anything, or come down anywhere but open water. `fish`: on the ride fish (its
+-- own dive: Config.Dive.LeapMounted), nil for a diver
 local function makePlan(
 	start: Vector3,
 	ground: number,
@@ -310,38 +357,72 @@ local function makePlan(
 	speed: number,
 	crouch: boolean,
 	camFrom: CFrame,
-	camFov: number
+	camFov: number,
+	fish: Fish?
 ): Plan?
 	local d = Config.Dive
 	local surface = surfaceY()
 	local right = Vector3.new(-heading.Z, 0, heading.X)
 	local crouchTime = if crouch then math.max(d.LeapCrouch, 0) else 0
 	local takeoff = start + heading * (math.min(speed, 20) * crouchTime * 0.6)
-	local drop = takeoff.Y - surface
+	-- the fish's size: the arc's height and length go as its square root, the time as its 0.35th power; and the arc
+	-- ends with the root over the water by half the fish's depth (the fish noses in, its middle meets the water)
+	local scale = 1
+	local baseHigh, baseFar, baseTime = d.LeapHigh, d.LeapFar, d.LeapTime
+	local endY = surface
+	if fish then
+		scale = math.clamp(
+			fish.length / math.max(d.LeapMountedSize, 1),
+			math.max(d.LeapMountedLeast, 0.1),
+			math.max(d.LeapMountedMost, d.LeapMountedLeast, 0.1)
+		)
+		baseHigh = d.LeapMountedHigh * math.sqrt(scale)
+		baseFar = d.LeapMountedFar * math.sqrt(scale)
+		baseTime = d.LeapMountedTime * scale ^ 0.35
+		endY = surface + 0.5 * fish.depth
+	end
+	local drop = takeoff.Y - endY
 	if drop < 0.5 then
 		return nil
 	end
 	local params = rays()
 	-- the arc that fits: as asked; lower; lower and shorter
 	for _, try in { { 1, 1 }, { 0.6, 1 }, { 0.6, 0.7 }, { 0.3, 0.5 } } do
-		local high = math.max(d.LeapHigh, 0.5) * try[1]
-		local far = math.max(d.LeapFar, 2) * try[2]
-		local air = math.max(d.LeapTime, 0.2) * (0.7 + 0.3 * try[1])
+		local high = math.max(baseHigh, 0.5) * try[1]
+		local far = math.max(baseFar, 2) * try[2]
+		local air = math.max(baseTime, 0.2) * (0.7 + 0.3 * try[1])
+		if fish then
+			-- (never faster across the ground than the server's land pace check lets the land fish go: Equip)
+			local e = Config.Equip
+			far = math.min(far, e.LandSpeed * e.PaceRoom * 0.8 * air)
+		end
 		local a = 2 * high + 2 * math.sqrt(high * high + high * drop)
 		local c = a + drop
 		local clear = true
-		local last = takeoff
-		for i = 1, 10 do
-			local u = i / 10
-			local at = takeoff + heading * (far * u) + UP * (a * u - c * u * u)
-			if workspace:Spherecast(last, 1.2, at - last, params) then
-				clear = false
-				break
+		if not fish then
+			local last = takeoff
+			for i = 1, 10 do
+				local u = i / 10
+				local at = takeoff + heading * (far * u) + UP * (a * u - c * u * u)
+				if workspace:Spherecast(last, 1.2, at - last, params) then
+					clear = false
+					break
+				end
+				last = at
 			end
-			last = at
 		end
 		local entry = takeoff + heading * far + UP * (a - c)
-		if clear and groundUnder(Vector3.new(entry.X, takeoff.Y, entry.Z)) == nil then
+		local open = clear and groundUnder(Vector3.new(entry.X, takeoff.Y, entry.Z)) == nil
+		if open and fish then
+			-- (and open water under the fish's nose and tail as it goes in)
+			for _, z in { fish.rel.Z - fish.size.Z / 2, fish.rel.Z + fish.size.Z / 2 } do
+				local at = entry - heading * z
+				if groundUnder(Vector3.new(at.X, takeoff.Y, at.Z)) ~= nil then
+					open = false
+				end
+			end
+		end
+		if open then
 			local entryVelocity = (heading * far + UP * (a - 2 * c)) / air
 			local line = entryVelocity.Unit
 			-- on under the water along that line: LeapDepth down, never nearer the seabed than 8, nor into a wall
@@ -354,6 +435,7 @@ local function makePlan(
 				length = math.max((wall.Position - entry).Magnitude - 3, 1)
 			end
 			local sink = math.max(d.LeapSink, 0.05)
+			local through = if fish then d.LeapMountedThrough else d.LeapCamThrough
 			local p: Plan = {
 				start = start,
 				ground = ground,
@@ -377,27 +459,37 @@ local function makePlan(
 				sinkLength = length,
 				sink = sink,
 				sinkPower = math.clamp(entryVelocity.Magnitude * sink / length, 1.2, 4),
-				lean = d.LeapLean,
-				flip = d.Flip > 0,
+				lean = if fish then -4 else d.LeapLean,
+				flip = d.Flip > 0 and not fish,
 				camFrom = camFrom,
 				camFov = camFov,
 				waterLine = RideController.waterLine(),
 				keys = {},
 				tEntry = crouchTime + air,
 				tTop = crouchTime + air * a / (2 * c),
-				tFollow = crouchTime + air + math.max(d.LeapCamThrough, 0.05),
+				tFollow = crouchTime + air + math.max(through, 0.05),
+				mounted = fish ~= nil,
+				scale = scale,
+				camScale = if fish then math.max(d.LeapMountedCam, 0.5) * scale ^ 0.7 else 1,
+				dip = if fish then 0.4 else 0.9,
+				centreUp = if fish then (2 - fish.depth) / 2 else 0.6,
+				level = d.LeapMountedLevel,
 			}
-			p.entryTilt = 90 + pathAngle(p, 1)
-			-- the camera's side: the side it is on already, unless the low spot beside the edge is in a wall
-			local onRight = (camFrom.Position - start):Dot(right)
-			p.side = if onRight < 0 then -1 else 1
-			local low = takeoff + right * (p.side * d.LeapCamSide) - heading * d.LeapCamBack
-			low = Vector3.new(low.X, ground + d.LeapCamLow, low.Z)
-			if workspace:Raycast(takeoff + UP * 2, low - (takeoff + UP * 2), params) then
-				p.side = -p.side
+			p.entryTilt = if fish then pathAngle(p, 1) else 90 + pathAngle(p, 1)
+			if not fish or fishClear(p, fish, params) then
+				-- the camera's side: the side it is on already, unless the low spot beside the edge is in a wall
+				local onRight = (camFrom.Position - start):Dot(right)
+				p.side = if onRight < 0 then -1 else 1
+				local low = takeoff
+					+ right * (p.side * d.LeapCamSide * p.camScale)
+					- heading * (d.LeapCamBack * p.camScale)
+				low = Vector3.new(low.X, ground + d.LeapCamLow, low.Z)
+				if workspace:Raycast(takeoff + UP * 2, low - (takeoff + UP * 2), params) then
+					p.side = -p.side
+				end
+				p.keys = cameraKeys(p)
+				return p
 			end
-			p.keys = cameraKeys(p)
-			return p
 		end
 	end
 	return nil
@@ -419,6 +511,7 @@ local freeAt: number? = nil -- the server said we are in the water (Free), and w
 local bodyGoneAt = 0
 local posing = false -- the pose is the dive's
 local popHold = false -- held on through the hop's push
+local seatHoldAt: number? = nil -- (on the ride fish) held seated after the water fish has us, until we are Riding
 local ownPhase, ownTuck = 3, 0
 local entered = false -- the water's moment (the splash, its shake) is past
 local topped = false
@@ -426,6 +519,7 @@ local splashId: number? = nil
 local ownSplashAt = -math.huge
 local armed = true -- a dive may begin: not again until we have stood on something
 local broken = false -- an error: off until the next join, with one warning
+local warmed = false -- (the splash's pool and the bubbles' emitters made ahead)
 local splashBroken = false -- (the splashes' own step failed too, once broken: no more tries)
 -- the camera
 local filming = false
@@ -481,53 +575,123 @@ local function welded(root: BasePart): boolean
 	return false
 end
 
+-- The ride fish a player rides on land (RideService's land fish: workspace.LandFish, its LandRider), nil if none
+local function landFishOf(player: Player): Model?
+	local folder = workspace:FindFirstChild("LandFish")
+	if not folder then
+		return nil
+	end
+	for _, model in folder:GetChildren() do
+		if model:IsA("Model") and model:GetAttribute("LandRider") == player.UserId then
+			return model
+		end
+	end
+	return nil
+end
+
+-- That fish as the leap sees it, from its box as it stands under `root` (nil: no fish, or none yet)
+local function fishOf(player: Player, root: BasePart): Fish?
+	local model = landFishOf(player)
+	if not model or not model.PrimaryPart then
+		return nil
+	end
+	local box, size = model:GetBoundingBox()
+	local low, high = Vector3.one * math.huge, -Vector3.one * math.huge
+	for _, corner in
+		{
+			Vector3.new(-1, -1, -1),
+			Vector3.new(-1, -1, 1),
+			Vector3.new(-1, 1, -1),
+			Vector3.new(-1, 1, 1),
+			Vector3.new(1, -1, -1),
+			Vector3.new(1, -1, 1),
+			Vector3.new(1, 1, -1),
+			Vector3.new(1, 1, 1),
+		}
+	do
+		local at = root.CFrame:PointToObjectSpace(box:PointToWorldSpace(size / 2 * corner))
+		low, high = low:Min(at), high:Max(at)
+	end
+	local length = high.Z - low.Z
+	-- (the rider's head over the saddle is in the box too: the arch over the strip is looked for with it)
+	high = Vector3.new(high.X, math.max(high.Y, 2.5), high.Z)
+	return {
+		rel = CFrame.new((low + high) / 2),
+		size = high - low,
+		length = length,
+		depth = math.max(-low.Y, 0),
+	}
+end
+
 ----------------------------------------------------------------------------------------------------------------------
 -- The pose's phase
 
-local seen: { [Player]: { at: number, phase: number?, tuck: number } } = {}
+-- (each other player's pose as last worked out, and when they were last seen leaping on their ride fish)
+local seen: { [Player]: { at: number, phase: number?, tuck: number, mounted: boolean, leapAt: number } } = {}
 local otherParams = RaycastParams.new()
 otherParams.FilterType = Enum.RaycastFilterType.Exclude
 otherParams.RespectCanCollide = true
 otherParams.IgnoreWater = true
 
-local function otherPhase(player: Player): (number?, number)
+local function otherPhase(player: Player): (number?, number, boolean)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	if not character or not root or not root:IsA("BasePart") then
-		return nil, 0
+		return nil, 0, false
 	end
-	-- (only asked while they are on the dock: AnimController poses anyone else's leap by Dock alone)
+	-- (only asked while they are on the dock: AnimController poses anyone else's leap by Dock alone, or Land)
 	if player:GetAttribute("State") ~= "Dock" then
-		return nil, 0
+		return nil, 0, false
 	end
-	if player:GetAttribute("TankRide") or player:GetAttribute("LandMounted") == true then
-		return nil, 0
+	local mounted = player:GetAttribute("LandMounted") == true
+	if player:GetAttribute("TankRide") or (mounted and Config.Dive.LeapMounted <= 0) then
+		return nil, 0, false
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid and (humanoid.Sit or humanoid.SeatPart) then
-		return nil, 0
+		return nil, 0, false
 	end
 	local dock = dockFrame()
 	if dock and ((root.Position - dock.Position) * FLAT).Magnitude > Config.Oxygen.DockRadius + 90 then
-		return nil, 0
+		return nil, 0, false
 	end
 	local cf = root.CFrame
 	local tilt = math.deg(math.atan2(-cf.LookVector.Y, cf.UpVector.Y))
+	if mounted then
+		-- on their ride fish: its nose up off the edge, over, and down (a gentler tilt than a diver's, through level
+		-- at the top: held on through it for a moment), in the air over the fish's height
+		local was = seen[player]
+		local lately = was ~= nil and os.clock() - was.leapAt < 0.4
+		if math.abs(tilt) < 6 and not lately then
+			return nil, 0, false
+		end
+		local below = (if humanoid then humanoid.HipHeight else 0) + root.Size.Y / 2 + 3
+		otherParams.FilterDescendantsInstances = { character }
+		if workspace:Raycast(root.Position, Vector3.new(0, -below, 0), otherParams) then
+			return nil, 0, false
+		end
+		if root.Position.Y < surfaceY() - 0.5 then
+			return 2.5, 0, true
+		end
+		-- (the arc's way through, from the nose's tilt: about 30 degrees up off the edge, 37 down into the water)
+		local u = (1 + 1.8 * math.tan(math.rad(math.clamp(tilt, -60, 60)))) / 2.35
+		return 1 + 0.98 * math.clamp(u, 0, 1), 0, true
+	end
 	if math.abs(tilt) < 25 then
-		return nil, 0
+		return nil, 0, false
 	end
 	-- (in the air: nothing to stand on within 5 studs under them)
 	otherParams.FilterDescendantsInstances = { character }
 	if workspace:Raycast(root.Position, Vector3.new(0, -5, 0), otherParams) then
-		return nil, 0
+		return nil, 0, false
 	end
 	if root.Position.Y < surfaceY() - 0.5 then
-		return 2.5, 0
+		return 2.5, 0, false
 	elseif tilt < -15 and tilt > -170 then
 		-- past head down and on round: the somersault (Config.Dive.Flip)
-		return 1.5, 1
+		return 1.5, 1, false
 	end
-	return 1.15 + 0.85 * math.clamp((tilt - 20) / 130, 0, 1), 0
+	return 1.15 + 0.85 * math.clamp((tilt - 20) / 130, 0, 1), 0, false
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -557,11 +721,23 @@ local function watch(dt: number)
 				local mine = player == State.Player
 				-- (our own dive's splash is the dive's, at its own moment)
 				local ours = mine and (State.Leaping or os.clock() - ownSplashAt < 2)
+				-- someone on their ride fish (its leap, Config.Dive.LeapMounted, goes in less steeply): by their whole
+				-- speed, and as big as the fish
+				local size = 1
+				if d.LeapMounted > 0 and not ours and player:GetAttribute("LandMounted") == true then
+					speed = math.max(speed, root.AssemblyLinearVelocity.Magnitude)
+					local fish = landFishOf(player)
+					if fish then
+						local length = fish:GetExtentsSize().Z
+						size =
+							math.clamp(length / math.max(d.LeapMountedSize, 1), d.LeapMountedLeast, d.LeapMountedMost)
+					end
+				end
 				if not ours and speed >= d.LeapSplashFrom and (root.Position - eye).Magnitude <= d.LeapSplashFar then
 					local at = Vector3.new(root.Position.X, surface, root.Position.Z)
-					Splash.play(at, root.AssemblyLinearVelocity, powerOf(speed), player.UserId)
+					Splash.play(at, root.AssemblyLinearVelocity, math.min(powerOf(speed) * size, 1), player.UserId)
 					if d.Splash > 0 then
-						Fx.burst(at - UP, math.ceil(d.Splash * (if mine then 1 else 0.5)), 0, d.SplashReach)
+						Fx.burstKept(at - UP, math.ceil(d.Splash * (if mine then 1 else 0.5)), d.SplashReach)
 					end
 				end
 			end
@@ -603,8 +779,12 @@ local function releaseBody(why: string)
 		-- back to the humanoid as it was (in the water RideController holds it out of the way itself)
 		humanoid.PlatformStand = false
 	end
-	posing = why == "hop" and posing
-	popHold = posing
+	-- (the pose is held on through the hop's push; on the ride fish, seated until the water fish's ride is ours:
+	-- the weld can come a moment before the word that we are Riding)
+	local seated = why == "riding" and plan ~= nil and plan.mounted
+	posing = (why == "hop" or seated) and posing
+	popHold = posing and not seated
+	seatHoldAt = if posing and seated then os.clock() else nil
 	event("release", { why = why, depth = if root then surfaceY() - root.Position.Y else 0 })
 end
 
@@ -614,7 +794,7 @@ local function releaseAll(why: string)
 	State.LeapHeading = nil
 	State.LeapSplashed = false
 	releaseCamera(why)
-	posing, popHold = false, false
+	posing, popHold, seatHoldAt = false, false, nil
 	if splashId and heldAt then
 		Splash.release(splashId)
 	end
@@ -633,6 +813,7 @@ local function begin(p: Plan, character: Model, held: number?, leaveCamera: bool
 	body = true
 	posing = true
 	popHold = false
+	seatHoldAt = nil
 	ownPhase, ownTuck = phaseAt(p, held or 0), 0
 	carryFrom = nil
 	freeAt = nil
@@ -666,6 +847,8 @@ local function begin(p: Plan, character: Model, held: number?, leaveCamera: bool
 		held = held ~= nil,
 		high = p.a * p.a / (4 * p.c),
 		far = p.far,
+		mounted = p.mounted,
+		scale = p.scale,
 	})
 end
 
@@ -679,9 +862,11 @@ local function tryStart(force: boolean?)
 	if State.Mode ~= "Dock" or State.Player:GetAttribute("State") ~= "Dock" then
 		return
 	end
+	-- (on the ride fish on land: its own dive, Config.Dive.LeapMounted)
+	local landMounted = State.Player:GetAttribute("LandMounted") == true
 	if
 		State.Player:GetAttribute("TankRide")
-		or State.Player:GetAttribute("LandMounted") == true
+		or (landMounted and Config.Dive.LeapMounted <= 0)
 		or humanoid.Sit
 		or humanoid.SeatPart
 		or humanoid.PlatformStand
@@ -742,7 +927,14 @@ local function tryStart(force: boolean?)
 		local turn = if out:Cross(way).Y > 0 then cone else -cone
 		heading = (CFrame.fromAxisAngle(UP, turn) * out).Unit
 	end
-	local ground = under or (position.Y - 3)
+	local fish: Fish? = nil
+	if landMounted then
+		fish = fishOf(State.Player, root)
+		if not fish then
+			return -- (its model not here yet)
+		end
+	end
+	local ground = under or (position.Y - (if fish then fish.depth else 3))
 	local p = makePlan(
 		position,
 		ground,
@@ -751,7 +943,8 @@ local function tryStart(force: boolean?)
 		speed,
 		crouch,
 		camera.CFrame,
-		camera.FieldOfView
+		camera.FieldOfView,
+		fish
 	)
 	if not p then
 		armed = false -- (in the way of something: an ordinary drop, and no second try on the way down)
@@ -765,7 +958,8 @@ end
 local function enterWater(p: Plan)
 	local d = Config.Dive
 	local at = Vector3.new(p.entry.X, p.surface, p.entry.Z)
-	splashId = Splash.play(at, p.heading, powerOf(p.entryVelocity.Magnitude), 7)
+	-- (on the ride fish: as big as the fish, never past the whole splash)
+	splashId = Splash.play(at, p.heading, math.min(powerOf(p.entryVelocity.Magnitude) * p.scale, 1), 7)
 	ownSplashAt = os.clock()
 	if heldAt then
 		return
@@ -776,11 +970,12 @@ local function enterWater(p: Plan)
 		angle = -pathAngle(p, 1),
 	})
 	if d.Splash > 0 then
-		Fx.burst(at - UP, d.Splash, 0, d.SplashReach)
-		Fx.burst(p.entry + p.line * 3, math.ceil(d.Splash / 2), 0, d.SplashReach / 2)
+		local more = math.min(p.scale, 1.5)
+		Fx.burstKept(at - UP, math.ceil(d.Splash * more), d.SplashReach * more)
+		Fx.burstKept(p.entry + p.line * 3, math.ceil(d.Splash / 2 * more), d.SplashReach / 2 * more)
 	end
 	if d.SplashSound > 0 then
-		Feel.sound("Splash", d.SplashSound, 0.85, 0.9)
+		Feel.sound("Splash", d.SplashSound, 0.95, 2)
 	end
 	if d.Shake > 0 then
 		Shake.play("Land", d.Shake)
@@ -797,6 +992,14 @@ local function bodyFrame(dt: number)
 	-- (the dive's hop reads the water's moment within a second; one it never read is not left for the next drop-in)
 	if State.LeapSplashed and os.clock() - ownSplashAt > 2 then
 		State.LeapSplashed = false
+	end
+	if d.Leap > 0 and not warmed then
+		-- the splash's parts and the bubbles' emitters made ahead, a few a frame, once the leap is on: no dive makes
+		-- or puts away an Instance (the first dive made them all at once)
+		warmed = Splash.prewarm(24)
+		if warmed then
+			Fx.prewarmBursts()
+		end
 	end
 	local p = plan
 	if not p then
@@ -883,6 +1086,17 @@ local function bodyFrame(dt: number)
 		elseif not heldAt and mode == "Dock" and t > p.tEntry + math.max(d.LeapHold, 0.1) then
 			-- under the water and the server never said so: let go
 			releaseBody("timeout")
+		elseif
+			not heldAt
+			and p.mounted
+			and State.Player:GetAttribute("LandMounted") ~= true
+			and root.Position.Y > Config.Oxygen.WaterY
+		then
+			-- (on the ride fish, and it went before the water: the server took it, or it was lost. Not its swap for
+			-- the water fish under the water, which the server makes once we are under WaterY). The whole leap ends,
+			-- as the other early exits: the camera handed back at once, the splashes left to finish
+			releaseAll("fish lost")
+			return
 		elseif not heldAt and (carryFrom or (mode ~= "Dock" and mode ~= "Free")) then
 			-- (and once the hop had begun, its end before the turn was, at once or sent home, lets go too: never back
 			-- to the dive's own path)
@@ -907,6 +1121,13 @@ local function bodyFrame(dt: number)
 			ownPhase, ownTuck = 3, 0
 			if State.Mode ~= "Jumping" or State.JumpPhase ~= "Pop" or State.Reeling then
 				posing, popHold = false, false
+			end
+		elseif seatHoldAt then
+			-- (on the ride fish: seated, tucked, until our mode says Riding and the ride's own pose has us; a second
+			-- at most)
+			ownPhase, ownTuck = 3, 0
+			if State.Mode == "Riding" or now - seatHoldAt > 1 then
+				posing, seatHoldAt = false, nil
 			end
 		else
 			posing = false
@@ -936,7 +1157,7 @@ local function filmAt(p: Plan, t: number, diver: Vector3, planned: Vector3): (CF
 	if lead.Magnitude > most then
 		lead = if most > 0 then lead.Unit * most else Vector3.zero
 	end
-	local centre = diver + UP * 0.6
+	local centre = diver + UP * p.centreUp
 	local toward = centre + lead - at
 	local look = if toward.Magnitude > 0.05 then toward.Unit else p.camFrom.LookVector
 	if t < 0.25 then
@@ -999,7 +1220,15 @@ local function cameraFrame(dt: number)
 			if not heldAt then
 				local here = root.Position
 				local was = diverLast
-				if was and (here - was).Magnitude > 6 then
+				if p.mounted then
+					-- (on the ride fish the swap onto the water fish is a few studs: a cut is a jump past where the
+					-- body was going this frame, by more than 2.5 studs. A diver's test below is plain 6 studs)
+					local going = if was then was + root.AssemblyLinearVelocity * dt else here
+					if was and (here - going).Magnitude > 2.5 then
+						diverOffset += going - here
+						event("cut", { studs = (here - going).Magnitude })
+					end
+				elseif was and (here - was).Magnitude > 6 then
 					diverOffset += was - here
 				end
 				diverLast = here
@@ -1020,7 +1249,7 @@ local function cameraFrame(dt: number)
 			end
 			turnBy = Vector2.zero
 			-- out of the floor and walls: in at once, easing back out
-			local anchor = diver + UP * 0.6
+			local anchor = diver + UP * p.centreUp
 			local arm = view.Position - anchor
 			local hit = if arm.Magnitude > 0.1 then workspace:Raycast(anchor, arm, cameraParams) else nil
 			local free = if hit
@@ -1073,7 +1302,7 @@ local function cameraFrame(dt: number)
 			-- through the surface: a few bubbles by the lens
 			local y = view.Position.Y
 			if camY > p.surface and y <= p.surface and not heldAt then
-				Fx.burst(view.Position + view.LookVector * 1.5, 14, 0, 2.5)
+				Fx.burstKept(view.Position + view.LookVector * 1.5, 14, 2.5)
 			end
 			camY = y
 			if handed then
@@ -1175,41 +1404,44 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- Hooks for other controllers
 
-local function poseNow(player: Player): (number?, number)
+local function poseNow(player: Player): (number?, number, boolean)
 	if player == State.Player then
-		if posing and plan then
-			return ownPhase, ownTuck
+		local p = plan
+		if posing and p then
+			return ownPhase, ownTuck, p.mounted
 		end
-		return nil, 0
+		return nil, 0, false
 	end
 	if Config.Dive.Leap <= 0 or broken then
-		return nil, 0
+		return nil, 0, false
 	end
 	local now = os.clock()
 	local cached = seen[player]
 	if cached and now - cached.at < 0.004 then
-		return cached.phase, cached.tuck
+		return cached.phase, cached.tuck, cached.mounted
 	end
-	local phase, tuck = otherPhase(player)
-	seen[player] = { at = now, phase = phase, tuck = tuck }
-	return phase, tuck
+	local phase, tuck, mounted = otherPhase(player)
+	local leapAt = if phase and mounted then now elseif cached then cached.leapAt else -math.huge
+	seen[player] = { at = now, phase = phase, tuck = tuck, mounted = mounted, leapAt = leapAt }
+	return phase, tuck, mounted
 end
 
 -- The dive's pose for that player now (AnimController, through State.LeapPose): its phase (0 to 1 the crouch, 1 to 2
--- the air, 2 to 3 under the water) and the somersault's tuck (0 to 1); nil when they are not leaping. Guarded as the
--- steps are: an error turns the leap off, and every pose goes on as it was
-function DiveController.poseOf(player: Player): (number?, number)
+-- the air, 2 to 3 under the water), the somersault's tuck (0 to 1), and whether it is the leap on the ride fish (the
+-- rider seated on it: Config.Dive.LeapMounted); nil when they are not leaping. Guarded as the steps are: an error turns
+-- the leap off, and every pose goes on as it was
+function DiveController.poseOf(player: Player): (number?, number, boolean)
 	if broken then
-		return nil, 0
+		return nil, 0, false
 	end
-	local ok, phase, tuck = pcall(poseNow, player)
+	local ok, phase, tuck, mounted = pcall(poseNow, player)
 	if not ok then
 		broken = true
 		warn(`[DiveController] the pose failed, the leap is off until you rejoin: {phase}`)
 		pcall(releaseAll, "error")
-		return nil, 0
+		return nil, 0, false
 	end
-	return phase, tuck
+	return phase, tuck, mounted
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -1227,6 +1459,9 @@ local function lipStart(): (Vector3?, number, Vector3)
 	local height = 3
 	if humanoid and root and humanoid.RigType == Enum.HumanoidRigType.R15 then
 		height = humanoid.HipHeight + root.Size.Y / 2
+	elseif humanoid and root and State.Player:GetAttribute("LandMounted") == true then
+		-- (an R6 rider on the ride fish: its hip height is raised by the fish's depth, over the legs)
+		height = humanoid.HipHeight + root.Size.Y / 2 + 2
 	end
 	local from = dock.Position + UP * 4
 	local floor: number? = nil
@@ -1260,7 +1495,8 @@ end
 -- Test hook: only the Studio checks call this (tools/studio/dive_leap_check.py). Holds the whole dive at dive time
 -- `t` (the arc, the tilt, the pose, the camera and the splash as they are then), begun at the lip, the same every
 -- time; `leaveCamera` leaves the camera alone (for a director's camera). Again with another t to move it; nil to let
--- go. True if it is held.
+-- go. True if it is held. On the ride fish on land, the fish's own dive (Config.Dive.LeapMounted); held under WaterY
+-- the server takes the land fish away, as it would for a real dive.
 function DiveController.hold(t: number?, leaveCamera: boolean?): boolean
 	if t == nil then
 		if plan then
@@ -1284,8 +1520,15 @@ function DiveController.hold(t: number?, leaveCamera: boolean?): boolean
 	if not character or not root or not start then
 		return false
 	end
+	local fish: Fish? = nil
+	if State.Player:GetAttribute("LandMounted") == true and Config.Dive.LeapMounted > 0 then
+		fish = fishOf(State.Player, root)
+		if not fish then
+			return false
+		end
+	end
 	local behind = start - out * Config.Camera.Distance + UP * Config.Camera.Height
-	local p = makePlan(start, floor, out, yawOf(out), 16, true, CFrame.lookAt(behind, start), Config.Camera.Fov)
+	local p = makePlan(start, floor, out, yawOf(out), 16, true, CFrame.lookAt(behind, start), Config.Camera.Fov, fish)
 	if not p then
 		return false
 	end
@@ -1325,6 +1568,13 @@ function DiveController.log(): { [string]: any }
 				speed = p.entryVelocity.Magnitude,
 				angle = -pathAngle(p, 1),
 				sinkLength = p.sinkLength,
+				mounted = p.mounted,
+				scale = p.scale,
+				camScale = p.camScale,
+				high = p.a * p.a / (4 * p.c),
+				far = p.far,
+				air = p.air,
+				entryTilt = p.entryTilt,
 			}
 			else nil,
 	}

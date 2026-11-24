@@ -947,6 +947,72 @@ def gate(out, model):
     return faults
 
 
+# ---------------------------------------------------------------- what lies on the hub wall's first ledge
+# (the user, 2026-11-23: "add some of the littered objects on the first inset of the wall/cliff in the hub. Like in ride a
+# dino"). Theirs: tall lime blades, one or two at a time, and big pale cubes piled off centre, and most of the ledge empty.
+# Ours: sea grass, our own pale stones with a pebble or two, and now and then a few sea pinks on stalks. The pieces stand 2
+# to 4 studs behind the lip and have height, because they are seen from 24 studs below
+LEDGE_GRASS = ((150, 215, 70), (108, 178, 60))
+LEDGE_STONE = ((246, 242, 226), (222, 221, 200))  # paler and warmer than the wall, or they sink into it
+LEDGE_PINK = (230, 190, 218)
+LEDGE_KINDS = ("grass", "stones", "grass", "pinks", "grass", "stones", "grass", "grass", "stones", "pinks")
+LEDGE_EVERY = 25.0
+
+
+def ledge_grass(k, r, deep):
+    for j in range(r.choice((2, 2, 3))):
+        k.beam((-1.8 + j * 2.0 + r.uniform(-0.4, 0.4), -0.2, r.uniform(-0.7, 0.7)), 1.5, r.uniform(5.0, 7.0) if j else r.uniform(9.0, 12.5), 1.5,
+               LEDGE_GRASS[j % 2], roll=r.uniform(-11, 11), pitch=r.uniform(-5, 5), solid=False)
+
+
+def ledge_stones(k, r, deep):
+    """a big block, a smaller one leaning beside it, sometimes a third on top, and pebbles"""
+    s = 5.4 if deep < 12 else r.uniform(7.0, 9.0)
+    k.box(0, -0.2, 0, s, s * r.uniform(0.9, 1.1), s, LEDGE_STONE[0], yaw=r.uniform(-14, 14), tex="stud", solid=False)
+    e = r.choice((-1, 1))
+    k.box(e * s * 0.86, -0.2, -s * 0.1, s * 0.62, s * 0.6, s * 0.62, LEDGE_STONE[1], yaw=r.uniform(-25, 25), tex="stud", solid=False)
+    if r.random() < 0.6:
+        k.box(-e * s * 0.1, s * 0.86, s * 0.06, s * 0.6, s * 0.55, s * 0.6, LEDGE_STONE[1], yaw=r.uniform(10, 35), tex="stud", solid=False)
+    for j in range(r.randint(1, 2)):
+        p = r.uniform(1.4, 2.1)
+        k.box(-e * (s * 0.75 + j * 1.9), -0.1, r.uniform(-0.8, 0.8), p, p, p, LEDGE_STONE[j % 2], yaw=r.uniform(0, 45), solid=False)
+
+
+def ledge_pinks(k, r, deep):
+    for j in range(3):
+        x, z, h = -2.5 + j * 2.5, r.uniform(-0.6, 0.6), (4.6, 6.6, 3.6)[j]
+        t = k.beam((x, -0.2, z), 0.7, h, 0.7, LEDGE_GRASS[1], roll=r.uniform(-8, 8), solid=False)
+        k.box(t[0], t[1] - 0.5, t[2], 2.5, 1.6, 2.5, LEDGE_PINK, yaw=r.uniform(0, 45), solid=False)
+        k.box(t[0], t[1] + 1.0, t[2], 1.0, 0.6, 1.0, (255, 246, 232), solid=False)
+
+
+def ledge_litter(out, hub):
+    """one thing every LEDGE_EVERY studs along the first ledge, give or take, now and then a gap or two close together, each
+    side its own; none where a station, the arch or a palm reaches the ledge"""
+    tall = [p for p in out if "s" in p and p.get("t") != 1 and p["p"][1] + max(p["s"]) / 2 > 18]
+    for side in (-1, 1):
+        r = random.Random(520 + side)
+        walked, due, n = 0.0, r.uniform(6, 16), 0 if side < 0 else 3
+        for piece in (q for q in hub.get("Ledge", ()) if q["Side"] == side):
+            (ax, az), (bx, bz), (ox, oz) = piece["A"], piece["B"], piece["Out"]
+            long = math.dist((ax, az), (bx, bz))
+            while walked <= due < walked + long:
+                t, deep = (due - walked) / long, piece["Deep"]
+                due += LEDGE_EVERY * r.choice((0.45, 0.7, 1.0, 1.4, 1.7))
+                kind = LEDGE_KINDS[n % len(LEDGE_KINDS)]
+                n += 1
+                back = {"grass": r.uniform(2.0, 3.2), "pinks": r.uniform(2.0, 3.0), "stones": 4.0 if deep < 12 else r.uniform(5.5, 7.0)}[kind]
+                t = min(max(t, 0.22), 0.78)  # (off the joints, where a step or a corner may be)
+                x, z = ax + (bx - ax) * t + ox * back, az + (bz - az) * t + oz * back
+                if any(math.hypot(p["p"][0] - x, p["p"][2] - z) < math.hypot(p["s"][0], p["s"][2]) / 2 + 6 for p in tall):
+                    continue
+                if r.random() < 0.1:
+                    continue
+                k = Kit(out, "Dressing/Ledge", (x, piece["Top"], z), math.degrees(math.atan2(-ox, -oz)))
+                {"grass": ledge_grass, "stones": ledge_stones, "pinks": ledge_pinks}[kind](k, r, deep)
+            walked += long
+
+
 # ---------------------------------------------------------------- the whole hub
 NEW_PLOTS = {i: 4 for i in range(1, 9)}  # plot: the level its tank is shown at, until the game's upgrade sets it. All
 # level 4 since 2026-11-17, as the user's copies are (they were 1 to 5, to show the levels)
@@ -1054,6 +1120,7 @@ def build(hub, feet=None):
         buoy(k.sub((sx * (gate_half + 5), FLOOR_Y, front - 3)), RED if sx < 0 else (90, 200, 120))
         # (the gate's palms would stand in the earners board and the sub stand: gone. The back ones stand in the open corners)
         palm(k.sub((sx * 137, FLOOR_Y, -208.0), yaw=sx * 40), r, 1.35)
+    ledge_litter(out, hub)
     return out
 
 

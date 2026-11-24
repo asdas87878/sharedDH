@@ -17,6 +17,15 @@
 --   Getting off: Action "TankRide", "Off" (E again), or anything that ends it (the fish rebuilt by a change to the
 --   tank, a new body, leaving the dock, leaving the game). The rider is put on the floor in front of the tank, facing
 --   it, and the tank's fish are put back in their laps (AquariumService.reshow).
+--   Riding out (the user, 2026-11-23: "you should be able to ride a fish out of your tank as if you took it out";
+--   Config.TankRide.Out, 0 in the file: written, not played): Action "TankRide", "Out", sent by the rider's machine
+--   once they have pushed against the gate's span of the water's front face, outward, for TankRide.OutHold seconds.
+--   Everything is checked first (the dial, a tank ride, its fish's entry still in the tank, room in the hands, the
+--   land ride's own rules); a refusal leaves the tank ride as it was and says why (Ride "Denied", "TankRide", why:
+--   "Off", "Gone", "Hands", "Equip", "Dock", "Again", "Dead", "Busy", "Empty"). Then, in one step: the tank ride ends
+--   with no trip to the front and the fish not put back, the entry is taken out of the tank as "TakeOut" does
+--   (AquariumService.takeOutKey), the rider stands just outside the gate facing out, and that fish is equipped and
+--   ridden on land as Q does (RideService.rideOut). The rider's machine is told "TankDismounted", "Out".
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,6 +43,7 @@ type Ride = {
 	Saddle: Attachment,
 	Water: BasePart,
 	Gone: RBXScriptConnection,
+	Key: string?, -- the ridden fish's entry in the tank (AquariumService.keyOfShown), for riding out
 }
 
 local TankRideService = {}
@@ -184,6 +194,7 @@ local function start(player: Player, fish: any)
 		return
 	end
 	AquariumService.putAway(player) -- (no fish held over the head while riding one)
+	local key = AquariumService.keyOfShown(player, model)
 	-- out of its lap, where every machine shows it now: no machine moves it round any more. It keeps its size
 	local at, look = lapOf(model, fishRoot)
 	CollectionService:RemoveTag(model, AquariumService.Tag)
@@ -241,11 +252,78 @@ local function start(player: Player, fish: any)
 				task.defer(finish, player, false)
 			end
 		end),
+		Key = key,
 	}
 	rides[player] = ride
 	AquariumService.putAway(player) -- (no fish over the head while astride one: grade issue 6)
 	player:SetAttribute("TankRide", true)
-	Net.Ride:FireClient(player, "TankMounted", model, box, half)
+	-- (and, for riding out, the gate: the floor just outside it, and the way out)
+	local spot, way = AquariumService.frontOf(plot)
+	Net.Ride:FireClient(player, "TankMounted", model, box, half, if spot then spot.Position else nil, way)
+end
+
+-- Riding the fish out of the tank through the gate (Config.TankRide.Out), as if it had been taken out and got on
+local function out(player: Player)
+	local ride = rides[player]
+	if not ride then
+		return -- (no tank ride, or this one has already gone out: nothing to do)
+	end
+	local function deny(why: string)
+		Net.Ride:FireClient(player, "Denied", "TankRide", why)
+	end
+	if Config.TankRide.Out == 0 then
+		deny("Off")
+		return
+	end
+	-- everything checked before anything changes
+	local key = ride.Key
+	local why = if key then AquariumService.outRefusal(player, key) else "Gone"
+	if not why then
+		why = RideService.outRefusal(player)
+	end
+	if why then
+		deny(why)
+		return
+	end
+	local root, humanoid = parts(player)
+	local character = player.Character
+	local plot = AquariumService.plotOf(player)
+	local spot: CFrame?, way: Vector3? = nil, nil
+	if plot then
+		spot, way = AquariumService.frontOf(plot)
+	end
+	if not key or not root or not humanoid or not character or not spot or not way then
+		deny("Empty")
+		return
+	end
+	-- (from here on, one step with no yield: the tank one fish fewer and the hands one more, never both or neither)
+	rides[player] = nil
+	ride.Gone:Disconnect()
+	if ride.Weld.Parent then
+		ride.Weld:Destroy()
+	end
+	player:SetAttribute("TankRide", nil)
+	humanoid.PlatformStand = false
+	PropService.riding(character, false)
+	pcall(function()
+		root:SetNetworkOwner(player)
+	end)
+	-- (told first: its camera and keys let go before the land ride's camera reads the zoom)
+	Net.Ride:FireClient(player, "TankDismounted", "Out")
+	-- out of the tank as "TakeOut" does: the fish in the water are shown again without it (the ridden model goes with
+	-- the old ones)
+	local carry = AquariumService.takeOutKey(player, key)
+	-- just outside the gate, on the floor, facing out (frontOf's spot: 8 studs past the water's front face, so past
+	-- the fence that stands 1.6 in front of it)
+	local at = spot.Position + Vector3.new(0, 3, 0)
+	character:PivotTo(CFrame.lookAt(at, at + way))
+	root.AssemblyLinearVelocity = Vector3.zero
+	root.AssemblyAngularVelocity = Vector3.zero
+	if carry then
+		RideService.rideOut(player, carry)
+	else
+		AquariumService.reshow(player) -- (checked above, so never: but no fish is left loose)
+	end
 end
 
 -- Is everyone still riding, and inside their tank
@@ -294,6 +372,8 @@ function TankRideService.Start()
 			start(player, fish)
 		elseif verb == "Off" then
 			finish(player, true)
+		elseif verb == "Out" then
+			out(player)
 		end
 	end)
 	local function watch(player: Player)

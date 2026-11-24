@@ -218,6 +218,9 @@ in place of the old one at x 3000, about 25 minutes. The try at x 14000 is taken
   ![a pen at stage 2 in Play](../attachments/pen-stage2-live.jpg) (The blank boards are the capture's: they are drawn once the player's own
   camera has looked at them, seen in a later capture.)
 - **The user's hand placing after the load (2026-11-23):** Fuse moved by (-19.4, 0, 11.8), the Index station deleted. Kept; don't reset.
+  **Open (2026-11-24, seen by the first-minutes chat):** there the Fuse stands at z -108.9 to -94.4, straight behind the
+  spawn (z -88), so the first camera (about z -100) is inside its big pod: the glowing core and the dark lid fill the new
+  player's first view, and its ring (z -87) lies on the spawn. Proposed: 18 studs straight back (clear to z -145). The user's call.
 
 *(Earlier corrections, all of the first drawing. R, 290 x 196, is dropped: it was said that 230 x 180 does not fit eight pens, without
 drawing it; R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a
@@ -276,6 +279,18 @@ Ranked by what they add for what they cost:
 9. **A shoreline:** foam lapping at the strip's edge and along the walls' feet.
 - Not advised: Roblox's own terrain water. It refracts and has waves, but it can't take our layered look and costs more on
   phones.
+
+## The first ledge's litter (2026-11-23)
+The user: "id like for you to add some of the littered objects on the first inset of the wall/cliff in the hub. Like in
+ride a dino." Theirs: lime blades one or two at a time and big pale cubes piled off centre, with most of the ledge empty.
+Ours (`ledge_litter` in `tools/map/hub_kit.py`): tall sea grass, piles of pale stone with a pebble or two, and a few sea
+pinks on stalks (our own shapes), at uneven gaps of about 25 studs, 2 to 7 studs behind the lip. 136 bricks, one model
+(`Dock/Dressing/Ledge`), none solid. The first try was too small and even from the hub's middle, and its stones too near
+the wall's colour: now a third bigger, warmer and paler. Every piece stands on the ledge (ray, y 24) and touches nothing;
+the Fuse's move and the Index's deletion were kept, because only this model was added:
+`HUB_ONLY=Dressing/Ledge python tools/map/hub_luau.py`, then run `tools/studio/hub_only.luau`.
+
+![Before (left) and after (right)](../attachments/hub-ledge-litter.jpg)
 
 ## Also open
 - **The map's material:** the user found SmoothPlastic better than Plastic in play ("Feels better, is better ... we'll

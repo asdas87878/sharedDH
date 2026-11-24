@@ -670,7 +670,7 @@ function Banners.caught(fishId: string, earns: number?, isNew: boolean?)
 	catchNew.Visible = isNew == true
 	catchChip.Visible = earns ~= nil
 	if earns then
-		catchEarn.Text = "+$" .. (if earns < 100 then string.format("%.1f", earns) else Kit.short(earns)) .. " a second"
+		catchEarn.Text = "+" .. Kit.rate(earns)
 	end
 	-- with a picture the words sit to its right; with none they take the whole plate
 	local pictured = catchPicture.show(fishId)

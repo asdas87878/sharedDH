@@ -572,6 +572,34 @@ local function levelOf(player: Player): number
 	return levels[player] or 1
 end
 
+-- (set in Start once the plots' rides are there: a level set from outside, the seated time settled first and the
+-- player's ride shown at once; nil on a map with no plot rides)
+local relevel: ((player: Player, level: number) -> ())? = nil
+
+-- For saving (src/server/Lib/SaveParts.luau, the UI chat's saving, part "Trainer"): the seahorse's level, 1 to
+-- #Train.Levels (1 from the moment they join). nil while we don't have the player (not joined yet, gone, or no
+-- trainer: Train.On 0). Doesn't yield.
+function TrainService.levelOf(player: Player): number?
+	return levels[player]
+end
+
+-- For saving (SaveParts, part "Trainer", which never lowers it): the level set to `n`, a whole level that exists
+-- (clamped to 1 .. #Train.Levels), no coins taken; the TrainerLevel attribute and the player's ride shown at once, as
+-- after buying a level but without the upgrade's show. False for a player we don't have or a NaN. Doesn't yield.
+function TrainService.setLevel(player: Player, n: number): boolean
+	if levels[player] == nil or type(n) ~= "number" or n ~= n then
+		return false
+	end
+	local level = math.clamp(math.floor(n), 1, #Config.Train.Levels)
+	if relevel then
+		relevel(player, level)
+	else
+		levels[player] = level
+		player:SetAttribute("TrainerLevel", level)
+	end
+	return true
+end
+
 -- Training in whole seconds (task e1): `carry` is the part of a second already seated, `dt` more. Each whole second
 -- it completes gives the level's whole Oxygen (Config.Train.Levels; Rate when there is no such table), never a share
 -- of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
@@ -866,6 +894,23 @@ function TrainService.Start()
 		player:SetAttribute("TrainerLevel", level + 1)
 		show(ride, true)
 		remote:FireClient(player, "Up", level + 1, levelRow(level + 1).Name)
+	end
+
+	-- a level set from outside (TrainService.setLevel, for saving): as upgrade() above, without the price, the checks,
+	-- the upgrade's show or its "Up" banner
+	relevel = function(player: Player, level: number)
+		local seated = riders[player]
+		if seated and seated.Ride then
+			settle(player, seated)
+			seated.Carry = 0
+		end
+		levels[player] = level
+		player:SetAttribute("TrainerLevel", level)
+		local own = player:GetAttribute("Plot")
+		local mine = if type(own) == "string" then rides[own] else nil
+		if mine then
+			show(mine, false)
+		end
 	end
 
 	remote.OnServerEvent:Connect(function(player, what)
