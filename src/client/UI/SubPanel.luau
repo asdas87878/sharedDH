@@ -60,8 +60,8 @@ local SHOTS: { [string]: Vector3 } = {
 	BlueStreak = Vector3.new(-41.68, 17.86, -38.01),
 	TwilightRay = Vector3.new(-45.62, 17.26, -38.69),
 	MidnightHunter = Vector3.new(-41.60, 17.57, -38.24),
-	VentCrawler = Vector3.new(-39.94, 15.36, -41.25),
-	AbyssKing = Vector3.new(-45.65, 19.25, -47.46),
+	VentCrawler = Vector3.new(-44.63, 15.87, -45.34),
+	AbyssKing = Vector3.new(-54.26, 22.32, -53.01),
 }
 -- SHOTS: end
 
