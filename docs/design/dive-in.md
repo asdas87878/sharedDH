@@ -584,25 +584,26 @@ change, not judged by eye.** The partner's first version is extended, not replac
   only the rider's own path, the last with only that it comes down in open water. 386 of the 468 take the first, 18 the
   second or third, 64 the fifth (the first on the rider's path: a tail or fin may pass through a thing), and none a later one.
 - **Camera.** The player's keys, placed on the fish's middle and further back for a long fish, and through the surface after
-  it, as the diver's: **435 of 468 dives keep that beat**. It follows behind the fish, or, if the fish is
-  too long to see past, beside it; where neither has room the camera stays over the water and hands over from there. **33
-  dives stay over** (none under 136 studs long: BlueWhale, HalfboneMegalodon, Megalodon, MoltenMegalodon, Kraken at Giant and
-  up, and 12 other kinds at Huge or Colossal; every one with its reason in [dive-in-fish](dive-in-fish.md)). Behind, the
-  fish's back is over the riding camera's line, so a camera low enough to be under the water would be in the fish; beside,
-  the cove's walls stand between. That is the middle of the lip; **from 30 and 44 studs either side of it all 468 keep the
-  beat**. There, and wherever the rider is over 6 studs off the middle, the camera goes to the middle's side, away from the
-  nearer pillar, unless the player's view is well round on the other side already (a fish's only; the diver's is as it was).
-  Before that rule the gate was between in 281 of 468 dives from 30 studs to one side and 75 from the other; it is 75 (about
-  280 frames) on both now.
+  it, as the diver's: **all 468 dives keep that beat** (from 30 and 44 studs either side of the middle as well, part 6: the gate between in 74 or
+  75 dives there, 271 to 281 frames, at most 7 on end). It follows
+  behind the fish (408), or, where the fish's back is over the riding camera's line so that a camera under the water
+  would be in the fish, from beside it and half as far back (60: 1 Big, 9 Giant, 19 Huge, 31 Colossal, 31 kinds; named in
+  [dive-in-fish](dive-in-fish.md)). If neither had room it would stay over the water; no fish needs that today. The check
+  only asks what the gate and the cove hide, not the fish itself: from beside, a wide fish's own flank may
+  hide part of its rider. Unseen.
+- **The camera's side off the middle.** Wherever the rider is over 6 studs off the middle of the strip, a fish's camera goes
+  to the middle's side, away from the nearer pillar, unless the player's view is well round on the other side already (the
+  diver's is as it was). Before that rule the gate was between in 281 of 468 dives from 30 studs to one side and 75 from the
+  other; it is 75 on both now.
 - **The gate's arch, counted honestly.** From 3 times the diver's distances up (`Config.Dive.LeapMountedAloft`, 316 of the
   468) the camera is not pulled in to what is between it and the rider before the water (0.15 s after it at most): pulling
   in was a jump of up to 196 studs. So the gate's beam or pillars do hide the rider for those frames, and the check
-  counts them whether exempt or not: **81 of 468 dives, 299 frames of 30 a second, at most 7 frames on end** (Tiny 0, Normal
+  counts them whether exempt or not: **81 of 468 dives, 302 frames of 30 a second, at most 7 frames on end** (Tiny 0, Normal
   3, Big 7, Giant 16, Huge 25, Colossal 30; it was 180 dives and 902 frames, by the same count, before the film was planned
   round the gate). What is left is mostly the biggest fish, whose own view at the start is already behind the beam, and 2 to
   5 frames of a beam sweeping by. Nothing is between once it is in the water, and no camera is pulled in or inside the fish.
   The film's rises are worked out by a search for the dives whose rider the gate hides: 131 rays for the middle dive,
-  over 400 for 187 of the 468, 5309 for the worst (BlueWhale), all in the one frame the dive begins. **Not timed in Studio.**
+  over 400 for 183 of the 468, 1812 for the worst (Hellmaw Colossal), all in the one frame the dive begins. **Not timed in Studio.**
   The rider is never further than 0.80 from the view's middle (1 is the edge; AuroraJelly Huge).
 - **The fish's own motion.** Its swim, not a tilt: the land hook (`AnimController.LandHook`) writes the fish's own keyed
   swim and fins (RideStyles) through the dive: its tail lifts as it goes in, and a short one (under 45 studs) arches its back
@@ -624,9 +625,10 @@ change, not judged by eye.** The partner's first version is extended, not replac
 - **Known weak spots.** A long fish's tail is still back of the lip, inside the dock, as it sinks: 47 of 468 (none at
   Tiny or Normal, 12 of them over a tenth of their length; a Blue Whale Huge or Colossal by 40 studs). A box cuts the
   floor on the way out by 10 to 53 studs for AuroraJelly (a box far bigger than the jelly), TheDevourer and AbyssalWatcher
-  at their big sizes. A fish bigger than the gate's arch goes through its beam, as it already does on land. 7 dives have an
-  end of the fish out of the view more than 15% of the frames (Anglerfish Colossal, BlueWhale Tiny and Giant, Hellmaw Normal
-  and Colossal, SkullAngler Giant and Huge; 23% at most).
+  at their big sizes. A fish bigger than the gate's arch goes through its beam, as it already does on land. 6 dives have an
+  end of the fish out of the view more than 15% of the frames (Anglerfish Colossal, BlueWhale Tiny and Giant, Hellmaw Normal,
+  SkullAngler Giant and Huge; 23% at most);
+  the worst end is 46 view-halves out for a moment (Basilosaurus Colossal, at 2.1 s: its tail, as the camera comes round it).
 - **To check it offline:** `python3 tools/dive/lip_boxes.py . /tmp/lip.json`, `rojo build -o /tmp/place.rbxl`,
   `lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json` (exits 1 on any FAIL; parts 1, 3, 4, 5 in a minute
   and a half with a fourth argument of `1345`, part 6 films it off the middle in three more, part 2 is the long one). It reads the map GENERATOR's boxes, not the saved place.

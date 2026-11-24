@@ -313,6 +313,10 @@ local function phaseAt(p: Plan, t: number): number
 	return 2 + math.clamp((t - p.tEntry) / math.max(p.sink, 0.01), 0, 1)
 end
 
+-- A camera following beside a fish is this share of its way back (far back is at the gate, where the cove is narrow: it
+-- opens out with the way the rider goes)
+local BESIDE_BACK = 0.5
+
 -- The camera under the water, following: straight back from the diver the way they went (not up their line, which
 -- held it 4 to 6 studs off and put it through the surface inside the splash) and a little over, never above the riding
 -- camera's line. `diver`: where the body is (the root)
@@ -324,6 +328,9 @@ local function chaseAt(p: Plan, diver: Vector3): Vector3
 		-- (never back over the dock: the floor would be between. A big fish's goes up by what it loses there)
 		local free = math.max(math.min(back, (diver - p.takeoff):Dot(p.heading) - p.edge - 4), 4)
 		back, lost = free, back - free
+		if p.beside ~= 0 then
+			back *= BESIDE_BACK
+		end
 	end
 	local at = diver - p.heading * back + UP * (d.LeapCamFollowUp * p.camScale)
 	if p.aloft then

@@ -14,7 +14,7 @@
 -- usage: python3 tools/dive/lip_boxes.py . /tmp/lip.json
 --        rojo build -o /tmp/place.rbxl
 --        lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json [out.json] [parts, 123456] [paths.json]
---        (part 2 is the long one; "1345" is a minute and a half, "6" five more. paths.json: what tools/dive/dive_picture.py draws)
+--        (part 2 is the long one, 35 minutes; "1345" is a minute and a half, "6" five more. paths.json: what tools/dive/dive_picture.py draws)
 -- It prints FAIL lines and a count at the end, and exits 1 on any.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -354,7 +354,7 @@ do
 	)
 	print(`   over the water to the end: {table.concat(over, ", ")}`)
 	-- (guards, not targets: what it was on 2026-11-24 with a little room, so more is a change to look at)
-	if all.beat < 430 then
+	if all.beat < 460 then
 		fail(`the camera goes under after only {all.beat} of the fish`)
 	end
 	if all.arch > 90 or all.frames > 330 then

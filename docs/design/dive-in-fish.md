@@ -24,55 +24,21 @@ The player's beat is the camera going through the surface after the diver. It is
 | Tiny | 78 of 78 | 0 | 0 | 0 | 0 | 0 | 25 |
 | Normal | 78 of 78 | 0 | 0 | 3 | 13 | 3 | 45 |
 | Big | 78 of 78 | 1 | 0 | 7 | 20 | 4 | 51 |
-| Giant | 73 of 78 | 4 | 5 | 16 | 60 | 5 | 60 |
-| Huge | 67 of 78 | 8 | 11 | 25 | 89 | 5 | 66 |
-| Colossal | 61 of 78 | 14 | 17 | 30 | 117 | 7 | 69 |
+| Giant | 78 of 78 | 9 | 0 | 16 | 62 | 7 | 60 |
+| Huge | 78 of 78 | 19 | 0 | 25 | 89 | 5 | 66 |
+| Colossal | 78 of 78 | 31 | 0 | 30 | 118 | 7 | 69 |
 
-All: 435 of 468 go under after the fish, 33 do not; the gate is between in 81 of 468, 299 frames. In the water nothing is between in any, and the camera is inside no fish's box.
+All: 468 of 468 go under after the fish, 0 do not; the gate is between in 81 of 468, 302 frames. In the water nothing is between in any, and the camera is inside no fish's box.
 
-## The ones that stay over the water
+## The limits: which dives are not quite the diver's
 
-What is in the way of following the fish under. Behind it: its back is over the riding camera's line by that many studs when the chase begins (the camera can't be under the surface without being in the fish). Beside it: what stands between, tried on both sides (Grass and Wall: the cove's own walls, as the fish fills the opening; Gate/Brick: the arch).
+**Stay over the water to the end: 0 of 468**.
 
-| Fish | Size | Long / wide | Behind it | Beside it |
-|---|---|---|---|---|
-| AbyssalWatcher | Huge | 169 / 94 | its back is in the way (1 over the line) | Grass in the way |
-| AbyssalWatcher | Colossal | 173 / 96 | its back is in the way (6 over the line) | Grass in the way |
-| BlueWhale | Giant | 182 / 79 | its back is in the way (35 over the line) | Grass in the way |
-| BlueWhale | Huge | 200 / 87 | its back is in the way (38 over the line) | Grass in the way |
-| BlueWhale | Colossal | 200 / 87 | its back is in the way (38 over the line) | Grass in the way |
-| CoralDragon | Colossal | 200 / 80 | its back is in the way (35 over the line) | Grass in the way |
-| Dunkleosteus | Colossal | 157 / 73 | its back is in the way (11 over the line) | Grass in the way |
-| GalleonWhale | Huge | 196 / 76 | its back is in the way (33 over the line) | Grass in the way |
-| GalleonWhale | Colossal | 200 / 78 | its back is in the way (34 over the line) | Grass in the way |
-| HalfboneMegalodon | Giant | 148 / 96 | its back is in the way (27 over the line) | Grass in the way |
-| HalfboneMegalodon | Huge | 148 / 96 | its back is in the way (27 over the line) | Grass in the way |
-| HalfboneMegalodon | Colossal | 148 / 96 | its back is in the way (27 over the line) | Grass in the way |
-| Helicoprion | Colossal | 167 / 71 | its back is in the way (31 over the line) | Wall in the way |
-| HellfinShark | Colossal | 177 / 88 | its back is in the way (34 over the line) | Grass in the way |
-| Hellmaw | Huge | 136 / 78 | its back is in the way (36 over the line) | Grass in the way |
-| Hellmaw | Colossal | 168 / 96 | its back is in the way (44 over the line) | Grass in the way |
-| Kraken | Giant | 163 / 81 | its back is in the way (24 over the line) | Grass in the way |
-| Kraken | Huge | 194 / 96 | its back is in the way (28 over the line) | Grass in the way |
-| Kraken | Colossal | 194 / 96 | its back is in the way (28 over the line) | Grass in the way |
-| Megalodon | Giant | 143 / 92 | its back is in the way (13 over the line) | Grass in the way |
-| Megalodon | Huge | 150 / 96 | its back is in the way (26 over the line) | Grass in the way |
-| Megalodon | Colossal | 150 / 96 | its back is in the way (26 over the line) | Grass in the way |
-| MoltenMegalodon | Giant | 150 / 96 | its back is in the way (21 over the line) | Grass in the way |
-| MoltenMegalodon | Huge | 150 / 96 | its back is in the way (21 over the line) | Grass in the way |
-| MoltenMegalodon | Colossal | 150 / 96 | its back is in the way (21 over the line) | Grass in the way |
-| Mosasaurus | Colossal | 200 / 79 | its back is in the way (12 over the line) | Grass in the way |
-| PhantomWhale | Huge | 200 / 83 | its back is in the way (7 over the line) | Grass in the way |
-| PhantomWhale | Colossal | 200 / 83 | its back is in the way (7 over the line) | Grass in the way |
-| Shonisaurus | Colossal | 200 / 78 | its back is in the way (7 over the line) | Grass in the way |
-| TheDevourer | Huge | 200 / 82 | its back is in the way (18 over the line) | Grass in the way |
-| TheDevourer | Colossal | 200 / 82 | its back is in the way (18 over the line) | Grass in the way |
-| VoidWhale | Huge | 200 / 86 | its back is in the way (18 over the line) | Grass in the way |
-| VoidWhale | Colossal | 200 / 86 | its back is in the way (18 over the line) | Grass in the way |
+Followed from beside and not from behind (from behind, the fish's back is over the riding camera's line, so a camera under the water would be in the fish): Big: BlueWhale; Giant: BlueWhale, HalfboneMegalodon, Kraken, Megalodon, MoltenMegalodon, Mosasaurus, PhantomWhale, StormSerpent, VoidWhale; Huge: AbyssalWatcher, BlueWhale, BoneLeviathan, CoralDragon, EmberSerpent, GalleonWhale, HalfboneMegalodon, Hellmaw, KelpWyrm, Kraken, LanternLeviathan, Megalodon, MoltenMegalodon, Mosasaurus, PhantomWhale, Shonisaurus, StormSerpent, TheDevourer, VoidWhale; Colossal: AbyssalWatcher, Basilosaurus, BlueWhale, BobbitWorm, BoneLeviathan, BrimstoneEel, CoralDragon, Dakosaurus, Dunkleosteus, EmberSerpent, GalleonWhale, HalfboneMegalodon, Helicoprion, HellfinShark, Hellmaw, KelpWyrm, Kraken, LanternLeviathan, Livyatan, Megalodon, MoltenMegalodon, Mosasaurus, Orca, PearlSerpent, PhantomWhale, Shonisaurus, StormSerpent, TheDevourer, VoidWhale, WraithEel, Xiphactinus.
 
 ## Where the gate is between
 
-Frames of 30 a second, from 0.1 s to the water: AuroraJelly Normal 7 of 56, BlueWhale Normal 3 of 65, TheDevourer Normal 3 of 73, AbyssalWatcher Big 3 of 65, BlueWhale Big 4 of 65, HalfboneMegalodon Big 1 of 65, Kraken Big 3 of 65, MoltenMegalodon Big 1 of 65, TheDevourer Big 4 of 65, VoidWhale Big 4 of 59, AbyssalWatcher Giant 3 of 73, BlueWhale Giant 5 of 73, EmberSerpent Giant 5 of 59, GalleonWhale Giant 4 of 65, HalfboneMegalodon Giant 3 of 65, Hellmaw Giant 3 of 65, InfernalAngler Giant 2 of 70, Kraken Giant 5 of 73, Kronosaurus Giant 4 of 73, Livyatan Giant 4 of 73, Megalodon Giant 3 of 65, MoltenMegalodon Giant 3 of 65, Mosasaurus Giant 4 of 65, PhantomWhale Giant 4 of 65, Shonisaurus Giant 4 of 73, VoidWhale Giant 4 of 65, Anomalocaris Huge 3 of 73, Basilosaurus Huge 5 of 73, BlueWhale Huge 4 of 73, CoralDragon Huge 4 of 65, Dunkleosteus Huge 4 of 65, Elasmosaurus Huge 3 of 65, EmberSerpent Huge 4 of 65, GalleonWhale Huge 4 of 73, HalfboneMegalodon Huge 3 of 65, Helicoprion Huge 3 of 65, HellfinShark Huge 3 of 65, Hellmaw Huge 3 of 73, InfernalAngler Huge 5 of 73, Kraken Huge 2 of 73, Kronosaurus Huge 3 of 73, Liopleurodon Huge 4 of 73, Livyatan Huge 4 of 59, Megalodon Huge 3 of 65, MoltenMegalodon Huge 3 of 65, Mosasaurus Huge 4 of 59, Orca Huge 3 of 65, PhantomWhale Huge 4 of 65, Shonisaurus Huge 4 of 65, VoidWhale Huge 4 of 65, Xiphactinus Huge 3 of 65, Anomalocaris Colossal 3 of 65, BlueWhale Colossal 4 of 73, CoralDragon Colossal 3 of 73, Dakosaurus Colossal 5 of 59, Dunkleosteus Colossal 5 of 65, Elasmosaurus Colossal 4 of 65, EmberSerpent Colossal 4 of 65, GalleonWhale Colossal 7 of 73, GoliathGrouper Colossal 6 of 65, GreatWhite Colossal 4 of 65, HalfboneMegalodon Colossal 3 of 65, Helicoprion Colossal 4 of 73, HellfinShark Colossal 4 of 73, Hellmaw Colossal 4 of 73, KelpWyrm Colossal 4 of 65, Kraken Colossal 2 of 73, Kronosaurus Colossal 3 of 73, Liopleurodon Colossal 4 of 65, Livyatan Colossal 3 of 65, Megalodon Colossal 3 of 65, MoltenMegalodon Colossal 3 of 65, Mosasaurus Colossal 3 of 65, Orca Colossal 4 of 65, PearlSerpent Colossal 4 of 65, PhantomWhale Colossal 4 of 65, Shonisaurus Colossal 4 of 65, SkullAngler Colossal 5 of 73, StellersSeaCow Colossal 4 of 65, VoidWhale Colossal 4 of 65, Xiphactinus Colossal 3 of 65.
+Frames of 30 a second, from 0.1 s to the water: AuroraJelly Normal 7 of 56, BlueWhale Normal 3 of 65, TheDevourer Normal 3 of 73, AbyssalWatcher Big 3 of 65, BlueWhale Big 4 of 65, HalfboneMegalodon Big 1 of 65, Kraken Big 3 of 65, MoltenMegalodon Big 1 of 65, TheDevourer Big 4 of 65, VoidWhale Big 4 of 59, AbyssalWatcher Giant 3 of 73, BlueWhale Giant 5 of 73, EmberSerpent Giant 5 of 59, GalleonWhale Giant 4 of 65, HalfboneMegalodon Giant 3 of 65, Hellmaw Giant 3 of 65, InfernalAngler Giant 2 of 70, Kraken Giant 5 of 73, Kronosaurus Giant 4 of 73, Livyatan Giant 4 of 73, Megalodon Giant 3 of 65, MoltenMegalodon Giant 3 of 65, Mosasaurus Giant 7 of 65, PhantomWhale Giant 3 of 65, Shonisaurus Giant 4 of 73, VoidWhale Giant 4 of 65, Anomalocaris Huge 3 of 73, Basilosaurus Huge 5 of 73, BlueWhale Huge 4 of 73, CoralDragon Huge 4 of 65, Dunkleosteus Huge 4 of 65, Elasmosaurus Huge 3 of 65, EmberSerpent Huge 4 of 65, GalleonWhale Huge 4 of 73, HalfboneMegalodon Huge 3 of 65, Helicoprion Huge 3 of 65, HellfinShark Huge 3 of 65, Hellmaw Huge 3 of 73, InfernalAngler Huge 5 of 73, Kraken Huge 2 of 73, Kronosaurus Huge 3 of 73, Liopleurodon Huge 4 of 73, Livyatan Huge 4 of 59, Megalodon Huge 3 of 65, MoltenMegalodon Huge 3 of 65, Mosasaurus Huge 4 of 59, Orca Huge 3 of 65, PhantomWhale Huge 4 of 65, Shonisaurus Huge 4 of 65, VoidWhale Huge 4 of 65, Xiphactinus Huge 3 of 65, Anomalocaris Colossal 3 of 65, BlueWhale Colossal 4 of 73, CoralDragon Colossal 3 of 73, Dakosaurus Colossal 4 of 59, Dunkleosteus Colossal 5 of 65, Elasmosaurus Colossal 4 of 65, EmberSerpent Colossal 4 of 65, GalleonWhale Colossal 7 of 73, GoliathGrouper Colossal 6 of 65, GreatWhite Colossal 4 of 65, HalfboneMegalodon Colossal 3 of 65, Helicoprion Colossal 4 of 73, HellfinShark Colossal 4 of 73, Hellmaw Colossal 4 of 73, KelpWyrm Colossal 4 of 65, Kraken Colossal 2 of 73, Kronosaurus Colossal 3 of 73, Liopleurodon Colossal 4 of 65, Livyatan Colossal 3 of 65, Megalodon Colossal 3 of 65, MoltenMegalodon Colossal 3 of 65, Mosasaurus Colossal 5 of 65, Orca Colossal 4 of 65, PearlSerpent Colossal 4 of 65, PhantomWhale Colossal 4 of 65, Shonisaurus Colossal 4 of 65, SkullAngler Colossal 5 of 73, StellersSeaCow Colossal 4 of 65, VoidWhale Colossal 4 of 65, Xiphactinus Colossal 3 of 65.
 
 ## By fish
 
