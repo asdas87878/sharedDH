@@ -9,6 +9,7 @@
 --            given back on the dock only: a max that jumps in the water would turn the ridden fish angry
 --   Trainer  the seahorse's level (TrainService.levelOf, setLevel)
 --   Sub      the subs bought and the one equipped (SubService.tierOf, equipOf, setSub)
+--   Aura     the aura owned and worn (AuraService.tierOf, setTier); never lowered
 --   Best     the furthest they have been (BestService's two attributes, which are where it keeps them)
 -- ON is the switch, off until it has been checked: off, nothing is saved and nothing can be bought (PurchaseService
 -- gives nothing without a save). In Studio the workspace's "SaveOn" attribute, set before Play, turns it on.
@@ -19,6 +20,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config) :: any
 local Services = script.Parent.Parent.Services
 local AquariumService = require(Services.AquariumService) :: any
+local AuraService = require(Services.AuraService) :: any
 local RideService = require(Services.RideService) :: any
 local SubService = require(Services.SubService) :: any
 local TrainService = require(Services.TrainService) :: any
@@ -67,6 +69,7 @@ local NEEDS = {
 	{ "RideService", RideService, { "trainedOxygen", "setTrainedOxygen", "grantOxygen", "carried" } },
 	{ "TrainService", TrainService, { "levelOf", "setLevel" } },
 	{ "SubService", SubService, { "tierOf", "equipOf", "setSub" } },
+	{ "AuraService", AuraService, { "tierOf", "setTier" } },
 } :: { { any } }
 
 local function missing(): string?
@@ -123,6 +126,14 @@ function SaveParts.join(part: Join)
 	end, function(player, kept)
 		if kept.Tier > (SubService.tierOf(player) or 0) then
 			assert(SubService.setSub(player, kept.Tier, kept.Equip) == true, "the sub was not given back")
+		end
+	end)
+	part("Aura", function(player)
+		local tier = AuraService.tierOf(player)
+		return if tier then { Tier = tier } else nil
+	end, function(player, kept)
+		if kept.Tier > (AuraService.tierOf(player) or 0) then
+			assert(AuraService.setTier(player, kept.Tier) == true, "the aura was not given back")
 		end
 	end)
 	part("Best", function(player)

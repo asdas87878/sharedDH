@@ -220,7 +220,7 @@ The reference sells a $300 machine, then a $100 aura, by about 2:45. **Ours has 
 already given, its next is **15,000**, the tank's first stage 1M, the submarine free. At 2 to 2.6 coins a second a fish, seven
 Shallows fish earn about 15, so 15,000 is **about 17 minutes**; seven Coral Reef Uncommons earn about 95, so under 3. The
 accepted economy draft ([progression](progression.md), "draft 2") has the reference's answer: a **$100 aura at about 1 minute**.
-**It is drafted, not built:** `Shared/Auras` has no prices and the server doesn't listen for the buy (the game-code chat has already asked
+*(Built 2026-11-24: auras are bought at the stall, the first for $100; step 8 of the lesson is still not built.)* **It was drafted, not built:** `Shared/Auras` has no prices and the server doesn't listen for the buy (the game-code chat has already asked
 whether to build it). Turning it on at the draft's price is the one piece that gives this game a first purchase, and changes no agreed number. One Clownfish earns
 100 coins in 50 seconds, three fish in about 17, so it arrives while they sit on the seahorse (33 seconds at 2 to 6 a second is 66 to 200 coins).
 

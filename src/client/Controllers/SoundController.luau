@@ -31,6 +31,8 @@ local HEARD: { [string]: string } = {
 	PlotNo = "No",
 	SubBought = "Up",
 	SubDenied = "No",
+	AuraBought = "Up",
+	AuraDenied = "No",
 }
 
 local group: SoundGroup

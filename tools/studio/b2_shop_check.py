@@ -385,9 +385,9 @@ def check():
     note("open auras: " + a)
     r = do("auras")
     note("auras: " + r)
-    expect("the shop opens at the Auras page: 12 cards, two tabs, every price SOON",
+    expect("the shop opens at the Auras page: 12 cards, two tabs, every aura priced (2026-11-24: on sale)",
            kv(a, "open") == "Auras" and kv(r, "enabled") == "true" and kv(r, "cards") == "12"
-           and kv(r, "soon") == "12" and kv(r, "tabs") == "2", r)
+           and kv(r, "soon") == "0" and kv(r, "tabs") == "2", r)
     time.sleep(0.5)
     scene("auras")
     note(do("wear|3"))

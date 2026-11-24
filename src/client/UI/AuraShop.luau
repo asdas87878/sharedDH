@@ -5,20 +5,21 @@
 -- stands corresponding to them in game"; Controllers/StallController), with the dim behind it.
 -- What it shows: the twelve auras (Shared/Auras.Tiers) as tall cards in a sideways row, each tinted in its aura's own
 -- colour: its name, "Lvl n", its icon in the cream well (the fish rider in a flame that grows with the tier: Hugo,
--- 2026-11-24, "fish rider"; art/ui/auras, tools/ui/aura_icons/build.py; a glow of its colours where the pictures aren't
--- there), "x2 Oxygen" with the multiplier in green, and
+-- 2026-11-24, "fish rider"; art/ui/auras, tools/ui/aura_icons/build.py; a plain glow of its colour where the picture isn't
+-- there: the bubbles that stood behind it are gone, Hugo, 2026-11-24), "x2 Oxygen" with the multiplier in green, and
 -- one button: the cash price. (The Robux button is built but kept hidden: no product ids exist and none are made up,
 -- and two dead SOON buttons on a card read as a mistake.) The player's own "Aura" attribute shows as EQUIPPED, with
 -- the light border; the ones under it as OWNED.
--- BUYING IS NOT ON YET: auras have no prices and the server has no aura purchase (Shared/Auras: "buying waits for the
--- economy's prices"), so every cash button says SOON and asks nothing. The hook-up is ready on this side: once a tier
--- in Shared/Auras carries a `Price` (coins), its card shows it (green when the player's "Coins" cover it and it is the
--- next aura, grey otherwise) and a press asks the server Action "AuraBuy", tier. The server must then check the
--- price and the order itself, take the coins and set the player's "Aura" attribute; nothing here is trusted.
+-- Buying (2026-11-24, Hugo: "make sure you can buy them"): the prices are Config.Aura.Prices (SOON while Config.Aura.On is
+-- 0), bought one after another. A press asks the server, Action "AuraBuy", tier; AuraService checks and takes everything
+-- and answers on Ride ("AuraBought", "AuraDenied"), said on this window's hint line (the sounds: SoundController). The next
+-- aura is green with the coins for it, grey without; nothing here is trusted.
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Auras = require(ReplicatedStorage.Shared.Auras)
+local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
 local Kit = require(script.Parent.Kit)
@@ -32,7 +33,7 @@ local CARD_W, CARD_H = 196, 404
 
 -- The icons' picture (4 across, 3 down, 256 pixels each, by tier). Uploaded id: empty until the user says yes to the
 -- upload. Studio reads the local copy (tools/ui/aura_icons/build.py --studio); a live game before that, or a PC without
--- the copy, shows the swatch.
+-- the copy, shows the glow.
 local ICONS = ""
 local ICONS_STUDIO = "rbxasset://textures/ridefish/aura_icons_e1.png"
 local ICON_CELL, ICON_COLS = 256, 4
@@ -40,81 +41,68 @@ local ICON_SIZE = 180 -- as wide as the well
 
 local window: Shop.Window? = nil
 local carousel: Shop.Carousel
-type Row = { Card: Shop.Card, Cash: Shop.Button, Robux: Shop.Button }
+type Row = { Card: Shop.Card, Cash: Shop.Button, Robux: Shop.Button, Can: boolean }
 local rows: { [number]: Row } = {}
+local hintText: TextLabel
+local hintRun = 0
+local HINT = Color3.fromRGB(255, 226, 80)
+local askedAt = -math.huge
 
 local function hex(c: Color3): string
 	return string.format("#%02X%02X%02X", c.R * 255, c.G * 255, c.B * 255)
 end
 
--- An aura's stand-in picture, where its icon isn't there: a glow of its two colours with bubbles round it
-local function swatch(parent: Frame, tier: any): Frame
-	local well: Frame = Kit.new("Frame", {
-		Name = "Swatch",
+-- Where an aura's icon isn't there: a plain glow of its colour
+local function glow(well: Frame, tier: any)
+	if well:FindFirstChild("Glow") then
+		return
+	end
+	local holder: Frame = Kit.new("Frame", {
+		Name = "Glow",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		ZIndex = 4,
-	}, parent)
-	for i, step in { { 0.96, 0.6 }, { 0.74, 0.35 }, { 0.5, 0.05 } } do
+	}, well)
+	for i, step in { { 0.88, 0.6 }, { 0.68, 0.35 }, { 0.46, 0.05 } } do
 		local disc = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.52),
-			Size = UDim2.fromScale(step[1] * 0.92, step[1] * 0.92),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(step[1], step[1]),
 			BackgroundColor3 = Kit.White,
 			BackgroundTransparency = step[2],
 			BorderSizePixel = 0,
 			ZIndex = 4 + i,
-		}, well)
+		}, holder)
 		Kit.corner(disc, 999)
 		Kit.new("UIAspectRatioConstraint", { AspectRatio = 1 }, disc)
 		Kit.gradient(disc, tier.Second, tier.Main)
 	end
-	for _, b in { { 0.18, 0.3, 14 }, { 0.82, 0.24, 18 }, { 0.2, 0.78, 10 }, { 0.8, 0.74, 12 }, { 0.5, 0.12, 9 } } do
-		local bubble = Kit.bubble(well, b[3])
-		bubble.AnchorPoint = Vector2.new(0.5, 0.5)
-		bubble.Position = UDim2.fromScale(b[1], b[2])
-		bubble.ZIndex = 8
-	end
-	Shop.icon(well, "Bubble", 76, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		ZIndex = 9,
-	})
-	return well
 end
 
--- An aura's icon in its card's well; the swatch until it has loaded (so a missing picture leaves the swatch)
-local function icon(well: Frame, tier: any)
-	local stand = swatch(well, tier)
-	local image = if ICONS ~= "" then ICONS elseif RunService:IsStudio() then ICONS_STUDIO else ""
-	if image == "" then
-		return
+-- An aura's icon in its card's well; the glow only where there is no picture, never behind one
+local function icon(well: Frame, tier: any, missing: boolean)
+	if missing then
+		return glow(well, tier)
 	end
 	local at = tier.Id - 1
-	local picture: ImageLabel = Kit.new("ImageLabel", {
+	Kit.new("ImageLabel", {
 		Name = "Icon",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(ICON_SIZE, ICON_SIZE),
 		BackgroundTransparency = 1,
-		Image = image,
+		Image = if ICONS ~= "" then ICONS else ICONS_STUDIO,
 		ImageRectOffset = Vector2.new(at % ICON_COLS, at // ICON_COLS) * ICON_CELL,
 		ImageRectSize = Vector2.new(ICON_CELL, ICON_CELL),
 		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 10,
 	}, well)
-	local function look()
-		stand.Visible = not picture.IsLoaded
-	end
-	picture:GetPropertyChangedSignal("IsLoaded"):Connect(look)
-	look()
 end
 
--- A tier's price in coins, when the economy has given it one (Shared/Auras has none yet: see the head note)
+-- A tier's price in coins (nil: not for sale)
 local function priceOf(id: number): number?
-	local tier: any = Auras.Tiers[id]
-	local price = tier and tier.Price
-	return if type(price) == "number" then price else nil
+	local price = Config.Aura.Prices[id]
+	return if Config.Aura.On ~= 0 and type(price) == "number" then price else nil
 end
 
 local function wornNow(): number
@@ -128,6 +116,7 @@ local function refresh()
 	local have = if type(coins) == "number" then coins else 0
 	for id, row in rows do
 		row.Card.select(id == now)
+		row.Can = false
 		local price = priceOf(id)
 		if id == now then
 			row.Cash.set("Equipped", "Blue", false)
@@ -136,15 +125,46 @@ local function refresh()
 			row.Cash.set("Owned", "Off", false)
 			row.Robux.Root.Visible = false
 		elseif price then
-			-- bought one after another: only the next one is live, and only with the coins for it
-			local can = id == now + 1 and have >= price
-			row.Cash.set(Shop.cash(price), if can then "Cash" else "Off", can)
+			-- bought one after another: the next one is green with the coins for it. The rest are grey but still ask:
+			-- the server says why not
+			row.Can = id == now + 1 and have >= price
+			row.Cash.set(Shop.cash(price), if row.Can then "Cash" else "Off", true)
 			row.Robux.Root.Visible = false
 		else
-			-- no prices yet: both dead (the economy draft decides them)
+			-- not for sale (Config.Aura.On 0): both dead
 			row.Cash.set("Soon", "Off", false)
 			row.Robux.Root.Visible = false
 		end
+	end
+end
+
+-- What the server said, a moment on the window's lower edge
+local function hint(text: string)
+	hintText.Text = text
+	hintText.Visible = true
+	hintRun += 1
+	local run = hintRun
+	task.delay(2.2, function()
+		if run == hintRun then
+			hintText.Visible = false
+		end
+	end)
+end
+
+local function answered(kind: string, a: any)
+	if kind == "AuraBought" then
+		local tier = Auras.Tiers[a]
+		hint(if tier then `{string.upper(tier.Name)} AURA bought and put on! x{tier.Mult} Oxygen` else "Bought!")
+	elseif kind == "AuraDenied" then
+		local nextOne = Auras.Tiers[wornNow() + 1]
+		hint(
+			if a == "Coins"
+				then "Not enough coins!"
+				elseif a == "Order" and nextOne then `Buy the {nextOne.Name} Aura first!`
+				elseif a == "Dock" then "Only at the aura stall!"
+				elseif a == "Busy" then "One at a time!"
+				else "Can't do that"
+		)
 	end
 end
 
@@ -170,6 +190,8 @@ local function build()
 		Gap = 12,
 		Kind = "Lavender",
 	})
+	local missing = ICONS == "" and not RunService:IsStudio()
+	local wells: { [number]: Frame } = {}
 	for _, tier in Auras.Tiers do
 		local c = Shop.card(carousel.List, {
 			Name = "Aura" .. tier.Id,
@@ -182,7 +204,8 @@ local function build()
 			SlotHigh = 46,
 			LayoutOrder = tier.Id,
 		})
-		icon(c.Well, tier)
+		icon(c.Well, tier, missing)
+		wells[tier.Id] = c.Well
 		local cash = Shop.button(c.Slot, {
 			Name = "Cash",
 			Kind = "Off",
@@ -190,7 +213,10 @@ local function build()
 			TextSize = 26,
 			LayoutOrder = 1,
 			Live = false,
-			Shine = true, -- (live only as the next aura with the coins for it: refresh)
+			Shine = function(): boolean
+				local row = rows[tier.Id]
+				return row ~= nil and row.Can
+			end,
 		})
 		local robux = Shop.button(c.Slot, {
 			Name = "Robux",
@@ -200,11 +226,47 @@ local function build()
 			TextSize = 22,
 			LayoutOrder = 2,
 		})
-		rows[tier.Id] = { Card = c, Cash = cash, Robux = robux }
+		rows[tier.Id] = { Card = c, Cash = cash, Robux = robux, Can = false }
 		cash.Root.Activated:Connect(function()
-			-- (live only as the next aura with a price and the coins for it: refresh)
-			if cash.Live and priceOf(tier.Id) and tier.Id == wornNow() + 1 then
+			-- (not one owned, and one ask at a time)
+			if
+				cash.Live
+				and priceOf(tier.Id)
+				and tier.Id > wornNow()
+				and os.clock() - askedAt >= Config.Aura.BuyAgain
+			then
+				askedAt = os.clock()
 				Net.Action:FireServer("AuraBuy", tier.Id)
+			end
+		end)
+	end
+	hintText = Shop.text(w.Root, {
+		Name = "Hint",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(700, 40),
+		Position = UDim2.new(0.5, 0, 0.5, HIGH / 2 + 4),
+		TextSize = 30,
+		TextColor3 = HINT,
+		Visible = false,
+	})
+	hintText.ZIndex = 20
+	Net.Ride.OnClientEvent:Connect(answered)
+	if not missing then
+		-- a picture that isn't there (a PC without the local copy): the glow
+		task.spawn(function()
+			local failed = false
+			pcall(function()
+				ContentProvider:PreloadAsync(
+					{ if ICONS ~= "" then ICONS else ICONS_STUDIO } :: { any },
+					function(_id, status)
+						failed = failed or status == Enum.AssetFetchStatus.Failure
+					end
+				)
+			end)
+			if failed then
+				for id, well in wells do
+					glow(well, Auras.Tiers[id])
+				end
 			end
 		end)
 	end

@@ -3,6 +3,27 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-24 · Auras: the flame, buying, the prices, no bubbles behind the cards (NULLROOM a1, Hugo's PC)
+**State:** the branch `aura-build` (from `d7c958b`), committed, **not pushed, not seen in Studio, not played**. Nothing is
+uploaded to Roblox. Everything is in [auras](design/auras.md), "Built".
+- **For the tuning chat, the price change (yours to change):** draft 2's ladder ($100, $5K, $75K, $1.5M, $30M, $750M, $20B,
+  $500B, $12.5T, $300T, $5Qa, $100Qa) is replaced by $100, $2K, $40K, $800K, $15M, $300M, $6B, $120B, $2.5T, $50T, $1Qa,
+  $20Qa in `Config.Aura.Prices`. Why, and the table beside the seahorse, the subs and the stages:
+  [progression](design/progression.md), "The aura prices". `rad_economy.py` reads Config now
+  (`--prices --hours 90`; `--draft2-auras` for the old ladder). Land 10 moves from 21.9 h to 21.2 h. **Not re-run: the packs;**
+  Ember is $2.5T now, and the $75T pack was fitted to it at $12.5T.
+- **The server** (`AuraService`): the next tier only, on the dock, near the stall's ring, price taken once, saved part "Aura"
+  (saving still off), worn at once. The aura multiplies `TrainService.gain` only; the upgrade sign shows it.
+- **The flame** (`Shared/AuraFlame`, `Lib/AuraBeams`, `AuraController`): `Config.Aura.Flame` 0 is the old look. **A live game
+  draws the old look until the six pictures in `art/ui/aura_flame` are uploaded** (Hugo's yes) and their ids are in
+  `Auras.Pictures`. Studio needs `python tools/auras/flame_pics.py` and a restart.
+- **The shop** (`AuraShop`): the stand-in bubbles that sat behind every picture are gone (found by the entry below), prices
+  and refusals shown. Tiers 2 and 10 are called Shell and Urchin now, with the pictures' colours.
+- **Checked offline:** `tools/auras/aura_test.luau` 61 of 61, StyLua, selene, the type checker on the changed files, a Rojo build.
+- **Owed in Studio:** `python tools/studio/aura_check.py run` (its head says how), then "Check in Studio first" in the note:
+  which way the Beams' pictures run (`Aura.Turn`, `Scroll`), what is behind the body (`Behind`), the bends' joints, frame rate.
+- **Not mine:** `tools/index/index_test.luau` fails 3 checks on `d7c958b` too (the land-set reward was retuned there).
+
 ## 2026-11-24 · Subs 8A and 9A, the screw's bubble trail, merged with the second hunt's fixes (NULLROOM s2, Hugo's PC)
 **State:** pushed, main `8f82bd3` (the branch `subs-8a-9a-bubbles` merged with the partner's `9b25376`; the auto-push sent it at
 18:41). `python tools/studio/full_check.py all` on it at 18:45: all good, no errors, the place equal to the repo before and after.

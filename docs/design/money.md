@@ -46,6 +46,8 @@
   plainly wrong and no amount or price changed. The Oxygen packs hold the same lands. $75T takes land 9 to 10 from 11.7 to
   4.6 h with auras, 38.5 to 22.8 h without (the game today). All nine subs cost $16.6T, so a buyer who spends the $75T
   on them can't also pay for the Golden seahorse. The whole table was not re-run.
+- **Auras are on sale since 2026-11-24 at a lower ladder** ([progression](progression.md), "The aura prices"; Ember $2.5T, was
+  $12.5T in the fit), so FULL below is nearer to the game than OFF now, and the $75T pack reaches a little further. Not re-run.
 - **Its table: the tuning chat's draft 2 (2026-11-23).** Modelled, not played: medians of 5
   seeds, one pack, once. FULL: with auras and the Index (neither built, the Index's payouts a fit); OFF: the same model
   without them, the nearest to the game now. Which land a fresh account holds at once is the same in both. Robux prices

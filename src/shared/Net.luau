@@ -17,8 +17,8 @@
 --     the submarine (SubService, docs/design/submarine.md): "SubBuy" (the next tier) | "SubEquip", n | "SubPick", land,
 --       fishKey (where to go, 0: no sub; the tank fish to ride with, "id|size|variant" or "") | "SubLand", fish (the
 --       kick has put us on our fish)
---     not finished: "AuraBuy", tierId is sent by the aura stall (UI/AuraShop) and no server code listens for it.
---       "Place", index, id (the old click to put a carried fish in the tank) still has its handler in AquariumService,
+--     the auras (AuraService): "AuraBuy", tier (the card pressed at the aura stall, UI/AuraShop)
+--     not finished: "Place", index, id (the old click to put a carried fish in the tank) still has its handler in AquariumService,
 --       but no client sends it; only tools/studio/e2_click_check.py knows it.
 --   Ride (server -> one client):
 --     RideService: "Mounted", fish, landing | "Dismounted", reason | "Denied", action, reason | "Crashed", slow (our
@@ -38,6 +38,7 @@
 --       riding out: "Off", "Gone", "Hands", "Equip", "Dock", "Again", "Dead", "Busy")
 --     SubService: "SubFish", fish (our fish, beside the sub: drive it there) | "SubDrop", "Fling" or "Kick", fish |
 --       "SubDenied", reason ("Coins", "Dock", "Land", "Top") | "SubBought", tier
+--     AuraService: "AuraBought", tier (worn at once) | "AuraDenied", why ("Off", "Order", "Dock", "Coins", "Busy")
 --   Fx (server -> every client, all from RideService): "Land", player, fish, count (that rider's landings so far) |
 --     "Fail", player, fish, kind (out of Oxygen on a fish that does something first: Config.Fail's outcome, played by
 --     FailController) | "Ragdoll", player, fish or nil, kind (that player's body has gone loose) | "ThrowOff", player,

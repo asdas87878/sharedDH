@@ -123,7 +123,7 @@ phone.
   outlined), EQUIP (green), the next sub's price (green when you can pay, grey when you can't; FREE while
   `Config.Sub.Free` is 1), later subs their price in grey (they used to say LOCKED). "SUBS ARE FREE FOR NOW!" shows
   in gold while they are. Nothing it asks of the server changed; no prices changed.
-- **The aura shop (`UI/AuraShop.luau`): ready, not wired.** Auras can't be bought yet (no prices, no stand action), so
+- **The aura shop (`UI/AuraShop.luau`): ready, not wired** *(wired and on sale since 2026-11-24: "The aura cards", below)*. Auras can't be bought yet (no prices, no stand action), so
   nothing opens it; the aura stand's owner calls `AuraShop.open(true)`. AURAS centred on the Lavender header, the
   twelve auras as cards in their own colour, "x1.5 Oxygen", the cash button grey "SOON" and a Robux button "SOON"
   (visual only: no product ids exist, none were made up). Your `Aura` shows EQUIPPED.
@@ -159,16 +159,18 @@ Hugo: "integrate both aura shop ui and selling dinos ui (as in reference pic 1) 
   rider on a fish in that tier's flame, in the stage colours of the flame draft 4, the flame a little taller each tier.
   Three are the picked sheet's own; nine were made the same way ([README](../../art/ui/auras/README.md),
   [all twelve](../attachments/aura-icons-2026-11-24.png)). One atlas, 1024 x 768. **Not uploaded:** only Studio on
-  Hugo's PC has it; anywhere else the card keeps the old bubble picture, until `ICONS` in `UI/AuraShop.luau` has its id.
-  **The card names are still draft 2's** (`Shared/Auras`), so a few names and tints don't match their picture's flame:
-  tier 2, "Foam", is light blue with a coral flame; tier 10, "Phantom", is green with a magenta one. Not renamed: the
-  flame aura isn't approved. Buying stays off.
+  Hugo's PC has it; anywhere else the card shows a plain glow of its colour, until `ICONS` in `UI/AuraShop.luau` has its id.
+  The names and tints are the flame's since 2026-11-24 (Foam is Shell, Phantom is Urchin), so they match the pictures.
+- **The aura cards: no bubbles, on sale (2026-11-24, Hugo: "u didnt remove the placeholder bubbles in the back and make sure
+  you can buy them"; NULLROOM a1).** The stand-in (a glow, five bubbles and a bubble sign) was drawn behind every picture and
+  never hid; it is gone, and the plain glow is made only where there is no picture. Each card shows its price
+  (`Config.Aura.Prices`): green and shining on the next one with the coins for it, grey otherwise, EQUIPPED and OWNED as before.
+  A press on any unowned card asks the server, and what it says shows on the window's lower edge with the shops' sounds
+  (`AuraBought`, `AuraDenied`): [auras](auras.md), "Built". Not seen in Studio yet (`tools/studio/aura_check.py`).
 - **Auras** (`UI/AuraShop.luau`): the twelve cards as before, now in the shop, in a window of the Sell Fish
   page's size with the title at the left, so the tabs and the title stay put from page to page; one button a card
   (the Robux button is hidden until products exist). The worn aura reads EQUIPPED, the
-  ones under it OWNED. **Buying is not on:** auras have no prices and the server has no aura purchase, so every
-  price reads SOON. The window is ready for it: a tier with a `Price` in `Shared/Auras` shows it and a press asks
-  the server Action "AuraBuy", tier.
+  ones under it OWNED. (Buying was not on then; it is since 2026-11-24, above.)
 - **Checked** by `tools/studio/b2_shop_check.py` in a Studio playtest (17 of 17; log `work/b2/check.log`). Pictures:
   [the Sell Fish page](../attachments/b2-sell.png), [two picked](../attachments/b2-sell-picked.png),
   [all picked](../attachments/b2-sell-all.png), [equipped fish](../attachments/b2-sell-equipped.png),
