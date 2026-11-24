@@ -31,16 +31,18 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
-- **2026-11-24, NULLROOM worker c2 (Hugo's PC) to the game-code chat and whoever has the map: the submarine's camera is behind
-  in every phase, measured and pushed** (`862ff88`, and `5f18f3f`; [Handoff](Handoff.md), top entry, has the numbers). Hugo's rule
-  of 2026-11-23 ("make sure it doesnt implement the camera on the side ever") is in `SubController.cameraFor` now; Luma's note
-  below, which says the change is not made, is out of date on that point. **New and not seen by Hugo:** on your own trip the
-  kelp under the dock's lip (`Dock.Gate.Kelp`) is see-through on your own screen until the sub has left, because it hung in
-  front of a camera that is behind you (`SubController.gateKelp`). **For the map:** that kelp has `CanQuery` off, so no camera
-  ray sees it; if the gate's kelp is renamed or moved out of `Dock.Gate`, `gateKelp` finds nothing and the green wall is back.
+- **2026-11-24, NULLROOM worker c2 (Hugo's PC) to the game-code chat and whoever has the map: the submarine's behind-only
+  camera is written and measured, and NOT in the game** (`862ff88` and `5f18f3f` are in the history, taken back out by `745daa1`;
+  [Handoff](Handoff.md), top entry, has the numbers and why). Hugo's rule of 2026-11-23 ("make sure it doesnt implement the
+  camera on the side ever") is therefore still not in `SubController.cameraFor`: Luma's note below is right that the change is
+  not made. To put it in: `git revert 745daa1`, sync Studio, correct Handoff's entry. **It brings a look Hugo has not seen:** on
+  your own trip the kelp under the dock's lip (`Dock.Gate.Kelp`) is see-through on your own screen until the sub has left,
+  because it hung in front of a camera that is behind you (`SubController.gateKelp`). **For the map, once it is in:** that kelp
+  has `CanQuery` off, so no camera ray sees it; if it is renamed or moved out of `Dock.Gate`, `gateKelp` finds nothing and
+  the green wall is back.
   One check for it: `python tools/studio/sub_camera_check.py` (its head says how). Open, for Hugo's eye: the run's camera on
   land 10's bends, and how close the camera is when you go in at the very end of the lip ([submarine](design/submarine.md),
-  Open). **Studio on Hugo's PC is free** (in Edit, no helper, mouse and camera reset, scripts equal to the repo, not saved).
+  Open). **Studio on Hugo's PC is free** (in Edit, no helper, mouse and camera reset, scripts equal to the repo, the old `SubController`; not saved).
 - **2026-11-24, NULLROOM worker m5 (Hugo's PC) to every chat: the four NULLROOM pieces (m1 to m4) are pushed, and there is one
   command for the last check before a push.** `python tools/studio/full_check.py all` (Hugo's PC, studio-runner; Studio in Edit,
   nobody playing): the place against the repo both ways by content, then one play on real time (boot, the seahorse, a sub trip, a
@@ -66,7 +68,7 @@ The links open the chat in the Claude app on the PC it runs on.
   Studio on Hugo's PC was restarted at 00:03 on 2026-11-24 and its window redraws again; Rojo was not connected after it.
   **Hugo, 2026-11-23, on the submarine's camera: "make sure it doesnt implement the camera on the side ever"** (he saw my test camera
   in a playtest; it was never in `src/`). The boss reads this as a rule for every phase of the trip (`SubController.cameraFor`:
-  the approach, the pick-up and the arrival stood to one side then). **Made 2026-11-24** (`862ff88`, measured: the top note).
+  the approach, the pick-up and the arrival stood to one side then). **Written and measured 2026-11-24, not in the game yet** (the top note).
   And a warning: `tools/studio/m4_subs_shots.py` takes the camera and sends the player on trips. I ran part of it in a playtest
   Hugo had started himself. Check who started the Play (is your own helper script's newest version in it?) before you drive it.
 - **2026-11-23, NULLROOM worker m3 (Hugo's PC) to the UI chat and the game-code chat: the fail's black moved to a screen of its own.**

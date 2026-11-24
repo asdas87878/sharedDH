@@ -3,12 +3,16 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
-## 2026-11-24 · The submarine's camera is behind in every phase; the gate's kelp see-through on a trip (NULLROOM worker c2, Hugo's PC)
-**State:** pushed by hand: `862ff88` (the camera, written by worker c1), `5f18f3f` (the gate's kelp, found while measuring), and
-this entry with the check and the stills. Only `src/client/Controllers/SubController.luau` changed in `src/`. StyLua clean, selene
-0 errors (the three old warnings), the Rojo build passes; Hugo's place has the same `SubController` (put in by
-`tools/ui/catch_show/sync_src.py`, Rojo was not connected), no helper left, **not saved**.
-**What changed for the player** ([submarine](design/submarine.md), "The camera is always behind"; Hugo, 2026-11-23: "make sure it
+## 2026-11-24 · The submarine's behind-only camera is written and measured, and NOT in the game: taken back out until it is passed (NULLROOM worker c2, Hugo's PC)
+**State: not in the game.** `862ff88` (the camera, written by worker c1) and `5f18f3f` (the gate's kelp, found while measuring)
+were on `main` and measured in Studio, then taken back out by `745daa1`: the check below has lines over its own limits, the
+kelp's new look is unseen by Hugo, and neither the reviewer nor the boss had passed them by 02:25 (Hugo away). `src/` is as it
+was before (`git diff 4ff5c25 -- src` is empty): the game still has the old camera, at the side in the swim, the pick-up and the
+arrival. **To put both in: `git revert 745daa1`**, then sync Studio (`python tools/ui/catch_show/sync_src.py`) and correct this
+entry and the note in Sessions. For the camera without the kelp change, `git revert 5f18f3f` after that (the green wall in
+the pick-up is back then). In the repo from this work: the check, the stills, these numbers. StyLua clean, selene 0 errors (the
+three old warnings), the Rojo build passes; Hugo's place has the repo's (old) `SubController` again, no helper left, **not saved**.
+**What it changes for the player once it is in** ([submarine](design/submarine.md), "The camera is always behind"; Hugo, 2026-11-23: "make sure it
 doesnt implement the camera on the side ever"):
 - The swim and the pick-up: the camera is behind you on your own line (10 to 18 studs back, then to 24), not ahead and to the
   side looking back. The arrival and the drop-off: behind the sub on its line, 30 studs, 36 when your fish swims up beside it.
@@ -17,7 +21,7 @@ doesnt implement the camera on the side ever"):
   first frame until one second into the run (`SubController.gateKelp`). With the camera behind you the kelp hung in front of it
   for half the pick-up ([before](attachments/subcam-kelp-before-fix-pickup.jpg), [after](attachments/subcam-behind-fish-2-pickup.jpg)).
   To take only this back: `git revert 5f18f3f`.
-**Measured** by `python tools/studio/sub_camera_check.py` (Hugo's PC, studio-runner; my own playtests; every frame of each trip
+**Measured (with `862ff88` and `5f18f3f` in)** by `python tools/studio/sub_camera_check.py` (Hugo's PC, studio-runner; my own playtests; every frame of each trip
 from the game's own camera; logs in `work/subcam/`, not in the repo), calm frames, the old camera in brackets:
 | | sideways off the line | off straight behind | behind |
 |---|---|---|---|
@@ -34,7 +38,7 @@ from the game's own camera; logs in `work/subcam/`, not in the repo), calm frame
 - The kelp, after `5f18f3f`: between the camera and the rider on 27 pick-up and 6 to 12 run frames, solid on none; solid again
   from 3.55 s; the numbers above unchanged.
 - The shake moves the camera up to 0.6 studs off the line in the pick-up (the same shake as before).
-**Over the check's own limits, left as they are (Hugo's call):**
+**Over the check's own limits, left as they are, and the reason it is not in (Hugo's call):**
 - **The run on land 10** swings 17 to 21 degrees off the sub's nose for 7 or 8 frames of about 375 (limit written before the
   runs: 15). Old code: the old camera reads -21.07 degrees at the same instant the new reads -21.01. The nose turns at up to
   350 degrees a second on those bends and the eased camera does not follow it.
@@ -52,8 +56,8 @@ camera, old code too) are counted, not judged.
 (`Dive.Leap` 1). The dock still pulls the camera in at the pick-up (20 to 14 studs, one step of 2 studs): open in the note.
 **Stills** (the game's own camera, one a phase): `docs/attachments/subcam-behind-nofish-1-approach.jpg` to `-4-arrive.jpg` (a
 flung trip's drop is two frames, so none), `subcam-behind-fish-1-approach.jpg` to `-5-drop.jpg`, `subcam-behind-lip-end-*.jpg`.
-**On the partner's PC:** pull; with Rojo connected nothing more, else `python tools/studio/sync_src.py <studio_id>`. No map
-file changed, no load needed. `sub_camera_check.py` runs through Hugo's studio-runner only.
+**On the partner's PC:** pull; nothing in `src/` or the map changed, so nothing to sync or load. `sub_camera_check.py` runs
+through Hugo's studio-runner only.
 
 ## 2026-11-24 · The four pieces below pushed; one full scripted play passes; a one-command check for it (NULLROOM worker m5, Hugo's PC)
 **State:** pushed by hand, `main` equal to `origin/main` (`git rev-list --left-right --count HEAD...origin/main`: 0 0). The partner
