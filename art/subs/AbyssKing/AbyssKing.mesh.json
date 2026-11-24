@@ -4,7 +4,7 @@
  "tier": 9,
  "style": "toy",
  "units": "studs",
- "triangles": 3096,
+ "triangles": 4532,
  "axes": {
   "up": "+Y",
   "forward": "-Z (the nose)",
@@ -33,18 +33,18 @@
  "colours": {
   "hull": [
    255,
-   214,
-   70
+   206,
+   56
   ],
   "trim": [
-   20,
-   16,
-   30
+   30,
+   22,
+   44
   ],
   "light": [
-   255,
-   80,
-   120
+   96,
+   244,
+   226
   ]
  }
 }

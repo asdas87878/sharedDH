@@ -173,6 +173,22 @@ TIERS = [
     ("AbyssKing", "Abyss King", (255, 214, 70), (20, 16, 30), (255, 80, 120), (20, 16, 30), (150, 70, 220), 1.45),
 ]
 ID, NAME, HULL, TRIM, LIGHT, SEATC, ACCENT, FRAME = TIERS[TIER - 1]
+# Tiers 8 and 9 in the toy style are sea creatures (Hugo, 2026-11-24: "use 8a, and 9a"; options 8A and 9A of
+# docs/design/sub-creature-options.md): the Vent Crawler is our Sea Scorpion, the Abyss King is the gold hull held by a
+# kraken. Their names, ids and tiers stay; their colours are their own (Shared/SubModels.List has the same hull, trim
+# and light). `more`: colours only they have; `glow`: which of those are light (they go into Hull_Glow, Neon in the
+# game; the number is the render's strength). The voxel style keeps TIERS' colours.
+CREATURES = {
+    8: dict(hull=(206, 98, 48), trim=(52, 28, 24), light=(255, 150, 30), seat=(52, 28, 24), accent=(255, 206, 100),
+            more={"shell": (132, 58, 40), "belly": (226, 196, 150), "eye": (255, 232, 120)}, glow={"eye": 1.6}),
+    9: dict(hull=(255, 206, 56), trim=(30, 22, 44), light=(96, 244, 226), seat=(30, 22, 44), accent=(150, 70, 220),
+            more={"kraken": (150, 44, 92), "kraken-": (108, 30, 70), "kraken+": (206, 92, 132), "bone": (240, 230, 204),
+                  "eye": (255, 220, 90), "pupil": (24, 16, 30), "sucker": (96, 244, 226)},
+            glow={"eye": 1.5, "sucker": 1.5}),
+}
+CREATURE = CREATURES.get(TIER) if STYLE == "toy" else None
+if CREATURE:
+    HULL, TRIM, LIGHT, SEATC, ACCENT = (CREATURE[k] for k in ("hull", "trim", "light", "seat", "accent"))
 # the toy style's guard ring is red on every tier (style A as picked); a lighter red where the hull itself is red
 RING = (255, 118, 96) if ID == "VentCrawler" else (232, 80, 58)
 
@@ -192,6 +208,10 @@ GLOW = {"glass": 1.6, "glow": 2.4, "lamp": 4.0}
 STUDDED = ("hull", "hull+", "trim")
 if STYLE == "toy" and TIER == 1:
     PALETTE["trim+"] = (61, 81, 115)  # the approved model's own lighter navy
+if CREATURE:
+    PALETTE.update(CREATURE["more"])
+    GLOW.update({"glass": 1.3, "glow": 1.5})  # (the render only: softer than the kit's, so an orange stays orange)
+    GLOW.update(CREATURE["glow"])
 
 
 def lin(c):
@@ -1174,74 +1194,229 @@ def toy7():  # the Midnight Hunter: a shark: a jaw with teeth, slit eyes, gills,
     windup(x=10.8, z=5.2)
 
 
-def toy8():  # the Vent Crawler: armour hoops over glowing seams, vent stacks, pincers, belly spikes
-    body([(-17.5, 2.0, 1.9, -0.4), (-16.6, 3.8, 3.5, -0.2), (-14, 5.3, 4.9, 0), (-9.5, 5.9, 5.3, 0), (5, 5.9, 5.3, 0),
-          (10, 5.1, 4.7, 0.2), (14, 3.4, 3.2, 0.5), (16.2, 1.6, 1.6, 0.7)])
-    band(-17.5, -14.8, "trim", proud=0.2)
-    for x in (-9.0, -4.2, 0.6):  # armour: three plates a flank, each over three of the body's sides; the top stays red
-        for k in (-1, 0, 1):
-            stripe(x, x + 4.0, k, "accent", thick=0.9, share=1.03)
-    for x in (-9.8, -5.0, -0.2, 4.6):
-        band(x, x + 0.8, "glow", proud=0.15)
-    band(10.9, 11.5, "glow", proud=0.15)
-    cabin(hatch="accent")
-    saddle()
-    portholes((-12.3,), z=0.8, r=1.7)
+# ---- what the creature tiers add (from tools/blender/sub_creature_options.py): a tube along a path, suckers, eyes, armour
+def spline(ctrl, radii, per=3):
+    """a smooth path through the points (Catmull-Rom), `per` steps between each two, and the radius at every step"""
+    pts, rr, n = [], [], len(ctrl)
+    for i in range(n - 1):
+        p0, p1, p2, p3 = ctrl[max(i - 1, 0)], ctrl[i], ctrl[i + 1], ctrl[min(i + 2, n - 1)]
+        for k in range(per):
+            u = k / per
+            pts.append(0.5 * (2 * p1 + (p2 - p0) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (3 * p1 - p0 - 3 * p2 + p3) * u ** 3))
+            rr.append(radii[i] + (radii[i + 1] - radii[i]) * u)
+    pts.append(ctrl[-1].copy())
+    rr.append(radii[-1])
+    return pts, rr
+
+
+def tube(p, pts, radii, colour, n=6, smooth=True, squash=1.0):
+    """a closed tube along a path of points, a radius at each (an arm, a horn, a neck): one piece. squash under 1
+    flattens it across. Returns each point's (place, the way the path runs, the ring's two axes)."""
+    bm = piece(p, colour, smooth)
+    tans = [(pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized() for i in range(len(pts))]
+    ref = Vector((0, 0, 1)) if abs(tans[0].z) < 0.9 else Vector((1, 0, 0))
+    nrm = (ref - tans[0] * ref.dot(tans[0])).normalized()
+    rings, frames, last = [], [], tans[0]
+    for pt, tg, r in zip(pts, tans, radii):
+        nrm = last.rotation_difference(tg) @ nrm  # carried along the path, so the tube never twists
+        nrm = (nrm - tg * nrm.dot(tg)).normalized()
+        bn, last = tg.cross(nrm), tg
+        frames.append((pt, tg, nrm, bn))
+        rings.append([bm.verts.new(pt + (nrm * math.cos(2 * math.pi * i / n) + bn * math.sin(2 * math.pi * i / n) * squash) * r)
+                      for i in range(n)])
+    for a, z in zip(rings, rings[1:]):
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new((a[i], z[i], z[j], a[j]))
+    bm.faces.new(rings[0])
+    bm.faces.new(list(reversed(rings[-1])))
+    shut(bm)
+    return frames
+
+
+def arm(ctrl, radii, colour, n=6, per=2, suck=None, spines=None, squash=1.0, p="Hull"):
+    """a tube through the control points. suck = (first step, last step, every, which way they face, colour): a row
+    of suckers (six-sided discs, 20 triangles each) on the side of the arm that faces that way. spines = the same and
+    a length: blunt spikes instead."""
+    pts, rr = spline([Vector(c) for c in ctrl], radii, per)
+    frames = tube(p, pts, rr, colour, n=n, squash=squash)
+    for kind, spec in (("suck", suck), ("spine", spines)):
+        if not spec:
+            continue
+        first, last, every, face, sc = spec[:5]
+        for i in range(first, min(last, len(frames) - 1) + 1, every):
+            pt, tg, _, _ = frames[i]
+            f = Vector(face(pt) if callable(face) else face)
+            f = f - tg * f.dot(tg)
+            if f.length < 1e-3:
+                continue
+            f.normalize()
+            if kind == "suck":
+                c = pt + f * rr[i] * 0.86
+                rod(p, c - f * 0.3, c + f * 0.45, max(0.55, rr[i] * 0.6), sc, n=6)
+            else:
+                rod(p, pt + f * rr[i] * 0.5, pt + f * (rr[i] + spec[5]), max(0.4, rr[i] * 0.45), sc, r2=0.14, n=5)
+    return frames
+
+
+def on_hull(x, deg, off=0.0, s=1):
+    """a place on the body's skin at x, deg round from the flank (0) to the top (90) or the belly (-90), `off` out of
+    it; s -1: the other flank"""
+    hw, hh, zc = at(x)
+    a = math.radians(deg)
+    return Vector((x, s * (hw + off) * math.cos(a), zc + (hh + off) * math.sin(a)))
+
+
+def eye(c, r, out, colour="eye", lid="trim", pupil="pupil", angry=12, squash=0.6, dot=None):
+    """a big toy eye: a glowing ball squashed onto the skin, a dark pupil (dot: its half width and half height as
+    shares of the eye's radius, so (0.5, 0.5) is round and (0.66, 0.36) the kraken's lying oval; none: a thin slit),
+    and a brow: a thin wedge over its top in the head's own colour, deep at the front. out: the way it looks; c: its
+    middle"""
+    o = Vector(out).normalized()
+    side = Vector((0, 0, 1)).cross(o).normalized()  # along the eye, level
+    up = o.cross(side)
+    m = Matrix((side, up, o)).transposed().to_4x4()
+    front = 1 if o.y >= 0 else -1  # which end of `side` is the nose's
+    bm = piece("Hull", colour, True)
+    bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=6, radius=r, matrix=Matrix.Translation(c) @ m @ Matrix.Diagonal((1, 1, squash, 1)))
+    shut(bm)
+    if pupil and dot:
+        bm = piece("Hull", pupil, True)
+        bmesh.ops.create_uvsphere(bm, u_segments=6, v_segments=4, radius=r,
+                                  matrix=Matrix.Translation(Vector(c) + o * r * (squash - 0.2)) @ m @ Matrix.Diagonal((dot[0], dot[1], 0.29, 1)))
+        shut(bm)
+    elif pupil:
+        bm = piece("Hull", pupil, False)
+        bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation(Vector(c) + o * r * (squash - 0.05)) @ m
+                              @ Matrix.Diagonal((r * 1.2, r * 0.34, r * 0.3, 1)))
+        shut(bm)
+    if lid:
+        bm = piece("Hull", lid, False)
+        made = bmesh.ops.create_cube(bm, size=1.0)["verts"]
+        for v in made:
+            if v.co.x * front < 0:  # the back end: thin
+                v.co.y *= 0.35
+        tilt = Matrix.Rotation(math.radians(angry) * front, 4, o)
+        bmesh.ops.transform(bm, verts=made, matrix=Matrix.Translation(Vector(c) + up * r * 0.88 + o * r * squash * 0.35) @ tilt @ m
+                            @ Matrix.Diagonal((r * 2.2, r * 0.44, r * (squash + 0.55), 1)))
+        shut(bm)
+
+
+def segments(plates, seams, plate="hull", lip=None, proud=0.34):
+    """armour: raised plates round the body with glowing seams between them. plates: (x0, x1); seams: (x0, x1, colour)"""
+    for x0, x1 in plates:
+        band(x0, x1, plate, proud=proud)
+        if lip:
+            band(x1 - 0.75, x1 + 0.1, lip, proud=proud + 0.26)  # each plate's back edge stands over the next
+    for x0, x1, colour in seams:
+        band(x0, x1, colour, proud=0.13)
+
+
+def toy8():  # the Vent Crawler: our Sea Scorpion (option 8A of docs/design/sub-creature-options.md)
+    """A flat suit of rust armour: a wide shield of a head with two glowing eyes and a yellow
+    stripe, two slim arms held forward with long dark pincers, plates down the back with magma in every seam, an oar
+    of a paddle each side, walking legs, and the tail's spike split in two beside the ring (a spike on the centre line
+    would hide the rider)."""
+    body([(-19.5, 2.4, 1.6, -0.5), (-18.5, 4.6, 2.6, -0.3), (-15, 6.3, 3.8, 0.1), (-9, 6.9, 4.5, 0.3), (4, 6.8, 4.6, 0.4),
+          (9, 5.7, 4.2, 0.5), (13, 3.9, 3.2, 0.6), (16.2, 1.7, 1.6, 0.7)])
+    segments([(-8.0, -4.5), (-3.7, -0.2), (0.6, 4.1), (4.9, 8.2), (9.0, 11.8)],
+             [(-8.7, -8.0, "glow"), (-4.5, -3.7, "glow"), (-0.2, 0.6, "glow"), (4.1, 4.9, "glow"), (8.2, 9.0, "glow"), (11.8, 12.5, "glow")],
+             plate="hull", lip="shell")
+    # the shield: wider than the body, low, a rim round its edge
+    shield = [(-22.0, 2.6, 0.9, 0.9), (-21.0, 5.6, 1.6, 1.1), (-17.5, 8.4, 2.3, 1.7), (-12.5, 9.2, 2.7, 2.3), (-9.6, 8.6, 2.6, 2.5),
+              (-8.6, 6.4, 2.0, 2.4)]
+    loft("Hull", shield, 10, "hull", phase=math.pi / 10, power=0.85)
+    loft("Hull", [(x, hw + 0.35, 0.55, zc - hh * 0.55) for x, hw, hh, zc in shield[1:5]], 8, "shell", phase=math.pi / 8, power=0.85)
+    slab("Hull", (-15.0, 0, 4.25), (11.0, 1.5, 0.9), "accent", r=(0, -7, 0))  # the stripe down its back
     for s in SIDES:
-        cyl("Hull", (9.4, s * 2.5, 6.2), 1.15, 5.0, "trim", axis="z", n=8)  # a vent stack, glowing at the mouth
-        cyl("Hull", (9.4, s * 2.5, 8.5), 1.55, 1.0, "accent", axis="z", n=8)
-        cyl("Hull", (9.4, s * 2.5, 9.0), 1.0, 0.4, "glow", axis="z", n=8)
-        rod("Hull", (-12.0, s * 4.4, -2.0), (-17.5, s * 7.6, -2.6), 0.9, "accent")  # a pincer: two arms, a claw of two
-        ball("Hull", (-17.5, s * 7.6, -2.6), 1.25, "trim", u=8, v=6)
-        rod("Hull", (-17.5, s * 7.6, -2.6), (-21.0, s * 6.0, -2.8), 0.8, "trim")
-        ball("Hull", (-21.0, s * 6.0, -2.8), 1.1, "accent", u=8, v=6)
-        rod("Hull", (-21.0, s * 6.5, -2.8), (-25.2, s * 7.4, -2.6), 1.0, "hull", r2=0.3)
-        rod("Hull", (-21.0, s * 5.5, -2.8), (-24.8, s * 3.9, -2.8), 0.85, "hull+", r2=0.25)
-    for x in (-6, 0, 6):
-        cone((x, 0, -4.7), (x + 1.4, 0, -7.9), 0.9, "trim")
-    cone((12.8, 0, 3.4), (14.6, 0, 7.4), 0.85, "trim")
-    tail(glow=True)
-    headlamp()
-    windup(x=11.5, z=5.3)
+        eye((-17.2, s * 4.4, 3.5), 1.6, (-0.5, s * 0.45, 0.75), lid="shell", pupil=None, angry=22)
+        # a claw as our Sea Scorpion's: a slim arm, an elbow, a short hand, two long dark fingers that close on each other
+        arm([(-13.5, s * 6.2, -0.4), (-16.4, s * 9.6, -0.8), (-18.6, s * 10.2, -0.9)], [1.3, 1.35, 1.4], "shell", per=2)
+        arm([(-18.6, s * 10.2, -0.9), (-20.6, s * 9.3, -0.9), (-22.4, s * 8.6, -0.8)], [1.5, 1.9, 2.1], "hull+", n=8, per=2)
+        ball("Hull", (-18.6, s * 10.2, -0.9), 1.7, "hull", u=8, v=6)
+        arm([(-22.0, s * 9.6, -0.8), (-24.6, s * 10.5, -0.7), (-26.7, s * 9.9, -0.6), (-27.5, s * 8.7, -0.5)], [1.4, 1.15, 0.8, 0.3], "shell", per=2)
+        arm([(-22.0, s * 7.6, -0.8), (-24.2, s * 6.7, -0.8), (-26.3, s * 6.9, -0.7), (-27.3, s * 7.9, -0.6)], [1.2, 1.0, 0.7, 0.3], "shell", per=2)
+        rod("Hull", (-23.2, s * 8.6, -0.8), (-25.2, s * 8.5, -0.8), 0.75, "glow", r2=0.4, n=6)  # the heat in its grip
+        for x in (-14.2, -11.6, -9.0):  # walking legs
+            rod("Hull", (x, s * 5.2, -2.6), (x - 1.0, s * 8.6, -5.4), 0.8, "shell", n=6)
+            rod("Hull", (x - 1.0, s * 8.6, -5.4), (x - 2.6, s * 9.0, -7.6), 0.65, "hull+", r2=0.2, n=6)
+        # the tail spike, split: two stingers beside the guard ring, their tips hot
+        arm([(12.6, s * 3.6, 0.7), (15.6, s * 6.4, 0.8), (18.2, s * 7.0, 1.0), (20.2, s * 5.9, 1.3)], [1.5, 1.35, 1.0, 0.35], "shell", per=2)
+        ball("Hull", (20.3, s * 5.8, 1.3), 0.7, "glow", u=6, v=4)
+    # the paddles: an oar each side behind the shield, swept back, a lighter end
+    plate("Hull", [(-7.4, 6.2), (-6.2, 10.6), (-3.2, 12.7), (0.8, 12.3), (1.4, 9.8), (-2.2, 6.2)], 1.5, "shell", plane="xy", at=-1.2,
+          r=(-10, 0, 0), c=(-4, 6.2, -1.2), both=True)
+    plate("Hull", [(-3.4, 11.1), (-3.0, 13.0), (0.9, 12.6), (1.3, 10.9)], 1.9, "hull+", plane="xy", at=-1.2,
+          r=(-10, 0, 0), c=(-4, 6.2, -1.2), both=True)
+    cabin(cap="trim", hatch="accent")
+    saddle()
+    portholes((-11.6,), z=-0.4, r=1.6)
+    tail(cross=None, glow=True)
+    headlamp(x=-18.2, z=-2.2, r=1.5)
+    windup(x=10.6, z=5.3)
 
 
-def toy9():  # the Abyss King: the biggest: a glowing crown, a trident ram, pods on wings, a crest, spikes
+MANTLE = [(0.0, 3.6, 3.4, 0.0), (1.2, 5.0, 4.6, 0.3), (3.4, 5.5, 5.0, 0.2), (5.6, 4.7, 4.3, -0.5), (7.2, 3.3, 3.0, -1.4),
+          (8.4, 1.9, 1.7, -2.3), (9.2, 0.7, 0.7, -3.0)]
+
+
+def toy9():  # the Abyss King, held by a kraken (option 9A, Hugo's idea)
+    """The gold hull, held by a kraken. The kraken sits on the tower, its mantle swept back by
+    the speed, a bone crown round it; eight fat arms come down and wrap the gold hull: two reach past the nose, two
+    cross the bow, two hoop the middle, two run back along the shoulders, round the tail and trail outside the ring.
+    The hull, three ports a side, the tower's window, the lamp, the key and the ring all still show."""
     body([(-23.5, 0.9, 0.9, -1.2), (-22, 2.6, 2.4, -0.9), (-18, 4.6, 4.3, -0.5), (-11, 6.2, 5.8, -0.5), (6, 6.2, 5.8, -0.5),
           (12, 5.4, 5.1, -0.2), (17, 3.6, 3.4, 0.4), (20, 1.7, 1.7, 0.7)])
-    band(-23.5, -20.6, "trim", proud=0.2)
-    band(-11.2, -9.6)
-    band(-9.6, -8.9, "accent", proud=0.15)
-    band(5.7, 6.4, "accent", proud=0.15)
-    band(6.4, 8.0)
+    band(6.6, 7.8)
+    band(5.9, 6.6, "accent", proud=0.15)
     cabin(hatch=None)
-    cyl("Hull", (-2, 0, 10.85), 3.0, 0.8, "accent", axis="z", n=10)  # the crown: a band, six glowing points, a jewel
-    for i in range(6):
-        ca, sa = math.cos(math.radians(60 * i)), math.sin(math.radians(60 * i))
-        rod("Hull", (-2 + 2.3 * ca, 2.3 * sa, 11.0), (-2 + 3.2 * ca, 3.2 * sa, 14.0), 0.65, "glow", r2=0.18, n=6)
-    ball("Hull", (-2, 0, 11.5), 1.3, "glow", u=8, v=6)
     saddle()
-    portholes((-14.6, -5.2, 1.6), z=0.6)
-    line(-8.4, 5.2, -2.8, "glow", r=0.35)
-    rod("Hull", (-22.6, 0, -1.1), (-27.0, 0, -1.6), 0.95, "trim+")  # the trident: a shaft, a bar, three prongs with lit ends
-    rod("Hull", (-27.0, -3.0, -1.6), (-27.0, 3.0, -1.6), 0.8, "trim+")
-    for y, x1 in ((0, -32.6), (-3.0, -31.2), (3.0, -31.2)):
-        rod("Hull", (-27.0, y, -1.6), (x1, y * 1.08, -1.6 + (x1 + 27) * 0.11), 0.8, "trim+", r2=0.3)
-        ball("Hull", (x1 - 0.1, y * 1.08, -1.6 + (x1 + 27) * 0.11), 0.6, "glow", u=6, v=4)
-    wing = [(-7.0, 5.6), (-1.0, 11.2), (5.0, 11.2), (4.0, 5.6)]
-    plate("Hull", wing, 2.0, "trim", plane="xy", at=-1.8, both=True)
-    for s in SIDES:  # a pod at each wing's end
-        capsule((2.0, s * 11.6, -1.8), 1.8, 8.0, "hull")
-        ball("Hull", (-3.1, s * 11.6, -1.8), 1.15, "glow", u=8, v=4)
-        cyl("Hull", (2.0, s * 11.6, -1.8), 2.05, 1.2, "accent", axis="x", n=10)
-        cyl("Hull", (7.2, s * 11.6, -1.8), 1.5, 2.0, "trim", axis="x", n=10, r2=0.6)
-    for x in (-7, -1, 5):
-        cone((x, 0, -6.0), (x + 1.5, 0, -9.3), 0.95, "trim+")
-    cone((12.0, 0, 4.4), (12.3, 0, 7.0), 0.85, "trim")  # the crest: three spikes stepping up toward the tail, all of
-    cone((13.1, 0, 4.2), (13.6, 0, 8.6), 0.95, "trim")  # them clear of the top paddle and its violet tip
-    cone((14.2, 0, 3.9), (14.8, 0, 10.4), 0.95, "trim")
-    tail(tx=20.4, ring=5.0, cross=(13.5, 15.0), blades="accent", glow=True, tips="accent")
+    portholes((-14.6, -4.9, 4.4), z=0.5)
+    m = Matrix.Translation((-4.6, 0, 8.7)) @ rot((0, -(90 - 28), 0))  # leaning back 28 degrees
+    loft("Hull", MANTLE, 10, "kraken", phase=math.pi / 10, m=m)
+    loft("Hull", [(-0.5, 4.5, 4.2, 0.0), (0.5, 4.8, 4.5, 0.1)], 10, "kraken+", phase=math.pi / 10, m=m)  # the collar
+
+    def on_mantle(u, deg, out=0.0):  # a place on the mantle: u along it, deg round it (0: the right flank, 90: its face)
+        for a, z in zip(MANTLE, MANTLE[1:]):
+            if a[0] <= u <= z[0]:
+                k = (u - a[0]) / (z[0] - a[0])
+                hw, hh, zc = (a[i] + (z[i] - a[i]) * k for i in (1, 2, 3))
+                r = math.radians(deg)
+                return m @ Vector((u, (hw + out) * math.cos(r), zc + (hh + out) * math.sin(r)))
+        return m @ Vector((u, 0, 0))
+
+    for s in SIDES:  # the eyes, low on its sides, looking out and a little forward
+        eye(on_mantle(2.2, 90 - s * 66, -0.4), 2.2, (-0.5, s * 1.0, 0.1), lid="kraken", angry=14, dot=(0.66, 0.36))
+    for deg, u, k in ((-150, 4.6, 1.0), (-108, 5.2, 1.2), (-72, 5.2, 1.2), (-30, 4.6, 1.0), (20, 4.2, 0.85), (160, 4.2, 0.85)):
+        a, z = on_mantle(u, deg, -0.3), on_mantle(u + 1.4 * k, deg, 2.4 * k)  # the bone crown: six blunt horns
+        rod("Hull", a, z + Vector((0.6 * k, 0, 0.5 * k)), 0.8 * k, "bone", r2=0.2, n=5)
+    for s in SIDES:
+        k = 1.0 if s > 0 else 0.84  # no two alike: the left reach is the shorter
+        # A, the reach: over the bow beside the window, past the nose, hooking up
+        arm([(-6.0, s * 2.6, 9.4), (-8.2, s * 3.5, 7.8), on_hull(-11.5, 57, 0.7, s), on_hull(-18.0, 44, 0.8, s),
+             on_hull(-22, 10, 1.4, s), (-22 - 4.5 * k, s * 5.6, -1.6), (-22 - 8.5 * k, s * 6.6, -0.6), (-22 - 10.6 * k, s * 6.0, 2.2),
+             (-22 - 9.6 * k, s * 4.6, 4.6), (-22 - 7.4 * k, s * 4.0, 4.9)],
+            [2.0, 1.9, 1.8, 1.65, 1.5, 1.35, 1.15, 0.95, 0.7, 0.4], "kraken",
+            suck=(9, 17, 2, lambda pt, s=s, k=k: Vector((-22 - 7.0 * k, s * 4.6, 2.0)) - pt, "sucker"))
+        # B, across the bow: down the tower's flank, forward and down between the first two ports, curling out low
+        arm([(-5.0, s * 3.2, 9.2), (-5.8, s * 4.5, 7.2), on_hull(-7.2, 50, 0.7, s), on_hull(-9.4, 10, 0.8, s),
+             on_hull(-12.2, -36, 0.8, s), on_hull(-15.2, -58, 1.0, s), (-18.6, s * 6.4, -5.6), (-21.2, s * 8.0, -4.6), (-21.9, s * 8.4, -2.4)],
+            [2.0, 1.9, 1.8, 1.65, 1.5, 1.3, 1.05, 0.8, 0.45], "kraken",
+            suck=(3, 13, 3, lambda pt: (-1, 0, 0.25), "sucker"))
+        # C, the hoop: behind the tower, down between the second and third ports, round under the belly
+        arm([(-2.6, s * 3.4, 9.2), (-1.4, s * 4.5, 7.0), on_hull(-0.6, 50, 0.7, s), on_hull(-0.1, 6, 0.8, s),
+             on_hull(0.8, -42, 0.8, s), on_hull(2.0, -72, 0.9, s), (3.6, s * 3.0, -7.6), (5.2, s * 4.6, -8.2), (6.2, s * 6.2, -7.2)],
+            [2.0, 1.9, 1.8, 1.65, 1.5, 1.3, 1.0, 0.75, 0.45], "kraken",
+            suck=(3, 15, 3, lambda pt: (1, 0, 0.2), "sucker"))
+        # D, the trailer: back along the shoulder beside the seat, round the tail and out behind, outside the ring
+        arm([(-1.6, s * 2.8, 9.4), (0.6, s * 4.4, 7.4), on_hull(3.0, 44, 0.7, s), on_hull(9.6, 30, 0.8, s),
+             on_hull(13.0, -4, 0.9, s), on_hull(15.4, -40, 1.0, s), on_hull(17.4, -62, 1.4, s), (20.3, s * 6.4, -5.9),
+             (20.4 + 3.0 * k, s * 8.4, -6.0), (20.4 + 4.6 * k, s * 9.4, -4.2), (20.4 + 4.2 * k, s * 9.3, -2.2)],
+            [2.0, 1.9, 1.8, 1.65, 1.5, 1.4, 1.25, 1.1, 0.9, 0.65, 0.4], "kraken",
+            suck=(4, 19, 3, lambda pt: (1, 0, 0.35), "sucker"))
+    tail(tx=20.4, ring=5.0, cross=None, blades="accent", glow=True)
     headlamp(x=-20.2, z=-3.2)
-    windup(x=9.9, z=5.4)
+    windup(x=10.4, z=5.3)
 
 
 def toy_check():
