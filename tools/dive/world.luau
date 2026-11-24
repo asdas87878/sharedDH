@@ -40,7 +40,10 @@ function World.open(placePath: string, boxesPath: string)
 		N[i] = {
 			name = b.name,
 			inst = { Name = b.name },
-			px = b.p.X, py = b.p.Y, pz = b.p.Z, r = b.r,
+			px = b.p.X,
+			py = b.p.Y,
+			pz = b.p.Z,
+			r = b.r,
 			a = { { x.X, x.Y, x.Z }, { y.X, y.Y, y.Z }, { z.X, z.Y, z.Z } },
 			h = { b.half.X, b.half.Y, b.half.Z },
 		}
@@ -170,7 +173,15 @@ function World.open(placePath: string, boxesPath: string)
 	function space.GetPartBoundsInBox(_, cf: any, size: any, params: any)
 		return inside(cf, size, params)
 	end
-	function space.FindFirstChild()
+	-- (the ride fish under us on land: world.land, set by World.mount)
+	function space.FindFirstChild(_, name: string)
+		if name == "LandFish" and world.land then
+			return {
+				GetChildren = function()
+					return { world.land }
+				end,
+			}
+		end
 		return nil
 	end
 	space.Terrain = { Name = "Terrain" }
@@ -184,9 +195,11 @@ function World.open(placePath: string, boxesPath: string)
 			return world.clock
 		end,
 	}, { __index = os })
-	world.globals.RaycastParams = { new = function()
-		return { FilterDescendantsInstances = {} }
-	end }
+	world.globals.RaycastParams = {
+		new = function()
+			return { FilterDescendantsInstances = {} }
+		end,
+	}
 	world.globals.OverlapParams = world.globals.RaycastParams
 	local function signal()
 		return { Connect = function() end }
@@ -265,19 +278,28 @@ function World.open(placePath: string, boxesPath: string)
 	end
 	world.State = State
 	stub(client .. "Lib.State", State)
-	stub(client .. "Controllers.RideController", { waterLine = function()
-		return -9.95 -- (as the Studio runs' logs have it: tools/studio/dive_leap_check.py)
-	end })
+	stub(client .. "Controllers.RideController", {
+		waterLine = function()
+			return -9.95 -- (as the Studio runs' logs have it: tools/studio/dive_leap_check.py)
+		end,
+	})
 	world.anim = {}
 	stub(client .. "Controllers.AnimController", world.anim)
 	-- (the dock's spawn: 144 behind the lip, looking out along +z here)
 	local dock = CF.lookAt(V3.new(0, 3.5, -144), V3.new(0, 3.5, 0))
-	stub("ReplicatedStorage.Shared.Net", { Folder = { GetAttribute = function(_, key: string)
-		return if key == "Dock" then dock else nil
-	end } })
+	stub(
+		"ReplicatedStorage.Shared.Net",
+		{ Folder = {
+			GetAttribute = function(_, key: string)
+				return if key == "Dock" then dock else nil
+			end,
+		} }
+	)
 	world.dock = dock
 	world.Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
 	world.Dive = world.require(world.find(client .. "Controllers.DiveController"))
+	world.Dive.Init()
+	world.Dive.Start()
 	return world
 end
 
@@ -298,6 +320,81 @@ function World.landFish(world: any, kind: any, tier: string)
 	-- (an R15 rider's root stands 3 over the floor on foot: the hip is 2 and half the root 1)
 	local height = math.max(3, -low.Y)
 	return { low = low, high = high, height = height, size = size, seat = seat, scale = scale, length = size.Z }
+end
+
+-- Our character on that fish, standing at `at` (the root), facing out: the root, the humanoid and the land fish as
+-- DiveController asks for them
+function World.mount(world: any, kind: any, f: any, at: any)
+	local me = world.me
+	local root: any = {
+		IsA = function()
+			return true
+		end,
+		Size = V3.new(2, 2, 1),
+		AssemblyAngularVelocity = V3.new(),
+	}
+	root.CFrame = CF.lookAt(at, at + V3.new(0, 0, 1))
+	root.AssemblyLinearVelocity = V3.new(0, 0, 0)
+	root.FindFirstChild = function()
+		return nil
+	end
+	root.GetJoints = function()
+		return {}
+	end
+	setmetatable(root, {
+		__index = function(t, k)
+			return if k == "Position" then rawget(t, "CFrame").Position else nil
+		end,
+	})
+	me.root = root
+	me.humanoid = {
+		Health = 100,
+		Sit = false,
+		PlatformStand = false,
+		HipHeight = f.height - 1,
+		RigType = roblox.Enum.HumanoidRigType.R15,
+	}
+	me.Character = me.Character or {}
+	me.Character = {
+		FindFirstChild = function(_, name: string)
+			return if name == "HumanoidRootPart" then root else nil
+		end,
+		FindFirstChildOfClass = function()
+			return me.humanoid
+		end,
+	}
+	me.attributes = { State = "Dock", LandMounted = true }
+	world.State.Mode = "Dock"
+	-- the rig's joints, as the game names them
+	local rig = world.require(world.find("ReplicatedStorage.Shared.Creatures")).get(kind.Id)
+	local motors: { [string]: any } = {}
+	for _, row in if rig then rig.Parts else {} do
+		local motor: any = { Transform = CF.identity, part = row[1] }
+		function motor.IsA(_, what: string)
+			return what == "Motor6D"
+		end
+		motors["Rig_" .. row[1]] = motor
+	end
+	local attributes: any = { LandRider = 1, FishType = kind.Id }
+	local middle = (f.low + f.high) / 2
+	local model: any = { PrimaryPart = root, motors = motors }
+	function model.IsA(_, what: string)
+		return what == "Model"
+	end
+	function model.GetAttribute(_, name: string)
+		return attributes[name]
+	end
+	function model.GetBoundingBox()
+		return root.CFrame * CF.new(middle), f.size
+	end
+	function model.GetExtentsSize()
+		return f.size
+	end
+	function model.FindFirstChild(_, name: string)
+		return motors[name]
+	end
+	world.land = model
+	return root, model
 end
 
 return World

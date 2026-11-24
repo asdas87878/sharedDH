@@ -3437,9 +3437,11 @@ Config.Dive = {
 	LeapMountedCam = 1.25, -- the camera's distances (its moves and the chase) times this, times that share (2 at most) to the 0.7th power,
 	LeapMountedFrame = 0.7, -- or, for a bigger fish, as far back at the top of the arc as this times the fish's length (or 1.6 times its width or height): the whole of it and the rider in the view
 	LeapMountedSide = 24, -- but never this far to the side, studs: what is left goes back instead (the gate's walls are 48 from its middle)
+	LeapMountedSwim = 1, -- how much of its own motion the fish has in the leap: its keyed swim, its fins out over the top and swept back going in, its back arched (0: rigid but for the tilt)
+	LeapMountedRoom = 8, -- the camera rises over the fish's back this far out from its sides and ends, studs (more for a bigger fish), so it never goes through it
 	LeapMountedAloft = 3, -- from this many times the diver's distances up, the camera stays over the water and hands over to the riding camera from there (a fish that big leaves it no room under the water)
 	LeapMountedThrough = 0.6, -- the camera stays over the water behind the splash this long after the fish goes in, seconds (the server swaps the land fish for the water fish meanwhile)
-	LeapMountedLevel = 10, -- under the water the fish levels to this many degrees nose down (the water fish is level)
+	LeapMountedLevel = 0, -- under the water the fish levels to this many degrees nose down (the water fish it is swapped for is level; 10 until 2026-11-24)
 	FirstDockWait = 20, -- seconds floating at the surface by the dock before a player who has not ridden yet this dive is put back on it (Oxygen.DockWait once they have)
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
 }
