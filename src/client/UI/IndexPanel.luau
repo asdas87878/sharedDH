@@ -3,7 +3,8 @@
 -- NULLROOM task h2): every kind of fish, land by land, the ones you have caught in their rarity's colour and the
 -- rest as dark shapes, with a reward to claim for each new kind and for each land's whole set. The hub's Index button
 -- opens and closes it (UI.HubButtons, through Shop.go("Index"): one dock window at a time; leaving the dock closes
--- it). What it holds follows the reference's Index; how it looks is ours: the partner's Index design
+-- it), and so does standing on the Index stall's ring and walking off it, where the map has one
+-- (Controllers/StallController; Hugo, 2026-11-24). What it holds follows the reference's Index; how it looks is ours: the partner's Index design
 -- (docs/attachments/ui7-panel-index.jpg: the orange header, a tab a land, cards in the rarity's colour, "???" on a dark
 -- card with the rarity's colour on its edge, "n of N found", a bar toward the land's reward) built from the shop kit
 -- (UI.Shop: the same window, header, wells, buttons, font and X as Sell Fish and the Shop).

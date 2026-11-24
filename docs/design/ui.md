@@ -43,6 +43,14 @@ Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictu
 - **The stalls open on their rings, the sub stand too:** Sell, Auras and the submarine stand open when you walk onto
   the circle and close 2.5 studs past its edge (`StallController`); the sub stand's E prompt is gone
   ([submarine](submarine.md), step 1).
+- **The Index on its ring too, and no sub ticket** (2026-11-24, Hugo: "Remove the submarine > area text on the left.
+  Integrate ui popup when you stand on index as well."; NULLROOM u1, offline, **not run in Studio**). A station at
+  `Dock.Stations.Index` with its `Ring` opens the Index as you walk on and closes it as you walk off, as well as the
+  hub's button (`StallController`; `Config.Index.On` 0 stops both). The map files still make that station (ring at
+  2985.5, 0.53, -108, `greybox/94_hub.luau`), but it was deleted by hand from the place on 2026-11-23, so the ring
+  works only once the place has one again. **Open, for Hugo:** where the Index spot should stand.
+  The yellow "SUB > land" at the left edge is gone; the sub shop's GO TO says the land. The line at the foot of the
+  screen ("Not enough coins!", "Get ready to hook a fish!") is a separate thing and stays (`SubPanel.hint`).
 - **At a phone's size** (844 x 390, Studio's `PanelPhone`): the Index, the sub shop, Sell and Auras are whole on the
   screen and every word fits its box. The smallest words: the Index's rarity line at 9 px (the sub shop and Auras
   10, Sell 12). [The Index on a phone](../attachments/hub-h4-index-phone.jpg).
