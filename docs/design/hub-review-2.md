@@ -218,6 +218,9 @@ in place of the old one at x 3000, about 25 minutes. The try at x 14000 is taken
   ![a pen at stage 2 in Play](../attachments/pen-stage2-live.jpg) (The blank boards are the capture's: they are drawn once the player's own
   camera has looked at them, seen in a later capture.)
 - **The user's hand placing after the load (2026-11-23):** Fuse moved by (-19.4, 0, 11.8), the Index station deleted. Kept; don't reset.
+  **Open (2026-11-24, seen by the first-minutes chat):** there the Fuse stands at z -108.9 to -94.4, straight behind the
+  spawn (z -88), so the first camera (about z -100) is inside its big pod: the glowing core and the dark lid fill the new
+  player's first view, and its ring (z -87) lies on the spawn. Proposed: 18 studs straight back (clear to z -145). The user's call.
 
 *(Earlier corrections, all of the first drawing. R, 290 x 196, is dropped: it was said that 230 x 180 does not fit eight pens, without
 drawing it; R's "side pens 5 to 60" was the distance straight down the hub, not the walk, which was 57 and 104; and a
