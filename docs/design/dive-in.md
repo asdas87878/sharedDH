@@ -564,8 +564,8 @@ change, not judged by eye.** The partner's first version is extended, not replac
 - **The line, and a change to the plain leap on foot.** One line `Config.Dive.LeapAhead` (2.5) in from the lip, straight out from
   the dock, the same for a rider and a walker: the check begins both at the same 2.4 studs inside the lip. **On foot this
   differs from what is live (2026-11-24):** (1) the line asks for 8 studs a second straight out, where before 8 any way did
-  (a walk at 16 a second more than 60 degrees off, up to the old 75, no longer dives from the strip, only from over the
-  edge); (2) over the edge the 75 degrees no longer apply, so running along the lip and off it dives where it dropped in;
+  (speed times the cosine of the angle off: a walk at 16 a second from 60 degrees off, up to the old 75, is at or under that
+  and no longer dives from the strip, only from over the edge); (2) over the edge the 75 degrees no longer apply, so running along the lip and off it dives where it dropped in;
   (3) a way that is blocked is tried again straight out. The walkers, on foot and on a Great White alike (18 of 18):
 
   | Walked | Before | Now |

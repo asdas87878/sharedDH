@@ -353,7 +353,7 @@ do
 		`   the whole: under after the fish {all.beat}; something between before the water {all.arch}, {all.frames} frames`
 	)
 	print(`   over the water to the end: {table.concat(over, ", ")}`)
-	-- (what it was when this was written, with a little room: more is a change to look at)
+	-- (guards, not targets: what it was on 2026-11-24 with a little room, so more is a change to look at)
 	if all.beat < 430 then
 		fail(`the camera goes under after only {all.beat} of the fish`)
 	end
