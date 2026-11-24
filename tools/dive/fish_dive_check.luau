@@ -12,7 +12,8 @@
 --   5 with a sub's trip: "Carried" under WaterY lets everything go on that frame.
 -- usage: python3 tools/dive/lip_boxes.py . /tmp/lip.json
 --        rojo build -o /tmp/place.rbxl
---        lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json [out.json]
+--        lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json [out.json] [parts, 12345] [paths.json]
+--        (part 2 is the long one, some ten minutes; "1345" is under two. paths.json: what tools/dive/dive_picture.py draws)
 -- It prints FAIL lines and a count at the end, and exits 1 on any.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -143,6 +144,22 @@ local function floorCut(f: any, p: any, sums: any): number
 	return worst
 end
 
+-- how much of the fish, studs of its length, is still back of the lip as the rider goes under (the swap), and how deep its
+-- box is in the dock by then (its tail goes down through the dock: nothing stops a body there)
+local function dockAtSwap(f: any, p: any, sums: any): (number, number)
+	local at = sums.frameAt(p.tUnder)
+	local tailZ, deep = 0, 0
+	for i = 0, 24 do
+		local z = f.low.Z + (f.high.Z - f.low.Z) * i / 24
+		local point = at * V3.new(0, f.low.Y, z)
+		if point.Z < 0 then
+			tailZ = math.max(tailZ, -point.Z)
+			deep = math.max(deep, FLOOR - point.Y)
+		end
+	end
+	return tailZ, deep
+end
+
 print(`{#Config.Fish} kinds, {#Config.SizeOrder} sizes; LeapMounted {Config.Dive.LeapMounted}`)
 
 ------------------------------------------------------------------------------------------------------------------ 1, 2
@@ -174,12 +191,16 @@ for _, kind in Config.Fish do
 			row.camScale, row.aloft = p.camScale, p.aloft
 			row.pace = p.far / p.air
 			row.cut = floorCut(f, p, sums)
+			row.back, row.deep = dockAtSwap(f, p, sums)
 			row.film = film(f, p, sums)
 			if last.Y > Config.Oxygen.WaterY - 1 then
 				fail(`{name}: ends at {last.Y}, not under WaterY`)
 			end
 			if p.far / p.air > PACE * Config.Equip.PaceRoom then
 				fail(`{name}: {p.far / p.air} studs/s across, over the land pace check`)
+			end
+			if row.back > 0.25 * f.size.Z then
+				fail(`{name}: {row.back} studs of it still back of the lip at the swap, in the dock`)
 			end
 			if row.film.rider > 1 then
 				fail(`{name}: the rider goes out of the view ({row.film.rider})`)
@@ -485,6 +506,39 @@ if process.args[3] then
 		r.why = table.concat(r.why, " | ")
 	end
 	fs.writeFile(process.args[3], serde.encode("json", results))
+end
+if process.args[5] then
+	-- three dives from the side, a frame at a time (the body's box in its own frame, where the middle of it is)
+	local paths = {}
+	for _, pick in { { "SergeantMajor", "Tiny" }, { "GreatWhite", "Normal" }, { "BlueWhale", "Colossal" } } do
+		local kind = Config.FishById[pick[1]]
+		local f = World.landFish(world, kind, pick[2])
+		local frames: { Row } = {}
+		local r = run(kind, pick[2], "Riding", function(t: number)
+			local at = world.me.root.CFrame
+			local middle = at * ((f.low + f.high) / 2)
+			table.insert(frames, {
+				t = t,
+				z = at.Position.Z,
+				y = at.Position.Y,
+				mz = middle.Z,
+				my = middle.Y,
+				lz = at.LookVector.Z,
+				ly = at.LookVector.Y,
+			})
+		end)
+		table.insert(paths, {
+			name = pick[1],
+			tier = pick[2],
+			length = f.size.Z,
+			height = f.size.Y,
+			frames = frames,
+			swap = r.swapped,
+			over = r.over,
+			entry = r.plan and r.plan.tEntry,
+		})
+	end
+	fs.writeFile(process.args[5], serde.encode("json", { floor = FLOOR, waterY = Config.Oxygen.WaterY, paths = paths }))
 end
 print(if fails == 0 then "ALL PASS" else `{fails} FAILS`)
 process.exit(if fails == 0 then 0 else 1)

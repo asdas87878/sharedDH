@@ -287,14 +287,13 @@ function World.open(placePath: string, boxesPath: string)
 	stub(client .. "Controllers.AnimController", world.anim)
 	-- (the dock's spawn: 144 behind the lip, looking out along +z here)
 	local dock = CF.lookAt(V3.new(0, 3.5, -144), V3.new(0, 3.5, 0))
-	stub(
-		"ReplicatedStorage.Shared.Net",
-		{ Folder = {
+	stub("ReplicatedStorage.Shared.Net", {
+		Folder = {
 			GetAttribute = function(_, key: string)
 				return if key == "Dock" then dock else nil
 			end,
-		} }
-	)
+		},
+	})
 	world.dock = dock
 	world.Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
 	world.Dive = world.require(world.find(client .. "Controllers.DiveController"))

@@ -9,12 +9,17 @@
                                                                recorded up to 30 s, to Riding + 3 or Drowning + 2:
                                                                the lowest point and the modes, Leap 1 and Leap 0)
     python tools/studio/dive_leap_check.py run mounted [ID[:Size]]  (Size: Tiny..Colossal, e.g. MorayEel:Huge;
-                                                               Config.Dive.LeapMounted switched on for it and put back;
+                                                               Config.Dive.LeapMounted switched on for it and put back
+                                                               as the file has it, 1 since 2026-11-24;
                                                                on the ride fish on land, Config.Dive.LeapMounted: the
                                                                fish's own leap, then Leap 0; whether it began, the swap
                                                                of the land fish for the water fish (position and nose
                                                                jumps), lip to Riding, a put-back by the pace check, the
                                                                camera per second, the frame times, what is handed back)
+    python tools/studio/dive_leap_check.py run mounted-all [ID:Size,ID:Size,...]  (one command: a small, a middling, the
+                                                               biggest and the worst-shaped fish, MOUNTED_ALL; each one's
+                                                               own leap (Leap 1 only), PASS or FAIL and why, then the
+                                                               total; log work/dive_leap/check_mounted_all.log)
     python tools/studio/dive_leap_check.py run mounted-unequip [ID] [T]  (on the ride fish, taken off T s (0.4)
                                                                into the leap: PASS if the camera is back with the
                                                                player within 0.5 s and no error)
@@ -1284,6 +1289,82 @@ HOLDS = ["crouch", "takeoff", "rise", "top", "entry", "splash", "splash2", "unde
 HOLDS_MOUNTED = ["crouch", "takeoff", "rise", "top", "entry", "splash"]
 
 
+# run mounted-all: a small, a middling and the biggest fish (a Blue Whale at Colossal), and the one whose box is far bigger
+# than its body (the jelly: the worst floor cut and, before the swap was made by the saddle, the biggest jump)
+MOUNTED_ALL = ["SergeantMajor:Tiny", "GreatWhite:Normal", "BlueWhale:Colossal", "AuroraJelly:Colossal"]
+
+
+def mounted_verdict(rec):
+    """(what failed, what is worth a look) in one mounted run's record: the fish leapt, the body was never put back nor
+    the plan broken, the land fish became the water fish with no gap and no jump, the ride began, nothing erred"""
+    if not rec:
+        return ["no record"], []
+    if rec.get("error"):
+        return [f"error: {rec['error']}"], []
+    bad, look = [], []
+    m = rec.get("mounted") or {}
+    release = m.get("release") or {}
+    if not rec.get("mountedAtStart"):
+        bad.append("not on the ride fish at the start of the run")
+    if not m.get("began"):
+        bad.append("the fish's leap never began")
+    if m.get("putBack"):
+        bad.append(f"put back by the pace check: {m['putBack']}")
+    if release.get("why") != "riding":
+        bad.append(f"the body was let go by '{release.get('why')}', not by the ride beginning")
+    if rec.get("lipToRiding") is None:
+        bad.append("Riding never reached")
+    gap = m.get("fishlessSeconds")
+    if gap is None:
+        bad.append("the land fish's going or the water fish's coming was not seen")
+    elif gap > 0.15:
+        bad.append(f"no fish shown for {gap} s")
+    jump = m.get("swapSaddleStuds")
+    if jump is not None and jump > 4:
+        bad.append(f"the saddle jumps {jump} studs at the swap (most 4)")
+    nose, yaw = m.get("swapNoseDegrees"), m.get("swapYawDegrees")
+    if nose is not None and abs(nose) > 10:
+        bad.append(f"the nose jumps {nose} degrees at the swap (most 10)")
+    if yaw is not None and abs(yaw) > 10:
+        bad.append(f"the fish turns {yaw} degrees at the swap (most 10)")
+    if rec.get("broken"):
+        bad.append(f"the dive broke: {rec['broken']}")
+    if rec.get("errors"):
+        bad.append(f"errors: {rec['errors']}")
+    c = rec.get("camera") or {}
+    frames = c.get("frames") or 0
+    if (c.get("insidePartFrames") or 0) > 0:
+        look.append(f"the camera is inside a part for {c['insidePartFrames']} of {frames} frames")
+    if frames and (c.get("outOfSightFrames") or 0) > 0.25 * frames:
+        look.append(f"the rider is out of sight for {c['outOfSightFrames']} of {frames} frames")
+    if (c.get("underDockFloorFrames") or 0) > 0:
+        look.append(f"the camera is under the dock floor for {c['underDockFloorFrames']} frames")
+    if m.get("cuts"):
+        look.append(f"the film eased {len(m['cuts'])} cut(s): {m['cuts']}")
+    return bad, look
+
+
+def mounted_all(fish):
+    """Each fish's own leap, one after another, and one line each at the end"""
+    lines, failed = [], 0
+    for one in fish:
+        name = "leap_mounted_" + one.replace(":", "_")
+        rec = walk(1, 16, name, one, mounted=True)
+        summary(name, rec)
+        bad, look = mounted_verdict(rec)
+        failed += 1 if bad else 0
+        m, c = (rec.get("mounted") or {}), (rec.get("camera") or {})
+        lines.append(f"{'FAIL' if bad else 'PASS'} {one}: lip to Riding {rec.get('lipToRiding')} s, the swap moves the saddle"
+                     f" {m.get('swapSaddleStuds')} studs and the nose {m.get('swapNoseDegrees')} deg, view's biggest turn"
+                     f" {c.get('biggestTurnDegrees')} deg in a frame")
+        lines += [f"     FAILED: {b}" for b in bad] + [f"     look at: {n}" for n in look]
+    say("--- every fish dives, the run in Studio ---")
+    for line in lines:
+        say(line)
+    say(f"{'PASS' if failed == 0 else 'FAIL'}: {len(fish) - failed} of {len(fish)} fish")
+    return failed
+
+
 def hold(t, view="own", name=None, mounted=False):
     say("stub:", cmd("stub"))
     if mounted:
@@ -1387,6 +1468,15 @@ def main():
         say("after:", home())
         (OUT / "check_mounted_unequip.log").write_text("\n".join(LOG) + "\n")
         return
+    if kind == "mounted-all":
+        # a small, a middling, the biggest and the worst-shaped fish, one command (the list can be given)
+        fish = [f.strip() for f in sys.argv[3].split(",") if f.strip()] if len(sys.argv) > 3 else MOUNTED_ALL
+        failed = mounted_all(fish)
+        say(cmd("leap|0"))
+        do("leap|0", 0.4)
+        say("after:", home())
+        (OUT / "check_mounted_all.log").write_text("\n".join(LOG) + "\n")
+        sys.exit(1 if failed else 0)
     if kind == "mounted":
         # on the ride fish on land (Config.Dive.LeapMounted): its leap, then Leap 0 (it walks off the edge as before)
         fish = sys.argv[3] if len(sys.argv) > 3 else ""

@@ -547,26 +547,59 @@ the DIVE IN arch (the edge is found by a ray at run time, so a raised stand plac
   and `hold <moment> own|director` for stills; logs in `work/dive_leap/`). `remove` takes the check out of the place: do it before any publish.
 - **To try the flip:** `Dive.Flip` 1 in the N panel.
 
-### The leap on a fish (2026-11-23)
+### The leap on a fish (2026-11-23, every fish 2026-11-24)
 
 The user: "add an animation for if you are on a fish and you dive into the water you should have a slightly different
-but similar dive animation because we dont have that coded". **Written, off (`Config.Dive.LeapMounted` 0), played once
-by script at 15 fps; not played by hand.**
+but similar dive animation because we dont have that coded". Hugo, 2026-11-24: "make sure each fish gets a diving
+animation just like the player does, hitting a certain line should make you hit the animation with the same camera
+movement". **On (`Config.Dive.LeapMounted` 1) on branch `fish-dive`; checked offline only, not played in Studio since the
+change, not judged by eye.** The partner's first version is extended, not replaced.
 
-- **What it does.** A rider on a land fish who goes over the strip's lip leaps with the fish: the fish takes off nose up
-  (about 29 degrees), arcs, and goes in nose down at about 37 degrees (a diver alone goes in at 67), with the same
-  camera film and splash as the plain leap, scaled by the fish's length (height and distance by the square root, the
-  camera further back for a long fish). A fish too big for the space ahead (the box test fails) drops in as before.
-- **How.** All on the rider's machine, in `DiveController` (`makePlan` takes the fish; `fishClear`, `landFishOf`):
-  the server still swaps the land fish for the dive fish under `WaterY` exactly as before, and the leap absorbs the swap.
-  Losing the fish mid-leap (the slot's cross sends `RideUnequip` with no dock gate) ends the leap and hands the camera
-  back at once.
-- **Played (one run, a small fish, Studio at 15 fps, so indicative):** no errors; the swap moved the fish 0.34 studs
-  and its nose 0.7 degrees, never a frame with no fish; the land pace check never put the rider back; lip to riding
-  1.63 s against 0.62 s with the dial off (the leap adds about a second, the plain leap about 0.55 s); taking the fish
-  off mid-leap gave the camera back in 0.09 s.
-- **Not known:** a large and a small-sized fish (`dive_leap_check.py run mounted ID:Size`), real frame times, how it
-  looks (three stills in `work/dive_leap/m_*.png`, unjudged), two players.
+- **What it does.** A rider on a land fish who runs over the line at the lip dives with the fish: it takes off nose up,
+  arcs, goes in nose down, and is level by the time the server swaps it for the water fish. Same camera keys and splash as
+  the plain leap, scaled by the fish's length. All 78 kinds at all six sizes dive (468 of 468; 141 did before). The table,
+  fish by fish: [dive-in-fish](dive-in-fish.md). Side view: [three fish](../attachments/fish-dive-side.png), from the
+  game's own sums. (There are 78 kinds, not 82: four were cut 2026-11-19.)
+- **The line.** One line `Config.Dive.LeapAhead` in from the lip, straight out from the dock, the same for a rider and a
+  walker: the check begins both at the same 2.4 studs inside the lip. Over the edge already, the fish always dives.
+- **Why fish did not dive before.** The old test refused any arc where the fish's box met the dock floor it was standing
+  on (132), or where its tail came down over the floor (192), or the gate (3). Now the floor and what it already stands in
+  do not count, five arcs are tried (as asked, lower, shorter), and the last one tests only the rider's own path, so a fish
+  on the lip never falls back to the drop-in. 64 of the 468 take that last arc: a tail or fin may pass through a thing.
+- **Camera.** The player's keys, placed on the fish's middle and further back for a long fish, up over its back and the
+  gate arch, never in it, never over the dock's back. For a fish too big to leave room under the water the camera stays
+  over the water and hands over from there. The rider is never further than 0.69 from the view's middle (1 is the edge).
+- **The fish's own motion.** Its swim, not a tilt: the land hook (`AnimController.LandHook`) writes the fish's own keyed
+  swim and fins (RideStyles) through the dive, a short fish's tail bends, a long one's back arches. All 78 kinds' joints move.
+- **The swap.** No cut: the fish is level and heading straight out by then, so the camera has nothing to turn for. The
+  server puts the water fish's root, not its saddle, at the rider (`SubService.diveFish`); by those sums that moved a fish
+  by up to 72 studs. The one Studio run measured 0.34 on a small fish. d2 (branch `fish-sub`) now places it by its saddle:
+  a jump of at most 1.9 studs. That fix is theirs and is not on this branch.
+- **With a sub trip picked (d2).** The hand-over point is the first frame `State.Mode` is "Carried": that frame the dive
+  lets everything go (body, pose, camera). `DiveController.handOver()` gives the last frame's position, velocity, yaw, view
+  and field of view, so the trip can start from where the film was. Proposed to d2 by message, no reply yet; their branch
+  agrees as far as read: `SubService.begin` makes the escort fish with its saddle where the rider's root is. Root y is
+  about -7 then, 31 to 36 studs a second.
+- **Cost.** Until the rider is under the water line: 1.4 to 2.2 s for fish under 30 studs, about 2.5 s for a Great White, 3.4 s for
+  the biggest. Half a second of that is the longer leap for fish over 48 studs (`LeapMountedMost`,
+  4 to 8, 2026-11-24).
+- **Known weak spots.** A long fish's tail is still back of the lip, inside the dock, as it sinks: 47 of 468 (none at
+  Tiny or Normal, 12 of them over a tenth of their length; a Blue Whale Huge or Colossal by 40 studs). A box cuts the
+  floor on the way out by 10 to 53 studs for AuroraJelly (a box far bigger than the jelly), TheDevourer and AbyssalWatcher
+  at their big sizes. A fish bigger than the gate's arch goes through its beam, as it already does on land. Only 4 fish (Blue Whale
+  Giant, Huge, Colossal and Hellmaw Colossal) have an end out of the view more than 15% of the frames.
+- **To check it offline:** `python3 tools/dive/lip_boxes.py . /tmp/lip.json`, `rojo build -o /tmp/place.rbxl`,
+  `lune run tools/dive/fish_dive_check.luau /tmp/place.rbxl /tmp/lip.json` (exits 1 on any FAIL; parts 1, 3, 4, 5 in half a
+  minute with a fourth argument of `1345`). It reads the map GENERATOR's boxes, not the saved place.
+- **To check it in Studio:** `python tools/studio/dive_leap_check.py install`, Play, then `run mounted-all` (a small, a
+  middling, the biggest and the worst-shaped fish, one PASS or FAIL line each, log `work/dive_leap/check_mounted_all.log`),
+  `run mounted ID:Size` for one, `remove` before any publish. Until d2's swap fix is merged in, a big fish may FAIL on the
+  saddle's jump at the swap.
+- **Not known.** How it looks and feels at a real frame rate, and whether the pace check ever puts a rider back on a bad
+  network. Two players are not checked.
+- **Played before this change (one run, a small fish, Studio at 15 fps):** no errors; the swap moved the fish 0.34 studs and its
+  nose 0.7 degrees, never a frame with no fish; the land pace check never put the rider back; lip to riding 1.63 s against
+  0.62 s with the dial off; taking the fish off mid-leap gave the camera back in 0.09 s.
 - **The plain leap, owed since it went on:** the Neon splash was seen in a still (`work/dive_leap/dir3_splash.png`):
   it reads as a white burst now, not a grey lump, but the glow blows the crown's shape out; unjudged by the user. Its
   frame times at a real frame rate are still not measured (Studio's window was covered, 15 fps).
