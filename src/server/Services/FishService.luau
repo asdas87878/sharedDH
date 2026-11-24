@@ -1786,6 +1786,20 @@ function FishService.streamPoint(s: number, lift: number, under: number): Vector
 	return Vector3.new(at.X, math.min(floorY + lift, Config.Oxygen.SurfaceY - under), at.Z)
 end
 
+-- The open water either side of that line at s (SubService's escort): studs to the left and to the right going down, less
+-- the herd's own gap, the least of it a little way up and down the stream
+function FishService.streamRoom(s: number): (number, number)
+	local left, right = math.huge, math.huge
+	for _, near in { -40, 0, 40 } do
+		local at = math.clamp(s + near, 0, stream.Length)
+		local across = Stream.across(stream, at, 0, 0, 1, 8)
+		local i = math.clamp(math.floor(at / (stream.Length / (stream.Count - 1))) + 1, 1, stream.Count)
+		left = math.min(left, across - stream.Left[i])
+		right = math.min(right, stream.Right[i] - across)
+	end
+	return left, right
+end
+
 -- The fish a player rides with off the submarine: one of their tank's, made in the water for them, its kind, colour
 -- and size. Kept for them (no one else can take it), driven by their machine (it swims up beside the sub) and not by
 -- the herd, until they are on it.

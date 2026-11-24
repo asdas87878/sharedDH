@@ -23,6 +23,12 @@
 --   tank) keep it whatever happens, a ride, a miss or a drown, and riding it tames nothing new.
 --   The plain dive-in with an equipped fish (no sub equipped, no land picked, or Sub.On 0): RideService asks us
 --   (RideService.DiveFish) and the equipped fish is made where the player goes in, and they are put straight on it.
+--   The escort (Hugo, 2026-11-24; Sub.Escort): a player who goes in riding their ride fish on land has that fish made in
+--   the water as the trip is made (the same one for the whole trip: Held), and the trip says where it swims
+--   (SubTrip.escort). It carries them out to the sub, they hop onto its seat, it sweeps left and right with the sub and
+--   is back beside it for the kick. It is anchored here and every machine moves its own by the trip until Arrive, when
+--   it is given to the player's machine for the kick as any drop-off fish is. Their hands are watched the whole way: the
+--   fish unequipped or gone from them, and the copy swims off and is taken away (the fling instead).
 --   If the player's machine says nothing for Sub.Late seconds, we let them go ourselves. A death, a reset or leaving
 --   in the middle gives the trip up and takes the fish away.
 local Players = game:GetService("Players")
@@ -32,6 +38,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local HttpService = game:GetService("HttpService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local SubTrip = require(ReplicatedStorage.Shared.SubTrip)
 local AquariumService = require(script.Parent.AquariumService)
@@ -45,6 +52,10 @@ type Sub = {
 	Dest: number,
 	Fish: string,
 	Ride: RideService.Carry?, -- the fish this trip's drop-off rides (held or from the tank), fixed as the trip is made
+	Own: RideService.Carry?, -- and which of the fish in their hands it is, when it is the equipped one (that very entry)
+	Mounted: number, -- os.clock() they were last seen on their ride fish on land
+	Moved: boolean, -- the escort has been sent ahead to the drop point (our copy of it, which nobody sees)
+	Loose: boolean, -- and been given to the player's machine for the kick
 	Trip: SubTrip.Trip?,
 	Phase: string?,
 	Held: Wild?, -- the player's fish, made for the drop-off
@@ -211,6 +222,9 @@ local function finish(player: Player, sub: Sub)
 	end
 	sub.Held = nil
 	sub.Ride = nil
+	sub.Own = nil
+	sub.Moved = false
+	sub.Loose = false
 	sub.Trip = nil
 	sub.Phase = nil
 	sub.Cued = false
@@ -219,6 +233,63 @@ local function finish(player: Player, sub: Sub)
 	FishService.keepFor(player, nil)
 	player:SetAttribute("SubTrip", nil)
 	player:SetAttribute("SubPhase", nil)
+end
+
+-- The fish the player went in on, made in the water where they are for the whole trip (nil: not on it, or it could not
+-- be made): every machine moves it by the trip, so it stays in everyone's game however far from us it swims
+local function escortFor(player: Player, sub: Sub, ride: RideService.Carry?, at: Vector3, way: Vector3): Wild?
+	local own = RideService.equippedOf(player)
+	if Config.Sub.Escort == 0 or not ride or not own or os.clock() - sub.Mounted > 0.1 then
+		return nil
+	end
+	local ok, w = pcall(FishService.spawnFor, ride.Id, ride.Variant, ride.Size, at, way, player)
+	if not ok or not w then
+		warn("[SubService] the escort could not be made: " .. tostring(w))
+		return nil
+	end
+	-- (where they sit is where they went in)
+	local root = CFrame.lookAt(at, at + way) * CFrame.new(-w.Saddle.Position)
+	w.Model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	w.Root.Anchored = true
+	w.Root.CFrame = root
+	return w
+end
+
+-- The escort is anchored no more: an ordinary drop-off fish, which the player's machine drives (as spawnFor leaves one)
+local function looseEscort(player: Player, sub: Sub, trip: SubTrip.Trip, t: number)
+	local w = sub.Held
+	if sub.Loose or not w or not trip.Escort then
+		return
+	end
+	sub.Loose = true
+	local cf = SubTrip.escort(trip, t)
+	local _, speed = SubTrip.distance(trip, t)
+	if cf then
+		w.Root.CFrame = cf
+	end
+	w.Root.Anchored = false
+	w.Root.AssemblyLinearVelocity = SubTrip.way(trip, (SubTrip.distance(trip, t))) * speed
+	pcall(function()
+		w.Root:SetNetworkOwner(player)
+	end)
+	w.Model.ModelStreamingMode = Enum.ModelStreamingMode.Default
+end
+
+-- The escort's fish is theirs no more (unequipped, put in the tank) or the game has lost it: the copy swims off and
+-- fades on every machine (SubController) and is taken away; the drop-off is the fling
+local function dropEscort(sub: Sub, trip: SubTrip.Trip)
+	local w = sub.Held
+	sub.Held = nil
+	sub.Ride = nil
+	trip.Fish = false
+	if w and w.Model.Parent then
+		w.Model:SetAttribute("SubLeave", now())
+		task.delay(Config.Sub.EscortFade + 0.2, function()
+			if not w.Rider then
+				FishService.discard(w)
+			end
+		end)
+	end
 end
 
 -- The trip, made as the player goes in: they swim on from where they went in, down the lane, to the pick-up; from
@@ -233,6 +304,29 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 	local entry = root.Position
 	local ahead = laneWay(entry)
 	local pickup = Vector3.new(entry.X, Config.Oxygen.SurfaceY - c.Under, entry.Z) + ahead * c.SwimOut
+	local ride = rideWith(player, sub)
+	local held = escortFor(player, sub, ride, entry, ahead)
+	sub.Held = held -- (ours from here: whatever goes wrong below, diving takes it away)
+	local half, saddleAt, side = Vector3.zero, Vector3.zero, 0
+	local sPick, off = 0, 0 -- (with a fish: where the pick-up is along the stream, and how far to its right)
+	if held then
+		half = held.Body / 2
+		saddleAt = held.Saddle.Position
+		side = SubTrip.escortSide(half, sub.Equip)
+		-- the sub takes them off it beside its own line: the fish goes as straight out as the lane's sides let the two of
+		-- them lie side by side
+		pickup = Vector3.new(entry.X, Config.Oxygen.SurfaceY - c.EscortUnder, entry.Z)
+			+ ahead * SubTrip.escortOut(half, saddleAt)
+		sPick = FishService.streamS(pickup)
+		local middle = FishService.streamPoint(sPick, 0, 0)
+		local across = laneWay(pickup):Cross(Vector3.yAxis)
+		local left, right = FishService.streamRoom(sPick)
+		off = (pickup - middle):Dot(across) - side
+		local low = SubTrip.Hulls[math.clamp(sub.Equip, 1, #SubTrip.Hulls)][1] + c.EscortGap - left
+		local high = right - side - half.X - c.EscortGap
+		off = if low > high then (low + high) / 2 else math.clamp(off, low, high)
+		pickup = Vector3.new(middle.X, pickup.Y, middle.Z) + across * off
+	end
 	local sDrop = math.min(first + c.Into, FishService.streamLength() - 50)
 	local sFrom = FishService.streamS(pickup) + 90
 	if sDrop <= sFrom + 200 then
@@ -246,6 +340,23 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 		)
 		return false
 	end
+	-- (with a fish beside it the sub keeps as far to the left as that takes, from a way before the drop)
+	-- and so at the start, until the fish is ahead of it)
+	local aside, early, open = 0, 0, sFrom
+	if held then
+		local need = side + half.X + c.EscortGap
+		local hull = SubTrip.Hulls[math.clamp(sub.Equip, 1, #SubTrip.Hulls)][1]
+		local left, right = FishService.streamRoom(sDrop)
+		aside = math.clamp(need - right, 0, math.max(left - hull - c.EscortGap, 0))
+		open = sPick + math.min(c.EscortOpen, (sDrop - sPick) * 0.4)
+		left, right = math.huge, math.huge
+		for on = sPick + 100, open, 40 do
+			local l, r = FishService.streamRoom(on)
+			left, right = math.min(left, l), math.min(right, r)
+		end
+		early = math.clamp(math.min(off, right - need), math.min(off, hull + c.EscortGap - left), off)
+	end
+	local roomLeft, roomRight = math.huge, math.huge
 	local points = { pickup }
 	local dropAt = 0
 	local length = 0
@@ -253,6 +364,26 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 	local s = sFrom
 	while true do
 		local p = FishService.streamPoint(math.min(s, beyond), c.Lift, 8)
+		if held then
+			local on = math.min(s, beyond)
+			-- to the right of the stream: as far as the pick-up is, easing onto the stream's own line (no bend while the
+			-- fish is beside it), and `aside` to the left for the drop
+			local over = Ease.lerp(off, early, Ease.smoothstep(sPick + 100, sPick + 500, on))
+					* (1 - Ease.smoothstep(open, open + 600, on))
+				- aside * Ease.smoothstep(sDrop - 900, sDrop - 200, on)
+			if over ~= 0 then
+				local ahead2 = FishService.streamPoint(on + 30, 0, 0) - FishService.streamPoint(on - 30, 0, 0)
+				local level = Vector3.new(ahead2.X, 0, ahead2.Z)
+				if level.Magnitude > 0.1 then
+					p += level.Unit:Cross(Vector3.yAxis) * over
+				end
+			end
+			if on > open and on < sDrop - 100 then
+				local left, right = FishService.streamRoom(on)
+				roomLeft = math.min(roomLeft, left + over)
+				roomRight = math.min(roomRight, right - over)
+			end
+		end
 		length += (p - points[#points]).Magnitude
 		table.insert(points, p)
 		if dropAt == 0 and s >= sDrop then
@@ -268,20 +399,26 @@ local function begin(player: Player, sub: Sub, root: BasePart): boolean
 		end
 		s = nextS
 	end
-	local ride = rideWith(player, sub)
 	local trip = SubTrip.new(now(), sub.Dest, ride ~= nil, points, dropAt)
+	if held then
+		SubTrip.escorted(trip, sub.Equip, half, saddleAt, held.Root.Position, ahead, roomLeft, roomRight)
+	end
 	sub.Trip = trip
 	sub.Ride = ride
+	sub.Own = if held then RideService.equippedOf(player) else nil
 	sub.Phase = nil
 	sub.Cued = false
 	sub.Done = false
-	sub.Held = nil
+	sub.Held = held
+	sub.Moved = false
+	sub.Loose = false
 	sub.DropPoint = SubTrip.at(trip, SubTrip.dropDistance(trip))
 	sub.DropS = sDrop
 	sub.Stocked = false
 	FishService.keepFor(player, sub.DropPoint)
 	player:SetAttribute("SubTrip", SubTrip.encode(trip))
-	player:SetAttribute("SubPhase", "Approach")
+	-- (on the fish's back, not swimming: no phase the rider's swimming pose goes by, AnimController)
+	player:SetAttribute("SubPhase", if held then "Saddle" else "Approach")
 	-- (the player's machine is moved thousands of studs in seconds: the map at the drop point is sent ahead)
 	local drop = sub.DropPoint :: Vector3
 	task.spawn(function()
@@ -306,9 +443,16 @@ local function diving(player: Player): boolean
 	local ok, began = pcall(begin, player, sub, root)
 	if not ok then
 		warn("[SubService] the trip could not be made: " .. tostring(began))
+	end
+	if not ok or not began then
+		local held = sub.Held
+		if held then
+			sub.Held = nil
+			FishService.discard(held)
+		end
 		return false
 	end
-	return began
+	return true
 end
 
 -- Asked by RideService as a player on the dock goes into the water and the sub doesn't take them: with a fish
@@ -330,6 +474,11 @@ local function diveFish(player: Player): FishService.Wild?
 	if not ok then
 		warn("[SubService] the held fish could not be made: " .. tostring(w))
 		return nil
+	end
+	-- (its saddle where they are, as the land fish's was: made at its root, it jumped by its whole saddle as it took the
+	-- land fish's place, up to 50 studs for a tall one; task d1)
+	if w then
+		w.Root.CFrame = CFrame.lookAt(root.Position, root.Position + way) * CFrame.new(-w.Saddle.Position)
 	end
 	return w
 end
@@ -366,7 +515,28 @@ local function step(player: Player, sub: Sub, trip: SubTrip.Trip)
 	local phase = SubTrip.phase(trip, t)
 	if phase ~= sub.Phase then
 		sub.Phase = phase
-		player:SetAttribute("SubPhase", if phase == "Done" then nil else phase)
+		player:SetAttribute(
+			"SubPhase",
+			if phase == "Done" then nil elseif phase == "Approach" and trip.Escort then "Saddle" else phase
+		)
+	end
+	-- the escort: the player's own fish the whole way, for as long as it is in their hands and equipped
+	if trip.Escort and trip.Fish and not sub.Done then
+		local held = sub.Held
+		local own = sub.Own
+		if not held or not held.Model.Parent or not own or RideService.equippedOf(player) ~= own then
+			dropEscort(sub, trip)
+		else
+			local _, rideAt, arriveAt = SubTrip.times(trip)
+			if not sub.Moved and t >= rideAt then
+				-- (our own copy, which every machine moves itself, waits where the trip ends: once, and no traffic else)
+				sub.Moved = true
+				held.Root.CFrame = CFrame.new(sub.DropPoint or held.Root.Position)
+			end
+			if t >= arriveAt then
+				looseEscort(player, sub, trip, t)
+			end
+		end
 	end
 	-- fish to hook, just ahead of the drop point, before we get there
 	if not sub.Stocked and t >= dropAt - c.StockAt then
@@ -424,6 +594,10 @@ local function join(player: Player)
 		Dest = 0,
 		Fish = "",
 		Ride = nil,
+		Own = nil,
+		Mounted = -math.huge,
+		Moved = false,
+		Loose = false,
 		Trip = nil,
 		Phase = nil,
 		Held = nil,
@@ -563,6 +737,10 @@ function SubService.Start()
 	end
 	RunService.Heartbeat:Connect(function()
 		for player, sub in subs do
+			-- (RideService takes the land fish away before it asks us, so it is seen the frame before)
+			if player:GetAttribute("LandMounted") == true then
+				sub.Mounted = os.clock()
+			end
 			local trip = sub.Trip
 			if trip then
 				step(player, sub, trip)

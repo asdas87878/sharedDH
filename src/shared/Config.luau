@@ -3509,6 +3509,37 @@ Config.Sub = {
 	WakeSee = 0.1, -- how see-through a bubble is at its clearest, just behind the screw (0: solid); it comes in faint and fades out along the trail (0.15)
 	WakeBright = 3.5, -- the bubbles' brightness (the aura shop's bubbles: 3.5; the picture itself is faint)
 	WakeRise = 3, -- they rise a little as they go, studs a second squared
+	-- the escort (Hugo, 2026-11-24: "you should also hop from fish to submarine while seeing the fish swim off next to
+	-- you looping left and right then come back once you arrive"; docs/design/submarine.md, "From the fish onto the
+	-- sub"): the rider who went in on their ride fish. Where it swims is Shared/SubTrip (escort); check a change with
+	-- tools/subs/escort_check.luau. None of it played yet
+	Escort = 1, -- 0: the ride fish only swims up at the end, as for a rider who went in on foot
+	EscortOut = 40, -- the fish carries you this far out to the sub, studs (and 0.6 of what it has behind its saddle,
+	EscortOutMost = 140, -- but never further than this), all in Approach's seconds
+	EscortUnder = 20, -- the sub takes you off it this far under the surface, studs (Under, for a swimmer: room for the view over its back)
+	EscortOver = 1, -- its saddle is this far over the sub's seat as you hop, studs
+	EscortHopFrom = 0.12, -- you leave the saddle at this share of Pickup,
+	EscortHopTo = 0.8, -- and are on the seat at this one
+	EscortHopUp = 6, -- the hop's top over the straight line, studs
+	EscortDip = 1.6, -- the fish dips this far as you push off it, studs
+	EscortGap = 4, -- it keeps this far off the hull (as banked as it gets) and the lane's sides, studs
+	EscortOpen = 1100, -- studs of the run (0.4 of a short one) for the fish to get ahead in: until then it is in its place beside the sub as far as the water's sides go, and the sweeps' width goes by the water after it
+	EscortPeel = 0.9, -- seconds it takes to swing off its place beside the sub into the sweeps (over 30 long, up to 1.6 times it)
+	EscortPeriod = 2.1, -- one sweep left and right again takes at least this long, seconds, for a fish up to 20 long (a longer one up to 1.7 times it; whole sweeps fill the run: 1 to lands 2 to 4, 2 further down)
+	EscortWide = 19, -- it swings out this far past the point where it is clear of the hull, studs
+	EscortLead = 8, -- it weaves this far ahead of the sub's middle (one too big to go round the hull: this and its own length ahead of the nose), studs
+	EscortLoopLong = 45, -- a fish longer than this sweeps ahead of the nose, and not round the hull, studs
+	EscortRise = 5, -- and rises and falls this much as it does, studs
+	EscortYaw = 34, -- it turns its nose at most this far into a sweep, degrees,
+	EscortSwing = 14, -- and a long one less: its ends never swing out further than this, studs
+	EscortTip = 17, -- it tips up or down at most this far going over and under, degrees
+	EscortBank = 38, -- it banks at most this far into each turn, degrees
+	EscortBankAt = 130, -- most of it at this much push to the side, studs a second squared
+	EscortPace = 55, -- how it turns and tips goes against this pace, and its tail beats to it, studs a second
+	EscortReturn = 0.9, -- seconds it takes to come back to its place beside the sub (over 30 long, up to 1.6 times it),
+	EscortSettle = 0.2, -- and it is there this long before the kick, seconds
+	EscortKickLead = 24, -- a long fish waits this far ahead for the kick (its tail out of the camera's way), studs at most
+	EscortFade = 0.5, -- a fish given up in the middle (unequipped) swims off and fades for this long, seconds
 }
 
 -- The land titles on a sub run (task t1, Hugo 2026-11-20: "if title pops up, make sure that the old ones blends out
