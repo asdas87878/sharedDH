@@ -3,6 +3,32 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-24 · Subs 8A and 9A, the screw's bubble trail, merged with the second hunt's fixes (NULLROOM s2, Hugo's PC)
+**State:** pushed, main `8f82bd3` (the branch `subs-8a-9a-bubbles` merged with the partner's `9b25376`; the auto-push sent it at
+18:41). `python tools/studio/full_check.py all` on it at 18:45: all good, no errors, the place equal to the repo before and after.
+**Hugo's place is not saved** (it holds the merged `src/`, the two new sub models, no check helper): Ctrl+S by Hugo.
+- **What changed:** tier 8 is 8A (the Sea Scorpion, `VentCrawler`), tier 9 is 9A (the gold hull held by a kraken, `AbyssKing`), both
+  with the screw; a bubble trail right behind the screw, on every sub by the code (no tier is left out; seen on 1, 8 and 9) (`SubController`, numbers `Config.Sub` `Wake…`: `WakeMost` 36,
+  `WakeSpread` 24, `WakeSize` 2.6, `WakeSizeEnd` 1.4, `WakeSee` 0.1); the shop cards' camera rows for the two (`SubPanel` `SHOTS`,
+  `python tools/subs/card_fit.py --check` passes after the merge). This work changed no sub's name, price or speed; the prices now
+  charged (`Sub.Prices`, `Sub.Free` 0) came with the partner's `9b25376`.
+- **The models are local files, not uploads:** a place shows the old tier 8 and 9 until
+  `python tools/subs/install.py runner VentCrawler AbyssKing` (Hugo's PC, again after Studio updates itself) or
+  `python tools/subs/install.py <studio_id> VentCrawler AbyssKing` (the other PC) has run in it.
+- **Checked in Studio before the merge (the worker before me):** trips on tiers 1, 8 and 9, the little sub over the stall 82 of 82,
+  nine name signs unclipped with edge, drop and shine, the blur disc on all nine (`picks_check.py`, the checks owed for `8644e36`).
+- **The aura shop's "4 of 12 pictures loaded" is the check, not the game:** only the four cards inside the window load at once;
+  scrolled through, all 12 load (`work/s2c/aura_probe.log`). **Found on the way, for whoever has the aura shop:** the stand-in glow
+  and bubbles never hide once a picture has loaded (`AuraShop.icon`: the swatch's `Visible` read true on all 12 with `IsLoaded`
+  true, and `work/s2b/aura-shop.jpg` shows it; likely the `IsLoaded` change signal never fires, not tested), so every picture sits
+  on its glow. Not changed.
+- **What ran after the merge with `9b25376`:** only `full_check.py all` (its sub trip is tier 1), `card_fit --check`, StyLua and
+  selene. The trips on 8 and 9 and `picks_check.py` ran on the branch before it.
+- **Not done:** `work/s2b/little-sub-8-9.jpg` shows the two new models in colour over the stall (no white blob), but cut by the
+  picture's bottom edge: no good still of them yet. Stale: `docs/design/sub-models.md` rows 35, 36, 119, 132 and the piece counts in
+  `sub-creature-options.md`. 9A is 4,532 triangles (32 over). The Rojo plugin was not connected in Hugo's Studio: the merged `src/`
+  went in through `python3 tools/ui/catch_show/sync_src.py`.
+
 ## 2026-11-24 · The second hunt's fixes and the user's picks (game code, the user's PC)
 **State:** pushed; the place saved with it (version 472). Played by script, no errors: numbers and the UI only,
 **Studio was not drawing 3D, nobody has heard the sounds, no phone**.
