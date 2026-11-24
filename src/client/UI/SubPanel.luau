@@ -7,8 +7,9 @@
 -- the land it reaches and its price (the next one green when you can pay, free while Config.Sub.Free is 1; later ones
 -- grey), EQUIP or EQUIPPED; "NO SUB" for
 -- the ordinary dive-in. Under the list, GO TO cycles the lands the equipped sub reaches, and RIDE WITH a fish from your
--- tank to be dropped onto (or none: you are flung into a hop). At the left edge a ticket
--- says where the sub will take you when you next jump in. The server decides everything (SubService: Action
+-- tank to be dropped onto (or none: you are flung into a hop). Where the sub takes you is said
+-- on GO TO alone (the ticket at the left edge, "SUB > land", is gone: Hugo, 2026-11-24, "Remove the submarine > area
+-- text on the left"). The server decides everything (SubService: Action
 -- "SubBuy", "SubEquip", n, "SubPick", land, fishKey, each only at the stand); this only shows the player's SubTier,
 -- SubEquip, SubDest, SubFish, Coins and Tank attributes. The look is the shop kit (UI/Shop, task s1): a carousel of
 -- tall cards tinted in each sub's hull colour, after Hugo's tier-shop reference.
@@ -65,14 +66,13 @@ local SHOTS: { [string]: Vector3 } = {
 }
 -- SHOTS: end
 
-local gui: ScreenGui -- the ticket and the hint
+local gui: ScreenGui -- the hint
 -- the cards' propellers, turned while the window is open: { the card's picture, the parts, each part's own place }
 type Spinner = { View: ViewportFrame, Parts: { BasePart }, Rest: { CFrame } }
 local spinners: { Spinner } = {}
 local spin = 0
 local window: Shop.Window? = nil -- (nil until init)
 local carousel: Shop.Carousel
-local ticket: TextLabel
 local coinsLabel: TextLabel
 local freeLabel: TextLabel
 local fishButton: Shop.Button
@@ -137,8 +137,6 @@ local function reachable(): { number }
 	return out
 end
 
-local docked, ticketOn = true, false -- the ticket shows on the dock, with a trip set
-
 local function refresh()
 	local tier = attr("SubTier", 0)
 	local equipped = attr("SubEquip", 0)
@@ -150,11 +148,6 @@ local function refresh()
 	freeLabel.Visible = free
 	fishButton.set("RIDE WITH: " .. fishName(fish))
 	local going = equipped >= 1 and dest >= 2
-	-- (only while a trip is set: "SUB: OFF" was a dead word on every new player's screen, 2026-11-24)
-	ticketOn = going
-	ticket.Visible = docked and going
-	ticket.Text = if going then "SUB > " .. landName(dest) else ""
-	ticket.TextColor3 = YELLOW
 	goButton.set(
 		if going then "GO TO: " .. dest .. " " .. landName(dest) else "GO TO: NO SUB",
 		if equipped >= 1 then "Blue" else "Off"
@@ -401,15 +394,6 @@ function SubPanel.init()
 	gui.DisplayOrder = 7
 	gui.Parent = State.Player:WaitForChild("PlayerGui")
 
-	-- the ticket at the left edge, where the SUB button was: where the sub takes you
-	ticket = Shop.text(gui, {
-		Size = UDim2.fromOffset(220, 20),
-		Position = UDim2.new(0, 10, 0.5, 112),
-		TextSize = 18,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = YELLOW,
-	})
-
 	local made = Shop.window({
 		Name = "SubShop",
 		Parent = State.Player:WaitForChild("PlayerGui"),
@@ -541,10 +525,6 @@ function SubPanel.init()
 			local style = SubModels.style(tonumber(a) or 1)
 			SubPanel.hint(string.upper(style.Name) .. " bought and equipped! Your boarding pass is ready")
 		end
-	end)
-	State.ModeChanged.Event:Connect(function(mode: string)
-		docked = mode == "Dock"
-		ticket.Visible = docked and ticketOn
 	end)
 	RunService.RenderStepped:Connect(function(dt: number)
 		hintLabel.Visible = os.clock() - hintAt < 2.2
