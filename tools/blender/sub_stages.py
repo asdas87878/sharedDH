@@ -18,6 +18,9 @@ Two styles, by --style:
 Every tier, in both styles, keeps the placeholder's seat (its top 5.7 studs over the middle and 5 behind it:
 SubController's SEAT), the tower in front of it and the hull's top near 5, so the ride doesn't change with the look;
 the silhouette changes every few tiers. The colours are Shared/SubModels' (keep TIERS and that List alike).
+Toy tiers 8 and 9 are creatures (Hugo's picks of 2026-11-24, options 8A and 9A of docs/design/sub-creature-options.md):
+a sea scorpion, and the gold hull held by a kraken. Their colours are CREATURES', not TIERS' (the voxel style keeps
+TIERS'), and their builders' helpers (spline, tube, arm, on_hull, eye, segments) stand just before `toy8`.
 Here X runs nose (-X) to tail, Z is up, the origin is the sub's middle (the game's pivot).
 Parts: Hull (all that is rigid), Hull_Glow (glass and lines of light: Neon in the game), Seat, Prop (spins about the
 hub: its box is centred on it), Prop_Glow (tiers 6 to 9: a glowing hub), Light (the lamp: Neon, carries the beam).

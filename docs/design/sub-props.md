@@ -3,7 +3,8 @@
 Back to [sub models](sub-models.md) and [the submarine](submarine.md). Hugo, 2026-11-23, about the toy submarines: "make
 the blades on the back better, again give me a better preview and animate them to actually spin."
 
-**State (2026-11-24): option 4, the screw, is picked and built on all nine subs.** "use text D, fish rider, screw for
+**State (2026-11-24): option 4, the screw, is picked and built on all nine subs, and checked against the sheet; a
+bubble trail streams from it (both below, neither seen in Studio yet).** "use text D, fish rider, screw for
 submarine propeller and implement": the user. What was built is the next section. Everything after it is the options
 as they were made on 2026-11-23 (task p1, in Blender); "today" in it is the old wheel of bars.
 
@@ -21,6 +22,103 @@ as they were made on 2026-11-23 (task p1, in Blender); "today" in it is the old 
   150 studs a second and 20% there from 450 (`PropBlurFrom`, `PropBlurFull`, `PropBlurMost`). The placeholder has none.
 - **The cards in the shop turn theirs** at the resting 4 radians a second, the cards in view only, while the window is
   open (`UI/SubPanel`). The little sub over the stall turned already (`SubStandController`).
+
+## The screw, checked against the sheet (2026-11-24, task s1)
+
+Hugo: "make sure the propeller is the screw type in the sheet you showed me. I chose this before." It is, on all nine.
+
+- **By number:** `python tools/subs/screw_check.py` reads each sub's game mesh (`art/subs/<Id>/<Id>.glb`) and works
+  option 4 out again from the sheet's own formula. On all nine the propeller is option 4 point for point (to 0.002
+  studs): the blunt cone of 8 sides, two flights wound 205 degrees, and on tiers 6 to 9 the glowing ball on the cone's
+  end. Each is centred on the hub (0.000 off), inside its ring (reach 3.25 of 3.70; tier 9, a bigger ring, 3.77 of
+  4.40) and clear of the rest of the sub (nearest: tier 8's glow, 1.9 studs from the space it turns in).
+- **By eye:** the sheet below shows option 4 as it stood on the sheet he picked from, then the game's meshes for
+  tiers 1, 8 and 9 from the same three cameras in the same light. **Blades and hub match. Colours match on tier 1.**
+  Tier 9's flights are the same white and purple; its ball is the kraken's cyan now where the sheet's was pink (the
+  sub's light changed with 9A, not the screw). Tier 8 was not on that sheet: one flight white, one the ring's light
+  red, a yellow ball.
+- **One thing found, not changed:** on tier 5 (Blue Streak) the cone and the coloured flight are the same red
+  (232, 80, 58), so the cone does not stand apart from that flight. It is how option 4's colours fall on that tier.
+- **From straight behind** (the game's camera): it reads as a disc in two halves, one white and one coloured, with
+  the cone or the ball in the middle. The twist cannot be seen from there; the two colours are what show the turn.
+  On tier 8 the coloured half is the ring's own red, so it stands out less than tier 1's or tier 9's. Not redesigned.
+- **The colours of each sub's screw** (cone / flight / flight, read from the meshes): 1 navy, red, white. 2 brown,
+  orange, white. 3 green-grey, green, white. 4 grey, red, white. 5 red, red, white. 6 dusk purple, purple, gold.
+  7 dark grey, red, white. 8 dark rust, light red, white. 9 dark purple, white, purple.
+
+![subs 8 and 9, the screw, the bubble trail](../attachments/subs-8a-9a-screw-trail.png)
+
+## The bubble trail (2026-11-24, task s1)
+
+Hugo: "can you add a bubble trail right behind the propeller". **Written, checked by sums and drawn in Blender (the
+sheet above). Not seen in Studio: that is task s2.**
+
+**Why there was no trail.** An emitter named `Wake` was on the propeller already. What it did, each point from the
+code and a sum, none seen in Studio:
+
+| | What the old emitter did | Did it hide the trail? |
+|---|---|---|
+| Rate | 0.6 a stud a second, at least 8 and at most 260 a second, set every frame of a trip | No: plenty were made |
+| Speed | 4 to 10 studs a second backwards, lasting 0.8 to 1.6 seconds | **Yes, with the next line** |
+| Left where they were made | The bubbles stayed in the water where they were born while the sub and the camera went on at 464 to 4,315 studs a second. The camera rides 12 to 17 studs behind the screw's end, so it passed each bubble within 2 frames on the slowest trip and within a quarter of a frame on the fastest. About 8 bubbles or fewer were ever in front of the camera, for a blink each | **Yes: this is the reason** |
+| Size | 0.5 studs growing to 1.4 | Small, but not the reason |
+| Colour | White, no picture set (Roblox's default sparkle) | No |
+| When it was on | Always on during a trip; 0 a second on the shop's cards and the stand's sub | No |
+| The fade at the trip's end | The fade changes the parts' see-through only; the bubbles kept coming from an unseen sub | No (it made too many, not too few) |
+| The blur disc | It stands in front of the flights, further from the camera than the bubbles, so it should not cover them. The order Roblox draws them in is Studio's to show | Not by the sums |
+
+**What is built now** (`Shared/SubModels`, `dress`; the numbers are `Config.Sub`'s `Wake...`):
+
+- The bubbles **travel with the sub** (`LockedToPart`) and stream straight back from the screw's end at 26 studs a
+  second for 0.4 seconds: a jet about 10 studs long (its farthest bubble 13) that stays behind the screw at any speed.
+- The emitter hangs on the hull, on a point named `WakeAt` at the propeller's back end on the hub's line. Not on the
+  propeller: locked to a part that spins, the bubbles would whirl round with it.
+- **More with speed:** 6 a second standing, a quarter more for every stud a second, 70 a second from 256 studs a
+  second up (every run's fast part): about 28 in the trail at once. 28 a second at the drop's 90.
+- **The look is the aura shop's bubble** (`AuraController`'s `bubbles`): Roblox's own ring picture, the pale blue of
+  the game's other bubbles, the same brightness. Nothing uploaded. The ring is hollow, so the screw shows through.
+  The picture is faint and its ring is a little over half as wide as the size given, so the size is 2 studs (a ring
+  1.1 across) shrinking to 0.6, each a quarter bigger or smaller by chance.
+- They come in faint, are clearest just behind the screw and fade out along the trail. The trail's far end is the
+  end nearer the camera, so the smallest and faintest bubbles are the ones nearest the screen.
+- None once the sub fades out at the trip's end, and none on the shop's cards or the stand's sub.
+
+**What it does to the picture, by sums** (`tools/blender/sub_trail_sheet.py`, from the game's meshes and
+`SubController.cameraFor`'s camera; the trail taken as every place a bubble can be):
+
+| | Rider seen, with and without bubbles | Trail in the picture | Biggest bubble | Bubbles cover |
+|---|---|---|---|---|
+| Tier 1, full speed | 41% | all of it, 27 bubbles | 5.0% of the screen's height | 0.7% of the screen |
+| Tier 8, full speed | 42% | all of it, 27 bubbles | 5.0% | 0.7% |
+| Tier 9, full speed | 42% | 78% of it, 21 bubbles | 9.3% | 1.3% |
+| Tiers 1 and 8, as a run begins | 56%, 57% | 2% of it | - | 0.0% |
+| Tier 9, as a run begins | 57% | none | - | 0.0% |
+| Tiers 1 and 8, at the drop | 50%, 51% | 27% of it, 3 bubbles | 11% | 0.5% |
+| Tier 9, at the drop | 51% | none | - | 0.0% |
+
+- **The rider is never behind a bubble.** The trail's top is 2 studs under the seat's top and behind the ring; in the
+  picture the nearest a bubble can come to the rider is 13% of the screen's height away.
+- **The trail runs down the picture from the screw**, toward the bottom edge: it comes straight at the camera and
+  passes under it. On tier 9, the longest sub, its last fifth leaves the picture at the bottom.
+- **As a run begins and at the drop the camera mostly cannot see it.** The camera stands 30 studs behind the sub's
+  middle and 9 to 10 up; the screw's end is then at the picture's bottom edge (tiers 1 to 8) or under it (tier 9), so
+  the trail is under the picture. It was so for the screw itself before this task. Other players see the trail from
+  the side at any time.
+- **It swings with the tail.** A trail that travels with the sub turns as the sub turns. It is drawn back along the
+  path only while the sub goes straight; on a bend it stays a straight jet behind the tail. A trail left in the water
+  is the one that could not be seen (the table above).
+
+**Not seen, for the Studio check (s2):** that the bubbles show at all and read as a trail at full speed; their
+brightness against bright water near the surface (they add light, so on a pale background they wash out); that they
+draw over the blur disc and not under it; that the newest bubbles do not hide the screw's middle; tier 9's big rings
+at the bottom edge at full speed; that none show after the sub has faded. If it is too thin or too thick, the numbers
+are `WakeMost`, `WakeSize` and `WakeBright`.
+
+**Outside this task's own files, each a small change the trail needed:** `SubController.place` set the rate with its
+own numbers (0.6, 8, 260); it now reads `Config.Sub`'s and stops at the fade. `tools/studio/t3_toy_subs_check.py`
+looked for the emitter on the propeller; it now looks on the hull's `WakeAt`. `tools/subs/stand_sub_check.luau`'s
+made-up Config got the `Wake` numbers. They are one commit of their own, so they can be taken back alone: the trail
+then still works in the game, at the old 8 to 260 a second, and those two checks would need the lines again.
 
 ![the propeller options](../attachments/sub-props-options-2026-11-23.png)
 

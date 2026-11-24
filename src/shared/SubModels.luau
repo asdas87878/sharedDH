@@ -5,15 +5,19 @@
 -- ReplicatedStorage.SubMeshes.<Id>, one MeshPart to a part: Hull, Hull_Glow, Seat, Prop, Prop_Glow, Light). A place
 -- without a tier's template gets the old placeholder of plain parts (Hugo, 2026-11-18), each tier a new colour and one
 -- more piece than the last.
---   SubModels.List[n]   { Id, Name, Hull, Trim, Light }   (the colours are baked into the meshes: keep TIERS in
---     tools/blender/sub_stages.py alike)
---   SubModels.build(n)  the model, its parts, its propeller and the wake's emitter. It faces -Z, its middle at the
---     origin; the seat is the same on every tier (SubController's SEAT), so the ride doesn't change with the look.
+--   SubModels.List[n]   { Id, Name, Hull, Trim, Light }   (the colours are baked into the meshes: keep TIERS, and
+--     CREATURES for tiers 8 and 9, in tools/blender/sub_stages.py alike)
+--   SubModels.build(n)  the model, its parts, its propeller and the bubble trail's emitter. It faces -Z, its middle
+--     at the origin; the seat is the same on every tier (SubController's SEAT), so the ride doesn't change with the look.
+--     The emitter is named "Wake", on the attachment "WakeAt" on the hull at the screw's end; it makes nothing until
+--     its Rate is set (SubController, by Config.Sub's Wake numbers): the shop's cards and the stand's sub have none.
 --     Parts named "Prop" and "Prop_Glow" spin about their own Z (SubController). The part named "Blur" is the blur
 --     disc in the blades (made here by code, not in the mesh): it doesn't turn, and it is unseen until the sub is fast
 --     (SubController). Not "..._Glow", or it would be Neon.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local SubModels = {}
 
@@ -59,6 +63,11 @@ local SIGN_INK = Color3.fromRGB(16, 36, 63)
 -- blades' reach against half the box's width (a turned screw reaches further than its box's side)
 local BLUR_BACK, BLUR_REACH, BLUR_THICK = 1.11, 1.18, 0.04
 local BLADE_WHITE = Color3.fromRGB(244, 241, 230)
+
+-- The bubble trail's look: the aura shop's bubble (AuraController's `bubbles`: a ring, so the screw shows through it),
+-- in the pale blue of the game's other bubbles (Lib/Fx). A picture Roblox ships: nothing uploaded
+local WAKE_PICTURE = "rbxasset://textures/particles/explosion01_shockwave_main.dds"
+local WAKE_COLOUR = Color3.fromRGB(225, 248, 255)
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -114,16 +123,18 @@ SubModels.List = {
 	{
 		Id = "VentCrawler",
 		Name = "Vent Crawler",
-		Hull = rgb(220, 50, 40),
-		Trim = rgb(30, 20, 20),
-		Light = rgb(255, 170, 40),
+		-- (since 2026-11-24 the model is our Sea Scorpion, option 8A: rust, not red)
+		Hull = rgb(206, 98, 48),
+		Trim = rgb(52, 28, 24),
+		Light = rgb(255, 150, 30),
 	},
 	{
 		Id = "AbyssKing",
 		Name = "Abyss King",
-		Hull = rgb(255, 214, 70),
-		Trim = rgb(20, 16, 30),
-		Light = rgb(255, 80, 120),
+		-- (since 2026-11-24 the gold hull is held by a kraken, option 9A: its lights are the suckers' cyan)
+		Hull = rgb(255, 206, 56),
+		Trim = rgb(30, 22, 44),
+		Light = rgb(96, 244, 226),
 		Blade = rgb(150, 70, 220),
 	},
 } :: { Style }
@@ -201,7 +212,7 @@ local function signWord(sign: BillboardGui, name: string, colour: Color3)
 end
 
 -- What every sub carries, model or placeholder: the lamp's beam, the hull's glow, the name over the tower (`over`: from
--- `tower`'s middle to where the name's middle goes) and the wake's bubbles on the propeller
+-- `tower`'s middle to where the name's middle goes) and the bubble trail behind the propeller
 local function dress(
 	s: Style,
 	hull: BasePart,
@@ -238,19 +249,48 @@ local function dress(
 	sign.Parent = tower
 	local bright = 0.2126 * s.Hull.R + 0.7152 * s.Hull.G + 0.0722 * s.Hull.B
 	signWord(sign, s.Name, if bright < SIGN_DARK then s.Light else s.Hull)
+	-- The bubble trail (Hugo, 2026-11-24: "add a bubble trail right behind the propeller"; docs/design/sub-props.md,
+	-- "The bubble trail"). The bubbles travel WITH the sub (LockedToPart) and stream back from the screw's end at
+	-- Sub.WakeSpeed, so the trail is a jet about WakeSpeed x WakeLife studs long that stays behind the screw at any
+	-- speed. (Until then they were left where they were made: at 464 studs a second and more the sub and the camera
+	-- behind it had passed each one within two frames, and none was ever seen.) It hangs on the hull, on a point at
+	-- the screw's end, not on the propeller: locked to a part that spins, the bubbles would whirl round with it.
+	-- Placed by the world, as the placeholder's hull lies turned.
+	local c = Config.Sub
+	local wakeAt = Instance.new("Attachment")
+	wakeAt.Name = "WakeAt"
+	wakeAt.Parent = hull
+	wakeAt.WorldCFrame = CFrame.new(prop.Position + Vector3.new(0, 0, prop.Size.Z / 2))
 	local bubbles = Instance.new("ParticleEmitter")
 	bubbles.Name = "Wake"
-	bubbles.Color = ColorSequence.new(Color3.new(1, 1, 1))
-	bubbles.LightEmission = 0.4
-	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1.4) })
-	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
-	bubbles.Lifetime = NumberRange.new(0.8, 1.6)
-	bubbles.Speed = NumberRange.new(4, 10)
-	bubbles.SpreadAngle = Vector2.new(35, 35)
-	bubbles.Acceleration = Vector3.new(0, 6, 0)
+	bubbles.Texture = WAKE_PICTURE
+	bubbles.Color = ColorSequence.new(WAKE_COLOUR)
+	bubbles.LightEmission = 1
+	bubbles.LightInfluence = 0
+	bubbles.Brightness = c.WakeBright
+	-- a bubble swells as it leaves the screw, then shrinks and fades toward the stream's end (which is the end nearer
+	-- the camera: nothing grows on its way to the screen)
+	bubbles.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, c.WakeSize * 0.4),
+		NumberSequenceKeypoint.new(0.12, c.WakeSize, c.WakeSize * 0.25),
+		NumberSequenceKeypoint.new(1, c.WakeSizeEnd, c.WakeSizeEnd * 0.25),
+	})
+	-- (it comes in faint: the newest bubbles lie over one another on the hub, and would be one white blob there)
+	bubbles.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.7),
+		NumberSequenceKeypoint.new(0.15, c.WakeSee),
+		NumberSequenceKeypoint.new(0.6, (1 + c.WakeSee) / 2),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	bubbles.Lifetime = NumberRange.new(c.WakeLife * 0.8, c.WakeLife * 1.15)
+	bubbles.Speed = NumberRange.new(c.WakeSpeed * 0.85, c.WakeSpeed * 1.15)
+	bubbles.SpreadAngle = Vector2.new(c.WakeSpread, c.WakeSpread)
+	bubbles.Acceleration = Vector3.new(0, c.WakeRise, 0)
+	bubbles.Rotation = NumberRange.new(0, 360)
+	bubbles.LockedToPart = true
 	bubbles.Rate = 0
 	bubbles.EmissionDirection = Enum.NormalId.Back
-	bubbles.Parent = prop
+	bubbles.Parent = wakeAt
 	return bubbles
 end
 

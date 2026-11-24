@@ -3262,6 +3262,22 @@ Config.Sub = {
 	PropBlurFrom = 150, -- the blur disc in the blades starts to show at this speed, studs a second
 	PropBlurFull = 450, -- and shows the most from this speed
 	PropBlurMost = 0.2, -- how solid it gets (0: no disc)
+	-- the bubble trail behind the screw (Hugo, 2026-11-24: "add a bubble trail right behind the propeller";
+	-- docs/design/sub-props.md, "The bubble trail"; Shared/SubModels makes it, SubController sets how many).
+	-- The bubbles travel with the sub and stream back from the screw's end, so the trail is WakeSpeed x WakeLife
+	-- studs long whatever the sub's speed: about 10. NOT SEEN IN STUDIO YET: every number is from sums.
+	WakeLeast = 6, -- bubbles a second with the sub standing: a lazy dribble (0: none until it moves)
+	WakePerSpeed = 0.25, -- and this many more for every stud a second: 28 a second at the drop's 90
+	WakeMost = 70, -- but never more than this (from 256 studs a second: every run's fast part). About 28 in the trail at once
+	WakeSpeed = 26, -- how fast they stream back from the screw, studs a second
+	WakeLife = 0.4, -- and how long one lasts, seconds
+	WakeSpread = 12, -- the stream's cone, degrees either side of straight back (wider: it climbs toward the rider)
+	-- (the bubble's picture is a soft ring a little over half as wide as the size given: 2 draws a ring 1.1 across)
+	WakeSize = 2, -- a bubble just behind the screw, studs (each a quarter bigger or smaller, by chance)
+	WakeSizeEnd = 0.6, -- shrinking to this at the trail's end, the end nearer the camera (tier 9's passes close under it)
+	WakeSee = 0.15, -- how see-through a new bubble is (0: solid); it fades out along the trail
+	WakeBright = 3.5, -- the bubbles' brightness (the aura shop's bubbles: 3.5; the picture itself is faint)
+	WakeRise = 3, -- they rise a little as they go, studs a second squared
 }
 
 -- The land titles on a sub run (task t1, Hugo 2026-11-20: "if title pops up, make sure that the old ones blends out
