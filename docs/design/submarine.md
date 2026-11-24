@@ -205,6 +205,15 @@ not as failures: **the hull clearance asked for at `Size.Max` is not met.**
 The weave first stayed ahead of the nose; the sub hid too much of it, so it was moved beside the hull. The check's turn limit
 was loosened on the way: 8, 10, 15, and now 12 degrees a frame (Normal only).
 
+To run it (about 8 minutes; each part prints its own result, and the csvs are one line a trip):
+
+```
+rojo build -o /tmp/place.rbxl
+python3 tools/subs/escort_hulls.py /tmp/cells.json
+for i in $(seq 1 11); do lune run tools/subs/escort_check.luau . /tmp/place.rbxl /tmp/p_$i.csv $i/11 /tmp/cells.json > /tmp/p_$i.txt & done; wait
+grep -hE "FAIL|passed|EXCEPTION" /tmp/p_*.txt
+```
+
 So **a giant still goes through the walls, the floor or the surface** where the water is smaller than it is, as it does on
 a plain dive. Nothing in this trip can shrink it without swapping the fish.
 
