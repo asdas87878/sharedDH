@@ -4,7 +4,7 @@ What each push changed, so whoever pulls next knows where things stand. Newest f
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-24 · The second hunt's fixes and the user's picks (game code, the user's PC)
-**State:** committed, not pushed by hand. In the open Studio (synced, not saved). Played by script, no errors: numbers and the UI only,
+**State:** pushed; the place saved with it (version 472). Played by script, no errors: numbers and the UI only,
 **Studio was not drawing 3D, nobody has heard the sounds, no phone**.
 - **The user's picks:** carry 100 with the best seven in the bar (`Tame.Carry`, `Config.finer`; Hands rows now `{id, size, variant, key}`);
   subs priced (`Sub.Prices`, `Sub.Free` 0); colours rarer and paying more (`Config.Variant`, `VariantIncome`). Decisions has them.
