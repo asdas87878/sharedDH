@@ -315,6 +315,22 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
   Silver 1 in 20, Gold 1 in 100, Rainbow 1 in 600, an income-only x1.2, x2, x6 on top (game-code's numbers).
   Modelled: lands come within about 5% of the same times with the Index's set reward as it is, and up to 13% later
   (land 8) with it ten times larger; income within about 13% for the first hour, x1.2 to 1.8 at 10 to 20 h. A Rainbow earns x12 for x2 the need, more than the next land's plain fish (x7.3).
+- **The land-set reward x10** (`Config.Index.SetOxygen` 0.5 -> 5, `SetCoinSeconds` 600 -> 2500, in the game since
+  `03fa0df`, DRAFT; the user told the game-code chat to make the changes it had listed, not these numbers one by one).
+  Re-run 2026-11-24 with the colours and priced subs in, medians of 5 (`rad_economy.py` now reads all three from
+  `Config`). It is the set reward that moves the lands; colours and subs alone move land 10 by 0.1 h with auras:
+
+  | | Land 7 | Land 8 | Land 9 | Land 10 | 10B Oxygen |
+  |---|---|---|---|---|---|
+  | With auras, before | 2.5 h | 5.0 h | 13.7 h | 31.3 h | 44 h |
+  | With auras, now | 2.5 h | 4.0 h | 10.0 h | 21.9 h | 22.8 h |
+  | Index, no auras (the game today), before | 4.5 h | 11.5 h | 42 h | 105 h | 176 h |
+  | Index, no auras, now | 4.2 h | 7.3 h | 29 h | 67 h | 70 h |
+
+  Theirs: 7.8B (x8) at "30 hours", so ours with auras is now a little ahead, where draft 2 was a little behind. Their
+  own sets paid about 12 of the commonest's need in Plains and 2 to 8 in Extinction, so 5 is in their range.
+  Nothing in the needs has to change. **The packs, checked:** none plainly wrong. $75T takes land 9 to 10 from 11.7 to
+  4.6 h (was 17.6 to 6.1 h), and 38.5 to 22.8 h with no auras. The Oxygen packs hold the same lands as before.
 - **Numbers past a trillion:** cash labels read Qa and Qi since `a72c1ff` (the UI chat, 2026-11-23). Full Oxygen
   figures fit by measured text width, the Oxygen row and the seahorse sign shrinking to do it, **except the player's
   own Oxygen row (`UI/StatRows`, bottom left) at 351,000,000,000**: in Studio 153 px of text in a 126 px box (the
