@@ -3375,10 +3375,10 @@ Config.Dive = {
 	Leap = 1, -- 1: running off the lip is the dive; 0: you drop in as before (nothing of the leap runs). On for everyone on the user's word, 2026-11-23
 	LeapCam = 1, -- 1: the camera films the dive; 0: the view is left as it is
 	Flip = 0, -- 1: a forward somersault in the air, tucked
-	LeapAhead = 2.5, -- the water is looked for this far ahead of you as you run, studs
-	LeapMinSpeed = 8, -- running toward the water at least this fast starts it, studs a second (slower: it starts as you go over the edge)
+	LeapAhead = 2.5, -- the line that starts it is this far in from the lip, studs, the whole width of it: the same for a runner and a rider
+	LeapMinSpeed = 8, -- crossed going out at least this fast, studs a second (slower: it starts as you go over the edge)
 	LeapCone = 40, -- the dive goes out within this many degrees of straight out from the dock, whichever way you ran,
-	LeapRefuse = 75, -- but running more than this far off straight out (along the edge) is no dive: you drop in as before
+	LeapRefuse = 75, -- but running more than this far off straight out (along the edge) does not start it (going over the edge does)
 	LeapCrouch = 0.1, -- the crouch at the edge, seconds (none when you are over the water already)
 	LeapHigh = 11, -- the arc's top over where you left, studs
 	LeapFar = 24, -- and where it meets the water, studs out
@@ -3422,16 +3422,22 @@ Config.Dive = {
 	-- the leap on the ride fish (2026-11-23, the user: "if you are on a fish and you dive into the water you should have
 	-- a slightly different but similar dive animation"). Riding the equipped fish on land (Equip), running off the lip is
 	-- the fish's own dive: a lower, longer arc, nose up, over and nosing in, the rider tucked down on its back, the
-	-- camera further back. A bigger fish leaps higher, further and slower, and splashes bigger. Claude's numbers, not
-	-- yet played; a fish that would hit anything on the way drops in as before
-	LeapMounted = 0, -- 1: on the ride fish, running off the lip is its dive; 0: it drops in as before (nothing of it runs). 0 in the file until its play check passes
+	-- camera further back. A bigger fish leaps higher, further and slower, and splashes bigger. Every fish dives (2026-11-24;
+	-- until then one that would hit anything on the way dropped in: 46 of 78 kinds at their own size). Claude's numbers,
+	-- checked offline (tools/dive/fish_dive_check.luau), not yet played
+	LeapMounted = 1, -- 1: on the ride fish, running off the lip is its dive; 0: it drops in as before (nothing of it runs). 1 on branch fish-dive since 2026-11-24 (Hugo: "make sure each fish gets a diving animation just like the player does"), not yet played at a real frame rate
 	LeapMountedHigh = 4, -- the arc's top over where it left, studs (for a fish LeapMountedSize long),
 	LeapMountedFar = 34, -- where it meets the water, studs out,
 	LeapMountedTime = 1.1, -- and from leaving the edge to the water, seconds
 	LeapMountedSize = 12, -- a fish this long (studs) leaps as above; the high and the far go as the square root of its length over this, the time as its 0.35th power,
 	LeapMountedLeast = 0.75, -- that share never under this,
-	LeapMountedMost = 2, -- nor over this (and the pace never over the server's land pace check, Equip.PaceRoom)
-	LeapMountedCam = 1.25, -- the camera's distances (its moves and the chase) times this, times that share to the 0.7th power
+	LeapMountedMost = 4, -- nor over this (2 until 2026-11-24: an 80 stud fish's leap ended with half of it on the dock; and the pace never over the server's land pace check, Equip.PaceRoom)
+	LeapMountedRise = 0.1, -- the arc's top is this share of the fish's length over where it left, at least: room for its nose to come up with its tail still over the floor
+	LeapMountedTail = 30, -- in the air its nose never tips so far down that its tail would stand this much over its saddle, studs (the arch's beam is 54 over the floor)
+	LeapMountedCam = 1.25, -- the camera's distances (its moves and the chase) times this, times that share (2 at most) to the 0.7th power,
+	LeapMountedFrame = 0.7, -- or, for a bigger fish, as far back at the top of the arc as this times the fish's length (or 1.6 times its width or height): the whole of it and the rider in the view
+	LeapMountedSide = 24, -- but never this far to the side, studs: what is left goes back instead (the gate's walls are 48 from its middle)
+	LeapMountedAloft = 3, -- from this many times the diver's distances up, the camera stays over the water and hands over to the riding camera from there (a fish that big leaves it no room under the water)
 	LeapMountedThrough = 0.6, -- the camera stays over the water behind the splash this long after the fish goes in, seconds (the server swaps the land fish for the water fish meanwhile)
 	LeapMountedLevel = 10, -- under the water the fish levels to this many degrees nose down (the water fish is level)
 	FirstDockWait = 20, -- seconds floating at the surface by the dock before a player who has not ridden yet this dive is put back on it (Oxygen.DockWait once they have)
