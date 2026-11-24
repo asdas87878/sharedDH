@@ -326,7 +326,7 @@ end
 local overlap = OverlapParams.new()
 overlap.FilterType = Enum.RaycastFilterType.Exclude
 overlap.RespectCanCollide = true
-local function fishClear(p: Plan, fish: Fish, params: RaycastParams): boolean
+local function fishClear(p: Plan, fish: Fish, params: RaycastParams): (boolean, string?)
 	local size = fish.size * 0.85
 	local skip = table.clone(params.FilterDescendantsInstances)
 	table.insert(skip, workspace.Terrain) -- (its water: the sweeps see the terrain's ground)
@@ -335,20 +335,26 @@ local function fishClear(p: Plan, fish: Fish, params: RaycastParams): boolean
 	for i = 1, 10 do
 		local at = frameAt(p, p.crouch + p.air * i / 10) * fish.rel
 		local move = at.Position - last.Position
-		if move.Magnitude > 0.01 and workspace:Blockcast(last, size, move, params) then
-			return false
+		local hit = if move.Magnitude > 0.01 then workspace:Blockcast(last, size, move, params) else nil
+		if hit then
+			return false, `its box meets {hit.Instance.Name} (swept, step {i} of 10)`
 		end
-		if i < 10 and #workspace:GetPartBoundsInBox(at, size, overlap) > 0 then
-			return false
+		if i < 10 then
+			local inside = workspace:GetPartBoundsInBox(at, size, overlap)
+			if #inside > 0 then
+				return false, `its box is in {inside[1].Name} (step {i} of 10)`
+			end
 		end
 		last = at
 	end
-	return true
+	return true, nil
 end
 
 -- One dive from `start` (the root), facing `fromYaw`, out along `heading` (flat, length 1) at `speed`, with a crouch
 -- or not. Nil when the arc would meet anything, or come down anywhere but open water. `fish`: on the ride fish (its
--- own dive: Config.Dive.LeapMounted), nil for a diver
+-- own dive: Config.Dive.LeapMounted), nil for a diver. `whyNot` is what the last call passed over, try by try (the test
+-- hooks and the log read it)
+local whyNot: { string } = {}
 local function makePlan(
 	start: Vector3,
 	ground: number,
@@ -382,12 +388,14 @@ local function makePlan(
 		endY = surface + 0.5 * fish.depth
 	end
 	local drop = takeoff.Y - endY
+	table.clear(whyNot)
 	if drop < 0.5 then
+		table.insert(whyNot, "no drop to the water from here")
 		return nil
 	end
 	local params = rays()
 	-- the arc that fits: as asked; lower; lower and shorter
-	for _, try in { { 1, 1 }, { 0.6, 1 }, { 0.6, 0.7 }, { 0.3, 0.5 } } do
+	for n, try in { { 1, 1 }, { 0.6, 1 }, { 0.6, 0.7 }, { 0.3, 0.5 } } do
 		local high = math.max(baseHigh, 0.5) * try[1]
 		local far = math.max(baseFar, 2) * try[2]
 		local air = math.max(baseTime, 0.2) * (0.7 + 0.3 * try[1])
@@ -404,8 +412,10 @@ local function makePlan(
 			for i = 1, 10 do
 				local u = i / 10
 				local at = takeoff + heading * (far * u) + UP * (a * u - c * u * u)
-				if workspace:Spherecast(last, 1.2, at - last, params) then
+				local hit = workspace:Spherecast(last, 1.2, at - last, params)
+				if hit then
 					clear = false
+					table.insert(whyNot, `arc {n}: {hit.Instance.Name} in the way`)
 					break
 				end
 				last = at
@@ -413,12 +423,16 @@ local function makePlan(
 		end
 		local entry = takeoff + heading * far + UP * (a - c)
 		local open = clear and groundUnder(Vector3.new(entry.X, takeoff.Y, entry.Z)) == nil
+		if clear and not open then
+			table.insert(whyNot, `arc {n}: no open water where it comes down`)
+		end
 		if open and fish then
 			-- (and open water under the fish's nose and tail as it goes in)
-			for _, z in { fish.rel.Z - fish.size.Z / 2, fish.rel.Z + fish.size.Z / 2 } do
+			for i, z in { fish.rel.Z - fish.size.Z / 2, fish.rel.Z + fish.size.Z / 2 } do
 				local at = entry - heading * z
 				if groundUnder(Vector3.new(at.X, takeoff.Y, at.Z)) ~= nil then
 					open = false
+					table.insert(whyNot, `arc {n}: its {if i == 1 then "nose" else "tail"} comes down over the floor`)
 				end
 			end
 		end
@@ -476,7 +490,14 @@ local function makePlan(
 				level = d.LeapMountedLevel,
 			}
 			p.entryTilt = if fish then pathAngle(p, 1) else 90 + pathAngle(p, 1)
-			if not fish or fishClear(p, fish, params) then
+			local fits, met = true, nil :: string?
+			if fish then
+				fits, met = fishClear(p, fish, params)
+			end
+			if not fits then
+				table.insert(whyNot, `arc {n}: {met}`)
+			end
+			if fits then
 				-- the camera's side: the side it is on already, unless the low spot beside the edge is in a wall
 				local onRight = (camFrom.Position - start):Dot(right)
 				p.side = if onRight < 0 then -1 else 1
@@ -589,6 +610,19 @@ local function landFishOf(player: Player): Model?
 	return nil
 end
 
+-- A fish as the leap sees it, from its box's corners in the root's own space (`low`, `high`)
+local function fishFrom(low: Vector3, high: Vector3): Fish
+	local length = high.Z - low.Z
+	-- (the rider's head over the saddle is in the box too: the arch over the strip is looked for with it)
+	high = Vector3.new(high.X, math.max(high.Y, 2.5), high.Z)
+	return {
+		rel = CFrame.new((low + high) / 2),
+		size = high - low,
+		length = length,
+		depth = math.max(-low.Y, 0),
+	}
+end
+
 -- That fish as the leap sees it, from its box as it stands under `root` (nil: no fish, or none yet)
 local function fishOf(player: Player, root: BasePart): Fish?
 	local model = landFishOf(player)
@@ -612,15 +646,7 @@ local function fishOf(player: Player, root: BasePart): Fish?
 		local at = root.CFrame:PointToObjectSpace(box:PointToWorldSpace(size / 2 * corner))
 		low, high = low:Min(at), high:Max(at)
 	end
-	local length = high.Z - low.Z
-	-- (the rider's head over the saddle is in the box too: the arch over the strip is looked for with it)
-	high = Vector3.new(high.X, math.max(high.Y, 2.5), high.Z)
-	return {
-		rel = CFrame.new((low + high) / 2),
-		size = high - low,
-		length = length,
-		depth = math.max(-low.Y, 0),
-	}
+	return fishFrom(low, high)
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -1585,6 +1611,47 @@ function DiveController.log(): { [string]: any }
 			}
 			else nil,
 	}
+end
+
+-- Test hook: only the checks call this (tools/dive/fish_dive_check.luau, offline in Lune). The plan a dive from
+-- `start` would get, without beginning it: nil and why not, or the plan, why each arc before it was passed over, and
+-- the dive's own sums at any dive time (`frameAt`: the root; `viewAt`: the film's view and its width, with the body
+-- on the plan's path). `box`: the ride fish's box in the root's own space, its low and high corners (nil: a diver)
+function DiveController.planOf(
+	start: Vector3,
+	ground: number,
+	heading: Vector3,
+	speed: number,
+	crouch: boolean,
+	camFrom: CFrame,
+	camFov: number,
+	box: { low: Vector3, high: Vector3 }?
+): ({ [string]: any }?, { string }, { [string]: any }?)
+	local fish = if box then fishFrom(box.low, box.high) else nil
+	local p = makePlan(start, ground, heading, yawOf(heading), speed, crouch, camFrom, camFov, fish)
+	local why = table.clone(whyNot)
+	if not p then
+		return nil, why, nil
+	end
+	local made: Plan = p
+	return made :: any,
+		why,
+		{
+			fish = fish,
+			frameAt = function(t: number): CFrame
+				return frameAt(made, t)
+			end,
+			tiltAt = function(t: number): number
+				return tiltAt(made, t)
+			end,
+			viewAt = function(t: number): (CFrame, number)
+				local at = posAt(made, t)
+				if t >= made.tFollow then
+					return filmAt(made, t, at, at)
+				end
+				return filmAt(made, t, at, at)
+			end,
+		}
 end
 
 -- Test hook: only the Studio checks call this (tools/studio/dive_leap_check.py). Empties the last dive's log (not a
