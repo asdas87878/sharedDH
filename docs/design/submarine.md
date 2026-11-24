@@ -125,6 +125,8 @@ it a little shorter and speed it up.(just the animation getting onto it (at most
   and tips as far as before. The seat's shake goes with the landing, not a fixed 0.15 s before the run.
 - **Reading, not confirmed:** the camera movement meant is the one in the game now (behind you, drawing back, tipping
   down to the sub), not the old one that started in front and swung round, which his rule of 2026-11-23 rules out.
+  (The game open in Hugo's Studio when he asked held the new one: read from its scripts.)
+- Type check and lint pass; **not run in Studio yet** (Hugo was in a playtest).
 - Nothing after the sub sets off is changed.
 
 ### Titles on the run (task t1, Hugo 2026-11-20)
