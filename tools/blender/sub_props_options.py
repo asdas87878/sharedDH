@@ -1,6 +1,7 @@
 """Propeller options for the toy submarines: four better versions beside today's, as big stills and a spinning clip.
 
-Options only: nothing here is in the game. The picked one goes into tools/blender/sub_stages.py's tail() later.
+Hugo picked option 4, the screw (2026-11-24): it is in tools/blender/sub_stages.py's tail() and in the game. The other
+options live only here. NOW is the three flat bars the game had when these were drawn.
 
     python tools/blender/sub_props_options.py all [work folder]        everything below, in order (12 to 14 minutes)
     python tools/blender/sub_props_options.py clip [work folder]       the clip and its check alone (about 10 minutes)
@@ -250,6 +251,7 @@ def blender_part():
         real_tail(tx=tx, az=az, ring=ring, cross=cross, blades=blades, hub=hub, glow=glow, tips=tips)
 
     S["tail"] = tail
+    S["PROP"] = "bars"  # the propeller these options were drawn against (the game's is option 4 since 2026-11-24)
     S["toy%d" % tier]()
     BODY_PIECES = [p for p in PIECES if not p["part"].startswith("Prop")]
     NOW_PIECES = [p for p in PIECES if p["part"].startswith("Prop")]

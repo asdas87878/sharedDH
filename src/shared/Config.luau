@@ -3255,6 +3255,13 @@ Config.Sub = {
 	FovFar = 10, -- and up to this much wider again the faster a far land's run goes, degrees,
 	FovFarAt = 4000, -- all of it at this speed, studs a second (none at Speed)
 	Distance = 30, -- the camera's distance behind the sub on the run, studs
+	-- the propeller's turn (docs/design/sub-props.md, "The turn rule"; Hugo, 2026-11-24: "screw for submarine propeller")
+	PropIdle = 4, -- radians a second with the sub standing, and on the shop's cards (4 before too)
+	PropPerSpeed = 0.04, -- and this much more for every stud a second (0.12)
+	PropStepMost = 30, -- but never further than this in one frame, degrees (no cap before: at speed it stood still or ran backwards)
+	PropBlurFrom = 150, -- the blur disc in the blades starts to show at this speed, studs a second
+	PropBlurFull = 450, -- and shows the most from this speed
+	PropBlurMost = 0.2, -- how solid it gets (0: no disc)
 }
 
 -- The land titles on a sub run (task t1, Hugo 2026-11-20: "if title pops up, make sure that the old ones blends out

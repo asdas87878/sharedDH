@@ -186,7 +186,10 @@ end
 
 local function place(v: Visual, cf: CFrame, speed: number, dt: number)
 	local offsets = (v :: any).Offsets :: { [BasePart]: CFrame }
-	v.Spin += dt * (4 + speed * 0.12)
+	-- (never so far in one frame that the two flights read as standing still or turning backwards: the screw looks the
+	-- same every half turn. docs/design/sub-props.md, "The turn rule")
+	local c = Config.Sub
+	v.Spin += math.min(dt * (c.PropIdle + speed * c.PropPerSpeed), math.rad(c.PropStepMost))
 	local spun = CFrame.Angles(0, 0, v.Spin)
 	-- the hull part's own place and turn in the sub (the placeholder's is a cylinder lying along X; a model's hull
 	-- is a mesh whose middle isn't the sub's)
@@ -199,6 +202,10 @@ local function place(v: Visual, cf: CFrame, speed: number, dt: number)
 			p.CFrame = hullFrame * offset * spun
 		else
 			p.CFrame = hullFrame * offset
+			if p.Name == "Blur" then
+				-- the blur disc shows with the speed
+				p.Transparency = 1 - c.PropBlurMost * Ease.smoothstep(c.PropBlurFrom, c.PropBlurFull, speed)
+			end
 		end
 	end
 	v.Bubbles.Rate = math.clamp(speed * 0.6, 8, 260)
@@ -623,11 +630,8 @@ local function step(dt: number)
 			if v.Faded then
 				local fade = math.clamp((t - endAt) / 3, 0, 1)
 				for _, p in v.Parts do
-					p.Transparency = if p.Name == "Window"
-							or p.Name == "Port"
-							or p.Name == "Light"
-						then math.max(fade, 0)
-						else fade
+					-- (the blur disc goes from as much as it shows: `place` has just set it)
+					p.Transparency = if p.Name == "Blur" then math.max(p.Transparency, fade) else fade
 				end
 			end
 			if v == mine then

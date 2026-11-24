@@ -4,7 +4,7 @@
  "tier": 3,
  "style": "toy",
  "units": "studs",
- "triangles": 1616,
+ "triangles": 1684,
  "axes": {
   "up": "+Y",
   "forward": "-Z (the nose)",

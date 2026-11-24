@@ -8,8 +8,9 @@
 Two styles, by --style:
   toy    (the default) option A of docs/design/sub-models.md, "Chunky toy", the user's pick of 2026-11-22 ("for
          submarine [use] the toy version"): fat rounded forms with few sides, smooth shaded, thick rims round the
-         glass, a red guard ring round the propeller on every tier (RING) and a wind-up key on the back in the tier's
-         accent colour; add-ons are toy parts. Tier 1 is the approved model of tools/blender/sub_kit.py, piece for
+         glass, a red guard ring round the propeller on every tier (RING; the propeller is the
+         screw, Hugo's pick of 2026-11-24: PROP) and a wind-up key on the back in the tier's
+         accent colour; add-ons are toy parts. Tier 1 is the approved model of tools/blender/sub_kit.py but for the propeller, piece for
          piece.
   voxel  option D, built first as a fallback (mission 7c14c23d): few big boxes on a one-stud grid, each a body part; a
          slope is a whole block turned; colour touches sit a third of a cube proud. Its exports are kept in
@@ -874,9 +875,9 @@ def stubs(x=-7.0, hw=5.6, z=-1.2, size=(4.2, 4.6, 1.3), tip="accent", colour="tr
 
 
 def tail(tx=16.6, az=0.7, ring=4.3, cross=(11.5, 12.5), blades="white", hub="trim+", glow=False, tips=None):
-    """four fat paddles, the red guard ring and the three-bar propeller in it. The propeller's pieces are all even about
-    the hub, so its box is centred on it and it spins true. The dark disc stands 0.15 proud of the ring (the approved
-    model's 0.05 would flicker) and the blades a tenth clear of it."""
+    """four fat paddles, the red guard ring and the propeller in it. The propeller's pieces are all even about the hub,
+    so its box is centred on it and it spins true. The dark disc stands 0.15 proud of the ring (the approved model's
+    0.05 would flicker) and the blades a tenth clear of it (the old bars; the screw's flights stand further back)."""
     if cross:
         slab("Hull", (tx - 3.2, 0, az - 0.2), (3.6, 1.1, cross[0]), "trim")
         slab("Hull", (tx - 3.2, 0, az - 0.2), (3.6, cross[1], 1.1), "trim")
@@ -887,11 +888,70 @@ def tail(tx=16.6, az=0.7, ring=4.3, cross=(11.5, 12.5), blades="white", hub="tri
     k = ring / 4.3
     cyl("Hull", (tx, 0, az), ring, 1.6, "ring", axis="x", n=12, smooth=False)
     cyl("Hull", (tx, 0, az), ring - 0.6, 1.9, "trim", axis="x", n=12, smooth=False)
-    cyl("Prop", (tx + 0.9, 0, az), 1.2 * k, 1.8, hub, axis="x", n=8, r2=0.6 * k, smooth=False)
-    for a in (0, 60, 120):
-        slab("Prop", (tx + 1.3, 0, az), (0.5, 1.7 * k, 6.6 * k), blades, r=(a, 0, 0))
+    if PROP == "bars":
+        cyl("Prop", (tx + 0.9, 0, az), 1.2 * k, 1.8, hub, axis="x", n=8, r2=0.6 * k, smooth=False)
+        for a in (0, 60, 120):
+            slab("Prop", (tx + 1.3, 0, az), (0.5, 1.7 * k, 6.6 * k), blades, r=(a, 0, 0))
+        if glow:
+            ball("Prop", (tx + 1.95, 0, az), 0.8 * k, "glow", u=8, v=4)
+        return
+    screw(tx, az, k, blades, hub, glow)
+
+
+# Hugo, 2026-11-24: "screw for submarine propeller" (option 4 of docs/design/sub-props.md, the same numbers as
+# tools/blender/sub_props_options.py). "bars": the three flat bars it was until then
+PROP = "screw"
+TURN = 1  # +1: anticlockwise seen from behind, the way the game turns it (SubController.place): the flights lead that way
+
+
+def screw(tx, az, k, blades, hub, glow):
+    """a long nose cone and two fat flights winding back along it, one of them in another colour so the turn shows"""
+    face = tx + 0.95 + 0.1  # a tenth clear of the dark disc
+    x0, x1 = tx + 0.1, face + 3.3 * k
+    cyl("Prop", ((x0 + x1) / 2, 0, az), 1.75 * k, x1 - x0, hub, axis="x", n=8, r2=0.5 * k, smooth=False)
     if glow:
-        ball("Prop", (tx + 1.95, 0, az), 0.8 * k, "glow", u=8, v=4)
+        ball("Prop", (x1 + 0.1 * k, 0, az), 0.8 * k, "glow", u=8, v=4)
+    for j, colour in enumerate((odd_colour(blades), blades)):
+        flight(tx, az, k, face, 90 + 180 * j, colour)
+
+
+def odd_colour(blades):
+    """the colour of the odd flight: the one furthest from both the blades and the dark disc behind them, a difference
+    in brightness counting most (that is what reads when small)"""
+    def light(c):
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+    def apart(a, c):
+        a, c = PALETTE[a], PALETTE[c]
+        return math.sqrt(sum((p - q) ** 2 for p, q in zip(a, c))) + 2 * abs(light(a) - light(c))
+
+    return max((c for c in ("ring", "white", "hull", "accent") if PALETTE[c] != PALETTE[blades]),
+               key=lambda c: min(apart(c, blades), apart(c, "trim")))
+
+
+def flight(tx, az, k, face, start, colour, sweep=205, x0=0.4, x1=2.7, inner=1.1, outer0=3.4, outer1=1.5, thick=0.75, n=7):
+    """one flight of the screw: a fat ribbon wound `sweep` degrees round the cone from x0 (its leading end, the forward
+    one) to x1, narrowing as it goes, its ends blunt"""
+    bm = piece("Prop", colour, True)
+    rings = []
+    for i in range(n):
+        u = i / (n - 1)
+        a = math.radians(start - TURN * sweep * u)
+        out = Vector((0, math.cos(a), math.sin(a)))
+        x = x0 + (x1 - x0) * u
+        r_out = outer0 + (outer1 - outer0) * u ** 1.4
+        if i in (0, n - 1):
+            r_out = inner + (r_out - inner) * 0.55
+        r_in = inner * (1 - 0.5 * u)
+        c = Vector((face + x * k, 0.0, az))
+        rings.append([bm.verts.new(c + out * (r * k) + Vector((1, 0, 0)) * (s * thick * k / 2))
+                      for r, s in ((r_in, -1), (r_out, -1), (r_out, 1), (r_in, 1))])
+    for a, z in zip(rings, rings[1:]):
+        for i in range(4):
+            bm.faces.new((a[i], z[i], z[(i + 1) % 4], a[(i + 1) % 4]))
+    bm.faces.new(rings[0])
+    bm.faces.new(list(reversed(rings[-1])))
+    shut(bm)
 
 
 def headlamp(x=-16.6, z=-2.6, r=1.7, y=0.0):

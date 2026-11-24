@@ -4,7 +4,9 @@
 -- ring and closes when they walk off (UI review 1, the user 2026-11-22: "they should pop up when you stand on the
 -- stands corresponding to them in game"; Controllers/StallController), with the dim behind it.
 -- What it shows: the twelve auras (Shared/Auras.Tiers) as tall cards in a sideways row, each tinted in its aura's own
--- colour: its name, "Lvl n", a picture of its colours in the cream well, "x2 Oxygen" with the multiplier in green, and
+-- colour: its name, "Lvl n", its icon in the cream well (the fish rider in a flame that grows with the tier: Hugo,
+-- 2026-11-24, "fish rider"; art/ui/auras, tools/ui/aura_icons/build.py; a glow of its colours where the pictures aren't
+-- there), "x2 Oxygen" with the multiplier in green, and
 -- one button: the cash price. (The Robux button is built but kept hidden: no product ids exist and none are made up,
 -- and two dead SOON buttons on a card read as a mistake.) The player's own "Aura" attribute shows as EQUIPPED, with
 -- the light border; the ones under it as OWNED.
@@ -14,6 +16,7 @@
 -- next aura, grey otherwise) and a press asks the server Action "AuraBuy", tier. The server must then check the
 -- price and the order itself, take the coins and set the player's "Aura" attribute; nothing here is trusted.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Auras = require(ReplicatedStorage.Shared.Auras)
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -27,6 +30,14 @@ local AuraShop = {}
 local WIDE, HIGH = 860, 540
 local CARD_W, CARD_H = 196, 404
 
+-- The icons' picture (4 across, 3 down, 256 pixels each, by tier). Uploaded id: empty until the user says yes to the
+-- upload. Studio reads the local copy (tools/ui/aura_icons/build.py --studio); a live game before that, or a PC without
+-- the copy, shows the swatch.
+local ICONS = ""
+local ICONS_STUDIO = "rbxasset://textures/ridefish/aura_icons_e1.png"
+local ICON_CELL, ICON_COLS = 256, 4
+local ICON_SIZE = 180 -- as wide as the well
+
 local window: Shop.Window? = nil
 local carousel: Shop.Carousel
 type Row = { Card: Shop.Card, Cash: Shop.Button, Robux: Shop.Button }
@@ -36,8 +47,14 @@ local function hex(c: Color3): string
 	return string.format("#%02X%02X%02X", c.R * 255, c.G * 255, c.B * 255)
 end
 
--- An aura's picture: a glow of its two colours with bubbles round it (no art of the aura exists yet)
-local function swatch(well: Frame, tier: any)
+-- An aura's stand-in picture, where its icon isn't there: a glow of its two colours with bubbles round it
+local function swatch(parent: Frame, tier: any): Frame
+	local well: Frame = Kit.new("Frame", {
+		Name = "Swatch",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+	}, parent)
 	for i, step in { { 0.96, 0.6 }, { 0.74, 0.35 }, { 0.5, 0.05 } } do
 		local disc = Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -63,6 +80,34 @@ local function swatch(well: Frame, tier: any)
 		Position = UDim2.fromScale(0.5, 0.52),
 		ZIndex = 9,
 	})
+	return well
+end
+
+-- An aura's icon in its card's well; the swatch until it has loaded (so a missing picture leaves the swatch)
+local function icon(well: Frame, tier: any)
+	local stand = swatch(well, tier)
+	local image = if ICONS ~= "" then ICONS elseif RunService:IsStudio() then ICONS_STUDIO else ""
+	if image == "" then
+		return
+	end
+	local at = tier.Id - 1
+	local picture: ImageLabel = Kit.new("ImageLabel", {
+		Name = "Icon",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(ICON_SIZE, ICON_SIZE),
+		BackgroundTransparency = 1,
+		Image = image,
+		ImageRectOffset = Vector2.new(at % ICON_COLS, at // ICON_COLS) * ICON_CELL,
+		ImageRectSize = Vector2.new(ICON_CELL, ICON_CELL),
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 10,
+	}, well)
+	local function look()
+		stand.Visible = not picture.IsLoaded
+	end
+	picture:GetPropertyChangedSignal("IsLoaded"):Connect(look)
+	look()
 end
 
 -- A tier's price in coins, when the economy has given it one (Shared/Auras has none yet: see the head note)
@@ -137,7 +182,7 @@ local function build()
 			SlotHigh = 46,
 			LayoutOrder = tier.Id,
 		})
-		swatch(c.Well, tier)
+		icon(c.Well, tier)
 		local cash = Shop.button(c.Slot, {
 			Name = "Cash",
 			Kind = "Off",
