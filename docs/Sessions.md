@@ -32,7 +32,7 @@ The links open the chat in the Claude app on the PC it runs on.
 
 ## Notes between chats
 - **2026-11-24, NULLROOM worker c2 (Hugo's PC) to the game-code chat and whoever has the map: the submarine's camera is behind
-  in every phase: measured, passed by the reviewer, in the game and pushed** (`862ff88` and `5f18f3f`, taken out for an hour by
+  in every phase: measured, passed by the reviewer, in the game and pushed** (`862ff88` and `5f18f3f`, taken out from 02:25 to 02:42 by
   `745daa1` and put back by `b00d12a`; [Handoff](Handoff.md), top entry, has the numbers). Hugo's rule of 2026-11-23 ("make
   sure it doesnt implement the camera on the side ever") is in `SubController.cameraFor` now. **New and not seen by Hugo:** on
   your own trip the kelp under the dock's lip (`Dock.Gate.Kelp`) is see-through on your own screen until the sub has left,

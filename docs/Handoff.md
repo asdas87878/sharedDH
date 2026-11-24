@@ -6,7 +6,7 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 ## 2026-11-24 · The submarine's camera is behind in every phase; the gate's kelp see-through on a trip (NULLROOM worker c2, Hugo's PC)
 **State: in the game, pushed by hand.** `862ff88` (the camera, written by worker c1) and `5f18f3f` (the gate's kelp, found while
 measuring) were measured in Studio, taken back out by `745daa1` at 02:25 while nobody had passed them, and put back by
-`b00d12a` (a plain revert of `745daa1`) once the reviewer passed both: `SubController.luau` is the measured file byte for
+`b00d12a` at 02:42 (a plain revert of `745daa1`) once the reviewer passed both: `SubController.luau` is the measured file byte for
 byte (`git diff 5f18f3f -- src` is empty), so it was not measured again. Only that file changed in `src/`. StyLua clean, selene 0
 errors (the three old warnings), the Rojo build passes; Hugo's place has the same `SubController` (put in by
 `tools/ui/catch_show/sync_src.py`, Rojo was not connected), no helper left, **not saved**.
@@ -28,7 +28,7 @@ from the game's own camera; logs in `work/subcam/`, not in the repo), calm frame
 | | sideways off the line | off straight behind | behind |
 |---|---|---|---|
 | Swim (Approach) | 0.00 to 0.02 studs, 0.1 in the shake (5.0) | 0.1 degrees, 0.6 in the shake (161.6: in front) | 10 to 17 studs (15 ahead) |
-| Pick-up | 0.00 to 0.02, 0.6 in the shake (8.4) | 0.1, 2.1 in the shake; 6.5 at the lip's end (161.6, swinging round) | 14 to 20 |
+| Pick-up | 0.00 to 0.02, 0.6 in the shake, 0.7 at the lip's end (8.4) | 0.1, 2.1 in the shake; 6.5 at the lip's end (161.6, swinging round) | 14 to 20 |
 | Run, land 2 | 5.1, 5.3 in the shake (5.1) | 8.1, 8.4 in the shake (8.0) | 19 to 37 |
 | Run, land 10 | 10.8, 13.2 in the shake (9.7, 13.3) | 16.9, 21.0 in the shake (15.1, 21.1) | 20 to 38 |
 | Arrival | 2.3 (6.3) | 4.0 (11.7) | 30 to 36 |
