@@ -100,7 +100,7 @@ phase of the trip (the boss's reading, mission "submarine camera always behind")
   water are see-through on your own screen from the trip's first frame until one second into the run, then back
   (`SubController.gateKelp`; nobody else's screen changes). The camera looks away from the dock, so the kelp going
   and coming back is not in the picture ([after](../attachments/subcam-behind-fish-2-pickup.jpg)). To undo it alone:
-  revert that one commit. Another way would be to keep the camera in front of the curtain (closer to you for the
+  `git show 5f18f3f -- src/client/Controllers/SubController.luau | git apply -R --index`, then commit (a plain revert of that commit conflicts in this note). Another way would be to keep the camera in front of the curtain (closer to you for the
   whole pick-up); not tried.
 - **Measured in Studio 2026-11-24** (`python tools/studio/sub_camera_check.py`, every frame of scripted trips; stills
   `docs/attachments/subcam-behind-*.jpg`), on calm frames, old camera in brackets:

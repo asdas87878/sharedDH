@@ -9,8 +9,10 @@ were on `main` and measured in Studio, then taken back out by `745daa1`: the che
 kelp's new look is unseen by Hugo, and neither the reviewer nor the boss had passed them by 02:25 (Hugo away). `src/` is as it
 was before (`git diff 4ff5c25 -- src` is empty): the game still has the old camera, at the side in the swim, the pick-up and the
 arrival. **To put both in: `git revert 745daa1`**, then sync Studio (`python tools/ui/catch_show/sync_src.py`) and correct this
-entry and the note in Sessions. For the camera without the kelp change, `git revert 5f18f3f` after that (the green wall in
-the pick-up is back then). In the repo from this work: the check, the stills, these numbers. StyLua clean, selene 0 errors (the
+entry and the note in Sessions (tried in a throwaway worktree: it applies clean and gives exactly the measured file, so no
+new measurement is needed). For the camera without the kelp change, after that: `git show 5f18f3f -- src/client/Controllers/SubController.luau | git apply -R --index`, then commit
+(tried too; it gives `862ff88`'s file, and the green wall in the pick-up is back). A plain `git revert 5f18f3f` stops on a
+conflict in the design note. In the repo from this work: the check, the stills, these numbers. StyLua clean, selene 0 errors (the
 three old warnings), the Rojo build passes; Hugo's place has the repo's (old) `SubController` again, no helper left, **not saved**.
 **What it changes for the player once it is in** ([submarine](design/submarine.md), "The camera is always behind"; Hugo, 2026-11-23: "make sure it
 doesnt implement the camera on the side ever"):
@@ -20,7 +22,7 @@ doesnt implement the camera on the side ever"):
 - **New, not seen by Hugo:** on your own trip the kelp curtain under the dock's lip is see-through on your own screen from the
   first frame until one second into the run (`SubController.gateKelp`). With the camera behind you the kelp hung in front of it
   for half the pick-up ([before](attachments/subcam-kelp-before-fix-pickup.jpg), [after](attachments/subcam-behind-fish-2-pickup.jpg)).
-  To take only this back: `git revert 5f18f3f`.
+  To take only this back, see State above (a plain `git revert 5f18f3f` conflicts in the design note).
 **Measured (with `862ff88` and `5f18f3f` in)** by `python tools/studio/sub_camera_check.py` (Hugo's PC, studio-runner; my own playtests; every frame of each trip
 from the game's own camera; logs in `work/subcam/`, not in the repo), calm frames, the old camera in brackets:
 | | sideways off the line | off straight behind | behind |
