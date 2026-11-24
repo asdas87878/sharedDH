@@ -208,7 +208,8 @@ local function place(v: Visual, cf: CFrame, speed: number, dt: number)
 			end
 		end
 	end
-	v.Bubbles.Rate = math.clamp(speed * 0.6, 8, 260)
+	-- the bubble trail: more with the speed, and none once the sub is fading out (its bubbles do not fade with it)
+	v.Bubbles.Rate = if v.Faded then 0 else math.min(c.WakeLeast + speed * c.WakePerSpeed, c.WakeMost)
 	v.Last = cf
 end
 

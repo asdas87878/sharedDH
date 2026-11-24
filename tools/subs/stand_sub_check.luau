@@ -133,7 +133,23 @@ workspace.CurrentCamera = camera
 local now = 100
 local stepped, equipChanged
 local equip: any = nil
-local Config = { Sub = { On = 1 } }
+-- (the bubble trail's numbers: SubModels reads them as it builds; any will do here, the stand's sub makes no bubbles)
+local Config = {
+	Sub = {
+		On = 1,
+		WakeLeast = 6,
+		WakePerSpeed = 0.25,
+		WakeMost = 70,
+		WakeSpeed = 26,
+		WakeLife = 0.4,
+		WakeSpread = 12,
+		WakeSize = 2,
+		WakeSizeEnd = 0.6,
+		WakeSee = 0.15,
+		WakeBright = 3.5,
+		WakeRise = 3,
+	},
+}
 local modules = {}
 local replicated = {
 	Shared = { Config = "Config", SubModels = "SubModels" },

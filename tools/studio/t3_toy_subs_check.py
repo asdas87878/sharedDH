@@ -66,7 +66,7 @@ local function made(n)
 		"%d:%s hullMesh=%s parts=%d mesh=%d neon=%d top=%.1f signLow=%.1f gap=%.1f seatTopBox=%.1f lampZ=%.1f beam=%s wakeOn=%s propGlow=%s",
 		n, SubModels.style(n).Id, tostring(hull:IsA("MeshPart")), #parts, meshes, neon, top, signLow, signLow - top,
 		seat.Position.Y + seat.Size.Y / 2, lamp.Position.Z, tostring(beam ~= nil and beam.Enabled),
-		tostring(bubbles.Parent == prop and bubbles.Enabled), tostring(model:FindFirstChild("Prop_Glow") ~= nil))
+		tostring(bubbles.Parent ~= nil and bubbles.Parent.Name == "WakeAt" and bubbles.Parent.Parent == hull and bubbles.Enabled), tostring(model:FindFirstChild("Prop_Glow") ~= nil))
 	return model, parts, text
 end
 -- our own trip's sub, read every frame of the Ride phase
@@ -135,12 +135,16 @@ RunService.RenderStepped:Connect(function(dt)
 	if glow then
 		w.glowMax = math.max(w.glowMax, (sub:PointToObjectSpace(glow.Position) - t.Prop_Glow.Position).Magnitude)
 	end
-	local wake = prop:FindFirstChild("Wake")
+	-- the bubble trail: on the hull, on a point at the screw's end (SubModels, 2026-11-24), not on the propeller
+	local wakeAt = found.PrimaryPart and found.PrimaryPart:FindFirstChild("WakeAt")
+	local wake = wakeAt and wakeAt:FindFirstChild("Wake")
 	if wake then
 		w.wakeMin, w.wakeMax = math.min(w.wakeMin, wake.Rate), math.max(w.wakeMax, wake.Rate)
 	end
 	-- the frames on which each of these was wrong (0: right on every frame of the run)
-	if not (wake and wake.Enabled and wake.Parent == prop) then w.wakeOff += 1 end
+	-- (right: there, on, travelling with the sub, and its point within a stud of the hub's line behind the propeller)
+	local off = wakeAt and prop.CFrame:PointToObjectSpace(wakeAt.WorldPosition)
+	if not (wake and wake.Enabled and wake.LockedToPart and off and math.abs(off.X) < 1 and math.abs(off.Y) < 1 and math.abs(off.Z) < prop.Size.Z) then w.wakeOff += 1 end
 	local beam = lamp:FindFirstChildOfClass("SpotLight")
 	if not (beam and beam.Enabled and lamp.Material == Enum.Material.Neon and lamp.Transparency < 0.5) then w.beamOff += 1 end
 	w.beamDot = math.min(w.beamDot, lamp.CFrame.LookVector:Dot(sub.LookVector))
