@@ -47,10 +47,10 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
    The shop closes as you walk away. A small ticket at the left edge says where the sub will take you.
 2. **You jump in.** With a destination picked, stepping off the dock is no longer the dive-in's auto-hop: you drop
    in with a splash and **swim** at the surface, breaststroking forward.
-3. **The sub swims in** from behind and below (1.6 s), its light on you, a wake of bubbles. The camera is behind
+3. **The sub swims in** from behind and below (1.2 s; 1.6 until 2026-11-24), its light on you, a wake of bubbles. The camera is behind
    you on your own line, close at first and drawing back as you swim on, and tips down so the sub shows as it comes
    in under you (see "The camera is always behind").
-4. **The pick-up** (about 1 s): it rises under you, the camera stays behind you and draws back, you are scooped up in
+4. **The pick-up** (0.75 s; 0.96 until 2026-11-24): it rises under you, the camera stays behind you and draws back, you are scooped up in
    a tumble (a tuck and a half-turn) and set on the seat behind the tower. A bump, a shake, the view kicks.
 5. **The run:** it noses down and goes. The view, already behind, pulls further back behind the sub and widens with
    speed, streaks of bubbles, speed lines. No banner as it sets off (Hugo, 2026-11-20: "let the intro text for submarines begone"). It follows the herd's own line down the lane (the stream: the
@@ -115,6 +115,17 @@ phase of the trip (the boss's reading, mission "submarine camera always behind")
   - The run is the old code and lags the sub's nose in a bend: 8 degrees to land 2, 17 to 21 degrees for 7 or 8
     frames to land 10 (4,267 studs a second; the old camera reads the same there), 15 to 16 for a moment after going
     in at the very end of the dock's lip (the old camera: 16, and up to 24 in the shake).
+
+### Getting on is quicker (Hugo, 2026-11-24)
+Hugo: "i liked how there was a little camera movement on the intro of the submarine when jumped into the water, make
+it a little shorter and speed it up.(just the animation getting onto it (at most 2-3 secs)".
+- **Getting on takes 1.95 s, was 2.56** (`Sub.Approach` 1.2, was 1.6; `Sub.Pickup` 0.75, was 0.96). The swim is as far
+  as before (`Sub.SwimOut`, 12.8 studs, was the swim speed x Approach), so it is the same move, played quicker.
+- **The camera's move is kept:** its easing in these two phases goes by their lengths (`cameraFor`), so it draws back
+  and tips as far as before. The seat's shake goes with the landing, not a fixed 0.15 s before the run.
+- **Reading, not confirmed:** the camera movement meant is the one in the game now (behind you, drawing back, tipping
+  down to the sub), not the old one that started in front and swung round, which his rule of 2026-11-23 rules out.
+- Nothing after the sub sets off is changed.
 
 ### Titles on the run (task t1, Hugo 2026-11-20)
 Hugo: "let the intro text for submarines begone ... add a special rule for submarines, if title pops up, make sure

@@ -3225,8 +3225,11 @@ Config.Sub = {
 	Near = 30, -- the stand's shop works within this many studs of its ring (Dock.Stations.Sub), studs
 	-- (task f2, Hugo 2026-11-20: "make animation and travelling slightly faster, make travelling faster the further
 	-- away the destination too". The phases are about a fifth shorter than the first go's, in brackets)
-	Approach = 1.6, -- seconds swimming at the surface while the sub swims in (2.0)
-	Pickup = 0.96, -- the scoop onto its seat (1.2)
+	-- (2026-11-24, Hugo: "make it a little shorter and speed it up (just the animation getting onto it (at most 2-3
+	-- secs)": getting on is 1.95 s, was 2.56; the same swim, scoop and camera move, played quicker)
+	Approach = 1.2, -- seconds swimming at the surface while the sub swims in (1.6; 2.0 at first)
+	Pickup = 0.75, -- the scoop onto its seat (0.96; 1.2 at first)
+	SwimOut = 12.8, -- you swim this far out to where it takes you, studs (however long Approach is: nearer, the dock's wall pulls the camera in)
 	Speed = 620, -- its top speed down the lane for a trip of no length, studs a second (520 before task f2: then the top for every land up to MaxRide)
 	SpeedPer = 0.17, -- and this much more a second for every stud of the trip: about 960 to land 2, 2,200 to land 5, 4,300 to land 10
 	UpShare = 0.2, -- the run's share spent picking up to the top speed (1.2 s whatever the run before task f2)

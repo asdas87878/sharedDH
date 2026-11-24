@@ -411,7 +411,10 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 	local focus: Vector3
 	local rate = 4
 	local wide = 70
+	-- (the swim's and the pick-up's easing go by those phases' own lengths, so the camera makes the same move however
+	-- long they are: 4 and 5 a second when they were 1.6 and 0.96 s)
 	if t < pickupAt then
+		rate = 6.4 / math.max(trip.Approach, 0.1)
 		-- behind us on our own line, close at first (the dock and the gate's posts are just behind where we went in),
 		-- drawing back as we swim on; tipping down to the sub as it comes
 		-- (looking at a point ahead of us, so the view stays down the lane even pulled right in against a wall)
@@ -423,7 +426,7 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
 		goal = rider - way0 * (18 + 6 * u) + UP * (1 + 8 * u)
 		focus = rider + way0 * 12 - UP * (0.4 * under * (1 - u))
-		rate = 5
+		rate = 4.8 / math.max(trip.Pickup, 0.1)
 	elseif t < arriveAt then
 		-- behind it, wider with speed
 		local way = sub.LookVector
@@ -530,7 +533,8 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 		Feel.sound("Splash", 0.8, 1.15, 0.8)
 		Shake.play("Land", c.Shake)
 	end
-	if t >= rideAt - 0.15 and once(v, "seat") then
+	-- (as the tumble lands on the seat: riderAt's 0.82 of the pick-up, and a moment)
+	if t >= pickupAt + 0.84 * trip.Pickup and once(v, "seat") then
 		Shake.play("LandBig", c.Shake * 0.8)
 	end
 	if t >= rideAt and once(v, "go") then
