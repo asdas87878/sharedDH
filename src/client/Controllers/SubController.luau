@@ -492,6 +492,10 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 	local focus: Vector3
 	local rate = 4
 	local wide = 70
+	-- (on the fish's back: behind its tail, and over the top of it)
+	local e = trip.Escort
+	local over = if e then math.max(3, e.Half.Y - e.Saddle.Y + 3) else 0
+	local tail = if e then math.clamp(e.Half.Z - e.Saddle.Z + 5, 10, c.EscortBack) else 0
 	-- (the swim's and the pick-up's easing go by those phases' own lengths, so the camera makes the same move however
 	-- long they are: 4 and 5 a second when they were 1.6 and 0.96 s)
 	if t < pickupAt then
@@ -500,13 +504,14 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		-- drawing back as we swim on; tipping down to the sub as it comes
 		-- (looking at a point ahead of us, so the view stays down the lane even pulled right in against a wall)
 		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
-		-- (on the fish's back a little higher, to see over it)
-		goal = rider - way0 * (10 + 8 * u) + UP * (if trip.Escort then 3 else 1)
+		goal = rider - way0 * math.max(10 + 8 * u, tail) + UP * (if e then over else 1)
 		focus = rider + way0 * 12 - UP * (0.4 * under * Ease.smoothstep(0.3, 1, u))
 	elseif t < rideAt then
 		-- still behind, to see us thrown onto the seat: back and up to where the run's view begins, levelling out
 		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
-		goal = rider - way0 * (18 + 6 * u) + UP * (if trip.Escort then 3 + 6 * u else 1 + 8 * u)
+		goal = rider
+			- way0 * (if e then Ease.lerp(math.max(18, tail), 24, u) else 18 + 6 * u)
+			+ UP * (if e then over + (9 - over) * u else 1 + 8 * u)
 		focus = rider + way0 * 12 - UP * (0.4 * under * (1 - u))
 		rate = 4.8 / math.max(trip.Pickup, 0.1)
 	elseif t < arriveAt then
@@ -536,6 +541,24 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		-- (the trip's first frame cuts to its first framing, under the splash: eased from the dock's view, the camera
 		-- went down through the hub's floor and the gate's posts)
 		local first = camKind == "" or not camPos or not camFocus
+		if first and e then
+			-- (on a fish's back the dive's film has us behind it already, under the water and on our line: on from there, no cut)
+			local from = camera.CFrame
+			local back = rider - from.Position
+			local level = Vector3.new(back.X, 0, back.Z)
+			if
+				from.Position.Y < Config.Oxygen.SurfaceY
+				and back:Dot(way0) > 5
+				and back.Magnitude < 60 + e.Half.Z
+				and (level - way0 * level:Dot(way0)).Magnitude < 4
+				and from.LookVector:Dot(way0) > 0.85
+			then
+				camPos = from.Position - anchor
+				camFocus = from.Position + from.LookVector * (back:Dot(way0) + 12) - anchor
+				first = false
+				camAnchor = anchor
+			end
+		end
 		camPos = if first then goal - anchor else camAnchor + (camPos :: Vector3) - anchor
 		camFocus = if first then focus - anchor else camAnchor + (camFocus :: Vector3) - anchor
 		camKind = kind

@@ -3517,6 +3517,7 @@ Config.Sub = {
 	EscortOut = 40, -- the fish carries you this far out to the sub, studs (and 0.6 of what it has behind its saddle,
 	EscortOutMost = 140, -- but never further than this), all in Approach's seconds
 	EscortStart = 45, -- it sets off at this pace (the dive's, as it hands over), studs a second
+	EscortBack = 90, -- on its back the camera is behind its tail, but never further behind you than this, studs
 	EscortUnder = 20, -- the sub takes you off it this far under the surface, studs (Under, for a swimmer: room for the view over its back)
 	EscortOver = 1, -- its saddle is this far over the sub's seat as you hop, studs
 	EscortHopFrom = 0.12, -- you leave the saddle at this share of Pickup,

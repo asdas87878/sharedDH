@@ -526,14 +526,16 @@ local function cameraOf(trip, t, sub, speed, rider, mem)
 	local way0 = flat(SubTrip.way(trip, 30, 30))
 	local under = math.max(0, rider.Y - sub.Position.Y)
 	local goal, focus, rate, wide = nil, nil, 4, 70
+	local over = math.max(3, trip.Escort.Half.Y - trip.Escort.Saddle.Y + 3)
+	local tail = math.clamp(trip.Escort.Half.Z - trip.Escort.Saddle.Z + 5, 10, c.EscortBack)
 	if t < pickupAt then
 		rate = 6.4 / math.max(trip.Approach, 0.1)
 		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
-		goal = rider - way0 * (10 + 8 * u) + UP * 3
+		goal = rider - way0 * math.max(10 + 8 * u, tail) + UP * over
 		focus = rider + way0 * 12 - UP * (0.4 * under * smooth(0.3, 1, u))
 	elseif t < rideAt then
 		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
-		goal = rider - way0 * (18 + 6 * u) + UP * (3 + 6 * u)
+		goal = rider - way0 * (math.max(18, tail) + (24 - math.max(18, tail)) * u) + UP * (over + (9 - over) * u)
 		focus = rider + way0 * 12 - UP * (0.4 * under * (1 - u))
 		rate = 4.8 / math.max(trip.Pickup, 0.1)
 	elseif t < arriveAt then
@@ -775,7 +777,7 @@ for tier = 1, 9 do
 					gate = m.gate < 0,
 					camera = m.camera < 5,
 					frame = m.frame < 0.95,
-					turn = m.turn > 15,
+					turn = m.turn > 12,
 					jump = m.jump > 3,
 					plain = hullCells ~= nil and m.plain < 0.5,
 					home = m.home > 0.5,
@@ -809,7 +811,7 @@ local NAMES = {
 	gate = "out of the gate by the hop",
 	camera = "five studs or more off the camera's line",
 	frame = "in the picture all the weave",
-	turn = "never turns over 15 degrees in a frame",
+	turn = "never turns over 12 degrees in a frame",
 	home = "in its place for the kick",
 	jump = "never jumps (a frame's move within 3 studs of the frame's before)",
 }
