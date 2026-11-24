@@ -72,9 +72,8 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
 The player can't steer or hop while carried, and no Oxygen goes. The whole trip is decided by the server.
 
 ### The camera is always behind (Hugo, 2026-11-23)
-**Not in the game yet (2026-11-24).** What follows is written (`862ff88`, `5f18f3f`) and measured in Studio, then taken
-back out by `745daa1` until someone passes the readings over the check's limits and the kelp's look (below). The game
-still has the camera at the side in the swim, the pick-up and the arrival. To put it in: `git revert 745daa1`.
+**In the game since 2026-11-24** (`862ff88`, `5f18f3f`; measured in Studio, passed by the mission's reviewer; Hugo has
+not played it yet).
 
 Hugo, after seeing a side view of the sub in a dev session: "what is this new camera perspective for the submarine? i
 saw it playing in dev sesh, make sure it doesnt implement the camera on the side ever". Read as a rule for every
