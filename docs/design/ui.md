@@ -160,7 +160,8 @@ Hugo: "integrate both aura shop ui and selling dinos ui (as in reference pic 1) 
   Three are the picked sheet's own; nine were made the same way ([README](../../art/ui/auras/README.md),
   [all twelve](../attachments/aura-icons-2026-11-24.png)). One atlas, 1024 x 768. **Not uploaded:** only Studio on
   Hugo's PC has it; anywhere else the card shows a plain glow of its colour, until `ICONS` in `UI/AuraShop.luau` has its id.
-  The names and tints are the flame's since 2026-11-24 (Foam is Shell, Phantom is Urchin), so they match the pictures.
+  The names and tints are the flame's since 2026-11-24 (Foam is Shell, Phantom is Urchin), so the cards match
+  the pictures (the old look, worn, does not: [auras](auras.md), "Built").
 - **The aura cards: no bubbles, on sale (2026-11-24, Hugo: "u didnt remove the placeholder bubbles in the back and make sure
   you can buy them"; NULLROOM a1).** The stand-in (a glow, five bubbles and a bubble sign) was drawn behind every picture and
   never hid; it is gone, and the plain glow is made only where there is no picture. Each card shows its price

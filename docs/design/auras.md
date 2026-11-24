@@ -28,8 +28,10 @@ checked: "Built", below. From there on this note is the mock's, as it was drawn 
   `src/client/Lib/AuraBeams.luau`, worn by `AuraController`. It flares on a landing, a hop and a boost, burns faster riding,
   sits at the hips on a fish (a quarter of a second to and from: `Aura.SeatEase`), and is put on with a burst (tier 10 up)
   or a rise: only when the attribute changes on a character already seen, never on a respawn or for players you join.
-- **The old look** (draft 2, twelve different effects) is all still there: `Config.Aura.Flame` 0, read live. The names and
-  colours are the new ones either way (Foam is Shell, Phantom is Urchin), so they match the shop's pictures.
+- **The old look** (draft 2, twelve different effects) is all still there: `Config.Aura.Flame` 0, read live. Only the names
+  and the shop's tints are the new ones either way (Foam is Shell, Phantom is Urchin). **The old look keeps draft 2's own
+  colours** (`Build[1..12]` in `AuraController` has them written in), so worn it does not match its card: Shell (coral) is drawn
+  as white foam, Urchin (magenta) as mint and violet, and the others differ too. A live game shows that until the pictures are uploaded.
 - **The pictures** are `art/ui/aura_flame/` (white, not uploaded). Studio reads a local copy
   (`python tools/auras/flame_pics.py`, once a PC and again after Studio updates itself). Ids go in `Auras.Pictures`. **Until
   all six have an id, a live game draws the old look;** so does a Studio without the copy.

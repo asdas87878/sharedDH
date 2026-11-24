@@ -172,7 +172,7 @@ def run():
     check("the third, not next", do("buy|3"), "AuraDenied Order", "aura=1")
     check("the second", do("buy|2"), "AuraBought 2", "aura=2")
     check("the third without its 40K", do("buy|3"), "AuraDenied Coins", "aura=2")
-    check("the cards after: equipped, owned", do("shop", 5), "EQUIPPED", "OWNED")
+    check("the cards after: equipped, owned", do("shop", 5).upper(), "EQUIPPED", "OWNED")
     print(coins(60_000_000_000_000))
     for tier in range(3, 11):
         check(f"tier {tier}", do(f"buy|{tier}"), f"AuraBought {tier}", f"aura={tier}")

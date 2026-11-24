@@ -18,7 +18,9 @@ uploaded to Roblox. Everything is in [auras](design/auras.md), "Built".
   draws the old look until the six pictures in `art/ui/aura_flame` are uploaded** (Hugo's yes) and their ids are in
   `Auras.Pictures`. Studio needs `python tools/auras/flame_pics.py` and a restart.
 - **The shop** (`AuraShop`): the stand-in bubbles that sat behind every picture are gone (found by the entry below), prices
-  and refusals shown. Tiers 2 and 10 are called Shell and Urchin now, with the pictures' colours.
+  and refusals shown. Tiers 2 and 10 are called Shell and Urchin now, the cards' tints are the pictures' colours.
+  **A known mismatch:** the old look still draws draft 2's colours (`Build[1..12]`): white foam under the coral Shell card, mint and
+  violet under the magenta Urchin. A live game shows that until the flame's pictures are uploaded.
 - **Checked offline:** `tools/auras/aura_test.luau` 61 of 61, StyLua, selene, the type checker on the changed files, a Rojo build.
 - **Owed in Studio:** `python tools/studio/aura_check.py run` (its head says how), then "Check in Studio first" in the note:
   which way the Beams' pictures run (`Aura.Turn`, `Scroll`), what is behind the body (`Behind`), the bends' joints, frame rate.
