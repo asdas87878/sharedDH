@@ -3469,17 +3469,20 @@ Config.Sub = {
 	-- the bubble trail behind the screw (Hugo, 2026-11-24: "add a bubble trail right behind the propeller";
 	-- docs/design/sub-props.md, "The bubble trail"; Shared/SubModels makes it, SubController sets how many).
 	-- The bubbles travel with the sub and stream back from the screw's end, so the trail is WakeSpeed x WakeLife
-	-- studs long whatever the sub's speed: about 10. NOT SEEN IN STUDIO YET: every number is from sums.
+	-- studs long whatever the sub's speed: about 10. Tuned in Studio on trips of tiers 1, 8 and 9 (task s2,
+	-- 2026-11-24): at 70 a second with a 12 degree cone the rings lay over one another and the screw's middle was one
+	-- white glare (the camera looks along the trail); fewer, bigger and fanned wider they read as rings.
+	-- Too thin or too thick: WakeMost first, then WakeSize, then WakeBright (under about 3 the faint picture is gone).
 	WakeLeast = 6, -- bubbles a second with the sub standing: a lazy dribble (0: none until it moves)
 	WakePerSpeed = 0.25, -- and this many more for every stud a second: 28 a second at the drop's 90
-	WakeMost = 70, -- but never more than this (from 256 studs a second: every run's fast part). About 28 in the trail at once
+	WakeMost = 36, -- but never more than this (from 120 studs a second: every run's fast part). About 14 in the trail at once (70: a white glare)
 	WakeSpeed = 26, -- how fast they stream back from the screw, studs a second
 	WakeLife = 0.4, -- and how long one lasts, seconds
-	WakeSpread = 12, -- the stream's cone, degrees either side of straight back (wider: it climbs toward the rider)
+	WakeSpread = 24, -- the stream's cone, degrees either side of straight back (12: the rings lie over one another from behind)
 	-- (the bubble's picture is a soft ring a little over half as wide as the size given: 2 draws a ring 1.1 across)
-	WakeSize = 2, -- a bubble just behind the screw, studs (each a quarter bigger or smaller, by chance)
-	WakeSizeEnd = 0.6, -- shrinking to this at the trail's end, the end nearer the camera (tier 9's passes close under it)
-	WakeSee = 0.15, -- how see-through a bubble is at its clearest, just behind the screw (0: solid); it comes in faint and fades out along the trail
+	WakeSize = 2.6, -- a bubble just behind the screw, studs (each a quarter bigger or smaller, by chance) (2)
+	WakeSizeEnd = 1.4, -- shrinking to this at the trail's end, the end nearer the camera (tier 9's passes close under it) (0.6: the rings were gone before they were seen apart)
+	WakeSee = 0.1, -- how see-through a bubble is at its clearest, just behind the screw (0: solid); it comes in faint and fades out along the trail (0.15)
 	WakeBright = 3.5, -- the bubbles' brightness (the aura shop's bubbles: 3.5; the picture itself is faint)
 	WakeRise = 3, -- they rise a little as they go, studs a second squared
 }

@@ -279,7 +279,9 @@ local function dress(
 	bubbles.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0.7),
 		NumberSequenceKeypoint.new(0.15, c.WakeSee),
-		NumberSequenceKeypoint.new(0.6, (1 + c.WakeSee) / 2),
+		-- (still clear well down the trail: seen from behind, the rings are told apart only once they have fanned out;
+		-- halfway to gone here, as it was until task s2, they had faded before that. Seen in Studio, 2026-11-24)
+		NumberSequenceKeypoint.new(0.6, 0.3),
 		NumberSequenceKeypoint.new(1, 1),
 	})
 	bubbles.Lifetime = NumberRange.new(c.WakeLife * 0.8, c.WakeLife * 1.15)
