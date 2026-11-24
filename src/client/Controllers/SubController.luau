@@ -66,6 +66,7 @@ type Visual = {
 	FishFrom: Vector3?,
 	FishGot: number,
 	Told: boolean, -- "SubLand" sent
+	Seated: boolean, -- the server has put us on our fish (State.Mode's word comes a moment after)
 	Said: { [string]: boolean }, -- the moments already played (sounds, bursts, banners)
 	RiderLast: Vector3?,
 	-- a trip with an escort, every machine
@@ -137,6 +138,7 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 		FishFrom = nil,
 		FishGot = 0,
 		Told = false,
+		Seated = false,
 		Said = {},
 		RiderLast = nil,
 		LookAt = 0,
@@ -430,6 +432,7 @@ local function driveFish(v: Visual, sub: CFrame, speed: number, t: number)
 	if fish:GetAttribute("Rider") ~= 0 and fish:GetAttribute("Rider") ~= nil then
 		-- (we are on it: RideController drives it now)
 		v.Fish = nil
+		v.Seated = v.Seated or (v == mine and fish:GetAttribute("Rider") == State.Player.UserId)
 		return
 	end
 	if v.Trip.Escort then
@@ -600,7 +603,7 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 				and back:Dot(way0) > 5
 				and back.Magnitude < 100 + e.Half.Z
 				and (level - way0 * level:Dot(way0)).Magnitude < 60 + e.Half.X
-				and from.LookVector:Dot(way0) > 0.3
+				and from.LookVector:Dot(way0) > 0
 			then
 				if said then
 					fov = said.fov
@@ -761,7 +764,9 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 		return
 	end
 	humanoid.PlatformStand = true
-	local cf = riderAt(v, sub, t)
+	-- (welded to our fish and State.Mode not yet Riding, a frame or so: put anywhere now, and given that jump's speed, the
+	-- fish went with us. Back to the sub's seat for that frame, both were thrown up to 480 studs: task v1)
+	local cf = if v.Seated then nil else riderAt(v, sub, t)
 	if cf then
 		local was = v.RiderLast or cf.Position
 		root.CFrame = cf

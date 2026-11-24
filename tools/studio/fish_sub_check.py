@@ -28,6 +28,7 @@ knows only the lane's width, not the terraces), and the pictures in docs/attachm
 Log: work/subcam/fishsub/check.log.
 """
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -301,7 +302,11 @@ def go(tier, land, fish, size, label, side=0, arm=None):
 
 
 def home():
-    said = sc.cmd("home", 3)
+    try:
+        said = sc.cmd("home", 3)
+    except subprocess.TimeoutExpired:  # (a slow runner call, once in an hour)
+        time.sleep(5)
+        said = sc.cmd("home", 3)
     time.sleep(1.5)
     return said
 
@@ -355,7 +360,9 @@ def trip(tier, land, fish, size="Normal", label=None, side=0):
             slow = [r[3] for r in carried if times[0] + 0.2 < r[0] < times[1] or times[2] < r[0] < times[3]]
             ok("where the trip has it (0.5 stud; 4 in the run)", slow and max(slow) < 0.5 and max(late) < 4,
                f"most {max(slow or [0]):.2f}, in the run {max(late or [0]):.2f}")
-            ok("never faded", all(r[9] < 0.5 for r in carried))
+            # (see-through where the camera is in its body: EscortThin, never all the way; a fade-in is, and is a fish not there)
+            gone = [r[0] for r in carried if r[9] > 0.85]
+            ok("never faded out", not gone, f"{len(gone)} frames" + (f", {gone[0]} to {gone[-1]} s" if gone else ""))
             weave = [r for r in carried if times[1] + 0.8 < r[0] < times[3] - 1.2]
             seen = sum(r[7] for r in weave) / max(len(weave), 1)
             ok("in the picture nine tenths of the weave", seen >= 0.9, f"{seen:.2f}")
@@ -366,6 +373,12 @@ def trip(tier, land, fish, size="Normal", label=None, side=0):
                f"{esc.get('high', 0):.0f} studs, beside it left {esc.get('left')} right {esc.get('right')}")
         touched = sorted(esc["touched"].items(), key=lambda kv: -kv[1])[:6] if esc["touched"] else []
         sc.note("  map in the fish's box (frames, part): " + (", ".join(f"{n} {p}" for p, n in touched) or "none"))
+    if ridden:
+        # (put on the fish, not thrown with it: task v1, up to 4,700 studs a second)
+        tail = [f for f in sc.parse(rows) if times[4] <= f["t"] < times[4] + 0.6]
+        fast = max((sum((p - q) ** 2 for p, q in zip(n["rider"], m["rider"])) ** 0.5 / max(n["t"] - m["t"], 0.004)
+                    for m, n in zip(tail, tail[1:])), default=0)
+        ok("not thrown off the kick's end (400 studs/s)", tail and fast < 400, f"{fast:.0f}")
     if esc.get("error"):
         ok("no errors in the readings", False, esc["error"])
     ok("the camera's limits (sub_camera_check)", cam["pass"])
