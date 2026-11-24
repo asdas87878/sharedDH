@@ -391,9 +391,9 @@ end
 
 -- The height (over the sub's middle, `subY` in the world) that keeps a fish `half` high off the floor and under the
 -- surface; one too tall for the water there has as much of it out either way
-local function fit(y: number, subY: number, half: number): number
-	local c = Config.Sub
-	local low = half + 2 - c.Lift
+-- (`under`: how far the floor is below the sub there)
+local function fit(y: number, subY: number, half: number, under: number): number
+	local low = half + 2 - under
 	local high = Config.Oxygen.SurfaceY - 2 - subY - half
 	return if low > high then (low + high) / 2 else math.clamp(y, low, high)
 end
@@ -509,7 +509,14 @@ local function offset(trip: Trip, e: Escort, t: number): Vector3
 	local hop = math.clamp((t - pickupAt - c.EscortHopFrom * trip.Pickup) / 0.45, 0, 1)
 	at -= UP * (c.EscortDip * math.sin(hop * math.pi))
 	-- (in the water where it is: the sub's line rises and falls under one ahead)
-	return Vector3.new(at.X, fit(at.Y, subY + heading(trip, t).Y * at.Z, e.Half.Y), at.Z)
+	-- (the line is Lift over the floor, but the pick-up is lower: there the floor is the next stretch's, carried back)
+	local bed = subY - c.Lift
+	if d < trip.Along[2] then
+		local second, third = trip.Points[2], trip.Points[3]
+		local fall = math.max(second.Y - third.Y, 0) / math.max(trip.Along[3] - trip.Along[2], 1)
+		bed = second.Y - c.Lift + fall * (trip.Along[2] - d)
+	end
+	return Vector3.new(at.X, fit(at.Y, subY + heading(trip, t).Y * at.Z, e.Half.Y, subY - bed), at.Z)
 end
 
 -- How far the sub may bank with the fish where it is, radians: hardly at all while it is in its place close beside the hull
