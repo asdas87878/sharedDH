@@ -228,31 +228,59 @@ whether to build it). Turning it on at the draft's price is the one piece that g
 On the user's "yes, game code is busy right now but if you can do both at same time then yes". **It is off: `Config.Lesson.On` = 0,
 and then the server hooks nothing and the client builds nothing** (played that way, a whole dive and fail: no errors, none of it there). `On` = 1 turns
 it on for everyone. In Studio the workspace's `LessonTest` attribute, set before Play, turns it on whatever `On` says.
-- **The server** (`Services/LessonService`): each player's step, `Dive`, `First`, `Hop`, `Run`, `Deposit`, `Train`, `Reef`, in the
+**The second version (2026-11-24),** after the user tried the first by hand: "make sure none of the tutorial UIs overlap with any of
+the normal UIs, and also get rid of any of the UIs which are unnecessary, like the go down to the coral reef and catch some fish …
+make sure the arrows on the floor … connect with each other properly and they don't have any artifacts".
+- **Cut:** the line under the land strip, the Coral Reef goal with its Oxygen bar and number, the metres by the arrow, "Your fish
+  earn every second!", "Too strong!", the dark plate by the hop button and its repeat at the first red ring, the arrow on PUT ALL IN.
+  The lesson's server steps beyond the second dive went with them.
+- **The server** (`Services/LessonService`): each player's step, `Dive`, `First`, `Hop`, `Run`, `Deposit`, `Train`, `Again`, in the
   player's `Lesson` attribute (none: over). `LessonHold` is on while the first-fish rule is.
 - **The first fish:** one they can hold, Normal and plain. Any other is refused, and the lock skips it. Its meter waits for the tame,
   there is no hop off it, and nobody drowns before it: at 0 they come home. With none in reach, two are put ahead down the stream.
   The rule lets go after 60 s in the water, or 8 s on one fish with no tame.
-- **The screen** (`Controllers/LessonController`, `UI/LessonLine`, `UI/LessonPointer`): one line under the land strip, the goal bar,
-  a bobbing marker with the metres and a trail on the dock, the plate and arrow by the hop button (after the first tame, and again
-  at the first red ring), the tank's caption ("CLICK YOUR TANK" when near), the arrow on PUT ALL IN. All of it stands aside for
-  the fail's words, the catch screen and any window. The fish sold instead of put in: "DIVE IN! Catch another fish".
-- **The end:** after the deposit "Your fish earn every second!", then the seahorse and the bar to 613 Oxygen (a Lionfish). At 613 the
-  Coral Reef line (the bar stays "613 / 613 Oxygen" with its tick, in place of step 9's words); the lesson is over with the first Coral Reef fish made theirs (a fish of `GoalLand`).
+- **The screen,** one thing at a time, in the game's own lettering (yellow for what to press or where to go):
+
+| Step | Words | Points at |
+|---|---|---|
+| Dive | DIVE IN AND CATCH A FISH (the dock's one line, where GO TO YOUR TANK TO DEPOSIT is) | arrow over the strip, trail to it |
+| First, floating | HOP ON A FISH | arrow on the hop button |
+| Hop, the first fish theirs | HOP TO THE NEXT FISH | arrow on the hop button |
+| Deposit | the game's own caption; CLICK (or TAP) YOUR TANK when near | arrow over the tank's board, trail; then a ring round PUT ALL IN |
+| Train | RIDE YOUR SEAHORSE TO HOLD STRONGER FISH | arrow over the seahorse, trail |
+| Again, off the seahorse with Oxygen gained | DIVE IN AGAIN | arrow over the strip, trail. **The dive ends the lesson** |
+
+- **Where:** `Controllers/LessonController` decides; `UI/DockNotes` has the line; `UI/LessonPointer` the arrow and the trail;
+  `UI/LessonPrompt` the hop button's words and arrow and the ring. All of it waits for the black, the fail's words, the catch
+  screen and any window (and 0.25 s after the tank's window closes).
+- **The arrow** comes down with nearness over the strip and shrinks away whenever the view would put it behind the HUD.
+  **The trail:** chevrons of wedges with a dark plate under each, walking toward the place; each is whole (both arms meet in one
+  point), grows in and out at the ends, needs flat floor under all of it, and closes up before a seahorse's stand.
+- **Waking up at the tank** the camera now looks where the body does (it kept the dive's direction, often sideways).
+- **Found and fixed on the way:** a line asked away and back within one frame vanished (`Anim.toast` takes it for shown;
+  guarded in `DockNotes`, the root is in `Anim`, the UI chat's); the deposit caption came up over the fail's words and the catch
+  screen (`StallController`).
 - **"You keep your fish!" is not one of our lines:** the fail words already say "YOUR CATCH IS SAFE" (`Config.Fail.Safe`).
-- **The steps counted** differ from the list above: "first purchase" and "second day" are not in (there is nothing to buy yet, and the
-  second day is in Roblox's own retention), "reached the Coral Reef" counts the first fish tamed there, "first dive ended" counts only a dive
-  with a tame. Fix the list before it goes live: the numbers can't be changed after.
+- **The steps counted** differ from the list above: "first purchase" and "second day" are not in, "reached the Coral Reef" counts
+  the first fish tamed there (counted, no longer a step), "first dive ended" counts only a dive with a tame. Fix the list before it goes live: the numbers can't be changed
+  after.
 - **Saves:** nothing of the lesson is kept yet. Fish given back to a tank before any tame end it (not a new player). When the saves
   go on, give `SaveService` a "Lesson" part, so a returning player with an empty tank doesn't get it again.
 
-**Checked in Studio by script** (`tools/studio/lesson_check.py`): the whole run from the first line to the lesson's end; the first fish held
-through a press every frame, tamed about 2 s after the landing every time; the hop plate and both its layouts (keyboard and
-Studio's pretend touch); "Too strong!" under water and once home after the catch screen; sold fish; a window hiding the line; off, with a dive (its first fish was too strong and threw the player off in 2.5 s: what
-the rule is for). The lesson's end was reached with a tame put in by the script, not by swimming to the Reef.
-**Not checked:** played by hand; a real phone; **the look of the marker and trail in the world** (Studio wasn't drawing the
-world; places checked by numbers, no picture since the last changes, no look-check); two players at once; the red-ring repeat of the hop prompt; the rule's two time limits;
-the real funnel (it prints in Studio).
+**Checked in Studio by script** (`tools/studio/lesson_check.py`; `do overlaps` lists every pair of a lesson piece and any other drawn
+thing that met on the screen, looked at every second frame): the whole run, spawn to the second dive, on the PC layout, and to the
+tank on Studio's pretend touch; a picture of each step (`work/lesson/sheet.jpg`, this PC); no chevron corner inside a stand in
+12,000 parts looked at; no errors or warnings of ours with it on; off, a whole dive and nothing built.
+**Waking at the tank:** 6 studs from the board, the camera dead on it (measured; the one odd view was the test driver walking on).
+**Overlaps left:** the ride's speed streaks and, for a look or two, a passing fish's name tag under the hop words; the dock's line in its 0.1 s fade as
+the tank's window opens; the arrow over the land strip or a slot for 2 to 8 looks (up to about a quarter of a second) when the
+script threw the player or camera about; the trail under a slot for 2 looks, and once as the view faced away from where it leads
+(it lies on the floor, so it goes under the HUD wherever the floor does).
+**Seen, not the lesson's:** `Infinite yield possible on ReplicatedStorage.Shared:WaitForChild("Pose")` and the asset 203785492 of the wrong
+type, in every Play, with the lesson on or off.
+**Not checked:** "HOP ON A FISH" (the dive lands on a fish before its 0.8 s are up, every time); the tank's window opened by a click (opened by script); a real phone (Studio's
+pretend touch only, at the PC's size); two players at once; the rule's two time limits; the real funnel (it prints in Studio); this version
+played by hand.
 
 ## 6. The user's picks
 **Settled 2026-11-23: A on all four** (asked "Go with the recommended option on all four picks?", the user: "Yes, all four"; [Decisions](../Decisions.md)).

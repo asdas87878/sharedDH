@@ -1,7 +1,16 @@
 --!strict
--- The first minutes, on our own screen (docs/design/first-minutes.md, the smallest set): what the lesson's step (the server's
--- "Lesson" attribute, LessonService) shows. The line and the goal bar (UI/LessonLine), the pointer (UI/LessonPointer), the
--- plate and arrow by the hop button, the tank's caption (UI/DockNotes) and the arrow on PUT ALL IN.
+-- The first minutes, on our own screen (docs/design/first-minutes.md): what the lesson's step (the server's "Lesson"
+-- attribute, LessonService) shows. Each step names one place or one button, and nothing that another sign, ring or line of
+-- the game already says. On the dock one line, the game's own (UI/DockNotes, where "GO TO YOUR TANK TO DEPOSIT" is), and
+-- the pointer (UI/LessonPointer, in the world); in the water only the hop button's words and arrow (UI/LessonPrompt); in
+-- the tank's window a ring round PUT ALL IN.
+--   Dive     on the dock, nothing caught   DIVE IN AND CATCH A FISH                  the strip
+--   First    floating, nothing caught      HOP ON A FISH                             the hop button
+--   Hop      the first fish is theirs      HOP TO THE NEXT FISH                      the hop button
+--   Run      the rest of that dive         nothing
+--   Deposit  home with a catch             the game's caption, or CLICK YOUR TANK    the tank, then PUT ALL IN
+--   Train    the first fish is in          RIDE YOUR SEAHORSE TO HOLD STRONGER FISH  the seahorse
+--   Again    ridden                        DIVE IN AGAIN                             the strip
 -- While the server's "LessonHold" is on (the first fish is still to come) the lock takes only a fish we can hold
 -- (Lock.Allow), and there is no hop off a fish: the press is dropped here, before JumpController has it, and
 -- the server refuses it too.
@@ -18,8 +27,8 @@ local CatchShow = require(script.Parent.Parent.UI.CatchShow)
 local DockNotes = require(script.Parent.Parent.UI.DockNotes)
 local HopButton = require(script.Parent.Parent.UI.HopButton)
 local Kit = require(script.Parent.Parent.UI.Kit)
-local LessonLine = require(script.Parent.Parent.UI.LessonLine)
 local LessonPointer = require(script.Parent.Parent.UI.LessonPointer)
+local LessonPrompt = require(script.Parent.Parent.UI.LessonPrompt)
 local Shop = require(script.Parent.Parent.UI.Shop)
 local TankPanel = require(script.Parent.Parent.UI.TankPanel)
 
@@ -30,19 +39,20 @@ local PULL_WAIT = 0.2 -- after a pull-in's touch, while the server answers (Jump
 -- still not the next hop (seconds)
 
 local STEP = "Lesson" -- the render step's name
+local TANK_AHEAD = 8 -- the tank's trail ends this far in front of its glass, studs
+local ARRIVED = 10 -- no trail this near its end, studs
+local STRIP_HIGH, STRIP_LOW, STRIP_FALL = 9, 2.5, 0.13 -- the arrow's point over the strip, far and near, and the share of
+-- the way there (so it never climbs the screen into the land strip as we come to it)
+local STRIP_ON = 15 -- and none once we stand on it, this near its middle, studs
+local TURN = 0.6 -- waking on the dock, the camera is behind us for this long under the black, seconds
 
 local running = false
 local step: string? = nil
-local stepAt = 0
 local modeAt = 0
 local lastMode = ""
 local reeledAt = -math.huge -- the last frame we were being pulled in
-local strainUntil = 0 -- "Too strong!" is up until then,
-local strainSaid = false -- once a session,
-local strainHome = false -- and once more on the dock after it
+local panelAt = -math.huge -- the last frame the tank's window was open (it takes a moment to close)
 local endedAt = -math.huge -- the last frame the end of a dive had the screen
-local redSaid = false -- the hop prompt's second showing (the first red ring) has been
-local redOn = false
 local wrapped = false
 local hopButton: GuiObject? = nil
 local putAll: GuiObject? = nil
@@ -100,17 +110,32 @@ local function ownPlot(): Instance?
 	return if plots and type(name) == "string" then plots:FindFirstChild(name) else nil
 end
 
+-- Where the pointer is: the place on the floor to walk to, what the arrow's point is over, and the most times larger the
+-- arrow gets with the distance
+type Place = { To: Vector3, Over: Vector3?, Most: number }
+
 local strip: BasePart? = nil -- (found once: the dock holds a lot)
 local stripLookAt = 0
 
-local function stripPlace(): Vector3?
-	if not (strip and strip:IsDescendantOf(workspace)) and os.clock() >= stripLookAt then
-		stripLookAt = os.clock() + 1
-		local d = dock()
-		local found = d and d:FindFirstChild("StartStrip", true)
-		strip = if found and found:IsA("BasePart") then found else nil
+local function stripPlace(feet: Vector3?): Place?
+	local found = strip
+	if not (found and found:IsDescendantOf(workspace)) then
+		found = nil
+		if os.clock() >= stripLookAt then
+			stripLookAt = os.clock() + 1
+			local d = dock()
+			local part = d and d:FindFirstChild("StartStrip", true)
+			found = if part and part:IsA("BasePart") then part else nil
+		end
+		strip = found
 	end
-	return if strip then strip.Position else nil
+	if not found then
+		return nil
+	end
+	local top = found.Position + Vector3.new(0, found.Size.Y / 2, 0)
+	local gap = if feet then ((top - feet) * Vector3.new(1, 0, 1)).Magnitude else math.huge
+	local high = math.clamp(gap * STRIP_FALL, STRIP_LOW, STRIP_HIGH)
+	return { To = top, Over = if gap > STRIP_ON then top + Vector3.new(0, high, 0) else nil, Most = 2.4 }
 end
 
 local function tankWater(): BasePart?
@@ -119,15 +144,45 @@ local function tankWater(): BasePart?
 	return if water and water:IsA("BasePart") then water else nil
 end
 
-local function trainerPlace(): Vector3?
+-- (in front of the tank, where a player wakes with a catch: AquariumService's frontOf; the arrow over the tank's own
+-- board, not over its roof, which is off the top of the screen from there)
+local function tankPlace(): Place?
+	local water = tankWater()
+	local plot = ownPlot()
+	if not (water and plot) then
+		return nil
+	end
+	local pad = plot:FindFirstChild("Pad")
+	local half = water.Size / 2
+	local way = water.CFrame.LookVector * Vector3.new(1, 0, 1)
+	local floor = water.Position.Y - half.Y
+	if pad and pad:IsA("BasePart") then
+		local toPad = (pad.Position - water.Position) * Vector3.new(1, 0, 1)
+		way = if toPad.Magnitude >= 1 then toPad else way
+		floor = pad.Position.Y + pad.Size.Y / 2
+	end
+	way = way.Unit
+	local face = math.abs(way:Dot(water.CFrame.RightVector)) * half.X
+		+ math.abs(way:Dot(water.CFrame.LookVector)) * half.Z
+	local front = water.Position + way * face
+	local over = Vector3.new(front.X, water.Position.Y + half.Y + 1, front.Z)
+	local board = plot:FindFirstChild("SignBoard")
+	if board and board:IsA("BasePart") then
+		over = board.Position + Vector3.new(0, board.Size.Y / 2 + 0.4, 0)
+	end
+	return { To = Vector3.new(front.X, floor, front.Z) + way * TANK_AHEAD, Over = over, Most = 1.8 }
+end
+
+-- (between the seahorse's head and the TRAIN sign over it, so it never grows)
+local function trainerPlace(): Place?
 	local plot = ownPlot()
 	local ride = plot and plot:FindFirstChild("TrainerRide")
-	if ride and ride:IsA("Model") then
-		return ride:GetPivot().Position
-	elseif ride and ride:IsA("BasePart") then
-		return ride.Position
+	if not (ride and ride:IsA("Model")) then
+		return nil
 	end
-	return nil
+	local at, size = ride:GetBoundingBox()
+	local up = Vector3.new(0, size.Y / 2, 0)
+	return { To = at.Position - up, Over = at.Position + up + Vector3.new(0, 0.3, 0), Most = 0.8 }
 end
 
 -- A button of another screen's, by name
@@ -140,6 +195,21 @@ local function findButton(known: GuiObject?, name: string): GuiObject?
 	return if found and found:IsA("GuiObject") then found else nil
 end
 
+-- Whether we are near enough to our tank to click it
+local function atTank(root: BasePart): boolean
+	local water, plot = tankWater(), ownPlot()
+	if not (water and plot) then
+		return false
+	end
+	local offset = water.CFrame:PointToObjectSpace(root.Position)
+	local half = water.Size / 2
+	local said = plot:GetAttribute("PanelReach")
+	local reach = if type(said) == "number" then said else 36
+	local dx = math.max(math.abs(offset.X) - half.X, 0)
+	local dz = math.max(math.abs(offset.Z) - half.Z, 0)
+	return math.sqrt(dx * dx + dz * dz) <= reach
+end
+
 local function update()
 	local now = os.clock()
 	local mode = State.Mode
@@ -150,144 +220,92 @@ local function update()
 	if State.Reeling then
 		reeledAt = now
 	end
-	local l = Config.Lesson
 	local docked = mode == "Dock"
-	local windows = Shop.Page ~= nil or TankPanel.isOpen()
 	-- (home from a dive: the black, the fail's words, then the catch screen have the screen first)
 	if docked and (State.FadeText ~= "" or State.Fade > 0.02 or CatchShow.showing()) then
 		endedAt = now
+		-- (the dive's camera looked anywhere: we wake looking where our body does, at the strip or our tank)
+		if now - modeAt < TURN and State.Fade > 0.5 then
+			local _, body = State.character()
+			local camera = workspace.CurrentCamera
+			if body and camera.CameraType == Enum.CameraType.Custom then
+				local from = body.Position - body.CFrame.LookVector * 12 + Vector3.new(0, 5, 0)
+				camera.CFrame = CFrame.lookAt(from, body.Position + Vector3.new(0, 2, 0))
+			end
+		end
 	end
-	local ending = docked and now - endedAt < 0.25
-	local touch = Kit.touch()
+	if TankPanel.isOpen() then
+		panelAt = now
+	end
+	local quiet = (docked and math.min(now - endedAt, now - panelAt) < 0.25)
+		or Shop.Page ~= nil
+		or State.dying()
+		or player:GetAttribute("TankRide") ~= nil
 	local character, root = State.character()
-	local oxygen = player:GetAttribute("MaxOxygen")
-	local max = if type(oxygen) == "number" then oxygen else 0
-	local need = Config.lessonGoal()
-	local training = player:GetAttribute("Training") == true or player:GetAttribute("TrainerRide") ~= nil
-
-	-- "Too strong!": the first time a fish is, and once more when that dive has brought us home
-	if State.Strained and not strainSaid then
-		strainSaid = true
-		strainHome = true
-		strainUntil = now + l.StrainTime
+	local feet: Vector3? = nil
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if root and humanoid then
+		feet = root.Position - Vector3.new(0, root.Size.Y / 2 + humanoid.HipHeight, 0)
 	end
-	if docked and strainHome and not ending then
-		strainHome = false
-		strainUntil = now + l.StrainTime
-	end
+	local caught = State.Caught
+	local carrying = caught ~= nil and #caught > 0
 
 	local words: string? = nil
-	local goal = false
-	local at: Vector3? = nil
-	local high = 8
+	local place: Place? = nil
 	local trail = true
-	local near = l.PointerOff
 	local hop: string? = nil
 	local caption: string? = nil
-	local putArrow = false
+	local putRing = false
 
-	-- home with nothing in hand to put in the tank (sold, or the lot lost): down again
-	local caught = State.Caught
-	local bare = caught ~= nil and #caught == 0
-	local again = bare and (step == "Hop" or step == "Run" or step == "Deposit")
-
-	if docked and (step == "Dive" or again) then
-		words = if again then "*DIVE IN!* Catch another fish" else "*DIVE IN!* Catch your first fish"
-		at = stripPlace()
-	elseif step == "First" then
-		if mode == "Riding" and holding() then
-			words = "*Hold on!* It's almost yours"
-		elseif mode == "Free" and now - modeAt > 0.8 then
-			hop = if touch then "TAP TO HOP ON A FISH" else "SPACE: HOP ON A FISH"
-		end
-	elseif step == "Hop" then
-		if mode == "Riding" then
-			hop = if touch then "TAP TO HOP TO THE NEXT FISH" else "SPACE: HOP TO THE NEXT FISH"
-		end
-	elseif step == "Run" then
-		-- (the first red ring after that: the prompt once more, for as long as that fish lasts)
-		local fish = State.Fish
-		local red = mode == "Riding" and fish ~= nil and fish:GetAttribute("Angry") == true and not State.Strained
-		if red and not redSaid then
-			redSaid = true
-			redOn = true
-		elseif redOn and not red then
-			redOn = false
-		end
-		if redOn then
-			hop = if touch then "TAP TO HOP TO THE NEXT FISH" else "SPACE: HOP TO THE NEXT FISH"
-		end
-	elseif step == "Deposit" and docked then
-		local water = tankWater()
-		if TankPanel.isOpen() then
-			putArrow = true
-		elseif water and root then
-			local offset = water.CFrame:PointToObjectSpace(root.Position)
-			local half = water.Size / 2
-			local plot = ownPlot()
-			local said = plot and plot:GetAttribute("PanelReach")
-			local reach = if type(said) == "number" then said else 36
-			local dx = math.max(math.abs(offset.X) - half.X, 0)
-			local dz = math.max(math.abs(offset.Z) - half.Z, 0)
-			local close = math.sqrt(dx * dx + dz * dz) <= reach
-			if close then
-				caption = if touch then "TAP YOUR TANK" else "CLICK YOUR TANK"
+	local near = docked and step == "Deposit" and carrying and root ~= nil and atTank(root)
+	if near then
+		-- (even while the end of the dive has the screen: so the line comes up with the right words)
+		caption = if Kit.touch() then "*TAP* YOUR TANK" else "*CLICK* YOUR TANK"
+	end
+	if docked and TankPanel.isOpen() then
+		putRing = step == "Deposit"
+	elseif docked and not quiet then
+		if step == "Deposit" and carrying then
+			place = tankPlace()
+			trail = not near
+		elseif carrying then
+			-- (a catch in hand at any other step: the game's own caption has the line)
+			words = nil
+		elseif step == "Train" then
+			if player:GetAttribute("Training") ~= true and player:GetAttribute("TrainerRide") == nil then
+				words = "*RIDE YOUR SEAHORSE* TO HOLD STRONGER FISH"
+				place = trainerPlace()
 			end
-			at = water.Position
-			high = water.Size.Y / 2 + 4
-			trail = not close
-			near = 0
+		elseif step == "Again" then
+			words = "*DIVE IN* AGAIN"
+			place = stripPlace(feet)
+		elseif step == "Dive" or caught ~= nil then
+			-- (or home with nothing to put in the tank, sold or the lot lost: down again)
+			words = "*DIVE IN* AND CATCH A FISH"
+			place = stripPlace(feet)
 		end
-	elseif step == "Train" then
-		goal = true
-		if now - stepAt < l.EarnTime then
-			words = "Your fish *earn every second!*"
-		elseif docked then
-			words = "*Ride your seahorse:* more Oxygen holds stronger fish"
-			if not training then
-				at = trainerPlace()
-				high = 9
-				near = 8
-			end
-		end
-	elseif step == "Reef" then
-		if docked then
-			words = `*DIVE IN!* Catch a {l.GoalName} fish`
-			goal = true
-			at = stripPlace()
-		elseif now - modeAt < l.ReefTime and (mode == "Free" or mode == "Jumping" or mode == "Riding") then
-			words = `Go down to the *{l.GoalName}* and catch a fish`
-			goal = now - modeAt < l.BarTime
-		end
-	end
-	if now < strainUntil and (docked or mode == "Riding") then
-		words = "*Too strong!* Your seahorse builds your Oxygen"
-	end
-	if State.dying() then
-		words, goal, hop = nil, false, nil
-	end
-	if windows or ending or player:GetAttribute("TankRide") then
-		words, goal, at = nil, false, nil
+	elseif mode == "Free" and step == "First" and now - modeAt > 0.8 and not quiet then
+		hop = "*HOP* ON A FISH"
+	elseif mode == "Riding" and step == "Hop" and not quiet then
+		hop = "*HOP* TO THE NEXT FISH"
 	end
 
-	LessonLine.say(words)
-	if goal and need > 0 then
-		local text = `{l.GoalName} fish: {Config.wholeNumber(math.min(max, need))} / {Config.wholeNumber(need)} Oxygen`
-		LessonLine.goal(text, max / need)
-	else
-		LessonLine.goal(nil, 0)
+	local to: Vector3? = nil
+	if place and feet and trail then
+		local gap = (place.To - feet) * Vector3.new(1, 0, 1)
+		to = if gap.Magnitude > ARRIVED then place.To else nil
 	end
-	LessonPointer.update(at, high, root, character, near, trail, now)
 	DockNotes.words(caption)
+	DockNotes.lesson(words)
+	LessonPointer.update(to, if place then place.Over else nil, if place then place.Most else 1, feet, now)
 
 	if hop or hopButton then
 		hopButton = findButton(hopButton, "HopButton")
-		LessonLine.note(hopButton, hop)
-		LessonLine.arrow(hopButton, hop ~= nil)
+		LessonPrompt.point(hopButton, hop)
 	end
-	if putArrow or putAll then
+	if putRing or putAll then
 		putAll = findButton(putAll, "PutAll")
-		LessonLine.arrow(putAll, putArrow)
+		LessonPrompt.ring(putAll, putRing)
 	end
 	-- (no hop button on the first fish: there is nothing to press yet)
 	HopButton.hold(mode == "Riding" and holding())
@@ -298,9 +316,10 @@ local function stop()
 		running = false
 		RunService:UnbindFromRenderStep(STEP)
 	end
-	LessonLine.clear()
+	LessonPrompt.clear()
 	LessonPointer.clear()
 	DockNotes.words(nil)
+	DockNotes.lesson(nil)
 	HopButton.hold(false)
 end
 
@@ -311,12 +330,11 @@ local function onStep()
 		return
 	end
 	step = now
-	stepAt = os.clock()
 	if not step then
 		stop()
 	elseif not running then
 		wrapJump()
-		-- (after every camera step: the marker is drawn where the place is in this frame's view)
+		-- (after every camera step: the arrow turns to this frame's view)
 		running = true
 		RunService:BindToRenderStep(STEP, Enum.RenderPriority.Last.Value, update)
 	end

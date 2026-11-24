@@ -124,7 +124,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `AuraController` | Every player's aura and the spawn-in. A draft: drawn, not sold. |
 | `GroundFxController` | Small effects on land. |
 | **The screen and the light** | |
-| `LessonController` | What the first minutes' step shows: the line and goal bar (`UI/LessonLine`), the marker and trail (`UI/LessonPointer`), the hop plate, the arrows. Nothing with `Config.Lesson.On` 0. |
+| `LessonController` | What the first minutes' step shows: the dock's line (`UI/DockNotes`), the arrow and trail (`UI/LessonPointer`), the hop button's words and the ring on PUT ALL IN (`UI/LessonPrompt`). Nothing with `Config.Lesson.On` 0. |
 | `HudController` | Builds the dive's and the dock's HUD from the `UI/` pieces and feeds them each frame. |
 | `LookController` | Keeps the lighting at `Config.Look`. |
 | `BlackHoleDisplayController` | Puts a live black hole on any part tagged `BlackHole`. |

@@ -2929,8 +2929,8 @@ Config.Admin = {
 ----------------------------------------------------------------------------------------------------------------------
 -- The first minutes: the lesson a new player is taken through once (docs/design/first-minutes.md)
 
--- LessonService (the server keeps the step, the player's "Lesson" attribute) and LessonController (the line, the
--- pointer). The user's yes to the smallest set, 2026-11-23; not played. No saves yet: it is every join's. Off in the
+-- LessonService (the server keeps the step, the player's "Lesson" attribute) and LessonController (what it shows). The
+-- user's yes to the smallest set, 2026-11-23; tried by hand, then cut down. No saves yet: it is every join's. Off in the
 -- movement sandbox. In Studio the workspace's "LessonTest" attribute, true before Play, switches it on whatever these say.
 Config.Lesson = {
 	On = 0, -- 1: on; 0: nothing of it runs (the server hooks nothing, the client builds nothing)
@@ -2948,15 +2948,8 @@ Config.Lesson = {
 	PutEvery = 2.5, -- looked at again this often while they float or hop with none yet, seconds
 	PutMost = 12, -- and never more than this many for one player
 	-- the goal after the first deposit
-	Goal = "Lionfish", -- train until this fish could be held: its Oxygen is the goal line's number
-	GoalLand = 2, -- then make one of this land's own fish theirs, and the lesson is over
-	GoalName = "Coral Reef", -- that land, as the line says it
-	-- what is shown (LessonController)
-	PointerOff = 14, -- the marker and the trail go when this near the place, studs
-	EarnTime = 4, -- "Your fish earn every second!" stays this long, seconds
-	StrainTime = 4, -- and "Too strong!" this long
-	ReefTime = 5, -- the Reef's line stays this long into a dive, seconds
-	BarTime = 3, -- and the goal bar, ticked, this long
+	Goal = "Lionfish", -- ride the seahorse until this fish could be held (or until they get off it), then dive again: over
+	GoalLand = 2, -- the first of this land's own fish made theirs after that is counted
 	Count = 1, -- 1: each step reached is counted with Roblox's onboarding funnel (in Studio: printed)
 }
 

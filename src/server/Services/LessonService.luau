@@ -7,9 +7,9 @@
 --     "Hop"      the first fish is theirs: hop to the next
 --     "Run"      they have hopped: the rest of the dive, taught by nothing
 --     "Deposit"  home with a catch: put it in the tank
---     "Train"    the first fish is in: ride the seahorse until Config.lessonGoal()
---     "Reef"     strong enough, or diving again: make one of the Coral Reef's own fish theirs
---     nil        over (or never: no tank of their own ends it after the first dive)
+--     "Train"    the first fish is in: ride the seahorse until Config.lessonGoal(), or until they get off it
+--     "Again"    ridden: dive again
+--     nil        over: down again (or never: no tank of their own ends it after the first dive)
 --   The first-fish rule (RideService.FirstFish): until the first tame the hook takes only a fish they can hold, its meter
 --   doesn't run, and it can't be hopped off; and one is put ahead of them as they go in when none is in reach. It lets go by
 --   itself: Lesson.HoldMost in the water, Lesson.RideMost on one fish. Never off the submarine or on their own fish.
@@ -27,7 +27,7 @@ local FishService = require(script.Parent.FishService)
 local RideService = require(script.Parent.RideService)
 
 type Wild = FishService.Wild
-type Step = "Dive" | "First" | "Hop" | "Run" | "Deposit" | "Train" | "Reef"
+type Step = "Dive" | "First" | "Hop" | "Run" | "Deposit" | "Train" | "Again"
 type Record = {
 	Step: Step?,
 	State: string, -- the State attribute as last seen
@@ -36,6 +36,7 @@ type Record = {
 	Dives: number, -- times into the water off the dock
 	Deposited: boolean,
 	TankFish: number, -- as last seen
+	TrainFrom: number, -- their Oxygen as they got on the seahorse (0: not yet)
 	Wet: number, -- os.clock() they went in, this dive
 	HoldEnd: number, -- os.clock() the first-fish rule lets go (0: off)
 	PutAt: number, -- os.clock() of the last look for a fish in reach
@@ -170,13 +171,13 @@ local function finish(player: Player, r: Record)
 	setHold(player, r, 0)
 end
 
--- After the first deposit: train, or (strong enough already, or been down again) on to the Reef, or over
+-- After the first deposit: ride the seahorse, or (strong enough already) dive again
 local function onward(player: Player, r: Record)
 	if r.Reef then
 		count(player, r, FUNNEL.Reef)
-		finish(player, r)
-	elseif attr(player, "MaxOxygen") >= Config.lessonGoal() or r.Step == "Reef" then
-		setStep(player, r, "Reef")
+	end
+	if attr(player, "MaxOxygen") >= Config.lessonGoal() then
+		setStep(player, r, "Again")
 	else
 		setStep(player, r, "Train")
 	end
@@ -191,8 +192,8 @@ local function wentIn(player: Player, r: Record)
 	end
 	if not r.Tamed then
 		setStep(player, r, "First")
-	elseif r.Step == "Train" then
-		setStep(player, r, "Reef")
+	elseif r.Step == "Train" or r.Step == "Again" then
+		finish(player, r)
 	end
 end
 
@@ -261,10 +262,6 @@ local function onTamed(player: Player, w: Wild)
 		if r.Deposited then
 			count(player, r, FUNNEL.Reef)
 		end
-		if r.Step == "Reef" then
-			finish(player, r)
-			return
-		end
 	end
 	if not r.Tamed then
 		r.Tamed = true
@@ -303,6 +300,7 @@ local function join(player: Player)
 		Dives = 0,
 		Deposited = false,
 		TankFish = attr(player, "TankFish"),
+		TrainFrom = 0,
 		Wet = 0,
 		HoldEnd = 0,
 		PutAt = 0,
@@ -324,8 +322,15 @@ local function join(player: Player)
 		onTankFish(player, r)
 	end)
 	watch("Training", function()
-		if player:GetAttribute("Training") == true and r.Deposited and on() then
+		if not r.Deposited or not on() then
+			return
+		end
+		if player:GetAttribute("Training") == true then
+			r.TrainFrom = attr(player, "MaxOxygen")
 			count(player, r, FUNNEL.Trained)
+		elseif r.Step == "Train" and r.TrainFrom > 0 and attr(player, "MaxOxygen") > r.TrainFrom then
+			-- (off it again with some Oxygen gained: that is the lesson)
+			setStep(player, r, "Again")
 		end
 	end)
 	watch("MaxOxygen", function()

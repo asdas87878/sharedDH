@@ -3,11 +3,13 @@ On Windows, through the direct client (C:/Users/blast/RpgGame/tools/studio/studi
     python tools/studio/lesson_check.py install | remove   (in Edit, before Play: LessonTest on, a server Script, a LocalScript)
     python tools/studio/lesson_check.py play | stop        (stop also gives the mouse and the camera back)
     python tools/studio/lesson_check.py do VERB [A]        (the LocalScript: dive, walk tank/trainer/strip, stay, press on/off,
-                                                            one, log, where, rects, panel on/off, shop on/off)
+                                                            one, log, where, rects, panel on/off, shop on/off,
+                                                            overlaps: each lesson piece and other drawn thing that met
+                                                            on the screen since last asked)
     python tools/studio/lesson_check.py cmd VERB [A]       (the server: home, train N, give ID, tamed ID, sold, at x,y,z, state)
     python tools/studio/lesson_check.py shot NAME          (a capture, work/lesson/NAME.jpeg)
-The LocalScript writes a line each time what the lesson shows changes: mode, step, hold, line, goal bar, marker, trail,
-plate, hop button, caption, locked fish.
+The LocalScript writes a line each time what the lesson shows changes: mode, step, hold, the arrow, the trail, the hop
+button's words, the dock's line, the ring, the locked fish; and looks for overlaps all the time.
 """
 import json
 import os
@@ -83,41 +85,202 @@ local function rect(o)
 end
 local function line()
 	local bits = { State.Mode, tostring(player:GetAttribute("Lesson")), player:GetAttribute("LessonHold") and "HOLD" or "-" }
-	local lesson = gui:FindFirstChild("Lesson")
-	local root = lesson and lesson:FindFirstChild("Root")
-	if root then
-		if shown(root.Line) then table.insert(bits, "line=" .. root.Line.ContentText) end
-		if shown(root.Goal) then
-			table.insert(bits, "goal=" .. root.Goal.Words.Text .. (root.Goal.Done.Visible and " TICK" or ""))
-		end
-	end
 	local f = workspace:FindFirstChild("LessonPointer")
 	if f then
 		local heads = 0
-		for _, p in f:GetChildren() do
-			if p.Name == "Arm" and p.Position.Y > -5000 then heads += 1 end
+		for _, p in f:GetDescendants() do
+			if p:IsA("BasePart") and p.Name == "Yellow" and p.Position.Y > -5000 then
+				if p:IsA("Part") and p.Size.Y > 0.6 then table.insert(bits, "marker") end
+				if p:IsA("Part") and p.Size.Y < 0.5 then heads += 1 end
+			end
 		end
-		local m = gui:FindFirstChild("LessonMarker")
-		if m and m.Marker.Visible then table.insert(bits, "marker" .. (if m.Marker.Arrow.Rotation ~= 0 then " side" else "")) end
 		if heads > 0 then table.insert(bits, "trail") end
 	end
 	local hop = gui:FindFirstChild("HopButton", true)
 	if hop and shown(hop) then
-		local note = hop:FindFirstChild("LessonNote")
-		table.insert(bits, "hop" .. (note and note.Visible and ("[" .. note:FindFirstChildOfClass("TextLabel").Text .. "]") or ""))
+		local note = hop:FindFirstChild("LessonWords")
+		table.insert(bits, "hop" .. (note and note.Visible and ("[" .. note.ContentText .. "]") or ""))
 	end
 	local notes = gui:FindFirstChild("DockNotes")
-	if notes and shown(notes.Root.Carry) then table.insert(bits, "caption=" .. notes.Root.Carry.Text) end
+	if notes and shown(notes.Root.Carry) then table.insert(bits, "line=" .. notes.Root.Carry.ContentText) end
 	local put = gui:FindFirstChild("PutAll", true)
 	if put and shown(put) then
-		local a = put:FindFirstChild("LessonArrow")
-		table.insert(bits, "putall" .. (a and a.Visible and "+arrow" or ""))
+		local a = put:FindFirstChild("LessonRing")
+		table.insert(bits, "putall" .. (a and a.Visible and "+ring" or ""))
 	end
 	if State.JumpTarget then table.insert(bits, "lock=" .. tostring(State.JumpTarget:GetAttribute("FishType"))) end
 	if State.Strained then table.insert(bits, "STRAINED") end
 	return table.concat(bits, " | ")
 end
+-- What is drawn where (points of the screen's inset space), and what of the lesson's meets what else
+local boards = {}
+local met, metOrder, looked = {}, {}, 0
+local function drawn(o)
+	local p, s = o.AbsolutePosition, o.AbsoluteSize
+	if (o:IsA("TextLabel") or o:IsA("TextButton")) and o.Text ~= "" and o.TextTransparency < 0.95 then
+		local b = o.TextBounds
+		local x = if o.TextXAlignment == Enum.TextXAlignment.Left then p.X
+			elseif o.TextXAlignment == Enum.TextXAlignment.Right then p.X + s.X - b.X else p.X + (s.X - b.X) / 2
+		local y = if o.TextYAlignment == Enum.TextYAlignment.Top then p.Y
+			elseif o.TextYAlignment == Enum.TextYAlignment.Bottom then p.Y + s.Y - b.Y else p.Y + (s.Y - b.Y) / 2
+		if o.BackgroundTransparency < 0.95 then
+			return math.min(x, p.X), math.min(y, p.Y), math.max(x + b.X, p.X + s.X), math.max(y + b.Y, p.Y + s.Y)
+		end
+		return x, y, x + b.X, y + b.Y
+	end
+	local image = (o:IsA("ImageLabel") or o:IsA("ImageButton")) and o.Image ~= "" and o.ImageTransparency < 0.95
+	if image or o:IsA("ViewportFrame") or o.BackgroundTransparency < 0.95 then
+		return p.X, p.Y, p.X + s.X, p.Y + s.Y
+	end
+	return nil
+end
+local function hitTest(list, name, x0, y0, x1, y1, view)
+	if x1 <= x0 or y1 <= y0 or (x1 - x0) * (y1 - y0) > view.X * view.Y * 0.5 then return end
+	for _, l in list do
+		if not l.Skip[name] then
+			local w = math.min(x1, l.X1) - math.max(x0, l.X0)
+			local h = math.min(y1, l.Y1) - math.max(y0, l.Y0)
+			if w > 1 and h > 1 then
+				local key = l.Name .. " x " .. name
+				local m = met[key]
+				if not m then
+					m = { N = 0, Most = 0, At = "" }
+					met[key] = m
+					table.insert(metOrder, key)
+				end
+				m.N += 1
+				if w * h > m.Most then
+					m.Most = w * h
+					m.At = string.format("%dx%d px, %.1f s, %s/%s", w, h, os.clock() - started, State.Mode,
+						tostring(player:GetAttribute("Lesson")))
+				end
+			end
+		end
+	end
+end
+local OURS = { LessonWords = true, LessonArrow = true, LessonRing = true }
+local seen = {} -- how many looks each lesson piece was on the screen for (a check of the check)
+local function overlaps()
+	local camera = workspace.CurrentCamera
+	local view = camera.ViewportSize
+	local inset = game:GetService("GuiService"):GetGuiInset()
+	local list = {}
+	local function ours(o, name)
+		if not shown(o) then return end
+		local x0, y0, x1, y1
+		if o:IsA("TextLabel") then x0, y0, x1, y1 = drawn(o)
+		else
+			local p, s = o.AbsolutePosition, o.AbsoluteSize
+			x0, y0, x1, y1 = p.X, p.Y, p.X + s.X, p.Y + s.Y
+		end
+		if not x0 then return end
+		seen[name] = (seen[name] or 0) + 1
+		table.insert(list, { Name = name, X0 = x0, Y0 = y0, X1 = x1, Y1 = y1, Skip = {}, Own = o.Parent })
+		if x0 < -1 or x1 > view.X + 1 or y0 < -inset.Y - 1 or y1 > view.Y - inset.Y + 1 then
+			hitTest({ { Name = name, X0 = 0, Y0 = 0, X1 = 9, Y1 = 9, Skip = {} } }, "SCREEN EDGE", 0, 0, 9, 9, view)
+		end
+	end
+	for _, n in { "HopButton", "PutAll" } do
+		local b = gui:FindFirstChild(n, true)
+		if b then for _, c in b:GetChildren() do if OURS[c.Name] then ours(c, c.Name) end end end
+	end
+	local notes = gui:FindFirstChild("DockNotes")
+	if notes then ours(notes.Root.Carry, "DockLine") end
+	local f = workspace:FindFirstChild("LessonPointer")
+	if f then
+		local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
+		local any = false
+		for _, p in f:GetDescendants() do
+			local up = p:IsA("BasePart") and p:IsA("Part") and p.Position.Y > -5000 and p.Size.Y > 0.6
+			if p:IsA("WedgePart") then up = p.Position.Y > -5000 and math.abs(p.CFrame.ZVector.Y) > 0.9 end
+			if up then
+				for _, sx in { -0.5, 0.5 } do for _, sy in { -0.5, 0.5 } do for _, sz in { -0.5, 0.5 } do
+					local at = camera:WorldToViewportPoint(p.CFrame * (p.Size * Vector3.new(sx, sy, sz)))
+					if at.Z > 0 then
+						any = true
+						x0, y0 = math.min(x0, at.X), math.min(y0, at.Y - inset.Y)
+						x1, y1 = math.max(x1, at.X), math.max(y1, at.Y - inset.Y)
+					end
+				end end end
+			end
+		end
+		if any and x1 > 0 and x0 < view.X and y1 > -inset.Y and y0 < view.Y - inset.Y then
+			seen.Arrow3D = (seen.Arrow3D or 0) + 1
+			table.insert(list, { Name = "Arrow3D", X0 = x0, Y0 = y0, X1 = x1, Y1 = y1, Skip = {} })
+		end
+	end
+	-- (the trail, part by part: it lies on the floor, so it goes under the HUD wherever the floor does)
+	if f then
+		for _, p in f:GetDescendants() do
+			local flat = p:IsA("BasePart") and p.Position.Y > -5000 and p.Size.X > 0.05
+				and (p:IsA("WedgePart") and math.abs(p.CFrame.ZVector.Y) < 0.1 and math.abs(p.CFrame.YVector.Y) < 0.1
+					or p:IsA("Part") and p.Size.Y < 0.5)
+			local at = flat and camera:WorldToViewportPoint(p.Position)
+			if at and at.Z > 0 then
+				local per = view.Y / (2 * math.tan(math.rad(camera.FieldOfView / 2)) * at.Z)
+				local w = math.max(p.Size.X, p.Size.Z) * per * 0.5
+				seen.Trail = (seen.Trail or 0) + 1
+				table.insert(list, { Name = "Trail", X0 = at.X - w / 2, Y0 = at.Y - inset.Y - w / 8, X1 = at.X + w / 2,
+					Y1 = at.Y - inset.Y + w / 8, Skip = {} })
+			end
+		end
+	end
+	if #list == 0 then return end
+	local function walk(o, path)
+		for _, c in o:GetChildren() do
+			if c:IsA("GuiObject") then
+				if c.Visible and not OURS[c.Name] and c.Name ~= "Carry" then
+					local x0, y0, x1, y1 = drawn(c)
+					local name = path .. "." .. c.Name
+					for _, l in list do
+						-- (a piece is on its own button, inside the window that button stands in)
+						l.Skip[name] = l.Own ~= nil and (l.Own == c or l.Own:IsDescendantOf(c) or c:IsDescendantOf(l.Own))
+					end
+					if x0 then hitTest(list, name, x0, y0, x1, y1, view) end
+					walk(c, name)
+				end
+			elseif c:IsA("ScreenGui") then
+				if c.Enabled then walk(c, c.Name) end
+			elseif c:IsA("Folder") then
+				walk(c, path .. "." .. c.Name)
+			end
+		end
+	end
+	walk(gui, "")
+	for _, b in boards do
+		if b.Parent and b.Enabled then
+			local at = b.Adornee or b.Parent
+			local pos = at and (at:IsA("BasePart") and at.Position or at:IsA("Attachment") and at.WorldPosition
+				or at:IsA("Model") and at:GetPivot().Position)
+			if pos then
+				pos += b.StudsOffsetWorldSpace + camera.CFrame:VectorToWorldSpace(b.StudsOffset)
+				local v, on = camera:WorldToViewportPoint(pos)
+				local far = b.MaxDistance
+				if on and v.Z > 0 and (far == 0 or far == math.huge or (pos - camera.CFrame.Position).Magnitude < far) then
+					local per = view.Y / (2 * math.tan(math.rad(camera.FieldOfView / 2)) * v.Z)
+					local w = b.Size.X.Scale * per + b.Size.X.Offset
+					local h = b.Size.Y.Scale * per + b.Size.Y.Offset
+					hitTest(list, "world:" .. b.Name .. " on " .. (at.Parent and at.Parent.Name or "?"),
+						v.X - w / 2, v.Y - inset.Y - h / 2, v.X + w / 2, v.Y - inset.Y + h / 2, view)
+				end
+			end
+		end
+	end
+end
 RunService.Heartbeat:Connect(function()
+	looked += 1
+	if looked % 120 == 1 then
+		table.clear(boards)
+		for _, root in { workspace, gui } do
+			for _, o in root:GetDescendants() do if o:IsA("BillboardGui") then table.insert(boards, o) end end
+		end
+	end
+	if looked % 2 == 0 then
+		local ok, problem = pcall(overlaps)
+		if not ok then met["CHECK FAILED " .. tostring(problem)] = met["CHECK FAILED " .. tostring(problem)] or { N = 1, Most = 0, At = "" }
+			if not table.find(metOrder, "CHECK FAILED " .. tostring(problem)) then table.insert(metOrder, "CHECK FAILED " .. tostring(problem)) end
+		end
+	end
 	local l = line()
 	if l ~= last then
 		last = l
@@ -127,6 +290,9 @@ RunService.Heartbeat:Connect(function()
 		presses += 1
 		if Actions.jump() then took += 1 end
 	end
+end)
+-- (just before the physics: after the game's own controls, which give a still stick every frame once anyone has pressed a key)
+RunService.PreSimulation:Connect(function()
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if walking and humanoid then
@@ -175,13 +341,23 @@ local function verb(v, a)
 			((place(a) - root.Position) * Vector3.new(1, 0, 1)).Magnitude)
 	elseif v == "rects" then
 		local out = { "view " .. tostring(workspace.CurrentCamera.ViewportSize) }
-		for _, name in { "Line", "Goal", "Marker", "HopButton", "LessonNote", "LessonArrow", "PutAll", "Carry", "LandStrip", "Banner", "Banners", "Strip" } do
+		for _, name in { "HopButton", "LessonWords", "LessonArrow", "LessonRing", "PutAll", "Carry", "LandStrip", "Banner", "Banners", "Strip" } do
 			for _, o in gui:GetDescendants() do
 				if o.Name == name and o:IsA("GuiObject") and shown(o) then
 					table.insert(out, name .. " " .. rect(o) .. " in " .. o.Parent.Name)
 				end
 			end
 		end
+		return table.concat(out, "\n")
+	elseif v == "overlaps" then
+		local out = { "frames " .. looked }
+		for name, n in seen do table.insert(out, "seen " .. name .. " " .. n) end
+		for _, key in metOrder do
+			table.insert(out, string.format("%s: %d looks, most %s", key, met[key].N, met[key].At))
+		end
+		table.clear(met)
+		table.clear(metOrder)
+		table.clear(seen)
 		return table.concat(out, "\n")
 	elseif v == "panel" then
 		require(Client:WaitForChild("UI"):WaitForChild("TankPanel")).toggle(a == "on")

@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local State = require(script.Parent.Parent.Lib.State)
+local CatchShow = require(script.Parent.Parent.UI.CatchShow)
 local DockNotes = require(script.Parent.Parent.UI.DockNotes)
 local HubButtons = require(script.Parent.Parent.UI.HubButtons)
 local Shop = require(script.Parent.Parent.UI.Shop)
@@ -72,7 +73,10 @@ local function look()
 		end
 	end
 	local caught = State.Caught
-	DockNotes.carrying(docked and caught ~= nil and #caught > 0 and Shop.Page == nil and not TankPanel.isOpen())
+	-- (the end of a dive has the screen first: the black, the fail's words, the catch)
+	local ending = State.FadeText ~= "" or State.Fade > 0.02 or CatchShow.showing()
+	local carries = caught ~= nil and #caught > 0
+	DockNotes.carrying(docked and carries and Shop.Page == nil and not TankPanel.isOpen() and not ending)
 end
 
 function StallController.Start()

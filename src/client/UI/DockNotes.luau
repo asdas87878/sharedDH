@@ -4,6 +4,8 @@
 --   DockNotes.carrying(on)   "GO TO YOUR TANK TO DEPOSIT" low in the middle while this player carries a catch on the
 --                            dock and no window is up (Controllers/StallController asks every look)
 --   DockNotes.words(text)    what that line says instead (LessonController; nil: its own words)
+--   DockNotes.lesson(text)   the line whether or not they carry anything, with these words (LessonController; nil: not).
+--                            Words between stars are yellow (our "go here / press this"), in either.
 --   DockNotes.full(line)     a pink "TANK FULL!" pill and one short line under it, popping in (0.17 s), gone after 2 s
 -- (The line over the tank as a fish goes in is UI.TankPrompt's.)
 local Players = game:GetService("Players")
@@ -26,6 +28,8 @@ local fullLine: TextLabel
 local fullAt = -math.huge
 local carryOn = false
 local carryWords = CARRY
+local lessonWords: string? = nil
+local shown = false
 
 local function build()
 	local g: ScreenGui = Kit.new("ScreenGui", {
@@ -54,7 +58,8 @@ local function build()
 		Position = UDim2.fromScale(0.5, CARRY_AT),
 		Size = UDim2.fromOffset(700, 40),
 		TextSize = 30,
-		Text = carryWords,
+		Text = "",
+		RichText = true,
 		Visible = false,
 	})
 	full = Kit.new("Frame", {
@@ -91,18 +96,46 @@ local function build()
 	gui = g
 end
 
+-- The one line: the lesson's words first, else the catch's
+local function refresh()
+	local words = lessonWords or (if carryOn then carryWords else nil)
+	if not gui then
+		if not words then
+			return
+		end
+		build()
+	end
+	if words then
+		local rich = string.gsub(words, "%*(.-)%*", `<font color="#{Kit.Sun:ToHex()}">%1</font>`)
+		local new = carry.Text ~= rich
+		carry.Text = rich
+		if shown and new then
+			Anim.punch(carry, 1.12)
+		end
+	end
+	if shown ~= (words ~= nil) then
+		shown = words ~= nil
+		if shown and carry.Visible then
+			-- (still on its way out: at full size Anim.toast would take it for shown, and let it go)
+			Anim.scaleOf(carry).Scale = 0.6
+		end
+		Anim.toast(carry, shown)
+	end
+end
+
 function DockNotes.carrying(on: boolean)
 	if on == carryOn then
 		return
 	end
 	carryOn = on
-	if not gui then
-		if not on then
-			return
-		end
-		build()
+	refresh()
+end
+
+function DockNotes.lesson(text: string?)
+	if text ~= lessonWords then
+		lessonWords = text
+		refresh()
 	end
-	Anim.toast(carry, on)
 end
 
 function DockNotes.words(text: string?)
@@ -111,12 +144,7 @@ function DockNotes.words(text: string?)
 		return
 	end
 	carryWords = words
-	if gui then
-		carry.Text = words
-		if carryOn then
-			Anim.punch(carry, 1.12)
-		end
-	end
+	refresh()
 end
 
 function DockNotes.full(line: string)

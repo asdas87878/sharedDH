@@ -30,6 +30,13 @@ is off in the file** except the two marked live.
   (`node tools/studio/run_luau.js <id> <file>`). Each file says what it painted; "left alone" should be 0. Or wait for the save.
 - **To put the colours back:** `tools/map/prop_recolour_luau.py <new parts.json> <old parts.json>` (the old one is in git, `db2b0cc`).
 
+## 2026-11-24 · The first minutes, polished, still off (the first-minutes side chat, the user's PC)
+After the user's try by hand. In the vault's sync commits; in the open place (3b999aa2), not saved. `Config.Lesson.On` is 0;
+that place's `LessonTest` is on.
+- **`UI/LessonLine` is gone** (delete it from any place that has it), `UI/LessonPrompt` is new; `LessonController`,
+  `LessonPointer`, `LessonService`, `Config.Lesson`, `UI/DockNotes` (`lesson`), `StallController` changed. What was cut, kept,
+  checked and not: [first minutes](design/first-minutes.md), "Built".
+
 ## 2026-11-23 · The first minutes, built and off (the first-minutes side chat, the user's PC)
 A new player's line, pointer, first-fish rule, deposit arrows, goal bar and counted steps. **Off: `Config.Lesson.On` 0.**
 In the vault's sync commits (no hand-made push). StyLua and selene clean on its files, Rojo builds.
