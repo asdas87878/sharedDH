@@ -136,6 +136,13 @@ def read_config():
     for group in ("RarityOxygen", "SizeOxygen", "VariantOxygen", "OxygenBase", "SizeChance", "SizeLarge", "SizeSmall",
                   "Variant", "BaseScale"):
         cfg[group] = pairs_in(block(src, rf"Config\.{group}\s*="))
+    # what a colour pays over its need (2026-11-24; income only), what the Index pays, what the subs cost
+    body = block(src, r"Config\.VariantIncome\s*=", must=False)
+    cfg["VariantIncome"] = pairs_in(body) if body is not None else {}
+    body = block(src, r"Config\.Index\s*=", must=False)
+    cfg["Index"] = numbers_in(body) if body is not None else {}
+    subs = re.search(r"\bPrices\s*=\s*\{([^}]*)\}", src.split("Config.Sub =", 1)[-1])
+    cfg["SubPrices"] = [float(x) for x in re.findall(r"[\d.]+(?:e\d+)?", subs.group(1))] if subs else []
     cfg["LandPace"] = list_in(block(src, r"Config\.LandPace\s*="))
     cfg["ReachWeight"] = list_in(block(src, r"Config\.ReachWeight\s*="))
     cfg["ZoneMix"] = []
@@ -396,11 +403,16 @@ def colour_odds(cfg):
     return odds
 
 
+def colour_worth(cfg, colour):
+    """What a colour earns, times a plain one: its need's times and Config.VariantIncome's on top."""
+    return cfg["VariantOxygen"].get(colour, 1) * cfg["VariantIncome"].get(colour, 1) if colour else 1
+
+
 def worth_mean(cfg, tier):
     """What a fish of this rarity earns, times, on average, for its size and colour."""
     a = cfg["Aquarium"]
     size = sum(p * cfg["SizeOxygen"].get(name, 1) for name, p in size_odds(cfg, tier).items())
-    colour = sum(p * (cfg["VariantOxygen"].get(name, 1) if name else 1) for name, p in colour_odds(cfg).items())
+    colour = sum(p * colour_worth(cfg, name) for name, p in colour_odds(cfg).items())
     return size * colour
 
 
@@ -412,8 +424,7 @@ def best_seven(cfg, tier, catches, rng, tries=400):
     total = 0.0
     for _ in range(tries):
         worths = sorted((cfg["SizeOxygen"].get(rng.choices(list(sizes), list(sizes.values()))[0], 1)
-                         * (cfg["VariantOxygen"].get(c, 1) if (c := rng.choices(list(colours), list(colours.values()))[0])
-                            else 1)
+                         * colour_worth(cfg, rng.choices(list(colours), list(colours.values()))[0])
                          for _ in range(catches)), reverse=True)
         total += sum(worths[:keep]) / min(keep, catches)
     return total / tries
