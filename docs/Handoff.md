@@ -46,7 +46,13 @@ name should show under water (the water's drawing hides it); whether the land ti
 sign; the turned grass slab past the hub's back left corner; uploading the 12 seahorse models (a published game shows none until then).
 **Not merged, each waits for its own task:** `sub-camera-behind` (c2), `hub-keepers`, `index-panel` and `sub-stand-ring` (h4),
 `auras-draft-3`, `aura-icon-options`, `sub-creature-options`.
-**Hugo's place file:** see the line on the save in [Sessions](Sessions.md), written after this push.
+**Hugo's place file** (`~/Documents/RideAFish/ride-a-fish-map.rbxl`): last saved at 00:03 on 2026-11-24 (at Studio's restart), backed
+up at 00:58 (`~/Projects/sharedDH-local/backups/ride-a-fish-map.2026-11-24-0058-before-m5-save.rbxl`, same hash). One Ctrl+S was
+sent at 00:58:54 with Studio's window on screen and focused (read back before the key): **it did not register**, the file's time is
+unchanged and no dialog opened. Not tried again; Hugo presses it. The file as it is on disk, read without Studio (lune,
+`work/m5/disk_read.luau`), already holds the same 179 scripts as the open place (same bytes), the same part counts (105,546 in the
+Workspace, 4,302 in ReplicatedStorage), the five stations with Fuse in its moved place, the 8 Edit previews, the 12 trainer levels
+and the 9 subs, and no helper. Not compared: every property of every part.
 
 ## 2026-11-23 · The toy subs seen in the game; the shop's cards show every sub whole; the name sign raised (NULLROOM worker m4, Hugo's PC)
 **Seen:** all nine toy subs build from their meshes in Hugo's place and carry their names

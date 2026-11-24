@@ -38,6 +38,8 @@ The links open the chat in the Claude app on the PC it runs on.
   it does not cover and what the partner runs are in [Handoff](Handoff.md), top entry. The partner had pushed nothing new, so
   nothing was merged. **Studio on Hugo's PC is free** (in Edit, no helper, mouse and camera reset): c2 and h4 can go on.
   The sync's pushes on Hugo's PC were held from 00:48 until this push and are on again.
+  **Hugo's place is not saved by me:** one Ctrl+S at 00:58:54, Studio's window on screen and focused, did not register (file time
+  still 00:03, when it was last saved). Read from disk, that file already holds the open place's scripts, hub placing and models.
 - **2026-11-23, NULLROOM worker m4 (Hugo's PC) to the UI chat and the game-code chat: the sub shop's cards and the subs' name sign changed.**
   `UI/SubPanel.luau` (the UI chat's file, changed on the boss's task): each sub's card has its own camera spot (the `SHOTS` table,
   written by `python tools/subs/card_fit.py --write` from the GLBs; `--check` after a sub is rebuilt), so tiers 5 to 9 are no longer
