@@ -275,12 +275,10 @@ local function looseEscort(player: Player, sub: Sub, trip: SubTrip.Trip, t: numb
 end
 
 -- The drop-off is the fling after all: told to every machine, which has read the trip already (the attribute again, with
--- the same start). Before the drop it is as long as a fling's
-local function noFish(player: Player, trip: SubTrip.Trip, cued: boolean)
+-- the same start). Not once the kick is under way: the sub's nose would go up in one frame, in the middle of the drop
+local function noFish(player: Player, trip: SubTrip.Trip)
 	trip.Fish = false
-	if not cued then
-		trip.DropTime = Config.Sub.Drop
-	end
+	trip.DropTime = Config.Sub.Drop
 	player:SetAttribute("SubTrip", SubTrip.encode(trip))
 end
 
@@ -291,7 +289,9 @@ local function dropEscort(player: Player, sub: Sub, trip: SubTrip.Trip)
 	local w = sub.Held
 	sub.Held = nil
 	sub.Ride = nil
-	noFish(player, trip, sub.Cued)
+	if not sub.Cued then
+		noFish(player, trip)
+	end
 	if w and w.Model.Parent then
 		w.Model:SetAttribute("SubLeave", now())
 		task.delay(Config.Sub.EscortFade + 0.2, function()
@@ -307,6 +307,10 @@ local function dropEscort(player: Player, sub: Sub, trip: SubTrip.Trip)
 		end
 	end
 end
+
+local NECK = 330 -- studs past the pick-up the lane's first neck is behind a long fish's tail
+local DRIFT = 190 -- studs past the pick-up by when the sub is about on its line through the lane's first neck (with a fish). Not before
+-- the path's second point: the line it comes in on is the way of the first stretch, straight through the gate
 
 -- The trip, made as the player goes in: they swim on from where they went in, down the lane, to the pick-up; from
 -- there the herd's own line, Sub.Lift over the floor, to Sub.Into studs into the land, and on past it
@@ -327,7 +331,7 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 	local half, saddleAt, side = Vector3.zero, Vector3.zero, 0
 	-- (with a fish: where the pick-up is along the stream, how far to its right, how far along the sub keeps that line, and
 	-- the room to the right of it the fish takes)
-	local sPick, off, open, need = 0, 0, 0, 0
+	local sPick, off, far, open, need = 0, 0, 0, 0, 0
 	if held then
 		half = held.Body / 2
 		saddleAt = held.Saddle.Position
@@ -343,18 +347,28 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 		off = (pickup - middle):Dot(across) - side
 		-- the sub's line is straight, from the gate until the fish is ahead of it: the sub in the gate and in the lane, and
 		-- the fish between it and the lane's right side (one too wide for that leaves the sub its room)
-		open = sPick + math.min(c.EscortOpen, (sDrop - sPick) * 0.15)
+		local run = sDrop - sPick
+		open = sPick + math.max(math.min(c.EscortOpen, run * 0.15), math.min(NECK, run * 0.4))
 		local hull = SubTrip.Hulls[math.clamp(sub.Equip, 1, #SubTrip.Hulls)][1] + c.EscortGap
 		local low, high = hull - c.EscortGate, c.EscortGate - hull
+		local lowFar, highFar = -math.huge, math.huge
 		for on = 0, open, 30 do
 			local left, right = FishService.streamRoom(on)
-			low = math.max(low, hull - left)
-			-- (abreast of the fish from where its tail is as it takes them)
-			if on >= sPick - half.Z then
-				high = math.min(high, right - need)
+			if on < sPick + DRIFT then
+				low = math.max(low, hull - left)
+				-- (abreast of the fish from where its tail is as it takes them)
+				if on >= sPick - half.Z then
+					high = math.min(high, right - need)
+				end
+			else
+				lowFar = math.max(lowFar, hull - left)
+				-- (and it swings off its place along here)
+				highFar = math.min(highFar, right - need - SubTrip.escortSwing(half))
 			end
 		end
 		off = math.max(math.min(off, high), low)
+		-- (past the gate there is more water to the left: over there by the lane's first neck, if the fish needs it)
+		far = math.clamp(math.min(off, highFar), math.min(off, lowFar), off)
 		pickup = Vector3.new(middle.X, pickup.Y, middle.Z) + across * off
 	end
 	local sFrom = FishService.streamS(pickup) + 90
@@ -377,7 +391,6 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 		aside = math.clamp(need - right, 0, math.max(left - hull - c.EscortGap, 0))
 		ease = math.min(600, (sDrop - sPick) * 0.35)
 	end
-	local rooms: { { number } } = {} -- (with a fish: how far along each is, and the open water left and right there)
 	local points = { pickup }
 	local dropAt = 0
 	local length = 0
@@ -389,7 +402,8 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 			local on = math.min(s, beyond)
 			-- to the right of the stream: as far as the pick-up is, easing onto the stream's own line (no bend while the
 			-- fish is beside it), and `aside` to the left for the drop
-			local over = off * (1 - Ease.smoothstep(open, open + ease, on))
+			local over = Ease.lerp(off, far, Ease.smoothstep(sPick + 90, sPick + DRIFT + 40, on))
+					* (1 - Ease.smoothstep(open, open + ease, on))
 				- aside * Ease.smoothstep(sDrop - 900, sDrop - 200, on)
 			if over ~= 0 then
 				local ahead2 = FishService.streamPoint(on + 30, 0, 0) - FishService.streamPoint(on - 30, 0, 0)
@@ -398,8 +412,6 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 					p += level.Unit:Cross(Vector3.yAxis) * over
 				end
 			end
-			local left, right = FishService.streamRoom(on)
-			table.insert(rooms, { length + (p - points[#points]).Magnitude, left + over, right - over })
 		end
 		length += (p - points[#points]).Magnitude
 		table.insert(points, p)
@@ -418,17 +430,14 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 	end
 	local trip = SubTrip.new(now(), sub.Dest, ride ~= nil, points, dropAt)
 	if held then
-		-- (the least of it over the stretch the fish weaves along, on the left only where it goes left)
-		local roomLeft, roomRight = math.huge, math.huge
-		local from, to, leftFrom, leftTo = SubTrip.escortSpan(trip, half)
-		for _, room in rooms do
-			if room[1] > from - c.Sample and room[1] < to + c.Sample then
-				roomRight = math.min(roomRight, room[3])
-			end
-			if room[1] > leftFrom - c.Sample and room[1] < leftTo + c.Sample then
-				roomLeft = math.min(roomLeft, room[2])
-			end
-		end
+		local near: { [number]: number } = {}
+		local roomLeft, roomRight = SubTrip.escortRooms(trip, sub.Equip, half, function(at, way, i)
+			local on = FishService.streamS(at, near[i])
+			near[i] = on
+			local left, right = FishService.streamRoom(on)
+			local over = (at - FishService.streamPoint(on, 0, 0)):Dot(way:Cross(Vector3.yAxis))
+			return left + over, right - over
+		end)
 		SubTrip.escorted(trip, sub.Equip, half, saddleAt, held.Root.Position, ahead, roomLeft, roomRight)
 	end
 	sub.Trip = trip
@@ -586,7 +595,7 @@ local function step(player: Player, sub: Sub, trip: SubTrip.Trip)
 			Net.Ride:FireClient(player, "SubFish", w.Model)
 		else
 			-- (it could not be made: the fling instead)
-			noFish(player, trip, false)
+			noFish(player, trip)
 		end
 	end
 	if not sub.Cued and t >= dropAt then

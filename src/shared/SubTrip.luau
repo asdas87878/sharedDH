@@ -260,6 +260,11 @@ function SubTrip.escortSide(half: Vector3, tier: number): number
 	return math.max(Config.Sub.FishSide, hull[1] + half.X + Config.Sub.EscortGap + half.Z * 0.06)
 end
 
+-- How far its ends swing out to the side as it turns
+function SubTrip.escortSwing(half: Vector3): number
+	return half.Z * math.sin(yawMost(half))
+end
+
 -- How far out from where the rider went in the sub takes them: far enough that a long fish's tail is out of the gate
 function SubTrip.escortOut(half: Vector3, saddle: Vector3): number
 	local c = Config.Sub
@@ -273,8 +278,56 @@ local function escortTurns(trip: Trip, half: Vector3): number
 	return math.max(1, math.floor((b - a) / (Config.Sub.EscortPeriod * math.clamp((half.Z / 10) ^ 0.3, 1, 1.7))))
 end
 
+-- A fish `half` big swims beside the hull of sub `tier` this far ahead of its middle (its tail short of the camera), and to
+-- clear the nose this far (with the room its tail and fins need as it turns and tips)
+local function alongside(half: Vector3): number
+	return math.max(Config.Sub.EscortLead + half.Z * 0.5, half.Z - 24)
+end
+local function leading(half: Vector3, tier: number): number
+	local c = Config.Sub
+	local swing = half.X * math.sin(yawMost(half)) + half.Y * math.sin(math.rad(c.EscortTip))
+	return SubTrip.Hulls[math.clamp(tier, 1, #SubTrip.Hulls)][4] + half.Z + swing + c.EscortGap + c.EscortLead
+end
+
+-- The open water either side of the sub's line for a fish held to it (the server): the least of it over the weave, all along
+-- the fish. `room(at, way)`: the water left and right of a place, `way` the sub's way there,
+-- `i` which place along the fish
+function SubTrip.escortRooms(
+	trip: Trip,
+	tier: number,
+	half: Vector3,
+	room: (at: Vector3, way: Vector3, i: number) -> (number, number)
+): (number, number)
+	local c = Config.Sub
+	local _, rideAt, _, dropAt = SubTrip.times(trip)
+	local a, b = SubTrip.escortTimes(trip, half)
+	local quarter = (b - a) / (escortTurns(trip, half) * 4)
+	local from = rideAt + c.EscortPeel * slower(half) * 0.45
+	local to = dropAt - c.EscortSettle - returning(half) * 0.45
+	local left, right = math.huge, math.huge
+	local first = alongside(half) - half.Z
+	local last = leading(half, tier) + half.Z
+	local steps = math.ceil((last - first) / 40)
+	local t = from
+	while t < to do
+		local d, v = SubTrip.distance(trip, t)
+		local at = SubTrip.at(trip, d)
+		local way = levelOf(SubTrip.way(trip, d, 10 + v * 0.04))
+		for i = 0, steps do
+			local l, r = room(at + way * (first + (last - first) * i / steps), way, i)
+			right = math.min(right, r)
+			-- (on the left only where it goes left)
+			if t > a + quarter and t < b - quarter then
+				left = math.min(left, l)
+			end
+		end
+		t += math.clamp(50 / math.max(v, 1), 0.005, 0.1)
+	end
+	return left, right
+end
+
 -- Plans the escort of a trip (the server). `left` and `right`: the open water either side of the sub's line along the
--- run, the least of it, studs
+-- run, the least of it, studs (SubTrip.escortRooms)
 function SubTrip.escorted(
 	trip: Trip,
 	tier: number,
@@ -306,9 +359,7 @@ function SubTrip.escorted(
 	end
 	local outRight, onRight = reach(right)
 	local outLeft, onLeft = reach(left)
-	-- (ahead of the nose, with the room its tail and fins need as it turns and tips)
-	local swing = half.X * math.sin(yawMost(half)) + half.Y * math.sin(math.rad(c.EscortTip))
-	local lead = hull[4] + half.Z + swing + c.EscortGap + c.EscortLead
+	local lead = leading(half, tier)
 	local wander = wide + body + c.EscortGap + c.EscortWide
 	local high = if onRight then outRight else math.max(math.min(wander, right - body - c.EscortGap), 0)
 	local low = if onLeft then -outLeft else -math.max(math.min(wander, left - body - c.EscortGap), 0)
@@ -336,20 +387,6 @@ function SubTrip.escortTimes(trip: Trip, half: Vector3): (number, number)
 	local c = Config.Sub
 	local _, rideAt, _, dropAt = SubTrip.times(trip)
 	return rideAt + c.EscortPeel * slower(half) * 0.6, dropAt - c.EscortSettle - returning(half) * 0.6
-end
-
--- The stretches of the path the weave goes over, studs: all of it (it begins and ends on the right), and from its first
--- going over to the left until it is last back from there
-function SubTrip.escortSpan(trip: Trip, half: Vector3): (number, number, number, number)
-	local c = Config.Sub
-	local _, rideAt, _, dropAt = SubTrip.times(trip)
-	local a, b = SubTrip.escortTimes(trip, half)
-	local quarter = (b - a) / (escortTurns(trip, half) * 4)
-	local ahead = c.EscortLead + half.Z * 1.5
-	local from = SubTrip.distance(trip, rideAt + c.EscortPeel * slower(half) * 0.45)
-	local to = SubTrip.distance(trip, dropAt - c.EscortSettle - returning(half) * 0.45)
-	local leftFrom, leftTo = SubTrip.distance(trip, a + quarter), SubTrip.distance(trip, b - quarter)
-	return from, to + ahead, leftFrom, leftTo + ahead
 end
 
 -- The height (over the sub's middle, `subY` in the world) that keeps a fish `half` high off the floor and under the
@@ -386,10 +423,21 @@ local function freedom(e: Escort, o: Vector3): (number, number)
 	local y = (if o.Y > 0 then o.Y - up else -o.Y - down) - gap
 	local edge = e.Half.X * math.sin(math.rad(Config.Sub.EscortBank))
 	-- (the whole of it past the nose: its tail would swing across it)
-	local z = (o.Z - e.Half.Z - e.Nose - gap / 2) / 10
+	local z = (o.Z - e.Half.Z - e.Nose - gap / 2) / 18
 	local turn = math.max(x, (y - e.Half.Y * 0.5) / math.max(e.Half.Y * 0.5, 6), z)
 	local bank = math.max(x, (y - e.Half.Y) / math.max(edge, 6), z)
 	return math.clamp(turn, 0, 1), math.clamp(bank, 0, 1)
+end
+
+-- The way the sub's line goes at `t`, which the fish is held to: the sub's own, coming onto it as the run begins
+local function heading(trip: Trip, t: number): Vector3
+	local _, rideAt = SubTrip.times(trip)
+	local way0 = levelOf(SubTrip.way(trip, 30, 30))
+	if t <= rideAt then
+		return way0
+	end
+	local d, v = SubTrip.distance(trip, t)
+	return way0:Lerp(SubTrip.way(trip, d, 10 + v * 0.04), Ease.smoothstep(rideAt, rideAt + 0.3, t)).Unit
 end
 
 -- Its place in the sub's frame at `t`: to the right, up, ahead
@@ -417,8 +465,7 @@ local function offset(trip: Trip, e: Escort, t: number): Vector3
 		local p = turned - k
 		local toLeft = k % 2 == 0
 		local across = Ease.smoothstep(0.04, 0.38, p) * (1 - Ease.smoothstep(0.62, 0.96, p))
-		-- (a long one's tail short of the camera)
-		local beside = math.max(c.EscortLead + e.Half.Z * 0.5, e.Half.Z - 24)
+		local beside = alongside(e.Half)
 		local _, up, down = rolled(e.Wide, e.Top, e.Bottom)
 		-- over it where there is the water (by the water over the sub as that half turn begins: the same on every machine,
 		-- and the way down only gets deeper); a small one under it on its way left; else round the nose
@@ -461,7 +508,8 @@ local function offset(trip: Trip, e: Escort, t: number): Vector3
 	-- (the dip as the rider pushes off its back)
 	local hop = math.clamp((t - pickupAt - c.EscortHopFrom * trip.Pickup) / 0.45, 0, 1)
 	at -= UP * (c.EscortDip * math.sin(hop * math.pi))
-	return Vector3.new(at.X, fit(at.Y, subY, e.Half.Y), at.Z)
+	-- (in the water where it is: the sub's line rises and falls under one ahead)
+	return Vector3.new(at.X, fit(at.Y, subY + heading(trip, t).Y * at.Z, e.Half.Y), at.Z)
 end
 
 -- How far the sub may bank with the fish where it is, radians: hardly at all while it is in its place close beside the hull
@@ -480,15 +528,33 @@ local function bankRoom(e: Escort, o: Vector3): number
 	return math.clamp(math.max(r, free), 0, ROLL)
 end
 
--- How far behind the pick-up the sub is at `t` as it comes in for a rider on their fish: from behind the fish's tail, and
--- alongside once the fish has drawn aside (it goes on ahead, EscortAside of the way there)
+-- How much of the way out to its place beside the sub (`to`) it has made, `u` of the way through the approach: off at about
+-- the pace it dived at, and slowing to a stop there
+local function outward(e: Escort, to: Vector3, u: number, approach: number): number
+	local pull = math.min(Config.Sub.EscortStart * approach / math.max((to - e.From).Magnitude, 1), 2.5)
+	return u * u * (3 - 2 * u) + pull * u * (1 - u) ^ 2
+end
+
+-- How far behind the pick-up the sub is at `t` as it comes in for a rider on their fish: behind the fish's tail until the
+-- fish has drawn aside off the sub's line (EscortAside of the way there), then alongside
 local function behind(trip: Trip, e: Escort, t: number): number
 	local pickupAt = SubTrip.times(trip)
 	local c = Config.Sub
 	local way0 = levelOf(SubTrip.way(trip, 30, 30))
-	local tail = (e.From - trip.Points[1]):Dot(way0) - e.Half.Z
-	local from = math.max(c.EscortFrom, e.Nose + c.EscortGap * 2 - tail)
-	return from * (1 - Ease.smoothstep(c.EscortWait, 1, math.clamp(t / math.max(pickupAt, 0.01), 0, 1)))
+	local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
+	local start = e.From - trip.Points[1]
+	local nose = e.Nose + c.EscortGap * 2 + e.Half.Z -- (the sub's middle this far behind the fish's is behind its tail)
+	local from = math.max(c.EscortFrom, nose - start:Dot(way0))
+	local back = from * (1 - Ease.smoothstep(c.EscortWait, 1, u))
+	if start:Dot(way0:Cross(UP)) >= e.Side - c.EscortGap / 2 then
+		return back -- (off the sub's line as it is)
+	end
+	local o = offset(trip, e, t)
+	local to = trip.Points[1] + way0 * o.Z + way0:Cross(UP) * o.X + UP * o.Y
+	local along = Ease.lerp(start:Dot(way0), o.Z, outward(e, to, u, pickupAt))
+	local held = math.max(nose - along, 0) * (1 - Ease.smoothstep(c.EscortAside, 1, u))
+	-- (the greater of the two, the corner rounded off)
+	return (back + held + math.sqrt((back - held) ^ 2 + (16 * (1 - u)) ^ 2)) / 2
 end
 
 -- The sub's place at `t` seconds into the trip, and how fast it goes (studs a second)
@@ -568,28 +634,15 @@ function SubTrip.escort(trip: Trip, t: number): (CFrame?, Vector3?)
 	end
 	local c = Config.Sub
 	local pickupAt = SubTrip.times(trip)
-	local d, v = SubTrip.distance(trip, t)
+	local d = SubTrip.distance(trip, t)
 	local o = offset(trip, e, t)
-	-- alongside the hull it is held to the sub itself (its place and its heading: in a bend the path under a long one is far
-	-- off the sub's own line), and once its tail is past the nose it follows the path, round the bends and not across them
-	local _, rideAt = SubTrip.times(trip)
-	local way0 = levelOf(SubTrip.way(trip, 30, 30))
-	local subWay = if t < rideAt
-		then way0
-		else way0:Lerp(SubTrip.way(trip, d, 10 + v * 0.04), Ease.smoothstep(rideAt, rideAt + 0.3, t)).Unit
+	-- held to the sub's own line (its place and its heading): at the sub's speed a path round the bends swings from side to
+	-- side under one that swims ahead. (Up is straight up: the sub's dive doesn't carry a high one forward.) The room it has
+	-- is planned on this same line, SubTrip.escortRooms
+	local subWay = heading(trip, t)
 	local subAt = SubTrip.at(trip, d)
-	local held = CFrame.lookAt(subAt, subAt + subWay) * CFrame.new(o.X, o.Y, -o.Z)
-	local tail = o.Z - e.Half.Z - e.Nose
-	local ahead = Ease.smoothstep(0, 12, tail)
-	local look = math.max(10 + v * 0.04, e.Half.Z)
-	local base = if d + o.Z >= 0
-		then SubTrip.at(trip, d + o.Z)
-		else SubTrip.at(trip, 0) + levelOf(SubTrip.way(trip, 30, 30)) * (d + o.Z)
-	local way = SubTrip.way(trip, math.max(d + o.Z, 30), look)
-	local level = levelOf(way)
-	local right = level:Cross(UP)
-	local at = Vector3.new(base.X, base.Y + o.Y, base.Z) + right * o.X
-	local pose = held:Lerp(CFrame.lookAt(at, at + way), ahead)
+	local at = subAt + levelOf(subWay):Cross(UP) * o.X + UP * o.Y + subWay * o.Z
+	local pose = CFrame.lookAt(at, at + subWay)
 	-- it turns, tips and banks by how it moves in the sub's frame, against a pace of its own (at the sub's thousands of
 	-- studs a second nothing would show)
 	local h = 0.15
@@ -609,12 +662,10 @@ function SubTrip.escort(trip: Trip, t: number): (CFrame?, Vector3?)
 		-- carrying the rider out from where they went in, level by the time it is beside the sub
 		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
 		local start = CFrame.lookAt(e.From, e.From + e.Way)
-		-- (off at about the pace it dived at, and slowing to a stop beside the sub)
-		local pull = math.min(c.EscortStart * pickupAt / math.max((cf.Position - e.From).Magnitude, 1), 2.5)
-		local k = u * u * (3 - 2 * u) + pull * u * (1 - u) ^ 2
+		local k = outward(e, cf.Position, u, pickupAt)
 		-- (aside first, to its side of the sub's line: the sub comes in beside it after)
 		local aside = Ease.smoothstep(0, c.EscortAside, u)
-		local across = way0:Cross(UP)
+		local across = levelOf(SubTrip.way(trip, 30, 30)):Cross(UP)
 		local go = start.Position:Lerp(cf.Position, k)
 		go += across * (cf.Position - start.Position):Dot(across) * (aside - k)
 		cf = CFrame.new(go) * start.Rotation:Lerp(cf.Rotation, k)

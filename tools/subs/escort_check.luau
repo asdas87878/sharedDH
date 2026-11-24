@@ -573,7 +573,7 @@ local function measure(trip, tier, kind)
 	local hull = SubTrip.Hulls[tier]
 	local hullHalf = V3.new(hull[1], (hull[2] + hull[3]) / 2, (hull[4] + hull[5]) / 2)
 	local hullAt = CF.new(0, (hull[2] - hull[3]) / 2, (hull[5] - hull[4]) / 2)
-	local out = { hull = math.huge, hullAt = 0, hullIn = math.huge, wall = math.huge, wallAt = 0, wallIn = math.huge, subIn = math.huge, subRun = math.huge, gate = 0, camera = math.huge, cameraAt = 0,
+	local out = { hull = math.huge, hullAt = 0, hullIn = math.huge, wall = math.huge, wallAt = 0, wallIn = math.huge, wall0 = math.huge, inSub = 0, subIn = math.huge, subRun = math.huge, gate = 0, camera = math.huge, cameraAt = 0,
 		frame = 0, turn = 0, turnAt = 0, pace = 0, home = 0, left = 0, right = 0, floor = math.huge, roof = math.huge, loop = (if e.Right then 1 else 0) + (if e.Left then 2 else 0), turns = e.Turns,
 		inside = 0, start = 0, jump = 0, view = 0, plain = 0, sideView = 0, sx0 = 1, sx1 = -1,
 		ride = arriveAt - rideAt }
@@ -608,9 +608,16 @@ local function measure(trip, tier, kind)
 			local x = (p - base):Dot(right)
 			local l, r = roomAt(s)
 			local g = math.min(l + x, r - x) - e.Half.X
-			if s > 1 then
+			if s <= 1 then
+				-- (its tail still behind the gate: the gate's own sides)
+				g = rows[1][5] / 2 - math.abs(p.X - X0) - e.Half.X
+			end
+			do
 				if t < pickupAt then
 					out.wallIn = math.min(out.wallIn, g)
+					if k == 0 then
+						out.wall0 = math.min(out.wall0, g)
+					end
 				elseif g < out.wall then
 					out.wall, out.wallAt = g, t
 				end
@@ -649,6 +656,9 @@ local function measure(trip, tier, kind)
 		local cam, look, fov = cameraOf(trip, t, sub, speed, rider, mem)
 		if t < rideAt and pointGap(fish, e.Half, cam) <= 0 then
 			out.inside += 1 / FPS
+		end
+		if t < pickupAt and pointGap(sub * hullAt, hullHalf, cam) <= 0 then
+			out.inSub += 1 / FPS
 		end
 		if t >= rideAt then
 			local seat = (sub * SubTrip.Seat).Position
@@ -740,7 +750,7 @@ local function measure(trip, tier, kind)
 	return out
 end
 
-local csv = { "kind,size,tier,land,long,wide,high,loop,turns,ride,hullIn,hull,hullAt,wall,wallAt,gate,camera,cameraAt,frame,turn,turnAt,pace,home,left,right,floor,roof,inside,start,jump,view,plain,sideView,sx0,sx1,outX,wallIn,subIn,subRun" }
+local csv = { "kind,size,tier,land,long,wide,high,loop,turns,ride,hullIn,hull,hullAt,wall,wallAt,gate,camera,cameraAt,frame,turn,turnAt,pace,home,left,right,floor,roof,inside,start,jump,view,plain,sideView,sx0,sx1,outX,wallIn,subIn,subRun,wall0,inSub" }
 local worst = {}
 local function note(key, value, label, low)
 	local w = worst[key]
@@ -749,7 +759,7 @@ local function note(key, value, label, low)
 	end
 end
 local function lists()
-	return { hull = {}, hullIn = {}, wall = {}, gate = {}, camera = {}, frame = {}, turn = {}, home = {}, water = {}, jump = {}, plain = {}, sub = {}, inside = {} }
+	return { hull = {}, hullIn = {}, wall = {}, wallIn = {}, inSub = {}, gate = {}, camera = {}, frame = {}, turn = {}, home = {}, water = {}, jump = {}, plain = {}, sub = {}, inside = {} }
 end
 -- The least of the lane over the stretch of a trip (its width), and of the water's depth
 local function least(from, to)
@@ -798,10 +808,10 @@ for tier = 1, 9 do
 			trips += 1
 			local m = measure(trip, tier, kind)
 			local label = string.format("%s %s, sub %d to land %d", kind.Id, kind.Size, tier, land)
-			table.insert(csv, string.format("%s,%s,%d,%d,%.0f,%.0f,%.0f,%s,%d,%.1f,%.1f,%.1f,%.2f,%.1f,%.2f,%.0f,%.1f,%.2f,%.2f,%.1f,%.2f,%.0f,%.2f,%.0f,%.0f,%.0f,%.0f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.1f,%.1f,%.1f",
+			table.insert(csv, string.format("%s,%s,%d,%d,%.0f,%.0f,%.0f,%s,%d,%.1f,%.1f,%.1f,%.2f,%.1f,%.2f,%.0f,%.1f,%.2f,%.2f,%.1f,%.2f,%.0f,%.2f,%.0f,%.0f,%.0f,%.0f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.1f,%.1f,%.1f,%.1f,%.2f",
 				kind.Id, kind.Size, tier, land, kind.Body.Z, kind.Body.X, kind.Body.Y, tostring(m.loop), m.turns, m.ride, m.hullIn, m.hull, m.hullAt, m.wall, m.wallAt,
 				m.gate, m.camera, m.cameraAt, m.frame, m.turn, m.turnAt, m.pace, m.home, m.left, m.right, m.floor, m.roof,
-					m.inside, m.start, m.jump, m.view, m.plain, m.sideView, m.sx0, m.sx1, outX, m.wallIn, m.subIn, m.subRun))
+					m.inside, m.start, m.jump, m.view, m.plain, m.sideView, m.sx0, m.sx1, outX, m.wallIn, m.subIn, m.subRun, m.wall0, m.inSub))
 			-- What can't fit is listed, not failed: a fish and its sub wider, side by side with the gaps, than the lane at its
 			-- narrowest there (the walls); a fish taller than the water less 4 (the floor and the surface); one with no room
 			-- beside the hull on either side (how much of it shows); a Colossal's body round the camera (it is see-through)
@@ -816,7 +826,10 @@ for tier = 1, 9 do
 					hull = m.hull < 0,
 					hullIn = m.hullIn < 0,
 					wall = m.wall < 0,
-					sub = m.subIn < 0,
+					-- (one that dived in with its side past the lip's end starts there: never further out than that)
+					wallIn = m.wallIn < math.min(0, m.wall0) - 0.5,
+					sub = m.subIn < 0 or m.subRun < 0,
+					inSub = m.inSub > 0.02,
 					gate = m.gate < 0,
 					camera = m.camera < 5,
 					frame = m.frame < 0.95,
@@ -829,7 +842,7 @@ for tier = 1, 9 do
 				}
 			do
 				if isBad then
-					local cannot = (key == "wall" and tooWide)
+					local cannot = ((key == "wall" or key == "wallIn") and tooWide)
 						or (key == "water" and tooTall)
 						or (key == "plain" and noRoom)
 						or (key == "inside" and kind.Size ~= "Normal")
@@ -863,8 +876,10 @@ end
 local NAMES = {
 	hull = "the fish clear of the hull, the run",
 	hullIn = "the fish clear of the hull, the way out",
-	wall = "the fish clear of the lane's sides",
-	sub = "the sub inside the gate and the lane until the run",
+	wall = "the fish clear of the lane's sides, from the hop on",
+	wallIn = "and on the way out (no further past them than it dived in)",
+	sub = "the sub inside the gate and the lane",
+	inSub = "the camera never in the sub's box",
 	gate = "out of the gate by the hop",
 	camera = "five studs or more off the camera's line",
 	frame = "in the picture all the weave",
@@ -879,14 +894,14 @@ for _, group in { { "Normal, middle of the lip", bad }, { "Normal, the lip's end
 	for key, name in NAMES do
 		local list = group[2][key]
 		-- (a Colossal's walls and water past what can't fit are the listed limits below: the reviewer, 2026-11-24)
-		if group[2] == big and (key == "wall" or key == "water") then
+		if group[2] == big and (key == "wall" or key == "wallIn" or key == "water") then
 			continue
 		end
 		ok(string.format("%s: %s (%d not)", group[1], name, #list), #list == 0, table.concat(list, "; ", 1, math.min(3, #list)))
 	end
 end
 -- (not failed, and not met: read these with the passes)
-for _, key in { "wall", "water" } do
+for _, key in { "wall", "wallIn", "water" } do
 	print(string.format("  LIMIT Colossal, %s: %d trips not", NAMES[key], #big[key]))
 end
 for key, list in listed do

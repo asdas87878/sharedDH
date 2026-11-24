@@ -1764,8 +1764,9 @@ function FishService.keepFor(player: Player, place: Vector3?)
 end
 
 -- Where a place is along the herd's stream, studs; where each land begins along it; and how long it is
-function FishService.streamS(position: Vector3): number
-	return (Stream.project(stream, position))
+-- (`near`: where it is looked for, a place known to be within a few steps of it)
+function FishService.streamS(position: Vector3, near: number?): number
+	return (Stream.project(stream, position, near))
 end
 
 function FishService.landStart(index: number): number?
