@@ -600,7 +600,8 @@ local function makePlan(
 	local dock = dockFrame()
 	local outYaw = if dock then yawOf(dock.LookVector) else yawOf(heading)
 	-- the arc that fits: as asked; lower; lower and shorter
-	for n, try in if fish then FISH_TRIES else DIVER_TRIES do
+	local tries: { { any } } = if fish then FISH_TRIES else DIVER_TRIES
+	for n, try in tries do
 		local needs: string = try[3]
 		local high = math.max(baseHigh, 0.5) * try[1]
 		local far = math.max(baseFar, 2) * try[2]
@@ -1091,7 +1092,7 @@ local function swimStep(model: Model): boolean
 		leapFish[model] = nil
 		return false
 	end
-	local rig = swimRigs[model]
+	local rig: SwimRig? = swimRigs[model]
 	if not rig and not leapFish[model] then
 		leapFish[model] = true -- (asked once a leap: a stand-in has no rig)
 		rig = swimRigOf(model)

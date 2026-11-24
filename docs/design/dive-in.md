@@ -571,10 +571,12 @@ change, not judged by eye.** The partner's first version is extended, not replac
   over the water and hands over from there. The rider is never further than 0.69 from the view's middle (1 is the edge).
 - **The fish's own motion.** Its swim, not a tilt: the land hook (`AnimController.LandHook`) writes the fish's own keyed
   swim and fins (RideStyles) through the dive, a short fish's tail bends, a long one's back arches. All 78 kinds' joints move.
-- **The swap.** No cut: the fish is level and heading straight out by then, so the camera has nothing to turn for. The
-  server puts the water fish's root, not its saddle, at the rider (`SubService.diveFish`); by those sums that moved a fish
-  by up to 72 studs. The one Studio run measured 0.34 on a small fish. d2 (branch `fish-sub`) now places it by its saddle:
-  a jump of at most 1.9 studs. That fix is theirs and is not on this branch.
+- **The swap.** The fish is level and heading straight out by then, so the camera has nothing to turn for. Whether the fish
+  jumps is not settled: `SubService.diveFish` makes the water fish with its root, not its saddle, at the rider, which is 5 to
+  72 studs off by the sums (a prediction: where it is spawned, before `RideService.mount`'s weld joins its saddle to the
+  rider). The one Studio run (a small fish, 2026-11-23) saw 0.34 studs, so the weld may hide it; nothing was played since.
+  d2 (branch `fish-sub`) has diveFish place it by its saddle, at most 1.9 studs off by the sums: uncommitted in their
+  working tree when read, not on this branch, and the no-cut claim rests on it. `run mounted-all` measures it.
 - **With a sub trip picked (d2).** The hand-over point is the first frame `State.Mode` is "Carried": that frame the dive
   lets everything go (body, pose, camera). `DiveController.handOver()` gives the last frame's position, velocity, yaw, view
   and field of view, so the trip can start from where the film was. Proposed to d2 by message, no reply yet; their branch
@@ -593,8 +595,9 @@ change, not judged by eye.** The partner's first version is extended, not replac
   minute with a fourth argument of `1345`). It reads the map GENERATOR's boxes, not the saved place.
 - **To check it in Studio:** `python tools/studio/dive_leap_check.py install`, Play, then `run mounted-all` (a small, a
   middling, the biggest and the worst-shaped fish, one PASS or FAIL line each, log `work/dive_leap/check_mounted_all.log`),
-  `run mounted ID:Size` for one, `remove` before any publish. Until d2's swap fix is merged in, a big fish may FAIL on the
-  saddle's jump at the swap.
+  `run mounted ID:Size` for one, `remove` before any publish. Until d2's
+  swap fix is merged in, any of them may FAIL on the saddle's jump at the swap (most 4 studs). The command has been compiled,
+  never run.
 - **Not known.** How it looks and feels at a real frame rate, and whether the pace check ever puts a rider back on a bad
   network. Two players are not checked.
 - **Played before this change (one run, a small fish, Studio at 15 fps):** no errors; the swap moved the fish 0.34 studs and its
