@@ -4,10 +4,12 @@
 -- A copy of the creature's own model (ReplicatedStorage.FishModels), still and anchored, moved along an arc across the
 -- opening with a splash going out and coming in. Only on this machine, only while we are on the dock: nothing is a
 -- fish anyone can ride, nothing is sent.
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Feel = require(script.Parent.Parent.Lib.Feel)
 local Splash = require(script.Parent.Parent.Lib.Splash)
 local State = require(script.Parent.Parent.Lib.State)
 
@@ -69,11 +71,23 @@ end
 local function start(now: number)
 	local c = Config.HubLeap
 	local at = gate()
-	turn += 1
-	local model = copyOf(c.Kinds[(turn - 1) % #c.Kinds + 1])
+	local id = c.Kinds[turn % #c.Kinds + 1]
+	local model = if at then copyOf(id) else nil
 	if not at or not model then
-		nextAt = now + c.Every
+		-- (the dock or the models have not come in yet: looked at again soon. A kind the game has no model of is passed)
+		local folder = ReplicatedStorage:FindFirstChild("FishModels")
+		if at and folder and #folder:GetChildren() > 0 and game:IsLoaded() then
+			turn += 1
+		end
+		nextAt = now + 1
 		return
+	end
+	turn += 1
+	local after = copyOf(c.Kinds[turn % #c.Kinds + 1])
+	if after then
+		task.spawn(function()
+			pcall(ContentProvider.PreloadAsync, ContentProvider, { after })
+		end)
 	end
 	local way = if turn % 2 == 0 then 1 else -1
 	local y = Config.Depth.SurfaceY - c.Under
@@ -88,6 +102,13 @@ local function start(now: number)
 		In = false,
 	}
 	model.Parent = workspace.CurrentCamera
+end
+
+-- Through the surface, out or in: the splash and its sound (further off than a player's own, so softer)
+local function through(l: Leap, p: Vector3)
+	local c = Config.HubLeap
+	Splash.play(Vector3.new(p.X, Config.Depth.SurfaceY, p.Z), (l.To - l.From).Unit, c.Splash)
+	Feel.sound("Splash", c.Volume, 0.6, 2)
 end
 
 local function step()
@@ -115,10 +136,10 @@ local function step()
 	local over = p.Y > Config.Depth.SurfaceY
 	if over and not l.Out then
 		l.Out = true
-		Splash.play(Vector3.new(p.X, Config.Depth.SurfaceY, p.Z), (l.To - l.From).Unit, c.Splash)
+		through(l, p)
 	elseif l.Out and not over and not l.In then
 		l.In = true
-		Splash.play(Vector3.new(p.X, Config.Depth.SurfaceY, p.Z), (l.To - l.From).Unit, c.Splash)
+		through(l, p)
 	end
 end
 

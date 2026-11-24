@@ -68,7 +68,7 @@ local function ownWater(): BasePart?
 end
 
 -- A catch went into our tank: look at it (we stand in front of it), and say what it earns
-local function deposited(count: number, gained: number, id: string?)
+local function deposited(count: number, gained: number, id: string?, more: number)
 	local water = ownWater()
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -83,15 +83,20 @@ local function deposited(count: number, gained: number, id: string?)
 		end
 	end
 	-- (the line over the tank: UI.TankPrompt, in the shop kit's look)
-	TankPrompt.deposited(water, count, gained, id)
+	TankPrompt.deposited(water, count, gained, id, more)
 end
 
 function AquariumController.Start()
 	-- the tank's popup: a click on our own tank from nearby (UI.TankPanel, task p1)
 	TankPanel.init()
-	Net.Ride.OnClientEvent:Connect(function(what: string, count: any, gained: any, _income: any, id: any)
+	Net.Ride.OnClientEvent:Connect(function(what: string, count: any, gained: any, _income: any, id: any, more: any)
 		if what == "Deposited" and type(count) == "number" and type(gained) == "number" then
-			deposited(count, gained, if type(id) == "string" then id else nil)
+			deposited(
+				count,
+				gained,
+				if type(id) == "string" then id else nil,
+				if type(more) == "number" then more else 0
+			)
 		end
 	end)
 	-- on the dock, a click (or number key) on a caught slot holds that fish over the head, at the tank too (only the

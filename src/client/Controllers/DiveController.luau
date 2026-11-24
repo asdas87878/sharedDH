@@ -1379,6 +1379,13 @@ local function cameraStep(dt: number)
 		if stick.Magnitude > 0 then
 			lookMoved += 400 * stick.Magnitude * dt
 			turnBy += Vector2.new(-stick.X, stick.Y) * (Config.Camera.StickSensitivity * dt)
+			local now = UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1)
+			for _, input in now do
+				-- (its letting go can come while nothing here listens)
+				if input.KeyCode == Enum.KeyCode.Thumbstick2 and input.Position.Magnitude < 0.2 then
+					stick = Vector2.zero
+				end
+			end
 		end
 		if not took and not heldAt and lookMoved >= Config.Dive.LeapLookOff then
 			-- the player looks round: the view is theirs. In the water the riding camera has it at once (eased); on the

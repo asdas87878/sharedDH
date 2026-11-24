@@ -34,7 +34,7 @@ export type Show = {
 	leave: ((t: number) -> number)?,
 }
 
-local SHOWN = 7 -- the most fish drawn (Config.Tame.Carry is 7); the count still counts every one
+local SHOWN = 7 -- the most fish drawn, the best of them (Config.finest); the count still counts every one
 local HOLD = 2.2 -- seconds everything stays up once the metres have counted
 local OUT = 0.32 -- and the time it takes to go
 
@@ -305,17 +305,19 @@ local function nameOf(item: Item): string
 	return if kind then kind.Name else item.Id
 end
 
--- the fish to draw (the last SHOWN), and the count each drawn one brings the total to (all of them counted)
+-- the fish to draw (the best SHOWN, in the order they were caught), and the count each drawn one brings the total to (all of them counted)
 local function drawn(list: { Item }): ({ Item }, { number })
 	local n = #list
 	local first = math.max(n - SHOWN, 0)
 	local out: { Item } = {}
 	local totals: { number } = {}
-	for i = first + 1, n do
+	local best = Config.finest(list, SHOWN)
+	table.sort(best)
+	for _, i in best do
 		table.insert(out, list[i])
 	end
 	for i = 1, #out do
-		-- (more than SHOWN: the first drawn one stands for every one before it too)
+		-- (more than SHOWN: the first drawn one stands for the ones not drawn too)
 		totals[i] = first + i
 	end
 	return out, totals
@@ -1406,7 +1408,7 @@ function CatchShow.play(parent: Instance, look: number, metres: number, isBest: 
 	if show.leave then
 		-- one button over the whole screen takes every press (nothing behind it gets them while the screen is up)
 		local button: TextButton = Kit.new("TextButton", {
-			Name = "Hit",
+			Name = "ShowHit",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.new(1, 600, 1, 600),

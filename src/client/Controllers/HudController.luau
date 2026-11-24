@@ -37,12 +37,14 @@ local Banners = require(UI.Banners)
 local HopButton = require(UI.HopButton)
 local HubButtons = require(UI.HubButtons)
 local HubSigns = require(UI.HubSigns)
+local IndexPanel = require(UI.IndexPanel)
 local Kit = require(UI.Kit)
 local LandStrip = require(UI.LandStrip)
 local Rings = require(UI.Rings)
 local Slots = require(UI.Slots)
 local StatRows = require(UI.StatRows)
 local Tags = require(UI.Tags)
+local SoundController = require(script.Parent.SoundController)
 
 local HudController = {}
 
@@ -116,6 +118,10 @@ local endWaits = false
 local bestMetres = 0
 local bestLands = 0
 local caughtCount = -1
+local caughtList: { State.Caught }? = nil
+local wasHot = false -- in the last second on a fish, the frame before
+local closeKind: string? = nil -- the fish we were last on and how far it was tamed
+local closeShare = 0
 
 -- the landing the rings last flashed for, and whether the fish of this ride is too strong (kept through the drowning
 -- it ends in, for the words)
@@ -503,7 +509,29 @@ local function update(dt: number)
 	end
 
 	local hot = mode == "Riding" and kind ~= nil and Config.low(meter, max, kind) and not endlessAir
-	StatRows.update(max, State.Player:GetAttribute("Coins") :: number?, outOfAir, hot, mode == "Dock")
+	if hot and not wasHot then
+		SoundController.play("Low")
+	end
+	wasHot = hot
+	StatRows.update(
+		max,
+		State.Player:GetAttribute("Coins") :: number?,
+		outOfAir,
+		hot,
+		mode == "Dock",
+		State.Player:GetAttribute("Income") :: number?
+	)
+	-- how far the fish under us is tamed; left nearly there, it is said
+	local tamed = State.Tame
+	if mode == "Riding" and kind and tamed then
+		closeKind, closeShare = kind.Id, tamed
+	elseif mode ~= "Riding" and closeShare > 0 then
+		if closeShare >= Config.Tame.CloseFrom and closeShare < 1 and closeKind and mode ~= "Dock" then
+			Banners.close(closeKind, closeShare)
+			SoundController.play("Close")
+		end
+		closeShare = 0
+	end
 	HubButtons.update(mode == "Dock")
 
 	-- the hop: the button, the aim, the window
@@ -527,11 +555,12 @@ local function update(dt: number)
 		Tags.hide()
 	end
 
-	-- what we carry: only looked at when its length changes
+	-- what we carry: only looked at when it changes (the server's word makes a new list)
 	local caught = State.Caught
 	local count = if caught then #caught else -2
-	if count ~= caughtCount then
+	if count ~= caughtCount or caught ~= caughtList then
 		caughtCount = count
+		caughtList = caught
 		Slots.update(caught)
 		-- (the most carried this dive, for the words at its end: the server empties the list as it puts us on the dock)
 		-- (what was already carried as the dive began isn't this dive's)
@@ -603,28 +632,28 @@ function HudController.Start()
 			diveList = nil
 		elseif old == "Dock" and mode ~= "Dock" then
 			diveFrom = if State.Caught then #State.Caught else 0
+			-- (the best as it was before this dive, kept from other days too: BestService)
+			local saved, lands = State.Player:GetAttribute("BestMetres"), State.Player:GetAttribute("BestLands")
+			if type(saved) == "number" and saved > bestMetres then
+				bestMetres = saved
+				bestLands = if type(lands) == "number" then lands else bestLands
+			end
 		end
 	end)
 	-- a tame: the banner, with what this very fish earns in a tank (its size and colour count: the fish under us
 	-- carries them) and whether it is the first of its kind
-	State.Tamed.Event:Connect(function(fishId: string)
+	State.Tamed.Event:Connect(function(fishId: string, size: any, variant: any)
 		local kind = Config.FishById[fishId]
-		local fish = State.Fish
-		local earns: number? = nil
-		if kind and fish and fish:GetAttribute("FishType") == fishId then
-			local size, variant = fish:GetAttribute("SizeTier"), fish:GetAttribute("Variant")
-			earns = Config.incomeOf(
-				kind,
-				if type(size) == "string" then size else "Normal",
-				if type(variant) == "string" then variant else ""
-			)
-		end
-		local isNew = not kindsCaught[fishId]
+		local sized: string = if type(size) == "string" then size else "Normal"
+		local coloured: string = if type(variant) == "string" then variant else ""
+		local earns: number? = if kind then Config.incomeOf(kind, sized, coloured) else nil
+		-- (the first of its kind ever, by the Index; its word of this catch comes a moment later)
+		local isNew = not kindsCaught[fishId] and not IndexPanel.found(fishId)
 		kindsCaught[fishId] = true
 		if isNew then
 			HubButtons.mark(true)
 		end
-		Banners.caught(fishId, earns, isNew)
+		Banners.caught(fishId, earns, isNew, sized, coloured)
 	end)
 	HubSigns.start()
 	-- the server's word of a tick (Oxygen.Tick) or the red zone's drop (RedDrop): that piece goes red on the ring.

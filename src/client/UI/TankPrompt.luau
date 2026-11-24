@@ -4,7 +4,10 @@
 --   TankPrompt.deposited(water, count, gained, id)   the line over the tank as a fish goes in, formatted as the
 --                               reference's (UI review 1, 2026-11-22): a studded slate plate, "<Name> is in your tank!"
 --                               with the name in the cash green, and a green "+$12/s!" chip under it; it pops in,
---                               rises and fades.
+--                               rises and fades. A fish that brought nothing (every place taken) says "STORED" on a
+--                               grey chip instead of "+$0/s!" (the user, 2026-11-24), and when a stored fish earns
+--                               more than an equipped one (`more`: what Equip Best would add) a gold one says
+--                               "EQUIP BEST: +$12/s".
 -- (The click control on the tank's glass, "CLICK / PUT IN TANK" and "RIDE A FISH", is gone: Hugo, 2026-11-20, task c1:
 -- a click on the tank opens its popup, UI.TankPanel, where fish are put in and a tank fish is ridden.)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,7 +21,7 @@ local Shop = require(script.Parent.Shop)
 
 local TankPrompt = {}
 
-function TankPrompt.deposited(water: BasePart, count: number, gained: number, id: string?)
+function TankPrompt.deposited(water: BasePart, count: number, gained: number, id: string?, more: number?)
 	local kind = if id then Config.FishById[id] else nil
 	local gui: BillboardGui = Kit.new("BillboardGui", {
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -43,6 +46,7 @@ function TankPrompt.deposited(water: BasePart, count: number, gained: number, id
 	Kit.stroke(back, 3, Shop.Edge)
 	Kit.gradient(back, Kit.lighter(Shop.Body, 0.04), Kit.darker(Shop.Body, 0.12))
 	Shop.pattern(back, "Body")
+	local best = gained <= 0 and more ~= nil and more > 0
 	local one = kind ~= nil and count == 1
 	local name = if one then (kind :: any).Name else string.format("%d fish", count)
 	Shop.text(back, {
@@ -63,25 +67,29 @@ function TankPrompt.deposited(water: BasePart, count: number, gained: number, id
 		Name = "Chip",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 50),
-		Size = UDim2.fromOffset(170, 38),
+		Size = UDim2.fromOffset(if best then 290 else 170, 38),
 		BackgroundColor3 = Kit.White,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 	}, back)
 	Kit.corner(chip, 999)
 	Kit.stroke(chip, 3, Shop.Edge)
-	Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(Shop.Kinds.Cash[1], Shop.Kinds.Cash[2]) }, chip)
+	local look = if best then Shop.Kinds.Gold elseif gained > 0 then Shop.Kinds.Cash else Shop.Kinds.Off
+	Kit.new("UIGradient", { Rotation = 90, Color = Shop.halves(look[1], look[2]) }, chip)
 	Shop.text(chip, {
 		Size = UDim2.fromScale(1, 1),
-		TextSize = 28,
-		Text = "+" .. Kit.rate(gained) .. "!",
+		TextSize = if best then 24 else 28,
+		Text = if best
+			then "EQUIP BEST: +" .. Kit.rate(more :: number)
+			elseif gained > 0 then "+" .. Kit.rate(gained) .. "!"
+			else "STORED",
 		ZIndex = 4,
 	})
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 	Anim.punch(group, 0.5)
 	local rise = TweenInfo.new(2.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	TweenService:Create(gui, rise, { StudsOffsetWorldSpace = gui.StudsOffsetWorldSpace + Vector3.new(0, 10, 0) }):Play()
-	task.delay(1.8, function()
+	task.delay(if best then 2.8 else 1.8, function()
 		TweenService:Create(group, TweenInfo.new(0.6), { GroupTransparency = 1 }):Play()
 		task.wait(0.7)
 		gui:Destroy()

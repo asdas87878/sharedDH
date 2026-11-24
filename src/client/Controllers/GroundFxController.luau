@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local State = require(script.Parent.Parent.Lib.State)
 local Kit = require(script.Parent.Parent.UI.Kit)
 
 local GroundFxController = {}
@@ -243,7 +244,7 @@ end
 local function watchAll()
 	local g = Config.GroundFx
 	local camera = workspace.CurrentCamera
-	if g.On ~= 1 or not camera then
+	if g.On ~= 1 or not camera or State.inWater() then -- (nobody's landing shows from under the sea)
 		return
 	end
 	local eye = camera.CFrame.Position

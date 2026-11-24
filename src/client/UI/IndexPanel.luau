@@ -936,6 +936,11 @@ function IndexPanel.waiting(): number
 	return owedAll()
 end
 
+-- Has this kind been caught, as the server last said
+function IndexPanel.found(id: string): boolean
+	return found[id] ~= nil
+end
+
 function IndexPanel.isOpen(): boolean
 	return window ~= nil and window.isOpen()
 end

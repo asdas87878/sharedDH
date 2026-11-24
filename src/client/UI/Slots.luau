@@ -37,6 +37,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local TweenService = game:GetService("TweenService")
 
+local State = require(script.Parent.Parent.Lib.State)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
 local Shop = require(script.Parent.Shop)
@@ -55,7 +56,7 @@ local pickedEvent = Instance.new("BindableEvent")
 -- fish over the head, AquariumController: the same slot again or an empty one puts it away)
 Slots.Picked = pickedEvent.Event
 
-export type Caught = { Id: string, Tier: string }
+export type Caught = { Id: string, Tier: string, Size: string?, Variant: string?, Key: number? }
 
 local SIZE = 34 -- a slot on a phone; on a keyboard, BIG
 local BIG = 46
@@ -63,7 +64,7 @@ local BIG = 46
 -- the two outlines, which stand outside the faces
 local GAP = 8
 local BIG_GAP = 10
-local COUNT = 7 -- the numbered slots, keys 1 to 7 (as before e3: the hands hold Tame.Carry, 7)
+local COUNT = 7 -- the numbered slots, keys 1 to 7 (the hands hold Tame.Carry, 100: these are the best of them)
 local APART = 2 -- the equipped slot's gap from slot 1, in gaps (it stands outside the row's frame)
 local OUTLINE = 2
 local HINT_FOOT = 7 -- the Q slot's words' foot, from the row's top (level with the count's: -6 + its 13)
@@ -104,8 +105,9 @@ local rideItem: Caught? = nil
 local rideOn = false
 
 local current: { Caught } = {}
-local firstShown = 0 -- the list's place of the catch before the first slot
-local selected: number? = nil -- which catch has the white ring (its place in the list)
+local bar: { number } = {} -- which fish stand in the slots, by Key, slot 1 first
+local places: { number } = {} -- and where each is in the list (the server's asks go by that place)
+local selected: number? = nil -- which catch has the white ring (its Key)
 local hovered: number? = nil -- which slot the mouse is over
 local lastCount = 0
 
@@ -168,11 +170,11 @@ local HOVER_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirecti
 -- outline on the chosen catch only (the user, 2026-11-18: "the outer highlight band should only be on the chosen one")
 local function showRings()
 	for i = 1, COUNT do
-		local at = firstShown + i
-		local caught = current[at] ~= nil
-		rings[i].Visible = caught and (at == selected or i == hovered)
-		rims[i].Visible = caught and at == selected
-		lips[i].Visible = caught and at == selected
+		local key = bar[i]
+		local caught = key ~= nil
+		rings[i].Visible = caught and (key == selected or i == hovered)
+		rims[i].Visible = caught and key == selected
+		lips[i].Visible = caught and key == selected
 	end
 end
 
@@ -331,6 +333,20 @@ local function makeTile(x: number): Tile
 end
 
 -- A slot's look for a catch (its rarity's colours, its picture and its name cut short) or for none (the glass)
+-- (a coloured fish's slot: its outline and name in its colour, 2026-11-24: a Rainbow's looked as a plain one's)
+local function tint(slot: Kit.Panel, name: TextLabel, variant: string?)
+	local colours = Kit.variantFill(variant)
+	slot.Look.Outline.Color = if colours then Kit.White else BLACK
+	local edge = slot.Look.Outline:FindFirstChildOfClass("UIGradient")
+	if edge then
+		edge.Color = colours or ColorSequence.new(Kit.White)
+		edge.Transparency = if colours then NumberSequence.new(0) else EDGE
+	end
+	local words = name:FindFirstChildOfClass("UIGradient") or Kit.new("UIGradient", { Rotation = 90 }, name)
+	words.Color = colours or ColorSequence.new(Kit.White)
+	words.Rotation = if variant == "Rainbow" then 0 else 90
+end
+
 local function paint(
 	slot: Kit.Panel,
 	rim: Frame,
@@ -355,7 +371,7 @@ local function paint(
 		local words = if kind then kind.Name else item.Id
 		-- cut short with a full stop, never after a space ("Great White": "Great.", not "Great .")
 		name.Text = if #words > 7 then (string.gsub(string.sub(words, 1, 6), "%s+$", "")) .. "." else words
-		slot.Look.Outline.Color = BLACK
+		tint(slot, name, item.Variant)
 		picture.Frame.Visible = picture.show(item.Id)
 	else
 		slot.Face.BackgroundTransparency = GLASS.Fade or 0
@@ -368,7 +384,7 @@ local function paint(
 		lip.Visible = false
 		rim.Visible = false
 		name.Text = ""
-		slot.Look.Outline.Color = BLACK
+		tint(slot, name, nil)
 		picture.show(nil)
 		picture.Frame.Visible = false
 	end
@@ -407,7 +423,7 @@ local function drawRide()
 	ride.Hint.Text = if item and rideOn
 		then "RIDING"
 		elseif item then (if touchNow then "TAP TO RIDE" else "CLICK TO RIDE")
-		elseif lastCount == 0 then "" -- (nothing to hold yet: nothing to say, 2026-11-24)
+		elseif lastCount == 0 or State.Mode ~= "Dock" then "" -- (nothing to hold, or not where one is held, 2026-11-24)
 		else (if touchNow then "HOLD A FISH, THEN TAP" else "HOLD A FISH, THEN Q")
 end
 
@@ -542,6 +558,7 @@ function Slots.build(parent: Instance)
 		Hint = hint,
 	}
 	drawRide()
+	State.ModeChanged.Event:Connect(drawRide)
 	fitScale = Kit.new("UIScale", { Name = "Fit" }, holder)
 end
 
@@ -603,7 +620,9 @@ function Slots.place(touch: boolean)
 		local cap = if touch then 14 else 18
 		ride.Cap.Root.Size = UDim2.fromOffset(cap, cap)
 		ride.Cap.Label.TextSize = if touch then 10 else 12
-		ride.Cross.Size = UDim2.fromOffset(cap - 2, cap - 2)
+		local cross = if touch then 24 else cap - 2 -- (a fingertip's on a phone)
+		ride.Cross.Size = UDim2.fromOffset(cross, cross)
+		ride.Cross.TextSize = if touch then 14 else 10
 		drawRide()
 	end
 	fitRow(size, gap)
@@ -615,10 +634,10 @@ function Slots.pick(n: number)
 	if n < 1 or n > COUNT or not holder or not holder.Visible then
 		return
 	end
-	local at = firstShown + n
+	local at = places[n] or #current + n -- (an empty slot: a place with no fish)
 	local item = current[at]
 	if item then
-		selected = at
+		selected = item.Key
 		showRings()
 		selectedEvent:Fire(at, item)
 	end
@@ -632,6 +651,53 @@ function Slots.equipped(item: Caught?, mounted: boolean)
 	drawRide()
 end
 
+-- Which of the list stand in the slots (the user, 2026-11-24: "if the player has a fish they caught that is a legendary,
+-- it should replace a common in the bar, and that logic should follow through"): the best COUNT (Config.finest). A fish
+-- keeps its slot while it is one of them; a better one takes the slot of the poorest, which goes to the bag; as one
+-- leaves, the others close up and the best of the bag comes in at the end.
+local function fill(list: { Caught })
+	local at: { [number]: number } = {}
+	for i, item in list do
+		at[item.Key or 0] = i
+	end
+	local best = Config.finest(list, COUNT)
+	local wanted: { [number]: boolean } = {}
+	for _, i in best do
+		wanted[list[i].Key or 0] = true
+	end
+	for i = #bar, 1, -1 do
+		if not at[bar[i]] then
+			table.remove(bar, i)
+		end
+	end
+	local isIn: { [number]: boolean } = {}
+	for _, key in bar do
+		isIn[key] = true
+	end
+	local coming: { number } = {}
+	for _, i in best do
+		if not isIn[list[i].Key or 0] then
+			table.insert(coming, i)
+		end
+	end
+	for i, key in bar do
+		if not wanted[key] then
+			local with = table.remove(coming, 1)
+			if with then
+				bar[i] = list[with].Key or 0
+			end
+		end
+	end
+	table.sort(coming) -- (into empty slots in the order they were caught)
+	for _, i in coming do
+		table.insert(bar, list[i].Key or 0)
+	end
+	table.clear(places)
+	for i, key in bar do
+		places[i] = at[key]
+	end
+end
+
 -- list: what the player carries, newest last (nil: the game has no taming, and the row stays hidden).
 -- Called when the list changes, not every frame.
 function Slots.update(list: { Caught }?)
@@ -639,21 +705,25 @@ function Slots.update(list: { Caught }?)
 	if not list then
 		return
 	end
-	count.Text = if #list > 0 then #list .. " CAUGHT" else ""
-	-- (with more catches than numbered slots, the newest COUNT; the hands hold Tame.Carry, 7: all of them from slot 1)
-	local first = math.max(#list - COUNT, 0)
+	count.Text = if #list > COUNT
+		then string.format("%d / %d CAUGHT  (BEST %d SHOWN)", #list, Config.Tame.Carry, COUNT)
+		elseif #list > 0 then #list .. " CAUGHT"
+		else ""
 	current = list
-	firstShown = first
-	-- a new catch takes the ring; a shorter list (home at the dock) keeps it on what is still there
-	if #list > lastCount then
-		selected = #list
-	elseif selected and selected > #list then
-		selected = if #list > 0 then #list else nil
+	fill(list)
+	-- a new catch takes the ring (when it made the bar); a shorter list (home at the dock) keeps it on what is still
+	-- there
+	local newest = list[#list]
+	if newest and #list > lastCount and table.find(bar, newest.Key or 0) then
+		selected = newest.Key
+	elseif not selected or not table.find(bar, selected) then
+		selected = bar[#bar]
 	end
 	lastCount = #list
 	drawRide()
 	for i = 1, COUNT do
-		paint(slots[i], rims[i], lips[i], patterns[i], pictures[i], names[i], list[first + i])
+		local place = places[i]
+		paint(slots[i], rims[i], lips[i], patterns[i], pictures[i], names[i], if place then list[place] else nil)
 	end
 	showRings()
 end

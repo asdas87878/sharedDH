@@ -11,11 +11,13 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local State = require(script.Parent.Parent.Lib.State)
 
+local DockNotes = require(script.Parent.Parent.UI.DockNotes)
+
 local TameController = {}
 
 local CHECK_EVERY = 0.5
 
-local ids: { string } = {} -- what the server last said we carry
+local carried: { State.Caught } = {} -- what the server last said we carry
 local shownOn = -1
 
 local function publish()
@@ -24,31 +26,28 @@ local function publish()
 		State.Tame = nil
 		return
 	end
-	local list: { State.Caught } = {}
-	for _, id in ids do
-		local kind = Config.FishById[id]
-		if kind then
-			table.insert(list, { Id = id, Tier = kind.Tier })
-		end
-	end
-	State.Caught = list
+	State.Caught = carried
 	local tame = State.Player:GetAttribute("Tame")
 	State.Tame = if type(tame) == "number" then tame else nil
 end
 
 function TameController.Start()
 	local player = State.Player
-	Net.Ride.OnClientEvent:Connect(function(what: string, a: any, b: any)
+	Net.Ride.OnClientEvent:Connect(function(what: string, a: any, b: any, size: any, variant: any)
 		if what == "Caught" and type(a) == "table" then
-			table.clear(ids)
-			for _, id in a do
-				if type(id) == "string" then
-					table.insert(ids, id)
+			local list: { State.Caught } = {}
+			for _, row in a do
+				local kind = if type(row) == "table" then Config.FishById[row[1]] else nil
+				if kind then
+					table.insert(list, { Id = row[1], Tier = kind.Tier, Size = row[2], Variant = row[3], Key = row[4] })
 				end
 			end
+			carried = list
 			publish()
 		elseif what == "Tamed" and type(b) == "string" and Config.Tame.On ~= 0 then
-			State.Tamed:Fire(b)
+			State.Tamed:Fire(b, size, variant)
+		elseif what == "Denied" and a == "Tame" and b == "Full" then
+			DockNotes.note("BAG FULL!", string.format("You carry %d: put them in your tank", Config.Tame.Carry), false)
 		end
 	end)
 	player:GetAttributeChangedSignal("Tame"):Connect(publish)

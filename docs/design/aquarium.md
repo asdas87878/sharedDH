@@ -11,8 +11,10 @@ The code: `src/server/Services/AquariumService.luau`, `src/client/Controllers/Aq
 1. **A tank each.** A player takes the first free plot on the dock as they join, the nearest to the dock's spawn
    first, and gives it up as they leave. Its sign shows their name and what the tank earns.
 2. **The catch comes home in your hands.** What you tamed on a dive is still carried at the dock (it was only
-   counted before), a failed dive's too. The seven slots stay filled until you put the fish in, and they stay with
-   you through the next dive if you don't (you can carry seven).
+   counted before), a failed dive's too. The bar stays filled until you put the fish in, and they stay with
+   you through the next dive if you don't. **You can carry 100** (`Tame.Carry`; the user, 2026-11-24: "the inventory
+   should harbor up to 100 fish"); the bar's seven slots show the best seven of them by what they earn, so a Legendary
+   takes a Common's slot ("if the player has a fish they caught that is a legendary, it should replace a common in the bar").
 3. **You wake at your own tank.** With fish in hand, a dive that ends puts you on the floor just in front of your
    tank's glass, facing it, not at the dock's spawn. (Until 2026-11-20 there was a green pad there; Hugo had it
    taken out, task k1.)
@@ -44,9 +46,9 @@ you can place a fish in the tank and take it out; depositing is not equipping: e
 limited number can be equipped at once, changeable only by plot upgrades. Built the same day; the numbers are
 `Config.Aquarium` and `Config.PlotUpgrades`. **For the session only: nothing is saved yet.**
 
-- **The tank is the inventory, and it has no limit** (`Aquarium.Hold` 0). The hands are still the seven slots.
+- **The tank is the inventory, and it has no limit** (`Aquarium.Hold` 0). The hands carry 100, the best seven shown in the bar.
 - **Deposit and take out.** PUT IN / PUT ALL IN put carried fish in. Every tank card has **TAKE OUT**: that fish goes
-  back into your hands (equipped or stored; refused, "YOUR HANDS ARE FULL", with seven carried). So a stored fish is
+  back into your hands (equipped or stored; refused with 100 carried). So a stored fish is
   ridden by taking it out, holding it and pressing Q ([the ride fish](equip.md)).
 - **Depositing is not equipping.** *Equipped* means earning and swimming in the tank; *stored* means kept. A fish put
   in takes a free earning place by itself (`Aquarium.AutoEquip` 1; 0: always stored until you press EQUIP).

@@ -90,7 +90,7 @@ local CATCH_WORDS: { [string]: string } = {
 -- "after 2 seconds it fades out by itself, in exactly the same way it does when clicked"). CatchShow.play closes it
 -- then through the same close a click takes; it was 20 seconds (CatchShow.Wait). A click still skips and closes.
 local GREAT_STAY = 2
-local TOKENS = 7 -- the most fish shown at the end of a dive (Config.Tame.Carry is 7)
+local TOKENS = 7 -- the most fish shown at the end of a dive, the best of them (Config.finest)
 local SLIDE = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local LEAVE = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
@@ -579,9 +579,9 @@ function Banners.greatDive(metres: number, isBest: boolean, list: { { Id: string
 	greatPill.Position = UDim2.new(0.5, 0, 0, if count > 0 then 114 else 72)
 	if list and count > 0 then
 		greatCaught.Text = string.format('You caught <font color="#FFD23F">%d</font> fish!', count)
-		local first = math.max(count - TOKENS, 0)
+		local best = Config.finest(list, TOKENS)
 		for i = 1, TOKENS do
-			local item = list[first + i]
+			local item = if best[i] then list[best[i]] else nil
 			greatTokens[i].Visible = item ~= nil
 			if item then
 				greatFills[i].Color, greatFills[i].Rotation = Kit.tierFill(item.Tier, Config.Tiers)
@@ -644,10 +644,26 @@ function Banners.land(index: number, name: string, colour: Color3)
 	end)
 end
 
+-- Left a fish nearly tamed (share: how far): the same plate, grey, with how near it was
+function Banners.close(fishId: string, share: number)
+	local kind = Config.FishById[fishId]
+	local look = CaughtText.look()
+	if kind and look == 3 and hudRoot then
+		catchRun += 1
+		CaughtText.play(hudRoot, look, {
+			Id = fishId,
+			Name = kind.Name,
+			Tier = "Common",
+			Word = "SO CLOSE!",
+			Note = string.format("%d%% CAUGHT", math.floor(share * 100)),
+		})
+	end
+end
+
 -- A tame finished: the tilted banner at the left, with the creature's picture when it has a model to draw.
 -- earns: what this fish earns a second in a tank (nil: not known, and the chip stays hidden); isNew: the first of its
--- kind caught
-function Banners.caught(fishId: string, earns: number?, isNew: boolean?)
+-- kind caught; size, variant: its own
+function Banners.caught(fishId: string, earns: number?, isNew: boolean?, size: string?, variant: string?)
 	local kind = Config.FishById[fishId]
 	if not kind then
 		return
@@ -656,7 +672,7 @@ function Banners.caught(fishId: string, earns: number?, isNew: boolean?)
 	local run = catchRun
 	-- one of the stylised looks (Kit.CaughtLook), when one is chosen
 	local look = CaughtText.look()
-	local info = CaughtText.info(fishId, earns, isNew)
+	local info = CaughtText.info(fishId, earns, isNew, size, variant)
 	if look ~= 0 and hudRoot and info and CaughtText.play(hudRoot, look, info) then
 		catch.Visible = false
 		catchSpin:Pause()
