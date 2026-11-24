@@ -18,6 +18,37 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The Index window and the stand rings (2026-11-24, Hugo; NULLROOM tasks h1, h2, h4): in the game
+Hugo, 2026-11-23: "Import index system". Built by worker h2, the sub stand's ring by h1, both merged and checked in
+Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictures).
+
+![the Index: the Shallows, three kinds found, one claimed](../attachments/hub-h4-index-grid.jpg)
+
+- **The Index** (`UI/IndexPanel.luau`, `IndexService`, `Config.Index`): the hub's Index button opens it and closes it;
+  the X, the Shop, a stall's ring or leaving the dock close it (one dock window at a time, `Shop.page`). A tab a land,
+  a card a kind: found kinds with their picture, name and rarity, the rest as dark shapes with "???". The right side
+  is the picked kind: what it earns, how many of its 24 looks you have had, and its **first catch reward** with CLAIM.
+  Under the cards: the land's set (a bar, its reward, CLAIM) and CLAIM ALL with the number waiting. A "!" sits on the
+  hub's Index button and on each card while a reward waits.
+- **How a catch is seen:** the server looks every `Index.Watch` (0.25 s) at what the player carries and keeps in the
+  tank; nothing is sent by the player's machine. A fish tamed by riding it is found the moment it is in your hands.
+- **What it pays** (every number a DRAFT, [progression](progression.md), not agreed by Hugo): a new kind pays max
+  Oxygen (a fifth of what a plain one needs, 100 at least) and coins (100 seconds of what it earns); a land's whole set
+  pays half of what its commonest fish needs and 600 seconds of its earning. Coins go to your tank; with no tank you
+  get the Oxygen only. Claims are taken on the dock only: off it the server refuses ("Stand on the dock to claim",
+  red). Each reward is paid once; the server keeps the list.
+- **Open, for Hugo:** whether an aura multiplies the Index's Oxygen (`Index.AuraMult`, now 0: no), whether the Secrets
+  show as dark cards before they can be caught (`Index.Secrets`, now 1: yes), and what a player with no tank should
+  get in place of the coins.
+- **The stalls open on their rings, the sub stand too:** Sell, Auras and the submarine stand open when you walk onto
+  the circle and close 2.5 studs past its edge (`StallController`); the sub stand's E prompt is gone
+  ([submarine](submarine.md), step 1).
+- **At a phone's size** (844 x 390, Studio's `PanelPhone`): the Index, the sub shop, Sell and Auras are whole on the
+  screen and every word fits its box. The smallest words: the Index's rarity line at 9 px (the sub shop and Auras
+  10, Sell 12). [The Index on a phone](../attachments/hub-h4-index-phone.jpg).
+- **Checked by** `python tools/studio/h4_hub_check.py run` (its head says how) and offline by
+  `tools/index/index_test.luau` and `tools/index/panel_test.luau` (lune).
+
 ## The tank in the shop style (2026-11-20, Hugo; NULLROOM task s3): in the game
 Hugo: "make placing down fishes UI cohesive with these styles" (the shop kit, below). Every piece of putting fish in
 the tank and choosing which earn is now drawn with `UI/Shop.luau`. **What any of it does is unchanged**: the same

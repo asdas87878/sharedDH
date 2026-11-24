@@ -721,6 +721,10 @@ def checks():
     expect("sub trip: sub 1 bought, equipped, land 2 picked (SubService's test door)", picked.get("Equip") == 1 and picked.get("Dest") == 2, json.dumps(picked))
     do("walk")
     got = wait_event(n0, lambda e: e[1] == "mode" and e[2].startswith("Carried>"), 60)
+    if any(e[1] == "mode" and e[2].startswith("Carried>") for e in got):
+        # the sub lets go at the drop and its phase ends Config.Sub.Drop (0.8 s) later: read on until it has, or
+        # the phases stop at "Drop" whenever this read falls inside that time (h4, 2026-11-24: one run did)
+        got = wait_event(n0, lambda e: e[1] == "sub" and e[2] == "nil", 5)
     phases = [e[2] for e in got if e[1] == "sub"]
     modes = [e[2].split("|")[0] for e in got if e[1] == "mode"]
     walked = [e for e in got if e[1] == "walk"]

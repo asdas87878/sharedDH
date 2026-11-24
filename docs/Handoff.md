@@ -3,6 +3,75 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-24 · The hub: stalls open by standing on their ring, a little sub over the Sub stall, the Index, four shopkeepers (NULLROOM worker h4, Hugo's PC)
+**State: in the game, pushed by hand.** Three branches merged one at a time onto `6467c31`, each with `--no-ff`: `sub-stand-ring`
+(h1, `d41f35a`), `index-panel` (h2, `52e021d`), `hub-keepers` (h3, `519745f`); then this commit (the Studio check, the stills, the
+notes). No conflict in `src/`. `SubPanel` keeps the card cameras of 2026-11-23 (`SHOTS`), and `SubController` is main's file byte
+for byte (the behind-only camera). StyLua clean, selene 0 errors (the three old warnings), the Rojo build passes, the offline
+tests of the three branches pass. Hugo's place has the merged `src/` (put in by `tools/ui/catch_show/sync_src.py`, Rojo was not
+connected; `full_check.py place`: 104 of 104 script files the same bytes), no helper left, **not saved**: the open place runs the new game, the file on disk still holds the scripts of its last save
+(nothing else is new in the place: the keepers, the little sub and the Index are built by code at run time). So: Ctrl+S in
+Studio, or after the next opening `python tools/ui/catch_show/sync_src.py` (or Rojo) before Play. Nothing uploaded to Roblox.
+**To take a piece back out:** `git revert -m 1 519745f` (the keepers), `git revert -m 1 52e021d` (the Index), `git revert -m 1
+d41f35a` (the rings and the little sub). None of the three was tried.
+**What changed for the player:**
+- **Sell, Auras and the Sub stall open when you stand on their ring and close when you walk off** ([submarine](design/submarine.md),
+  step 1; [UI](design/ui.md), top section). No E prompt anywhere near them. The X shuts the window until you step off and on
+  again. `StallController` does it (it looks every 0.05 s); the server still checks you are near (`Config.Sub.Near` 30).
+- **A small copy of your equipped submarine floats and turns over the Sub stall** (the Bathtub when you have none):
+  `SubStandController`, on each player's own machine. It swaps within a quarter of a second of equipping another.
+- **The Index** (the blue hub button): every kind by land, dark until caught, a first-catch reward to claim for each kind, a set
+  reward for each whole land, CLAIM ALL, a "!" on the button while something waits. A kind counts as found once you carry one (tamed on a dive)
+  or have one in your tank; the server looks, nothing is taken on the client's word. Claims are taken on the dock only and paid once, by the server (`IndexService`). **Every number is a
+  DRAFT** (`Config.Index`).
+- **Four shopkeepers** behind the stalls (fishmonger at Sell, sea mystic at Auras, deep-sea diver at the Sub stall, octopus
+  tinkerer at Fuse): they bob, do a small action every few seconds, and turn head and shoulders to the nearest player inside 22
+  studs, back to straight past 27. Built on each player's machine from `Shared/Keepers` (230 parts, 139 moving, one light), with
+  the stalls' props ([hub models](design/hub-models.md), the keepers' section).
+**Measured in Studio** by `python tools/studio/h4_hub_check.py` (its head says how; Hugo's PC, studio-runner, my own playtests,
+the real walk at 28 studs a second, real time): **251 checks, none missed**, on one fresh playtest. Then `python
+tools/studio/full_check.py all`: all good (24 steps; see the last point below).
+| | |
+|---|---|
+| Rings (edge 5.75 studs from the middle) | open 3.76 to 4.41 from the middle (the walk covers up to 2.4 studs between two looks), close 9.45 to 9.63 (2.5 past the edge, plus that step); X keeps shut until off and on; the Shop button closes a stall's window; no prompt within reach; the ring's fill goes from 0.8 to 0.35 see-through while you stand on it; buying and equipping from the ring's far edge is accepted |
+| The little sub (all nine) | the sub's own meshes; 2.5 studs over the stall's roof and 4.9 to 7.0 under the stall's name; turns inside a circle of 4.0; bobs 0.35; 19.9 degrees a second, the propeller 4.97 radians a second; no name sign, no light, nothing you can touch; equip swaps it within 0.25 s |
+| The Index | 77 kinds, 10 lands; the button, the X, the Shop button and leaving the dock all close it; a fish put in the hand by the test door and a fish tamed on a real ride both mark their kind; Barracuda's CLAIM: +3,000 Oxygen and +$37.5K, once; land 4's set: +17,500 Oxygen and +$525K, once; CLAIM ALL: +85,000 Oxygen for 6 kinds, once; the "!" comes and goes; a claim sent from off the dock is refused (the line "Stand on the dock to claim", red) and pays nothing; the Shallows (11 kinds) scrolls, two-row lands do not |
+| The keepers | bob 0.10 to 0.11 studs; the action moves the hand 1.1 to 2.6 studs; the head is on the player to within 2 degrees, 0.5 to 0.65 s after they come inside 22 studs, no step over 2 degrees in a frame, about 105 degrees a second at the fastest; follows you across; straight again past 27 studs; the tinkerer stands on the machine's base, 1.3 studs over the floor |
+| Props | 2.6 to 4.9 studs clear of the rings, 6.0 to 16.5 under the names, 7.0 to 9.6 off the walking lines; none sunk into any of the hub's 450 visible parts; the little sub is 6.9 studs over the diver's head |
+| Phone (844 x 390) | the Index, Sub, Sell and Auras windows are whole on the screen and their words fit; the smallest words are 9 px (the Index's tier line), 10 to 12 in the others |
+**Stills** (the game's own player camera, turned only; never a camera at the submarine's side): each stall with its keeper and
+props [Sell](attachments/hub-h4-stand-sell.jpg), [Auras](attachments/hub-h4-stand-auras.jpg), [Sub](attachments/hub-h4-stand-sub.jpg),
+[Fuse](attachments/hub-h4-stand-fuse.jpg); each keeper looking at the player [Sell](attachments/hub-h4-keeper-sell.jpg)
+([cut](attachments/hub-h4-keeper-sell-close.jpg)), [Auras](attachments/hub-h4-keeper-auras.jpg)
+([cut](attachments/hub-h4-keeper-auras-close.jpg)), [Sub](attachments/hub-h4-keeper-sub.jpg)
+([cut](attachments/hub-h4-keeper-sub-close.jpg)), [Fuse](attachments/hub-h4-keeper-fuse.jpg)
+([cut](attachments/hub-h4-keeper-fuse-close.jpg)); the little sub, [the Bathtub](attachments/hub-h4-little-sub.jpg)
+([cut](attachments/hub-h4-little-sub-close.jpg)) and [tier 5](attachments/hub-h4-little-sub-tier5.jpg)
+([cut](attachments/hub-h4-little-sub-tier5-close.jpg)); the Index, [grid](attachments/hub-h4-index-grid.jpg),
+[detail](attachments/hub-h4-index-detail.jpg), [at a phone's size](attachments/hub-h4-index-phone.jpg).
+**For Hugo to pick** (each is one number or one word in `Config`, nothing waits on them):
+- Which sub floats over the stall: now the one you have equipped, the Bathtub if none (h1).
+- Does an aura multiply the Index's Oxygen? `Config.Index.AuraMult` 0 = no (now). Are Secrets shown dark in the Index?
+  `Config.Index.Secrets` 1 = yes (now). A player with no tank gets the Oxygen only (h2). All the Index's rewards are DRAFT.
+- The keepers under the awnings at play distance: the three at the stalls are small and in the awning's shade, and from the
+  usual camera your own avatar covers the counter while you stand on the ring ([Sell](attachments/hub-h4-keeper-sell-close.jpg),
+  [Sub](attachments/hub-h4-keeper-sub-close.jpg)); the tinkerer at Fuse reads well (h3's models; nothing rebuilt by me).
+- The little sub is small beside the seahorse sign next to it, and tier 5 is pale against the grey wall behind
+  ([cut](attachments/hub-h4-little-sub-tier5-close.jpg); h1's piece, `SubStandController`).
+- The Index's smallest words are 9 px on a phone.
+**Not measured:**
+- Real draw calls with the keepers in (h3's number is an estimate), and stalls that stream in late (`KeeperController` looks for its stalls again on a timer;
+  not tried with streaming on a slow link).
+- Real mouse clicks and touches: the X and the hub buttons were pressed as their own listeners do.
+- The three older scripts that open the sub shop (`tools/studio/s2_subs_check.py`, `tools/studio/m4_subs_shots.py`,
+  `tools/ui/shop_kit/shop_client.luau`) were not run; the door they use (`SubPanel.toggle`) was, and opens and closes the shop.
+- `tools/studio/e2_click_check.py`, line 223, still lets prompts under `Stations` pass, from when the stalls had E prompts. Left.
+**One change to `full_check.py`:** its sub-trip step read the phases as soon as the sub let go, 0.8 s (`Config.Sub.Drop`) before
+the phase ends, so it failed whenever its read fell inside that time (my first run: "Approach Pickup Ride Arrive Drop", no
+end; the trip itself was right). It now reads on until the phase has ended (up to 5 s). Second run: all good.
+**The partner:** had pushed nothing new when this went up (`git rev-list --left-right --count main...origin/main`: 0 0 before
+and after). Pull, then `rojo serve` or `python tools/ui/catch_show/sync_src.py` for the new code.
+
 ## 2026-11-24 · The submarine's camera is behind in every phase; the gate's kelp see-through on a trip (NULLROOM worker c2, Hugo's PC)
 **State: in the game, pushed by hand.** `862ff88` (the camera, written by worker c1) and `5f18f3f` (the gate's kelp, found while
 measuring) were measured in Studio, taken back out by `745daa1` at 02:25 while nobody had passed them, and put back by

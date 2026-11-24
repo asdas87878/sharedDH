@@ -35,7 +35,11 @@ not played by hand** ([the playtests](../playtests/2026-11-17-submarine.md), cli
 
 ## How ours goes, beat by beat
 1. **At the sub stand** (2026-11-18, Hugo: "remove the sub button, make the player able to buy the subs there and
-   equip them"): walk up to the SUBMARINE stall and press its prompt (E). The shop lists nine subs, one a tier
+   equip them"): walk onto the SUBMARINE stall's circle on the floor and the shop opens; walk off and it closes
+   (2026-11-24, the same way as Sell and Auras: `StallController`, no E prompt any more; the X shuts it until you
+   step off and on again). A small copy of your equipped sub (the Bathtub when you have none) floats and turns over
+   the stall, on your own screen only (`SubStandController`; checked in Studio by
+   `python tools/studio/h4_hub_check.py run rings sub`). The shop lists nine subs, one a tier
    (Bathtub, Reef Runner, Kelp Cruiser, Wreck Diver, Blue Streak, Twilight Ray, Midnight Hunter, Vent Crawler, Abyss
    King), each with its picture, the land it reaches and its price. You buy them in order (free for now), and
    **equip** one; the equipped sub is the one that comes for you, and it reaches its own land or any before it.

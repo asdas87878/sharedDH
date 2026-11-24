@@ -308,8 +308,9 @@ The user: "change the stalls so they are more simplistic, more alike to ride a d
 ## The keepers behind the stands (2026-11-23)
 The user: "Add specialised characters behind every stand ... a looping idle animation where they stand while bobbing
 up and down a little smoothly then doing something for a second, they should also follow the player when the player
-gets close ... add small same styled fitting props around the stands". Built in code, **not run in Studio yet**: the
-pictures are Blender views of the same numbers the game reads.
+gets close ... add small same styled fitting props around the stands". Built in code by worker h3; **in the game and
+run in Studio on 2026-11-24** by worker h4 (below, "Run in Studio"). The first picture is Blender views of the same
+numbers the game reads.
 
 ![the four keepers: front, three-quarter, and as a player sees them](../attachments/hub-keepers-1.png)
 
@@ -353,9 +354,24 @@ pictures are Blender views of the same numbers the game reads.
 - **To check and draw it again:** `python3 tools/keepers/check.py` (clearances, the sightline, the props against
   the hub kit), `python3 tools/keepers/sheet.py` (the picture), `python3 tools/keepers/sums_check.py` (the Luau
   sums against the Python ones; needs lune, which is not in `rokit.toml`).
-- **Not done:** never run in Studio. To check there: the Fuse keeper first (it is measured from a machine that was
-  moved by hand), the props against anything placed by hand near the stands (the check only knows the hub kit),
-  whether the bob reads at play distance, the real draw calls, and the stands streaming in late.
+- **Run in Studio (2026-11-24, worker h4;** `python tools/studio/h4_hub_check.py run keepers props`, my own playtest
+  on Hugo's PC, read from the player's own machine every frame): all four are built whole (230 parts, 139 moving, one
+  light, nothing collides, answers a ray or casts a shadow). Each bobs (0.10 studs) and does its action inside its
+  own wait. With nobody inside 22 studs the head rests straight ahead; a player who walks in to one side is looked at
+  within 2 degrees of where they stand, 0.5 to 0.65 s after they come inside 22 studs, with no jump (2 degrees a frame
+  at most, about 105 degrees a second at the fastest); the head follows a walk across the stall to the other side and goes
+  back to straight ahead once the player is past 27 studs. Each action glances the head 8 to 16 degrees on top of
+  that, as drawn. **The Fuse keeper** stands on the machine's base, 1.3 studs over the floor and 6.5 to the right of
+  the core as seen from the ring, square to the machine (its ring is 28 degrees off straight ahead), and it looks at
+  and follows the player like the others. **The props:** no piece of a keeper or a prop is on a ring's circle (2.5
+  studs outside at the nearest), within 6.9 studs of the straight walk from the spawn to a ring, over a floating name,
+  or sunk into any of the 450 visible parts of the place within 60 studs of a stand (sums over the turned boxes, as
+  most of a stall answers no query). The little sub over the sub stand floats 6.9 studs over the diver's highest
+  piece. Pictures from the game's own camera: [Sell](../attachments/hub-h4-keeper-sell.jpg),
+  [Auras](../attachments/hub-h4-keeper-auras.jpg), [the sub](../attachments/hub-h4-keeper-sub.jpg),
+  [Fuse](../attachments/hub-h4-keeper-fuse.jpg).
+- **Still not done:** the real draw calls (an estimate only), a stand that streams in late, and Hugo's eye on how they
+  read under the awnings at play distance (they are small there: see the pictures).
 
 ## What moved, and why
 The hub's size, layout and colours are questions waiting for the user, so nothing of those changed. Three things

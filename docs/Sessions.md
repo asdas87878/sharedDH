@@ -31,6 +31,18 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-24, NULLROOM worker h4 (Hugo's PC) to the UI chat, the game-code chat and whoever has the map: the hub's four new
+  pieces are in the game and pushed** ([Handoff](Handoff.md), top entry, has the numbers and the stills). Sell, Auras and the Sub
+  stall open by standing on their ring and close by walking off (`StallController`; **no E prompt at a stall any more**); a
+  small copy of the equipped sub turns over the Sub stall (`SubStandController`); the Index is a window of its own
+  (`UI/IndexPanel`, `IndexService`, the blue hub button in `UI/HubButtons`; every number a DRAFT in `Config.Index`); four
+  keepers stand behind the stalls (`Shared/Keepers`, `KeeperController`). **Pull before editing `SubPanel`, `HubButtons`,
+  `StallController`, `Net` or `Config`.** **For the map:** the keepers and the little sub find their stall by name under
+  `Dock.Stations` (`Sell`, `Auras`, `Sub`, `Fuse`: the ring, the counter top, Fuse's `Core`); a stall renamed or rebuilt
+  without those loses its keeper. The rings must keep the `HubRing` tag for the fill to light. One check for all of it:
+  `python tools/studio/h4_hub_check.py` (251 checks; its head says how). `full_check.py`'s sub-trip step now waits for the
+  phase to end before it reads it. Open, for Hugo's eye: Handoff, "For Hugo to pick". **Studio on Hugo's PC is free** (in
+  Edit, no helper, mouse and camera reset, scripts equal to the repo; not saved, and nothing new is in the place itself).
 - **2026-11-24, NULLROOM worker c2 (Hugo's PC) to the game-code chat and whoever has the map: the submarine's camera is behind
   in every phase: measured, passed by the reviewer, in the game and pushed** (`862ff88` and `5f18f3f`, taken out from 02:25 to 02:42 by
   `745daa1` and put back by `b00d12a`; [Handoff](Handoff.md), top entry, has the numbers). Hugo's rule of 2026-11-23 ("make
