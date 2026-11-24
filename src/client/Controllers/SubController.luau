@@ -73,6 +73,7 @@ local camKind = "" -- what the camera's offsets are from: "rider" or "sub"
 local camParams: RaycastParams? = nil
 local camAnchor = Vector3.zero -- and where that was last frame (zero: the offsets are places in the world)
 local fov = 70
+local kelpOut = false -- the gate's kelp is see-through for us now (gateKelp)
 local gui: ScreenGui
 
 local function now(): number
@@ -204,6 +205,37 @@ local function place(v: Visual, cf: CFrame, speed: number, dt: number)
 	v.Last = cf
 end
 
+-- The gate's kelp (the curtain hanging under the dock's lip), see-through on our own screen or back as the map made
+-- it. With the camera behind us (cameraFor) the curtain hangs between it and us from the moment we go in until the
+-- sub has carried us off, and the pull-in cannot keep the camera out of it: the kelp is not a thing a ray can hit
+-- (CanQuery off). Without this, the view was a wall of green as we were thrown onto the seat. Only the plates under
+-- the water, only for us (LocalTransparencyModifier, on each plate and its pictures, as PropController does for the
+-- lane's props), and only while our own trip's camera is back there: it looks away from the dock, so the kelp going
+-- and coming back is never in the picture.
+local function gateKelp(out: boolean)
+	if out == kelpOut then
+		return
+	end
+	kelpOut = out
+	local map = workspace:FindFirstChild("ClaudeBlockout")
+	local dock = map and map:FindFirstChild("Dock")
+	local gate = dock and dock:FindFirstChild("Gate")
+	if not gate then
+		return
+	end
+	local by = if out then 1 else 0
+	for _, part in gate:GetChildren() do
+		if part:IsA("BasePart") and part.Name == "Kelp" and part.Position.Y < Config.Oxygen.SurfaceY then
+			part.LocalTransparencyModifier = by
+			for _, picture in part:GetChildren() do
+				if picture:IsA("Decal") then
+					picture.LocalTransparencyModifier = by
+				end
+			end
+		end
+	end
+end
+
 local function remove(player: Player)
 	local v = visuals[player]
 	if v then
@@ -212,6 +244,7 @@ local function remove(player: Player)
 	end
 	if v and v == mine then
 		mine = nil
+		gateKelp(false)
 		Shake.rumble("Sub", "Speed", 0)
 		-- given up before the drop: the land titles go back to normal, the arrival land's own included
 		if not v.Said.dropped then
@@ -489,6 +522,8 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 		Fx.burst(root.Position + UP * 2, 30, 0, 9)
 		Feel.sound("Splash", 0.7, 0.9, 0.9)
 	end
+	-- the gate's kelp out of the camera's way until the sub is a second into its run, and well away from the dock
+	gateKelp(t < rideAt + 1)
 	-- the moments
 	if t >= pickupAt + 0.3 * trip.Pickup and once(v, "scoop") then
 		Fx.burst(root.Position, 40, 0, 10)
