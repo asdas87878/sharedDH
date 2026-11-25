@@ -76,14 +76,15 @@ body{width:%(W)dpx;height:%(H)dpx;background:#0b6f9c;font-family:F;color:#fff;ov
 .band{position:absolute;left:0;right:0;bottom:0;height:96px;background:rgba(14,22,54,.88);border-top:3px solid #10131f}
 .band .l{position:absolute;left:18px;top:9px;font-size:20px;color:#ffe27a}
 .chips{position:absolute;left:16px;top:41px;display:flex;gap:8px}
-.chip{height:42px;padding:0 13px;border:2.5px solid #10131f;border-radius:5px;font-size:23px;line-height:37px;white-space:nowrap}
+.chip{height:42px;padding:0 10px;border-radius:21px;font-size:23px;line-height:42px;white-space:nowrap}
 .btn{position:absolute;border:3px solid #10131f;border-radius:5px;text-align:center;box-shadow:inset 0 2px 0 rgba(255,255,255,.5)}
 .buy{right:16px;top:12px;width:176px;height:54px;background:linear-gradient(#ffde3c 50%%,#ff961c 50%%);font-size:33px;line-height:48px}
 .rb{height:30px;vertical-align:-4px;margin-right:6px;filter:drop-shadow(0 0 2px #17233f) drop-shadow(0 0 1px #17233f)}
-.odds{left:420px;top:41px;width:80px;height:42px;background:linear-gradient(#ced2e0 50%%,#9aa0b6 50%%);font-size:21px;line-height:36px}
+.odds{left:392px;top:41px;width:80px;height:42px;background:linear-gradient(#64d8ff 50%%,#1c96ec 50%%);font-size:21px;line-height:36px}
 .once{position:absolute;right:16px;width:176px;top:71px;text-align:center;font-size:16px}
 .rail{position:absolute;left:12px;top:84px;width:92px}
-.rail div{height:76px;margin-bottom:8px;border:3px solid #10131f;border-radius:5px;background:#404658;text-align:center;font-size:18px;line-height:70px}
+.rail div{height:76px;margin-bottom:8px;border:3px solid #10131f;border-radius:5px;background:#404658;text-align:center;font-size:28px;line-height:70px}
+.rail img{height:52px;margin-top:9px}
 .rail div.on{background:linear-gradient(#ffd648,#ff8418)}
 .sec{position:absolute;left:120px;top:82px;font-size:30px}
 .pop .in2{position:absolute;left:16px;right:16px;top:84px;bottom:16px;background:#22283a;border:3px solid #10131f;border-radius:6px;padding:12px 14px}
@@ -97,20 +98,20 @@ body{width:%(W)dpx;height:%(H)dpx;background:#0b6f9c;font-family:F;color:#fff;ov
     html = f"""<meta charset=utf-8><style>{font}{css}</style>
 <div class=win style="left:16px;top:14px;width:862px;height:564px"><div class=in></div>
  <div class=head><b class=t>Shop</b><div class="x t">X</div></div>
- <div class=rail><div class=t>★</div><div class="on t">Packs</div><div class=t>x2</div><div class=t>Oxygen</div><div class=t>Cash</div></div>
+ <div class=rail><div class=t>★</div><div class="on"><img src="{u(icons / 'shop.png')}"></div><div class=t>x2</div><div><img src="{u(icons / 'oxygen.png')}"></div><div><img src="{u(icons / 'cash.png')}"></div></div>
  <div class="sec t">Packs</div>
  <div class=card><div class=rays>{rays}</div><div class=studs></div><div class=glow></div>
   <img class=hero src="{u(WORK / 'hero.png')}">
   <div class="name t">Great White Pack</div>
   <div class=items>
-   <div class="it big"><div><b class=t><i>Colossal</i></b><b class=t>Great White</b><s class=t>Earns $742/s in your tank</s></div></div>
+   <div class="it big"><div><b class=t><i>Colossal</i></b><b class=t>Great White</b><s class=t>Biggest size there is</s><s class=t>Earns $742/s in your tank</s></div></div>
    <div class=it><img src="{u(icons / 'oxygen.png')}"><b class=t>+100K Oxygen</b></div>
    <div class=it><img src="{u(icons / 'cash.png')}"><b class=t>+$5M</b></div>
   </div>
   <div class=band><div class="l t">Everyone in the server, 1 hour:</div>
-   <div class=chips><div class="chip t" style="background:linear-gradient(#64d8ff 50%,#1c96ec 50%)">x2 Oxygen</div>
-   <div class="chip t" style="background:linear-gradient(#96fa46 50%,#46ce20 50%)">x2 Cash</div>
-   <div class="chip t" style="background:linear-gradient(#c482ff 50%,#8e46e6 50%)">x2 Luck</div></div>
+   <div class=chips><div class="chip t" style="background:rgba(80,190,255,.38)">x2 Oxygen</div>
+   <div class="chip t" style="background:rgba(110,230,60,.38)">x2 Cash</div>
+   <div class="chip t" style="background:rgba(190,120,255,.45)">x2 Luck</div></div>
    <div class="btn odds t">Odds</div>
    <div class="btn buy t">{robux}{PRICE}</div><div class="once t">One per player</div></div>
  </div></div>
