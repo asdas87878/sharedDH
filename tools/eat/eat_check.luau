@@ -216,6 +216,29 @@ local function measure(r: any): any
 				end
 			end
 		end
+		-- (Chomp) every part of the rider against the head's own slices and the jaw, till the mouth begins to shut
+		if chomp and case.New and fr.u > 0.5 and fr.u < has - 0.02 then
+			for name, box in fr.boxes do
+				local whole = w.boxes[case.Creature][name]
+				if name ~= "Head" and name ~= "Jaw" then
+					continue
+				end
+				local lo0, hi0 = Vector3.new(table.unpack(whole[1])), Vector3.new(table.unpack(whole[2]))
+				for _, slice in whole[3] or { { whole[1], whole[2] } } do
+					local lo, hi = Vector3.new(table.unpack(slice[1])), Vector3.new(table.unpack(slice[2]))
+					local at = box.CFrame * CFrame.new(((lo + hi) / 2 - (lo0 + hi0) / 2) * r.k)
+					local piece = bodyBox(at, (hi - lo) * r.k)
+					for _, part in World.R15 do
+						if part[1] ~= "HumanoidRootPart" then
+							local d = inside(piece, bodyBox(fr.rider * part[2], part[3]))
+							if d > (m.limb or -math.huge) then
+								m.limb, m.limbAt, m.limbIn = d, fr.u, part[1] .. " in " .. name
+							end
+						end
+					end
+				end
+			end
+		end
 		-- behind its own mouth's plane (nothing it could bite)
 		if fr.loose and fr.u < has and fr.fish:PointToObjectSpace(fr.torso).Z > -L * 0.25 then
 			m.behind += DT
@@ -302,8 +325,7 @@ local function measure(r: any): any
 				end
 				for n, t in m.touch do
 					local from = moves.Wrap.Take + (n - 1) * moves.Wrap.TakeEach + moves.Wrap.TakeTime * 1.3
-					local till = if r.plan.Reach > moves.Wrap.LongArm then moves.Wrap.Jet else Config.Fail.Outcomes.Wrap.Time
-					if fr.u >= from and fr.u <= till then
+					if fr.u >= from and fr.u <= Config.Fail.Outcomes.Wrap.Time then
 						t.worst = math.max(t.worst, -near[n])
 						t.sum += -near[n]
 						t.count += 1
@@ -363,7 +385,15 @@ local function row(name: string, r: any, m: any)
 			m.low,
 			m.wall,
 			if r.case.Kind == "Chomp"
-				then string.format("  bite off %.2f@%.2f hid %.2f", m.biteFar or -1, m.biteAt or -1, m.hideAt or -1)
+				then string.format(
+					"  bite off %.2f@%.2f hid %.2f  limb %.2f@%.2f %s",
+					m.biteFar or -1,
+					m.biteAt or -1,
+					m.hideAt or -1,
+					m.limb or -1,
+					m.limbAt or 0,
+					m.limbIn or ""
+				)
 				else (if m.touch and m.touch[3]
 					then string.format(
 						"  arms %.2f/%.2f %.2f/%.2f %.2f/%.2f deepest %.2f (%s) at %.2f, over 0.1 for %.2fs  feet %.2f off %.2f  whip %.1f@%.2f %s reach %.1f",
@@ -464,6 +494,7 @@ for _, kind in KINDS do
 			need("rider and mouth in the picture (s out)", m.outOfView < 0.1, m.outOfView)
 			if outcome == "Chomp" then
 				need("the mouth has them at the bite", m.biteFar and m.biteFar < 1.5 + L * 0.02, m.biteFar)
+				need("no part of them through its snout or jaw (studs deep)", m.limb < 0.1, m.limb)
 				need(
 					"out of sight inside its time",
 					m.hideAt and m.hideAt < Config.Fail.Outcomes.Chomp.Time - 0.1,
@@ -474,7 +505,9 @@ for _, kind in KINDS do
 					need("arm " .. n .. " touches", t.mean < 0.3, t.mean)
 				end
 				need("no arm in them, all 24 links to the end (studs deep)", m.deep < 0.1, m.deep)
-				need("drawn in to the beak (soles to the arms' crown)", m.feet and m.feet < 1.5 and m.feet > 0, m.feet)
+				-- (a big one holds you in the middle of its closed arms: no nearer than Wrap.HomeShare of an arm)
+				local near = math.max(1.5, r.plan.Reach * 0.25)
+				need("drawn in (soles to the arms' crown)", m.feet and m.feet < near and m.feet > 0, m.feet)
 				need("no arm jumps (arm lengths a second)", m.whip < 10, m.whip)
 			end
 			ok(name, #bad == 0, table.concat(bad, "; "))

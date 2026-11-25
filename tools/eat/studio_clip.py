@@ -7,7 +7,7 @@ How: plays the place (the branch synced into it with tools/ui/catch_show/sync_sr
 through the sandbox's reset, and fails it with RideService.forceFail, at full speed, 60 fps. A LocalScript keeps every
 rendered frame: the camera, every part of the fish and of the loose body. `film` then fails the same fish at the same
 place again, held by the game's own FailClock, hides that fish and rider, puts still copies where the recording had
-them, the camera too, and shoots the Studio window frame by frame (studio-run.mjs shot). The shade, the ink and the
+them, the camera too, and shoots the Studio window frame by frame (studio-run.mjs shot). The ink is recorded too; the shade and the
 bubbles are the game's own, let off at their moments with their particles slowed to the shooting. Other fish are hidden
 (they would race). NewEat is switched on in the client's own copy of Config at run time: the file is not touched.
 Needs Studio open through studio-runner, at 40 fps or more. Nothing is saved; `stop` puts the Edit mouse and camera back.
@@ -215,9 +215,10 @@ RunService:BindToRenderStep("ZZEatRec", Enum.RenderPriority.Last.Value + 5, func
 		f.Body[i] = part.CFrame
 		f.Gone[i] = math.max(part.LocalTransparencyModifier, if p and p.Hidden then 1 else 0)
 	end
+	f.Ink = {}
 	for _, d in camera:GetChildren() do
-		if d.Name == "Ink" and not take.Ink then
-			take.Ink = { T = now - (take.Zero or now), Part = d:Clone() }
+		if d.Name == "Ink" and d:IsA("BasePart") and d.Transparency < 1 then
+			table.insert(f.Ink, { d.CFrame, d.Size, d.Color })
 		end
 	end
 	local state = player:GetAttribute("State")
@@ -353,7 +354,7 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- the playback
 local stage, fishParts, bodyParts, hiddenGuis
-local inkDone, beatsDone = false, {}
+local beatsDone = {}
 local function pick(list, t)
 	local a, b = list[1], list[#list]
 	for i = 1, #list - 1 do
@@ -433,7 +434,7 @@ local function setStage()
 	fish.Parent = stage
 	body.Parent = stage
 	stage.Parent = workspace
-	inkDone, beatsDone = false, {}
+	beatsDone = {}
 	hiddenGuis = {}
 	for _, gui in player.PlayerGui:GetChildren() do
 		if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "FailShade" and not string.find(gui.Name, "Fade") then
@@ -503,20 +504,30 @@ RunService:BindToRenderStep("ZZEatPlay", Enum.RenderPriority.Last.Value + 6, fun
 		end
 	end
 	for _, d in camera:GetChildren() do
-		if d.Name == "Ink" then
-			for _, e in d:GetChildren() do
-				if e:IsA("ParticleEmitter") then
-					e:Clear()
-				end
-			end
+		if d.Name == "Ink" and d:IsA("BasePart") then
+			d.LocalTransparencyModifier = 1
 		end
 	end
 	local scale = workspace:GetAttribute("EatScale") or 0.05
-	if take.Ink and t >= take.Ink.T and not inkDone then
-		inkDone = true
-		local p = take.Ink.Part:Clone()
-		p.Parent = stage
-		puff(p, math.floor(Config.Fail.EatMoves.Wrap.Ink), scale)
+	local inks = stage:FindFirstChild("EatInk")
+	if not inks then
+		inks = Instance.new("Folder")
+		inks.Name = "EatInk"
+		inks.Parent = stage
+	end
+	local have = inks:GetChildren()
+	for i = 1, math.max(#have, #a.Ink) do
+		local part, row = have[i], a.Ink[i]
+		if row and not part then
+			part = Instance.new("Part")
+			part.Anchored, part.CanCollide, part.CanQuery, part.CastShadow = true, false, false, false
+			part.Material = Enum.Material.SmoothPlastic
+			part.Parent = inks
+		end
+		part.Transparency = if row then 0 else 1
+		if row then
+			part.CFrame, part.Size, part.Color = row[1], row[2], row[3]
+		end
 	end
 	for i, beat in take.Beats do
 		if t >= beat.T and t < beat.T + 1.5 and not beatsDone[i] then

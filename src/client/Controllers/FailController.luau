@@ -180,6 +180,7 @@ type Fail = {
 	Pivot: Vector3,
 	Aim: Vector3, -- (Chomp) studs its path is moved by, to meet the body where it really is
 	TakenAt: Vector3?, -- where the body was as it was bitten
+	Ink: { { Part: BasePart, At: Vector3 } }?, -- (New, Wrap) its ink's blocks, and where each was let go
 	ArmsHeld: EatMoves.ArmsHeld, -- (New, Wrap) how far each of its arms has closed
 	Slip: Vector3, -- studs the sea bed or a wall holds it off its path by
 }
@@ -2347,38 +2348,33 @@ local function beginNew(f: Fail)
 	end
 end
 
--- the octopus's ink, left where it was as it jets off (a local, short-lived cloud; the engine's own smoke picture)
-local function ink(f: Fail, at: Vector3)
-	local spot = localPart(Vector3.one, Color3.new(0, 0, 0), Enum.Material.SmoothPlastic)
-	spot.Name = "Ink"
-	spot.Transparency = 1
-	spot.CFrame = CFrame.new(at)
-	local size = math.max(f.Length * 0.16, 3)
-	local e = Instance.new("ParticleEmitter")
-	e.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	e.Color = ColorSequence.new(Color3.fromRGB(26, 12, 40), Color3.fromRGB(8, 6, 16))
-	e.LightInfluence = 0
-	e.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, size * 0.3),
-		NumberSequenceKeypoint.new(0.25, size),
-		NumberSequenceKeypoint.new(1, size * 1.5),
-	})
-	e.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.1),
-		NumberSequenceKeypoint.new(0.5, 0.3),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	e.Lifetime = NumberRange.new(1, 1.7)
-	e.Speed = NumberRange.new(f.Length * 0.1, f.Length * 0.45)
-	e.SpreadAngle = Vector2.new(180, 180)
-	e.Drag = 3
-	e.Rotation = NumberRange.new(0, 360)
-	e.RotSpeed = NumberRange.new(-30, 30)
-	e.Rate = 0
-	e.Enabled = false
-	e.Parent = spot
-	e:Emit(math.floor(Config.Fail.EatMoves.Wrap.Ink))
-	table.insert(f.Props, spot)
+-- The octopus's ink: blocks let go one after another at its beak as it jets off, so they lie along its way; each swells,
+-- drifts and shrinks to nothing. (They were smoke: the see-through surface was drawn over it, so the cloud was cut off flat
+-- along the water and one round black disc besides. Solid blocks are sorted right, and kept under the surface.)
+local function inkStep(f: Fail, plan: EatMoves.Plan, u: number, fishNow: CFrame)
+	local m = Config.Fail.EatMoves.Wrap
+	if u < m.Jet then
+		return
+	end
+	local list = f.Ink or {}
+	f.Ink = list
+	for i = 1, m.Ink do
+		local born = m.Jet + m.InkFor * ((i - 1) / m.Ink) ^ 1.4
+		local row = list[i]
+		if not row and u >= born then
+			local part = localPart(Vector3.one, EatMoves.inkColor(i), Enum.Material.SmoothPlastic)
+			part.Name = "Ink"
+			row = { Part = part, At = (fishNow * (f.Beak + Vector3.new(0, 0, f.Length * 0.06))) }
+			list[i] = row
+			table.insert(f.Props, part)
+		end
+		if row then
+			local cf, size = EatMoves.ink(plan, i, u - born, row.At)
+			row.Part.Size = Vector3.one * size
+			row.Part.CFrame = cf
+			row.Part.Transparency = if size < 0.1 then 1 else 0
+		end
+	end
 end
 
 local function begin(player: Player, fish: Model, kind: string)
@@ -2627,9 +2623,7 @@ end
 local function beat(f: Fail, name: string, fishNow: CFrame, riderPos: Vector3)
 	if name == "ink" then
 		Fx.sound("Rumble", f.FishRoot)
-		local at = fishNow * (f.Beak + Vector3.new(0, 0, f.Length * 0.1))
-		ink(f, at)
-		Fx.burst(at, 24, nil, 5)
+		Fx.burst(fishNow * (f.Beak + Vector3.new(0, 0, f.Length * 0.1)), 24, nil, 5)
 		if f.Mine then
 			Shake.play("LandBig", 0.6)
 		end
@@ -2970,6 +2964,9 @@ local function step(dt: number)
 			bulge(f, u, gone + 0.05, gone + 0.7)
 		end
 		-- props
+		if plan and f.Kind == "Wrap" then
+			inkStep(f, plan, u, fishNow)
+		end
 		if f.Kind == "Gulp" then
 			local ball = f.Props[1] :: BasePart?
 			if ball then

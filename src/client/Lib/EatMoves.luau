@@ -192,7 +192,7 @@ local function planChomp(p: Plan)
 	-- with no water to rise through, and no further than its tail has water under it
 	local roof = g.SurfaceY - g.Height * 0.45
 	local most = math.min(m.Lift * L, m.MostLift)
-	local rise = math.clamp(roof - stop.Y, 0, most)
+	local rise = math.clamp(roof - m.Roof - stop.Y, 0, most)
 	local pitch = rad(m.Pitch) * math.clamp(m.PitchLength / L, 0.5, 1) * (0.4 + 0.6 * rise / most)
 	local y = stop.Y + rise
 	for _ = 1, 12 do
@@ -354,7 +354,8 @@ local function chompPitch(p: Plan, u: number): number
 	local bite = m.Bite
 	-- (the buck: nose down till you are past it, then up under you)
 	local dip = -rad(m.Dip) * ss(0.02, 0.28, u) * (1 - ss(m.Past - 0.12, m.Past + 0.16, u))
-	local up = p.Pitch * (0.7 * ss(m.Past - 0.06, m.Wound, u) + 0.3 * ss(bite - p.Lunge, bite, u))
+	-- (all the way up before the lunge: rising through it, the snout came over you from above and through your legs)
+	local up = p.Pitch * ss(m.Past, bite - p.Lunge + 0.03, u)
 	local over = p.Pitch * 0.25 * bump(bite, bite + 0.35, u)
 	local home = 1 - ss(bite + 0.1, bite + 0.85, u)
 	return dip + (up + over) * home
@@ -362,6 +363,7 @@ end
 
 local function chompRoot(p: Plan, u: number): Vector3
 	local m = Config.Fail.EatMoves.Chomp
+	local roof = p.Given.SurfaceY - p.Given.Height * 0.45
 	local bite = m.Bite
 	local stop = p.Given.From.Position + p.Given.From.LookVector * p.Brake
 	local back = p.Coil - stop
@@ -375,14 +377,16 @@ local function chompRoot(p: Plan, u: number): Vector3
 		local t = u - bite
 		local v = way * (m.LungePower / p.Lunge)
 		at += Vector3.new(v.X, 0, v.Z) * (1 - math.exp(-m.Through * t)) / m.Through
-		at += Vector3.new(0, v.Y, 0) * (1 - math.exp(-3 * m.Through * t)) / (3 * m.Through)
+		-- (up no further than the surface leaves it, and slowing into that: never stopped dead by it)
+		local up = v.Y * (1 - math.exp(-3 * m.Through * t)) / (3 * m.Through)
+		local room = math.max(math.max(roof, p.Given.From.Position.Y) - at.Y, 0)
+		at += Vector3.new(0, if up > 0 then room * (1 - math.exp(-up / math.max(room, 0.01))) else up, 0)
 		-- and it swims on, the way it was going
 		local on = math.max(0, t - 0.3)
 		local pace = math.max(p.Given.Speed, 20) * m.On
 		at += p.Forward * pace * (on - (1 - math.exp(-1.6 * on)) / 1.6)
 	end
 	-- (never up through the surface)
-	local roof = p.Given.SurfaceY - p.Given.Height * 0.45
 	return Vector3.new(at.X, math.min(at.Y, math.max(roof, p.Given.From.Position.Y)), at.Z)
 end
 
@@ -615,7 +619,6 @@ local function loose(p: Plan, index: number, u: number): { CFrame }
 	local angles: { number } = {}
 	-- (arms hardly longer than you close over you only so far)
 	local curl = Ease.lerp(m.ShortCurl, 1, ss(m.ShortArm, m.ShortArm * 1.6, p.Reach))
-	curl *= 1 - 0.25 * ss(m.LongArm, m.LongArm * 1.4, p.Reach) -- (nor do the longest fold in on you)
 	for i = 1, 3 do
 		local a = rad(flower[i]) * open
 		-- (every other arm a little further out: they close over each other as fingers do)
@@ -803,7 +806,8 @@ end
 
 homeOf = function(p: Plan): number
 	local m = Config.Fail.EatMoves.Wrap
-	local least = SOLES + m.Beak
+	-- (arms much longer than you can't fold down to their own root: their elbows would stand out square, and cut into you)
+	local least = math.max(SOLES + m.Beak, p.Reach * m.HomeShare)
 	local best = math.max(least, p.Caught.Z - p.Crown.Z)
 	while best - 0.1 >= least do
 		local frame = CFrame.new(p.Crown + Vector3.new(0, 0, best - 0.1)) * CFrame.Angles(rad(90), 0, 0)
@@ -837,9 +841,6 @@ function EatMoves.arms(
 ): { { CFrame } }
 	local m = Config.Fail.EatMoves.Wrap
 	local all: { { CFrame } } = {}
-	-- (arms much longer than you: folded round you, their elbows would stand out square as it jets, so the three that took
-	-- you stream with the rest then, all eight closed round you)
-	local long = ss(m.LongArm, m.LongArm * 1.6, p.Reach)
 	for i, arm in p.Given.Arms do
 		if #arm.Links ~= 3 then
 			all[i] = loose(p, i, u)
@@ -850,20 +851,13 @@ function EatMoves.arms(
 		local grip = if taker then grips[taker] else nil
 		local from = if taker then m.Take + (taker - 1) * m.TakeEach else math.huge
 		local taking = grip ~= nil and u > from
-		local melt = if taking then long * ss(m.Jet, m.Jet + 0.5, u) else 0
 		local start: { CFrame } = if taking
 			then loose(p, i, from)
 			else bent(arm, { rad(m.Flower[1]), rad(m.Flower[2]), rad(m.Flower[3]) }, 0)
 		local to = loose(p, i, u)
-		if melt > 0 then
-			local k = ss(m.Jet, m.Jet + 0.35, u)
-			start = { start[1]:Lerp(to[1], k), start[2]:Lerp(to[2], k), start[3]:Lerp(to[3], k) }
-		end
 		local half = math.max(arm.Links[3].Half.X, arm.Links[3].Half.Y)
 		local function pose(c: number): { CFrame }
-			-- (an arm letting go swings out off you first, and in again with the rest)
-			local off = rad(90) * math.max(-c, 0) + rad(m.LetGo) * math.sin(math.pi * melt)
-			local open = CFrame.fromAxisAngle(side, off)
+			local open = CFrame.fromAxisAngle(side, rad(90) * math.max(-c, 0))
 			c = math.max(c, 0)
 			local a, b, w = start, to, c
 			if taking and grip then
@@ -879,7 +873,7 @@ function EatMoves.arms(
 		elseif not was then
 			was = { At = 1, Taking = false }
 		end
-		local want = if taking then ss(from, from + m.TakeTime * 1.3, u) * (1 - melt) else 1
+		local want = if taking then ss(from, from + m.TakeTime * 1.3, u) else 1
 		local now = close(arm, limbs, was.At, want, math.clamp(dt, 0, 0.1) * m.CloseRate, pose)
 		-- (and no link turns faster than this, however you are flung about in it)
 		local abs = pose(now)
@@ -917,6 +911,27 @@ function EatMoves.points(arm: Arm, abs: { CFrame }): { Vector3 }
 		list[i + 1] = list[i] + abs[i] * (arm.Rest[i + 1] - arm.Rest[i])
 	end
 	return list
+end
+
+-- Its ink: the block number `i`, `age` seconds after it was let go at `from`: where it is and how big. Each drifts out its
+-- own way, swells and is gone; never up through the surface.
+function EatMoves.ink(p: Plan, i: number, age: number, from: Vector3): (CFrame, number)
+	local L = p.Given.Length
+	local turn = i * 2.39996 -- (evenly round: the golden angle)
+	local high = ((i * 0.618) % 1) * 1.7 - 0.85
+	local out =
+		Vector3.new(math.cos(turn) * math.sqrt(1 - high * high), high, math.sin(turn) * math.sqrt(1 - high * high))
+	local big = L * (0.045 + 0.045 * ((i * 0.377) % 1)) + 0.5
+	local life = 1.0 + 0.5 * ((i * 0.731) % 1)
+	local size = big * (0.25 + 0.75 * (1 - math.exp(-9 * age))) * (1 - ss(life * 0.35, life, age))
+	local at = from + out * L * (0.05 + 0.1 * ((i * 0.271) % 1)) * (1 - math.exp(-4 * age))
+	at = Vector3.new(at.X, math.min(at.Y, p.Given.SurfaceY - big * 0.9 - 0.5), at.Z)
+	return CFrame.new(at) * CFrame.Angles(0, turn + age * 0.5, 0), math.max(size, 0.05)
+end
+
+-- and its colour: near black to a deep violet, so the blocks tell apart
+function EatMoves.inkColor(i: number): Color3
+	return Color3.fromRGB(22, 14, 34):Lerp(Color3.fromRGB(70, 44, 96), ((i * 0.618) % 1) ^ 2)
 end
 
 ----------------------------------------------------------------------------------------------------------------------
