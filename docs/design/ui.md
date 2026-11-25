@@ -18,6 +18,10 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The "Welcome back!" window (2026-11-25, Hugo; NULLROOM o1): built, not seen in Studio
+Offline earnings with a chest and Claim, and the small gold Claim by the dock's buttons after the X: `UI/OfflinePanel`,
+`OfflineController`. The picture, the rules and what must be on: [offline rewards](offline-rewards.md).
+
 ## The Index, richer: land banners and big cards (2026-11-25, Hugo; NULLROOM task i1): built, not seen in Studio
 Hugo: "Make index ui feel more like ride a dino(ref image 5.) you can generate land pictures from the screenshots you
 took, make them a little more artistic and stylised like ride a dino though, not so roblox looking as in the map icons."
