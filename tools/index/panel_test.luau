@@ -4,8 +4,12 @@
 -- AquariumService. It checks that the window builds with no error (every property name and type is Roblox's own),
 -- that the hub button opens and closes it, that a catch shows, that a press on CLAIM is paid once by the server and
 -- shown, the land's set, CLAIM ALL, one dock window at a time, the "!" rule, and the sizes on a phone (844 x 390).
--- It cannot see the window: a second argument writes each state's tree out for tools/index/panel_picture.py.
--- usage: rojo build -o /tmp/place.rbxl && lune run tools/index/panel_test.luau /tmp/place.rbxl [dump folder]
+-- Both windows are checked by the same list: today's (UI.IndexWindow, Config.Index.Look 1) and, with a third argument
+-- 0, the one before it (UI.IndexOld); what only one of them has is checked for that one. Today's also on its three
+-- layouts (a PC, a phone sideways at 375 and 390 high, a phone upright 375 wide) and through the switch between looks.
+-- It cannot see the window: a second argument writes each state's tree out for tools/index/look_picture.py (the old
+-- look's: tools/index/panel_picture.py), "-" for none.
+-- usage: rojo build -o /tmp/place.rbxl && lune run tools/index/panel_test.luau /tmp/place.rbxl [dump folder or -] [0]
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
@@ -17,7 +21,8 @@ local Vector2 = (roblox :: any).Vector2
 local Enum = (roblox :: any).Enum
 
 local world = Harness.open(process.args[1] or "/tmp/place.rbxl")
-local dumpTo: string? = process.args[2]
+local dumpTo: string? = if process.args[2] ~= "-" then process.args[2] else nil
+local new = process.args[3] ~= "0" -- today's window; false: the old look
 local ok, done = Harness.tally()
 local gui = Gui.install(world)
 local player = gui.player
@@ -186,11 +191,19 @@ world.stubs[CLIENT .. "UI.Portrait"] = {
 -- The game's own modules
 
 local Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
+Config.Index.Look = if new then 1 else 0
 local IndexService = world.require(world.find("ServerScriptService.Server.Services.IndexService"))
 IndexService.Start()
 local HubButtons = world.require(world.find(CLIENT .. "UI.HubButtons"))
 local IndexPanel = world.require(world.find(CLIENT .. "UI.IndexPanel"))
 local Shop = world.require(world.find(CLIENT .. "UI.Shop"))
+local LandBanners = world.require(world.find(CLIENT .. "UI.LandBanners"))
+if dumpTo and process.args[4] ~= "plain" then
+	-- (the pictures the picture tool puts in: as if uploaded)
+	for land in LandBanners.Ids do
+		LandBanners.Ids[land] = "land:" .. land
+	end
+end
 
 local hud = gui.make("ScreenGui", gui.playerGui)
 hud.Name = "Hud"
@@ -244,6 +257,19 @@ local indexMark = indexButton:FindFirstChild("Mark")
 local shallows = Config.indexKinds(1)
 local set = Config.indexSet(1)
 local total = Config.indexCount()
+-- The words that differ between the two looks
+local function unlocked(count: number): string
+	return if new then `Unlocked {count}/{total}` else `{count} of {total} found`
+end
+local function claimAll(count: number): string
+	return if new then `CLAIM ALL ({count})` else `Claim All ({count})`
+end
+local CLAIM = if new then "CLAIM!" else "Claim"
+local CLAIMED = if new then "CLAIMED" else "Claimed"
+local CATCH = if new then "CATCH IT FIRST" else "Catch it first"
+local function landTitle(name: string): string
+	return if new then (string.gsub(name, " ", "\n")) else name .. " set"
+end
 
 ----------------------------------------------------------------------------------------------------------------------
 print("the hub button and its mark")
@@ -314,10 +340,10 @@ if noPicture.Stingray and list:FindFirstChild("Stingray") then
 end
 
 local side = find(window, "Kind")
-local claim = side:FindFirstChild("Claim")
-ok("the kind with a reward is the chosen one", side:FindFirstChild("Name").Text == "Clownfish")
-ok("its rarity is shown", side:FindFirstChild("Tier").Text == string.upper(Config.FishById.Clownfish.Tier))
-ok("and what it earns a second", string.find(side:FindFirstChild("Rate").Text, "/s", 1, true) ~= nil)
+local claim = find(side, "Claim")
+ok("the kind with a reward is the chosen one", find(side, "Name").Text == "Clownfish")
+ok("its rarity is shown", find(side, "Tier").Text == string.upper(Config.FishById.Clownfish.Tier))
+ok("and what it earns a second", string.find(find(side, "Rate").Text, "/s", 1, true) ~= nil)
 ok(
 	"and its looks caught, of all there are",
 	find(side, "Variants"):FindFirstChildOfClass("TextLabel").Text == `Variants 1 / {Config.indexLooks()}`,
@@ -325,28 +351,24 @@ ok(
 )
 local firstOxygen, firstCoins = Config.indexFirst(Config.FishById.Clownfish)
 ok("its reward is Config's", find(side, "Oxygen", "Amount").Text == "+" .. Config.wholeNumber(firstOxygen))
-ok("CLAIM is live", words(claim) == "Claim" and claim.Active)
+ok("CLAIM is live", words(claim) == CLAIM and claim.Active)
 local foot = find(window, "Found")
-ok("1 of all found", foot:FindFirstChild("Count").Text == `1 of {total} found`, foot:FindFirstChild("Count").Text)
+ok("1 of all found", foot:FindFirstChild("Count").Text == unlocked(1), foot:FindFirstChild("Count").Text)
 local all = find(window, "ClaimAll")
-ok("CLAIM ALL (1)", words(all) == "Claim All (1)" and all.Active, words(all))
+ok("CLAIM ALL (1)", words(all) == claimAll(1) and all.Active, words(all))
 local landBox = find(window, "LandSet")
-ok(
-	"the land's set is counted",
-	landBox:FindFirstChild("Count").Text == `1 / {#set}`,
-	landBox:FindFirstChild("Count").Text
-)
-ok("named", landBox:FindFirstChild("Land").Text == "Shallows set", landBox:FindFirstChild("Land").Text)
-ok("its claim is off until the set is whole", not landBox:FindFirstChild("ClaimLand").Active)
+ok("the land's set is counted", find(landBox, "Count").Text == `1 / {#set}`, find(landBox, "Count").Text)
+ok("named", find(landBox, "Land").Text == landTitle("Shallows"), find(landBox, "Land").Text)
+ok("its claim is off until the set is whole", not find(landBox, "ClaimLand").Active)
 dump("1_open")
 
 ----------------------------------------------------------------------------------------------------------------------
 print("choosing and claiming")
 press(unfound:FindFirstChild("Press"))
-ok("a press on a card chooses it", side:FindFirstChild("Name").Text == "???" and words(claim) == "Catch it first")
+ok("a press on a card chooses it", find(side, "Name").Text == "???" and words(claim) == CATCH)
 ok("a kind not caught cannot be claimed", not press(claim) and oxygen == 0)
 press(clown:FindFirstChild("Press"))
-ok("back on the caught kind", side:FindFirstChild("Name").Text == "Clownfish" and claim.Active)
+ok("back on the caught kind", find(side, "Name").Text == "Clownfish" and claim.Active)
 
 state = "Free"
 press(claim)
@@ -366,12 +388,12 @@ ok(
 		and toast:FindFirstChildOfClass("TextLabel").Text == `+{firstOxygen} Oxygen   +{Shop.cash(firstCoins)}`,
 	toast:FindFirstChildOfClass("TextLabel").Text
 )
-ok("the button says Claimed and is off", words(claim) == "Claimed" and not claim.Active)
+ok("the button says Claimed and is off", words(claim) == CLAIMED and not claim.Active)
 ok(
 	"the card's mark and the tab's are down",
 	not clown:FindFirstChild("Waiting").Visible and not find(lands, "Land1", "Waiting").Visible
 )
-ok("CLAIM ALL (0), off", words(all) == "Claim All (0)" and not all.Active)
+ok("CLAIM ALL (0), off", words(all) == claimAll(0) and not all.Active)
 ok("the hub button's mark is down", not indexMark.Visible)
 press(claim)
 IndexPanel.press("Claim")
@@ -393,11 +415,7 @@ ok(
 	cardCount()
 )
 ok("none of them caught", list:FindFirstChild(reef[1].Id):FindFirstChild("Name").Text == "???")
-ok(
-	"the land's set follows",
-	landBox:FindFirstChild("Land").Text == "Coral Reef set",
-	landBox:FindFirstChild("Land").Text
-)
+ok("the land's set follows", find(landBox, "Land").Text == landTitle("Coral Reef"), find(landBox, "Land").Text)
 catch(reef[1].Id, "Big", "Gold")
 catch(reef[1].Id, "Huge", "")
 tick()
@@ -420,23 +438,23 @@ for _, fish in set do
 end
 tick()
 press(find(lands, "Land1"))
-local claimLand = landBox:FindFirstChild("ClaimLand")
-ok("the whole set caught: n / n", landBox:FindFirstChild("Count").Text == `{#set} / {#set}`)
-ok("the land's claim is live", claimLand.Active and words(claimLand) == "Claim")
+local claimLand = find(landBox, "ClaimLand")
+ok("the whole set caught: n / n", find(landBox, "Count").Text == `{#set} / {#set}`)
+ok("the land's claim is live", claimLand.Active and words(claimLand) == CLAIM)
 local waiting = #set - 1 + 1 + 1 -- the set's other kinds, the set itself, the Reef's one
-ok("CLAIM ALL counts every reward", words(all) == `Claim All ({waiting})` and all.Active, words(all))
+ok("CLAIM ALL counts every reward", words(all) == claimAll(waiting) and all.Active, words(all))
 dump("4_set")
 local before = oxygen
 local landOxygen, landCoins = Config.indexLand(1)
 press(claimLand)
 ok("the land's reward is paid once", oxygen == before + landOxygen, `{oxygen - before} of {landOxygen}`)
-ok("and says Claimed", words(claimLand) == "Claimed" and not claimLand.Active)
+ok("and says Claimed", words(claimLand) == CLAIMED and not claimLand.Active)
 press(claimLand)
 IndexPanel.press("ClaimLand")
 ok("not twice", oxygen == before + landOxygen)
 local paidCoins = coins
 press(all)
-ok("CLAIM ALL pays the rest", words(all) == "Claim All (0)" and oxygen > before + landOxygen and coins > paidCoins)
+ok("CLAIM ALL pays the rest", words(all) == claimAll(0) and oxygen > before + landOxygen and coins > paidCoins)
 ok(
 	"nothing waits after it",
 	player:GetAttribute("IndexClaims") == 0 and IndexPanel.waiting() == 0 and not indexMark.Visible
@@ -445,7 +463,7 @@ local after = oxygen
 press(all)
 IndexPanel.press("ClaimAll")
 ok("and nothing more is paid", oxygen == after)
-ok("the count is of all the Index", foot:FindFirstChild("Count").Text == `{#set + 1} of {total} found`)
+ok("the count is of all the Index", foot:FindFirstChild("Count").Text == unlocked(#set + 1))
 ok("the land's coins were in it", landCoins > 0 and coins >= landCoins)
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -488,7 +506,7 @@ ok("the old card still says ???", kelpCard:FindFirstChild("Name").Text == "???")
 press(indexButton)
 ok("opening paints it", list:FindFirstChild(kelp[1].Id):FindFirstChild("Name").Text == kelp[1].Name)
 ok("with new cards", not rawequal(list:FindFirstChild(kelp[1].Id), kelpCard) and kelpCard.Parent == nil)
-ok("and the caught kind chosen, to claim", side:FindFirstChild("Name").Text == kelp[1].Name and claim.Active)
+ok("and the caught kind chosen, to claim", find(side, "Name").Text == kelp[1].Name and claim.Active)
 press(claim)
 press(find(lands, "Land1"))
 press(indexButton)
@@ -506,58 +524,165 @@ ok(
 )
 
 ----------------------------------------------------------------------------------------------------------------------
-print("on a phone (844 x 390)")
-gui.camera.ViewportSize = Vector2.new(844, 390)
-gui.input.TouchEnabled = true
-gui.input.KeyboardEnabled = false
-gui.input.Last = Enum.UserInputType.Touch
-press(indexButton)
-local scale = find(window, "Root"):FindFirstChildOfClass("UIScale").Scale
-local face = find(window, "Root", "Window")
-local wide, high = face.Size.X.Offset, face.Size.Y.Offset
-ok("the window fits the screen", wide * scale <= 844 and high * scale <= 390, `{wide * scale} x {high * scale}`)
-print(string.format("        scale %.3f: the window is %.0f x %.0f px", scale, wide * scale, high * scale))
--- (sizes in the window's points: a size's offset, plus its scale of the room it sits in)
-local body = find(window, "Body")
-local bodyWide = wide + body.Size.X.Offset
-local function px(button: any, room: number): (number, number)
-	return (button.Size.X.Scale * room + button.Size.X.Offset) * scale, button.Size.Y.Offset * scale
+print("the layouts")
+-- The window as it stands now: a screen that turned built it again
+local function grab()
+	window = gui.playerGui:FindFirstChild("IndexPanel")
+	lands = find(window, "Lands")
+	list = find(window, "Tray", "List")
+	side = find(window, "Kind")
+	claim = find(side, "Claim")
+	foot = find(window, "Found")
+	all = find(window, "ClaimAll")
+	landBox = find(window, "LandSet")
+	claimLand = find(landBox, "ClaimLand")
+end
+local function screen(wide: number, high: number, touch: boolean)
+	if IndexPanel.isOpen() then
+		press(indexButton)
+	end
+	gui.camera.ViewportSize = Vector2.new(wide, high)
+	gui.input.TouchEnabled = touch
+	gui.input.KeyboardEnabled = not touch
+	gui.input.Last = if touch then Enum.UserInputType.Touch else Enum.UserInputType.MouseMovement
+	press(indexButton)
+	grab()
+end
+local function scaleNow(): number
+	return find(window, "Root"):FindFirstChildOfClass("UIScale").Scale
+end
+-- The smallest letters on the window, in the screen's pixels (words on show only)
+local function smallest(at: any): (number, string)
+	local least, whose = math.huge, ""
+	local function look(node: any)
+		if node:IsA("GuiObject") and not node.Visible then
+			return
+		end
+		if node:IsA("TextLabel") and node.Text ~= "" and node.TextSize < least then
+			least, whose = node.TextSize, `{node.Name} "{node.Text}"`
+		end
+		for _, child in node:GetChildren() do
+			look(child)
+		end
+	end
+	look(at)
+	return least * scaleNow(), whose
 end
 local LEAST = 32 -- px: the least a finger's target is tall here (the kit's own buttons come out 31 to 34 on a phone)
-local tabWide = px(find(lands, "Land2"), bodyWide)
-local tabHigh = lands.Size.Y.Offset * scale
-ok(`a land's tab is at least {LEAST} px tall`, tabHigh >= LEAST, tabHigh)
-ok("and 55 px wide", tabWide >= 55, tabWide)
-local _, claimHigh = px(claim, 0)
-ok(`CLAIM is at least {LEAST} px tall`, claimHigh >= LEAST, claimHigh)
-local _, allHigh = px(all, 0)
-ok(`CLAIM ALL is at least {LEAST} px tall`, allHigh >= LEAST, allHigh)
-local _, landHigh = px(claimLand, 0)
-ok(`the land's CLAIM is at least 30 px tall`, landHigh >= 30, landHigh)
-local card = list:FindFirstChildOfClass("Frame")
-ok("a card is at least 80 x 80 px", card.Size.X.Offset * scale >= 80 and card.Size.Y.Offset * scale >= 80)
-print(
-	string.format(
-		"        tab %.0f x %.0f, claim %.0f, claim all %.0f, land claim %.0f, card %.0f x %.0f px",
-		tabWide,
-		tabHigh,
-		claimHigh,
-		allHigh,
-		landHigh,
-		card.Size.X.Offset * scale,
-		card.Size.Y.Offset * scale
+local function phone(wide: number, high: number)
+	print(`on a phone ({wide} x {high})`)
+	screen(wide, high, true)
+	local scale = scaleNow()
+	local face = find(window, "Root", "Window")
+	local faceWide, faceHigh = face.Size.X.Offset, face.Size.Y.Offset
+	ok(
+		"the window fits the screen",
+		faceWide * scale <= wide and faceHigh * scale <= high,
+		`{faceWide * scale} x {faceHigh * scale}`
 	)
-)
+	print(string.format("        scale %.3f: the window is %.0f x %.0f px", scale, faceWide * scale, faceHigh * scale))
+	-- (sizes in the window's points: a size's offset, plus its scale of the room it sits in)
+	local bodyWide = faceWide + find(window, "Body").Size.X.Offset
+	local function px(button: any, room: number): (number, number)
+		return (button.Size.X.Scale * room + button.Size.X.Offset) * scale, button.Size.Y.Offset * scale
+	end
+	local tabWide, tabHigh = px(find(lands, "Land2"), bodyWide)
+	tabHigh = if tabHigh > 0 then tabHigh else lands.Size.Y.Offset * scale
+	ok(`a land's tab is at least {if new then 30 else LEAST} px tall`, tabHigh >= (if new then 30 else LEAST), tabHigh)
+	ok("and 55 px wide", tabWide >= 55, tabWide)
+	local _, claimHigh = px(claim, 0)
+	ok(`CLAIM is at least {LEAST} px tall`, claimHigh >= LEAST, claimHigh)
+	local _, allHigh = px(all, 0)
+	ok(`CLAIM ALL is at least {LEAST} px tall`, allHigh >= LEAST, allHigh)
+	local _, landHigh = px(claimLand, 0)
+	ok(`the land's CLAIM is at least 30 px tall`, landHigh >= 30, landHigh)
+	local card = list:FindFirstChildOfClass("Frame")
+	local cardWide, cardHigh = card.Size.X.Offset * scale, card.Size.Y.Offset * scale
+	ok("a card is at least 80 x 80 px", cardWide >= 80 and cardHigh >= 80, `{cardWide} x {cardHigh}`)
+	local letters, whose = smallest(face)
+	if new then
+		ok("no word is under 9.5 px", letters >= 9.5, `{letters} {whose}`)
+	end
+	print(
+		string.format(
+			"        tab %.0f x %.0f, claim %.0f, claim all %.0f, land claim %.0f, card %.0f x %.0f px, smallest word %.1f px (%s)",
+			tabWide,
+			tabHigh,
+			claimHigh,
+			allHigh,
+			landHigh,
+			cardWide,
+			cardHigh,
+			letters,
+			whose
+		)
+	)
+end
+phone(844, 390)
 dump("5_phone")
+if new then
+	phone(667, 375)
+	dump("5_phone_375_high")
+	phone(375, 812)
+	dump("5_phone_375_wide")
+	phone(375, 667)
+	ok("upright, the kind sits under the tray", side.Position.Y.Offset > find(window, "Tray").Position.Y.Offset)
+	print("a screen that turns while the window is open")
+	local before375 = window
+	gui.camera.ViewportSize = Vector2.new(667, 375)
+	gui.camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+	grab()
+	ok(
+		"the window is built again for it, still open",
+		IndexPanel.isOpen() and window ~= nil and not rawequal(window, before375) and window.Enabled
+	)
+	ok("and there is only one", #gui.playerGui:GetChildren() >= 1 and before375.Parent == nil)
+	press(find(lands, "Land2"))
+	ok("its tabs work", list:FindFirstChild(reef[1].Id) ~= nil)
+
+	print("the old look and back")
+	press(indexButton)
+	Config.Index.Look = 0
+	press(indexButton)
+	grab()
+	ok("Look 0 opens the old window", IndexPanel.isOpen() and find(window, "LandSet", "Land").Text == "Shallows set")
+	local windows = 0
+	for _, child in gui.playerGui:GetChildren() do
+		if child.Name == "IndexPanel" then
+			windows += 1
+		end
+	end
+	ok("and it is the only one", windows == 1, windows)
+	Config.Index.Look = 1
+	press(find(lands, "Land2"))
+	ok(
+		"switched while open, it stays the old one until it closes",
+		IndexPanel.isOpen() and find(list, reef[1].Id) ~= nil
+	)
+	press(indexButton)
+	press(indexButton)
+	grab()
+	ok("then today's again", IndexPanel.isOpen() and find(window, "Complete") ~= nil)
+
+	print("pictures not uploaded")
+	local id = LandBanners.Ids[1]
+	LandBanners.Ids[1] = ""
+	press(find(lands, "Land2"))
+	press(find(lands, "Land1"))
+	ok(
+		"a land with no picture shows its plain colours",
+		find(landBox, "Painting").Image == "" and find(landBox, "Plain").Visible
+	)
+	LandBanners.Ids[1] = "rbxassetid://1"
+	press(find(lands, "Land2"))
+	press(find(lands, "Land1"))
+	ok("and its picture once it has an id", find(landBox, "Painting").Image == "rbxassetid://1")
+	LandBanners.Ids[1] = id
+end
 
 ----------------------------------------------------------------------------------------------------------------------
 print("every land, everything caught (the biggest numbers and the longest names)")
-gui.camera.ViewportSize = Vector2.new(1920, 1080)
-gui.input.TouchEnabled = false
-gui.input.KeyboardEnabled = true
-gui.input.Last = Enum.UserInputType.MouseMovement
-press(indexButton)
-press(indexButton)
+screen(1920, 1080, false)
 local most, mostLand = 0, 1
 for land = 1, Config.indexLands() do
 	local kinds = Config.indexKinds(land)
@@ -578,11 +703,94 @@ for land = 1, Config.indexLands() do
 	end
 end
 ok("every land's tab shows its own kinds", every)
-ok("all found", foot:FindFirstChild("Count").Text == `{total} of {total} found`, foot:FindFirstChild("Count").Text)
+ok("all found", foot:FindFirstChild("Count").Text == unlocked(total), foot:FindFirstChild("Count").Text)
 print(`        the land with the most kinds: {mostLand}, {most}`)
 dump("7_under")
 press(all)
-ok("CLAIM ALL pays everything left, once", player:GetAttribute("IndexClaims") == 0 and words(all) == "Claim All (0)")
+ok("CLAIM ALL pays everything left, once", player:GetAttribute("IndexClaims") == 0 and words(all) == claimAll(0))
+
+-- The states tools/index/look_picture.py draws: a game some way in (the book is begun again)
+if new and dumpTo then
+	local function land(n: number, count: number, paid: number)
+		for i, fish in Config.indexKinds(n) do
+			if i <= count then
+				catch(fish.Id)
+			end
+		end
+		tick()
+		press(find(lands, "Land" .. n))
+		for i, fish in Config.indexKinds(n) do
+			if i <= paid then
+				press(find(list, fish.Id, "Press"))
+				press(claim)
+			end
+		end
+	end
+	screen(1920, 1080, false)
+	IndexService.leave(player)
+	IndexService.join(player)
+	table.clear(carried)
+	tank = {}
+	clock += 1
+	toServer:Fire(player, "Sync")
+	catch("Clownfish", "Big", "Gold")
+	catch("Clownfish", "Giant", "")
+	catch("SeaTurtle", "Big", "")
+	land(1, 9, 5)
+	land(2, 5, 4)
+	land(4, 3, 3)
+	land(6, 99, 2)
+	for _, fn in later do
+		fn()
+	end
+	table.clear(later)
+	press(find(lands, "Land1"))
+	press(find(list, "SeaTurtle", "Press"))
+	dump("look_pc")
+	press(find(lands, "Land6"))
+	dump("look_pc_whole")
+	press(find(lands, "Land2"))
+	press(find(list, "CoralDragon", "Press"))
+	dump("look_pc_secret")
+	local ids = table.clone(LandBanners.Ids)
+	for n in ids do
+		LandBanners.Ids[n] = ""
+	end
+	screen(1920, 1080, false)
+	press(find(lands, "Land1"))
+	IndexPanel.press("Kind", "SeaTurtle")
+	screen(1921, 1081, false)
+	dump("look_pc_plain")
+	for n, id in ids do
+		LandBanners.Ids[n] = id
+	end
+	screen(667, 375, true)
+	press(find(lands, "Land1"))
+	press(find(list, "SeaTurtle", "Press"))
+	dump("look_phone_wide")
+	press(find(lands, "Land6"))
+	dump("look_phone_whole")
+	screen(375, 812, true)
+	press(find(lands, "Land1"))
+	press(find(list, "SeaTurtle", "Press"))
+	dump("look_phone_tall")
+	press(find(lands, "Land4"))
+	state = "Free"
+	press(all)
+	dump("look_phone_refused")
+	state = "Dock"
+	-- a land opens on its first reward waiting, scrolled to when it is rows down
+	screen(1920, 1080, false)
+	press(find(lands, "Land1"))
+	ok("the first reward waiting is in sight: the list stays at its top", list.CanvasPosition.Y == 0)
+	press(find(list, "SeaTurtle", "Press"))
+	press(claim)
+	press(find(lands, "Land2"))
+	press(find(lands, "Land1"))
+	ok("the next is a row further down: the list is scrolled to it", list.CanvasPosition.Y > 0, list.CanvasPosition.Y)
+	press(find(lands, "Land3"))
+	ok("a land with none waiting opens at its top", list.CanvasPosition.Y == 0)
+end
 
 for _, line in world.warnings do
 	print("  warning: " .. line)

@@ -18,6 +18,42 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The Index, richer: land banners and big cards (2026-11-25, Hugo; NULLROOM task i1): built, not seen in Studio
+Hugo: "Make index ui feel more like ride a dino(ref image 5.) you can generate land pictures from the screenshots you
+took, make them a little more artistic and stylised like ride a dino though, not so roblox looking as in the map icons."
+Its feel and layout logic, in our kit, our colours and our pictures. `Config.Index.Look` 1; **0 is the window before**.
+
+![the Index on a PC and on phones, before and after](../attachments/index-look.png)
+
+**What felt different** (its Index beside ours):
+
+| | The reference | Ours before | Now |
+|---|---|---|---|
+| The land | a tall painting with its name on it and its COMPLETE reward inside | a thin "Shallows set" strip | a tall painted banner at the left: name, COMPLETE box, the bar or CLAIM! |
+| The tabs | none, it scrolls every land | ten flat words | kept (a jump and a "!" per land), each a strip of its land's painting |
+| A card | 3 across, name over a picture that fills it, the colour says the rarity | 5 across, three rows of small words | 3 across (2 upright): name, picture, colour |
+| The chosen one | a big panel in its rarity's colour | a small picture and words on slate | a big panel in its rarity's colour |
+| Rewards | its own edged box, big pictures, a huge CLAIM | thin chips | its own box (gold edge while waiting), big tiles, a huge CLAIM! |
+| Header and foot | title left, CLAIM ALL and X; a fat bar | title centred, Claim All in the foot, a thin bar | title left, CLAIM ALL (n), X; a fat "Unlocked n/77" |
+| Size | about 85% of the screen's height, heavy type | 65%, 12 to 20 points | 81% on a PC, nearly the whole of a phone, 22 to 46 points |
+
+- **Files:** `UI/IndexPanel` is the door (server's words, hub, checks); `UI/IndexBook` the player's Index and its sums;
+  `UI/IndexWindow` the new window; `UI/IndexOld` the old one, word for word; `UI/LandBanners` the pictures. **`IndexService`,
+  the rewards, the remote and the rules are untouched.**
+- **Three layouts** (`SHAPES`): PC, a phone sideways, a phone upright (375 wide); the window is built again as the screen
+  turns. Smallest word on a phone 12.3 px; smallest button 32 px high (the tabs and a land's CLAIM!).
+- **Variants "n / 24" are what the game records** (six sizes by four colours, `book.Count`): a number only, no page and
+  nothing for sale. The server sends the count, not which ones.
+- **A land opens on its first reward waiting** and scrolls to it. Secrets and kinds not found stay dark with "???".
+- **The banners** are g1's paintings cut to 480 x 800 (`python tools/index/land_banners.py` makes `art/ui/lands/upload`).
+  **Not uploaded (Hugo's yes):** the ten `land_banner_01..10.png`, ids into `LandBanners.Ids`. Until then a live game
+  shows each land's plain colours; Studio shows the paintings after `python tools/index/land_banners.py studio`.
+- **Checked offline** (`python tools/index/look_picture.py` runs all and draws the picture): index_test 73, the new window
+  128, the old one 91, none failed. Three lines of index_test still held the Shallows set's old numbers: put right
+  (410 Oxygen, $5,125, what Config pays).
+- **Not checked:** Studio, a real phone, the live fish models (the pictures here are the renders; a live game draws models
+  until the fish pages are uploaded), memory of ten paintings (about 15 MB). "Before" in the picture is of 24 November.
+
 ## The Index window and the stand rings (2026-11-24, Hugo; NULLROOM tasks h1, h2, h4): in the game
 Hugo, 2026-11-23: "Import index system". Built by worker h2, the sub stand's ring by h1, both merged and checked in
 Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictures).
