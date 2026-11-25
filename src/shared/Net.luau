@@ -18,6 +18,7 @@
 --       fishKey (where to go, 0: no sub; the tank fish to ride with, "id|size|variant" or "") | "SubLand", fish (the
 --       kick has put us on our fish) | "SubLeap", leap (the air hop: our ride fish's leap off the lip, as it begins)
 --     the auras (AuraService): "AuraBuy", tier (the card pressed at the aura stall, UI/AuraShop)
+--     the Fuse machine (FuseService): "Fuse", { pick, pick, pick } (a pick: "T" and a tank key, "H" and a carried key)
 --     not finished: "Place", index, id (the old click to put a carried fish in the tank) still has its handler in AquariumService,
 --       but no client sends it; only tools/studio/e2_click_check.py knows it.
 --   Ride (server -> one client):
@@ -39,6 +40,7 @@
 --     SubService: "SubFish", fish (our fish, beside the sub: drive it there) | "SubDrop", "Fling" or "Kick", fish |
 --       "SubDenied", reason ("Coins", "Dock", "Land", "Top") | "SubBought", tier
 --     AuraService: "AuraBought", tier (worn at once) | "AuraDenied", why ("Off", "Order", "Dock", "Coins", "Busy")
+--     FuseService: "Fused", what came of it (AquariumService.Fused) | "FuseDenied", why (FuseService's head lists them)
 --   Fx (server -> every client, all from RideService): "Land", player, fish, count (that rider's landings so far) |
 --     "Fail", player, fish, kind (out of Oxygen on a fish that does something first: Config.Fail's outcome, played by
 --     FailController) | "Ragdoll", player, fish or nil, kind (that player's body has gone loose) | "ThrowOff", player,
@@ -46,19 +48,26 @@
 --     ate a wild fish there) | "Smash", player, fish, where, boxes (that rider's Breaker was paid for a prop)
 --   Sandbox (client -> server, Studio only: SandboxService): "Tune", "Group.Key", number | "Flag", name, boolean |
 --     "Reset" | "Ride", fishId, variant (onto a fish of that kind, put at the start)
---   Two more remotes sit in the same folder, made by their own services:
+--   More remotes sit in the same folder, made by their own services:
 --     Admin (AdminService; the owner's panel, both ways): the client sends what it wants ("Coins", "Fish", "Subs",
 --       "Max", "Land", "NoFail", "EndlessAir", "Fail"); the server answers "Done", text or "Refused", text
 --     Trainer (TrainService, both ways): the client sends "Off" or "Up"; the server sends "On", fish | "Off", fish,
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
+--     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim" | "Triple" (hold
+--       it, I buy Claim x3); the server sends "Paid", coins | "Buy", product id (open Roblox's prompt) | "Denied", why
+--       ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into; "Buying": held for a purchase; "Sale")
+--     Boards (LeaderboardService and BoardController, both ways): the client sends "Sync" (send me the boards); the
+--       server sends "State", { Next = server time of the next look, Boards = { { Id, Global, Rows = { { Id, Name,
+--       User, Value, Rank } } } } } (Global false: this server's players only)
 --   Index (IndexService and UI/IndexPanel, both ways; the rewards: Config.Index):
 --     the client sends "Claim", fishId (the reward of a kind it has found) | "ClaimLand", land (the reward of a land
 --       whose whole set it has found) | "ClaimAll" (every reward it may claim) | "Sync" (send me my Index again)
+--       | "Saddle", land (put that land's saddle on, one it owns; 0: take the worn one off)
 --     the server sends "State", found, kinds, lands (the player's whole Index, after every change: found is fish id ->
 --       how many of its looks, size and colour, they have caught; kinds and lands are what they have claimed, fish id
---       -> true and land as a string -> true) | "Paid", oxygen, coins, count (a claim was paid: the max Oxygen and
---       coins given, and how many rewards it was) | "Denied", why ("Dock": not on the dock, "Nothing": nothing there
---       to claim)
+--       -> true and land as a string -> true) | "Paid", oxygen, coins, count, saddles (a claim was paid: the max
+--       Oxygen and coins given, how many rewards it was, and the lands whose saddle came with it) | "Denied", why
+--       ("Dock": not on the dock, "Nothing": nothing there to claim, "Saddle": not theirs to wear)
 -- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
 -- Attributes on a fish the server owns (besides FishService's own: FishType, Tier, Variant, Rider, Reserved): Angry
@@ -79,8 +88,13 @@
 -- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being
 -- yours; nil off a fish, on one too strong, or with taming off),
 -- IndexFound (how many kinds they have caught) and IndexClaims (how many Index rewards wait to be claimed),
--- IndexPaid (they have claimed one before): IndexService,
+-- IndexPaid (they have claimed one before) and Saddle (the land whose saddle they wear, 0 for none: Shared/Saddles,
+-- SaddleController): IndexService,
+-- OfflineOwed and OfflineSecs (the coins to claim from the tank's earnings while they were away, and the seconds it earned
+-- them in; nil: none): OfflineService,
 -- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,
+-- BoardOxygen, BoardCollectors, BoardEarners (and one for each other board of Config.Boards.List that is on): the
+-- player's own number on that board: LeaderboardService,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

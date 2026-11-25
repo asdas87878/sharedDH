@@ -18,6 +18,8 @@
 --   hands, for Config.sellOf coins: Action "Sell", "Tank", key | "Hand", index, id, anywhere on the dock (so a sell
 --   stall can ask too); answered with Ride "Sold", id, coins, or "TankDenied", "Gone" or
 --   "Equipped" (a fish equipped in the tank is never sold: it must be unequipped first; task b2).
+--   Fusing (Hugo, 2026-11-25; docs/design/fusing.md): AquariumService.fuse, FuseService's one step: three fish of a kind,
+--   from the tank and the hands, become one.
 --   Plot upgrades (the same task; Config.PlotUpgrades): a sign in the seahorse sign's style stands in front of the
 --   far-left end of the tank's front (the parts PlotBoard and PlotPost, made here when the map has none; written on
 --   by Client.UI.UpgradeSign). A click on its cash block asks Action "Plot", "Up": the owner, alive, on the dock,
@@ -33,7 +35,7 @@
 --   only on the dock, near one's own tank (the plot's "PanelReach" attribute, studs from the tank, plus some slack);
 --   refused with Ride "TankDenied", reason ("Far", "Full", "Gone"). What the popup shows comes from the player's
 --   attributes "TankList" (every fish: key, id, size, variant, 1 if equipped) and "Hands" (what they carry: id, size,
---   variant, oldest first). Coins are the player's "Coins" attribute (the
+--   variant, key, oldest first). Coins are the player's "Coins" attribute (the
 --   HUD's coin row shows itself when it is there), "Income" what the tank earns a second, "TankFish" how many it holds.
 --   Seen: the earning fish swim in the tank, small. The server puts each in its place, anchored, with the tag
 --   "TankFish" and the numbers of its lap; every client moves them round itself (AquariumController), so they cost no
@@ -56,6 +58,7 @@
 --   Shown fish and attributes: the tank's fish in the water, and what the player's attributes say
 --   Holding over the head: building the held fish, dropping it, putting it away and holding another
 --   The tank's fish: adding, trimming, placing, equipping, taking out and selling
+--   Fusing: three fish of the tank and the hands made one
 --   Upgrades and plots: buying the next stage, a player taking a plot, and leaving it
 --   Where a player stands: on a plot, in front of its tank, and the way home
 --   For other services: the plot, the shown fish, coins, spending and giving
@@ -71,9 +74,11 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Fuse = require(ReplicatedStorage.Shared.Fuse)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Variants = require(ReplicatedStorage.Shared.Variants)
 local FishModel = require(script.Parent.Parent.Lib.FishModel)
+local PackService = require(script.Parent.PackService)
 local RideService = require(script.Parent.RideService)
 
 type Entry = {
@@ -449,11 +454,12 @@ local function tell(tank: Tank)
 	tank.Player:SetAttribute("PlotStage", tank.Stage)
 end
 
--- What a player carries, for the popup ("Hands": id, size, variant, oldest first), written only when it changed
+-- What a player carries, for the popup ("Hands": id, size, variant, key, oldest first), written only when it changed
 local function tellHands(tank: Tank)
 	local rows = {}
 	for _, c in RideService.carried(tank.Player) do
-		table.insert(rows, { c.Id, c.Size, c.Variant })
+		local row: { any } = { c.Id, c.Size, c.Variant, c.Key or 0 }
+		table.insert(rows, row)
 	end
 	local json = HttpService:JSONEncode(rows)
 	if json ~= tank.Hands then
@@ -858,6 +864,145 @@ local function sell(tank: Tank, where: string, a: any, b: any): string?
 	refreshHeld(tank.Player) -- (put away at once if it was the held one)
 	Net.Ride:FireClient(tank.Player, "Sold", id, coins)
 	return nil
+end
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fusing: three fish of the tank and the hands made one
+
+-- A part of the telling that went wrong says so and stops there: what was fused is fused
+local function say(what: string, tellIt: () -> ())
+	local ok, problem = pcall(function(): any
+		tellIt()
+		return nil
+	end)
+	if not ok then
+		warn(`[AquariumService] fused, but {what} failed: {problem}`)
+	end
+end
+
+-- Three of a player's fish fused (FuseService, which has checked the player, the place and the shape of the ask; the
+-- rules are Shared/Fuse's, docs/design/fusing.md). Each pick names one fish, whatever its place now: "T" and its Key in
+-- the tank, "H" and its Key in the hands. First everything is looked up and checked with nothing changed; then, in one
+-- piece with nothing in it that waits or can fail, the two are taken out, the one that stays is made a size bigger
+-- where it is, and the price is taken; only then is anyone told, and a telling that breaks undoes nothing.
+-- Returns what it gave, or nil and why not: "Gone" (not theirs now, or the same one twice), "Equipped" (it earns in the
+-- tank), "Ride" (the ride fish), "Coins", "Off" (no such price) or Fuse.outcome's own ("Three", "Kind", "Size", "Top")
+export type Fused = {
+	Pick: string, -- the one that stayed, as picked
+	Id: string,
+	Variant: string,
+	From: string,
+	To: string,
+	Used: { Fuse.Fish },
+}
+function AquariumService.fuse(player: Player, picks: { string }): (Fused?, string?)
+	local tank = tanks[player]
+	local carried = RideService.carried(player)
+	local list: { Fuse.Fish } = {}
+	local entries: { [number]: Entry } = {}
+	local carries: { [number]: RideService.Carry } = {}
+	local seen: { [any]: boolean } = {}
+	for i, pick in picks do
+		local from, key = string.sub(pick, 1, 1), string.sub(pick, 2)
+		local fish: Fuse.Fish? = nil
+		if from == "T" and tank then
+			local entry = find(tank, key)
+			if entry and entry.On and Config.Fuse.Earning == 0 then
+				return nil, "Equipped"
+			elseif entry then
+				entries[i] = entry
+				fish = entry
+			end
+		elseif from == "H" then
+			for _, carry in carried do
+				if tostring(carry.Key) == key then
+					if carry == RideService.equippedOf(player) then
+						return nil, "Ride"
+					end
+					carries[i] = carry
+					fish = carry
+					break
+				end
+			end
+		end
+		if not fish or seen[fish] then
+			return nil, "Gone"
+		end
+		seen[fish] = true
+		table.insert(list, { Id = fish.Id, Size = fish.Size, Variant = fish.Variant })
+	end
+	local outcome, why = Fuse.outcome(list)
+	if not outcome then
+		return nil, why
+	end
+	local price = Config.Fuse.Price
+	if type(price) ~= "number" or price ~= price or price < 0 then
+		return nil, "Off"
+	end
+	if price > 0 and (not tank or tank.Coins < price) then
+		return nil, "Coins"
+	end
+	local usedCarries: { RideService.Carry } = {}
+	local usedEntries: { [Entry]: boolean } = {}
+	local used: { Fuse.Fish } = {}
+	for _, i in outcome.Used do
+		table.insert(used, list[i])
+		if carries[i] then
+			table.insert(usedCarries, carries[i])
+		else
+			usedEntries[entries[i]] = true
+		end
+	end
+	local keptEntry, keptCarry = entries[outcome.Keep], carries[outcome.Keep] :: RideService.Carry?
+	-- the hands' part, all or nothing, then the tank's, which cannot fail
+	if not RideService.fuseCarried(player, usedCarries, keptCarry, outcome.To) then
+		return nil, "Gone"
+	end
+	if tank then
+		for i = #tank.Fish, 1, -1 do
+			if usedEntries[tank.Fish[i]] then
+				table.remove(tank.Fish, i)
+			end
+		end
+		if keptEntry then
+			keptEntry.Size = outcome.To
+			if keptEntry.On then
+				tank.ShownAs = nil -- (it swims there: laid out again, bigger)
+			end
+		end
+		tank.Coins -= price
+	end
+	-- (done: the rest is telling)
+	local h = held[player]
+	if h and h.Carry == keptCarry then
+		dropHeldModel(h) -- (held over the head: built again, bigger)
+		player:SetAttribute("HeldSize", outcome.To)
+	end
+	say("telling the hands", function()
+		RideService.tellCarried(player)
+	end)
+	if tank then
+		say("counting the tank", function()
+			count(tank)
+			tell(tank)
+			tellHands(tank)
+		end)
+		say("showing the tank", function()
+			changed(tank)
+		end)
+	end
+	say("the held fish", function()
+		refreshHeld(player)
+	end)
+	local fused: Fused = {
+		Pick = picks[outcome.Keep],
+		Id = list[outcome.Keep].Id,
+		Variant = list[outcome.Keep].Variant,
+		From = outcome.From,
+		To = outcome.To,
+		Used = used,
+	}
+	return fused, nil
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -1521,7 +1666,7 @@ function AquariumService.Start()
 		local pay = now - paidAt >= Config.Aquarium.Every
 		for player, tank in tanks do
 			if pay and tank.Income > 0 then
-				tank.Coins += tank.Income * (now - paidAt)
+				tank.Coins += tank.Income * (now - paidAt) * PackService.cashMult()
 				player:SetAttribute("Coins", math.floor(tank.Coins))
 			end
 			tellHands(tank)

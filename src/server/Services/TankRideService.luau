@@ -4,6 +4,8 @@
 -- "Dock" to RideService the whole time, so there is no Oxygen, no fail or throw-off, no taming and no catch.
 -- Since task b4 (Hugo, 2026-11-22): got on by looking at a fish and holding E (TankRideController), ridden with full
 -- control, and the fish keeps its real size, so it is the RIDER (the fish's Saddle) who is kept in the water.
+--   TankRide.Direct 1 (the user, 2026-11-25): E on a tank fish takes it out of the tank, equips it and rides it on land
+--   where the player stands; nothing under here about riding inside the water then happens.
 --   Getting on: Action "TankRide", "On", fish. Only the tank's owner, on the dock, at their own tank, onto one of
 --   the fish swimming in THEIR tank now (a fish of another tank is refused: "NotYours"). The fish stops its lap where
 --   everyone sees it (its "TankFish" tag comes off, so no machine moves it round any more), is made loose and given
@@ -193,8 +195,24 @@ local function start(player: Player, fish: any)
 		Net.Ride:FireClient(player, "Denied", "TankRide", "Empty")
 		return
 	end
-	AquariumService.putAway(player) -- (no fish held over the head while riding one)
 	local key = AquariumService.keyOfShown(player, model)
+	if c.Direct == 1 then
+		-- the fish comes to the player and is ridden on land, as "TakeOut" and then Q (the user, 2026-11-25: not stuck
+		-- in the tank). Everything is checked before anything changes
+		local why = if key then AquariumService.outRefusal(player, key) else "Gone"
+		why = why or RideService.outRefusal(player)
+		if why then
+			Net.Ride:FireClient(player, "Denied", "TankRide", why)
+			return
+		end
+		AquariumService.putAway(player)
+		local carry = AquariumService.takeOutKey(player, key :: any)
+		if carry then
+			RideService.rideOut(player, carry)
+		end
+		return
+	end
+	AquariumService.putAway(player) -- (no fish held over the head while riding one)
 	-- out of its lap, where every machine shows it now: no machine moves it round any more. It keeps its size
 	local at, look = lapOf(model, fishRoot)
 	CollectionService:RemoveTag(model, AquariumService.Tag)

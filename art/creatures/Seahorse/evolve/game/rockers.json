@@ -1,0 +1,1242 @@
+{
+ "2": {
+  "name": "SeahorseRocker2",
+  "title": "Painted",
+  "triangles": 1182,
+  "parts": 17,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_coil",
+   "s_pad",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "Fan",
+   "Neck",
+   "Head",
+   "FinL",
+   "FinR",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "T10"
+  ],
+  "standParts": [
+   "Stand"
+  ],
+  "foot": [
+   0.0,
+   -11.5779,
+   0.4065
+  ],
+  "standTop": -9.9779,
+  "springAt": [
+   0.0,
+   -3.9779,
+   0.4065
+  ],
+  "bodyPivot": [
+   0.0,
+   -1.5779,
+   0.4065
+  ],
+  "seat": [
+   0.0,
+   2.1621,
+   2.1665
+  ],
+  "coilRing": 0.952,
+  "coilWire": 0.408,
+  "springLength": 5.1,
+  "swing": 11,
+  "pad": 4.25,
+  "game": {
+   "ahead": 6.8,
+   "behind": 6.1,
+   "left": 4.2,
+   "right": 4.2,
+   "top": 19.7,
+   "seatTop": 11.7,
+   "seatBehind": 1.5,
+   "lowest": {
+    "0": [
+     4.7,
+     19.7
+    ],
+    "3": [
+     3.2,
+     18.9
+    ],
+    "6": [
+     4.8,
+     15.8
+    ]
+   }
+  }
+ },
+ "3": {
+  "name": "SeahorseRocker3",
+  "title": "Saddled",
+  "triangles": 1650,
+  "parts": 14,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_coil",
+   "s_pad",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "Fan",
+   "LegL",
+   "LegR",
+   "Neck",
+   "Head",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7"
+  ],
+  "standParts": [
+   "Stand"
+  ],
+  "foot": [
+   0.0,
+   -12.0386,
+   -0.0302
+  ],
+  "standTop": -10.0386,
+  "springAt": [
+   0.0,
+   -4.0386,
+   -0.0302
+  ],
+  "bodyPivot": [
+   0.0,
+   -2.0386,
+   -0.0302
+  ],
+  "seat": [
+   0.0,
+   3.1214,
+   1.7298
+  ],
+  "coilRing": 1.02,
+  "coilWire": 0.442,
+  "springLength": 5.1,
+  "swing": 11,
+  "pad": 4.25,
+  "game": {
+   "ahead": 7.4,
+   "behind": 7.5,
+   "left": 4.2,
+   "right": 4.2,
+   "top": 20.5,
+   "seatTop": 12.9,
+   "seatBehind": 1.5,
+   "lowest": {
+    "0": [
+     4.8,
+     20.1
+    ],
+    "3": [
+     2.0,
+     20.5
+    ],
+    "6": [
+     2.4,
+     17.0
+    ]
+   }
+  }
+ },
+ "4": {
+  "name": "SeahorseRocker4",
+  "title": "Racer",
+  "triangles": 1398,
+  "parts": 17,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_coil",
+   "s_pad",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "Fan",
+   "Fin2L",
+   "Fin2R",
+   "FinL",
+   "FinR",
+   "Neck",
+   "Head",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8"
+  ],
+  "standParts": [
+   "Stand"
+  ],
+  "foot": [
+   0.0,
+   -10.2103,
+   0.0249
+  ],
+  "standTop": -8.2103,
+  "springAt": [
+   0.0,
+   -2.2103,
+   0.0249
+  ],
+  "bodyPivot": [
+   0.0,
+   -0.2103,
+   0.0249
+  ],
+  "seat": [
+   0.0,
+   5.2297,
+   1.2249
+  ],
+  "coilRing": 1.02,
+  "coilWire": 0.442,
+  "springLength": 5.1,
+  "swing": 10,
+  "pad": 4.25,
+  "game": {
+   "ahead": 12.6,
+   "behind": 12.5,
+   "left": 4.8,
+   "right": 4.8,
+   "top": 17.4,
+   "seatTop": 13.1,
+   "seatBehind": 1.0,
+   "lowest": {
+    "0": [
+     6.9,
+     17.1
+    ],
+    "3": [
+     6.3,
+     17.2
+    ],
+    "6": [
+     4.7,
+     17.4
+    ],
+    "9": [
+     4.4,
+     14.4
+    ],
+    "12": [
+     6.8,
+     14.0
+    ]
+   }
+  }
+ },
+ "5": {
+  "name": "SeahorseRocker5",
+  "title": "Iron",
+  "triangles": 2032,
+  "parts": 13,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_coil",
+   "s_pad",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "Fan",
+   "FinL",
+   "FinR",
+   "Neck",
+   "Head",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6"
+  ],
+  "standParts": [
+   "Stand"
+  ],
+  "foot": [
+   0.0,
+   -12.0642,
+   0.7739
+  ],
+  "standTop": -9.6642,
+  "springAt": [
+   0.0,
+   -3.2642,
+   0.7739
+  ],
+  "bodyPivot": [
+   0.0,
+   -0.4642,
+   0.7739
+  ],
+  "seat": [
+   0.0,
+   6.2558,
+   2.1339
+  ],
+  "coilRing": 1.156,
+  "coilWire": 0.51,
+  "springLength": 5.44,
+  "swing": 10,
+  "pad": 4.59,
+  "game": {
+   "ahead": 10.9,
+   "behind": 9.5,
+   "left": 5.7,
+   "right": 5.7,
+   "top": 20.5,
+   "seatTop": 15.6,
+   "seatBehind": 1.2,
+   "lowest": {
+    "0": [
+     7.5,
+     17.0
+    ],
+    "3": [
+     7.5,
+     20.2
+    ],
+    "6": [
+     8.5,
+     20.5
+    ],
+    "9": [
+     9.3,
+     15.6
+    ]
+   }
+  }
+ },
+ "6": {
+  "name": "SeahorseRocker6",
+  "title": "Spiked",
+  "triangles": 1848,
+  "parts": 16,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_coil",
+   "s_pad",
+   "s_post",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "Fan",
+   "FinL",
+   "FinR",
+   "Neck",
+   "Head",
+   "Jaw",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8"
+  ],
+  "standParts": [
+   "Stand"
+  ],
+  "foot": [
+   0.0,
+   -13.4934,
+   0.765
+  ],
+  "standTop": -11.0934,
+  "springAt": [
+   0.0,
+   -4.6934,
+   0.765
+  ],
+  "bodyPivot": [
+   0.0,
+   -2.6934,
+   0.765
+  ],
+  "seat": [
+   0.0,
+   2.5866,
+   1.805
+  ],
+  "coilRing": 1.224,
+  "coilWire": 0.51,
+  "springLength": 5.44,
+  "swing": 10,
+  "pad": 4.59,
+  "game": {
+   "ahead": 13.2,
+   "behind": 11.9,
+   "left": 6.5,
+   "right": 6.5,
+   "top": 22.9,
+   "seatTop": 13.7,
+   "seatBehind": 0.9,
+   "lowest": {
+    "0": [
+     7.5,
+     15.8
+    ],
+    "3": [
+     4.2,
+     22.9
+    ],
+    "6": [
+     3.1,
+     21.8
+    ],
+    "9": [
+     4.1,
+     18.4
+    ],
+    "12": [
+     13.1,
+     14.6
+    ]
+   }
+  }
+ },
+ "7": {
+  "name": "SeahorseRocker7",
+  "title": "Knight",
+  "triangles": 2436,
+  "parts": 20,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_cap",
+   "s_coil",
+   "s_pad",
+   "s_post",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "FanL",
+   "FanR",
+   "LegL",
+   "ShinL",
+   "LegR",
+   "ShinR",
+   "Neck",
+   "Head",
+   "Jaw",
+   "Head_Glow",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7"
+  ],
+  "standParts": [
+   "Stand",
+   "Stand_Glow"
+  ],
+  "foot": [
+   0.0,
+   -16.9542,
+   -0.9226
+  ],
+  "standTop": -14.1542,
+  "springAt": [
+   0.0,
+   -7.3542,
+   -0.9226
+  ],
+  "bodyPivot": [
+   0.0,
+   -4.5542,
+   -0.9226
+  ],
+  "seat": [
+   0.0,
+   1.9258,
+   1.5574
+  ],
+  "coilRing": 1.36,
+  "coilWire": 0.578,
+  "springLength": 5.78,
+  "swing": 9,
+  "pad": 4.93,
+  "game": {
+   "ahead": 12.4,
+   "behind": 14.0,
+   "left": 7.8,
+   "right": 7.8,
+   "top": 28.8,
+   "seatTop": 16.0,
+   "seatBehind": 2.1,
+   "lowest": {
+    "0": [
+     8.9,
+     25.5
+    ],
+    "3": [
+     7.7,
+     27.8
+    ],
+    "6": [
+     5.3,
+     28.3
+    ],
+    "9": [
+     5.4,
+     27.7
+    ],
+    "12": [
+     7.2,
+     28.8
+    ]
+   }
+  }
+ },
+ "8": {
+  "name": "SeahorseRocker8",
+  "title": "Royal",
+  "triangles": 3094,
+  "parts": 27,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_cap",
+   "s_coil",
+   "s_pad",
+   "s_post",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "Fan",
+   "FanL",
+   "FanL_Glow",
+   "FanR",
+   "FanR_Glow",
+   "Fan_Glow",
+   "LeafL",
+   "LeafR",
+   "Neck",
+   "Head",
+   "Jaw",
+   "Head_Glow",
+   "TL1",
+   "TL2",
+   "TL3",
+   "TL4",
+   "TL5",
+   "TL6",
+   "TR1",
+   "TR2",
+   "TR3",
+   "TR4",
+   "TR5",
+   "TR6"
+  ],
+  "standParts": [
+   "Stand",
+   "Stand_Glow"
+  ],
+  "foot": [
+   0.0,
+   -16.5329,
+   -0.8405
+  ],
+  "standTop": -13.3329,
+  "springAt": [
+   0.0,
+   -6.5329,
+   -0.8405
+  ],
+  "bodyPivot": [
+   0.0,
+   -3.5729,
+   -0.8405
+  ],
+  "seat": [
+   0.0,
+   3.0671,
+   0.1195
+  ],
+  "coilRing": 1.496,
+  "coilWire": 0.612,
+  "springLength": 5.78,
+  "swing": 9,
+  "pad": 5.27,
+  "game": {
+   "ahead": 11.9,
+   "behind": 13.3,
+   "left": 9.9,
+   "right": 9.9,
+   "top": 28.1,
+   "seatTop": 16.7,
+   "seatBehind": 0.8,
+   "lowest": {
+    "0": [
+     9.6,
+     25.0
+    ],
+    "3": [
+     6.7,
+     28.1
+    ],
+    "6": [
+     6.0,
+     28.0
+    ],
+    "9": [
+     5.7,
+     27.6
+    ],
+    "12": [
+     6.2,
+     23.2
+    ],
+    "15": [
+     8.6,
+     9.3
+    ]
+   }
+  }
+ },
+ "9": {
+  "name": "SeahorseRocker9",
+  "title": "Golden",
+  "triangles": 3320,
+  "parts": 24,
+  "lights": [
+   [
+    "Arms",
+    [
+     -38.0,
+     0,
+     41.0
+    ],
+    "#B25CFF",
+    40,
+    1.5
+   ]
+  ],
+  "rainbow": false,
+  "accent": "#B25CFF",
+  "keep": [
+   "black",
+   "cloth",
+   "cream",
+   "ivory",
+   "maw",
+   "s_base",
+   "s_cap",
+   "s_coil",
+   "s_pad",
+   "s_post",
+   "s_rim",
+   "s_trim",
+   "tongue"
+  ],
+  "toyParts": [
+   "Body",
+   "Arms",
+   "Arms_Glow",
+   "Fan",
+   "Neck",
+   "Head",
+   "Jaw",
+   "WhiskL",
+   "WhiskR",
+   "Head_Glow",
+   "Neck_Glow",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "WingL",
+   "WingR"
+  ],
+  "standParts": [
+   "Stand",
+   "Stand_Glow"
+  ],
+  "foot": [
+   0.0,
+   -19.3115,
+   1.2943
+  ],
+  "standTop": -16.1115,
+  "springAt": [
+   0.0,
+   -8.9115,
+   1.2943
+  ],
+  "bodyPivot": [
+   0.0,
+   -5.7115,
+   1.2943
+  ],
+  "seat": [
+   0.0,
+   2.1285,
+   3.2943
+  ],
+  "coilRing": 1.632,
+  "coilWire": 0.68,
+  "springLength": 6.12,
+  "swing": 8,
+  "pad": 5.27,
+  "game": {
+   "ahead": 17.0,
+   "behind": 14.8,
+   "left": 12.2,
+   "right": 12.2,
+   "top": 32.8,
+   "seatTop": 18.2,
+   "seatBehind": 1.7,
+   "lowest": {
+    "0": [
+     15.1,
+     27.2
+    ],
+    "3": [
+     5.9,
+     31.8
+    ],
+    "6": [
+     3.1,
+     32.8
+    ],
+    "9": [
+     2.7,
+     30.3
+    ],
+    "12": [
+     3.9,
+     30.5
+    ],
+    "15": [
+     18.0,
+     30.0
+    ],
+    "18": [
+     26.1,
+     26.3
+    ]
+   }
+  }
+ },
+ "10": {
+  "name": "SeahorseRocker10",
+  "title": "Abyssal",
+  "triangles": 3786,
+  "parts": 38,
+  "lights": [
+   [
+    "Head",
+    [
+     -40.0,
+     0,
+     42.0
+    ],
+    "#2FE6FF",
+    150,
+    1.0
+   ],
+   [
+    "Lure",
+    [
+     -55.6,
+     0,
+     69.0
+    ],
+    "#2FE6FF",
+    60,
+    0.8
+   ]
+  ],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_cap",
+   "s_coil",
+   "s_crystal",
+   "s_pad",
+   "s_post",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "Fan",
+   "Fan_Glow",
+   "Head",
+   "Jaw",
+   "Jaw_Glow",
+   "Lure",
+   "Lure_Glow",
+   "Head_Glow",
+   "LoL1",
+   "LoL2",
+   "LoR1",
+   "LoR2",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T6_Glow",
+   "T5_Glow",
+   "T4_Glow",
+   "T3_Glow",
+   "T2_Glow",
+   "T1_Glow",
+   "UpL1",
+   "UpL2",
+   "UpR1",
+   "UpR2",
+   "WingL",
+   "WingL_Glow",
+   "WingR",
+   "WingR_Glow",
+   "Body_Glow"
+  ],
+  "standParts": [
+   "Stand",
+   "Stand_Glow"
+  ],
+  "foot": [
+   0.0,
+   -16.8067,
+   4.01
+  ],
+  "standTop": -13.2067,
+  "springAt": [
+   0.0,
+   -6.0067,
+   4.01
+  ],
+  "bodyPivot": [
+   0.0,
+   -2.4067,
+   4.01
+  ],
+  "seat": [
+   0.0,
+   5.5933,
+   4.81
+  ],
+  "coilRing": 1.768,
+  "coilWire": 0.748,
+  "springLength": 6.12,
+  "swing": 7,
+  "pad": 5.61,
+  "game": {
+   "ahead": 21.2,
+   "behind": 14.4,
+   "left": 11.9,
+   "right": 11.9,
+   "top": 28.6,
+   "seatTop": 19.0,
+   "seatBehind": 0.7,
+   "lowest": {
+    "0": [
+     16.8,
+     21.7
+    ],
+    "3": [
+     4.4,
+     28.2
+    ],
+    "6": [
+     3.5,
+     27.2
+    ],
+    "9": [
+     3.6,
+     25.4
+    ],
+    "12": [
+     5.1,
+     27.6
+    ],
+    "15": [
+     6.2,
+     28.6
+    ],
+    "18": [
+     6.4,
+     27.4
+    ],
+    "21": [
+     24.3,
+     24.4
+    ]
+   }
+  }
+ },
+ "11": {
+  "name": "SeahorseRocker11",
+  "title": "Starfire",
+  "triangles": 4888,
+  "parts": 42,
+  "lights": [],
+  "rainbow": false,
+  "accent": null,
+  "keep": [
+   "black",
+   "cream",
+   "ivory",
+   "s_base",
+   "s_cap",
+   "s_coil",
+   "s_crystal",
+   "s_pad",
+   "s_post",
+   "s_rim",
+   "s_trim"
+  ],
+  "toyParts": [
+   "Body",
+   "ArmL",
+   "ArmR",
+   "Neck",
+   "Head",
+   "Jaw",
+   "Jaw_Glow",
+   "Head_Glow",
+   "Neck_Glow",
+   "NeckL",
+   "HeadL",
+   "JawL",
+   "JawL_Glow",
+   "HeadL_Glow",
+   "NeckL_Glow",
+   "NeckR",
+   "HeadR",
+   "JawR",
+   "JawR_Glow",
+   "HeadR_Glow",
+   "NeckR_Glow",
+   "TL1",
+   "TL2",
+   "TL3",
+   "TL4",
+   "TL4_Glow",
+   "TR1",
+   "TR2",
+   "TR3",
+   "TR4",
+   "TR4_Glow",
+   "Wing2L",
+   "Wing2L_Glow",
+   "Wing2R",
+   "Wing2R_Glow",
+   "WingL",
+   "WingL_Glow",
+   "WingR",
+   "WingR_Glow",
+   "Body_Glow"
+  ],
+  "standParts": [
+   "Stand",
+   "Stand_Glow"
+  ],
+  "foot": [
+   0.0,
+   -21.0407,
+   1.2846
+  ],
+  "standTop": -17.0407,
+  "springAt": [
+   0.0,
+   -9.8407,
+   1.2846
+  ],
+  "bodyPivot": [
+   0.0,
+   -5.8407,
+   1.2846
+  ],
+  "seat": [
+   0.0,
+   2.7993,
+   2.8846
+  ],
+  "coilRing": 1.87,
+  "coilWire": 0.816,
+  "springLength": 6.12,
+  "swing": 6,
+  "pad": 5.95,
+  "game": {
+   "ahead": 20.7,
+   "behind": 18.5,
+   "left": 16.0,
+   "right": 16.0,
+   "top": 35.8,
+   "seatTop": 20.3,
+   "seatBehind": 1.4,
+   "lowest": {
+    "0": [
+     17.2,
+     26.8
+    ],
+    "3": [
+     9.5,
+     35.8
+    ],
+    "6": [
+     8.6,
+     35.7
+    ],
+    "9": [
+     6.2,
+     34.6
+    ],
+    "12": [
+     4.8,
+     32.8
+    ],
+    "15": [
+     4.7,
+     33.1
+    ],
+    "18": [
+     7.4,
+     26.8
+    ],
+    "21": [
+     14.3,
+     21.1
+    ]
+   }
+  }
+ },
+ "12": {
+  "name": "SeahorseRocker12",
+  "title": "Prismatic",
+  "triangles": 4654,
+  "parts": 28,
+  "lights": [
+   [
+    "Head",
+    [
+     -56.0,
+     0,
+     73.0
+    ],
+    "#FF6FB0",
+    260,
+    3.0
+   ]
+  ],
+  "rainbow": true,
+  "accent": "#8FF2FF",
+  "keep": [
+   "black",
+   "core",
+   "cream",
+   "ivory",
+   "mauve",
+   "maw",
+   "pearl",
+   "s_base",
+   "s_cap",
+   "s_coil",
+   "s_crystal",
+   "s_pad",
+   "s_post",
+   "s_rim",
+   "s_trim",
+   "saddle",
+   "shade"
+  ],
+  "toyParts": [
+   "Body",
+   "ArmL",
+   "ArmR",
+   "Neck",
+   "Head",
+   "Jaw",
+   "Head_Glow",
+   "Neck_Glow",
+   "Sail",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "T10",
+   "T11",
+   "TentL",
+   "TentR",
+   "Wing2L",
+   "Wing2R",
+   "WingL",
+   "WingR"
+  ],
+  "standParts": [
+   "Stand",
+   "Stand_Glow"
+  ],
+  "foot": [
+   0.0,
+   -24.4264,
+   1.2764
+  ],
+  "standTop": -19.6264,
+  "springAt": [
+   0.0,
+   -12.4264,
+   1.2764
+  ],
+  "bodyPivot": [
+   0.0,
+   -7.2264,
+   1.2764
+  ],
+  "seat": [
+   0.0,
+   1.9736,
+   3.6764
+  ],
+  "coilRing": 2.244,
+  "coilWire": 0.952,
+  "springLength": 6.12,
+  "swing": 6,
+  "pad": 6.29,
+  "game": {
+   "ahead": 24.6,
+   "behind": 22.5,
+   "left": 20.1,
+   "right": 20.1,
+   "top": 41.5,
+   "seatTop": 22.4,
+   "seatBehind": 2.0,
+   "lowest": {
+    "0": [
+     22.4,
+     29.2
+    ],
+    "3": [
+     9.2,
+     41.5
+    ],
+    "6": [
+     6.3,
+     39.9
+    ],
+    "9": [
+     4.9,
+     37.6
+    ],
+    "12": [
+     4.8,
+     38.3
+    ],
+    "15": [
+     4.5,
+     36.9
+    ],
+    "18": [
+     6.9,
+     35.9
+    ],
+    "21": [
+     7.6,
+     33.0
+    ],
+    "24": [
+     12.5,
+     30.2
+    ]
+   }
+  }
+ }
+}

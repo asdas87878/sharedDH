@@ -44,9 +44,9 @@ local Shop = {}
 ----------------------------------------------------------------------------------------------------------------------
 -- Pictures: the header icon atlas and the Robux sign
 
--- Upload id for the header icons (empty until the user says yes to the upload)
+-- Upload id for the header icons (uploaded 2026-11-25, the user: "Yes, both")
 Shop.Textures = {
-	Icons = "", -- art/ui/shop/shop_icons.png
+	Icons = "rbxassetid://88960752051228", -- art/ui/shop/shop_icons.png
 }
 local STUDIO = {
 	Icons = "rbxasset://textures/ridefish/shop_icons_s1b.png",

@@ -5,8 +5,8 @@ Up: [Sessions](../Sessions.md). You are the creature chat: the voxel creatures' 
   then workouts [9](../style/09-early-remodels.md), [10](../style/10-sharks-round-2.md) and [11](../style/11-rare-wow-study.md).
 - **In hand (your Sessions row):** `art/creatures/*/voxel.py` and `game/`, `tools/art/voxel_*.py`, `tools/blender/voxel_kit.py`,
   the style notes and `docs/attachments/voxel-*`. Build with the `creature-builder` helper, briefed by a workout's "For the builder".
-- **In the game:** the 29 land recolours (uploaded 2026-11-19, `tools/creatures/recolour_log.json`). Not in the game: every
-  `art/creatures/Trial*` folder. `TrialClawShark` is a study of another game's creature (2026-11-22): never export it as it is.
+- **In the game:** the 29 land recolours (uploaded 2026-11-19, `tools/creatures/recolour_log.json`). Six more on 2026-11-25 ([added](../design/added-2026-11-25.md)).
+  Not in the game: every `art/creatures/Trial*` folder. `TrialClawShark` is a study of another game's creature (2026-11-22): never export it as it is.
 - **Waiting on the user:**
   - workout 9: export the kept remodels (TrialSeaLion, TrialStellersSeaCow, TrialGoliathGrouper);
   - workout 10: which shark trials to keep, and whether Megalodon V3 gets a bigger grin;

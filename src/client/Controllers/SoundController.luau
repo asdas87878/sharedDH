@@ -33,6 +33,7 @@ local HEARD: { [string]: string } = {
 	SubDenied = "No",
 	AuraBought = "Up",
 	AuraDenied = "No",
+	FuseDenied = "No",
 }
 
 local group: SoundGroup
@@ -123,10 +124,9 @@ local function update(dt: number)
 	cut.MidGain = c.CutMid * wet
 end
 
--- The buttons on the dock: any press of one ticks (not the whole-screen one the catch screen lies under, nor Roblox's
--- own stick and jump on a phone)
+-- The buttons on the dock: any press of one ticks (not Roblox's own stick and jump on a phone)
 local function watchButton(d: Instance)
-	if d:IsA("GuiButton") and d.Name ~= "ShowHit" then
+	if d:IsA("GuiButton") then
 		local screen = d:FindFirstAncestorOfClass("ScreenGui")
 		if screen and (screen.Name == "TouchGui" or screen.Name == "ContextActionGui") then
 			return
@@ -178,6 +178,8 @@ function SoundController.Start()
 		local name = HEARD[what]
 		if name then
 			SoundController.play(name)
+		elseif what == "Fused" then -- (as the bigger one comes out: UI/FusePanel's show)
+			task.delay(Config.Fuse.SwirlTime, SoundController.play, "Up")
 		elseif
 			what == "Denied" and (action == "Tame" or action == "Equip" or action == "Hold" or action == "Place")
 		then

@@ -23,6 +23,7 @@
 -- the local copies. In Studio the workspace's "FishIcons" attribute, "Model", shows the models again (to compare).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local FishIcons = require(script.Parent.FishIcons)
@@ -90,6 +91,8 @@ local Settings: Settings = {
 		-- size and placement"; a thin tall fish turns less, or it would be seen edge on)
 		Bust = { Tip = 26, Yaw = 50, Pitch = 10 },
 		Whole = { Tip = 14, Yaw = 46, Pitch = 12 },
+		-- (a whole creature shown off, more of its side to us: Portrait.new's Whole; the Great White pack)
+		Show = { Tip = 12, Yaw = 34, Pitch = 10 },
 		Thin = { Tip = 12, Yaw = 30, Pitch = 10 },
 		Flat = { Tip = 8, Yaw = 40, Pitch = 34 },
 		-- (a squid's front is its mantle: tipped up more than a fish, so the arms trail down to the bottom right)
@@ -100,6 +103,7 @@ local Settings: Settings = {
 		-- (a bust's whole shape fills the picture, its cut end low at the right, under the name)
 		Bust = { X = 0.5, Y = 0.5, Wide = 0.94, High = 0.9 },
 		Whole = { X = 0.5, Y = 0.5, Wide = 0.94, High = 0.84 },
+		Show = { X = 0.5, Y = 0.5, Wide = 0.98, High = 0.96 },
 		Thin = { X = 0.5, Y = 0.5, Wide = 0.92, High = 0.92 },
 		Flat = { X = 0.5, Y = 0.52, Wide = 0.96, High = 0.8 },
 		Squid = { X = 0.48, Y = 0.48, Wide = 0.9, High = 0.88 }, -- (the mantle and head whole, as a bust's shape)
@@ -216,7 +220,7 @@ end
 
 -- How a creature set at the middle, unturned, is shown: which kind of picture, its pose, from where, and the points its
 -- picture is measured by (the corners of its parts' boxes, posed: for a bust only its head and the body just behind)
-local function frame(model: Model): View
+local function frame(model: Model, whole: boolean?): View
 	local _, size = model:GetBoundingBox()
 	local all: { Vector3 } = {}
 	local head: { Vector3 } = {}
@@ -291,7 +295,9 @@ local function frame(model: Model): View
 		return kept
 	end
 	local tall = math.max(size.Y, size.X * 0.7)
-	if hasMantle and hasHead and size.Z > Settings.Small then
+	if whole then
+		kind = "Show"
+	elseif hasMantle and hasHead and size.Z > Settings.Small then
 		-- a squid, an octopus, the kraken: its head (the mantle and the eyes), the arms left hanging out of the bottom
 		for _, piece in pieces do
 			if piece.Arm then
@@ -393,8 +399,9 @@ local function stand(view: View, aspect: number): (CFrame, number)
 end
 
 -- The kept copy of a kind: only what draws (parts, their meshes and textures), set at the middle in its pose
-local function master(id: string): Model?
-	local kept = masters[id]
+local function master(id: string, whole: boolean?): Model?
+	local key = if whole then id .. "/Whole" else id
+	local kept = masters[key]
 	if kept then
 		return kept
 	end
@@ -442,17 +449,20 @@ local function master(id: string): Model?
 		copy:PivotTo(CFrame.Angles(0, math.pi, 0))
 		copy.WorldPivot = CFrame.new()
 	end
-	local view = frame(copy)
+	local view = frame(copy, whole)
 	for _, part in view.Cut do
 		part:Destroy()
 	end
 	copy:PivotTo(view.Pose)
-	views[id] = view
-	masters[id] = copy
+	views[key] = view
+	masters[key] = copy
 	return copy
 end
 
-local OUTLINE_WAYS = 8
+-- how many black copies make the outline: every one is the whole creature drawn again, so a phone gets fewer
+local OUTLINE_WAYS = if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	then math.clamp(math.floor(Config.Phone.Outline), 1, 8)
+	else 8
 
 -- props: where the picture sits (a Frame's own properties), Outline: its outline's thickness as a share of the
 -- picture's height (0 for none; Settings.Outline when left out), and Aspect: the window's width over its height to frame
@@ -460,6 +470,9 @@ local OUTLINE_WAYS = 8
 -- the catch screen's tiles use the slots' (Slots.Aspect)
 function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 	local share: number? = props.Outline
+	-- (the whole creature, its side to us, its live model whatever icon it has)
+	local whole: boolean = props.Whole == true
+	props.Whole = nil
 	local aspect: number? = props.Aspect
 	props.Outline = nil
 	props.Aspect = nil
@@ -544,10 +557,12 @@ function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 		-- the outline's thickness, as a share of the picture's height
 		local thick = share or Settings.Outline
 		local page, icon = render(id)
-		if page and icon then
+		if page and icon and not whole then
 			-- the render instead of the model, in the same place with the same outline
 			local place = if icon.Bust then RENDER_PLACE.Bust else RENDER_PLACE.Whole
-			local step = if thick > 0 and across.Y > 0
+			local step = if thick > 0
+					and across.Y > 0
+					and not FishIcons.Outlined
 				then math.max(1, math.floor(thick * across.Y + 0.5)) / pixels()
 				else 0
 			for i, image in pictures() do
@@ -563,11 +578,14 @@ function Portrait.new(parent: Instance, props: { [string]: any }): Portrait
 			shownId = id
 			return true
 		end
-		local source = master(id)
+		local source = master(id, whole)
 		if not source then
 			return false -- (not remembered: the next call looks again)
 		end
-		local at, depth = stand(views[id], aspect or (if across.Y > 0 then across.X / across.Y else 1))
+		local at, depth = stand(
+			views[if whole then id .. "/Whole" else id],
+			aspect or (if across.Y > 0 then across.X / across.Y else 1)
+		)
 		camera.CFrame, inkCamera.CFrame = at, at
 		-- the light from over the viewer's shoulder, whichever way this creature is seen
 		local light = at:VectorToWorldSpace(Settings.Light).Unit

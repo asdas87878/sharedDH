@@ -16,10 +16,10 @@
 -- start, and the seahorse goes on a real grey coil (RideStyles.Trainer, RideStyles.coil) from the middle of its body's
 -- underside down to a small round red pad. Walk up to it, or jump onto it, and you are seated on it (a weld to its
 -- body; every machine plays the hop up and rocks the toy, and the rider with it: TrainerController); jump or walk off
--- and you hop off. Only a seated rider trains: once for every whole second seated the level's whole Oxygen is added
+-- and you hop off. Only a seated rider trains: the level's whole Oxygen a second is added, in beats (Train.Every)
 -- and they are told ("Gain", a whole number), for the "+n" pops (task e1: no decimals, no share of max; a part of a
--- second is dropped on getting off, and starts again from nothing on an upgrade). The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
--- "Gain", amount. The ride model carries Rider (the user id on it), SpringBase, SpringTop and Seat (CFrames at rest).
+-- beat is dropped on getting off, and starts again from nothing on an upgrade). The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
+-- "Gain", amount, mult (1, or the Train.Bonus it was worth). The ride model carries Rider (the user id on it), SpringBase, SpringTop and Seat (CFrames at rest).
 -- The levels (Hugo, 2026-11-19, task sh1: the seahorse draft built): every player has a TrainerLevel, 1 to 12 (the
 -- player's attribute; ours, for the session, beside the tank's coins), and each plot's ride shows its owner's: its
 -- own seahorse and stand (ReplicatedStorage.TrainerModels.T<n>, art/creatures/Seahorse/tiers/install_tiers.py), the
@@ -41,6 +41,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local AquariumService = require(script.Parent.AquariumService)
 local AuraService = require(script.Parent.AuraService)
+local PackService = require(script.Parent.PackService)
 local RideService = require(script.Parent.RideService)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 
@@ -601,18 +602,33 @@ function TrainService.setLevel(player: Player, n: number): boolean
 	return true
 end
 
--- Training in whole seconds (task e1): `carry` is the part of a second already seated, `dt` more. Each whole second
--- it completes gives the level's whole Oxygen (Config.Train.Levels; Rate when there is no such table) times the player's
--- aura (AuraService.multOf), never a share of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
-local function gain(player: Player, carry: number, dt: number, level: number): (number, number)
+-- Training (task e1; Config.trainGain): `carry` is the part of a second already seated, `dt` more. Each beat it completes
+-- (Train.Every) gives its part of the level's whole Oxygen a second (Config.Train.Levels; Rate when there is no such
+-- table) times the player's aura (AuraService.multOf), never a share of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
+-- Now and then it is worth x2 or x4 (Train.Bonus): the third answer, 1 when it is not.
+local dice = Random.new()
+local function gain(player: Player, carry: number, dt: number, level: number): (number, number, number)
 	local t = Config.Train
-	local ticks, left = Config.trainTicks(carry, dt)
-	if ticks <= 0 then
-		return 0, left
+	local each = math.floor(
+		(if t.Levels then levelRow(level).Oxygen else t.Rate)
+				* AuraService.multOf(player)
+				* PackService.oxygenMult(player)
+			+ 0.5
+	)
+	local amount, left = Config.trainGain(carry, dt, each)
+	if amount <= 0 then
+		return 0, left, 1
 	end
-	local each = math.floor((if t.Levels then levelRow(level).Oxygen else t.Rate) * AuraService.multOf(player) + 0.5)
-	local amount = ticks * each
-	return if RideService.train(player, amount) then amount else 0, left
+	local mult, roll = 1, dice:NextNumber()
+	for _, bonus in t.Bonus do
+		if roll < bonus.Chance then
+			mult = bonus.Mult
+			break
+		end
+		roll -= bonus.Chance
+	end
+	amount *= mult
+	return if RideService.train(player, amount) then amount else 0, left, mult
 end
 
 -- The old way, on a map with no plots: standing on the one spot is training
@@ -676,7 +692,7 @@ type Rider = {
 	Died: RBXScriptConnection?,
 }
 
-local CHECK = 0.1 -- seconds between looks: a walk-up seats you this soon
+local CHECK = 0.05 -- seconds between looks: a walk-up seats you this soon, and a beat (Train.Every) comes this near its time
 
 function TrainService.Start()
 	if Config.Train.On <= 0 then
@@ -732,7 +748,7 @@ function TrainService.Start()
 		return r
 	end
 
-	-- Counts the seated time since the last count, at the ride's level, up to now: whole seconds are given, the part
+	-- Counts the seated time since the last count, at the ride's level, up to now: whole beats are given, the part
 	-- of a second is kept in Carry (grade issue 2: an upgrade or getting off between two looks settles first)
 	local function settle(player: Player, r: Rider)
 		local ride = r.Ride
@@ -742,10 +758,10 @@ function TrainService.Start()
 		if not ride or elapsed <= 0 then
 			return
 		end
-		local amount, left = gain(player, r.Carry, elapsed, math.max(ride.Level, 1))
+		local amount, left, mult = gain(player, r.Carry, elapsed, math.max(ride.Level, 1))
 		r.Carry = left
 		if amount > 0 and player.Parent then
-			remote:FireClient(player, "Gain", amount)
+			remote:FireClient(player, "Gain", amount, mult)
 		end
 	end
 
@@ -770,7 +786,7 @@ function TrainService.Start()
 		ride.Rider = nil
 		ride.Model:SetAttribute("Rider", nil)
 		r.Ride = nil
-		r.Carry = 0 -- (getting off drops a part of a second: no catching up later)
+		r.Carry = 0 -- (getting off drops a part of a beat: no catching up later)
 		r.OffAt = os.clock()
 		r.Clear = false
 		r.Left = false

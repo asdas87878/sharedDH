@@ -96,6 +96,9 @@ What to reach for:
 - **Running into things:** `Crash.Slow`, `Recover`, `Cost`, `HeadOn`; `Props.GiantVolume` (who is a giant), `FadeTo`, `FadeEase`, `FadeForBreakers`, `PathWidth`, `PathSlack` (in your way: solid), `TouchEase`, `TouchSlack`, `Shake`, `ShakeTime`, `ShakeAt`, `ShakeBySpeed`, `ShakeGap`, `ShakeMin`, `TouchBubbles`, `TouchSound` (the touch), `SideNear`, `SideSlack`, `ViewNear` (beside you), `DebrisNear`, `DebrisFar` (the loose boxes near you), `Topple`, `MaxLoose`, `Throw`, `Scatter`, `Pop`, `Drag`, `Sink`, `Spin`, `Hang`, `FadeOut` (the boxes flying), `RegenRadius`, `RegenDelay`, `RebuildTime` (the prop coming back), `Slow`, `Cost`.
 
 ## The admin panel (P)
+
+**Off for everyone since 2026-11-25** (the user: not in the main game): `Config.Admin.On` is 0, so there is no panel and no
+remote, in Studio or live. Set it to 1 to have it back while testing.
 For playtesting the progression without playing up to it (Hugo, 2026-11-18). **P** opens and closes it, on the left
 of the screen. It works with the sandbox on or off, and also in a live server, but only for an allowed player: everyone
 in Studio, and in a live server the place's owner and the user ids in `Config.Admin.Users`. The server checks that on

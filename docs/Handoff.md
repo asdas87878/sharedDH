@@ -3,16 +3,188 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, "start the recording sequence" (game code, the user's word)
+
+- Hugo: pull, open a new Claude chat here and say **"start the recording sequence"**. The skill `trailer-record` films the trailer
+  with `tools/trailer/record.py` (Play, a first run that loads, a recorded second run, a look sheet, the cut). `cut.py` now finds the
+  game view in a recording of the whole screen.
+- Tested on made-up recordings and a made-up Studio only. Not run on Hugo's PC, and the Luau of this push and the last not in Studio.
+
+## 2026-11-25, the trailer is filmed on Hugo's PC (game code, the user's word)
+
+- Hugo: the steps are in [trailer](design/trailer.md), Recording. New and **not run in Studio yet**: a shot waits for its land to
+  load (`Config.Trailer.Load`), the rider wears the place owner's avatar (`Config.Trailer.Avatar`), the world's signs stay on with
+  the HUD off (they were black boards), shots 10 and 11 from a clear side.
+- The place was saved as version 523 on the user's word: admin panel off, trailer mode in, but none of the line above.
+
+## 2026-11-25, the admin panel off (game code, the user's word)
+
+- `Config.Admin.On` is 0: no panel, no remote, no `Admin` attribute for anyone, Studio or live (1 brings it back). Checked in Play.
+  In the live game once published (saved in version 523).
+
+## 2026-11-25, the trailer mode, not finished (game code, the user's word)
+
+- Studio only: J in Play films the game page video's 20 shots ([trailer](design/trailer.md)): `TrailerController`, `TrailerService`,
+  `Config.Trailer`, `tools/trailer/cut.py`. All 20 ran once with no errors; the fixes after that run (the clipping sharks, the tank
+  and seahorse angles, the submarine shop) are not seen in Studio yet. The user paused filming to change their avatar.
+- `State.RideLift` (0 in the game) is new in RideController's height. `Config.Trailer.On` 0 takes the mode out.
+- The place was saved as version 519 before the trailer mode: the pack, the fish icons and the seahorse beats are in it.
+
+## 2026-11-25, the Great White pack's big card and its icon (game code, the user's word)
+
+- The Shop opens on the pack: a big card after the user's mock-up (`ShopScreen.packCard`, `Config.Packs.Card`), Packs above Featured.
+  The icon at the top right (`UI/PackIcon`, `Config.Packs.Icon`) shows at the dock until the pack is bought and opens the Shop there.
+  Clicked in Play, no errors ([picture](attachments/great-white-pack-and-x4.jpg)). Not tried on a phone, nor with the price on
+  (the product id is 0, so the button says Soon). In Studio's place, not saved.
+- **Fish icons:** the user's 79 drawn ones are in (`UI/FishIcons`, three new pages uploaded; no outline drawn round them any more:
+  `FishIcons.Outlined`). Live model instead: Great White (its icon shows the old model), Whale Shark, Ginsu Shark, Otodus,
+  Ringbearer, Totality. `tools/ui/fish_icons/cut.py` must not overwrite the file now.
+- The icon is round after the reference's badge, and both it and the card show the whole shark (`Portrait.new`'s `Whole`).
+- **Seahorse:** beats of 0.25 s (+4 at level 1, the same 16 a second), and the server rolls x2 (8%) or x4 (2%) a beat
+  (`Config.Train.Bonus`, about +14% on average), each with its own pop. Ridden for 12 s: 49 beats, 5 x2, 1 x4.
+
+## 2026-11-25, the ship pass (game code, the user's word)
+**State:** on main; place saved (the user: "Yes, both"); the 22 pictures are uploaded, load and are in the code (ids in art/ui/icons/roblox.json; the Great White's icon is left to its live model, its render is the old one). Every product id is still 0. **The rockers' and submarines' 207 meshes are uploaded** (the user: "Yes, upload them"; ids in tools/studio/uploaded_meshes.json, tool `tools/studio/upload_meshes.py`): each compared with its local file and the same, switched in the place, all load in Play, none local. An install from install_tiers.py or tools/subs/install.py puts the local ones back: run `upload_meshes.py <id> apply` after it. CosmicHollow (not in the fish table) stays local.
+- **Saving is on** (`SaveParts.ON`), with the Index, the lesson and the packs as new parts. `tools/studio/save_check.py` passed all 17 checks.
+- **Robux:** the Great White pack (149, once), passes, the server boost (`Config.Boost`). Played with a made-up receipt: given once though sent twice, +50K Oxygen, +$1M, the fish, the boost and its chip. Real purchases not tried (no ids).
+- **Phones** (`Config.Phone`): no sun shadows or glow, landscape, cheaper portraits, streaming target 1280, the camera ignores the stick's finger. Checked switched on in Studio; not on a real phone.
+- **A tank fish chosen to ride comes out and is ridden on land** (`Config.TankRide.Direct`). Played.
+- **Hugo's `merge-finished-2026-11-25`** is in.
+
+## 2026-11-25, Hugo's main merged (game code, the user's word)
+**State:** `f702e0e` on main; in the user's Studio place, **place not saved**, nothing uploaded. Tag `backup-pre-hugo-merge-2026-11-25` is main before it.
+- **In:** the mid-air hop, the dock's stickers and Required, the offline chest and land banner pictures (files only). Conflicts in three notes only.
+  `merge-finished-2026-11-25` (fusing, Index look, offline rewards) is not in: not seen in Studio yet, Hugo's PC is checking it.
+- **Checked in Play:** three air hops (sub 5 Great White, sub 1 Clownfish, sub 9 Colossal Kraken): word back 0.07 to 0.09 s, one fish, kicked at the land,
+  camera never back over the water. Failed only the frame rate (15: Studio in the background) and, for two, too few calm frames. The sticker line shows.
+- **The auras on this PC:** their local pictures were never copied here, nor the aura shop's icons and the windows' header icons; now they are
+  (`tools/auras/flame_pics.py`; the two icon files by hand, as `tools/ui/aura_icons/build.py --studio` knows only Hugo's folder).
+  Studio remembers the Flame and Tip as missing until it is restarted, so the old look still shows here. A live game needs the uploads.
+
+## 2026-11-25, the camera turns while the end of a dive shows (game code)
+**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Checked in Play: the camera turned by a right drag with the
+  show up, the press not taken (`processed` false), a click skips, the next closes, a slow drag does neither, it goes by itself, walking
+  closes it. A phone not tried. Also `EquipController`: the Q slot gets its fish's size and colour (not seen).
+- The user: "allow the player to turn their camera whilst it displays on screen. right now it blocks that". A see-through
+  button over the whole screen (`ShowHit`) took every press. It is gone (`UI/CatchShow`): the camera, a phone's stick and the
+  game's buttons all work under the show. A click or tap (told from a drag as it is let go: 14 pixels, 0.4 s) still skips,
+  then closes; walking, or a window opened under it, closes it too. A skip's click does not open the tank's popup
+  (`TankPanel`). `SoundController` lost its exception for `ShowHit`; `tools/ui/catch_show/c1_client.luau` prints `hit=-` now.
+
+## 2026-11-25, each land's own fish round a rider; the seahorse's pops (game code)
+**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
+- **The fish** (the user: "im still not fully certain the second pink area fish are spawning as they should"). Right: the
+  entry below was measured with a player standing in the middle of the land. Round a RIDER going down the lane there were none
+  of land 2's own in the 420 studs ahead from its start to its end (mean 0 of 7; land 3, 1.6 of 4.6): the herd swims at 60 to
+  70, a rider at about 75, and no fish is made or taken away within `SightClear` 500, so land 1's fish went along with them.
+  Now (`FishService.comeUp`, `Config.Spawn.Come...`): the land's own are made behind the rider, out of sight (`BackClear` 170
+  behind one who is going on), swim by on either side 50 studs a second faster and take their place ahead; earlier lands' fish
+  over `StrayMost` near a rider swim at `StrayLag` 0.5 of their pace, are left behind, and go there. After: land 2, 5.5 of 8
+  its own (the majority from about 350 studs in to the end), land 3, 6 of 9; no fish came in or went within 480 studs ahead
+  of the rider once past land 1's start. `Come` 0 is as before. Four dials on the N panel (`Come`, `ComeOver`, `StrayLag`,
+  `StrayMost`). Measured with a scripted rider at 75 studs a second (land 3, 86). Not checked: two players, a rider who looks back, very fast fish
+  (over `ComeFast` 120 none come), lands 5 on.
+- **The seahorse** (the user: "pop up the o2 on the screen at double the speed, with half the value"). `Config.Train.Every`
+  0.5: half the level's Oxygen each half second (level 1: +8 twice a second; it was +16). A second's beats add up to exactly
+  the level's Oxygen, whole numbers only (an odd one is split 12 and 13). `Config.trainGain` in place of `trainTicks`;
+  `RideStyles.Trainer.Every` gone. Seen in Play: 36 gains of +8 in 18 s.
+
+## 2026-11-25 · Hop, texts and fusing on main, full check (NULLROOM z1, Hugo's PC)
+**State:** main 7bfd3a4 held all three; `tools/studio/full_check.py all` all good on it (128 of 128 scripts, 78 of 78 creature data, no errors). [Stills](attachments/z1-hop-texts-fuse.jpg). Place not saved, nothing uploaded.
+- **New checks:** `tools/studio/air_hop_check.py`, `tools/studio/texts_fuse_check.py`. **Traps:** when the main folder pulls a push, Rojo writes main over a worktree's scripts in Edit: `sync_src.py --dry` before each
+  Play. A table through `TestSave` is a copy: read `SaveService.profileOf(player).Data`. A solo `Kick` gave no PlayerRemoving within 0.8 s: `player:Destroy()` does.
+
+## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
+**State:** merged onto main and pushed by z1, **seen in Studio** (`tools/studio/texts_fuse_check.py fuse | rings | saved | leave`; not on a phone, not played by hand). Nothing uploaded. Everything:
+
+## 2026-11-25 · The first merge: the finished work on one branch (NULLROOM m1, Hugo's PC)
+**State:** branch `merge-finished-2026-11-25`, pushed as a branch, **not on main. Nothing in it has been seen in Studio**, nothing
+uploaded. Hugo, 2026-11-25: "current merge should only merge finished changes"; on the sheets that stay: "all good" (not a yes to any upload).
+- **In it, on main `bb2a35f`:** `pictures-index-offline`, `texts-b1-a3` (merge `16e5298`), `fusing` (`336a54a`), `index-look` (`6d6365b`),
+  `offline-rewards` (`0321638`), `index-ring` (`362451c`). Their own entries follow this one.
+- **Not in it:** `aura-3d` and `leaderboards-2` (Hugo looked at their sheets and wants changes), `air-hop`, `eat-anim` and its v2,
+  `saddles`, `saddles-2`, `endless-options`. The auras are as on main.
+- **Next:** z1 (Suzu) puts `air-hop` and then the same commits `16e5298` and `336a54a` on main, each checked in Studio. **Never rebase or
+  rewrite those two.** m2 then only checks index-look, offline rewards and index-ring in Studio, on top of that main, and **waits until z1
+  says Studio is free**.
+- **How the conflicts were settled:** the partner's Index rules stay (an arrow until the first claim, no callout, no goal line for
+  claims, no Index Oxygen); the CLAIM ALL arrow was moved into both Index windows (`IndexBook.taught`; on a phone held upright the title
+  is smaller while it is up, `TALL_TITLE`). Hugo's B1 line shows after a respawn only. Fusing's rule won over `ring_test`'s older
+  expectation: a ring you are put down on stays shut until you step off and on, at every stall. Notes kept both sides.
+- **Known:** with coins waiting at the first spawn, the Welcome back window (0.8 s) covers the goal line (0.6 s) after about 0.2 s; it
+  cannot happen while `SaveParts.ON` is false. The lesson's step-10 words wait for the next respawn after the first claim.
+- **Off:** `Config.Fuse.On` 0; `Config.Index.Look` 0 (the old window), `Config.Index.On` 0 (the Index, its button and ring);
+  `Config.Offline.On` 0. `texts-b1-a3` has no switch (revert its merge commit).
+- **Checked offline on the result:** texts 33, fusing 164 and 97, Index 73, 138 and 94 (old look), ring 128 (141 with a copy of the place
+  saved 2026-11-25 00:11), offline 123 and 67, auras 61: none failed. StyLua, selene (0 errors, the 3 old warnings), a Rojo build, no
+  type error main did not have.
+
+## 2026-11-25 · Offline rewards: the Welcome back window, built (NULLROOM o1, Hugo's PC)
+**State:** branch `offline-rewards` (on main `ede1ff7` with `pictures-index-offline`, the chest), **merged on the branch `merge-finished-2026-11-25` (entry above).**
+Nothing uploaded, Studio not touched. All of it, and what must be on: [offline rewards](design/offline-rewards.md).
+- **New:** `OfflineService`, `OfflineController`, `UI/OfflinePanel`, `Config.Offline` with `Config.offlinePay`, the save part "Offline"
+  in `Lib/SaveParts` (after the Tank's). **`SaveParts.ON` is still false, so a live game shows and pays nothing.**
+- **For the tuning chat (DRAFTS):** 5 min away at least, a half of the tank's income, 8 h at most (so 4 h of income for a night). Not
+  run through `rad_economy.py`.
+- **For the game-code chat:** SaveParts' `NEEDS` now asks for `OfflineService.dump` and `restore`. `tools/studio/save_check.py` does not
+  look at the new part yet. Owed coins and the tank's coins must stay in the same snapshot.
+- **Checked offline:** 123 (server, real ProfileStore, two servers) and 67 (window) checks, StyLua, selene (0 errors, the 3 old warnings),
+  a Rojo build, no type errors in the new files. `tools/index/index_test.luau` failed 3 of 73 then (the Shallows'
+  set pays 410 and $5,125; the test expected 41 and $1,230); `index-look` put it right.
+- **Owed:** Studio (`OfflineAway`), a phone, the real store, the upload of the chest (Hugo's yes) and its id in `OfflinePanel.Chest`.
+
+## 2026-11-25 · The Index, richer: land banners, big cards (NULLROOM i1, Hugo's PC)
+**State:** branch `index-look` (from main at ede1ff7 with g1's `pictures-index-offline`), **merged on the branch `merge-finished-2026-11-25` (entry above), not seen in
+Studio**, nothing uploaded. All of it: [UI](design/ui.md), "The Index, richer". [Before and after](attachments/index-look.png).
+**To turn off:** `Config.Index.Look` 0 (read as the window opens).
+- **New:** `UI/IndexWindow` (the window, three layouts), `UI/IndexBook` (the sums, moved out), `UI/LandBanners`; `UI/IndexPanel` is the
+  door now and the old window is `UI/IndexOld`. `IndexService`, `Net.Index`, rewards and rules are unchanged; the names
+  `tools/studio/h4_hub_check.py` looks for are kept (not run).
+- **Offline:** `python tools/index/look_picture.py`: 73, 139 and 91 checks then (the merge adds the arrow's), none failed; StyLua, selene (the three old warnings),
+  the type checker on the changed files, a Rojo build.
+- **Owed:** Studio (`land_banners.py studio` first, then `h4_hub_check.py`), a real phone, Hugo's yes to upload the ten banners.
+
+## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
+**State:** committed on the branch `fusing` (from `ede1ff7`), **merged on the branch `merge-finished-2026-11-25` (entry above), not in Studio.** Nothing uploaded. Everything:
+[fusing](design/fusing.md). Off: `Config.Fuse.On` 0.
+- **New:** `Shared/Fuse`, `FuseService`, `AquariumService.fuse`, `RideService.fuseCarried`, `UI/FusePanel`, `Config.Fuse`, `tools/fuse/`.
+  **Changed:** "Hands" rows carry the carried key as a fourth value (readers that take three are untouched); `StallController` (the
+  Fuse ring; **a ring you are put down on no longer opens its window, for every stall**), `HubSigns`, `SoundController`, `Net` (comments).
+- **Checked offline:** 164 and 97, none failed; stylua, selene (0 errors, its 3 old warnings), rojo build, types clean in the new files;
+  `index/panel_test` 91 and `auras/aura_test` 61 pass. `index/index_test` fails 3 of 73 (the Shallows' set pay), the same on `ede1ff7` without this.
+- **Studio (z1), all passing:** the ring opens the window and walking off shuts it; refused: earning in the tank, a Colossal, two kinds, one not there, far off, switched off, no coins, another size (with `SameSize` 1), the
+  ride fish, dead, off the dock; nonsense and doubled asks do nothing; five asks in one frame fuse once; the biggest stays and keeps its own colour, gold and rainbow used up are not inherited, a rainbow that stays
+  stays; the tank's count 15 to 13, hands untouched; three pressed in the window make a Big. A ring you are put down on stays shut until off and on, at all five stalls. Save: what is kept is what there is, closed and
+  opened again it comes back; removed from the game in the very frame of a fusing, the save has the one fused fish (and a control with none fused has its three). 53 to 60 frames a second with the window open.
+- **Owed:** a phone, by hand, two players at once (solo playtests only), the real data store (the check uses ProfileStore's mock).
+- **Merging:** tried (no branch changed) against `texts-b1-a3`, `pictures-index-offline`, `offline-rewards`, `air-hop` and `index-look`,
+  one at a time, as committed at 14:50: no conflict in code, only in notes (Handoff, Decisions, ui.md, Code map: keep both sides), and
+  both fuse tests pass on each merged tree. Not tried: all of them together.
+- **For the tuning chat:** with sizes mixed, 9 fish of a kind make a Colossal (by the plain odds 1 in 250 in the wild, not measured). `Fuse.SameSize` 1 closes it.
+
 ## 2026-11-25 · The mid-air hop is on main, seen in Studio (NULLROOM z1, Hugo's PC)
 **State:** `air-hop` merged onto main (no conflicts) and pushed. Seen in Studio with `tools/studio/air_hop_check.py` (its head says how), not played by hand. Place not saved, nothing uploaded.
 - **One number was wrong and the hop never ran in the place:** `Config.Sub.AirArch` **144 to 88**. The lip is 88 studs in front of the dock's spawn (3000, 1, -88); with 144 the server refused every leap
   ("too far from the lip") and every hop was the one under water. The offline check builds its dock out of `AirArch`, so it could not see it; `tools/dive/world.luau` still has its own 144 (a plain dive does not use it).
-- **What Studio says** (Clownfish Tiny and Normal, Great White Normal and Big, Blue Whale and Kraken Colossal; subs 1, 5, 9; straight and 28 to the side): the word is back 0.06 to 0.17 s after the leap began, always before
-  the jump; one long server frame of 27 to 139 ms in it (the worst: sub 9 with a Colossal); never two fish, never none; no trail in the air, 13 a second from the splash against the run's 36; the camera never back over the
-  water; the hands unchanged; kicked at the land as before. Great White, sub 5: jump 0.45, seat 0.86, splash 1.26, run 1.56 s.
-- **No sub, on foot, unequip, death and reset** at 0.2, 0.6 and 1.2 s: all end clean.
-- **To know:** with a Colossal the land camera stands so far back that the DIVE IN sign is in front of it before the leap starts (main does it too; not the hop's). Frames were 33 to 60 a second, the low ones with the PC
-  busy with other work. Two players at once: not run.
+- **What Studio says** (Clownfish Tiny and Normal, Great White Normal and Big, Blue Whale and Kraken Colossal; subs 1, 5, 9; straight and 28 to the side): never two fish, never none; no trail in the air, 13 a second from
+  the splash against the run's 36; the camera never back over the water; the hands unchanged; kicked at the land as before. Great White, sub 5: jump 0.45, seat 0.86, splash 1.26, run 1.56 s.
+- **The server's word, two runs** (seconds after the leap began; `work/subcam/airhop/check.log`). Run 1 (18:34 to 18:40, 12 hops, and one hop by itself before them): back 0.063 to 0.172, longest server frame 27 to 139 ms. Run 2 (18:47 to
+  18:49, five hops again, **the PC busy with other work**: load about 20, usual server frame 17 to 27 ms against 17): back 0.074 to **0.479**, longest server frame 31 to **319** ms. Sub 9 in both:
+  Clownfish Normal 0.089 / 58 ms, then **0.289 / 176 ms** (jump at 0.317); Great White Big 0.135 / 103, then 0.174 / 115 (jump 0.446); Blue Whale Colossal 0.172 / 139, then **0.479 / 319** (jump 0.510, **over
+  the 0.3 s aimed at**). Always before the jump, but by only 28 and 31 ms in the two worst. The cost grows with the sub's tier (far land, big plan) and with load: what a live server does is not known.
+- **Camera steadiness, what was judged and what was not:** run 1 left out every frame with any shake and so had almost none to judge (0.00 studs in 10 of its 13 hops, the check's "ok" there means nothing): it proves nothing about steadiness. Run 2
+  (calm: shake under 0.02) had 1 to 33 calm frames a hop and **failed the camera line twice** for too few of them: sub 5 Clownfish Tiny (1 of 54; 2.21 studs with the shaken ones) and sub 9 Clownfish Normal (2 of 47; 4.16).
+  With the shaken frames in (the reviewer's recompute on the newest saved frames of the 12 hops): 10 under 3.4 studs, 2 at 4.2 (sub 9 Clownfish Normal and Great White Big), both on uneven frames (102 and 138 ms longest, 33 and 39 a second). **Steadiness on a
+  quiet PC is not proven by these runs,** and nobody has judged it by eye.
+- **No sub, on foot, unequip, death and reset** at 0.2, 0.6 and 1.2 s: all end clean. The check itself was changed for two of them after they failed, and they passed at 19:02 with the change: no sub failed
+  in run 1 (the player was already being kicked when it looked, `Failing`; that now counts), unequip at 0.2 s failed in both runs (the trip on foot was still going after 10 s; it now waits up to 16 s more for the end).
+- **What the two runs said in all:** run 1 18 of 23 (under the 40 frames a second asked for: sub 5 Clownfish Tiny 40, sub 1 Great White 40, sub 9 Great White Big 35; and the two above). Run 2 passed 2 of 5 hops: the camera
+  line twice (above) and frames three times (36, 39, 33). Run 2 also began with the view put behind the player and counts calm frames, so its camera lines are not the same check as run 1's.
+- **To know:** with a Colossal the DIVE IN sign is in front of the camera before the leap and stays over part of it (the rider hidden 0.06 to 0.42 s in). The camera is already behind the sign on the dock and the hop
+  does not change `RideController`, so it starts from the land camera's own place; main without the hop was **not run** to compare. At the splash 2 of 8 Great White grabs were 70 to 80 in 100 white: how long it
+  lasts was not measured. Frames were 33 to 61 a second, the low ones with the PC busy with other work. [Stills](attachments/z1-hop-texts-fuse.jpg).
+- **Owed, not run:** two players at once (solo playtests only; RAM too tight for a second Studio). **Another player's hop has its own code path, the lag in `Lib/AirHop.luau`, and nobody has seen it run.** Phone size in Studio.
+  The hop by hand.
 
 ## 2026-11-25 · The mid-air hop: shorter, a steadier camera, a weaker trail (NULLROOM f1, Hugo's PC; on main since z1, above)
 **State:** on `air-hop` after h1's 4075aaa (every commit tagged "(f1)"), worktree `~/Projects/sharedDH-air-hop`. **Checked offline only; seen in Studio by z1 (above).** Hugo's words, the
@@ -53,6 +225,8 @@ what fails: [submarine](design/submarine.md), "The air hop".
   `tools/studio/fish_sub_check.py` was written for the old hop: use it with `AirHop` 0, or adapt it.
 ## 2026-11-25 · Texts: B1 stickers on the dock, once a respawn; A3 for Required (NULLROOM f2, Hugo's PC)
 **State:** merged onto main and pushed by z1, **seen in Studio** (`tools/studio/texts_fuse_check.py texts | lesson`; not on a phone, not played by hand). Hugo's picks, how and the numbers: [UI](design/ui.md),
+
+**State:** branch `texts-b1-a3`, **merged on the branch `merge-finished-2026-11-25` (entry above), not seen in Studio.** Hugo's picks, how and the numbers: [UI](design/ui.md),
 "The dock's lines and Required". [Before and after](attachments/texts-b1-a3.png).
 - **New:** `UI/Sticker`, `UI/ReqLine`, `Lib/RespawnLine`, `Config.DockLine`, `Config.ReqLine`. **Changed:** `DockNotes`
   (`Start` and `waiting` new; its other calls the same), `GoalController`, `LessonPrompt` (the words' look only), `Tags` (the three-line
@@ -96,6 +270,24 @@ what fails: [submarine](design/submarine.md), "The air hop".
 - Checked in Play: all 3,335 load at the dock, the silhouette shows past the gate, 3,335 hidden under the water and 0 over it,
   4.6 ms to switch, the low graphics hide works again (`LookVista`); no gaps seen in lands 2 and 3. Not checked: a dive
   by hand, lands 4 on, a phone.
+
+## 2026-11-25 · Auras in 3D round the body, the fade, the ladder (NULLROOM a1, Hugo's PC)
+**State:** on the branch `aura-3d` (worktree `sharedDH-aura3`). **Not pushed, not seen in Studio, nothing uploaded, not played.**
+Everything is in [auras](design/auras.md), "Around the body". **To turn off:** `Config.Aura.Look` 1 (the flame) or 0 (draft 2).
+- **`Config.Aura.Flame` is gone:** `Look` is in its place. All Config edits are inside the `Config.Aura` block.
+- **New:** `Shared/AuraVolume` (the sums), `Lib/AuraAround` (draws them), `AuraController` (which look, what is ridden, who gets
+  how much). `Auras.Sheets` (ids, all empty), the tiers' blurbs (`Auras.Tiers`). `AuraService`, prices and the shop: untouched.
+- **Your own riding aura is the one everyone sees** (`EyeCalm` 0; 1 is a calmer one to steer through). **Lights:** at most `Lights`, your own first; 0 is none.
+- **What it reads from other code:** attributes `State`, `LandMounted`, `TankRide`, `TrainerRide`, and the welds by name (`volume_test` checks the
+  names against the server's source). A new way to ride needs a row in `AuraController`'s `WELDS`, or its rider's aura fades while moving.
+- **Local pictures:** `python tools/auras/volume_sheets.py --local` on each PC, then reopen Studio. Without them, and in a live game
+  until the twelve in `art/ui/aura_volume` are uploaded (Hugo's yes), engine pictures stand in and some layers are left out.
+- **Checked offline:** `volume_test.luau` 78 of 78, `aura_test.luau` 61 of 61, StyLua, selene (three old warnings, not ours), types, a Rojo build.
+  The [sheet](attachments/auras-3d.png) and the [moving one](attachments/auras-3d.gif) are offline mocks drawn from the game's numbers.
+- **Smaller and less apparent (Hugo, the same evening): three versions behind `Config.Aura.Small`,** 0 in the file (as built, proven the same byte for byte);
+  1 to 3 are A, B, C, for Hugo to pick from [this sheet](attachments/auras-3d-2.png). Riding it is round the rider only and never over them. [auras](design/auras.md).
+- **Owed:** `tools/studio/aura_check.py run` (rewritten for the looks, **not run**), the list "To see in Studio", two players, a phone, Hugo's yes or no to the
+  ground ring and light.
 
 ## 2026-11-25 · The Index arrow the first time only, sparser leaps (game code, the user's PC)
 **State:** pushed; in the Team Create place, **saved on the user's word (version 479)**, not published. Replaces the Index and leap parts of the entry below.

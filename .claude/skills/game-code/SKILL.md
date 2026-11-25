@@ -46,11 +46,12 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   check has run at a real frame rate. **Bought Oxygen off the dock is banked** (`RideService.grantOxygen`, `Banked`) and
   joins the max at the dock: never raise the max mid-dive, the red line and the drain are shares of it.
 - **The hub's new pieces (2026-11-24; NULLROOM h1 to h4):** the stalls open on their floor rings, the sub stand too
-  (`StallController`: Sell, Auras, Sub, and Index where the map has that station; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
+  (`StallController`: Sell, Auras, Sub, and Index, the lighthouse, where the map has that station; offline check `tools/index/ring_test.luau`; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
   copy of the equipped sub turns over the sub stand, on the player's own machine (`SubStandController`); **the Index**
   is `IndexService` (the server sees a catch in `RideService.carried` and `AquariumService.tankOf` every
   `Config.Index.Watch`; claims on the dock only, paid once; attributes `IndexFound`, `IndexClaims`; remote `Net.Index`)
-  with `UI/IndexPanel` and the Index button in `UI/HubButtons`; every `Config.Index` number is a DRAFT; **the
+  with `UI/IndexPanel` (the door; `IndexWindow` the window since 2026-11-25, `IndexOld` behind `Config.Index.Look` 0, `IndexBook`
+  the sums, `LandBanners` the pictures; `python tools/index/look_picture.py` checks and draws it) and the Index button in `UI/HubButtons`; every `Config.Index` number is a DRAFT; **the
   keepers** behind the stands are data in `Shared/Keepers` built and moved by `KeeperController` on each player's own
   machine (plain parts in `workspace.Keepers`, no collision, no query). Design: [UI](docs/design/ui.md) (top
   section), [hub models](docs/design/hub-models.md) ("The keepers behind the stands"),
@@ -67,10 +68,33 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   the leaps and boxes (tools/subs/air_check.luau), and once with `AirHop` 0 against the tag.
   Made shorter, the camera steadier (one anchor, `SubAir.track`) and the trail weaker the same day (f1); the old numbers are in the note.
   The client's own camera is `SubAir.view`, which the check runs too: never write its sums a second time.
+- **Offline rewards (2026-11-25; NULLROOM o1; offline only, not seen in Studio):** `OfflineService` (save part "Offline" in
+  `Lib/SaveParts`; `Config.offlinePay`; remote "Offline"; attributes `OfflineOwed`, `OfflineSecs`), `OfflineController`,
+  `UI/OfflinePanel`; dead while saving is off; Studio's `OfflineAway` fakes an absence; every `Config.Offline` number is a DRAFT.
+  Owed and the coins must stay in one snapshot: never yield between them. [offline rewards](../../../docs/design/offline-rewards.md);
+  checks `tools/offline/*_test.luau` (the real ProfileStore on pretend servers).
+- **Saddles (2026-11-25; NULLROOM s1, s2; not seen in Studio):** a claimed land in the Index gives its saddle (owned = claimed, no second
+  list); `IndexService` ask "Saddle" sets the player's attribute `Saddle` (a land, 0 none); `Controllers/SaddleController` hangs it on
+  whatever they ride, on each machine (parts in `workspace.Saddles`, never in the fish); `UI/SaddlePage` and `SaddlePicture` in
+  `IndexWindow`; data `Shared/Saddles` (written by `tools/saddles/to_luau.py`); `Config.Saddles` (`On`, one design a land in `Land`: Hugo's ten picks). Claims and the worn land
+  are saved in the Index. [saddles](docs/design/saddles.md). Checks: `tools/saddles/saddle_test.luau`, `saddle_parity.luau`, `tools/index/panel_test.luau`.
 - **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
   only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
-  `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`
-  (`Config.Aura.Flame` 0 = the old look; no pictures = the old look too), cards in `UI/AuraShop` (never a stand-in behind an
-  icon). Pictures `art/ui/aura_flame`, local only (`python tools/auras/flame_pics.py`); to upload: the six in its `upload/` (with ids
-  in `Auras.Pictures`, `Aura.Turn` does nothing). Design:
-  [auras](docs/design/auras.md). Checks: `tools/auras/aura_test.luau` (lune on a built place), `tools/studio/aura_check.py`.
+  `TrainService.gain` only), `Config.Aura.Look`: 2 (2026-11-25, not seen
+  in Studio yet) is the 3D look, `Shared/AuraVolume` (plain sums) and `Lib/AuraAround`, worn by `AuraController`: gone moving on foot, always there
+  riding (a new kind of seat needs a row in its `WELDS`); 1 the flame (`Shared/AuraFlame`, `Lib/AuraBeams`); 0 draft 2; cards in `UI/AuraShop` (never a stand-in behind an
+  icon). Hugo chose A (`Config.Aura.Small` 1). The six flame pictures have IDs in `Auras.Pictures`. The twelve
+  3D sheets in `art/ui/aura_volume` have empty entries in `Auras.Sheets`. Live games use engine pictures, plain
+  ribbon beams or omit layers until those IDs are set. See [auras](../../../docs/design/auras.md).
+  Offline checks are `tools/auras/aura_test.luau` and `volume_test.luau`. Studio check is `tools/studio/aura_check.py`.
+- **Fusing (2026-11-25; NULLROOM u1; not seen in Studio):** three of a kind become one a size bigger. Rules `Shared/Fuse` (plain sums);
+  `FuseService` (Action "Fuse", three picks "T"key or "H"key; on the dock near `Dock.Stations.Fuse.Ring`; Ride "Fused"/"FuseDenied");
+  the step is `AquariumService.fuse` (checks all, then `RideService.fuseCarried`, then the tank; **never put a wait in it**);
+  `UI/FusePanel`; `Config.Fuse` (`On`, `Price`, `SameSize`, `Earning`). A ring the player is put down on opens nothing
+  (`StallController`, every stall). Design: [fusing](docs/design/fusing.md). Checks: `tools/fuse/fuse_test.luau`, `panel_test.luau`, `picture.py`.
+- **The leaderboards (2026-11-25; NULLROOM l1; not run in Studio):** `LeaderboardService` (who is on them: every player's
+  where the number is saved and the store answers, else this server's, and it says which; `SaveService.keeps`; remote
+  `Boards`, attributes `Board` + Id), `Lib/BoardSums` (order, ties, how a number past 2^53 is kept), `Shared/Boards` (the frame
+  and the flat icons, as data), `BoardController` (builds them in `workspace.Boards`
+  on each player's own machine), `UI/BoardPanel` (the list). A station that is replaced (`Boards.Replaces`) leaves the running game only.
+  Design: [leaderboards](../../../docs/design/leaderboards.md). Checks: `tools/boards/*.luau` (lune on a built place).

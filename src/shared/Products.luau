@@ -15,7 +15,17 @@
 -- Featured has no offers of its own: it shows the one Oxygen pack that fits the player now (Pick; UI.ShopScreen says by
 -- what rule).
 -- "Oxygen" and "Cash" are what the stat rows' plus buttons open (StallController finds them by these titles).
+--   Gives "Pack": a bundle (Pack), all of it in one receipt; Once: sold once an account, its button then says OWNED
+--   Gives "DoubleOxygen": a pass, for good (PackService.oxygenMult)
+--   Hidden: not shown (nothing is decided for it yet)
 local Products = {}
+
+export type Pack = {
+	Oxygen: number,
+	Coins: number,
+	Fish: { { string } }, -- each { id, size, colour }
+	Boost: number, -- seconds of the server's x2
+}
 
 export type Offer = {
 	Key: string,
@@ -28,6 +38,10 @@ export type Offer = {
 	Look: string,
 	Picture: string?,
 	Big: string?,
+	Pack: Pack?,
+	Once: boolean?,
+	Hidden: boolean?,
+	Fish: string?, -- the card's picture is this fish
 	Line: string?, -- one short line under the name: what it does, only what is true
 }
 
@@ -54,29 +68,27 @@ Products.Looks = {
 
 Products.Sections = {
 	{
-		Title = "Featured",
-		Wide = true,
-		Colour = Color3.fromRGB(255, 214, 72),
-		Rail = "★",
-		Pick = "Oxygen",
-		Offers = {},
-	},
-	{
 		Title = "Packs",
 		Wide = true,
 		Rail = "Shop",
 		Offers = {
 			{
+				-- (the user, 2026-11-25: the Great White remodel, +50K Oxygen, +$1M, an hour of x2 for the server; 149)
 				Key = "Starter",
-				Name = "Starter Pack",
-				Kind = "Pass",
+				Name = "Great White Pack",
+				Kind = "Product",
+				Gives = "Pack",
+				Once = true,
 				Id = 0,
-				Price = 0,
-				Look = "Sky",
-				Picture = "Shop",
+				Price = 149,
+				Pack = { Oxygen = 50_000, Coins = 1_000_000, Fish = { { "GreatWhite", "Colossal", "" } }, Boost = 3600 },
+				Look = "Gold",
+				Fish = "GreatWhite",
+				Line = "Colossal Great White, +50K Oxygen, +$1M, 1 hour x2 Oxygen and Cash for the whole server",
 			},
 			{
 				Key = "Exclusive",
+				Hidden = true,
 				Name = "Exclusive",
 				Kind = "Product",
 				Id = 0,
@@ -87,6 +99,14 @@ Products.Sections = {
 		},
 	},
 	{
+		Title = "Featured",
+		Wide = true,
+		Colour = Color3.fromRGB(255, 214, 72),
+		Rail = "★",
+		Pick = "Oxygen",
+		Offers = {},
+	},
+	{
 		Title = "Passes",
 		Wide = true,
 		Rail = "x2",
@@ -95,6 +115,8 @@ Products.Sections = {
 				Key = "DoubleOxygen",
 				Name = "Double Oxygen",
 				Kind = "Pass",
+				Gives = "DoubleOxygen",
+				Line = "x2 Oxygen from your seahorse, for good",
 				Id = 0,
 				Price = 0,
 				Look = "Sea",
@@ -102,6 +124,7 @@ Products.Sections = {
 			},
 			{
 				Key = "DoubleLuck",
+				Hidden = true,
 				Name = "Double Luck",
 				Kind = "Pass",
 				Id = 0,
@@ -261,20 +284,42 @@ Products.Sections = {
 	},
 } :: { Section }
 
+-- Claim x3 in the Welcome back window (Hugo, 2026-11-25: 29 Robux; docs/design/offline-rewards.md). Not in Sections: the
+-- Shop never lists it, and while its Id is 0 the window has no button for it. Amount: this many times what is owed, the
+-- server's own number at the receipt (OfflineService.triple)
+Products.Triple = {
+	Key = "OfflineTriple",
+	Name = "Claim x3",
+	Kind = "Product",
+	Gives = "Offline",
+	Amount = 3,
+	Id = 0,
+	Price = 29,
+	Look = "Gold",
+} :: Offer
+
 -- Whether an offer can be bought: it has a product, and the server has something to give for it
 function Products.onSale(offer: Offer): boolean
+	if offer.Id <= 0 or offer.Gives == nil or offer.Hidden then
+		return false
+	elseif offer.Kind == "Pass" then
+		return true
+	end
 	local amount = offer.Amount
-	return offer.Id > 0 and offer.Kind == "Product" and offer.Gives ~= nil and amount ~= nil and amount > 0
+	return offer.Pack ~= nil or (amount ~= nil and amount > 0)
 end
 
 -- The part of the save each thing given is kept in (SaveService; the player's attribute "Saved" .. part says it is on)
-Products.Part = { Coins = "Tank", Oxygen = "Oxygen" } :: { [string]: string }
+Products.Part = { Coins = "Tank", Oxygen = "Oxygen", Pack = "Packs", Offline = "Offline" } :: { [string]: string }
 
 -- The offer a Roblox product is (the server's: a receipt's ProductId)
-function Products.byId(id: number): Offer?
+function Products.byId(id: number, kind: string?): Offer?
+	if id > 0 and Products.Triple.Id == id and Products.Triple.Kind == (kind or "Product") then
+		return Products.Triple
+	end
 	for _, section in Products.Sections do
 		for _, offer in section.Offers do
-			if id > 0 and offer.Id == id then
+			if id > 0 and offer.Id == id and offer.Kind == (kind or "Product") then
 				return offer
 			end
 		end

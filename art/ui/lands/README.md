@@ -244,3 +244,7 @@ Input image 1: OUR OWN The Underworld game capture for central horned skull land
 Input image 2: our Shallows painting, STYLE REFERENCE ONLY: match its soft broad gouache brushwork, organic forms and layered reef depth.
 Land 10 — The Underworld: a monumental old ivory horned sea-beast skull half-buried on a crimson underwater seabed, facing the viewer in a mild three-quarter view. Two broad curved upward horns, large dark empty eye sockets and a worn blunt nose, a friendly adventure-game fossil landmark, not a live creature. Keep the capture's distinctive paired-horn silhouette but redesign its square surfaces as rounded naturally weathered bone. Small ancient bone fragments beside it, dark plum rounded reef shelves behind with subtle hot orange glowing fissures along the ledges. Rich raspberry-crimson water, deep burgundy shadows, soft pink-red ambient rays and warm amber bounce light. Entirely underwater; no sky, surface, flames, people or live creatures. No gore or horror. Upper third calm dark crimson open water; lower third quiet softly lit red silt. Keep skull and both horns fully visible, compact and centered in the middle third with wide side clearance. Very tall narrow 3:5 portrait, 768x1280.
 ```
+
+## The upload set (task i1)
+
+`upload/land_banner_01..10.png`: the ten banners cut to the Index's shape, 480 x 800, made by `python tools/index/land_banners.py` (`studio` copies them to Studio's own content folder for a look). Not uploaded; the ids go in `src/client/UI/LandBanners.luau`.

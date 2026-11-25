@@ -40,5 +40,129 @@
     "id": "rbxassetid://124258870686064",
     "uploaded": "2026-11-22",
     "from": "docs/attachments/land-icons/land_atlas.png (the G4 set, as Kit.LandAtlas)"
+  },
+  "aura_arc_f1.png": {
+    "id": "rbxassetid://113590203083136",
+    "uploaded": "2026-11-25"
+  },
+  "aura_lick_f1.png": {
+    "id": "rbxassetid://86325853542441",
+    "uploaded": "2026-11-25"
+  },
+  "aura_icons.png": {
+    "id": "rbxassetid://118905885839265",
+    "uploaded": "2026-11-25"
+  },
+  "aura_bubble_f1.png": {
+    "id": "rbxassetid://123139847562727",
+    "uploaded": "2026-11-25"
+  },
+  "aura_flame_f1_t2.png": {
+    "id": "rbxassetid://124821179310672",
+    "uploaded": "2026-11-25"
+  },
+  "aura_tip_f1_t2.png": {
+    "id": "rbxassetid://80539956547919",
+    "uploaded": "2026-11-25"
+  },
+  "fish_icons_2.png": {
+    "id": "rbxassetid://120444178713345",
+    "uploaded": "2026-11-25"
+  },
+  "fish_icons_1.png": {
+    "id": "rbxassetid://93792111820130",
+    "uploaded": "2026-11-25"
+  },
+  "aura_streaks_f1_t2.png": {
+    "id": "rbxassetid://106939583053473",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_03.png": {
+    "id": "rbxassetid://75159866433385",
+    "uploaded": "2026-11-25"
+  },
+  "fish_icons_3.png": {
+    "id": "rbxassetid://82464769530334",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_02.png": {
+    "id": "rbxassetid://125062760868935",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_01.png": {
+    "id": "rbxassetid://86749397960198",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_04.png": {
+    "id": "rbxassetid://105808587264414",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_07.png": {
+    "id": "rbxassetid://118663173346835",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_06.png": {
+    "id": "rbxassetid://102542146892153",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_05.png": {
+    "id": "rbxassetid://81330978181108",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_10.png": {
+    "id": "rbxassetid://99979930581147",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_09.png": {
+    "id": "rbxassetid://105274886652095",
+    "uploaded": "2026-11-25"
+  },
+  "land_banner_08.png": {
+    "id": "rbxassetid://98241959226257",
+    "uploaded": "2026-11-25"
+  },
+  "offline_chest.png": {
+    "id": "rbxassetid://90279043093713",
+    "uploaded": "2026-11-25"
+  },
+  "shop_icons.png": {
+    "id": "rbxassetid://88960752051228",
+    "uploaded": "2026-11-25"
+  },
+  "arch_leaper.png": {
+    "id": "rbxassetid://128279805319046",
+    "uploaded": "2026-11-25"
+  },
+  "arch_breaker.png": {
+    "id": "rbxassetid://86918938639972",
+    "uploaded": "2026-11-25"
+  },
+  "arch_fast.png": {
+    "id": "rbxassetid://124170078782358",
+    "uploaded": "2026-11-25"
+  },
+  "arch_frenzy.png": {
+    "id": "rbxassetid://91140816563949",
+    "uploaded": "2026-11-25"
+  },
+  "arch_tank.png": {
+    "id": "rbxassetid://131479491308033",
+    "uploaded": "2026-11-25"
+  },
+  "arch_predator.png": {
+    "id": "rbxassetid://138196416160639",
+    "uploaded": "2026-11-25"
+  },
+  "fish_icons_c1.png": {
+    "id": "rbxassetid://138492185931923",
+    "uploaded": "2026-11-25"
+  },
+  "fish_icons_c2.png": {
+    "id": "rbxassetid://100228983942661",
+    "uploaded": "2026-11-25"
+  },
+  "fish_icons_c3.png": {
+    "id": "rbxassetid://125595167321974",
+    "uploaded": "2026-11-25"
   }
 }

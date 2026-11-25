@@ -1,0 +1,20 @@
+{
+  "name": "SeahorseRocker2",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 2: PAINTED",
+  "colours": {
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "ivory": "#FFF6E0",
+    "body": "#FF7F3A",
+    "belly": "#FFE2A8",
+    "ring": "#1FA7A4",
+    "fin": "#FFF0CC",
+    "tip": "#28C2BE",
+    "s_pad": "#E1463F",
+    "s_rim": "#E1463F",
+    "s_base": "#F6C431",
+    "s_trim": "#FFFFFF",
+    "s_coil": "#B9C2CF"
+  }
+}

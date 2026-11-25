@@ -72,7 +72,18 @@ end
 local function show()
 	local id = player:GetAttribute("EquippedFish")
 	local kind = if type(id) == "string" then Config.FishById[id] else nil
-	Slots.equipped(if kind then { Id = kind.Id, Tier = kind.Tier } else nil, player:GetAttribute("LandMounted") == true)
+	local size, variant = player:GetAttribute("EquippedSize"), player:GetAttribute("EquippedVariant")
+	Slots.equipped(
+		if kind
+			then {
+				Id = kind.Id,
+				Tier = kind.Tier,
+				Size = if type(size) == "string" then size else nil,
+				Variant = if type(variant) == "string" then variant else nil,
+			}
+			else nil,
+		player:GetAttribute("LandMounted") == true
+	)
 end
 
 -- Sitting on the land fish: the avatar's own sit animation (its Animate script's), looped over the walk at Action

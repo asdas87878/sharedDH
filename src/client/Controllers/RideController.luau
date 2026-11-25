@@ -549,6 +549,7 @@ local function drive(dt: number)
 	local height = if floorY then at.Y - floorY else nil
 	-- the herd's height here: lower in the shallows, where it leaves room above it for a jump
 	local level = if floorY then math.min(Config.Herd.RideHeight, Config.herdTop(floorY)) else Config.Herd.RideHeight
+	level += State.RideLift
 	if height then
 		-- it follows the lane down by itself, settling at the herd's height above the floor
 		local h = Config.Herd
@@ -1352,7 +1353,28 @@ function RideController.Init()
 		faceWater()
 	end)
 
-	UserInputService.InputChanged:Connect(function(input: InputObject, processed: boolean)
+	-- The fingers that turn the camera: one put down on nothing (never the stick's), or on the HOP button, so the thumb
+	-- that hops aims too (Phone.HopLook). Each is a looking finger until it lifts.
+	local fingers: { [InputObject]: boolean } = {}
+	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+		if input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		local looks = not processed
+		if processed and Config.Phone.HopLook ~= 0 then
+			local gui = State.Player:FindFirstChildOfClass("PlayerGui")
+			for _, g in (if gui then gui:GetGuiObjectsAtPosition(input.Position.X, input.Position.Y) else {}) do
+				looks = looks or g.Name == "HopButton"
+			end
+		end
+		if looks then
+			fingers[input] = true
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		fingers[input] = nil
+	end)
+	UserInputService.InputChanged:Connect(function(input: InputObject)
 		if not State.inWater() then
 			return
 		end
@@ -1362,7 +1384,7 @@ function RideController.Init()
 				camPitch -= input.Delta.Y * Config.Camera.MouseSensitivity
 				lookedAt = os.clock()
 			end
-		elseif input.UserInputType == Enum.UserInputType.Touch and not processed then
+		elseif fingers[input] then
 			camYaw -= input.Delta.X * Config.Camera.TouchSensitivity
 			camPitch -= input.Delta.Y * Config.Camera.TouchSensitivity
 			lookedAt = os.clock()

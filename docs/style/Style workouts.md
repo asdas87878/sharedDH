@@ -20,3 +20,4 @@ creatures, palette and world, never its models.
 | 10 | Effects | Bubbles, drifting specks, moving light on the floor, light shafts, glow | |
 | 11 | Interface | Creature tags, the ride and tame rings, the depth gauge | |
 | 12 | [Leviathans](12-leviathans.md) | Monster creatures in our kit, from the qualities of a reference the user sent: armour over flesh, a grin, a horn, claws, trailing scythe limbs | 2026-11-22: the Scythe Leviathan built and fixed once (not in the game); waiting for the user's read, then more body plans |
+| 13 | [The seahorse rocker evolves](13-seahorse-evolution.md) | The trainer's twelve levels as twelve animals of one family, growing from a baby seahorse to a 45-stud leviathan | 2026-11-25: built, level 1 kept as today's; waiting for the user's read and their yes to upload |

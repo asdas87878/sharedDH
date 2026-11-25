@@ -16,29 +16,180 @@ Hugo's words, in order:
 - 2026-11-24: "can you make sure that we implement auras, in the ui u didnt remove the placeholder bubbles in the back
   and make sure you can buy them. Prices should be consistent across different parts like the seahorses, make sure the
   scaling is cohesive."
+- 2026-11-25: "Make auras surround the player, not be a constant silhouette following the players camera view, but actually
+  surrounding the player, it should also fade out when moving and fade in when standing still, this shouldnt apply to riding,
+  always seeing the aura."
+- 2026-11-25: "Make auras cooler and bigger through progression, should start off less noticeable and the particle effects
+  look bad ngl, make them actually fully animated and feel integrated like in the screenshots i sent(especially ref image 4.
+  two players riding on dinos with auras)". (The screenshots are read for their feel only.)
+- 2026-11-25, 18:18, on the sheet below: "make auras less apparent and especially not as big( cover player especially ) when riding on
+  fish, should be way smaller in general when riding a fish."
 
-**State (2026-11-25): draft 4 is built, the auras can be bought, and it is on main. Checked by script and stills in Studio, not
+**Hugo chose A on 2026-11-25** (“use A for auras”). The default on `gpt-aura-2026-11-25` is
+`Config.Aura.Look = 2` and `Config.Aura.Small = 1`. Its riding radius grows from 2.7 to 3.5 studs
+across the twelve tiers. The low ribbon circles the hips and the other pieces draw behind the rider.
+The rates, art and coverage below come from the offline prototype. Studio and phone visibility are unverified.
+
+## Smaller, and less apparent (A selected)
+
+![before, A, B, C](../attachments/auras-3d-2.png)
+
+Offline mock from the game's own numbers, not Studio. [Riding, moving](../attachments/auras-3d-2.mp4): the rows are tiers 1, 6 and 12 from your
+own camera on a big fish, and tier 12 on a small one as another player sees it.
+
+`Config.Aura.Small`, read live: **0** the original fish-sized look, **1** A small (selected), **2** B smaller, **3** C tiniest (`Config.Aura.Smalls`).
+In the offline comparison, A's tier 12 still lies over some of the fish ahead (10 % of it has some aura on it, 1 % is hidden), B's hardly
+(1 %, none hidden), C's not at all, but C drops a ribbon and a serpent, so the top tiers show off least.
+
+- **Riding it is round the rider only,** whatever the fish is: 2.4 to 3.5 studs out from the rider (the arms end at 2) and 2.4 to 4.2 tall, where it was as long and wide as the
+  fish and up to 20. The same from your own camera and for everyone else.
+- **It never covers the rider:** every piece is drawn behind their body (the engine's ZOffset), but the thin low ribbon, which really goes round them
+  at the hips. **What that gives up:** riding, the aura no longer passes in front of the body; standing it still does.
+- **Gone while riding, in all three:** the haze, the pillar, the ground ring, the glow, the sweeps, the shock rings, the light. B and C also leave out the
+  shafts and the spray, C the second ribbon and one of the two serpents.
+- **Still there:** always seen while riding, one design, no tier smaller than the one below, the pieces named above apart each with what it adds (at 12 the crown and the two serpents, one in C).
+- **Standing, a bit less:** weaker and smaller (A 0.8, B 0.66, C 0.55 of its strength; the haze, pillar, ring, glow and light cut most), the crown kept over the head. The fades are unchanged.
+
+| Tier 12 | before | A | B | C |
+|---|---|---|---|---|
+| rider hidden, own camera, small / big fish | 80 % / 1.4 % | 0.23 / 0.30 | 0.09 / 0.11 | 0.04 / 0.05 |
+| rider hidden, another player, small / big fish | 74 % / 23 % | 1.1 / 1.5 | 0.69 / 0.88 | 0.26 / 0.42 |
+| rider with any aura over them, own camera, small / big | 100 % / 38 % | 0.79 / 1.0 | 0.54 / 0.67 | 0.38 / 0.46 |
+| screen with any aura on it, own camera, small / big | 52 % / 43 % | 2.1 / 2.0 | 1.3 / 1.2 | 0.62 / 0.57 |
+| standing: player hidden (mean of 12 moments) | 34 % | 19 % | 7 % | 2 % |
+| **Tier 6**: rider hidden, every view; screen, own camera, small / big | 0 to 1 %; 9.8 / 2.7 | 0; 0.58 / 0.53 | 0; 0.37 / 0.33 | 0; 0.20 / 0.18 |
+| **Tier 1**: rider hidden; screen, own camera, small / big | 0; 0.55 / 0.85 | 0; 0.17 / 0.16 | 0; 0.10 / 0.09 | 0; 0.06 / 0.05 |
+| draw calls riding, tiers 1 / 6 / 12 | 1 / 10 / 23 | 1 / 6 / 17 | 1 / 6 / 15 | 1 / 4 / 10 |
+
+Hidden = half covered or more. Two things to know: **A standing at tier 12 still hides 19 %** of the player (40 % at its worst moment); **tier 1 riding is very
+faint in all three** (`Wisp`'s first number and `Ride.Wisps` make it stronger).
+
+- **In the code:** `AuraVolume.small`, `hug`, `there`, `part`, `behind`, and guarded lines in `AuraAround`; the controller makes the auras again when the switch is turned.
+- **Switch 0 is as it was, proven:** the old and the new `AuraAround` run offline through the same 36 scenes (`tools/auras/volume_same.luau`) write the
+  same file, byte for byte; the sums too (20,685 numbers). The old `volume_test` unchanged: 77 of its 78; the 78th read the source for the word ZOffset and now checks the push is 0 at switch 0.
+  `volume_test` is now 111 checks, all passing; `aura_test` 61 of 61.
+- **Pictures:** no new ones. A, B and C each need the same twelve sheets in `art/ui/aura_volume` (standing uses all twelve). Riding alone uses seven in A (wisp, flame,
+  mote, arc, ribbon, jet, shaft) and five in B and C (wisp, flame, mote, arc, ribbon). The shop's card icons (`art/ui/auras/aura_icons.png`) are untouched.
+- **The first sheet ([auras-3d](../attachments/auras-3d.png)) had its fish facing backwards** (the mock's fault, not the game's): its riding pictures are of the tail end. Fixed in `volume_scene.py`.
+- **To see in Studio:** ZOffset hides the pieces behind the rider (its sign was seen there for the flame), and how much of them a wide fish's back hides with
+  it; a phone; the change of shape getting on and off; tier 1 riding is seen at all in murky water; with the stand-in pictures (no uploads yet) the mock's shapes are rougher.
+- **Made with** `tools/auras/volume_small.py` (`measure`, `sheet`, `frames`).
+
+## Around the body (2026-11-25, task a1; `Config.Aura.Look` 2)
+
+![all twelve, and riding](../attachments/auras-3d.png)
+
+**The picture is an offline mock:** drawn by our own script from the game's own numbers (`tools/auras/volume_shots.py`), not a
+Studio capture. [Moving](../attachments/auras-3d.gif) (2.6 seconds, over and over: the jump is the loop's end, not the aura's).
+
+An aura is a round volume that stands in the world: a circle on the ground as big as its tier, things that rise from that circle
+on every side, and ribbons that wind round the body in front and behind. No piece of it is a card placed to face the camera. Its
+numbers are plain sums in `src/shared/AuraVolume.luau`, drawn by `src/client/Lib/AuraAround.luau`, worn by `AuraController`. Only
+emitters and Beams on unseen parts that stand still under `workspace.AuraFx`, all moved in one go a frame, on each player's own machine.
+
+### What each tier adds
+
+The original (`Small = 0`) tier table follows. A uses 92% of these on-foot radii and 85% of these heights, in studs. A draw call is a Beam or an emitter; "far" is a far player,
+"mid" a nearer one or a phone's own, "near" is all of it.
+
+| Tier | Radius, height | New at this tier | Draw calls far / mid / near | Particles alive far / mid / near |
+|---|---|---|---|---|
+| 1 Bubble | 1.9, 3 | faint wisps rise round your feet | 1 / 1 / 1 | 4 / 5 / 8 |
+| 2 Shell | 2.1, 3.7 | thin strokes whip out over the ground | 1 / 2 / 2 | 4 / 7 / 11 |
+| 3 Tide | 2.3, 4.5 | a turning ring of light on the ground | 2 / 3 / 3 | 6 / 10 / 15 |
+| 4 Current | 2.6, 5.3 | a ribbon winds up round you | 4 / 5 / 5 | 6 / 10 / 15 |
+| 5 Reef | 2.8, 6.1 | an inner glow that breathes | 4 / 6 / 7 | 6 / 12 / 22 |
+| 6 Storm | 3, 7 | a ring of flames, and a second ribbon | 5 / 9 / 10 | 11 / 18 / 33 |
+| 7 Moon | 3.2, 7.9 | tall shafts of light; flares on a landing | 5 / 10 / 11 | 11 / 21 / 38 |
+| 8 Lantern | 3.4, 8.8 | embers spiral up; flares on a hop | 5 / 10 / 12 | 11 / 22 / 53 |
+| 9 Ember | 3.6, 9.7 | spray bursts out at the foot; flares on a boost | 5 / 11 / 13 | 11 / 27 / 64 |
+| 10 Urchin | 3.9, 10.6 | arcs crackle, shock rings; a burst when put on | 5 / 12 / 15 | 11 / 29 / 71 |
+| 11 Abyss | 4.1, 11.6 | a towering pillar of light | 6 / 13 / 16 | 14 / 33 / 81 |
+| 12 Leviathan | 4.3, 12.5 | two great serpents and a crown of flames | 6 / 16 / 23 | 14 / 35 / 95 |
+
+The flame it replaces was 47 draw calls at tier 12 (measured in Studio); this is 23, and tier 1 is 1.
+
+### When it is seen
+
+- **On foot:** standing still it fades in over `FadeIn` 0.5 s, moving it fades out over `FadeOut` 0.25 s. Moving is faster than
+  `MoveAt` 2 studs a second; still is under `StillAt` 0.8 for `StillFor` 0.12 s (between the two it stays as it was). The speed
+  is measured from the body's own place on each machine, so **other players' auras follow the same rules**. Swimming and
+  drowning are always moving, also when treading water.
+- **Riding with `Small = 0`** uses the original fish-sized effect: the circle takes the fish's own length and width (`RideWide`,
+  `RideLong`, `RideDeep` cap it), the column stands up past the rider, and it goes over smoothly to the next fish.
+  **Counted as riding:** a fish in the sea or on land, the trainer, the submarine, a tank ride, and the hop from fish to fish (`Hop` 1).
+- **With `Small = 0` and `EyeCalm = 0`, everyone sees the same fish-sized aura** ("always seeing the aura"). The lowest tiers ride at
+  the fish's back, so a big fish does not hide them in its body. `Config.Aura.EyeCalm` 1 is a calmer one, off: smaller, no haze
+  and no pillar, tier 12 at 0.6 of its strength and tier 1 whole, should a high tier prove too much to steer through (the mock's last row).
+
+### Cost
+
+- Whole within `WholeTo` 70 studs, the middle to `FewFrom` 130, few beyond. The three nearest others may have all of it (`Full`), the next
+  four the middle (`Half`), the rest few. A phone: the middle for its own (`PhoneOwn`), few for others (`PhoneMost`).
+- At most `Lights` 4 soft lights (no shadows): your own, then the nearest; 0 is none, not your own either. Faded out, an aura draws nothing and has no particles.
+
+### Dials
+
+`Config.Aura`: `Look` 2 (this), 1 (the flame), 0 (draft 2), read live; the fade, the riding and the detail numbers above. `Config.Aura.On` is
+still only the buying.
+
+### The pictures
+
+Twelve sheets of our own, drawn by sums (`tools/auras/volume_sheets.py`) in `art/ui/aura_volume/`, white, tinted by the tier.
+**To upload (Hugo's yes): those twelve files**; the ids go in `Auras.Sheets` ([which is which](../../art/ui/aura_volume/README.md)).
+**Until then a live game draws the same volume with the engine's own soft pictures** for six of them (wisp, flame, ring, haze,
+mote, glow), leaves the others out (the shock rings among them) and draws the ribbons as plain bands: it is there and it moves, but it is the rougher version.
+Studio reads local copies: `python tools/auras/volume_sheets.py --local`, then reopen Studio.
+
+### Checked offline
+
+`tools/auras/volume_test.luau` (78 checks then, 111 now: the ladder grows and loses nothing, the caps, the fade to the hundredth, each way of riding
+by the names the server uses, the size on small and giant fish, the detail by distance and phone), `aura_test.luau` (61, the
+shop, the server and the flame, unchanged), StyLua, selene, the type checker, a Rojo build. Eight of nine faults put in on purpose were caught
+(the ninth, `SpeedOver` next to nothing, is hidden by `StillFor`).
+
+### To see in Studio (nothing of this has been)
+
+`python tools/studio/aura_check.py run` (counts, the fade), then by eye:
+
+1. The spray bursts outward, and the wisps and flames rise from the rim (Roblox's Cylinder and Disc directions are from the manual).
+2. What lies flat (the ring, the sweeps, the shock rings) lies on the ground, and disappears when riding with A.
+3. Ribbons wind round both sides, with no seam where two Beams meet. In a live game, with no picture: a plain band.
+4. Nothing turns with the camera; no light's edge on the ground; several tier 12s side by side; a phone; a second player's aura does not flicker
+   as they walk and stop (its fade is worked out from the positions the network sends).
+5. Check tier 12 on both a clownfish and a whale from the rider's camera and another player's camera. The low
+   ribbon should stay at hip height. Check tier 1's faint fire stand-in against dark water while the mount moves.
+6. With the stand-ins: the ring is `forcefield_vortex_main`, a thin circle with a few bright points, flat on the ground. (Not the old look's
+   bubble picture, `explosion01_shockwave_main`, which an earlier version used.) Is it a ring of light to the eye, or is it better left out?
+
+### Three older rules this goes against, for Hugo to say no to
+
+- 2026-11-19: "particles round the body only, nothing on the ground". The new words ask for an aura that surrounds the player, so
+  there are strokes, a ring and a glow on the ground (tier 2 up).
+- The flame's note says no light. There is a soft one now (`Config.Aura.Lights` 0 takes it out).
+- 2026-11-23: "one slightly visible aura consistent just changing colours". The auras now differ by what each adds, as the new words ask.
+- **Also readings:** the hop between fish and every kind of seat count as riding; your own is as strong as everyone sees it, also from
+  your own camera at tier 12 (`EyeCalm`).
+
+**State before that (2026-11-25): draft 4 is built, the auras can be bought, and it is on main. Checked by script and stills in Studio, not
 played by hand.** The last
 quote is read as the go for the flame below (**a reading, not confirmed by Hugo**); the old look (draft 2) is kept behind
-`Config.Aura.Flame` 0. Draft 3 (the soft mist) is not used: Hugo took the yes back (the third quote). What was built and
+`Config.Aura.Look` 0. Draft 3 (the soft mist) is not used: Hugo took the yes back (the third quote). What was built and
 checked: "Built", below. From there on this note is the mock's, as it was drawn offline.
 
-## Built (2026-11-24; seen in Studio and pushed to main 2026-11-25)
+## Built (2026-11-24; seen in Studio and pushed to main 2026-11-25): the flame, now `Look` 1
 
 - **The flame:** its numbers are `src/shared/AuraFlame.luau` (plain sums, the tables below), drawn by
   `src/client/Lib/AuraBeams.luau`, worn by `AuraController`. It flares on a landing, a hop and a boost, burns faster riding,
   sits at the hips on a fish (a quarter of a second to and from: `Aura.SeatEase`), and is put on with a burst (tier 10 up)
   or a rise: only when the attribute changes on a character already seen, never on a respawn or for players you join.
-- **The old look** (draft 2, twelve different effects) is all still there: `Config.Aura.Flame` 0, read live. Only the names
+- **The old look** (draft 2, twelve different effects) is all still there: `Config.Aura.Look` 0, read live. Only the names
   and the shop's tints are the new ones either way (Foam is Shell, Phantom is Urchin). **The old look keeps draft 2's own
   colours** (`Build[1..12]` in `AuraController` has them written in), so worn it does not match its card: Shell (coral) is drawn
-  as white foam, Urchin (magenta) as mint and violet, and the others differ too. A live game shows that until the pictures are uploaded.
-- **The pictures** are `art/ui/aura_flame/` (white, not uploaded). Studio reads a local copy
-  (`python tools/auras/flame_pics.py`, once a PC and again after Studio updates itself). Ids go in `Auras.Pictures`. **Until
-  all six have an id, a live game draws the old look;** so does a Studio without the copy. **To upload (Hugo's yes): the six files in
-  `art/ui/aura_flame/upload/`** (`aura_flame_f1_t2`, `aura_tip_f1_t2`, `aura_streaks_f1_t2`, turned 180 degrees; `aura_lick_f1`,
-  `aura_bubble_f1`, `aura_arc_f1`), not the plain ones beside it: once the ids are set `Aura.Turn` does nothing, and the plain
-  three would be upside down and broken at the joints.
+  as white foam, Urchin (magenta) as mint and violet, and the others differ too.
+- **Flame art for Look 1.** All six textures from `art/ui/aura_flame/upload/` already have IDs in `Auras.Pictures`
+  (commit `258e3cf3`). Flame, Tip and Streaks use the rotated exports. Look 2 has a separate table, `Auras.Sheets`.
+
 - **Three dials, read live, set by what Studio showed (2026-11-25):** `Config.Aura.Turn` 2 (quarter turns of the Beams'
   pictures), `Scroll` -1 (with 0 and 1, the first guess, the flame was upside down and broken at every joint), `Behind` 1
   (the push was right; -1 turns it round).
@@ -50,7 +201,7 @@ checked: "Built", below. From there on this note is the mock's, as it was drawn 
   `Config.Aura.Prices` once. A bought aura is worn at once and replaces the one before. It multiplies **what the seahorse
   gives** (`TrainService.gain`) and nothing else: not the Index, not a pack. The upgrade sign shows the multiplied number.
   Refusals are said on the window ("Not enough coins!", "Buy the Tide Aura first!") with the shops' own sounds. Saved as the
-  part "Aura" in `SaveParts` (saving itself is still off). `Config.Aura.On` 0 turns buying off.
+  part "Aura" in `SaveParts` (saving is on). `Config.Aura.On` 0 turns buying off.
 - **The stall's cards:** the bubbles and the bubble sign behind the pictures are gone. A plain glow of the aura's colour is
   drawn only where there is no picture (a live game before the upload), never behind one.
 - **Prices:** [progression](progression.md), "The aura prices".
@@ -85,8 +236,10 @@ from behind with the game's camera.
 ## Decided
 
 - **Twelve tiers, x1.5 to x12** (Hugo, 2026-11-19).
-- **Particles round the body only, nothing on the ground** (Hugo, 2026-11-19, draft 2).
-- **One consistent aura on every tier, slightly visible** (Hugo, 2026-11-23, the first quote).
+- **Round the player in 3D, gone while moving on foot, always there riding, cooler and bigger by tier** (Hugo, 2026-11-25, the last two
+  quotes; what was made of it: "Around the body").
+- *(Goes against the line above: its ring and glow on the ground)* **Particles round the body only, nothing on the ground** (Hugo, 2026-11-19, draft 2).
+- *(Changed 2026-11-25)* **One consistent aura on every tier, slightly visible** (Hugo, 2026-11-23, the first quote).
 - **Not the mist. A power-up flame, cooler in how it works as the tiers go up, slightly bigger over upgrades**
   (Hugo, 2026-11-23, the third quote). Draft 3 was approved and then withdrawn; its sheet stays
   on the branch `auras-draft-3` for the record only.
@@ -327,9 +480,8 @@ edge.
 - `aura_bubble.png`: a thin ring with a highlight.
 - `aura_arc.png`: a jagged line with one branch.
 
-**In the repo since 2026-11-24 ([art/ui/aura_flame](../../art/ui/aura_flame/README.md)), not uploaded:** that needs Hugo's
-yes. The files to upload are the six in its `upload/` folder (Flame, Tip and Streaks turned 180 degrees: `..._f1_t2`), because
-`Config.Aura.Turn` does nothing once the ids are set.
+All six flame textures have uploaded IDs. The Beam exports use the 180-degree turn baked into their pixels.
+See the [flame art inventory](../../art/ui/aura_flame/README.md).
 
 ### Cost, low graphics and phones
 
@@ -423,6 +575,9 @@ the property names were confirmed (from the local type definitions), not how the
 - **A flare for other players on a Fast fish's take-off and a Leaper's big hop** (needs a new `Fx`, above).
 
 ## Open, for Hugo
+
+*(2026-11-25: 1 to 6 are about the flame, `Look` 1. For the 3D look: the ring and light on the ground, the seats and the hop
+as riding, and uploading its twelve pictures.)*
 
 1. Is this the flame? (The shape, the tongues, how see-through the middle is.)
 2. Is tier 1 modest enough and tier 12 strong enough, or too strong?

@@ -74,7 +74,13 @@ def collect(path):
 
 if __name__ == "__main__":
     paths = sorted(glob.glob(os.path.join(ROOT, "art", "creatures", "*", "game", "*.mesh.json")))
-    rows = [collect(p) for p in paths if os.path.basename(os.path.dirname(os.path.dirname(p))) not in CUT]
+    paths = [p for p in paths if os.path.basename(os.path.dirname(os.path.dirname(p))) not in CUT]
+    # an export with no land yet (its zone is UNPLACED: a Cosmic tried in Studio) is not in the game
+    placed = [p for p in paths if re.search(r"\d", json.load(open(p, encoding="utf-8"))["zone"])]
+    for p in paths:
+        if p not in placed:
+            print("left out, no land:", os.path.basename(os.path.dirname(os.path.dirname(p))))
+    rows = [collect(p) for p in placed]
     for folder, parts, moving, size in rows:
         print(f"{folder:18} {parts:3} parts, {moving:3} moving, {size:6} characters")
     print(len(rows), "creatures ->", os.path.relpath(OUT, ROOT))

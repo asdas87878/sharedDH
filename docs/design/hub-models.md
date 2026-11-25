@@ -48,7 +48,7 @@ python tools/map/hub_kit.py && python tools/map/hub_luau.py
 | `Dock.Plots.PlotN` | `TankWater`, `Pad`, `CollectPad`, `SignBoard`, `TrainerSpot` are parts, as before. Checked in Play: a tank is taken and its sign written |
 | `Dock.Plots.PlotN.TrainerRide` | **Now a Model** (the seahorse, 16 parts, all anchored). Its PrimaryPart is the part named `TrainerRide`: the body, under the saddle. Move the Model to bob it. The base, spring and coin box (`TrainerBase`, `TrainerSpring`, `CoinBox`) stay still |
 | `Dock.Plots.PlotN.Chute`, `ChuteHopper`, `ChuteMouth` | Only on the old tanks (plots 5 to 8). The new tank has no pipe |
-| `Dock.Stations.<Sell, Auras, Fuse, Index, Sub>` | A Model each. PrimaryPart is `Ring`, the ring on the floor: where a player stands to use it. `Title` carries the floating name |
+| `Dock.Stations.<Sell, Auras, Fuse, Index, Sub>` | A Model each. PrimaryPart is `Ring`, the ring on the floor: where a player stands to use it. `Title` carries the floating name. Sell, Auras, Sub and Index open their window on their ring (`StallController`, [UI](ui.md)) |
 | `Dock.Stations.Earners.Board` | A SurfaceGui named `Rows` with `Row1` to `Row5` (TextLabels) |
 | `Dock.Gate`, `Dock.Landmark`, `Dock.Dressing` | Nothing the game needs |
 | `Dock.HubLife` | A small client script: slides every picture tagged `HubRipple` (the tanks' tops, the basin, the pool) |
@@ -305,6 +305,9 @@ The user: "change the stalls so they are more simplistic, more alike to ride a d
 - **Run:** standing on SELL's circle its middle went from 0.8 see-through to 0.35, and back on stepping off.
 - **Not done:** not on a phone; the place not saved.
 
+## The Fuse machine works (2026-11-25)
+The ring opens the Fuse window; what the place must hold for it (`Ring`, `Core`, the sign's `Sub`): [fusing](fusing.md).
+
 ## The keepers behind the stands (2026-11-23)
 The user: "Add specialised characters behind every stand ... a looping idle animation where they stand while bobbing
 up and down a little smoothly then doing something for a second, they should also follow the player when the player
@@ -372,6 +375,11 @@ numbers the game reads.
   [Fuse](../attachments/hub-h4-keeper-fuse.jpg).
 - **Still not done:** the real draw calls (an estimate only), a stand that streams in late, and Hugo's eye on how they
   read under the awnings at play distance (they are small there: see the pictures).
+
+## The leaderboards by the gate (2026-11-25, branch `leaderboards`)
+Built by code on each player's own machine, like the keepers: nothing in the place, nothing uploaded. They stand where the
+blank "Earners" slate is, which is moved out of the running game only. The spot, the frames, the parts and what stands in
+front of them: [leaderboards](leaderboards.md).
 
 ## What moved, and why
 The hub's size, layout and colours are questions waiting for the user, so nothing of those changed. Three things

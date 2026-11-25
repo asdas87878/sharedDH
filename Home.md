@@ -30,6 +30,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 ## The game
 - [Core loop](docs/design/core-loop.md): the cycle in one page.
 - [Archetypes and speed per fish](docs/design/archetypes.md): every creature's own speed and its passive archetypes (fast, predator, breaker and more), in one table.
+- [Fusing](docs/design/fusing.md): three fish of a kind become one a size bigger, at the Fuse machine (built 2026-11-25, not played).
 - [Riding feel](docs/design/riding-feel.md): the ride, the jump fish to fish and the herd, as built.
 - [The sling](docs/design/sling.md): getting from fish to fish: what was weak, the three fixes on switches, the feel log and the M key (built 2026-11-17); fast fish no longer refuse a hook or drop you off, and the hands-off hook comes when the reference's does, 1.7 s after the jump (2026-11-18).
 - [The long hook](docs/design/long-hook.md): a hook onto a far fish feels far and lands hard: the long shot (the camera), the rush and the thud, the word (built 2026-11-18).
@@ -45,6 +46,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.
 - [The hub's layout](docs/design/hub-layout.md): the dive-in strip, the walls round it, the space behind the tanks (study, 2026-11-20).
 - [UI](docs/design/ui.md): what the player sees on screen: the dive's HUD and the dock's screens (proposed, with mock-ups).
+- [The leaderboards](docs/design/leaderboards.md): three boards in the hub, who is on them, how they look (on a branch, 2026-11-25).
 - [Creatures](docs/design/creatures.md): what's decided about the creatures, tags, sizes and mutations.
 - [Roster](docs/design/roster.md): the scale against Ride a Dino and three drafted progressions (76 creatures).
 - [Creature queue](docs/design/creature-queue.md): the voxel models exported and waiting to go into the game
@@ -57,6 +59,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Workout 11: the wow of rare creatures](docs/style/11-rare-wow-study.md): what Ride a Dino's rare dinos do (variants, full-strength hues, glow as shapes, a bright shell) and what ours lack
 - [Cosmic](docs/design/cosmic.md): a rarity above Mythic, proposed, and a book of effect, lighting and gimmick ideas; a draft
 - [Money and Robux](docs/design/money.md): income, upgrades, what's for sale.
+- [Starter packs](docs/design/starter-packs.md): drafted deals, the Great White pack first (waiting on the user).
 - [First version](docs/design/first-version.md): what ships first and what waits.
 
 ## The look

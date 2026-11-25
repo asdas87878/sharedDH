@@ -23,9 +23,11 @@
 --   Server leeway: Net: how much lag and reach the server allows when it judges a grab or a landing
 --   The camera, look and animation: Camera, Look, Animation, Pose, Feel, AimHud: view, light, motion, the reticle
 --   Spawning and the dive-in: Spawn, Endless, Dive: where wild fish are made, the endless Underworld, stepping off the dock
+--   The leaderboards: Boards: the hub's boards, where they stand, what they list and how often they ask Roblox's store
 --   The auras: Aura: their prices, the stall, and how the flame is drawn
 --   The submarine: Sub, SubTitles: the bought ride to deeper lands, its prices, and the land titles on the way
 --   The Index: Index: what a new kind and a finished land pay, and how the server watches for catches (DRAFT)
+--   Fusing: Fuse: three fish of a kind made one, a size bigger, at the Fuse machine
 --   Spawn mix and the roster list: ZoneMix, ReachWeight, Fish, FishById: rarity odds per land, every fish kind
 --   Helper functions: no tables; the sums worked out from the tables above, the roster build and Config.refresh
 --   (metresAt, landStyleOf, longOf and failOf sit beside their own tables, not with the helper functions.)
@@ -119,13 +121,13 @@ Config.BaseScale = {
 	-- land 2: Coral Reef
 	Angelfish = 1.1, Lionfish = 1.3, Parrotfish = 1.45, MorayEel = 1.5, Octopus = 1.45, HumpheadWrasse = 1.8, Dunkleosteus = 2, CoralDragon = 1.8,
 	-- land 3
-	Garibaldi = 1.1, SeaLion = 1.5, GiantSeaBass = 1.65, LeopardShark = 1.5, GreatWhite = 2, StellersSeaCow = 2, Dakosaurus = 1.7, KelpWyrm = 1.8,
+	Garibaldi = 1.1, SeaLion = 1.5, GiantSeaBass = 1.65, LeopardShark = 1.5, GreatWhite = 2, StellersSeaCow = 2, WhaleShark = 1.5, Dakosaurus = 1.7, KelpWyrm = 1.8,
 	-- land 4
 	Barracuda = 1.4, HammerheadShark = 1.8, Sawfish = 1.7, ElectricRay = 1.6, GoliathGrouper = 2, Xiphactinus = 1.7, GalleonWhale = 1.9,
 	-- land 5
-	Dolphin = 1.7, Swordfish = 1.6, MantaRay = 2.1, Orca = 1.9, Elasmosaurus = 1.6, Helicoprion = 1.7, BlueWhale = 2.2, StormSerpent = 1.8,
+	Dolphin = 1.7, Swordfish = 1.6, MantaRay = 2.1, Orca = 1.9, Elasmosaurus = 1.6, Helicoprion = 1.7, GinsuShark = 1.35, BlueWhale = 2.2, StormSerpent = 1.8,
 	-- land 6
-	Viperfish = 1.3, GiantSquid = 1.6, GoblinShark = 1.6, Liopleurodon = 1.7, Shonisaurus = 1.8, LanternLeviathan = 1.7, AuroraJelly = 1.7,
+	Viperfish = 1.3, GiantSquid = 1.6, GoblinShark = 1.6, Liopleurodon = 1.7, Shonisaurus = 1.8, Otodus = 1.4, LanternLeviathan = 1.7, AuroraJelly = 1.7,
 	-- land 7
 	Anglerfish = 1.6, FrilledShark = 1.4, Basilosaurus = 1.7, Livyatan = 1.8, Mosasaurus = 1.8, Kraken = 1.9, VoidWhale = 2,
 	-- land 8
@@ -133,7 +135,7 @@ Config.BaseScale = {
 	-- land 9
 	GraveRay = 2, GraveTurtle = 1.8, SkullAngler = 1.6, WraithEel = 1.7, BoneLeviathan = 1.8, HalfboneMegalodon = 2, PhantomWhale = 2,
 	-- land 10
-	BrimstoneEel = 1.7, CinderRay = 2, HellfinShark = 1.8, InfernalAngler = 1.7, AbyssalWatcher = 1.9, Hellmaw = 1.9, TheDevourer = 2.1,
+	BrimstoneEel = 1.7, CinderRay = 2, HellfinShark = 1.8, InfernalAngler = 1.7, AbyssalWatcher = 1.9, Hellmaw = 1.9, Ringbearer = 1.6, Totality = 1.7, TheDevourer = 2.1,
 } :: { [string]: number }
 
 export type FishStat = {
@@ -177,6 +179,7 @@ Config.FishStats = {
 	GiantSeaBass = { Speed = 54, Archetype = "" }, -- Rare: a heavy, slow, gentle giant: slow by its number, no trait
 	GreatWhite = { Speed = 82, Archetype = "Predator" }, -- Epic: the shark
 	StellersSeaCow = { Speed = 56, Archetype = "Tank" }, -- Epic: a gentle floating giant: slow, and the meter barely moves
+	WhaleShark = { Speed = 60, Archetype = "" }, -- Epic: the gentle giant of the sharks: slow by its number, no trait
 	Dakosaurus = { Speed = 88, Archetype = "" }, -- Legendary: a sea crocodile built for the chase: quick by its number only
 	KelpWyrm = { Speed = 112, Archetype = "" }, -- Secret: winds through the kelp: quick by its number only
 	-- land 4: Shipwrecks
@@ -193,6 +196,7 @@ Config.FishStats = {
 	Orca = { Speed = 90, Archetype = "Predator" }, -- Epic: the top hunter: big enough to eat most of what swims by
 	MantaRay = { Speed = 78, Archetype = "Leaper" }, -- Epic: a flier: it breaches, and its hop is a long glide
 	Helicoprion = { Speed = 92, Archetype = "" }, -- Legendary: the buzz-saw shark: a plain Legendary
+	GinsuShark = { Speed = 94, Archetype = "" }, -- Legendary: a fast slicing shark: quick by its number only
 	Elasmosaurus = { Speed = 86, Archetype = "" }, -- Legendary: a long-necked, unhurried paddler: a plain Legendary
 	BlueWhale = { Speed = 84, Archetype = "Tank,Breaker" }, -- Mythic: the biggest and the calmest: nothing stops it and the meter crawls; the slowest Mythic by far, which is the trade
 	StormSerpent = { Speed = 135, Archetype = "Fast" }, -- Secret: lightning: the launch, and nothing else
@@ -202,6 +206,7 @@ Config.FishStats = {
 	GoblinShark = { Speed = 78, Archetype = "" }, -- Epic: its jaws shoot out: a plain Epic
 	Liopleurodon = { Speed = 98, Archetype = "Predator" }, -- Legendary: the Twilight's big four-flippered hunter
 	Shonisaurus = { Speed = 92, Archetype = "" }, -- Legendary: a whale-sized ichthyosaur with no teeth: a plain Legendary
+	Otodus = { Speed = 96, Archetype = "" }, -- Legendary: the Megalodon's older cousin, nearly all jaws: a plain Legendary
 	LanternLeviathan = { Speed = 108, Archetype = "" }, -- Mythic: a long lit serpent: quick by its number only
 	AuroraJelly = { Speed = 96, Archetype = "Tank" }, -- Secret: a drifting jelly: slow for a Secret, and the meter barely moves
 	-- land 7: Midnight
@@ -236,6 +241,8 @@ Config.FishStats = {
 	InfernalAngler = { Speed = 100, Archetype = "" }, -- Legendary: an angler, still: a plain Legendary
 	Hellmaw = { Speed = 130, Archetype = "" }, -- Mythic: the last land's monster: the fastest thing in the Underworld, by its number only
 	AbyssalWatcher = { Speed = 112, Archetype = "Tank" }, -- Mythic: it watches; it doesn't hurry
+	Ringbearer = { Speed = 110, Archetype = "Tank" }, -- Mythic: a turtle with a planet on its back: the slowest Mythic down there
+	Totality = { Speed = 126, Archetype = "Leaper" }, -- Mythic: a manta carrying an eclipse: a glider, like the other rays
 	TheDevourer = { Speed = 128, Archetype = "Predator,Frenzy" }, -- Secret: the end of the list: the one that chains bites down there, so it is not also the fastest (was 150)
 } :: { [string]: FishStat }
 
@@ -671,6 +678,7 @@ Config.OxygenBase = {
 	LeopardShark = 1500, -- Rare
 	GiantSeaBass = 1700, -- Rare
 	StellersSeaCow = 2000, -- Epic
+	WhaleShark = 1900, -- Epic
 	GreatWhite = 2200, -- Epic
 	Dakosaurus = 2100, -- Legendary
 	KelpWyrm = 2300, -- Secret
@@ -688,6 +696,7 @@ Config.OxygenBase = {
 	MantaRay = 41000, -- Epic
 	Orca = 50000, -- Epic
 	Elasmosaurus = 49000, -- Legendary
+	GinsuShark = 52000, -- Legendary
 	Helicoprion = 54000, -- Legendary
 	BlueWhale = 70000, -- Mythic
 	StormSerpent = 46000, -- Secret
@@ -696,6 +705,7 @@ Config.OxygenBase = {
 	GiantSquid = 360000, -- Epic
 	GoblinShark = 380000, -- Epic
 	Liopleurodon = 510000, -- Legendary
+	Otodus = 500000, -- Legendary
 	Shonisaurus = 520000, -- Legendary
 	LanternLeviathan = 450000, -- Mythic
 	AuroraJelly = 640000, -- Secret
@@ -731,6 +741,8 @@ Config.OxygenBase = {
 	InfernalAngler = 330000000, -- Legendary
 	Hellmaw = 340000000, -- Mythic
 	AbyssalWatcher = 370000000, -- Mythic
+	Ringbearer = 350000000, -- Mythic
+	Totality = 380000000, -- Mythic
 	TheDevourer = 390000000, -- Secret
 } :: { [string]: number }
 
@@ -774,8 +786,14 @@ Config.Train = {
 	On = 1, -- 0: no training spot
 	Rate = 4, -- whole max Oxygen for each whole second on it, when there is no Levels table (below)
 	-- (Share, a share of your max Oxygen on top, went 2026-11-20, task e1: Hugo, "each upgrade gives one set whole
-	-- number of oxygen, no decimals". Training now gives whole numbers only, once for every whole second seated:
-	-- Config.trainTicks.)
+	-- number of oxygen, no decimals". Training gives whole numbers only: Config.trainGain.)
+	-- The level's Oxygen a second comes in beats this long, each a "+n" pop (the user, 2026-11-25: twice as often, half
+	-- the value each; it was 1, then 0.5; and again the same day: "again ... at twice the rate, with half the value"): a second's beats add up to exactly the level's Oxygen. 1 over a whole number.
+	Every = 0.25,
+	-- Now and then a beat is worth more, with its own show (the user, 2026-11-25: "a random x2 or x4 multiplier that shows
+	-- with a different effect around it"): each beat's chance of each, the server's roll. Together they add 14% to what
+	-- is trained. Chance 0: never.
+	Bonus = { { Mult = 4, Chance = 0.02 }, { Mult = 2, Chance = 0.08 } },
 	Radius = 10, -- studs from the spot's middle that count as on it
 	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
 	Ahead = 24, -- and this far toward the water
@@ -784,7 +802,7 @@ Config.Train = {
 	-- gives that level's Oxygen a second in place of Rate. Name: the level's seahorse (the model's NAMES).
 	-- The economy draft 2's numbers (the user, 2026-11-23: "Yes, as drafted"; docs/design/progression.md): the
 	-- reference's machine x 8, then x 2.5 a level; its prices, coin for dollar. Fixed whole numbers only (Hugo's rule: no
-	-- share of max, no decimals): Oxygen is given once for every whole second seated. Price is in coins.
+	-- share of max, no decimals): the Oxygen of a whole second seated (given in beats: Every). Price is in coins.
 	Levels = {
 		{ Name = "Toy", Oxygen = 16, Price = 0 },
 		{ Name = "Painted", Oxygen = 40, Price = 15000 },
@@ -957,6 +975,59 @@ Config.PlotUpgrades = {
 	},
 }
 
+-- What a phone or tablet is spared (PhoneController, UI/Portrait, RideController)
+Config.Phone = {
+	On = 1, -- 0: a phone draws what a PC does
+	Shadows = 0, -- 1: the sun's shadows stay on
+	Effects = 0, -- 1: the glow, the sun's rays and the blur stay on
+	Outline = 4, -- black copies that make a fish picture's outline (a PC: 8; each is the fish drawn again)
+	HopLook = 1, -- 1: dragging the thumb that pressed HOP turns the camera too
+}
+
+-- The boost a pack starts for the whole server (PackService; docs/design/starter-packs.md)
+Config.Boost = {
+	On = 1, -- 0: a running boost multiplies nothing
+	Oxygen = 2, -- what the seahorse trains, times this
+	Cash = 2, -- what the tank earns each tick, times this
+	Most = 21600, -- seconds: however many are bought, it ends at most this long from now
+}
+
+-- The Great White pack in front of the player (the user, 2026-11-25: "put it to the top. also put an icon in the top right
+-- ... that links to this starter pack")
+Config.Packs = {
+	Card = 1, -- 1: a pack with a fish is the Shop's big card (UI/ShopScreen); 0: a wide card like the others
+	Icon = 1, -- 1: its icon at the top right at the dock until it is bought (UI/PackIcon); 0: none
+}
+
+-- Offline rewards (Hugo, 2026-11-25; NULLROOM task o1; docs/design/offline-rewards.md): what the tank earns while its
+-- player is away, theirs to claim at the next join (OfflineService; UI/OfflinePanel). Every DRAFT number is for the
+-- tuning chat. It pays nothing while saving is off (Lib/SaveParts): nothing then says when they left.
+Config.Offline = {
+	On = 1, -- 0: nothing is paid for being away and no window shows (what is owed already is kept)
+	Least = 300, -- DRAFT. away at least this long, seconds, else nothing
+	Share = 0.5, -- DRAFT. of what the tank's equipped fish earned a second on leaving (1: as if they had stayed)
+	Most = 28800, -- DRAFT. and at most this long is paid for, seconds (8 h)
+	AskGap = 0.3, -- the least seconds between two asks from one player; a faster one is dropped
+	Hold = 120, -- Claim x3: what is owed is held this long for Roblox's prompt to be answered, seconds,
+	HoldJoin = 60, -- and this long after a join, when it was held as they left
+	Settle = 0.8, -- on the dock this long with nothing else on the screen before the window shows by itself, seconds
+}
+
+-- What an absence pays, in whole coins, and the seconds it is paid for: 0, 0 when it is too short, runs backwards, or
+-- comes to less than a coin
+function Config.offlinePay(rate: number, away: number): (number, number)
+	local o = Config.Offline
+	if o.On == 0 or away ~= away or rate ~= rate or away < o.Least or rate <= 0 or rate == math.huge then
+		return 0, 0
+	end
+	local secs = math.clamp(math.floor(away), 0, o.Most)
+	local coins = math.floor(rate * secs * math.max(o.Share, 0) + 1e-6)
+	if coins < 1 or coins == math.huge then
+		return 0, 0
+	end
+	return coins, secs
+end
+
 -- Riding a fish in your own tank (Hugo, 2026-11-20, task k1: "make fishes in the tank rideable (in the tank)"):
 -- practice, nothing at stake. No Oxygen, no fail, no taming, no catch: you stay on the dock as far as the game is
 -- concerned. Only the tank's owner rides its fish. The rider's machine moves the fish (TankRideController); the
@@ -970,6 +1041,7 @@ Config.PlotUpgrades = {
 -- not, swim with the sea's own keyed swim.
 Config.TankRide = {
 	On = 1, -- 0: tank fish can't be ridden
+	Direct = 1, -- 1: E on a tank fish brings it to the player, equipped and ridden on land; 0: ridden inside the tank
 	Hold = 0.5, -- seconds E is held on the fish looked at to get on
 	Aim = 3, -- studs: how near the look (the mouse, or the middle of the screen) must pass a fish's body to pick it
 	Reach = 44, -- studs from the tank's water within which its fish can be picked (the server: 48)
@@ -1468,6 +1540,7 @@ Config.LandRide = {
 		-- Turtle (3)
 		SeaTurtle = "Turtle",
 		Archelon = { Body = "Turtle", Rate = 0.65, SegShare = 0.85 },
+		Ringbearer = { Body = "Turtle", Rate = 0.55, SegShare = 0.85 },
 		GraveTurtle = { Body = "Turtle", Rate = 0.6, SegShare = 0.85 },
 		-- Seahorse (1)
 		Seahorse = "Seahorse",
@@ -1480,6 +1553,7 @@ Config.LandRide = {
 		-- Ray (5)
 		Stingray = "Ray",
 		MantaRay = { Body = "Ray", Rate = 0.9 },
+		Totality = { Body = "Ray", Rate = 0.85 },
 		ElectricRay = "Ray", -- (no wings in its rig: its body shuffles and rolls instead)
 		CinderRay = "Ray",
 		GraveRay = { Body = "Ray", Rate = 0.9 },
@@ -1510,6 +1584,9 @@ Config.LandRide = {
 		GoblinShark = { Body = "Shark", Jaw = 18 },
 		FrilledShark = { Body = "Shark", Tail = 90, TailWave = 1, TailGrow = 0.5 }, -- a longer travelling wave
 		Megalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
+		Otodus = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
+		GinsuShark = { Body = "Shark", Rate = 0.95, Surge = 0.4 },
+		WhaleShark = { Body = "Shark", Rate = 0.7 },
 		MoltenMegalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
 		HalfboneMegalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
 		HellfinShark = { Body = "Shark", Rate = 0.95 },
@@ -2454,11 +2531,11 @@ Config.FishPace = {
 	-- land 2
 	MorayEel = "Dart", Octopus = "Dart", CoralDragon = "Zoom", Dunkleosteus = "Hunt",
 	-- land 3
-	Garibaldi = "Dart", SeaLion = "Zoom", KelpWyrm = "Zoom", Dakosaurus = "Zoom", GiantSeaBass = "Plod", StellersSeaCow = "Plod", GreatWhite = "Hunt",
+	Garibaldi = "Dart", SeaLion = "Zoom", KelpWyrm = "Zoom", Dakosaurus = "Zoom", GiantSeaBass = "Plod", StellersSeaCow = "Plod", WhaleShark = "Plod", GreatWhite = "Hunt",
 	-- land 4
 	Barracuda = "Zoom", Xiphactinus = "Zoom", GoliathGrouper = "Plod", GalleonWhale = "Plod", HammerheadShark = "Hunt",
 	-- land 5
-	Dolphin = "Zoom", Swordfish = "Zoom", StormSerpent = "Zoom", BlueWhale = "Plod", Orca = "Hunt",
+	Dolphin = "Zoom", Swordfish = "Zoom", StormSerpent = "Zoom", GinsuShark = "Zoom", BlueWhale = "Plod", Orca = "Hunt",
 	-- land 6
 	Viperfish = "Dart", GiantSquid = "Dart", AuroraJelly = "Plod", Liopleurodon = "Hunt",
 	-- land 7
@@ -2468,7 +2545,7 @@ Config.FishPace = {
 	-- land 9
 	GraveTurtle = "Plod", WraithEel = "Dart", HalfboneMegalodon = "Hunt",
 	-- land 10
-	InfernalAngler = "Plod", BrimstoneEel = "Dart", Hellmaw = "Zoom", HellfinShark = "Hunt", TheDevourer = "Hunt",
+	InfernalAngler = "Plod", BrimstoneEel = "Dart", Hellmaw = "Zoom", Ringbearer = "Plod", HellfinShark = "Hunt", TheDevourer = "Hunt",
 } :: { [string]: string }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -2839,7 +2916,7 @@ Config.Fail = {
 		-- the eaters: every Predator (by its archetype, below), and these with the teeth for it
 		MorayEel = "Chomp", HammerheadShark = "Chomp", Viperfish = "Chomp", GoblinShark = "Chomp", FrilledShark = "Chomp",
 		Dakosaurus = "Chomp", Helicoprion = "Chomp", Livyatan = "Chomp", Kronosaurus = "Chomp", MoltenMegalodon = "Chomp",
-		HalfboneMegalodon = "Chomp", BobbitWorm = "Chomp", Hellmaw = "Chomp",
+		HalfboneMegalodon = "Chomp", BobbitWorm = "Chomp", Hellmaw = "Chomp", Otodus = "Chomp", GinsuShark = "Chomp",
 		-- the swallowers: a lure, or a mouth that takes things whole
 		Anglerfish = "Gulp", SkullAngler = "Gulp", InfernalAngler = "Gulp", GoliathGrouper = "Gulp", Xiphactinus = "Gulp",
 		-- arms
@@ -2847,11 +2924,11 @@ Config.Fail = {
 		-- giants and whales
 		BlueWhale = "Roll", GalleonWhale = "Roll", VoidWhale = "Roll", PhantomWhale = "Roll", StellersSeaCow = "Roll",
 		Shonisaurus = "Roll", GiantSeaBass = "Roll", HumpheadWrasse = "Roll", Dolphin = "Roll", AbyssalWatcher = "Roll",
-		Elasmosaurus = "Roll", Swordfish = "Roll", LeopardShark = "Roll",
+		Elasmosaurus = "Roll", Swordfish = "Roll", LeopardShark = "Roll", WhaleShark = "Roll",
 		-- rays
-		MantaRay = "Flip", ElectricRay = "Flip", GraveRay = "Flip", CinderRay = "Flip",
+		MantaRay = "Flip", ElectricRay = "Flip", GraveRay = "Flip", CinderRay = "Flip", Totality = "Flip",
 		-- shells
-		Archelon = "Shell", GraveTurtle = "Shell",
+		Archelon = "Shell", GraveTurtle = "Shell", Ringbearer = "Shell",
 		-- serpents
 		PearlSerpent = "Coil", KelpWyrm = "Coil", StormSerpent = "Coil", LanternLeviathan = "Coil", Basilosaurus = "Coil",
 		EmberSerpent = "Coil", WraithEel = "Coil", BrimstoneEel = "Coil", BoneLeviathan = "Coil", CoralDragon = "Coil",
@@ -2942,10 +3019,102 @@ Config.Sandbox = {
 -- The admin panel for playtesting (key P; AdminService, docs/sandbox.md "The admin panel"). Open to everyone in
 -- Studio, and in a live server to the place's owner and these user ids. The server checks it on every action.
 Config.Admin = {
+	On = 0, -- 0: there is no panel and no remote for anyone, in Studio or live (the user, 2026-11-25: not in the main game); 1: on
 	Users = {} :: { number }, -- user ids allowed besides the owner
 	Owner = 1, -- 1: the place's owner (a user, or a group's owner) is allowed; 0: only the list
 	Maxes = { 200, 500, 2000, 4500, 8000 } :: { number }, -- the max Oxygen buttons (past 2000: the extra thin rings)
 	Coins = { 1000, 100000 } :: { number }, -- the coin buttons
+}
+
+----------------------------------------------------------------------------------------------------------------------
+-- The leaderboards: three boards in the hub, who is on them, and where they stand
+
+-- The hub's leaderboards (Hugo, 2026-11-25: "Make stylised leaderboards in this style, but fitting the aquatic theme";
+-- NULLROOM task l1; docs/design/leaderboards.md). LeaderboardService keeps the lists, BoardController builds the boards
+-- on each player's own machine from Shared/Boards, UI/BoardPanel writes on them. Read live, except Global, Store and List.
+Config.Boards = {
+	On = 1, -- 0: no boards, nothing stored, and the old blank slate (Replaces) stays
+	Replaces = { "Earners" }, -- stations of the hub that the boards stand in place of: taken out while the game runs (the place keeps them)
+	-- where they stand: the middle of the row on the hub's floor (Dock.HubFloor), along the wall right of the dive gate
+	X = -78, -- studs from the floor's middle line, the sea ahead of you and minus to the right
+	Z = 39, -- studs in from the floor's edge at the sea
+	Face = 180, -- which way the whole row faces: 0 the sea, 180 straight into the hub, less: turned towards the hub's middle
+	Pitch = 12.9, -- studs from one board's middle to the next; 12.9 is the least (Boards.least), more makes the posts wider
+	Scale = 1, -- every size times this
+	Hide = 420, -- past this the boards are taken out of the world
+	ScrollNear = 24, -- studs within which the list can be scrolled (further off a finger on it turns the camera)
+	-- what they list
+	Keep = 50, -- places kept on each board (100 is the most Roblox hands over at once)
+	Rows = 8, -- places seen at once; the rest is scrolled to
+	HideUsers = {} :: { number }, -- user ids never listed and never stored (developers, admins)
+	-- the timing and the limits
+	Refresh = 60, -- seconds between two looks at the stored lists
+	Watch = 5, -- seconds between looks at this server's own players
+	WriteEvery = 120, -- a player's new number is stored at most this often, seconds (and as they leave)
+	WriteGap = 0.5, -- seconds between two writes of a server
+	Reserve = 5, -- a write waits while the game has this few left to spend (Roblox's own limit)
+	Backoff = 30, -- seconds a board waits after a failed request; doubled each time, to BackoffMost
+	BackoffMost = 600,
+	Stale = 600, -- a stored list older than this (the store is down) gives way to this server's own players
+	AskGap = 2, -- the least seconds between two asks for the lists from one player
+	-- Global 1: a board whose number is saved (its Saved part is on in Lib/SaveParts) lists every player of the game;
+	-- while saving is off, and 0: this server's players only, and the board says so
+	Global = 1,
+	Store = "Boards1_", -- the stored lists' names: this and the board's Id. A new name starts the boards again
+	-- Id; Title and Line, what it is called and the small words under it; Attribute, the player attribute it reads
+	-- (none: LeaderboardService's own way); Saved, the save part (SaveParts) its number is kept in; Scale, whole steps
+	-- to one (10: tenths are kept); Money, written with a $; Unit, the word under each
+	-- number; Emblem, the icon at the board's head (Shared/Boards)
+	List = {
+		{
+			Id = "Oxygen",
+			Title = "TOP OXYGEN",
+			Line = "biggest max Oxygen",
+			Unit = "OXYGEN",
+			Attribute = "MaxOxygen",
+			Saved = "Oxygen",
+			Scale = 1,
+			Money = 0,
+			Emblem = "Bubble",
+			On = 1,
+		},
+		{
+			Id = "Collectors",
+			Title = "TOP COLLECTORS",
+			Line = "fish looks in the Index",
+			Unit = "LOOKS",
+			Attribute = "",
+			Saved = "Index",
+			Scale = 1,
+			Money = 0,
+			Emblem = "Book",
+			On = 1,
+		},
+		{
+			Id = "Earners",
+			Title = "TOP EARNERS",
+			Line = "tank coins a second",
+			Unit = "A SECOND",
+			Attribute = "Income",
+			Saved = "Tank",
+			Scale = 10,
+			Money = 1,
+			Emblem = "Chest",
+			On = 1,
+		},
+		{
+			Id = "Deepest",
+			Title = "DEEPEST DIVERS",
+			Line = "furthest dive, metres",
+			Unit = "METRES",
+			Attribute = "BestMetres",
+			Saved = "Best",
+			Scale = 1,
+			Money = 0,
+			Emblem = "Anchor",
+			On = 0, -- a client moves its own character, so this number is the easiest to cheat (docs/reviews/code-audit)
+		},
+	},
 }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -3387,6 +3556,22 @@ Config.Spawn = {
 	WrapShare = 20, -- "plain" for WrapHome: a fish of an ordinary size and colour whose rarity is at least this share (of 100) of its own land's fish
 	WrapHome = 1, -- 1: a plain fish that swims out of its lands, out of sight, comes in again at the start of its own (the same fish, not a new one made); 0: every such fish is taken away and a new one made
 	StrayMost = 0.25, -- of a stretch of water, at most this share may be fish of the lands before it (2026-11-25, the user: "the lesser fish go into the furthr areas and then the fish from that area dont spawn enough"; measured: 2 in 100 of land 2's fish were its own, as the herd of land 1 swam on into it and filled it). One over that, out of sight, goes back to the start of its own land (or away, if it is not plain), and the land's own are made in its place. 1: as before
+	-- A later land's own fish round a rider (FishService.comeUp; 2026-11-25, the user: the pink land's fish not spawning
+	-- as they should: the herd swims at a rider's pace, so land 1's fish went along with them right through land 2)
+	Come = 1, -- 1: the land's own come up past the rider from behind, and the earlier lands' fish over StrayMost hang back; 0: neither
+	ComeSoon = 350, -- it begins this far before a land's start, studs
+	ComeAhead = 350, -- the water this far ahead is to hold the land's share of its own
+	ComeFill = 1.2, -- and as many fish in all as this times what that water should hold (land 1's herd, gathered at the gate, runs that much over)
+	ComeNear = 50, -- and each goes somewhere from this far ahead to there
+	ComeSide = 0.3, -- they pass at least this far to one side (a share of the band's half width)
+	ComeEvery = 0.4, -- seconds between them
+	ComeOver = 50, -- they pass a rider this much faster than the rider goes, studs a second,
+	ComeMost = 170, -- but never faster than this
+	ComeTime = 14, -- seconds until one gives up catching its place
+	ComeLeast = 30, -- only for a rider going down the lane at least this fast
+	ComeFast = 120, -- and not one faster than this: they come to the land's own by themselves
+	BackClear = 170, -- this far behind a rider who is going on counts as out of sight (0: SightClear, as everywhere)
+	StrayLag = 0.5, -- the share of its pace an earlier land's fish over StrayMost swims at near a rider
 	BigRise = 14, -- by up to this much (each fish between 0.4 and 1 of what its length gives)
 	Belly = 4, -- and no fish's belly is nearer the floor than this, whatever its size
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
@@ -3572,7 +3757,165 @@ Config.Aura = {
 	Prices = { 100, 2e3, 40e3, 800e3, 15e6, 300e6, 6e9, 120e9, 2.5e12, 50e12, 1e15, 20e15 } :: { number },
 	Near = 30, -- the stall sells within this many studs of its ring (Dock.Stations.Auras), as the sub's stand
 	BuyAgain = 0.5, -- one ask at a time: a second press within this many seconds is the same click, seconds
-	Flame = 1, -- 1: the flame (draft 4); 0: the old look (draft 2's particles and ribbons). Read live
+	Look = 2, -- 2: round the body in 3D (Shared/AuraVolume); 1: the flame (draft 4); 0: draft 2's particles. Read live
+	-- Look 2, when it shows (Hugo, 2026-11-25: "it should also fade out when moving and fade in when standing still, this
+	-- shouldnt apply to riding, always seeing the aura"). Everyone's by their own movement, on every machine
+	FadeIn = 0.5, -- standing still on foot: seen over this long, seconds
+	FadeOut = 0.25, -- moving on foot (swimming always): gone over this long, seconds
+	MoveAt = 2, -- over this speed is moving, studs a second (walking is 16 and up),
+	StillAt = 0.8, -- and under this,
+	StillFor = 0.12, -- for this long, is standing still, seconds
+	SpeedOver = 0.08, -- the speed is smoothed over this long (another player's place comes in steps), seconds
+	Hop = 1, -- 1: the hop from fish to fish is part of the ride, seen; 0: it is moving
+	-- Look 2, how it stands round a rider and what they ride, studs
+	RideWide = 12, -- never further than this out to its sides,
+	RideLong = 20, -- and to its ends, however big the fish is
+	RideDeep = 12, -- from no more than this under the rider, to this over them
+	RideGrow = 2.2, -- its pictures are up to this many times as big
+	RideMore = 1.5, -- and up to this many times as many
+	RideWisps = 18, -- at least this many wisps a second round a fish (the first tiers' few would be lost round it)
+	EyeCalm = 0, -- 0: our own is as everyone else sees it, whole. 1: a calmer one to steer through, no haze and no pillar:
+	EyeShare = 0.5, -- it reaches to this share of the way to our camera (RideController's, some 17 studs),
+	EyeGrow = 1.5, -- its pictures are up to this many times as big,
+	EyeStrength = 0.6, -- and tier 12's is this strong (tier 1's whole, those between in between)
+	RideLean = 0.5, -- the share of the fish's pitch it follows (0: always upright; never its roll)
+	-- Look 2, smaller and less apparent (Hugo, 2026-11-25: "make auras less apparent and especially not as big( cover
+	-- player especially ) when riding on fish, should be way smaller in general when riding a fish"). One switch, read live:
+	-- 0: as it was built, round the whole fish; 1, 2, 3: version A, B or C of Smalls. With one of them the Ride dials over
+	-- this one (but RideLean) and EyeCalm say nothing: riding it is round the rider only, whatever the fish is, and every
+	-- piece of it is drawn behind the rider's own body, for the wearer and for everyone else
+	Small = 1, -- Hugo chose A on 2026-11-25
+	-- A (small), B (smaller), C (tiniest). On foot: Strength (how solid all of it is), Reach, Tall and Pictures (how wide,
+	-- how tall and how big its pictures are), each a share of what it was, and Foot: the share of one piece on top of that
+	-- (a piece not named is 1). Riding, from tier 1's to tier 12's: Wide (out from the rider, studs: the arms end at 2), High
+	-- (studs) and Wisp (a wisp's size, studs; every other picture in step with it); Solid (how solid all of it is) and Ride: the
+	-- share of each piece (a piece not named is not drawn at all). Its foot is Lift over the fish's back, its near side is drawn Back
+	-- studs behind the rider's middle or more, but the pieces in Low: those really go round the rider, no higher over its
+	-- foot than this, studs. Wisps: at least this many a second (tier 1 must be seen too)
+	Smalls = {
+		{
+			Name = "A",
+			Strength = 0.8,
+			Reach = 0.92,
+			Tall = 0.85,
+			Pictures = 0.88,
+			Foot = {
+				Haze = 0.3,
+				Arcs = 0.7,
+				Flames = 0.9,
+				Pillar = 0.35,
+				Ring = 0.6,
+				Pool = 0.4,
+				Light = 0.5,
+				Shock = 0.6,
+				Serpent1 = 0.75,
+				Serpent2 = 0.75,
+			},
+			Wide = { 2.7, 3.5 },
+			High = { 2.8, 4.2 },
+			Wisp = { 2.5, 2.65 },
+			Solid = 0.95,
+			Back = 0.8,
+			Lift = 0.9,
+			Low = { Ribbon = 1.5 },
+			Wisps = 18,
+			Ride = {
+				Wisps = 1,
+				Flames = 0.7,
+				Shafts = 0.3,
+				Embers = 0.9,
+				Spray = 0.4,
+				Arcs = 0.6,
+				Crown = 0.6,
+				Ribbon = 0.7,
+				Ribbon2 = 0.7,
+				Serpent1 = 0.6,
+				Serpent2 = 0.6,
+			},
+		},
+		{
+			Name = "B",
+			Strength = 0.66,
+			Reach = 0.85,
+			Tall = 0.74,
+			Pictures = 0.8,
+			Foot = {
+				Haze = 0.15,
+				Arcs = 0.55,
+				Flames = 0.85,
+				Pillar = 0.25,
+				Ring = 0.45,
+				Pool = 0.3,
+				Light = 0.3,
+				Shock = 0.5,
+				Serpent1 = 0.65,
+				Serpent2 = 0.65,
+			},
+			Wide = { 2.5, 3.1 },
+			High = { 2.6, 3.7 },
+			Wisp = { 2.2, 2.3 },
+			Solid = 0.9,
+			Back = 0.8,
+			Lift = 0.8,
+			Low = { Ribbon = 1.3 },
+			Wisps = 18,
+			Ride = {
+				Wisps = 1,
+				Flames = 0.5,
+				Embers = 0.8,
+				Arcs = 0.45,
+				Crown = 0.5,
+				Ribbon = 0.7,
+				Ribbon2 = 0.55,
+				Serpent1 = 0.5,
+				Serpent2 = 0.5,
+			},
+		},
+		{
+			Name = "C",
+			Strength = 0.55,
+			Reach = 0.78,
+			Tall = 0.64,
+			Pictures = 0.72,
+			Foot = {
+				Haze = 0.1,
+				Arcs = 0.4,
+				Flames = 0.8,
+				Pillar = 0.2,
+				Ring = 0.35,
+				Pool = 0.2,
+				Light = 0,
+				Shock = 0.4,
+				Serpent1 = 0.55,
+				Serpent2 = 0.55,
+			},
+			Wide = { 2.4, 2.7 },
+			High = { 2.4, 3.2 },
+			Wisp = { 1.95, 2 },
+			Solid = 0.85,
+			Back = 0.8,
+			Lift = 0.7,
+			Low = { Ribbon = 1.1 },
+			Wisps = 18,
+			Ride = {
+				Wisps = 0.9,
+				Flames = 0.35,
+				Embers = 0.7,
+				Arcs = 0.3,
+				Crown = 0.4,
+				Ribbon = 0.7,
+				Serpent1 = 0.45,
+			},
+		},
+	} :: { { [string]: any } },
+	-- Look 2, what is drawn (Shared/AuraVolume.detail: 3 all of it, 2 about two thirds, 1 a few pieces)
+	WholeTo = 70, -- all of it to this far from the camera (then about two thirds), studs,
+	FewFrom = 130, -- and a few pieces from here to Auras.DrawRange
+	Full = 3, -- others' auras drawn whole at once, the nearest,
+	Half = 4, -- and the next ones at two thirds
+	PhoneOwn = 2, -- on a phone: our own,
+	PhoneMost = 1, -- and the most anyone else's is
+	Lights = 4, -- this many auras at most give light: our own, then the nearest (0: none)
 	-- How Roblox draws the pictures, found in Studio (2026-11-25: 2 and -1 are the right way up, joined). Read live
 	Turn = 2, -- quarter turns clockwise of the Beams' pictures, 0 to 3
 	Scroll = -1, -- which way the flame's picture runs along its Beams
@@ -3792,6 +4135,7 @@ Config.SubTitles = {
 -- there and spawn: no Secret, as no land's mix has one, and no kind kept out of the herd).
 Config.Index = {
 	On = 1, -- 0: no Index: nothing is marked found and no claim is paid
+	Look = 1, -- the window: 1 the land banners and big cards (UI/IndexWindow, 2026-11-25), 0 the one before it (UI/IndexOld)
 	FirstOxygen = 0.2, -- DRAFT. A kind caught for the first time: this share of what a Normal plain one needs, in max Oxygen,
 	FirstLeast = 100, -- DRAFT. and at least this much (a new player's whole start),
 	FirstCoinSeconds = 100, -- DRAFT. and this many seconds of what a Normal plain one earns in a tank, in coins
@@ -3807,6 +4151,57 @@ Config.Index = {
 	Secrets = 1,
 	Watch = 0.25, -- seconds between the server's looks at what each player carries and keeps (how a catch is seen)
 	AskGap = 0.2, -- the least seconds between two asks from one player; a faster one is dropped
+}
+
+-- Saddles (Hugo, 2026-11-25: "add saddles as a reward in index"; NULLROOM tasks s1, s2; docs/design/saddles.md): a land's
+-- whole set claimed in the Index gives that land's saddle, and the one worn sits on every fish its owner rides.
+Config.Saddles = {
+	On = 1, -- 0: no saddles: none shown, none to put on, nothing about them in the Index
+	-- Each land's design, A or B (Shared/Saddles/Designs): Hugo's ten picks (2026-11-25); "" = the land gives none
+	Land = { "1A", "2B", "3B", "4B", "5A", "6B", "7B", "8B", "9B", "10B" },
+	PartsAFrame = 24, -- how many saddle parts are made at most in one frame, over every fish (these ten are 19 to 165 parts)
+	RevealNear = 1.5, -- our own saddle shows once our seat is this near the fish's, studs (made hidden during the pull-in)
+	Far = 500, -- a saddle further than this from the camera is not made, and is taken off at 1.2 times it, studs
+	Spare = 360, -- how many unused parts are kept for the next saddle (a hop has two on at once: 2 x 165 at most)
+} :: {
+	On: number,
+	Land: { string },
+	PartsAFrame: number,
+	RevealNear: number,
+	Far: number,
+	Spare: number,
+}
+
+----------------------------------------------------------------------------------------------------------------------
+-- The trailer mode (Studio only, TrailerService and TrailerController; docs/design/trailer.md): J plays the shots of
+-- the game-page video for a screen recorder. 0 off
+Config.Trailer = {
+	On = 1,
+	Settle = 1.4, -- seconds on a fish before the slate lifts (it gets up to speed, the herd and the land stream in)
+	Fog = 1, -- the fog's end, times this, in a shot (1: the game's own)
+	Oxygen = 100000, -- max Oxygen meanwhile, so no fish is too strong
+	Load = 10, -- at most this many seconds behind the slate for a shot's land to load (0: no waiting)
+	Avatar = 1, -- 1: whoever films wears the place owner's avatar (the user's, on Hugo's PC); 0: their own
+}
+
+----------------------------------------------------------------------------------------------------------------------
+-- Fusing: three fish of a kind made one, a size bigger, at the Fuse machine
+
+-- Fusing (Hugo, 2026-11-25: "the biggest dino grows in size and doesnt inherit traits, but it keeps its own traits when
+-- fused"; docs/design/fusing.md; the rules: Shared/Fuse, the server's step: AquariumService.fuse). Not played by hand.
+-- What is not Hugo's word is the plan's, to be confirmed: free of charge, the sizes mixed freely, a stored or carried
+-- fish only, a Colossal refused, the first put in stays of equals
+Config.Fuse = {
+	On = 1, -- 0: no fusing: the ring opens nothing, the stall says COMING SOON, the server refuses. Read live
+	Price = 0, -- coins one fusing costs
+	SameSize = 0, -- 1: the three must be the same size too (0: any three of a kind, as the reference: two Tinies raise a Huge)
+	Earning = 0, -- 1: a fish earning in the tank may be fused too (0: it must be unequipped first, as for selling)
+	SureSize = "Giant", -- a fish used up that is this big or bigger is asked about first, as one with a colour always is
+	Near = 30, -- the machine works within this many studs of its ring (Dock.Stations.Fuse), as the sub's stand
+	AskGap = 0.5, -- one ask at a time: a second press within this many seconds is the same click, seconds
+	-- the show in the window: the two swirl into the middle, the bigger one comes out (a press skips it), seconds
+	SwirlTime = 1.1,
+	HoldTime = 1.5, -- and the new one stands there this long before the window is ready again
 }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -4622,13 +5017,17 @@ function Config.indexLooks(): number
 	return #Config.SizeOrder * colours
 end
 
--- Training in whole seconds (task e1): `carry` seconds seated so far that have not made a whole one, `dt` more. Returns
--- how many whole seconds that completes and the part of a second left over. A level gives its whole Oxygen once for
--- each (Train.Levels), never a share of a frame, so the gain is the same at any frame rate.
-function Config.trainTicks(carry: number, dt: number): (number, number)
-	local t = math.max(carry, 0) + math.max(dt, 0)
-	local ticks = math.floor(t + 1e-9)
-	return ticks, math.max(t - ticks, 0)
+-- Training (task e1): `carry` seconds seated so far that have not made a whole one, `dt` more, `each` Oxygen a second (a
+-- whole number). Returns the Oxygen of the beats that completes (Train.Every) and the part of a second left over. Whole
+-- numbers only, never a share of a frame: a second's beats always add up to exactly `each` (an odd one is split 7 and 8),
+-- so the gain is the same at any frame rate.
+function Config.trainGain(carry: number, dt: number, each: number): (number, number)
+	local beats = math.max(1, math.floor(1 / math.max(Config.Train.Every, 0.05) + 0.5)) -- in a second
+	local from = math.max(carry, 0)
+	local to = from + math.max(dt, 0)
+	local amount = math.floor(math.floor((to + 1e-9) * beats) * each / beats)
+		- math.floor(math.floor((from + 1e-9) * beats) * each / beats)
+	return amount, math.max(to - math.floor(to + 1e-9), 0)
 end
 
 -- A whole number with its thousands grouped: 2,925 (task e1: Oxygen is shown whole, never 2.9K)

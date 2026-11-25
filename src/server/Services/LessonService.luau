@@ -15,7 +15,7 @@
 --   itself: Lesson.HoldMost in the water, Lesson.RideMost on one fish. Never off the submarine or on their own fish.
 --   What happened is read from the attributes the other services already keep (State, TankFish, Training, MaxOxygen) and
 --   from each tame (RideService.OnTamed). Each step is counted once (Roblox's onboarding funnel), in one fixed order.
--- Nothing is saved yet, so it is every join's. Off (Config.Lesson.On 0) nothing here hooks anything.
+-- That it is over is saved (SaveParts, part "Lesson"), so it is a player's first visits' only. Off (Config.Lesson.On 0) nothing here hooks anything.
 -- In Studio: the workspace's "LessonTest" attribute, true before Play, switches it on, the movement sandbox or not.
 local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
@@ -353,6 +353,22 @@ local function leave(player: Player)
 		end
 		records[player] = nil
 	end
+end
+
+-- For saving (SaveParts, part "Lesson"): whether it is over for them; nil while we don't have them
+function LessonService.dump(player: Player): { [string]: any }?
+	local r = records[player]
+	return if r then { Done = r.Deposited and r.Step == nil } else nil
+end
+
+function LessonService.restore(player: Player, kept: any): boolean
+	local r = records[player]
+	if r and type(kept) == "table" and kept.Done == true then
+		r.Tamed, r.Deposited = true, true
+		setHold(player, r, 0)
+		setStep(player, r, nil)
+	end
+	return true
 end
 
 function LessonService.Init()

@@ -82,6 +82,8 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `Services/AquariumService` | Plots, tanks, coins, the income loop, selling, plot upgrades, holding a fish over the head, the way home. |
 | `Services/TrainService` | The breath trainer on each plot: riding it raises max Oxygen; its levels and signs. |
 | `Services/AuraService` | The auras bought and worn: order, price, place, saved; the multiplier on what the seahorse gives. |
+| `Services/OfflineService` | What a tank earned while its player was away: kept in the save, claimed once ([the note](design/offline-rewards.md)). Nothing while saving is off. |
+| `Services/FuseService` | The Fuse machine: who may ask and where; the fusing itself is `AquariumService.fuse` ([the note](design/fusing.md)). |
 | `Services/SubService` | The submarine: buying, picking a land, carrying a diver down and dropping them on a fish. |
 | `Services/TankRideService` | Riding one of your own fish round your tank. |
 | `Services/PropService` | The props that break: which boxes are out, and putting a prop back when nobody is near. |
@@ -123,7 +125,8 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `TrainerController` | The trainer toy on every plot: rocking, the coil, the rider. |
 | `SubController` | The submarine trip on every screen. |
 | `Lib/AirHop` | The mid-air hop onto the sub: the fish's swap, the splashes, the rider's pose, the camera (for `SubController`). |
-| `AuraController` | Every player's aura (the flame, drawn by `Lib/AuraBeams`; the old look behind `Config.Aura.Flame` 0) and the spawn-in. |
+| `AuraController` | Every player's aura (`Config.Aura.Look`: 2 round the body, drawn by `Lib/AuraAround`; 1 the flame, by `Lib/AuraBeams`; 0 draft 2), when it is seen, and the spawn-in. |
+| `OfflineController` | Shows the "Welcome back!" window (`UI/OfflinePanel`) once a visit, the small Claim after its X, and asks for the claim. |
 | `GroundFxController` | Small effects on land. |
 | **The screen and the light** | |
 | `LessonController` | What the first minutes' step shows: the dock's line (`UI/DockNotes`), the arrow and trail (`UI/LessonPointer`), the hop button's words and the ring on PUT ALL IN (`UI/LessonPrompt`). Nothing with `Config.Lesson.On` 0. |
@@ -163,6 +166,8 @@ and `Spring` (the camera), `Feel` and `Fx` (speed lines, bubbles, sounds), `Spla
 | `SellFish` | The Sell Fish window. |
 | `ShopScreen` | The Robux shop. Every offer reads "Soon". |
 | `AuraShop` | The aura stall: the twelve cards, buying. |
+| `OfflinePanel` | The "Welcome back!" window and the small Claim by the dock's buttons. |
+| `FusePanel` | The Fuse machine's window and its show. |
 | `SubPanel` | The submarine stand. |
 | `UpgradeSign` | The trainer's upgrade board on each plot. |
 | `HubButtons`, `HubSigns`, `DockNotes`, `TankPrompt` | The dock's buttons, signs, the line in the middle of the screen, the moment a fish goes in. |
@@ -179,7 +184,9 @@ at its end, and is required from `StallController`.
 | `Creatures/` | Each modelled creature's parts, pivots and swim (`*.json`, made by `tools/creatures/collect.py`). |
 | `RideStyles`, `AngryStyles` | How each of the nine body types moves, and how it shows it wants you off. |
 | `Archetypes`, `Variants`, `Auras` | How passives, Silver/Gold/Rainbow fish and auras look. |
-| `AuraFlame` | The flame auras' numbers and how they move (plain sums, tested offline). |
+| `Fuse` | Fusing's rules (plain sums, the server's and the window's). |
+| `AuraVolume` | The 3D auras: what each tier has, the fade, the size on foot and on a fish, the detail (plain sums, tested offline). |
+| `AuraFlame` | The flame auras' numbers and how they move (`Look` 1; plain sums, tested offline). |
 | `SubModels`, `SubTrip`, `SubAir` | The submarines, a trip's path and the mid-air hop before it, the same on server and client. |
 | `Products` | What the Robux shop sells. Every id is 0. |
 | `Look`, `Ease` | Putting the lighting numbers on; small maths. |
@@ -200,6 +207,7 @@ listens.
 | Action | `SubBuy`, `SubEquip`, `SubPick`, `SubLand` | UI/SubPanel, SubController | SubService |
 | Action | `SandboxSit` fish | RideController | RideService |
 | Action | `AuraBuy` tier | UI/AuraShop | AuraService |
+| Action | `Fuse` three picks | UI/FusePanel | FuseService |
 | Action | `Place` index, id | nobody | AquariumService (left from before the tank window) |
 | Ride | `Mounted`, `Dismounted`, `Denied`, `Crashed` | RideService | JumpController, RideController |
 | Ride | `Tamed`, `Caught` | RideService | TameController, UI/CaughtText |
@@ -209,9 +217,11 @@ listens.
 | Ride | `TankMounted`, `TankDismounted` | TankRideService | TankRideController |
 | Ride | `SubFish`, `SubDrop`, `SubDenied`, `SubBought` | SubService | SubController, UI/SubPanel |
 | Ride | `AuraBought`, `AuraDenied` | AuraService | UI/AuraShop, SoundController |
+| Ride | `Fused`, `FuseDenied` | FuseService | UI/FusePanel, SoundController |
 | Fx | `Land`, `Fail`, `Ragdoll`, `ThrowOff`, `Eat`, `Smash` | RideService | AnimController, JumpController, FailController, DeathController, ArchetypeController |
 | Sandbox | `Tune`, `Flag`, `Reset`, `Ride` | SandboxController | SandboxService (Studio only) |
 | Admin | requests and "Done" or "Refused" | AdminController | AdminService, and back |
+| Offline | `Claim`; `Paid` coins, `Denied` why | OfflineController, OfflineService | both ways |
 | Trainer | `On`, `Off`, `Gain`, `Up`, `UpNo` | TrainService, TrainerController, UI/UpgradeSign | both ways |
 
 ## Running and checking it

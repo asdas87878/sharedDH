@@ -72,7 +72,7 @@ it out the same way; the model's old `Required` attribute is gone.
   land 10's Mythics at 335 and 668 (it was built on the old land costs: read it as a rough guide).
 
 **Training** (`TrainService`, `Config.trainTicks`): the level's whole Oxygen (`Train.Levels`, 4 to 600, placeholders)
-once for every whole second seated, never a share of a frame, so it is the same at any frame rate. A part of a second
+in half-second beats (`Train.Every`; once a whole second until 2026-11-25), never a share of a frame, so it is the same at any frame rate. A part of a second
 is dropped on getting off and starts again at the new level on an upgrade. One "Gain" (a whole number) and one "+n"
 pop per second. Checked: 12 levels x 3 frame timings x max 100 and 100,000, 10 s gives exactly 10 x the level's gain,
 0.9 s gives nothing; live in a playtest, level 1 took the max from 100 to 160 in 15 s, +4 each second.
@@ -374,13 +374,19 @@ comes about the fifth or sixth, not the eighth. With endless air on no fish is t
   |---|---|---|---|---|---|
   | With auras, before | 2.5 h | 5.0 h | 13.7 h | 31.3 h | 44 h |
   | With auras, now | 2.5 h | 4.0 h | 10.0 h | 21.9 h | 22.8 h |
-  | Index, no auras (the game today), before | 4.5 h | 11.5 h | 42 h | 105 h | 176 h |
+  | Index, no auras (the game until `01b0d5e`, later on 2026-11-24), before | 4.5 h | 11.5 h | 42 h | 105 h | 176 h |
   | Index, no auras, now | 4.2 h | 7.3 h | 29 h | 67 h | 70 h |
 
   Theirs: 7.8B (x8) at "30 hours", so ours with auras is now a little ahead, where draft 2 was a little behind. Their
   own sets paid about 12 of the commonest's need in Plains and 2 to 8 in Extinction, so 5 is in their range.
   Nothing in the needs has to change. **The packs, checked:** none plainly wrong. $75T takes land 9 to 10 from 11.7 to
   4.6 h (was 17.6 to 6.1 h), and 38.5 to 22.8 h with no auras. The Oxygen packs hold the same lands as before.
+- **Five new kinds** (2026-11-25, [added](added-2026-11-25.md); another chat's drafts, left as they are): Whale Shark
+  8,550, Ginsu Shark 780K, Otodus 7.5M, Ringbearer 17.5B, Totality 19B, each inside its rarity's spread in its land.
+  No land's commonest need moves. Modelled with auras (7 seeds): every land within 0.2 h of before, land 10 at 21.2 h
+  (21.4). At 60 h one fewer land set is finished (5, was 6) and max Oxygen is 15% higher, the two Mythics' first
+  catches (3.5B and 3.8B). `e1_bases.json` is task e1's frozen list, so it stays without them; the model keeps
+  `Config`'s base for any kind not in it.
 - **Numbers past a trillion:** cash labels read Qa and Qi since `a72c1ff` (the UI chat, 2026-11-23). Full Oxygen
   figures fit by measured text width, the Oxygen row and the seahorse sign shrinking to do it, **except the player's
   own Oxygen row (`UI/StatRows`, bottom left) at 351,000,000,000**: in Studio 153 px of text in a 126 px box (the

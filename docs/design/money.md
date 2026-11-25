@@ -13,7 +13,7 @@
 ## Selling (started 2026-11-23)
 - **Saving:** `SaveService`, on ProfileStore (`src/server/Lib/ProfileStore`, commit 45c9847, kept as it came: outside
   StyLua and selene; its licence in `docs/licenses/`). What is kept is `Lib/SaveParts`: the tank (coins, stage, fish), the trained Oxygen,
-  the trainer's level, the subs and the best depth, all taken together or none, with a version from the first save.
+  the trainer's level, the subs, the best depth and (2026-11-25) what the tank earned while away ([offline rewards](offline-rewards.md)), all taken together or none, with a version from the first save.
   **Its switch (`ON` there) is off**, and without every function it needs in the services it joins nothing.
   The game-code chat writes those functions (2026-11-23, its word), reviews the two services, and they are played with
   Roblox's real store before the switch goes on.

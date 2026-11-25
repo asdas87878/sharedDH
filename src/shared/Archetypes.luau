@@ -16,10 +16,17 @@ export type Info = {
 
 local Archetypes = {}
 
--- Where the icons come from. Not uploaded yet: no upload route works on Hugo's PC (no Open Cloud key, Handoff
+-- Where the icons come from. Uploaded 2026-11-25 (the user: "Yes, upload them"). Before that: no upload route works on Hugo's PC (no Open Cloud key, Handoff
 -- 2026-11-12), so they are pictures in Studio's own content folder there (cut_icons.py --install), which show in
 -- Studio on that PC only. Once uploaded, their ids go in UPLOADED ("rbxassetid://..."), and every PC shows them.
-local UPLOADED: { [string]: string } = {}
+local UPLOADED: { [string]: string } = {
+	fast = "rbxassetid://124170078782358",
+	predator = "rbxassetid://138196416160639",
+	frenzy = "rbxassetid://91140816563949",
+	breaker = "rbxassetid://86918938639972",
+	tank = "rbxassetid://131479491308033",
+	leaper = "rbxassetid://128279805319046",
+}
 local function icon(name: string): string
 	return UPLOADED[name] or ("rbxasset://ridefish/ui/archetypes/" .. name .. ".png")
 end

@@ -51,6 +51,9 @@ local MEMBERS: { [string]: { string } } = {
 		"Helicoprion",
 		"HellfinShark",
 		"Megalodon",
+		"Otodus",
+		"GinsuShark",
+		"WhaleShark",
 		"MoltenMegalodon",
 		"HalfboneMegalodon",
 		"Dunkleosteus",
@@ -90,8 +93,8 @@ local MEMBERS: { [string]: { string } } = {
 		"VoidWhale",
 		"KelpWyrm",
 	},
-	Glider = { "Stingray", "MantaRay", "ElectricRay", "CinderRay", "GraveRay" },
-	Paddler = { "SeaTurtle", "Archelon", "GraveTurtle", "Elasmosaurus", "Kronosaurus", "Liopleurodon" },
+	Glider = { "Stingray", "MantaRay", "ElectricRay", "CinderRay", "GraveRay", "Totality" },
+	Paddler = { "SeaTurtle", "Archelon", "GraveTurtle", "Ringbearer", "Elasmosaurus", "Kronosaurus", "Liopleurodon" },
 	Jetter = { "Octopus", "Kraken", "GiantSquid", "Cuttlefish", "AuroraJelly" },
 	Bobber = { "Pufferfish", "Seahorse", "Anglerfish", "InfernalAngler", "SkullAngler", "AbyssalWatcher" },
 	Crawler = { "Anomalocaris", "GiantIsopod", "SeaScorpion" },
@@ -231,7 +234,6 @@ RideStyles.Trainer = {
 	OffTime = 0.5, -- seconds of the hop off
 	OffReach = 8, -- studs it carries you away (the way you steer, or off the toy's side)
 	OffRise = 3.4, -- studs it rises over the straight line
-	Every = 1, -- seconds between the "+n" Oxygen pops in a held clock (the server gives one a whole second: task e1; 0.5 before)
 	-- the 12 levels (Hugo, 2026-11-19, task sh1; models in ReplicatedStorage.TrainerModels.T1..T12, from
 	-- art/creatures/Seahorse/tiers): each level its own seahorse and stand, at the hub's own size for the toy. No plate
 	-- (Hugo, 2026-11-19: seahorse, spring, ground, as a playground spring rider): the coil runs from the stand's top
