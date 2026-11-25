@@ -402,6 +402,9 @@ local function begin(
 		open = sPick + math.max(math.min(c.EscortOpen, run * 0.15), math.min(NECK, run * 0.4))
 		local hull = SubTrip.Hulls[math.clamp(sub.Equip, 1, #SubTrip.Hulls)][1] + c.EscortGap
 		local low, high = hull - c.EscortGate, c.EscortGate - hull
+		-- (after the air hop the fish is still on its way here: the sub has the water to itself)
+		local by = if air then hull else need
+		local swing = if air then 0 else SubTrip.escortSwing(half)
 		local lowFar, highFar = -math.huge, math.huge
 		for on = 0, open, 30 do
 			local left, right = FishService.streamRoom(on)
@@ -409,12 +412,12 @@ local function begin(
 				low = math.max(low, hull - left)
 				-- (abreast of the fish from where its tail is as it takes them)
 				if on >= sPick - half.Z then
-					high = math.min(high, right - need)
+					high = math.min(high, right - by)
 				end
 			else
 				lowFar = math.max(lowFar, hull - left)
 				-- (and it swings off its place along here)
-				highFar = math.min(highFar, right - need - SubTrip.escortSwing(half))
+				highFar = math.min(highFar, right - by - swing)
 			end
 		end
 		off = math.max(math.min(off, high), low)

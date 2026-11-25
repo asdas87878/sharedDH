@@ -643,6 +643,10 @@ function SubTrip.sub(trip: Trip, t: number): (CFrame, number)
 	local ahead = levelOf(SubTrip.way(trip, d + math.max(v * 0.5, 20), 10 + v * 0.04))
 	local turn = levelOf(way):Cross(ahead).Y
 	local bank = math.clamp(-turn * 3, -0.7, 0.7)
+	if trip.Air then
+		-- (the air hop comes in unbanked)
+		bank *= Ease.smoothstep(rideAt, rideAt + Config.Sub.AirBankIn, t)
+	end
 	local e = trip.Escort
 	if e then
 		local most = bankRoom(e, offset(trip, e, t))

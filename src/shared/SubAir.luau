@@ -155,8 +155,8 @@ local function fallen(air: Air): (number, number)
 	local c = Config.Sub
 	local time = air.SplashAt - air.SeatAt
 	local out0, down0 = c.AirSpeed * math.cos(air.Slope), c.AirSpeed * math.sin(air.Slope)
-	local out = math.max(2 * air.Fall / time - out0, 40)
-	local down = math.clamp(2 * (air.Meet.Y - Config.Depth.SurfaceY) / time - down0, 40, 190)
+	local out = math.clamp(2 * air.Fall / time - out0, 40, c.AirOutMost)
+	local down = math.clamp(2 * (air.Meet.Y - Config.Depth.SurfaceY) / time - down0, 40, c.AirDownMost)
 	return out, down
 end
 
@@ -283,6 +283,12 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- The camera: behind, on the middle line of what it follows (the rider, then the sub), looking down the lane
 
+-- The lesser of the two, the corner rounded off over `round` of their difference (a little under both there)
+local function softMin(a: number, b: number, round: number): number
+	local h = math.clamp(0.5 + 0.5 * (b - a) / round, 0, 1)
+	return b + (a - b) * h - round * h * (1 - h) / 2
+end
+
 -- Never up in the water's surface layers once it is under them (SubController's own ceiling for the run)
 local function ceiling(): number
 	return Config.Oxygen.SurfaceY - 7
@@ -302,22 +308,29 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Ve
 	local along = Ease.lerp(rider:Dot(out) - e.Back, at:Dot(out) - c.AirCamSub, k)
 	-- up: over the rider, but under the sub until it has gone by overhead; then over the sub
 	local cap = e.Cap + (air.Meet:Dot(out) - along) * math.tan(air.Slope)
-	local low = math.min(rider.Y + c.AirCamUp, cap)
-	local down = math.max(-sub.LookVector.Y, 0)
-	local high = at.Y + c.AirCamSubUp + c.AirCamSub * down * 0.55
+	-- (not thrown up with them as they push off: from the saddle's height to the seat's)
+	local hop = Ease.smoothstep(air.HopAt, air.SeatAt, t)
+	local track = if hop >= 1 then rider.Y else Ease.lerp(SubAir.saddle(air.Leap, t).Y, air.Meet.Y + SubAir.Seat.Y, hop)
+	local low = softMin(track + c.AirCamUp, cap, 8)
+	-- (higher behind a nose that is down: over its stern, the rider in sight)
+	local down =
+		math.max(-(SubAir.middle(air, math.min(t + 0.03, air.RideAt)) - SubAir.middle(air, t - 0.03)).Unit.Y, 0)
+	local high = at.Y + c.AirCamSubUp + c.AirCamSub * math.min(down, math.sin(math.rad(c.AirNose))) * c.AirCamNose
 	local y = Ease.lerp(low, high, Ease.smoothstep(e.Pass, e.Pass + c.AirCamRise, t))
 	-- (clear of the gate's arch, from the gate back)
-	local dip = math.max(along - e.Line, 0)
-	if e.Gate > 0 then
-		y = math.min(y, c.AirBeam[2] - c.AirCamClear + dip * 1.5)
-	elseif e.Gate < 0 then
-		y = math.max(y, c.AirCrest[3] + c.AirCamClear - dip * 1.5)
+	local past = Ease.smoothstep(e.Line, e.Line + 25, along)
+	if past < 1 and e.Gate > 0 then
+		y = Ease.lerp(softMin(y, c.AirBeam[2] - c.AirCamClear, 8), y, past)
+	elseif past < 1 and e.Gate < 0 then
+		y = Ease.lerp(-softMin(-y, -c.AirCrest[3] - c.AirCamClear, 8), y, past)
 	end
 	-- (and through the surface after the sub)
 	y = Ease.lerp(y, math.min(y, ceiling() - 0.5), Ease.smoothstep(air.SplashAt, air.RideAt, t))
 	local over = rider:Dot(side) + (at - rider):Dot(side) * Ease.smoothstep(air.SeatAt, air.RideAt, t)
 	local eye = out * along + side * over + UP * y
-	local look = (rider + UP + out * 8):Lerp(at + sub.LookVector * 25, Ease.smoothstep(air.SeatAt, air.RideAt, t))
+	-- (following the hop halfway: they fly up in the picture, it doesn't snap up with them)
+	local seen = Vector3.new(rider.X, (rider.Y + track) / 2, rider.Z)
+	local look = (seen + UP + out * 8):Lerp(at + sub.LookVector * 25, Ease.smoothstep(air.SeatAt, air.RideAt, t))
 	-- (straight down the lane: its turn is up and down alone)
 	look += side * (over - look:Dot(side))
 	return eye, look
