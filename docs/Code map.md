@@ -125,7 +125,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `TrainerController` | The trainer toy on every plot: rocking, the coil, the rider. |
 | `SubController` | The submarine trip on every screen. |
 | `Lib/AirHop` | The mid-air hop onto the sub: the fish's swap, the splashes, the rider's pose, the camera (for `SubController`). |
-| `AuraController` | Every player's aura (the flame, drawn by `Lib/AuraBeams`; the old look behind `Config.Aura.Flame` 0) and the spawn-in. |
+| `AuraController` | Every player's aura (`Config.Aura.Look`: 2 round the body, drawn by `Lib/AuraAround`; 1 the flame, by `Lib/AuraBeams`; 0 draft 2), when it is seen, and the spawn-in. |
 | `OfflineController` | Shows the "Welcome back!" window (`UI/OfflinePanel`) once a visit, the small Claim after its X, and asks for the claim. |
 | `GroundFxController` | Small effects on land. |
 | **The screen and the light** | |
@@ -185,7 +185,8 @@ at its end, and is required from `StallController`.
 | `RideStyles`, `AngryStyles` | How each of the nine body types moves, and how it shows it wants you off. |
 | `Archetypes`, `Variants`, `Auras` | How passives, Silver/Gold/Rainbow fish and auras look. |
 | `Fuse` | Fusing's rules (plain sums, the server's and the window's). |
-| `AuraFlame` | The flame auras' numbers and how they move (plain sums, tested offline). |
+| `AuraVolume` | The 3D auras: what each tier has, the fade, the size on foot and on a fish, the detail (plain sums, tested offline). |
+| `AuraFlame` | The flame auras' numbers and how they move (`Look` 1; plain sums, tested offline). |
 | `SubModels`, `SubTrip`, `SubAir` | The submarines, a trip's path and the mid-air hop before it, the same on server and client. |
 | `Products` | What the Robux shop sells. Every id is 0. |
 | `Look`, `Ease` | Putting the lighting numbers on; small maths. |

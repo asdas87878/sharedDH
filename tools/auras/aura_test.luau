@@ -401,7 +401,7 @@ end
 local train: string = world.find("ServerScriptService.Server.Services.TrainService").Source
 ok(
 	"TrainService.gain multiplies by the server's own aura",
-	string.find(train, "levelRow(level).Oxygen else t.Rate) * AuraService.multOf(player)", 1, true) ~= nil
+	string.find(train, "levelRow%(level%).Oxygen else t.Rate%)%s*%*%s*AuraService%.multOf%(player%)") ~= nil
 )
 local shop: string = world.find("StarterPlayer.StarterPlayerScripts.Client.UI.AuraShop").Source
 ok(
