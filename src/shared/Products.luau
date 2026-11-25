@@ -68,14 +68,6 @@ Products.Looks = {
 
 Products.Sections = {
 	{
-		Title = "Featured",
-		Wide = true,
-		Colour = Color3.fromRGB(255, 214, 72),
-		Rail = "★",
-		Pick = "Oxygen",
-		Offers = {},
-	},
-	{
 		Title = "Packs",
 		Wide = true,
 		Rail = "Shop",
@@ -90,7 +82,7 @@ Products.Sections = {
 				Id = 0,
 				Price = 149,
 				Pack = { Oxygen = 50_000, Coins = 1_000_000, Fish = { { "GreatWhite", "Colossal", "" } }, Boost = 3600 },
-				Look = "Sky",
+				Look = "Gold",
 				Fish = "GreatWhite",
 				Line = "Colossal Great White, +50K Oxygen, +$1M, 1 hour x2 Oxygen and Cash for the whole server",
 			},
@@ -105,6 +97,14 @@ Products.Sections = {
 				Picture = "Shop",
 			},
 		},
+	},
+	{
+		Title = "Featured",
+		Wide = true,
+		Colour = Color3.fromRGB(255, 214, 72),
+		Rail = "★",
+		Pick = "Oxygen",
+		Offers = {},
 	},
 	{
 		Title = "Passes",

@@ -987,6 +987,13 @@ Config.Boost = {
 	Most = 21600, -- seconds: however many are bought, it ends at most this long from now
 }
 
+-- The Great White pack in front of the player (the user, 2026-11-25: "put it to the top. also put an icon in the top right
+-- ... that links to this starter pack")
+Config.Packs = {
+	Card = 1, -- 1: a pack with a fish is the Shop's big card (UI/ShopScreen); 0: a wide card like the others
+	Icon = 1, -- 1: its icon at the top right at the dock until it is bought (UI/PackIcon); 0: none
+}
+
 -- Offline rewards (Hugo, 2026-11-25; NULLROOM task o1; docs/design/offline-rewards.md): what the tank earns while its
 -- player is away, theirs to claim at the next join (OfflineService; UI/OfflinePanel). Every DRAFT number is for the
 -- tuning chat. It pays nothing while saving is off (Lib/SaveParts): nothing then says when they left.

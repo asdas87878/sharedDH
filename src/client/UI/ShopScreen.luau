@@ -34,7 +34,10 @@ local RAIL = 100 -- the rail's width
 local GAP = 10
 local WIDE, HIGH = 760 + RAIL + GAP, 540
 local CARD_HIGH = 128 -- a wide card
-local PACK_HIGH = 168 -- a pack with a fish on it
+local PACK_HIGH = 168 -- a pack with a fish on it, as a wide card (Config.Packs.Card 0)
+local BIG_HIGH, FOOT_HIGH = 404, 88 -- and as its own big card, with the bar along its foot
+local SIDE = 262 -- how wide the big card's blocks are
+local GOLD = ColorSequence.new(Color3.fromRGB(255, 240, 150), Color3.fromRGB(255, 176, 30))
 local FEATURED_HIGH = 168
 local HERO_PILE = 190 -- Featured's pile's box; the share of it by place (one picture fills less of its box than six)
 local HERO_FILL = { 1, 1, 0.84, 0.8, 0.76, 0.72 }
@@ -85,7 +88,7 @@ local long = 0 -- the whole list, in points
 local seeking = 0 -- which seek is on: a newer one takes over
 
 -- The sunburst: white rays turning slowly about a point, clipped to the card (a CanvasGroup clips turned frames)
-local function sunburst(card: GuiObject, at: Vector2, spin: boolean)
+local function sunburst(card: GuiObject, at: Vector2, spin: boolean, strong: boolean?)
 	local group: CanvasGroup = Kit.new("CanvasGroup", {
 		Name = "Rays",
 		Size = UDim2.fromScale(1, 1),
@@ -103,10 +106,10 @@ local function sunburst(card: GuiObject, at: Vector2, spin: boolean)
 	for i = 0, 8 do
 		Kit.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(1400, 30),
+			Size = UDim2.fromOffset(1400, if strong then 46 else 30),
 			Rotation = i * 20,
 			BackgroundColor3 = Kit.White,
-			BackgroundTransparency = 0.84,
+			BackgroundTransparency = if strong then 0.62 else 0.84,
 			BorderSizePixel = 0,
 		}, hub)
 	end
@@ -115,9 +118,9 @@ local function sunburst(card: GuiObject, at: Vector2, spin: boolean)
 		Name = "Glow",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(at.X, at.Y),
-		Size = UDim2.fromOffset(150, 150),
+		Size = if strong then UDim2.fromOffset(330, 330) else UDim2.fromOffset(150, 150),
 		BackgroundColor3 = Kit.White,
-		BackgroundTransparency = 0.6,
+		BackgroundTransparency = if strong then 0.3 else 0.6,
 		BorderSizePixel = 0,
 	}, group)
 	Kit.corner(glow, 999)
@@ -499,6 +502,195 @@ local function wideCard(parent: Instance, offer: Products.Offer, high: number, o
 	})
 end
 
+-- A block of the big card: a bright studded plate at its right side
+local function block(card: GuiObject, name: string, top: number, high: number, colours: { Color3 }): Frame
+	local made: Frame = Kit.new("Frame", {
+		Name = name,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, top),
+		Size = UDim2.fromOffset(SIDE, high),
+		BackgroundColor3 = Kit.White,
+		BorderSizePixel = 0,
+		ZIndex = 4,
+	}, card)
+	Kit.corner(made, Shop.Round.Card)
+	Kit.new("UIGradient", { Rotation = 90, Color = ColorSequence.new(colours[1], colours[2]) }, made)
+	Kit.stroke(made, 3, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	Shop.pattern(made, "Card").ZIndex = 4
+	return made
+end
+
+-- Letters from the left, centred on a height: gold ones have the gold run down them
+local function letters(parent: Instance, text: string, x: number, y: number, size: number, gold: boolean): TextLabel
+	local label = Shop.text(parent, {
+		Name = "Words",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(x, y),
+		Size = UDim2.fromOffset(0, size + 4),
+		AutomaticSize = Enum.AutomaticSize.X,
+		TextSize = size,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = text,
+		ZIndex = 6,
+	})
+	if gold then
+		Kit.new("UIGradient", { Rotation = 90, Color = GOLD }, label)
+	end
+	return label
+end
+
+-- A pack with a fish on it as the Shop's biggest card (the user, 2026-11-25, after their mock-up,
+-- docs/attachments/starter-pack-greatwhite.png): the fish on a sunburst, what comes with it in blocks at the right, and
+-- what the whole server gets along the foot with the button. Every number is read from the offer.
+local function packCard(parent: Instance, offer: Products.Offer, order: number)
+	local card = face(parent, offer, UDim2.new(1, 0, 0, BIG_HIGH), order)
+	local upper = BIG_HIGH - FOOT_HIGH
+	sunburst(card, Vector2.new(0.31, 0.43), false, true)
+	local shown = Portrait.new(card, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, -SIDE / 2 - 8, 0, upper / 2 + 14),
+		Size = UDim2.fromOffset(540, upper + 24),
+		ZIndex = 4,
+		Aspect = 540 / (upper + 24),
+	})
+	shown.show(offer.Fish)
+	local title = letters(card, offer.Name, 16, 32, 42, true);
+	(title:FindFirstChildOfClass("UIGradient") :: UIGradient).Color =
+		ColorSequence.new(Color3.fromRGB(255, 252, 226), Color3.fromRGB(255, 220, 90))
+
+	local pack = offer.Pack
+	if pack then
+		local fish = pack.Fish and pack.Fish[1]
+		local kind = fish and Config.FishById[fish[1]]
+		if fish and kind then
+			local b = block(card, "Fish", 10, 120, { Color3.fromRGB(190, 110, 255), Color3.fromRGB(104, 40, 214) })
+			letters(b, string.upper(fish[2]), 12, 25, 40, true)
+			letters(b, kind.Name, 13, 62, 25, false)
+			local rate = Kit.new("Frame", {
+				Name = "Rate",
+				Position = UDim2.fromOffset(12, 78),
+				Size = UDim2.new(1, -16, 0, 34),
+				BackgroundTransparency = 1,
+				ZIndex = 6,
+			}, b)
+			Kit.new("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Padding = UDim.new(0, 8),
+			}, rate)
+			local earned = letters(rate, "+" .. Kit.rate(Config.incomeOf(kind, fish[2], fish[3])), 0, 0, 25, false)
+			earned.TextColor3 = Shop.Money
+			if fish[2] == Config.SizeOrder[#Config.SizeOrder] then
+				local tag: Frame = Kit.new("Frame", {
+					Name = "Tag",
+					Size = UDim2.fromOffset(108, 27),
+					BackgroundColor3 = Color3.fromRGB(232, 48, 74),
+					BorderSizePixel = 0,
+					Rotation = -4,
+					LayoutOrder = 2,
+					ZIndex = 6,
+				}, rate)
+				Kit.corner(tag, 5)
+				Kit.stroke(tag, 2.5, Shop.Edge)
+				Shop.text(tag, { Size = UDim2.fromScale(1, 1), TextSize = 16, Text = "Biggest size!", ZIndex = 7 })
+			end
+		end
+		local function amount(
+			name: string,
+			top: number,
+			text: string,
+			under: string,
+			image: string,
+			colours: { Color3 }
+		)
+			local b = block(card, name, top, 80, colours)
+			Kit.new("ImageLabel", {
+				Name = "Picture",
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 6, 0.5, 0),
+				Size = UDim2.fromOffset(72, 72),
+				Rotation = -8,
+				BackgroundTransparency = 1,
+				Image = image,
+				ScaleType = Enum.ScaleType.Fit,
+				ZIndex = 6,
+			}, b)
+			letters(b, text, 90, 29, 42, true)
+			letters(b, under, 92, 63, 20, false)
+		end
+		if pack.Oxygen then
+			local blue = { Color3.fromRGB(110, 214, 255), Color3.fromRGB(30, 110, 236) }
+			amount("Oxygen", 138, "+" .. Kit.short(pack.Oxygen), "OXYGEN", Kit.Textures.Oxygen, blue)
+		end
+		if pack.Coins then
+			local green = { Color3.fromRGB(140, 236, 84), Color3.fromRGB(34, 156, 48) }
+			amount("Cash", 226, "+$" .. Kit.short(pack.Coins), "CASH", Kit.Textures.Cash, green)
+		end
+	end
+
+	local foot: Frame = Kit.new("Frame", {
+		Name = "Foot",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, FOOT_HIGH),
+		BackgroundColor3 = Color3.fromRGB(34, 46, 104),
+		BorderSizePixel = 0,
+		ZIndex = 4,
+	}, card)
+	Kit.corner(foot, Shop.Round.Card)
+	Kit.stroke(foot, 3, Shop.Edge).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	Shop.pattern(foot, "Card").ZIndex = 4
+	local boost = pack and pack.Boost
+	if boost and Config.Boost.On ~= 0 then
+		local hours = boost / 3600
+		local time = if hours == 1 then "1 hour" elseif hours > 1 then `{hours} hours` else `{boost // 60} minutes`
+		letters(foot, `WHOLE SERVER: x{Config.Boost.Oxygen} for {time}!`, 16, 22, 24, true)
+		local left = 14
+		for _, one in
+			{
+				{ "Oxygen", Config.Boost.Oxygen, Color3.fromRGB(44, 120, 210) } :: { any },
+				{ "Cash", Config.Boost.Cash, Color3.fromRGB(52, 148, 58) },
+			}
+		do
+			local wide = if one[1] == "Oxygen" then 148 else 120
+			local pill: Frame = Kit.new("Frame", {
+				Name = one[1],
+				Position = UDim2.fromOffset(left, 41),
+				Size = UDim2.fromOffset(wide, 38),
+				BackgroundColor3 = one[3],
+				BorderSizePixel = 0,
+				ZIndex = 5,
+			}, foot)
+			Kit.corner(pill, Shop.Round.Button)
+			letters(pill, "x" .. one[2], 9, 19, 26, true)
+			letters(pill, one[1], 48, 19, 24, false)
+			left += wide + 8
+		end
+	end
+	local once = offer.Once == true
+	buy(foot, function()
+		return offer
+	end, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -14, 0, if once then 8 else 15),
+		Size = UDim2.fromOffset(206, 54),
+		TextSize = 32,
+		Shine = true,
+	})
+	if once then
+		Shop.text(foot, {
+			Name = "Once",
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -14, 1, -3),
+			Size = UDim2.fromOffset(206, 20),
+			TextSize = 17,
+			Text = "One per player",
+			ZIndex = 6,
+		})
+	end
+end
+
 -- What a boost card is called: what it gives ("+$25M", "+500K"), or its name while that is not set
 local function called(offer: Products.Offer): string
 	local amount = offer.Amount
@@ -526,7 +718,7 @@ local function heroCard(parent: Instance, section: Products.Section, order: numb
 		ZIndex = 4,
 	}, card)
 	local tag = tagOn(card, 0.41)
-	local function words(name: string, y: number, size: number): TextLabel
+	local function held(name: string, y: number, size: number): TextLabel
 		return Shop.text(card, {
 			Name = name,
 			AnchorPoint = Vector2.new(0, 0.5),
@@ -538,9 +730,9 @@ local function heroCard(parent: Instance, section: Products.Section, order: numb
 			ZIndex = 4,
 		})
 	end
-	local name = words("Name", 0.24, 22)
-	local amount = words("Amount", 0.5, 42)
-	local line = words("Line", 0.78, 24)
+	local name = held("Name", 0.24, 22)
+	local amount = held("Amount", 0.5, 42)
+	local line = held("Line", 0.78, 24)
 	local draw = buy(card, function()
 		return heroOffer
 	end, {
@@ -763,8 +955,12 @@ local function build()
 		if section.Wide then
 			for _, offer in section.Offers do
 				if not offer.Hidden then
-					local high = if offer.Fish then PACK_HIGH else CARD_HIGH
-					wideCard(list, offer, high, slot(high))
+					if offer.Fish and Config.Packs.Card ~= 0 then
+						packCard(list, offer, slot(BIG_HIGH))
+					else
+						local high = if offer.Fish then PACK_HIGH else CARD_HIGH
+						wideCard(list, offer, high, slot(high))
+					end
 				end
 			end
 		else
@@ -827,6 +1023,13 @@ function ShopScreen.open(on: boolean)
 	end
 	w.show(on)
 end
+
+-- An offer's price when it is on sale (Roblox's own once it has told it), and whether the player has it for good
+function ShopScreen.priceOf(offer: Products.Offer): number?
+	askPrice(offer)
+	return if priced(offer) then prices[offer.Key] or offer.Price else nil
+end
+ShopScreen.owned = owned
 
 -- Open the Shop at a section ("Cash"), or run down to it when it is open already; its pictures pop in turn
 function ShopScreen.goTo(title: string)

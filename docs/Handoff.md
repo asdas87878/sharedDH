@@ -3,6 +3,14 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the Great White pack's big card and its icon (game code, the user's word)
+
+- The Shop opens on the pack: a big card after the user's mock-up (`ShopScreen.packCard`, `Config.Packs.Card`), Packs above Featured.
+  The icon at the top right (`UI/PackIcon`, `Config.Packs.Icon`) shows at the dock until the pack is bought and opens the Shop there.
+  Clicked in Play, no errors ([picture](attachments/shop-great-white-pack-built.png)). Not tried on a phone, nor with the price on
+  (the product id is 0, so the button says Soon). In Studio's place, not saved.
+- The fish icons wait for the user's own zip (the one sent was our kit for ChatGPT).
+
 ## 2026-11-25, the ship pass (game code, the user's word)
 **State:** on main; place saved (the user: "Yes, both"); the 22 pictures are uploaded, load and are in the code (ids in art/ui/icons/roblox.json; the Great White's icon is left to its live model, its render is the old one). Every product id is still 0. **The rockers' and submarines' 207 meshes are uploaded** (the user: "Yes, upload them"; ids in tools/studio/uploaded_meshes.json, tool `tools/studio/upload_meshes.py`): each compared with its local file and the same, switched in the place, all load in Play, none local. An install from install_tiers.py or tools/subs/install.py puts the local ones back: run `upload_meshes.py <id> apply` after it. CosmicHollow (not in the fish table) stays local.
 - **Saving is on** (`SaveParts.ON`), with the Index, the lesson and the packs as new parts. `tools/studio/save_check.py` passed all 17 checks.
