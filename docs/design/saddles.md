@@ -17,7 +17,7 @@ A is the safe one, B the bolder one. **Bold** is the one Claude recommends.
 
 | Land | A | B | Why that one |
 |---|---|---|---|
-| 1 Shallows | **1A Scallop**: sand mat, coral-red fan shell behind, a pearl in front | 1B Giant Clam: two open shell halves, a pearl between | reads as a shell at once, and lowest behind the rider |
+| 1 Shallows | 1A Scallop: sand mat, coral-red fan shell behind, a pearl in front | **1B Giant Clam**: two open shell halves, a pearl between | its two halves stand either side of a back fin; 1A's fan stands in the fin and has to come off on Clownfish (Tiny, Normal) and Sergeant Major (Tiny), the land's common fish |
 | 2 Coral Reef | **2A Coral Twigs**: pink mat, orange and violet branches | 2B Anemone: a row of pink arms with pale tips | the branches look like coral; the arms can read as flowers |
 | 3 Kelp Forest | **3A Kelp Wrap**: green mat, a fan of kelp leaves, a float in front | 3B Kelp Crown: a log with kelp stalks | the calmer outline, and fewer parts |
 | 4 Shipwrecks | 4A Crate: planks with iron corners | **4B Captain's Wheel**: a ship's wheel between two lamps | the wheel says "ship" from far off |
@@ -25,28 +25,33 @@ A is the safe one, B the bolder one. **Bold** is the one Claude recommends.
 | 6 Twilight | **6A Frost**: a pale mat, a row of ice crystals | 6B Crystal Throne: taller crystals, ice arms | ice in one look, not as tall |
 | 7 Midnight | **7A Lantern**: dark blue, glowing dots, a small lure in front | 7B Jelly Bells: two glowing jellies | 740 triangles against 1,368, and it stays off the rider |
 | 8 Vents | **8A Ember**: cracked black stone with hot tops | 8B Twin Vents: two smoking chimneys | 636 triangles against 1,200 |
-| 9 Bone Graveyard | 9A Rib: ribs round the seat | **9B Ghost Skull**: a small skull with glowing eyes behind | the ribs are a paler shape on a pale fish; the skull is seen |
-| 10 The Underworld | 10A Star Rock: dark rock, cyan edges | **10B Portal Ring**: a broken ring of rock floating behind the rider | the last land's reward should be the biggest look |
+| 9 Bone Graveyard | 9A Rib: ribs round the seat | **9B Ghost Skull**: a small skull with glowing eyes behind | the ribs are a paler shape on a pale fish; the skull is seen. The fish itself hides it on Halfbone Megalodon (Tiny; Normal and Colossal zoomed out) and Bone Leviathan (Normal, Colossal) |
+| 10 The Underworld | 10A Star Rock: dark rock, cyan edges | **10B Portal Ring**: a broken ring of rock floating behind the rider | the last land's reward should be the biggest look. The fish itself hides the ring on Hellmaw (Normal, Colossal) and Hellfin Shark (all three sizes measured), from behind |
 
-10B hides the most of the rider (the chase camera still sees 80 % of them on average; every other design 83 % or more). If
+10B hides the most of the rider (the chase camera still sees 80 % of them on average; every other design 86 % or more). If
 that is too much, 10A is the fallback.
 
 **Own art:** every shape is made here out of blocks; nothing is taken from any game.
 
 ## Parts, triangles, uploads
 
-- **Built from parts** (box, cylinder, a few balls; SmoothPlastic, Neon for the glowing bits): 18 to 70 parts a saddle,
-  216 to 1,368 triangles. **Nothing has to be uploaded.**
+- **Built from parts** (box, cylinder, a few balls; SmoothPlastic, Neon for the glowing bits): 10 to 70 parts a saddle,
+  156 to 1,368 triangles. **Nothing has to be uploaded.**
 - A later option, if many riders on screen cost too many parts: bake each saddle's trimmings to one mesh (the blanket
   stays parts, since it is fitted to each fish). That would be up to 20 small mesh uploads and **needs Hugo's yes first**.
   Not needed now.
 - The data for the game is in `art/saddles/`: `saddles.json` (the 20 designs: pieces, colours) and `fit.json` (how it
-  sits on each kind at each size). Both are written by the tools below; don't edit by hand.
+  sits on each kind at each size), `adjust.json` (where a design's pieces are changed on a fish). All are written by the tools below;
+  don't edit by hand.
 
 ## Why it can't move the seat
 
-- The rider is welded to the fish's `Root.Saddle` point, 1.4 studs over the back at every size, and locked to the joint
-  under it (`AnimController.seatOf`). The saddle changes neither. It is hung on the **same joint**, at the same point less the 1.4.
+- The rider is welded to the fish's `Root.Saddle` point and locked to the joint under it (`AnimController.seatOf`). On a
+  **wild fish** (`FishService`) and on **land** (`RideService`, Q) that point is 1.4 studs over the back at every size: both take
+  the scaled part of the 1.4 off again (`saddle.Position -= SeatHeight * (scale - 1)`). The saddle changes neither. It is
+  hung on the **same joint**, at the same point less 1.4.
+- **A tank fish is different today:** `AquariumService` scales the model without that step, so its point is 1.4 x scale over
+  the back. The saddle must not be hung at 1.4 under it there; see "For s2", step 3, and "Found on the way".
 - Every part: Massless, CanCollide, CanTouch and CanQuery off, welded to that joint's part. So no hit box, catch, hook
   or camera ray sees it.
 - **The rider never grows**, so the pocket (0.95 ahead, 0.72 behind, cushion top at 0.38; the hips are at 0.4) is the
@@ -76,14 +81,14 @@ if it fails it is shrunk and deepened until it passes.
 
 ## Results
 
-Offline, from the creature models, by `python tools/saddles/fit.py` (about a minute) and `rider.py` (about 8 minutes). The
+Offline, from the creature models, by `python tools/saddles/fit.py` (about a minute), `clash.py` (about 4) and `rider.py` (about 8), in that order. The
 468 fits are checked at rest, through the whole swim, at 2.3 times the swing and in a turn.
 
 <!-- results -->
 
 ### Every kind
 
-78 kinds x 6 sizes = 468 fits, **0 outside the limits**. Sizes: T Tiny, N Normal, B Big, G Giant, H Huge, C Colossal. Width: the pad's, in studs, at Tiny / Normal / Colossal. Worst: over all six sizes; still = not moving, moving = through the swim at 2.3 times its swing and a 5 degree turn. gap: the 95th share of the gaps under a panel's edge, studs. off: the share of the edge with no fish under it. in: how far the back comes up through a panel, studs (limits .05 still, .12 moving). fin: the share of the saddle a fin or limb stands in (limits .06, .1).
+78 kinds x 6 sizes = 468 fits, **0 outside the limits**. Sizes: T Tiny, N Normal, B Big, G Giant, H Huge, C Colossal. Width: the pad's, in studs, at Tiny / Normal / Colossal. Worst: over all six sizes; still = not moving, moving = through the swim at 2.3 times its swing and a 5 degree turn. gap: the 95th share of the gaps under a panel's edge, studs. off: the share of the edge with no fish under it. in: how far the back comes up through a panel, studs (limits .05 still, .12 moving; over them is let through where under .05 of the panel, .08 moving, is poked: one thin point). fin: the share of the saddle a fin or limb stands in (limits .06, .1).
 
 | Kind | Land | Joint | Style | Width | Panels a side | Pommel | Cantle | Still: gap / off / in / fin | Moving: gap / off / in / fin |
 |---|---|---|---|---|---|---|---|---|---|
@@ -172,59 +177,98 @@ Joint the same at all six sizes: every kind.
 
 Rider, riding pose and leaning 20 degrees further: how deep the saddle goes into torso, arms or head (studs). Seen: the share of the rider the chase camera still sees past it, least / mean. Overhang: the furthest a pommel or cantle stands out past a narrow pad with nothing within a stud under it (studs), and on how many of the 468.
 
-| Design | Parts | Triangles | Riding | Leaning 20 | Worst on | Seen | Overhang | on |
-|---|---|---|---|---|---|---|---|---|
-| 1A Scallop **recommended** | 20 to 55 | 360 to 868 | 0.00 | 0.22 | Void Whale Huge | 0.79 / 0.86 | 0.22 | 9 |
-| 1B Giant Clam | 20 to 58 | 240 to 908 | 0.01 | 0.42 | Void Whale Huge | 0.72 / 0.88 | 0.00 | 0 |
-| 2A Coral Twigs **recommended** | 20 to 56 | 240 to 672 | 0.00 | 0.42 | Void Whale Huge | 0.72 / 0.90 | 0.25 | 10 |
-| 2B Anemone | 20 to 57 | 420 to 1044 | 0.00 | 0.22 | Void Whale Huge | 0.66 / 0.85 | 0.21 | 8 |
-| 3A Kelp Wrap **recommended** | 20 to 58 | 320 to 880 | 0.00 | 0.17 | Void Whale Huge | 0.71 / 0.85 | 0.00 | 0 |
-| 3B Kelp Crown | 20 to 70 | 300 to 960 | 0.00 | 0.38 | Void Whale Huge | 0.69 / 0.91 | 0.36 | 17 |
-| 4A Crate | 19 to 50 | 228 to 840 | 0.00 | 0.30 | Void Whale Big | 0.78 / 0.86 | 0.25 | 11 |
-| 4B Captain's Wheel **recommended** | 20 to 59 | 240 to 768 | 0.10 | 0.49 | Moray Eel Colossal | 0.74 / 0.91 | 0.47 | 5 |
-| 5A Wave | 18 to 52 | 216 to 624 | 0.00 | 0.38 | Void Whale Huge | 0.69 / 0.87 | 0.21 | 8 |
-| 5B Splash Wings **recommended** | 22 to 54 | 264 to 648 | 0.00 | 0.13 | Void Whale Huge | 0.67 / 0.89 | 0.00 | 0 |
-| 6A Frost **recommended** | 24 to 55 | 288 to 644 | 0.09 | 0.29 | Void Whale Huge | 0.70 / 0.85 | 0.21 | 8 |
-| 6B Crystal Throne | 26 to 57 | 288 to 660 | 0.00 | 0.24 | Void Whale Huge | 0.69 / 0.86 | 0.00 | 0 |
-| 7A Lantern **recommended** | 18 to 44 | 216 to 740 | 0.00 | 0.46 | Void Whale Giant | 0.74 / 0.88 | 0.00 | 0 |
-| 7B Jelly Bells | 23 to 54 | 552 to 1368 | 0.17 | 0.43 | Lantern Leviathan Colossal | 0.63 / 0.86 | 0.21 | 8 |
-| 8A Ember **recommended** | 19 to 53 | 228 to 636 | 0.00 | 0.37 | Void Whale Giant | 0.69 / 0.86 | 0.31 | 14 |
-| 8B Twin Vents | 21 to 50 | 252 to 1200 | 0.00 | 0.42 | Void Whale Huge | 0.71 / 0.90 | 0.54 | 6 |
-| 9A Rib | 24 to 62 | 288 to 744 | 0.10 | 0.28 | Void Whale Huge | 0.79 / 0.87 | 0.00 | 0 |
-| 9B Ghost Skull **recommended** | 22 to 55 | 264 to 660 | 0.00 | 0.33 | Void Whale Huge | 0.81 / 0.90 | 0.00 | 0 |
-| 10A Star Rock | 20 to 51 | 240 to 612 | 0.01 | 0.46 | Void Whale Giant | 0.66 / 0.83 | 0.21 | 8 |
-| 10B Portal Ring **recommended** | 20 to 57 | 240 to 684 | 0.00 | 0.43 | Moray Eel Big | 0.62 / 0.80 | 0.00 | 0 |
+Hidden: of the 234 at Tiny, Normal and Colossal, on how many the fish itself hides half or more of the cantle's pieces from the game's camera / zoomed out to 27 studs. Changed: on how many of the 468 a piece stood in the fish, so the design is changed there (cantle smaller or split / cantle none / pommel / trimmings).
+
+| Design | Parts | Triangles | Riding | Leaning 20 | Worst on | Seen | Overhang | on | Hidden | Changed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1A Scallop | 10 to 55 | 156 to 868 | 0.00 | 0.22 | Void Whale Huge | 0.80 / 0.88 | 0.22 | 9 | 44 / 47 | 4 / 5 / 0 / 2 |
+| 1B Giant Clam **recommended** | 20 to 58 | 240 to 908 | 0.01 | 0.42 | Void Whale Huge | 0.72 / 0.90 | 0.00 | 0 | 25 / 23 | 0 / 0 / 1 / 1 |
+| 2A Coral Twigs **recommended** | 20 to 56 | 240 to 672 | 0.00 | 0.42 | Void Whale Huge | 0.73 / 0.93 | 0.25 | 10 | 25 / 23 | 0 / 0 / 1 / 0 |
+| 2B Anemone | 13 to 57 | 156 to 1044 | 0.00 | 0.22 | Void Whale Huge | 0.71 / 0.87 | 0.21 | 8 | 30 / 33 | 2 / 1 / 0 / 0 |
+| 3A Kelp Wrap **recommended** | 20 to 58 | 320 to 880 | 0.00 | 0.17 | Void Whale Huge | 0.74 / 0.87 | 0.00 | 0 | 31 / 34 | 1 / 0 / 0 / 24 |
+| 3B Kelp Crown | 20 to 70 | 300 to 960 | 0.00 | 0.38 | Void Whale Huge | 0.71 / 0.92 | 0.36 | 17 | 25 / 23 | 0 / 0 / 0 / 0 |
+| 4A Crate | 19 to 50 | 228 to 840 | 0.00 | 0.30 | Void Whale Big | 0.77 / 0.87 | 0.25 | 11 | 31 / 29 | 2 / 0 / 1 / 11 |
+| 4B Captain's Wheel **recommended** | 20 to 59 | 240 to 768 | 0.10 | 0.49 | Moray Eel Colossal | 0.78 / 0.92 | 0.47 | 5 | 41 / 43 | 10 / 0 / 0 / 0 |
+| 5A Wave | 18 to 52 | 216 to 624 | 0.00 | 0.38 | Void Whale Huge | 0.70 / 0.90 | 0.21 | 8 | 25 / 22 | 0 / 0 / 0 / 0 |
+| 5B Splash Wings **recommended** | 14 to 54 | 168 to 648 | 0.00 | 0.13 | Void Whale Huge | 0.70 / 0.91 | 0.00 | 0 | 26 / 26 | 5 / 4 / 0 / 0 |
+| 6A Frost **recommended** | 24 to 55 | 288 to 644 | 0.09 | 0.29 | Void Whale Huge | 0.75 / 0.87 | 0.21 | 8 | 31 / 35 | 1 / 0 / 0 / 74 |
+| 6B Crystal Throne | 26 to 57 | 288 to 660 | 0.00 | 0.24 | Void Whale Huge | 0.73 / 0.89 | 0.00 | 0 | 25 / 26 | 1 / 0 / 0 / 79 |
+| 7A Lantern **recommended** | 18 to 44 | 216 to 740 | 0.00 | 0.46 | Void Whale Giant | 0.73 / 0.90 | 0.00 | 0 | 32 / 33 | 1 / 0 / 1 / 0 |
+| 7B Jelly Bells | 12 to 54 | 384 to 1368 | 0.17 | 0.43 | Lantern Leviathan Colossal | 0.63 / 0.89 | 0.21 | 8 | 26 / 28 | 9 / 4 / 0 / 0 |
+| 8A Ember **recommended** | 19 to 53 | 228 to 636 | 0.00 | 0.37 | Void Whale Giant | 0.72 / 0.88 | 0.31 | 14 | 32 / 34 | 1 / 0 / 0 / 1 |
+| 8B Twin Vents | 21 to 50 | 252 to 1200 | 0.00 | 0.42 | Void Whale Huge | 0.73 / 0.93 | 0.54 | 6 | 25 / 24 | 2 / 0 / 0 / 0 |
+| 9A Rib | 24 to 62 | 288 to 744 | 0.10 | 0.28 | Void Whale Huge | 0.78 / 0.90 | 0.00 | 0 | 30 / 29 | 1 / 0 / 0 / 13 |
+| 9B Ghost Skull **recommended** | 22 to 55 | 264 to 660 | 0.00 | 0.33 | Void Whale Huge | 0.81 / 0.93 | 0.00 | 0 | 35 / 37 | 13 / 0 / 0 / 0 |
+| 10A Star Rock | 20 to 51 | 240 to 612 | 0.01 | 0.46 | Void Whale Giant | 0.68 / 0.86 | 0.21 | 8 | 30 / 31 | 2 / 0 / 0 / 0 |
+| 10B Portal Ring **recommended** | 20 to 57 | 240 to 684 | 0.00 | 0.43 | Moray Eel Big | 0.62 / 0.80 | 0.00 | 0 | 25 / 22 | 8 / 1 / 0 / 0 |
+
+### Where the fish hides the raised back (its own land's recommended saddle)
+
+**32 of 231** (78 kinds at Tiny, Normal and Colossal, less those with no cantle) from the game's camera (17 studs). The number is the share of the cantle's pieces hidden:
+
+Reef Shark 1B (C all); Seahorse 1B (C 0.69); Giant Sea Bass 3A (C 0.55); Great White 3A (N 0.82, C all); Leopard Shark 3A (C 0.82); Galleon Whale 4B (T all, N all, C all); Hammerhead Shark 4B (N 0.50, C all); Sawfish 4B (C all); Blue Whale 5B (T all, N all); Dolphin 5B (C 0.67); Helicoprion 5B (C all); Orca 5B (C all); Storm Serpent 5B (C all); Megalodon 8A (T 0.60, N all, C all); Molten Megalodon 8A (T 0.50, N all, C all); Bone Leviathan 9B (N 0.52, C all); Halfbone Megalodon 9B (T all); Hellfin Shark 10B (T 0.57, N 0.91, C all); Hellmaw 10B (N all, C all).
+
+**30 of 231** (78 kinds at Tiny, Normal and Colossal, less those with no cantle) zoomed out to 27 studs. The number is the share of the cantle's pieces hidden:
+
+Reef Shark 1B (C all); Giant Sea Bass 3A (C 0.64); Great White 3A (N 0.73, C all); Leopard Shark 3A (C 0.64); Galleon Whale 4B (T all, N all, C all); Hammerhead Shark 4B (C all); Sawfish 4B (C 0.69); Blue Whale 5B (T 0.94, N all, C all); Helicoprion 5B (C all); Orca 5B (C all); Storm Serpent 5B (C all); Mosasaurus 7A (C 0.64); Megalodon 8A (T 0.50, N all, C all); Molten Megalodon 8A (T 0.50, N 0.80, C all); Bone Leviathan 9B (C all); Halfbone Megalodon 9B (N all, C 0.57); Hellfin Shark 10B (N 0.57, C all); Hellmaw 10B (N 0.65, C all).
+
+### Pieces standing in the fish
+
+`clash.py`, all 20 designs on all 468 (9360 cases): the cantle, pommel and trimmings against the fish, at rest and at four moments of the swim at 2.3 times its swing. A piece counts when a quarter of it stands more than 0.1 studs inside the fish; a group fails on more than one such piece, or more than a tenth of it, at rest (more than two, or a quarter, moving). Failing as designed: 78 cantles, 4 pommels, 205 sets of trimmings. **287 cases are changed** (`art/saddles/adjust.json`: a smaller cantle, one without its middle, none; a smaller pommel; the trimmings of a panel left off), after which 0 fail. Of the recommended saddles on their own land's fish, 12 are changed:
+
+Seahorse Giant 1B: pommel x0.8; Sergeant Major Colossal 1B: no flap trimmings; Garibaldi Huge 3A: no flap trimmings; Garibaldi Colossal 3A: no flap trimmings; Sea Lion Tiny 3A: no flap trimmings; Sea Lion Normal 3A: no flap trimmings; Helicoprion Tiny 5B: cantle x0.7; Goblin Shark Normal 6A: no hem trimmings; Viperfish Huge 6A: no hem trimmings; Viperfish Colossal 6A: no hem trimmings; Halfbone Megalodon Tiny 9B: split cantle; Hellfin Shark Tiny 10B: cantle x0.7.
 
 <!-- /results -->
 
 ### Read with care
-- **Riding pose:** the only designs that touch the rider are 7B (0.17 studs at worst), 4B and 9A (0.10), 6A (0.09). Leaning 20 degrees further than the riding pose (thrown, whipped) any raised back can go
+- **Riding pose:** the only designs that touch the rider are 7B (0.17 studs at worst), 4B and 9A (0.10), 6A (0.09), 1B and 10A (0.01). Leaning 20 degrees further than the riding pose (thrown, whipped) any raised back can go
   up to half a stud into the rider for a moment.
 - **Narrow ridges** (Archelon, Grave Turtle, small eels): the raised back is wider than the ridge it stands on, so its
   ends reach out over the side panels; see "Overhang". It reads as wings (looked at on seven of them), but it does hang free there.
-- **Seahorse, Clownfish:** a fin of the fish stands between the chase camera and the saddle. The saddle is clear of it.
+- **The fish often hides the raised back from the camera:** on 32 of 231 of the recommended saddles on their own land's fish (30 zoomed out to 27 studs), half of the cantle or more; the list is in "Where the fish hides the raised back". It is the fish's
+  own form (a back fin, a hump, a hull, a tail), not the saddle's fit, so a saddle cannot mend it; on those fish the player sees the mat, the pommel and
+  the parts beside the rider.
+- **Seen** is how much the saddle hides of the rider; **Hidden** is how much the fish hides of the saddle. Both from the level game camera,
+  which is 17 studs back whatever the fish's size. (An earlier version of the check had that camera 2.5 studs too low; from there the fish hides more: the
+  reviewer counted 41 of 231.)
 
 ## Found on the way (the game, not changed)
 - **Dunkleosteus:** its seat is at the edge of its own head plate. The plate stands 0.76 (Tiny) to 3.24 (Colossal) studs over
   the seat, so today the rider is partly sunk in it, saddle or not.
 - **Void Whale, Lantern Leviathan, Moray Eel:** their back ridge stands under the rider and, since the seat point's 1.4 does not
   grow, comes up into the rider at the big sizes (up to 0.9, 0.58 and 0.45 studs).
+- **Tank riders hover or sink:** the missing step in `AquariumService` (above) leaves a tank rider's seat 1.4 x scale over the back, not 1.4:
+  0.42 studs lower than it should be on a Tiny, up to 2.8 higher on a Colossal (scale 3). On 34 of 468 the rider is also locked to the wrong joint.
 - **Seahorse:** its seat point is 0.46 (Huge) and 0.59 (Colossal) studs over its back, so today the rider hovers a little; the pad fills it.
 - Moving those seats would fix all of it. That is a ride-feel change, so it is Hugo's call, not part of this.
 
 ## For s2 (building it in)
 1. Put `art/saddles/*.json` under `src/shared` (Rojo reads JSON as a module), or turn them into Luau tables.
-2. Port `frames` and `build` (`tools/saddles/fit.py`, `saddles.py`; the Python is the reference; a wedge is not used).
+2. Port `frames` and `build` (`tools/saddles/fit.py`, `saddles.py`; the Python is the reference; a few pieces are wedges), with
+   `adjust.json`'s row for that kind, size and design (`build`'s third argument): without it pieces stand in the fish on 287 of 9,360 cases.
    One build gives a list of parts with CFrames from the seat point. Make them once per kind, size and saddle and keep
    a clone; a colour tint per part is enough.
-3. Where: `AnimController.seatOf`'s part, offset `saddle attachment CFrame * (0, -1.4, 0)`. Do it on each player's own
+3. Where: `AnimController.seatOf`'s part, offset `saddle attachment CFrame * (0, -1.4, 0)` (wild fish and land fish only; tank fish: step 4). Do it on each player's own
    machine for every ridden fish that has a saddle, from one attribute the server sets.
-4. Land rides (Q) and tank rides use the same model, so the same code covers them.
+4. **Tank fish** (step 3 is wrong for them as the game is now, see above): hung at 1.4 under the point the saddle would
+   float 2.8 studs over the back on a scale-3 Colossal and sink 0.42 into it on a Tiny. Two ways:
+   - **Better: mend the seat.** In `AquariumService` (after the `ScaleTo` that sets the tank size, where `root` is had) add the line
+     `FishService` has: `saddle.Position -= Vector3.new(0, Config.Ride.SeatHeight * (scale - 1), 0)`, with `scale = shown / kind.Size.Z`.
+     Then step 3 holds for tank fish too. It moves the tank rider down by 1.4 x (scale - 1) (up by 0.42 on a Tiny), so it is a
+     seat change and needs Hugo's yes; check the tank ride after it (`TankRideService` keeps the rider inside the tank by this point).
+   - **Without it:** hang the saddle at `1.4 x scale` under the point on a tank fish (scale as above; 1.4 on every other fish). The saddle then
+     fits the fish and the rider still hovers over it as today.
+   - Either way take the joint from `fit.json` (`joint`), not from `seatOf`, on a tank fish: `seatOf` looks 0.3 under a point that is too
+     high, and on 34 of the 468 it finds another joint than the saddle's (Reef Shark, Great White, Hellfin Shark, Dolphin and
+     others; the rider is locked to the wrong one there now). With the seat mended the two agree again.
+   - A tank fish is its real size (`ShowShare` 1), so its size's row in `fit.json` is the right one. Land rides use the same
+     size too (`Equip.LandMost` is 0); if that is ever set, a clamped fish has no row and needs its own fit.
 5. Check in Studio: one ride on each body in the fit sheet; that the rider's position is the same with the saddle on
    and off (it must be, to the thousandth); Seen from the chase camera; parts on screen with six riders.
 6. Not decided: which Index step gives which saddle, and whether a player picks a saddle or it is worn by land.
 
 ## Tools
 All in `tools/saddles/`, run with the project's Python, no Studio: `fish.py` (loads the models), `fit.py` (fit and
-check), `saddles.py` (the designs and `build`), `rider.py` (rider clearance, camera), `table.py` (the tables here),
-`sheet.py options` and `sheet.py fit` (the pictures, in Blender through `view.py` and `draw.py`).
+check), `saddles.py` (the designs and `build`), `clash.py` (pieces standing in the fish, about 4 minutes; writes `adjust.json`), `rider.py` (rider clearance, camera), `table.py` (the tables here),
+`sheet.py options` and `sheet.py fit` (the pictures, in Blender through `view.py` and `draw.py`; on a machine short of memory set
+`SADDLE_BLENDERS=1`: four at once can be killed by the kernel, which shows as "Blender failed" and no message).

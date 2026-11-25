@@ -32,8 +32,8 @@ def rgb(h):
 
 # ---------------------------------------------------------------- the builder (s2 ports this to Luau)
 
-def build(design, fit, with_blanket=True):
-    """the saddle's parts for a fit: [{shape, size, m (4x4 from the seat point), colour, neon, what}]"""
+def build(design, fit, adjust=None):
+    """the saddle's parts for a fit (and the changes clash.py found for this design on it, adjust.json's row): [{shape, size, m (4x4 from the seat point), colour, neon, what}]"""
     out = []
     g, k = fit["grow"], min(fit["grow"], 1.4)
     main, flapc, trim, trimneon = design["main"], design.get("flap", design["main"]), design["trim"], design.get("trimneon", False)
@@ -100,15 +100,18 @@ def build(design, fit, with_blanket=True):
             return F.move(0, fit["yb"], max(X.POCKET_BACK + 0.02, min(fit["back"] - 0.42, 0.95))) if fit["cantle"] != "none" else None
         return None
 
+    adjust = adjust or {}
     for a, shape, p, size, colour, *opt in design["pieces"]:
         o = opt[0] if opt else {}
+        if adjust.get(a, 1) == 0:
+            continue
         for side in (1, -1) if o.get("both") or a in ("flap", "low", "hem") else (1,):
             turn = F.rot(*o.get("r", (0, 0, 0)))
             if a in ("pom", "can"):
                 base = anchor(a, side)
-                if base is None or (a == "can" and fit["cantle"] == "split" and o.get("mid")):
+                if base is None or (a == "can" and (fit["cantle"] == "split" or adjust.get("split")) and o.get("mid")):
                     continue
-                kk = min(k, 1.15) if a == "pom" else min(k, 1.2, max(0.64, fit["half"] + 0.25))
+                kk = (min(k, 1.15) if a == "pom" else min(k, 1.2, max(0.64, fit["half"] + 0.25))) * adjust.get(a, 1)
                 local = F.move(*[v * kk for v in p]) @ turn
                 sz = [v * kk for v in size]
                 if side < 0:
@@ -134,6 +137,17 @@ def build(design, fit, with_blanket=True):
                 local = M @ local @ M
             put(a, shape, [v * ks for v in size], local, colour, o.get("n", False))
     return out
+
+
+_adjust = {}
+
+
+def adjust(id, tier, key):
+    """adjust.json's row for a design on a kind at a size ({} where nothing has to change)"""
+    path = os.path.join(X.OUT, "adjust.json")
+    if not _adjust and os.path.exists(path):
+        _adjust.update(json.load(open(path)))
+    return _adjust.get(id, {}).get(tier, {}).get(key, {})
 
 
 def SEAT(fit):
@@ -438,7 +452,7 @@ DESIGNS = {"1A": ("Scallop", scallop, "a scallop shell behind the rider, a pearl
            "8A": ("Ember", ember, "basalt columns with lava between them"), "8B": ("Twin Vents", vents, "two smoking chimneys, lava on the sides"),
            "9A": ("Rib", ribs, "ribs round the fish, a backbone horn"), "9B": ("Ghost Skull", skull, "a skull looking back with ghost lights, tusks"),
            "10A": ("Star Rock", star, "space rock with cyan edges, a quartz horn"), "10B": ("Portal Ring", portal, "a broken portal ring round the rider")}
-RECOMMENDED = {1: "A", 2: "A", 3: "A", 4: "B", 5: "B", 6: "A", 7: "A", 8: "A", 9: "B", 10: "B"}
+RECOMMENDED = {1: "B", 2: "A", 3: "A", 4: "B", 5: "B", 6: "A", 7: "A", 8: "A", 9: "B", 10: "B"}
 
 
 def design(key):

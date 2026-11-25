@@ -1,5 +1,5 @@
 {
-"1A": {"land":1,"name":"Scallop","what":"a scallop shell behind the rider, a pearl in front, teal seat","recommended":true,"main":"#f6e6bd","flap":"#efd79b","trim":"#f4835f","cushion":"#3f9a7c","cushion2":"#55b394","strap":"#3f9a7c","pieces":[
+"1A": {"land":1,"name":"Scallop","what":"a scallop shell behind the rider, a pearl in front, teal seat","recommended":false,"main":"#f6e6bd","flap":"#efd79b","trim":"#f4835f","cushion":"#3f9a7c","cushion2":"#55b394","strap":"#3f9a7c","pieces":[
   {"a":"can","s":"box","p":[0,0.1,0.16],"z":[1.1,0.26,0.36],"c":"#d9674c"},
   {"a":"can","s":"box","p":[0.72,0.16,0.16],"z":[0.42,0.34,0.26],"c":"#f4835f","r":[0,0,12],"both":true},
   {"a":"can","s":"box","p":[0.0,0.298,0.27],"z":[0.211,0.516,0.2],"c":"#f4835f","mid":true},
@@ -20,7 +20,7 @@
   {"a":"flap","s":"box","p":[0.5,0.04,0.62],"z":[0.66,0.14,0.2],"c":"#f4835f","r":[0,60,0]},
   {"a":"flap","s":"box","p":[0.5,0.04,0.62],"z":[0.66,0.14,0.2],"c":"#f4835f","r":[0,-60,0]},
   {"a":"flap","s":"box","p":[0.5,0.1,0.62],"z":[0.22,0.16,0.22],"c":"#ffd9b8","r":[0,30,0]}]},
-"1B": {"land":1,"name":"Giant Clam","what":"an open clam flaring out to both sides, its lips teal","recommended":false,"main":"#f2c48a","flap":"#e0a96e","trim":"#37c0b0","cushion":"#8f5f43","cushion2":"#a87850","strap":"#8f5f43","pieces":[
+"1B": {"land":1,"name":"Giant Clam","what":"an open clam flaring out to both sides, its lips teal","recommended":true,"main":"#f2c48a","flap":"#e0a96e","trim":"#37c0b0","cushion":"#8f5f43","cushion2":"#a87850","strap":"#8f5f43","pieces":[
   {"a":"can","s":"box","p":[0,0.12,0.16],"z":[1.3,0.3,0.32],"c":"#a87850"},
   {"a":"can","s":"ball","p":[0,0.42,0.2],"z":[0.5,0.5,0.5],"c":"#fff6f2","mid":true},
   {"a":"can","s":"box","p":[0.55,0.36,0.2],"z":[0.38,0.5,0.34],"c":"#c99a6c","r":[8,0,-10],"both":true},

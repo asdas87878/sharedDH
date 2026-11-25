@@ -31,7 +31,7 @@ def on_fish(key, id, tier):
     s = f.scale(tier)
     at = f.seat * s
     fit = FITS[id][tier]["fit"]
-    return {"fish": [{"npz": D.fish_npz(f, s)}], "parts": D.place(S.build(S.design(key), fit), at) + D.rider_parts(at)}, at, fit, f, s
+    return {"fish": [{"npz": D.fish_npz(f, s)}], "parts": D.place(S.build(S.design(key), fit, S.adjust(id, tier, key)), at) + D.rider_parts(at)}, at, fit, f, s
 
 
 def words(d, xy, text, size, fill=(20, 26, 40), bold=True, plate=None):

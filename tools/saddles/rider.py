@@ -1,11 +1,13 @@
-"""The rider's part of the fit check, for every design on every kind at every size (run fit.py first; about 8 minutes):
+"""The rider's part of the fit check, for every design on every kind at every size (run fit.py and clash.py first; about 8 minutes):
 
     python tools/saddles/rider.py [kind ...]       work/saddles/rider.json and a summary
 
 clear   how deep the saddle goes into the rider's torso, head and arms, studs: the worst of the riding pose and of leaning
         20 degrees further either way; `rest` is the riding pose alone. The legs lie on the blanket and are left out.
 cushion how deep the cushion goes into the hips
-seen    the share of the rider's torso, arms and head the chase camera still sees past the saddle (17 studs behind, 12 degrees up)
+seen    the share of the rider's torso, arms and head the chase camera still sees past the saddle (`eye`)
+hid     the share of the cantle's pieces the fish itself hides (half of the piece or more) from that camera; hidfar: zoomed out
+        to 27 studs (Tiny, Normal and Colossal only)
 float   the share of the pommel's or cantle's underside that stands on neither the pad nor the fish (1 stud down);
         over: how far past the pad's edge such a piece reaches, studs"""
 import json
@@ -46,7 +48,49 @@ def body(lean):
 
 
 BODY = {a: body(a) for a in (-20, 0, 20)}
-EYE = np.array([0, 1.4 + 1.5 + 17 * np.sin(np.radians(12)), 17 * np.cos(np.radians(12))])
+
+
+def eye(far):
+    """RideController's camera from the back's seat point: its focus 2.5 over the rider's root (Camera.Height x FocusHeight), `far`
+    studs back and 12 degrees up (Distance, RestPitch), lifted 1.5 more (Height x ArmHeight). The fish's size isn't in it."""
+    return np.array([0, 1.4 + 2.5 + 1.5 + far * np.sin(np.radians(12)), far * np.cos(np.radians(12))])
+
+
+EYE = eye(17.0)
+EYES = {"hid": EYE, "hidfar": eye(27.0)}  # (the game's own distance, and zoomed out a good way: the wheel goes to 40)
+
+
+def blocked(P, at, T):
+    """is each point hidden from `at` by the triangles"""
+    lo, hi = np.minimum(P.min(0), at), np.maximum(P.max(0), at)
+    T = T[np.all(T.max(1) >= lo, 1) & np.all(T.min(1) <= hi, 1)]
+    out = np.zeros(len(P), bool)
+    if not len(T):
+        return out
+    a, e1, e2 = T[:, 0], T[:, 1] - T[:, 0], T[:, 2] - T[:, 0]
+    sv = at - a
+    q = np.cross(sv, e1)
+    far = (e2 * q).sum(1)
+    for i in range(0, len(P), 200):
+        D = P[i:i + 200] - at
+        h = np.cross(D[:, None], e2[None])
+        det = (e1[None] * h).sum(2)
+        inv = np.where(np.abs(det) > 1e-9, 1 / np.where(np.abs(det) > 1e-9, det, 1), 0)
+        u = (sv[None] * h).sum(2) * inv
+        v = (D @ q.T) * inv
+        t = far[None] * inv
+        out[i:i + 200] = ((np.abs(det) > 1e-9) & (u >= 0) & (v >= 0) & (u + v <= 1) & (t > 0) & (t < 0.998)).any(1)
+    return out
+
+
+def hidden(parts, T):
+    """the share of the cantle's pieces the fish hides at least half of, from each eye"""
+    q = [p for p in parts if p["what"] == "can"]
+    if not q:
+        return {}
+    P = np.concatenate([points(np.array(p["size"]), p["m"], 3) for p in q])
+    k = len(P) // len(q)
+    return {n: float((blocked(P, e, T).reshape(len(q), k).mean(1) >= 0.5).mean()) for n, e in EYES.items()}
 
 
 def box_tris(size, m):
@@ -80,10 +124,11 @@ def one(id):
         at = f.seat * s
         T, who = f.tris(s)
         T = T - at
+        whole = T[np.all(T.max(1) > [-9, -6, -3], 1) & np.all(T.min(1) < [9, 14, 30], 1)]
         near = np.all(T.max(1) > [-6, -3, -6], 1) & np.all(T.min(1) < [6, 7, 6], 1)
         T = T[near]
         for key in S.DESIGNS:
-            parts = S.build(S.design(key), fit)
+            parts = S.build(S.design(key), fit, S.adjust(id, tier, key))
             clear = cush = rest = 0.0
             for lean, boxes in BODY.items():
                 for p in parts:
@@ -118,6 +163,7 @@ def one(id):
                         over = max(over, float((np.abs(low[~on][:, 0]) - fit["half"]).max()))
             row = {"clear": clear, "rest": rest, "cushion": cush, "float": fl, "over": over, "parts": len(parts), "tris": S.count(parts)[1]}
             if tier in ("Tiny", "Normal", "Colossal"):
+                row.update(hidden(parts, whole))
                 row["seen"] = seen([p for p in parts if p["what"] in ("can", "flap", "trim")])
             out[f"{tier} {key}"] = row
     return id, out

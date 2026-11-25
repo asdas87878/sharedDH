@@ -51,20 +51,28 @@ def shot(scene, name, eye, at, w, h, fov=None, ortho=None):
     return s
 
 
+def blender(path):
+    return subprocess.Popen(["blender", "--background", "--python", os.path.join(F.ROOT, "tools", "saddles", "view.py"), "--", path],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+
 def render(scenes, shots, job="job"):
-    """Blender several times over at once, a share of the shots each"""
+    """Blender several times over at once, a share of the shots each (SADDLE_BLENDERS=1: one small one at a time,
+    for a machine short of memory, where the kernel kills them: exit -9 and no message)"""
     os.makedirs(WORK, exist_ok=True)
-    n = max(1, min(4, len(shots) // 4))
-    runs = []
+    one = os.environ.get("SADDLE_BLENDERS") == "1"
+    n = max(1, len(shots) // 4) if one else max(1, min(4, len(shots) // 4))
+    paths = []
+    shots = sorted(shots, key=lambda s: s["scene"]) if one else shots
     for i in range(n):
-        mine = shots[i::n]
+        mine = shots[i * len(shots) // n:(i + 1) * len(shots) // n] if one else shots[i::n]
         use = {s["scene"] for s in mine}
-        path = os.path.join(WORK, f"{job}{i}.json")
-        json.dump({"scenes": {k: v for k, v in scenes.items() if k in use}, "shots": mine}, open(path, "w"))
-        runs.append(subprocess.Popen(["blender", "--background", "--python", os.path.join(F.ROOT, "tools", "saddles", "view.py"), "--", path],
-                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True))
-    for r in runs:
+        paths.append(os.path.join(WORK, f"{job}{i}.json"))
+        json.dump({"scenes": {k: v for k, v in scenes.items() if k in use}, "shots": mine}, open(paths[-1], "w"))
+    runs = [] if one else [blender(p) for p in paths]
+    for i, path in enumerate(paths):
+        r = blender(path) if one else runs[i]
         out = r.communicate()[0]
         if r.returncode or "Traceback" in out:
-            print(out[-3000:])
+            print(out[-3000:], "exit", r.returncode)
             raise SystemExit("Blender failed")
