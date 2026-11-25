@@ -2231,6 +2231,10 @@ function FishService.Init()
 	lane = Lane.build(zones, pathJson)
 	-- the endless Underworld: how many laps of its last stretch there are (none: Config.Endless.On 0, or another map)
 	local laps, why = Endless.count(lane, workspace.FallenPartsDestroyHeight)
+	if laps > 0 and workspace.StreamingEnabled then
+		-- (a player's machine shows the parts it has at a later lap: far from them, streaming would take them away)
+		laps, why = 0, "Workspace.StreamingEnabled is on"
+	end
 	if why then
 		warn("[FishService] the Underworld does not go on (Config.Endless): " .. why)
 	end

@@ -3611,7 +3611,7 @@ Config.Spawn = {
 -- server moves nothing. From, To and the shift are the saved place's own (measured with tools/endless/loop.py): they
 -- belong to this map, and on another the loop stays off by itself (Near). Read when a server starts.
 Config.Endless = {
-	On = 0, -- 1: the Underworld goes on; 0: the map ends where it is built (OFF until it has been played)
+	On = 1, -- 1: the Underworld goes on; 0: off, the map ends where it is built (1 for Hugo to try, 2026-11-25: not played or tested yet)
 	From = 20628, -- the stretch begins here down the map (the Underworld's first neck)
 	To = 23068, -- and ends here, at the same kind of neck
 	ShiftX = -224, -- each lap is this far over to the side,
