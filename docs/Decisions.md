@@ -5,6 +5,7 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-25 | **Player saving is on, the Great White pack stays 149 Robux, and a tank fish chosen to ride comes to the player and is ridden on land.** The user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **The Great White starter pack gives +50K Oxygen and +$1M.** "make it +50k oxygen, +1M cash.": the user, with the card louder (outlined shark, all on screen, stronger highlight, studs on the item blocks). Its price is still open. | [starter packs](design/starter-packs.md) |
 | 2026-11-25 | **Starter packs launch without luck; x2 luck is added later.** "Add luck later": the user. | [starter packs](design/starter-packs.md) |
 | 2026-11-25 | **Starter packs: the Great White remodel's pack first, with a lump of cash and Oxygen and one hour of x2 Oxygen, cash and luck for the whole server.** "get a chat to draft up some starter pack deals, id like there to be a great white remodel starter pack which shows that. Then give them a lumpsum of cash, oxygen and a 1 hour x2 oxygen, cash and luck for the whole server.": the user. Reopens, for starter packs only, "Robux prices and the Shop are left alone for now" (2026-11-24). Every price and amount is a proposal. | [starter packs](design/starter-packs.md) |

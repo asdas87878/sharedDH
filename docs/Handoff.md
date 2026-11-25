@@ -3,6 +3,14 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the ship pass (game code, the user's word)
+**State:** on main and in the user's Studio place, **place not saved** (six new fish, the scripts and the streaming settings are only in the open Studio), nothing uploaded, every product id still 0.
+- **Saving is on** (`SaveParts.ON`), with the Index, the lesson and the packs as new parts. `tools/studio/save_check.py` passed all 17 checks.
+- **Robux:** the Great White pack (149, once), passes, the server boost (`Config.Boost`). Played with a made-up receipt: given once though sent twice, +50K Oxygen, +$1M, the fish, the boost and its chip. Real purchases not tried (no ids).
+- **Phones** (`Config.Phone`): no sun shadows or glow, landscape, cheaper portraits, streaming target 1280, the camera ignores the stick's finger. Checked switched on in Studio; not on a real phone.
+- **A tank fish chosen to ride comes out and is ridden on land** (`Config.TankRide.Direct`). Played.
+- **Hugo's `merge-finished-2026-11-25`** is in.
+
 ## 2026-11-25, Hugo's main merged (game code, the user's word)
 **State:** `f702e0e` on main; in the user's Studio place, **place not saved**, nothing uploaded. Tag `backup-pre-hugo-merge-2026-11-25` is main before it.
 - **In:** the mid-air hop, the dock's stickers and Required, the offline chest and land banner pictures (files only). Conflicts in three notes only.
