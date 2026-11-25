@@ -402,6 +402,11 @@ def giveup(how, seconds, tier=9, land=5, fish="GreatWhite"):
     sc.note(f"  given up: {gave}")
     time.sleep(10)
     last, said = hands()
+    for _ in range(8):  # (given up so early that the sub takes them on foot after all: that trip's own end)
+        if "trip=false" in said:
+            break
+        time.sleep(2)
+        last, said = hands()
     sc.note("  at the end: " + said)
     # (a death is tidied as the new body comes, 5 s later: not looked at in between)
     gone = last if how == "die" else mid

@@ -37,6 +37,22 @@ behave follow the reference; the art, colours and numbers are ours, not measured
 - **Left:** names are still cut ("Seahor."), [UI review](ui-review.md) suggestion 6. Kit's Oxygen, Danger and Glass themes
   still wear the water picture: other plates, not the bar's. The drawn icons wait for the user's ChatGPT pictures.
 
+## The dock's lines and Required (2026-11-25, Hugo; NULLROOM f2): on main, seen in Studio
+Hugo, of the [text options](../attachments/texts-b1-a3.png): "use sticker b1 for the dive in and catch a fish, andmoney progress, make
+sure this text only shows up when you respawn, it should only stay for a couple of seconds before fading out. The too strong text
+is alright now dont change that. For rquired use A3 but turn down the boldness/thickness of outline." The picture is before and
+after, drawn from the trees the game's code builds (`python tools/ui/texts_b1_a3/picture.py`, which runs the checks too).
+- **The look:** `UI/Sticker` (plain words Luckiest Guy on a hard shadow, `*starred*` words on a gold sticker, starred money on
+  a green one with our cash picture; slapped on, faded whole). The dock's line, the goal, and the hop button's lesson words.
+- **When:** `Lib/RespawnLine`, run by `UI/DockNotes`: one showing for each respawn (first spawn, a new body, "Respawned" from
+  the server), after the black, the last words and the catch screen; `Config.DockLine` (hold 2.5, fade 0.5, the sizes). The
+  money line used to come back each time the dock was clear (`GoalController` asked four times a second); it no longer does.
+  `DockLine.Least` 17 keeps the letters readable on a phone (the money line was 12.6).
+- **Required:** `UI/ReqLine` in the three-line tag: no red plate, the O2 picture, a bigger number shaded green or red;
+  `Config.ReqLine.Stroke` 0.6 is how much of A3's outline is left (1 is A3 as on the sheet). Fredoka has one weight in Roblox, so
+  the letters themselves cannot go lighter: the outline and the shadow are what is thinner.
+- **Not touched:** "Too strong!" under the ring, "TOO STRONG!" on the tag, the last words, "needs n".
+
 ## The Index window and the stand rings (2026-11-24, Hugo; NULLROOM tasks h1, h2, h4): in the game
 Hugo, 2026-11-23: "Import index system". Built by worker h2, the sub stand's ring by h1, both merged and checked in
 Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictures).

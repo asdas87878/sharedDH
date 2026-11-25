@@ -130,11 +130,175 @@ it a little shorter and speed it up.(just the animation getting onto it (at most
 - Type check and lint pass; **not run in Studio yet** (Hugo was in a playtest).
 - Nothing after the sub sets off is changed.
 
+### The air hop (Hugo, 2026-11-25)
+Hugo: "make the player jump off the fish mid air then instantly hopping on the submarine that should fly in then splash into
+the water, the animation should be fast enough to where the player has fun." And: "make sure it doesnt conflict with the
+current dive mission, i want the new version but back up this current version".
+**On main, the default (`Sub.AirHop` 1). Checked offline (below) and seen in Studio on 2026-11-25 (`tools/studio/air_hop_check.py`; numbers in
+[Handoff](../Handoff.md); `AirArch` put right, 144 to 88: until then it never ran in the place). Not played by hand.**
+**The hop under water** (the next section) is kept whole: `Sub.AirHop` 0 brings it back exactly, and it is what the tag
+`backup-underwater-hop-2026-11-25` (db1f089) holds. It also still runs by itself when a leap gets no air hop (stepping off
+the lip with no leap, a lost or refused message, a word so late the moment to jump has gone).
+
+**Who:** a rider on their ride fish, with a sub and a land picked, who leaps off the lip. No sub, or no land picked: the fish
+dives as before. On foot: as before.
+
+**Made shorter the same day (task f1).** Hugo, 2026-11-25: "the jumping off on submarine is a little slow, can you make it
+shorter without making it awkward? try to have camera be a little more stable than it is now for this, for bigger fish make sure
+camera doesnt clip up above the water when jumping in. Make trail a little less noticeable, maybe just in fly in animation though."
+Hugo can only have played the hop **under water** (the next section): the saved place, Studio's last autosave and its logs have no `SubAir` or
+`AirHop`, and its Rojo serves main. So the wishes are put into this one, the version Hugo keeps. The under-water hop is untouched
+(`AirHop` 0 is the tag's). The times aimed at (the boss's, not Hugo's): jump to seat about 0.35 s, lip to splash about
+1.1 and at most 1.5, lip to run about 1.4.
+
+| 11,934 flights: middle / most | Before (h1) | Now | Aim |
+|---|---|---|---|
+| Jump to seat, s | 0.45 / 0.60 | **0.38 / 0.45** | 0.35 |
+| Lip to splash, s | 1.47 / 2.06 | **1.16 / 1.71** (over 1.5 in 293) | 1.1, at most 1.5 |
+| Lip to the run (control), s | 1.82 / 2.41 | **1.46 / 2.01** | 1.4 |
+| The fish's move, a frame against the last, studs | 4.6 most | **1.1 / 2.95** | 3 at most |
+
+**The camera, as the client moves it** (review 1 of f1; the sums are one function, `SubAir.view`, that the client and the check both call; every
+frame from the leap's first to the run's, the server's word back after 0.05, 0.15, 0.25 and 0.35 s, the body leaving the saddle on a frame as it really does). Middle / most, and how many over the limit:
+
+| | Before: h1's client, 1,287 flights | The same 1,287, f1's faulty line put back | Now, all 11,934 | Limit |
+|---|---|---|---|---|
+| Coming in: its move, a frame against the last, studs | 3.5 / 6.8 (1,132 over) | 32.8 / 49.7 (1,287 over) | **0.77 / 2.25 (0)** | 2.5 |
+| Coming in: its turn in a 60th of a second, degrees | 2.1 / 4.2 (0) | 25.8 / 54.3 (1,287 over) | **2.1 / 5.1 (0)** | 6 |
+| After that: its move, studs | 2.0 / 7.0 (609 over) | 0.94 / 2.0 (0) | **0.98 / 2.0 (0)** | 2.5 |
+| After that: its turn, degrees | 3.4 / 10.4 (123 over) | 3.0 / 4.4 (0) | **3.0 / 4.4 (0)** | 6 |
+| As the run's camera takes over: its move, studs | 0.4 / 0.5 (0) | 0.4 / 0.5 (0) | **0.4 / 0.5 (0)** | 2.5 |
+| Back over the surface once under it, studs | 0 | 0 | **0** | 0 |
+
+- **What was wrong as first handed in:** the client measured the view from its anchor and put it down from the rider, so it sat up to 50 studs too high
+  and dropped in one frame in mid-hop. The check had its own copy of the sums, with the right line, and did not judge the blend's last frame. Both are gone.
+- **And one h1 had too:** you leave the saddle on the first frame after the plan's moment, up to 4 studs under the plan, and the
+  camera took that into its own height: a jolt at the jump. Its height is now the plan's track alone (a late word starts that track when it comes).
+- **The check can fail:** the old line put back fails all 1,287.
+
+**What was changed for it:**
+- **Shorter:** every time in the hop (`AirAt`, `AirHopTime`, `AirFall` with its speeds, `AirUnder`; the old numbers are in the table at
+  the end), the seat meets you further ahead (`AirAhead`, for a long fish `AirAheadLong`), and up to four ways in are tried for a splash
+  within `AirSoon`. The crouch before the jump (0.12 s), the arc and the landing's squash, dip and nod are as they were.
+- **The camera:** one anchor, a smooth height from the saddle to the seat (`SubAir.track`), instead of the rider thrown up by the push-off; it
+  nods only `AirCamNod` of the way up after you; it is put where it turns least (`AirCamTurn` in `SubAir.seen`); its rise in the fall
+  goes by a smoothed slope; the sub's nose goes down 30 degrees, not 50, so there is less to swing over.
+- **Not pulled about before the hop:** after the leap's message the view stays the player's own until the server's word is back (0.35 s at most; none: the dive's film comes in over 0.35 s).
+- **Never up out of the water:** once the camera is under, `SubAir.view` keeps it at least 0.5 studs under the surface, for every fish, size and sub. On the plain dive it
+  never happened: all 468 plans, 0 studs back over the surface and no rise at all once under (now a fail in `tools/dive/fish_dive_check.luau`). So the plain dive's code is not changed.
+  What Hugo may have seen on big fish is in the under-water hop: the dive's film is still over the water when the trip
+  takes over, and the view cuts to under it. The air hop has no such cut.
+- **The trail:** none in the air (as before); from the splash on the sub's bubble trail is `AirWake` 0.35 of the run's, up to all of it over `AirWakeIn` 0.8 s once the run
+  has begun. The run's own numbers (`Wake…`) are untouched.
+- **The fish and the sub lurched as the run began:** the path's first two points were unevenly apart; they are even now (air trips only).
+
+**The timeline.** Seconds from the start of the leap (the crouch at the lip is 0.1 of it, all in server time); positions are the sub's middle over the
+water and out from the lip, studs. `SubAir` has it all as a function of the seconds.
+
+| Moment (`SubPhase` `Leap`, then `Hop` from the jump to the run, then `Ride`) | What happens | Clownfish, sub 1 | Great White, sub 5 | Colossal Kraken, sub 9 |
+|---|---|---|---|---|
+| the leap | The fish crouches and leaps off the lip, the dive's own arc and view. The client has told the server the arc (`SubLeap`), the trip is made. In the last `AirCrouch` 0.12 s you crouch on its back | 0 | 0 | 0 |
+| jump-off | At `AirAt` 60% of the way to its top, 0.48 s at most. You jump off by yourself, the fish dips `AirPush` under you. **The swap:** the land fish goes, the trip's own copy takes its place in the same pose | 0.32 s | 0.45 s | 0.51 s |
+| the hop | The sub flies in from behind, under the gate's beam (small fish) or down over the arch (big ones), level with you for the last `AirRushFrom` 0.18 s | 0.35 s long | 0.41 s | 0.45 s |
+| on the seat | You land: a squash, the sub dips and nods, a shake | 0.67 s, 22 up, 33 out | 0.86 s, 63 up, 36 out | 0.96 s, 138 up, 39 out |
+| the fall | Sub and rider tip over nose first (`AirNose` 30 degrees at most) and fall, past the fish's nose | 0.40 s | 0.40 s | 0.71 s |
+| splash | The sub's spray and sound (strong, by its speed), a shake, the view kicks `AirFov` 10 degrees wider | 1.07 s, 78 out | 1.26 s, 118 out | 1.67 s, 407 out |
+| the plunge | Down `AirUnder` 0.3 s to the run's line, no stop | to 1.37 s, 120 out | to 1.56 s, 188 out | to 1.97 s, 478 out |
+| the run | The run, at `AirRun` 150 studs/s and speeding up as ever | 1.37 s | 1.56 s | 1.97 s |
+| the fish | Goes on down its own arc, into the water with its own splash, then up beside the sub in `AirSwim` 0.85 s (1.6 times that for the longest) and weaves as before | in at 1.15 s, beside at 2.0 s | in at 1.94 s, beside at 2.8 s | in at 2.38 s, beside at 3.7 s |
+
+**The camera** is behind you on the middle line all the way and never cuts: from the player's own view (`AirCamIn` 0.45 s),
+under the sub as it comes by overhead (or over it, when it comes in low), up over its stern in the fall (`AirCamRise`,
+`AirCamSubUp`, `AirCamNose`), through the surface after it, into the run's own view. The server picks it with the plan
+(`SubAir.frame`): the nearest to what Config asks that stays out of the gate's arch, the sub and the fish, sees you and turns little.
+
+**How it works.**
+- **One new message**, Action `"SubLeap", leap` (the rider's machine, which has the leap: its start, where, which way, how
+  far, its rise and fall and tilts). The server believes it only on the ride fish's land state, off the lip, from within
+  `AirReach` of where it has the player, out from the dock, at a land fish's pace, begun within `AirSlack`, once a second.
+- The server makes the plan (`SubAir.plan`: the least rise over the saddle that takes the hull's box clear over the fish's
+  box and clear of the arch, by `AirSlopes`; then the nearest splash past its nose), the copy of the fish and the trip (with
+  the leap's start as the trip's). The player stays on the land fish ("Dock") until the jump by the server's own clock, and
+  is "Carried" from there.
+- **The swap** is on each machine, in the frame of the jump: the land fish goes out of sight and the trip's copy into it, in the
+  same pose and joints. Never both, never neither. Other players see the whole trip later by as much as their view of
+  the rider's body is late (0.5 s at most), so nothing is off on their screens.
+- The run is `SubTrip`'s own, starting at the splash's end. The sub's line keeps its room from the lane's sides for its own
+  width; the fish is not beside it yet there.
+- **Given up cleanly:** off the fish, unequipped, dead, gone, or the sub's plan impossible before the jump: no trip, and the
+  leap goes on as the plain dive. After the jump: as the old hop (`SubLeave`, the fling, the copy taken away). A late word
+  (a slow link): you still get `AirLate` 0.25 s in the air, and a word later than the jump falls back to the hop under
+  water. A second trip while one runs is refused, as before; a second leap within a second is not heard.
+- **`AirHop` 0** changes nothing of it: the same source as at the tag, checked trip for trip (below).
+
+**Where it is not what was asked, and by how much** (the check's numbers, `tools/subs/air_check.luau`):
+- **Lip to splash over 1.5 s in 293 flights of 11,934 (1.71 at most): the huge fish that rear up** (BlueWhale, Kraken, TheDevourer, GalleonWhale, CoralDragon, HellfinShark and two more, at
+  Huge, Giant and Colossal only). Their nose comes up into the sub's way, so you jump later (`AirLater`), and the sub has further to fall.
+- **The jump takes 0.35 s for 42 of 100 flights and up to 0.45 s** where the seat is far over the saddle (`AirClimb`), as it must come over the fish or the arch.
+- **It is fast:** the sub goes into the water at 170 studs/s with a small fish and 400 or more with a big one, and is at the run's 150 in 0.3 s. Whether that
+  reads or looks like a brake is for Studio.
+- The sub is in sight only from 200 studs back (`AirFrom`), 1.1 s before it meets you.
+
+**Checked offline (2026-11-25, after f1's review 1; the last run is this source).** 1,326 leaps (all 78 kinds at all six sizes, and more along the lip and
+slanted) with each of the nine subs: 11,934 flights, every frame at 60 a second, told to the real `SubService`; each got its air hop.
+
+- **All of the 11,934 pass:** the sub clear of the gate, the arch and the map; the rider clear of them; the fish clear of the hull until
+  its own splash; the sub in the lane (8.9 studs or more to its sides); through the surface once; the seat met exactly; the camera on the middle line, behind, never in the
+  sub, never in the fish for 0.1 s, never cut, its turn and its move in a frame under the limits for every word from 0.05 to 0.35 s, never back over the surface; the sub over the rider in the hop 0.3 s at most; the rider in the
+  picture; the swap (0.0 studs, 1.2 degrees at most); the fish's move under 3 studs a frame.
+- **What fails, and by how much:**
+
+| Check (its limit) | Fails before (h1) | Now | The worst now | Where |
+|---|---|---|---|---|
+| Lip to the splash (1.5 s; h1's limit was 2.1) | 0 of 2.1 | 293 | 1.71 | the rearing giants |
+| Lip to the run (2 s; h1's limit was 3) | 0 of 3 | 5 | 2.01 | BlueWhale Colossal |
+| The camera's turn and move in a frame | the table above | **0** | | |
+| The rider through the sub's hull as it sweeps by (0.1 s) | 874 | 146 (now with the body leaving a frame late, as it does) | 0.18 s | 129 with sub 9 |
+| The fish's move, a frame against the last (3 studs) | 792 | **0** | 2.95 | |
+| The sub over the rider in the fall (0.3 s) | 301 | 49 | 0.40 s | subs 6 and 8 |
+| The sub over the rider in the hop (0.3 s) | 147 | **0** | 0.30 s | |
+| The fish through the hull as it comes up beside (0) | 138 | 113 | 0.08 s | 106 with sub 9 |
+| The camera in the fish (0.1 s) | 2 | **0** | 0.03 s | |
+| The fish's turn in a frame (12 degrees) | 0 | 25 | 13.0 | all sub 9 |
+
+- **The run after it, with the fish beside (1,716 runs: every kind Normal and Colossal, eleven sub-and-land trips each; the old hop's own checks):**
+  camera, jump, hull, frame, home and sub 0 fail. Walls: Normal **0** (12 before), Colossal 176 (154 before; 32 studs at most, 28 before). The surface or the floor: 80
+  Colossal (83). A plain swim: 1 Normal (2), 8 Colossal (9). Turn: 1 (0): Viperfish Colossal, sub 2 to land 3, 14.5 degrees.
+- **`AirSwim` 0.85 is picked out of nine settings tried with `AirPeel` (on 1,287 flights):** longer (1.15, 1.3) has 16 to 26 times the overlaps, 0.8 hardly any but half as
+  many walls again for a Colossal.
+- **The server's rules: 48 of 48.** The dive's check, parts 1, 3, 4, 5, with the switch on: **all pass** (468 of 468 plans), with the new measure (a planted fault, the camera 40 studs up at the end,
+  makes 467 fail).
+- **The switch off is the old hop:** escort_check with `AirHop` 0 against the tag's own check on the tag's own build, 2,652 trips: the text
+  and the csvs the same, byte for byte, its 3 known fails included.
+- **The server's cost of one leap,** one process at a time, h1 and now alike: 151 ms (226 at most) and 143 (262 at most); the big fish 146 to 166 (269) and 168 to 175 (364).
+  In the full run, three at a time on a busy PC, 111 to 277 in the middle of each part and 1,066 at most. The word has to be back 0.3 s after the leap began
+  (`AirAtLeast`): a slow word gives up the hop's first part (`AirLate`), then falls back to the hop under water. **Studio's own number is not known: measure it first.**
+- **Not known, for Studio:** all of the feel and look; two players; the gate, hub stands and kelp as they are in Studio (the check has the map generator's
+  boxes); the sounds; real lag. The client's own code in the frame of the swap is not run offline.
+
+To run it (about 35 minutes 3 at a time; memory is the limit, not the cores: 11 at once were killed on 2026-11-25 with /tmp full):
+
+```
+L=~/.rokit/tool-storage/lune-org/lune/0.11.1/lune
+~/.rokit/tool-storage/rojo-rbx/rojo/7.7.0/rojo build -o /tmp/place.rbxl
+python3 tools/subs/escort_hulls.py /tmp/cells.json; python3 tools/dive/lip_boxes.py . /tmp/lip.json
+$L run tools/subs/air_leaps.luau /tmp/place.rbxl /tmp/lip.json /tmp/leaps.json
+for i in $(seq 1 11); do $L run tools/subs/escort_check.luau . /tmp/place.rbxl /tmp/a_$i.csv $i/11 /tmp/cells.json /tmp/leaps.json /tmp/lip.json > /tmp/a_$i.txt & done; wait
+$L run tools/subs/escort_check.luau . /tmp/place.rbxl /tmp/r.csv rules /tmp/cells.json /tmp/leaps.json /tmp/lip.json
+```
+
+The old hop's check is the same command without the last two files, on a build with `AirHop` 0.
+
+**The numbers before f1** (to go back by hand; `Config.Sub`): `AirAt` 0.85, `AirAtMost` 0.7, `AirHopTime` 0.45, `AirClimbSlow` 0.004, `AirClimbMost` 0.15, `AirOver` 9, `AirAhead` 15, `AirFall` 0.42,
+`AirFallPace` 330, `AirFallDrop` 330, `AirOutMost` 260, `AirDownMost` 230, `AirUnder` 0.35, `AirNose` 50, `AirCamLong` 0.35, `AirCamMost` 75, `AirCamNose` 1.5,
+`AirCamSubUp` 16, `AirCamRise` 0.43, `AirSwim` 0.9. New with f1: `AirAheadLong`, `AirAheadMost`, `AirLater`, `AirSoon`, `AirCamNod`, `AirCamTurn`, `AirWake`, `AirWakeIn`. The commit before f1 is 4075aaa.
+
 ### From the fish onto the sub (Hugo, 2026-11-24)
 Hugo: "you should also hop from fish to submarine while seeing the fish swim off next to you looping left and right then
-come back once you arrive". **On main since 2026-11-25; checked offline (below) and played by script in Studio (next); not played by hand. About to be
-replaced:** Hugo, 2026-11-25, wants the hop in mid-air (the player jumps off the leaping fish, the sub flies in, they splash
-down together; branch `air-hop`). This one, in the water, is kept as the tag `backup-underwater-hop-final`.
+come back once you arrive". **The hop under water: `Sub.AirHop` 0, and the fallback of [the air hop](#the-air-hop-hugo-2026-11-25).** On main since
+2026-11-25; checked offline (below) and played by script in Studio (next); not played by hand. Kept as the tags
+`backup-underwater-hop-2026-11-25` and `backup-underwater-hop-final`. The swim beside the sub, the weave and the return are the same
+for both hops.
 
 **Played by script in Studio (2026-11-25, `tools/studio/fish_sub_check.py all`, 18 runs: Clownfish to a Colossal Blue Whale,
 lands 2, 5, 7 and 10, both ends of the lip, no fish, on foot, given up six ways).** [Stills](../attachments/fish-dive-and-sub-hop.png).
@@ -245,7 +409,7 @@ Listed limits, all Colossal:
 - **The one failed check:** LanternLeviathan (3 of its 17 trips) and WraithEel (1 of its 17), sub 9 to land 10, have a
   third of themselves in view for 0.48 to 0.49 of the weave; the check asks for half. Not chased further: outside the review's bar.
 
-To run it (about 12 minutes; each part prints its own result, and the csvs are one line a trip). `lune` and `rojo` are not
+To run it, on a build with `Sub.AirHop` 0 (about 12 minutes; each part prints its own result, and the csvs are one line a trip). `lune` and `rojo` are not
 on the PATH on every PC, so these are the whole paths (Rokit's own store):
 
 ```
@@ -414,7 +578,7 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 - On that fish: `SubFor` (the player's id, as on any drop-off fish) and `SubLeave` (given up: it swims off and fades).
 - Studio's tests: `ServerStorage.SubTest:Invoke(op, userId, ...)` ("give", "home", "buy", "pick"), used by
   `docs/playtests/submarine/drive.luau`.
-- Remotes: Action `"SubBuy"`, `"SubPick", land, fishIndex`, `"SubLand", fish` (the kick has put us on our fish);
+- Remotes: Action `"SubBuy"`, `"SubPick", land, fishIndex`, `"SubLand", fish` (the kick has put us on our fish), `"SubLeap", leap` (the air hop);
   Ride `"SubFish", fish` (this fish is yours, beside the sub), `"SubDenied", reason`, `"SubBought", tier`.
 
 ### Animation hooks (for the partner)

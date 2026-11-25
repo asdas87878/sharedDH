@@ -16,7 +16,7 @@
 --       (ride it out through the gate: Config.TankRide.Out)
 --     the submarine (SubService, docs/design/submarine.md): "SubBuy" (the next tier) | "SubEquip", n | "SubPick", land,
 --       fishKey (where to go, 0: no sub; the tank fish to ride with, "id|size|variant" or "") | "SubLand", fish (the
---       kick has put us on our fish)
+--       kick has put us on our fish) | "SubLeap", leap (the air hop: our ride fish's leap off the lip, as it begins)
 --     the auras (AuraService): "AuraBuy", tier (the card pressed at the aura stall, UI/AuraShop)
 --     not finished: "Place", index, id (the old click to put a carried fish in the tank) still has its handler in AquariumService,
 --       but no client sends it; only tools/studio/e2_click_check.py knows it.
@@ -29,7 +29,7 @@
 --       is the Frenzy's stacks or the boxes knocked loose: Config.Archetype) | "OxygenTick", lost, oxygen, every, kind
 --       (the meter dropped by `lost` to `oxygen` at once; the next tick in `every` seconds; kind "Tick" for the
 --       drain, or "Break" for the drop on a fish too strong) | "SandboxMount", fish (sit on this fish yourself) |
---       "Respawned" (sent on the way back to the dock; no client listens for it)
+--       "Respawned" (sent on the way back to the dock: UI/DockNotes shows its line)
 --     AquariumService: "Deposited", count, gained, income, id (that many fish went into our tank: the coins a second
 --       gained, what the tank earns now, and the fish's id) | "Sold", id, coins | "TankDenied", why | "PlotUp", stage |
 --       "PlotNo", why ("Near", "Top", "Coins", "Dead", "Busy") | "Denied", "Hold", why

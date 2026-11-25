@@ -20,6 +20,9 @@
 -- usage: rojo build -o /tmp/place.rbxl && lune run tools/subs/escort_check.luau <the repo> /tmp/place.rbxl [csv out] [which] [cells]
 -- (`cells`: what python3 tools/subs/escort_hulls.py <path> wrote; without it nothing is hidden by the sub)
 -- (`which`: one fish's Id, or a part of them all as "3/16"; all of them in one go take over ten minutes)
+-- The air hop (Config.Sub.AirHop): with a sixth and a seventh argument, the leaps (tools/subs/air_leaps.luau) and the boxes
+-- round the lip (tools/dive/lip_boxes.py), it checks that in the old hop's place: tools/subs/air_check.luau, which says
+-- how. Without them it is the old hop under water (it goes into the water with no leap told), switch on or off.
 -- (Lune 0.11: ~/.rokit/tool-storage/lune-org/lune/0.11.1/lune on Hugo's PC)
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -59,6 +62,8 @@ world.services.Workspace = workspaceStub
 
 local Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
 local SubTrip = world.require(world.find("ReplicatedStorage.Shared.SubTrip"))
+local airModule = world.place:FindFirstChild("ReplicatedStorage"):FindFirstChild("Shared"):FindFirstChild("SubAir")
+local SubAir = airModule and world.require(airModule) -- (an older build has none)
 local c = Config.Sub
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -276,7 +281,19 @@ local FishService = {
 local state, equipped = "Dock", nil
 local flung, seated = 0, 0
 local RideService
+local onLand, carriedOff = false, 0 -- (the air hop: on the land fish, and how often they were taken off it)
 RideService = {
+	onLandFish = function()
+		return onLand and state == "Dock"
+	end,
+	carryOff = function()
+		if not onLand or state ~= "Dock" then
+			return false
+		end
+		onLand, state = false, "Carried"
+		carriedOff += 1
+		return true
+	end,
 	equippedOf = function()
 		return equipped
 	end,
@@ -313,6 +330,13 @@ world.stubs["ServerScriptService.Server.Services.AquariumService"] = {
 	give = function() end,
 }
 world.stubs["ReplicatedStorage.Shared.Net"] = {
+	Folder = {
+		GetAttribute = function(_, key)
+			-- (the map's dock: the lip is Sub.AirArch in front of it)
+			local at = V3.new(X0, 0, rows[1][4] - c.AirArch)
+			return if key == "Dock" then CF.lookAt(at, at + V3.new(0, 0, 1)) else nil
+		end,
+	},
 	Ride = {
 		FireClient = function(_, _, kind, a, b)
 			table.insert(told, { kind, a, b })
@@ -368,13 +392,18 @@ local player = {
 		end,
 	},
 }
+local health = 100
 player.Character.FindFirstChild = function()
 	return {
 		IsA = function()
 			return true
 		end,
 		Position = entry,
+		CFrame = CF.lookAt(entry, entry + V3.new(0, 0, 1)),
 	}
+end
+player.Character.FindFirstChildOfClass = function()
+	return { Health = health }
 end
 added.fire(player)
 
@@ -568,7 +597,7 @@ local function cameraOf(trip, t, sub, speed, rider, mem)
 end
 
 local function measure(trip, tier, kind)
-	local e = trip.Escort
+	local e, air = trip.Escort, trip.Air
 	local pickupAt, rideAt, arriveAt, dropAt, endAt = SubTrip.times(trip)
 	local hull = SubTrip.Hulls[tier]
 	local hullHalf = V3.new(hull[1], (hull[2] + hull[3]) / 2, (hull[4] + hull[5]) / 2)
@@ -583,9 +612,20 @@ local function measure(trip, tier, kind)
 	local near, nearSub = nil, nil
 	local mem = {}
 	local views, sides, sideSum, plain = 0, 0, 0, 0
-	for k = 0, math.floor((dropAt + c.Kick) * FPS) do
+	-- (after the air hop: the camera from the run's start, the rest once the fish has come up to the sub)
+	local joined = if air then SubAir.entry(air) + SubAir.joining(e.Half) else 0
+	for k = if air then math.ceil(rideAt * FPS) else 0, math.floor((dropAt + c.Kick) * FPS) do
 		local t = k / FPS
 		local sub, speed = SubTrip.sub(trip, t)
+		if air and t < joined then
+			if not mem.kind then
+				local eye, look = SubAir.eye(air, rideAt)
+				mem.kind, mem.anchor, mem.pos, mem.focus, mem.fov =
+					"sub", sub.Position, eye - sub.Position, look - sub.Position, 74
+			end
+			cameraOf(trip, t, sub, speed, riderOf(trip, t, sub, sub, mem), mem)
+			continue
+		end
 		local fish, o = SubTrip.escort(trip, t)
 		local gap = boxGap(fish, e.Half, sub * hullAt, hullHalf)
 		if t < pickupAt then
@@ -726,7 +766,7 @@ local function measure(trip, tier, kind)
 				wasSeen = step
 			else
 				out.start = (fish.Position - wasPos).Magnitude * FPS
-				wasSeen = fish.Position - wasPos
+				wasSeen = if air then rel - wasRel else fish.Position - wasPos
 			end
 			if math.abs(t - rideAt) < 1.5 / FPS then
 				wasSeen = rel - wasRel
@@ -748,6 +788,34 @@ local function measure(trip, tier, kind)
 	out.plain = if of > 0 then plain / of else 1
 	out.sideView = if sides > 0 then sideSum / sides else 1
 	return out
+end
+
+if process.args[6] then
+	require("./air_check")({
+		args = { cells = process.args[5], leaps = process.args[6], boxes = process.args[7], csv = process.args[3], which = process.args[4] },
+		world = world, Config = Config, SubTrip = SubTrip, SubAir = SubAir, SubService = SubService, FishService = FishService,
+		ok = ok, done = done, rows = rows, X0 = X0, streamS = streamS, streamPoint = streamPoint, roomAt = roomAt, wayAt = wayAt,
+		kinds = kinds, fishOf = fishOf, boxGap = boxGap, pointGap = pointGap, hullCells = hullCells, hidden = hidden,
+		cameraOf = cameraOf, measure = measure, beat = beat, home = home, player = player, attrs = attrs, actions = actions,
+		told = told, spawned = spawned, added = added, removing = removing, run = nil,
+		clock = function() return clock end,
+		set = function(v)
+			if v.state then state = v.state end
+			if v.equipped ~= nil then equipped = v.equipped or nil end
+			if v.entry then entry = v.entry end
+			if v.onLand ~= nil then onLand = v.onLand end
+			if v.health then health = v.health end
+		end,
+		get = function()
+			return { state = state, equipped = equipped, flung = flung, seated = seated, onLand = onLand, carriedOff = carriedOff, discarded = discarded }
+		end,
+		zero = function()
+			flung, seated, discarded, carriedOff = 0, 0, 0, 0
+		end,
+		diving = function(mounted) return RideService.Diving(player, mounted) end,
+	})
+	done()
+	return
 end
 
 local csv = { "kind,size,tier,land,long,wide,high,loop,turns,ride,hullIn,hull,hullAt,wall,wallAt,gate,camera,cameraAt,frame,turn,turnAt,pace,home,left,right,floor,roof,inside,start,jump,view,plain,sideView,sx0,sx1,outX,wallIn,subIn,subRun,wall0,inSub" }

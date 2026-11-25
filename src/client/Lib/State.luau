@@ -89,6 +89,12 @@ local State = {
 	-- failed to load leaves it nil and every other pose as it was): its phase and tuck, nil when not leaping, and
 	-- whether it is the leap on the ride fish (Config.Dive.LeapMounted: seated on it)
 	LeapPose = nil :: ((Player) -> (number?, number, boolean))?,
+	-- The submarine's air hop (Config.Sub.AirHop; SubController fills them): the rider's pose for a player, nil when not in
+	-- it (-1 to 0: crouching on the fish's back; 0 to 1: off it, to the sub's seat), a fish's joints after its own pose
+	-- (the jump's swap of the land fish for the one that swims), and whether our own trip is still over the water
+	AirPose = nil :: ((Player) -> number?)?,
+	AfterPose = nil :: (() -> ())?,
+	SubAloft = false,
 }
 
 function State.setMode(mode: string)
