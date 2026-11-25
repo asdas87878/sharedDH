@@ -84,7 +84,7 @@ do
 end
 
 ----------------------------------------------------------------------------------------------------------------------
-print("saving off, as the live game is now")
+print("saving on in the live game")
 fresh()
 do
 	local live = roblox.server({ NoStudio = true })
@@ -92,7 +92,7 @@ do
 	roblox.pass(3)
 	live.putIn(p, "Clownfish", true)
 	roblox.pass(3)
-	ok("no save part is joined and nothing is written", p:GetAttribute("SavedTank") == nil and roblox.saves == 0)
+	ok("the tank and Index load with the live defaults", p:GetAttribute("SavedTank") and p:GetAttribute("SavedIndex"))
 	ok("nothing is owed", owed(p) == 0)
 	live.ask(p, "Claim")
 	ok("a claim pays nothing", live.coins(p) == 0 and live.answer(p) == "Denied")

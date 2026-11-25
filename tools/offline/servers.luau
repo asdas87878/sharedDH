@@ -173,7 +173,7 @@ function Servers.new(placePath: string)
 		end
 
 		local attributes = signal(roblox.faults)
-		server.workspace.SaveOn = if opts.SaveOn == false then nil else true
+		server.workspace.SaveOn = opts.SaveOn
 		server.workspace.SaveReal = true -- (Roblox's own store, which is the fake one here)
 		if opts.Workspace then
 			for k, v in opts.Workspace do
@@ -287,6 +287,7 @@ function Servers.new(placePath: string)
 		}
 		server.remote = remote
 		world.stubs["ReplicatedStorage.Shared.Net"] = {
+			Index = { OnServerEvent = signal(roblox.faults), FireClient = function() end },
 			Folder = {
 				FindFirstChild = function(_self: any, name: string)
 					return if name == "Offline" then remote else nil
@@ -402,6 +403,19 @@ function Servers.new(placePath: string)
 			end,
 		}
 
+		-- The lesson and pack are outside this test. Run the real Index alongside the tank.
+		for _, name in { "LessonService", "PackService" } do
+			world.stubs[SERVICES .. name] = {
+				dump = function()
+					return {}
+				end,
+				restore = function()
+					return true
+				end,
+			}
+		end
+		local IndexService = world.require(world.find(SERVICES .. "IndexService"))
+		server.Index = IndexService
 		local OfflineService = world.require(world.find(SERVICES .. "OfflineService"))
 		local SaveService = world.require(world.find(SERVICES .. "SaveService"))
 		server.Offline, server.Save = OfflineService, SaveService
@@ -416,6 +430,7 @@ function Servers.new(placePath: string)
 		SaveService.Init()
 		taskLib.spawn(OfflineService.Start)
 		taskLib.spawn(SaveService.Start)
+		taskLib.spawn(IndexService.Start)
 		if opts.AquariumFirst == false then
 			removing:Connect(letGo)
 		end

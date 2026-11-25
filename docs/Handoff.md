@@ -264,6 +264,24 @@ what fails: [submarine](design/submarine.md), "The air hop".
   4.6 ms to switch, the low graphics hide works again (`LookVista`); no gaps seen in lands 2 and 3. Not checked: a dive
   by hand, lands 4 on, a phone.
 
+## 2026-11-25 · Auras in 3D round the body, the fade, the ladder (NULLROOM a1, Hugo's PC)
+**State:** on the branch `aura-3d` (worktree `sharedDH-aura3`). **Not pushed, not seen in Studio, nothing uploaded, not played.**
+Everything is in [auras](design/auras.md), "Around the body". **To turn off:** `Config.Aura.Look` 1 (the flame) or 0 (draft 2).
+- **`Config.Aura.Flame` is gone:** `Look` is in its place. All Config edits are inside the `Config.Aura` block.
+- **New:** `Shared/AuraVolume` (the sums), `Lib/AuraAround` (draws them), `AuraController` (which look, what is ridden, who gets
+  how much). `Auras.Sheets` (ids, all empty), the tiers' blurbs (`Auras.Tiers`). `AuraService`, prices and the shop: untouched.
+- **Your own riding aura is the one everyone sees** (`EyeCalm` 0; 1 is a calmer one to steer through). **Lights:** at most `Lights`, your own first; 0 is none.
+- **What it reads from other code:** attributes `State`, `LandMounted`, `TankRide`, `TrainerRide`, and the welds by name (`volume_test` checks the
+  names against the server's source). A new way to ride needs a row in `AuraController`'s `WELDS`, or its rider's aura fades while moving.
+- **Local pictures:** `python tools/auras/volume_sheets.py --local` on each PC, then reopen Studio. Without them, and in a live game
+  until the twelve in `art/ui/aura_volume` are uploaded (Hugo's yes), engine pictures stand in and some layers are left out.
+- **Checked offline:** `volume_test.luau` 78 of 78, `aura_test.luau` 61 of 61, StyLua, selene (three old warnings, not ours), types, a Rojo build.
+  The [sheet](attachments/auras-3d.png) and the [moving one](attachments/auras-3d.gif) are offline mocks drawn from the game's numbers.
+- **Smaller and less apparent (Hugo, the same evening): three versions behind `Config.Aura.Small`,** 0 in the file (as built, proven the same byte for byte);
+  1 to 3 are A, B, C, for Hugo to pick from [this sheet](attachments/auras-3d-2.png). Riding it is round the rider only and never over them. [auras](design/auras.md).
+- **Owed:** `tools/studio/aura_check.py run` (rewritten for the looks, **not run**), the list "To see in Studio", two players, a phone, Hugo's yes or no to the
+  ground ring and light.
+
 ## 2026-11-25 · The Index arrow the first time only, sparser leaps (game code, the user's PC)
 **State:** pushed; in the Team Create place, **saved on the user's word (version 479)**, not published. Replaces the Index and leap parts of the entry below.
 - **Index** (the user: "Just leave the arrow and the yellow border", "only … the first time", after that only the "!"): the callout, the goal

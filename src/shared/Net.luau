@@ -55,6 +55,9 @@
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
 --     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim"; the server sends
 --       "Paid", coins | "Denied", why ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into)
+--     Boards (LeaderboardService and BoardController, both ways): the client sends "Sync" (send me the boards); the
+--       server sends "State", { Next = server time of the next look, Boards = { { Id, Global, Rows = { { Id, Name,
+--       User, Value, Rank } } } } } (Global false: this server's players only)
 --   Index (IndexService and UI/IndexPanel, both ways; the rewards: Config.Index):
 --     the client sends "Claim", fishId (the reward of a kind it has found) | "ClaimLand", land (the reward of a land
 --       whose whole set it has found) | "ClaimAll" (every reward it may claim) | "Sync" (send me my Index again)
@@ -87,6 +90,8 @@
 -- OfflineOwed and OfflineSecs (the coins to claim from the tank's earnings while they were away, and the seconds it earned
 -- them in; nil: none): OfflineService,
 -- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,
+-- BoardOxygen, BoardCollectors, BoardEarners (and one for each other board of Config.Boards.List that is on): the
+-- player's own number on that board: LeaderboardService,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
