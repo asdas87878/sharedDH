@@ -558,7 +558,7 @@ local function popsGui(): ScreenGui
 	return made
 end
 
--- (task e1: the server gives whole Oxygen once a whole second; shown whole, grouped, never 1.2K)
+-- (task e1: the server gives whole Oxygen, in beats; shown whole, grouped, never 1.2K)
 local function amountText(n: number): string
 	return Config.wholeNumber(n)
 end
@@ -718,7 +718,7 @@ local function listen()
 		if what == "On" then
 			seated = a
 			onAt = clock()
-			popAt = onAt + T.Every
+			popAt = onAt + Config.Train.Every
 			asked = false
 			movedFor = 0
 			hopOff = nil
@@ -795,7 +795,7 @@ local function listen()
 		end
 		-- in a held clock the server's gains come in real time: shown on the clock's own beat instead
 		if held() and now >= popAt then
-			popAt = now + T.Every
+			popAt = now + Config.Train.Every
 			if lastGain > 0 then
 				pop(lastGain)
 			end

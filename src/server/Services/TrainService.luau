@@ -16,9 +16,9 @@
 -- start, and the seahorse goes on a real grey coil (RideStyles.Trainer, RideStyles.coil) from the middle of its body's
 -- underside down to a small round red pad. Walk up to it, or jump onto it, and you are seated on it (a weld to its
 -- body; every machine plays the hop up and rocks the toy, and the rider with it: TrainerController); jump or walk off
--- and you hop off. Only a seated rider trains: once for every whole second seated the level's whole Oxygen is added
+-- and you hop off. Only a seated rider trains: the level's whole Oxygen a second is added, in beats (Train.Every)
 -- and they are told ("Gain", a whole number), for the "+n" pops (task e1: no decimals, no share of max; a part of a
--- second is dropped on getting off, and starts again from nothing on an upgrade). The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
+-- beat is dropped on getting off, and starts again from nothing on an upgrade). The remote is Remotes.Trainer: client "Off" (let me off); server "On", ride | "Off", ride, reason |
 -- "Gain", amount. The ride model carries Rider (the user id on it), SpringBase, SpringTop and Seat (CFrames at rest).
 -- The levels (Hugo, 2026-11-19, task sh1: the seahorse draft built): every player has a TrainerLevel, 1 to 12 (the
 -- player's attribute; ours, for the session, beside the tank's coins), and each plot's ride shows its owner's: its
@@ -601,17 +601,16 @@ function TrainService.setLevel(player: Player, n: number): boolean
 	return true
 end
 
--- Training in whole seconds (task e1): `carry` is the part of a second already seated, `dt` more. Each whole second
--- it completes gives the level's whole Oxygen (Config.Train.Levels; Rate when there is no such table) times the player's
--- aura (AuraService.multOf), never a share of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
+-- Training (task e1; Config.trainGain): `carry` is the part of a second already seated, `dt` more. Each beat it completes
+-- (Train.Every) gives its part of the level's whole Oxygen a second (Config.Train.Levels; Rate when there is no such
+-- table) times the player's aura (AuraService.multOf), never a share of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
 local function gain(player: Player, carry: number, dt: number, level: number): (number, number)
 	local t = Config.Train
-	local ticks, left = Config.trainTicks(carry, dt)
-	if ticks <= 0 then
+	local each = math.floor((if t.Levels then levelRow(level).Oxygen else t.Rate) * AuraService.multOf(player) + 0.5)
+	local amount, left = Config.trainGain(carry, dt, each)
+	if amount <= 0 then
 		return 0, left
 	end
-	local each = math.floor((if t.Levels then levelRow(level).Oxygen else t.Rate) * AuraService.multOf(player) + 0.5)
-	local amount = ticks * each
 	return if RideService.train(player, amount) then amount else 0, left
 end
 
@@ -732,7 +731,7 @@ function TrainService.Start()
 		return r
 	end
 
-	-- Counts the seated time since the last count, at the ride's level, up to now: whole seconds are given, the part
+	-- Counts the seated time since the last count, at the ride's level, up to now: whole beats are given, the part
 	-- of a second is kept in Carry (grade issue 2: an upgrade or getting off between two looks settles first)
 	local function settle(player: Player, r: Rider)
 		local ride = r.Ride
@@ -770,7 +769,7 @@ function TrainService.Start()
 		ride.Rider = nil
 		ride.Model:SetAttribute("Rider", nil)
 		r.Ride = nil
-		r.Carry = 0 -- (getting off drops a part of a second: no catching up later)
+		r.Carry = 0 -- (getting off drops a part of a beat: no catching up later)
 		r.OffAt = os.clock()
 		r.Clear = false
 		r.Left = false

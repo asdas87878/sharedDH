@@ -72,7 +72,7 @@ it out the same way; the model's old `Required` attribute is gone.
   land 10's Mythics at 335 and 668 (it was built on the old land costs: read it as a rough guide).
 
 **Training** (`TrainService`, `Config.trainTicks`): the level's whole Oxygen (`Train.Levels`, 4 to 600, placeholders)
-once for every whole second seated, never a share of a frame, so it is the same at any frame rate. A part of a second
+in half-second beats (`Train.Every`; once a whole second until 2026-11-25), never a share of a frame, so it is the same at any frame rate. A part of a second
 is dropped on getting off and starts again at the new level on an upgrade. One "Gain" (a whole number) and one "+n"
 pop per second. Checked: 12 levels x 3 frame timings x max 100 and 100,000, 10 s gives exactly 10 x the level's gain,
 0.9 s gives nothing; live in a playtest, level 1 took the max from 100 to 160 in 15 s, +4 each second.

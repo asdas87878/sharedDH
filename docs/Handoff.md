@@ -3,6 +3,24 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, each land's own fish round a rider; the seahorse's pops (game code)
+**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
+- **The fish** (the user: "im still not fully certain the second pink area fish are spawning as they should"). Right: the
+  entry below was measured with a player standing in the middle of the land. Round a RIDER going down the lane there were none
+  of land 2's own in the 420 studs ahead from its start to its end (mean 0 of 7; land 3, 1.6 of 4.6): the herd swims at 60 to
+  70, a rider at about 75, and no fish is made or taken away within `SightClear` 500, so land 1's fish went along with them.
+  Now (`FishService.comeUp`, `Config.Spawn.Come...`): the land's own are made behind the rider, out of sight (`BackClear` 170
+  behind one who is going on), swim by on either side 50 studs a second faster and take their place ahead; earlier lands' fish
+  over `StrayMost` near a rider swim at `StrayLag` 0.5 of their pace, are left behind, and go there. After: land 2, 5.5 of 8
+  its own (the majority from about 350 studs in to the end), land 3, 6 of 9; no fish came in or went within 480 studs ahead
+  of the rider once past land 1's start. `Come` 0 is as before. Four dials on the N panel (`Come`, `ComeOver`, `StrayLag`,
+  `StrayMost`). Measured with a scripted rider at 75 studs a second (land 3, 86). Not checked: two players, a rider who looks back, very fast fish
+  (over `ComeFast` 120 none come), lands 5 on.
+- **The seahorse** (the user: "pop up the o2 on the screen at double the speed, with half the value"). `Config.Train.Every`
+  0.5: half the level's Oxygen each half second (level 1: +8 twice a second; it was +16). A second's beats add up to exactly
+  the level's Oxygen, whole numbers only (an odd one is split 12 and 13). `Config.trainGain` in place of `trainTicks`;
+  `RideStyles.Trainer.Every` gone. Seen in Play: 36 gains of +8 in 18 s.
+
 ## 2026-11-25, each land its own fish, and the hook (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
 - **The fish by land** (the user: "the lesser fish go into the furthr areas and then the fish from that area dont spawn

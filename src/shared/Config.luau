@@ -774,8 +774,10 @@ Config.Train = {
 	On = 1, -- 0: no training spot
 	Rate = 4, -- whole max Oxygen for each whole second on it, when there is no Levels table (below)
 	-- (Share, a share of your max Oxygen on top, went 2026-11-20, task e1: Hugo, "each upgrade gives one set whole
-	-- number of oxygen, no decimals". Training now gives whole numbers only, once for every whole second seated:
-	-- Config.trainTicks.)
+	-- number of oxygen, no decimals". Training gives whole numbers only: Config.trainGain.)
+	-- The level's Oxygen a second comes in beats this long, each a "+n" pop (the user, 2026-11-25: twice as often, half
+	-- the value each; it was 1): a second's beats add up to exactly the level's Oxygen. 1 over a whole number.
+	Every = 0.5,
 	Radius = 10, -- studs from the spot's middle that count as on it
 	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
 	Ahead = 24, -- and this far toward the water
@@ -784,7 +786,7 @@ Config.Train = {
 	-- gives that level's Oxygen a second in place of Rate. Name: the level's seahorse (the model's NAMES).
 	-- The economy draft 2's numbers (the user, 2026-11-23: "Yes, as drafted"; docs/design/progression.md): the
 	-- reference's machine x 8, then x 2.5 a level; its prices, coin for dollar. Fixed whole numbers only (Hugo's rule: no
-	-- share of max, no decimals): Oxygen is given once for every whole second seated. Price is in coins.
+	-- share of max, no decimals): the Oxygen of a whole second seated (given in beats: Every). Price is in coins.
 	Levels = {
 		{ Name = "Toy", Oxygen = 16, Price = 0 },
 		{ Name = "Painted", Oxygen = 40, Price = 15000 },
@@ -3354,6 +3356,22 @@ Config.Spawn = {
 	WrapShare = 20, -- "plain" for WrapHome: a fish of an ordinary size and colour whose rarity is at least this share (of 100) of its own land's fish
 	WrapHome = 1, -- 1: a plain fish that swims out of its lands, out of sight, comes in again at the start of its own (the same fish, not a new one made); 0: every such fish is taken away and a new one made
 	StrayMost = 0.25, -- of a stretch of water, at most this share may be fish of the lands before it (2026-11-25, the user: "the lesser fish go into the furthr areas and then the fish from that area dont spawn enough"; measured: 2 in 100 of land 2's fish were its own, as the herd of land 1 swam on into it and filled it). One over that, out of sight, goes back to the start of its own land (or away, if it is not plain), and the land's own are made in its place. 1: as before
+	-- A later land's own fish round a rider (FishService.comeUp; 2026-11-25, the user: the pink land's fish not spawning
+	-- as they should: the herd swims at a rider's pace, so land 1's fish went along with them right through land 2)
+	Come = 1, -- 1: the land's own come up past the rider from behind, and the earlier lands' fish over StrayMost hang back; 0: neither
+	ComeSoon = 350, -- it begins this far before a land's start, studs
+	ComeAhead = 350, -- the water this far ahead is to hold the land's share of its own
+	ComeFill = 1.2, -- and as many fish in all as this times what that water should hold (land 1's herd, gathered at the gate, runs that much over)
+	ComeNear = 50, -- and each goes somewhere from this far ahead to there
+	ComeSide = 0.3, -- they pass at least this far to one side (a share of the band's half width)
+	ComeEvery = 0.4, -- seconds between them
+	ComeOver = 50, -- they pass a rider this much faster than the rider goes, studs a second,
+	ComeMost = 170, -- but never faster than this
+	ComeTime = 14, -- seconds until one gives up catching its place
+	ComeLeast = 30, -- only for a rider going down the lane at least this fast
+	ComeFast = 120, -- and not one faster than this: they come to the land's own by themselves
+	BackClear = 170, -- this far behind a rider who is going on counts as out of sight (0: SightClear, as everywhere)
+	StrayLag = 0.5, -- the share of its pace an earlier land's fish over StrayMost swims at near a rider
 	BigRise = 14, -- by up to this much (each fish between 0.4 and 1 of what its length gives)
 	Belly = 4, -- and no fish's belly is nearer the floor than this, whatever its size
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
@@ -4480,13 +4498,17 @@ function Config.indexLooks(): number
 	return #Config.SizeOrder * colours
 end
 
--- Training in whole seconds (task e1): `carry` seconds seated so far that have not made a whole one, `dt` more. Returns
--- how many whole seconds that completes and the part of a second left over. A level gives its whole Oxygen once for
--- each (Train.Levels), never a share of a frame, so the gain is the same at any frame rate.
-function Config.trainTicks(carry: number, dt: number): (number, number)
-	local t = math.max(carry, 0) + math.max(dt, 0)
-	local ticks = math.floor(t + 1e-9)
-	return ticks, math.max(t - ticks, 0)
+-- Training (task e1): `carry` seconds seated so far that have not made a whole one, `dt` more, `each` Oxygen a second (a
+-- whole number). Returns the Oxygen of the beats that completes (Train.Every) and the part of a second left over. Whole
+-- numbers only, never a share of a frame: a second's beats always add up to exactly `each` (an odd one is split 7 and 8),
+-- so the gain is the same at any frame rate.
+function Config.trainGain(carry: number, dt: number, each: number): (number, number)
+	local beats = math.max(1, math.floor(1 / math.max(Config.Train.Every, 0.05) + 0.5)) -- in a second
+	local from = math.max(carry, 0)
+	local to = from + math.max(dt, 0)
+	local amount = math.floor(math.floor((to + 1e-9) * beats) * each / beats)
+		- math.floor(math.floor((from + 1e-9) * beats) * each / beats)
+	return amount, math.max(to - math.floor(to + 1e-9), 0)
 end
 
 -- A whole number with its thousands grouped: 2,925 (task e1: Oxygen is shown whole, never 2.9K)

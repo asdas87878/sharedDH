@@ -105,6 +105,11 @@ export type Wild = {
 	SentDir: Vector3, -- and the way and the speed written then: they replicate to every client, so they are
 	SentSpeed: number, -- written only when they have changed enough to see
 	Eased: number, -- the share of its speed it swims at for a hopping player's sake (1; Config.Jump.FastEase: easeFor)
+	ComeFor: Player?, -- the player it is coming up past from behind (Spawn.Come: comeUp),
+	ComeLead: number, -- how far ahead of them it is going, studs,
+	ComeEnd: number, -- and os.clock() it gives that up
+	Extra: number, -- how much faster than its pace that makes it, studs a second
+	LagUntil: number, -- a fish of an earlier land that hangs back so a rider leaves it behind (Spawn.StrayLag), until then
 	Swift: number, -- how much faster than its kind it is ridden (1; Config.Pace.FastRide for a fish born fast, BoltRide for a bolt)
 	Swim: LinearVelocity,
 	Turn: AlignOrientation,
@@ -777,6 +782,11 @@ local function make(
 		SyncAt = os.clock() + rng:NextNumber(0, SYNC),
 		Pace = pace or Config.paceOf(fishType),
 		Own = (own or 1) * (1 + rng:NextNumber(-1, 1) * Config.Pace.Own) * (Config.SizePace[tier] or 1),
+		ComeFor = nil,
+		ComeLead = 0,
+		ComeEnd = 0,
+		Extra = 0,
+		LagUntil = 0,
 		Swift = swift or 1,
 		Eased = 1,
 		Land = landPace(home),
@@ -897,14 +907,21 @@ local function census(s: number): (number, { [string]: number })
 	return grand, kinds
 end
 
--- A new fish in a slice. `entry`: the lane's start with a player looking on: it comes in at the gate.
-local function spawnFish(index: number, entry: boolean?): Wild?
+-- A new fish in a slice. `entry`: the lane's start with a player looking on: it comes in at the gate. `ofLand`: one of
+-- that land's own kinds, whatever land the slice is in, and not in the middle of the band (comeUp).
+local function spawnFish(index: number, entry: boolean?, ofLand: number?): Wild?
 	local slice = slices[index]
 	if not slice then
 		return nil
 	end
 	local grandNear, kinds = census((slice.Start + slice.End) / 2)
-	local fishType = pick(slice.Zone, kinds)
+	local zone = ofLand or slice.Zone
+	local fishType = pick(zone, kinds)
+	for _ = 1, 4 do
+		if ofLand and fishType and fishType.Home ~= ofLand then
+			fishType = pick(zone, kinds)
+		end
+	end
 	if not fishType then
 		return nil
 	end
@@ -943,13 +960,17 @@ local function spawnFish(index: number, entry: boolean?): Wild?
 		pace,
 		if entry then Config.Spawn.EntryAt else nil
 	)
+	if ofLand and math.abs(u) < Config.Spawn.ComeSide then
+		u = if u < 0 then -Config.Spawn.ComeSide else Config.Spawn.ComeSide
+		at = Stream.point(stream, home, Stream.across(stream, home, u, 0, dodge, body.X / 2), lift)
+	end
 	-- (at the gate it comes in already as high as the fish there swim: Config.Dive.Rise)
 	local up = gateRise(home)
 	if up > 0 then
 		at = Vector3.new(at.X, math.max(at.Y, math.min(at.Y + up, ceilingFor(body))), at.Z)
 	end
 	local along = Stream.along(stream, home)
-	local w = make(fishType, rollVariant(), home, at, along, slice.Zone, index, u, lift, dodge, tier, pace, own, swift)
+	local w = make(fishType, rollVariant(), home, at, along, zone, index, u, lift, dodge, tier, pace, own, swift)
 	park(w, not nearAPlayer(at, Config.Spawn.StreamRadius))
 	return w
 end
@@ -1024,6 +1045,36 @@ local function alongClear(s0: number, s1: number, clear: number): boolean
 	return true
 end
 
+-- The players swimming down the lane: how far down the stream each is and how fast they go down it, studs a second
+-- (read every TRACK_EVERY, by comeUp)
+type Track = { S: number, V: number, At: number, NextAt: number }
+local TRACK_EVERY = 0.25
+local track: { [Player]: Track } = {}
+
+-- Whether no player sees a place this far down the stream: Spawn.SightClear away from each, or Spawn.BackClear behind one
+-- who is swimming on (they look the way they go)
+local function unseen(s: number): boolean
+	local sp = Config.Spawn
+	for _, p in playerS do
+		local off = s - p
+		if off < sp.SightClear and off > -sp.SightClear then
+			local behind = false
+			if sp.BackClear > 0 and off < 0 then
+				for _, t in track do
+					if math.abs(t.S - p) < 250 and t.V > sp.ComeLeast and s <= t.S - sp.BackClear then
+						behind = true
+						break
+					end
+				end
+			end
+			if not behind then
+				return false
+			end
+		end
+	end
+	return true
+end
+
 -- How many free fish a slice and its neighbours hold (Spawn.Window each side), and how many they should. The stock
 -- is judged over that stretch, not slice by slice: the herd swims through the slices, so any one slice's count goes
 -- up and down by a fish or two all the time, and answering each of those made and unmade fish for nothing.
@@ -1087,6 +1138,7 @@ end
 local flowedAt = 0
 -- (for measuring: FishService.stats)
 local madeCount, goneCount, wokenCount, wrappedCount, topUpTook, makeTook = 0, 0, 0, 0, 0, 0
+local cameCount = 0
 
 -- A plain fish that has swum out of the lands its kind lives in, out of sight, comes in again at the start of its own
 -- land: the same fish, with a new place there. The whole sea flows, so every land's fish leave at one end all the time
@@ -1229,8 +1281,13 @@ local function topUp(limit: number, anywhere: boolean?)
 			if gone then
 				-- only where nobody sees it go (past the lane's end there is nothing to swim on into: sooner)
 				local clear = if slice then sp.SightClear else 250
-				gone = alongClear(w.S, w.S, if slice then clear else 0)
-					and (w.Parked or not nearAPlayer(w.Root.Position, clear))
+				local seen = not alongClear(w.S, w.S, if slice then clear else 0)
+					or (not w.Parked and nearAPlayer(w.Root.Position, clear))
+				-- (a fish of an earlier land that a rider has left behind goes sooner)
+				if seen and astray and unseen(w.S) then
+					seen = not w.Parked and nearAPlayer(w.Root.Position, sp.BackClear)
+				end
+				gone = not seen
 			end
 			if gone and slice and astray then
 				strays[slice] = math.max((strays[slice] or 0) - 1, 0)
@@ -1274,6 +1331,110 @@ local function topUp(limit: number, anywhere: boolean?)
 	end
 end
 
+-- The herd swims at nearly a rider's own pace, and no fish is made or taken away in sight: so the fish of one land went
+-- along with a rider through the whole of the next, whose own were only ever made far ahead (measured 2026-11-25: none
+-- of land 2's fish within 450 studs of a rider for most of it. The user: "the lesser fish go into the furthr areas and
+-- then the fish from that area dont spawn enough"). So round each rider in a later land (or coming to one):
+--   the land's own come up past them: made behind, out of their sight, they swim by on either side and take their place
+--   ahead, until the water ahead holds as many of the land's own as it should (Spawn.Come...);
+--   the fish of earlier lands over their share (Spawn.StrayMost) hang back till they are left behind (StrayLag), and go.
+local function comeUp(now: number)
+	local sp = Config.Spawn
+	for player in track do
+		if not player.Parent then
+			track[player] = nil
+		end
+	end
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not root or not root:IsA("BasePart") or root.Position.Y > Config.Depth.SurfaceY + 30 then
+			track[player] = nil
+			continue
+		end
+		local was = track[player]
+		local s = (Stream.project(stream, root.Position, if was then was.S else nil))
+		if not was then
+			track[player] = { S = s, V = 0, At = now, NextAt = 0 }
+			continue
+		end
+		local v = (s - was.S) / math.max(now - was.At, 0.05)
+		was.V = if math.abs(v) > 400 then 0 else was.V + (v - was.V) * 0.35
+		was.S, was.At = s, now
+		if sp.Come <= 0 or was.V < sp.ComeLeast then
+			continue
+		end
+		-- the land they are in, or come to within ComeSoon
+		local z = 1
+		for i = #zoneFrom, 1, -1 do
+			if s + sp.ComeSoon >= zoneFrom[i] then
+				z = i
+				break
+			end
+		end
+		if z < 2 then
+			continue
+		end
+		local from = math.max(s - 40, zoneFrom[z])
+		local to = math.min(math.max(s, zoneFrom[z]) + sp.ComeAhead, zoneFrom[z + 1] or stream.Length)
+		local want = 0
+		for _, slice in slices do
+			local over = math.min(slice.End, to) - math.max(slice.Start, from)
+			if over > 0 then
+				want += slice.Want * over / (slice.End - slice.Start)
+			end
+		end
+		if to <= from or want <= 0 then
+			continue
+		end
+		local own = 0
+		local strays: { Wild } = {}
+		for _, w in wild do
+			if w.Rider or w.Reserved or w.CoastToken then
+				w.ComeFor = nil
+			elseif w.Type.Home == z and (w.ComeFor == player or (w.S >= from and w.S <= to)) then
+				own += 1
+			elseif w.Type.Home < z and not w.Parked and w.S >= from and w.S <= to then
+				table.insert(strays, w)
+			end
+		end
+		-- (the nearest few are the share that may be there: one about to be hooked doesn't drop back)
+		table.sort(strays, function(a, b)
+			return math.abs(a.S - s) < math.abs(b.S - s)
+		end)
+		local may = math.floor(math.max(want * sp.StrayMost, 1))
+		for i = may + 1, #strays do
+			strays[i].LagUntil = now + 1
+		end
+		-- (a rider much faster than the herd comes to the land's own by themselves)
+		if
+			own + math.min(#strays, may) < want * sp.ComeFill
+			and was.V < sp.ComeFast
+			and now >= was.NextAt
+			and stockedTotal < sp.MaxTotal
+		then
+			was.NextAt = now + sp.ComeEvery
+			local index = sliceAt(s - sp.BackClear)
+			if index and slices[index].End > s - sp.BackClear then
+				index -= 1
+			end
+			local slice = if index then slices[index] else nil
+			if index and slice and unseen(slice.Start) and unseen(slice.End) then
+				local w = spawnFish(index, false, z)
+				if w then
+					madeCount += 1
+					cameCount += 1
+					stockedTotal += 1
+					w.ComeFor = player
+					w.ComeLead = math.max(zoneFrom[z] - s, 0) + rng:NextNumber(sp.ComeNear, sp.ComeAhead)
+					w.ComeEnd = now + sp.ComeTime
+					w.Extra = math.max(was.V - w.Speed, 0)
+				end
+			end
+		end
+	end
+end
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Stats and claiming: the stock's numbers, reserving a fish, giving it a rider and letting it go
 
@@ -1295,6 +1456,8 @@ function FishService.stats(): { [string]: any }
 			Length = w.Body.Z,
 			Id = w.Type.Id,
 			Zone = w.Zone,
+			Speed = w.Speed,
+			Coming = w.ComeFor ~= nil,
 		})
 	end
 	local want = {}
@@ -1308,6 +1471,7 @@ function FishService.stats(): { [string]: any }
 		Gone = goneCount,
 		Woken = wokenCount,
 		Wrapped = wrappedCount,
+		Came = cameCount,
 		TopUp = topUpTook,
 		Make = makeTook,
 		Fish = fish,
@@ -1478,6 +1642,28 @@ local function steer(w: Wild, dt: number)
 		w.Eased += math.clamp(eased - w.Eased, -step, step)
 	end
 	speed *= w.Eased
+	-- a land's own fish coming up past a rider (comeUp): faster than they go until it is as far ahead as it wants. And
+	-- an earlier land's fish hanging back.
+	local extra = 0
+	local come = w.ComeFor
+	if come then
+		local t = track[come]
+		local left = if t then t.S + t.V * math.min(now - t.At, 0.5) + w.ComeLead - w.S else 0
+		if not t or left <= 0 or now > w.ComeEnd then
+			w.ComeFor = nil
+		else
+			local sp = Config.Spawn
+			local most = math.min(math.max(t.V, sp.ComeLeast) + sp.ComeOver, sp.ComeMost)
+			extra = math.max((most - speed) * math.clamp(left / 60, 0.15, 1), 0)
+		end
+	elseif now < w.LagUntil then
+		extra = -speed * (1 - Config.Spawn.StrayLag)
+	end
+	if w.Extra ~= extra then
+		local step = 70 * dt
+		w.Extra += math.clamp(extra - w.Extra, -step, step)
+	end
+	speed = math.max(speed + w.Extra, 5)
 	if w.Rise ~= w.RiseWant then
 		-- (a hunter stoops fast and climbs slow; a darter's little lift comes and goes gently)
 		local step = (
@@ -2006,12 +2192,16 @@ function FishService.Start()
 		ask.OnInvoke = FishService.stats
 		ask.Parent = ServerStorage
 	end
-	local gaveAt = 0
+	local gaveAt, trackedAt = 0, 0
 	RunService.Heartbeat:Connect(function(dt)
 		local now = os.clock()
 		if now - gaveAt >= Config.Herd.GiveEvery then
 			gaveAt = now
 			giveWay()
+		end
+		if now - trackedAt >= TRACK_EVERY then
+			trackedAt = now
+			comeUp(now)
 		end
 		for _, w in wild do
 			if not w.Rider and not w.CoastToken and not w.Parked then

@@ -173,9 +173,9 @@ for level, row in Config.Train.Levels do
 			while t < 10 - 1e-9 do
 				local dt = math.min(step(), 10 - t)
 				t += dt
-				local ticks, left = Config.trainTicks(carry, dt)
+				local amount, left = Config.trainGain(carry, dt, row.Oxygen)
 				carry = left
-				gained += ticks * row.Oxygen
+				gained += amount
 			end
 			local max = startMax + gained
 			if gained ~= 10 * row.Oxygen or max ~= math.floor(max) then
@@ -186,8 +186,9 @@ for level, row in Config.Train.Levels do
 	end
 end
 check(trainBad == 0, "12 levels x 3 frame timings x max 100 and 100,000: 10 s seated gives exactly 10 x the level's Oxygen")
-local ticks = Config.trainTicks(0, 0.9)
-check(ticks == 0, "0.9 s seated gives nothing")
+local beat = Config.Train.Every
+check(Config.trainGain(0, beat * 0.9, 16) == 0, "less than a beat seated gives nothing")
+check(Config.trainGain(0, beat, 16) == 16 * beat, "a beat gives its part of the second's Oxygen")
 check(Config.Train.Share == nil, "no Train.Share (a share of max) left")
 
 report.samples = {}
