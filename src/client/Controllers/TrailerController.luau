@@ -10,6 +10,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
@@ -101,7 +102,8 @@ local function screens()
 		pointer.Visible = false
 	end
 	for _, g in gui:GetChildren() do
-		if g:IsA("LayerCollector") and g ~= slate then
+		-- (the signs of the world live here too: off, they are black boards)
+		if g:IsA("LayerCollector") and g ~= slate and not g:IsA("SurfaceGui") then
 			local never = false
 			for _, name in NEVER do
 				never = never or string.find(g.Name, name, 1, true) ~= nil
@@ -594,8 +596,8 @@ local SHOTS: { Shot } = {
 			trainer(1)
 			task.wait(1)
 		end,
-		From = { Az = 25, El = 14, Far = 1.7, Up = 0.1 },
-		To = { Az = -10, El = 10, Far = 1.5, Up = 0.1 },
+		From = { Az = 100, El = 8, Far = 1.9, Up = 0.1 },
+		To = { Az = 80, El = 6, Far = 1.6, Up = 0.1 },
 	},
 	{
 		Name = "Seahorse levels",
@@ -607,8 +609,8 @@ local SHOTS: { Shot } = {
 		Live = stepped(0.4, 0.4, 11, function(i)
 			ask("Level", i + 1)
 		end),
-		From = { Az = 120, El = 4, Far = 1.9 },
-		To = { Az = 220, El = 8, Far = 1.7 },
+		From = { Az = 75, El = 6, Far = 1.8 },
+		To = { Az = 130, El = 8, Far = 1.6 },
 	},
 	{
 		Name = "Auras",
@@ -716,6 +718,17 @@ local SHOTS: { Shot } = {
 	},
 }
 
+-- behind the slate until nothing is left to fetch for a moment
+local function loaded()
+	local from, quiet = os.clock(), os.clock()
+	while os.clock() - from < Config.Trailer.Load and os.clock() - quiet < 0.6 do
+		if ContentProvider.RequestQueueSize > 2 then
+			quiet = os.clock()
+		end
+		task.wait(0.1)
+	end
+end
+
 local function play(number: number, shot: Shot)
 	slow = if shot.Hop then 1 else workspace:GetAttribute("TrailerSlow") or 1
 	showSlate(number)
@@ -725,6 +738,10 @@ local function play(number: number, shot: Shot)
 	local function settle()
 		if shot.Ride then
 			Shop.go(nil)
+			if Config.Trailer.Load > 0 then
+				ask("Load", shot.Ride)
+				loaded()
+			end
 			for try = 1, 2 do
 				local asked = os.clock()
 				path = ask("Ride", shot.Ride)
@@ -751,6 +768,9 @@ local function play(number: number, shot: Shot)
 		end
 		if shot.Prep then
 			shot.Prep()
+		end
+		if not shot.Ride then
+			loaded()
 		end
 	end
 	settle()

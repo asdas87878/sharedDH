@@ -2,6 +2,7 @@
 -- The trailer mode, server side (Studio only; Config.Trailer.On; docs/design/trailer.md): what a shot of the game-page
 -- video needs of the server, asked for by TrailerController through the RemoteFunction Remotes.Trailer. Everything here
 -- ends with Play, and in Studio saving is the stand-in store, so nothing of it is ever kept.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -29,15 +30,66 @@ local function pivot(player: Player, at: CFrame)
 	end
 end
 
+-- the place owner's looks on whoever films, for this Play only
+local function dress(player: Player)
+	if Config.Trailer.Avatar == 0 or game.CreatorType ~= Enum.CreatorType.User or game.CreatorId == player.UserId then
+		return
+	end
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	local ok, problem = pcall(function()
+		humanoid:ApplyDescription(Players:GetHumanoidDescriptionFromUserId(game.CreatorId))
+	end)
+	if not ok then
+		warn(`[Trailer] the owner's avatar: {problem}`)
+	end
+end
+
 local asks: { [string]: (Player, any) -> any } = {}
 
+local dressed: { [Player]: boolean } = {}
 function asks.Setup(player: Player, a: any): any
+	dress(player)
+	if not dressed[player] then
+		dressed[player] = true
+		player.CharacterAppearanceLoaded:Connect(function()
+			dress(player)
+		end)
+	end
 	player:SetAttribute("AdminEndlessAir", true)
 	player:SetAttribute("AdminNoFail", true)
 	RideService.setMax(player, a.Max or 5000)
 	SubService.unlockAll(player)
 	if a.Coins and a.Coins > 0 then
 		AquariumService.give(player, a.Coins)
+	end
+	return true
+end
+
+-- the land a shot is about to be in, sent before the ride is there (the client waits behind the slate)
+function asks.Load(player: Player, a: any): any
+	local start = FishService.landStart(a.Land)
+	if not start or not workspace.StreamingEnabled then
+		return nil
+	end
+	local left = 0
+	for _, on in { 0, 300, 700 } do
+		left += 1
+		task.spawn(function()
+			pcall(function()
+				player:RequestStreamAroundAsync(
+					FishService.streamPoint(start + (a.Along or 250) + on, Config.Herd.RideHeight, 8),
+					Config.Trailer.Load
+				)
+			end)
+			left -= 1
+		end)
+	end
+	local from = os.clock()
+	while left > 0 and os.clock() - from < Config.Trailer.Load do
+		task.wait(0.1)
 	end
 	return true
 end

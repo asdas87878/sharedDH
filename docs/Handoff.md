@@ -3,10 +3,17 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the trailer is filmed on Hugo's PC (game code, the user's word)
+
+- Hugo: the steps are in [trailer](design/trailer.md), Recording. New and **not run in Studio yet**: a shot waits for its land to
+  load (`Config.Trailer.Load`), the rider wears the place owner's avatar (`Config.Trailer.Avatar`), the world's signs stay on with
+  the HUD off (they were black boards), shots 10 and 11 from a clear side.
+- The place was saved as version 523 on the user's word: admin panel off, trailer mode in, but none of the line above.
+
 ## 2026-11-25, the admin panel off (game code, the user's word)
 
 - `Config.Admin.On` is 0: no panel, no remote, no `Admin` attribute for anyone, Studio or live (1 brings it back). Checked in Play.
-  In the live game only once the place is saved and published (version 519 still has the panel).
+  In the live game once published (saved in version 523).
 
 ## 2026-11-25, the trailer mode, not finished (game code, the user's word)
 

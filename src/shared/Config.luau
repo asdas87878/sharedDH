@@ -3881,6 +3881,8 @@ Config.Trailer = {
 	Settle = 1.4, -- seconds on a fish before the slate lifts (it gets up to speed, the herd and the land stream in)
 	Fog = 1, -- the fog's end, times this, in a shot (1: the game's own)
 	Oxygen = 100000, -- max Oxygen meanwhile, so no fish is too strong
+	Load = 10, -- at most this many seconds behind the slate for a shot's land to load (0: no waiting)
+	Avatar = 1, -- 1: whoever films wears the place owner's avatar (the user's, on Hugo's PC); 0: their own
 }
 
 ----------------------------------------------------------------------------------------------------------------------
