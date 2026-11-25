@@ -119,13 +119,13 @@ Config.BaseScale = {
 	-- land 2: Coral Reef
 	Angelfish = 1.1, Lionfish = 1.3, Parrotfish = 1.45, MorayEel = 1.5, Octopus = 1.45, HumpheadWrasse = 1.8, Dunkleosteus = 2, CoralDragon = 1.8,
 	-- land 3
-	Garibaldi = 1.1, SeaLion = 1.5, GiantSeaBass = 1.65, LeopardShark = 1.5, GreatWhite = 2, StellersSeaCow = 2, Dakosaurus = 1.7, KelpWyrm = 1.8,
+	Garibaldi = 1.1, SeaLion = 1.5, GiantSeaBass = 1.65, LeopardShark = 1.5, GreatWhite = 2, StellersSeaCow = 2, WhaleShark = 1.5, Dakosaurus = 1.7, KelpWyrm = 1.8,
 	-- land 4
 	Barracuda = 1.4, HammerheadShark = 1.8, Sawfish = 1.7, ElectricRay = 1.6, GoliathGrouper = 2, Xiphactinus = 1.7, GalleonWhale = 1.9,
 	-- land 5
-	Dolphin = 1.7, Swordfish = 1.6, MantaRay = 2.1, Orca = 1.9, Elasmosaurus = 1.6, Helicoprion = 1.7, BlueWhale = 2.2, StormSerpent = 1.8,
+	Dolphin = 1.7, Swordfish = 1.6, MantaRay = 2.1, Orca = 1.9, Elasmosaurus = 1.6, Helicoprion = 1.7, GinsuShark = 1.35, BlueWhale = 2.2, StormSerpent = 1.8,
 	-- land 6
-	Viperfish = 1.3, GiantSquid = 1.6, GoblinShark = 1.6, Liopleurodon = 1.7, Shonisaurus = 1.8, LanternLeviathan = 1.7, AuroraJelly = 1.7,
+	Viperfish = 1.3, GiantSquid = 1.6, GoblinShark = 1.6, Liopleurodon = 1.7, Shonisaurus = 1.8, Otodus = 1.4, LanternLeviathan = 1.7, AuroraJelly = 1.7,
 	-- land 7
 	Anglerfish = 1.6, FrilledShark = 1.4, Basilosaurus = 1.7, Livyatan = 1.8, Mosasaurus = 1.8, Kraken = 1.9, VoidWhale = 2,
 	-- land 8
@@ -133,7 +133,7 @@ Config.BaseScale = {
 	-- land 9
 	GraveRay = 2, GraveTurtle = 1.8, SkullAngler = 1.6, WraithEel = 1.7, BoneLeviathan = 1.8, HalfboneMegalodon = 2, PhantomWhale = 2,
 	-- land 10
-	BrimstoneEel = 1.7, CinderRay = 2, HellfinShark = 1.8, InfernalAngler = 1.7, AbyssalWatcher = 1.9, Hellmaw = 1.9, TheDevourer = 2.1,
+	BrimstoneEel = 1.7, CinderRay = 2, HellfinShark = 1.8, InfernalAngler = 1.7, AbyssalWatcher = 1.9, Hellmaw = 1.9, Ringbearer = 1.6, Totality = 1.7, TheDevourer = 2.1,
 } :: { [string]: number }
 
 export type FishStat = {
@@ -177,6 +177,7 @@ Config.FishStats = {
 	GiantSeaBass = { Speed = 54, Archetype = "" }, -- Rare: a heavy, slow, gentle giant: slow by its number, no trait
 	GreatWhite = { Speed = 82, Archetype = "Predator" }, -- Epic: the shark
 	StellersSeaCow = { Speed = 56, Archetype = "Tank" }, -- Epic: a gentle floating giant: slow, and the meter barely moves
+	WhaleShark = { Speed = 60, Archetype = "" }, -- Epic: the gentle giant of the sharks: slow by its number, no trait
 	Dakosaurus = { Speed = 88, Archetype = "" }, -- Legendary: a sea crocodile built for the chase: quick by its number only
 	KelpWyrm = { Speed = 112, Archetype = "" }, -- Secret: winds through the kelp: quick by its number only
 	-- land 4: Shipwrecks
@@ -193,6 +194,7 @@ Config.FishStats = {
 	Orca = { Speed = 90, Archetype = "Predator" }, -- Epic: the top hunter: big enough to eat most of what swims by
 	MantaRay = { Speed = 78, Archetype = "Leaper" }, -- Epic: a flier: it breaches, and its hop is a long glide
 	Helicoprion = { Speed = 92, Archetype = "" }, -- Legendary: the buzz-saw shark: a plain Legendary
+	GinsuShark = { Speed = 94, Archetype = "" }, -- Legendary: a fast slicing shark: quick by its number only
 	Elasmosaurus = { Speed = 86, Archetype = "" }, -- Legendary: a long-necked, unhurried paddler: a plain Legendary
 	BlueWhale = { Speed = 84, Archetype = "Tank,Breaker" }, -- Mythic: the biggest and the calmest: nothing stops it and the meter crawls; the slowest Mythic by far, which is the trade
 	StormSerpent = { Speed = 135, Archetype = "Fast" }, -- Secret: lightning: the launch, and nothing else
@@ -202,6 +204,7 @@ Config.FishStats = {
 	GoblinShark = { Speed = 78, Archetype = "" }, -- Epic: its jaws shoot out: a plain Epic
 	Liopleurodon = { Speed = 98, Archetype = "Predator" }, -- Legendary: the Twilight's big four-flippered hunter
 	Shonisaurus = { Speed = 92, Archetype = "" }, -- Legendary: a whale-sized ichthyosaur with no teeth: a plain Legendary
+	Otodus = { Speed = 96, Archetype = "" }, -- Legendary: the Megalodon's older cousin, nearly all jaws: a plain Legendary
 	LanternLeviathan = { Speed = 108, Archetype = "" }, -- Mythic: a long lit serpent: quick by its number only
 	AuroraJelly = { Speed = 96, Archetype = "Tank" }, -- Secret: a drifting jelly: slow for a Secret, and the meter barely moves
 	-- land 7: Midnight
@@ -236,6 +239,8 @@ Config.FishStats = {
 	InfernalAngler = { Speed = 100, Archetype = "" }, -- Legendary: an angler, still: a plain Legendary
 	Hellmaw = { Speed = 130, Archetype = "" }, -- Mythic: the last land's monster: the fastest thing in the Underworld, by its number only
 	AbyssalWatcher = { Speed = 112, Archetype = "Tank" }, -- Mythic: it watches; it doesn't hurry
+	Ringbearer = { Speed = 110, Archetype = "Tank" }, -- Mythic: a turtle with a planet on its back: the slowest Mythic down there
+	Totality = { Speed = 126, Archetype = "Leaper" }, -- Mythic: a manta carrying an eclipse: a glider, like the other rays
 	TheDevourer = { Speed = 128, Archetype = "Predator,Frenzy" }, -- Secret: the end of the list: the one that chains bites down there, so it is not also the fastest (was 150)
 } :: { [string]: FishStat }
 
@@ -671,6 +676,7 @@ Config.OxygenBase = {
 	LeopardShark = 1500, -- Rare
 	GiantSeaBass = 1700, -- Rare
 	StellersSeaCow = 2000, -- Epic
+	WhaleShark = 1900, -- Epic
 	GreatWhite = 2200, -- Epic
 	Dakosaurus = 2100, -- Legendary
 	KelpWyrm = 2300, -- Secret
@@ -688,6 +694,7 @@ Config.OxygenBase = {
 	MantaRay = 41000, -- Epic
 	Orca = 50000, -- Epic
 	Elasmosaurus = 49000, -- Legendary
+	GinsuShark = 52000, -- Legendary
 	Helicoprion = 54000, -- Legendary
 	BlueWhale = 70000, -- Mythic
 	StormSerpent = 46000, -- Secret
@@ -696,6 +703,7 @@ Config.OxygenBase = {
 	GiantSquid = 360000, -- Epic
 	GoblinShark = 380000, -- Epic
 	Liopleurodon = 510000, -- Legendary
+	Otodus = 500000, -- Legendary
 	Shonisaurus = 520000, -- Legendary
 	LanternLeviathan = 450000, -- Mythic
 	AuroraJelly = 640000, -- Secret
@@ -731,6 +739,8 @@ Config.OxygenBase = {
 	InfernalAngler = 330000000, -- Legendary
 	Hellmaw = 340000000, -- Mythic
 	AbyssalWatcher = 370000000, -- Mythic
+	Ringbearer = 350000000, -- Mythic
+	Totality = 380000000, -- Mythic
 	TheDevourer = 390000000, -- Secret
 } :: { [string]: number }
 
@@ -1470,6 +1480,7 @@ Config.LandRide = {
 		-- Turtle (3)
 		SeaTurtle = "Turtle",
 		Archelon = { Body = "Turtle", Rate = 0.65, SegShare = 0.85 },
+		Ringbearer = { Body = "Turtle", Rate = 0.55, SegShare = 0.85 },
 		GraveTurtle = { Body = "Turtle", Rate = 0.6, SegShare = 0.85 },
 		-- Seahorse (1)
 		Seahorse = "Seahorse",
@@ -1482,6 +1493,7 @@ Config.LandRide = {
 		-- Ray (5)
 		Stingray = "Ray",
 		MantaRay = { Body = "Ray", Rate = 0.9 },
+		Totality = { Body = "Ray", Rate = 0.85 },
 		ElectricRay = "Ray", -- (no wings in its rig: its body shuffles and rolls instead)
 		CinderRay = "Ray",
 		GraveRay = { Body = "Ray", Rate = 0.9 },
@@ -1512,6 +1524,9 @@ Config.LandRide = {
 		GoblinShark = { Body = "Shark", Jaw = 18 },
 		FrilledShark = { Body = "Shark", Tail = 90, TailWave = 1, TailGrow = 0.5 }, -- a longer travelling wave
 		Megalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
+		Otodus = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
+		GinsuShark = { Body = "Shark", Rate = 0.95, Surge = 0.4 },
+		WhaleShark = { Body = "Shark", Rate = 0.7 },
 		MoltenMegalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
 		HalfboneMegalodon = { Body = "Shark", Rate = 0.9, Surge = 0.4 },
 		HellfinShark = { Body = "Shark", Rate = 0.95 },
@@ -2456,11 +2471,11 @@ Config.FishPace = {
 	-- land 2
 	MorayEel = "Dart", Octopus = "Dart", CoralDragon = "Zoom", Dunkleosteus = "Hunt",
 	-- land 3
-	Garibaldi = "Dart", SeaLion = "Zoom", KelpWyrm = "Zoom", Dakosaurus = "Zoom", GiantSeaBass = "Plod", StellersSeaCow = "Plod", GreatWhite = "Hunt",
+	Garibaldi = "Dart", SeaLion = "Zoom", KelpWyrm = "Zoom", Dakosaurus = "Zoom", GiantSeaBass = "Plod", StellersSeaCow = "Plod", WhaleShark = "Plod", GreatWhite = "Hunt",
 	-- land 4
 	Barracuda = "Zoom", Xiphactinus = "Zoom", GoliathGrouper = "Plod", GalleonWhale = "Plod", HammerheadShark = "Hunt",
 	-- land 5
-	Dolphin = "Zoom", Swordfish = "Zoom", StormSerpent = "Zoom", BlueWhale = "Plod", Orca = "Hunt",
+	Dolphin = "Zoom", Swordfish = "Zoom", StormSerpent = "Zoom", GinsuShark = "Zoom", BlueWhale = "Plod", Orca = "Hunt",
 	-- land 6
 	Viperfish = "Dart", GiantSquid = "Dart", AuroraJelly = "Plod", Liopleurodon = "Hunt",
 	-- land 7
@@ -2470,7 +2485,7 @@ Config.FishPace = {
 	-- land 9
 	GraveTurtle = "Plod", WraithEel = "Dart", HalfboneMegalodon = "Hunt",
 	-- land 10
-	InfernalAngler = "Plod", BrimstoneEel = "Dart", Hellmaw = "Zoom", HellfinShark = "Hunt", TheDevourer = "Hunt",
+	InfernalAngler = "Plod", BrimstoneEel = "Dart", Hellmaw = "Zoom", Ringbearer = "Plod", HellfinShark = "Hunt", TheDevourer = "Hunt",
 } :: { [string]: string }
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -2841,7 +2856,7 @@ Config.Fail = {
 		-- the eaters: every Predator (by its archetype, below), and these with the teeth for it
 		MorayEel = "Chomp", HammerheadShark = "Chomp", Viperfish = "Chomp", GoblinShark = "Chomp", FrilledShark = "Chomp",
 		Dakosaurus = "Chomp", Helicoprion = "Chomp", Livyatan = "Chomp", Kronosaurus = "Chomp", MoltenMegalodon = "Chomp",
-		HalfboneMegalodon = "Chomp", BobbitWorm = "Chomp", Hellmaw = "Chomp",
+		HalfboneMegalodon = "Chomp", BobbitWorm = "Chomp", Hellmaw = "Chomp", Otodus = "Chomp", GinsuShark = "Chomp",
 		-- the swallowers: a lure, or a mouth that takes things whole
 		Anglerfish = "Gulp", SkullAngler = "Gulp", InfernalAngler = "Gulp", GoliathGrouper = "Gulp", Xiphactinus = "Gulp",
 		-- arms
@@ -2849,11 +2864,11 @@ Config.Fail = {
 		-- giants and whales
 		BlueWhale = "Roll", GalleonWhale = "Roll", VoidWhale = "Roll", PhantomWhale = "Roll", StellersSeaCow = "Roll",
 		Shonisaurus = "Roll", GiantSeaBass = "Roll", HumpheadWrasse = "Roll", Dolphin = "Roll", AbyssalWatcher = "Roll",
-		Elasmosaurus = "Roll", Swordfish = "Roll", LeopardShark = "Roll",
+		Elasmosaurus = "Roll", Swordfish = "Roll", LeopardShark = "Roll", WhaleShark = "Roll",
 		-- rays
-		MantaRay = "Flip", ElectricRay = "Flip", GraveRay = "Flip", CinderRay = "Flip",
+		MantaRay = "Flip", ElectricRay = "Flip", GraveRay = "Flip", CinderRay = "Flip", Totality = "Flip",
 		-- shells
-		Archelon = "Shell", GraveTurtle = "Shell",
+		Archelon = "Shell", GraveTurtle = "Shell", Ringbearer = "Shell",
 		-- serpents
 		PearlSerpent = "Coil", KelpWyrm = "Coil", StormSerpent = "Coil", LanternLeviathan = "Coil", Basilosaurus = "Coil",
 		EmberSerpent = "Coil", WraithEel = "Coil", BrimstoneEel = "Coil", BoneLeviathan = "Coil", CoralDragon = "Coil",
