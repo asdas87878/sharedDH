@@ -24,6 +24,7 @@ WORK = os.path.join(F.ROOT, "work", "saddles")
 TRY = {"can": [{"can": 0.85}, {"can": 0.7}, {"can": 1.0, "split": True}, {"can": 0.8, "split": True}, {"can": 0.55}, {"can": 0.6, "split": True}, {"can": 0}],
        "pom": [{"pom": 0.8}, {"pom": 0.65}, {"pom": 0}],
        "trim": [{"hem": 0}, {"low": 0}, {"flap": 0}, {"hem": 0, "low": 0}, {"flap": 0, "hem": 0}, {"flap": 0, "low": 0}, {"flap": 0, "low": 0, "hem": 0}]}
+KEYS = S.PICKS if os.environ.get("SADDLE_KEYS") == "picks" else list(S.DESIGNS)  # (the other designs' rows are kept as they are)
 GROUP = {"can": "can", "pom": "pom", "flap": "trim", "low": "trim", "hem": "trim"}
 
 
@@ -141,7 +142,7 @@ def one(id):
         fit = res[tier]["fit"]
         s = f.scale(tier)
         PT = poses(f, fit, f.seat * s, s)
-        for key in S.DESIGNS:
+        for key in KEYS:
             d = S.design(key)
             first = measure(S.build(d, fit, {}), PT)
             adj = {}
@@ -165,6 +166,15 @@ if __name__ == "__main__":
     with multiprocessing.Pool(8) as pool:
         got = sorted(pool.imap_unordered(one, which))
     res, fix = {i: o for i, o, _ in got}, {i: x for i, _, x in got if x}
+    if len(KEYS) < len(S.DESIGNS):
+        for i, r in json.load(open(os.path.join(WORK, "clash.json"))).items():
+            res[i] = {**{k: v for k, v in r.items() if k.split(" ")[1] not in KEYS}, **res.get(i, {})}
+        for i, r in json.load(open(os.path.join(X.OUT, "adjust.json"))).items():
+            for tier, row in r.items():
+                old = {k: v for k, v in row.items() if k not in KEYS}
+                if old:
+                    fix.setdefault(i, {}).setdefault(tier, {}).update(old)
+        fix = {i: {t: dict(sorted(fix[i][t].items())) for t in F.TIERS if t in fix[i]} for i in sorted(fix)}
     json.dump(res, open(os.path.join(WORK, "clash.json"), "w"), default=float)
     if not sys.argv[1:]:
         rows = []

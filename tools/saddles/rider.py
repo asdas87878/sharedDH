@@ -22,6 +22,7 @@ import fit as X
 import saddles as S
 
 WORK = os.path.join(F.ROOT, "work", "saddles")
+KEYS = S.PICKS if os.environ.get("SADDLE_KEYS") == "picks" else list(S.DESIGNS)
 
 
 def points(size, m, n=5):
@@ -127,7 +128,7 @@ def one(id):
         whole = T[np.all(T.max(1) > [-9, -6, -3], 1) & np.all(T.min(1) < [9, 14, 30], 1)]
         near = np.all(T.max(1) > [-6, -3, -6], 1) & np.all(T.min(1) < [6, 7, 6], 1)
         T = T[near]
-        for key in S.DESIGNS:
+        for key in KEYS:
             parts = S.build(S.design(key), fit, S.adjust(id, tier, key))
             clear = cush = rest = 0.0
             for lean, boxes in BODY.items():
@@ -172,9 +173,12 @@ def one(id):
 if __name__ == "__main__":
     with multiprocessing.Pool(8) as pool:
         res = dict(pool.imap_unordered(one, sys.argv[1:] or F.ids()))
+    if len(KEYS) < len(S.DESIGNS) and not sys.argv[1:]:
+        for i, r in json.load(open(os.path.join(WORK, "rider.json"))).items():
+            res[i] = {**{k: v for k, v in r.items() if k.split(" ")[1] not in KEYS}, **res.get(i, {})}
     json.dump(res, open(os.path.join(WORK, "rider.json"), "w"), default=float)
     print("design  clear(max)  cushion  seen(min/mean)  float(max share)  parts min-max  triangles max")
-    for key in S.DESIGNS:
+    for key in KEYS:
         r = [v for id in res for k, v in res[id].items() if k.split(" ")[1] == key]
         worst = max(((v["clear"], id, k) for id in res for k, v in res[id].items() if k.split(" ")[1] == key))
         sn = [v["seen"] for v in r if "seen" in v]

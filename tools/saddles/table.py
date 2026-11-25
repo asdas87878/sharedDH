@@ -81,14 +81,14 @@ def main():
         r = [(id, k.split(" ")[0], v) for id in rid for k, v in rid[id].items() if k.split(" ")[1] == key]
         worst = max(r, key=lambda q: q[2]["clear"])
         seen = [v["seen"] for *_, v in r if "seen" in v]
-        star = " **recommended**" if S.RECOMMENDED[int(key[:-1])] == key[-1] else ""
+        star = " **picked**" if S.PICKED[int(key[:-1])] == key[-1] else ""
         out.append(f"| {key} {S.DESIGNS[key][0]}{star} | {min(v['parts'] for *_, v in r)} to {max(v['parts'] for *_, v in r)} | {min(v['tris'] for *_, v in r)} to {max(v['tris'] for *_, v in r)} | "
                    f"{max(v['rest'] for *_, v in r):.2f} | {worst[2]['clear']:.2f} | {F.load(worst[0]).name} {worst[1]} | {min(seen):.2f} / {np.mean(seen):.2f} | {max(v['over'] for *_, v in r):.2f} | {sum(v['over'] > 0 for *_, v in r)} | "
                    f"{sum(v.get('hid', 0) >= 0.5 for *_, v in r)} / {sum(v.get('hidfar', 0) >= 0.5 for *_, v in r)} | {changed(fixes, key)} |")
     # the recommended saddle of each kind's own land: what hides it, what was changed
-    rec = lambda id: f"{F.load(id).zone}{S.RECOMMENDED[F.load(id).zone]}"  # noqa: E731
+    rec = lambda id: f"{F.load(id).zone}{S.PICKED[F.load(id).zone]}"  # noqa: E731
     order = sorted(res, key=lambda i: (F.load(i).zone, i))
-    out += ["", "### Where the fish hides the raised back (its own land's recommended saddle)", ""]
+    out += ["", "### Where the fish hides the raised back (its own land's picked saddle)", ""]
     for n, what in (("hid", "from the game's camera (17 studs)"), ("hidfar", "zoomed out to 27 studs")):
         rows = {id: [(t, rid[id][f"{t} {rec(id)}"].get(n)) for t in ("Tiny", "Normal", "Colossal")] for id in order}
         hid = {id: [(t, v) for t, v in r if v is not None and v >= 0.5] for id, r in rows.items()}
@@ -103,7 +103,7 @@ def main():
             "A piece counts when a quarter of it stands more than 0.1 studs inside the fish; a group fails on more than one such piece, or more than a tenth of it, at rest (more than two, or a quarter, moving). "
             f"Failing as designed: {fail('first', 'can')} cantles, {fail('first', 'pom')} pommels, {fail('first', 'trim')} sets of trimmings. **{tot} cases are changed** "
             f"(`art/saddles/adjust.json`: a smaller cantle, one without its middle, none; a smaller pommel; the trimmings of a panel left off), after which {fail('after', 'can') + fail('after', 'pom') + fail('after', 'trim')} fail. "
-            f"Of the recommended saddles on their own land's fish, {len(ch)} are changed:", "", "; ".join(ch) + "."]
+            f"Of the picked saddles on their own land's fish, {len(ch)} are changed:", "", "; ".join(ch) + "."]
     txt = open(NOTE).read()
     a, b = txt.index("<!-- results -->") + len("<!-- results -->"), txt.index("<!-- /results -->")
     open(NOTE, "w").write(txt[:a] + "\n\n" + "\n".join(out) + "\n\n" + txt[b:])
