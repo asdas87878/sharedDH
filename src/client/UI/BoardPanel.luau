@@ -1,7 +1,8 @@
 --!strict
 -- What a hub leaderboard says (NULLROOM task l1; docs/design/leaderboards.md): a SurfaceGui on its glass. One dark face,
--- few colours, flat words with no outline: at the top who it lists (ALL PLAYERS or only THIS SERVER), its name and what
--- it counts, over a thin rule; then the list (place, face, name over user name, number over what it is; the first place
+-- few colours, flat words with no outline but the title's: at the top its name (TOP small in brass between two lines,
+-- the rest big under it, shaded in the board's own colour), who it lists (ALL PLAYERS or only THIS SERVER) and what it
+-- counts, over a thin rule; then the list (place, face, name over user name, number over what it is; the first place
 -- in gold, the next two edged in silver and bronze, your own edged in white); at the foot your own place and number, and
 -- when the next numbers come.
 --   The list is a ScrollingFrame that holds only as many rows as show (Config.Boards.Rows and two more): the same rows
@@ -21,12 +22,22 @@ local BoardPanel = {}
 local PX = 40 -- pixels to a stud
 local FAR = 320 -- studs past which nothing is written
 local PAD = 16
-local TOP = 154 -- where the list starts
+local TOP = 156 -- where the list starts
 local STEP = 68 -- from one row to the next
 local ROW = 62 -- a row's height
 local RIM = 3 -- room round the rows for their edges
+local TITLE = Enum.Font.DenkOne -- the title's letters: tall and plain, as a ship's name plate
 local BOLD, HEAVY = Enum.Font.BuilderSansBold, Enum.Font.BuilderSansExtraBold
 
+-- the title's second word, its light top and its foot, by the icon the board carries; TOP and the lines by it in brass
+local ACCENTS: { [string]: { Color3 } } = {
+	Bubble = { Color3.fromRGB(206, 250, 246), Color3.fromRGB(58, 178, 196) },
+	Book = { Color3.fromRGB(255, 226, 206), Color3.fromRGB(232, 116, 92) },
+	Chest = { Color3.fromRGB(255, 240, 190), Color3.fromRGB(232, 164, 58) },
+	Anchor = { Color3.fromRGB(226, 238, 248), Color3.fromRGB(112, 152, 190) },
+}
+local BRASS_L, BRASS = Color3.fromRGB(255, 232, 176), Color3.fromRGB(200, 152, 76)
+local DROP = Color3.fromRGB(3, 8, 14)
 local FILL, EDGE = Color3.fromRGB(19, 43, 58), Color3.fromRGB(34, 68, 84)
 local CREAM, MUTED = Color3.fromRGB(242, 238, 224), Color3.fromRGB(138, 162, 176)
 local SEA, GOLD = Color3.fromRGB(120, 218, 208), Color3.fromRGB(244, 198, 98)
@@ -311,10 +322,90 @@ function BoardPanel.make(def: any, glass: BasePart): Panel
 		}, face)
 	end
 
-	local who = across("Who", 14, 24, 22, { TextColor3 = GOLD })
-	across("Title", 42, 56, 45, { Text = def.Title, Font = Kit.Font })
-	across("Line", 102, 26, 23, { Text = def.Line, TextColor3 = SEA })
-	rule(142)
+	-- the title: its first word small in brass between two lines, the rest big under it in the board's own colour
+	local first, rest = string.match(def.Title, "^(%S+)%s+(.+)$")
+	local small: string, big: string = first or "", rest or def.Title
+	local accent = ACCENTS[def.Emblem] or ACCENTS.Anchor
+	local function lettering(
+		name: string,
+		text: string,
+		y: number,
+		high: number,
+		most: number,
+		top: Color3,
+		foot: Color3
+	)
+		local deep = math.max(2, math.floor(most / 18))
+		local under = across(name .. "Drop", y + deep, high, most, { Text = text, Font = TITLE, TextColor3 = DROP })
+		Kit.stroke(under, 3, DROP)
+		local over = across(name, y, high, most, {
+			Text = text,
+			Font = TITLE,
+			TextColor3 = Color3.new(1, 1, 1),
+			ZIndex = 2,
+		})
+		Kit.stroke(over, 2, DROP)
+		Kit.gradient(over, top, foot)
+	end
+	lettering("Small", small, 2, 46, 43, BRASS_L, BRASS)
+	lettering("Title", big, 39, 76, 74, accent[1], accent[2])
+	for _, side in { -1, 1 } do
+		if small ~= "" then
+			local line: Frame = Kit.new("Frame", {
+				Name = "Line" .. side,
+				AnchorPoint = Vector2.new(if side < 0 then 1 else 0, 0.5),
+				Position = UDim2.new(0.5, side * 62, 0, 25),
+				Size = UDim2.fromOffset(120, 3),
+				BackgroundColor3 = Color3.new(1, 1, 1),
+				BorderSizePixel = 0,
+			}, face)
+			-- (brass by the word, gone at its outer end)
+			Kit.new("UIGradient", {
+				Color = ColorSequence.new(BRASS),
+				Transparency = NumberSequence.new(if side < 0 then 1 else 0, if side < 0 then 0 else 1),
+			}, line)
+			Kit.new("Frame", {
+				Name = "Stud" .. side,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, side * 62, 0, 25),
+				Size = UDim2.fromOffset(11, 11),
+				Rotation = 45,
+				BackgroundColor3 = BRASS,
+				BorderSizePixel = 0,
+			}, face)
+		end
+	end
+	-- who it lists and what it counts, on one line
+	local under: Frame = Kit.new("Frame", {
+		Name = "Under",
+		Position = UDim2.fromOffset(PAD, 113),
+		Size = UDim2.fromOffset(wide, 26),
+		BackgroundTransparency = 1,
+	}, face)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 12),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, under)
+	local function said(name: string, order: number, text: string, color: Color3): TextLabel
+		return Kit.new("TextLabel", {
+			Name = name,
+			LayoutOrder = order,
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 26),
+			BackgroundTransparency = 1,
+			Font = BOLD,
+			TextSize = 22,
+			TextColor3 = color,
+			Text = text,
+		}, under)
+	end
+	local who = said("Who", 1, "", GOLD)
+	said("Dot", 2, "•", MUTED)
+	said("What", 3, def.Line, SEA)
+	rule(146)
 
 	local list: ScrollingFrame = Kit.new("ScrollingFrame", {
 		Name = "List",

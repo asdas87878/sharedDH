@@ -2986,7 +2986,7 @@ Config.Boards = {
 	-- Id; Title and Line, what it is called and the small words under it; Attribute, the player attribute it reads
 	-- (none: LeaderboardService's own way); Saved, the save part (SaveParts) its number is kept in; Scale, whole steps
 	-- to one (10: tenths are kept); Money, written with a $; Unit, the word under each
-	-- number; Emblem, the sign at the board's head (Shared/Boards)
+	-- number; Emblem, the icon at the board's head (Shared/Boards)
 	List = {
 		{
 			Id = "Oxygen",

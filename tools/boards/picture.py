@@ -8,7 +8,7 @@ hair different, the light is Blender's, there are no studs on the ground, and th
     lune run tools/boards/hub_parts.luau <saved place.rbxl> /tmp/b/hub.json
     python tools/boards/picture.py /tmp/b panels     the panels' pictures
     blender -b --factory-startup -P tools/boards/view.py -- /tmp/b
-    python tools/boards/picture.py /tmp/b sheet docs/attachments/leaderboards-2.png
+    python tools/boards/picture.py /tmp/b sheet docs/attachments/leaderboards-3.jpg
 """
 import hashlib
 import json
@@ -24,13 +24,14 @@ import panel_picture as base  # noqa: E402
 
 WORK = Path(sys.argv[1]).resolve()
 STUDIO = [f.parents[1] / "StudioFonts" for f in base.FONTS]
-PLAIN = {"BuilderSansBold": "BuilderSans-Bold.otf", "BuilderSansExtraBold": "BuilderSans-ExtraBold.otf"}
+PLAIN = {"BuilderSansBold": "BuilderSans-Bold.otf", "BuilderSansExtraBold": "BuilderSans-ExtraBold.otf",
+         "DenkOne": "DenkOne-Regular.ttf"}
 FONT = next((f / "FredokaOne-Regular.ttf" for f in reversed(base.FONTS) if (f / "FredokaOne-Regular.ttf").exists()), None)
 
 
 def file_of(name):
     """the file of one of Roblox's fonts; the HUD's own for any other"""
-    return next((f / PLAIN[name] for f in reversed(STUDIO) if name in PLAIN and (f / PLAIN[name]).exists()), FONT)
+    return next((f / PLAIN[name] for f in [*reversed(STUDIO), *reversed(base.FONTS)] if name in PLAIN and (f / PLAIN[name]).exists()), FONT)
 
 
 def font(size, name="FredokaOne"):

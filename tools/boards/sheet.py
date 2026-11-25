@@ -34,7 +34,7 @@ def make(work, out, font):
     y2 = y1 + sign.height + 24
     sheet = Image.new("RGB", (total, y2 + 46 + low + 64), PAPER)
     d = ImageDraw.Draw(sheet)
-    d.text((GAP, 24), "Leaderboards, sunken brass: flat hanging signs, quieter frame, plainer list", font=font(50), fill=INK)
+    d.text((GAP, 24), "Leaderboards, sunken brass: valves and lamps back, a bar for a head, bare icons, lettered titles", font=font(44), fill=INK)
     sheet.paste(close, (GAP, y0))
     sheet.paste(sign, (GAP, y1))
     d.text((GAP, y2), "The list (the third one as it is while saving is off)", font=font(30), fill=INK)
@@ -44,6 +44,11 @@ def make(work, out, font):
         x += p.width + GAP
     d.text((x, y2), "From 60 studs on a phone, 2 pixels to a point, Plot 6 in front", font=font(30), fill=INK)
     sheet.paste(phone, (x, y2 + 46))
+    border = sky(work / "shot-border.png")
+    left = low - phone.height - GAP
+    cut = round(border.width * left / room)
+    border = border.crop((0, (border.height - cut) // 2, border.width, (border.height + cut) // 2))
+    sheet.paste(border.resize((room, left), Image.LANCZOS), (x, y2 + 46 + phone.height + GAP))
     d.text((GAP, sheet.height - 42), "Offline: the game's own panel code and part tables, drawn in Chromium and Blender. Made-up names, faces and "
            "numbers. Top views: Plot 6 left out; its seahorse is in no view. Not seen in Studio.", font=font(24), fill=INK)
     out.parent.mkdir(parents=True, exist_ok=True)

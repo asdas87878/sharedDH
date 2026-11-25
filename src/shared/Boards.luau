@@ -1,11 +1,11 @@
 --!strict
 -- The hub's leaderboards as tables of plain parts (NULLROOM task l1, Hugo 2026-11-25; docs/design/leaderboards.md): the
--- frame, sunken brass (Hugo's pick of three), and the flat sign that hangs at each board's head. Sums only:
--- BoardController builds them on each player's own machine, tools/boards/picture draws them. Nothing here is uploaded
+-- frame, sunken brass (Hugo's pick of three) with its pipes, valves and lamps, and the flat icon on the slim bar at each
+-- board's head. Sums only: BoardController builds them on each player's own machine, tools/boards/picture draws them. Nothing here is uploaded
 -- and nothing is in the place.
 --   A board's own space: its foot on the floor in the middle, X to the right of someone reading it, Y up, Z towards
 --   them. PANEL, the dark glass with the list on it, is 11.2 by 21.2 studs.
---   A piece: Shape (Block, Cylinder; a cylinder runs along its own X), Size, At, Color, Glow (neon), Light (a lamp: how
+--   A piece: Shape (Block, Ball, Cylinder; a cylinder runs along its own X), Size, At, Color, Glow (neon), Light (a lamp: how
 --   far it reaches, studs). Nothing moves.
 local Boards = {}
 
@@ -19,8 +19,8 @@ export type Piece = {
 }
 
 Boards.Panel = { Width = 11.2, Height = 21.2, Bottom = 2.8, Front = 0.35 } -- the glass: studs; its face in Z
-Boards.Sign = { Y = 26.4, Z = 0.95, Width = 4.7 } -- the sign's middle and how wide it is
-Boards.Solid = { Width = 13.6, Height = 29, Depth = 2.2 } -- the unseen block players bump into
+Boards.Sign = { Y = 25.5, Z = 1.2, Scale = 0.85 } -- the icon's middle, on the front of the bar, and every size in it times this
+Boards.Solid = { Width = 13.6, Height = 25.6, Depth = 3 } -- the unseen block players bump into
 Boards.Bed = { Depth = 7, Height = 0.8, Over = 7.2 } -- the bed all boards of the row stand on; Over past the last middles
 Boards.Glass = Color3.fromRGB(10, 21, 33)
 
@@ -31,8 +31,10 @@ end
 -- Old copper, worn brass, and what the signs are drawn in
 local COPPER, COPPER_D = rgb(48, 104, 106), rgb(32, 74, 82)
 local BRASS, BRASS_D = rgb(200, 160, 88), rgb(148, 114, 60)
-local NIGHT, CREAM, SEA = rgb(18, 40, 56), rgb(236, 230, 210), rgb(132, 208, 208)
-local LAMP = rgb(255, 218, 150)
+local NIGHT, CREAM = rgb(18, 40, 56), rgb(236, 230, 210)
+local SEA, SEA_D = rgb(140, 214, 220), rgb(34, 128, 148)
+local LAMP, PORT = rgb(255, 218, 150), rgb(120, 220, 224) -- what glows: the lamps, the portholes
+local RUST, WOOD = rgb(176, 72, 58), rgb(140, 92, 56) -- the valves and the Index's cover; the chest
 local STONE, STONE_D = rgb(158, 164, 172), rgb(124, 130, 142)
 
 -- One board being drawn: pieces go into its list, each placed against `base`
@@ -59,6 +61,10 @@ local function disc(pen: Pen, x: number, y: number, z: number, d: number, thick:
 	)
 end
 
+local function ball(pen: Pen, x: number, y: number, z: number, d: number, color: Color3): Piece
+	return add(pen, "Ball", Vector3.new(d, d, d), CFrame.new(x, y, z), color)
+end
+
 -- A round upright
 local function post(pen: Pen, x: number, y: number, z: number, d: number, h: number, color: Color3): Piece
 	return add(pen, "Cylinder", Vector3.new(h, d, d), CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(90)), color)
@@ -72,33 +78,89 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- The frame
 
-local HEAD = 29.9 -- the head beam's underside
+local PIPE = 0.85 -- how far forward a pillar's pipe stands
+
+-- A valve's wheel, facing the reader
+local function valve(pen: Pen, x: number, y: number, z: number, d: number)
+	local rim = d * 0.15
+	local r = (d - rim) / 2
+	disc(pen, x, y, z - 0.25, d * 0.34, 0.6, BRASS_D)
+	for i = 0, 7 do
+		local at = CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(i * 45)) * CFrame.new(r, 0, 0)
+		add(pen, "Block", Vector3.new(rim, r * 0.9, 0.28), at, RUST)
+	end
+	for i = 0, 1 do
+		local at = CFrame.new(x, y, z - 0.03) * CFrame.Angles(0, 0, math.rad(45 + i * 90))
+		add(pen, "Block", Vector3.new(d - rim, rim * 0.9, 0.2), at, RUST)
+	end
+	disc(pen, x, y, z + 0.05, d * 0.26, 0.4, BRASS)
+end
+
+-- A pressure gauge
+local function gauge(pen: Pen, x: number, y: number, z: number, d: number)
+	disc(pen, x, y, z, d, 0.5, BRASS)
+	disc(pen, x, y, z + 0.1, d * 0.74, 0.5, CREAM)
+	local at = CFrame.new(x, y, z + 0.36) * CFrame.Angles(0, 0, math.rad(40)) * CFrame.new(d * 0.12, 0, 0)
+	add(pen, "Block", Vector3.new(d * 0.42, 0.12, 0.08), at, RUST)
+end
+
+-- A ship's lamp: a lit dome on a brass plate, two bars across it
+local function lamp(pen: Pen, x: number, y: number)
+	box(pen, x, y, 0.65, 1.3, 2.6, 0.3, BRASS_D)
+	local dome = box(pen, x, y, 0.85, 0.8, 1.9, 0.5, LAMP)
+	dome.Glow = true
+	dome.Light = 12
+	for _, up in { -0.45, 0.45 } do
+		box(pen, x, y + up, 0.9, 1.1, 0.22, 0.6, BRASS)
+	end
+end
 
 local function frame(pen: Pen)
 	local p = Boards.Panel
-	local top = p.Bottom + p.Height
+	local top = p.Bottom + p.Height + 0.25
 	-- the glass, in a thin brass edge
 	box(pen, 0, p.Bottom + p.Height / 2, -0.1, p.Width + 0.5, p.Height + 0.5, 0.8, BRASS)
 	for _, side in { -1, 1 } do
 		local x = side * 6.45
-		box(pen, x, HEAD / 2, -0.2, 1.4, HEAD, 1.6, COPPER)
+		box(pen, x, top / 2, -0.2, 1.4, top, 1.6, COPPER)
 		box(pen, x, 1.5, -0.1, 1.5, 1.8, 2.2, COPPER_D)
 		box(pen, x, 2.6, -0.1, 1.48, 0.4, 2.0, BRASS)
-		-- a slim lamp let into the pillar
-		box(pen, x, 22.2, 0.6, 0.66, 2.7, 0.2, BRASS_D)
-		local lamp = box(pen, x, 22.2, 0.72, 0.34, 2.3, 0.2, LAMP)
-		lamp.Glow = true
-		lamp.Light = 12
+		lamp(pen, x, 21.6)
+		-- a pipe up the pillar's front, from its foot to its lamp, in brass collars and bolted straps
+		post(pen, x, 11.5, PIPE, 0.5, 17.6, BRASS_D)
+		for _, y in { 3.1, 20.0 } do
+			post(pen, x, y, PIPE, 0.8, 0.6, BRASS)
+		end
+		for _, y in { 8.6, 15.4 } do
+			box(pen, x, y, 0.05, 1.5, 0.6, 2.2, BRASS)
+			for _, out in { -0.5, 0.5 } do
+				ball(pen, x + out, y, 1.12, 0.32, CREAM)
+			end
+		end
 	end
-	-- the foot, the board behind the sign, and the head beam
+	gauge(pen, -6.2, 5.9, 1.15, 1.55)
+	valve(pen, 6.35, 12, 1.35, 1.7)
+	-- the foot: a valve between two lit portholes
 	box(pen, 0, 1.7, -0.1, 11.5, 1.7, 1.5, COPPER_D)
-	box(pen, 0, (top + 0.25 + HEAD) / 2, -0.35, 11.5, HEAD - top - 0.25, 0.9, COPPER_D)
-	box(pen, 0, HEAD + 0.2, 0, 14.2, 0.4, 2.5, BRASS)
-	box(pen, 0, HEAD + 0.9, 0, 13.8, 1.0, 2.2, COPPER)
+	for _, x in { -3.4, 3.4 } do
+		disc(pen, x, 1.7, 0.7, 1.4, 0.3, BRASS)
+		local pane = disc(pen, x, 1.7, 0.8, 0.96, 0.3, PORT)
+		pane.Glow = true
+	end
+	valve(pen, 0, 1.7, 1.2, 1.5)
+	-- the bar at the head, with a row of small lamps under its edge
+	box(pen, 0, top + 0.65, -0.1, 14.2, 1.3, 1.8, COPPER)
+	box(pen, 0, top + 1.45, -0.1, 14.3, 0.3, 2.2, BRASS)
+	for _, side in { -1, 1 } do
+		for i = 0, 2 do
+			local bulb = ball(pen, side * (2.5 + i * 1.5), top + 0.65, 0.85, 0.55, LAMP)
+			bulb.Glow = true
+		end
+	end
 end
 
 ----------------------------------------------------------------------------------------------------------------------
--- The signs: a brass-edged roundel on two straps, and one plain shape on it in two or three flat colours
+-- The icons: one plain flat shape each, in two or three colours, with nothing round it
 
 -- A fish cut out of one colour, its nose to the right, `long` studs from nose to tail, with an eye
 local function fish(pen: Pen, x: number, y: number, long: number, color: Color3, eye: Color3)
@@ -115,34 +177,34 @@ end
 
 local signs: { [string]: (pen: Pen) -> () } = {}
 
--- Oxygen: one bubble, and two small ones going up
+-- Oxygen: one bubble, and a small one going up
 signs.Bubble = function(pen: Pen)
-	disc(pen, -0.25, -0.3, 0, 2.5, 0.16, SEA)
-	disc(pen, -0.25, -0.3, 0.05, 1.95, 0.16, NIGHT)
-	disc(pen, -0.7, 0.1, 0.1, 0.5, 0.16, CREAM)
-	disc(pen, 1.1, 0.95, 0, 0.9, 0.16, SEA)
-	disc(pen, 1.1, 0.95, 0.05, 0.5, 0.16, NIGHT)
+	disc(pen, -0.25, -0.15, 0, 2.3, 0.3, SEA_D)
+	disc(pen, -0.25, -0.15, 0.05, 1.96, 0.3, SEA)
+	disc(pen, -0.68, 0.3, 0.1, 0.56, 0.3, CREAM)
+	disc(pen, 1.15, 0.85, 0, 0.95, 0.3, SEA_D)
+	disc(pen, 1.15, 0.85, 0.05, 0.68, 0.3, SEA)
 end
 
 -- Collectors: the Index open, a fish on each page
 signs.Book = function(pen: Pen)
-	box(pen, 0, 0, 0, 3.3, 2.3, 0.16, BRASS)
+	box(pen, 0, -0.04, 0, 3.2, 2.2, 0.3, RUST)
 	for _, side in { -1, 1 } do
-		box(pen, side * 0.77, 0.04, 0.05, 1.44, 2.04, 0.16, CREAM)
-		fish({ List = pen.List, Base = pen.Base * CFrame.new(0, 0, 0.1) }, side * 0.77 + 0.06, 0.04, 1.25, NIGHT, CREAM)
+		box(pen, side * 0.74, 0.08, 0.07, 1.4, 2.06, 0.3, CREAM)
+		fish({ List = pen.List, Base = pen.Base * CFrame.new(0, 0, 0.16) }, side * 0.74 + 0.06, 0.08, 1.2, NIGHT, CREAM)
 	end
 end
 
 -- Earners: a shut chest, seen from the front
 signs.Chest = function(pen: Pen)
-	box(pen, 0, 0.65, 0, 3.0, 0.95, 0.16, BRASS)
-	box(pen, 0, -0.55, 0, 3.0, 1.25, 0.16, BRASS)
-	for _, x in { -0.95, 0.95 } do
-		box(pen, x, 0.65, 0.05, 0.35, 0.95, 0.16, CREAM)
-		box(pen, x, -0.55, 0.05, 0.35, 1.25, 0.16, CREAM)
+	box(pen, 0, 0.62, 0, 3.0, 0.95, 0.3, WOOD)
+	box(pen, 0, -0.5, 0, 3.0, 1.15, 0.3, WOOD)
+	box(pen, 0, 0.1, 0.03, 3.1, 0.22, 0.3, NIGHT)
+	for _, x in { -1.1, 1.1 } do
+		box(pen, x, 0.06, 0.07, 0.4, 2.14, 0.3, BRASS)
 	end
-	box(pen, 0, 0.02, 0.1, 0.7, 0.8, 0.16, CREAM)
-	box(pen, 0, -0.05, 0.15, 0.2, 0.36, 0.16, NIGHT)
+	box(pen, 0, 0, 0.12, 0.72, 0.8, 0.3, BRASS)
+	box(pen, 0, -0.06, 0.16, 0.2, 0.36, 0.3, NIGHT)
 end
 
 -- Deepest: an anchor
@@ -163,17 +225,18 @@ local function sign(pen: Pen, emblem: string)
 		return
 	end
 	local s = Boards.Sign
-	for _, side in { -1, 1 } do
-		box(pen, side * 1.3, (s.Y + HEAD) / 2, s.Z - 0.1, 0.28, HEAD - s.Y, 0.16, BRASS)
+	local from = #pen.List
+	draw({ List = pen.List, Base = CFrame.identity })
+	for i = from + 1, #pen.List do
+		local piece = pen.List[i]
+		piece.Size = Vector3.new(piece.Size.X * s.Scale, piece.Size.Y * s.Scale, piece.Size.Z * s.Scale)
+		piece.At = CFrame.new(0, s.Y, s.Z) * (piece.At.Rotation + piece.At.Position * s.Scale)
 	end
-	disc(pen, 0, s.Y, s.Z, s.Width, 0.4, BRASS)
-	disc(pen, 0, s.Y, s.Z + 0.05, s.Width - 0.5, 0.4, NIGHT)
-	draw({ List = pen.List, Base = CFrame.new(0, s.Y, s.Z + 0.28) })
 end
 
 ----------------------------------------------------------------------------------------------------------------------
 
--- One board: its frame and its sign
+-- One board: its frame and its icon
 function Boards.board(emblem: string): { Piece }
 	local pen: Pen = { List = {}, Base = CFrame.identity }
 	frame(pen)

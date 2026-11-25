@@ -20,7 +20,7 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 
 ## The leaderboards (2026-11-25, Hugo; NULLROOM task l1): on a branch, not seen in Studio
 Three boards by the dive gate, top Oxygen, top collectors, top earners: the list in our own letters and plates
-(`UI/BoardPanel`), with a flat sign hanging at each head. Everything is in [leaderboards](leaderboards.md).
+(`UI/BoardPanel`), with a flat icon on the bar at each head. Everything is in [leaderboards](leaderboards.md).
 
 ## The Index window and the stand rings (2026-11-24, Hugo; NULLROOM tasks h1, h2, h4): in the game
 Hugo, 2026-11-23: "Import index system". Built by worker h2, the sub stand's ring by h1, both merged and checked in

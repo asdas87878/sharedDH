@@ -180,9 +180,11 @@ X, Z = O.x, O.z
 only(1)
 pens(False)
 if not ONLY or "close" in ONLY:
-    shot("close", (X + math.sin(near) * 50, 12, Z - math.cos(near) * 50), (X + 0.4, 15.6, Z), 43, 2400, 1500)
+    shot("close", (X + math.sin(near) * 50, 12, Z - math.cos(near) * 50), (X + 0.4, 13.4, Z), 38, 2400, 1500)
 if not ONLY or "sign" in ONLY:
-    shot("sign", (X + math.sin(near) * 26, 22, Z - math.cos(near) * 26), (X + 0.2, 26.3, Z), 26, 2400, 760)
+    shot("sign", (X + math.sin(near) * 30, 19, Z - math.cos(near) * 30), (X + 0.8, 23.2, Z), 27, 2400, 760)
+if not ONLY or "border" in ONLY:
+    shot("border", (X - 5 + math.sin(near) * 28, 9, Z - math.cos(near) * 28), (X - 4, 7.6, Z), 46, 1500, 880)
 pens(True)
 if not ONLY or "phone" in ONLY:
     shot("phone", (X + math.sin(far) * 60, 9, Z - math.cos(far) * 60), (X, 14, Z), 70, 1688, 780)

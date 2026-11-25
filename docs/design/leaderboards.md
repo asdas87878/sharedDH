@@ -4,27 +4,35 @@ Three boards in the hub: **TOP OXYGEN**, **TOP COLLECTORS**, **TOP EARNERS**. Hu
 "Make stylised leaderboards in this style, but fitting the aquatic theme", with a picture of three tall boards on a
 plinth. Taken from it: the function, the layout, the readability. The look is ours.
 
-**State: built on branch `leaderboards`, checked offline only. Not seen in Studio, not merged.**
+**State: built on branch `leaderboards`, the second round of changes on `leaderboards-2` (from it); checked offline only. Not seen in
+Studio, not merged.**
 
-![the boards](../attachments/leaderboards-2.png)
+![the boards](../attachments/leaderboards-3.jpg)
 
 ## The look (Hugo, 2026-11-25)
 Hugo picked frame 3 of [three](../attachments/leaderboards-options-1.png) (sunken brass), then: "make models on top of the
 leaderboard simpler and easier on the eye, placed right on the top/front of the leaderboard like a sign hanging these
 should be somewhat flat. remove a little more visual clutter on them [...] Dont overdo it. Fit the reference better in
 terms of how the leaderboard is structured from the inside, make it more stylised and simplistic. Dont make everything
-look too "childish"". So:
-- **The signs:** a flat roundel on two straps under the head beam, one plain shape on it in two or three colours: a bubble
-  (Oxygen), the Index open with a fish on each page (Collectors), a shut chest (Earners; an anchor for the fourth). They
-  do not move.
-- **The frame:** old copper pillars, a brass edge, one head beam, one slim lamp a pillar. Gone: valves, gauges, portholes,
-  pipes, bolts, caged lamps, weed. 24 to 33 parts a board (was about 110).
-- **The list**, laid out as the reference's is: one dark face; who it lists, the name, what it counts, a thin rule; rows of
-  place, face, name over user name, number over its unit; only first place is gold; your own line edged in white; a
-  centred foot. The colours and words are ours. No outlines on letters; the title keeps the HUD's font, the rest is
-  Builder Sans.
+look too "childish"".
 
-The two frames not picked, and the signs before, are in git (`35a8781`).
+Then, the same day, of [that](../attachments/leaderboards-2.png): "add valves and some lights and details back around the
+border, make each "TOP" text stylised, make icons a little smaller remove the border around them and make sure that the top
+shrinks to a way smaller bar". So now:
+- **The top:** a bar 1.6 studs high with a brass edge and six small lamps (was 7 studs of board and beam). "The top" is read as
+  the frame's head; the panel's heading is as tall as it was (156 of its 848 pixels, was 154).
+- **The icons:** the bare shape on the front of the bar, no roundel, no straps; about 2 studs high (Oxygen a bubble, Collectors the
+  Index open with a fish on each page, Earners a shut chest; an anchor for the fourth). They do not move.
+- **The border:** up each pillar a pipe in collars and bolted straps to a barred ship's lamp; a red valve on the right one, a
+  gauge on the left one; in the foot a valve between two lit portholes. Still out: weed, caged lanterns on top.
+  78 to 86 parts a board (24 to 33 before it, about 110 at first). Two of the lamps a board are real lights, the rest only glow.
+- **The title:** its first word (TOP) small in brass between two fading lines, the rest big under it in Denk One, shaded in the
+  board's own colour (sea, coral, gold), on a dark edge and drop. Who it lists and what it counts share one line under it (who was above the title before).
+- **The list**, laid out as the reference's is: one dark face; rows of place, face, name over user name, number over its unit; only
+  first place is gold; your own line edged in white; a centred foot. The colours and words are ours. No outlines on
+  letters but the title's; the rest is Builder Sans.
+
+The two frames not picked, and the signs before, are in git (`35a8781`; the roundels `d469a7f`).
 
 ## Where they stand
 Along the front wall, **right of the dive gate as you face the sea**, in place of the blank "Earners" slate, facing into
@@ -79,12 +87,13 @@ player never overwrites their own number with a fresh one.
 `rojo build default.project.json -o /tmp/p.rbxl`, then `lune run tools/boards/...`:
 - `board_test.luau /tmp/p.rbxl`: order, ties, rounding, past 2^53, the store off, down and back, budget, hidden ids, closing (89).
   Sixteen rules broken on purpose, one at a time: each made this or the next one fail.
-- `panel_test.luau /tmp/p.rbxl [dump folder]`: the list as drawn, and that row and foot read the same (62).
+- `panel_test.luau /tmp/p.rbxl [dump folder]`: the list as drawn, and that row and foot read the same (67).
 - `place_test.luau /tmp/p.rbxl <saved place>`: every part against the hub (9). `slim.luau` leaves out
   the properties it does not need, so it takes about 0.85 GB; it says nothing and ends with 137 if the PC kills it (under about 1.8 GB free).
 - The picture: `panel_test` with a folder, `picture.py <folder> panels`, `view.py` in Blender, `picture.py <folder> sheet <png>`.
 
 ## Not done, not sure
 - **Not run in Studio:** scrolling by finger and mouse, the real headshots, the real letters and lamps, the store itself.
+- **The title's size in Roblox:** a font's size there can come out smaller than Chromium draws it; it is fitted to its box both ways.
 - Titles and values read at 60 studs; long names shrink and read only from nearer.
 - The boards have no shadows and two small lights each. Not measured on a phone.

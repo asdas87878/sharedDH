@@ -67,6 +67,6 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
 - **The leaderboards (2026-11-25; NULLROOM l1; not run in Studio):** `LeaderboardService` (who is on them: every player's
   where the number is saved and the store answers, else this server's, and it says which; `SaveService.keeps`; remote
   `Boards`, attributes `Board` + Id), `Lib/BoardSums` (order, ties, how a number past 2^53 is kept), `Shared/Boards` (the frame
-  and the flat signs, as data), `BoardController` (builds them in `workspace.Boards`
+  and the flat icons, as data), `BoardController` (builds them in `workspace.Boards`
   on each player's own machine), `UI/BoardPanel` (the list). A station that is replaced (`Boards.Replaces`) leaves the running game only.
   Design: [leaderboards](../../../docs/design/leaderboards.md). Checks: `tools/boards/*.luau` (lune on a built place).

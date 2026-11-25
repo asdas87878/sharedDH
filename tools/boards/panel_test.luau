@@ -110,7 +110,7 @@ for _, def in List do
 			back,
 			front
 		),
-		bad == 0 and #parts <= 40 and low >= -0.2 and left >= -7.2 and right <= 7.2 and back >= -1.6 and front <= 1.6
+		bad == 0 and #parts <= 90 and low >= -0.2 and left >= -7.2 and right <= 7.2 and back >= -1.6 and front <= 1.6
 	)
 end
 ok("an emblem that is none is a board with no sign", #Boards.board("None") < #Boards.board("Book"))
@@ -228,6 +228,25 @@ ok("a panel builds", built, p)
 ok("before the server has answered it waits", p.Empty.Visible and p.Empty.Text == "...")
 Panel.show(p, { Global = false, Rows = {} }, 1040, 100)
 ok("an empty list says so", p.Empty.Visible and string.find(p.Empty.Text, "Nobody") ~= nil)
+local words = {}
+for _, d in p.Gui:GetDescendants() do
+	if d.ClassName == "TextLabel" then
+		words[d.Name] = d.Text
+	end
+end
+ok(
+	"the title is TOP over the rest, each on its own dark copy",
+	words.Small == "TOP" and words.SmallDrop == "TOP" and words.Title == "OXYGEN" and words.TitleDrop == "OXYGEN"
+)
+ok("what it counts is under it", words.What == oxygen.Line, words.What)
+local odd =
+	Panel.make({ Id = "Odd", Title = "DIVERS", Line = "", Unit = "", Scale = 1, Money = 0, Emblem = "None" }, glass)
+local oddWords = {}
+for _, d in odd.Gui:GetDescendants() do
+	oddWords[d.Name] = if d.ClassName == "TextLabel" then d.Text else d.ClassName
+end
+ok("a title of one word is all big, with no lines", oddWords.Title == "DIVERS" and oddWords["Line1"] == nil)
+odd.Gui:Destroy()
 ok("this server's list is labelled", p.Who.Text == "THIS SERVER")
 Panel.show(p, { Global = true, Rows = SAMPLES.Oxygen }, 1040, 612300)
 ok("a list of everyone is labelled", p.Who.Text == "ALL PLAYERS")
@@ -342,14 +361,25 @@ ok(
 local folder = gui.workspace:FindFirstChild("Boards")
 local row = folder:FindFirstChild("Row")
 local total, solids, query = 0, 0, 0
+local balls, drawn, lights = 0, 0, 0
+for _, def in List do
+	for _, piece in if def.On ~= 0 then Boards.board(def.Emblem) else {} do
+		drawn += if piece.Shape == "Ball" then 1 else 0
+	end
+end
 for _, d in row:GetDescendants() do
 	if d:IsA("BasePart") then
 		total += 1
 		solids += if d.CanCollide then 1 else 0
 		query += if d.CanQuery then 1 else 0
+		balls += if string.find(tostring(d.Shape), "Ball") then 1 else 0
+	elseif d:IsA("PointLight") then
+		lights += 1
 	end
 end
-ok("parts in the row: " .. total, total < 130)
+ok("parts in the row: " .. total, total < 270)
+ok(`its {drawn} round pieces are built round`, balls == drawn and drawn > 0, balls)
+ok("two lights a board", lights == 6, lights)
 ok("only the bed (6) and a block a board are solid", solids == 9, solids)
 ok("only the three glasses answer a ray", query == 3, query)
 gui.camera.CFrame = CFrame.new(3000, 8, 400)

@@ -7,7 +7,7 @@
 --     once a second, and made again when any of it changes, so a number can be tuned while playing.
 --   Solid: one unseen block for each board and the bed (players stop at them); everything else touches nothing.
 --   Nothing moves. Past Boards.Hide the row is out of the world.
---   Cost: about 25 plain parts a board, two small lights, no shadows.
+--   Cost: about 80 plain parts a board, two small lights, no shadows.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -58,7 +58,10 @@ end
 local function make(piece: Boards.Piece, at: CFrame, scale: number): BasePart
 	local part = Instance.new("Part")
 	part.Name = "Frame"
-	part.Shape = if piece.Shape == "Cylinder" then Enum.PartType.Cylinder else Enum.PartType.Block
+	part.Shape = if piece.Shape == "Cylinder"
+		then Enum.PartType.Cylinder
+		elseif piece.Shape == "Ball" then Enum.PartType.Ball
+		else Enum.PartType.Block
 	part.Size = piece.Size * scale
 	part.Color = piece.Color
 	part.Material = if piece.Glow then Enum.Material.Neon else Enum.Material.Plastic
