@@ -3593,7 +3593,9 @@ Config.Sub = {
 	-- tools/subs/air_check.luau. None of it played yet. Every Escort number above is still in use: the swim to the sub
 	-- and the hop under water (EscortOut to EscortAside, EscortBack to EscortDip) are the old hop's, which AirHop 0
 	-- brings back exactly, and which still runs when a leap gets no air hop (a step off the lip with no leap, a lost
-	-- message); the rest are the swim beside the sub, the same for both
+	-- message); the rest are the swim beside the sub, the same for both. Made shorter, the camera steadier and the
+	-- trail weaker the same day (Hugo: "a little slow, can you make it shorter without making it awkward"; task f1):
+	-- what each number was before is in the note
 	AirHop = 1, -- 1: on the ride fish with a trip set, the hop onto the sub is in the air; 0: under water, as on 2026-11-24
 	AirAt = 0.6, -- you jump off at this share of the way to the top of the fish's arc,
 	AirAtLeast = 0.3, -- but not sooner than this after the leap began, seconds (the server's word has to be back),

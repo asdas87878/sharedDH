@@ -483,9 +483,9 @@ return function(x)
 
 	-- what fails: more (or less) than this
 	local LIMITS = {
-		{ "hop", "from the saddle to the seat in 0.6 s", function(m) return m.hop > 0.605 end },
-		{ "splash", "from the lip to the splash in 2.1 s (asked: 1.3 to 1.6)", function(m) return m.splash > 2.1 end },
-		{ "run", "from the lip to the run in 3 s", function(m) return m.run > 3 end },
+		{ "hop", "from the saddle to the seat in 0.45 s", function(m) return m.hop > 0.455 end },
+		{ "splash", "from the lip to the splash in 1.5 s", function(m) return m.splash > 1.505 end },
+		{ "run", "from the lip to the run in 2 s", function(m) return m.run > 2 end },
 		{ "hull", "the fish clear of the hull until its splash", function(m) return m.hull < 0 and m.cells > 0 end },
 		{ "join", "and as it swims up beside the sub", function(m) return m.join < 0 and m.cells > 0 end },
 		{ "subBox", "the sub clear of the gate and the map", function(m) return m.subBox > 0 end },
