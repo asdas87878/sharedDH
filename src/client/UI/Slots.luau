@@ -87,6 +87,7 @@ type Ride = {
 	Rim: Frame,
 	Lip: Frame,
 	Pattern: ImageLabel,
+	Twice: ImageLabel,
 	Variant: TextLabel,
 	Size: TextLabel,
 	Ring: Frame,
@@ -118,14 +119,15 @@ local PLATE: Kit.Style = {
 	Shine = false,
 }
 -- The studs on it: the windows' raised square (Kit.Textures.Emboss), a whole number to a slot so none is cut, fading
--- toward the foot where the name is
-local STUDS = 4
-local STUDS_EMPTY = 0.62 -- how see-through they are on an empty slot
-local STUDS_CAUGHT = 0.1 -- and on a caught one
+-- toward the foot where the name is. A caught slot draws them twice over each other: the tile is soft, and once was
+-- too faint to see behind a fish at this size (seen in Studio)
+local STUDS = 3
+local STUDS_EMPTY = 0.5 -- how see-through they are on an empty slot
+local STUDS_CAUGHT = 0 -- and on a caught one
 local STUDS_TAIL = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 0),
-	NumberSequenceKeypoint.new(0.4, 0.15),
-	NumberSequenceKeypoint.new(1, 0.75),
+	NumberSequenceKeypoint.new(0.5, 0.1),
+	NumberSequenceKeypoint.new(1, 0.6),
 })
 local RING_HOVER = 0.45 -- how see-through the ring is on a slot under the mouse that isn't the chosen one
 local BRIGHTER = 0.14 -- how far a Legendary's, a Mythic's and a Secret's colours go toward white
@@ -200,6 +202,7 @@ type Tile = {
 	Rim: Frame,
 	Lip: Frame,
 	Pattern: ImageLabel,
+	Twice: ImageLabel,
 	Variant: TextLabel,
 	Size: TextLabel,
 	Ring: Frame,
@@ -231,6 +234,11 @@ local function makeTile(x: number): Tile
 		ZIndex = 0,
 	}, slot.Face)
 	Kit.new("UIGradient", { Transparency = STUDS_TAIL, Rotation = 90 }, pattern)
+	local twice = pattern:Clone()
+	twice.Name = "Twice"
+	twice.ImageTransparency = STUDS_CAUGHT
+	twice.Visible = false
+	twice.Parent = slot.Face
 	-- a caught fish's darker lip along the foot and its light rim inside the outline (shown when caught)
 	local lip = Kit.new("Frame", {
 		Name = "Lip",
@@ -325,6 +333,7 @@ local function makeTile(x: number): Tile
 		Rim = rim,
 		Lip = lip,
 		Pattern = pattern,
+		Twice = twice,
 		Variant = tag("VariantWord", 0),
 		Size = tag("SizeWord", 1),
 		Ring = ring,
@@ -373,6 +382,7 @@ local function paint(t: any, item: Caught?)
 		slot.Face.BackgroundTransparency = 0
 		fill.Color, fill.Rotation = tileFill(item.Tier)
 		t.Pattern.ImageTransparency = STUDS_CAUGHT
+		t.Twice.Visible = true
 		local words = if kind then kind.Name else item.Id
 		-- cut short with a full stop, never after a space ("Great White": "Great.", not "Great .")
 		name.Text = if #words > 7 then (string.gsub(string.sub(words, 1, 6), "%s+$", "")) .. "." else words
@@ -383,6 +393,7 @@ local function paint(t: any, item: Caught?)
 		fill.Color = ColorSequence.new(PLATE.Top, PLATE.Bottom)
 		fill.Rotation = 90
 		t.Pattern.ImageTransparency = STUDS_EMPTY
+		t.Twice.Visible = false
 		name.Text = ""
 		tint(slot, name, nil)
 		t.Picture.show(nil)
@@ -548,6 +559,7 @@ function Slots.build(parent: Instance)
 		Rim = t.Rim,
 		Lip = t.Lip,
 		Pattern = t.Pattern,
+		Twice = t.Twice,
 		Variant = t.Variant,
 		Size = t.Size,
 		Ring = t.Ring,
