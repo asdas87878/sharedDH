@@ -8,7 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 
-export type DeathCam = { Focus: Vector3, Position: Vector3 }
+-- (Rate: how fast the camera closes on it, a second; nil: the old, slow easing)
+export type DeathCam = { Focus: Vector3, Position: Vector3, Rate: number? }
 export type Caught = { Id: string, Tier: string, Size: string?, Variant: string?, Key: number? }
 -- a fit of the fish under us (Config.Wild): which fish, which kind, when, to which side, how hard
 export type Fit = { Fish: Model, Kind: string, At: number, Sign: number, Power: number }

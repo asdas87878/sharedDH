@@ -911,9 +911,9 @@ local function cameraStep(dt: number)
 	-- the drowning's shot: ease there, no cut, turning to look at the shot's focus
 	local shot = State.DeathCam
 	if shot then
-		deathBlend = math.min(1, deathBlend + dt / 0.5)
-		camFocus = (camFocus or shot.Focus):Lerp(shot.Focus, Ease.alpha(5, dt))
-		camPosition = (camPosition or shot.Position):Lerp(shot.Position, Ease.alpha(3, dt))
+		deathBlend = math.min(1, deathBlend + dt / (if shot.Rate then 0.3 else 0.5))
+		camFocus = (camFocus or shot.Focus):Lerp(shot.Focus, Ease.alpha(shot.Rate or 5, dt))
+		camPosition = (camPosition or shot.Position):Lerp(shot.Position, Ease.alpha(shot.Rate or 3, dt))
 		local at = camPosition :: Vector3
 		if submerged and at.Y > ceiling then
 			-- (the drowning's shot stays under the surface too)

@@ -162,9 +162,12 @@ local function takers(arms: { Arm }): { number }
 	return list
 end
 
--- the jaw `open` (0 to 1) of the way: the middle of the mouth's gap, in the fish's space (half the jaw's own turn)
+-- the jaw `open` (0 to 1) of the way: where you are held in the mouth's gap, in the fish's space. Nearer the top teeth
+-- than the middle (High): the lower jaw comes up to you as it shuts, so it has not far to carry you.
 function EatMoves.mouthAt(g: Given, open: number): Vector3
-	return g.Hinge + CFrame.Angles(-rad(Config.Fail.EatMoves.JawTurn) * 0.5 * open, 0, 0) * (g.Mouth - g.Hinge)
+	return g.Hinge
+		+ CFrame.Angles(-rad(Config.Fail.EatMoves.JawTurn) * Config.Fail.EatMoves.Chomp.High * open, 0, 0)
+			* (g.Mouth - g.Hinge)
 end
 
 local function slide(p: Plan, u: number): Vector3
@@ -393,7 +396,7 @@ local function chompArc(p: Plan, u: number): Vector3
 	return slide(p, u)
 		+ seat
 		+ Vector3.new(way.X, 0, way.Z) * glide(k, 0.25, m.Float)
-		+ Vector3.new(0, p.Toss * glide(k / 0.55, 0.3, 0.7) + (way.Y - p.Toss) * glide((k - 0.5) / 0.5, 0.5, 0.5), 0)
+		+ Vector3.new(0, p.Toss * glide(k / 0.55, 0.3, 0.7) + (way.Y - p.Toss) * glide((k - 0.48) / 0.44, 0.5, 0.5), 0)
 end
 
 function EatMoves.chompRig(p: Plan, u: number): Rig
@@ -401,7 +404,7 @@ function EatMoves.chompRig(p: Plan, u: number): Rig
 	local bite = m.Bite
 	local lunge = bite - p.Lunge
 	local open = 0.18 * bump(0.02, 0.4, u) -- a gasp as it brakes
-		+ ss(m.Past - 0.24, m.Wound, u) * (1 - ss(bite - 0.02, bite + 0.045, u))
+		+ ss(m.Past - 0.24, m.Wound, u) * (1 - ss(bite - 0.02, bite + 0.06, u))
 		+ 0.06 * math.sin(u * 40) * bump(m.Wound - 0.1, lunge + 0.1, u) -- held wide, straining
 		+ 0.16 * bump(bite + 0.3, bite + 0.55, u) -- a chew
 	return {
@@ -410,7 +413,7 @@ function EatMoves.chompRig(p: Plan, u: number): Rig
 			- 1.1 * ss(lunge - 0.06, lunge + 0.08, u) * (1 - ss(bite, bite + 0.16, u)) -- swept back in the lunge
 			- 0.45 * ss(bite, bite + 0.16, u)
 			+ 0.65 * bump(bite + 0.05, bite + 0.7, u), -- and out again as it pulls up
-		Bunch = rad(m.Bunch) * p.Room * (0.75 * bump(0.0, 0.34, u) - 1.15 * bump(0.2, 0.62, u) + 1.0 * bump(
+		Bunch = rad(m.Bunch) * p.Room * (0.75 * bump(0.0, 0.34, u) - 0.55 * bump(0.2, 0.62, u) + 1.0 * bump(
 			0.55,
 			bite + 0.02,
 			u
@@ -443,7 +446,9 @@ function EatMoves.chomp(p: Plan, u: number): Moment
 		rider = (fish * CFrame.new(p.Given.Saddle)):Lerp(rider, ss(m.Off, m.Off + 0.12, u))
 	end
 	local mouth = fish * EatMoves.mouthAt(p.Given, rig.Jaw)
-	return { Fish = fish, Rider = rider, Focus = rider.Position:Lerp(mouth, 0.5) }
+	-- (the shot looks at you and the mouth, then along the body, for the gulp)
+	local focus = rider.Position:Lerp(mouth, 0.5):Lerp(fish.Position, 0.6 * ss(m.Bite + 0.08, m.Bite + 0.55, u))
+	return { Fish = fish, Rider = rider, Focus = focus }
 end
 
 -- the gulp going down its body: how far (radians) the joint at z (a share of its length, behind the root +) bends up or
@@ -463,7 +468,7 @@ end
 -- how far you are from hanging in the water (0) to its mouth's own (1), from the bite on
 function EatMoves.taken(u: number): number
 	local m = Config.Fail.EatMoves.Chomp
-	return ss(m.Bite - 0.03, m.Gone + 0.04, u)
+	return ss(m.Bite - 0.04, m.Gone + 0.02, u)
 end
 
 -- from the bite on: the middle of the open mouth, the shut one, then down the throat (the fish's space)
@@ -559,7 +564,9 @@ function EatMoves.wrap(p: Plan, u: number): Moment
 	elseif u >= m.Catch and u < m.Catch + 0.15 then
 		rider = CFrame.new(wrapToss(p, u)):Lerp(rider, ss(m.Catch, m.Catch + 0.15, u))
 	end
-	return { Fish = fish, Rider = rider, Focus = rider.Position:Lerp(fish.Position, 0.45) }
+	-- (the shot looks mostly at you while you are in the air, then at the two of you)
+	local share = 0.2 + 0.25 * ss(m.Catch - 0.1, m.Draw, u)
+	return { Fish = fish, Rider = rider, Focus = rider.Position:Lerp(fish.Position, share) }
 end
 
 function EatMoves.moment(p: Plan, u: number): Moment
@@ -601,15 +608,20 @@ local function loose(p: Plan, index: number, u: number): { CFrame }
 	local late = 0.05 * ((index * 3) % 4) -- (never all together)
 	local open = ss(0.06 + late * 0.6, m.Open + late * 0.6, u)
 	local close = ss(m.Catch + 0.1 + late, m.Still - 0.05 + late * 0.4, u)
-	local stream = ss(m.Jet - 0.03, m.Jet + 0.28 + late, u)
+	local stream = ss(m.Jet, m.Jet + 0.6 + late, u)
 	local gather = -0.16 * bump(0, 0.24, u) + 0.12 * bump(m.Still, m.Jet + 0.06, u)
 	local breath = 0.05 * math.sin(u * 3.2 + index) * (1 - bump(m.Still - 0.1, m.Jet, u))
 	local flower, basket, trail = m.Flower, m.Basket, m.Stream
 	local angles: { number } = {}
+	-- (arms hardly longer than you close over you only so far)
+	local curl = Ease.lerp(m.ShortCurl, 1, ss(m.ShortArm, m.ShortArm * 1.6, p.Reach))
+	curl *= 1 - 0.25 * ss(m.LongArm, m.LongArm * 1.4, p.Reach) -- (nor do the longest fold in on you)
 	for i = 1, 3 do
 		local a = rad(flower[i]) * open
-		a = Ease.lerp(a, rad(basket[i]), close)
-		a = Ease.lerp(a, rad(trail[i]), stream)
+		-- (every other arm a little further out: they close over each other as fingers do)
+		local every = if i == 1 and index % 2 == 0 then rad(9) else 0
+		a = Ease.lerp(a, rad(basket[i]) * (if i > 1 then curl else 1) + every, close)
+		a = Ease.lerp(a, rad(trail[i]) * (if i > 1 then curl else 1) + every, stream)
 		angles[i] = a + gather * (if i == 1 then 1 else 0.5) + breath * i * 0.5
 	end
 	-- (a wave running down the arms as they stream)
@@ -825,6 +837,9 @@ function EatMoves.arms(
 ): { { CFrame } }
 	local m = Config.Fail.EatMoves.Wrap
 	local all: { { CFrame } } = {}
+	-- (arms much longer than you: folded round you, their elbows would stand out square as it jets, so the three that took
+	-- you stream with the rest then, all eight closed round you)
+	local long = ss(m.LongArm, m.LongArm * 1.6, p.Reach)
 	for i, arm in p.Given.Arms do
 		if #arm.Links ~= 3 then
 			all[i] = loose(p, i, u)
@@ -835,13 +850,20 @@ function EatMoves.arms(
 		local grip = if taker then grips[taker] else nil
 		local from = if taker then m.Take + (taker - 1) * m.TakeEach else math.huge
 		local taking = grip ~= nil and u > from
+		local melt = if taking then long * ss(m.Jet, m.Jet + 0.5, u) else 0
 		local start: { CFrame } = if taking
 			then loose(p, i, from)
 			else bent(arm, { rad(m.Flower[1]), rad(m.Flower[2]), rad(m.Flower[3]) }, 0)
 		local to = loose(p, i, u)
+		if melt > 0 then
+			local k = ss(m.Jet, m.Jet + 0.35, u)
+			start = { start[1]:Lerp(to[1], k), start[2]:Lerp(to[2], k), start[3]:Lerp(to[3], k) }
+		end
 		local half = math.max(arm.Links[3].Half.X, arm.Links[3].Half.Y)
 		local function pose(c: number): { CFrame }
-			local open = CFrame.fromAxisAngle(side, rad(90) * math.max(-c, 0))
+			-- (an arm letting go swings out off you first, and in again with the rest)
+			local off = rad(90) * math.max(-c, 0) + rad(m.LetGo) * math.sin(math.pi * melt)
+			local open = CFrame.fromAxisAngle(side, off)
 			c = math.max(c, 0)
 			local a, b, w = start, to, c
 			if taking and grip then
@@ -857,20 +879,29 @@ function EatMoves.arms(
 		elseif not was then
 			was = { At = 1, Taking = false }
 		end
-		local want = if taking then ss(from, from + m.TakeTime * 1.3, u) else 1
+		local want = if taking then ss(from, from + m.TakeTime * 1.3, u) * (1 - melt) else 1
 		local now = close(arm, limbs, was.At, want, math.clamp(dt, 0, 0.1) * m.CloseRate, pose)
 		-- (and no link turns faster than this, however you are flung about in it)
 		local abs = pose(now)
 		local last = if was then was.Abs else nil
 		if last and dt > 0 then
-			local held: { CFrame } = {}
-			for k, turn in abs do
-				local _, angle = (last[k]:Inverse() * turn):ToAxisAngle()
-				local most = rad(m.Turn) * math.clamp(dt, 0, 0.1)
-				held[k] = if math.abs(angle) > most then last[k]:Lerp(turn, most / math.abs(angle)) else turn
-			end
-			if clear(arm, held, limbs, 3, 0) then
-				abs = held -- (but it would sooner jump than go through you)
+			local most = rad(m.Turn) * math.clamp(dt, 0, 0.1)
+			-- (opening off you, or a little faster, where it must be to keep out of you)
+			local tries: { { number } } = if taking
+				then { { 1, 0 }, { 1.2, 0 }, { 1.2, 0.1 }, { 1.3, 0.25 }, { 1.3, 0.5 }, { 1.4, 0 } }
+				else { { 1, 0 }, { 1.2, 0 }, { 1.3, 0 } }
+			for n, try in tries do
+				local c = math.max(now - try[2], -1)
+				local held: { CFrame } = {}
+				for k, turn in if c == now then abs else pose(c) do
+					local _, angle = (last[k]:Inverse() * turn):ToAxisAngle()
+					angle = math.abs(angle)
+					held[k] = if angle > most * try[1] then last[k]:Lerp(turn, most * try[1] / angle) else turn
+				end
+				if n == #tries or clear(arm, held, limbs, 3, 0) then
+					abs, now = held, c
+					break
+				end
 			end
 		end
 		state[i] = { At = now, Taking = taking, Abs = abs }
@@ -891,7 +922,8 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- The shot, the same for both: one swing from where the view is to the side of the fish, at an even turn, then it only
 -- follows, and at the end stands still and watches. `from`: the view's way as it began (from the fish to the camera).
-function EatMoves.shot(p: Plan, from: Vector3, side: number, t: number): (Vector3, number)
+-- Returns the way to the camera, how far, and how much it must hold the whole fish as well as you (0 to 1).
+function EatMoves.shot(p: Plan, from: Vector3, side: number, t: number): (Vector3, number, number)
 	local e = Config.Fail.EatMoves
 	local s = e.Shot
 	local L = p.Given.Length
@@ -904,8 +936,19 @@ function EatMoves.shot(p: Plan, from: Vector3, side: number, t: number): (Vector
 		local angle = math.acos(math.clamp(start:Dot(to), -1, 1))
 		dir = CFrame.fromAxisAngle(axis.Unit, angle * ss(0, Config.Fail.CameraTime, t)) * start
 	end
-	local far = if p.Given.Kind == "Chomp" then L * s.Chomp + s.Off else L * s.Wrap + s.Off
-	return dir, Ease.lerp(math.max(from.Magnitude, 8), far, ss(0, Config.Fail.CameraTime, t))
+	local share, whole = 0, 1
+	if p.Given.Kind == "Chomp" then
+		-- (in on the mouth for the bite, then out to see the gulp go down the whole of it)
+		local bite = e.Chomp.Bite
+		share = Ease.lerp(s.Chomp, s.Bite, ss(0.45, bite - 0.2, t))
+		local out = ss(bite + 0.06, bite + 0.6, t)
+		share = Ease.lerp(share, s.After, out)
+		whole = math.max(1 - ss(0.1, 0.8, t), out)
+	else
+		share = Ease.lerp(s.Wrap, s.Close, ss(e.Wrap.Catch - 0.2, e.Wrap.Still, t))
+	end
+	local far = L * share + s.Off
+	return dir, Ease.lerp(math.max(from.Magnitude, 8), far, ss(0, Config.Fail.CameraTime, t)), whole
 end
 
 return EatMoves

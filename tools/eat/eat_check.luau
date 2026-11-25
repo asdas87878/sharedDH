@@ -302,7 +302,8 @@ local function measure(r: any): any
 				end
 				for n, t in m.touch do
 					local from = moves.Wrap.Take + (n - 1) * moves.Wrap.TakeEach + moves.Wrap.TakeTime * 1.3
-					if fr.u >= from and fr.u <= Config.Fail.Outcomes.Wrap.Time then
+					local till = if r.plan.Reach > moves.Wrap.LongArm then moves.Wrap.Jet else Config.Fail.Outcomes.Wrap.Time
+					if fr.u >= from and fr.u <= till then
 						t.worst = math.max(t.worst, -near[n])
 						t.sum += -near[n]
 						t.count += 1
@@ -365,7 +366,7 @@ local function row(name: string, r: any, m: any)
 				then string.format("  bite off %.2f@%.2f hid %.2f", m.biteFar or -1, m.biteAt or -1, m.hideAt or -1)
 				else (if m.touch and m.touch[3]
 					then string.format(
-						"  arms %.2f/%.2f %.2f/%.2f %.2f/%.2f deepest %.2f (%s) at %.2f, over 0.1 for %.2fs  feet %.2f off %.2f  whip %.1f@%.2f",
+						"  arms %.2f/%.2f %.2f/%.2f %.2f/%.2f deepest %.2f (%s) at %.2f, over 0.1 for %.2fs  feet %.2f off %.2f  whip %.1f@%.2f %s reach %.1f",
 						m.touch[1].mean,
 						m.touch[1].worst,
 						m.touch[2].mean,
@@ -379,7 +380,9 @@ local function row(name: string, r: any, m: any)
 						m.feet or -1,
 						m.off or -1,
 						m.whip,
-						m.whipAt
+						m.whipAt,
+						m.whipIn or "",
+						r.plan.Reach
 					)
 					else "")
 		)

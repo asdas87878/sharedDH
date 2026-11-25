@@ -2851,15 +2851,28 @@ Config.Fail = {
 		PullForce = 2200,
 		Lead = 0.03, -- seconds ahead of the arc it is pulled to (the pull lags about this much)
 		Spin = 4, -- radians a second the body tumbles at as it comes loose
-		-- the shot, one for both: from the side, a little behind (Back) and above (Up), this far off (shares, and studs)
-		Shot = { Back = 0.12, Up = 0.16, Chomp = 0.3, Wrap = 0.76, Off = 7, Hold = 0.4 },
+		-- the shot, one for both: from the side, a little behind (Back) and above (Up), this far off (shares, and studs);
+		-- the biter's comes in to Bite and back out to After; the octopus's comes in to
+		-- Close as it draws you in. Rate: how fast the camera closes on it (a second)
+		Shot = {
+			Back = 0.12,
+			Up = 0.16,
+			Chomp = 0.3,
+			Bite = 0.22,
+			After = 0.4,
+			Wrap = 0.62,
+			Close = 0.46,
+			Off = 7,
+			Hold = 0.4,
+			Rate = 9,
+		},
 		Chomp = {
 			Off = 0.1, -- you start to leave the saddle (the server lets you loose at Outcomes.Chomp.Loose: same arc)
 			Past = 0.84, -- you are past its nose by now: it comes up under you
 			Float = 0.6, -- the share of your way you slow down over, to hang there
 			Wound = 1.06, -- wound up, jaw wide
 			Bite = 1.34, -- it has you
-			Gone = 1.44, -- the mouth is shut: out of sight
+			Gone = 1.39, -- the mouth is shut: out of sight
 			Dip = 11, -- degrees its nose dips as it bucks
 			Pitch = 24, -- and is raised to take you (less for one longer than PitchLength, by its length)
 			PitchLength = 60,
@@ -2874,12 +2887,13 @@ Config.Fail = {
 			LungePower = 1.7, -- 1: an even speed, 2: faster and faster
 			Through = 5.5, -- how fast the lunge dies away after the bite (a second)
 			On = 0.35, -- and the share of its speed it swims on at
-			Bunch = 46, -- degrees the body is bunched by as it brakes, kicked by as it bucks
+			Bunch = 36, -- degrees the body is bunched by as it brakes (and kicked by half of it as it bucks: more hides you)
 			Sway = 16, -- the tail's beat
 			Nod = 5, -- the satisfied rock at the end
 			Tumble = 86, -- degrees you pitch forward in the arc: lying along its way, feet to the mouth
 			Gulp = 15, -- degrees its joints bend as the gulp goes down the body, over GulpTime seconds
 			GulpTime = 0.62,
+			High = 0.39, -- where in the gap of its open mouth you are taken (0 at the top teeth, 1 at the bottom)
 			Deep = 0.1, -- how far past the mouth you are pulled as it shuts
 		},
 		Wrap = {
@@ -2888,8 +2902,8 @@ Config.Fail = {
 			TipBy = 0.86,
 			Open = 0.6, -- the arms are open like a flower
 			Top = 0.6, -- the top of your toss
-			Toss = 0.36, -- how high it is over the saddle (and 2 studs; never more than MostToss)
-			MostToss = 17,
+			Toss = 0.27, -- how high it is over the saddle (and 2 studs; never more than MostToss)
+			MostToss = 13,
 			Catch = 0.98, -- you are down among the arms
 			Take = 0.66, -- the first arm reaches, the next each TakeEach later, each taking TakeTime
 			TakeEach = 0.17,
@@ -2903,6 +2917,10 @@ Config.Fail = {
 			Spread = 36, -- degrees its arms spread at the root to let you in, and the room left to them then, studs
 			Room = 0.17,
 			Sag = 0.03, -- a share of an arm: you sink on past where you are drawn to (the body is loose), and it keeps that clear
+			ShortArm = 7, -- and arms no longer than this curl over you only this far (all the way at 1.6 times)
+			ShortCurl = 0.28,
+			LongArm = 15, -- studs: arms longer than this let their hold melt into the stream as it jets (all the way at 1.6 times)
+			LetGo = 42, -- degrees it swings out on its way
 			CloseRate = 3, -- how fast an arm closes, shut from open a second (it gives way up to twice as fast)
 			Turn = 700, -- degrees a second, the most any link of an arm turns
 			Tumble = -70,
@@ -2914,8 +2932,8 @@ Config.Fail = {
 			JetOn = 34,
 			-- degrees each of an arm's three joints opens outward: the flower, the basket round you, the stream
 			Flower = { 58, 14, 26 },
-			Basket = { 40, -18, -34 },
-			Stream = { 2, -4, -10 },
+			Basket = { 50, -70, -66 },
+			Stream = { 8, -26, -26 },
 			Squeeze = 0.12, -- how far the mantle swells and is wrung
 			Ink = 26, -- puffs of ink as it jets
 		},

@@ -1512,8 +1512,8 @@ you perfect it on how i like it we can do the rest in the same way, i think youl
 that one and let me see one fish eating. The main issue i think is the way they turn doesnt look good at all, maybe make
 the fish slow down throw the player in front and then swallow midair."
 
-**Two only: the Octopus (Wrap) and the Kronosaurus (Chomp). Built, checked offline, not seen in Studio.** Every other kind
-is as it was. The switch is `Config.Fail.NewEat`, by creature: 1 the new move, 0 (or not there) exactly the old one. Both
+**Two only: the Octopus (Wrap) and the Kronosaurus (Chomp). Built, checked offline, and seen in Studio (2026-11-25, "Seen in
+Studio" below); Hugo judges the clips next.** Every other kind is as it was. The switch is `Config.Fail.NewEat`, by creature: 1 the new move, 0 (or not there) exactly the old one. Both
 are **0 in the file** until the user has played them: set them to 1 to look.
 
 ![Key frames, new and today](../attachments/eat-anim-frames.png)
@@ -1605,6 +1605,30 @@ Limits set by eye, not by the user: the nose at most 175 studs/s, the rider's ju
 the octopus throws them at Colossal size is 38), the chest at most 0.8 studs into the mouth. The body's own boxes are R15's; the
 check moves the rider's body just before each step, as the game does (an earlier version had it one frame late).
 
-Not known until Studio: how the real ragdoll's limbs lie in the mouth and the arms, the ink's look, and two machines at once.
+### Seen in Studio (2026-11-25, task v2)
+
+Real fails at 60 fps, filmed with `tools/eat/studio_clip.py` (its head says how): Normal and Colossal of both; the Kronosaurus
+also by the floor and under the surface, the Octopus Colossal by the floor (those three before the last small changes). No
+errors, heading turned at most 3.7 degrees a second. The clips are in the branch's `work/` (`eat-anim-octopus.mp4`, `eat-anim-fish.mp4`).
+To try it: `Config.Fail.NewEat` to 1 for both, sync, Play, **F** (first the Octopus, then the Kronosaurus), **P**, FAIL NOW.
+
+What looked wrong on real frames, and is changed:
+- **The view lost the rider or the mouth.** It was too far for a big one and eased too slowly. It is closer, follows quicker
+  (`Shot.Rate`), comes in on the mouth for the bite (`Shot.Bite`) and out again for the gulp (`Shot.After`).
+- **Chomp:** the rider lay across the mouth and a leg stuck out under the chin as it shut. The loose body is now held by its hips
+  too and lies flat into the mouth (`EatLegs`); it goes a little higher in (`High`), and the jaw shuts quicker. The tail's kick
+  at the start was so hard that it flipped up over the back: halved.
+- **Wrap:** the rider was thrown too high, the arms' cage was square and open, and a big one's taking arms stood out like
+  elbows as it jetted. Lower toss, tighter basket, and arms longer than `LongArm` (15 studs) let go as it jets and stream with the rest.
+
+**The offline numbers are not all inside the limits any more** (tables above: the version before Studio). Kronosaurus 63 of 66:
+under the surface Huge and Colossal jump 38 studs/s in a frame, Normal in shallow water 36 (limit 35). Octopus 43 of 66: an arm
+grazes the rider 0.12 to 0.21 studs at Giant and 0.12 in one Big case (limit 0.1), **0.4 to 0.6 at Huge for 2 frames**, a link whips at 11.3 arm
+lengths a second at Huge (limit 10), and the Colossal heavy pull ends 1.61 from the beak (limit 1.5). Tiny and Normal pass everywhere. Giant and Huge
+have not been looked at in Studio. Letting the spare arms give way more was tried and made more of them fail. The check no longer
+counts the hold of an arm longer than `LongArm` after the jet starts, because it lets go on purpose.
+With the switch at 0: 386 plays, 63,026 frames, still no difference at all.
+
+Not known yet: two machines at once, and a phone.
 When the user likes these, the other kinds follow the same way (Chomp first: they share the code; each needs its jaw and
 fins looked at).

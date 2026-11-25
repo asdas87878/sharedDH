@@ -37,6 +37,8 @@ local SandboxController = {}
 
 -- F: the fish to try, in turn (fish id, variant): one of each passive archetype, a combo, a plain Common, the variants
 local TRY_OUT: { { string } } = {
+	{ "Octopus", "" }, -- (first two while Hugo judges Config.Fail.NewEat: the new eating moves)
+	{ "Kronosaurus", "" },
 	{ "ReefShark", "" }, -- Predator (goes through props)
 	{ "HumpheadWrasse", "" }, -- Breaker: breaks props, and is paid for it
 	{ "Swordfish", "" }, -- Fast

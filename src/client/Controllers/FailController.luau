@@ -1603,11 +1603,17 @@ local function grabsNew(f: Fail, b: Body, plan: EatMoves.Plan, u: number, fishNo
 		if u >= has then
 			f.GrabAt = f.GrabAt or f.Last
 		end
+		-- (laid along its way, feet first into the mouth: hanging, the legs came out under its chin)
+		local lie = ss(has - 0.45, has - 0.1, u)
+		if lie > 0 then
+			hold(b, "EatLegs", "Lower", at - fishNow.LookVector * 1.5, 20 + 50 * lie, 1500 * lie)
+		end
 	elseif u >= has - 0.1 then
 		f.GrabAt = f.GrabAt or f.Last
 		-- the legs drawn in toward the beak, the head out: you lie along its arms
 		local w = ss(has - 0.1, has + 0.3, u)
 		hold(b, "EatLegs", "Lower", fishNow * (EatMoves.held(plan, u) - Vector3.new(0, 0, 1.1)), 8 + 16 * w, 700 * w)
+		hold(b, "EatHead", "Head", fishNow * (EatMoves.held(plan, u) + Vector3.new(0, 0, 1.5)), 4 + 5 * w, 220 * w)
 	end
 end
 
@@ -1945,7 +1951,7 @@ end
 
 -- Wild fish and the map's props between the camera and what it looks at are made see-through, on our own screen
 -- (LocalTransparencyModifier), while a death's shot is up. `skip`: the fish doing it (never faded).
-local function clearView(skip: Model?, from: Vector3, to: Vector3)
+local function clearView(skip: Model?, from: Vector3, to: Vector3, also: { Vector3 })
 	local way = to - from
 	local span = way.Magnitude
 	if span < 1 then
@@ -1979,6 +1985,12 @@ local function clearView(skip: Model?, from: Vector3, to: Vector3)
 	for _, model in propsInWay(to, from) do
 		inWay[model] = true
 		fadedProps[model] = true
+	end
+	for _, at in also do
+		for _, model in propsInWay(at, from) do
+			inWay[model] = true
+			fadedProps[model] = true
+		end
 	end
 	for model in fadedProps do
 		local parts = fishParts[model]
@@ -2227,10 +2239,21 @@ local function viewStep(dt: number)
 		State.DeathCam = {
 			Position = shot.Focus + (viewDir :: Vector3) * math.min(length, viewReach),
 			Focus = shot.Focus,
+			Rate = shot.Rate,
 		}
 	end
 	local fail = fails[State.Player]
-	clearView(if fail then fail.Fish else nil, workspace.CurrentCamera.CFrame.Position, shot.Focus)
+	-- (Config.Fail.NewEat: nothing of the map stands before the rider or the fish's head either, only the shot's middle)
+	local also: { Vector3 } = {}
+	if fail and fail.New then
+		local torso = torsoOf(fail)
+		if torso then
+			table.insert(also, torso)
+		end
+		table.insert(also, (fail.FishRoot.CFrame * mouthOf(fail)).Position)
+		table.insert(also, fail.FishRoot.Position)
+	end
+	clearView(if fail then fail.Fish else nil, workspace.CurrentCamera.CFrame.Position, shot.Focus, also)
 end
 
 local function letFishGo(f: Fail)
@@ -2981,13 +3004,15 @@ local function step(dt: number)
 		-- our own: the shot (one move, then held), the dark and the fade
 		local move = inOut(t / math.max(Config.Fail.CameraTime, 0.05))
 		local at = f.CamStart:Lerp(f.CamTo, move)
+		local whole = 1 -- how much of the fish must be in it, with you
 		if plan then
 			-- (Config.Fail.NewEat: one even swing to the side, following what it looks at, then still, watching)
 			local freeze = if f.Kind == "Chomp" then fs.EatMoves.Chomp.Bite else fs.EatMoves.Wrap.Jet
 			if t < freeze + fs.EatMoves.Shot.Hold then
 				f.Pivot = f.Focus
 			end
-			local dir, far = EatMoves.shot(plan, f.CamFrom, f.CamSide, t)
+			local dir, far, all = EatMoves.shot(plan, f.CamFrom, f.CamSide, t)
+			whole = all
 			at = f.Pivot + dir * far
 			if f.FloorY then
 				at = Vector3.new(at.X, math.max(at.Y, f.FloorY + 5), at.Z)
@@ -3004,7 +3029,7 @@ local function step(dt: number)
 			at = fishNow.Position + (if off.Magnitude > 0.1 then off.Unit else Vector3.yAxis) * least
 		end
 		local subject = frame.Focus or riderPos:Lerp(fishNow.Position, 0.5)
-		f.Focus = f.Focus:Lerp(subject, Ease.alpha(if plan then 6 else 4, math.max(stepT, dt)))
+		f.Focus = f.Focus:Lerp(subject, Ease.alpha(if plan then 10 else 4, math.max(stepT, dt)))
 		-- the rider and the fish both kept in the shot: backed off along its line as they draw apart (smoothly)
 		local near = SHOTS[f.Kind] and SHOTS[f.Kind].Near and not plan
 		local spread = if near
@@ -3013,11 +3038,12 @@ local function step(dt: number)
 		local need = spread * 0.5 / math.tan(rad(workspace.CurrentCamera.FieldOfView / 2)) * 1.15
 		local away = at - f.Focus
 		if away.Magnitude > 0.1 then
-			f.Pull = Ease.lerp(f.Pull, math.max(0, need - away.Magnitude), Ease.alpha(2.5, math.max(stepT, dt)))
+			local pull = math.max(0, need - away.Magnitude) * whole
+			f.Pull = Ease.lerp(f.Pull, pull, Ease.alpha(if plan then 6 else 2.5, math.max(stepT, dt)))
 			at += away.Unit * f.Pull
 		end
 		-- (walls and what is in the way: viewStep, after the drown's own step)
-		State.DeathCam = { Position = at, Focus = f.Focus }
+		State.DeathCam = { Position = at, Focus = f.Focus, Rate = if plan then fs.EatMoves.Shot.Rate else nil }
 		local dim = math.clamp(t / math.max(def.Time, 0.01), 0, 1)
 		State.Darken = 0.15 * dim
 		State.Vignette = 0.3 * dim
