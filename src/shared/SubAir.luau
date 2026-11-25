@@ -320,14 +320,13 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Ve
 	local down =
 		math.max(-(SubAir.middle(air, math.min(t + 0.03, air.RideAt)) - SubAir.middle(air, t - 0.03)).Unit.Y, 0)
 	local high = at.Y + c.AirCamSubUp + c.AirCamSub * math.min(down, math.sin(math.rad(c.AirNose))) * c.AirCamNose
-	local y = Ease.lerp(low, high, Ease.smoothstep(e.Pass, e.Pass + c.AirCamRise, t))
-	-- (clear of the gate's arch, from the gate back)
-	local past = Ease.smoothstep(e.Line, e.Line + 50, along)
-	if past < 1 and e.Gate > 0 then
-		y = Ease.lerp(softMin(y, c.AirBeam[2] - c.AirCamClear, 8), y, past)
-	elseif past < 1 and e.Gate < 0 then
-		y = Ease.lerp(-softMin(-y, -c.AirCrest[3] - c.AirCamClear, 8), y, past)
+	-- (clear of the gate's arch: under its beam or over its crest until it is past it, and only then up over the sub)
+	if e.Gate > 0 then
+		low = softMin(low, c.AirBeam[2] - c.AirCamClear, 8)
+	elseif e.Gate < 0 then
+		low = -softMin(-low, -c.AirCrest[3] - c.AirCamClear, 8)
 	end
+	local y = Ease.lerp(low, high, Ease.smoothstep(e.Pass, e.Pass + c.AirCamRise, t))
 	-- (and through the surface after the sub)
 	y = Ease.lerp(y, math.min(y, ceiling() - 0.5), Ease.smoothstep(air.SplashAt, air.RideAt, t))
 	local over = rider:Dot(side) + (at - rider):Dot(side) * Ease.smoothstep(air.SeatAt, air.RideAt, t)
@@ -658,11 +657,13 @@ function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
 		if over then
 			eye.Pass = air.SeatAt - c.AirCamRise
 		else
-			-- when the sub's tail has gone over it
+			-- when the sub's tail has gone over it, and it is past the gate it is to stay under
 			for _, s in samples do
+				local along = SubAir.eye(air, s.T, s.Rider, s.Sub):Dot(out)
 				if
 					s.T >= air.HopAt - 0.3
-					and s.Sub.Position:Dot(out) - hull[5] - 4 > SubAir.eye(air, s.T, s.Rider, s.Sub):Dot(out)
+					and s.Sub.Position:Dot(out) - hull[5] - 4 > along
+					and (gate <= 0 or along > eye.Line)
 				then
 					eye.Pass = s.T
 					break

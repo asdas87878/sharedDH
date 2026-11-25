@@ -205,9 +205,10 @@ return function(x)
 	------------------------------------------------------------------------------------------------------------------
 	-- The flight, frame by frame
 
+	local WORD = 0.15 -- the server's word comes this long after the leap began, seconds (to here the camera is the player's own)
 	local FIELDS = {
 		"hop", "splash", "run", "hull", "join", "cells", "subBox", "riderBox", "camBox", "lane", "fishLane", "floor",
-		"surface", "nose", "side", "camJump", "camTurn", "camSub", "camFish", "hidSub", "hidSeat", "hidFish", "riderOut", "riderJump",
+		"surface", "nose", "side", "camJump", "camTurn", "camBack", "camRise", "camFirst", "camDip", "camSub", "camFish", "hidSub", "hidSeat", "hidFish", "riderOut", "riderJump",
 		"seatOff", "riderIn", "swap", "swapTurn", "fishJump", "fishOver", "farJump", "jumpAt", "fishTurn", "splashJump", "over", "rise", "apart", "behind",
 	}
 	local traced = process.env.AIR_TRACE -- ("Giant,5,0,0": the size, the sub, x and the slant to print frame by frame)
@@ -248,7 +249,8 @@ return function(x)
 		local subNear, fishNear = nil, nil
 		local crossings, wasY = 0, nil
 		local from0 = V3.new(row.cam[1] + x.X0, row.cam[2], row.cam[3]) - V3.new(row.start[1] + x.X0, row.start[2], row.start[3])
-		for k = 0, math.ceil((joined + 0.35) * FPS) do
+		local wet, lowest = false, math.huge -- the camera has been under the surface, and how low since
+		for k = 0, math.ceil(math.max(joined + 0.35, rideAt + 1.5) * FPS) do
 			local t = k / FPS
 			local sub, speed = SubTrip.sub(trip, t)
 			local fish = SubTrip.escort(trip, t)
@@ -324,19 +326,45 @@ return function(x)
 			if not onSub then
 				eye, look = SubAir.eye(air, t)
 				fov = 70
-				local w = Ease.smoothstep(0, c.AirCamIn, t)
+				-- (until the trip has come the view is the player's own, carried along: SubController, waits)
+				local w = Ease.smoothstep(WORD, WORD + c.AirCamIn, t)
 				if w < 1 then
 					local a, b = from0, eye - rider.Position
 					local turn = Ease.lerpAngle(math.atan2(a.X, a.Z), math.atan2(b.X, b.Z), w)
 					local far = Ease.lerp(V3.new(a.X, 0, a.Z).Magnitude, V3.new(b.X, 0, b.Z).Magnitude, w)
 					eye = rider.Position + V3.new(math.sin(turn) * far, Ease.lerp(a.Y, b.Y, w), math.cos(turn) * far)
+					-- (their own pitch, over to its)
+					local flatWay = V3.new(look.X - eye.X, 0, look.Z - eye.Z).Unit
+					local to = math.asin(math.clamp((look - eye).Unit.Y, -1, 1))
+					local from = math.asin(math.clamp(-from0.Unit.Y, -1, 1))
+					local pitch = Ease.lerp(from, to, w)
+					look = eye + (flatWay * math.cos(pitch) + UP * math.sin(pitch)) * math.max((look - eye).Magnitude, 10)
 				end
 				mem.kind, mem.anchor, mem.pos, mem.focus, mem.fov = "sub", sub.Position, eye - sub.Position, look - sub.Position, 74
 			else
 				eye, look, fov = x.cameraOf(trip, t, sub, speed, rider.Position, mem)
 			end
 			local dir = (look - eye).Unit
-			local settled = t >= c.AirCamIn
+			local settled = t >= WORD + c.AirCamIn
+			-- (once under the surface it never comes back up out of the water)
+			local camY = eye.Y - Config.Depth.SurfaceY
+			if wet then
+				m.camBack = math.max(m.camBack, camY)
+				m.camRise = math.max(m.camRise, camY - lowest)
+			end
+			wet = wet or camY < 0
+			lowest = math.min(lowest, if wet then camY else math.huge)
+			-- (and on its way in to behind them, and from the first frame on: the same two, not judged by `settled`)
+			if not settled then
+				local step = if last.eye then eye - last.eye else nil
+				if step and last.firstStep then
+					m.camFirst = math.max(m.camFirst, (step - last.firstStep).Magnitude)
+				end
+				if last.dir then
+					m.camDip = math.max(m.camDip, math.deg(math.acos(math.clamp(dir:Dot(last.dir), -1, 1))))
+				end
+				last.firstStep, last.dir = step, dir
+			end
 			if settled then
 				local across = air.Out:Cross(UP)
 				if t <= air.SeatAt then
@@ -467,6 +495,9 @@ return function(x)
 		{ "behind", "and behind them", function(m) return m.behind < 10 end },
 		{ "camJump", "the camera never jumps (a frame's move within 2.5 studs of the last's)", function(m) return m.camJump > 2.5 end },
 		{ "camTurn", "nor turns over 6 degrees in a frame", function(m) return m.camTurn > 6 end },
+		{ "camBack", "once under the surface it never comes back up over it", function(m) return m.camBack > 0 end },
+		{ "camFirst", "and as it comes in behind them (2.5 studs)", function(m) return m.camFirst > 2.5 end },
+		{ "camDip", "(6 degrees)", function(m) return m.camDip > 6 end },
 		{ "camSub", "the camera out of the sub", function(m) return m.camSub > 0 end },
 		{ "camFish", "and of the fish (0.1 s of it at most)", function(m) return m.camFish > 0.1 end },
 		{ "hidSub", "the sub between it and the rider 0.3 s of the hop at most", function(m) return m.hidSub > 0.3 end },
