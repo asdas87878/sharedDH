@@ -5,7 +5,7 @@ IT MOVES THE PLAYER AND GIVES THEM FISH: only in a playtest you started, with no
     python tools/studio/index_offline_check.py install [away]   (in Edit, before Play; away: OfflineAway set, 3 h 12 min)
     node ~/Projects/studio-runner/studio-run.mjs play
     python tools/studio/index_offline_check.py gate             (are the window's pictures live? needed before stills)
-    python tools/studio/index_offline_check.py offline | banners | arrow | frames | rings | index | phone | seen
+    python tools/studio/index_offline_check.py offline | banners | arrow | frames | rings | index | phone | seen | before
     python tools/studio/index_offline_check.py do "verb|args" | cmd "verb|args"
     node ~/Projects/studio-runner/studio-run.mjs stop
     python tools/studio/index_offline_check.py remove           (in Edit, after the stop; the attributes put back)
@@ -129,6 +129,19 @@ V.lines = function()
 		end
 	end
 	return table.concat(o, " ; ")
+end
+-- live: as a live game shows it before the uploads (no land paintings, no chest); before the windows are first opened
+V.live = function()
+	need(Client, "UI", "LandBanners").image = function()
+		return ""
+	end
+	need(Client, "UI", "OfflinePanel").Chest = need(Client, "UI", "Kit").Textures.Cash
+	return "live"
+end
+-- set|Group|Key|number: a Config number on this machine only
+V.set = function(a)
+	(Config :: any)[a[1]][a[2]] = tonumber(a[3])
+	return a[1] .. "." .. a[2] .. "=" .. tostring((Config :: any)[a[1]][a[2]])
 end
 -- frames|seconds: the frame's time
 V.frames = function(a)
@@ -310,6 +323,63 @@ def frames():
     h.save_log()
 
 
+def before():
+    """What a live game shows before the uploads, the dive with coins waiting, and the switches. In a fresh playtest,
+    installed without `away`."""
+    h.note("== before the uploads, the dive, the switches")
+    h.do("live")
+    fc.server(f"workspace:SetAttribute('OfflineRate', {RATE}) workspace:SetAttribute('OfflineAway', {AWAY}) return 1")
+    time.sleep(3.5)
+    t = h.do("off")
+    h.expect("away: the window comes up by itself, with the cash picture", "page=Offline" in t and "offline_chest" not in t and "/true" in t, t)
+    h.still("live-offline-pc", 0.6)
+    h.do("go|")
+    h.cmd("ride|Clownfish", 2.5)
+    t = h.do("off")
+    h.expect("on a dive: no window and no small Claim", "page=nil" in t and "chip=false" in t, t[:200])
+    h.cmd("home", 2.5)
+    time.sleep(2)
+    t = h.do("off")
+    h.expect("back on the dock: the small Claim, not the window, still owed", "page=nil" in t and "chip=true" in t and f"owed={OWED}" in t, t[:200])
+    h.still("chip-home", 0.5)
+    h.do("set|Offline|On|0")
+    time.sleep(0.8)
+    t = h.do("off")
+    h.expect("Config.Offline.On 0: the small Claim is gone", "chip=false" in t, t[:200])
+    h.do("set|Offline|On|1")
+    time.sleep(0.8)
+    t = h.do("offclaim|1")
+    h.expect("claimed after the dive", f"coins={OWED}" in t and "owed=nil" in t, t[:200])
+    roster = json.loads(h.cmd("roster"))
+    ids = [row for row in roster["Lands"] if row["Land"] == 1][0]["Set"]
+    for fid in ids[:2]:
+        h.cmd(f"carry|{fid}|Normal|", 0.6)
+        h.cmd("take", 0.1)
+    for name in ("pc", "side", "tall"):
+        put(SIZES[name])
+        h.do("go|Index")
+        boxed("IndexPanel", f"no paintings, {name}", SIZES[name])
+        h.still(f"live-index-{name}", 0.8)
+        h.do("go|")
+    put(None)
+    h.do("set|Index|Look|0")
+    h.do("go|Index")
+    t = h.do("arrow")
+    h.expect("Config.Index.Look 0: the old window, with its arrow", "arrow=true" in t and "Painting" not in h.do("words|IndexPanel"), t)
+    h.still("look0-pc", 0.6)
+    h.do("go|")
+    for _ in range(2):
+        h.start("go|Index")
+        h.note("  the old window, while it opens: " + h.do("frames|1.5", timeout=8))
+        h.do("go|")
+    h.do("set|Index|Look|1")
+    for _ in range(3):
+        h.start("go|Index")
+        h.note("  the new window, while it opens: " + h.do("frames|1.5", timeout=8))
+        h.do("go|")
+    h.save_log()
+
+
 def seen():
     """A still of the Index on each screen as it is now."""
     for name, size in SIZES.items():
@@ -320,7 +390,7 @@ def seen():
     put(None)
 
 
-RUNS = {"offline": offline, "banners": banners, "arrow": arrow, "frames": frames, "seen": seen,
+RUNS = {"offline": offline, "banners": banners, "arrow": arrow, "frames": frames, "seen": seen, "before": before,
         "rings": h.rings, "index": h.index, "phone": h.phone}
 
 if __name__ == "__main__":

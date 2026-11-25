@@ -1687,7 +1687,7 @@ def index():
         do(f"index|Land|{l}")
         text = do("indexui")
         f = fields(text.replace(" ; ", " "))
-        rows = math.ceil(kinds[l] / 5)
+        rows = math.ceil(kinds[l] / 3)  # (the new window: three across; 5 in the old one, Look 0)
         note(f"  land {l}: {kinds[l]} kinds, {rows} rows: canvas {f.get('canvas')} window {f.get('window')} scrolls {f.get('scrolls')}")
         if rows <= 2:
             expect(f"Index: land {l} ({rows} rows) does not scroll", f.get("scrolls") == "false", f"canvas {f.get('canvas')} window {f.get('window')}")
