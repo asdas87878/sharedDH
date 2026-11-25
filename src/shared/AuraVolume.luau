@@ -609,6 +609,11 @@ function AuraVolume.detail(far: number, place: number, ours: boolean, phone: boo
 	return if phone then math.min(level, c.PhoneMost) else level
 end
 
+-- Whether it gives light. place: 0 our own, then 1 the nearest other, and so on
+function AuraVolume.lit(place: number, detail: number, c: { [string]: any }): boolean
+	return place < c.Lights and detail >= 2
+end
+
 ---------------------------------------------------------------------------------------------------------------------
 -- When it shows
 ---------------------------------------------------------------------------------------------------------------------
@@ -684,6 +689,9 @@ end
 -- rider's root is in its space; eye: our own camera's distance when the rider is us (the camera sits a few studs behind
 -- the rider whatever they ride, so our own aura never reaches back to it), nil for anyone else
 function AuraVolume.ride(spec: Spec, body: Vector3, seat: Vector3, eye: number?, c: { [string]: any }): Shape
+	if c.EyeCalm < 1 then
+		eye = nil -- (our own is as everyone sees it)
+	end
 	local half = body / 2
 	local more = (spec.Radius - 1.9) * 0.7
 	local x = math.clamp(half.X * 0.85 + 1.1 + more, 2.4, c.RideWide)
@@ -724,6 +732,11 @@ function AuraVolume.between(a: Shape, b: Shape, k: number): Shape
 		Grow = lerp(a.Grow, b.Grow, k),
 		Own = if k < 0.5 then a.Own else b.Own,
 	}
+end
+
+-- How strong it is drawn there (our own calmer one, Aura.EyeCalm: the less the higher its tier)
+function AuraVolume.strong(spec: Spec, s: Shape, c: { [string]: any }): number
+	return if s.Own then lerp(1, c.EyeStrength, (spec.Tier - 1) / 11) else 1
 end
 
 -- How many of a layer are let out a second

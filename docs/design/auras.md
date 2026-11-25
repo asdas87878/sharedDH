@@ -70,15 +70,15 @@ The flame it replaces was 47 draw calls at tier 12 (measured in Studio); this is
 - **Riding: always seen,** round the rider and the fish as one: the circle takes the fish's own length and width (`RideWide`,
   `RideLong`, `RideDeep` cap it), the column stands up past the rider, and it goes over smoothly to the next fish.
   **Counted as riding:** a fish in the sea or on land, the trainer, the submarine, a tank ride, and the hop from fish to fish (`Hop` 1).
-- **Your own, while riding, is calmer:** 0.6 of its strength, never wider than half the camera's distance, and the haze and the
-  pillar are left out (`EyeStrength`, `EyeShare`, `EyeGrow`), so the fish ahead stay readable. Everyone else sees it whole.
-  The lowest tiers ride at the fish's back, so a big fish does not hide them in its body.
+- **Your own, while riding, is the same one everyone sees:** whole, the fish's size, always ("always seeing the aura"). The lowest tiers ride at
+  the fish's back, so a big fish does not hide them in its body. `Config.Aura.EyeCalm` 1 is a calmer one, off: smaller, no haze
+  and no pillar, tier 12 at 0.6 of its strength and tier 1 whole, should a high tier prove too much to steer through (the mock's last row).
 
 ### Cost
 
 - Whole within `WholeTo` 70 studs, the middle to `FewFrom` 130, few beyond. The three nearest others may have all of it (`Full`), the next
   four the middle (`Half`), the rest few. A phone: the middle for its own (`PhoneOwn`), few for others (`PhoneMost`).
-- At most `Lights` 4 soft lights (no shadows), the nearest first. Faded out, an aura draws nothing and has no particles.
+- At most `Lights` 4 soft lights (no shadows): your own, then the nearest; 0 is none, not your own either. Faded out, an aura draws nothing and has no particles.
 
 ### Dials
 
@@ -89,13 +89,13 @@ still only the buying.
 
 Twelve sheets of our own, drawn by sums (`tools/auras/volume_sheets.py`) in `art/ui/aura_volume/`, white, tinted by the tier.
 **To upload (Hugo's yes): those twelve files**; the ids go in `Auras.Sheets` ([which is which](../../art/ui/aura_volume/README.md)).
-**Until then a live game draws the same volume with the engine's own soft pictures** for six of them (wisp, flame, ring, shock,
-haze, mote), leaves the others out and draws the ribbons as plain bands: it is there and it moves, but it is the rougher version.
+**Until then a live game draws the same volume with the engine's own soft pictures** for six of them (wisp, flame, ring, haze,
+mote, glow), leaves the others out (the shock rings among them) and draws the ribbons as plain bands: it is there and it moves, but it is the rougher version.
 Studio reads local copies: `python tools/auras/volume_sheets.py --local`, then reopen Studio.
 
 ### Checked offline
 
-`tools/auras/volume_test.luau` (70 checks: the ladder grows and loses nothing, the caps, the fade to the hundredth, each way of riding
+`tools/auras/volume_test.luau` (78 checks: the ladder grows and loses nothing, the caps, the fade to the hundredth, each way of riding
 by the names the server uses, the size on small and giant fish, the detail by distance and phone), `aura_test.luau` (61, the
 shop, the server and the flame, unchanged), StyLua, selene, the type checker, a Rojo build. Eight of nine faults put in on purpose were caught
 (the ninth, `SpeedOver` next to nothing, is hidden by `StillFor`).
@@ -109,7 +109,8 @@ shop, the server and the flame, unchanged), StyLua, selene, the type checker, a 
 3. Ribbons wind round both sides, with no seam where two Beams meet. In a live game, with no picture: a plain band.
 4. Nothing turns with the camera; no light's edge on the ground; several tier 12s side by side; a phone; a second player's aura does not flicker
    as they walk and stop (its fade is worked out from the positions the network sends).
-5. With the stand-ins: `explosion01_shockwave_main` lying flat should read as a ring. (It is the picture the old code called Bubble.)
+5. With the stand-ins: the ring is `forcefield_vortex_main`, a thin circle with a few bright points, flat on the ground. (Not the old look's
+   bubble picture, `explosion01_shockwave_main`, which an earlier version used.) Is it a ring of light to the eye, or is it better left out?
 
 ### Three older rules this goes against, for Hugo to say no to
 
@@ -117,7 +118,8 @@ shop, the server and the flame, unchanged), StyLua, selene, the type checker, a 
   there are strokes, a ring and a glow on the ground (tier 2 up).
 - The flame's note says no light. There is a soft one now (`Config.Aura.Lights` 0 takes it out).
 - 2026-11-23: "one slightly visible aura consistent just changing colours". The auras now differ by what each adds, as the new words ask.
-- **Also a reading:** the hop between fish and every kind of seat count as riding.
+- **Also readings:** the hop between fish and every kind of seat count as riding; your own is as strong as everyone sees it, also from
+  your own camera at tier 12 (`EyeCalm`).
 
 **State before that (2026-11-25): draft 4 is built, the auras can be bought, and it is on main. Checked by script and stills in Studio, not
 played by hand.** The last

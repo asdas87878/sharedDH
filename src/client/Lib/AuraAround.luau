@@ -40,15 +40,14 @@ export type Around = {
 	PulseN: number,
 }
 -- Where it stands this frame, on the ride: the mount's frame (upright, or leaning with it), and its shape there (our own
--- is Aura.EyeStrength strong)
+-- may be the calmer one, Aura.EyeCalm)
 export type Ride = { At: CFrame, Shape: AuraVolume.Shape }
 
 -- The engine's own pictures that stand in for ours until they are uploaded (a name not here: the layer is left out). Soft
--- ones only: no bubble, no sparkle
+-- ones only, and none that the old look drew as a bubble or a spark
 AuraAround.Standin = {
 	Glow = "rbxasset://textures/particles/explosion01_implosion_main.dds",
-	Ring = "rbxasset://textures/particles/explosion01_shockwave_main.dds",
-	Shock = "rbxasset://textures/particles/explosion01_shockwave_main.dds",
+	Ring = "rbxasset://textures/particles/forcefield_vortex_main.dds", -- (a thin circle, flat on the ground: it turns)
 	Haze = "rbxasset://textures/particles/smoke_main.dds",
 	Wisp = "rbxasset://textures/particles/fire_main.dds",
 	Flame = "rbxasset://textures/particles/fire_main.dds",
@@ -397,7 +396,7 @@ function AuraAround.step(
 			p.Emitter.Speed = NumberRange.new(p.Layer.Speed[1] * shape.Grow, p.Layer.Speed[2] * shape.Grow)
 		end
 	end
-	local strong = if shape.Own then c.EyeStrength else 1
+	local strong = AuraVolume.strong(spec, shape, c)
 	local now = math.max(AuraVolume.step(seen * strong), 1 / AuraVolume.Steps)
 	if now ~= a.Seen then
 		a.Seen = now

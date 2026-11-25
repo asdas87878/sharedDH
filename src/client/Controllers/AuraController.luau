@@ -1243,7 +1243,7 @@ local function around(l: Live, a: AuraAround.Around, base: CFrame, t: number, dt
 	local detail = AuraVolume.detail(l.Far, l.Place, l.Ours, onPhone(), c)
 	local ride = if mount and doing == "Ride" then rideOf(l, a, mount, hrp) else nil
 	local hold = ride == nil and doing == "Ride" and state == "Jumping"
-	AuraAround.step(a, t, base, ride, hold, seen, detail, l.Place <= c.Lights and detail >= 2, function(part, cf)
+	AuraAround.step(a, t, base, ride, hold, seen, detail, AuraVolume.lit(l.Place, detail, c), function(part, cf)
 		put(l.Fx, part, cf)
 	end)
 end

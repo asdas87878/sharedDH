@@ -14,6 +14,7 @@ local Auras = world.require(world.find("ReplicatedStorage.Shared.Auras"))
 local Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
 local Vector3: any = roblox.Vector3
 local c = Config.Aura
+local controller: string = world.find("StarterPlayer.StarterPlayerScripts.Client.Controllers.AuraController").Source
 
 local specs = {}
 for tier = 1, 12 do
@@ -119,6 +120,22 @@ ok(
 		and V.detail(5, c.Full + c.Half + 1, false, false, c) == 1
 )
 ok("others on a phone: a few pieces", V.detail(5, 1, false, true, c) == 1)
+local function lights(most: number, detail: number, from: number): number
+	local cc = table.clone(c)
+	cc.Lights = most
+	local n = 0
+	for place = from, 20 do
+		n += if V.lit(place, detail, cc) then 1 else 0
+	end
+	return n
+end
+ok("lights: as many as Aura.Lights, our own among them", lights(4, 3, 0) == 4 and lights(c.Lights, 3, 0) == c.Lights)
+ok("... never more where ours is not there, none where little is drawn", lights(4, 3, 1) <= 4 and lights(4, 1, 0) == 0)
+ok(
+	"... 1 is our own only; 0 is none, not our own either",
+	lights(1, 3, 0) == 1 and lights(1, 3, 1) == 0 and lights(0, 3, 0) == 0
+)
+ok("the controller asks that", string.find(controller, "AuraVolume.lit(l.Place, detail, c)", 1, true) ~= nil)
 local total = V.draws(specs[12], 3)
 for place = 1, 30 do
 	total += V.draws(specs[12], V.detail(10, place, false, false, c))
@@ -208,7 +225,14 @@ local function fish(id: string, scale: number, tier: number, eye: number?): (any
 	local seat = Vector3.new(0, body.Y * 0.1 + 2, -body.Z * 0.1)
 	return V.ride(specs[tier], body, seat, eye, c), body, seat
 end
-local round, capped, rider, clear, bigger = true, true, true, true, true
+local calm = table.clone(c)
+calm.EyeCalm = 1
+local whole = table.clone(c)
+whole.EyeCalm = 0
+local function same(x: any, y: any): boolean
+	return x.X == y.X and x.Z == y.Z and x.Height == y.Height and x.At == y.At and x.Grow == y.Grow and x.Own == y.Own
+end
+local round, capped, rider, clear, bigger, ours = true, true, true, true, true, true
 for id in Config.FishById do
 	for _, scale in { 1, 3 } do
 		for _, tier in { 1, 6, 12 } do
@@ -220,7 +244,12 @@ for id in Config.FishById do
 				and math.abs(seat.Z - s.At.Z) <= s.Z
 				and s.At.Y <= seat.Y
 				and s.At.Y + s.Height >= seat.Y + 2.5
-			local own = fish(id, scale, tier, 17.7)
+			local mine = V.ride(specs[tier], body, seat, 17.7, whole)
+			ours = ours and same(mine, s) and V.strong(specs[tier], mine, whole) == 1
+			for _, l in specs[tier].Layers do
+				ours = ours and V.rate(l, mine, 3, whole) == V.rate(l, s, 3, whole)
+			end
+			local own = V.ride(specs[tier], body, seat, 17.7, calm)
 			clear = clear
 				and own.Z <= 17.7 * c.EyeShare + 0.01
 				and own.X <= 17.7 * c.EyeShare * 1.3 + 0.01
@@ -232,7 +261,13 @@ end
 ok("round every fish's sides, small to Colossal, up to the most", round)
 ok("never past its most", capped)
 ok("the rider is always inside it", rider)
-ok("our own never reaches our camera", clear)
+ok("our own riding is as everyone sees it: the fish's size, every layer, whole strength", ours and c.EyeCalm == 0)
+ok("with Aura.EyeCalm 1 our own never reaches our camera", clear)
+local faint = V.ride(specs[1], Vector3.new(6, 5, 18), Vector3.new(0, 2, 0), 17.7, calm)
+ok(
+	"... and is calmer the higher the tier, tier 1's whole",
+	V.strong(specs[1], faint, calm) == 1 and math.abs(V.strong(specs[12], faint, calm) - c.EyeStrength) < 1e-9
+)
 ok("bigger than on foot at tier 1", bigger)
 local whale, _, seat = fish("BlueWhale", 3, 12, nil)
 ok(
@@ -299,7 +334,6 @@ for _, spec in specs do
 end
 ok("every place is round the wearer, the same on all sides", spread)
 local lib: string = world.find("StarterPlayer.StarterPlayerScripts.Client.Lib.AuraAround").Source
-local controller: string = world.find("StarterPlayer.StarterPlayerScripts.Client.Controllers.AuraController").Source
 ok("nothing of it is pushed toward or behind the camera", not string.find(lib, "ZOffset", 1, true))
 ok(
 	"nothing of it is turned to the camera as a whole",
@@ -336,11 +370,16 @@ for name in Auras.Sheets do
 	sized = sized and w % grid == 0 and h % grid == 0 and w <= 1024 and h <= 1024
 end
 ok("twelve pictures, at most 1024 px, a whole number of frames", sized and count == 12, count)
-local lowLib = string.lower(lib)
-ok(
-	"no sparkle and no bubble stands in for one",
-	not string.find(lowLib, "sparkles_main", 1, true) and not string.find(lib, "Bubble", 1, true)
-)
+-- (by the picture's file, as the old look's table says which it drew as a bubble, a spark)
+local bad = 0
+local oldPictures = string.match(controller, "local TEX = (%b{})") or ""
+for name, file in string.gmatch(oldPictures, '(%w+) = "rbxasset://textures/particles/([%w_]+)') do
+	if name == "Bubble" or name == "Spark" then
+		bad += 1
+		ok(`the old look's {name} picture stands in for none of ours`, string.find(lib, file, 1, true) == nil, file)
+	end
+end
+ok("(both found)", bad == 2, bad)
 local blank = true
 for _, id in Auras.Sheets do
 	blank = blank and (id == "" or string.match(id, "^rbxassetid://%d+$") ~= nil)
@@ -385,12 +424,12 @@ ok(
 	string.find(controller, 'state == "Jumping"', 1, true) ~= nil
 		and string.find(lib, "hold and a.Ridden", 1, true) ~= nil
 )
-local own = fish("HammerheadShark", 1, 12, 17.7)
-local theirs = fish("HammerheadShark", 1, 12, nil)
-local through, whole = true, true
+local theirs, theirBody, theirSeat = fish("HammerheadShark", 1, 12, nil)
+local own = V.ride(specs[12], theirBody, theirSeat, 17.7, calm)
+local through, allOfIt = true, true
 for _, l in specs[12].Layers do
 	through = through and (not l.Across or V.rate(l, own, 3, c) == 0)
-	whole = whole and (l.Name == "Shock" or V.rate(l, theirs, 3, c) > 0)
+	allOfIt = allOfIt and (l.Name == "Shock" or V.rate(l, theirs, 3, c) > 0)
 end
-ok("our own ride: nothing stands across our view; theirs is whole", through and whole)
+ok("with EyeCalm 1 nothing of ours stands across our view; theirs is whole", through and allOfIt)
 done()

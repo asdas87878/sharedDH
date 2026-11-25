@@ -3483,9 +3483,10 @@ Config.Aura = {
 	RideGrow = 2.2, -- its pictures are up to this many times as big
 	RideMore = 1.5, -- and up to this many times as many
 	RideWisps = 18, -- at least this many wisps a second round a fish (the first tiers' few would be lost round it)
-	EyeShare = 0.5, -- our own: it reaches to this share of the way to our camera (RideController's, some 17 studs),
+	EyeCalm = 0, -- 0: our own is as everyone else sees it, whole. 1: a calmer one to steer through, no haze and no pillar:
+	EyeShare = 0.5, -- it reaches to this share of the way to our camera (RideController's, some 17 studs),
 	EyeGrow = 1.5, -- its pictures are up to this many times as big,
-	EyeStrength = 0.6, -- and all of it is this strong (we look through it to steer; everyone else sees it whole)
+	EyeStrength = 0.6, -- and tier 12's is this strong (tier 1's whole, those between in between)
 	RideLean = 0.5, -- the share of the fish's pitch it follows (0: always upright; never its roll)
 	-- Look 2, what is drawn (Shared/AuraVolume.detail: 3 all of it, 2 about two thirds, 1 a few pieces)
 	WholeTo = 70, -- all of it to this far from the camera (then about two thirds), studs,
@@ -3494,7 +3495,7 @@ Config.Aura = {
 	Half = 4, -- and the next ones at two thirds
 	PhoneOwn = 2, -- on a phone: our own,
 	PhoneMost = 1, -- and the most anyone else's is
-	Lights = 4, -- the nearest auras only give light
+	Lights = 4, -- this many auras at most give light: our own, then the nearest (0: none)
 	-- How Roblox draws the pictures, found in Studio (2026-11-25: 2 and -1 are the right way up, joined). Read live
 	Turn = 2, -- quarter turns clockwise of the Beams' pictures, 0 to 3
 	Scroll = -1, -- which way the flame's picture runs along its Beams

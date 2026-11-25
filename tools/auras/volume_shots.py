@@ -311,10 +311,13 @@ def main():
             jobs.append((folder, scenes[f"HammerheadShark{tier}"], view, rw, rh, 0))
             where.append((c * rw, y + j * rh, f"riding, {tier} {names[tier - 1]}"))
     oh = int(rw * 9 / 16)
-    for c, (nm, tier) in enumerate((("Clownfish", 12), ("HammerheadShark", 12), ("BlueWhale", 12))):
-        jobs.append((folder, scenes[f"{nm}{tier}own"], f"{nm}_own", rw, oh, 0))
-        where.append((c * rw, y + 2 * rh, f"your own camera, {tier} on {nm}"))
-    sheet = Image.new("RGB", (W, y + 2 * rh + oh), (10, 14, 24))
+    own = [("HammerheadShark", 1, "own"), ("HammerheadShark", 6, "own"), ("HammerheadShark", 12, "own"),
+           ("Clownfish", 12, "own"), ("BlueWhale", 12, "own"), ("HammerheadShark", 12, "calm")]
+    for i, (nm, tier, how) in enumerate(own):
+        jobs.append((folder, scenes[f"{nm}{tier}{how}"], f"{nm}_own", rw, oh, 0))
+        where.append((i % 3 * rw, y + 2 * rh + i // 3 * oh,
+                      f"your own camera, {tier} on {nm}" + (" (EyeCalm 1)" if how == "calm" else "")))
+    sheet = Image.new("RGB", (W, y + 2 * rh + 2 * oh), (10, 14, 24))
     d = ImageDraw.Draw(sheet)
     with ProcessPoolExecutor(10) as ex:
         for im, (x, yy, text) in zip(ex.map(tile, jobs), where):

@@ -11,7 +11,6 @@ local world = Harness.open(process.args[1])
 local V = world.require(world.find("ReplicatedStorage.Shared.AuraVolume"))
 local Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
 local Vector3: any = roblox.Vector3
-local c = Config.Aura
 
 local function xyz(v: any): { number }
 	return { v.X, v.Y, v.Z }
@@ -42,6 +41,7 @@ for _, id in { "Clownfish", "HammerheadShark", "BlueWhale" } do
 		-- (as another player sees it, and as its rider does)
 		table.insert(scenes, { Name = `{id}{tier}`, Tier = tier, Mount = mount(id) })
 		table.insert(scenes, { Name = `{id}{tier}own`, Tier = tier, Mount = mount(id), Eye = 17.7 })
+		table.insert(scenes, { Name = `{id}{tier}calm`, Tier = tier, Mount = mount(id), Eye = 17.7, Calm = true })
 	end
 end
 
@@ -49,6 +49,8 @@ local out = {}
 for _, scene in scenes do
 	local spec = V.spec(scene.Tier)
 	local m = scene.Mount
+	local c = table.clone(Config.Aura)
+	c.EyeCalm = if scene.Calm then 1 else c.EyeCalm
 	local shape = if m then V.ride(spec, m.Body, m.Seat, scene.Eye, c) else V.foot(spec)
 	local layers = {}
 	for _, l in spec.Layers do
@@ -82,10 +84,7 @@ for _, scene in scenes do
 			for i = 0, s.Beams * 4 do
 				table.insert(
 					fade,
-					V.strandFade(i / (s.Beams * 4))
-						* (1 - s.Transparency)
-						* spec.Strength
-						* (if scene.Eye then c.EyeStrength else 1)
+					V.strandFade(i / (s.Beams * 4)) * (1 - s.Transparency) * spec.Strength * V.strong(spec, shape, c)
 				)
 			end
 			table.insert(strands, {
@@ -105,7 +104,7 @@ for _, scene in scenes do
 		Tier = scene.Tier,
 		Mount = if m then { Id = m.Id, Body = xyz(m.Body), Seat = xyz(m.Seat) } else nil,
 		Shape = { X = shape.X, Z = shape.Z, Height = shape.Height, At = xyz(shape.At), Grow = shape.Grow },
-		Strength = spec.Strength * (if scene.Eye then c.EyeStrength else 1),
+		Strength = spec.Strength * V.strong(spec, shape, c),
 		Layers = layers,
 		Frames = frames,
 		Light = if spec.Light

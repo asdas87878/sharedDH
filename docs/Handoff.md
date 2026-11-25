@@ -13,7 +13,7 @@ Everything is in [auras](design/auras.md), "Around the body". **To turn off:** `
   names against the server's source). A new way to ride needs a row in `AuraController`'s `WELDS`, or its rider's aura fades while moving.
 - **Local pictures:** `python tools/auras/volume_sheets.py --local` on each PC, then reopen Studio. Without them, and in a live game
   until the twelve in `art/ui/aura_volume` are uploaded (Hugo's yes), engine pictures stand in and some layers are left out.
-- **Checked offline:** `volume_test.luau` 70 of 70, `aura_test.luau` 61 of 61, StyLua, selene (three old warnings, not ours), types, a Rojo build.
+- **Checked offline:** `volume_test.luau` 78 of 78, `aura_test.luau` 61 of 61, StyLua, selene (three old warnings, not ours), types, a Rojo build.
   The [sheet](attachments/auras-3d.png) and the [moving one](attachments/auras-3d.gif) are offline mocks drawn from the game's numbers.
 - **Owed:** `tools/studio/aura_check.py run` (rewritten for the looks, **not run**), the list "To see in Studio", two players, a phone, Hugo's yes or no to the
   ground ring and light.
