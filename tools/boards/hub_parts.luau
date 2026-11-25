@@ -4,8 +4,10 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 local serde = require("@lune/serde")
+local slim = require("./slim")
 
-local place = roblox.deserializePlace(fs.readFile(process.args[1]))
+local NEEDED = { "Name", "CFrame", "Size", "size", "Transparency", "CanCollide", "Color3uint8", "Material", "shape" }
+local place = roblox.deserializePlace(slim(fs.readFile(process.args[1]), NEEDED))
 local out = {}
 for _, part in place:GetService("Workspace").ClaudeBlockout:GetDescendants() do
 	if part:IsA("BasePart") then

@@ -114,7 +114,13 @@ for style = 1, 3 do
 				back,
 				front
 			),
-			bad == 0 and #parts <= 145 and low >= -0.2 and left >= -8.6 and right <= 8.6 and back >= -3.2 and front <= 3.2
+			bad == 0
+				and #parts <= 145
+				and low >= -0.2
+				and left >= -8.6
+				and right <= 8.6
+				and back >= -3.2
+				and front <= 3.2
 		)
 	end
 end
@@ -129,6 +135,47 @@ ok("oxygen in four figures past a million", Panel.number(oxygen, 3285999) == "3.
 ok("coins a second keep their tenths", Panel.number(earners, 12.3) == "$12.3", Panel.number(earners, 12.3))
 ok("coins in short", Panel.number(earners, 48250) == "$48.25K", Panel.number(earners, 48250))
 ok("a number past 2^53", Panel.number(earners, 2.5e16) == "$25Qa", Panel.number(earners, 2.5e16))
+-- a row's number has been through the server's sums, the foot's has not: they must read the same
+local Sums = world.require(world.find("ServerScriptService.Server.Lib.BoardSums"))
+local function asRow(def: any, value: number): number
+	return Sums.value(Sums.mark(value, def.Scale) or 0, def.Scale)
+end
+for value, want in
+	{ [0.55] = "$0.5", [1.05] = "$1", [12.39] = "$12.3", [99.97] = "$99.9", [0.3] = "$0.3", [0.05] = "$0" }
+do
+	local row, foot = Panel.number(earners, asRow(earners, value)), Panel.number(earners, value)
+	ok(`{value} a second is {want} in the row and at the foot`, row == want and foot == want, `{row}, {foot}`)
+end
+ok(
+	"part of an Oxygen is cut off at the foot too",
+	Panel.number(oxygen, 1234.6) == "1,234",
+	Panel.number(oxygen, 1234.6)
+)
+ok("and does not make a million", Panel.number(oxygen, 999999.7) == "999,999", Panel.number(oxygen, 999999.7))
+-- (ten tenths added up are a hair under one)
+local tenths = 0
+for _ = 1, 10 do
+	tenths += 0.1
+end
+ok("a sum that is a hair under a step is that step", tenths < 1 and Panel.number(earners, tenths) == "$1", tenths)
+local tried, unlike, first = 0, 0, ""
+local random = 7
+local function same(def: any, value: number)
+	tried += 1
+	local row, foot = Panel.number(def, asRow(def, value)), Panel.number(def, value)
+	if row ~= foot then
+		unlike += 1
+		first = if first == "" then `{def.Id} {value}: {row}, {foot}` else first
+	end
+end
+for _, def in { oxygen, collectors, earners } do
+	for i = 1, 20000 do
+		random = (random * 16807) % 2147483647
+		same(def, i * 0.0125) -- (incomes are made of such steps)
+		same(def, 10 ^ (random / 2147483647 * 20 - 1))
+	end
+end
+ok(`row and foot read the same for {tried} numbers`, unlike == 0, `{unlike}: {first}`)
 
 local NAMES = {
 	"CoralQueen77",
@@ -221,11 +268,27 @@ ok("the next numbers are counted down", p.Next.Text == "new numbers in 37s", p.N
 Panel.tick(p, 1100)
 ok("and late ones do not go below nothing", p.Next.Text == "new numbers on the way")
 Panel.show(p, { Global = false, Rows = { SAMPLES.Oxygen[5] } }, 1040, 612300)
-ok("a short list is not scrolled from near either", (function()
-	Panel.near(p, true)
-	return not p.List.ScrollingEnabled
-end)())
+ok(
+	"a short list is not scrolled from near either",
+	(function()
+		Panel.near(p, true)
+		return not p.List.ScrollingEnabled
+	end)()
+)
 p.Gui:Destroy()
+local money = Panel.make(earners, glass)
+Panel.show(
+	money,
+	{ Global = false, Rows = { { Id = 5005, Name = "You", Value = asRow(earners, 12.39), Rank = 1 } } },
+	1040,
+	12.39
+)
+ok(
+	"your own row and the foot say the same on a panel",
+	money.Lines[1].Value.Text == "$12.3" and money.OwnValue.Text == "$12.3",
+	`{money.Lines[1].Value.Text}, {money.OwnValue.Text}`
+)
+money.Gui:Destroy()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- The row in the world

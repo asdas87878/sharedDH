@@ -37,6 +37,7 @@ local LeaderboardService = {}
 
 local NAMES_AT_ONCE = 50 -- user ids in one request for names
 local CLOSE = 20 -- seconds a closing server spends on what is still to be stored
+local CLOSE_AGAIN = 2 -- and waits after a failed write, in place of Boards.Backoff
 
 type Def = typeof(Config.Boards.List[1])
 type Board = {
@@ -70,7 +71,8 @@ local state: any = nil -- what the clients were last sent
 local nextRead = 0
 local dirty = true
 local publishing = false
-local sending: { [string]: boolean } = {}
+local sending: { [string]: boolean } = {} -- the writes Roblox has not answered yet
+local closing = false
 
 local function isHidden(user: number): boolean
 	return table.find(Config.Boards.HideUsers, user) ~= nil
@@ -225,7 +227,9 @@ local function pump(now: number): boolean
 			else
 				board.WriteFails += 1
 				board.WriteFrom = os.clock()
-					+ BoardSums.backoff(board.WriteFails, Config.Boards.Backoff, Config.Boards.BackoffMost)
+					+ if closing
+						then CLOSE_AGAIN
+						else BoardSums.backoff(board.WriteFails, Config.Boards.Backoff, Config.Boards.BackoffMost)
 				failed(board, "storing a number", problem)
 				-- (unless a newer one has come in while this one was being tried)
 				if not writes[key] then
@@ -374,12 +378,18 @@ local function ask(player: Player, what: any)
 	end
 end
 
+-- The server is closing: what is still to be stored goes out. A write that Roblox has not answered yet counts as one
+-- (it is in `sending` and not in `order`, and comes back to `order` if it fails)
 local function close()
-	for player in here do
-		look(player, os.clock(), true)
-	end
+	closing = true
 	local from = os.clock()
-	while #order > 0 and os.clock() - from < CLOSE do
+	for player in here do
+		look(player, from, true)
+	end
+	for _, board in boards do
+		board.WriteFrom = math.min(board.WriteFrom, from)
+	end
+	while (#order > 0 or next(sending) ~= nil) and os.clock() - from < CLOSE do
 		if not pump(os.clock()) then
 			task.wait(0.2)
 		end
@@ -401,6 +411,7 @@ end
 
 -- The boards that are on, each with its store if it lists everyone
 local function setUp()
+	closing = false
 	table.clear(boards)
 	for _, def in Config.Boards.List do
 		if def.On ~= 0 then

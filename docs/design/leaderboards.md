@@ -49,7 +49,9 @@ post, sign and seahorse cover the edge of Earners and part of Collectors. The se
 ## How a number is kept
 Roblox's sorted store takes whole numbers only, and past 2^53 a number loses its units. `Lib/BoardSums`:
 - **up to 1e15 steps: exactly**, rounded **down** to a step. A step is 1, or a tenth for Earners (`Scale` 10), so nobody
-  is shown more than they have: 12.39 a second is kept as 123 and shown as 12.3.
+  is shown more than they have: 12.39 a second is kept as 123 and shown as 12.3. Your own number at the foot is cut the
+  same way (`BoardPanel.number`), so it reads as your row does. The rest of the game's signs round to the nearest tenth
+  (`Config.rate`: 12.4).
 - **past that: by its logarithm**, `1e15 + round((log10(n) - 15) x 1e13)`, always under 2^53. Read back it is off by less
   than one part in 1e12, far finer than the four figures shown. Order is kept, across the join too. Two numbers
   closer together than that count as a tie.
@@ -57,7 +59,8 @@ Roblox's sorted store takes whole numbers only, and past 2^53 a number loses its
 ## What it costs Roblox's store
 One list asked for per board per minute (`Refresh` 60). A player's number is written when it has changed, at most every
 120 s and as they leave; one write per 0.5 s per server; nothing while the game's own budget has 5 or fewer left.
-After an error a board waits 30 s, doubling to 600 s, with **one** line in the output. A list older than 600 s gives way
+A server that closes spends up to 20 s on what is left: the writes still queued, those Roblox has not answered yet, and
+a failed one again after 2 s. After an error a board waits 30 s, doubling to 600 s, with **one** line in the output. A list older than 600 s gives way
 to this server's players and comes back by itself. Nothing is written before a player's save has loaded, so a joining
 player never overwrites their own number with a fresh one.
 
@@ -68,10 +71,11 @@ player never overwrites their own number with a fresh one.
 
 ## Checks (lune, offline)
 `rojo build default.project.json -o /tmp/p.rbxl`, then `lune run tools/boards/...`:
-- `board_test.luau /tmp/p.rbxl`: order, ties, rounding, past 2^53, the store off, down and back, budget, hidden ids (84).
-  Nine rules broken on purpose, one at a time: each made it fail.
-- `panel_test.luau /tmp/p.rbxl [dump folder]`: the list as drawn (56).
-- `place_test.luau /tmp/p.rbxl <saved place>`: every part of every style against the hub (11). Needs a few GB free.
+- `board_test.luau /tmp/p.rbxl`: order, ties, rounding, past 2^53, the store off, down and back, budget, hidden ids, closing (88).
+  Sixteen rules broken on purpose, one at a time: each made this or the next one fail.
+- `panel_test.luau /tmp/p.rbxl [dump folder]`: the list as drawn, and that row and foot read the same (67).
+- `place_test.luau /tmp/p.rbxl <saved place>`: every part of every style against the hub (11). `slim.luau` leaves out
+  the properties it does not need, so it takes 0.7 GB and not several.
 - The picture: `panel_test` with a folder, `picture.py <folder> panels`, `view.py` in Blender, `picture.py <folder> sheet <png>`.
 
 ## Not done, not sure

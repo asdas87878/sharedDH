@@ -12,6 +12,7 @@ local ok, done = Harness.tally()
 -- Stand-ins
 
 local clock = 1000
+local onWait: (() -> ())? = nil -- what happens while the service waits
 world.globals.os = setmetatable({
 	clock = function()
 		return clock
@@ -20,6 +21,9 @@ world.globals.os = setmetatable({
 world.globals.task = {
 	wait = function(seconds: number?)
 		clock += seconds or 0
+		if onWait then
+			onWait()
+		end
 		return seconds
 	end,
 	spawn = function(fn: (...any) -> (), ...: any)
@@ -80,6 +84,7 @@ world.services.UserService = {
 }
 local stored: { [string]: { [string]: number } } = {}
 local api, broken, budgets = true, false, 100
+local slow = false -- a write is not answered until its coroutine is resumed (with true: it fails)
 local calls = { open = 0, read = 0, write = 0, remove = 0 }
 local writesAt: { number } = {}
 world.services.DataStoreService = {
@@ -121,7 +126,7 @@ world.services.DataStoreService = {
 			end,
 			SetAsync = function(_me: any, key: string, value: any)
 				calls.write += 1
-				if broken then
+				if slow and coroutine.yield() or broken then
 					error("502: API Services rejected request")
 				end
 				assert(type(key) == "string" and value % 1 == 0 and value >= 0 and value < 2 ^ 53, "not a whole number")
@@ -219,10 +224,16 @@ ok("a whole number is stored as it is", Sums.mark(1234, 1) == 1234 and Sums.valu
 ok("a part of a step is cut off, never up", Sums.mark(1234.99, 1) == 1234 and Sums.mark(12.39, 10) == 123)
 ok("tenths are kept", Sums.value(Sums.mark(12.3, 10), 10) == 12.3)
 ok("and 0.3 is three tenths, for all its 0.29999", Sums.mark(0.1 + 0.2, 10) == 3 and Sums.mark(0.3, 10) == 3)
-ok("nothing for 0, below it, or under a step", Sums.mark(0, 1) == nil and Sums.mark(-5, 1) == nil and Sums.mark(0.5, 1) == nil)
+ok(
+	"nothing for 0, below it, or under a step",
+	Sums.mark(0, 1) == nil and Sums.mark(-5, 1) == nil and Sums.mark(0.5, 1) == nil
+)
 ok(
 	"nothing for what is no number",
-	Sums.mark(0 / 0, 1) == nil and Sums.mark(math.huge, 1) == nil and Sums.mark("9", 1) == nil and Sums.mark(nil, 1) == nil
+	Sums.mark(0 / 0, 1) == nil
+		and Sums.mark(math.huge, 1) == nil
+		and Sums.mark("9", 1) == nil
+		and Sums.mark(nil, 1) == nil
 )
 ok("exact to 1e15 - 1", Sums.value(Sums.mark(1e15 - 1, 1), 1) == 1e15 - 1)
 local fits, rising, close, last, worst = true, true, true, 0, 0
@@ -250,11 +261,11 @@ ok(
 	"past 2^53 near ones are still told apart (1 in 1e12)",
 	(Sums.mark(9.1e15, 1) :: number) < (Sums.mark(9.1e15 * (1 + 1e-12), 1) :: number)
 )
+ok("2^53 and 2^53 + 2 to four figures", math.abs(Sums.value(Sums.mark(2 ^ 53 + 2, 1), 1) / 2 ^ 53 - 1) < 1e-12)
 ok(
-	"2^53 and 2^53 + 2 to four figures",
-	math.abs(Sums.value(Sums.mark(2 ^ 53 + 2, 1), 1) / 2 ^ 53 - 1) < 1e-12
+	"the waits double to their most",
+	Sums.backoff(1, 30, 600) == 30 and Sums.backoff(3, 30, 600) == 120 and Sums.backoff(20, 30, 600) == 600
 )
-ok("the waits double to their most", Sums.backoff(1, 30, 600) == 30 and Sums.backoff(3, 30, 600) == 120 and Sums.backoff(20, 30, 600) == 600)
 
 ----------------------------------------------------------------------------------------------------------------------
 print("the sums: order and ties")
@@ -267,25 +278,47 @@ local function ranks(list: { any }): string
 	return table.concat(out, " ")
 end
 ok("the biggest first", ranks(Sums.places({}, { [7] = 5, [8] = 50, [9] = 20 }, {}, 50)) == "1:8 2:9 3:7")
-ok("a tie shares its rank, the older account first, the next is after them", ranks(Sums.places({}, { [30] = 20, [10] = 20, [20] = 50, [5] = 1 }, {}, 50)) == "1:20 2:10 2:30 4:5")
-ok("the same each time", (function()
-	local first = ranks(Sums.places({}, { [3] = 1, [2] = 1, [1] = 1 }, {}, 50))
-	for _ = 1, 20 do
-		if ranks(Sums.places({}, { [1] = 1, [3] = 1, [2] = 1 }, {}, 50)) ~= first then
-			return false
-		end
-	end
-	return first == "1:1 1:2 1:3"
-end)())
-ok("this server's players are ahead of what is stored", ranks(Sums.places({ { Id = 1, Mark = 10 }, { Id = 2, Mark = 30 } }, { [1] = 40 }, {}, 50)) == "1:1 2:2")
-ok("also when they have less now", ranks(Sums.places({ { Id = 1, Mark = 100 }, { Id = 2, Mark = 30 } }, { [1] = 4 }, {}, 50)) == "1:2 2:1")
-ok("someone here with nothing is off it", ranks(Sums.places({ { Id = 1, Mark = 100 }, { Id = 2, Mark = 30 } }, { [1] = 0 }, {}, 50)) == "1:2")
-ok("the hidden are left out of both, and no rank is missing", ranks(Sums.places({ { Id = 1, Mark = 100 }, { Id = 2, Mark = 30 } }, { [3] = 60, [4] = 5 }, { 1, 3 }, 50)) == "1:2 2:4")
-ok("only so many", #Sums.places({ { Id = 1, Mark = 3 }, { Id = 2, Mark = 2 }, { Id = 3, Mark = 1 } }, {}, {}, 2) == 2)
 ok(
-	"what the store holds that is not ours is passed over",
-	#Sums.read({ { key = "12", value = 5 }, { key = "abc", value = 5 }, { key = "13", value = "x" }, { key = "14", value = 0 }, { key = "1.5", value = 3 } } :: { any }) == 1
+	"a tie shares its rank, the older account first, the next is after them",
+	ranks(Sums.places({}, { [30] = 20, [10] = 20, [20] = 50, [5] = 1 }, {}, 50)) == "1:20 2:10 2:30 4:5"
 )
+ok(
+	"the same each time",
+	(function()
+		local first = ranks(Sums.places({}, { [3] = 1, [2] = 1, [1] = 1 }, {}, 50))
+		for _ = 1, 20 do
+			if ranks(Sums.places({}, { [1] = 1, [3] = 1, [2] = 1 }, {}, 50)) ~= first then
+				return false
+			end
+		end
+		return first == "1:1 1:2 1:3"
+	end)()
+)
+ok(
+	"this server's players are ahead of what is stored",
+	ranks(Sums.places({ { Id = 1, Mark = 10 }, { Id = 2, Mark = 30 } }, { [1] = 40 }, {}, 50)) == "1:1 2:2"
+)
+ok(
+	"also when they have less now",
+	ranks(Sums.places({ { Id = 1, Mark = 100 }, { Id = 2, Mark = 30 } }, { [1] = 4 }, {}, 50)) == "1:2 2:1"
+)
+ok(
+	"someone here with nothing is off it",
+	ranks(Sums.places({ { Id = 1, Mark = 100 }, { Id = 2, Mark = 30 } }, { [1] = 0 }, {}, 50)) == "1:2"
+)
+ok(
+	"the hidden are left out of both, and no rank is missing",
+	ranks(Sums.places({ { Id = 1, Mark = 100 }, { Id = 2, Mark = 30 } }, { [3] = 60, [4] = 5 }, { 1, 3 }, 50))
+		== "1:2 2:4"
+)
+ok("only so many", #Sums.places({ { Id = 1, Mark = 3 }, { Id = 2, Mark = 2 }, { Id = 3, Mark = 1 } }, {}, {}, 2) == 2)
+ok("what the store holds that is not ours is passed over", #Sums.read({
+	{ key = "12", value = 5 },
+	{ key = "abc", value = 5 },
+	{ key = "13", value = "x" },
+	{ key = "14", value = 0 },
+	{ key = "1.5", value = 3 },
+} :: { any }) == 1)
 
 ----------------------------------------------------------------------------------------------------------------------
 print("saving off, as the game is now: this server's players, and nothing is stored")
@@ -302,7 +335,10 @@ end
 turn(0)
 ok("three boards (Deepest is off)", #T.state().Boards == 3)
 ok("no store is opened", calls.open == 0)
-ok("each says this server", not board("Oxygen").Global and not board("Collectors").Global and not board("Earners").Global)
+ok(
+	"each says this server",
+	not board("Oxygen").Global and not board("Collectors").Global and not board("Earners").Global
+)
 ok("oxygen, a tie for second", line(board("Oxygen")) == "1:Bo=800 2:Ann=500 2:Cy=500", line(board("Oxygen")))
 ok("looks found in the Index", line(board("Collectors")) == "1:Cy=24 2:Ann=4", line(board("Collectors")))
 ok(
@@ -348,7 +384,10 @@ T.setUp()
 clock += 100
 T.step()
 ok("two boards have a store, the Index has none yet", calls.open == 2)
-ok("they say all players; the Index's still this server", board("Oxygen").Global and board("Earners").Global and not board("Collectors").Global)
+ok(
+	"they say all players; the Index's still this server",
+	board("Oxygen").Global and board("Earners").Global and not board("Collectors").Global
+)
 ok(
 	"not yet given back: what they had stored stands",
 	line(board("Oxygen")) == "1:name503=100000 2:name501=700 2:name502=700 4:Ann=50",
@@ -363,10 +402,22 @@ turn(5)
 ok("then each number waits to be stored (Bo earns nothing)", T.waiting() == 5, T.waiting())
 ok("one write a turn of the pump", T.pump(clock) and T.waiting() == 4 and calls.write == 1)
 drain()
-ok("stored as marks, under ids", stored["Boards1_Oxygen"]["11"] == 900 and stored["Boards1_Earners"]["11"] == 123 and stored["Boards1_Earners"]["12"] == nil)
-ok("a number past 2^53 is stored whole and safe", stored["Boards1_Earners"]["13"] % 1 == 0 and stored["Boards1_Earners"]["13"] < 2 ^ 53)
+ok(
+	"stored as marks, under ids",
+	stored["Boards1_Oxygen"]["11"] == 900
+		and stored["Boards1_Earners"]["11"] == 123
+		and stored["Boards1_Earners"]["12"] == nil
+)
+ok(
+	"a number past 2^53 is stored whole and safe",
+	stored["Boards1_Earners"]["13"] % 1 == 0 and stored["Boards1_Earners"]["13"] < 2 ^ 53
+)
 turn(60)
-ok("the next look has them all", line(board("Oxygen")) == "1:name503=100000 2:Ann=900 3:Bo=800 4:name501=700 4:name502=700 6:Cy=500", line(board("Oxygen")))
+ok(
+	"the next look has them all",
+	line(board("Oxygen")) == "1:name503=100000 2:Ann=900 3:Bo=800 4:name501=700 4:name502=700 6:Cy=500",
+	line(board("Oxygen"))
+)
 ok("names are asked for once only", #nameAsks == 1)
 local reads = calls.read
 turn(5)
@@ -400,7 +451,10 @@ budgets = Config.Boards.Reserve
 ann.a.MaxOxygen = 5000
 turn(130)
 local before = calls.write
-ok("nothing is written while the budget is down to the reserve", not T.pump(clock) and calls.write == before and T.waiting() > 0)
+ok(
+	"nothing is written while the budget is down to the reserve",
+	not T.pump(clock) and calls.write == before and T.waiting() > 0
+)
 budgets = 100
 drain()
 ok("it is, when there is budget again", stored["Boards1_Oxygen"]["11"] == 5000)
@@ -426,7 +480,11 @@ Config.Boards.HideUsers = { 503, 12 }
 bo.a.MaxOxygen = 999999
 turn(130)
 drain()
-ok("not listed", string.find(line(board("Oxygen")), "name503") == nil and string.find(line(board("Oxygen")), "Bo=") == nil, line(board("Oxygen")))
+ok(
+	"not listed",
+	string.find(line(board("Oxygen")), "name503") == nil and string.find(line(board("Oxygen")), "Bo=") == nil,
+	line(board("Oxygen"))
+)
 ok("not stored", stored["Boards1_Oxygen"]["12"] ~= 999999)
 ok("still see their own", bo.a.BoardOxygen == 999999)
 Config.Boards.HideUsers = {}
@@ -438,14 +496,22 @@ broken = true
 local warned = #world.warnings
 reads = calls.read
 turn(61)
-ok("the list it had stays, and it says so once a board", board("Oxygen").Global and #world.warnings == warned + 2, #world.warnings - warned)
+ok(
+	"the list it had stays, and it says so once a board",
+	board("Oxygen").Global and #world.warnings == warned + 2,
+	#world.warnings - warned
+)
 for _ = 1, 8 do
 	turn(61)
 end
 ok("asked less and less often", calls.read - reads < 14, calls.read - reads)
 ok("no more lines in the output", #world.warnings == warned + 2, #world.warnings - warned)
 turn(300)
-ok("too old: this server's players, labelled", not board("Oxygen").Global and line(board("Oxygen")) == "1:Bo=999999 2:Cy=500", line(board("Oxygen")))
+ok(
+	"too old: this server's players, labelled",
+	not board("Oxygen").Global and line(board("Oxygen")) == "1:Bo=999999 2:Cy=500",
+	line(board("Oxygen"))
+)
 cy.a.MaxOxygen = 777
 turn(130)
 for _ = 1, 10 do
@@ -473,7 +539,11 @@ api = false
 warned = #world.warnings
 T.setUp()
 turn(61)
-ok("this server's players, no error", not board("Oxygen").Global and #board("Oxygen").Rows == 2 and #world.warnings == warned, line(board("Oxygen")))
+ok(
+	"this server's players, no error",
+	not board("Oxygen").Global and #board("Oxygen").Rows == 2 and #world.warnings == warned,
+	line(board("Oxygen"))
+)
 api = true
 studio = true
 local opened = calls.open
@@ -525,7 +595,54 @@ turn(125)
 cy.a.MaxOxygen = 889
 turn(5)
 T.close()
-ok("the last numbers go out", stored["Boards1_Oxygen"]["13"] == 889 and T.waiting() == 0, stored["Boards1_Oxygen"]["13"])
+ok(
+	"the last numbers go out",
+	stored["Boards1_Oxygen"]["13"] == 889 and T.waiting() == 0,
+	stored["Boards1_Oxygen"]["13"]
+)
+-- (a write that Roblox has not answered as the server closes: started by the service's own loop, answered later)
+local function inFlight(value: number, answers: { [number]: boolean }, after: number): number
+	T.setUp()
+	turn(121)
+	drain()
+	cy.a.MaxOxygen = value
+	turn(125)
+	slow = true
+	local loop = coroutine.create(function()
+		T.pump(clock)
+	end)
+	coroutine.resume(loop)
+	slow = false
+	assert(coroutine.status(loop) == "suspended" and T.waiting() == 0, "no write is under way")
+	local closed = clock
+	onWait = function()
+		if coroutine.status(loop) == "suspended" and clock - closed >= after then
+			coroutine.resume(loop, answers[1])
+		end
+	end
+	T.close()
+	onWait = nil
+	if coroutine.status(loop) == "suspended" then
+		coroutine.resume(loop, true)
+	end
+	return clock - closed
+end
+local took = inFlight(895, { false }, 3)
+ok("a write on its way is waited for", stored["Boards1_Oxygen"]["13"] == 895 and took >= 3 and took < 4, took)
+took = inFlight(896, { true }, 3)
+ok("one that then fails is tried again", stored["Boards1_Oxygen"]["13"] == 896 and took >= 5 and took < 7, took)
+took = inFlight(897, { true }, 1000)
+ok("one that is never answered is not waited for past CLOSE", took >= 20 and took <= 21, took)
+T.setUp()
+turn(121)
+drain()
+broken = true
+cy.a.MaxOxygen = 898
+turn(125)
+T.pump(clock)
+broken = false
+T.close()
+ok("a write that failed before the closing does not wait out its backoff", stored["Boards1_Oxygen"]["13"] == 898)
 budgets = 0
 cy.a.MaxOxygen = 890
 turn(5)

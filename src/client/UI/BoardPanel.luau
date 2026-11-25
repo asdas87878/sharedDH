@@ -66,8 +66,14 @@ export type Panel = {
 	Near: boolean,
 }
 
--- A number as this board writes it. The first is what the list shows, short and four figures (never rounded up)
+-- A number as this board writes it, in the list and at the foot alike: cut to the board's own whole steps first, as
+-- the server's are (Lib/BoardSums.mark: the list's numbers have been through it, a player's own at the foot has not),
+-- then short, in four figures. Never rounded up
 function BoardPanel.number(def: any, value: number): string
+	local steps = value * def.Scale
+	if steps < 1e15 then
+		value = math.floor(steps + 1e-6) / def.Scale
+	end
 	if def.Money ~= 0 then
 		return "$" .. (if value < 100 then Config.rate(value) else Kit.precise(value))
 	end

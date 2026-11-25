@@ -7,6 +7,7 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 local Harness = require("../index/harness")
+local slim = require("./slim")
 
 local CFrame = (roblox :: any).CFrame
 local Vector3 = (roblox :: any).Vector3
@@ -15,7 +16,8 @@ local world = Harness.open(process.args[1])
 local ok, done = Harness.tally()
 local Config = world.require(world.find("ReplicatedStorage.Shared.Config"))
 local Boards = world.require(world.find("ReplicatedStorage.Shared.Boards"))
-local saved = roblox.deserializePlace(fs.readFile(process.args[2]))
+local NEEDED = { "Name", "CFrame", "Size", "size", "Transparency", "CanCollide" }
+local saved = roblox.deserializePlace(slim(fs.readFile(process.args[2]), NEEDED))
 local dock = saved:GetService("Workspace").ClaudeBlockout.Dock
 local floor = dock:FindFirstChild("HubFloor", true)
 local c = Config.Boards
@@ -90,7 +92,10 @@ local function boxes(style: number): { Box }
 	end
 	for i, at in Boards.places(#defs, c.Pitch, c.Turn) do
 		for _, piece in Boards.board(style, defs[i].Emblem, i, i == #defs) do
-			table.insert(out, { Name = defs[i].Id .. " " .. piece.Shape, At = row * at * piece.At, Half = piece.Size / 2 })
+			table.insert(
+				out,
+				{ Name = defs[i].Id .. " " .. piece.Shape, At = row * at * piece.At, Half = piece.Size / 2 }
+			)
 		end
 	end
 	return out
@@ -165,7 +170,12 @@ end
 for _, plot in dock.Plots:GetChildren() do
 	local best, name = math.huge, ""
 	for _, part in plot:GetDescendants() do
-		if part:IsA("BasePart") and part.CanCollide and part.Transparency < 1 and (part.CFrame.Position - row.Position).Magnitude < 70 then
+		if
+			part:IsA("BasePart")
+			and part.CanCollide
+			and part.Transparency < 1
+			and (part.CFrame.Position - row.Position).Magnitude < 70
+		then
 			local d = apart(part)
 			if d < best then
 				best, name = d, part.Name
