@@ -80,7 +80,17 @@ function Lane.project(lane: Lane, position: Vector3, near: number?): (number, nu
 		local i = indexAt(lane, math.clamp(near, 0, lane.Length))
 		first, last = math.max(first, i - 6), math.min(last, i + 6)
 	end
-	for i = first, last do
+	local S = lane.S
+	-- (looking at all of it, a few of its points first: how far off it is at the most, so that most of it is passed over
+	-- below. The lane can be very long, Shared/Endless, and this is asked at each hop)
+	local most = math.huge
+	if last - first > 64 then
+		for k = first, last, 32 do
+			most = math.min(most, (points[k] - position).Magnitude)
+		end
+	end
+	local i = first
+	while i <= last do
 		local a, b = points[i], points[i + 1]
 		local ab = b - a
 		local len2 = ab:Dot(ab)
@@ -88,7 +98,13 @@ function Lane.project(lane: Lane, position: Vector3, near: number?): (number, nu
 		local d = (a + ab * u - position).Magnitude
 		if d < bestD then
 			bestD = d
-			bestS = lane.S[i] + (lane.S[i + 1] - lane.S[i]) * u
+			bestS = S[i] + (S[i + 1] - S[i]) * u
+		end
+		-- (what is less than this much further along the path can't be as near as that)
+		local past = S[i] + (d - math.min(bestD, most)) - 0.05
+		i += 1
+		if i <= last and S[i + 1] < past then
+			i = math.max(i, indexAt(lane, past))
 		end
 	end
 	return bestS, bestD

@@ -308,6 +308,9 @@ local function newSlices(): { Slice }
 	for z = 1, #zones do
 		local s0 = Stream.fromLane(stream, lane.ZoneStart[z])
 		local s1 = Stream.fromLane(stream, lane.ZoneEnd[z])
+		if z == #zones and loopAt then
+			s1 = loopAt -- (the endless Underworld: its laps' own slices go on from there, below)
+		end
 		local length = s1 - s0
 		if length > 1 and hasRoster(z) then
 			local n = math.max(1, math.floor(length / sp.Slice + 0.5))

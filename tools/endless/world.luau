@@ -337,6 +337,13 @@ function World.open(placePath: string, census: any, kill: number, set: (any) -> 
 		self.S = builtStream(...)
 		return self.S
 	end
+	local looped = self.Stream.loop
+	if looped then
+		self.Stream.loop = function(...)
+			self.LoopAt, self.LapLength = looped(...)
+			return self.LoopAt, self.LapLength
+		end
+	end
 	local builtLane = self.Lane.build
 	self.Lane.build = function(...)
 		self.L = builtLane(...)

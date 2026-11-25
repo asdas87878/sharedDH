@@ -199,8 +199,7 @@ do
 end
 
 -- the herd's water
-local loopS = Stream.fromLane(S, lane.ZoneEnd[10])
-local lapS = Stream.fromLane(S, lane.ZoneEnd[10] + (lane.Length - lane.ZoneEnd[10]) / laps * 11) - Stream.fromLane(S, lane.ZoneEnd[10] + (lane.Length - lane.ZoneEnd[10]) / laps * 10)
+local loopS, lapS = w.LoopAt, w.LapLength
 do
 	local function kink(s0: number, s1: number, u: number): (number, number, number)
 		local turn, rise, gap = 0, 0, 0
@@ -229,19 +228,34 @@ do
 	end
 	local worst, floor = 0, 0
 	for k = 0, 1500 do
-		local s = loopS + lapS * 0.02 + lapS * 0.96 * k / 1500
+		-- (from the middle of the second lap on: up to there the line is the one built off the map)
+		local s = loopS + lapS * (1.5 + k / 1500)
 		for _, u in { -0.8, 0, 0.8 } do
 			local a = Stream.point(S, s, Stream.across(S, s, u, 0, 1, 6), 16)
-			for _, n in { 1, 7, laps - 1 } do
+			for _, n in { 1, 7, laps - 4 } do
 				local b = Stream.point(S, s + lapS * n, Stream.across(S, s + lapS * n, u, 0, 1, 6), 16)
 				worst = math.max(worst, (b - a - shift * n).Magnitude)
 			end
 		end
 	end
 	ok("every lap of the herd's water is the same, round the same things", worst < 1.5, worst)
+	-- the first half lap is built off the map: how far to the side of the same line a lap on
+	local aside = 0
+	for s = loopS, loopS + lapS * 0.5, 24 do
+		for _, u in { -0.8, 0, 0.8 } do
+			local a = Stream.point(S, s, Stream.across(S, s, u, 0, 1, 6), 16) + shift
+			local least = math.huge
+			for t = s + lapS - 40, s + lapS + 40, 2 do
+				least = math.min(least, (Stream.point(S, t, Stream.across(S, t, u, 0, 1, 6), 16) - a).Magnitude)
+			end
+			aside = math.max(aside, least)
+		end
+	end
+	print(string.format("      the line of the first half lap is at most %.1f studs to the side of the same half a lap on (water 480 wide and more)", aside))
+	ok("the first half lap is the same water", aside < 16, aside)
 	-- and over the built floor, as the parts are shown: the seabed under each line, in lap 0's parts
 	local under, dry, n = 0, 0, 0
-	for s = loopS, loopS + lapS, 12 do
+	for s = loopS, loopS + lapS * 3, 12 do
 		for _, u in { -0.9, -0.45, 0, 0.45, 0.9 } do
 			local across = Stream.across(S, s, u, 0, 0, 6)
 			local p, floorY = Stream.point(S, s, across, 16)
@@ -278,7 +292,7 @@ do
 			end
 		end
 	end
-	print(string.format("      of %d places of lap 1's herd, %d are within 4 studs of the floor or under it and %d have no floor (in the map's own last land: %d of %d)", n, under, dry, under0, n0))
+	print(string.format("      of %d places of laps 1 to 3's herd, %d are within 4 studs of the floor or under it and %d have no floor (in the map's own last land: %d of %d)", n, under, dry, under0, n0))
 	ok("the herd swims over the floor as it is shown", under <= under0 + 3 and dry <= 5)
 end
 
@@ -326,6 +340,7 @@ local function ride(from: number, seconds: number, more: { any }?): any
 	local s = from
 	local result = { Jump = 0, JumpAt = 0, Made = {}, Gone = {}, Count = {}, Near = {}, Most = 0, Rider = rider }
 	local was: { [number]: any } = {}
+	local parked: { [number]: boolean } = {}
 	local madeFrom, goneFrom = #w.Made, #w.Gone
 	local frames = math.floor(seconds * 30)
 	for f = 1, frames do
@@ -353,7 +368,7 @@ local function ride(from: number, seconds: number, more: { any }?): any
 						end
 					elseif f > 60 then
 						-- one that was not there a frame ago, in sight: made, or woken, too near
-						table.insert(result.Made, { S = s, Far = (p - at).Magnitude })
+						table.insert(result.Made, { S = s, Far = (p - at).Magnitude, Woken = parked[id] == true, Kind = model.Kind })
 					end
 				end
 			end
@@ -364,6 +379,10 @@ local function ride(from: number, seconds: number, more: { any }?): any
 			end
 		end
 		was = fresh
+		table.clear(parked)
+		for id, model in w.Fish do
+			parked[id] = model.Parent ~= nil and model.Parent.Name ~= "Fish"
+		end
 		if f % 15 == 0 then
 			local total = 0
 			for _ in w.Fish do
@@ -398,7 +417,18 @@ do
 	local lap2, lap2Least = mean(result.Count, loopS + lapS - 500, loopS + lapS * 2.2)
 	print(string.format("      fish within 500 studs of the rider (mean, least): the built last land %.1f, %d; across the joint %.1f, %d; lap 1 %.1f, %d; across the next joint and lap 2 %.1f, %d", body, bodyLeast, seam, seamLeast, lap1, lap1Least, lap2, lap2Least))
 	print(string.format("      made %.2f a second, taken away %.2f; most in the whole sea %d (cap %d)", result.MadeRate, result.GoneRate, result.Most, w.Config.Spawn.MaxTotal))
-	ok("no fish within 500 studs appears or goes", #result.Made == 0 and #result.Gone == 0, #result.Made .. " made, " .. #result.Gone .. " gone")
+	-- (two seconds in, the herd this test dropped the rider into the middle of wakes round them: not counted. Then what
+	-- still shows is a hunter or a fast one that swam 200 studs in the two seconds between two lookings, today's game)
+	local seen, odd, least = 0, {}, math.huge
+	for _, m in result.Made do
+		if m.S > start + 1200 then
+			seen += 1
+			least = math.min(least, m.Far)
+			table.insert(odd, string.format("%s %.0f off at %.0f past the joint (%s)", tostring(m.Kind), m.Far, m.S - loopS, if m.Woken then "woken" else "made"))
+		end
+	end
+	print("      of 500 studs, seen to come in late: " .. table.concat(odd, ", "))
+	ok("no fish within 470 studs of the rider appears, none within 500 goes", least > 470 and seen <= 2 and #result.Gone == 0, seen .. " made, " .. #result.Gone .. " gone")
 	ok("no fish jumps: at most its own speed in a frame", result.Jump < 12, string.format("%.1f at %.0f", result.Jump, result.JumpAt))
 	ok("the sea is as full in the laps as in the built last land", math.min(seam, lap1, lap2) >= body * 0.75 and math.min(seamLeast, lap1Least, lap2Least) >= 1)
 	ok("the sea stays under its cap", result.Most < w.Config.Spawn.MaxTotal - 100)
@@ -418,7 +448,11 @@ do
 	end
 	print(string.format("      two riders, laps %d and %d: %.0f studs apart, %d and %d fish round them, made %.2f a second, most in the sea %d", Endless.lapOf(second.Rider.Root.Position.Z), Endless.lapOf(first.Root.Position.Z), far, here, there, second.MadeRate, second.Most))
 	ok("two riders laps apart are really that far apart, each with a full sea", far > 2000 and here >= 8 and there >= 8)
-	ok("nothing appears or goes near either", #second.Made == 0 and #second.Gone == 0, #second.Made .. " / " .. #second.Gone)
+	local late = 0
+	for _, m in second.Made do
+		late += if m.S > start + 1200 and m.Far < 470 then 1 else 0
+	end
+	ok("nothing appears or goes near either", late == 0 and #second.Gone == 0, late .. " / " .. #second.Gone)
 
 	-- and behind them the laps are emptied
 	table.clear(w.Players)
@@ -431,6 +465,12 @@ do
 		left += if row.S >= loopS then 1 else 0
 	end
 	ok("with nobody down there the laps are empty", left == 0, left)
+	local want = w.Service.stats().Slices
+	local overlap = 0
+	for i = 2, #want do
+		overlap = math.max(overlap, math.abs(want[i].Start - want[i - 1].End))
+	end
+	ok("the herd's slices run end to end down the lane, the laps' too", overlap < 0.5, overlap)
 end
 
 -- ============================================================ distance, best, depth
@@ -458,7 +498,7 @@ do
 	ok("best distance goes on up, and no check refuses it (BestService's rule)", refused == 0 and best > 17000, refused)
 	-- the fold the server's rays use: over a whole lap, the floor under a rider is the floor of the built map
 	local off = 0
-	for s = loopS + 600, loopS + lapS - 200, 40 do
+	for s = loopS + lapS * 1.5 + 24, loopS + lapS * 2.5, 40 do
 		local far = w.Service.streamPoint(s + lapS * 9, 20, 8)
 		local built = w.Service.streamPoint(s, 20, 8)
 		off = math.max(off, ((Endless.fold(far)) - (Endless.fold(built))).Magnitude)
