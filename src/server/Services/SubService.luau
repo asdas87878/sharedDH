@@ -425,7 +425,8 @@ local function begin(
 		far = math.clamp(math.min(off, highFar), math.min(off, lowFar), off)
 		pickup = Vector3.new(middle.X, pickup.Y, middle.Z) + across * off
 	end
-	local sFrom = FishService.streamS(pickup) + 90
+	-- (the air hop runs on through here at speed: as far on as the points after it are apart, or the sub would lurch)
+	local sFrom = FishService.streamS(pickup) + (if air then c.Sample else 90)
 	if sDrop <= sFrom + 200 then
 		warn(
 			string.format(
