@@ -365,7 +365,8 @@ local function begin(
 		if not held or not lip then
 			return false
 		end
-		-- (under its rider as it leaps, as every machine is about to put it)
+		-- (under its rider as it leaps, as every machine is about to put it, and out of sight until they jump: Lib/AirHop)
+		held.Model:SetAttribute("SubAir", true)
 		held.Root.CFrame = root.CFrame * CFrame.new(-held.Saddle.Position)
 		local row = SubTrip.Hulls[math.clamp(sub.Equip, 1, #SubTrip.Hulls)]
 		air = SubAir.plan(leap, held.Body / 2, held.Saddle.Position, row, lip)

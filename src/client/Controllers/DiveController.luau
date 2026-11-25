@@ -43,6 +43,11 @@ local RideController = require(script.Parent.RideController)
 
 local DiveController = {}
 
+-- The submarine's air hop (Config.Sub.AirHop) is told of a leap on the ride fish as it begins (Shared/SubAir's Leap), and
+-- says whose crossing of the surface is not this one's to splash for. SubController fills them
+DiveController.Began = nil :: ((leap: { [string]: any }) -> ())?
+DiveController.Quiet = nil :: ((player: Player) -> boolean)?
+
 local UP = Vector3.yAxis
 local FLAT = Vector3.new(1, 0, 1)
 local isStudio = RunService:IsStudio()
@@ -1439,7 +1444,10 @@ local function watch(dt: number)
 				local speed = (was - y) / dt
 				local mine = player == State.Player
 				-- (our own dive's splash is the dive's, at its own moment)
-				local ours = mine and (State.Leaping or os.clock() - ownSplashAt < 2)
+				-- (and one on their sub's seat is the submarine's: Lib/AirHop)
+				local quiet = DiveController.Quiet
+				local ours = (mine and (State.Leaping or os.clock() - ownSplashAt < 2))
+					or (quiet ~= nil and quiet(player))
 				-- someone on their ride fish (its leap, Config.Dive.LeapMounted, goes in less steeply): by their whole
 				-- speed, and as big as the fish
 				local size = 1
@@ -1599,6 +1607,24 @@ local function begin(p: Plan, character: Model, held: number?, leaveCamera: bool
 		mounted = p.mounted,
 		scale = p.scale,
 	})
+	-- (the submarine's air hop hears of a leap on the ride fish as it begins)
+	local began = DiveController.Began
+	if began and p.mounted and held == nil then
+		local tilts = {}
+		for i = 0, 12 do
+			tilts[i + 1] = tiltAt(p, p.crouch + p.air * i / 12 - (if i == 12 then 1e-4 else 0))
+		end
+		began({
+			Take = p.takeoff,
+			Heading = p.heading,
+			Far = p.far,
+			Rise = p.a,
+			Fall = p.c,
+			Crouch = p.crouch,
+			Time = p.air,
+			Tilts = tilts,
+		})
+	end
 end
 
 -- Whether a dive begins now, and its plan: on the dock (ours and the server's word), near it, running at the water or
@@ -2236,6 +2262,14 @@ end
 -- left them and the camera
 function DiveController.handOver(): HandOver?
 	return lastHand
+end
+
+-- The submarine's air hop (SubController): the rider jumps off in the air, so the dive lets go of the body, the camera and
+-- the pose at once
+function DiveController.letGo(why: string)
+	if plan and not heldAt then
+		releaseAll(why)
+	end
 end
 
 ----------------------------------------------------------------------------------------------------------------------

@@ -3589,6 +3589,7 @@ Config.Sub = {
 	AirRush = 1200, -- faster by this much for every second before it (studs a second squared),
 	AirRushFrom = 0.25, -- up to this long before it, seconds (from here on it is level with you)
 	AirSeen = 1.1, -- it is there this long before it meets you, seconds
+	AirFrom = 200, -- and in sight from this far back on its way in, studs
 	AirGap = 2, -- its hull passes this far over the fish's box (and off the gate's arch), studs
 	AirRiseMost = 90, -- at most this much higher for that, studs
 	AirSlopes = { 0, 10, 16, 20, 24, 28, 32, 36, 40, 44 } :: { number }, -- the slopes it may come in down, degrees: level, under the gate's beam; else over the arch
