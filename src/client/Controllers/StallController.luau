@@ -10,8 +10,10 @@
 --   off and on again.
 --   The Index does the same on its own ring, Dock/Stations/Index (Hugo, 2026-11-24: "Integrate ui popup when you stand
 --   on index as well"), as well as by its hub button (UI.HubButtons): walking off the ring closes it however it was
---   opened. The loader makes that station, but it was deleted by hand from the place on 2026-11-23: with no ring
---   there, nothing happens. Config.Index.On 0 stops the ring as it stops the button.
+--   opened. The station is the lighthouse with the open book. It was deleted by hand on 2026-11-23; Hugo's saved place
+--   has it again (read offline 2026-11-25). With no ring there, nothing happens. Config.Index.On 0 stops the ring as
+--   it stops the button. The ring opens whichever window gave Shop.page("Index") its opener. Walked offline by
+--   tools/index/ring_test.luau.
 --   The Fuse machine does the same on its ring, Dock/Stations/Fuse (Hugo, 2026-11-25; docs/design/fusing.md), while
 --   Config.Fuse.On is not 0. No ring in the place: nothing happens.
 --   A ring the player is put down on (a spawn, the way back from a dive: the hub kit's Fuse ring lies on the spawn)
