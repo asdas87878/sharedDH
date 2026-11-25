@@ -359,8 +359,8 @@ do
 		table.concat(names, ", ")
 	)
 	ok(
-		"live, the chest not uploaded: the cash picture",
-		string.find(g.find("Well", "Chest").Image, "119031387165673") ~= nil
+		"live, the uploaded offline chest",
+		g.find("Well", "Chest").Image == "rbxassetid://90279043093713"
 	)
 
 	print("claimed")

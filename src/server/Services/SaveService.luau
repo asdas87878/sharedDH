@@ -245,6 +245,11 @@ function SaveService.take(player: Player): boolean
 	return save ~= nil and take(save)
 end
 
+-- For LeaderboardService: whether the game saves a part of that name at all (known once every Init has run)
+function SaveService.keeps(name: string): boolean
+	return parts[name] ~= nil
+end
+
 -- For PurchaseService: whether a receipt has been given (in the profile, or about to be), and one just given, to go
 -- into the profile with the snapshot that has the gift (now, unless a service can't be read: then with the next)
 function SaveService.hasReceipt(player: Player, id: string): boolean
