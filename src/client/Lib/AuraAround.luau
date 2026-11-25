@@ -283,6 +283,11 @@ function AuraAround.hide(a: Around)
 			p.Emitter.Enabled = false
 			p.Emitter:Clear()
 		end
+		for _, b in a.Bands do
+			for _, beam in b.Beams do
+				beam.Enabled = false
+			end
+		end
 	end
 	a.Seen = 0
 	a.Last = nil -- (back in as it stands then, not easing from where it was)
@@ -305,8 +310,9 @@ local function faded(pairs: { { number } }, seen: number): NumberSequence
 	return NumberSequence.new(list)
 end
 
--- One frame. feet: the wearer's, upright; ride: what they ride, nil on foot; hold: nothing for now, in the hop from one fish to the next (it stays as it stood, or it would shrink and swell at every hop); seen: the fade, 0 to 1 (over 0: hide is for
--- none); detail: 1 to 3; lit: its light is on. place: put a part somewhere
+-- One frame. feet: the wearer's, upright; ride: what they ride, nil on foot; hold: nothing for now, in the hop from one
+-- fish to the next (it stays as it stood, or it would shrink and swell at every hop); seen: the fade, 0 to 1 (over 0:
+-- hide is for none); detail: 1 to 3; lit: its light is on. place: put a part somewhere
 function AuraAround.step(
 	a: Around,
 	t: number,

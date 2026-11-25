@@ -306,7 +306,7 @@ def run():
     for tier in range(3, 11):
         check(f"tier {tier}", do(f"buy|{tier}"), f"AuraBought {tier}", f"aura={tier}")
     sheets = [f"3D{n}=Success" for n in ("Wisp", "Flame", "Ring", "Sweep", "Shock", "Jet", "Haze", "Shaft", "Mote", "Arc", "Ribbon", "Glow")]
-    check("the pictures", do("pictures", 6), *sheets, *[f"{n}=Success" for n in ("Tip", "Streaks", "Lick", "Bubble")])
+    check("the pictures", do("pictures", 6), *sheets, *[f"{n}=Success" for n in (" Flame", "Tip", "Streaks", "Lick", "Bubble", " Arc")])
     for tier in range(1, 13):
         want = re.search(r"beams=\d+ emitters=\d+", str(do(f"want|{tier}"))).group(0)
         check(f"drawn {tier} (want {want})", do(f"drawn|{tier}", 3.5) + " ", f"tier={tier} ", "style=Around", want + " ")

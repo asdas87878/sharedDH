@@ -107,7 +107,8 @@ shop, the server and the flame, unchanged), StyLua, selene, the type checker, a 
 1. The spray bursts outward, and the wisps and flames rise from the rim (Roblox's Cylinder and Disc directions are from the manual).
 2. What lies flat (the ring, the sweeps, the shock rings) lies on the ground, and stays with the fish when it pitches.
 3. Ribbons wind round both sides, with no seam where two Beams meet. In a live game, with no picture: a plain band.
-4. Nothing turns with the camera; no light's edge on the ground; several tier 12s side by side; a phone.
+4. Nothing turns with the camera; no light's edge on the ground; several tier 12s side by side; a phone; a second player's aura does not flicker
+   as they walk and stop (its fade is worked out from the positions the network sends).
 5. With the stand-ins: `explosion01_shockwave_main` lying flat should read as a ring. (It is the picture the old code called Bubble.)
 
 ### Three older rules this goes against, for Hugo to say no to
