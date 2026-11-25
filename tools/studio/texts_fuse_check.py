@@ -4,7 +4,7 @@ IT MOVES THE PLAYER, KILLS THEM AND GIVES THEM FISH: only in a playtest you star
     python tools/studio/texts_fuse_check.py install [save] [lesson]   (in Edit, before Play: a Script, a LocalScript;
                                                                        save: the stand-in save store on; lesson: LessonTest on)
     node ~/Projects/studio-runner/studio-run.mjs play
-    python tools/studio/texts_fuse_check.py texts | lesson | fuse | saved | leave
+    python tools/studio/texts_fuse_check.py texts | lesson | fuse | rings | saved | leave [control]
     python tools/studio/texts_fuse_check.py do VERB [A] | cmd VERB [A]
     node ~/Projects/studio-runner/studio-run.mjs stop
     python tools/studio/texts_fuse_check.py remove                     (in Edit, after the stop; attributes put back)
@@ -44,7 +44,6 @@ local said = Instance.new("StringValue")
 said.Name = "ZZTFSaid"
 said.Parent = SS
 local events, heard = {}, {}
-local lastPlayer = nil
 report.OnServerEvent:Connect(function(_, kind, text)
 	if kind == "ev" then
 		if #events < 5000 then table.insert(events, tostring(text)) end
@@ -137,13 +136,48 @@ local function answer(player, what, arg)
 	elseif what == "fuse" then -- the step itself, on the server, no click
 		local done, why = AquariumService.fuse(player, HttpService:JSONDecode(arg))
 		return { done = done, why = why }
-	elseif what == "leave" then -- fuses these in the very frame the player is thrown out, and says what the save keeps of it
+	elseif what == "leave" then -- fuses these ("[]": nothing) in the very frame the player is thrown out, and says what the save keeps of it
 		local picks = HttpService:JSONDecode(arg)
-		local done, why = AquariumService.fuse(player, picks)
-		local tank, hands = fishOf(player)
-		local answerAt = { done = done, why = why, tank = tank, hands = hands }
-		player:Kick("check")
-		return answerAt
+		-- (the profile itself: TestSave's answer is a copy, as anything through a BindableFunction)
+		local profile = require(Services:WaitForChild("SaveService")).profileOf(player)
+		local function kept()
+			local got = {}
+			local tank = profile and profile.Data.Parts.Tank
+			for _, list in { tank and tank.Fish or {}, tank and tank.Hands or {} } do
+				for _, f in list do table.insert(got, { f.Id, f.Size, f.Variant }) end
+			end
+			return got
+		end
+		local at = { before = kept() }
+		if #picks > 0 then
+			at.done, at.why = AquariumService.fuse(player, picks)
+		end
+		at.tank, at.hands = fishOf(player)
+		local from = os.clock()
+		local link = Players.PlayerRemoving:Connect(function() at.removing = os.clock() - from end)
+		at.order = {}
+		-- (in a solo playtest a Kick's PlayerRemoving had not come 0.8 s later, so the half-second snapshot answered, not the
+		-- leave: the player is removed outright, and the save is read in the frames after it)
+		player:Destroy()
+		local until_ = os.clock() + 1.5
+		repeat
+			task.wait()
+			local now = kept()
+			if #at.order == 0 or HttpService:JSONEncode(at.order[#at.order][2]) ~= HttpService:JSONEncode(now) then
+				table.insert(at.order, { os.clock() - from, now })
+			end
+		until os.clock() > until_
+		link:Disconnect()
+		at.kept, at.active = kept(), profile ~= nil and profile:IsActive()
+		return at
+	elseif what == "ring" then -- a stall's ring moved (the playtest's own copy): name,x,z
+		local n, x, z = string.match(arg, "([^,]+),([^,]+),([^,]+)")
+		local stall = workspace.ClaudeBlockout.Dock.Stations:FindFirstChild(n)
+		local r = stall and (stall:FindFirstChild("Ring") or stall.PrimaryPart)
+		if not r then return { none = true } end
+		local was = r.Position
+		r.Position = Vector3.new(tonumber(x), was.Y, tonumber(z))
+		return { was = { was.X, was.Z }, across = r.Size.X }
 	elseif what == "gone" then
 		return { players = #Players:GetPlayers() }
 	end
@@ -312,6 +346,13 @@ function verbs.odd() -- asks that are nothing like one
 	Net.Action:FireServer("Fuse")
 	return "sent"
 end
+function verbs.act(a) -- JSON: an Action as any window sends it
+	Net.Action:FireServer(table.unpack(HttpService:JSONDecode(a)))
+	return "sent"
+end
+local Shop = require(Client.UI:WaitForChild("Shop"))
+function verbs.page() return tostring(Shop.Page) end
+function verbs.isopen() return tostring(FusePanel ~= nil and FusePanel.isOpen()) end
 function verbs.open(a) FusePanel.open(a == "on") return tostring(FusePanel.isOpen()) end
 function verbs.press(a)
 	local what, i = string.match(a, "(%a+),?(%d*)")
@@ -710,10 +751,11 @@ def fuse():
     root = s["root"]
     gap = ((ring[0] - root[0]) ** 2 + (ring[2] - root[2]) ** 2) ** 0.5
     log.say(f"      ring at ({ring[0]:.1f}, {ring[2]:.1f}), {ring[3]:.1f} across; the player at ({root[0]:.1f}, {root[2]:.1f}), {gap:.1f} away")
-    log.expect("not open at the spawn", do("open", "x") == "false")
+    log.expect("not open at the spawn", do("isopen") == "false")
     cmd("empty")
     s = cmd("state")
     log.expect("tank and hands empty to begin with", total(s) == 0, total(s))
+    cmd("give", [0, [["BlueWhale", "Normal", ""]] * 12])  # (the best earners fill the places: the rest are stored)
     cmd("give", [0, [["Clownfish", "Normal", ""]] * 3 + [["Clownfish", "Tiny", "Gold"], ["Clownfish", "Big", "Rainbow"], ["GreatWhite", "Normal", ""]]
                  + [["Clownfish", "Colossal", ""]]])
     cmd("hand", [["Clownfish", "Normal", ""]])
@@ -741,11 +783,11 @@ def fuse():
     do("walk", f"{ring[0] - 16},{ring[2]},6", 10)
     do("walk", f"{ring[0]},{ring[2]},8", 12)
     time.sleep(0.5)
-    log.expect("off and on again: open", do("open", "x") in ("true", "false") and True)
+    log.expect("off and on again: open", do("isopen") == "true")
     # refusals
     s = cmd("state")
     off = [p for p in pick(s, "T", "Clownfish", "Normal", on=False)]
-    on = pick(s, "T", "Clownfish", on=True)
+    on = pick(s, "T", "BlueWhale", on=True)
     hand = pick(s, "H", "Clownfish")
     top = pick(s, "T", "Clownfish", "Colossal")
     shark = pick(s, "T", "GreatWhite")
@@ -787,10 +829,29 @@ def fuse():
     cmd("config", "Price=0")
     after = cmd("state")
     log.expect("after all the refusals nothing has changed", [f for f in after["tank"]] == before["tank"] and after["hands"] == before["hands"] and after["coins"] >= before["coins"])
-    # the riding one, and off the dock
+    cmd("config", "SameSize=1")
+    tiny = pick(after, "T", "Clownfish", "Tiny")
+    a = ask([tiny[0], off[0], off[1]])
+    log.expect("not the same size, with SameSize 1", a == ("FuseDenied", "Size"), a)
+    cmd("config", "SameSize=0")
+    # the fish you ride
+    do("act", ["Hold", 1, "Clownfish"])
+    time.sleep(0.8)
+    do("act", ["RideEquip"])
+    time.sleep(1.5)
+    r = cmd("state")
+    ride = [f for f in r["hands"] if f["Ride"]]
+    log.say(f"      ride fish {ride}, attrs {[ (k, r['attrs'].get(k)) for k in ('HeldFish', 'TankRide', 'State') ]}")
+    if ride:
+        a = ask(["H" + ride[0]["Key"], off[0], off[1]])
+        log.expect("the ride fish", a == ("FuseDenied", "Ride"), a)
+    else:
+        log.expect("a ride fish to ask with", False, r["hands"])
+    do("act", ["RideUnequip"])
+    time.sleep(1)
     # fusing three
     cmd("empty")
-    cmd("give", [0, [["Clownfish", "Colossal", ""]] * 0 + [["BlueWhale", "Normal", ""]] * 12])  # (the best earners fill the equipped places)
+    cmd("give", [0, [["BlueWhale", "Normal", ""]] * 12])
     cmd("give", [0, [["Clownfish", "Normal", ""], ["Clownfish", "Big", ""], ["Clownfish", "Normal", "Gold"]]])
     cmd("hand", [["Clownfish", "Normal", "Rainbow"], ["Clownfish", "Giant", ""]])
     s = cmd("state")
@@ -835,6 +896,28 @@ def fuse():
     said = [r[:40] for _, k, r in events(n) if k == "ride"]
     e = cmd("state")
     log.expect("the same ask five times in one frame: fused once", len(e["hands"]) == 2 and sum(r.startswith("Fused") for r in said) == 1, f"{said} {len(e['hands'])} in hand")
+    # by the window itself, cards pressed
+    cmd("empty")
+    cmd("hand", [["GreatWhite", "Normal", ""], ["GreatWhite", "Normal", ""], ["GreatWhite", "Tiny", ""]])
+    walkon(ring)
+    n = len(events())
+    for i in (1, 2, 3):
+        do("press", f"Card,{i}")
+        time.sleep(0.5)
+    if os.environ.get("SHOT"):
+        run(["shot", str(OUT / "window-three.png")])
+    log.say("      " + do("fps", "2", 10) + " with three in the pods")
+    (OUT / "window3.json").write_text(do("texts", "FusePanel"))
+    do("press", "Fuse")
+    time.sleep(0.8)
+    if os.environ.get("SHOT"):
+        run(["shot", str(OUT / "window-swirl.png")])
+    time.sleep(4)
+    if os.environ.get("SHOT"):
+        run(["shot", str(OUT / "window-done.png")])
+    e = cmd("state")
+    log.expect("pressed in the window: three Great Whites, one Big left", len(e["hands"]) == 1 and e["hands"][0]["Size"] == "Big",
+               f"{[r[:60] for _, k, r in events(n) if k == 'ride']} {e['hands']}")
     # dying and diving with it open
     cmd("hand", [["Clownfish", "Normal", ""]] * 3)
     s = cmd("state")
@@ -853,6 +936,38 @@ def fuse():
     cmd("home")
     time.sleep(6)
     log.say("      " + do("fps", "3", 10) + " on the dock, window shut")
+    log.errors()
+    return log.end()
+
+
+def walkon(ring):
+    cmd("at", f"{ring[0] - 12},{ring[1] + 4},{ring[2]}")
+    time.sleep(0.6)
+    do("walk", f"{ring[0]},{ring[2]},8", 12)
+    time.sleep(0.6)
+
+
+def rings():
+    """Each stall's ring moved (in the playtest) under the spawn: put down on it, nothing opens; off and on again, it does"""
+    log = Log("rings")
+    for name in ("Sell", "Auras", "Sub", "Index", "Fuse"):
+        got = cmd("ring", f"{name},3000,-88")
+        if got.get("none"):
+            log.say(f"      {name}: no ring in the place")
+            continue
+        cmd("kill")
+        time.sleep(11)
+        first = do("page")
+        do("walk", "3000,-110,6", 10)
+        time.sleep(0.4)
+        do("walk", "3000,-88,6", 10)
+        time.sleep(0.5)
+        then = do("page")
+        do("walk", "3000,-110,6", 10)
+        time.sleep(0.5)
+        log.expect(f"{name}: put down on it: shut; off and on: open; off: shut", first == "nil" and then == name and do("page") == "nil",
+                   f"{first}, {then}, {do('page')}; across {got['across']:.1f}")
+        cmd("ring", f"{name},{got['was'][0]},{got['was'][1]}")
     log.errors()
     return log.end()
 
@@ -894,18 +1009,20 @@ def saved():
     return log.end()
 
 
-def leave():
-    """With `install save`: fused in the very frame the player leaves"""
-    log = Log("leave")
+def leave(control=False):
+    """With `install save`: fused in the very frame the player leaves (a fresh Play each: the kick ends it).
+    control: they leave the same way with nothing fused"""
+    log = Log("leave-control" if control else "leave")
     cmd("hand", [["Clownfish", "Normal", ""]] * 3)
+    time.sleep(2)
     s = cmd("state")
-    got = cmd("leave", pick(s, "H", "Clownfish")[:3])
-    log.say("      " + json.dumps(got)[:400])
-    log.expect("fused, two used up, as they left", got.get("done") is not None)
-    time.sleep(3)
-    logs = cmd("logs")
-    bad = [r for r in logs["server"] if r.startswith("MessageError")]
-    log.expect("no errors on the server after it", not bad, " || ".join(bad[:4]))
+    got = cmd("leave", [] if control else pick(s, "H", "Clownfish")[:3])
+    log.say("      " + json.dumps(got)[:900])
+    if not control:
+        log.expect("fused, two used up, as they left", got.get("done") is not None)
+    mine = sorted([f["Id"], f["Size"], f["Variant"]] for f in got["tank"] + got["hands"])
+    log.expect("they really left (PlayerRemoving came, the session ended)", got.get("removing") is not None and not got.get("active"), f"{got.get('removing')} active {got.get('active')}")
+    log.expect("the save they left with holds just what they had", mine == sorted(got["kept"]), f"{mine} / before the kick {got['before']} / after {got['kept']}")
     return log.end()
 
 
@@ -917,8 +1034,8 @@ if __name__ == "__main__":
     elif what == "remove":
         print(install(remove=True))
         print("mouse and camera:", edit(RESET).splitlines()[-1:])
-    elif what in ("texts", "lesson", "fuse", "saved", "leave"):
-        sys.exit(1 if globals()[what]() else 0)
+    elif what in ("texts", "lesson", "fuse", "rings", "saved", "leave"):
+        sys.exit(1 if (leave("control" in a) if what == "leave" else globals()[what]()) else 0)
     elif what == "do":
         print(do(a[0], a[1] if len(a) > 1 else ""))
     elif what == "cmd":

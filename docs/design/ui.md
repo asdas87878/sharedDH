@@ -18,7 +18,7 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
-## The Fuse window (2026-11-25, Hugo; NULLROOM u1): built, not seen in Studio
+## The Fuse window (2026-11-25, Hugo; NULLROOM u1): on main, seen in Studio
 The Fuse machine's window, opened by its ring: [fusing](fusing.md), [the picture](../attachments/fuse-window.png). A ring the player is put
 down on (a spawn, the way back from a dive) now opens nothing until they step off and on again: every stall's, `StallController`.
 

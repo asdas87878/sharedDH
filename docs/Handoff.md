@@ -4,14 +4,18 @@ What each push changed, so whoever pulls next knows where things stand. Newest f
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
-**State:** committed on the branch `fusing` (from `ede1ff7`), **not pushed, not merged, not in Studio.** Nothing uploaded. Everything:
+**State:** merged onto main and pushed by z1, **seen in Studio** (`tools/studio/texts_fuse_check.py fuse | rings | saved | leave`; not on a phone, not played by hand). Nothing uploaded. Everything:
 [fusing](design/fusing.md). Off: `Config.Fuse.On` 0.
 - **New:** `Shared/Fuse`, `FuseService`, `AquariumService.fuse`, `RideService.fuseCarried`, `UI/FusePanel`, `Config.Fuse`, `tools/fuse/`.
   **Changed:** "Hands" rows carry the carried key as a fourth value (readers that take three are untouched); `StallController` (the
   Fuse ring; **a ring you are put down on no longer opens its window, for every stall**), `HubSigns`, `SoundController`, `Net` (comments).
 - **Checked offline:** 164 and 97, none failed; stylua, selene (0 errors, its 3 old warnings), rojo build, types clean in the new files;
   `index/panel_test` 91 and `auras/aura_test` 61 pass. `index/index_test` fails 3 of 73 (the Shallows' set pay), the same on `ede1ff7` without this.
-- **Owed:** Studio (the window, the show, the live models in the pods, a real save and rejoin), a phone, by hand.
+- **Studio (z1), all passing:** the ring opens the window and walking off shuts it; refused: earning in the tank, a Colossal, two kinds, one not there, far off, switched off, no coins, another size (with `SameSize` 1), the
+  ride fish, dead, off the dock; nonsense and doubled asks do nothing; five asks in one frame fuse once; the biggest stays and keeps its own colour, gold and rainbow used up are not inherited, a rainbow that stays
+  stays; the tank's count 15 to 13, hands untouched; three pressed in the window make a Big. A ring you are put down on stays shut until off and on, at all five stalls. Save: what is kept is what there is, closed and
+  opened again it comes back; removed from the game in the very frame of a fusing, the save has the one fused fish (and a control with none fused has its three). 53 to 60 frames a second with the window open.
+- **Owed:** a phone, by hand, two players at once (solo playtests only), the real data store (the check uses ProfileStore's mock).
 - **Merging:** tried (no branch changed) against `texts-b1-a3`, `pictures-index-offline`, `offline-rewards`, `air-hop` and `index-look`,
   one at a time, as committed at 14:50: no conflict in code, only in notes (Handoff, Decisions, ui.md, Code map: keep both sides), and
   both fuse tests pass on each merged tree. Not tried: all of them together.
