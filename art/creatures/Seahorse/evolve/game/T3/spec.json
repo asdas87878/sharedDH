@@ -1,0 +1,22 @@
+{
+  "name": "SeahorseRocker3",
+  "zone": "TRAINER",
+  "rarity": "LEVEL 3: SADDLED",
+  "colours": {
+    "cream": "#FFF0CC",
+    "black": "#22262B",
+    "ivory": "#FFF6E0",
+    "body": "#2EB9B0",
+    "belly": "#FFE9B8",
+    "ring": "#F28A2E",
+    "fin": "#FFF4D6",
+    "tip": "#F28A2E",
+    "saddle": "#8A4B2A",
+    "blanket": "#E0403A",
+    "s_pad": "#E1463F",
+    "s_rim": "#A92E2A",
+    "s_base": "#F6C431",
+    "s_trim": "#FFFFFF",
+    "s_coil": "#C4CCD8"
+  }
+}
