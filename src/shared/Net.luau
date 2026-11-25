@@ -53,19 +53,21 @@
 --       "Max", "Land", "NoFail", "EndlessAir", "Fail"); the server answers "Done", text or "Refused", text
 --     Trainer (TrainService, both ways): the client sends "Off" or "Up"; the server sends "On", fish | "Off", fish,
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
---     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim"; the server sends
---       "Paid", coins | "Denied", why ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into)
+--     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim" | "Triple" (hold
+--       it, I buy Claim x3); the server sends "Paid", coins | "Buy", product id (open Roblox's prompt) | "Denied", why
+--       ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into; "Buying": held for a purchase; "Sale")
 --     Boards (LeaderboardService and BoardController, both ways): the client sends "Sync" (send me the boards); the
 --       server sends "State", { Next = server time of the next look, Boards = { { Id, Global, Rows = { { Id, Name,
 --       User, Value, Rank } } } } } (Global false: this server's players only)
 --   Index (IndexService and UI/IndexPanel, both ways; the rewards: Config.Index):
 --     the client sends "Claim", fishId (the reward of a kind it has found) | "ClaimLand", land (the reward of a land
 --       whose whole set it has found) | "ClaimAll" (every reward it may claim) | "Sync" (send me my Index again)
+--       | "Saddle", land (put that land's saddle on, one it owns; 0: take the worn one off)
 --     the server sends "State", found, kinds, lands (the player's whole Index, after every change: found is fish id ->
 --       how many of its looks, size and colour, they have caught; kinds and lands are what they have claimed, fish id
---       -> true and land as a string -> true) | "Paid", oxygen, coins, count (a claim was paid: the max Oxygen and
---       coins given, and how many rewards it was) | "Denied", why ("Dock": not on the dock, "Nothing": nothing there
---       to claim)
+--       -> true and land as a string -> true) | "Paid", oxygen, coins, count, saddles (a claim was paid: the max
+--       Oxygen and coins given, how many rewards it was, and the lands whose saddle came with it) | "Denied", why
+--       ("Dock": not on the dock, "Nothing": nothing there to claim, "Saddle": not theirs to wear)
 -- Attributes on the Remotes folder, set by the server: Zones (the zones, Zones.encode), LanePath (the lane's
 -- centreline as JSON, "" with none) and Dock (the dock spawn's CFrame, when the map has one).
 -- Attributes on a fish the server owns (besides FishService's own: FishType, Tier, Variant, Rider, Reserved): Angry
@@ -86,7 +88,8 @@
 -- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being
 -- yours; nil off a fish, on one too strong, or with taming off),
 -- IndexFound (how many kinds they have caught) and IndexClaims (how many Index rewards wait to be claimed),
--- IndexPaid (they have claimed one before): IndexService,
+-- IndexPaid (they have claimed one before) and Saddle (the land whose saddle they wear, 0 for none: Shared/Saddles,
+-- SaddleController): IndexService,
 -- OfflineOwed and OfflineSecs (the coins to claim from the tank's earnings while they were away, and the seconds it earned
 -- them in; nil: none): OfflineService,
 -- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,

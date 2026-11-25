@@ -27,9 +27,10 @@ heading (a refusal is said there). The X and Claim are 44 px or more from 360 px
 - **The X keeps it.** A small gold Claim with the amount stays by the dock's buttons (over them on a PC, beside Shop on a
   phone), and opens the window again. Not claimed at all: it is saved, the next absence is added to it, and the window comes
   up again at the next join. It is never lost, and never runs out.
-- **Claim x3 for Robux** is in the reference and is not built: it would be a paid product and nobody has asked for it. There
-  is no second button, but the row has room: a second one in it and `OfflinePanel.share(row)` make two of equal width
-  (checked). **Open, Hugo's: Claim x3 for Robux, yes or no.**
+- **Claim x3 for Robux (Hugo: 29):** built, not sold yet and not run. `Products.Triple` (Id 0, Price 29, not in the Shop); while
+  the Id is 0 there is no second button. The press holds what is owed (no free claim) and opens Roblox's prompt; the one
+  ProcessReceipt pays 3 times the server's own number, with its receipt in the same snapshot. Kept in the save's Offline part
+  as two optional fields (`Held`, `Took`). To sell it: make the product on the Roblox site and write its Id in `Products.Triple`.
 
 ## The numbers: all DRAFTS, for the tuning chat (`Config.Offline`)
 | Number | Draft | What it is |

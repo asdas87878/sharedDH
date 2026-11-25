@@ -1008,6 +1008,8 @@ Config.Offline = {
 	Share = 0.5, -- DRAFT. of what the tank's equipped fish earned a second on leaving (1: as if they had stayed)
 	Most = 28800, -- DRAFT. and at most this long is paid for, seconds (8 h)
 	AskGap = 0.3, -- the least seconds between two asks from one player; a faster one is dropped
+	Hold = 120, -- Claim x3: what is owed is held this long for Roblox's prompt to be answered, seconds,
+	HoldJoin = 60, -- and this long after a join, when it was held as they left
 	Settle = 0.8, -- on the dock this long with nothing else on the screen before the window shows by itself, seconds
 }
 
@@ -4121,6 +4123,25 @@ Config.Index = {
 	Secrets = 1,
 	Watch = 0.25, -- seconds between the server's looks at what each player carries and keeps (how a catch is seen)
 	AskGap = 0.2, -- the least seconds between two asks from one player; a faster one is dropped
+}
+
+-- Saddles (Hugo, 2026-11-25: "add saddles as a reward in index"; NULLROOM tasks s1, s2; docs/design/saddles.md): a land's
+-- whole set claimed in the Index gives that land's saddle, and the one worn sits on every fish its owner rides.
+Config.Saddles = {
+	On = 1, -- 0: no saddles: none shown, none to put on, nothing about them in the Index
+	-- Each land's design, A or B (Shared/Saddles/Designs): Hugo's ten picks (2026-11-25); "" = the land gives none
+	Land = { "1A", "2B", "3B", "4B", "5A", "6B", "7B", "8B", "9B", "10B" },
+	PartsAFrame = 24, -- how many saddle parts are made at most in one frame, over every fish (these ten are 19 to 165 parts)
+	RevealNear = 1.5, -- our own saddle shows once our seat is this near the fish's, studs (made hidden during the pull-in)
+	Far = 500, -- a saddle further than this from the camera is not made, and is taken off at 1.2 times it, studs
+	Spare = 360, -- how many unused parts are kept for the next saddle (a hop has two on at once: 2 x 165 at most)
+} :: {
+	On: number,
+	Land: { string },
+	PartsAFrame: number,
+	RevealNear: number,
+	Far: number,
+	Spare: number,
 }
 
 ----------------------------------------------------------------------------------------------------------------------

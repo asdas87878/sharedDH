@@ -5,7 +5,7 @@
 -- wide window, the chest and the title at the left of a shining header, the X at its right, a heading, a big chest left of
 -- the middle in a dark body the dock shows through, the gold amount over its foot, and a row of wide buttons. The look is
 -- the dock's own (UI.Shop's window, header, studs and button) with our own chest (art/ui/offline). The reference's second
--- button (three times as much for Robux) is left out: nothing sells it. The row has room for it (OfflinePanel.share).
+-- button, Claim x3 for Robux (Hugo, 2026-11-25; Products.Triple), is there only once its product has an Id.
 --   OfflinePanel.open(on)    opens or closes it, as Shop.go("Offline"): one dock window at a time
 --   OfflinePanel.owed()      the coins waiting (the player's "OfflineOwed" attribute: OfflineService decides everything)
 --   OfflinePanel.chip(on)    the small CLAIM beside the dock's buttons, for as long as coins wait and the window is
@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Products = require(ReplicatedStorage.Shared.Products)
 local State = require(script.Parent.Parent.Lib.State)
 local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
@@ -107,6 +108,8 @@ local hours: TextLabel
 local group: Frame -- the big chest and the amount
 local amount: TextLabel
 local claim: Shop.Button
+local triple: Shop.Button? = nil -- Claim x3 (none while it is not on sale)
+local price = Products.Triple.Price -- (Roblox's own once it has answered)
 local chip: Shop.Button? = nil
 local chipAmount: TextLabel
 local said = false -- the hours' line holds something else
@@ -115,6 +118,10 @@ local asking = false
 local pressed = Instance.new("BindableEvent")
 -- Fired as CLAIM is pressed
 OfflinePanel.Pressed = pressed.Event
+
+local pressedTriple = Instance.new("BindableEvent")
+-- Fired as Claim x3 is pressed
+OfflinePanel.Triple = pressedTriple.Event
 
 local function chestPicture(): string
 	if OfflinePanel.Chest ~= "" then
@@ -168,6 +175,10 @@ local function paint()
 			if asking or owed < 1 then "Off" else "Cash",
 			not asking and owed >= 1
 		)
+		if triple then
+			local ready = not asking and owed >= 1
+			triple.set(`Claim x3  {price}`, if ready then "Robux" else "Off", ready)
+		end
 	end
 	if chip then
 		chipAmount.Text = Shop.cash(owed)
@@ -300,6 +311,23 @@ local function build()
 			pressed:Fire()
 		end
 	end)
+	if Products.onSale(Products.Triple) then
+		local b = Shop.button(row, {
+			Name = "Triple",
+			Text = "Claim x3",
+			Kind = "Robux",
+			Sign = "Robux",
+			TextSize = LAYS.Wide.Claim,
+			LayoutOrder = 1,
+		})
+		b.Root.ZIndex = 3
+		b.Root.Activated:Connect(function()
+			if b.Live and not asking then
+				pressedTriple:Fire()
+			end
+		end)
+		triple = b
+	end
 	OfflinePanel.share(row)
 
 	-- puts everything where this shape has it
@@ -338,6 +366,11 @@ local function build()
 		amount.Size = UDim2.fromOffset(0, l.Chest * FOOT)
 		row.Size = UDim2.new(1, 0, 0, l.Row)
 		claim.Label.TextSize = l.Claim
+		if triple then
+			-- (half the row holds the sign, the words and the price)
+			local half = (l.Wide - 2 * side - GAP) / 2
+			triple.Label.TextSize = math.min(l.Claim, math.floor(half / (14 * LETTER)))
+		end
 		paint()
 	end
 	-- the kit's fit knows one size: on a screen too narrow for it, the narrow shape at its own scale
@@ -396,6 +429,12 @@ Shop.page("Offline", OfflinePanel.open)
 -- A claim is on its way: CLAIM waits (the amount goes when the server says so)
 function OfflinePanel.claiming(on: boolean)
 	asking = on
+	paint()
+end
+
+-- Roblox's own price for Claim x3, in place of ours
+function OfflinePanel.price(robux: number)
+	price = robux
 	paint()
 end
 
