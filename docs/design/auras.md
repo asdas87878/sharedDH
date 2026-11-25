@@ -17,7 +17,8 @@ Hugo's words, in order:
   and make sure you can buy them. Prices should be consistent across different parts like the seahorses, make sure the
   scaling is cohesive."
 
-**State (2026-11-24, task a1): draft 4 is built and the auras can be bought. Not seen in Studio yet, not played.** The last
+**State (2026-11-25): draft 4 is built, the auras can be bought, and it is on main. Checked by script and stills in Studio, not
+played by hand.** The last
 quote is read as the go for the flame below (**a reading, not confirmed by Hugo**); the old look (draft 2) is kept behind
 `Config.Aura.Flame` 0. Draft 3 (the soft mist) is not used: Hugo took the yes back (the third quote). What was built and
 checked: "Built", below. From there on this note is the mock's, as it was drawn offline.
@@ -34,11 +35,14 @@ checked: "Built", below. From there on this note is the mock's, as it was drawn 
   as white foam, Urchin (magenta) as mint and violet, and the others differ too. A live game shows that until the pictures are uploaded.
 - **The pictures** are `art/ui/aura_flame/` (white, not uploaded). Studio reads a local copy
   (`python tools/auras/flame_pics.py`, once a PC and again after Studio updates itself). Ids go in `Auras.Pictures`. **Until
-  all six have an id, a live game draws the old look;** so does a Studio without the copy.
+  all six have an id, a live game draws the old look;** so does a Studio without the copy. **To upload (Hugo's yes): the six files in
+  `art/ui/aura_flame/upload/`** (`aura_flame_f1_t2`, `aura_tip_f1_t2`, `aura_streaks_f1_t2`, turned 180 degrees; `aura_lick_f1`,
+  `aura_bubble_f1`, `aura_arc_f1`), not the plain ones beside it: once the ids are set `Aura.Turn` does nothing, and the plain
+  three would be upside down and broken at the joints.
 - **Three dials, read live, set by what Studio showed (2026-11-25):** `Config.Aura.Turn` 2 (quarter turns of the Beams'
   pictures), `Scroll` -1 (with 0 and 1, the first guess, the flame was upside down and broken at every joint), `Behind` 1
   (the push was right; -1 turns it round).
-- **Two changes from the mock, both against lines at the body's joints:** every body Beam has one push, -1.1
+- **Two changes from the mock, against lines at the body's joints (much thinner, not gone: "Known", below):** every body Beam has one push, -1.1
   (`AuraFlame.Behind`; was -1.5, with -0.8 for the lowest: two pushes part the Beams at the joint), and each Beam leaves its
   joints straight up (a curve of a third of its length, 20 segments).
 - **Buying:** `AuraService` (server). A press on a card sends Action "AuraBuy", tier; the server checks that it is the next
@@ -54,9 +58,16 @@ checked: "Built", below. From there on this note is the mock's, as it was drawn 
   tables below, every moment's numbers, the server's rules, saving), StyLua, selene, the type checker, a Rojo build.
 - **Checked in Studio (2026-11-25):** `python tools/studio/aura_check.py run`: 0 faults (buying through the real remote, the
   refusals, the coins to the unit, the cards' prices, what is drawn for all twelve). By eye: tiers 1, 6 and 12 in the hub
-  (cameras 14 to 38 degrees down: no joint line, no line on the floor) and riding a small and a big fish; the rider, the fish and the
+  (cameras 14 to 38 degrees down: no floor line through the foot seen) and riding a small and a big fish; the rider, the fish and the
   hook stay readable; a name over a head is readable, weakest over tier 6's yellow. Tier 1 is faint on bright sand.
   [The stills](../attachments/auras-in-game.png).
+- **Known, left as they are (2026-11-25), seen in the stills:**
+  - **Faint level hairlines** across the flame at regular heights, at tiers 1 and 12 close up (14 and 30 degrees): probably the
+    joints, where two Beams bend a little apart.
+  - **The flame can be drawn over the wearer.** At tier 12 from a steep camera (30 degrees) a magenta tongue shape lies over an arm,
+    and the far side of a hat's brim is tinted (also at 14 degrees, slightly). The arm's is probably a loose tongue particle; the brim's
+    probably the flame itself, now only 1.1 studs behind (1.5 in the mock). Not traced.
+  - A spark bubble near the feet can be cut by the floor for a moment (tier 12).
 - **What it costs:** tier 1, 6 and 12 add 10, 26 and 47 draw calls (one a Beam, one an emitter) and 280, 730 and 1,415
   triangles to the hub's 105 and 54,907; a frame stayed at 16.7 ms on Hugo's PC with one and with two tier 12s (it holds 60).
   That is the Beams and emitters the table says. **Eight tier 12s near each other are about 376 draw calls: a phone has not been
@@ -145,7 +156,8 @@ The two pull apart, so this is where the line was drawn:
 - These middles are higher than in the first render of this draft (0.12, 0.28 and 0.44). The separate tongues put
   more bright edges inside the outline, so less of it is empty. The fill between the edges was thinned in return:
   in the hub the floor's squares can be read through the flame beside the body on every tier.
-- **On every tier the flame is drawn behind the wearer,** so it never covers the avatar or the face, however strong.
+- **On every tier the flame is drawn behind the wearer,** so in the mock it never covers the avatar or the face, however strong
+  (in the game it can, a little: "Built", Known).
 - **No light and no glow.** No PointLight. The colours are only a little brightened (LightEmission 0.2 to 0.3 on the
   Flame, Inner and Crown layers; more only on tier 11's pale Core, 0.6, and on the thin streaks, waves, sparks and
   arcs).
@@ -316,7 +328,8 @@ edge.
 - `aura_arc.png`: a jagged line with one branch.
 
 **In the repo since 2026-11-24 ([art/ui/aura_flame](../../art/ui/aura_flame/README.md)), not uploaded:** that needs Hugo's
-yes.
+yes. The files to upload are the six in its `upload/` folder (Flame, Tip and Streaks turned 180 degrees: `..._f1_t2`), because
+`Config.Aura.Turn` does nothing once the ids are set.
 
 ### Cost, low graphics and phones
 

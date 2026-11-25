@@ -1,10 +1,12 @@
 """The aura flame's six pictures (art/ui/aura_flame): checks them and copies them into every Studio on this PC, where
 AuraController reads them until they are uploaded (Auras.Pictures). Nothing is uploaded.
 
-usage: python tools/auras/flame_pics.py [check]     the check only with "check"
+usage: python tools/auras/flame_pics.py [check | upload]     "check": the check only; "upload": write the six files to upload
+(art/ui/aura_flame/upload: the Beam pictures turned as Config.Aura.Turn says, since a picture with an id is drawn as it is)
 
 The three Beam pictures are copied four times, turned by 0 to 3 quarter turns (aura_flame_f1_t0.png ..): which way a Beam
 runs its picture could not be checked offline, so Config.Aura.Turn picks one in Studio."""
+import re
 import sys
 from pathlib import Path
 
@@ -42,6 +44,20 @@ def check():
     return faults
 
 
+def upload():
+    config = (ROOT / "src/shared/Config.luau").read_text(encoding="utf-8")
+    turn = int(re.search(r"^\tTurn = (\d)", config[config.index("Config.Aura = {"):], re.M).group(1))
+    dest = ART / "upload"
+    dest.mkdir(exist_ok=True)
+    for name in SIZES:
+        im = Image.open(ART / f"aura_{name}.png")
+        if name in BEAMS:
+            im.rotate(-90 * turn, expand=True).save(dest / f"aura_{name}_{SET}_t{turn}.png")
+        else:
+            im.save(dest / f"aura_{name}_{SET}.png")
+        print("written", name)
+
+
 def studio():
     home = Path.home() / ".var/app/org.vinegarhq.Vinegar/data/vinegar/versions"
     windows = Path.home() / "AppData/Local/Roblox/Versions"
@@ -68,5 +84,7 @@ if __name__ == "__main__":
     print(f"{len(SIZES)} pictures, {len(found)} faults")
     if found:
         sys.exit(1)
-    if sys.argv[1:] != ["check"]:
+    if sys.argv[1:] == ["upload"]:
+        upload()
+    elif sys.argv[1:] != ["check"]:
         studio()
