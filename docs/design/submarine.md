@@ -188,6 +188,68 @@ under the sub as it comes by overhead (or over it, when it comes in low), up ove
   down over them from above the arch. The view sees them leave the saddle, and see them on the seat again in the fall.
 - The sub is in sight only from 200 studs back (`AirFrom`), 1.1 s before it meets you.
 
+**Checked offline (2026-11-25; the last run is this source).** 1,326 leaps (all 78 kinds at all six sizes, and more along the lip and
+slanted) with each of the nine subs: 11,934 flights, every frame at 60 a second, told to the real `SubService`; each got its air
+hop. 6,247 of them have the sub over the gate's arch, the rest under its beam. The numbers:
+
+| | Least | Middle | 95 of 100 | Most | Asked |
+|---|---|---|---|---|---|
+| Jump-off to seated, s | 0.45 | 0.45 | 0.53 | 0.60 | about 0.5 |
+| Lip to splash, s | 1.20 | 1.47 | 1.67 | 2.06 (Colossal; Normal 1.63) | 1.3 to 1.6 |
+| Lip to the run (control), s | 1.55 | 1.82 | 2.02 | 2.41 | 2 to 3 at most |
+| Nose down at the surface, degrees | 19 | 34 | 45 | 50 | nose first |
+| The sub's room to the lane's sides, studs | 8.7 | 32 | | | clear |
+| The rider's move, a frame against the last, studs | 0.29 | 0.73 | 1.01 | 1.25 | no jump |
+| The swap: the copy off the dive's pose | 0.0 studs | 0.1 degrees | 0.5 | 1.2 degrees, 0.0 studs | not seen |
+
+- **All of the 11,934 pass:** the sub clear of the gate, the arch and the map; the rider clear of them; the fish clear of the hull until
+  its own splash; the sub in the lane; through the surface once; the seat met exactly; the camera on the middle line, behind,
+  never in the sub and never cut; the rider in the picture; the fish's turn under 12 degrees a frame.
+- **Over the aim:** the hop over 0.5 s in 2,496 (0.6 at most); the splash after 1.6 s in 1,133 (924 Colossal, 34 Normal; before 1.3 s in 851).
+- **What fails, and by how much:**
+
+| Check (its limit) | Fails | The worst | Where |
+|---|---|---|---|
+| The camera's turn in a frame (6 degrees) | 1,489 | 11.3 (middle 3.4) | all but 13 over the arch |
+| The rider through the sub's hull as it sweeps by (0.1 s) | 874 | 0.20 s | 525 with sub 9, 784 over the arch |
+| The fish's move, a frame against the last (3 studs) | 792 | 4.6 | all sizes, as it comes up beside the sub |
+| The sub over the rider in the fall (0.3 s) | 301 | 0.43 s | 173 sub 9, 70 sub 6 |
+| The sub over the rider in the hop (0.3 s) | 147 | 0.37 s | 60 sub 9, 55 sub 7 |
+| The fish through the hull as it comes up beside (0) | 138 | 0.1 s, the boxes 9 studs into each other | 135 sub 9 |
+| The camera's move, a frame against the last (2.5 studs) | 64 | 3.6 | big fish; 1 Normal |
+| The camera in the fish (0.1 s) | 2 | 0.13 s | |
+
+- **The limits that are looser than the brief, so they pass:** the splash's is 2.1 s; the hop's 0.6 s; a thing of the map between the camera
+  and the rider 0.4 s (0.37 at most). Subs 5 and 7 hide their own seated rider from the run's own camera, in the old hop as well; there
+  the fall is not judged.
+- **The run after it, with the fish beside (1,716 runs: every kind Normal and Colossal, eleven sub-and-land trips each; the old hop's own checks):**
+  camera, jump, hull, frame, turn, home and sub 0 fail. Walls: 12 Normal (rays and turtles; 7.7 studs at most, MantaRay to land 7; ten of
+  them under 4) and 154 Colossal (27.7 at most). The surface or the floor: 83 Colossal (a giant, as before). A plain swim: 2 Normal
+  (InfernalAngler and Hellmaw, sub 9 to land 2), 9 Colossal. In 213 of them the run is too short for a sweep (`AirWeave`): the fish swims beside.
+- **`AirPeel` 0.25 is the middle of three tried:** 0.2 has 2 Normal walls and 255 joins, 0.3 has 14 and 69.
+- **The server's rules: 48 of 48** (who may, where from, when, a second trip at once, a late word, a server hitch, off the fish, unequipped, dead or gone at each point; the rider handed over once).
+  The client's own code in the frame of the swap is not run offline: Studio must see that no frame has two fish or none. **The dive's check, parts 1, 3, 4, 5, with the
+  switch on: all pass** (468 of 468 plans, as before).
+- **The switch off is the old hop:** escort_check with `AirHop` 0 against the tag's own check on the tag's own build, 2,652 trips: the text
+  and the csvs the same, byte for byte, its 3 known fails included.
+- **The server's cost of one leap:** about 107 ms in a quiet Lune (the plan 54, the rooms beside the lane 44, which the old hop
+  has too), 200 with the PC busy. Studio's own number is not known.
+- **Not known, for Studio:** all of the feel and look; two players; the gate, hub stands and kelp as they are in Studio (the check has the map generator's
+  boxes); the sounds; real lag.
+
+To run it (about 15 minutes on 12 threads):
+
+```
+L=~/.rokit/tool-storage/lune-org/lune/0.11.1/lune
+~/.rokit/tool-storage/rojo-rbx/rojo/7.7.0/rojo build -o /tmp/place.rbxl
+python3 tools/subs/escort_hulls.py /tmp/cells.json; python3 tools/dive/lip_boxes.py . /tmp/lip.json
+$L run tools/subs/air_leaps.luau /tmp/place.rbxl /tmp/lip.json /tmp/leaps.json
+for i in $(seq 1 11); do $L run tools/subs/escort_check.luau . /tmp/place.rbxl /tmp/a_$i.csv $i/11 /tmp/cells.json /tmp/leaps.json /tmp/lip.json > /tmp/a_$i.txt & done; wait
+$L run tools/subs/escort_check.luau . /tmp/place.rbxl /tmp/r.csv rules /tmp/cells.json /tmp/leaps.json /tmp/lip.json
+```
+
+The old hop's check is the same command without the last two files, on a build with `AirHop` 0.
+
 ### From the fish onto the sub (Hugo, 2026-11-24)
 Hugo: "you should also hop from fish to submarine while seeing the fish swim off next to you looping left and right then
 come back once you arrive". **The hop under water: `Sub.AirHop` 0, and the fallback of [the air hop](#the-air-hop-hugo-2026-11-25).** On main since
@@ -304,7 +366,7 @@ Listed limits, all Colossal:
 - **The one failed check:** LanternLeviathan (3 of its 17 trips) and WraithEel (1 of its 17), sub 9 to land 10, have a
   third of themselves in view for 0.48 to 0.49 of the weave; the check asks for half. Not chased further: outside the review's bar.
 
-To run it (about 12 minutes; each part prints its own result, and the csvs are one line a trip). `lune` and `rojo` are not
+To run it, on a build with `Sub.AirHop` 0 (about 12 minutes; each part prints its own result, and the csvs are one line a trip). `lune` and `rojo` are not
 on the PATH on every PC, so these are the whole paths (Rokit's own store):
 
 ```

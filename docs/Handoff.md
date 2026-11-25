@@ -3,6 +3,25 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · The mid-air hop onto the sub (NULLROOM h1, Hugo's PC; branch `air-hop`, NOT on main, NOT pushed)
+**State:** built on branch `air-hop` (worktree `~/Projects/sharedDH-air-hop`), main (ede1ff7) and merge-dive-sub-index (03c8f19) merged in with
+no conflicts. **Checked offline only. Not in Studio, not played, nothing uploaded.** Hugo's words, the timeline, the numbers and
+what fails: [submarine](design/submarine.md), "The air hop".
+- **What it is:** on your ride fish with a sub and a land picked, the leap off the lip now has you jump off near its top, the sub
+  flies in from behind, you are on its seat 0.45 s later, it splashes in nose first and the run follows. The fish goes in by itself.
+- **The switch:** `Config.Sub.AirHop` 1 (default). 0 is the hop under water exactly as at the tag `backup-underwater-hop-2026-11-25`
+  (2,652 trips byte for byte the same). Never move that tag. The old hop also runs if a leap gets no air hop.
+- **New:** `Shared/SubAir` (the plan, pure), `Client/Lib/AirHop` (the rider, the camera, the splash), Action `"SubLeap"`, `SubPhase` `Leap` and
+  `Hop` in the air, every `Config.Sub.Air*` number, `tools/subs/air_leaps.luau` and `air_check.luau` (run by `escort_check.luau`).
+  The dive has three small hooks (`DiveController.Began`, `Quiet`, `letGo`); a plain dive is unchanged (468 of 468).
+- **Passes:** 11,934 flights: hull, gate, arch, lane, surface, camera side and behind, no cut, rider continuity, seat, swap pose, 48 server rules.
+- **Fails, small (the table in the note):** the view turns up to 11 degrees in a frame when the sub comes over the arch; rider through the hull 0.2 s at
+  most; hidden behind the sub up to 0.43 s; sub 9 and its fish overlap up to 0.1 s as it comes up; the tall fish splash at up to 2.1 s (asked
+  1.6); 12 runs of rays and turtles touch a lane wall.
+- **For Studio, in order:** the swap frame (two fish or none), the feel, the view over the arch, the sub low over the hub's stands,
+  the splash and sound, two players, the server's cost of a leap (about 100 ms in Lune), lag, give-ups by hand.
+  `tools/studio/fish_sub_check.py` was written for the old hop: use it with `AirHop` 0, or adapt it.
+
 ## 2026-11-25 · The subs checked again after the merge: nine tiers, the gate and pick-up, the shop (NULLROOM c1, Hugo's PC)
 **State:** pushed: one new check, one sheet, notes. **No `src/` change,** nothing uploaded, the place left as it was (Edit, no test parts,
 `full_check.py all` all good). All of it: [sub models](design/sub-models.md), "Checked again after the merge".
