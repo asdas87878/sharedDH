@@ -310,29 +310,40 @@ function SubAir.track(air: Air, t: number, riderY: number): number
 	)
 end
 
+-- How far along it is: behind the rider, drawing in behind the sub by its splash
+local function alongAt(air: Air, t: number, rider: Vector3, sub: Vector3): number
+	local k = Ease.smoothstep(air.HopAt, air.SplashAt, t)
+	return Ease.lerp(rider:Dot(air.Out) - air.Eye.Back, sub:Dot(air.Out) - Config.Sub.AirCamSub, k)
+end
+
+-- How steeply the sub goes down about now, 0 to 1 (by its way over the tenths of a second about now, the nearest
+-- counting most: its way breaks at the seat)
+local function falling(air: Air, t: number): number
+	local sum = 0
+	for _, h in { 0.06, 0.12, 0.18 } do
+		local way = SubAir.middle(air, math.min(t + h, air.RideAt)) - SubAir.middle(air, t - h)
+		sum += math.max(-way.Unit.Y, 0)
+	end
+	return sum / 3
+end
+
 -- Where it is at `t` and what it looks at, from the trip alone (from the run on: SubController's)
--- (`riderAt`, `subAt`: the rider and the sub then, if already worked out)
-function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Vector3, Vector3)
+-- (`riderAt`, `subAt`, `fallAt`: the rider, the sub and how it falls then, if already worked out)
+function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?, fallAt: number?): (Vector3, Vector3)
 	local c = Config.Sub
 	local e = air.Eye
 	local out, side = air.Out, across(air)
 	local rider = riderAt or SubAir.rider(air, t).Position
 	local sub = subAt or SubAir.sub(air, math.min(t, air.RideAt))
 	local at = sub.Position
-	-- along: behind the rider, drawing in behind the sub by its splash
-	local k = Ease.smoothstep(air.HopAt, air.SplashAt, t)
-	local along = Ease.lerp(rider:Dot(out) - e.Back, at:Dot(out) - c.AirCamSub, k)
+	local along = alongAt(air, t, rider, at)
 	-- up: over the rider, but under the sub until it has gone by overhead; then over the sub
 	-- (no lower once it is past there)
 	local cap = e.Cap - softMin(along - air.Meet:Dot(out), 0, 40) * math.tan(air.Slope)
 	local track = SubAir.track(air, t, rider.Y)
 	local low = if e.Top then -softMin(-track - c.AirCamUp, -cap, 8) else softMin(track + c.AirCamUp, cap, 8)
 	-- (higher behind a nose that is down: over its stern, the rider in sight)
-	-- (by its way over the tenths of a second about now, the nearest counting most: its way breaks at the seat)
-	local function falling(h: number): number
-		return math.max(-(SubAir.middle(air, math.min(t + h, air.RideAt)) - SubAir.middle(air, t - h)).Unit.Y, 0)
-	end
-	local down = (falling(0.06) + falling(0.12) + falling(0.18)) / 3
+	local down = fallAt or falling(air, t)
 	local high = at.Y + c.AirCamSubUp + c.AirCamSub * math.min(down, math.sin(math.rad(c.AirNose))) * c.AirCamNose
 	-- (clear of the gate's arch: under its beam or over its crest until it is past it, and only then up over the sub)
 	if e.Gate > 0 then
@@ -635,7 +646,7 @@ function SubAir.plan(
 	return air
 end
 
-type Sample = { T: number, Rider: Vector3, Sub: CFrame, Fish: CFrame }
+type Sample = { T: number, Rider: Vector3, Sub: CFrame, Fish: CFrame, Fall: number }
 
 -- The flight, every `step` seconds
 function SubAir.samples(air: Air, step: number): { Sample }
@@ -648,6 +659,7 @@ function SubAir.samples(air: Air, step: number): { Sample }
 			Rider = SubAir.rider(air, t).Position,
 			Sub = SubAir.sub(air, t),
 			Fish = SubAir.fish(air, math.min(t, entry)),
+			Fall = falling(air, t),
 		})
 		t += step
 	end
@@ -668,7 +680,7 @@ function SubAir.seen(air: Air, hull: { number }, lip: CFrame, samples: { Sample 
 		if s.T < math.min(c.AirCamIn, air.HopAt) then
 			continue -- (still on its way from the player's own view)
 		end
-		local eye, look = SubAir.eye(air, s.T, s.Rider, s.Sub)
+		local eye, look = SubAir.eye(air, s.T, s.Rider, s.Sub, s.Fall)
 		local now = math.deg(math.asin((look - eye).Unit.Y))
 		turn = math.max(turn, math.abs(now - (pitch or now)) / step / 60)
 		pitch = now
@@ -722,7 +734,7 @@ function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
 		else
 			-- when the sub's tail has gone over it, and it is past the gate it is to stay under
 			for _, s in samples do
-				local along = SubAir.eye(air, s.T, s.Rider, s.Sub):Dot(out)
+				local along = alongAt(air, s.T, s.Rider, s.Sub.Position)
 				if
 					s.T >= air.HopAt - 0.3
 					and s.Sub.Position:Dot(out) - hull[5] - 4 > along
