@@ -144,7 +144,7 @@ Studio reads local copies: `python tools/auras/volume_sheets.py --local`, then r
 
 ### Checked offline
 
-`tools/auras/volume_test.luau` (78 checks: the ladder grows and loses nothing, the caps, the fade to the hundredth, each way of riding
+`tools/auras/volume_test.luau` (78 checks then, 111 now: the ladder grows and loses nothing, the caps, the fade to the hundredth, each way of riding
 by the names the server uses, the size on small and giant fish, the detail by distance and phone), `aura_test.luau` (61, the
 shop, the server and the flame, unchanged), StyLua, selene, the type checker, a Rojo build. Eight of nine faults put in on purpose were caught
 (the ninth, `SpeedOver` next to nothing, is hidden by `StillFor`).
