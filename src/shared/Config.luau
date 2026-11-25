@@ -3873,6 +3873,16 @@ Config.Index = {
 }
 
 ----------------------------------------------------------------------------------------------------------------------
+-- The trailer mode (Studio only, TrailerService and TrailerController; docs/design/trailer.md): J plays the shots of
+-- the game-page video for a screen recorder. 0 off
+Config.Trailer = {
+	On = 1,
+	Settle = 1.4, -- seconds on a fish before the slate lifts (it gets up to speed, the herd and the land stream in)
+	Fog = 1, -- the fog's end, times this, in a shot (1: the game's own)
+	Oxygen = 100000, -- max Oxygen meanwhile, so no fish is too strong
+}
+
+----------------------------------------------------------------------------------------------------------------------
 -- Fusing: three fish of a kind made one, a size bigger, at the Fuse machine
 
 -- Fusing (Hugo, 2026-11-25: "the biggest dino grows in size and doesnt inherit traits, but it keeps its own traits when

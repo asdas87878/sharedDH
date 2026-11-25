@@ -39,6 +39,7 @@ local State = {
 	-- camera and WildController read it
 	Fit = nil :: Fit?, -- its last fit (a buck, a thrash, a bolt ...)
 	Fitted = Instance.new("BindableEvent"), -- fired as one begins: kind, sign, power
+	RideLift = 0, -- studs a ridden fish keeps higher over the floor than the herd (the trailer mode, for the giants)
 	RideBeat = 0, -- its swim beat, radians, counting up (one stroke of the tail each 2 pi)
 	RideEffort = 1, -- how hard it is working (1: cruising)
 	CamRoll = 0, -- the view's roll, radians (WildController: into a turn)

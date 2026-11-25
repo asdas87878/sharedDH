@@ -549,6 +549,7 @@ local function drive(dt: number)
 	local height = if floorY then at.Y - floorY else nil
 	-- the herd's height here: lower in the shallows, where it leaves room above it for a jump
 	local level = if floorY then math.min(Config.Herd.RideHeight, Config.herdTop(floorY)) else Config.Herd.RideHeight
+	level += State.RideLift
 	if height then
 		-- it follows the lane down by itself, settling at the herd's height above the floor
 		local h = Config.Herd
