@@ -327,8 +327,8 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Ve
 	local track = SubAir.track(air, t, rider.Y)
 	local low = if e.Top then -softMin(-track - c.AirCamUp, -cap, 8) else softMin(track + c.AirCamUp, cap, 8)
 	-- (higher behind a nose that is down: over its stern, the rider in sight)
-	local down =
-		math.max(-(SubAir.middle(air, math.min(t + 0.03, air.RideAt)) - SubAir.middle(air, t - 0.03)).Unit.Y, 0)
+	-- (over a fifth of a second: its way breaks at the seat)
+	local down = math.max(-(SubAir.middle(air, math.min(t + 0.1, air.RideAt)) - SubAir.middle(air, t - 0.1)).Unit.Y, 0)
 	local high = at.Y + c.AirCamSubUp + c.AirCamSub * math.min(down, math.sin(math.rad(c.AirNose))) * c.AirCamNose
 	-- (clear of the gate's arch: under its beam or over its crest until it is past it, and only then up over the sub)
 	if e.Gate > 0 then
@@ -536,6 +536,19 @@ function SubAir.plan(
 		end
 		return true
 	end
+	-- (math.huge: none clear)
+	local function leastRise(): number
+		local poses = comingIn()
+		local rise = 4
+		while rise <= c.AirRiseMost do
+			if comesIn(poses, rise) then
+				return rise
+			end
+			rise += 2
+		end
+		return math.huge
+	end
+	local rises: { [number]: number } = {}
 	-- the fall: the nearest place past the fish's nose
 	local function comesDown(): boolean
 		local high = air.Meet.Y - Config.Depth.SurfaceY
@@ -562,41 +575,54 @@ function SubAir.plan(
 		end
 		return false
 	end
+	-- the slopes, the lowest way in first; the first with a fall that is soon enough, else the soonest of the first few
 	local tried: { [number]: boolean } = {}
-	while true do
+	local tries, soonest = 0, math.huge
+	local kept: { number } = {}
+	while tries < 4 or soonest == math.huge do
 		local best, bestRise, bestSlope = math.huge, 0, 0
 		for _, degrees in c.AirSlopes do
 			if tried[degrees] then
 				continue
 			end
 			air.Slope = math.rad(degrees)
-			local poses = comingIn()
-			local rise = 4
-			while rise <= c.AirRiseMost and rise + degrees * 0.4 < best do
-				if comesIn(poses, rise) then
-					best, bestRise, bestSlope = rise + degrees * 0.4, rise, degrees
-					break
-				end
-				rise += 2
+			local rise = rises[degrees]
+			if not rise then
+				rise = leastRise()
+				rises[degrees] = rise
+			end
+			if rise + degrees * 0.4 < best then
+				best, bestRise, bestSlope = rise + degrees * 0.4, rise, degrees
 			end
 		end
 		if best == math.huge then
-			if (later or 0) < c.AirLater - 1e-3 then
-				return SubAir.plan(leap, half, saddle, hull, lip, nil, (later or 0) + 0.08)
-			end
-			return nil
+			break
 		end
 		local more = math.clamp((bestRise - c.AirClimb) * c.AirClimbSlow, 0, c.AirClimbMost)
 		if not longer and more > 0.02 then
 			return SubAir.plan(leap, half, saddle, hull, lip, more, later)
 		end
+		tries += 1
+		tried[bestSlope] = true
 		air.Slope = math.rad(bestSlope)
 		air.Meet = meetAt(air.Slope, bestRise)
-		if comesDown() then
-			break
+		if comesDown() and air.SplashAt < soonest - 0.05 then
+			soonest = air.SplashAt
+			kept = { air.Slope, bestRise, air.Fall }
+			if soonest - leap.Crouch <= c.AirSoon then
+				break
+			end
 		end
-		tried[bestSlope] = true
 	end
+	if soonest == math.huge then
+		if (later or 0) < c.AirLater - 1e-3 then
+			return SubAir.plan(leap, half, saddle, hull, lip, nil, (later or 0) + 0.08)
+		end
+		return nil
+	end
+	air.Slope, air.Fall, air.SplashAt = kept[1], kept[3], soonest
+	air.Meet = meetAt(air.Slope, kept[2])
+	SubAir.aim(air, nil, nil)
 	-- over the gate, or under its beam
 	local atGate = (air.Meet - lip.Position):Dot(out) + 14
 	air.Over = air.Meet.Y + atGate * math.tan(air.Slope) > c.AirBeam[2]
@@ -657,7 +683,7 @@ function SubAir.seen(air: Air, hull: { number }, lip: CFrame, samples: { Sample 
 		if s.T >= air.HopAt and s.T <= air.SeatAt + 0.15 and crosses(s.Sub * centre, size, eye, s.Rider + UP * 2) then
 			behind += step
 		end
-		cost = gate * 20 + sub * 60 + fish * 4 + hidden * 3 + behind * 6 + math.max(turn - c.AirCamTurn, 0) * 0.25
+		cost = gate * 20 + sub * 60 + fish * 20 + hidden * 3 + behind * 6 + math.max(turn - c.AirCamTurn, 0) * 0.25
 		if cost >= most then
 			break
 		end
