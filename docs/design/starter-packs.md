@@ -7,10 +7,13 @@ that. Then give them a lumpsum of cash, oxygen and a 1 hour x2 oxygen, cash and 
 **Decided (the user):** a starter pack with the Great White remodel as its hero; it holds a lump of cash, a lump of Oxygen, and
 one hour of x2 Oxygen, cash and luck for the whole server. This reopens, for starter packs only, "Robux prices and the Shop are
 left alone for now" (2026-11-24).
+**Decided (the user, 2026-11-25): "Add luck later".** The pack launches with x2 Oxygen and x2 cash; x2 luck comes after launch.
+What is marked *later* below is that second step.
 **Proposed (Claude):** every price and amount below, the other three deals, and how the hour works. Nothing is built.
 
 ![The Great White pack's card](../attachments/starter-pack-greatwhite.png)
-*Mock-up, drawn by `tools/ui/starter_pack_card.py` from the model's own render.*
+*Mock-up of the launch card, drawn by `tools/ui/starter_pack_card.py` from the model's own render. Later, with luck and its Odds
+window: [the luck card](../attachments/starter-pack-greatwhite-luck.png).*
 
 ## The four deals
 | | Reef Shark Pack | **Great White Pack** | Helicoprion Pack | Server Rush |
@@ -20,7 +23,7 @@ left alone for now" (2026-11-24).
 | It needs / earns | 1,620 / $40/s | **29,700 / $742/s** | 2.43M / $60.8K/s | |
 | Oxygen | 50K | **100K** | 5M | |
 | Cash | $1M | **$5M** | $1B | |
-| Server boost | none | **x2 Oxygen, cash, luck, 1 h** | the same, 1 h | the same, 30 min |
+| Server boost | none | **x2 Oxygen, cash, 1 h** (*later* luck) | the same, 1 h | the same, 30 min |
 | The lumps at the Shop's own prices | 108 | 108 to 248 (below) | 548 | |
 | Shown | until land 4 is held | **until land 6 is held** | from land 5 until land 7 is held | always |
 | Bought | once | **once** | once | again and again |
@@ -37,13 +40,14 @@ The rule behind the two bigger packs: **the Oxygen holds the next land and not t
   rare about it is the size: a Great White comes Colossal in about 0.3% of spawns. It is **not** exclusive, and the card must not
   say it is.
 - **+100K Oxygen**, for good. **+$5M.**
-- **x2 Oxygen, x2 cash and x2 luck for everyone in the server, 1 hour.**
+- **x2 Oxygen and x2 cash for everyone in the server, 1 hour** (*later* x2 luck too).
 
 **Which Great White.** `GreatWhite`: the remodel (from `TrialGreatWhite`) replaces the old one for everyone, uploaded 2026-11-25
 ([six creatures added](added-2026-11-25.md)). Land 3, Epic, needs 9,900 Normal, 52 studs; Colossal is x2.8 long, about 146 studs.
 The creatures chat confirms the folder and that it replaces the plain one (same name and id: every player can tame this model); the old creature chat installed it and waits for the user's word on saving the place.
 
-**What it's worth against playing free** (the tuning model in `tools/balance/`, run unedited; five seeds, the middle one; today's
+**What it's worth against playing free** (the tuning model in `tools/balance/`, read by a script that adds the pack in memory, the file itself untouched; five seeds, the middle one; without luck every row is the
+same to a minute; today's
 five new kinds are left out because the model has no base numbers for them yet):
 
 | | land 4 | land 5 | land 6 | land 7 | land 8 |
@@ -87,25 +91,25 @@ has paid.
    Oxygen and cash meters count up.
 2. Two buttons: **RIDE IT** (the shark goes to the ride slot) and **TO THE TANK** (it earns there). It is in the tank until they
    choose.
-3. The banner for the whole server: "NAME turned on x2 OXYGEN, x2 CASH and x2 LUCK for everyone, 1 hour!" A small chip with the
+3. The banner for the whole server: "NAME turned on x2 OXYGEN and x2 CASH for everyone, 1 hour!" A small chip with the
    clock and NAME stays for everyone.
 4. Bought in a dive: the boost starts at once for everyone; the Oxygen, cash and shark come at the dock, as bought Oxygen does.
 
 ## The other deals
 - **Reef Shark Pack, 49.** The first purchase: 108 of Shop rungs for 49, and a shark to ride from the first dive. No boost, so no
-  random-item rules at all. The weak shark is honest: "Colossal" is its real size, land 1. Breaks the early game no more than the
+  random-item rules even later. The weak shark is honest: "Colossal" is its real size, land 1. Breaks the early game no more than the
   59 pack does.
 - **Helicoprion Pack, 399.** 5M Oxygen and $1B are 548 of rungs; the boost and a Legendary on top. Bought at 29 minutes it puts a player
   in land 6 at once and land 7 at 48 minutes (free: 2.5 h). Too much for a new player (land 7 at 20 minutes if bought at 3), so
   it is hidden until land 5 is held (about 29 minutes free; a Great White buyer gets there at 6, and it is then the next thing to buy).
 - **Server Rush, 99, 30 minutes.** The same boost without a shark, bought again and again: the packs sell once an account, and this is
-  what sells after them. Needs nothing the Great White pack's boost did not already build. Same random-item rules.
+  what sells after them. Needs nothing the Great White pack's boost did not already build.
 
 ## The server hour, exactly
 - **x2 Oxygen** doubles what the seahorse trains, after the aura. Not the refill on landing (that is already the whole meter), not
   Index claims, not bought Oxygen and **not the pack's own lump**.
 - **x2 cash** doubles the tank's income each tick. Not selling, Index cash, bought cash or the pack's own lump.
-- **x2 luck** doubles the odds of Silver, Gold and Rainbow on each **new** wild fish; fish already swimming keep theirs.
+- ***Later:* x2 luck** doubles the odds of Silver, Gold and Rainbow on each **new** wild fish; fish already swimming keep theirs.
 
 | Colour | Now | x2 luck |
 |---|---|---|
@@ -123,12 +127,15 @@ has paid.
 - **Who is named:** the buyer, by display name, on the banner and the chip. Extending: "NAME added 1 hour".
 - **Own passes:** a future Double Oxygen pass would multiply with it (x4 for that one player); two server boosts never do.
 
-## Roblox's rules on this
+## Roblox's rules on luck (*later*)
+The launch packs hold no luck and nothing random, so by these pages none of them is a paid random item: no odds window, no
+policy check, no twins.
+
 From Roblox's own pages, read 2026-11-25 ([paid random items](https://create.roblox.com/docs/production/monetization/paid-random-items),
 [Community Standards](https://about.roblox.com/community-standards),
 [PolicyService](https://create.roblox.com/docs/reference/engine/classes/PolicyService)):
 - "Luck boosts" are named as a probability modifier, a paid random item. **A pack holding one is a paid random item whole**, and so are
-  the Great White Pack, the Helicoprion Pack and Server Rush (not the Reef Shark Pack).
+  the Great White Pack, the Helicoprion Pack and Server Rush would be, once luck is in them (not the Reef Shark Pack).
 - Before the purchase the player must be able to see every outcome's odds as numbers adding to 100%, what the boost changes, and
   (while it runs) odds that match. A bare "i" isn't enough: the card has an **Odds** button.
 - Where `PolicyService` says paid random items are restricted for a player, they must not be sold one: **a second product at the same
@@ -138,19 +145,19 @@ From Roblox's own pages, read 2026-11-25 ([paid random items](https://create.rob
   free wild catch under paid luck counts; which countries are restricted; whether the odds must list kinds and sizes too. Whether a
   countdown on an offer is banned we did not find; we use none.
 
-## Recommended order
-**Build the pack with Oxygen and cash only, put luck in second.** Oxygen and cash are where the time saved is; luck is the costly
-part (odds screen, live odds, the policy check, three more products, the questionnaire) and it makes the whole pack a random item.
-Ship x2 Oxygen and x2 cash for the whole server with the shark at launch, then add luck. The user asked for luck, so the mock-up
-has it and it is one question below.
+## Two steps
+1. **Launch:** the packs with x2 Oxygen and x2 cash. Nothing here needs Roblox's random-item answers.
+2. **Later: luck.** Its odds window, live odds, the policy check, the twins and the questionnaire. Cheapest way in: put luck in
+   **Server Rush only**, so the once-only packs never become paid random items and one twin is enough, not three. Someone who bought
+   a launch pack is not owed luck: the card they bought never said it.
 
 ## What would have to be built
 | Part | Who |
 |---|---|
-| Robux products (four developer products; seven once luck is in, a no-luck twin for three), the content questionnaire, asking Roblox the open points | The user |
+| Robux products (four developer products). *Later:* the no-luck twins, the content questionnaire, asking Roblox the open points | The user |
 | **Saving switched on** (a once-only pack needs it), a grant of several things in one receipt, the once-only flag, the boost's saved end times | Game code |
-| The server boost (clock, extend, banner text, the three multipliers), `FishService` rolling with luck, the policy check | Game code |
-| The pack's card (a new tall kind: 424 high against the Shop's 128 and 168), the odds window, the banner and clock chip, the purchase moment, the old Starter pass row replaced | UI |
+| The server boost (clock, extend, banner text, the two multipliers). *Later:* `FishService` rolling with luck, the policy check | Game code |
+| The pack's card (a new tall kind: 424 high against the Shop's 128 and 168), the banner and clock chip, the purchase moment, the old Starter pass row replaced. *Later:* the odds window | UI |
 | The Great White: save the place (templates are in the open Studio only), a slot picture for the new model, check a 146-stud shark on the dock, ridden on land and in a tank (none checked) | Creatures, then map |
 | Amounts and prices, the boost's numbers in the balance model, the model's base numbers for the five new kinds | Tuning |
 
@@ -159,7 +166,7 @@ has it and it is one question below.
    pack was 99 with a 24-hour clock and is now 39 / 149 / 279; of players who pay, most spend 1 to 800 Robux in all; prices
    of 250 to 400 beat 650; a poor-value starter pack cut spending across the whole game ([videos](../reference/roblox-videos.md)).
    A 199 sale leaves about $0.53 and a 149 sale about $0.40, so 199 is only better if it sells at least three for every four.
-2. **Luck now or after launch?** (Recommended: after.)
+2. Answered: luck is added later.
 3. **How big:** 100K + $5M (the shark stays useful) or 500K + $25M (plainly worth more than the Shop's 149 pack, skips to land 5)?
 4. **Which Great White:** plain Colossal, or a version no one can catch (a new model or colour, more work, more pull)?
 5. **Is the clock-free, once-per-account rule right for you?** The reference runs a 24-hour clock.

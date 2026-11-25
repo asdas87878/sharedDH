@@ -3,7 +3,8 @@ through headless Chrome with Roblox's built-in font, the Shop's own colours, stu
 (`python tools/art/voxel_preview.py GreatWhite`, which writes work/voxel/hand/GreatWhite/hero.png). Nothing here is game
 code, nothing is uploaded or generated.
 
-    python tools/ui/starter_pack_card.py [look] [--try]      look: Gold (default), Sky, Berry, Sea, Grape
+    python tools/ui/starter_pack_card.py [look] [--luck] [--try]      look: Gold (default), Sky, Berry, Sea, Grape
+    --luck: the later version with x2 luck and its Odds window (the user, 2026-11-25: luck is added after launch)
 """
 import glob
 import os
@@ -38,7 +39,8 @@ def u(p):
     return Path(p).as_uri()
 
 
-def build(look):
+def build(look, luck):
+    wide = W if luck else 894
     top, foot = LOOKS[look]
     WORK.mkdir(parents=True, exist_ok=True)
     hero = Image.open(ROOT / "work" / "voxel" / "hand" / "GreatWhite" / "hero.png").convert("RGBA")
@@ -93,8 +95,16 @@ body{width:%(W)dpx;height:%(H)dpx;background:#0b6f9c;font-family:F;color:#fff;ov
 .pop td,.pop th{text-align:right;padding:5px 2px;font-weight:400} .pop td:first-child,.pop th:first-child{text-align:left}
 .pop th{font-size:15px;color:#9fb2d8} .pop tr+tr td{border-top:2px solid #333b52} .now{color:#6dee4c}
 .cap{position:absolute;font-size:15px;line-height:19px;color:#d8f3ff;font-family:Arial}
-""" % dict(W=W, H=H, body=u(body), head=u(head), top=top, foot=foot)
+""" % dict(W=wide, H=H, body=u(body), head=u(head), top=top, foot=foot)
     font = '@font-face{font-family:F;src:url("%s")}' % u(FONT)
+    extra = ('<div class="chip t" style="background:rgba(190,120,255,.45)">x2 Luck</div></div>'
+             '<div class="btn odds t">Odds</div>') if luck else "</div>"
+    pop = f"""<div class="win pop" style="left:898px;top:124px;width:286px;height:366px"><div class=in></div>
+ <div class=head><b class=t style="font-size:29px">x2 Luck odds</b></div>
+ <div class=in2><p>The colour of each new wild fish. The same for every fish in every land.</p>
+ <table><tr><th>Colour</th><th>Normal</th><th>x2 Luck</th></tr>{rows}</table></div></div>
+<div class=cap style="left:898px;top:504px;width:284px">What the Odds button opens: Roblox wants the odds shown before the
+purchase. Players whose region blocks paid random items get a pack without luck.</div>""" if luck else ""
     html = f"""<meta charset=utf-8><style>{font}{css}</style>
 <div class=win style="left:16px;top:14px;width:862px;height:564px"><div class=in></div>
  <div class=head><b class=t>Shop</b><div class="x t">X</div></div>
@@ -111,31 +121,27 @@ body{width:%(W)dpx;height:%(H)dpx;background:#0b6f9c;font-family:F;color:#fff;ov
   <div class=band><div class="l t">Everyone in the server, 1 hour:</div>
    <div class=chips><div class="chip t" style="background:rgba(80,190,255,.38)">x2 Oxygen</div>
    <div class="chip t" style="background:rgba(110,230,60,.38)">x2 Cash</div>
-   <div class="chip t" style="background:rgba(190,120,255,.45)">x2 Luck</div></div>
-   <div class="btn odds t">Odds</div>
+   {extra}
    <div class="btn buy t">{robux}{PRICE}</div><div class="once t">One per player</div></div>
  </div></div>
-<div class="win pop" style="left:898px;top:124px;width:286px;height:366px"><div class=in></div>
- <div class=head><b class=t style="font-size:29px">x2 Luck odds</b></div>
- <div class=in2><p>The colour of each new wild fish. The same for every fish in every land.</p>
- <table><tr><th>Colour</th><th>Normal</th><th>x2 Luck</th></tr>{rows}</table></div></div>
-<div class=cap style="left:898px;top:504px;width:284px">What the Odds button opens: Roblox wants the odds shown before the
-purchase. Players whose region blocks paid random items get a pack without luck.</div>
+{pop}
 <div class=cap style="left:20px;top:586px">Mock-up, drawn by code. The price and the amounts are proposals.</div>"""
     page = WORK / "card.html"
     page.write_text(html, encoding="utf-8")
-    shot = WORK / f"card_{look}.png"
+    shot = WORK / f"card_{look}{'_luck' if luck else ''}.png"
     subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--allow-file-access-from-files",
-                    f"--user-data-dir={WORK / 'profile'}", f"--window-size={W},{H}", "--force-device-scale-factor=1.5",
+                    f"--user-data-dir={WORK / 'profile'}", f"--window-size={wide},{H}", "--force-device-scale-factor=1.5",
                     f"--screenshot={shot}", u(page)], check=True, capture_output=True, timeout=120)
     return shot
 
 
 if __name__ == "__main__":
     names = [a for a in sys.argv[1:] if not a.startswith("-")]
-    made = build(names[0] if names else "Gold")
+    luck = "--luck" in sys.argv
+    made = build(names[0] if names else "Gold", luck)
     if "--try" in sys.argv:
         print(made)
     else:
-        Image.open(made).convert("RGB").save(OUT)
-        print(OUT)
+        out = OUT.with_name("starter-pack-greatwhite-luck.png") if luck else OUT
+        Image.open(made).convert("RGB").save(out)
+        print(out)

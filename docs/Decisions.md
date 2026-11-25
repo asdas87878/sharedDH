@@ -5,6 +5,7 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-25 | **Starter packs launch without luck; x2 luck is added later.** "Add luck later": the user. | [starter packs](design/starter-packs.md) |
 | 2026-11-25 | **Starter packs: the Great White remodel's pack first, with a lump of cash and Oxygen and one hour of x2 Oxygen, cash and luck for the whole server.** "get a chat to draft up some starter pack deals, id like there to be a great white remodel starter pack which shows that. Then give them a lumpsum of cash, oxygen and a 1 hour x2 oxygen, cash and luck for the whole server.": the user. Reopens, for starter packs only, "Robux prices and the Shop are left alone for now" (2026-11-24). Every price and amount is a proposal. | [starter packs](design/starter-packs.md) |
 | 2026-11-25 | **The inventory bar loses the water and wears studs, with a highlight on every caught fish.** "rework the inventory ui so that it 1:1 matches ride a dino. make sure the highlights are accurate, the stud textures, get rid of our water ones etc": the user. Read as the hotbar. The layout and how slots behave follow the reference; the art and colours stay ours (told the user: no 1:1 copy of its look). Undoes 2026-11-17 (the glass fading upward) and 2026-11-18 (the band on the chosen slot only). | [UI](design/ui.md) |
 | 2026-11-25 | **The end of a dive never holds the camera:** it turns while "FISH CAUGHT!" shows: the user. | [Handoff](Handoff.md) |
