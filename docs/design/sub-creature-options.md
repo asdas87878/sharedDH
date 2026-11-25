@@ -45,7 +45,8 @@ numbers are counted again from the exported meshes and are the options' own.
 3. **In Studio: done 2026-11-25 (c1),** [sub models](sub-models.md), "Checked again after the merge": the glows keep their colours
    (9A's eyes are not seen from the riding view), the gate and the pick-up measured, seen by eye. **Found, not put right:** 9A's head hides
    the rider for about 0.3 s at the pick-up, its nose is in the lane's wall there at the lip's ends, its top breaks the surface.
-4. **As a run begins the camera stands close behind tier 9's tail:** 7.7 studs from the hull at the nearest in the first 1.5 s
+4. **As a run begins the camera stands close behind tier 9's tail,** so the ring fills the bottom of the picture for that moment:
+   measured on 2026-11-25, not caught by eye (the stills come about a second later). 7.7 studs from the hull at the nearest in the first 1.5 s
    (10.6 on tiers 1 and 8). The old tier 9 had the same tail, so this is not new; Hugo's call.
 
 ![the options](../attachments/subs-creature-options-1.png)

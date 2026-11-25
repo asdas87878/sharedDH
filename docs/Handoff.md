@@ -8,7 +8,8 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 `full_check.py all` all good). All of it: [sub models](design/sub-models.md), "Checked again after the merge".
 [The sheet](attachments/c1-subs-nine-and-shop.jpg): nine tiers on a trip, the game's own view, and the shop.
 - **Passed on all nine:** rider and seat 0.00 off, propeller, wake, beam, sign, cards whole (PC and phone size), `picks_check.py` as its
-  last log, `card_fit`, `sign_fit`, `screw_check`. The window was live: no stale stills. Rows 35 and 36 and the notes by 119 and 132 of sub-models are put right.
+  last log, `card_fit`, `sign_fit`, `screw_check`. The window was live: no stale stills. In sub-models rows 35 and 36 are put right
+  and 119 and 132 noted as old; the piece counts in `sub-creature-options.md` (76 and 92) are still stale.
 - **New:** `tools/studio/sub_clear_check.py` (`install`, `run [tier,fish,size,side ...]`, `remove`, `sums`): the sub's clearance from
   the map, the camera and the rider, from the hire to 1.5 s into the run. Run `fish_sub_check`'s rules: one playtest, your own.
 - **Found, Hugo's call (nothing changed):** tier 9's kraken head goes through the rider and hides them for about 0.3 s at the pick-up;
