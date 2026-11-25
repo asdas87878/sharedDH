@@ -7,7 +7,11 @@ local FishIcons = {}
 
 -- The uploaded pages' asset ids (rbxassetid://...), one per page. While a page's id is "" the game uses the
 -- live model picture, except in Studio, which reads the local copy (Studio below).
-FishIcons.Pages = { "", "", "" }
+FishIcons.Pages = {
+	"rbxassetid://93792111820130",
+	"rbxassetid://120444178713345",
+	"rbxassetid://82464769530334",
+}
 FishIcons.Studio = {
 	"rbxasset://textures/ridefish/fish_icons_1.png",
 	"rbxasset://textures/ridefish/fish_icons_2.png",
@@ -43,7 +47,7 @@ FishIcons.Icons = {
 	Garibaldi = { Page = 1, X = 4, Y = 707, W = 162, H = 116, Bust = false },
 	LeopardShark = { Page = 1, X = 174, Y = 714, W = 162, H = 101, Bust = true },
 	GiantSeaBass = { Page = 1, X = 344, Y = 718, W = 162, H = 93, Bust = false },
-	GreatWhite = { Page = 1, X = 514, Y = 720, W = 162, H = 89, Bust = false },
+	-- (no GreatWhite: remodelled 2026-11-25, its render here is the old one; the live model until a new render is cut)
 	StellersSeaCow = { Page = 1, X = 684, Y = 712, W = 162, H = 105, Bust = true },
 	Dakosaurus = { Page = 1, X = 854, Y = 724, W = 162, H = 82, Bust = true },
 	KelpWyrm = { Page = 1, X = 4, Y = 887, W = 162, H = 95, Bust = true },

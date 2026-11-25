@@ -133,10 +133,17 @@ Auras.SpawnNames = { "Splash", "Whirlpool", "Drop" }
 -- Studio only: a tier shown on your own player without the server (0 = off)
 Auras.Test = 0
 
--- The flame's pictures, uploaded: empty until the user says yes to the upload (art/ui/aura_flame; the Beam ones, Flame,
+-- The flame's pictures, uploaded 2026-11-25, the user: "Yes, both" (art/ui/aura_flame; the Beam ones, Flame,
 -- Tip and Streaks, turned as Config.Aura.Turn says). Until all six are filled in a live game shows the old look. Studio
 -- reads the local copies (tools/auras/flame_pics.py), and shows the old look where they are not there.
-Auras.Pictures = { Flame = "", Tip = "", Streaks = "", Lick = "", Bubble = "", Arc = "" } :: { [string]: string }
+Auras.Pictures = {
+	Flame = "rbxassetid://124821179310672",
+	Tip = "rbxassetid://80539956547919",
+	Streaks = "rbxassetid://106939583053473",
+	Lick = "rbxassetid://86325853542441",
+	Bubble = "rbxassetid://123139847562727",
+	Arc = "rbxassetid://113590203083136",
+} :: { [string]: string }
 Auras.PictureSet = "f1"
 
 -- Auras further than this from the camera are not animated (their parts are hidden)

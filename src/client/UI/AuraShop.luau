@@ -31,10 +31,10 @@ local AuraShop = {}
 local WIDE, HIGH = 860, 540
 local CARD_W, CARD_H = 196, 404
 
--- The icons' picture (4 across, 3 down, 256 pixels each, by tier). Uploaded id: empty until the user says yes to the
--- upload. Studio reads the local copy (tools/ui/aura_icons/build.py --studio); a live game before that, or a PC without
+-- The icons' picture (4 across, 3 down, 256 pixels each, by tier). Uploaded 2026-11-25 (the user:
+-- "Yes, both"); while it is empty, Studio reads the local copy (tools/ui/aura_icons/build.py --studio); a live game before that, or a PC without
 -- the copy, shows the glow.
-local ICONS = ""
+local ICONS = "rbxassetid://118905885839265"
 local ICONS_STUDIO = "rbxasset://textures/ridefish/aura_icons_e1.png"
 local ICON_CELL, ICON_COLS = 256, 4
 local ICON_SIZE = 180 -- as wide as the well

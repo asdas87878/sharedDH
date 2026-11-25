@@ -4,7 +4,7 @@ What each push changed, so whoever pulls next knows where things stand. Newest f
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-25, the ship pass (game code, the user's word)
-**State:** on main and in the user's Studio place, **place not saved** (six new fish, the scripts and the streaming settings are only in the open Studio), nothing uploaded, every product id still 0.
+**State:** on main; place saved (the user: "Yes, both"); the 22 pictures are uploaded, load and are in the code (ids in art/ui/icons/roblox.json; the Great White's icon is left to its live model, its render is the old one). Every product id is still 0. **Still local-only, unseen in a live game: the seahorse rockers' meshes (T1 to T12), the submarines' (SubMeshes), CosmicHollow's, the archetype icons.**
 - **Saving is on** (`SaveParts.ON`), with the Index, the lesson and the packs as new parts. `tools/studio/save_check.py` passed all 17 checks.
 - **Robux:** the Great White pack (149, once), passes, the server boost (`Config.Boost`). Played with a made-up receipt: given once though sent twice, +50K Oxygen, +$1M, the fish, the boost and its chip. Real purchases not tried (no ids).
 - **Phones** (`Config.Phone`): no sun shadows or glow, landscape, cheaper portraits, streaming target 1280, the camera ignores the stick's finger. Checked switched on in Studio; not on a real phone.

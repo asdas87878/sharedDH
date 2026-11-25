@@ -24,9 +24,9 @@ local OfflinePanel = {}
 ----------------------------------------------------------------------------------------------------------------------
 -- Pictures, sizes and colours (the window's own points)
 
--- Upload id for the chest (empty until the user says yes to the upload: a live game shows the cash picture till then).
+-- Upload id for the chest (2026-11-25, the user: "Yes, both"; empty: a live game shows the cash picture).
 -- Studio reads it from its own content folder: python tools/offline/picture.py studio
-OfflinePanel.Chest = "" -- art/ui/offline/chest.png
+OfflinePanel.Chest = "rbxassetid://90279043093713" -- art/ui/offline/chest.png
 local STUDIO = "rbxasset://textures/ridefish/offline_chest_o1.png"
 
 local WIDE, HIGH = 500, 452 -- (a phone 375 wide holds it at 0.72, so CLAIM is still 47 px high there)
