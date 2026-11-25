@@ -442,7 +442,16 @@ end
 -- The plan, from the leap (nil: it can't be done). `hull`: SubTrip.Hulls' row; `lip`: the lip's middle, looking out;
 -- `low`, `high`: how far to the left and the right of the lip's middle the sub may be. The run's start is filled in after
 -- (SubAir.aim): it depends on the lane
-function SubAir.plan(leap: Leap, half: Vector3, saddle: Vector3, hull: { number }, lip: CFrame, longer: number?): Air?
+-- (`longer`: the hop takes so much longer; `later`: and is so much later: where its nose comes up in the sub's way at first)
+function SubAir.plan(
+	leap: Leap,
+	half: Vector3,
+	saddle: Vector3,
+	hull: { number },
+	lip: CFrame,
+	longer: number?,
+	later: number?
+): Air?
 	local c = Config.Sub
 	local hopTime = c.AirHopTime + (longer or 0)
 	if leap.Fall <= 0 or leap.Time <= 0 then
@@ -454,12 +463,15 @@ function SubAir.plan(leap: Leap, half: Vector3, saddle: Vector3, hull: { number 
 	local entry = leap.Crouch + leap.Time
 	local hopAt = math.clamp(top * c.AirAt, math.max(c.AirAtLeast, leap.Crouch), c.AirAtMost)
 	-- (a long climb sooner, and over longer)
-	hopAt = math.max(math.min(hopAt, entry - 0.3) - (longer or 0) / 2, leap.Crouch + 0.05)
+	hopAt += (later or 0) - (longer or 0) / 2
+	hopAt = math.max(math.min(hopAt, entry - 0.3), leap.Crouch + 0.05)
 	local seatAt = hopAt + hopTime
 	local from = SubAir.saddle(leap, hopAt)
 	local room = math.max(c.EscortGate - hull[1] - c.AirGap, 0)
 	local lateral = math.clamp((SubAir.saddle(leap, seatAt) - lip.Position):Dot(side), -room, room)
-	local on = (from - lip.Position):Dot(out) + c.AirAhead
+	local nose = math.max(half.Z + saddle.Z, 0)
+	local ahead = math.clamp(nose * c.AirAheadLong, c.AirAhead, c.AirAheadMost)
+	local on = (from - lip.Position):Dot(out) + ahead
 	local air: Air = {
 		Leap = leap,
 		Half = half,
@@ -569,11 +581,14 @@ function SubAir.plan(leap: Leap, half: Vector3, saddle: Vector3, hull: { number 
 			end
 		end
 		if best == math.huge then
+			if (later or 0) < c.AirLater - 1e-3 then
+				return SubAir.plan(leap, half, saddle, hull, lip, nil, (later or 0) + 0.08)
+			end
 			return nil
 		end
 		local more = math.clamp((bestRise - c.AirClimb) * c.AirClimbSlow, 0, c.AirClimbMost)
 		if not longer and more > 0.02 then
-			return SubAir.plan(leap, half, saddle, hull, lip, more)
+			return SubAir.plan(leap, half, saddle, hull, lip, more, later)
 		end
 		air.Slope = math.rad(bestSlope)
 		air.Meet = meetAt(air.Slope, bestRise)
