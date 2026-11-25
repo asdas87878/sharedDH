@@ -3,6 +3,11 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the admin panel off (game code, the user's word)
+
+- `Config.Admin.On` is 0: no panel, no remote, no `Admin` attribute for anyone, Studio or live (1 brings it back). Checked in Play.
+  In the live game only once the place is saved and published (version 519 still has the panel).
+
 ## 2026-11-25, the trailer mode, not finished (game code, the user's word)
 
 - Studio only: J in Play films the game page video's 20 shots ([trailer](design/trailer.md)): `TrailerController`, `TrailerService`,

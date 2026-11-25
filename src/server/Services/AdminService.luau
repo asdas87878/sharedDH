@@ -34,6 +34,9 @@ local owners: { [Player]: boolean } = {} -- the place's owner, found as they joi
 local lastAt: { [Player]: number } = {}
 
 local function allowed(player: Player): boolean
+	if Config.Admin.On == 0 then
+		return false
+	end
 	if RunService:IsStudio() then
 		return true
 	end
@@ -183,6 +186,9 @@ local function act(player: Player, kind: any, a: any, b: any, c: any)
 end
 
 function AdminService.Init()
+	if Config.Admin.On == 0 then
+		return
+	end
 	local existing = Net.Folder:FindFirstChild("Admin")
 	if existing and existing:IsA("RemoteEvent") then
 		remote = existing
@@ -199,6 +205,9 @@ function AdminService.Init()
 end
 
 function AdminService.Start()
+	if Config.Admin.On == 0 then
+		return
+	end
 	Players.PlayerAdded:Connect(join)
 	for _, player in Players:GetPlayers() do
 		task.spawn(join, player)

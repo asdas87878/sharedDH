@@ -223,6 +223,9 @@ local function view(shot: Shot, t: number): (CFrame, number)
 	local s = if smooth then smooth:Lerp(at, 0.5) else at
 	smooth = s
 	local az, el = blend(a.Az, b.Az, u, 0) * sideOf, blend(a.El, b.El, u, 0)
+	if workspace:GetAttribute("TrailerSweep") then
+		az = u * 360 -- (checks: all the way round, to find a clear side)
+	end
 	local dist = blend(a.Far, b.Far, u, 1) * size
 	local target = s
 		+ frame.LookVector * blend(a.Ahead, b.Ahead, u, 0) * size
