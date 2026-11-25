@@ -59,7 +59,7 @@ Its feel and layout logic, in our kit, our colours and our pictures. `Config.Ind
 - **Not checked:** Studio, a real phone, the live fish models (the pictures here are the renders; a live game draws models
   until the fish pages are uploaded), memory of ten paintings (about 15 MB). "Before" in the picture is of 24 November.
 
-## The Fuse window (2026-11-25, Hugo; NULLROOM u1): built, not seen in Studio
+## The Fuse window (2026-11-25, Hugo; NULLROOM u1): on main, seen in Studio
 The Fuse machine's window, opened by its ring: [fusing](fusing.md), [the picture](../attachments/fuse-window.png). A ring the player is put
 down on (a spawn, the way back from a dive) now opens nothing until they step off and on again: every stall's, `StallController`.
 
