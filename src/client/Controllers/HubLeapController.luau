@@ -1,8 +1,8 @@
 --!strict
 -- Fish leaping out of the sea past the gate, as seen from the hub (Config.HubLeap; the play passes, 2026-11-24: nothing in
 -- a new player's first view was a fish, in a game about riding them). Redone 2026-11-25 on the user's word: mostly small
--- common fish, in little schools, some middling, now and then a great one; all over the sea seen from the hub; a small one
--- is quick and hardly splashes.
+-- common fish, some middling, now and then a great one; all over the sea seen from the hub, one here and one there (a
+-- school only rarely); a small one is quick and hardly splashes.
 -- Copies of the creatures' own models (ReplicatedStorage.FishModels), still and anchored, moved along arcs with a splash
 -- going out and coming in. Only on this machine, only while we are on the dock: nothing is a fish anyone can ride, nothing
 -- is sent.
@@ -35,11 +35,12 @@ local leaps: { Leap } = {}
 local nextAt = 0
 local ready: { [string]: { Model } } = {} -- copies of each kind, not up now
 local picked: Config.Leaper? = nil -- the next one, its model loading
-local recent: { Vector3 } = {} -- where the last few went
+local recent: { { Spot: Vector3, At: number } } = {} -- where the last few leaps went, and when
+local lately: { string } = {} -- the last few kinds: none of them goes next
 
 local HEAD = CFrame.Angles(0, math.pi, 0) -- (the models' heads are at their +Z; lookAt's way is -Z)
-local RECENT = 4
-local TRIES = 14
+local LATELY = 4
+local TRIES = 24
 local NOSE = 0.4 -- its nose is this much of its length ahead of its middle: what meets the water
 local HEARD_NEAR = 120 -- its sound is full this near, studs
 
@@ -107,13 +108,16 @@ local function pick(): Config.Leaper?
 	if not folder then
 		return nil
 	end
+	local function may(kind: Config.Leaper): boolean
+		return folder:FindFirstChild(kind.Id) ~= nil and not table.find(lately, kind.Id)
+	end
 	local total = 0
 	for _, kind in Config.HubLeap.Kinds do
-		total += if folder:FindFirstChild(kind.Id) then kind.Weight else 0
+		total += if may(kind) then kind.Weight else 0
 	end
 	local left = math.random() * total
 	for _, kind in Config.HubLeap.Kinds do
-		if folder:FindFirstChild(kind.Id) then
+		if may(kind) then
 			left -= kind.Weight
 			if left <= 0 then
 				local kept = ready[kind.Id]
@@ -140,15 +144,13 @@ local function sea(x: number, z: number, high: number): boolean
 	return not hit or (hit.Instance :: BasePart).Transparency > 0.9
 end
 
--- Where a leap this long goes from and to: open sea all along, clear of the last few if it can be
-local function path(at: CFrame, kind: Config.Leaper): (Vector3?, Vector3?)
+-- Where a leap this long goes from and to: open sea all along, and `apart` from the last few (nil: no such place found)
+local function path(at: CFrame, kind: Config.Leaper, apart: number): (Vector3?, Vector3?)
 	local c = Config.HubLeap
 	local long = kind.Long
 	local across = math.max(c.Across * long, c.AcrossLeast)
 	local nearest = c.OutNear + across
 	local furthest = math.max(math.min(c.OutFar + c.OutLong * long, c.OutMost), nearest + 20)
-	local bestFrom: Vector3?, bestTo: Vector3?
-	local bestGap = -1
 	for _ = 1, TRIES do
 		local middle = (at * CFrame.new(
 			(math.random() * 2 - 1) * c.Side,
@@ -175,18 +177,16 @@ local function path(at: CFrame, kind: Config.Leaper): (Vector3?, Vector3?)
 		if open then
 			local gap = math.huge
 			for _, was in recent do
-				gap = math.min(gap, (was - middle).Magnitude)
+				-- (as seen from the hub: how far out it is hardly shows)
+				local off = at:VectorToObjectSpace(was.Spot - middle)
+				gap = math.min(gap, Vector2.new(off.X, off.Z / 2).Magnitude)
 			end
-			if gap > bestGap then
-				bestGap = gap
-				bestFrom, bestTo = middle - way * (across / 2), middle + way * (across / 2)
-			end
-			if gap >= c.Apart then
-				break
+			if gap >= apart then
+				return middle - way * (across / 2), middle + way * (across / 2)
 			end
 		end
 	end
-	return bestFrom, bestTo
+	return nil, nil
 end
 
 local function start(now: number)
@@ -198,20 +198,31 @@ local function start(now: number)
 		nextAt = now + 1 -- (the dock or the models have not come in yet)
 		return
 	end
-	if #leaps >= c.Most then
-		picked = kind
+	picked = kind
+	for i = #recent, 1, -1 do
+		if now - recent[i].At > c.Remember then
+			table.remove(recent, i)
+		end
+	end
+	local up = 0
+	for _, l in leaps do
+		up += if l.Heard then 1 else 0 -- (one of a school)
+	end
+	if up >= c.Most then
 		return
 	end
-	local from, to = path(at, kind)
+	local from, to = path(at, kind, if math.random() < c.Near then 0 else c.Apart)
 	if from and to then
-		local middle = (from + to) / 2
-		table.insert(recent, middle)
-		if #recent > RECENT then
-			table.remove(recent, 1)
+		table.insert(recent, { Spot = (from + to) / 2, At = now })
+		table.insert(lately, kind.Id)
+		if #lately > LATELY then
+			table.remove(lately, 1)
 		end
 		local way = (to - from).Unit
 		local right = Vector3.new(-way.Z, 0, way.X)
-		local many = math.min(math.random(1, kind.School), c.Most - #leaps)
+		local many = if kind.School > 1 and math.random() < c.Schools
+			then math.random(math.min(3, kind.School), kind.School)
+			else 1
 		for i = 1, many do
 			local model = copyOf(kind)
 			if model then
@@ -237,8 +248,8 @@ local function start(now: number)
 				})
 			end
 		end
+		picked = pick()
 	end
-	picked = pick()
 end
 
 -- Through the surface, out or in: the splash and its sound (softer and higher the smaller it is, softer the further off)

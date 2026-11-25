@@ -1,8 +1,9 @@
 --!strict
 -- What to aim for next, on the dock (the second hunt, 2026-11-24: once the lesson is over nothing says what the coins
--- are for). One small line under the caption's place (UI.DockNotes.goal): rewards waiting in the Index first, else the
--- cheapest thing to buy when the coins reach it, else how far they are from it: the seahorse's next level, the tank's
--- next stage, and the next submarine once the fish of the land it goes to can be held.
+-- are for). One small line under the caption's place (UI.DockNotes.goal): the cheapest thing to buy when the coins reach
+-- it, else how far they are from it: the seahorse's next level, the tank's next stage, and the next submarine once the
+-- fish of the land it goes to can be held. (Nothing of the Index's rewards: its button's red "!" is all, the user,
+-- 2026-11-25.)
 -- Not while the lesson runs, a catch is carried, a window is open, or the player rides something.
 -- Also the word as the tank goes up a stage.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -55,13 +56,6 @@ local function goals(): { Goal }
 end
 
 local function words(): string?
-	local claims = number("IndexClaims")
-	if claims > 0 then
-		local oxygen = number("IndexOxygen")
-		return if oxygen > 0
-			then `OPEN THE INDEX TO *CLAIM +{Config.wholeNumber(oxygen)} OXYGEN*`
-			else "OPEN THE INDEX TO *CLAIM* YOUR REWARD"
-	end
 	local coins = number("Coins")
 	local best: Goal? = nil
 	for _, goal in goals() do

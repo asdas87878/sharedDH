@@ -12,6 +12,7 @@
 -- its own small wind-up. Like CatchShow, a look is a pose of the time since it began (pose(t)), so the game plays it
 -- frame by frame and a capture can stop it at any moment. Sheet: docs/attachments/caught-text-options-1.png (GIFs
 -- caught-text-<n>.gif), by tools/ui/caught_text/capture.py.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -769,12 +770,14 @@ local function banner(parent: Instance, info: Info): Show
 	local bonus: Frame? = nil
 	local bonusScale: UIScale? = nil
 	if info.Bonus then
+		-- (where to claim it is said until they have)
+		local taught = Players.LocalPlayer:GetAttribute("IndexPaid") == true
 		local made = chip(
 			body,
 			nil,
 			36,
-			P(PX + 118, PY + PH + 46),
-			"NEW CATCH +" .. Config.wholeNumber(info.Bonus) .. ": CLAIM IN INDEX",
+			P(PX + (if taught then 70 else 118), PY + PH + 46),
+			"NEW CATCH +" .. Config.wholeNumber(info.Bonus) .. (if taught then "" else ": CLAIM IN INDEX"),
 			Kit.Textures.Oxygen,
 			Kit.Sun
 		)

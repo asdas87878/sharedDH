@@ -5,6 +5,7 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-25 | **The Index is shown how to be claimed once only:** the arrow and the yellow border, then the arrow at CLAIM ALL; after the first claim only the red "!": the user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **A new catch's Oxygen is still claimed in the Index, and the game makes it obvious.** Asked whether to pay it at once: "no but could we make it so its more obvious that the player has to go to index to recieve the rewards": the user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **The fish leaping in the hub's sea:** mostly lesser fish, some exotic; in many places; small ones quicker with smaller splashes: the user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **The auras go to main, flame on.** "please finish all the missions that are unfinished. Push and merge ride a fish changes": Hugo (2026-11-24). Draft 4 as the look, and uploading its pictures, are still Hugo's to say; until then a live game draws the old look. | [auras](design/auras.md) "Built" |

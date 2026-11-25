@@ -3,6 +3,18 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · The Index arrow the first time only, sparser leaps (game code, the user's PC)
+**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Replaces the Index and leap parts of the entry below.
+- **Index** (the user: "Just leave the arrow and the yellow border", "only … the first time", after that only the "!"): the callout, the goal
+  line and the lesson's words for a claim are gone. Until the player has claimed once (`IndexPaid`, from what their Book holds, so a
+  saved Book keeps it) an arrow points at the Index button with the ring round it, and in the window at CLAIM ALL
+  (`LessonPrompt.arrow`). The caught plate says where to claim only until then. `IndexOxygen` is gone.
+- **Leaps:** one every 1.3 to 3 s, at most 3 at once, each `Apart` 80 from the last 6 s's (but `Near` 4 %), none of the last 4 kinds
+  again, a school (3 or 4; two for kinds of two) only `Schools` 4 % of the time. Measured: 22 fish in 55 s (were 26 in 20), one school of 3, every other fish 67
+  or more from the rest.
+- **Checked with the mouse:** the button, CLAIM ALL (+318 for three), then a new catch: only the "!". **A trap:** the first sync left Config
+  behind without a word; read a changed script back. **Owed:** a phone, the plate by eye.
+
 ## 2026-11-25 · The lesson's arrows, the leaping fish, the Index made obvious (game code, the user's PC)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Lint clean, no errors of ours in the console.
 - **Index** (the user: keep claiming there, "more obvious that the player has to go to index"): while there is something to claim on

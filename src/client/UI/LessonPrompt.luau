@@ -5,6 +5,8 @@
 --                                     nothing else is above it). Words between stars are yellow
 --   LessonPrompt.ring(button, on)     a yellow ring beating round it, for a button inside a window, where an arrow
 --                                     would cover what is above it
+--   LessonPrompt.arrow(button, from)  the arrow alone, bobbing at the button's "Right" or "Left" (pointing at it):
+--                                     gives back what shows and hides it
 -- Nothing is built until the first call that shows something.
 local Kit = require(script.Parent.Kit)
 local Shop = require(script.Parent.Shop)
@@ -108,6 +110,33 @@ function LessonPrompt.point(button: GuiObject?, text: string?)
 	p.Arrow.Visible = text ~= nil
 	p.Words.Visible = text ~= nil
 	p.Bob(text ~= nil)
+end
+
+function LessonPrompt.arrow(button: GuiObject, from: string): (on: boolean) -> ()
+	local made: Frame? = nil
+	local bob: (on: boolean) -> ()
+	return function(on: boolean)
+		if not made then
+			if not on then
+				return
+			end
+			local arrow = shape(button, ARROW)
+			arrow.AnchorPoint = Vector2.new(0.5, 0.5)
+			arrow.ZIndex = 30
+			local right = from == "Right"
+			arrow.Rotation = if right then 90 else -90
+			local function at(off: number): UDim2
+				off += ARROW / 2
+				return if right then UDim2.new(1, off, 0.5, 0) else UDim2.new(0, -off, 0.5, 0)
+			end
+			arrow.Position = at(REST)
+			bob = Kit.pulse(arrow, { Position = at(REST) }, { Position = at(REST + RISE) }, 0.35)
+			made = arrow
+		end
+		local arrow = made :: Frame
+		arrow.Visible = on
+		bob(on)
+	end
 end
 
 function LessonPrompt.ring(button: GuiObject?, on: boolean)

@@ -2993,7 +2993,7 @@ export type Leaper = { Id: string, Long: number, Weight: number, School: number 
 Config.HubLeap = {
 	On = 1, -- 0: none
 	-- each kind: how long it is drawn, studs (the common ones a little over life, to be seen from the hub), how often it is
-	-- picked beside the others, and the most that leap together (it is 1 to that many). In ReplicatedStorage.FishModels
+	-- picked beside the others, and the most in its school (1: none; Schools says how often). In ReplicatedStorage.FishModels
 	Kinds = {
 		{ Id = "SergeantMajor", Long = 12, Weight = 10, School = 4 },
 		{ Id = "YellowTang", Long = 12, Weight = 10, School = 4 },
@@ -3015,9 +3015,11 @@ Config.HubLeap = {
 		{ Id = "Megalodon", Long = 46, Weight = 1.5, School = 1 },
 	} :: { Leaper },
 	First = 1, -- seconds after joining
-	EveryLeast = 0.7, -- and from one leap (or school) to the next, at least this
-	EveryMost = 1.9, -- and at most
-	Most = 8, -- fish up at once
+	-- sparser from here (the user, 2026-11-25: "spaced out properly", "a rare school of fish jump but rarely")
+	EveryLeast = 1.3, -- and from one leap (or school) to the next, at least this
+	EveryMost = 3, -- and at most
+	Most = 3, -- fish up at once (a school counts as one)
+	Schools = 0.04, -- the share of leaps that are a school (of the kinds that have them): the rest are one fish
 	Stagger = 0.22, -- seconds from one of a school to the next, about
 	-- by a fish's length, L: how long it is up, how high, how far across, how far under it starts and ends
 	TimeBase = 0.75, -- seconds,
@@ -3033,7 +3035,9 @@ Config.HubLeap = {
 	OutLong = 7, -- (a stud of L adds this: the big ones are further off)
 	OutMost = 430,
 	Side = 95,
-	Apart = 70, -- studs from the last few leaps, where it can be
+	Apart = 80, -- studs from every leap of the last Remember seconds (how far out counts half: seen from the hub it hardly shows)
+	Remember = 6, -- seconds
+	Near = 0.04, -- the share of leaps that needn't be Apart
 	-- the splash: 1 is a player's own whole one
 	Splash = 1.5, -- at a 44 stud fish,
 	SplashPower = 1.2, -- and L / 44 to this

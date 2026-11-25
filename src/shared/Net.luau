@@ -78,7 +78,8 @@
 -- you stand on the training spot and your max Oxygen is growing), Strained (true while you ride a fish too strong for
 -- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being
 -- yours; nil off a fish, on one too strong, or with taming off),
--- IndexFound (how many kinds they have caught) and IndexClaims (how many Index rewards wait to be claimed): IndexService,
+-- IndexFound (how many kinds they have caught) and IndexClaims (how many Index rewards wait to be claimed),
+-- IndexPaid (they have claimed one before): IndexService,
 -- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
