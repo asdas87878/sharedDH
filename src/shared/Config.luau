@@ -3466,7 +3466,35 @@ Config.Aura = {
 	Prices = { 100, 2e3, 40e3, 800e3, 15e6, 300e6, 6e9, 120e9, 2.5e12, 50e12, 1e15, 20e15 } :: { number },
 	Near = 30, -- the stall sells within this many studs of its ring (Dock.Stations.Auras), as the sub's stand
 	BuyAgain = 0.5, -- one ask at a time: a second press within this many seconds is the same click, seconds
-	Flame = 1, -- 1: the flame (draft 4); 0: the old look (draft 2's particles and ribbons). Read live
+	Look = 2, -- 2: round the body in 3D (Shared/AuraVolume); 1: the flame (draft 4); 0: draft 2's particles. Read live
+	-- Look 2, when it shows (Hugo, 2026-11-25: "it should also fade out when moving and fade in when standing still, this
+	-- shouldnt apply to riding, always seeing the aura"). Everyone's by their own movement, on every machine
+	FadeIn = 0.5, -- standing still on foot: seen over this long, seconds
+	FadeOut = 0.25, -- moving on foot (swimming always): gone over this long, seconds
+	MoveAt = 2, -- over this speed is moving, studs a second (walking is 16 and up),
+	StillAt = 0.8, -- and under this,
+	StillFor = 0.12, -- for this long, is standing still, seconds
+	SpeedOver = 0.08, -- the speed is smoothed over this long (another player's place comes in steps), seconds
+	Hop = 1, -- 1: the hop from fish to fish is part of the ride, seen; 0: it is moving
+	-- Look 2, how it stands round a rider and what they ride, studs
+	RideWide = 12, -- never further than this out to its sides,
+	RideLong = 20, -- and to its ends, however big the fish is
+	RideDeep = 12, -- from no more than this under the rider, to this over them
+	RideGrow = 2.2, -- its pictures are up to this many times as big
+	RideMore = 1.5, -- and up to this many times as many
+	RideWisps = 18, -- at least this many wisps a second round a fish (the first tiers' few would be lost round it)
+	EyeShare = 0.5, -- our own: it reaches to this share of the way to our camera (RideController's, some 17 studs),
+	EyeGrow = 1.5, -- its pictures are up to this many times as big,
+	EyeStrength = 0.7, -- and all of it is this strong (we look through it to steer; everyone else sees it whole)
+	RideLean = 0.5, -- the share of the fish's pitch it follows (0: always upright; never its roll)
+	-- Look 2, what is drawn (Shared/AuraVolume.detail: 3 all of it, 2 about two thirds, 1 a few pieces)
+	WholeTo = 70, -- all of it to this far from the camera (then about two thirds), studs,
+	FewFrom = 130, -- and a few pieces from here to Auras.DrawRange
+	Full = 3, -- others' auras drawn whole at once, the nearest,
+	Half = 4, -- and the next ones at two thirds
+	PhoneOwn = 2, -- on a phone: our own,
+	PhoneMost = 1, -- and the most anyone else's is
+	Lights = 4, -- the nearest auras only give light
 	-- How Roblox draws the pictures, found in Studio (2026-11-25: 2 and -1 are the right way up, joined). Read live
 	Turn = 2, -- quarter turns clockwise of the Beams' pictures, 0 to 3
 	Scroll = -1, -- which way the flame's picture runs along its Beams

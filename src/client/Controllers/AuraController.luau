@@ -5,18 +5,22 @@
 -- touches the character's own parts (the spawn-in's fade uses LocalTransparencyModifier, this machine's own, and puts it
 -- back).
 --
--- The flame (draft 4, docs/design/auras.md; its numbers Shared/AuraFlame, its drawing Lib/AuraBeams): Config.Aura.Flame 1.
---   It flares on a landing (tier 7: Net.Fx "Land"), a hop (8: the player's State turns "Jumping") and a speed boost (9:
---   Fx "Eat", "Smash"), burns faster while riding (9), starts at the hips while sat on a fish (State "Riding"), and is
---   put on with a burst (10; below it rises): only when the Aura attribute changes on a character already seen, so never
---   on a respawn nor for players here before we joined.
---   Its pictures are not uploaded yet (Auras.Pictures): a live game without them, or a Studio without the local copy
---   (tools/auras/flame_pics.py), shows the old look.
--- The old look (draft 2, kept behind Config.Aura.Flame 0): each is one wrapping source (a shell round the body that the
---   particles rise from, like a flame) plus, from tier 3 up, emitters carried round the body on a path, whose particles
---   linger and draw a ribbon (a wave, spirals, rings, lanterns, wisps, a halo, a serpent).
--- Both: only Beams and particles round the player's body, nothing on the ground (no ring, disc, floor glow or plate), no
--- solid blocks, no light (Hugo, 2026-11-19).
+-- Three looks, Config.Aura.Look (read live):
+-- 2, round the body in 3D (Hugo, 2026-11-25; docs/design/auras.md; its numbers Shared/AuraVolume, its drawing
+--   Lib/AuraAround): it stands in the world round the wearer, on the ground and up round them. On foot it is seen standing
+--   still and fades out on the move (swimming is moving), each wearer by their own movement as this machine sees it; riding,
+--   it is always seen and goes round the rider and the fish as one. Riding is State "Riding" or "Failing", the hop between
+--   fish (Aura.Hop), a land fish, a tank fish and the trainer's seahorse (the weld the rider hangs from: mountOf), and the
+--   sub once it has scooped them up (State "Carried"; its model is each machine's own, under the camera).
+--   Everyone else's is drawn in less detail further off, past the nearest few, and on a phone (AuraVolume.detail).
+--   A sheet that is not uploaded yet (Auras.Sheets) has an engine picture in its place, or its layer is left out.
+-- 1, the flame (draft 4; Shared/AuraFlame, Lib/AuraBeams): a flat flame turned to the camera. Without its pictures
+--   (Auras.Pictures, or the local copy) it is the old look.
+-- 0, the old look (draft 2): each is one wrapping source (a shell round the body that the particles rise from) plus, from
+--   tier 3 up, emitters carried round the body on a path.
+-- Both flames flare on a landing (tier 7: Net.Fx "Land"), a hop (8: the player's State turns "Jumping") and a speed boost
+--   (9: Fx "Eat", "Smash"), run faster while riding (9), and are put on with a burst (10; below it rises): only when the
+--   Aura attribute changes on a character already seen, so never on a respawn nor for players here before we joined.
 -- The carriers and the emitters' areas are unseen anchored parts in a Folder under workspace "AuraFx", placed every
 -- frame round the feet (turned with the character's heading only), in one workspace:BulkMoveTo. An aura far from the
 -- camera (Auras.DrawRange) is taken out of the world until it comes back.
@@ -31,10 +35,13 @@ local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Auras = require(ReplicatedStorage.Shared.Auras)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local AuraVolume = require(ReplicatedStorage.Shared.AuraVolume)
+local AuraAround = require(script.Parent.Parent.Lib.AuraAround)
 local AuraBeams = require(script.Parent.Parent.Lib.AuraBeams)
 local Shop = require(script.Parent.Parent.UI.Shop)
 -- (the shop's two pages: each names itself to UI.Shop as it is required)
@@ -268,7 +275,7 @@ local function bubbles(fx: Fx, parent: Instance, color: Color3, rate: number, si
 end
 
 ---------------------------------------------------------------------------------------------------------------------
--- The old look (draft 2, Config.Aura.Flame 0): the twelve tiers. Feet at y = 0, a character about 5 studs tall, "forward" -Z. Nothing below the knees but what
+-- The old look (draft 2, Config.Aura.Look 0): the twelve tiers. Feet at y = 0, a character about 5 studs tall, "forward" -Z. Nothing below the knees but what
 -- rises off the legs.
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -834,9 +841,19 @@ type Live = {
 	Model: Model,
 	Tier: number,
 	Fx: Fx,
-	Flame: AuraBeams.Flame?, -- nil: the old look
-	Sat: () -> boolean, -- on a fish now
+	Kind: string, -- "Around" (look 2), "Flame" (look 1) or "Old" (look 0)
+	Around: AuraAround.Around?,
+	Flame: AuraBeams.Flame?,
+	Sat: () -> boolean, -- on a fish now (the flame's)
+	Who: Instance, -- what says what the wearer does: the player, or a Studio rig
+	Ours: boolean,
+	Mover: AuraVolume.Mover,
+	Mount: Mount?, -- what they rode last frame
+	Far: number, -- from the camera, this frame
+	Place: number, -- among the others, the nearest first
 }
+-- What a wearer rides: the part they hang from, and the box of it in that part's space
+type Mount = { Part: BasePart, Body: Vector3, Mid: Vector3 }
 type Show = {
 	Model: Model,
 	Fx: Fx,
@@ -853,9 +870,15 @@ local rigFlareSeen: { [Model]: number } = {}
 local seenWearing: { [Model]: number } = {}
 local noPictures = false -- the flame's pictures are not on this machine: the old look
 
--- The flame, or the old look
-local function flaming(): boolean
-	return Config.Aura.Flame ~= 0 and not noPictures and (STUDIO or AuraBeams.uploaded())
+-- Which look is drawn now
+local function kindNow(): string
+	local look = Config.Aura.Look
+	if look >= 2 then
+		return "Around"
+	elseif look == 1 and not noPictures and (STUDIO or AuraBeams.uploaded()) then
+		return "Flame"
+	end
+	return "Old"
 end
 
 local function rootOf(model: Model): BasePart?
@@ -881,6 +904,103 @@ local function baseOf(model: Model): CFrame?
 	end
 	local p = r.Position - Vector3.new(0, down, 0)
 	return CFrame.lookAt(p, p + flat.Unit)
+end
+
+---- what they ride (look 2)
+local WELDS = { RideWeld = true, LandWeld = true, TankRideWeld = true, TrainerWeld = true }
+
+-- The box round a model's parts, in one part's space (what is see-through is not its body: a hit box, a water volume)
+local function boxOf(model: Instance, part: BasePart): (Vector3, Vector3)
+	local low, high = Vector3.one * math.huge, -Vector3.one * math.huge
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 0.95 then
+			local cf = part.CFrame:ToObjectSpace(d.CFrame)
+			local h = d.Size / 2
+			local half = Vector3.new(
+				math.abs(cf.RightVector.X) * h.X + math.abs(cf.UpVector.X) * h.Y + math.abs(cf.LookVector.X) * h.Z,
+				math.abs(cf.RightVector.Y) * h.X + math.abs(cf.UpVector.Y) * h.Y + math.abs(cf.LookVector.Y) * h.Z,
+				math.abs(cf.RightVector.Z) * h.X + math.abs(cf.UpVector.Z) * h.Y + math.abs(cf.LookVector.Z) * h.Z
+			)
+			low = low:Min(cf.Position - half)
+			high = high:Max(cf.Position + half)
+		end
+	end
+	if low.X > high.X then
+		return part.Size, Vector3.zero
+	end
+	return high - low, (low + high) / 2
+end
+
+-- The sub carrying a player, as this machine draws it
+local function subOf(userId: number): Model?
+	local cam = workspace.CurrentCamera
+	if cam then
+		for _, m in cam:GetChildren() do
+			if m:IsA("Model") and m:GetAttribute("For") == userId then
+				return m
+			end
+		end
+	end
+	return nil
+end
+
+-- What a wearer hangs from now, nil for nothing
+local function mountOf(l: Live, hrp: BasePart): Mount?
+	local part: BasePart? = nil
+	for _, joint in hrp:GetJoints() do
+		if WELDS[joint.Name] and joint:IsA("Weld") then
+			local other = if joint.Part1 == hrp then joint.Part0 else joint.Part1
+			part = if other and other:IsA("BasePart") then other else nil
+			break
+		end
+	end
+	local who = l.Who
+	if not part and who:IsA("Player") and who:GetAttribute("State") == "Carried" then
+		local sub = subOf(who.UserId)
+		part = if sub then sub.PrimaryPart else nil
+	end
+	if not part then
+		return nil
+	end
+	local last = l.Mount
+	if last and last.Part == part then
+		return last
+	end
+	local model = part:FindFirstAncestorOfClass("Model")
+	local id = model and model:GetAttribute("FishType")
+	local kind = if type(id) == "string" then Config.FishById[id] else nil
+	local body, mid
+	if model and kind and model:GetAttribute("Size") ~= nil then
+		body, mid = Config.bodyOf(model, kind), Vector3.zero
+	elseif model then
+		-- (a tank's or a land fish has no Size attribute, the seahorse and the sub no kind: as they are built)
+		body, mid = boxOf(model, part)
+	else
+		body, mid = part.Size, Vector3.zero
+	end
+	return { Part = part, Body = body, Mid = mid }
+end
+
+-- Where the aura stands on a mount: its middle, its heading, some of its pitch and none of its roll
+local function rideOf(l: Live, m: Mount, hrp: BasePart): AuraAround.Ride
+	local cf = m.Part.CFrame
+	local look = cf.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.new(0, 0, -1)
+	local pitch = math.asin(math.clamp(look.Y, -1, 1)) * Config.Aura.RideLean
+	local mid = cf:PointToWorldSpace(m.Mid)
+	local at = CFrame.lookAt(mid, mid + flat) * CFrame.Angles(pitch, 0, 0)
+	local cam = workspace.CurrentCamera
+	local eye = if l.Ours and cam then (cam.CFrame.Position - hrp.Position).Magnitude else nil
+	-- (the camera moves in and out: a step of it is not a step of the aura)
+	local shape = AuraVolume.ride(
+		AuraVolume.spec(l.Tier),
+		m.Body,
+		at:PointToObjectSpace(hrp.Position),
+		if eye then math.clamp(eye, 10, 40) else nil,
+		Config.Aura
+	)
+	return { At = at, Shape = shape, Strong = if l.Ours then Config.Aura.EyeStrength else 1 }
 end
 
 -- What each model should wear now (0: nothing)
@@ -912,9 +1032,13 @@ end
 -- Flare a model's aura, if it has a flame whose tier does that
 local function flare(model: Model?, kind: string)
 	local l = model and live[model]
-	local f = l and l.Flame
-	if f and (f.Spec :: any)[kind] then
-		AuraBeams.flare(f, now())
+	if not l then
+		return
+	end
+	if l.Flame and (l.Flame.Spec :: any)[kind] then
+		AuraBeams.flare(l.Flame, now())
+	elseif l.Around and (l.Around.Spec :: any)[kind] then
+		AuraAround.flare(l.Around, now())
 	end
 end
 
@@ -932,7 +1056,18 @@ local function wear(model: Model, tier: number, putOn: boolean)
 	local player = Players:GetPlayerFromCharacter(model)
 	local who: Instance = player or model
 	local flame: AuraBeams.Flame? = nil
-	if flaming() then
+	local around: AuraAround.Around? = nil
+	local kind = kindNow()
+	if kind == "Around" then
+		local a = AuraAround.build(fx.Folder, tier)
+		for _, e in AuraAround.emitters(a) do
+			table.insert(fx.Emitters, e)
+		end
+		if putOn then
+			AuraAround.putOn(a, now())
+		end
+		around = a
+	elseif kind == "Flame" then
 		local f = AuraBeams.build(fx.Folder, tier)
 		for _, e in f.Emitters do
 			table.insert(fx.Emitters, e)
@@ -944,23 +1079,33 @@ local function wear(model: Model, tier: number, putOn: boolean)
 	else
 		Build[tier](fx)
 	end
-	fx.Folder.Parent = root
+	if not around then
+		fx.Folder.Parent = root -- (look 2's comes in with its first frame that is seen)
+	end
 	live[model] = {
 		Model = model,
 		Tier = tier,
 		Fx = fx,
+		Kind = kind,
+		Around = around,
 		Flame = flame,
 		Sat = function()
 			return who:GetAttribute("State") == "Riding"
 		end,
+		Who = who,
+		Ours = player == Players.LocalPlayer,
+		Mover = AuraVolume.mover(),
+		Mount = nil,
+		Far = 0,
+		Place = 1,
 	}
 end
 
 local function reconcile()
 	local want = wanted()
-	local flame = flaming()
+	local kind = kindNow()
 	for model, l in live do
-		if want[model] ~= l.Tier or not model.Parent or (l.Flame ~= nil) ~= flame then
+		if want[model] ~= l.Tier or not model.Parent or l.Kind ~= kind then
 			drop(model)
 		end
 	end
@@ -980,10 +1125,15 @@ local function reconcile()
 		for _, m in CollectionService:GetTagged("AuraRig") do
 			local at = m:GetAttribute("FlareAt")
 			local l = live[m]
-			if l and l.Flame and type(at) == "number" and rigFlareSeen[m] ~= at then
+			if l and type(at) == "number" and rigFlareSeen[m] ~= at then
 				rigFlareSeen[m] = at
-				l.Flame.FlareAt = nil
-				AuraBeams.flare(l.Flame, at)
+				if l.Flame then
+					l.Flame.FlareAt = nil
+					AuraBeams.flare(l.Flame, at)
+				elseif l.Around then
+					l.Around.FlareAt = nil
+					AuraAround.flare(l.Around, at)
+				end
 			end
 		end
 	end
@@ -1032,6 +1182,63 @@ local function run(fx: Fx, t: number, base: CFrame)
 	end
 end
 
+local lastFrame: number? = nil
+local order: { Live } = {}
+
+-- How far each 3D aura is from the camera, and their places, the nearest first (ours is not counted)
+local function rank(eye: Vector3)
+	table.clear(order)
+	for model, l in live do
+		if l.Around then
+			local r = rootOf(model)
+			l.Far = if r then (r.Position - eye).Magnitude else math.huge
+			l.Place = 0
+			if not l.Ours and l.Far < Auras.DrawRange then
+				table.insert(order, l)
+			end
+		end
+	end
+	table.sort(order, function(x, y)
+		return x.Far < y.Far
+	end)
+	for i, l in order do
+		l.Place = i
+	end
+end
+
+-- A phone or a tablet: what the player has in hand
+local function onPhone(): boolean
+	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+
+-- One frame of a 3D aura: whether it is seen, where it stands, how much of it is drawn
+local function around(l: Live, a: AuraAround.Around, base: CFrame, t: number, dt: number)
+	local c = Config.Aura
+	local hrp = rootOf(l.Model) :: BasePart
+	local who = l.Who
+	local mount = mountOf(l, hrp)
+	l.Mount = mount
+	local hum = l.Model:FindFirstChildOfClass("Humanoid")
+	local state: any = who:GetAttribute("State")
+	if hum and hum.Health <= 0 then
+		state = "Drowning"
+	end
+	local seated = mount ~= nil and state ~= "Carried" and state ~= "Drowning"
+	local doing = AuraVolume.doing(state, who:GetAttribute("SubPhase"), seated, c)
+	local seen = AuraVolume.fade(l.Mover, doing, hrp.Position, dt, c)
+	if seen <= 0 or l.Far >= Auras.DrawRange then
+		AuraAround.hide(a)
+		l.Fx.Folder.Parent = nil
+		return
+	end
+	l.Fx.Folder.Parent = root
+	local detail = AuraVolume.detail(l.Far, l.Place, l.Ours, onPhone(), c)
+	local ride = if mount and doing == "Ride" then rideOf(l, mount, hrp) else nil
+	AuraAround.step(a, t, base, ride, seen, detail, l.Place <= c.Lights and detail >= 2, function(part, cf)
+		put(l.Fx, part, cf)
+	end)
+end
+
 local function frame()
 	local t = now()
 	local cam = workspace.CurrentCamera
@@ -1052,9 +1259,18 @@ local function frame()
 		table.clear(fx.Moves)
 		table.clear(fx.To)
 	end
+	local dt = math.clamp(t - (lastFrame or t), 0, 0.2)
+	lastFrame = t
+	rank(eye)
 	for model, l in live do
 		local base = baseOf(model)
 		if not base then
+			continue
+		end
+		local a = l.Around
+		if a then
+			around(l, a, base, t, dt)
+			collect(l.Fx)
 			continue
 		end
 		local near = (base.Position - eye).Magnitude < Auras.DrawRange
@@ -1137,12 +1353,16 @@ function AuraController.shop(page: string?)
 	Shop.go(page)
 end
 
--- Test hook: only the Studio check calls this (tools/studio/aura_check.py). What is drawn round a model: its tier, "Flame"
--- or "Old", its Beams and its emitters
+-- Test hook: only the Studio check calls this (tools/studio/aura_check.py). What is drawn round a model: its tier,
+-- "Around", "Flame" or "Old", its Beams and its emitters (Around: those drawn now, at its detail)
 function AuraController.drawn(model: Model): (number, string, number, number)
 	local l = live[model]
 	if not l then
 		return 0, "", 0, 0
+	end
+	if l.Around then
+		local b, e = AuraAround.drawn(l.Around)
+		return l.Tier, l.Kind, b, e
 	end
 	local beams = 0
 	for _, d in l.Fx.Folder:GetDescendants() do
@@ -1150,7 +1370,7 @@ function AuraController.drawn(model: Model): (number, string, number, number)
 			beams += 1
 		end
 	end
-	return l.Tier, if l.Flame then "Flame" else "Old", beams, #l.Fx.Emitters
+	return l.Tier, l.Kind, beams, #l.Fx.Emitters
 end
 
 -- Test hook: only the Studio checks call this (tools/studio/b2_shop_check.py).
@@ -1173,6 +1393,32 @@ function AuraController.Start()
 			flare(player.Character, "FlareBoost")
 		end
 	end)
+	-- the 3D look's pictures on this PC: without them, the engine's own in their place
+	if STUDIO then
+		task.spawn(function()
+			local address = AuraAround.picture("Wisp")
+			if string.sub(address, 1, 10) ~= "rbxasset:/" then
+				return
+			end
+			pcall(function()
+				ContentProvider:PreloadAsync({ address } :: { any }, function(_id, status)
+					if status == Enum.AssetFetchStatus.Failure then
+						AuraAround.Local = false
+					end
+				end)
+			end)
+			if not AuraAround.Local then
+				for model, l in live do
+					if l.Around then
+						drop(model) -- (made again, with the stand-ins)
+					end
+				end
+				warn(
+					"[AuraController] the auras' pictures are not here (tools/auras/volume_sheets.py --local): the engine's in their place"
+				)
+			end
+		end)
+	end
 	-- the flame's pictures: without them, the old look
 	if STUDIO and not AuraBeams.uploaded() then
 		task.spawn(function()
