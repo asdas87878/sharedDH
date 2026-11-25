@@ -10,7 +10,8 @@
 --   Run      the rest of that dive         nothing
 --   Deposit  home with a catch             the game's caption, or CLICK YOUR TANK    the tank, then PUT ALL IN
 --   Train    the first fish is in          RIDE YOUR SEAHORSE TO HOLD STRONGER FISH  the seahorse
---   Again    ridden                        CLAIM YOUR NEW FISH IN THE INDEX while one waits, then
+--   Again    ridden                        OPEN THE INDEX TO CLAIM +100 while one waits,    the Index's hub button (its
+--                                          then                                             own) and stall, if one stands
 --                                          DIVE IN AGAIN                             the strip
 -- While the server's "LessonHold" is on (the first fish is still to come) the lock takes only a fish we can hold
 -- (Lock.Allow), and there is no hop off a fish: the press is dropped here, before JumpController has it, and
@@ -186,6 +187,18 @@ local function trainerPlace(): Place?
 	return { To = at.Position - up, Over = at.Position + up + Vector3.new(0, 0.3, 0), Most = 0.8 }
 end
 
+-- (the Index's stall, where one stands: its ring opens the window, as the hub button does)
+local function indexPlace(): Place?
+	local d = dock()
+	local stations = d and d:FindFirstChild("Stations")
+	local stall = stations and stations:FindFirstChild("Index")
+	local ring = stall and (stall:FindFirstChild("Ring") or (stall:IsA("Model") and stall.PrimaryPart))
+	if not (ring and ring:IsA("BasePart")) then
+		return nil
+	end
+	return { To = ring.Position, Over = ring.Position + Vector3.new(0, 7, 0), Most = 1.8 }
+end
+
 -- A button of another screen's, by name
 local function findButton(known: GuiObject?, name: string): GuiObject?
 	if known and known.Parent then
@@ -280,7 +293,11 @@ local function update()
 		elseif step == "Again" then
 			local claims = player:GetAttribute("IndexClaims")
 			if type(claims) == "number" and claims > 0 then
-				words = "*CLAIM* YOUR NEW FISH IN THE INDEX"
+				local oxygen = player:GetAttribute("IndexOxygen")
+				words = if type(oxygen) == "number" and oxygen > 0
+					then `OPEN THE INDEX TO *CLAIM +{Config.wholeNumber(oxygen)} OXYGEN*`
+					else "OPEN THE INDEX TO *CLAIM* YOUR REWARD"
+				place = indexPlace()
 			else
 				words = "*DIVE IN* AGAIN"
 				place = stripPlace(feet)

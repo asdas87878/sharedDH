@@ -773,8 +773,8 @@ local function banner(parent: Instance, info: Info): Show
 			body,
 			nil,
 			36,
-			P(PX + 104, PY + PH + 46),
-			"+" .. Config.wholeNumber(info.Bonus) .. " MAX: CLAIM IN INDEX",
+			P(PX + 118, PY + PH + 46),
+			"NEW CATCH +" .. Config.wholeNumber(info.Bonus) .. ": CLAIM IN INDEX",
 			Kit.Textures.Oxygen,
 			Kit.Sun
 		)

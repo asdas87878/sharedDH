@@ -20,7 +20,8 @@
 --   Auras: an aura does NOT multiply the Index's Oxygen (Config.Index.AuraMult 0, the draft's answer to an open
 --   question); with the switch on, every claim's Oxygen is multiplied by the player's aura (Shared/Auras).
 --   Told to the client: its whole Index after every change (Index "State": Net.luau), and two player attributes for
---   the hub button's red mark and for checks: IndexFound (kinds caught) and IndexClaims (rewards waiting).
+--   the hub button's red mark and for checks: IndexFound (kinds caught), IndexClaims (rewards waiting) and IndexOxygen
+--   (the max Oxygen they pay together).
 -- For the session only: the game has no saves yet. When saves come, a player's Book (below) is what to keep.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -76,6 +77,32 @@ local function owed(book: Book): ({ string }, { number })
 	return kinds, lands
 end
 
+-- How many times the player's aura multiplies a claim's Oxygen: 1 unless Config.Index.AuraMult is switched on
+local function auraOf(player: Player): number
+	if Config.Index.AuraMult == 0 then
+		return 1
+	end
+	local id = player:GetAttribute("Aura")
+	for _, tier in Auras.Tiers do
+		if tier.Id == id then
+			return math.max(tier.Mult, 1)
+		end
+	end
+	return 1
+end
+
+-- The max Oxygen these rewards pay, aura and all (whole numbers only, as every Oxygen gain: task e1)
+local function oxygenOf(player: Player, kinds: { string }, lands: { number }): number
+	local oxygen = 0
+	for _, id in kinds do
+		oxygen += (Config.indexFirst(Config.FishById[id]))
+	end
+	for _, land in lands do
+		oxygen += (Config.indexLand(land))
+	end
+	return math.floor(oxygen * auraOf(player) + 0.5)
+end
+
 -- The player's whole Index, to their client and onto their attributes
 local function tell(player: Player, book: Book)
 	local found = 0
@@ -85,6 +112,7 @@ local function tell(player: Player, book: Book)
 	local kinds, lands = owed(book)
 	player:SetAttribute("IndexFound", found)
 	player:SetAttribute("IndexClaims", #kinds + #lands)
+	player:SetAttribute("IndexOxygen", oxygenOf(player, kinds, lands))
 	Net.Index:FireClient(player, "State", book.Count, book.Kinds, book.Lands)
 end
 
@@ -130,36 +158,17 @@ local function look(player: Player)
 	end
 end
 
--- How many times the player's aura multiplies a claim's Oxygen: 1 unless Config.Index.AuraMult is switched on
-local function auraOf(player: Player): number
-	if Config.Index.AuraMult == 0 then
-		return 1
-	end
-	local id = player:GetAttribute("Aura")
-	for _, tier in Auras.Tiers do
-		if tier.Id == id then
-			return math.max(tier.Mult, 1)
-		end
-	end
-	return 1
-end
-
 -- Pays these rewards, all or none: only on the dock. Each is marked paid before the coins go out, so nothing here
 -- can pay one twice.
 local function pay(player: Player, book: Book, kinds: { string }, lands: { number })
-	local oxygen, coins = 0, 0
+	local coins = 0
 	for _, id in kinds do
-		local o, c = Config.indexFirst(Config.FishById[id])
-		oxygen += o
-		coins += c
+		coins += (select(2, Config.indexFirst(Config.FishById[id])))
 	end
 	for _, land in lands do
-		local o, c = Config.indexLand(land)
-		oxygen += o
-		coins += c
+		coins += (select(2, Config.indexLand(land)))
 	end
-	-- (whole numbers only, as every Oxygen gain: task e1)
-	oxygen = math.floor(oxygen * auraOf(player) + 0.5)
+	local oxygen = oxygenOf(player, kinds, lands)
 	if RideService.stateOf(player) ~= "Dock" or (oxygen > 0 and not RideService.train(player, oxygen)) then
 		Net.Index:FireClient(player, "Denied", "Dock")
 		return
@@ -224,6 +233,7 @@ local function join(player: Player)
 		books[player] = { Looks = {}, Count = {}, Kinds = {}, Lands = {}, AskedAt = -math.huge }
 		player:SetAttribute("IndexFound", 0)
 		player:SetAttribute("IndexClaims", 0)
+		player:SetAttribute("IndexOxygen", 0)
 	end
 end
 

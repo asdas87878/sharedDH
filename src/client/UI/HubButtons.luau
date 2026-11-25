@@ -13,7 +13,10 @@
 -- window (UI.ShopScreen: Controllers.StallController listens).
 -- The Index (Hugo, 2026-11-23; NULLROOM task h2): its button opens the Index window and closes it again
 -- (UI.IndexPanel, through Shop.go: one dock window at a time), and its "!" is up for as long as the Index holds a
--- reward to claim: the server's count, the player's "IndexClaims" attribute (IndexService). With the Index switched
+-- reward to claim: the server's count, the player's "IndexClaims" attribute (IndexService). Beside it then is a big
+-- yellow "CLAIM +300" (the Oxygen that waits, "IndexOxygen") pointing at the button, nudging it, and the button has a
+-- beating yellow ring (the user, 2026-11-25: "more obvious that the player has to go to index to recieve the rewards");
+-- pressing the callout opens the Index too. Not while a window is open. With the Index switched
 -- off (Config.Index.On 0) the button opens nothing and the "!" is the hint it was: up on a first catch, down on a press.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -42,6 +45,8 @@ local WORD_AT = 0.62 -- the word's middle, across the button
 local WORD = 16.5
 local MARK = 23
 local ON_TOUCH = 0.85
+local CALL_HIGH = 44 -- the callout's height,
+local CALL_OFF, CALL_NUDGE = 16, 12 -- how far it is from the button, and how much further it goes as it nudges
 
 local BLACK = Kit.Edge -- the dock's one outline colour
 -- The slanted band: where it starts and ends along a line turned SLANT degrees, and how see-through it is
@@ -73,6 +78,12 @@ local size: UIScale
 local mark: Frame
 local shopMark: Frame
 local shown = false
+local call: TextButton
+local callWord: TextLabel
+local callOn = false
+local callMove: (on: boolean) -> ()
+local ringBeat: (on: boolean) -> ()
+local claimRing: Frame
 local soundWord: TextLabel
 local hint = false -- the Index switched off: something new was caught and the button has not been pressed since
 
@@ -86,6 +97,37 @@ local function showMark()
 		mark.Visible = type(waiting) == "number" and waiting > 0
 	else
 		mark.Visible = hint
+	end
+end
+
+-- The callout by the Index button: up while a reward waits, at the dock, with no window open (and not while the lesson
+-- is on another step: one thing to do at a time)
+local function showCall()
+	if not call then
+		return
+	end
+	local player = Players.LocalPlayer
+	local waiting = player:GetAttribute("IndexClaims")
+	local lesson = player:GetAttribute("Lesson")
+	local on = shown
+		and (lesson == nil or lesson == "Again")
+		and Config.Index.On ~= 0
+		and type(waiting) == "number"
+		and waiting > 0
+		and Anim.Windows == 0
+		and Shop.Page == nil
+	if on ~= callOn then
+		callOn = on
+		call.Visible = on
+		claimRing.Visible = on
+		callMove(on)
+		ringBeat(on)
+	end
+	if on then
+		local oxygen = player:GetAttribute("IndexOxygen")
+		callWord.Text = if type(oxygen) == "number" and oxygen > 0
+			then `CLAIM +{Config.wholeNumber(oxygen)}`
+			else "CLAIM REWARD"
 	end
 end
 
@@ -235,6 +277,88 @@ local function markOn(plate: Instance): Frame
 	return m
 end
 
+-- The callout itself: a yellow plate, its point toward the button, the Oxygen's picture and "CLAIM +300"
+local function callBy(plate: GuiObject)
+	claimRing = Kit.new("Frame", {
+		Name = "ClaimRing",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 6, 1, 6),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 9,
+	}, plate)
+	Kit.corner(claimRing, 4)
+	local line = Kit.stroke(claimRing, 4, Kit.Sun, 0)
+	line.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	ringBeat = Kit.pulse(line, { Transparency = 0 }, { Transparency = 0.75 }, 0.4)
+
+	local rest = UDim2.new(1, CALL_OFF, 0.5, 0)
+	call = Kit.new("TextButton", {
+		Name = "ClaimCall",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = rest,
+		Size = UDim2.fromOffset(0, CALL_HIGH),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+		Visible = false,
+		ZIndex = 20,
+	}, plate)
+	-- the point: a square on its corner, half under the plate, dark round it as the plate is
+	local point = block({
+		Name = "Point",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 1, 0.5, 0),
+		Size = UDim2.fromOffset(22, 22),
+		Rotation = 45,
+		BackgroundColor3 = Kit.Sun,
+		ZIndex = 20,
+	}, call)
+	Kit.stroke(point, 3, Kit.Ink)
+	local body = block({
+		Name = "Body",
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = Kit.Sun,
+		ZIndex = 21,
+	}, call)
+	Kit.corner(body, 8)
+	Kit.stroke(body, 3, Kit.Ink)
+	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 12) }, body)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 6),
+	}, body)
+	Kit.new("ImageLabel", {
+		Size = UDim2.fromOffset(32, 32),
+		BackgroundTransparency = 1,
+		Image = Kit.Textures.Oxygen,
+		ScaleType = Enum.ScaleType.Fit,
+		LayoutOrder = 1,
+		ZIndex = 22,
+	}, body)
+	callWord = Kit.new("TextLabel", {
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		Font = Kit.Font,
+		Text = "CLAIM",
+		TextSize = 22,
+		TextColor3 = Kit.White,
+		LayoutOrder = 2,
+		ZIndex = 22,
+	}, body)
+	Kit.stroke(callWord, 2.4, Kit.Ink)
+	callMove = Kit.pulse(call, { Position = rest }, { Position = rest + UDim2.fromOffset(CALL_NUDGE, 0) }, 0.35)
+	call.Activated:Connect(function()
+		pressed:Fire("Index")
+	end)
+end
+
 function HubButtons.build(parent: Instance)
 	holder = Kit.new("Frame", {
 		Name = "HubButtons",
@@ -279,6 +403,8 @@ function HubButtons.build(parent: Instance)
 	-- the red "!"s: the Index's when a new kind is in it, the Shop's from the start of each visit until it is opened
 	-- (the user, 2026-11-22: "Is it possible to do the bouncing exclamation point on the shop?")
 	mark = markOn(index)
+	callOn = false
+	callBy(index)
 	shopMark = markOn(shop)
 	shopMark.Visible = true
 
@@ -322,6 +448,7 @@ function HubButtons.update(docked: boolean)
 			shopMark.Visible = true
 		end
 	end
+	showCall()
 end
 
 -- The Shop was opened another way (a stat row's plus button): its red "!" goes, as when its own button opens it

@@ -14,6 +14,9 @@
 --     and any of them near the camera fades out (Config.Dive.LeapSplashNear): the view never goes white inside one;
 --   play / hold / release / step / stats.
 -- (A thin 14 stud column with 16 small cubes round it until 2026-11-23: it read as a stick with specks.)
+-- A splash may be scaled (the fish leaping in the hub's sea, HubLeapController, 2026-11-25): a small one is smaller in
+-- every way, has fewer pieces and is over sooner. Those count apart (Config.HubLeap.Splashes), so they never use up the
+-- players' own.
 -- The bubbles under the water are Lib/Fx's bursts (Config.Dive.Splash), made by whoever plays this.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -98,7 +101,7 @@ local function give(part: Part)
 	inUse -= 1
 	part.CFrame = AWAY
 	part.Transparency = 1
-	if #free < 240 then
+	if #free < 320 then
 		table.insert(free, part)
 	else
 		part:Destroy()
@@ -128,6 +131,10 @@ type Shot = {
 	way: Vector3, -- the way they were going, flat and of length 1
 	side: Vector3,
 	power: number, -- 0 to 1: how hard
+	scale: number, -- 1: a player's own
+	quick: number, -- its times, as a share of a player's own splash's
+	slabs: number, -- in a foam ring
+	scenery: boolean,
 	started: number,
 	held: number?, -- held at this age (the test hook), or nil
 	pieces: { Piece },
@@ -139,26 +146,29 @@ type Shot = {
 local shots: { Shot } = {}
 local nextId = 0
 local played = 0
+local sceneries = 0 -- of `shots`, the scenery's
 
 local function crownPieces(shot: Shot, random: Random)
 	local d = Config.Dive
 	local power = shot.power
-	local count = math.floor(math.max(d.LeapCrown, 0) * (0.55 + 0.45 * power) + 0.5)
+	local scale = shot.scale
+	local few = math.clamp(0.4 + 0.6 * scale, 0.4, 1.3)
+	local count = math.floor(math.max(d.LeapCrown, 0) * (0.55 + 0.45 * power) * few + 0.5)
 	for i = 1, count do
 		-- round the ring, bunched forward: the warp a - 0.5 sin a puts twice as many ahead as behind
 		local even = (i - 1 + random:NextNumber(-0.3, 0.3)) / count * math.pi * 2
 		local a = even - 0.5 * math.sin(even)
 		local forward = math.cos(a)
 		local dir = shot.way * forward + shot.side * math.sin(a)
-		local high = math.max(d.LeapCrownHigh, 0) * random:NextNumber(0.7, 1.25) * (0.35 + 0.65 * power)
+		local high = math.max(d.LeapCrownHigh, 0) * scale * random:NextNumber(0.7, 1.25) * (0.35 + 0.65 * power)
 		table.insert(shot.pieces, {
 			part = take(),
 			kind = "Crown",
 			dir = dir,
 			-- (how far out it is thrown, studs, by CROWN_OPEN)
-			out = random:NextNumber(6, 10) * (1 + 0.4 * forward) * (0.5 + 0.5 * power),
+			out = random:NextNumber(6, 10) * (1 + 0.4 * forward) * (0.5 + 0.5 * power) * scale,
 			up = math.sqrt(2 * GRAVITY * high),
-			size = random:NextNumber(1.5, 3) * (0.75 + 0.25 * power),
+			size = random:NextNumber(1.5, 3) * (0.75 + 0.25 * power) * scale ^ 0.8,
 			-- (big blocks tumble slower than small ones)
 			spin = Vector3.new(random:NextNumber(-5, 5), random:NextNumber(-4, 4), random:NextNumber(-5, 5)),
 			index = i,
@@ -167,22 +177,30 @@ local function crownPieces(shot: Shot, random: Random)
 	end
 end
 
-local function play(at: Vector3, way: Vector3, power: number, seed: number): Shot
+local function play(at: Vector3, way: Vector3, power: number, seed: number, scale: number, scenery: boolean): Shot
 	local flat = way * Vector3.new(1, 0, 1)
 	local w = if flat.Magnitude > 0.01 then flat.Unit else Vector3.new(0, 0, -1)
 	local d = Config.Dive
 	nextId += 1
-	played += 1
+	if scenery then
+		sceneries += 1
+	else
+		played += 1
+	end
 	local shot: Shot = {
 		id = nextId,
 		at = at,
 		way = w,
 		side = Vector3.new(-w.Z, 0, w.X),
 		power = math.clamp(power, 0, 1),
+		scale = scale,
+		quick = math.clamp(math.sqrt(scale), 0.5, 1.25),
+		slabs = math.floor(RING_SLABS * math.clamp(scale, 0.5, 1) + 0.5),
+		scenery = scenery,
 		started = os.clock(),
 		held = nil,
 		pieces = {},
-		mound = math.max(d.LeapColumn, 0) * (0.5 + 0.5 * math.clamp(power, 0, 1)),
+		mound = math.max(d.LeapColumn, 0) * (0.5 + 0.5 * math.clamp(power, 0, 1)) * scale,
 		rings = {},
 	}
 	local random = Random.new(seed)
@@ -195,18 +213,19 @@ local function play(at: Vector3, way: Vector3, power: number, seed: number): Sho
 				dir = w,
 				out = 0,
 				up = 0,
-				size = MOUND_WIDTH[k] * (0.6 + 0.4 * shot.power),
+				size = MOUND_WIDTH[k] * (0.6 + 0.4 * shot.power) * scale,
 				spin = Vector3.new(0, 0.45 * k + random:NextNumber(-0.2, 0.2), 0),
 				index = k,
 				ring = 0,
 			})
 		end
 	end
-	local ring = math.max(d.LeapRing, 0) * (0.5 + 0.5 * shot.power)
+	local ring = math.max(d.LeapRing, 0) * (0.5 + 0.5 * shot.power) * scale
 	if ring > 0 then
 		shot.rings = { ring, ring * 0.6 }
-		for r = 1, 2 do
-			for k = 1, RING_SLABS do
+		-- (a small one has no second ring)
+		for r = 1, if scale < 0.6 then 1 else 2 do
+			for k = 1, shot.slabs do
 				table.insert(shot.pieces, {
 					part = take(),
 					kind = "Ring",
@@ -240,6 +259,7 @@ local function draw(shot: Shot, age: number)
 	local up = Vector3.yAxis
 	local eye = workspace.CurrentCamera.CFrame.Position
 	local near = math.max(Config.Dive.LeapSplashNear, 0)
+	local scale, quick = shot.scale, shot.quick
 	for _, piece in shot.pieces do
 		local part = piece.part
 		local shown = false
@@ -250,8 +270,8 @@ local function draw(shot: Shot, age: number)
 				local shrink = 1 - Ease.smoothstep(landing * 0.5, landing, age)
 				local size = piece.size * math.max(shrink, 0.05)
 				local position = at
-					+ piece.dir * (2.5 + piece.out * Ease.outQuad(math.min(age / CROWN_OPEN, 1)))
-					+ up * (height + 0.5)
+					+ piece.dir * (2.5 * scale + piece.out * Ease.outQuad(math.min(age / (CROWN_OPEN * quick), 1)))
+					+ up * (height + 0.5 * math.min(scale, 1))
 				part.Size = Vector3.one * size
 				part.CFrame = CFrame.new(position)
 					* CFrame.Angles(piece.spin.X * age, piece.spin.Y * age, piece.spin.Z * age)
@@ -259,9 +279,9 @@ local function draw(shot: Shot, age: number)
 				shown = true
 			end
 		elseif piece.kind == "Mound" then
-			if age < MOUND_TIME and shot.mound > 0 then
+			if age < MOUND_TIME * quick and shot.mound > 0 then
 				-- heaved up fast, then dropping back as if it were thrown, spreading as it goes
-				local u = age / MOUND_TIME
+				local u = age / (MOUND_TIME * quick)
 				local lift = if u < MOUND_RISE
 					then Ease.outQuad(u / MOUND_RISE)
 					else 1 - ((u - MOUND_RISE) / (1 - MOUND_RISE)) ^ 2
@@ -277,15 +297,15 @@ local function draw(shot: Shot, age: number)
 				end
 			end
 		else
-			local life = RING_TIME[piece.ring]
+			local life = RING_TIME[piece.ring] * quick
 			local widest = shot.rings[piece.ring]
 			if age < life and widest then
 				local u = age / life
-				local from = RING_FROM[piece.ring]
+				local from = RING_FROM[piece.ring] * scale
 				local radius = from + (widest - from) * Ease.outQuad(u)
-				local a = (piece.index - 1 + (if piece.ring == 2 then 0.5 else 0)) / RING_SLABS * math.pi * 2
-				local across = 2 * math.pi * radius / RING_SLABS * 1.08
-				local thick = (if piece.ring == 1 then 1.6 else 1.2) * (1 - 0.4 * u)
+				local a = (piece.index - 1 + (if piece.ring == 2 then 0.5 else 0)) / shot.slabs * math.pi * 2
+				local across = 2 * math.pi * radius / shot.slabs * 1.08
+				local thick = (if piece.ring == 1 then 1.6 else 1.2) * (1 - 0.4 * u) * scale
 				-- (standing clear over the water's top: its glass layer is near white itself, and a ring laid in it
 				-- was lost)
 				part.Size = Vector3.new(across, 0.5, thick)
@@ -314,6 +334,9 @@ end
 local function finish(index: number)
 	local shot = table.remove(shots, index)
 	if shot then
+		if shot.scenery then
+			sceneries -= 1
+		end
 		for _, piece in shot.pieces do
 			give(piece.part)
 		end
@@ -327,13 +350,24 @@ end
 -- A splash where someone went in at `at` (on the surface), going `way`, `power` 0 to 1 by how fast. Its seed makes
 -- it the same each time. The id, or nil with Config.Dive.LeapSplashMost already running.
 function Splash.play(at: Vector3, way: Vector3, power: number, seed: number?): number?
-	if #shots >= math.max(Config.Dive.LeapSplashMost, 1) then
+	if #shots - sceneries >= math.max(Config.Dive.LeapSplashMost, 1) then
 		return nil
 	end
-	local shot = play(at, way, power, seed or math.random(1, 1e6))
+	local shot = play(at, way, power, seed or math.random(1, 1e6), 1, false)
 	table.insert(shots, shot)
 	draw(shot, 0)
 	return shot.id
+end
+
+-- The scenery's (HubLeapController): `scale` times a player's whole splash, in every way. Nothing with
+-- Config.HubLeap.Splashes of them already running.
+function Splash.scenery(at: Vector3, way: Vector3, scale: number)
+	if sceneries >= Config.HubLeap.Splashes then
+		return
+	end
+	local shot = play(at, way, 1, math.random(1, 1e6), math.clamp(scale, 0.15, 4), true)
+	table.insert(shots, shot)
+	draw(shot, 0)
 end
 
 -- Test hook: only the Studio checks call this (tools/studio/dive_leap_check.py). Holds that splash at `age` seconds
@@ -367,7 +401,7 @@ function Splash.step()
 	for i = #shots, 1, -1 do
 		local shot = shots[i]
 		local age = shot.held or (now - shot.started)
-		if age >= LAST then
+		if age >= LAST * shot.quick then
 			finish(i)
 		else
 			draw(shot, age)
@@ -378,7 +412,7 @@ end
 -- Test hook: only the Studio checks call this (tools/studio/dive_leap_check.py). How many splashes are running, how
 -- many parts they hold, and how many were played since the start.
 function Splash.stats(): { running: number, parts: number, played: number }
-	return { running = #shots, parts = inUse, played = played }
+	return { running = #shots - sceneries, parts = inUse, played = played }
 end
 
 return Splash

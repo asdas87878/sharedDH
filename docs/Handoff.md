@@ -3,6 +3,23 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · The lesson's arrows, the leaping fish, the Index made obvious (game code, the user's PC)
+**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Lint clean, no errors of ours in the console.
+- **Index** (the user: keep claiming there, "more obvious that the player has to go to index"): while there is something to claim on
+  the dock, a yellow callout "CLAIM +n" points at the Index button with a ring beating round it (`HubButtons`, pressing it opens
+  the Index); the goal line and the lesson's last step say OPEN THE INDEX TO CLAIM +n OXYGEN; the caught plate says
+  NEW CATCH +n: CLAIM IN INDEX. The n is what would be paid, aura and all (`IndexOxygen`, `IndexService`). For the UI chat: yours,
+  changed on the user's word.
+- **Arrows** (`UI/LessonPointer`): the trail starts at our feet every frame and is straight unless something solid is in the way, then
+  bends only at corners it needs; it lies on top of whatever is seen there (the DIVE IN strip). [First minutes](design/first-minutes.md).
+- **Leaping fish** (`HubLeapController`, `Config.HubLeap`): they face the way they go; 18 kinds by weight, mostly small ones in schools of 1
+  to 4, a great one now and then; random open-sea spots; time, height and splash by length. `Lib/Splash` has `Splash.scenery` (scaled, its
+  own cap `HubLeap.Splashes`; a player's own splash is as it was). **Off:** `Config.HubLeap.On` 0.
+- **Measured:** 26 leaps in 20 s, none backward, over about 200 by 265 studs, 60 fps; trail dead straight from the spawn and on top of the
+  strip (y 1.4); one bend behind Fuse, Sell, Auras and Sub; it follows a strafe within a frame.
+- **Owed:** by hand (walking, the callout pressed, the sounds), the caught plate by eye, a phone. From right behind the Sell and Auras
+  stalls' posts the engine's own path runs close by the post.
+
 ## 2026-11-25 · The subs checked again after the merge: nine tiers, the gate and pick-up, the shop (NULLROOM c1, Hugo's PC)
 **State:** pushed: one new check, one sheet, notes. **No `src/` change,** nothing uploaded, the place left as it was (Edit, no test parts,
 `full_check.py all` all good). All of it: [sub models](design/sub-models.md), "Checked again after the merge".

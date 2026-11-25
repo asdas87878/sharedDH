@@ -57,7 +57,10 @@ end
 local function words(): string?
 	local claims = number("IndexClaims")
 	if claims > 0 then
-		return if claims == 1 then "*CLAIM* YOUR REWARD IN THE INDEX" else `*CLAIM {claims}* REWARDS IN THE INDEX`
+		local oxygen = number("IndexOxygen")
+		return if oxygen > 0
+			then `OPEN THE INDEX TO *CLAIM +{Config.wholeNumber(oxygen)} OXYGEN*`
+			else "OPEN THE INDEX TO *CLAIM* YOUR REWARD"
 	end
 	local coins = number("Coins")
 	local best: Goal? = nil
