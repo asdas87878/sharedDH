@@ -2,7 +2,7 @@
 -- The water from the hub, tried live (2026-11-25, docs/design/water-ideas.md). Run on the CLIENT while playing. Two rows of
 -- buttons: how see-through the water is (one at a time), and add-ons (any of them together). Everything is made on this
 -- machine only and is gone when Play stops. Scripts can press the buttons too: workspace.WaterTrial's attributes
--- (See = 1 to 7, and one true or false for each add-on).
+-- (See = 1 to 10, and one true or false for each add-on). "Best of" presses FarBlue and Caustics too.
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local X = 3000 -- the lane's middle; the water begins at z 0, the hub's strip is z -32 to 0 at y 1
@@ -281,7 +281,7 @@ function build.Outline() -- Roblox's own outline on a few fish near the top, in 
 		local h = Instance.new("Highlight")
 		h.FillTransparency, h.OutlineTransparency = 1, 0
 		h.OutlineColor = ({ Color3.fromRGB(80, 200, 255), Color3.fromRGB(200, 90, 255), Color3.fromRGB(255, 200, 40) })[i % 3 + 1]
-		h.DepthMode = i % 2 == 0 and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+		h.DepthMode = Enum.HighlightDepthMode.Occluded -- the kind walls hide
 		h.Parent = m
 		all[i] = m
 	end
@@ -313,7 +313,7 @@ function build.Test() -- does glass hide what is see-through under it? From the 
 end
 
 build["FarBlue"] = function() -- one soft sheet just under the layers: nothing near the edge, the sea's blue further out (no joins)
-	local a = put("FarBlue", part({ Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(X, -9.2, 70), Transparency = 1 }))
+	local a = put("FarBlue", part({ Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(X, -9.2, 40), Transparency = 1 }))
 	local e = put("FarBlue", part({ Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(X, -9.2, 900), Transparency = 1 }))
 	-- a Beam lies in the plane of its attachments' X (along) and Z; Y up makes it lie flat
 	local at0, at1 = Instance.new("Attachment"), Instance.new("Attachment")
@@ -325,7 +325,7 @@ build["FarBlue"] = function() -- one soft sheet just under the layers: nothing n
 	b.Width0, b.Width1 = 1200, 1200
 	b.LightEmission, b.LightInfluence, b.ZOffset = 0, 0, 0
 	b.Color = ColorSequence.new(Color3.fromRGB(24, 132, 222))
-	b.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.1, 0.8), NumberSequenceKeypoint.new(0.22, 0.4), NumberSequenceKeypoint.new(0.4, 0.2), NumberSequenceKeypoint.new(1, 0.15) })
+	b.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.06, 0.7), NumberSequenceKeypoint.new(0.15, 0.35), NumberSequenceKeypoint.new(0.35, 0.15), NumberSequenceKeypoint.new(1, 0.15) })
 	b.Parent = a
 	root:SetAttribute("FarSpan", 830)
 end
@@ -374,7 +374,10 @@ local function row(y, names, press, lit)
 	list.Parent = f
 	for i, n in names do
 		local b = Instance.new("TextButton")
-		b.Size, b.Text, b.Font, b.TextSize = UDim2.fromOffset(98, 30), n, Enum.Font.GothamBold, 13
+		b.Size, b.Text, b.Font, b.TextScaled = UDim2.new(1 / #names, -4, 1, 0), n, Enum.Font.GothamBold, true
+		local most = Instance.new("UITextSizeConstraint")
+		most.MaxTextSize = 13
+		most.Parent = b
 		b.Parent = f
 		b.Activated:Connect(function()
 			press(i, n)
@@ -392,6 +395,10 @@ for i, s in SEE do
 end
 row(-196, seeNames, function(i)
 	root:SetAttribute("See", i)
+	if SEE[i][1] == "Best of" then
+		root:SetAttribute("FarBlue", true)
+		root:SetAttribute("Caustics", true)
+	end
 end, function(i)
 	return root:GetAttribute("See") == i
 end)
@@ -417,7 +424,7 @@ con = RunService.Heartbeat:Connect(function()
 	if s[2] then
 		setSee(s[2], s[3], (i == 6 or i == 10) and eye.Y > 0)
 	else
-		local k = math.clamp((-eye.Z - 20) / 65, 0, 1) -- 1 at the spawn, 0 at the edge
+		local k = math.clamp((-eye.Z - 12) / (i == 9 and 30 or 65), 0, 1) -- 0 at the edge, 1 by the strip's back (Best of) or the spawn
 		local a, b, v = i == 9 and { 0.78, 0.9, 0.93, 0.93 } or SEE[4][2], SEE[1][2], {}
 		for j = 1, 4 do
 			v[j] = a[j] + (b[j] - a[j]) * k
@@ -425,7 +432,7 @@ con = RunService.Heartbeat:Connect(function()
 		setSee(v, (i == 9 and 0.82 or 0.7) * (1 - k) + 0.6 * k, false)
 	end
 	for _, n in ADDS do
-		local on = root:GetAttribute(n) == true and (eye.Y > 0 or (n ~= "Caustics" and n ~= "FarBlue")) -- those two: from above only
+		local on = root:GetAttribute(n) == true and eye.Y > 0 -- for an eye above the water only
 		if on and not made[n] then
 			made[n] = {}
 			build[n]()

@@ -9,7 +9,8 @@ transparent, easier to see the fish through but still visible as water."
 
 **Nothing is in the game.** Everything marked "tried" was seen in Play on one machine, over the real hub and herd, and went
 when Play stopped. Try it yourself: press Play, then run [water_trial.luau](../../tools/studio/water_trial.luau) on the Client
-(or ask the map chat). It puts two rows of buttons on the screen: how clear (one at a time) and add-ons (any together).
+(or ask the map chat). It puts two rows of buttons on the screen: how clear (one at a time) and add-ons (any together). "Best
+of" presses FarBlue and Caustics with it; press Shoal for the fish near the top.
 
 ![Eighteen views](../attachments/water-ideas.jpg)
 
@@ -29,7 +30,8 @@ when Play stopped. Try it yourself: press Play, then run [water_trial.luau](../.
    (view 8); from the edge, about 58 (view 5). Fish must be within about 14 studs of the top to be seen from the strip
    (view 9), or show on the surface.
 5. **Glass does not hide glows here.** Builders report that glass hides see-through things behind it. Ours didn't: half
-   see-through parts, Neon, particles and a label all showed (view 18), and so did outlines (view 12). That was Studio at its
+   see-through parts, Neon, particles and a label all showed (view 18), and so did
+   outlines, of the kind walls hide (view 12). That was Studio at its
    top graphics level; **not checked on a phone or at low graphics.**
 6. **From below, nothing changed:** the underwater ceiling is its own sheets, so it looks as it did.
 
@@ -38,17 +40,18 @@ Four parts, no upload. The first three touch only the water script.
 
 | Part | What it does | How | Cost | Whose |
 |---|---|---|---|---|
-| **Clears as you come** | The sea is as it is now from the spawn, and clears as you walk to the edge | layers 0.35/0.76/0.78/0.85 to 0.78/0.90/0.93/0.93, picture 0.6 to 0.82, by the camera's distance from the edge (85 studs down to 20) | none | map |
+| **Clears as you come** | The sea is as it is now from the spawn, and clears as you walk to the edge | layers 0.35/0.76/0.78/0.85 to 0.78/0.90/0.93/0.93, picture 0.6 to 0.82, by how far the camera is from the edge (none at 42 studs, all at 12) | none | map |
 | **Blue floor light** | The floor is blue with moving light lines, so it still looks like water and fish stand out | the water's own picture on the first 280 studs of floor, sliding; only while your camera is above the water | 26 Textures | map |
 | **Far blue** | The clear patch fades into blue further out, with no joins | one flat Beam under the layers, see-through near, blue far; camera above water only | 1 Beam: one more see-through sheet | map |
-| **Fish near the top at the gate** | You see them from the strip, the only fix for the lip | copies on each screen, 5 to 12 studs down (made as the leaping fish are), or the herd itself rising in its first 150 studs | about 20 models, moved on each screen | game code |
+| **Fish near the top at the gate** | You see them from the strip, the only fix for the lip | copies on each screen, 5 to 12 studs down (made as the leaping fish are), gone as the camera dives since they can't be ridden; or the herd itself rising in its first 150 studs | about 20 models, moved on each screen | game code |
 
-Two of the user's rules to check against it: **no visible joins** (none seen) and **no second copy of the picture** (2026-11-11,
-about two copies on the surface; this one is on the floor, 47 studs below). The numbers are a first setting, to tune with the
-buttons.
+**One of the user's rules this may break:** on 2026-11-11 a second copy of the picture at another size was disliked and
+removed. Views 5 and 6 show two cell patterns at once, one on the surface and one 47 studs down on the floor. If it bothers
+them, the floor light comes off (the floor plain blue) or the surface gets the lines-only picture, and one pattern is left.
+No joins were seen. The numbers are a first setting, to tune with the buttons.
 
-**The smallest version:** "Clears as you come" with "Blue floor light". From the edge it shows the real herd (view 5, which
-also has Far blue). It doesn't help from the strip (view 8).
+**The smallest version is the first three parts** (view 5). It pays only at the edge: from the strip the sea stays as blue as now
+and no fish show (view 8), because the herd is under the lip. Seeing fish from the strip takes the fourth part (view 9).
 
 ## Every way to show the fish
 | # | Way | Tried | Verdict |
@@ -119,10 +122,13 @@ also has Far blue). It doesn't help from the strip (view 8).
 ## Not checked
 Phones and low graphics (the glass finding, the layers' cost, the Beam, the 26 Textures); the clearing while walking (three
 spots were seen); the moment of diving through (the floor light switches off as the camera goes under); more than one player;
-the frame rate.
+the frame rate; clicking the buttons by hand (a script pressed them; they were seen and fit). The herd may come in at the
+gate in sight ([the herd, rethought](herd-revamp.md), point 5: the lane's start is the one exception, fish fading in over 0.6
+seconds), which clear water will show: look for it at the edge.
 
 ## To decide
-1. "Best of", the smallest version, or leave it.
-2. If "Best of": fish near the top as copies, or the real herd rising (with the game-code chat).
-3. Any of: glints, buoys, rings, fins, rarity outlines.
-4. A lines-only picture: one upload, on the user's word.
+1. **The second cell pattern on the floor: fine, or not?** (above)
+2. "Best of" (all four), its first three parts, or leave it.
+3. If all four: fish near the top as copies, or the real herd rising (with the game-code chat).
+4. Any of: glints, buoys, rings, fins, rarity outlines.
+5. A lines-only picture: one upload, on the user's word.
