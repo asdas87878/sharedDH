@@ -12,6 +12,10 @@
 --   on index as well"), as well as by its hub button (UI.HubButtons): walking off the ring closes it however it was
 --   opened. The loader makes that station, but it was deleted by hand from the place on 2026-11-23: with no ring
 --   there, nothing happens. Config.Index.On 0 stops the ring as it stops the button.
+--   The Fuse machine does the same on its ring, Dock/Stations/Fuse (Hugo, 2026-11-25; docs/design/fusing.md), while
+--   Config.Fuse.On is not 0. No ring in the place: nothing happens.
+--   A ring the player is put down on (a spawn, the way back from a dive: the hub kit's Fuse ring lies on the spawn)
+--   opens nothing until they step off it and on again.
 --   The hub's Shop button opens the Shop (UI.ShopScreen), and closes it again. A stat row's plus button opens it at what
 --   is sold of that row: the coins' at Cash, the Oxygen's at Oxygen (the user, 2026-11-23).
 --   Leaving the dock closes them all. One dock window at a time (UI.Shop.go).
@@ -32,19 +36,21 @@ local ShopScreen = require(script.Parent.Parent.UI.ShopScreen)
 local StatRows = require(script.Parent.Parent.UI.StatRows)
 local TankPanel = require(script.Parent.Parent.UI.TankPanel)
 require(script.Parent.Parent.UI.AuraShop) -- (each window gives Shop its opener as it is required)
+require(script.Parent.Parent.UI.FusePanel)
 require(script.Parent.Parent.UI.IndexPanel)
 require(script.Parent.Parent.UI.SellFish)
 require(script.Parent.Parent.UI.SubPanel)
 
 local StallController = {}
 
-local STALLS = { "Sell", "Auras", "Sub", "Index" } -- a stall's name under Dock/Stations is its window's name in Shop.go
+local STALLS = { "Sell", "Auras", "Sub", "Index", "Fuse" } -- a stall's name under Dock/Stations is its window's name in Shop.go
 local SOLD = { Oxygen = "Oxygen", Coins = "Cash" } :: { [string]: string } -- a stat row's section in the Shop
 local OUT = 2.5 -- studs past the ring's edge before walking off closes the window
 local HIGH = 14 -- how far above or below the ring still counts (as HubLife's)
 local EVERY = 0.05 -- seconds between looks
 
 local inside: { [string]: boolean } = {}
+local body: Model? = nil -- the character as of the last look on the dock (nil: not on it)
 
 -- The stall's ring (nil: not in the place, or not streamed in yet)
 local function ringOf(name: string): BasePart?
@@ -68,22 +74,30 @@ local function standing(ring: BasePart, already: boolean): boolean
 	return d.X * d.X + d.Z * d.Z < reach * reach and math.abs(d.Y) < HIGH
 end
 
--- Does this stall's ring open anything (the Index's only while the Index is on, as its button)
+-- Does this stall's ring open anything (the Index's only while the Index is on, as its button; the Fuse machine's while
+-- fusing is)
 local function live(name: string): boolean
+	if name == "Fuse" then
+		return Config.Fuse.On ~= 0
+	end
 	return name ~= "Index" or Config.Index.On ~= 0
 end
 
 local function look()
 	local docked = State.Mode == "Dock" and not State.Player:GetAttribute("TankRide")
+	local character = Players.LocalPlayer.Character
+	local here = if docked and character and character.PrimaryPart then character else nil
+	local put = here ~= body -- (put down on the dock since the last look)
+	body = here
 	for _, name in STALLS do
 		local ring = ringOf(name)
 		local was = inside[name] == true
-		local now = docked and live(name) and ring ~= nil and standing(ring :: BasePart, was)
+		local now = here ~= nil and live(name) and ring ~= nil and standing(ring :: BasePart, was)
 		if now ~= was then
 			inside[name] = now
-			if now then
+			if now and not put then
 				Shop.go(name)
-			elseif Shop.Page == name then
+			elseif not now and Shop.Page == name then
 				Shop.go(nil)
 			end
 		end

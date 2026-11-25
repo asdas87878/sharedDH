@@ -2281,6 +2281,42 @@ function RideService.takeCarried(player: Player, index: number, quiet: boolean?)
 	return fish
 end
 
+-- Fusing (AquariumService.fuse; docs/design/fusing.md): these of the hands used up, and `grown` (nil: the one that stays
+-- is in the tank) made `size`, the very same entry. All of it or nothing: false, and nothing changed, unless each is
+-- there now, each once, none the ride fish, and the player on the dock. Nothing is told (tellCarried). Doesn't yield.
+function RideService.fuseCarried(player: Player, used: { Carry }, grown: Carry?, size: string): boolean
+	local r = riders[player]
+	if not r then
+		return #used == 0 and grown == nil
+	end
+	local picked: { [Carry]: boolean } = {}
+	local all = table.clone(used)
+	if grown then
+		table.insert(all, grown)
+	end
+	for _, carry in all do
+		if picked[carry] or carry == r.Equipped or not table.find(r.Carried, carry) then
+			return false
+		end
+		picked[carry] = true
+	end
+	if r.State ~= "Dock" then
+		return false
+	end
+	-- (checked: from here on nothing can fail)
+	for _, carry in used do
+		local index = table.find(r.Carried, carry)
+		if index then
+			table.remove(r.Carried, index)
+			table.remove(r.Caught, index)
+		end
+	end
+	if grown then
+		grown.Size = size
+	end
+	return true
+end
+
 function RideService.tellCarried(player: Player)
 	local r = riders[player]
 	if r then

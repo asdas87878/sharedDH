@@ -18,6 +18,10 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The Fuse window (2026-11-25, Hugo; NULLROOM u1): built, not seen in Studio
+The Fuse machine's window, opened by its ring: [fusing](fusing.md), [the picture](../attachments/fuse-window.png). A ring the player is put
+down on (a spawn, the way back from a dive) now opens nothing until they step off and on again: every stall's, `StallController`.
+
 ## The Index window and the stand rings (2026-11-24, Hugo; NULLROOM tasks h1, h2, h4): in the game
 Hugo, 2026-11-23: "Import index system". Built by worker h2, the sub stand's ring by h1, both merged and checked in
 Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictures).

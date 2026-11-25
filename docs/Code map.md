@@ -82,6 +82,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `Services/AquariumService` | Plots, tanks, coins, the income loop, selling, plot upgrades, holding a fish over the head, the way home. |
 | `Services/TrainService` | The breath trainer on each plot: riding it raises max Oxygen; its levels and signs. |
 | `Services/AuraService` | The auras bought and worn: order, price, place, saved; the multiplier on what the seahorse gives. |
+| `Services/FuseService` | The Fuse machine: who may ask and where; the fusing itself is `AquariumService.fuse` ([the note](design/fusing.md)). |
 | `Services/SubService` | The submarine: buying, picking a land, carrying a diver down and dropping them on a fish. |
 | `Services/TankRideService` | Riding one of your own fish round your tank. |
 | `Services/PropService` | The props that break: which boxes are out, and putting a prop back when nobody is near. |
@@ -162,6 +163,7 @@ and `Spring` (the camera), `Feel` and `Fx` (speed lines, bubbles, sounds), `Spla
 | `SellFish` | The Sell Fish window. |
 | `ShopScreen` | The Robux shop. Every offer reads "Soon". |
 | `AuraShop` | The aura stall: the twelve cards, buying. |
+| `FusePanel` | The Fuse machine's window and its show. |
 | `SubPanel` | The submarine stand. |
 | `UpgradeSign` | The trainer's upgrade board on each plot. |
 | `HubButtons`, `HubSigns`, `DockNotes`, `TankPrompt` | The dock's buttons, signs, the line in the middle of the screen, the moment a fish goes in. |
@@ -178,6 +180,7 @@ at its end, and is required from `StallController`.
 | `Creatures/` | Each modelled creature's parts, pivots and swim (`*.json`, made by `tools/creatures/collect.py`). |
 | `RideStyles`, `AngryStyles` | How each of the nine body types moves, and how it shows it wants you off. |
 | `Archetypes`, `Variants`, `Auras` | How passives, Silver/Gold/Rainbow fish and auras look. |
+| `Fuse` | Fusing's rules (plain sums, the server's and the window's). |
 | `AuraFlame` | The flame auras' numbers and how they move (plain sums, tested offline). |
 | `SubModels`, `SubTrip` | The submarines and a trip's path, the same on server and client. |
 | `Products` | What the Robux shop sells. Every id is 0. |
@@ -199,6 +202,7 @@ listens.
 | Action | `SubBuy`, `SubEquip`, `SubPick`, `SubLand` | UI/SubPanel, SubController | SubService |
 | Action | `SandboxSit` fish | RideController | RideService |
 | Action | `AuraBuy` tier | UI/AuraShop | AuraService |
+| Action | `Fuse` three picks | UI/FusePanel | FuseService |
 | Action | `Place` index, id | nobody | AquariumService (left from before the tank window) |
 | Ride | `Mounted`, `Dismounted`, `Denied`, `Crashed` | RideService | JumpController, RideController |
 | Ride | `Tamed`, `Caught` | RideService | TameController, UI/CaughtText |
@@ -208,6 +212,7 @@ listens.
 | Ride | `TankMounted`, `TankDismounted` | TankRideService | TankRideController |
 | Ride | `SubFish`, `SubDrop`, `SubDenied`, `SubBought` | SubService | SubController, UI/SubPanel |
 | Ride | `AuraBought`, `AuraDenied` | AuraService | UI/AuraShop, SoundController |
+| Ride | `Fused`, `FuseDenied` | FuseService | UI/FusePanel, SoundController |
 | Fx | `Land`, `Fail`, `Ragdoll`, `ThrowOff`, `Eat`, `Smash` | RideService | AnimController, JumpController, FailController, DeathController, ArchetypeController |
 | Sandbox | `Tune`, `Flag`, `Reset`, `Ride` | SandboxController | SandboxService (Studio only) |
 | Admin | requests and "Done" or "Refused" | AdminController | AdminService, and back |
