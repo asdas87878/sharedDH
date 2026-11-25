@@ -12,8 +12,9 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 - **Checked offline:** 164 and 97, none failed; stylua, selene (0 errors, its 3 old warnings), rojo build, types clean in the new files;
   `index/panel_test` 91 and `auras/aura_test` 61 pass. `index/index_test` fails 3 of 73 (the Shallows' set pay), the same on `ede1ff7` without this.
 - **Owed:** Studio (the window, the show, the live models in the pods, a real save and rejoin), a phone, by hand.
-- **Merging:** `texts-b1-a3`, `pictures-index-offline` and `offline-rewards` also touch `Config`, `Net`, `StallController`; the edits
-  here are small and apart.
+- **Merging:** tried (no branch changed) against `texts-b1-a3`, `pictures-index-offline`, `offline-rewards`, `air-hop` and `index-look`,
+  one at a time, as committed at 14:50: no conflict in code, only in notes (Handoff, Decisions, ui.md, Code map: keep both sides), and
+  both fuse tests pass on each merged tree. Not tried: all of them together.
 - **For the tuning chat:** with sizes mixed, 9 fish of a kind make a Colossal (by the plain odds 1 in 250 in the wild, not measured). `Fuse.SameSize` 1 closes it.
 
 ## 2026-11-25 · The subs checked again after the merge: nine tiers, the gate and pick-up, the shop (NULLROOM c1, Hugo's PC)
