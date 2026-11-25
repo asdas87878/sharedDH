@@ -57,6 +57,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [Workout 11: the wow of rare creatures](docs/style/11-rare-wow-study.md): what Ride a Dino's rare dinos do (variants, full-strength hues, glow as shapes, a bright shell) and what ours lack
 - [Cosmic](docs/design/cosmic.md): a rarity above Mythic, proposed, and a book of effect, lighting and gimmick ideas; a draft
 - [Money and Robux](docs/design/money.md): income, upgrades, what's for sale.
+- [Starter packs](docs/design/starter-packs.md): drafted deals, the Great White pack first (waiting on the user).
 - [First version](docs/design/first-version.md): what ships first and what waits.
 
 ## The look
