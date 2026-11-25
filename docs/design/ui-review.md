@@ -117,7 +117,7 @@ style 0, Kit RingStyles 2 to 7 and Boxes 1 to 4) stay in the code: they are Hugo
 3. Done 2026-11-25, on every slot ([UI](ui.md), "The inventory bar in studs"): the caught slots wear the studs.
 4. The X as an icon, not a letter; the near-black outline to the one outline colour.
 5. Shorter hints: "HOLD A FISH, THEN TAP" and "CLICK TO RIDE" to one or two words, or a picture.
-6. Names never cut to "Great.": a smaller size for long names before cutting.
+6. Closed 2026-11-25, the user: "keep them cut". (Was: names never cut to "Great.", a smaller size first.)
 
 ## The plan (this pass)
 1. **`UI/Anim.luau`, one module for motion:** open (the reference's spring), close (swell and collapse), press, hover,

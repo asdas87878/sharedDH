@@ -1,7 +1,7 @@
 --!strict
 -- The row of slots at the bottom middle (where the reference has its own): what you carry home this dive. Each slot is
 -- a studded plate in the windows' stud (the user, 2026-11-25: "get rid of our water ones"; it was a tile of water
--- glass): an empty one dark and see-through, a filled one its rarity's colours, solid (gold for a Legendary, the
+-- glass): an empty one nearly clear, a filled one its rarity's colours, solid (gold for a Legendary, the
 -- rainbow for a Secret), with the creature's picture, its name cut short, and its size and colour in words when it has
 -- any. One word above the row: "3 CAUGHT".
 -- The chosen catch has a square white ring a little outside its black outline, as the reference's (measured off the
@@ -21,8 +21,8 @@
 -- slot"; docs/design/equip.md): a slot of its own, with a small Q key cap at its corner in the shop's button look
 -- (UI.Shop). It shows the equipped fish (the server's EquippedFish, EquipController calls Slots.equipped), with the
 -- white ring while it is ridden on land and a small cross to unequip; empty, it says how ("HOLD A FISH, THEN Q", on
--- two short lines over it). It is not one of the numbered slots: 1 is always the first catch. Each numbered slot
--- shows its key (1 to 7) on a keyboard; Slots.pick(n) is the key's press, the very path of a click.
+-- two short lines over it). It is not one of the numbered slots: 1 is always the first catch. A slot's key
+-- (1 to 7) still works, but no number is drawn on it (the user, 2026-11-25); Slots.pick(n) is the key's press, the very path of a click.
 -- The row as it was before e3 (Hugo, 2026-11-20, task c1: "remove the many slots to the base again + the q but make
 -- sure its all centered around the original slots, with the q slot just being a little to the side"): seven numbered
 -- slots, the row's frame the very size and place it had, centred; the Q slot stands outside that frame, to its left,
@@ -78,7 +78,6 @@ local count: TextLabel
 local tiles: { any } = {} -- (the Tile of each, below)
 local rings: { Frame } = {}
 
-local keys: { TextLabel } = {}
 -- the equipped slot (task e3)
 type Ride = {
 	Panel: Kit.Panel,
@@ -106,12 +105,11 @@ local selected: number? = nil -- which catch has the white ring (its Key)
 local hovered: number? = nil -- which slot the mouse is over
 local lastCount = 0
 
--- An empty slot's plate: dark, see-through, level top to bottom. No drop shadow (it made a square slot read as taller
+-- An empty slot's plate (EMPTY is how see-through). No drop shadow (it made a square slot read as taller
 -- than wide: the user, 2026-11-17: "they almost look rectangular")
 local PLATE: Kit.Style = {
 	Top = Color3.fromRGB(26, 38, 62),
 	Bottom = Color3.fromRGB(14, 22, 40),
-	Fade = 0.42,
 	Radius = 0,
 	Outline = OUTLINE,
 	Drop = 0,
@@ -122,8 +120,19 @@ local PLATE: Kit.Style = {
 -- toward the foot where the name is. A caught slot draws them twice over each other: the tile is soft, and once was
 -- too faint to see behind a fish at this size (seen in Studio)
 local STUDS = 3
-local STUDS_EMPTY = 0.5 -- how see-through they are on an empty slot
+local STUDS_EMPTY = 1 -- how see-through they are on an empty slot (none: it is nearly clear)
 local STUDS_CAUGHT = 0 -- and on a caught one
+-- An empty slot is nearly clear, darkening toward its foot (the user, 2026-11-25: "when they dont have anyhting equipped,
+-- its more transparent and faded with a gradient"); the ride slot darker than the numbered ones, as it is always there
+local function emptyFade(top: number, middle: number, foot: number): NumberSequence
+	return NumberSequence.new({
+		NumberSequenceKeypoint.new(0, top),
+		NumberSequenceKeypoint.new(0.5, middle),
+		NumberSequenceKeypoint.new(1, foot),
+	})
+end
+local EMPTY = emptyFade(1, 0.94, 0.72)
+local EMPTY_RIDE = emptyFade(0.9, 0.7, 0.35)
 local STUDS_TAIL = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 0),
 	NumberSequenceKeypoint.new(0.5, 0),
@@ -134,9 +143,14 @@ local RING_HOVER = 0.45 -- how see-through the ring is on a slot under the mouse
 local BRIGHTER = 0.14 -- how far a Legendary's, a Mythic's and a Secret's colours go toward white
 -- A fish's size and colour, in words down its slot's left side (nothing for a plain one of the normal size); the sizes
 -- in the fish tags' colours (UI.Tags, UI.TankPanel), cool to hot
--- On a phone's smaller slot the size alone, at the name's own size (its outline and name have the colour already)
-local TAG_SIZE = 8.5
-local TAG_SIZE_LONG = 5.8 -- (COLOSSAL, on a phone)
+-- Small, in the slot's top left corner, where its key number was (the user, 2026-11-25: "get rid of the numbers. please
+-- and reformat the tags of size and color around the newly freed space"; and before it "place them so they dont block
+-- the fish as much, shrink that text quite a bit"). A phone's smaller slot has the size alone (its outline and name
+-- have the colour already). The ride slot's stand at the right, under its X.
+local TAG_SIZE = { Phone = 5.6, Keys = 6 }
+local TAG_LINE = 0.8 -- their outline
+local TAG_STEP = 6.5 -- from the one to the other
+local TAG_UNDER = 15 -- how far down the ride slot's start
 local SIZE_HUE: { [string]: Color3 } = {
 	Tiny = Color3.fromRGB(176, 206, 234),
 	Big = Color3.fromRGB(84, 226, 190),
@@ -332,16 +346,15 @@ local function makeTile(x: number): Tile
 		Font = FONT,
 		ZIndex = 3,
 	}, slot.Face, NAME_LINE)
-	local function tag(which: string, row: number): TextLabel
+	local function tag(which: string): TextLabel
 		return Kit.text({
 			Name = which,
-			Position = UDim2.new(0, 2, 0.24 + row * 0.2, 0),
-			Size = UDim2.new(1, -2, 0.2, 0),
-			TextSize = TAG_SIZE,
+			Size = UDim2.new(1, -2, 0, TAG_STEP),
+			TextSize = TAG_SIZE.Keys,
 			Font = FONT,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 3,
-		}, slot.Face, NAME_LINE)
+		}, slot.Face, TAG_LINE)
 	end
 	return {
 		Panel = slot,
@@ -349,8 +362,8 @@ local function makeTile(x: number): Tile
 		Lip = lip,
 		Pattern = pattern,
 		Twice = twice,
-		Variant = tag("VariantWord", 0),
-		Size = tag("SizeWord", 1),
+		Variant = tag("VariantWord"),
+		Size = tag("SizeWord"),
 		Ring = ring,
 		Hit = hit,
 		Picture = picture,
@@ -375,7 +388,7 @@ end
 
 local touchNow = false
 
--- A fish's colour and size in words (the first alone moves up into the only row; a phone's slot has the size alone; the ride slot's lower, under its X)
+-- A fish's colour and size in words (one alone takes the first row)
 local function tags(t: any, item: Caught?)
 	t.Item = item
 	local variant = not touchNow and item and Kit.variantFill(item.Variant) or nil
@@ -388,8 +401,13 @@ local function tags(t: any, item: Caught?)
 	words.Rotation = if item and item.Variant == "Rainbow" then 0 else 90
 	under.Text = if sized then string.upper(size :: string) else ""
 	under.TextColor3 = if sized then SIZE_HUE[size :: string] else Kit.White
-	under.TextSize = if touchNow and #under.Text > 5 then TAG_SIZE_LONG else TAG_SIZE
-	under.Position = UDim2.new(0, 2, if variant or (touchNow and t.Cross) then 0.44 else 0.24, 0)
+	local y = if t.Cross then TAG_UNDER else 1
+	for _, label in { top, under } do
+		label.TextSize = if touchNow then TAG_SIZE.Phone else TAG_SIZE.Keys
+		label.TextXAlignment = if t.Cross then Enum.TextXAlignment.Right else Enum.TextXAlignment.Left
+		label.Position =
+			UDim2.fromOffset(if t.Cross then 0 else 2, if label == under and variant then y + TAG_STEP else y)
+	end
 end
 
 local function paint(t: any, item: Caught?)
@@ -400,6 +418,7 @@ local function paint(t: any, item: Caught?)
 		local kind = Config.FishById[item.Id]
 		slot.Face.BackgroundTransparency = 0
 		fill.Color, fill.Rotation = tileFill(item.Tier)
+		fill.Transparency = NumberSequence.new(0)
 		t.Pattern.ImageTransparency = STUDS_CAUGHT
 		t.Twice.Visible = true
 		local words = if kind then kind.Name else item.Id
@@ -408,9 +427,10 @@ local function paint(t: any, item: Caught?)
 		tint(slot, name, item.Variant)
 		t.Picture.Frame.Visible = t.Picture.show(item.Id)
 	else
-		slot.Face.BackgroundTransparency = PLATE.Fade or 0
+		slot.Face.BackgroundTransparency = 0
 		fill.Color = ColorSequence.new(PLATE.Top, PLATE.Bottom)
 		fill.Rotation = 90
+		fill.Transparency = if t.Cross then EMPTY_RIDE else EMPTY
 		t.Pattern.ImageTransparency = STUDS_EMPTY
 		t.Twice.Visible = false
 		name.Text = ""
@@ -495,18 +515,6 @@ function Slots.build(parent: Instance)
 		hit.Activated:Connect(function()
 			Slots.pick(i)
 		end)
-		-- its key, 1 to 7, at its top left (a keyboard only)
-		keys[i] = Kit.text({
-			Name = "Key",
-			Position = UDim2.fromOffset(2, 1),
-			Size = UDim2.fromOffset(10, 10),
-			Text = tostring(i),
-			TextSize = 9,
-			Font = FONT,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextYAlignment = Enum.TextYAlignment.Top,
-			ZIndex = 4,
-		}, t.Panel.Face, NAME_LINE)
 		tiles[i] = t
 		rings[i] = t.Ring
 	end
@@ -636,8 +644,6 @@ function Slots.place(touch: boolean)
 		t.Panel.Frame.Position = UDim2.new(0, middleOf(i, size, gap), 1, -size / 2)
 		t.Name.TextSize = if touch then 8.5 else 11
 		tags(t, (t :: any).Item)
-		keys[i].Visible = not touch
-		keys[i].TextSize = if touch then 9 else 11
 	end
 	count.Position = UDim2.fromOffset(0, -6)
 	if ride then

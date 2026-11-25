@@ -23,18 +23,22 @@ Most players are on phones, so every picture is drawn for a phone held sideways 
 rid of our water ones etc" ([Decisions](../Decisions.md)). Read as the hotbar (`UI/Slots.luau`). The layout and how slots
 behave follow the reference; the art, colours and numbers are ours, not measured off its screen.
 
-![the bar: on a keyboard, and laid out for an 844 x 390 phone](../attachments/ui-hotbar-studs.jpg)
+![the bar with two and with seven caught, and laid out for an 844 x 390 phone](../attachments/ui-hotbar-studs.jpg)
 
-- **No water.** An empty slot is see-through dark navy with square corners and faint studs; a caught one its rarity's colour
-  with our own stud tile (`Kit.Textures.Emboss`), three to a slot and drawn twice so it shows. The fade upward is gone.
+- **No water.** An empty slot has square corners, no studs, and is nearly clear, darkening toward its foot in our navy; the Q
+  slot more so (the user, the same day: "more transparent and faded with a gradient"). A caught one is its rarity's colour with our own stud tile (`Kit.Textures.Emboss`), three to a slot and drawn twice so it shows. The fade upward is gone.
 - **Highlights:** the light band inside the outline and the darker foot are on every caught slot (only the chosen one had
   them since 2026-11-18). The white ring is solid on the chosen slot, see-through on one under the mouse, with a thin dark
   edge so it isn't taken for a Silver's pale outline.
-- **Words** down a slot's left: its colour (SILVER, GOLD, RAINBOW) and its size when not normal. A phone's slot (34 points)
-  has the size alone: both were under 5 pixels high there. The ride slot has them too (`88df992`).
+- **Words, small, in the top left corner:** its colour (SILVER, GOLD, RAINBOW) and under it its size when not normal. The user
+  had them made smaller (8.5 to 6, 5.6 on a phone) and moved off the fish, then took the key numbers off and gave the words
+  their corner; keys 1 to 7 still work. A phone's slot (34 points) has the size alone. The ride slot's are under its X.
+  A tall fish with both words (a Silver Giant seahorse) still has them over its head.
 - **Checked in Studio** with made-up lists: empty, two, seven with every rarity; chosen, hover, riding; a phone's layout on a
   wide screen. No text past its slot, no water picture, no error. Not seen: a real catch or a real phone.
-- **Left:** names are still cut ("Seahor."), [UI review](ui-review.md) suggestion 6. Kit's Oxygen, Danger and Glass themes
+- **Names stay cut** ("Seahor."): the user, "keep them cut" ([UI review](ui-review.md) suggestion 6 is closed).
+- **For Hugo:** `c1_tank_hotbar_check.py` and `e3_equip_check.py` read the key numbers, which are gone; those lines need redoing.
+- **Left:** Kit's Oxygen, Danger and Glass themes
   still wear the water picture: other plates, not the bar's. The drawn icons wait for the user's ChatGPT pictures.
 
 ## The Fuse window (2026-11-25, Hugo; NULLROOM u1): on main, seen in Studio
