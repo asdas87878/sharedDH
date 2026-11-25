@@ -3,6 +3,11 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · Hop, texts and fusing on main, full check (NULLROOM z1, Hugo's PC)
+**State:** main 7bfd3a4 held all three; `tools/studio/full_check.py all` all good on it (128 of 128 scripts, 78 of 78 creature data, no errors). [Stills](attachments/z1-hop-texts-fuse.jpg). Place not saved, nothing uploaded.
+- **New checks:** `tools/studio/air_hop_check.py`, `tools/studio/texts_fuse_check.py`. **Traps:** when the main folder pulls a push, Rojo writes main over a worktree's scripts in Edit: `sync_src.py --dry` before each
+  Play. A table through `TestSave` is a copy: read `SaveService.profileOf(player).Data`. A solo `Kick` gave no PlayerRemoving within 0.8 s: `player:Destroy()` does.
+
 ## 2026-11-25 · Fusing at the Fuse machine (NULLROOM u1, Hugo's PC)
 **State:** merged onto main and pushed by z1, **seen in Studio** (`tools/studio/texts_fuse_check.py fuse | rings | saved | leave`; not on a phone, not played by hand). Nothing uploaded. Everything:
 [fusing](design/fusing.md). Off: `Config.Fuse.On` 0.
@@ -29,8 +34,9 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
   the jump; one long server frame of 27 to 139 ms in it (the worst: sub 9 with a Colossal); never two fish, never none; no trail in the air, 13 a second from the splash against the run's 36; the camera never back over the
   water; the hands unchanged; kicked at the land as before. Great White, sub 5: jump 0.45, seat 0.86, splash 1.26, run 1.56 s.
 - **No sub, on foot, unequip, death and reset** at 0.2, 0.6 and 1.2 s: all end clean.
-- **To know:** with a Colossal the land camera stands so far back that the DIVE IN sign is in front of it before the leap starts (main does it too; not the hop's). Frames were 33 to 60 a second, the low ones with the PC
-  busy with other work. Two players at once: not run.
+- **To know:** with a Colossal the DIVE IN sign is in front of the camera before the leap and stays over part of it (the rider hidden 0.06 to 0.42 s in). The camera is already behind the sign on the dock and the hop
+  does not change `RideController`, so it starts from the land camera's own place; main without the hop was **not run** to compare. At the splash 2 of 8 Great White grabs were 70 to 80 in 100 white: how long it
+  lasts was not measured. Frames were 33 to 60 a second, the low ones with the PC busy with other work. Two players at once: not run. [Stills](attachments/z1-hop-texts-fuse.jpg).
 
 ## 2026-11-25 · The mid-air hop: shorter, a steadier camera, a weaker trail (NULLROOM f1, Hugo's PC; on main since z1, above)
 **State:** on `air-hop` after h1's 4075aaa (every commit tagged "(f1)"), worktree `~/Projects/sharedDH-air-hop`. **Checked offline only; seen in Studio by z1 (above).** Hugo's words, the
