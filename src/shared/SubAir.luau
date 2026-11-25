@@ -48,7 +48,8 @@ export type Air = {
 export type Eye = {
 	Back: number, -- this far behind the rider until they are on the sub
 	Pass: number, -- the sub's tail is over it by then: it may rise
-	Cap: number, -- until then it is under this height at the meeting place, and the way the sub came in up from there
+	Cap: number, -- until then it is under this height at the meeting place, and the way the sub came in up from there,
+	Top: boolean, -- or over it (the sub comes in low: by under the camera)
 	Gate: number, -- 1: under the gate's beam while it is behind it, -1: over the arch, 0: wherever
 	Line: number, -- the gate's outer side, along the way out
 }
@@ -311,14 +312,14 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Ve
 	-- (not thrown up with them as they push off: from the saddle's height to the seat's)
 	local hop = Ease.smoothstep(air.HopAt, air.SeatAt, t)
 	local track = if hop >= 1 then rider.Y else Ease.lerp(SubAir.saddle(air.Leap, t).Y, air.Meet.Y + SubAir.Seat.Y, hop)
-	local low = softMin(track + c.AirCamUp, cap, 8)
+	local low = if e.Top then -softMin(-track - c.AirCamUp, -cap, 8) else softMin(track + c.AirCamUp, cap, 8)
 	-- (higher behind a nose that is down: over its stern, the rider in sight)
 	local down =
 		math.max(-(SubAir.middle(air, math.min(t + 0.03, air.RideAt)) - SubAir.middle(air, t - 0.03)).Unit.Y, 0)
 	local high = at.Y + c.AirCamSubUp + c.AirCamSub * math.min(down, math.sin(math.rad(c.AirNose))) * c.AirCamNose
 	local y = Ease.lerp(low, high, Ease.smoothstep(e.Pass, e.Pass + c.AirCamRise, t))
 	-- (clear of the gate's arch, from the gate back)
-	local past = Ease.smoothstep(e.Line, e.Line + 25, along)
+	local past = Ease.smoothstep(e.Line, e.Line + 50, along)
 	if past < 1 and e.Gate > 0 then
 		y = Ease.lerp(softMin(y, c.AirBeam[2] - c.AirCamClear, 8), y, past)
 	elseif past < 1 and e.Gate < 0 then
@@ -459,7 +460,7 @@ function SubAir.plan(leap: Leap, half: Vector3, saddle: Vector3, hull: { number 
 		Way = out,
 		Over = false,
 		Back = 0,
-		Eye = { Back = c.AirCam, Pass = seatAt, Cap = 1e4, Gate = 0, Line = 0 },
+		Eye = { Back = c.AirCam, Pass = seatAt, Cap = 1e4, Top = false, Gate = 0, Line = 0 },
 	}
 	local centre, size = hullBox(hull, c.AirGap)
 	local beam, beamHalf = gateBox(lip, c.AirBeam)
@@ -593,19 +594,19 @@ function SubAir.samples(air: Air, step: number): { Sample }
 end
 
 -- What is wrong with the camera as it is set, over the flight: seconds in the gate's arch, in the sub, in the fish, and
--- with the arch between it and the rider
+-- with the arch, and with the sub, between it and the rider
 function SubAir.seen(
 	air: Air,
 	hull: { number },
 	lip: CFrame,
 	samples: { Sample },
 	step: number
-): (number, number, number, number)
+): (number, number, number, number, number)
 	local c = Config.Sub
 	local beam, beamHalf = gateBox(lip, c.AirBeam)
 	local crest, crestHalf = gateBox(lip, c.AirCrest)
 	local centre, size = hullBox(hull, 0)
-	local gate, sub, fish, hidden = 0, 0, 0, 0
+	local gate, sub, fish, hidden, behind = 0, 0, 0, 0, 0
 	for _, s in samples do
 		if s.T < math.min(c.AirCamIn, air.HopAt) then
 			continue -- (still on its way from the player's own view)
@@ -623,8 +624,11 @@ function SubAir.seen(
 		if crosses(beam, beamHalf, eye, s.Rider) or crosses(crest, crestHalf, eye, s.Rider) then
 			hidden += step
 		end
+		if s.T >= air.HopAt and s.T <= air.SeatAt and crosses(s.Sub * centre, size, eye, s.Rider + UP * 2) then
+			behind += step
+		end
 	end
-	return gate, sub, fish, hidden
+	return gate, sub, fish, hidden, behind
 end
 
 -- The camera, chosen: the nearest to what Config asks that is clear of the sub, the gate's arch and the fish, and sees
@@ -634,21 +638,24 @@ function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
 	local out = air.Out
 	local tail = math.max(air.Half.Z - air.Saddle.Z, 0)
 	local want = math.min(c.AirCam + tail * c.AirCamLong, c.AirCamMost)
-	local belly = hull[3] / math.cos(air.Slope)
+	local belly, top = hull[3] / math.cos(air.Slope), hull[2] / math.cos(air.Slope)
 	local step = 0.04
 	local samples = SubAir.samples(air, step)
 	local best = math.huge
 	local pick = air.Eye
-	for _, gate in { 0, 1, -1 } do
-		for _, share in { 1, 0.75, 1.3, 1.7, 0.55, 2.2 } do
-			local eye: Eye = {
-				Back = math.max(want * share, c.AirCam * 0.8),
-				Pass = air.SeatAt,
-				Cap = air.Meet.Y - belly - c.AirCamClear,
-				Gate = gate,
-				Line = lip.Position:Dot(out) + c.AirBeam[5] + c.AirCamClear,
-			}
-			air.Eye = eye
+	local function try(over: boolean, gate: number, share: number)
+		local eye: Eye = {
+			Back = math.max(want * share, c.AirCam * 0.8),
+			Pass = air.SeatAt,
+			Cap = if over then air.Meet.Y + top + c.AirCamClear else air.Meet.Y - belly - c.AirCamClear,
+			Top = over,
+			Gate = gate,
+			Line = lip.Position:Dot(out) + c.AirBeam[5] + c.AirCamClear,
+		}
+		air.Eye = eye
+		if over then
+			eye.Pass = air.SeatAt - c.AirCamRise
+		else
 			-- when the sub's tail has gone over it
 			for _, s in samples do
 				if
@@ -659,16 +666,36 @@ function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
 					break
 				end
 			end
-			local inGate, inSub, inFish, hidden = SubAir.seen(air, hull, lip, samples, step)
-			local cost = inGate * 20 + inSub * 60 + inFish * 4 + hidden * 3 + math.abs(math.log(share)) * 0.3
-			if cost < best - 1e-6 then
-				best, pick = cost, eye
+		end
+		local inGate, inSub, inFish, hidden, behind = SubAir.seen(air, hull, lip, samples, step)
+		-- (looking down on them from over the sub: not too steeply)
+		local at = SubAir.eye(air, air.HopAt) - SubAir.rider(air, air.HopAt).Position
+		local steep = math.max(math.atan2(at.Y, math.max(-at:Dot(out), 1)) - 0.55, 0)
+		local cost = inGate * 20
+			+ inSub * 60
+			+ inFish * 4
+			+ hidden * 3
+			+ behind * 2
+			+ steep * 2
+			+ math.abs(math.log(share)) * 0.3
+		if cost < best - 1e-6 then
+			best, pick = cost, eye
+		end
+	end
+	-- (over a sub that comes in low, under the gate's beam; else under it)
+	for _, over in { not air.Over, air.Over } do
+		for _, gate in { 0, 1, -1 } do
+			for _, share in { 1, 1.3, 0.75, 1.7, 0.55, 2.2 } do
+				try(over, gate, share)
+				if best < 0.1 then
+					break
+				end
 			end
-			if best < 0.05 then
+			if best < 0.1 then
 				break
 			end
 		end
-		if best < 0.05 then
+		if best < 0.5 then
 			break
 		end
 	end

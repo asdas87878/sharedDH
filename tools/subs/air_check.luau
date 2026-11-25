@@ -212,7 +212,7 @@ return function(x)
 	}
 	local traced = process.env.AIR_TRACE -- ("Giant,5,0,0": the size, the sub, x and the slant to print frame by frame)
 	local function flight(trip, tier, row)
-		local trace = traced == string.format("%s,%d,%d,%d", row.tier, tier, row.x, row.slant)
+		local trace = row.crouched and traced == string.format("%s,%d,%d,%d", row.tier, tier, row.x, row.slant)
 		local air, e = trip.Air, trip.Escort
 		local _, rideAt = SubTrip.times(trip)
 		local entry = SubAir.entry(air)
@@ -425,13 +425,13 @@ return function(x)
 				m.fishTurn = math.max(m.fishTurn, math.deg(math.acos(math.clamp(fish.LookVector:Dot(last.fishLook), -1, 1))))
 			end
 			if trace then
-				local jumps = string.format("cam %5.2f", if last.camStep and last.camWas then (last.camStep - last.camWas).Magnitude else 0)
+				local jumps = string.format("cam %5.2f turn %5.2f pass %.2f seat %.2f splash %.2f ride %.2f entry %.2f", if last.camStep and last.camWas then (last.camStep - last.camWas).Magnitude else 0, if last.dirWas and last.dir then math.deg(math.acos(math.clamp(dir:Dot(last.dirWas), -1, 1))) else 0, air.Eye.Pass, air.SeatAt, air.SplashAt, rideAt, entry)
 				print(string.format("%5.3f sub %7.1f %6.1f %7.1f v%6.0f | rider %6.1f %6.1f %7.1f | eye %6.1f %6.1f %7.1f | fish %6.1f %6.1f %7.1f look %5.2f %5.2f %5.2f gap %6.1f | %s %s",
 					t, sub.X - x.X0, sub.Y, sub.Z, speed, rider.X - x.X0, rider.Y, rider.Z, eye.X - x.X0, eye.Y, eye.Z, fish.X - x.X0, fish.Y, fish.Z,
 					fish.LookVector.X, fish.LookVector.Y, fish.LookVector.Z, gap, jumps,
 					(if t > air.HopAt and inHull(tier, sub, rider.Position) then "INCELL " else "") .. (if inHull(tier, sub, rider.Position - UP * 2) then "FEET " else "") .. (if not onSub and hid(tier, sub, eye, rider.Position) then "HID" else "")))
 			end
-			last.camWas = last.camStep
+			last.camWas, last.dirWas = last.camStep, dir
 			last.fish, last.rel, last.fishLook = fish.Position, rel, fish.LookVector
 			last.eye, last.eyeRel, last.dir, last.rider, last.onSub = eye, eye - sub.Position, dir, rider.Position, onSub
 		end
