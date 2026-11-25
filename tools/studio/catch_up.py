@@ -72,6 +72,7 @@ def main():
         ("subs", [py, "tools/subs/install.py", studio]),
         ("seahorses on the plots", [py, "tools/studio/trainer_models.py", studio]),
         ("hand changes", [py, "tools/studio/hand_map.py", studio]),
+        ("aura pictures (Studio's own copies; reopen Studio after)", [py, "tools/auras/volume_sheets.py", "--local"]),
     ]
     bad = []
     for name, command in steps:

@@ -1326,6 +1326,7 @@ local function topUp(limit: number, anywhere: boolean?)
 			local slice = w.Slice
 			-- past the stocked zones, past the zones its kind lives in, or one too many where it is
 			local gone = not slice or w.Zone > w.Type.Home + w.Type.Reach
+			local over = false
 			-- (in a lap of the endless Underworld nobody is near)
 			if slice and slices[slice].Stock and slices[slice].Want == 0 then
 				gone = true
@@ -1333,6 +1334,7 @@ local function topUp(limit: number, anywhere: boolean?)
 			if slice and not gone and (per[slice] or 0) > slices[slice].Want then
 				local around, wanted = windowOf(per, slice)
 				gone = around > wanted + math.max(2, wanted * sp.OverBy)
+				over = gone
 			end
 			local astray = slice ~= nil and w.Zone > w.Type.Home
 			if slice and astray and not gone and sp.StrayMost < 1 then
@@ -1343,8 +1345,9 @@ local function topUp(limit: number, anywhere: boolean?)
 				local clear = if slice then sp.SightClear else 250
 				local seen = not alongClear(w.S, w.S, if slice then clear else 0)
 					or (not w.Parked and nearAPlayer(w.Root.Position, clear))
-				-- (a fish of an earlier land that a rider has left behind goes sooner)
-				if seen and astray and unseen(w.S) then
+				-- (a fish of an earlier land, or one too many where it is (Spawn.OverBehind), that a rider has left behind
+				-- goes sooner)
+				if seen and (astray or (over and sp.OverBehind == 1)) and unseen(w.S) then
 					seen = not w.Parked and nearAPlayer(w.Root.Position, sp.BackClear)
 				end
 				gone = not seen

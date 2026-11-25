@@ -3561,7 +3561,7 @@ Config.Spawn = {
 	Come = 1, -- 1: the land's own come up past the rider from behind, and the earlier lands' fish over StrayMost hang back; 0: neither
 	ComeSoon = 350, -- it begins this far before a land's start, studs
 	ComeAhead = 350, -- the water this far ahead is to hold the land's share of its own
-	ComeFill = 1.2, -- and as many fish in all as this times what that water should hold (land 1's herd, gathered at the gate, runs that much over)
+	ComeFill = 1, -- and as many fish in all as this times what that water should hold (1.2 until 2026-11-25, the user: "the fish pile up in later zones ... wayyy to many")
 	ComeNear = 50, -- and each goes somewhere from this far ahead to there
 	ComeSide = 0.3, -- they pass at least this far to one side (a share of the band's half width)
 	ComeEvery = 0.4, -- seconds between them
@@ -3601,7 +3601,8 @@ Config.Spawn = {
 	EntryAt = 120, -- at the lane's start, in sight, a new fish comes in within this far of its stretch's start (30 until 2026-11-16: every fish came out of one spot at the gate; the user: "fish spawn point needs to be spread out instead of a fixed singular point")
 	EntrySlices = 2, -- and in this many of the lane's first stretches (1 until then): with EntryAt 120, anywhere in the first 240 studs
 	Window = 2, -- a stretch is short of fish, or over, by the count of itself and this many stretches each side
-	OverBy = 0.3, -- that many are over by this share of what they should hold before one is taken away (and at least two)
+	OverBy = 0.2, -- that many are over by this share of what they should hold before one is taken away (and at least two) (0.3 until 2026-11-25: the pile-up in later lands)
+	OverBehind = 1, -- 1: one too many that a rider going on has left behind (Spawn.BackClear) goes, as an earlier land's fish does; 0: only SightClear from everyone (2026-11-25, the user: "the fish persist for too long")
 	SpawnAtDock = true, -- characters spawn at the dock's Spawn marker when there is one
 }
 

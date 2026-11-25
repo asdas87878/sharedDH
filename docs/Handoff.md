@@ -3,6 +3,15 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the auras' "fart clouds" and the fish pile-up (game code, the user's ask)
+**Pushed, not played.**
+- **Auras:** the 3D look's twelve pictures (`Auras.Sheets`) were never uploaded, so where Studio has no local copies, and in
+  any live game, the engine's smoke and fire stand in: the clouds. Fixed for Studio: `tools/studio/catch_up.py` now also
+  copies them (`tools/auras/volume_sheets.py --local`); **reopen Studio after.** A live game needs the twelve png files in
+  `art/ui/aura_volume` uploaded and their ids in `Auras.Sheets`: not done, the user's word needed.
+- **Fish pile-up in later lands:** one too many that a rider going on has left behind now goes as an earlier land's fish
+  does (`Spawn.OverBehind` 1; 0 is as before). `Spawn.ComeFill` 1.2 to 1, `Spawn.OverBy` 0.3 to 0.2. Not measured.
+
 ## 2026-11-25, the endless Underworld in the user's place (game code, the user's "Yes, do it")
 
 - Hugo's loop switched itself off because the user's place streams. Now the stretch's parts are held for each player near it
