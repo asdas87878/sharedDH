@@ -52,7 +52,7 @@ what fails: [submarine](design/submarine.md), "The air hop".
   the splash and sound, two players, the server's cost of a leap (about 100 ms in Lune), lag, give-ups by hand.
   `tools/studio/fish_sub_check.py` was written for the old hop: use it with `AirHop` 0, or adapt it.
 ## 2026-11-25 · Texts: B1 stickers on the dock, once a respawn; A3 for Required (NULLROOM f2, Hugo's PC)
-**State:** branch `texts-b1-a3`, **not pushed, not merged, not seen in Studio.** Hugo's picks, how and the numbers: [UI](design/ui.md),
+**State:** merged onto main and pushed by z1, **seen in Studio** (`tools/studio/texts_fuse_check.py texts | lesson`; not on a phone, not played by hand). Hugo's picks, how and the numbers: [UI](design/ui.md),
 "The dock's lines and Required". [Before and after](attachments/texts-b1-a3.png).
 - **New:** `UI/Sticker`, `UI/ReqLine`, `Lib/RespawnLine`, `Config.DockLine`, `Config.ReqLine`. **Changed:** `DockNotes`
   (`Start` and `waiting` new; its other calls the same), `GoalController`, `LessonPrompt` (the words' look only), `Tags` (the three-line
@@ -60,8 +60,9 @@ what fails: [submarine](design/submarine.md), "The air hop".
 - **Checked offline:** `python tools/ui/texts_b1_a3/picture.py` (33 checks on the real modules, then the sheet); stylua, selene,
   rojo build.
 - **Rest of the lesson unchanged**, but the words of a step begun between two respawns are normally not seen (first-minutes, "Built").
-- **Owed in Studio:** the slap and the fade by eye, the tag's line over a live fish (the letters' shadow is a label under a label
-  with automatic width), `lesson_check.py`, a real phone.
+- **Studio (z1):** one line each respawn (first spawn, home from two dives, a death), up 2.8 to 3.0 s with the half second of fade, after the black and the catch screen; nothing more on the dock
+  whatever happens there; Required over live fish, green and red, outline 1.44 and 1.92 points; "Too strong!" as before; 60 frames a second. The lesson goes from Dive to its end (the step Again says nothing while the
+  first Index reward waits, as before). **Owed:** a real phone.
 
 ## 2026-11-25, each land its own fish, and the hook (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
