@@ -8,7 +8,7 @@ hair different, the light is Blender's, there are no studs on the ground, and th
     lune run tools/boards/hub_parts.luau <saved place.rbxl> /tmp/b/hub.json
     python tools/boards/picture.py /tmp/b panels     the panels' pictures
     blender -b --factory-startup -P tools/boards/view.py -- /tmp/b
-    python tools/boards/picture.py /tmp/b sheet docs/attachments/leaderboards-3.jpg
+    python tools/boards/picture.py /tmp/b sheet docs/attachments/leaderboards-4.jpg
 """
 import hashlib
 import json

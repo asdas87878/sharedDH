@@ -3,8 +3,12 @@
 -- frame, sunken brass (Hugo's pick of three) with its pipes, valves and lamps, and the flat icon on the slim bar at each
 -- board's head. Sums only: BoardController builds them on each player's own machine, tools/boards/picture draws them. Nothing here is uploaded
 -- and nothing is in the place.
+--   One straight wall (Hugo, 2026-11-25: "straight and continuous with each other without seeing any edges in between"):
+--   the boards have no sides of their own. `frame` draws what runs through all of them (the foot bar, the head bar, the
+--   back) and one post at each end and between two boards; `board` only what is inside one: the glass's edge, the foot's
+--   portholes and valve, the icon.
 --   A board's own space: its foot on the floor in the middle, X to the right of someone reading it, Y up, Z towards
---   them. PANEL, the dark glass with the list on it, is 11.2 by 21.2 studs.
+--   them; the row's the same, from the middle of the row. PANEL, the dark glass with the list on it, is 11.2 by 21.2 studs.
 --   A piece: Shape (Block, Ball, Cylinder; a cylinder runs along its own X), Size, At, Color, Glow (neon), Light (a lamp: how
 --   far it reaches, studs). Nothing moves.
 local Boards = {}
@@ -20,8 +24,9 @@ export type Piece = {
 
 Boards.Panel = { Width = 11.2, Height = 21.2, Bottom = 2.8, Front = 0.35 } -- the glass: studs; its face in Z
 Boards.Sign = { Y = 25.5, Z = 1.2, Scale = 0.85 } -- the icon's middle, on the front of the bar, and every size in it times this
-Boards.Solid = { Width = 13.6, Height = 25.6, Depth = 3 } -- the unseen block players bump into
-Boards.Bed = { Depth = 7, Height = 0.8, Over = 7.2 } -- the bed all boards of the row stand on; Over past the last middles
+Boards.Solid = { Width = 14.3, Height = 25.6, Depth = 3 } -- the unseen block players bump into
+Boards.Bed = { Depth = 7, Height = 0.8, Over = 8.4 } -- the kerb all boards of the row stand on; Over past the last middles
+Boards.Post = 1.4 -- how wide a post is when the boards stand as close as they can (Boards.pitch)
 Boards.Glass = Color3.fromRGB(10, 21, 33)
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -115,48 +120,86 @@ local function lamp(pen: Pen, x: number, y: number)
 	end
 end
 
-local function frame(pen: Pen)
+local EDGE = 0.25 -- the glass's brass edge, on every side
+local TUCK = 0.1 -- how far that edge goes in behind a post
+
+-- The least there can be from one board's middle to the next one's: the two brass edges tucked in behind one post
+function Boards.least(): number
+	return Boards.Panel.Width + EDGE * 2 - TUCK * 2 + Boards.Post
+end
+
+-- How far apart the boards stand: what is asked for, never less than `least`
+function Boards.pitch(asked: number): number
+	return math.max(asked, Boards.least())
+end
+
+-- What one board has to itself: the glass in a thin brass edge, and in the foot a valve between two lit portholes
+local function bay(pen: Pen)
 	local p = Boards.Panel
-	local top = p.Bottom + p.Height + 0.25
-	-- the glass, in a thin brass edge
-	box(pen, 0, p.Bottom + p.Height / 2, -0.1, p.Width + 0.5, p.Height + 0.5, 0.8, BRASS)
-	for _, side in { -1, 1 } do
-		local x = side * 6.45
-		box(pen, x, top / 2, -0.2, 1.4, top, 1.6, COPPER)
-		box(pen, x, 1.5, -0.1, 1.5, 1.8, 2.2, COPPER_D)
-		box(pen, x, 2.6, -0.1, 1.48, 0.4, 2.0, BRASS)
-		lamp(pen, x, 21.6)
-		-- a pipe up the pillar's front, from its foot to its lamp, in brass collars and bolted straps
-		post(pen, x, 11.5, PIPE, 0.5, 17.6, BRASS_D)
-		for _, y in { 3.1, 20.0 } do
-			post(pen, x, y, PIPE, 0.8, 0.6, BRASS)
-		end
-		for _, y in { 8.6, 15.4 } do
-			box(pen, x, y, 0.05, 1.5, 0.6, 2.2, BRASS)
-			for _, out in { -0.5, 0.5 } do
-				ball(pen, x + out, y, 1.12, 0.32, CREAM)
-			end
-		end
-	end
-	gauge(pen, -6.2, 5.9, 1.15, 1.55)
-	valve(pen, 6.35, 12, 1.35, 1.7)
-	-- the foot: a valve between two lit portholes
-	box(pen, 0, 1.7, -0.1, 11.5, 1.7, 1.5, COPPER_D)
+	box(pen, 0, p.Bottom + p.Height / 2, -0.1, p.Width + EDGE * 2, p.Height + EDGE * 2, 0.8, BRASS)
 	for _, x in { -3.4, 3.4 } do
 		disc(pen, x, 1.7, 0.7, 1.4, 0.3, BRASS)
 		local pane = disc(pen, x, 1.7, 0.8, 0.96, 0.3, PORT)
 		pane.Glow = true
 	end
 	valve(pen, 0, 1.7, 1.2, 1.5)
-	-- the bar at the head, with a row of small lamps under its edge
-	box(pen, 0, top + 0.65, -0.1, 14.2, 1.3, 1.8, COPPER)
-	box(pen, 0, top + 1.45, -0.1, 14.3, 0.3, 2.2, BRASS)
-	for _, side in { -1, 1 } do
-		for i = 0, 2 do
-			local bulb = ball(pen, side * (2.5 + i * 1.5), top + 0.65, 0.85, 0.55, LAMP)
-			bulb.Glow = true
+end
+
+-- A post, as wide as the boards leave room for: a pipe up its front to a lamp, in collars and bolted straps
+local function upright(pen: Pen, x: number, wide: number, top: number)
+	box(pen, x, top / 2, -0.2, wide, top, 1.6, COPPER)
+	lamp(pen, x, 21.6)
+	post(pen, x, 11.4, PIPE, 0.5, 17.4, BRASS_D)
+	for _, y in { 3.1, 20.0 } do
+		post(pen, x, y, PIPE, 0.8, 0.6, BRASS)
+	end
+	for _, y in { 8.28, 15.08 } do -- (between two rows of the list, as the valve is: seen from aside they hide no number)
+		box(pen, x, y, 0.05, wide + 0.1, 0.6, 2.2, BRASS)
+		for _, out in { -0.5, 0.5 } do
+			ball(pen, x + out, y, 1.12, 0.32, CREAM)
 		end
 	end
+end
+
+-- What runs through a whole row, in the row's own space: `count` boards, `asked` from one's middle to the next one's
+function Boards.frame(count: number, asked: number): { Piece }
+	local pen: Pen = { List = {}, Base = CFrame.identity }
+	local p = Boards.Panel
+	local top = p.Bottom + p.Height + EDGE
+	local pitch = Boards.pitch(asked)
+	local wide = pitch - (p.Width + EDGE * 2 - TUCK * 2)
+	local long = count * pitch + wide -- from the outside of one end post to the other's
+	-- one post at each end, and one where two boards meet: the gauge is of the board on its right, the valve of the one
+	-- on its left
+	for i = 0, count do
+		local x = (i - count / 2) * pitch
+		upright(pen, x, wide, top)
+		if i < count then
+			gauge(pen, x, 5.9, 1.15, 1.55)
+		end
+		if i > 0 then
+			valve(pen, x, 11.68, 1.15, 1.4)
+		end
+	end
+	-- behind it all, so there is never daylight beside a post
+	box(pen, 0, top / 2 + 0.2, -0.65, long - 0.4, top - 0.6, 0.5, COPPER_D)
+	-- one bar at the foot and one at the head, each with its brass edge, in front of the posts from end to end; and one
+	-- row of small lamps on the upper one, evenly along it
+	box(pen, 0, 1.6, -0.1, long + 0.2, 1.9, 1.5, COPPER_D)
+	box(pen, 0, p.Bottom - EDGE / 2, -0.1, long + 0.4, EDGE, 2.0, BRASS)
+	box(pen, 0, top + 0.65, -0.1, long + 0.2, 1.3, 1.8, COPPER)
+	box(pen, 0, top + 1.45, -0.1, long + 0.4, 0.3, 2.2, BRASS)
+	for i = 1, count do
+		local x = (i - (count + 1) / 2) * pitch
+		local gap = 1.5 * pitch / Boards.least()
+		for _, side in { -1, 1 } do
+			for k = 0, 2 do
+				local bulb = ball(pen, x + side * (pitch / 2 - gap * (k + 0.5)), top + 0.65, 0.85, 0.55, LAMP)
+				bulb.Glow = true
+			end
+		end
+	end
+	return pen.List
 end
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -236,33 +279,34 @@ end
 
 ----------------------------------------------------------------------------------------------------------------------
 
--- One board: its frame and its icon
+-- One board, without what it shares with the rest of the row (Boards.frame)
 function Boards.board(emblem: string): { Piece }
 	local pen: Pen = { List = {}, Base = CFrame.identity }
-	frame(pen)
+	bay(pen)
 	sign(pen, emblem)
 	return pen.List
 end
 
--- The bed a row stands on, from the row's own middle. `span`: from the first board's middle to the last one's
-function Boards.bed(span: number): { Piece }
+-- The kerb a row stands on, from the row's own middle. (The round ends are a hair lower than the straight part, so two
+-- tops never lie in one plane.)
+function Boards.bed(count: number, asked: number): { Piece }
 	local pen: Pen = { List = {}, Base = CFrame.identity }
 	local b = Boards.Bed
-	local long = span + b.Over * 2 - b.Depth
+	local long = (count - 1) * Boards.pitch(asked) + b.Over * 2 - b.Depth
 	box(pen, 0, b.Height / 2, 0, long, b.Height, b.Depth, STONE)
 	box(pen, 0, b.Height * 0.3, 0, long, b.Height * 0.6, b.Depth + 0.5, STONE_D)
 	for _, side in { -1, 1 } do
-		post(pen, side * long / 2, b.Height / 2, 0, b.Depth, b.Height, STONE)
-		post(pen, side * long / 2, b.Height * 0.3, 0, b.Depth + 0.5, b.Height * 0.6, STONE_D)
+		post(pen, side * long / 2, b.Height / 2 - 0.01, 0, b.Depth, b.Height, STONE)
+		post(pen, side * long / 2, b.Height * 0.3 - 0.01, 0, b.Depth + 0.5, b.Height * 0.6, STONE_D)
 	end
 	return pen.List
 end
 
--- The middle of each board's foot, from the row's: the first one on the reader's left
-function Boards.places(count: number, pitch: number, turn: number): { CFrame }
+-- The middle of each board's foot, from the row's: the first one on the reader's left, all in one line and one plane
+function Boards.places(count: number, asked: number): { CFrame }
 	local out: { CFrame } = {}
 	for i = 1, count do
-		out[i] = CFrame.new((i - (count + 1) / 2) * pitch, 0, 0) * CFrame.Angles(0, math.rad(turn), 0)
+		out[i] = CFrame.new((i - (count + 1) / 2) * Boards.pitch(asked), 0, 0)
 	end
 	return out
 end

@@ -175,18 +175,35 @@ def pens(on):
         o.hide_render = not on
 
 
+FACE = math.radians(DATA["Face"])
+OUT = Vector((math.sin(FACE), math.cos(FACE)))  # the way the row faces, flat (x, z)
 near, far = math.radians(20), math.radians(40)  # along the boards' own facing; towards the hub's middle
 X, Z = O.x, O.z
+
+
+def off(turn, dist):
+    """(x, z) that far from the row's middle, turned from straight in front of it (plus: towards the gate)"""
+    a = FACE - math.radians(turn)
+    return X + math.sin(a) * dist, Z + math.cos(a) * dist
+
+
 only(1)
 pens(False)
-if not ONLY or "close" in ONLY:
-    shot("close", (X + math.sin(near) * 50, 12, Z - math.cos(near) * 50), (X + 0.4, 13.4, Z), 38, 2400, 1500)
+if not ONLY or "front" in ONLY:
+    x, z = off(0, 58)
+    shot("front", (x, 12, z), (X, 13.6, Z), 35, 2400, 1500)
 if not ONLY or "sign" in ONLY:
-    shot("sign", (X + math.sin(near) * 30, 19, Z - math.cos(near) * 30), (X + 0.8, 23.2, Z), 27, 2400, 760)
+    shot("sign", (X + math.sin(near) * 34, 19, Z - math.cos(near) * 34), (X + 0.4, 22.6, Z), 27, 2400, 760)
 if not ONLY or "border" in ONLY:
     shot("border", (X - 5 + math.sin(near) * 28, 9, Z - math.cos(near) * 28), (X - 4, 7.6, Z), 46, 1500, 880)
+for name, turn in (("gate", 45), ("pen", -45)):
+    if not ONLY or name in ONLY:
+        x, z = off(turn, 52)
+        shot(name, (x, 12, z), (X, 13.6, Z), 44, 1500, 1000)
 pens(True)
 if not ONLY or "phone" in ONLY:
     shot("phone", (X + math.sin(far) * 60, 9, Z - math.cos(far) * 60), (X, 14, Z), 70, 1688, 780)
 if not ONLY or "spawn" in ONLY:
     shot("spawn", (3000, 9, -100), (2955, 12, -38), 70, 1688, 780)
+if not ONLY or "above" in ONLY:
+    shot("above", (X, 95, Z - 40), (X, 0, Z - 2), 44, 1200, 900)

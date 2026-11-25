@@ -1,7 +1,8 @@
 -- The leaderboards' panels and frames, built offline (NULLROOM task l1): the real UI.BoardPanel, UI.Kit, UI.Shop,
 -- Shared.Boards, Controllers.BoardController and Config, with the stand-ins of tools/index (a wrong property name or
 -- type is an error, as in Roblox). It checks the words, the rows as they are scrolled, the "this server" label, your
--- own line, that a list is only scrolled from near, and that the row of boards is built, moved, rebuilt and taken away.
+-- own line, that a list is only scrolled from near, that the row of boards is built, moved, rebuilt and taken away, and
+-- that it is one straight wall: one plane, one post at a joint, no slit, no two faces in one plane.
 -- It cannot see them: a second argument writes the panels' trees and the boards' parts for tools/boards/picture.py.
 -- usage: rojo build -o /tmp/place.rbxl && lune run tools/boards/panel_test.luau /tmp/place.rbxl [dump folder]
 local fs = require("@lune/fs")
@@ -110,10 +111,286 @@ for _, def in List do
 			back,
 			front
 		),
-		bad == 0 and #parts <= 90 and low >= -0.2 and left >= -7.2 and right <= 7.2 and back >= -1.6 and front <= 1.6
+		-- (inside its own posts)
+		bad == 0 and #parts <= 50 and low >= -0.2 and left >= -5.86 and right <= 5.86 and back >= -1.6 and front <= 1.6
 	)
 end
 ok("an emblem that is none is a board with no sign", #Boards.board("None") < #Boards.board("Book"))
+
+----------------------------------------------------------------------------------------------------------------------
+-- One straight wall
+
+local PITCH, WIDE = Config.Boards.Pitch, Boards.Post
+-- every piece of a row of `count`, in the row's own space, the glasses too
+local function wall(count: number, asked: number): { any }
+	local out = {}
+	for _, piece in Boards.bed(count, asked) do
+		table.insert(
+			out,
+			{ Shape = piece.Shape, Size = piece.Size, At = piece.At, Of = "kerb", Skin = `{piece.Color} {piece.Shape}` }
+		)
+	end
+	for _, piece in Boards.frame(count, asked) do
+		table.insert(out, {
+			Shape = piece.Shape,
+			Size = piece.Size,
+			At = piece.At,
+			Of = "frame",
+			Light = piece.Light,
+			Skin = tostring(piece.Color),
+		})
+	end
+	for i, at in Boards.places(count, asked) do
+		for _, piece in Boards.board(List[i].Emblem) do
+			table.insert(out, {
+				Shape = piece.Shape,
+				Size = piece.Size,
+				At = at * piece.At,
+				Of = "board " .. i,
+				Skin = tostring(piece.Color),
+			})
+		end
+		local q = Boards.Panel
+		local glassAt = at * CFrame.new(0, q.Bottom + q.Height / 2, q.Front - 0.05)
+		table.insert(out, {
+			Shape = "Block",
+			Size = Vector3.new(q.Width, q.Height, 0.1),
+			At = glassAt,
+			Of = "glass " .. i,
+			Skin = "glass",
+		})
+	end
+	return out
+end
+-- whether a point is inside a piece
+local function inside(piece: any, point: any): boolean
+	local at, s = piece.At:PointToObjectSpace(point), piece.Size
+	if piece.Shape == "Ball" then
+		return at.Magnitude < s.X / 2
+	elseif math.abs(at.X) >= s.X / 2 then
+		return false
+	elseif piece.Shape == "Cylinder" then
+		return at.Y * at.Y + at.Z * at.Z < s.Y * s.Y / 4
+	end
+	return math.abs(at.Y) < s.Y / 2 and math.abs(at.Z) < s.Z / 2
+end
+-- the flat faces of a piece: its middle, the way it looks, and its two other directions with their reach
+local function faces(piece: any): { any }
+	local s, cf = piece.Size, piece.At
+	local a = { cf.RightVector, cf.UpVector, -cf.LookVector }
+	local h = { s.X / 2, s.Y / 2, s.Z / 2 }
+	local out = {}
+	for i = 1, if piece.Shape == "Ball" then 0 elseif piece.Shape == "Cylinder" then 1 else 3 do
+		local j, k = i % 3 + 1, (i + 1) % 3 + 1
+		for _, side in { -1, 1 } do
+			table.insert(out, {
+				At = cf.Position + a[i] * h[i] * side,
+				Look = a[i] * side,
+				U = a[j],
+				V = a[k],
+				Hu = h[j],
+				Hv = h[k],
+				Round = piece.Shape == "Cylinder",
+				Of = piece,
+			})
+		end
+	end
+	return out
+end
+local function onFace(face: any, point: any): boolean
+	local to = point - face.At
+	local u, v = to:Dot(face.U), to:Dot(face.V)
+	if face.Round then
+		return u * u + v * v < face.Hu * face.Hu
+	end
+	return math.abs(u) < face.Hu and math.abs(v) < face.Hv
+end
+-- how many pairs of faces of two looks (colours; the kerb's straight part has studs, its round ends none) lie in one
+-- plane, look the same way and are both seen somewhere: those flicker. Two of one look are one face to the eye
+local function flicker(pieces: { any }): (number, string)
+	local all = {}
+	for _, piece in pieces do
+		for _, face in faces(piece) do
+			-- (what lies on the ground is not seen from under it)
+			if face.At.Y > 0.05 or face.Look.Y > -0.9 then
+				table.insert(all, face)
+			end
+		end
+	end
+	local found, first = 0, ""
+	for i = 1, #all do
+		for j = i + 1, #all do
+			local a, b = all[i], all[j]
+			if
+				a.Of ~= b.Of
+				and a.Of.Skin ~= b.Of.Skin
+				and a.Look:Dot(b.Look) > 0.9999
+				and math.abs((b.At - a.At):Dot(a.Look)) < 0.004
+				and (b.At - a.At).Magnitude < a.Hu + a.Hv + b.Hu + b.Hv
+			then
+				local small, other = a, b
+				if a.Hu * a.Hv > b.Hu * b.Hv then
+					small, other = b, a
+				end
+				local seen = false
+				for u = -9, 9 do
+					for v = -9, 9 do
+						local point = small.At + small.U * small.Hu * u / 9.5 + small.V * small.Hv * v / 9.5
+						if not seen and onFace(small, point) and onFace(other, point) then
+							local out = point + a.Look * 0.006
+							local hidden = false
+							for _, piece in pieces do
+								hidden = hidden or inside(piece, out)
+							end
+							seen = not hidden
+						end
+					end
+				end
+				if seen then
+					found += 1
+					first ..= string.format(
+						" %s, %s at %.2f %.2f %.2f;",
+						a.Of.Of,
+						b.Of.Of,
+						small.At.X,
+						small.At.Y,
+						small.At.Z
+					)
+				end
+			end
+		end
+	end
+	return found, first
+end
+-- how many lines straight through a row, from the front, hit nothing at all
+local function slits(pieces: { any }, half: number): (number, string)
+	local none, where = 0, ""
+	for x = -half, half, 0.03 do
+		for _, y in { 0.83, 1.2, 2.5, 2.57, 2.9, 5, 9, 14, 20, 23.9, 24.1, 24.2, 24.3, 25, 25.5, 25.6, 25.8 } do
+			local hit = false
+			for _, piece in pieces do
+				if piece.Shape == "Block" and piece.At.UpVector.Y > 0.999 then
+					local s, at = piece.Size, piece.At.Position
+					hit = hit or (math.abs(x - at.X) <= s.X / 2 and math.abs(y - at.Y) <= s.Y / 2)
+				end
+			end
+			if not hit then
+				none += 1
+				where = string.format("x %.2f y %.2f", x, y)
+			end
+		end
+	end
+	return none, where
+end
+for _, try in { { 3, PITCH }, { 3, PITCH + 1 }, { 4, PITCH } } do
+	local count, asked = try[1], try[2]
+	local name = `a row of {count}, {asked} apart: `
+	local pieces = wall(count, asked)
+	local half = (count * Boards.pitch(asked) + WIDE) / 2
+	local turned, planes = 0, {}
+	for _, at in Boards.places(count, asked) do
+		turned += if (at.ZVector - Vector3.zAxis).Magnitude > 1e-6 or at.Y ~= 0 or at.Z ~= 0 then 1 else 0
+	end
+	ok(name .. "no board is turned, out of line or off the floor", turned == 0, turned)
+	for _, piece in pieces do
+		if string.find(piece.Of, "glass") then
+			planes[string.format("%.4f", piece.At.Z)] = true
+		end
+	end
+	local n = 0
+	for _ in planes do
+		n += 1
+	end
+	ok(name .. "the glasses lie in one plane", n == 1, n)
+	local pillars, pipes, lamps, long = {}, 0, 0, 0
+	for _, piece in pieces do
+		local s = piece.Size
+		if piece.Of == "frame" then
+			lamps += if piece.Light then 1 else 0
+			pipes += if piece.Shape == "Cylinder" and s.X > 15 then 1 else 0
+			long += if piece.Shape == "Block" and s.X > half then 1 else 0
+			if piece.Shape == "Block" and s.Y > 20 and s.X < 5 then
+				table.insert(pillars, piece)
+			end
+		elseif string.find(piece.Of, "board") and piece.Shape == "Block" then
+			-- (no board has an edge of its own out past its posts' inner sides, so none is seen)
+			local at = Boards.places(count, asked)[tonumber(string.sub(piece.Of, 7)) :: number]
+			local out = math.abs(piece.At.X - at.X)
+				+ (math.abs(piece.At.RightVector.X) * s.X + math.abs(piece.At.UpVector.X) * s.Y) / 2
+			if out > Boards.Panel.Width / 2 + 0.26 then
+				turned += 1
+			end
+		end
+	end
+	ok(name .. "no board reaches past the middle of its posts", turned == 0, turned)
+	ok(
+		name .. "one post, one pipe and one lamp at each end and each joint",
+		#pillars == count + 1 and pipes == count + 1 and lamps == count + 1,
+		`{#pillars} {pipes} {lamps}`
+	)
+	ok(name .. "five pieces run its whole length (foot, head, their edges, the back)", long == 5, long)
+	local places = Boards.places(count, asked)
+	local least = math.huge
+	for _, at in places do
+		for _, side in { -1, 1 } do
+			local x = at.X + side * (Boards.Panel.Width / 2 + 0.25)
+			for _, pillar in pillars do
+				if math.abs(pillar.At.X - x) < 3 then
+					least = math.min(least, pillar.Size.X / 2 - math.abs(pillar.At.X - x))
+				end
+			end
+		end
+	end
+	ok(
+		string.format("%severy glass's brass edge ends %.2f studs in behind a post", name, least),
+		least > 0.05 and least < 0.3
+	)
+	local bulbs = {}
+	for _, piece in pieces do
+		if piece.Of == "frame" and piece.Shape == "Ball" and piece.At.Y > 24 then
+			table.insert(bulbs, piece.At.X)
+		end
+	end
+	table.sort(bulbs)
+	local across = {}
+	for i = 2, #bulbs do
+		if (i - 1) % 3 ~= 0 or (i - 1) % 6 == 0 then
+			across[string.format("%.2f", bulbs[i] - bulbs[i - 1])] = true
+		end
+	end
+	n = 0
+	for _ in across do
+		n += 1
+	end
+	ok(name .. "its small lamps stand evenly, across the joints too", n == 1 and #bulbs == count * 6, n)
+	local none, where = slits(pieces, half - 0.15)
+	ok(name .. "no slit anywhere along it", none == 0, `{none}: {where}`)
+	if count == 3 and asked == PITCH then
+		local found, first = flicker(pieces)
+		ok(name .. "no two seen faces lie in one plane", found == 0, `{found}: {first}`)
+		-- (the checks see what they are for: a post taken out, a bar cut in two, two faces made one)
+		local cut = {}
+		for _, piece in pieces do
+			if not (piece.Of == "frame" and piece.Shape == "Block" and (piece.Size.Y > 20 or piece.Size.X > half)) then
+				table.insert(cut, piece)
+			end
+		end
+		ok("  (without its posts and bars there are slits)", slits(cut, half - 0.15) > 0)
+		local twice = table.clone(pieces)
+		table.insert(twice, {
+			Shape = "Block",
+			Size = Vector3.new(1, 1.3, 1.8),
+			At = CFrame.new(3, 24.9, -0.1),
+			Of = "odd",
+			Skin = "odd",
+		})
+		ok("  (a piece in the head bar's plane is seen to flicker)", flicker(twice) > 0)
+	end
+end
+ok(
+	"boards cannot be set closer than one post",
+	Boards.pitch(5) == Boards.least() and math.abs(Boards.least() - 12.9) < 1e-6
+)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- The words
@@ -335,8 +612,15 @@ floor.CFrame = CFrame.new(3000, 0, -122)
 step(1.1)
 local shown = Controller.Test.shown()
 ok("three boards are built (the fourth is off)", #shown == 3, #shown)
-for i, want in { { 2936.26, -37.0, "Oxygen" }, { 2922, -39, "Collectors" }, { 2907.74, -41, "Earners" } } do
+local facing = math.rad(Config.Boards.Face)
+for i, name in { "Oxygen", "Collectors", "Earners" } do
 	local at = shown[i].Foot.Position
+	local along = (i - 2) * PITCH
+	local want = {
+		3000 + Config.Boards.X + along * math.cos(facing),
+		-Config.Boards.Z - along * math.sin(facing),
+		name,
+	}
 	ok(
 		string.format("%s stands at %.2f, %.2f, %.2f", shown[i].Def.Id, at.X, at.Y, at.Z),
 		shown[i].Def.Id == want[3]
@@ -346,7 +630,9 @@ for i, want in { { 2936.26, -37.0, "Oxygen" }, { 2922, -39, "Collectors" }, { 29
 	)
 	-- (the sea is +Z; the middle of the hub is +X from here)
 	local face = shown[i].Foot.ZVector
-	ok("and faces into the hub, a little to its middle", face.Z < -0.95 and face.X > 0.2, face)
+	local want2 = Vector3.new(math.sin(facing), 0, math.cos(facing))
+	ok("and faces into the hub, exactly the way the row does", face.Z < -0.95 and (face - want2).Magnitude < 1e-5, face)
+	ok("and as every other board does", (face - shown[1].Foot.ZVector).Magnitude < 1e-5)
 end
 ok("nothing is heard yet: this server, waiting", shown[1].Panel.Empty.Text == "...")
 player:SetAttribute("BoardOxygen", 612300)
@@ -367,6 +653,9 @@ for _, def in List do
 		drawn += if piece.Shape == "Ball" then 1 else 0
 	end
 end
+for _, piece in Boards.frame(3, PITCH) do
+	drawn += if piece.Shape == "Ball" then 1 else 0
+end
 for _, d in row:GetDescendants() do
 	if d:IsA("BasePart") then
 		total += 1
@@ -379,7 +668,7 @@ for _, d in row:GetDescendants() do
 end
 ok("parts in the row: " .. total, total < 270)
 ok(`its {drawn} round pieces are built round`, balls == drawn and drawn > 0, balls)
-ok("two lights a board", lights == 6, lights)
+ok("a light on each of the four posts", lights == 4, lights)
 ok("only the bed (6) and a block a board are solid", solids == 9, solids)
 ok("only the three glasses answer a ray", query == 3, query)
 gui.camera.CFrame = CFrame.new(3000, 8, 400)
@@ -463,10 +752,14 @@ if dumpTo then
 	end
 	local space2 = Boards.row(floor.CFrame, floor.Size, c.X, c.Z, c.Face)
 	local parts, glasses = {}, {}
-	for _, piece in Boards.bed(2 * c.Pitch) do
+	out.Face = c.Face
+	for _, piece in Boards.bed(3, c.Pitch) do
 		table.insert(parts, plain(piece, space2 * piece.At))
 	end
-	for i, at in Boards.places(3, c.Pitch, c.Turn) do
+	for _, piece in Boards.frame(3, c.Pitch) do
+		table.insert(parts, plain(piece, space2 * piece.At))
+	end
+	for i, at in Boards.places(3, c.Pitch) do
 		for _, piece in Boards.board(List[i].Emblem) do
 			table.insert(parts, plain(piece, space2 * at * piece.At))
 		end

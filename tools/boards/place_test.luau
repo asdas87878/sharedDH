@@ -1,7 +1,7 @@
 -- Whether the leaderboards' spot (Config.Boards) is free in a saved place, offline (NULLROOM task l1): every piece of
 -- them, as Shared/Boards draws it and BoardController puts it, against the place's own parts. Touching a part is
 -- a fail, the floor and what the boards stand in place of (Boards.Replaces) apart; and how far it is to the stalls'
--- rings, the strip, the gate's lamp, the pens and the spawn is printed.
+-- rings, the strip, the gate's lamp, the pens, the keepers (Shared/Keepers) and the spawn is printed.
 -- usage: rojo build -o /tmp/place.rbxl && lune run tools/boards/place_test.luau /tmp/place.rbxl <saved place.rbxl>
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -87,10 +87,13 @@ for _, def in c.List do
 end
 local function boxes(): { Box }
 	local out = {}
-	for _, piece in Boards.bed((#defs - 1) * c.Pitch) do
+	for _, piece in Boards.bed(#defs, c.Pitch) do
 		table.insert(out, { Name = "bed", At = row * piece.At, Half = piece.Size / 2 })
 	end
-	for i, at in Boards.places(#defs, c.Pitch, c.Turn) do
+	for _, piece in Boards.frame(#defs, c.Pitch) do
+		table.insert(out, { Name = "frame " .. piece.Shape, At = row * piece.At, Half = piece.Size / 2 })
+	end
+	for i, at in Boards.places(#defs, c.Pitch) do
 		for _, piece in Boards.board(defs[i].Emblem) do
 			table.insert(
 				out,
@@ -130,7 +133,7 @@ print(string.format("  the row: x %.1f..%.1f, y %.1f..%.1f, z %.1f..%.1f", low.X
 
 -- on the ground: how far from the row's solid pieces to what players use
 local solids = {}
-for _, piece in Boards.bed((#defs - 1) * c.Pitch) do
+for _, piece in Boards.bed(#defs, c.Pitch) do
 	table.insert(solids, { Name = "bed", At = row * piece.At, Half = piece.Size / 2 })
 end
 local function apart(part: any): number
@@ -165,6 +168,30 @@ for _, want in wanted do
 	else
 		print("  --    " .. want[1] .. " is not in this place")
 	end
+end
+-- the keepers (built while the game runs, so not in the place): where each stands and its props, as KeeperController
+-- puts them at the biggest they come (Look.Most)
+local Keepers = world.require(world.find("ReplicatedStorage.Shared.Keepers"))
+for _, keeper in Keepers.List do
+	local station = dock.Stations:FindFirstChild(keeper.Station)
+	local ring = station and station:FindFirstChild("Ring")
+	local anchor = station and station:FindFirstChild(keeper.Stand, true)
+	local space = ring and anchor and Keepers.standSpace(anchor.CFrame.Position, ring.CFrame.Position, 0.5)
+	if not space then
+		print("  --    " .. keeper.Station .. "'s keeper: its stand is not in this place")
+		continue
+	end
+	local most = Keepers.Look.Most
+	-- (a keeper is a block of 8 studs, arms out; a prop its own)
+	local least = apart({
+		CFrame = space * CFrame.new(keeper.At[1] * most, 0, keeper.At[2] * most),
+		Size = Vector3.one * 8 * most,
+	})
+	for _, prop in keeper.Props do
+		local size = Vector3.new(prop[2], prop[3], prop[4]) * most
+		least = math.min(least, apart({ CFrame = space * Keepers.propAt(prop, most), Size = size }))
+	end
+	ok(string.format("%s's keeper and props are at least %.1f studs off", keeper.Station, least), least >= 8)
 end
 -- the pens' own pieces: a walkway is left, or there was none to leave
 for _, plot in dock.Plots:GetChildren() do

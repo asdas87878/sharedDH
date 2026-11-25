@@ -2959,9 +2959,8 @@ Config.Boards = {
 	-- where they stand: the middle of the row on the hub's floor (Dock.HubFloor), along the wall right of the dive gate
 	X = -78, -- studs from the floor's middle line, the sea ahead of you and minus to the right
 	Z = 39, -- studs in from the floor's edge at the sea
-	Face = 172, -- which way the row faces: 0 the sea, 180 straight into the hub, less: turned towards the hub's middle
-	Pitch = 14.4, -- studs from one board's middle to the next
-	Turn = -6, -- degrees each board turns further on its own foot (more, and they hide each other's edges from the spawn)
+	Face = 180, -- which way the whole row faces: 0 the sea, 180 straight into the hub, less: turned towards the hub's middle
+	Pitch = 12.9, -- studs from one board's middle to the next; 12.9 is the least (Boards.least), more makes the posts wider
 	Scale = 1, -- every size times this
 	Hide = 420, -- past this the boards are taken out of the world
 	ScrollNear = 24, -- studs within which the list can be scrolled (further off a finger on it turns the camera)

@@ -3,11 +3,11 @@
 -- this machine only, as KeeperController builds the shopkeepers, so nothing is added to the place and nothing is
 -- uploaded. What they look like is Shared/Boards, what is written on them UI/BoardPanel, who is on them the server's
 -- LeaderboardService (remote Boards).
---   Where: Config.Boards (X, Z, Face, Pitch, Turn, Scale), measured from Dock.HubFloor as it is in the place. Looked at
+--   Where: Config.Boards (X, Z, Face, Pitch, Scale), measured from Dock.HubFloor as it is in the place. Looked at
 --     once a second, and made again when any of it changes, so a number can be tuned while playing.
 --   Solid: one unseen block for each board and the bed (players stop at them); everything else touches nothing.
 --   Nothing moves. Past Boards.Hide the row is out of the world.
---   Cost: about 80 plain parts a board, two small lights, no shadows.
+--   Cost: about 220 plain parts for three boards, a small light on each of the four posts, no shadows.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -138,7 +138,7 @@ local function build(row: CFrame, defs: { any }): Model
 	local scale = c.Scale
 	local made = Instance.new("Model")
 	made.Name = "Row"
-	for _, piece in Boards.bed((#defs - 1) * c.Pitch) do
+	for _, piece in Boards.bed(#defs, c.Pitch) do
 		local part = make(piece, place(row, piece.At, scale), scale)
 		part.CanCollide = piece.Size.Y >= Boards.Bed.Height or piece.Size.X >= Boards.Bed.Depth
 		if piece.Shape == "Block" then
@@ -153,10 +153,13 @@ local function build(row: CFrame, defs: { any }): Model
 		end
 		part.Parent = made
 	end
+	for _, piece in Boards.frame(#defs, c.Pitch) do
+		make(piece, place(row, piece.At, scale), scale).Parent = made
+	end
 	middle = (row * CFrame.new(0, 12 * scale, 0)).Position
-	for i, at in Boards.places(#defs, c.Pitch * scale, c.Turn) do
+	for i, at in Boards.places(#defs, c.Pitch) do
 		local def = defs[i]
-		local foot = row * at
+		local foot = place(row, at, scale)
 		local panel = Boards.Panel
 		local glass = Instance.new("Part")
 		glass.Name = "Glass" .. def.Id
@@ -201,7 +204,7 @@ local function look()
 	for _, def in defs do
 		table.insert(names, def.Id .. def.Title .. def.Line .. def.Unit .. def.Emblem)
 	end
-	local now = `{row} {c.Pitch} {c.Turn} {c.Scale} {c.Rows} {table.concat(names, ",")}`
+	local now = `{row} {c.Pitch} {c.Scale} {c.Rows} {table.concat(names, ",")}`
 	if now ~= key then
 		clear()
 		key = now
