@@ -13,10 +13,15 @@
 --   looping left and right then come back once you arrive"): for a rider who went in on their ride fish, that fish is
 --   there for the whole trip. Where it is at any time is SubTrip.escort, worked out from the trip alone, so the server,
 --   every machine and the offline check (tools/subs/escort_check.luau) all have it in the same place with no traffic.
+--   The air hop (Hugo, 2026-11-25; Config.Sub.AirHop): a trip with Air begins with the fish's leap off the lip, the rider
+--   jumps off it in the air onto the seat of the sub as it flies in, and it splashes into the run. Its phases are Leap (to
+--   the jump) and Hop in the place of Approach and Pickup; everything before the run is Shared/SubAir. The fish goes in
+--   by itself and swims up to its place beside the sub (escort). Without Air everything here is as it was.
 local HttpService = game:GetService("HttpService")
 
 local Config = require(script.Parent.Config)
 local Ease = require(script.Parent.Ease)
+local SubAir = require(script.Parent.SubAir)
 
 local UP = Vector3.yAxis
 
@@ -57,6 +62,7 @@ export type Trip = {
 	Along: { number }, -- distance along the path at each point
 	Length: number,
 	Escort: Escort?,
+	Air: SubAir.Air?,
 }
 
 local SubTrip = {}
@@ -88,7 +94,8 @@ end
 -- the further away the destination"), so a far land's run is not much longer than a near one's; the run is then kept
 -- between Sub.MinRide and Sub.MaxRide seconds (the top speed worked out again from the time where it is). The
 -- speed-up and the slow-down are shares of the run (Sub.UpShare, Sub.DownShare), so a far run's burst is as big.
-function SubTrip.plan(distance: number): (number, number, number, number)
+-- (`v0`: the speed the run begins at; the air hop's, else from a stand)
+function SubTrip.plan(distance: number, v0: number?): (number, number, number, number)
 	local c = Config.Sub
 	local drop = c.DropSpeed
 	local a = math.clamp(c.UpShare, 0.05, 0.45)
@@ -97,10 +104,11 @@ function SubTrip.plan(distance: number): (number, number, number, number)
 	-- (distance = top * T * (1 - (a + b) / 2) + drop * b * T / 2)
 	local cover = 1 - (a + b) / 2
 	local top = c.Speed + c.SpeedPer * d
-	local time = d / math.max(top * cover + drop * b / 2, 1)
+	local first = (v0 or 0) * a / 2
+	local time = d / math.max(top * cover + drop * b / 2 + first, 1)
 	if time < c.MinRide or time > c.MaxRide then
 		time = math.clamp(time, c.MinRide, math.max(c.MaxRide, c.MinRide))
-		top = (d / time - drop * b / 2) / cover
+		top = (d / time - drop * b / 2 - first) / cover
 	end
 	if top <= drop then
 		-- (a trip too short for even that: straight at the drop speed)
@@ -122,8 +130,8 @@ end
 function SubTrip.phase(trip: Trip, t: number): string
 	local pickup, ride, arrive, drop, finish = SubTrip.times(trip)
 	return if t < pickup
-		then "Approach"
-		elseif t < ride then "Pickup"
+		then if trip.Air then "Leap" else "Approach"
+		elseif t < ride then if trip.Air then "Hop" else "Pickup"
 		elseif t < arrive then "Ride"
 		elseif t < drop then "Arrive"
 		elseif t < finish then "Drop"
@@ -134,16 +142,21 @@ end
 function SubTrip.distance(trip: Trip, t: number): (number, number)
 	local _, ride = SubTrip.times(trip)
 	local u = t - ride
+	-- (after the air hop it begins at the path's second point, already under way)
+	local from, v0 = 0, 0
+	if trip.Air then
+		from, v0 = trip.Along[2], Config.Sub.AirRun
+	end
 	if u <= 0 then
-		return 0, 0
+		return from, v0
 	end
 	local top, drop = trip.Top, trip.Drop
 	local a = trip.SpeedUp
 	if u < a then
-		local v = top * u / a
-		return v * u / 2, v
+		local v = v0 + (top - v0) * u / a
+		return from + (v0 + v) * u / 2, v
 	end
-	local d = top * a / 2
+	local d = from + (v0 + top) * a / 2
 	u -= a
 	if u < trip.Cruise then
 		return d + top * u, top
@@ -272,6 +285,15 @@ function SubTrip.escortOut(half: Vector3, saddle: Vector3): number
 	return math.clamp(c.EscortOut + behind * 0.6, c.EscortOut, c.EscortOutMost)
 end
 
+-- When it may leave its place beside the sub for the sweeps: as the run begins; after the air hop, once it is nearly back
+local function peelAt(trip: Trip): number
+	if trip.Air then
+		return trip.Air.Back
+	end
+	local _, rideAt = SubTrip.times(trip)
+	return rideAt
+end
+
 -- How many times it sweeps left and right again
 local function escortTurns(trip: Trip, half: Vector3): number
 	local a, b = SubTrip.escortTimes(trip, half)
@@ -302,7 +324,7 @@ function SubTrip.escortRooms(
 	local _, rideAt, _, dropAt = SubTrip.times(trip)
 	local a, b = SubTrip.escortTimes(trip, half)
 	local quarter = (b - a) / (escortTurns(trip, half) * 4)
-	local from = rideAt + c.EscortPeel * slower(half) * 0.45
+	local from = if trip.Air then rideAt else rideAt + c.EscortPeel * slower(half) * 0.45
 	local to = dropAt - c.EscortSettle - returning(half) * 0.45
 	local left, right = math.huge, math.huge
 	local first = alongside(half) - half.Z
@@ -363,6 +385,14 @@ function SubTrip.escorted(
 	local wander = wide + body + c.EscortGap + c.EscortWide
 	local high = if onRight then outRight else math.max(math.min(wander, right - body - c.EscortGap), 0)
 	local low = if onLeft then -outLeft else -math.max(math.min(wander, left - body - c.EscortGap), 0)
+	local turns = escortTurns(trip, half)
+	if trip.Air then
+		local a, b = SubTrip.escortTimes(trip, half)
+		if b - a < c.AirWeave then
+			-- (no time left for a sweep: beside the sub all along)
+			turns, onLeft, low = 0, false, high
+		end
+	end
 	trip.Escort = {
 		Half = half,
 		Saddle = saddle,
@@ -378,15 +408,15 @@ function SubTrip.escorted(
 		Low = low,
 		High = high,
 		Lead = lead,
-		Turns = escortTurns(trip, half),
+		Turns = turns,
 	}
 end
 
 -- When the weave's sweeps begin and end, seconds into the trip (it peels off a little before and is back a little after)
 function SubTrip.escortTimes(trip: Trip, half: Vector3): (number, number)
 	local c = Config.Sub
-	local _, rideAt, _, dropAt = SubTrip.times(trip)
-	return rideAt + c.EscortPeel * slower(half) * 0.6, dropAt - c.EscortSettle - returning(half) * 0.6
+	local _, _, _, dropAt = SubTrip.times(trip)
+	return peelAt(trip) + c.EscortPeel * slower(half) * 0.6, dropAt - c.EscortSettle - returning(half) * 0.6
 end
 
 -- The height (over the sub's middle, `subY` in the world) that keeps a fish `half` high off the floor and under the
@@ -461,7 +491,7 @@ local function offset(trip: Trip, e: Escort, t: number): Vector3
 	local z = e.Lead
 	if e.Right or e.Left then
 		-- from its place on one side to its place on the other, once a half turn: up (or down, or ahead), across, and back
-		local k = math.min(math.floor(turned), e.Turns * 2 - 1)
+		local k = math.max(math.min(math.floor(turned), e.Turns * 2 - 1), 0)
 		local p = turned - k
 		local toLeft = k % 2 == 0
 		local across = Ease.smoothstep(0.04, 0.38, p) * (1 - Ease.smoothstep(0.62, 0.96, p))
@@ -471,7 +501,7 @@ local function offset(trip: Trip, e: Escort, t: number): Vector3
 		-- and the way down only gets deeper); a small one under it on its way left; else round the nose
 		local roof = Config.Oxygen.SurfaceY
 			- 2
-			- SubTrip.at(trip, (SubTrip.distance(trip, a + (b - a) * k / (e.Turns * 2)))).Y
+			- SubTrip.at(trip, (SubTrip.distance(trip, a + (b - a) * k / math.max(e.Turns * 2, 1)))).Y
 		local short = e.Right and e.Left and e.Half.Z <= c.EscortLoopLong / 2
 		local tall = e.Half.Y + c.EscortGap
 		local over = short and roof >= up + tall + e.Half.Y
@@ -497,7 +527,8 @@ local function offset(trip: Trip, e: Escort, t: number): Vector3
 	end
 	-- off its place and back: ahead first, then out and round; and back beside the sub before it falls back to its seat
 	-- (so one that sweeps ahead of the nose never cuts across the hull)
-	local from, to = rideAt - 0.1, rideAt - 0.1 + c.EscortPeel * slower(e.Half)
+	local peel = peelAt(trip)
+	local from, to = peel - 0.1, peel - 0.1 + c.EscortPeel * slower(e.Half)
 	local home1 = dropAt - c.EscortSettle
 	local first, last = if e.Right then 0.45 else 0.58, if e.Right then 0.55 else 0.5
 	local out = Ease.smoothstep(Ease.lerp(from, to, first), to, t)
@@ -506,15 +537,18 @@ local function offset(trip: Trip, e: Escort, t: number): Vector3
 		* (1 - Ease.smoothstep(Ease.lerp(backFrom, home1, last - 0.1 * (if e.Right then 1 else 0)), home1, t))
 	local at = Vector3.new(Ease.lerp(home.X, x, out), Ease.lerp(home.Y, y, out), Ease.lerp(home.Z, z, on))
 	-- (the dip as the rider pushes off its back)
-	local hop = math.clamp((t - pickupAt - c.EscortHopFrom * trip.Pickup) / 0.45, 0, 1)
-	at -= UP * (c.EscortDip * math.sin(hop * math.pi))
+	if not trip.Air then
+		local hop = math.clamp((t - pickupAt - c.EscortHopFrom * trip.Pickup) / 0.45, 0, 1)
+		at -= UP * (c.EscortDip * math.sin(hop * math.pi))
+	end
 	-- (in the water where it is: the sub's line rises and falls under one ahead)
 	-- (the line is Lift over the floor, but the pick-up is lower: there the floor is the next stretch's, carried back)
 	local bed = subY - c.Lift
-	if d < trip.Along[2] then
-		local second, third = trip.Points[2], trip.Points[3]
-		local fall = math.max(second.Y - third.Y, 0) / math.max(trip.Along[3] - trip.Along[2], 1)
-		bed = second.Y - c.Lift + fall * (trip.Along[2] - d)
+	local i = if trip.Air then 3 else 2 -- (the first point on the line that is Lift over the floor)
+	if d < trip.Along[i] then
+		local second, third = trip.Points[i], trip.Points[i + 1]
+		local fall = math.max(second.Y - third.Y, 0) / math.max(trip.Along[i + 1] - trip.Along[i], 1)
+		bed = second.Y - c.Lift + fall * (trip.Along[i] - d)
 	end
 	return Vector3.new(at.X, fit(at.Y, subY + heading(trip, t).Y * at.Z, e.Half.Y, subY - bed), at.Z)
 end
@@ -567,6 +601,9 @@ end
 -- The sub's place at `t` seconds into the trip, and how fast it goes (studs a second)
 function SubTrip.sub(trip: Trip, t: number): (CFrame, number)
 	local pickupAt, rideAt, _, dropAt, endAt = SubTrip.times(trip)
+	if trip.Air and t < rideAt then
+		return SubAir.sub(trip.Air, t)
+	end
 	local pick = trip.Points[1]
 	local way0 = levelOf(SubTrip.way(trip, 30, 30))
 	local right = way0:Cross(UP)
@@ -633,6 +670,51 @@ function SubTrip.sub(trip: Trip, t: number): (CFrame, number)
 	return cf, v
 end
 
+-- After the air hop: the fish from its own splash to its place beside the sub. `cf`: where the trip has it there, `o` that
+-- in the sub's frame, `d` the sub along its path. It swims on out of its dive and up the sub's own line, to its side of it
+-- first, then forward (so it comes up beside the hull, and beside the camera behind it)
+local function joining(trip: Trip, e: Escort, air: SubAir.Air, t: number, cf: CFrame, o: Vector3, d: number): CFrame
+	local c = Config.Sub
+	local leap = air.Leap
+	local entry = SubAir.entry(air)
+	local since = t - entry
+	local k = math.clamp(since / math.max(SubAir.joining(e.Half), 0.05), 0, 1)
+	local start = trip.Points[2]
+	local way0 = levelOf(SubTrip.way(trip, 30, 30))
+	local side = way0:Cross(UP)
+	local went = SubAir.fish(air, entry)
+	local from = trip.Along[2]
+	-- the water it is in, as `offset` has it, at the place it goes in
+	local second, third = trip.Points[3], trip.Points[4]
+	local into = from + (went.Position - start):Dot(way0)
+	local fall = math.max(second.Y - third.Y, 0) / math.max(trip.Along[4] - trip.Along[3], 1)
+	local bed = second.Y - c.Lift + fall * (trip.Along[3] - into)
+	local depth = fit(0, Config.Oxygen.SurfaceY - c.EscortUnder, e.Half.Y, Config.Oxygen.SurfaceY - c.EscortUnder - bed)
+		+ Config.Oxygen.SurfaceY
+		- c.EscortUnder
+	local on, y, tilt = SubAir.swim(air, t, depth)
+	-- (a slanted leap turns straight down the lane, drifting on to the side a little)
+	local turned = math.exp(-since / 0.4)
+	local across, ahead = leap.Heading:Dot(side), leap.Heading:Dot(way0)
+	local drift = across * leap.Far / leap.Time * 0.4 * (1 - turned)
+	local own = into + on * math.max(ahead, 0.3)
+	local kx, kz = Ease.smoothstep(0, 0.6, k), Ease.smoothstep(0.1, 1, k)
+	local along = Ease.lerp(own, d + o.Z, kz)
+	local over = Ease.lerp((went.Position - start):Dot(side) + drift, o.X, kx)
+	local line, way
+	if along <= from then
+		line, way = start + way0 * (along - from), way0
+	else
+		line, way = SubTrip.at(trip, along), levelOf(SubTrip.way(trip, along, 30))
+	end
+	local at = line + way:Cross(UP) * over
+	at = Vector3.new(at.X, Ease.lerp(y, cf.Y, Ease.smoothstep(0, 0.8, k)), at.Z)
+	local yaw = math.atan2(-across, math.max(ahead, 0.01)) * turned
+	local turn = CFrame.lookAt(Vector3.zero, way) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(-math.rad(tilt), 0, 0)
+	local last = Ease.smoothstep(0.6, 1, k)
+	return CFrame.new(at:Lerp(cf.Position, last)) * turn:Lerp(cf.Rotation, Ease.smoothstep(0.2, 1, k))
+end
+
 -- The fish's root at `t` seconds into the trip (nil: the trip has no escort), and its place in the sub's frame
 function SubTrip.escort(trip: Trip, t: number): (CFrame?, Vector3?)
 	local e = trip.Escort
@@ -640,6 +722,10 @@ function SubTrip.escort(trip: Trip, t: number): (CFrame?, Vector3?)
 		return nil, nil
 	end
 	local c = Config.Sub
+	local air = trip.Air
+	if air and t <= SubAir.entry(air) then
+		return SubAir.fish(air, t), nil
+	end
 	local pickupAt = SubTrip.times(trip)
 	local d = SubTrip.distance(trip, t)
 	local o = offset(trip, e, t)
@@ -665,7 +751,11 @@ function SubTrip.escort(trip: Trip, t: number): (CFrame?, Vector3?)
 	yaw, bank = yaw * turnFree, bank * bankFree
 	local cf = pose * CFrame.Angles(0, -yaw, 0) * CFrame.Angles(tip, 0, 0)
 	cf *= CFrame.Angles(0, 0, bank)
-	if t < pickupAt then
+	if air then
+		if t < SubAir.entry(air) + SubAir.joining(e.Half) then
+			cf = joining(trip, e, air, t, cf, o, d)
+		end
+	elseif t < pickupAt then
 		-- carrying the rider out from where they went in, level by the time it is beside the sub
 		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
 		local start = CFrame.lookAt(e.From, e.From + e.Way)
@@ -689,15 +779,28 @@ local function fill(trip: Trip)
 	trip.Length = along[#along] or 0
 end
 
+-- The lead-in before the first point of a path the air hop runs into (the run is straight and under way at that point)
+function SubTrip.leadIn(first: Vector3, second: Vector3): Vector3
+	return first * 2 - second
+end
+
 -- A trip from its parts (the server): the run is planned to end at `dropAt` studs along the path
-function SubTrip.new(start: number, land: number, fish: boolean, points: { Vector3 }, dropAt: number): Trip
+-- (after the air hop: `points` begin with the lead-in, SubTrip.leadIn, and `dropAt` counts it)
+function SubTrip.new(
+	start: number,
+	land: number,
+	fish: boolean,
+	points: { Vector3 },
+	dropAt: number,
+	air: SubAir.Air?
+): Trip
 	local c = Config.Sub
 	local trip: Trip = {
 		Start = start,
 		Land = land,
 		Fish = fish,
-		Approach = c.Approach,
-		Pickup = c.Pickup,
+		Approach = if air then air.HopAt else c.Approach,
+		Pickup = if air then air.RideAt - air.HopAt else c.Pickup,
 		SpeedUp = 0,
 		Cruise = 0,
 		SlowDown = 0,
@@ -709,9 +812,12 @@ function SubTrip.new(start: number, land: number, fish: boolean, points: { Vecto
 		Along = {},
 		Length = 0,
 		Escort = nil,
+		Air = air,
 	}
 	fill(trip)
-	trip.SpeedUp, trip.Cruise, trip.SlowDown, trip.Top = SubTrip.plan(math.max(dropAt - c.DropSpeed * c.Arrive, 50))
+	local from = if air then trip.Along[2] else 0
+	trip.SpeedUp, trip.Cruise, trip.SlowDown, trip.Top =
+		SubTrip.plan(math.max(dropAt - from - c.DropSpeed * c.Arrive, 50), if air then c.AirRun else nil)
 	return trip
 end
 
@@ -723,7 +829,36 @@ function SubTrip.encode(trip: Trip): string
 		table.insert(flat, math.floor(p.Z * 10 + 0.5) / 10)
 	end
 	local e = trip.Escort
+	local air = trip.Air
 	return HttpService:JSONEncode({
+		A = if air
+			then {
+				air.Leap.Take.X,
+				air.Leap.Take.Y,
+				air.Leap.Take.Z,
+				air.Leap.Heading.X,
+				air.Leap.Heading.Z,
+				air.Leap.Far,
+				air.Leap.Rise,
+				air.Leap.Fall,
+				air.Leap.Crouch,
+				air.Leap.Time,
+				air.HopAt,
+				air.SeatAt,
+				air.SplashAt,
+				air.RideAt,
+				air.Out.X,
+				air.Out.Z,
+				air.Meet.X,
+				air.Meet.Y,
+				air.Meet.Z,
+				air.Slope,
+				air.Fall,
+				if air.Over then 1 else 0,
+				air.Back,
+				table.unpack(air.Leap.Tilts),
+			}
+			else nil,
 		E = if e
 			then {
 				e.Half.X,
@@ -799,6 +934,7 @@ function SubTrip.decode(json: string): Trip?
 		Along = {},
 		Length = 0,
 		Escort = nil,
+		Air = nil,
 	}
 	local e = data.E
 	if type(e) == "table" and #e >= 21 then
@@ -819,6 +955,36 @@ function SubTrip.decode(json: string): Trip?
 			Lead = e[20],
 			Turns = e[21],
 		}
+	end
+	local a = data.A
+	if type(a) == "table" and #a >= 25 and trip.Escort and #points >= 4 then
+		local air: SubAir.Air = {
+			Leap = {
+				Take = Vector3.new(a[1], a[2], a[3]),
+				Heading = Vector3.new(a[4], 0, a[5]),
+				Far = a[6],
+				Rise = a[7],
+				Fall = a[8],
+				Crouch = a[9],
+				Time = a[10],
+				Tilts = table.move(a, 24, #a, 1, {}),
+			},
+			Half = trip.Escort.Half,
+			Saddle = trip.Escort.Saddle,
+			HopAt = a[11],
+			SeatAt = a[12],
+			SplashAt = a[13],
+			RideAt = a[14],
+			Out = Vector3.new(a[15], 0, a[16]),
+			Meet = Vector3.new(a[17], a[18], a[19]),
+			Slope = a[20],
+			Fall = a[21],
+			Pick = points[2],
+			Way = (points[3] - points[2]).Unit,
+			Over = a[22] == 1,
+			Back = a[23],
+		}
+		trip.Air = air
 	end
 	fill(trip)
 	return trip
