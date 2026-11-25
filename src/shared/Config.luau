@@ -3732,6 +3732,25 @@ Config.Index = {
 	AskGap = 0.2, -- the least seconds between two asks from one player; a faster one is dropped
 }
 
+-- Saddles (Hugo, 2026-11-25: "add saddles as a reward in index"; NULLROOM tasks s1, s2; docs/design/saddles.md): a land's
+-- whole set claimed in the Index gives that land's saddle, and the one worn sits on every fish its owner rides.
+Config.Saddles = {
+	On = 1, -- 0: no saddles: none shown, none to put on, nothing about them in the Index
+	-- Each land's design, A or B (Shared/Saddles/Designs). The recommended ten, until Hugo picks; "" = the land gives none
+	Land = { "1B", "2A", "3A", "4B", "5B", "6A", "7A", "8A", "9B", "10B" },
+	PartsAFrame = 24, -- how many saddle parts are made at most in one frame, over every fish (these ten are 14 to 59 parts)
+	RevealNear = 1.5, -- our own saddle shows once our seat is this near the fish's, studs (made hidden during the pull-in)
+	Far = 500, -- a saddle further than this from the camera is not made, and is taken off at 1.2 times it, studs
+	Spare = 240, -- how many unused parts are kept for the next saddle
+} :: {
+	On: number,
+	Land: { string },
+	PartsAFrame: number,
+	RevealNear: number,
+	Far: number,
+	Spare: number,
+}
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Fusing: three fish of a kind made one, a size bigger, at the Fuse machine
 

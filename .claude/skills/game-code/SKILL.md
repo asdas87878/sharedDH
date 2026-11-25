@@ -63,6 +63,11 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   `UI/OfflinePanel`; dead while saving is off; Studio's `OfflineAway` fakes an absence; every `Config.Offline` number is a DRAFT.
   Owed and the coins must stay in one snapshot: never yield between them. [offline rewards](../../../docs/design/offline-rewards.md);
   checks `tools/offline/*_test.luau` (the real ProfileStore on pretend servers).
+- **Saddles (2026-11-25; NULLROOM s1, s2; not seen in Studio):** a claimed land in the Index gives its saddle (owned = claimed, no second
+  list); `IndexService` ask "Saddle" sets the player's attribute `Saddle` (a land, 0 none); `Controllers/SaddleController` hangs it on
+  whatever they ride, on each machine (parts in `workspace.Saddles`, never in the fish); `UI/SaddlePage` and `SaddlePicture` in
+  `IndexWindow`; data `Shared/Saddles` (written by `tools/saddles/to_luau.py`); `Config.Saddles` (`On`, one design a land in `Land`). Not
+  saved, like the Index. [saddles](docs/design/saddles.md). Checks: `tools/saddles/saddle_test.luau`, `saddle_parity.luau`, `tools/index/panel_test.luau`.
 - **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
   only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
   `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`

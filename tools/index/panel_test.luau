@@ -378,7 +378,7 @@ ok("back on the caught kind", find(side, "Name").Text == "Clownfish" and claim.A
 
 state = "Free"
 press(claim)
-local toast = find(window, "Tray", "Toast")
+local toast = find(window, "Toast")
 ok("off the dock the server refuses", oxygen == 0 and coins == 0 and claim.Active)
 ok(
 	"and the window says why",
@@ -779,6 +779,290 @@ if new then
 	press(indexButton)
 	press(indexButton)
 	ok("with none waiting it opens as it was left", kind() == "Clownfish" and words(claim) == CLAIMED)
+end
+
+-- The saddles (NULLROOM task s2): the land's saddle on its banner, the Saddles page, against the real IndexService
+if new then
+	print("the saddles")
+	local function landSet(land: number, but: number?)
+		for i, fish in Config.indexSet(land) do
+			if i ~= but then
+				catch(fish.Id)
+			end
+		end
+		tick()
+	end
+	local function worn(): any
+		return player:GetAttribute("Saddle")
+	end
+	local function saddle(): any
+		return find(landBox, "Saddle")
+	end
+	local function plateState(): string
+		return saddle():FindFirstChild("State").Text
+	end
+	local function page(): any
+		return find(window, "SaddlesPage")
+	end
+	local function pageCard(land: number): any
+		return find(page(), "Saddle" .. land)
+	end
+	local function shownKey(at: any): any
+		for _, node in at:GetDescendants() do
+			if node:IsA("ViewportFrame") then
+				return node:GetAttribute("Saddle")
+			end
+		end
+		return nil
+	end
+	local function toastText(): string
+		local toast = find(window, "Toast")
+		return if toast.Visible then toast:FindFirstChildOfClass("TextLabel").Text else ""
+	end
+	screen(1920, 1080, false)
+	begin()
+	press(find(lands, "Land1"))
+	ok(
+		"the banner has the land's saddle, its picture and name",
+		saddle().Visible
+			and saddle():FindFirstChild("SaddleName").Text == "Giant Clam"
+			and shownKey(saddle()) == Config.Saddles.Land[1],
+		tostring(shownKey(saddle()))
+	)
+	ok(
+		"locked",
+		saddle():FindFirstChild("Lock").Visible
+			and not saddle():FindFirstChild("Tick").Visible
+			and plateState() == "Saddle"
+	)
+	ok(
+		"the land's coins and Oxygen are still shown",
+		find(landBox, "Oxygen").Visible and find(landBox, "Coins").Visible
+	)
+	press(find(lands, "Land2"))
+	ok("another land has its own", shownKey(saddle()) == Config.Saddles.Land[2])
+	press(find(lands, "Land1"))
+	landSet(1, 1)
+	ok("one kind short: no claim", not claimLand.Active)
+	landSet(1)
+	press(claimLand)
+	ok("the claim names the saddle", string.find(toastText(), "Giant Clam Saddle", 1, true) ~= nil, toastText())
+	ok("OWNED on the banner, the padlock gone", plateState() == "OWNED" and not saddle():FindFirstChild("Lock").Visible)
+	ok("not put on by itself", worn() == 0)
+	ok("the Saddles page is closed until a press", not page() or not page().Visible)
+
+	press(saddle())
+	ok("a press on the banner's saddle opens the page", page() ~= nil and page().Visible)
+	ok("what is under it is not drawn", not lands.Visible and not side.Visible and not find(window, "Tray").Visible)
+	local cards = 0
+	for land = 1, Config.indexLands() do
+		local card = pageCard(land)
+		if card and shownKey(card) == Config.Saddles.Land[land] then
+			cards += 1
+		end
+	end
+	ok("a card with its picture for every land", cards == Config.indexLands(), cards)
+	ok("1 of 10", find(page(), "Count").Text == "1 / 10", find(page(), "Count").Text)
+	ok(
+		"theirs says WEAR",
+		words(find(pageCard(1), "Wear")) == "WEAR" and not pageCard(1):FindFirstChild("Lock").Visible
+	)
+	local reefSet = #Config.indexSet(2)
+	ok(
+		"another's says how far its set is",
+		words(find(pageCard(2), "Wear")) == `0 / {reefSet}` and pageCard(2):FindFirstChild("Lock").Visible,
+		words(find(pageCard(2), "Wear"))
+	)
+	press(find(pageCard(1), "Wear"))
+	ok(
+		"WEAR puts it on (the server's answer)",
+		worn() == 1 and words(find(pageCard(1), "Wear")) == "TAKE OFF" and pageCard(1):FindFirstChild("Tick").Visible
+	)
+	press(find(pageCard(1), "Wear"))
+	ok(
+		"TAKE OFF takes it off",
+		worn() == 0 and words(find(pageCard(1), "Wear")) == "WEAR" and not pageCard(1):FindFirstChild("Tick").Visible
+	)
+	press(find(pageCard(1), "Wear"))
+	landSet(2)
+	ok("a whole set says CLAIM!", words(find(pageCard(2), "Wear")) == "CLAIM!", words(find(pageCard(2), "Wear")))
+	local had = oxygen
+	press(find(pageCard(2), "Wear"))
+	ok(
+		"a press claims the land there",
+		oxygen == had + (Config.indexLand(2)) and words(find(pageCard(2), "Wear")) == "WEAR"
+	)
+	ok(
+		"the toast is seen over the page",
+		toastText() ~= "" and find(window, "Toast").ZIndex > page().ZIndex,
+		toastText()
+	)
+	ok("2 of 10", find(page(), "Count").Text == "2 / 10")
+	press(find(pageCard(2), "Wear"))
+	ok(
+		"the other one on: the first is off",
+		worn() == 2 and words(find(pageCard(1), "Wear")) == "WEAR" and words(find(pageCard(2), "Wear")) == "TAKE OFF"
+	)
+	IndexPanel.press("Saddle", 9)
+	ok("a press on one that isn't theirs wears nothing", worn() == 2)
+	ok(
+		"it goes to that land",
+		not page().Visible and find(landBox, "Land").Text == landTitle("Bone Graveyard"),
+		find(landBox, "Land").Text
+	)
+	toServer:Fire(player, "Saddle", 9)
+	clock += 1
+	toServer:Fire(player, "Saddle", 9)
+	ok("a made-up ask is refused and said", worn() == 2 and toastText() == "Claim that land's set first", toastText())
+	press(find(foot, "Saddles"))
+	ok("the Saddles button opens the page", page().Visible)
+	press(find(page(), "Back"))
+	ok("BACK closes it", not page().Visible)
+	ok("and the Index is there again", lands.Visible and side.Visible and find(window, "Tray").Visible)
+	press(find(lands, "Land2"))
+	ok("WORN on its land's banner", plateState() == "WORN")
+	press(find(foot, "Saddles"))
+	gui.camera.ViewportSize = Vector2.new(667, 375)
+	gui.camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+	grab()
+	ok("it stays open when the screen turns", page() ~= nil and page().Visible)
+	screen(1920, 1080, false)
+	ok("closed and opened, the Index is on its lands", not page() or not page().Visible)
+
+	print("the saddles on a phone")
+	for _, size in { { 667, 375 }, { 844, 390 }, { 375, 812 }, { 375, 667 } } do
+		screen(size[1], size[2], true)
+		press(find(lands, "Land1"))
+		local scale = scaleNow()
+		local plate = saddle()
+		local plateWide, plateHigh = plate.Size.X.Offset * scale, plate.Size.Y.Offset * scale
+		local door = find(foot, "Saddles")
+		local doorHigh = door.Size.Y.Offset * scale
+		press(door)
+		local card = pageCard(1)
+		local root = page()
+		local rack = find(root, "Rack")
+		local last = pageCard(10)
+		local fits = last.Position.X.Offset + last.Size.X.Offset <= rack.Size.X.Offset
+			and last.Position.Y.Offset + last.Size.Y.Offset <= rack.Size.Y.Offset
+		local wear = find(card, "Wear")
+		local wearHigh = wear.Size.Y.Offset * scale
+		local backHigh = find(root, "Back").Size.Y.Offset * scale
+		local picture = find(card, "Picture")
+		local letters, whose = smallest(root)
+		print(
+			string.format(
+				"        %d x %d: plate %.0f x %.0f, door %.0f, card %.0f x %.0f, its picture %.0f x %.0f, wear %.0f, back %.0f, smallest word %.1f px (%s)",
+				size[1],
+				size[2],
+				plateWide,
+				plateHigh,
+				doorHigh,
+				card.Size.X.Offset * scale,
+				card.Size.Y.Offset * scale,
+				picture.Size.X.Offset * scale,
+				picture.Size.Y.Offset * scale,
+				wearHigh,
+				backHigh,
+				letters,
+				whose
+			)
+		)
+		ok("the plate is a finger's target", plateWide >= 44 and plateHigh >= 30, `{plateWide} x {plateHigh}`)
+		ok(
+			"so are the door, WEAR and BACK",
+			doorHigh >= 30 and wearHigh >= 30 and backHigh >= 30,
+			`{doorHigh} {wearHigh} {backHigh}`
+		)
+		ok("every card is inside the page", fits)
+		ok(
+			"a picture is at least 48 x 36 px",
+			picture.Size.X.Offset * scale >= 48 and picture.Size.Y.Offset * scale >= 36
+		)
+		ok("no word is under 9.5 px", letters >= 9.5, `{letters} {whose}`)
+		press(find(root, "Back"))
+	end
+
+	if dumpTo then
+		for _, fn in later do
+			fn()
+		end
+		table.clear(later)
+		begin()
+		for land = 1, 4 do
+			landSet(land)
+			if land ~= 4 then
+				press(find(lands, "Land" .. land))
+				press(claimLand)
+			end
+		end
+		for land = 5, 8 do
+			landSet(land, 1)
+		end
+		press(find(foot, "Saddles"))
+		press(find(pageCard(2), "Wear"))
+		local function clear()
+			for _, fn in later do
+				fn()
+			end
+			table.clear(later)
+		end
+		local function both(name: string)
+			if page().Visible then
+				press(find(page(), "Back"))
+			end
+			press(find(lands, "Land2"))
+			dump(name .. "_worn")
+			press(find(lands, "Land4"))
+			dump(name .. "_locked")
+			press(find(foot, "Saddles"))
+			dump(name .. "_page")
+		end
+		screen(1920, 1080, false)
+		press(find(lands, "Land3"))
+		press(find(lands, "Land4"))
+		press(claimLand)
+		dump("look_saddle_pc_claimed")
+		clear()
+		begin()
+		for land = 1, 4 do
+			landSet(land)
+			if land ~= 4 then
+				press(find(lands, "Land" .. land))
+				press(claimLand)
+			end
+		end
+		for land = 5, 8 do
+			landSet(land, 1)
+		end
+		press(find(foot, "Saddles"))
+		press(find(pageCard(2), "Wear"))
+		clear()
+		both("look_saddle_pc")
+		screen(667, 375, true)
+		both("look_saddle_wide")
+		screen(375, 812, true)
+		both("look_saddle_tall")
+	end
+
+	print("the saddles switched off")
+	screen(1920, 1080, false)
+	Config.Saddles.On = 0
+	press(indexButton)
+	press(indexButton)
+	screen(667, 375, true)
+	press(find(lands, "Land1"))
+	ok(
+		"no plate, no button, no page",
+		(saddle() == nil or not saddle().Visible)
+			and (find(foot, "Saddles") == nil or not find(foot, "Saddles").Visible)
+			and (page() == nil or not page().Visible)
+	)
+	Config.Saddles.On = 1
+	screen(1920, 1080, false)
+	begin()
+else
+	ok("the old look has no saddles", find(window, "SaddlesPage") == nil and find(window, "Saddle") == nil)
 end
 
 -- The states tools/index/look_picture.py draws: a game some way in

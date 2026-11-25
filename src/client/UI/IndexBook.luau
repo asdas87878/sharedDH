@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Saddles = require(ReplicatedStorage.Shared.Saddles)
 local State = require(script.Parent.Parent.Lib.State)
 local Kit = require(script.Parent.Kit)
 
@@ -119,6 +120,34 @@ function IndexBook.foundAll(): number
 		end
 	end
 	return count
+end
+
+-- A land's saddle (Shared/Saddles), nil where it gives none or saddles are off
+function IndexBook.saddle(land: number): Saddles.Design?
+	return Saddles.ofLand(land)
+end
+
+-- Is a land's saddle theirs: its set is claimed (the server's rule)
+function IndexBook.ownsSaddle(land: number): boolean
+	return claimedLands[tostring(land)] == true and Saddles.ofLand(land) ~= nil
+end
+
+-- The land whose saddle is worn, 0 for none
+function IndexBook.worn(): number
+	local land = State.Player:GetAttribute("Saddle")
+	return if type(land) == "number" then land else 0
+end
+
+-- How many saddles are theirs, and how many there are
+function IndexBook.saddles(): (number, number)
+	local have, of = 0, 0
+	for land = 1, #lands do
+		if Saddles.ofLand(land) then
+			of += 1
+			have += if IndexBook.ownsSaddle(land) then 1 else 0
+		end
+	end
+	return have, of
 end
 
 -- A land's name as the map has it ("Coral Reef"), else its short one
