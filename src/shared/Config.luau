@@ -2985,23 +2985,64 @@ function Config.lessonGoal(): number
 end
 
 ----------------------------------------------------------------------------------------------------------------------
--- The fish that leaps past the gate, seen from the hub (HubLeapController)
+-- The fish that leap out of the sea past the gate, seen from the hub (HubLeapController). Redone 2026-11-25 (the user:
+-- "it should use more lesser fish, less exotic fish but still some, it should be in multiple places, smaller fish should
+-- be quicker and less pronounced in their splashes").
 
+export type Leaper = { Id: string, Long: number, Weight: number, School: number }
 Config.HubLeap = {
 	On = 1, -- 0: none
-	Kinds = { "Orca", "Dolphin", "MantaRay", "Megalodon" } :: { string }, -- one after another (ReplicatedStorage.FishModels)
-	First = 2, -- seconds after joining
-	Every = 9, -- and between two, while on the dock
-	Time = 2.6, -- seconds one is up
-	Length = 44, -- studs long, whatever its kind
-	Out = 70, -- studs out from the start strip,
-	Across = 100, -- this far from one side to the other,
-	Away = 20, -- and this much further off as it goes
-	High = 34, -- studs over the surface at its highest
-	Under = 14, -- studs under it at each end
+	-- each kind: how long it is drawn, studs (the common ones a little over life, to be seen from the hub), how often it is
+	-- picked beside the others, and the most in its school (1: none; Schools says how often). In ReplicatedStorage.FishModels
+	Kinds = {
+		{ Id = "SergeantMajor", Long = 12, Weight = 10, School = 4 },
+		{ Id = "YellowTang", Long = 12, Weight = 10, School = 4 },
+		{ Id = "Clownfish", Long = 12, Weight = 10, School = 4 },
+		{ Id = "Angelfish", Long = 12, Weight = 8, School = 3 },
+		{ Id = "Garibaldi", Long = 13, Weight = 6, School = 3 },
+		{ Id = "Parrotfish", Long = 15, Weight = 7, School = 3 },
+		{ Id = "Lionfish", Long = 13, Weight = 4, School = 1 },
+		{ Id = "Stingray", Long = 16, Weight = 5, School = 2 },
+		{ Id = "Barracuda", Long = 21, Weight = 7, School = 2 },
+		{ Id = "SeaLion", Long = 20, Weight = 5, School = 2 },
+		{ Id = "LeopardShark", Long = 24, Weight = 5, School = 1 },
+		{ Id = "Dolphin", Long = 26, Weight = 9, School = 3 },
+		{ Id = "Swordfish", Long = 28, Weight = 4, School = 1 },
+		{ Id = "MantaRay", Long = 32, Weight = 4, School = 1 },
+		{ Id = "HammerheadShark", Long = 34, Weight = 2, School = 1 },
+		{ Id = "Orca", Long = 40, Weight = 3, School = 1 },
+		{ Id = "GreatWhite", Long = 38, Weight = 2, School = 1 },
+		{ Id = "Megalodon", Long = 46, Weight = 1.5, School = 1 },
+	} :: { Leaper },
+	First = 1, -- seconds after joining
+	-- sparser from here (the user, 2026-11-25: "spaced out properly", "a rare school of fish jump but rarely")
+	EveryLeast = 1.3, -- and from one leap (or school) to the next, at least this
+	EveryMost = 3, -- and at most
+	Most = 3, -- fish up at once (a school counts as one)
+	Schools = 0.04, -- the share of leaps that are a school (of the kinds that have them): the rest are one fish
+	Stagger = 0.22, -- seconds from one of a school to the next, about
+	-- by a fish's length, L: how long it is up, how high, how far across, how far under it starts and ends
+	TimeBase = 0.75, -- seconds,
+	TimeLong = 0.042, -- and this much a stud of L
+	High = 0.85, -- of L
+	Across = 2.2, -- of L,
+	AcrossLeast = 22, -- and no less, studs
+	Under = 0.6, -- of L
 	Roll = 18, -- degrees it leans at its highest
-	Splash = 2.2, -- the splash's size (Lib/Splash; 1 until 2026-11-24: a 44 stud fish's)
-	Volume = 0.25, -- its sound's (0: none)
+	-- where: from this far out of the gate (and Across more), to this far (by L), and this far to each side
+	OutNear = 45,
+	OutFar = 170,
+	OutLong = 7, -- (a stud of L adds this: the big ones are further off)
+	OutMost = 430,
+	Side = 95,
+	Apart = 80, -- studs from every leap of the last Remember seconds (how far out counts half: seen from the hub it hardly shows)
+	Remember = 6, -- seconds
+	Near = 0.04, -- the share of leaps that needn't be Apart
+	-- the splash: 1 is a player's own whole one
+	Splash = 1.5, -- at a 44 stud fish,
+	SplashPower = 1.2, -- and L / 44 to this
+	Splashes = 10, -- at once
+	Volume = 0.25, -- its sound's, by its splash and how far it is (0: none)
 }
 
 ----------------------------------------------------------------------------------------------------------------------

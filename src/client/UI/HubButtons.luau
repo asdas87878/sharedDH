@@ -13,7 +13,10 @@
 -- window (UI.ShopScreen: Controllers.StallController listens).
 -- The Index (Hugo, 2026-11-23; NULLROOM task h2): its button opens the Index window and closes it again
 -- (UI.IndexPanel, through Shop.go: one dock window at a time), and its "!" is up for as long as the Index holds a
--- reward to claim: the server's count, the player's "IndexClaims" attribute (IndexService). With the Index switched
+-- reward to claim: the server's count, the player's "IndexClaims" attribute (IndexService). The first time only
+-- (until the player has claimed one: "IndexPaid") a yellow arrow points at the button and a yellow ring beats round it,
+-- and in the window the arrow points at CLAIM ALL (the user, 2026-11-25: "it shoulndt happen after you already know what
+-- to do"). Not while a window is open. With the Index switched
 -- off (Config.Index.On 0) the button opens nothing and the "!" is the hint it was: up on a first catch, down on a press.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,6 +25,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Anim = require(script.Parent.Anim)
 local IndexPanel = require(script.Parent.IndexPanel)
 local Kit = require(script.Parent.Kit)
+local LessonPrompt = require(script.Parent.LessonPrompt)
 local Shop = require(script.Parent.Shop)
 
 local HubButtons = {}
@@ -73,6 +77,10 @@ local size: UIScale
 local mark: Frame
 local shopMark: Frame
 local shown = false
+local callOn = false
+local callArrow: ((on: boolean) -> ())? = nil
+local ringBeat: (on: boolean) -> ()
+local claimRing: Frame
 local soundWord: TextLabel
 local hint = false -- the Index switched off: something new was caught and the button has not been pressed since
 
@@ -86,6 +94,32 @@ local function showMark()
 		mark.Visible = type(waiting) == "number" and waiting > 0
 	else
 		mark.Visible = hint
+	end
+end
+
+-- The arrow at the Index button and its ring: up while the first reward ever waits, at the dock, with no window open (and
+-- not while the lesson is on another step: one thing to do at a time)
+local function showCall()
+	local arrow = callArrow
+	if not arrow then
+		return
+	end
+	local player = Players.LocalPlayer
+	local waiting = player:GetAttribute("IndexClaims")
+	local lesson = player:GetAttribute("Lesson")
+	local on = shown
+		and (lesson == nil or lesson == "Again")
+		and Config.Index.On ~= 0
+		and player:GetAttribute("IndexPaid") ~= true
+		and type(waiting) == "number"
+		and waiting > 0
+		and Anim.Windows == 0
+		and Shop.Page == nil
+	if on ~= callOn then
+		callOn = on
+		claimRing.Visible = on
+		arrow(on)
+		ringBeat(on)
 	end
 end
 
@@ -235,6 +269,25 @@ local function markOn(plate: Instance): Frame
 	return m
 end
 
+-- The ring round the Index button, and the arrow at it
+local function callBy(plate: GuiObject)
+	claimRing = Kit.new("Frame", {
+		Name = "ClaimRing",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 6, 1, 6),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 9,
+	}, plate)
+	Kit.corner(claimRing, 4)
+	local line = Kit.stroke(claimRing, 4, Kit.Sun, 0)
+	line.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	ringBeat = Kit.pulse(line, { Transparency = 0 }, { Transparency = 0.75 }, 0.4)
+
+	callArrow = LessonPrompt.arrow(plate, "Right")
+end
+
 function HubButtons.build(parent: Instance)
 	holder = Kit.new("Frame", {
 		Name = "HubButtons",
@@ -279,6 +332,8 @@ function HubButtons.build(parent: Instance)
 	-- the red "!"s: the Index's when a new kind is in it, the Shop's from the start of each visit until it is opened
 	-- (the user, 2026-11-22: "Is it possible to do the bouncing exclamation point on the shop?")
 	mark = markOn(index)
+	callOn = false
+	callBy(index)
 	shopMark = markOn(shop)
 	shopMark.Visible = true
 
@@ -322,6 +377,7 @@ function HubButtons.update(docked: boolean)
 			shopMark.Visible = true
 		end
 	end
+	showCall()
 end
 
 -- The Shop was opened another way (a stat row's plus button): its red "!" goes, as when its own button opens it

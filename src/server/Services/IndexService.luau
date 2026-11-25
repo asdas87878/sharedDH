@@ -19,8 +19,9 @@
 --   An ask sooner than Index.AskGap after the player's last is dropped.
 --   Auras: an aura does NOT multiply the Index's Oxygen (Config.Index.AuraMult 0, the draft's answer to an open
 --   question); with the switch on, every claim's Oxygen is multiplied by the player's aura (Shared/Auras).
---   Told to the client: its whole Index after every change (Index "State": Net.luau), and two player attributes for
---   the hub button's red mark and for checks: IndexFound (kinds caught) and IndexClaims (rewards waiting).
+--   Told to the client: its whole Index after every change (Index "State": Net.luau), and three player attributes for
+--   the hub button's red mark and for checks: IndexFound (kinds caught), IndexClaims (rewards waiting) and IndexPaid
+--   (they have claimed one before: the game stops showing them how).
 -- For the session only: the game has no saves yet. When saves come, a player's Book (below) is what to keep.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -85,6 +86,7 @@ local function tell(player: Player, book: Book)
 	local kinds, lands = owed(book)
 	player:SetAttribute("IndexFound", found)
 	player:SetAttribute("IndexClaims", #kinds + #lands)
+	player:SetAttribute("IndexPaid", next(book.Kinds) ~= nil or next(book.Lands) ~= nil)
 	Net.Index:FireClient(player, "State", book.Count, book.Kinds, book.Lands)
 end
 
@@ -224,6 +226,7 @@ local function join(player: Player)
 		books[player] = { Looks = {}, Count = {}, Kinds = {}, Lands = {}, AskedAt = -math.huge }
 		player:SetAttribute("IndexFound", 0)
 		player:SetAttribute("IndexClaims", 0)
+		player:SetAttribute("IndexPaid", false)
 	end
 end
 

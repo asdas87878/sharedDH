@@ -26,6 +26,7 @@ local State = require(script.Parent.Parent.Lib.State)
 local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
 local Portrait = require(script.Parent.Portrait)
+local LessonPrompt = require(script.Parent.LessonPrompt)
 local Shop = require(script.Parent.Shop)
 
 local IndexPanel = {}
@@ -310,6 +311,7 @@ local landButton: Shop.Button
 local foundWord: TextLabel
 local setFoundBar: (share: number) -> ()
 local allButton: Shop.Button
+local allArrow: (on: boolean) -> () -- the arrow at it, until the first claim ever
 
 -- what the server answered, over the tray's foot for a moment
 local toast: Frame
@@ -556,6 +558,7 @@ function paint()
 	setFoundBar(if total > 0 then all / total else 0)
 	local owed = owedAll()
 	allButton.set(`Claim All ({owed})`, if owed > 0 then "Cash" else "Off", owed > 0)
+	allArrow(owed > 0 and next(claimedKinds) == nil and next(claimedLands) == nil)
 end
 
 local function pressTab(land: number)
@@ -801,6 +804,7 @@ local function build()
 	})
 	allButton.Root.ZIndex = 3
 	allButton.Root.Activated:Connect(pressAll)
+	allArrow = LessonPrompt.arrow(allButton.Root, "Left")
 
 	-- the chosen kind, at the right
 	local side = Shop.inset(body, {

@@ -18,6 +18,35 @@ Everything is in [auras](design/auras.md), "Around the body". **To turn off:** `
 - **Owed:** `tools/studio/aura_check.py run` (rewritten for the looks, **not run**), the list "To see in Studio", two players, a phone, Hugo's yes or no to the
   ground ring and light.
 
+## 2026-11-25 · The Index arrow the first time only, sparser leaps (game code, the user's PC)
+**State:** pushed; in the Team Create place, **saved on the user's word (version 479)**, not published. Replaces the Index and leap parts of the entry below.
+- **Index** (the user: "Just leave the arrow and the yellow border", "only … the first time", after that only the "!"): the callout, the goal
+  line and the lesson's words for a claim are gone. Until the player has claimed once (`IndexPaid`, from what their Book holds, so a
+  saved Book keeps it) an arrow points at the Index button with the ring round it, and in the window at CLAIM ALL
+  (`LessonPrompt.arrow`). The caught plate says where to claim only until then. `IndexOxygen` is gone.
+- **Leaps:** one every 1.3 to 3 s, at most 3 at once, each `Apart` 80 from the last 6 s's (but `Near` 4 %), none of the last 4 kinds
+  again, a school (3 or 4; two for kinds of two) only `Schools` 4 % of the time. Measured: 22 fish in 55 s (were 26 in 20), one school of 3, every other fish 67
+  or more from the rest.
+- **Checked with the mouse:** the button, CLAIM ALL (+318 for three), then a new catch: only the "!". **A trap:** the first sync left Config
+  behind without a word; read a changed script back. **Owed:** a phone, the plate by eye.
+
+## 2026-11-25 · The lesson's arrows, the leaping fish, the Index made obvious (game code, the user's PC)
+**State:** pushed; in the Team Create place, **saved on the user's word (version 479)**, not published. Lint clean, no errors of ours in the console.
+- **Index** (the user: keep claiming there, "more obvious that the player has to go to index"): while there is something to claim on
+  the dock, a yellow callout "CLAIM +n" points at the Index button with a ring beating round it (`HubButtons`, pressing it opens
+  the Index); the goal line and the lesson's last step say OPEN THE INDEX TO CLAIM +n OXYGEN; the caught plate says
+  NEW CATCH +n: CLAIM IN INDEX. The n is what would be paid, aura and all (`IndexOxygen`, `IndexService`). For the UI chat: yours,
+  changed on the user's word.
+- **Arrows** (`UI/LessonPointer`): the trail starts at our feet every frame and is straight unless something solid is in the way, then
+  bends only at corners it needs; it lies on top of whatever is seen there (the DIVE IN strip). [First minutes](design/first-minutes.md).
+- **Leaping fish** (`HubLeapController`, `Config.HubLeap`): they face the way they go; 18 kinds by weight, mostly small ones in schools of 1
+  to 4, a great one now and then; random open-sea spots; time, height and splash by length. `Lib/Splash` has `Splash.scenery` (scaled, its
+  own cap `HubLeap.Splashes`; a player's own splash is as it was). **Off:** `Config.HubLeap.On` 0.
+- **Measured:** 26 leaps in 20 s, none backward, over about 200 by 265 studs, 60 fps; trail dead straight from the spawn and on top of the
+  strip (y 1.4); one bend behind Fuse, Sell, Auras and Sub; it follows a strafe within a frame.
+- **Owed:** by hand (walking, the callout pressed, the sounds), the caught plate by eye, a phone. From right behind the Sell and Auras
+  stalls' posts the engine's own path runs close by the post.
+
 ## 2026-11-25 · The subs checked again after the merge: nine tiers, the gate and pick-up, the shop (NULLROOM c1, Hugo's PC)
 **State:** pushed: one new check, one sheet, notes. **No `src/` change,** nothing uploaded, the place left as it was (Edit, no test parts,
 `full_check.py all` all good). All of it: [sub models](design/sub-models.md), "Checked again after the merge".

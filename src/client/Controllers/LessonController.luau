@@ -10,7 +10,7 @@
 --   Run      the rest of that dive         nothing
 --   Deposit  home with a catch             the game's caption, or CLICK YOUR TANK    the tank, then PUT ALL IN
 --   Train    the first fish is in          RIDE YOUR SEAHORSE TO HOLD STRONGER FISH  the seahorse
---   Again    ridden                        CLAIM YOUR NEW FISH IN THE INDEX while one waits, then
+--   Again    ridden                        nothing while the first Index reward waits, then
 --                                          DIVE IN AGAIN                             the strip
 -- While the server's "LessonHold" is on (the first fish is still to come) the lock takes only a fish we can hold
 -- (Lock.Allow), and there is no hop off a fish: the press is dropped here, before JumpController has it, and
@@ -279,9 +279,9 @@ local function update()
 			end
 		elseif step == "Again" then
 			local claims = player:GetAttribute("IndexClaims")
-			if type(claims) == "number" and claims > 0 then
-				words = "*CLAIM* YOUR NEW FISH IN THE INDEX"
-			else
+			local paid = player:GetAttribute("IndexPaid")
+			-- (the first reward waits in the Index: its button's own arrow and ring say so, alone: UI.HubButtons)
+			if paid == true or type(claims) ~= "number" or claims <= 0 then
 				words = "*DIVE IN* AGAIN"
 				place = stripPlace(feet)
 			end

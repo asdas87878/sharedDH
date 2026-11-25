@@ -256,6 +256,10 @@ make sure the arrows on the floor … connect with each other properly and they 
 - **The arrow** comes down with nearness over the strip and shrinks away whenever the view would put it behind the HUD.
   **The trail:** chevrons of wedges with a dark plate under each, walking toward the place; each is whole (both arms meet in one
   point), grows in and out at the ends, needs flat floor under all of it, and closes up before a seahorse's stand.
+- **The trail again (2026-11-25):** "they need to not curve when they dont need to, they need to update in real time with the player …
+  the arrows need to appear on top of things that are slightly elevated": the user. Each frame it runs from the feet straight to the
+  place; only something solid in the way bends it, at the fewest corners; the chevrons lie on top of what is seen (the strip), up to
+  2.2 studs over the floor, and are counted from the place, so they aren't dragged along as the player walks.
 - **Waking up at the tank** the camera now looks where the body does (it kept the dive's direction, often sideways).
 - **Found and fixed on the way:** a line asked away and back within one frame vanished (`Anim.toast` takes it for shown;
   guarded in `DockNotes`, the root is in `Anim`, the UI chat's); the deposit caption came up over the fail's words and the catch
