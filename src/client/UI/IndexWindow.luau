@@ -13,7 +13,9 @@
 --   The kind:      the chosen one, big, in its rarity's colour: picture, name, rarity, what a Normal plain one earns a
 --                  second, and how many of its looks (size and colour) are caught, which is all the game records of them
 --   The rewards:   what its first catch pays, and CLAIM! (its edge gold while it waits)
---   The foot:      a fat bar, Unlocked n / N
+--   The foot:      a fat bar, Unlocked n / N, and the door to the saddles
+--   The saddles:   a land's saddle on its banner over the COMPLETE box, and the page to wear one (UI.SaddlePage; none of
+--                  it while Config.Saddles.On is 0)
 -- Three layouts (SHAPES), by the screen: Wide (a PC, a tablet), Phone (held sideways), Tall (held upright: the kind and
 -- the rewards go under the tray). A screen that turns builds the window again.
 -- Nothing here decides anything: a press only asks (IndexBook.ask). UI.IndexPanel opens it and passes the server's word.
@@ -27,6 +29,7 @@ local IndexBook = require(script.Parent.IndexBook)
 local Kit = require(script.Parent.Kit)
 local LandBanners = require(script.Parent.LandBanners)
 local Portrait = require(script.Parent.Portrait)
+local SaddlePage = require(script.Parent.SaddlePage)
 local Shop = require(script.Parent.Shop)
 
 local IndexWindow = {}
@@ -63,6 +66,10 @@ type Shape = {
 	Tile: number, -- a reward's tile
 	Claim: number, -- CLAIM!'s height, and its letters
 	ClaimText: number,
+	Door: number, -- the Saddles button's width, at the end of the Unlocked bar
+	SaddleColumns: number, -- the saddles' page: cards in a row, their letters, their button's height
+	SaddleText: number,
+	SaddleButton: number,
 }
 
 local SHAPES: { [string]: Shape } = {
@@ -94,6 +101,10 @@ local SHAPES: { [string]: Shape } = {
 		Tile = 74,
 		Claim = 62,
 		ClaimText = 38,
+		Door = 150,
+		SaddleColumns = 5,
+		SaddleText = 22,
+		SaddleButton = 46,
 	},
 	Phone = {
 		Wide = 900,
@@ -124,6 +135,10 @@ local SHAPES: { [string]: Shape } = {
 		Tile = 50,
 		Claim = 50,
 		ClaimText = 32,
+		Door = 140,
+		SaddleColumns = 5,
+		SaddleText = 20,
+		SaddleButton = 45,
 	},
 	Tall = {
 		Wide = 480,
@@ -153,6 +168,10 @@ local SHAPES: { [string]: Shape } = {
 		Tile = 102,
 		Claim = 60,
 		ClaimText = 34,
+		Door = 122,
+		SaddleColumns = 3,
+		SaddleText = 19,
+		SaddleButton = 46,
 	},
 }
 local GAP = 8
@@ -425,6 +444,8 @@ local setLandBar: (share: number) -> ()
 local landOxygen: TextLabel
 local landCoins: TextLabel
 local landButton: Shop.Button
+local saddlePlate: SaddlePage.Plate? = nil
+local saddlePage: SaddlePage.Page? = nil
 
 -- the foot and the header
 local foundWord: TextLabel
@@ -677,6 +698,9 @@ local function paintLand()
 	landButton.Root.Visible = paid or owed
 	landButton.set(if paid then "CLAIMED" else "CLAIM!", if owed then "Gold" else "Off", owed)
 	boxEdge.Color = if owed then GOLD[1] else Shop.Edge
+	if saddlePlate then
+		saddlePlate.paint(shownLand)
+	end
 end
 
 -- Everything on the window, from the Index as it stands. Called while the window is open and as it opens, never
@@ -718,6 +742,9 @@ function paint()
 	setFoundBar(if total > 0 then all / total else 0)
 	local owed = IndexBook.owedAll()
 	allButton.set(`CLAIM ALL ({owed})`, if owed > 0 then "Cash" else "Off", owed > 0)
+	if saddlePage and saddlePage.isOpen() then
+		saddlePage.paint()
+	end
 end
 
 local function popCards()
@@ -746,6 +773,13 @@ end
 local function pressLand()
 	if IndexBook.owedLand(shownLand) then
 		IndexBook.ask("ClaimLand", shownLand)
+	end
+end
+
+-- The saddles' page over the window's body, or away again
+local function showSaddles(on: boolean)
+	if saddlePage and saddlePage.isOpen() ~= on then
+		saddlePage.show(on)
 	end
 end
 
@@ -902,6 +936,22 @@ local function buildBanner(tray: Frame, high: number)
 	})
 	landButton.Root.ZIndex = 8
 	landButton.Root.Activated:Connect(pressLand)
+	-- the land's saddle, in what room is left between the name and the box
+	local from = 8 + shape.LandText * 2 + 6
+	local room = high - 7 - boxHigh - 7 - from
+	local tall = math.min(room, 150)
+	saddlePlate = nil
+	if Config.Saddles.On ~= 0 then
+		saddlePlate = SaddlePage.plate(
+			banner,
+			Vector2.new(7, from + room - tall),
+			Vector2.new(shape.Banner - 14, tall),
+			shape.BoxText - 4,
+			function()
+				showSaddles(true)
+			end
+		)
+	end
 end
 
 -- The tray: the banner and the land's cards beside it
@@ -941,16 +991,17 @@ local function buildTray(body: Frame, at: Vector2, size: Vector2)
 		PaddingTop = UDim.new(0, LIST_PAD),
 		PaddingBottom = UDim.new(0, LIST_PAD),
 	}, list)
+	-- (the body's, not the tray's: over the saddles' page too)
 	toast = Kit.new("Frame", {
 		Name = "Toast",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.new(1, -40, 0, 46),
+		Position = UDim2.fromOffset(at.X + size.X / 2, at.Y + size.Y - 10),
+		Size = UDim2.fromOffset(size.X - 40, 46),
 		BackgroundColor3 = Kit.White,
 		BorderSizePixel = 0,
 		Visible = false,
-		ZIndex = 12,
-	}, tray)
+		ZIndex = 30,
+	}, body)
 	Kit.corner(toast, 5)
 	Kit.stroke(toast, 3, Shop.Edge)
 	toastFill = Kit.new("UIGradient", { Rotation = 90 }, toast)
@@ -966,18 +1017,35 @@ local function buildFoot(body: Frame, at: Vector2, wide: number)
 		BackgroundTransparency = 1,
 		ZIndex = 3,
 	}, body)
+	local door = if Config.Saddles.On ~= 0 then shape.Door + GAP else 0
+	if door > 0 then
+		local button = SaddlePage.door(foot, {
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.fromScale(1, 0.5),
+			Size = UDim2.fromOffset(shape.Door, shape.Foot - 4),
+			TextSize = math.min(math.floor(shape.Door / 5), shape.FootText),
+		}, function()
+			showSaddles(true)
+		end)
+		button.Root.ZIndex = 6
+	end
 	local _, setFound = bar(foot, {
 		Name = "Bar",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.new(1, -math.floor(shape.Foot * 0.5), 0, shape.Foot - 8),
+		Position = UDim2.new(1, -door, 0.5, 0),
+		Size = UDim2.new(1, -math.floor(shape.Foot * 0.5) - door, 0, shape.Foot - 8),
 		ZIndex = 3,
 	}, BLUE, Shop.Round.Button)
 	setFoundBar = setFound
+	-- (in the room between the book and the door)
+	local clear = if door > 0 then shape.Foot + 12 else 0
 	foundWord = Shop.text(foot, {
 		Name = "Count",
-		Size = UDim2.fromScale(1, 1),
-		TextSize = shape.FootText,
+		Position = UDim2.fromOffset(clear, 0),
+		Size = UDim2.new(1, -clear - door, 1, 0),
+		TextSize = if door > 0
+			then fitted("Unlocked 100/100", wide - clear - door, shape.FootText, 20)
+			else shape.FootText,
 		ZIndex = 6,
 	})
 	Kit.new("ImageLabel", {
@@ -1199,6 +1267,20 @@ local function build()
 		buildPanel(side, Vector2.new(shape.Side, room - GAP - 2 - shape.Rewards))
 		buildRewards(side, Vector2.new(0, room - shape.Rewards), Vector2.new(shape.Side, shape.Rewards))
 	end
+	saddlePage = nil
+	if Config.Saddles.On ~= 0 then
+		saddlePage = SaddlePage.page(
+			w.Body,
+			Vector2.new(wide, high),
+			shape.SaddleColumns,
+			shape.SaddleText,
+			shape.SaddleButton,
+			function(land: number)
+				showSaddles(false)
+				pressTab(land)
+			end
+		)
+	end
 	showLand(shownLand)
 end
 
@@ -1214,7 +1296,8 @@ IndexWindow.paint = function()
 end
 
 -- Test hook: only the Studio checks and the offline check (tools/index/panel_test.luau) call this, through
--- IndexPanel.press. A press, as the player's: "Land", n | "Kind", fish id | "Claim" | "ClaimLand" | "ClaimAll".
+-- IndexPanel.press. A press, as the player's: "Land", n | "Kind", fish id | "Claim" | "ClaimLand" | "ClaimAll" |
+-- "Saddles", true or false (their page) | "Saddle", land (its card's button there).
 function IndexWindow.press(what: string, arg: any?)
 	if not IndexWindow.isOpen() then
 		return
@@ -1230,6 +1313,10 @@ function IndexWindow.press(what: string, arg: any?)
 		pressLand()
 	elseif what == "ClaimAll" then
 		pressAll()
+	elseif what == "Saddles" then
+		showSaddles(arg ~= false)
+	elseif what == "Saddle" and type(arg) == "number" and saddlePage and saddlePage.isOpen() then
+		saddlePage.press(arg)
 	end
 end
 
@@ -1241,6 +1328,7 @@ function IndexWindow.drop()
 		w.show(false)
 		w.Gui:Destroy()
 		window = nil
+		saddlePlate, saddlePage = nil, nil
 		table.clear(tabs)
 		table.clear(cards)
 	end
@@ -1256,8 +1344,10 @@ local function watch()
 	-- a screen that turns while the window is open: the same window, laid out again
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		if IndexWindow.isOpen() and shapeOf() ~= built then
+			local saddles = saddlePage ~= nil and saddlePage.isOpen()
 			IndexWindow.drop()
 			IndexWindow.open(true, true)
+			showSaddles(saddles)
 		end
 	end)
 end
@@ -1277,6 +1367,7 @@ function IndexWindow.open(on: boolean, turned: boolean?)
 	local w = window :: Shop.Window
 	local opening = on and not w.isOpen()
 	if opening then
+		showSaddles(false)
 		if not turned then
 			-- the first land with a reward waiting, else the land last looked at
 			for land = 1, #lands do

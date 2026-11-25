@@ -61,7 +61,7 @@ Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictu
 
 ![the Index: the Shallows, three kinds found, one claimed](../attachments/hub-h4-index-grid.jpg)
 
-- **Saddles as an Index reward** (Hugo; 2026-11-25): the designs and the proof they fit are in [saddles](saddles.md); not in the game yet.
+- **Saddles as an Index reward** (Hugo; 2026-11-25): a claimed land gives its saddle; its picture is on the land's banner and the Saddles button opens a page to wear one ([saddles](saddles.md), "In the game"; NULLROOM s2; not seen in Studio).
 - **The Index** (`UI/IndexPanel.luau`, `IndexService`, `Config.Index`): the hub's Index button opens it and closes it;
   the X, the Shop, a stall's ring or leaving the dock close it (one dock window at a time, `Shop.page`). A tab a land,
   a card a kind: found kinds with their picture, name and rarity, the rest as dark shapes with "???". The right side

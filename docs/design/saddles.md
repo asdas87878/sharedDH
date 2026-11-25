@@ -1,8 +1,8 @@
 # Saddles: one for every land, as an Index reward
 
 Hugo: "also add saddles as a reward in index, ... and give me a sheet of saddles for all the lands, make sure they
-actually work on fishes." This note is task s1: the designs, and the proof that they fit. Task s2 builds them into the
-game. Nothing in `src/` is changed yet and nothing has been seen in Studio.
+actually work on fishes." Task s1 made the designs and the proof that they fit (from "The options" on); task s2 built
+them into the game (the next section). **Nothing has been seen in Studio.**
 
 - **The sheet** (two for each land, numbered land + A or B): `docs/attachments/saddles-options-1.png`
 - **The fit** (the recommended one on 12 very different bodies): `docs/attachments/saddles-fit-1.png`
@@ -10,6 +10,44 @@ game. Nothing in `src/` is changed yet and nothing has been seen in Studio.
 ![the options](../attachments/saddles-options-1.png)
 
 ![the fit](../attachments/saddles-fit-1.png)
+
+## In the game (2026-11-25, NULLROOM task s2; branch `saddles`, with `index-look` merged into it)
+
+![the Index with the saddles, the Saddles page, phones, one saddle on six fish](../attachments/saddles-index.png)
+
+- **How you get one:** claiming a land's whole set in the Index gives that land's saddle. The land's Oxygen and coins
+  are as they were. Owning is not a second list: whoever has claimed the land owns its saddle, so lands claimed
+  before saddles came have theirs, and it can't be given twice.
+- **Wearing:** one at a time, on every fish you ride, or none. It is not put on by itself after a claim. Put on or taken
+  off on the Saddles page, also on a dive. The server decides (`IndexService`, remote `Net.Index`, ask "Saddle" with a
+  land, 0 = off; the Index's own rate limit). What is worn is the player's attribute `Saddle`, the only thing sent.
+- **On the fish** (`Controllers/SaddleController`, on each player's own machine): wild fish, the ride fish on land, a ridden
+  tank fish, a submarine's fish; everybody's. Its parts are made a few a frame (`PartsAFrame`), hidden, from the moment the
+  fish is granted, shown as the rider lands, off as they leave. They hang on the fish's own part (`Fits`' joint) at its
+  back, so they go with its swimming, angry mode and the fails; size and variant change nothing. A faded or hidden fish
+  hides its saddle. They are in `workspace.Saddles`, not in the fish: no weight, no touch, no hits, no shadow. Parts are
+  kept for the next one (`Spare`); six riders at once are 286 parts.
+- **In the Index** (today's window only, `Config.Index.Look` 1): the land's banner shows the saddle's picture and name with a
+  padlock, OWNED or WORN; a press on it, or the **Saddles** button beside the Unlocked bar, opens the Saddles page: WEAR, TAKE OFF,
+  CLAIM! (the set is whole), or how far the set is (a press goes to that land). `UI/SaddlePage` with `UI/SaddlePicture`
+  (the game's own parts in a ViewportFrame; nothing to upload); `IndexWindow` only has the hooks.
+- **The numbers:** `Config.Saddles`. `On` 0 takes all of it out. **Each land's design is one entry in `Land`** ("1A" or "1B" ...;
+  "" = that land gives none): a change there changes it for everyone who owns it.
+- **The data:** `Shared/Saddles` (`Fits` and `Designs` are written by `python tools/saddles/to_luau.py` from `art/saddles/*.json` and
+  `saddles.py`; `check` says whether they are up to date; never edit them by hand).
+- **Saving: none yet.** Nothing of the Index is saved (it has no part in `SaveParts`, and saving is off in the live game), so a
+  rejoin starts with an empty Index and no saddles, as it does with the rest. `IndexService.dump` and `restore` keep the
+  whole Index (found, claimed, worn) and are tested, but nothing calls them. **If saving is switched on before the Index
+  has its part, coins and Oxygen are kept and the claims are not, so every land could be claimed again each visit.**
+- **Not changed:** the seat, the rider, the hit boxes. On big tank fish the rider still hovers over the saddle until the seat
+  fix below gets its yes (the saddle is on the back either way). All 78 kinds have a fit; block stand-ins and the trainer's
+  seahorse have none and show no saddle.
+- **Checked offline:** `tools/saddles/saddle_parity.luau` (every kind, size and design: 9,380 saddles, 449,443 parts, the same as
+  the Python's that the proof below is about), `saddle_test.luau` (99: the rules, leaving and coming back, where it sits, when it shows,
+  pooling), `tools/index/panel_test.luau` (the window against the real server, sizes on four phones), `tools/saddles/index_sheet.py` (the picture).
+- **To see in Studio:** a ride each on a small fish, an eel, a ray, a turtle and a Colossal whale; a hop fish to fish (no hitch, no blink); a fail
+  and an eat; the ride fish on land and in the tank; the submarine hop; a second player's saddle; the pictures' light
+  in the Index (ViewportFrames); that the rider sits where they did without it.
 
 ## The options (nothing picked yet)
 
@@ -242,7 +280,8 @@ Seahorse Giant 1B: pommel x0.8; Sergeant Major Colossal 1B: no flap trimmings; G
 - **Seahorse:** its seat point is 0.46 (Huge) and 0.59 (Colossal) studs over its back, so today the rider hovers a little; the pad fills it.
 - Moving those seats would fix all of it. That is a ride-feel change, so it is Hugo's call, not part of this.
 
-## For s2 (building it in)
+## For s2 (building it in): done, step 5 is left
+Steps 1 to 4 are built (4 without the seat fix); step 6 is answered above.
 1. Put `art/saddles/*.json` under `src/shared` (Rojo reads JSON as a module), or turn them into Luau tables.
 2. Port `frames` and `build` (`tools/saddles/fit.py`, `saddles.py`; the Python is the reference; a few pieces are wedges), with
    `adjust.json`'s row for that kind, size and design (`build`'s third argument): without it pieces stand in the fish on 287 of 9,360 cases.
@@ -268,6 +307,9 @@ Seahorse Giant 1B: pommel x0.8; Sergeant Major Colossal 1B: no flap trimmings; G
 6. Not decided: which Index step gives which saddle, and whether a player picks a saddle or it is worn by land.
 
 ## Tools
+`to_luau.py` writes the game's data, `saddle_parity.luau` and `saddle_test.luau` check the game's code (lune, on a built place), `index_sheet.py` draws
+the Index picture. The rest is s1's:
+
 All in `tools/saddles/`, run with the project's Python, no Studio: `fish.py` (loads the models), `fit.py` (fit and
 check), `saddles.py` (the designs and `build`), `clash.py` (pieces standing in the fish, about 4 minutes; writes `adjust.json`), `rider.py` (rider clearance, camera), `table.py` (the tables here),
 `sheet.py options` and `sheet.py fit` (the pictures, in Blender through `view.py` and `draw.py`; on a machine short of memory set
