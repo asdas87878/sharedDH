@@ -54,6 +54,7 @@ export type Layer = {
 	Burst: number, -- in the burst when it is put on,
 	Warm: number, -- and as it fades in (so the ground has its light at once)
 	Keep: number, -- still drawn at this detail level and over (1: even far away; 3: near only)
+	Across: boolean, -- it stands across our own view on the ride: not drawn for its own rider
 }
 -- One ribbon round the body: Beams end to end along a spiral (one draw call a Beam)
 export type Strand = {
@@ -68,6 +69,7 @@ export type Strand = {
 	WideHigh: number,
 	Width: { number }, -- of the ribbon at its foot, middle and head
 	Color: Color3,
+	Head: Color3, -- at its head
 	Transparency: number,
 	Emission: number,
 	Repeat: number, -- of the picture along one Beam
@@ -98,6 +100,7 @@ export type Shape = {
 	Height: number,
 	At: Vector3, -- the middle of its foot
 	Grow: number, -- its particles are this many times as big
+	Own: boolean, -- round our own ride: we look through it
 }
 
 -- The tier each thing comes in at
@@ -199,6 +202,7 @@ function AuraVolume.spec(tier: number): Spec
 			Burst = 0,
 			Warm = 0,
 			Keep = 1,
+			Across = false,
 		}
 		for key, v in props do
 			(l :: any)[key] = v
@@ -219,6 +223,7 @@ function AuraVolume.spec(tier: number): Spec
 			WideHigh = 0.85,
 			Width = { 0.1, 0.8, 0.15 },
 			Color = color,
+			Head = pale(0.5),
 			Transparency = 0.3,
 			Emission = 0.6,
 			Repeat = 1,
@@ -235,13 +240,13 @@ function AuraVolume.spec(tier: number): Spec
 
 	---- on the ground
 	if tier >= from.Glow then
-		local w = radius * ramp(from.Glow, 3, 3.6)
+		local w = radius * ramp(from.Glow, 3, 2.8)
 		layer("Pool", "Glow", "Flat", {
 			Facing = "Flat",
 			Rate = 1.6,
 			Life = { 1.8, 1.8 },
 			Size = { { 0, w }, { 1, w } },
-			Fade = { { 0, 1 }, { 0.5, ramp(from.Glow, 0.75, 0.72) }, { 1, 1 } },
+			Fade = { { 0, 1 }, { 0.5, ramp(from.Glow, 0.75, 0.84) }, { 1, 1 } },
 			Grid = 1,
 			Warm = 2,
 			Keep = 2,
@@ -266,10 +271,10 @@ function AuraVolume.spec(tier: number): Spec
 		})
 	end
 	if tier >= from.Sweeps then
-		local w = radius * ramp(from.Sweeps, 2.6, 3.4)
+		local w = radius * ramp(from.Sweeps, 3.2, 3.4)
 		layer("Sweeps", "Sweep", "Flat", {
 			Facing = "Flat",
-			Rate = ramp(from.Sweeps, 2.4, 3.4),
+			Rate = ramp(from.Sweeps, 3.2, 3.6),
 			Life = { 0.8, 1.15 },
 			Size = { { 0, w * 0.75 }, { 1, w * 1.15 } },
 			Jitter = 0.15,
@@ -300,20 +305,20 @@ function AuraVolume.spec(tier: number): Spec
 	end
 	if tier >= from.Spray then
 		layer("Spray", "Jet", "Foot", {
-			Wide = 0.75,
+			Wide = 0.85,
 			Facing = "Along",
-			Rate = ramp(from.Spray, 12, 20),
-			Life = { 0.45, 0.75 },
-			Speed = { 5, 9 },
-			Spread = 26,
-			Accel = 5,
+			Rate = ramp(from.Spray, 14, 20),
+			Life = { 0.4, 0.65 },
+			Speed = { 4, 7 },
+			Spread = 12,
+			Accel = 1.5,
 			Drag = 2.5,
-			Size = { { 0, 1.6 + 1.2 * k }, { 1, 2.4 + 1.8 * k } },
+			Size = { { 0, 2.6 + 1.2 * k }, { 1, 3.4 + 1.8 * k } },
 			Jitter = 0.2,
 			Fade = { { 0, 0.15 }, { 0.6, 0.25 }, { 1, 1 } },
-			Color = pale(0.35),
+			Color = pale(0.6),
 			Color2 = color,
-			Emission = 0.5,
+			Emission = 0.6,
 			Flare = 10,
 			Burst = 18,
 			Keep = 2,
@@ -356,13 +361,14 @@ function AuraVolume.spec(tier: number): Spec
 			Mode = "Loop",
 			Fps = 12,
 			Keep = 3,
+			Across = true,
 		})
 	end
 	if tier >= from.Flames then
 		layer("Flames", "Flame", "Band", {
 			Wide = 1.05,
 			Band = 0.82,
-			Rate = ramp(from.Flames, 12, 17),
+			Rate = ramp(from.Flames, 12, 11),
 			Life = { 0.6, 0.95 },
 			Accel = ramp(from.Flames, 3, 6),
 			Size = {
@@ -411,13 +417,13 @@ function AuraVolume.spec(tier: number): Spec
 			Speed = { 1, 2.5 },
 			Spread = 20,
 			Accel = 7,
-			Size = { { 0, 0.5 }, { 0.3, 0.95 }, { 1, 0.3 } },
+			Size = { { 0, 0.8 }, { 0.3, 1.5 + 0.4 * k }, { 1, 0.4 } },
 			Jitter = 0.3,
 			Fade = { { 0, 0.4 }, { 0.2, 0 }, { 0.7, 0.1 }, { 1, 1 } },
-			Color = pale(0.75),
+			Color = pale(0.85),
 			Color2 = pale(0.2),
 			Emission = 0.9,
-			Bright = 1.4,
+			Bright = 1.7,
 			Spin = 2.2,
 			Mode = "Loop",
 			Fps = 18,
@@ -431,8 +437,8 @@ function AuraVolume.spec(tier: number): Spec
 			Wide = 0.95,
 			Facing = "Round",
 			Rate = ramp(from.Arcs, 9, 14),
-			Life = { 0.16, 0.3 },
-			Size = { { 0, 2 + k }, { 1, 2.6 + 1.6 * k } },
+			Life = { 0.2, 0.34 },
+			Size = { { 0, 3 + 1.6 * k }, { 1, 3.6 + 2 * k } },
 			Jitter = 0.4,
 			Fade = { { 0, 0 }, { 0.7, 0.1 }, { 1, 1 } },
 			Color = pale(0.8),
@@ -462,19 +468,20 @@ function AuraVolume.spec(tier: number): Spec
 			Fps = 14,
 			Warm = 2,
 			Keep = 1,
+			Across = true,
 		})
 	end
 	if tier >= from.Crown then
 		layer("Crown", "Flame", "Top", {
-			Wide = 0.75,
-			Band = 0.6,
-			Rate = 9,
+			Wide = 0.38,
+			Band = 0.8,
+			Rate = 14,
 			Life = { 0.5, 0.8 },
-			Accel = 8,
-			Size = { { 0, 2.4 }, { 0.4, 3.4 }, { 1, 2.4 } },
+			Accel = 4,
+			Size = { { 0, 1.8 }, { 0.4, 2.6 }, { 1, 2 } },
 			Jitter = 0.4,
 			Fade = { { 0, 1 }, { 0.15, 0.2 }, { 0.6, 0.35 }, { 1, 1 } },
-			Color = pale(0.55),
+			Color = pale(0.8),
 			Color2 = color,
 			Emission = 0.7,
 			Grid = 8,
@@ -515,12 +522,13 @@ function AuraVolume.spec(tier: number): Spec
 				From = i / 2 + 0.2,
 				Beams = 3,
 				Turns = 1.35,
-				Color = pale(0.15),
+				Color = color,
+				Head = pale(0.9),
 				Low = 0.04,
 				High = 0.98,
-				WideLow = 1.45,
+				WideLow = 1.6,
 				WideHigh = 0.8,
-				Width = { 0.05, 1.5, 0.3 },
+				Width = { 0.1, 2.1, 0.9 },
 				Transparency = 0.05,
 				Emission = 0.5,
 				Spin = 1.9,
@@ -540,7 +548,7 @@ function AuraVolume.spec(tier: number): Spec
 		Layers = layers,
 		Strands = strands,
 		Light = if tier >= from.Light
-			then { Range = ramp(from.Light, 8, 20), Bright = ramp(from.Light, 0.4, 1.5), Color = pale(0.15) }
+			then { Range = ramp(from.Light, 8, 20), Bright = ramp(from.Light, 0.4, 1), Color = pale(0.15) }
 			else nil,
 		Pulse = if tier >= from.Pulse
 			then { Every = ramp(from.Pulse, 1.9, 1.3), Strength = ramp(from.Pulse, 0.25, 0.5), Rise = 0.16, Fall = 0.7 }
@@ -669,7 +677,7 @@ end
 ---------------------------------------------------------------------------------------------------------------------
 
 function AuraVolume.foot(spec: Spec): Shape
-	return { X = spec.Radius, Z = spec.Radius, Height = spec.Height, At = Vector3.zero, Grow = 1 }
+	return { X = spec.Radius, Z = spec.Radius, Height = spec.Height, At = Vector3.zero, Grow = 1, Own = false }
 end
 
 -- Round a rider and what they ride as one. body: its width, height and length about its own middle; seat: where the
@@ -684,7 +692,8 @@ function AuraVolume.ride(spec: Spec, body: Vector3, seat: Vector3, eye: number?,
 		x = math.min(x, math.max(eye * c.EyeShare * 1.3, 2.4))
 		z = math.min(z, math.max(eye * c.EyeShare, 2.4))
 	end
-	local low = math.max(-half.Y, seat.Y - c.RideDeep)
+	local deep = lerp(math.min(4, c.RideDeep), c.RideDeep, math.min((spec.Tier - 1) / 5, 1))
+	local low = math.max(-half.Y, seat.Y - deep)
 	-- (a body wider than the aura may be would hide its foot inside it: it stands on that one's back, round the rider)
 	local inside = math.clamp((half.X * 0.85 + 1.1 - x) / (x * 0.4), 0, 1)
 	low = lerp(low, math.max(low, seat.Y - 2.4), inside)
@@ -702,7 +711,7 @@ function AuraVolume.ride(spec: Spec, body: Vector3, seat: Vector3, eye: number?,
 	end
 	-- as tall as the two together, and over them by what the tier's own height is over an avatar
 	local tall = (top - low) + math.max(spec.Height - 5.2, 0) * 0.6 * math.min(grow, 1.6)
-	return { X = x, Z = z, Height = math.max(tall, 3), At = at, Grow = grow }
+	return { X = x, Z = z, Height = math.max(tall, 3), At = at, Grow = grow, Own = eye ~= nil }
 end
 
 -- Between two ways of standing (0 the first, 1 the second)
@@ -713,11 +722,15 @@ function AuraVolume.between(a: Shape, b: Shape, k: number): Shape
 		Height = lerp(a.Height, b.Height, k),
 		At = a.At:Lerp(b.At, k),
 		Grow = lerp(a.Grow, b.Grow, k),
+		Own = if k < 0.5 then a.Own else b.Own,
 	}
 end
 
 -- How many of a layer are let out a second
 function AuraVolume.rate(l: Layer, s: Shape, detail: number, c: { [string]: any }): number
+	if s.Own and l.Across then
+		return 0
+	end
 	local rate = l.Rate * math.clamp(s.Grow, 1, c.RideMore)
 	if l.Name == "Wisps" and s.Grow > 1 then
 		rate = math.max(rate, c.RideWisps) -- (round a whole fish the first tiers' few would be lost)
@@ -736,7 +749,7 @@ function AuraVolume.place(l: Layer, s: Shape): (number, Vector3)
 	elseif l.Place == "Foot" then
 		return 0.6 * s.Grow, wide + Vector3.new(0, 0.5 * s.Grow, 0)
 	elseif l.Place == "Top" then
-		return s.Height * 0.62, wide + Vector3.new(0, 0.2, 0)
+		return s.Height * 0.54, wide + Vector3.new(0, 0.2, 0)
 	elseif l.Name == "Pillar" then
 		return s.Height * 0.62, wide + Vector3.new(0, 1, 0)
 	elseif l.Place == "Wall" then

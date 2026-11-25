@@ -93,6 +93,7 @@ for _, scene in scenes do
 				Joints = joints,
 				Fade = fade,
 				Color = rgb(s.Color),
+				Head = rgb(s.Head),
 				Emission = s.Emission,
 				Offset = (clock * s.Flow) % 1,
 			})

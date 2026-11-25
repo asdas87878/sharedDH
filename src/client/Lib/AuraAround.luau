@@ -28,7 +28,8 @@ export type Around = {
 	Sat: number, -- 0 on foot to 1 riding, eased
 	Ridden: AuraVolume.Shape?, -- how it stood when last ridden
 	RiddenAt: CFrame?, -- and where, in the wearer's own frame
-	Grow: number, -- as the pictures are written
+	Grow: number, -- as the pictures are written,
+	Own: boolean,
 	Seen: number, -- as the fade is written (-1: not yet)
 	Running: boolean, -- its emitters let out
 	Detail: number,
@@ -38,9 +39,9 @@ export type Around = {
 	OnDone: boolean,
 	PulseN: number,
 }
--- Where it stands this frame, on the ride: the mount's frame (upright, or leaning with it), its shape there, and how
--- strong all of it is (our own: Aura.EyeStrength)
-export type Ride = { At: CFrame, Shape: AuraVolume.Shape, Strong: number }
+-- Where it stands this frame, on the ride: the mount's frame (upright, or leaning with it), and its shape there (our own
+-- is Aura.EyeStrength strong)
+export type Ride = { At: CFrame, Shape: AuraVolume.Shape }
 
 -- The engine's own pictures that stand in for ours until they are uploaded (a name not here: the layer is left out). Soft
 -- ones only: no bubble, no sparkle
@@ -175,7 +176,10 @@ function AuraAround.build(parent: Instance, tier: number): Around
 				b.Segments = 16
 				b.LightInfluence = 0
 				b.LightEmission = s.Emission
-				b.Color = ColorSequence.new(s.Color)
+				b.Color = ColorSequence.new(
+					s.Color:Lerp(s.Head, ((i - 2) / s.Beams) ^ 2),
+					s.Color:Lerp(s.Head, ((i - 1) / s.Beams) ^ 2)
+				)
 				b.Texture = picture
 				b.TextureMode = Enum.TextureMode.Stretch
 				b.TextureLength = s.Repeat
@@ -212,6 +216,7 @@ function AuraAround.build(parent: Instance, tier: number): Around
 		Ridden = nil,
 		RiddenAt = nil,
 		Grow = -1,
+		Own = false,
 		Seen = -1,
 		Running = false,
 		Detail = 0,
@@ -279,9 +284,8 @@ function AuraAround.hide(a: Around)
 			p.Emitter:Clear()
 		end
 	end
-	if a.Seen ~= 0 then
-		a.Seen = 0
-	end
+	a.Seen = 0
+	a.Last = nil -- (back in as it stands then, not easing from where it was)
 end
 
 local function scaled(pairs: { { number } }, by: number, jitter: number): NumberSequence
@@ -301,13 +305,14 @@ local function faded(pairs: { { number } }, seen: number): NumberSequence
 	return NumberSequence.new(list)
 end
 
--- One frame. feet: the wearer's, upright; ride: what they ride, nil on foot; seen: the fade, 0 to 1 (over 0: hide is for
+-- One frame. feet: the wearer's, upright; ride: what they ride, nil on foot; hold: nothing for now, in the hop from one fish to the next (it stays as it stood, or it would shrink and swell at every hop); seen: the fade, 0 to 1 (over 0: hide is for
 -- none); detail: 1 to 3; lit: its light is on. place: put a part somewhere
 function AuraAround.step(
 	a: Around,
 	t: number,
 	feet: CFrame,
 	ride: Ride?,
+	hold: boolean,
 	seen: number,
 	detail: number,
 	lit: boolean,
@@ -321,7 +326,7 @@ function AuraAround.step(
 	a.Clock += dt * (if ride then spec.RideFast else 1)
 
 	-- where it stands: between the feet and the mount as they are got on and off
-	local toSat = if ride then 1 else 0
+	local toSat = if ride or (hold and a.Ridden) then 1 else 0
 	if first then
 		a.Sat = toSat
 	else
@@ -329,8 +334,13 @@ function AuraAround.step(
 		a.Sat += math.clamp(toSat - a.Sat, -most, most)
 	end
 	if ride then
-		a.Ridden = ride.Shape
-		a.RiddenAt = feet:ToObjectSpace(ride.At)
+		-- (from one fish's size to the next one's over a moment, not at once)
+		local to = feet:ToObjectSpace(ride.At)
+		local k = if a.Ridden and a.Sat > 0 then 1 - math.exp(-dt * 2.5 / math.max(c.SeatEase, 0.01)) else 1
+		local stood: AuraVolume.Shape = AuraVolume.between(a.Ridden or ride.Shape, ride.Shape, k)
+		stood.Own = ride.Shape.Own
+		a.Ridden = stood
+		a.RiddenAt = if a.RiddenAt then a.RiddenAt:Lerp(to, k) else to
 	end
 	local shape = AuraVolume.foot(spec)
 	local at = feet
@@ -371,8 +381,9 @@ function AuraAround.step(
 		end
 		a.Grow = -1
 	end
-	if math.abs(a.Grow - shape.Grow) > 0.06 then
+	if math.abs(a.Grow - shape.Grow) > 0.06 or a.Own ~= shape.Own then
 		a.Grow = shape.Grow
+		a.Own = shape.Own
 		for _, p in a.Pieces do
 			p.Emitter.Rate = AuraVolume.rate(p.Layer, shape, detail, c)
 			p.Emitter.Size = scaled(p.Layer.Size, shape.Grow, p.Layer.Jitter)
@@ -380,7 +391,8 @@ function AuraAround.step(
 			p.Emitter.Speed = NumberRange.new(p.Layer.Speed[1] * shape.Grow, p.Layer.Speed[2] * shape.Grow)
 		end
 	end
-	local now = math.max(AuraVolume.step(seen * (if ride then ride.Strong else 1)), 1 / AuraVolume.Steps)
+	local strong = if shape.Own then c.EyeStrength else 1
+	local now = math.max(AuraVolume.step(seen * strong), 1 / AuraVolume.Steps)
 	if now ~= a.Seen then
 		a.Seen = now
 		local strength = now * spec.Strength

@@ -3485,7 +3485,7 @@ Config.Aura = {
 	RideWisps = 18, -- at least this many wisps a second round a fish (the first tiers' few would be lost round it)
 	EyeShare = 0.5, -- our own: it reaches to this share of the way to our camera (RideController's, some 17 studs),
 	EyeGrow = 1.5, -- its pictures are up to this many times as big,
-	EyeStrength = 0.7, -- and all of it is this strong (we look through it to steer; everyone else sees it whole)
+	EyeStrength = 0.6, -- and all of it is this strong (we look through it to steer; everyone else sees it whole)
 	RideLean = 0.5, -- the share of the fish's pitch it follows (0: always upright; never its roll)
 	-- Look 2, what is drawn (Shared/AuraVolume.detail: 3 all of it, 2 about two thirds, 1 a few pieces)
 	WholeTo = 70, -- all of it to this far from the camera (then about two thirds), studs,

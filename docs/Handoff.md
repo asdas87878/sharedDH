@@ -3,6 +3,21 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · Auras in 3D round the body, the fade, the ladder (NULLROOM a1, Hugo's PC)
+**State:** on the branch `aura-3d` (worktree `sharedDH-aura3`). **Not pushed, not seen in Studio, nothing uploaded, not played.**
+Everything is in [auras](design/auras.md), "Around the body". **To turn off:** `Config.Aura.Look` 1 (the flame) or 0 (draft 2).
+- **`Config.Aura.Flame` is gone:** `Look` is in its place. All Config edits are inside the `Config.Aura` block.
+- **New:** `Shared/AuraVolume` (the sums), `Lib/AuraAround` (draws them), `AuraController` (which look, what is ridden, who gets
+  how much). `Auras.Sheets` (ids, all empty), the tiers' blurbs (`Auras.Tiers`). `AuraService`, prices and the shop: untouched.
+- **What it reads from other code:** attributes `State`, `LandMounted`, `TankRide`, `TrainerRide`, and the welds by name (`volume_test` checks the
+  names against the server's source). A new way to ride needs a row in `AuraController`'s `WELDS`, or its rider's aura fades while moving.
+- **Local pictures:** `python tools/auras/volume_sheets.py --local` on each PC, then reopen Studio. Without them, and in a live game
+  until the twelve in `art/ui/aura_volume` are uploaded (Hugo's yes), engine pictures stand in and some layers are left out.
+- **Checked offline:** `volume_test.luau` 70 of 70, `aura_test.luau` 61 of 61, StyLua, selene (three old warnings, not ours), types, a Rojo build.
+  The [sheet](attachments/auras-3d.png) and the [moving one](attachments/auras-3d.gif) are offline mocks drawn from the game's numbers.
+- **Owed:** `tools/studio/aura_check.py run` (rewritten for the looks, **not run**), the list "To see in Studio", two players, a phone, Hugo's yes or no to the
+  ground ring and light.
+
 ## 2026-11-25 · The subs checked again after the merge: nine tiers, the gate and pick-up, the shop (NULLROOM c1, Hugo's PC)
 **State:** pushed: one new check, one sheet, notes. **No `src/` change,** nothing uploaded, the place left as it was (Edit, no test parts,
 `full_check.py all` all good). All of it: [sub models](design/sub-models.md), "Checked again after the merge".

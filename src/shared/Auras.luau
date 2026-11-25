@@ -154,8 +154,8 @@ Auras.Sheets = {
 Auras.SheetSet = "v1"
 
 -- Draft 4's flame's pictures (Config.Aura.Look 1), uploaded: empty until the user says yes to the upload (art/ui/aura_flame; the Beam ones, Flame,
--- Tip and Streaks, turned as Config.Aura.Turn says). Until all six are filled in a live game shows the old look. Studio
--- reads the local copies (tools/auras/flame_pics.py), and shows the old look where they are not there.
+-- Tip and Streaks, turned as Config.Aura.Turn says). Until all six are filled in a live game shows draft 2 at Look 1. Studio
+-- reads the local copies (tools/auras/flame_pics.py), and shows draft 2 where they are not there.
 Auras.Pictures = { Flame = "", Tip = "", Streaks = "", Lick = "", Bubble = "", Arc = "" } :: { [string]: string }
 Auras.PictureSet = "f1"
 

@@ -7,6 +7,7 @@ Beams (billboards, flipbooks, depth, LightEmission), over Blender's avatar and f
     blender -b --python tools/auras/volume_scene.py -- W/shots <repo> W/dump.json
     python tools/auras/volume_shots.py W/dump.json W/shots out.png                      (the sheet)
     python tools/auras/volume_shots.py W/dump.json W/shots out.png foot12 foot_front    (one scene, one view)
+    python tools/auras/volume_shots.py W/dump.json W/shots frames movie                 (its frames: a dump of many times)
 (numpy and Pillow)"""
 import json
 import os
@@ -111,23 +112,21 @@ class View:
         return Image.fromarray((np.clip(self.img, 0, 1) * 255).astype(np.uint8)).resize((w, h), Image.LANCZOS)
 
 
-def particles(scene, frame, rng):
+def particles(scene, frame, seed):
     """Every particle alive at the frame's time: its place, its way, its size ..."""
     out = []
     T = frame["T"]
     grow = scene["Shape"]["Grow"]
     at = np.array(scene["Shape"]["At"])
     long = abs(scene["Shape"]["X"] - scene["Shape"]["Z"]) >= 0.4
-    for l in scene["Layers"]:
-        rate = l["Rate"]
-        lmax = l["Life"][1]
-        if l["Name"] == "Shock":
-            n = int(T / scene["Pulse"])
-            births = [n * scene["Pulse"], (n - 1) * scene["Pulse"]]
-        else:
-            count = rate * lmax
-            births = [T - lmax + (i + rng.random()) / rate for i in range(int(np.ceil(count)))]
-        for born in births:
+    for li, l in enumerate(scene["Layers"]):
+        rate = 1 / scene["Pulse"] if l["Name"] == "Shock" else l["Rate"]
+        if rate <= 0:
+            continue
+        # (each particle its own luck, by its number: the same one in every picture it is alive in)
+        for i in range(int((T - l["Life"][1]) * rate) - 1, int(T * rate) + 1):
+            rng = np.random.default_rng((max(i, 0), li, seed))
+            born = (i + (0 if l["Name"] == "Shock" else rng.random())) / rate
             age, life = T - born, rng.uniform(*l["Life"])
             if age < 0 or age >= life:
                 continue
@@ -179,7 +178,6 @@ def particles(scene, frame, rng):
 
 def render(folder, scene, view, scale=1.5, frame=0, seed=1):
     V = View(folder, view, scale)
-    rng = np.random.default_rng(seed)
     fr = scene["Frames"][frame]
     at = np.array(scene["Shape"]["At"])
     L = scene.get("Light")
@@ -188,7 +186,7 @@ def render(folder, scene, view, scale=1.5, frame=0, seed=1):
         V.lit(at + np.array([0, h, 0]), L["Color"], min(L["Range"] * scene["Shape"]["Grow"], 45),
               L["Bright"] * fr["Bright"])
     jobs = []
-    for p in particles(scene, fr, rng):
+    for p in particles(scene, fr, seed):
         l = p["l"]
         view_dir = unit(V.pos - p["p"])
         f = l["Facing"]
@@ -241,7 +239,7 @@ def render(folder, scene, view, scale=1.5, frame=0, seed=1):
             pts = np.array([line[j] - sides[j], line[j] + sides[j], line[j + 1] + sides[j + 1], line[j + 1] - sides[j + 1]])
             uv = np.array([[0.5, v0], [tw - 0.5, v0], [tw - 0.5, v1], [0.5, v1]])
             jobs.append((((line[j] + line[j + 1]) / 2 - V.pos) @ V.fwd, pts, uv, tex,
-                         np.clip(np.array(s["Color"]) * fr["Bright"], 0, 1.6),
+                         np.clip((np.array(s["Color"]) + (np.array(s["Head"]) - np.array(s["Color"])) * (j / (len(line) - 1)) ** 2) * fr["Bright"], 0, 1.6),
                          np.array([fade[j], fade[j], fade[j + 1], fade[j + 1]]), s["Emission"]))
     for job in sorted(jobs, key=lambda x: -x[0]):
         V.quad(*job[1:])
@@ -249,8 +247,8 @@ def render(folder, scene, view, scale=1.5, frame=0, seed=1):
 
 
 def tile(args):
-    folder, scene, view, w, h, frame = args
-    return render(folder, scene, view, 1.5 if w > 240 else 1.0, frame).out(w, h)
+    folder, scene, view, w, h, frame = args[:6]
+    return render(folder, scene, view, args[6] if len(args) > 6 else 1.5, frame).out(w, h)
 
 
 def font(n):
@@ -261,9 +259,36 @@ def font(n):
     return ImageFont.load_default(n)
 
 
+def movie(scenes, folder, out):
+    """Four tiers standing, 1 4 8 12, and three on a shark: every frame of the dump (a GIF, at its times' own pace)."""
+    cells = [(f"foot{t}", "foot_front", 300, 407) for t in (1, 4, 8, 12)]
+    cells += [(f"HammerheadShark{t}", "HammerheadShark_front", 400, 304) for t in (1, 6, 12)]
+    n = len(scenes["foot1"]["Frames"])
+    jobs = [(folder, scenes[c[0]], c[1], c[2], c[3], f, 1.0) for f in range(n) for c in cells]
+    frames = []
+    with ProcessPoolExecutor(10) as ex:
+        made = list(ex.map(tile, jobs, chunksize=4))
+    for f in range(n):
+        sheet = Image.new("RGB", (1200, 407 + 304), (10, 14, 24))
+        for i, c in enumerate(cells):
+            at = (i * 300, 0) if i < 4 else ((i - 4) * 400, 407)
+            sheet.paste(made[f * len(cells) + i], at)
+            ImageDraw.Draw(sheet).text((at[0] + 8, at[1] + 6), f"tier {scenes[c[0]]['Tier']}", font=font(17),
+                                       fill=(255, 255, 255), stroke_width=3, stroke_fill=(0, 0, 0))
+        frames.append(sheet)
+    ms = int(round((scenes["foot1"]["Frames"][1]["T"] - scenes["foot1"]["Frames"][0]["T"]) * 1000))
+    os.makedirs(out, exist_ok=True)
+    for i, f in enumerate(frames):
+        f.save(f"{out}/{i:03d}.png")
+    print(len(frames), "frames", ms, "ms")
+
+
 def main():
     dump, folder, out = sys.argv[1:4]
     scenes = {s["Name"]: s for s in json.load(open(dump))}
+    if sys.argv[4:] == ["movie"]:
+        movie(scenes, folder, out)
+        return
     if len(sys.argv) > 4:
         V = render(folder, scenes[sys.argv[4]], sys.argv[5], 1.5)
         V.out(int(V.w / 1.5), int(V.h / 1.5)).save(out)
@@ -271,7 +296,6 @@ def main():
     names = ["Bubble", "Shell", "Tide", "Current", "Reef", "Storm", "Moon", "Lantern", "Ember", "Urchin", "Abyss", "Leviathan"]
     tw, th = 280, 380
     jobs, where = [], []
-    W = 12 * tw // 2 + 0
     cols = 6
     for tier in range(1, 13):
         r, c = divmod(tier - 1, cols)

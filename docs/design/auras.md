@@ -16,20 +16,121 @@ Hugo's words, in order:
 - 2026-11-24: "can you make sure that we implement auras, in the ui u didnt remove the placeholder bubbles in the back
   and make sure you can buy them. Prices should be consistent across different parts like the seahorses, make sure the
   scaling is cohesive."
+- 2026-11-25: "Make auras surround the player, not be a constant silhouette following the players camera view, but actually
+  surrounding the player, it should also fade out when moving and fade in when standing still, this shouldnt apply to riding,
+  always seeing the aura."
+- 2026-11-25: "Make auras cooler and bigger through progression, should start off less noticeable and the particle effects
+  look bad ngl, make them actually fully animated and feel integrated like in the screenshots i sent(especially ref image 4.
+  two players riding on dinos with auras)". (The screenshots are read for their feel only.)
 
-**State (2026-11-25): draft 4 is built, the auras can be bought, and it is on main. Checked by script and stills in Studio, not
+**State (2026-11-25, later): the 3D look ("Around the body", the next section) is built and on, on the branch `aura-3d`: not
+pushed, not seen in Studio, nothing uploaded.** Draft 4's flame is kept behind `Config.Aura.Look` 1 and draft 2 behind 0. What
+follows the next section is the flame's own note, and true of `Look` 1.
+
+## Around the body (2026-11-25, task a1; `Config.Aura.Look` 2)
+
+![all twelve, and riding](../attachments/auras-3d.png)
+
+**The picture is an offline mock:** drawn by our own script from the game's own numbers (`tools/auras/volume_shots.py`), not a
+Studio capture. [Moving](../attachments/auras-3d.gif).
+
+An aura is a round volume that stands in the world: a circle on the ground as big as its tier, things that rise from that circle
+on every side, and ribbons that wind round the body in front and behind. No piece of it is a card placed to face the camera. Its
+numbers are plain sums in `src/shared/AuraVolume.luau`, drawn by `src/client/Lib/AuraAround.luau`, worn by `AuraController`. Only
+emitters and Beams on unseen parts that stand still under `workspace.AuraFx`, all moved in one go a frame, on each player's own machine.
+
+### What each tier adds
+
+No tier loses anything a lower one had. Sizes are on foot, in studs. A draw call is a Beam or an emitter; "far" is a far player,
+"mid" a nearer one or a phone's own, "near" is all of it.
+
+| Tier | Radius, height | New at this tier | Draw calls far / mid / near | Particles alive far / mid / near |
+|---|---|---|---|---|
+| 1 Bubble | 1.9, 3 | faint wisps rise round your feet | 1 / 1 / 1 | 4 / 5 / 8 |
+| 2 Shell | 2.1, 3.7 | thin strokes whip out over the ground | 1 / 2 / 2 | 4 / 7 / 11 |
+| 3 Tide | 2.3, 4.5 | a turning ring of light on the ground | 2 / 3 / 3 | 6 / 10 / 15 |
+| 4 Current | 2.6, 5.3 | a ribbon winds up round you | 4 / 5 / 5 | 6 / 10 / 15 |
+| 5 Reef | 2.8, 6.1 | an inner glow that breathes | 4 / 6 / 7 | 6 / 12 / 22 |
+| 6 Storm | 3, 7 | a ring of flames, and a second ribbon | 5 / 9 / 10 | 11 / 18 / 33 |
+| 7 Moon | 3.2, 7.9 | tall shafts of light; flares on a landing | 5 / 10 / 11 | 11 / 21 / 38 |
+| 8 Lantern | 3.4, 8.8 | embers spiral up; flares on a hop | 5 / 10 / 12 | 11 / 22 / 53 |
+| 9 Ember | 3.6, 9.7 | spray bursts out at the foot; flares on a boost | 5 / 11 / 13 | 11 / 27 / 64 |
+| 10 Urchin | 3.9, 10.6 | arcs crackle, shock rings; a burst when put on | 5 / 12 / 15 | 11 / 29 / 71 |
+| 11 Abyss | 4.1, 11.6 | a towering pillar of light | 6 / 13 / 16 | 14 / 33 / 81 |
+| 12 Leviathan | 4.3, 12.5 | two great serpents and a crown of flames | 6 / 16 / 23 | 14 / 35 / 95 |
+
+The flame it replaces was 47 draw calls at tier 12 (measured in Studio); this is 23, and tier 1 is 1.
+
+### When it is seen
+
+- **On foot:** standing still it fades in over `FadeIn` 0.5 s, moving it fades out over `FadeOut` 0.25 s. Moving is faster than
+  `MoveAt` 2 studs a second; still is under `StillAt` 0.8 for `StillFor` 0.12 s (between the two it stays as it was). The speed
+  is measured from the body's own place on each machine, so **other players' auras follow the same rules**. Swimming and
+  drowning are always moving, also when treading water.
+- **Riding: always seen,** round the rider and the fish as one: the circle takes the fish's own length and width (`RideWide`,
+  `RideLong`, `RideDeep` cap it), the column stands up past the rider, and it goes over smoothly to the next fish.
+  **Counted as riding:** a fish in the sea or on land, the trainer, the submarine, a tank ride, and the hop from fish to fish (`Hop` 1).
+- **Your own, while riding, is calmer:** 0.6 of its strength, never wider than half the camera's distance, and the haze and the
+  pillar are left out (`EyeStrength`, `EyeShare`, `EyeGrow`), so the fish ahead stay readable. Everyone else sees it whole.
+  The lowest tiers ride at the fish's back, so a big fish does not hide them in its body.
+
+### Cost
+
+- Whole within `WholeTo` 70 studs, the middle to `FewFrom` 130, few beyond. The three nearest others may have all of it (`Full`), the next
+  four the middle (`Half`), the rest few. A phone: the middle for its own (`PhoneOwn`), few for others (`PhoneMost`).
+- At most `Lights` 4 soft lights (no shadows), the nearest first. Faded out, an aura draws nothing and has no particles.
+
+### Dials
+
+`Config.Aura`: `Look` 2 (this), 1 (the flame), 0 (draft 2), read live; the fade, the riding and the detail numbers above. `Config.Aura.On` is
+still only the buying.
+
+### The pictures
+
+Twelve sheets of our own, drawn by sums (`tools/auras/volume_sheets.py`) in `art/ui/aura_volume/`, white, tinted by the tier.
+**To upload (Hugo's yes): those twelve files**; the ids go in `Auras.Sheets` ([which is which](../../art/ui/aura_volume/README.md)).
+**Until then a live game draws the same volume with the engine's own soft pictures** for six of them (wisp, flame, ring, shock,
+haze, mote), leaves the others out and draws the ribbons as plain bands: it is there and it moves, but it is the rougher version.
+Studio reads local copies: `python tools/auras/volume_sheets.py --local`, then reopen Studio.
+
+### Checked offline
+
+`tools/auras/volume_test.luau` (70 checks: the ladder grows and loses nothing, the caps, the fade to the hundredth, each way of riding
+by the names the server uses, the size on small and giant fish, the detail by distance and phone), `aura_test.luau` (61, the
+shop, the server and the flame, unchanged), StyLua, selene, the type checker, a Rojo build. Eight of nine faults put in on purpose were caught
+(the ninth, `SpeedOver` next to nothing, is hidden by `StillFor`).
+
+### To see in Studio (nothing of this has been)
+
+`python tools/studio/aura_check.py run` (counts, the fade), then by eye:
+
+1. The spray bursts outward, and the wisps and flames rise from the rim (Roblox's Cylinder and Disc directions are from the manual).
+2. What lies flat (the ring, the sweeps, the shock rings) lies on the ground, and stays with the fish when it pitches.
+3. Ribbons wind round both sides, with no seam where two Beams meet. In a live game, with no picture: a plain band.
+4. Nothing turns with the camera; no light's edge on the ground; several tier 12s side by side; a phone.
+5. With the stand-ins: `explosion01_shockwave_main` lying flat should read as a ring. (It is the picture the old code called Bubble.)
+
+### Three older rules this goes against, for Hugo to say no to
+
+- 2026-11-19: "particles round the body only, nothing on the ground". The new words ask for an aura that surrounds the player, so
+  there are strokes, a ring and a glow on the ground (tier 2 up).
+- The flame's note says no light. There is a soft one now (`Config.Aura.Lights` 0 takes it out).
+- 2026-11-23: "one slightly visible aura consistent just changing colours". The auras now differ by what each adds, as the new words ask.
+- **Also a reading:** the hop between fish and every kind of seat count as riding.
+
+**State before that (2026-11-25): draft 4 is built, the auras can be bought, and it is on main. Checked by script and stills in Studio, not
 played by hand.** The last
 quote is read as the go for the flame below (**a reading, not confirmed by Hugo**); the old look (draft 2) is kept behind
-`Config.Aura.Flame` 0. Draft 3 (the soft mist) is not used: Hugo took the yes back (the third quote). What was built and
+`Config.Aura.Look` 0. Draft 3 (the soft mist) is not used: Hugo took the yes back (the third quote). What was built and
 checked: "Built", below. From there on this note is the mock's, as it was drawn offline.
 
-## Built (2026-11-24; seen in Studio and pushed to main 2026-11-25)
+## Built (2026-11-24; seen in Studio and pushed to main 2026-11-25): the flame, now `Look` 1
 
 - **The flame:** its numbers are `src/shared/AuraFlame.luau` (plain sums, the tables below), drawn by
   `src/client/Lib/AuraBeams.luau`, worn by `AuraController`. It flares on a landing, a hop and a boost, burns faster riding,
   sits at the hips on a fish (a quarter of a second to and from: `Aura.SeatEase`), and is put on with a burst (tier 10 up)
   or a rise: only when the attribute changes on a character already seen, never on a respawn or for players you join.
-- **The old look** (draft 2, twelve different effects) is all still there: `Config.Aura.Flame` 0, read live. Only the names
+- **The old look** (draft 2, twelve different effects) is all still there: `Config.Aura.Look` 0, read live. Only the names
   and the shop's tints are the new ones either way (Foam is Shell, Phantom is Urchin). **The old look keeps draft 2's own
   colours** (`Build[1..12]` in `AuraController` has them written in), so worn it does not match its card: Shell (coral) is drawn
   as white foam, Urchin (magenta) as mint and violet, and the others differ too. A live game shows that until the pictures are uploaded.
@@ -85,8 +186,10 @@ from behind with the game's camera.
 ## Decided
 
 - **Twelve tiers, x1.5 to x12** (Hugo, 2026-11-19).
-- **Particles round the body only, nothing on the ground** (Hugo, 2026-11-19, draft 2).
-- **One consistent aura on every tier, slightly visible** (Hugo, 2026-11-23, the first quote).
+- **Round the player in 3D, gone while moving on foot, always there riding, cooler and bigger by tier** (Hugo, 2026-11-25, the last two
+  quotes; what was made of it: "Around the body").
+- *(Goes against the line above: its ring and glow on the ground)* **Particles round the body only, nothing on the ground** (Hugo, 2026-11-19, draft 2).
+- *(Changed 2026-11-25)* **One consistent aura on every tier, slightly visible** (Hugo, 2026-11-23, the first quote).
 - **Not the mist. A power-up flame, cooler in how it works as the tiers go up, slightly bigger over upgrades**
   (Hugo, 2026-11-23, the third quote). Draft 3 was approved and then withdrawn; its sheet stays
   on the branch `auras-draft-3` for the record only.
@@ -423,6 +526,9 @@ the property names were confirmed (from the local type definitions), not how the
 - **A flare for other players on a Fast fish's take-off and a Leaper's big hop** (needs a new `Fx`, above).
 
 ## Open, for Hugo
+
+*(2026-11-25: 1 to 6 are about the flame, `Look` 1. For the 3D look: the ring and light on the ground, the seats and the hop
+as riding, and uploading its twelve pictures.)*
 
 1. Is this the flame? (The shape, the tongues, how see-through the middle is.)
 2. Is tier 1 modest enough and tier 12 strong enough, or too strong?

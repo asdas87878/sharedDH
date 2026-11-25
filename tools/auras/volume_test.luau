@@ -355,8 +355,42 @@ ok(
 		and string.find(controller, "Build[tier](fx)", 1, true) ~= nil
 		and string.find(controller, "Config.Aura.Flame", 1, true) == nil
 )
+local known = true
+for service, names_ in
+	{
+		RideService = { "RideWeld", "LandWeld" },
+		TankRideService = { "TankRideWeld" },
+		TrainService = { "TrainerWeld" },
+	}
+do
+	local source: string = world.find(`ServerScriptService.Server.Services.{service}`).Source
+	for _, name in names_ do
+		-- (the name the server gives the weld, and the one the controller looks for)
+		known = known
+			and string.find(source, `weld.Name = "{name}"`, 1, true) ~= nil
+			and string.find(controller, `{name} = true`, 1, true) ~= nil
+	end
+end
+ok("every weld a rider hangs from is known by the name its service gives it", known)
+local seats = true
+for name, service in { TankRide = "TankRideService", TrainerRide = "TrainService", LandMounted = "RideService" } do
+	local source: string = world.find(`ServerScriptService.Server.Services.{service}`).Source
+	seats = seats
+		and string.find(source, `SetAttribute("{name}"`, 1, true) ~= nil
+		and string.find(controller, `GetAttribute("{name}")`, 1, true) ~= nil
+end
+ok("and so are the seats' attributes", seats)
 ok(
-	"every mount's weld is known",
-	string.find(controller, "RideWeld = true, LandWeld = true, TankRideWeld = true, TrainerWeld = true", 1, true) ~= nil
+	"the hop holds the aura as it stood on the last fish",
+	string.find(controller, 'state == "Jumping"', 1, true) ~= nil
+		and string.find(lib, "hold and a.Ridden", 1, true) ~= nil
 )
+local own = fish("HammerheadShark", 1, 12, 17.7)
+local theirs = fish("HammerheadShark", 1, 12, nil)
+local through, whole = true, true
+for _, l in specs[12].Layers do
+	through = through and (not l.Across or V.rate(l, own, 3, c) == 0)
+	whole = whole and (l.Name == "Shock" or V.rate(l, theirs, 3, c) > 0)
+end
+ok("our own ride: nothing stands across our view; theirs is whole", through and whole)
 done()

@@ -122,7 +122,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `TankRideController` | Riding a fish in our own tank. |
 | `TrainerController` | The trainer toy on every plot: rocking, the coil, the rider. |
 | `SubController` | The submarine trip on every screen. |
-| `AuraController` | Every player's aura (the flame, drawn by `Lib/AuraBeams`; the old look behind `Config.Aura.Flame` 0) and the spawn-in. |
+| `AuraController` | Every player's aura (`Config.Aura.Look`: 2 round the body, drawn by `Lib/AuraAround`; 1 the flame, by `Lib/AuraBeams`; 0 draft 2), when it is seen, and the spawn-in. |
 | `GroundFxController` | Small effects on land. |
 | **The screen and the light** | |
 | `LessonController` | What the first minutes' step shows: the dock's line (`UI/DockNotes`), the arrow and trail (`UI/LessonPointer`), the hop button's words and the ring on PUT ALL IN (`UI/LessonPrompt`). Nothing with `Config.Lesson.On` 0. |
@@ -178,7 +178,8 @@ at its end, and is required from `StallController`.
 | `Creatures/` | Each modelled creature's parts, pivots and swim (`*.json`, made by `tools/creatures/collect.py`). |
 | `RideStyles`, `AngryStyles` | How each of the nine body types moves, and how it shows it wants you off. |
 | `Archetypes`, `Variants`, `Auras` | How passives, Silver/Gold/Rainbow fish and auras look. |
-| `AuraFlame` | The flame auras' numbers and how they move (plain sums, tested offline). |
+| `AuraVolume` | The 3D auras: what each tier has, the fade, the size on foot and on a fish, the detail (plain sums, tested offline). |
+| `AuraFlame` | The flame auras' numbers and how they move (`Look` 1; plain sums, tested offline). |
 | `SubModels`, `SubTrip` | The submarines and a trip's path, the same on server and client. |
 | `Products` | What the Robux shop sells. Every id is 0. |
 | `Look`, `Ease` | Putting the lighting numbers on; small maths. |

@@ -982,7 +982,7 @@ local function mountOf(l: Live, hrp: BasePart): Mount?
 end
 
 -- Where the aura stands on a mount: its middle, its heading, some of its pitch and none of its roll
-local function rideOf(l: Live, m: Mount, hrp: BasePart): AuraAround.Ride
+local function rideOf(l: Live, a: AuraAround.Around, m: Mount, hrp: BasePart): AuraAround.Ride
 	local cf = m.Part.CFrame
 	local look = cf.LookVector
 	local flat = Vector3.new(look.X, 0, look.Z)
@@ -994,13 +994,13 @@ local function rideOf(l: Live, m: Mount, hrp: BasePart): AuraAround.Ride
 	local eye = if l.Ours and cam then (cam.CFrame.Position - hrp.Position).Magnitude else nil
 	-- (the camera moves in and out: a step of it is not a step of the aura)
 	local shape = AuraVolume.ride(
-		AuraVolume.spec(l.Tier),
+		a.Spec,
 		m.Body,
 		at:PointToObjectSpace(hrp.Position),
 		if eye then math.clamp(eye, 10, 40) else nil,
 		Config.Aura
 	)
-	return { At = at, Shape = shape, Strong = if l.Ours then Config.Aura.EyeStrength else 1 }
+	return { At = at, Shape = shape }
 end
 
 -- What each model should wear now (0: nothing)
@@ -1223,7 +1223,15 @@ local function around(l: Live, a: AuraAround.Around, base: CFrame, t: number, dt
 	if hum and hum.Health <= 0 then
 		state = "Drowning"
 	end
-	local seated = mount ~= nil and state ~= "Carried" and state ~= "Drowning"
+	-- (the weld says where and how big; the attributes say it too, should a weld not be here yet)
+	local seated = state ~= "Carried"
+		and state ~= "Drowning"
+		and (
+			mount ~= nil
+			or who:GetAttribute("TankRide") ~= nil
+			or who:GetAttribute("TrainerRide") ~= nil
+			or who:GetAttribute("LandMounted") == true
+		)
 	local doing = AuraVolume.doing(state, who:GetAttribute("SubPhase"), seated, c)
 	local seen = AuraVolume.fade(l.Mover, doing, hrp.Position, dt, c)
 	if seen <= 0 or l.Far >= Auras.DrawRange then
@@ -1233,8 +1241,9 @@ local function around(l: Live, a: AuraAround.Around, base: CFrame, t: number, dt
 	end
 	l.Fx.Folder.Parent = root
 	local detail = AuraVolume.detail(l.Far, l.Place, l.Ours, onPhone(), c)
-	local ride = if mount and doing == "Ride" then rideOf(l, mount, hrp) else nil
-	AuraAround.step(a, t, base, ride, seen, detail, l.Place <= c.Lights and detail >= 2, function(part, cf)
+	local ride = if mount and doing == "Ride" then rideOf(l, a, mount, hrp) else nil
+	local hold = ride == nil and doing == "Ride" and state == "Jumping"
+	AuraAround.step(a, t, base, ride, hold, seen, detail, l.Place <= c.Lights and detail >= 2, function(part, cf)
 		put(l.Fx, part, cf)
 	end)
 end
