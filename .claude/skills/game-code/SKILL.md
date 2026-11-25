@@ -50,7 +50,8 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   copy of the equipped sub turns over the sub stand, on the player's own machine (`SubStandController`); **the Index**
   is `IndexService` (the server sees a catch in `RideService.carried` and `AquariumService.tankOf` every
   `Config.Index.Watch`; claims on the dock only, paid once; attributes `IndexFound`, `IndexClaims`; remote `Net.Index`)
-  with `UI/IndexPanel` and the Index button in `UI/HubButtons`; every `Config.Index` number is a DRAFT; **the
+  with `UI/IndexPanel` (the door; `IndexWindow` the window since 2026-11-25, `IndexOld` behind `Config.Index.Look` 0, `IndexBook`
+  the sums, `LandBanners` the pictures; `python tools/index/look_picture.py` checks and draws it) and the Index button in `UI/HubButtons`; every `Config.Index` number is a DRAFT; **the
   keepers** behind the stands are data in `Shared/Keepers` built and moved by `KeeperController` on each player's own
   machine (plain parts in `workspace.Keepers`, no collision, no query). Design: [UI](docs/design/ui.md) (top
   section), [hub models](docs/design/hub-models.md) ("The keepers behind the stands"),
