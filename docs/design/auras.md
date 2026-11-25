@@ -32,7 +32,7 @@ follows the next section is the flame's own note, and true of `Look` 1.
 ![all twelve, and riding](../attachments/auras-3d.png)
 
 **The picture is an offline mock:** drawn by our own script from the game's own numbers (`tools/auras/volume_shots.py`), not a
-Studio capture. [Moving](../attachments/auras-3d.gif).
+Studio capture. [Moving](../attachments/auras-3d.gif) (2.6 seconds, over and over: the jump is the loop's end, not the aura's).
 
 An aura is a round volume that stands in the world: a circle on the ground as big as its tier, things that rise from that circle
 on every side, and ribbons that wind round the body in front and behind. No piece of it is a card placed to face the camera. Its
