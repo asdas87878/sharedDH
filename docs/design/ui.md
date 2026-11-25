@@ -46,9 +46,20 @@ Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictu
 - **The Index on its ring too, and no sub ticket** (2026-11-24, Hugo: "Remove the submarine > area text on the left.
   Integrate ui popup when you stand on index as well."; NULLROOM u1, offline, **not run in Studio**). A station at
   `Dock.Stations.Index` with its `Ring` opens the Index as you walk on and closes it as you walk off, as well as the
-  hub's button (`StallController`; `Config.Index.On` 0 stops both). The map files still make that station (ring at
-  2985.5, 0.53, -108, `greybox/94_hub.luau`), but it was deleted by hand from the place on 2026-11-23, so the ring
-  works only once the place has one again. **Open, for Hugo:** where the Index spot should stand.
+  hub's button (`StallController`; `Config.Index.On` 0 stops both). The map files make that station (ring at
+  2985.5, 0.53, -108, `greybox/94_hub.luau`).
+- **The lighthouse stands again, its ring works** (2026-11-25, Hugo: "add the same circle integration as before for
+  the index lighthouse stand"; NULLROOM k1, offline, **not run in Studio**; replaces the note that the Index station
+  stays deleted). Read offline, Hugo's place as saved 2026-11-25 00:11 has `Dock.Stations.Index` (the white-and-blue
+  lighthouse, the open book at its foot) with a ring like the other stalls': 11.5 across, the same circle, the `HubRing`
+  tag, in front of the book; nothing stands on it, and it is 34.9 studs from the Fuse's. The code and the ring were both
+  there, so no `src/` line but a comment changed. **The partner's Team Create place was not looked at:** the Index was
+  deleted there by hand on 2026-11-23; without it the hub's button still works. It has no keeper (the keepers stand at
+  Sell, Auras, Sub and Fuse). A redesigned Index panel needs nothing here: it gives `Shop.page("Index", ...)` its opener.
+  Check: `lune run tools/index/ring_test.luau <built place> <a copy of the map place>` (116 checks, the four rings).
+  **Open, for Hugo:** the straight walk from the second back tank to the strip's middle crosses the ring, so the window
+  pops up for about half a second on the way (the Sell and Auras rings do the same to the two outer back tanks).
+  ![the Index ring's spot](../attachments/index-ring-spot.png)
   The yellow "SUB > land" at the left edge is gone; the sub shop's GO TO says the land. The line at the foot of the
   screen ("Not enough coins!", "Get ready to hook a fish!") is a separate thing and stays (`SubPanel.hint`).
 - **At a phone's size** (844 x 390, Studio's `PanelPhone`): the Index, the sub shop, Sell and Auras are whole on the

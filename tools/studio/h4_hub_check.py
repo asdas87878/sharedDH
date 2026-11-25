@@ -252,7 +252,7 @@ V.where = function()
 	if st then
 		for _, s in st:GetChildren() do
 			local ring = ringOf(s.Name)
-			local counter = s:FindFirstChild("CounterTop", true) or s:FindFirstChild("Core", true)
+			local counter = s:FindFirstChild("CounterTop", true) or s:FindFirstChild("Core", true) or s:FindFirstChild("Lamp", true)
 			local at, lower, upper, wide = nameOf(s)
 			table.insert(o, string.format("%s ring %s size %s %s shape %s counter %s name %s lower %s upper %s wide %s",
 				s.Name, if ring then v3(ring.Position) else "none", if ring then v3(ring.Size) else "-",
@@ -289,7 +289,7 @@ V.walk = function(a)
 		if Shop.Page ~= last then
 			last = Shop.Page
 			local d = {}
-			for _, n in { "Sell", "Auras", "Sub" } do
+			for _, n in { "Sell", "Auras", "Sub", "Index" } do
 				local ring = ringOf(n)
 				if ring then
 					table.insert(d, n .. "=" .. f((flat(p) - flat(ring.Position)).Magnitude))
@@ -1384,7 +1384,7 @@ def pages(text):
 
 
 def rings():
-    note("== the stall rings: Sell, Auras, Sub")
+    note("== the stall rings: Sell, Auras, Sub, Index (the lighthouse; added 2026-11-25, k1, not yet run)")
     stands, _me, _dock = where()
     ui = fields(do("ui"))
     expect("on the dock", ui.get("mode") == "Dock", ui.get("mode"))
@@ -1393,7 +1393,7 @@ def rings():
     for row in do("where").split("; "):
         if row.startswith("subnear"):
             near = float(row.split()[1])
-    for name in ("Sell", "Auras", "Sub"):
+    for name in ("Sell", "Auras", "Sub", "Index"):
         if name not in stands or not stands[name]["counter"]:
             expect(f"{name}: the stand and its ring are in the place", False)
             continue
@@ -1413,7 +1413,7 @@ def rings():
         if opened:
             d = opened[0][1][name]
             expect(f"{name}: opened at the ring's edge ({radius:.1f} studs from its middle, within a step)", radius - STEP <= d <= radius + 0.1, f"{d:.2f}")
-        window = {"Sell": "SellFish", "Auras": "AuraShop", "Sub": "SubShop"}[name]
+        window = {"Sell": "SellFish", "Auras": "AuraShop", "Sub": "SubShop", "Index": "IndexPanel"}[name]
         time.sleep(0.6)
         ui = fields(do("ui"))
         expect(f"{name}: its window {window} is the one showing", ui.get(window) == "open", {k: ui.get(k) for k in ("SellFish", "AuraShop", "SubShop", "IndexPanel", "ShopScreen")})
