@@ -180,6 +180,7 @@ type Fail = {
 	Pivot: Vector3,
 	Aim: Vector3, -- (Chomp) studs its path is moved by, to meet the body where it really is
 	TakenAt: Vector3?, -- where the body was as it was bitten
+	ArmsHeld: EatMoves.ArmsHeld, -- (New, Wrap) how far each of its arms has closed
 	Slip: Vector3, -- studs the sea bed or a wall holds it off its path by
 }
 
@@ -626,11 +627,46 @@ local function gripsOf(f: Fail): { EatMoves.Grip? }
 	return { { At = chest, Along = spine }, { At = waist, Along = spine }, { At = thighs, Along = down } }
 end
 
-local function poseNew(f: Fail, plan: EatMoves.Plan, u: number)
+-- every part of the rider where it is now, in the fish's space
+local BODY = {
+	"Head",
+	"Torso",
+	"Left Arm",
+	"Right Arm",
+	"Left Leg",
+	"Right Leg",
+	"UpperTorso",
+	"LowerTorso",
+	"LeftUpperArm",
+	"LeftLowerArm",
+	"LeftHand",
+	"RightUpperArm",
+	"RightLowerArm",
+	"RightHand",
+	"LeftUpperLeg",
+	"LeftLowerLeg",
+	"LeftFoot",
+	"RightUpperLeg",
+	"RightLowerLeg",
+	"RightFoot",
+}
+local function limbsOf(f: Fail): { EatMoves.Link }
+	local rootCF = f.FishRoot.CFrame
+	local list: { EatMoves.Link } = {}
+	for _, name in BODY do
+		local part = f.Character and f.Character:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			table.insert(list, EatMoves.boxOf(rootCF:ToObjectSpace(part.CFrame), part.Size))
+		end
+	end
+	return list
+end
+
+local function poseNew(f: Fail, plan: EatMoves.Plan, u: number, dt: number)
 	local rig = EatMoves.rig(plan, u)
 	local moves = Config.Fail.EatMoves
 	local quiet = ss(0, 0.2, u)
-	local all = if f.Kind == "Wrap" then EatMoves.arms(plan, u, gripsOf(f)) else {}
+	local all = if f.Kind == "Wrap" then EatMoves.arms(plan, u, dt, gripsOf(f), limbsOf(f), f.ArmsHeld) else {}
 	-- (the spine's joints behind the rider bend from the start, those under and ahead of them only once they are off it)
 	local seatZ = plan.Given.Saddle.Z / math.max(f.Length, 0.01)
 	local behind = 0
@@ -2224,19 +2260,20 @@ local function beginNew(f: Fail)
 	local mouth = f.Mouth
 	local arms: { EatMoves.Arm } = {}
 	for _, chain in f.Chains do
-		local half: { number } = {}
+		-- (its links' own boxes, and its tip where its last link's mesh really ends: the meshes lean outward off the
+		-- line of their pivots)
+		local links: { EatMoves.Link } = {}
+		local rest = table.clone(chain.Rest)
 		for i, link in chain.Joints do
-			-- (the link's box, less its length: what is left is its thickness)
-			local long = (chain.Rest[i + 1] - chain.Rest[i]).Unit:Abs()
-			local size = link.Part.Size
-			local across = { size.X, size.Y, size.Z }
-			local most = if long.X >= long.Y and long.X >= long.Z then 1 elseif long.Y >= long.Z then 2 else 3
-			table.remove(across, most)
-			half[i] = math.min(across[1], across[2]) / 2
+			local box = EatMoves.linkOf(link.Motor.C1:Inverse().Position, link.Part.Size)
+			links[i] = box
+			if i == #chain.Joints then
+				rest[i + 1] = link.Pivot + box.Frame.Position + box.Frame.ZVector * box.Half.Z
+			end
 		end
 		local out = (chain.Rest[1] - f.Beak) * Vector3.new(1, 1, 0)
 		out = if out.Magnitude > 0.01 then out.Unit else Vector3.yAxis
-		table.insert(arms, { Rest = chain.Rest, Half = half, Out = out, Turn = EatMoves.turnOf(out) })
+		table.insert(arms, { Rest = rest, Links = links, Out = out, Turn = EatMoves.turnOf(out) })
 	end
 	if f.Kind == "Chomp" and not (jaw and mouth) then
 		if not f.Dials.Mouth then
@@ -2401,6 +2438,7 @@ local function begin(player: Player, fish: Model, kind: string)
 		Pivot = Vector3.zero,
 		Aim = Vector3.zero,
 		TakenAt = nil,
+		ArmsHeld = {},
 		Slip = Vector3.zero,
 	}
 	local id = fish:GetAttribute("FishType")
@@ -2866,7 +2904,7 @@ local function step(dt: number)
 		local fishNow = f.FishRoot.CFrame
 		-- its own parts (every machine)
 		if plan then
-			poseNew(f, plan, u)
+			poseNew(f, plan, u, stepT)
 		else
 			armsStep(f, u)
 			poseRig(f, frame.Rig, t)

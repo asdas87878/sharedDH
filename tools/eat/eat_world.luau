@@ -94,7 +94,7 @@ export type Case = {
 }
 
 -- opens the place once: the modules, with FailController's own locals handed out
-function World.open(placePath: string)
+function World.open(placePath: string, boxesPath: string?)
 	local world = Harness.open(placePath)
 	local player: any = { Name = "P", Parent = true }
 	local clock = { now = 0 }
@@ -224,7 +224,7 @@ function World.open(placePath: string)
 	assert(count == 1, "the end")
 	module.Source = source
 	local Fail = world.require(module)
-	local boxes = serde.decode("json", fs.readFile("work/eat/boxes.json"))
+	local boxes = serde.decode("json", fs.readFile(boxesPath or "work/eat/boxes.json"))
 	return {
 		Config = Config,
 		EatMoves = EatMoves,
@@ -392,6 +392,12 @@ function World.play(w: any, case: Case): any
 			end
 			at += velocity * DT
 		end
+		-- (the game's step runs as a frame is drawn, after the last frame's physics: it sees the body where it is now)
+		if loose then
+			for _, row in World.R15 do
+				limbs[row[1]].CFrame = CFrame.new(at) * turn * row[2]
+			end
+		end
 		w.Test.step(DT)
 		if w.Test.fails[player] == nil then
 			break
@@ -427,6 +433,15 @@ function World.play(w: any, case: Case): any
 		table.insert(frames, {
 			t = t,
 			u = f.U,
+			held = if f.ArmsHeld
+				then (function()
+					local copy = {}
+					for i, h in f.ArmsHeld do
+						copy[i] = h.At
+					end
+					return copy
+				end)()
+				else nil,
 			fish = fishRoot.CFrame,
 			rider = rider,
 			torso = limbs.UpperTorso.Position,

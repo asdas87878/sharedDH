@@ -2840,7 +2840,7 @@ Config.Fail = {
 	-- The fish is the Kronosaurus: the Hammerhead has no jaw part (its mouth cannot open); of the Chomp kinds with an
 	-- ordinary hinged jaw the Kronosaurus's opens widest for its size while taking a rider across at all six sizes
 	-- (tools/studio/fail_mouth_table.py), and its four flippers are jointed, so they can flare
-	NewEat = { Octopus = 1, Kronosaurus = 1 } :: { [string]: number },
+	NewEat = { Octopus = 0, Kronosaurus = 0 } :: { [string]: number },
 	-- their numbers. Seconds are into the outcome (inside its Time and after its Loose, above); lengths are shares of the
 	-- fish's own length; degrees. Offline check: tools/eat/eat_check.luau
 	EatMoves = {
@@ -2897,9 +2897,14 @@ Config.Fail = {
 			Draw = 1.2, -- drawn in from here
 			Still = 1.56, -- to here: the beat of stillness
 			Jet = 1.88, -- and off
-			Body = 1.35, -- studs: how thick you are to an arm round you
-			Caught = 0.56, -- where you are caught and where you are held, along the arms (shares of an arm)
-			Home = 0.42,
+			Clear = 2.6, -- studs: how far off you an arm goes round before it closes
+			Caught = 0.56, -- where you are caught, along the arms (a share of an arm); then you are drawn right in:
+			Beak = 0.15, -- studs left between your soles and the arms' crown (more where a small one's arms leave no room)
+			Spread = 36, -- degrees its arms spread at the root to let you in, and the room left to them then, studs
+			Room = 0.17,
+			Sag = 0.03, -- a share of an arm: you sink on past where you are drawn to (the body is loose), and it keeps that clear
+			CloseRate = 3, -- how fast an arm closes, shut from open a second (it gives way up to twice as fast)
+			Turn = 700, -- degrees a second, the most any link of an arm turns
 			Tumble = -70,
 			TipRoom = 0.52, -- water it wants under its root to hang, and for the jet under that
 			JetRoom = 0.2,

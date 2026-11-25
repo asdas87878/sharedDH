@@ -1514,7 +1514,7 @@ the fish slow down throw the player in front and then swallow midair."
 
 **Two only: the Octopus (Wrap) and the Kronosaurus (Chomp). Built, checked offline, not seen in Studio.** Every other kind
 is as it was. The switch is `Config.Fail.NewEat`, by creature: 1 the new move, 0 (or not there) exactly the old one. Both
-are 1 in the file, against the usual "0 until played", because the task is for the user to look at them; set one to 0 to go back.
+are **0 in the file** until the user has played them: set them to 1 to look.
 
 ![Key frames, new and today](../attachments/eat-anim-frames.png)
 
@@ -1532,7 +1532,7 @@ flippers are jointed, so they can flare.
 | Heading turned in all | 903° | 0° | 269° to 433° (it differs run to run; 84° to 1,228° Huge) | 0° |
 | Fastest turn | 735°/s before the bite, then up to 9,100°/s | 0 | 380 to 449°/s | 0 |
 | Body pointing over 45° off its path | 1.22 s | 0 | tail first | open water 0 |
-| Rider's chest inside the fish before the bite | 5.7 studs (10.8 Huge) | under 1.0, in the mouth | none | none |
+| Rider's chest (a 0.8 stud ball) inside the fish before the bite | 5.7 studs (10.8 Huge) | 0.2 (0.4 Huge), in the mouth | none | none |
 | Rider's distance from the mouth at the bite | 2.9 (5.9 Huge) | 0.9 (1.5 Colossal) | | |
 | Biggest one-frame jump of the rider | 37 studs/s | 10 | 119 studs/s | 16 |
 | Fastest view turn | 190°/s (215 Huge) | 103°/s | 82°/s | 106°/s |
@@ -1560,7 +1560,7 @@ by time, so nothing hunts or pops and another player's machine plays the same th
 | 0 to 0.6 | brakes, arms flare like a flower; the rider tossed up and ahead |
 | by 0.86 | the mantle tips down so the open arms are under the falling rider |
 | 0.66, 0.83, 1.0 | three arms, one after another, reach and hook round the chest, waist and thighs; they follow the real body |
-| 1.2 to 1.56 | drawn in to the mouth; the other arms close as a basket |
+| 1.2 to 1.56 | drawn in to the beak: soles 0.7 to 1 stud from the arms' crown at every size; the other arms close as a basket |
 | to 1.88 | stillness; the mantle swells |
 | 1.88 on | it jets mantle first down into the dark, arms streaming, ink |
 
@@ -1571,23 +1571,39 @@ the bite waits for the body (what `MouthFromModel` and `Arrive` do), for that fa
 
 ### The limits
 
-- **The octopus's arms have three joints each.** That is too few for a spiral: each taker is solved as a three-link hook, its last
-  link lying against the body and the second bent round to it. They touch (0.4 to 2 studs from the rider's spine to the arm's skin, all sizes)
-  and never cut through. A real curl needs about six joints an arm and a new upload.
+- **The octopus's arms have three joints each.** That is too few for a spiral: each taker is solved as a three-link hook round the
+  chest, waist or thighs. Arms close as a hand does: on from where they were until they first meet any part of the rider
+  (`EatMoves.arms`, box against box on the rider's real parts and on what each link's mesh really is), giving way when the rider
+  moves into them. A real curl needs about six joints an arm and a new upload.
+- **A wrong claim, corrected.** The first version said here that the arms "never cut through". They did: the check only looked
+  at the line of each taker's last link, while the links' meshes lean 30 to 50 degrees off the line of their pivots, and the other
+  links and the five other arms were not looked at. A reviewer measured overlaps over 0.15 studs for about 2 seconds at all
+  sizes. Now, every one of the 24 links' exact mesh boxes against every part of the stand-in rider, to the end: **deepest 0.06
+  studs** (a tenth of a hand), over 6 sizes x 11 places.
 - **Rigid parts don't swell,** so the gulp is a bend that travels, not a bulge.
 - **A Colossal's nose reaches 165 studs a second in the lunge** (107 at Normal): over the 140 a loose body is held to.
 
 ### Checks (offline, in Lune)
 
 `tools/eat/eat_check.luau` (its head says how) plays the real `FailController` frame by frame: 6 sizes x 11 places (open,
-floor, wall, wall close, surface, shallow, diving, climbing, slow, late loose, heavy pull) x 2 = **132 of 132 pass**. In it the
+floor, wall, wall close, surface, shallow, diving, climbing, slow, late loose, heavy pull) x 2 = **132 of 132 pass** (the arms'
+numbers below). In it the
 loose body is one mass pulled like the game's, not a real ragdoll, and the sea is a flat floor, wall and surface.
-`tools/eat/eat_same.luau`: every outcome on all modelled creatures with the switch at 0, against main's FailController, with the 2026-11-23 dials at 0 and at 1:
+`tools/eat/eat_same.luau` (its head has the steps): every outcome on all modelled creatures with the switch at 0, this
+branch's source with main's FailController in it, with the 2026-11-23 dials at 0 and at 1:
 386 plays, 63,026 frames, **no difference at all**. Pictures: `tools/eat/eat_frames.luau`, `tools/blender/eat_frames.py`,
 `tools/eat/eat_sheet.py`.
 
+| Octopus, all 66 cases | |
+|---|---|
+| Deepest any of the 24 links goes into the rider | 0.06 studs (limit 0.1) |
+| Gap from the three taking arms to what they hold, mean | 0.01 to 0.25 studs (limit 0.3); worst single moment 0.5 |
+| Soles to the arms' crown at the beat of stillness | 0.7 (Huge) to 0.95 in open water, 1.4 in the heavy pull (limit 1.5) |
+| Fastest any link goes, arm lengths a second | 9.4 (limit 10) |
+
 Limits set by eye, not by the user: the nose at most 175 studs/s, the rider's jump at most 40 studs/s in a frame (the moment
-the octopus throws them at Colossal size is 38), the chest at most 1 stud into the mouth's own boxes.
+the octopus throws them at Colossal size is 38), the chest at most 0.8 studs into the mouth. The body's own boxes are R15's; the
+check moves the rider's body just before each step, as the game does (an earlier version had it one frame late).
 
 Not known until Studio: how the real ragdoll's limbs lie in the mouth and the arms, the ink's look, and two machines at once.
 When the user likes these, the other kinds follow the same way (Chomp first: they share the code; each needs its jaw and

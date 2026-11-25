@@ -3,7 +3,8 @@
 -- moves they replace measured the same way.
 --   python3 tools/eat/boxes.py > work/eat/boxes.json
 --   rojo build default.project.json -o work/eat/place.rbxl
---   lune run tools/eat/eat_check.luau        (add `old` for the old moves' numbers, `all` for every case's row)
+--   lune run tools/eat/eat_check.luau        (add `old` for the old moves' numbers, `all` for every case's row,
+--     `Octopus` or `Kronosaurus` for only that one, `quick` for open water only)
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
@@ -45,15 +46,74 @@ local function depthIn(box: any, p: any, r: number): number
 	return r + math.min(h.X - math.abs(o.X), h.Y - math.abs(o.Y), h.Z - math.abs(o.Z))
 end
 
--- the nearest two lines come (a to b, c to d)
-local function gapOf(a: any, b: any, c: any, d: any): number
-	local best = math.huge
-	for i = 0, 12 do
-		local p = a:Lerp(b, i / 12)
-		local k = math.clamp((p - c):Dot(d - c) / math.max((d - c):Dot(d - c), 1e-6), 0, 1)
-		best = math.min(best, (p - c:Lerp(d, k)).Magnitude)
+-- how deep two turned boxes are in each other (middle, three unit axes, half sizes): the least push that parts them;
+-- below 0: at least that far apart
+local function inside(a: any, b: any): number
+	local way = b.mid - a.mid
+	local least = math.huge
+	local function try(axis: any)
+		local long = axis.Magnitude
+		if long < 1e-4 then
+			return
+		end
+		axis /= long
+		local ra, rb = 0, 0
+		for n = 1, 3 do
+			ra += a.half[n] * math.abs(axis:Dot(a.axes[n]))
+			rb += b.half[n] * math.abs(axis:Dot(b.axes[n]))
+		end
+		least = math.min(least, ra + rb - math.abs(way:Dot(axis)))
 	end
-	return best
+	local clear = way.Magnitude - a.reach - b.reach
+	if clear > 0 then
+		return -clear
+	end
+	for n = 1, 3 do
+		try(a.axes[n])
+		try(b.axes[n])
+		for k = 1, 3 do
+			try(a.axes[n]:Cross(b.axes[k]))
+		end
+	end
+	return least
+end
+
+-- a part of the rider as one of those
+local function bodyBox(cf: any, size: any): any
+	return {
+		mid = cf.Position,
+		axes = { cf.XVector, cf.YVector, cf.ZVector },
+		half = { size.X / 2, size.Y / 2, size.Z / 2 },
+		reach = size.Magnitude / 2,
+	}
+end
+
+-- every box an arm's link is really made of, as posed (boxes.py reads them off the mesh), by link's name
+local function armBoxes(r: any, fr: any): { [string]: { any } }
+	local list: { [string]: { any } } = {}
+	for _, row in r.rig.Parts do
+		local box = w.boxes[r.case.Creature][row[1]]
+		if box[3] then
+			local at = fr.pose[row[1]]
+			local pivot = Vector3.new(row[3], row[4], row[5])
+			local own: { any } = {}
+			for _, piece in box[3] do
+				local axes, half = {}, {}
+				for n = 1, 3 do
+					axes[n] = at:VectorToWorldSpace(Vector3.new(table.unpack(piece.axes[n])))
+					half[n] = piece.half[n] * r.k
+				end
+				table.insert(own, {
+					mid = at * ((Vector3.new(table.unpack(piece.mid)) - pivot) * r.k),
+					axes = axes,
+					half = half,
+					reach = Vector3.new(half[1], half[2], half[3]).Magnitude,
+				})
+			end
+			list[row[1]] = own
+		end
+	end
+	return list
 end
 
 -- everything a play says about itself
@@ -137,6 +197,20 @@ local function measure(r: any): any
 		if fr.u > 0.3 and fr.u < has - 0.06 then
 			for name, box in fr.boxes do
 				local d = depthIn(box, fr.torso, 0.8)
+				local whole = w.boxes[case.Creature][name]
+				if d > 0 and chomp and whole[3] then
+					-- (a head's slices, of which its box is the whole: there is open water under a snout)
+					d = -math.huge
+					local mid = (Vector3.new(table.unpack(whole[1])) + Vector3.new(table.unpack(whole[2]))) / 2
+					for _, slice in whole[3] do
+						local lo, hi = Vector3.new(table.unpack(slice[1])), Vector3.new(table.unpack(slice[2]))
+						local own = {
+							CFrame = box.CFrame * CFrame.new(((lo + hi) / 2 - mid) * r.k),
+							Size = (hi - lo) * r.k,
+						}
+						d = math.max(d, depthIn(own, fr.torso, 0.8))
+					end
+				end
 				if d > m.through then
 					m.through, m.throughAt, m.throughIn = d, fr.u, name
 				end
@@ -187,39 +261,74 @@ local function measure(r: any): any
 			m.hideAt = fr.t
 		end
 	end
-	-- the arms on the rider (Wrap)
-	if case.Kind == "Wrap" then
+	-- the arms and the rider (Wrap): every link's own boxes against every part of the rider, to the very end
+	if case.Kind == "Wrap" and case.New then
+		m.deep, m.deepAt, m.deepIn, m.deepFor = -math.huge, 0, "", 0
 		m.touch = {}
-		m.least = math.huge
-		m.farArms = 0
-		if case.New then
-			for n, index in r.plan.Takers do
-				local from = moves.Wrap.Take + (n - 1) * moves.Wrap.TakeEach + moves.Wrap.TakeTime * 1.25
-				local worst, sum, count = 0, 0, 0
-				local chain = r.f.Chains[index]
-				for _, fr in frames do
-					if fr.u >= from and fr.u <= Config.Fail.Outcomes.Wrap.Time - 0.2 then
-						local part = chain.Joints[3].Name
-						local a = fr.pose[part].Position
-						-- (the tip, carried with its link)
-						local rest = chain.Rest
-						local b = (fr.pose[part] * CFrame.new(rest[4] - rest[3])).Position
-						local body = if n == 1
-							then { CFrame.new(0, 0.9, 0), CFrame.new(0, -0.5, 0) }
-							elseif n == 2 then { CFrame.new(0, 0.6, 0), CFrame.new(0, -1.2, 0) }
-							else { CFrame.new(0, -0.8, 0), CFrame.new(0, -2.2, 0) }
-						local gap = gapOf(a, b, (fr.rider * body[1]).Position, (fr.rider * body[2]).Position)
-							- r.plan.Given.Arms[index].Half[3]
-						worst = math.max(worst, gap)
-						if gap < m.least then
-							m.least, m.leastAt, m.leastArm = gap, fr.u, n
+		m.whip, m.whipAt = 0, 0
+		local last: { [string]: any } = {}
+		local owners: { [string]: number } = {}
+		for n, index in r.plan.Takers do
+			for _, j in r.f.Chains[index].Joints do
+				owners[j.Name] = n
+			end
+			m.touch[n] = { worst = 0, sum = 0, count = 0 }
+		end
+		for _, fr in frames do
+			if fr.u >= 0.12 then
+				local arms = armBoxes(r, fr)
+				local worst = -math.huge
+				local near: { number } = { -math.huge, -math.huge, -math.huge }
+				for _, row in World.R15 do
+					if row[1] ~= "HumanoidRootPart" then
+						local body = bodyBox(fr.rider * row[2], row[3])
+						for name, own in arms do
+							for _, piece in own do
+								local d = inside(piece, body)
+								worst = math.max(worst, d)
+								if d > m.deep then
+									m.deep, m.deepAt, m.deepIn = d, fr.u, name .. " in " .. row[1]
+								end
+								local n = owners[name]
+								if n then
+									near[n] = math.max(near[n], d)
+								end
+							end
 						end
-						sum += gap
-						count += 1
 					end
 				end
-				m.touch[n] = { worst = worst, mean = sum / math.max(count, 1) }
+				if worst > 0.1 then
+					m.deepFor += DT
+				end
+				for n, t in m.touch do
+					local from = moves.Wrap.Take + (n - 1) * moves.Wrap.TakeEach + moves.Wrap.TakeTime * 1.3
+					if fr.u >= from and fr.u <= Config.Fail.Outcomes.Wrap.Time then
+						t.worst = math.max(t.worst, -near[n])
+						t.sum += -near[n]
+						t.count += 1
+					end
+				end
+				-- how fast a link's middle goes, in the fish's own space (arms that jump)
+				for name, own in arms do
+					local at = fr.fish:PointToObjectSpace(own[1].mid)
+					if last[name] then
+						local v = (at - last[name]).Magnitude / DT / r.plan.Reach
+						if v > m.whip then
+							m.whip, m.whipAt, m.whipIn = v, fr.u, name
+						end
+					end
+					last[name] = at
+				end
+				-- how near the beak: the soles to the arms' crown, along the body, when it is still
+				if fr.u >= moves.Wrap.Still and not m.feet then
+					local o = fr.fish:PointToObjectSpace((fr.rider * CFrame.new(0, -3.05, 0)).Position)
+					m.feet = o.Z - r.plan.Crown.Z
+					m.off = (o * Vector3.new(1, 1, 0) - r.plan.Crown * Vector3.new(1, 1, 0)).Magnitude
+				end
 			end
+		end
+		for _, t in m.touch do
+			t.mean = t.sum / math.max(t.count, 1)
 		end
 	end
 	return m
@@ -256,16 +365,21 @@ local function row(name: string, r: any, m: any)
 				then string.format("  bite off %.2f@%.2f hid %.2f", m.biteFar or -1, m.biteAt or -1, m.hideAt or -1)
 				else (if m.touch and m.touch[3]
 					then string.format(
-						"  arms %.2f/%.2f %.2f/%.2f %.2f/%.2f least gap %.2f at %.2f by %d",
+						"  arms %.2f/%.2f %.2f/%.2f %.2f/%.2f deepest %.2f (%s) at %.2f, over 0.1 for %.2fs  feet %.2f off %.2f  whip %.1f@%.2f",
 						m.touch[1].mean,
 						m.touch[1].worst,
 						m.touch[2].mean,
 						m.touch[2].worst,
 						m.touch[3].mean,
 						m.touch[3].worst,
-						m.least,
-						m.leastAt,
-						m.leastArm
+						m.deep,
+						m.deepIn,
+						m.deepAt,
+						m.deepFor,
+						m.feet or -1,
+						m.off or -1,
+						m.whip,
+						m.whipAt
 					)
 					else "")
 		)
@@ -288,6 +402,9 @@ end
 for _, kind in KINDS do
 	local id, outcome = kind[1], kind[2]
 	for _, tier in TIERS do
+		if (args.Octopus and id ~= "Octopus") or (args.Kronosaurus and id ~= "Kronosaurus") then
+			continue
+		end
 		local fishType = Config.FishById[id]
 		local L = fishType.Size.Z * Config.sizeScale(tier, fishType)
 		local H = fishType.Size.Y * Config.sizeScale(tier, fishType)
@@ -305,6 +422,9 @@ for _, kind in KINDS do
 			{ "heavy pull", { Lag = 2 } },
 		}
 		for _, place in places do
+			if args.quick and place[1] ~= "open" then
+				continue
+			end
 			local case: any = { Creature = id, Tier = tier, Kind = outcome, New = true }
 			for key, value in place[2] do
 				case[key] = value
@@ -333,7 +453,7 @@ for _, kind in KINDS do
 			need("its nose never over 175 studs/s", m.nose < 175, m.nose)
 			need("no jump of the fish (studs/s a frame)", m.kick < 35, m.kick)
 			need("no jump of the rider", m.riderKick < 40, m.riderKick)
-			need("the rider never in its body", m.through < 1.0, m.through)
+			need("the rider never in its body", m.through < 0.8, m.through)
 			need("the rider under the surface", m.high < 1, m.high)
 			need("the fish off the floor", m.low > -1.5 or shallow, m.low)
 			need("the rider off the wall", m.wall > 0.3, m.wall)
@@ -348,9 +468,11 @@ for _, kind in KINDS do
 				)
 			else
 				for n, t in m.touch do
-					need("arm " .. n .. " touches", t.mean < moves.Wrap.Body + 0.8, t.mean)
+					need("arm " .. n .. " touches", t.mean < 0.3, t.mean)
 				end
-				need("no arm through them", m.least > 0.35, m.least)
+				need("no arm in them, all 24 links to the end (studs deep)", m.deep < 0.1, m.deep)
+				need("drawn in to the beak (soles to the arms' crown)", m.feet and m.feet < 1.5 and m.feet > 0, m.feet)
+				need("no arm jumps (arm lengths a second)", m.whip < 10, m.whip)
 			end
 			ok(name, #bad == 0, table.concat(bad, "; "))
 		end

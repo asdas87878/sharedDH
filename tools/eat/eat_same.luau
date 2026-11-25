@@ -1,11 +1,18 @@
--- With Config.Fail.NewEat at 0 nothing changes: every outcome played frame by frame by this branch's FailController and
--- by another build's (main's), and every joint, the fish, the body and the view compared.
---   python3 tools/eat/boxes.py $(ls art/creatures) > work/eat/boxes.json   (then build the two places)
+-- With Config.Fail.NewEat at 0 nothing changes: every outcome of every creature with a mesh, played frame by frame by this
+-- branch's FailController and by main's, and every joint, the fish, the body and the view compared. The other place is
+-- THIS branch's source with only main's FailController in it (main has no Lib/EatMoves and other Config, so a place built
+-- from main itself does not run here):
+--   mkdir -p work/eat && python3 tools/eat/boxes.py all > work/eat/boxes_all.json
+--   rojo build default.project.json -o work/eat/place.rbxl
+--   rm -rf /tmp/eq && mkdir /tmp/eq && cp -r src default.project.json rokit.toml /tmp/eq
+--   git show main:src/client/Controllers/FailController.luau > /tmp/eq/src/client/Controllers/FailController.luau
+--   (cd /tmp/eq && rojo build default.project.json -o place_main.rbxl) && cp /tmp/eq/place_main.rbxl work/eat/
 --   lune run tools/eat/eat_same.luau work/eat/place.rbxl work/eat/place_main.rbxl
 local process = require("@lune/process")
 
 local World = require("./eat_world")
-local a, b = World.open(process.args[1]), World.open(process.args[2])
+local BOXES = "work/eat/boxes_all.json"
+local a, b = World.open(process.args[1], BOXES), World.open(process.args[2], BOXES)
 local worst, count, frames, bad = 0, 0, 0, 0
 
 local function far(x: any, y: any): number

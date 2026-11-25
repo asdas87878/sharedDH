@@ -9,7 +9,8 @@
 --          then it jets off down into the dark with its arms streaming and its ink behind it
 -- Plain sums only, no Instances: FailController plays them (the same way on every machine), and tools/eat/eat_check.luau
 -- runs them offline. Every place and turn is worked out once when the fail begins (plan) and then read by the seconds
--- in (u), so the fish's path, the rider's arc and the mouth or the arms meet where they were planned to.
+-- in (u), so the fish's path, the rider's arc and the mouth or the arms meet where they were planned to. Only the
+-- octopus's arms are not read by the clock alone: they close as a hand does, on the rider's real parts (EatMoves.arms).
 -- All lengths are shares of the fish's own (Config.Fail.EatMoves), so every size moves the same way.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,10 +19,13 @@ local Ease = require(ReplicatedStorage.Shared.Ease)
 
 local EatMoves = {}
 
+-- a box: one of an arm's links at rest (from its pivot), or a part of the rider (in the fish's space)
+export type Link = { Frame: CFrame, Half: Vector3, Reach: number }
+
 -- one of the octopus's arms at rest, in the fish's space: its pivots from the root, then its tip
 export type Arm = {
 	Rest: { Vector3 },
-	Half: { number }, -- each link's half thickness
+	Links: { Link }, -- each link's box
 	Out: Vector3, -- outward from the body's axis, at the arm's root
 	Turn: number, -- and the angle of that about the axis, radians
 }
@@ -67,6 +71,9 @@ export type Plan = {
 	Jet: { { At: Vector3, Pitch: number } },
 }
 
+-- how far closed each arm is
+export type ArmsHeld = { [number]: { At: number, Taking: boolean, Abs: { CFrame }? } }
+
 export type Moment = { Fish: CFrame, Rider: CFrame, Focus: Vector3 }
 
 -- what the joints do at this moment
@@ -83,6 +90,22 @@ export type Rig = {
 local rad = math.rad
 local AXIS = Vector3.new(0, 0, 1) -- the octopus's own axis: its arms trail along it
 local JET_STEP = 1 / 60
+local SKIN = 0.03 -- studs an arm keeps off you
+-- how a rider stands (R15, the usual sizes; about their root): the plan's own, before it is known where they really are
+local STANDING = {
+	{ Vector3.new(0, 0.2, 0), Vector3.new(2, 1.6, 1) },
+	{ Vector3.new(0, -0.8, 0), Vector3.new(2, 0.4, 1) },
+	{ Vector3.new(0, 1.6, 0), Vector3.new(1.2, 1.2, 1.2) },
+	{ Vector3.new(-1.5, 0, 0), Vector3.new(1, 2, 1) },
+	{ Vector3.new(1.5, 0, 0), Vector3.new(1, 2, 1) },
+	{ Vector3.new(0, -1.95, 0), Vector3.new(2, 2.2, 1) },
+}
+local SOLES = 3.05 -- studs from their root down to their soles
+
+local function boxOf(frame: CFrame, size: Vector3): Link
+	return { Frame = frame, Half = size / 2, Reach = size.Magnitude / 2 }
+end
+EatMoves.boxOf = boxOf
 
 local function ss(a: number, b: number, t: number): number
 	return Ease.smoothstep(a, b, t)
@@ -209,6 +232,10 @@ local function steepest(g: Given, y: number): number
 	return if s >= 1 then math.pi else math.asin(math.clamp(s, 0, 1))
 end
 
+-- (Wrap) How far out from its arms' crown your root is when it has drawn you right in: your soles at the beak, or as near
+-- as a small one's arms, spread, leave room for you.
+local homeOf: (p: Plan) -> number
+
 local function planWrap(p: Plan)
 	local g, m = p.Given, Config.Fail.EatMoves.Wrap
 	local L = g.Length
@@ -224,7 +251,7 @@ local function planWrap(p: Plan)
 	p.Takers = takers(g.Arms)
 	p.Tip = rad(m.Tip)
 	p.Caught = p.Crown + Vector3.new(0, 0, p.Reach * m.Caught)
-	p.Home = p.Crown + Vector3.new(0, 0, p.Reach * m.Home)
+	p.Home = p.Crown + Vector3.new(0, 0, homeOf(p) + Config.Fail.EatMoves.Wrap.Sag * p.Reach)
 	p.Toss = math.min(m.Toss * L, m.MostToss) + 2
 	if p.Brake + L * 0.5 > g.Ahead - 3 then
 		p.Brake = math.clamp(g.Ahead - 3 - L * 0.5, 0, p.Brake)
@@ -599,24 +626,81 @@ local function between(a: Vector3, b: Vector3): CFrame
 	return CFrame.fromAxisAngle(axis.Unit, math.acos(math.clamp(a:Dot(b), -1, 1)))
 end
 
--- A hook round a body at `at` lying along `along` (both in the fish's space), `round` of the way round it (0 to 1):
--- the last link lies on the body's far side, the first two bend out past it. Link lengths are kept, so it meets its
--- points exactly; out of reach it stretches straight at the body.
-function EatMoves.hook(arm: Arm, at: Vector3, along: Vector3, round: number, body: number): { CFrame }
+-- A link's own box, worked out from its part: `mid` from its pivot to its part's middle, `size` the part's box in the
+-- fish's axes, both at rest. The link lies along `mid` (its mesh leans, up to 40 degrees, off the line of the pivots);
+-- its length and its thickness are what best make that size. A little over, so that what is drawn is inside it.
+function EatMoves.linkOf(mid: Vector3, size: Vector3): Link
+	local d = if mid.Magnitude > 0.01 then mid.Unit else AXIS
+	local s = AXIS:Cross(d)
+	s = if s.Magnitude > 0.01 then s.Unit else Vector3.xAxis
+	local n = d:Cross(s)
+	local a, b = d:Abs(), s:Abs() + n:Abs()
+	local aa, ab, bb = a:Dot(a), a:Dot(b), b:Dot(b)
+	local across, long = 0, size.Magnitude
+	local det = aa * bb - ab * ab
+	if det > 1e-4 then
+		long = (a:Dot(size) * bb - b:Dot(size) * ab) / det
+		across = (aa * b:Dot(size) - ab * a:Dot(size)) / det
+	end
+	across = math.clamp(across, 0.05, size.Magnitude) * 1.14
+	long = math.max(long, across) * 1.06
+	return boxOf(CFrame.fromMatrix(mid, s, n, d), Vector3.new(across, across, long))
+end
+
+-- whether two boxes are clear of each other (their fifteen axes)
+local function apart(a: Link, frame: CFrame, b: Link, skin: number): boolean
+	local x, y, z, r11, r12, r13, r21, r22, r23, r31, r32, r33 = frame:ToObjectSpace(b.Frame):GetComponents()
+	local ax, ay, az = a.Half.X + skin, a.Half.Y + skin, a.Half.Z + skin
+	local bx, by, bz = b.Half.X, b.Half.Y, b.Half.Z
+	local m11, m12, m13 = math.abs(r11) + 1e-6, math.abs(r12) + 1e-6, math.abs(r13) + 1e-6
+	local m21, m22, m23 = math.abs(r21) + 1e-6, math.abs(r22) + 1e-6, math.abs(r23) + 1e-6
+	local m31, m32, m33 = math.abs(r31) + 1e-6, math.abs(r32) + 1e-6, math.abs(r33) + 1e-6
+	return math.abs(x) > ax + bx * m11 + by * m12 + bz * m13
+		or math.abs(y) > ay + bx * m21 + by * m22 + bz * m23
+		or math.abs(z) > az + bx * m31 + by * m32 + bz * m33
+		or math.abs(x * r11 + y * r21 + z * r31) > bx + ax * m11 + ay * m21 + az * m31
+		or math.abs(x * r12 + y * r22 + z * r32) > by + ax * m12 + ay * m22 + az * m32
+		or math.abs(x * r13 + y * r23 + z * r33) > bz + ax * m13 + ay * m23 + az * m33
+		or math.abs(z * r21 - y * r31) > ay * m31 + az * m21 + by * m13 + bz * m12
+		or math.abs(z * r22 - y * r32) > ay * m32 + az * m22 + bx * m13 + bz * m11
+		or math.abs(z * r23 - y * r33) > ay * m33 + az * m23 + bx * m12 + by * m11
+		or math.abs(x * r31 - z * r11) > ax * m31 + az * m11 + by * m23 + bz * m22
+		or math.abs(x * r32 - z * r12) > ax * m32 + az * m12 + bx * m23 + bz * m21
+		or math.abs(x * r33 - z * r13) > ax * m33 + az * m13 + bx * m22 + by * m21
+		or math.abs(y * r11 - x * r21) > ax * m21 + ay * m11 + by * m33 + bz * m32
+		or math.abs(y * r12 - x * r22) > ax * m22 + ay * m12 + bx * m33 + bz * m31
+		or math.abs(y * r13 - x * r23) > ax * m23 + ay * m13 + bx * m32 + by * m31
+end
+
+-- whether an arm, posed so, is clear of every part of the rider (its first `links` links)
+local function clear(arm: Arm, abs: { CFrame }, limbs: { Link }, links: number, skin: number): boolean
+	local at = arm.Rest[1]
+	for i = 1, math.min(links, #arm.Links) do
+		local link = arm.Links[i]
+		local frame = CFrame.new(at) * abs[i] * link.Frame
+		for _, b in limbs do
+			local off = (frame.Position - b.Frame.Position).Magnitude
+			if off < link.Reach + b.Reach + skin and not apart(link, frame, b, skin) then
+				return false
+			end
+		end
+		at += abs[i] * (arm.Rest[i + 1] - arm.Rest[i])
+	end
+	return true
+end
+
+-- An arm round you: a hook of its three links. `at` (fish space) is the middle of what it goes round, `along` the way
+-- that lies; the last link lies across it `rho` off, `round` (0 to 1) of the way round it.
+function EatMoves.hook(arm: Arm, at: Vector3, along: Vector3, round: number, rho: number): { CFrame }
 	local base = arm.Rest[1]
 	local l1 = (arm.Rest[2] - arm.Rest[1]).Magnitude
 	local l2 = (arm.Rest[3] - arm.Rest[2]).Magnitude
 	local l3 = (arm.Rest[4] - arm.Rest[3]).Magnitude
 	local d = at - base
-	local far = math.max(d.Magnitude, 0.1)
-	d = d / far
-	-- the side it goes round: across the body, the same way round for every arm
-	local s = along:Cross(d)
-	if s.Magnitude < 0.2 then
-		s = AXIS:Cross(arm.Out)
-	end
-	s = (s - d * s:Dot(d)).Unit
-	local rho = body + arm.Half[3]
+	d = d - along * d:Dot(along) -- (it comes in from its own side, square to what it goes round)
+	d = if d.Magnitude > 0.05 then d.Unit else -arm.Out
+	-- the side it goes round: the same way round for every arm
+	local s = along:Cross(d).Unit
 	local turn = Ease.lerp(rad(35), rad(128), round)
 	local touch = at + (-d * math.cos(turn) + s * math.sin(turn)) * rho
 	local lie = d * math.sin(turn) + s * math.cos(turn)
@@ -630,11 +714,12 @@ function EatMoves.hook(arm: Arm, at: Vector3, along: Vector3, round: number, bod
 		lie = (touch + lie * l3 * 0.58 - p3)
 		lie = if lie.Magnitude > 0.01 then lie.Unit else d
 	else
+		span = math.max(span, math.abs(l1 - l2) + 0.01)
 		local flatTo = gap.Unit
 		local x = (l1 * l1 - l2 * l2 + span * span) / (2 * span)
 		local out = math.sqrt(math.max(l1 * l1 - x * x, 0))
 		-- (the elbow out to the side it goes round, and outward from the body's axis)
-		local bulge = s + arm.Out * 0.8
+		local bulge = s * 0.5 + arm.Out
 		bulge = bulge - flatTo * bulge:Dot(flatTo)
 		bulge = if bulge.Magnitude > 0.01 then bulge.Unit else s
 		p2 = base + flatTo * x + bulge * out
@@ -648,28 +733,148 @@ function EatMoves.hook(arm: Arm, at: Vector3, along: Vector3, round: number, bod
 	return abs
 end
 
--- Every arm's links at `u` (absolute turns, the fish's space). `grips` gives each taker's body part: where it is and
--- the way the body lies, in the fish's space (nil: no body to hold).
-export type Grip = { At: Vector3, Along: Vector3 }
-function EatMoves.arms(p: Plan, u: number, grips: { Grip? }): { { CFrame } }
-	local m = Config.Fail.EatMoves.Wrap
-	local all: { { CFrame } } = {}
-	for i = 1, #p.Given.Arms do
-		all[i] = loose(p, i, u)
+-- An arm closing on you as a hand does: from where it was (`was`: 0 open, 1 shut, below 0 spread wider still), on toward
+-- `want` and no further than where it first meets any part of you; where you have moved into it, it gives way. Never
+-- faster than `most` a frame, so it never jumps. Returns how far closed it is now.
+local function close(
+	arm: Arm,
+	limbs: { Link },
+	was: number,
+	want: number,
+	most: number,
+	pose: (number) -> { CFrame }
+): number
+	local function ok(c: number): boolean
+		return clear(arm, pose(c), limbs, 3, SKIN)
 	end
-	for n, index in p.Takers do
-		local grip = grips[n]
-		if grip then
-			local from = m.Take + (n - 1) * m.TakeEach
-			local w = ss(from, from + m.TakeTime, u)
-			if w > 0 and #p.Given.Arms[index].Rest == 4 then
-				local round = ss(from + m.TakeTime * 0.55, from + m.TakeTime * 1.25, u)
-				local hold = EatMoves.hook(p.Given.Arms[index], grip.At, grip.Along, round, m.Body)
-				for k = 1, 3 do
-					all[index][k] = all[index][k]:Lerp(hold[k], w)
-				end
+	local good: number, bad: number? = was, nil
+	if ok(was) then
+		local to = math.clamp(want, was - most, was + most)
+		if to == was then
+			return was
+		end
+		for i = 1, 3 do
+			local c = Ease.lerp(was, to, i / 3)
+			if not ok(c) then
+				bad = c
+				break
+			end
+			good = c
+		end
+	elseif not ok(-1) then
+		return was -- (you are against its very root: no opening would help)
+	else
+		-- (give way: the nearest place back along its way that is clear)
+		bad = was
+		good = math.max(was - most * 2, -1)
+		for i = 1, 6 do
+			local c = math.max(was - most * i / 3, -1)
+			if ok(c) then
+				good = c
+				break
+			end
+			bad = c
+		end
+	end
+	if bad and good ~= bad then
+		for _ = 1, 5 do
+			local mid = (good + bad) / 2
+			if ok(mid) then
+				good = mid
+			else
+				bad = mid
 			end
 		end
+	end
+	return good
+end
+
+homeOf = function(p: Plan): number
+	local m = Config.Fail.EatMoves.Wrap
+	local least = SOLES + m.Beak
+	local best = math.max(least, p.Caught.Z - p.Crown.Z)
+	while best - 0.1 >= least do
+		local frame = CFrame.new(p.Crown + Vector3.new(0, 0, best - 0.1)) * CFrame.Angles(rad(90), 0, 0)
+		local limbs: { Link } = {}
+		for _, row in STANDING do
+			table.insert(limbs, boxOf(frame * CFrame.new(row[1]), row[2]))
+		end
+		for _, arm in p.Given.Arms do
+			local spread = bent(arm, { rad(m.Spread), 0, 0 }, 0)
+			if not clear(arm, spread, limbs, 2, m.Room) then
+				return best
+			end
+		end
+		best -= 0.1
+	end
+	return best
+end
+
+-- what an arm goes round: its middle and the way it lies, in the fish's space
+export type Grip = { At: Vector3, Along: Vector3 }
+
+-- every arm's links, as turns in the fish's space. `limbs` are the rider's parts where they really are (fish space): no
+-- arm goes through them. `state` is kept between frames (by FailController): how far closed each arm is, and its last pose.
+function EatMoves.arms(
+	p: Plan,
+	u: number,
+	dt: number,
+	grips: { Grip? },
+	limbs: { Link },
+	state: ArmsHeld
+): { { CFrame } }
+	local m = Config.Fail.EatMoves.Wrap
+	local all: { { CFrame } } = {}
+	for i, arm in p.Given.Arms do
+		if #arm.Links ~= 3 then
+			all[i] = loose(p, i, u)
+			continue
+		end
+		local side = AXIS:Cross(arm.Out).Unit
+		local taker = table.find(p.Takers, i)
+		local grip = if taker then grips[taker] else nil
+		local from = if taker then m.Take + (taker - 1) * m.TakeEach else math.huge
+		local taking = grip ~= nil and u > from
+		local start: { CFrame } = if taking
+			then loose(p, i, from)
+			else bent(arm, { rad(m.Flower[1]), rad(m.Flower[2]), rad(m.Flower[3]) }, 0)
+		local to = loose(p, i, u)
+		local half = math.max(arm.Links[3].Half.X, arm.Links[3].Half.Y)
+		local function pose(c: number): { CFrame }
+			local open = CFrame.fromAxisAngle(side, rad(90) * math.max(-c, 0))
+			c = math.max(c, 0)
+			local a, b, w = start, to, c
+			if taking and grip then
+				local rho = Ease.lerp(m.Clear + half, half * 0.5, ss(0.6, 1, c))
+				b = EatMoves.hook(arm, grip.At, grip.Along, ss(0.4, 0.8, c), rho)
+				w = ss(0, 0.6, c)
+			end
+			return { open * a[1]:Lerp(b[1], w), open * a[2]:Lerp(b[2], w), open * a[3]:Lerp(b[3], w) }
+		end
+		local was = state[i]
+		if taking and (not was or not was.Taking) then
+			was = { At = if was then math.min(was.At, 0) else 0, Taking = true, Abs = if was then was.Abs else nil }
+		elseif not was then
+			was = { At = 1, Taking = false }
+		end
+		local want = if taking then ss(from, from + m.TakeTime * 1.3, u) else 1
+		local now = close(arm, limbs, was.At, want, math.clamp(dt, 0, 0.1) * m.CloseRate, pose)
+		-- (and no link turns faster than this, however you are flung about in it)
+		local abs = pose(now)
+		local last = if was then was.Abs else nil
+		if last and dt > 0 then
+			local held: { CFrame } = {}
+			for k, turn in abs do
+				local _, angle = (last[k]:Inverse() * turn):ToAxisAngle()
+				local most = rad(m.Turn) * math.clamp(dt, 0, 0.1)
+				held[k] = if math.abs(angle) > most then last[k]:Lerp(turn, most / math.abs(angle)) else turn
+			end
+			if clear(arm, held, limbs, 3, 0) then
+				abs = held -- (but it would sooner jump than go through you)
+			end
+		end
+		state[i] = { At = now, Taking = taking, Abs = abs }
+		all[i] = abs
 	end
 	return all
 end
