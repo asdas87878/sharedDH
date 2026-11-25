@@ -130,11 +130,70 @@ it a little shorter and speed it up.(just the animation getting onto it (at most
 - Type check and lint pass; **not run in Studio yet** (Hugo was in a playtest).
 - Nothing after the sub sets off is changed.
 
+### The air hop (Hugo, 2026-11-25)
+Hugo: "make the player jump off the fish mid air then instantly hopping on the submarine that should fly in then splash into
+the water, the animation should be fast enough to where the player has fun." And: "make sure it doesnt conflict with the
+current dive mission, i want the new version but back up this current version".
+**Built on branch `air-hop`, the default (`Sub.AirHop` 1). Checked offline (below); NOT seen in Studio, not played.**
+**The hop under water** (the next section) is kept whole: `Sub.AirHop` 0 brings it back exactly, and it is what the tag
+`backup-underwater-hop-2026-11-25` (db1f089) holds. It also still runs by itself when a leap gets no air hop (stepping off
+the lip with no leap, a lost or refused message, a word so late the moment to jump has gone).
+
+**Who:** a rider on their ride fish, with a sub and a land picked, who leaps off the lip. No sub, or no land picked: the fish
+dives as before. On foot: as before.
+
+**The timeline.** Seconds from the start of the leap (the crouch at the lip, all in server time); positions are height over
+the water and distance out from the lip, studs. `SubAir` has it all as a function of the seconds.
+
+| Moment (`SubPhase` `Leap`, then `Hop` from the jump to the run, then `Ride`) | What happens | Clownfish, sub 1 | Great White, sub 5 | Colossal Kraken, sub 9 |
+|---|---|---|---|---|
+| the leap | The fish crouches and leaps off the lip, the dive's own arc and view. The client has told the server the arc (`SubLeap`), the trip is made. In the last `AirCrouch` 0.12 s you crouch on its back | 0 | 0 | 0 |
+| jump-off | At `AirAt` 85% of the way to its top. You jump off by yourself, the fish dips `AirPush` under you. **The swap:** the land fish goes, the trip's own copy takes its place in the same pose | 0.45 s, 12 up, 9 out | 0.70 s, 22 up, 22 out | about 0.6 s, 105 up, 18 out |
+| the hop | The sub flies in from behind, under the gate's beam (small fish) or down over the arch (big ones), at 500 to 900 studs/s, level with you for the last `AirRushFrom` 0.18 s | 0.45 s long | 0.45 s | 0.6 s |
+| on the seat | You land: a squash, the sub dips and nods, a shake | 0.90 s, sub 20 up, 29 out | 1.15 s, 39 up, 42 out | 1.20 s, 121 up, 40 out |
+| the fall | Sub and rider tip over nose first (`AirNose` 50 degrees at most) and fall, past the fish's nose | 0.42 s | 0.42 s | 0.82 s |
+| splash | The sub's spray and sound (strong, by its speed), a shake, the view kicks `AirFov` 10 degrees wider | 1.32 s, 74 out | 1.57 s, 122 out | 2.02 s, 311 out |
+| the plunge | Down `AirUnder` 0.35 s to the run's line, no stop | to 1.67 s, 121 out | to 1.92 s, 194 out | to 2.37 s, 384 out |
+| the run | The run, at `AirRun` 150 studs/s and speeding up as ever | 1.67 s | 1.92 s | 2.37 s |
+| the fish | Goes on down its own arc, into the water with its own splash, then up beside the sub in `AirSwim` 0.9 s (1.6 times that for the longest) and weaves as before | in at 1.15 s, beside at 2.1 s | in at 1.94 s, beside at 2.9 s | in at 2.38 s, beside at 3.8 s |
+
+**The camera** is behind you on the middle line all the way and never cuts: from the player's own view (`AirCamIn` 0.45 s),
+under the sub as it comes by overhead (or over it, when it comes in low), up over its stern in the fall (`AirCamRise`,
+`AirCamSubUp`, `AirCamNose`), through the surface after it, into the run's own view. The server picks it with the plan
+(`SubAir.frame`): the nearest to what Config asks that stays out of the gate's arch, the sub and the fish and sees you.
+
+**How it works.**
+- **One new message**, Action `"SubLeap", leap` (the rider's machine, which has the leap: its start, where, which way, how
+  far, its rise and fall and tilts). The server believes it only on the ride fish's land state, off the lip, from within
+  `AirReach` of where it has the player, out from the dock, at a land fish's pace, begun within `AirSlack`, once a second.
+- The server makes the plan (`SubAir.plan`: the least rise over the saddle that takes the hull's box clear over the fish's
+  box and clear of the arch, by `AirSlopes`; then the nearest splash past its nose), the copy of the fish and the trip (with
+  the leap's start as the trip's). The player stays on the land fish ("Dock") until the jump by the server's own clock, and
+  is "Carried" from there.
+- **The swap** is on each machine, in the frame of the jump: the land fish goes out of sight and the trip's copy into it, in the
+  same pose and joints. Never both, never neither. Other players see the whole trip later by as much as their view of
+  the rider's body is late (0.5 s at most), so nothing is off on their screens.
+- The run is `SubTrip`'s own, starting at the splash's end. The sub's line keeps its room from the lane's sides for its own
+  width; the fish is not beside it yet there.
+- **Given up cleanly:** off the fish, unequipped, dead, gone, or the sub's plan impossible before the jump: no trip, and the
+  leap goes on as the plain dive. After the jump: as the old hop (`SubLeave`, the fling, the copy taken away). A late word
+  (a slow link): you still get `AirLate` 0.25 s in the air, and a word later than the jump falls back to the hop under
+  water. A second trip while one runs is refused, as before; a second leap within a second is not heard.
+- **`AirHop` 0** changes nothing of it: the same source as at the tag, checked trip for trip (below).
+
+**Where it is not what was asked, and by how much** (the check's numbers, `tools/subs/air_check.luau`, in the table after):
+- Lip to splash was asked as 1.3 to 1.6 s and trip control straight after. Up to a Great White it is; **the fish that leap
+  highest (Kraken and the other tall ones) take up to 2.1 s** (they climb to 128 studs, and the sub has that to fall).
+- **A rider on a big fish is out of sight behind the sub's belly for part of the hop** (see the numbers): the sub comes
+  down over them from above the arch. The view sees them leave the saddle, and see them on the seat again in the fall.
+- The sub is in sight only from 200 studs back (`AirFrom`), 1.1 s before it meets you.
+
 ### From the fish onto the sub (Hugo, 2026-11-24)
 Hugo: "you should also hop from fish to submarine while seeing the fish swim off next to you looping left and right then
-come back once you arrive". **On main since 2026-11-25; checked offline (below) and played by script in Studio (next); not played by hand. About to be
-replaced:** Hugo, 2026-11-25, wants the hop in mid-air (the player jumps off the leaping fish, the sub flies in, they splash
-down together; branch `air-hop`). This one, in the water, is kept as the tag `backup-underwater-hop-final`.
+come back once you arrive". **The hop under water: `Sub.AirHop` 0, and the fallback of [the air hop](#the-air-hop-hugo-2026-11-25).** On main since
+2026-11-25; checked offline (below) and played by script in Studio (next); not played by hand. Kept as the tags
+`backup-underwater-hop-2026-11-25` and `backup-underwater-hop-final`. The swim beside the sub, the weave and the return are the same
+for both hops.
 
 **Played by script in Studio (2026-11-25, `tools/studio/fish_sub_check.py all`, 18 runs: Clownfish to a Colossal Blue Whale,
 lands 2, 5, 7 and 10, both ends of the lip, no fish, on foot, given up six ways).** [Stills](../attachments/fish-dive-and-sub-hop.png).
@@ -414,7 +473,7 @@ Every number is in `Config.Sub`, read live (the N panel doesn't list them yet).
 - On that fish: `SubFor` (the player's id, as on any drop-off fish) and `SubLeave` (given up: it swims off and fades).
 - Studio's tests: `ServerStorage.SubTest:Invoke(op, userId, ...)` ("give", "home", "buy", "pick"), used by
   `docs/playtests/submarine/drive.luau`.
-- Remotes: Action `"SubBuy"`, `"SubPick", land, fishIndex`, `"SubLand", fish` (the kick has put us on our fish);
+- Remotes: Action `"SubBuy"`, `"SubPick", land, fishIndex`, `"SubLand", fish` (the kick has put us on our fish), `"SubLeap", leap` (the air hop);
   Ride `"SubFish", fish` (this fish is yours, beside the sub), `"SubDenied", reason`, `"SubBought", tier`.
 
 ### Animation hooks (for the partner)
