@@ -51,6 +51,17 @@ what fails: [submarine](design/submarine.md), "The air hop".
 - **For Studio, in order:** the swap frame (two fish or none), the feel, the view over the arch, the sub low over the hub's stands,
   the splash and sound, two players, the server's cost of a leap (about 100 ms in Lune), lag, give-ups by hand.
   `tools/studio/fish_sub_check.py` was written for the old hop: use it with `AirHop` 0, or adapt it.
+## 2026-11-25 · Texts: B1 stickers on the dock, once a respawn; A3 for Required (NULLROOM f2, Hugo's PC)
+**State:** branch `texts-b1-a3`, **not pushed, not merged, not seen in Studio.** Hugo's picks, how and the numbers: [UI](design/ui.md),
+"The dock's lines and Required". [Before and after](attachments/texts-b1-a3.png).
+- **New:** `UI/Sticker`, `UI/ReqLine`, `Lib/RespawnLine`, `Config.DockLine`, `Config.ReqLine`. **Changed:** `DockNotes`
+  (`Start` and `waiting` new; its other calls the same), `GoalController`, `LessonPrompt` (the words' look only), `Tags` (the three-line
+  tag's last line), `tools/studio/lesson_check.py` (reads the lines' `Words` attribute: they are frames now, not labels).
+- **Checked offline:** `python tools/ui/texts_b1_a3/picture.py` (33 checks on the real modules, then the sheet); stylua, selene,
+  rojo build.
+- **Rest of the lesson unchanged**, but the words of a step begun between two respawns are normally not seen (first-minutes, "Built").
+- **Owed in Studio:** the slap and the fade by eye, the tag's line over a live fish (the letters' shadow is a label under a label
+  with automatic width), `lesson_check.py`, a real phone.
 
 ## 2026-11-25, each land its own fish, and the hook (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.

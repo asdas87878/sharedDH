@@ -99,10 +99,10 @@ local function line()
 	local hop = gui:FindFirstChild("HopButton", true)
 	if hop and shown(hop) then
 		local note = hop:FindFirstChild("LessonWords")
-		table.insert(bits, "hop" .. (note and note.Visible and ("[" .. note.ContentText .. "]") or ""))
+		table.insert(bits, "hop" .. (note and note.Visible and ("[" .. tostring(note:GetAttribute("Words")) .. "]") or ""))
 	end
 	local notes = gui:FindFirstChild("DockNotes")
-	if notes and shown(notes.Root.Carry) then table.insert(bits, "line=" .. notes.Root.Carry.ContentText) end
+	if notes and shown(notes.Root.Carry) then table.insert(bits, "line=" .. tostring(notes.Root.Carry:GetAttribute("Words"))) end
 	local put = gui:FindFirstChild("PutAll", true)
 	if put and shown(put) then
 		local a = put:FindFirstChild("LessonRing")
@@ -117,6 +117,7 @@ local boards = {}
 local met, metOrder, looked = {}, {}, 0
 local function drawn(o)
 	local p, s = o.AbsolutePosition, o.AbsoluteSize
+	if o:GetAttribute("Words") then return p.X, p.Y, p.X + s.X, p.Y + s.Y end -- (a sticker line, UI/Sticker)
 	if (o:IsA("TextLabel") or o:IsA("TextButton")) and o.Text ~= "" and o.TextTransparency < 0.95 then
 		local b = o.TextBounds
 		local x = if o.TextXAlignment == Enum.TextXAlignment.Left then p.X

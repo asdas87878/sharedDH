@@ -1,15 +1,15 @@
 --!strict
 -- What the lesson puts by a button (docs/design/first-minutes.md; Controllers/LessonController decides when):
 --   LessonPrompt.point(button, text)  a yellow arrow bobbing over it and a few words over the arrow (nil: neither), in
---                                     the HUD's own lettering, right edge with the screen's (the hop button's corner:
---                                     nothing else is above it). Words between stars are yellow
+--                                     the dock lines' sticker look (UI/Sticker), right edge with the screen's (the hop
+--                                     button's corner: nothing else is above it). Words between stars on the sticker
 --   LessonPrompt.ring(button, on)     a yellow ring beating round it, for a button inside a window, where an arrow
 --                                     would cover what is above it
 --   LessonPrompt.arrow(button, from)  the arrow alone, bobbing at the button's "Right" or "Left" (pointing at it):
 --                                     gives back what shows and hides it
 -- Nothing is built until the first call that shows something.
 local Kit = require(script.Parent.Kit)
-local Shop = require(script.Parent.Shop)
+local Sticker = require(script.Parent.Sticker)
 
 local LessonPrompt = {}
 
@@ -63,7 +63,7 @@ local function shape(parent: Instance, size: number): Frame
 	return holder
 end
 
-type Point = { Arrow: Frame, Words: TextLabel, Bob: (on: boolean) -> () }
+type Point = { Arrow: Frame, Words: Sticker.Sticker, Bob: (on: boolean) -> (), Says: string? }
 local points: { [GuiObject]: Point } = {}
 local rings: { [GuiObject]: { Ring: Frame, Beat: (on: boolean) -> () } } = {}
 
@@ -80,14 +80,9 @@ function LessonPrompt.point(button: GuiObject?, text: string?)
 		arrow.AnchorPoint = Vector2.new(0.5, 1)
 		arrow.Position = UDim2.new(0.5, 0, 0, -REST)
 		arrow.ZIndex = 20
-		local words = Shop.text(button, {
+		local words = Sticker.new(button, {
 			Name = "LessonWords",
 			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(0, WORDS + 4),
-			AutomaticSize = Enum.AutomaticSize.X,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			TextSize = WORDS,
-			RichText = true,
 			ZIndex = 20,
 		})
 		local bob = Kit.pulse(
@@ -96,19 +91,23 @@ function LessonPrompt.point(button: GuiObject?, text: string?)
 			{ Position = UDim2.new(0.5, 0, 0, -REST - RISE) },
 			0.35
 		)
-		p = { Arrow = arrow, Words = words, Bob = bob }
+		p = { Arrow = arrow, Words = words, Bob = bob, Says = nil }
 		points[button] = p
 		button.Destroying:Connect(function()
 			points[button] = nil
 		end)
 	end
 	if text then
-		p.Words.Text = string.gsub(text, "%*(.-)%*", `<font color="#{Kit.Sun:ToHex()}">%1</font>`)
+		if p.Says ~= text then
+			p.Says = text
+			p.Words.set(text, WORDS)
+			p.Words.Root:SetAttribute("Words", (string.gsub(text, "%*", "")))
+		end
 		-- (the button stands in from the screen's edge, another distance on a phone)
-		p.Words.Position = UDim2.new(1, -button.Position.X.Offset - MARGIN, 0, -REST - RISE - ARROW - 8)
+		p.Words.Root.Position = UDim2.new(1, -button.Position.X.Offset - MARGIN, 0, -REST - RISE - ARROW - 8)
 	end
 	p.Arrow.Visible = text ~= nil
-	p.Words.Visible = text ~= nil
+	p.Words.Root.Visible = text ~= nil
 	p.Bob(text ~= nil)
 end
 
