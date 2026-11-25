@@ -4,7 +4,9 @@ What each push changed, so whoever pulls next knows where things stand. Newest f
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-25, the camera turns while the end of a dive shows (game code)
-**State:** committed, **not pushed**; **not in the Studio place yet** (the user was in Play).
+**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Checked in Play: the camera turned by a right drag with the
+  show up, the press not taken (`processed` false), a click skips, the next closes, a slow drag does neither, it goes by itself, walking
+  closes it. A phone not tried. Also `EquipController`: the Q slot gets its fish's size and colour (not seen).
 - The user: "allow the player to turn their camera whilst it displays on screen. right now it blocks that". A see-through
   button over the whole screen (`ShowHit`) took every press. It is gone (`UI/CatchShow`): the camera, a phone's stick and the
   game's buttons all work under the show. A click or tap (told from a drag as it is let go: 14 pixels, 0.4 s) still skips,
