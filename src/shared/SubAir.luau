@@ -298,6 +298,18 @@ local function ceiling(): number
 	return Config.Oxygen.SurfaceY - 7
 end
 
+-- The height it goes by: the rider's, but not thrown up with them as they push off: from the saddle's to the seat's
+function SubAir.track(air: Air, t: number, riderY: number): number
+	if t <= air.HopAt or t >= air.SeatAt then
+		return riderY
+	end
+	return Ease.lerp(
+		SubAir.saddle(air.Leap, t).Y,
+		air.Meet.Y + SubAir.Seat.Y,
+		Ease.smoothstep(air.HopAt, air.SeatAt, t)
+	)
+end
+
 -- Where it is at `t` and what it looks at, from the trip alone (from the run on: SubController's)
 -- (`riderAt`, `subAt`: the rider and the sub then, if already worked out)
 function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Vector3, Vector3)
@@ -312,9 +324,7 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Ve
 	local along = Ease.lerp(rider:Dot(out) - e.Back, at:Dot(out) - c.AirCamSub, k)
 	-- up: over the rider, but under the sub until it has gone by overhead; then over the sub
 	local cap = e.Cap + (air.Meet:Dot(out) - along) * math.tan(air.Slope)
-	-- (not thrown up with them as they push off: from the saddle's height to the seat's)
-	local hop = Ease.smoothstep(air.HopAt, air.SeatAt, t)
-	local track = if hop >= 1 then rider.Y else Ease.lerp(SubAir.saddle(air.Leap, t).Y, air.Meet.Y + SubAir.Seat.Y, hop)
+	local track = SubAir.track(air, t, rider.Y)
 	local low = if e.Top then -softMin(-track - c.AirCamUp, -cap, 8) else softMin(track + c.AirCamUp, cap, 8)
 	-- (higher behind a nose that is down: over its stern, the rider in sight)
 	local down =
@@ -336,6 +346,10 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Ve
 	local look = (seen + UP + out * 8):Lerp(at + sub.LookVector * 25, Ease.smoothstep(air.SeatAt, air.RideAt, t))
 	-- (straight down the lane: its turn is up and down alone)
 	look += side * (over - look:Dot(side))
+	-- (it nods only so far up after them, the rest of the way they go in the picture: the sea's line keeps still the more)
+	local nod = Ease.lerp(c.AirCamNod, 1, Ease.smoothstep(air.SeatAt, air.RideAt, t))
+	local far = math.max((look - eye):Dot(out), 1)
+	look = Vector3.new(look.X, eye.Y + far * math.tan(math.atan((look.Y - eye.Y) / far) * nod), look.Z)
 	return eye, look
 end
 
@@ -596,19 +610,23 @@ function SubAir.samples(air: Air, step: number): { Sample }
 end
 
 -- What is wrong with the camera as it is set, over the flight (as a cost): seconds in the gate's arch, in the sub, in the fish, and
--- with the arch, and with the sub, between it and the rider; and what that costs it (`most`: no use going on past this)
+-- with the arch, and with the sub, between it and the rider, and how fast it turns; and what that costs it (`most`: no use going on past this)
 function SubAir.seen(air: Air, hull: { number }, lip: CFrame, samples: { Sample }, step: number, most: number): number
 	local c = Config.Sub
 	local beam, beamHalf = gateBox(lip, c.AirBeam)
 	local crest, crestHalf = gateBox(lip, c.AirCrest)
 	local centre, size = hullBox(hull, 0)
 	local gate, sub, fish, hidden, behind = 0, 0, 0, 0, 0
+	local pitch, turn = nil :: number?, 0
 	local cost = 0
 	for _, s in samples do
 		if s.T < math.min(c.AirCamIn, air.HopAt) then
 			continue -- (still on its way from the player's own view)
 		end
-		local eye = SubAir.eye(air, s.T, s.Rider, s.Sub)
+		local eye, look = SubAir.eye(air, s.T, s.Rider, s.Sub)
+		local now = math.deg(math.asin((look - eye).Unit.Y))
+		turn = math.max(turn, math.abs(now - (pitch or now)) / step / 60)
+		pitch = now
 		if inside(beam, beamHalf, eye, 2) or inside(crest, crestHalf, eye, 2) then
 			gate += step
 		end
@@ -624,7 +642,7 @@ function SubAir.seen(air: Air, hull: { number }, lip: CFrame, samples: { Sample 
 		if s.T >= air.HopAt and s.T <= air.SeatAt + 0.15 and crosses(s.Sub * centre, size, eye, s.Rider + UP * 2) then
 			behind += step
 		end
-		cost = gate * 20 + sub * 60 + fish * 4 + hidden * 3 + behind * 6
+		cost = gate * 20 + sub * 60 + fish * 4 + hidden * 3 + behind * 6 + math.max(turn - c.AirCamTurn, 0) * 0.25
 		if cost >= most then
 			break
 		end

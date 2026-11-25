@@ -471,8 +471,10 @@ function AirHop.view(f: Flight, rider: Vector3, t: number): (CFrame, number)
 	local off = (rider - plan) * (1 - Ease.smoothstep(air.SeatAt, air.RideAt, t))
 	eye += off
 	look += off
+	-- (round where we go, not where we jump: not thrown up with us)
+	local anchor = Vector3.new(rider.X, rider.Y + SubAir.track(air, t, plan.Y) - plan.Y, rider.Z)
 	if not f.View then
-		f.View = CFrame.new(camera.CFrame.Position - rider) * camera.CFrame.Rotation
+		f.View = CFrame.new(camera.CFrame.Position - anchor) * camera.CFrame.Rotation
 		f.ViewFov = camera.FieldOfView
 		f.ViewAt = t
 	end
@@ -482,7 +484,7 @@ function AirHop.view(f: Flight, rider: Vector3, t: number): (CFrame, number)
 	local yaw, pitch = angles(look - eye)
 	if w < 1 then
 		-- (round us, not through us: by the way it stands from us, how far, and how high)
-		local a, b = from.Position, eye - rider
+		local a, b = from.Position, eye - anchor
 		local turn = Ease.lerpAngle(math.atan2(a.X, a.Z), math.atan2(b.X, b.Z), w)
 		local far = Ease.lerp(Vector3.new(a.X, 0, a.Z).Magnitude, Vector3.new(b.X, 0, b.Z).Magnitude, w)
 		at = rider + Vector3.new(math.sin(turn) * far, Ease.lerp(a.Y, b.Y, w), math.cos(turn) * far)

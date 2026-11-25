@@ -329,10 +329,11 @@ return function(x)
 				-- (until the trip has come the view is the player's own, carried along: SubController, waits)
 				local w = Ease.smoothstep(WORD, WORD + c.AirCamIn, t)
 				if w < 1 then
-					local a, b = from0, eye - rider.Position
+					local anchor = V3.new(rider.X, SubAir.track(air, t, rider.Y), rider.Z)
+					local a, b = from0, eye - anchor
 					local turn = Ease.lerpAngle(math.atan2(a.X, a.Z), math.atan2(b.X, b.Z), w)
 					local far = Ease.lerp(V3.new(a.X, 0, a.Z).Magnitude, V3.new(b.X, 0, b.Z).Magnitude, w)
-					eye = rider.Position + V3.new(math.sin(turn) * far, Ease.lerp(a.Y, b.Y, w), math.cos(turn) * far)
+					eye = anchor + V3.new(math.sin(turn) * far, Ease.lerp(a.Y, b.Y, w), math.cos(turn) * far)
 					-- (their own pitch, over to its)
 					local flatWay = V3.new(look.X - eye.X, 0, look.Z - eye.Z).Unit
 					local to = math.asin(math.clamp((look - eye).Unit.Y, -1, 1))
