@@ -3017,6 +3017,7 @@ Config.Sandbox = {
 -- The admin panel for playtesting (key P; AdminService, docs/sandbox.md "The admin panel"). Open to everyone in
 -- Studio, and in a live server to the place's owner and these user ids. The server checks it on every action.
 Config.Admin = {
+	On = 0, -- 0: there is no panel and no remote for anyone, in Studio or live (the user, 2026-11-25: not in the main game); 1: on
 	Users = {} :: { number }, -- user ids allowed besides the owner
 	Owner = 1, -- 1: the place's owner (a user, or a group's owner) is allowed; 0: only the list
 	Maxes = { 200, 500, 2000, 4500, 8000 } :: { number }, -- the max Oxygen buttons (past 2000: the extra thin rings)
