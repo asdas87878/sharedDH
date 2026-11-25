@@ -1,4 +1,4 @@
-"""How well chunk ends meet: python tools/endless/joints.py <chunks.pkl>"""
+"""How well chunk ends meet IN THE LANE (what is missing beside it is skipped here: see holes.py): python tools/endless/joints.py <chunks.pkl>"""
 import math
 import pickle
 import sys

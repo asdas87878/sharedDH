@@ -26,7 +26,7 @@ FACE = [np.array([int(v) for v in (l["face"] if not isinstance(l["face"], str) e
 WATER = [np.array(z["water"]) for z in wz.ZONES]
 GLOW = [np.array(z["glow"] or (235, 235, 220)) for z in wz.ZONES]
 F = lambda n, b=True: ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans%s.ttf" % ("-Bold" if b else ""), n)  # noqa: E731
-START, H0 = (2989.0, -2227.0, 23100.0), 0.0
+START, H0 = st.START, st.H0
 
 
 def paint(c, look):

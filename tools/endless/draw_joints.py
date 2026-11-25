@@ -34,6 +34,17 @@ def centred(lib,a,b,la,lb):
     B=D.ch.basis(-c['turn']); p["h"]=-c['turn']; p["at"]=-(c['exit']@B)
     q={"i":0,"shape":b,"hand":1,"look":lb,"layer":0,"s":0,"at":np.zeros(3),"h":0.0,"boss":False}
     return [p,q]
-for name,lib,a,b,l in (('jt-raw',today,30,20,9),('jt-raw2',today,37,21,9),('jt-made',made,12,6,9)):
+# the same joint with its own boxes (chunks.joint), in the colour of the floor ahead
+jP,jA,jS,jC,jK=ch.joint(D.GROUND[made[6]['land']])
+# (in slices: the plan paints a whole box by its highest corner)
+# (and the sill 12 studs up, as the plan would paint the 64-stud floor tiles over it: it lies 0.2 over the highest of them)
+jP[1,1]+=12
+cut=lambda k: max(1,int(jS[k,2]/8))
+jP,jA,jS,jC,jK=[np.array(v) for v in zip(*[(jP[k]+jA[k][2]*jS[k,2]*((i+.5)/cut(k)-.5),jA[k],jS[k]/np.array([1,1,cut(k)]),jC[k],jK[k]) for k in range(len(jP)) for i in range(cut(k))])]
+fixed=list(made); f=dict(made[6]); n=len(jP)
+for key,v in (('P',jP),('A',jA),('S',jS),('C',jC.astype(np.uint8)),('K',jK),('T',np.zeros(n)),('X',np.zeros(n,int)),('G',np.full(n,-1))):
+    f[key]=np.concatenate([v,f[key]]) if f[key].ndim==v.ndim else f[key]
+fixed[6]=f
+for name,lib,a,b,l in (('jt-raw',today,30,20,9),('jt-raw2',today,37,21,9),('jt-made',made,12,6,9),('jt-fix',fixed,12,6,9)):
     r=centred(lib,a,b,l,3); im=D.plan(lib,r,1.0,pad=0,box=(np.array([-620,0,-460]),np.array([620,0,460])),label=False)
     im.save(O+f'{name}.png'); print(im.size)

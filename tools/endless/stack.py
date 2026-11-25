@@ -1,6 +1,6 @@
 """The endless study's seeded stacker: from one whole number, the same endless run of chunks on every machine.
 
-  python tools/endless/stack.py <chunks.pkl> [out.json]     the checks and the numbers (docs/design/endless.md)
+  python tools/endless/stack.py <chunks.pkl> [out.json] [today's line.json]     the checks and the numbers (docs/design/endless.md)
 
 The rules: a chunk's shape never comes back within KEEP chunks (either hand); a look (the land it is painted and lit as)
 lasts one layer and never comes back within LOOKS_KEEP layers; every BOSS layers the layer ends in a landmark; the way
@@ -16,6 +16,9 @@ import numpy as np
 import chunks as ch
 
 KEEP, LAYER, LOOKS_KEEP, BOSS, RADIUS = 8, 3, 3, 5, 3200.0
+SEEDS = 100
+# where today's lane ends in the place: the generator's own line at s 23,500 (its x -110.6, moved by the place's +3,000)
+START, H0 = (2889.4, -2224.5, 23076.5), -0.0128
 PACE = 175.0  # studs a second: land 10's ridden mean (109.9) x Config.Speed.Ride (1.6)
 
 
@@ -111,17 +114,32 @@ def ulp(v):
     return float(np.spacing(np.float32(abs(v))))
 
 
-def main(pkl, out=None):
+def under_today(shapes, line, lay="spiral", wide=950.0):
+    """how far under today's lane (build_lane.py today's line.json) the run is wherever it is within `wide` of it on the
+    flat, from its third chunk on: the least over the seeds"""
+    L = np.array(json.load(open(line))["Line"])[::4, 1:4] + np.array([3000.0, 0, 0])
+    least = 1e9
+    for seed in range(1, SEEDS + 1):
+        for p in stack(shapes, seed, 60, lay, START, H0)[2:]:
+            d = way_of(shapes, p)[::12][:, None] - L[None]
+            near = np.hypot(d[..., 0], d[..., 2]) < wide
+            if near.any():
+                least = min(least, float(np.abs(d[..., 1])[near].min()))
+    return least
+
+
+def main(pkl, out=None, line=None):
     made, today = pickle.load(open(pkl, "rb"))
-    START, H0 = (2989.0, -2227.0, 23100.0), 0.0
     res = {}
+    if line:
+        print("the spiral's least height from today's lane, where it is within 950 studs of it:", round(under_today(made, line)))
     print("same seed twice, the same run:", all(json.dumps([(p["shape"], p["hand"], p["look"]) for p in stack(made, s, 200)]) ==
           json.dumps([(p["shape"], p["hand"], p["look"]) for p in stack(made, s, 200)]) for s in (1, 2, 3)))
     for lay in ("spiral", "straight"):
         for mins in (10, 30, 60):
             n = int(mins * 60 * PACE / 1200)
             far, gaps, full, runs, clash = [], [], [], 0, 0
-            for seed in (1, 2, 3, 4, 5):
+            for seed in range(1, SEEDS + 1):
                 run = stack(made, seed, n, lay, START, H0)
                 last = {}
                 for p in run:
@@ -141,12 +159,13 @@ def main(pkl, out=None):
                     tri.add(t)
                 runs += again
                 P = np.array([p["at"] for p in run])
-                far.append((np.abs(P[:, 0]).max(), P[:, 1].min(), np.abs(P[:, 2]).max()))
-                if seed <= 3:
+                far.append((np.abs(P[:, 0]).max(), P[:, 1].min(), np.abs(P[:, 2]).max(), P[:, 0].min(), P[:, 0].max(), P[:, 2].min(), P[:, 2].max()))
+                if seed <= 20:
                     clash += len(clashes(made, run[:100]))
             f = np.array(far)
             row = {"mins": mins, "chunks": n, "x": f[:, 0].max(), "y": f[:, 1].min(), "z": f[:, 2].max(), "ulp": max(ulp(f[:, 0].max()), ulp(f[:, 2].max()), ulp(f[:, 1].min())),
-                   "gap_mean": float(np.mean(gaps)), "gap_min": int(min(gaps)), "new_share": float(np.mean(full)), "three_again": runs / 5, "clash": clash}
+                   "x_from": f[:, 3].min(), "x_to": f[:, 4].max(),
+                   "z_from": f[:, 5].min(), "z_to": f[:, 6].max(), "z_over_27700": int((f[:, 2] > 27700).sum()), "gap_mean": float(np.mean(gaps)), "gap_min": int(min(gaps)), "new_share": float(np.mean(full)), "three_again": runs / SEEDS, "clash": clash}
             res[f"{lay}{mins}"] = row
             print(lay, {k: (round(v, 5) if isinstance(v, float) else v) for k, v in row.items()})
     if out:
