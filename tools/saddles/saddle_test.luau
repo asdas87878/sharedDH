@@ -644,7 +644,7 @@ for _ in big do
 	made40 += 1
 end
 print(`        land 10's: {biggest} parts at once in a hop, {made40} parts made in forty hops`)
-ok("forty hops with it: not one saddle's worth made anew each time", made40 < 40 * biggest / 4, made40)
+ok("forty hops with it: no part made anew after the first", made40 <= biggest, made40)
 player:SetAttribute("Saddle", wornBefore)
 local crowd = {}
 for i = 1, 6 do

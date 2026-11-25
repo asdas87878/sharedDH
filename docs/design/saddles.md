@@ -39,7 +39,9 @@ them into the game (the next section). **Nothing has been seen in Studio.** Hugo
 3. A fail and an eat: the saddle goes with the fish and goes when it goes.
 4. The ride fish on land, a tank fish ridden in the pen, riding out through the gate, and the sub's fish.
 5. **New since the saddles were built:** the mid-air hop onto the sub (main, `Config.Sub.AirHop`): the rider leaves the leaping fish in the air;
-   the saddle must go when they leave it, and not be left on the fish or in the air.
+   by the code the saddle goes with the land fish, which the server takes away as it carries the rider off
+   (`RideService.carryOff`), so on the rider's own screen it stays on the empty fish for about one round trip (0.1 s). See whether
+   that shows, whether the fish that then swims beside the sub visibly loses its saddle, and that no part is left in the air.
 6. A second player's saddle on their fish, and a saddle put on, changed and taken off while they ride.
 7. The Index: the pictures' light (ViewportFrames), the arrow at CLAIM ALL with the Saddles button there (phone held upright too), the toast
    over the Saddles page, the claim of a whole land giving its saddle, a rejoin starting with none.
@@ -49,7 +51,7 @@ them into the game (the next section). **Nothing has been seen in Studio.** Hugo
 
 | Question | What you see today | If you say nothing (recommended) |
 |---|---|---|
-| **Tank seat** | A rider on a fish in the tank floats: up to 2.8 studs over a Colossal, 0.42 too low on a Tiny. On 34 of 468 fish and sizes the rider also follows the wrong part of the fish. The saddle itself sits on the back. | **Fix it, as a small change of its own after this merge** (one line in `AquariumService`, then a check of the tank ride). It moves the seat, so it waits for your yes; the merge doesn't. |
+| **Tank seat** | A rider on a fish in the tank floats: up to 2.8 studs over a Colossal, 0.42 too low on a Tiny. On 34 of 468 fish and sizes the rider also follows the wrong part of the fish. The saddle itself sits on the back. | **The seat stays as it is:** the saddle is on the fish's back, the rider floats as today. **Recommended: say yes** to the fix, as a small change of its own after this merge (one line in `AquariumService`, then a check of the tank ride); it moves the seat, so it needs your yes. |
 | **Dunkleosteus** | Its seat is at the edge of its head plate, which stands 0.76 (Tiny) to 3.24 (Colossal) studs over it: the rider is partly sunk in the plate, with a saddle or without. | **Leave the seat.** The pad starts behind the plate. Look at it in Studio at Big and Colossal; if it looks bad, move the seat back behind the plate. |
 | **Void Whale** | Its back ridge comes up to 0.9 studs into the rider (big sizes). | **Leave the seat.** The pad is split beside the ridge. Worst of these three, so look at it first, at Huge. |
 | **Lantern Leviathan** | Its ridge comes up to 0.58 studs into the rider (big sizes). | **Leave the seat**, same split pad. |
