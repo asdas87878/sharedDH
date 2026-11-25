@@ -26,7 +26,7 @@ Hugo's PC**: run it once and look before recording.
 5. `python tools/trailer/cut.py <recording> work/trailer/trailer.mp4` (and `--music song.mp3`), on either PC (it needs
    `pip install opencv-python numpy imageio-ffmpeg`). The recording itself is too big for the repo: send it another way.
 
-- **The rider is the place owner's avatar** (the user's), whoever films: `Config.Trailer.Avatar`, 0 for one's own.
+- **The rider is the user's avatar**, whoever films: `Config.Trailer.Avatar` (their account), 0 for one's own.
 - A shot waits behind its slate until its land is sent and nothing is left to fetch, at most `Config.Trailer.Load` seconds.
 - To look at before recording: 9 (tank), 10 and 11 (seahorse, a new camera side), 13 and 14 (right fish, right land), 16 (fuse),
   17 (the submarine shop, not the auras), 18 to 20 (giants clear of the floor). Fixes go in `SHOTS`.

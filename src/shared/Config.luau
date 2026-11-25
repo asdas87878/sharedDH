@@ -4181,7 +4181,7 @@ Config.Trailer = {
 	Fog = 1, -- the fog's end, times this, in a shot (1: the game's own)
 	Oxygen = 100000, -- max Oxygen meanwhile, so no fish is too strong
 	Load = 10, -- at most this many seconds behind the slate for a shot's land to load (0: no waiting)
-	Avatar = 1, -- 1: whoever films wears the place owner's avatar (the user's, on Hugo's PC); 0: their own
+	Avatar = 165352993, -- whoever films wears this account's avatar (the user's; a place file on a PC has no owner to ask); 0: their own
 }
 
 ----------------------------------------------------------------------------------------------------------------------

@@ -17,15 +17,16 @@ Keep Hugo told in one line per step. Background: `docs/design/trailer.md`. Load 
   X11 or `gpu-screen-recorder` for Wayland): say what and from where, wait for yes.
 
 ## Run
-1. `git pull`, then sync in Edit: `python tools/studio/sync_src.py <studio_id>` (on Linux any word for the id, as in
-   `sync_src.py linux`: it goes through the studio runner; needs the runner plugin connected). Read one changed script back in Edit: `TrailerController` must hold
+1. `git pull`, then in Edit: on Hugo's PC `python tools/studio/catch_up.py runner` (the code, seahorses, creatures, subs and the
+   user's hand changes; ask Hugo to save after; needs the runner plugin connected), on the Windows one
+   `python tools/studio/sync_src.py <studio_id>`. Read one changed script back in Edit: `TrailerController` must hold
    `TrailerStage`'s sender, `task.spawn(ask, "Now", text)`. If not, the sync did not land: stop and say so.
 2. `python tools/trailer/record.py probe`. It names the recorder that works and its frames (about 240 in 4 s is 60 a second).
    None works: use OBS (below).
 3. `python tools/trailer/record.py all` in the background, its output in `work/trailer/record.log`. It plays, runs every shot
    once to load the models, runs them again recorded, stops Play, gives the mouse back, makes `work/trailer/take2.jpg` (every
    shot's start, middle and end) and cuts `work/trailer/trailer.mp4`. "STUCK" or "problems:" in the log: read what it names.
-4. Look at `work/trailer/take2.jpg` once and judge every shot: the rider is the place owner's avatar; the right fish in the
+4. Look at `work/trailer/take2.jpg` once and judge every shot: the rider is the user's avatar (`Config.Trailer.Avatar`); the right fish in the
    right land; nothing in the way of the hero; no fish through the floor; nothing half loaded; no black boards, arrows or
    banners. Never yet seen right: 9 (tank), 10 and 11 (seahorse), 13 and 14 (Kelp Wyrm, Hellmaw), 16 (fuse), 17 (the
    submarine shop, not Auras), 18 to 20 (giants).

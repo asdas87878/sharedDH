@@ -30,9 +30,9 @@ local function pivot(player: Player, at: CFrame)
 	end
 end
 
--- the place owner's looks on whoever films, for this Play only
+-- the user's looks on whoever films, for this Play only
 local function dress(player: Player)
-	if Config.Trailer.Avatar == 0 or game.CreatorType ~= Enum.CreatorType.User or game.CreatorId == player.UserId then
+	if Config.Trailer.Avatar == 0 or Config.Trailer.Avatar == player.UserId then
 		return
 	end
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -40,10 +40,10 @@ local function dress(player: Player)
 		return
 	end
 	local ok, problem = pcall(function()
-		humanoid:ApplyDescription(Players:GetHumanoidDescriptionFromUserId(game.CreatorId))
+		humanoid:ApplyDescription(Players:GetHumanoidDescriptionFromUserId(Config.Trailer.Avatar))
 	end)
 	if not ok then
-		warn(`[Trailer] the owner's avatar: {problem}`)
+		warn(`[Trailer] the user's avatar: {problem}`)
 	end
 end
 

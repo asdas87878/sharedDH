@@ -84,3 +84,5 @@ time.sleep(20)
 print("CHECK AGAIN:", run(os.path.join(FOLDER, "99_check.luau")), flush=True)
 if any(f.endswith("_hub.luau") for f in files):
     trainer()  # (after the check: the level-1 seahorses it shows are parts too, about 60 a plot)
+    if FOLDER.endswith("greybox"):  # what the user moved by hand, which the load has just wiped
+        print("HAND:", subprocess.run([sys.executable, os.path.join(ROOT, "tools", "studio", "hand_map.py"), studio], capture_output=True, text=True, cwd=ROOT).stdout.strip(), flush=True)

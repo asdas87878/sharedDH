@@ -3,6 +3,24 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, Hugo: one command brings your place up to date (game code, the user's word)
+
+**Hugo, do this first:** pull, Studio on your place in Edit, then `python tools/studio/catch_up.py runner`, then Ctrl+S.
+- **Why the seahorses were missing:** git carries code and source files, not the models. Those live in the place, and yours is your
+  own file. Nothing was left out of the repo: all 12 seahorses, 87 creatures and 9 subs are in it. The uploaded copies in the live
+  place are private to the user's account, so `catch_up.py` makes them as local files on your PC. Again after a Studio update.
+- **The user's hand changes to the map** were in no file. Now `art/place/HandProps.rbxm` + `tools/studio/hand_map.py` (catch_up runs
+  it, and so does every full map load): 9 early-land props moved, 5 copied, Fuse moved, Index taken away, one seabed tile pink. What
+  comes out of your place goes to `ServerStorage.HandMapBackup`; a station you moved yourself is left and named.
+- The rest of the live place's map was compared with the repo, part by part (about 104,000: place, size, colour): the same. Two
+  things the repo has newer: the plots' trainer (marks instead of the old toy) and awnings 0.1 off.
+- `art/place/TrainerModels.rbxm`: the live place's 12 seahorses with their uploaded mesh ids (recorded nowhere before). For later.
+- `Config.Trailer.Avatar` is the user's account now (a place file has no owner, so the old way found nobody on your PC).
+- **Checked:** `hand_map.py --check` on the user's place says all right already, and on a made-up place it put all of it in (a
+  second run changed nothing); `catch_up.py` stops on the live place as it must. Its whole run has not been done on your PC. Say what it prints if a line says FAILED.
+- **Endless Underworld** turns itself off in the live place, because streaming is on there (`FishService`). Not decided yet.
+- Better, the user's to do: edit access for Hugo to the live place, so there is one place and not two.
+
 ## 2026-11-25, "start the recording sequence" (game code, the user's word)
 
 - Hugo: pull, open a new Claude chat here and say **"start the recording sequence"**. The skill `trailer-record` films the trailer

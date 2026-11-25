@@ -34,6 +34,9 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+
+- **2026-11-25, game code to Hugo's chats (the user's word):** the models and the user's hand changes to the map are in the repo now.
+  After a pull, Studio in Edit: `python tools/studio/catch_up.py runner`, then Ctrl+S. Why and what: the top of [Handoff](Handoff.md).
 - **2026-11-25, the UI chat: the inventory bar is in studs** (`f65de8f`, `bb70871`, `07b606f`; [UI](design/ui.md), top section). Only `Slots.luau`
   changed; its image "Pattern" is now "Studs", its "Key" numbers are gone (c1_tank_hotbar_check and e3_equip_check read them: Hugo). In the place, not saved. I played over the game-code chat's check once (both rows said "has it"
   within seconds): re-read the table after writing your own row, before Play.
