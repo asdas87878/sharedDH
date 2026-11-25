@@ -58,7 +58,7 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   `python tools/studio/h4_hub_check.py` (install, play, `run`, `stills`; its head says how). Offline:
   `tools/index/*.luau`, `tools/subs/stand_sub_check.luau`, `tools/keepers/check.py` (lune and python).
 - **The air hop (2026-11-25; NULLROOM h1; `Config.Sub.AirHop` 1, 0 = the hop under water exactly as at tag
-  `backup-underwater-hop-2026-11-25`; checked offline, not seen in Studio):** riding the ride fish with a sub and a land
+  `backup-underwater-hop-2026-11-25`; checked offline and in Studio, `tools/studio/air_hop_check.py`):** riding the ride fish with a sub and a land
   picked, the rider jumps off the leaping fish onto the seat of a sub that flies in. Everything is a pure sum of the trip:
   `Shared/SubAir` (plan, sub, hop, camera), `SubTrip` (the trip's `Air`, the fish's swim up, `joining`), `SubService`
   (`leaps`: the client's one message, Action `"SubLeap"`, checked), `Lib/AirHop` + `SubController` (screen), hooks in

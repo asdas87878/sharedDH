@@ -134,7 +134,8 @@ it a little shorter and speed it up.(just the animation getting onto it (at most
 Hugo: "make the player jump off the fish mid air then instantly hopping on the submarine that should fly in then splash into
 the water, the animation should be fast enough to where the player has fun." And: "make sure it doesnt conflict with the
 current dive mission, i want the new version but back up this current version".
-**Built on branch `air-hop`, the default (`Sub.AirHop` 1). Checked offline (below); NOT seen in Studio, not played.**
+**On main, the default (`Sub.AirHop` 1). Checked offline (below) and seen in Studio on 2026-11-25 (`tools/studio/air_hop_check.py`; numbers in
+[Handoff](../Handoff.md); `AirArch` put right, 144 to 88: until then it never ran in the place). Not played by hand.**
 **The hop under water** (the next section) is kept whole: `Sub.AirHop` 0 brings it back exactly, and it is what the tag
 `backup-underwater-hop-2026-11-25` (db1f089) holds. It also still runs by itself when a leap gets no air hop (stepping off
 the lip with no leap, a lost or refused message, a word so late the moment to jump has gone).

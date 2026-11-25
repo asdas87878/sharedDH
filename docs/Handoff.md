@@ -3,8 +3,19 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
-## 2026-11-25 · The mid-air hop: shorter, a steadier camera, a weaker trail (NULLROOM f1, Hugo's PC; branch `air-hop`, NOT on main, NOT pushed)
-**State:** on `air-hop` after h1's 4075aaa (every commit tagged "(f1)"), worktree `~/Projects/sharedDH-air-hop`. **Checked offline only. Not in Studio, not played.** Hugo's words, the
+## 2026-11-25 · The mid-air hop is on main, seen in Studio (NULLROOM z1, Hugo's PC)
+**State:** `air-hop` merged onto main (no conflicts) and pushed. Seen in Studio with `tools/studio/air_hop_check.py` (its head says how), not played by hand. Place not saved, nothing uploaded.
+- **One number was wrong and the hop never ran in the place:** `Config.Sub.AirArch` **144 to 88**. The lip is 88 studs in front of the dock's spawn (3000, 1, -88); with 144 the server refused every leap
+  ("too far from the lip") and every hop was the one under water. The offline check builds its dock out of `AirArch`, so it could not see it; `tools/dive/world.luau` still has its own 144 (a plain dive does not use it).
+- **What Studio says** (Clownfish Tiny and Normal, Great White Normal and Big, Blue Whale and Kraken Colossal; subs 1, 5, 9; straight and 28 to the side): the word is back 0.06 to 0.17 s after the leap began, always before
+  the jump; one long server frame of 27 to 139 ms in it (the worst: sub 9 with a Colossal); never two fish, never none; no trail in the air, 13 a second from the splash against the run's 36; the camera never back over the
+  water; the hands unchanged; kicked at the land as before. Great White, sub 5: jump 0.45, seat 0.86, splash 1.26, run 1.56 s.
+- **No sub, on foot, unequip, death and reset** at 0.2, 0.6 and 1.2 s: all end clean.
+- **To know:** with a Colossal the land camera stands so far back that the DIVE IN sign is in front of it before the leap starts (main does it too; not the hop's). Frames were 33 to 60 a second, the low ones with the PC
+  busy with other work. Two players at once: not run.
+
+## 2026-11-25 · The mid-air hop: shorter, a steadier camera, a weaker trail (NULLROOM f1, Hugo's PC; on main since z1, above)
+**State:** on `air-hop` after h1's 4075aaa (every commit tagged "(f1)"), worktree `~/Projects/sharedDH-air-hop`. **Checked offline only; seen in Studio by z1 (above).** Hugo's words, the
 before/after table, what fails and the old numbers: [submarine](design/submarine.md), "The air hop".
 - **What Hugo played was not this:** the saved place (2026-11-25 00:11) and Studio's last autosave (02:39) have no `SubAir` or `AirHop`, Studio's logs of both sessions
   never mention them, and Studio's Rojo serves main. It was main's hop under water. The wishes are in the air hop, the one Hugo keeps.
@@ -22,9 +33,9 @@ before/after table, what fails and the old numbers: [submarine](design/submarine
   (anticipation, arc, landing still read?), the sub's brake after the splash (400 studs/s to 150 in 0.3 s with big fish), the camera over the arch and going under with a Colossal, the trail's amount, the
   swap frame, two players.
 
-## 2026-11-25 · The mid-air hop onto the sub (NULLROOM h1, Hugo's PC; branch `air-hop`, NOT on main, NOT pushed)
+## 2026-11-25 · The mid-air hop onto the sub (NULLROOM h1, Hugo's PC; on main since z1, above)
 **State:** built on branch `air-hop` (worktree `~/Projects/sharedDH-air-hop`), main (ede1ff7) and merge-dive-sub-index (03c8f19) merged in with
-no conflicts. **Checked offline only. Not in Studio, not played, nothing uploaded.** Hugo's words, the timeline, the numbers and
+no conflicts. **Checked offline only; seen in Studio by z1 (above).** Hugo's words, the timeline, the numbers and
 what fails: [submarine](design/submarine.md), "The air hop".
 - **What it is:** on your ride fish with a sub and a land picked, the leap off the lip now has you jump off near its top, the sub
   flies in from behind, you are on its seat 0.45 s later, it splashes in nose first and the run follows. The fish goes in by itself.
