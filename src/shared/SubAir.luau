@@ -1,4 +1,5 @@
 --!strict
+--!native
 -- The air hop (Hugo, 2026-11-25; docs/design/submarine.md, "The air hop"): the rider jumps off their leaping ride fish at
 -- the top of its arc onto the seat of the sub, which comes flying in from behind, noses down and splashes into the water,
 -- straight into its run. Everything in it as a function of the seconds since the leap began, the same on the server, on
@@ -595,20 +596,15 @@ function SubAir.samples(air: Air, step: number): { Sample }
 	return list
 end
 
--- What is wrong with the camera as it is set, over the flight: seconds in the gate's arch, in the sub, in the fish, and
--- with the arch, and with the sub, between it and the rider
-function SubAir.seen(
-	air: Air,
-	hull: { number },
-	lip: CFrame,
-	samples: { Sample },
-	step: number
-): (number, number, number, number, number)
+-- What is wrong with the camera as it is set, over the flight (as a cost): seconds in the gate's arch, in the sub, in the fish, and
+-- with the arch, and with the sub, between it and the rider; and what that costs it (`most`: no use going on past this)
+function SubAir.seen(air: Air, hull: { number }, lip: CFrame, samples: { Sample }, step: number, most: number): number
 	local c = Config.Sub
 	local beam, beamHalf = gateBox(lip, c.AirBeam)
 	local crest, crestHalf = gateBox(lip, c.AirCrest)
 	local centre, size = hullBox(hull, 0)
 	local gate, sub, fish, hidden, behind = 0, 0, 0, 0, 0
+	local cost = 0
 	for _, s in samples do
 		if s.T < math.min(c.AirCamIn, air.HopAt) then
 			continue -- (still on its way from the player's own view)
@@ -629,8 +625,12 @@ function SubAir.seen(
 		if s.T >= air.HopAt and s.T <= air.SeatAt + 0.15 and crosses(s.Sub * centre, size, eye, s.Rider + UP * 2) then
 			behind += step
 		end
+		cost = gate * 20 + sub * 60 + fish * 4 + hidden * 3 + behind * 6
+		if cost >= most then
+			break
+		end
 	end
-	return gate, sub, fish, hidden, behind
+	return cost
 end
 
 -- The camera, chosen: the nearest to what Config asks that is clear of the sub, the gate's arch and the fish, and sees
@@ -641,7 +641,7 @@ function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
 	local tail = math.max(air.Half.Z - air.Saddle.Z, 0)
 	local want = math.min(c.AirCam + tail * c.AirCamLong, c.AirCamMost)
 	local belly, top = hull[3] / math.cos(air.Slope), hull[2] / math.cos(air.Slope)
-	local step = 0.04
+	local step = 0.05
 	local samples = SubAir.samples(air, step)
 	local best = math.huge
 	local pick = air.Eye
@@ -669,17 +669,11 @@ function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
 				end
 			end
 		end
-		local inGate, inSub, inFish, hidden, behind = SubAir.seen(air, hull, lip, samples, step)
 		-- (looking down on them from over the sub: not too steeply)
 		local at = SubAir.eye(air, air.HopAt) - SubAir.rider(air, air.HopAt).Position
 		local steep = math.max(math.atan2(at.Y, math.max(-at:Dot(out), 1)) - 0.55, 0)
-		local cost = inGate * 20
-			+ inSub * 60
-			+ inFish * 4
-			+ hidden * 3
-			+ behind * 6
-			+ steep
-			+ math.abs(math.log(share)) * 0.3
+		local cost = steep + math.abs(math.log(share)) * 0.3
+		cost += SubAir.seen(air, hull, lip, samples, step, best - cost)
 		if cost < best - 1e-6 then
 			best, pick = cost, eye
 		end
