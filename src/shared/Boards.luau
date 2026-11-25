@@ -287,8 +287,8 @@ function Boards.board(emblem: string): { Piece }
 	return pen.List
 end
 
--- The kerb a row stands on, from the row's own middle. (The round ends are a hair lower than the straight part, so two
--- tops never lie in one plane.)
+-- The kerb a row stands on, from the row's own middle. (The round ends are a hair lower than the straight part, which
+-- has studs on its top: two tops in one plane flicker, and from afar so do two closer than this.)
 function Boards.bed(count: number, asked: number): { Piece }
 	local pen: Pen = { List = {}, Base = CFrame.identity }
 	local b = Boards.Bed
@@ -296,8 +296,8 @@ function Boards.bed(count: number, asked: number): { Piece }
 	box(pen, 0, b.Height / 2, 0, long, b.Height, b.Depth, STONE)
 	box(pen, 0, b.Height * 0.3, 0, long, b.Height * 0.6, b.Depth + 0.5, STONE_D)
 	for _, side in { -1, 1 } do
-		post(pen, side * long / 2, b.Height / 2 - 0.01, 0, b.Depth, b.Height, STONE)
-		post(pen, side * long / 2, b.Height * 0.3 - 0.01, 0, b.Depth + 0.5, b.Height * 0.6, STONE_D)
+		post(pen, side * long / 2, b.Height / 2 - 0.05, 0, b.Depth, b.Height, STONE)
+		post(pen, side * long / 2, b.Height * 0.3 - 0.05, 0, b.Depth + 0.5, b.Height * 0.6, STONE_D)
 	end
 	return pen.List
 end
