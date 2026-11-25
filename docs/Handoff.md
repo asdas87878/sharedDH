@@ -9,6 +9,7 @@ Everything is in [auras](design/auras.md), "Around the body". **To turn off:** `
 - **`Config.Aura.Flame` is gone:** `Look` is in its place. All Config edits are inside the `Config.Aura` block.
 - **New:** `Shared/AuraVolume` (the sums), `Lib/AuraAround` (draws them), `AuraController` (which look, what is ridden, who gets
   how much). `Auras.Sheets` (ids, all empty), the tiers' blurbs (`Auras.Tiers`). `AuraService`, prices and the shop: untouched.
+- **Your own riding aura is the one everyone sees** (`EyeCalm` 0; 1 is a calmer one to steer through). **Lights:** at most `Lights`, your own first; 0 is none.
 - **What it reads from other code:** attributes `State`, `LandMounted`, `TankRide`, `TrainerRide`, and the welds by name (`volume_test` checks the
   names against the server's source). A new way to ride needs a row in `AuraController`'s `WELDS`, or its rider's aura fades while moving.
 - **Local pictures:** `python tools/auras/volume_sheets.py --local` on each PC, then reopen Studio. Without them, and in a live game

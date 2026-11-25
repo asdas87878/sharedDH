@@ -109,7 +109,9 @@ shop, the server and the flame, unchanged), StyLua, selene, the type checker, a 
 3. Ribbons wind round both sides, with no seam where two Beams meet. In a live game, with no picture: a plain band.
 4. Nothing turns with the camera; no light's edge on the ground; several tier 12s side by side; a phone; a second player's aura does not flicker
    as they walk and stop (its fade is worked out from the positions the network sends).
-5. With the stand-ins: the ring is `forcefield_vortex_main`, a thin circle with a few bright points, flat on the ground. (Not the old look's
+5. Your own tier 12 on a whale or a kraken: nothing is kept away from your camera now (it reaches up to 20 studs, the camera is some 17
+   back). Do sprites fill the screen, are the fish ahead readable? `EyeCalm` 1 is the answer if not.
+6. With the stand-ins: the ring is `forcefield_vortex_main`, a thin circle with a few bright points, flat on the ground. (Not the old look's
    bubble picture, `explosion01_shockwave_main`, which an earlier version used.) Is it a ring of light to the eye, or is it better left out?
 
 ### Three older rules this goes against, for Hugo to say no to
