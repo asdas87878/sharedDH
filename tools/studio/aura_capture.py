@@ -28,8 +28,8 @@ RUN = str(Path.home() / "Projects/studio-runner/studio-run.mjs")
 CROP = (4, 142, 1984, 1205)
 
 TIERS = [
-    (1.5, "Bubble"), (2, "Foam"), (2.5, "Tide"), (3, "Current"), (3.5, "Reef"), (4, "Storm"),
-    (5, "Moon"), (6, "Lantern"), (7, "Ember"), (8, "Phantom"), (10, "Abyss"), (12, "Leviathan"),
+    (1.5, "Bubble"), (2, "Shell"), (2.5, "Tide"), (3, "Current"), (3.5, "Reef"), (4, "Storm"),
+    (5, "Moon"), (6, "Lantern"), (7, "Ember"), (8, "Urchin"), (10, "Abyss"), (12, "Leviathan"),
 ]
 SPAWNS = [
     ("Splash", [0.18, 0.4, 0.8]),

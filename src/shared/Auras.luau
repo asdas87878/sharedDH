@@ -1,22 +1,22 @@
 --!strict
 -- The twelve auras (Hugo, 2026-11-19: "add cool auras that you can buy at the aura stand ... 1.5 2 2.5 3 3.5 4 5 6 7
 -- 8 10 12x ... animated and colored, getting cooler with each tier") and the spawn-in effect ("when you spawn in you
--- play a cool little animation around the player"). DRAFT 2 (task a1): the looks only, particles round the body only (Hugo: nothing on the ground). Not bought yet: buying waits
--- for the economy's prices (docs/design/progression.md, "The economy, draft 1"); names are that draft's stand-ins.
+-- play a cool little animation around the player"). The look is draft 4's flame (Hugo, 2026-11-24; docs/design/auras.md;
+-- its numbers: Shared/AuraFlame), the names and colours draft 3's; the old look is kept behind Config.Aura.Flame.
+-- Particles and Beams round the body only (Hugo: nothing on the ground).
 --
--- The switch: a player's "Aura" attribute (a tier number, 1 to 12; 0 or missing is none). The server will set it when
--- an aura is bought; every machine draws every player's aura (Controllers/AuraController). In Studio, `Test` puts a
--- tier on your own player without the server, and a Model tagged "AuraRig" with its own "Aura" attribute shows one too
--- (for captures: tools/studio/aura_capture.py).
--- The look is drawn by AuraController; this table is only what a tier is and its colours, so a shop, a sign or a
--- panel can read them too.
+-- The switch: a player's "Aura" attribute (a tier number, 1 to 12; 0 or missing is none), set by AuraService when an
+-- aura is bought (prices: Config.Aura.Prices); every machine draws every player's aura (Controllers/AuraController).
+-- In Studio, `Test` puts a tier on your own player without the server, and a Model tagged "AuraRig" with its own "Aura"
+-- attribute shows one too (for captures: tools/studio/aura_capture.py).
+-- This table is only what a tier is and its colours, so a shop, a sign or a panel can read them too.
 
 export type Tier = {
 	Id: number,
 	Name: string,
-	Mult: number, -- multiplies all Oxygen gained (replaces the one before)
+	Mult: number, -- multiplies the Oxygen the seahorse gives (replaces the one before)
 	Main: Color3, -- the aura's own colour (a shop's swatch)
-	Second: Color3, -- its accent
+	Second: Color3, -- 40% toward white (the inner flame's)
 	Blurb: string, -- what it does on screen, in a few words
 }
 
@@ -31,97 +31,97 @@ Auras.Tiers = {
 		Id = 1,
 		Name = "Bubble",
 		Mult = 1.5,
-		Main = rgb(190, 235, 255),
+		Main = rgb(255, 255, 255),
 		Second = rgb(255, 255, 255),
-		Blurb = "a few soft bubbles rise off you",
+		Blurb = "one pale flame, see-through and slow",
 	},
 	{
 		Id = 2,
-		Name = "Foam",
+		Name = "Shell",
 		Mult = 2,
-		Main = rgb(235, 250, 255),
-		Second = rgb(120, 210, 255),
-		Blurb = "bubbles and a white foam haze hug you",
+		Main = rgb(255, 163, 153),
+		Second = rgb(255, 200, 194),
+		Blurb = "small tongues break off its edge",
 	},
 	{
 		Id = 3,
 		Name = "Tide",
 		Mult = 2.5,
-		Main = rgb(40, 210, 200),
-		Second = rgb(200, 255, 245),
-		Blurb = "a wave of teal light runs round you",
+		Main = rgb(0, 214, 230),
+		Second = rgb(102, 230, 240),
+		Blurb = "a second, paler flame inside",
 	},
 	{
 		Id = 4,
 		Name = "Current",
 		Mult = 3,
-		Main = rgb(40, 170, 255),
-		Second = rgb(170, 240, 255),
-		Blurb = "three streaks spiral up, lines shoot up you",
+		Main = rgb(0, 119, 255),
+		Second = rgb(102, 173, 255),
+		Blurb = "thin streaks race up through it",
 	},
 	{
 		Id = 5,
 		Name = "Reef",
 		Mult = 3.5,
-		Main = rgb(255, 110, 150),
-		Second = rgb(255, 200, 80),
-		Blurb = "coral sparkles twinkle all over you",
+		Main = rgb(255, 77, 166),
+		Second = rgb(255, 148, 202),
+		Blurb = "the flame swells in a slow pulse",
 	},
 	{
 		Id = 6,
 		Name = "Storm",
 		Mult = 4,
-		Main = rgb(255, 235, 80),
-		Second = rgb(70, 90, 170),
-		Blurb = "a dark cloud, bright crackles, sparks",
+		Main = rgb(247, 255, 0),
+		Second = rgb(250, 255, 102),
+		Blurb = "bright waves run up its edge",
 	},
 	{
 		Id = 7,
 		Name = "Moon",
 		Mult = 5,
-		Main = rgb(215, 220, 255),
-		Second = rgb(160, 130, 255),
-		Blurb = "two silver rings of light, a small moon",
+		Main = rgb(201, 153, 255),
+		Second = rgb(223, 194, 255),
+		Blurb = "spark bubbles rise; flares on a landing",
 	},
 	{
 		Id = 8,
 		Name = "Lantern",
 		Mult = 6,
-		Main = rgb(255, 200, 70),
-		Second = rgb(255, 120, 40),
-		Blurb = "four warm lanterns of light circle you",
+		Main = rgb(255, 110, 0),
+		Second = rgb(255, 168, 102),
+		Blurb = "big tongues tear off; flares on a hop",
 	},
 	{
 		Id = 9,
 		Name = "Ember",
 		Mult = 7,
-		Main = rgb(255, 110, 30),
-		Second = rgb(255, 230, 120),
-		Blurb = "a flame wraps you, embers fly up",
+		Main = rgb(230, 23, 23),
+		Second = rgb(240, 116, 116),
+		Blurb = "spray sparks; flares on a speed boost",
 	},
 	{
 		Id = 10,
-		Name = "Phantom",
+		Name = "Urchin",
 		Mult = 8,
-		Main = rgb(110, 255, 190),
-		Second = rgb(170, 110, 255),
-		Blurb = "a ghostly mist, four wisps swirl",
+		Main = rgb(191, 0, 134),
+		Second = rgb(217, 102, 182),
+		Blurb = "arcs crackle; a burst when put on",
 	},
 	{
 		Id = 11,
 		Name = "Abyss",
 		Mult = 10,
-		Main = rgb(150, 60, 255),
-		Second = rgb(20, 0, 40),
-		Blurb = "void smoke, light pulled in, a halo",
+		Main = rgb(34, 0, 255),
+		Second = rgb(122, 102, 255),
+		Blurb = "a bright pale core flame",
 	},
 	{
 		Id = 12,
 		Name = "Leviathan",
 		Mult = 12,
-		Main = rgb(255, 255, 255),
-		Second = rgb(255, 80, 200),
-		Blurb = "a rainbow flame, two rainbow serpents",
+		Main = rgb(224, 25, 255),
+		Second = rgb(236, 117, 255),
+		Blurb = "a tall crown flame behind it all",
 	},
 } :: { Tier }
 
@@ -132,6 +132,12 @@ Auras.SpawnNames = { "Splash", "Whirlpool", "Drop" }
 
 -- Studio only: a tier shown on your own player without the server (0 = off)
 Auras.Test = 0
+
+-- The flame's pictures, uploaded: empty until the user says yes to the upload (art/ui/aura_flame; the Beam ones, Flame,
+-- Tip and Streaks, turned as Config.Aura.Turn says). Until all six are filled in a live game shows the old look. Studio
+-- reads the local copies (tools/auras/flame_pics.py), and shows the old look where they are not there.
+Auras.Pictures = { Flame = "", Tip = "", Streaks = "", Lick = "", Bubble = "", Arc = "" } :: { [string]: string }
+Auras.PictureSet = "f1"
 
 -- Auras further than this from the camera are not animated (their parts are hidden)
 Auras.DrawRange = 220

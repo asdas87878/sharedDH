@@ -57,3 +57,10 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   [submarine](docs/design/submarine.md). One Studio check for all of it:
   `python tools/studio/h4_hub_check.py` (install, play, `run`, `stills`; its head says how). Offline:
   `tools/index/*.luau`, `tools/subs/stand_sub_check.luau`, `tools/keepers/check.py` (lune and python).
+- **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
+  only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
+  `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`
+  (`Config.Aura.Flame` 0 = the old look; no pictures = the old look too), cards in `UI/AuraShop` (never a stand-in behind an
+  icon). Pictures `art/ui/aura_flame`, local only (`python tools/auras/flame_pics.py`); to upload: the six in its `upload/` (with ids
+  in `Auras.Pictures`, `Aura.Turn` does nothing). Design:
+  [auras](docs/design/auras.md). Checks: `tools/auras/aura_test.luau` (lune on a built place), `tools/studio/aura_check.py`.

@@ -197,8 +197,8 @@ The user, 2026-11-22: *"We need to pretty much replicate ride a dinos progressio
 dino are in the billions, possibly higher ... we need that huge cap whilst making the progression possible."* **In
 `Config` since 2026-11-23** (the user: "Yes, as drafted"): the needs, the seahorse's twelve levels, the plot's five
 prices, and `Oxygen.Grow` 0.1 to 0.035 and `Oxygen.Cap` 500K to 50B so the seconds on a fish and the tame stay about
-as they were. **Not yet:** aura prices and buying (the server has none), the Index, selling at 200 s, earning while
-away. The seahorse's levels
+as they were. **Not yet:** selling at 200 s, earning while away. (Auras are bought since 2026-11-24, at the prices in "The aura
+prices" below; the Index is built too.) The seahorse's levels
 cost their coins since 2026-11-23 (`Train.Free` 0; the user: "Yes, charge"). **Checked in Studio by script 2026-11-23** (the game-code chat; not
 played by hand): levels 2 and 3 and the plot stages charge their price once and refuse a short purse; at exactly its
 need a Sea Scorpion (land 8) lasts 7.92 s (paper 7.65) and tames in 3.02 s (3.06), a Cinder Ray (land 10) 9.03 s
@@ -231,6 +231,56 @@ python tools/balance/rad_economy.py --step 6      a gentler need ladder
   Oxygen for each new kind and each finished land. Without it the same player reaches land 10 at 58 hours instead of
   31.
 
+### The aura prices (2026-11-24, in `Config.Aura.Prices`)
+Hugo, 2026-11-24: "Prices should be consistent across different parts like the seahorses, make sure the scaling is
+cohesive." **Claude's reading and numbers (task a1), the tuning chat's to change; modelled, not played.** One ladder: $100
+(the first, decided 2026-11-23), then x20 a tier, the step of the seahorse's own last levels:
+**$100, $2K, $40K, $800K, $15M, $300M, $6B, $120B, $2.5T, $50T, $1Qa, $20Qa.**
+
+The one scale that fits them all is how long a thing is saved for: **income** is its price in minutes of what the tank earns
+as it is bought, **share** is those minutes over the time played so far (medians of 5 seeds, 90 h;
+`python tools/balance/rad_economy.py --prices --hours 90`, which reads the auras' and subs' prices from `Config`):
+
+| Aura | Price | Step | Bought at | Income | Share | Seahorse, same number | Bought at | Income | Share | Aura / it | Sub, same number | Bought at | Income | Share | Aura / it |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 Bubble x1.5 | $100 |  | 1 min | 1.7 min | 250% |  |  |  |  |  | $75K | 10 min | 2.2 min | 23% | 0.001 |
+| 2 Shell x2 | $2,000 | x20.0 | 2 min | 1.9 min | 92% | $15K | 5 min | 2.2 min | 43% | 0.13 | $500K | 17 min | 3.3 min | 19% | 0.004 |
+| 3 Tide x2.5 | $40K | x20.0 | 8 min | 2.9 min | 37% | $250K | 13 min | 3.5 min | 26% | 0.16 | $5M | 30 min | 3.3 min | 11% | 0.008 |
+| 4 Current x3 | $800K | x20.0 | 20 min | 2.6 min | 13% | $4M | 27 min | 4.0 min | 15% | 0.20 | $50M | 55 min | 5.7 min | 10% | 0.016 |
+| 5 Reef x3.5 | $15M | x18.8 | 38 min | 5.8 min | 15% | $80M | 62 min | 6.1 min | 10% | 0.19 | $500M | 89 min | 10 min | 12% | 0.030 |
+| 6 Storm x4 | $300M | x20.0 | 75 min | 9.5 min | 13% | $2.5B | 2.2 h | 26 min | 19% | 0.12 | $5B | 2.7 h | 17 min | 11% | 0.060 |
+| 7 Moon x5 | $6B | x20.0 | 3.0 h | 18 min | 10% | $75B | 4.6 h | 29 min | 11% | 0.08 | $75B | 5.1 h | 27 min | 9% | 0.080 |
+| 8 Lantern x6 | $120B | x20.0 | 5.7 h | 41 min | 12% | $3T | 14.7 h | 110 min | 13% | 0.04 | $1T | 10.8 h | 51 min | 8% | 0.120 |
+| 9 Ember x7 | $2.5T | x20.8 | 12.7 h | 101 min | 13% | $60T | 30.1 h | 188 min | 10% | 0.04 | $15T | 21.8 h | 117 min | 9% | 0.167 |
+| 10 Urchin x8 | $50T | x20.0 | 26.4 h | 239 min | 15% | $1.2Qa | 78.5 h | 1,007 min | 21% | 0.04 |  |  |  |  |  |
+| 11 Abyss x10 | $1Qa | x20.0 | 61.9 h | 1,114 min | 30% | $25Qa | later |  |  | 0.04 |  |  |  |  |  |
+| 12 Leviathan x12 | $20Qa | x20.0 | later |  |  | $500Qa | later |  |  | 0.04 |  |  |  |  |  |
+
+| Tank stage | Price | Bought at | Income | Share |
+|---|---|---|---|---|
+| 1 | $1M | 22 min | 2.3 min | 10% |
+| 2 | $30M | 48 min | 9.6 min | 20% |
+| 3 | $1B | 1.8 h | 15 min | 14% |
+| 4 | $30B | 3.8 h | 29 min | 13% |
+| 5 | $1T | 9.8 h | 67 min | 11% |
+
+- **Cohesive now:** from tier 4 to 10 an aura asks 10 to 15% of the time played, a seahorse level 10 to 21%, a sub (4 to 9) 8 to
+  12%, a tank stage 10 to 20%. Tier 11 asks 30%; tier 12 is not reached in 90 h.
+- **Draft 2's ladder** ($100, $5K, $75K, $1.5M, $30M, $750M, $20B, $500B, $12.5T, $300T, $5Qa, $100Qa; steps x15 to x50), the same
+  run with `--draft2-auras`: tiers 1 to 10 asked 250%, 117%, 35%, 12%, 25%, 13%, 14%, 31%, 29%, 29%; tiers 11 and 12 were not
+  reached. Beside tiers 8 to 10 the seahorse levels asked 15%, 13% and 26%, subs 8 and 9 7% each, the tank's last stage 9%.
+  The seahorse, sub and stage shares differ between the two runs too (stage 4: 8% then, 13% now): the auras move when each is bought.
+- **Tiers 1 to 3 read high** (250%, 92%, 37%) because the first minutes are the whole time played: 1.7 to 2.9 minutes of
+  income each, as the seahorse's first two levels (2.2 and 3.5).
+- **An aura is always the cheaper buy** of the same number: a fifth to an eighth of the seahorse level up to tier 6, 8% at
+  tier 7, 4% from tier 8. Against the sub of the same number its price climbs from 0.1% to 17%: a sub's price steps x6.7 to x15, an
+  aura's about x20, and a sub is a faster way down, not Oxygen, so the shares are what keep the two level.
+  Tier n is bought before seahorse level n all the way up.
+- **The pace moves a little:** land 9 at 9.7 h (10.0 before), land 10 at 21.2 h (21.9 before), with the Index and the aura on
+  the seahorse only. Tier 11 comes at about 62 h, tier 12 past 90.
+- **Not re-run:** the Robux packs' tables. The $75T pack was fitted to Royal, Ember and Golden ($3T + $12.5T + $60T): Ember is
+  now $2.5T, so it buys those three with $9.5T over.
+
 ### The short of it
 1. **What a fish needs grows x7.3 a land** (theirs x5 to x8 a zone): each land's commonest fish 82, 588, 4,250, 35K,
    225K, 1.7M, 12M, 89M, 645M, **4.65B**. Every kind's base is today's times its land's factor, rounded to two
@@ -241,7 +291,7 @@ python tools/balance/rad_economy.py --step 6      a gentler need ladder
    second (their +2, 5, 15, 36, 95 x 8, then x2.5). Prices theirs where seen: free, $15K, $250K, $4M, $80M, $2.5B,
    $75B, $3T, then x20 to $500Qa.
 3. **Hugo's twelve auras, x1.5 to x12, at their prices:** $100, $5K, $75K, $1.5M, $30M, $750M, $20B, $500B, $12.5T,
-   $300T, $5Qa, $100Qa. **An aura multiplies the seahorse only**, as theirs multiplies the machine only. Hugo's
+   $300T, $5Qa, $100Qa *(replaced 2026-11-24 by one x20 ladder: "The aura prices", above)*. **An aura multiplies the seahorse only**, as theirs multiplies the machine only. Hugo's
    `Auras.luau` says "all Oxygen gained": if the aura multiplied the Index too, land 10 came at 7 hours.
 4. **The tank's five stages at their pen's prices:** $1M, $30M, $1B, $30B, $1T (500 to 5M today).
 5. **The Index:** a first catch pays 20% of the kind's need in Oxygen (at least 100) and 100 seconds of its coins; a

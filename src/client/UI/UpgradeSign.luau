@@ -6,7 +6,8 @@
 --   the title           UPGRADE SEAHORSE, big white letters with the ink edge
 --   the next seahorse   its model in a dark well (the level's own, ReplicatedStorage.TrainerModels.T<n>) and its
 --                       level and name in the cash green
---   the stat            "+6 > +10 Oxygen/s": what the ride gives now and after (Config.Train.Levels' Oxygen)
+--   the stat            "+6 > +10 Oxygen/s": what the ride gives now and after (Config.Train.Levels' Oxygen, times the
+--                       plot's owner's aura: Shared/Auras, as TrainService gives it)
 --   the prices          a red cash block (FREE while Train.Free is 1) and a purple Robux block (Train.Robux: shown
 --                       only, there is no product yet; no block when the level has no Robux price)
 -- At the top level: MAXED, the seahorse you have in gold, what it gives, and one gold MAX LEVEL block.
@@ -33,6 +34,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Auras = require(ReplicatedStorage.Shared.Auras)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Anim = require(script.Parent.Anim)
@@ -452,6 +454,17 @@ local function writePlot(sign: Sign, stage: number)
 	sign.Level = stage
 end
 
+-- What the aura of a plot's owner multiplies their seahorse by
+local function auraOf(plot: string): number
+	for _, player in Players:GetPlayers() do
+		if player:GetAttribute("Plot") == plot then
+			local tier = Auras.Tiers[player:GetAttribute("Aura") or 0]
+			return if tier then tier.Mult else 1
+		end
+	end
+	return 1
+end
+
 local function write(sign: Sign, level: number)
 	if sign.Kind == "Plot" then
 		writePlot(sign, level)
@@ -468,18 +481,22 @@ local function write(sign: Sign, level: number)
 	local word = if own and pending then "..." elseif own and saying then saying.Text else ""
 	local after = levels[level + 1]
 	local green = after ~= nil and reaches(own, free, after.Price)
-	local key = string.format("%d/%s/%d/%s/%s", level, tostring(free), robux, word, tostring(green))
+	local aura = auraOf(sign.Plot.Name)
+	local key = string.format("%d/%s/%d/%s/%s/%g", level, tostring(free), robux, word, tostring(green), aura)
 	if sign.Shown == key then
 		return
 	end
 	local first = sign.Shown == ""
 	sign.Shown = key
 	local now = levels[level]
+	local function gives(oxygen: number): string
+		return Config.wholeNumber(math.floor(oxygen * aura + 0.5))
+	end
 	if level >= top then
 		sign.Title.Text = "SEAHORSE MAXED!"
 		sign.Name.Text = string.format("LV %d %s", level, string.upper(now.Name))
 		sign.Name.TextColor3 = GOLD
-		sign.Stat.Text = string.format("+%s Oxygen/s", Config.wholeNumber(now.Oxygen)) -- (whole: task e1)
+		sign.Stat.Text = string.format("+%s Oxygen/s", gives(now.Oxygen)) -- (whole: task e1)
 		portrait(sign, level)
 		sign.Robux.Visible = false
 		sign.Cash.Size = UDim2.new(1, -36, 0, sign.Cash.Size.Y.Offset)
@@ -489,8 +506,7 @@ local function write(sign: Sign, level: number)
 		sign.Title.Text = "UPGRADE SEAHORSE"
 		sign.Name.Text = string.format("LV %d %s", level + 1, string.upper(after.Name))
 		sign.Name.TextColor3 = Shop.Money
-		sign.Stat.Text =
-			string.format("+%s > +%s Oxygen/s", Config.wholeNumber(now.Oxygen), Config.wholeNumber(after.Oxygen))
+		sign.Stat.Text = string.format("+%s > +%s Oxygen/s", gives(now.Oxygen), gives(after.Oxygen))
 		portrait(sign, level + 1)
 		cashSays(sign, if word ~= "" then word elseif free then "FREE" else Shop.cash(after.Price), 60)
 		local wide = sign.Board.Size.X * t.Sign.PixelsPerStud

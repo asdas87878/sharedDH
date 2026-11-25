@@ -3,6 +3,40 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · Auras: the flame, buying, the prices, no bubbles behind the cards (NULLROOM a1 and v2, Hugo's PC)
+**State:** pushed: `aura-build` merged with main (the dives and the sub hop, the entry below), with what Studio showed put right.
+`full_check.py all`: all good, no errors, the place equal to the repo after (one Config comment synced last, `place` run again). **Nothing is uploaded, and Hugo's place is not saved** (Ctrl+S by Hugo). Everything is in
+[auras](design/auras.md), "Built". **To turn off:** `Config.Aura.Flame` 0 (the old look), `Config.Aura.On` 0 (no buying).
+- **For the tuning chat, the price change (yours to change):** draft 2's ladder ($100, $5K, $75K, $1.5M, $30M, $750M, $20B,
+  $500B, $12.5T, $300T, $5Qa, $100Qa) is replaced by $100, $2K, $40K, $800K, $15M, $300M, $6B, $120B, $2.5T, $50T, $1Qa,
+  $20Qa in `Config.Aura.Prices`. Why, and the table beside the seahorse, the subs and the stages:
+  [progression](design/progression.md), "The aura prices". `rad_economy.py` reads Config now
+  (`--prices --hours 90`; `--draft2-auras` for the old ladder). Land 10 moves from 21.9 h to 21.2 h. **Not re-run: the packs;**
+  Ember is $2.5T now, and the $75T pack was fitted to it at $12.5T.
+- **The server** (`AuraService`): the next tier only, on the dock, near the stall's ring, price taken once, saved part "Aura"
+  (saving still off), worn at once. The aura multiplies `TrainService.gain` only; the upgrade sign shows it.
+- **The flame** (`Shared/AuraFlame`, `Lib/AuraBeams`, `AuraController`): `Config.Aura.Flame` 0 is the old look. **A live game
+  draws the old look until the six pictures in `art/ui/aura_flame/upload` are uploaded** (Hugo's yes) and their ids are in
+  `Auras.Pictures`. Studio needs `python tools/auras/flame_pics.py` (no restart was needed on 2026-11-25).
+- **The shop** (`AuraShop`): the stand-in bubbles that sat behind every picture are gone (found by the entry below), prices
+  and refusals shown. Tiers 2 and 10 are called Shell and Urchin now, the cards' tints are the pictures' colours.
+  **A known mismatch:** the old look still draws draft 2's colours (`Build[1..12]`): white foam under the coral Shell card, mint and
+  violet under the magenta Urchin. A live game shows that until the flame's pictures are uploaded.
+- **Checked offline:** `tools/auras/aura_test.luau` 61 of 61, StyLua, selene, the type checker on the changed files, a Rojo build.
+- **Put right in Studio (v2):** the pictures were upside down and ran wrong (`Aura.Turn` 2, `Scroll` -1); lines at the body's
+  joints, now thin (one push, `AuraFlame.Behind` -1.1; Beams curve straight up out of a joint). [Stills](attachments/auras-in-game.png).
+- **Checked in Studio:** `aura_check.py run`, 0 faults: tiers 1 to 10 bought through the real remote; out of order, far off, too
+  few coins and junk refused; the coins right to the unit; the twelve card prices as `Config.Aura.Prices`; no bubble or glow behind
+  a picture; all twelve drawn. Cost: 10, 26 and 47 draw calls for tiers 1, 6 and 12 (many together on a phone: not tried).
+- **Known, left:** faint level hairlines remain across the flame, probably at the joints (the title of `18156f8` says none: wrong). At
+  tier 12 from a steep camera some magenta is drawn over the wearer (an arm, a hat's brim). A bubble at the feet can be cut by the floor.
+- **Needs Hugo's yes to upload: the six files in `art/ui/aura_flame/upload/`** (`aura_flame_f1_t2`, `aura_tip_f1_t2`,
+  `aura_streaks_f1_t2`, `aura_lick_f1`, `aura_bubble_f1`, `aura_arc_f1`; ids into `Auras.Pictures`), **not the plain ones beside it:** with
+  the ids set `Config.Aura.Turn` does nothing and the plain Flame, Tip and Streaks come out upside down. And the cards'
+  one sheet, `art/ui/auras/aura_icons.png` (id into `ICONS` in `UI/AuraShop`).
+- **Owed:** by hand (a click on a card, the sounds), the flares and the burst by eye, two players, a phone.
+- **Not mine:** `tools/index/index_test.luau` fails 3 checks on `d7c958b` too (the land-set reward was retuned there).
+
 ## 2026-11-25 · Every fish dives, the hop from the fish onto the sub, the ticket gone (NULLROOM v1, Hugo's PC)
 **State:** pushed: branches `fish-dive`, `fish-sub` and `index-ticket` merged on d7c958b, with the fixes found in Studio.
 `full_check.py all` on it: all good, no errors, the place equal to the repo after (Config's comments synced last, `place` run again). **Hugo's place is not saved**: Ctrl+S by Hugo.

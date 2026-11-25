@@ -143,6 +143,8 @@ def read_config():
     cfg["Index"] = numbers_in(body) if body is not None else {}
     subs = re.search(r"\bPrices\s*=\s*\{([^}]*)\}", src.split("Config.Sub =", 1)[-1])
     cfg["SubPrices"] = [float(x) for x in re.findall(r"[\d.]+(?:e\d+)?", subs.group(1))] if subs else []
+    auras = re.search(r"\bPrices\s*=\s*\{([^}]*)\}", src.split("Config.Aura =", 1)[-1])
+    cfg["AuraPrices"] = [float(x) for x in re.findall(r"[\d.]+(?:e\d+)?", auras.group(1))] if auras else []
     cfg["LandPace"] = list_in(block(src, r"Config\.LandPace\s*="))
     cfg["ReachWeight"] = list_in(block(src, r"Config\.ReachWeight\s*="))
     cfg["ZoneMix"] = []

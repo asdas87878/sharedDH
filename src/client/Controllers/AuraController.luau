@@ -1,26 +1,41 @@
 --!strict
--- The twelve auras and the spawn-in (Shared/Auras; Hugo, 2026-11-19). DRAFT 2, task a1: drawn but not bought yet.
--- Every machine draws every player's aura round their character from the player's "Aura" attribute (a tier, 1 to 12),
--- and plays the spawn-in (Auras.SpawnStyle) when any character appears. Nothing here replicates or touches the
--- character's own parts (the spawn-in's fade uses LocalTransparencyModifier, this machine's own, and puts it back).
+-- The twelve auras and the spawn-in (Shared/Auras; Hugo, 2026-11-19, and 2026-11-24: "make sure that we implement
+-- auras"). Every machine draws every player's aura round their character from the player's "Aura" attribute (a tier, 1
+-- to 12; AuraService), and plays the spawn-in (Auras.SpawnStyle) when any character appears. Nothing here replicates or
+-- touches the character's own parts (the spawn-in's fade uses LocalTransparencyModifier, this machine's own, and puts it
+-- back).
 --
--- Hugo, 2026-11-19 (draft 2): an aura is ONLY particles round the player's body: nothing on the ground (no ring, disc,
--- floor glow or plate), no solid blocks. Each is one wrapping source (a shell round the body that the particles rise
--- from, like a flame) plus, from tier 3 up, emitters carried round the body on a path, whose particles linger and draw
--- a ribbon (a wave, spirals, rings, lanterns, wisps, a halo, a serpent). Each tier keeps its colours and idea.
+-- The flame (draft 4, docs/design/auras.md; its numbers Shared/AuraFlame, its drawing Lib/AuraBeams): Config.Aura.Flame 1.
+--   It flares on a landing (tier 7: Net.Fx "Land"), a hop (8: the player's State turns "Jumping") and a speed boost (9:
+--   Fx "Eat", "Smash"), burns faster while riding (9), starts at the hips while sat on a fish (State "Riding"), and is
+--   put on with a burst (10; below it rises): only when the Aura attribute changes on a character already seen, so never
+--   on a respawn nor for players here before we joined.
+--   Its pictures are not uploaded yet (Auras.Pictures): a live game without them, or a Studio without the local copy
+--   (tools/auras/flame_pics.py), shows the old look.
+-- The old look (draft 2, kept behind Config.Aura.Flame 0): each is one wrapping source (a shell round the body that the
+--   particles rise from, like a flame) plus, from tier 3 up, emitters carried round the body on a path, whose particles
+--   linger and draw a ribbon (a wave, spirals, rings, lanterns, wisps, a halo, a serpent).
+-- Both: only Beams and particles round the player's body, nothing on the ground (no ring, disc, floor glow or plate), no
+-- solid blocks, no light (Hugo, 2026-11-19).
 -- The carriers and the emitters' areas are unseen anchored parts in a Folder under workspace "AuraFx", placed every
 -- frame round the feet (turned with the character's heading only), in one workspace:BulkMoveTo. An aura far from the
 -- camera (Auras.DrawRange) is taken out of the world until it comes back.
 --
 -- Captures (Studio only): workspace "AuraClock" as a number holds the carriers' clock; with "AuraSlow" too, the clock
 -- runs from there at that fraction of real time and every emitter's TimeScale is set to it, so a GIF can be shot at a
--- second a frame. A Model tagged "AuraRig" shows its own "Aura" attribute, and its "SpawnAt" (a clock time) plays its
+-- second a frame. A Model tagged "AuraRig" shows its own "Aura" attribute (sat if its "State" is "Riding"; its "FlareAt", a
+-- clock time, flares it then), and its "SpawnAt" (a clock time) plays its
 -- "SpawnStyle" from then. tools/studio/aura_capture.py drives it.
 local CollectionService = game:GetService("CollectionService")
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Auras = require(game:GetService("ReplicatedStorage").Shared.Auras)
+local Auras = require(ReplicatedStorage.Shared.Auras)
+local Config = require(ReplicatedStorage.Shared.Config)
+local Net = require(ReplicatedStorage.Shared.Net)
+local AuraBeams = require(script.Parent.Parent.Lib.AuraBeams)
 local Shop = require(script.Parent.Parent.UI.Shop)
 -- (the shop's two pages: each names itself to UI.Shop as it is required)
 local AuraShop = require(script.Parent.Parent.UI.AuraShop)
@@ -253,7 +268,7 @@ local function bubbles(fx: Fx, parent: Instance, color: Color3, rate: number, si
 end
 
 ---------------------------------------------------------------------------------------------------------------------
--- The twelve tiers. Feet at y = 0, a character about 5 studs tall, "forward" -Z. Nothing below the knees but what
+-- The old look (draft 2, Config.Aura.Flame 0): the twelve tiers. Feet at y = 0, a character about 5 studs tall, "forward" -Z. Nothing below the knees but what
 -- rises off the legs.
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -819,6 +834,8 @@ type Live = {
 	Model: Model,
 	Tier: number,
 	Fx: Fx,
+	Flame: AuraBeams.Flame?, -- nil: the old look
+	Sat: () -> boolean, -- on a fish now
 }
 type Show = {
 	Model: Model,
@@ -831,6 +848,15 @@ type Show = {
 local live: { [Model]: Live } = {}
 local shows: { [Model]: Show } = {}
 local rigSpawnSeen: { [Model]: number } = {}
+local rigFlareSeen: { [Model]: number } = {}
+-- what each character was last seen wearing (0: nothing): a change on one already here is it being put on
+local seenWearing: { [Model]: number } = {}
+local noPictures = false -- the flame's pictures are not on this machine: the old look
+
+-- The flame, or the old look
+local function flaming(): boolean
+	return Config.Aura.Flame ~= 0 and not noPictures and (STUDIO or AuraBeams.uploaded())
+end
 
 local function rootOf(model: Model): BasePart?
 	local r = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
@@ -857,28 +883,39 @@ local function baseOf(model: Model): CFrame?
 	return CFrame.lookAt(p, p + flat.Unit)
 end
 
--- What each model should wear now
+-- What each model should wear now (0: nothing)
 local function wanted(): { [Model]: number }
 	local out = {}
+	local function want(model: Model, tier: any)
+		out[model] = if type(tier) == "number" and Auras.Tiers[tier] then tier else 0
+	end
 	for _, player in Players:GetPlayers() do
 		local c = player.Character
 		local tier = player:GetAttribute("Aura")
 		if STUDIO and player == Players.LocalPlayer and Auras.Test > 0 then
 			tier = Auras.Test
 		end
-		if c and type(tier) == "number" and Build[tier] then
-			out[c] = tier
+		if c then
+			want(c, tier)
 		end
 	end
 	if STUDIO then
 		for _, m in CollectionService:GetTagged("AuraRig") do
-			local tier = m:GetAttribute("Aura")
-			if m:IsA("Model") and type(tier) == "number" and Build[tier] then
-				out[m] = tier
+			if m:IsA("Model") then
+				want(m, m:GetAttribute("Aura"))
 			end
 		end
 	end
 	return out
+end
+
+-- Flare a model's aura, if it has a flame whose tier does that
+local function flare(model: Model?, kind: string)
+	local l = model and live[model]
+	local f = l and l.Flame
+	if f and (f.Spec :: any)[kind] then
+		AuraBeams.flare(f, now())
+	end
 end
 
 local function drop(model: Model)
@@ -889,24 +926,65 @@ local function drop(model: Model)
 	end
 end
 
-local function wear(model: Model, tier: number)
+local function wear(model: Model, tier: number, putOn: boolean)
 	drop(model)
 	local fx = newFx(model.Name .. "_Aura" .. tier)
-	Build[tier](fx)
+	local player = Players:GetPlayerFromCharacter(model)
+	local who: Instance = player or model
+	local flame: AuraBeams.Flame? = nil
+	if flaming() then
+		local f = AuraBeams.build(fx.Folder, tier)
+		for _, e in f.Emitters do
+			table.insert(fx.Emitters, e)
+		end
+		if putOn then
+			AuraBeams.putOn(f, now())
+		end
+		flame = f
+	else
+		Build[tier](fx)
+	end
 	fx.Folder.Parent = root
-	live[model] = { Model = model, Tier = tier, Fx = fx }
+	live[model] = {
+		Model = model,
+		Tier = tier,
+		Fx = fx,
+		Flame = flame,
+		Sat = function()
+			return who:GetAttribute("State") == "Riding"
+		end,
+	}
 end
 
 local function reconcile()
 	local want = wanted()
+	local flame = flaming()
 	for model, l in live do
-		if want[model] ~= l.Tier or not model.Parent then
+		if want[model] ~= l.Tier or not model.Parent or (l.Flame ~= nil) ~= flame then
 			drop(model)
 		end
 	end
+	for model in seenWearing do
+		if want[model] == nil then
+			seenWearing[model] = nil
+		end
+	end
 	for model, tier in want do
-		if not live[model] then
-			wear(model, tier)
+		local was = seenWearing[model]
+		if tier > 0 and not live[model] then
+			wear(model, tier, was ~= nil and was ~= tier)
+		end
+		seenWearing[model] = tier
+	end
+	if STUDIO then
+		for _, m in CollectionService:GetTagged("AuraRig") do
+			local at = m:GetAttribute("FlareAt")
+			local l = live[m]
+			if l and l.Flame and type(at) == "number" and rigFlareSeen[m] ~= at then
+				rigFlareSeen[m] = at
+				l.Flame.FlareAt = nil
+				AuraBeams.flare(l.Flame, at)
+			end
 		end
 	end
 	if STUDIO then
@@ -982,7 +1060,22 @@ local function frame()
 		local near = (base.Position - eye).Magnitude < Auras.DrawRange
 		l.Fx.Folder.Parent = if near then root else nil
 		if near then
-			run(l.Fx, t, base)
+			local flame = l.Flame
+			if flame then
+				-- the flat way to the camera: the Beams' ends lie across the view
+				local away = eye - base.Position
+				local flat = Vector3.new(away.X, 0, away.Z)
+				if flat.Magnitude < 0.5 and cam then
+					local across = cam.CFrame.RightVector
+					flat = across:Cross(Vector3.yAxis)
+				end
+				local toCam = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
+				AuraBeams.step(flame, t, base, toCam, l.Sat(), function(part, cf)
+					put(l.Fx, part, cf)
+				end)
+			else
+				run(l.Fx, t, base)
+			end
 			collect(l.Fx)
 		end
 	end
@@ -1019,6 +1112,11 @@ end
 
 local function watchPlayer(player: Player)
 	player.CharacterAdded:Connect(arrived)
+	player:GetAttributeChangedSignal("State"):Connect(function()
+		if player:GetAttribute("State") == "Jumping" then
+			flare(player.Character, "FlareHop")
+		end
+	end)
 	-- our own first character is often there before Start
 	if player == Players.LocalPlayer and player.Character then
 		arrived(player.Character)
@@ -1039,6 +1137,22 @@ function AuraController.shop(page: string?)
 	Shop.go(page)
 end
 
+-- Test hook: only the Studio check calls this (tools/studio/aura_check.py). What is drawn round a model: its tier, "Flame"
+-- or "Old", its Beams and its emitters
+function AuraController.drawn(model: Model): (number, string, number, number)
+	local l = live[model]
+	if not l then
+		return 0, "", 0, 0
+	end
+	local beams = 0
+	for _, d in l.Fx.Folder:GetDescendants() do
+		if d:IsA("Beam") then
+			beams += 1
+		end
+	end
+	return l.Tier, if l.Flame then "Flame" else "Old", beams, #l.Fx.Emitters
+end
+
 -- Test hook: only the Studio checks call this (tools/studio/b2_shop_check.py).
 function AuraController.shopOpen(): string?
 	return if AuraShop.isOpen() then "Auras" elseif SellFish.isOpen() then "Sell" else nil
@@ -1049,6 +1163,36 @@ function AuraController.Start()
 		watchPlayer(p)
 	end
 	Players.PlayerAdded:Connect(watchPlayer)
+	Net.Fx.OnClientEvent:Connect(function(what: any, player: any)
+		if typeof(player) ~= "Instance" or not player:IsA("Player") then
+			return
+		end
+		if what == "Land" then
+			flare(player.Character, "FlareLand")
+		elseif what == "Eat" or what == "Smash" then
+			flare(player.Character, "FlareBoost")
+		end
+	end)
+	-- the flame's pictures: without them, the old look
+	if STUDIO and not AuraBeams.uploaded() then
+		task.spawn(function()
+			pcall(function()
+				ContentProvider:PreloadAsync(
+					{ AuraBeams.picture("Flame"), AuraBeams.picture("Tip") } :: { any },
+					function(_id, status)
+						if status == Enum.AssetFetchStatus.Failure then
+							noPictures = true
+						end
+					end
+				)
+			end)
+			if noPictures then
+				warn(
+					"[AuraController] the flame's pictures are not here (tools/auras/flame_pics.py): the old aura look"
+				)
+			end
+		end)
+	end
 	local lastCheck = 0
 	RunService.RenderStepped:Connect(function()
 		local c = os.clock()

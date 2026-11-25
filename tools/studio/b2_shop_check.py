@@ -188,16 +188,16 @@ workspace:GetAttributeChangedSignal("B2Do"):Connect(function()
 			if w:FindFirstChild("Toast", true).Visible then word(w, "Toast") else "none")
 	elseif verb == "auras" then
 		local w = gui:FindFirstChild("AuraShop")
-		local cards, soon, equipped, owned = 0, 0, 0, 0
+		local cards, soon, equipped, owned, priced = 0, 0, 0, 0, 0
 		for _, d in w:GetDescendants() do
 			if d:IsA("Frame") and string.match(d.Name, "^Aura%d+$") then
 				cards += 1
-				local t = d:FindFirstChild("Cash", true):FindFirstChild("Label", true).Text
-				if t == "SOON" then soon += 1 elseif t == "EQUIPPED" then equipped += 1 elseif t == "OWNED" then owned += 1 end
+				local t = string.upper(d:FindFirstChild("Cash", true):FindFirstChild("Label", true).Text)
+				if t == "SOON" then soon += 1 elseif t == "EQUIPPED" then equipped += 1 elseif t == "OWNED" then owned += 1 elseif string.match(t, "^%$%d") then priced += 1 end
 			end
 		end
-		said = string.format("enabled=%s cards=%d soon=%d equipped=%d owned=%d tabs=%d title=%s", tostring(w.Enabled), cards,
-			soon, equipped, owned, #w:FindFirstChild("Tabs", true):GetChildren() - 1, word(w, "Title"))
+		said = string.format("enabled=%s cards=%d soon=%d equipped=%d owned=%d priced=%d tabs=%d title=%s", tostring(w.Enabled), cards,
+			soon, equipped, owned, priced, #w:FindFirstChild("Tabs", true):GetChildren() - 1, word(w, "Title"))
 	elseif verb == "wear" then
 		player:SetAttribute("Aura", tonumber(a))
 		task.wait(0.4)
@@ -385,9 +385,9 @@ def check():
     note("open auras: " + a)
     r = do("auras")
     note("auras: " + r)
-    expect("the shop opens at the Auras page: 12 cards, two tabs, every price SOON",
+    expect("the shop opens at the Auras page: 12 cards, two tabs, every aura priced (2026-11-24: on sale)",
            kv(a, "open") == "Auras" and kv(r, "enabled") == "true" and kv(r, "cards") == "12"
-           and kv(r, "soon") == "12" and kv(r, "tabs") == "2", r)
+           and kv(r, "soon") == "0" and kv(r, "priced") == "12" and kv(r, "tabs") == "2", r)
     time.sleep(0.5)
     scene("auras")
     note(do("wear|3"))

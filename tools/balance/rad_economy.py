@@ -5,6 +5,8 @@ usage:  python tools/balance/rad_economy.py               the tables and a free 
         python tools/balance/rad_economy.py --sit 0.25    a player who sits on the seahorse less
         python tools/balance/rad_economy.py --step 7.3    the need ladder: times a land (default 7.3)
         python tools/balance/rad_economy.py --no-index    the same player with no Index rewards
+        python tools/balance/rad_economy.py --prices      one table: the auras beside the seahorse, the subs and the tank
+                                                          (when each is bought, and how long it is saved for), 5 seeds
 
 The user, 2026-11-22: "We need to pretty much replicate ride a dinos progression ... The upper tier dinos in ride a dino
 are in the billions, possibly higher ... we need that huge cap whilst making the progression possible."
@@ -24,6 +26,7 @@ import json
 import math
 import os
 import random
+import statistics
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -51,10 +54,18 @@ SEAHORSE = [  # (name, Oxygen a second, price, where the price comes from)
     ("Starfire", 190_000, 25e15, "fit, x20"),
     ("Prismatic", 470_000, 500e15, "fit, x20"),
 ]
-# Hugo's twelve auras (src/shared/Auras.luau), their cash ladder: seen $100 to $5Qa for 1 to 11, the 12th a fit.
-AURAS = [("Bubble", 1.5, 100), ("Foam", 2, 5_000), ("Tide", 2.5, 75_000), ("Current", 3, 1_500_000),
-         ("Reef", 3.5, 30_000_000), ("Storm", 4, 750_000_000), ("Moon", 5, 20e9), ("Lantern", 6, 500e9),
-         ("Ember", 7, 12.5e12), ("Phantom", 8, 300e12), ("Abyss", 10, 5e15), ("Leviathan", 12, 100e15)]
+# Hugo's twelve auras (src/shared/Auras.luau). Prices: the game's own, Config.Aura.Prices (2026-11-24: $100, then x20 a
+# tier). Draft 2's, theirs ($100 to $5Qa seen for 1 to 11, the 12th a fit), are kept for comparing: --draft2-auras.
+AURA_NAMES = [("Bubble", 1.5), ("Shell", 2), ("Tide", 2.5), ("Current", 3), ("Reef", 3.5), ("Storm", 4), ("Moon", 5),
+              ("Lantern", 6), ("Ember", 7), ("Urchin", 8), ("Abyss", 10), ("Leviathan", 12)]
+AURA_DRAFT2 = [100, 5e3, 75e3, 1.5e6, 30e6, 750e6, 20e9, 500e9, 12.5e12, 300e12, 5e15, 100e15]
+AURAS = []  # (name, times, price), filled by set_auras
+
+
+def set_auras(prices):
+    AURAS[:] = [(n, m, pr) for (n, m), pr in zip(AURA_NAMES, prices)]
+
+
 # The tank's five stages (+2 fish each, Config.PlotUpgrades): theirs $1M for pen 1 to 2, $500B for 6 to 7, $25T for
 # 8 to 9 (seen). Ours has five steps where theirs has eight or more: $1M, then about x30.
 STAGES = [1e6, 30e6, 1e9, 30e9, 1e12]
@@ -110,7 +121,7 @@ def income(cfg, fish, size="Normal", colour=""):
     return M.need_of(cfg, fish, size, colour) * cfg["Aquarium"]["PerRequired"] * cfg["VariantIncome"].get(colour, 1)
 
 
-def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0):
+def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0, earned=None):
     """A free player: sits SIT of the time, dives the rest, brings a fish home every CATCH_EVERY s of diving, buys the
     cheapest thing not yet owned (seahorse level, aura, tank stage) as soon as the coins are there."""
     rng = random.Random(seed)
@@ -184,6 +195,8 @@ def play(cfg, w, hours=60, sit=SIT, index=True, seed=3, dt=5.0):
             if coins < price:
                 break
             coins -= price
+            if earned is not None:  # what the tank made a second as it was bought
+                earned.append((t, price, earn))
             if what == "level":
                 owned_level += 1
                 bought.append((t, f"seahorse {owned_level + 1} {SEAHORSE[owned_level][0]}"))
@@ -218,6 +231,49 @@ def clock(seconds):
     return f"{m:.0f} min" if m < 90 else f"{m / 60:.1f} h"
 
 
+def prices(out, cfg, c, w, a):
+    """Every ladder on one scale. Minutes of income: the price over what the tank makes as it is bought (how long it is
+    saved for if nothing else is bought). Share: those minutes over the minutes played so far, so a thing at hour 30 can
+    be set beside one at minute 30."""
+    got, lands = {}, {}
+    for seed in range(1, 6):
+        earned = []
+        reached, bought, _, _ = play(c, w, a.hours, a.sit, not a.no_index, seed=seed, earned=earned)
+        for (t, what), (_, price, earn) in zip(bought, earned):
+            kind = " ".join(what.split()[:3 if what.startswith("tank") else 2])
+            if kind.startswith("aura"):
+                kind = f"aura {[n for n, _ in AURA_NAMES].index(what.split()[1]) + 1}"
+            got.setdefault(kind, []).append((t, price / max(earn, 1) / 60))
+        for z, t in reached.items():
+            lands.setdefault(z, []).append(t)
+
+    def cell(key, price):
+        v = got.get(key)
+        if price is None:
+            return ["", "", "", ""]
+        if not v or len(v) < 3:
+            return ["$" + big(price), "later", "", ""]
+        t, m = statistics.median(x[0] for x in v), statistics.median(x[1] for x in v)
+        return ["$" + big(price), clock(t), f"{m:.1f}" if m < 10 else f"{m:,.0f}", f"{100 * m * 60 / t:.0f}%"]
+
+    subs = cfg["SubPrices"]
+    out.title(f"R6. The auras beside the rest (5 seeds, {a.hours:g} h)",
+              "Bought at; minutes of the tank's income it costs then; those minutes as a share of the time played.")
+    rows = []
+    for i, (n, m, pr) in enumerate(AURAS):
+        horse = SEAHORSE[i][2] if i else None
+        last = AURAS[i - 1][2] if i else None
+        sub = subs[i] if i < len(subs) else None
+        rows.append([f"{i + 1} {n} x{m:g}", *cell(f"aura {i + 1}", pr), f"x{pr / last:.1f}" if last else "",
+                     *cell(f"seahorse {i + 1}", horse), f"{pr / horse:.2f}" if horse else "",
+                     *cell(f"sub {i + 1}", sub), f"{pr / sub:.3f}" if sub else ""])
+    out.table(["Aura", "Price", "At", "Min", "Share", "Step", "Seahorse, same number", "At", "Min", "Share", "Aura / it",
+               "Sub, same number", "At", "Min", "Share", "Aura / it"], rows)
+    out.table(["Tank stage", "Price", "At", "Min", "Share"],
+              [[str(i + 1), *cell(f"tank stage {i + 1}", pr)] for i, pr in enumerate(STAGES)])
+    out.line("Lands held at: " + ", ".join(clock(statistics.median(lands[z])) if z in lands else "later" for z in range(w["lands"])))
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--md", action="store_true")
@@ -225,12 +281,17 @@ def main():
     p.add_argument("--step", type=float, default=STEP)
     p.add_argument("--no-index", action="store_true")
     p.add_argument("--hours", type=float, default=60)
+    p.add_argument("--prices", action="store_true")
+    p.add_argument("--draft2-auras", action="store_true")
     a = p.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     cfg = M.read_config()
+    set_auras(AURA_DRAFT2 if a.draft2_auras or not cfg["AuraPrices"] else cfg["AuraPrices"])
     c, w, lane, scale = scaled(cfg, a.step)
     out = M.Out(a.md)
+    if a.prices:
+        return prices(out, cfg, c, w, a)
 
     out.title("R1. What a fish needs, by land (draft 2)",
               f"Each land's commonest fish needs x{a.step:g} the land before's (theirs about x5 to x8 a zone). Every kind's "
@@ -260,10 +321,10 @@ def main():
         rows.append([f"{i + 1} {name}", f"+{rate:,}", "free" if i == 0 else "$" + big(price), src])
     out.table(["Level", "Oxygen a second", "Price", "Price from"], rows)
 
-    out.title("R3. The auras (Hugo's twelve; their prices)", "An aura multiplies the seahorse's Oxygen only, as theirs "
+    out.title("R3. The auras (Hugo's twelve; the game's prices)", "An aura multiplies the seahorse's Oxygen only, as theirs "
               "multiplies the machine only (Hugo's Auras.luau says all Oxygen gained: his call). Their multipliers on 9 November: x1.5, 2, 2.5, 3 for the first four, like Hugo's.")
-    out.table(["Aura", "Times", "Price", "Theirs"], [[f"{i + 1} {n}", f"x{m:g}", "$" + big(pr),
-                                                      "seen" if i < 11 else "fit"] for i, (n, m, pr) in enumerate(AURAS)])
+    out.table(["Aura", "Times", "Price", "Theirs (draft 2)"], [[f"{i + 1} {n}", f"x{m:g}", "$" + big(pr), "$" + big(AURA_DRAFT2[i])]
+                                                                for i, (n, m, pr) in enumerate(AURAS)])
 
     out.title("R4. The tank", f"A fish earns its need x {cfg['Aquarium']['PerRequired']:g} a second (as today). Stages "
               "+2 fish each (as built), at their pen's prices.")

@@ -40,6 +40,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local AquariumService = require(script.Parent.AquariumService)
+local AuraService = require(script.Parent.AuraService)
 local RideService = require(script.Parent.RideService)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 
@@ -601,15 +602,15 @@ function TrainService.setLevel(player: Player, n: number): boolean
 end
 
 -- Training in whole seconds (task e1): `carry` is the part of a second already seated, `dt` more. Each whole second
--- it completes gives the level's whole Oxygen (Config.Train.Levels; Rate when there is no such table), never a share
--- of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
+-- it completes gives the level's whole Oxygen (Config.Train.Levels; Rate when there is no such table) times the player's
+-- aura (AuraService.multOf), never a share of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
 local function gain(player: Player, carry: number, dt: number, level: number): (number, number)
 	local t = Config.Train
 	local ticks, left = Config.trainTicks(carry, dt)
 	if ticks <= 0 then
 		return 0, left
 	end
-	local each = math.floor((if t.Levels then levelRow(level).Oxygen else t.Rate) + 0.5)
+	local each = math.floor((if t.Levels then levelRow(level).Oxygen else t.Rate) * AuraService.multOf(player) + 0.5)
 	local amount = ticks * each
 	return if RideService.train(player, amount) then amount else 0, left
 end

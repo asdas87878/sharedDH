@@ -23,6 +23,7 @@
 --   Server leeway: Net: how much lag and reach the server allows when it judges a grab or a landing
 --   The camera, look and animation: Camera, Look, Animation, Pose, Feel, AimHud: view, light, motion, the reticle
 --   Spawning and the dive-in: Spawn, Dive: where wild fish are made, and stepping off the dock into the sea
+--   The auras: Aura: their prices, the stall, and how the flame is drawn
 --   The submarine: Sub, SubTitles: the bought ride to deeper lands, its prices, and the land titles on the way
 --   The Index: Index: what a new kind and a finished land pay, and how the server watches for catches (DRAFT)
 --   Spawn mix and the roster list: ZoneMix, ReachWeight, Fish, FishById: rarity odds per land, every fish kind
@@ -3447,6 +3448,32 @@ Config.Dive = {
 	LeapMountedLevel = 0, -- under the water the fish levels to this many degrees nose down (the water fish it is swapped for is level; 10 until 2026-11-24)
 	FirstDockWait = 20, -- seconds floating at the surface by the dock before a player who has not ridden yet this dive is put back on it (Oxygen.DockWait once they have)
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
+}
+
+----------------------------------------------------------------------------------------------------------------------
+-- The auras: their prices, the stall, and how the flame is drawn
+
+-- The twelve auras (Shared/Auras: names, colours, what each multiplies; docs/design/auras.md). Bought one after another
+-- at the Auras stall, AuraService. The multiplier is on what the seahorse gives (TrainService), nothing else.
+Config.Aura = {
+	On = 1, -- 0: no aura can be bought (the stall says SOON); those worn stay
+	-- Coins, tier 1 to 12: 100 (the user, 2026-11-23: the first one), then 20 times the one before (18.8 to 20.8 where
+	-- it is rounded), the step of the seahorse's own last levels. Tiers 4 to 10 are each saved for over 10 to 15% of
+	-- the time played so far (tier 11: 30%), as a seahorse level (10 to 21%) and a sub (8 to 12%) of its stage are
+	-- (docs/design/progression.md, "The aura prices"; tools/balance/rad_economy.py --prices).
+	-- Claude's reading of the user's "consistent across different parts like the seahorses", 2026-11-24: the tuning
+	-- chat's to change
+	Prices = { 100, 2e3, 40e3, 800e3, 15e6, 300e6, 6e9, 120e9, 2.5e12, 50e12, 1e15, 20e15 } :: { number },
+	Near = 30, -- the stall sells within this many studs of its ring (Dock.Stations.Auras), as the sub's stand
+	BuyAgain = 0.5, -- one ask at a time: a second press within this many seconds is the same click, seconds
+	Flame = 1, -- 1: the flame (draft 4); 0: the old look (draft 2's particles and ribbons). Read live
+	-- How Roblox draws the pictures, found in Studio (2026-11-25: 2 and -1 are the right way up, joined). Read live
+	Turn = 2, -- quarter turns clockwise of the Beams' pictures, 0 to 3
+	Scroll = -1, -- which way the flame's picture runs along its Beams
+	Behind = 1, -- the Beams' and particles' push behind the wearer, times this (-1: the engine's sign is the other way)
+	SeatEase = 0.25, -- from the seated flame to the standing one and back over this long, seconds
+	FlareGap = 0.3, -- flares nearer together than this are one, seconds
+	PutOnOver = 0.95, -- the burst and the rise are over after this long, seconds
 }
 
 ----------------------------------------------------------------------------------------------------------------------

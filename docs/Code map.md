@@ -81,6 +81,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `Services/FishService` | The wild herd: rolls each fish, spawns it out of sight, swims it down the stream, keeps the stock up, hands fish to riders. |
 | `Services/AquariumService` | Plots, tanks, coins, the income loop, selling, plot upgrades, holding a fish over the head, the way home. |
 | `Services/TrainService` | The breath trainer on each plot: riding it raises max Oxygen; its levels and signs. |
+| `Services/AuraService` | The auras bought and worn: order, price, place, saved; the multiplier on what the seahorse gives. |
 | `Services/SubService` | The submarine: buying, picking a land, carrying a diver down and dropping them on a fish. |
 | `Services/TankRideService` | Riding one of your own fish round your tank. |
 | `Services/PropService` | The props that break: which boxes are out, and putting a prop back when nobody is near. |
@@ -121,7 +122,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `TankRideController` | Riding a fish in our own tank. |
 | `TrainerController` | The trainer toy on every plot: rocking, the coil, the rider. |
 | `SubController` | The submarine trip on every screen. |
-| `AuraController` | Every player's aura and the spawn-in. A draft: drawn, not sold. |
+| `AuraController` | Every player's aura (the flame, drawn by `Lib/AuraBeams`; the old look behind `Config.Aura.Flame` 0) and the spawn-in. |
 | `GroundFxController` | Small effects on land. |
 | **The screen and the light** | |
 | `LessonController` | What the first minutes' step shows: the dock's line (`UI/DockNotes`), the arrow and trail (`UI/LessonPointer`), the hop button's words and the ring on PUT ALL IN (`UI/LessonPrompt`). Nothing with `Config.Lesson.On` 0. |
@@ -160,7 +161,7 @@ and `Spring` (the camera), `Feel` and `Fx` (speed lines, bubbles, sounds), `Spla
 | `TankPanel` | The "Your Tank" window. |
 | `SellFish` | The Sell Fish window. |
 | `ShopScreen` | The Robux shop. Every offer reads "Soon". |
-| `AuraShop` | The aura stall. Buying is not built. |
+| `AuraShop` | The aura stall: the twelve cards, buying. |
 | `SubPanel` | The submarine stand. |
 | `UpgradeSign` | The trainer's upgrade board on each plot. |
 | `HubButtons`, `HubSigns`, `DockNotes`, `TankPrompt` | The dock's buttons, signs, the line in the middle of the screen, the moment a fish goes in. |
@@ -177,6 +178,7 @@ at its end, and is required from `StallController`.
 | `Creatures/` | Each modelled creature's parts, pivots and swim (`*.json`, made by `tools/creatures/collect.py`). |
 | `RideStyles`, `AngryStyles` | How each of the nine body types moves, and how it shows it wants you off. |
 | `Archetypes`, `Variants`, `Auras` | How passives, Silver/Gold/Rainbow fish and auras look. |
+| `AuraFlame` | The flame auras' numbers and how they move (plain sums, tested offline). |
 | `SubModels`, `SubTrip` | The submarines and a trip's path, the same on server and client. |
 | `Products` | What the Robux shop sells. Every id is 0. |
 | `Look`, `Ease` | Putting the lighting numbers on; small maths. |
@@ -196,7 +198,7 @@ listens.
 | Action | `TankRide` "On" fish, or "Off" | TankRideController, UI/TankPanel | TankRideService |
 | Action | `SubBuy`, `SubEquip`, `SubPick`, `SubLand` | UI/SubPanel, SubController | SubService |
 | Action | `SandboxSit` fish | RideController | RideService |
-| Action | `AuraBuy` tier | UI/AuraShop | nobody: not built |
+| Action | `AuraBuy` tier | UI/AuraShop | AuraService |
 | Action | `Place` index, id | nobody | AquariumService (left from before the tank window) |
 | Ride | `Mounted`, `Dismounted`, `Denied`, `Crashed` | RideService | JumpController, RideController |
 | Ride | `Tamed`, `Caught` | RideService | TameController, UI/CaughtText |
@@ -205,6 +207,7 @@ listens.
 | Ride | `Deposited`, `Sold`, `TankDenied`, `PlotUp`, `PlotNo` | AquariumService | AquariumController, the tank, sell and sign UI |
 | Ride | `TankMounted`, `TankDismounted` | TankRideService | TankRideController |
 | Ride | `SubFish`, `SubDrop`, `SubDenied`, `SubBought` | SubService | SubController, UI/SubPanel |
+| Ride | `AuraBought`, `AuraDenied` | AuraService | UI/AuraShop, SoundController |
 | Fx | `Land`, `Fail`, `Ragdoll`, `ThrowOff`, `Eat`, `Smash` | RideService | AnimController, JumpController, FailController, DeathController, ArchetypeController |
 | Sandbox | `Tune`, `Flag`, `Reset`, `Ride` | SandboxController | SandboxService (Studio only) |
 | Admin | requests and "Done" or "Refused" | AdminController | AdminService, and back |

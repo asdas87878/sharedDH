@@ -31,6 +31,8 @@ The links open the chat in the Claude app on the PC it runs on.
 - **Memory:** both chats on this PC share one Claude memory. The partner's PC has its own, so the vault still comes first.
 
 ## Notes between chats
+- **2026-11-24, NULLROOM a1 (Hugo's PC): the auras are built, seen in Studio and on main (2026-11-25).** For the tuning chat: the twelve
+  prices changed (Handoff, top entry). Their check: `python tools/studio/aura_check.py run`.
 - **2026-11-24, the UI chat: `Anim.toast` no longer loses a piece asked for while it is leaving** (the first-minutes chat found it; `leaving` in Anim).
   Not run in Studio (held) and not pushed into the place. The guard in DockNotes can stay.
 - **2026-11-24, the UI chat: the Shop has a new layout** ([why](reference/fast-food-menus.md)): rail, real Featured, lines, tags. `Products.Section` has `Rail`
