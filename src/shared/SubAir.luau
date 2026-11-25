@@ -323,12 +323,16 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?): (Ve
 	local k = Ease.smoothstep(air.HopAt, air.SplashAt, t)
 	local along = Ease.lerp(rider:Dot(out) - e.Back, at:Dot(out) - c.AirCamSub, k)
 	-- up: over the rider, but under the sub until it has gone by overhead; then over the sub
-	local cap = e.Cap + (air.Meet:Dot(out) - along) * math.tan(air.Slope)
+	-- (no lower once it is past there)
+	local cap = e.Cap - softMin(along - air.Meet:Dot(out), 0, 40) * math.tan(air.Slope)
 	local track = SubAir.track(air, t, rider.Y)
 	local low = if e.Top then -softMin(-track - c.AirCamUp, -cap, 8) else softMin(track + c.AirCamUp, cap, 8)
 	-- (higher behind a nose that is down: over its stern, the rider in sight)
-	-- (over a fifth of a second: its way breaks at the seat)
-	local down = math.max(-(SubAir.middle(air, math.min(t + 0.1, air.RideAt)) - SubAir.middle(air, t - 0.1)).Unit.Y, 0)
+	-- (by its way over the tenths of a second about now, the nearest counting most: its way breaks at the seat)
+	local function falling(h: number): number
+		return math.max(-(SubAir.middle(air, math.min(t + h, air.RideAt)) - SubAir.middle(air, t - h)).Unit.Y, 0)
+	end
+	local down = (falling(0.06) + falling(0.12) + falling(0.18)) / 3
 	local high = at.Y + c.AirCamSubUp + c.AirCamSub * math.min(down, math.sin(math.rad(c.AirNose))) * c.AirCamNose
 	-- (clear of the gate's arch: under its beam or over its crest until it is past it, and only then up over the sub)
 	if e.Gate > 0 then
