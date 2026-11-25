@@ -20,6 +20,8 @@
 -- joints are back); a "Taken" one is the fail itself and fades to the fail screen (State.Fade, FadeText).
 -- The words of a failed run are drawn here too (Kit.failWords, the Bubble letters; "The words" below): what the
 -- deaths set in State.FadeText comes through Banners.miss and Kit.FailShow.
+-- A kind in Config.Fail.NewEat plays its new move instead (Lib/EatMoves: the fish's path, the rider's arc and the joints;
+-- f.New here): everything below that asks for f.New is that, and nothing else changes for the rest.
 -- Stand-ins for the partner's animations: the player's FailKind attribute and Config.Fail.Outcomes[kind].Hook name
 -- what plays; the sounds are placeholders from Lib/Fx.
 local Players = game:GetService("Players")
@@ -31,6 +33,7 @@ local Creatures = require(ReplicatedStorage.Shared.Creatures)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Course = require(script.Parent.Parent.Lib.Course)
+local EatMoves = require(script.Parent.Parent.Lib.EatMoves)
 local Fx = require(script.Parent.Parent.Lib.Fx)
 local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
@@ -92,6 +95,7 @@ type Body = {
 	Colliders: { Collider },
 	Holds: { [string]: Hold },
 	HitAt: number,
+	New: boolean, -- (Config.Fail.NewEat) its fish plays a new eating move
 	MouthOff: boolean, -- the boxes round the mouth are off (it is being swallowed)
 	Recording: Take?, -- (Studio: this live run is being recorded)
 	Replay: boolean, -- (Studio: this one is a playback: no physics of ours)
@@ -165,6 +169,18 @@ type Fail = {
 	HideAt: number?,
 	HideFar: number?,
 	Dials: { Mouth: boolean, Arrive: boolean, Smooth: boolean }, -- Config.Fail's, read as it began
+	-- (Config.Fail.NewEat) its new eating move (nil: the old one), the mantle it squeezes and its own size, the view's way
+	-- as it began and the side the shot takes, the point the shot hangs from, and how far off it stood
+	New: EatMoves.Plan?,
+	Mantle: BasePart?,
+	MantleSize: Vector3?,
+	CamFrom: Vector3,
+	CamSide: number,
+	CamLeast: number,
+	Pivot: Vector3,
+	Aim: Vector3, -- (Chomp) studs its path is moved by, to meet the body where it really is
+	TakenAt: Vector3?, -- where the body was as it was bitten
+	Slip: Vector3, -- studs the sea bed or a wall holds it off its path by
 }
 
 local fails: { [Player]: Fail } = {}
@@ -579,6 +595,85 @@ local function poseRig(f: Fail, rig: Rig, t: number)
 	end
 end
 
+-- (Config.Fail.NewEat) The same for a new eating move: its joints from EatMoves, with the swim's own turn of each
+-- (Motor6D.Transform, AnimController) taken out, so the jaw and the arms are exactly where they are put and what the
+-- rider sits on does not move as they come off it.
+local GRIPS = { "LeftUpperLeg", "Left Leg" }
+local function gripsOf(f: Fail): { EatMoves.Grip? }
+	local rootCF = f.FishRoot.CFrame
+	local torso, lower = limb(f.Character, "Torso"), limb(f.Character, "Lower")
+	if not torso or not lower then
+		return {}
+	end
+	local legs: Vector3? = nil
+	for _, name in GRIPS do
+		local left = f.Character and f.Character:FindFirstChild(name)
+		local right = f.Character and f.Character:FindFirstChild((string.gsub(name, "Left", "Right")))
+		if left and right and left:IsA("BasePart") and right:IsA("BasePart") then
+			legs = (left.Position + right.Position) / 2
+			break
+		end
+	end
+	local chest = rootCF:PointToObjectSpace(torso.Position)
+	local waist = if lower ~= torso
+		then rootCF:PointToObjectSpace(lower.Position)
+		else rootCF:PointToObjectSpace(torso.CFrame * Vector3.new(0, -0.8, 0))
+	local thighs = if legs then rootCF:PointToObjectSpace(legs) else waist + (waist - chest)
+	local spine = chest - waist
+	spine = if spine.Magnitude > 0.05 then spine.Unit else Vector3.zAxis
+	local down = waist - thighs
+	down = if down.Magnitude > 0.05 then down.Unit else spine
+	return { { At = chest, Along = spine }, { At = waist, Along = spine }, { At = thighs, Along = down } }
+end
+
+local function poseNew(f: Fail, plan: EatMoves.Plan, u: number)
+	local rig = EatMoves.rig(plan, u)
+	local moves = Config.Fail.EatMoves
+	local quiet = ss(0, 0.2, u)
+	local all = if f.Kind == "Wrap" then EatMoves.arms(plan, u, gripsOf(f)) else {}
+	-- (the spine's joints behind the rider bend from the start, those under and ahead of them only once they are off it)
+	local seatZ = plan.Given.Saddle.Z / math.max(f.Length, 0.01)
+	local behind = 0
+	for _, j in f.Joints do
+		if j.Kind == "spine" and j.Z > seatZ then
+			behind += 1
+		end
+	end
+	for _, j in f.Joints do
+		local r = CFrame.identity
+		if j.Kind == "jaw" then
+			r = CFrame.Angles(-j.Open * rad(moves.JawTurn) * rig.Jaw, 0, 0)
+		elseif j.Kind == "arm" and j.Chain and j.Link then
+			local abs = all[j.Chain]
+			local i = j.Link :: number
+			if abs and abs[i] then
+				r = if i == 1 then abs[1] else abs[i - 1]:Inverse() * abs[i]
+			end
+		elseif f.Kind == "Chomp" and j.Kind == "spine" then
+			local back = math.clamp((j.Z - seatZ) * 2.2, 0, 1)
+			local gulp = EatMoves.gulp(plan, u, j.Z)
+			local wave = rig.Sway * math.sin(rig.Beat - j.Z * 5) * (0.2 + 0.8 * back)
+			if j.Z > seatZ then
+				r = CFrame.Angles(rig.Bunch / math.max(behind, 1) + gulp, wave * 2 / math.max(behind, 1), 0)
+			else
+				r = CFrame.Angles(gulp, wave * 0.4 * ss(0.6, 0.85, u), 0)
+			end
+		elseif f.Kind == "Chomp" and j.Kind == "fin" then
+			local a = rig.Fins * (if j.Depth > 1 then 0.5 else 1)
+			r = if a >= 0
+				then CFrame.Angles(rad(28) * a, j.Side * rad(20) * a, j.Side * rad(24) * a)
+				else CFrame.Angles(0, j.Side * rad(32) * a, j.Side * rad(6) * a)
+		end
+		local swim = CFrame.new():Lerp(j.Motor.Transform:Inverse(), quiet)
+		j.Motor.C0 = j.C0 * r * swim
+	end
+	local mantle, size = f.Mantle, f.MantleSize
+	if mantle and size then
+		local q = rig.Squeeze * moves.Wrap.Squeeze
+		mantle.Size = size * Vector3.new(1 - q, 1 - q, 1 + q * 0.8)
+	end
+end
+
 local function unposeRig(f: Fail)
 	for _, j in f.Joints do
 		if j.Motor.Parent then
@@ -589,6 +684,9 @@ local function unposeRig(f: Fail)
 		if part.Parent then
 			part.Size = size
 		end
+	end
+	if f.Mantle and f.MantleSize and f.Mantle.Parent then
+		f.Mantle.Size = f.MantleSize
 	end
 end
 
@@ -618,11 +716,18 @@ local OUTCOMES: { [string]: (f: Fail, t: number) -> Frame } = {}
 
 -- the mouth's place on the fish, in the fish's space (found on the model, or the old guess off its box)
 local function mouthOf(f: Fail): CFrame
+	if f.New and f.Kind == "Chomp" then
+		-- (its mouth as the jaw is now)
+		return CFrame.new(EatMoves.mouthAt(f.New.Given, EatMoves.chompRig(f.New, f.U).Jaw))
+	end
 	return f.Mouth or CFrame.new(0, -f.Height * 0.05, -f.Length * 0.47)
 end
 
 -- the mouth's pull at `u` seconds into the outcome: the mouth, then on down the throat (world)
 local function mouthTarget(f: Fail, fishNow: CFrame, u: number): Vector3
+	if f.New and f.Kind == "Chomp" then
+		return fishNow * EatMoves.throat(f.New, u)
+	end
 	local deep = if f.Kind == "Gulp" then f.Length * 0.3 * ss(1.45, 1.8, u) else f.Length * 0.25 * ss(1.3, 1.7, u)
 	return (fishNow * mouthOf(f) * CFrame.new(0, 0, deep)).Position
 end
@@ -1180,7 +1285,7 @@ local function hold(b: Body, key: string, partName: string, at: Vector3, pull: n
 		align.Parent = part
 		h = { Attachment = a, Align = align, Part = part, Mass = math.max(mass, 1) }
 		b.Holds[key] = h
-	elseif Config.Fail.Arrive ~= 0 then
+	elseif Config.Fail.Arrive ~= 0 or b.New then
 		-- (Fail.Arrive: its strength follows every call, so a pull that ramps (the Chomp's from ChompGrabFrom to 22
 		-- and on deeper, the Gulp's suction, the Pin's) really ramps; at 0, as before: kept as it was made)
 		local r = Config.Fail.Ragdoll
@@ -1236,6 +1341,7 @@ local function beginBody(player: Player, fish: Model?, kind: string)
 		Colliders = {},
 		Holds = {},
 		HitAt = 0,
+		New = false,
 		MouthOff = false,
 		Recording = nil,
 		Replay = false,
@@ -1283,6 +1389,7 @@ local function beginBody(player: Player, fish: Model?, kind: string)
 	end
 	-- the throw
 	local fishRoot = fish and fish.PrimaryPart
+	local plan = if playing and playing.Kind == kind then playing.New else nil
 	local velocity, spin = throwOf(
 		kind,
 		if fishRoot then fishRoot.CFrame else nil,
@@ -1290,6 +1397,14 @@ local function beginBody(player: Player, fish: Model?, kind: string)
 	)
 	-- (Death.UnderWater: near the surface it goes back more than up)
 	velocity = Underwater.shapeThrow(velocity, if root then root.Position else nil)
+	if playing and plan then
+		-- (Config.Fail.NewEat: it goes on along the arc it is already on, so nothing jumps as it comes loose; and the
+		-- mouth's boxes are off from here, the arc goes over them)
+		b.New = true
+		b.MouthOff = true
+		velocity = EatMoves.velocity(plan, playing.U)
+		spin = -plan.Level.RightVector * Config.Fail.EatMoves.Spin * (if kind == "Chomp" then 1 else -1)
+	end
 	for _, p in b.Parts do
 		p.AssemblyLinearVelocity = velocity
 		p.AssemblyAngularVelocity = spin
@@ -1430,7 +1545,41 @@ end
 local WAIT_CHOMP = { 1.2, 1.6 }
 local WAIT_GULP = { 1.58, 1.76 }
 
+-- (Config.Fail.NewEat) The loose body carried along its arc, then held by the mouth or the arms. It is still the real
+-- ragdoll, pulled by its chest (and, in the arms, its hips): the limbs are its own.
+local function grabsNew(f: Fail, b: Body, plan: EatMoves.Plan, u: number, fishNow: CFrame)
+	local moves = Config.Fail.EatMoves
+	local chomp = f.Kind == "Chomp"
+	local has = if chomp then moves.Chomp.Bite else moves.Wrap.Catch
+	local m = EatMoves.moment(plan, u + (if u < has then moves.Lead else 0))
+	local at = m.Rider.Position + f.Slip * ss(has - 0.3, has, u)
+	if chomp and u >= has then
+		-- (from where you really are, as it shuts on you, into its mouth as it really is)
+		local from = f.TakenAt or torsoOf(f) or at
+		f.TakenAt = from
+		at = from:Lerp(fishNow * EatMoves.throat(plan, u), EatMoves.taken(u))
+	elseif u >= has then
+		at = fishNow * m.Fish:PointToObjectSpace(m.Rider.Position)
+	end
+	local pull = if u >= has then Config.Fail.HidePull else moves.Pull
+	hold(b, "Eat", "Torso", at, pull, moves.PullForce)
+	if chomp then
+		if u >= has then
+			f.GrabAt = f.GrabAt or f.Last
+		end
+	elseif u >= has - 0.1 then
+		f.GrabAt = f.GrabAt or f.Last
+		-- the legs drawn in toward the beak, the head out: you lie along its arms
+		local w = ss(has - 0.1, has + 0.3, u)
+		hold(b, "EatLegs", "Lower", fishNow * (EatMoves.held(plan, u) - Vector3.new(0, 0, 1.1)), 8 + 16 * w, 700 * w)
+	end
+end
+
 local function grabs(f: Fail, b: Body, t: number, fishNow: CFrame)
+	if f.New then
+		grabsNew(f, b, f.New, t, fishNow)
+		return
+	end
 	local L, H = f.Length, f.Height
 	local kind = f.Kind
 	if kind == "Chomp" then
@@ -2063,6 +2212,115 @@ local function letFishGo(f: Fail)
 	f.Driving = false
 end
 
+-- (Config.Fail.NewEat) The new move worked out: what it needs of the fish and of the water round it. A model without
+-- what it needs (a jaw; three jointed arms) keeps the old one.
+local function beginNew(f: Fail)
+	local jaw: Joint? = nil
+	for _, j in f.Joints do
+		if j.Kind == "jaw" then
+			jaw = jaw or j
+		end
+	end
+	local mouth = f.Mouth
+	local arms: { EatMoves.Arm } = {}
+	for _, chain in f.Chains do
+		local half: { number } = {}
+		for i, link in chain.Joints do
+			-- (the link's box, less its length: what is left is its thickness)
+			local long = (chain.Rest[i + 1] - chain.Rest[i]).Unit:Abs()
+			local size = link.Part.Size
+			local across = { size.X, size.Y, size.Z }
+			local most = if long.X >= long.Y and long.X >= long.Z then 1 elseif long.Y >= long.Z then 2 else 3
+			table.remove(across, most)
+			half[i] = math.min(across[1], across[2]) / 2
+		end
+		local out = (chain.Rest[1] - f.Beak) * Vector3.new(1, 1, 0)
+		out = if out.Magnitude > 0.01 then out.Unit else Vector3.yAxis
+		table.insert(arms, { Rest = chain.Rest, Half = half, Out = out, Turn = EatMoves.turnOf(out) })
+	end
+	if f.Kind == "Chomp" and not (jaw and mouth) then
+		if not f.Dials.Mouth then
+			f.Mouth, f.MouthRoom, f.Lure = nil, nil, nil
+		end
+		return
+	elseif f.Kind == "Wrap" and #arms < 3 then
+		return
+	end
+	-- the open water straight ahead, at the height it swims (a wall of the map; never the fish or the props)
+	local look = flat(f.From.LookVector)
+	local span = f.Length * 2 + 120
+	local params = viewParams()
+	local hit = workspace:Raycast(f.From.Position, look * span, params)
+	f.New = EatMoves.plan({
+		Kind = f.Kind,
+		From = f.From,
+		Speed = f.Speed,
+		Length = f.Length,
+		Height = f.Height,
+		Saddle = f.Saddle.Position,
+		Mouth = if mouth then mouth.Position else Vector3.zero,
+		Hinge = if jaw then jaw.Pivot else Vector3.zero,
+		Arms = arms,
+		FloorY = f.FloorY,
+		Ahead = if hit then (hit.Position - f.From.Position).Magnitude else span,
+		SurfaceY = Config.Depth.SurfaceY,
+	})
+	f.Dials.Arrive = f.Kind == "Chomp"
+	if f.Kind == "Wrap" then
+		for _, j in f.Joints do
+			if j.Kind == "body" and j.Part:IsA("MeshPart") then
+				f.Mantle, f.MantleSize = j.Part, j.Part.Size
+			end
+		end
+	end
+	-- the shot's side: the one we look from, unless a wall is close on that side and the other is clearer
+	f.CamFrom = f.CamStart - f.Focus
+	f.Pivot = f.Focus
+	local right = look:Cross(Vector3.yAxis).Unit
+	local need = f.Length + 10
+	local function clear(side: number): number
+		local wall = workspace:Raycast(f.From.Position, right * side * need, params)
+		return if wall then (wall.Position - f.From.Position).Magnitude else need
+	end
+	if clear(f.CamSide) < need * 0.7 and clear(-f.CamSide) > clear(f.CamSide) + 5 then
+		f.CamSide = -f.CamSide
+	end
+end
+
+-- the octopus's ink, left where it was as it jets off (a local, short-lived cloud; the engine's own smoke picture)
+local function ink(f: Fail, at: Vector3)
+	local spot = localPart(Vector3.one, Color3.new(0, 0, 0), Enum.Material.SmoothPlastic)
+	spot.Name = "Ink"
+	spot.Transparency = 1
+	spot.CFrame = CFrame.new(at)
+	local size = math.max(f.Length * 0.16, 3)
+	local e = Instance.new("ParticleEmitter")
+	e.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	e.Color = ColorSequence.new(Color3.fromRGB(26, 12, 40), Color3.fromRGB(8, 6, 16))
+	e.LightInfluence = 0
+	e.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, size * 0.3),
+		NumberSequenceKeypoint.new(0.25, size),
+		NumberSequenceKeypoint.new(1, size * 1.5),
+	})
+	e.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.1),
+		NumberSequenceKeypoint.new(0.5, 0.3),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	e.Lifetime = NumberRange.new(1, 1.7)
+	e.Speed = NumberRange.new(f.Length * 0.1, f.Length * 0.45)
+	e.SpreadAngle = Vector2.new(180, 180)
+	e.Drag = 3
+	e.Rotation = NumberRange.new(0, 360)
+	e.RotSpeed = NumberRange.new(-30, 30)
+	e.Rate = 0
+	e.Enabled = false
+	e.Parent = spot
+	e:Emit(math.floor(Config.Fail.EatMoves.Wrap.Ink))
+	table.insert(f.Props, spot)
+end
+
 local function begin(player: Player, fish: Model, kind: string)
 	local def = Config.Fail.Outcomes[kind]
 	local fishRoot = fish.PrimaryPart
@@ -2134,8 +2392,20 @@ local function begin(player: Player, fish: Model, kind: string)
 			Arrive = Config.Fail.Arrive ~= 0,
 			Smooth = Config.Fail.Smooth ~= 0,
 		},
+		New = nil,
+		Mantle = nil,
+		MantleSize = nil,
+		CamFrom = Vector3.zero,
+		CamSide = sideSign,
+		CamLeast = (camera.Position - from.Position).Magnitude,
+		Pivot = Vector3.zero,
+		Aim = Vector3.zero,
+		TakenAt = nil,
+		Slip = Vector3.zero,
 	}
-	if f.Dials.Mouth then
+	local id = fish:GetAttribute("FishType")
+	local new = type(id) == "string" and (Config.Fail.NewEat[id] or 0) ~= 0 and (kind == "Chomp" or kind == "Wrap")
+	if f.Dials.Mouth or (new and kind == "Chomp") then
 		f.Mouth, f.MouthRoom, f.Lure = mouthFromModel(f)
 	end
 	f.Chains = readChains(f.Joints)
@@ -2156,6 +2426,9 @@ local function begin(player: Player, fish: Model, kind: string)
 		end
 	end
 	f.CamTo = shotFor(f, sideSign)
+	if new then
+		beginNew(f)
+	end
 	-- the spine's parts, nose to tail, for the swallow's bulge
 	local spine: { Joint } = {}
 	for _, j in f.Joints do
@@ -2272,8 +2545,41 @@ local BEATS: { [string]: { { At: number, Name: string } } } = {
 	Pin = { { At = 1.0, Name = "slam" } },
 }
 
+-- (the new moves', by their own numbers)
+local function beatsOf(f: Fail): { { At: number, Name: string } }
+	local plan = f.New
+	if not plan then
+		return BEATS[f.Kind] or {}
+	end
+	local m = Config.Fail.EatMoves
+	if f.Kind == "Chomp" then
+		return { { At = m.Chomp.Bite, Name = "bite" } }
+	end
+	local list = {}
+	for i = 1, #plan.Takers do
+		table.insert(list, { At = m.Wrap.Take + (i - 1) * m.Wrap.TakeEach + m.Wrap.TakeTime, Name = "take" .. i })
+	end
+	table.insert(list, { At = m.Wrap.Jet, Name = "ink" })
+	return list
+end
+
 local function beat(f: Fail, name: string, fishNow: CFrame, riderPos: Vector3)
-	if name == "bite" then
+	if name == "ink" then
+		Fx.sound("Rumble", f.FishRoot)
+		local at = fishNow * (f.Beak + Vector3.new(0, 0, f.Length * 0.1))
+		ink(f, at)
+		Fx.burst(at, 24, nil, 5)
+		if f.Mine then
+			Shake.play("LandBig", 0.6)
+		end
+	elseif string.sub(name, 1, 4) == "take" then
+		-- (an arm closes on you)
+		Fx.sound("Pop", f.FishRoot)
+		Fx.burst(riderPos, 8, 0.3, 2)
+		if f.Mine then
+			Shake.play("Crash", 0.35)
+		end
+	elseif name == "bite" then
 		Fx.sound("Chomp", f.FishRoot)
 		Fx.burst((fishNow * mouthOf(f)).Position, 30, nil, 6)
 		if f.Mine then
@@ -2419,6 +2725,27 @@ local function outlineStep()
 	end
 end
 
+-- (Config.Fail.NewEat) This frame of a new move. Our own fish is aimed, a little, at where the loose body really is: the
+-- mouth comes to you, not only you to it.
+local STILL = still()
+local function newFrame(f: Fail, plan: EatMoves.Plan, u: number): Frame
+	local m = EatMoves.moment(plan, u)
+	local fish = m.Fish
+	local body = bodies[f.Player]
+	local torso = torsoOf(f)
+	if f.Kind == "Chomp" and body and torso then
+		local bite = Config.Fail.EatMoves.Chomp.Bite
+		if u < bite then
+			local off = torso - m.Rider.Position
+			local most = 1.5 + f.Length * 0.04
+			off = if off.Magnitude > most then off.Unit * most else off
+			f.Aim = off * ss(bite - plan.Lunge, bite - 0.04, u)
+		end
+		fish += f.Aim * (1 - ss(bite + 0.1, bite + 0.8, u))
+	end
+	return { Fish = fish, Rider = m.Rider, Rig = STILL, Focus = m.Focus }
+end
+
 local function step(dt: number)
 	local clock = os.clock()
 	if RunService:IsStudio() then
@@ -2463,14 +2790,26 @@ local function step(dt: number)
 		-- fail still holds (never while FailClock is held)
 		local fs = Config.Fail
 		local mouthy = f.Kind == "Chomp" or f.Kind == "Gulp"
+		local plan = f.New
 		local gone = if f.Kind == "Chomp" then 1.62 else 1.78
+		local waits = if f.Kind == "Chomp" then WAIT_CHOMP else WAIT_GULP
+		if plan and f.Kind == "Chomp" then
+			local bite = fs.EatMoves.Chomp.Bite
+			gone = fs.EatMoves.Chomp.Gone
+			waits = { bite - 0.04 }
+		end
 		local torsoNow = limb(f.Character, "Torso")
 		local want = 1
 		if f.Dials.Arrive and mouthy and torsoNow and not (type(held) == "number" and held >= 0) then
 			local was = t - f.Wait
-			for _, point in if f.Kind == "Chomp" then WAIT_CHOMP else WAIT_GULP do
+			for _, point in waits do
 				if was >= point - fs.ArriveLead and was < point then
-					local far = (torsoNow.Position - mouthTarget(f, f.FishRoot.CFrame, point)).Magnitude
+					local to = mouthTarget(f, f.FishRoot.CFrame, point)
+					if plan and point < fs.EatMoves.Chomp.Bite then
+						-- (its mouth is still on its way: how far off its arc the body is)
+						to = EatMoves.moment(plan, was).Rider.Position + f.Slip
+					end
+					local far = (torsoNow.Position - to).Magnitude
 					if far > fs.ArriveNear then
 						-- (back up to pace over the wait's last third, so it never ends at once)
 						local left = math.clamp((fs.ArriveWait - f.Wait) / math.max(fs.ArriveWait * 0.3, 0.01), 0, 1)
@@ -2488,12 +2827,17 @@ local function step(dt: number)
 		end
 		local u = t - f.Wait
 		f.U = u
-		local frame = OUTCOMES[f.Kind](f, math.min(u, def.Time + (if taken then def.Time else 0.3)))
+		local frame: Frame
+		if plan then
+			frame = newFrame(f, plan, math.min(u, def.Time + def.Time))
+		else
+			frame = OUTCOMES[f.Kind](f, math.min(u, def.Time + (if taken then def.Time else 0.3)))
+		end
 		-- (Hugo, 2026-11-19: after it the fish carries on the way it was going: whatever turn, roll or lunge it made
 		-- eases back onto its old heading over the outcome's last part, swimming on, never a U-turn or a stop; the
 		-- server then takes it back onto its line, FishService.release)
 		local home = ss(def.Time * 0.55, def.Time + (if taken then 0.6 else 0), u)
-		if home > 0 then
+		if home > 0 and not plan then
 			local heading = CFrame.lookAt(Vector3.zero, flat(f.From.LookVector))
 			local onward = flat(f.From.LookVector) * f.Speed * 0.5 * math.max(0, u - def.Time * 0.55) * home
 			frame.Fish = CFrame.new(frame.Fish.Position + onward) * frame.Fish.Rotation:Lerp(heading, home)
@@ -2511,6 +2855,7 @@ local function step(dt: number)
 				local from = f.FishAt or f.From.Position
 				local at = Course.clearMove(from, frame.Fish.Position, f.Height * 0.5 + 1)
 				f.FishAt = at
+				f.Slip = at - frame.Fish.Position
 				f.FishRoot.CFrame = CFrame.new(at) * frame.Fish.Rotation
 				f.FishRoot.AssemblyLinearVelocity = Vector3.zero
 				f.FishRoot.AssemblyAngularVelocity = Vector3.zero
@@ -2520,12 +2865,20 @@ local function step(dt: number)
 		end
 		local fishNow = f.FishRoot.CFrame
 		-- its own parts (every machine)
-		armsStep(f, u)
-		poseRig(f, frame.Rig, t)
+		if plan then
+			poseNew(f, plan, u)
+		else
+			armsStep(f, u)
+			poseRig(f, frame.Rig, t)
+		end
 		-- the rider, still on the saddle (everyone works out the same), then loose
 		local b = bodies[player]
 		if weld then
 			local riderAt = frame.Rider
+			if riderAt and plan then
+				-- (as it lies to the fish on its path, so it lies to the fish as it is on this machine)
+				riderAt = fishNow * frame.Fish:ToObjectSpace(riderAt)
+			end
 			if riderAt then
 				-- (the rider too: kept above the floor and out of walls as it is slid about on the saddle)
 				local seat = (fishNow * f.Saddle).Position
@@ -2571,7 +2924,7 @@ local function step(dt: number)
 				end
 			end
 		end
-		local beats: { { At: number, Name: string } } = BEATS[f.Kind] or {}
+		local beats: { { At: number, Name: string } } = beatsOf(f)
 		for _, m in beats do
 			if u >= m.At and u - stepT < m.At + 0.5 and not f.Beats[m.Name] then
 				f.Beats[m.Name] = true
@@ -2590,16 +2943,32 @@ local function step(dt: number)
 		-- our own: the shot (one move, then held), the dark and the fade
 		local move = inOut(t / math.max(Config.Fail.CameraTime, 0.05))
 		local at = f.CamStart:Lerp(f.CamTo, move)
+		if plan then
+			-- (Config.Fail.NewEat: one even swing to the side, following what it looks at, then still, watching)
+			local freeze = if f.Kind == "Chomp" then fs.EatMoves.Chomp.Bite else fs.EatMoves.Wrap.Jet
+			if t < freeze + fs.EatMoves.Shot.Hold then
+				f.Pivot = f.Focus
+			end
+			local dir, far = EatMoves.shot(plan, f.CamFrom, f.CamSide, t)
+			at = f.Pivot + dir * far
+			if f.FloorY then
+				at = Vector3.new(at.X, math.max(at.Y, f.FloorY + 5), at.Z)
+			end
+		end
 		-- (never into the fish: kept a length off it)
 		local off = at - fishNow.Position
 		local least = if SHOTS[f.Kind] and SHOTS[f.Kind].Near then 8 else f.Length * 0.55 + 6
+		if plan then
+			-- (no nearer than that in the end, and never pushed out to it at once)
+			least = Ease.lerp(math.min(f.CamLeast, f.Length * 0.42 + 6), f.Length * 0.42 + 6, ss(0, fs.CameraTime, t))
+		end
 		if off.Magnitude < least then
 			at = fishNow.Position + (if off.Magnitude > 0.1 then off.Unit else Vector3.yAxis) * least
 		end
 		local subject = frame.Focus or riderPos:Lerp(fishNow.Position, 0.5)
-		f.Focus = f.Focus:Lerp(subject, Ease.alpha(4, math.max(stepT, dt)))
+		f.Focus = f.Focus:Lerp(subject, Ease.alpha(if plan then 6 else 4, math.max(stepT, dt)))
 		-- the rider and the fish both kept in the shot: backed off along its line as they draw apart (smoothly)
-		local near = SHOTS[f.Kind] and SHOTS[f.Kind].Near
+		local near = SHOTS[f.Kind] and SHOTS[f.Kind].Near and not plan
 		local spread = if near
 			then (riderPos - fishNow.Position).Magnitude * 0.5 + 8
 			else (riderPos - fishNow.Position).Magnitude + f.Length * 0.5
@@ -2617,7 +2986,7 @@ local function step(dt: number)
 		if f.Kind == "Wrap" then
 			local shade = f.Shade or makeShade()
 			f.Shade = shade
-			updateShade(shade, t, 1.0, def.Time)
+			updateShade(shade, t, if plan then fs.EatMoves.Wrap.Still else 1.0, def.Time)
 		end
 		if taken and t >= def.Time then
 			State.Fade = math.clamp((t - def.Time) / math.max(Config.Fail.TakenFade, 0.05), 0, 1)

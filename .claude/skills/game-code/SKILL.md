@@ -45,6 +45,10 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   `TankRideService.out`, `RideService.rideOut`; [equip](docs/design/equip.md)). A dial goes to 1 in the file only after its
   check has run at a real frame rate. **Bought Oxygen off the dock is banked** (`RideService.grantOxygen`, `Banked`) and
   joins the max at the dock: never raise the max mid-dive, the red line and the drain are shares of it.
+- **Eaten without turning (2026-11-25; branch `eat-anim`; not seen in Studio):** the Octopus's Wrap and the Kronosaurus's
+  Chomp are new moves, `Lib/EatMoves` (plain sums) played by `FailController` where `Config.Fail.NewEat[creature]` is 1; 0 is
+  exactly the old one, every other kind is the old one. Numbers `Config.Fail.EatMoves`; design and limits
+  [riding feel](docs/design/riding-feel.md), "Eaten without turning"; offline checks `tools/eat/eat_check.luau`, `eat_same.luau`.
 - **The hub's new pieces (2026-11-24; NULLROOM h1 to h4):** the stalls open on their floor rings, the sub stand too
   (`StallController`: Sell, Auras, Sub, and Index where the map has that station; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
   copy of the equipped sub turns over the sub stand, on the player's own machine (`SubStandController`); **the Index**

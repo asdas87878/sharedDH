@@ -1504,3 +1504,91 @@ Known and left:
   deep|surface|lip|miss|nofail | remove` (refuses under 40 fps; `--min-fps N` forces an INDICATIVE run);
   `fail_capture.py FISH --dials 1` makes one GIF. The pass bars in the script are not calibrated yet. Remove the check
   scripts before any publish.
+
+## Eaten without turning (2026-11-25)
+
+The user: "I need improvement on the animations on getting swallowed and dragged down etc. Do one animation first, once
+you perfect it on how i like it we can do the rest in the same way, i think youll struggle a lot on the octopus so lets do
+that one and let me see one fish eating. The main issue i think is the way they turn doesnt look good at all, maybe make
+the fish slow down throw the player in front and then swallow midair."
+
+**Two only: the Octopus (Wrap) and the Kronosaurus (Chomp). Built, checked offline, not seen in Studio.** Every other kind
+is as it was. The switch is `Config.Fail.NewEat`, by creature: 1 the new move, 0 (or not there) exactly the old one. Both
+are 1 in the file, against the usual "0 until played", because the task is for the user to look at them; set one to 0 to go back.
+
+![Key frames, new and today](../attachments/eat-anim-frames.png)
+
+Moving: [octopus](../attachments/eat-anim-octopus.gif), [Kronosaurus](../attachments/eat-anim-kronosaurus.gif) (today on
+the left, new on the right; drawn offline).
+
+**Why a Kronosaurus and not the Hammerhead:** the Hammerhead has no jaw part, so its mouth cannot open. Of the Chomp kinds
+with an ordinary hinged jaw the Kronosaurus's opens widest for its size and takes a rider across at all six sizes; its four
+flippers are jointed, so they can flare.
+
+### What made today's turn look bad (measured, 60 frames a second, Normal size)
+
+| | Kronosaurus today | new | Octopus today | new |
+|---|---|---|---|---|
+| Heading turned in all | 903° | 0° | 269° to 433° (it differs run to run; 84° to 1,228° Huge) | 0° |
+| Fastest turn | 735°/s before the bite, then up to 9,100°/s | 0 | 380 to 449°/s | 0 |
+| Body pointing over 45° off its path | 1.22 s | 0 | tail first | open water 0 |
+| Rider's chest inside the fish before the bite | 5.7 studs (10.8 Huge) | under 1.0, in the mouth | none | none |
+| Rider's distance from the mouth at the bite | 2.9 (5.9 Huge) | 0.9 (1.5 Colossal) | | |
+| Biggest one-frame jump of the rider | 37 studs/s | 10 | 119 studs/s | 16 |
+| Fastest view turn | 190°/s (215 Huge) | 103°/s | 82°/s | 106°/s |
+
+So: the body swings round on the spot faster than it swims, the rider is thrown **behind** it and through its back, and it
+then comes at them sideways. The 9,100°/s is a separate fault near the end (about 2.0 s): the fish is about 180° from the way home
+and its head shake flips the shorter way round from frame to frame. **It is in every old Chomp; left alone here.**
+
+### The new moves (`Lib/EatMoves`, plain sums; numbers in `Config.Fail.EatMoves`)
+
+Neither turns round. Both are worked out whole when the fail begins (speed, floor, wall ahead, surface, size) and then read
+by time, so nothing hunts or pops and another player's machine plays the same thing.
+
+| Kronosaurus, s | |
+|---|---|
+| 0 to 0.35 | brakes: body bunched, flippers thrown out, a small gasp |
+| 0.1 to 0.84 | nose dips, tail kicks: the rider is bucked up and forward over the head, and hangs past the nose |
+| 0.6 to 1.06 | it rises behind them, draws back, jaw wide; held a moment, straining |
+| 1.1 to 1.34 | the lunge, all forward, faster and faster; flippers swept back |
+| 1.34 to 1.44 | the mouth shuts round them, feet first; hidden only when shut |
+| after | glides on, flippers out, the gulp as a hump down the spine, one chew, a nod |
+
+| Octopus, s | |
+|---|---|
+| 0 to 0.6 | brakes, arms flare like a flower; the rider tossed up and ahead |
+| by 0.86 | the mantle tips down so the open arms are under the falling rider |
+| 0.66, 0.83, 1.0 | three arms, one after another, reach and hook round the chest, waist and thighs; they follow the real body |
+| 1.2 to 1.56 | drawn in to the mouth; the other arms close as a basket |
+| to 1.88 | stillness; the mantle swells |
+| 1.88 on | it jets mantle first down into the dark, arms streaming, ink |
+
+One camera for both (`Shot`): one even swing to the side, the rider and the mouth always in the picture, then still.
+At a wall it brakes harder or is pushed back; near the surface the toss is lower; at the floor the body bunches and tips
+less. The server's times, words, black, `Loose` and `HideLate` are untouched. For a creature that is on, the mouth is found on the model and
+the bite waits for the body (what `MouthFromModel` and `Arrive` do), for that fail only.
+
+### The limits
+
+- **The octopus's arms have three joints each.** That is too few for a spiral: each taker is solved as a three-link hook, its last
+  link lying against the body and the second bent round to it. They touch (0.4 to 2 studs from the rider's spine to the arm's skin, all sizes)
+  and never cut through. A real curl needs about six joints an arm and a new upload.
+- **Rigid parts don't swell,** so the gulp is a bend that travels, not a bulge.
+- **A Colossal's nose reaches 165 studs a second in the lunge** (107 at Normal): over the 140 a loose body is held to.
+
+### Checks (offline, in Lune)
+
+`tools/eat/eat_check.luau` (its head says how) plays the real `FailController` frame by frame: 6 sizes x 11 places (open,
+floor, wall, wall close, surface, shallow, diving, climbing, slow, late loose, heavy pull) x 2 = **132 of 132 pass**. In it the
+loose body is one mass pulled like the game's, not a real ragdoll, and the sea is a flat floor, wall and surface.
+`tools/eat/eat_same.luau`: every outcome on all modelled creatures with the switch at 0, against main's FailController, with the 2026-11-23 dials at 0 and at 1:
+386 plays, 63,026 frames, **no difference at all**. Pictures: `tools/eat/eat_frames.luau`, `tools/blender/eat_frames.py`,
+`tools/eat/eat_sheet.py`.
+
+Limits set by eye, not by the user: the nose at most 175 studs/s, the rider's jump at most 40 studs/s in a frame (the moment
+the octopus throws them at Colossal size is 38), the chest at most 1 stud into the mouth's own boxes.
+
+Not known until Studio: how the real ragdoll's limbs lie in the mouth and the arms, the ink's look, and two machines at once.
+When the user likes these, the other kinds follow the same way (Chomp first: they share the code; each needs its jaw and
+fins looked at).

@@ -2831,6 +2831,90 @@ Config.Fail = {
 	EatMin = {
 		MorayEel = 24, -- its jaw is 1.9 wide on a Tiny (22.8 long); 2 wide from 23.6
 	} :: { [string]: number },
+	-- The new eating moves, kind by kind, to be judged before the rest are done the same way (Hugo, 2026-11-25: "Do one
+	-- animation first, once you perfect it on how i like it we can do the rest"; "the way they turn doesnt look good at
+	-- all, maybe make the fish slow down throw the player in front and then swallow midair"). By creature: 1: the new
+	-- move for its Chomp or Wrap (Lib/EatMoves, played by FailController); 0, or not here: exactly the one before. A
+	-- kind switched on always has its mouth found on its model and its bite wait for you (MouthFromModel and Arrive,
+	-- for that fail only, whatever the dials above say).
+	-- The fish is the Kronosaurus: the Hammerhead has no jaw part (its mouth cannot open); of the Chomp kinds with an
+	-- ordinary hinged jaw the Kronosaurus's opens widest for its size while taking a rider across at all six sizes
+	-- (tools/studio/fail_mouth_table.py), and its four flippers are jointed, so they can flare
+	NewEat = { Octopus = 1, Kronosaurus = 1 } :: { [string]: number },
+	-- their numbers. Seconds are into the outcome (inside its Time and after its Loose, above); lengths are shares of the
+	-- fish's own length; degrees. Offline check: tools/eat/eat_check.luau
+	EatMoves = {
+		BrakeRate = 5, -- how fast its speed dies away as it brakes (a second)
+		MostBrake = 0.35, -- it slides on at most this far
+		JawTurn = 58, -- degrees a jaw opens at 1
+		Pull = 70, -- how quickly the loose body is carried along its arc (Responsiveness), and how hard (per unit of mass)
+		PullForce = 2200,
+		Lead = 0.03, -- seconds ahead of the arc it is pulled to (the pull lags about this much)
+		Spin = 4, -- radians a second the body tumbles at as it comes loose
+		-- the shot, one for both: from the side, a little behind (Back) and above (Up), this far off (shares, and studs)
+		Shot = { Back = 0.12, Up = 0.16, Chomp = 0.3, Wrap = 0.76, Off = 7, Hold = 0.4 },
+		Chomp = {
+			Off = 0.1, -- you start to leave the saddle (the server lets you loose at Outcomes.Chomp.Loose: same arc)
+			Past = 0.84, -- you are past its nose by now: it comes up under you
+			Float = 0.6, -- the share of your way you slow down over, to hang there
+			Wound = 1.06, -- wound up, jaw wide
+			Bite = 1.34, -- it has you
+			Gone = 1.44, -- the mouth is shut: out of sight
+			Dip = 11, -- degrees its nose dips as it bucks
+			Pitch = 24, -- and is raised to take you (less for one longer than PitchLength, by its length)
+			PitchLength = 60,
+			Clear = 0.07, -- how far ahead of its nose you are taken (and 2 studs)
+			RiderRoom = 4, -- studs of open water left past you, at a wall
+			MostBack = 0.5, -- pushed back at most this far, at a wall
+			Rise = 0.1, -- how far over the saddle the top of your arc is (and 2 studs)
+			Lift = 0.16, -- how far it comes up under you as it winds up, at most MostLift studs
+			MostLift = 11,
+			Draw = 0.2, -- and how far back of the bite it is then (and 2 studs): what it lunges
+			Lunge = 0.24, -- seconds the lunge takes (a little longer for a giant)
+			LungePower = 1.7, -- 1: an even speed, 2: faster and faster
+			Through = 5.5, -- how fast the lunge dies away after the bite (a second)
+			On = 0.35, -- and the share of its speed it swims on at
+			Bunch = 46, -- degrees the body is bunched by as it brakes, kicked by as it bucks
+			Sway = 16, -- the tail's beat
+			Nod = 5, -- the satisfied rock at the end
+			Tumble = 86, -- degrees you pitch forward in the arc: lying along its way, feet to the mouth
+			Gulp = 15, -- degrees its joints bend as the gulp goes down the body, over GulpTime seconds
+			GulpTime = 0.62,
+			Deep = 0.1, -- how far past the mouth you are pulled as it shuts
+		},
+		Wrap = {
+			Off = 0.06,
+			Tip = 97, -- degrees its mantle tips down (the arms up), by TipBy
+			TipBy = 0.86,
+			Open = 0.6, -- the arms are open like a flower
+			Top = 0.6, -- the top of your toss
+			Toss = 0.36, -- how high it is over the saddle (and 2 studs; never more than MostToss)
+			MostToss = 17,
+			Catch = 0.98, -- you are down among the arms
+			Take = 0.66, -- the first arm reaches, the next each TakeEach later, each taking TakeTime
+			TakeEach = 0.17,
+			TakeTime = 0.3,
+			Draw = 1.2, -- drawn in from here
+			Still = 1.56, -- to here: the beat of stillness
+			Jet = 1.88, -- and off
+			Body = 1.35, -- studs: how thick you are to an arm round you
+			Caught = 0.56, -- where you are caught and where you are held, along the arms (shares of an arm)
+			Home = 0.42,
+			Tumble = -70,
+			TipRoom = 0.52, -- water it wants under its root to hang, and for the jet under that
+			JetRoom = 0.2,
+			MostLift = 0.4, -- it goes up (from a floor) or down (from the surface) at most this far for them
+			Dive = 78, -- degrees down the jet points, with the water for it
+			JetBurst = 62, -- studs a second, the first push and the swim after it (more for a big one)
+			JetOn = 34,
+			-- degrees each of an arm's three joints opens outward: the flower, the basket round you, the stream
+			Flower = { 58, 14, 26 },
+			Basket = { 40, -18, -34 },
+			Stream = { 2, -4, -10 },
+			Squeeze = 0.12, -- how far the mantle swells and is wrung
+			Ink = 26, -- puffs of ink as it jets
+		},
+	},
 	-- by creature first (Rare and up; a Common or Uncommon here is thrown off all the same)
 	-- stylua: ignore
 	ByCreature = {
