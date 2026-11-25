@@ -1,14 +1,17 @@
 --!strict
 -- The offline rewards' window (Hugo, 2026-11-25: "Add offline rewards and use image gen to get something similar to ref
 -- image 1"; NULLROOM task o1; docs/design/offline-rewards.md): "Welcome back!", what the tank earned while its player was
--- away, and CLAIM. The reference gives what it does and its order (title, picture, amount, claim); the look is the dock's
--- own (UI.Shop's window, header, well and button) with our own chest (art/ui/offline/chest.png, NULLROOM task g1). The
--- reference's second button (three times as much for Robux) is left out: nothing sells it.
+-- away, and CLAIM. Laid out as the reference since 2026-11-25 (Hugo: "better layout and ui wise"; NULLROOM task o2): a
+-- wide window, the chest and the title at the left of a shining header, the X at its right, a heading, a big chest left of
+-- the middle in a dark body the dock shows through, the gold amount over its foot, and a row of wide buttons. The look is
+-- the dock's own (UI.Shop's window, header, studs and button) with our own chest (art/ui/offline). The reference's second
+-- button (three times as much for Robux) is left out: nothing sells it. The row has room for it (OfflinePanel.share).
 --   OfflinePanel.open(on)    opens or closes it, as Shop.go("Offline"): one dock window at a time
 --   OfflinePanel.owed()      the coins waiting (the player's "OfflineOwed" attribute: OfflineService decides everything)
 --   OfflinePanel.chip(on)    the small CLAIM beside the dock's buttons, for as long as coins wait and the window is
 --                            closed (the X keeps them). It sits by UI.HubButtons' own holder, on the same scale
 --   OfflinePanel.claiming(on), OfflinePanel.say(text)   a claim is on its way; a line in place of the hours (a refusal)
+--   OfflinePanel.share(row)  the row's buttons side by side, equally wide, as many as there are in it
 -- Controllers/OfflineController shows it, asks for the claim and answers.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -29,20 +32,65 @@ local OfflinePanel = {}
 OfflinePanel.Chest = "" -- art/ui/offline/chest.png
 local STUDIO = "rbxasset://textures/ridefish/offline_chest_o1.png"
 
-local WIDE, HIGH = 500, 452 -- (a phone 375 wide holds it at 0.72, so CLAIM is still 47 px high there)
-local TITLE_HIGH = 34
-local HOURS_HIGH = 22
-local WELL_AT = TITLE_HIGH + HOURS_HIGH + 8
-local CLAIM_HIGH = 66
-local GAP = 10
-local CHEST = 206
-local AMOUNT = 58 -- the amount's letters, on one this short
-local LETTERS = 7 -- and smaller past this many
+-- The window's two shapes. Wide is the reference's (1.6 to 1) on a computer, a tablet and a phone held sideways. Held
+-- upright a phone is too narrow for it (at 375 its words would be half their size), so there the window is Narrow: the
+-- same things in the same places, less wide, in bigger points (0.74 at 375).
+type Lay = {
+	Wide: number,
+	High: number,
+	Head: number, -- the header's height
+	Icon: number, -- the chest in it
+	Title: number, -- the title's letters
+	Close: number, -- the X (44 px or more on every phone)
+	Heading: number, -- "OFFLINE EARNINGS:", its letters
+	Hours: number, -- the line under it, its letters
+	Chest: number, -- the big chest
+	Amount: number, -- the amount's letters (smaller when there are too many)
+	Row: number, -- the buttons' height
+	Claim: number, -- their letters
+}
+local LAYS: { [string]: Lay } = {
+	Wide = {
+		Wide = 760,
+		High = 476,
+		Head = 80,
+		Icon = 72,
+		Title = 40,
+		Close = 68,
+		Heading = 42,
+		Hours = 20,
+		Chest = 206,
+		Amount = 68,
+		Row = 72,
+		Claim = 38,
+	},
+	Narrow = {
+		Wide = 480,
+		High = 396,
+		Head = 68,
+		Icon = 62,
+		Title = 36,
+		Close = 62,
+		Heading = 34,
+		Hours = 18,
+		Chest = 160,
+		Amount = 56,
+		Row = 64,
+		Claim = 34,
+	},
+}
+local NARROW = 550 -- a screen less wide than this gets Narrow
+local EDGE = 3 -- the window's dark edge inside its own rim: the header and the body sit this far in
+local BAND = 8 -- the pale frame inside the body, down its sides and along its foot
+local MARGIN = 12 -- from that frame to the words and buttons, the same at the sides and the foot
+local GAP = 20 -- between two buttons (a multiple of 4: half of half of it is still a whole point)
+local CLEAR = 0.14 -- how much of the dock shows through the body
+-- Of the big chest's own size: where the amount starts (over the chest's right), and its line's height at the chest's foot
+local OVER, FOOT = 0.76, 0.46
+local LETTER = 0.6 -- a letter's width, of its size, at the most on average
 
 local HEAD = Shop.Heads.Coral
 local PALE = Color3.fromRGB(214, 222, 236) -- quiet words on the dark body (Sell Fish's)
-local DEEP = Color3.fromRGB(20, 62, 88) -- the well behind the chest, lit water
-local DARK = Color3.fromRGB(10, 26, 46)
 local GOLD = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 246, 170)),
 	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 210, 63)),
@@ -54,7 +102,9 @@ local CHIP_GAP = 12
 local CHIP_OVER = 24 -- over the Shop button: clear of its red "!"
 
 local window: Shop.Window? = nil
+local lay: Lay = LAYS.Wide
 local hours: TextLabel
+local group: Frame -- the big chest and the amount
 local amount: TextLabel
 local claim: Shop.Button
 local chip: Shop.Button? = nil
@@ -108,7 +158,8 @@ local function paint()
 	if window then
 		local words = Shop.cash(owed)
 		amount.Text = words
-		amount.TextSize = if #words > LETTERS then math.floor(AMOUNT * LETTERS / #words) else AMOUNT
+		local room = lay.Wide - 2 * (EDGE + BAND + MARGIN) - lay.Chest * OVER
+		amount.TextSize = math.min(lay.Amount, math.floor(room / (#words * LETTER)))
 		if not said then
 			hours.Text = `Your tank worked {OfflinePanel.time(number("OfflineSecs"))} without you`
 		end
@@ -127,74 +178,120 @@ OfflinePanel.paint = paint
 ----------------------------------------------------------------------------------------------------------------------
 -- The window
 
+-- The row's buttons side by side, equally wide, in their LayoutOrder: one takes it all, two take half each
+function OfflinePanel.share(row: Instance)
+	local all: { GuiObject } = {}
+	for _, child in row:GetChildren() do
+		if child:IsA("GuiObject") then
+			table.insert(all, child)
+		end
+	end
+	table.sort(all, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	local n = #all
+	for i, button in all do
+		local of = 2 * i - 1
+		button.AnchorPoint = Vector2.new(0.5, 0.5) -- (a press dips about its middle)
+		button.Position = UDim2.new(of / (2 * n), GAP * (of - n) / (2 * n), 0.5, 0)
+		button.Size = UDim2.new(1 / n, -GAP * (n - 1) / n, 1, 0)
+	end
+end
+
+local function child(of: Instance, name: string): any
+	return of:FindFirstChild(name)
+end
+
 local function build()
 	local w = Shop.window({
 		Name = "OfflinePanel",
 		Parent = State.Player:WaitForChild("PlayerGui"),
 		Title = "Welcome back!",
 		Head = HEAD,
+		Gloss = true,
 		Dim = true,
-		Width = WIDE,
-		Height = HIGH,
+		Width = LAYS.Wide.Wide,
+		Height = LAYS.Wide.High,
 		OnClose = function()
 			Shop.go(nil)
 		end,
 	})
 	local body = w.Body
-	picture(w.Header, Shop.HeadHigh - 4, {
-		Name = "Chest",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 8, 0.5, -2),
-		Rotation = -8,
-		ZIndex = 4,
-	})
-	Shop.text(body, {
+	-- the kit's frame, with the dock showing through it: no grey face and no shadow behind the body
+	local face = child(w.Frame, "Face")
+	local inner = child(face, "Inner")
+	face.BackgroundTransparency = 1
+	child(w.Frame, "Shadow").Visible = false
+	inner.BackgroundTransparency = CLEAR
+	for _, side in
+		{
+			{ Name = "BandLeft", At = UDim2.new(), Size = UDim2.new(0, BAND, 1, 0) },
+			{ Name = "BandRight", At = UDim2.new(1, -BAND, 0, 0), Size = UDim2.new(0, BAND, 1, 0) },
+			{ Name = "BandFoot", At = UDim2.new(0, BAND, 1, -BAND), Size = UDim2.new(1, -2 * BAND, 0, BAND) },
+		}
+	do
+		Kit.new("Frame", {
+			Name = side.Name,
+			Position = side.At,
+			Size = side.Size,
+			BackgroundColor3 = Kit.White,
+			BackgroundTransparency = 0.82,
+			BorderSizePixel = 0,
+			ZIndex = 2,
+		}, inner)
+	end
+	local icon = picture(w.Header, 0, { Name = "Chest", AnchorPoint = Vector2.new(0, 0.5), ZIndex = 4 })
+	w.Title.AnchorPoint = Vector2.new(0, 0.5)
+	w.Title.TextXAlignment = Enum.TextXAlignment.Left
+	local heading = Shop.text(body, {
 		Name = "Offline",
-		Size = UDim2.new(1, 0, 0, TITLE_HIGH),
-		TextSize = 30,
-		Text = "OFFLINE EARNINGS",
+		TextSize = LAYS.Wide.Heading,
+		Text = "OFFLINE EARNINGS:",
 		ZIndex = 3,
 	})
 	hours = Shop.text(body, {
 		Name = "Hours",
-		Position = UDim2.fromOffset(0, TITLE_HIGH),
-		Size = UDim2.new(1, 0, 0, HOURS_HIGH),
-		TextSize = 18,
+		TextSize = LAYS.Wide.Hours,
 		TextColor3 = PALE,
 		ZIndex = 3,
 	})
-	-- the chest in lit water, the amount over its foot
-	local well = Shop.inset(body, {
-		Name = "Well",
-		Position = UDim2.fromOffset(0, WELL_AT),
-		Size = UDim2.new(1, 0, 1, -(WELL_AT + CLAIM_HIGH + GAP + 2)),
-		BackgroundColor3 = Kit.White,
-		ZIndex = 2,
-	})
-	Kit.gradient(well, DEEP, DARK)
-	picture(well, CHEST, {
-		Name = "Chest",
+	-- the chest and the amount, together in the middle: the amount starts over the chest's right side
+	group = Kit.new("Frame", {
+		Name = "Group",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, -24),
-		ZIndex = 4,
-	})
-	amount = Shop.text(well, {
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+	}, body)
+	Kit.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		Padding = UDim.new(0, 0),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, group)
+	local slot = Kit.new("Frame", { Name = "Slot", BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 4 }, group)
+	local chest = picture(slot, 0, { Name = "Chest", ZIndex = 4 })
+	amount = Shop.text(group, {
 		Name = "Amount",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -2),
-		Size = UDim2.new(1, -16, 0, 64),
-		TextSize = AMOUNT,
+		AutomaticSize = Enum.AutomaticSize.X,
+		TextSize = LAYS.Wide.Amount,
+		LayoutOrder = 2,
 		ZIndex = 6,
 	})
 	Kit.new("UIGradient", { Rotation = 90, Color = GOLD }, amount)
-	claim = Shop.button(body, {
+	local row = Kit.new("Frame", {
+		Name = "Row",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+	}, body)
+	claim = Shop.button(row, {
 		Name = "Claim",
 		Text = "Claim!",
 		Kind = "Cash",
-		TextSize = 34,
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, 0, 0, CLAIM_HIGH),
+		TextSize = LAYS.Wide.Claim,
+		LayoutOrder = 2, -- (the reference has Claim at the right of the two)
 		Shine = true, -- (the window's one money button)
 	})
 	claim.Root.ZIndex = 3
@@ -203,8 +300,73 @@ local function build()
 			pressed:Fire()
 		end
 	end)
+	OfflinePanel.share(row)
+
+	-- puts everything where this shape has it
+	local function place(l: Lay)
+		lay = l
+		local top = EDGE + l.Head + 2 * EDGE -- (the header's edge and the body's meet)
+		local side = EDGE + BAND + MARGIN
+		w.Frame.Size = UDim2.fromOffset(l.Wide, l.High)
+		w.Header.Position = UDim2.fromOffset(EDGE, EDGE)
+		w.Header.Size = UDim2.new(1, -2 * EDGE, 0, l.Head)
+		inner.Position = UDim2.fromOffset(EDGE, top)
+		inner.Size = UDim2.new(1, -2 * EDGE, 1, -(top + EDGE))
+		body.Position = UDim2.fromOffset(side, top + 4)
+		body.Size = UDim2.new(1, -2 * side, 1, -(top + 4 + side))
+		icon.Position = UDim2.new(0, 10, 0.5, -3)
+		icon.Size = UDim2.fromOffset(l.Icon, l.Icon)
+		local left = 10 + l.Icon + 10
+		w.Title.Position = UDim2.new(0, left, 0.5, -3)
+		w.Title.Size = UDim2.new(1, -(left + l.Close + 14), 1, -8)
+		w.Title.TextSize = l.Title
+		w.Close.Root.Position = UDim2.new(1, -6, 0.5, 0)
+		w.Close.Root.Size = UDim2.fromOffset(l.Close, l.Close)
+		w.Close.Label.TextSize = math.floor(l.Close * 0.66)
+		heading.Size = UDim2.new(1, 0, 0, l.Heading + 4)
+		heading.TextSize = l.Heading
+		hours.Position = UDim2.fromOffset(0, l.Heading + 4)
+		hours.Size = UDim2.new(1, 0, 0, l.Hours + 6)
+		hours.TextSize = l.Hours
+		-- (the chest's own clear margin may run a little over the line above and the row below)
+		local from = l.Heading + l.Hours + 10
+		local room = l.High - (top + 4 + side) - from - l.Row
+		group.Position = UDim2.new(0.5, 0, 0, from + room / 2)
+		group.Size = UDim2.new(1, 0, 0, l.Chest)
+		slot.Size = UDim2.fromOffset(l.Chest * OVER, l.Chest)
+		chest.Size = UDim2.fromOffset(l.Chest, l.Chest)
+		amount.Size = UDim2.fromOffset(0, l.Chest * FOOT)
+		row.Size = UDim2.new(1, 0, 0, l.Row)
+		claim.Label.TextSize = l.Claim
+		paint()
+	end
+	-- the kit's fit knows one size: on a screen too narrow for it, the narrow shape at its own scale
+	local kitFit = w.fit
+	function w.fit()
+		local camera = workspace.CurrentCamera
+		if not camera then
+			return
+		end
+		kitFit()
+		local view = camera.ViewportSize
+		local phone = if RunService:IsStudio() then workspace:GetAttribute("PanelPhone") else nil
+		if typeof(phone) == "Vector2" then
+			view = phone
+		end
+		local l = if view.X < NARROW then LAYS.Narrow else LAYS.Wide
+		if l == LAYS.Narrow then
+			local s = math.min(1.4, view.X / (l.Wide + 24), view.Y / (l.High + 16))
+			local by = w.Scale.Scale / s
+			local size = w.Root.Size
+			w.Scale.Scale = s
+			w.Root.Size = UDim2.new(size.X.Scale * by, size.X.Offset * by, size.Y.Scale * by, size.Y.Offset * by)
+		end
+		if l ~= lay then
+			place(l)
+		end
+	end
 	window = w
-	paint()
+	place(LAYS.Wide)
 end
 
 function OfflinePanel.isOpen(): boolean
@@ -225,7 +387,7 @@ function OfflinePanel.open(on: boolean)
 	end
 	(window :: Shop.Window).show(on)
 	if on then
-		Anim.punch(amount, 1.2)
+		Anim.punch(group, 1.12) -- (the two together: the amount alone would push the chest along)
 	end
 end
 

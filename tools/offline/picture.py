@@ -1,17 +1,19 @@
 """The offline rewards' window in pictures, drawn offline from the trees the game's own code builds (NULLROOM task o1).
 
     python tools/offline/picture.py             builds the place, runs panel_test.luau (its checks print), draws the sheet
-                                                docs/attachments/offline-window.png
+                                                docs/attachments/offline-window-2.png
     python tools/offline/picture.py studio      copies the chest into Studio's own content folder, so Studio shows it before
                                                 it is uploaded (rbxasset://textures/ridefish/offline_chest_o1.png)
 
-The sheet: the window on a PC and on a phone 375 wide and 375 high, and the small Claim after the X, at true size, over
-captures of the hub. Laid out by tools/index/panel_picture.py with Roblox's own font files (the Studio install); it is not
+The sheet (o2): the reference, the window on a PC, the window with each chest to pick from (art/ui/offline/options, a letter
+each: none is the game's until Hugo picks one), its header alone, a phone held upright and sideways, and the small Claim
+after the X, over captures of the hub. The reference is Hugo's own paste: a PC that has no such file gets a sheet without. Laid out by tools/index/panel_picture.py with Roblox's own font files (the Studio install); it is not
 Roblox's renderer, the shines and the open spring do not show, and the hotbar and land strip are left out: Studio has the
 last word.
 """
 import itertools
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -26,7 +28,10 @@ sys.path.insert(0, str(ROOT / "tools/index"))
 import panel_picture as pp  # noqa: E402
 
 CHEST = ROOT / "art/ui/offline/chest.png"
-OUT = ROOT / "docs/attachments/offline-window.png"
+OPTIONS = ROOT / "art/ui/offline/options"
+REFERENCE = Path(os.environ.get("OFFLINE_REFERENCE", Path.home()
+                                / "Projects/nullroom/data/uploads/2026-11-25/123037-pasted-123037.png"))
+OUT = ROOT / "docs/attachments/offline-window-2.png"
 TMP = Path(tempfile.gettempdir()) / "rideafish_offline"
 BIN = Path.home() / ".rokit/bin"
 LUNE = next(iter(sorted((Path.home() / ".rokit/tool-storage/lune-org/lune").glob("*/lune"))), BIN / "lune")
@@ -89,7 +94,9 @@ class Page(pp.Page):
                     f'stroke-width="{q["Thickness"] * k * 2:.3f}" stroke-linejoin="round">{escape(words)}</text>')
         out += head + f'fill="{colour}">{escape(words)}</text>'
         ends = {"Left": "flex-start", "Center": "center", "Right": "flex-end"}
-        return (f'<div class="t" style="position:absolute;inset:0;align-items:center;'
+        # (a label as wide as its words has that width, as in Roblox)
+        box = f"position:relative;width:{total:.2f}px;height:100%" if p.get("AutomaticSize") == "X" else "position:absolute;inset:0"
+        return (f'<div class="t" style="{box};align-items:center;'
                 f'justify-content:{ends[p.get("TextXAlignment", "Center")]}">'
                 f'<svg width="{total:.2f}" height="1" style="overflow:visible;flex:none">{defs}{out}</svg></div>')
 
@@ -105,7 +112,8 @@ def back(name, w, h):
     return p
 
 
-def scene(name, font, tag, crop=None):
+def scene(name, font, tag, crop=None, chest="B", zoom=1.0, letter=""):
+    pp.LOCAL["777000777"] = OPTIONS / f"chest_{chest}.png"
     d = json.loads((TMP / "dump" / f"{name}.json").read_text())
     w, h = d["View"]
     body = ""
@@ -116,7 +124,9 @@ def scene(name, font, tag, crop=None):
         page.high = [h]
         body += '<div style="position:absolute;inset:0">' + "".join(page.node(c, 1) for c in gui["Children"]) + "</div>"
     x, y, cw, ch = crop or (0, 0, w, h)
-    return (f'<div><div class="tag">{tag}</div><div class="scene" style="width:{cw}px;height:{ch}px">'
+    mark = f'<div class="letter">{letter}</div>' if letter else ""
+    return (f'<div style="zoom:{zoom}"><div class="tag" style="font-size:{15 / zoom}px">{tag}</div>'
+            f'<div class="scene" style="width:{cw}px;height:{ch}px">{mark}'
             f'<div style="position:absolute;left:{-x}px;top:{-y}px;width:{w}px;height:{h}px;'
             f'background:url({back(name, w, h).as_uri()})">{body}</div></div></div>')
 
@@ -134,6 +144,14 @@ def main():
     if r.returncode:
         sys.exit(1)
     font = next(f / "FredokaOne-Regular.ttf" for f in reversed(pp.FONTS) if (f / "FredokaOne-Regular.ttf").exists())
+    ref = ""
+    if REFERENCE.exists():
+        ref = (f'<div><div class="tag">The reference (Hugo\'s picture: its layout only)</div>'
+               f'<img src="{REFERENCE.as_uri()}" style="height:490px;display:block;border-radius:6px"></div>')
+    picks = "".join(scene("pc720", font, f"Chest {c}", (240, 102, 800, 516), c, .69, c) for c in "ABC")
+    heads = "".join(scene("pc720", font, f"{c}: the header on a PC", (254, 114, 540, 100), c) for c in "ABC")
+    heads += '</div><div class=row>'
+    heads += "".join(scene("phone", font, f"{c}: the header on a phone", (0, 252, 375, 70), c) for c in "ABC")
     html = f"""<!doctype html><meta charset="utf-8"><style>@font-face{{font-family:F;src:url('{font.as_uri()}')}}
 *{{box-sizing:border-box}}body{{margin:0;background:#12151f;color:#dfe8fa;font-family:'DejaVu Sans',sans-serif}}
 .page{{padding:20px;width:max-content}}.row{{display:flex;gap:18px;align-items:flex-start;margin-bottom:18px}}
@@ -142,18 +160,26 @@ def main():
 h1{{font:30px F;margin:0 0 14px}}
 .s{{position:absolute;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
 -webkit-mask-composite:xor;mask-composite:exclude}}.i{{position:absolute;inset:0}}
-.t{{display:flex}}</style><div class=page><h1>Offline rewards: the window, drawn from the game's own code (not Studio)</h1>
-<div class=row>{scene("pc720", font, "PC, 1280 x 720")}
-{scene("phone", font, "Phone, 375 x 812")}</div>
-<div class=row><div class=col>{scene("phone-side", font, "Phone sideways, 812 x 375")}
-{scene("phone-side-chip", font, "Phone sideways, after the X: the small Claim")}</div>
-<div class=col>{scene("pc720-chip", font, "PC, after the X (left of the screen)", (0, 180, 440, 360))}</div>
-{scene("phone-chip", font, "Phone, after the X")}</div></div>"""
+.t{{display:flex}}.letter{{position:absolute;z-index:99;left:56px;top:150px;font:110px F;color:#fff;-webkit-text-stroke:14px
+#10131c;paint-order:stroke fill}}p{{margin:0 0 14px;max-width:1700px;font-size:15px;line-height:1.5}}</style><div class=page>
+<h1>Welcome back, laid out like the reference: drawn from the game's own code (not Studio)</h1>
+<div class=row>{ref}{scene("pc720", font, "Ours, PC, 1280 x 720, $364.2M owed (the game writes $364M) (chest B)", zoom=.68)}</div>
+<h1>Pick a chest: A, B or C</h1><div class=row>{picks}</div>
+<div class=row>{heads}</div>
+<h1>Phones, at true size (chest B)</h1>
+<div class=row>{scene("phone", font, "Phone, 375 x 812")}
+{scene("phone-long", font, "Phone, the longest amount")}
+<div class=col>{scene("phone-side", font, "Phone sideways, 812 x 375")}
+{scene("pc-long", font, "PC, the longest amount", (240, 102, 800, 516), zoom=.6)}</div></div>
+<h1>After the X: the small Claim</h1>
+<div class=row>{scene("pc720-chip", font, "PC (left of the screen)", (0, 180, 440, 200))}
+{scene("phone-side-chip", font, "Phone sideways", (0, 110, 440, 200))}
+{scene("phone-chip", font, "Phone", (0, 335, 375, 200))}</div></div>"""
     f = TMP / "sheet.html"
     f.write_text(html)
     png = TMP / "sheet.png"
     subprocess.run([pp.CHROME, "--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
-                    "--allow-file-access-from-files", "--window-size=1760,1860", f"--screenshot={png}", f.as_uri()],
+                    "--allow-file-access-from-files", "--window-size=1800,3000", f"--screenshot={png}", f.as_uri()],
                    check=True, capture_output=True, timeout=180)
     im = Image.open(png).convert("RGB")
     ground = im.getpixel((2, 2))
