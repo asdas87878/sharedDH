@@ -19,9 +19,15 @@
 --   An ask sooner than Index.AskGap after the player's last is dropped.
 --   Auras: an aura does NOT multiply the Index's Oxygen (Config.Index.AuraMult 0, the draft's answer to an open
 --   question); with the switch on, every claim's Oxygen is multiplied by the player's aura (Shared/Auras).
+--   Saddles (NULLROOM s2; Shared/Saddles, Config.Saddles): a claimed land IS the owning of its saddle (Book.Lands), so
+--   it is given once, with the claim, and a player who claimed the land before has it too. Worn: one at most, put on or
+--   off over the same remote ("Saddle", land | "Saddle", 0), only one that is owned; any time, not only on the dock.
+--   The player's attribute Saddle is the worn one's land (0: none): every machine dresses their fish by it
+--   (SaddleController).
 --   Told to the client: its whole Index after every change (Index "State": Net.luau), and two player attributes for
 --   the hub button's red mark and for checks: IndexFound (kinds caught) and IndexClaims (rewards waiting).
--- For the session only: the game has no saves yet. When saves come, a player's Book (below) is what to keep.
+-- For the session only: nothing here is in SaveParts, so a player who comes back starts with an empty Index and no
+-- saddles. IndexService.dump and restore are what a save would call (a player's Book as plain tables and back).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -29,6 +35,7 @@ local RunService = game:GetService("RunService")
 local Auras = require(ReplicatedStorage.Shared.Auras)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Saddles = require(ReplicatedStorage.Shared.Saddles)
 local AquariumService = require(script.Parent.AquariumService)
 local RideService = require(script.Parent.RideService)
 
@@ -39,6 +46,7 @@ type Book = {
 	Count: { [string]: number }, -- fish id -> how many looks: a kind is found when it is here
 	Kinds: { [string]: boolean }, -- fish id -> true: its first-catch reward has been paid
 	Lands: { [string]: boolean }, -- the land as a string -> true: its set's reward has been paid
+	Saddle: number, -- the land whose saddle is worn, 0 for none
 	AskedAt: number, -- os.clock() of the last ask we listened to
 }
 
@@ -74,6 +82,16 @@ local function owed(book: Book): ({ string }, { number })
 		end
 	end
 	return kinds, lands
+end
+
+-- Whether they own a land's saddle: the land's set is claimed, and it gives one
+local function ownsSaddle(book: Book, land: number): boolean
+	return book.Lands[tostring(land)] == true and Saddles.ofLand(land) ~= nil
+end
+
+-- The worn saddle, for every machine to see: 0 while saddles are off
+local function showSaddle(player: Player, book: Book)
+	player:SetAttribute("Saddle", if ownsSaddle(book, book.Saddle) then book.Saddle else 0)
 end
 
 -- The player's whole Index, to their client and onto their attributes
@@ -167,8 +185,12 @@ local function pay(player: Player, book: Book, kinds: { string }, lands: { numbe
 	for _, id in kinds do
 		book.Kinds[id] = true
 	end
+	local saddles: { number } = {} -- the lands whose saddle comes with this claim
 	for _, land in lands do
 		book.Lands[tostring(land)] = true
+		if ownsSaddle(book, land) then
+			table.insert(saddles, land)
+		end
 	end
 	-- (no tank, no coins: such a player has none in this game)
 	if coins > 0 and AquariumService.tankOf(player) then
@@ -177,7 +199,20 @@ local function pay(player: Player, book: Book, kinds: { string }, lands: { numbe
 		coins = 0
 	end
 	tell(player, book)
-	Net.Index:FireClient(player, "Paid", oxygen, coins, #kinds + #lands)
+	Net.Index:FireClient(player, "Paid", oxygen, coins, #kinds + #lands, saddles)
+end
+
+-- Puts a land's saddle on (0: takes the worn one off). One they don't own changes nothing.
+local function wear(player: Player, book: Book, land: any)
+	if type(land) ~= "number" or land ~= land or land % 1 ~= 0 or Config.Saddles.On == 0 then
+		return
+	end
+	if land ~= 0 and (land < 1 or land > Config.indexLands() or not ownsSaddle(book, land)) then
+		Net.Index:FireClient(player, "Denied", "Saddle")
+		return
+	end
+	book.Saddle = land
+	showSaddle(player, book)
 end
 
 -- One ask from a player's client. Nothing in it is believed: the kind must be found and unpaid, the land's set whole
@@ -209,6 +244,9 @@ local function ask(player: Player, what: any, arg: any)
 		end
 	elseif what == "ClaimAll" then
 		kinds, lands = owed(book)
+	elseif what == "Saddle" then
+		wear(player, book, arg)
+		return
 	else
 		return
 	end
@@ -221,9 +259,10 @@ end
 
 local function join(player: Player)
 	if not books[player] then
-		books[player] = { Looks = {}, Count = {}, Kinds = {}, Lands = {}, AskedAt = -math.huge }
+		books[player] = { Looks = {}, Count = {}, Kinds = {}, Lands = {}, Saddle = 0, AskedAt = -math.huge }
 		player:SetAttribute("IndexFound", 0)
 		player:SetAttribute("IndexClaims", 0)
+		player:SetAttribute("Saddle", 0)
 	end
 end
 
@@ -232,6 +271,65 @@ end
 function IndexService.foundOf(player: Player): { [string]: number }?
 	local book = books[player]
 	return if book then book.Count else nil
+end
+
+-- A player's Book as plain tables, for a save (nil: not in the game). Nothing saves it yet (SaveParts has no Index part).
+function IndexService.dump(player: Player): { [string]: any }?
+	local book = books[player]
+	if not book then
+		return nil
+	end
+	local looks: { [string]: { string } } = {}
+	for id, of in book.Looks do
+		local list: { string } = {}
+		for what in of do
+			table.insert(list, what)
+		end
+		table.sort(list)
+		looks[id] = list
+	end
+	return { Looks = looks, Kinds = table.clone(book.Kinds), Lands = table.clone(book.Lands), Saddle = book.Saddle }
+end
+
+-- Puts a kept Book back into a player who has joined, believing no more of it than the game still has: a kind or a land
+-- that is gone is dropped, the counts are made again, and a worn saddle that is not owned comes off.
+function IndexService.restore(player: Player, kept: { [string]: any })
+	local book = books[player]
+	if not book or type(kept) ~= "table" then
+		return
+	end
+	local function each(list: any, take: (key: any, value: any) -> ())
+		if type(list) == "table" then
+			for key, value in list do
+				take(key, value)
+			end
+		end
+	end
+	each(kept.Looks, function(id, list)
+		each(list, function(_, what)
+			local size, variant = string.match(if type(what) == "string" then what else "", "^([^|]+)|(.*)$")
+			if type(id) == "string" and size and Config.SizeScale[size] then
+				note(book, id, size, variant :: string)
+			end
+		end)
+	end)
+	each(kept.Kinds, function(id, paid)
+		if type(id) == "string" and paid == true and Config.FishById[id] then
+			book.Kinds[id] = true
+		end
+	end)
+	each(kept.Lands, function(land, paid)
+		local number = tonumber(land)
+		if paid == true and number and number % 1 == 0 and number >= 1 and number <= Config.indexLands() then
+			book.Lands[tostring(number)] = true
+		end
+	end)
+	local worn = kept.Saddle
+	if type(worn) == "number" and ownsSaddle(book, worn) then
+		book.Saddle = worn
+	end
+	showSaddle(player, book)
+	tell(player, book)
 end
 
 -- Test hooks: only the offline check (tools/index/index_test.luau) and Studio's checks call these. `join` and `leave`

@@ -8,7 +8,8 @@
 -- This file is its door: it hears the server (the Index remote), opens the window and answers the hub and the checks.
 --   UI.IndexBook     the player's Index and every sum drawn from it
 --   UI.IndexWindow   the window (Hugo, 2026-11-25: "Make index ui feel more like ride a dino"; NULLROOM task i1)
---   UI.IndexOld      the window before that, behind Config.Index.Look 0 (read as the window opens)
+--   UI.SaddlePage    the saddles: a land's reward on its banner, and the page to put one on (NULLROOM s2)
+--   UI.IndexOld      the window before that, behind Config.Index.Look 0 (read as the window opens); no saddles in it
 -- Nothing here decides anything: what is found and what is claimed is the server's (IndexService); a press only asks.
 -- The rewards shown are Config.indexFirst and Config.indexLand, the same sums the server pays by (Config.Index: every
 -- number a DRAFT). For the session only: the game has no saves yet.
@@ -16,6 +17,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Saddles = require(ReplicatedStorage.Shared.Saddles)
+local State = require(script.Parent.Parent.Lib.State)
 local IndexBook = require(script.Parent.IndexBook)
 local IndexOld = require(script.Parent.IndexOld)
 local IndexWindow = require(script.Parent.IndexWindow)
@@ -53,7 +56,8 @@ function IndexPanel.isOpen(): boolean
 end
 
 -- Test hook: only the Studio checks and the offline check (tools/index/panel_test.luau) call this. A press, as the
--- player's: "Land", n | "Kind", fish id | "Claim" | "ClaimLand" | "ClaimAll".
+-- player's: "Land", n | "Kind", fish id | "Claim" | "ClaimLand" | "ClaimAll" |
+-- "Saddles", true or false (the saddles' page) | "Saddle", land (its card's button there).
 function IndexPanel.press(what: string, arg: any?)
 	if old then
 		IndexOld.press(what, arg)
@@ -91,8 +95,15 @@ local function say(text: string, good: boolean)
 	end
 end
 
+-- (the saddle put on or taken off: the player's own attribute)
+State.Player:GetAttributeChangedSignal("Saddle"):Connect(function()
+	if not old and isOpen() then
+		IndexWindow.paint()
+	end
+end)
+
 -- The server's word: the whole Index after every change, and what a claim paid or why it was refused
-Net.Index.OnClientEvent:Connect(function(what: any, a: any, b: any, c: any)
+Net.Index.OnClientEvent:Connect(function(what: any, a: any, b: any, c: any, d: any)
 	if what == "State" and type(a) == "table" and type(b) == "table" and type(c) == "table" then
 		IndexBook.read(a, b, c)
 		-- (only while it is open: a catch out on a dive must not build a land's pictures behind a closed window;
@@ -110,9 +121,15 @@ Net.Index.OnClientEvent:Connect(function(what: any, a: any, b: any, c: any)
 		if b > 0 then
 			table.insert(words, "+" .. Shop.cash(b))
 		end
+		-- (a claimed land's saddle, by name; more than one, by how many)
+		if type(d) == "table" and #d > 0 then
+			table.insert(words, if #d == 1 then Saddles.nameOf(d[1]) .. "!" else `{#d} Saddles!`)
+		end
 		say(table.concat(words, "   "), true)
 	elseif what == "Denied" and a == "Dock" then
 		say("Stand on the dock to claim", false)
+	elseif what == "Denied" and a == "Saddle" then
+		say("Claim that land's set first", false)
 	end
 end)
 -- (in case the server's first word went out before this was listening)
