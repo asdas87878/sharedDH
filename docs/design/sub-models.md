@@ -8,7 +8,9 @@ I approve you can do it for all of the stages."
 the game on Hugo's PC. Task m4 (same day) saw them in the game for the first time, fixed the shop's cards and the
 name sign (tier 5's fin covered its name in the riding view: lifted 5.7 studs, measured on ten trips). On
 2026-11-24 it found why most names are missing on a trip: the water's own drawing is drawn over them. That is not
-fixed, it is Hugo's call: "Seen in the game" below.** The voxel set (style D) built on 2026-11-22 was a fallback, taken before Hugo had named a
+fixed, it is Hugo's call: "Seen in the game" below. On 2026-11-24 tiers 8 and 9 became 8A and 9A
+([sub creature options](sub-creature-options.md)); all nine were checked again after the merge: "Checked again" below.**
+The voxel set (style D) built on 2026-11-22 was a fallback, taken before Hugo had named a
 letter; it is kept in `art/subs/voxel/` and is no longer in the game. Nothing is uploaded (see "In the game").
 
 ![the nine toy subs](../attachments/subs-toy-all-stages.png)
@@ -25,17 +27,18 @@ whose hull is red) and a wind-up key on the back in the tier's accent colour. Th
 
 | Tier | Sub | What sets it apart | Triangles | Across x tall x long |
 |---|---|---|---|---|
-| 1 | Bathtub | the approved model: the tub, two ports a side, stubby wings | 1,356 | 21.0 x 16.6 x 36.7 |
-| 2 | Reef Runner | the tub with a bumper bar, a white band, a snorkel, back wings | 1,784 | 21.0 x 20.2 x 38.5 |
-| 3 | Kelp Cruiser | longer, three ports, leaf wings, a V of leaf fins for a tail, kelp on the cap | 1,684 | 22.9 x 21.0 x 39.7 |
-| 4 | Wreck Diver | boxy salvage boat: ballast tanks, a periscope, a crane and hook, patches, twin lamps | 2,560 | 16.6 x 21.1 x 37.6 |
-| 5 | Blue Streak | a rocket: long and low, a red nose, swept wings, pods, a tall swept fin | 2,172 | 26.4 x 16.8 x 45.0 |
+| 1 | Bathtub | the approved model: the tub, two ports a side, stubby wings | 1,356 | 21.0 x 16.6 x 39.3 |
+| 2 | Reef Runner | the tub with a bumper bar, a white band, a snorkel, back wings | 1,784 | 21.0 x 20.2 x 41.1 |
+| 3 | Kelp Cruiser | longer, three ports, leaf wings, a V of leaf fins for a tail, kelp on the cap | 1,684 | 22.9 x 21.0 x 42.2 |
+| 4 | Wreck Diver | boxy salvage boat: ballast tanks, a periscope, a crane and hook, patches, twin lamps | 2,560 | 16.6 x 21.1 x 40.2 |
+| 5 | Blue Streak | a rocket: long and low, a red nose, swept wings, pods, a tall swept fin | 2,172 | 26.4 x 16.8 x 47.6 |
 | 6 | Twilight Ray | a manta: wide rounded wings with a line of light, horns, a long tail spike | 1,892 | 41.4 x 16.5 x 51.0 |
-| 7 | Midnight Hunter | a shark: a jaw with teeth, slit eyes, gills, a dorsal fin on the cap, claws | 1,936 | 22.0 x 21.8 x 45.0 |
-| 8 | Vent Crawler | armour hoops over glowing seams, vent stacks, pincers, belly spikes | 2,468 | 17.7 x 19.2 x 44.6 |
-| 9 | Abyss King | the biggest: a glowing crown, a trident ram, pods on wings, a crest, spikes | 3,096 | 27.3 x 23.4 x 56.6 |
+| 7 | Midnight Hunter | a shark: a jaw with teeth, slit eyes, gills, a dorsal fin on the cap, claws | 1,936 | 22.0 x 21.8 x 47.5 |
+| 8 | Vent Crawler | 8A, the Sea Scorpion (since 2026-11-24): rust armour over glowing magma seams, claws, yellow eyes | 3,544 | 26.1 x 18.9 x 49.6 |
+| 9 | Abyss King | 9A (since 2026-11-24): a gold hull held by a dark purple kraken, cyan suckers, horns | 4,532 | 20.0 x 24.8 x 59.9 |
 
-The sizes are the models' boxes in studs, as they came into Studio.
+The sizes are the models' boxes in studs as they stand in the place, the screw counted (read again 2026-11-25). The
+picture above shows tiers 8 and 9 before 8A and 9A: [all nine as they are now](../attachments/c1-subs-nine-and-shop.jpg).
 
 Each is 5 or 6 MeshParts: `Hull` (all that is rigid), `Hull_Glow` (glass and lines of light, Neon), `Seat`, `Prop`
 (spins; its box is centred on the hub), `Prop_Glow` (tiers 6 to 9: a glowing hub), `Light` (the lamp, Neon, carries the
@@ -115,6 +118,8 @@ Three playtests on Hugo's PC, by script (`tools/studio/t3_toy_subs_check.py`, lo
 tiers twice, then tiers 5 to 9 once more for the propeller. **Not played by hand, and not seen by eye:** see
 "Pictures" below. The numbers here are the second playtest's, with the third's where it was worse.
 
+- *(Read before the screw's blur disc and the bubble trail: the part counts and the wake's rate below are from then. Today's:
+  one part more on every tier with the disc, the trail in [sub props](sub-props.md), and "Checked again" below.)*
 - **Every tier builds from its template.** All nine come out as MeshParts (5 parts on tiers 1 to 5, 6 on tiers 6 to
   9), with 2 or 3 Neon parts, the lamp's beam on and the wake's emitter on the propeller.
 - **A real trip on every tier,** tier N to land N + 1. The check reads our own sub on every frame of the Ride phase
@@ -268,6 +273,59 @@ pictures on the shop sheet are cuts kept from the first playtest, on the old cod
   texture id"). The script's gate catches it (`FROZEN`), so no stale picture got onto a sheet.
 - **Not checked:** a real phone; a trip by hand; the trip's pick-up, arrival and drop by eye; the stills are one
   moment of each trip, so a blade crossing the ring later in a trip would not show.
+
+## Checked again after the merge (2026-11-25, task c1)
+
+Our own playtest on Hugo's PC, the place equal to the repo at `41f2000`. Nothing in `src/` changed.
+[The nine subs and the shop](../attachments/c1-subs-nine-and-shop.jpg): the game's own riding view, no test camera. Every
+still differs from the one before it (41% to 91% of the view on the rides, 16% or more in the shop), so the window was live.
+
+- **The same on all nine, trips tier N to land N + 1:** built from the meshes; 2 or 3 Neon parts; the rider and the seat
+  0.00 off; the propeller 0.003 off at most and turning on every frame read; the wake, lamp beam and sign on every
+  frame; the nose 0.84 at worst (tier 9); no motion blur. Top speeds 469 (tier 1), 3,986 (tier 8), 4,342 (tier 9).
+- **The sign:** 2.0 studs over the model (tier 5 7.7). Nothing comes up the sign but tier 6's tail (2.88 studs on 1%
+  of frames, known) and 0.09 on tier 7. 9A's horns stay clear. Names are still mostly hidden by the water (known, Hugo's call).
+- **The glow:** 8A's is orange and yellow and 9A's cyan, none blown out to white. (9A's yellow eyes face forward: not seen from the riding view.)
+- **The shop:** all nine cards hold the whole sub, PC and 844 x 390 phone size (0.90 of the card at worst). `picks_check.py`:
+  nine signs unclipped with edge, drop and shine; the blur disc on all nine; the cards in view turn, none after closing.
+  It reads 4 of 12 aura pictures loaded, as its last log did; all twelve are drawn (`aura_check.py`).
+- **Offline:** `card_fit --check`, `sign_fit --check`, `screw_check` pass on all nine.
+- **`fish_sub_check` and `sub_camera_check` still print their known FAILs** (the sub's bearing 15 to 21 degrees off on land bends, limit
+  15; the view turned about on the first frame, the script's own doing; the fish 0.65 off its place on one trip, limit 0.5).
+
+### The gate and the pick-up (`tools/studio/sub_clear_check.py`)
+
+It records the sub, the camera and the rider on every frame from the hire to 1.5 s into the run, with the map near them, and
+measures the sub's mesh against the parts' boxes afterwards. Fourteen trips: tiers 1, 8, 9 on foot from the middle and both
+ends of the lip, and on a great white. The sub comes up (Approach) for 1.20 s, picks up until 1.95 s, then runs.
+
+| On foot, the lip's middle, studs | Tier 1 | Tier 8 | Tier 9 |
+|---|---|---|---|
+| The gate's lip, nearest: coming up / pick-up / run | 22.1 / 23.5 / 26.2 | 22.1 / 23.0 / 26.4 | 17.5 / 19.2 / 23.5 |
+| The seabed: coming up / pick-up | 8.1 / 13.5 | 5.7 / 12.1 | 4.6 / 10.2 |
+| Into the lane's wall at the lip's ends (40 off, left / right), coming up | 17.2 / 17.1 | 27.4 / 28.8 | 30.4 / 30.9 |
+| The same at the pick-up | clear | clear (1.0 to 1.8) | **3.8 / 4.5** |
+| The sub's top against the surface: pick-up / first 1.5 s of the run | -5.5 / -1.5 | -5.5 / -1.6 | -1.0 / **+2.9** |
+| The camera to the hull, nearest: coming up / pick-up / run | 6.6 / 4.5 / 10.6 | 6.6 / 4.8 / 10.6 | 2.2 / 3.4 / 7.7 |
+| The hull within a stud of the rider's middle | 0.13 s | 0.13 s | **0.65 s** |
+| All of the rider hidden from the camera | 1 to 3 frames | 1 to 3 frames | **0.3 s** |
+
+The gate's bricks are 72 or more off on every tier. Tier 8's claws (26 across, were 18) touch nothing of the gate or the walls at
+the pick-up. Depths in a wall are past the face on the sub's own side.
+
+**Not put right, Hugo's call.** These are the shared pick-up path (`SubTrip`, in the air-hop chat's hands that day) or the model:
+
+1. **Tier 9's kraken head comes between the rider and the camera as it picks them up:** its head goes through the rider
+   (1.05 to 1.70 s) and fills the screen for about 0.3 s (1.35 to 1.68 s; the sheet's fourth row). Tiers 1 and 8 don't.
+   On all tiers the nose also covers the rider for 1 to 3 frames as the run starts (1.90 to 1.95 s).
+2. **Tier 9's nose is in the lane's wall at the pick-up** from the ends of the lip, until 0.06 s into the run.
+3. **All tiers come up through the walls at the lip's ends** (on every tier also the dock's body, until 0.72 to 0.80 s, kelp and flags;
+   at one or both ends an underwater flag post too, 3 to 15 studs). Behind the rider's camera; other players could see it.
+4. **Tier 9's top breaks the surface** by 2.9 studs in the run's first 1.5 s.
+5. **On a great white, the run clips corals** left of the lane 2.3 to 2.9 s in: `pagoda_coral_9383` by 2.0 to 2.5 on tiers 1, 8, 9,
+   `pillar_coral_80` by 0.4 on tier 1 and 1.0 on tier 9 (clear by 0.3 on 8). The seabed is close as it comes up (3.6, 1.3, 0.2 on tiers 1, 8, 9). That hop is being replaced.
+
+Not done: by hand, two players, a phone, the arrival and the drop's clearance.
 
 ## Build
 
