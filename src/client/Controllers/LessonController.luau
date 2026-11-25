@@ -4,6 +4,8 @@
 -- the game already says. On the dock one line, the game's own (UI/DockNotes, where "GO TO YOUR TANK TO DEPOSIT" is), and
 -- the pointer (UI/LessonPointer, in the world); in the water only the hop button's words and arrow (UI/LessonPrompt); in
 -- the tank's window a ring round PUT ALL IN.
+-- (The dock's line only after a respawn, for a couple of seconds: Hugo, 2026-11-25, Config.DockLine. The words of a step that
+-- begins between two respawns wait for the next one; the pointer, the arrow and the rings show through, as they did.)
 --   Dive     on the dock, nothing caught   DIVE IN AND CATCH A FISH                  the strip
 --   First    floating, nothing caught      HOP ON A FISH                             the hop button
 --   Hop      the first fish is theirs      HOP TO THE NEXT FISH                      the hop button

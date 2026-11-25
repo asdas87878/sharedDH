@@ -2985,6 +2985,39 @@ function Config.lessonGoal(): number
 end
 
 ----------------------------------------------------------------------------------------------------------------------
+-- The dock's lines and what a fish needs (Hugo's picks off docs/attachments/text-options-2026-11-25.png, B1 and A3)
+
+-- The lines in the middle of the dock's screen (the lesson's, the catch's, the goal's: UI/DockNotes) in the sticker look,
+-- B1. Hugo, 2026-11-25: "make sure this text only shows up when you respawn, it should only stay for a couple of seconds
+-- before fading out". Once a respawn (Lib/RespawnLine), from when the screen is clear. Seconds, but the last four.
+Config.DockLine = {
+	Settle = 0.6, -- clear this long before it comes,
+	In = 0.25, -- slapped on in this long,
+	Hold = 2.5, -- there this long, the slap in it,
+	Fade = 0.5, -- and fading this long
+	Cut = 0.2, -- what it says is over (into the water, a window up): gone in this long, and that was the line
+	Give = 2.5, -- nothing to say this long with the screen clear: no line this time
+	Size = 30, -- the letters, points on a screen 720 high (it shrinks to fit a narrow one)
+	GoalSize = 21, -- the goal's,
+	Least = 17, -- and neither under this many on any screen (a phone's goal was 12.6; 0: no floor)
+	Stroke = 0.13, -- the words' outline, a share of the letters
+}
+
+-- "Required: n" on a fish's tag (UI/ReqLine): A3, the number green or red, the O2 picture, no red plate, and its outline
+-- turned down (Hugo, 2026-11-25: "use A3 but turn down the boldness/thickness of outline"). Points.
+Config.ReqLine = {
+	Stroke = 0.6, -- the outline and the hard shadow under it: this share of A3's (1: the sheet's own)
+	Word = 12.5, -- "Required:", its letters,
+	WordStroke = 2.4, -- A3's outline on them
+	WordDrop = 1.6, -- and the shadow, this far down
+	Number = 19,
+	NumberStroke = 3.2,
+	NumberDrop = 2.2,
+	Picture = 19,
+	Shake = 7, -- degrees the number shakes, once, as a fish too strong is locked (0: never)
+}
+
+----------------------------------------------------------------------------------------------------------------------
 -- The fish that leaps past the gate, seen from the hub (HubLeapController)
 
 Config.HubLeap = {

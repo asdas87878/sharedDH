@@ -250,6 +250,11 @@ make sure the arrows on the floor … connect with each other properly and they 
 | Train | RIDE YOUR SEAHORSE TO HOLD STRONGER FISH | arrow over the seahorse, trail |
 | Again, off the seahorse with Oxygen gained | DIVE IN AGAIN | arrow over the strip, trail. **The dive ends the lesson** |
 
+- **The dock's line only after a respawn (Hugo, 2026-11-25):** "make sure this text only shows up when you respawn, it should only stay
+  for a couple of seconds before fading out". Up 2.5 s, faded in 0.5 s, once each respawn (the first spawn too); in the
+  B1 sticker look. So the words of a step that begins between two respawns (RIDE YOUR SEAHORSE, CLAIM, DIVE IN AGAIN) are normally not
+  seen: the arrow, the trail, the rings and the Index's red "!" carry them. The hop button's words keep their timing.
+  How: [UI](ui.md), "The dock's lines and Required".
 - **Where:** `Controllers/LessonController` decides; `UI/DockNotes` has the line; `UI/LessonPointer` the arrow and the trail;
   `UI/LessonPrompt` the hop button's words and arrow and the ring. All of it waits for the black, the fail's words, the catch
   screen and any window (and 0.25 s after the tank's window closes).

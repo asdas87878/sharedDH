@@ -3,7 +3,8 @@
 -- are for). One small line under the caption's place (UI.DockNotes.goal): rewards waiting in the Index first, else the
 -- cheapest thing to buy when the coins reach it, else how far they are from it: the seahorse's next level, the tank's
 -- next stage, and the next submarine once the fish of the land it goes to can be held.
--- Not while the lesson runs, a catch is carried, a window is open, or the player rides something.
+-- Not while the lesson runs, a catch is carried, a window is open, or the player rides something; and only after a
+-- respawn, for a couple of seconds (DockNotes.waiting; until 2026-11-25 it came back each time the dock was clear).
 -- Also the word as the tank goes up a stage.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -19,9 +20,6 @@ local TankPanel = require(script.Parent.Parent.UI.TankPanel)
 local GoalController = {}
 
 local EVERY = 0.25
-local SETTLE = 1.5 -- on the dock this long, with nothing else up, before it shows, seconds
-
-local clearSince = math.huge
 
 local function number(name: string): number
 	local value = State.Player:GetAttribute(name)
@@ -102,15 +100,9 @@ function GoalController.Start()
 			DockNotes.note("SERVER FULL!", "The next free tank is yours", false)
 		end
 	end)
+	DockNotes.Start()
 	while true do
-		local now = os.clock()
-		if not clear() then
-			clearSince = math.huge
-			DockNotes.goal(nil)
-		else
-			clearSince = math.min(clearSince, now)
-			DockNotes.goal(if now - clearSince >= SETTLE then words() else nil)
-		end
+		DockNotes.goal(if DockNotes.waiting() and clear() then words() else nil)
 		task.wait(EVERY)
 	end
 end

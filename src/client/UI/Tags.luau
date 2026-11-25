@@ -43,6 +43,7 @@ local Archetypes = require(ReplicatedStorage.Shared.Archetypes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Zones = require(ReplicatedStorage.Shared.Zones)
 local Kit = require(script.Parent.Kit)
+local ReqLine = require(script.Parent.ReqLine)
 local State = require(script.Parent.Parent.Lib.State)
 
 local Tags = {}
@@ -670,13 +671,10 @@ local GEM = 11
 -- the three-line tag (7): each line's height, the room between them, the icons on line 1, the stars by the word
 local STACK_TOP = 22
 local STACK_NAME = 19
-local STACK_REQ = 18
+local STACK_REQ = ReqLine.High
 local STACK_GAP = 3
 local STACK_ICON = 18
 local SPARK = 7
-local REQ_SIZE = 12
-local NUMBER_SIZE = 14
-local BUBBLE = 13
 
 -- a rarity as one colour (an edge, a glow): its own, or the middle of gold, the ember and the rainbow
 local function solid(tier: string): Color3
@@ -716,8 +714,7 @@ type StackParts = {
 	GlowEdge: UIStroke,
 	Sparks: { Frame }, -- a small star either side of the word, Legendary and up
 	Icons: Frame,
-	Req: TextLabel,
-	ChipEdge: UIStroke,
+	Req: ReqLine.ReqLine, -- line 3
 	WordSize: number,
 	WordWide: number,
 	Turn: number, -- the word's gradient's own turn, which the shimmer swings about
@@ -780,7 +777,8 @@ type Alt = {
 	Scale: UIScale,
 	Name: TextLabel,
 	Chip: Frame,
-	Need: TextLabel,
+	Need: TextLabel?, -- (the three-line tag's is its Stk.Req)
+	Number: string, -- what it says
 	Hold: TextLabel,
 	Opt: OptParts?,
 	Stk: StackParts?,
@@ -823,7 +821,6 @@ local altOrder: { Alt } = table.create(POOL)
 -- swings), the Secret's rainbow turning. Size, then the glow's width and how see-through it is (nil: none)
 local WORD_SIZE = { 14, 14, 15, 15.5, 16.5, 17, 17.5 }
 local WORD_GLOW: { { number }? } = { nil, nil, { 3.5, 0.72 }, { 4.5, 0.6 }, { 5.5, 0.5 }, { 6, 0.45 }, { 6.5, 0.4 } }
-local REQ_WIDE = 0 -- "Required:" at REQ_SIZE, measured once
 
 -- The rarity word's designed styles (Hugo, 2026-11-14: "improve upon the rarity text, needs different font and they
 -- all need a look with highlights shading and gradients"; ui.md, "Rarity word options"). Behind Kit.RarityWords: the
@@ -1566,56 +1563,24 @@ local function makeStack(parent: Instance): Alt
 		TextSize = 16,
 		LayoutOrder = 3,
 	}, root, 3)
-	-- line 4: "Required: n" and the bubble; on a red plate when the fish is too strong
+	-- line 4: "Required: n" and the O2 picture, the number red when the fish is too strong (UI/ReqLine)
 	local reqRow: Frame = Kit.new("Frame", {
 		Size = UDim2.fromOffset(WIDE, STACK_REQ),
 		BackgroundTransparency = 1,
 		LayoutOrder = 4,
 	}, root)
-	local chip: Frame = Kit.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, STACK_REQ),
-		BackgroundColor3 = Kit.Danger,
-		BackgroundTransparency = 1,
-	}, reqRow)
-	Kit.corner(chip, 999)
-	local chipEdge = Kit.stroke(chip, 2, Kit.Ink)
-	chipEdge.Enabled = false
-	Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }, chip)
-	Kit.new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 4),
-	}, chip)
-	local req = Kit.text({
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, STACK_REQ),
-		TextSize = REQ_SIZE,
-		Text = "Required:",
-		TextColor3 = Color3.fromRGB(226, 238, 255),
-		LayoutOrder = 1,
-	}, chip, 2)
-	local need = Kit.text({
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, STACK_REQ),
-		TextSize = NUMBER_SIZE,
-		LayoutOrder = 2,
-	}, chip, 2.4)
-	Kit.bubble(chip, BUBBLE).LayoutOrder = 3
+	local req = ReqLine.new(reqRow, 1)
+	req.Row.AnchorPoint = Vector2.new(0.5, 0.5)
+	req.Row.Position = UDim2.fromScale(0.5, 0.5)
 	local hold =
 		Kit.text({ Size = UDim2.fromOffset(WIDE, 15), TextSize = 11.5, LayoutOrder = 5, Visible = false }, root)
-	if REQ_WIDE == 0 then
-		REQ_WIDE = TextService:GetTextSize("Required:", REQ_SIZE, Kit.Font, Vector2.new(1000, 100)).X + 4
-	end
 	return {
 		Frame = root,
 		Scale = scale,
 		Name = name,
-		Chip = chip,
-		Need = need,
+		Chip = req.Row,
+		Need = nil,
+		Number = "",
 		Hold = hold,
 		Opt = nil,
 		Stk = {
@@ -1626,7 +1591,6 @@ local function makeStack(parent: Instance): Alt
 			Sparks = sparks,
 			Icons = icons,
 			Req = req,
-			ChipEdge = chipEdge,
 			WordSize = 14,
 			WordWide = 0,
 			Turn = 90,
@@ -2218,6 +2182,7 @@ local function makeAlt(parent: Instance, lk: Look): Alt
 		Name = name,
 		Chip = chip,
 		Need = need,
+		Number = "",
 		Hold = hold,
 		Opt = {
 			Word = word,
@@ -2327,14 +2292,13 @@ local function roomAlt(tag: Alt, form: number, lk: Look)
 	local st = tag.Stk
 	if st then
 		local word = st.WordWide + st.SparkWide
-		local number = 13 + 8 * #tag.Need.Text
 		local top = st.Top.Size.Y.Offset
 		local wide, high
 		if form == MARK then
-			wide = math.max(word, number + 12)
+			wide = math.max(word, ReqLine.wide(tag.Number, false) + 6)
 			high = top + STACK_GAP + STACK_REQ
 		else
-			wide = math.max(word, st.RowWide, tag.NameWide, REQ_WIDE + number + 12)
+			wide = math.max(word, st.RowWide, tag.NameWide, ReqLine.wide(tag.Number, true) + 6)
 			high = top + STACK_NAME + STACK_REQ + STACK_GAP * 2 + (if st.RowOn then ROW_HIGH + STACK_GAP else 0)
 		end
 		tag.Wide = (wide + lk.Pad * 2) * s
@@ -2342,7 +2306,7 @@ local function roomAlt(tag: Alt, form: number, lk: Look)
 		return
 	end
 	local plate = if lk.Plate ~= "" then 20 else 0
-	local chip = 28 + 8 * #tag.Need.Text
+	local chip = 28 + 8 * #tag.Number
 	local wide, high
 	if form == MARK then
 		wide = GEM + 10 + plate + (if lk.FarPrice and not lk.ChipUnder then chip else 0)
@@ -2404,7 +2368,7 @@ local function shapeAlt(tag: Alt, form: number, lk: Look)
 	if st then
 		-- far or crowded: the rarity's word and what the fish needs, no size, no icons, no name
 		st.Row.Visible = not marked and st.RowOn
-		st.Req.Visible = not marked
+		st.Req.word(not marked)
 	end
 	tag.Name.Visible = not marked
 	tag.Chip.Visible = priced
@@ -2495,7 +2459,13 @@ local function updateAlt(lk: Look, camera: Camera, maxOxygen: number, ridden: Mo
 			local needs = Config.requiredOfModel(fish) or 0
 			if needs ~= tag.Needs then
 				tag.Needs = needs
-				tag.Need.Text = whole(needs)
+				tag.Number = whole(needs)
+				if tag.Need then
+					tag.Need.Text = tag.Number
+				end
+				if tag.Stk then
+					tag.Stk.Req.set(tag.Number)
+				end
 			end
 			local seconds = Config.secondsOn(needs, maxOxygen, tag.KindOf)
 			local state = if Config.strained(needs, maxOxygen) or seconds < Kit.HoldShort
@@ -2506,16 +2476,20 @@ local function updateAlt(lk: Look, camera: Camera, maxOxygen: number, ridden: Mo
 				tag.State = state
 				local tooStrong = state == 3
 				local bright = lk.Bright and state == 1
-				tag.Need.TextColor3 = if tooStrong or bright then Kit.White else NEED[state]
 				tag.Hold.TextColor3 = NEED[state]
-				tag.Chip.BackgroundColor3 = if tooStrong
-					then Kit.Danger
-					elseif bright then Color3.fromRGB(38, 168, 72)
-					else Kit.Deep
-				tag.Chip.BackgroundTransparency = if tooStrong or bright then 0.04 elseif lk.ChipClear then 1 else 0.25
-				local st = tag.Stk
-				if st then
-					st.ChipEdge.Enabled = tooStrong
+				if tag.Need then
+					tag.Need.TextColor3 = if tooStrong or bright then Kit.White else NEED[state]
+					tag.Chip.BackgroundColor3 = if tooStrong
+						then Kit.Danger
+						elseif bright then Color3.fromRGB(38, 168, 72)
+						else Kit.Deep
+					tag.Chip.BackgroundTransparency = if tooStrong or bright
+						then 0.04
+						elseif lk.ChipClear then 1
+						else 0.25
+				end
+				if tag.Stk then
+					tag.Stk.Req.state(state)
 				end
 				tag.Name.TextTransparency = if lk.Dim and tooStrong then 0.45 else 0
 			end
@@ -2530,6 +2504,9 @@ local function updateAlt(lk: Look, camera: Camera, maxOxygen: number, ridden: Mo
 			end
 			local distance = (root.Position - eye).Magnitude
 			tag.Distance = distance
+			if isLocked and not tag.Locked and state == 3 and tag.Stk then
+				tag.Stk.Req.shake()
+			end
 			tag.Locked = isLocked
 			tag.Focus = false
 			tag.Extra = if holdText ~= "" then HOLD_HIGH else 0
