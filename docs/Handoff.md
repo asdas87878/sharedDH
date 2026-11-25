@@ -4,7 +4,7 @@ What each push changed, so whoever pulls next knows where things stand. Newest f
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 ## 2026-11-25 · The Index arrow the first time only, sparser leaps (game code, the user's PC)
-**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Replaces the Index and leap parts of the entry below.
+**State:** pushed; in the Team Create place, **saved on the user's word (version 479)**, not published. Replaces the Index and leap parts of the entry below.
 - **Index** (the user: "Just leave the arrow and the yellow border", "only … the first time", after that only the "!"): the callout, the goal
   line and the lesson's words for a claim are gone. Until the player has claimed once (`IndexPaid`, from what their Book holds, so a
   saved Book keeps it) an arrow points at the Index button with the ring round it, and in the window at CLAIM ALL
@@ -16,7 +16,7 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
   behind without a word; read a changed script back. **Owed:** a phone, the plate by eye.
 
 ## 2026-11-25 · The lesson's arrows, the leaping fish, the Index made obvious (game code, the user's PC)
-**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Lint clean, no errors of ours in the console.
+**State:** pushed; in the Team Create place, **saved on the user's word (version 479)**, not published. Lint clean, no errors of ours in the console.
 - **Index** (the user: keep claiming there, "more obvious that the player has to go to index"): while there is something to claim on
   the dock, a yellow callout "CLAIM +n" points at the Index button with a ring beating round it (`HubButtons`, pressing it opens
   the Index); the goal line and the lesson's last step say OPEN THE INDEX TO CLAIM +n OXYGEN; the caught plate says
