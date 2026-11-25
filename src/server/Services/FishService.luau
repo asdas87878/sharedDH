@@ -1764,8 +1764,9 @@ function FishService.keepFor(player: Player, place: Vector3?)
 end
 
 -- Where a place is along the herd's stream, studs; where each land begins along it; and how long it is
-function FishService.streamS(position: Vector3): number
-	return (Stream.project(stream, position))
+-- (`near`: where it is looked for, a place known to be within a few steps of it)
+function FishService.streamS(position: Vector3, near: number?): number
+	return (Stream.project(stream, position, near))
 end
 
 function FishService.landStart(index: number): number?
@@ -1784,6 +1785,20 @@ function FishService.streamPoint(s: number, lift: number, under: number): Vector
 	local across = Stream.across(stream, s, 0, 0, 1, 8)
 	local at, floorY = Stream.point(stream, s, across, 0)
 	return Vector3.new(at.X, math.min(floorY + lift, Config.Oxygen.SurfaceY - under), at.Z)
+end
+
+-- The open water either side of that line at s (SubService's escort): studs to the left and to the right going down, less
+-- the herd's own gap, the least of it a little way up and down the stream
+function FishService.streamRoom(s: number): (number, number)
+	local left, right = math.huge, math.huge
+	for _, near in { -40, 0, 40 } do
+		local at = math.clamp(s + near, 0, stream.Length)
+		local across = Stream.across(stream, at, 0, 0, 1, 8)
+		local i = math.clamp(math.floor(at / (stream.Length / (stream.Count - 1))) + 1, 1, stream.Count)
+		left = math.min(left, across - stream.Left[i])
+		right = math.min(right, stream.Right[i] - across)
+	end
+	return left, right
 end
 
 -- The fish a player rides with off the submarine: one of their tank's, made in the water for them, its kind, colour

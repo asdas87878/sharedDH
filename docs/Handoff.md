@@ -26,6 +26,29 @@ uploaded to Roblox. Everything is in [auras](design/auras.md), "Built".
   which way the Beams' pictures run (`Aura.Turn`, `Scroll`), what is behind the body (`Behind`), the bends' joints, frame rate.
 - **Not mine:** `tools/index/index_test.luau` fails 3 checks on `d7c958b` too (the land-set reward was retuned there).
 
+## 2026-11-25 · Every fish dives, the hop from the fish onto the sub, the ticket gone (NULLROOM v1, Hugo's PC)
+**State:** pushed: branches `fish-dive`, `fish-sub` and `index-ticket` merged on d7c958b, with the fixes found in Studio.
+`full_check.py all` on it: all good, no errors, the place equal to the repo after (Config's comments synced last, `place` run again). **Hugo's place is not saved**: Ctrl+S by Hugo.
+**The hop from the fish onto the sub is about to be replaced** (Hugo, 2026-11-25: the hop in mid-air; branch `air-hop`). This one
+stays as the tag `backup-underwater-hop-final`. Don't polish it.
+- **What changed.** A rider on any ride fish who runs off the lip dives with it ([the leap on a fish](design/dive-in.md)). With a
+  sub and a land picked, the fish carries you out, you hop across, it weaves left and right beside the sub and is back for the kick
+  ([submarine](design/submarine.md)). The "SUB > land" ticket at the left edge is gone. No Index ring is in the place.
+- **Found in Studio and put right:** the rider thrown up to 480 studs off at the kick's end (a race main had too; `SubController`,
+  `Seated`); the player's own fish faded in from nothing at the swap (`ArriveController`); the camera cut from the dive to the trip;
+  the gate's beam stopping the tallest fish's riders (`Lib/RiderGate`, client only).
+- **Dials, and off:** `Config.Dive.LeapMounted` 1 (0: a ridden fish drops in as before; its numbers `LeapMounted…`);
+  `Config.Sub.Escort` 1 (0: the fish only swims up at the end, as before; its numbers `Escort…`); `Config.Equip.GateFrom` 48 (0:
+  the gate's beam stops everyone); `Config.Dive.Leap` (the player's own leap, not changed). The fixes to the throw and the
+  fade-in have no switch.
+- **Checked by script in Studio:** `dive_leap_check.py run` (on foot) and `run mounted-all` and more (14 kinds and sizes);
+  `fish_sub_check.py all` (18 runs; what it still says FAIL to is listed in [submarine](design/submarine.md));
+  [stills](attachments/fish-dive-and-sub-hop.png); offline `fish_dive_check` parts 1, 3, 4, 5: all pass (468 of 468 dive), before
+  the last two fixes, which it does not read.
+- **Not checked:** by hand, on a phone, two players (others see the fish by the same sums). Part 2 of `fish_dive_check` and
+  `escort_check` were not run again on the merge. Great White's nose turned 17 degrees at the swap in one run of three; the
+  Colossal Blue Whale's saddle moved 4.65 studs in one. At takeoff the Colossal whale's antlers fill much of the view.
+
 ## 2026-11-24 · Subs 8A and 9A, the screw's bubble trail, merged with the second hunt's fixes (NULLROOM s2, Hugo's PC)
 **State:** pushed, main `8f82bd3` (the branch `subs-8a-9a-bubbles` merged with the partner's `9b25376`; the auto-push sent it at
 18:41). `python tools/studio/full_check.py all` on it at 18:45: all good, no errors, the place equal to the repo before and after.

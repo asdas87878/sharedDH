@@ -46,7 +46,7 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   check has run at a real frame rate. **Bought Oxygen off the dock is banked** (`RideService.grantOxygen`, `Banked`) and
   joins the max at the dock: never raise the max mid-dive, the red line and the drain are shares of it.
 - **The hub's new pieces (2026-11-24; NULLROOM h1 to h4):** the stalls open on their floor rings, the sub stand too
-  (`StallController`: Sell, Auras, Sub; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
+  (`StallController`: Sell, Auras, Sub, and Index where the map has that station; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
   copy of the equipped sub turns over the sub stand, on the player's own machine (`SubStandController`); **the Index**
   is `IndexService` (the server sees a catch in `RideService.carried` and `AquariumService.tankOf` every
   `Config.Index.Watch`; claims on the dock only, paid once; attributes `IndexFound`, `IndexClaims`; remote `Net.Index`)

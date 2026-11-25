@@ -1100,6 +1100,9 @@ Config.Equip = {
 	-- and that never more than CameraMost studs
 	CameraFrom = 0.9,
 	CameraMost = 250,
+	-- a rider this high on the ride fish (the humanoid's HipHeight, studs) goes through the lip's gate: its beam (54 to 69
+	-- over the floor) stopped a Colossal Blue Whale's rider short of the lip (Lib/RiderGate); 0: it stops them, as before
+	GateFrom = 48,
 }
 
 -- Riding the equipped fish on land (task e4, docs/design/land-motion.md): each body type moves in its own way, all of it
@@ -3376,10 +3379,10 @@ Config.Dive = {
 	Leap = 1, -- 1: running off the lip is the dive; 0: you drop in as before (nothing of the leap runs). On for everyone on the user's word, 2026-11-23
 	LeapCam = 1, -- 1: the camera films the dive; 0: the view is left as it is
 	Flip = 0, -- 1: a forward somersault in the air, tucked
-	LeapAhead = 2.5, -- the water is looked for this far ahead of you as you run, studs
-	LeapMinSpeed = 8, -- running toward the water at least this fast starts it, studs a second (slower: it starts as you go over the edge)
+	LeapAhead = 2.5, -- the line that starts it is this far in from the lip, studs, the whole width of it: the same for a runner and a rider
+	LeapMinSpeed = 8, -- crossed going out at least this fast, studs a second (slower: it starts as you go over the edge)
 	LeapCone = 40, -- the dive goes out within this many degrees of straight out from the dock, whichever way you ran,
-	LeapRefuse = 75, -- but running more than this far off straight out (along the edge) is no dive: you drop in as before
+	LeapRefuse = 75, -- but running more than this far off straight out (along the edge) does not start it (going over the edge does)
 	LeapCrouch = 0.1, -- the crouch at the edge, seconds (none when you are over the water already)
 	LeapHigh = 11, -- the arc's top over where you left, studs
 	LeapFar = 24, -- and where it meets the water, studs out
@@ -3423,18 +3426,26 @@ Config.Dive = {
 	-- the leap on the ride fish (2026-11-23, the user: "if you are on a fish and you dive into the water you should have
 	-- a slightly different but similar dive animation"). Riding the equipped fish on land (Equip), running off the lip is
 	-- the fish's own dive: a lower, longer arc, nose up, over and nosing in, the rider tucked down on its back, the
-	-- camera further back. A bigger fish leaps higher, further and slower, and splashes bigger. Claude's numbers, not
-	-- yet played; a fish that would hit anything on the way drops in as before
-	LeapMounted = 0, -- 1: on the ride fish, running off the lip is its dive; 0: it drops in as before (nothing of it runs). 0 in the file until its play check passes
+	-- camera further back. A bigger fish leaps higher, further and slower, and splashes bigger. Every fish dives (2026-11-24;
+	-- until then one that would hit anything on the way dropped in: 46 of 78 kinds at their own size). Claude's numbers,
+	-- checked offline (tools/dive/fish_dive_check.luau) and by script in Studio (2026-11-25), not played by hand
+	LeapMounted = 1, -- 1: on the ride fish, running off the lip is its dive; 0: it drops in as before (nothing of it runs). 1 on branch fish-dive since 2026-11-24 (Hugo: "make sure each fish gets a diving animation just like the player does"), not played by hand
 	LeapMountedHigh = 4, -- the arc's top over where it left, studs (for a fish LeapMountedSize long),
 	LeapMountedFar = 34, -- where it meets the water, studs out,
 	LeapMountedTime = 1.1, -- and from leaving the edge to the water, seconds
 	LeapMountedSize = 12, -- a fish this long (studs) leaps as above; the high and the far go as the square root of its length over this, the time as its 0.35th power,
 	LeapMountedLeast = 0.75, -- that share never under this,
-	LeapMountedMost = 2, -- nor over this (and the pace never over the server's land pace check, Equip.PaceRoom)
-	LeapMountedCam = 1.25, -- the camera's distances (its moves and the chase) times this, times that share to the 0.7th power
+	LeapMountedMost = 8, -- nor over this: a longer leap takes a long fish's tail clear of the dock before it sinks (2 until 2026-11-24: an 80 stud fish's leap ended with half of it on the dock; at 4 a 200 stud one's last 61 studs went down through it, at 8 40, for half a second more; and the pace never over the server's land pace check, Equip.PaceRoom)
+	LeapMountedRise = 0.1, -- the arc's top is this share of the fish's length over where it left, at least: room for its nose to come up with its tail still over the floor
+	LeapMountedTail = 30, -- in the air its nose never tips so far down that its tail would stand this much over its saddle, studs (the arch's beam is 54 over the floor)
+	LeapMountedCam = 1.25, -- the camera's distances (its moves and the chase) times this, times that share (2 at most) to the 0.7th power,
+	LeapMountedFrame = 0.7, -- or, for a bigger fish, as far back at the top of the arc as this times the fish's length (or 1.6 times its width or height): the whole of it and the rider in the view
+	LeapMountedSide = 24, -- but never this far to the side, studs: what is left goes back instead (the gate's walls are 48 from its middle)
+	LeapMountedSwim = 1, -- how much of its own motion the fish has in the leap: its keyed swim, its fins out over the top and swept back going in, its tail up, a short one's back arched (0: rigid but for the tilt)
+	LeapMountedRoom = 8, -- the camera rises over the fish's back this far out from its sides and ends, studs (more for a bigger fish), so it never goes through it
+	LeapMountedAloft = 3, -- from this many times the diver's distances up, the camera is not pulled in before the water to what is between it and the rider (the gate's arch, for a moment: pulling in was a jump of up to 196 studs); it goes under after the fish whatever its size, if there is room (DiveController, placeCamera)
 	LeapMountedThrough = 0.6, -- the camera stays over the water behind the splash this long after the fish goes in, seconds (the server swaps the land fish for the water fish meanwhile)
-	LeapMountedLevel = 10, -- under the water the fish levels to this many degrees nose down (the water fish is level)
+	LeapMountedLevel = 0, -- under the water the fish levels to this many degrees nose down (the water fish it is swapped for is level; 10 until 2026-11-24)
 	FirstDockWait = 20, -- seconds floating at the surface by the dock before a player who has not ridden yet this dive is put back on it (Oxygen.DockWait once they have)
 	ForgiveMiss = 1, -- 1: a hop from floating that lands on nothing, before the first ride of a dive, leaves you floating; 0: it drowns you as any miss does
 }
@@ -3536,6 +3547,46 @@ Config.Sub = {
 	WakeSee = 0.1, -- how see-through a bubble is at its clearest, just behind the screw (0: solid); it comes in faint and fades out along the trail (0.15)
 	WakeBright = 3.5, -- the bubbles' brightness (the aura shop's bubbles: 3.5; the picture itself is faint)
 	WakeRise = 3, -- they rise a little as they go, studs a second squared
+	-- the escort (Hugo, 2026-11-24: "you should also hop from fish to submarine while seeing the fish swim off next to
+	-- you looping left and right then come back once you arrive"; docs/design/submarine.md, "From the fish onto the
+	-- sub"): the rider who went in on their ride fish. Where it swims is Shared/SubTrip (escort); check a change with
+	-- tools/subs/escort_check.luau. Played by script in Studio (2026-11-25), not by hand
+	Escort = 1, -- 0: the ride fish only swims up at the end, as for a rider who went in on foot
+	EscortOut = 40, -- the fish carries you this far out to the sub, studs (and 0.6 of what it has behind its saddle,
+	EscortOutMost = 140, -- but never further than this), all in Approach's seconds
+	EscortStart = 45, -- it sets off at this pace (the dive's, as it hands over), studs a second
+	EscortFrom = 170, -- the sub comes in from this far behind where it takes you, studs (further for a long fish: from behind its tail),
+	EscortWait = 0.1, -- setting off at this share of Approach,
+	EscortAside = 0.6, -- and by this one the fish has drawn aside, off the sub's line
+	EscortGate = 45, -- the sub comes in through the gate: half its width (48: tools/map/greybox.py, GATE), less 3 for the lane not being dead straight past it, studs
+	EscortBack = 130, -- on its back the camera is behind its tail, but never further behind you than this, studs (90: in the tail of one 200 long)
+	EscortThin = 0.8, -- and while the camera is in its body all the same (or this near it: EscortThinRoom, studs) it is this see-through on its rider's screen (0: solid)
+	EscortThinRoom = 2,
+	EscortUnder = 20, -- the sub takes you off it this far under the surface, studs (Under, for a swimmer: room for the view over its back)
+	EscortOver = 1, -- its saddle is this far over the sub's seat as you hop, studs
+	EscortHopFrom = 0.12, -- you leave the saddle at this share of Pickup,
+	EscortHopTo = 0.8, -- and are on the seat at this one
+	EscortHopUp = 6, -- the hop's top over the straight line, studs
+	EscortDip = 1.6, -- the fish dips this far as you push off it, studs
+	EscortGap = 4, -- it keeps this far off the hull (as banked as it gets) and the lane's sides, studs
+	EscortOpen = 1100, -- studs of the run (0.15 of a short one) with the fish in its place beside the sub as far as the water's sides go: the sub eases onto its line after it
+	EscortPeel = 0.9, -- seconds it takes to swing off its place beside the sub into the sweeps (over 30 long, up to 1.6 times it)
+	EscortPeriod = 2.4, -- one sweep left and right again takes at least this long, seconds, for a fish up to 20 long (a longer one up to 1.7 times it; whole sweeps fill the run: 1 to lands 2 to 4, 2 further down)
+	EscortWide = 8, -- it swims out this far past the point where it is clear of the hull, studs
+	EscortLead = 8, -- beside the hull it is this far (and half of half its own length) ahead of the sub's middle; crossing ahead of the nose, this far past clear of it, studs
+	EscortLoopLong = 75, -- a fish longer than this never goes over or under the hull, but round its nose, studs
+	EscortAhead = 9, -- ahead of the nose it swims this far over the sub's middle (seen over the hull), kept under the surface, studs
+	EscortRise = 5, -- and rises and falls this much as it does, studs
+	EscortYaw = 34, -- it turns its nose at most this far into a sweep, degrees,
+	EscortSwing = 14, -- and a long one less: its ends never swing out further than this, studs
+	EscortTip = 17, -- it tips up or down at most this far going over and under, degrees
+	EscortBank = 38, -- it banks at most this far into each turn, degrees
+	EscortBankAt = 130, -- most of it at this much push to the side, studs a second squared
+	EscortPace = 75, -- how it turns and tips goes against this pace, and its tail beats to it, studs a second
+	EscortReturn = 0.9, -- seconds it takes to come back to its place beside the sub (over 30 long, up to 1.6 times it),
+	EscortSettle = 0.2, -- and it is there this long before the kick, seconds
+	EscortKickLead = 24, -- a long fish waits this far ahead for the kick (its tail out of the camera's way), studs at most
+	EscortFade = 0.5, -- a fish given up in the middle (unequipped) swims off and fades for this long, seconds
 }
 
 -- The land titles on a sub run (task t1, Hugo 2026-11-20: "if title pops up, make sure that the old ones blends out

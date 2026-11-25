@@ -8,6 +8,10 @@
 --   the circle for the ui to pop up, closing when walking off it"). The edge to leave is a little wider than the one
 --   to come in, so standing on the line doesn't flicker. Closing one with its X keeps it shut until the player steps
 --   off and on again.
+--   The Index does the same on its own ring, Dock/Stations/Index (Hugo, 2026-11-24: "Integrate ui popup when you stand
+--   on index as well"), as well as by its hub button (UI.HubButtons): walking off the ring closes it however it was
+--   opened. The loader makes that station, but it was deleted by hand from the place on 2026-11-23: with no ring
+--   there, nothing happens. Config.Index.On 0 stops the ring as it stops the button.
 --   The hub's Shop button opens the Shop (UI.ShopScreen), and closes it again. A stat row's plus button opens it at what
 --   is sold of that row: the coins' at Cash, the Oxygen's at Oxygen (the user, 2026-11-23).
 --   Leaving the dock closes them all. One dock window at a time (UI.Shop.go).
@@ -15,8 +19,10 @@
 -- Only the screen: nothing here is trusted by the server (it sells, and will sell auras, by its own checks; a sub is
 -- bought and equipped only within Config.Sub.Near of the stand, SubService).
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local State = require(script.Parent.Parent.Lib.State)
 local CatchShow = require(script.Parent.Parent.UI.CatchShow)
 local DockNotes = require(script.Parent.Parent.UI.DockNotes)
@@ -26,12 +32,13 @@ local ShopScreen = require(script.Parent.Parent.UI.ShopScreen)
 local StatRows = require(script.Parent.Parent.UI.StatRows)
 local TankPanel = require(script.Parent.Parent.UI.TankPanel)
 require(script.Parent.Parent.UI.AuraShop) -- (each window gives Shop its opener as it is required)
+require(script.Parent.Parent.UI.IndexPanel)
 require(script.Parent.Parent.UI.SellFish)
 require(script.Parent.Parent.UI.SubPanel)
 
 local StallController = {}
 
-local STALLS = { "Sell", "Auras", "Sub" } -- a stall's name under Dock/Stations is its window's name in Shop.go
+local STALLS = { "Sell", "Auras", "Sub", "Index" } -- a stall's name under Dock/Stations is its window's name in Shop.go
 local SOLD = { Oxygen = "Oxygen", Coins = "Cash" } :: { [string]: string } -- a stat row's section in the Shop
 local OUT = 2.5 -- studs past the ring's edge before walking off closes the window
 local HIGH = 14 -- how far above or below the ring still counts (as HubLife's)
@@ -61,12 +68,17 @@ local function standing(ring: BasePart, already: boolean): boolean
 	return d.X * d.X + d.Z * d.Z < reach * reach and math.abs(d.Y) < HIGH
 end
 
+-- Does this stall's ring open anything (the Index's only while the Index is on, as its button)
+local function live(name: string): boolean
+	return name ~= "Index" or Config.Index.On ~= 0
+end
+
 local function look()
 	local docked = State.Mode == "Dock" and not State.Player:GetAttribute("TankRide")
 	for _, name in STALLS do
 		local ring = ringOf(name)
 		local was = inside[name] == true
-		local now = docked and ring ~= nil and standing(ring :: BasePart, was)
+		local now = docked and live(name) and ring ~= nil and standing(ring :: BasePart, was)
 		if now ~= was then
 			inside[name] = now
 			if now then

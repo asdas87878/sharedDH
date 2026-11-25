@@ -14,6 +14,10 @@
 --   Drop: on the server's word, flung forward into an ordinary hop (JumpController.fling), or, with our fish swum up
 --     beside the sub ("SubFish", driven here), kicked off in an arc onto its saddle; we tell the server ("SubLand").
 --   Then the sub peels away, up and to the side, and fades.
+--   The escort (Hugo, 2026-11-24; Config.Sub.Escort): a rider who went in on their ride fish rides it out to the sub
+--   instead of swimming, and hops off its saddle onto the seat; the fish sweeps left and right with the sub for the run
+--   and is back beside it for the kick. Every machine moves it by the trip (SubTrip.escort) while the server has it
+--   anchored (the fish of Workspace.Fish whose SubFor is that player), and while its rider sits on it keeps it under them.
 -- The camera is behind in every phase, on the middle line of what it follows, and never at the side or on its way
 -- round one (Hugo, 2026-11-23: "make sure it doesnt implement the camera on the side ever").
 -- The sub is the model of the tier the player has equipped (Shared/SubModels: a model a tier from the place's
@@ -35,12 +39,12 @@ local Shake = require(script.Parent.Parent.Lib.Shake)
 local State = require(script.Parent.Parent.Lib.State)
 local LandStrip = require(script.Parent.Parent.UI.LandStrip)
 local SubPanel = require(script.Parent.Parent.UI.SubPanel)
+local DiveController = require(script.Parent.DiveController)
 local JumpController = require(script.Parent.JumpController)
 
 local SubController = {}
 
--- The rider's seat against the sub's middle, and how far its middle sits under the seat
-local SEAT = CFrame.new(0, 7.4, 5)
+local SEAT = SubTrip.Seat
 local UP = Vector3.yAxis
 
 type Visual = {
@@ -57,12 +61,22 @@ type Visual = {
 	Entry: CFrame?, -- where we were as it began
 	Cue: string?, -- the server's word at the drop: "Fling" or "Kick"
 	CuedAt: number,
+	Kicking: boolean, -- the kick was under way when that word came (the fish given up in the middle of it)
 	Fish: Model?, -- our fish, beside the sub
 	FishFrom: Vector3?,
 	FishGot: number,
 	Told: boolean, -- "SubLand" sent
+	Seated: boolean, -- the server has put us on our fish (State.Mode's word comes a moment after)
 	Said: { [string]: boolean }, -- the moments already played (sounds, bursts, banners)
 	RiderLast: Vector3?,
+	-- a trip with an escort, every machine
+	LookAt: number, -- os.clock() the fish was last looked for
+	Carry: CFrame?, -- our own trip: where the fish really was as it began, against where the trip has it (eased away)
+	HopFrom: CFrame?, -- where we left the saddle
+	Thin: number, -- our own trip: how see-through the fish is on our screen (the camera is in its body)
+	ThinParts: { Instance }, -- the parts of it that takes
+	Lost: CFrame?, -- where we were as the fish was given up under us,
+	LostAt: number, -- and when, seconds into the trip
 }
 
 local visuals: { [Player]: Visual } = {}
@@ -94,58 +108,6 @@ local function landName(index: number): string
 	return if zone then string.upper(zone.Name) else ("LAND " .. index)
 end
 
--- The sub's place at `t` seconds into the trip, and how fast it goes (studs a second)
-local function subAt(trip: SubTrip.Trip, t: number): (CFrame, number)
-	local pickupAt, rideAt, _, dropAt, endAt = SubTrip.times(trip)
-	local pick = trip.Points[1]
-	local way0 = flat(SubTrip.way(trip, 30, 30))
-	local right = way0:Cross(UP)
-	local rest = pick - UP * 8
-	if t < pickupAt then
-		-- (approachPose) up from behind, below and to the side, slowing as it comes under us
-		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
-		local e = 1 - (1 - u) ^ 2
-		-- (kept over the floor at the gate: the water there is about 46 deep, and we take the sub 17 under)
-		local p0 = pick - way0 * 170 - UP * 18 + right * 30
-		local p1 = pick - way0 * 50 - UP * 16 + right * 6
-		local a, b = p0:Lerp(p1, e), p1:Lerp(rest, e)
-		local at = a:Lerp(b, e)
-		local dir = b - a
-		dir = if dir.Magnitude > 0.1 then dir.Unit else way0
-		return CFrame.lookAt(at, at + dir), 40 * (1 - e) + 10
-	elseif t < rideAt then
-		-- (pickupPose) rising under us to bring its seat to us, then dipping its nose to go
-		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
-		local at = rest:Lerp(pick, Ease.smoothstep(0, 0.55, u))
-		local dip = math.rad(-12) * Ease.smoothstep(0.75, 1, u)
-		local bob = math.sin(u * math.pi) * math.rad(4)
-		return CFrame.lookAt(at, at + way0) * CFrame.Angles(dip + bob, 0, 0), 4
-	end
-	-- (ridePose, dropPose) along the path
-	local d, v = SubTrip.distance(trip, t)
-	local at = SubTrip.at(trip, d)
-	local way = SubTrip.way(trip, d, 10 + v * 0.04)
-	-- banked into the bends, by how the way turns over the next half second
-	local ahead = flat(SubTrip.way(trip, d + math.max(v * 0.5, 20), 10 + v * 0.04))
-	local turn = flat(way):Cross(ahead).Y
-	local cf = CFrame.lookAt(at, at + way) * CFrame.Angles(0, 0, math.clamp(-turn * 3, -0.7, 0.7))
-	if t >= dropAt then
-		local since = t - dropAt
-		if not trip.Fish then
-			-- the fling: the nose comes up and drops again
-			cf *= CFrame.Angles(math.rad(26) * math.sin(math.clamp(since / 0.7, 0, 1) * math.pi), 0, 0)
-		end
-		if t >= endAt then
-			-- (peeling away) up and to the side
-			local k = t - endAt
-			local side = flat(way):Cross(UP)
-			cf = cf + side * (k * k * 14) + UP * (k * k * 10)
-			cf *= CFrame.Angles(math.rad(12) * math.min(k, 1), 0, math.rad(-25) * math.min(k, 1))
-		end
-	end
-	return cf, v
-end
-
 local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 	-- (the sub the player has equipped at the stand: SubService's SubEquip)
 	local equip = player:GetAttribute("SubEquip")
@@ -171,12 +133,21 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 		Entry = nil,
 		Cue = nil,
 		CuedAt = 0,
+		Kicking = false,
 		Fish = nil,
 		FishFrom = nil,
 		FishGot = 0,
 		Told = false,
+		Seated = false,
 		Said = {},
 		RiderLast = nil,
+		LookAt = 0,
+		Carry = nil,
+		HopFrom = nil,
+		Thin = 0,
+		ThinParts = {},
+		Lost = nil,
+		LostAt = 0,
 	}
 	local more = v :: any
 	more.Offsets = offsets
@@ -326,6 +297,131 @@ local function once(v: Visual, key: string): boolean
 	return true
 end
 
+-- Where the trip has the escort's root, on our own machine with the pose the dive left it in eased away
+local function escortAt(v: Visual, t: number): CFrame?
+	local cf = SubTrip.escort(v.Trip, t)
+	if cf and v.Carry then
+		local pickupAt = SubTrip.times(v.Trip)
+		return cf * CFrame.new():Lerp(v.Carry, 1 - Ease.smoothstep(0, 0.6 * pickupAt, t))
+	end
+	return cf
+end
+
+-- The escort given up on (its SubLeave, SubService): it veers off and fades. True while it is leaving
+local function leaving(v: Visual, fish: Model, root: BasePart): boolean
+	local at = fish:GetAttribute("SubLeave")
+	if type(at) ~= "number" then
+		return false
+	end
+	local k = math.clamp((now() - at) / math.max(Config.Sub.EscortFade, 0.05), 0, 1)
+	local cf = escortAt(v, now() - v.Trip.Start)
+	if cf and root.Anchored then
+		root.CFrame = cf * CFrame.Angles(0, -0.7 * k, 0) + cf.RightVector * (40 * k * k) - UP * (10 * k * k)
+	end
+	for _, d in fish:GetDescendants() do
+		if d:IsA("BasePart") or d:IsA("Decal") then
+			(d :: any).LocalTransparencyModifier = k
+		end
+	end
+	return true
+end
+
+-- The escort, each frame, on every machine: found (the server made it as the trip began), and put where the trip has it
+-- while the server has it anchored. Our own once the server has let go of it is driveFish's
+local function escort(v: Visual, t: number)
+	local trip = v.Trip
+	local e = trip.Escort
+	if not e then
+		return
+	end
+	local pickupAt, _, _, _, endAt = SubTrip.times(trip)
+	if (not v.Fish or not v.Fish.Parent) and t < endAt and os.clock() - v.LookAt > 0.05 then
+		v.LookAt = os.clock()
+		v.Fish = nil
+		local folder = workspace:FindFirstChild("Fish")
+		if folder then
+			for _, model in folder:GetChildren() do
+				if model:IsA("Model") and model:GetAttribute("SubFor") == v.Player.UserId then
+					v.Fish = model
+					break
+				end
+			end
+		end
+	end
+	local fish = v.Fish
+	local root = fish and fish.PrimaryPart
+	if not fish or not root or leaving(v, fish, root) or not root.Anchored then
+		return
+	end
+	local cf = escortAt(v, t)
+	if not cf then
+		return
+	end
+	-- someone else's: while they sit on it, under where we see them (their body reaches us a moment late)
+	local hopAt = pickupAt + Config.Sub.EscortHopFrom * trip.Pickup
+	if v ~= mine and t < hopAt + 0.25 then
+		local body = v.Player.Character
+		local rider = body and body:FindFirstChild("HumanoidRootPart")
+		if rider and rider:IsA("BasePart") and (rider.Position - cf.Position).Magnitude < 80 + e.Half.Z then
+			local under = rider.CFrame * CFrame.new(-e.Saddle)
+			cf = under:Lerp(cf, Ease.smoothstep(hopAt - 0.15, hopAt + 0.2, t))
+		end
+	end
+	root.CFrame = cf
+	-- (its swim beats to this, AnimController: not to the sub's thousands of studs a second)
+	root.AssemblyLinearVelocity = cf.LookVector * Config.Sub.EscortPace
+end
+
+-- Our own fish see-through on our screen while the camera is in its body (a fish taller than the water under the camera's
+-- own ceiling, or the camera pulled in off the gate), and back as the camera comes out of it: on the way out to the sub
+-- only, all of it back by the run
+local function thin(v: Visual, t: number, dt: number)
+	local e = v.Trip.Escort
+	local fish = v.Fish
+	local root = fish and fish.PrimaryPart
+	if not e or not fish or not root or fish:GetAttribute("SubLeave") ~= nil then
+		return
+	end
+	local _, rideAt = SubTrip.times(v.Trip)
+	local want = 0
+	if t < rideAt + 0.5 then
+		local o = root.CFrame:PointToObjectSpace(workspace.CurrentCamera.CFrame.Position)
+		local room = Config.Sub.EscortThinRoom
+		if math.abs(o.X) < e.Half.X + room and math.abs(o.Y) < e.Half.Y + room and math.abs(o.Z) < e.Half.Z + room then
+			want = Config.Sub.EscortThin
+		end
+	end
+	if want == 0 and v.Thin == 0 then
+		return
+	end
+	if #v.ThinParts == 0 then
+		for _, d in fish:GetDescendants() do
+			if d:IsA("BasePart") or d:IsA("Decal") then
+				table.insert(v.ThinParts, d)
+			end
+		end
+	end
+	v.Thin += (want - v.Thin) * Ease.alpha(14, dt)
+	if want == 0 and v.Thin < 0.02 then
+		v.Thin = 0
+	end
+	for _, d in v.ThinParts do
+		(d :: any).LocalTransparencyModifier = v.Thin
+	end
+end
+
+-- A fish's own movers, kept in step with where we put it
+local function steerFish(root: BasePart, way: Vector3, speed: number)
+	local swim = root:FindFirstChild("Swim")
+	if swim and swim:IsA("LinearVelocity") then
+		swim.VectorVelocity = way * speed
+	end
+	local turn = root:FindFirstChild("Turn")
+	if turn and turn:IsA("AlignOrientation") then
+		turn.CFrame = CFrame.lookAt(Vector3.zero, way)
+	end
+end
+
 -- Our fish beside the sub: from where it was made, up alongside on the right, matching the sub
 local function driveFish(v: Visual, sub: CFrame, speed: number, t: number)
 	local fish = v.Fish
@@ -336,6 +432,18 @@ local function driveFish(v: Visual, sub: CFrame, speed: number, t: number)
 	if fish:GetAttribute("Rider") ~= 0 and fish:GetAttribute("Rider") ~= nil then
 		-- (we are on it: RideController drives it now)
 		v.Fish = nil
+		v.Seated = v.Seated or (v == mine and fish:GetAttribute("Rider") == State.Player.UserId)
+		return
+	end
+	if v.Trip.Escort then
+		-- (the fish we came on: beside the sub by the trip, and ours to move since the server let go of it)
+		local cf = SubTrip.escort(v.Trip, t)
+		if cf and not root.Anchored and fish:GetAttribute("SubLeave") == nil then
+			root.CFrame = cf
+			root.AssemblyLinearVelocity = sub.LookVector * speed
+			root.AssemblyAngularVelocity = Vector3.zero
+			steerFish(root, sub.LookVector, speed)
+		end
 		return
 	end
 	local _, _, _, dropAt = SubTrip.times(v.Trip)
@@ -350,14 +458,7 @@ local function driveFish(v: Visual, sub: CFrame, speed: number, t: number)
 	root.CFrame = CFrame.lookAt(at, at + way) * CFrame.Angles(0, wiggle, 0)
 	root.AssemblyLinearVelocity = way * speed
 	root.AssemblyAngularVelocity = Vector3.zero
-	local swim = root:FindFirstChild("Swim")
-	if swim and swim:IsA("LinearVelocity") then
-		swim.VectorVelocity = way * speed
-	end
-	local turn = root:FindFirstChild("Turn")
-	if turn and turn:IsA("AlignOrientation") then
-		turn.CFrame = CFrame.lookAt(Vector3.zero, way)
-	end
+	steerFish(root, way, speed)
 end
 
 -- Where we are on our own trip: swimming, scooped up, on the seat, kicked onto our fish
@@ -368,6 +469,26 @@ local function riderAt(v: Visual, sub: CFrame, t: number): CFrame?
 	local way0 = flat(SubTrip.way(trip, 30, 30))
 	local swimTo = trip.Points[1] + SEAT.Position + Vector3.new(0, 0.5, 0)
 	local entry = v.Entry
+	local escorted = trip.Escort
+	if escorted and v.Lost and t < rideAt then
+		-- (the fish was given up under us: up onto the seat from where we were)
+		return v.Lost:Lerp(seat, Ease.smoothstep(v.LostAt, rideAt, t))
+	elseif escorted and t < rideAt then
+		local c = Config.Sub
+		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
+		local saddle = (escortAt(v, t) or seat) * CFrame.new(escorted.Saddle)
+		if u <= c.EscortHopFrom then
+			-- (saddlePose) on its back, out to the sub
+			return saddle
+		end
+		-- (hopPose) off its back in an arc across onto the seat, facing down the lane all the way
+		local from = v.HopFrom or saddle
+		v.HopFrom = from
+		local k = Ease.smoothstep(c.EscortHopFrom, c.EscortHopTo, u)
+		local at = from.Position:Lerp(seat.Position, k) + UP * (c.EscortHopUp * math.sin(k * math.pi))
+		local lean = CFrame.Angles(math.rad(-22) * math.sin(k * math.pi), 0, 0)
+		return CFrame.new(at) * from.Rotation:Lerp(seat.Rotation, k) * lean
+	end
 	if t < pickupAt and entry then
 		-- (approachPose) swimming on toward the pick-up, bobbing
 		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
@@ -419,6 +540,10 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 	local focus: Vector3
 	local rate = 4
 	local wide = 70
+	-- (on the fish's back: behind its tail, and over the top of it)
+	local e = trip.Escort
+	local over = if e then math.max(3, e.Half.Y - e.Saddle.Y + 3) else 0
+	local tail = if e then math.clamp(e.Half.Z - e.Saddle.Z + 5, 10, c.EscortBack) else 0
 	-- (the swim's and the pick-up's easing go by those phases' own lengths, so the camera makes the same move however
 	-- long they are: 4 and 5 a second when they were 1.6 and 0.96 s)
 	if t < pickupAt then
@@ -427,12 +552,14 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		-- drawing back as we swim on; tipping down to the sub as it comes
 		-- (looking at a point ahead of us, so the view stays down the lane even pulled right in against a wall)
 		local u = math.clamp(t / math.max(pickupAt, 0.01), 0, 1)
-		goal = rider - way0 * (10 + 8 * u) + UP * 1
+		goal = rider - way0 * math.max(10 + 8 * u, tail) + UP * (if e then over else 1)
 		focus = rider + way0 * 12 - UP * (0.4 * under * Ease.smoothstep(0.3, 1, u))
 	elseif t < rideAt then
 		-- still behind, to see us thrown onto the seat: back and up to where the run's view begins, levelling out
 		local u = (t - pickupAt) / math.max(rideAt - pickupAt, 0.01)
-		goal = rider - way0 * (18 + 6 * u) + UP * (1 + 8 * u)
+		goal = rider
+			- way0 * (if e then Ease.lerp(math.max(18, tail), 24, u) else 18 + 6 * u)
+			+ UP * (if e then over + (9 - over) * u else 1 + 8 * u)
 		focus = rider + way0 * 12 - UP * (0.4 * under * (1 - u))
 		rate = 4.8 / math.max(trip.Pickup, 0.1)
 	elseif t < arriveAt then
@@ -462,6 +589,31 @@ local function cameraFor(v: Visual, sub: CFrame, speed: number, rider: Vector3, 
 		-- (the trip's first frame cuts to its first framing, under the splash: eased from the dock's view, the camera
 		-- went down through the hub's floor and the gate's posts)
 		local first = camKind == "" or not camPos or not camFocus
+		if first and e then
+			-- (on a fish's back the dive's film has us behind it already, or beside a big one, under the water: on from its
+			-- last view and width, no cut. Its own word for them: letting go, it gave the camera back to Roblox's own,
+			-- which has put it somewhere else by now)
+			local hand = DiveController.handOver()
+			local said = if hand and hand.mounted and os.clock() - hand.at < 0.5 then hand else nil
+			local from = if said then said.view else camera.CFrame
+			local back = rider - from.Position
+			local level = Vector3.new(back.X, 0, back.Z)
+			if
+				from.Position.Y < Config.Oxygen.SurfaceY
+				and back:Dot(way0) > 5
+				and back.Magnitude < 100 + e.Half.Z
+				and (level - way0 * level:Dot(way0)).Magnitude < 60 + e.Half.X
+				and from.LookVector:Dot(way0) > 0
+			then
+				if said then
+					fov = said.fov
+				end
+				camPos = from.Position - anchor
+				camFocus = from.Position + from.LookVector * (back:Dot(way0) + 12) - anchor
+				first = false
+				camAnchor = anchor
+			end
+		end
 		camPos = if first then goal - anchor else camAnchor + (camPos :: Vector3) - anchor
 		camFocus = if first then focus - anchor else camAnchor + (camFocus :: Vector3) - anchor
 		camKind = kind
@@ -530,19 +682,39 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 	end
 	if not v.Entry then
 		v.Entry = root.CFrame
-		Fx.burst(root.Position + UP * 2, 30, 0, 9)
-		Feel.sound("Splash", 0.7, 0.9, 0.9)
+		local e = trip.Escort
+		local begun = SubTrip.escort(trip, t)
+		if e and begun then
+			-- (the fish goes on from the very pose the dive left us in: where we sit is where we were. The dive has made
+			-- its splash)
+			v.Carry = begun:ToObjectSpace(root.CFrame * CFrame.new(-e.Saddle))
+		else
+			Fx.burst(root.Position + UP * 2, 30, 0, 9)
+			Feel.sound("Splash", 0.7, 0.9, 0.9)
+		end
+	end
+	if trip.Escort then
+		if not v.Lost and t < rideAt and v.Fish and v.Fish:GetAttribute("SubLeave") ~= nil then
+			v.Lost, v.LostAt = root.CFrame, t
+		end
+		escort(v, t)
 	end
 	-- the gate's kelp out of the camera's way until the sub is a second into its run, and well away from the dock
 	gateKelp(t < rideAt + 1)
 	-- the moments
-	if t >= pickupAt + 0.3 * trip.Pickup and once(v, "scoop") then
-		Fx.burst(root.Position, 40, 0, 10)
-		Feel.sound("Splash", 0.8, 1.15, 0.8)
-		Shake.play("Land", c.Shake)
+	local hops = trip.Escort ~= nil
+	if t >= pickupAt + (if hops then c.EscortHopFrom else 0.3) * trip.Pickup and once(v, "scoop") then
+		if hops then
+			Fx.burst(root.Position, 18, 0, 6)
+			Feel.sound("Swish", 0.7, 1.1, 0.5)
+		else
+			Fx.burst(root.Position, 40, 0, 10)
+			Feel.sound("Splash", 0.8, 1.15, 0.8)
+			Shake.play("Land", c.Shake)
+		end
 	end
-	-- (as the tumble lands on the seat: riderAt's 0.82 of the pick-up, and a moment)
-	if t >= pickupAt + 0.84 * trip.Pickup and once(v, "seat") then
+	-- (as the tumble lands on the seat: riderAt's 0.82 of the pick-up, and a moment; the hop's EscortHopTo)
+	if t >= pickupAt + (if hops then c.EscortHopTo else 0.84) * trip.Pickup and once(v, "seat") then
 		Shake.play("LandBig", c.Shake * 0.8)
 	end
 	if t >= rideAt and once(v, "go") then
@@ -564,7 +736,7 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 	end
 	if t >= arriveAt and t < dropAt then
 		if trip.Fish then
-			SubPanel.hint("Here comes your fish!")
+			SubPanel.hint(if trip.Escort then "Back on your fish!" else "Here comes your fish!")
 		else
 			SubPanel.hint("Get ready to hook a fish!")
 		end
@@ -580,7 +752,8 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 	-- the fling: as soon as the server says
 	if v.Cue == "Fling" then
 		if State.Mode == "Carried" and once(v, "fling") then
-			local seat = (sub * SEAT).Position
+			-- (off the seat; given up in the middle of the kick, from where we are in its arc)
+			local seat = if v.Kicking then root.Position else (sub * SEAT).Position
 			root.CFrame = CFrame.lookAt(seat, seat + flat(sub.LookVector))
 			root.AssemblyLinearVelocity = flat(sub.LookVector) * speed
 			JumpController.fling(yawOf(flat(sub.LookVector)))
@@ -591,7 +764,9 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 		return
 	end
 	humanoid.PlatformStand = true
-	local cf = riderAt(v, sub, t)
+	-- (welded to our fish and State.Mode not yet Riding, a frame or so: put anywhere now, and given that jump's speed, the
+	-- fish went with us. Back to the sub's seat for that frame, both were thrown up to 480 studs: task v1)
+	local cf = if v.Seated then nil else riderAt(v, sub, t)
 	if cf then
 		local was = v.RiderLast or cf.Position
 		root.CFrame = cf
@@ -608,6 +783,7 @@ local function ours(v: Visual, sub: CFrame, speed: number, t: number, dt: number
 		end
 	end
 	cameraFor(v, sub, speed, root.Position, t, dt)
+	thin(v, t, dt)
 end
 
 local function step(dt: number)
@@ -619,8 +795,11 @@ local function step(dt: number)
 		if t > endAt + 4 then
 			remove(player)
 		else
-			local cf, speed = subAt(trip, t)
+			local cf, speed = SubTrip.sub(trip, t)
 			place(v, cf, speed, dt)
+			if v ~= mine then
+				escort(v, t)
+			end
 			if t > endAt and not v.Faded then
 				v.Faded = true
 				local label = v.Model:FindFirstChild("Label", true)
@@ -658,6 +837,9 @@ local function watch(player: Player)
 			return
 		end
 		if had and had.Trip.Start == trip.Start then
+			-- (the trip we have, written again: the fish was given up on the way, so the drop-off is the fling)
+			had.Trip.Fish = trip.Fish
+			had.Trip.DropTime = trip.DropTime
 			return
 		end
 		remove(player)
@@ -691,6 +873,7 @@ function SubController.Init()
 			v.FishFrom = if a.PrimaryPart then a.PrimaryPart.Position else nil
 			v.FishGot = os.clock()
 		elseif kind == "SubDrop" and v then
+			v.Kicking = v.Cue == "Kick"
 			v.Cue = a
 			v.CuedAt = os.clock()
 			if a == "Kick" and typeof(b) == "Instance" and b:IsA("Model") then

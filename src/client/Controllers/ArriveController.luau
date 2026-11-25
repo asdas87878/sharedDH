@@ -5,12 +5,14 @@
 -- begins and players stand, fish come in at the gate in plain sight (FishService: the entry). Each popped out of
 -- nothing; here it takes TIME to show.
 -- Only on this machine (LocalTransparencyModifier), so nothing is sent and the fish's own look is never changed.
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local ArriveController = {}
 
 local NEAR = 1000 -- studs from the camera: nearer than this, a new fish fades in
 local TIME = 0.6 -- seconds
+local UNDER = 25 -- studs from its saddle to whose it is: nearer, they are on it already
 
 local arriving: { [Model]: number } = {} -- fish -> os.clock() it came
 local stepping: RBXScriptConnection? = nil
@@ -44,6 +46,22 @@ local function step()
 	end
 end
 
+-- A player's own fish, made under them as their land one goes (the dive on it, the submarine's escort: FishService.spawnFor):
+-- it takes a fish's place that was in plain sight, so it is there at once. Faded in, they sat on nothing for half a second
+-- (task v1). Not the one that swims up beside the sub: that comes in from behind it
+local function under(model: Model, root: BasePart): boolean
+	local own = model:GetAttribute("Own")
+	local player = if type(own) == "number" then Players:GetPlayerByUserId(own) else nil
+	local character = player and player.Character
+	local rider = character and character:FindFirstChild("HumanoidRootPart")
+	if not rider or not rider:IsA("BasePart") then
+		return false
+	end
+	local saddle = root:FindFirstChild("Saddle")
+	local at = if saddle and saddle:IsA("Attachment") then saddle.WorldPosition else root.Position
+	return (at - rider.Position).Magnitude < UNDER
+end
+
 local function came(child: Instance)
 	local camera = workspace.CurrentCamera
 	if not child:IsA("Model") or not camera then
@@ -56,6 +74,9 @@ local function came(child: Instance)
 			return
 		end
 		if (root.Position - camera.CFrame.Position).Magnitude > NEAR then
+			return
+		end
+		if under(child, root) then
 			return
 		end
 		arriving[child] = os.clock()
