@@ -114,7 +114,7 @@ style 0, Kit RingStyles 2 to 7 and Boxes 1 to 4) stay in the code: they are Hugo
 ## The inventory bar (left alone; suggestions only)
 1. A new catch flies into its slot and the slot punches (1.15 back to 1, Back, 0.25 s); the count beside the bar bumps.
 2. A press squashes the slot (0.94 for 0.08 s) as every other button will.
-3. The caught slots wear the stud plate (the empty ones stay glass), so the bar reads as the same family as the windows.
+3. Done 2026-11-25, on every slot ([UI](ui.md), "The inventory bar in studs"): the caught slots wear the studs.
 4. The X as an icon, not a letter; the near-black outline to the one outline colour.
 5. Shorter hints: "HOLD A FISH, THEN TAP" and "CLICK TO RIDE" to one or two words, or a picture.
 6. Names never cut to "Great.": a smaller size for long names before cutting.

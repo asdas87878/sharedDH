@@ -18,6 +18,25 @@ What the user decides goes in [Decisions](../Decisions.md).
 
 Most players are on phones, so every picture is drawn for a phone held sideways first (844 by 390), then for a desktop.
 
+## The inventory bar in studs (2026-11-25, the user): in Studio, not saved
+"rework the inventory ui so that it 1:1 matches ride a dino. make sure the highlights are accurate, the stud textures, get
+rid of our water ones etc" ([Decisions](../Decisions.md)). Read as the hotbar (`UI/Slots.luau`). The layout and how slots
+behave follow the reference; the art, colours and numbers are ours, not measured off its screen.
+
+![the bar: on a keyboard, and laid out for an 844 x 390 phone](../attachments/ui-hotbar-studs.jpg)
+
+- **No water.** An empty slot is see-through dark navy with square corners and faint studs; a caught one its rarity's colour
+  with our own stud tile (`Kit.Textures.Emboss`), three to a slot and drawn twice so it shows. The fade upward is gone.
+- **Highlights:** the light band inside the outline and the darker foot are on every caught slot (only the chosen one had
+  them since 2026-11-18). The white ring is solid on the chosen slot, see-through on one under the mouse, with a thin dark
+  edge so it isn't taken for a Silver's pale outline.
+- **Words** down a slot's left: its colour (SILVER, GOLD, RAINBOW) and its size when not normal. A phone's slot (34 points)
+  has the size alone: both were under 5 pixels high there. The ride slot has them too (`88df992`).
+- **Checked in Studio** with made-up lists: empty, two, seven with every rarity; chosen, hover, riding; a phone's layout on a
+  wide screen. No text past its slot, no water picture, no error. Not seen: a real catch or a real phone.
+- **Left:** names are still cut ("Seahor."), [UI review](ui-review.md) suggestion 6. Kit's Oxygen, Danger and Glass themes
+  still wear the water picture: other plates, not the bar's. The drawn icons wait for the user's ChatGPT pictures.
+
 ## The Index window and the stand rings (2026-11-24, Hugo; NULLROOM tasks h1, h2, h4): in the game
 Hugo, 2026-11-23: "Import index system". Built by worker h2, the sub stand's ring by h1, both merged and checked in
 Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictures).
