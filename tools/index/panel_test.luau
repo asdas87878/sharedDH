@@ -629,6 +629,8 @@ if new then
 	ok("upright, the kind sits under the tray", side.Position.Y.Offset > find(window, "Tray").Position.Y.Offset)
 	print("a screen that turns while the window is open")
 	local before375 = window
+	press(find(lands, "Land2"))
+	press(find(list, reef[2].Id, "Press"))
 	gui.camera.ViewportSize = Vector2.new(667, 375)
 	gui.camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 	grab()
@@ -637,6 +639,12 @@ if new then
 		IndexPanel.isOpen() and window ~= nil and not rawequal(window, before375) and window.Enabled
 	)
 	ok("and there is only one", #gui.playerGui:GetChildren() >= 1 and before375.Parent == nil)
+	local turnedCard = list:FindFirstChild(reef[2].Id)
+	ok(
+		"it still shows the land and the kind it did",
+		turnedCard ~= nil and turnedCard:FindFirstChildOfClass("UIStroke").Thickness > 4
+	)
+	press(find(lands, "Land1"))
 	press(find(lands, "Land2"))
 	ok("its tabs work", list:FindFirstChild(reef[1].Id) ~= nil)
 
@@ -673,10 +681,12 @@ if new then
 		"a land with no picture shows its plain colours",
 		find(landBox, "Painting").Image == "" and find(landBox, "Plain").Visible
 	)
+	ok("not darkened at the top", not find(landBox, "Shade").Visible)
 	LandBanners.Ids[1] = "rbxassetid://1"
 	press(find(lands, "Land2"))
 	press(find(lands, "Land1"))
 	ok("and its picture once it has an id", find(landBox, "Painting").Image == "rbxassetid://1")
+	ok("with the dark behind its name", find(landBox, "Shade").Visible)
 	LandBanners.Ids[1] = id
 end
 
@@ -709,7 +719,61 @@ dump("7_under")
 press(all)
 ok("CLAIM ALL pays everything left, once", player:GetAttribute("IndexClaims") == 0 and words(all) == claimAll(0))
 
--- The states tools/index/look_picture.py draws: a game some way in (the book is begun again)
+-- The book begun again
+local function begin()
+	IndexService.leave(player)
+	IndexService.join(player)
+	table.clear(carried)
+	tank = {}
+	clock += 1
+	toServer:Fire(player, "Sync")
+end
+if new then
+	print("claimed, closed, another caught, opened again")
+	local function kind(): string
+		return find(side, "Panel", "Name").Text
+	end
+	screen(1920, 1080, false)
+	begin()
+	press(find(lands, "Land2"))
+	press(find(lands, "Land1"))
+	catch("Pufferfish")
+	tick()
+	press(find(list, "Pufferfish", "Press"))
+	press(claim)
+	ok("the Pufferfish is claimed", kind() == "Pufferfish" and words(claim) == CLAIMED and IndexPanel.waiting() == 0)
+	press(indexButton)
+	catch("ReefShark")
+	tick()
+	press(indexButton)
+	grab()
+	ok("it opens on the kind that waits", kind() == "Reef Shark" and words(claim) == CLAIM, kind())
+	local function inSight(id: string): boolean
+		local card = list:FindFirstChild(id)
+		local grid = list:FindFirstChildOfClass("UIGridLayout")
+		local gap = grid.CellPadding.Y.Offset
+		local row = math.ceil(card.LayoutOrder / grid.FillDirectionMaxCells)
+		local top = list:FindFirstChildOfClass("UIPadding").PaddingTop.Offset + (row - 1) * (card.Size.Y.Offset + gap)
+		local at = list.CanvasPosition.Y / scaleNow()
+		return top >= at and top + card.Size.Y.Offset <= at + list.Size.Y.Offset + 0.01
+	end
+	ok("its card is in sight", inSight("ReefShark") and list.CanvasPosition.Y > 0, list.CanvasPosition.Y)
+	press(indexButton)
+	catch("Clownfish")
+	tick()
+	press(indexButton)
+	ok("a kind that waits stays chosen when another is caught", kind() == "Reef Shark" and inSight("ReefShark"))
+	press(claim)
+	press(indexButton)
+	press(indexButton)
+	ok("claimed, it opens on the other, scrolled back up", kind() == "Clownfish" and inSight("Clownfish"), kind())
+	press(claim)
+	press(indexButton)
+	press(indexButton)
+	ok("with none waiting it opens as it was left", kind() == "Clownfish" and words(claim) == CLAIMED)
+end
+
+-- The states tools/index/look_picture.py draws: a game some way in
 if new and dumpTo then
 	local function land(n: number, count: number, paid: number)
 		for i, fish in Config.indexKinds(n) do
@@ -727,12 +791,7 @@ if new and dumpTo then
 		end
 	end
 	screen(1920, 1080, false)
-	IndexService.leave(player)
-	IndexService.join(player)
-	table.clear(carried)
-	tank = {}
-	clock += 1
-	toServer:Fire(player, "Sync")
+	begin()
 	catch("Clownfish", "Big", "Gold")
 	catch("Clownfish", "Giant", "")
 	catch("SeaTurtle", "Big", "")
@@ -756,10 +815,17 @@ if new and dumpTo then
 	for n in ids do
 		LandBanners.Ids[n] = ""
 	end
+	-- (another shape and back: a window is built with its tabs' pictures)
+	screen(667, 375, true)
 	screen(1920, 1080, false)
 	press(find(lands, "Land1"))
-	IndexPanel.press("Kind", "SeaTurtle")
-	screen(1921, 1081, false)
+	press(find(list, "SeaTurtle", "Press"))
+	local bare = true
+	for n = 1, 10 do
+		bare = bare and find(lands, "Land" .. n, "Painting").Image == ""
+	end
+	ok("a game with nothing uploaded has no picture on any tab", bare)
+	ok("nor on the banner", find(landBox, "Painting").Image == "")
 	dump("look_pc_plain")
 	for n, id in ids do
 		LandBanners.Ids[n] = id
@@ -770,6 +836,8 @@ if new and dumpTo then
 	dump("look_phone_wide")
 	press(find(lands, "Land6"))
 	dump("look_phone_whole")
+	press(find(lands, "Land3"))
+	dump("look_phone_dark")
 	screen(375, 812, true)
 	press(find(lands, "Land1"))
 	press(find(list, "SeaTurtle", "Press"))

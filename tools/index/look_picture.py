@@ -41,6 +41,17 @@ class Page(pp.Page):
             return next((ROOT / "art/ui/lands/upload").glob(f"land_banner_{int(image[5:]):02d}.png"))
         return super().picture(image)
 
+    def node(self, n, k, layout=None):
+        # (a list scrolled down: CanvasPosition is in the screen's pixels, so it is drawn as it is. A grid's cards move by it)
+        place = n["Props"].get("CanvasPosition")
+        if n["Class"] == "ScrollingFrame" and place and place[1]:
+            kids = [dict(c, Props=dict(c["Props"], ScrolledBy=place[1])) if c["Class"] in pp.GUI else c
+                    for c in n["Children"]]
+            n = dict(n, Children=kids)
+        out = super().node(n, k, layout)
+        by = n["Props"].get("ScrolledBy")
+        return out.replace('style="', f'style="top:{-by}px;', 1) if by else out
+
     def image(self, n, k, fill):
         p = n["Props"]
         file = self.picture(p["Image"])

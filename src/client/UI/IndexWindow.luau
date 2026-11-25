@@ -163,6 +163,7 @@ local PALE = Color3.fromRGB(214, 222, 236) -- quiet words on the dark body (Sell
 local AIR = Color3.fromRGB(140, 232, 255) -- an amount of Oxygen
 local DARK_CARD = Color3.fromRGB(22, 36, 64) -- a kind not found yet: the partner's dark navy card
 local SHADOW = Color3.fromRGB(8, 14, 30) -- and its picture, painted this dark
+local PLATE = 18 -- the variants plate's room at the panel's sides
 local LIST_PAD = 10 -- over the first row of cards and under the last
 local OPENED = 0.4 -- seconds from its opening till the window stands at its full size (UI.Anim.Open.Time is 0.36)
 local DIM_TAB = Color3.fromRGB(176, 186, 208) -- a land's tab while another is shown
@@ -380,6 +381,7 @@ type Card = {
 	Found: boolean, -- as it was built: a kind found since is built again
 	Root: Frame,
 	Edge: UIStroke,
+	Name: TextLabel,
 	Waiting: Frame,
 }
 type Tab = { Button: Shop.Button, Painting: ImageLabel, Shade: Frame, Waiting: Frame }
@@ -413,6 +415,7 @@ local claimButton: Shop.Button
 
 -- the land's banner
 local painting: ImageLabel
+local bannerShade: Frame
 local plainFill: UIGradient
 local landWord: TextLabel
 local boxEdge: UIStroke
@@ -490,12 +493,9 @@ local function newCard(fish: Config.FishType, order: number): Card
 		Kit.new("UIGradient", { Color = colours, Rotation = turn }, line)
 	end
 	local text = if have then fish.Name else "???"
-	local words = fitted(text, shape.CardW - 16, shape.CardText, 14)
-	Shop.text(root, {
+	local name = Shop.text(root, {
 		Name = "Name",
 		Position = UDim2.fromOffset(2, 5),
-		Size = UDim2.new(1, -4, 0, shape.CardText + 4),
-		TextSize = words,
 		Text = text,
 		ZIndex = 7,
 	})
@@ -527,27 +527,41 @@ local function newCard(fish: Config.FishType, order: number): Card
 		chosen = fish.Id
 		paint()
 	end)
-	return { Fish = fish, Found = have, Root = root, Edge = edge, Waiting = waiting }
+	return { Fish = fish, Found = have, Root = root, Edge = edge, Name = name, Waiting = waiting }
 end
 
--- Scrolls the list to the chosen kind's card when it is below the foot (a land opens on its first reward waiting, which
+-- Scrolls the list just far enough to show the chosen kind's whole card (a land opens on its first reward waiting, which
 -- can be rows down). A list's place is in pixels of the screen: the window's scale is counted in.
 local function reveal()
 	if not window then
 		return
 	end
+	local scale = (window :: Shop.Window).Scale.Scale
 	for i, card in cards do
 		if card.Fish.Id == chosen then
 			local row = math.ceil(i / shape.Columns)
-			local foot = LIST_PAD + row * (shape.CardH + shape.CardGap)
-			local over = foot - list.Size.Y.Offset
-			if over > 0 then
-				local scale = (window :: Shop.Window).Scale.Scale
-				list.CanvasPosition = Vector2.new(0, (over + LIST_PAD) * scale)
+			local top = (row - 1) * (shape.CardH + shape.CardGap)
+			local foot = LIST_PAD + top + shape.CardH + LIST_PAD
+			local at = list.CanvasPosition.Y / scale
+			if top < at then
+				list.CanvasPosition = Vector2.new(0, top * scale)
+			elseif foot > at + list.Size.Y.Offset then
+				list.CanvasPosition = Vector2.new(0, (foot - list.Size.Y.Offset) * scale)
 			end
 			return
 		end
 	end
+end
+
+-- The first of a land's kinds with a reward waiting, nil if none has
+local function firstOwed(land: number): string?
+	local entry = lands[land]
+	for _, fish in if entry then entry.Kinds else {} do
+		if IndexBook.owedKind(fish.Id) then
+			return fish.Id
+		end
+	end
+	return nil
 end
 
 -- Shows a land's cards (built again each time: only the shown land's pictures exist)
@@ -566,13 +580,7 @@ local function showLand(land: number)
 	end
 	if not keep then
 		-- the first kind with a reward waiting, else the land's first
-		chosen = if kinds[1] then kinds[1].Id else nil
-		for _, fish in kinds do
-			if IndexBook.owedKind(fish.Id) then
-				chosen = fish.Id
-				break
-			end
-		end
+		chosen = firstOwed(shownLand) or if kinds[1] then kinds[1].Id else nil
 	end
 	list.CanvasPosition = Vector2.zero
 	-- (after the new cards are laid out: the list cannot scroll further than it is long)
@@ -617,13 +625,15 @@ local function paintKind()
 		tierFill.Rotation = 90
 	end
 	rateWord.Text = if have then Kit.rate(Config.incomeOf(fish, "Normal", "")) else "Not found yet"
-	rateWord.TextSize = fitted(
-		rateWord.Text,
-		if shape.OneLine then room / 2 else room,
-		shape.Line + (if shape.OneLine then 0 else 3),
-		14
-	)
-	tierWord.TextSize = fitted(tierWord.Text, if shape.OneLine then room / 2 else room, shape.Line, 14)
+	if shape.OneLine then
+		-- one size for both, so the two share the plate's width (capitals are wider)
+		local letters = #tierWord.Text * 0.6 + #rateWord.Text * 0.47 + 0.6
+		local size = math.clamp(math.floor((panel.Size.X.Offset - PLATE * 2) / letters), 14, shape.Line)
+		tierWord.TextSize, rateWord.TextSize = size, size
+	else
+		tierWord.TextSize = fitted(tierWord.Text, room, shape.Line, 14)
+		rateWord.TextSize = fitted(rateWord.Text, room, shape.Line + 3, 14)
+	end
 	rateWord.TextColor3 = if have then Kit.lighter(Shop.Money, 0.45) else PALE
 	looksWord.Text = `Variants {IndexBook.looks(fish.Id)} / {Config.indexLooks()}`
 	local oxygen, coins = Config.indexFirst(fish)
@@ -646,6 +656,7 @@ end
 local function paintLand()
 	painting.Image = LandBanners.image(shownLand)
 	plainFill.Color = LandBanners.fill(shownLand)
+	bannerShade.Visible = painting.Image ~= ""
 	local name = IndexBook.landName(shownLand)
 	-- (two words go on two lines, "Coral / Reef": the letters are sized by the longer)
 	local longest = 1
@@ -692,7 +703,12 @@ function paint()
 		local on = card.Fish.Id == chosen
 		card.Edge.Color = if on then Kit.White else Shop.Edge
 		card.Edge.Thickness = if on then 4.5 else 3
-		card.Waiting.Visible = IndexBook.owedKind(card.Fish.Id)
+		local owed = IndexBook.owedKind(card.Fish.Id)
+		card.Waiting.Visible = owed
+		-- the name keeps clear of the mark on the card's corner
+		local corner = if owed then shape.Mark // 2 + 6 else 0
+		card.Name.Size = UDim2.new(1, -4 - corner, 0, shape.CardText + 4)
+		card.Name.TextSize = fitted(card.Name.Text, shape.CardW - (if owed then 8 else 16) - corner, shape.CardText, 14)
 	end
 	paintKind()
 	paintLand()
@@ -804,16 +820,16 @@ local function buildBanner(tray: Frame, high: number)
 	Kit.corner(banner, Shop.Round.Card)
 	Kit.stroke(banner, 4, Shop.Edge)
 	painting, plainFill = landPicture(banner, shownLand, Shop.Round.Card, 1)
-	-- a little dark behind the name, so white letters read over bright water
-	local shade: Frame = Kit.new("Frame", {
+	-- a little dark behind the name, so white letters read over bright water (a painting only: paintLand)
+	bannerShade = Kit.new("Frame", {
 		Name = "Shade",
 		Size = UDim2.fromScale(1, 0.42),
 		BackgroundColor3 = Kit.Deep,
 		BorderSizePixel = 0,
 		ZIndex = 3,
 	}, banner)
-	Kit.corner(shade, Shop.Round.Card)
-	Kit.new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(0.55, 1) }, shade)
+	Kit.corner(bannerShade, Shop.Round.Card)
+	Kit.new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(0.55, 1) }, bannerShade)
 	landWord = Shop.text(banner, {
 		Name = "Land",
 		Position = UDim2.fromOffset(2, 8),
@@ -1002,7 +1018,7 @@ local function buildPanel(side: Frame, size: Vector2)
 	local pillAt = size.Y - 10 - shape.Pill
 	local rateAt = pillAt - 4 - (shape.Line + 4)
 	local tierAt = if shape.OneLine then rateAt else rateAt - (shape.Line + 1)
-	local half = if shape.OneLine then 0.5 else 1
+	local edge = if shape.OneLine then PLATE else 4
 	local nameAt = tierAt - (shape.Name + 2)
 	panelPicture = Portrait.new(panel, {
 		Name = "Picture",
@@ -1029,16 +1045,18 @@ local function buildPanel(side: Frame, size: Vector2)
 	})
 	tierWord = Shop.text(panel, {
 		Name = "Tier",
-		Position = UDim2.fromOffset(4, tierAt),
-		Size = UDim2.new(half, -8, 0, shape.Line + 2),
+		Position = UDim2.fromOffset(edge, tierAt),
+		Size = UDim2.new(1, -edge * 2, 0, shape.Line + 4),
 		TextSize = shape.Line,
+		TextXAlignment = if shape.OneLine then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center,
 		ZIndex = 6,
 	})
 	tierFill = Kit.new("UIGradient", {}, tierWord)
 	rateWord = Shop.text(panel, {
 		Name = "Rate",
-		Position = UDim2.new(1 - half, 4, 0, rateAt),
-		Size = UDim2.new(half, -8, 0, shape.Line + 4),
+		Position = UDim2.fromOffset(edge, rateAt),
+		Size = UDim2.new(1, -edge * 2, 0, shape.Line + 4),
+		TextXAlignment = if shape.OneLine then Enum.TextXAlignment.Right else Enum.TextXAlignment.Center,
 		TextSize = shape.Line + (if shape.OneLine then 0 else 3),
 		TextColor3 = Shop.Money,
 		ZIndex = 6,
@@ -1047,7 +1065,7 @@ local function buildPanel(side: Frame, size: Vector2)
 		Name = "Variants",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, pillAt),
-		Size = UDim2.new(1, -36, 0, shape.Pill),
+		Size = UDim2.new(1, -PLATE * 2, 0, shape.Pill),
 		BackgroundColor3 = Shop.BodyDeep,
 		BorderSizePixel = 0,
 		ZIndex = 6,
@@ -1238,13 +1256,13 @@ local function watch()
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		if IndexWindow.isOpen() and shapeOf() ~= built then
 			IndexWindow.drop()
-			IndexWindow.open(true)
+			IndexWindow.open(true, true)
 		end
 	end)
 end
 
--- Open or close the window
-function IndexWindow.open(on: boolean)
+-- Open or close the window. (turned: the same window again for a screen that turned, so what was shown stays.)
+function IndexWindow.open(on: boolean, turned: boolean?)
 	if on and window and not window.isOpen() and shapeOf() ~= built then
 		IndexWindow.drop()
 	end
@@ -1258,14 +1276,20 @@ function IndexWindow.open(on: boolean)
 	local w = window :: Shop.Window
 	local opening = on and not w.isOpen()
 	if opening then
-		-- the first land with a reward waiting, else the land last looked at
-		for land = 1, #lands do
-			if IndexBook.owedIn(land) > 0 then
-				if land ~= shownLand then
-					chosen = nil
-					showLand(land)
+		if not turned then
+			-- the first land with a reward waiting, else the land last looked at
+			for land = 1, #lands do
+				if IndexBook.owedIn(land) > 0 then
+					if land ~= shownLand then
+						chosen = nil
+						showLand(land)
+					end
+					break
 				end
-				break
+			end
+			-- and its first kind with one, unless the kind last looked at has its own
+			if not chosen or not IndexBook.owedKind(chosen) then
+				chosen = firstOwed(shownLand) or chosen
 			end
 		end
 		toastTurn += 1
@@ -1276,6 +1300,7 @@ function IndexWindow.open(on: boolean)
 	-- the cards pop in one after another as it opens
 	if opening then
 		popCards()
+		task.defer(reveal)
 		-- (once more at its full size: while the window springs open its list is shorter)
 		task.delay(OPENED, reveal)
 	end

@@ -44,12 +44,13 @@ Its feel and layout logic, in our kit, our colours and our pictures. `Config.Ind
   turns. Smallest word on a phone 12.3 px; smallest button 32 px high (the tabs and a land's CLAIM!).
 - **Variants "n / 24" are what the game records** (six sizes by four colours, `book.Count`): a number only, no page and
   nothing for sale. The server sends the count, not which ones.
-- **A land opens on its first reward waiting** and scrolls to it. Secrets and kinds not found stay dark with "???".
+- **A land opens on its first reward waiting** and scrolls to it, also when it is opened again (the kind last looked at stays
+  only while its own reward waits); a screen that turns keeps what it showed. Secrets and kinds not found stay dark with "???".
 - **The banners** are g1's paintings cut to 480 x 800 (`python tools/index/land_banners.py` makes `art/ui/lands/upload`).
   **Not uploaded (Hugo's yes):** the ten `land_banner_01..10.png`, ids into `LandBanners.Ids`. Until then a live game
   shows each land's plain colours; Studio shows the paintings after `python tools/index/land_banners.py studio`.
 - **Checked offline** (`python tools/index/look_picture.py` runs all and draws the picture): index_test 73, the new window
-  128, the old one 91, none failed. Three lines of index_test still held the Shallows set's old numbers: put right
+  139, the old one 91, none failed. Three lines of index_test still held the Shallows set's old numbers: put right
   (410 Oxygen, $5,125, what Config pays).
 - **Not checked:** Studio, a real phone, the live fish models (the pictures here are the renders; a live game draws models
   until the fish pages are uploaded), memory of ten paintings (about 15 MB). "Before" in the picture is of 24 November.

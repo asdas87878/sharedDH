@@ -10,7 +10,7 @@ Studio**, nothing uploaded. All of it: [UI](design/ui.md), "The Index, richer". 
 - **New:** `UI/IndexWindow` (the window, three layouts), `UI/IndexBook` (the sums, moved out), `UI/LandBanners`; `UI/IndexPanel` is the
   door now and the old window is `UI/IndexOld`. `IndexService`, `Net.Index`, rewards and rules are unchanged; the names
   `tools/studio/h4_hub_check.py` looks for are kept (not run).
-- **Offline:** `python tools/index/look_picture.py`: 73, 128 and 91 checks, none failed; StyLua, selene (the three old warnings),
+- **Offline:** `python tools/index/look_picture.py`: 73, 139 and 91 checks, none failed; StyLua, selene (the three old warnings),
   the type checker on the changed files, a Rojo build.
 - **Owed:** Studio (`land_banners.py studio` first, then `h4_hub_check.py`), a real phone, Hugo's yes to upload the ten banners.
 
