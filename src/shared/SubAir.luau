@@ -299,15 +299,15 @@ local function ceiling(): number
 end
 
 -- The height it goes by: the rider's, but not thrown up with them as they push off: from the saddle's to the seat's
-function SubAir.track(air: Air, t: number, riderY: number): number
-	if t <= air.HopAt or t >= air.SeatAt then
+-- (`from`: no sooner than then)
+function SubAir.track(air: Air, t: number, riderY: number, from: number?): number
+	local start = math.max(math.min(from or 0, air.SeatAt - 0.1), air.HopAt)
+	if t <= start then
+		return if t <= air.HopAt then riderY else SubAir.saddle(air.Leap, t).Y
+	elseif t >= air.SeatAt then
 		return riderY
 	end
-	return Ease.lerp(
-		SubAir.saddle(air.Leap, t).Y,
-		air.Meet.Y + SubAir.Seat.Y,
-		Ease.smoothstep(air.HopAt, air.SeatAt, t)
-	)
+	return Ease.lerp(SubAir.saddle(air.Leap, t).Y, air.Meet.Y + SubAir.Seat.Y, Ease.smoothstep(start, air.SeatAt, t))
 end
 
 -- How far along it is: behind the rider, drawing in behind the sub by its splash
@@ -366,6 +366,72 @@ function SubAir.eye(air: Air, t: number, riderAt: Vector3?, subAt: CFrame?, fall
 	local far = math.max((look - eye):Dot(out), 1)
 	look = Vector3.new(look.X, eye.Y + far * math.tan(math.atan((look.Y - eye.Y) / far) * nod), look.Z)
 	return eye, look
+end
+
+-- The player's own camera, from the trip's word on (the client's, and the check's: tools/subs/air_check.luau): the view they
+-- had then, `From` against what it goes by (anchorAt), its `Fov`, when (`At`), and whether it has been under the water
+export type View = { From: CFrame, Fov: number, At: number, Wet: boolean }
+
+local function angles(look: Vector3): (number, number)
+	local l = if look.Magnitude > 1e-3 then look.Unit else Vector3.new(0, 0, -1)
+	return math.atan2(-l.X, -l.Z), math.asin(math.clamp(l.Y, -1, 1))
+end
+
+-- Until the word is back: the player's own view (`from`, against them) carried along with them at `rider`
+function SubAir.held(from: CFrame, rider: Vector3): CFrame
+	return CFrame.new(rider + from.Position) * from.Rotation
+end
+
+-- What the view goes by, with the player at `rider`: where they go, not where they jump (its height is the plan's: they
+-- leave the saddle on a frame, a little after the plan does, and it is not thrown up with them; `began`: the view's start)
+local function anchorAt(air: Air, rider: Vector3, plan: Vector3, t: number, began: number): Vector3
+	return Vector3.new(rider.X, SubAir.track(air, t, plan.Y, began), rider.Z)
+end
+
+-- The view begun, from the camera as it is
+function SubAir.viewFrom(air: Air, camera: CFrame, fov: number, rider: Vector3, t: number): View
+	local anchor = anchorAt(air, rider, SubAir.rider(air, t).Position, t, t)
+	return { From = CFrame.new(camera.Position - anchor) * camera.Rotation, Fov = fov, At = t, Wet = false }
+end
+
+-- The view at `t`, with the player at `rider`: from their own view round to behind them and on by the trip; its field of
+-- view, and how far off what it looks at is
+function SubAir.view(air: Air, v: View, rider: Vector3, t: number): (CFrame, number, number)
+	local c = Config.Sub
+	local plan = SubAir.rider(air, t).Position
+	local eye, look = SubAir.eye(air, t, plan)
+	-- (with them, wherever they really are over the water)
+	local off = Vector3.new(rider.X - plan.X, 0, rider.Z - plan.Z) * (1 - Ease.smoothstep(air.SeatAt, air.RideAt, t))
+	eye += off
+	look += off
+	local from = v.From
+	local w = Ease.smoothstep(v.At, v.At + math.max(c.AirCamIn, 0.05), t)
+	local at = eye
+	local yaw, pitch = angles(look - eye)
+	if w < 1 then
+		-- (round them, not through them: by the way it stands from them, how far, and how high)
+		local anchor = anchorAt(air, rider, plan, t, v.At)
+		local a, b = from.Position, eye - anchor
+		local turn = Ease.lerpAngle(math.atan2(a.X, a.Z), math.atan2(b.X, b.Z), w)
+		local far = Ease.lerp(Vector3.new(a.X, 0, a.Z).Magnitude, Vector3.new(b.X, 0, b.Z).Magnitude, w)
+		at = anchor + Vector3.new(math.sin(turn) * far, Ease.lerp(a.Y, b.Y, w), math.cos(turn) * far)
+		local yaw0, pitch0 = angles(from.LookVector)
+		-- (looking at what it will, from where it is)
+		local yaw1, pitch1 = angles(look - at)
+		yaw, pitch = Ease.lerpAngle(yaw0, yaw1, w), Ease.lerp(pitch0, pitch1, w)
+	end
+	-- (once it is under the water it stays under it, whatever the sums say: Hugo, 2026-11-25)
+	local under = Config.Depth.SurfaceY - 0.5
+	v.Wet = v.Wet or at.Y < under
+	if v.Wet then
+		at = Vector3.new(at.X, math.min(at.Y, under), at.Z)
+	end
+	local rush = Ease.smoothstep(air.HopAt, air.SeatAt, t) * 6
+	local kick = c.AirFov
+		* Ease.smoothstep(air.SplashAt - 0.1, air.SplashAt, t)
+		* (1 - 0.6 * Ease.smoothstep(air.SplashAt, air.RideAt, t))
+	local fov = Ease.lerp(v.Fov, 70, w) + rush + kick
+	return CFrame.new(at) * CFrame.fromOrientation(pitch, yaw, 0), fov, math.max((look - at).Magnitude, 10)
 end
 
 ----------------------------------------------------------------------------------------------------------------------

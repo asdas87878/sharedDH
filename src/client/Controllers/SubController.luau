@@ -738,7 +738,7 @@ local function waiting(root: BasePart): (CFrame?, number)
 		return nil, 0
 	end
 	local camera = workspace.CurrentCamera
-	local held = CFrame.new(root.Position + from.Position) * from.Rotation
+	local held = SubAir.held(from, root.Position)
 	local w = Ease.smoothstep(WAIT, WAIT + WAIT_OUT, since)
 	return held:Lerp(camera.CFrame, w), Ease.lerp(waitFov, camera.FieldOfView, w)
 end
