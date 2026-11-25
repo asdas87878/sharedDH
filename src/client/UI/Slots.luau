@@ -126,14 +126,17 @@ local STUDS_EMPTY = 0.5 -- how see-through they are on an empty slot
 local STUDS_CAUGHT = 0 -- and on a caught one
 local STUDS_TAIL = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 0),
-	NumberSequenceKeypoint.new(0.5, 0.1),
-	NumberSequenceKeypoint.new(1, 0.6),
+	NumberSequenceKeypoint.new(0.5, 0),
+	NumberSequenceKeypoint.new(1, 0.2),
 })
+local RING_EDGE = 1.2
 local RING_HOVER = 0.45 -- how see-through the ring is on a slot under the mouse that isn't the chosen one
 local BRIGHTER = 0.14 -- how far a Legendary's, a Mythic's and a Secret's colours go toward white
 -- A fish's size and colour, in words down its slot's left side (nothing for a plain one of the normal size); the sizes
 -- in the fish tags' colours (UI.Tags, UI.TankPanel), cool to hot
-local TAG_SIZE = { Phone = 6.5, Keys = 8.5 }
+-- On a phone's smaller slot the size alone, at the name's own size (its outline and name have the colour already)
+local TAG_SIZE = 8.5
+local TAG_SIZE_LONG = 5.8 -- (COLOSSAL, on a phone)
 local SIZE_HUE: { [string]: Color3 } = {
 	Tiny = Color3.fromRGB(176, 206, 234),
 	Big = Color3.fromRGB(84, 226, 190),
@@ -291,6 +294,18 @@ local function makeTile(x: number): Tile
 	}, slot.Frame)
 	local ringLine = Kit.stroke(ring, RING, Kit.White)
 	ringLine.LineJoinMode = Enum.LineJoinMode.Miter
+	-- a thin dark edge outside the white, so the ring is never taken for a Silver's pale outline
+	local edge = Kit.new("Frame", {
+		Name = "Edge",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, RING * 2, 1, RING * 2),
+		BackgroundTransparency = 1,
+		ZIndex = 0,
+	}, ring)
+	local edgeLine = Kit.stroke(edge, RING_EDGE, BLACK)
+	edgeLine.LineJoinMode = Enum.LineJoinMode.Miter
+	edgeLine.Transparency = 0.25
 	-- a little bigger under the mouse, with the ring
 	local grow = Kit.new("UIScale", {}, slot.Frame)
 	local hit: TextButton = Kit.new("TextButton", {
@@ -322,7 +337,7 @@ local function makeTile(x: number): Tile
 			Name = which,
 			Position = UDim2.new(0, 2, 0.24 + row * 0.2, 0),
 			Size = UDim2.new(1, -2, 0.2, 0),
-			TextSize = TAG_SIZE.Keys,
+			TextSize = TAG_SIZE,
 			Font = FONT,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 3,
@@ -358,9 +373,12 @@ local function tint(slot: Kit.Panel, name: TextLabel, variant: string?)
 	words.Rotation = if variant == "Rainbow" then 0 else 90
 end
 
--- A fish's colour and size in words (the first alone moves up into the only row)
+local touchNow = false
+
+-- A fish's colour and size in words (the first alone moves up into the only row; a phone's slot has the size alone; the ride slot's lower, under its X)
 local function tags(t: any, item: Caught?)
-	local variant = item and Kit.variantFill(item.Variant)
+	t.Item = item
+	local variant = not touchNow and item and Kit.variantFill(item.Variant) or nil
 	local size = item and item.Size
 	local sized = size ~= nil and SIZE_HUE[size] ~= nil
 	local top: TextLabel, under: TextLabel = t.Variant, t.Size
@@ -370,7 +388,8 @@ local function tags(t: any, item: Caught?)
 	words.Rotation = if item and item.Variant == "Rainbow" then 0 else 90
 	under.Text = if sized then string.upper(size :: string) else ""
 	under.TextColor3 = if sized then SIZE_HUE[size :: string] else Kit.White
-	under.Position = UDim2.new(0, 2, if variant then 0.44 else 0.24, 0)
+	under.TextSize = if touchNow and #under.Text > 5 then TAG_SIZE_LONG else TAG_SIZE
+	under.Position = UDim2.new(0, 2, if variant or (touchNow and t.Cross) then 0.44 else 0.24, 0)
 end
 
 local function paint(t: any, item: Caught?)
@@ -404,7 +423,6 @@ local function paint(t: any, item: Caught?)
 	tags(t, item)
 end
 
-local touchNow = false
 local fitScale: UIScale? = nil
 local screenWide = math.huge -- the HUD's width in its own units (HudController: Slots.fit)
 local EDGE_PHONE = 8 -- the least room left between the hotbar and the screen's edges on a phone
@@ -607,10 +625,6 @@ end
 
 function Slots.place(touch: boolean)
 	touchNow = touch
-	local function tagSize(t: any)
-		t.Variant.TextSize = if touch then TAG_SIZE.Phone else TAG_SIZE.Keys
-		t.Size.TextSize = t.Variant.TextSize
-	end
 	local size = if touch then SIZE else BIG
 	local gap = if touch then GAP else BIG_GAP
 	holder.Size = UDim2.fromOffset(rowWidth(size, gap), size + 18)
@@ -621,7 +635,7 @@ function Slots.place(touch: boolean)
 		t.Panel.Frame.Size = UDim2.fromOffset(size, size)
 		t.Panel.Frame.Position = UDim2.new(0, middleOf(i, size, gap), 1, -size / 2)
 		t.Name.TextSize = if touch then 8.5 else 11
-		tagSize(t)
+		tags(t, (t :: any).Item)
 		keys[i].Visible = not touch
 		keys[i].TextSize = if touch then 9 else 11
 	end
@@ -630,7 +644,6 @@ function Slots.place(touch: boolean)
 		ride.Panel.Frame.Size = UDim2.fromOffset(size, size)
 		ride.Panel.Frame.Position = UDim2.new(0, middleOf(0, size, gap), 1, -size / 2)
 		ride.Name.TextSize = if touch then 8.5 else 11
-		tagSize(ride)
 		ride.Hint.Position = UDim2.fromOffset(middleOf(0, size, gap), HINT_FOOT)
 		ride.Hint.Size = UDim2.fromOffset(size + HINT_WIDE, 26)
 		ride.Hint.TextSize = if touch then 9 else 11
