@@ -544,6 +544,7 @@ local TUNABLES: { { any } } = {
 	{ "Look", "AirFogR", 5 },
 	{ "Look", "AirFogG", 5 },
 	{ "Look", "AirFogB", 5 },
+	{ "Look", "FarUnder", 1 },
 	{ "Look", "Brightness", 0.25 },
 	{ "Look", "Exposure", 0.1 },
 	{ "Look", "Contrast", 0.05 },

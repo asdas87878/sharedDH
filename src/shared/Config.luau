@@ -3208,6 +3208,7 @@ Config.Look = {
 	-- docs/design/props-and-landmarks.md, "The far view in the game".
 	VistaLowest = 3, -- a player who set graphics quality 1 to this gets the painted far view (0: never)
 	VistaTouch = 1, -- 1: on Automatic, a phone or tablet gets it too (the level Roblox picks can't be read by a game)
+	FarUnder = 0, -- 0: the far view's models are hidden while the camera is under the water (2026-11-25, the user: "when youre in the water there are blocks above you that arent placed right"); 1: shown there too
 }
 
 -- How creatures and riders move beyond the keyed swim. First built 2026-11-11 (docs/design/animation-study.md), then

@@ -3,6 +3,8 @@
 -- (Shared/Look does the setting). It looks four times a second for a number that changed, so the N panel's Look rows
 -- show at once; nothing is done in a frame where nothing changed. Look.On 0 shows Roblox's plain lighting, to compare.
 -- All of it is on this player's machine only. docs/design/lighting.md.
+-- The far view (the land that only frames the map, past the gate) is for above the water: while the camera is under
+-- the surface it is hidden on this machine (Look.FarUnder), as it stands over the lane and was seen overhead from below.
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -15,13 +17,18 @@ local LookController = {}
 
 local CHECK_EVERY = 0.25
 local SKY = "LookSky"
-local FAR = "FarView" -- the later lands' far view as models (the map's, Workspace.FarView)
+-- the later lands' far view as models (the map's): Workspace.FarView, or, ungrouped, the folders it was built of
+local FAR = { "FarView", "Part1", "Part2", "Part3", "Part4" }
+local FAR_BACK = 0.4 -- seconds over the surface before the far view is back (a bob at the surface doesn't flicker it)
 
 local last: { [string]: number } = {}
 local ownSky: Sky? = nil -- the place's own sky, held while one of ours is shown
 local shownSky = -1
-local farHidden = false -- the far view's models hidden on this machine (the painted one shows instead)
-local farWatched: Instance? = nil
+local farPainted = false -- the painted far view shows instead of the models
+local farUnder = false -- the camera is under the surface
+local farHidden = false -- the far view's models are hidden on this machine (either of those)
+local farWatched: { [Instance]: RBXScriptConnection } = {}
+local underAt = -math.huge -- os.clock() the camera was last under
 
 local function changed(): boolean
 	local any = false
@@ -106,6 +113,55 @@ local function setFarHidden(far: Instance, hidden: boolean)
 	end
 end
 
+-- Whether this is a piece of the far view (a folder by one of those plain names, with its blocks in it)
+local function isFar(thing: Instance): boolean
+	return table.find(FAR, thing.Name) ~= nil and (thing:IsA("Folder") or thing:IsA("Model"))
+end
+
+-- A piece of the far view that came in: hidden with the rest, and what is added to it later too (it is streamed)
+local function watchFar(far: Instance)
+	if farWatched[far] or not isFar(far) then
+		return
+	end
+	farWatched[far] = far.DescendantAdded:Connect(function(d: Instance)
+		if d:IsA("BasePart") then
+			d.LocalTransparencyModifier = if farHidden then 1 else 0
+		end
+	end)
+	if farHidden then
+		setFarHidden(far, true)
+	end
+end
+
+local function showFar()
+	local hidden = farPainted or (farUnder and Config.Look.FarUnder == 0)
+	if hidden ~= farHidden then
+		farHidden = hidden
+		for far in farWatched do
+			setFarHidden(far, hidden)
+		end
+	end
+end
+
+-- Where the camera is against the sea's surface, every frame: cheap, the parts are only touched at a change
+local function watchSurface()
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local under = camera.CFrame.Position.Y < Config.Depth.SurfaceY
+	local now = os.clock()
+	if under then
+		underAt = now
+	elseif now - underAt < FAR_BACK then
+		return
+	end
+	if under ~= farUnder then
+		farUnder = under
+		showFar()
+	end
+end
+
 -- The far view: the models where this machine draws far, else the painted one on the sky's back face (its
 -- "SkyboxBkVista") with the models hidden here, so the two never show at once. Cheap when nothing changed.
 local function applyVista()
@@ -119,21 +175,8 @@ local function applyVista()
 			ours.SkyboxBk = want
 		end
 	end
-	local far = workspace:FindFirstChild(FAR)
-	if far and far ~= farWatched then
-		-- (it may come in after us, and a part added to it later is hidden with the rest)
-		farWatched = far
-		farHidden = not painted
-		far.DescendantAdded:Connect(function(d: Instance)
-			if farHidden and d:IsA("BasePart") then
-				d.LocalTransparencyModifier = 1
-			end
-		end)
-	end
-	if far and farHidden ~= painted then
-		farHidden = painted
-		setFarHidden(far, painted)
-	end
+	farPainted = painted
+	showFar()
 end
 
 local function apply()
@@ -150,6 +193,18 @@ local function apply()
 end
 
 function LookController.Start()
+	-- (the far view may come in after us, or go)
+	workspace.ChildAdded:Connect(watchFar)
+	workspace.ChildRemoved:Connect(function(thing: Instance)
+		local watched = farWatched[thing]
+		if watched then
+			watched:Disconnect()
+			farWatched[thing] = nil
+		end
+	end)
+	for _, thing in workspace:GetChildren() do
+		watchFar(thing)
+	end
 	changed()
 	apply()
 	-- (the player can change the graphics quality mid-game, from Roblox's menu)
@@ -157,13 +212,11 @@ function LookController.Start()
 	if RunService:IsStudio() then
 		workspace:GetAttributeChangedSignal("LookVista"):Connect(applyVista)
 	end
+	RunService.RenderStepped:Connect(watchSurface)
 	while true do
 		task.wait(CHECK_EVERY)
 		if changed() then
 			apply()
-		elseif farWatched == nil and workspace:FindFirstChild(FAR) then
-			-- (the far view came in after the look was set)
-			applyVista()
 		end
 	end
 end
