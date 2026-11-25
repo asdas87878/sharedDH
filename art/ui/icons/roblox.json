@@ -128,5 +128,29 @@
   "shop_icons.png": {
     "id": "rbxassetid://88960752051228",
     "uploaded": "2026-11-25"
+  },
+  "arch_leaper.png": {
+    "id": "rbxassetid://128279805319046",
+    "uploaded": "2026-11-25"
+  },
+  "arch_breaker.png": {
+    "id": "rbxassetid://86918938639972",
+    "uploaded": "2026-11-25"
+  },
+  "arch_fast.png": {
+    "id": "rbxassetid://124170078782358",
+    "uploaded": "2026-11-25"
+  },
+  "arch_frenzy.png": {
+    "id": "rbxassetid://91140816563949",
+    "uploaded": "2026-11-25"
+  },
+  "arch_tank.png": {
+    "id": "rbxassetid://131479491308033",
+    "uploaded": "2026-11-25"
+  },
+  "arch_predator.png": {
+    "id": "rbxassetid://138196416160639",
+    "uploaded": "2026-11-25"
   }
 }
