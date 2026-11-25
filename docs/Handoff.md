@@ -3,6 +3,14 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the trailer mode, not finished (game code, the user's word)
+
+- Studio only: J in Play films the game page video's 20 shots ([trailer](design/trailer.md)): `TrailerController`, `TrailerService`,
+  `Config.Trailer`, `tools/trailer/cut.py`. All 20 ran once with no errors; the fixes after that run (the clipping sharks, the tank
+  and seahorse angles, the submarine shop) are not seen in Studio yet. The user paused filming to change their avatar.
+- `State.RideLift` (0 in the game) is new in RideController's height. `Config.Trailer.On` 0 takes the mode out.
+- The place was saved as version 519 before the trailer mode: the pack, the fish icons and the seahorse beats are in it.
+
 ## 2026-11-25, the Great White pack's big card and its icon (game code, the user's word)
 
 - The Shop opens on the pack: a big card after the user's mock-up (`ShopScreen.packCard`, `Config.Packs.Card`), Packs above Featured.
