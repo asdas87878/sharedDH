@@ -6,6 +6,7 @@
 -- Nothing here decides an amount: it is the player's "OfflineOwed" attribute, the server's.
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Net = require(game:GetService("ReplicatedStorage").Shared.Net)
+local Products = require(game:GetService("ReplicatedStorage").Shared.Products)
 local State = require(script.Parent.Parent.Lib.State)
 local Anim = require(script.Parent.Parent.UI.Anim)
 local CatchShow = require(script.Parent.Parent.UI.CatchShow)
@@ -22,6 +23,7 @@ local ANSWER = 4 -- seconds an ask waits for its answer before CLAIM can be pres
 local WHY: { [string]: string } = {
 	Save = "Your save is still loading, try again",
 	Tank = "You need a tank first. It is kept for you",
+	Buying = "Claim x3 is being bought, one moment",
 }
 
 local shown = false -- it has come up by itself this visit
@@ -76,12 +78,30 @@ function OfflineController.Start()
 		OfflinePanel.claiming(true)
 		remote:FireServer("Claim")
 	end)
+	if Products.onSale(Products.Triple) then
+		OfflinePanel.Triple:Connect(function()
+			askedAt = os.clock()
+			OfflinePanel.claiming(true)
+			remote:FireServer("Triple")
+		end)
+		task.spawn(function()
+			local ok, info = pcall(function()
+				return game:GetService("MarketplaceService"):GetProductInfo(Products.Triple.Id, Enum.InfoType.Product)
+			end)
+			local robux = if ok and info then info.PriceInRobux else nil
+			if type(robux) == "number" then
+				OfflinePanel.price(robux)
+			end
+		end)
+	end
 	remote.OnClientEvent:Connect(function(what: any, a: any)
 		askedAt = -math.huge
 		OfflinePanel.claiming(false)
 		if what == "Paid" and type(a) == "number" then
 			SoundController.play("Claim")
 			DockNotes.note("+" .. Shop.cash(a), "From your tank, while you were away", true)
+		elseif what == "Buy" and type(a) == "number" then
+			game:GetService("MarketplaceService"):PromptProductPurchase(State.Player, a)
 		elseif what == "Denied" and WHY[a] then
 			OfflinePanel.say(WHY[a])
 		end

@@ -53,8 +53,9 @@
 --       "Max", "Land", "NoFail", "EndlessAir", "Fail"); the server answers "Done", text or "Refused", text
 --     Trainer (TrainService, both ways): the client sends "Off" or "Up"; the server sends "On", fish | "Off", fish,
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
---     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim"; the server sends
---       "Paid", coins | "Denied", why ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into)
+--     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim" | "Triple" (hold
+--       it, I buy Claim x3); the server sends "Paid", coins | "Buy", product id (open Roblox's prompt) | "Denied", why
+--       ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into; "Buying": held for a purchase; "Sale")
 --     Boards (LeaderboardService and BoardController, both ways): the client sends "Sync" (send me the boards); the
 --       server sends "State", { Next = server time of the next look, Boards = { { Id, Global, Rows = { { Id, Name,
 --       User, Value, Rank } } } } } (Global false: this server's players only)
