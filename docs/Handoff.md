@@ -3,6 +3,16 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, Hugo's main merged (game code, the user's word)
+**State:** `f702e0e` on main; in the user's Studio place, **place not saved**, nothing uploaded. Tag `backup-pre-hugo-merge-2026-11-25` is main before it.
+- **In:** the mid-air hop, the dock's stickers and Required, the offline chest and land banner pictures (files only). Conflicts in three notes only.
+  `merge-finished-2026-11-25` (fusing, Index look, offline rewards) is not in: not seen in Studio yet, Hugo's PC is checking it.
+- **Checked in Play:** three air hops (sub 5 Great White, sub 1 Clownfish, sub 9 Colossal Kraken): word back 0.07 to 0.09 s, one fish, kicked at the land,
+  camera never back over the water. Failed only the frame rate (15: Studio in the background) and, for two, too few calm frames. The sticker line shows.
+- **The auras on this PC:** their local pictures were never copied here, nor the aura shop's icons and the windows' header icons; now they are
+  (`tools/auras/flame_pics.py`; the two icon files by hand, as `tools/ui/aura_icons/build.py --studio` knows only Hugo's folder).
+  Studio remembers the Flame and Tip as missing until it is restarted, so the old look still shows here. A live game needs the uploads.
+
 ## 2026-11-25, the camera turns while the end of a dive shows (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Checked in Play: the camera turned by a right drag with the
   show up, the press not taken (`processed` false), a click skips, the next closes, a slow drag does neither, it goes by itself, walking
