@@ -46,11 +46,13 @@
 --     ate a wild fish there) | "Smash", player, fish, where, boxes (that rider's Breaker was paid for a prop)
 --   Sandbox (client -> server, Studio only: SandboxService): "Tune", "Group.Key", number | "Flag", name, boolean |
 --     "Reset" | "Ride", fishId, variant (onto a fish of that kind, put at the start)
---   Two more remotes sit in the same folder, made by their own services:
+--   More remotes sit in the same folder, made by their own services:
 --     Admin (AdminService; the owner's panel, both ways): the client sends what it wants ("Coins", "Fish", "Subs",
 --       "Max", "Land", "NoFail", "EndlessAir", "Fail"); the server answers "Done", text or "Refused", text
 --     Trainer (TrainService, both ways): the client sends "Off" or "Up"; the server sends "On", fish | "Off", fish,
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
+--     Offline (OfflineService and OfflineController, both ways; Config.Offline): the client sends "Claim"; the server sends
+--       "Paid", coins | "Denied", why ("Nothing"; "Save": the save is not in yet; "Tank": no tank to pay into)
 --   Index (IndexService and UI/IndexPanel, both ways; the rewards: Config.Index):
 --     the client sends "Claim", fishId (the reward of a kind it has found) | "ClaimLand", land (the reward of a land
 --       whose whole set it has found) | "ClaimAll" (every reward it may claim) | "Sync" (send me my Index again)
@@ -79,6 +81,8 @@
 -- you: the meter empties in Oxygen.StrainTime), Tame (0 to 1 while you ride: how far the fish under you is from being
 -- yours; nil off a fish, on one too strong, or with taming off),
 -- IndexFound (how many kinds they have caught) and IndexClaims (how many Index rewards wait to be claimed): IndexService,
+-- OfflineOwed and OfflineSecs (the coins to claim from the tank's earnings while they were away, and the seconds it earned
+-- them in; nil: none): OfflineService,
 -- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).

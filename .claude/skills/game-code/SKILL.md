@@ -57,6 +57,11 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   [submarine](docs/design/submarine.md). One Studio check for all of it:
   `python tools/studio/h4_hub_check.py` (install, play, `run`, `stills`; its head says how). Offline:
   `tools/index/*.luau`, `tools/subs/stand_sub_check.luau`, `tools/keepers/check.py` (lune and python).
+- **Offline rewards (2026-11-25; NULLROOM o1; offline only, not seen in Studio):** `OfflineService` (save part "Offline" in
+  `Lib/SaveParts`; `Config.offlinePay`; remote "Offline"; attributes `OfflineOwed`, `OfflineSecs`), `OfflineController`,
+  `UI/OfflinePanel`; dead while saving is off; Studio's `OfflineAway` fakes an absence; every `Config.Offline` number is a DRAFT.
+  Owed and the coins must stay in one snapshot: never yield between them. [offline rewards](../../../docs/design/offline-rewards.md);
+  checks `tools/offline/*_test.luau` (the real ProfileStore on pretend servers).
 - **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
   only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
   `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`

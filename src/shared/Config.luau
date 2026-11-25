@@ -957,6 +957,33 @@ Config.PlotUpgrades = {
 	},
 }
 
+-- Offline rewards (Hugo, 2026-11-25; NULLROOM task o1; docs/design/offline-rewards.md): what the tank earns while its
+-- player is away, theirs to claim at the next join (OfflineService; UI/OfflinePanel). Every DRAFT number is for the
+-- tuning chat. It pays nothing while saving is off (Lib/SaveParts): nothing then says when they left.
+Config.Offline = {
+	On = 1, -- 0: nothing is paid for being away and no window shows (what is owed already is kept)
+	Least = 300, -- DRAFT. away at least this long, seconds, else nothing
+	Share = 0.5, -- DRAFT. of what the tank's equipped fish earned a second on leaving (1: as if they had stayed)
+	Most = 28800, -- DRAFT. and at most this long is paid for, seconds (8 h)
+	AskGap = 0.3, -- the least seconds between two asks from one player; a faster one is dropped
+	Settle = 0.8, -- on the dock this long with nothing else on the screen before the window shows by itself, seconds
+}
+
+-- What an absence pays, in whole coins, and the seconds it is paid for: 0, 0 when it is too short, runs backwards, or
+-- comes to less than a coin
+function Config.offlinePay(rate: number, away: number): (number, number)
+	local o = Config.Offline
+	if o.On == 0 or away ~= away or rate ~= rate or away < o.Least or rate <= 0 or rate == math.huge then
+		return 0, 0
+	end
+	local secs = math.clamp(math.floor(away), 0, o.Most)
+	local coins = math.floor(rate * secs * math.max(o.Share, 0) + 1e-6)
+	if coins < 1 or coins == math.huge then
+		return 0, 0
+	end
+	return coins, secs
+end
+
 -- Riding a fish in your own tank (Hugo, 2026-11-20, task k1: "make fishes in the tank rideable (in the tank)"):
 -- practice, nothing at stake. No Oxygen, no fail, no taming, no catch: you stay on the dock as far as the game is
 -- concerned. Only the tank's owner rides its fish. The rider's machine moves the fish (TankRideController); the

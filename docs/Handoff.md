@@ -3,6 +3,20 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25 · Offline rewards: the Welcome back window, built (NULLROOM o1, Hugo's PC)
+**State:** branch `offline-rewards` (on main `ede1ff7` with `pictures-index-offline`, the chest), **committed, not pushed, not merged.**
+Nothing uploaded, Studio not touched. All of it, and what must be on: [offline rewards](design/offline-rewards.md).
+- **New:** `OfflineService`, `OfflineController`, `UI/OfflinePanel`, `Config.Offline` with `Config.offlinePay`, the save part "Offline"
+  in `Lib/SaveParts` (after the Tank's). **`SaveParts.ON` is still false, so a live game shows and pays nothing.**
+- **For the tuning chat (DRAFTS):** 5 min away at least, a half of the tank's income, 8 h at most (so 4 h of income for a night). Not
+  run through `rad_economy.py`.
+- **For the game-code chat:** SaveParts' `NEEDS` now asks for `OfflineService.dump` and `restore`. `tools/studio/save_check.py` does not
+  look at the new part yet. Owed coins and the tank's coins must stay in the same snapshot.
+- **Checked offline:** 123 (server, real ProfileStore, two servers) and 67 (window) checks, StyLua, selene (0 errors, the 3 old warnings),
+  a Rojo build, no type errors in the new files. `tools/index/index_test.luau` fails 3 of 73, on the commit this branch started from too
+  (the Shallows' set pays 410 and $5,125; the test expects 41 and $1,230).
+- **Owed:** Studio (`OfflineAway`), a phone, the real store, the upload of the chest (Hugo's yes) and its id in `OfflinePanel.Chest`.
+
 ## 2026-11-25 · The subs checked again after the merge: nine tiers, the gate and pick-up, the shop (NULLROOM c1, Hugo's PC)
 **State:** pushed: one new check, one sheet, notes. **No `src/` change,** nothing uploaded, the place left as it was (Edit, no test parts,
 `full_check.py all` all good). All of it: [sub models](design/sub-models.md), "Checked again after the merge".
