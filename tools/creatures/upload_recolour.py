@@ -4,7 +4,9 @@ UPLOADS ARE PERMANENT. The same upload as tools/creatures/upload.py (a Model ass
 connector), for the Ids given, whether or not they were uploaded before. Each new id goes into assets.json; the old one
 is kept in assets_before_recolour.json; each upload is logged in recolour_log.json, so a run that stops carries on.
 
-usage: python tools/creatures/upload_recolour.py <studio_id> Id,Id,... [--dry]
+usage: python tools/creatures/upload_recolour.py <studio_id> Id,Id,... [--dry] [--batch add_2026-11-25]
+  --batch <name>: another round, for new creatures or remodels: logged in <name>_log.json, the replaced ids kept in
+  assets_before_<name>.json (without it: the recolour's own files above).
 Then: python tools/creatures/install.py <studio_id> Id ..."""
 import json
 import os
@@ -61,7 +63,11 @@ def invoke(studio, args, timeout=180):
 def main():
     studio, ids = sys.argv[1], sys.argv[2].split(",")
     dry = "--dry" in sys.argv
-    assets, before, log = load("assets.json", {}), load("assets_before_recolour.json", {}), load("recolour_log.json", {})
+    batch = sys.argv[sys.argv.index("--batch") + 1] if "--batch" in sys.argv else ""
+    log_file = (batch + "_log.json") if batch else "recolour_log.json"
+    before_file = ("assets_before_" + batch + ".json") if batch else "assets_before_recolour.json"
+    what = ("voxel, " + batch) if batch else "voxel, recoloured 2026-11-19"
+    assets, before, log = load("assets.json", {}), load(before_file, {}), load(log_file, {})
     todo = [i for i in ids if i not in log]
     print(len(todo), "to upload;", len(ids) - len(todo), "already done")
     failed = []
@@ -74,7 +80,7 @@ def main():
         if dry:
             print("  would upload %s (%d KB)" % (cid, os.path.getsize(path) // 1024))
             continue
-        request = {"assetType": "Model", "displayName": "RideAFish " + cid, "description": "Ride a Fish creature: " + cid + " (voxel, recoloured 2026-11-19)",
+        request = {"assetType": "Model", "displayName": "RideAFish " + cid, "description": "Ride a Fish creature: " + cid + " (" + what + ")",
                    "creationContext": {"creator": {"userId": USER_ID}}}
         try:
             code, body = invoke(studio, {"method": "POST", "endpoint": "/assets/v1/assets", "body": json.dumps({"request": request}),
@@ -101,11 +107,11 @@ def main():
             continue
         if cid in assets and cid not in before:
             before[cid] = assets[cid]
-            save("assets_before_recolour.json", before)
+            save(before_file, before)
         assets[cid] = int(asset_id)
         save("assets.json", assets)
         log[cid] = {"asset": int(asset_id), "operation": operation, "at": time.strftime("%Y-%m-%d %H:%M:%S"), "bytes": os.path.getsize(path)}
-        save("recolour_log.json", log)
+        save(log_file, log)
         print("  %d/%d %s -> %s" % (n, len(todo), cid, asset_id), flush=True)
         time.sleep(1)
     print("done;", len(failed), "failed:", ", ".join(failed))

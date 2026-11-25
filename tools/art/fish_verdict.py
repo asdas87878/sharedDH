@@ -33,7 +33,8 @@ KEEP_ALWAYS = {"SeaTurtle"}
 # out, and those lands were left with no fish that wears them)
 # judged by eye where the median misleads: a fish split into very dark and very light halves stands out though its
 # median sits near the floor (2026-11-19, the map chat, from the creature chat's sheet)
-BY_EYE = {"HalfboneMegalodon": "split black front and bone back: stands out by eye though its median is near the floor"}
+BY_EYE = {"HalfboneMegalodon": "split black front and bone back: stands out by eye though its median is near the floor",
+          "GreatWhite": "vivid blue and white on green: seen in its land in Studio 2026-11-25, it stands out"}
 WEARERS = {"Dolphin": 5, "GoblinShark": 6, "FrilledShark": 7, "Megalodon": 8, "GraveRay": 9, "BrimstoneEel": 10}
 
 

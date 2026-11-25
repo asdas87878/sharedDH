@@ -22,7 +22,7 @@ zone,land,tier,name,id,verdict,why,change,median_L,floor_L,gap_floor,hue_gap,mai
 3,Kelp Forest,Uncommon,Sea Lion,SeaLion,keep,close to the land,,44.0,57.6,-13.6,113,#8b5e3c,False
 3,Kelp Forest,Rare,Giant Sea Bass,GiantSeaBass,keep,stands out by lightness,,34.1,57.6,-23.5,108,#574f47,False
 3,Kelp Forest,Rare,Leopard Shark,LeopardShark,keep,stands out by lightness,,82.0,57.6,24.5,0,#d1ccbc,False
-3,Kelp Forest,Epic,Great White,GreatWhite,keep,stands out by lightness,,34.1,57.6,-23.5,68,#44525d,False
+3,Kelp Forest,Epic,Great White,GreatWhite,keep,"vivid blue and white on green: seen in its land in Studio 2026-11-25, it stands out",,56.2,57.6,-1.4,0,#f8f7f2,False
 3,Kelp Forest,Epic,Steller's Sea Cow,StellersSeaCow,keep,stands out by lightness,,33.9,57.6,-23.7,107,#594e42,False
 3,Kelp Forest,Legendary,Dakosaurus,Dakosaurus,keep,"29 off the floor, glowing",,28.9,57.6,-28.7,17,#004f2f,True
 3,Kelp Forest,Secret,Kelp Wyrm,KelpWyrm,keep,"33 off the floor, glowing",,24.3,57.6,-33.3,8,#002711,True
