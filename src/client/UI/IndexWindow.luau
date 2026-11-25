@@ -556,7 +556,8 @@ end
 -- The first of a land's kinds with a reward waiting, nil if none has
 local function firstOwed(land: number): string?
 	local entry = lands[land]
-	for _, fish in if entry then entry.Kinds else {} do
+	local kinds: { Config.FishType } = if entry then entry.Kinds else {}
+	for _, fish in kinds do
 		if IndexBook.owedKind(fish.Id) then
 			return fish.Id
 		end
