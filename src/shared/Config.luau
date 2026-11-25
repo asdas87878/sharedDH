@@ -3458,8 +3458,8 @@ Config.Dive = {
 Config.Aura = {
 	On = 1, -- 0: no aura can be bought (the stall says SOON); those worn stay
 	-- Coins, tier 1 to 12: 100 (the user, 2026-11-23: the first one), then 20 times the one before (18.8 to 20.8 where
-	-- it is rounded), the step of the seahorse's own last levels. From tier 4 one is saved for over 10 to 15% of
-	-- the time played so far, as a seahorse level (10 to 21%) and a sub (8 to 12%) of its stage are
+	-- it is rounded), the step of the seahorse's own last levels. Tiers 4 to 10 are each saved for over 10 to 15% of
+	-- the time played so far (tier 11: 30%), as a seahorse level (10 to 21%) and a sub (8 to 12%) of its stage are
 	-- (docs/design/progression.md, "The aura prices"; tools/balance/rad_economy.py --prices).
 	-- Claude's reading of the user's "consistent across different parts like the seahorses", 2026-11-24: the tuning
 	-- chat's to change
@@ -3467,9 +3467,9 @@ Config.Aura = {
 	Near = 30, -- the stall sells within this many studs of its ring (Dock.Stations.Auras), as the sub's stand
 	BuyAgain = 0.5, -- one ask at a time: a second press within this many seconds is the same click, seconds
 	Flame = 1, -- 1: the flame (draft 4); 0: the old look (draft 2's particles and ribbons). Read live
-	-- What could not be checked before Studio saw it (docs/design/auras.md, "Check in Studio first"). Read live
-	Turn = 0, -- quarter turns clockwise of the Beams' pictures, 0 to 3
-	Scroll = 1, -- -1: the flame's picture would run down: turned round
+	-- How Roblox draws the pictures, found in Studio (2026-11-25: 2 and -1 are the right way up, joined). Read live
+	Turn = 2, -- quarter turns clockwise of the Beams' pictures, 0 to 3
+	Scroll = -1, -- which way the flame's picture runs along its Beams
 	Behind = 1, -- the Beams' and particles' push behind the wearer, times this (-1: the engine's sign is the other way)
 	SeatEase = 0.25, -- from the seated flame to the standing one and back over this long, seconds
 	FlareGap = 0.3, -- flares nearer together than this are one, seconds

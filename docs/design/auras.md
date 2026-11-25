@@ -22,7 +22,7 @@ quote is read as the go for the flame below (**a reading, not confirmed by Hugo*
 `Config.Aura.Flame` 0. Draft 3 (the soft mist) is not used: Hugo took the yes back (the third quote). What was built and
 checked: "Built", below. From there on this note is the mock's, as it was drawn offline.
 
-## Built (2026-11-24, branch `aura-build`)
+## Built (2026-11-24; seen in Studio and pushed to main 2026-11-25)
 
 - **The flame:** its numbers are `src/shared/AuraFlame.luau` (plain sums, the tables below), drawn by
   `src/client/Lib/AuraBeams.luau`, worn by `AuraController`. It flares on a landing, a hop and a boost, burns faster riding,
@@ -35,8 +35,12 @@ checked: "Built", below. From there on this note is the mock's, as it was drawn 
 - **The pictures** are `art/ui/aura_flame/` (white, not uploaded). Studio reads a local copy
   (`python tools/auras/flame_pics.py`, once a PC and again after Studio updates itself). Ids go in `Auras.Pictures`. **Until
   all six have an id, a live game draws the old look;** so does a Studio without the copy.
-- **Three dials for what could not be checked offline,** read live: `Config.Aura.Turn` (quarter turns of the Beams'
-  pictures), `Scroll` (-1 turns the run round), `Behind` (-1 turns the push behind the body round).
+- **Three dials, read live, set by what Studio showed (2026-11-25):** `Config.Aura.Turn` 2 (quarter turns of the Beams'
+  pictures), `Scroll` -1 (with 0 and 1, the first guess, the flame was upside down and broken at every joint), `Behind` 1
+  (the push was right; -1 turns it round).
+- **Two changes from the mock, both against lines at the body's joints:** every body Beam has one push, -1.1
+  (`AuraFlame.Behind`; was -1.5, with -0.8 for the lowest: two pushes part the Beams at the joint), and each Beam leaves its
+  joints straight up (a curve of a third of its length, 20 segments).
 - **Buying:** `AuraService` (server). A press on a card sends Action "AuraBuy", tier; the server checks that it is the next
   one, that the player is alive, on the dock and within `Aura.Near` of the stall's ring, one ask each half second, and takes
   `Config.Aura.Prices` once. A bought aura is worn at once and replaces the one before. It multiplies **what the seahorse
@@ -48,8 +52,17 @@ checked: "Built", below. From there on this note is the mock's, as it was drawn 
 - **Prices:** [progression](progression.md), "The aura prices".
 - **Checked offline:** `tools/auras/aura_test.luau` (61 checks: the ladder, every tier's Beams and particles against the
   tables below, every moment's numbers, the server's rules, saving), StyLua, selene, the type checker, a Rojo build.
-- **Owed, in Studio:** `python tools/studio/aura_check.py run` (buying through the real remote, the cards, what is drawn for
-  all twelve), then the list in "Check in Studio first" by eye, and a real click on a card with the sounds.
+- **Checked in Studio (2026-11-25):** `python tools/studio/aura_check.py run`: 0 faults (buying through the real remote, the
+  refusals, the coins to the unit, the cards' prices, what is drawn for all twelve). By eye: tiers 1, 6 and 12 in the hub
+  (cameras 14 to 38 degrees down: no joint line, no line on the floor) and riding a small and a big fish; the rider, the fish and the
+  hook stay readable; a name over a head is readable, weakest over tier 6's yellow. Tier 1 is faint on bright sand.
+  [The stills](../attachments/auras-in-game.png).
+- **What it costs:** tier 1, 6 and 12 add 10, 26 and 47 draw calls (one a Beam, one an emitter) and 280, 730 and 1,415
+  triangles to the hub's 105 and 54,907; a frame stayed at 16.7 ms on Hugo's PC with one and with two tier 12s (it holds 60).
+  That is the Beams and emitters the table says. **Eight tier 12s near each other are about 376 draw calls: a phone has not been
+  tried,** and this PC's 60 fps says nothing about one ("Cost", below, has the cheap cuts).
+- **Owed:** a real click on a card with the sounds, the flares (landing, hop, boost) and the put-on burst by eye, two players, a phone.
+  Not looked at: list items 7, 8 (deep water, other avatars), 9 and 10.
 
 ![auras, draft 4](../attachments/auras-draft-4.png)
 
@@ -195,7 +208,7 @@ the flame you see is narrower than the Beam. Every length is multiplied by the t
 | Transparency along the body | clear at the base, full strength 0.9 stud x size up, full to half the layer's height, then fading out to the body's top (0.70), where the tongues have taken over |
 | Transparency of a tongue | the layer's, times the tongue share in the table below; the blade picture fades out toward its own foot |
 | LightInfluence | 0 (the same colour in the hub and in the deep) |
-| ZOffset | -1.5: drawn 1.5 studs further from the camera, so the wearer's own body hides it. The lowest Beam of each body (foot to shins) has -0.8, so the hub's floor does not cut a line through the flame's foot |
+| ZOffset | (the mock; built as -1.1 for every one, "Built") -1.5: drawn 1.5 studs further from the camera, so the wearer's own body hides it. The lowest Beam of each body (foot to shins) has -0.8, so the hub's floor does not cut a line through the flame's foot |
 | Segments | high (10 or more) on the tongues, which taper to a point |
 
 The five layers. "White" is how far the colour is mixed toward white. Transparency is at the layer's strongest
@@ -349,7 +362,7 @@ Read from `AuraController`, `Net.luau`, `RideService`, `JumpController`, `RideCo
 - **The landing ring.** `Fx.landing` already draws a flat ring and bubbles at the saddle on every landing. That is
   not the aura and was left alone; look at the two together.
 
-**Check in Studio first.** None of this could be checked from here: the Roblox pages could not be opened, so only
+**Check in Studio first** (the list as written; 1 to 5 were looked at on 2026-11-25, "Built"). None of this could be checked from here: the Roblox pages could not be opened, so only
 the property names were confirmed (from the local type definitions), not how they behave.
 
 1. **How a picture maps on a Beam that tapers to a point** (the top tongues). It may skew toward the point. If it

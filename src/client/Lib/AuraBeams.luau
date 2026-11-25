@@ -147,11 +147,17 @@ function AuraBeams.build(parent: Instance, tier: number): Flame
 			TipAt = -1,
 		}
 		for _ in profile do
-			table.insert(b.Joints, point(card))
+			local joint = point(card)
+			-- (each Beam leaves and meets its joints straight up, so the two at a joint share one level edge: run straight
+			-- between bending joints they left a thin gap on one side and a bright line on the other, 2026-11-25)
+			joint.Axis = Vector3.yAxis
+			joint.SecondaryAxis = -Vector3.xAxis
+			table.insert(b.Joints, joint)
 		end
 		for i = 1, #profile - 1 do
 			local made = beam(l.Name .. i, b.Joints[i], b.Joints[i + 1], l.Picture, l.Color, l.Emission, card)
 			made.TextureMode = Enum.TextureMode.Wrap
+			made.Segments = 20 -- (the first piece of each leaves the joint nearer to straight up)
 			table.insert(b.Beams, made)
 		end
 		for i = 1, #l.Tips do
@@ -313,8 +319,8 @@ function AuraBeams.step(
 	if flame.Behind ~= c.Behind then
 		flame.Behind = c.Behind
 		for _, body in flame.Bodies do
-			for i, b in body.Beams do
-				b.ZOffset = (if i == 1 then AuraFlame.BehindFoot else AuraFlame.Behind) * c.Behind
+			for _, b in body.Beams do
+				b.ZOffset = AuraFlame.Behind * c.Behind
 			end
 			for _, b in body.Tips do
 				b.ZOffset = AuraFlame.Behind * c.Behind
@@ -385,6 +391,11 @@ function AuraBeams.step(
 		local run = AuraFlame.scroll(spec, l, flame.Clock, t)
 		for i, b in body.Beams do
 			wide(b, profile[i][2] * w, profile[i + 1][2] * w)
+			local curve = (profile[i + 1][1] - profile[i][1]) * high / 3
+			if math.abs(b.CurveSize0 - curve) > 0.005 then
+				b.CurveSize0 = curve
+				b.CurveSize1 = curve
+			end
 			if math.abs(b.TextureLength - length) > 0.005 then
 				b.TextureLength = length
 			end

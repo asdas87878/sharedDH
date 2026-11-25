@@ -87,8 +87,9 @@ AuraFlame.Base = 0.25 -- the flame's foot over the feet (the ankles): nothing is
 AuraFlame.SeatBase = 1.9 -- sat on a fish it starts here, at the hips,
 AuraFlame.Seated = 0.65 -- and is this share of its standing height
 AuraFlame.Foot = 0.9 -- full strength this far over its foot, times the tier's scale
-AuraFlame.Behind = -1.5 -- every Beam is drawn this far behind (ZOffset): the wearer's own body hides it
-AuraFlame.BehindFoot = -0.8 -- the lowest of each body: a smaller push, so the floor cuts no line through the foot
+-- one push for the whole body: two pieces pushed by different amounts part at their joint (the engine's push moves a Beam
+-- in the view, seen in Studio 2026-11-25). More (-1.5): the floor cuts the foot from a steep camera. Less (-0.8): an arm's edge
+AuraFlame.Behind = -1.1 -- every Beam is drawn this far behind (ZOffset): the wearer's own body hides it
 AuraFlame.Push = 1.6 -- particles: -(their cylinder's radius + this)
 -- the body's outline: shares of the layer's height and of its width. Five Beams between six joints
 AuraFlame.Profile = {

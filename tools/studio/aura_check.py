@@ -6,6 +6,7 @@
     python tools/studio/aura_check.py look 6                         (your own player shows tier 6; 0: what you own)
     python tools/studio/aura_check.py dial Turn 1                    (Config.Aura's look dials: Turn, Scroll, Behind, Flame)
     python tools/studio/aura_check.py flare Land | Eat | Jumping     (one flare on your own player, as the server would say)
+    python tools/studio/aura_check.py ask bare 1; ask land 6 14; ask ride GreatWhite 6; ask frames 12; ask free; ask scroll 1  (the stills, the cost)
     python tools/studio/aura_check.py remove ; python tools/studio/s2_subs_check.py remove        (in Edit, after)
 By eye, with `look` 1, 6, 12 beside docs/attachments/auras-draft-4.png (docs/design/auras.md, "Check in Studio first"):
 the flame stands up (Turn), its picture runs UP (Scroll), it is behind the body (Behind), no seam at the joints, no line
@@ -80,29 +81,111 @@ function verbs.shop()
 	end
 	return string.format("cards=%d icons=%d loaded=%d glows=%d bubbles=%d %s", cards, icons, loaded, glows, bubbles, table.concat(words, " "))
 end
+function verbs.scroll(x)
+	local f = gui:FindFirstChild("AuraShop", true):FindFirstChildWhichIsA("ScrollingFrame", true)
+	f.CanvasPosition = Vector2.new((tonumber(x) or 0) * f.AbsoluteCanvasSize.X, 0)
+	task.wait(2)
+	return "scrolled"
+end
 function verbs.drawn(n)
 	Auras.Test = tonumber(n) or 0
-	task.wait(0.8)
+	task.wait(0.6)
 	local tier, style, beams, emitters = AuraController.drawn(player.Character)
 	return string.format("tier=%d style=%s beams=%d emitters=%d", tier, style, beams, emitters)
 end
 function verbs.pictures()
 	local out = {}
 	for name in Auras.Pictures do
-		local id = AuraBeams.picture(name)
-		table.insert(out, name .. "=" .. ContentProvider:GetAssetFetchStatus(id).Name)
+		-- (GetAssetFetchStatus says None for a Beam's or an emitter's picture, drawn or not)
+		ContentProvider:PreloadAsync({ AuraBeams.picture(name) }, function(_, status: Enum.AssetFetchStatus)
+			table.insert(out, name .. "=" .. status.Name)
+		end)
 	end
 	return table.concat(out, " ")
 end
 function verbs.dial(key, n)
-	(Config.Aura :: any)[key] = tonumber(n)
+	local t: any = if (Config.Aura :: any)[key] ~= nil then Config.Aura else require(Shared:WaitForChild("AuraFlame"))
+	t[key] = tonumber(n)
 	task.wait(0.5)
-	return key .. "=" .. tostring((Config.Aura :: any)[key])
+	return key .. "=" .. tostring(t[key])
+end
+-- the stills: no windows over the view; a second player (a copy, its name over its head) beside you; a held camera
+local rig: Model? = nil
+function verbs.bare(on)
+	for _, g in gui:GetChildren() do
+		if g:IsA("ScreenGui") then g.Enabled = on ~= "1" end
+	end
+	return "bare " .. tostring(on)
+end
+function verbs.land(tier, pitch, fov)
+	if rig then rig:Destroy() rig = nil end
+	Auras.Test = tonumber(tier) or 0
+	local char = player.Character
+	local root = char.HumanoidRootPart
+	char.Archivable = true
+	local c = char:Clone()
+	for _, d in c:GetDescendants() do
+		if d:IsA("LuaSourceContainer") then d:Destroy() end
+	end
+	c.Name = "ZZRig"
+	local hum = c:FindFirstChildOfClass("Humanoid")
+	hum.DisplayName = "Player Two"
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+	local at = CFrame.new(root.Position)
+	c.HumanoidRootPart.Anchored = true
+	c:PivotTo(at * CFrame.new(9, 0, 0) * CFrame.Angles(0, math.pi, 0))
+	c:SetAttribute("Aura", Auras.Test)
+	c.Parent = workspace
+	game:GetService("CollectionService"):AddTag(c, "AuraRig")
+	rig = c
+	root.CFrame = at
+	local cam = workspace.CurrentCamera
+	local down = math.rad(tonumber(pitch) or 14)
+	local mid = root.Position + Vector3.new(4.5, 1, 0)
+	game:GetService("RunService"):BindToRenderStep("ZZAuraCam", 3000, function()
+		cam.CameraType = Enum.CameraType.Scriptable
+		cam.FieldOfView = tonumber(fov) or 70
+		cam.CFrame = CFrame.lookAt(mid + Vector3.new(0, math.sin(down), math.cos(down)) * 15, mid)
+	end)
+	task.wait(1.5)
+	return "land " .. tostring(tier)
+end
+function verbs.free()
+	game:GetService("RunService"):UnbindFromRenderStep("ZZAuraCam")
+	if rig then rig:Destroy() rig = nil end
+	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+	return "free"
+end
+function verbs.ride(kind, tier)
+	if rig then verbs.free() end
+	Auras.Test = tonumber(tier) or 0
+	Net.Sandbox:FireServer("Ride", kind)
+	task.wait(0.6)
+	local stop = os.clock() + 4
+	while player:GetAttribute("State") ~= "Riding" and os.clock() < stop do task.wait() end
+	task.wait(0.8)
+	return "state " .. tostring(player:GetAttribute("State"))
+end
+-- the mean and the worst tenth of the frame's time over two seconds, and the beams and particles of the aura
+function verbs.frames(tier)
+	Auras.Test = tonumber(tier) or 0
+	task.wait(0.8)
+	local list = {}
+	local RunService = game:GetService("RunService")
+	local stop = os.clock() + 2
+	while os.clock() < stop do table.insert(list, RunService.RenderStepped:Wait() * 1000) end
+	table.sort(list)
+	local sum = 0
+	for _, x in list do sum += x end
+	local st = game:GetService("Stats")
+	local _, _, beams, emitters = AuraController.drawn(player.Character)
+	return string.format("tier=%s frame=%.2f ms worst tenth=%.2f render=%.2f ms draws=%d tris=%d beams=%d emitters=%d", tostring(tier), sum / #list,
+		list[math.ceil(#list * 0.9)], st.RenderCPUFrameTime, st.SceneDrawcallCount, st.SceneTriangleCount, beams, emitters)
 end
 workspace:GetAttributeChangedSignal("AuraDo"):Connect(function()
 	local p = string.split(tostring(workspace:GetAttribute("AuraDo") or ""), "|")
 	if not verbs[p[1]] then return end
-	local ok, said = pcall(verbs[p[1]], p[2], p[3])
+	local ok, said = pcall(verbs[p[1]], p[2], p[3], p[4])
 	report:FireServer((if ok then "" else "ERROR ") .. tostring(said))
 end)
 '''
@@ -176,7 +259,7 @@ def run():
     print(coins(60_000_000_000_000))
     for tier in range(3, 11):
         check(f"tier {tier}", do(f"buy|{tier}"), f"AuraBought {tier}", f"aura={tier}")
-    check("the flame's pictures", do("pictures"), "Flame=Success", "Tip=Success", "Streaks=Success", "Lick=Success")
+    check("the flame's pictures", do("pictures"), *[f"{n}=Success" for n in ("Flame", "Tip", "Streaks", "Lick", "Bubble", "Arc")])
     for tier in range(1, 13):
         check(f"drawn {tier}", do(f"drawn|{tier}"), f"tier={tier} ", "style=Flame", f"beams={BEAMS[tier - 1]} ",
               f"emitters={EMITTERS[tier - 1]}")
@@ -201,5 +284,7 @@ if __name__ == "__main__":
         print(do(f"drawn|{rest[0]}"))
     elif what == "dial":
         print(do(f"dial|{rest[0]}|{rest[1]}"))
+    elif what == "ask":
+        print(do("|".join(rest), 6))
     elif what == "flare":
         print(flare(rest[0]))

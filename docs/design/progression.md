@@ -269,7 +269,7 @@ as it is bought, **share** is those minutes over the time played so far (medians
 - **Draft 2's ladder** ($100, $5K, $75K, $1.5M, $30M, $750M, $20B, $500B, $12.5T, $300T, $5Qa, $100Qa; steps x15 to x50), the same
   run with `--draft2-auras`: tiers 1 to 10 asked 250%, 117%, 35%, 12%, 25%, 13%, 14%, 31%, 29%, 29%; tiers 11 and 12 were not
   reached. Beside tiers 8 to 10 the seahorse levels asked 15%, 13% and 26%, subs 8 and 9 7% each, the tank's last stage 9%.
-  The seahorse, sub and stage shares differ between the two runs too (stage 4: 8% then, 14% now): the auras move when each is bought.
+  The seahorse, sub and stage shares differ between the two runs too (stage 4: 8% then, 13% now): the auras move when each is bought.
 - **Tiers 1 to 3 read high** (250%, 92%, 37%) because the first minutes are the whole time played: 1.7 to 2.9 minutes of
   income each, as the seahorse's first two levels (2.2 and 3.5).
 - **An aura is always the cheaper buy** of the same number: a fifth to an eighth of the seahorse level up to tier 6, 8% at
