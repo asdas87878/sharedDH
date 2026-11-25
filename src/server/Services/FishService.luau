@@ -1014,7 +1014,6 @@ local function spawnFish(index: number, entry: boolean?, ofLand: number?): Wild?
 	end
 	local along = Stream.along(stream, home)
 	local variant = rollVariant(home)
-	local w = make(fishType, variant, home, at, along, slice.Zone, index, u, lift, dodge, tier, pace, own, swift)
 	local w = make(fishType, variant, home, at, along, zone, index, u, lift, dodge, tier, pace, own, swift)
 	park(w, not nearAPlayer(at, Config.Spawn.StreamRadius))
 	return w
