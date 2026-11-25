@@ -13,8 +13,13 @@
 --   Sub      the subs bought and the one equipped (SubService.tierOf, equipOf, setSub)
 --   Aura     the aura owned and worn (AuraService.tierOf, setTier); never lowered
 --   Best     the furthest they have been (BestService's two attributes, which are where it keeps them)
--- ON is the switch, off until it has been checked: off, nothing is saved and nothing can be bought (PurchaseService
--- gives nothing without a save). In Studio the workspace's "SaveOn" attribute, set before Play, turns it on.
+--   Index    the looks caught and the rewards claimed (IndexService.dump, restore)
+--   Packs    the packs sold once that they have, and when the boost they bought ends (PackService.dump, restore)
+--   Lesson   whether the first minutes' lesson is over (LessonService.dump, restore); first, so a returning player's
+--            tank coming back doesn't look like a first deposit
+-- ON is the switch (on since 2026-11-25, the user: "add the save player data"): off, nothing is saved and nothing can be
+-- bought (PurchaseService gives nothing without a save). In Studio the workspace's "SaveOn" attribute, set before Play,
+-- turns it on or (false) off; there it is the stand-in store, gone at Stop (SaveService).
 -- All of them or none: coins kept without what they bought would be lost coins, and the other way round free things.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -24,13 +29,16 @@ local Services = script.Parent.Parent.Services
 local AquariumService = require(Services.AquariumService) :: any
 local AuraService = require(Services.AuraService) :: any
 local OfflineService = require(Services.OfflineService) :: any
+local IndexService = require(Services.IndexService) :: any
+local LessonService = require(Services.LessonService) :: any
+local PackService = require(Services.PackService) :: any
 local RideService = require(Services.RideService) :: any
 local SubService = require(Services.SubService) :: any
 local TrainService = require(Services.TrainService) :: any
 
 local SaveParts = {}
 
-local ON = false
+local ON = true
 
 type Join = (
 	name: string,
@@ -70,6 +78,9 @@ end
 local NEEDS = {
 	{ "AquariumService", AquariumService, { "dump", "restore", "give" } },
 	{ "OfflineService", OfflineService, { "dump", "restore" } },
+	{ "IndexService", IndexService, { "dump", "restore" } },
+	{ "PackService", PackService, { "dump", "restore" } },
+	{ "LessonService", LessonService, { "dump", "restore" } },
 	{ "RideService", RideService, { "trainedOxygen", "setTrainedOxygen", "grantOxygen", "carried" } },
 	{ "TrainService", TrainService, { "levelOf", "setLevel" } },
 	{ "SubService", SubService, { "tierOf", "equipOf", "setSub" } },
@@ -88,7 +99,11 @@ local function missing(): string?
 end
 
 function SaveParts.join(part: Join)
-	if not (ON or (RunService:IsStudio() and workspace:GetAttribute("SaveOn") == true)) then
+	local on = ON
+	if RunService:IsStudio() and workspace:GetAttribute("SaveOn") ~= nil then
+		on = workspace:GetAttribute("SaveOn") == true
+	end
+	if not on then
 		return
 	end
 	local lacking = missing()
@@ -96,6 +111,9 @@ function SaveParts.join(part: Join)
 		warn(`[SaveParts] nothing is saved: {lacking} is not there`)
 		return
 	end
+	part("Lesson", LessonService.dump, function(player, kept)
+		LessonService.restore(player, kept)
+	end)
 	part("Tank", function(player)
 		local tank = AquariumService.dump(player)
 		if not tank or RideService.trainedOxygen(player) == nil then
@@ -114,6 +132,12 @@ function SaveParts.join(part: Join)
 		end
 		return tank
 	end, restoreTank)
+	part("Index", IndexService.dump, function(player, kept)
+		assert(IndexService.restore(player, kept) == true, "the Index was not given back")
+	end)
+	part("Packs", PackService.dump, function(player, kept)
+		assert(PackService.restore(player, kept) == true, "the packs were not given back")
+	end)
 	part("Offline", OfflineService.dump, function(player, kept)
 		assert(OfflineService.restore(player, kept) == true, "the offline earnings were not given back")
 	end, function(player)

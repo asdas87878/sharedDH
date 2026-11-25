@@ -970,6 +970,23 @@ Config.PlotUpgrades = {
 	},
 }
 
+-- What a phone or tablet is spared (PhoneController, UI/Portrait, RideController)
+Config.Phone = {
+	On = 1, -- 0: a phone draws what a PC does
+	Shadows = 0, -- 1: the sun's shadows stay on
+	Effects = 0, -- 1: the glow, the sun's rays and the blur stay on
+	Outline = 4, -- black copies that make a fish picture's outline (a PC: 8; each is the fish drawn again)
+	HopLook = 1, -- 1: dragging the thumb that pressed HOP turns the camera too
+}
+
+-- The boost a pack starts for the whole server (PackService; docs/design/starter-packs.md)
+Config.Boost = {
+	On = 1, -- 0: a running boost multiplies nothing
+	Oxygen = 2, -- what the seahorse trains, times this
+	Cash = 2, -- what the tank earns each tick, times this
+	Most = 21600, -- seconds: however many are bought, it ends at most this long from now
+}
+
 -- Offline rewards (Hugo, 2026-11-25; NULLROOM task o1; docs/design/offline-rewards.md): what the tank earns while its
 -- player is away, theirs to claim at the next join (OfflineService; UI/OfflinePanel). Every DRAFT number is for the
 -- tuning chat. It pays nothing while saving is off (Lib/SaveParts): nothing then says when they left.
@@ -1010,6 +1027,7 @@ end
 -- not, swim with the sea's own keyed swim.
 Config.TankRide = {
 	On = 1, -- 0: tank fish can't be ridden
+	Direct = 1, -- 1: E on a tank fish brings it to the player, equipped and ridden on land; 0: ridden inside the tank
 	Hold = 0.5, -- seconds E is held on the fish looked at to get on
 	Aim = 3, -- studs: how near the look (the mouse, or the middle of the screen) must pass a fish's body to pick it
 	Reach = 44, -- studs from the tank's water within which its fish can be picked (the server: 48)

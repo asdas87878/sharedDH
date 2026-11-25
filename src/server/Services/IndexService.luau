@@ -22,7 +22,7 @@
 --   Told to the client: its whole Index after every change (Index "State": Net.luau), and three player attributes for
 --   the hub button's red mark and for checks: IndexFound (kinds caught), IndexClaims (rewards waiting) and IndexPaid
 --   (they have claimed one before: the game stops showing them how).
--- For the session only: the game has no saves yet. When saves come, a player's Book (below) is what to keep.
+-- Saved (SaveParts, part "Index": dump, restore): a player's Book, the looks caught and the rewards paid.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -235,6 +235,56 @@ end
 function IndexService.foundOf(player: Player): { [string]: number }?
 	local book = books[player]
 	return if book then book.Count else nil
+end
+
+-- For saving (SaveParts, part "Index"): the looks caught and what has been paid, a fresh table; nil for a player who is
+-- not here. Doesn't yield.
+function IndexService.dump(player: Player): { [string]: any }?
+	local book = books[player]
+	if not book then
+		return nil
+	end
+	local looks: { [string]: { string } } = {}
+	for id, set in book.Looks do
+		local list = {}
+		for name in set do
+			table.insert(list, name)
+		end
+		looks[id] = list
+	end
+	return { Looks = looks, Kinds = table.clone(book.Kinds), Lands = table.clone(book.Lands) }
+end
+
+-- What was kept, added to what they have found since they joined. A kind the game no longer has is kept as it is (it
+-- counts for nothing until it is back). False for a player who is not here.
+function IndexService.restore(player: Player, kept: any): boolean
+	local book = books[player]
+	if not book then
+		return false
+	end
+	if type(kept) ~= "table" then
+		return true
+	end
+	for id, list in (kept.Looks or {}) :: any do
+		local looks = book.Looks[id] or {}
+		for _, name in list do
+			if not looks[name] then
+				looks[name] = true
+				if Config.FishById[id] then
+					book.Count[id] = (book.Count[id] or 0) + 1
+				end
+			end
+		end
+		book.Looks[id] = looks
+	end
+	for id in (kept.Kinds or {}) :: any do
+		book.Kinds[id] = true
+	end
+	for land in (kept.Lands or {}) :: any do
+		book.Lands[land] = true
+	end
+	tell(player, book)
+	return true
 end
 
 -- Test hooks: only the offline check (tools/index/index_test.luau) and Studio's checks call these. `join` and `leave`

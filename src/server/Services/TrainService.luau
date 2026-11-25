@@ -41,6 +41,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local AquariumService = require(script.Parent.AquariumService)
 local AuraService = require(script.Parent.AuraService)
+local PackService = require(script.Parent.PackService)
 local RideService = require(script.Parent.RideService)
 local RideStyles = require(ReplicatedStorage.Shared.RideStyles)
 
@@ -606,7 +607,12 @@ end
 -- table) times the player's aura (AuraService.multOf), never a share of max. Returns the whole Oxygen given (0 when none was, or the server would not take it) and the carry left.
 local function gain(player: Player, carry: number, dt: number, level: number): (number, number)
 	local t = Config.Train
-	local each = math.floor((if t.Levels then levelRow(level).Oxygen else t.Rate) * AuraService.multOf(player) + 0.5)
+	local each = math.floor(
+		(if t.Levels then levelRow(level).Oxygen else t.Rate)
+				* AuraService.multOf(player)
+				* PackService.oxygenMult(player)
+			+ 0.5
+	)
 	local amount, left = Config.trainGain(carry, dt, each)
 	if amount <= 0 then
 		return 0, left

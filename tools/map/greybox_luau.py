@@ -154,7 +154,7 @@ end
 workspace.FallenPartsDestroyHeight = -20000 -- the dive goes far below Roblox's default; only Studio can set this
 -- how far round a player the map is sent to their machine. Roblox's own 1,024 was the real end of the view under
 -- water: nothing further off existed to see. (docs/design/water.md, "Seeing far")
-workspace.StreamingTargetRadius = 2400
+workspace.StreamingTargetRadius = 1280
 local root = Instance.new("Folder")
 root.Name = "ClaudeBlockout"
 root:SetAttribute("Build", "greybox 15")

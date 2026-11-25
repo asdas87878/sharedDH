@@ -78,6 +78,7 @@ local Fuse = require(ReplicatedStorage.Shared.Fuse)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Variants = require(ReplicatedStorage.Shared.Variants)
 local FishModel = require(script.Parent.Parent.Lib.FishModel)
+local PackService = require(script.Parent.PackService)
 local RideService = require(script.Parent.RideService)
 
 type Entry = {
@@ -1665,7 +1666,7 @@ function AquariumService.Start()
 		local pay = now - paidAt >= Config.Aquarium.Every
 		for player, tank in tanks do
 			if pay and tank.Income > 0 then
-				tank.Coins += tank.Income * (now - paidAt)
+				tank.Coins += tank.Income * (now - paidAt) * PackService.cashMult()
 				player:SetAttribute("Coins", math.floor(tank.Coins))
 			end
 			tellHands(tank)

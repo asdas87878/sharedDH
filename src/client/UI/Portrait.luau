@@ -23,6 +23,7 @@
 -- the local copies. In Studio the workspace's "FishIcons" attribute, "Model", shows the models again (to compare).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local FishIcons = require(script.Parent.FishIcons)
@@ -452,7 +453,10 @@ local function master(id: string): Model?
 	return copy
 end
 
-local OUTLINE_WAYS = 8
+-- how many black copies make the outline: every one is the whole creature drawn again, so a phone gets fewer
+local OUTLINE_WAYS = if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	then math.clamp(math.floor(Config.Phone.Outline), 1, 8)
+	else 8
 
 -- props: where the picture sits (a Frame's own properties), Outline: its outline's thickness as a share of the
 -- picture's height (0 for none; Settings.Outline when left out), and Aspect: the window's width over its height to frame

@@ -25,6 +25,7 @@ local Products = require(ReplicatedStorage.Shared.Products)
 local State = require(script.Parent.Parent.Lib.State)
 local Anim = require(script.Parent.Anim)
 local Kit = require(script.Parent.Kit)
+local Portrait = require(script.Parent.Portrait)
 local Shop = require(script.Parent.Shop)
 
 local ShopScreen = {}
@@ -33,6 +34,7 @@ local RAIL = 100 -- the rail's width
 local GAP = 10
 local WIDE, HIGH = 760 + RAIL + GAP, 540
 local CARD_HIGH = 128 -- a wide card
+local PACK_HIGH = 168 -- a pack with a fish on it
 local FEATURED_HIGH = 168
 local HERO_PILE = 190 -- Featured's pile's box; the share of it by place (one picture fills less of its box than six)
 local HERO_FILL = { 1, 1, 0.84, 0.8, 0.76, 0.72 }
@@ -224,9 +226,15 @@ local function tagOn(card: GuiObject, at: number): (string?) -> ()
 	end
 end
 
+-- Whether the player has it for good already (a pass, or a pack sold once)
+local function owned(offer: Products.Offer): boolean
+	local name = if offer.Kind == "Pass" then "Pass" .. (offer.Gives or "") else "Pack" .. offer.Key
+	return (offer.Kind == "Pass" or offer.Once == true) and State.Player:GetAttribute(name) == true
+end
+
 -- Whether an offer shows its price: it is on sale, or (Studio) the preview shows the price it will have
 local function priced(offer: Products.Offer): boolean
-	return Products.onSale(offer) or (PREVIEW and offer.Amount ~= nil and offer.Price > 0)
+	return Products.onSale(offer) or (PREVIEW and (offer.Amount ~= nil or offer.Pack ~= nil) and offer.Price > 0)
 end
 
 -- Ask Roblox, once, the price it will charge this player for an offer, in place of ours
@@ -237,7 +245,10 @@ local function askPrice(offer: Products.Offer)
 	asked[offer.Key] = true
 	task.spawn(function()
 		local ok, info = pcall(function()
-			return MarketplaceService:GetProductInfo(offer.Id, Enum.InfoType.Product)
+			return MarketplaceService:GetProductInfo(
+				offer.Id,
+				if offer.Kind == "Pass" then Enum.InfoType.GamePass else Enum.InfoType.Product
+			)
 		end)
 		local price = if ok and info then info.PriceInRobux else nil
 		if type(price) == "number" then
@@ -262,14 +273,16 @@ local function buy(card: GuiObject, get: () -> Products.Offer?, props: { [string
 	local sign = b.Root:FindFirstChild("SignDisc", true) :: GuiObject?
 	local function draw()
 		local offer = get()
-		if offer and priced(offer) then
+		if offer and owned(offer) then
+			b.set("Owned", "Off", false)
+		elseif offer and priced(offer) then
 			b.set(tostring(prices[offer.Key] or offer.Price), "Robux", true)
 			askPrice(offer)
 		else
 			b.set("Soon", "Off", false)
 		end
 		if sign then
-			sign.Visible = offer ~= nil and priced(offer)
+			sign.Visible = offer ~= nil and priced(offer) and not owned(offer)
 		end
 	end
 	draw()
@@ -281,6 +294,12 @@ local function buy(card: GuiObject, get: () -> Products.Offer?, props: { [string
 		end
 		-- (nothing is asked for that the server could not give and keep yet: its part of the save is not on)
 		local player = State.Player
+		if owned(offer) then
+			return
+		elseif offer.Kind == "Pass" then
+			MarketplaceService:PromptGamePassPurchase(player, offer.Id)
+			return
+		end
 		local part = Products.Part[offer.Gives or ""]
 		if not part or player:GetAttribute("Saved" .. part) ~= true then
 			return
@@ -435,11 +454,22 @@ end
 local function wideCard(parent: Instance, offer: Products.Offer, high: number, order: number)
 	local card = face(parent, offer, UDim2.new(1, 0, 0, high), order)
 	sunburst(card, Vector2.new(0.13, 0.5), false)
-	picture(card, offer, UDim2.fromScale(0.13, 0.5), high - 24)
+	if offer.Fish then
+		local shown = Portrait.new(card, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.13, 0.5),
+			Size = UDim2.fromOffset(high + 20, high - 16),
+			ZIndex = 4,
+			Aspect = (high + 20) / (high - 16),
+		})
+		shown.show(offer.Fish)
+	else
+		picture(card, offer, UDim2.fromScale(0.13, 0.5), high - 24)
+	end
 	Shop.text(card, {
 		Name = "Name",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(0.26, if offer.Line then 0.38 else 0.5),
+		Position = UDim2.fromScale(0.26, if offer.Fish then 0.24 elseif offer.Line then 0.38 else 0.5),
 		Size = UDim2.new(0.5, 0, 0, 44),
 		TextSize = 36,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -450,9 +480,10 @@ local function wideCard(parent: Instance, offer: Products.Offer, high: number, o
 		Shop.text(card, {
 			Name = "Line",
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0.26, 0.68),
-			Size = UDim2.new(0.5, 0, 0, 24),
-			TextSize = 20,
+			Position = UDim2.fromScale(0.26, if offer.Fish then 0.64 else 0.68),
+			Size = UDim2.new(0.5, 0, 0, if offer.Fish then 84 else 24),
+			TextSize = if offer.Fish then 22 else 20,
+			TextWrapped = offer.Fish ~= nil,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Text = offer.Line,
 			ZIndex = 4,
@@ -731,7 +762,10 @@ local function build()
 		end
 		if section.Wide then
 			for _, offer in section.Offers do
-				wideCard(list, offer, CARD_HIGH, slot(CARD_HIGH))
+				if not offer.Hidden then
+					local high = if offer.Fish then PACK_HIGH else CARD_HIGH
+					wideCard(list, offer, high, slot(high))
+				end
 			end
 		else
 			local row: Frame
@@ -767,6 +801,14 @@ local function build()
 		State.Player:GetAttributeChangedSignal(name):Connect(changed)
 	end
 	table.insert(onPrice, changed)
+	-- (bought for good: its button says so)
+	State.Player.AttributeChanged:Connect(function(name: string)
+		if string.match(name, "^Pack") or string.match(name, "^Pass") then
+			for _, told in onPrice do
+				told()
+			end
+		end
+	end)
 end
 
 -- Open or close it. (Through Shop.go("Shop"), so another dock window closes.)
