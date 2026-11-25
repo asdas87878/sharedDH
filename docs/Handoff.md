@@ -43,7 +43,7 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 - **No sub, on foot, unequip, death and reset** at 0.2, 0.6 and 1.2 s: all end clean. The check itself was changed for two of them after they failed, and they passed at 19:02 with the change: no sub failed
   in run 1 (the player was already being kicked when it looked, `Failing`; that now counts), unequip at 0.2 s failed in both runs (the trip on foot was still going after 10 s; it now waits up to 16 s more for the end).
 - **What the two runs said in all:** run 1 18 of 23 (under the 40 frames a second asked for: sub 5 Clownfish Tiny 40, sub 1 Great White 40, sub 9 Great White Big 35; and the two above). Run 2 passed 2 of 5 hops: the camera
-  line twice (below) and frames three times (36, 39, 33). Run 2 also began with the view put behind the player and counts calm frames, so its camera lines are not the same check as run 1's.
+  line twice (above) and frames three times (36, 39, 33). Run 2 also began with the view put behind the player and counts calm frames, so its camera lines are not the same check as run 1's.
 - **To know:** with a Colossal the DIVE IN sign is in front of the camera before the leap and stays over part of it (the rider hidden 0.06 to 0.42 s in). The camera is already behind the sign on the dock and the hop
   does not change `RideController`, so it starts from the land camera's own place; main without the hop was **not run** to compare. At the splash 2 of 8 Great White grabs were 70 to 80 in 100 white: how long it
   lasts was not measured. Frames were 33 to 61 a second, the low ones with the PC busy with other work. [Stills](attachments/z1-hop-texts-fuse.jpg).
