@@ -272,7 +272,8 @@ local function clearView(from: Vector3?, to: Vector3)
 				local way = to - from
 				local at = m.PrimaryPart.Position
 				local u = math.clamp((at - from):Dot(way) / math.max(way:Dot(way), 1), 0, 1)
-				on = (at - (from + way * u)).Magnitude < lengthOf(m) * 0.5 + length * 0.3
+				local half = lengthOf(m) * 0.5
+				on = (at - (from + way * u)).Magnitude < half + length * 0.3 or (at - to).Magnitude < half + length * 0.6
 			end
 			fade(m, on)
 		elseif m:IsA("Model") and faded[m] then
@@ -726,7 +727,7 @@ local function play(number: number, shot: Shot)
 				warn(`[Trailer] {shot.Name}: not on the fish, try {try}`)
 			end
 			local fish = State.Fish
-			State.RideLift = if fish then math.max(0, fish:GetExtentsSize().Y / 2 - 4) else 0
+			State.RideLift = if fish then math.max(0, fish:GetExtentsSize().Y / 2 + 4) else 0
 			task.wait(shot.Settle or Config.Trailer.Settle)
 		end
 		if shot.Prep then

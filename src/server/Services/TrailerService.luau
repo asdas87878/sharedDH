@@ -55,7 +55,7 @@ function asks.Ride(player: Player, a: any): any
 	end
 	-- (a giant swims as much higher as its belly needs: RideController, State.RideLift, keeps it there)
 	local tall = kind.Size.Y * (Config.BaseScale[a.Fish] or 1) * (Config.SizeScale[a.Size or "Normal"] or 1)
-	local lift = Config.Herd.RideHeight + 6 + math.max(0, tall / 2 - 4) + (a.Lift or 0)
+	local lift = Config.Herd.RideHeight + 6 + math.max(0, tall / 2 + 4) + (a.Lift or 0)
 	local at = FishService.streamPoint(s, lift, 8)
 	local flat = (FishService.streamPoint(s + 30, lift, 8) - at) * Vector3.new(1, 0, 1)
 	workspace:SetAttribute("TestSize", a.Size or "Normal")
