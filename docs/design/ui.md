@@ -42,6 +42,49 @@ behave follow the reference; the art, colours and numbers are ours, not measured
   still wear the water picture: other plates, not the bar's. The drawn icons wait for the user's ChatGPT pictures.
 
 ## The Fuse window (2026-11-25, Hugo; NULLROOM u1): on main, seen in Studio
+
+## The "Welcome back!" window (2026-11-25, Hugo; NULLROOM o1): built, not seen in Studio
+Offline earnings with a chest and Claim, and the small gold Claim by the dock's buttons after the X: `UI/OfflinePanel`,
+`OfflineController`. The picture, the rules and what must be on: [offline rewards](offline-rewards.md).
+
+## The Index, richer: land banners and big cards (2026-11-25, Hugo; NULLROOM task i1): built, not seen in Studio
+Hugo: "Make index ui feel more like ride a dino(ref image 5.) you can generate land pictures from the screenshots you
+took, make them a little more artistic and stylised like ride a dino though, not so roblox looking as in the map icons."
+Its feel and layout logic, in our kit, our colours and our pictures. `Config.Index.Look` 1; **0 is the window before**.
+
+![the Index on a PC and on phones, before and after](../attachments/index-look.png)
+
+**What felt different** (its Index beside ours):
+
+| | The reference | Ours before | Now |
+|---|---|---|---|
+| The land | a tall painting with its name on it and its COMPLETE reward inside | a thin "Shallows set" strip | a tall painted banner at the left: name, COMPLETE box, the bar or CLAIM! |
+| The tabs | none, it scrolls every land | ten flat words | kept (a jump and a "!" per land), each a strip of its land's painting |
+| A card | 3 across, name over a picture that fills it, the colour says the rarity | 5 across, three rows of small words | 3 across (2 upright): name, picture, colour |
+| The chosen one | a big panel in its rarity's colour | a small picture and words on slate | a big panel in its rarity's colour |
+| Rewards | its own edged box, big pictures, a huge CLAIM | thin chips | its own box (gold edge while waiting), big tiles, a huge CLAIM! |
+| Header and foot | title left, CLAIM ALL and X; a fat bar | title centred, Claim All in the foot, a thin bar | title left, CLAIM ALL (n), X; a fat "Unlocked n/77" |
+| Size | about 85% of the screen's height, heavy type | 65%, 12 to 20 points | 81% on a PC, nearly the whole of a phone, 22 to 46 points |
+
+- **Files:** `UI/IndexPanel` is the door (server's words, hub, checks); `UI/IndexBook` the player's Index and its sums;
+  `UI/IndexWindow` the new window; `UI/IndexOld` the old one, word for word but for the CLAIM ALL arrow; `UI/LandBanners` the pictures. **`IndexService`,
+  the rewards, the remote and the rules are untouched.**
+- **Three layouts** (`SHAPES`): PC, a phone sideways, a phone upright (375 wide); the window is built again as the screen
+  turns. Smallest word on a phone 12.3 px; smallest button 32 px high (the tabs and a land's CLAIM!).
+- **Variants "n / 24" are what the game records** (six sizes by four colours, `book.Count`): a number only, no page and
+  nothing for sale. The server sends the count, not which ones.
+- **A land opens on its first reward waiting** and scrolls to it, also when it is opened again (the kind last looked at stays
+  only while its own reward waits); a screen that turns keeps what it showed. Secrets and kinds not found stay dark with "???".
+- **The banners** are g1's paintings cut to 480 x 800 (`python tools/index/land_banners.py` makes `art/ui/lands/upload`).
+  **Not uploaded (Hugo's yes):** the ten `land_banner_01..10.png`, ids into `LandBanners.Ids`. Until then a live game
+  shows each land's plain colours; Studio shows the paintings after `python tools/index/land_banners.py studio`.
+- **Checked offline** (`python tools/index/look_picture.py` runs all and draws the picture): index_test 73, the new window
+  139, the old one 91, none failed. Three lines of index_test still held the Shallows set's old numbers: put right
+  (410 Oxygen, $5,125, what Config pays).
+- **Not checked:** Studio, a real phone, the live fish models (the pictures here are the renders; a live game draws models
+  until the fish pages are uploaded), memory of ten paintings (about 15 MB). "Before" in the picture is of 24 November.
+
+## The Fuse window (2026-11-25, Hugo; NULLROOM u1): built, not seen in Studio
 The Fuse machine's window, opened by its ring: [fusing](fusing.md), [the picture](../attachments/fuse-window.png). A ring the player is put
 down on (a spawn, the way back from a dive) now opens nothing until they step off and on again: every stall's, `StallController`.
 
@@ -89,9 +132,20 @@ Studio by h4 ([Handoff](../Handoff.md), top entry, has the numbers and the pictu
 - **The Index on its ring too, and no sub ticket** (2026-11-24, Hugo: "Remove the submarine > area text on the left.
   Integrate ui popup when you stand on index as well."; NULLROOM u1, offline, **not run in Studio**). A station at
   `Dock.Stations.Index` with its `Ring` opens the Index as you walk on and closes it as you walk off, as well as the
-  hub's button (`StallController`; `Config.Index.On` 0 stops both). The map files still make that station (ring at
-  2985.5, 0.53, -108, `greybox/94_hub.luau`), but it was deleted by hand from the place on 2026-11-23, so the ring
-  works only once the place has one again. **Open, for Hugo:** where the Index spot should stand.
+  hub's button (`StallController`; `Config.Index.On` 0 stops both). The map files make that station (ring at
+  2985.5, 0.53, -108, `greybox/94_hub.luau`).
+- **The lighthouse stands again, its ring works** (2026-11-25, Hugo: "add the same circle integration as before for
+  the index lighthouse stand"; NULLROOM k1, offline, **not run in Studio**; replaces the note that the Index station
+  stays deleted). Read offline, Hugo's place as saved 2026-11-25 00:11 has `Dock.Stations.Index` (the white-and-blue
+  lighthouse, the open book at its foot) with a ring like the other stalls': 11.5 across, the same circle, the `HubRing`
+  tag, in front of the book; nothing stands on it, and it is 34.9 studs from the Fuse's. The code and the ring were both
+  there, so no `src/` line but a comment changed. **The partner's Team Create place was not looked at:** the Index was
+  deleted there by hand on 2026-11-23; without it the hub's button still works. It has no keeper (the keepers stand at
+  Sell, Auras, Sub and Fuse). A redesigned Index panel needs nothing here: it gives `Shop.page("Index", ...)` its opener.
+  Check: `lune run tools/index/ring_test.luau <built place> <a copy of the map place>` (141 checks, the five rings; 128 with no map place).
+  **Open, for Hugo:** the straight walk from the second back tank to the strip's middle crosses the ring, so the window
+  pops up for about half a second on the way (the Sell and Auras rings do the same to the two outer back tanks).
+  ![the Index ring's spot](../attachments/index-ring-spot.png)
   The yellow "SUB > land" at the left edge is gone; the sub shop's GO TO says the land. The line at the foot of the
   screen ("Not enough coins!", "Get ready to hook a fish!") is a separate thing and stays (`SubPanel.hint`).
 - **At a phone's size** (844 x 390, Studio's `PanelPhone`): the Index, the sub shop, Sell and Auras are whole on the

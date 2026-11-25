@@ -82,6 +82,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `Services/AquariumService` | Plots, tanks, coins, the income loop, selling, plot upgrades, holding a fish over the head, the way home. |
 | `Services/TrainService` | The breath trainer on each plot: riding it raises max Oxygen; its levels and signs. |
 | `Services/AuraService` | The auras bought and worn: order, price, place, saved; the multiplier on what the seahorse gives. |
+| `Services/OfflineService` | What a tank earned while its player was away: kept in the save, claimed once ([the note](design/offline-rewards.md)). Nothing while saving is off. |
 | `Services/FuseService` | The Fuse machine: who may ask and where; the fusing itself is `AquariumService.fuse` ([the note](design/fusing.md)). |
 | `Services/SubService` | The submarine: buying, picking a land, carrying a diver down and dropping them on a fish. |
 | `Services/TankRideService` | Riding one of your own fish round your tank. |
@@ -125,6 +126,7 @@ Up: [Home](../Home.md). Related: [what to sort in the code](reviews/code-organis
 | `SubController` | The submarine trip on every screen. |
 | `Lib/AirHop` | The mid-air hop onto the sub: the fish's swap, the splashes, the rider's pose, the camera (for `SubController`). |
 | `AuraController` | Every player's aura (the flame, drawn by `Lib/AuraBeams`; the old look behind `Config.Aura.Flame` 0) and the spawn-in. |
+| `OfflineController` | Shows the "Welcome back!" window (`UI/OfflinePanel`) once a visit, the small Claim after its X, and asks for the claim. |
 | `GroundFxController` | Small effects on land. |
 | **The screen and the light** | |
 | `LessonController` | What the first minutes' step shows: the dock's line (`UI/DockNotes`), the arrow and trail (`UI/LessonPointer`), the hop button's words and the ring on PUT ALL IN (`UI/LessonPrompt`). Nothing with `Config.Lesson.On` 0. |
@@ -164,6 +166,7 @@ and `Spring` (the camera), `Feel` and `Fx` (speed lines, bubbles, sounds), `Spla
 | `SellFish` | The Sell Fish window. |
 | `ShopScreen` | The Robux shop. Every offer reads "Soon". |
 | `AuraShop` | The aura stall: the twelve cards, buying. |
+| `OfflinePanel` | The "Welcome back!" window and the small Claim by the dock's buttons. |
 | `FusePanel` | The Fuse machine's window and its show. |
 | `SubPanel` | The submarine stand. |
 | `UpgradeSign` | The trainer's upgrade board on each plot. |
@@ -217,6 +220,7 @@ listens.
 | Fx | `Land`, `Fail`, `Ragdoll`, `ThrowOff`, `Eat`, `Smash` | RideService | AnimController, JumpController, FailController, DeathController, ArchetypeController |
 | Sandbox | `Tune`, `Flag`, `Reset`, `Ride` | SandboxController | SandboxService (Studio only) |
 | Admin | requests and "Done" or "Refused" | AdminController | AdminService, and back |
+| Offline | `Claim`; `Paid` coins, `Denied` why | OfflineController, OfflineService | both ways |
 | Trainer | `On`, `Off`, `Gain`, `Up`, `UpNo` | TrainService, TrainerController, UI/UpgradeSign | both ways |
 
 ## Running and checking it

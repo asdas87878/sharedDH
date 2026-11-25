@@ -263,7 +263,7 @@ In the user's Studio on grey-box 15, by script.
 - **No summary of the dive.** The existing "great dive" banner still shows; it does not list values.
 - **The tank's fish don't beat their tails.** They move round their laps as they are. The swim animation only
   runs on fish in the sea.
-- **No earning while away,** no fusing. (Selling and taking out: since 2026-11-22, above.)
+- **Earning while away:** built 2026-11-25, works once saving is on ([offline rewards](offline-rewards.md)). No fusing. (Selling and taking out: since 2026-11-22, above.)
 - **The walk.** From your tank to the gate is 150 to 330 studs: 5 to 12 seconds at the dock's 28 studs a second,
   after every dive. The reference's is 4 seconds. That is the hub's size, for the map chat and the user.
 - **More players than plots** (eight): the rest have no tank, and their catch is only counted, as before.

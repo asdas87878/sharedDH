@@ -5,6 +5,8 @@
 --            size or colour the game no longer has is set aside and kept, and given back if it comes back. The fish they
 --            carry (RideService.carried: just caught, or taken out of the tank) are kept too, and come back stored in the
 --            tank: a catch comes home whatever happens to the rider, so leaving with it is no different
+--   Offline  when they were last here by the server's clock, what the tank earned a second then, and the offline coins not
+--            claimed yet (OfflineService.dump, restore). Not before the Tank is in: its coins and a claim are kept together
 --   Oxygen   the trained Oxygen, on top of what everyone starts with (RideService.trainedOxygen, setTrainedOxygen);
 --            given back on the dock only: a max that jumps in the water would turn the ridden fish angry
 --   Trainer  the seahorse's level (TrainService.levelOf, setLevel)
@@ -21,6 +23,7 @@ local Config = require(ReplicatedStorage.Shared.Config) :: any
 local Services = script.Parent.Parent.Services
 local AquariumService = require(Services.AquariumService) :: any
 local AuraService = require(Services.AuraService) :: any
+local OfflineService = require(Services.OfflineService) :: any
 local RideService = require(Services.RideService) :: any
 local SubService = require(Services.SubService) :: any
 local TrainService = require(Services.TrainService) :: any
@@ -66,6 +69,7 @@ end
 -- The functions it needs, as service and name: not there, nothing is joined
 local NEEDS = {
 	{ "AquariumService", AquariumService, { "dump", "restore", "give" } },
+	{ "OfflineService", OfflineService, { "dump", "restore" } },
 	{ "RideService", RideService, { "trainedOxygen", "setTrainedOxygen", "grantOxygen", "carried" } },
 	{ "TrainService", TrainService, { "levelOf", "setLevel" } },
 	{ "SubService", SubService, { "tierOf", "equipOf", "setSub" } },
@@ -110,6 +114,11 @@ function SaveParts.join(part: Join)
 		end
 		return tank
 	end, restoreTank)
+	part("Offline", OfflineService.dump, function(player, kept)
+		assert(OfflineService.restore(player, kept) == true, "the offline earnings were not given back")
+	end, function(player)
+		return player:GetAttribute("SavedTank") == true
+	end)
 	part("Oxygen", RideService.trainedOxygen, function(player, kept)
 		local now = RideService.trainedOxygen(player) or 0
 		assert(RideService.setTrainedOxygen(player, now + kept) == true, "the Oxygen was not given back")

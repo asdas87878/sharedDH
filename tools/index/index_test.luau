@@ -186,8 +186,8 @@ if deep then
 end
 local lo, lc = Config.indexLand(1)
 ok(
-	"the Shallows' set pays half its commonest need (41) and 600 s of its coins ($1,230)",
-	lo == 41 and lc == 1230,
+	"the Shallows' set pays 5 times its commonest need (410) and 2,500 s of its coins ($5,125)",
+	lo == 410 and lc == 5125,
 	`{lo}, {lc}`
 )
 ok("a kind has 24 looks", Config.indexLooks() == 24, Config.indexLooks())
@@ -326,11 +326,11 @@ ok("the whole set found: its reward waits with the new kinds'", waiting == #set 
 ask(ann, "ClaimLand", 1)
 paid = last(ann, "Paid")
 ok(
-	"the Shallows' set pays 41 Oxygen and $1,230",
-	paid[3] == 41 and paid[4] == 1230 and trained[ann] == trainedBefore + 41 and coins[ann] == coinsBefore + 1230
+	"the Shallows' set pays 410 Oxygen and $5,125",
+	paid[3] == 410 and paid[4] == 5125 and trained[ann] == trainedBefore + 410 and coins[ann] == coinsBefore + 5125
 )
 ask(ann, "ClaimLand", 1)
-ok("and only once", sent[#sent][3] == "Nothing" and trained[ann] == trainedBefore + 41)
+ok("and only once", sent[#sent][3] == "Nothing" and trained[ann] == trainedBefore + 410)
 
 local owedOxygen, owedCoins, owedCount = 0, 0, 0
 for _, fish in set do

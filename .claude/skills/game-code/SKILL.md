@@ -46,11 +46,12 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   check has run at a real frame rate. **Bought Oxygen off the dock is banked** (`RideService.grantOxygen`, `Banked`) and
   joins the max at the dock: never raise the max mid-dive, the red line and the drain are shares of it.
 - **The hub's new pieces (2026-11-24; NULLROOM h1 to h4):** the stalls open on their floor rings, the sub stand too
-  (`StallController`: Sell, Auras, Sub, and Index where the map has that station; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
+  (`StallController`: Sell, Auras, Sub, and Index, the lighthouse, where the map has that station; offline check `tools/index/ring_test.luau`; no ProximityPrompt; `SubPanel.toggle` is the Studio checks' door); a small
   copy of the equipped sub turns over the sub stand, on the player's own machine (`SubStandController`); **the Index**
   is `IndexService` (the server sees a catch in `RideService.carried` and `AquariumService.tankOf` every
   `Config.Index.Watch`; claims on the dock only, paid once; attributes `IndexFound`, `IndexClaims`; remote `Net.Index`)
-  with `UI/IndexPanel` and the Index button in `UI/HubButtons`; every `Config.Index` number is a DRAFT; **the
+  with `UI/IndexPanel` (the door; `IndexWindow` the window since 2026-11-25, `IndexOld` behind `Config.Index.Look` 0, `IndexBook`
+  the sums, `LandBanners` the pictures; `python tools/index/look_picture.py` checks and draws it) and the Index button in `UI/HubButtons`; every `Config.Index` number is a DRAFT; **the
   keepers** behind the stands are data in `Shared/Keepers` built and moved by `KeeperController` on each player's own
   machine (plain parts in `workspace.Keepers`, no collision, no query). Design: [UI](docs/design/ui.md) (top
   section), [hub models](docs/design/hub-models.md) ("The keepers behind the stands"),
@@ -67,6 +68,11 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   the leaps and boxes (tools/subs/air_check.luau), and once with `AirHop` 0 against the tag.
   Made shorter, the camera steadier (one anchor, `SubAir.track`) and the trail weaker the same day (f1); the old numbers are in the note.
   The client's own camera is `SubAir.view`, which the check runs too: never write its sums a second time.
+- **Offline rewards (2026-11-25; NULLROOM o1; offline only, not seen in Studio):** `OfflineService` (save part "Offline" in
+  `Lib/SaveParts`; `Config.offlinePay`; remote "Offline"; attributes `OfflineOwed`, `OfflineSecs`), `OfflineController`,
+  `UI/OfflinePanel`; dead while saving is off; Studio's `OfflineAway` fakes an absence; every `Config.Offline` number is a DRAFT.
+  Owed and the coins must stay in one snapshot: never yield between them. [offline rewards](../../../docs/design/offline-rewards.md);
+  checks `tools/offline/*_test.luau` (the real ProfileStore on pretend servers).
 - **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
   only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
   `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`
