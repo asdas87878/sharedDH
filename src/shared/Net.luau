@@ -46,11 +46,14 @@
 --     ate a wild fish there) | "Smash", player, fish, where, boxes (that rider's Breaker was paid for a prop)
 --   Sandbox (client -> server, Studio only: SandboxService): "Tune", "Group.Key", number | "Flag", name, boolean |
 --     "Reset" | "Ride", fishId, variant (onto a fish of that kind, put at the start)
---   Two more remotes sit in the same folder, made by their own services:
+--   Three more remotes sit in the same folder, made by their own services:
 --     Admin (AdminService; the owner's panel, both ways): the client sends what it wants ("Coins", "Fish", "Subs",
 --       "Max", "Land", "NoFail", "EndlessAir", "Fail"); the server answers "Done", text or "Refused", text
 --     Trainer (TrainService, both ways): the client sends "Off" or "Up"; the server sends "On", fish | "Off", fish,
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
+--     Boards (LeaderboardService and BoardController, both ways): the client sends "Sync" (send me the boards); the
+--       server sends "State", { Next = server time of the next look, Boards = { { Id, Global, Rows = { { Id, Name,
+--       Value, Rank } } } } } (Global false: this server's players only)
 --   Index (IndexService and UI/IndexPanel, both ways; the rewards: Config.Index):
 --     the client sends "Claim", fishId (the reward of a kind it has found) | "ClaimLand", land (the reward of a land
 --       whose whole set it has found) | "ClaimAll" (every reward it may claim) | "Sync" (send me my Index again)
@@ -80,6 +83,8 @@
 -- yours; nil off a fish, on one too strong, or with taming off),
 -- IndexFound (how many kinds they have caught) and IndexClaims (how many Index rewards wait to be claimed): IndexService,
 -- Coins, Income (coins a second), TankFish (how many their tank holds) and Plot (their plot's name): AquariumService,
+-- BoardOxygen, BoardCollectors, BoardEarners (and one for each other board of Config.Boards.List that is on): the
+-- player's own number on that board: LeaderboardService,
 -- DeathAt (server time the drowning began), DeathThrown (thrown off a fish first) and DeathQuick (after a jump that
 -- sank: a short drown).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

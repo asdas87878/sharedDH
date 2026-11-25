@@ -45,6 +45,7 @@ further. A quick game in the Ride a Dino genre, going down instead of across. Th
 - [The dock](docs/design/the-dock.md): the hub, your tank, the stations.
 - [The hub's layout](docs/design/hub-layout.md): the dive-in strip, the walls round it, the space behind the tanks (study, 2026-11-20).
 - [UI](docs/design/ui.md): what the player sees on screen: the dive's HUD and the dock's screens (proposed, with mock-ups).
+- [The leaderboards](docs/design/leaderboards.md): three boards in the hub, who is on them, three frames to choose from (on a branch, 2026-11-25).
 - [Creatures](docs/design/creatures.md): what's decided about the creatures, tags, sizes and mutations.
 - [Roster](docs/design/roster.md): the scale against Ride a Dino and three drafted progressions (76 creatures).
 - [Creature queue](docs/design/creature-queue.md): the voxel models exported and waiting to go into the game
