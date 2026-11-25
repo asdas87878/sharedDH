@@ -153,13 +153,13 @@ def today(folder, first=3000.0, last=23400.0):
     return out, lane
 
 
-def joint(colour=(120, 120, 140)):
+def joint(colour=(120, 120, 140), fall=6.0):
     """the piece every joint would get, eight boxes in the joint's frame (x right, y up from the floor, z ahead): a slab
-    under the whole width, 0.8 below the 6 degree plane (every chunk's floor is within -0.22 and +0.64 of it there), a sill
+    under the whole width, 0.8 below the plane of the slope (`fall`, degrees; at 6 every chunk's floor is within -0.22 and +0.64 of it), a sill
     across the neck 0.5 over it (it covers the sawtooth of the two floors), and on each side three blocks behind the walls,
     stepping out as the lane does (its widest half: 168 at the cut, 202 at 24 studs, 283 at 48, 401 at 80), so that none
     stands in any chunk's lane. -> P, A, S, C, K"""
-    t = math.radians(6.0)
+    t = math.radians(fall)
     up, on = np.array([0, math.cos(t), math.sin(t)]), np.array([0, -math.sin(t), math.cos(t)])
     frame = np.stack([np.array([1.0, 0, 0]), up, on])
     P, S = [up * -30.8, up * -0.5], [(980.0, 60.0, 160.0), (336.0, 2.0, 96.0)]

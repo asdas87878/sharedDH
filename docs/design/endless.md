@@ -1,6 +1,51 @@
 # Endless: what comes after the Underworld
 
-A study with options for Hugo (2026-11-25, NULLROOM e1). **Nothing is built in the game and nothing is decided.** Hugo: "I need a
+## Hugo's answer (2026-11-25): the Underworld itself, for ever
+Hugo, on the study below: "This is not what i meant, i want thelast part the underworld or whatever to run infinitely after reaching
+it, only looping those parts, fish shouldnt get stronger, maybe increase rare traits like size and colours with how far you are, dont
+increase in heavy amounts though just very very slightly, oxygen needed shouldnt be stronger."
+
+So: **no layers, no stronger fish, no Deep mark, no milestones, no other lands' looks.** The rest of this note (the Deep Run, its economy,
+the ten looks) is set aside; its measurements of chunks, joints and distance still hold. **Not built; the go is Hugo's.**
+The sheet: [endless-underworld-1.png](../attachments/endless-underworld-1.png).
+
+- **The map:** past the end of land 10 the lane goes on in Underworld pieces only, in a random order (one seed a server, the same for every player). 18 pieces, each
+  in two hands, made by our generator with every land wearing the Underworld's kit (`build_lane.py under`): 1,200 studs, 7 s, 4,420 to
+  5,704 parts (mean 5,126). A shape comes back after 17 pieces on average, never within 8.
+- **Laid out** as the Spiral below, but at **2.5 degrees** (the Underworld now 8): it winds down a column, each player's machine builds its own window (mean
+  15,400 parts, most 16,800; 750 boxes a second at 175 studs a second), the server holds none. 100 seeds: at 10 / 30 / 60 minutes x and z under 29,000,
+  y -6,700 / -15,900 / -29,700, so positions stay as exact as at today's far end for the first hour (they step down once at 32,768, about
+  65 minutes in). Coils are at least 717 studs apart in height (40 seeds x 100 pieces) and the scenery is at most 480 high; the unseen barrier is
+  1,269 high as the generator makes it and must be cut to 600. Never nearer than 788 to today's lane.
+- **Joints:** 0 holes in the lane, holes beside it (median 700 square studs, 7,750 at worst; real neighbours 0 to 50), all closed by the joint
+  piece (`chunks.joint(fall=2.5)`; `holes.py ... 2.5`). A sketch, not seen in Roblox. The kill height (`FallenPartsDestroyHeight`, -20,000) is passed after
+  about 39 minutes: set it to -100,000 in Studio.
+- **The fish:** the Underworld's own roster, the same strength, the same speeds, the same Oxygen each (`Config.requiredOf`). No code for strength.
+- **The odds** (`odds.py`; FishService's own rules, 400,000 spawned fish a row). The PLACE has them, so two riders always see the same fish.
+  **Our pick: +1% on the chances of Big and up and of Silver, Gold, Rainbow for every 10,500 studs (a minute), no more than +10%.** One dial.
+
+| Chances | Big | Giant | Huge | Colossal | Silver | Gold | Rainbow | average fish needs / earns |
+|---|---|---|---|---|---|---|---|---|
+| now | 16.8% | 3.58% | 1.17% | 0.205% | 5.0% | 1.01% | 1 in 608 | 1 / 1 |
+| +5% | 17.6% | 3.51% | 1.23% | 0.215% | 5.26% | 1.06% | 1 in 579 | 1.003 / 1.005 |
+| **+10%** | **18.4%** | **3.43%** | **1.30%** | **0.226%** | **5.5%** | **1.11%** | **1 in 551** | **1.006 / 1.010** |
+| +25% | 20.9% | 3.23% | 1.47% | 0.259% | 6.25% | 1.27% | 1 in 480 | 1.015 / 1.026 |
+| +50% | 25.1% | 2.89% | 1.76% | 0.31% | 7.54% | 1.51% | 1 in 402 | 1.031 / 1.052 |
+
+  A Giant falls a little as Huge rises because `Config.Grand` keeps one grand fish to 800 studs; that rule stays. **One thing to know:** a
+  bigger or rarer fish has always needed more Oxygen (`SizeOxygen`, `VariantOxygen`: a Colossal three times, a Rainbow twice), so with more of them the average fish needs 0.6%
+  more at +10%. Each fish's own need does not change. If Hugo wants it to be zero, the bonus would have to pick colours and sizes that need no more, which
+  means changing that rule; we would not.
+- **Where the odds go in the code:** `rollSize` and `rollVariant` in FishService get the place along the lane; `Config.rollSize`, `rollVariant` take the times. The rest is the map, below ("What
+  would change in the code", D), shorter: no layers, marks, milestones, board or saves; the zone, fog and music stay land 10's.
+- **Also looked at:** a closed level ring of 17 pieces (87,000 parts, sent to everyone; the same 2 minutes for ever; the place can't tell how far a rider is,
+  so the odds would hang on each rider). Cheaper (3 days, a guess) but not random and no "further". We would not.
+- **Work, a guess:** 4 to 5 days. First a half-day Studio test (a phone's building speed, fish at y -20,000 and past), then the baked
+  pieces and the joint piece, the server's lane and herd from numbers, the client's builder, the mouth from land 10's end, the odds.
+
+Everything from here on is the first study, as it was shown.
+
+A study with options for Hugo (2026-11-25, NULLROOM e1). **Nothing is built in the game.** Hugo: "I need a
 loop for gameplay after reaching last stage, can you make map go basically infinite? this can be a loop of parts of the area
 stacked in a random way, find out what works best and let me decide."
 
@@ -182,5 +227,5 @@ fish pathing round chunk props, the joint piece, the barrier without walls on th
 
 ## The tools
 `tools/endless/`: `census.luau` (a place's parts, `slim.luau` under it), `build_lane.py` (the generator run for chunks), `chunks.py` (cut and measure),
-`stack.py` (the stacker and checks), `cost.py`, `economy.py` (about 10 minutes, 4 at a time), `joints.py` and `holes.py` (the joints), `draw.py` and `draw_joints.py` (the pictures), `sheet.py`. In order: `build_lane.py today|chunks`, then pickle
+`stack.py` (the stacker and checks), `cost.py`, `economy.py` (about 10 minutes, 4 at a time), `joints.py` and `holes.py` (the joints), `draw.py` and `draw_joints.py` (the pictures), `sheet.py`; for the Underworld `build_lane.py under`, `pack.py ... under`, `odds.py`, `draw_under.py`, `sheet2.py`. In order: `build_lane.py today|chunks`, then pickle
 `chunks.purpose` and `chunks.today`, then the rest. Needs numpy and Pillow.

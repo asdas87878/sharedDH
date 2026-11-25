@@ -1,4 +1,4 @@
-"""What is missing beside a joint: python tools/endless/holes.py <chunks.pkl>
+"""What is missing beside a joint: python tools/endless/holes.py <chunks.pkl> [slope]
 
 Every chunk's end against every other chunk's start (both hands), looked at from above on a grid: REACH studs either side of
 the neck's edge and ALONG studs either way of the cut. A cell is a hole when no floor, wall, grass or shelf of either
@@ -16,7 +16,8 @@ US = np.arange(-NECK - REACH + CELL / 2, NECK + REACH, CELL)
 VS = np.arange(-ALONG + CELL / 2, ALONG, CELL)
 SOLID = [ch.KINDS.index(k) for k in ("face", "grass", "core", "ground")]
 CORNERS = np.array([[x, y, z] for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)], float)
-FALL = np.tan(np.radians(6.0))
+SLOPE = float(sys.argv[2]) if len(sys.argv) > 2 else 6.0  # the chunks' own, degrees (6 the lands', 2.5 the Underworld's)
+FALL = np.tan(np.radians(SLOPE))
 EYE = 40.0  # a rider's height over the floor, for the sight lines
 
 
@@ -73,8 +74,8 @@ def main(pkl):
     lib = [(k, h, c if h > 0 else ch.flip(c)) for k, c in enumerate(made) for h in (1, -1)]
     E, I = [end(c, True) for _, _, c in lib], [end(c, False) for _, _, c in lib]
     EW, IW = [end(c, True, EYE) for _, _, c in lib], [end(c, False, EYE) for _, _, c in lib]
-    JW = covered(*ch.joint()[:3], np.zeros(3), ch.basis(0.0), EYE)
-    J = covered(*ch.joint()[:3], np.zeros(3), ch.basis(0.0))
+    JW = covered(*ch.joint(fall=SLOPE)[:3], np.zeros(3), ch.basis(0.0), EYE)
+    J = covered(*ch.joint(fall=SLOPE)[:3], np.zeros(3), ch.basis(0.0))
     lane = np.abs(US) < NECK - 6
     area, inside, after, natural, sight, sight2, natsight, where = [], 0, [], [], [], [], [], np.zeros((len(VS), len(US)))
     for a, (ka, ha, _) in enumerate(lib):
@@ -82,7 +83,7 @@ def main(pkl):
             if ka == kb:
                 continue
             hole = ~(E[a] | I[b])
-            if ha == hb and made[ka]["land"] == made[kb]["land"] and kb == ka + 1 and ha == 1:
+            if ha == hb and made[ka]["name"][:-1] == made[kb]["name"][:-1] and kb == ka + 1 and ha == 1:
                 natural.append(hole.sum() * CELL ** 2)
                 natsight.append(open_rows(EW[a] | IW[b]))
             sight.append(open_rows(EW[a] | IW[b]))

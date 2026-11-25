@@ -5,6 +5,9 @@
         3,000 studs, each two chunks of CHUNK studs; at a chunk's two ends both sides pinch together (the same neck
         for every chunk), the lane is straight and the floor has one slope, so any chunk's end meets any other's start
 
+  python tools/endless/build_lane.py under <out folder>    as chunks, but every chunk is the Underworld (its colours, walls,
+        assets, set pieces, glow) and the slope is UNDER_SLOPE, so a run of them stays an Underworld
+
 Writes parts.json and path.json (greybox's own) and line.json (every 4 studs: s, x, y, z, heading, half left, half right).
 Needs numpy and Pillow; about 40 seconds. Nothing in art/map or tools/map is touched (GREYBOX_OUT)."""
 import json
@@ -14,6 +17,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC = os.path.join(ROOT, "tools", "map", "greybox.py")
 MARGIN, CHUNK, SLOPE, GROW = 300.0, 1200.0, 6.0, 2.8
+UNDER_SLOPE = float(os.environ.get("UNDER_SLOPE", "2.5"))
 # each chunk's two bends, in degrees (mirroring gives the other hand). Two chunks a land, of like net turn, so the long
 # lane they are built on comes back to its heading by itself
 TURNS = [(16, 14), (17, 15), (20, -20), (22, -18), (20, 6), (8, 18), (12, 22), (16, 17), (-18, 16),
@@ -33,13 +37,26 @@ def main(mode, out):
     os.environ["PALETTE"] = os.path.join(ROOT, "art/map/palettes/proposal.json")
     os.chdir(ROOT)
     src = open(SRC).read()
-    if mode == "chunks":
+    slope_ = UNDER_SLOPE if mode == "under" else SLOPE
+    if mode == "under":
+        # every land wears the tenth's kit: the lists the generator looks a land up in
+        src = swap(src, "# the hub's colours: its floor", """
+for mod_, names_ in ((props2, ("PALETTES", "LANDS", "DRESSING", "LIP", "TALL")), (setpieces, ("GATES", "HEROES")), (water_zones, ("ZONES",))):
+    for n_ in names_:
+        v_ = getattr(mod_, n_)
+        for i_ in (range(len(v_)) if not isinstance(v_, dict) else list(v_)):
+            v_[i_] = v_[9]
+GROUND[:] = [GROUND[9]] * len(GROUND)
+FACES[:] = [FACES[9]] * len(FACES)
+ASSET_SET = [ASSET_SET[9]] * 10
+# the hub's colours: its floor""")
+    if mode in ("chunks", "under"):
         far = 1000.0 + 9 * 3000.0
         src = swap(src, "BUILD_TO = 23500.0", f"BUILD_TO = {far}")
         src = swap(src, "FINE_TO = 23500.0", f"FINE_TO = {far}")
         a = src.index("LANDS = [(")
         b = src.index("STEEPER = {")
-        src = src[:b] + f"LANDS = [(n, 1000 if i == 0 else 3000, {SLOPE}) for i, (n, _l, _s) in enumerate(LANDS)]\n" + src[b:]
+        src = src[:b] + f"LANDS = [(n, 1000 if i == 0 else 3000, {slope_}) for i, (n, _l, _s) in enumerate(LANDS)]\n" + src[b:]
         a = src.index("STEEPER = {")
         b = src.index("\n", a)
         src = src[:a] + "STEEPER = {}" + src[b:]
