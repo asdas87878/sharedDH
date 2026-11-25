@@ -7,6 +7,8 @@ devs with this style do water. we will probably just keep it the same but im won
 reffering to the water from the top when the player is looking from the hub. But I will want you to make the water more
 transparent, easier to see the fish through but still visible as water."
 
+**Answered (the user, 2026-11-25): "nah lets just leave it how it was".** The water stays as it is; this note is kept as a record.
+
 **Nothing is in the game.** Everything marked "tried" was seen in Play on one machine, over the real hub and herd, and went
 when Play stopped. Try it yourself: press Play, then run [water_trial.luau](../../tools/studio/water_trial.luau) on the Client
 (or ask the map chat). It puts two rows of buttons on the screen: how clear (one at a time) and add-ons (any together). "Best
