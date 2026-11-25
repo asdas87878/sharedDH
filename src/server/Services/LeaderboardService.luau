@@ -15,8 +15,8 @@
 --     attribute), so a joining player's first moments never take the place of what they have; at most once in
 --     Boards.WriteEvery and as they leave; one write in Boards.WriteGap for the whole server, the newest mark only,
 --     and only while Roblox's own budget has more than Boards.Reserve left.
---   Names: Roblox's own (display names, asked for in one request for all that are new and kept for this server's life),
---     which Roblox filters itself. No word of a player's is ever stored or sent by this game.
+--   Names: Roblox's own (display and user names, asked for in one request for all that are new and kept for this
+--     server's life), which Roblox filters itself. No word of a player's is ever stored or sent by this game.
 --   Hidden: Boards.HideUsers (ids) are never stored and never listed; they still see their own number.
 -- The remote is our own, ReplicatedStorage.Remotes.Boards (Net.luau lists its messages).
 -- The station the boards stand in place of (Boards.Replaces) is taken out of the running game; the place keeps it.
@@ -66,6 +66,7 @@ local here: { [Player]: Here } = {}
 local writes: { [string]: Write } = {} -- the newest to store, by board and user
 local order: { string } = {} -- the same, first asked first
 local names: { [number]: string } = {}
+local users: { [number]: string } = {} -- and their user names
 local remote: any = nil
 local state: any = nil -- what the clients were last sent
 local nextRead = 0
@@ -250,6 +251,7 @@ local function learn(ids: { number })
 			local player = Players:GetPlayerByUserId(id)
 			if player then
 				names[id] = player.DisplayName
+				users[id] = player.Name
 			elseif id > 0 then
 				table.insert(wanted, id)
 			end
@@ -263,6 +265,7 @@ local function learn(ids: { number })
 		if ok and type(infos) == "table" then
 			for _, info in infos do
 				names[info.Id] = info.DisplayName
+				users[info.Id] = info.Username
 			end
 		end
 	end
@@ -305,6 +308,7 @@ local function build(): any
 			table.insert(rows, {
 				Id = place.Id,
 				Name = names[place.Id] or "Player",
+				User = users[place.Id] or "",
 				Value = BoardSums.value(place.Mark, board.Def.Scale),
 				Rank = place.Rank,
 			})

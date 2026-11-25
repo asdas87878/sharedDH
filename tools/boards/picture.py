@@ -1,4 +1,4 @@
-"""The leaderboards' options picture, offline (NULLROOM task l1): the panels as the real UI.BoardPanel builds them
+"""The leaderboards' picture, offline (NULLROOM task l1): the panels as the real UI.BoardPanel builds them
 (tools/boards/panel_test.luau's trees, drawn by headless Chromium as tools/index/panel_picture.py does), on the frames
 as Shared/Boards draws them, in the hub as the saved place has it (Blender). Not Roblox's renderer: the letters are a
 hair different, the light is Blender's, there are no studs on the ground, and the faces are made-up samples.
@@ -8,7 +8,7 @@ hair different, the light is Blender's, there are no studs on the ground, and th
     lune run tools/boards/hub_parts.luau <saved place.rbxl> /tmp/b/hub.json
     python tools/boards/picture.py /tmp/b panels     the panels' pictures
     blender -b --factory-startup -P tools/boards/view.py -- /tmp/b
-    python tools/boards/picture.py /tmp/b sheet docs/attachments/leaderboards-options-1.png
+    python tools/boards/picture.py /tmp/b sheet docs/attachments/leaderboards-2.png
 """
 import hashlib
 import json
@@ -23,11 +23,23 @@ sys.path.insert(0, str(ROOT / "tools/index"))
 import panel_picture as base  # noqa: E402
 
 WORK = Path(sys.argv[1]).resolve()
+STUDIO = [f.parents[1] / "StudioFonts" for f in base.FONTS]
+PLAIN = {"BuilderSansBold": "BuilderSans-Bold.otf", "BuilderSansExtraBold": "BuilderSans-ExtraBold.otf"}
 FONT = next((f / "FredokaOne-Regular.ttf" for f in reversed(base.FONTS) if (f / "FredokaOne-Regular.ttf").exists()), None)
 
 
-def font(size):
-    return ImageFont.truetype(str(FONT), int(size)) if FONT else ImageFont.load_default(size)
+def file_of(name):
+    """the file of one of Roblox's fonts; the HUD's own for any other"""
+    return next((f / PLAIN[name] for f in reversed(STUDIO) if name in PLAIN and (f / PLAIN[name]).exists()), FONT)
+
+
+def font(size, name="FredokaOne"):
+    file = file_of(name)
+    return ImageFont.truetype(str(file), int(size)) if file else ImageFont.load_default(size)
+
+
+def named(p):
+    return str(p.get("Font", "FredokaOne")).split(".")[-1]
 
 
 def face(user):
@@ -67,18 +79,20 @@ class Page(base.Page):
             size = int(p.get("MaxTextSize", 100))
             least = int(p.get("MinTextSize", 1))
             while size > least:
-                f = font(size)
+                f = font(size, named(p))
                 lines = p["Text"].split("\n")
                 if max(f.getlength(t) for t in lines) <= wide and size * 1.12 * len(lines) <= high + 2:
                     break
                 size -= 1
             p["TextSize"] = size
-            if p.get("_cut") and font(size).getlength(p["Text"]) > wide:
+            f = font(size, named(p))
+            if p.get("_cut") and f.getlength(p["Text"]) > wide:
                 t = p["Text"]
-                while font(size).getlength(t + "...") > wide:
+                while f.getlength(t + "...") > wide:
                     t = t[:-1]
                 p["Text"] = t + "..."
-        return super().text(n, k, fill, stroke)
+        body = super().text(n, k, fill, stroke)
+        return body.replace('class="t" style="', f'class="t" style="font-family:{named(p)},F;')
 
 
 def prepare(n, wide, high):
@@ -87,7 +101,7 @@ def prepare(n, wide, high):
     if size:
         wide, high = size[0] * wide + size[1], size[2] * high + size[3]
         p["_box"] = (wide, high)
-        p["_cut"] = p.get("Name") == "Name"
+        p["_cut"] = p.get("Name") in ("Name", "User")
     n["Children"] = [c for c in n["Children"] if not (c["Class"] == "UIStroke" and c["Props"].get("Enabled") is False)]
     for c in n["Children"]:
         prepare(c, wide, high)
@@ -101,7 +115,8 @@ def panels():
             prepare(c, wide, high)
         page = Page({})
         body = "".join(page.node(c, 1) for c in data["Tree"]["Children"])
-        doc = f"""<!doctype html><meta charset="utf-8"><style>@font-face{{font-family:F;src:url({FONT.as_uri()})}}
+        plain = "".join(f"@font-face{{font-family:{k};src:url({file_of(k).as_uri()})}}" for k in PLAIN)
+        doc = f"""<!doctype html><meta charset="utf-8"><style>{plain}@font-face{{font-family:F;src:url({FONT.as_uri()})}}
 html,body{{margin:0;width:{wide}px;height:{high}px;overflow:hidden}}
 body{{position:relative;font-family:F;line-height:1.12}}div{{box-sizing:border-box}}
 .s{{position:absolute;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);

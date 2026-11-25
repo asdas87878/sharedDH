@@ -4,21 +4,27 @@ Three boards in the hub: **TOP OXYGEN**, **TOP COLLECTORS**, **TOP EARNERS**. Hu
 "Make stylised leaderboards in this style, but fitting the aquatic theme", with a picture of three tall boards on a
 plinth. Taken from it: the function, the layout, the readability. The look is ours.
 
-**State: built on branch `leaderboards`, checked offline only. Not seen in Studio, not merged. The frame is Hugo's pick.**
+**State: built on branch `leaderboards`, checked offline only. Not seen in Studio, not merged.**
 
-![three frames to choose from](../attachments/leaderboards-options-1.png)
+![the boards](../attachments/leaderboards-2.png)
 
-## To choose
-| `Config.Boards.Style` | Frame | Parts in the row |
-|---|---|---|
-| 1 | driftwood and rope: logs, glass floats for lamps, starfish; nearest to the hub's own wood | 282 (the cheapest) |
-| 2 | coral reef and shell: coral pillars, a scallop crown, pearls, lit anemones; the most colourful | 397 |
-| 3 | sunken brass: green copper, brass bands, caged lamps, portholes, a valve. **Claude's pick, the file's value** | 338 |
+## The look (Hugo, 2026-11-25)
+Hugo picked frame 3 of [three](../attachments/leaderboards-options-1.png) (sunken brass), then: "make models on top of the
+leaderboard simpler and easier on the eye, placed right on the top/front of the leaderboard like a sign hanging these
+should be somewhat flat. remove a little more visual clutter on them [...] Dont overdo it. Fit the reference better in
+terms of how the leaderboard is structured from the inside, make it more stylised and simplistic. Dont make everything
+look too "childish"". So:
+- **The signs:** a flat roundel on two straps under the head beam, one plain shape on it in two or three colours: a bubble
+  (Oxygen), the Index open with a fish on each page (Collectors), a shut chest (Earners; an anchor for the fourth). They
+  do not move.
+- **The frame:** old copper pillars, a brass edge, one head beam, one slim lamp a pillar. Gone: valves, gauges, portholes,
+  pipes, bolts, caged lamps, weed. 24 to 33 parts a board (was about 110).
+- **The list**, laid out as the reference's is: one dark face; who it lists, the name, what it counts, a thin rule; rows of
+  place, face, name over user name, number over its unit; only first place is gold; your own line edged in white; a
+  centred foot. The colours and words are ours. No outlines on letters; the title keeps the HUD's font, the rest is
+  Builder Sans.
 
-Why 3: the calmest round the numbers, its warm lamps stand out against the grey wall, and the hub has nothing like it.
-The emblems are the same on all: a big air bubble with a tank in it, our Index book with a fish jumping out, a treasure
-chest with a gold fish (and an anchor for the fourth board). In Studio, the workspace attribute `BoardStyle` (1 to 3)
-shows another while playing.
+The two frames not picked, and the signs before, are in git (`35a8781`).
 
 ## Where they stand
 Along the front wall, **right of the dive gate as you face the sea**, in place of the blank "Earners" slate, facing into
@@ -42,7 +48,7 @@ post, sign and seahorse cover the edge of Earners and part of Collectors. The se
   Collectors stays that way after saving is turned on, until the Index is saved.
 - **Places:** biggest first; equal numbers share a place (1, 2, 2, 4), the lower user id first. 50 kept, 8 seen, the rest
   scrolled to from within 24 studs. Your own place and number are at the foot, with the seconds to the next look.
-- **Names and faces:** Roblox's own display names (filtered by Roblox) and headshots; the store holds a user id and a
+- **Names and faces:** Roblox's own display and user names (filtered by Roblox) and headshots; the store holds a user id and a
   number, nothing else. `HideUsers` (empty) leaves ids out of the store and the lists.
 - Everything is the server's own number. The client sends only "send me the lists", no oftener than every 2 s.
 
@@ -65,16 +71,16 @@ to this server's players and comes back by itself. Nothing is written before a p
 player never overwrites their own number with a fresh one.
 
 ## Where it is
-`LeaderboardService` (who is on them), `Lib/BoardSums` (the sums), `Shared/Boards` (the frames and emblems, plain parts),
-`BoardController` (builds and moves them on each player's own machine, in `workspace.Boards`), `UI/BoardPanel` (the list),
+`LeaderboardService` (who is on them), `Lib/BoardSums` (the sums), `Shared/Boards` (the frame and signs, plain parts),
+`BoardController` (builds them on each player's own machine, in `workspace.Boards`), `UI/BoardPanel` (the list),
 `SaveService.keeps`, remote `Boards`, player attributes `Board` + Id. Off: `Config.Boards.On` 0 (the old slate comes back).
 
 ## Checks (lune, offline)
 `rojo build default.project.json -o /tmp/p.rbxl`, then `lune run tools/boards/...`:
-- `board_test.luau /tmp/p.rbxl`: order, ties, rounding, past 2^53, the store off, down and back, budget, hidden ids, closing (88).
+- `board_test.luau /tmp/p.rbxl`: order, ties, rounding, past 2^53, the store off, down and back, budget, hidden ids, closing (89).
   Sixteen rules broken on purpose, one at a time: each made this or the next one fail.
-- `panel_test.luau /tmp/p.rbxl [dump folder]`: the list as drawn, and that row and foot read the same (67).
-- `place_test.luau /tmp/p.rbxl <saved place>`: every part of every style against the hub (11). `slim.luau` leaves out
+- `panel_test.luau /tmp/p.rbxl [dump folder]`: the list as drawn, and that row and foot read the same (62).
+- `place_test.luau /tmp/p.rbxl <saved place>`: every part against the hub (9). `slim.luau` leaves out
   the properties it does not need, so it takes about 0.85 GB; it says nothing and ends with 137 if the PC kills it (under about 1.8 GB free).
 - The picture: `panel_test` with a folder, `picture.py <folder> panels`, `view.py` in Blender, `picture.py <folder> sheet <png>`.
 

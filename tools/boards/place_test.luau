@@ -1,5 +1,5 @@
 -- Whether the leaderboards' spot (Config.Boards) is free in a saved place, offline (NULLROOM task l1): every piece of
--- every style, as Shared/Boards draws it and BoardController puts it, against the place's own parts. Touching a part is
+-- them, as Shared/Boards draws it and BoardController puts it, against the place's own parts. Touching a part is
 -- a fail, the floor and what the boards stand in place of (Boards.Replaces) apart; and how far it is to the stalls'
 -- rings, the strip, the gate's lamp, the pens and the spawn is printed.
 -- usage: rojo build -o /tmp/place.rbxl && lune run tools/boards/place_test.luau /tmp/place.rbxl <saved place.rbxl>
@@ -85,13 +85,13 @@ for _, def in c.List do
 		table.insert(defs, def)
 	end
 end
-local function boxes(style: number): { Box }
+local function boxes(): { Box }
 	local out = {}
-	for _, piece in Boards.bed(style, (#defs - 1) * c.Pitch) do
+	for _, piece in Boards.bed((#defs - 1) * c.Pitch) do
 		table.insert(out, { Name = "bed", At = row * piece.At, Half = piece.Size / 2 })
 	end
 	for i, at in Boards.places(#defs, c.Pitch, c.Turn) do
-		for _, piece in Boards.board(style, defs[i].Emblem, i, i == #defs) do
+		for _, piece in Boards.board(defs[i].Emblem) do
 			table.insert(
 				out,
 				{ Name = defs[i].Id .. " " .. piece.Shape, At = row * at * piece.At, Half = piece.Size / 2 }
@@ -101,9 +101,9 @@ local function boxes(style: number): { Box }
 	return out
 end
 local low, high = Vector3.new(1e9, 1e9, 1e9), Vector3.new(-1e9, -1e9, -1e9)
-for style = 1, 3 do
+do
 	local hits = {}
-	for _, mine in boxes(style) do
+	for _, mine in boxes() do
 		ball(mine)
 		local corner = Vector3.new(half(mine, Vector3.xAxis), half(mine, Vector3.yAxis), half(mine, Vector3.zAxis))
 		low, high = low:Min(mine.At.Position - corner), high:Max(mine.At.Position + corner)
@@ -124,13 +124,13 @@ for style = 1, 3 do
 	for name, deep in hits do
 		table.insert(said, string.format("%s %.2f", name, deep))
 	end
-	ok("style " .. style .. " touches nothing in the place", #said == 0, table.concat(said, ", "))
+	ok("the row touches nothing in the place", #said == 0, table.concat(said, ", "))
 end
 print(string.format("  the row: x %.1f..%.1f, y %.1f..%.1f, z %.1f..%.1f", low.X, high.X, low.Y, high.Y, low.Z, high.Z))
 
 -- on the ground: how far from the row's solid pieces to what players use
 local solids = {}
-for _, piece in Boards.bed(1, (#defs - 1) * c.Pitch) do
+for _, piece in Boards.bed((#defs - 1) * c.Pitch) do
 	table.insert(solids, { Name = "bed", At = row * piece.At, Half = piece.Size / 2 })
 end
 local function apart(part: any): number

@@ -1,8 +1,9 @@
 --!strict
--- What a hub leaderboard says (NULLROOM task l1; docs/design/leaderboards.md): a SurfaceGui on its glass, in the HUD's
--- own letters and colours (UI.Kit, UI.Shop). The header in the board's colour (its name, what it counts, and whether
--- it lists ALL PLAYERS or only THIS SERVER), the list (place, face, name, number; the first three in gold, silver and
--- bronze, your own line ringed), and the foot: your own place and number, and when the next numbers come.
+-- What a hub leaderboard says (NULLROOM task l1; docs/design/leaderboards.md): a SurfaceGui on its glass. One dark face,
+-- few colours, flat words with no outline: at the top who it lists (ALL PLAYERS or only THIS SERVER), its name and what
+-- it counts, over a thin rule; then the list (place, face, name over user name, number over what it is; the first place
+-- in gold, the next two edged in silver and bronze, your own edged in white); at the foot your own place and number, and
+-- when the next numbers come.
 --   The list is a ScrollingFrame that holds only as many rows as show (Config.Boards.Rows and two more): the same rows
 --   are written again as it is scrolled, so fifty places cost no more than eight.
 --   Faces are Roblox's own head pictures (rbxthumb, which the engine loads once and keeps); a row asks for one only
@@ -14,40 +15,39 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Boards = require(ReplicatedStorage.Shared.Boards)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Kit = require(script.Parent.Kit)
-local Shop = require(script.Parent.Shop)
 
 local BoardPanel = {}
 
 local PX = 40 -- pixels to a stud
 local FAR = 320 -- studs past which nothing is written
-local PAD = 10
-local HEAD = 124 -- the header's height
-local STEP = 74 -- from one row to the next
-local ROW = 68 -- a row's height
-local RIM = 4 -- room round the rows for your own line's ring
-local FOOT = 92 -- the foot's height
-local WATER, DEEP = Color3.fromRGB(30, 92, 138), Color3.fromRGB(9, 28, 54)
-local ROW_A, ROW_B = Color3.fromRGB(20, 58, 96), Color3.fromRGB(26, 70, 112)
+local PAD = 16
+local TOP = 154 -- where the list starts
+local STEP = 68 -- from one row to the next
+local ROW = 62 -- a row's height
+local RIM = 3 -- room round the rows for their edges
+local BOLD, HEAVY = Enum.Font.BuilderSansBold, Enum.Font.BuilderSansExtraBold
 
--- The first three places: the row's two halves and the badge
+local FILL, EDGE = Color3.fromRGB(19, 43, 58), Color3.fromRGB(34, 68, 84)
+local CREAM, MUTED = Color3.fromRGB(242, 238, 224), Color3.fromRGB(138, 162, 176)
+local SEA, GOLD = Color3.fromRGB(120, 218, 208), Color3.fromRGB(244, 198, 98)
+-- the first three places: the row, its edge, and its place's number
 local MEDALS = {
-	{ Color3.fromRGB(255, 206, 60), Color3.fromRGB(232, 160, 24), Color3.fromRGB(255, 240, 150) },
-	{ Color3.fromRGB(140, 164, 190), Color3.fromRGB(104, 128, 158), Color3.fromRGB(226, 236, 246) },
-	{ Color3.fromRGB(190, 124, 78), Color3.fromRGB(154, 92, 54), Color3.fromRGB(240, 180, 128) },
+	{ Color3.fromRGB(70, 58, 32), Color3.fromRGB(178, 140, 66), GOLD },
+	{ FILL, Color3.fromRGB(124, 142, 156), Color3.fromRGB(200, 212, 222) },
+	{ FILL, Color3.fromRGB(140, 98, 66), Color3.fromRGB(214, 154, 110) },
 }
 
-type Row = { Id: number, Name: string, Value: number, Rank: number }
+type Row = { Id: number, Name: string, User: string, Value: number, Rank: number }
 type Line = {
 	Frame: Frame,
-	Fill: UIGradient,
-	Ring: UIStroke,
-	Badge: Frame,
-	BadgeFill: UIGradient,
+	Edge: UIStroke,
 	Rank: TextLabel,
 	Face: ImageLabel,
 	Letter: TextLabel,
 	Name: TextLabel,
+	User: TextLabel,
 	Value: TextLabel,
+	Unit: TextLabel,
 	Shown: number, -- the player whose face is on it
 }
 export type Panel = {
@@ -57,10 +57,8 @@ export type Panel = {
 	Lines: { Line },
 	List: ScrollingFrame,
 	Empty: TextLabel,
-	Pill: Frame,
-	PillWords: TextLabel,
-	OwnRank: TextLabel,
-	OwnValue: TextLabel,
+	Who: TextLabel,
+	Own: TextLabel,
 	Next: TextLabel,
 	NextAt: number,
 	Near: boolean,
@@ -84,94 +82,96 @@ function BoardPanel.canvas(): Vector2
 	return Vector2.new(Boards.Panel.Width * PX, Boards.Panel.Height * PX)
 end
 
-local function fitted(label: TextLabel, most: number, least: number?)
-	label.TextScaled = true
+-- Plain words, as big as their box holds up to `most`
+local function words(props: { [string]: any }, parent: Instance, most: number, least: number?): TextLabel
+	props.BackgroundTransparency = 1
+	props.Font = props.Font or BOLD
+	props.TextColor3 = props.TextColor3 or CREAM
+	props.Text = props.Text or ""
+	props.TextScaled = true
+	local label: TextLabel = Kit.new("TextLabel", props, parent)
 	Kit.new("UITextSizeConstraint", { MaxTextSize = most, MinTextSize = least or 12 }, label)
+	return label
 end
 
-local function line(list: Instance, wide: number): Line
+local function line(list: Instance, wide: number, unit: string): Line
 	local frame: Frame = Kit.new("Frame", {
 		Name = "Row",
 		Size = UDim2.fromOffset(wide, ROW),
-		BackgroundColor3 = Kit.White,
+		BackgroundColor3 = FILL,
 		BorderSizePixel = 0,
 		Visible = false,
 	}, list)
-	Kit.corner(frame, 14)
-	local fill = Kit.gradient(frame, ROW_B, ROW_A)
-	local ring = Kit.stroke(frame, 4, Kit.White)
-	ring.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	ring.Enabled = false
-	local badge: Frame = Kit.new("Frame", {
-		Name = "Badge",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 6, 0.5, 0),
-		Size = UDim2.fromOffset(54, 54),
-		BackgroundColor3 = Kit.White,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	}, frame)
-	Kit.corner(badge, 27)
-	local badgeFill = Kit.gradient(badge, ROW_A, ROW_A)
-	local rank = Kit.text({
+	Kit.corner(frame, 6)
+	local edge = Kit.stroke(frame, 2, EDGE)
+	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local rank = words({
 		Name = "Rank",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(50, 42),
-		TextSize = 40,
-		ZIndex = 3,
-	}, badge)
-	fitted(rank, 40)
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 4, 0.5, 0),
+		Size = UDim2.fromOffset(42, 36),
+		Font = HEAVY,
+	}, frame, 30)
+	local letter = words({
+		Name = "Letter",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 50, 0.5, 0),
+		Size = UDim2.fromOffset(46, 46),
+		TextColor3 = MUTED,
+		ZIndex = 2,
+	}, frame, 30)
 	local face: ImageLabel = Kit.new("ImageLabel", {
 		Name = "Face",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 66, 0.5, 0),
-		Size = UDim2.fromOffset(56, 56),
-		BackgroundColor3 = Color3.fromRGB(150, 222, 244),
-		BorderSizePixel = 0,
+		Position = UDim2.new(0, 50, 0.5, 0),
+		Size = UDim2.fromOffset(46, 46),
+		BackgroundTransparency = 1,
 		ZIndex = 3,
 	}, frame)
-	Kit.corner(face, 28)
-	local letter = Kit.text({
-		Name = "Letter",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 66, 0.5, 0),
-		Size = UDim2.fromOffset(56, 56),
-		TextSize = 34,
-		ZIndex = 2,
-	}, frame)
-	local name = Kit.text({
+	Kit.corner(face, 6)
+	local right = 128 -- what is kept for the number
+	local name = words({
 		Name = "Name",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 128, 0.5, 0),
-		Size = UDim2.fromOffset(wide - 128 - 144, 40),
-		TextSize = 34,
+		Position = UDim2.fromOffset(106, 5),
+		Size = UDim2.fromOffset(wide - 106 - right - 8, 34),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
-		ZIndex = 3,
-	}, frame)
-	fitted(name, 34, 18)
-	local value = Kit.text({
+	}, frame, 28, 18)
+	local user = words({
+		Name = "User",
+		Position = UDim2.fromOffset(106, 38),
+		Size = UDim2.fromOffset(wide - 106 - right - 8, 18),
+		TextColor3 = MUTED,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+	}, frame, 17, 14)
+	local value = words({
 		Name = "Value",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -12, 0.5, 0),
-		Size = UDim2.fromOffset(130, 46),
-		TextSize = 44,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 3),
+		Size = UDim2.fromOffset(right - 12, 38),
+		Font = HEAVY,
 		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 3,
-	}, frame)
-	fitted(value, 42)
+	}, frame, 34)
+	local what = words({
+		Name = "Unit",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 39),
+		Size = UDim2.fromOffset(right - 12, 17),
+		Text = unit,
+		TextColor3 = MUTED,
+		TextXAlignment = Enum.TextXAlignment.Right,
+	}, frame, 16)
 	return {
 		Frame = frame,
-		Fill = fill,
-		Ring = ring,
-		Badge = badge,
-		BadgeFill = badgeFill,
+		Edge = edge,
 		Rank = rank,
 		Face = face,
 		Letter = letter,
 		Name = name,
+		User = user,
 		Value = value,
+		Unit = what,
 		Shown = 0,
 	}
 end
@@ -180,26 +180,20 @@ local function write(panel: Panel, l: Line, row: Row, place: number)
 	l.Frame.Visible = true
 	l.Frame.Position = UDim2.fromOffset(RIM, RIM + (place - 1) * STEP)
 	local medal = MEDALS[row.Rank]
-	if medal then
-		l.Fill.Color = Shop.halves(medal[1], medal[2])
-		l.BadgeFill.Color = ColorSequence.new(medal[3], medal[1])
-	else
-		local tone = if place % 2 == 0 then ROW_A else ROW_B
-		l.Fill.Color = ColorSequence.new(tone)
-		l.BadgeFill.Color = ColorSequence.new(Kit.Ink)
-	end
 	local me = Players.LocalPlayer
-	l.Ring.Enabled = me ~= nil and row.Id == me.UserId
+	local mine = me ~= nil and row.Id == me.UserId
+	l.Frame.BackgroundColor3 = if medal then medal[1] else FILL
+	l.Edge.Color = if mine then CREAM elseif medal then medal[2] else EDGE
+	l.Rank.TextColor3 = if medal then medal[3] else MUTED
+	l.Value.TextColor3 = if row.Rank == 1 then GOLD else SEA
 	l.Rank.Text = tostring(row.Rank)
 	l.Name.Text = row.Name
+	l.User.Text = if row.User ~= "" then "@" .. row.User else ""
 	l.Value.Text = BoardPanel.number(panel.Def, row.Value)
-	l.Value.TextColor3 = if panel.Def.Money ~= 0 and row.Rank ~= 1 then Kit.Cash else Kit.White
 	if l.Shown ~= row.Id then
 		l.Shown = row.Id
 		l.Letter.Text = string.upper(string.match(row.Name, utf8.charpattern) or "?")
 		l.Face.Image = if row.Id > 0 then `rbxthumb://type=AvatarHeadShot&id={row.Id}&w=150&h=150` else ""
-		l.Face.BackgroundTransparency = 1
-		l.Letter.BackgroundTransparency = 1
 	end
 end
 
@@ -225,7 +219,7 @@ local function scrolling(panel: Panel)
 	panel.List.ScrollingEnabled = on
 	panel.List.Active = on
 	panel.Gui.Active = on
-	panel.List.ScrollBarThickness = if on then 8 else 0
+	panel.List.ScrollBarThickness = if on then 6 else 0
 	if not on then
 		panel.List.CanvasPosition = Vector2.zero
 	end
@@ -248,19 +242,17 @@ function BoardPanel.own(panel: Panel, value: number)
 			rank = row.Rank
 		end
 	end
-	panel.OwnRank.Text = if rank then "YOU  #" .. rank else "YOU"
-	panel.OwnValue.Text = BoardPanel.number(panel.Def, value)
+	local number = BoardPanel.number(panel.Def, value)
+	panel.Own.Text = if rank then `YOU  #{rank}   {number}` else `YOU   {number}`
 end
 
 -- The list as the server sent it. nil: it has not yet
 function BoardPanel.show(panel: Panel, board: { Global: boolean, Rows: { Row } }?, nextAt: number, own: number)
 	panel.Rows = if board then board.Rows else {}
 	panel.NextAt = nextAt
-	local all = board ~= nil and board.Global
-	panel.PillWords.Text = if all then "ALL PLAYERS" else "THIS SERVER"
-	panel.Pill.BackgroundColor3 = if all then Color3.fromRGB(40, 170, 90) else Color3.fromRGB(24, 52, 92)
+	panel.Who.Text = if board ~= nil and board.Global then "ALL PLAYERS" else "THIS SERVER"
 	panel.Empty.Visible = #panel.Rows == 0
-	panel.Empty.Text = if board then "Nobody here yet.\nBe the first!" else "..."
+	panel.Empty.Text = if board then "Nobody here yet" else "..."
 	panel.List.CanvasSize = UDim2.fromOffset(0, math.max(#panel.Rows * STEP - (STEP - ROW), 0) + RIM * 2)
 	scrolling(panel)
 	fill(panel)
@@ -297,149 +289,57 @@ function BoardPanel.make(def: any, glass: BasePart): Panel
 	local face: Frame = Kit.new("Frame", {
 		Name = "Face",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Kit.White,
+		BackgroundColor3 = Boards.Glass,
 		BorderSizePixel = 0,
 	}, gui)
-	Kit.gradient(face, WATER, DEEP)
-	-- bubbles in the glass
-	for i, b in { { 0.1, 0.62, 60 }, { 0.82, 0.5, 92 }, { 0.5, 0.78, 46 }, { 0.2, 0.9, 110 }, { 0.9, 0.86, 54 } } do
-		local bubble: Frame = Kit.new("Frame", {
-			Name = "Bubble" .. i,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(b[1], b[2]),
-			Size = UDim2.fromOffset(b[3], b[3]),
-			BackgroundColor3 = Kit.Aqua,
-			BackgroundTransparency = 0.86,
+	local wide = size.X - PAD * 2
+	-- one line of words across the middle
+	local function across(name: string, y: number, high: number, most: number, props: { [string]: any }): TextLabel
+		props.Name = name
+		props.Position = UDim2.fromOffset(PAD, y)
+		props.Size = UDim2.fromOffset(wide, high)
+		return words(props, face, most)
+	end
+	local function rule(y: number)
+		Kit.new("Frame", {
+			Name = "Rule",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, y),
+			Size = UDim2.fromOffset(wide - RIM * 2, 2),
+			BackgroundColor3 = Color3.fromRGB(128, 104, 62),
 			BorderSizePixel = 0,
 		}, face)
-		Kit.corner(bubble, b[3] / 2)
 	end
 
-	-- the header
-	local head: Frame = Kit.new("Frame", {
-		Name = "Head",
-		Position = UDim2.fromOffset(PAD, PAD),
-		Size = UDim2.new(1, -PAD * 2, 0, HEAD),
-		BackgroundColor3 = Kit.White,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	}, face)
-	Kit.corner(head, 18)
-	Kit.gradient(head, Kit.White, Kit.White).Color = Shop.halves(def.Head, Kit.darker(def.Head, 0.12))
-	Kit.stroke(head, 4, Kit.Ink).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	local title = Kit.text({
-		Name = "Title",
-		Position = UDim2.fromOffset(12, 6),
-		Size = UDim2.new(1, -24, 0, 66),
-		Text = def.Title,
-		TextSize = 62,
-		ZIndex = 3,
-	}, head, 5)
-	fitted(title, 62)
-	local counts = Kit.text({
-		Name = "Line",
-		Position = UDim2.fromOffset(16, 78),
-		Size = UDim2.new(1, -16 - 180, 0, 34),
-		Text = def.Line,
-		TextSize = 26,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 3,
-	}, head, 3)
-	fitted(counts, 26)
-	local pill: Frame = Kit.new("Frame", {
-		Name = "Pill",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 76),
-		Size = UDim2.fromOffset(164, 38),
-		BackgroundColor3 = Kit.Navy,
-		BorderSizePixel = 0,
-		ZIndex = 3,
-	}, head)
-	Kit.corner(pill, 19)
-	local pillWords = Kit.text({
-		Name = "Words",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -16, 0, 28),
-		TextSize = 24,
-		ZIndex = 4,
-	}, pill, 2.5)
-	fitted(pillWords, 24)
+	local who = across("Who", 14, 24, 22, { TextColor3 = GOLD })
+	across("Title", 42, 56, 45, { Text = def.Title, Font = Kit.Font })
+	across("Line", 102, 26, 23, { Text = def.Line, TextColor3 = SEA })
+	rule(142)
 
-	-- the list
-	local wide = size.X - PAD * 2
-	local top = PAD + HEAD + 8
 	local list: ScrollingFrame = Kit.new("ScrollingFrame", {
 		Name = "List",
-		Position = UDim2.fromOffset(PAD, top),
+		Position = UDim2.fromOffset(PAD, TOP),
 		Size = UDim2.fromOffset(wide, Config.Boards.Rows * STEP - (STEP - ROW) + RIM * 2),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
-		ScrollBarImageColor3 = Kit.Aqua,
+		ScrollBarImageColor3 = SEA,
 		ScrollBarThickness = 0,
 		ElasticBehavior = Enum.ElasticBehavior.Never,
 		ScrollingEnabled = false,
 		Active = false,
-		ZIndex = 2,
 	}, face)
-	local empty = Kit.text({
-		Name = "Empty",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, top + 180),
-		Size = UDim2.fromOffset(wide, 110),
-		Text = "...",
-		TextSize = 40,
-		ZIndex = 3,
-	}, face)
+	local empty = across("Empty", TOP + 180, 60, 34, { TextColor3 = MUTED })
 	local lines: { Line } = {}
 	for i = 1, Config.Boards.Rows + 2 do
-		lines[i] = line(list, wide - RIM * 2)
+		lines[i] = line(list, wide - RIM * 2, def.Unit)
 	end
 
-	-- the foot
-	local foot: Frame = Kit.new("Frame", {
-		Name = "Foot",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, PAD, 1, -PAD),
-		Size = UDim2.new(1, -PAD * 2, 0, FOOT),
-		BackgroundColor3 = Kit.White,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	}, face)
-	Kit.corner(foot, 18)
-	Kit.gradient(foot, Shop.Body, Kit.Ink)
-	Kit.stroke(foot, 4, Kit.Ink).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	local ownRank = Kit.text({
-		Name = "OwnRank",
-		Position = UDim2.fromOffset(18, 8),
-		Size = UDim2.new(0.5, -18, 0, 46),
-		Text = "YOU",
-		TextSize = 40,
-		TextColor3 = Kit.Sun,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 3,
-	}, foot)
-	fitted(ownRank, 40)
-	local ownValue = Kit.text({
-		Name = "OwnValue",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -18, 0, 8),
-		Size = UDim2.new(0.5, -18, 0, 46),
-		TextSize = 42,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 3,
-	}, foot)
-	fitted(ownValue, 42)
-	local nextWords = Kit.text({
-		Name = "Next",
-		Position = UDim2.fromOffset(18, 56),
-		Size = UDim2.new(1, -36, 0, 28),
-		TextSize = 24,
-		TextColor3 = Color3.fromRGB(170, 220, 244),
-		ZIndex = 3,
-	}, foot, 2.5)
+	local foot = TOP + Config.Boards.Rows * STEP + 12
+	rule(foot)
+	local own = across("Own", foot + 22, 42, 36, { Font = HEAVY, TextColor3 = GOLD })
+	local nextWords = across("Next", foot + 72, 26, 22, { TextColor3 = MUTED })
 
 	local panel: Panel = {
 		Gui = gui,
@@ -448,10 +348,8 @@ function BoardPanel.make(def: any, glass: BasePart): Panel
 		Lines = lines,
 		List = list,
 		Empty = empty,
-		Pill = pill,
-		PillWords = pillWords,
-		OwnRank = ownRank,
-		OwnValue = ownValue,
+		Who = who,
+		Own = own,
 		Next = nextWords,
 		NextAt = 0,
 		Near = false,

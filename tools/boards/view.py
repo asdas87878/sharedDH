@@ -117,9 +117,9 @@ for i, row in enumerate(DATA["Rows"], 1):
     rows.append(col)
     for p in row["parts"]:
         add(p["shape"], p["size"], p["m"], material(p["color"], p["glow"], p["clear"]), col)
-        if p["glow"] and p["shape"] == "Ball":
+        if p["glow"]:
             lamp = bpy.data.objects.new("l", bpy.data.lights.new("l", "POINT"))
-            lamp.data.energy = 60
+            lamp.data.energy = 25
             lamp.data.color = p["color"]
             lamp.data.shadow_soft_size = 0.8
             lamp.data.use_shadow = False
@@ -177,16 +177,14 @@ def pens(on):
 
 near, far = math.radians(20), math.radians(40)  # along the boards' own facing; towards the hub's middle
 X, Z = O.x, O.z
+only(1)
 pens(False)
-for i in (1, 2, 3):
-    only(i)
-    if not ONLY or "close" in ONLY:
-        shot(f"close-{i}", (X + math.sin(near) * 52, 13, Z - math.cos(near) * 52), (X + 0.4, 17.2, Z), 43, 1500, 1060)
+if not ONLY or "close" in ONLY:
+    shot("close", (X + math.sin(near) * 50, 12, Z - math.cos(near) * 50), (X + 0.4, 15.6, Z), 43, 2400, 1500)
+if not ONLY or "sign" in ONLY:
+    shot("sign", (X + math.sin(near) * 26, 22, Z - math.cos(near) * 26), (X + 0.2, 26.3, Z), 26, 2400, 760)
 pens(True)
-for i in (1, 2, 3):
-    only(i)
-    if not ONLY or "phone" in ONLY:
-        shot(f"phone-{i}", (X + math.sin(far) * 60, 9, Z - math.cos(far) * 60), (X, 14, Z), 70, 1688, 780)
+if not ONLY or "phone" in ONLY:
+    shot("phone", (X + math.sin(far) * 60, 9, Z - math.cos(far) * 60), (X, 14, Z), 70, 1688, 780)
 if not ONLY or "spawn" in ONLY:
-    only(int(DATA.get("Pick", 3)))
     shot("spawn", (3000, 9, -100), (2955, 12, -38), 70, 1688, 780)

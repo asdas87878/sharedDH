@@ -2955,7 +2955,6 @@ Config.Admin = {
 -- on each player's own machine from Shared/Boards, UI/BoardPanel writes on them. Read live, except Global, Store and List.
 Config.Boards = {
 	On = 1, -- 0: no boards, nothing stored, and the old blank slate (Replaces) stays
-	Style = 3, -- the frames: 1 driftwood and rope, 2 coral reef and shell, 3 sunken brass. In Studio the workspace's "BoardStyle" (1 to 3) shows another
 	Replaces = { "Earners" }, -- stations of the hub that the boards stand in place of: taken out while the game runs (the place keeps them)
 	-- where they stand: the middle of the row on the hub's floor (Dock.HubFloor), along the wall right of the dive gate
 	X = -78, -- studs from the floor's middle line, the sea ahead of you and minus to the right
@@ -2964,7 +2963,6 @@ Config.Boards = {
 	Pitch = 14.4, -- studs from one board's middle to the next
 	Turn = -6, -- degrees each board turns further on its own foot (more, and they hide each other's edges from the spawn)
 	Scale = 1, -- every size times this
-	Animate = 140, -- studs from the camera within which the emblems and bubbles move
 	Hide = 420, -- past this the boards are taken out of the world
 	ScrollNear = 24, -- studs within which the list can be scrolled (further off a finger on it turns the camera)
 	-- what they list
@@ -2987,17 +2985,18 @@ Config.Boards = {
 	Store = "Boards1_", -- the stored lists' names: this and the board's Id. A new name starts the boards again
 	-- Id; Title and Line, what it is called and the small words under it; Attribute, the player attribute it reads
 	-- (none: LeaderboardService's own way); Saved, the save part (SaveParts) its number is kept in; Scale, whole steps
-	-- to one (10: tenths are kept); Money, written with a $; Head, the header's colour; Emblem, what stands on top
+	-- to one (10: tenths are kept); Money, written with a $; Unit, the word under each
+	-- number; Emblem, the sign at the board's head (Shared/Boards)
 	List = {
 		{
 			Id = "Oxygen",
 			Title = "TOP OXYGEN",
 			Line = "biggest max Oxygen",
+			Unit = "OXYGEN",
 			Attribute = "MaxOxygen",
 			Saved = "Oxygen",
 			Scale = 1,
 			Money = 0,
-			Head = Color3.fromRGB(44, 196, 230),
 			Emblem = "Bubble",
 			On = 1,
 		},
@@ -3005,11 +3004,11 @@ Config.Boards = {
 			Id = "Collectors",
 			Title = "TOP COLLECTORS",
 			Line = "fish looks in the Index",
+			Unit = "LOOKS",
 			Attribute = "",
 			Saved = "Index", -- (no such part yet: the Index is not saved, so this board stays with this server's players)
 			Scale = 1,
 			Money = 0,
-			Head = Color3.fromRGB(255, 120, 130),
 			Emblem = "Book",
 			On = 1,
 		},
@@ -3017,11 +3016,11 @@ Config.Boards = {
 			Id = "Earners",
 			Title = "TOP EARNERS",
 			Line = "tank coins a second",
+			Unit = "A SECOND",
 			Attribute = "Income",
 			Saved = "Tank",
 			Scale = 10,
 			Money = 1,
-			Head = Color3.fromRGB(250, 190, 70),
 			Emblem = "Chest",
 			On = 1,
 		},
@@ -3029,11 +3028,11 @@ Config.Boards = {
 			Id = "Deepest",
 			Title = "DEEPEST DIVERS",
 			Line = "furthest dive, metres",
+			Unit = "METRES",
 			Attribute = "BestMetres",
 			Saved = "Best",
 			Scale = 1,
 			Money = 0,
-			Head = Color3.fromRGB(110, 130, 250),
 			Emblem = "Anchor",
 			On = 0, -- a client moves its own character, so this number is the easiest to cheat (docs/reviews/code-audit)
 		},

@@ -53,7 +53,7 @@
 --       reason | "Gain", amount | "Up", level, name | "UpNo", why
 --     Boards (LeaderboardService and BoardController, both ways): the client sends "Sync" (send me the boards); the
 --       server sends "State", { Next = server time of the next look, Boards = { { Id, Global, Rows = { { Id, Name,
---       Value, Rank } } } } } (Global false: this server's players only)
+--       User, Value, Rank } } } } } (Global false: this server's players only)
 --   Index (IndexService and UI/IndexPanel, both ways; the rewards: Config.Index):
 --     the client sends "Claim", fishId (the reward of a kind it has found) | "ClaimLand", land (the reward of a land
 --       whose whole set it has found) | "ClaimAll" (every reward it may claim) | "Sync" (send me my Index again)

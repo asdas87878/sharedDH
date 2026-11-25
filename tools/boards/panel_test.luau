@@ -2,7 +2,7 @@
 -- Shared.Boards, Controllers.BoardController and Config, with the stand-ins of tools/index (a wrong property name or
 -- type is an error, as in Roblox). It checks the words, the rows as they are scrolled, the "this server" label, your
 -- own line, that a list is only scrolled from near, and that the row of boards is built, moved, rebuilt and taken away.
--- It cannot see them: a second argument writes the panels' trees and every style's parts for tools/boards/picture.py.
+-- It cannot see them: a second argument writes the panels' trees and the boards' parts for tools/boards/picture.py.
 -- usage: rojo build -o /tmp/place.rbxl && lune run tools/boards/panel_test.luau /tmp/place.rbxl [dump folder]
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -78,53 +78,42 @@ local List = Config.Boards.List
 -- The parts
 
 local counts = {}
-for style = 1, 3 do
-	for i, def in List do
-		local parts = Boards.board(style, def.Emblem, i, i == 3)
-		local low, high, back, front, left, right = math.huge, -math.huge, math.huge, -math.huge, math.huge, -math.huge
-		local bad = 0
-		for _, piece in parts do
-			local cf, s = piece.At, piece.Size
-			if s.X <= 0 or s.Y <= 0 or s.Z <= 0 or cf ~= cf then
-				bad += 1
-			end
-			local function reach(v: any): number
-				return (math.abs(v.X) * s.X + math.abs(v.Y) * s.Y + math.abs(v.Z) * s.Z) / 2
-			end
-			local rx = Vector3.new(cf.RightVector.X, cf.UpVector.X, cf.LookVector.X)
-			local ry = Vector3.new(cf.RightVector.Y, cf.UpVector.Y, cf.LookVector.Y)
-			local rz = Vector3.new(cf.RightVector.Z, cf.UpVector.Z, cf.LookVector.Z)
-			low, high = math.min(low, cf.Y - reach(ry)), math.max(high, cf.Y + reach(ry))
-			if not piece.Move then
-				left, right = math.min(left, cf.X - reach(rx)), math.max(right, cf.X + reach(rx))
-				back, front = math.min(back, cf.Z - reach(rz)), math.max(front, cf.Z + reach(rz))
-			end
+for _, def in List do
+	local parts = Boards.board(def.Emblem)
+	local low, high, back, front, left, right = math.huge, -math.huge, math.huge, -math.huge, math.huge, -math.huge
+	local bad = 0
+	for _, piece in parts do
+		local cf, s = piece.At, piece.Size
+		if s.X <= 0 or s.Y <= 0 or s.Z <= 0 or cf ~= cf then
+			bad += 1
 		end
-		counts[style .. def.Id] = #parts
-		ok(
-			string.format(
-				"style %d %s: %d parts, x %.1f..%.1f, y %.1f..%.1f, z %.1f..%.1f",
-				style,
-				def.Id,
-				#parts,
-				left,
-				right,
-				low,
-				high,
-				back,
-				front
-			),
-			bad == 0
-				and #parts <= 145
-				and low >= -0.2
-				and left >= -8.6
-				and right <= 8.6
-				and back >= -3.2
-				and front <= 3.2
-		)
+		local function reach(v: any): number
+			return (math.abs(v.X) * s.X + math.abs(v.Y) * s.Y + math.abs(v.Z) * s.Z) / 2
+		end
+		local rx = Vector3.new(cf.RightVector.X, cf.UpVector.X, cf.LookVector.X)
+		local ry = Vector3.new(cf.RightVector.Y, cf.UpVector.Y, cf.LookVector.Y)
+		local rz = Vector3.new(cf.RightVector.Z, cf.UpVector.Z, cf.LookVector.Z)
+		low, high = math.min(low, cf.Y - reach(ry)), math.max(high, cf.Y + reach(ry))
+		left, right = math.min(left, cf.X - reach(rx)), math.max(right, cf.X + reach(rx))
+		back, front = math.min(back, cf.Z - reach(rz)), math.max(front, cf.Z + reach(rz))
 	end
+	counts[def.Id] = #parts
+	ok(
+		string.format(
+			"%s: %d parts, x %.1f..%.1f, y %.1f..%.1f, z %.1f..%.1f",
+			def.Id,
+			#parts,
+			left,
+			right,
+			low,
+			high,
+			back,
+			front
+		),
+		bad == 0 and #parts <= 40 and low >= -0.2 and left >= -7.2 and right <= 7.2 and back >= -1.6 and front <= 1.6
+	)
 end
-ok("a style that is none is the first", Boards.style(9) == 1 and Boards.style(nil) == 1 and Boards.style(2) == 2)
+ok("an emblem that is none is a board with no sign", #Boards.board("None") < #Boards.board("Book"))
 
 ----------------------------------------------------------------------------------------------------------------------
 -- The words
@@ -194,7 +183,13 @@ local NAMES = {
 local function sample(values: { number }, mine: number): { any }
 	local rows = {}
 	for i, value in values do
-		rows[i] = { Id = if i == mine then 5005 else 100 + i, Name = NAMES[i], Value = value, Rank = i }
+		rows[i] = {
+			Id = if i == mine then 5005 else 100 + i,
+			Name = NAMES[i],
+			User = "",
+			Value = value,
+			Rank = i,
+		}
 	end
 	if mine > 0 then
 		rows[mine].Name = "You"
@@ -221,15 +216,21 @@ for i, row in SAMPLES.Earners do
 	end
 end
 
+for _, rows in SAMPLES do
+	for _, row in rows do
+		row.User = string.lower(row.Name) .. "_" .. row.Id % 100
+	end
+end
+
 local glass = gui.make("Part", gui.workspace)
 local built, p = pcall(Panel.make, oxygen, glass)
 ok("a panel builds", built, p)
 ok("before the server has answered it waits", p.Empty.Visible and p.Empty.Text == "...")
 Panel.show(p, { Global = false, Rows = {} }, 1040, 100)
 ok("an empty list says so", p.Empty.Visible and string.find(p.Empty.Text, "Nobody") ~= nil)
-ok("this server's list is labelled", p.PillWords.Text == "THIS SERVER")
+ok("this server's list is labelled", p.Who.Text == "THIS SERVER")
 Panel.show(p, { Global = true, Rows = SAMPLES.Oxygen }, 1040, 612300)
-ok("a list of everyone is labelled", p.PillWords.Text == "ALL PLAYERS")
+ok("a list of everyone is labelled", p.Who.Text == "ALL PLAYERS")
 local function visible(): { string }
 	local out = {}
 	for _, l in p.Lines do
@@ -240,9 +241,13 @@ local function visible(): { string }
 	return out
 end
 ok("ten lines for twelve rows", #p.Lines == 10 and #visible() == 10, #visible())
-ok("the canvas holds all twelve", p.List.CanvasSize.Y.Offset == 12 * 74 - 6 + 8, p.List.CanvasSize.Y.Offset)
-ok("your line is ringed, and only yours", p.Lines[5].Ring.Enabled and not p.Lines[4].Ring.Enabled)
-ok("your place and number are at the foot", p.OwnRank.Text == "YOU  #5" and p.OwnValue.Text == "612,300")
+ok("the canvas holds all twelve", p.List.CanvasSize.Y.Offset == 12 * 68 - 6 + 6, p.List.CanvasSize.Y.Offset)
+ok("your line is edged apart from the others", p.Lines[5].Edge.Color ~= p.Lines[4].Edge.Color)
+ok("and no other one is", p.Lines[4].Edge.Color == p.Lines[6].Edge.Color)
+ok("only the first place is gold", p.Lines[1].Value.TextColor3 ~= p.Lines[2].Value.TextColor3)
+ok("the user name is under the name", p.Lines[1].User.Text == "@" .. SAMPLES.Oxygen[1].User, p.Lines[1].User.Text)
+ok("and what is counted under the number", p.Lines[1].Unit.Text == "OXYGEN")
+ok("your place and number are at the foot", p.Own.Text == "YOU  #5   612,300", p.Own.Text)
 ok("far off it cannot be scrolled", not p.List.ScrollingEnabled and not p.Gui.Active)
 Panel.near(p, true)
 ok("near, it can", p.List.ScrollingEnabled and p.Gui.Active)
@@ -253,7 +258,7 @@ for _, l in p.Lines do
 	end
 end
 ok("each row has a head picture", faces == 10, faces)
-p.List.CanvasPosition = Vector2.new(0, 4 * 74 + 10)
+p.List.CanvasPosition = Vector2.new(0, 4 * 68 + 10)
 local seen = {}
 for _, l in p.Lines do
 	if l.Frame.Visible then
@@ -279,14 +284,14 @@ p.Gui:Destroy()
 local money = Panel.make(earners, glass)
 Panel.show(
 	money,
-	{ Global = false, Rows = { { Id = 5005, Name = "You", Value = asRow(earners, 12.39), Rank = 1 } } },
+	{ Global = false, Rows = { { Id = 5005, Name = "You", User = "you", Value = asRow(earners, 12.39), Rank = 1 } } },
 	1040,
 	12.39
 )
 ok(
 	"your own row and the foot say the same on a panel",
-	money.Lines[1].Value.Text == "$12.3" and money.OwnValue.Text == "$12.3",
-	`{money.Lines[1].Value.Text}, {money.OwnValue.Text}`
+	money.Lines[1].Value.Text == "$12.3" and money.Own.Text == "YOU  #1   $12.3",
+	`{money.Lines[1].Value.Text}, {money.Own.Text}`
 )
 money.Gui:Destroy()
 
@@ -330,7 +335,10 @@ toClient:Fire("State", {
 	Next = 1040,
 	Boards = { { Id = "Oxygen", Global = false, Rows = SAMPLES.Oxygen } },
 })
-ok("what the server sent shows", shown[1].Panel.Rows == SAMPLES.Oxygen and shown[1].Panel.OwnValue.Text == "612,300")
+ok(
+	"what the server sent shows",
+	shown[1].Panel.Rows == SAMPLES.Oxygen and shown[1].Panel.Own.Text == "YOU  #5   612,300"
+)
 local folder = gui.workspace:FindFirstChild("Boards")
 local row = folder:FindFirstChild("Row")
 local total, solids, query = 0, 0, 0
@@ -341,22 +349,20 @@ for _, d in row:GetDescendants() do
 		query += if d.CanQuery then 1 else 0
 	end
 end
-ok("parts in the row: " .. total, total < 400)
+ok("parts in the row: " .. total, total < 130)
 ok("only the bed (6) and a block a board are solid", solids == 9, solids)
 ok("only the three glasses answer a ray", query == 3, query)
-local before = shown[1].Parts[1].CFrame
-step(0.5)
-ok("the emblem moves near", shown[1].Parts[1].CFrame ~= before)
 gui.camera.CFrame = CFrame.new(3000, 8, 400)
 step(0.5)
 ok("past Hide the row is out of the world", row.Parent == nil)
 gui.camera.CFrame = CFrame.new(3000, 8, -88)
 step(0.5)
 ok("and back", row.Parent == folder)
-studio = true
-gui.workspace:SetAttribute("BoardStyle", 1)
+Config.Boards.Pitch += 1
 step(1.1)
-ok("in Studio the style is turned live", Controller.Test.shown()[1] ~= nil and row.Parent == nil)
+ok("a number changed while playing makes the row again", Controller.Test.shown()[1] ~= nil and row.Parent == nil)
+Config.Boards.Pitch -= 1
+step(1.1)
 ok("one row only", #folder:GetChildren() == 1)
 Config.Boards.On = 0
 step(1.1)
@@ -398,7 +404,7 @@ if dumpTo then
 				rows = {}
 				for i = 1, 4 do
 					local from = SAMPLES[def.Id][i + 3]
-					rows[i] = { Id = from.Id, Name = from.Name, Value = from.Value, Rank = i }
+					rows[i] = { Id = from.Id, Name = from.Name, User = from.User, Value = from.Value, Rank = i }
 				end
 			end
 			Panel.show(one, { Global = global, Rows = rows }, 1037, SAMPLES[def.Id][5].Value)
@@ -422,30 +428,23 @@ if dumpTo then
 			m = { at:GetComponents() },
 			color = { piece.Color.R, piece.Color.G, piece.Color.B },
 			glow = piece.Glow == true,
-			clear = piece.Clear or 0,
+			clear = 0,
 		}
 	end
 	local space2 = Boards.row(floor.CFrame, floor.Size, c.X, c.Z, c.Face)
-	for style = 1, 3 do
-		local parts, glasses = {}, {}
-		for _, piece in Boards.bed(style, 2 * c.Pitch) do
-			table.insert(parts, plain(piece, space2 * piece.At))
-		end
-		for i, at in Boards.places(3, c.Pitch, c.Turn) do
-			for _, piece in Boards.board(style, List[i].Emblem, i, i == 3) do
-				table.insert(parts, plain(piece, space2 * at * piece.At))
-			end
-			local q = Boards.Panel
-			local face = space2 * at * CFrame.new(0, q.Bottom + q.Height / 2, q.Front)
-			table.insert(glasses, { id = List[i].Id, m = { face:GetComponents() } })
-		end
-		out.Rows[style] = { parts = parts, glasses = glasses }
+	local parts, glasses = {}, {}
+	for _, piece in Boards.bed(2 * c.Pitch) do
+		table.insert(parts, plain(piece, space2 * piece.At))
 	end
-	local anchor = {}
-	for _, piece in Boards.board(1, "Anchor", 4, true) do
-		table.insert(anchor, plain(piece, piece.At))
+	for i, at in Boards.places(3, c.Pitch, c.Turn) do
+		for _, piece in Boards.board(List[i].Emblem) do
+			table.insert(parts, plain(piece, space2 * at * piece.At))
+		end
+		local q = Boards.Panel
+		local face = space2 * at * CFrame.new(0, q.Bottom + q.Height / 2, q.Front)
+		table.insert(glasses, { id = List[i].Id, m = { face:GetComponents() } })
 	end
-	out.Anchor = anchor
+	out.Rows[1] = { parts = parts, glasses = glasses }
 	fs.writeFile(dumpTo .. "/parts.json", serde.encode("json", out))
 end
 

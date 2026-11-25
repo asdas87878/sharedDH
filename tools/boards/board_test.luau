@@ -344,6 +344,7 @@ ok("looks found in the Index", line(board("Collectors")) == "1:Cy=24 2:Ann=4", l
 ok(
 	"coins a second: tenths, past 2^53, and no line for 0",
 	board("Earners").Rows[1].Name == "Cy"
+		and board("Earners").Rows[1].User == "Cy"
 		and math.abs(board("Earners").Rows[1].Value / 2.5e16 - 1) < 1e-12
 		and board("Earners").Rows[2].Value == 12.3
 		and #board("Earners").Rows == 2,
@@ -419,6 +420,16 @@ ok(
 	line(board("Oxygen"))
 )
 ok("names are asked for once only", #nameAsks == 1)
+local away, right = 0, 0
+for _, b in T.state().Boards do
+	for _, row in b.Rows do
+		if string.find(row.Name, "^name") then
+			away += 1
+			right += if row.User == "user" .. row.Id then 1 else 0
+		end
+	end
+end
+ok("and user names come with them", away > 0 and right == away, `{right} of {away}`)
 local reads = calls.read
 turn(5)
 turn(5)
