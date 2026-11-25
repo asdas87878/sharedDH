@@ -7,9 +7,14 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
 - The Shop opens on the pack: a big card after the user's mock-up (`ShopScreen.packCard`, `Config.Packs.Card`), Packs above Featured.
   The icon at the top right (`UI/PackIcon`, `Config.Packs.Icon`) shows at the dock until the pack is bought and opens the Shop there.
-  Clicked in Play, no errors ([picture](attachments/shop-great-white-pack-built.png)). Not tried on a phone, nor with the price on
+  Clicked in Play, no errors ([picture](attachments/great-white-pack-and-x4.jpg)). Not tried on a phone, nor with the price on
   (the product id is 0, so the button says Soon). In Studio's place, not saved.
-- The fish icons wait for the user's own zip (the one sent was our kit for ChatGPT).
+- **Fish icons:** the user's 79 drawn ones are in (`UI/FishIcons`, three new pages uploaded; no outline drawn round them any more:
+  `FishIcons.Outlined`). Live model instead: Great White (its icon shows the old model), Whale Shark, Ginsu Shark, Otodus,
+  Ringbearer, Totality. `tools/ui/fish_icons/cut.py` must not overwrite the file now.
+- The icon is round after the reference's badge, and both it and the card show the whole shark (`Portrait.new`'s `Whole`).
+- **Seahorse:** beats of 0.25 s (+4 at level 1, the same 16 a second), and the server rolls x2 (8%) or x4 (2%) a beat
+  (`Config.Train.Bonus`, about +14% on average), each with its own pop. Ridden for 12 s: 49 beats, 5 x2, 1 x4.
 
 ## 2026-11-25, the ship pass (game code, the user's word)
 **State:** on main; place saved (the user: "Yes, both"); the 22 pictures are uploaded, load and are in the code (ids in art/ui/icons/roblox.json; the Great White's icon is left to its live model, its render is the old one). Every product id is still 0. **The rockers' and submarines' 207 meshes are uploaded** (the user: "Yes, upload them"; ids in tools/studio/uploaded_meshes.json, tool `tools/studio/upload_meshes.py`): each compared with its local file and the same, switched in the place, all load in Play, none local. An install from install_tiers.py or tools/subs/install.py puts the local ones back: run `upload_meshes.py <id> apply` after it. CosmicHollow (not in the fish table) stays local.

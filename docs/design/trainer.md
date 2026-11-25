@@ -9,7 +9,7 @@ the player about every 0.5 s."
 ![the coil and the pad](../attachments/seahorse-trainer-still.png)
 
 > **2026-11-25 (the user): twice as often, half the value.** The level's Oxygen a second now comes in beats of
-> `Train.Every` (0.5 s), whole numbers, a second adding up to exactly the level's (`Config.trainGain`).
+> `Train.Every` (0.25 s since 2026-11-25, with a chance of x2 or x4 a beat: `Train.Bonus`; 0.5 s before), whole numbers, a second adding up to exactly the level's (`Config.trainGain`).
 
 > **Task e1 (2026-11-20): whole numbers once a second.** A seated rider gets the level's whole Oxygen
 > (`Train.Levels`: 4, 6, 10 ... 600, placeholders) once for every whole second seated (`Config.trainTicks`), never a

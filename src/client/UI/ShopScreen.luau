@@ -548,10 +548,11 @@ local function packCard(parent: Instance, offer: Products.Offer, order: number)
 	sunburst(card, Vector2.new(0.31, 0.43), false, true)
 	local shown = Portrait.new(card, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, -SIDE / 2 - 8, 0, upper / 2 + 14),
-		Size = UDim2.fromOffset(540, upper + 24),
+		Position = UDim2.new(0.5, -SIDE / 2 - 8, 0, upper / 2 + 24),
+		Size = UDim2.fromOffset(480, upper - 44),
+		Whole = true,
 		ZIndex = 4,
-		Aspect = 540 / (upper + 24),
+		Aspect = 480 / (upper - 44),
 	})
 	shown.show(offer.Fish)
 	local title = letters(card, offer.Name, 16, 32, 42, true);

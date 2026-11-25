@@ -535,7 +535,18 @@ end
 -- ---------------------------------------------------------------- the "+n" pops
 -- Each pop springs up at a random spot round us, drifts up and fades: moved here frame by frame on the clock (not
 -- tweened), so a held clock holds them too.
-type Pop = { Group: CanvasGroup, Grow: UIScale, X: number, Y: number, Rise: number, Tilt: number, Born: number }
+type Pop = {
+	Group: CanvasGroup,
+	Grow: UIScale,
+	X: number,
+	Y: number,
+	Rise: number,
+	Tilt: number,
+	Born: number,
+	Rays: Frame?, -- (a bonus's: turned)
+	Ring: Frame?, -- (and grown out of the middle to Wide)
+	Wide: number,
+}
 
 local POP_LIFE = 1.15
 local POP_FADE = 0.5 -- the fade starts this long in
@@ -563,7 +574,14 @@ local function amountText(n: number): string
 	return Config.wholeNumber(n)
 end
 
-local function pop(amount: number)
+-- A pop worth more (Config.Train.Bonus): x2 is gold, x4 pink and bigger, each on turning rays with a ring bursting out
+local BONUS = {
+	[2] = { Colour = Color3.fromRGB(255, 200, 40), Grow = 1.3, Rays = 8 },
+	[4] = { Colour = Color3.fromRGB(255, 80, 214), Grow = 1.7, Rays = 12 },
+}
+
+local function pop(amount: number, mult: number?)
+	local bonus = BONUS[mult or 1]
 	local character = Players.LocalPlayer.Character
 	local head = character and character:FindFirstChild("Head")
 	local camera = workspace.CurrentCamera
@@ -575,7 +593,7 @@ local function pop(amount: number)
 		return
 	end
 	local scale = math.clamp(camera.ViewportSize.Y / 720, 0.75, 1.6)
-	local size = math.floor(30 * scale)
+	local size = math.floor(30 * scale * (if bonus then bonus.Grow else 1))
 	local icon = math.floor(size * 1.35)
 	local group = Instance.new("CanvasGroup")
 	group.Name = "Pop"
@@ -584,21 +602,87 @@ local function pop(amount: number)
 	local word = Kit.word(group, {
 		Text = "+" .. amountText(amount),
 		TextSize = size,
-		Pal = AIR,
+		Pal = if bonus then Kit.palOf(bonus.Colour) else AIR,
 		Glow = true,
 		AnchorPoint = Vector2.new(0, 0.5),
 		ZIndex = 2,
 	})
 	local pad = 8
-	group.Size = UDim2.fromOffset(pad + icon + 2 + word.wide + pad, math.max(icon, word.high) + pad * 2)
-	word.root.Position = UDim2.new(0, pad + icon + 2, 0.5, 0)
+	local wide, high = pad + icon + 2 + word.wide + pad, math.max(icon, word.high) + pad * 2
+	local side = 0 -- (room round it for the rays and the ring)
+	local rays: Frame? = nil
+	local ring: Frame? = nil
+	if bonus then
+		side = math.floor(size * 1.2)
+		local across = math.max(wide, high) + side
+		local hub = Instance.new("Frame")
+		hub.Name = "Rays"
+		hub.AnchorPoint = Vector2.new(0.5, 0.5)
+		hub.Position = UDim2.fromScale(0.5, 0.5)
+		hub.Size = UDim2.fromOffset(1, 1)
+		hub.BackgroundTransparency = 1
+		for i = 1, bonus.Rays do
+			local ray = Instance.new("Frame")
+			ray.AnchorPoint = Vector2.new(0.5, 0.5)
+			ray.Size = UDim2.fromOffset(across, math.floor(size * 0.24))
+			ray.Rotation = i * 180 / bonus.Rays
+			ray.BackgroundColor3 = bonus.Colour:Lerp(Color3.new(1, 1, 1), 0.15)
+			ray.BackgroundTransparency = 0.05
+			ray.BorderSizePixel = 0
+			local fade = Instance.new("UIGradient")
+			fade.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.3, 0.25),
+				NumberSequenceKeypoint.new(0.7, 0.25),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			fade.Parent = ray
+			ray.Parent = hub
+		end
+		hub.Parent = group
+		rays = hub
+		local burst = Instance.new("Frame")
+		burst.Name = "Ring"
+		burst.AnchorPoint = Vector2.new(0.5, 0.5)
+		burst.Position = UDim2.fromScale(0.5, 0.5)
+		burst.BackgroundTransparency = 1
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(1, 0)
+		corner.Parent = burst
+		Kit.stroke(burst, math.max(2, size * 0.1), bonus.Colour)
+		burst.Parent = group
+		ring = burst
+		high = math.max(high, across)
+		-- (how many times over: a plate of its own over the number, so "+16" is never read as 16 x 4)
+		local plate = Instance.new("Frame")
+		plate.Name = "Times"
+		plate.AnchorPoint = Vector2.new(0.5, 1)
+		plate.Position = UDim2.new(0.5, 0, 0.5, -math.floor(size * 0.55))
+		plate.Size = UDim2.fromOffset(math.floor(size * 1.3), math.floor(size * 0.72))
+		plate.Rotation = -7
+		plate.BackgroundColor3 = bonus.Colour
+		plate.BorderSizePixel = 0
+		plate.ZIndex = 3
+		Kit.corner(plate, math.floor(size * 0.2))
+		Kit.stroke(plate, math.max(2, size * 0.07), Kit.Edge)
+		Kit.text({
+			Size = UDim2.fromScale(1, 1),
+			TextSize = math.floor(size * 0.62),
+			Text = `x{mult}!`,
+			ZIndex = 4,
+		}, plate, math.max(1.5, size * 0.06))
+		plate.Parent = group
+	end
+	group.Size = UDim2.fromOffset(wide + side, high)
+	word.root.Position = UDim2.new(0, side / 2 + pad + icon + 2, 0.5, 0)
 	local picture = Instance.new("ImageLabel")
 	picture.Name = "Oxygen"
 	picture.BackgroundTransparency = 1
 	picture.Image = Kit.Textures.Oxygen
 	picture.ScaleType = Enum.ScaleType.Fit
 	picture.AnchorPoint = Vector2.new(0, 0.5)
-	picture.Position = UDim2.new(0, pad, 0.5, 0)
+	picture.Position = UDim2.new(0, side / 2 + pad, 0.5, 0)
+	picture.ZIndex = 2
 	picture.Size = UDim2.fromOffset(icon, icon)
 	picture.Parent = group
 	local grow = Instance.new("UIScale")
@@ -613,6 +697,9 @@ local function pop(amount: number)
 		Rise = 70 * scale,
 		Tilt = (math.random() * 2 - 1) * 8,
 		Born = clock(),
+		Rays = rays,
+		Ring = ring,
+		Wide = high,
 	}
 	group.Position = UDim2.fromOffset(p.X, p.Y)
 	group.Rotation = p.Tilt
@@ -633,6 +720,12 @@ stepPops = function(now: number)
 		p.Grow.Scale = 0.35 + 0.65 * backOut(math.min(1, age / 0.16))
 		p.Group.Position = UDim2.fromOffset(p.X, p.Y - p.Rise * (1 - (1 - s) * (1 - s)))
 		p.Group.Rotation = p.Tilt * (1 - 0.7 * s)
+		if p.Rays and p.Ring then
+			p.Rays.Rotation = age * 70
+			local out = 1 - (1 - math.min(1, age / 0.45)) ^ 2
+			p.Ring.Size = UDim2.fromOffset(p.Wide * 0.95 * out, p.Wide * 0.95 * out);
+			(p.Ring:FindFirstChildOfClass("UIStroke") :: UIStroke).Transparency = out
+		end
 		local f = math.clamp((age - POP_FADE) / (POP_LIFE - POP_FADE), 0, 1)
 		p.Group.GroupTransparency = f * f
 	end
@@ -768,7 +861,7 @@ local function listen()
 		elseif what == "Gain" and type(a) == "number" then
 			lastGain = a
 			if not held() then
-				pop(a)
+				pop(a, b)
 			end
 		end
 	end)

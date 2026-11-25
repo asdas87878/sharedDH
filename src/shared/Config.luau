@@ -787,8 +787,12 @@ Config.Train = {
 	-- (Share, a share of your max Oxygen on top, went 2026-11-20, task e1: Hugo, "each upgrade gives one set whole
 	-- number of oxygen, no decimals". Training gives whole numbers only: Config.trainGain.)
 	-- The level's Oxygen a second comes in beats this long, each a "+n" pop (the user, 2026-11-25: twice as often, half
-	-- the value each; it was 1): a second's beats add up to exactly the level's Oxygen. 1 over a whole number.
-	Every = 0.5,
+	-- the value each; it was 1, then 0.5; and again the same day: "again ... at twice the rate, with half the value"): a second's beats add up to exactly the level's Oxygen. 1 over a whole number.
+	Every = 0.25,
+	-- Now and then a beat is worth more, with its own show (the user, 2026-11-25: "a random x2 or x4 multiplier that shows
+	-- with a different effect around it"): each beat's chance of each, the server's roll. Together they add 14% to what
+	-- is trained. Chance 0: never.
+	Bonus = { { Mult = 4, Chance = 0.02 }, { Mult = 2, Chance = 0.08 } },
 	Radius = 10, -- studs from the spot's middle that count as on it
 	Right = 70, -- the stand-in pad: this far to the right of the dock's spawn,
 	Ahead = 24, -- and this far toward the water
