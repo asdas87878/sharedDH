@@ -552,8 +552,8 @@ the DIVE IN arch (the edge is found by a ray at run time, so a raised stand plac
 The user: "add an animation for if you are on a fish and you dive into the water you should have a slightly different
 but similar dive animation because we dont have that coded". Hugo, 2026-11-24: "make sure each fish gets a diving
 animation just like the player does, hitting a certain line should make you hit the animation with the same camera
-movement". **On (`Config.Dive.LeapMounted` 1) on branch `fish-dive`; checked offline only, not played in Studio since the
-change, not judged by eye.** The partner's first version is extended, not replaced.
+movement". **On (`Config.Dive.LeapMounted` 1), on main since 2026-11-25; checked offline and by script in Studio (below), not
+played by hand.** The partner's first version is extended, not replaced.
 
 - **What it does.** A rider on a land fish who runs over the line at the lip dives with the fish: it takes off nose up,
   arcs, goes in nose down, and is level by the time the server swaps it for the water fish. Same camera keys and splash as
@@ -612,8 +612,7 @@ change, not judged by eye.** The partner's first version is extended, not replac
   jumps is not settled: on this branch `SubService.diveFish` still makes the water fish with its root, not its saddle, at the
   rider, which is 5 to 72 studs off by the sums (a prediction: where it is spawned, before `RideService.mount`'s weld joins
   its saddle to the rider). d2's branch `fish-sub` (committed, 0287e35 and c5c38ca) places it by its saddle, at most 1.9 studs
-  off by the sums; the two branches merge cleanly, and the no-cut claim rests on theirs. The one Studio run (a small fish,
-  2026-11-23) saw 0.34 studs; nothing was played since. `run mounted-all` measures it.
+  off by the sums; merged 2026-11-25 (0.2 to 3.1 studs in Studio, 4.65 once).
 - **With a sub trip picked (d2).** Agreed, and written on their side too ([submarine](submarine.md), "The hand-over with the
   dive", commit c5c38ca on `fish-sub`): on the first frame `State.Mode` is "Carried" the dive lets everything go (body, pose,
   camera), and from that frame they are `SubController`'s; the trip eases the fish from where the dive had it.
@@ -635,10 +634,16 @@ change, not judged by eye.** The partner's first version is extended, not replac
   and a half with a fourth argument of `1345`, part 6 films it off the middle in three more, part 2 is the long one). It reads the map GENERATOR's boxes, not the saved place.
 - **To check it in Studio:** `python tools/studio/dive_leap_check.py install`, Play, then `run mounted-all` (a small, a
   middling, the biggest and the worst-shaped fish, one PASS or FAIL line each, log `work/dive_leap/check_mounted_all.log`),
-  `run mounted ID:Size` for one, `remove` before any publish. Until d2's
-  swap fix is merged in, any of them may FAIL on the saddle's jump at the swap (most 4 studs). The command has been compiled,
-  never run.
-- **Not known.** How it looks and feels at a real frame rate, and whether the pace check ever puts a rider back on a bad
+  `run mounted ID:Size` for one, `remove` before any publish. Run on 2026-11-25 (below).
+- **Played by script in Studio (2026-11-25; about 45 to 60 frames a second, so frame times are real):** 14 kinds and sizes, Tiny to
+  Colossal, all dive: lip to Riding 1.5 s (Tiny) to 3.5 s (Colossal), 0 frames with no fish but one of 0.02 s, no error, no
+  put-back, the worst frame 25 to 44 ms, the saddle moves 0.2 to 3.1 studs at the swap (4.65 once, Blue Whale Colossal). On foot
+  the leap is as before (2.3 s lip to Riding, 0 frames out of sight). Great White's nose turned 17 degrees at the swap in
+  one run of three (10 is the limit). **Found and put right:** the gate's beam stopped the tallest fish's riders (root 60 up) and
+  lifted the Aurora Jelly's onto itself: `RiderGate` turns the gate off for a rider over `Config.Equip.GateFrom` (48), on their
+  own machine, until they are off the fish. Still so: at takeoff the Colossal whale's own antlers fill much of the view
+  ([stills](../attachments/fish-dive-and-sub-hop.png)).
+- **Not known.** How it feels to a person, and whether the pace check ever puts a rider back on a bad
   network. Two players are not checked.
 - **Played before this change (one run, a small fish, Studio at 15 fps):** no errors; the swap moved the fish 0.34 studs and its
   nose 0.7 degrees, never a frame with no fish; the land pace check never put the rider back; lip to riding 1.63 s against

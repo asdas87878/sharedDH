@@ -132,7 +132,28 @@ it a little shorter and speed it up.(just the animation getting onto it (at most
 
 ### From the fish onto the sub (Hugo, 2026-11-24)
 Hugo: "you should also hop from fish to submarine while seeing the fish swim off next to you looping left and right then
-come back once you arrive". **Built on branch `fish-sub`; checked offline (below); not run in Studio yet and not played.**
+come back once you arrive". **On main since 2026-11-25; checked offline (below) and played by script in Studio (next); not played by hand. About to be
+replaced:** Hugo, 2026-11-25, wants the hop in mid-air (the player jumps off the leaping fish, the sub flies in, they splash
+down together; branch `air-hop`). This one, in the water, is kept as the tag `backup-underwater-hop-final`.
+
+**Played by script in Studio (2026-11-25, `tools/studio/fish_sub_check.py all`, 18 runs: Clownfish to a Colossal Blue Whale,
+lands 2, 5, 7 and 10, both ends of the lip, no fish, on foot, given up six ways).** [Stills](../attachments/fish-dive-and-sub-hop.png).
+In every ridden trip: 0 frames with no fish, always one and the same model, never faded out, in the picture for the whole weave,
+the kick cued with it, the hands' fish unchanged, the hop 1.2 to 1.95 s in. **Found and put right there:**
+- **Thrown at the kick's end** (4 of 8 ridden trips, up to 480 studs off in a second): the server's seat reached the fish a frame
+  before `State.Mode`, and for that frame `SubController` put the rider, welded to the fish, back on the sub's seat with that
+  jump's speed. Main's old kick had the same race. Now `Visual.Seated` leaves the body alone: 112 to 233 studs/s, no throw.
+- **The fish came in from invisible over 0.6 s** at the swap (the wild fish's fade, `ArriveController`): not for a rider's own
+  fish made under them any more (the plain dive's swap too).
+- **The camera cut at the hand-over** from the dive (its own last view is taken now: 3.3 degrees at most in a frame). From the
+  Colossal whale's dive, filmed from beside, it swings in behind within 0.3 s (9 to 16 degrees a frame; it cut 77), before the
+  sub is in view.
+- **What the check still says FAIL to, read and left:** the run's camera is 16 to 20 degrees off behind on a few lands' bends
+  (limit 15; the same with no fish, and before this work); `where the trip has it` at over 4,000 studs/s (1.4 ms between two
+  readings is 6 studs; 0.61 once in the slow part); the Colossal whale's first frame, above; Manta Ray's first frame 1.4 studs
+  off the line. **A death in the trip:** the body is taken on, and the copy goes as the new body comes 5 s later (as main's
+  trip did); nothing is lost. The run with no fish began with the view turned
+  right round (180 degrees, one frame), as the script left it.
 - **Who:** a player who goes into the water riding their [ride fish](equip.md) with a sub and a land picked. Nothing
   else changes: on foot (with or without a fish equipped), and with a tank fish picked at the stand, it is the swim, the
   scoop, and the fish swimming up at the end or the fling, as before.
@@ -174,7 +195,7 @@ How it works:
   equipped one. If not (unequipped, put in the tank), the copy swims off and fades on every machine (`SubLeave`), is taken
   away, and the drop-off is the fling; the trip sent to the machines is rewritten too, so the rider's screen no longer says
   "Back on your fish!" or waits for a kick, and one given up in the kick itself is flung from where the rider is in the arc.
-  Died, reset, left the game, or a trip that can't be made: the copy is taken away.
+  Died (as the new body comes), reset, left the game, or a trip that can't be made: the copy is taken away.
   The fish of the hands is never touched, so it can't be lost or doubled.
 - **The hand-over with the dive:** on the first frame of `State.Mode` "Carried", `DiveController` lets go of the body, the
   pose and the camera; from that frame they are `SubController`'s. The trip eases the fish from where the dive had it.
