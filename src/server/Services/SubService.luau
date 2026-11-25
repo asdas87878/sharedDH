@@ -534,7 +534,7 @@ end
 
 -- The leap a player's machine says it has begun, if we believe it: theirs to say (it moves the body), but off the lip,
 -- from about where we have them, out from the dock, at a land fish's pace
-local function leapOf(player: Player, root: BasePart, said: any): (SubAir.Leap?, number)
+local function leapOf(root: BasePart, said: any): (SubAir.Leap?, number)
 	local c, d = Config.Sub, Config.Dive
 	local lip = lipFrame()
 	if type(said) ~= "table" or not lip or typeof(said.Take) ~= "Vector3" or typeof(said.Heading) ~= "Vector3" then
@@ -609,7 +609,7 @@ local function leaps(player: Player, sub: Sub, said: any)
 	if not root or not root:IsA("BasePart") or not humanoid or humanoid.Health <= 0 then
 		return
 	end
-	local leap, since = leapOf(player, root, said)
+	local leap, since = leapOf(root, said)
 	if not leap then
 		return
 	end

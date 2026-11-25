@@ -239,10 +239,10 @@ local function remove(player: Player)
 		mine = nil
 		State.SubAloft = false
 		local flight = v.Flight
-		if flight and not v.Said.dropped and State.Mode == "Dock" then
-			-- (given up in the air: back to the dive, or, off the fish's back, let go of)
-			if flight.From then
-				State.Leaping = false
+		if flight and flight.From and not v.Held then
+			-- (given up in the air, off the fish's back: let go of; on its back the dive just goes on)
+			State.Leaping = false
+			if State.Mode == "Dock" then
 				local _, _, humanoid = State.character()
 				if humanoid then
 					humanoid.PlatformStand = false
@@ -415,7 +415,9 @@ local function thin(v: Visual, t: number, dt: number)
 	end
 	local _, rideAt = SubTrip.times(v.Trip)
 	local want = 0
-	if t < rideAt + 0.5 then
+	local air = v.Trip.Air
+	-- (after the air hop: until it has swum up to its place)
+	if t < (if air then SubAir.entry(air) + SubAir.joining(e.Half) else rideAt + 0.5) then
 		local o = root.CFrame:PointToObjectSpace(workspace.CurrentCamera.CFrame.Position)
 		local room = Config.Sub.EscortThinRoom
 		if math.abs(o.X) < e.Half.X + room and math.abs(o.Y) < e.Half.Y + room and math.abs(o.Z) < e.Half.Z + room then
@@ -705,10 +707,11 @@ end
 -- The sub in the air is in sight from where it comes into its way in (further back it would be in the hub's stalls)
 local function flyIn(v: Visual, t: number)
 	local air = v.Trip.Air
-	if not air or t > air.SeatAt then
+	if not air or v.Said.here then
 		return
 	end
-	local back = (air.Meet - SubAir.middle(air, t)).Magnitude
+	v.Said.here = t >= air.SeatAt
+	local back = (air.Meet - SubAir.middle(air, math.min(t, air.SeatAt))).Magnitude
 	local hidden = Ease.smoothstep(Config.Sub.AirFrom * 0.75, Config.Sub.AirFrom, back)
 	for _, p in v.Parts do
 		p.LocalTransparencyModifier = hidden
@@ -722,7 +725,6 @@ local function flight(v: Visual, sub: CFrame, t: number, dt: number, root: BaseP
 	if not air or not f then
 		return false
 	end
-	local c = Config.Sub
 	if t >= air.RideAt then
 		State.SubAloft = false
 		if State.Mode == "Carried" then
