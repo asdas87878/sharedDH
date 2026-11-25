@@ -1,6 +1,6 @@
 # Every fish's dive off the lip: the table (2026-11-24)
 
-Offline sums on the game's own code and the map generator's boxes (how: [The leap on a fish](dive-in.md), `tools/dive/fish_dive_check.luau`), not a play. 78 kinds, the six size tiers (a size is capped by rarity; a colour never changes it), straight out over the lip at the land pace. **Before**: the leap as the partner left it, switched on. **Now**: branch `fish-dive`.
+Offline sums on the game's own code and the map generator's boxes (how: [The leap on a fish](dive-in.md), `tools/dive/fish_dive_check.luau`), not a play (played by script in Studio 2026-11-25: [The leap on a fish](dive-in.md)). 78 kinds, the six size tiers (a size is capped by rarity; a colour never changes it), straight out over the lip at the land pace. **Before**: the leap as the partner left it, switched on. **Now**: branch `fish-dive`.
 
 ## By size
 

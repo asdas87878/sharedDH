@@ -3427,8 +3427,8 @@ Config.Dive = {
 	-- the fish's own dive: a lower, longer arc, nose up, over and nosing in, the rider tucked down on its back, the
 	-- camera further back. A bigger fish leaps higher, further and slower, and splashes bigger. Every fish dives (2026-11-24;
 	-- until then one that would hit anything on the way dropped in: 46 of 78 kinds at their own size). Claude's numbers,
-	-- checked offline (tools/dive/fish_dive_check.luau), not yet played
-	LeapMounted = 1, -- 1: on the ride fish, running off the lip is its dive; 0: it drops in as before (nothing of it runs). 1 on branch fish-dive since 2026-11-24 (Hugo: "make sure each fish gets a diving animation just like the player does"), not yet played at a real frame rate
+	-- checked offline (tools/dive/fish_dive_check.luau) and by script in Studio (2026-11-25), not played by hand
+	LeapMounted = 1, -- 1: on the ride fish, running off the lip is its dive; 0: it drops in as before (nothing of it runs). 1 on branch fish-dive since 2026-11-24 (Hugo: "make sure each fish gets a diving animation just like the player does"), not played by hand
 	LeapMountedHigh = 4, -- the arc's top over where it left, studs (for a fish LeapMountedSize long),
 	LeapMountedFar = 34, -- where it meets the water, studs out,
 	LeapMountedTime = 1.1, -- and from leaving the edge to the water, seconds
@@ -3523,7 +3523,7 @@ Config.Sub = {
 	-- the escort (Hugo, 2026-11-24: "you should also hop from fish to submarine while seeing the fish swim off next to
 	-- you looping left and right then come back once you arrive"; docs/design/submarine.md, "From the fish onto the
 	-- sub"): the rider who went in on their ride fish. Where it swims is Shared/SubTrip (escort); check a change with
-	-- tools/subs/escort_check.luau. None of it played yet
+	-- tools/subs/escort_check.luau. Played by script in Studio (2026-11-25), not by hand
 	Escort = 1, -- 0: the ride fish only swims up at the end, as for a rider who went in on foot
 	EscortOut = 40, -- the fish carries you this far out to the sub, studs (and 0.6 of what it has behind its saddle,
 	EscortOutMost = 140, -- but never further than this), all in Approach's seconds

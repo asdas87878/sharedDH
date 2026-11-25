@@ -403,7 +403,9 @@ def giveup(how, seconds, tier=9, land=5, fish="GreatWhite"):
     time.sleep(10)
     last, said = hands()
     sc.note("  at the end: " + said)
-    good = " at " in str(gave) and mid.get("fish") == "0" and last.get("parked") == "0" and last.get("hands") == "1"
+    # (a death is tidied as the new body comes, 5 s later: not looked at in between)
+    gone = last if how == "die" else mid
+    good = " at " in str(gave) and gone.get("fish") == "0" and last.get("parked") == "0" and last.get("hands") == "1"
     good = good and last.get("trip") == "false"
     sc.note(f"  {'ok  ' if good else 'FAIL'}  the copy gone, the hands' one fish still there, the trip over")
     home()
