@@ -9,11 +9,13 @@ here; the Obsidian Git plugin's own "vault sync" commits don't need one.
   found 101 of its blocks poking under the surface over the lane (it is a straight canyon, the lane bends).
 - `LookController`: hides it on that machine while the camera is under `Depth.SurfaceY`, back 0.4 s after it is over
   (`Config.Look.FarUnder` 1 shows it there too; N panel). One owner for "painted" (low graphics) and "under".
-- The place's `FarView` model is gone, ungrouped into `Workspace.Part1` to `Part4`, so the low graphics hide found nothing:
-  the code now takes both shapes. Ungrouped it is not Persistent either: a client had 426 of its 3,335 parts. Not regrouped:
-  the user's call. Also a 579 x 1224 x 579 Block at (1965, 23, 6478) in `Part1` looks out of place (left alone).
-- Checked in Play (camera held at spots, streaming moved to land 2 and 3): 426 of 426 hidden under, 0 over, 0.9 ms to switch; no gaps
-  seen in lands 2 and 3. Not checked: a dive by hand, lands 4 on, a phone, the low graphics hide (`LookVista`).
+- The place's `FarView` model had been ungrouped into `Workspace.Part1` to `Part4`: the low graphics hide found nothing, and
+  a client had 426 of its 3,335 parts. **Regrouped on the user's "Regroup it"** (a Persistent Model `FarView` holding the four
+  folders; nothing moved). The code takes both shapes. For the map chat: a 579 x 1224 x 579 Block at (1965, 23, 6478) in
+  `Part1` looks out of place (left alone).
+- Checked in Play: all 3,335 load at the dock, the silhouette shows past the gate, 3,335 hidden under the water and 0 over it,
+  4.6 ms to switch, the low graphics hide works again (`LookVista`); no gaps seen in lands 2 and 3. Not checked: a dive
+  by hand, lands 4 on, a phone.
 
 ## 2026-11-25 · The Index arrow the first time only, sparser leaps (game code, the user's PC)
 **State:** pushed; in the Team Create place, **saved on the user's word (version 479)**, not published. Replaces the Index and leap parts of the entry below.
