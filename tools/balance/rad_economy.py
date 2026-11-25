@@ -97,14 +97,19 @@ def scaled(cfg, step):
     lane = M.read_lane()
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "e1_bases.json")) as f:
         e1 = json.load(f)
-    old = dict(cfg, OxygenBase=e1)
+    # a kind added since (2026-11-25: five) was given its base on the new scale: it keeps Config's, and takes no part in
+    # working out the lands' factors
+    later = {f["Id"] for f in cfg["Fish"] if f["Id"] not in e1}
+    old = dict(cfg, OxygenBase=e1, Fish=[f for f in cfg["Fish"] if f["Id"] not in later])
     w = M.world(old, lane)
     c = dict(cfg, OxygenBase=dict(e1))
     scale = {z + 1: (FIRST * step ** z / M.required(old, z, w["usual"][z]) if z else 1) for z in range(w["lands"])}
     # bases rounded to two figures (land 1 not at all), then nudged up a step at a time until no two kinds share a
     # base or a need (e1's rule), smallest first so Hugo's order inside a land holds
     needs, bases = set(), set()
-    for f in sorted(cfg["Fish"], key=lambda f: e1[f["Id"]] * scale[f["Home"]]):
+    for fid in later:
+        c["OxygenBase"][fid] = cfg["OxygenBase"][fid]
+    for f in sorted(old["Fish"], key=lambda f: e1[f["Id"]] * scale[f["Home"]]):
         b = e1[f["Id"]] * scale[f["Home"]]
         unit = 1 if f["Home"] == 1 else 10 ** max(math.floor(math.log10(b)) - 1, 0)
         b = max(round(b / unit) * unit, 1)
@@ -114,6 +119,8 @@ def scaled(cfg, step):
             c["OxygenBase"][f["Id"]] = float(b)
         bases.add(b)
         needs.add(M.need_of(c, f))
+    if later:
+        w = M.world(c, lane)  # with the later kinds in the water
     return c, w, lane, scale
 
 
