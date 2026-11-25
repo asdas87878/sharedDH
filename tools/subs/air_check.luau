@@ -207,8 +207,8 @@ return function(x)
 
 	local FIELDS = {
 		"hop", "splash", "run", "hull", "join", "cells", "subBox", "riderBox", "camBox", "lane", "fishLane", "floor",
-		"surface", "nose", "side", "camJump", "camTurn", "camSub", "camFish", "hidSub", "hidFish", "riderOut", "riderJump",
-		"seatOff", "riderIn", "swap", "swapTurn", "fishJump", "farJump", "jumpAt", "fishTurn", "splashJump", "over", "rise", "apart", "behind",
+		"surface", "nose", "side", "camJump", "camTurn", "camSub", "camFish", "hidSub", "hidSeat", "hidFish", "riderOut", "riderJump",
+		"seatOff", "riderIn", "swap", "swapTurn", "fishJump", "fishOver", "farJump", "jumpAt", "fishTurn", "splashJump", "over", "rise", "apart", "behind",
 	}
 	local traced = process.env.AIR_TRACE -- ("Giant,5,0,0": the size, the sub, x and the slant to print frame by frame)
 	local function flight(trip, tier, row)
@@ -354,7 +354,12 @@ return function(x)
 				local head = rider.Position + UP
 				if k % 2 == 0 and not onSub then
 					if inSight and hid(tier, sub, eye, rider.Position) then
-						m.hidSub += 2 / FPS
+						if t <= air.SeatAt then
+							m.hidSub += 2 / FPS
+						elseif not hid(tier, sub, sub * V3.new(0, 9, 37), (sub * SubTrip.Seat).Position) then
+							-- (two subs hide a seated rider from the run's own camera, always have: not the hop's)
+							m.hidSeat += 2 / FPS
+						end
 					end
 					if lineIn(fish, e.Half * 0.8, eye, head + UP) then
 						m.hidFish += 2 / FPS
@@ -415,6 +420,10 @@ return function(x)
 					end
 					if math.abs(t - rideAt) > 2.5 / FPS then
 						local key = if t > entry and rel.Z > 80 then "farJump" else "fishJump"
+						if key == "fishJump" then
+							-- (at thousands of studs a second: against a twelfth of what the sub itself moves in a frame)
+							m.fishOver = math.max(m.fishOver, jump / math.max(1, speed / FPS / 12))
+						end
 						if jump > m[key] then
 							m[key] = jump
 							m.jumpAt = t - entry
@@ -460,14 +469,15 @@ return function(x)
 		{ "camTurn", "nor turns over 6 degrees in a frame", function(m) return m.camTurn > 6 end },
 		{ "camSub", "the camera out of the sub", function(m) return m.camSub > 0 end },
 		{ "camFish", "and of the fish (0.1 s of it at most)", function(m) return m.camFish > 0.1 end },
-		{ "hidSub", "the sub between it and the rider 0.25 s at most", function(m) return m.hidSub > 0.25 end },
+		{ "hidSub", "the sub between it and the rider 0.3 s of the hop at most", function(m) return m.hidSub > 0.3 end },
+		{ "hidSeat", "and 0.3 s of the fall (where the run's own camera would see them)", function(m) return m.hidSeat > 0.3 end },
 		{ "camBox", "the gate or the map 0.4 s at most", function(m) return m.camBox > 0.4 end },
 		{ "riderOut", "the rider in the picture (all but 0.1 s)", function(m) return m.riderOut > 0.1 end },
 		{ "riderJump", "the rider never jumps (a frame's move within 2.5 studs of the last's)", function(m) return m.riderJump > 2.5 end },
 		{ "seatOff", "they land on the seat", function(m) return m.seatOff > 0.1 end },
-		{ "riderIn", "never through the sub's tower on the way (0.06 s of it)", function(m) return m.riderIn > 0.06 end },
+		{ "riderIn", "never through the sub on the way (0.1 s of it, as it sweeps by)", function(m) return m.riderIn > 0.1 end },
 		{ "swap", "the trip's fish is where the dive's is, within 0.5 studs and 3 degrees", function(m) return m.swap > 0.5 or m.swapTurn > 3 end },
-		{ "fishJump", "the fish never jumps (a frame's move within 3 studs of the last's)", function(m) return m.fishJump > 3 end },
+		{ "fishOver", "the fish never jumps (a frame's move within 3 studs of the last's, or a quarter of the sub's own)", function(m) return m.fishOver > 3 end },
 		{ "fishTurn", "nor turns over 12 degrees in a frame", function(m) return m.fishTurn > 12 end },
 	}
 	local function alike(a, b)

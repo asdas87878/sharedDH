@@ -182,7 +182,9 @@ function SubAir.middle(air: Air, t: number): Vector3
 	local c = Config.Sub
 	if t <= air.SeatAt then
 		local b = back(air.SeatAt - t)
-		return air.Meet - air.Out * (b * math.cos(air.Slope)) + UP * (b * math.sin(air.Slope))
+		-- (a swoop: the further back, the higher, over the hub)
+		local lift = math.max(b - c.AirSwoopFrom, 0) ^ 2 * c.AirSwoop
+		return air.Meet - air.Out * (b * math.cos(air.Slope)) + UP * (b * math.sin(air.Slope) + lift)
 	end
 	local side = across(air)
 	local to = air.Pick - air.Meet
