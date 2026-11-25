@@ -175,7 +175,7 @@ Hugo: "integrate both aura shop ui and selling dinos ui (as in reference pic 1) 
   never hid; it is gone, and the plain glow is made only where there is no picture. Each card shows its price
   (`Config.Aura.Prices`): green and shining on the next one with the coins for it, grey otherwise, EQUIPPED and OWNED as before.
   A press on any unowned card asks the server, and what it says shows on the window's lower edge with the shops' sounds
-  (`AuraBought`, `AuraDenied`): [auras](auras.md), "Built". Not seen in Studio yet (`tools/studio/aura_check.py`).
+  (`AuraBought`, `AuraDenied`): [auras](auras.md), "Built". Seen in Studio 2026-11-25 (`tools/studio/aura_check.py`).
 - **Auras** (`UI/AuraShop.luau`): the twelve cards as before, now in the shop, in a window of the Sell Fish
   page's size with the title at the left, so the tabs and the title stay put from page to page; one button a card
   (the Robux button is hidden until products exist). The worn aura reads EQUIPPED, the
