@@ -703,7 +703,7 @@ local function joining(trip: Trip, e: Escort, air: SubAir.Air, t: number, cf: CF
 	local drift = across * leap.Far / leap.Time * 0.4 * (1 - turned)
 	local own = into + on * math.max(ahead, 0.3)
 	-- (soon after the sub, before that has drawn far ahead, and gently in beside it)
-	local kx, kz = Ease.smoothstep(0, 0.4, k), Ease.smoothstep(0, 1, 1 - (1 - k) ^ 2)
+	local kx, kz = Ease.smoothstep(0, 0.4, k), Ease.smoothstep(0, 1, 1 - (1 - k) ^ 1.7)
 	local along = Ease.lerp(own, d + o.Z, kz)
 	local over = Ease.lerp((went.Position - start):Dot(side) + drift, o.X, kx)
 	local line, way

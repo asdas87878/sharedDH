@@ -626,7 +626,7 @@ function SubAir.seen(
 		if crosses(beam, beamHalf, eye, s.Rider) or crosses(crest, crestHalf, eye, s.Rider) then
 			hidden += step
 		end
-		if s.T >= air.HopAt and s.T <= air.SeatAt and crosses(s.Sub * centre, size, eye, s.Rider + UP * 2) then
+		if s.T >= air.HopAt and s.T <= air.SeatAt + 0.15 and crosses(s.Sub * centre, size, eye, s.Rider + UP * 2) then
 			behind += step
 		end
 	end
@@ -677,8 +677,8 @@ function SubAir.frame(air: Air, hull: { number }, lip: CFrame)
 			+ inSub * 60
 			+ inFish * 4
 			+ hidden * 3
-			+ behind * 2
-			+ steep * 2
+			+ behind * 6
+			+ steep
 			+ math.abs(math.log(share)) * 0.3
 		if cost < best - 1e-6 then
 			best, pick = cost, eye
