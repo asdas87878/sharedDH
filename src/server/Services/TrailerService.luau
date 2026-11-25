@@ -152,6 +152,11 @@ function asks.Level(player: Player, a: any): any
 	return TrainService.setLevel(player, a)
 end
 
+function asks.Now(_player: Player, a: any): any
+	workspace:SetAttribute("TrailerStage", tostring(a))
+	return true
+end
+
 function asks.Trainer(player: Player, a: any): any
 	local test = ServerStorage:FindFirstChild("TrainerTest")
 	return if test and test:IsA("BindableFunction") then test:Invoke("info", player.UserId) else nil

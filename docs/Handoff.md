@@ -3,6 +3,13 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, "start the recording sequence" (game code, the user's word)
+
+- Hugo: pull, open a new Claude chat here and say **"start the recording sequence"**. The skill `trailer-record` films the trailer
+  with `tools/trailer/record.py` (Play, a first run that loads, a recorded second run, a look sheet, the cut). `cut.py` now finds the
+  game view in a recording of the whole screen.
+- Tested on made-up recordings and a made-up Studio only. Not run on Hugo's PC, and the Luau of this push and the last not in Studio.
+
 ## 2026-11-25, the trailer is filmed on Hugo's PC (game code, the user's word)
 
 - Hugo: the steps are in [trailer](design/trailer.md), Recording. New and **not run in Studio yet**: a shot waits for its land to

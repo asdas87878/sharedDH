@@ -2,7 +2,7 @@
 
 python tools/trailer/cut.py <recording.mkv> [out.mp4] [--music song.mp3]
 
-The recording has a pink slate between shots, with the shot's number in six black and white squares (1 white, from the
+The recording may be of a whole screen (the game is found by its slate). It has a pink slate between shots, with the shot's number in six black and white squares (1 white, from the
 left the highest). Each shot is taken from CUT (in, seconds of the recording, speed); a shot filmed twice uses its last
 take. Cuts marked whip are hidden by a sideways blur. PLAY NOW drops in over the last shot.
 """
@@ -38,7 +38,38 @@ def slate(frame):
     return n
 
 
-def find(path):
+def find_view(path):
+    """(x, y, w, h) of the game's picture in a recording of a whole screen: where the pink slate is. None: all of it."""
+    cap = cv2.VideoCapture(path)
+    step, i, boxes = max(int(cap.get(cv2.CAP_PROP_FPS) * 0.4), 1), 0, []
+    while len(boxes) < 12:
+        if not cap.grab():
+            break
+        i += 1
+        if i % step:
+            continue
+        ok, frame = cap.retrieve()
+        b, g, r = frame[..., 0], frame[..., 1], frame[..., 2]
+        pink = ((b > 200) & (r > 200) & (g < 90)).astype(np.uint8)
+        count, _, stats, _ = cv2.connectedComponentsWithStats(pink)
+        if count > 1:
+            x, y, w, h, area = stats[1 + stats[1:, cv2.CC_STAT_AREA].argmax()]
+            if w * h > frame.shape[0] * frame.shape[1] * 0.12 and area > w * h * 0.8:
+                boxes.append((x, y, w, h))
+    cap.release()
+    if not boxes:
+        return None
+    return tuple(int(v) for v in np.median(np.array(boxes), axis=0))
+
+
+def crop(frame, view):
+    if view is None:
+        return frame
+    x, y, w, h = view
+    return frame[y:y + h, x:x + w]
+
+
+def find(path, view=None):
     """{shot: (first frame, last frame)} of its last take, and the recording's frames a second."""
     cap = cv2.VideoCapture(path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -47,7 +78,7 @@ def find(path):
         ok, frame = cap.read()
         if not ok:
             break
-        n = slate(frame)
+        n = slate(crop(frame, view))
         if n is not None:
             if start is not None and last and i - start > fps * 0.3:
                 shots[last] = (start, i - 1)
@@ -95,7 +126,9 @@ def main():
     if music:
         args.remove(music)
     src, out = args[0], args[1] if len(args) > 1 else "work/trailer/trailer.mp4"
-    shots, fps = find(src)
+    view = find_view(src)
+    print("the game is at", view or "the whole picture")
+    shots, fps = find(src, view)
     missing = [n for n in CUT if n not in shots]
     print("shots found:", sorted(shots), "missing:", missing)
     order = [n for n in CUT if n in shots]
@@ -121,7 +154,7 @@ def main():
                 if not ok:
                     break
                 frame = got
-            pic = fit(frame)
+            pic = fit(crop(frame, view))
             if before and f < WHIP:
                 pic = whip(pic, 1 - f / WHIP)
             if into and k + 1 < len(order) and count - f <= WHIP:
@@ -137,4 +170,5 @@ def main():
     print(f"{out}: {total / FPS:.1f} s, {len(order)} shots")
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -718,6 +718,18 @@ local SHOTS: { Shot } = {
 	},
 }
 
+-- what is on, and what went wrong, for whoever films: here, and on the server (tools/trailer/record.py reads it there)
+local problems: { string } = {}
+local function say(text: string)
+	workspace:SetAttribute("TrailerNow", text)
+	task.spawn(ask, "Now", text)
+end
+
+local function problem(text: string)
+	warn(`[Trailer] {text}`)
+	table.insert(problems, text)
+end
+
 -- behind the slate until nothing is left to fetch for a moment
 local function loaded()
 	local from, quiet = os.clock(), os.clock()
@@ -732,7 +744,7 @@ end
 local function play(number: number, shot: Shot)
 	slow = if shot.Hop then 1 else workspace:GetAttribute("TrailerSlow") or 1
 	showSlate(number)
-	workspace:SetAttribute("TrailerNow", `{number} {shot.Name} prep`)
+	say(`{number} {shot.Name} prep`)
 	place, aim, smooth, shotNow, hudOn = nil, nil, nil, nil, shot.Hud == true
 	local live = shot.Live
 	local function settle()
@@ -760,7 +772,7 @@ local function play(number: number, shot: Shot)
 				then
 					break
 				end
-				warn(`[Trailer] {shot.Name}: not on the fish, try {try}`)
+				problem(`{shot.Name}: not on the fish, try {try}`)
 			end
 			local fish = State.Fish
 			State.RideLift = if fish then math.max(0, fish:GetExtentsSize().Y / 2 + 4) else 0
@@ -796,7 +808,7 @@ local function play(number: number, shot: Shot)
 	task.wait(0.15)
 	shotAt = os.clock()
 	slate.Enabled = false
-	workspace:SetAttribute("TrailerNow", `{number} {shot.Name}`)
+	say(`{number} {shot.Name}`)
 	-- (a moment longer than the shot: the cut takes what it needs)
 	while os.clock() - shotAt < shot.Time * slow + 0.3 do
 		local t = (os.clock() - shotAt) / slow
@@ -817,15 +829,16 @@ local function run(which: string)
 		return
 	end
 	running = true
+	table.clear(problems)
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 	end)
 	ask("Setup", { Max = Config.Trailer.Oxygen, Coins = if which == "all" then 25000 else 0 })
 	for i, shot in SHOTS do
 		if which == "all" or table.find(string.split(which, ","), tostring(i)) then
-			local ok, problem = xpcall(play, debug.traceback, i, shot)
+			local ok, why = xpcall(play, debug.traceback, i, shot)
 			if not ok then
-				warn(`[Trailer] {shot.Name}: {problem}`)
+				problem(`{shot.Name}: {why}`)
 			end
 		end
 	end
@@ -837,7 +850,7 @@ local function run(which: string)
 	screens()
 	running = false
 	slate.Enabled = false
-	workspace:SetAttribute("TrailerNow", "done")
+	say(if #problems > 0 then `done, problems: {table.concat(problems, "; ")}` else "done")
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 	end)

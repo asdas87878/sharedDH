@@ -15,6 +15,9 @@ nothing. Nothing it does is kept: it ends with Play, and saving in Studio is the
 The user, 2026-11-25: their PC loads too slowly, so it is filmed on Hugo's. **Not run since the last changes, and never on
 Hugo's PC**: run it once and look before recording.
 
+**The short way:** in a Claude chat on Hugo's PC, after a pull, say "start the recording sequence" (the skill `trailer-record`,
+`tools/trailer/record.py`): it syncs, plays, films, looks and cuts. By hand:
+
 1. Pull, then sync `src/` into the place (Edit mode); it must be newer than version 523.
 2. Studio: Studio Settings, Rendering, Edit Quality Level 21. Play in the full window, nothing over it, not minimised.
 3. OBS: the game view only, cropped to 16:9, 1920x1080, 60 fps, no sound.
