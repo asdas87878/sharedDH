@@ -38,6 +38,7 @@ export type Flight = {
 	Eye: Vector3?, -- where it was last, against the sub, and what it looked at
 	Look: Vector3?,
 	Fov: number,
+	Wet: boolean, -- it has been under the water
 	Hidden: { [Instance]: any }, -- what is out of sight or held still on our screen, and how it was
 	Fish: Model?, -- the trip's fish as last hidden
 	Shown: boolean, -- it has been shown
@@ -84,6 +85,7 @@ function AirHop.new(player: Player, trip: SubTrip.Trip): Flight?
 		Eye = nil,
 		Look = nil,
 		Fov = 70,
+		Wet = false,
 		Hidden = {},
 		Fish = nil,
 		Shown = false,
@@ -492,6 +494,11 @@ function AirHop.view(f: Flight, rider: Vector3, t: number): (CFrame, number)
 		-- (looking at what it will, from where it is)
 		local yaw1, pitch1 = angles(look - at)
 		yaw, pitch = Ease.lerpAngle(yaw0, yaw1, w), Ease.lerp(pitch0, pitch1, w)
+	end
+	-- (once it is under the water it stays under it, whatever the sums say: Hugo, 2026-11-25)
+	f.Wet = f.Wet or at.Y < surface() - 0.5
+	if f.Wet then
+		at = Vector3.new(at.X, math.min(at.Y, surface() - 0.5), at.Z)
 	end
 	local rush = Ease.smoothstep(air.HopAt, air.SeatAt, t) * 6
 	local kick = c.AirFov

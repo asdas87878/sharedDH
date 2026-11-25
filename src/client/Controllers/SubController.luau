@@ -166,7 +166,7 @@ local function makeVisual(player: Player, trip: SubTrip.Trip): Visual
 	return v
 end
 
-local function place(v: Visual, cf: CFrame, speed: number, dt: number)
+local function place(v: Visual, cf: CFrame, speed: number, t: number, dt: number)
 	local offsets = (v :: any).Offsets :: { [BasePart]: CFrame }
 	-- (never so far in one frame that the two flights read as standing still or turning backwards: the screw looks the
 	-- same every half turn. docs/design/sub-props.md, "The turn rule")
@@ -192,8 +192,14 @@ local function place(v: Visual, cf: CFrame, speed: number, dt: number)
 	end
 	-- the bubble trail: more with the speed, and none once the sub is fading out (its bubbles do not fade with it)
 	-- (and none in the air)
-	local dry = v.Trip.Air ~= nil and cf.Y > Config.Depth.SurfaceY
-	v.Bubbles.Rate = if v.Faded or dry then 0 else math.min(c.WakeLeast + speed * c.WakePerSpeed, c.WakeMost)
+	local air = v.Trip.Air
+	local dry = air ~= nil and cf.Y > Config.Depth.SurfaceY
+	local rate = math.min(c.WakeLeast + speed * c.WakePerSpeed, c.WakeMost)
+	if air then
+		-- (its splash's own bubbles and foam are enough: the trail comes up to the run's as the run gets going)
+		rate *= Ease.lerp(c.AirWake, 1, Ease.smoothstep(air.RideAt, air.RideAt + math.max(c.AirWakeIn, 0.01), t))
+	end
+	v.Bubbles.Rate = if v.Faded or dry then 0 else rate
 	v.Last = cf
 end
 
@@ -718,6 +724,42 @@ local function flyIn(v: Visual, t: number)
 	end
 end
 
+-- A leap told to the server (leapt), and until its word is back the view stays the player's own, carried along: the dive's
+-- film swings out beside the fish at once, and would be fetched back behind it. No word by then (no trip after all): over
+-- to the film
+local WAIT, WAIT_OUT = 0.35, 0.35
+local waitFrom: CFrame? = nil -- the view as the leap began, against us
+local waitFov, waitAt = 70, 0
+
+local function waiting(root: BasePart): (CFrame?, number)
+	local from = waitFrom
+	local since = os.clock() - waitAt
+	if not from or since > WAIT + WAIT_OUT then
+		return nil, 0
+	end
+	local camera = workspace.CurrentCamera
+	local held = CFrame.new(root.Position + from.Position) * from.Rotation
+	local w = Ease.smoothstep(WAIT, WAIT + WAIT_OUT, since)
+	return held:Lerp(camera.CFrame, w), Ease.lerp(waitFov, camera.FieldOfView, w)
+end
+
+local function wait()
+	if not waitFrom then
+		return
+	end
+	local _, root = State.character()
+	local held, heldFov = nil :: CFrame?, 0
+	if root and State.Leaping and State.Mode == "Dock" then
+		held, heldFov = waiting(root)
+	end
+	if held then
+		local camera = workspace.CurrentCamera
+		camera.CFrame, camera.FieldOfView = held, heldFov
+	else
+		waitFrom = nil
+	end
+end
+
 -- Our own air hop, each frame until the run: our body from the jump on (by the clock: the server's "Carried" may still be
 -- on its way), and the camera all along. True: all of this frame
 local function flight(v: Visual, sub: CFrame, t: number, dt: number, root: BasePart, humanoid: Humanoid): boolean
@@ -772,8 +814,14 @@ local function flight(v: Visual, sub: CFrame, t: number, dt: number, root: BaseP
 		Feel.rush(0.7 * Ease.smoothstep(air.SeatAt, air.SplashAt, t))
 		thin(v, t, dt)
 	end
-	local view, wide = AirHop.view(f, root.Position, t)
 	local camera = workspace.CurrentCamera
+	local held, heldFov = waiting(root)
+	if held then
+		-- (on from the player's own view, not from where the dive's film has gone to)
+		camera.CFrame, camera.FieldOfView = held, heldFov
+		waitFrom = nil
+	end
+	local view, wide = AirHop.view(f, root.Position, t)
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.FieldOfView = wide
 	-- (before the jump the dive's camera runs the shakes on)
@@ -906,6 +954,9 @@ end
 
 local function step(dt: number)
 	local clock = now()
+	if not mine then
+		wait()
+	end
 	for player, v in visuals do
 		local trip = v.Trip
 		local t = clock - trip.Start
@@ -919,7 +970,7 @@ local function step(dt: number)
 			remove(player)
 		else
 			local cf, speed = SubTrip.sub(trip, t)
-			place(v, cf, speed, dt)
+			place(v, cf, speed, t, dt)
 			flyIn(v, t)
 			if v ~= mine then
 				escort(v, t)
@@ -1030,6 +1081,12 @@ local function leapt(leap: { [string]: any })
 	end
 	leap.Start = now()
 	Net.Action:FireServer("SubLeap", leap)
+	local _, root = State.character()
+	if root and Config.Dive.LeapCam > 0 then
+		local camera = workspace.CurrentCamera
+		waitFrom = CFrame.new(camera.CFrame.Position - root.Position) * camera.CFrame.Rotation
+		waitFov, waitAt = camera.FieldOfView, os.clock()
+	end
 end
 
 function SubController.Start()
