@@ -1008,6 +1008,8 @@ Config.Offline = {
 	Share = 0.5, -- DRAFT. of what the tank's equipped fish earned a second on leaving (1: as if they had stayed)
 	Most = 28800, -- DRAFT. and at most this long is paid for, seconds (8 h)
 	AskGap = 0.3, -- the least seconds between two asks from one player; a faster one is dropped
+	Hold = 120, -- Claim x3: what is owed is held this long for Roblox's prompt to be answered, seconds,
+	HoldJoin = 60, -- and this long after a join, when it was held as they left
 	Settle = 0.8, -- on the dock this long with nothing else on the screen before the window shows by itself, seconds
 }
 

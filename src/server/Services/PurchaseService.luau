@@ -7,6 +7,8 @@
 --   A pack (Products' Pack) is given whole or not at all, when its three parts of the save are on: checked first, then
 --   the coins and fish into the tank, the Oxygen, the once-only mark and the server's boost, with no yield between.
 --   A pass is kept by Roblox: asked as the player joins (and again if Roblox doesn't answer), and at the purchase.
+--   Claim x3 (Products.Triple, Gives "Offline") pays what the server itself has owed, times Amount, into the tank: both
+--   parts of the save must be on. With nothing owed it is "not yet", never a purchase for nothing.
 --   Coins need a tank of their own (the wallet): without one nothing is given until they have one.
 -- The remote "Purchase" tells the buyer's machine ("Got", the offer's key, the amount).
 -- Studio's checks: ServerStorage.TestReceipt (a BindableFunction), Invoke(player, offer, purchase id) runs a made-up
@@ -20,6 +22,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Products = require(ReplicatedStorage.Shared.Products)
 local AquariumService = require(script.Parent.AquariumService) :: any
+local OfflineService = require(script.Parent.OfflineService)
 local PackService = require(script.Parent.PackService)
 local RideService = require(script.Parent.RideService) :: any
 local SaveService = require(script.Parent.SaveService)
@@ -36,6 +39,9 @@ local GIVES: { [string]: (player: Player, amount: number) -> boolean } = {
 	end,
 	Oxygen = function(player, amount)
 		return RideService.grantOxygen(player, amount) == true
+	end,
+	Offline = function(player, amount)
+		return OfflineService.triple(player, amount) == true
 	end,
 }
 
@@ -61,6 +67,9 @@ local function partsOn(player: Player, offer: Products.Offer): boolean
 		return SaveService.isOn(player, "Tank")
 			and SaveService.isOn(player, "Oxygen")
 			and SaveService.isOn(player, "Packs")
+	end
+	if offer.Gives == "Offline" and not SaveService.isOn(player, "Tank") then
+		return false
 	end
 	local part = Products.Part[offer.Gives or ""]
 	return part ~= nil and SaveService.isOn(player, part)
@@ -183,6 +192,12 @@ function PurchaseService.Start()
 		if bought and offer and offer.Gives then
 			PackService.pass(player, offer.Gives)
 			remote:FireClient(player, "Got", offer.Key, 0)
+		end
+	end)
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId: number, id: number, bought: boolean)
+		local player = Players:GetPlayerByUserId(userId)
+		if player and id > 0 and id == Products.Triple.Id then
+			OfflineService.prompted(player, bought)
 		end
 	end)
 	MarketplaceService.ProcessReceipt = function(info): Enum.ProductPurchaseDecision

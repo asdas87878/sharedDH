@@ -284,6 +284,20 @@ Products.Sections = {
 	},
 } :: { Section }
 
+-- Claim x3 in the Welcome back window (Hugo, 2026-11-25: 29 Robux; docs/design/offline-rewards.md). Not in Sections: the
+-- Shop never lists it, and while its Id is 0 the window has no button for it. Amount: this many times what is owed, the
+-- server's own number at the receipt (OfflineService.triple)
+Products.Triple = {
+	Key = "OfflineTriple",
+	Name = "Claim x3",
+	Kind = "Product",
+	Gives = "Offline",
+	Amount = 3,
+	Id = 0,
+	Price = 29,
+	Look = "Gold",
+} :: Offer
+
 -- Whether an offer can be bought: it has a product, and the server has something to give for it
 function Products.onSale(offer: Offer): boolean
 	if offer.Id <= 0 or offer.Gives == nil or offer.Hidden then
@@ -296,10 +310,13 @@ function Products.onSale(offer: Offer): boolean
 end
 
 -- The part of the save each thing given is kept in (SaveService; the player's attribute "Saved" .. part says it is on)
-Products.Part = { Coins = "Tank", Oxygen = "Oxygen", Pack = "Packs" } :: { [string]: string }
+Products.Part = { Coins = "Tank", Oxygen = "Oxygen", Pack = "Packs", Offline = "Offline" } :: { [string]: string }
 
 -- The offer a Roblox product is (the server's: a receipt's ProductId)
 function Products.byId(id: number, kind: string?): Offer?
+	if id > 0 and Products.Triple.Id == id and Products.Triple.Kind == (kind or "Product") then
+		return Products.Triple
+	end
 	for _, section in Products.Sections do
 		for _, offer in section.Offers do
 			if id > 0 and offer.Id == id and offer.Kind == (kind or "Product") then
