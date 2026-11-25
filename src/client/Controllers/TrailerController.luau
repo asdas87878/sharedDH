@@ -298,6 +298,9 @@ local function frame()
 		return
 	end
 	screens()
+	-- the mouse is left free, and not in the picture (wf-recorder films the pointer): last of all, each frame
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	UserInputService.MouseIconEnabled = false
 	local shot = shotNow
 	local camera = workspace.CurrentCamera
 	if Config.Trailer.Fog ~= 1 and not slate.Enabled then
@@ -829,6 +832,9 @@ local function run(which: string)
 		return
 	end
 	running = true
+	-- (the hop aims with the mouse locked to the middle of the view: not while filming, the steering is ours)
+	local airLook, icon = Config.Camera.AirMouseLook, UserInputService.MouseIconEnabled
+	Config.Camera.AirMouseLook = 0
 	table.clear(problems)
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
@@ -849,6 +855,8 @@ local function run(which: string)
 	State.RideLift = 0
 	screens()
 	running = false
+	Config.Camera.AirMouseLook = airLook
+	UserInputService.MouseIconEnabled = icon
 	slate.Enabled = false
 	say(if #problems > 0 then `done, problems: {table.concat(problems, "; ")}` else "done")
 	pcall(function()
