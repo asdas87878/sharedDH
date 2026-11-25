@@ -1831,8 +1831,8 @@ Config.Jump = {
 	-- speed it saw the fish leave at (never from what the client says), with Net.RangeSlack and Net.ReachLag for lag.
 	-- The numbers are from the herd's spacing, measured again on the partner's new herd and with the slower hop
 	-- (docs/playtests/2026-11-13-hop-air-reach.md, "The one curve").
-	GrabRange = 95, -- the reach while the hop has most of its speed (GrabFullShare), rider to fish: the longest there is. (105 for an hour of 2026-11-17, then the user: "needs more tolerance on how far it can hook onto now".) (150 until 2026-11-17, the user: "we need a lesser distance to grab onto the next fish when in the air".) 180 at every speed until 2026-11-13
-	GrabNear = 55, -- the reach with no speed at all: what is left when you have stopped (and the least there ever is). (45 for the same hour.) (60 until 2026-11-17, with GrabRange)
+	GrabRange = 90, -- (95 until 2026-11-25: a little too far) the reach while the hop has most of its speed (GrabFullShare), rider to fish: the longest there is. (105 for an hour of 2026-11-17, then the user: "needs more tolerance on how far it can hook onto now".) (150 until 2026-11-17, the user: "we need a lesser distance to grab onto the next fish when in the air".) 180 at every speed until 2026-11-13
+	GrabNear = 75, -- (55 until 2026-11-25: the reach shrank as you floated up to a fish, so it stayed just out of it) the reach with no speed at all: what is left when you have stopped (and the least there ever is). (45 for the same hour.) (60 until 2026-11-17, with GrabRange)
 	GrabFullShare = 0.75, -- the hop has its whole reach while it still has this share of the speed it left with, and less in proportion below that. The reach used to go by a fixed speed (GrabFullSpeed), so every change to how fast fish are, or to how much of their speed a hop keeps, changed the reach as well without anyone meaning it to: with fish 1.6 times faster, the hop keeping 0.8 of their speed and that fixed speed raised to 190, a hop off a 74 fish began with a reach of 70 studs, not the 105 written above, and ended at 45
 	-- Further in front (2026-11-18, the user: "you should still be able to hook further infront of you, especially if
 	-- youre just launched forward it feels too short distance"). Straight ahead of you, where the camera looks, the
@@ -1841,7 +1841,7 @@ Config.Jump = {
 	-- seconds of a hop, easing back to none by AheadUntil (about when the glide ends and the pull-in begins by itself).
 	-- To the side, behind and late in the hop the reach is as it was (the user, the day before: "we need a lesser
 	-- distance to grab onto the next fish when in the air"). The server allows it all round: it can't see the camera.
-	AheadReach = 1.5, -- 1: no further in front than to the side
+	AheadReach = 1.25, -- (1.5 until 2026-11-25: 142 studs straight ahead at the launch was a little too far; now 112) 1: no further in front than to the side
 	AheadFull = 20, -- degrees round from the camera's look with all of it,
 	AheadNone = 60, -- and with none
 	AheadFor = 0.9, -- seconds into a hop with all of it,
@@ -1882,6 +1882,7 @@ Config.Jump = {
 	-- the touch and the moment you may hop, is now kept and made the moment you may. Presses early in a pull-in are
 	-- still the mash the guard is for.
 	Buffer = 0.2, -- seconds (0: dropped, as before)
+	GrabBuffer = 0.3, -- and a grab pressed in the hop with nothing in reach yet is kept this long, and takes the first fish that comes into reach (0: dropped, as until 2026-11-25; the user: "you cant instantly hook")
 	Slack = 0.6, -- the server waits this long past the window and the pull-in for the landing (lag)
 	LandSlack = 20, -- allows the landing this many studs wider; never widens GrabRange (it sees the player a moment late)
 	-- The fast fish that threw you off (Hugo, 2026-11-22, task b3: "when you hop onto a fish that is too fast and passes
@@ -2164,6 +2165,7 @@ Config.Lock = {
 	SteerSeen = 25, -- the view counts as being turned while it turns faster than this, degrees a second,
 	SteerKeep = 0.25, -- and for this long after, seconds
 	PressAny = 1, -- 1: a press with no fish locked (or the locked one out of reach) takes the fish nearest the line anywhere in reach (one in front first), the one you left last; 0: it only flashes the reticle (until 2026-11-18)
+	PressNear = 25, -- and for a press a fish whose body is this near, studs, counts wherever its middle is (a long fish under you, its middle behind: could not be hooked)
 	-- The hook's reach is to the fish's whole body, not its middle (2026-11-18, the user: "it should be based on the
 	-- whole fish so that large fish dont feel further than they are ... the hitbox for grabbing to the fish in the code
 	-- should include the tail/the full length of the fish"). Its body is a box of its length, height and width
@@ -2197,7 +2199,7 @@ Config.Lock = {
 	DownHard = 1.8, -- and one below the aim as this much more off it
 	Lead = 0.2, -- seconds ahead a fish is aimed at, by its speed against yours ("needs to work better for fish that come by fast"); 0: where it is now
 	Linger = 0.6, -- (0.45 until 2026-11-18: more leniency) seconds the locked fish keeps the lock after it has left the reach or the aim ("you keep locked onto it for a small window of time to provide slightly more leeway"); 0: it is dropped at once
-	LingerReach = 1.2, -- (1.12 until 2026-11-18) and in that time a grab may take it from this much further than the hook's reach (the server allows Net.RangeSlack)
+	LingerReach = 1.1, -- (1.2 until 2026-11-25: with the rest) (1.12 until 2026-11-18) and in that time a grab may take it from this much further than the hook's reach (the server allows Net.RangeSlack)
 	-- so the lock doesn't flicker between two fish
 	-- 2026-11-11, the user after playing: the lock switched between too many fish too close together. Steadier now:
 	-- Sticky 0.2 to 0.35, MinHold 0.3 to 0.45, KeepCone 1.4 to 1.6, and the two new rows below.
@@ -3351,6 +3353,7 @@ Config.Spawn = {
 	LiveReach = 1500, -- the fish of a land swim on out of sight only while a player is in it or within this far of it along the lane; a land nobody is near stands still
 	WrapShare = 20, -- "plain" for WrapHome: a fish of an ordinary size and colour whose rarity is at least this share (of 100) of its own land's fish
 	WrapHome = 1, -- 1: a plain fish that swims out of its lands, out of sight, comes in again at the start of its own (the same fish, not a new one made); 0: every such fish is taken away and a new one made
+	StrayMost = 0.25, -- of a stretch of water, at most this share may be fish of the lands before it (2026-11-25, the user: "the lesser fish go into the furthr areas and then the fish from that area dont spawn enough"; measured: 2 in 100 of land 2's fish were its own, as the herd of land 1 swam on into it and filled it). One over that, out of sight, goes back to the start of its own land (or away, if it is not plain), and the land's own are made in its place. 1: as before
 	BigRise = 14, -- by up to this much (each fish between 0.4 and 1 of what its length gives)
 	Belly = 4, -- and no fish's belly is nearer the floor than this, whatever its size
 	RoofGap = 10, -- under a roof (the map's Path c), fish stay this far below it
@@ -3703,8 +3706,9 @@ do
 	(Config :: any)[name] = Config.ZoneMix[i]
 end
 
--- Weight of a fish by how far from home it is: home, one zone on, two zones on
-Config.ReachWeight = { 1, 1 / 3, 1 / 10 }
+-- Weight of a fish by how far from home it is: home, one zone on, two zones on ({ 1, 1/3, 1/10 } until 2026-11-25: 3 in
+-- 10 of a land's new fish were the kinds of the lands before it; with Spawn.StrayMost, below a fifth)
+Config.ReachWeight = { 1, 0.12, 0.03 }
 
 type FishSpec = {
 	Id: string,

@@ -5,6 +5,7 @@ written down.
 
 | Date | Decision | Detail |
 |---|---|---|
+| 2026-11-25 | **A land is mostly its own fish; the hook reaches less at the launch and more as you float.** "the lesser fish go into the furthr areas and then the fish from that area dont spawn enough ... you can hook slightly too far and sometimes when you float toward a fish you cant instantly hook": the user. The numbers are Claude's (`Spawn.StrayMost` 0.25, `ReachWeight`, reach 112 to 75 in place of 142 to 56, a kept press), not played yet. | [Handoff](Handoff.md), 2026-11-25 |
 | 2026-11-25 | **The Index is shown how to be claimed once only:** the arrow and the yellow border, then the arrow at CLAIM ALL; after the first claim only the red "!": the user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **A new catch's Oxygen is still claimed in the Index, and the game makes it obvious.** Asked whether to pay it at once: "no but could we make it so its more obvious that the player has to go to index to recieve the rewards": the user. | [Handoff](Handoff.md) |
 | 2026-11-25 | **The fish leaping in the hub's sea:** mostly lesser fish, some exotic; in many places; small ones quicker with smaller splashes: the user. | [Handoff](Handoff.md) |

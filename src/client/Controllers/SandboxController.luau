@@ -126,6 +126,7 @@ local TUNABLES: { { any } } = {
 	{ "Jump", "SlingSettle", 0.05 },
 	{ "Jump", "SlingHoldTurn", 10 },
 	{ "Jump", "Buffer", 0.05 },
+	{ "Jump", "GrabBuffer", 0.05 },
 	{ "FeelLog", "On", 1 },
 	{ "Jump", "ReelFov", 1 },
 	{ "Jump", "LandFov", 1 },
@@ -666,6 +667,7 @@ local TUNABLES: { { any } } = {
 	{ "Lock", "Lead", 0.05 },
 	{ "Lock", "Linger", 0.05 },
 	{ "Lock", "LingerReach", 0.02 },
+	{ "Lock", "PressNear", 5 },
 	{ "Lock", "LeftBan", 1 },
 	{ "Lock", "LeftBack", 1 },
 	{ "Lock", "LeftBackAfter", 0.05 },
@@ -791,6 +793,7 @@ local TUNABLES: { { any } } = {
 	{ "Spawn", "SightClear", 25 },
 	{ "Spawn", "EntryAt", 5 },
 	{ "Spawn", "OverBy", 0.05 },
+	{ "Spawn", "StrayMost", 0.05 },
 	{ "Spawn", "Space", 2 },
 	{ "Spawn", "SpaceByLength", 0.1 },
 	-- The tuning rows (docs/design/progression.md). Every fish's speed: wild fish, the glide and the server's speed

@@ -128,6 +128,7 @@ local heldSide = 0
 local nextStepAt = 0
 local stepSide = 0
 local steering = false
+local grabUntil: number? = nil -- a grab pressed with nothing in reach yet, kept until this os.clock() (Jump.GrabBuffer)
 local queuedAt: number? = nil -- a hop pressed a moment too early, kept to be made as soon as we may (Jump.Buffer)
 local queueUntil = math.huge -- and until when (a press kept in the pull-in waits for the landing first)
 
@@ -398,6 +399,7 @@ local function startReel(root: BasePart, how: string)
 	local gap = if saddle then root.Position - saddle.Position else Vector3.zero
 	local away = gap.Magnitude
 	reeling = true
+	grabUntil = nil
 	State.Reeling = true
 	reelOffset = gap
 	reelStartedAt = os.clock()
@@ -435,6 +437,28 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- The press: Space leaves a fish into the hop, or grabs the locked fish during it
 
+-- Whether a press now has a fish to take: the locked one in reach; else (Lock.PressAny: nothing locked, or the locked
+-- fish out of reach) the fish nearest our line anywhere in reach, the one we left last, which is locked here
+local function inReachNow(root: BasePart, now: number): boolean
+	if locked and saddleOf(locked) and reachable(locked, root.Position) then
+		return true
+	end
+	if Config.Lock.PressAny <= 0 then
+		return false
+	end
+	local skip = if now < refusedUntil then refused else nil
+	local any = Lock.any(root.Position, State.CamYaw, reach, left, skip, reachAhead)
+	if not any or not saddleOf(any) then
+		return false
+	end
+	locked = any
+	lockedSince = now
+	setGlow(any)
+	State.JumpTarget = any
+	FeelLog.event("press", { Did = "any" })
+	return true
+end
+
 -- Space: off the fish (or from floating) into the hop. In the hop: onto the locked fish; with none, nothing.
 -- (`fromQueue`: the press was kept a moment, Jump.Buffer, and is made now: the mash guard has nothing to say about it)
 local function request(fromQueue: boolean?): boolean
@@ -443,30 +467,13 @@ local function request(fromQueue: boolean?): boolean
 		local _, root = State.character()
 		local now = os.clock()
 		if now - startedAt < j.Window + leapTime and clock >= j.MinFlight and not reeling and not asked and root then
-			local inReach = locked ~= nil and saddleOf(locked) ~= nil and reachable(locked, root.Position)
-			if not inReach and Config.Lock.PressAny > 0 then
-				-- (Lock.PressAny: nothing locked, or the locked fish out of reach: the press takes the fish nearest
-				-- our line anywhere in reach, the one we left last)
-				local any = Lock.any(
-					root.Position,
-					State.CamYaw,
-					reach,
-					left,
-					if now < refusedUntil then refused else nil,
-					reachAhead
-				)
-				if any and saddleOf(any) then
-					locked = any
-					lockedSince = now
-					setGlow(any)
-					State.JumpTarget = any
-					inReach = true
-					FeelLog.event("press", { Did = "any" })
-				end
-			end
-			if inReach then
+			if inReachNow(root, now) then
 				FeelLog.event("press", { Did = "grab" })
 				startReel(root, "press")
+			elseif j.GrabBuffer > 0 then
+				-- (nothing in reach yet: the press is kept a moment, and takes the first fish that comes into it)
+				grabUntil = now + j.GrabBuffer
+				FeelLog.event("press", { Did = "waits" })
 			else
 				State.NoTargetAt = now
 				FeelLog.event("press", { Did = "nothing" })
@@ -568,6 +575,7 @@ local function request(fromQueue: boolean?): boolean
 	asked = false
 	flying = true
 	armSteps()
+	grabUntil = nil
 	State.Heading = yaw
 	State.WindowLeft = j.Window + leapTime
 	State.JumpPhase = "Pop"
@@ -1061,6 +1069,22 @@ local function hop(dt: number)
 		if targetRoot and saddleOf(locked) and reachable(locked, position) then
 			diving = false
 			startReel(root, "dive")
+			return
+		end
+	end
+
+	-- A grab pressed a moment before its fish was in reach (Jump.GrabBuffer): taken the moment it is
+	if grabUntil then
+		local now = os.clock()
+		if clock >= window or now > grabUntil then
+			grabUntil = nil
+			State.NoTargetAt = now
+			FeelLog.event("press", { Did = "nothing" })
+		elseif inReachNow(root, now) then
+			grabUntil = nil
+			diving = false
+			FeelLog.event("press", { Did = "grab" })
+			startReel(root, "press")
 			return
 		end
 	end

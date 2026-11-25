@@ -3,6 +3,25 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, each land its own fish, and the hook (game code)
+**State:** committed, **not pushed**; in the user's Studio place, **place not saved**. Not played by hand.
+- **The fish by land** (the user: "the lesser fish go into the furthr areas and then the fish from that area dont spawn
+  enough"). Measured, a player standing in the land: land 1's herd swam on into land 2 and filled it, so in 40 s **2 in 100 of
+  land 2's fish were its own** (Commons 77 to 83 in 100; its mix says 10); land 3, 45 in 100. Now, out of sight, a fish of an
+  earlier land over `Spawn.StrayMost` (0.25) of a stretch goes back to its own land's start or away, and the land's own are
+  made; `Config.ReachWeight` {1, 1/3, 1/10} to {1, 0.12, 0.03}. After: land 2 83 to 88 in 100 its own, land 3 73 to 87 (an
+  earlier build of it), land 5 62 to 77 (79 near the player), land 8 71 to 81; rarities follow `ZoneMix`. It makes more fish:
+  2 to 3 a second in land 2, 5 in land 5 (2 before, in lands 2 and 3). `StrayMost` 1 is as before. For the tuning chat:
+  `ReachWeight` was changed on the user's word.
+- **The hook** (the user: "you can hook slightly too far and sometimes when you float toward a fish you cant instantly hook").
+  The reach went 142 studs (straight ahead, at the launch) to 56 over one hop, so it shrank as you floated up to a fish. Now
+  112 to 75: `GrabRange` 95 to 90, `AheadReach` 1.5 to 1.25, `GrabNear` 55 to 75, `LingerReach` 1.2 to 1.1. A press with
+  nothing in reach was lost; now it is kept `Jump.GrabBuffer` 0.3 s and takes the first fish that comes into reach
+  (`FeelLog` "waits"). A press also takes a fish whose body is within `Lock.PressNear` 25 studs wherever its middle is (a long
+  one right under you). Scenery in the way was measured and is not it (0 of 530 lines blocked).
+- Checked in Play: 11 hops, 10 presses, all hooked, none refused by the server; the kept press with the reach switched on
+  and off (asked 1.15 s, hooked 1.21 s). Not checked: `PressNear` with a long fish, two players, a phone.
+
 ## 2026-11-25, the far view hidden while the camera is under the water (game code)
 **State:** committed, **not pushed**; in the user's Studio place, **place not saved**.
 - The user: "when youre in the water there are blocks above you that arent placed right". It is the far view: the map chat

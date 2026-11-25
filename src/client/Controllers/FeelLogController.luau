@@ -7,7 +7,7 @@
 --   [FeelHop] one line a hop: off which fish and how fast, when the lock first took a fish and every fish it went to
 --     (in order: A, B, A is a flip back), how the pull-in began (a press; "early", by itself as the fish came near;
 --     "glide", by itself at the glide's end; "window"; "dive") and how long it took over what gap, the touch, how
---     long the server took to answer, every press and what it did ("grab", "nothing": no fish locked, "early":
+--     long the server took to answer, every press and what it did ("grab", "nothing": no fish in reach, "waits": none yet, the press is kept (Jump.GrabBuffer), "early":
 --     too soon, "mash", "kept": made a moment later, "wait", "guard": refused by the mash guard), and how long you
 --     rode the fish before (AfterLanding).
 --   [FeelMark] press M when something feels off: the last BoxTime seconds, every SampleEvery: where you were and how

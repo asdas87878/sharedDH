@@ -467,6 +467,8 @@ end
 -- The fish a press takes with no fish locked (Lock.PressAny): the one nearest the line (`aimYaw`, as Lock.pick's)
 -- anywhere in reach and in sight, one in front first, then one beside us, never one behind us, the fish we just left
 -- after every other; nil with none. The lock's own hold is left as it was. `ahead`: the reach straight in front of us.
+-- A fish whose body is within Lock.PressNear of us counts as beside us wherever its middle is: a long fish right under
+-- us, its middle already behind, could not be hooked at all (the user, 2026-11-25).
 function Lock.any(from: Vector3, aimYaw: number, range: number, left: Model?, skip: Model?, ahead: number?): Model?
 	local folder = workspace:FindFirstChild("Fish")
 	if not folder then
@@ -479,6 +481,9 @@ function Lock.any(from: Vector3, aimYaw: number, range: number, left: Model?, sk
 	for _, model in folder:GetChildren() do
 		if model:IsA("Model") and model ~= skip and takable(model) then
 			local lineS, _, place = lineScore(model, from, dir, range, math.max(ahead or range, range), false, false)
+			if lineS and place >= 2 and Config.fishGap(model, from) <= Config.Lock.PressNear then
+				place = 1
+			end
 			if lineS and place < 2 then
 				local s = lineS + (if place == 1 then OUT_OF_FRONT else 0) + (if model == left then LEFT_LAST else 0)
 				if s < bestScore and inSight(from, (model.PrimaryPart :: BasePart).Position) then

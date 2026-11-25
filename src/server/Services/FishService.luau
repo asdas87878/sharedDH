@@ -1136,6 +1136,21 @@ local function wrapHome(w: Wild, per: { [number]: number }): boolean
 	end
 	return false
 end
+-- Whether a slice and its neighbours in the same land hold more fish of the lands before it than Spawn.StrayMost of
+-- what they should hold
+local function strayed(strays: { [number]: number }, index: number): boolean
+	local reach = math.max(0, math.floor(Config.Spawn.Window))
+	local zone = slices[index].Zone
+	local have, want = 0, 0
+	for i = math.max(1, index - reach), math.min(#slices, index + reach) do
+		if slices[i].Zone == zone then
+			have += strays[i] or 0
+			want += slices[i].Want
+		end
+	end
+	return have > math.max(want * Config.Spawn.StrayMost, 1)
+end
+
 -- the free fish in each slice and in all, as the last top-up counted them and as the making since has added to them
 local stocked: { [number]: number } = {}
 local stockedTotal = 0
@@ -1188,6 +1203,16 @@ local function topUp(limit: number, anywhere: boolean?)
 		end
 	end
 	local per, total = count()
+	-- the fish of earlier lands in each slice (Spawn.StrayMost: too many of those out of sight go, below)
+	local strays: { [number]: number } = {}
+	if sp.StrayMost < 1 then
+		for _, w in wild do
+			local slice = w.Slice
+			if slice and w.Zone > w.Type.Home and not w.Rider then
+				strays[slice] = (strays[slice] or 0) + 1
+			end
+		end
+	end
 	for _, w in wild do
 		if not w.Rider and not w.Reserved and not w.CoastToken then
 			local slice = w.Slice
@@ -1197,14 +1222,21 @@ local function topUp(limit: number, anywhere: boolean?)
 				local around, wanted = windowOf(per, slice)
 				gone = around > wanted + math.max(2, wanted * sp.OverBy)
 			end
+			local astray = slice ~= nil and w.Zone > w.Type.Home
+			if slice and astray and not gone and sp.StrayMost < 1 then
+				gone = strayed(strays, slice)
+			end
 			if gone then
 				-- only where nobody sees it go (past the lane's end there is nothing to swim on into: sooner)
 				local clear = if slice then sp.SightClear else 250
 				gone = alongClear(w.S, w.S, if slice then clear else 0)
 					and (w.Parked or not nearAPlayer(w.Root.Position, clear))
 			end
-			if gone and slice and w.Zone > w.Type.Home + w.Type.Reach and wrapHome(w, per) then
-				gone = false
+			if gone and slice and astray then
+				strays[slice] = math.max((strays[slice] or 0) - 1, 0)
+				if wrapHome(w, per) then
+					gone = false
+				end
 			end
 			if gone then
 				if slice then
@@ -1254,10 +1286,16 @@ function FishService.stats(): { [string]: any }
 		if w.Parked then
 			parked += 1
 		end
-		table.insert(
-			fish,
-			{ S = w.S, A = w.A, Lift = w.Lift + w.Rise, Pace = w.Pace, Parked = w.Parked, Length = w.Body.Z }
-		)
+		table.insert(fish, {
+			S = w.S,
+			A = w.A,
+			Lift = w.Lift + w.Rise,
+			Pace = w.Pace,
+			Parked = w.Parked,
+			Length = w.Body.Z,
+			Id = w.Type.Id,
+			Zone = w.Zone,
+		})
 	end
 	local want = {}
 	for i, slice in slices do
