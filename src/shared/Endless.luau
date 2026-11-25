@@ -245,6 +245,16 @@ end
 -- each one's middle down the map and its reach either side of that. Those our own machine made (Skip) are left out.
 export type Unit = { Instance: Instance, Parts: { BasePart }, Z: number, Reach: number }
 Endless.Skip = "EndlessCopy"
+-- (a place that streams, server/Lib/Stretch: the model in a folder of the lane that holds the stretch's parts, and what
+-- says how many parts a model has in all)
+Endless.Stretch = "Stretch"
+Endless.Held = "EndlessParts"
+
+-- The folder of the lane a thing is in
+function Endless.folder(thing: Instance): Instance?
+	local group = thing.Parent
+	return if group and group.Name == Endless.Stretch then group.Parent else group
+end
 
 function Endless.unit(child: Instance): Unit?
 	if child:GetAttribute(Endless.Skip) then

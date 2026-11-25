@@ -1,5 +1,13 @@
 # Endless: what comes after the Underworld
 
+## In a place that streams (the user, 2026-11-25: "Yes, do it")
+The user's place streams (Workspace.StreamingEnabled, 64 / 1,280), and the loop used to switch itself off there. Now
+(`Config.Endless.Stream` 1) the server holds the stretch's parts for each player who comes within `Config.Endless.Hold` (4,000
+studs) of From, for the rest of their visit (`server/Lib/Stretch`: PersistentPerPlayer; each prop is its own model, every
+other folder's stretch parts go into one model `Stretch` in that folder). Players higher up stream the map as before.
+Measured in Play, by moving a player along: 11,344 parts held (about 12,000 counting the bits inside), all there at 20,400,
+22,300, 26,500, 40,000 and 105,000 down the map, with fish around, no errors. Not ridden by hand, not on a phone.
+
 ## Hugo's answer (2026-11-25): the Underworld itself, for ever
 Hugo, on the study below: "This is not what i meant, i want thelast part the underworld or whatever to run infinitely after reaching
 it, only looping those parts, fish shouldnt get stronger, maybe increase rare traits like size and colours with how far you are, dont

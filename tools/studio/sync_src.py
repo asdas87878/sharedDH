@@ -23,7 +23,8 @@ for folder, where in ROOTS:
     for base, _dirs, files in os.walk(folder):
         rel = os.path.relpath(base, folder).replace("\\", "/")
         parts = [] if rel == "." else rel.split("/")
-        for name in sorted(files):
+        # (a folder's init first: it is the module the others go into, and they are skipped while it is not there)
+        for name in sorted(files, key=lambda n: (n.rsplit(".", 1)[0] != "init", n)):
             if not (name.endswith(".luau") or name.endswith(".json")):
                 continue
             stem = name.rsplit(".", 1)[0]

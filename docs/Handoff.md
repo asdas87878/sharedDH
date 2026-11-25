@@ -3,6 +3,14 @@
 What each push changed, so whoever pulls next knows where things stand. Newest first. Every hand-made push gets an entry
 here; the Obsidian Git plugin's own "vault sync" commits don't need one.
 
+## 2026-11-25, the endless Underworld in the user's place (game code, the user's "Yes, do it")
+
+- Hugo's loop switched itself off because the user's place streams. Now the stretch's parts are held for each player near it
+  (`server/Lib/Stretch`, `Config.Endless.Hold` and `Stream`; [endless](design/endless.md), top). Measured in Play out to 105,000
+  studs: the whole stretch there, fish, no errors. Not ridden by hand, not on a phone. Place not saved.
+- `tools/studio/sync_src.py` sent a folder's other modules before its `init`, so they were dropped (Saddles' `Designs` and `Fits`:
+  saving, purchases, the Index and the HUD failed to load in Play). Fixed: `init` goes first. After a pull, sync again.
+
 ## 2026-11-25, Hugo: one command brings your place up to date (game code, the user's word)
 
 **Hugo, do this first:** pull, Studio on your place in Edit, then `python tools/studio/catch_up.py runner`, then Ctrl+S.

@@ -3627,6 +3627,8 @@ Config.Endless = {
 	Long = 32, -- a part that reaches further than this down the map either way is shown twice (a copy has the odd laps)
 	Ready = 1500, -- a player's machine gets its parts in order when its camera is within this far of From,
 	Batch = 400, -- this many things of the map a frame
+	Hold = 4000, -- in a place that streams: a player this far before From is sent the stretch's parts, and keeps them
+	Stream = 1, -- 1: the Underworld goes on in a place that streams too; 0: it stays off there
 	-- the odds of the better sizes and of the colours, a hair better with distance (Hugo: "just very very slightly")
 	OddsMinute = 0.01, -- by this share of themselves for each minute of riding past the built map's end,
 	OddsPace = 175, -- at this pace, studs a second

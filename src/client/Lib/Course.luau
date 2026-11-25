@@ -196,7 +196,7 @@ local function wallNormal(hit: RaycastResult, from: Vector3): Vector3?
 	if Config.Wall.On ~= 0 and part:IsA("BasePart") then
 		local map = workspace:FindFirstChild("ClaudeBlockout")
 		local laneFolder = map and map:FindFirstChild("Lane")
-		local folder = part.Parent
+		local folder = Endless.folder(part)
 		if
 			laneFolder
 			and folder

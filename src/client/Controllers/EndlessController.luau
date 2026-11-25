@@ -27,6 +27,9 @@ local FAR = 600 -- a thing of the map whose middle is further than this before F
 
 local laneFolder: Instance? = nil
 local queue: { Instance } = {} -- things of the map not looked at yet
+local waiting: { Instance } = {} -- models whose parts are not all here yet (a place that streams)
+local lookedAt = 0
+local arrivals: { RBXScriptConnection } = {}
 local asked = false -- whether they have been listed
 local slabs: { [number]: Slab } = {}
 local list: { Slab } = {}
@@ -44,6 +47,11 @@ local function forget()
 	table.clear(slabs)
 	table.clear(list)
 	table.clear(queue)
+	table.clear(waiting)
+	for _, arrival in arrivals do
+		arrival:Disconnect()
+	end
+	table.clear(arrivals)
 	asked = false
 	local stats = EndlessController.Stats
 	stats.Units, stats.Parts, stats.Copies = 0, 0, 0
@@ -74,8 +82,13 @@ end
 
 -- One thing of the map taken in
 local function take(child: Instance)
-	local group = child.Parent
+	local group = Endless.folder(child)
 	local unit = if group then Endless.unit(child) else nil
+	local whole = child:GetAttribute(Endless.Held)
+	if type(whole) == "number" and group and (not unit or #unit.Parts < whole) then
+		table.insert(waiting, child)
+		return
+	end
 	if not unit or not group or not Endless.belongs(group.Name, child.Name, unit.Z) then
 		return
 	end
@@ -104,13 +117,36 @@ local function take(child: Instance)
 	copy.Parent = group
 end
 
--- Everything in the lane's folders, listed once
+-- Everything in the lane's folders, listed once; in a place that streams, also what comes later (server/Lib/Stretch: the
+-- stretch's parts are sent as we near it, and then stay)
+local function gather(from: Instance)
+	for _, child in from:GetChildren() do
+		if child.Name == Endless.Stretch then
+			gather(child)
+		else
+			table.insert(queue, child)
+		end
+	end
+	if not workspace.StreamingEnabled then
+		return
+	end
+	local inside = from.Name == Endless.Stretch
+	table.insert(
+		arrivals,
+		from.ChildAdded:Connect(function(child)
+			if child.Name == Endless.Stretch then
+				gather(child)
+			elseif inside or child:GetAttribute(Endless.Held) then
+				table.insert(queue, child)
+			end
+		end)
+	)
+end
+
 local function ask(lane: Instance)
 	asked = true
 	for _, group in lane:GetChildren() do
-		for _, child in group:GetChildren() do
-			table.insert(queue, child)
-		end
+		gather(group)
 	end
 end
 
@@ -176,6 +212,11 @@ function EndlessController.step(eye: number?)
 	Endless.begin(laps)
 	if not asked then
 		ask(lane)
+	end
+	if #waiting > 0 and os.clock() - lookedAt > 0.5 then
+		lookedAt = os.clock()
+		table.move(waiting, 1, #waiting, #queue + 1, queue)
+		table.clear(waiting)
 	end
 	-- (the parts are read while the camera is still up the lane, some each frame; all at once for someone put down past
 	-- the first place a lap could be seen from)

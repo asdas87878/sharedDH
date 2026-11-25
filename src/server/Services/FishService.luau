@@ -55,6 +55,7 @@ local Zones = require(ReplicatedStorage.Shared.Zones)
 local FishModel = require(script.Parent.Parent.Lib.FishModel)
 local LaneSurvey = require(script.Parent.Parent.Lib.LaneSurvey)
 local Stream = require(script.Parent.Parent.Lib.Stream)
+local Stretch = require(script.Parent.Parent.Lib.Stretch)
 local PropService = require(script.Parent.PropService)
 
 export type Wild = {
@@ -2218,6 +2219,18 @@ local function putTailAway()
 	end
 end
 
+-- In a place that streams, the stretch is kept on the machines of the players near it (Lib/Stretch says why)
+local function holdStretch()
+	local map = workspace:FindFirstChild("ClaudeBlockout")
+	local laneFolder = map and map:FindFirstChild("Lane")
+	if not laneFolder or not workspace.StreamingEnabled then
+		return
+	end
+	local units, parts = Stretch.make(laneFolder)
+	Stretch.start()
+	print(`[FishService] the Underworld's stretch is held for the players near it: {units} things, {parts} parts`)
+end
+
 function FishService.Init()
 	folder = Instance.new("Folder")
 	folder.Name = "Fish"
@@ -2231,7 +2244,7 @@ function FishService.Init()
 	lane = Lane.build(zones, pathJson)
 	-- the endless Underworld: how many laps of its last stretch there are (none: Config.Endless.On 0, or another map)
 	local laps, why = Endless.count(lane, workspace.FallenPartsDestroyHeight)
-	if laps > 0 and workspace.StreamingEnabled then
+	if laps > 0 and workspace.StreamingEnabled and Config.Endless.Stream == 0 then
 		-- (a player's machine shows the parts it has at a later lap: far from them, streaming would take them away)
 		laps, why = 0, "Workspace.StreamingEnabled is on"
 	end
@@ -2272,6 +2285,7 @@ function FishService.Init()
 		if from and length then
 			lane, loopAt, lapLength = long, from, length
 			putTailAway()
+			holdStretch()
 			print(
 				string.format(
 					"[FishService] the Underworld goes on: %d laps of %.0f studs from %.0f down the stream",
