@@ -125,14 +125,9 @@ function SubAir.swim(air: Air, t: number, depth: number): (number, number, numbe
 	-- (from the leap's own pace to the swim's)
 	local on = pace * since + (out - pace) * 0.4 * (1 - math.exp(-since / 0.4))
 	local frame = SubAir.fish(air, entry)
-	local y = hermite(
-		frame.Position.Y,
-		v.Y,
-		depth,
-		0,
-		math.max(0.45, 3 * math.abs(frame.Position.Y - depth) / math.max(-v.Y, 30) * 0.7),
-		since
-	)
+	-- (down to its depth, the sooner the faster it went in)
+	local deep = math.abs(frame.Position.Y - depth)
+	local y = hermite(frame.Position.Y, v.Y, depth, 0, math.clamp(1.5 * deep / math.max(-v.Y, 30), 0.35, 0.8), since)
 	-- (its nose comes up to level)
 	local tilt = SubAir.tilt(leap, entry) * (1 - Ease.smoothstep(0, 0.45, since))
 	return on, y, tilt

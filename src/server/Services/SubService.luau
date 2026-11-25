@@ -29,6 +29,12 @@
 --   is back beside it for the kick. It is anchored here and every machine moves its own by the trip until Arrive, when
 --   it is given to the player's machine for the kick as any drop-off fish is. Their hands are watched the whole way: the
 --   fish unequipped or gone from them, and the copy swims off and is taken away (the fling instead).
+--   The air hop (Hugo, 2026-11-25; Sub.AirHop, Shared/SubAir): the leap of the ride fish off the lip is told to us by its
+--   rider's machine as it begins ("SubLeap": its arc), checked here, and the trip is made then and there, its start the
+--   leap's: the rider jumps off in the air onto the sub. They stay on the land fish ("Dock") until HopAt by our own clock,
+--   and are "Carried" from there; off the fish, unequipped, dead or gone before that, and there is no trip: the leap goes
+--   on as the plain dive. A leap not told, told too late or refused: nothing happens here, and the hop under water comes
+--   as they go in (diving), as before.
 --   If the player's machine says nothing for Sub.Late seconds, we let them go ourselves. A death, a reset or leaving
 --   in the middle gives the trip up and takes the fish away.
 local Players = game:GetService("Players")
@@ -40,6 +46,7 @@ local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ease = require(ReplicatedStorage.Shared.Ease)
 local Net = require(ReplicatedStorage.Shared.Net)
+local SubAir = require(ReplicatedStorage.Shared.SubAir)
 local SubTrip = require(ReplicatedStorage.Shared.SubTrip)
 local AquariumService = require(script.Parent.AquariumService)
 local FishService = require(script.Parent.FishService)
@@ -60,6 +67,8 @@ type Sub = {
 	Held: Wild?, -- the player's fish, made for the drop-off
 	Cued: boolean, -- the drop has been said
 	Done: boolean, -- and it is over (they are flung, on their fish, or let go)
+	Asked: number, -- os.clock() a leap was last told
+	Aloft: boolean, -- the air hop: still on their leaping land fish (not "Carried" yet)
 	DropPoint: Vector3?,
 	DropS: number, -- the drop point, along the herd's stream
 	Stocked: boolean,
@@ -228,6 +237,7 @@ local function finish(player: Player, sub: Sub)
 	sub.Phase = nil
 	sub.Cued = false
 	sub.Done = false
+	sub.Aloft = false
 	sub.DropPoint = nil
 	FishService.keepFor(player, nil)
 	player:SetAttribute("SubTrip", nil)
@@ -308,13 +318,35 @@ local function dropEscort(player: Player, sub: Sub, trip: SubTrip.Trip)
 	end
 end
 
+-- The lip's middle, looking out (the map's lip is straight in front of the dock's spawn)
+local function lipFrame(): CFrame?
+	local dock = Net.Folder:GetAttribute("Dock")
+	if typeof(dock) ~= "CFrame" then
+		return nil
+	end
+	local look = Vector3.new(dock.LookVector.X, 0, dock.LookVector.Z)
+	if look.Magnitude < 0.5 then
+		return nil
+	end
+	local at = Vector3.new(dock.X, Config.Depth.SurfaceY, dock.Z) + look.Unit * Config.Sub.AirArch
+	return CFrame.lookAt(at, at + look.Unit)
+end
+
 local NECK = 330 -- studs past the pick-up the lane's first neck is behind a long fish's tail
 local DRIFT = 190 -- studs past the pick-up by when the sub is about on its line through the lane's first neck (with a fish). Not before
 -- the path's second point: the line it comes in on is the way of the first stretch, straight through the gate
 
 -- The trip, made as the player goes in: they swim on from where they went in, down the lane, to the pick-up; from
--- there the herd's own line, Sub.Lift over the floor, to Sub.Into studs into the land, and on past it
-local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean): boolean
+-- there the herd's own line, Sub.Lift over the floor, to Sub.Into studs into the land, and on past it.
+-- `leap`, `since`: the air hop's, the ride fish's leap and when it began (server time)
+local function begin(
+	player: Player,
+	sub: Sub,
+	root: BasePart,
+	mounted: boolean,
+	leap: SubAir.Leap?,
+	since: number?
+): boolean
 	local c = Config.Sub
 	local first = FishService.landStart(sub.Dest)
 	if not first then
@@ -327,6 +359,20 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 	local ride = rideWith(player, sub)
 	local held = if mounted then escortFor(player, ride, entry, ahead) else nil
 	sub.Held = held -- (ours from here: whatever goes wrong below, diving takes it away)
+	local air: SubAir.Air? = nil
+	if leap then
+		local lip = lipFrame()
+		if not held or not lip then
+			return false
+		end
+		-- (under its rider as it leaps, as every machine is about to put it)
+		held.Root.CFrame = root.CFrame * CFrame.new(-held.Saddle.Position)
+		local row = SubTrip.Hulls[math.clamp(sub.Equip, 1, #SubTrip.Hulls)]
+		air = SubAir.plan(leap, held.Body / 2, held.Saddle.Position, row, lip)
+		if not air then
+			return false
+		end
+	end
 	local sDrop = math.min(first + c.Into, FishService.streamLength() - 50)
 	local half, saddleAt, side = Vector3.zero, Vector3.zero, 0
 	-- (with a fish: where the pick-up is along the stream, how far to its right, how far along the sub keeps that line, and
@@ -341,10 +387,14 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 		-- them lie side by side
 		pickup = Vector3.new(entry.X, Config.Oxygen.SurfaceY - c.EscortUnder, entry.Z)
 			+ ahead * SubTrip.escortOut(half, saddleAt)
+		if air then
+			pickup = air.Pick
+		end
 		sPick = FishService.streamS(pickup)
 		local middle = FishService.streamPoint(sPick, 0, 0)
 		local across = laneWay(pickup):Cross(Vector3.yAxis)
-		off = (pickup - middle):Dot(across) - side
+		-- (the air hop: the fish is not beside it there, it comes up to its side after)
+		off = (pickup - middle):Dot(across) - (if air then 0 else side)
 		-- the sub's line is straight, from the gate until the fish is ahead of it: the sub in the gate and in the lane, and
 		-- the fish between it and the lane's right side (one too wide for that leaves the sub its room)
 		local run = sDrop - sPick
@@ -428,7 +478,13 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 		end
 		s = nextS
 	end
-	local trip = SubTrip.new(now(), sub.Dest, ride ~= nil, points, dropAt)
+	if air then
+		local lead = SubTrip.leadIn(points[1], points[2])
+		dropAt += (points[1] - lead).Magnitude
+		table.insert(points, 1, lead)
+		SubAir.aim(air, points[2], (points[3] - points[2]).Unit)
+	end
+	local trip = SubTrip.new(since or now(), sub.Dest, ride ~= nil, points, dropAt, air)
 	if held then
 		local near: { [number]: number } = {}
 		local roomLeft, roomRight = SubTrip.escortRooms(trip, sub.Equip, half, function(at, way, i)
@@ -446,6 +502,7 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 	sub.Phase = nil
 	sub.Cued = false
 	sub.Done = false
+	sub.Aloft = air ~= nil
 	sub.Held = held
 	sub.Moved = false
 	sub.Loose = false
@@ -455,7 +512,7 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 	FishService.keepFor(player, sub.DropPoint)
 	player:SetAttribute("SubTrip", SubTrip.encode(trip))
 	-- (on the fish's back, not swimming: no phase the rider's swimming pose goes by, AnimController)
-	player:SetAttribute("SubPhase", if held then "Saddle" else "Approach")
+	player:SetAttribute("SubPhase", if air then "Leap" elseif held then "Saddle" else "Approach")
 	-- (the player's machine is moved thousands of studs in seconds: the map at the drop point is sent ahead)
 	local drop = sub.DropPoint :: Vector3
 	task.spawn(function()
@@ -466,10 +523,145 @@ local function begin(player: Player, sub: Sub, root: BasePart, mounted: boolean)
 	return true
 end
 
+local function ready(sub: Sub): boolean
+	return Config.Sub.On ~= 0 and not sub.Trip and sub.Equip >= 1 and sub.Dest >= 2 and sub.Dest <= sub.Equip + 1
+end
+
+local function finite(x: any, low: number, high: number): boolean
+	return type(x) == "number" and x == x and x >= low and x <= high
+end
+
+-- The leap a player's machine says it has begun, if we believe it: theirs to say (it moves the body), but off the lip,
+-- from about where we have them, out from the dock, at a land fish's pace
+local function leapOf(player: Player, root: BasePart, said: any): (SubAir.Leap?, number)
+	local c, d = Config.Sub, Config.Dive
+	local lip = lipFrame()
+	if type(said) ~= "table" or not lip or typeof(said.Take) ~= "Vector3" or typeof(said.Heading) ~= "Vector3" then
+		return nil, 0
+	end
+	local at, since = now(), said.Start
+	local take, heading = said.Take :: Vector3, said.Heading :: Vector3
+	if
+		not finite(since, at - c.AirSlack, at + 0.15)
+		or not finite(said.Far, 5, 900)
+		or not finite(said.Rise, 0.1, 600)
+		or not finite(said.Fall, 0.1, 1500)
+		or not finite(said.Time, 0.4, 6)
+		or not finite(said.Crouch, 0, 0.6)
+		or not finite(take.X + take.Y + take.Z, -1e6, 1e6)
+		or not finite(heading.X + heading.Y + heading.Z, -3, 3)
+		or type(said.Tilts) ~= "table"
+		or #said.Tilts < 2
+		or #said.Tilts > 25
+	then
+		return nil, 0
+	end
+	for _, tilt in said.Tilts do
+		if not finite(tilt, -89, 89) then
+			return nil, 0
+		end
+	end
+	heading *= Vector3.new(1, 0, 1)
+	if heading.Magnitude < 0.5 then
+		return nil, 0
+	end
+	heading = heading.Unit
+	local from = lip:PointToObjectSpace(take)
+	local e = Config.Equip
+	if
+		(take - root.Position).Magnitude > c.AirReach
+		or math.abs(from.X) > c.AirReach + 20
+		or math.abs(from.Z) > c.AirReach
+		or take.Y < lip.Y
+		or heading:Dot(lip.LookVector) < math.cos(math.rad(math.min(d.LeapCone, 85) + 3))
+		or said.Far / said.Time > e.LandSpeed * e.PaceRoom * 1.6
+	then
+		return nil, 0
+	end
+	return {
+		Take = take,
+		Heading = heading,
+		Far = said.Far,
+		Rise = said.Rise,
+		Fall = said.Fall,
+		Crouch = said.Crouch,
+		Time = said.Time,
+		Tilts = table.clone(said.Tilts),
+	},
+		since
+end
+
+-- A player on their ride fish has leapt off the lip with a trip set: the air hop (Config.Sub.AirHop). Nothing here, and
+-- the hop under water comes as they go in
+local function leaps(player: Player, sub: Sub, said: any)
+	local asked = os.clock()
+	if asked - sub.Asked < 1 then
+		return -- (one leap a second: each costs a plan)
+	end
+	sub.Asked = asked
+	if Config.Sub.AirHop == 0 or Config.Sub.Escort == 0 or not ready(sub) or not RideService.onLandFish(player) then
+		return
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not root or not root:IsA("BasePart") or not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	local leap, since = leapOf(player, root, said)
+	if not leap then
+		return
+	end
+	local ok, began = pcall(begin, player, sub, root, true, leap, since)
+	if ok and began then
+		local trip = sub.Trip
+		-- (too late to jump by now: the dive goes on, and the hop is under water)
+		if trip and now() - trip.Start < trip.Approach - 0.03 then
+			return
+		end
+		finish(player, sub)
+		return
+	end
+	if not ok then
+		warn("[SubService] the air hop could not be made: " .. tostring(began))
+	end
+	local held = sub.Held
+	if held then
+		sub.Held = nil
+		FishService.discard(held)
+	end
+end
+
+-- The air hop before the jump: the rider is on their leaping land fish. True: still there (or just off it)
+local function aloft(player: Player, sub: Sub, trip: SubTrip.Trip, t: number): boolean
+	local held, own = sub.Held, sub.Own
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if
+		not RideService.onLandFish(player)
+		or not humanoid
+		or humanoid.Health <= 0
+		or not held
+		or not held.Model.Parent
+		or not own
+		or RideService.equippedOf(player) ~= own
+	then
+		return false
+	end
+	if t < trip.Approach then
+		return true
+	end
+	if not RideService.carryOff(player) then
+		return false
+	end
+	sub.Aloft = false
+	return true
+end
+
 -- Asked by RideService as a player on the dock goes into the water (`mounted`: on their ride fish): does the sub take them?
 local function diving(player: Player, mounted: boolean): boolean
 	local sub = subs[player]
-	if Config.Sub.On == 0 or not sub or sub.Trip or sub.Equip < 1 or sub.Dest < 2 or sub.Dest > sub.Equip + 1 then
+	if not sub or not ready(sub) then
 		return false
 	end
 	local character = player.Character
@@ -544,6 +736,13 @@ local function step(player: Player, sub: Sub, trip: SubTrip.Trip)
 	local t = now() - trip.Start
 	local state = RideService.stateOf(player)
 	local _, _, _, dropAt, endAt = SubTrip.times(trip)
+	if sub.Aloft then
+		if not aloft(player, sub, trip, t) then
+			finish(player, sub)
+			return
+		end
+		state = "Carried"
+	end
 	if not sub.Done and state ~= "Carried" then
 		-- given up in the middle: a death, a reset
 		finish(player, sub)
@@ -640,6 +839,8 @@ local function join(player: Player)
 		Held = nil,
 		Cued = false,
 		Done = false,
+		Asked = 0,
+		Aloft = false,
 		DropPoint = nil,
 		DropS = 0,
 		Stocked = false,
@@ -748,6 +949,8 @@ function SubService.Init()
 			pick(player, sub, a, b)
 		elseif action == "SubLand" then
 			landed(player, sub, a)
+		elseif action == "SubLeap" then
+			leaps(player, sub, a)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

@@ -2339,6 +2339,26 @@ function RideService.letGo(player: Player)
 	Net.Ride:FireClient(r.Player, "Dismounted", "Lost")
 end
 
+-- The submarine's air hop (SubService, Config.Sub.AirHop). On their land fish now?
+function RideService.onLandFish(player: Player): boolean
+	local r = riders[player]
+	return r ~= nil and r.State == "Dock" and r.Land ~= nil and r.Land.Model.Parent ~= nil
+end
+
+-- and off it in the air, carried by the submarine: what going into the water with a trip does (tick), at its own moment.
+-- False: they are not on it any more
+function RideService.carryOff(player: Player): boolean
+	local r = riders[player]
+	if not r or not RideService.onLandFish(player) then
+		return false
+	end
+	r.Token += 1
+	r.Oxygen = r.Max
+	setState(r, "Carried")
+	sendOxygen(r, true)
+	return true
+end
+
 -- and a player's state ("Dock", "Free", "Riding", "Jumping", "Drowning", "Carried"; nil for a player we don't know)
 function RideService.stateOf(player: Player): string?
 	local r = riders[player]
