@@ -155,10 +155,25 @@ Hugo can only have played the hop **under water** (the next section): the saved 
 | Jump to seat, s | 0.45 / 0.60 | **0.38 / 0.45** | 0.35 |
 | Lip to splash, s | 1.47 / 2.06 | **1.16 / 1.71** (over 1.5 in 293) | 1.1, at most 1.5 |
 | Lip to the run (control), s | 1.82 / 2.41 | **1.46 / 2.01** | 1.4 |
-| The camera's turn in a 60th of a second, degrees | 3.4 / 11.3 | **3.0 / 4.4** | 6 at most |
-| The camera's move, a frame against the last, studs | 3.6 most | **0.9 / 2.0** | 2.5 at most |
-| The camera back over the surface once under it, studs | 0 (1,287 flights looked at) | **0 in all** | 0 |
 | The fish's move, a frame against the last, studs | 4.6 most | **1.1 / 2.95** | 3 at most |
+
+**The camera, as the client moves it** (review 1 of f1; the sums are one function, `SubAir.view`, that the client and the check both call; every
+frame from the leap's first to the run's, the server's word back after 0.05, 0.15, 0.25 and 0.35 s, the body leaving the saddle on a frame as it really does). Middle / most, and how many over the limit:
+
+| | Before: h1's client, 1,287 flights | The same 1,287, f1's faulty line put back | Now, all 11,934 | Limit |
+|---|---|---|---|---|
+| Coming in: its move, a frame against the last, studs | 3.5 / 6.8 (1,132 over) | 32.8 / 49.7 (1,287 over) | **0.77 / 2.25 (0)** | 2.5 |
+| Coming in: its turn in a 60th of a second, degrees | 2.1 / 4.2 (0) | 25.8 / 54.3 (1,287 over) | **2.1 / 5.1 (0)** | 6 |
+| After that: its move, studs | 2.0 / 7.0 (609 over) | 0.94 / 2.0 (0) | **0.98 / 2.0 (0)** | 2.5 |
+| After that: its turn, degrees | 3.4 / 10.4 (123 over) | 3.0 / 4.4 (0) | **3.0 / 4.4 (0)** | 6 |
+| As the run's camera takes over: its move, studs | 0.4 / 0.5 (0) | 0.4 / 0.5 (0) | **0.4 / 0.5 (0)** | 2.5 |
+| Back over the surface once under it, studs | 0 | 0 | **0** | 0 |
+
+- **What was wrong as first handed in:** the client measured the view from its anchor and put it down from the rider, so it sat up to 50 studs too high
+  and dropped in one frame in mid-hop. The check had its own copy of the sums, with the right line, and did not judge the blend's last frame. Both are gone.
+- **And one h1 had too:** you leave the saddle on the first frame after the plan's moment, up to 4 studs under the plan, and the
+  camera took that into its own height: a jolt at the jump. Its height is now the plan's track alone (a late word starts that track when it comes).
+- **The check can fail:** the old line put back fails all 1,287.
 
 **What was changed for it:**
 - **Shorter:** every time in the hop (`AirAt`, `AirHopTime`, `AirFall` with its speeds, `AirUnder`; the old numbers are in the table at
@@ -168,7 +183,7 @@ Hugo can only have played the hop **under water** (the next section): the saved 
   nods only `AirCamNod` of the way up after you; it is put where it turns least (`AirCamTurn` in `SubAir.seen`); its rise in the fall
   goes by a smoothed slope; the sub's nose goes down 30 degrees, not 50, so there is less to swing over.
 - **Not pulled about before the hop:** after the leap's message the view stays the player's own until the server's word is back (0.35 s at most; none: the dive's film comes in over 0.35 s).
-- **Never up out of the water:** once the camera is under, `AirHop` keeps it at least 0.5 studs under the surface, for every fish, size and sub. On the plain dive it
+- **Never up out of the water:** once the camera is under, `SubAir.view` keeps it at least 0.5 studs under the surface, for every fish, size and sub. On the plain dive it
   never happened: all 468 plans, 0 studs back over the surface and no rise at all once under (now a fail in `tools/dive/fish_dive_check.luau`). So the plain dive's code is not changed.
   What Hugo may have seen on big fish is in the under-water hop: the dive's film is still over the water when the trip
   takes over, and the view cuts to under it. The air hop has no such cut.
@@ -223,12 +238,12 @@ under the sub as it comes by overhead (or over it, when it comes in low), up ove
   reads or looks like a brake is for Studio.
 - The sub is in sight only from 200 studs back (`AirFrom`), 1.1 s before it meets you.
 
-**Checked offline (2026-11-25, after f1; the last run is this source).** 1,326 leaps (all 78 kinds at all six sizes, and more along the lip and
+**Checked offline (2026-11-25, after f1's review 1; the last run is this source).** 1,326 leaps (all 78 kinds at all six sizes, and more along the lip and
 slanted) with each of the nine subs: 11,934 flights, every frame at 60 a second, told to the real `SubService`; each got its air hop.
 
 - **All of the 11,934 pass:** the sub clear of the gate, the arch and the map; the rider clear of them; the fish clear of the hull until
   its own splash; the sub in the lane (8.9 studs or more to its sides); through the surface once; the seat met exactly; the camera on the middle line, behind, never in the
-  sub, never in the fish for 0.1 s, never cut, its turn and its move in a frame under the limits, never back over the surface; the sub over the rider in the hop 0.3 s at most; the rider in the
+  sub, never in the fish for 0.1 s, never cut, its turn and its move in a frame under the limits for every word from 0.05 to 0.35 s, never back over the surface; the sub over the rider in the hop 0.3 s at most; the rider in the
   picture; the swap (0.0 studs, 1.2 degrees at most); the fish's move under 3 studs a frame.
 - **What fails, and by how much:**
 
@@ -236,9 +251,8 @@ slanted) with each of the nine subs: 11,934 flights, every frame at 60 a second,
 |---|---|---|---|---|
 | Lip to the splash (1.5 s; h1's limit was 2.1) | 0 of 2.1 | 293 | 1.71 | the rearing giants |
 | Lip to the run (2 s; h1's limit was 3) | 0 of 3 | 5 | 2.01 | BlueWhale Colossal |
-| The camera's turn in a frame (6 degrees) | 1,489 | **0** | 4.4 | |
-| The camera's move, a frame against the last (2.5 studs) | 64 | **0** | 2.0 | |
-| The rider through the sub's hull as it sweeps by (0.1 s) | 874 | 136 | 0.18 s | 123 with sub 9 |
+| The camera's turn and move in a frame | the table above | **0** | | |
+| The rider through the sub's hull as it sweeps by (0.1 s) | 874 | 146 (now with the body leaving a frame late, as it does) | 0.18 s | 129 with sub 9 |
 | The fish's move, a frame against the last (3 studs) | 792 | **0** | 2.95 | |
 | The sub over the rider in the fall (0.3 s) | 301 | 49 | 0.40 s | subs 6 and 8 |
 | The sub over the rider in the hop (0.3 s) | 147 | **0** | 0.30 s | |

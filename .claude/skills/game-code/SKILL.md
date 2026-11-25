@@ -66,6 +66,7 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   [submarine](docs/design/submarine.md), "The air hop". After any change to it run `tools/subs/escort_check.luau` with
   the leaps and boxes (tools/subs/air_check.luau), and once with `AirHop` 0 against the tag.
   Made shorter, the camera steadier (one anchor, `SubAir.track`) and the trail weaker the same day (f1); the old numbers are in the note.
+  The client's own camera is `SubAir.view`, which the check runs too: never write its sums a second time.
 - **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
   only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
   `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`
