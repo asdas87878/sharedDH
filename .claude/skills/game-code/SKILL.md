@@ -80,11 +80,13 @@ doing this kind of work carry it. Keep it up to date HERE from now on, the way C
   are saved in the Index. [saddles](docs/design/saddles.md). Checks: `tools/saddles/saddle_test.luau`, `saddle_parity.luau`, `tools/index/panel_test.luau`.
 - **Auras (2026-11-24; NULLROOM a1; seen in Studio 2026-11-25):** `AuraService` (server: Action "AuraBuy", tier; the next one
   only, on the dock near the stall, `Config.Aura.Prices`; attribute `Aura`; Ride "AuraBought"/"AuraDenied"; multiplies
-  `TrainService.gain` only), the flame in `Shared/AuraFlame` (plain sums) and `Lib/AuraBeams`, worn by `AuraController`
-  (`Config.Aura.Flame` 0 = the old look; no pictures = the old look too), cards in `UI/AuraShop` (never a stand-in behind an
-  icon). Pictures `art/ui/aura_flame`, local only (`python tools/auras/flame_pics.py`); to upload: the six in its `upload/` (with ids
-  in `Auras.Pictures`, `Aura.Turn` does nothing). Design:
-  [auras](docs/design/auras.md). Checks: `tools/auras/aura_test.luau` (lune on a built place), `tools/studio/aura_check.py`.
+  `TrainService.gain` only), `Config.Aura.Look`: 2 (2026-11-25, not seen
+  in Studio yet) is the 3D look, `Shared/AuraVolume` (plain sums) and `Lib/AuraAround`, worn by `AuraController`: gone moving on foot, always there
+  riding (a new kind of seat needs a row in its `WELDS`); 1 the flame (`Shared/AuraFlame`, `Lib/AuraBeams`); 0 draft 2; cards in `UI/AuraShop` (never a stand-in behind an
+  icon). Hugo chose A (`Config.Aura.Small` 1). The six flame pictures have IDs in `Auras.Pictures`. The twelve
+  3D sheets in `art/ui/aura_volume` have empty entries in `Auras.Sheets`. Live games use engine pictures, plain
+  ribbon beams or omit layers until those IDs are set. See [auras](../../../docs/design/auras.md).
+  Offline checks are `tools/auras/aura_test.luau` and `volume_test.luau`. Studio check is `tools/studio/aura_check.py`.
 - **Fusing (2026-11-25; NULLROOM u1; not seen in Studio):** three of a kind become one a size bigger. Rules `Shared/Fuse` (plain sums);
   `FuseService` (Action "Fuse", three picks "T"key or "H"key; on the dock near `Dock.Stations.Fuse.Ring`; Ride "Fused"/"FuseDenied");
   the step is `AquariumService.fuse` (checks all, then `RideService.fuseCarried`, then the tank; **never put a wait in it**);

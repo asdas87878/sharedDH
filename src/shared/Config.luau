@@ -3017,6 +3017,7 @@ Config.Sandbox = {
 -- The admin panel for playtesting (key P; AdminService, docs/sandbox.md "The admin panel"). Open to everyone in
 -- Studio, and in a live server to the place's owner and these user ids. The server checks it on every action.
 Config.Admin = {
+	On = 0, -- 0: there is no panel and no remote for anyone, in Studio or live (the user, 2026-11-25: not in the main game); 1: on
 	Users = {} :: { number }, -- user ids allowed besides the owner
 	Owner = 1, -- 1: the place's owner (a user, or a group's owner) is allowed; 0: only the list
 	Maxes = { 200, 500, 2000, 4500, 8000 } :: { number }, -- the max Oxygen buttons (past 2000: the extra thin rings)
@@ -3726,7 +3727,165 @@ Config.Aura = {
 	Prices = { 100, 2e3, 40e3, 800e3, 15e6, 300e6, 6e9, 120e9, 2.5e12, 50e12, 1e15, 20e15 } :: { number },
 	Near = 30, -- the stall sells within this many studs of its ring (Dock.Stations.Auras), as the sub's stand
 	BuyAgain = 0.5, -- one ask at a time: a second press within this many seconds is the same click, seconds
-	Flame = 1, -- 1: the flame (draft 4); 0: the old look (draft 2's particles and ribbons). Read live
+	Look = 2, -- 2: round the body in 3D (Shared/AuraVolume); 1: the flame (draft 4); 0: draft 2's particles. Read live
+	-- Look 2, when it shows (Hugo, 2026-11-25: "it should also fade out when moving and fade in when standing still, this
+	-- shouldnt apply to riding, always seeing the aura"). Everyone's by their own movement, on every machine
+	FadeIn = 0.5, -- standing still on foot: seen over this long, seconds
+	FadeOut = 0.25, -- moving on foot (swimming always): gone over this long, seconds
+	MoveAt = 2, -- over this speed is moving, studs a second (walking is 16 and up),
+	StillAt = 0.8, -- and under this,
+	StillFor = 0.12, -- for this long, is standing still, seconds
+	SpeedOver = 0.08, -- the speed is smoothed over this long (another player's place comes in steps), seconds
+	Hop = 1, -- 1: the hop from fish to fish is part of the ride, seen; 0: it is moving
+	-- Look 2, how it stands round a rider and what they ride, studs
+	RideWide = 12, -- never further than this out to its sides,
+	RideLong = 20, -- and to its ends, however big the fish is
+	RideDeep = 12, -- from no more than this under the rider, to this over them
+	RideGrow = 2.2, -- its pictures are up to this many times as big
+	RideMore = 1.5, -- and up to this many times as many
+	RideWisps = 18, -- at least this many wisps a second round a fish (the first tiers' few would be lost round it)
+	EyeCalm = 0, -- 0: our own is as everyone else sees it, whole. 1: a calmer one to steer through, no haze and no pillar:
+	EyeShare = 0.5, -- it reaches to this share of the way to our camera (RideController's, some 17 studs),
+	EyeGrow = 1.5, -- its pictures are up to this many times as big,
+	EyeStrength = 0.6, -- and tier 12's is this strong (tier 1's whole, those between in between)
+	RideLean = 0.5, -- the share of the fish's pitch it follows (0: always upright; never its roll)
+	-- Look 2, smaller and less apparent (Hugo, 2026-11-25: "make auras less apparent and especially not as big( cover
+	-- player especially ) when riding on fish, should be way smaller in general when riding a fish"). One switch, read live:
+	-- 0: as it was built, round the whole fish; 1, 2, 3: version A, B or C of Smalls. With one of them the Ride dials over
+	-- this one (but RideLean) and EyeCalm say nothing: riding it is round the rider only, whatever the fish is, and every
+	-- piece of it is drawn behind the rider's own body, for the wearer and for everyone else
+	Small = 1, -- Hugo chose A on 2026-11-25
+	-- A (small), B (smaller), C (tiniest). On foot: Strength (how solid all of it is), Reach, Tall and Pictures (how wide,
+	-- how tall and how big its pictures are), each a share of what it was, and Foot: the share of one piece on top of that
+	-- (a piece not named is 1). Riding, from tier 1's to tier 12's: Wide (out from the rider, studs: the arms end at 2), High
+	-- (studs) and Wisp (a wisp's size, studs; every other picture in step with it); Solid (how solid all of it is) and Ride: the
+	-- share of each piece (a piece not named is not drawn at all). Its foot is Lift over the fish's back, its near side is drawn Back
+	-- studs behind the rider's middle or more, but the pieces in Low: those really go round the rider, no higher over its
+	-- foot than this, studs. Wisps: at least this many a second (tier 1 must be seen too)
+	Smalls = {
+		{
+			Name = "A",
+			Strength = 0.8,
+			Reach = 0.92,
+			Tall = 0.85,
+			Pictures = 0.88,
+			Foot = {
+				Haze = 0.3,
+				Arcs = 0.7,
+				Flames = 0.9,
+				Pillar = 0.35,
+				Ring = 0.6,
+				Pool = 0.4,
+				Light = 0.5,
+				Shock = 0.6,
+				Serpent1 = 0.75,
+				Serpent2 = 0.75,
+			},
+			Wide = { 2.7, 3.5 },
+			High = { 2.8, 4.2 },
+			Wisp = { 2.5, 2.65 },
+			Solid = 0.95,
+			Back = 0.8,
+			Lift = 0.9,
+			Low = { Ribbon = 1.5 },
+			Wisps = 18,
+			Ride = {
+				Wisps = 1,
+				Flames = 0.7,
+				Shafts = 0.3,
+				Embers = 0.9,
+				Spray = 0.4,
+				Arcs = 0.6,
+				Crown = 0.6,
+				Ribbon = 0.7,
+				Ribbon2 = 0.7,
+				Serpent1 = 0.6,
+				Serpent2 = 0.6,
+			},
+		},
+		{
+			Name = "B",
+			Strength = 0.66,
+			Reach = 0.85,
+			Tall = 0.74,
+			Pictures = 0.8,
+			Foot = {
+				Haze = 0.15,
+				Arcs = 0.55,
+				Flames = 0.85,
+				Pillar = 0.25,
+				Ring = 0.45,
+				Pool = 0.3,
+				Light = 0.3,
+				Shock = 0.5,
+				Serpent1 = 0.65,
+				Serpent2 = 0.65,
+			},
+			Wide = { 2.5, 3.1 },
+			High = { 2.6, 3.7 },
+			Wisp = { 2.2, 2.3 },
+			Solid = 0.9,
+			Back = 0.8,
+			Lift = 0.8,
+			Low = { Ribbon = 1.3 },
+			Wisps = 18,
+			Ride = {
+				Wisps = 1,
+				Flames = 0.5,
+				Embers = 0.8,
+				Arcs = 0.45,
+				Crown = 0.5,
+				Ribbon = 0.7,
+				Ribbon2 = 0.55,
+				Serpent1 = 0.5,
+				Serpent2 = 0.5,
+			},
+		},
+		{
+			Name = "C",
+			Strength = 0.55,
+			Reach = 0.78,
+			Tall = 0.64,
+			Pictures = 0.72,
+			Foot = {
+				Haze = 0.1,
+				Arcs = 0.4,
+				Flames = 0.8,
+				Pillar = 0.2,
+				Ring = 0.35,
+				Pool = 0.2,
+				Light = 0,
+				Shock = 0.4,
+				Serpent1 = 0.55,
+				Serpent2 = 0.55,
+			},
+			Wide = { 2.4, 2.7 },
+			High = { 2.4, 3.2 },
+			Wisp = { 1.95, 2 },
+			Solid = 0.85,
+			Back = 0.8,
+			Lift = 0.7,
+			Low = { Ribbon = 1.1 },
+			Wisps = 18,
+			Ride = {
+				Wisps = 0.9,
+				Flames = 0.35,
+				Embers = 0.7,
+				Arcs = 0.3,
+				Crown = 0.4,
+				Ribbon = 0.7,
+				Serpent1 = 0.45,
+			},
+		},
+	} :: { { [string]: any } },
+	-- Look 2, what is drawn (Shared/AuraVolume.detail: 3 all of it, 2 about two thirds, 1 a few pieces)
+	WholeTo = 70, -- all of it to this far from the camera (then about two thirds), studs,
+	FewFrom = 130, -- and a few pieces from here to Auras.DrawRange
+	Full = 3, -- others' auras drawn whole at once, the nearest,
+	Half = 4, -- and the next ones at two thirds
+	PhoneOwn = 2, -- on a phone: our own,
+	PhoneMost = 1, -- and the most anyone else's is
+	Lights = 4, -- this many auras at most give light: our own, then the nearest (0: none)
 	-- How Roblox draws the pictures, found in Studio (2026-11-25: 2 and -1 are the right way up, joined). Read live
 	Turn = 2, -- quarter turns clockwise of the Beams' pictures, 0 to 3
 	Scroll = -1, -- which way the flame's picture runs along its Beams

@@ -21,6 +21,7 @@ local Actions = require(script.Parent.Parent.Lib.Actions)
 local State = require(script.Parent.Parent.Lib.State)
 local FusePanel = require(script.Parent.Parent.UI.FusePanel)
 local Shop = require(script.Parent.Parent.UI.Shop)
+local SubPanel = require(script.Parent.Parent.UI.SubPanel)
 local RideController = require(script.Parent.RideController)
 
 local TrailerController = {}
@@ -94,6 +95,10 @@ local function screens()
 	local gui = player:FindFirstChildOfClass("PlayerGui")
 	if not gui then
 		return
+	end
+	local pointer = gui:FindFirstChild("LessonPointer", true)
+	if pointer and pointer:IsA("GuiObject") then
+		pointer.Visible = false
 	end
 	for _, g in gui:GetChildren() do
 		if g:IsA("LayerCollector") and g ~= slate then
@@ -218,6 +223,9 @@ local function view(shot: Shot, t: number): (CFrame, number)
 	local s = if smooth then smooth:Lerp(at, 0.5) else at
 	smooth = s
 	local az, el = blend(a.Az, b.Az, u, 0) * sideOf, blend(a.El, b.El, u, 0)
+	if workspace:GetAttribute("TrailerSweep") then
+		az = u * 360 -- (checks: all the way round, to find a clear side)
+	end
 	local dist = blend(a.Far, b.Far, u, 1) * size
 	local target = s
 		+ frame.LookVector * blend(a.Ahead, b.Ahead, u, 0) * size
@@ -272,7 +280,9 @@ local function clearView(from: Vector3?, to: Vector3)
 				local way = to - from
 				local at = m.PrimaryPart.Position
 				local u = math.clamp((at - from):Dot(way) / math.max(way:Dot(way), 1), 0, 1)
-				on = (at - (from + way * u)).Magnitude < lengthOf(m) * 0.5 + length * 0.3
+				local half = lengthOf(m) * 0.5
+				on = (at - (from + way * u)).Magnitude < half + length * 0.3
+					or (at - to).Magnitude < half + length * 0.6
 			end
 			fade(m, on)
 		elseif m:IsA("Model") and faded[m] then
@@ -323,6 +333,7 @@ end
 local function home()
 	path, aim = nil, nil
 	Shop.go(nil)
+	SubPanel.open(false)
 	if State.Mode ~= "Dock" then
 		ask("Home")
 		until_(6, function()
@@ -517,8 +528,8 @@ local SHOTS: { Shot } = {
 		Time = 1.3,
 		Ease = "Out",
 		Ride = { Land = 8, Along = 1000, Fish = "MoltenMegalodon", Size = "Big" },
-		From = { Az = 172, El = -4, Far = 0.6, Ahead = 0.2 },
-		To = { Az = 140, El = -14, Far = 0.85 },
+		From = { Az = 170, El = 3, Far = 0.95, Ahead = 0.1 },
+		To = { Az = 138, El = -5, Far = 0.85, Ahead = 0.12 },
 	},
 	-- the hop, from behind, still no screens
 	{
@@ -565,13 +576,15 @@ local SHOTS: { Shot } = {
 		Prep = function()
 			home()
 			tankPlace()
+			task.wait(8) -- (the dive's own banner, after the rides before)
 		end,
 		Live = stepped(0.19, 0.15, #TANK, function(i)
 			ask("Give", { TANK[i] })
 			Net.Action:FireServer("Tank", "Best")
 		end),
-		From = { Az = 168, El = 14, Far = 1.15 },
-		To = { Az = 192, El = 10, Far = 0.95 },
+		Through = true,
+		From = { Az = -14, El = 14, Far = 1.15 },
+		To = { Az = 12, El = 10, Far = 0.95 },
 	},
 	{
 		Name = "Seahorse 1",
@@ -616,7 +629,7 @@ local SHOTS: { Shot } = {
 	{
 		Name = "Kelp",
 		Time = 1.1,
-		Ride = { Land = 3, Along = 1500, Fish = "KelpWyrm" },
+		Ride = { Land = 3, Along = 700, Fish = "KelpWyrm" },
 		From = { Az = 10, El = 16, Far = 0.75, Ahead = 0.3 },
 		To = { Az = -8, El = 13, Far = 0.65, Ahead = 0.3 },
 	},
@@ -662,7 +675,8 @@ local SHOTS: { Shot } = {
 		Prep = function()
 			home()
 			station("Sub")
-			Shop.go("Sub")
+			Shop.go(nil)
+			SubPanel.open(true)
 			task.wait(1)
 		end,
 		Live = function(t)
@@ -718,7 +732,13 @@ local function play(number: number, shot: Shot)
 				if
 					until_(8, function()
 						local fish = State.Fish
-						return State.Mode == "Riding" and fish ~= nil and fish.Name ~= "" and State.MountedAt > asked
+						local root = fish and fish.PrimaryPart
+						-- (on a fish mounted since, and where the shot is: not still on the one before)
+						return State.Mode == "Riding"
+							and root ~= nil
+							and State.MountedAt > asked
+							and path ~= nil
+							and (root.Position - path[1]).Magnitude < 700
 					end)
 				then
 					break
@@ -726,7 +746,7 @@ local function play(number: number, shot: Shot)
 				warn(`[Trailer] {shot.Name}: not on the fish, try {try}`)
 			end
 			local fish = State.Fish
-			State.RideLift = if fish then math.max(0, fish:GetExtentsSize().Y / 2 - 4) else 0
+			State.RideLift = if fish then math.max(0, fish:GetExtentsSize().Y / 2 + 4) else 0
 			task.wait(shot.Settle or Config.Trailer.Settle)
 		end
 		if shot.Prep then
